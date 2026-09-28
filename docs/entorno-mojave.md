@@ -4,7 +4,7 @@ Máquinas de referencia:
 
 | Máquina | CPU | RAM | Sistema | Uso |
 |---|---|---|---|---|
-| MacPro7,1 | Xeon W (Cascade Lake) | — | macOS 15 Sequoia, Xcode 26.3 | **host principal**: FlyWeb (Chromium 116) y trabajo diario |
+| MacPro7,1 | Xeon W Cascade Lake, 16 núcleos / 32 hilos (con AVX-512), SSD PCIe 2 TB | 96 GB | macOS 15 Sequoia, Xcode 26.3 | **host principal**: FlyWeb (Chromium 116) y trabajo diario |
 | MacPro6,1 | Xeon E5 Ivy Bridge, 12 núcleos / 24 hilos (con AVX) | 64 GB | Mojave 10.14, Xcode 11.3.1 | compilar BackupDrive y apps Cocoa; probar en Mojave |
 | MacPro5,1 | 2× Xeon Westmere, 8 núcleos / 16 hilos (sin AVX) | 48 GB | Mojave 10.14 | pruebas de "peor caso" (en el estudio) |
 

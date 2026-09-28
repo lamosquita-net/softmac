@@ -8,7 +8,7 @@ Monorepo de software para Macs obsoletos de lamosquita.net. Idioma de trabajo: e
 - Nada de binarios que exijan AVX (la MacPro5,1 no lo tiene).
 
 ## Máquinas
-- **MacPro7,1** (macOS 15 Sequoia, Xcode 26.3): host de compilación principal.
+- **MacPro7,1** (macOS 15 Sequoia, Xcode 26.3, 16 núcleos / 32 hilos, 96 GB, SSD 2 TB): host de compilación principal.
 - **MacPro6,1** (Mojave, Xcode 11.3.1, 64 GB): compilación y pruebas en Mojave.
 - **MacPro5,1** (Mojave, 48 GB, sin AVX): pruebas de "peor caso", en el estudio.
 
