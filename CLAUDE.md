@@ -23,8 +23,9 @@ sincroniza con Google Drive y más adelante con BackupDrive). Se monta con `git 
 | brave-core (fork) | `~/proyectos/softmac/FlyWeb/brave-core.git` | `…/softmac/FlyWeb/brave-core/` |
 | Checkout y compilación de Chromium | **local**: `~/proyectos/flyweb-build/` | — (no se sincroniza; se regenera desde los forks) |
 
-`src/brave` del checkout de compilación será un `git worktree` de `~/proyectos/softmac/FlyWeb/brave-core.git`,
-de modo que los commits se ven en los dos sitios sin push/pull.
+Flujo de FlyWeb: se edita y se hace commit en la red (rama `flyweb`). El checkout de compilación usa
+worktrees *detached* de los mismos `.git` locales: `FlyWeb/scripts/build.sh` los pone en el último
+commit de `flyweb` antes de compilar. Solo se compila lo que tiene commit. Nada de push/pull entre ambos.
 
 ## Proyectos
 ### BackupDrive/
@@ -36,7 +37,8 @@ de modo que los commits se ven en los dos sitios sin push/pull.
 ### FlyWeb/ (navegador)
 - Base: **Brave 1.57.64** = Chromium **116.0.5845.188**, la última versión con soporte oficial en 10.13/10.14.
 - Forks: `lamosquita-net/brave-core` y `lamosquita-net/brave-browser`, rama `flyweb` desde el tag `v1.57.64`.
-- Checkout de compilación: `~/proyectos/flyweb-build/` en local (100–150 GB, ver "Estructura en disco").
+- Checkout de compilación: `~/proyectos/flyweb-build/` en local (100–150 GB). `FlyWeb/scripts/setup-build.sh`
+  (una vez) y `FlyWeb/scripts/build.sh` (cada compilación; pasa `mac_sdk_path` y `symbol_level:0`).
 - Compilar con **Xcode 14.3 / SDK macOS 13.3** (oficial de Chromium 116). En la 7,1: extraer
   `MacOSX13.3.sdk` de Xcode 14.3.1 y pasarlo con `mac_sdk_path`; no usar el SDK 26.
 - Obligaciones: MPL-2.0 (publicar los ficheros de Brave modificados), `about:credits`, **quitar la marca

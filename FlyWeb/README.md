@@ -44,7 +44,7 @@ El árbol completo (Chromium más dependencias) ocupa entre 100 y 150 GB con la 
 | Nuestros commits sobre Brave | forks [`lamosquita-net/brave-core`](https://github.com/lamosquita-net/brave-core) y [`lamosquita-net/brave-browser`](https://github.com/lamosquita-net/brave-browser), rama **`flyweb`** (desde el tag `v1.57.64`) |
 | Árbol de trabajo de los forks | `FlyWeb/brave-core/` y `FlyWeb/brave-browser/`: repos aparte, excluidos por el `.gitignore` de softmac |
 | Checkout de Chromium y compilación | `~/proyectos/flyweb-build/`, en local (no se sube ni se sincroniza) |
-| Esta carpeta | documentación y `patches/` (parches sobre Chromium que no encajen en `brave-core`) |
+| Esta carpeta | documentación, `scripts/` (montaje y compilación) y `patches/` (parches sobre Chromium que no encajen en `brave-core`) |
 
 Para montarlo en un Mac nuevo, ver la tabla "Estructura en disco" de [`CLAUDE.md`](../CLAUDE.md):
 
@@ -61,6 +61,18 @@ Chromium 116 compila oficialmente con **Xcode 14.3 (14E222b) y el SDK de macOS 1
 - **Host: MacPro7,1** (Sequoia, Xcode 26.3). Usar el `MacOSX13.3.sdk` extraído de Xcode 14.3.1
   mediante `mac_sdk_path`, no el SDK 26.
 - **Pruebas: MacPro6,1 y MacPro5,1** (Mojave). Su Xcode 11.3.1 no sirve para compilar Chromium 116.
+
+```sh
+FlyWeb/scripts/setup-build.sh   # una vez: worktrees + npm run init (descarga Chromium, varias horas)
+FlyWeb/scripts/build.sh         # cada compilación: pone los worktrees en el último commit de "flyweb" y compila
+```
+
+Flujo: editar en `FlyWeb/brave-core/` (red) → commit en `flyweb` → `build.sh`. Solo se compila lo que tiene commit.
+Rutas configurables con `FLYWEB_BUILD`, `FLYWEB_GITDIRS`, `FLYWEB_SDK` y `FLYWEB_BRANCH`.
+
+**Sin probar todavía:** que Chromium 116 acepte `mac_sdk_path` con Xcode 26 activo (`build/mac/find_sdk.py`
+y `sdk_info.py` consultan `xcodebuild`). Si falla, habrá que apuntar `DEVELOPER_DIR` a un Xcode 14.3.1
+o poner la versión como argumento de gn.
 
 `mac_deployment_target = "10.13"` es el valor por defecto de Chromium 116, así que no hay que cambiarlo.
 

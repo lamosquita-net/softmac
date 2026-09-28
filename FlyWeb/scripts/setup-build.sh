@@ -1,0 +1,53 @@
+#!/bin/sh
+# Prepara el checkout de compilación de FlyWeb en la MacPro7,1 (una sola vez).
+#
+#   ~/proyectos/flyweb-build/brave-browser/            worktree de brave-browser.git (commit de "flyweb")
+#   ~/proyectos/flyweb-build/brave-browser/src/        Chromium 116 (gclient, ~100 GB)
+#   ~/proyectos/flyweb-build/brave-browser/src/brave/  worktree de brave-core.git (commit de "flyweb")
+#
+# Los worktrees de compilación van en modo "detached": la rama "flyweb" sigue activa en los árboles
+# de trabajo de la red, que es donde se edita y se hace commit. build.sh los pone al día antes de compilar.
+set -eu
+
+BUILD="${FLYWEB_BUILD:-$HOME/proyectos/flyweb-build}"
+GITDIRS="${FLYWEB_GITDIRS:-$HOME/proyectos/softmac/FlyWeb}"
+SDK="${FLYWEB_SDK:-$HOME/proyectos/sdk/MacOSX13.3.sdk}"
+BRANCH="${FLYWEB_BRANCH:-flyweb}"
+
+die() { echo "ERROR: $*" >&2; exit 1; }
+
+for tool in git node npm python3; do
+  command -v "$tool" >/dev/null || die "falta '$tool' en el PATH"
+done
+xcode-select -p >/dev/null 2>&1 || die "faltan las Command Line Tools (xcode-select --install)"
+
+[ -d "$SDK" ] || die "no existe $SDK
+  1. Descarga Xcode_14.3.1.xip de https://developer.apple.com/download/all/
+  2. xip -x Xcode_14.3.1.xip   (en una carpeta temporal)
+  3. mkdir -p $(dirname "$SDK") && cp -R Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk $(dirname "$SDK")/
+  4. Borra Xcode.app y el .xip: solo hace falta el SDK."
+
+for repo in brave-browser brave-core; do
+  git --git-dir="$GITDIRS/$repo.git" rev-parse --verify -q "$BRANCH" >/dev/null \
+    || die "$GITDIRS/$repo.git no tiene la rama '$BRANCH'"
+done
+
+mkdir -p "$BUILD"
+avail_gb=$(df -g "$BUILD" | awk 'NR==2 {print $4}')
+[ "$avail_gb" -ge 200 ] || die "solo hay ${avail_gb} GB libres en $BUILD; hacen falta unos 200 GB"
+
+if [ ! -e "$BUILD/brave-browser/.git" ]; then
+  git --git-dir="$GITDIRS/brave-browser.git" worktree add --detach "$BUILD/brave-browser" "$BRANCH"
+fi
+mkdir -p "$BUILD/brave-browser/src"
+# scripts/init.js no clona brave-core si src/brave/.git ya existe (un worktree también cuenta).
+if [ ! -e "$BUILD/brave-browser/src/brave/.git" ]; then
+  git --git-dir="$GITDIRS/brave-core.git" worktree add --detach "$BUILD/brave-browser/src/brave" "$BRANCH"
+fi
+
+cd "$BUILD/brave-browser"
+npm install
+# Descarga depot_tools y Chromium 116.0.5845.188 (fijado en src/brave/package.json). Tarda horas.
+npm run init -- --target_os=mac --target_arch=x64
+
+echo "Listo. Compila con: $(dirname "$0")/build.sh"
