@@ -44,7 +44,7 @@ El árbol completo (Chromium más dependencias) ocupa entre 100 y 150 GB con la 
 | Nuestros commits sobre Brave | forks [`lamosquita-net/brave-core`](https://github.com/lamosquita-net/brave-core) y [`lamosquita-net/brave-browser`](https://github.com/lamosquita-net/brave-browser), rama **`flyweb`** (desde el tag `v1.57.64`) |
 | Árbol de trabajo de los forks | `FlyWeb/brave-core/` y `FlyWeb/brave-browser/`: repos aparte, excluidos por el `.gitignore` de softmac |
 | Checkout de Chromium y compilación | `~/proyectos/flyweb-build/`, en local (no se sube ni se sincroniza) |
-| Esta carpeta | documentación, `scripts/` (montaje y compilación) y `patches/` (parches sobre Chromium que no encajen en `brave-core`) |
+| Esta carpeta | documentación ([`docs/rebranding.md`](docs/rebranding.md): qué cambiar para quitar la marca Brave), `scripts/` (montaje y compilación) y `patches/` (parches sobre Chromium que no encajen en `brave-core`) |
 
 Para montarlo en un Mac nuevo, ver la tabla "Estructura en disco" de [`CLAUDE.md`](../CLAUDE.md):
 
