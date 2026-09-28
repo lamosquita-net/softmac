@@ -1,6 +1,6 @@
-# lamosquita-browser
+# FlyWeb
 
-Navegador para macOS 10.14 Mojave. Criterio de aceptación: **claude.ai** y la web actual funcionan
+Navegador de lamosquita.net para macOS 10.14 Mojave. Criterio de aceptación: **claude.ai** y la web actual funcionan
 por completo.
 
 ## Base: Brave 1.57.64
@@ -19,7 +19,7 @@ por completo.
   código fuente debe publicarse si distribuimos binarios. Los ficheros nuevos pueden llevar otra licencia.
 - Chromium: BSD-3 más licencias de terceros. Hay que distribuir `about:credits`.
 - **"Brave" y su logotipo son marcas registradas**: la MPL no da permiso para usarlas. Hay que cambiar
-  nombre, iconos, bundle id (`net.lamosquita.browser`) y URLs de actualización.
+  nombre, iconos, bundle id (`net.lamosquita.flyweb`) y URLs de actualización.
 - Hay que desactivar o sustituir los servicios de Brave: actualizaciones, Rewards, Sync, estadísticas
   y claves de API.
 
@@ -39,8 +39,9 @@ Posibles mitigaciones (hay que decidir cuál):
 
 El árbol completo (Chromium más dependencias) ocupa entre 60 y 100 GB y no cabe en GitHub. Propuesta:
 
-- Forks en GitHub de `brave/brave-core` y `brave/brave-browser` en `lamosquita-net`, con una rama
-  `mojave` a partir del tag `v1.57.64`. Ahí van nuestros commits.
+- Forks [`lamosquita-net/brave-core`](https://github.com/lamosquita-net/brave-core) y
+  [`lamosquita-net/brave-browser`](https://github.com/lamosquita-net/brave-browser), con una rama
+  `flyweb` creada desde el tag `v1.57.64`. Ahí van nuestros commits.
 - En esta carpeta: documentación, `scripts/` para descargar y compilar, y `patches/` para los
   parches sobre Chromium que no encajen en `brave-core`.
 - El checkout de Chromium (`src/`) se queda en local o en la carpeta de red; no se sube.

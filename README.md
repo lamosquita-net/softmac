@@ -10,7 +10,7 @@ Software para Macs que Apple ha dejado atrás, en un único repositorio.
 | Carpeta | Qué es | Base | Licencia |
 |---|---|---|---|
 | [`BackupDrive/`](BackupDrive/) | Backup bidireccional con Google Drive | fork de [rclone](https://rclone.org) v1.67.0 (`bisync`) | MIT |
-| [`lamosquita-browser/`](lamosquita-browser/) | Navegador para Mojave | fork de [Brave](https://github.com/brave/brave-core) 1.57.64 (Chromium 116) | MPL-2.0 (Brave) + BSD-3 y terceros (Chromium) |
+| [`FlyWeb/`](FlyWeb/) | Navegador para Mojave | fork de [Brave](https://github.com/brave/brave-core) 1.57.64 (Chromium 116) | MPL-2.0 (Brave) + BSD-3 y terceros (Chromium) |
 
 ## Licencias
 

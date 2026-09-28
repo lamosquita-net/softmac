@@ -25,5 +25,5 @@ go version                 # go1.20.14 darwin/amd64
 ## Limitaciones conocidas
 
 - **Navegador:** Chromium Legacy necesita el SDK de macOS 14 o superior y clang 18 o superior.
-  Xcode 11.3.1 no sirve para compilarlo. Ver [`lamosquita-browser/README.md`](../lamosquita-browser/README.md).
+  Xcode 11.3.1 no sirve para compilarlo. Ver [`FlyWeb/README.md`](../FlyWeb/README.md).
 - **MacPro5,1:** no tiene AVX. Cualquier binario que se distribuya debe compilarse sin exigir AVX.
