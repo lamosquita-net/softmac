@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Ejecuta BackupDrive cada hora. Instalar en ~/Library/LaunchAgents/ (ver BackupDrive/README.md). -->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>net.lamosquita.backupdrive</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/local/bin/backupdrive-sync.sh</string>
+	</array>
+	<key>StartInterval</key>
+	<integer>3600</integer>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>LowPriorityIO</key>
+	<true/>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>StandardOutPath</key>
+	<string>/tmp/net.lamosquita.backupdrive.out</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/net.lamosquita.backupdrive.err</string>
+</dict>
+</plist>

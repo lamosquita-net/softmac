@@ -31,8 +31,10 @@ commit de `flyweb` antes de compilar. Solo se compila lo que tiene commit. Nada 
 ### BackupDrive/
 - rclone **v1.67.0** (MIT) como `git subtree --squash` en `BackupDrive/rclone/`: es la última versión
   compatible con **Go 1.20**, la última versión de Go que funciona en Mojave. No subir de v1.67.x.
-- Compilar: `BackupDrive/scripts/build-macos.sh` (exige Go 1.20.x). CI: `.github/workflows/backupdrive.yml`.
-- Siguiente: probar `bisync` con Google Drive en Mojave → renombrar a `backupdrive` → launchd → app Cocoa de barra de menú.
+- Compilar: `BackupDrive/scripts/build-macos.sh` → `build/backupdrive` (exige Go 1.20.x). CI: `.github/workflows/backupdrive.yml`.
+- `scripts/backupdrive-sync.sh`: lanza bisync para cada perfil de `~/Library/Application Support/BackupDrive/profiles`;
+  `launchd/net.lamosquita.backupdrive.plist` lo ejecuta cada hora.
+- Siguiente: probar con Google Drive real en Mojave → app Cocoa de barra de menú.
 
 ### FlyWeb/ (navegador)
 - Base: **Brave 1.57.64** = Chromium **116.0.5845.188**, la última versión con soporte oficial en 10.13/10.14.
