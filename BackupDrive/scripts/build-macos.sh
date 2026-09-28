@@ -25,10 +25,10 @@ mkdir -p "$OUT"
 cd "$ROOT/rclone"
 go build -trimpath \
   -ldflags "-s -w -X github.com/rclone/rclone/fs.Version=$VERSION" \
-  -o "$OUT/rclone" .
+  -o "$OUT/backupdrive" .
 
-echo "Generado: $OUT/rclone"
-if command -v file >/dev/null; then file "$OUT/rclone"; fi
+echo "Generado: $OUT/backupdrive"
+if command -v file >/dev/null; then file "$OUT/backupdrive"; fi
 if command -v otool >/dev/null; then
-  otool -l "$OUT/rclone" | grep -A4 -E 'LC_VERSION_MIN_MACOSX|LC_BUILD_VERSION' || true
+  otool -l "$OUT/backupdrive" | grep -A4 -E 'LC_VERSION_MIN_MACOSX|LC_BUILD_VERSION' || true
 fi

@@ -8,23 +8,39 @@ Monorepo de software para Macs obsoletos de lamosquita.net. Idioma de trabajo: e
 - Nada de binarios que exijan AVX (la MacPro5,1 no lo tiene).
 
 ## Máquinas
-- **MacPro7,1** (Xcode 26.3): host de compilación principal. Git en `~/proyectos/`.
+- **MacPro7,1** (macOS 15 Sequoia, Xcode 26.3, 16 núcleos / 32 hilos, 96 GB, SSD 2 TB): host de compilación principal.
 - **MacPro6,1** (Mojave, Xcode 11.3.1, 64 GB): compilación y pruebas en Mojave.
 - **MacPro5,1** (Mojave, 48 GB, sin AVX): pruebas de "peor caso", en el estudio.
-- Carpeta de red (Google Drive): `/Volumes/googledrive/clientes/software/softmac/` → solo copias
-  (`git bundle`), **nunca** repos de trabajo ni checkouts de Chromium.
+
+## Estructura en disco (MacPro7,1)
+Los metadatos de git van en el disco local; los ficheros de trabajo, en la red (Samba, que se
+sincroniza con Google Drive y más adelante con BackupDrive). Se monta con `git clone --separate-git-dir`.
+
+| Qué | Git (local) | Ficheros de trabajo (red) |
+|---|---|---|
+| softmac | `~/proyectos/softmac/softmac.git` | `/Volumes/googledrive/clientes/software/softmac/` |
+| brave-browser (fork) | `~/proyectos/softmac/FlyWeb/brave-browser.git` | `…/softmac/FlyWeb/brave-browser/` |
+| brave-core (fork) | `~/proyectos/softmac/FlyWeb/brave-core.git` | `…/softmac/FlyWeb/brave-core/` |
+| Checkout y compilación de Chromium | **local**: `~/proyectos/flyweb-build/` | — (no se sincroniza; se regenera desde los forks) |
+
+Flujo de FlyWeb: se edita y se hace commit en la red (rama `flyweb`). El checkout de compilación usa
+worktrees *detached* de los mismos `.git` locales: `FlyWeb/scripts/build.sh` los pone en el último
+commit de `flyweb` antes de compilar. Solo se compila lo que tiene commit. Nada de push/pull entre ambos.
 
 ## Proyectos
 ### BackupDrive/
 - rclone **v1.67.0** (MIT) como `git subtree --squash` en `BackupDrive/rclone/`: es la última versión
   compatible con **Go 1.20**, la última versión de Go que funciona en Mojave. No subir de v1.67.x.
-- Compilar: `BackupDrive/scripts/build-macos.sh` (exige Go 1.20.x). CI: `.github/workflows/backupdrive.yml`.
-- Siguiente: probar `bisync` con Google Drive en Mojave → renombrar a `backupdrive` → launchd → app Cocoa de barra de menú.
+- Compilar: `BackupDrive/scripts/build-macos.sh` → `build/backupdrive` (exige Go 1.20.x). CI: `.github/workflows/backupdrive.yml`.
+- `scripts/backupdrive-sync.sh`: lanza bisync para cada perfil de `~/Library/Application Support/BackupDrive/profiles`;
+  `launchd/net.lamosquita.backupdrive.plist` lo ejecuta cada hora.
+- Siguiente: probar con Google Drive real en Mojave → app Cocoa de barra de menú.
 
 ### FlyWeb/ (navegador)
 - Base: **Brave 1.57.64** = Chromium **116.0.5845.188**, la última versión con soporte oficial en 10.13/10.14.
 - Forks: `lamosquita-net/brave-core` y `lamosquita-net/brave-browser`, rama `flyweb` desde el tag `v1.57.64`.
-- Checkout de compilación fuera de este repo: `~/proyectos/flyweb/brave-browser` (100–150 GB).
+- Checkout de compilación: `~/proyectos/flyweb-build/` en local (100–150 GB). `FlyWeb/scripts/setup-build.sh`
+  (una vez) y `FlyWeb/scripts/build.sh` (cada compilación; pasa `mac_sdk_path` y `symbol_level:0`).
 - Compilar con **Xcode 14.3 / SDK macOS 13.3** (oficial de Chromium 116). En la 7,1: extraer
   `MacOSX13.3.sdk` de Xcode 14.3.1 y pasarlo con `mac_sdk_path`; no usar el SDK 26.
 - Obligaciones: MPL-2.0 (publicar los ficheros de Brave modificados), `about:credits`, **quitar la marca
