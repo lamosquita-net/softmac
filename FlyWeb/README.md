@@ -37,22 +37,34 @@ Posibles mitigaciones (hay que decidir cuál):
 
 ## Dónde vive el código
 
-El árbol completo (Chromium más dependencias) ocupa entre 60 y 100 GB y no cabe en GitHub. Propuesta:
+El árbol completo (Chromium más dependencias) ocupa entre 100 y 150 GB con la compilación, y no cabe en GitHub.
 
-- Forks [`lamosquita-net/brave-core`](https://github.com/lamosquita-net/brave-core) y
-  [`lamosquita-net/brave-browser`](https://github.com/lamosquita-net/brave-browser), con una rama
-  `flyweb` creada desde el tag `v1.57.64`. Ahí van nuestros commits.
-- En esta carpeta: documentación, `scripts/` para descargar y compilar, y `patches/` para los
-  parches sobre Chromium que no encajen en `brave-core`.
-- El checkout de Chromium (`src/`) se queda en local o en la carpeta de red; no se sube.
+| Qué | Dónde |
+|---|---|
+| Nuestros commits sobre Brave | forks [`lamosquita-net/brave-core`](https://github.com/lamosquita-net/brave-core) y [`lamosquita-net/brave-browser`](https://github.com/lamosquita-net/brave-browser), rama **`flyweb`** (desde el tag `v1.57.64`) |
+| Árbol de trabajo de los forks | `FlyWeb/brave-core/` y `FlyWeb/brave-browser/`: repos aparte, excluidos por el `.gitignore` de softmac |
+| Checkout de Chromium y compilación | `~/proyectos/flyweb-build/`, en local (no se sube ni se sincroniza) |
+| Esta carpeta | documentación y `patches/` (parches sobre Chromium que no encajen en `brave-core`) |
+
+Para montarlo en un Mac nuevo, ver la tabla "Estructura en disco" de [`CLAUDE.md`](../CLAUDE.md):
+
+```sh
+git clone -b flyweb https://github.com/lamosquita-net/brave-browser.git FlyWeb/brave-browser
+git clone -b flyweb https://github.com/lamosquita-net/brave-core.git FlyWeb/brave-core
+```
 
 ## Compilación
 
 Chromium 116 compila oficialmente con **Xcode 14.3 (14E222b) y el SDK de macOS 13.3**
-(`build/config/mac/mac_sdk.gni`: `mac_sdk_official_version = "13.3"`). Candidatos:
+(`build/config/mac/mac_sdk.gni`: `mac_sdk_official_version = "13.3"`).
 
-- **MacPro7,1** (Xcode 26.3): el host más rápido, pero usar con Chromium 116 el SDK 13.3
-  (de Xcode 14.3.1) mediante `mac_sdk_path`, no el SDK 26.
-- **MacPro6,1** con Monterey: Xcode 14.2 (SDK 13.1). Opción de respaldo.
+- **Host: MacPro7,1** (Sequoia, Xcode 26.3). Usar el `MacOSX13.3.sdk` extraído de Xcode 14.3.1
+  mediante `mac_sdk_path`, no el SDK 26.
+- **Pruebas: MacPro6,1 y MacPro5,1** (Mojave). Su Xcode 11.3.1 no sirve para compilar Chromium 116.
 
 `mac_deployment_target = "10.13"` es el valor por defecto de Chromium 116, así que no hay que cambiarlo.
+
+## Licencia de esta carpeta
+
+[MPL-2.0](LICENSE), la misma que `brave-core`. Los parches sobre ficheros de Chromium conservan
+además la BSD-3 de Chromium.

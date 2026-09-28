@@ -6,7 +6,7 @@ Punto de partida: [rclone](https://rclone.org) **v1.67.0**, importado en [`rclon
 `git subtree`. Es la última versión de rclone cuyo `go.mod` pide Go 1.20, la última versión de Go
 que funciona en Mojave. La sincronización bidireccional es [`rclone bisync`](https://rclone.org/bisync/).
 
-Licencia: MIT (ver [`rclone/COPYING`](rclone/COPYING)). Las modificaciones propias también son MIT.
+Licencia: MIT (ver [`LICENSE`](LICENSE) y el original [`rclone/COPYING`](rclone/COPYING)).
 
 ## Compilar (en el Mac)
 
