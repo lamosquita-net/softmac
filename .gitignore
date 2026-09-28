@@ -2,3 +2,7 @@ build/
 .DS_Store
 xcuserdata/
 DerivedData/
+
+# Forks de Brave: repos propios dentro del árbol de trabajo de softmac
+FlyWeb/brave-browser/
+FlyWeb/brave-core/

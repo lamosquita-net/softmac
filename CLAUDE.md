@@ -8,11 +8,23 @@ Monorepo de software para Macs obsoletos de lamosquita.net. Idioma de trabajo: e
 - Nada de binarios que exijan AVX (la MacPro5,1 no lo tiene).
 
 ## Máquinas
-- **MacPro7,1** (Xcode 26.3): host de compilación principal. Git en `~/proyectos/`.
+- **MacPro7,1** (macOS 15 Sequoia, Xcode 26.3): host de compilación principal.
 - **MacPro6,1** (Mojave, Xcode 11.3.1, 64 GB): compilación y pruebas en Mojave.
 - **MacPro5,1** (Mojave, 48 GB, sin AVX): pruebas de "peor caso", en el estudio.
-- Carpeta de red (Google Drive): `/Volumes/googledrive/clientes/software/softmac/` → solo copias
-  (`git bundle`), **nunca** repos de trabajo ni checkouts de Chromium.
+
+## Estructura en disco (MacPro7,1)
+Los metadatos de git van en el disco local; los ficheros de trabajo, en la red (Samba, que se
+sincroniza con Google Drive y más adelante con BackupDrive). Se monta con `git clone --separate-git-dir`.
+
+| Qué | Git (local) | Ficheros de trabajo (red) |
+|---|---|---|
+| softmac | `~/proyectos/softmac/softmac.git` | `/Volumes/googledrive/clientes/software/softmac/` |
+| brave-browser (fork) | `~/proyectos/softmac/FlyWeb/brave-browser.git` | `…/softmac/FlyWeb/brave-browser/` |
+| brave-core (fork) | `~/proyectos/softmac/FlyWeb/brave-core.git` | `…/softmac/FlyWeb/brave-core/` |
+| Checkout y compilación de Chromium | **local**: `~/proyectos/flyweb-build/` | — (no se sincroniza; se regenera desde los forks) |
+
+`src/brave` del checkout de compilación será un `git worktree` de `~/proyectos/softmac/FlyWeb/brave-core.git`,
+de modo que los commits se ven en los dos sitios sin push/pull.
 
 ## Proyectos
 ### BackupDrive/
