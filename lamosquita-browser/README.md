@@ -47,8 +47,8 @@ El árbol completo (Chromium más dependencias) ocupa entre 60 y 100 GB y no cab
 
 ## Compilación
 
-Chromium 116 necesita el SDK de macOS 13.x y un host con macOS 12 o superior (verificar en
-`build/config/mac/mac_sdk.gni` del tag). Candidatos:
+Chromium 116 compila oficialmente con **Xcode 14.3 (14E222b) y el SDK de macOS 13.3**
+(`build/config/mac/mac_sdk.gni`: `mac_sdk_official_version = "13.3"`). Candidatos:
 
 - **MacPro7,1** (Xcode 26.3): el host más rápido, pero usar con Chromium 116 el SDK 13.3
   (de Xcode 14.3.1) mediante `mac_sdk_path`, no el SDK 26.
