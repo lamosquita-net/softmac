@@ -10,13 +10,13 @@ Software para Macs que Apple ha dejado atrás, en un único repositorio.
 | Carpeta | Qué es | Base | Licencia |
 |---|---|---|---|
 | [`BackupDrive/`](BackupDrive/) | Backup bidireccional con Google Drive | fork de [rclone](https://rclone.org) v1.67.0 (`bisync`) | MIT |
-| [`lamosquita-browser/`](lamosquita-browser/) | Navegador moderno para Mojave | parches sobre [Chromium Legacy](https://github.com/blueboxd/chromium-legacy) | BSD-3 y licencias de terceros de Chromium |
+| [`lamosquita-browser/`](lamosquita-browser/) | Navegador para Mojave | fork de [Brave](https://github.com/brave/brave-core) 1.57.64 (Chromium 116) | MPL-2.0 (Brave) + BSD-3 y terceros (Chromium) |
 
 ## Licencias
 
-Cada carpeta conserva la licencia de su proyecto de origen (ver el `LICENSE`/`COPYING` de cada una).
-El `LICENSE` (GPL-2.0) de la raíz se aplica solo al código propio de este repositorio que no esté
-dentro de una carpeta con licencia propia.
+**Cada software va con su propia licencia**, la que herede de su proyecto de origen (ver el
+`LICENSE`/`COPYING` de cada carpeta). El [`LICENSE`](LICENSE) (MIT) de la raíz cubre solo el código
+propio del repositorio que no esté en una carpeta con licencia propia (documentación, scripts comunes).
 
 ## Entorno de compilación
 

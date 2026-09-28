@@ -1,39 +1,57 @@
 # lamosquita-browser
 
-Navegador moderno para macOS 10.14 Mojave. Objetivo de aceptación: que **claude.ai** y la web actual
-funcionen por completo.
+Navegador para macOS 10.14 Mojave. Criterio de aceptación: **claude.ai** y la web actual funcionan
+por completo.
 
-Base: [Chromium Legacy](https://github.com/blueboxd/chromium-legacy) (fork de Chromium para
-10.7–10.14). Licencia: BSD-3 de Chromium, más las licencias de los componentes de terceros
-(`LICENSE` y `third_party/*/LICENSE` del árbol de origen). Toda distribución binaria debe incluir
-`about:credits`.
+## Base: Brave 1.57.64
 
-## Por qué solo parches y no el código fuente completo
+- `brave-core` **v1.57.64** sobre **Chromium 116.0.5845.188**. Chromium 116 es la última versión
+  que Google soportó oficialmente en macOS 10.13/10.14. Por eso funciona mejor en Mojave que las
+  versiones modernas parcheadas de Chromium Legacy.
+- Brave ya está organizado como **parches sobre Chromium**: `brave-browser` (scripts de compilación),
+  `brave-core` (código y `patches/`) y `brave/chromium` (Chromium en el tag fijado).
+- Alternativa descartada por ahora: [Chromium Legacy](https://github.com/blueboxd/chromium-legacy)
+  (Chromium moderno para 10.7–10.14; exige SDK 14+ y clang 18+, y tiene fallos en Mojave).
 
-El árbol de Chromium ocupa decenas de GB y no cabe en un repositorio de GitHub (límite de 100 MB
-por fichero, repositorios de más de 5 GB desaconsejados). Aquí solo guardamos:
+## Licencias y marca
 
-- `patches/` — nuestros parches, aplicados en orden según `patches/series`.
-- `scripts/` — (pendiente) descargar Chromium Legacy en un commit fijado, aplicar parches y compilar.
+- `brave-core`: **MPL-2.0**. Los ficheros de Brave que modifiquemos siguen siendo MPL-2.0 y su
+  código fuente debe publicarse si distribuimos binarios. Los ficheros nuevos pueden llevar otra licencia.
+- Chromium: BSD-3 más licencias de terceros. Hay que distribuir `about:credits`.
+- **"Brave" y su logotipo son marcas registradas**: la MPL no da permiso para usarlas. Hay que cambiar
+  nombre, iconos, bundle id (`net.lamosquita.browser`) y URLs de actualización.
+- Hay que desactivar o sustituir los servicios de Brave: actualizaciones, Rewards, Sync, estadísticas
+  y claves de API.
 
-Es el mismo modelo que usa ungoogled-chromium.
+## Riesgo principal: seguridad
 
-## Requisitos de compilación (y el problema)
+Chromium 116 es de septiembre de 2023. Desde entonces se han corregido cientos de fallos de
+seguridad, varios explotados activamente. Un fork congelado en 1.57.64 es **inseguro por diseño**.
+Posibles mitigaciones (hay que decidir cuál):
 
-Según la [wiki de Chromium Legacy](https://github.com/blueboxd/chromium-legacy/wiki/Building):
-**SDK de macOS 14 o superior** (con dos parches en cabeceras de GameController) y **clang 18 o superior**.
-Xcode 11.3.1 en Mojave **no sirve**. Opciones, por orden de preferencia (pendiente de probar):
+1. Portar a nuestra base los parches de seguridad críticos de Chromium (V8, Skia, WebRTC, etc.).
+   Es mucho trabajo continuo.
+2. A medio plazo, llevar los parches de compatibilidad con Mojave de Chromium Legacy a una versión
+   más nueva de Brave.
+3. Usarlo solo para sitios de confianza (claude.ai, Google Drive, etc.) y no como navegador general.
 
-1. MacPro6,1 con Monterey, clang de la toolchain de Chromium y el SDK 14 copiado de Xcode 15.
-2. Un Mac con macOS 13.5 o superior (Xcode 15+) solo para compilar; se prueba en Mojave.
-3. Compilación cruzada desde Linux (Chromium no la soporta oficialmente para macOS).
+## Dónde vive el código
 
-Tiempos de referencia de la wiki: de 3 a 4 horas o más desde cero con un i9-9980HK.
-En la MacPro6,1 (24 hilos) debería ser parecido.
+El árbol completo (Chromium más dependencias) ocupa entre 60 y 100 GB y no cabe en GitHub. Propuesta:
 
-## Hoja de ruta
+- Forks en GitHub de `brave/brave-core` y `brave/brave-browser` en `lamosquita-net`, con una rama
+  `mojave` a partir del tag `v1.57.64`. Ahí van nuestros commits.
+- En esta carpeta: documentación, `scripts/` para descargar y compilar, y `patches/` para los
+  parches sobre Chromium que no encajen en `brave-core`.
+- El checkout de Chromium (`src/`) se queda en local o en la carpeta de red; no se sube.
 
-1. Decidir la máquina de compilación y fijar el commit base de Chromium Legacy.
-2. Script `scripts/build.sh` reproducible.
-3. Lista de fallos en Mojave (lo que "no funciona" hoy) → issues → parches.
-4. Marca propia (nombre, iconos, desactivar servicios de Google que requieran claves).
+## Compilación
+
+Chromium 116 necesita el SDK de macOS 13.x y un host con macOS 12 o superior (verificar en
+`build/config/mac/mac_sdk.gni` del tag). Candidatos:
+
+- **MacPro7,1** (Xcode 26.3): el host más rápido, pero usar con Chromium 116 el SDK 13.3
+  (de Xcode 14.3.1) mediante `mac_sdk_path`, no el SDK 26.
+- **MacPro6,1** con Monterey: Xcode 14.2 (SDK 13.1). Opción de respaldo.
+
+`mac_deployment_target = "10.13"` es el valor por defecto de Chromium 116, así que no hay que cambiarlo.
