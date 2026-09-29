@@ -47,11 +47,11 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
 | F1.1 | Marca: nombre, bundle id, perfil, llavero, iconos | NUBE | hecho | brave-core `flyweb` 77b25c6b |
-| F1.2 | Reglas de sustitución Brave→FlyWeb en `script/lib/l10n/grd_string_replacements.py` | NUBE | pendiente | rama `nube/l10n` |
-| F1.3 | Ejecutar `chromium-rebase-l10n.py` con esas reglas y hacer commit de las cadenas | LOCAL | pendiente | necesita F0.1 y F1.2 |
+| F1.2 | Rebranding Brave→FlyWeb de las cadenas de la interfaz, conservando traducciones | NUBE | hecho | brave-core `nube/l10n` (f3fa6077): `script/flyweb-rebrand-strings.py` + `flyweb_replacements`. 1507 mensajes, 729 ficheros; cobertura de traducción medida antes/después: 1.278.519 = 1.278.519. Los servicios de Brave conservan su nombre |
+| F1.3 | Compilar `nube/l10n` y fusionar en `flyweb` (ya **no** hace falta ejecutar `chromium-rebase-l10n.py`) | LOCAL | pendiente | tras F0.2; comprobar menús en español ("Salir de FlyWeb") |
 | F1.4 | Parches: referrals, stats ping, Talk y News desactivados | NUBE | pendiente | rama `nube/servicios` |
-| F1.5 | Script de auditoría de red (mitmproxy) con lista de permitidos | NUBE | pendiente | |
-| F1.6 | Ejecutar la auditoría de red durante 30 minutos | LOCAL | pendiente | necesita F0.2 y F1.5 |
+| F1.5 | Script de auditoría de red con lista de permitidos | NUBE | hecho | `FlyWeb/scripts/network-audit.py` (NetLog de Chromium, sin proxy), `FlyWeb/audit/allowlist.txt` y `denylist.txt`; modos `reposo` y `uso` |
+| F1.6 | Ejecutar la auditoría de red (30 min en reposo + 30 min de uso) | LOCAL | pendiente | instrucciones en la cabecera de `network-audit.py`; añadir a `allowlist.txt` lo legítimo que aparezca, documentado |
 
 ### FlyWeb — Fase 3A (seguridad inmediata)
 | # | Tarea | Quién | Estado | Notas |

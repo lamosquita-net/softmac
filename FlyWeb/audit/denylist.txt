@@ -1,0 +1,16 @@
+# Destinos que NO deben aparecer ni navegando (modo "uso"), salvo que estén en allowlist.txt.
+# Servicios de Brave
+*.brave.com
+*.bravesoftware.com
+*.brave.software
+brave.com
+# Servicios de Google que un Chromium sin marca no debería llamar solo
+clients*.google.com
+update.googleapis.com
+safebrowsing.googleapis.com
+*.gvt1.com
+*.gvt2.com
+accounts.google.com
+www.googleapis.com
+optimizationguide-pa.googleapis.com
+content-autofill.googleapis.com
