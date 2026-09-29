@@ -55,13 +55,21 @@ redirija para componentes, hasta completar la Fase 2.
    - Motivo: cerca del 45 % de los CVE de V8 estaban en el JIT (Microsoft Browser Vulnerability Research,
      "Super Duper Secure Mode", 2021).
    - Coste: rendimiento de JS y **sin WebAssembly**. Medir en claude.ai, Gmail, **Docs, Sheets y Drive**.
+   - **Realidad según el triaje** (`docs/cve-triage.md`): de los 25 CVE explotados desde 116, jitless solo mitiga
+     con seguridad 4. Hay 13 que no mitiga y 8 inciertos. Es una capa útil, pero no sustituye al portado.
+   - **Desactivar WebGPU por defecto:** quita una fuga del sandbox explotada (CVE-2026-5281, Dawn) sin portar nada.
 2. Mantener el aislamiento de sitios estricto (site isolation) y el sandbox del renderer tal cual.
 3. **Triaje inicial:** lista de todos los CVE posteriores a 116 con "exploit in the wild" (Chrome Releases), por
    componente. Marcar cuáles mitiga jitless. **Las fugas del sandbox (Mojo/IPC) no se mitigan con jitless** y
    tienen prioridad para la Fase 3B.
    - Ya incluido en la base: libwebp CVE-2023-4863, corregido en 116.0.5845.187.
 
-**Hito:** jitless activo con lista de sitios de confianza y un documento de triaje (`docs/cve-triage.md`).
+4. **Adelantar a esta fase las 4 fugas del sandbox que aplican a macOS**, porque jitless no mitiga ninguna:
+   CVE-2025-6558 (ANGLE/GPU), CVE-2024-4671 (viz), CVE-2023-6345 (Skia) y CVE-2026-5281 (Dawn, cubierta con WebGPU
+   desactivado). Y comprobar si `third_party/libvpx` ya lleva el arreglo de CVE-2023-5217.
+
+**Hito:** jitless activo con lista de sitios de confianza, WebGPU desactivado, las fugas del sandbox de macOS
+portadas y el documento de triaje (`docs/cve-triage.md`) hecho.
 
 ## Fase 4 — Compatibilidad web
 
