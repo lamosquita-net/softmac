@@ -36,7 +36,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
 | F0.1 | Terminar `gclient sync` (plan B con `-j 4`) y `npm run sync` | HUMANO/LOCAL | en curso | falló por HTTP 429 de googlesource |
-| F0.2 | Primera compilación con `build.sh`; validar `mac_sdk_path` con Xcode 26 activo | LOCAL | en curso | reclamada; empieza cuando termine F0.1 (no se toca `flyweb-build` ni los forks mientras corre el sync). Antes: actualizar el `brave-core.git` local a `flyweb` 77b25c6b |
+| F0.2 | Primera compilación con `build.sh`; validar `mac_sdk_path` con Xcode 26 activo — **seguir `FlyWeb/docs/integracion.md`** | LOCAL | en curso | reclamada; empieza cuando termine F0.1 (no se toca `flyweb-build` ni los forks mientras corre el sync). Antes: actualizar el `brave-core.git` local a `flyweb` 77b25c6b |
 | F0.3 | Script de comprobación AVX en los comandos de compilación | NUBE | hecho | `FlyWeb/scripts/check-no-avx.sh`; LOCAL: ejecutarlo tras cada `gn gen`/build |
 | F0.4 | `build.sh`: sello de versión y commits en el `.app`, soporte sccache | NUBE | pendiente | |
 | F0.5 | Firma Developer ID y notarización con `notarytool` | LOCAL | pendiente | necesita el certificado del HUMANO |
