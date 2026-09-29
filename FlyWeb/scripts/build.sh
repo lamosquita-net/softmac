@@ -60,7 +60,7 @@ npm run apply_patches
 # - Sparkle, actualizador, P3A, Leo, VPN: desactivados aquí.
 # - Safe Browsing: NO se puede quitar al compilar en 1.57 (safe_browsing_mode:0 deja sin resolver dependencias de
 #   //chrome/test:unit_tests); se apaga con FlyWeb/policies/flyweb-policies.mobileconfig.
-# - Wallets: quitadas en el propio brave-core (rama nube/no-wallet), sin argumentos aquí.
+# - Wallets y Rewards: quitados en el propio brave-core (rama nube/no-wallet), sin argumentos aquí.
 UPDATER="${FLYWEB_UPDATER_URL:-https://go-updater.brave.com/extensions}"
 INERT="https://flyweb.invalid"
 npm run build -- "$CONFIG" --target_arch=x64 \
