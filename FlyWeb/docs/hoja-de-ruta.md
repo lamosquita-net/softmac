@@ -46,8 +46,12 @@ redirija para componentes, hasta completar la Fase 2.
 
 ## Fase 3A — Seguridad inmediata
 
-1. **V8 sin JIT por defecto** (`--js-flags=--jitless`), con una lista de sitios de confianza que sí usan JIT
-   (parche propio). Es el mismo modelo que Edge.
+1. **V8 sin JIT por defecto**, con una lista de sitios de confianza que sí usan JIT. Es el mismo modelo que Edge.
+   Chromium 116 ya lo trae: ajuste de contenido `JAVASCRIPT_JIT` (renderers jitless por sitio vía
+   `IsJitDisabledForSite`) y políticas `DefaultJavaScriptJitSetting` / `JavaScriptJitAllowedForSites` (Chrome 93+).
+   - El parche en `brave-core` solo cambia el valor por defecto a BLOCK (rama `nube/jitless`).
+   - La lista de permitidos va en `FlyWeb/policies/flyweb-jit-allowlist.mobileconfig` (perfil de macOS). Hay que
+     verificarla en `brave://policy`. Chromium 116 no tiene interfaz para esta lista.
    - Motivo: cerca del 45 % de los CVE de V8 estaban en el JIT (Microsoft Browser Vulnerability Research,
      "Super Duper Secure Mode", 2021).
    - Coste: rendimiento de JS y **sin WebAssembly**. Medir en claude.ai, Gmail, **Docs, Sheets y Drive**.

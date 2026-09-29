@@ -51,7 +51,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 ### FlyWeb — Fase 3A (seguridad inmediata)
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
-| F3A.1 | Parche: jitless por defecto y lista de sitios con JIT | NUBE | pendiente | rama `nube/jitless` |
+| F3A.1 | Parche: jitless por defecto y lista de sitios con JIT | NUBE | hecho | brave-core rama `nube/jitless` (6b81fc54): **LOCAL: compilar y, si funciona, fusionar en `flyweb`**. Lista de permitidos: `FlyWeb/policies/flyweb-jit-allowlist.mobileconfig` |
 | F3A.2 | Medir jitless en claude.ai, Gmail, Docs, Sheets y Drive | LOCAL/HUMANO | pendiente | |
 | F3A.3 | Triaje de CVE explotados posteriores a 116 → `FlyWeb/docs/cve-triage.md` | NUBE | en curso | |
 
