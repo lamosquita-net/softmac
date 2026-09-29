@@ -40,7 +40,14 @@ cp launchd/net.lamosquita.backupdrive.plist ~/Library/LaunchAgents/
 launchctl load -w ~/Library/LaunchAgents/net.lamosquita.backupdrive.plist
 ```
 
+- Antes de la primera sincronización, **autodiagnóstico** (solo lectura): `scripts/mojave-selftest.sh`. Comprueba
+  la versión de macOS, que el binario arranca y no exige un macOS más nuevo, TLS con Google (certificados de
+  Mojave), la hora del sistema (OAuth falla si está desfasada), el token de cada remoto, los perfiles y launchd.
 - Log: `~/Library/Logs/BackupDrive/backupdrive.log`.
+- Estado para la futura app de barra de menús: `"$APP/status.json"`, con el estado (`running`/`idle`), el
+  resultado (`ok`/`error`/`interrupted`) y el detalle por perfil. Se escribe de forma atómica.
+- Nunca se solapan dos ejecuciones: si launchd lanza una mientras otra sigue en marcha, la nueva sale sin hacer
+  nada. Si falla algún perfil, aparece una notificación de macOS (`BACKUPDRIVE_NOTIFY=0` para desactivarla).
 - Filtros opcionales comunes a todos los perfiles: `"$APP/filters.txt"`, con la
   [sintaxis de rclone](https://rclone.org/filtering/). Por ejemplo, `- .DS_Store` y `- *.tmp`.
 - Conflictos: gana la versión más reciente y la otra se conserva con sufijo numerado

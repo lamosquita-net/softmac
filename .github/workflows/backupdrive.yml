@@ -31,4 +31,5 @@ jobs:
           path: |
             BackupDrive/build/backupdrive
             BackupDrive/scripts/backupdrive-sync.sh
+            BackupDrive/scripts/mojave-selftest.sh
             BackupDrive/launchd/net.lamosquita.backupdrive.plist

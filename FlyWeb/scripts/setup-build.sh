@@ -15,6 +15,11 @@ set -eu
 # (dotenv…). En la MacPro7,1 esa variable llega del entorno de la app, no del perfil del shell.
 unset NODE_ENV
 
+# depot_tools fijado al commit del DEPS de Chromium 116: con uno más reciente, su vpython ya no resuelve las
+# dependencias de los hooks de la 116 (p. ej. numpy==1.21.1+supported.1). Y sin autoactualizaciones.
+export DEPOT_TOOLS_UPDATE=0
+DEPOT_TOOLS_PIN=fc75af35d41df6c7742caef751428aa875199990
+
 BUILD="${FLYWEB_BUILD:-$HOME/proyectos/flyweb-build}"
 GITDIRS="${FLYWEB_GITDIRS:-$HOME/proyectos/softmac/FlyWeb}"
 SDK="${FLYWEB_SDK:-$HOME/proyectos/sdk/MacOSX13.3.sdk}"
@@ -51,6 +56,13 @@ if [ ! -d "$BUILD/brave-browser/src/brave/.git" ]; then
   git clone -q --shared --no-checkout "$GITDIRS/brave-core.git" "$BUILD/brave-browser/src/brave"
   git -C "$BUILD/brave-browser/src/brave" checkout -q --detach "origin/$BRANCH"
 fi
+
+# brave-core solo clona depot_tools si la carpeta no existe: la creamos antes, ya fijada.
+DT="$BUILD/brave-browser/src/brave/vendor/depot_tools"
+if [ ! -d "$DT/.git" ]; then
+  git clone -q https://chromium.googlesource.com/chromium/tools/depot_tools.git "$DT"
+fi
+git -C "$DT" checkout -q "$DEPOT_TOOLS_PIN"
 
 cd "$BUILD/brave-browser"
 npm install

@@ -33,11 +33,13 @@ es solo local), apuntar el error en `docs/TAREAS.md` (las últimas 30 líneas de
 | 0 | `flyweb` (sin fusionar nada) | 77b25c6b | Marca FlyWeb: nombre, bundle id, perfil, llavero, iconos | Compila. Arranca en la 7,1. `brave://version` muestra FlyWeb. El icono del Dock es la mosca. Perfil en `LaMosquita/FlyWeb-Development`. Llavero: entrada "FlyWeb Safe Storage". **Valida también el SDK 13.3 con Xcode 26** (F0.2) |
 | 1 | `nube/gclient-slim` | 19a69136 | Solo el generador de `.gclient` (NaCl y VK-GL-CTS fuera) | No afecta a la compilación. Basta con fusionarla (el `.gclient` actual ya lleva esos cambios a mano) |
 | 2 | `nube/webgpu-off` | 8c0d680f | WebGPU desactivado (`kWebGPUService`) | Consola de DevTools en cualquier web: `navigator.gpu` → `undefined`. `brave://gpu` → WebGPU desactivado |
-| 3 | `nube/jitless` | 6b81fc54 | V8 sin JIT por defecto (`JAVASCRIPT_JIT` = BLOCK) | En un sitio cualquiera: `typeof WebAssembly` → `"undefined"` (jitless implica `--no-expose-wasm` en el V8 de la 116). Después, instalar `FlyWeb/policies/flyweb-jit-allowlist.mobileconfig`, comprobarlo en `brave://policy` y verificar que en claude.ai `typeof WebAssembly` → `"object"` |
+| 3 | `nube/jitless` | 6b81fc54 | V8 sin JIT por defecto (`JAVASCRIPT_JIT` = BLOCK) | En un sitio cualquiera: `typeof WebAssembly` → `"undefined"` (jitless implica `--no-expose-wasm` en el V8 de la 116). Después, instalar `FlyWeb/policies/flyweb-policies.mobileconfig`, comprobarlo en `brave://policy` y verificar que en claude.ai `typeof WebAssembly` → `"object"` |
 | 4 | `nube/cve-2024-4671` | 54093381 | 3 fugas del sandbox portadas (ANGLE, Skia, viz) y `util.js` aplica parches a `third_party/{angle,skia,libvpx}` | El log de `build.sh` muestra los parches de ANGLE y Skia aplicados sin error. Compila (viz es el único **sin compilar** en la nube: vigilar `frame_sink_bundle_impl.cc`). Prueba rápida: una web con WebGL (p. ej. get.webgl.org) funciona |
 | 5 | `nube/l10n` | f3fa6077 | Cadenas Brave→FlyWeb en 729 ficheros | Arrancar con `--lang=es`: el menú dice "Salir de FlyWeb" y "Acerca de FlyWeb". Ajustes en español sin textos en inglés sueltos. "Brave Rewards" o "Brave Wallet", si aparecen, conservan su nombre |
 
-Después del paso 5: F0.2 queda cerrada, y el `.app` se puede copiar a la 6,1 y la 5,1 para F0.6.
+| 6 | `nube/no-wallet` | f595966f | Sin wallets ni Rewards: Brave Wallet y Brave Rewards siempre desactivados (sin botones, sin `window.ethereum` ni `window.solana`) y extensión antigua Crypto Wallets fuera de la compilación (`ethereum_remote_client_enabled = false` por defecto) | `gn gen` pasa **sin** tocar args (el test ya respeta el flag). En la consola de cualquier web: `window.ethereum` → `undefined` y `window.solana` → `undefined`. No hay icono de wallet ni de Rewards (triángulo BAT) en la barra; `brave://wallet` y `brave://rewards` no cargan |
+
+Después del paso 6: F0.2 queda cerrada, y el `.app` se puede copiar a la 6,1 y la 5,1 para F0.6.
 
 ## Si un paso falla
 

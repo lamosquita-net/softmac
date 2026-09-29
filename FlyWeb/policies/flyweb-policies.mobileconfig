@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Política de FlyWeb: V8 sin JIT por defecto (DefaultJavaScriptJitSetting = 2, bloquear)
-  y lista de sitios que sí pueden usar JIT (JavaScriptJitAllowedForSites).
+  Políticas de FlyWeb:
+  - V8 sin JIT por defecto (DefaultJavaScriptJitSetting = 2) y sitios que sí pueden usarlo (JavaScriptJitAllowedForSites).
+  - Safe Browsing apagado (SafeBrowsingProtectionLevel = 0): en 1.57 no se puede quitar al compilar y consulta
+    servidores de Brave/Google. Contrapartida: sin aviso de sitios de phishing o malware.
+  - Brave Wallet y Brave Rewards desactivados (BraveWalletDisabled, BraveRewardsDisabled).
   Instalar: doble clic y aceptar en Preferencias del Sistema > Perfiles. Ver brave://policy.
   La granularidad es el sitio (eTLD+1): "[*.]google.com" cubre mail.google.com y docs.google.com.
   Edita la lista según las mediciones de F3A.2 (docs/TAREAS.md).
@@ -21,7 +24,7 @@
 			<key>PayloadVersion</key>
 			<integer>1</integer>
 			<key>PayloadDisplayName</key>
-			<string>FlyWeb: JIT de JavaScript</string>
+			<string>FlyWeb: JIT, Safe Browsing y servicios de Brave</string>
 			<key>PayloadContent</key>
 			<dict>
 				<key>net.lamosquita.flyweb</key>
@@ -33,6 +36,12 @@
 							<dict>
 								<key>DefaultJavaScriptJitSetting</key>
 								<integer>2</integer>
+								<key>SafeBrowsingProtectionLevel</key>
+								<integer>0</integer>
+								<key>BraveWalletDisabled</key>
+								<true/>
+								<key>BraveRewardsDisabled</key>
+								<true/>
 								<key>JavaScriptJitAllowedForSites</key>
 								<array>
 									<string>[*.]claude.ai</string>
