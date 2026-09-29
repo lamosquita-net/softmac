@@ -55,7 +55,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F3A.2 | Medir jitless en claude.ai, Gmail, Docs, Sheets y Drive | LOCAL/HUMANO | pendiente | |
 | F3A.3 | Triaje de CVE explotados posteriores a 116 → `FlyWeb/docs/cve-triage.md` | NUBE | hecho | 25 CVE, jitless mitiga seguro 4; 4 fugas del sandbox en macOS |
 | F3A.4 | Desactivar WebGPU por defecto (CVE-2026-5281) | NUBE | hecho | brave-core rama `nube/webgpu-off`: override de `kWebGPUService` en `chromium_src/gpu/config/gpu_finch_features.cc`. **LOCAL: compilar, comprobar `navigator.gpu === undefined` y fusionar en `flyweb`** |
-| F3A.5 | Portar fugas del sandbox: CVE-2025-6558 (ANGLE), CVE-2024-4671 (viz), CVE-2023-6345 (Skia) | NUBE | pendiente | una rama `nube/cve-XXXX` por CVE; parches sobre `src/` en `brave-core/patches/` |
+| F3A.5 | Portar fugas del sandbox: CVE-2025-6558 (ANGLE), CVE-2024-4671 (viz), CVE-2023-6345 (Skia) | NUBE | en curso | una rama `nube/cve-XXXX` por CVE; parches sobre `src/` en `brave-core/patches/` |
 | F3A.6 | ¿Lleva `third_party/libvpx` el arreglo de CVE-2023-5217? | LOCAL | pendiente | mirar `git log` de `src/third_party/libvpx/source/libvpx` tras F0.1 |
 | F3A.7 | Confirmar en Chrome Releases el "in the wild" de CVE-2026-3909 y CVE-2026-5281 | NUBE | pendiente | no están en la copia actual de KEV |
 
