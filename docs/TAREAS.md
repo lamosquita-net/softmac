@@ -62,7 +62,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F3A.4 | Desactivar WebGPU por defecto (CVE-2026-5281) | NUBE | hecho | brave-core rama `nube/webgpu-off`: override de `kWebGPUService` en `chromium_src/gpu/config/gpu_finch_features.cc`. **LOCAL: compilar, comprobar `navigator.gpu === undefined` y fusionar en `flyweb`** |
 | F3A.5 | Portar fugas del sandbox: CVE-2025-6558 (ANGLE), CVE-2024-4671 (viz), CVE-2023-6345 (Skia) | NUBE | hecho | brave-core, ramas apiladas: `nube/cve-2025-6558` → `nube/cve-2023-6345` → **`nube/cve-2024-4671` (contiene las tres)**. ANGLE y Skia: sintaxis comprobada con clang; viz: adaptado a mano, **sin compilar**. LOCAL: compilar `nube/cve-2024-4671` y fusionar en `flyweb`. Índice: `patches/third_party/FLYWEB-SECURITY.md` |
 | F3A.6 | ¿Lleva `third_party/libvpx` el arreglo de CVE-2023-5217? | LOCAL | pendiente | mirar `git log` de `src/third_party/libvpx/source/libvpx` tras F0.1 |
-| F3A.7 | Confirmar en Chrome Releases el "in the wild" de CVE-2026-3909 y CVE-2026-5281 | NUBE | pendiente | no están en la copia actual de KEV |
+| F3A.7 | Confirmar en Chrome Releases el "in the wild" de CVE-2026-3909 y CVE-2026-5281 | NUBE | hecho | **Ambos confirmados**: KEV (productos "Skia" y "Dawn") + CISA ADP `Exploitation: active` + prensa. Corregida la nota errónea del triaje |
 
 ### BackupDrive
 | # | Tarea | Quién | Estado | Notas |
