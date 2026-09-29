@@ -19,6 +19,10 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
      propone cambios en ramas `nube/<tema>` del fork. LOCAL los compila y, si funcionan, los fusiona en `flyweb`.
 3. **Ficheros compartidos** (`CLAUDE.md`, este tablero): cambios pequeños y frecuentes. Antes de editar, `git pull`.
    Cada agente edita solo sus filas.
+   - **Tablero, sin PR:** cada agente puede hacer push directo de **sus propias filas** de este fichero (reclamar,
+     cambiar el estado, notas) a la rama donde viva el tablero. Esto es una excepción a la regla 2.
+   - Todo lo demás va por PR, incluidos `CLAUDE.md`, el código y las filas de otro agente.
+   - Si el push lo rechaza porque hay cambios nuevos: `git pull --rebase` y volver a subir. No forzar nunca el push.
 4. **Entregas entre agentes:** en "Notas", qué se deja hecho y qué necesita el otro (por ejemplo "rama
    `nube/jitless` lista para compilar").
 5. **Nunca en el repo:** tokens, `backupdrive.conf`, contraseñas ni certificados.
