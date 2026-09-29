@@ -33,3 +33,17 @@ jobs:
             BackupDrive/scripts/backupdrive-sync.sh
             BackupDrive/scripts/mojave-selftest.sh
             BackupDrive/launchd/net.lamosquita.backupdrive.plist
+
+  build-menubar-app:
+    # Runner de Apple Silicon: se compila como x86_64 para 10.14 (-arch/-mmacosx-version-min).
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build BackupDrive.app (x86_64, macOS 10.14+)
+        run: BackupDrive/app/build-app.sh
+      - name: Package
+        run: ditto -c -k --keepParent BackupDrive/build/BackupDrive.app BackupDrive/build/BackupDrive-app.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backupdrive-menubar-app
+          path: BackupDrive/build/BackupDrive-app.zip

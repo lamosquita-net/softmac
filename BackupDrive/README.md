@@ -58,6 +58,28 @@ launchctl load -w ~/Library/LaunchAgents/net.lamosquita.backupdrive.plist
 - Probado con dos carpetas locales (altas, cambios y borrados en ambos sentidos). **Falta probarlo
   contra Google Drive real en Mojave.**
 
+## App de barra de menús
+
+`app/` es una app mínima en Objective-C (`main.m`, sin proyecto de Xcode) que **no sincroniza por sí
+misma**: enseña el estado que deja `backupdrive-sync.sh` en `status.json` y controla el motor.
+
+- Icono en la barra de menús: normal, sincronizando o con error (imágenes *template*, se adaptan al modo oscuro).
+- Menú: resumen de la última sincronización, cada perfil con ✓/✗ (clic: abre la carpeta local),
+  **Sincronizar ahora** (lanza `/usr/local/bin/backupdrive-sync.sh`; su bloqueo evita solapes con launchd),
+  **Sincronizar cada hora** (carga o descarga el LaunchAgent con `launchctl -w`), ver el registro en Consola
+  y abrir la carpeta de configuración.
+- Sin icono en el Dock (`LSUIElement`). Para que arranque sola: Preferencias del Sistema > Usuarios y grupos >
+  Ítems de inicio.
+
+```sh
+BackupDrive/app/build-app.sh      # build/BackupDrive.app; basta con las herramientas de línea de comandos de Xcode 11
+cp -R BackupDrive/build/BackupDrive.app /Applications/
+```
+
+La CI la compila en macOS (artefacto `backupdrive-menubar-app`) como x86_64 para 10.14, y falla si el
+código usa alguna API posterior a 10.14. La firma es *ad hoc*: la primera vez, abrirla con clic derecho > Abrir.
+Los PNG de `app/Resources` salen de los SVG de `branding/` con `branding/render-icons.js` (Mojave no lee SVG).
+
 ## Actualizar la base de rclone
 
 ```sh
@@ -71,4 +93,4 @@ No pasar de v1.67.x mientras el objetivo sea Mojave (v1.68 exige Go 1.21).
 1. Compilar y validar `bisync` con Google Drive en Mojave. ← estamos aquí
 2. ~~Renombrar el binario y la versión (`backupdrive`), con perfiles.~~ Hecho.
 3. ~~Programar ejecuciones con `launchd`.~~ Hecho (cada hora).
-4. App Cocoa de barra de menú (Xcode 11, Swift 5.1 / Objective-C) que controle el motor.
+4. App Cocoa de barra de menú que controle el motor: primera versión en `app/` (falta probarla en Mojave).
