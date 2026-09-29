@@ -14,7 +14,7 @@ Estados: **rama** = arreglado en una rama `nube/*` aún sin integrar; **hecho** 
 | Etiqueta "Brave:" | `IDS_PRODUCT_NAME` (`app/brave_strings.grd`) | **rama** `nube/l10n` (paso 5) → "FlyWeb" |
 | Logo (león + "brave") | `IDR_PRODUCT_LOGO`/`_WHITE` = `components/resources/default_{100,200}_percent/brave/product_logo{,_white}.png` | **rama** `nube/branding-ui` (paso 7) |
 | Empresa ("Brave Software Inc"; en español "Los creadores de Brave") | `IDS_ABOUT_VERSION_COMPANY_NAME` | **rama** `nube/l10n` b91686cc → "lamosquita" en todos los idiomas |
-| Copyright "The Brave Authors" | `IDS_ABOUT_VERSION_COPYRIGHT` | **se queda**: es la atribución correcta; casi todo el código es de Brave y Chromium. Decisión del HUMANO si quiere añadir "lamosquita" |
+| Copyright | `IDS_ABOUT_VERSION_COPYRIGHT` | **rama** `nube/l10n` 8db1ad26 (paso 5b): "lamosquita and The Brave Authors"; en español "lamosquita y los creadores de Brave"; resto de idiomas en inglés (decisión HUMANO). El paso 5 lo había dejado en "Los creadores de FlyWeb", atribución falsa |
 | "Revisión" 25c5f015 (el tag 1.57.64) | `build/util/LASTCHANGE`, que escribe el hook `brave_lastchange` de brave-core `DEPS`: último commit cuyo mensaje es una versión (`^1.57.64$`), y solo en `gclient sync` | **hecho** en `build.sh`: ejecuta `lastchange.py` sin filtro → commit de `flyweb` que se compila |
 | Versión "1.57.64 Chromium: 116…" | `kBraveVersionNumberForDisplay` | **se queda** por ahora: es la versión real de la base. Cambiarla afecta a la cadena de user agent y a los componentes de Brave (piden por versión) |
 
