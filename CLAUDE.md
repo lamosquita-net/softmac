@@ -55,7 +55,8 @@ que tiene commit. **Nunca `gclient sync -D`** en `flyweb-build` (borró el workt
   `net.lamosquita.flyweb[.canal]`, Team ID `MQ3NJ73LC5`, perfil `~/Library/Application Support/LaMosquita/FlyWeb`,
   llavero `FlyWeb Safe Storage`. Aplicado en `brave-core` rama `flyweb`.
 - Servicios: componentes/Shields desde el go-updater de Brave (mientras lo permitan); sync, stats y variations
-  con URL inertes; Sparkle, updater, P3A, Leo, VPN, Safe Browsing y wallets desactivados (args en `build.sh`).
+  con URL inertes; Sparkle, updater, P3A, Leo y VPN desactivados (args en `build.sh`); Safe Browsing, Wallet y
+  Rewards por política (`FlyWeb/policies/flyweb-policies.mobileconfig`), porque en 1.57 sus args rompen `gn gen`.
 - Pendiente de marca: cadenas de la interfaz con `script/chromium-rebase-l10n.py` (necesita el checkout de
   Chromium; no editar .grd/.xtb a mano: los ids de traducción son hashes del texto inglés), logotipos de NTP/welcome.
 - Riesgo asumido: Chromium de 2023 → aplicar parches de seguridad poco a poco.

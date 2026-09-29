@@ -57,7 +57,10 @@ npm run apply_patches
 # Servicios de Brave: ver FlyWeb/docs/rebranding.md §4.
 # - Componentes (listas de Shields, Widevine): se mantienen los servidores de Brave (decisión "a").
 # - Sync, estadísticas y variations: URL inertes (son obligatorias en Release).
-# - Sparkle, actualizador, P3A, Leo, VPN, Safe Browsing (necesita clave de Google), wallets: desactivados.
+# - Sparkle, actualizador, P3A, Leo, VPN: desactivados aquí.
+# - Safe Browsing y wallets: NO se pueden quitar al compilar en 1.57 (safe_browsing_mode:0 deja sin resolver
+#   dependencias de //chrome/test:unit_tests, y ethereum_remote_client_enabled:false choca con un assert de
+#   //brave/renderer/test). Se desactivan en tiempo de ejecución con FlyWeb/policies/flyweb-policies.mobileconfig.
 UPDATER="${FLYWEB_UPDATER_URL:-https://go-updater.brave.com/extensions}"
 INERT="https://flyweb.invalid"
 npm run build -- "$CONFIG" --target_arch=x64 \
@@ -75,8 +78,6 @@ npm run build -- "$CONFIG" --target_arch=x64 \
   --gn enable_ai_chat:false \
   --gn enable_brave_vpn:false \
   --gn enable_brave_vpn_panel:false \
-  --gn safe_browsing_mode:0 \
-  --gn ethereum_remote_client_enabled:false \
   --gn enable_gemini_wallet:false
 
 OUT="$BUILD/brave-browser/src/out/$CONFIG"
