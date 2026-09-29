@@ -19,6 +19,10 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
      propone cambios en ramas `nube/<tema>` del fork. LOCAL los compila y, si funcionan, los fusiona en `flyweb`.
 3. **Ficheros compartidos** (`CLAUDE.md`, este tablero): cambios pequeños y frecuentes. Antes de editar, `git pull`.
    Cada agente edita solo sus filas.
+   - **Tablero, sin PR:** cada agente puede hacer push directo de **sus propias filas** de este fichero (reclamar,
+     cambiar el estado, notas) a la rama donde viva el tablero. Esto es una excepción a la regla 2.
+   - Todo lo demás va por PR, incluidos `CLAUDE.md`, el código y las filas de otro agente.
+   - Si el push lo rechaza porque hay cambios nuevos: `git pull --rebase` y volver a subir. No forzar nunca el push.
 4. **Entregas entre agentes:** en "Notas", qué se deja hecho y qué necesita el otro (por ejemplo "rama
    `nube/jitless` lista para compilar").
 5. **Nunca en el repo:** tokens, `backupdrive.conf`, contraseñas ni certificados.
@@ -32,7 +36,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
 | F0.1 | Terminar `gclient sync` (plan B con `-j 4`) y `npm run sync` | HUMANO/LOCAL | en curso | falló por HTTP 429 de googlesource |
-| F0.2 | Primera compilación con `build.sh`; validar `mac_sdk_path` con Xcode 26 activo | LOCAL | pendiente | necesita F0.1 y el PR #3 fusionado |
+| F0.2 | Primera compilación con `build.sh`; validar `mac_sdk_path` con Xcode 26 activo | LOCAL | en curso | reclamada; empieza cuando termine F0.1 (no se toca `flyweb-build` ni los forks mientras corre el sync). Antes: actualizar el `brave-core.git` local a `flyweb` 77b25c6b |
 | F0.3 | Script de comprobación AVX en los comandos de compilación | NUBE | hecho | `FlyWeb/scripts/check-no-avx.sh`; LOCAL: ejecutarlo tras cada `gn gen`/build |
 | F0.4 | `build.sh`: sello de versión y commits en el `.app`, soporte sccache | NUBE | pendiente | |
 | F0.5 | Firma Developer ID y notarización con `notarytool` | LOCAL | pendiente | necesita el certificado del HUMANO |
@@ -62,7 +66,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 ### BackupDrive
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
-| B.1 | Crear el OAuth client de Google y el `backupdrive.conf` | HUMANO/LOCAL | en curso | en la MacPro7,1 |
+| B.1 | Crear el OAuth client de Google y el `backupdrive.conf` | HUMANO/LOCAL | hecho | proyecto `BackupDrive` en la org. lamosquita.net, pantalla de consentimiento **Interna**, cliente "App de escritorio". `lsd gdrive:` OK con el binario de la CI (ejecución 36464297550) en la 7,1. El `.conf` **no está en el repo** |
 | B.2 | Probar `bisync` contra Drive real en Mojave (`--dry-run` → `--resync` → launchd) | HUMANO | pendiente | en la 6,1 |
 | B.3 | Iconos de barra de menús: trazos más gruesos | HUMANO | pendiente | ver revisión del PR #3 |
 | B.4 | App Cocoa de barra de menús (Xcode 11, Mojave) | LOCAL | pendiente | después de B.2 |
