@@ -1,12 +1,15 @@
 #!/bin/sh
-# Compila FlyWeb (Release, x86_64) con el SDK de macOS 13.3.
-# Uso: build.sh [Release|Component|Debug]   (por defecto Release)
+# Compila FlyWeb (x86_64) con el SDK de macOS 13.3.
+# Uso: build.sh [Static|Component|Release|Debug]   (por defecto Static)
+#   Static     sin componentes y sin ThinLTO: .app autocontenido para probar en la 6,1/5,1. Uso diario.
+#   Component  .dylib por componente: enlazado incremental muy rápido, solo se ejecuta en la 7,1.
+#   Release    is_official_build (ThinLTO, enlazado lento y con mucha RAM): solo para publicar.
 set -eu
 
 BUILD="${FLYWEB_BUILD:-$HOME/proyectos/flyweb-build}"
 SDK="${FLYWEB_SDK:-$HOME/proyectos/sdk/MacOSX13.3.sdk}"
 BRANCH="${FLYWEB_BRANCH:-flyweb}"
-CONFIG="${1:-Release}"
+CONFIG="${1:-Static}"
 
 [ -d "$BUILD/brave-browser/src/brave" ] || { echo "Ejecuta antes setup-build.sh" >&2; exit 1; }
 [ -d "$SDK" ] || { echo "No existe $SDK (ver setup-build.sh)" >&2; exit 1; }

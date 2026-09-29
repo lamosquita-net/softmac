@@ -67,6 +67,16 @@ FlyWeb/scripts/setup-build.sh   # una vez: worktrees + npm run init (descarga Ch
 FlyWeb/scripts/build.sh         # cada compilación: pone los worktrees en el último commit de "flyweb" y compila
 ```
 
+Modos de compilación (`build.sh <modo>`):
+
+| Modo | Para qué | Coste |
+|---|---|---|
+| `Static` (por defecto) | Probar en la 6,1 y la 5,1: `.app` autocontenido | Sin ThinLTO; enlazado moderado |
+| `Component` | Iterar rápido en la 7,1 (no se puede copiar a otro Mac) | Enlazado incremental muy rápido; DCHECKs activos |
+| `Release` | Publicar | `is_official_build` activa ThinLTO en Mac: enlazado lento y mucha RAM |
+
+Checkout más ligero: la rama `nube/gclient-slim` de brave-core no descarga NaCl ni VK-GL-CTS (ver `docs/TAREAS.md` F0.7).
+
 Flujo: editar en `FlyWeb/brave-core/` (red) → commit en `flyweb` → `build.sh`. Solo se compila lo que tiene commit.
 Rutas configurables con `FLYWEB_BUILD`, `FLYWEB_GITDIRS`, `FLYWEB_SDK` y `FLYWEB_BRANCH`.
 
