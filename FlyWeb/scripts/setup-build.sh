@@ -3,10 +3,12 @@
 #
 #   ~/proyectos/flyweb-build/brave-browser/            worktree de brave-browser.git (commit de "flyweb")
 #   ~/proyectos/flyweb-build/brave-browser/src/        Chromium 116 (gclient, ~100 GB)
-#   ~/proyectos/flyweb-build/brave-browser/src/brave/  worktree de brave-core.git (commit de "flyweb")
+#   ~/proyectos/flyweb-build/brave-browser/src/brave/  clon --shared de brave-core.git (commit de "flyweb")
 #
-# Los worktrees de compilación van en modo "detached": la rama "flyweb" sigue activa en los árboles
-# de trabajo de la red, que es donde se edita y se hace commit. build.sh los pone al día antes de compilar.
+# brave-browser es un worktree "detached"; src/brave es un CLON --shared (con carpeta .git real, sin copiar
+# objetos), no un worktree: gclient decide qué es un repo mirando si existe la carpeta .git, y con un
+# worktree (.git es un fichero) "gclient sync -D" lo borró y clonó el Brave original. build.sh hace
+# "git fetch" de ese clon desde el .git local antes de compilar. NUNCA usar "gclient sync -D" aquí.
 set -eu
 
 BUILD="${FLYWEB_BUILD:-$HOME/proyectos/flyweb-build}"
@@ -40,9 +42,10 @@ if [ ! -e "$BUILD/brave-browser/.git" ]; then
   git --git-dir="$GITDIRS/brave-browser.git" worktree add --detach "$BUILD/brave-browser" "$BRANCH"
 fi
 mkdir -p "$BUILD/brave-browser/src"
-# scripts/init.js no clona brave-core si src/brave/.git ya existe (un worktree también cuenta).
-if [ ! -e "$BUILD/brave-browser/src/brave/.git" ]; then
-  git --git-dir="$GITDIRS/brave-core.git" worktree add --detach "$BUILD/brave-browser/src/brave" "$BRANCH"
+# scripts/init.js no clona brave-core si src/brave/.git ya existe.
+if [ ! -d "$BUILD/brave-browser/src/brave/.git" ]; then
+  git clone -q --shared --no-checkout "$GITDIRS/brave-core.git" "$BUILD/brave-browser/src/brave"
+  git -C "$BUILD/brave-browser/src/brave" checkout -q --detach "origin/$BRANCH"
 fi
 
 cd "$BUILD/brave-browser"

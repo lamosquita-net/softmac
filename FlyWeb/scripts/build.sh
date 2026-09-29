@@ -19,9 +19,14 @@ CONFIG="${1:-Static}"
 [ -d "$BUILD/brave-browser/src/brave" ] || { echo "Ejecuta antes setup-build.sh" >&2; exit 1; }
 [ -d "$SDK" ] || { echo "No existe $SDK (ver setup-build.sh)" >&2; exit 1; }
 
-# Poner los worktrees de compilación en el último commit de la rama. Solo se compila lo que tiene commit.
+# Poner el checkout de compilación en el último commit de la rama. Solo se compila lo que tiene commit.
+# brave-browser: worktree del .git local. src/brave: clon --shared del .git local (ver setup-build.sh).
+[ -d "$BUILD/brave-browser/src/brave/.git" ] || {
+  echo "src/brave no es un clon (¿worktree antiguo o borrado?): rehacerlo con setup-build.sh" >&2; exit 1; }
+git -C "$BUILD/brave-browser" checkout -q --detach "$BRANCH"
+git -C "$BUILD/brave-browser/src/brave" fetch -q origin
+git -C "$BUILD/brave-browser/src/brave" checkout -q --detach "origin/$BRANCH"
 for dir in "$BUILD/brave-browser" "$BUILD/brave-browser/src/brave"; do
-  git -C "$dir" checkout -q --detach "$BRANCH"
   echo "$(basename "$dir"): $(git -C "$dir" log -1 --format='%h %s')"
 done
 
@@ -67,6 +72,7 @@ CHROMIUM=$(node -p "require('$CORE/package.json').config.projects.chrome.tag")
 CORE_COMMIT=$(git -C "$CORE" rev-parse --short=12 HEAD)
 BROWSER_COMMIT=$(git -C "$BUILD/brave-browser" rev-parse --short=12 HEAD)
 DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+mkdir -p "$OUT"
 cat > "$OUT/flyweb-build-info.txt" <<INFO
 FlyWeb $VERSION ($CONFIG)
 brave-core (flyweb): $CORE_COMMIT

@@ -28,6 +28,8 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
 5. **Nunca en el repo:** tokens, `backupdrive.conf`, contraseñas ni certificados.
 6. Cuando una tarea termina: estado `hecho`, más el enlace al PR o commit.
 
+**Prohibido en `~/proyectos/flyweb-build`: `gclient sync -D`.** Borró el `src/brave` antiguo (worktree). Ahora `src/brave` es un clon `--shared` (ver `setup-build.sh`).
+
 Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 
 ## Tablero
