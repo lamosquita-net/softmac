@@ -54,6 +54,10 @@ fi
 cd "$BUILD/brave-browser"
 # Si cambian los .patch de brave-core sin cambiar DEPS, basta con reaplicarlos.
 npm run apply_patches
+# "Revisión" de brave://version: Brave la toma del último commit de versión ("1.57.64") con el hook
+# brave_lastchange de DEPS, que aquí no se ejecuta. Se pone el commit de flyweb que se compila (--filter ""
+# = cualquier commit). lastchange.py solo reescribe el fichero si cambia: sin commits nuevos no recompila nada.
+python3 src/build/util/lastchange.py --output src/build/util/LASTCHANGE --source-dir src/brave --filter ""
 # Servicios de Brave: ver FlyWeb/docs/rebranding.md §4.
 # - Componentes (listas de Shields, Widevine): se mantienen los servidores de Brave (decisión "a").
 # - Sync, estadísticas y variations: URL inertes (son obligatorias en Release).
