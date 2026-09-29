@@ -17,7 +17,9 @@ Reparto de tareas entre agentes: [`../../docs/TAREAS.md`](../../docs/TAREAS.md).
 2. **CPUs sin AVX (MacPro5,1):**
    - Nada de `-march=native` ni `target-cpu=native` en C++ ni en Rust. Chromium no los usa por defecto; hay que
      vigilar que ningún parche los introduzca.
-   - Script de comprobación heurística: registros `ymm`/`zmm` en el desensamblado del binario.
+   - `scripts/check-no-avx.sh`: revisa los comandos de compilación (`ninja -t commands`), no el binario, porque
+     Chromium siempre contiene código AVX con selección en tiempo de ejecución. Falla con flags `native` o con
+     flags AVX en más del 5 % de los comandos (señal de flag global).
    - Prueba de arranque en la 5,1 en cada release.
 3. Release con `is_official_build=true` y `symbol_level=0`. Compilación incremental con sccache para el día a día
    (`npm config set sccache …`, ya soportado por `config.js`).
