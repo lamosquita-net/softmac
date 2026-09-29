@@ -9,6 +9,9 @@
   Instalar: doble clic y aceptar en Preferencias del Sistema > Perfiles. Ver brave://policy.
   La granularidad es el sitio (eTLD+1): "[*.]google.com" cubre mail.google.com y docs.google.com.
   Edita la lista según las mediciones de F3A.2 (docs/TAREAS.md).
+  Chromium lee las políticas del dominio del bundle id: net.lamosquita.flyweb (Release) y
+  net.lamosquita.flyweb.development (builds Static/Component, marca de desarrollo). Los dos bloques
+  deben ser iguales: al cambiar uno, copiarlo al otro.
 -->
 <plist version="1.0">
 <dict>
@@ -28,6 +31,30 @@
 			<key>PayloadContent</key>
 			<dict>
 				<key>net.lamosquita.flyweb</key>
+				<dict>
+					<key>Forced</key>
+					<array>
+						<dict>
+							<key>mcx_preference_settings</key>
+							<dict>
+								<key>DefaultJavaScriptJitSetting</key>
+								<integer>2</integer>
+								<key>SafeBrowsingProtectionLevel</key>
+								<integer>0</integer>
+								<key>BraveWalletDisabled</key>
+								<true/>
+								<key>BraveRewardsDisabled</key>
+								<true/>
+								<key>JavaScriptJitAllowedForSites</key>
+								<array>
+									<string>[*.]claude.ai</string>
+									<string>[*.]google.com</string>
+								</array>
+							</dict>
+						</dict>
+					</array>
+				</dict>
+				<key>net.lamosquita.flyweb.development</key>
 				<dict>
 					<key>Forced</key>
 					<array>
