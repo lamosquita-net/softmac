@@ -72,4 +72,6 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | B.1 | Crear el OAuth client de Google y el `backupdrive.conf` | HUMANO/LOCAL | hecho | proyecto `BackupDrive` en la org. lamosquita.net, pantalla de consentimiento **Interna**, cliente "App de escritorio". `lsd gdrive:` OK con el binario de la CI (ejecución 36464297550) en la 7,1. El `.conf` **no está en el repo** |
 | B.2 | Probar `bisync` contra Drive real en Mojave (`--dry-run` → `--resync` → launchd) | HUMANO | pendiente | en la 6,1 |
 | B.3 | Iconos de barra de menús: trazos más gruesos | HUMANO | pendiente | ver revisión del PR #3 |
-| B.4 | App Cocoa de barra de menús (Xcode 11, Mojave) | LOCAL | pendiente | después de B.2 |
+| B.4 | App Cocoa de barra de menús (Xcode 11, Mojave) | LOCAL | pendiente | después de B.2; leerá `status.json` (B.5) |
+| B.5 | Motor para la app: `status.json`, bloqueo anti-solapes y avisos de macOS en `backupdrive-sync.sh` | NUBE | en curso | |
+| B.6 | `mojave-selftest.sh`: autodiagnóstico en la 6,1 antes de B.2 | NUBE | en curso | |
