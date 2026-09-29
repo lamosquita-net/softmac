@@ -7,6 +7,10 @@ Monorepo de software para Macs obsoletos de lamosquita.net. Idioma de trabajo: e
 - Un software por carpeta; **cada uno con su propia licencia** heredada del origen. La raíz es MIT.
 - Nada de binarios que exijan AVX (la MacPro5,1 no lo tiene).
 
+## Trabajo en paralelo
+Dos agentes (NUBE y LOCAL) más el humano. **Leer `docs/TAREAS.md` al empezar**: reparto, ramas y reglas.
+Hoja de ruta de FlyWeb: `FlyWeb/docs/hoja-de-ruta.md`.
+
 ## Máquinas
 - **MacPro7,1** (macOS 15 Sequoia, Xcode 26.3, 16 núcleos / 32 hilos, 96 GB, SSD 2 TB): host de compilación principal.
 - **MacPro6,1** (Mojave, Xcode 11.3.1, 64 GB): compilación y pruebas en Mojave.
