@@ -41,6 +41,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F0.4 | `build.sh`: sello de versión y commits en el `.app`, soporte sccache | NUBE | pendiente | |
 | F0.5 | Firma Developer ID y notarización con `notarytool` | LOCAL | pendiente | necesita el certificado del HUMANO |
 | F0.6 | Prueba de arranque en la 6,1 y la 5,1 | HUMANO | pendiente | después de F0.2 |
+| F0.7 | Adelgazar checkout (`custom_vars`/`custom_deps` de test) y args de gn que acortan la compilación | NUBE | hecho | brave-core `nube/gclient-slim` (sin NaCl ni VK-GL-CTS en `.gclient` nuevos). `build.sh` por defecto en **Static** (sin ThinLTO); Release solo para publicar. **LOCAL, tras F0.1:** en el `.gclient` existente, añadir en `custom_vars` `"checkout_nacl": False` y en `custom_deps` `"src/third_party/angle/third_party/VK-GL-CTS/src": None`; `gclient sync` borrará lo sobrante; verificar que `gn gen` sigue pasando |
 
 ### FlyWeb — Fase 1 (marca y servicios)
 | # | Tarea | Quién | Estado | Notas |
