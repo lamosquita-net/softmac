@@ -15,6 +15,11 @@ set -eu
 # (dotenv…). En la MacPro7,1 esa variable llega del entorno de la app, no del perfil del shell.
 unset NODE_ENV
 
+# depot_tools fijado al commit del DEPS de Chromium 116: con uno más reciente, su vpython ya no resuelve las
+# dependencias de los hooks de la 116 (p. ej. numpy==1.21.1+supported.1). Y sin autoactualizaciones.
+export DEPOT_TOOLS_UPDATE=0
+DEPOT_TOOLS_PIN=fc75af35d41df6c7742caef751428aa875199990
+
 BUILD="${FLYWEB_BUILD:-$HOME/proyectos/flyweb-build}"
 SDK="${FLYWEB_SDK:-$HOME/proyectos/sdk/MacOSX13.3.sdk}"
 BRANCH="${FLYWEB_BRANCH:-flyweb}"
@@ -33,6 +38,11 @@ git -C "$BUILD/brave-browser/src/brave" checkout -q --detach "origin/$BRANCH"
 for dir in "$BUILD/brave-browser" "$BUILD/brave-browser/src/brave"; do
   echo "$(basename "$dir"): $(git -C "$dir" log -1 --format='%h %s')"
 done
+DT="$BUILD/brave-browser/src/brave/vendor/depot_tools"
+if [ -d "$DT/.git" ] && [ "$(git -C "$DT" rev-parse HEAD)" != "$DEPOT_TOOLS_PIN" ]; then
+  echo "depot_tools no está en $DEPOT_TOOLS_PIN: lo vuelvo a fijar"
+  git -C "$DT" checkout -q "$DEPOT_TOOLS_PIN"
+fi
 
 # sccache (brave-core lo lee como npm config "sccache" y lo usa de CC_WRAPPER).
 SCCACHE="${FLYWEB_SCCACHE:-$(command -v sccache || true)}"
