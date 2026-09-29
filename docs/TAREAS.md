@@ -53,6 +53,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F1.3 | Compilar `nube/l10n` y fusionar en `flyweb` (ya **no** hace falta ejecutar `chromium-rebase-l10n.py`) | LOCAL | pendiente | tras F0.2; comprobar menús en español ("Salir de FlyWeb") |
 | F1.4 | Parches: referrals, stats ping, Talk y News desactivados | NUBE | pendiente | rama `nube/servicios` |
 | F1.5 | Script de auditoría de red con lista de permitidos | NUBE | hecho | `FlyWeb/scripts/network-audit.py` (NetLog de Chromium, sin proxy), `FlyWeb/audit/allowlist.txt` y `denylist.txt`; modos `reposo` y `uso` |
+| F1.7 | Quitar las wallets cripto (decisión HUMANO: nada de monederos en el navegador) | NUBE | hecho | brave-core `nube/no-wallet`: Brave Wallet siempre desactivada en el código y Crypto Wallets fuera de la compilación. Paso 6 de `integracion.md` |
 | F1.6 | Ejecutar la auditoría de red (30 min en reposo + 30 min de uso) | LOCAL | pendiente | instrucciones en la cabecera de `network-audit.py`; añadir a `allowlist.txt` lo legítimo que aparezca, documentado |
 
 ### FlyWeb — Fase 3A (seguridad inmediata)
