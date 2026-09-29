@@ -48,7 +48,7 @@ regeneran con el mismo procedimiento (`FlyWeb/branding/scripts/`).
 | Qué se ve | Estado |
 |---|---|
 | Fondos de imagen (fotografías con crédito del autor) | **se queda**: no son marca de Brave |
-| **Imágenes patrocinadas** (Sponsored Images, `ntp_background_images` por el actualizador de componentes de Brave) | **pendiente, prioridad alta**: es publicidad de Brave que se descarga de sus servidores; no está claro si sigue activa con Rewards apagado. Propuesta: desactivarlas en código (misma técnica que Rewards). Hay que confirmarlo en la auditoría de red (F1.6) |
+| **Imágenes patrocinadas** (Sponsored Images) y fondos de "super referral" | **rama** `nube/no-sponsored-images` 8c984d70 (paso 8): sus componentes no se registran ni se descargan; solo quedan las fotografías |
 | Estadísticas de Brave (anuncios y rastreadores bloqueados, tiempo ahorrado) | **se queda**: son de Shields y útiles |
 | Tarjetas de Brave News, Brave Talk | pendiente: ocultarlas por defecto (preferencias), Brave News hace peticiones a Brave |
 
@@ -56,3 +56,5 @@ regeneran con el mismo procedimiento (`FlyWeb/branding/scripts/`).
 
 - Esquema `flyweb://` en lugar de `brave://`.
 - Página de inicio propia.
+
+Imágenes que hay que diseñar para sustituir las provisionales: [`../branding/imagenes.md`](../branding/imagenes.md).
