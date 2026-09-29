@@ -47,3 +47,38 @@ jobs:
         with:
           name: backupdrive-menubar-app
           path: BackupDrive/build/BackupDrive-app.zip
+
+  package:
+    # Un solo zip para instalar en el Mac: descomprimir y ejecutar ./install.sh
+    needs: [build-darwin-amd64, build-menubar-app]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: backupdrive-darwin-amd64
+          path: dl/engine
+      - uses: actions/download-artifact@v4
+        with:
+          name: backupdrive-menubar-app
+          path: dl/app
+      - name: Assemble BackupDrive/
+        run: |
+          P=pkg/BackupDrive
+          mkdir -p "$P"
+          cp dl/engine/build/backupdrive "$P/"
+          ditto -x -k dl/app/BackupDrive-app.zip "$P/"
+          cp BackupDrive/scripts/install.sh BackupDrive/scripts/backupdrive-sync.sh BackupDrive/scripts/mojave-selftest.sh "$P/"
+          cp BackupDrive/launchd/net.lamosquita.backupdrive.plist "$P/"
+          cp BackupDrive/LICENSE "$P/LICENSE.txt"
+          cp BackupDrive/rclone/COPYING "$P/LICENSE-rclone.txt"
+          chmod 755 "$P/backupdrive" "$P"/*.sh
+          printf 'BackupDrive (%s)\n\nInstalar:   ./install.sh\nQuitar:     ./install.sh --uninstall\nDetalles:   https://github.com/%s/tree/%s/BackupDrive\n' \
+            "${GITHUB_SHA::7}" "$GITHUB_REPOSITORY" "$GITHUB_SHA" > "$P/LEEME.txt"
+          ls -la "$P"
+          file "$P/backupdrive" "$P/BackupDrive.app/Contents/MacOS/BackupDrive"
+          cd pkg && ditto -c -k --keepParent BackupDrive ../BackupDrive-mojave.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BackupDrive-mojave
+          path: BackupDrive-mojave.zip

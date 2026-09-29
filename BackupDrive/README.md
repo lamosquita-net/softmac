@@ -18,7 +18,22 @@ cd BackupDrive
 
 También se puede descargar el binario ya compilado desde la CI: pestaña Actions, artefacto `backupdrive-darwin-amd64`.
 
-## Instalar y programar
+## Instalar (lo más fácil)
+
+La CI genera un zip con todo (artefacto **`BackupDrive-mojave`**: binario, motor, autodiagnóstico,
+LaunchAgent y app). En el Mac:
+
+```sh
+unzip BackupDrive-mojave.zip && cd BackupDrive
+./install.sh              # pide la contraseña solo para /usr/local/bin
+```
+
+`install.sh` instala o actualiza sin tocar la configuración ni los perfiles, deja el LaunchAgent copiado pero
+**sin activar** (la primera vez hay que hacer `--resync` a mano) e imprime los pasos siguientes.
+`./install.sh --uninstall` lo quita todo menos la configuración y los registros. También funciona desde el
+repositorio, tras compilar (`scripts/install.sh`).
+
+## Instalar y programar a mano
 
 ```sh
 sudo cp build/backupdrive scripts/backupdrive-sync.sh /usr/local/bin/
