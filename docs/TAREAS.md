@@ -41,6 +41,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F0.4 | `build.sh`: sello de versión y commits en el `.app`, soporte sccache | NUBE | pendiente | |
 | F0.5 | Firma Developer ID y notarización con `notarytool` | LOCAL | pendiente | necesita el certificado del HUMANO |
 | F0.6 | Prueba de arranque en la 6,1 y la 5,1 | HUMANO | pendiente | después de F0.2 |
+| F0.7 | Adelgazar checkout (`custom_vars`/`custom_deps` de test) y args de gn que acortan la compilación | NUBE | en curso | sin tocar código de Chromium |
 
 ### FlyWeb — Fase 1 (marca y servicios)
 | # | Tarea | Quién | Estado | Notas |
