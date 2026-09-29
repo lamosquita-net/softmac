@@ -7,6 +7,10 @@ Monorepo de software para Macs obsoletos de lamosquita.net. Idioma de trabajo: e
 - Un software por carpeta; **cada uno con su propia licencia** heredada del origen. La raíz es MIT.
 - Nada de binarios que exijan AVX (la MacPro5,1 no lo tiene).
 
+## Trabajo en paralelo
+Dos agentes (NUBE y LOCAL) más el humano. **Leer `docs/TAREAS.md` al empezar**: reparto, ramas y reglas.
+Hoja de ruta de FlyWeb: `FlyWeb/docs/hoja-de-ruta.md`.
+
 ## Máquinas
 - **MacPro7,1** (macOS 15 Sequoia, Xcode 26.3, 16 núcleos / 32 hilos, 96 GB, SSD 2 TB): host de compilación principal.
 - **MacPro6,1** (Mojave, Xcode 11.3.1, 64 GB): compilación y pruebas en Mojave.
@@ -44,7 +48,14 @@ commit de `flyweb` antes de compilar. Solo se compila lo que tiene commit. Nada 
 - Compilar con **Xcode 14.3 / SDK macOS 13.3** (oficial de Chromium 116). En la 7,1: extraer
   `MacOSX13.3.sdk` de Xcode 14.3.1 y pasarlo con `mac_sdk_path`; no usar el SDK 26.
 - Obligaciones: MPL-2.0 (publicar los ficheros de Brave modificados), `about:credits`, **quitar la marca
-  Brave** (nombre, iconos, bundle id `net.lamosquita.flyweb`, servicios de Brave).
+  Brave** (inventario en `FlyWeb/docs/rebranding.md`).
+- **Identidad decidida (no cambiar sin migración):** empresa `lamosquita`, producto `FlyWeb`, bundle id
+  `net.lamosquita.flyweb[.canal]`, Team ID `MQ3NJ73LC5`, perfil `~/Library/Application Support/LaMosquita/FlyWeb`,
+  llavero `FlyWeb Safe Storage`. Aplicado en `brave-core` rama `flyweb`.
+- Servicios: componentes/Shields desde el go-updater de Brave (mientras lo permitan); sync, stats y variations
+  con URL inertes; Sparkle, updater, P3A, Leo, VPN, Safe Browsing y wallets desactivados (args en `build.sh`).
+- Pendiente de marca: cadenas de la interfaz con `script/chromium-rebase-l10n.py` (necesita el checkout de
+  Chromium; no editar .grd/.xtb a mano: los ids de traducción son hashes del texto inglés), logotipos de NTP/welcome.
 - Riesgo asumido: Chromium de 2023 → aplicar parches de seguridad poco a poco.
 - Criterio de aceptación: claude.ai funciona por completo.
 

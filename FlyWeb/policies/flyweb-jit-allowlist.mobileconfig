@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Política de FlyWeb: V8 sin JIT por defecto (DefaultJavaScriptJitSetting = 2, bloquear)
+  y lista de sitios que sí pueden usar JIT (JavaScriptJitAllowedForSites).
+  Instalar: doble clic y aceptar en Preferencias del Sistema > Perfiles. Ver brave://policy.
+  La granularidad es el sitio (eTLD+1): "[*.]google.com" cubre mail.google.com y docs.google.com.
+  Edita la lista según las mediciones de F3A.2 (docs/TAREAS.md).
+-->
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>PayloadType</key>
+			<string>com.apple.ManagedClient.preferences</string>
+			<key>PayloadIdentifier</key>
+			<string>net.lamosquita.flyweb.policy.jit</string>
+			<key>PayloadUUID</key>
+			<string>ACD9E45D-F91A-42EA-A58B-15C875D9953D</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>PayloadDisplayName</key>
+			<string>FlyWeb: JIT de JavaScript</string>
+			<key>PayloadContent</key>
+			<dict>
+				<key>net.lamosquita.flyweb</key>
+				<dict>
+					<key>Forced</key>
+					<array>
+						<dict>
+							<key>mcx_preference_settings</key>
+							<dict>
+								<key>DefaultJavaScriptJitSetting</key>
+								<integer>2</integer>
+								<key>JavaScriptJitAllowedForSites</key>
+								<array>
+									<string>[*.]claude.ai</string>
+									<string>[*.]google.com</string>
+								</array>
+							</dict>
+						</dict>
+					</array>
+				</dict>
+			</dict>
+		</dict>
+	</array>
+	<key>PayloadDisplayName</key>
+	<string>FlyWeb: políticas</string>
+	<key>PayloadIdentifier</key>
+	<string>net.lamosquita.flyweb.policy</string>
+	<key>PayloadOrganization</key>
+	<string>lamosquita</string>
+	<key>PayloadScope</key>
+	<string>User</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>8D376FE6-4309-4D0B-AF85-9123E9D03221</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>
