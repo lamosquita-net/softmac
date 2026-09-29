@@ -11,6 +11,10 @@
 # "git fetch" de ese clon desde el .git local antes de compilar. NUNCA usar "gclient sync -D" aquí.
 set -eu
 
+# Con NODE_ENV=production, npm omite las devDependencies, y ahí están las herramientas de build de Brave
+# (dotenv…). En la MacPro7,1 esa variable llega del entorno de la app, no del perfil del shell.
+unset NODE_ENV
+
 BUILD="${FLYWEB_BUILD:-$HOME/proyectos/flyweb-build}"
 GITDIRS="${FLYWEB_GITDIRS:-$HOME/proyectos/softmac/FlyWeb}"
 SDK="${FLYWEB_SDK:-$HOME/proyectos/sdk/MacOSX13.3.sdk}"

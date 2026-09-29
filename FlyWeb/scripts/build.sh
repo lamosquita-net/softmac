@@ -11,6 +11,10 @@
 # FlyWebCommit, FlyWebBraveBrowserCommit, FlyWebChromium, FlyWebBuildDate y FlyWebBuildConfig en el Info.plist.
 set -eu
 
+# Con NODE_ENV=production, npm omite las devDependencies, y ahí están las herramientas de build de Brave
+# (dotenv…). En la MacPro7,1 esa variable llega del entorno de la app, no del perfil del shell.
+unset NODE_ENV
+
 BUILD="${FLYWEB_BUILD:-$HOME/proyectos/flyweb-build}"
 SDK="${FLYWEB_SDK:-$HOME/proyectos/sdk/MacOSX13.3.sdk}"
 BRANCH="${FLYWEB_BRANCH:-flyweb}"
