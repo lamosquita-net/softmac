@@ -1,0 +1,8 @@
+# Destinos permitidos en una sesión en REPOSO (FlyWeb abierto sin navegar).
+# Un patrón por línea, estilo glob sobre el host (fnmatch). Comentarios con #.
+# Revisar tras la primera auditoría real (F1.6) y documentar cada alta.
+
+# Componentes y listas de Shields: go-updater de Brave (decisión "a", hasta la Fase 2)
+go-updater.brave.com
+componentupdater.brave.com
+crxdownload.brave.com

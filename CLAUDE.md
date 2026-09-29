@@ -27,9 +27,11 @@ sincroniza con Google Drive y más adelante con BackupDrive). Se monta con `git 
 | brave-core (fork) | `~/proyectos/softmac/FlyWeb/brave-core.git` | `…/softmac/FlyWeb/brave-core/` |
 | Checkout y compilación de Chromium | **local**: `~/proyectos/flyweb-build/` | — (no se sincroniza; se regenera desde los forks) |
 
-Flujo de FlyWeb: se edita y se hace commit en la red (rama `flyweb`). El checkout de compilación usa
-worktrees *detached* de los mismos `.git` locales: `FlyWeb/scripts/build.sh` los pone en el último
-commit de `flyweb` antes de compilar. Solo se compila lo que tiene commit. Nada de push/pull entre ambos.
+Flujo de FlyWeb: se edita y se hace commit en la red (rama `flyweb`). En el checkout de compilación,
+`brave-browser` es un worktree *detached* del `.git` local y `src/brave` es un **clon `--shared`** del
+`.git` local de brave-core (no un worktree: gclient solo reconoce carpetas `.git` reales).
+`FlyWeb/scripts/build.sh` hace `fetch` local y los pone en el último commit de `flyweb`. Solo se compila lo
+que tiene commit. **Nunca `gclient sync -D`** en `flyweb-build` (borró el worktree antiguo).
 
 ## Proyectos
 ### BackupDrive/

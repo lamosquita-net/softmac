@@ -28,6 +28,8 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
 5. **Nunca en el repo:** tokens, `backupdrive.conf`, contraseñas ni certificados.
 6. Cuando una tarea termina: estado `hecho`, más el enlace al PR o commit.
 
+**Prohibido en `~/proyectos/flyweb-build`: `gclient sync -D`.** Borró el `src/brave` antiguo (worktree). Ahora `src/brave` es un clon `--shared` (ver `setup-build.sh`).
+
 Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 
 ## Tablero
@@ -36,9 +38,9 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
 | F0.1 | Terminar `gclient sync` (plan B con `-j 4`) y `npm run sync` | HUMANO/LOCAL | en curso | falló por HTTP 429 de googlesource |
-| F0.2 | Primera compilación con `build.sh`; validar `mac_sdk_path` con Xcode 26 activo | LOCAL | en curso | reclamada; empieza cuando termine F0.1 (no se toca `flyweb-build` ni los forks mientras corre el sync). Antes: actualizar el `brave-core.git` local a `flyweb` 77b25c6b |
+| F0.2 | Primera compilación con `build.sh`; validar `mac_sdk_path` con Xcode 26 activo — **seguir `FlyWeb/docs/integracion.md`** | LOCAL | en curso | reclamada; empieza cuando termine F0.1 (no se toca `flyweb-build` ni los forks mientras corre el sync). Antes: actualizar el `brave-core.git` local a `flyweb` 77b25c6b |
 | F0.3 | Script de comprobación AVX en los comandos de compilación | NUBE | hecho | `FlyWeb/scripts/check-no-avx.sh`; LOCAL: ejecutarlo tras cada `gn gen`/build |
-| F0.4 | `build.sh`: sello de versión y commits en el `.app`, soporte sccache | NUBE | pendiente | |
+| F0.4 | `build.sh`: sello de versión y commits en el `.app`, soporte sccache | NUBE | hecho | `out/<modo>/flyweb-build-info.txt` siempre; claves `FlyWeb*` en el Info.plist salvo en Release (no romper la firma). sccache automático si está en el PATH (`brew install sccache`), `FLYWEB_SCCACHE=off` para desactivarlo |
 | F0.5 | Firma Developer ID y notarización con `notarytool` | LOCAL | pendiente | necesita el certificado del HUMANO |
 | F0.6 | Prueba de arranque en la 6,1 y la 5,1 | HUMANO | pendiente | después de F0.2 |
 | F0.7 | Adelgazar checkout (`custom_vars`/`custom_deps` de test) y args de gn que acortan la compilación | NUBE | hecho | brave-core `nube/gclient-slim` (sin NaCl ni VK-GL-CTS en `.gclient` nuevos). `build.sh` por defecto en **Static** (sin ThinLTO); Release solo para publicar. **LOCAL, tras F0.1:** en el `.gclient` existente, añadir en `custom_vars` `"checkout_nacl": False` y en `custom_deps` `"src/third_party/angle/third_party/VK-GL-CTS/src": None`; `gclient sync` borrará lo sobrante; verificar que `gn gen` sigue pasando |
@@ -47,11 +49,11 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
 | F1.1 | Marca: nombre, bundle id, perfil, llavero, iconos | NUBE | hecho | brave-core `flyweb` 77b25c6b |
-| F1.2 | Reglas de sustitución Brave→FlyWeb en `script/lib/l10n/grd_string_replacements.py` | NUBE | pendiente | rama `nube/l10n` |
-| F1.3 | Ejecutar `chromium-rebase-l10n.py` con esas reglas y hacer commit de las cadenas | LOCAL | pendiente | necesita F0.1 y F1.2 |
+| F1.2 | Rebranding Brave→FlyWeb de las cadenas de la interfaz, conservando traducciones | NUBE | hecho | brave-core `nube/l10n` (f3fa6077): `script/flyweb-rebrand-strings.py` + `flyweb_replacements`. 1507 mensajes, 729 ficheros; cobertura de traducción medida antes/después: 1.278.519 = 1.278.519. Los servicios de Brave conservan su nombre |
+| F1.3 | Compilar `nube/l10n` y fusionar en `flyweb` (ya **no** hace falta ejecutar `chromium-rebase-l10n.py`) | LOCAL | pendiente | tras F0.2; comprobar menús en español ("Salir de FlyWeb") |
 | F1.4 | Parches: referrals, stats ping, Talk y News desactivados | NUBE | pendiente | rama `nube/servicios` |
-| F1.5 | Script de auditoría de red (mitmproxy) con lista de permitidos | NUBE | pendiente | |
-| F1.6 | Ejecutar la auditoría de red durante 30 minutos | LOCAL | pendiente | necesita F0.2 y F1.5 |
+| F1.5 | Script de auditoría de red con lista de permitidos | NUBE | hecho | `FlyWeb/scripts/network-audit.py` (NetLog de Chromium, sin proxy), `FlyWeb/audit/allowlist.txt` y `denylist.txt`; modos `reposo` y `uso` |
+| F1.6 | Ejecutar la auditoría de red (30 min en reposo + 30 min de uso) | LOCAL | pendiente | instrucciones en la cabecera de `network-audit.py`; añadir a `allowlist.txt` lo legítimo que aparezca, documentado |
 
 ### FlyWeb — Fase 3A (seguridad inmediata)
 | # | Tarea | Quién | Estado | Notas |
@@ -62,7 +64,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F3A.4 | Desactivar WebGPU por defecto (CVE-2026-5281) | NUBE | hecho | brave-core rama `nube/webgpu-off`: override de `kWebGPUService` en `chromium_src/gpu/config/gpu_finch_features.cc`. **LOCAL: compilar, comprobar `navigator.gpu === undefined` y fusionar en `flyweb`** |
 | F3A.5 | Portar fugas del sandbox: CVE-2025-6558 (ANGLE), CVE-2024-4671 (viz), CVE-2023-6345 (Skia) | NUBE | hecho | brave-core, ramas apiladas: `nube/cve-2025-6558` → `nube/cve-2023-6345` → **`nube/cve-2024-4671` (contiene las tres)**. ANGLE y Skia: sintaxis comprobada con clang; viz: adaptado a mano, **sin compilar**. LOCAL: compilar `nube/cve-2024-4671` y fusionar en `flyweb`. Índice: `patches/third_party/FLYWEB-SECURITY.md` |
 | F3A.6 | ¿Lleva `third_party/libvpx` el arreglo de CVE-2023-5217? | LOCAL | pendiente | mirar `git log` de `src/third_party/libvpx/source/libvpx` tras F0.1 |
-| F3A.7 | Confirmar en Chrome Releases el "in the wild" de CVE-2026-3909 y CVE-2026-5281 | NUBE | pendiente | no están en la copia actual de KEV |
+| F3A.7 | Confirmar en Chrome Releases el "in the wild" de CVE-2026-3909 y CVE-2026-5281 | NUBE | hecho | **Ambos confirmados**: KEV (productos "Skia" y "Dawn") + CISA ADP `Exploitation: active` + prensa. Corregida la nota errónea del triaje |
 
 ### BackupDrive
 | # | Tarea | Quién | Estado | Notas |
