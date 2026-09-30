@@ -22,6 +22,74 @@ Opcional:
 | O2 | Icono de documento (`document.icns`) | Ficheros `.html` que abre FlyWeb. Si no, se usa el de la app |
 | O3 | Versión 16×16 y 32×32 **dibujada a mano** del símbolo | A 16 px la mosca actual queda borrosa: el reescalado automático no basta |
 
+## Limitaciones de cada maestro: color y fondo
+
+Una sola mosca no sirve para todo. Cada sitio la pinta de una forma, y eso decide cómo hay que dibujarla.
+
+| Tipo | Quién decide el color | Sobre qué fondo se ve | Maestros | Cómo dibujarlo |
+|---|---|---|---|---|
+| **A. Color fijo, fondo desconocido** | El dibujo. El sistema no lo cambia | Claro **y** oscuro, según el modo del usuario: Dock, Finder, Spotlight, avisos del escritorio, pestañas, barra de herramientas | M1, M2, O1, O2, O3, M6, M7 | Tiene que verse en los dos. O lleva su propia placa de fondo, o un contorno o relleno que contraste con ambos. Una mosca negra sin más desaparece en oscuro; una blanca, en claro |
+| **B. Monocromo que pinta el sistema** | Chromium o macOS: negro en claro, blanco en oscuro (o el color del tema) | Cualquiera | M3 | Solo la silueta: un color, trazados rellenos, sin trazos, degradados ni transparencias. No hay que preocuparse del fondo. Debe leerse a 16×16 |
+| **C. Pareja claro/oscuro** | El dibujo, pero hay **dos ficheros** y la página elige según el modo | Cada versión, solo en su fondo | M4 | Una versión oscura para fondo claro y otra clara para fondo oscuro. No hace falta que una sola valga para los dos |
+| **D. Fondo fijo conocido** | El dibujo | Siempre el mismo fondo de la propia página | M8, M5 | Se dibuja para ese fondo. Hoy la bienvenida es un degradado morado: la mosca negra provisional queda apagada |
+
+Comprobado el 30/09 en el código y en la compilación del paso 7:
+- `brave://version` usa `product_logo.png` en claro y `product_logo_white.png` en oscuro (`prefers-color-scheme`): tipo C.
+- Los tres `product.icon` son vectoriales de un color: tipo B.
+- El botón de Shields son dos PNG de color fijo (activo y apagado): tipo A.
+- En un sistema en modo oscuro, la mosca provisional del Dock y de los avisos se ve bien (HUMANO, 29/09).
+- El canal de los builds `Static` es **`development`**: las pruebas en la 6,1 y la 5,1 enseñan esas variantes (O1).
+
+## Tamaño al que se ve cada cosa (y cuáles hay que dibujar a píxel)
+
+Tamaños sacados del código de Chromium 116 y brave-core 1.57.64. "pt" son puntos de pantalla: en un monitor
+normal, 1 pt = 1 píxel; en Retina, 1 pt = 2 píxeles. **Regla práctica: todo lo que se ve a 32 px o menos hay que
+dibujarlo a píxel, a su tamaño exacto, con las líneas sobre píxeles enteros.** Reducir un dibujo grande lo emborrona.
+Los Mac con Mojave (6,1 y 5,1) suelen ir con monitor normal: ahí se ve siempre la versión de 1 px por punto.
+
+| Dónde | Se ve a | Píxeles reales (normal / Retina) | Maestro | ¿A píxel? |
+|---|---|---|---|---|
+| Pestaña de una página interna (`kFaviconSize`) | 16 pt | 16×16 / 32×32 | M2 | **Sí, los dos** (O3). `product_logo_16` y su @2x |
+| Icono a la izquierda de la barra de direcciones (`LOCATION_BAR_ICON_SIZE`) | 16 pt | 16×16 / 32×32 | M3 | **Sí.** Hoy el `.icon` tiene un solo dibujo en lienzo de 32 que se reduce a 16. Chromium admite varios dibujos en el mismo `.icon` (lienzos 32, 20 y 16): añadir uno de 16 hecho a mano |
+| Botón de Shields (`kBraveActionGraphicSize`) | 18 pt | 18×18 / 36×36 | M6 | **Sí, pero hoy no se puede:** Brave carga un único PNG de 64×64 (54×54 el apagado) y lo reduce, así que siempre sale remuestreado. **NUBE: cargar un PNG de 18 y otro de 36** |
+| Icono pequeño en las notificaciones de Chromium (`kSmallImageSizeMD`) | 18 pt | 18×18 / 36×36 | M3 | **Sí.** Lienzo de 96 reducido: añadir un dibujo pequeño |
+| Menús y otros usos del símbolo (`components/vector_icons/brave/product.icon`, lienzo 24) | 16–24 pt | 16–24 / 32–48 | M3 | **Sí** para 16 |
+| Finder en lista, barra lateral, diálogos de abrir y guardar, barra de título | 16 pt | 16×16 / 32×32 | M1 | **Sí** (`icon_16x16.png` y `icon_16x16@2x.png` del `.icns`) |
+| Spotlight, Finder en columnas | 32 pt | 32×32 / 64×64 | M1 | **Sí** el de 32×32 |
+| Avisos del escritorio de macOS | ~32–40 pt | 32–40 / 64–80 | M1 | macOS elige el tamaño del `.icns` más cercano y lo ajusta |
+| Dock | 48–64 pt (128 con ampliación) | 48–128 / 96–256 | M1 | No: basta el maestro. El `.icns` lleva 48, 128, 256, 512 y 1024 |
+| Finder en iconos, Launchpad, Cmd+Tab | 64–128 pt | 64–128 / 128–256 | M1 | No |
+| Icono de la extensión en menús / en `brave://extensions` | 16 pt / 48 pt | 16 y 48 / 32 y 96 | M7 | **Sí** el de 16 |
+| Logotipo pequeño con nombre (`product_logo_name_22`) | 22 pt de alto | 77×22 / 154×44 | M4 | **Sí:** el texto a 22 px hay que ajustarlo a mano |
+| Logotipo con nombre (`product_logo_name_48`) | 48 pt de alto | 164×48 / 328×96 | M4 | Conviene, por el texto |
+| Logotipo blanco (`product_logo_white`) | 64 pt de alto | 214×64 / 428×128 | M4 oscuro | No |
+| Logo de `brave://version` | **180 pt de ancho** (CSS `#logo`) | 180×53 / 360×105 | M4 | No, pero **hoy se amplía**: el fichero es de 164×48 (328×96 en Retina) y la página lo estira a 180. **NUBE: generarlo a 180×53 y 360×106** |
+| Mosca de la bienvenida | **150 pt de ancho** (CSS) | 150×179 / 300×358 | M8 | No, pero **en Retina se amplía**: el fichero es de 200×239. **NUBE: generarlo a 300×358 como mínimo** |
+| Icono de sitio por defecto en la nueva pestaña | ~40–72 pt | — | M9 | No |
+| Fondo del instalador | 602×330 pt | 602×330 / 1204×660 | M5 | No |
+
+**Resumen de lo que hay que dibujar a píxel:** la app a 16×16 y 32×32; el símbolo a 16×16 y 32×32; el monocromo a
+16×16 y 18×18; el botón de Shields a 18×18 y 36×36 (dos estados); el logotipo pequeño a 77×22. Lo demás sale bien
+reduciendo el maestro.
+
+## Imágenes que faltaban en la lista (30/09, LOCAL)
+
+Siguen siendo de Brave en `flyweb` f274035d. Las de servicios desactivados no se cuentan.
+
+| # | Maestro nuevo | Tipo | Ficheros (brave-core) | Tamaños | Dónde se ve |
+|---|---|---|---|---|---|
+| M6 | **Botón de Shields**, en dos estados: activo y apagado | A | `components/brave_shields/resources/icon.png`, `icon-off.png` | 64×64 y 54×54 | El león a la derecha de la barra de direcciones, en todas las webs. Es el icono de marca que más se ve. Hay que decidir el símbolo: no puede ser el león |
+| M7 | **Icono de la extensión interna** (Shields) | A | `components/brave_extension/extension/brave_extension/assets/img/icon-{16,32,48,64,128,256}.png` | 16–256 | `brave://extensions` y permisos. Puede salir de M2 |
+| M8 | **Ilustración de bienvenida** | D | `components/brave_welcome_ui/assets/brave_logo_3d@2x.webp` (ya es la mosca provisional); fondos `background@2x.webp` 2992×1756, `sky.webp`, `hill.webp`, `pyramid.webp`; `components/images/lion_logo.svg`, `welcome_{shields,rewards,search,import,bg}.svg` | 200×239 el logo | `brave://welcome`. Los fondos morados son el estilo de Brave: decidir si se cambian |
+| M9 | **Piezas de la nueva pestaña** | A | `components/img/newtab/defaultTopSitesIcon/brave.png` (256×300), `components/brave_new_tab_ui/components/default/braveNews/braveNewsLogo.svg`, `components/img/newtab/dummy-branded-wallpaper/logo.png` (512×512) | — | Icono por defecto de un sitio, logo de Noticias (la tarjeta se ocultará), logo del fondo de muestra |
+| M10 | **Iconos del paquete de diseño de Brave** | B o A | `@brave/leo` (en `node_modules`, fuera del repo): `product-brave-color.svg`, `product-brave-monochrome.svg`, `product-brave-outline.svg`, `social-brave-favicon.svg`, `leo-color.svg` y los `product-brave-{news,talk,search,wallet,ai,premium}` | SVG | Ajustes y menús de las páginas internas. **NUBE: ver cuáles se usan con Wallet, Rewards y Leo quitados, y cómo sustituirlos** (no se pueden editar en `node_modules`) |
+| M11 | Favicon de la bienvenida | A | `components/img/welcome/favicon.ico` | 16–32 | Pestaña de `brave://welcome` |
+
+Con nombre "brave" pero sin marca (iconos genéricos; no hay que rediseñarlos): los `app/vector_icons/sidebar_*.icon`,
+`brave_translate.icon`, `brave_sad.icon`, `vertical_tab_strip_toggle_button.icon`, `webstore_icon*.png`,
+`brave_wayback_infobar*.png`, `brave_web_discovery_infobar_*.png`, las ilustraciones de `brave_sync_page/` y
+`cookie_list_opt_in/`.
+
 ## Dónde acaba cada cosa (en brave-core)
 
 | Fichero | Tamaños | Sale de |
