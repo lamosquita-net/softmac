@@ -8,6 +8,7 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
 | **NUBE** | Contenedor Linux (claude.ai/code) | Investigar, escribir código, parches, scripts y documentación, compilar Go (BackupDrive) y probar en Linux, CI, PRs | Compilar Chromium, ejecutar nada de macOS, ver los discos del Mac |
 | **LOCAL** | MacPro7,1 (Claude Code local) | Compilar FlyWeb, ejecutar y medir, Xcode, firma y notarización, scripts que necesitan el checkout de Chromium | Trabajar sin el Mac encendido |
 | **HUMANO** | — | Decisiones, credenciales (Google, Apple), pruebas en la 6,1 y la 5,1, iconos | — |
+| **SERVIDOR** (futuro) | Máquinas del HUMANO (Apache 2.4) | Servicios internos de FlyWeb: rastreo y empaquetado de listas de Shields, servicio de componentes, proxies (F7.3 / S3 de `FlyWeb/docs/disenos.md`) | Aún no existe; lo creará el HUMANO |
 
 ## Reglas para no pisarse
 
@@ -75,8 +76,8 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
 | F7.1 | Esquema `flyweb://` en lugar de `brave://` (y `chrome://`), etiqueta "FlyWeb" en la barra de direcciones y página de inicio propia | por decidir | pendiente | Sin fecha: después de estabilizar la base. Brave redirige `chrome://` a `brave://` en muchos sitios del código → parches repartidos; hacerlo con `chromium_src/` para que el rebase siga siendo mecánico |
-| F7.2 | Nueva pestaña propia (local): reloj, buscador con selector, 12 sitios, contadores de Shields, fondo sin fotos con moscas, fuente D-DIN | HUMANO (diseño) → NUBE (código) | pendiente | Especificación y encargos D1–D3 en `FlyWeb/docs/disenos.md`. Buscador por defecto DuckDuckGo ya hecho: brave-core `nube/buscador` 67760360 = paso 12 de `integracion.md` |
-| F7.3 | Servidor: `flyweb.`, `updates.` y (fase 2) `components.` de `flyweb.lamosquita.net` | HUMANO | pendiente | Encargos S1–S3 y ejemplo de vhost en `FlyWeb/docs/disenos.md` §4–5 |
+| F7.2 | Nueva pestaña propia (local): reloj, buscador con selector, 12 sitios, contadores de Shields, fondo sin fotos con moscas, fuente D-DIN | HUMANO (diseño) → NUBE (código) | pendiente | Especificación y encargos D1–D3 en `FlyWeb/docs/disenos.md`. Buscador por defecto DuckDuckGo ya hecho: brave-core `nube/buscador` 67760360 = paso 12 de `integracion.md`. **LOCAL: compilar el paso 12 cuando termine el 11** (y la auditoría F1.6); probar con un perfil nuevo |
+| F7.3 | Servidor: `flyweb.`, `updates.` y (fase 2) `components.` de `flyweb.lamosquita.net` | HUMANO | pendiente | Encargos S1–S3 y vhost de Apache 2.4 (probado) en `FlyWeb/docs/disenos.md` §4–5. S3 lo llevará el agente SERVIDOR. **LOCAL: con el resultado de F1.6, actualizar la tabla de servicios de Brave de `disenos.md` §5** (qué hosts salen de verdad) |
 
 ### BackupDrive
 | # | Tarea | Quién | Estado | Notas |

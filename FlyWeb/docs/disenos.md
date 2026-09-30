@@ -10,7 +10,7 @@ Regla (ver `docs/TAREAS.md`, regla 7): si un agente necesita un gráfico o un se
 |---|---|---|---|
 | D1 | Maquetas de la nueva pestaña: claro y oscuro, a 1280×800 y 1920×1080 (y cómo queda a 800×600) | Cuando empieces la iconografía | §3 |
 | D2 | Estados de la nueva pestaña: perfil nuevo (sin sitios), sitio sin favicon, menú de un acceso, "añadir sitio", panel "Personalizar", selector de buscador | Con D1 | §3 |
-| D3 | Fuente D-DIN: ficheros y su `OFL.txt` | Con D1 | §2 (ojo con "D-DIN PRO") |
+| D3 | Fuente D-DIN (la de Datto, **no** "D-DIN PRO"): WOFF2 de los pesos que uses y su `OFL.txt` | Con D1 | §2 |
 | D4 | Iconos y logotipos del inventario de LOCAL | Siguiente versión | `FlyWeb/branding/imagenes.md` |
 | D5 | Símbolo definitivo del botón de Shields (18 y 36 px, activo y apagado) | Con D4 | `FlyWeb/docs/marca-pendiente.md` (M6) |
 | D6 | Diseño de la web pública `flyweb.lamosquita.net` | Antes de la primera versión pública | §4 |
@@ -25,7 +25,7 @@ Regla (ver `docs/TAREAS.md`, regla 7): si un agente necesita un gráfico o un se
 | Nueva pestaña | **Local** (página interna del navegador), con el diseño del HUMANO | Pendiente de D1 |
 | Buscador | Caja de búsqueda en la nueva pestaña, con selector de buscador. Por defecto **DuckDuckGo**; Google, Bing, Qwant, Startpage y Ecosia como opción | Buscador por defecto hecho (brave-core `nube/buscador`, paso 12 de `integracion.md`); la caja, con D1 |
 | Contadores de Shields | Se mantienen (son locales) | — |
-| Fuente | D-DIN | Pendiente de D3 |
+| Fuente | D-DIN de Datto (no la "PRO"), solo en la nueva pestaña; el resto del navegador, fuente del sistema | Pendiente de D3 |
 | Servicios | Migrar a máquinas propias todo lo de Brave que siga en uso | §5 |
 
 **Por qué DuckDuckGo y no Google.** Google perfila al usuario con sus búsquedas; DuckDuckGo dice no guardar IP ni
@@ -34,14 +34,12 @@ de Brave, con variantes regionales (Alemania; Australia, Nueva Zelanda e Irlanda
 sus resultados son peores en búsquedas locales. Brave Search deja de ser el buscador por defecto (era el de España y
 EE. UU.) porque es marca Brave; sigue en la lista como opción, igual que los demás.
 
-**Fuente: D-DIN sí; "D-DIN PRO", con cuidado.**
-- **D-DIN** (Datto, 2017) tiene licencia **SIL OFL 1.1**: se puede incluir en el navegador y en la web, también en uso
-  comercial. Descarga fiable: repositorio de Datto en GitHub, Font Squirrel o Font Library.
-- **"D-DIN PRO"** no es de Datto. Es una ampliación de terceros que solo circula por webs de descarga de fuentes, que
-  dicen "OFL" sin enlazar el original. La OFL permite ampliaciones, pero exige conservar la licencia y el copyright de
-  Datto, y no usar un "nombre de fuente reservado" si el original lo declara.
-- **Antes de usarla:** comprueba que el paquete trae `OFL.txt` con el copyright de Datto y el del autor de la
-  ampliación. Si no lo trae, usa D-DIN.
+**Fuente: D-DIN (Datto, 2017), licencia SIL OFL 1.1.** Se puede incluir en el navegador y en la web, también en uso
+comercial. Descarga: repositorio de Datto en GitHub, Font Squirrel o Font Library. No se usa "D-DIN PRO" (ampliación de
+terceros sin origen claro).
+- **Dónde se usa:** solo en la **nueva pestaña** (y en la web pública, si quieres). Barra de direcciones, pestañas,
+  menús y diálogos del navegador usan la fuente del sistema (en Mojave, San Francisco), y no se tocan. Las demás páginas
+  internas (ajustes, historial, descargas) siguen con las fuentes que ya traen de Brave; cambiarlas sería otra tarea.
 - **Entrega:** WOFF2, solo los pesos que uses (2 o 3; cada uno pesa unos 30–60 KB), y el `OFL.txt`. Irá dentro del
   navegador y en `about:credits`.
 - **Cobertura:** D-DIN solo tiene alfabeto latino. En ruso, griego, chino, etc. la página usará la fuente del sistema;
@@ -100,24 +98,57 @@ inerte a propósito).
 - **Cabeceras:** `Strict-Transport-Security`, `Content-Security-Policy: default-src 'self'` y
   `X-Content-Type-Options: nosniff`.
 
-### Ejemplo de vhost (nginx; adaptar a tu servidor)
+### Ejemplo de vhost (Apache 2.4)
 
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name updates.flyweb.lamosquita.net;          # igual para flyweb.lamosquita.net
-    root /srv/flyweb/updates;
-    ssl_certificate     /etc/letsencrypt/live/flyweb.lamosquita.net/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/flyweb.lamosquita.net/privkey.pem;
-    add_header Strict-Transport-Security "max-age=31536000" always;
-    add_header Content-Security-Policy "default-src 'self'" always;
-    add_header X-Content-Type-Options nosniff always;
-    access_log off;                                      # o un formato sin $remote_addr
-    types { application/x-apple-diskimage dmg; application/xml xml; }
-    location ~ \.dmg$ { add_header Cache-Control "public, max-age=31536000, immutable"; }  # Range: nginx lo sirve solo
-    location = /appcast.xml { add_header Cache-Control "no-cache"; }
-}
+Probado con Apache 2.4 (`configtest` y peticiones reales): HTTP/2, `206` con `Range`, tipo `.dmg`, cabeceras y registro sin IP.
+
+Módulos: `ssl`, `headers`, `http2` y `mime` (y `proxy_http` para S3). Los certificados, con certbot (`--apache`).
+
+```apache
+<VirtualHost *:443>
+    # Igual para flyweb.lamosquita.net, con su DocumentRoot.
+    # Apache no admite comentarios al final de una directiva: siempre en su propia línea.
+    ServerName updates.flyweb.lamosquita.net
+    DocumentRoot /srv/flyweb/updates
+    Protocols h2 http/1.1
+    SSLEngine on
+    SSLProtocol -all +TLSv1.2 +TLSv1.3
+    SSLCertificateFile    /etc/letsencrypt/live/flyweb.lamosquita.net/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/flyweb.lamosquita.net/privkey.pem
+
+    Header always set Strict-Transport-Security "max-age=31536000"
+    Header always set Content-Security-Policy "default-src 'self'"
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Registro sin IP (o CustomLog /dev/null)
+    LogFormat "%t \"%r\" %>s %b" sinip
+    CustomLog ${APACHE_LOG_DIR}/flyweb-updates.log sinip
+    ErrorLog  ${APACHE_LOG_DIR}/flyweb-updates-error.log
+
+    <Directory /srv/flyweb/updates>
+        Options -Indexes
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    # Apache sirve Range (descargas reanudables) por defecto
+    AddType application/x-apple-diskimage .dmg
+    <FilesMatch "\.dmg$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    <Files "appcast.xml">
+        Header set Cache-Control "no-cache"
+    </Files>
+</VirtualHost>
+
+<VirtualHost *:80>
+    ServerName updates.flyweb.lamosquita.net
+    Redirect permanent / https://updates.flyweb.lamosquita.net/
+</VirtualHost>
 ```
+
+Para S3 (fase 2), el servicio en Go escucha en local y Apache hace de proxy inverso:
+`ProxyPass / http://127.0.0.1:8192/` y `ProxyPassReverse / http://127.0.0.1:8192/`.
 
 ## 5. Servicios de Brave que usa FlyWeb y su sustituto
 
@@ -137,7 +168,7 @@ tabla se actualizará entonces.
 
 No basta con guardar ficheros: el navegador las pide como **componentes firmados**, igual que Chrome.
 1. **Servicio Omaha** en `components.`: responde a POST con JSON diciendo qué versión hay de cada componente. Brave
-   publica el suyo, `brave/go-update` (Go, MPL-2.0); se despliega detrás del proxy inverso.
+   publica el suyo, `brave/go-update` (Go, MPL-2.0); se despliega detrás de Apache (proxy inverso).
 2. **Paquetes CRX3** firmados con **una clave nuestra** (la privada, fuera del repo; regla 5 de `TAREAS.md`).
 3. **Tarea diaria** que descarga las listas originales (EasyList, EasyPrivacy, uBlock Origin, regionales), las empaqueta
    y las publica.
@@ -155,4 +186,6 @@ tarea diaria. Poco tráfico: cada navegador pregunta cada pocas horas y solo des
   en la 7,1 y el HUMANO en la 5,1.
 - **D4–D5:** LOCAL o NUBE generan los tamaños (`FlyWeb/branding/scripts/`).
 - **S2:** NUBE cambia en `build.sh` la URL del appcast y genera `appcast.xml`; LOCAL firma, notariza y sube los `.dmg`.
-- **S3:** NUBE prepara el empaquetado de las listas y el cambio de claves; tú despliegas el servicio.
+- **S3:** lo llevará un **agente nuevo (SERVIDOR)**, dedicado a los servicios internos de FlyWeb en tus máquinas: rastreo y
+  empaquetado de las listas, servicio Omaha y proxies. NUBE hace el cambio de claves en el navegador.
+- **§5:** LOCAL la completa con los resultados de la auditoría de red (F1.6).
