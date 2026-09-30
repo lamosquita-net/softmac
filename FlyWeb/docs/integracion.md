@@ -2,7 +2,7 @@
 
 Las ramas `nube/*` de `lamosquita-net/brave-core` salen todas de `flyweb` 77b25c6b y **ninguna está compilada**.
 Se integran **de una en una, compilando y probando entre cada una**. Así, si algo falla, se sabe qué rama lo
-rompió. NUBE ha comprobado que las diez se fusionan juntas sin conflictos (fusión de prueba).
+rompió. NUBE ha comprobado que las once se fusionan juntas sin conflictos (fusión de prueba).
 
 Compilar siempre con `FlyWeb/scripts/build.sh` (modo `Static` por defecto). Después de cada compilación, pasar
 también `FlyWeb/scripts/check-no-avx.sh ~/proyectos/flyweb-build/brave-browser/src/out/Static`.
@@ -42,8 +42,9 @@ es solo local), apuntar el error en `docs/TAREAS.md` (las últimas 30 líneas de
 | 8 | `nube/no-sponsored-images` | 8c984d70 | Sin imágenes patrocinadas (publicidad de Brave en la nueva pestaña) ni fondos de "super referral": sus componentes no se registran | Nueva pestaña: solo fotografías, nunca un logo de marca comercial. `brave://components`: no aparece "NTP Sponsored Images" ni "NTP Super Referral". En la auditoría de red (F1.6), ninguna descarga de esos componentes |
 | 9 | `nube/branding-ui-2` | 2a4e5198 | Encargos del inventario de LOCAL (`FlyWeb/branding/imagenes.md`): botón de Shields con un PNG por escala (18 y 36 px) en vez de reducir uno de 64, dibujo provisional de escudo con la mosca (verde activo, gris apagado); logo de `brave://version` a 180×53 / 360×106; mosca de bienvenida a 300×358; iconos de la extensión interna | Botón de Shields nítido en barra clara y oscura, sin león. `brave://version`: logo nítido. `brave://extensions` (con "Modo desarrollador" para ver las internas): mosca. Compila `brave_shields_action_view.cc` (único cambio de C++) |
 | 10 | `nube/servicios` | 93902fc2 | F1.4: sin referrals (no se envía el código promocional a `laptop-updates.brave.com`), sin ping diario de uso por defecto, sin Brave Talk en la barra lateral ni en la nueva pestaña, Brave News apagado por defecto (sin tarjeta ni botón); no se registra el componente "Brave Wallet data files" (lo vio LOCAL en el paso 8) | Con un **perfil nuevo**: la barra lateral no tiene Talk; la nueva pestaña no muestra tarjeta de Talk ni de News; `brave://settings/privacy`: "ping diario de uso" desactivado. `brave://components`: sin "Brave Wallet data files". En la auditoría de red en reposo (F1.6), ninguna conexión a `laptop-updates.brave.com`, `talk.brave.com` ni `brave-today-cdn.brave.com` |
+| 11 | `nube/cve-2026-3909` | eec87884 | Parche de seguridad de Skia (CVE-2026-3909, explotado activamente): cada glifo del atlas de texto se guarda por ID **y formato de máscara**, y el atlas se elige por el formato de la subejecución. 8 `.patch` nuevos en `patches/third_party/skia/` | El log de `build.sh` muestra los parches de Skia aplicados sin error. Compila (recompila buena parte de Skia). Texto bien dibujado en: una web normal, texto con subpíxeles (LCD) y emoji de color (p. ej. https://getemoji.com), y claude.ai |
 
-Después del paso 10: F0.2 queda cerrada, y el `.app` se puede copiar a la 6,1 y la 5,1 para F0.6.
+Después del paso 11: F0.2 queda cerrada, y el `.app` se puede copiar a la 6,1 y la 5,1 para F0.6.
 
 ## Prueba en la MacPro5,1 (F0.6)
 
@@ -72,5 +73,6 @@ Traer: los `.crash` si los hay, `brave://gpu` en texto y notas de 1 a 6. Apuntar
 - **4, viz no compila:** el parche adaptado a mano puede necesitar un `#include` o tipos distintos en la 116.
   Pasar el error a NUBE.
 - **`flyweb-rebrand-strings.py --check`** necesita `lxml`: `python3 -m pip install --user lxml` (no lo traen Chromium ni `.vpython3`). Es solo una comprobación; la compilación no lo necesita.
+- **11, parche de Skia que no aplica o no compila:** revertir solo ese paso y pasar el error a NUBE. Es una adaptación a mano: el fallo más probable sería un tipo o una firma distinta en algún fichero de `src/text/gpu/` o `src/gpu/*/text/`.
 - **5, error de grit** (por ejemplo "message not found" o un id duplicado): pasar el error a NUBE. El script
   `script/flyweb-rebrand-strings.py --check` debe devolver 0 ficheros.
