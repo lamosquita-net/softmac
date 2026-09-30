@@ -6,3 +6,14 @@
 go-updater.brave.com
 componentupdater.brave.com
 crxdownload.brave.com
+
+# DNS sobre HTTPS automático de Chromium (F1.6, 30/09): si el DNS del sistema es un proveedor con DoH conocido
+# (1.1.1.1, 8.8.8.8, Quad9…), Chromium le manda las MISMAS consultas cifradas en vez de en claro. No hay destino
+# nuevo, y sin DoH el proveedor lo vería igual, además de cualquiera en la red. Decisión: se permite, sin política.
+chrome.cloudflare-dns.com
+dns.google
+dns.google.com
+dns.quad9.net
+dns*.quad9.net
+doh.opendns.com
+doh.familyshield.opendns.com

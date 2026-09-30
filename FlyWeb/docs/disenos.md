@@ -13,6 +13,7 @@ Regla (ver `docs/TAREAS.md`, regla 7): si un agente necesita un gráfico o un se
 | D3 | Fuente D-DIN (la de Datto, **no** "D-DIN PRO"): WOFF2 de los pesos que uses y su `OFL.txt` | Con D1 | §2 |
 | D4 | Iconos y logotipos del inventario de LOCAL | Siguiente versión | `FlyWeb/branding/imagenes.md` |
 | D5 | Símbolo definitivo del botón de Shields (18 y 36 px, activo y apagado) | Con D4 | `FlyWeb/docs/marca-pendiente.md` (M6) |
+| D7 | Diseño del resto de páginas internas (ajustes, historial, descargas, bienvenida…) con D-DIN | Sin prioridad | §2 |
 | D6 | Diseño de la web pública `flyweb.lamosquita.net` | Antes de la primera versión pública | §4 |
 | S1 | Vhost `flyweb.lamosquita.net` (estático) | Antes de la primera versión pública | §4 |
 | S2 | Vhost `updates.flyweb.lamosquita.net` (estático, DMG grandes) | Fase 0.5: app firmada | §4 |
@@ -25,7 +26,7 @@ Regla (ver `docs/TAREAS.md`, regla 7): si un agente necesita un gráfico o un se
 | Nueva pestaña | **Local** (página interna del navegador), con el diseño del HUMANO | Pendiente de D1 |
 | Buscador | Caja de búsqueda en la nueva pestaña, con selector de buscador. Por defecto **DuckDuckGo**; Google, Bing, Qwant, Startpage y Ecosia como opción | Buscador por defecto hecho (brave-core `nube/buscador`, paso 12 de `integracion.md`); la caja, con D1 |
 | Contadores de Shields | Se mantienen (son locales) | — |
-| Fuente | D-DIN de Datto (no la "PRO"), solo en la nueva pestaña; el resto del navegador, fuente del sistema | Pendiente de D3 |
+| Fuente | D-DIN de Datto (no la "PRO") en todas las páginas internas; barra, pestañas y menús, fuente del sistema | Pendiente de D3 |
 | Servicios | Migrar a máquinas propias todo lo de Brave que siga en uso | §5 |
 
 **Por qué DuckDuckGo y no Google.** Google perfila al usuario con sus búsquedas; DuckDuckGo dice no guardar IP ni
@@ -37,9 +38,13 @@ EE. UU.) porque es marca Brave; sigue en la lista como opción, igual que los de
 **Fuente: D-DIN (Datto, 2017), licencia SIL OFL 1.1.** Se puede incluir en el navegador y en la web, también en uso
 comercial. Descarga: repositorio de Datto en GitHub, Font Squirrel o Font Library. No se usa "D-DIN PRO" (ampliación de
 terceros sin origen claro).
-- **Dónde se usa:** solo en la **nueva pestaña** (y en la web pública, si quieres). Barra de direcciones, pestañas,
-  menús y diálogos del navegador usan la fuente del sistema (en Mojave, San Francisco), y no se tocan. Las demás páginas
-  internas (ajustes, historial, descargas) siguen con las fuentes que ya traen de Brave; cambiarlas sería otra tarea.
+- **Dónde se usa:** en las **páginas internas** (nueva pestaña, ajustes, historial, descargas, bienvenida,
+  `brave://version`…), sustituyendo a Poppins y Manrope de Brave. La nueva pestaña también es una página interna, así
+  que no usa la fuente del sistema. Barra de direcciones, pestañas, menús y diálogos nativos sí usan la fuente del
+  sistema (en Mojave, San Francisco) y no se tocan.
+- **Orden:** primero la nueva pestaña (F7.2); el resto de páginas internas, cuando diseñes su aspecto (D7, F7.4, sin
+  prioridad). El cambio de fuente se hace en un único sitio para todas: los estilos comunes de Brave (`@brave/leo`) y
+  los de Chromium (`text_defaults`).
 - **Entrega:** WOFF2, solo los pesos que uses (2 o 3; cada uno pesa unos 30–60 KB), y el `OFL.txt`. Irá dentro del
   navegador y en `about:credits`.
 - **Cobertura:** D-DIN solo tiene alfabeto latino. En ruso, griego, chino, etc. la página usará la fuente del sistema;
