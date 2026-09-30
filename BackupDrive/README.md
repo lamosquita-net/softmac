@@ -67,6 +67,13 @@ launchctl load -w ~/Library/LaunchAgents/net.lamosquita.backupdrive.plist
   [sintaxis de rclone](https://rclone.org/filtering/). Por ejemplo, `- .DS_Store` y `- *.tmp`.
 - Conflictos: gana la versión más reciente y la otra se conserva con sufijo numerado
   (`--conflict-resolve newer --conflict-loser num`).
+- Primera sincronización (`--resync`): si un fichero difiere en los dos lados también gana el más reciente
+  (`--resync-mode newer`), pero el otro **se sobrescribe sin copia**. Sin esa opción rclone da siempre la razón
+  a la copia local, aunque la de Drive sea más nueva. Por eso: primero `--dry-run`.
+- Un solo perfil: `backupdrive-sync.sh --profile "/ruta/local"` (con o sin `--resync`/`--dry-run`).
+- Cada perfil guarda su último resultado en `"$APP/state/"`, y `status.json` los lista todos: `ok`, `error`,
+  `skipped` (carpeta inexistente o línea incompleta), `needs-resync` (rclone pide la primera sincronización,
+  con su propio aviso) o `never`.
 - Los documentos nativos de Google (Docs, Sheets) se ignoran (`--drive-skip-gdocs`).
 - En Monterey, si una carpeta protegida da "Operation not permitted", hay que dar a `/bin/sh`
   acceso total al disco. En Mojave, `~/Documents` no está protegido.
@@ -79,7 +86,9 @@ launchctl load -w ~/Library/LaunchAgents/net.lamosquita.backupdrive.plist
 misma**: enseña el estado que deja `backupdrive-sync.sh` en `status.json` y controla el motor.
 
 - Icono en la barra de menús: normal, sincronizando o con error (imágenes *template*, se adaptan al modo oscuro).
-- Menú: resumen de la última sincronización, cada perfil con ✓/✗ (clic: abre la carpeta local),
+- Menú: resumen de la última sincronización; cada perfil con ✓ / ✗ / ⚠ (falta la primera sincronización) /
+  ○ (nunca ejecutado) y un submenú para abrir la carpeta, ver el error o hacer la **primera sincronización**
+  (primero simulada; después la real, con confirmación);
   **Sincronizar ahora** (lanza `/usr/local/bin/backupdrive-sync.sh`; su bloqueo evita solapes con launchd),
   **Sincronizar cada hora** (carga o descarga el LaunchAgent con `launchctl -w`), ver el registro en Consola
   y abrir la carpeta de configuración.

@@ -103,12 +103,27 @@ static const NSTimeInterval kPollSeconds = 2.0;
   return [[self field:@"state" of:self.status] isEqualToString:@"running"];
 }
 
+// Algún perfil pide atención aunque la última ejecución fuera bien (p. ej. con --profile).
+- (BOOL)anyProfileNeedsAttention {
+  NSArray *profiles = self.status[@"profiles"];
+  if (![profiles isKindOfClass:NSArray.class]) return NO;
+  for (NSDictionary *p in profiles) {
+    if (![p isKindOfClass:NSDictionary.class]) continue;
+    NSString *r = [self field:@"result" of:p];
+    if ([r isEqualToString:@"error"] || [r isEqualToString:@"skipped"] ||
+        [r isEqualToString:@"needs-resync"])
+      return YES;
+  }
+  return NO;
+}
+
 - (void)updateIcon {
   NSString *name = @"menubar_BackupDriveTemplate";
   NSString *result = [self field:@"result" of:self.status];
   if (self.isRunning) {
     name = @"menubar_BackupDrive-syncTemplate";
-  } else if ([result isEqualToString:@"error"] || [result isEqualToString:@"interrupted"]) {
+  } else if ([result isEqualToString:@"error"] || [result isEqualToString:@"interrupted"] ||
+             self.anyProfileNeedsAttention) {
     name = @"menubar_BackupDrive-errorTemplate";
   }
   NSImage *image = [NSImage imageNamed:name];
@@ -189,29 +204,69 @@ static const NSTimeInterval kPollSeconds = 2.0;
 
 #pragma mark - Acciones
 
-- (void)syncNow:(NSMenuItem *)item {
+// Lanza el motor. El script tiene su propio bloqueo: si launchd ya está sincronizando, sale sin hacer nada.
+- (void)runEngine:(NSArray<NSString *> *)arguments then:(void (^)(int status))done {
   if (self.isRunning) return;
   if (![NSFileManager.defaultManager isExecutableFileAtPath:kSyncScript]) {
     [self alert:@"No encuentro el motor de BackupDrive"
            info:[NSString stringWithFormat:@"Falta %@ (ver BackupDrive/README.md).", kSyncScript]];
     return;
   }
-  // El script tiene su propio bloqueo: si launchd ya está sincronizando, sale sin hacer nada.
   NSTask *task = [[NSTask alloc] init];
   task.launchPath = kSyncScript;
+  task.arguments = arguments;
   task.standardInput = NSFileHandle.fileHandleWithNullDevice;
   task.standardOutput = NSFileHandle.fileHandleWithNullDevice;
   task.standardError = NSFileHandle.fileHandleWithNullDevice;
   __weak AppDelegate *weakSelf = self;
   task.terminationHandler = ^(NSTask *t) {
+    int status = t.terminationStatus;
     dispatch_async(dispatch_get_main_queue(), ^{
       weakSelf.manualRun = nil;
       [weakSelf reloadStatusForce:YES];
+      if (done) done(status);
     });
   };
   self.manualRun = task;
   [task launch];
   [self updateIcon];
+}
+
+- (void)syncNow:(NSMenuItem *)item {
+  [self runEngine:@[] then:nil];
+}
+
+- (void)simulateFirstSync:(NSMenuItem *)item {
+  NSString *folder = item.representedObject;
+  __weak AppDelegate *weakSelf = self;
+  [self runEngine:@[ @"--resync", @"--dry-run", @"--profile", folder ]
+             then:^(int status) {
+               [NSApp activateIgnoringOtherApps:YES];
+               NSAlert *alert = [[NSAlert alloc] init];
+               alert.messageText = status == 0 ? @"Simulación terminada"
+                                               : @"La simulación ha fallado";
+               alert.informativeText = @"No se ha copiado ni borrado nada. En el registro "
+                                       @"están los cambios que haría la primera sincronización.";
+               [alert addButtonWithTitle:@"Ver registro"];
+               [alert addButtonWithTitle:@"Cerrar"];
+               if ([alert runModal] == NSAlertFirstButtonReturn) [weakSelf openLog:nil];
+             }];
+}
+
+- (void)firstSync:(NSMenuItem *)item {
+  NSString *folder = item.representedObject;
+  [NSApp activateIgnoringOtherApps:YES];
+  NSAlert *alert = [[NSAlert alloc] init];
+  alert.messageText = [NSString stringWithFormat:@"Primera sincronización de «%@»",
+                                                 folder.lastPathComponent];
+  alert.informativeText =
+      @"Se juntan los dos lados: lo que solo está en uno se copia al otro y, si un fichero es "
+      @"distinto en los dos, gana el más reciente (el otro se sobrescribe, sin copia). "
+      @"Conviene hacer antes la simulación y revisar el registro.";
+  [alert addButtonWithTitle:@"Sincronizar"];
+  [alert addButtonWithTitle:@"Cancelar"];
+  if ([alert runModal] != NSAlertFirstButtonReturn) return;
+  [self runEngine:@[ @"--resync", @"--profile", folder ] then:nil];
 }
 
 - (void)openLog:(NSMenuItem *)item {
@@ -258,6 +313,70 @@ static const NSTimeInterval kPollSeconds = 2.0;
   return item;
 }
 
+- (NSMenuItem *)itemForProfile:(NSDictionary *)p {
+  NSString *result = [self field:@"result" of:p];
+  NSString *local = [self field:@"local" of:p];
+  NSString *remote = [self field:@"remote" of:p];
+  NSDictionary *labels = @{
+    @"ok" : @"✓",
+    @"error" : @"✗",
+    @"skipped" : @"✗",
+    @"needs-resync" : @"⚠",
+    @"never" : @"○",
+  };
+  NSString *mark = labels[result] ?: @"?";
+  NSMenuItem *item = [[NSMenuItem alloc]
+      initWithTitle:[NSString stringWithFormat:@"%@ %@ ↔ %@", mark, local.lastPathComponent,
+                                               remote]
+             action:NULL
+      keyEquivalent:@""];
+  item.indentationLevel = 1;
+
+  NSMenu *sub = [[NSMenu alloc] initWithTitle:local];
+  sub.autoenablesItems = NO;
+  NSString *detail = @"Sincronizado";
+  if ([result isEqualToString:@"error"]) {
+    id code = p[@"exit"];
+    detail = [NSString stringWithFormat:@"Error en la última sincronización (código %@)",
+                                        [code isKindOfClass:NSNumber.class] ? code : @"?"];
+  } else if ([result isEqualToString:@"skipped"]) {
+    detail = @"Omitido: no existe la carpeta local o la línea está incompleta";
+  } else if ([result isEqualToString:@"needs-resync"]) {
+    detail = @"Falta la primera sincronización";
+  } else if ([result isEqualToString:@"never"]) {
+    detail = @"Todavía no se ha sincronizado";
+  }
+  [self addItem:detail action:NULL to:sub];
+  NSDate *finished = [self dateFromISO:[self field:@"finished" of:p]];
+  if (finished) {
+    [self addItem:[NSString stringWithFormat:@"Última vez: %@", [self describeDate:finished]]
+           action:NULL
+               to:sub];
+  }
+  [sub addItem:NSMenuItem.separatorItem];
+  NSMenuItem *open = [self addItem:@"Abrir la carpeta local" action:@selector(openFolder:) to:sub];
+  open.representedObject = local;
+  open.enabled = [NSFileManager.defaultManager fileExistsAtPath:local];
+  if ([result isEqualToString:@"needs-resync"] || [result isEqualToString:@"never"]) {
+    NSMenuItem *sim = [self addItem:@"Simular la primera sincronización"
+                             action:@selector(simulateFirstSync:)
+                                 to:sub];
+    sim.representedObject = local;
+    sim.enabled = !self.isRunning;
+    NSMenuItem *first = [self addItem:@"Primera sincronización…"
+                               action:@selector(firstSync:)
+                                   to:sub];
+    first.representedObject = local;
+    first.enabled = !self.isRunning && open.enabled;
+  }
+  if ([result isEqualToString:@"error"] || [result isEqualToString:@"skipped"]) {
+    [self addItem:@"Ver registro" action:@selector(openLog:) to:sub];
+  }
+  item.submenu = sub;
+  item.toolTip = local;
+  return item;
+}
+
 // Se reconstruye cada vez que se abre: así siempre muestra el estado actual.
 - (void)menuNeedsUpdate:(NSMenu *)menu {
   [self reloadStatusForce:YES];
@@ -269,26 +388,7 @@ static const NSTimeInterval kPollSeconds = 2.0;
   if ([profiles isKindOfClass:NSArray.class] && profiles.count) {
     for (NSDictionary *p in profiles) {
       if (![p isKindOfClass:NSDictionary.class]) continue;
-      NSString *result = [self field:@"result" of:p];
-      NSString *mark = [result isEqualToString:@"ok"] ? @"✓" : @"✗";
-      NSString *local = [self field:@"local" of:p];
-      NSString *title = [NSString stringWithFormat:@"%@ %@ ↔ %@", mark,
-                                                   local.lastPathComponent,
-                                                   [self field:@"remote" of:p]];
-      if (![result isEqualToString:@"ok"]) {
-        id code = p[@"exit"];
-        title = [title stringByAppendingFormat:@"  (%@%@)",
-                                               [result isEqualToString:@"skipped"] ? @"omitido"
-                                                                                   : @"error",
-                                               [code isKindOfClass:NSNumber.class]
-                                                   ? [NSString stringWithFormat:@" %@", code]
-                                                   : @""];
-      }
-      NSMenuItem *item = [self addItem:title action:@selector(openFolder:) to:menu];
-      item.representedObject = local;
-      item.toolTip = [NSString stringWithFormat:@"%@\nAbrir la carpeta local", local];
-      item.enabled = [NSFileManager.defaultManager fileExistsAtPath:local];
-      item.indentationLevel = 1;
+      [menu addItem:[self itemForProfile:p]];
     }
   }
 
