@@ -8,6 +8,7 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
 | **NUBE** | Contenedor Linux (claude.ai/code) | Investigar, escribir código, parches, scripts y documentación, compilar Go (BackupDrive) y probar en Linux, CI, PRs | Compilar Chromium, ejecutar nada de macOS, ver los discos del Mac |
 | **LOCAL** | MacPro7,1 (Claude Code local) | Compilar FlyWeb, ejecutar y medir, Xcode, firma y notarización, scripts que necesitan el checkout de Chromium | Trabajar sin el Mac encendido |
 | **HUMANO** | — | Decisiones, credenciales (Google, Apple), pruebas en la 6,1 y la 5,1, iconos | — |
+| **SERVIDOR** (futuro) | Máquinas del HUMANO (Apache 2.4) | Servicios internos de FlyWeb: rastreo y empaquetado de listas de Shields, servicio de componentes, proxies (F7.3 / S3 de `FlyWeb/docs/disenos.md`) | Aún no existe; lo creará el HUMANO |
 
 ## Reglas para no pisarse
 
@@ -27,6 +28,8 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
    `nube/jitless` lista para compilar").
 5. **Nunca en el repo:** tokens, `backupdrive.conf`, contraseñas ni certificados.
 6. Cuando una tarea termina: estado `hecho`, más el enlace al PR o commit.
+7. **Encargos al HUMANO** (gráficos, fuentes, subdominios, servicios del servidor): se apuntan en la sección 1 de
+   `FlyWeb/docs/disenos.md`, que es la entrada de su cadena de diseño. No dejarlos solo en un chat o en Notas.
 
 **Prohibido en `~/proyectos/flyweb-build`: `gclient sync -D`.** Borró el `src/brave` antiguo (worktree). Ahora `src/brave` es un clon `--shared` (ver `setup-build.sh`).
 
@@ -56,6 +59,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F1.7 | Quitar las wallets cripto y Rewards (decisión HUMANO: nada de monederos ni BAT en el navegador) | NUBE | hecho | brave-core `nube/no-wallet` (b1c0bd5b): Brave Wallet y Brave Rewards siempre desactivados en el código; la extensión Crypto Wallets nunca se carga (con el flag a `false` 1.57 no compila, ver F0.2 paso 6). Paso 6 de `integracion.md` |
 | F1.6 | Ejecutar la auditoría de red (30 min en reposo + 30 min de uso) | LOCAL | en curso | **Reposo hecho (30/09 21:22–21:52, flyweb ec39c76a, perfil nuevo, sin perfil de políticas):** 5 hosts, 4 "fallos". `go-updater.brave.com` 73 (ok). `chrome.cloudflare-dns.com` 89 y `dns.google` 18: DoH automático de Chromium hacia los mismos proveedores del DNS del sistema (1.1.1.1, 8.8.8.8), → decidir: `DnsOverHttpsMode` por política o permitirlo en allowlist anotando que depende de la red. `flyweb.invalid` 12: variations (`?osname=mac&milestone=116`) contra la URL inerte, no sale de la máquina salvo la consulta DNS → **NUBE: desactivar la petición de variations**. `safebrowsing.googleapis.com` 10: esperado sin el perfil de políticas (en 1.57 solo se apaga por política). NetLog en `~/proyectos/softmac/temp/auditoria-20260930-2122/` (7,1). Falta el modo "uso" con HUMANO |
 | F1.8 | Inventario de la marca Brave que se ve en la interfaz: logotipos e iconos (león de la barra de direcciones y de las pestañas, triángulo de Rewards, logo de `brave://version`, fondo y logo de la NTP, bienvenida), textos que no cubra `nube/l10n` ("Los creadores de Brave", copyright), etiqueta "Brave" de la barra de direcciones, "Revisión" de `brave://version` | NUBE (código) + HUMANO (uso) + LOCAL (capturas por compilación) | en curso | Inventario: `FlyWeb/docs/marca-pendiente.md`. **NUBE, 29/09:** logotipos e iconos (león → mosca) en brave-core `nube/branding-ui` dab0f6ee = paso 7 de `integracion.md`; empresa "lamosquita" y avisos legales de Brave Software intactos en `nube/l10n` b91686cc (paso 5; el paso 5 anterior decía "FlyWeb is a registered trademark of Brave Software"); "Revisión" = commit de `flyweb` en `build.sh`. Imágenes patrocinadas de la NTP quitadas en `nube/no-sponsored-images` 8c984d70 (paso 8, decisión HUMANO). Listado de imágenes a diseñar: `FlyWeb/branding/imagenes.md`. Pendiente: tarjetas de Brave News/Talk. Copyright: "lamosquita and The Brave Authors" (decisión HUMANO), `nube/l10n` 8db1ad26 = paso 5b; arregla también "Los creadores de FlyWeb" que vio LOCAL en el paso 5 **NUBE 30/09:** encargos del inventario de LOCAL (`local/marca-inventario`) en brave-core `nube/branding-ui-2` 2a4e5198 = paso 9: Shields con PNG de 18/36 px (dibujo provisional), logo de `brave://version` 180×53, bienvenida 300×358, iconos de la extensión. Pendiente: M10 (iconos de `@brave/leo`, fuera del repo) y los dibujos a píxel (O3), que dependen del diseño definitivo |
+| F1.9 | Arreglos de la auditoría en reposo de LOCAL (F1.6, 30/09) | NUBE | hecho | `flyweb.invalid` (variations): brave-core `nube/no-variations` d14c62f8 = paso 13 de `integracion.md`. DoH automático (`chrome.cloudflare-dns.com`, `dns.google`): **se permite**, añadido a `FlyWeb/audit/allowlist.txt` (mismas consultas que el DNS del sistema, pero cifradas; con `DnsOverHttpsMode` en `off` irían en claro al mismo proveedor). `safebrowsing.googleapis.com`: esperado sin el perfil de políticas. **LOCAL: pasos 12 y 13 tras el 11; después, la auditoría en reposo otra vez (con el perfil de políticas) y la de uso** |
 
 ### FlyWeb — Fase 3A (seguridad inmediata)
 | # | Tarea | Quién | Estado | Notas |
@@ -73,6 +77,9 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
 | F7.1 | Esquema `flyweb://` en lugar de `brave://` (y `chrome://`), etiqueta "FlyWeb" en la barra de direcciones y página de inicio propia | por decidir | pendiente | Sin fecha: después de estabilizar la base. Brave redirige `chrome://` a `brave://` en muchos sitios del código → parches repartidos; hacerlo con `chromium_src/` para que el rebase siga siendo mecánico |
+| F7.2 | Nueva pestaña propia (local): reloj, buscador con selector, 12 sitios, contadores de Shields, fondo sin fotos con moscas, fuente D-DIN | HUMANO (diseño) → NUBE (código) | pendiente | Especificación y encargos D1–D3 en `FlyWeb/docs/disenos.md`. Buscador por defecto DuckDuckGo ya hecho: brave-core `nube/buscador` 67760360 = paso 12 de `integracion.md`. **LOCAL: compilar el paso 12 cuando termine el 11** (y la auditoría F1.6); probar con un perfil nuevo |
+| F7.3 | Servidor: `flyweb.`, `updates.` y (fase 2) `components.` de `flyweb.lamosquita.net` | HUMANO | pendiente | Encargos S1–S3 y vhost de Apache 2.4 (probado) en `FlyWeb/docs/disenos.md` §4–5. S3 lo llevará el agente SERVIDOR. **LOCAL: con el resultado de F1.6, actualizar la tabla de servicios de Brave de `disenos.md` §5** (qué hosts salen de verdad) |
+| F7.4 | Rediseño del resto de páginas internas (ajustes, historial, descargas, bienvenida…) y fuente D-DIN en todas | HUMANO (diseño) → NUBE (código) | pendiente | Sin prioridad. Encargo D7 de `FlyWeb/docs/disenos.md` |
 
 ### BackupDrive
 | # | Tarea | Quién | Estado | Notas |
