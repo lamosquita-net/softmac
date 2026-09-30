@@ -40,6 +40,38 @@ Comprobado el 30/09 en el código y en la compilación del paso 7:
 - En un sistema en modo oscuro, la mosca provisional del Dock y de los avisos se ve bien (HUMANO, 29/09).
 - El canal de los builds `Static` es **`development`**: las pruebas en la 6,1 y la 5,1 enseñan esas variantes (O1).
 
+## Tamaño al que se ve cada cosa (y cuáles hay que dibujar a píxel)
+
+Tamaños sacados del código de Chromium 116 y brave-core 1.57.64. "pt" son puntos de pantalla: en un monitor
+normal, 1 pt = 1 píxel; en Retina, 1 pt = 2 píxeles. **Regla práctica: todo lo que se ve a 32 px o menos hay que
+dibujarlo a píxel, a su tamaño exacto, con las líneas sobre píxeles enteros.** Reducir un dibujo grande lo emborrona.
+Los Mac con Mojave (6,1 y 5,1) suelen ir con monitor normal: ahí se ve siempre la versión de 1 px por punto.
+
+| Dónde | Se ve a | Píxeles reales (normal / Retina) | Maestro | ¿A píxel? |
+|---|---|---|---|---|
+| Pestaña de una página interna (`kFaviconSize`) | 16 pt | 16×16 / 32×32 | M2 | **Sí, los dos** (O3). `product_logo_16` y su @2x |
+| Icono a la izquierda de la barra de direcciones (`LOCATION_BAR_ICON_SIZE`) | 16 pt | 16×16 / 32×32 | M3 | **Sí.** Hoy el `.icon` tiene un solo dibujo en lienzo de 32 que se reduce a 16. Chromium admite varios dibujos en el mismo `.icon` (lienzos 32, 20 y 16): añadir uno de 16 hecho a mano |
+| Botón de Shields (`kBraveActionGraphicSize`) | 18 pt | 18×18 / 36×36 | M6 | **Sí, pero hoy no se puede:** Brave carga un único PNG de 64×64 (54×54 el apagado) y lo reduce, así que siempre sale remuestreado. **NUBE: cargar un PNG de 18 y otro de 36** |
+| Icono pequeño en las notificaciones de Chromium (`kSmallImageSizeMD`) | 18 pt | 18×18 / 36×36 | M3 | **Sí.** Lienzo de 96 reducido: añadir un dibujo pequeño |
+| Menús y otros usos del símbolo (`components/vector_icons/brave/product.icon`, lienzo 24) | 16–24 pt | 16–24 / 32–48 | M3 | **Sí** para 16 |
+| Finder en lista, barra lateral, diálogos de abrir y guardar, barra de título | 16 pt | 16×16 / 32×32 | M1 | **Sí** (`icon_16x16.png` y `icon_16x16@2x.png` del `.icns`) |
+| Spotlight, Finder en columnas | 32 pt | 32×32 / 64×64 | M1 | **Sí** el de 32×32 |
+| Avisos del escritorio de macOS | ~32–40 pt | 32–40 / 64–80 | M1 | macOS elige el tamaño del `.icns` más cercano y lo ajusta |
+| Dock | 48–64 pt (128 con ampliación) | 48–128 / 96–256 | M1 | No: basta el maestro. El `.icns` lleva 48, 128, 256, 512 y 1024 |
+| Finder en iconos, Launchpad, Cmd+Tab | 64–128 pt | 64–128 / 128–256 | M1 | No |
+| Icono de la extensión en menús / en `brave://extensions` | 16 pt / 48 pt | 16 y 48 / 32 y 96 | M7 | **Sí** el de 16 |
+| Logotipo pequeño con nombre (`product_logo_name_22`) | 22 pt de alto | 77×22 / 154×44 | M4 | **Sí:** el texto a 22 px hay que ajustarlo a mano |
+| Logotipo con nombre (`product_logo_name_48`) | 48 pt de alto | 164×48 / 328×96 | M4 | Conviene, por el texto |
+| Logotipo blanco (`product_logo_white`) | 64 pt de alto | 214×64 / 428×128 | M4 oscuro | No |
+| Logo de `brave://version` | **180 pt de ancho** (CSS `#logo`) | 180×53 / 360×105 | M4 | No, pero **hoy se amplía**: el fichero es de 164×48 (328×96 en Retina) y la página lo estira a 180. **NUBE: generarlo a 180×53 y 360×106** |
+| Mosca de la bienvenida | **150 pt de ancho** (CSS) | 150×179 / 300×358 | M8 | No, pero **en Retina se amplía**: el fichero es de 200×239. **NUBE: generarlo a 300×358 como mínimo** |
+| Icono de sitio por defecto en la nueva pestaña | ~40–72 pt | — | M9 | No |
+| Fondo del instalador | 602×330 pt | 602×330 / 1204×660 | M5 | No |
+
+**Resumen de lo que hay que dibujar a píxel:** la app a 16×16 y 32×32; el símbolo a 16×16 y 32×32; el monocromo a
+16×16 y 18×18; el botón de Shields a 18×18 y 36×36 (dos estados); el logotipo pequeño a 77×22. Lo demás sale bien
+reduciendo el maestro.
+
 ## Imágenes que faltaban en la lista (30/09, LOCAL)
 
 Siguen siendo de Brave en `flyweb` f274035d. Las de servicios desactivados no se cuentan.
