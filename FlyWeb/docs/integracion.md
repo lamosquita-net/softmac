@@ -2,7 +2,7 @@
 
 Las ramas `nube/*` de `lamosquita-net/brave-core` salen todas de `flyweb` 77b25c6b y **ninguna está compilada**.
 Se integran **de una en una, compilando y probando entre cada una**. Así, si algo falla, se sabe qué rama lo
-rompió. NUBE ha comprobado que las ocho se fusionan juntas sin conflictos (fusión de prueba).
+rompió. NUBE ha comprobado que las nueve se fusionan juntas sin conflictos (fusión de prueba).
 
 Compilar siempre con `FlyWeb/scripts/build.sh` (modo `Static` por defecto). Después de cada compilación, pasar
 también `FlyWeb/scripts/check-no-avx.sh ~/proyectos/flyweb-build/brave-browser/src/out/Static`.
@@ -40,8 +40,29 @@ es solo local), apuntar el error en `docs/TAREAS.md` (las últimas 30 líneas de
 | 6 | `nube/no-wallet` | b1c0bd5b | Sin wallets ni Rewards: Brave Wallet y Brave Rewards siempre desactivados (sin botones, sin `window.ethereum` ni `window.solana`); la extensión antigua Crypto Wallets nunca se carga. **Reintento:** el primer intento (f595966f) no compilaba con `ethereum_remote_client_enabled = false` (`external_wallets_importer.cc`); ahora el flag queda como en Brave y se anula la carga de la extensión | Compila (el flag es el mismo de los pasos 0–5). En la consola de una web real: `window.ethereum` → `undefined` y `window.solana` → `undefined`. No hay icono de wallet ni de Rewards (triángulo BAT) en la barra; `brave://wallet` y `brave://rewards` no cargan |
 | 7 | `nube/branding-ui` | dab0f6ee | Mosca en lugar del león: icono de pestañas internas, barra de direcciones, notificaciones, logotipos con nombre, logo de `brave://version` y de la bienvenida (F1.8) | `brave://version`: logo mosca + "FlyWeb" (claro y oscuro). Pestaña de `brave://settings`: icono mosca. Barra de direcciones en una página interna: mosca, no león. `brave://welcome`: mosca. Además, con el `build.sh` nuevo, la "Revisión" de `brave://version` es el commit de `flyweb` compilado |
 | 8 | `nube/no-sponsored-images` | 8c984d70 | Sin imágenes patrocinadas (publicidad de Brave en la nueva pestaña) ni fondos de "super referral": sus componentes no se registran | Nueva pestaña: solo fotografías, nunca un logo de marca comercial. `brave://components`: no aparece "NTP Sponsored Images" ni "NTP Super Referral". En la auditoría de red (F1.6), ninguna descarga de esos componentes |
+| 9 | `nube/branding-ui-2` | 2a4e5198 | Encargos del inventario de LOCAL (`FlyWeb/branding/imagenes.md`): botón de Shields con un PNG por escala (18 y 36 px) en vez de reducir uno de 64, dibujo provisional de escudo con la mosca (verde activo, gris apagado); logo de `brave://version` a 180×53 / 360×106; mosca de bienvenida a 300×358; iconos de la extensión interna | Botón de Shields nítido en barra clara y oscura, sin león. `brave://version`: logo nítido. `brave://extensions` (con "Modo desarrollador" para ver las internas): mosca. Compila `brave_shields_action_view.cc` (único cambio de C++) |
 
-Después del paso 8: F0.2 queda cerrada, y el `.app` se puede copiar a la 6,1 y la 5,1 para F0.6.
+Después del paso 9: F0.2 queda cerrada, y el `.app` se puede copiar a la 6,1 y la 5,1 para F0.6.
+
+## Prueba en la MacPro5,1 (F0.6)
+
+Xeon Westmere (2010): SSE4.2, **sin AVX**. Lo que puede fallar ahí y no en la 7,1 ni en la 6,1:
+
+1. **Arranque.** Si se cierra al abrir: `~/Library/Logs/DiagnosticReports/FlyWeb*.crash` (o `…Helper*.crash`). Si pone
+   `EXC_BAD_INSTRUCTION` / `SIGILL`, se ha colado una instrucción AVX: traer el fichero entero (la línea del hilo que
+   falla dice en qué biblioteca). `check-no-avx.sh` solo mira los comandos de compilación, no los binarios.
+2. **Procesos auxiliares.** Abrir `brave://gpu` y `brave://version`. Un fallo de AVX puede estar solo en el proceso de
+   GPU o de red: la ventana abre, pero las pestañas salen en blanco o con "¡Oh, no!". Guardar `brave://gpu` como texto.
+3. **Gráfica.** En `brave://gpu`: modelo de GPU, "WebGL: Hardware accelerated", "Video Decode". Probar
+   https://get.webgl.org y un vídeo de YouTube a 1080p mirando la CPU en el Monitor de Actividad (sin decodificación
+   por hardware, un vídeo 1080p puede saturar la CPU).
+4. **Criterio de aceptación.** Con el perfil de políticas instalado: claude.ai (entrar, conversar, adjuntar un fichero),
+   Gmail, Drive y Docs. En `brave://policy`, las políticas cargadas. Anotar si algo va lento.
+5. **jitless.** En una web cualquiera que no esté en la lista (p. ej. un periódico): que funcione y cuánto tarda en
+   cargar. Es donde más se nota la CPU antigua.
+6. **Memoria y CPU en reposo**, con 3 o 4 pestañas abiertas durante 10 minutos.
+
+Traer: los `.crash` si los hay, `brave://gpu` en texto y notas de 1 a 6. Apuntarlo en F0.6 de `docs/TAREAS.md`.
 
 ## Si un paso falla
 

@@ -53,21 +53,41 @@ const TEXT_LIGHT = '#3b3e4f';
   for (const [rel, w, h, white] of marks) await shot(w, h, wordmark(w, h, white), `${T}/${rel}`);
   // brave://version logo (IDR_PRODUCT_LOGO / _WHITE).
   const R = `${core}/components/resources`;
-  for (const [dir, k] of [['default_100_percent', 1], ['default_200_percent', 2]]) {
-    await shot(164 * k, 48 * k, wordmark(164 * k, 48 * k, false), `${R}/${dir}/brave/product_logo.png`);
-    await shot(164 * k, 48 * k, wordmark(164 * k, 48 * k, true), `${R}/${dir}/brave/product_logo_white.png`);
+  // brave://version shows it 180 pt wide (#logo in about_version.css): draw it at that size.
+  for (const [dir, w, h] of [['default_100_percent', 180, 53], ['default_200_percent', 360, 106]]) {
+    await shot(w, h, wordmark(w, h, false), `${R}/${dir}/brave/product_logo.png`);
+    await shot(w, h, wordmark(w, h, true), `${R}/${dir}/brave/product_logo_white.png`);
   }
-  // Welcome page logo (WebP, 200x239).
-  await p.setViewportSize({ width: 200, height: 239 });
+  // Welcome page logo (WebP). Shown 150 pt wide: 300x358 so Retina is not upscaled.
+  await p.setViewportSize({ width: 300, height: 358 });
   await p.setContent('<html><body></body></html>');
   const data = await p.evaluate(async (src) => {
     const img = new Image(); img.src = src; await img.decode();
-    const c = document.createElement('canvas'); c.width = 200; c.height = 239;
-    c.getContext('2d').drawImage(img, 10, 29, 180, 180);
+    const c = document.createElement('canvas'); c.width = 300; c.height = 358;
+    c.getContext('2d').drawImage(img, 15, 44, 270, 270);
     return c.toDataURL('image/webp', 1.0);
   }, svg);
   const out = `${core}/components/brave_welcome_ui/assets/brave_logo_3d@2x.webp`;
   fs.writeFileSync(out, Buffer.from(data.split(',')[1], 'base64'));
   console.log(out);
+  // Shields button (toolbar, 18 pt): shield with the fly, fixed colours that read on light and dark
+  // toolbars. One bitmap per scale, drawn at its real size (see brave_shields_action_view.cc).
+  // PROVISIONAL symbol and colours until the final M6 design.
+  const shield = (s, on) => {
+    const fill = on ? '#1E8E3E' : '#80868B';
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 36 36">` +
+      `<path d="M18 1.5 L32 6.5 V17 C32 25.5 26 31.5 18 34.5 C10 31.5 4 25.5 4 17 V6.5 Z" fill="${fill}"/>` +
+      `<image href="${svg}" x="7" y="7.5" width="22" height="22" style="filter:brightness(0) invert(1)"/></svg>`;
+  };
+  const S = `${core}/components/brave_shields/resources`;
+  for (const [name, on] of [['icon', true], ['icon-off', false]]) {
+    for (const s of [18, 36, 64]) {
+      const f = s === 64 ? `${S}/${name}.png` : `${S}/${name}-${s}.png`;
+      await shot(s, s, `<div style="width:${s}px;height:${s}px">${shield(s, on)}</div>`, f);
+    }
+  }
+  // Built-in extension icon (brave://extensions, permission prompts).
+  const E = `${core}/components/brave_extension/extension/brave_extension/assets/img`;
+  for (const s of [16, 32, 48, 64, 128, 256]) await shot(s, s, square(s), `${E}/icon-${s}.png`);
   await b.close();
 })();
