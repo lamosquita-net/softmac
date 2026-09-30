@@ -27,6 +27,8 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
    `nube/jitless` lista para compilar").
 5. **Nunca en el repo:** tokens, `backupdrive.conf`, contraseñas ni certificados.
 6. Cuando una tarea termina: estado `hecho`, más el enlace al PR o commit.
+7. **Encargos al HUMANO** (gráficos, fuentes, subdominios, servicios del servidor): se apuntan en la sección 1 de
+   `FlyWeb/docs/disenos.md`, que es la entrada de su cadena de diseño. No dejarlos solo en un chat o en Notas.
 
 **Prohibido en `~/proyectos/flyweb-build`: `gclient sync -D`.** Borró el `src/brave` antiguo (worktree). Ahora `src/brave` es un clon `--shared` (ver `setup-build.sh`).
 
@@ -73,6 +75,8 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
 | F7.1 | Esquema `flyweb://` en lugar de `brave://` (y `chrome://`), etiqueta "FlyWeb" en la barra de direcciones y página de inicio propia | por decidir | pendiente | Sin fecha: después de estabilizar la base. Brave redirige `chrome://` a `brave://` en muchos sitios del código → parches repartidos; hacerlo con `chromium_src/` para que el rebase siga siendo mecánico |
+| F7.2 | Nueva pestaña propia (local): reloj, buscador con selector, 12 sitios, contadores de Shields, fondo sin fotos con moscas, fuente D-DIN | HUMANO (diseño) → NUBE (código) | pendiente | Especificación y encargos D1–D3 en `FlyWeb/docs/disenos.md`. Buscador por defecto DuckDuckGo ya hecho: brave-core `nube/buscador` 67760360 = paso 12 de `integracion.md` |
+| F7.3 | Servidor: `flyweb.`, `updates.` y (fase 2) `components.` de `flyweb.lamosquita.net` | HUMANO | pendiente | Encargos S1–S3 y ejemplo de vhost en `FlyWeb/docs/disenos.md` §4–5 |
 
 ### BackupDrive
 | # | Tarea | Quién | Estado | Notas |
