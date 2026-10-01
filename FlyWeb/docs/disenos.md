@@ -173,6 +173,7 @@ Los NetLog están en `~/proyectos/softmac/temp/auditoria-*` de la 7,1.
 | `translate.brave.com` | Traducción de páginas | No (no se ofreció traducir, ni siquiera en la BBC) | Apagarla o proxy propio (por decidir). Hay que probarla pidiendo una traducción a mano |
 | `safebrowsing2.brave.com`, `sb-ssl.brave.com` | Proxy de Safe Browsing | No. **Sin políticas**, Safe Browsing va **directo a Google** (`safebrowsing.googleapis.com/v4/threatListUpdates:fetch`, 10 en 30 min). Con políticas, 0 | Apagado por política (`flyweb-policies.mobileconfig`). El perfil es imprescindible |
 | `laptop-updates.brave.com` | Estadísticas y referrals | No | Quitado (paso 10) |
+| `devtools.brave.com` | Frontend remoto de DevTools (proxy de Brave del de Google), solo para depurar otros dispositivos | No en F1.6; visto por LOCAL en la URL de DevTools | Quitado: dirección inerte (paso 22) |
 | `cr.brave.com` | Subida de informes de fallos (solo si el usuario aceptaba enviarlos tras un cierre inesperado) | No (no hubo cierres) | Quitado: se quedan en el disco (paso 14, aún sin auditar) |
 
 Otros destinos que no son de Brave y salieron en la auditoría:
