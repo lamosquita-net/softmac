@@ -173,14 +173,16 @@ Los NetLog están en `~/proyectos/softmac/temp/auditoria-*` de la 7,1.
 | `translate.brave.com` | Traducción de páginas | No (no se ofreció traducir, ni siquiera en la BBC) | Apagarla o proxy propio (por decidir). Hay que probarla pidiendo una traducción a mano |
 | `safebrowsing2.brave.com`, `sb-ssl.brave.com` | Proxy de Safe Browsing | No. **Sin políticas**, Safe Browsing va **directo a Google** (`safebrowsing.googleapis.com/v4/threatListUpdates:fetch`, 10 en 30 min). Con políticas, 0 | Apagado por política (`flyweb-policies.mobileconfig`). El perfil es imprescindible |
 | `laptop-updates.brave.com` | Estadísticas y referrals | No | Quitado (paso 10) |
+| `cr.brave.com` | Subida de informes de fallos (solo si el usuario aceptaba enviarlos tras un cierre inesperado) | No (no hubo cierres) | Quitado: se quedan en el disco (paso 14, aún sin auditar) |
 
 Otros destinos que no son de Brave y salieron en la auditoría:
 
 | Destino | Origen | Estado |
 |---|---|---|
+| `www.googleapis.com/geolocation` | Ubicación a partir de las redes Wi-Fi, cuando una web la pide | No (ninguna web la pidió) | Sustituido por los servicios de localización de macOS (paso 14, aún sin auditar) |
 | `flyweb.invalid` (`?osname=mac&milestone=116`) | Petición de variations | Quitada (paso 13). 12 en reposo antes y 0 después |
 | `chrome.cloudflare-dns.com`, `dns.google` | DNS seguro automático de Chromium hacia los mismos proveedores del DNS del sistema (1.1.1.1 y 8.8.8.8) | Permitido en `allowlist.txt`. Con políticas y el paso 13 no apareció en reposo |
-| `accounts.google.com`, `clients6.google.com` | **Las páginas** de Gmail, Drive y Docs: redirigen al inicio de sesión (`ServiceLogin`, `AccountsSignInUi`, `gsi/client`, `oauth2`) y llaman a sus API | No es un servicio del navegador. `network-audit.py --mode uso` lo marca porque `denylist.txt` incluye `accounts.google.com` y `clients*.google.com`. **NUBE: distinguir las peticiones de páginas de las del navegador** (en el NetLog, por la pestaña o el `initiator`), o quitar esos dos patrones del modo uso |
+| `accounts.google.com`, `clients6.google.com` | **Las páginas** de Gmail, Drive y Docs: redirigen al inicio de sesión (`ServiceLogin`, `AccountsSignInUi`, `gsi/client`, `oauth2`) y llaman a sus API | No es un servicio del navegador. `network-audit.py --mode uso` lo marca porque `denylist.txt` incluye `accounts.google.com` y `clients*.google.com`. Hecho (NUBE, 01-10): `--mode uso` clasifica cada petición por su origen (`initiator` y clave de aislamiento del NetLog) y solo falla si la pide el navegador. Los servicios de Brave (`!` en `denylist.txt`) fallan siempre |
 
 **Conclusión:** con el perfil de políticas y los pasos hasta el 13, FlyWeb solo habla con Brave para los componentes de
 Shields (`go-updater.brave.com`), que era la decisión vigente hasta la fase 2.
