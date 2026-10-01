@@ -64,8 +64,9 @@ es un Chrome nuevo, puede usar funciones que FlyWeb no tiene; por eso por sitio 
 | YouTube | | | | | | |
 | GitHub | | | | | | |
 | SwissTransfer (envío de ficheros grandes) | | | | | | Prueba específica abajo |
+| WeTransfer (uso ocasional) | | | | | | Misma prueba; JIT: `[*.]wetransfer.com` |
 
-### Prueba específica: envío de ficheros grandes (SwissTransfer y similares)
+### Prueba específica: envío de ficheros grandes (SwissTransfer, y WeTransfer de forma ocasional)
 
 Riesgo: el sitio va **sin JIT** (no está en la lista). Si usa WebAssembly para trocear o calcular sumas de los ficheros, sin
 JIT no funciona (`WebAssembly is not defined` en la consola); si lo hace en JavaScript, funcionará pero puede ir muy lento
