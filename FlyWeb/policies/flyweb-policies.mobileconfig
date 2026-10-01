@@ -10,8 +10,10 @@
   La granularidad es el sitio (eTLD+1): "[*.]google.com" cubre mail.google.com y docs.google.com.
   Edita la lista según las mediciones de F3A.2 (docs/TAREAS.md).
   Chromium lee las políticas del dominio del bundle id: net.lamosquita.flyweb (Release) y
-  net.lamosquita.flyweb.development (builds Static/Component, marca de desarrollo). Los dos bloques
-  deben ser iguales: al cambiar uno, copiarlo al otro.
+  net.lamosquita.flyweb.development (builds Static/Component, marca de desarrollo).
+  **Un bloque (payload) por dominio:** Mojave solo aplica el primer dominio si van dos en el mismo bloque
+  (comprobado por LOCAL en la MacPro6,1 el 01/10). Los dos bloques deben ser iguales salvo el dominio, el
+  identificador y el UUID: al cambiar uno, copiarlo al otro.
 -->
 <plist version="1.0">
 <dict>
@@ -54,6 +56,21 @@
 						</dict>
 					</array>
 				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>PayloadType</key>
+			<string>com.apple.ManagedClient.preferences</string>
+			<key>PayloadIdentifier</key>
+			<string>net.lamosquita.flyweb.development.policy.jit</string>
+			<key>PayloadUUID</key>
+			<string>5B7E2C91-3F4A-4D6E-9B1C-7A2D8E4F6C03</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>PayloadDisplayName</key>
+			<string>FlyWeb (desarrollo): JIT, Safe Browsing y servicios de Brave</string>
+			<key>PayloadContent</key>
+			<dict>
 				<key>net.lamosquita.flyweb.development</key>
 				<dict>
 					<key>Forced</key>
