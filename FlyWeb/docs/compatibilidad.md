@@ -63,3 +63,19 @@ es un Chrome nuevo, puede usar funciones que FlyWeb no tiene; por eso por sitio 
 | Calendar | | | | | | |
 | YouTube | | | | | | |
 | GitHub | | | | | | |
+| SwissTransfer (envío de ficheros grandes) | | | | | | Prueba específica abajo |
+
+### Prueba específica: envío de ficheros grandes (SwissTransfer y similares)
+
+Riesgo: el sitio va **sin JIT** (no está en la lista). Si usa WebAssembly para trocear o calcular sumas de los ficheros, sin
+JIT no funciona (`WebAssembly is not defined` en la consola); si lo hace en JavaScript, funcionará pero puede ir muy lento
+con ficheros de varios GB. El envío en sí depende de la red, no del JIT. No se ha podido mirar desde la nube: el código
+web de SwissTransfer no es público y el sitio está bloqueado en el entorno de NUBE.
+
+1. En FlyWeb (sin JIT), subir un fichero de ~2–5 GB a https://www.swisstransfer.com. Anotar si arranca, la velocidad
+   que muestra, el uso de CPU del proceso de la pestaña (Monitor de Actividad) y si la consola da errores.
+2. Descargarlo desde el enlace recibido y comprobar que el tamaño coincide.
+3. Si falla o la CPU va al 100 % con la red ociosa: añadir `[*.]swisstransfer.com` (y el dominio de subida que se vea en
+   la pestaña Red, probablemente de `infomaniak.com`) a `JavaScriptJitAllowedForSites` en `flyweb-policies.mobileconfig`
+   y repetir. El riesgo de dar JIT a un sitio concreto es el mismo que se ha asumido para Google (F3B.6).
+4. Control: el mismo envío en un navegador actual de la 7,1.
