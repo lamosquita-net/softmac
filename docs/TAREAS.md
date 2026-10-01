@@ -74,6 +74,13 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F3A.7 | Confirmar en Chrome Releases el "in the wild" de CVE-2026-3909 y CVE-2026-5281 | NUBE | hecho | **Ambos confirmados**: KEV (productos "Skia" y "Dawn") + CISA ADP `Exploitation: active` + prensa. Corregida la nota errónea del triaje |
 | F3A.8 | Portar CVE-2026-3909 (Skia, atlas de texto, explotado activamente) | NUBE | hecho | brave-core `nube/cve-2026-3909` eec87884 = paso 11 de `integracion.md`. Adaptado a mano desde skia 0cab3e4ee (b/491421267); sintaxis comprobada con clang contra la Skia de la 116 y parches que aplican limpios. **LOCAL: compilar y revisar texto normal, LCD y emoji** |
 
+### FlyWeb — Fase 3B (portado de parches de seguridad)
+| # | Tarea | Quién | Estado | Notas |
+|---|---|---|---|---|
+| F3B.1 | V8: CVE-2025-6554, CVE-2024-5274 y los arreglos de la rama 11.6 que la 116 no publicó | NUBE | hecho | brave-core `nube/cve-v8` abbae0e2 = paso 16 de `integracion.md`. **LOCAL: compilar tras el 15** |
+| F3B.2 | CVE-2025-14174 (ANGLE, Mac) | NUBE | hecho | Probable que no aplica: el búfer vulnerable no existe en el ANGLE de la 116 (`cve-triage.md`, n.º 5) |
+| F3B.3 | Siguientes: CVE-2025-4664 (cabecera `Link`), CVE-2026-2441 (CSS), CVE-2023-7024 (WebRTC), V8 "inciertos" | NUBE | pendiente | Orden en `cve-triage.md` §2 |
+
 ### FlyWeb — Fase 4 (compatibilidad web)
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
