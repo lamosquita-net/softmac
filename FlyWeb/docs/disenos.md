@@ -168,6 +168,8 @@ tabla se actualizará entonces.
 | `translate.brave.com` | Traducción de páginas | Apagarla o proxy propio (por decidir) |
 | `safebrowsing2.brave.com`, `sb-ssl.brave.com` | Proxy de Safe Browsing | Apagado por política (`flyweb-policies.mobileconfig`) |
 | `laptop-updates.brave.com` | Estadísticas y referrals | Quitado (paso 10) |
+| `cr.brave.com` | Subida de informes de fallos | Quitado: se quedan en el disco (paso 14) |
+| `www.googleapis.com` (geolocalización) | Ubicación a partir de las redes Wi-Fi | Sustituido por los servicios de localización de macOS (paso 14) |
 
 ### Qué hace falta para servir nosotros las listas de Shields
 
