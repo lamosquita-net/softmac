@@ -81,7 +81,8 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F3B.1 | V8: CVE-2025-6554, CVE-2024-5274 y los arreglos de la rama 11.6 que la 116 no publicó | NUBE | hecho | brave-core `nube/cve-v8` abbae0e2 = paso 16 de `integracion.md`. **LOCAL: compilar tras el 15** |
 | F3B.2 | CVE-2025-14174 (ANGLE, Mac) | NUBE | hecho | Probable que no aplica: el búfer vulnerable no existe en el ANGLE de la 116 (`cve-triage.md`, n.º 5) |
 | F3B.3 | Blink: CVE-2025-4664 (cabecera `Link`) y CVE-2026-2441 (CSS) | NUBE | hecho | brave-core `nube/cve-2025-4664` 7542f4f2 = paso 17 de `integracion.md`, con pruebas que reproducen ambos fallos. **LOCAL: compilar tras el 16** |
-| F3B.4 | Siguientes: CVE-2023-7024 (WebRTC), V8 "inciertos", y revisar si las ramas de Skia/ANGLE de la 116 tienen arreglos sin publicar (como pasó con V8) | NUBE | pendiente | Orden en `cve-triage.md` §2 |
+| F3B.4 | Arreglos de la rama 116 de Chromium posteriores a la .188 (hasta la .263): CVE-2023-5217 (libvpx), crbug 1475798, crbug 1478889 | NUBE | hecho | brave-core `nube/cve-rama-5845` 9c752a69 = paso 18. Responde a F3A.6: la base no llevaba el arreglo de libvpx. Skia y ANGLE de la 116, sin arreglos pendientes. **LOCAL: compilar tras el 17** |
+| F3B.5 | Siguientes: CVE-2023-7024 (WebRTC) y los V8 "inciertos" | NUBE | pendiente | Orden en `cve-triage.md` §2 |
 
 ### FlyWeb — Fase 4 (compatibilidad web)
 | # | Tarea | Quién | Estado | Notas |
