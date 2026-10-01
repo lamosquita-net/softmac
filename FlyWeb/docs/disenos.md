@@ -157,19 +157,33 @@ Para S3 (fase 2), el servicio en Go escucha en local y Apache hace de proxy inve
 
 ## 5. Servicios de Brave que usa FlyWeb y su sustituto
 
-Lista sacada del código de brave-core 1.57. **La auditoría de red de LOCAL (F1.6) dirá cuáles se usan de verdad**; esta
-tabla se actualizará entonces.
+Lista sacada del código de brave-core 1.57 y **contrastada con la auditoría de red de LOCAL (F1.6)**, en la MacPro7,1:
+- **Reposo sin políticas:** 30/09, `flyweb` ec39c76a (paso 10), 30 min.
+- **Reposo con políticas:** 01/10, `flyweb` 5987d0ad (paso 13), 30 min, con `flyweb-policies.mobileconfig` instalado.
+- **Uso:** 01/10, mismo build y políticas. Navegación automática, 90 s por web y sin sesiones iniciadas, por Wikipedia,
+  DuckDuckGo, Google, YouTube, El País, BBC, GitHub, Amazon, claude.ai, Gmail, Drive y Docs.
 
-| Servicio de Brave | Para qué | Propuesta |
+Los NetLog están en `~/proyectos/softmac/temp/auditoria-*` de la 7,1.
+
+| Servicio de Brave | Para qué | Visto en F1.6 | Propuesta |
+|---|---|---|---|
+| `go-updater.brave.com` | Componentes: listas de Shields, catálogo de listas regionales, recursos de adblock, datos locales (rastreadores, debounce), CRLSet, Widevine | **Sí, es el único.** 73 peticiones en 30 min de reposo (las dos veces) y 74 en uso | `components.flyweb.lamosquita.net` (fase 2). Mientras, el de Brave (decisión vigente) |
+| `extensionupdater.brave.com`, `crxdownload.brave.com` | Instalar y actualizar extensiones de la Chrome Web Store sin ir directo a Google | No (no había extensiones instaladas) | Por decidir: proxy propio o ir directo a Google. Hay que repetir la auditoría con una extensión instalada |
+| `static1.brave.com`, `redirector.brave.com`, `clients4.brave.com` | Proxies de Brave hacia recursos de Google, para que Google no vea la IP | No | Sin uso visible en reposo ni en navegación normal. Revisar si aparecen al instalar extensiones o con traducción |
+| `translate.brave.com` | Traducción de páginas | No (no se ofreció traducir, ni siquiera en la BBC) | Apagarla o proxy propio (por decidir). Hay que probarla pidiendo una traducción a mano |
+| `safebrowsing2.brave.com`, `sb-ssl.brave.com` | Proxy de Safe Browsing | No. **Sin políticas**, Safe Browsing va **directo a Google** (`safebrowsing.googleapis.com/v4/threatListUpdates:fetch`, 10 en 30 min). Con políticas, 0 | Apagado por política (`flyweb-policies.mobileconfig`). El perfil es imprescindible |
+| `laptop-updates.brave.com` | Estadísticas y referrals | No | Quitado (paso 10) |
+
+Otros destinos que no son de Brave y salieron en la auditoría:
+
+| Destino | Origen | Estado |
 |---|---|---|
-| `go-updater.brave.com` | Componentes: listas de Shields, catálogo de listas regionales, recursos de adblock, datos locales (rastreadores, debounce), CRLSet, Widevine | `components.flyweb.lamosquita.net` (fase 2). Mientras, el de Brave (decisión vigente) |
-| `extensionupdater.brave.com`, `crxdownload.brave.com` | Instalar y actualizar extensiones de la Chrome Web Store sin ir directo a Google | Por decidir tras F1.6: proxy propio o ir directo a Google |
-| `static1.brave.com`, `redirector.brave.com`, `clients4.brave.com` | Proxies de Brave hacia recursos de Google, para que Google no vea la IP | Por decidir tras F1.6 |
-| `translate.brave.com` | Traducción de páginas | Apagarla o proxy propio (por decidir) |
-| `safebrowsing2.brave.com`, `sb-ssl.brave.com` | Proxy de Safe Browsing | Apagado por política (`flyweb-policies.mobileconfig`) |
-| `laptop-updates.brave.com` | Estadísticas y referrals | Quitado (paso 10) |
-| `cr.brave.com` | Subida de informes de fallos | Quitado: se quedan en el disco (paso 14) |
-| `www.googleapis.com` (geolocalización) | Ubicación a partir de las redes Wi-Fi | Sustituido por los servicios de localización de macOS (paso 14) |
+| `flyweb.invalid` (`?osname=mac&milestone=116`) | Petición de variations | Quitada (paso 13). 12 en reposo antes y 0 después |
+| `chrome.cloudflare-dns.com`, `dns.google` | DNS seguro automático de Chromium hacia los mismos proveedores del DNS del sistema (1.1.1.1 y 8.8.8.8) | Permitido en `allowlist.txt`. Con políticas y el paso 13 no apareció en reposo |
+| `accounts.google.com`, `clients6.google.com` | **Las páginas** de Gmail, Drive y Docs: redirigen al inicio de sesión (`ServiceLogin`, `AccountsSignInUi`, `gsi/client`, `oauth2`) y llaman a sus API | No es un servicio del navegador. `network-audit.py --mode uso` lo marca porque `denylist.txt` incluye `accounts.google.com` y `clients*.google.com`. **NUBE: distinguir las peticiones de páginas de las del navegador** (en el NetLog, por la pestaña o el `initiator`), o quitar esos dos patrones del modo uso |
+
+**Conclusión:** con el perfil de políticas y los pasos hasta el 13, FlyWeb solo habla con Brave para los componentes de
+Shields (`go-updater.brave.com`), que era la decisión vigente hasta la fase 2.
 
 ### Qué hace falta para servir nosotros las listas de Shields
 
