@@ -44,12 +44,20 @@ Las más peligrosas, porque la web ya las da por supuestas y son de CSS:
 - **Subgrid** (117), `:user-valid`/`:user-invalid` (119), máscaras CSS sin prefijo (120), `light-dark()` (123),
   `@starting-style` y `transition-behavior` (117).
 
-## 4. Versión declarada por sitio (pendiente)
+## 4. Versión declarada por sitio (hecho: brave-core `nube/ua-por-sitio`, paso 21)
 
-Se hará solo si el diagnóstico (§2, paso 3) muestra bloqueos. Diseño previsto: una lista de sitios en la que FlyWeb declara
-una versión más nueva de Chrome **en el User-Agent y en los Client Hints a la vez** (si solo cambia uno, Google lo detecta
-como incoherente), usando el mecanismo de Chromium para sustituir el User-Agent por pestaña. Riesgo: el sitio, creyendo que
-es un Chrome nuevo, puede usar funciones que FlyWeb no tiene; por eso por sitio y no global.
+Activado por el aviso de Google Drive en la 6,1 ("Ya no se admite esta versión del navegador"). En los sitios de la lista,
+FlyWeb declara una versión más nueva de Chrome **en el User-Agent y en los Client Hints a la vez** (si solo cambiara uno,
+Google lo detectaría como incoherente), con el mecanismo de Chromium para sustituir el User-Agent por pestaña. En el resto
+de sitios sigue diciendo 116.
+
+- Lista por defecto: `drive.google.com` y `docs.google.com` (cada una incluye sus subdominios). Gmail y claude.ai no la
+  necesitan hoy.
+- Versión declarada: 153 (Chrome estable a 01-10-2026). **Subirla en cada ciclo de mantenimiento**, o Google volverá a
+  mostrar el aviso cuando la 153 quede atrás.
+- Se ajusta sin compilar: `--enable-features=FlyWebUserAgentOverride:chrome_major/154/sites/drive.google.com,docs.google.com`.
+- Riesgo: el sitio puede usar funciones que la 116 no tiene, creyendo hablar con un Chrome nuevo. Por eso es por sitio. Si
+  Drive o Docs fallan con el cambio, quitar el sitio de la lista.
 
 ## 5. Resultados del diagnóstico
 

@@ -147,7 +147,8 @@ Solo mediante el patrón `chromium_src/` y recursos propios. Nada de parches amp
 Cadencia: **cada 8 semanas**, con un ciclo urgente solo cuando aparezca un "exploit in the wild" que no mitigue
 jitless. Cuatro semanas no es sostenible para una sola persona.
 
-1. **Vigilar:** Chrome Releases, notas de versión de Brave, CVE de Chromium.
+1. **Vigilar:** Chrome Releases, notas de versión de Brave, CVE de Chromium. `FlyWeb/scripts/cve-watch.py` lista los
+   CVE de Chromium del catálogo KEV de CISA (explotados) que aún no están en `cve-triage.md`.
 2. **Triar:** ¿afecta a 116? ¿Hay exploit en la práctica? ¿El parche se aplica limpio? ¿Lo mitiga jitless?
 3. **Portar:** un commit por parche, con su referencia.
 4. **Compilar:** incremental en la MacPro7,1.

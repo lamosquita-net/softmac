@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlyWeb — diagnóstico de GPU y vídeo</title>
+<style>
+  :root { --bg:#fff; --fg:#1b1b1b; --muted:#666; --ok:#1a7f37; --bad:#b42318; --line:#ddd; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#161616; --fg:#eee; --muted:#999; --ok:#4ac26b; --bad:#ff7b72; --line:#333; } }
+  body { background:var(--bg); color:var(--fg); font:15px/1.45 -apple-system, system-ui, sans-serif; margin:24px; max-width:960px; }
+  h1 { font-size:20px; margin:0 0 4px; } p.sub { color:var(--muted); margin:0 0 16px; }
+  table { border-collapse:collapse; width:100%; margin:12px 0 20px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-weight:600; } td.ok { color:var(--ok); } td.bad { color:var(--bad); }
+  button { font:inherit; padding:6px 14px; margin-right:8px; }
+  textarea { width:100%; height:160px; font:12px/1.4 ui-monospace, Menlo, monospace; }
+  canvas { display:none; }
+</style>
+</head>
+<body>
+<h1>FlyWeb — diagnóstico de GPU y vídeo</h1>
+<p class="sub">Fase 5 de la hoja de ruta. Abrir este fichero en FlyWeb (arrastrarlo a una pestaña), pulsar «Medir» y
+copiar el JSON en <code>FlyWeb/docs/multimedia.md</code>. Repetir con <code>--use-angle=metal</code> y <code>--use-angle=gl</code>.</p>
+<button id="run">Medir</button><button id="copy">Copiar JSON</button>
+<h2>GPU (WebGL)</h2><table id="gpu"></table>
+<h2>Vídeo: decodificación</h2><table id="codecs"><tr><th>Códec</th><th>Soportado</th><th>Fluido</th><th>Eficiente (≈ por hardware)</th></tr></table>
+<h2>Rendimiento WebGL</h2><table id="perf"></table>
+<textarea id="out" readonly placeholder="Aquí sale el resultado"></textarea>
+<canvas id="c" width="64" height="64"></canvas><canvas id="perfc" width="1024" height="1024"></canvas>
+<script>
+'use strict';
+const CODECS = [
+  ['H.264 1080p', 'video/mp4; codecs="avc1.640028"', 1920, 1080],
+  ['H.264 4K', 'video/mp4; codecs="avc1.640033"', 3840, 2160],
+  ['HEVC 1080p', 'video/mp4; codecs="hvc1.1.6.L120.90"', 1920, 1080],
+  ['VP9 1080p', 'video/webm; codecs="vp09.00.40.08"', 1920, 1080],
+  ['VP9 4K', 'video/webm; codecs="vp09.00.51.08"', 3840, 2160],
+  ['AV1 1080p', 'video/mp4; codecs="av01.0.08M.08"', 1920, 1080],
+];
+
+function gpuInfo() {
+  const gl = document.getElementById('c').getContext('webgl2') || document.getElementById('c').getContext('webgl');
+  if (!gl) return { webgl: false };
+  const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+  const renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+  const vendor = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
+  // ANGLE pone el backend en la cadena del renderer: "ANGLE (AMD, AMD FirePro D500 OpenGL Engine, OpenGL 4.1)" o "... Metal ..."
+  const backend = /SwiftShader/i.test(renderer) ? 'SwiftShader (software: sin aceleración)'
+                : /Metal/i.test(renderer) ? 'Metal' : /OpenGL/i.test(renderer) ? 'OpenGL' : /Vulkan/i.test(renderer) ? 'Vulkan' : 'desconocido';
+  return {
+    webgl: true, webgl2: !!document.getElementById('c').getContext('webgl2'),
+    vendor, renderer, backend,
+    maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+  };
+}
+
+async function codecInfo() {
+  const rows = [];
+  for (const [name, type, width, height] of CODECS) {
+    const r = { name, type, supported: false, smooth: false, powerEfficient: false };
+    try {
+      if (navigator.mediaCapabilities) {
+        const info = await navigator.mediaCapabilities.decodingInfo({
+          type: 'media-source', video: { contentType: type, width, height, bitrate: 8e6, framerate: 30 } });
+        Object.assign(r, { supported: info.supported, smooth: info.smooth, powerEfficient: info.powerEfficient });
+      } else {
+        r.supported = MediaSource.isTypeSupported(type);
+      }
+    } catch (e) { r.error = String(e); }
+    rows.push(r);
+  }
+  return rows;
+}
+
+function webglPerf() {
+  // Dibuja 2000 triángulos con un fragment shader algo costoso durante ~2 s y cuenta fotogramas.
+  // Canvas propio: un canvas solo admite un tipo de contexto y #c ya tiene WebGL2.
+  const canvas = document.getElementById('perfc');
+  const gl = canvas.getContext('webgl');
+  if (!gl) return Promise.resolve({ fps: null });
+  const vs = 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }';
+  const fs = 'precision mediump float; uniform float t; void main(){ vec2 u = gl_FragCoord.xy / 1024.0; float v = 0.0;' +
+             ' for (int i = 0; i < 24; i++) { v += sin(u.x * float(i) + t) * cos(u.y * float(i) - t); }' +
+             ' gl_FragColor = vec4(fract(v), u, 1.0); }';
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+  const prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const verts = new Float32Array(2000 * 6);
+  for (let i = 0; i < verts.length; i++) verts[i] = Math.random() * 2 - 1;
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'p');
+  gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const tl = gl.getUniformLocation(prog, 't');
+  return new Promise(resolve => {
+    let frames = 0; const start = performance.now();
+    function frame(now) {
+      gl.uniform1f(tl, (now - start) / 1000);
+      gl.drawArrays(gl.TRIANGLES, 0, 6000);
+      gl.finish();
+      frames++;
+      if (now - start < 2000) requestAnimationFrame(frame);
+      else resolve({ fps: Math.round(frames * 10000 / (now - start)) / 10, frames, ms: Math.round(now - start) });
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+function fill(id, obj) {
+  const t = document.getElementById(id);
+  t.innerHTML = '';
+  for (const [k, v] of Object.entries(obj)) t.insertAdjacentHTML('beforeend', `<tr><th>${k}</th><td>${String(v)}</td></tr>`);
+}
+
+let result = null;
+document.getElementById('run').onclick = async () => {
+  const gpu = gpuInfo();
+  fill('gpu', gpu);
+  const codecs = await codecInfo();
+  const t = document.getElementById('codecs');
+  t.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+  for (const c of codecs) {
+    const cell = (b) => `<td class="${b ? 'ok' : 'bad'}">${b ? 'sí' : 'no'}</td>`;
+    t.insertAdjacentHTML('beforeend', `<tr><td>${c.name}</td>${cell(c.supported)}${cell(c.smooth)}${cell(c.powerEfficient)}</tr>`);
+  }
+  const perf = await webglPerf();
+  fill('perf', perf);
+  result = {
+    fecha: new Date().toISOString(), userAgent: navigator.userAgent,
+    lineaDeOrdenes: 'anotar a mano: normal / --use-angle=metal / --use-angle=gl',
+    gpu, codecs, webglPerf: perf,
+  };
+  document.getElementById('out').value = JSON.stringify(result, null, 2);
+};
+document.getElementById('copy').onclick = () => {
+  const out = document.getElementById('out');
+  out.select(); document.execCommand('copy');
+};
+</script>
+</body>
+</html>
