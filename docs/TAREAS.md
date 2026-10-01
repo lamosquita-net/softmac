@@ -82,7 +82,8 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F3B.2 | CVE-2025-14174 (ANGLE, Mac) | NUBE | hecho | Probable que no aplica: el búfer vulnerable no existe en el ANGLE de la 116 (`cve-triage.md`, n.º 5) |
 | F3B.3 | Blink: CVE-2025-4664 (cabecera `Link`) y CVE-2026-2441 (CSS) | NUBE | hecho | brave-core `nube/cve-2025-4664` 7542f4f2 = paso 17 de `integracion.md`, con pruebas que reproducen ambos fallos. **LOCAL: compilar tras el 16** |
 | F3B.4 | Arreglos de la rama 116 de Chromium posteriores a la .188 (hasta la .263): CVE-2023-5217 (libvpx), crbug 1475798, crbug 1478889 | NUBE | hecho | brave-core `nube/cve-rama-5845` 9c752a69 = paso 18. Responde a F3A.6: la base no llevaba el arreglo de libvpx. Skia y ANGLE de la 116, sin arreglos pendientes. **LOCAL: compilar tras el 17** |
-| F3B.5 | Siguientes: CVE-2023-7024 (WebRTC) y los V8 "inciertos" | NUBE | pendiente | Orden en `cve-triage.md` §2 |
+| F3B.5 | CVE-2023-7024 (WebRTC) y los V8 "inciertos" | NUBE | hecho | CVE-2023-7024 y CVE-2024-0519 portados en `nube/cve-rama-5845` (6ea90235, paso 18). El resto, clasificado en `cve-triage.md` n.º 13: JIT o Wasm (mitigados por jitless) o código ausente en la 116 |
+| F3B.6 | Riesgo residual: los sitios con JIT (claude.ai, Google) siguen expuestos a los CVE de TurboFan, Maglev y Wasm sin portar | NUBE | pendiente | Valorar portar los de TurboFan (CVE-2025-13223, CVE-2026-85046) |
 
 ### FlyWeb — Fase 4 (compatibilidad web)
 | # | Tarea | Quién | Estado | Notas |
