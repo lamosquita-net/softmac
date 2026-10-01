@@ -51,11 +51,24 @@ FlyWeb declara una versión más nueva de Chrome **en el User-Agent y en los Cli
 Google lo detectaría como incoherente), con el mecanismo de Chromium para sustituir el User-Agent por pestaña. En el resto
 de sitios sigue diciendo 116.
 
-- Lista por defecto: `drive.google.com` y `docs.google.com` (cada una incluye sus subdominios). Gmail y claude.ai no la
-  necesitan hoy.
+- Lista por defecto: `drive.google.com`, `docs.google.com` y `mail.google.com` (cada una incluye sus subdominios). Gmail
+  se añadió el 01/10 (HUMANO, en la 6,1: con la 153 el aviso desaparece). **No se pone `google.com` entero:** cubriría
+  también el buscador, `accounts`, Meet, Calendar, Maps…, donde no hay aviso y sí más riesgo de que Google sirva código
+  para un Chrome nuevo. Se añade sitio a sitio cuando se vea el aviso. claude.ai no la necesita.
 - Versión declarada: 153 (Chrome estable a 01-10-2026). **Subirla en cada ciclo de mantenimiento**, o Google volverá a
   mostrar el aviso cuando la 153 quede atrás.
-- Se ajusta sin compilar: `--enable-features=FlyWebUserAgentOverride:chrome_major/154/sites/drive.google.com,docs.google.com`.
+- Se ajusta sin compilar: `--enable-features=FlyWebUserAgentOverride:chrome_major/154/sites/drive.google.com%2Cdocs.google.com`.
+  Las comas dentro de `sites` se escriben **`%2C`**: `--enable-features` ya separa con comas.
+- En esos sitios, los Client Hints declaran además `fullVersionList` y `fullVersion` reducidos (`153.0.0.0`, como hace
+  Brave con los normales; antes salía `153.1.57.64`, la versión de Brave) y `platformVersion` `14.7.0` (parámetro
+  `platform_version`), porque Chrome 153 no existe para macOS 10.14 y la pareja delataría la mentira. El User-Agent ya dice
+  `Mac OS X 10_15_7` en todos los Chrome (está congelado).
+- **Primera carga de la pestaña del arranque:** recibe el UA de la 116 (HUMANO, 01/10); al recargar, bien. El código pone
+  el UA antes de que salga la petición también en esa pestaña (revisado en Chromium 116: los ayudantes de pestaña se
+  instalan antes de cargar, también al restaurar la sesión), así que la causa probable es que esa carga no sale a la red:
+  la sirve el **service worker** de Gmail (los workers no tienen UA por pestaña) o la caché al restaurar la sesión.
+  Comprobar en DevTools → Network, en esa primera carga: columna "Size" del documento (`(ServiceWorker)` / `(disk cache)`)
+  y la cabecera `User-Agent` de la petición. Con eso se decide el arreglo; hasta entonces, recargar una vez.
 - Riesgo: el sitio puede usar funciones que la 116 no tiene, creyendo hablar con un Chrome nuevo. Por eso es por sitio. Si
   Drive o Docs fallan con el cambio, quitar el sitio de la lista.
 
