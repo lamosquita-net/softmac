@@ -74,6 +74,14 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F3A.7 | Confirmar en Chrome Releases el "in the wild" de CVE-2026-3909 y CVE-2026-5281 | NUBE | hecho | **Ambos confirmados**: KEV (productos "Skia" y "Dawn") + CISA ADP `Exploitation: active` + prensa. Corregida la nota errónea del triaje |
 | F3A.8 | Portar CVE-2026-3909 (Skia, atlas de texto, explotado activamente) | NUBE | hecho | brave-core `nube/cve-2026-3909` eec87884 = paso 11 de `integracion.md`. Adaptado a mano desde skia 0cab3e4ee (b/491421267); sintaxis comprobada con clang contra la Skia de la 116 y parches que aplican limpios. **LOCAL: compilar y revisar texto normal, LCD y emoji** |
 
+### FlyWeb — Fase 4 (compatibilidad web)
+| # | Tarea | Quién | Estado | Notas |
+|---|---|---|---|---|
+| F4.1 | Diagnóstico por sitio: claude.ai, Gmail, Drive, Docs, Sheets, Calendar, YouTube, GitHub | LOCAL/HUMANO | pendiente | Método y tabla de resultados en `FlyWeb/docs/compatibilidad.md` §2 y §5. Requiere el paso 15 |
+| F4.2 | Versión declarada (UA + Client Hints) por sitio | NUBE | pendiente | Solo si F4.1 muestra bloqueos por versión. Diseño en `compatibilidad.md` §4 |
+| F4.3 | Polyfills de JavaScript en el mundo principal de cada página | NUBE | hecho | brave-core `nube/polyfills` e3c10757 = paso 15 de `integracion.md`. Generador en `FlyWeb/polyfills/`; huecos sin polyfill en `FlyWeb/docs/baseline-gap.md`. **LOCAL: compilar el paso 15 tras el 14** |
+| F4.4 | Medición frente a Baseline (subconjunto de web-platform-tests) | por decidir | pendiente | Primera aproximación hecha con datos de web-features (`baseline-gap.md`) |
+
 ### FlyWeb — Fase 7 (interfaz)
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|

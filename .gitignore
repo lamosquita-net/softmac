@@ -8,3 +8,4 @@ FlyWeb/brave-browser/
 FlyWeb/brave-core/
 __pycache__/
 *.pyc
+node_modules/
