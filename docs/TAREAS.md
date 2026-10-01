@@ -93,6 +93,12 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F4.3 | Polyfills de JavaScript en el mundo principal de cada página | NUBE | hecho | brave-core `nube/polyfills` e3c10757 = paso 15 de `integracion.md`. Generador en `FlyWeb/polyfills/`; huecos sin polyfill en `FlyWeb/docs/baseline-gap.md`. **LOCAL: compilar el paso 15 tras el 14** |
 | F4.4 | Medición frente a Baseline (subconjunto de web-platform-tests) | por decidir | pendiente | Primera aproximación hecha con datos de web-features (`baseline-gap.md`) |
 
+### FlyWeb — Fase 5 (multimedia y GPU)
+| # | Tarea | Quién | Estado | Notas |
+|---|---|---|---|---|
+| F5.1 | Medir GPU, backend de ANGLE (Metal/OpenGL) y decodificación de vídeo en la 7,1, la 6,1 y la 5,1 | LOCAL/HUMANO | pendiente | Guía y tabla en `FlyWeb/docs/multimedia.md`; página `FlyWeb/tools/diagnostico-gpu.html` (sin compilar nada) |
+| F5.2 | Fijar el backend por defecto por GPU si los datos lo piden | NUBE | pendiente | Tras F5.1 |
+
 ### FlyWeb — Fase 7 (interfaz)
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
