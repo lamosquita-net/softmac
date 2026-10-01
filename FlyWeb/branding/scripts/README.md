@@ -9,6 +9,7 @@ B=<brave-core>
 python3 svg2icon.py ../icon_FlyWeb.svg 32 $B/vector_icons/components/omnibox/browser/vector_icons/product.icon /tmp/pv32.svg
 python3 svg2icon.py ../icon_FlyWeb.svg 96 $B/vector_icons/ui/message_center/vector_icons/product.icon /tmp/pv96.svg
 python3 svg2icon.py ../icon_FlyWeb.svg 24 $B/components/vector_icons/brave/product.icon /tmp/pv24.svg
+python3 leo-icons.py ../icon_FlyWeb.svg $B/ui/webui/resources/flyweb_icons   # iconos de marca de Leo (Ajustes)
 ```
 
 - `svg2icon.py` convierte los trazados **sin clase** (los negros) al formato `.icon` de Chromium, en
