@@ -1,9 +1,10 @@
 # Destinos que NO deben aparecer ni navegando (modo "uso"), salvo que estén en allowlist.txt.
-# Servicios de Brave
-*.brave.com
-*.bravesoftware.com
-*.brave.software
-brave.com
+# Servicios de Brave. "!" = fallan aunque la petición venga de una página (la traducción de Brave
+# carga su script dentro de la página). Visitar brave.com a mano también fallará: es lo esperado.
+!*.brave.com
+!*.bravesoftware.com
+!*.brave.software
+!brave.com
 # Servicios de Google que un Chromium sin marca no debería llamar solo
 clients*.google.com
 update.googleapis.com
