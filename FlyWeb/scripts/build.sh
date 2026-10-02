@@ -73,9 +73,9 @@ UPDATER="${FLYWEB_UPDATER_URL:-https://go-updater.brave.com/extensions}"
 KEYFILE="${FLYWEB_SERVICES_KEY_FILE:-$HOME/proyectos/softmac/claves/flyweb-services-key}"
 if [ -r "$KEYFILE" ]; then
   SERVICES_KEY=$(tr -d ' \t\r\n' < "$KEYFILE")
-  case "$SERVICES_KEY" in
-    ''|*[!A-Za-z0-9_-]*) echo "Clave de servicio no válida en $KEYFILE (solo A-Z a-z 0-9 _ -)" >&2; exit 1 ;;
-  esac
+  # Mismo formato que exige Apache en components. (openssl rand -hex 32)
+  printf '%s' "$SERVICES_KEY" | grep -Eq '^[0-9a-f]{64}$' || {
+    echo "Clave de servicio no válida en $KEYFILE (64 caracteres hexadecimales: openssl rand -hex 32)" >&2; exit 1; }
   echo "Clave de servicio: $KEYFILE"
 else
   SERVICES_KEY=flyweb

@@ -1,6 +1,6 @@
-# Destino: /etc/logrotate.d/flyweb-components
+# Destino: /etc/logrotate.d/flyweb
 # 7 días de registros (sin IP ni User-Agent); después se borran.
-/var/log/flyweb-components/*.log {
+/var/log/flyweb/*.log {
     daily
     rotate 7
     missingok

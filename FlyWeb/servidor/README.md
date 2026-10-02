@@ -17,7 +17,7 @@ de Brave.
 
 | Variable | Efecto |
 |---|---|
-| `FLYWEB_CATALOG_FILE=/srv/flyweb-components/catalog.json` | Lee el catálogo de un JSON local (lista de objetos con `ID`, `Version`, `SHA256`, `Title`, `Size`) en vez de DynamoDB. Lo recarga cada 10 min. Una entrada borrada del JSON sigue servida hasta reiniciar el servicio |
+| `FLYWEB_CATALOG_FILE=/srv/flyweb/components/catalog.json` | Lee el catálogo de un JSON local (lista de objetos con `ID`, `Version`, `SHA256`, `Title`, `Size`) en vez de DynamoDB. Lo recarga cada 10 min. Una entrada borrada del JSON sigue servida hasta reiniciar el servicio |
 | `FLYWEB_NO_REDIRECT=1` | Un componente desconocido recibe `error-unknownApplication`, en vez de una redirección a los servidores de Brave o Google. El navegador conserva la versión que tiene y no habla con terceros |
 | `FLYWEB_LISTEN=127.0.0.1:8192` | **Brave escucha en todas las interfaces** (`:8192`); aquí, solo en local, detrás de Apache |
 | `FLYWEB_METRICS_LISTEN=off` | Brave abre además métricas en `:9090`, en todas las interfaces. Aquí no se abren |
