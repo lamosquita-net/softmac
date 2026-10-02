@@ -9,3 +9,8 @@ FlyWeb/brave-core/
 __pycache__/
 *.pyc
 node_modules/
+
+# Ficheros de trabajo de diseño (Illustrator) y PNG exportados: fuera del repo (los PNG se generan desde los SVG)
+*.ai
+FlyWeb/branding/*.png
+BackupDrive/branding/*.png
