@@ -8,7 +8,7 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
 | **NUBE** | Contenedor Linux (claude.ai/code) | Investigar, escribir código, parches, scripts y documentación, compilar Go (BackupDrive) y probar en Linux, CI, PRs | Compilar Chromium, ejecutar nada de macOS, ver los discos del Mac |
 | **LOCAL** | MacPro7,1 (Claude Code local) | Compilar FlyWeb, ejecutar y medir, Xcode, firma y notarización, scripts que necesitan el checkout de Chromium | Trabajar sin el Mac encendido |
 | **HUMANO** | — | Decisiones, credenciales (Google, Apple), pruebas en la 6,1 y la 5,1, iconos | — |
-| **SERVIDOR** (futuro) | Máquinas del HUMANO (Apache 2.4) | Servicios internos de FlyWeb: rastreo y empaquetado de listas de Shields, servicio de componentes, proxies (F7.3 / S3 de `FlyWeb/docs/disenos.md`) | Aún no existe; lo creará el HUMANO |
+| **SERVIDOR** | Sesión en la nube (claude.ai/code); despliega en **ns2.lamosquita.net** (Ubuntu 24.04, producción auditada) | Escribir en `FlyWeb/servidor/` la configuración y los scripts de los servicios internos de FlyWeb (componentes, F2.2; proxies, S3), y publicar en `deploy/servidor` **tras el «validado» del HUMANO** | Entrar en ns2 (no hay SSH: ns2 trae los cambios), actuar en producción sin aprobación, guardar secretos. Carta y reglas: `docs/SERVIDOR.md` |
 
 ## Reglas para no pisarse
 
@@ -82,7 +82,7 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
 | F2.1 | Inventario de componentes y plan del servidor | NUBE | hecho | `FlyWeb/docs/componentes.md` (02/10). **Conclusión: no hace falta firmar nada.** El servidor sirve los CRX de Brave y de Google **sin modificar** (espejo diario) y el navegador solo cambia `FLYWEB_UPDATER_URL`. Base del servidor: `brave/go-update` (comprobado: MPL-2.0, Go 1.26; DynamoDB y host de descargas configurables por variables de entorno) |
-| F2.2 | Servidor `components.` con `go-update` y tarea diaria de espejo | SERVIDOR | pendiente | `componentes.md` §4. Necesita el vhost S3 de `disenos.md` |
+| F2.2 | Servidor `components.` con `go-update` y tarea diaria de espejo | HUMANO (E0) → SERVIDOR | pendiente | `componentes.md` §4 y `docs/SERVIDOR.md`. Primero el HUMANO monta la base a mano (E0, lista en §6, incluida la revisión de fail2ban/CrowdSec para ese vhost); después SERVIDOR la codifica (E1) y hace los cambios supervisados (E2) |
 | F2.3 | Componentes de Chromium 116 que siguen registrados (no bloqueados por Brave) | LOCAL | pendiente | `componentes.md` §3: con el checkout de Chromium, listar los que llama `RegisterComponentsForUpdate` y no están en la lista de bloqueo de `chromium_src/components/component_updater/component_installer.cc`; cruzar con la auditoría F1.6 |
 | F2.4 | Compilar con `FLYWEB_UPDATER_URL` del servidor propio y auditar | LOCAL | pendiente | Tras F2.2. Hito de la fase: `brave://components` se actualiza desde nuestro servidor y la auditoría no muestra destinos de Brave |
 
