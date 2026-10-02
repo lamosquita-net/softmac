@@ -96,10 +96,10 @@ inerte a propósito).
 
 ### Requisitos comunes
 
-- **DNS:** registros A/AAAA para cada subdominio.
+- **DNS:** registro A para cada subdominio (hecho el 02-10: los tres → 51.91.19.170). AAAA solo cuando ns2 sirva IPv6 con las mismas protecciones que IPv4 (`docs/SERVIDOR.md` §6).
 - **HTTPS con Let's Encrypt:** su raíz (ISRG Root X1) es de confianza en Mojave. TLS 1.2 y 1.3. Certificado comodín
   `*.flyweb.lamosquita.net` (reto DNS-01) o uno por subdominio (HTTP-01).
-- **Sin rastreo:** ni analítica, ni cookies, ni recursos de terceros. Registros sin IP, o con retención mínima.
+- **Sin rastreo:** ni analítica, ni cookies, ni recursos de terceros. **Registros sin IP** (decisión del 02-10; modelo en `FlyWeb/servidor/e0/`).
 - **Cabeceras:** `Strict-Transport-Security`, `Content-Security-Policy: default-src 'self'` y
   `X-Content-Type-Options: nosniff`.
 
@@ -189,6 +189,10 @@ Otros destinos que no son de Brave y salieron en la auditoría:
 Shields (`go-updater.brave.com`), que era la decisión vigente hasta la fase 2.
 
 ### Qué hace falta para servir nosotros las listas de Shields
+
+> **Actualizado el 02-10 (NUBE, [`componentes.md`](componentes.md)):** no hace falta firmar. El servidor puede servir los
+> CRX de Brave **sin modificar** (espejo diario) y el navegador solo cambia la URL. Los puntos 2 y 4 de abajo solo
+> aplican si un día queremos listas propias.
 
 No basta con guardar ficheros: el navegador las pide como **componentes firmados**, igual que Chrome.
 1. **Servicio Omaha** en `components.`: responde a POST con JSON diciendo qué versión hay de cada componente. Brave
