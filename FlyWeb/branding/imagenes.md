@@ -53,6 +53,14 @@ incluida `iconos-tamano-real.png` para revisarla al 100 % en un monitor no Retin
 - **M4 pequeño** para 77×22: `M4-fondo-claro-pequeño.svg` y `M4-fondo-oscuro-pequeño.svg`.
 - `01-02.svg` era una copia idéntica de `O1-02.svg` con el nombre mal: retirada (está en `~/proyectos/softmac/temp/papelera/` de la 7,1).
 
+## Integración en brave-core (02/10, LOCAL)
+
+Todos los maestros elegidos están en `flyweb` desde el paso 28 de `docs/integracion.md` (rama `local/iconos-v1`,
+327f4c2d). Se regeneran con `scripts/generar-marca.sh <brave-core>`. Lámina de lo generado y capturas en
+`software/entregas/iconos-v1/F-*.png`. Quedan provisionales: el **botón de Escudos** (M6, escudo verde/gris con la
+mosca de M3_1), la bienvenida (M8, se usa M1-01) y el fondo del DMG (M5). Los 16 y 32 px de la app salen reduciendo
+M1-01: si a esos tamaños no convence, hace falta la versión a píxel (O3).
+
 ## Limitaciones de cada maestro: color y fondo
 
 Una sola mosca no sirve para todo. Cada sitio la pinta de una forma, y eso decide cómo hay que dibujarla.

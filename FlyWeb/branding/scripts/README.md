@@ -1,7 +1,21 @@
 # Generadores de marca
 
-Regeneran en brave-core los recursos de marca a partir del SVG maestro (`../icon_FlyWeb.svg`).
-Hay que ejecutarlos cuando cambie el icono, y hacer commit en una rama `nube/*` o en `flyweb`.
+Regeneran en brave-core los recursos de marca de macOS.
+
+**Desde la entrega definitiva (02/10), con un solo comando** a partir de los maestros elegidos en `../imagenes.md`
+(M1-01, O1-01, O2-02, M2, M3_1 y M4):
+
+```sh
+./generar-marca.sh <brave-core>     # necesita swiftc, iconutil y cwebp (brew install webp)
+```
+
+Rasteriza con `rasterizar.swift` (AppKit, tamaño exacto, sin Playwright ni Illustrator), monta los `.icns` con
+`iconutil` y llama a `svg2icon.py` y `leo-icons.py`. Qué maestro va a cada fichero: comentarios del propio script y
+tabla "Dónde acaba cada cosa" de `imagenes.md`. Si cambia un maestro, volver a ejecutarlo y hacer commit en una rama
+`local/*` o `nube/*` de brave-core. CoreSVG avisa "ellipses path has invalid rx or ry" con los M4: es un arco de radio
+0, que el estándar dibuja como recta; el resultado es correcto.
+
+**Generadores anteriores** (un único SVG provisional, `../icon_FlyWeb.svg`; se conservan como referencia):
 
 ```sh
 node render-brand.js ../icon_FlyWeb.svg <brave-core>     # PNG de 16/32, logotipos con nombre, logo de bienvenida
