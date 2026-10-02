@@ -53,6 +53,22 @@ incluida `iconos-tamano-real.png` para revisarla al 100 % en un monitor no Retin
 - **M4 pequeño** para 77×22: `M4-fondo-claro-pequeño.svg` y `M4-fondo-oscuro-pequeño.svg`.
 - `01-02.svg` era una copia idéntica de `O1-02.svg` con el nombre mal: retirada (está en `~/proyectos/softmac/temp/papelera/` de la 7,1).
 
+## Integración en brave-core (NUBE, 02/10)
+
+`nube/iconos-entrega` e899e796 = paso 28 de `integracion.md`. Generado con `scripts/generar-entrega.js`, `icns.py` y
+`svg2icon.py`; cada PNG se dibuja a su tamaño exacto desde el SVG.
+
+| Maestro | Dónde |
+|---|---|
+| **M1-01** | `app.icns` (stable, beta, dev, nightly), `product_logo_{22,24,48,64,128,256}`, iconos de la extensión interna desde 48 px |
+| **O1-01** | `app.icns` y `product_logo_128` del canal **development** (los builds `Static` de prueba) |
+| **M2** | Pestañas y ventanas: `product_logo_16`/`_32` en todos los canales, a 1x y 2x. Leo `product-brave-color`. Extensión interna a 16 y 32 |
+| **M3_1** (elegido por el HUMANO) | Los tres `product.icon` (barra de direcciones, notificaciones y menús), `product_logo_22_mono` y Leo `product-brave-monochrome` |
+| **M4** | `product_logo_name_48` y `brave://version` en claro; `product_logo_white` y `brave://version` en oscuro; **M4 pequeño** en `product_logo_name_22` (77×22). Centrados en los lienzos de siempre, sin deformar (proporción 3,07:1) |
+| **O2-02** | `document.icns` |
+
+Pendientes de entrega: **M8** (mosca de la bienvenida) y **M6** (botón de Shields). Siguen con el dibujo provisional.
+
 ## Limitaciones de cada maestro: color y fondo
 
 Una sola mosca no sirve para todo. Cada sitio la pinta de una forma, y eso decide cómo hay que dibujarla.
