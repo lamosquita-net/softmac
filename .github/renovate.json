@@ -1,0 +1,30 @@
+{
+  "extends": [
+    "local>brave/renovate-config"
+  ],
+  "packageRules": [
+    {
+      "description": "AWS SDK v2 updates",
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "groupName": "AWS SDK v2",
+      "prCreation": "not-pending",
+      "matchPackageNames": [
+        "/^github\\.com/aws/aws-sdk-go-v2/"
+      ]
+    },
+    {
+      "description": "Sentry SDK updates",
+      "matchPackageNames": [
+        "github.com/getsentry/sentry-go"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "prCreation": "not-pending"
+    }
+  ]
+}
