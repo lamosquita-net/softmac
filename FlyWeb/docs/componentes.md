@@ -100,3 +100,37 @@ No hay ningún motivo para hacerlo ahora.
   (`network-audit.py --mode reposo` y `--mode uso`) no debe mostrar ningún destino de Brave.
 - **Fallo conocido de Brave, que no nos afecta.** En `build/commands/lib/config.js:940`, `updater_prod_endpoint` se
   asigna a la variable del entorno de desarrollo. FlyWeb pasa las URL directamente con `--gn`.
+
+## 7. Qué envía FlyWeb en cada consulta de componentes
+
+Sacado del código: Chromium 116 `components/update_client/protocol_serializer*.cc`, la configuración de Brave
+(`browser/component_updater/brave_component_updater_configurator.cc`) y el recorte de FlyWeb
+(`nube/componentes-minimos` 10f9114d = paso 27 de `integracion.md`). Es una petición POST con JSON, una por componente.
+
+| Dato | Chromium | Brave 1.57 | **FlyWeb** |
+|---|---|---|---|
+| ID y versión del componente (`appid`, `version`), y si está activado | Sí | Sí | **Sí** (necesario) |
+| Versión del navegador (`prodversion`, `updaterversion`) | Sí | Sí | **Sí** |
+| Sistema y arquitectura (`@os`=`mac`, `arch`=`x64`, `os.platform`=`Mac OS X`, `os.arch`) | Sí | Sí | **Sí** (para servir el binario correcto en Tor o IPFS) |
+| Canal (`stable`) | Sí | Sí, fijo | **Sí, fijo** |
+| Identificadores de la sesión y de la petición (`sessionid`, `requestid`) | Aleatorios en cada consulta | Igual | **Igual**. No persisten: no sirven para seguir a nadie |
+| Cabeceras `X-Goog-Update-AppId`, `-Updater`, `-Interactivity` | Sí | Sí | **Sí** (repiten el ID, el producto vacío y si la consulta la pidió el usuario) |
+| Cabecera `BraveServiceKey` | — | Sí | **Sí, `flyweb`**, igual para todos |
+| Idioma de la interfaz (`lang`), producto, preferencia de descarga | Sí | Vacíos | Vacíos |
+| **Memoria instalada y CPU** (`hw.physmemory`, `sse`…`avx`) | Sí | Sí | **No** (ceros para todos) |
+| **Versión exacta del sistema** (`os.version`, p. ej. 10.14.6) | Sí | Sí | **No** |
+| **Día de instalación de cada componente** (`installdate`) | Sí | Sí | **No** |
+| **Contadores de actividad** (`ping`: último día activo, *roll call*, `ping_freshness`) | Sí | Sí | **No** |
+| **Avisos posteriores** de instalación y actualización (tiempos de descarga, códigos de error) | Sí | Sí, al mismo servidor | **No** (sin URL de aviso) |
+| Cohorte (`cohort`) | Si el servidor la asigna | Igual | Igual. Nuestro servidor no asigna |
+
+Por qué se quitan: la memoria, los indicadores de CPU (una 5,1 sin AVX con 48 GB es casi única) y la versión exacta del
+sistema, juntos, distinguen equipos. La fecha de instalación es estable por equipo. Los contadores de actividad son el
+mecanismo de Google para contar usuarios únicos por día. Ninguno hace falta para responder qué versión hay de cada
+componente.
+
+En el servidor (`FlyWeb/servidor/e0/`) no se guarda la IP ni el User-Agent. Lo único que queda en el registro es la
+fecha, la ruta, el estado y el tamaño de cada petición, durante 7 días.
+
+Pendiente de comprobar en una compilación (LOCAL): capturar una consulta real (NetLog o `chrome://net-export`) y
+confirmar que el JSON coincide con la columna FlyWeb.
