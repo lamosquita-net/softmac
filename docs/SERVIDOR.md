@@ -80,7 +80,7 @@ FlyWeb. Detalle y pruebas: [`FlyWeb/servidor/e0/README.md`](../FlyWeb/servidor/e
   - `ErrorLogFormat` sin `[client …]`.
   - `ProxyAddHeaders Off`: el servicio solo ve `127.0.0.1`.
   - Retención de 7 días.
-- **fail2ban y CrowdSec no leen ese vhost.** Sus registros están en `/var/log/flyweb-components/`, fuera de los
+- **fail2ban y CrowdSec no leen ese vhost.** Sus registros están en `/var/log/flyweb/`, fuera de los
   patrones de ns2 (`/var/log/apache2/…`). Las reglas del resto de sitios no cambian.
 - **La seguridad viene de la superficie mínima, no de los baneos:**
   - Tres rutas con métodos cerrados (`POST /extensions`, `GET`/`HEAD /release/` y `/_estado.json`).
@@ -89,28 +89,37 @@ FlyWeb. Detalle y pruebas: [`FlyWeb/servidor/e0/README.md`](../FlyWeb/servidor/e
   - Los baneos globales del cortafuegos (CrowdSec por otros sitios) siguen aplicando.
 - **Tráfico legítimo.** Es repetitivo: unas 70 peticiones POST cada 30 minutos por navegador. Como no hay reglas de
   ritmo en este vhost, no puede banear a los propios navegadores.
+- **Puerto 80: norma del HUMANO** (02-10). Sin registros propios, igual que en el resto de sus sitios. Van a los
+  generales de `/var/log/apache2/`, con IP. FlyWeb usa siempre https, así que lo que llega al 80 es un bot u otro
+  navegador.
+  - **CrowdSec** lo ve (lee `/var/log/apache2/*.log`).
+  - **fail2ban** no: sus jails solo leen subcarpetas (`*/*access.log`). Esto afecta a todos los puertos 80 de ns2;
+    queda para el agente de auditoría.
+  - **Regla:** ninguna URL de FlyWeb puede ser `http://`.
 - **Comprobaciones del agente.** Usan pocas peticiones y siempre a URL válidas.
 - **Aviso.** Si algún día se añade vigilancia a este vhost, tiene que ser compatible con no guardar IPs, por ejemplo
   con contadores en memoria. Es una decisión del HUMANO.
 
-## 6. Lista para el HUMANO (E0)
+## 6. Lista para el HUMANO (E0) — **hecha el 02-10-2026**
 
-- [x] DNS: registro A `components.flyweb.lamosquita.net` → 51.91.19.170 (también `flyweb.` y `updates.`).
-- [ ] Certificado (certbot `--apache`, o el comodín).
-- [ ] AAAA **todavía no.**
-  - ns2 tiene IPv6 (sale por ella), pero su dirección es `2001:41d0:203:54aa::`, la *Subnet-Router anycast* del
-    /64 (RFC 4291 §2.6.1). Para servir sitios conviene otra del mismo /64, por ejemplo `::1`.
-  - Antes de publicar AAAA para cualquier sitio hay que comprobar que Apache escucha en IPv6, y que cortafuegos,
-    fail2ban y el bouncer de CrowdSec filtran IPv6 igual que IPv4. Si no, se abre un camino sin filtrar.
-- [ ] Usuario de sistema para el servicio (sin shell ni sudo) y otro para el ejecutor de despliegues.
-- [ ] Directorios: servicio (`/opt/flyweb-components`), almacén de CRX, registros (`/var/log/flyweb-deploy`).
-- [ ] Vhost y logrotate de [`FlyWeb/servidor/e0/`](../FlyWeb/servidor/e0/README.md) (sin IPs; probado en NUBE).
-- [ ] Ejecutor `flyweb-deploy` y su regla de `sudoers` (el agente puede proponer el código; lo instala el HUMANO).
-- [x] Decisión sobre fail2ban/CrowdSec para ese vhost: fuera, y sin IPs (§5).
-- [ ] Copia de seguridad: ¿entra `/opt/flyweb-components` en lo que va a bak? Todo se puede regenerar desde Brave y
-      Google, así que quizá baste con la configuración.
-- [ ] Red de la sesión del agente: permitir `components.flyweb.lamosquita.net` en el acceso a red del entorno, para
-      leer `_estado.json`.
+Estado real y detalles en [`FlyWeb/servidor/e0/README.md`](../FlyWeb/servidor/e0/README.md).
+- [x] DNS: registros A de los tres nombres → 51.91.19.170.
+- [x] AAAA **todavía no.**
+  - La dirección IPv6 de ns2 es `2001:41d0:203:54aa::`, la *Subnet-Router anycast* del /64 (RFC 4291 §2.6.1); para
+    servir sitios conviene otra, por ejemplo `::1`.
+  - Antes de publicar AAAA hay que comprobar que Apache escucha en IPv6 y que cortafuegos, fail2ban y CrowdSec
+    filtran IPv6 igual que IPv4.
+- [x] Certificado para los tres nombres (`certbot certonly --apache`).
+- [x] Seis vhost en `lamosquita.conf`, todo dentro de cada `<VirtualHost>` (norma del HUMANO). Contenido en `/var/www/…`
+      y registros en `/var/log/flyweb/…`.
+- [x] Clave de servicio en `/etc/apache2/flyweb-components-keys.conf` y `/root/flyweb-services-key` (fuera del repo).
+      Comprobado: 403 sin clave, 503 con clave.
+- [x] `proxy_http` activado.
+- [ ] Copiar la clave al Mac de compilación (`~/proyectos/softmac/claves/flyweb-services-key`), por el canal habitual
+      del HUMANO.
+- [ ] Ejecutor de despliegues `flyweb-deploy` y su regla de `sudoers`. Hace falta cuando haya algo que desplegar (E2).
+- [ ] Copia de seguridad: ¿entra `/var/www/FlyWeb` en lo que va a bak? Todo se puede regenerar.
+- [ ] Red de la sesión del agente: permitir `components.flyweb.lamosquita.net` en el acceso a red del entorno.
 
 ## 7. Diseño del servicio (decidido)
 

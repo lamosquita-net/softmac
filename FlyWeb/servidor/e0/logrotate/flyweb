@@ -1,6 +1,6 @@
-# Destino: /etc/logrotate.d/flyweb-components
-# 7 días de registros (sin IP ni User-Agent); después se borran.
-/var/log/flyweb-components/*.log {
+# Destino: /etc/logrotate.d/flyweb  (si el logrotate de Apache del HUMANO no cubre ya /var/log/flyweb)
+# 7 días; updates. y components. no llevan IP, flyweb.lamosquita.net sí (decisión del HUMANO).
+/var/log/flyweb/*/*.log {
     daily
     rotate 7
     missingok

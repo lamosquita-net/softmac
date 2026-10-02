@@ -54,20 +54,30 @@ a `go-updater.brave.com` en 30 minutos, porque Brave pregunta **componente a com
 
 ## 4. Lo que tiene que hacer el servidor (SERVIDOR, S3)
 
-> **ABIERTO (02-10), tras F2.6.** La copia diaria necesita saber qué versión publica Brave de cada componente.
-> Contaba con preguntárselo a `go-updater.brave.com`, pero ese servidor exige la clave de Brave, que no tenemos ni
-> vamos a usar. Quedan dos vías:
-> 1. **El almacén de descargas de Brave permite listar su contenido.** Se comprueba desde ns2, solo lectura:
->    `curl -s 'https://brave-core-ext.s3.brave.com/?list-type=2&prefix=release/iodkpdagapdfkphljnddpjlldadblomo/' | head -c 2000`.
->    - Si devuelve un XML con `<Key>release/…/extension_X_Y_Z.crx</Key>`, la copia sin firmar sigue en pie: se elige la
->      versión mayor y se comprueba el SHA-256 del CRX descargado.
->    - Si devuelve `AccessDenied`, esta vía queda descartada.
-> 2. **Si no se puede listar, componentes propios** (§5).
->    - Se empaquetan las listas desde su origen (EasyList, EasyPrivacy, uBlock Origin, los recursos de Brave en
->      GitHub) con claves nuestras.
->    - En el navegador cambian los ID y las claves de los componentes de Shields, y se añade nuestra clave de
->      publicador.
->    - Es más trabajo, pero no depende de Brave en absoluto.
+> **RESUELTO (02-10): el almacén de Brave no se puede listar.** Prueba del HUMANO desde ns2:
+> `?list-type=2&prefix=release/<id>/` → `HTTP/2 403`, `server: CloudFront`,
+> `x-cache: FunctionGeneratedResponse`, cuerpo vacío. Sin la clave de Brave no hay forma de saber qué versión descargar,
+> así que **la copia sin firmar queda descartada**. Lo de abajo, sobre el espejo de componentes de Brave, solo sigue
+> valiendo para los de Google (CRLSet, File Type Policies), que se piden a `update.googleapis.com` sin clave.
+>
+> **Plan B: componentes propios con claves nuestras.**
+> - Brave publica su empaquetador: [`brave/brave-core-crx-packager`](https://github.com/brave/brave-core-crx-packager)
+>   (MPL-2.0, activo: último commit del 30-09-2026). Construye desde su origen en GitHub (EasyList, uBlock Origin,
+>   `brave/adblock-lists`, `brave/adblock-resources`) estos componentes:
+>   - las listas de Shields y su catálogo regional;
+>   - los recursos (scriptlets);
+>   - los datos locales (debounce, limpieza de URL…).
+> - Firma con una clave por componente y una **clave de publicador**. Su `lib/crx.js` escribe CRX3 en JavaScript, sin
+>   binario de navegador, así que puede correr en ns2.
+> - **Por comprobar antes de nada:** la compatibilidad con la 1.57, que es de 2023. El empaquetador actual apunta a
+>   Brave reciente; lleva un `lib/adBlockRust0_8_6` para motores antiguos, pero hay que confirmar el formato que
+>   espera la 1.57 (texto de listas o motor serializado) y, si hace falta, usar un commit de 2023.
+> - **Cambios en el navegador (NUBE):**
+>   - los ID y las claves públicas de §2, filas 1–4, 6 y 7;
+>   - nuestra clave de publicador junto a `kBravePublisherKeyHash`.
+>
+>   El catálogo propio lleva las claves de las listas regionales.
+> - **Claves privadas:** las genera el HUMANO y viven fuera del repo (regla 5).
 
 
 Base: **`brave/go-update`** (comprobado el 02-10-2026: existe, MPL-2.0, Go 1.26, último commit 23-07-2026).
