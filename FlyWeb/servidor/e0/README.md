@@ -8,6 +8,15 @@ hasta entonces `/extensions` responde 503 y ningún navegador apunta aquí.
 |---|---|
 | `apache/components.flyweb.lamosquita.net.conf` | `/etc/apache2/sites-available/` |
 | `logrotate/flyweb-components` | `/etc/logrotate.d/` |
+| `apache/flyweb-components-keys.conf.ejemplo` | `/etc/apache2/flyweb-components-keys.conf` (con las claves reales; **nunca en el repo**) |
+
+**Clave de servicio (F2.6, decisión del HUMANO).**
+- Solo los navegadores FlyWeb pueden consultar `/extensions`: Apache exige la cabecera `BraveServiceKey` con la clave
+  actual o la anterior (para rotarla sin cortar a nadie). Sin ella, 403 antes de llegar al servicio.
+- Las descargas de `/release/` no llevan esa cabecera, así que siguen abiertas: son ficheros firmados por Brave o
+  Google y públicos en origen.
+- La clave va dentro del binario de FlyWeb, así que evita el uso casual, no es un secreto fuerte.
+- No aparece en ningún registro.
 
 ## Decisión: sin IPs y sin CrowdSec en este vhost (HUMANO, 02-10)
 
@@ -50,7 +59,7 @@ Peticiones desde `127.0.0.5` (para distinguir la IP del cliente de la del servic
 |---|---|
 | `GET /_estado.json` y `GET /release/a.crx` | 200 (`application/x-chrome-extension`) |
 | `GET /release/nope.crx` | 404 |
-| `POST /extensions` | 503 sin servicio; con un servicio de prueba, 200 |
+| `POST /extensions` | 403 sin clave o con `flyweb`; con la clave actual o la anterior, 503 sin servicio y 200 con el servicio (`go-update`) |
 | `POST /_estado.json`, `DELETE /release/a.crx`, `GET`/`PUT /extensions`, `/`, `/wp-login.php`, `/extensionsX`, `GET /release/` | 403 |
 | `/release/../../etc/passwd` | 400 |
 
@@ -69,7 +78,13 @@ Peticiones desde `127.0.0.5` (para distinguir la IP del cliente de la del servic
 2. **DNS y certificado.** Hace falta el registro A `components.flyweb.lamosquita.net` → 51.91.19.170 (ya añadido).
    AAAA todavía no (ver `docs/SERVIDOR.md` §6). Certificado propio (certbot) o el comodín. Ajustar las dos líneas
    `SSLCertificate*` del vhost.
-3. **Apache:**
+3. **Clave de servicio:**
+   ```sh
+   openssl rand -hex 32    # anotarla también en el Mac de compilación: ~/proyectos/softmac/claves/flyweb-services-key
+   sudo install -m 0600 -o root -g root flyweb-components-keys.conf.ejemplo /etc/apache2/flyweb-components-keys.conf
+   sudo nano /etc/apache2/flyweb-components-keys.conf    # poner la clave en ACTUAL y en ANTERIOR
+   ```
+4. **Apache:**
    ```sh
    sudo a2enmod ssl headers http2 proxy proxy_http
    sudo cp components.flyweb.lamosquita.net.conf /etc/apache2/sites-available/
@@ -77,7 +92,7 @@ Peticiones desde `127.0.0.5` (para distinguir la IP del cliente de la del servic
    sudo a2ensite components.flyweb.lamosquita.net
    sudo systemctl reload apache2
    ```
-4. **logrotate:**
+5. **logrotate:**
    ```sh
    sudo cp flyweb-components /etc/logrotate.d/
    sudo logrotate -d /etc/logrotate.d/flyweb-components
@@ -90,6 +105,8 @@ Peticiones desde `127.0.0.5` (para distinguir la IP del cliente de la del servic
 curl -s  https://components.flyweb.lamosquita.net/_estado.json        # {"etapa":"E0"}
 curl -sI https://components.flyweb.lamosquita.net/                    # 403
 curl -sI -X POST https://components.flyweb.lamosquita.net/release/x   # 403
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://components.flyweb.lamosquita.net/extensions   # 403 (sin clave)
+curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "BraveServiceKey: $(sudo sed -n 's/.*ACTUAL *"\(.*\)"/\1/p' /etc/apache2/flyweb-components-keys.conf)" https://components.flyweb.lamosquita.net/extensions   # 503 hasta E2 (llega al servicio)
 # Ninguna IP en los registros (sustituir por la IP desde la que has hecho las pruebas)
 sudo grep -c 'TU.IP.DE.PRUEBA' /var/log/flyweb-components/*.log       # 0 en ambos
 # fail2ban y CrowdSec no leen estos ficheros

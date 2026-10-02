@@ -7,6 +7,9 @@
 #
 # Variables opcionales:
 #   FLYWEB_SCCACHE=/ruta/sccache | off   caché de compilación (por defecto, sccache del PATH si existe)
+#   FLYWEB_SERVICES_KEY_FILE=/ruta       clave de servicio para components.flyweb.lamosquita.net (F2.6).
+#                                        Por defecto ~/proyectos/softmac/claves/flyweb-services-key, FUERA
+#                                        del repo. Sin fichero se usa "flyweb" y el servidor rechaza las consultas.
 # Al terminar deja out/<modo>/flyweb-build-info.txt y, en builds sin firmar (no Release), las claves
 # FlyWebCommit, FlyWebBraveBrowserCommit, FlyWebChromium, FlyWebBuildDate y FlyWebBuildConfig en el Info.plist.
 set -eu
@@ -66,6 +69,18 @@ python3 src/build/util/lastchange.py --output src/build/util/LASTCHANGE --source
 #   //chrome/test:unit_tests); se apaga con FlyWeb/policies/flyweb-policies.mobileconfig.
 # - Wallets y Rewards: quitados en el propio brave-core (rama nube/no-wallet), sin argumentos aquí.
 UPDATER="${FLYWEB_UPDATER_URL:-https://go-updater.brave.com/extensions}"
+# Clave de servicio (cabecera BraveServiceKey de cada consulta de componentes). Nunca se imprime.
+KEYFILE="${FLYWEB_SERVICES_KEY_FILE:-$HOME/proyectos/softmac/claves/flyweb-services-key}"
+if [ -r "$KEYFILE" ]; then
+  SERVICES_KEY=$(tr -d ' \t\r\n' < "$KEYFILE")
+  case "$SERVICES_KEY" in
+    ''|*[!A-Za-z0-9_-]*) echo "Clave de servicio no válida en $KEYFILE (solo A-Z a-z 0-9 _ -)" >&2; exit 1 ;;
+  esac
+  echo "Clave de servicio: $KEYFILE"
+else
+  SERVICES_KEY=flyweb
+  echo "AVISO: sin $KEYFILE; clave \"flyweb\": el servidor de componentes rechazará las consultas" >&2
+fi
 INERT="https://flyweb.invalid"
 npm run build -- "$CONFIG" --target_arch=x64 \
   --gn "mac_sdk_path:$SDK" \
@@ -75,7 +90,7 @@ npm run build -- "$CONFIG" --target_arch=x64 \
   --gn "brave_stats_updater_url:$INERT" \
   --gn "brave_sync_endpoint:$INERT" \
   --gn "brave_variations_server_url:$INERT" \
-  --gn brave_services_key:flyweb \
+  --gn "brave_services_key:$SERVICES_KEY" \
   --gn enable_sparkle:false \
   --gn enable_updater:false \
   --gn brave_p3a_enabled:false \
