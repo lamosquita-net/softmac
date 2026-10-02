@@ -22,6 +22,26 @@ Opcional:
 | O2 | Icono de documento (`document.icns`) | Ficheros `.html` que abre FlyWeb. Si no, se usa el de la app |
 | O3 | Versión 16×16 y 32×32 **dibujada a mano** del símbolo | A 16 px la mosca actual queda borrosa: el reescalado automático no basta |
 
+## Entrega 1 del HUMANO (02/10): estado
+
+Ficheros en esta carpeta. **Elegidas las versiones 01** de M1 y O1; las 02 y 03 se guardan como alternativas.
+Láminas de prueba (LOCAL, con `~/proyectos/softmac/herramientas/lamina.swift`) en `software/entregas/iconos-v1/`,
+incluida `iconos-tamano-real.png` para revisarla al 100 % en un monitor no Retina (la 5,1).
+
+| Fichero | Maestro | Estado | Observaciones de LOCAL |
+|---|---|---|---|
+| `M1-01.svg` (02, 03) | M1 icono de la app | **Elegido 01** | El disco naranja `#f90` resuelve el contraste en claro, oscuro y el gris del Dock. A 16 px la 01 aguanta mejor que la 02 y la 03. El disco ocupa todo el lienzo de 1024: en Mojave bien; en macOS 11+ se ve algo mayor que los de Apple (rejilla de ~824) |
+| `O1-01.svg` (02, 03) | O1 variante de canal | **Elegido 01** | Morado `#951b81`: se distingue a la primera del naranja. Para el canal `development` (builds `Static`) y, si se quiere, beta o nightly |
+| `M2.svg` / `M2.png` | M2 símbolo (pestañas) | Bien dibujado a 16×16 | **`M2.png` mide 17×17**: exportar a 16×16 y 32×32 exactos, o generarlos desde el SVG |
+| `M3.svg` / `M3.png` | M3 monocromo | Cumple la regla (un color, sin trazos ni opacidades) | Es un **disco relleno con la mosca recortada**: teñido queda un círculo oscuro pesado junto a iconos finos, y el contorno de las alas se pierde a 16 px. Propuesta: silueta de la mosca sin disco (decide el HUMANO). `M3.png` también es 17×17 |
+| `M4-fondo-claro.svg`, `M4-fondo-oscuro.svg` | M4 logotipo | Las dos bien en su fondo | Proporción **3,07:1** (los huecos son ~3,4:1: quedará margen lateral, sin deformar). A **77×22** "by lamosquita" no se lee: hace falta una **variante sin lema** para `product_logo_name_22` |
+| `O2.svg` | O2 documento | Bien a 128 px | **"HTML" es `<text>` (Arial)**: convertir a trazados para no depender de la fuente. A 16 px ilegible, como cualquier icono de documento |
+
+**Especificaciones nuevas que salen de esta entrega:**
+- Los PNG de revisión, a **tamaño exacto** (16×16, 32×32…): uno de más se reescala y se emborrona.
+- Todo el texto de los SVG, **convertido a trazados** (ningún `<text>`).
+- Para M4 a 22 px de alto, **solo símbolo + "FlyWeb"**.
+
 ## Limitaciones de cada maestro: color y fondo
 
 Una sola mosca no sirve para todo. Cada sitio la pinta de una forma, y eso decide cómo hay que dibujarla.
