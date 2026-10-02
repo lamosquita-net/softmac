@@ -6,7 +6,7 @@ After=network.target
 
 [Service]
 ExecStart=/opt/flyweb-components/flyweb-components
-Environment=FLYWEB_CATALOG_FILE=/srv/flyweb/components/catalog.json
+Environment=FLYWEB_CATALOG_FILE=/var/www/FlyWeb/components/catalog.json
 Environment=FLYWEB_NO_REDIRECT=1
 Environment=FLYWEB_LISTEN=127.0.0.1:8192
 Environment=FLYWEB_METRICS_LISTEN=off
@@ -39,7 +39,7 @@ CapabilityBoundingSet=
 AmbientCapabilities=
 UMask=0077
 # Solo lee el catálogo; no escribe en disco.
-ReadOnlyPaths=/srv/flyweb/components
+ReadOnlyPaths=/var/www/FlyWeb/components
 # Red: solo direcciones locales. No necesita salir: el catálogo es local y la copia diaria es otro servicio.
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 IPAddressDeny=any
