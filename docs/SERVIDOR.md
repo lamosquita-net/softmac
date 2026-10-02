@@ -82,6 +82,12 @@ Reglas que podrían banear a los propios navegadores:
   con muchas listas regionales genera bastantes.
 - **POST anómalos.** Filtros que miren cuerpos de POST con XML/JSON.
 
+**Solución preparada** (probada en NUBE): [`FlyWeb/servidor/e0/`](../FlyWeb/servidor/e0/README.md).
+- **Registro aparte.** El vhost escribe en `/var/log/flyweb-components/`, fuera de los patrones de fail2ban y de
+  CrowdSec en ns2, así que sus reglas actuales no cambian.
+- **CrowdSec lo lee aparte** con una lista blanca solo para `POST /extensions` y las descargas `/release/` con éxito.
+  El resto del tráfico del vhost se vigila igual.
+
 Antes de E2, el HUMANO y el agente revisan qué escenarios aplican a ese vhost. Si hace falta, se excluye `components.`
 de los escenarios de ritmo (no de los de ataques) o se ajustan los umbrales para ese vhost, con el registro de cada
 decisión. Las comprobaciones posteriores del agente usan pocas peticiones y siempre a URL válidas.
