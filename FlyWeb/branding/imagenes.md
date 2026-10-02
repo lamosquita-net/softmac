@@ -35,12 +35,23 @@ incluida `iconos-tamano-real.png` para revisarla al 100 % en un monitor no Retin
 | `M2.svg` / `M2.png` | M2 símbolo (pestañas) | Bien dibujado a 16×16 | **`M2.png` mide 17×17**: exportar a 16×16 y 32×32 exactos, o generarlos desde el SVG |
 | `M3.svg` / `M3.png` | M3 monocromo | Cumple la regla (un color, sin trazos ni opacidades) | Es un **disco relleno con la mosca recortada**: teñido queda un círculo oscuro pesado junto a iconos finos, y el contorno de las alas se pierde a 16 px. Propuesta: silueta de la mosca sin disco (decide el HUMANO). `M3.png` también es 17×17 |
 | `M4-fondo-claro.svg`, `M4-fondo-oscuro.svg` | M4 logotipo | Las dos bien en su fondo | Proporción **3,07:1** (los huecos son ~3,4:1: quedará margen lateral, sin deformar). A **77×22** "by lamosquita" no se lee: hace falta una **variante sin lema** para `product_logo_name_22` |
-| `O2.svg` | O2 documento | Bien a 128 px | **"HTML" es `<text>` (Arial)**: convertir a trazados para no depender de la fuente. A 16 px ilegible, como cualquier icono de documento |
+| `O2.svg` | O2 documento | Sustituido por `O2-02.svg` (entrega 2) | **"HTML" es `<text>` (Arial)**: convertir a trazados para no depender de la fuente. A 16 px ilegible, como cualquier icono de documento |
 
 **Especificaciones nuevas que salen de esta entrega:**
 - Los PNG de revisión, a **tamaño exacto** (16×16, 32×32…): uno de más se reescala y se emborrona.
 - Todo el texto de los SVG, **convertido a trazados** (ningún `<text>`).
 - Para M4 a 22 px de alto, **solo símbolo + "FlyWeb"**.
+
+## Entrega 2 del HUMANO (02/10, tarde)
+
+- **PNG fuera del repo** (Illustrator no los exporta a tamaño exacto): se generan desde los SVG. `.gitignore` excluye
+  `FlyWeb/branding/*.png`, `BackupDrive/branding/*.png` y `*.ai` (el `.ai` es el documento de trabajo del HUMANO).
+- **O2: elegido `O2-02.svg`** (texto ya en trazados). `O2.svg` queda como alternativa.
+- **M3 sin disco:** dos candidatos, `M3_1.svg` (16×16,02, el último exportado) y `M3-02.svg` (lienzo 13,42×14,87, no
+  cuadrado). **Pendiente de que el HUMANO elija** con la lámina `software/entregas/iconos-v1/E-entrega2.png`. El elegido
+  debería tener lienzo cuadrado de 16×16 para que el `.icon` salga alineado a píxel.
+- **M4 pequeño** para 77×22: `M4-fondo-claro-pequeño.svg` y `M4-fondo-oscuro-pequeño.svg`.
+- `01-02.svg` era una copia idéntica de `O1-02.svg` con el nombre mal: retirada (está en `~/proyectos/softmac/temp/papelera/` de la 7,1).
 
 ## Limitaciones de cada maestro: color y fondo
 
