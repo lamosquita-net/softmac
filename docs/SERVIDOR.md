@@ -89,6 +89,13 @@ FlyWeb. Detalle y pruebas: [`FlyWeb/servidor/e0/README.md`](../FlyWeb/servidor/e
   - Los baneos globales del cortafuegos (CrowdSec por otros sitios) siguen aplicando.
 - **Tráfico legítimo.** Es repetitivo: unas 70 peticiones POST cada 30 minutos por navegador. Como no hay reglas de
   ritmo en este vhost, no puede banear a los propios navegadores.
+- **Puerto 80, con IP y con fail2ban/CrowdSec** (decisión del HUMANO, 02-10). FlyWeb usa siempre https, así que lo
+  que llega al 80 es un bot u otro navegador. Se registra con IP en `/var/log/apache2/flyweb/` para que lo vean sus
+  reglas.
+  - **Regla:** ninguna URL de FlyWeb puede ser `http://`. Si alguna lo fuera, los usuarios acabarían registrados y
+    podrían ser baneados.
+  - Las renovaciones de Let's Encrypt (`--apache`) reciben 200, no 404. Si una fallara, comprobar antes de nada que
+    no se han baneado sus IP.
 - **Comprobaciones del agente.** Usan pocas peticiones y siempre a URL válidas.
 - **Aviso.** Si algún día se añade vigilancia a este vhost, tiene que ser compatible con no guardar IPs, por ejemplo
   con contadores en memoria. Es una decisión del HUMANO.
