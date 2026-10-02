@@ -32,7 +32,7 @@ Se aplican a mano, en este orden, revisando cada paso. El servicio `go-update` l
 | Registro de errores | `ErrorLogFormat` sin `[client IP]` |
 | Servicio de detrás | `ProxyAddHeaders Off`: no recibe `X-Forwarded-For` |
 | fail2ban y CrowdSec | Los registros están en `/var/log/flyweb/`, fuera de sus patrones (`/var/log/apache2/…`). Además no contienen IPs |
-| **Puerto 80 (excepción a propósito)** | FlyWeb nunca usa http: lo que llega al 80 es un bot u otro navegador. Se registra **con IP** en `/var/log/apache2/flyweb/`, dentro de los patrones de fail2ban y CrowdSec, para que lo baneen |
+| **Puerto 80 (norma del HUMANO)** | Sin registros propios: van a los generales de `/var/log/apache2/`, con IP, como en el resto de sus sitios. FlyWeb nunca usa http, así que lo que llega al 80 es un bot u otro navegador. Lo ve CrowdSec; fail2ban no lee la raíz de `/var/log/apache2/` (pendiente del agente de auditoría) |
 
   - La seguridad viene de la superficie mínima:
     - página y actualizaciones, solo `GET`/`HEAD`;
@@ -76,7 +76,7 @@ La IP del cliente aparece **0 veces** en los ocho registros de `/var/log/flyweb/
 1. **Usuario y directorios:**
    ```sh
    sudo useradd --system --no-create-home --shell /usr/sbin/nologin flyweb
-   sudo install -d -o root -g adm -m 0750 /var/log/flyweb /var/log/apache2/flyweb
+   sudo install -d -o root -g adm -m 0750 /var/log/flyweb
    sudo install -d -o flyweb -g flyweb -m 0755 /srv/flyweb /srv/flyweb/{www,updates,vacio,acme,components}
    sudo install -d -o flyweb -g flyweb -m 0755 /srv/flyweb/components/{release,estado,vacio} /srv/flyweb/acme/.well-known
    echo '{"etapa":"E0"}' | sudo -u flyweb tee /srv/flyweb/components/estado/_estado.json
