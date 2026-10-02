@@ -1,9 +1,0 @@
-# Destino: /etc/crowdsec/acquis.d/flyweb-components.yaml
-# CrowdSec lee los registros de components. aparte de /var/log/apache2/.
-# Mismos escenarios de Apache que el resto; la lista blanca de
-# parsers/s02-enrich/flyweb-components-whitelist.yaml quita solo el tráfico legítimo.
-filenames:
-  - /var/log/flyweb-components/access.log
-  - /var/log/flyweb-components/error.log
-labels:
-  type: apache2

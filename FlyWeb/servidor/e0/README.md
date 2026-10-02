@@ -8,63 +8,67 @@ hasta entonces `/extensions` responde 503 y ningún navegador apunta aquí.
 |---|---|
 | `apache/components.flyweb.lamosquita.net.conf` | `/etc/apache2/sites-available/` |
 | `logrotate/flyweb-components` | `/etc/logrotate.d/` |
-| `crowdsec/acquis.d/flyweb-components.yaml` | `/etc/crowdsec/acquis.d/` |
-| `crowdsec/parsers/s02-enrich/flyweb-components-whitelist.yaml` | `/etc/crowdsec/parsers/s02-enrich/` |
 
-## Cómo se aísla de fail2ban y CrowdSec
+## Decisión: sin IPs y sin CrowdSec en este vhost (HUMANO, 02-10)
 
-Ambos leen ficheros de registro, no vhosts. En ns2 (configuración vista el 02-10):
-- **fail2ban:** `/var/log/apache2/*/*access.log` y `/var/log/apache2/*/*error.log`.
-- **CrowdSec:** `/var/log/apache2/*/*.log` y `/var/log/apache2/*.log`.
+**Privacidad: ninguna IP se guarda en disco.**
 
-Este vhost escribe en **`/var/log/flyweb-components/`**, fuera de esos patrones.
-
-| Qué | Efecto |
+| Dónde podría quedar la IP | Cómo se evita |
 |---|---|
-| **Reglas actuales** | Ninguna regla actual lo ve ni cambia: el resto de sitios sigue exactamente igual |
-| **fail2ban** | Sin jail propio. Los suyos son de WordPress, Apache y SSH, y CrowdSec ya cubre este vhost |
-| **CrowdSec** | Lee esos ficheros con su propia entrada (`acquis.d/`), con los mismos escenarios de Apache que el resto |
-| **Lista blanca** | Quita solo el tráfico legítimo del navegador, y solo en ese fichero: `POST /extensions` con respuesta 200/302/307, y `GET`/`HEAD /release/…` con respuesta 200/206/304. Todo lo demás cuenta y se banea igual (otras rutas, 4xx, sondeos, intentos contra fallos conocidos) |
-| **Superficie** | El vhost niega con 403 todo lo que no sea `/extensions`, `/release/` o `/_estado.json`. Limita el cuerpo de las peticiones a 64 KB |
+| Registro de accesos | Formato propio `flyweb_sinip`: fecha, petición, estado, bytes y tiempo. Sin IP, sin User-Agent y sin Referer |
+| Registro de errores | Apache escribe `[client IP]` por defecto; aquí `ErrorLogFormat` lo quita |
+| Servicio de detrás (`go-update`) | `ProxyAddHeaders Off`: no recibe `X-Forwarded-For` y solo ve `127.0.0.1` |
+| fail2ban y CrowdSec | Los registros están en `/var/log/flyweb-components/`, fuera de lo que leen (`/var/log/apache2/…`). Además, no contienen IPs |
 
-**Decisión pendiente del HUMANO: IP en el registro.** `disenos.md` pedía registros sin IP, pero sin IP CrowdSec no puede
-banear en este vhost. Propuesta: registrar la IP (formato `combined`) y guardarla solo **7 días** (logrotate).
+Retención: 7 días (logrotate).
 
-**Límite conocido.** Un ataque que repitiera `POST /extensions` válidos no lo frenaría CrowdSec, porque está en la
-lista blanca. El servicio es barato y no toca disco, y Apache limita el cuerpo. Si hiciera falta, se añade un
-escenario propio solo para ese fichero, con un umbral muy por encima del uso normal. El uso normal es de unas 70
-peticiones cada 30 minutos por navegador.
+**Seguridad sin baneos propios.** En este vhost no hay nada que vigilar para banear, porque casi no hay superficie:
 
-## Probado en NUBE (02-10, contenedor Ubuntu 24.04)
+| Ruta | Métodos permitidos | Qué hay detrás |
+|---|---|---|
+| `/extensions` | Solo `POST` | Servicio en `127.0.0.1` |
+| `/release/…` | Solo `GET` y `HEAD` | Ficheros estáticos |
+| `/_estado.json` | Solo `GET` y `HEAD` | Fichero estático |
+| Cualquier otra ruta o método | — | `403`. La raíz es un directorio vacío; sin PHP ni CGI |
 
-- **Apache 2.4.58:** `configtest` correcto. Respuestas:
-  - 200: `/_estado.json` y `/release/a.crx` (tipo `application/x-chrome-extension`, con HSTS);
-  - 403: `/`, `/release/`, `/etc/passwd` y `/extensionsX`;
-  - 503: `/extensions` (sin servicio, lo esperado en E0).
-- **CrowdSec 1.4.6** (paquete de Ubuntu), con `crowdsecurity/apache2-logs` del hub y esta entrada y lista blanca.
-  - Con `cscli explain`, quedan **en la lista blanca** solo `POST /extensions` 200 y `GET`/`HEAD /release/…` 200.
-  - **Siguen contando:** `/wp-login.php` 403, `/release/../../etc/passwd` 404, `/` 403, `/extensionsX` 403 y
-    `/extensions` 503.
-  - Los campos `http_verb`, `http_path` y `http_status` existen con ese analizador.
-  - En ns2 puede haber otra versión de CrowdSec: el paso 0 y `cscli explain` lo confirman.
+- Cuerpo de las peticiones: 64 KB como máximo.
+- Los **baneos globales siguen protegiéndolo**: el bouncer de CrowdSec bloquea en el cortafuegos las IP que atacan
+  otros sitios de ns2, también para este.
+- Lo que se pierde: detectar a quien ataque *solo* este vhost. Riesgo aceptado, porque lo único alcanzable es el propio
+  Apache, que mantiene Ubuntu.
+- **Límite que conviene conocer:** una inundación de `POST /extensions` no la frena nada específico. El servicio
+  responde en memoria y es barato.
+
+**Lo que no podemos prometer:** el cortafuegos procesa la IP en memoria para aplicar los baneos globales, y OVH y los
+operadores de red la ven. La promesa honesta es «no guardamos tu IP».
+
+## Probado en NUBE (02-10, contenedor Ubuntu 24.04, Apache 2.4.58)
+
+Peticiones desde `127.0.0.5` (para distinguir la IP del cliente de la del servicio):
+
+| Petición | Respuesta |
+|---|---|
+| `GET /_estado.json` y `GET /release/a.crx` | 200 (`application/x-chrome-extension`) |
+| `GET /release/nope.crx` | 404 |
+| `POST /extensions` | 503 sin servicio; con un servicio de prueba, 200 |
+| `POST /_estado.json`, `DELETE /release/a.crx`, `GET`/`PUT /extensions`, `/`, `/wp-login.php`, `/extensionsX`, `GET /release/` | 403 |
+| `/release/../../etc/passwd` | 400 |
+
+- La IP del cliente (`127.0.0.5`) aparece **0 veces** en `access.log` y en `error.log`.
+- El servicio de prueba en `127.0.0.1:8192` recibió la petición desde `127.0.0.1` y sin ninguna cabecera
+  `X-Forwarded-*`.
 
 ## Pasos
 
-0. **Comprobar el analizador de CrowdSec.** La lista blanca usa campos que pone el analizador de Apache
-   (`http_verb`, `http_path`, `http_status`):
-   ```sh
-   sudo cscli collections list | grep -i apache
-   sudo cscli parsers list | grep -i -E 'apache2-logs|whitelist'
-   ```
-   Hace falta `crowdsecurity/apache2` (que trae `crowdsecurity/apache2-logs`).
 1. **Directorios:**
    ```sh
    sudo install -d -o root -g adm -m 0750 /var/log/flyweb-components
-   sudo install -d -m 0755 /srv/flyweb-components /srv/flyweb-components/release /srv/flyweb-components/estado
+   sudo install -d -m 0755 /srv/flyweb-components /srv/flyweb-components/{release,estado,vacio}
    echo '{"etapa":"E0"}' | sudo tee /srv/flyweb-components/estado/_estado.json
    ```
-2. **DNS y certificado.** Registro A/AAAA `components.flyweb.lamosquita.net` → ns2. Certificado propio (certbot) o el
-   comodín. Ajustar las dos líneas `SSLCertificate*` del vhost.
+2. **DNS y certificado.** Hace falta el registro A `components.flyweb.lamosquita.net` → 51.91.19.170 (ya añadido).
+   AAAA todavía no (ver `docs/SERVIDOR.md` §6). Certificado propio (certbot) o el comodín. Ajustar las dos líneas
+   `SSLCertificate*` del vhost.
 3. **Apache:**
    ```sh
    sudo a2enmod ssl headers http2 proxy proxy_http
@@ -79,43 +83,25 @@ peticiones cada 30 minutos por navegador.
    sudo logrotate -d /etc/logrotate.d/flyweb-components
    ```
    `-d` es una prueba en seco: no rota nada.
-5. **CrowdSec:**
-   ```sh
-   sudo cp flyweb-components.yaml /etc/crowdsec/acquis.d/
-   sudo cp flyweb-components-whitelist.yaml /etc/crowdsec/parsers/s02-enrich/
-   sudo crowdsec -t
-   sudo systemctl reload crowdsec
-   ```
-   `crowdsec -t` comprueba la configuración sin aplicarla.
 
 ## Comprobaciones
 
 ```sh
-# El vhost responde y niega lo demás
-curl -s  https://components.flyweb.lamosquita.net/_estado.json     # {"etapa":"E0"}
-curl -sI https://components.flyweb.lamosquita.net/                 # 403
-# fail2ban no ve el registro nuevo
+curl -s  https://components.flyweb.lamosquita.net/_estado.json        # {"etapa":"E0"}
+curl -sI https://components.flyweb.lamosquita.net/                    # 403
+curl -sI -X POST https://components.flyweb.lamosquita.net/release/x   # 403
+# Ninguna IP en los registros (sustituir por la IP desde la que has hecho las pruebas)
+sudo grep -c 'TU.IP.DE.PRUEBA' /var/log/flyweb-components/*.log       # 0 en ambos
+# fail2ban y CrowdSec no leen estos ficheros
 sudo fail2ban-client get apache-scan logpath | grep -c flyweb-components   # 0
-# CrowdSec sí lo lee
-sudo cscli metrics show acquisition | grep flyweb-components
-# La lista blanca actúa: lanzar una descarga de prueba y explicar la línea
-curl -s -o /dev/null https://components.flyweb.lamosquita.net/release/prueba.crx   # 404: debe CONTAR
-sudo cscli explain --file /var/log/flyweb-components/access.log --type apache2 -v | tail -40
+sudo cscli metrics show acquisition 2>/dev/null | grep -c flyweb-components # 0
 ```
-
-En `cscli explain`:
-- La petición 404 de prueba debe pasar los analizadores **sin** «whitelisted».
-- Cuando haya descargas reales con 200, esas sí deben salir como «whitelisted» por `lamosquita/flyweb-components-whitelist`.
-- Si los campos `http_*` no aparecen, el analizador instalado usa otros nombres: pasar la salida a SERVIDOR o NUBE para
-  ajustar la regla.
 
 ## Marcha atrás
 
 ```sh
 sudo a2dissite components.flyweb.lamosquita.net && sudo systemctl reload apache2
-sudo rm /etc/crowdsec/acquis.d/flyweb-components.yaml /etc/crowdsec/parsers/s02-enrich/flyweb-components-whitelist.yaml
-sudo systemctl reload crowdsec
 sudo rm /etc/logrotate.d/flyweb-components
 ```
 
-Nada de esto toca la configuración de otros sitios, los jails de fail2ban ni `/etc/crowdsec/acquis.yaml`.
+Nada de esto toca la configuración de otros sitios, los jails de fail2ban ni CrowdSec.

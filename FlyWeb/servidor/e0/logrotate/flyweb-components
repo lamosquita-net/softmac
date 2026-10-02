@@ -1,5 +1,5 @@
 # Destino: /etc/logrotate.d/flyweb-components
-# 7 días de registros con IP (los necesita CrowdSec); después se borran.
+# 7 días de registros (sin IP ni User-Agent); después se borran.
 /var/log/flyweb-components/*.log {
     daily
     rotate 7

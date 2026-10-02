@@ -70,36 +70,43 @@ Clases de cambio autorizadas en E3: **ninguna todavía**.
 - **Excepciones.** Añadirlas a la lista blanca abriría ns2 a cualquiera que salga por ellas.
 - **Superficie.** Con el modelo de traer, no se abre nada nuevo en ns2.
 
-## 5. fail2ban y CrowdSec: lo que hay que comprobar antes de abrir `components.`
+## 5. Privacidad, fail2ban y CrowdSec en `components.`
 
-El servicio recibe **mucho tráfico legítimo y repetitivo**:
-- Cada FlyWeb pregunta componente a componente: unas 70 peticiones POST cada 30 minutos (F1.6).
-- Varios Mac detrás de la misma IP multiplican esa cifra.
+**Decisión (HUMANO, 02-10): sin IPs y sin CrowdSec en este vhost.** Es lo más honesto con la promesa de privacidad de
+FlyWeb. Detalle y pruebas: [`FlyWeb/servidor/e0/README.md`](../FlyWeb/servidor/e0/README.md).
 
-Reglas que podrían banear a los propios navegadores:
-- **Ritmo.** Límites de peticiones por IP.
-- **Errores.** Escenarios de rastreo o sondeo. Un componente desconocido responde 404 o redirección, y un navegador
-  con muchas listas regionales genera bastantes.
-- **POST anómalos.** Filtros que miren cuerpos de POST con XML/JSON.
-
-**Solución preparada** (probada en NUBE): [`FlyWeb/servidor/e0/`](../FlyWeb/servidor/e0/README.md).
-- **Registro aparte.** El vhost escribe en `/var/log/flyweb-components/`, fuera de los patrones de fail2ban y de
-  CrowdSec en ns2, así que sus reglas actuales no cambian.
-- **CrowdSec lo lee aparte** con una lista blanca solo para `POST /extensions` y las descargas `/release/` con éxito.
-  El resto del tráfico del vhost se vigila igual.
-
-Antes de E2, el HUMANO y el agente revisan qué escenarios aplican a ese vhost. Si hace falta, se excluye `components.`
-de los escenarios de ritmo (no de los de ataques) o se ajustan los umbrales para ese vhost, con el registro de cada
-decisión. Las comprobaciones posteriores del agente usan pocas peticiones y siempre a URL válidas.
+- **Ninguna IP en disco:**
+  - Registro de accesos sin IP, User-Agent ni Referer.
+  - `ErrorLogFormat` sin `[client …]`.
+  - `ProxyAddHeaders Off`: el servicio solo ve `127.0.0.1`.
+  - Retención de 7 días.
+- **fail2ban y CrowdSec no leen ese vhost.** Sus registros están en `/var/log/flyweb-components/`, fuera de los
+  patrones de ns2 (`/var/log/apache2/…`). Las reglas del resto de sitios no cambian.
+- **La seguridad viene de la superficie mínima, no de los baneos:**
+  - Tres rutas con métodos cerrados (`POST /extensions`, `GET`/`HEAD /release/` y `/_estado.json`).
+  - Todo lo demás, 403.
+  - Raíz vacía, cuerpo de 64 KB como máximo.
+  - Los baneos globales del cortafuegos (CrowdSec por otros sitios) siguen aplicando.
+- **Tráfico legítimo.** Es repetitivo: unas 70 peticiones POST cada 30 minutos por navegador. Como no hay reglas de
+  ritmo en este vhost, no puede banear a los propios navegadores.
+- **Comprobaciones del agente.** Usan pocas peticiones y siempre a URL válidas.
+- **Aviso.** Si algún día se añade vigilancia a este vhost, tiene que ser compatible con no guardar IPs, por ejemplo
+  con contadores en memoria. Es una decisión del HUMANO.
 
 ## 6. Lista para el HUMANO (E0)
 
-- [ ] DNS `components.flyweb.lamosquita.net` → ns2, y certificado (certbot `--apache`).
+- [x] DNS: registro A `components.flyweb.lamosquita.net` → 51.91.19.170 (también `flyweb.` y `updates.`).
+- [ ] Certificado (certbot `--apache`, o el comodín).
+- [ ] AAAA **todavía no.**
+  - ns2 tiene IPv6 (sale por ella), pero su dirección es `2001:41d0:203:54aa::`, la *Subnet-Router anycast* del
+    /64 (RFC 4291 §2.6.1). Para servir sitios conviene otra del mismo /64, por ejemplo `::1`.
+  - Antes de publicar AAAA para cualquier sitio hay que comprobar que Apache escucha en IPv6, y que cortafuegos,
+    fail2ban y el bouncer de CrowdSec filtran IPv6 igual que IPv4. Si no, se abre un camino sin filtrar.
 - [ ] Usuario de sistema para el servicio (sin shell ni sudo) y otro para el ejecutor de despliegues.
 - [ ] Directorios: servicio (`/opt/flyweb-components`), almacén de CRX, registros (`/var/log/flyweb-deploy`).
-- [ ] Vhost con `proxy_http` hacia `127.0.0.1:<puerto>` y `/_estado.json` estático (modelo en `disenos.md` §4).
+- [ ] Vhost y logrotate de [`FlyWeb/servidor/e0/`](../FlyWeb/servidor/e0/README.md) (sin IPs; probado en NUBE).
 - [ ] Ejecutor `flyweb-deploy` y su regla de `sudoers` (el agente puede proponer el código; lo instala el HUMANO).
-- [ ] Decisión sobre fail2ban/CrowdSec para ese vhost (§5).
+- [x] Decisión sobre fail2ban/CrowdSec para ese vhost: fuera, y sin IPs (§5).
 - [ ] Copia de seguridad: ¿entra `/opt/flyweb-components` en lo que va a bak? Todo se puede regenerar desde Brave y
       Google, así que quizá baste con la configuración.
 - [ ] Red de la sesión del agente: permitir `components.flyweb.lamosquita.net` en el acceso a red del entorno, para
