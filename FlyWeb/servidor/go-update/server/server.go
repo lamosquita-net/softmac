@@ -45,15 +45,17 @@ func StartServer() {
 	serverCtx, log := logger.Setup(context.Background())
 	log.Info("Starting server")
 
-	go func() {
-		// setup metrics on another non-public port 9090
-		// nosemgrep: go.lang.security.audit.net.pprof.pprof-debug-exposure
-		err := http.ListenAndServe(":9090", batware.Metrics())
-		if err != nil {
-			sentry.CaptureException(err)
-			logger.Panic(log, "Metrics HTTP server failed to start", err)
-		}
-	}()
+	if metricsAddr := flywebMetricsListen(":9090"); metricsAddr != "" {
+		go func() {
+			// setup metrics on another non-public port 9090
+			// nosemgrep: go.lang.security.audit.net.pprof.pprof-debug-exposure
+			err := http.ListenAndServe(metricsAddr, batware.Metrics())
+			if err != nil {
+				sentry.CaptureException(err)
+				logger.Panic(log, "Metrics HTTP server failed to start", err)
+			}
+		}()
+	}
 
 	// Add profiling flag to enable profiling routes.
 	if on, _ := strconv.ParseBool(os.Getenv("PPROF_ENABLED")); on {
@@ -67,7 +69,7 @@ func StartServer() {
 	}
 
 	serverCtx, r := setupRouter(serverCtx, false)
-	port := ":8192"
+	port := flywebListen(":8192")
 	log.Info("Starting HTTP server", "url", fmt.Sprintf("http://localhost%s", port))
 
 	srv := http.Server{

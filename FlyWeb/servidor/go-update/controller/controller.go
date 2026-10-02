@@ -131,7 +131,11 @@ func RefreshExtensionsTicker(extensionMapUpdater func()) {
 // ExtensionsRouter is the router for /extensions endpoints
 func ExtensionsRouter(_ extension.Extensions, testRouter bool) chi.Router {
 	if !testRouter {
-		RefreshExtensionsTicker(initExtensionUpdatesFromDynamoDB)
+		if flywebCatalogFile() != "" {
+			RefreshExtensionsTicker(initExtensionUpdatesFromFile)
+		} else {
+			RefreshExtensionsTicker(initExtensionUpdatesFromDynamoDB)
+		}
 	}
 
 	r := chi.NewRouter()
@@ -235,7 +239,7 @@ func WebStoreUpdateExtension(w http.ResponseWriter, r *http.Request) {
 		}
 
 		foundExtension, ok := AllExtensionsMap.Load(id)
-		if !ok && len(xValues) == 1 {
+		if !ok && len(xValues) == 1 && !flywebNoRedirect() {
 			redirectURL := &url.URL{
 				Scheme:   "https",
 				Host:     extension.GetExtensionUpdaterHost(),
@@ -342,7 +346,7 @@ func UpdateExtensions(w http.ResponseWriter, r *http.Request) {
 
 	// Special case, if there's only 1 extension in the request and it is not something
 	// we know about, redirect the client to the appropriate update server.
-	if len(updateRequest.Extensions) == 1 {
+	if len(updateRequest.Extensions) == 1 && !flywebNoRedirect() {
 		_, ok := AllExtensionsMap.Load(updateRequest.Extensions[0].ID)
 		if !ok {
 			host := extension.GetUpdaterHostByType(updateRequest.UpdaterType)
