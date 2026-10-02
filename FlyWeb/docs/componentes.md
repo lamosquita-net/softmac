@@ -54,6 +54,22 @@ a `go-updater.brave.com` en 30 minutos, porque Brave pregunta **componente a com
 
 ## 4. Lo que tiene que hacer el servidor (SERVIDOR, S3)
 
+> **ABIERTO (02-10), tras F2.6.** La copia diaria necesita saber qué versión publica Brave de cada componente.
+> Contaba con preguntárselo a `go-updater.brave.com`, pero ese servidor exige la clave de Brave, que no tenemos ni
+> vamos a usar. Quedan dos vías:
+> 1. **El almacén de descargas de Brave permite listar su contenido.** Se comprueba desde ns2, solo lectura:
+>    `curl -s 'https://brave-core-ext.s3.brave.com/?list-type=2&prefix=release/iodkpdagapdfkphljnddpjlldadblomo/' | head -c 2000`.
+>    - Si devuelve un XML con `<Key>release/…/extension_X_Y_Z.crx</Key>`, la copia sin firmar sigue en pie: se elige la
+>      versión mayor y se comprueba el SHA-256 del CRX descargado.
+>    - Si devuelve `AccessDenied`, esta vía queda descartada.
+> 2. **Si no se puede listar, componentes propios** (§5).
+>    - Se empaquetan las listas desde su origen (EasyList, EasyPrivacy, uBlock Origin, los recursos de Brave en
+>      GitHub) con claves nuestras.
+>    - En el navegador cambian los ID y las claves de los componentes de Shields, y se añade nuestra clave de
+>      publicador.
+>    - Es más trabajo, pero no depende de Brave en absoluto.
+
+
 Base: **`brave/go-update`** (comprobado el 02-10-2026: existe, MPL-2.0, Go 1.26, último commit 23-07-2026).
 - Responde al protocolo Omaha en `POST /extensions` (y `GET`). Sirve los componentes que conoce y **redirige a Google**
   lo que no conoce. También sirve de filtro: bloquea componentes antes de redirigir.
@@ -91,8 +107,14 @@ No hay ningún motivo para hacerlo ahora.
 - **URL.** Se fija al compilar con `updater_prod_endpoint` / `updater_dev_endpoint` (`build.sh`). Brave la añade como
   `--component-updater=url-source=…` (`app/brave_main_delegate.cc:155`). Las actualizaciones de extensiones usan la misma
   URL (`common/extensions/brave_extensions_client.cc:20`).
-- **Cabecera.** Cada consulta lleva la cabecera `BraveServiceKey: flyweb` (`brave_services_key`). `go-update` no la
-  comprueba.
+- **Cabecera.** Cada consulta lleva la cabecera `BraveServiceKey` (`brave_services_key`).
+  - **Corrección (LOCAL, 02-10, F2.6):** el servidor de Brave **sí la comprueba**: responde `403 Missing auth header`
+    a `flyweb`. El código de `go-update` no lo hace, así que debe de hacerlo su infraestructura.
+  - **Consecuencia:** desde el paso 0, **ningún componente se ha instalado ni actualizado** (casi todos en `0.0.0.0`):
+    listas de Shields, recursos, CRLSet…
+  - **Nuestro servidor también exige clave** (decisión del HUMANO). La comprueba Apache solo en `/extensions`
+    (`FlyWeb/servidor/e0/`); el valor está fuera del repo, y `build.sh` lo lee de
+    `~/proyectos/softmac/claves/flyweb-services-key`.
 - **HSTS.** `go-updater.brave.com` tiene HSTS y fijado de clave. Nuestro dominio no, ni lo necesita.
 - **Prueba sin compilar.** En principio vale `--component-updater=url-source=https://components…/extensions`, pero Brave
   añade también la suya y no está comprobado cuál gana. Mejor con una compilación con `FLYWEB_UPDATER_URL`.

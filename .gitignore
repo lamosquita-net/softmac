@@ -14,3 +14,7 @@ node_modules/
 *.ai
 FlyWeb/branding/*.png
 BackupDrive/branding/*.png
+
+# Claves de servicio y similares (regla 5 de docs/TAREAS.md)
+claves/
+*-keys.conf
