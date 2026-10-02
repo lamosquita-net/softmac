@@ -190,6 +190,10 @@ Shields (`go-updater.brave.com`), que era la decisión vigente hasta la fase 2.
 
 ### Qué hace falta para servir nosotros las listas de Shields
 
+> **Actualizado el 02-10 (NUBE, [`componentes.md`](componentes.md)):** no hace falta firmar. El servidor puede servir los
+> CRX de Brave **sin modificar** (espejo diario) y el navegador solo cambia la URL. Los puntos 2 y 4 de abajo solo
+> aplican si un día queremos listas propias.
+
 No basta con guardar ficheros: el navegador las pide como **componentes firmados**, igual que Chrome.
 1. **Servicio Omaha** en `components.`: responde a POST con JSON diciendo qué versión hay de cada componente. Brave
    publica el suyo, `brave/go-update` (Go, MPL-2.0); se despliega detrás de Apache (proxy inverso).

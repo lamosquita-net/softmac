@@ -86,13 +86,13 @@ portadas y el documento de triaje (`docs/cve-triage.md`) hecho.
 
 ## Fase 2 — Servidor de componentes propio
 
-Endpoints en lamosquita.net con protocolo Omaha / component updater. Evaluar primero si el go-updater de Brave
-es código abierto y reutilizable (`brave/go-update`, **sin verificar**) antes de escribir un servidor.
+Endpoints en lamosquita.net con protocolo Omaha / component updater. Base: `brave/go-update` (comprobado el
+02-10-2026: código abierto, MPL-2.0, Go). Inventario y plan detallado: [`componentes.md`](componentes.md).
 
 | Componente | Estrategia |
 |---|---|
 | CRLSet, lista de logs de CT, Chrome Root Store | **Espejo sin modificar** de los CRX firmados por Google. Conservan su firma y no hay que tocar hashes. |
-| Listas de adblock | CRX propios firmados con tu clave. Hay que sustituir el hash de la clave pública en `brave-core` para cada componente. |
+| Listas de adblock y demás componentes de Brave | **Espejo sin modificar** de los CRX de Brave: conservan su firma y la prueba de publicador de Brave, así que el navegador no cambia (solo la URL). CRX propios firmados con nuestra clave solo si un día queremos listas distintas (`componentes.md` §5). |
 | Actualizaciones del navegador | Sparkle con appcast propio y clave EdDSA propia. Requiere la app firmada y notarizada (Fase 0.5). |
 
 - Sincronización diaria de los componentes de Google desde el servidor.

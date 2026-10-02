@@ -78,6 +78,14 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F3A.9 | Perfil de políticas: un bloque por dominio (Mojave solo aplicaba el primero) | NUBE | hecho | `FlyWeb/policies/flyweb-policies.mobileconfig` rehecho con un payload por dominio (`net.lamosquita.flyweb` y `.development`), validado con `plistlib`. Equivale al de LOCAL en `entregas/FlyWeb-MacPro6,1-turbofan/`. **HUMANO/LOCAL: reinstalarlo en la 6,1 y la 5,1** (sustituye al anterior: mismo identificador) y comprobar en `brave://policy` las 5 políticas y `typeof WebAssembly` = `"object"` en claude.ai |
 | F3A.10 | ¿Lleva `--jitless` el proceso de DevTools? (la consola de la 6,1 se notaba lenta) | LOCAL | hecho | **01/10, LOCAL en la 7,1 (`flyweb` c627b972, perfil de políticas instalado, ventana con `--auto-open-devtools-for-tabs` sobre claude.ai):** DevTools **no** va sin JIT: dentro de la propia DevTools (`devtools://devtools/bundled/devtools_app.html`), `typeof WebAssembly` → object; claude.ai → object. De 6 renderers, el único con `--js-flags=--jitless` era el iframe de `challenges.cloudflare.com` (correcto, no está en la lista). **No hace falta cambiar código.** La lentitud de la consola en la 6,1 sería la vista previa de la evaluación mientras se escribe, no la falta de JIT. Visto de paso: la DevTools carga con `remoteBase=https://devtools.brave.com/serve_file/@…` → anotarlo en F1.11 (puede pedir partes de su interfaz a Brave) |
 
+### FlyWeb — Fase 2 (servidor de componentes)
+| # | Tarea | Quién | Estado | Notas |
+|---|---|---|---|---|
+| F2.1 | Inventario de componentes y plan del servidor | NUBE | hecho | `FlyWeb/docs/componentes.md` (02/10). **Conclusión: no hace falta firmar nada.** El servidor sirve los CRX de Brave y de Google **sin modificar** (espejo diario) y el navegador solo cambia `FLYWEB_UPDATER_URL`. Base del servidor: `brave/go-update` (comprobado: MPL-2.0, Go 1.26; DynamoDB y host de descargas configurables por variables de entorno) |
+| F2.2 | Servidor `components.` con `go-update` y tarea diaria de espejo | SERVIDOR | pendiente | `componentes.md` §4. Necesita el vhost S3 de `disenos.md` |
+| F2.3 | Componentes de Chromium 116 que siguen registrados (no bloqueados por Brave) | LOCAL | pendiente | `componentes.md` §3: con el checkout de Chromium, listar los que llama `RegisterComponentsForUpdate` y no están en la lista de bloqueo de `chromium_src/components/component_updater/component_installer.cc`; cruzar con la auditoría F1.6 |
+| F2.4 | Compilar con `FLYWEB_UPDATER_URL` del servidor propio y auditar | LOCAL | pendiente | Tras F2.2. Hito de la fase: `brave://components` se actualiza desde nuestro servidor y la auditoría no muestra destinos de Brave |
+
 ### FlyWeb — Fase 3B (portado de parches de seguridad)
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
