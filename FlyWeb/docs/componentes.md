@@ -78,6 +78,11 @@ a `go-updater.brave.com` en 30 minutos, porque Brave pregunta **componente a com
 >
 >   El catálogo propio lleva las claves de las listas regionales.
 > - **Claves privadas:** las genera el HUMANO y viven fuera del repo (regla 5).
+>
+> **Compatibilidad comprobada (02-10)** en [`FlyWeb/servidor/componentes/`](../servidor/componentes/README.md):
+> - las listas actuales funcionan en el motor 0.7.x de la 1.57;
+> - los scriptlets actuales necesitan convertirse al formato de 2023, más `scriptletGlobals`: lo hace
+>   `recursos-157.mjs`, probado en Chromium real.
 
 
 Base: **`brave/go-update`** (comprobado el 02-10-2026: existe, MPL-2.0, Go 1.26, último commit 23-07-2026).
