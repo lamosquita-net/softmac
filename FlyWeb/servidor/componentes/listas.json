@@ -1,0 +1,13 @@
+{
+  "_comentario": "Qué empaqueta FlyWeb. Los UUID son los de brave/adblock-resources filter_lists/list_catalog.json. Cada lista regional necesita su clave (lista-<UUID>.pem) en el directorio de claves.",
+  "defecto": [
+    "default",
+    "4D715457-307C-4383-8873-73A2FD263F71"
+  ],
+  "regionales": [
+    "AC023D22-AE88-4060-A978-4FEEEC4221693",
+    "2F3DCE16-A19A-493C-A88F-2E110FBD37D6",
+    "AE657374-1851-4DC4-892B-9212B13B15A7",
+    "1FEAF960-F377-11E8-8EB2-F2801F1B9FD1"
+  ]
+}

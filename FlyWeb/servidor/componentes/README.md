@@ -53,22 +53,69 @@ formato binario versionado, pero hay dos diferencias con el Brave actual.
   - si el CRX no es del componente que espera el instalador, rechaza.
 - **Límite.** Es un port leído del código y no el binario. La prueba definitiva es la de LOCAL (abajo).
 
+## Empaquetado diario: `empaquetar.mjs`
+
+```sh
+sh generar-claves.sh <claves>          # una vez; solo muestra datos públicos (ID, claves públicas, hash del publicador)
+NODE_USE_ENV_PROXY=1 ADBLOCK_RS=<adblock-rs 0.7.x> \
+  node empaquetar.mjs --packager <checkout> --claves <claves> --salida /var/www/FlyWeb/components
+```
+
+| Componente | Contenido | Clave |
+|---|---|---|
+| Lista por defecto | `list.txt` con las fuentes de *Brave Default Adblock Filters* y *Brave Default Privacy Filters* (`defecto` de `listas.json`) | `defecto.pem` |
+| Recursos | `resources.json` de `recursos-157.mjs` | `recursos.pem` |
+| Catálogo | `regional_catalog.json`: las listas de `regionales`, con **nuestros** ID y claves, y solo los campos que lee la 1.57 | `catalogo.pem` |
+| Cada lista regional | `list.txt` | `lista-<UUID>.pem` |
+
+- **Adaptación a la 1.57.**
+  - En el catálogo actual de Brave, las listas por defecto son entradas *ocultas* (`hidden`). La 1.57 no conoce ese
+    campo: las mostraría como listas que el usuario puede activar, y EasyPrivacy quedaría desactivada. Por eso se
+    juntan en la lista por defecto (como en la 1.57) y no van al catálogo.
+  - Fuera: *iOS-Specific* y *First Party Adblock Filters*. La segunda bloquea recursos del propio sitio y en la
+    1.57 se aplicaría siempre.
+- **Selección inicial** (`listas.json`): avisos de cookies (la 1.57 la activa por defecto, `kCookieListUuid`),
+  promociones de apps, español, y español y portugués. Cada lista que se añada necesita su clave: se vuelve a ejecutar
+  `generar-claves.sh`, que solo crea las que faltan.
+- **Origen.** El catálogo de `brave/adblock-resources` y las listas de `brave/adblock-lists-mirror`, ambos en GitHub.
+  Solo hace falta salir a `raw.githubusercontent.com`. A diferencia del empaquetador de Brave, no se manda ninguna
+  lista a validadores remotos.
+- **Filtrado.**
+  - Directivas `!#if` con los mismos valores que Brave. Hay una corrección: un `!#else` dentro de una rama descartada
+    sigue descartado, y en Brave se volvía a abrir.
+  - Se quitan las reglas que hacen fallar a adblock-rust anterior a la 0.8.7 (el comprobador wasm del empaquetador).
+  - Las reglas `+js(brave-…)` solo se admiten en listas de Brave.
+- **Comprobaciones antes de firmar, con el motor 0.7.x:**
+  - la lista carga;
+  - no bloquea páginas normales (FlyWeb, Wikipedia, claude.ai);
+  - la lista por defecto bloquea doubleclick;
+  - si un componente pierde más de la mitad de sus reglas respecto a la versión anterior, no se publica.
+
+  Si falla una fuente, ese componente conserva la versión anterior y el script termina con código 1.
+- **Versiones** `AAAA.MMDD.HHMM` (UTC). Solo se publica versión nueva si cambia el contenido. Se conservan la versión
+  nueva y la anterior de cada CRX, y `catalog.json` se escribe de forma atómica.
+- **Probado en NUBE (02-10), claves desechables:**
+  - 7 componentes en 11 s; lista por defecto de 170.209 reglas, con 9 quitadas por incompatibles;
+  - una segunda ejecución no publica nada;
+  - los 7 CRX pasan el verificador;
+  - `go-update` con ese `catalog.json` devuelve la URL de `/release/…` y el SHA-256 correcto, y `noupdate` para la
+    versión al día.
+
 ## Pendiente
 
-1. **Claves** (las genera el HUMANO donde se decida firmar; nunca en el repo):
-   - una por componente propio: lista por defecto, recursos y catálogo;
-   - una por cada lista regional que se publique (su ID y clave van **dentro** de `regional_catalog.json`, no en
-     brave-core);
-   - una **clave de publicador**.
-2. **brave-core (NUBE).** Solo tres pares ID/clave y un hash:
+1. **Dónde se firma (HUMANO).** Ahí se ejecuta `generar-claves.sh` y viven las claves; copia de seguridad del
+   directorio por su canal. Después, un temporizador diario que ejecute `empaquetar.mjs` (unidad systemd o launchd
+   según el sitio).
+2. **brave-core (NUBE)**, con los datos públicos que muestra `generar-claves.sh`:
    - `kAdBlockDefaultComponentId` y su clave (`components/brave_shields/browser/ad_block_service.cc:36`);
    - `kAdBlockResourceComponentId` y `kAdBlockFilterListCatalogComponentId` con sus claves
      (`ad_block_component_installer.cc:28` y `:40`);
-   - el SHA-256 de la clave pública (SPKI DER) del publicador, en lugar de `kBravePublisherKeyHash`
-     (`chromium_src/components/crx_file/crx_verifier.cc`). **Se añade** junto al de Brave: si se sustituyera,
-     FlyWeb dejaría de aceptar los CRX firmados por Brave (los de Google van aparte, con `kPublisherKeyHash`).
-3. **Empaquetado diario y publicación** en `components.` (`/var/www/FlyWeb/components/release/…` y el catálogo de
-   `go-update`).
+   - el hash del publicador, **añadido** junto a `kBravePublisherKeyHash`
+     (`chromium_src/components/crx_file/crx_verifier.cc`).
+
+   Las listas regionales no tocan brave-core: su ID y su clave van en el catálogo.
+3. **Recursos propios de Brave** (`brave/adblock-resources` `dist/resources.json`, scriptlets `brave-…`): no se
+   incluyen todavía. Las reglas que los usan se quedan sin efecto, sin errores.
 4. **Licencias:**
    - EasyList y EasyPrivacy: GPLv3 / CC BY-SA 3.0;
    - uBlock Origin (listas, scriptlets y recursos): GPLv3;
