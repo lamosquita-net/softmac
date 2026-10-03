@@ -302,3 +302,33 @@ func TestRutasYLimites(t *testing.T) {
 		t.Fatalf("bomba gzip = %d", r.StatusCode)
 	}
 }
+
+func TestBorrarInactivas(t *testing.T) {
+	db := abrir(t)
+	ctx := context.Background()
+	vieja := entidad("v", 1000, 1000)
+	vieja.ClientID = "vieja"
+	nueva := entidad("n", time.Now().UnixMilli(), 1)
+	nueva.ClientID = "nueva"
+	for _, e := range []*datastore.SyncEntity{vieja, nueva} {
+		if _, err := db.InsertSyncEntity(ctx, e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	n, err := db.BorrarInactivas(ctx, time.Now().AddDate(-1, 0, 0).UnixMilli())
+	if err != nil || n != 1 {
+		t.Fatalf("BorrarInactivas = %d, %v", n, err)
+	}
+	if ok, _ := db.HasItem(ctx, "vieja", "v"); ok {
+		t.Fatal("la cadena inactiva sigue ahí")
+	}
+	if off, _ := db.IsSyncChainDisabled(ctx, "vieja"); !off {
+		t.Fatal("la cadena borrada debe quedar desactivada")
+	}
+	if ok, _ := db.HasItem(ctx, "nueva", "n"); !ok {
+		t.Fatal("ha borrado una cadena en uso")
+	}
+	if off, _ := db.IsSyncChainDisabled(ctx, "nueva"); off {
+		t.Fatal("ha desactivado una cadena en uso")
+	}
+}

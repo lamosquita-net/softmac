@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -93,10 +94,24 @@ func main() {
 	defer db.Close()
 	c := cache.NewCache(NuevaMemoria())
 
+	// Cadenas sin uso: desactivado por defecto (0). Decisión del HUMANO (03/10): 365 días si algún día se abre a
+	// otros usuarios (FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS=365 en la unidad de systemd).
+	diasInactivas, err := strconv.Atoi(env("FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS", "0"))
+	if err != nil || diasInactivas < 0 {
+		log.Fatal().Msg("FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS debe ser un número de días (0 = no borrar)")
+	}
 	go func() {
 		for range time.Tick(time.Hour) {
 			if _, err := db.BorrarCaducados(context.Background()); err != nil {
 				log.Error().Err(err).Msg("borrando historial caducado")
+			}
+			if diasInactivas > 0 {
+				antes := time.Now().AddDate(0, 0, -diasInactivas).UnixMilli()
+				if n, err := db.BorrarInactivas(context.Background(), antes); err != nil {
+					log.Error().Err(err).Msg("borrando cadenas inactivas")
+				} else if n > 0 {
+					log.Warn().Int("cadenas", n).Msg("borradas cadenas inactivas")
+				}
 			}
 		}
 	}()

@@ -37,7 +37,7 @@ analítica, sin fuentes ni scripts de terceros. La página no debe cargar nada d
 > | `components.flyweb.lamosquita.net` | Actualizar las listas de bloqueo de anuncios y rastreadores, y componentes de seguridad (certificados revocados, etc.) | La versión de cada componente instalado y la versión del navegador |
 > | `updates.flyweb.lamosquita.net` | Avisar de versiones nuevas de FlyWeb | La versión del navegador |
 > | `proxy.flyweb.lamosquita.net` | Navegación segura (avisos de webs peligrosas y descargas maliciosas) y diccionarios del corrector, a través de Google sin que Google vea su dirección IP | Fragmentos cifrados (hash) de direcciones web, solo cuando una página coincide con la lista de peligros guardada en su equipo; el idioma del diccionario |
-> | `sync.flyweb.lamosquita.net` (solo si activa Sincronizar) | Sincronizar contraseñas, marcadores, historial y ajustes entre sus equipos | Sus datos **cifrados en su equipo** con una clave que sale de su código de sincronización y nunca nos llega: no podemos leerlos. Se guardan hasta que usted borre los datos de sincronización desde el navegador (el historial, 14 días) |
+> | `sync.flyweb.lamosquita.net` (solo si activa Sincronizar) | Sincronizar contraseñas, marcadores, historial y ajustes entre sus equipos | Sus datos **cifrados en su equipo** con una clave que sale de su código de sincronización y nunca nos llega: no podemos leerlos. Se guardan hasta que usted borre los datos de sincronización desde el navegador, o hasta que pase un año sin que ninguno de sus equipos sincronice (el historial, 14 días) |
 >
 > **Su dirección IP** llega a nuestro servidor porque es imprescindible para responder a la conexión, pero **no se
 > guarda**: los registros de estos servicios no contienen IP ni las consultas de navegación segura, y se borran a
@@ -63,9 +63,9 @@ Puntos a confirmar con quien lleve el RGPD:
 - La ubicación exacta del servidor (OVH, UE) y si el contrato con el proveedor cubre el art. 28.
 - **Sincronización (F7.5, si se abre a otros usuarios):** los datos van cifrados y no tenemos la clave, pero el RGPD
   puede seguir considerándolos datos personales (seudonimizados). Base legal propuesta: art. 6.1.b (servicio que el
-  usuario pide al activar Sincronizar). Conservación: hasta que el usuario los borre. **Propuesta de NUBE, por
-  decidir:** borrar las cadenas sin actividad en 12 meses (art. 5.1.e, limitación del plazo), avisándolo en este
-  texto; Chromium renueva la ficha de cada dispositivo a diario, así que una cadena en uso nunca se borraría.
+  usuario pide al activar Sincronizar). Conservación: hasta que el usuario los borre, o un año sin uso (**decidido por el HUMANO, 03/10**;
+  `FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS=365`, art. 5.1.e). Activarlo en el servidor al abrirlo a otros usuarios; el texto
+  de §2 ya lo dice.
 
 ## 3. Por qué esto basta (resumen para la revisión legal)
 

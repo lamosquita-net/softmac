@@ -77,6 +77,39 @@ func (s *SQLite) BorrarCaducados(ctx context.Context) (int64, error) {
 	return r.RowsAffected()
 }
 
+// BorrarInactivas borra las cadenas sin escrituras desde antesDe (ms) y las deja desactivadas, igual que «Borrar
+// datos de sincronización»: un Mac que vuelva recibe DISABLED_BY_ADMIN y el navegador avisa de que la cadena ya no
+// existe. Chromium renueva la ficha de cada dispositivo a diario, así que una cadena en uso siempre tiene escrituras
+// recientes. Devuelve cuántas cadenas ha borrado.
+func (s *SQLite) BorrarInactivas(ctx context.Context, antesDe int64) (int, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT client_id FROM entities GROUP BY client_id HAVING MAX(mtime) < ?`, antesDe)
+	if err != nil {
+		return 0, err
+	}
+	var cadenas []string
+	for rows.Next() {
+		var c string
+		if err := rows.Scan(&c); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		cadenas = append(cadenas, c)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	for i, c := range cadenas {
+		if err := s.DisableSyncChain(ctx, c); err != nil {
+			return i, err
+		}
+		if _, err := s.ClearServerData(ctx, c); err != nil {
+			return i, err
+		}
+	}
+	return len(cadenas), nil
+}
+
 func b2i(b *bool) any {
 	if b == nil {
 		return nil

@@ -27,6 +27,11 @@ del usuario. Decisión del HUMANO (03/10): sistema propio, en ns2, con el menor 
   en `127.0.0.1`; Apache, delante, no le pasa la IP y tampoco la registra (`e0/apache/flyweb-sync-vhost.conf`).
 - **Borrado.** «Borrar datos de sincronización» en el navegador borra todo lo de la cadena en el servidor y la
   desactiva. El historial caduca a los 14 días (como en Brave).
+- **Cadenas sin uso** (decisión del HUMANO, 03/10): si algún día se abre a otros usuarios, se borran las que lleven
+  un año sin escrituras, con `FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS=365` en la unidad de systemd (desactivado por defecto).
+  Quedan desactivadas como si el usuario las hubiera borrado: un Mac que vuelva recibe el aviso de que la cadena ya no
+  existe. Chromium renueva a diario la ficha de cada dispositivo, así que una cadena en uso nunca llega a un año sin
+  escrituras.
 - **Solo si el usuario quiere.** El navegador solo contacta con el servidor si el usuario activa Sincronizar.
 
 ## Diferencias con go-sync sobre DynamoDB
