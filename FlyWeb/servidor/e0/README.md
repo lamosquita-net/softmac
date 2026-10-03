@@ -60,3 +60,39 @@ Configuración **tal como está en producción**, montada a mano por el HUMANO (
     `sudo zgrep -h "client 51.91.19.170" /var/log/apache2/*/*error.log*`.
 - **fail2ban no lee la raíz de `/var/log/apache2/`.** Sus jails solo miran subcarpetas (`*/*access.log`), así que los
   puertos 80 de todos los sitios, que van a los registros generales, solo los ve CrowdSec.
+
+## Propuesta: `proxy.flyweb.lamosquita.net` (NUBE, 03-10; pendiente del HUMANO)
+
+Sustituye los proxies de Brave (`safebrowsing*.brave.com`, `sb-ssl.brave.com`, `redirector.brave.com`) por uno propio
+en ns2. El navegador lo usa desde brave-core `nube/proxies-propios` y `build.sh` (`safebrowsing_api_endpoint`).
+Fichero: `apache/flyweb-proxy-vhost.conf`; modelo de la clave: `apache/flyweb-proxy-keys.conf.ejemplo`.
+
+| Ruta | Destino | Para qué |
+|---|---|---|
+| `/v4/<método>` | `safebrowsing.googleapis.com` | Safe Browsing (listas y comprobación de prefijos) |
+| `/safebrowsing/clientreport/download` (POST) | `sb-ssl.google.com` | Comprobación de descargas |
+| `/safebrowsing/clientreport/crx-list-info` (POST) | `safebrowsing.google.com` | Lista de extensiones peligrosas |
+| `/edgedl/chrome/dict/<idioma>.bdic` | `dl.google.com` | Diccionarios del corrector |
+| Todo lo demás | 404 | — |
+
+- **Privacidad:** sin IP en accesos ni errores, y **sin la consulta** en el registro, porque lleva prefijos de hash de
+  URL. Hacia Google no van cookies, Referer, `X-Client-Data` ni ninguna cabecera con la IP del cliente.
+- **Clave:** el proxy quita la que trae el navegador y pone la nuestra. Sin fichero de clave, Safe Browsing da 404 y
+  los diccionarios siguen funcionando.
+- **Probado en NUBE** (Apache 2.4.58, servidores locales en lugar de Google): clave sustituida, con o sin clave del
+  navegador; las 4 rutas; 404 en el resto, también con `..`; 301 en el puerto 80; sin IP ni consulta en los
+  registros; `X-Forwarded-For` y `Forwarded` del cliente quitados; sin fichero de clave, `/v4` da 404.
+
+Pasos del HUMANO:
+1. **Clave de Google:** Google Cloud Console → activar *Safe Browsing API* → crear una clave de API restringida a esa
+   API y a la IP de ns2. Guardarla en `/etc/apache2/flyweb-proxy-keys.conf` (root 0600) sin mostrarla en pantalla.
+2. **DNS:** registro A `proxy.flyweb.lamosquita.net` → 51.91.19.170 en ns1, ns2 y ns3.
+3. **Certificado:** `certbot certonly --apache --expand` con los cuatro nombres.
+4. **Apache:** `a2enmod rewrite`; `install -d /var/log/flyweb/proxy /var/www/FlyWeb/proxy-vacio`; añadir el vhost a
+   `lamosquita.conf`; `apachectl configtest` y recargar.
+5. **Comprobar desde ns2:** `curl -sI https://dl.google.com/edgedl/chrome/dict/es-es-3-0.bdic` debe dar 200, no una
+   redirección; si redirige, se cambia el destino de los diccionarios. Después,
+   `curl -s -o /dev/null -w '%{http_code}\n' 'https://proxy.flyweb.lamosquita.net/edgedl/chrome/dict/es-es-3-0.bdic'`
+   debe dar 200, y `https://proxy.flyweb.lamosquita.net/` debe dar 404.
+- **Riesgo asumido:** quien conozca la URL puede gastar la cuota de la clave, porque el navegador no manda la clave de
+  servicio a estos hosts. Vigilar el uso en la consola de Google Cloud.

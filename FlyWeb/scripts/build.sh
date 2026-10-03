@@ -71,6 +71,9 @@ python3 src/build/util/lastchange.py --output src/build/util/LASTCHANGE --source
 #   //chrome/test:unit_tests); se apaga con FlyWeb/policies/flyweb-policies.mobileconfig.
 # - Wallets y Rewards: quitados en el propio brave-core (rama nube/no-wallet), sin argumentos aquí.
 UPDATER="${FLYWEB_UPDATER_URL:-https://components.flyweb.lamosquita.net/extensions}"
+# Proxy propio en ns2 para Safe Browsing (y, desde brave-core, comprobación de descargas, lista de extensiones y
+# diccionarios): Google ve la IP de ns2, no la del usuario, y nada pasa por Brave. FlyWeb/servidor/e0, vhost proxy.
+PROXY="${FLYWEB_PROXY_HOST:-proxy.flyweb.lamosquita.net}"
 # Clave de servicio (cabecera BraveServiceKey de cada consulta de componentes). Nunca se imprime.
 KEYFILE="${FLYWEB_SERVICES_KEY_FILE:-$HOME/proyectos/softmac/claves/flyweb-services-key}"
 if [ -r "$KEYFILE" ]; then
@@ -89,6 +92,7 @@ npm run build -- "$CONFIG" --target_arch=x64 \
   --gn symbol_level:0 \
   --gn "updater_prod_endpoint:$UPDATER" \
   --gn "updater_dev_endpoint:$UPDATER" \
+  --gn "safebrowsing_api_endpoint:$PROXY" \
   --gn "brave_stats_updater_url:$INERT" \
   --gn "brave_sync_endpoint:$INERT" \
   --gn "brave_variations_server_url:$INERT" \

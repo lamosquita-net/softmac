@@ -1,0 +1,6 @@
+# Destino: /etc/apache2/flyweb-proxy-keys.conf  (root:root, 0600). NUNCA en el repo.
+# Clave de la API de Safe Browsing (v4) del proyecto de Google Cloud del HUMANO: Google Cloud Console ->
+# APIs y servicios -> activar "Safe Browsing API" -> Credenciales -> Crear clave de API -> restringirla a esa API y
+# a la IP de ns2 (51.91.19.170). Uso gratuito y no comercial (condiciones de Google).
+# Solo la usa el vhost proxy.flyweb.lamosquita.net; el navegador nunca la ve.
+Define FLYWEB_SB_KEY "sustituir-por-la-clave-de-la-api"
