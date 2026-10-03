@@ -1,5 +1,10 @@
 # F7.5 — Contraseñas del llavero de macOS en FlyWeb (estudio, 03/10/2026)
 
+> **Actualización (HUMANO, 03/10):** usa mucho Safari, tiene muchísimas contraseñas y **el llavero de iCloud activo**,
+> y necesita en el 5,1 del estudio las que guardó hace poco en la 7,1 o la 6,1. **Con iCloud activo, ni A ni B sirven**
+> (§1: el llavero de iCloud está cerrado a las apps que no son de Apple; B solo vería el llavero local). Opciones
+> reales en §5. Pendiente de decisión del HUMANO.
+
 **Lo que pide el HUMANO:** usar en FlyWeb las contraseñas que ya están en el llavero de macOS, sin abrir Acceso a
 Llaveros para buscarlas. La extensión «Contraseñas de iCloud» de Apple exige macOS 14, así que no sirve en Mojave.
 
@@ -49,3 +54,17 @@ mantenerla en cada parche de seguridad no compensa.
 2. **¿Te basta importar una vez (A), o necesitas que Safari y FlyWeb compartan las contraseñas al momento (B)?**
 3. **¿Cuántas son, más o menos?** macOS pregunta por cada una al importar; con cientos, son muchos clics, aunque con
    «Permitir siempre» cada aviso sale una sola vez.
+
+## 5. Con el llavero de iCloud activo (caso real del HUMANO)
+
+| Opción | Mojave (5,1, 6,1) | Sequoia (7,1) | Sincroniza entre Macs | Coste |
+|---|---|---|---|---|
+| **1. Gestor propio** (p. ej. Bitwarden con servidor Vaultwarden en ns2) | Sí, extensión en FlyWeb | Sí: FlyWeb, Safari, iPhone | Sí, al momento | Cambiar de costumbre; migrar una vez (exportar CSV desde la app Contraseñas de Sequoia → importar); un servicio más en ns2 |
+| **2. Extensión «Contraseñas de iCloud»** en FlyWeb | No (exige macOS 14) | Probablemente (probar en la 116; el manifiesto de mensajería nativa debe estar en la carpeta de FlyWeb) | Sí (iCloud) | Bajo; solo arregla la 7,1 |
+| **3. Exportar e importar CSV de vez en cuando** | Sí, copia | Sí | No | Manual cada vez |
+
+Recomendación de NUBE: **1**, la única que cubre «guardo en un Mac y la uso al momento en otro, también en Mojave»,
+y coherente con la política del proyecto (código abierto, servidor propio, nada pasa por terceros). **Por comprobar
+antes de decidir:** que la extensión de Bitwarden funciona en Chromium 116, y la versión mínima de macOS de sus apps
+de escritorio y de Safari (en Mojave bastaría la extensión dentro de FlyWeb). Si el HUMANO prefiere seguir con iCloud,
+la 2 en la 7,1 y la 3 en los Mojave es lo máximo posible.
