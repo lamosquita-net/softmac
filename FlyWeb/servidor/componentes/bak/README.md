@@ -146,3 +146,23 @@ sudo systemctl start flyweb-firma.service; sudo journalctl -u flyweb-firma -n 30
 ```
 
 Comprobación: `https://components.flyweb.lamosquita.net/_estado.json` lista los 7 en `google`.
+
+## Actualizar: datos locales (F2.6)
+
+Componente propio para el Local Data Updater de la 1.57: debounce, limpieza de URL, Request-OTR, excepciones de
+HTTPS por defecto y permiso de localhost, en la carpeta `1/`. Greaselion va vacío: `firmar.mjs` rechaza el
+componente si `1/Greaselion.json` no es `[]`. Cambian `firmar.mjs`, `zip.mjs` (acepta una carpeta numérica) y
+`generar-claves.sh` (añade `datos-locales`). ns2 y el servicio no cambian.
+
+```sh
+C=<commit>; U=https://raw.githubusercontent.com/lamosquita-net/softmac/$C/FlyWeb/servidor/componentes
+mkdir -p ~/flyweb-firma-src && cd ~/flyweb-firma-src
+for f in bak/firmar.mjs bak/zip.mjs generar-claves.sh; do curl -fsSLo "$(basename $f)" "$U/$f"; done
+sha256sum -c sumas.txt          # las 3 líneas del PR
+sudo install -m 0644 firmar.mjs zip.mjs generar-claves.sh /opt/flyweb-firma/
+
+# Crea SOLO la clave que falta (datos-locales); las demás dicen «existe». Muestra solo datos PÚBLICOS: pásaselos a NUBE.
+sudo -u flywebfirma sh /opt/flyweb-firma/generar-claves.sh /var/lib/flyweb-firma/claves /opt/flyweb-firma/listas.json
+```
+
+Hasta que la clave pública esté en `claves-publicas.json`, el CI no construye este componente y nada cambia en bak.

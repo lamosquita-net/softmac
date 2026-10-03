@@ -3,7 +3,7 @@
 #
 # Uso: sh generar-claves.sh <directorio de claves> [listas.json]
 #
-# - Crea las que falten: publicador, defecto, primera-parte, recursos, catalogo y lista-<UUID> por cada lista regional de
+# - Crea las que falten: publicador, defecto, primera-parte, recursos, catalogo, datos-locales y lista-<UUID> por cada lista regional de
 #   listas.json. **Nunca sobrescribe** una clave existente: si cambia una clave, cambia el ID del componente, y los
 #   FlyWeb ya instalados dejan de recibirlo.
 # - Claves RSA-2048, permisos 0600, en un directorio 0700. No se muestra ninguna clave privada.
@@ -18,7 +18,7 @@ umask 077
 mkdir -p "$DIR"
 chmod 700 "$DIR"
 
-NOMBRES="publicador defecto primera-parte recursos catalogo $(node -e '
+NOMBRES="publicador defecto primera-parte recursos catalogo datos-locales $(node -e '
   for (const u of JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).regionales) console.log("lista-" + u)
 ' "$LISTAS")"
 
