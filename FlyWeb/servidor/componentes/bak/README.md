@@ -1,5 +1,7 @@
 # Firma en bak
 
+**Estado (03-10-2026):** instalado por el HUMANO en bak y ns2; primera firma hecha y temporizador activo.
+
 Los componentes se **construyen** en GitHub Actions sin claves privadas (`.github/workflows/flyweb-shields.yml`) y se
 **firman** en bak. Así, el código de terceros (las listas, uBlock Origin, el motor en Rust, npm) nunca corre en bak,
 y las claves nunca salen de bak.
