@@ -1,7 +1,7 @@
 # Firma en bak
 
 **Estado (03-10-2026):** instalado por el HUMANO en bak y ns2; primera firma hecha y temporizador activo.
-Pendiente: actualizar bak para el espejo de Google (F2.2, [abajo](#actualizar-espejo-de-google-f22)).
+Espejo de Google (F2.2) instalado el mismo día: primera copia a las 16:33, 7 componentes; ns2 sirve 15.
 
 Los componentes se **construyen** en GitHub Actions sin claves privadas (`.github/workflows/flyweb-shields.yml`) y se
 **firman** en bak. Así, el código de terceros (las listas, uBlock Origin, el motor en Rust, npm) nunca corre en bak,
