@@ -5,8 +5,18 @@ Hito: tabla de rendimiento por máquina y backend de ANGLE, con el backend por d
 ## 1. Cómo medir (LOCAL o HUMANO, en cada máquina)
 
 1. **Página de diagnóstico.** Arrastrar `FlyWeb/tools/diagnostico-gpu.html` a una pestaña de FlyWeb y pulsar «Medir».
-   Saca la GPU y el backend de ANGLE, los códecs que se decodifican de forma eficiente (≈ por hardware) y una medida de
-   WebGL (FPS de un shader fijo de 1024×1024 durante 2 s). Pulsar «Copiar JSON» y pegarlo en §3.
+   Saca la GPU y el backend de ANGLE, los códecs que se decodifican de forma eficiente (≈ por hardware) y el rendimiento
+   de WebGL. Pulsar «Copiar JSON» y pegarlo en §3.
+   - **Rendimiento (desde el 03/10):** tres pruebas que **no dependen del refresco de la pantalla**. Se dibuja en un
+     búfer propio de 1024 × 1024 píxeles reales (igual en todas las máquinas, sin `devicePixelRatio`) y se cronometra
+     forzando a la GPU a terminar; mediana de 7 repeticiones.
+     - `sombreado`: un cálculo pesado por píxel (ms por pasada; megapíxeles/s). Mide la GPU en bruto.
+     - `llamadas`: 5000 dibujos pequeños (µs por llamada). **Es la que mejor distingue OpenGL de Metal**, porque los
+       motores de ANGLE se diferencian sobre todo en el coste de cada llamada.
+     - `texturas`: subir una imagen de 4 MB a la GPU (ms; MB/s).
+     - `fpsEnPantalla`: la medida antigua, solo de referencia: se queda en el refresco del monitor (60 Hz).
+   - Medir con la ventana visible y sin otras pestañas pesadas. Si dos repeticiones dan más de un 10 % de diferencia,
+     anotar las dos.
 2. **Repetir con cada backend**, cerrando FlyWeb antes:
    ```sh
    open -na "FlyWeb Development.app" --args --use-angle=metal
@@ -20,10 +30,44 @@ Hito: tabla de rendimiento por máquina y backend de ANGLE, con el backend por d
    anotar `kVideoDecoderName` (`VideoToolboxVideoDecoder` o `VDAVideoDecoder` = hardware; `FFmpegVideoDecoder` o
    `VpxVideoDecoder` = software) y la CPU del proceso de la pestaña en el Monitor de Actividad.
 
+### 1b. Ronda completa en las tres máquinas (encargo del HUMANO, 03/10)
+
+En cada máquina (7,1 Radeon Pro 580X, Sequoia; 6,1 2 × FirePro D500, Mojave; 5,1 RX 580, Mojave), con la misma
+compilación y un perfil nuevo, **tres arranques**: sin argumentos, `--use-angle=metal` y `--use-angle=gl`. En cada
+uno, la página de diagnóstico dos veces (para ver si repite) y pegar los JSON en §3. Luego, solo con el motor por
+defecto, la prueba de uso real de §1c.
+
+En la 6,1 conviene además anotar **qué D500 usa FlyWeb**: `flyweb://gpu` (`brave://gpu` en compilaciones sin el paso 34), apartado *GPU0/GPU1* y *Active*. macOS dibuja
+la pantalla con una y deja la otra para cálculo; Chromium usa solo la activa. Si un monitor va a cada tarjeta, abrir
+FlyWeb en cada pantalla y medir en las dos.
+
+### 1c. Uso real (sobre todo en la 6,1, la de peor gráfica)
+
+Con el Monitor de Actividad abierto en la pestaña CPU (y «Ventana → Historial de la GPU» para ver la carga de la
+GPU), apuntar en cada caso la CPU del proceso «FlyWeb Helper (GPU)» y del de la pestaña, y si hay tirones:
+
+| Prueba | Qué mirar |
+|---|---|
+| YouTube 1080p en H.264 (con la extensión h264ify o una lista que lo fuerce) | Fotogramas perdidos en «Estadísticas para nerds»; CPU < 30 % esperable con hardware |
+| YouTube 1080p en VP9 (lo normal sin forzar) | Fotogramas perdidos; CPU (por software: esperable alta) |
+| Desplazarse rápido por claude.ai con una conversación larga, y por elmundo.es | Tirones al desplazarse; CPU del proceso de GPU |
+| Google Maps en vista 3D/satélite, girando | Fluidez; si aparece el aviso de «WebGL no disponible» |
+| 20 pestañas abiertas y cambiar entre ellas | Retraso al cambiar; memoria de la GPU en `flyweb://gpu` |
+| Página de diagnóstico con otra pestaña reproduciendo vídeo | Cuánto bajan `sombreado` y `llamadas` |
+
+Qué significaría cada resultado en la 6,1:
+- **`llamadas` claramente peor con Metal que con OpenGL** (más de un 20 %): candidata a fijar OpenGL para las D500
+  (F5.2, una regla por ID de GPU, solo para esa tarjeta).
+- **Tirones al desplazarse o al cambiar de pestaña con CPU de GPU alta**: la composición por GPU va justa; F5.3 (el
+  artefacto de pantalla) y este punto se estudian juntos.
+- **VP9 con fotogramas perdidos**: no es la GPU (VP9 va por software en las tres); la solución es forzar H.264 (h264ify
+  o equivalente), no código.
+- **Todo fluido**: no se toca nada; las D500 bastan para navegar aunque tengan menos de la mitad de potencia.
+
 ## 2. Qué decidir con los datos
 
-- **Backend por defecto por GPU:** si en alguna GPU (p. ej. las FirePro de la 6,1) OpenGL da claramente más FPS o menos
-  fallos que Metal, NUBE fija el backend para esa GPU (lista de GPU en `gpu/config` o una regla en `brave-core`).
+- **Backend por defecto por GPU:** si en alguna GPU (p. ej. las FirePro de la 6,1) un motor es claramente mejor en
+  `llamadas` y `sombreado` (más de un 20 %) o da menos fallos que el otro, NUBE fija el backend para esa GPU (lista de GPU en `gpu/config` o una regla en `brave-core`).
   Si Metal va igual o mejor en todas, no se toca nada.
 - **Códecs:** H.264 debe salir por hardware en todas (VideoToolbox existe desde 10.8). VP9 por hardware solo en GPU
   modernas; en la 6,1 y la 5,1 lo esperable es software. Si YouTube en VP9 va a tirones en la 5,1, la solución es una
