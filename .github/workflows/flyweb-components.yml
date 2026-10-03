@@ -3,6 +3,7 @@ name: FlyWeb components server
 on:
   push:
     paths: ["FlyWeb/servidor/go-update/**", ".github/workflows/flyweb-components.yml"]
+  workflow_dispatch:
   pull_request:
     paths: ["FlyWeb/servidor/go-update/**", ".github/workflows/flyweb-components.yml"]
 
@@ -19,8 +20,10 @@ jobs:
       GOEXPERIMENT: jsonv2
       CGO_ENABLED: "0"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: FlyWeb/servidor/go-update/go.mod
           cache-dependency-path: FlyWeb/servidor/go-update/go.sum
@@ -33,11 +36,36 @@ jobs:
           GOOS: linux
           GOARCH: amd64
         run: |
-          go build -trimpath -tags=noasm,nounsafe -ldflags "-s -w" -o ../build/flyweb-components .
+          go build -trimpath -buildvcs=false -tags=noasm,nounsafe -ldflags "-s -w" -o ../build/flyweb-components .
           cd ../build && sha256sum flyweb-components > flyweb-components.sha256 && cat flyweb-components.sha256
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: flyweb-components-linux-amd64
           path: |
             FlyWeb/servidor/build/flyweb-components
             FlyWeb/servidor/build/flyweb-components.sha256
+
+  # ns2 downloads the binary from the public "go-update" release (no login) and checks its SHA-256.
+  publish:
+    needs: test-and-build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: flyweb-components-linux-amd64
+          path: build
+      - name: Upload to the "go-update" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -eu
+          cat build/flyweb-components.sha256
+          gh release view go-update >/dev/null 2>&1 || gh release create go-update --prerelease \
+            --title "go-update for ns2 (FlyWeb components server)" \
+            --notes "Built by flyweb-components.yml (linux/amd64, static). Check the SHA-256 before installing."
+          gh release upload go-update build/flyweb-components build/flyweb-components.sha256 --clobber
+          gh release edit go-update --notes "Built by flyweb-components.yml from ${GITHUB_SHA} (linux/amd64, static). SHA-256: $(cut -d' ' -f1 build/flyweb-components.sha256)"

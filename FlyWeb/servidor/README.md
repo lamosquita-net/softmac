@@ -30,14 +30,15 @@ de Apache solo ve `127.0.0.1`.
 ## Compilar
 
 CI: `.github/workflows/flyweb-components.yml`.
-- Pasos: `go vet`, pruebas, binario `linux/amd64` estático y su SHA-256. El binario sale como artefacto.
+- Pasos: `go vet`, pruebas, binario `linux/amd64` estático y su SHA-256. Al fusionar en `main`, el binario se
+  publica en la release `go-update`.
 - **En ns2 no se compila nada.**
 
 En local (Go 1.26):
 ```sh
 cd FlyWeb/servidor/go-update
 GOEXPERIMENT=jsonv2 go test ./...
-GOEXPERIMENT=jsonv2 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -tags=noasm,nounsafe -ldflags "-s -w" -o ../build/flyweb-components .
+GOEXPERIMENT=jsonv2 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -tags=noasm,nounsafe -ldflags "-s -w" -o ../build/flyweb-components .
 ```
 
 ## Probado en NUBE (02-10)
@@ -49,6 +50,42 @@ GOEXPERIMENT=jsonv2 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ta
 | Lo mismo, con un componente desconocido | 200 con `error-unknownApplication`, sin redirección |
 | Direcciones de escucha | Solo `127.0.0.1:8192`; nada en `:9090` |
 | IP del cliente (`127.0.0.5`) en los registros de Apache y del servicio | 0 veces |
+
+## Instalación en ns2 (HUMANO)
+
+El CI publica el binario en la release pública `go-update` (`flyweb-components.yml`, al fusionar en `main`). NUBE lo
+recompila por su cuenta: el binario es reproducible, y la suma de NUBE tiene que coincidir con la de la release.
+
+```sh
+U=https://github.com/lamosquita-net/softmac/releases/download/go-update
+mkdir -p ~/flyweb-go-update && cd ~/flyweb-go-update
+curl -fsSLO "$U/flyweb-components" && curl -fsSLO "$U/flyweb-components.sha256"
+cat flyweb-components.sha256          # compárala con la que te da NUBE
+sha256sum -c flyweb-components.sha256
+sudo install -d -m 0755 /opt/flyweb-components
+sudo install -m 0755 flyweb-components /opt/flyweb-components/
+
+C=<commit>     # la unidad, desde un commit fijo, con su suma
+curl -fsSLo flyweb-components.service "https://raw.githubusercontent.com/lamosquita-net/softmac/$C/FlyWeb/servidor/systemd/flyweb-components.service"
+echo "<sha256>  flyweb-components.service" | sha256sum -c
+sudo install -m 0644 flyweb-components.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now flyweb-components
+```
+
+Comprobaciones (ninguna muestra la clave de servicio):
+
+```sh
+systemctl is-active flyweb-components                       # active
+sudo ss -ltnp | grep 8192                                   # solo 127.0.0.1:8192, nada en :9090
+sudo journalctl -u flyweb-components -n 5 --no-pager        # «Extension refresh from file completed» item_count 9
+# Directo al servicio: debe devolver la URL de /release/… de la lista por defecto
+curl -s -X POST http://127.0.0.1:8192/extensions -H 'Content-Type: application/json' \
+  -d '{"request":{"protocol":"3.1","app":[{"appid":"oncmalfeabebooncbcbcaofghlfnkjgc","version":"0.0.0.0","updatecheck":{}}]}}'
+# Por Apache sin clave: 403
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://components.flyweb.lamosquita.net/extensions
+```
+
+Deshacer: `sudo systemctl disable --now flyweb-components`, y borrar la unidad y `/opt/flyweb-components`.
 
 ## Actualizar go-update
 
