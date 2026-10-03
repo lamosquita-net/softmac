@@ -1,0 +1,49 @@
+# Destino: /etc/systemd/system/flyweb-components.service  (referencia para E2; la instala el HUMANO)
+# Servicio de componentes de FlyWeb: go-update parcheado, solo en 127.0.0.1, sin red saliente.
+[Unit]
+Description=FlyWeb components server (go-update)
+After=network.target
+
+[Service]
+ExecStart=/opt/flyweb-components/flyweb-components
+Environment=FLYWEB_CATALOG_FILE=/var/www/FlyWeb/components/catalog.json
+Environment=FLYWEB_NO_REDIRECT=1
+Environment=FLYWEB_LISTEN=127.0.0.1:8192
+Environment=FLYWEB_METRICS_LISTEN=off
+Environment=S3_EXTENSIONS_BUCKET_HOST=components.flyweb.lamosquita.net
+Environment=SENTRY_DSN=
+DynamicUser=yes
+Restart=on-failure
+
+# Endurecimiento
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+# Solo lee el catálogo; no escribe en disco.
+ReadOnlyPaths=/var/www/FlyWeb/components
+# Red: solo direcciones locales. No necesita salir: el catálogo es local y la copia diaria es otro servicio.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=multi-user.target

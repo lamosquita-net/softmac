@@ -54,6 +54,37 @@ a `go-updater.brave.com` en 30 minutos, porque Brave pregunta **componente a com
 
 ## 4. Lo que tiene que hacer el servidor (SERVIDOR, S3)
 
+> **RESUELTO (02-10): el almacén de Brave no se puede listar.** Prueba del HUMANO desde ns2:
+> `?list-type=2&prefix=release/<id>/` → `HTTP/2 403`, `server: CloudFront`,
+> `x-cache: FunctionGeneratedResponse`, cuerpo vacío. Sin la clave de Brave no hay forma de saber qué versión descargar,
+> así que **la copia sin firmar queda descartada**. Lo de abajo, sobre el espejo de componentes de Brave, solo sigue
+> valiendo para los de Google (CRLSet, File Type Policies), que se piden a `update.googleapis.com` sin clave.
+>
+> **Plan B: componentes propios con claves nuestras.**
+> - Brave publica su empaquetador: [`brave/brave-core-crx-packager`](https://github.com/brave/brave-core-crx-packager)
+>   (MPL-2.0, activo: último commit del 30-09-2026). Construye desde su origen en GitHub (EasyList, uBlock Origin,
+>   `brave/adblock-lists`, `brave/adblock-resources`) estos componentes:
+>   - las listas de Shields y su catálogo regional;
+>   - los recursos (scriptlets);
+>   - los datos locales (debounce, limpieza de URL…).
+> - Firma con una clave por componente y una **clave de publicador**. Su `lib/crx.js` escribe CRX3 en JavaScript, sin
+>   binario de navegador, así que puede correr en ns2.
+> - **Por comprobar antes de nada:** la compatibilidad con la 1.57, que es de 2023. El empaquetador actual apunta a
+>   Brave reciente; lleva un `lib/adBlockRust0_8_6` para motores antiguos, pero hay que confirmar el formato que
+>   espera la 1.57 (texto de listas o motor serializado) y, si hace falta, usar un commit de 2023.
+> - **Cambios en el navegador (NUBE):**
+>   - los ID y las claves públicas de §2, filas 1–4, 6 y 7;
+>   - nuestra clave de publicador junto a `kBravePublisherKeyHash`.
+>
+>   El catálogo propio lleva las claves de las listas regionales.
+> - **Claves privadas:** las genera el HUMANO y viven fuera del repo (regla 5).
+>
+> **Compatibilidad comprobada (02-10)** en [`FlyWeb/servidor/componentes/`](../servidor/componentes/README.md):
+> - las listas actuales funcionan en el motor 0.7.x de la 1.57;
+> - los scriptlets actuales necesitan convertirse al formato de 2023, más `scriptletGlobals`: lo hace
+>   `recursos-157.mjs`, probado en Chromium real.
+
+
 Base: **`brave/go-update`** (comprobado el 02-10-2026: existe, MPL-2.0, Go 1.26, último commit 23-07-2026).
 - Responde al protocolo Omaha en `POST /extensions` (y `GET`). Sirve los componentes que conoce y **redirige a Google**
   lo que no conoce. También sirve de filtro: bloquea componentes antes de redirigir.
@@ -91,8 +122,14 @@ No hay ningún motivo para hacerlo ahora.
 - **URL.** Se fija al compilar con `updater_prod_endpoint` / `updater_dev_endpoint` (`build.sh`). Brave la añade como
   `--component-updater=url-source=…` (`app/brave_main_delegate.cc:155`). Las actualizaciones de extensiones usan la misma
   URL (`common/extensions/brave_extensions_client.cc:20`).
-- **Cabecera.** Cada consulta lleva la cabecera `BraveServiceKey: flyweb` (`brave_services_key`). `go-update` no la
-  comprueba.
+- **Cabecera.** Cada consulta lleva la cabecera `BraveServiceKey` (`brave_services_key`).
+  - **Corrección (LOCAL, 02-10, F2.6):** el servidor de Brave **sí la comprueba**: responde `403 Missing auth header`
+    a `flyweb`. El código de `go-update` no lo hace, así que debe de hacerlo su infraestructura.
+  - **Consecuencia:** desde el paso 0, **ningún componente se ha instalado ni actualizado** (casi todos en `0.0.0.0`):
+    listas de Shields, recursos, CRLSet…
+  - **Nuestro servidor también exige clave** (decisión del HUMANO). La comprueba Apache solo en `/extensions`
+    (`FlyWeb/servidor/e0/`); el valor está fuera del repo, y `build.sh` lo lee de
+    `~/proyectos/softmac/claves/flyweb-services-key`.
 - **HSTS.** `go-updater.brave.com` tiene HSTS y fijado de clave. Nuestro dominio no, ni lo necesita.
 - **Prueba sin compilar.** En principio vale `--component-updater=url-source=https://components…/extensions`, pero Brave
   añade también la suya y no está comprobado cuál gana. Mejor con una compilación con `FLYWEB_UPDATER_URL`.

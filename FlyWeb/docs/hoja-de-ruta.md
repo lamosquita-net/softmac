@@ -142,6 +142,21 @@ Solo mediante el patrón `chromium_src/` y recursos propios. Nada de parches amp
 
 ---
 
+## Después de la primera versión estable — Informes de fallos (opcional)
+
+Decisión del HUMANO (03/10/2026): FlyWeb no envía diagnósticos ni estadísticas de uso. P3A y la subida de fallos
+están quitados (pasos 14 y 33); el paso «Ayuda a mejorar» del primer inicio ya no existe. Motivo: incluso los datos
+anonimizados permiten perfilar y reidentificar (Sweeney 2000; Narayanan y Shmatikov 2008, Netflix; de Montjoye et
+al. 2013, *Scientific Reports*).
+
+Si más adelante se quiere saber dónde falla FlyWeb en otras máquinas, solo así:
+- **Preguntar en cada fallo**, nunca por defecto ni como ajuste que se queda encendido.
+- **Solo la traza de la pila** (sin volcado de memoria: puede contener URL, contenido de páginas o contraseñas),
+  que el usuario pueda ver antes de enviar.
+- **A nuestro servidor**, sin identificador de equipo ni de usuario, y sin estadísticas de uso.
+
+---
+
 ## Ciclo continuo de mantenimiento
 
 Cadencia: **cada 8 semanas**, con un ciclo urgente solo cuando aparezca un "exploit in the wild" que no mitigue

@@ -1,0 +1,8 @@
+# Destino: /etc/apache2/flyweb-components-keys.conf  (root:root, 0600). NUNCA en el repo.
+# Generar cada clave con:  openssl rand -hex 32
+# La misma clave va en el Mac de compilación, en el fichero que lee FlyWeb/scripts/build.sh
+# (~/proyectos/softmac/claves/flyweb-services-key), y acaba dentro del binario de FlyWeb:
+# evita el uso casual por otros navegadores, no es un secreto fuerte.
+# Rotación: nueva en ACTUAL, la vieja en ANTERIOR hasta que no quede ningún FlyWeb antiguo.
+Define FLYWEB_KEY_ACTUAL   "sustituir-por-openssl-rand-hex-32"
+Define FLYWEB_KEY_ANTERIOR "sustituir-por-openssl-rand-hex-32"

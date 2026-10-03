@@ -105,6 +105,11 @@ inerte a propósito).
 
 ### Ejemplo de vhost (Apache 2.4)
 
+> **Superado (02-10).** La versión vigente, con los tres subdominios, registros sin IP en `/var/log/flyweb/` (fuera de
+> `/var/log/apache2/`, que leen fail2ban y CrowdSec), certificado propio, usuario `flyweb` y clave de servicio, está en
+> [`FlyWeb/servidor/e0/`](../servidor/e0/README.md). El HUMANO lo monta a su manera y pasa el resultado para
+> codificarlo (E1). El ejemplo de abajo se conserva solo como referencia.
+
 Probado con Apache 2.4 (`configtest` y peticiones reales): HTTP/2, `206` con `Range`, tipo `.dmg`, cabeceras y registro sin IP.
 
 Módulos: `ssl`, `headers`, `http2` y `mime` (y `proxy_http` para S3). Los certificados, con certbot (`--apache`).

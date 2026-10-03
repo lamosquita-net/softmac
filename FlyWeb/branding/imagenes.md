@@ -47,9 +47,9 @@ incluida `iconos-tamano-real.png` para revisarla al 100 % en un monitor no Retin
 - **PNG fuera del repo** (Illustrator no los exporta a tamaño exacto): se generan desde los SVG. `.gitignore` excluye
   `FlyWeb/branding/*.png`, `BackupDrive/branding/*.png` y `*.ai` (el `.ai` es el documento de trabajo del HUMANO).
 - **O2: elegido `O2-02.svg`** (texto ya en trazados). `O2.svg` queda como alternativa.
-- **M3 sin disco:** dos candidatos, `M3_1.svg` (16×16,02, el último exportado) y `M3-02.svg` (lienzo 13,42×14,87, no
-  cuadrado). **Pendiente de que el HUMANO elija** con la lámina `software/entregas/iconos-v1/E-entrega2.png`. El elegido
-  debería tener lienzo cuadrado de 16×16 para que el `.icon` salga alineado a píxel.
+- **M3 sin disco: elegido `M3_1.svg`** (lienzo cuadrado de 16×16, alineado a píxel para el `.icon`). El HUMANO los vio
+  iguales en la lámina `software/entregas/iconos-v1/E-entrega2.png`; `M3-02.svg` (lienzo 13,42×14,87) queda como
+  alternativa. **NUBE:** generar desde él los `.icon` (`scripts/svg2icon.py`) y el monocromo de `leo-icons.py`.
 - **M4 pequeño** para 77×22: `M4-fondo-claro-pequeño.svg` y `M4-fondo-oscuro-pequeño.svg`.
 - `01-02.svg` era una copia idéntica de `O1-02.svg` con el nombre mal: retirada (está en `~/proyectos/softmac/temp/papelera/` de la 7,1).
 
@@ -60,6 +60,8 @@ Todos los maestros elegidos están en `flyweb` desde el paso 28 de `docs/integra
 `software/entregas/iconos-v1/F-*.png`. Quedan provisionales: el **botón de Escudos** (M6, escudo verde/gris con la
 mosca de M3_1), la bienvenida (M8, se usa M1-01) y el fondo del DMG (M5). Los 16 y 32 px de la app salen reduciendo
 M1-01: si a esos tamaños no convence, hace falta la versión a píxel (O3).
+
+Alternativa sin integrar: `nube/iconos-entrega` e899e796 de NUBE, generada con `scripts/generar-entrega.js` e `icns.py` (ver `scripts/README.md`).
 
 ## Limitaciones de cada maestro: color y fondo
 

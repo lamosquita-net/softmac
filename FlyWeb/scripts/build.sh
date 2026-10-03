@@ -7,6 +7,9 @@
 #
 # Variables opcionales:
 #   FLYWEB_SCCACHE=/ruta/sccache | off   caché de compilación (por defecto, sccache del PATH si existe)
+#   FLYWEB_SERVICES_KEY_FILE=/ruta       clave de servicio para components.flyweb.lamosquita.net (F2.6).
+#                                        Por defecto ~/proyectos/softmac/claves/flyweb-services-key, FUERA
+#                                        del repo. Sin fichero se usa "flyweb" y el servidor rechaza las consultas.
 # Al terminar deja out/<modo>/flyweb-build-info.txt y, en builds sin firmar (no Release), las claves
 # FlyWebCommit, FlyWebBraveBrowserCommit, FlyWebChromium, FlyWebBuildDate y FlyWebBuildConfig en el Info.plist.
 set -eu
@@ -59,13 +62,27 @@ npm run apply_patches
 # = cualquier commit). lastchange.py solo reescribe el fichero si cambia: sin commits nuevos no recompila nada.
 python3 src/build/util/lastchange.py --output src/build/util/LASTCHANGE --source-dir src/brave --filter ""
 # Servicios de Brave: ver FlyWeb/docs/rebranding.md §4.
-# - Componentes (listas de Shields, Widevine): se mantienen los servidores de Brave (decisión "a").
+# - Componentes: nuestro servidor (components.flyweb.lamosquita.net, F2.6). Brave exige su clave privada (403).
+#   Las listas de Shields son propias (FlyWeb/servidor/componentes). Los de Google (Widevine, CRLSet…) no llegan
+#   mientras go-update corra con FLYWEB_NO_REDIRECT=1: decisión pendiente del HUMANO (ver componentes/README.md).
 # - Sync, estadísticas y variations: URL inertes (son obligatorias en Release).
 # - Sparkle, actualizador, P3A, Leo, VPN: desactivados aquí.
 # - Safe Browsing: NO se puede quitar al compilar en 1.57 (safe_browsing_mode:0 deja sin resolver dependencias de
 #   //chrome/test:unit_tests); se apaga con FlyWeb/policies/flyweb-policies.mobileconfig.
 # - Wallets y Rewards: quitados en el propio brave-core (rama nube/no-wallet), sin argumentos aquí.
-UPDATER="${FLYWEB_UPDATER_URL:-https://go-updater.brave.com/extensions}"
+UPDATER="${FLYWEB_UPDATER_URL:-https://components.flyweb.lamosquita.net/extensions}"
+# Clave de servicio (cabecera BraveServiceKey de cada consulta de componentes). Nunca se imprime.
+KEYFILE="${FLYWEB_SERVICES_KEY_FILE:-$HOME/proyectos/softmac/claves/flyweb-services-key}"
+if [ -r "$KEYFILE" ]; then
+  SERVICES_KEY=$(tr -d ' \t\r\n' < "$KEYFILE")
+  # Mismo formato que exige Apache en components. (openssl rand -hex 32)
+  printf '%s' "$SERVICES_KEY" | grep -Eq '^[0-9a-f]{64}$' || {
+    echo "Clave de servicio no válida en $KEYFILE (64 caracteres hexadecimales: openssl rand -hex 32)" >&2; exit 1; }
+  echo "Clave de servicio: $KEYFILE"
+else
+  SERVICES_KEY=flyweb
+  echo "AVISO: sin $KEYFILE; clave \"flyweb\": el servidor de componentes rechazará las consultas" >&2
+fi
 INERT="https://flyweb.invalid"
 npm run build -- "$CONFIG" --target_arch=x64 \
   --gn "mac_sdk_path:$SDK" \
@@ -75,7 +92,7 @@ npm run build -- "$CONFIG" --target_arch=x64 \
   --gn "brave_stats_updater_url:$INERT" \
   --gn "brave_sync_endpoint:$INERT" \
   --gn "brave_variations_server_url:$INERT" \
-  --gn brave_services_key:flyweb \
+  --gn "brave_services_key:$SERVICES_KEY" \
   --gn enable_sparkle:false \
   --gn enable_updater:false \
   --gn brave_p3a_enabled:false \
