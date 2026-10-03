@@ -86,3 +86,26 @@ prefiere seguir con iCloud, la 2 en la 7,1 y la 3 en los Mojave es lo máximo po
   1c. otro gestor con extensión que siga soportando Chromium 116 (KeePassXC + KeePassXC-Browser con el fichero `.kdbx`
       sincronizado por BackupDrive; por comprobar qué versión de KeePassXC funciona aún en 10.14): sin servidor, pero la sincronización no es «al
       momento» y hay conflictos si se edita en dos Macs a la vez. Por comprobar si su extensión actual sigue en ≤ 116.
+
+## 6. Requisito del HUMANO (03/10): que funcione en Mojave sin quedarse congelado, en servidor propio
+
+- **Descartados los gestores externos:** la extensión de Bitwarden exige Chromium 134 desde la 2026.9.2, y
+  KeePassXC-Browser exige Chromium 124 (manifiesto actual, versión 1.10.4.1). Las dos se quedarían congeladas en
+  FlyWeb 116. La extensión es la pieza que ve las contraseñas: no se acepta sin parches.
+- **Propuesta de NUBE: la sincronización de FlyWeb contra un servidor propio.** Brave 1.57 trae «Sincronizar» (Sync
+  v2), que incluye contraseñas, marcadores, historial y ajustes. Hoy está con URL inerte (`build.sh`). El servidor de
+  Brave es código abierto: [`brave/go-sync`](https://github.com/brave/go-sync) (MPL-2.0, Go), y su protocolo es el
+  de Chromium 116.0.5845.183, el mismo que nuestra base.
+  - **No se congela:** es código del propio navegador, que ya mantenemos; no depende de una extensión ajena.
+  - **No hay cuentas ni usuario:** los dispositivos se unen con un código de 24 palabras, y todo va **cifrado de
+    extremo a extremo** (la clave sale de ese código). El servidor de ns2 solo guarda datos cifrados; ni nosotros
+    podemos leerlos.
+  - **Código en el navegador:** casi nada (la URL de sync en `build.sh` y revisar que la página de Sincronizar no
+    nombre a Brave).
+  - **Servidor:** `go-sync` usa DynamoDB y Redis. En ns2: DynamoDB Local (Java; Amazon no lo recomienda para
+    producción, aunque para pocos usuarios bastaría) o ScyllaDB Alternator (compatible con la API de DynamoDB, más
+    pesado). Hay que fijar un commit de `go-sync` compatible con 1.57 y probarlo en local antes de tocar ns2.
+  - **Lo que no cubre:** Safari y el iPhone siguen en iCloud. Migración: exportar CSV desde Contraseñas (Sequoia)
+    → importar en FlyWeb → se sincroniza al resto. A partir de ahí habría dos almacenes (iCloud para Safari/iPhone,
+    FlyWeb para FlyWeb), salvo que dejes de guardar en Safari.
+- Pendiente de decisión del HUMANO.
