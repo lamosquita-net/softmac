@@ -101,3 +101,15 @@ Pasos del HUMANO:
    debe dar 200, y `https://proxy.flyweb.lamosquita.net/` debe dar 404.
 - **Riesgo asumido:** quien conozca la URL puede gastar la cuota de la clave, porque el navegador no manda la clave de
   servicio a estos hosts. Vigilar el uso en la consola de Google Cloud.
+
+## Propuesta: `sync.flyweb.lamosquita.net` (NUBE, 03-10; pendiente del HUMANO)
+
+Sincronización de FlyWeb (F7.5): delante de `flyweb-sync` (`../sync/`, servicio `../systemd/flyweb-sync.service`, solo
+en `127.0.0.1:8295`). Fichero: `apache/flyweb-sync-vhost.conf`. Solo `POST /v2/command/`; lo demás, 404.
+
+- **Privacidad:** igual que `proxy.`: sin IP en accesos ni errores, sin consulta en el registro, y `flyweb-sync` no
+  recibe la IP. Los datos van cifrados de extremo a extremo por el navegador.
+- **Probado en NUBE** (Apache 2.4.58 delante del binario): sincronización entre dos «Macs» de la misma cadena; otra
+  cadena no ve nada; 401 sin token o con firma falsa; 404 en el resto (también con `..`); 301 en el puerto 80; 0 IP
+  en los registros.
+- **Pasos:** en `../sync/README.md`, «Instalar en ns2» (DNS, `certbot --expand`, binario, servicio, vhost).

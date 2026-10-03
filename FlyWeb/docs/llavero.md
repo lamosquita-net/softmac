@@ -108,4 +108,17 @@ prefiere seguir con iCloud, la 2 en la 7,1 y la 3 en los Mojave es lo máximo po
   - **Lo que no cubre:** Safari y el iPhone siguen en iCloud. Migración: exportar CSV desde Contraseñas (Sequoia)
     → importar en FlyWeb → se sincroniza al resto. A partir de ahí habría dos almacenes (iCloud para Safari/iPhone,
     FlyWeb para FlyWeb), salvo que dejes de guardar en Safari.
-- Pendiente de decisión del HUMANO.
+- **Decidido (HUMANO, 03/10):** sistema propio, el de menos mantenimiento (§7).
+
+## 7. Decisión y estado (03/10)
+
+- **HUMANO:** OCLP descartado (los Mac antiguos siguen en Mojave); sistema propio, el que menos mantenimiento dé;
+  importará sus contraseñas por CSV (exportadas desde Contraseñas en la Sequoia).
+- **NUBE:** hecho el servidor, `FlyWeb/servidor/sync` (ver su `README.md`): go-sync de Brave con SQLite y caché en
+  memoria, un binario y un fichero en ns2. En el navegador solo cambia la URL (`build.sh`, paso 41 de
+  `integracion.md`).
+- **Falta:** instalarlo en ns2 y probarlo con FlyWeb en la 7,1, la 6,1 y la 5,1.
+- **Cómo lo usará el HUMANO:** Ajustes › Sincronizar en la 7,1 → cadena nueva (guardar el código de 24 palabras en
+  sitio seguro: sin él no hay forma de recuperar los datos, ni nosotros podemos); unir la 6,1 y la 5,1 con el código;
+  importar el CSV en uno solo y borrar el CSV.
+- **Lo que no cambia:** Safari y el iPhone siguen con iCloud; FlyWeb tiene su propio almacén sincronizado.

@@ -1,0 +1,48 @@
+# Destino: /etc/systemd/system/flyweb-sync.service  (PROPUESTA de NUBE, 03-10; la instala el HUMANO o LOCAL)
+# Sincronización de FlyWeb (FlyWeb/servidor/sync): un binario estático y un fichero SQLite, solo en 127.0.0.1,
+# sin red saliente. Delante, Apache: sync.flyweb.lamosquita.net (e0/apache/flyweb-sync-vhost.conf).
+[Unit]
+Description=FlyWeb sync server (go-sync with SQLite)
+After=network.target
+
+[Service]
+ExecStart=/opt/flyweb-sync/flyweb-sync
+Environment=FLYWEB_SYNC_LISTEN=127.0.0.1:8295
+Environment=FLYWEB_SYNC_DB=/var/lib/flyweb-sync/sync.db
+DynamicUser=yes
+# /var/lib/flyweb-sync (con DynamicUser, en realidad /var/lib/private/flyweb-sync), 0700.
+StateDirectory=flyweb-sync
+StateDirectoryMode=0700
+Restart=on-failure
+MemoryMax=512M
+
+# Endurecimiento (igual que flyweb-components.service)
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+# Red: solo direcciones locales; no necesita salir a ningún sitio.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=multi-user.target

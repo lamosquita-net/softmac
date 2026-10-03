@@ -1,13 +1,14 @@
 # FlyWeb — servicios del servidor (ns2)
 
-Código y configuración de `components.flyweb.lamosquita.net` (Fase 2). Reglas y etapas: [`docs/SERVIDOR.md`](../../docs/SERVIDOR.md).
+Código y configuración de `components.flyweb.lamosquita.net` (Fase 2) y `sync.flyweb.lamosquita.net` (F7.5). Reglas y etapas: [`docs/SERVIDOR.md`](../../docs/SERVIDOR.md).
 Plan e inventario: [`FlyWeb/docs/componentes.md`](../docs/componentes.md).
 
 | Carpeta | Qué es | Licencia |
 |---|---|---|
 | `e0/` | Los vhost de FlyWeb **tal como están en ns2** (E0 hecho el 02-10) y logrotate | MIT (raíz) |
 | `go-update/` | [`brave/go-update`](https://github.com/brave/go-update) 1da7d75 (`git subtree --squash`), con el parche de FlyWeb | **MPL-2.0** (la suya) |
-| `systemd/` | Unidad endurecida del servicio (referencia para E2) | MIT (raíz) |
+| `sync/` | **flyweb-sync**: sincronización de FlyWeb (go-sync de Brave con SQLite; F7.5). Ver su `README.md` | **MPL-2.0** (la de go-sync) |
+| `systemd/` | Unidades endurecidas de los servicios (`flyweb-components`, `flyweb-sync`) | MIT (raíz) |
 
 ## Parche de FlyWeb sobre go-update
 

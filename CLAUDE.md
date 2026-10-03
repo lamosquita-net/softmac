@@ -55,7 +55,8 @@ que tiene commit. **Nunca `gclient sync -D`** en `flyweb-build` (borró el workt
   `net.lamosquita.flyweb[.canal]`, Team ID `MQ3NJ73LC5`, perfil `~/Library/Application Support/LaMosquita/FlyWeb`,
   llavero `FlyWeb Safe Storage`. Aplicado en `brave-core` rama `flyweb`.
 - Servicios: componentes desde nuestro servidor `components.flyweb.lamosquita.net` (ns2: Shields y datos locales
-  propios firmados en bak, componentes de Google en espejo; `FlyWeb/servidor/`); News y Talk fuera; sync, stats y variations
+  propios firmados en bak, componentes de Google en espejo; `FlyWeb/servidor/`); News y Talk fuera; sync propio en
+  `sync.flyweb.lamosquita.net` (`FlyWeb/servidor/sync`, go-sync con SQLite; cifrado de extremo a extremo); stats y variations
   con URL inertes; Sparkle, updater, P3A, Leo y VPN desactivados (args en `build.sh`); Wallet y Rewards quitados
   en el código (brave-core `nube/no-wallet`); Safe Browsing estándar por política (`FlyWeb/policies/flyweb-policies.mobileconfig`;
   en 1.57 su arg rompe `gn gen`), a través del proxy propio `proxy.flyweb.lamosquita.net` en ns2: nada pasa por proxies de Brave.
