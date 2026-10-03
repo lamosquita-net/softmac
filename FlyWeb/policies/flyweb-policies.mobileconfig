@@ -3,8 +3,11 @@
 <!--
   Políticas de FlyWeb:
   - V8 sin JIT por defecto (DefaultJavaScriptJitSetting = 2) y sitios que sí pueden usarlo (JavaScriptJitAllowedForSites).
-  - Safe Browsing apagado (SafeBrowsingProtectionLevel = 0): en 1.57 no se puede quitar al compilar y consulta
-    servidores de Brave/Google. Contrapartida: sin aviso de sitios de phishing o malware.
+  - Safe Browsing estándar (SafeBrowsingProtectionLevel = 1), por el proxy propio de ns2: Google ve la IP del servidor,
+    no la del usuario, y nada pasa por Brave (decisión del HUMANO, 03/10). Antes estaba apagado (0) porque consultaba
+    servidores de Brave/Google. **Instalar esta versión solo cuando** el proxy esté en producción
+    (FlyWeb/servidor/e0, «Propuesta: proxy») y el navegador lleve el paso 35 de integracion.md (nube/proxies-propios)
+    y build.sh con safebrowsing_api_endpoint; con un navegador anterior iría directo a Google.
   - Brave Wallet y Brave Rewards desactivados (BraveWalletDisabled, BraveRewardsDisabled).
   Instalar: doble clic y aceptar en Preferencias del Sistema > Perfiles. Ver brave://policy.
   La granularidad es el sitio (eTLD+1): "[*.]google.com" cubre mail.google.com y docs.google.com.
@@ -42,7 +45,7 @@
 								<key>DefaultJavaScriptJitSetting</key>
 								<integer>2</integer>
 								<key>SafeBrowsingProtectionLevel</key>
-								<integer>0</integer>
+								<integer>1</integer>
 								<key>BraveWalletDisabled</key>
 								<true/>
 								<key>BraveRewardsDisabled</key>
@@ -81,7 +84,7 @@
 								<key>DefaultJavaScriptJitSetting</key>
 								<integer>2</integer>
 								<key>SafeBrowsingProtectionLevel</key>
-								<integer>0</integer>
+								<integer>1</integer>
 								<key>BraveWalletDisabled</key>
 								<true/>
 								<key>BraveRewardsDisabled</key>
