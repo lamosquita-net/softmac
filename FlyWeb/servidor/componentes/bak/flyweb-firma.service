@@ -1,0 +1,38 @@
+# bak: firma diaria de los componentes de Shields de FlyWeb (ver README.md de esta carpeta).
+[Unit]
+Description=FlyWeb: firma diaria de los componentes de Shields
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=flywebfirma
+Group=flywebfirma
+ExecStart=/usr/bin/node /opt/flyweb-firma/firmar.mjs \
+  --origen https://github.com/lamosquita-net/softmac/releases/download/shields \
+  --claves /var/lib/flyweb-firma/claves \
+  --salida /var/lib/flyweb-firma/salida \
+  --aprobados /etc/flyweb-firma/recursos-aprobados \
+  --subir flyweb-ns2
+TimeoutStartSec=15min
+UMask=0077
+# Endurecimiento. Sin MemoryDenyWriteExecute: V8 (Node) lo necesita.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ReadWritePaths=/var/lib/flyweb-firma
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native

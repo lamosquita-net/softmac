@@ -1,17 +1,17 @@
-// Empaquetado de los componentes de Shields de FlyWeb 1.57 (plan B). Pensado para ejecutarse una vez al día.
+// Construcción de los componentes de Shields de FlyWeb 1.57 (plan B). SIN claves privadas: corre en GitHub Actions
+// (.github/workflows/flyweb-shields.yml) y deja zips sin firmar que firma bak (bak/firmar.mjs).
 //
-// Genera y firma:
+// Construye:
 //   - la lista por defecto (list.txt): las fuentes de las entradas de "defecto" de listas.json;
-//   - los recursos (resources.json), con recursos-157.mjs;
-//   - el catálogo (regional_catalog.json): las entradas de "regionales", con NUESTROS ID y claves;
+//   - los recursos (resources.json), con recursos-157.mjs y el uBlock Origin fijado en fijado.json;
+//   - el catálogo (regional_catalog.json): las entradas de "regionales", con NUESTROS ID y claves públicas;
 //   - cada lista regional (list.txt).
-// Escribe <salida>/release/<id>/extension_<versión>.crx y <salida>/catalog.json (el que lee go-update con
-// FLYWEB_CATALOG_FILE). Solo publica una versión nueva de un componente si su contenido ha cambiado.
+// Cada componente sale como <salida>/<nombre>.zip (manifest.json con la clave pública + el fichero de datos), y
+// <salida>/indice.json los describe (versión, SHA-256 del zip y del contenido, reglas).
 //
 // Uso:
-//   node empaquetar.mjs --packager <checkout> --claves <dir> --salida <dir> [--listas listas.json] [--sin-firma]
-// <dir de claves>: publicador.pem, defecto.pem, recursos.pem, catalogo.pem y lista-<UUID>.pem. Las genera
-// generar-claves.sh. Nunca van al repo.
+//   node empaquetar.mjs --packager <checkout fijado> --ublock <checkout fijado> --salida <dir> [--listas listas.json]
+//                       [--claves-publicas claves-publicas.json]
 // Entorno: ADBLOCK_RS=<node_modules/adblock-rs 0.7.x> (motor de la 1.57, para validar).
 //
 // Origen de las listas: el catálogo de brave/adblock-resources y la copia de las listas de
@@ -22,37 +22,37 @@ import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { generarRecursos } from './recursos-157.mjs'
+import { crearZip } from './bak/zip.mjs'
 
 const require = createRequire(import.meta.url)
 const CATALOGO_URL = 'https://raw.githubusercontent.com/brave/adblock-resources/master/filter_lists/list_catalog.json'
 const MIRROR = 'https://raw.githubusercontent.com/brave/adblock-lists-mirror/refs/heads/lists/lists/'
 const SERVIDOR = 'https://flyweb.lamosquita.net'
+const aqui = (f) => new URL(f, import.meta.url).pathname
 
 const args = process.argv.slice(2)
 const opt = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : d }
-const PACKAGER = opt('--packager'); const CLAVES = opt('--claves'); const SALIDA = opt('--salida')
-const LISTAS = opt('--listas', new URL('./listas.json', import.meta.url).pathname)
-const SIN_FIRMA = args.includes('--sin-firma')
-if (!PACKAGER || !SALIDA || (!CLAVES && !SIN_FIRMA)) {
-  console.error('Uso: node empaquetar.mjs --packager <dir> --claves <dir> --salida <dir> [--listas f] [--sin-firma]')
+const PACKAGER = opt('--packager'); const UBLOCK = opt('--ublock'); const SALIDA = opt('--salida')
+const LISTAS = opt('--listas', aqui('./listas.json'))
+const PUBLICAS = opt('--claves-publicas', aqui('./claves-publicas.json'))
+if (!PACKAGER || !UBLOCK || !SALIDA) {
+  console.error('Uso: node empaquetar.mjs --packager <dir> --ublock <dir> --salida <dir> [--listas f] [--claves-publicas f]')
   process.exit(2)
 }
 const { Engine, FilterSet } = require(process.env.ADBLOCK_RS || 'adblock-rs')
-const crx = SIN_FIRMA ? null : (await import(path.resolve(PACKAGER, 'lib/crx.js'))).default
 
 const sha256 = (b) => crypto.createHash('sha256').update(b).digest('hex')
-const spki = (pem) => crypto.createPublicKey(pem).export({ type: 'spki', format: 'der' })
 const idDe = (der) => [...sha256(der).slice(0, 32)].map((c) => String.fromCharCode(97 + parseInt(c, 16))).join('')
-const leerClave = (nombre) => {
-  const f = path.join(CLAVES, nombre)
-  const modo = fs.statSync(f).mode & 0o077
-  if (modo) throw new Error(`${f}: permisos demasiado abiertos (debe ser 0600)`)
-  return { fichero: f, der: spki(fs.readFileSync(f)) }
-}
 const descargar = async (url) => {
   const r = await fetch(url)
   if (r.status !== 200) throw new Error(`${url}: HTTP ${r.status}`)
   return r.text()
+}
+const publicas = JSON.parse(fs.readFileSync(PUBLICAS, 'utf8')).claves
+const clave = (nombre) => {
+  const b64 = publicas[nombre]
+  if (!b64) throw new Error(`falta la clave pública de ${nombre} en ${path.basename(PUBLICAS)}`)
+  return { b64, id: idDe(Buffer.from(b64, 'base64')) }
 }
 
 // Directivas !#if de uBlock Origin, con los mismos valores que usa el empaquetador de Brave.
@@ -134,85 +134,58 @@ const VERSION = [ahora.getUTCFullYear(), (ahora.getUTCMonth() + 1) * 100 + ahora
   ahora.getUTCHours() * 100 + ahora.getUTCMinutes()].join('.')
 
 const listas = JSON.parse(fs.readFileSync(LISTAS, 'utf8'))
+const fijado = JSON.parse(fs.readFileSync(aqui('./fijado.json'), 'utf8'))
 const catalogoBrave = JSON.parse(await descargar(CATALOGO_URL))
 const porUuid = new Map(catalogoBrave.map((e) => [e.uuid, e]))
 const buscar = (u) => { const e = porUuid.get(u); if (!e) throw new Error(`UUID ${u} no está en el catálogo de Brave`); return e }
 
-const ESTADO = path.join(SALIDA, 'empaquetado.json')
-const estado = fs.existsSync(ESTADO) ? JSON.parse(fs.readFileSync(ESTADO, 'utf8')) : {}
-const clave = (n) => SIN_FIRMA ? { fichero: null, der: crypto.createHash('sha256').update(n).digest() } : leerClave(n)
-
-const componentes = [] // { nombre, titulo, fichero, datos, clave, reglas }
+const componentes = [] // { nombre, titulo, fichero, datos, reglas, quitadas }
 const fallos = []
 const intentar = async (nombre, f) => { try { await f() } catch (e) { fallos.push(`${nombre}: ${e.message}`) } }
 
 await intentar('defecto', async () => {
   const { texto, quitadas } = await construirLista(listas.defecto.map(buscar))
-  const reglas = validarLista('defecto', texto, true)
-  componentes.push({ nombre: 'defecto', titulo: 'FlyWeb Shields: lista por defecto', fichero: 'list.txt', datos: texto, clave: clave('defecto.pem'), reglas, quitadas })
+  componentes.push({ nombre: 'defecto', titulo: 'FlyWeb Shields: lista por defecto', fichero: 'list.txt', datos: texto, reglas: validarLista('defecto', texto, true), quitadas })
 })
 await intentar('recursos', async () => {
-  const { resources } = await generarRecursos(PACKAGER)
-  componentes.push({ nombre: 'recursos', titulo: 'FlyWeb Shields: recursos', fichero: 'resources.json', datos: JSON.stringify(resources), clave: clave('recursos.pem') })
+  const { resources } = await generarRecursos(UBLOCK)
+  componentes.push({ nombre: 'recursos', titulo: 'FlyWeb Shields: recursos', fichero: 'resources.json', datos: JSON.stringify(resources) })
 })
 const catalogo = []
 for (const uuid of listas.regionales) {
-  await intentar(uuid, async () => {
-    const e = buscar(uuid)
-    const k = clave(`lista-${uuid}.pem`)
+  await intentar(`lista-${uuid}`, async () => {
+    const e = buscar(uuid); const k = clave(`lista-${uuid}`)
     const { texto, quitadas } = await construirLista([e])
-    const reglas = validarLista(e.title, texto, false)
-    componentes.push({ nombre: `lista-${uuid}`, titulo: `FlyWeb Shields: ${e.title}`, fichero: 'list.txt', datos: texto, clave: k, reglas, quitadas })
+    componentes.push({ nombre: `lista-${uuid}`, titulo: `FlyWeb Shields: ${e.title}`, fichero: 'list.txt', datos: texto, reglas: validarLista(e.title, texto, false), quitadas })
     // Solo los campos que lee la 1.57 (filter_list_catalog_entry.cc), con nuestro ID y nuestra clave.
     catalogo.push({ uuid: e.uuid, url: e.sources[0]?.url ?? '', title: e.title, langs: e.langs ?? [],
       support_url: e.support_url ?? e.sources[0]?.support_url ?? '', desc: e.desc ?? '',
-      list_text_component: { component_id: idDe(k.der), base64_public_key: k.der.toString('base64') } })
+      list_text_component: { component_id: k.id, base64_public_key: k.b64 } })
   })
 }
+// Si falla alguna lista, no sale catálogo: bak conserva el anterior y la lista no desaparece de los navegadores.
 await intentar('catalogo', async () => {
-  // Si falla alguna lista, el catálogo se queda como estaba: así no desaparece de los navegadores.
-  if (catalogo.length !== listas.regionales.length) throw new Error('falta alguna lista regional; se conserva el catálogo anterior')
-  componentes.push({ nombre: 'catalogo', titulo: 'FlyWeb Shields: catálogo de listas', fichero: 'regional_catalog.json', datos: JSON.stringify(catalogo), clave: clave('catalogo.pem') })
+  if (catalogo.length !== listas.regionales.length) throw new Error('falta alguna lista regional; no se genera catálogo')
+  componentes.push({ nombre: 'catalogo', titulo: 'FlyWeb Shields: catálogo de listas', fichero: 'regional_catalog.json', datos: JSON.stringify(catalogo) })
 })
 
-// Firma y publicación. Un componente sin cambios conserva su versión anterior.
-const publicador = SIN_FIRMA ? null : leerClave('publicador.pem')
-const nuevoEstado = { ...estado }
-const tmp = fs.mkdtempSync(path.join(SALIDA, '.tmp-'))
-try {
-  for (const c of componentes) {
-    const id = idDe(c.clave.der); const hash = sha256(c.datos); const prev = estado[id]
-    if (prev && prev.contenido === hash) { console.log(`= ${c.nombre.padEnd(46)} sin cambios (${prev.version})`); continue }
-    if (prev?.reglas && c.reglas !== undefined && c.reglas < prev.reglas / 2) {
-      fallos.push(`${c.nombre}: ${c.reglas} reglas frente a ${prev.reglas} de la versión anterior; no se publica`); continue
-    }
-    const stage = path.join(tmp, id); fs.mkdirSync(stage)
-    fs.writeFileSync(path.join(stage, 'manifest.json'), JSON.stringify({ manifest_version: 2, name: c.titulo, version: VERSION }))
-    fs.writeFileSync(path.join(stage, c.fichero), c.datos)
-    const linea = `+ ${c.nombre.padEnd(46)} ${VERSION} ${id}${c.reglas !== undefined ? ` ${c.reglas} reglas` : ''}${c.quitadas ? ` (${c.quitadas} quitadas)` : ''}`
-    if (SIN_FIRMA) { console.log(linea + ' [sin firma]'); continue }
-    const { crx: bytes } = await crx.generateCrx(stage, c.clave.fichero, [publicador.fichero], null)
-    const dir = path.join(SALIDA, 'release', id); fs.mkdirSync(dir, { recursive: true })
-    const nombre = `extension_${VERSION.replace(/\./g, '_')}.crx`
-    fs.writeFileSync(path.join(dir, nombre + '.tmp'), bytes); fs.renameSync(path.join(dir, nombre + '.tmp'), path.join(dir, nombre))
-    nuevoEstado[id] = { nombre: c.nombre, titulo: c.titulo, version: VERSION, contenido: hash, sha256: sha256(bytes), tamano: bytes.length, reglas: c.reglas }
-    // Se conservan la versión nueva y la anterior (descargas en curso); el resto se borra.
-    const quedan = new Set([nombre, prev && `extension_${prev.version.replace(/\./g, '_')}.crx`])
-    for (const f of fs.readdirSync(dir)) if (!quedan.has(f)) fs.rmSync(path.join(dir, f))
-    console.log(linea)
-  }
-} finally {
-  fs.rmSync(tmp, { recursive: true, force: true })
+fs.mkdirSync(SALIDA, { recursive: true })
+// esperados: lo que pide listas.json; bak deja de servir lo que ya no esté (un fallo de hoy no lo quita).
+const esperados = ['defecto', 'recursos', ...listas.regionales.map((u) => `lista-${u}`), 'catalogo']
+const indice = { generado: ahora.toISOString(), version: VERSION, ublock: fijado.ublock.tag, esperados, componentes: [] }
+for (const c of componentes) {
+  await intentar(c.nombre, async () => {
+    const k = clave(c.nombre)
+    const manifest = { manifest_version: 2, name: c.titulo, version: VERSION, key: k.b64 }
+    const zip = crearZip([{ nombre: 'manifest.json', datos: Buffer.from(JSON.stringify(manifest, null, 1)) },
+      { nombre: c.fichero, datos: Buffer.from(c.datos) }])
+    fs.writeFileSync(path.join(SALIDA, `${c.nombre}.zip`), zip)
+    indice.componentes.push({ nombre: c.nombre, id: k.id, version: VERSION, zip: `${c.nombre}.zip`, sha256: sha256(zip),
+      contenido: sha256(c.datos), ...(c.reglas !== undefined && { reglas: c.reglas, quitadas: c.quitadas }) })
+    console.log(`+ ${c.nombre.padEnd(46)} ${VERSION} ${k.id}${c.reglas !== undefined ? ` ${c.reglas} reglas (${c.quitadas} quitadas)` : ''}`)
+  })
 }
-
-if (!SIN_FIRMA) {
-  // Solo lo que sigue en listas.json; lo quitado deja de servirse.
-  const esperados = new Set(['defecto', 'recursos', 'catalogo', ...listas.regionales.map((u) => `lista-${u}`)])
-  for (const [id, e] of Object.entries(nuevoEstado)) if (!esperados.has(e.nombre)) delete nuevoEstado[id]
-  const cat = Object.entries(nuevoEstado).map(([id, e]) => ({ ID: id, Version: e.version, SHA256: e.sha256, Title: e.titulo, Size: e.tamano }))
-  const escribir = (f, d) => { fs.writeFileSync(f + '.tmp', d); fs.renameSync(f + '.tmp', f) }
-  escribir(path.join(SALIDA, 'catalog.json'), JSON.stringify(cat, null, 1))
-  escribir(ESTADO, JSON.stringify(nuevoEstado, null, 1))
-}
+indice.fallos = fallos
+fs.writeFileSync(path.join(SALIDA, 'indice.json'), JSON.stringify(indice, null, 1))
 for (const f of fallos) console.error('FALLO ' + f)
 process.exit(fallos.length ? 1 : 0)

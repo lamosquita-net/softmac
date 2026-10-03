@@ -7,8 +7,8 @@
 // el formato antiguo. Añade "const scriptletGlobals = {}", que los scriptlets actuales necesitan.
 // Excluye los scriptlets "trusted" (requiresTrust), como hacía Brave entonces.
 //
-// Uso: node recursos-157.mjs <checkout de brave-core-crx-packager con submodules/uBlock> <salida.json>
-// o como módulo: generarRecursos(packager) (lo usa empaquetar.mjs).
+// Uso: node recursos-157.mjs <checkout de uBlock Origin, o del empaquetador con submodules/uBlock> <salida.json>
+// o como módulo: generarRecursos(dir) (lo usa empaquetar.mjs con el uBlock Origin fijado en fijado.json).
 // Necesita adblock-rs 0.7.x (npm) para uBlockResources: ADBLOCK_RS=/ruta/node_modules/adblock-rs
 // Licencias: uBlock Origin GPLv3 (scriptlets y recursos); brave-core-crx-packager MPL-2.0.
 import { createRequire } from 'module'
@@ -32,9 +32,10 @@ export const wrap157 = (fnString, prelude) => `{
   (${fnString})(...args.slice(0, last_arg_index))
 }`
 
-export async function generarRecursos (packager) {
+export async function generarRecursos (dir) {
   const { uBlockResources } = require(process.env.ADBLOCK_RS || 'adblock-rs')
-  const uBO = path.join(packager, 'submodules/uBlock')
+  const sub = path.join(dir, 'submodules/uBlock')
+  const uBO = fs.existsSync(sub) ? sub : dir
   const { builtinScriptlets } = await import(path.resolve(uBO, 'src/js/resources/scriptlets.js'))
   const byName = Object.fromEntries(builtinScriptlets.map(s => [s.name, s]))
   const scriptlets = builtinScriptlets.filter(s => !s.name.endsWith('.fn') && !s.requiresTrust).map(s => {
@@ -60,8 +61,8 @@ export async function generarRecursos (packager) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const [packager, out] = process.argv.slice(2)
-  const { resources, scriptlets } = await generarRecursos(packager)
+  const [dir, out] = process.argv.slice(2)
+  const { resources, scriptlets } = await generarRecursos(dir)
   fs.writeFileSync(out, JSON.stringify(resources))
   console.log(`${out}: ${scriptlets} scriptlets, ${resources.length} recursos`)
 }

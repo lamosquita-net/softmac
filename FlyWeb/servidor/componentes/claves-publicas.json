@@ -1,0 +1,4 @@
+{
+  "_comentario": "Claves PÚBLICAS de firma (SPKI DER en base64). Las genera generar-claves.sh en bak, que imprime este fichero ya relleno. Las privadas no salen nunca de bak.",
+  "claves": {}
+}
