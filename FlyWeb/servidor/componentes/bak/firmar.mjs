@@ -9,21 +9,23 @@
 //    aprobados, que mantiene el HUMANO. Si no, no se firma y se avisa con el hash.
 // 4. Firma (CRX3 + prueba de publicador), deja <salida>/release/<id>/extension_<versión>.crx, catalog.json
 //    (go-update) y _estado.json (público), y lo sube a ns2 con rsync (clave restringida a ese directorio).
+// 5. Con --google, copia además los componentes de Google sin volver a firmarlos (google.mjs) y los añade al catálogo.
 //
-// Uso: node firmar.mjs --origen <URL o dir> --claves <dir> --salida <dir> --aprobados <fichero> [--subir <host ssh>]
+// Uso: node firmar.mjs --origen <URL o dir> --claves <dir> --salida <dir> --aprobados <fichero> [--google] [--subir <host ssh>]
 import { execFileSync } from 'child_process'
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { leerZip } from './zip.mjs'
 import { firmarCrx, idDe, spki } from './crx3.mjs'
+import { espejoGoogle } from './google.mjs'
 
 const args = process.argv.slice(2)
 const opt = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined }
 const ORIGEN = opt('--origen'); const CLAVES = opt('--claves'); const SALIDA = opt('--salida')
-const APROBADOS = opt('--aprobados'); const SUBIR = opt('--subir')
+const APROBADOS = opt('--aprobados'); const SUBIR = opt('--subir'); const GOOGLE = args.includes('--google')
 if (!ORIGEN || !CLAVES || !SALIDA || !APROBADOS) {
-  console.error('Uso: node firmar.mjs --origen <URL o dir> --claves <dir> --salida <dir> --aprobados <f> [--subir <host>]')
+  console.error('Uso: node firmar.mjs --origen <URL o dir> --claves <dir> --salida <dir> --aprobados <f> [--google] [--subir <host>]')
   process.exit(2)
 }
 
@@ -104,10 +106,15 @@ for (const c of indice.componentes ?? []) {
 for (const f of indice.fallos ?? []) fallos.push(`(construcción) ${f}`)
 if (Array.isArray(indice.esperados)) for (const n of Object.keys(estado)) if (!indice.esperados.includes(n)) { delete estado[n]; console.log(`- ${n} (ya no está en listas.json)`) }
 
-const cat = Object.values(estado).map((e) => ({ ID: e.id, Version: e.version, SHA256: e.sha256, Title: e.titulo, Size: e.tamano }))
+// Google: los que ya estaban se quedan en el catálogo aunque hoy falle la consulta.
+const google = GOOGLE ? await espejoGoogle(SALIDA) : { componentes: [], fallos: [] }
+fallos.push(...google.fallos)
+
+const cat = [...Object.values(estado), ...google.componentes].map((e) => ({ ID: e.id, Version: e.version, SHA256: e.sha256, Title: e.titulo, Size: e.tamano }))
 escribir(path.join(SALIDA, 'catalog.json'), JSON.stringify(cat, null, 1))
 escribir(path.join(SALIDA, '_estado.json'), JSON.stringify({ firmado: new Date().toISOString(), ublock: indice.ublock,
   componentes: Object.entries(estado).map(([nombre, e]) => ({ nombre, id: e.id, version: e.version })),
+  google: google.componentes.map((e) => ({ nombre: e.titulo, id: e.id, version: e.version })),
   fallos: fallos.length, recursos_pendientes: pendientes }, null, 1))
 escribir(ESTADO, JSON.stringify(estado, null, 1))
 

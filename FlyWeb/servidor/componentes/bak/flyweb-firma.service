@@ -13,6 +13,7 @@ ExecStart=/usr/bin/node /opt/flyweb-firma/firmar.mjs \
   --claves /var/lib/flyweb-firma/claves \
   --salida /var/lib/flyweb-firma/salida \
   --aprobados /etc/flyweb-firma/recursos-aprobados \
+  --google \
   --subir flyweb-ns2
 TimeoutStartSec=15min
 UMask=0077

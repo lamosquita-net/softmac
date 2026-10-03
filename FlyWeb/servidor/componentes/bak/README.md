@@ -1,6 +1,7 @@
 # Firma en bak
 
 **Estado (03-10-2026):** instalado por el HUMANO en bak y ns2; primera firma hecha y temporizador activo.
+Pendiente: actualizar bak para el espejo de Google (F2.2, [abajo](#actualizar-espejo-de-google-f22)).
 
 Los componentes se **construyen** en GitHub Actions sin claves privadas (`.github/workflows/flyweb-shields.yml`) y se
 **firman** en bak. Así, el código de terceros (las listas, uBlock Origin, el motor en Rust, npm) nunca corre en bak,
@@ -16,10 +17,10 @@ GitHub Actions (03:17 UTC)                bak (05:23 UTC, usuario flywebfirma)  
 
 | Fichero | Qué |
 |---|---|
-| `/opt/flyweb-firma/{firmar,zip,crx3}.mjs` | El firmador: unas 200 líneas, solo Node. **No se actualiza solo**: lo copia el HUMANO desde un commit revisado |
+| `/opt/flyweb-firma/{firmar,zip,crx3,google}.mjs` | El firmador y el espejo de Google: unas 350 líneas, solo Node. **No se actualiza solo**: lo copia el HUMANO desde un commit revisado |
 | `/opt/flyweb-firma/{generar-claves.sh,listas.json}` | Para crear las claves (una vez, y al añadir listas) |
 | `/var/lib/flyweb-firma/claves/` | Claves privadas (0700/0600, usuario `flywebfirma`). Copia de seguridad fuera de bak, cifrada, por el canal del HUMANO |
-| `/var/lib/flyweb-firma/salida/` | CRX firmados, `catalog.json`, `_estado.json` y `firmado.json` (lo ya firmado) |
+| `/var/lib/flyweb-firma/salida/` | CRX firmados y copiados, `catalog.json`, `_estado.json`, `firmado.json` (lo ya firmado) y `google.json` (lo ya copiado) |
 | `/etc/flyweb-firma/recursos-aprobados` | Hashes de `resources.json` aprobados. **De root**: el firmador lo lee pero no puede escribirlo |
 | `flyweb-firma.service` / `.timer` | Una vez al día, endurecido (sin privilegios, sistema de ficheros de solo lectura salvo su carpeta) |
 
@@ -33,10 +34,18 @@ GitHub Actions (03:17 UTC)                bak (05:23 UTC, usuario flywebfirma)  
 - Una lista no pierde más de la mitad de sus reglas.
 - **`resources.json`, el único componente con JavaScript, solo se firma si su hash está aprobado.**
 
+Y antes de copiar un CRX de Google:
+
+- Tamaño y SHA-256 iguales a los que anuncia el servidor de Google; descarga solo por https de sus dominios.
+- CRX3 con todas las firmas válidas (RSA o ECDSA, como Chromium 116), el ID del componente y la prueba del
+  publicador de **Google** (la misma clave que exige Chromium 116).
+- Versión posterior a la ya copiada: un CRLSet antiguo volvería a dar por buenos certificados revocados.
+
 Si algo falla, ese componente no se firma, se conserva lo anterior y el servicio termina con error: se ve en el
 journal y en `https://components.flyweb.lamosquita.net/_estado.json` (`fallos`, `recursos_pendientes`).
 
-Pruebas: `node pruebas/firma-bak.mjs` (sin red, con claves desechables).
+Pruebas: `node pruebas/firma-bak.mjs` y `node pruebas/google-bak.mjs` (sin red, con claves desechables). El CI ejecuta
+además `google.mjs` contra Google de verdad (trabajo `google` de `flyweb-shields.yml`), sin subir nada.
 
 ## Aprobar recursos nuevos
 
@@ -118,3 +127,22 @@ sudo systemctl daemon-reload
 sudo systemctl start flyweb-firma.service; sudo journalctl -u flyweb-firma -n 30   # recursos quedará pendiente
 sudo systemctl enable --now flyweb-firma.timer
 ```
+
+## Actualizar: espejo de Google (F2.2)
+
+Cambian `firmar.mjs`, `crx3.mjs` y el servicio; `google.mjs` es nuevo. `zip.mjs`, las claves y ns2 no cambian.
+Antes, si bak filtra el tráfico de salida: debe poder abrir https hacia `update.googleapis.com`, `dl.google.com`,
+`edgedl.me.gvt1.com`, `redirector.gvt1.com` y `www.google.com` (hasta ahora solo usaba GitHub).
+
+```sh
+C=<commit>; U=https://raw.githubusercontent.com/lamosquita-net/softmac/$C/FlyWeb/servidor/componentes
+mkdir -p ~/flyweb-firma-src && cd ~/flyweb-firma-src
+for f in bak/firmar.mjs bak/crx3.mjs bak/google.mjs bak/flyweb-firma.service; do curl -fsSLo "$(basename $f)" "$U/$f"; done
+sha256sum -c sumas.txt          # las 4 líneas del PR
+sudo install -m 0644 firmar.mjs crx3.mjs google.mjs /opt/flyweb-firma/
+sudo install -m 0644 flyweb-firma.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start flyweb-firma.service; sudo journalctl -u flyweb-firma -n 30   # deben salir 7 «+» de Google
+```
+
+Comprobación: `https://components.flyweb.lamosquita.net/_estado.json` lista los 7 en `google`.
