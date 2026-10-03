@@ -44,8 +44,8 @@ Hito: tabla de rendimiento por máquina y backend de ANGLE, con el backend por d
 
 | Máquina | GPU | Backend | WebGL FPS | H.264 HW | VP9 HW | HEVC | `kVideoDecoderName` (H.264 / VP9) | CPU con vídeo 1080p | Notas |
 |---|---|---|---|---|---|---|---|---|---|
-| MacPro7,1 (referencia) | | Metal (por defecto) | | | | | | | |
-| MacPro7,1 | | OpenGL | | | | | | | |
+| MacPro7,1 (macOS 15.8 Sequoia) | AMD Radeon Pro 580X | Metal (`--use-angle=metal`) | 42,4 | Sí (1080p y 4K) | No (software) | **Sí** (hardware) | pendiente | pendiente | 03/10, LOCAL. `flyweb` 4bb83c07 (paso 30), perfil temporal, `--disable-gpu-vsync --disable-frame-rate-limit`, con ventana y sin ventana (mismos números). AV1 por software |
+| MacPro7,1 (macOS 15.8 Sequoia) | AMD Radeon Pro 580X | **OpenGL 4.1 = también el motor por defecto de 116 en Sequoia** | 42,4 (por defecto) / 43,0 (`--use-angle=gl`) | Sí | No | Sí | pendiente | pendiente | Sin `--use-angle`, ANGLE elige OpenGL igual que en Mojave. **Los tres modos dan lo mismo (±1 %), aun sin vsync:** la prueba sigue sin distinguir motores. Raro: la 580X da 42 FPS y la D500 llegó al tope de 61; probablemente el lienzo se dibuja a escala Retina (la pantalla de la 7,1 va en modo escalado) y la carga no es comparable entre máquinas |
 | MacPro6,1 (MacTrash, 10.14.6) | 2× FirePro D500 (activa una), driver ATI-2.11.26 | Metal (`--use-angle=metal`) | 61 (tope de la pantalla, 60 Hz) | Sí (1080p y 4K, `powerEfficient`) | No (software, fluido) | No admitido | pendiente (`media-internals`) | pendiente | 01/10, LOCAL por SSH. `flyweb` cba0493c. AV1 por software |
 | MacPro6,1 (MacTrash, 10.14.6) | 2× FirePro D500 (activa una) | **OpenGL 4.1 = el motor por defecto de 116 en Mojave** | 61 (tope 60 Hz) | Sí | No (software) | No admitido | pendiente | pendiente | Sin `--use-angle`, ANGLE elige OpenGL, no Metal. **El shader de 1024×1024 no satura la D500: los tres modos llegan al tope de refresco, así que la prueba no distingue backends.** Hace falta una carga más pesada o medir sin vsync (NUBE) |
 | MacPro5,1 | | Metal | | | | | | | |
@@ -255,5 +255,13 @@ números no valen como referencia.
 ```
 
 (pegar aquí)
+
+
+**MacPro7,1, tres motores** (03/10, sin vsync):
+```json
+{"motor": "porDefecto", "gpu": {"webgl": true, "webgl2": true, "vendor": "Google Inc. (ATI Technologies Inc.)", "renderer": "ANGLE (ATI Technologies Inc., AMD Radeon Pro 580X OpenGL Engine, OpenGL 4.1)", "backend": "OpenGL", "maxTextureSize": 16384}, "webglPerf": {"fps": 42.4, "frames": 85, "ms": 2004}, "codecs": [{"name": "H.264 1080p", "supported": true, "smooth": true, "powerEfficient": true}, {"name": "H.264 4K", "supported": true, "smooth": true, "powerEfficient": true}, {"name": "HEVC 1080p", "supported": true, "smooth": true, "powerEfficient": true}, {"name": "VP9 1080p", "supported": true, "smooth": true, "powerEfficient": false}, {"name": "VP9 4K", "supported": true, "smooth": true, "powerEfficient": false}, {"name": "AV1 1080p", "supported": true, "smooth": true, "powerEfficient": false}]}
+{"motor": "metal", "gpu": {"webgl": true, "webgl2": true, "vendor": "Google Inc. (AMD)", "renderer": "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon Pro 580X, Unspecified Version)", "backend": "Metal", "maxTextureSize": 16384}, "webglPerf": {"fps": 42.4, "frames": 85, "ms": 2006}, "codecs": [{"name": "H.264 1080p", "supported": true, "smooth": true, "powerEfficient": true}, {"name": "H.264 4K", "supported": true, "smooth": true, "powerEfficient": true}, {"name": "HEVC 1080p", "supported": true, "smooth": true, "powerEfficient": true}, {"name": "VP9 1080p", "supported": true, "smooth": true, "powerEfficient": false}, {"name": "VP9 4K", "supported": true, "smooth": true, "powerEfficient": false}, {"name": "AV1 1080p", "supported": true, "smooth": true, "powerEfficient": false}]}
+{"motor": "gl", "gpu": {"webgl": true, "webgl2": true, "vendor": "Google Inc. (ATI Technologies Inc.)", "renderer": "ANGLE (ATI Technologies Inc., AMD Radeon Pro 580X OpenGL Engine, OpenGL 4.1)", "backend": "OpenGL", "maxTextureSize": 16384}, "webglPerf": {"fps": 43, "frames": 87, "ms": 2021}, "codecs": [{"name": "H.264 1080p", "supported": true, "smooth": true, "powerEfficient": true}, {"name": "H.264 4K", "supported": true, "smooth": true, "powerEfficient": true}, {"name": "HEVC 1080p", "supported": true, "smooth": true, "powerEfficient": true}, {"name": "VP9 1080p", "supported": true, "smooth": true, "powerEfficient": false}, {"name": "VP9 4K", "supported": true, "smooth": true, "powerEfficient": false}, {"name": "AV1 1080p", "supported": true, "smooth": true, "powerEfficient": false}]}
+```
 
 </details>
