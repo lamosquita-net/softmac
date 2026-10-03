@@ -5,8 +5,18 @@ Hito: tabla de rendimiento por máquina y backend de ANGLE, con el backend por d
 ## 1. Cómo medir (LOCAL o HUMANO, en cada máquina)
 
 1. **Página de diagnóstico.** Arrastrar `FlyWeb/tools/diagnostico-gpu.html` a una pestaña de FlyWeb y pulsar «Medir».
-   Saca la GPU y el backend de ANGLE, los códecs que se decodifican de forma eficiente (≈ por hardware) y una medida de
-   WebGL (FPS de un shader fijo de 1024×1024 durante 2 s). Pulsar «Copiar JSON» y pegarlo en §3.
+   Saca la GPU y el backend de ANGLE, los códecs que se decodifican de forma eficiente (≈ por hardware) y el rendimiento
+   de WebGL. Pulsar «Copiar JSON» y pegarlo en §3.
+   - **Rendimiento (desde el 03/10):** tres pruebas que **no dependen del refresco de la pantalla**. Se dibuja en un
+     búfer propio de 1024 × 1024 píxeles reales (igual en todas las máquinas, sin `devicePixelRatio`) y se cronometra
+     forzando a la GPU a terminar; mediana de 7 repeticiones.
+     - `sombreado`: un cálculo pesado por píxel (ms por pasada; megapíxeles/s). Mide la GPU en bruto.
+     - `llamadas`: 5000 dibujos pequeños (µs por llamada). **Es la que mejor distingue OpenGL de Metal**, porque los
+       motores de ANGLE se diferencian sobre todo en el coste de cada llamada.
+     - `texturas`: subir una imagen de 4 MB a la GPU (ms; MB/s).
+     - `fpsEnPantalla`: la medida antigua, solo de referencia: se queda en el refresco del monitor (60 Hz).
+   - Medir con la ventana visible y sin otras pestañas pesadas. Si dos repeticiones dan más de un 10 % de diferencia,
+     anotar las dos.
 2. **Repetir con cada backend**, cerrando FlyWeb antes:
    ```sh
    open -na "FlyWeb Development.app" --args --use-angle=metal
@@ -22,8 +32,8 @@ Hito: tabla de rendimiento por máquina y backend de ANGLE, con el backend por d
 
 ## 2. Qué decidir con los datos
 
-- **Backend por defecto por GPU:** si en alguna GPU (p. ej. las FirePro de la 6,1) OpenGL da claramente más FPS o menos
-  fallos que Metal, NUBE fija el backend para esa GPU (lista de GPU en `gpu/config` o una regla en `brave-core`).
+- **Backend por defecto por GPU:** si en alguna GPU (p. ej. las FirePro de la 6,1) un motor es claramente mejor en
+  `llamadas` y `sombreado` (más de un 20 %) o da menos fallos que el otro, NUBE fija el backend para esa GPU (lista de GPU en `gpu/config` o una regla en `brave-core`).
   Si Metal va igual o mejor en todas, no se toca nada.
 - **Códecs:** H.264 debe salir por hardware en todas (VideoToolbox existe desde 10.8). VP9 por hardware solo en GPU
   modernas; en la 6,1 y la 5,1 lo esperable es software. Si YouTube en VP9 va a tirones en la 5,1, la solución es una
