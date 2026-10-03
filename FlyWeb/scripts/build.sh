@@ -65,7 +65,9 @@ python3 src/build/util/lastchange.py --output src/build/util/LASTCHANGE --source
 # - Componentes: nuestro servidor (components.flyweb.lamosquita.net, F2.6). Brave exige su clave privada (403).
 #   Las listas de Shields son propias (FlyWeb/servidor/componentes). Los de Google (Widevine, CRLSet…) no llegan
 #   mientras go-update corra con FLYWEB_NO_REDIRECT=1: decisión pendiente del HUMANO (ver componentes/README.md).
-# - Sync, estadísticas y variations: URL inertes (son obligatorias en Release).
+# - Sync: nuestro servidor (sync.flyweb.lamosquita.net, FlyWeb/servidor/sync; F7.5). Solo se usa si el usuario activa
+#   Sincronizar; los datos van cifrados de extremo a extremo.
+# - Estadísticas y variations: URL inertes (son obligatorias en Release).
 # - Sparkle, actualizador, P3A, Leo, VPN: desactivados aquí.
 # - Safe Browsing: NO se puede quitar al compilar en 1.57 (safe_browsing_mode:0 deja sin resolver dependencias de
 #   //chrome/test:unit_tests); se apaga con FlyWeb/policies/flyweb-policies.mobileconfig.
@@ -86,6 +88,8 @@ else
   SERVICES_KEY=flyweb
   echo "AVISO: sin $KEYFILE; clave \"flyweb\": el servidor de componentes rechazará las consultas" >&2
 fi
+# Sincronización propia (go-sync con SQLite en ns2). go-sync atiende en /v2/command/; Chromium añade "/command/".
+SYNC="${FLYWEB_SYNC_URL:-https://sync.flyweb.lamosquita.net/v2}"
 INERT="https://flyweb.invalid"
 npm run build -- "$CONFIG" --target_arch=x64 \
   --gn "mac_sdk_path:$SDK" \
@@ -94,7 +98,7 @@ npm run build -- "$CONFIG" --target_arch=x64 \
   --gn "updater_dev_endpoint:$UPDATER" \
   --gn "safebrowsing_api_endpoint:$PROXY" \
   --gn "brave_stats_updater_url:$INERT" \
-  --gn "brave_sync_endpoint:$INERT" \
+  --gn "brave_sync_endpoint:$SYNC" \
   --gn "brave_variations_server_url:$INERT" \
   --gn "brave_services_key:$SERVICES_KEY" \
   --gn enable_sparkle:false \
