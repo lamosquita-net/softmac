@@ -56,7 +56,7 @@ Puntos a confirmar con quien lleve el RGPD:
 - El plazo de conservación de los registros de la web (con IP).
 - Si lamosquita lleva registro de actividades de tratamiento (art. 30): añadir una línea, «Servicios del navegador
   FlyWeb: IP en tránsito, sin conservación, interés legítimo».
-- Que la frase sobre Traducir encaje con la decisión que se tome (hoy pendiente del HUMANO).
+- Traducir: decidido por el HUMANO (03/10): desactivado por defecto; si se activa, el texto de la página va a Google (paso 39). La frase del texto ya lo recoge.
 - La ubicación exacta del servidor (OVH, UE) y si el contrato con el proveedor cubre el art. 28.
 
 ## 3. Por qué esto basta (resumen para la revisión legal)
