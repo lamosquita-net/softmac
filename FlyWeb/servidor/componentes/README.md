@@ -131,8 +131,13 @@ descubrieron en días o semanas. Una revisión manual no los habría detectado; 
      `kBravePublisherKeyHash` (`chromium_src/components/crx_file/crx_verifier.cc`). Las listas regionales no tocan
      brave-core.
 3. **`go-update` en ns2** (E2): binario del CI y `systemd/flyweb-components.service`.
-4. **Recursos propios de Brave** (scriptlets `brave-…`): no se incluyen. Las reglas que los usan no hacen nada.
-5. **Licencias:**
+4. **Componentes de Google (HUMANO decide).** Widevine (Netflix, Spotify…), CRLSet y otros. Con
+   `FLYWEB_NO_REDIRECT=1`, go-update no los redirige a Google y no llegan. Hoy tampoco llegan, porque Brave da 403.
+   Opciones:
+   - quitar la variable: el navegador habla con los servidores de Google solo para esos componentes, como hace Brave;
+   - dejarla y prescindir de Widevine.
+5. **Recursos propios de Brave** (scriptlets `brave-…`): no se incluyen. Las reglas que los usan no hacen nada.
+6. **Licencias:**
    - EasyList y EasyPrivacy: GPLv3 / CC BY-SA 3.0;
    - uBlock Origin (listas, scriptlets y recursos): GPLv3;
    - Brave (`adblock-lists`, `adblock-resources`, empaquetador): MPL-2.0.
