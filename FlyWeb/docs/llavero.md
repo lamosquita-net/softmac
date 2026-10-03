@@ -64,7 +64,25 @@ mantenerla en cada parche de seguridad no compensa.
 | **3. Exportar e importar CSV de vez en cuando** | Sí, copia | Sí | No | Manual cada vez |
 
 Recomendación de NUBE: **1**, la única que cubre «guardo en un Mac y la uso al momento en otro, también en Mojave»,
-y coherente con la política del proyecto (código abierto, servidor propio, nada pasa por terceros). **Por comprobar
-antes de decidir:** que la extensión de Bitwarden funciona en Chromium 116, y la versión mínima de macOS de sus apps
-de escritorio y de Safari (en Mojave bastaría la extensión dentro de FlyWeb). Si el HUMANO prefiere seguir con iCloud,
-la 2 en la 7,1 y la 3 en los Mojave es lo máximo posible.
+y coherente con la política del proyecto (código abierto, servidor propio, nada pasa por terceros). Si el HUMANO
+prefiere seguir con iCloud, la 2 en la 7,1 y la 3 en los Mojave es lo máximo posible.
+
+### 5.1 Comprobado (NUBE, 03/10, en `bitwarden/clients`)
+
+- **Extensión en FlyWeb (Chromium 116): hay un problema serio.** Hasta `browser-v2026.9.1` el manifiesto pide
+  `minimum_chrome_version` 102; **desde `browser-v2026.9.2` pide 134**. La Web Store no ofrece a FlyWeb versiones que
+  exijan más de 116, así que la extensión **se queda congelada en 2026.9.1** y no recibe más parches de seguridad. Los
+  permisos de la 2026.9.x (`offscreen`, `sidePanel`, `scripting`…) existen en la 116, pero el mínimo declarado no
+  garantiza que funcione: hay que probarla.
+- **App de escritorio:** Electron 43 → no funciona en Mojave (Electron dejó 10.13/10.14 en la v27). En Mojave solo
+  queda la extensión.
+- **Safari (7,1):** la extensión de Safari va dentro de la app de escritorio; en Sequoia, sin problema.
+- **Consecuencia:** la opción 1 en Mojave depende de una extensión sin parches para el gestor de contraseñas, justo
+  la pieza más sensible. Es el mismo riesgo asumido con Chromium 116, pero conviene decidirlo a sabiendas. Variantes:
+  1a. aceptar la 2026.9.1 congelada (y que Vaultwarden siga aceptando clientes de esa versión, normalmente durante
+      bastante tiempo, sin garantía);
+  1b. mantener nosotros una versión de la extensión (GPL-3.0) con parches seleccionados: mucho trabajo, no lo
+      recomiendo;
+  1c. otro gestor con extensión que siga soportando Chromium 116 (KeePassXC + KeePassXC-Browser con el fichero `.kdbx`
+      sincronizado por BackupDrive; KeePassXC 2.7.x funciona en 10.14): sin servidor, pero la sincronización no es «al
+      momento» y hay conflictos si se edita en dos Macs a la vez. Por comprobar si su extensión actual sigue en ≤ 116.
