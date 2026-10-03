@@ -51,7 +51,7 @@ GOEXPERIMENT=jsonv2 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -bu
 | Direcciones de escucha | Solo `127.0.0.1:8192`; nada en `:9090` |
 | IP del cliente (`127.0.0.5`) en los registros de Apache y del servicio | 0 veces |
 
-## Instalación en ns2 (HUMANO)
+## Instalación en ns2 (HUMANO) — hecha el 03-10-2026
 
 El CI publica el binario en la release pública `go-update` (`flyweb-components.yml`, al fusionar en `main`). NUBE lo
 recompila por su cuenta: el binario es reproducible, y la suma de NUBE tiene que coincidir con la de la release.
@@ -98,7 +98,8 @@ diff que las variables siguen aplicándose.
 
 ## Pendiente
 
-- **Copia diaria** (`mirror/`): descargar los CRX de Brave y de Google, comprobar su SHA-256 y escribir `catalog.json`.
-  Desde la sesión de NUBE no se llega a los servidores de Brave (los bloquea el proxy), así que se probará en ns2 o
-  con datos de prueba.
-- **Ejecutor de despliegues** `flyweb-deploy` (§4 de `docs/SERVIDOR.md`).
+- ~~Copia diaria de los CRX de Brave~~: descartada, porque el almacén de Brave no se puede listar. Los componentes de
+  Shields son propios (`componentes/`, firmados en bak), y `catalog.json` lo escribe bak.
+- **Componentes de Google** (Widevine, CRLSet): pendientes de la decisión del HUMANO sobre `FLYWEB_NO_REDIRECT`.
+- **Ejecutor de despliegues** `flyweb-deploy` (§4 de `docs/SERVIDOR.md`), para que las actualizaciones de go-update no
+  sean a mano.
