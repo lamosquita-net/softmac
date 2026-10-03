@@ -13,6 +13,11 @@ en FlyWeb. En la pestaña nueva, abajo en el centro hay controles **solo del pro
 - **Elementos** (maquetas `newtab-1` … `newtab-7`): contadores de Escudos arriba a la izquierda, accesos debajo, reloj
   arriba a la derecha, crédito "© fotografía @lamosquita" abajo a la izquierda y abajo a la derecha "personalizar" más
   los iconos que ya tiene la pestaña de Brave: **ajustes, marcadores e historial. Talk fuera.**
+- **Accesos (webs visitadas) e iconos de abajo: tal cual los tiene Brave 1.57**, con sus componentes, tamaños,
+  espaciados e interacción (decisión del HUMANO, 03/10). En la maqueta y en el prototipo solo **reservan el sitio**:
+  los de Brave son más grandes y están bien compensados, así que se quedan como están. De la maqueta se toma solo
+  **dónde** van (accesos bajo los contadores, a la izquierda; iconos abajo a la derecha junto a "personalizar") y el
+  color de las etiquetas por fondo.
 - **Tipografía D-DIN** (solo regular y bold; son ligeramente condensadas): **bold** para el reloj, los números de los
   contadores y "personalizar"; **regular** para el resto.
 - **Colores del proyecto, sin cambiar** (decisión del HUMANO): naranja del icono `rgb(255,153,0)`, rojo de lamosquita
