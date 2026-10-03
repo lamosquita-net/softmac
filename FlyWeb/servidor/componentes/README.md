@@ -80,6 +80,7 @@ descubrieron en días o semanas. Una revisión manual no los habría detectado; 
 | Componente | Contenido | Clave |
 |---|---|---|
 | Lista por defecto | `list.txt` con las fuentes de *Brave Default Adblock Filters* y *Brave Default Privacy Filters* (`defecto` de `listas.json`) | `defecto` |
+| Lista de primera parte | `list.txt` con *Brave First Party Adblock Filters* (`primera_parte`) | `primera-parte` |
 | Recursos | `resources.json` de `recursos-157.mjs` y el uBlock Origin fijado | `recursos` |
 | Catálogo | `regional_catalog.json`: las listas de `regionales`, con **nuestros** ID y claves, y solo los campos que lee la 1.57 | `catalogo` |
 | Cada lista regional | `list.txt` | `lista-<UUID>` |
@@ -88,8 +89,8 @@ descubrieron en días o semanas. Una revisión manual no los habría detectado; 
   - En el catálogo actual de Brave, las listas por defecto son entradas *ocultas* (`hidden`). La 1.57 no conoce ese
     campo: las mostraría como listas que el usuario puede activar, y EasyPrivacy quedaría desactivada. Por eso se
     juntan en la lista por defecto (como en la 1.57) y no van al catálogo.
-  - Fuera: *iOS-Specific* y *First Party Adblock Filters*. La segunda bloquea recursos del propio sitio y en la
-    1.57 se aplicaría siempre.
+  - *First Party Adblock Filters* va como componente propio (`primera-parte`), porque la 1.57 ya lo tenía:
+    `kAdBlockExceptionComponent`, en un motor aparte que también se aplica al propio sitio. Fuera: *iOS-Specific*.
 - **Selección inicial** (`listas.json`): avisos de cookies (la 1.57 la activa por defecto, `kCookieListUuid`),
   promociones de apps, español, y español y portugués. Cada lista que se añada necesita su clave: se vuelve a ejecutar
   `generar-claves.sh` en bak, que solo crea las que faltan, y se actualiza `claves-publicas.json`.
@@ -123,7 +124,8 @@ descubrieron en días o semanas. Una revisión manual no los habría detectado; 
    `claves-publicas.json`, que hay que pasar a NUBE.
 2. **NUBE, con esos datos públicos:**
    - `claves-publicas.json`; con eso el CI empieza a publicar;
-   - brave-core: `kAdBlockDefaultComponentId` y su clave (`components/brave_shields/browser/ad_block_service.cc:36`),
+   - brave-core: `kAdBlockDefaultComponentId` y `kAdBlockExceptionComponentId` con sus claves
+     (`components/brave_shields/browser/ad_block_service.cc`),
      `kAdBlockResourceComponentId` y `kAdBlockFilterListCatalogComponentId` con sus claves
      (`ad_block_component_installer.cc:28` y `:40`), y el hash del publicador **añadido** junto a
      `kBravePublisherKeyHash` (`chromium_src/components/crx_file/crx_verifier.cc`). Las listas regionales no tocan

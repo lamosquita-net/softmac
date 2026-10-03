@@ -44,7 +44,7 @@ const versionValida = (v) => /^\d{1,5}\.\d{1,5}\.\d{1,5}$/.test(v) && v.split('.
 const mayor = (a, b) => { const x = a.split('.').map(Number); const y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false }
 const contarReglas = (t) => t.split('\n').filter((l) => l && !l.startsWith('!') && !l.startsWith('[')).length
 const FICHERO = (n) => n === 'recursos' ? 'resources.json' : n === 'catalogo' ? 'regional_catalog.json' : 'list.txt'
-const NOMBRE = /^(defecto|recursos|catalogo|lista-[A-Za-z0-9-]{1,64})$/
+const NOMBRE = /^(defecto|primera-parte|recursos|catalogo|lista-[A-Za-z0-9-]{1,64})$/
 
 const ESTADO = path.join(SALIDA, 'firmado.json')
 const estado = fs.existsSync(ESTADO) ? JSON.parse(fs.readFileSync(ESTADO, 'utf8')) : {}

@@ -3,6 +3,8 @@
 //
 // Construye:
 //   - la lista por defecto (list.txt): las fuentes de las entradas de "defecto" de listas.json;
+//   - la lista de primera parte (list.txt, "primera_parte"): el componente kAdBlockExceptionComponent de la 1.57,
+//     que va a un motor aparte y se aplica también a las peticiones del propio sitio;
 //   - los recursos (resources.json), con recursos-157.mjs y el uBlock Origin fijado en fijado.json;
 //   - el catálogo (regional_catalog.json): las entradas de "regionales", con NUESTROS ID y claves públicas;
 //   - cada lista regional (list.txt).
@@ -147,6 +149,10 @@ await intentar('defecto', async () => {
   const { texto, quitadas } = await construirLista(listas.defecto.map(buscar))
   componentes.push({ nombre: 'defecto', titulo: 'FlyWeb Shields: lista por defecto', fichero: 'list.txt', datos: texto, reglas: validarLista('defecto', texto, true), quitadas })
 })
+await intentar('primera-parte', async () => {
+  const { texto, quitadas } = await construirLista(listas.primera_parte.map(buscar))
+  componentes.push({ nombre: 'primera-parte', titulo: 'FlyWeb Shields: first-party list', fichero: 'list.txt', datos: texto, reglas: validarLista('primera-parte', texto, false), quitadas })
+})
 await intentar('recursos', async () => {
   const { resources } = await generarRecursos(UBLOCK)
   componentes.push({ nombre: 'recursos', titulo: 'FlyWeb Shields: recursos', fichero: 'resources.json', datos: JSON.stringify(resources) })
@@ -171,7 +177,7 @@ await intentar('catalogo', async () => {
 
 fs.mkdirSync(SALIDA, { recursive: true })
 // esperados: lo que pide listas.json; bak deja de servir lo que ya no esté (un fallo de hoy no lo quita).
-const esperados = ['defecto', 'recursos', ...listas.regionales.map((u) => `lista-${u}`), 'catalogo']
+const esperados = ['defecto', 'primera-parte', 'recursos', ...listas.regionales.map((u) => `lista-${u}`), 'catalogo']
 const indice = { generado: ahora.toISOString(), version: VERSION, ublock: fijado.ublock.tag, esperados, componentes: [] }
 for (const c of componentes) {
   await intentar(c.nombre, async () => {
