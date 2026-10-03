@@ -65,7 +65,7 @@ del paso 27 coinciden: **15 componentes**, 7 de Brave y 8 de Chromium. Cruzado c
 | Safety Tips | `jflookgnkcckhobaglndicnbbgbonegd` | Aviso de dominios que imitan a otros | Espejo |
 | Crowd Deny | `ggkkehgbnfjpeggfpleeakpidbkibbmn` | Webs que abusan de las peticiones de notificaciones | Espejo |
 | MEI Preload | `laoigpblnllgcgjnjnllmfolckpjlhki` | Lista de sitios con reproducción automática permitida (viene 1.0.7 de serie) | Espejo, prioridad baja |
-| OnDeviceHeadSuggest | `obedbbhbpmojnkanicioggnmelmoomoc` | Modelo de sugerencias de la barra de direcciones por idioma (Brave solo lo bloquea en Android) | **Decidir:** bloquearlo también en escritorio (añadirlo a la lista de bloqueo) o servirlo |
+| OnDeviceHeadSuggest | `obedbbhbpmojnkanicioggnmelmoomoc` | Modelo de sugerencias de la barra de direcciones por idioma (Brave solo lo bloquea en Android) | **Bloqueado también en escritorio** (decisión del HUMANO, 03/10; paso 29). FlyWeb registra 14 |
 
 Los de Brave: Ad Block Updater (`iodkpdagapdfkphljnddpjlldadblomo`), Ad Block List Catalog (`gkboaolpopklhgplhaaiboijnklogmbc`),
 Ad Block Resources Library (`mfddibmblmbccpadfndgakiopmmhebop`), Ad Block First Party Filters (`adcocjohghhfpidemphmcmlmhnfgikei`),
