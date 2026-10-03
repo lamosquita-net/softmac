@@ -50,7 +50,31 @@ a `go-updater.brave.com` en 30 minutos, porque Brave pregunta **componente a com
 | CRLSet (certificados revocados) | `hfnkpimlhhgieaddgfemjhofmfblmnib` | Lo registra y fuerza una actualización al arrancar (`chromium_src/chrome/browser/component_updater/crl_set_component_installer.cc:26`) | Espejo sin modificar. Clave y publicador de Google |
 | File Type Policies | `khaoiebndkojlmppeemjhbpbandiljpe` | Fuerza una actualización | Espejo sin modificar |
 | Widevine (DRM) | `oimompecagnajdejgnnjijobebaeigek` | Solo si el usuario lo acepta | Redirigir a Google (como hace `go-update`) o no servirlo |
-| Resto de componentes de Chromium 116 que Brave no bloquea | — | Lista de bloqueo en `chromium_src/components/component_updater/component_installer.cc:32` (Origin Trials, Subresource Filter, phishing del lado del cliente, FLoC…) | **Por comprobar en el checkout de Chromium** (LOCAL): cuáles quedan registrados y si salen en la auditoría |
+| Resto de componentes de Chromium 116 que Brave no bloquea | — | Lista de bloqueo en `chromium_src/components/component_updater/component_installer.cc:32` (Origin Trials, Subresource Filter, phishing del lado del cliente, FLoC…) | **Comprobado (LOCAL, 03/10): ver la tabla siguiente** |
+
+**Qué registra de verdad FlyWeb (F2.3, LOCAL 03/10).** `brave://components` en un perfil nuevo (paso 28, Static) y el NetLog
+del paso 27 coinciden: **15 componentes**, 7 de Brave y 8 de Chromium. Cruzado con
+`chrome/browser/component_updater/registration.cc` del checkout.
+
+| Componente de Chromium | ID | Para qué sirve | Propuesta |
+|---|---|---|---|
+| CRLSet | `hfnkpimlhhgieaddgfemjhofmfblmnib` | Certificados revocados | Espejo (seguridad) |
+| File Type Policies | `khaoiebndkojlmppeemjhbpbandiljpe` | Qué descargas son peligrosas | Espejo (seguridad) |
+| PKI Metadata | `efniojlnjndmcbiieegkicadnoecjjef` | Lista de registros de Certificate Transparency y fijado de claves | Espejo (seguridad; con la lista caducada, unas 10 semanas, Chromium deja de exigir CT) |
+| Certificate Error Assistant | `giekcmmlnklenlaomppkphknjmnnpneh` | Explica errores de certificado conocidos (portales cautivos, antivirus que interceptan) | Espejo |
+| Safety Tips | `jflookgnkcckhobaglndicnbbgbonegd` | Aviso de dominios que imitan a otros | Espejo |
+| Crowd Deny | `ggkkehgbnfjpeggfpleeakpidbkibbmn` | Webs que abusan de las peticiones de notificaciones | Espejo |
+| MEI Preload | `laoigpblnllgcgjnjnllmfolckpjlhki` | Lista de sitios con reproducción automática permitida (viene 1.0.7 de serie) | Espejo, prioridad baja |
+| OnDeviceHeadSuggest | `obedbbhbpmojnkanicioggnmelmoomoc` | Modelo de sugerencias de la barra de direcciones por idioma (Brave solo lo bloquea en Android) | **Decidir:** bloquearlo también en escritorio (añadirlo a la lista de bloqueo) o servirlo |
+
+Los de Brave: Ad Block Updater (`iodkpdagapdfkphljnddpjlldadblomo`), Ad Block List Catalog (`gkboaolpopklhgplhaaiboijnklogmbc`),
+Ad Block Resources Library (`mfddibmblmbccpadfndgakiopmmhebop`), Ad Block First Party Filters (`adcocjohghhfpidemphmcmlmhnfgikei`),
+Local Data Updater (`afalakplffnnnlkncjhbmahjfjhmlkal`), HTTPS Everywhere (`oofiananboodjbbmdelgdommihjbkfag`) y NTP Background
+Images (`aoojcmojmmcbpfgoecoadbdpnagfchel`).
+
+No se registran (en macOS, Static): los de la lista de bloqueo de Brave; Optimization Hints, Trust Tokens, Masked Domain List y
+Privacy Sandbox Attestations (dependen de funciones apagadas); Recovery (no aparece); Widevine solo si el usuario acepta el DRM.
+Las listas regionales de Escudos tampoco aparecen en un perfil nuevo: se registran al activarlas.
 
 ## 4. Lo que tiene que hacer el servidor (SERVIDOR, S3)
 
