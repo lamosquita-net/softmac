@@ -17,6 +17,7 @@ La web ya existe como vhost en ns2 (`FlyWeb/servidor/e0`, `/var/www/flyweb.lamos
 | W4 | Código y licencias | Enlaces a los repositorios (softmac, forks de brave-core y brave-browser), MPL-2.0 de los ficheros de Brave modificados, `about:credits` | LOCAL | — |
 | W5 | Seguridad | Cómo avisar de un fallo de seguridad (correo); política de parches (cada 8 semanas, urgentes si hay explotación) | LOCAL | — |
 | W6 | Aviso legal | Titular (lamosquita), contacto, marcas: FlyWeb no está afiliado a Brave Software ni a Google | LOCAL | Revisión legal |
+| W7 | Ayuda: Sincronizar (`/ayuda/sincronizar`) | El texto de §4. El navegador enlaza aquí desde el aviso de error de Sincronizar (brave-core paso 42) | LOCAL | Servidor de sync en ns2 |
 
 Diseño: con la misma línea que la pestaña nueva (D-DIN, fotos de moscas, colores del proyecto). Sin rastreadores, sin
 analítica, sin fuentes ni scripts de terceros. La página no debe cargar nada de fuera de `flyweb.lamosquita.net`.
@@ -74,3 +75,34 @@ Puntos a confirmar con quien lleve el RGPD:
   probado). A Google solo le llega la IP del servidor y prefijos de hash que, sin IP, no identifican a nadie. No hay
   cesión de datos personales ni transferencia internacional.
 - **Riesgo bajo:** no hace falta evaluación de impacto (art. 35).
+
+## 4. Texto de ayuda de Sincronizar (borrador para W7)
+
+> ### Sincronizar FlyWeb entre sus Mac
+>
+> FlyWeb puede mantener iguales sus contraseñas, marcadores, historial, ajustes y pestañas abiertas en todos sus Mac.
+> Se guarda en un servidor de lamosquita **cifrado en su equipo**: nosotros no podemos leerlo.
+>
+> **Empezar.** En el primer Mac: Ajustes › Sincronizar › Empezar una cadena nueva. FlyWeb le muestra un **código de
+> 24 palabras**. Guárdelo en un sitio seguro: es la única llave de sus datos y no podemos recuperarlo.
+>
+> **Añadir otro Mac.** En el otro Mac: Ajustes › Sincronizar › Tengo un código, y escriba las 24 palabras. Desde un Mac
+> que ya sincroniza puede verlas en Ajustes › Sincronizar › Ver el código.
+>
+> **Elegir qué se sincroniza.** En Ajustes › Sincronizar, en cada Mac.
+>
+> **Pasar sus contraseñas de Safari.** En un Mac con macOS 15: app Contraseñas › Archivo › Exportar todas las
+> contraseñas. En FlyWeb: Ajustes › Contraseñas › Importar. Después, **borre el fichero exportado**: las contraseñas
+> van sin cifrar.
+>
+> **Si sale «FlyWeb no puede acceder al almacenamiento seguro»**, macOS no deja a FlyWeb abrir su llave en el llavero
+> («FlyWeb Safe Storage»). Abra Acceso a Llaveros, busque «FlyWeb Safe Storage» y, en Control de acceso, permita a
+> FlyWeb; o reinicie el Mac y acepte el aviso al abrir FlyWeb.
+>
+> **Si sale que no se pueden descifrar los datos**, el código con el que se unió este Mac no es el de la cadena. Salga
+> de la cadena en ese Mac (Ajustes › Sincronizar › Salir de la cadena) y vuelva a unirse con el código correcto.
+>
+> **Borrar todo.** Ajustes › Sincronizar › Borrar datos de sincronización: se borra todo del servidor y la cadena deja
+> de funcionar en todos sus Mac. No se puede deshacer.
+>
+> **FlyWeb solo existe para Mac.** Las apps de Brave para móvil no se pueden unir a esta cadena.
