@@ -1,0 +1,6 @@
+{
+  "_comentario": "Versiones fijadas del código de terceros que entra en los componentes. Solo se sube uBlock Origin a una versión publicada hace al menos dias_minimos días (el CI lo comprueba). El JavaScript de resources.json sale de aquí; bak además exige que el HUMANO apruebe su hash.",
+  "ublock": { "tag": "1.75.0", "commit": "21f0e686506bb21b514b451c8c6cb9bf8c82d232" },
+  "empaquetador": { "commit": "3acdaca6f196cc8b1749ff4e963c46338465fbdf", "uso": "solo el comprobador wasm de reglas incompatibles" },
+  "dias_minimos": 14
+}

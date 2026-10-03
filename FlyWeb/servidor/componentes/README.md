@@ -43,8 +43,9 @@ formato binario versionado, pero hay dos diferencias con el Brave actual.
 **Firma: compatible** (`pruebas/firma-crx-157.mjs`, claves desechables).
 - La 1.57 exige `CRX3_WITH_PUBLISHER_PROOF` a todos los componentes
   (`chromium_src/components/component_updater/component_updater_service.cc`).
-- **Se firma con `lib/crx.js`** del empaquetador, que es Node puro. `packageAdBlock.js` no lo usa: llama a un
-  **binario de Brave** con `--pack-extension`, y eso no lo queremos en un servidor.
+- **Firmador.** `packageAdBlock.js` de Brave firma llamando a un **binario de Brave** con `--pack-extension`, y eso no
+  lo queremos en un servidor. Primero se comprobó `lib/crx.js` del empaquetador (Node puro, `pruebas/firma-crx-157.mjs`);
+  ahora firma `bak/crx3.mjs`, propio y sin dependencias, que pasa el mismo verificador.
 - **Port del verificador.** La prueba compara con un port propio de `VerifyCrx3` de Chromium 116.0.5845.188, con el
   parche de Brave:
   - con el publicador correcto da `OK_FULL`, y el ID coincide con el SHA-256 de la clave;
@@ -53,23 +54,90 @@ formato binario versionado, pero hay dos diferencias con el Brave actual.
   - si el CRX no es del componente que espera el instalador, rechaza.
 - **Límite.** Es un port leído del código y no el binario. La prueba definitiva es la de LOCAL (abajo).
 
+## Construcción y firma: GitHub Actions construye, bak firma
+
+Detalle de bak (instalación, comprobaciones, aprobación de recursos): [`bak/README.md`](bak/README.md).
+
+| Paso | Dónde | Qué |
+|---|---|---|
+| Construir | GitHub Actions, 03:17 UTC (`.github/workflows/flyweb-shields.yml`) | `empaquetar.mjs`: descarga, filtra y valida con el motor 0.7.x; un zip sin firmar por componente, con la clave **pública** en el manifest (`claves-publicas.json`). Lo sube a la release `shields` |
+| Firmar | bak, 05:23 UTC (`bak/firmar.mjs`, usuario `flywebfirma`) | Comprueba cada zip, firma (CRX3 + publicador) y sube a ns2 por rsync con una clave limitada a `/var/www/FlyWeb/components` |
+| Servir | ns2 (`go-update` + Apache) | `catalog.json` y `release/<id>/extension_<versión>.crx` |
+
+**Por qué así.**
+- **Construir** necesita código de terceros: las listas, uBlock Origin, el motor en Rust y npm. Lo hace GitHub, sin
+  secretos y con un registro público.
+- **Firmar** solo necesita Node y tres ficheros revisables (`bak/`).
+- **Las claves** viven solo en bak, separadas de ns2, que es quien sirve: si alguien entra en ns2, no puede firmar.
+
+**El JavaScript es lo que más protección lleva.** `resources.json` sale del uBlock Origin fijado en `fijado.json`:
+- solo se sube a versiones con **14 días o más** desde su publicación (el CI lo comprueba);
+- bak solo lo firma si el HUMANO ha aprobado su hash.
+
+Lo que protege es el retraso. Los ataques a la cadena de suministro conocidos (xz, tj-actions, event-stream) se
+descubrieron en días o semanas. Una revisión manual no los habría detectado; el retraso sí los habría evitado.
+
+| Componente | Contenido | Clave |
+|---|---|---|
+| Lista por defecto | `list.txt` con las fuentes de *Brave Default Adblock Filters* y *Brave Default Privacy Filters* (`defecto` de `listas.json`) | `defecto` |
+| Lista de primera parte | `list.txt` con *Brave First Party Adblock Filters* (`primera_parte`) | `primera-parte` |
+| Recursos | `resources.json` de `recursos-157.mjs` y el uBlock Origin fijado | `recursos` |
+| Catálogo | `regional_catalog.json`: las listas de `regionales`, con **nuestros** ID y claves, y solo los campos que lee la 1.57 | `catalogo` |
+| Cada lista regional | `list.txt` | `lista-<UUID>` |
+
+- **Adaptación a la 1.57.**
+  - En el catálogo actual de Brave, las listas por defecto son entradas *ocultas* (`hidden`). La 1.57 no conoce ese
+    campo: las mostraría como listas que el usuario puede activar, y EasyPrivacy quedaría desactivada. Por eso se
+    juntan en la lista por defecto (como en la 1.57) y no van al catálogo.
+  - *First Party Adblock Filters* va como componente propio (`primera-parte`), porque la 1.57 ya lo tenía:
+    `kAdBlockExceptionComponent`, en un motor aparte que también se aplica al propio sitio. Fuera: *iOS-Specific*.
+- **Selección inicial** (`listas.json`): avisos de cookies (la 1.57 la activa por defecto, `kCookieListUuid`),
+  promociones de apps, español, y español y portugués. Cada lista que se añada necesita su clave: se vuelve a ejecutar
+  `generar-claves.sh` en bak, que solo crea las que faltan, y se actualiza `claves-publicas.json`.
+- **Origen de las listas.** El catálogo de `brave/adblock-resources` y las listas de `brave/adblock-lists-mirror`.
+  A diferencia del empaquetador de Brave, no se manda ninguna lista a validadores remotos.
+- **Filtrado.**
+  - Directivas `!#if` con los mismos valores que Brave. Hay una corrección: un `!#else` dentro de una rama descartada
+    sigue descartado, y en Brave se volvía a abrir.
+  - Se quitan las reglas que hacen fallar a adblock-rust anterior a la 0.8.7 (el comprobador wasm del empaquetador,
+    en el commit fijado).
+  - Las reglas `+js(brave-…)` solo se admiten en listas de Brave.
+- **Validación con el motor 0.7.x** (`motor-07/`, versión bloqueada):
+  - la lista carga;
+  - no bloquea páginas normales (FlyWeb, Wikipedia, claude.ai);
+  - la lista por defecto bloquea doubleclick.
+
+  Si falla una fuente, ese componente no sale ese día y bak conserva el anterior. Si falla una lista, tampoco sale el
+  catálogo.
+- **Versiones** `AAAA.MMDD.HHMM` (UTC). bak solo firma si cambia el contenido y la versión es posterior.
+- **Probado en NUBE (03-10), con claves desechables:**
+  - construcción completa con uBlock Origin 1.75.0: 7 componentes;
+  - firma en bak: los 7 CRX pasan el verificador de la 1.57;
+  - `pruebas/firma-bak.mjs` comprueba los rechazos: recursos sin aprobar, clave ajena, fichero de más, zip
+    cambiado, vuelta atrás, lista recortada y catálogo con una lista ajena;
+  - subida por `rrsync -wo`: escribe donde debe, borra los CRX viejos y rechaza `..` y las lecturas;
+  - el firmador propio (`bak/crx3.mjs`) sustituye a `lib/crx.js`; los dos pasan el mismo verificador.
+
 ## Pendiente
 
-1. **Claves** (las genera el HUMANO donde se decida firmar; nunca en el repo):
-   - una por componente propio: lista por defecto, recursos y catálogo;
-   - una por cada lista regional que se publique (su ID y clave van **dentro** de `regional_catalog.json`, no en
-     brave-core);
-   - una **clave de publicador**.
-2. **brave-core (NUBE).** Solo tres pares ID/clave y un hash:
-   - `kAdBlockDefaultComponentId` y su clave (`components/brave_shields/browser/ad_block_service.cc:36`);
-   - `kAdBlockResourceComponentId` y `kAdBlockFilterListCatalogComponentId` con sus claves
-     (`ad_block_component_installer.cc:28` y `:40`);
-   - el SHA-256 de la clave pública (SPKI DER) del publicador, en lugar de `kBravePublisherKeyHash`
-     (`chromium_src/components/crx_file/crx_verifier.cc`). **Se añade** junto al de Brave: si se sustituyera,
-     FlyWeb dejaría de aceptar los CRX firmados por Brave (los de Google van aparte, con `kPublisherKeyHash`).
-3. **Empaquetado diario y publicación** en `components.` (`/var/www/FlyWeb/components/release/…` y el catálogo de
-   `go-update`).
-4. **Licencias:**
+1. **Instalación en bak y ns2 (HUMANO):** pasos en `bak/README.md`. `generar-claves.sh` muestra el contenido de
+   `claves-publicas.json`, que hay que pasar a NUBE.
+2. **NUBE, con esos datos públicos:**
+   - `claves-publicas.json`; con eso el CI empieza a publicar;
+   - brave-core: `kAdBlockDefaultComponentId` y `kAdBlockExceptionComponentId` con sus claves
+     (`components/brave_shields/browser/ad_block_service.cc`),
+     `kAdBlockResourceComponentId` y `kAdBlockFilterListCatalogComponentId` con sus claves
+     (`ad_block_component_installer.cc:28` y `:40`), y el hash del publicador **añadido** junto a
+     `kBravePublisherKeyHash` (`chromium_src/components/crx_file/crx_verifier.cc`). Las listas regionales no tocan
+     brave-core.
+3. **`go-update` en ns2** (E2): binario del CI y `systemd/flyweb-components.service`.
+4. **Componentes de Google (HUMANO decide).** Widevine (Netflix, Spotify…), CRLSet y otros. Con
+   `FLYWEB_NO_REDIRECT=1`, go-update no los redirige a Google y no llegan. Hoy tampoco llegan, porque Brave da 403.
+   Opciones:
+   - quitar la variable: el navegador habla con los servidores de Google solo para esos componentes, como hace Brave;
+   - dejarla y prescindir de Widevine.
+5. **Recursos propios de Brave** (scriptlets `brave-…`): no se incluyen. Las reglas que los usan no hacen nada.
+6. **Licencias:**
    - EasyList y EasyPrivacy: GPLv3 / CC BY-SA 3.0;
    - uBlock Origin (listas, scriptlets y recursos): GPLv3;
    - Brave (`adblock-lists`, `adblock-resources`, empaquetador): MPL-2.0.
@@ -89,6 +157,7 @@ node <softmac>/FlyWeb/servidor/componentes/recursos-157.mjs . /tmp/resources.jso
 node <softmac>/FlyWeb/servidor/componentes/pruebas/barrido-scriptlets.mjs
 node <softmac>/FlyWeb/servidor/componentes/pruebas/prueba-motor-07.mjs
 node <softmac>/FlyWeb/servidor/componentes/pruebas/firma-crx-157.mjs
+node <softmac>/FlyWeb/servidor/componentes/pruebas/firma-bak.mjs        # sin red ni empaquetador
 ```
 
 Comprobación definitiva (LOCAL): un FlyWeb compilado con nuestros componentes en `brave://components`, una página de

@@ -1,0 +1,116 @@
+name: FlyWeb Shields components (build, unsigned)
+
+# Builds FlyWeb's Shields components WITHOUT any private key (FlyWeb/servidor/componentes/README.md).
+# The unsigned zips and indice.json go to the "shields" release; bak downloads, checks and signs them.
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["FlyWeb/servidor/componentes/**", ".github/workflows/flyweb-shields.yml"]
+  pull_request:
+    paths: ["FlyWeb/servidor/componentes/**", ".github/workflows/flyweb-shields.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flyweb-shields-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: FlyWeb/servidor/componentes
+    outputs:
+      real_keys: ${{ steps.keys.outputs.real }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Pinned third-party code (fijado.json)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          tag=$(jq -r .ublock.tag fijado.json); commit=$(jq -r .ublock.commit fijado.json)
+          min=$(jq -r .dias_minimos fijado.json); packager=$(jq -r .empaquetador.commit fijado.json)
+          git clone -q --depth 1 --branch "$tag" https://github.com/gorhill/uBlock.git "$RUNNER_TEMP/ublock"
+          test "$(git -C "$RUNNER_TEMP/ublock" rev-parse HEAD)" = "$commit" || { echo "::error::uBlock Origin $tag is not $commit"; exit 1; }
+          published=$(gh api "repos/gorhill/uBlock/releases/tags/$tag" --jq .published_at)
+          age=$(( ( $(date +%s) - $(date -d "$published" +%s) ) / 86400 ))
+          echo "uBlock Origin $tag: published $published ($age days ago, minimum $min)"
+          test "$age" -ge "$min" || { echo "::error::uBlock Origin $tag is only $age days old (minimum $min)"; exit 1; }
+          git init -q "$RUNNER_TEMP/packager"
+          git -C "$RUNNER_TEMP/packager" fetch -q --depth 1 https://github.com/brave/brave-core-crx-packager.git "$packager"
+          git -C "$RUNNER_TEMP/packager" checkout -q FETCH_HEAD
+
+      - name: adblock-rs 0.7.x (FlyWeb 1.57 engine, locked)
+        working-directory: FlyWeb/servidor/componentes/motor-07
+        run: npm ci --no-audit --no-fund
+
+      - name: Public keys
+        id: keys
+        run: |
+          set -eu
+          if [ "$(jq '.claves | length' claves-publicas.json)" -gt 0 ]; then
+            cp claves-publicas.json "$RUNNER_TEMP/publicas.json"; echo real=true >> "$GITHUB_OUTPUT"
+          else
+            # No real keys yet: throwaway keys only to test the build; nothing is published.
+            sh generar-claves.sh "$RUNNER_TEMP/claves-desechables" | sed -n '/^{/,$p' > "$RUNNER_TEMP/publicas.json"
+            rm -rf "$RUNNER_TEMP/claves-desechables"; echo real=false >> "$GITHUB_OUTPUT"
+            echo "::notice::claves-publicas.json is empty: building with throwaway keys, not publishing"
+          fi
+
+      - name: Build
+        env:
+          ADBLOCK_RS: ${{ github.workspace }}/FlyWeb/servidor/componentes/motor-07/node_modules/adblock-rs
+        run: |
+          set -eu
+          # A component that fails today (a list source down) must not block the others: bak keeps its last
+          # version. The step only fails if nothing at all was built.
+          node empaquetar.mjs --packager "$RUNNER_TEMP/packager" --ublock "$RUNNER_TEMP/ublock" \
+            --claves-publicas "$RUNNER_TEMP/publicas.json" --salida "$RUNNER_TEMP/salida" \
+            || echo "::warning::some components failed; see fallos in indice.json"
+          test "$(jq '.componentes | length' "$RUNNER_TEMP/salida/indice.json")" -gt 0
+          cd "$RUNNER_TEMP/salida" && sha256sum ./*
+
+      - name: Tests (signer and verifier, throwaway keys)
+        run: node pruebas/firma-bak.mjs
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: shields
+          path: ${{ runner.temp }}/salida/
+          retention-days: 7
+
+  publish:
+    needs: build
+    if: needs.build.outputs.real_keys == 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: shields
+          path: salida
+      - name: Upload to the "shields" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -eu
+          gh release view shields >/dev/null 2>&1 || gh release create shields --prerelease \
+            --title "Shields components (unsigned)" \
+            --notes "Built daily by flyweb-shields.yml without private keys. bak checks and signs them."
+          # Zips first, index last: bak never reads an index that points to zips not yet uploaded.
+          gh release upload shields salida/*.zip --clobber
+          gh release upload shields salida/indice.json --clobber

@@ -7,17 +7,16 @@
 // el formato antiguo. Añade "const scriptletGlobals = {}", que los scriptlets actuales necesitan.
 // Excluye los scriptlets "trusted" (requiresTrust), como hacía Brave entonces.
 //
-// Uso: node recursos-157.mjs <checkout de brave-core-crx-packager con submodules/uBlock> <salida.json>
+// Uso: node recursos-157.mjs <checkout de uBlock Origin, o del empaquetador con submodules/uBlock> <salida.json>
+// o como módulo: generarRecursos(dir) (lo usa empaquetar.mjs con el uBlock Origin fijado en fijado.json).
 // Necesita adblock-rs 0.7.x (npm) para uBlockResources: ADBLOCK_RS=/ruta/node_modules/adblock-rs
 // Licencias: uBlock Origin GPLv3 (scriptlets y recursos); brave-core-crx-packager MPL-2.0.
 import { createRequire } from 'module'
 import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
-const [packager, out] = process.argv.slice(2)
 const require = createRequire(import.meta.url)
-const { uBlockResources } = require(process.env.ADBLOCK_RS || 'adblock-rs')
-const uBO = path.join(packager, 'submodules/uBlock')
 
 export const wrap157 = (fnString, prelude) => `{
   const args = ['{{1}}', '{{2}}', '{{3}}', '{{4}}', '{{5}}', '{{6}}', '{{7}}', '{{8}}', '{{9}}'];
@@ -33,26 +32,37 @@ export const wrap157 = (fnString, prelude) => `{
   (${fnString})(...args.slice(0, last_arg_index))
 }`
 
-const { builtinScriptlets } = await import(path.resolve(uBO, 'src/js/resources/scriptlets.js'))
-const byName = Object.fromEntries(builtinScriptlets.map(s => [s.name, s]))
-const scriptlets = builtinScriptlets.filter(s => !s.name.endsWith('.fn') && !s.requiresTrust).map(s => {
-  const req = [...(s.dependencies ?? [])]
-  for (let i = 0; i < req.length; i++) {
-    for (const d of byName[req[i]]?.dependencies ?? []) if (!req.includes(d)) req.push(d)
-  }
-  const prelude = [...req].reverse().map(d => {
-    if (!byName[d]) throw new Error(`${s.name}: falta la dependencia ${d}`)
-    return byName[d].fn.toString()
-  }).join('\n')
-  return {
-    name: s.name,
-    aliases: s.aliases ?? [],
-    kind: { mime: 'application/javascript' },
-    content: Buffer.from(wrap157(s.fn.toString(), prelude)).toString('base64'),
-  }
-})
-const resources = uBlockResources(path.join(uBO, 'src/web_accessible_resources'),
-                                  path.join(uBO, 'src/js/redirect-resources.js'))
-resources.push(...scriptlets)
-fs.writeFileSync(out, JSON.stringify(resources))
-console.log(`${out}: ${scriptlets.length} scriptlets, ${resources.length} recursos`)
+export async function generarRecursos (dir) {
+  const { uBlockResources } = require(process.env.ADBLOCK_RS || 'adblock-rs')
+  const sub = path.join(dir, 'submodules/uBlock')
+  const uBO = fs.existsSync(sub) ? sub : dir
+  const { builtinScriptlets } = await import(path.resolve(uBO, 'src/js/resources/scriptlets.js'))
+  const byName = Object.fromEntries(builtinScriptlets.map(s => [s.name, s]))
+  const scriptlets = builtinScriptlets.filter(s => !s.name.endsWith('.fn') && !s.requiresTrust).map(s => {
+    const req = [...(s.dependencies ?? [])]
+    for (let i = 0; i < req.length; i++) {
+      for (const d of byName[req[i]]?.dependencies ?? []) if (!req.includes(d)) req.push(d)
+    }
+    const prelude = [...req].reverse().map(d => {
+      if (!byName[d]) throw new Error(`${s.name}: falta la dependencia ${d}`)
+      return byName[d].fn.toString()
+    }).join('\n')
+    return {
+      name: s.name,
+      aliases: s.aliases ?? [],
+      kind: { mime: 'application/javascript' },
+      content: Buffer.from(wrap157(s.fn.toString(), prelude)).toString('base64'),
+    }
+  })
+  const resources = uBlockResources(path.join(uBO, 'src/web_accessible_resources'),
+                                    path.join(uBO, 'src/js/redirect-resources.js'))
+  resources.push(...scriptlets)
+  return { resources, scriptlets: scriptlets.length }
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const [dir, out] = process.argv.slice(2)
+  const { resources, scriptlets } = await generarRecursos(dir)
+  fs.writeFileSync(out, JSON.stringify(resources))
+  console.log(`${out}: ${scriptlets} scriptlets, ${resources.length} recursos`)
+}

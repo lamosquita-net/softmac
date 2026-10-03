@@ -62,13 +62,15 @@ npm run apply_patches
 # = cualquier commit). lastchange.py solo reescribe el fichero si cambia: sin commits nuevos no recompila nada.
 python3 src/build/util/lastchange.py --output src/build/util/LASTCHANGE --source-dir src/brave --filter ""
 # Servicios de Brave: ver FlyWeb/docs/rebranding.md §4.
-# - Componentes (listas de Shields, Widevine): se mantienen los servidores de Brave (decisión "a").
+# - Componentes: nuestro servidor (components.flyweb.lamosquita.net, F2.6). Brave exige su clave privada (403).
+#   Las listas de Shields son propias (FlyWeb/servidor/componentes). Los de Google (Widevine, CRLSet…) no llegan
+#   mientras go-update corra con FLYWEB_NO_REDIRECT=1: decisión pendiente del HUMANO (ver componentes/README.md).
 # - Sync, estadísticas y variations: URL inertes (son obligatorias en Release).
 # - Sparkle, actualizador, P3A, Leo, VPN: desactivados aquí.
 # - Safe Browsing: NO se puede quitar al compilar en 1.57 (safe_browsing_mode:0 deja sin resolver dependencias de
 #   //chrome/test:unit_tests); se apaga con FlyWeb/policies/flyweb-policies.mobileconfig.
 # - Wallets y Rewards: quitados en el propio brave-core (rama nube/no-wallet), sin argumentos aquí.
-UPDATER="${FLYWEB_UPDATER_URL:-https://go-updater.brave.com/extensions}"
+UPDATER="${FLYWEB_UPDATER_URL:-https://components.flyweb.lamosquita.net/extensions}"
 # Clave de servicio (cabecera BraveServiceKey de cada consulta de componentes). Nunca se imprime.
 KEYFILE="${FLYWEB_SERVICES_KEY_FILE:-$HOME/proyectos/softmac/claves/flyweb-services-key}"
 if [ -r "$KEYFILE" ]; then
