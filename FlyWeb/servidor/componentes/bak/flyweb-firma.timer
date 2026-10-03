@@ -1,0 +1,11 @@
+# Dos horas después de la construcción en GitHub Actions (03:17 UTC).
+[Unit]
+Description=FlyWeb: firma diaria de los componentes de Shields
+
+[Timer]
+OnCalendar=*-*-* 05:23:00 UTC
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

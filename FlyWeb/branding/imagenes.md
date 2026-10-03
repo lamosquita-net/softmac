@@ -47,27 +47,21 @@ incluida `iconos-tamano-real.png` para revisarla al 100 % en un monitor no Retin
 - **PNG fuera del repo** (Illustrator no los exporta a tamaño exacto): se generan desde los SVG. `.gitignore` excluye
   `FlyWeb/branding/*.png`, `BackupDrive/branding/*.png` y `*.ai` (el `.ai` es el documento de trabajo del HUMANO).
 - **O2: elegido `O2-02.svg`** (texto ya en trazados). `O2.svg` queda como alternativa.
-- **M3 sin disco:** dos candidatos, `M3_1.svg` (16×16,02, el último exportado) y `M3-02.svg` (lienzo 13,42×14,87, no
-  cuadrado). **Pendiente de que el HUMANO elija** con la lámina `software/entregas/iconos-v1/E-entrega2.png`. El elegido
-  debería tener lienzo cuadrado de 16×16 para que el `.icon` salga alineado a píxel.
+- **M3 sin disco: elegido `M3_1.svg`** (lienzo cuadrado de 16×16, alineado a píxel para el `.icon`). El HUMANO los vio
+  iguales en la lámina `software/entregas/iconos-v1/E-entrega2.png`; `M3-02.svg` (lienzo 13,42×14,87) queda como
+  alternativa. **NUBE:** generar desde él los `.icon` (`scripts/svg2icon.py`) y el monocromo de `leo-icons.py`.
 - **M4 pequeño** para 77×22: `M4-fondo-claro-pequeño.svg` y `M4-fondo-oscuro-pequeño.svg`.
 - `01-02.svg` era una copia idéntica de `O1-02.svg` con el nombre mal: retirada (está en `~/proyectos/softmac/temp/papelera/` de la 7,1).
 
-## Integración en brave-core (NUBE, 02/10)
+## Integración en brave-core (02/10, LOCAL)
 
-`nube/iconos-entrega` e899e796 = paso 28 de `integracion.md`. Generado con `scripts/generar-entrega.js`, `icns.py` y
-`svg2icon.py`; cada PNG se dibuja a su tamaño exacto desde el SVG.
+Todos los maestros elegidos están en `flyweb` desde el paso 28 de `docs/integracion.md` (rama `local/iconos-v1`,
+327f4c2d). Se regeneran con `scripts/generar-marca.sh <brave-core>`. Lámina de lo generado y capturas en
+`software/entregas/iconos-v1/F-*.png`. Quedan provisionales: el **botón de Escudos** (M6, escudo verde/gris con la
+mosca de M3_1), la bienvenida (M8, se usa M1-01) y el fondo del DMG (M5). Los 16 y 32 px de la app salen reduciendo
+M1-01: si a esos tamaños no convence, hace falta la versión a píxel (O3).
 
-| Maestro | Dónde |
-|---|---|
-| **M1-01** | `app.icns` (stable, beta, dev, nightly), `product_logo_{22,24,48,64,128,256}`, iconos de la extensión interna desde 48 px |
-| **O1-01** | `app.icns` y `product_logo_128` del canal **development** (los builds `Static` de prueba) |
-| **M2** | Pestañas y ventanas: `product_logo_16`/`_32` en todos los canales, a 1x y 2x. Leo `product-brave-color`. Extensión interna a 16 y 32 |
-| **M3_1** (elegido por el HUMANO) | Los tres `product.icon` (barra de direcciones, notificaciones y menús), `product_logo_22_mono` y Leo `product-brave-monochrome` |
-| **M4** | `product_logo_name_48` y `brave://version` en claro; `product_logo_white` y `brave://version` en oscuro; **M4 pequeño** en `product_logo_name_22` (77×22). Centrados en los lienzos de siempre, sin deformar (proporción 3,07:1) |
-| **O2-02** | `document.icns` |
-
-Pendientes de entrega: **M8** (mosca de la bienvenida) y **M6** (botón de Shields). Siguen con el dibujo provisional.
+Alternativa sin integrar: `nube/iconos-entrega` e899e796 de NUBE, generada con `scripts/generar-entrega.js` e `icns.py` (ver `scripts/README.md`).
 
 ## Limitaciones de cada maestro: color y fondo
 
