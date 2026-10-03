@@ -57,9 +57,12 @@ sudo apt install nodejs rsync          # Node ≥ 18 (en Ubuntu 24.04, el de apt
 sudo adduser --system --group --home /var/lib/flyweb-firma --shell /usr/sbin/nologin flywebfirma
 sudo install -d -m 0755 /opt/flyweb-firma /etc/flyweb-firma
 sudo install -d -m 0700 -o flywebfirma -g flywebfirma /var/lib/flyweb-firma/salida /var/lib/flyweb-firma/.ssh
-# Copia desde un commit fusionado de softmac, carpeta FlyWeb/servidor/componentes, y compara los SHA-256 con el PR:
-sudo install -m 0644 bak/firmar.mjs bak/zip.mjs bak/crx3.mjs generar-claves.sh listas.json /opt/flyweb-firma/
-sha256sum /opt/flyweb-firma/*
+# Descarga desde un commit concreto (inmutable) y comprueba los SHA-256 que da el PR antes de instalar:
+C=<commit>; U=https://raw.githubusercontent.com/lamosquita-net/softmac/$C/FlyWeb/servidor/componentes
+mkdir -p ~/flyweb-firma-src && cd ~/flyweb-firma-src
+for f in bak/firmar.mjs bak/zip.mjs bak/crx3.mjs generar-claves.sh listas.json; do curl -fsSLo "$(basename $f)" "$U/$f"; done
+sha256sum -c sumas.txt          # sumas.txt: las líneas «<sha256>  <fichero>» del PR; todas deben decir «La suma coincide»
+sudo install -m 0644 firmar.mjs zip.mjs crx3.mjs generar-claves.sh listas.json /opt/flyweb-firma/
 sudo touch /etc/flyweb-firma/recursos-aprobados && sudo chmod 0644 /etc/flyweb-firma/recursos-aprobados
 
 # Claves de firma. Solo muestra datos PÚBLICOS: pásaselos a NUBE (van a claves-publicas.json y a brave-core).
