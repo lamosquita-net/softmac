@@ -61,7 +61,9 @@ Configuración **tal como está en producción**, montada a mano por el HUMANO (
 - **fail2ban no lee la raíz de `/var/log/apache2/`.** Sus jails solo miran subcarpetas (`*/*access.log`), así que los
   puertos 80 de todos los sitios, que van a los registros generales, solo los ve CrowdSec.
 
-## Propuesta: `proxy.flyweb.lamosquita.net` (NUBE, 03-10; pendiente del HUMANO)
+## `proxy.flyweb.lamosquita.net` (NUBE, 03-10; **en producción desde el 03-10**, instalado por LOCAL)
+
+**Hecho el 03-10 (LOCAL, con permiso del HUMANO):** registro A en la zona de ns1 (maestro; serie 2026100301; ns2 lo copió), carpetas, vhost al final de `lamosquita.conf`, certificado ampliado (`certbot --expand`, cuatro nombres) y `SSLProxyVerifyDepth 5` (sin él, 500 al hablar con Google). Comprobado en ns2: diccionario `es-es-3-0.bdic` → 200 (785 KB), raíz → 404, `/v4` sin clave → 404, registros sin IP. Copias: `lamosquita.conf.bak-20261003-proxy{,2}` y `lamosquita.net.hosts.bak-20261003-proxy` en ns1. **Falta solo la clave de Safe Browsing (paso 1).**
 
 Sustituye los proxies de Brave (`safebrowsing*.brave.com`, `sb-ssl.brave.com`, `redirector.brave.com`) por uno propio
 en ns2. El navegador lo usa desde brave-core `nube/proxies-propios` y `build.sh` (`safebrowsing_api_endpoint`).
