@@ -87,7 +87,26 @@ else
   echo "AVISO: sin $KEYFILE; clave \"flyweb\": el servidor de componentes rechazará las consultas" >&2
 fi
 INERT="https://flyweb.invalid"
-npm run build -- "$CONFIG" --target_arch=x64 \
+# Release (is_official_build) exige que no estén vacías las claves de servicios que FlyWeb quita o desactiva
+# (Rewards, cartera, Leo). Valores inertes: no llevan a ningún sitio. Solo en Release, para no recompilar Static.
+if [ "$CONFIG" = "Release" ]; then
+  set -- \
+    --gn "brave_ai_chat_endpoint:flyweb.invalid" \
+    --gn "brave_zero_ex_api_key:flyweb" --gn "sardine_client_id:flyweb" --gn "sardine_client_secret:flyweb" \
+    --gn "rewards_grant_dev_endpoint:$INERT" --gn "rewards_grant_staging_endpoint:$INERT" \
+    --gn "rewards_grant_prod_endpoint:$INERT" \
+    --gn "bitflyer_production_client_id:flyweb" --gn "bitflyer_production_client_secret:flyweb" \
+    --gn "bitflyer_production_fee_address:flyweb" --gn "bitflyer_production_url:$INERT" \
+    --gn "gemini_production_api_url:$INERT" --gn "gemini_production_client_id:flyweb" \
+    --gn "gemini_production_client_secret:flyweb" --gn "gemini_production_fee_address:flyweb" \
+    --gn "gemini_production_oauth_url:$INERT" \
+    --gn "uphold_production_api_url:$INERT" --gn "uphold_production_client_id:flyweb" \
+    --gn "uphold_production_client_secret:flyweb" --gn "uphold_production_fee_address:flyweb" \
+    --gn "uphold_production_oauth_url:$INERT"
+else
+  set --
+fi
+npm run build -- "$CONFIG" --target_arch=x64 "$@" \
   --gn "mac_sdk_path:$SDK" \
   --gn symbol_level:0 \
   --gn "updater_prod_endpoint:$UPDATER" \
