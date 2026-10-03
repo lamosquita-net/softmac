@@ -17,7 +17,10 @@ en FlyWeb. En la pestaña nueva, abajo en el centro hay controles **solo del pro
   espaciados e interacción (decisión del HUMANO, 03/10). En la maqueta y en el prototipo solo **reservan el sitio**:
   los de Brave son más grandes y están bien compensados, así que se quedan como están. De la maqueta se toma solo
   **dónde** van (accesos bajo los contadores, a la izquierda; iconos abajo a la derecha junto a "personalizar") y el
-  color de las etiquetas por fondo.
+  color de las etiquetas por fondo. **Precisión del HUMANO:** las etiquetas de esos accesos e iconos van en
+  **D-DIN** (nuestra tipografía), con los cuerpos y grosores de la maqueta como referencia; y sus posiciones se
+  ajustan **respecto a nuestros elementos** (contadores, reloj, crédito, "personalizar"). Los iconos, sus tamaños y su
+  comportamiento, los de Brave.
 - **Tipografía D-DIN** (solo regular y bold; son ligeramente condensadas): **bold** para el reloj, los números de los
   contadores y "personalizar"; **regular** para el resto.
 - **Colores del proyecto, sin cambiar** (decisión del HUMANO): naranja del icono `rgb(255,153,0)`, rojo de lamosquita
