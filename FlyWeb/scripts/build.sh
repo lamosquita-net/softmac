@@ -140,7 +140,8 @@ Chromium:            $CHROMIUM
 Compilado:           $DATE en $(hostname -s)
 INFO
 
-APP=$(find "$OUT" -maxdepth 1 -name "*.app" -type d | head -1)
+# La app principal, no los «Helper» (en Release salen todos en out/Release y find no los ordena).
+APP=$(find "$OUT" -maxdepth 1 -name "*.app" -type d ! -name "* Helper*" | head -1)
 if [ -n "$APP" ] && [ "$CONFIG" != "Release" ]; then
   # Solo en builds sin firmar: editar el Info.plist invalidaría la firma de un Release.
   PLIST="$APP/Contents/Info.plist"
