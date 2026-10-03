@@ -2,7 +2,7 @@
 // directorio (zip.mjs, crx3.mjs). Lo ejecuta flyweb-firma.service una vez al día, como el usuario flywebfirma.
 //
 // 1. Descarga indice.json y los zips sin firmar que construye GitHub Actions (release «shields» del repo).
-// 2. Comprueba cada zip: SHA-256 del índice; solo manifest.json y su fichero de datos; la clave del manifest es la
+// 2. Comprueba cada zip: SHA-256 del índice; solo manifest.json y sus ficheros de datos; la clave del manifest es la
 //    NUESTRA; la versión es mayor que la ya firmada (nada de volver atrás); en el catálogo, cada lista apunta a
 //    nuestro ID y nuestra clave; una lista no pierde más de la mitad de sus reglas.
 // 3. resources.json (el único componente con JavaScript) solo se firma si su SHA-256 está en el fichero de
@@ -45,8 +45,11 @@ const escribir = (f, d) => { fs.writeFileSync(f + '.tmp', d); fs.renameSync(f + 
 const versionValida = (v) => /^\d{1,5}\.\d{1,5}\.\d{1,5}$/.test(v) && v.split('.').every((p) => +p < 65536)
 const mayor = (a, b) => { const x = a.split('.').map(Number); const y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false }
 const contarReglas = (t) => t.split('\n').filter((l) => l && !l.startsWith('!') && !l.startsWith('[')).length
-const FICHERO = (n) => n === 'recursos' ? 'resources.json' : n === 'catalogo' ? 'regional_catalog.json' : 'list.txt'
-const NOMBRE = /^(defecto|primera-parte|recursos|catalogo|lista-[A-Za-z0-9-]{1,64})$/
+// Datos locales: lo que lee la 1.57 de la carpeta 1/. Greaselion debe ir vacío: bak nunca firma scripts inyectables.
+const DATOS_LOCALES = ['1/debounce.json', '1/clean-urls.json', '1/request-otr.json', '1/https-upgrade-exceptions-list.txt',
+  '1/localhost-permission-allow-list.txt', '1/Greaselion.json']
+const FICHEROS = (n) => n === 'recursos' ? ['resources.json'] : n === 'catalogo' ? ['regional_catalog.json'] : n === 'datos-locales' ? DATOS_LOCALES : ['list.txt']
+const NOMBRE = /^(defecto|primera-parte|recursos|catalogo|datos-locales|lista-[A-Za-z0-9-]{1,64})$/
 
 const ESTADO = path.join(SALIDA, 'firmado.json')
 const estado = fs.existsSync(ESTADO) ? JSON.parse(fs.readFileSync(ESTADO, 'utf8')) : {}
@@ -67,12 +70,14 @@ for (const c of indice.componentes ?? []) {
     const zip = await traer(`${c.nombre}.zip`)
     if (sha256(zip) !== c.sha256) throw new Error('el SHA-256 del zip no coincide con el índice')
     const ficheros = leerZip(zip)
-    const esperados = ['manifest.json', FICHERO(c.nombre)]
-    if (ficheros.size !== 2 || !esperados.every((f) => ficheros.has(f))) throw new Error(`contenido inesperado: ${[...ficheros.keys()]}`)
+    const esperados = ['manifest.json', ...FICHEROS(c.nombre)]
+    if (ficheros.size !== esperados.length || !esperados.every((f) => ficheros.has(f))) throw new Error(`contenido inesperado: ${[...ficheros.keys()]}`)
     const m = JSON.parse(ficheros.get('manifest.json'))
     if (m.manifest_version !== 2 || m.key !== der.toString('base64')) throw new Error('el manifest no lleva nuestra clave')
     if (!versionValida(m.version) || m.version !== c.version) throw new Error(`versión no válida: ${m.version}`)
-    const datos = ficheros.get(FICHERO(c.nombre)); const contenido = sha256(datos)
+    const datos = FICHEROS(c.nombre).length === 1 ? ficheros.get(FICHEROS(c.nombre)[0])
+      : Buffer.concat(FICHEROS(c.nombre).flatMap((f) => [Buffer.from(f + '\0'), ficheros.get(f), Buffer.from('\0')]))
+    const contenido = sha256(datos)
     if (prev && prev.contenido === contenido) { console.log(`= ${c.nombre.padEnd(46)} sin cambios (${prev.version})`); continue }
     if (prev && !mayor(m.version, prev.version)) throw new Error(`versión ${m.version} no posterior a la firmada (${prev.version})`)
     let reglas
@@ -86,6 +91,18 @@ for (const c of indice.componentes ?? []) {
           throw new Error(`la lista ${e.uuid} del catálogo no usa nuestra clave`)
         }
       }
+    } else if (c.nombre === 'datos-locales') {
+      reglas = 0
+      for (const f of DATOS_LOCALES) {
+        const t = ficheros.get(f).toString('utf8')
+        if (f === '1/Greaselion.json') { if (t.trim() !== '[]') throw new Error('Greaselion.json no está vacío'); continue }
+        if (f.endsWith('.json')) {
+          const r = JSON.parse(t)
+          if (!Array.isArray(r) || !r.every((x) => x && Array.isArray(x.include))) throw new Error(`${f}: formato inesperado`)
+          reglas += r.length
+        } else reglas += t.split('\n').filter((l) => l.trim() && !l.trim().startsWith('#')).length
+      }
+      if (prev?.reglas && reglas < prev.reglas / 2) throw new Error(`${reglas} reglas frente a ${prev.reglas}; no se firma`)
     } else {
       reglas = contarReglas(datos.toString('utf8'))
       if (prev?.reglas && reglas < prev.reglas / 2) throw new Error(`${reglas} reglas frente a ${prev.reglas}; no se firma`)

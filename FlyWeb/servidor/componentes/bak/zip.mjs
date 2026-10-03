@@ -1,5 +1,6 @@
 // ZIP mínimo, sin dependencias (solo zlib de Node). Lo usan empaquetar.mjs (escribe) y firmar.mjs (lee y comprueba).
-// Solo lo necesario para un componente: ficheros en la raíz, sin carpetas, deflate o sin comprimir, sin zip64.
+// Solo lo necesario para un componente: ficheros en la raíz o en una carpeta numérica ("1/", la versión de datos que
+// leen los componentes de datos locales), sin entradas de carpeta, deflate o sin comprimir, sin zip64.
 import zlib from 'zlib'
 
 const TABLA = new Uint32Array(256).map((_, n) => {
@@ -13,13 +14,13 @@ export const crc32 = (b) => {
   return (c ^ 0xffffffff) >>> 0
 }
 
-const NOMBRE_VALIDO = /^[A-Za-z0-9_.-]{1,64}$/
+const NOMBRE_VALIDO = /^(?:\d{1,3}\/)?[A-Za-z0-9_-][A-Za-z0-9_.-]{0,63}$/
 
 // ficheros: [{ nombre, datos: Buffer }]. Fecha fija (1980-01-01) para que el resultado dependa solo del contenido.
 export function crearZip (ficheros) {
   const locales = []; const central = []; let pos = 0
   for (const { nombre, datos } of ficheros) {
-    if (!NOMBRE_VALIDO.test(nombre) || nombre.startsWith('.')) throw new Error(`nombre no válido: ${nombre}`)
+    if (!NOMBRE_VALIDO.test(nombre)) throw new Error(`nombre no válido: ${nombre}`)
     const n = Buffer.from(nombre); const comp = zlib.deflateRawSync(datos, { level: 9 }); const crc = crc32(datos)
     const cab = Buffer.alloc(30)
     cab.writeUInt32LE(0x04034b50, 0); cab.writeUInt16LE(20, 4); cab.writeUInt16LE(0, 6); cab.writeUInt16LE(8, 8)
@@ -39,7 +40,7 @@ export function crearZip (ficheros) {
   return Buffer.concat([...locales, dir, fin])
 }
 
-// Devuelve Map nombre → Buffer. Rechaza lo que no sea un zip simple: carpetas, rutas, duplicados, cifrado, zip64,
+// Devuelve Map nombre → Buffer. Rechaza lo que no sea un zip simple: entradas de carpeta, rutas, duplicados, cifrado, zip64,
 // datos tras el directorio central o un CRC que no cuadre.
 export function leerZip (zip) {
   const fin = zip.length - 22
@@ -56,7 +57,7 @@ export function leerZip (zip) {
     p += 46 + ln + le + lc
     if (flags & 1) throw new Error(`zip: ${nombre} cifrado`)
     if (comp === 0xffffffff || real === 0xffffffff) throw new Error('zip: zip64 no admitido')
-    if (!NOMBRE_VALIDO.test(nombre) || nombre.startsWith('.')) throw new Error(`zip: nombre no válido: ${JSON.stringify(nombre)}`)
+    if (!NOMBRE_VALIDO.test(nombre)) throw new Error(`zip: nombre no válido: ${JSON.stringify(nombre)}`)
     if (out.has(nombre)) throw new Error(`zip: ${nombre} repetido`)
     if (zip.readUInt32LE(local) !== 0x04034b50) throw new Error(`zip: cabecera local de ${nombre} no válida`)
     const d0 = local + 30 + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28)

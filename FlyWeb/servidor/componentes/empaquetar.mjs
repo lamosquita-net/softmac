@@ -7,7 +7,10 @@
 //     que va a un motor aparte y se aplica también a las peticiones del propio sitio;
 //   - los recursos (resources.json), con recursos-157.mjs y el uBlock Origin fijado en fijado.json;
 //   - el catálogo (regional_catalog.json): las entradas de "regionales", con NUESTROS ID y claves públicas;
-//   - cada lista regional (list.txt).
+//   - cada lista regional (list.txt);
+//   - los datos locales (kLocalDataFilesComponentId de la 1.57): debounce, limpieza de URL, Request-OTR, excepciones de
+//     HTTPS por defecto y permiso de localhost, de brave/adblock-lists, en la carpeta 1/; Greaselion vacío (no se
+//     inyecta ningún script). Solo si claves-publicas.json ya tiene su clave.
 // Cada componente sale como <salida>/<nombre>.zip (manifest.json con la clave pública + el fichero de datos), y
 // <salida>/indice.json los describe (versión, SHA-256 del zip y del contenido, reglas).
 //
@@ -30,6 +33,7 @@ const require = createRequire(import.meta.url)
 const CATALOGO_URL = 'https://raw.githubusercontent.com/brave/adblock-resources/master/filter_lists/list_catalog.json'
 const MIRROR = 'https://raw.githubusercontent.com/brave/adblock-lists-mirror/refs/heads/lists/lists/'
 const SERVIDOR = 'https://flyweb.lamosquita.net'
+const LISTAS_BRAVE = 'https://raw.githubusercontent.com/brave/adblock-lists/master/brave-lists/'
 const aqui = (f) => new URL(f, import.meta.url).pathname
 
 const args = process.argv.slice(2)
@@ -175,19 +179,45 @@ await intentar('catalogo', async () => {
   componentes.push({ nombre: 'catalogo', titulo: 'FlyWeb Shields: catálogo de listas', fichero: 'regional_catalog.json', datos: JSON.stringify(catalogo) })
 })
 
+// Datos locales. Formatos comprobados con los lectores de la 1.57 (debounce_rule.cc, url_sanitizer_service.cc,
+// request_otr_rule.cc, localhost_permission_component.cc, https_upgrade_exceptions_service.cc); las acciones de
+// debounce que no conoce (p. ej. regex-path-template) las ignora regla a regla. webcompat-exceptions.json y
+// clean-urls-permissions.json no los lee la 1.57.
+const conDatosLocales = Boolean(publicas['datos-locales'])
+if (conDatosLocales) {
+  await intentar('datos-locales', async () => {
+    const json = { 'debounce.json': 20, 'clean-urls.json': 20, 'request-otr.json': 1 }
+    const texto = ['https-upgrade-exceptions-list.txt', 'localhost-permission-allow-list.txt']
+    const ficheros = []; let reglas = 0
+    for (const [f, minimo] of Object.entries(json)) {
+      const d = await descargar(LISTAS_BRAVE + f); const r = JSON.parse(d)
+      if (!Array.isArray(r) || r.length < minimo || !r.every((x) => x && Array.isArray(x.include) && x.include.every((i) => typeof i === 'string'))) throw new Error(`${f}: formato inesperado`)
+      ficheros.push({ nombre: `1/${f}`, datos: d }); reglas += r.length
+    }
+    for (const f of texto) {
+      const d = await descargar(LISTAS_BRAVE + f); const n = d.split('\n').filter((l) => l.trim() && !l.trim().startsWith('#')).length
+      if (!n) throw new Error(`${f}: vacío`)
+      ficheros.push({ nombre: `1/${f}`, datos: d }); reglas += n
+    }
+    ficheros.push({ nombre: '1/Greaselion.json', datos: '[]' })
+    componentes.push({ nombre: 'datos-locales', titulo: 'FlyWeb Local Data', ficheros, reglas, quitadas: 0 })
+  })
+} else console.log('datos-locales: sin clave pública todavía; no se construye')
+
 fs.mkdirSync(SALIDA, { recursive: true })
 // esperados: lo que pide listas.json; bak deja de servir lo que ya no esté (un fallo de hoy no lo quita).
-const esperados = ['defecto', 'primera-parte', 'recursos', ...listas.regionales.map((u) => `lista-${u}`), 'catalogo']
+const esperados = ['defecto', 'primera-parte', 'recursos', ...listas.regionales.map((u) => `lista-${u}`), 'catalogo',
+  ...(conDatosLocales ? ['datos-locales'] : [])]
 const indice = { generado: ahora.toISOString(), version: VERSION, ublock: fijado.ublock.tag, esperados, componentes: [] }
 for (const c of componentes) {
   await intentar(c.nombre, async () => {
     const k = clave(c.nombre)
     const manifest = { manifest_version: 2, name: c.titulo, version: VERSION, key: k.b64 }
-    const zip = crearZip([{ nombre: 'manifest.json', datos: Buffer.from(JSON.stringify(manifest, null, 1)) },
-      { nombre: c.fichero, datos: Buffer.from(c.datos) }])
+    const ficheros = (c.ficheros ?? [{ nombre: c.fichero, datos: c.datos }]).map((f) => ({ nombre: f.nombre, datos: Buffer.from(f.datos) }))
+    const zip = crearZip([{ nombre: 'manifest.json', datos: Buffer.from(JSON.stringify(manifest, null, 1)) }, ...ficheros])
     fs.writeFileSync(path.join(SALIDA, `${c.nombre}.zip`), zip)
     indice.componentes.push({ nombre: c.nombre, id: k.id, version: VERSION, zip: `${c.nombre}.zip`, sha256: sha256(zip),
-      contenido: sha256(c.datos), ...(c.reglas !== undefined && { reglas: c.reglas, quitadas: c.quitadas }) })
+      contenido: sha256(c.ficheros ? Buffer.concat(ficheros.flatMap((f) => [Buffer.from(f.nombre + '\0'), f.datos, Buffer.from('\0')])) : c.datos), ...(c.reglas !== undefined && { reglas: c.reglas, quitadas: c.quitadas }) })
     console.log(`+ ${c.nombre.padEnd(46)} ${VERSION} ${k.id}${c.reglas !== undefined ? ` ${c.reglas} reglas (${c.quitadas} quitadas)` : ''}`)
   })
 }

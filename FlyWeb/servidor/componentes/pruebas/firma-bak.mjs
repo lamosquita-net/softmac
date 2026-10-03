@@ -19,7 +19,7 @@ let fallos = 0
 try {
   fs.mkdirSync(CLAVES, { mode: 0o700 }); fs.mkdirSync(SALIDA)
   const pem = {}
-  for (const n of ['publicador', 'defecto', 'recursos', 'catalogo', 'lista-ES', 'ajena']) {
+  for (const n of ['publicador', 'defecto', 'recursos', 'catalogo', 'lista-ES', 'datos-locales', 'ajena']) {
     pem[n] = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ type: 'pkcs8', format: 'pem' })
     if (n !== 'ajena') fs.writeFileSync(path.join(CLAVES, `${n}.pem`), pem[n], { mode: 0o600 })
   }
@@ -35,16 +35,21 @@ try {
       defecto: lista(1000), recursos: recursos1, 'lista-ES': lista(200),
       catalogo: JSON.stringify([{ uuid: 'ES', title: 'es', langs: ['es'], list_text_component: { component_id: id(spki(pem['lista-ES'])), base64_public_key: b64('lista-ES') } }])
     }
+    const reglasLocales = (n) => JSON.stringify(Array.from({ length: n }, (_, i) => ({ include: [`*://r${i}.example/*`], exclude: [] })))
+    base['datos-locales'] = { '1/debounce.json': reglasLocales(40), '1/clean-urls.json': reglasLocales(40), '1/request-otr.json': reglasLocales(5),
+      '1/https-upgrade-exceptions-list.txt': 'a.example\n', '1/localhost-permission-allow-list.txt': '# x\nb.example\n', '1/Greaselion.json': '[]' }
     const fichero = (n) => n === 'recursos' ? 'resources.json' : n === 'catalogo' ? 'regional_catalog.json' : 'list.txt'
     const componentes = Object.entries(base).map(([n, datos]) => {
       const c = cambios[n] ?? {}
       const v = c.version ?? version
+      const d = c.datos ?? datos
       const f = [{ nombre: 'manifest.json', datos: Buffer.from(JSON.stringify({ manifest_version: 2, name: n, version: v, key: c.clave ?? b64(n) })) },
-        { nombre: fichero(n), datos: Buffer.from(c.datos ?? datos) }]
+        ...(typeof d === 'string' ? [{ nombre: fichero(n), datos: Buffer.from(d) }] : Object.entries(d).map(([nombre, x]) => ({ nombre, datos: Buffer.from(x) })))]
       if (c.extra) f.push({ nombre: 'extra.js', datos: Buffer.from('alert(1)') })
       const zip = crearZip(f); fs.writeFileSync(path.join(ORIGEN, `${n}.zip`), zip)
       return { nombre: n, version: v, zip: `${n}.zip`, sha256: c.shaFalso ? hex('x') : hex(zip) }
     })
+    fs.writeFileSync(path.join(tmp, 'locales.json'), JSON.stringify(base['datos-locales']))
     fs.writeFileSync(path.join(ORIGEN, 'indice.json'), JSON.stringify({ ublock: 'prueba', esperados: Object.keys(base), componentes }))
   }
   const firmar = () => {
@@ -57,7 +62,7 @@ try {
 
   construir('2026.1003.900')
   let r = firmar()
-  comprobar('primera firma de los 4 componentes', r, ['+ defecto', '+ recursos', '+ lista-ES', '+ catalogo'])
+  comprobar('primera firma de los 5 componentes', r, ['+ defecto', '+ recursos', '+ lista-ES', '+ catalogo', '+ datos-locales'])
   const estado = JSON.parse(fs.readFileSync(path.join(SALIDA, 'firmado.json'), 'utf8'))
   for (const [n, e] of Object.entries(estado)) {
     const crx = fs.readFileSync(path.join(SALIDA, 'release', e.id, `extension_${e.version.replace(/\./g, '_')}.crx`))
@@ -66,6 +71,8 @@ try {
   }
   comprobar('segunda ejecución sin cambios', firmar(), ['= defecto', '= recursos', '= catalogo'])
 
+  const locales = () => ({ '1/debounce.json': '[]', '1/clean-urls.json': '[]', '1/request-otr.json': '[]', '1/https-upgrade-exceptions-list.txt': '',
+    '1/localhost-permission-allow-list.txt': '', '1/Greaselion.json': '[]', ...JSON.parse(fs.readFileSync(path.join(tmp, 'locales.json'), 'utf8')) })
   const casos = [
     ['recursos cambiados sin aprobar', { recursos: { datos: '[{"name":"x.js","aliases":[],"kind":{"mime":"application/javascript"},"content":"YWxlcnQoMSk="}]' } }, ['recursos nuevos SIN APROBAR']],
     ['manifest con clave ajena', { defecto: { datos: lista(1001), clave: b64('ajena') } }, ['defecto: el manifest no lleva nuestra clave']],
@@ -73,6 +80,9 @@ try {
     ['zip que no coincide con el índice', { defecto: { datos: lista(1001), shaFalso: true } }, ['defecto: el SHA-256 del zip no coincide']],
     ['versión anterior (vuelta atrás)', { defecto: { datos: lista(1001), version: '2026.1003.800' } }, ['defecto: versión 2026.1003.800 no posterior']],
     ['lista que pierde más de la mitad', { defecto: { datos: lista(400) } }, ['defecto: 400 reglas frente a 1000']],
+    ['datos locales con Greaselion no vacío', { 'datos-locales': { datos: { ...locales(), '1/Greaselion.json': '[{"scripts":["x.js"]}]' } } }, ['Greaselion.json no está vacío']],
+    ['datos locales con un fichero de más', { 'datos-locales': { datos: { ...locales(), '1/x.js': 'alert(1)' } } }, ['datos-locales: contenido inesperado']],
+    ['datos locales que pierden más de la mitad', { 'datos-locales': { datos: { ...locales(), '1/debounce.json': '[]', '1/clean-urls.json': '[]' } } }, ['datos-locales: 7 reglas frente a 87']],
     ['catálogo con una lista ajena', { catalogo: { datos: JSON.stringify([{ uuid: 'ES', list_text_component: { component_id: id(spki(pem.ajena)), base64_public_key: b64('ajena') } }]) } }, ['la lista ES del catálogo no usa nuestra clave']]
   ]
   for (const [nombre, cambios, esperado] of casos) {
