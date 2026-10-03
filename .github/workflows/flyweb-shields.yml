@@ -82,13 +82,33 @@ jobs:
           cd "$RUNNER_TEMP/salida" && sha256sum ./*
 
       - name: Tests (signer and verifier, throwaway keys)
-        run: node pruebas/firma-bak.mjs
+        run: |
+          node pruebas/firma-bak.mjs
+          node pruebas/google-bak.mjs
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: shields
           path: ${{ runner.temp }}/salida/
           retention-days: 7
+
+  # The same Google mirror code bak runs (bak/google.mjs), against Google for real: downloads and verifies the CRXs
+  # (Google publisher proof, component ID, SHA-256). Nothing is uploaded; it only shows that bak would accept them.
+  google:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: FlyWeb/servidor/componentes
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Google components mirror (real, nothing uploaded)
+        run: |
+          node bak/google.mjs --salida "$RUNNER_TEMP/google"
+          cat "$RUNNER_TEMP/google/google.json"
+          cd "$RUNNER_TEMP/google" && find release -type f -exec sha256sum {} +
 
   publish:
     needs: build
