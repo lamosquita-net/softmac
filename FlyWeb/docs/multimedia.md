@@ -30,6 +30,40 @@ Hito: tabla de rendimiento por máquina y backend de ANGLE, con el backend por d
    anotar `kVideoDecoderName` (`VideoToolboxVideoDecoder` o `VDAVideoDecoder` = hardware; `FFmpegVideoDecoder` o
    `VpxVideoDecoder` = software) y la CPU del proceso de la pestaña en el Monitor de Actividad.
 
+### 1b. Ronda completa en las tres máquinas (encargo del HUMANO, 03/10)
+
+En cada máquina (7,1 Radeon Pro 580X, Sequoia; 6,1 2 × FirePro D500, Mojave; 5,1 RX 580, Mojave), con la misma
+compilación y un perfil nuevo, **tres arranques**: sin argumentos, `--use-angle=metal` y `--use-angle=gl`. En cada
+uno, la página de diagnóstico dos veces (para ver si repite) y pegar los JSON en §3. Luego, solo con el motor por
+defecto, la prueba de uso real de §1c.
+
+En la 6,1 conviene además anotar **qué D500 usa FlyWeb**: `flyweb://gpu` (`brave://gpu` en compilaciones sin el paso 34), apartado *GPU0/GPU1* y *Active*. macOS dibuja
+la pantalla con una y deja la otra para cálculo; Chromium usa solo la activa. Si un monitor va a cada tarjeta, abrir
+FlyWeb en cada pantalla y medir en las dos.
+
+### 1c. Uso real (sobre todo en la 6,1, la de peor gráfica)
+
+Con el Monitor de Actividad abierto en la pestaña CPU (y «Ventana → Historial de la GPU» para ver la carga de la
+GPU), apuntar en cada caso la CPU del proceso «FlyWeb Helper (GPU)» y del de la pestaña, y si hay tirones:
+
+| Prueba | Qué mirar |
+|---|---|
+| YouTube 1080p en H.264 (con la extensión h264ify o una lista que lo fuerce) | Fotogramas perdidos en «Estadísticas para nerds»; CPU < 30 % esperable con hardware |
+| YouTube 1080p en VP9 (lo normal sin forzar) | Fotogramas perdidos; CPU (por software: esperable alta) |
+| Desplazarse rápido por claude.ai con una conversación larga, y por elmundo.es | Tirones al desplazarse; CPU del proceso de GPU |
+| Google Maps en vista 3D/satélite, girando | Fluidez; si aparece el aviso de «WebGL no disponible» |
+| 20 pestañas abiertas y cambiar entre ellas | Retraso al cambiar; memoria de la GPU en `flyweb://gpu` |
+| Página de diagnóstico con otra pestaña reproduciendo vídeo | Cuánto bajan `sombreado` y `llamadas` |
+
+Qué significaría cada resultado en la 6,1:
+- **`llamadas` claramente peor con Metal que con OpenGL** (más de un 20 %): candidata a fijar OpenGL para las D500
+  (F5.2, una regla por ID de GPU, solo para esa tarjeta).
+- **Tirones al desplazarse o al cambiar de pestaña con CPU de GPU alta**: la composición por GPU va justa; F5.3 (el
+  artefacto de pantalla) y este punto se estudian juntos.
+- **VP9 con fotogramas perdidos**: no es la GPU (VP9 va por software en las tres); la solución es forzar H.264 (h264ify
+  o equivalente), no código.
+- **Todo fluido**: no se toca nada; las D500 bastan para navegar aunque tengan menos de la mitad de potencia.
+
 ## 2. Qué decidir con los datos
 
 - **Backend por defecto por GPU:** si en alguna GPU (p. ej. las FirePro de la 6,1) un motor es claramente mejor en

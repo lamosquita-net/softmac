@@ -90,7 +90,12 @@ Pasos del HUMANO:
 3. **Certificado:** `certbot certonly --apache --expand` con los cuatro nombres.
 4. **Apache:** `a2enmod rewrite`; `install -d /var/log/flyweb/proxy /var/www/FlyWeb/proxy-vacio`; añadir el vhost a
    `lamosquita.conf`; `apachectl configtest` y recargar.
-5. **Comprobar desde ns2:** `curl -sI https://dl.google.com/edgedl/chrome/dict/es-es-3-0.bdic` debe dar 200, no una
+5. **Conexión cifrada con Google:** el proxy habla con Google por TLS y verifica su certificado con los de la
+   distribución (`SSLProxyVerify require` contra `/etc/ssl/certs/ca-certificates.crt`). Comprobar que existe
+   (`ls -l /etc/ssl/certs/ca-certificates.crt`; si no, `apt install ca-certificates`) y que `proxy_http` y `ssl` están
+   activos (`apache2ctl -M | grep -E 'proxy_http|ssl|rewrite'`). No hace falta abrir puertos de entrada nuevos: solo
+   el 443, ya abierto; la salida a Google es por 443.
+6. **Comprobar desde ns2:** `curl -sI https://dl.google.com/edgedl/chrome/dict/es-es-3-0.bdic` debe dar 200, no una
    redirección; si redirige, se cambia el destino de los diccionarios. Después,
    `curl -s -o /dev/null -w '%{http_code}\n' 'https://proxy.flyweb.lamosquita.net/edgedl/chrome/dict/es-es-3-0.bdic'`
    debe dar 200, y `https://proxy.flyweb.lamosquita.net/` debe dar 404.
