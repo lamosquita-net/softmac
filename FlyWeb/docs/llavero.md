@@ -84,5 +84,5 @@ prefiere seguir con iCloud, la 2 en la 7,1 y la 3 en los Mojave es lo máximo po
   1b. mantener nosotros una versión de la extensión (GPL-3.0) con parches seleccionados: mucho trabajo, no lo
       recomiendo;
   1c. otro gestor con extensión que siga soportando Chromium 116 (KeePassXC + KeePassXC-Browser con el fichero `.kdbx`
-      sincronizado por BackupDrive; KeePassXC 2.7.x funciona en 10.14): sin servidor, pero la sincronización no es «al
+      sincronizado por BackupDrive; por comprobar qué versión de KeePassXC funciona aún en 10.14): sin servidor, pero la sincronización no es «al
       momento» y hay conflictos si se edita en dos Macs a la vez. Por comprobar si su extensión actual sigue en ≤ 116.
