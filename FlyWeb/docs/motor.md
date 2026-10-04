@@ -94,7 +94,7 @@ Lo Baseline que Chrome 118 publicó (web-features): **unidades `cap` y `rcap`**,
   `FlyWeb/tools/wpt-118-lista.txt` con las herramientas de LOCAL. **Además**, por el riesgo del SVG: `motor-117.html` sigue
   14/14 y un repaso de webs con mucho SVG (iconos, gráficos, mapas).
 
-## Nivel 119 (en código, 05-10; pendiente de decisión y de compilar → FlyWeb 1.3)
+## Nivel 119 (en código, 05-10; pendiente de compilar → FlyWeb 1.3)
 
 Lo Baseline que Chrome 119 publicó (web-features): `:user-valid`/`:user-invalid`, las cajas de `clip-path`
 (`<geometry-box>`), `rect()`/`xywh()`, `Promise.withResolvers`, la **Storage Access API** y, en WebAssembly, **Wasm GC**
@@ -109,18 +109,16 @@ y referencias tipadas a funciones.
 - **`Promise.withResolvers`** (978fbf70, V8): adaptado a la 11.6 sin tocar las raíces estáticas de V8 (que se generan al
   compilar): `"promise"` se crea al arrancar en vez de ser una raíz nueva; flag *harmony* encendido. Comprobado que no
   es un esqueleto. La rama lleva también el arreglo de `Map.groupBy` de LOCAL (paso 49), por tocar los mismos ficheros.
-- **Pendiente de decisión del HUMANO:**
-  - **Storage Access API:** deja que un tercero incrustado pida acceso a sus cookies; Brave la **desactiva a propósito**
-    (`kPermissionStorageAccessAPI`), por chocar con el bloqueo de cookies de terceros de los Escudos. Portarla son
-    decenas de commits del navegador (permisos, avisos, ajustes). Propuesta: **fuera por privacidad**, como en Brave.
-  - **Wasm GC y referencias tipadas:** WebAssembly solo funciona en los sitios con JIT (jitless lo desactiva en el
-    resto); portar Wasm GC de la V8 11.9 a la 11.6 es enorme, y encender el `--experimental-wasm-gc` de la 11.6 sería
-    meter una versión antigua de la especificación (principio 5). Las webs que lo usan (p. ej. el motor de cálculo de
-    Google Sheets) tienen alternativa en JavaScript. Propuesta: **fuera**, revisable si una web importante lo exige.
+- **Fuera del nivel (decisión del HUMANO, 05-10):**
+  - **Storage Access API:** deja que un tercero incrustado pida acceso a sus cookies; Brave la desactiva a propósito
+    (`kPermissionStorageAccessAPI`) por chocar con el bloqueo de cookies de terceros de los Escudos. **Fuera por
+    privacidad, definitivamente.**
+  - **Wasm GC y referencias tipadas a funciones:** WebAssembly solo funciona en los sitios con JIT; portarlo de V8 11.9 a
+    la 11.6 es enorme y encender el `--experimental-wasm-gc` de la 11.6 metería una especificación antigua.
+    **Aparcado:** se revisa si una web importante lo exige o si en algún momento se actualiza V8 entero.
 - **Comprobación:** `FlyWeb/tools/motor-119.html` (17 comprobaciones; en Chromium 141, 16 «ok» y la del UA) y
   `FlyWeb/tools/wpt-119-lista.txt`.
-- **Nivel 119 sin declarar** hasta la decisión: si se aceptan las dos exclusiones, se declara 119 / FlyWeb 1.3 en un
-  commit aparte, como en los niveles anteriores.
+- **Declarado 119 / FlyWeb 1.3** en 625b048e (paso 57; se revierte solo si el nivel no pasa).
 
 ## Inventario: CSS Baseline publicado después de la 116
 
