@@ -1,0 +1,81 @@
+// Ayudas para correr las pruebas de go-sync contra el almacén SQLite de FlyWeb (las copia pruebas/go-sync.sh).
+package PAQUETE
+
+import (
+	"os"
+	"path/filepath"
+
+	"github.com/brave/go-sync/datastore"
+)
+
+func nuevaDB() *SQLite {
+	dir, err := os.MkdirTemp("", "flyweb-sync-prueba")
+	if err != nil {
+		panic(err)
+	}
+	db, err := AbrirSQLite(filepath.Join(dir, "p.db"))
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
+func scanSync(db *SQLite) ([]datastore.SyncEntity, error) {
+	rows, err := db.db.Query(`SELECT client_id, id, parent_id, version, mtime, ctime, name, non_unique_name,
+	  server_tag, deleted, orig_cache_guid, orig_client_item_id, specifics, data_type, folder, client_tag,
+	  unique_position, expiration, data_type_mtime FROM entities`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []datastore.SyncEntity
+	for rows.Next() {
+		e, err := leerEntidad(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
+// scanTags: en DynamoDB, ScanTagItems devuelve todo lo que no es entidad ni contador (también la marca de cadena
+// desactivada, que aquí está en su propia tabla).
+func scanTags(db *SQLite) ([]datastore.ServerClientUniqueTagItem, error) {
+	rows, err := db.db.Query(`SELECT client_id, id, mtime, ctime FROM tags
+	  UNION ALL SELECT client_id, 'disabled_chain', mtime, ctime FROM disabled`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []datastore.ServerClientUniqueTagItem
+	for rows.Next() {
+		var t datastore.ServerClientUniqueTagItem
+		var m, c int64
+		if err := rows.Scan(&t.ClientID, &t.ID, &m, &c); err != nil {
+			return nil, err
+		}
+		t.Mtime, t.Ctime = &m, &c
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+func scanCounts(db *SQLite) ([]datastore.ClientItemCounts, error) {
+	rows, err := db.db.Query(`SELECT client_id, item_count, h1, h2, h3, h4, last_period_change, version FROM counts`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []datastore.ClientItemCounts
+	for rows.Next() {
+		var c datastore.ClientItemCounts
+		if err := rows.Scan(&c.ClientID, &c.ItemCount, &c.HistoryItemCountPeriod1, &c.HistoryItemCountPeriod2,
+			&c.HistoryItemCountPeriod3, &c.HistoryItemCountPeriod4, &c.LastPeriodChangeTime, &c.Version); err != nil {
+			return nil, err
+		}
+		c.ID = c.ClientID
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
