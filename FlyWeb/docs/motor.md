@@ -20,17 +20,22 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    publicó hasta la *N*: CSS portado o encendido, JavaScript con polyfills (componente firmado en bak) y las API que
    importen.
 4. **Versión declarada = nivel real.** El User-Agent y los Client Hints dicen la versión del último nivel completo, no
-   más: si una web cree que somos la 120, es porque lo somos en lo que usa. (FlyWeb 1.1: 117.)
+   más: si una web cree que somos la 120, es porque lo somos en lo que usa. **Y a todas las webs igual** (HUMANO,
+   04-10): sin excepciones por sitio; si una web nos rechaza, es un dato de qué nivel necesita. (FlyWeb 1.1: 117.)
 5. **Flags, caso por caso, nunca en bloque.** Lo que está tras un flag en la 116 puede estar incompleto o ser una
    versión antigua de la especificación. Ejemplo: el `harmony_array_grouping` de la V8 11.6 ya instala
    `Object.groupBy`/`Map.groupBy`, pero también `Array.prototype.groupToMap`, que no publicó ningún navegador; por eso
    no se enciende el flag tal cual, sino que se parchea como lo dejó la V8 11.7 (la de Chrome 117).
    JavaScript: parche de V8 cuando el código está en la 11.6; si no, polyfill en un componente.
-6. **Validación:** una página de comprobación por nivel (`FlyWeb/tools/motor-N.html`, sin red) y las
+6. **Inventario de cada nivel (método de LOCAL):** con la copia de Chromium, `git log -E --grep=<flag|propiedad>
+   <N-1>..<N> -- third_party/blink` saca lo que se escribió después de la rama: la implementación que falte (lo que
+   pasó con `transition-behavior`) y los arreglos de lo que se enciende. Se portan en orden de llegada; si uno no
+   aplica, se busca el commit previo del que depende (como 43a6c81e7182 para 3a16f4331fe5).
+7. **Validación:** una página de comprobación por nivel (`FlyWeb/tools/motor-N.html`, sin red) y las
    web-platform-tests de cada función en `wpt.live`, comparadas con el Chrome que la publicó (`wpt.fyi`).
-7. **Seguridad:** cada función portada o encendida añade código al renderer; sus correcciones posteriores entran en la
+8. **Seguridad:** cada función portada o encendida añade código al renderer; sus correcciones posteriores entran en la
    vigilancia de CVE (`cve-triage.md`).
-8. **Coste por porte, una sola vez:** la base no se mueve, así que un porte no hay que rehacerlo con cada versión de
+9. **Coste por porte, una sola vez:** la base no se mueve, así que un porte no hay que rehacerlo con cada versión de
    Chromium.
 
 ## Tipos de trabajo y coste estimado
@@ -52,18 +57,21 @@ compara Sparkle) sube en cada versión publicada: 1.0 = 0, 1.0.1 = 1, 1.1 = 2. A
 
 ## Nivel 117 (hecho en código, 04-10; pendiente de compilar y probar → FlyWeb 1.1)
 
-- **CSS:** brave-core `nube/motor-117` = paso 46. En la 116 todo el CSS de la 117 estaba hecho y apagado. Se encienden
-  6 flags: `LayoutNGSubgrid` (subgrid), `CSSInitialPseudo` (`@starting-style`; en la 117 se llama
-  `CSSStartingStyle`), `CSSTransitionDiscrete` (`transition-behavior`), `CSSTopLayerForTransitions` (`overlay`),
-  `CSSTextWrapPretty` y `CSSContainIntrinsicSizeAutoNone`. Además se adelanta **`light-dark()`** (de la 123): la 116 ya
-  la tenía como `-internal-light-dark()` para sus hojas internas; ahora es pública.
-- **JavaScript de la 117:** `Object.groupBy` y `Map.groupBy` con parches de V8 (`patches/v8/`): el flag pasa a
-  «shipping» sin `groupToMap` y con el arreglo de la 11.7 para objetos grandes. Los iterator helpers, que estaban en la
-  11.7 como «staged», siguen apagados (Chrome los publicó en la 122).
-- **Versión declarada: 117** (User-Agent y client hints; `browser/flyweb/declared_version.*`). Siguen con 116 la red
-  del sistema (componentes, actualizador, Safe Browsing) y las extensiones que lean la versión real.
-- **Comprobación:** `FlyWeb/tools/motor-117.html` (20 comprobaciones; las 14 de CSS dan «ok» en Chromium 141; las de JS y versión, según el navegador) y las
-  web-platform-tests enlazadas en la página.
+- **CSS que la 116 ya tenía apagado** (paso 46): `LayoutNGSubgrid`, `CSSInitialPseudo` (`@starting-style`),
+  `CSSTopLayerForTransitions` (`overlay`), `CSSTextWrapPretty`, `CSSContainIntrinsicSizeAutoNone`; y `light-dark()`
+  (de la 123) abriendo el `-internal-light-dark()` de la 116.
+- **`transition-behavior`** (paso 52): **no estaba en la 116** (LOCAL, 04-10); el flag `CSSTransitionDiscrete` de la 116
+  era una versión previa sin la propiedad. Portados 3 commits; aplicaron tal cual.
+- **Arreglos posteriores a la 116** de lo encendido (paso 53): 6 de subgrid (+1 previo necesario), 1 de
+  `@starting-style`, 2 de `text-wrap: pretty`. Lista: `motor-117-cambios.txt`.
+- **JavaScript:** `Object.groupBy` y `Map.groupBy` con parches de V8 (`patches/v8/`): el flag pasa a «shipping» sin
+  `groupToMap` y con el arreglo de la 11.7 para objetos grandes. Los iterator helpers siguen apagados (Chrome los publicó
+  en la 122).
+- **Versión declarada: 117**, a todas las webs (sin la excepción de Google, quitada en el paso 51). Siguen con 116 la red
+  del sistema (componentes, actualizador, Safe Browsing).
+- **Coste real del nivel 117:** 5 flags + 1 porte pequeño (`light-dark()`) + 1 porte de V8 + 1 porte de 3 commits + 10
+  arreglos. Todo aplicó sobre la 116 sin reescribir nada: buena señal para los niveles 118–120.
+- **Comprobación:** `FlyWeb/tools/motor-117.html` y las web-platform-tests enlazadas en la página.
 
 ## Inventario: CSS Baseline publicado después de la 116
 
@@ -75,7 +83,7 @@ Baseline; el resto son solo de Chrome.
 |---|---|---|---|
 | 117 | @starting-style | reciente | flag (`CSSInitialPseudo`) |
 | 117 | Subgrid | amplia | flag (`LayoutNGSubgrid`) |
-| 117 | transition-behavior | reciente | flag (`CSSTransitionDiscrete`) |
+| 117 | transition-behavior | reciente | porte (3 commits; el flag de la 116 no tenía la propiedad) |
 | 118 | cap unit | amplia | no está |
 | 118 | rcap unit | reciente | no está |
 | 118 | transform-box | reciente | no está |

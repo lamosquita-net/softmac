@@ -3,31 +3,34 @@
 **Qué es:** el primer nivel de motor nuevo (117). Por decisión del HUMANO, cada nivel sube el número menor (1.1, 1.2…),
 no el tercero; la 1.0.2 que se había previsto para probar el actualizador **es esta 1.1**.
 
-**Base:** `flyweb` 1fda577e (1.0.1) + brave-core `nube/motor-117` (pasos 46–50, una sola rama) + softmac `build.sh`
+**Base:** `flyweb` 1fda577e (1.0.1) + brave-core `nube/motor-117` (pasos 46–53, una sola rama, 524cd287) + softmac `build.sh`
 de este PR.
 
 ## Qué trae respecto a la 1.0.1
 
 | Paso | Cambio | Para el usuario |
 |---|---|---|
-| 46 | Nivel 117: subgrid, `@starting-style`, `transition-behavior`, `overlay`, `text-wrap: pretty`, `contain-intrinsic-size: auto none`, `light-dark()`, `Object.groupBy`/`Map.groupBy`; **declara Chrome 117** | Webs que usan CSS de 2023 se ven como en Chrome 117 |
-| 47 | La lista de Google se aplica también tras una redirección (F4.6) | Gmail sin la barra «Ya no se admite esta versión» al entrar por `gmail.com` o al iniciar sesión |
+| 46, 52, 53 | Nivel 117: subgrid, `@starting-style`, `transition-behavior` (portado), `overlay`, `text-wrap: pretty`, `contain-intrinsic-size: auto none`, `light-dark()`, `Object.groupBy`/`Map.groupBy`, con los arreglos que Chrome 117 llevaba; **declara Chrome 117** | Webs que usan CSS de 2023 se ven como en Chrome 117 |
+| 51 (47 anulado) | **Sin excepciones por sitio:** Google también ve 117 (antes, 153) | Gmail puede volver a mostrar la barra azul de navegador antiguo; funciona igual. Es lo decidido: se ve qué webs aceptan el nivel real |
 | 48 | Versión de FlyWeb visible (1.1) en Información, Finder y el menú de Ajustes | Ya no pone «1.57.64» |
 | 49 | DNS seguro apagado por defecto (F2.7) | Usa el DNS del sistema; sin consultas a `dns.google` ni Cloudflare |
 | 50 | Enlaces de ayuda a `flyweb.lamosquita.net/ayuda/`; código fuente al nuestro; «Informar de un sitio roto» sin Brave (F1.14) | Ningún enlace lleva a Brave; nada se envía a `webcompat.brave.com` |
 
 ## Orden de trabajo (LOCAL salvo donde se dice)
 
-1. **Integrar** `nube/motor-117` en `flyweb` (merge «pasos 46–50») y este PR de softmac (o `main` cuando se fusione).
+1. **Integrar** `nube/motor-117` en `flyweb` (merge «pasos 46–53») y este PR de softmac (o `main` cuando se fusione).
 2. **Compilar:** `FLYWEB_BUILD_NUMBER=2 FlyWeb/scripts/build.sh Release` → «Actualizaciones: activadas (… 157.64.2)».
-   - Si `apply_patches` falla en `navigation_request.cc` (paso 47) o en `patches/v8/` (46), pasar el error a NUBE.
+   - Si `apply_patches` falla en algún `patches/third_party-blink-*` (52, 53) o en `patches/v8/` (46), pasar el error a
+     NUBE. Si falla la compilación de Blink, el fichero que falla indica el paso: `animation/` o `css/` → 52;
+     `layout/ng/grid/` o `layout/ng/inline/` → 53.
 3. **Comprobar el `.app`:** `CFBundleShortVersionString` = `1.1`, `CFBundleVersion` = `157.64.2`, `SUPublicEDKey`
    igual que `clave-publica.txt`; `check-no-avx.sh` limpio.
 4. **Pruebas** en la 7,1 y la 6,1, con perfil nuevo y con el de la 1.0.1:
    1. `FlyWeb/tools/motor-117.html` (abrir el fichero): todo «ok» salvo, si acaso, la última (client hints en
-      `file://`). Las WPT enlazadas: anotar «X de Y» en FM.1.
-   2. Gmail desde `https://gmail.com/` con perfil nuevo e iniciando sesión: sin barra azul; en la consola de la página
-      final `navigator.userAgent` dice `Chrome/153`. `https://example.com` dice `Chrome/117`.
+      `file://`). Las WPT enlazadas: anotar «X de Y» en FM.1, junto al resultado de la 1.0.1.
+   2. Gmail, Drive y Docs: `navigator.userAgent` dice `Chrome/117` (como `https://example.com`). **Anotar** si sale la
+      barra azul de navegador antiguo y si todo funciona igual (`compatibilidad.md` §5). Vista previa de impresión de
+      una página con rejilla (p. ej. un Google Doc) sin cuelgues.
    3. Información: «1.1 (motor 117) · Brave 1.57.64 · Chromium: 116.0.5845.188»; el enlace de código fuente lleva a
       `lamosquita-net/brave-core/tree/<commit de flyweb-build-info.txt>`. Ayuda → Ayuda de FlyWeb abre nuestra web.
    4. Menú → «Informar de un sitio roto» abre `flyweb.lamosquita.net/ayuda/#informar` (sin formulario de Brave).

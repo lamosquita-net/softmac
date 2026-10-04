@@ -74,6 +74,16 @@
     return { ok: o < 0.5, nota: `opacity inicial ${o}` };
   });
   prueba('transition-behavior: allow-discrete', () => s('transition-behavior', 'allow-discrete'));
+  prueba('transition-behavior en el atajo transition', () => {
+    const d = document.createElement('div'); d.style.transition = 'display 1s allow-discrete';
+    return { ok: d.style.transitionBehavior === 'allow-discrete', nota: d.style.transition || '(vacío)' };
+  });
+  prueba('sin allow-discrete, display no se anima (como Chrome 117)', () => {
+    const d = document.createElement('div'); d.style.transition = 'display 10s'; document.getElementById('zona').append(d);
+    getComputedStyle(d).display; d.style.display = 'none';
+    const n = d.getAnimations().length; d.remove();
+    return { ok: n === 0, nota: `${n} animaciones` };
+  });
   prueba('overlay: auto', () => s('overlay', 'auto'));
   prueba('text-wrap: pretty', () => s('text-wrap', 'pretty'));
   prueba('contain-intrinsic-size: auto none', () => s('contain-intrinsic-size', 'auto none'));

@@ -1,0 +1,40 @@
+== LayoutNGSubgrid|[Ss]ubgrid
+99e775d939c4d 2023-07-31 [GridNG] Allow grid sets to be rebuilt on demand by nested subgrids
+a70129fd05bcd 2023-07-28 Import wpt@afafd429070954d4a450916fd5f5be5598a0006c
+342390e7fa60e 2023-07-28 [GridNG] Respect a subgridded item's standalone placement
+af666785c28ef 2023-07-07 [GridNG] Enable stable status for LayoutNGSubgrid
+3a16f4331fe54 2023-07-07 [GridNG] Inherit NGGridLayoutSubtree in subgrid fragmentation
+193f1a670c6ba 2023-06-28 [GridNG] Fix DCHECK with invalid subgrid auto-repeaters
+211e9fc3e798d 2023-06-24 [GridNG] Correctly inherit ranges in CreateSubgridTrackCollection
+6e32a4b44d100 2023-06-23 [GridNG] Fix flaky subgridded-axis-auto-repeater-* tests
+8c558acbf7281 2023-06-23 [GridNG] Fix intrinsic widths under-invalidation.
+9052da1cd2faf 2023-06-22 [GridNG] Move respective subgrid tests to crashtests folder
+== CSSInitialPseudo|starting.style|StartingStyle
+c94754fca50ab 2023-06-29 [@starting-style] Enable for M117
+9495aed48feb2 2023-06-26 Add idlharness test for CSSStartingStyleRule
+3ecba148bd179 2023-06-26 Only match @starting-style rules while resolving style
+4419ff6883a08 2023-06-22 [@starting-style] Rename runtime flag
+4e56ffe02f9ae 2023-06-22 [@starting-style] Add tests for cascading and inheritance
+c990b86113118 2023-06-22 [@scope] Support various at-rules within @scope
+bcb30ef0e37d3 2023-06-22 Move the tests for @starting-style to wpt
+== TransitionDiscrete|transition-behavior|allow-discrete
+22e2c8911b22f 2023-07-28 CSSTransitionDiscrete: enable by default
+dcded917e53e3 2023-07-28 CSSTransitionDiscrete: Rename transition-animation-type to transition-behavior
+ff1737b7d8136 2023-07-28 CSSTransitionDiscrete: add transition-animation-type to transition shorthand
+746e926c11913 2023-07-12 Import wpt@96b207a4b1c9164a9e015b0323e2ccd9b34c9a08
+1bb251708a05f 2023-07-12 Import wpt@8a831333689d1141be268c91ba19330cafc0552e
+e9da76f0f5e54 2023-07-11 Import wpt@fb9cf8b7bd0df953c1365b8b95e8f082730ef146
+2f1f466f98070 2023-07-11 Import wpt@06f85ce0da4395accb803747de6f5b73c8e483d0
+e13adfa6f4b68 2023-07-11 Import wpt@01b31f8bbcf570218465a08e8dde4442ae8c3565
+6c4ad9d722c43 2023-07-10 CSSTransitionDiscrete: implement transition-animation-type
+b9a193ac93219 2023-06-20 Import wpt@4b4614a0ddca719efeba5d65bee4bd922fce2184
+== TextWrapPretty|text-wrap: pretty|ScoreLineBreak
+49e5e0b6ac715 2023-08-07 [text-wrap-pretty] Optimize when consecutive hyphenations at end
+d5f9497cc0cd7 2023-07-31 [text-wrap-pretty] Fix use-counter when failed early
+cabbb7db31b9e 2023-07-12 [text-wrap-pretty] Enable on stable
+779bda3596d0c 2023-07-04 [text-wrap-balance] Enable `NGScoreLineBreaker` for balancing
+c60e16f80d5ac 2023-06-27 [text-wrap-pretty] Add use counters and UMA histograms
+33c88acdce7cc 2023-06-26 [text-wrap-balance] Include balancing by score to UMA
+f7f470988bf70 2023-06-21 [text-wrap-pretty] Fix `DCHECK` failure when retrying for floats
+== CSSTopLayerForTransitions|overlay property|overlay
+497e2f36a91b9 2023-06-26 Enable CSS overlay property by default
