@@ -44,7 +44,13 @@ Las más peligrosas, porque la web ya las da por supuestas y son de CSS:
 - **Subgrid** (117), `:user-valid`/`:user-invalid` (119), máscaras CSS sin prefijo (120), `light-dark()` (123),
   `@starting-style` y `transition-behavior` (117).
 
-## 4. Versión declarada por sitio (hecho: brave-core `nube/ua-por-sitio`, paso 21)
+## 4. Versión declarada por sitio — **retirada en la 1.1** (decisión del HUMANO, 04-10-2026)
+
+> **Desde la 1.1 no hay excepciones por sitio:** todas las webs, Google incluido, ven el nivel de motor real (117 en la
+> 1.1; `motor.md`, principio 4). El código de la anulación **se ha quitado** (brave-core e428d8b4, integrado por LOCAL en
+> el paso 48). Si Gmail, Drive o Docs avisan de navegador antiguo, se anota en §5 como dato: indica qué nivel de motor
+> necesitan. Lo de abajo describe la 1.0 y la 1.0.1.
+
 
 Activado por el aviso de Google Drive en la 6,1 ("Ya no se admite esta versión del navegador"). En los sitios de la lista,
 FlyWeb declara una versión más nueva de Chrome **en el User-Agent y en los Client Hints a la vez** (si solo cambiara uno,
