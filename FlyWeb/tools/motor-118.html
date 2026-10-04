@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 118 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 118 de FlyWeb 1.2 (brave-core nube/motor-118).
+     Abrir en FlyWeb con file:// o desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO.
+     Las pruebas oficiales (web-platform-tests) están enlazadas al final. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  #zona { position: absolute; left: -9999px; top: 0; font: 100px/1 serif; }
+  #cap { width: 1cap; height: 1px; }
+  #em { width: 1em; height: 1px; }
+  #rcap { width: 1rcap; height: 1px; }
+  /* transform-box: content-box usa el origen de la caja de contenido (padding 10px). */
+  #tb { width: 100px; height: 100px; padding: 10px; box-sizing: content-box;
+        transform-box: content-box; transform-origin: 0 0; transform: scale(2); }
+</style>
+</head>
+<body>
+<h1>Motor 118 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<div id="zona">
+  <div id="cap"></div><div id="em"></div><div id="rcap"></div>
+  <div id="tb"></div>
+  <search id="buscar"><form><input></form></search>
+</div>
+<h2>Pruebas oficiales (web-platform-tests)</h2>
+<p>Lista en <code>FlyWeb/tools/wpt-118-lista.txt</code>, para <code>wpt-app.sh</code> con los ficheros de la etiqueta
+118.0.5993.159 servidos en local (como en el nivel 117). Comparar con los <code>-expected.txt</code> de Chrome 118.</p>
+<script>
+  const res = document.getElementById('res');
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li');
+    li.className = ok ? 'ok' : 'fallo';
+    li.textContent = nombre + (nota ? ` — ${nota}` : '');
+    res.append(li);
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+  const s = (p, v) => CSS.supports(p, v);
+  const ancho = (id) => document.getElementById(id).getBoundingClientRect().width;
+
+  prueba('cap: se acepta', () => s('width', '1cap'));
+  prueba('cap: mide la altura de las mayúsculas (entre 0,4 y 0,9 em)', () => {
+    const r = ancho('cap') / ancho('em'); return { ok: r > 0.4 && r < 0.9, nota: `cap/em = ${r.toFixed(3)}` };
+  });
+  prueba('rcap: se acepta', () => s('width', '1rcap'));
+  prueba('rcap: usa la fuente del elemento raíz (distinto de cap aquí)', () => {
+    const c = ancho('cap'), r = ancho('rcap'); return { ok: r > 0 && Math.abs(r - c) > 1, nota: `cap ${c.toFixed(1)}px, rcap ${r.toFixed(1)}px` };
+  });
+  prueba('cap dentro de calc()', () => s('width', 'calc(2cap + 1px)'));
+  prueba('CSS.cap() y CSS.rcap() (Typed OM)', () => typeof CSS.cap === 'function' && typeof CSS.rcap === 'function' && String(CSS.cap(2)) === '2cap');
+  prueba('<search>: es un elemento HTML conocido', () => {
+    const e = document.createElement('search'); return { ok: !(e instanceof HTMLUnknownElement) && e instanceof HTMLElement, nota: e.constructor.name };
+  });
+  prueba('<search>: display block por defecto', () => {
+    const d = getComputedStyle(document.getElementById('buscar')).display; return { ok: d === 'block', nota: d };
+  });
+  prueba('<search>: el analizador cierra el párrafo abierto (como <section>)', () => {
+    const d = new DOMParser().parseFromString('<p>a<search>b</search>', 'text/html');
+    const se = d.querySelector('search'); return { ok: !!se && se.parentElement.tagName === 'BODY', nota: se ? se.parentElement.tagName : 'sin search' };
+  });
+  for (const v of ['content-box', 'border-box', 'stroke-box']) prueba(`transform-box: ${v}`, () => s('transform-box', v));
+  prueba('transform-box: content-box mueve el origen a la caja de contenido', () => {
+    const r = document.getElementById('tb').getBoundingClientRect(); const z = document.getElementById('zona').getBoundingClientRect();
+    // Origen en (10,10) del borde: la caja escalada x2 empieza en -10px respecto a la zona.
+    return { ok: Math.round(r.left - z.left) === -10, nota: `izquierda ${Math.round(r.left - z.left)}px` };
+  });
+  prueba('User-Agent declara Chrome/118', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '118', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+</script>
+<p>El nivel 117 se comprueba aparte con <code>motor-117.html</code> (debe seguir todo en «ok»).</p>
+</body>
+</html>

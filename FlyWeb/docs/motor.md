@@ -55,7 +55,7 @@ arreglos sobre un mismo nivel son 1.1.1, 1.1.2… Aparte, `FLYWEB_BUILD_NUMBER` 
 compara Sparkle) sube en cada versión publicada: 1.0 = 0, 1.0.1 = 1, 1.1 = 2. Ambos números (`flyweb_version`,
 `flyweb_engine_level`) están en brave-core `build/config.gni`; el nivel es también la versión declarada.
 
-## Nivel 117 (hecho en código, 04-10; pendiente de compilar y probar → FlyWeb 1.1)
+## Nivel 117 — cumplido (04-10, FlyWeb 1.1)
 
 - **CSS que la 116 ya tenía apagado** (paso 46): `LayoutNGSubgrid`, `CSSInitialPseudo` (`@starting-style`),
   `CSSTopLayerForTransitions` (`overlay`), `CSSTextWrapPretty`, `CSSContainIntrinsicSizeAutoNone`; y `light-dark()`
@@ -73,6 +73,24 @@ compara Sparkle) sube en cada versión publicada: 1.0 = 0, 1.0.1 = 1, 1.1 = 2. A
   arreglos. Todo aplicó sobre la 116 sin reescribir nada: buena señal para los niveles 118–120.
 - **Comprobación:** `FlyWeb/tools/motor-117.html` y las web-platform-tests enlazadas en la página.
 
+## Nivel 118 (hecho en código, 05-10; pendiente de compilar y probar → FlyWeb 1.2)
+
+Lo Baseline que Chrome 118 publicó (web-features): **unidades `cap` y `rcap`**, el elemento **`<search>`** y los valores
+**`content-box`/`border-box`/`stroke-box` de `transform-box`**. La V8 11.8 no añade nada Baseline. Ninguna estaba en la
+116 ni siquiera tras un flag.
+
+- **`cap`/`rcap` y `<search>`** (brave-core `nube/motor-118` 8459f579): 6 commits de Chromium que aplican tal cual (a
+  mano solo la entrada del flag de `<search>`). La altura de mayúsculas sale de `FontMetrics::CapHeight()`, que ya está
+  en la 116.
+- **`transform-box`** (7a6ab191): el commit (673794805ffa) se apoya en la serie de refactorización de transformaciones de
+  SVG de las semanas siguientes a la rama de la 116, así que se porta la serie entera: **13 commits**, 70 ficheros, 2
+  nuevos (`transform_utils`, `paint_order_array.h`). Cuatro trozos resueltos a mano, solo de contexto. Los ficheros de
+  SVG quedan idénticos a Chromium. Es el **porte más grande hasta ahora** y el de más riesgo: toca el pintado de SVG.
+- **Declarado 118 / FlyWeb 1.2** en 86a2c9da (se revierte solo si no pasa).
+- **Comprobación:** `FlyWeb/tools/motor-118.html` (15 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
+  `FlyWeb/tools/wpt-118-lista.txt` con las herramientas de LOCAL. **Además**, por el riesgo del SVG: `motor-117.html` sigue
+  14/14 y un repaso de webs con mucho SVG (iconos, gráficos, mapas).
+
 ## Inventario: CSS Baseline publicado después de la 116
 
 Datos de [web-features](https://www.npmjs.com/package/web-features) 3.40.1 (el catálogo de Baseline) y del fichero de
@@ -84,9 +102,9 @@ Baseline; el resto son solo de Chrome.
 | 117 | @starting-style | reciente | flag (`CSSInitialPseudo`) |
 | 117 | Subgrid | amplia | flag (`LayoutNGSubgrid`) |
 | 117 | transition-behavior | reciente | porte (3 commits; el flag de la 116 no tenía la propiedad) |
-| 118 | cap unit | amplia | no está |
-| 118 | rcap unit | reciente | no está |
-| 118 | transform-box | reciente | no está |
+| 118 | cap unit | amplia | porte (nivel 118) |
+| 118 | rcap unit | reciente | porte (nivel 118) |
+| 118 | transform-box | reciente | porte (13 commits de SVG, nivel 118) |
 | 119 | :user-valid and :user-invalid | amplia | no está |
 | 119 | Clip path boxes | amplia | no está |
 | 119 | rect() and xywh() | amplia | no está |
