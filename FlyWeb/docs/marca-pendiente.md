@@ -50,7 +50,7 @@ regeneran con el mismo procedimiento (`FlyWeb/branding/scripts/`).
 | Fondos de imagen (fotografías con crédito del autor) | **se queda**: no son marca de Brave |
 | **Imágenes patrocinadas** (Sponsored Images) y fondos de "super referral" | **rama** `nube/no-sponsored-images` 8c984d70 (paso 8): sus componentes no se registran ni se descargan; solo quedan las fotografías |
 | Estadísticas de Brave (anuncios y rastreadores bloqueados, tiempo ahorrado) | **se queda**: son de Shields y útiles |
-| Tarjetas de Brave News, Brave Talk | pendiente: ocultarlas por defecto (preferencias), Brave News hace peticiones a Brave |
+| Tarjetas de Brave News, Brave Talk | **hecho** (paso 33, `nube/ntp-3`): News quitado entero (llevaba publicidad) y Talk sin tarjeta |
 
 ## Después (F7.1, sin fecha)
 
