@@ -8,7 +8,8 @@ Monorepo de software para Macs obsoletos de lamosquita.net. Idioma de trabajo: e
 - Nada de binarios que exijan AVX (la MacPro5,1 no lo tiene).
 
 ## Trabajo en paralelo
-Dos agentes (NUBE y LOCAL) más el humano. **Leer `docs/TAREAS.md` al empezar**: reparto, ramas y reglas.
+Agentes NUBE (motor y código), LOCAL (compila y prueba en la 7,1), SERVIDOR (`docs/SERVIDOR.md`) y SEGURIDAD
+(CVE y parches, `docs/SEGURIDAD.md`), más el humano. **Leer `docs/TAREAS.md` al empezar**: reparto, ramas y reglas.
 Hoja de ruta de FlyWeb: `FlyWeb/docs/hoja-de-ruta.md`.
 
 ## Máquinas
@@ -64,7 +65,8 @@ que tiene commit. **Nunca `gclient sync -D`** en `flyweb-build` (borró el workt
   Chromium; no editar .grd/.xtb a mano: los ids de traducción son hashes del texto inglés), logotipos de NTP/welcome.
 - **Motor (Fase M, `FlyWeb/docs/motor.md`):** la base sigue en 116, pero el motor crece por niveles de Chrome portando
   Blink/V8 función a función. Versión declarada a **todas** las webs = último nivel completo (sin excepciones por sitio);
-  versión visible: el menor sigue al nivel (**1.1 = nivel 117**, 1.2 = 118…). Ambos en brave-core `build/config.gni`
+  versión visible 1.N.x: N sigue al nivel (**1.1 = nivel 117**, 1.2 = 118…) y x cuenta las versiones con parches de
+  seguridad sobre el último nivel publicado (1.1.1, 1.1.2…). Ambos en brave-core `build/config.gni`
   (`flyweb_engine_level`, `flyweb_version`); `FLYWEB_BUILD_NUMBER` sube en cada versión publicada (1.1 = 2). Un nivel
   se da por cumplido con `FlyWeb/tools/motor-N.html` en verde y las WPT de la N iguales a las del propio Chrome N.
 - Riesgo asumido: Chromium de 2023 → aplicar parches de seguridad poco a poco.
