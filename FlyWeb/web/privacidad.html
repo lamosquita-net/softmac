@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacidad — FlyWeb</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="icon" href="img/flyweb.svg" type="image/svg+xml">
+</head>
+<body>
+<main>
+<header>
+  <a href="./"><img src="img/flyweb.svg" alt="FlyWeb"></a>
+  <h1>Privacidad en FlyWeb</h1>
+</header>
+
+<p>FlyWeb no envía estadísticas de uso, informes de fallos ni datos de navegación a nadie. No tiene cuenta ni
+publicidad.</p>
+
+<p>Para funcionar, el navegador contacta con servicios de lamosquita en un servidor propio situado en la UE:</p>
+
+<table>
+  <tr><th>Servicio</th><th>Para qué</th><th>Qué recibe</th></tr>
+  <tr><td><code>components.flyweb.lamosquita.net</code></td>
+      <td>Actualizar las listas de bloqueo de anuncios y rastreadores y los componentes de seguridad (certificados
+      revocados, etc.)</td>
+      <td>La versión de cada componente instalado, la versión del navegador, el sistema (macOS) y la arquitectura.
+      Nada que identifique tu equipo: ni memoria, ni procesador, ni versión exacta del sistema.</td></tr>
+  <tr><td><code>proxy.flyweb.lamosquita.net</code></td>
+      <td>Navegación segura (avisos de webs peligrosas y descargas maliciosas) y diccionarios del corrector,
+      a través de Google sin que Google vea tu dirección IP</td>
+      <td>Fragmentos cifrados (prefijos de huellas) de las direcciones que se comprueban, nunca las direcciones
+      completas; el idioma del diccionario.</td></tr>
+  <tr><td><code>updates.flyweb.lamosquita.net</code> (a partir de la 1.0.1)</td>
+      <td>Avisar de versiones nuevas de FlyWeb</td>
+      <td>La versión del navegador.</td></tr>
+</table>
+
+<p><strong>Tu dirección IP</strong> llega a nuestro servidor porque es imprescindible para responder a la conexión,
+pero <strong>no se guarda</strong>: los registros de estos servicios no contienen IP ni las consultas de navegación
+segura, y se borran a los 7 días. A Google solo le llega la dirección de nuestro servidor.</p>
+
+<p><strong>Funciones que contactan con terceros solo si las usas:</strong> instalar extensiones de la Chrome Web Store
+(Google); traducir páginas, si lo activas (Google); el contenido protegido (DRM, Widevine), si lo aceptas (Google).
+Las webs que visitas reciben, como en cualquier navegador, tu IP y lo que tú les envíes.</p>
+
+<p><strong>Esta web</strong> (<code>flyweb.lamosquita.net</code>) sí registra la IP de las visitas, por seguridad,
+durante 14 días. No usa cookies, ni analítica, ni carga nada de otros sitios.</p>
+
+<h2>Responsable y derechos</h2>
+<p>Responsable: lamosquita — admin@lamosquita.net. Base legal: interés legítimo (art. 6.1.f del RGPD) en mantener el
+navegador seguro y actualizado. Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición y
+limitación escribiendo a esa dirección, y reclamar ante la Agencia Española de Protección de Datos
+(<a href="https://www.aepd.es/">www.aepd.es</a>). Como no guardamos tu IP, normalmente no tendremos datos tuyos
+que mostrarte.</p>
+
+<footer>
+  <a href="./">FlyWeb</a> · un proyecto de <a href="https://www.lamosquita.net/">lamosquita</a> ·
+  admin@lamosquita.net · Última actualización: 4 de octubre de 2026
+</footer>
+</main>
+</body>
+</html>
