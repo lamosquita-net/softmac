@@ -51,6 +51,9 @@ límites que NUBE: no compila Chromium ni ejecuta nada de macOS.
 - Para portar: árbol de trabajo con los ficheros de la 116 (`git show 116.0.5845.188:<ruta>`) + los `.patch` actuales de
   brave-core aplicados → aplicar el commit → `git diff --full-index` contra la 116 original. Es el método de NUBE en
   la Fase M (`FlyWeb/docs/motor.md`).
+- **`d8` de la 11.6.189.20 en la nube:** `FlyWeb/scripts/v8-d8.sh <carpeta> [<brave-core>]` (solo GitHub y
+  commondatastorage; ~35 min la primera vez con 4 núcleos, luego incremental). Con él se compila y se prueba un porte
+  de V8 (`tools/run-tests.py`) antes de pasarlo a LOCAL. Pruebas de los portes: `FlyWeb/tools/v8-pruebas/`.
 - V8: la 116 lleva V8 11.6.189.20; sus parches van en `patches/v8/` contra esa versión. Ojo: algunas funciones de la 11.6 detrás de flags son esqueletos (`TODO` en el `.tq`); no darlas por implementadas.
 
 ## Primera tarea (05-10-2026): FS.1
