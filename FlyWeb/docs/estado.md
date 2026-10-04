@@ -1,5 +1,9 @@
 # FlyWeb — estado a 04-10-2026 (NUBE)
 
+> **Actualización 04/10, tarde:** LOCAL ya integró y probó los pasos 37–45 (`flyweb` 1fda577e). Todos los «fallos
+> conocidos» de abajo salvo Safe Browsing quedan arreglados en la **1.0.1**; plan en `version-1.0.1.md`. La web
+> `flyweb.lamosquita.net` ya tiene descarga y privacidad (provisionales).
+
 ## FlyWeb 1.0 (publicada por LOCAL el 04-10)
 
 - **Qué es:** Release oficial de `flyweb` **955352ec** (Brave 1.57.64 = Chromium 116.0.5845.188), x86_64, sin AVX.
