@@ -78,21 +78,15 @@ shasum -a 256 flyweb-sync
 
 ## Instalar en ns2 (HUMANO o LOCAL con permiso; lo verifica el HUMANO)
 
-1. **DNS:** registro A `sync.flyweb.lamosquita.net` → 51.91.19.170 en ns1, ns2 y ns3.
-2. **Certificado:** `certbot certonly --apache --expand` con todos los nombres de FlyWeb, incluido `sync.`.
-3. **Binario:** descargarlo de la release `flyweb-sync` del repo (o compilarlo) y copiarlo a `/opt/flyweb-sync/flyweb-sync` (root, 0755) y comprobar la suma SHA-256.
-4. **Servicio:** `../systemd/flyweb-sync.service` → `/etc/systemd/system/`; `systemctl daemon-reload`;
-   `systemctl enable --now flyweb-sync`. Comprobar: `systemctl status flyweb-sync` y
-   `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8295/` → 404.
-5. **Apache:** `install -d /var/log/flyweb/sync`; añadir `../e0/apache/flyweb-sync-vhost.conf` a `lamosquita.conf`;
-   `apachectl configtest` y recargar. Comprobar desde fuera:
-   - `curl -s -o /dev/null -w '%{http_code}\n' -X POST https://sync.flyweb.lamosquita.net/v2/command/` → 401;
-   - `https://sync.flyweb.lamosquita.net/` → 404.
-6. **Copias:** la base está en `/var/lib/private/flyweb-sync/sync.db` (con `DynamicUser`). Va cifrada por los
-   navegadores; si se quiere copia, `sqlite3 sync.db ".backup /ruta/copia.db"` con el servicio en marcha (o copiar con
-   él parado). Si se pierde, basta con volver a sincronizar desde cualquier Mac.
-7. **Página de privacidad (W2):** publicar el texto actualizado (`FlyWeb/docs/web-flyweb.md`) antes de abrirlo a
-   otros usuarios.
+Pasos exactos, con comprobaciones antes y después, prueba desde fuera y vuelta atrás: **[`instalar-ns2.md`](instalar-ns2.md)**
+(SV.1). Binario: release `flyweb-sync`, construido por el CI desde `eb7a424`,
+SHA-256 `6b690b21467c3637b9e655a72c7888585aca974270d330c460876c3872b0007c` (reproducido por SERVIDOR). La release se
+reescribe en cada fusión: la suma que vale es la de `instalar-ns2.md`, no la `.sha256` de la release.
+
+La base queda en `/var/lib/private/flyweb-sync/sync.db` (con `DynamicUser`), cifrada por los navegadores. Copia, si se
+quiere: `sqlite3 sync.db ".backup /ruta/copia.db"` con el servicio en marcha. Si se pierde, basta con volver a
+sincronizar desde cualquier Mac. Antes de abrirlo a otros usuarios, publicar el texto de privacidad (W2,
+`FlyWeb/docs/web-flyweb.md`).
 
 ## Prueba con FlyWeb (LOCAL, cuando esté en ns2)
 
