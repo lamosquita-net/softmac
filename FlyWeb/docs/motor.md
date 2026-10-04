@@ -27,6 +27,9 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    `Object.groupBy`/`Map.groupBy`, pero también `Array.prototype.groupToMap`, que no publicó ningún navegador; por eso
    no se enciende el flag tal cual, sino que se parchea como lo dejó la V8 11.7 (la de Chrome 117).
    JavaScript: parche de V8 cuando el código está en la 11.6; si no, polyfill en un componente.
+   **Antes de encender un flag *harmony*, comprobar que no son esqueletos** (`grep -n TODO src/builtins/<función>*.tq`
+   y los `.cc`): en la 11.6, `Map.groupBy` devolvía `undefined` («TODO(v8:12499): Implement») y el paso 46 lo dejó
+   expuesto; lo vio `motor-117.html` y LOCAL portó la implementación de la 11.7 (paso 49).
 6. **Inventario de cada nivel (método de LOCAL):** con la copia de Chromium, `git log -E --grep=<flag|propiedad>
    <N-1>..<N> -- third_party/blink` saca lo que se escribió después de la rama: la implementación que falte (lo que
    pasó con `transition-behavior`) y los arreglos de lo que se enciende. Se portan en orden de llegada; si uno no
@@ -65,8 +68,8 @@ compara Sparkle) sube en cada versión publicada: 1.0 = 0, 1.0.1 = 1, 1.1 = 2. A
 - **Arreglos posteriores a la 116** de lo encendido (paso 49): 6 de subgrid (+1 previo necesario), 1 de
   `@starting-style`, 2 de `text-wrap: pretty`. Lista: `motor-117-cambios.txt`.
 - **JavaScript:** `Object.groupBy` y `Map.groupBy` con parches de V8 (`patches/v8/`): el flag pasa a «shipping» sin
-  `groupToMap` y con el arreglo de la 11.7 para objetos grandes. Los iterator helpers siguen apagados (Chrome los publicó
-  en la 122).
+  `groupToMap`, con el arreglo de la 11.7 para objetos grandes y (paso 49, LOCAL) la implementación real de
+  `Map.groupBy`, que en la 11.6 era un esqueleto. Los iterator helpers siguen apagados (Chrome los publicó en la 122).
 - **Versión declarada: 117**, a todas las webs (sin la excepción de Google, apagada por defecto en el paso 47). Siguen con 116 la red
   del sistema (componentes, actualizador, Safe Browsing).
 - **Coste real del nivel 117:** 5 flags + 1 porte pequeño (`light-dark()`) + 1 porte de V8 + 1 porte de 3 commits + 10
@@ -79,14 +82,14 @@ Lo Baseline que Chrome 118 publicó (web-features): **unidades `cap` y `rcap`**,
 **`content-box`/`border-box`/`stroke-box` de `transform-box`**. La V8 11.8 no añade nada Baseline. Ninguna estaba en la
 116 ni siquiera tras un flag.
 
-- **`cap`/`rcap` y `<search>`** (brave-core `nube/motor-118` 8459f579): 6 commits de Chromium que aplican tal cual (a
+- **`cap`/`rcap` y `<search>`** (brave-core `nube/motor-118` 8459f579, paso 51): 6 commits de Chromium que aplican tal cual (a
   mano solo la entrada del flag de `<search>`). La altura de mayúsculas sale de `FontMetrics::CapHeight()`, que ya está
   en la 116.
-- **`transform-box`** (7a6ab191): el commit (673794805ffa) se apoya en la serie de refactorización de transformaciones de
+- **`transform-box`** (7a6ab191, paso 52): el commit (673794805ffa) se apoya en la serie de refactorización de transformaciones de
   SVG de las semanas siguientes a la rama de la 116, así que se porta la serie entera: **13 commits**, 70 ficheros, 2
   nuevos (`transform_utils`, `paint_order_array.h`). Cuatro trozos resueltos a mano, solo de contexto. Los ficheros de
   SVG quedan idénticos a Chromium. Es el **porte más grande hasta ahora** y el de más riesgo: toca el pintado de SVG.
-- **Declarado 118 / FlyWeb 1.2** en 86a2c9da (se revierte solo si no pasa).
+- **Declarado 118 / FlyWeb 1.2** en 86a2c9da (paso 53; se revierte solo si no pasa).
 - **Comprobación:** `FlyWeb/tools/motor-118.html` (15 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
   `FlyWeb/tools/wpt-118-lista.txt` con las herramientas de LOCAL. **Además**, por el riesgo del SVG: `motor-117.html` sigue
   14/14 y un repaso de webs con mucho SVG (iconos, gráficos, mapas).

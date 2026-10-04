@@ -51,7 +51,7 @@ límites que NUBE: no compila Chromium ni ejecuta nada de macOS.
 - Para portar: árbol de trabajo con los ficheros de la 116 (`git show 116.0.5845.188:<ruta>`) + los `.patch` actuales de
   brave-core aplicados → aplicar el commit → `git diff --full-index` contra la 116 original. Es el método de NUBE en
   la Fase M (`FlyWeb/docs/motor.md`).
-- V8: la 116 lleva V8 11.6.189.20; sus parches van en `patches/v8/` contra esa versión.
+- V8: la 116 lleva V8 11.6.189.20; sus parches van en `patches/v8/` contra esa versión. Ojo: algunas funciones de la 11.6 detrás de flags son esqueletos (`TODO` en el `.tq`); no darlas por implementadas.
 
 ## Primera tarea (05-10-2026): FS.1
 
