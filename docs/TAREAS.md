@@ -41,6 +41,12 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
    tablero, que es la vista conjunta. Lo urgente (sobre todo de seguridad) va marcado **URGENTE** en la fila y en el PR.
    Sesiones: NUBE «Entorno macOS Mojave para desarrollo», LOCAL «LOCAL — compilación FlyWeb (MacPro7,1)», SEGURIDAD
    «SEGURIDAD — parches de seguridad de FlyWeb», SERVIDOR «SERVIDOR — servicios de FlyWeb en ns2».
+9. **Modelo de cada agente** (HUMANO, 05-10): al crear un agente nuevo, elegir el modelo según lo que exige la tarea,
+   sin sobredimensionar (un modelo mayor es más lento y gasta más). Hoy: NUBE, LOCAL, SEGURIDAD y SERVIDOR en
+   **Opus 5.5** (portes de Blink/V8 sin compilar, CVE, producción con poco volumen). **Sonnet 5.5** para agentes con
+   tareas acotadas y repetitivas (informes, revisiones de configuración, vigilancia). **Fable 5.1** solo si una tarea
+   concreta se le atasca a Opus (p. ej. un porte grande que falle varias veces), y para esa tarea. Anotar el modelo y
+   el motivo en la fila del agente.
 
 **Prohibido en `~/proyectos/flyweb-build`: `gclient sync -D`.** Borró el `src/brave` antiguo (worktree). Ahora `src/brave` es un clon `--shared` (ver `setup-build.sh`).
 
