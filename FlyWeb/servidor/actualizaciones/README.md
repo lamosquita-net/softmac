@@ -1,5 +1,7 @@
 # Actualizaciones de FlyWeb (Sparkle)
 
+**Estado (04-10-2026, LOCAL con permiso del HUMANO):** firmador instalado en bak (commit ff67f5e, suma comprobada), clave EdDSA generada (`/var/lib/flyweb-firma/claves/actualizaciones.pem`, flywebfirma 0600; pública en `clave-publica.txt`), clave SSH propia `flyweb-ns2-updates` → ns2 `flywebsubida` con `rrsync -wo /var/www/FlyWeb/updates`, solo desde la IP de bak (probado: escribe en `stable/`, no sale de su carpeta). **Pendiente del HUMANO: copia de seguridad cifrada de `actualizaciones.pem` fuera de bak.**
+
 **Estado (04-10-2026):** código listo (brave-core `nube/actualizador` = paso 45; `build.sh`; firmador de bak con sus
 pruebas). **Falta:** la clave en bak (HUMANO), `clave-publica.txt` en el repo, y la primera versión publicada así.
 
@@ -56,8 +58,8 @@ sudo -u flywebfirma node /opt/flyweb-firma/firmar-actualizacion.mjs generar-clav
 Copia de seguridad de `actualizaciones.pem`, cifrada y por tu canal habitual: **si se pierde, ninguna FlyWeb
 instalada aceptará actualizaciones nuevas** (habría que reinstalar a mano en cada Mac).
 
-**Subida a ns2:** otra línea en el `authorized_keys` del usuario de subida de ns2, con la misma clave SSH de
-`flywebfirma` restringida a `/var/www/FlyWeb/updates` (`command="rrsync /var/www/FlyWeb/updates",restrict …`), y en
+**Subida a ns2:** otra línea en el `authorized_keys` del usuario de subida de ns2, con una clave SSH **propia** de
+`flywebfirma` (no la de componentes: con la misma clave, sshd aplica siempre la primera línea) restringida a `/var/www/FlyWeb/updates` (`command="rrsync /var/www/FlyWeb/updates",restrict …`), y en
 bak un alias en `~flywebfirma/.ssh/config` (p. ej. `Host ns2-updates`). `install -d /var/www/FlyWeb/updates/stable`
 en ns2.
 
