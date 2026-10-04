@@ -94,6 +94,34 @@ Lo Baseline que Chrome 118 publicó (web-features): **unidades `cap` y `rcap`**,
   `FlyWeb/tools/wpt-118-lista.txt` con las herramientas de LOCAL. **Además**, por el riesgo del SVG: `motor-117.html` sigue
   14/14 y un repaso de webs con mucho SVG (iconos, gráficos, mapas).
 
+## Nivel 119 (en código, 05-10; pendiente de decisión y de compilar → FlyWeb 1.3)
+
+Lo Baseline que Chrome 119 publicó (web-features): `:user-valid`/`:user-invalid`, las cajas de `clip-path`
+(`<geometry-box>`), `rect()`/`xywh()`, `Promise.withResolvers`, la **Storage Access API** y, en WebAssembly, **Wasm GC**
+y referencias tipadas a funciones.
+
+- **`clip-path` con cajas y `rect()`/`xywh()`** (brave-core `nube/motor-119` 96f274f3): 12 commits de Philip Rogers y uno
+  previo de Fredrik Söderquist. **Adaptado a mano:** entre la 116 y estos commits, Chromium pasó `ComputedStyle` y
+  `ClipPathOperation` al recolector de basura (f126ce4d6c9, cientos de ficheros); se mantiene el modelo de la 116
+  (recuento de referencias) en la operación nueva y en el conversor de estilos, y se adaptan dos nombres de la API de
+  cajas. **El porte de más riesgo hasta ahora.**
+- **`:user-valid`/`:user-invalid`** (f58ee342): 3 commits, limpios salvo la plantilla del *fuzzer* de CSS.
+- **`Promise.withResolvers`** (978fbf70, V8): adaptado a la 11.6 sin tocar las raíces estáticas de V8 (que se generan al
+  compilar): `"promise"` se crea al arrancar en vez de ser una raíz nueva; flag *harmony* encendido. Comprobado que no
+  es un esqueleto. La rama lleva también el arreglo de `Map.groupBy` de LOCAL (paso 49), por tocar los mismos ficheros.
+- **Pendiente de decisión del HUMANO:**
+  - **Storage Access API:** deja que un tercero incrustado pida acceso a sus cookies; Brave la **desactiva a propósito**
+    (`kPermissionStorageAccessAPI`), por chocar con el bloqueo de cookies de terceros de los Escudos. Portarla son
+    decenas de commits del navegador (permisos, avisos, ajustes). Propuesta: **fuera por privacidad**, como en Brave.
+  - **Wasm GC y referencias tipadas:** WebAssembly solo funciona en los sitios con JIT (jitless lo desactiva en el
+    resto); portar Wasm GC de la V8 11.9 a la 11.6 es enorme, y encender el `--experimental-wasm-gc` de la 11.6 sería
+    meter una versión antigua de la especificación (principio 5). Las webs que lo usan (p. ej. el motor de cálculo de
+    Google Sheets) tienen alternativa en JavaScript. Propuesta: **fuera**, revisable si una web importante lo exige.
+- **Comprobación:** `FlyWeb/tools/motor-119.html` (17 comprobaciones; en Chromium 141, 16 «ok» y la del UA) y
+  `FlyWeb/tools/wpt-119-lista.txt`.
+- **Nivel 119 sin declarar** hasta la decisión: si se aceptan las dos exclusiones, se declara 119 / FlyWeb 1.3 en un
+  commit aparte, como en los niveles anteriores.
+
 ## Inventario: CSS Baseline publicado después de la 116
 
 Datos de [web-features](https://www.npmjs.com/package/web-features) 3.40.1 (el catálogo de Baseline) y del fichero de
@@ -108,9 +136,9 @@ Baseline; el resto son solo de Chrome.
 | 118 | cap unit | amplia | porte (nivel 118) |
 | 118 | rcap unit | reciente | porte (nivel 118) |
 | 118 | transform-box | reciente | porte (13 commits de SVG, nivel 118) |
-| 119 | :user-valid and :user-invalid | amplia | no está |
-| 119 | Clip path boxes | amplia | no está |
-| 119 | rect() and xywh() | amplia | no está |
+| 119 | :user-valid and :user-invalid | amplia | porte (nivel 119) |
+| 119 | Clip path boxes | amplia | porte adaptado a mano (nivel 119) |
+| 119 | rect() and xywh() | amplia | porte (nivel 119) |
 | 120 | :dir() | amplia | flag (`CSSPseudoDir`) |
 | 120 | Exponential functions (CSS) | amplia | flag (`CSSExponentialFunctions`) |
 | 120 | Masks | amplia | no está |

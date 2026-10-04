@@ -137,7 +137,8 @@ al último nivel completo, la misma para todas las webs.
 |---|---|---|
 | 117 | **1.1** | **Cumplido** (04-10): `motor-117.html` 14/14, WPT 238/240 = Chrome 117 (pasos 46–49). Release en curso (LOCAL) |
 | 118 | 1.2 | **Hecho en código** (05-10, brave-core `nube/motor-118`, pasos 51–53): `cap`/`rcap`, `<search>`, `transform-box`. Pendiente de compilar y probar (LOCAL) |
-| 119–120 | 1.3–1.4 | Pendiente |
+| 119 | 1.3 | **En código** (05-10, brave-core `nube/motor-119`, pasos 54–56); falta la decisión sobre Storage Access y Wasm GC |
+| 120 | 1.4 | Pendiente |
 
 **Hito por nivel:** `FlyWeb/tools/motor-N.html` en verde, web-platform-tests de cada función al nivel de Chrome *N*,
 y la versión declarada sube a *N*.
