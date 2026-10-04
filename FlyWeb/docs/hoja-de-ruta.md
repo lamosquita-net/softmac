@@ -79,7 +79,8 @@ portadas y el documento de triaje (`docs/cve-triage.md`) hecho.
    avisa de navegador antiguo y la vista HTML básica ya no existe (Google la retiró en 2024).
 3. **JS ausente:** polyfills inyectados **en el mundo principal de la página** (un content script normal corre en
    un mundo aislado y no sirve). Hay que tener en cuenta la CSP de cada sitio.
-4. **CSS ausente:** no admite polyfill razonable. Se anota como deuda para la Fase 6.
+4. **CSS ausente:** no admite polyfill razonable. **Se porta al motor de la 116** (Fase M, decisión del HUMANO
+   del 04-10), empezando por lo Baseline.
 5. **Medición:** subconjunto de web-platform-tests frente a Baseline "widely available".
 
 **Hito:** claude.ai, Gmail, Drive y Workspace funcionan por completo, y hay una lista priorizada de huecos.
@@ -126,7 +127,21 @@ Sparkle, y la auditoría de red ya no muestra ningún destino de Brave.
 
 **Hito:** tabla de rendimiento por máquina y backend, con el backend por defecto decidido.
 
+## Fase M — Evolución del motor (decidida el 04-10-2026)
+
+Detalle, inventario y método en [`motor.md`](motor.md). El motor de la 116 crece función a función, por niveles de
+versión de Chrome: CSS portado o encendido (no depende de macOS), JavaScript con polyfills y versión declarada igual al
+último nivel completo. Primer paso: nivel 117 (brave-core `nube/motor-117`, paso 46), que en CSS son 6 flags ya
+presentes en la 116, más `light-dark()`.
+
+**Hito por nivel:** `FlyWeb/tools/motor-N.html` en verde, web-platform-tests de cada función al nivel de Chrome *N*,
+y la versión declarada sube a *N*.
+
 ## Fase 6 — Punto de decisión: rebase
+
+> **04-10-2026:** descartado por ahora el rebase sobre Chromium Legacy: está parado desde mayo de 2024 (124 estable,
+> 127 canary). La Fase M lo sustituye. Esta fase queda como evaluación de respaldo si apareciera otra base mantenida.
+
 
 Cuando el coste de portar parches supere el de un rebase (estimación: tras 2–3 ciclos de la Fase 3B):
 

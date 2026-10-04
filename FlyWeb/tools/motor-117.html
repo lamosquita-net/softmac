@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 117 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 117 de FlyWeb (brave-core nube/motor-117, paso 46).
+     Abrir en FlyWeb con file:// o desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO.
+     Las pruebas oficiales (web-platform-tests) están enlazadas al final. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  #zona { position: absolute; left: -9999px; top: 0; }
+  /* subgrid */
+  .grid { display: grid; grid-template-columns: 50px 70px; }
+  .sub { display: grid; grid-column: 1 / 3; grid-template-columns: subgrid; }
+  /* light-dark() */
+  .claro { color-scheme: light; color: light-dark(rgb(1, 2, 3), rgb(4, 5, 6)); }
+  .oscuro { color-scheme: dark; color: light-dark(rgb(1, 2, 3), rgb(4, 5, 6)); }
+  /* @starting-style + transition-behavior */
+  .entra { opacity: 1; transition: opacity 10s linear; }
+  @starting-style { .entra { opacity: 0; } }
+</style>
+</head>
+<body>
+<h1>Motor 117 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<div id="zona">
+  <div class="grid"><div class="sub"><span id="a">a</span><span id="b">b</span></div></div>
+  <span class="claro" id="claro">x</span><span class="oscuro" id="oscuro">x</span>
+</div>
+<h2>Pruebas oficiales (web-platform-tests, en wpt.live)</h2>
+<p>Abrir cada una en FlyWeb y anotar «X de Y pasan»; comparar con lo que da Chrome 117 en
+<a href="https://wpt.fyi/results/">wpt.fyi</a> (filtrar por la carpeta).</p>
+<ul>
+  <li><a href="https://wpt.live/css/css-grid/subgrid/">css/css-grid/subgrid/</a> (subgrid)</li>
+  <li><a href="https://wpt.live/css/css-transitions/starting-style-cascade.html">css/css-transitions/starting-style-cascade.html</a> (@starting-style; hay más <code>starting-style-*</code> en la misma carpeta)</li>
+  <li><a href="https://wpt.live/css/css-transitions/parsing/transition-behavior.html">css/css-transitions/parsing/transition-behavior.html</a></li>
+  <li><a href="https://wpt.live/css/css-color/light-dark-basic.html">css/css-color/light-dark-basic.html</a>,
+      <a href="https://wpt.live/css/css-color/light-dark-currentcolor.html">light-dark-currentcolor.html</a>,
+      <a href="https://wpt.live/css/css-color/light-dark-inheritance.html">light-dark-inheritance.html</a></li>
+  <li><a href="https://wpt.live/css/css-text/parsing/text-wrap-valid.html">css/css-text/parsing/text-wrap-valid.html</a>
+      (en la 116 «text-wrap» es el atajo antiguo: algunas líneas de este test son de versiones posteriores y fallarán)</li>
+</ul>
+<script>
+  const res = document.getElementById('res');
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li');
+    li.className = ok ? 'ok' : 'fallo';
+    li.textContent = nombre + (nota ? ` — ${nota}` : '');
+    res.append(li);
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+  const s = (p, v) => CSS.supports(p, v);
+
+  prueba('subgrid: se acepta grid-template-columns: subgrid', () => s('grid-template-columns', 'subgrid'));
+  prueba('subgrid: los hijos usan las columnas del padre (50px y 70px)', () => {
+    const a = document.getElementById('a').getBoundingClientRect(), b = document.getElementById('b').getBoundingClientRect();
+    return { ok: Math.round(b.left - a.left) === 50, nota: `separación ${Math.round(b.left - a.left)}px` };
+  });
+  prueba('@starting-style: la regla existe en el CSSOM', () => {
+    const r = [...document.styleSheets[0].cssRules].find((x) => x.cssText.startsWith('@starting-style'));
+    return { ok: !!r, nota: r ? r.constructor.name : 'no se reconoce la regla' };
+  });
+  prueba('@starting-style: un elemento nuevo empieza en opacity 0 y anima', () => {
+    const d = document.createElement('div'); d.className = 'entra'; document.getElementById('zona').append(d);
+    const o = parseFloat(getComputedStyle(d).opacity);
+    return { ok: o < 0.5, nota: `opacity inicial ${o}` };
+  });
+  prueba('transition-behavior: allow-discrete', () => s('transition-behavior', 'allow-discrete'));
+  prueba('overlay: auto', () => s('overlay', 'auto'));
+  prueba('text-wrap: pretty', () => s('text-wrap', 'pretty'));
+  prueba('contain-intrinsic-size: auto none', () => s('contain-intrinsic-size', 'auto none'));
+  prueba('light-dark(): se acepta', () => s('color', 'light-dark(red, blue)'));
+  prueba('light-dark(): color claro con color-scheme: light', () => {
+    const c = getComputedStyle(document.getElementById('claro')).color; return { ok: c === 'rgb(1, 2, 3)', nota: c };
+  });
+  prueba('light-dark(): color oscuro con color-scheme: dark', () => {
+    const c = getComputedStyle(document.getElementById('oscuro')).color; return { ok: c === 'rgb(4, 5, 6)', nota: c };
+  });
+  prueba('light-dark(): se serializa como light-dark()', () => {
+    const d = document.createElement('div'); d.style.color = 'light-dark(red, blue)';
+    return { ok: d.style.color === 'light-dark(red, blue)', nota: d.style.color || '(vacío)' };
+  });
+  prueba('light-dark(): no se acepta en imágenes (como en Chrome 123)', () => !s('background-image', 'light-dark(url(a.png), url(b.png))'));
+  prueba('-internal-light-dark() sigue sin estar abierto a las webs', () => !s('color', '-internal-light-dark(red, blue)'));
+</script>
+</body>
+</html>
