@@ -71,7 +71,7 @@ fi
 if [ -n "$BC" ]; then
   for p in "$BC"/patches/v8/*.patch; do
     # Los de Brave que incluyen código de brave/ (seguimiento de scripts) no compilan fuera de su checkout.
-    if grep -q '//brave/\|"brave/' "$p"; then echo "omitido (necesita brave/): $(basename "$p")"; continue; fi
+    if grep -q '//brave/\|"brave/\|BRAVE_' "$p"; then echo "omitido (necesita brave/): $(basename "$p")"; continue; fi
     git apply "$p"
   done
 fi
