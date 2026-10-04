@@ -91,7 +91,26 @@ fi
 # Sincronización propia (go-sync con SQLite en ns2). go-sync atiende en /v2/command/; Chromium añade "/command/".
 SYNC="${FLYWEB_SYNC_URL:-https://sync.flyweb.lamosquita.net/v2}"
 INERT="https://flyweb.invalid"
-npm run build -- "$CONFIG" --target_arch=x64 \
+# Release (is_official_build) exige que no estén vacías las claves de servicios que FlyWeb quita o desactiva
+# (Rewards, cartera, Leo). Valores inertes: no llevan a ningún sitio. Solo en Release, para no recompilar Static.
+if [ "$CONFIG" = "Release" ]; then
+  set -- \
+    --gn "brave_ai_chat_endpoint:flyweb.invalid" \
+    --gn "brave_zero_ex_api_key:flyweb" --gn "sardine_client_id:flyweb" --gn "sardine_client_secret:flyweb" \
+    --gn "rewards_grant_dev_endpoint:$INERT" --gn "rewards_grant_staging_endpoint:$INERT" \
+    --gn "rewards_grant_prod_endpoint:$INERT" \
+    --gn "bitflyer_production_client_id:flyweb" --gn "bitflyer_production_client_secret:flyweb" \
+    --gn "bitflyer_production_fee_address:flyweb" --gn "bitflyer_production_url:$INERT" \
+    --gn "gemini_production_api_url:$INERT" --gn "gemini_production_client_id:flyweb" \
+    --gn "gemini_production_client_secret:flyweb" --gn "gemini_production_fee_address:flyweb" \
+    --gn "gemini_production_oauth_url:$INERT" \
+    --gn "uphold_production_api_url:$INERT" --gn "uphold_production_client_id:flyweb" \
+    --gn "uphold_production_client_secret:flyweb" --gn "uphold_production_fee_address:flyweb" \
+    --gn "uphold_production_oauth_url:$INERT"
+else
+  set --
+fi
+npm run build -- "$CONFIG" --target_arch=x64 "$@" \
   --gn "mac_sdk_path:$SDK" \
   --gn symbol_level:0 \
   --gn "updater_prod_endpoint:$UPDATER" \
@@ -125,7 +144,8 @@ Chromium:            $CHROMIUM
 Compilado:           $DATE en $(hostname -s)
 INFO
 
-APP=$(find "$OUT" -maxdepth 1 -name "*.app" -type d | head -1)
+# La app principal, no los «Helper» (en Release salen todos en out/Release y find no los ordena).
+APP=$(find "$OUT" -maxdepth 1 -name "*.app" -type d ! -name "* Helper*" | head -1)
 if [ -n "$APP" ] && [ "$CONFIG" != "Release" ]; then
   # Solo en builds sin firmar: editar el Info.plist invalidaría la firma de un Release.
   PLIST="$APP/Contents/Info.plist"
