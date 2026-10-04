@@ -30,6 +30,9 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    **Antes de encender un flag *harmony*, comprobar que no son esqueletos** (`grep -n TODO src/builtins/<función>*.tq`
    y los `.cc`): en la 11.6, `Map.groupBy` devolvía `undefined` («TODO(v8:12499): Implement») y el paso 46 lo dejó
    expuesto; lo vio `motor-117.html` y LOCAL portó la implementación de la 11.7 (paso 49).
+   **Y traer la serie entera de la función hasta que se publicó** (`git log --grep=<función> <11.6>..<versión que la
+   publicó>` en V8; para `groupBy` eran 6 commits, no 1), **probando con tamaños grandes**: sin dos arreglos de la 11.7,
+   un grupo de más de ~33 000 elementos cerraba la pestaña (LOCAL, paso 50).
 6. **Inventario de cada nivel (método de LOCAL):** con la copia de Chromium, `git log -E --grep=<flag|propiedad>
    <N-1>..<N> -- third_party/blink` saca lo que se escribió después de la rama: la implementación que falte (lo que
    pasó con `transition-behavior`) y los arreglos de lo que se enciende. Se portan en orden de llegada; si uno no
@@ -82,14 +85,14 @@ Lo Baseline que Chrome 118 publicó (web-features): **unidades `cap` y `rcap`**,
 **`content-box`/`border-box`/`stroke-box` de `transform-box`**. La V8 11.8 no añade nada Baseline. Ninguna estaba en la
 116 ni siquiera tras un flag.
 
-- **`cap`/`rcap` y `<search>`** (brave-core `nube/motor-118` 8459f579, paso 51): 6 commits de Chromium que aplican tal cual (a
+- **`cap`/`rcap` y `<search>`** (brave-core `nube/motor-118` 8459f579, paso 52): 6 commits de Chromium que aplican tal cual (a
   mano solo la entrada del flag de `<search>`). La altura de mayúsculas sale de `FontMetrics::CapHeight()`, que ya está
   en la 116.
-- **`transform-box`** (7a6ab191, paso 52): el commit (673794805ffa) se apoya en la serie de refactorización de transformaciones de
+- **`transform-box`** (7a6ab191, paso 53): el commit (673794805ffa) se apoya en la serie de refactorización de transformaciones de
   SVG de las semanas siguientes a la rama de la 116, así que se porta la serie entera: **13 commits**, 70 ficheros, 2
   nuevos (`transform_utils`, `paint_order_array.h`). Cuatro trozos resueltos a mano, solo de contexto. Los ficheros de
   SVG quedan idénticos a Chromium. Es el **porte más grande hasta ahora** y el de más riesgo: toca el pintado de SVG.
-- **Declarado 118 / FlyWeb 1.2** en 86a2c9da (paso 53; se revierte solo si no pasa).
+- **Declarado 118 / FlyWeb 1.2** en 86a2c9da (paso 54; se revierte solo si no pasa).
 - **Comprobación:** `FlyWeb/tools/motor-118.html` (15 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
   `FlyWeb/tools/wpt-118-lista.txt` con las herramientas de LOCAL. **Además**, por el riesgo del SVG: `motor-117.html` sigue
   14/14 y un repaso de webs con mucho SVG (iconos, gráficos, mapas).
@@ -118,7 +121,7 @@ y referencias tipadas a funciones.
     **Aparcado:** se revisa si una web importante lo exige o si en algún momento se actualiza V8 entero.
 - **Comprobación:** `FlyWeb/tools/motor-119.html` (17 comprobaciones; en Chromium 141, 16 «ok» y la del UA) y
   `FlyWeb/tools/wpt-119-lista.txt`.
-- **Declarado 119 / FlyWeb 1.3** en 625b048e (paso 57; se revierte solo si el nivel no pasa).
+- **Declarado 119 / FlyWeb 1.3** en 625b048e (paso 58; se revierte solo si el nivel no pasa).
 
 ## Inventario: CSS Baseline publicado después de la 116
 

@@ -1,7 +1,7 @@
 # FlyWeb — estado a 04-10-2026 (NUBE)
 
 > **Actualización 04/10, 24:00:** **nivel 117 cumplido** (LOCAL: `motor-117.html` 14/14; WPT de la 117 238/240, los
-> mismos 2 fallos que Chrome 117). LOCAL compila la Release **1.1** (`version-1.1.md`). Nivel 118 (→ 1.2) hecho en código por NUBE: brave-core `nube/motor-118`, pasos 51–53 (`motor.md`, «Nivel 118»).
+> mismos 2 fallos que Chrome 117). LOCAL compila la Release **1.1** (`version-1.1.md`). Nivel 118 (→ 1.2) hecho en código por NUBE: brave-core `nube/motor-118`, pasos 52–54 (`motor.md`, «Nivel 118»).
 >
 > **Actualización 04/10, noche:** la 1.0.1 está publicada. Siguiente: **FlyWeb 1.1** = nivel de motor 117 + arreglos
 > (Gmail tras redirección, versión visible, DNS seguro apagado, enlaces sin Brave): brave-core `nube/motor-117`, pasos
