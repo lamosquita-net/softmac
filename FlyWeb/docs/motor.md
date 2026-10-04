@@ -60,14 +60,14 @@ compara Sparkle) sube en cada versión publicada: 1.0 = 0, 1.0.1 = 1, 1.1 = 2. A
 - **CSS que la 116 ya tenía apagado** (paso 46): `LayoutNGSubgrid`, `CSSInitialPseudo` (`@starting-style`),
   `CSSTopLayerForTransitions` (`overlay`), `CSSTextWrapPretty`, `CSSContainIntrinsicSizeAutoNone`; y `light-dark()`
   (de la 123) abriendo el `-internal-light-dark()` de la 116.
-- **`transition-behavior`** (paso 52): **no estaba en la 116** (LOCAL, 04-10); el flag `CSSTransitionDiscrete` de la 116
+- **`transition-behavior`** (paso 48): **no estaba en la 116** (LOCAL, 04-10); el flag `CSSTransitionDiscrete` de la 116
   era una versión previa sin la propiedad. Portados 3 commits; aplicaron tal cual.
-- **Arreglos posteriores a la 116** de lo encendido (paso 53): 6 de subgrid (+1 previo necesario), 1 de
+- **Arreglos posteriores a la 116** de lo encendido (paso 49): 6 de subgrid (+1 previo necesario), 1 de
   `@starting-style`, 2 de `text-wrap: pretty`. Lista: `motor-117-cambios.txt`.
 - **JavaScript:** `Object.groupBy` y `Map.groupBy` con parches de V8 (`patches/v8/`): el flag pasa a «shipping» sin
   `groupToMap` y con el arreglo de la 11.7 para objetos grandes. Los iterator helpers siguen apagados (Chrome los publicó
   en la 122).
-- **Versión declarada: 117**, a todas las webs (sin la excepción de Google, quitada en el paso 51). Siguen con 116 la red
+- **Versión declarada: 117**, a todas las webs (sin la excepción de Google, apagada por defecto en el paso 47). Siguen con 116 la red
   del sistema (componentes, actualizador, Safe Browsing).
 - **Coste real del nivel 117:** 5 flags + 1 porte pequeño (`light-dark()`) + 1 porte de V8 + 1 porte de 3 commits + 10
   arreglos. Todo aplicó sobre la 116 sin reescribir nada: buena señal para los niveles 118–120.

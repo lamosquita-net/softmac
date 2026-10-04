@@ -18,7 +18,7 @@ La web ya existe como vhost en ns2 (`FlyWeb/servidor/e0`, `/var/www/flyweb.lamos
 | W5 | Seguridad | Cómo avisar de un fallo de seguridad (correo); política de parches (cada 8 semanas, urgentes si hay explotación) | LOCAL | — |
 | W6 | Aviso legal | Titular (lamosquita), contacto, marcas: FlyWeb no está afiliado a Brave Software ni a Google | LOCAL | Revisión legal |
 | W7 | Ayuda: Sincronizar (`/ayuda/sincronizar`) | El texto de §4. El navegador enlaza aquí desde el aviso de error de Sincronizar (brave-core paso 42) | LOCAL | Servidor de sync en ns2 |
-| W8 | **Ayuda** (`/ayuda/`) | Una página con las secciones de §5 (cada una con su `id`). Desde la 1.1 todos los enlaces de ayuda del navegador llegan aquí (brave-core paso 50) | HUMANO (textos) → LOCAL | Antes de publicar la 1.1 |
+| W8 | **Ayuda** (`/ayuda/`) | Una página con las secciones de §5 (cada una con su `id`). Desde la 1.1 todos los enlaces de ayuda del navegador llegan aquí (brave-core pasos 47 y 49) | HUMANO (textos) → LOCAL | Antes de publicar la 1.1 |
 
 Diseño: con la misma línea que la pestaña nueva (D-DIN, fotos de moscas, colores del proyecto). Sin rastreadores, sin
 analítica, sin fuentes ni scripts de terceros. La página no debe cargar nada de fuera de `flyweb.lamosquita.net`.

@@ -135,7 +135,7 @@ else
   set --
 fi
 # Commit de brave-core que se compila: «Información» enlaza a su código fuente (obligación de la MPL-2.0;
-# brave-core paso 50). Sin ese paso, gn solo avisa de que el argumento no tiene efecto.
+# brave-core paso 47). Sin ese paso, gn solo avisa de que el argumento no tiene efecto.
 CORE_SRC_COMMIT=$(git -C src/brave rev-parse HEAD)
 npm run build -- "$CONFIG" --target_arch=x64 "$@" \
   --gn "flyweb_source_commit:$CORE_SRC_COMMIT" \
