@@ -130,9 +130,14 @@ Sparkle, y la auditoría de red ya no muestra ningún destino de Brave.
 ## Fase M — Evolución del motor (decidida el 04-10-2026)
 
 Detalle, inventario y método en [`motor.md`](motor.md). El motor de la 116 crece función a función, por niveles de
-versión de Chrome: CSS portado o encendido (no depende de macOS), JavaScript con polyfills y versión declarada igual al
-último nivel completo. Primer paso: nivel 117 (brave-core `nube/motor-117`, paso 46), que en CSS son 6 flags ya
-presentes en la 116, más `light-dark()`.
+versión de Chrome: CSS y JavaScript portados de Blink/V8 o encendidos (no dependen de macOS), y versión declarada igual
+al último nivel completo, la misma para todas las webs.
+
+| Nivel | FlyWeb | Estado |
+|---|---|---|
+| 117 | **1.1** | **Cumplido** (04-10): `motor-117.html` 14/14, WPT 238/240 = Chrome 117 (pasos 46–49) |
+| 118 | 1.2 | En curso (NUBE): inventario y portes en brave-core `nube/motor-118` |
+| 119–120 | 1.3–1.4 | Pendiente |
 
 **Hito por nivel:** `FlyWeb/tools/motor-N.html` en verde, web-platform-tests de cada función al nivel de Chrome *N*,
 y la versión declarada sube a *N*.

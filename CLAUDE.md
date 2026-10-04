@@ -57,11 +57,16 @@ que tiene commit. **Nunca `gclient sync -D`** en `flyweb-build` (borró el workt
 - Servicios: componentes desde nuestro servidor `components.flyweb.lamosquita.net` (ns2: Shields y datos locales
   propios firmados en bak, componentes de Google en espejo; `FlyWeb/servidor/`); News y Talk fuera; sync propio en
   `sync.flyweb.lamosquita.net` (`FlyWeb/servidor/sync`, go-sync con SQLite; cifrado de extremo a extremo); stats y variations
-  con URL inertes; Sparkle, updater, P3A, Leo y VPN desactivados (args en `build.sh`); Wallet y Rewards quitados
+  con URL inertes; updater de Brave (Omaha), P3A, Leo y VPN desactivados (args en `build.sh`); actualizaciones con Sparkle desde `updates.flyweb.lamosquita.net`, firmadas en bak (`FlyWeb/servidor/actualizaciones`); Wallet y Rewards quitados
   en el código (brave-core `nube/no-wallet`); Safe Browsing estándar por política (`FlyWeb/policies/flyweb-policies.mobileconfig`;
   en 1.57 su arg rompe `gn gen`), a través del proxy propio `proxy.flyweb.lamosquita.net` en ns2: nada pasa por proxies de Brave.
 - Pendiente de marca: cadenas de la interfaz con `script/chromium-rebase-l10n.py` (necesita el checkout de
   Chromium; no editar .grd/.xtb a mano: los ids de traducción son hashes del texto inglés), logotipos de NTP/welcome.
+- **Motor (Fase M, `FlyWeb/docs/motor.md`):** la base sigue en 116, pero el motor crece por niveles de Chrome portando
+  Blink/V8 función a función. Versión declarada a **todas** las webs = último nivel completo (sin excepciones por sitio);
+  versión visible: el menor sigue al nivel (**1.1 = nivel 117**, 1.2 = 118…). Ambos en brave-core `build/config.gni`
+  (`flyweb_engine_level`, `flyweb_version`); `FLYWEB_BUILD_NUMBER` sube en cada versión publicada (1.1 = 2). Un nivel
+  se da por cumplido con `FlyWeb/tools/motor-N.html` en verde y las WPT de la N iguales a las del propio Chrome N.
 - Riesgo asumido: Chromium de 2023 → aplicar parches de seguridad poco a poco.
 - Criterio de aceptación: claude.ai funciona por completo.
 
