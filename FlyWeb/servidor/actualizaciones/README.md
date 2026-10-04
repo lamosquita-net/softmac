@@ -65,7 +65,8 @@ en ns2.
 
 ## Publicar una versión (LOCAL, con el HUMANO)
 
-1. **Número:** el siguiente al último publicado (`FLYWEB_BUILD_NUMBER`; 1.0.1 = 1). Integrar en `flyweb` lo que vaya
+1. **Número:** el siguiente al último publicado (`FLYWEB_BUILD_NUMBER`; 1.0.1 = 1, 1.1 = 2). La versión visible
+   (`--visible`) es la de brave-core `build/config.gni` (`flyweb_version`), la que muestra Información. Integrar en `flyweb` lo que vaya
    en esa versión (como mínimo el paso 45) y anotar en `integracion.md` qué pasos lleva.
 2. **Compilar:** `FLYWEB_BUILD_NUMBER=1 FlyWeb/scripts/build.sh Release`. Debe decir «Actualizaciones: activadas
    (… 157.64.1)». Si dice «SIN actualizaciones automáticas», falta `clave-publica.txt`: no publicar.

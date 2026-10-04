@@ -18,6 +18,7 @@ La web ya existe como vhost en ns2 (`FlyWeb/servidor/e0`, `/var/www/flyweb.lamos
 | W5 | Seguridad | Cómo avisar de un fallo de seguridad (correo); política de parches (cada 8 semanas, urgentes si hay explotación) | LOCAL | — |
 | W6 | Aviso legal | Titular (lamosquita), contacto, marcas: FlyWeb no está afiliado a Brave Software ni a Google | LOCAL | Revisión legal |
 | W7 | Ayuda: Sincronizar (`/ayuda/sincronizar`) | El texto de §4. El navegador enlaza aquí desde el aviso de error de Sincronizar (brave-core paso 42) | LOCAL | Servidor de sync en ns2 |
+| W8 | **Ayuda** (`/ayuda/`) | Una página con las secciones de §5 (cada una con su `id`). Desde la 1.1 todos los enlaces de ayuda del navegador llegan aquí (brave-core paso 50) | HUMANO (textos) → LOCAL | Antes de publicar la 1.1 |
 
 Diseño: con la misma línea que la pestaña nueva (D-DIN, fotos de moscas, colores del proyecto). Sin rastreadores, sin
 analítica, sin fuentes ni scripts de terceros. La página no debe cargar nada de fuera de `flyweb.lamosquita.net`.
@@ -106,3 +107,32 @@ Puntos a confirmar con quien lleve el RGPD:
 > de funcionar en todos sus Mac. No se puede deshacer.
 >
 > **FlyWeb solo existe para Mac.** Las apps de Brave para móvil no se pueden unir a esta cadena.
+
+## 5. Página de ayuda (W8): anclas que usa el navegador
+
+Desde la 1.1, FlyWeb enlaza a `https://flyweb.lamosquita.net/ayuda/` más una de estas anclas. La página puede empezar
+con un párrafo por sección; lo importante es que existan los `id` (si no, el navegador abre la página arriba).
+
+| `id` | Desde dónde | Qué contar |
+|---|---|---|
+| (ninguno) | Menú Ayuda, «Más información» genéricos | Qué es FlyWeb, contacto |
+| `informar` | Menú → «Informar de un sitio roto», Escudos, páginas de fallo | Cómo avisar de una web que no va o de un fallo: correo a admin@lamosquita.net con la dirección de la web, qué pasa y la versión (Información) |
+| `permisos` | Permisos de sitios, cookies, USB/HID/serie | Ajustes › Privacidad › Configuración de sitios |
+| `descargas` | Descargas interrumpidas o bloqueadas | Por qué se bloquea una descarga (Safe Browsing, HTTP) |
+| `privacidad` | Privacidad, Do Not Track, WebRTC, P3A, WDP, de-AMP, debouncing | Qué hace FlyWeb por defecto; enlace a la política (W2) |
+| `contrasenas` | Gestor de contraseñas | Guardar, generar, ver contraseñas; llavero «FlyWeb Safe Storage» |
+| `importar` | Importar marcadores y ajustes | Pasar contraseñas de Safari (`FlyWeb/docs/contrasenas.md`, en versión para usuarios) |
+| `autorrelleno` | Direcciones y tarjetas | Dónde se guardan |
+| `restablecer` | Restablecer ajustes | Qué se borra y qué no |
+| `buscador` | Barra de direcciones, buscar en Ajustes | Cambiar el buscador |
+| `seguridad` | Información del sitio (candado), Safe Browsing, avisos | Qué significa el candado; Safe Browsing a través de nuestro proxy |
+| `escudos` | Escudos, filtros personalizados | Qué bloquean los Escudos; listas propias |
+| `extensiones` | Extensiones que cambian ajustes, extensiones desactivadas | Instalar desde la Chrome Web Store |
+| `actualizaciones` | Información (si falla la actualización), sistema obsoleto | Actualizaciones automáticas (Sparkle); descargar a mano |
+| `fallos` | Páginas que se cierran («¡Oh, no!») | Recargar, memoria, avisar (`#informar`) |
+| `rendimiento` | Ahorro de memoria y energía | Qué hacen |
+| `tor` | Ventana privada con Tor, puentes | Qué es y sus límites |
+| `drm` | Contenido protegido (Widevine) | Netflix y similares |
+| `/ayuda/sincronizar` | Sincronizar | §4 (W7) |
+
+Además, `/descargas/#novedades` (enlace «novedades» de Información): notas de cada versión.

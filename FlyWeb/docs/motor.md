@@ -20,11 +20,12 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    publicó hasta la *N*: CSS portado o encendido, JavaScript con polyfills (componente firmado en bak) y las API que
    importen.
 4. **Versión declarada = nivel real.** El User-Agent y los Client Hints dicen la versión del último nivel completo, no
-   más: si una web cree que somos la 120, es porque lo somos en lo que usa. (Hoy: 116.)
+   más: si una web cree que somos la 120, es porque lo somos en lo que usa. (FlyWeb 1.1: 117.)
 5. **Flags, caso por caso, nunca en bloque.** Lo que está tras un flag en la 116 puede estar incompleto o ser una
-   versión antigua de la especificación. Ejemplo: el `harmony_array_grouping` de la V8 11.6 implementa
-   `Array.prototype.group`/`groupToMap` (propuesta antigua), no el `Object.groupBy` publicado en la 117; encenderlo
-   metería en la web una API que no existe en ningún otro navegador. Por eso el JavaScript va con polyfills.
+   versión antigua de la especificación. Ejemplo: el `harmony_array_grouping` de la V8 11.6 ya instala
+   `Object.groupBy`/`Map.groupBy`, pero también `Array.prototype.groupToMap`, que no publicó ningún navegador; por eso
+   no se enciende el flag tal cual, sino que se parchea como lo dejó la V8 11.7 (la de Chrome 117).
+   JavaScript: parche de V8 cuando el código está en la 11.6; si no, polyfill en un componente.
 6. **Validación:** una página de comprobación por nivel (`FlyWeb/tools/motor-N.html`, sin red) y las
    web-platform-tests de cada función en `wpt.live`, comparadas con el Chrome que la publicó (`wpt.fyi`).
 7. **Seguridad:** cada función portada o encendida añade código al renderer; sus correcciones posteriores entran en la
@@ -40,19 +41,29 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
 | Porte pequeño (parser, estilos) | `light-dark()`, `:user-valid`, unidades `cap`, `mask` sin prefijo | Días |
 | Porte mediano | colores relativos, nesting relajado, `field-sizing` | 1–2 semanas |
 | Porte grande | view transitions, anchor positioning | Semanas o meses: solo si una web importante lo exige |
-| JavaScript | `Object.groupBy`, `Promise.withResolvers`, `Set`… | Polyfill en el componente: horas |
+| JavaScript | `Object.groupBy` (parche de V8), `Promise.withResolvers`, métodos de `Set`… | Parche de V8 si ya está el código; si no, polyfill: horas |
 
-## Nivel 117 (en curso)
+## Versiones (HUMANO, 04-10)
+
+El número menor de FlyWeb sigue al nivel de motor: **1.0 = Chromium 116, 1.1 = nivel 117**, 1.2 = nivel 118… Los
+arreglos sobre un mismo nivel son 1.1.1, 1.1.2… Aparte, `FLYWEB_BUILD_NUMBER` (→ `CFBundleVersion` 157.64.N, lo que
+compara Sparkle) sube en cada versión publicada: 1.0 = 0, 1.0.1 = 1, 1.1 = 2. Ambos números (`flyweb_version`,
+`flyweb_engine_level`) están en brave-core `build/config.gni`; el nivel es también la versión declarada.
+
+## Nivel 117 (hecho en código, 04-10; pendiente de compilar y probar → FlyWeb 1.1)
 
 - **CSS:** brave-core `nube/motor-117` = paso 46. En la 116 todo el CSS de la 117 estaba hecho y apagado. Se encienden
   6 flags: `LayoutNGSubgrid` (subgrid), `CSSInitialPseudo` (`@starting-style`; en la 117 se llama
   `CSSStartingStyle`), `CSSTransitionDiscrete` (`transition-behavior`), `CSSTopLayerForTransitions` (`overlay`),
   `CSSTextWrapPretty` y `CSSContainIntrinsicSizeAutoNone`. Además se adelanta **`light-dark()`** (de la 123): la 116 ya
   la tenía como `-internal-light-dark()` para sus hojas internas; ahora es pública.
-- **JavaScript de la 117:** `Object.groupBy` y `Map.groupBy` → componente de polyfills (por hacer).
-- **Comprobación:** `FlyWeb/tools/motor-117.html` (14 comprobaciones; en Chromium 141 dan todas «ok») y las
+- **JavaScript de la 117:** `Object.groupBy` y `Map.groupBy` con parches de V8 (`patches/v8/`): el flag pasa a
+  «shipping» sin `groupToMap` y con el arreglo de la 11.7 para objetos grandes. Los iterator helpers, que estaban en la
+  11.7 como «staged», siguen apagados (Chrome los publicó en la 122).
+- **Versión declarada: 117** (User-Agent y client hints; `browser/flyweb/declared_version.*`). Siguen con 116 la red
+  del sistema (componentes, actualizador, Safe Browsing) y las extensiones que lean la versión real.
+- **Comprobación:** `FlyWeb/tools/motor-117.html` (20 comprobaciones; las 14 de CSS dan «ok» en Chromium 141; las de JS y versión, según el navegador) y las
   web-platform-tests enlazadas en la página.
-- **Declarar 117** cuando pasen la página, las WPT de subgrid y `@starting-style` y esté el polyfill.
 
 ## Inventario: CSS Baseline publicado después de la 116
 

@@ -1,5 +1,9 @@
 # FlyWeb — estado a 04-10-2026 (NUBE)
 
+> **Actualización 04/10, noche:** la 1.0.1 está publicada. Siguiente: **FlyWeb 1.1** = nivel de motor 117 + arreglos
+> (Gmail tras redirección, versión visible, DNS seguro apagado, enlaces sin Brave): brave-core `nube/motor-117`, pasos
+> 46–50; plan en `version-1.1.md`. El número menor sigue al nivel de motor (`motor.md`, «Versiones»).
+>
 > **Actualización 04/10, tarde:** LOCAL ya integró y probó los pasos 37–45 (`flyweb` 1fda577e). Todos los «fallos
 > conocidos» de abajo salvo Safe Browsing quedan arreglados en la **1.0.1**; plan en `version-1.0.1.md`. La web
 > `flyweb.lamosquita.net` ya tiene descarga y privacidad (provisionales).

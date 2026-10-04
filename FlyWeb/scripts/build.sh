@@ -10,8 +10,10 @@
 #   FLYWEB_SERVICES_KEY_FILE=/ruta       clave de servicio para components.flyweb.lamosquita.net (F2.6).
 #                                        Por defecto ~/proyectos/softmac/claves/flyweb-services-key, FUERA
 #                                        del repo. Sin fichero se usa "flyweb" y el servidor rechaza las consultas.
-#   FLYWEB_BUILD_NUMBER=N                número de esta versión de FlyWeb (1.0 = 0, 1.0.1 = 1…). Obligatorio en Release
-#                                        cuando hay clave de actualizaciones (FlyWeb/servidor/actualizaciones).
+#   FLYWEB_BUILD_NUMBER=N                número de esta versión de FlyWeb (1.0 = 0, 1.0.1 = 1, 1.1 = 2…). Obligatorio en
+#                                        Release cuando hay clave de actualizaciones (FlyWeb/servidor/actualizaciones).
+#                                        La versión visible (1.1) y el nivel de motor (117) están en brave-core,
+#                                        build/config.gni (flyweb_version, flyweb_engine_level).
 # Al terminar deja out/<modo>/flyweb-build-info.txt y, en builds sin firmar (no Release), las claves
 # FlyWebCommit, FlyWebBraveBrowserCommit, FlyWebChromium, FlyWebBuildDate y FlyWebBuildConfig en el Info.plist.
 set -eu
@@ -132,7 +134,12 @@ else
   SPARKLE=false
   set --
 fi
+# Commit de brave-core que se compila: «Información» enlaza a su código fuente (obligación de la MPL-2.0;
+# brave-core paso 50). Sin ese paso, gn solo avisa de que el argumento no tiene efecto.
+CORE_SRC_COMMIT=$(git -C src/brave rev-parse HEAD)
 npm run build -- "$CONFIG" --target_arch=x64 "$@" \
+  --gn "flyweb_source_commit:$CORE_SRC_COMMIT" \
+  --gn "webcompat_report_api_endpoint:$INERT" \
   --gn "mac_sdk_path:$SDK" \
   --gn symbol_level:0 \
   --gn "updater_prod_endpoint:$UPDATER" \
