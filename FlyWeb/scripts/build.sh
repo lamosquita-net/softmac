@@ -10,9 +10,13 @@
 #   FLYWEB_SERVICES_KEY_FILE=/ruta       clave de servicio para components.flyweb.lamosquita.net (F2.6).
 #                                        Por defecto ~/proyectos/softmac/claves/flyweb-services-key, FUERA
 #                                        del repo. Sin fichero se usa "flyweb" y el servidor rechaza las consultas.
+#   FLYWEB_BUILD_NUMBER=N                número de esta versión de FlyWeb (1.0 = 0, 1.0.1 = 1…). Obligatorio en Release
+#                                        cuando hay clave de actualizaciones (FlyWeb/servidor/actualizaciones).
 # Al terminar deja out/<modo>/flyweb-build-info.txt y, en builds sin firmar (no Release), las claves
 # FlyWebCommit, FlyWebBraveBrowserCommit, FlyWebChromium, FlyWebBuildDate y FlyWebBuildConfig en el Info.plist.
 set -eu
+# Raíz del repo softmac (antes de cualquier cd).
+REPO=$(cd "$(dirname "$0")/../.." && pwd)
 
 # Con NODE_ENV=production, npm omite las devDependencies, y ahí están las herramientas de build de Brave
 # (dotenv…). En la MacPro7,1 esa variable llega del entorno de la app, no del perfil del shell.
@@ -68,7 +72,7 @@ python3 src/build/util/lastchange.py --output src/build/util/LASTCHANGE --source
 # - Sync: nuestro servidor (sync.flyweb.lamosquita.net, FlyWeb/servidor/sync; F7.5). Solo se usa si el usuario activa
 #   Sincronizar; los datos van cifrados de extremo a extremo.
 # - Estadísticas y variations: URL inertes (son obligatorias en Release).
-# - Sparkle, actualizador, P3A, Leo, VPN: desactivados aquí.
+# - Sparkle: solo en Release y con clave (ver más abajo). Actualizador de Brave (Omaha), P3A, Leo, VPN: desactivados.
 # - Safe Browsing: NO se puede quitar al compilar en 1.57 (safe_browsing_mode:0 deja sin resolver dependencias de
 #   //chrome/test:unit_tests); se apaga con FlyWeb/policies/flyweb-policies.mobileconfig.
 # - Wallets y Rewards: quitados en el propio brave-core (rama nube/no-wallet), sin argumentos aquí.
@@ -107,7 +111,25 @@ if [ "$CONFIG" = "Release" ]; then
     --gn "uphold_production_api_url:$INERT" --gn "uphold_production_client_id:flyweb" \
     --gn "uphold_production_client_secret:flyweb" --gn "uphold_production_fee_address:flyweb" \
     --gn "uphold_production_oauth_url:$INERT"
+  # Actualizaciones (Sparkle, solo funciona en Release): appcast propio y clave EdDSA pública de bak
+  # (FlyWeb/servidor/actualizaciones; necesita brave-core paso 45). FLYWEB_BUILD_NUMBER = número de versión de FlyWeb
+  # (1.0 = 0, 1.0.1 = 1…): va a CFBundleVersion (157.64.N) y cada versión publicada debe subirlo.
+  EDKEY_FILE="$REPO/FlyWeb/servidor/actualizaciones/clave-publica.txt"
+  EDKEY=$(tr -d ' \t\r\n' < "$EDKEY_FILE" 2>/dev/null || true)
+  if printf '%s' "$EDKEY" | grep -Eq '^[A-Za-z0-9+/]{43}=$'; then
+    if [ -z "${FLYWEB_BUILD_NUMBER:-}" ] || ! printf '%s' "$FLYWEB_BUILD_NUMBER" | grep -Eq '^[0-9]{1,4}$'; then
+      echo "Release con actualizaciones: falta FLYWEB_BUILD_NUMBER (número de esta versión de FlyWeb, p. ej. FLYWEB_BUILD_NUMBER=1 para 1.0.1)" >&2
+      exit 1
+    fi
+    SPARKLE=true
+    set -- "$@" --gn "sparkle_eddsa_public_key:$EDKEY" --gn "flyweb_build_number:$FLYWEB_BUILD_NUMBER"
+    echo "Actualizaciones: activadas (FlyWeb build $FLYWEB_BUILD_NUMBER, CFBundleVersion 157.64.$FLYWEB_BUILD_NUMBER)"
+  else
+    SPARKLE=false
+    echo "AVISO: sin clave pública válida en $EDKEY_FILE: Release SIN actualizaciones automáticas" >&2
+  fi
 else
+  SPARKLE=false
   set --
 fi
 npm run build -- "$CONFIG" --target_arch=x64 "$@" \
@@ -120,7 +142,7 @@ npm run build -- "$CONFIG" --target_arch=x64 "$@" \
   --gn "brave_sync_endpoint:$SYNC" \
   --gn "brave_variations_server_url:$INERT" \
   --gn "brave_services_key:$SERVICES_KEY" \
-  --gn enable_sparkle:false \
+  --gn "enable_sparkle:$SPARKLE" \
   --gn enable_updater:false \
   --gn brave_p3a_enabled:false \
   --gn enable_ai_chat:false \

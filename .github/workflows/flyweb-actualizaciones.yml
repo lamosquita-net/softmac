@@ -1,0 +1,24 @@
+name: FlyWeb updates signer
+
+on:
+  push:
+    paths: ["FlyWeb/servidor/actualizaciones/**", ".github/workflows/flyweb-actualizaciones.yml"]
+  pull_request:
+    paths: ["FlyWeb/servidor/actualizaciones/**", ".github/workflows/flyweb-actualizaciones.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # Node preinstalled on the runner (bak uses Node 18; the signer only needs crypto, fs and fetch).
+      - name: Signer tests (throwaway key, OpenSSL cross-check)
+        run: node --version && node FlyWeb/servidor/actualizaciones/pruebas/firma-actualizacion.mjs
+      - name: SHA-256 to compare when installing on bak
+        run: sha256sum FlyWeb/servidor/actualizaciones/bak/firmar-actualizacion.mjs
