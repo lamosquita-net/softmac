@@ -1,6 +1,6 @@
 # Tablero de tareas y reparto entre agentes
 
-Hay dos agentes de Claude trabajando en paralelo, más el humano (titín), que decide y prueba en los Mac.
+Hay varios agentes de Claude trabajando en paralelo (NUBE, LOCAL, SERVIDOR y SEGURIDAD), más el humano (titín), que decide y prueba en los Mac.
 Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que leerlo al empezar cada sesión.
 
 | Agente | Dónde corre | Puede | No puede |
@@ -9,6 +9,7 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
 | **LOCAL** | MacPro7,1 (Claude Code local) | Compilar FlyWeb, ejecutar y medir, Xcode, firma y notarización, scripts que necesitan el checkout de Chromium | Trabajar sin el Mac encendido |
 | **HUMANO** | — | Decisiones, credenciales (Google, Apple), pruebas en la 6,1 y la 5,1, iconos | — |
 | **SERVIDOR** | Sesión en la nube (claude.ai/code); despliega en **ns2.lamosquita.net** (Ubuntu 24.04, producción auditada) | Escribir en `FlyWeb/servidor/` la configuración y los scripts de los servicios internos de FlyWeb (componentes, F2.2; proxies, S3), y publicar en `deploy/servidor` **tras el «validado» del HUMANO** | Entrar en ns2 (no hay SSH: ns2 trae los cambios), actuar en producción sin aprobación, guardar secretos. Carta y reglas: `docs/SERVIDOR.md` |
+| **SEGURIDAD** | Sesión en la nube (claude.ai/code), desde el 05-10 | Vigilar CVE (`cve-watch.py`, Chrome Releases), clasificarlos en `cve-triage.md` (es su dueño), portar las correcciones a ramas `seg/*` de brave-core y llevar el **tercer dígito** de la versión (1.1.1, 1.1.2…) | Compilar Chromium, escribir en `flyweb`, reescribir los cambios de un porte de motor. Carta y reglas: `docs/SEGURIDAD.md` |
 
 ## Reglas para no pisarse
 
@@ -18,6 +19,10 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
    - `softmac`: NUBE trabaja en `claude/*` y abre PRs. LOCAL trabaja en `local/*` y abre PRs. Nadie hace push directo a `main`.
    - `brave-core` / `brave-browser`: **solo LOCAL escribe en `flyweb`**, porque es quien compila y prueba. NUBE
      propone cambios en ramas `nube/<tema>` del fork. LOCAL los compila y, si funcionan, los fusiona en `flyweb`.
+     SEGURIDAD hace lo mismo con ramas `seg/<tema>`, basadas en la última versión publicada.
+   - **Motor y seguridad tocan los mismos `.patch`** (uno por fichero de Chromium, con todos sus cambios). Cada fila
+     FM.* y FS.* anota los ficheros de Chromium que tiene en curso. Si coinciden, **va primero la seguridad**: SEGURIDAD
+     regenera el `.patch` desde el de `flyweb` y NUBE pone su rama de motor encima y regenera el combinado.
 3. **Ficheros compartidos** (`CLAUDE.md`, este tablero): cambios pequeños y frecuentes. Antes de editar, `git pull`.
    Cada agente edita solo sus filas.
    - **Tablero, sin PR:** cada agente puede hacer push directo de **sus propias filas** de este fichero (reclamar,
@@ -32,6 +37,10 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
    `FlyWeb/docs/disenos.md`, que es la entrada de su cadena de diseño. No dejarlos solo en un chat o en Notas.
 
 **Prohibido en `~/proyectos/flyweb-build`: `gclient sync -D`.** Borró el `src/brave` antiguo (worktree). Ahora `src/brave` es un clon `--shared` (ver `setup-build.sh`).
+
+**Versiones de FlyWeb (HUMANO, 04/05-10):** 1.**N**.x, donde N sigue al nivel de motor (1.1 = 117, 1.2 = 118, 1.3 =
+119…; lo lleva NUBE) y x cuenta las compilaciones publicadas con parches de seguridad sobre el último nivel publicado
+(1.1.1, 1.1.2…; lo lleva SEGURIDAD). `FLYWEB_BUILD_NUMBER` lo pone LOCAL y sube en cada versión publicada.
 
 Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 
@@ -102,6 +111,8 @@ Estados: `pendiente` · `en curso` · `bloqueada` · `hecho`.
 | F3B.5 | CVE-2023-7024 (WebRTC) y los V8 "inciertos" | NUBE | hecho | CVE-2023-7024 y CVE-2024-0519 portados en `nube/cve-rama-5845` (6ea90235, paso 18). El resto, clasificado en `cve-triage.md` n.º 13: JIT o Wasm (mitigados por jitless) o código ausente en la 116 |
 | F3B.6 | Riesgo residual en los sitios con JIT (claude.ai, Google): fallos de TurboFan sin portar | HUMANO | hecho | **Riesgo asumido (HUMANO, 01-10):** solo es explotable con código hostil servido desde el propio dominio del sitio con JIT (los iframes de terceros van sin JIT por el aislamiento de sitios) y requiere además una fuga del sandbox; en 3 años, un único CVE de TurboFan explotado aplica a la 116 (CVE-2025-13223). Se mantiene TurboFan; `nube/no-turbofan` (paso 19) queda descartada. **Medida de LOCAL 01/10 en la 7,1** (`flyweb` c627b972, perfil de políticas, bucle de NUBE en claude.ai, 3 vueltas): con TurboFan ~200 ms; `--disable-features=V8Turbofan` ~1025 ms (5×); sin JIT (example.com) ~1930 ms (10×). El paquete de medida para la 6,1 (`~/proyectos/softmac/entregas/FlyWeb-MacPro6,1-turbofan/`) ya no hace falta **HUMANO en la 6,1 (01/10):** bucle de consola en claude.ai A (normal) 2600/2638/2646 ms; B (sin TurboFan) 2662/3071/2638 ms. Desplazamiento en claude.ai, Gmail y Docs parecidos; más CPU en B. **Sospecha de LOCAL:** A ≈ B y 13 veces más lento que la 7,1 → probablemente claude.ai iba **sin JIT** en los dos modos (¿perfil de políticas no instalado en la 6,1?). Comprobar `typeof WebAssembly` en claude.ai y `brave://policy` y repetir la prueba 1. Repetir también en la 5,1. **Corrección (01/10 18:55):** las medidas anteriores de la 6,1 eran **sin JIT**: Mojave no aplicó el bloque `net.lamosquita.flyweb.development` del perfil (solo creó `/Library/Managed Preferences/<usuario>/net.lamosquita.flyweb.plist`). Con un perfil de **un bloque (payload) por dominio** (`software/entregas/FlyWeb-MacPro6,1-turbofan/flyweb-policies-mojave.mobileconfig`) se aplican los dos: `brave://policy` con las 5 políticas, `typeof WebAssembly` = object en claude.ai. **A en la 6,1 con JIT: 209/211/211 ms** (≈ 7,1). Sin JIT: ~2600 ms. Pendiente: B con JIT. **NUBE: pasar `FlyWeb/policies/flyweb-policies.mobileconfig` a un payload por dominio (Mojave lo exige).** Nota: DevTools (`devtools://`) va sin JIT al no estar en la lista y la consola se nota lenta; valorar añadirlo **B en la 6,1 con JIT: 1624/1637/1617 ms** (≈ 8× A; en la 7,1, 5×). Uso real (claude.ai, Gmail, Docs) sin diferencias excesivas; más CPU en B. **DECISIÓN HUMANO (01/10): mantener TurboFan, NO integrar el paso 19 (`nube/no-turbofan`).** Riesgo residual en claude.ai y Google aceptado (bajo); revisar en futuras versiones o si aparece un fallo de TurboFan explotado que afecte a la 116. **NUBE:** (1) perfil de políticas con un payload por dominio (Mojave); (2) añadir DevTools a `JavaScriptJitAllowedForSites` (`devtools://*`, verificar que el patrón vale) para que la consola no vaya sin JIT; (3) marcar el paso 19 en `integracion.md` como descartado |
 
+| FS.1 | **Los 4 CVE de JIT con arreglo conocido** (CVE-2025-13223, CVE-2025-10585, CVE-2024-7971, CVE-2026-3910; `cve-triage.md` n.º 13): confirmar si aplican a V8 11.6.189.20, intentar portar CVE-2025-13223 a `patches/v8/` y proponer al HUMANO portar (→ 1.1.1) o mantener el riesgo asumido (F3B.6) | SEGURIDAD | pendiente | Encargo del HUMANO (05-10) al crear el agente. Detalle en `docs/SEGURIDAD.md`, «Primera tarea» |
+| FS.2 | Poner `cve-triage.md` al día desde el 29-09-2026 (`cve-watch.py` + Chrome Releases) y luego cada semana | SEGURIDAD | pendiente | Después de FS.1 |
 ### FlyWeb — Fase 4 (compatibilidad web)
 | # | Tarea | Quién | Estado | Notas |
 |---|---|---|---|---|
