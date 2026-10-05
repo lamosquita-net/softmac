@@ -50,7 +50,7 @@ analítica, sin fuentes ni scripts de terceros. La página no debe cargar nada d
 > (www.aepd.es). Como no guardamos su IP, normalmente no tendremos datos suyos que mostrarle.
 >
 > **Funciones que contactan con terceros solo si usted las usa:** instalar extensiones de la Chrome Web Store (Google);
-> traducir páginas, si se activa (Google); el contenido DRM (Widevine), si lo acepta (Google). Las webs que visita
+> traducir páginas, si se activa (Google). FlyWeb no incluye Widevine (DRM): no lo descarga de Google. Las webs que visita
 > reciben, como en cualquier navegador, su IP y lo que usted les envíe.
 >
 > **Esta web** (`flyweb.lamosquita.net`) sí registra la IP de las visitas, para su seguridad, durante [PLAZO]. No usa
