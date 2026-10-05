@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 121 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 121 de FlyWeb 1.5 (brave-core nube/motor-121, V8 12.1).
+     Abrir en FlyWeb con file:// o desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  #zona { position: absolute; left: 0; top: 0; opacity: 0; pointer-events: none; }
+  #barras { width: 100px; height: 50px; overflow: scroll; scrollbar-color: rgb(1, 2, 3) rgb(4, 5, 6); scrollbar-width: thin; }
+  #sinbarras { width: 100px; height: 50px; overflow: scroll; scrollbar-width: none; }
+  #ortografia::spelling-error { color: rgb(7, 8, 9); }
+</style>
+</head>
+<body>
+<h1>Motor 121 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<div id="zona">
+  <div id="barras"><div style="width: 300px; height: 300px"></div></div>
+  <div id="sinbarras"><div style="width: 300px; height: 300px"></div></div>
+  <p id="ortografia">texto</p>
+</div>
+<h2>Pruebas oficiales (web-platform-tests)</h2>
+<p>Lista en <code>FlyWeb/tools/wpt-121-lista.txt</code> (etiqueta 121.0.6167.184; <code>wpt-envolver.py</code> para los
+<code>.any.js</code>). Comparar con los <code>-expected.txt</code> de Chrome 121.</p>
+<script>
+  const res = document.getElementById('res');
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li');
+    li.className = ok ? 'ok' : 'fallo';
+    li.textContent = nombre + (nota ? ` — ${nota}` : '');
+    res.append(li);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : '');
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+  const s = (p, v) => CSS.supports(p, v);
+  const cs = (id) => getComputedStyle(document.getElementById(id));
+
+  prueba('scrollbar-color: se acepta', () => s('scrollbar-color', 'red blue') && s('scrollbar-color', 'auto'));
+  prueba('scrollbar-color: valor computado', () => { const v = cs('barras').scrollbarColor; return { ok: v === 'rgb(1, 2, 3) rgb(4, 5, 6)', nota: v }; });
+  prueba('scrollbar-width: se acepta', () => s('scrollbar-width', 'thin') && s('scrollbar-width', 'none'));
+  prueba('scrollbar-width: none quita las barras (clientWidth = width)', () => {
+    const e = document.getElementById('sinbarras'); return { ok: e.clientWidth === 100, nota: `clientWidth ${e.clientWidth}` };
+  });
+  prueba('::spelling-error y ::grammar-error se aceptan', () => CSS.supports('selector(::spelling-error)') && CSS.supports('selector(::grammar-error)'));
+  prueba('text-decoration-line: spelling-error / grammar-error', () => s('text-decoration-line', 'spelling-error') && s('text-decoration-line', 'grammar-error'));
+  prueba('ClipboardItem.supports()', () => typeof ClipboardItem === 'function' && ClipboardItem.supports('text/plain') && ClipboardItem.supports('image/png') && !ClipboardItem.supports('image/x-nada'));
+  pruebaAsync('Array.fromAsync (V8 12.1)', async () => {
+    async function* gen() { yield 1; yield 2; yield 3; }
+    const a = await Array.fromAsync(gen()); return { ok: a.join() === '1,2,3', nota: a.join() };
+  });
+  prueba('Iterator helpers siguen apagados (como Chrome 121)', () => typeof Iterator === 'undefined' || typeof Iterator.prototype?.map !== 'function');
+  prueba('V8 12.1 o posterior', () => typeof Array.fromAsync === 'function');
+  prueba('User-Agent declara Chrome/121', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '121', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+</script>
+<p>Los niveles 117–120 se comprueban aparte (<code>motor-117.html</code> … <code>motor-120.html</code>).</p>
+</body>
+</html>

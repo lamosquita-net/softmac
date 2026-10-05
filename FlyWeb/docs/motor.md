@@ -30,6 +30,9 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    **Antes de encender un flag *harmony*, comprobar que no son esqueletos** (`grep -n TODO src/builtins/<función>*.tq`
    y los `.cc`): en la 11.6, `Map.groupBy` devolvía `undefined` («TODO(v8:12499): Implement») y el paso 46 lo dejó
    expuesto; lo vio `motor-117.html` y LOCAL portó la implementación de la 11.7 (paso 49).
+   **Y traer la serie entera de la función hasta que se publicó** (`git log --grep=<función> <11.6>..<versión que la
+   publicó>` en V8; para `groupBy` eran 6 commits, no 1), **probando con tamaños grandes**: sin dos arreglos de la 11.7,
+   un grupo de más de ~33 000 elementos cerraba la pestaña (LOCAL, paso 50).
 6. **Inventario de cada nivel (método de LOCAL):** con la copia de Chromium, `git log -E --grep=<flag|propiedad>
    <N-1>..<N> -- third_party/blink` saca lo que se escribió después de la rama: la implementación que falte (lo que
    pasó con `transition-behavior`) y los arreglos de lo que se enciende. Se portan en orden de llegada; si uno no
@@ -40,6 +43,35 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    vigilancia de CVE (`cve-triage.md`).
 9. **Coste por porte, una sola vez:** la base no se mueve, así que un porte no hay que rehacerlo con cada versión de
    Chromium.
+10. **Caché de código de V8 (lección de la 1.1, LOCAL 05/10):** V8 acepta la caché del perfil si coinciden
+   `Version::Hash()` (11.6.189.20, que nuestros parches no cambian) y los flags *no por defecto*; cambiar builtins o el
+   valor por defecto de un flag no la invalida y las webs con JIT caen. Por eso **todo nivel o parche de seguridad que
+   toque `patches/v8/` sube `kFlyWebCacheEpoch`** (`patches/v8/src-utils-version.h.patch`; 2 = 1.1.1, 3 = nivel 119).
+   Y cada versión se prueba también **actualizando un perfil usado por la anterior** (Gmail, Drive, claude.ai,
+   YouTube), no solo con perfil nuevo.
+11. **V8 por niveles (decisión del HUMANO, 05-10; FM.5):** cada nivel N lleva la V8 de Chrome N en vez de portar
+   funciones a la 11.6: brave-core `FlyWeb/v8-revision` la fija y `build.sh` la pone antes de los parches (sin el
+   fichero, la de la 116). Por nivel: `patches/v8/` rehechos contra esa V8 (los de seguridad son de SEGURIDAD),
+   `chromium_src/v8` de la versión de Brave de ese Chromium, y los parches de Blink para las APIs que esa V8 quita.
+   Los avisos de APIs obsoletas de V8 van apagados en `build.sh`. 118 = 11.8.172.18, 119 = 11.9.169.7,
+   120 = 12.0.267.17.
+   **Solo se parchea (seguridad) la V8 del nivel que se publica**; las ramas intermedias son pasos de desarrollo.
+   **Criterio de parada (HUMANO, 05-10):** se sube V8 mientras el salto cueste poco en Blink (unos pocos parches,
+   como los tres de la 11.9). Si una V8 exige cambios grandes en Blink o en `gin`/bindings (p. ej. el paso de V8 a
+   `Tagged<>` y handles directos en la API pública), o deja de funcionar en Mojave o en la 5,1, **se para en la última
+   V8 que pasó** y desde ahí se vuelve a portar funciones sueltas de JavaScript, como antes. LOCAL anota en FM.5 cuántos
+   errores de Blink dio cada salto para decidirlo con datos.
+   **Parar no es automático (HUMANO, 05-10):** cuando un salto salga caro, antes de parar se comparan los dos dolores
+   de cabeza: (a) **adaptar Blink** a esa V8 (cuántos ficheros y cuánto riesgo) frente a (b) **dejar V8 estacionada**
+   y vivir de parches: portar a mano cada función nueva de JavaScript (lo de la 11.6 → 117 dio tres fallos en un día:
+   `Map.groupBy` vacío, pestaña cerrada con grupos grandes, caché de código vieja) y rehacer cada parche de seguridad
+   sobre un código que se aleja cada vez más del de V8 (CVE-2024-0519 ya no aplicaba en la 11.8). El coste de (b)
+   crece con el tiempo; el de (a) se paga una vez por salto. Se decide con esas cifras (errores de Blink del salto,
+   portes y parches pendientes en la V8 estacionada), no por costumbre.
+   **Blink no se sustituye entero como V8:** V8 es un repositorio aparte con una API de incrustación estable; Blink
+   está dentro de Chromium y depende de `content/`, `cc`/`viz`, `gpu`, Mojo y `base` de la misma versión. Cambiarlo
+   entero es subir Chromium, que es justo lo que no funciona en Mojave (principio 1). En Blink se sigue portando
+   función a función.
 
 ## Tipos de trabajo y coste estimado
 
@@ -82,17 +114,105 @@ Lo Baseline que Chrome 118 publicó (web-features): **unidades `cap` y `rcap`**,
 **`content-box`/`border-box`/`stroke-box` de `transform-box`**. La V8 11.8 no añade nada Baseline. Ninguna estaba en la
 116 ni siquiera tras un flag.
 
-- **`cap`/`rcap` y `<search>`** (brave-core `nube/motor-118` 8459f579, paso 51): 6 commits de Chromium que aplican tal cual (a
+- **`cap`/`rcap` y `<search>`** (brave-core `nube/motor-118` 8459f579, paso 53): 6 commits de Chromium que aplican tal cual (a
   mano solo la entrada del flag de `<search>`). La altura de mayúsculas sale de `FontMetrics::CapHeight()`, que ya está
   en la 116.
-- **`transform-box`** (7a6ab191, paso 52): el commit (673794805ffa) se apoya en la serie de refactorización de transformaciones de
+- **`transform-box`** (7a6ab191, paso 54): el commit (673794805ffa) se apoya en la serie de refactorización de transformaciones de
   SVG de las semanas siguientes a la rama de la 116, así que se porta la serie entera: **13 commits**, 70 ficheros, 2
   nuevos (`transform_utils`, `paint_order_array.h`). Cuatro trozos resueltos a mano, solo de contexto. Los ficheros de
   SVG quedan idénticos a Chromium. Es el **porte más grande hasta ahora** y el de más riesgo: toca el pintado de SVG.
-- **Declarado 118 / FlyWeb 1.2** en 86a2c9da (paso 53; se revierte solo si no pasa).
+- **Declarado 118 / FlyWeb 1.2** en 86a2c9da (paso 55; se revierte solo si no pasa).
 - **Comprobación:** `FlyWeb/tools/motor-118.html` (15 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
   `FlyWeb/tools/wpt-118-lista.txt` con las herramientas de LOCAL. **Además**, por el riesgo del SVG: `motor-117.html` sigue
   14/14 y un repaso de webs con mucho SVG (iconos, gráficos, mapas).
+
+## Nivel 119 (en código, 05-10; pendiente de compilar → FlyWeb 1.3)
+
+Lo Baseline que Chrome 119 publicó (web-features): `:user-valid`/`:user-invalid`, las cajas de `clip-path`
+(`<geometry-box>`), `rect()`/`xywh()`, `Promise.withResolvers`, la **Storage Access API** y, en WebAssembly, **Wasm GC**
+y referencias tipadas a funciones.
+
+- **`clip-path` con cajas y `rect()`/`xywh()`** (brave-core `nube/motor-119` 96f274f3): 12 commits de Philip Rogers y uno
+  previo de Fredrik Söderquist. **Adaptado a mano:** entre la 116 y estos commits, Chromium pasó `ComputedStyle` y
+  `ClipPathOperation` al recolector de basura (f126ce4d6c9, cientos de ficheros); se mantiene el modelo de la 116
+  (recuento de referencias) en la operación nueva y en el conversor de estilos, y se adaptan dos nombres de la API de
+  cajas. **El porte de más riesgo hasta ahora.**
+- **`:user-valid`/`:user-invalid`** (f58ee342): 3 commits, limpios salvo la plantilla del *fuzzer* de CSS.
+- **`Promise.withResolvers`** (978fbf70, V8): adaptado a la 11.6 sin tocar las raíces estáticas de V8 (que se generan al
+  compilar): `"promise"` se crea al arrancar en vez de ser una raíz nueva; flag *harmony* encendido. Comprobado que no
+  es un esqueleto. La rama lleva también el arreglo de `Map.groupBy` de LOCAL (paso 49), por tocar los mismos ficheros.
+- **Fuera del nivel (decisión del HUMANO, 05-10):**
+  - **Storage Access API:** deja que un tercero incrustado pida acceso a sus cookies; Brave la desactiva a propósito
+    (`kPermissionStorageAccessAPI`) por chocar con el bloqueo de cookies de terceros de los Escudos. **Fuera por
+    privacidad, definitivamente.**
+  - **Wasm GC y referencias tipadas a funciones:** WebAssembly solo funciona en los sitios con JIT; portarlo de V8 11.9 a
+    la 11.6 es enorme y encender el `--experimental-wasm-gc` de la 11.6 metería una especificación antigua.
+    **Aparcado:** se revisa si una web importante lo exige o si en algún momento se actualiza V8 entero.
+- **Comprobación:** `FlyWeb/tools/motor-119.html` (17 comprobaciones; en Chromium 141, 16 «ok» y la del UA) y
+  `FlyWeb/tools/wpt-119-lista.txt`.
+- **Declarado 119 / FlyWeb 1.3** en 625b048e (paso 59; se revierte solo si el nivel no pasa).
+
+## Nivel 120 (en código, 05-10; pendiente de compilar → FlyWeb 1.4)
+
+Lo Baseline que Chrome 120 publicó (web-features): `:dir()`, las funciones exponenciales de CSS, las máscaras sin
+prefijo, el nesting relajado, `@media (scripting)`, `URL.canParse`, `<details name>` y `ToggleEvent`. Rama brave-core
+`nube/motor-120` (encima de `nube/motor-119`); pasos provisionales 61–66 de `integracion.md`.
+
+- **`@media (scripting)`, `URL.canParse` y `pow()`/`sqrt()`/`hypot()`/`log()`/`exp()`** (aada2fed): las funciones
+  ya estaban en la 116 tras un flag; las otras dos, portes pequeños.
+- **`<details name>` y `ToggleEvent`** (25297478): 7 commits; arrastra `MutationEventSuppressionScope`. Se quita un
+  DCHECK que depende del orden de clonado del DOM de la 117 (no portado).
+- **Nesting relajado** (cfd746e3, `CSSNestingIdent`): 11 commits. Sin `@scope` anidado, que no es Baseline.
+- **`:dir()`** (6aa53e03): la reescritura de la herencia de `dir=auto` de David Baron (17 commits, con dos previos
+  que no salían al buscar por `:dir`: el cambio de nombre `*DirAttributeDirty` → `*HasDirAttribute` y la retirada de
+  `ParserDidSetAttributes`). El código de direccionalidad queda **igual al de Chrome 120.0.6099.234**.
+- **Máscaras sin prefijo** (b4894ccb, `CSSMaskingInterop`): 25 commits, de los alias `-webkit-mask-*` a `mask-mode`.
+  **El porte de más riesgo del nivel:** `background-repeat` pasa de atajo de `-x`/`-y` a propiedad normal (como en
+  Chrome 120) y cambia el pintado de fondos y máscaras. Adaptado a mano: `CSSImageValue` sin `CSSUrlData`, un
+  `LayoutSVGResourceMasker::CreatePaintRecord()` sin contexto junto al de la 116, y la API de `StyleImage` de la 116.
+  Fuera: ca90c03d6ffe (un fallo antiguo de `-webkit-mask-box-image` en varias líneas, que depende de
+  `box-decoration-break`).
+- **Sin cambios en V8:** `kFlyWebCacheEpoch` se queda en 3 (lo subió el nivel 119, ef097366).
+- **Comprobación:** `FlyWeb/tools/motor-120.html` (24 comprobaciones; en Chromium 141, 23 «ok» y la del UA) y
+  `FlyWeb/tools/wpt-120-lista.txt` (46 ficheros). Los `.any.js`/`.window.js` necesitan su `.html`:
+  `wpt-envolver.py <raíz de wpt>` los crea como wptserve antes de `python3 -m http.server`.
+- **Declarado 120 / FlyWeb 1.4** en 2b57270e (paso 66; se revierte solo si el nivel no pasa).
+
+## Nivel 121 (en código, 05-10; pendiente de compilar → FlyWeb 1.5)
+
+Lo Baseline que Chrome 121 publicó (web-features): `Array.fromAsync`, `scrollbar-color`, `scrollbar-width`,
+`::spelling-error`/`::grammar-error` con sus decoraciones de texto y `ClipboardItem.supports()`. Rama brave-core
+`nube/motor-121` (encima de `nube/motor-120`).
+
+- **V8 12.1.285.28** (9f5634b2; la de Chrome 121): trae `Array.fromAsync` de serie. `patches/v8/` rehechos sin
+  conflictos; ninguna API pública de V8 quitada desde la 12.0; `chromium_src/v8` de Brave 1.62.166. CVE-2024-0519
+  sigue pendiente de SEGURIDAD (FS.4).
+- **`::spelling-error`/`::grammar-error`** (4921ff33): el flag ya estaba en la 116; se portan 2 arreglos
+  (e9b876697fb1, 477ebb6082da) y se enciende. Fuera la fusión de flags (3981da4f277e, limpieza).
+- **`scrollbar-color`/`scrollbar-width`** (ead38049): 11 commits; el primero (4ef69ea532dc) es justo la
+  implementación en Mac. Fuera lo que no se compila para Mac (temas Aura/Fluent/views, barras de Android). El pintado
+  de Mac queda como en Chrome 121.
+- **`ClipboardItem.supports()`** (001ac937): 2 commits.
+- **Comprobación:** `FlyWeb/tools/motor-121.html` (11 comprobaciones; en Chromium 141 fallan, como deben, la del UA y
+  la de *iterator helpers* apagados) y `FlyWeb/tools/wpt-121-lista.txt` (29 ficheros).
+- **Declarado 121 / FlyWeb 1.5** en 509bd3a3.
+
+## Nivel 122 (inventario, 05-10; sin portar)
+
+Lo Baseline que Chrome 122 publicó (web-features): **métodos de iteradores** (*iterator helpers*: `Iterator.prototype.map`,
+`filter`, `take`…) y **métodos de `Set`** (`union`, `intersection`, `difference`…). Los dos son de JavaScript y vienen de
+serie en la **V8 12.2.281.22** (la de Chrome 122.0.6261.128, que es también la base de Brave 1.63): en la 12.2
+`harmony_iterator_helpers` y `harmony_set_methods` están en *shipping*. **No hay trabajo de Blink por funciones.**
+
+- **V8 12.1 → 12.2:** quita `V8InspectorSession::CommandLineAPIScope` / `initializeCommandLineAPIScope()`, que usa
+  `core/inspector/inspector_page_agent.cc` de la 116 (solo DevTools: `Page.addScriptToEvaluateOnNewDocument` con
+  `includeCommandLineAPI`). Hay que portar el cambio de Chromium que lo sustituye por `V8InspectorSession::evaluate()`;
+  sin él no compila. Ninguna otra API pública quitada (nombres de `include/`).
+- **`chromium_src/v8` de Brave:** el de Brave 1.63.184 es igual que el de la 1.62 (nivel 121).
+- **Fuera (no Baseline):** Storage Buckets y lectura de portapapeles sin sanear (solo Chrome).
+- **Al portar:** *iterator helpers* encendidos a partir de este nivel (como Chrome 122); quitar el apagado del 118 no
+  hace falta (en la 11.9–12.1 ya venían apagados de serie y la 12.2 los trae encendidos). SEGURIDAD: FS.4 añade la 12.2.
+- **Coste estimado:** pequeño (V8 + un arreglo de Blink en el inspector); el grueso es la parte de seguridad.
 
 ## Inventario: CSS Baseline publicado después de la 116
 
@@ -108,17 +228,17 @@ Baseline; el resto son solo de Chrome.
 | 118 | cap unit | amplia | porte (nivel 118) |
 | 118 | rcap unit | reciente | porte (nivel 118) |
 | 118 | transform-box | reciente | porte (13 commits de SVG, nivel 118) |
-| 119 | :user-valid and :user-invalid | amplia | no está |
-| 119 | Clip path boxes | amplia | no está |
-| 119 | rect() and xywh() | amplia | no está |
-| 120 | :dir() | amplia | flag (`CSSPseudoDir`) |
-| 120 | Exponential functions (CSS) | amplia | flag (`CSSExponentialFunctions`) |
-| 120 | Masks | amplia | no está |
-| 120 | Nesting | amplia | no está |
-| 120 | scripting media query | amplia | no está |
-| 121 | Spelling and grammar text decorations | reciente | no está |
-| 121 | scrollbar-color | reciente | flag (`ScrollbarColor`, test) |
-| 121 | scrollbar-width | reciente | flag (`ScrollbarWidth`) |
+| 119 | :user-valid and :user-invalid | amplia | porte (nivel 119) |
+| 119 | Clip path boxes | amplia | porte adaptado a mano (nivel 119) |
+| 119 | rect() and xywh() | amplia | porte (nivel 119) |
+| 120 | :dir() | amplia | porte (17 commits, nivel 120) |
+| 120 | Exponential functions (CSS) | amplia | flag encendido (nivel 120) |
+| 120 | Masks | amplia | porte (25 commits, nivel 120) |
+| 120 | Nesting | amplia | porte relajado (11 commits, nivel 120) |
+| 120 | scripting media query | amplia | porte (nivel 120) |
+| 121 | Spelling and grammar text decorations | reciente | flag + 2 arreglos (nivel 121) |
+| 121 | scrollbar-color | reciente | porte (nivel 121) |
+| 121 | scrollbar-width | reciente | porte (nivel 121) |
 | 123 | align-content in block layouts | reciente | no está |
 | 123 | field-sizing | reciente | no está |
 | 123 | light-dark() | reciente | interno (`-internal-light-dark`) |

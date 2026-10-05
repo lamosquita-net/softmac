@@ -136,8 +136,10 @@ al último nivel completo, la misma para todas las webs.
 | Nivel | FlyWeb | Estado |
 |---|---|---|
 | 117 | **1.1** | **Cumplido** (04-10): `motor-117.html` 14/14, WPT 238/240 = Chrome 117 (pasos 46–49). Release en curso (LOCAL) |
-| 118 | 1.2 | **Hecho en código** (05-10, brave-core `nube/motor-118`, pasos 51–53): `cap`/`rcap`, `<search>`, `transform-box`. Pendiente de compilar y probar (LOCAL) |
-| 119–120 | 1.3–1.4 | Pendiente |
+| 118 | 1.2 | **Hecho en código** (05-10, brave-core `nube/motor-118`, pasos 53–55): `cap`/`rcap`, `<search>`, `transform-box`. Pendiente de compilar y probar (LOCAL) |
+| 119 | 1.3 | **Hecho en código** (05-10, brave-core `nube/motor-119`, pasos 56–59). Fuera por decisión: Storage Access API y Wasm GC (aparcado) |
+| 120 | 1.4 | **Hecho en código** (05-10, brave-core `nube/motor-120`, pasos 61–66): `:dir()`, máscaras sin prefijo, nesting relajado, funciones exponenciales, `@media (scripting)`, `URL.canParse`, `<details name>`. Pendiente de compilar y probar (LOCAL) |
+| 121 | 1.5 | **Hecho en código** (05-10, brave-core `nube/motor-121`, V8 12.1): `scrollbar-color`/`-width`, `::spelling-error`/`::grammar-error`, `ClipboardItem.supports()`, `Array.fromAsync`. Pendiente de compilar (LOCAL) |
 
 **Hito por nivel:** `FlyWeb/tools/motor-N.html` en verde, web-platform-tests de cada función al nivel de Chrome *N*,
 y la versión declarada sube a *N*.
