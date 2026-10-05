@@ -4,7 +4,8 @@
 # (certbot admite --deploy-hook: sería root total). Leer registros: grupos adm y systemd-journal, sin sudo.
 # Para editar ficheros sin editor interactivo: SUDO_EDITOR="cp /home/servidor/nuevo" sudoedit <fichero>.
 
-Cmnd_Alias FW_APACHE  = /usr/sbin/apachectl configtest, /usr/sbin/apachectl -S, /usr/bin/systemctl reload apache2
+# Sin «apachectl -S»: imprime los Define, y las claves de FlyWeb van en Define (incidente del 05-10, CAMBIOS.md).
+Cmnd_Alias FW_APACHE  = /usr/sbin/apachectl configtest, /usr/bin/systemctl reload apache2
 Cmnd_Alias FW_UNIDAD  = /usr/bin/systemctl daemon-reload, \
                         /usr/bin/systemctl restart flyweb-components, /usr/bin/systemctl restart flyweb-sync, \
                         /usr/bin/systemctl start flyweb-sync, /usr/bin/systemctl stop flyweb-sync, \
