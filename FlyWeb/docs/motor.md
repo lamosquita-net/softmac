@@ -91,14 +91,14 @@ Lo Baseline que Chrome 118 publicó (web-features): **unidades `cap` y `rcap`**,
 **`content-box`/`border-box`/`stroke-box` de `transform-box`**. La V8 11.8 no añade nada Baseline. Ninguna estaba en la
 116 ni siquiera tras un flag.
 
-- **`cap`/`rcap` y `<search>`** (brave-core `nube/motor-118` 8459f579, paso 52): 6 commits de Chromium que aplican tal cual (a
+- **`cap`/`rcap` y `<search>`** (brave-core `nube/motor-118` 8459f579, paso 53): 6 commits de Chromium que aplican tal cual (a
   mano solo la entrada del flag de `<search>`). La altura de mayúsculas sale de `FontMetrics::CapHeight()`, que ya está
   en la 116.
-- **`transform-box`** (7a6ab191, paso 53): el commit (673794805ffa) se apoya en la serie de refactorización de transformaciones de
+- **`transform-box`** (7a6ab191, paso 54): el commit (673794805ffa) se apoya en la serie de refactorización de transformaciones de
   SVG de las semanas siguientes a la rama de la 116, así que se porta la serie entera: **13 commits**, 70 ficheros, 2
   nuevos (`transform_utils`, `paint_order_array.h`). Cuatro trozos resueltos a mano, solo de contexto. Los ficheros de
   SVG quedan idénticos a Chromium. Es el **porte más grande hasta ahora** y el de más riesgo: toca el pintado de SVG.
-- **Declarado 118 / FlyWeb 1.2** en 86a2c9da (paso 54; se revierte solo si no pasa).
+- **Declarado 118 / FlyWeb 1.2** en 86a2c9da (paso 55; se revierte solo si no pasa).
 - **Comprobación:** `FlyWeb/tools/motor-118.html` (15 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
   `FlyWeb/tools/wpt-118-lista.txt` con las herramientas de LOCAL. **Además**, por el riesgo del SVG: `motor-117.html` sigue
   14/14 y un repaso de webs con mucho SVG (iconos, gráficos, mapas).
@@ -127,7 +127,33 @@ y referencias tipadas a funciones.
     **Aparcado:** se revisa si una web importante lo exige o si en algún momento se actualiza V8 entero.
 - **Comprobación:** `FlyWeb/tools/motor-119.html` (17 comprobaciones; en Chromium 141, 16 «ok» y la del UA) y
   `FlyWeb/tools/wpt-119-lista.txt`.
-- **Declarado 119 / FlyWeb 1.3** en 625b048e (paso 58; se revierte solo si el nivel no pasa).
+- **Declarado 119 / FlyWeb 1.3** en 625b048e (paso 59; se revierte solo si el nivel no pasa).
+
+## Nivel 120 (en código, 05-10; pendiente de compilar → FlyWeb 1.4)
+
+Lo Baseline que Chrome 120 publicó (web-features): `:dir()`, las funciones exponenciales de CSS, las máscaras sin
+prefijo, el nesting relajado, `@media (scripting)`, `URL.canParse`, `<details name>` y `ToggleEvent`. Rama brave-core
+`nube/motor-120` (encima de `nube/motor-119`); pasos provisionales 61–66 de `integracion.md`.
+
+- **`@media (scripting)`, `URL.canParse` y `pow()`/`sqrt()`/`hypot()`/`log()`/`exp()`** (aada2fed): las funciones
+  ya estaban en la 116 tras un flag; las otras dos, portes pequeños.
+- **`<details name>` y `ToggleEvent`** (25297478): 7 commits; arrastra `MutationEventSuppressionScope`. Se quita un
+  DCHECK que depende del orden de clonado del DOM de la 117 (no portado).
+- **Nesting relajado** (cfd746e3, `CSSNestingIdent`): 11 commits. Sin `@scope` anidado, que no es Baseline.
+- **`:dir()`** (6aa53e03): la reescritura de la herencia de `dir=auto` de David Baron (17 commits, con dos previos
+  que no salían al buscar por `:dir`: el cambio de nombre `*DirAttributeDirty` → `*HasDirAttribute` y la retirada de
+  `ParserDidSetAttributes`). El código de direccionalidad queda **igual al de Chrome 120.0.6099.234**.
+- **Máscaras sin prefijo** (b4894ccb, `CSSMaskingInterop`): 25 commits, de los alias `-webkit-mask-*` a `mask-mode`.
+  **El porte de más riesgo del nivel:** `background-repeat` pasa de atajo de `-x`/`-y` a propiedad normal (como en
+  Chrome 120) y cambia el pintado de fondos y máscaras. Adaptado a mano: `CSSImageValue` sin `CSSUrlData`, un
+  `LayoutSVGResourceMasker::CreatePaintRecord()` sin contexto junto al de la 116, y la API de `StyleImage` de la 116.
+  Fuera: ca90c03d6ffe (un fallo antiguo de `-webkit-mask-box-image` en varias líneas, que depende de
+  `box-decoration-break`).
+- **Sin cambios en V8:** `kFlyWebCacheEpoch` se queda en 3 (lo subió el nivel 119, ef097366).
+- **Comprobación:** `FlyWeb/tools/motor-120.html` (24 comprobaciones; en Chromium 141, 23 «ok» y la del UA) y
+  `FlyWeb/tools/wpt-120-lista.txt` (46 ficheros). Los `.any.js`/`.window.js` necesitan su `.html`:
+  `wpt-envolver.py <raíz de wpt>` los crea como wptserve antes de `python3 -m http.server`.
+- **Declarado 120 / FlyWeb 1.4** en 2b57270e (paso 66; se revierte solo si el nivel no pasa).
 
 ## Inventario: CSS Baseline publicado después de la 116
 
@@ -146,11 +172,11 @@ Baseline; el resto son solo de Chrome.
 | 119 | :user-valid and :user-invalid | amplia | porte (nivel 119) |
 | 119 | Clip path boxes | amplia | porte adaptado a mano (nivel 119) |
 | 119 | rect() and xywh() | amplia | porte (nivel 119) |
-| 120 | :dir() | amplia | flag (`CSSPseudoDir`) |
-| 120 | Exponential functions (CSS) | amplia | flag (`CSSExponentialFunctions`) |
-| 120 | Masks | amplia | no está |
-| 120 | Nesting | amplia | no está |
-| 120 | scripting media query | amplia | no está |
+| 120 | :dir() | amplia | porte (17 commits, nivel 120) |
+| 120 | Exponential functions (CSS) | amplia | flag encendido (nivel 120) |
+| 120 | Masks | amplia | porte (25 commits, nivel 120) |
+| 120 | Nesting | amplia | porte relajado (11 commits, nivel 120) |
+| 120 | scripting media query | amplia | porte (nivel 120) |
 | 121 | Spelling and grammar text decorations | reciente | no está |
 | 121 | scrollbar-color | reciente | flag (`ScrollbarColor`, test) |
 | 121 | scrollbar-width | reciente | flag (`ScrollbarWidth`) |
