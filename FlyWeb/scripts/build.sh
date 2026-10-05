@@ -84,6 +84,9 @@ if [ "$(git -C src/v8 rev-parse HEAD)" != "$V8_WANT" ]; then
   rm -f src/brave/patches/v8/*.patchinfo
 fi
 echo "V8: $(git -C src/v8 describe --tags --always HEAD)"
+# Con una V8 más nueva que la de la 116, el código de Chromium 116 usa APIs que esa V8 marca como obsoletas;
+# con -Werror serían errores. Se apagan esos avisos (v8_deprecation_warnings más abajo): solo cuentan las APIs
+# que la V8 nueva ha quitado de verdad, y esas se arreglan con parches de Blink en cada nivel.
 # Si cambian los .patch de brave-core sin cambiar DEPS, basta con reaplicarlos.
 npm run apply_patches
 # "Revisión" de brave://version: Brave la toma del último commit de versión ("1.57.64") con el hook
@@ -165,6 +168,8 @@ npm run build -- "$CONFIG" --target_arch=x64 "$@" \
   --gn "webcompat_report_api_endpoint:$INERT" \
   --gn "mac_sdk_path:$SDK" \
   --gn symbol_level:0 \
+  --gn v8_deprecation_warnings:false \
+  --gn v8_imminent_deprecation_warnings:false \
   --gn "updater_prod_endpoint:$UPDATER" \
   --gn "updater_dev_endpoint:$UPDATER" \
   --gn "safebrowsing_api_endpoint:$PROXY" \
