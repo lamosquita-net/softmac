@@ -178,6 +178,25 @@ prefijo, el nesting relajado, `@media (scripting)`, `URL.canParse`, `<details na
   `wpt-envolver.py <raíz de wpt>` los crea como wptserve antes de `python3 -m http.server`.
 - **Declarado 120 / FlyWeb 1.4** en 2b57270e (paso 66; se revierte solo si el nivel no pasa).
 
+## Nivel 121 (en código, 05-10; pendiente de compilar → FlyWeb 1.5)
+
+Lo Baseline que Chrome 121 publicó (web-features): `Array.fromAsync`, `scrollbar-color`, `scrollbar-width`,
+`::spelling-error`/`::grammar-error` con sus decoraciones de texto y `ClipboardItem.supports()`. Rama brave-core
+`nube/motor-121` (encima de `nube/motor-120`).
+
+- **V8 12.1.285.28** (9f5634b2; la de Chrome 121): trae `Array.fromAsync` de serie. `patches/v8/` rehechos sin
+  conflictos; ninguna API pública de V8 quitada desde la 12.0; `chromium_src/v8` de Brave 1.62.166. CVE-2024-0519
+  sigue pendiente de SEGURIDAD (FS.4).
+- **`::spelling-error`/`::grammar-error`** (4921ff33): el flag ya estaba en la 116; se portan 2 arreglos
+  (e9b876697fb1, 477ebb6082da) y se enciende. Fuera la fusión de flags (3981da4f277e, limpieza).
+- **`scrollbar-color`/`scrollbar-width`** (ead38049): 11 commits; el primero (4ef69ea532dc) es justo la
+  implementación en Mac. Fuera lo que no se compila para Mac (temas Aura/Fluent/views, barras de Android). El pintado
+  de Mac queda como en Chrome 121.
+- **`ClipboardItem.supports()`** (001ac937): 2 commits.
+- **Comprobación:** `FlyWeb/tools/motor-121.html` (11 comprobaciones; en Chromium 141 fallan, como deben, la del UA y
+  la de *iterator helpers* apagados) y `FlyWeb/tools/wpt-121-lista.txt` (29 ficheros).
+- **Declarado 121 / FlyWeb 1.5** en 509bd3a3.
+
 ## Inventario: CSS Baseline publicado después de la 116
 
 Datos de [web-features](https://www.npmjs.com/package/web-features) 3.40.1 (el catálogo de Baseline) y del fichero de
@@ -200,9 +219,9 @@ Baseline; el resto son solo de Chrome.
 | 120 | Masks | amplia | porte (25 commits, nivel 120) |
 | 120 | Nesting | amplia | porte relajado (11 commits, nivel 120) |
 | 120 | scripting media query | amplia | porte (nivel 120) |
-| 121 | Spelling and grammar text decorations | reciente | no está |
-| 121 | scrollbar-color | reciente | flag (`ScrollbarColor`, test) |
-| 121 | scrollbar-width | reciente | flag (`ScrollbarWidth`) |
+| 121 | Spelling and grammar text decorations | reciente | flag + 2 arreglos (nivel 121) |
+| 121 | scrollbar-color | reciente | porte (nivel 121) |
+| 121 | scrollbar-width | reciente | porte (nivel 121) |
 | 123 | align-content in block layouts | reciente | no está |
 | 123 | field-sizing | reciente | no está |
 | 123 | light-dark() | reciente | interno (`-internal-light-dark`) |
