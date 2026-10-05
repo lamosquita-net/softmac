@@ -142,6 +142,7 @@ Lo Baseline que Chrome 118 publicó (web-features): **unidades `cap` y `rcap`**,
 - **Prueba de LOCAL (05-10):** 0 errores de compilación; WPT 71/73. Los 2 fallos (`cap`/`rcap` en
   `font-relative-units-dynamic.html`) salen porque falta la fuente Ahem instalada en el sistema: Chromium 141 de serie
   falla lo mismo sin ella y pasa con ella. Las WPT necesitan Ahem en `~/Library/Fonts` (`wpt-app.sh` lo comprueba).
+  Confirmado por LOCAL (17:10): con Ahem, 73/73.
 
 ## Nivel 119 (en código, 05-10; pendiente de compilar → FlyWeb 1.3)
 
