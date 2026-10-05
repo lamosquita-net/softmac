@@ -9,3 +9,4 @@ Se pasan con un `d8` de la V8 de FlyWeb (11.6.189.20), compilado con `FlyWeb/scr
 | `regress-360700873.js` | V8 4ddcbf2 | CVE-2024-7971: falla (aborta) en la 11.6 sin parche, pasa con `seg/cve-2024-7971` |
 | `regress-475479135-1.js`, `-2.js` | V8 9b5250b9 | El fallo que introducía el arreglo de CVE-2025-13223 si se portaba sin la dependencia de representación |
 | `flyweb-13223-mixed.js` | SEGURIDAD | CVE-2025-13223: ampliación del almacén de propiedades optimizada con campos Smi, Double, HeapObject y Tagged mezclados con accesores; con `--trace-turbo-graph --turbo-filter=extend` se ve el tipo de cada hueco |
+| `flyweb-groupby-oom.js` | SEGURIDAD | FS.3: `Object.groupBy`/`Map.groupBy` con ~17 millones de grupos lanzan `RangeError`; sin `seg/v8-groupby-contexto`, el proceso cae (SEGV en Release). También se puede pegar en la consola de FlyWeb |

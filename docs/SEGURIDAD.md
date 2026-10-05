@@ -14,6 +14,22 @@ límites que NUBE: no compila Chromium ni ejecuta nada de macOS.
    con su paso en `FlyWeb/docs/integracion.md` y la prueba que lo reproduce cuando sea posible.
 3. **Mantener** `cve-triage.md` (es su dueño), `cve-watch.py` y las filas de la Fase 3B de `docs/TAREAS.md`.
 
+## Revisión de seguridad de los portes de motor (FS.3, encargo del HUMANO el 05-10)
+
+Cada porte de V8 de NUBE o LOCAL (filas FM.*) pasa por SEGURIDAD antes de publicarse, igual que un CVE:
+
+1. **Arreglos posteriores.** Para cada función portada, buscar en V8 `main` todo lo que vino después
+   (`git log --grep=<función|bug|flag>` en la copia ligera; si el mensaje no lo dice, bisección por contenido con
+   `git show <commit>:<fichero>`). Lo que sea de seguridad o cierre el proceso se porta en `seg/<tema>`. Lección de
+   FS.1 y FS.3: el commit de un arreglo puede traer su propio fallo (CVE-2025-13223 → 9b5250b9), y un porte de una
+   versión antigua no trae los arreglos de años después (`groupBy` → 77df647d, 92aba703).
+2. **Probar en la `d8`** (`FlyWeb/scripts/v8-d8.sh` con los parches de la rama): mjsunit completo, la prueba de la
+   función con tamaños grandes y, si algo cae, una `d8` sin DCHECK (`dcheck_always_on = false`, en `out/rel`) para
+   saber cómo se comporta la Release.
+3. **Anotar** el resultado en la fila FM.* y en `patches/v8/FLYWEB-SECURITY.md`; pruebas en `FlyWeb/tools/v8-pruebas/`.
+4. **Caché de código:** recordar a LOCAL la regla de `kFlyWebCacheEpoch` (`src-utils-version.h.patch`): se sube una
+   vez por versión que cambie los parches de V8.
+
 ## Versiones
 
 - El **segundo dígito** es del motor (NUBE): 1.1 = nivel 117, 1.2 = nivel 118, 1.3 = nivel 119…
