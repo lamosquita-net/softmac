@@ -89,9 +89,24 @@ en ns2.
    Mac con la versión anterior (desde la 1.0.1): `flyweb://settings/help` → «Buscar actualizaciones» → descarga, pide
    reiniciar y, tras reiniciar, `flyweb://version` dice 157.64.N. Probar en la 6,1 (Mojave).
 
-**Si algo sale mal:** retirar la versión es publicar una posterior (Sparkle nunca baja de versión). Para parar las
-actualizaciones al momento, en ns2 dejar el appcast anterior (`/var/lib/flyweb-firma/actualizaciones/stable/` tiene
-el estado; el appcast de ns2 se puede restaurar a mano).
+## Retirar una versión (HUMANO, en bak)
+
+Si una versión publicada tiene fallos, `retirar` la quita del appcast para que **ningún Mac nuevo la reciba**:
+
+```sh
+sudo -u flywebfirma node /opt/flyweb-firma/firmar-actualizacion.mjs retirar --version 157.64.N \
+  --salida /var/lib/flyweb-firma/actualizaciones --subir ns2-updates
+```
+
+- Guarda el estado anterior (`stable/appcast.json.<fecha>`), anota la versión en `stable/retiradas.json`, regenera el
+  appcast y lo sube a ns2. Para deshacer: copiar ese `appcast.json.<fecha>` sobre `appcast.json`, borrar la entrada de
+  `retiradas.json` y volver a generar con la siguiente firma (o pedírselo a SERVIDOR-NUBE).
+- **Sparkle nunca baja de versión:** los Mac que ya la tienen se quedan en ella hasta que se publique una posterior. La
+  corrección es siempre **una versión nueva con número nuevo**: `firmar` no acepta un número igual o inferior al más alto
+  publicado, aunque se haya retirado.
+- **Limpieza del 05-10** (1.1 con fallos y 1.1.1 con la firma de un DMG perdido): `retirar --version 157.64.3` y
+  después `retirar --version 157.64.2`. Comprobar: `curl -s https://updates.flyweb.lamosquita.net/stable/appcast.xml |
+  grep -o 'sparkle:version="[^"]*"'` → solo `157.64.4` y `157.64.1`.
 
 ## Pruebas
 

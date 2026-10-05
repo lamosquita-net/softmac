@@ -11,10 +11,9 @@ lectura; comprobaciones web desde el propio ns2 con `--resolve …:443:127.0.0.1
 | `components.` (go-update) | `flyweb-components` activo y habilitado, solo `127.0.0.1:8192`; binario `0e776013…` (= release `go-update` anotada); unidad = `systemd/flyweb-components.service` (`84d379be…`). `/extensions` sin clave → 403; `_estado.json` 200, firma de bak de las 05:27 | Nada urgente; ver hallazgos 1 y 3 |
 | `proxy.` (Safe Browsing, diccionarios) | **Safe Browsing funciona desde el 05-10, 14:12** (clave nueva con IPv4 e IPv6 de ns2; `threatListUpdates:fetch` → 200). Raíz 404 | — |
 | `updates.` (Sparkle) | appcast 200. DMG en `updates/`: 1.0.1, 1.1, 1.1.1, 1.1.2 | Ver hallazgo 2 |
-| `sync.` (flyweb-sync) | **No**: sin DNS, sin unidad ni binario | SV.1 |
+| `sync.` (flyweb-sync) | **Sí, desde el 05-10 16:09** (SV.1): `127.0.0.1:8295`, binario `6b690b21…`, POST `/v2/command/` 401 sin token; sin IP en registros | Prueba con FlyWeb en los tres Mac (LOCAL); copia de `sync.db` en bak (decisión del HUMANO) |
 
-Certificado `flyweb.lamosquita.net`: 4 nombres (`flyweb.`, `components.`, `proxy.`, `updates.`), ECDSA, caduca el **1-01-2027**
-(88 días). Para `sync.` habrá que ampliarlo (HUMANO). DNS en ns1 (`/etc/bind/zones/lamosquita.net.hosts`, `7a9fc590…`): A de
+Certificado `flyweb.lamosquita.net`: 5 nombres (`flyweb.`, `components.`, `proxy.`, `updates.`, `sync.`; ampliado el 05-10), ECDSA. DNS en ns1 (`/etc/bind/zones/lamosquita.net.hosts`, `7a9fc590…`): A de
 los cuatro nombres → 51.91.19.170, TTL 3600; sin AAAA; sin `sync.`.
 
 ## Qué coincide con el repo (E1)
