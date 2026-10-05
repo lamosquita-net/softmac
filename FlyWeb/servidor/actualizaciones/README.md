@@ -20,7 +20,7 @@ MacPro7,1 (LOCAL)                             bak (HUMANO aprueba)              
                                     firmar-actualizacion.mjs: descarga el DMG de ns2,
                                     comprueba SHA-256 + versión aprobados, firma (ed25519)
                                     y genera el appcast                    ──rsync──►  /var/www/FlyWeb/updates/stable/appcast.xml
-FlyWeb (una vez al día) ◄────────────────────────────────────────────────────────────── appcast + DMG
+FlyWeb (cada 3 horas)   ◄────────────────────────────────────────────────────────────── appcast + DMG
  Sparkle comprueba: firma EdDSA con SUPublicEDKey, Developer ID igual que el instalado → instala al reiniciar
 ```
 
@@ -32,7 +32,8 @@ FlyWeb (una vez al día) ◄─────────────────�
 - **Nada se publica sin el HUMANO:** bak solo firma un DMG cuyo SHA-256 y versión estén en un fichero de root.
 - **Versiones:** la base de Brave sigue en 1.57.64 (`CFBundleVersion` 157.64). Cada versión de FlyWeb añade
   `FLYWEB_BUILD_NUMBER` → 157.64.1, 157.64.2… El firmador rechaza una versión que no sea posterior a la publicada.
-- **Privacidad:** Sparkle pide `https://updates.flyweb.lamosquita.net/stable/appcast.xml` una vez al día, sin datos
+- **Privacidad:** Sparkle pide `https://updates.flyweb.lamosquita.net/stable/appcast.xml` cada 3 horas (el intervalo del código de brave-core, comprobado
+  por SERVIDOR-LOCAL el 05-10; antes aquí ponía «una vez al día»), sin datos
   del sistema (`SUEnableSystemProfiling` = false); el vhost no guarda IP. Ya está en el texto de privacidad.
 - **Sparkle 1.24.3** (el que trae Brave 1.57) funciona en 10.9 o superior. Sus fallos conocidos posteriores son de
   escalada local (otro usuario del mismo Mac), no remotos. Riesgo asumido; subir a Sparkle 2 obligaría a reescribir
