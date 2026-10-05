@@ -6,7 +6,8 @@
 #
 #   flyweb-desplegar binario components|sync <sha256>        binario de la release del repo -> /opt/flyweb-<x>/, reinicia
 #   flyweb-desplegar dmg FlyWeb-<versión>.dmg <sha256>        /var/www/FlyWeb/updates/ -> descargas/ de la web (nunca sustituye)
-#   flyweb-desplegar web <commit> index.html|privacidad.html|estilo.css <sha256>   FlyWeb/web/<f> de ese commit -> la web
+#   flyweb-desplegar web <commit> <fichero> <sha256>   FlyWeb/web/<fichero> de ese commit -> la web; <fichero>: index.html,
+#                        privacidad.html, estilo.css, ayuda/index.html o ayuda/sincronizar/index.html
 set -euo pipefail
 umask 022
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
@@ -17,7 +18,7 @@ DUENO=supermosquita:lamosquita
 REG=/var/log/flyweb-deploy/desplegar.log
 install -d -m 0750 -o root -g adm /var/log/flyweb-deploy
 registrar () { echo "$(date -u +%FT%TZ) ${SUDO_USER:-root} $*" >> "$REG"; }
-uso () { sed -n '7,9p' "$0" >&2; exit 2; }
+uso () { sed -n '7,10p' "$0" >&2; exit 2; }
 sha_ok () { [[ $1 =~ ^[0-9a-f]{64}$ ]]; }
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
@@ -45,11 +46,13 @@ dmg)
   registrar "ok dmg $2 $3" ;;
 web)
   [[ $# -eq 4 ]] && sha_ok "$4" && [[ $2 =~ ^[0-9a-f]{40}$ ]] || uso
-  case $3 in index.html|privacidad.html|estilo.css) ;; *) uso ;; esac
-  curl -fsSL --proto =https -o "$tmp/$3" "$RAW/$2/FlyWeb/web/$3"
-  echo "$4  $tmp/$3" | sha256sum -c --quiet
-  [[ -f $WEB/$3 ]] && cp -p "$WEB/$3" "/var/backups/flyweb-web-$3.$(date -u +%Y%m%d%H%M%S)"
-  install -m 0644 -o "${DUENO%:*}" -g "${DUENO#*:}" "$tmp/$3" "$WEB/$3"
+  case $3 in index.html|privacidad.html|estilo.css|ayuda/index.html|ayuda/sincronizar/index.html) ;; *) uso ;; esac
+  f=${3//\//_}
+  curl -fsSL --proto =https -o "$tmp/$f" "$RAW/$2/FlyWeb/web/$3"
+  echo "$4  $tmp/$f" | sha256sum -c --quiet
+  [[ -f $WEB/$3 ]] && cp -p "$WEB/$3" "/var/backups/flyweb-web-$f.$(date -u +%Y%m%d%H%M%S)"
+  d=$(dirname "$WEB/$3"); [[ -d $d ]] || install -d -m 0755 -o "${DUENO%:*}" -g "${DUENO#*:}" "$d"
+  install -m 0644 -o "${DUENO%:*}" -g "${DUENO#*:}" "$tmp/$f" "$WEB/$3"
   registrar "ok web $2 $3 $4" ;;
 *) uso ;;
 esac
