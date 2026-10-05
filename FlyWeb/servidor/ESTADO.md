@@ -13,7 +13,7 @@ lectura; comprobaciones web desde el propio ns2 con `--resolve …:443:127.0.0.1
 | `updates.` (Sparkle) | appcast 200. DMG en `updates/`: 1.0.1, 1.1, 1.1.1, 1.1.2 | Ver hallazgo 2 |
 | `sync.` (flyweb-sync) | **Sí, desde el 05-10 16:09** (SV.1): `127.0.0.1:8295`, binario `6b690b21…`, POST `/v2/command/` 401 sin token; sin IP en registros | Prueba con FlyWeb en los tres Mac (LOCAL); copia de `sync.db` en bak (decisión del HUMANO) |
 
-Certificado `flyweb.lamosquita.net`: 5 nombres (`flyweb.`, `components.`, `proxy.`, `updates.`, `sync.`; ampliado el 05-10), ECDSA. DNS en ns1 (`/etc/bind/zones/lamosquita.net.hosts`, `7a9fc590…`): A de
+Certificado `flyweb.lamosquita.net`: 5 nombres (`flyweb.`, `components.`, `proxy.`, `updates.`, `sync.`; ampliado el 05-10), ECDSA, **caduca el 3-01-2027 13:09 UTC** (`certbot certificates` en ns2, 05-10). Renovación: temporizador `snap.certbot.renew.timer` activo (dos veces al día). **Pendiente (HUMANO):** `sudo certbot renew --dry-run` para confirmar que la renovación cubre los 5 nombres (yo no tengo `renew` en `sudoers-ns2`). DNS en ns1 (`/etc/bind/zones/lamosquita.net.hosts`, `7a9fc590…`): A de
 los cuatro nombres → 51.91.19.170, TTL 3600; sin AAAA; sin `sync.`.
 
 ## Qué coincide con el repo (E1)
