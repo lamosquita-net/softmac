@@ -7,6 +7,9 @@ Provisional hasta el diseño del HUMANO (W1 de `../docs/web-flyweb.md`); cubre W
   instalación, notas de la versión, código y licencias.
 - `privacidad.html`: el texto de privacidad (§2 de `web-flyweb.md`), con el plazo de la web: **14 días**
   (`/etc/logrotate.d/flyweb`, registros de `/var/log/flyweb/flyweb.lamosquita.net/`).
+- `ayuda/index.html` y `ayuda/sincronizar/index.html` (SERVIDOR-LOCAL, 05-10-2026): ayuda con todas las anclas que abre
+  la 1.1.2 (`../docs/web-flyweb.md` §5). Contenido comprobado contra brave-core `c5d7569574e`; el diseño lo hará el HUMANO.
+  Se publica con `flyweb-desplegar web <commit> ayuda/index.html <sha256>` (necesita el `flyweb-desplegar` ampliado).
 - `estilo.css`: D-DIN y colores del proyecto. El vhost tiene `Content-Security-Policy: default-src 'self'`: nada
   de estilos ni scripts en línea, ni recursos de otros sitios.
 - Fuera del repo (en el servidor): `fuentes/` (D-DIN WOFF2 + `OFL.txt`, los de brave-core

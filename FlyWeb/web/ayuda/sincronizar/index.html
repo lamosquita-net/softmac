@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sincronizar FlyWeb entre tus Mac</title>
+<meta name="description" content="Cómo sincronizar contraseñas, marcadores, historial y pestañas de FlyWeb entre varios Mac, cifrado en tu equipo.">
+<link rel="stylesheet" href="../../estilo.css">
+<link rel="icon" href="../../img/flyweb.svg" type="image/svg+xml">
+</head>
+<body>
+<main>
+<header>
+  <a href="../../"><img src="../../img/flyweb.svg" alt="FlyWeb"></a>
+  <h1>Sincronizar<small>FlyWeb entre tus Mac</small></h1>
+</header>
+
+<p><strong>Todavía no está disponible.</strong> El servidor de sincronización de FlyWeb se está preparando. Hasta que
+esté en marcha, al empezar una cadena FlyWeb dará un error. Avisaremos en la <a href="../../">página principal</a>
+cuando funcione.</p>
+
+<p>FlyWeb podrá mantener iguales tus contraseñas, marcadores, historial, ajustes y pestañas abiertas en todos tus Mac.
+Los datos se guardan en un servidor de lamosquita <strong>cifrados en tu equipo</strong>: nosotros no podemos leerlos.
+Todo se hace en <code>flyweb://settings/braveSync</code>.</p>
+
+<h2>Empezar</h2>
+<p>En el primer Mac, empieza una cadena nueva. FlyWeb te mostrará un <strong>código de 24 palabras</strong>. Guárdalo en
+un sitio seguro: es la única llave de tus datos y nosotros no podemos recuperarlo.</p>
+
+<h2>Añadir otro Mac</h2>
+<p>En el otro Mac, elige que ya tienes un código y escribe las 24 palabras. Desde un Mac que ya sincroniza puedes volver a
+ver el código en los ajustes de Sincronizar.</p>
+<p>Puedes elegir qué se sincroniza en cada Mac, en esos mismos ajustes.</p>
+
+<h2>Pasar tus contraseñas de Safari</h2>
+<p>Importa las contraseñas en un solo Mac, como se explica en la <a href="../#importar">ayuda</a>; la sincronización las
+llevará a los demás. Después, borra el fichero exportado: las contraseñas van sin cifrar.</p>
+
+<h2>Si algo falla</h2>
+<ul>
+  <li><strong>«FlyWeb no puede acceder al almacenamiento seguro»:</strong> macOS no deja a FlyWeb abrir su llave
+  («FlyWeb Safe Storage»). Abre Acceso a Llaveros, busca «FlyWeb Safe Storage» y, en Control de acceso, permite a FlyWeb;
+  o reinicia el Mac y acepta el aviso al abrir FlyWeb.</li>
+  <li><strong>«No se pueden descifrar los datos»:</strong> ese Mac se unió con un código que no es el de la cadena. Sal de
+  la cadena en ese Mac y vuelve a unirte con el código correcto.</li>
+</ul>
+
+<h2>Borrar todo</h2>
+<p>Desde los ajustes de Sincronizar puedes borrar los datos de sincronización: se borra todo lo que hay en el servidor y
+la cadena deja de funcionar en todos tus Mac. No se puede deshacer.</p>
+
+<p class="dato">FlyWeb solo existe para Mac: las apps de Brave para móvil no pueden unirse a una cadena de FlyWeb.</p>
+
+<footer>
+  FlyWeb es un proyecto de <a href="https://www.lamosquita.net/">lamosquita</a> · admin@lamosquita.net ·
+  <a href="../">Ayuda</a> · <a href="../../privacidad.html">Privacidad</a><br>
+  FlyWeb no está afiliado a Brave Software ni a Google. Chrome y Chromium son marcas de Google LLC; Brave es marca de
+  Brave Software, Inc.
+</footer>
+</main>
+</body>
+</html>

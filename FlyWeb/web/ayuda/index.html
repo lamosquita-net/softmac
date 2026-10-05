@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ayuda de FlyWeb</title>
+<meta name="description" content="Ayuda de FlyWeb: actualizaciones, Escudos, contraseñas, privacidad, permisos, descargas y qué hacer si algo falla.">
+<link rel="stylesheet" href="../estilo.css">
+<link rel="icon" href="../img/flyweb.svg" type="image/svg+xml">
+</head>
+<body>
+<main>
+<header>
+  <a href="../"><img src="../img/flyweb.svg" alt="FlyWeb"></a>
+  <h1>Ayuda<small>FlyWeb 1.1.2 · motor de nivel Chrome 117</small></h1>
+</header>
+
+<p>FlyWeb es un navegador para Mac Intel con macOS 10.13 High Sierra y 10.14 Mojave, basado en Chromium 116 y Brave
+1.57, sin los servicios de Brave. Aquí tienes lo que hace distinto y qué hacer si algo no va. Si no encuentras la
+respuesta, <a href="#informar">escríbenos</a>.</p>
+
+<p class="dato">Las páginas internas del navegador empiezan por <code>flyweb://</code>. Las direcciones de esta ayuda
+(por ejemplo <code>flyweb://settings/search</code>) se copian y se pegan en la barra de direcciones.</p>
+
+<ul>
+  <li><a href="#actualizaciones">Actualizaciones</a></li>
+  <li><a href="#escudos">Escudos: anuncios y rastreadores</a></li>
+  <li><a href="#seguridad">Seguridad y navegación segura</a></li>
+  <li><a href="#privacidad">Privacidad</a></li>
+  <li><a href="#buscador">Buscador</a></li>
+  <li><a href="#contrasenas">Contraseñas</a> · <a href="#importar">Importar datos</a> · <a href="#autorrelleno">Autorrelleno</a></li>
+  <li><a href="sincronizar/">Sincronizar entre tus Mac</a></li>
+  <li><a href="#permisos">Permisos de los sitios</a> · <a href="#descargas">Descargas</a> · <a href="#extensiones">Extensiones</a></li>
+  <li><a href="#rendimiento">Rendimiento y webs lentas</a> · <a href="#compatibilidad">Webs que avisan de navegador antiguo</a></li>
+  <li><a href="#drm">Netflix y contenido protegido</a> · <a href="#tor">Ventanas con Tor</a></li>
+  <li><a href="#fallos">Si una pestaña o FlyWeb se cierra</a> · <a href="#restablecer">Restablecer y desinstalar</a></li>
+  <li><a href="#informar">Avisar de un problema</a></li>
+</ul>
+
+<h2 id="actualizaciones">Actualizaciones</h2>
+<p>Desde la 1.1, FlyWeb se actualiza solo. Busca versiones nuevas cada pocas horas, las descarga en segundo plano y las
+instala la próxima vez que reinicias FlyWeb. Cada versión va firmada por nosotros y notarizada por Apple; FlyWeb no
+instala nada que no lleve las dos firmas.</p>
+<ul>
+  <li>Para ver tu versión o buscar una nueva al momento: menú FlyWeb › Acerca de FlyWeb (<code>flyweb://settings/help</code>).</li>
+  <li>Para que se actualice solo, FlyWeb tiene que estar en una carpeta en la que tu usuario pueda escribir (normalmente
+  Aplicaciones, con un usuario administrador).</li>
+  <li><strong>Si tienes la 1.0</strong>, no puede actualizarse sola: <a href="../">descarga la versión actual</a> y
+  arrástrala a Aplicaciones encima de la anterior. Tus marcadores, contraseñas e historial se conservan.</li>
+  <li>Si la actualización falla, haz lo mismo: descarga la versión actual de la <a href="../">página principal</a> e
+  instálala encima.</li>
+</ul>
+<p>Las novedades de cada versión están en la <a href="../#novedades">página principal</a>.</p>
+
+<h2 id="escudos">Escudos: anuncios y rastreadores</h2>
+<p>Los Escudos bloquean anuncios, rastreadores y avisos de cookies. Las listas se actualizan cada día desde nuestro
+servidor, no desde Brave: la lista general (las de Brave, EasyList y EasyPrivacy) y los recursos de uBlock Origin.</p>
+<ul>
+  <li><strong>En una web concreta:</strong> pulsa el icono de los Escudos, a la derecha de la barra de direcciones. Desde
+  ahí puedes apagarlos en esa web si algo no funciona, o pasar a bloqueo <em>agresivo</em>.</li>
+  <li><strong>Listas adicionales:</strong> en <code>flyweb://settings/shields/filters</code> puedes activar las listas
+  de español, de español y portugués, y la de avisos que piden instalar apps. La de avisos de cookies viene activada.</li>
+  <li><strong>Filtros propios:</strong> en la misma página, en «Filtros personalizados», con la sintaxis de Adblock y
+  uBlock Origin (por ejemplo <code>||ejemplo.com^</code>).</li>
+  <li>A veces una web parece cargar un anuncio o un rastreador y en realidad recibe un sustituto vacío: es el
+  funcionamiento normal de los Escudos.</li>
+</ul>
+<p>Si una web se ve rota por culpa de los Escudos, apágalos en esa web y <a href="#informar">avísanos</a>.</p>
+
+<h2 id="seguridad">Seguridad y navegación segura</h2>
+<ul>
+  <li><strong>Navegación segura</strong> (protección estándar) viene activada: FlyWeb avisa antes de abrir webs de
+  suplantación (<em>phishing</em>) o con programas maliciosos, y comprueba las descargas. Las consultas van a Google
+  a través de nuestro servidor, así que Google no ve tu dirección IP. Se cambia en <code>flyweb://settings/security</code>.</li>
+  <li><strong>HTTPS por defecto:</strong> FlyWeb abre las webs por conexión cifrada siempre que pueden, y avisa antes de
+  entrar en una que solo funciona sin cifrar.</li>
+  <li><strong>El candado</strong> de la barra de direcciones indica que la conexión con esa web está cifrada. No dice
+  que la web sea de fiar: comprueba siempre el nombre antes de escribir una contraseña.</li>
+  <li><strong>JavaScript sin JIT.</strong> Chromium 116 ya no recibe parches de seguridad de Google, así que FlyWeb
+  porta los importantes y, además, ejecuta JavaScript sin el compilador JIT, donde están la mayoría de los fallos que
+  se aprovechan. Es más seguro, pero algunas webs pesadas van más lentas (ver <a href="#rendimiento">Rendimiento</a>).</li>
+</ul>
+
+<h2 id="privacidad">Privacidad</h2>
+<p>FlyWeb no envía estadísticas de uso, informes de fallos ni datos de navegación a nadie. Respecto a Brave, quita las
+estadísticas (P3A), las recompensas, la cartera de criptomonedas, Brave News, la VPN, el asistente Leo, las imágenes
+patrocinadas y las comprobaciones diarias de uso.</p>
+<p>Por su cuenta, FlyWeb solo se conecta con nuestro servidor para tres cosas: las listas de los Escudos y otros
+componentes, las actualizaciones, y la navegación segura y los diccionarios. Nuestro servidor no guarda tu dirección IP.
+Las extensiones se descargan directamente de la Chrome Web Store de Google, y el traductor (apagado de serie) también va
+directo a Google si lo activas.</p>
+<ul>
+  <li><strong>DNS seguro</strong> viene apagado: FlyWeb usa el DNS de tu Mac. Puedes activarlo en
+  <code>flyweb://settings/security</code>.</li>
+  <li><strong>Limpieza de enlaces:</strong> FlyWeb quita parámetros de seguimiento de las direcciones y evita algunas
+  redirecciones de rastreo y las páginas AMP de Google.</li>
+  <li><strong>Ubicación:</strong> si una web te la pide y la permites, la calcula macOS, no un servicio de Google.</li>
+</ul>
+<p>Todo el detalle, en la <a href="../privacidad.html">página de privacidad</a>.</p>
+
+<h2 id="buscador">Buscador</h2>
+<p>El buscador de serie es <strong>DuckDuckGo</strong>, en la versión de tu país. Las sugerencias mientras escribes en la
+barra de direcciones vienen apagadas, para que lo que tecleas no salga del navegador hasta que pulsas Intro.</p>
+<p>Para cambiarlo (Google, Bing, Brave Search, Qwant, Startpage, Ecosia…) o activar las sugerencias:
+<code>flyweb://settings/search</code>.</p>
+
+<h2 id="contrasenas">Contraseñas</h2>
+<p>FlyWeb tiene su propio gestor de contraseñas: ofrece guardarlas al entrar en una web, las rellena y puede generar
+contraseñas seguras. Se guardan cifradas en tu Mac, con una llave que macOS guarda en el llavero con el nombre
+<strong>«FlyWeb Safe Storage»</strong>. Para verlas: <code>flyweb://settings/passwords</code>.</p>
+<ul>
+  <li>La primera vez que abres FlyWeb, macOS pide permiso para guardar esa llave: pulsa <strong>«Permitir siempre»</strong>.</li>
+  <li><strong>Si sale «FlyWeb no puede acceder al almacenamiento seguro»:</strong> abre Acceso a Llaveros, busca
+  «FlyWeb Safe Storage» y, en Control de acceso, permite a FlyWeb. También vale reiniciar el Mac y aceptar el aviso al
+  abrir FlyWeb.</li>
+  <li>FlyWeb no puede leer el llavero de iCloud ni las contraseñas de Safari directamente: macOS solo deja hacerlo a las
+  apps de Apple. Para pasarlas, mira <a href="#importar">Importar datos</a>.</li>
+</ul>
+
+<h2 id="importar">Importar datos</h2>
+<p><strong>Marcadores, historial y ajustes</strong> de Safari, Chrome, Firefox y otros navegadores:
+<code>flyweb://settings/importData</code>. Al importar de Chrome o de otro navegador basado en Chromium, macOS te pedirá
+permiso para que FlyWeb lea la llave de ese navegador en el llavero.</p>
+<p><strong>Contraseñas de Safari o del llavero de iCloud.</strong> El importador de Safari no trae contraseñas. Hay que
+exportarlas a un fichero CSV y luego importarlo:</p>
+<ol>
+  <li>En un Mac con macOS 15 o posterior: app Contraseñas › Archivo › Exportar todas las contraseñas. En Mojave no se
+  pueden exportar. Guarda el fichero en un sitio temporal, nunca en una carpeta que se sincronice con la nube.</li>
+  <li>En FlyWeb: <code>flyweb://settings/passwords</code> › menú «⋮» › Importar contraseñas, y elige el fichero.</li>
+  <li><strong>Borra el fichero exportado</strong> en cuanto acabes, y vacía la papelera: las contraseñas van sin cifrar.</li>
+</ol>
+<p class="dato">FlyWeb importa hasta 150 KB por fichero, unas 1 800 contraseñas. Si tienes más, divide el CSV con
+<a href="https://github.com/lamosquita-net/softmac/blob/main/FlyWeb/scripts/partir-csv-contrasenas.py">este script</a>
+e importa los trozos uno a uno. No se importan los códigos de doble factor, las llaves de acceso ni las entradas sin
+dirección web.</p>
+
+<h2 id="autorrelleno">Autorrelleno de direcciones y tarjetas</h2>
+<p>FlyWeb puede guardar direcciones y tarjetas para rellenar formularios. Se guardan solo en tu Mac, en tu perfil de
+FlyWeb, y no se consultan servicios de Google para ello. Para verlas o borrarlas:
+<code>flyweb://settings/addresses</code> y <code>flyweb://settings/payments</code>.</p>
+
+<h2 id="permisos">Permisos de los sitios</h2>
+<p>Cámara, micrófono, ubicación, notificaciones, ventanas emergentes, cookies y demás se gestionan en
+<code>flyweb://settings/content</code>. Para una web concreta, pulsa el candado de la barra de direcciones › Configuración
+del sitio.</p>
+<p>Además del permiso de FlyWeb, macOS tiene el suyo: si la cámara, el micrófono o la ubicación no funcionan aunque los
+hayas permitido en la web, ve a Preferencias del Sistema › Seguridad y privacidad › Privacidad y activa FlyWeb en el
+apartado correspondiente.</p>
+
+<h2 id="descargas">Descargas</h2>
+<p>FlyWeb pregunta dónde guardar cada descarga (se cambia en <code>flyweb://settings/downloads</code>). Puede bloquear
+o avisar antes de guardar un fichero:</p>
+<ul>
+  <li>si la navegación segura lo reconoce como peligroso;</li>
+  <li>si la página es segura (<code>https</code>) pero el fichero llega sin cifrar (<code>http</code>).</li>
+</ul>
+<p>Si estás seguro de que el fichero es de fiar, puedes conservarlo desde <code>flyweb://downloads</code>.</p>
+
+<h2 id="extensiones">Extensiones</h2>
+<p>Las extensiones se instalan desde la <a href="https://chromewebstore.google.com/">Chrome Web Store</a> y se
+actualizan desde allí. Se gestionan en <code>flyweb://extensions</code>.</p>
+<p>Ten en cuenta que las extensiones ven FlyWeb como Chromium 116. Las que exigen una versión más reciente no se pueden
+instalar, o se quedan en la última versión que admitía la 116. Si una extensión cambia tus ajustes (buscador, página de
+inicio), FlyWeb te avisa y puedes deshacerlo desde el aviso.</p>
+
+<h2 id="rendimiento">Rendimiento y webs lentas</h2>
+<ul>
+  <li><strong>Webs pesadas:</strong> como JavaScript va sin JIT (ver <a href="#seguridad">Seguridad</a>), algunas
+  aplicaciones web muy pesadas van más lentas que en Chrome, y las que necesitan WebAssembly pueden no funcionar. Si
+  una web que usas a menudo no va, <a href="#informar">avísanos</a>.</li>
+  <li><strong>Vídeo:</strong> FlyWeb pide a YouTube y a otras webs el vídeo en H.264, que los Mac antiguos decodifican
+  por hardware. El vídeo gasta mucha menos CPU, a cambio de un máximo de 1080p.</li>
+  <li><strong>Ahorro de memoria y de energía:</strong> en Ajustes (busca «memoria» en el buscador de
+  <code>flyweb://settings</code>). Con el ahorro de memoria, las pestañas que llevan tiempo sin usarse se descargan y se
+  vuelven a cargar al abrirlas.</li>
+</ul>
+
+<h2 id="compatibilidad">Webs que avisan de navegador antiguo</h2>
+<p>FlyWeb se basa en Chromium 116, pero incorpora las funciones web de versiones posteriores de Chrome. A ese
+conjunto lo llamamos <em>nivel de motor</em>: la 1.1.2 tiene el nivel de Chrome 117 y se presenta a las webs como
+Chrome 117. Algunas webs, como Gmail, Drive o Docs, pueden mostrar una barra que dice que el navegador es antiguo; puedes
+cerrarla y seguir usándolas. Los avisos irán desapareciendo a medida que el motor suba de nivel.</p>
+<p>FlyWeb funciona en macOS 10.13 y 10.14 en Mac Intel. En macOS 10.15 a 12 debería funcionar, pero no lo probamos.</p>
+
+<h2 id="drm">Netflix y contenido protegido</h2>
+<p>FlyWeb <strong>no incluye Widevine</strong>, el módulo de Google para el contenido protegido (DRM). Por eso no se
+pueden ver servicios que lo exigen, como Netflix, Disney+, Prime Video o Spotify en la web. Para esos servicios, usa
+otro navegador o la app del servicio.</p>
+
+<h2 id="tor">Ventanas con Tor</h2>
+<p>Las ventanas privadas con Tor <strong>no están disponibles por ahora</strong> en FlyWeb: necesitan un componente que
+Brave descarga de sus servidores, y FlyWeb no usa los servidores de Brave. Si necesitas Tor, usa
+<a href="https://www.torproject.org/">Tor Browser</a>. Las ventanas privadas normales funcionan con normalidad.</p>
+
+<h2 id="fallos">Si una pestaña o FlyWeb se cierra</h2>
+<ul>
+  <li><strong>Una pestaña muestra «¡Oh, no!»:</strong> recárgala. Si se repite, cierra otras pestañas o ventanas (puede
+  faltar memoria) y prueba con los Escudos apagados en esa web.</li>
+  <li><strong>FlyWeb se cierra:</strong> vuelve a abrirlo; recupera las pestañas de la última sesión.</li>
+  <li><strong>Si no llega a abrirse:</strong> instala de nuevo la versión actual desde la <a href="../">página
+  principal</a>. Tus datos se conservan.</li>
+</ul>
+<p>FlyWeb no envía informes de fallos. Si quieres ayudarnos, <a href="#informar">escríbenos</a> y adjunta, si lo hay, el
+informe de macOS: el fichero <code>FlyWeb_…crash</code> más reciente de
+<code>~/Library/Logs/DiagnosticReports/</code> (en el Finder, menú Ir › Ir a la carpeta).</p>
+
+<h2 id="restablecer">Restablecer y desinstalar</h2>
+<p><strong>Restablecer ajustes</strong> (<code>flyweb://settings/reset</code>) vuelve a dejar la página de inicio, la
+pestaña nueva, el buscador y las pestañas fijadas como venían de serie, desactiva las extensiones y borra los datos
+temporales (como las cookies). <strong>No borra</strong> tus marcadores, historial ni contraseñas.</p>
+<p>Para <strong>borrar los datos de navegación</strong> (historial, cookies, caché…): menú FlyWeb › Borrar datos de
+navegación.</p>
+<p><strong>Desinstalar del todo:</strong></p>
+<ol>
+  <li>Cierra FlyWeb y arrastra la app de Aplicaciones a la papelera.</li>
+  <li>Borra tu perfil, que contiene todos tus datos: en el Finder, menú Ir › Ir a la carpeta, escribe
+  <code>~/Library/Application Support/LaMosquita/FlyWeb</code> y borra esa carpeta.</li>
+  <li>En Acceso a Llaveros, borra «FlyWeb Safe Storage».</li>
+</ol>
+<p class="dato">Sin la carpeta del perfil, FlyWeb empieza de cero la próxima vez que lo abras. Si sincronizas, borrarla
+no borra lo que hay en el servidor (ver <a href="sincronizar/">Sincronizar</a>).</p>
+
+<h2 id="informar">Avisar de un problema</h2>
+<p>Si una web no funciona, algo falla o tienes una duda, escribe a <strong>admin@lamosquita.net</strong> y cuéntanos:</p>
+<ul>
+  <li>la dirección de la web (si es una web concreta);</li>
+  <li>qué pasa y qué esperabas que pasara;</li>
+  <li>la versión de FlyWeb y de macOS (están en <code>flyweb://settings/help</code>);</li>
+  <li>si sigue pasando con los Escudos apagados en esa web.</li>
+</ul>
+<p>El menú › «Informar de un sitio roto» trae a esta sección.</p>
+
+<footer>
+  FlyWeb es un proyecto de <a href="https://www.lamosquita.net/">lamosquita</a> · admin@lamosquita.net ·
+  <a href="../">Inicio</a> · <a href="../privacidad.html">Privacidad</a><br>
+  FlyWeb no está afiliado a Brave Software ni a Google. Chrome y Chromium son marcas de Google LLC; Brave es marca de
+  Brave Software, Inc.
+</footer>
+</main>
+</body>
+</html>
