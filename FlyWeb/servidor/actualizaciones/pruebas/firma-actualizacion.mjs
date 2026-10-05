@@ -6,7 +6,7 @@ import crypto from 'crypto'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { firmar, comparar, clavePublica, aprobado } from '../bak/firmar-actualizacion.mjs'
+import { firmar, retirar, comparar, clavePublica, aprobado } from '../bak/firmar-actualizacion.mjs'
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'flyweb-act-'))
 let fallos = 0
@@ -64,6 +64,23 @@ try {
   const xml2 = fs.readFileSync(path.join(salida, 'stable', 'appcast.xml'), 'utf8')
   ok(xml2.indexOf('157.64.2') < xml2.indexOf('157.64.1') && (xml2.match(/<item>/g) || []).length === 2, 'appcast con la nueva arriba y la anterior debajo')
   ok(!xml2.includes(sha) && !xml2.includes('BEGIN PRIVATE'), 'el appcast no lleva SHA ni nada privado')
+
+  // Retirar: la 157.64.2 sale del appcast, queda anotada y su número no se puede volver a usar.
+  const nada = () => {}
+  await falla(async () => retirar({ version: '157.64.9', salida }, { log: nada }), 'no está en el appcast', 'retirar rechaza una versión que no está')
+  await falla(async () => retirar({ version: '../x', salida }, { log: nada }), 'versión no válida', 'retirar rechaza versiones raras')
+  const quedan = retirar({ version: '157.64.2', salida }, { log: nada })
+  const xml3 = fs.readFileSync(path.join(salida, 'stable', 'appcast.xml'), 'utf8')
+  ok(quedan.length === 1 && !xml3.includes('157.64.2') && xml3.includes('157.64.1'), 'retirar quita la versión del appcast y deja las demás')
+  const ret = JSON.parse(fs.readFileSync(path.join(salida, 'stable', 'retiradas.json'), 'utf8'))
+  ok(ret.length === 1 && ret[0].version === '157.64.2', 'la retirada queda anotada en retiradas.json')
+  ok(fs.readdirSync(path.join(salida, 'stable')).some((f) => f.startsWith('appcast.json.')), 'retirar guarda copia del estado anterior')
+  await falla(() => firmar({ ...base, dmg: dmg2, version: '157.64.2', visible: '1.0.2' }, { log: nada }), 'no es posterior', 'no se puede volver a firmar un número retirado')
+  const dmg3 = path.join(tmp, 'FlyWeb-1.0.3.dmg'); fs.writeFileSync(dmg3, crypto.randomBytes(2048))
+  fs.appendFileSync(aprob, `${crypto.createHash('sha256').update(fs.readFileSync(dmg3)).digest('hex')}  157.64.3\n`)
+  await firmar({ ...base, dmg: dmg3, version: '157.64.3', visible: '1.0.3' }, { log: nada })
+  const xml4 = fs.readFileSync(path.join(salida, 'stable', 'appcast.xml'), 'utf8')
+  ok(xml4.includes('157.64.3') && xml4.includes('157.64.1') && !xml4.includes('157.64.2'), 'después se firma la siguiente y la retirada no vuelve')
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true })
 }

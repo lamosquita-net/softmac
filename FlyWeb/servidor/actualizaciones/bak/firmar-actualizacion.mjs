@@ -11,7 +11,11 @@
 //        --version <CFBundleVersion, p. ej. 157.64.1> --visible <p. ej. 1.0.1> --clave <pem> \
 //        --aprobados <fichero> --salida <dir> [--canal stable] [--min-macos 10.13.0] [--notas <URL>] \
 //        [--subir <host ssh>]
+//   node firmar-actualizacion.mjs retirar --version <CFBundleVersion> --salida <dir> [--canal stable] [--subir <host ssh>]
 //
+// Retirar quita una versión del appcast (copia del estado anterior en appcast.json.<fecha>) y la anota en
+// retiradas.json. Sparkle nunca baja de versión: los Mac que ya la tienen se quedan en ella hasta la siguiente. Por eso
+// firmar no acepta nunca un número igual o inferior al más alto publicado, aunque se haya retirado.
 // Fichero de aprobados: una línea por versión, «<sha256>  <CFBundleVersion>  # comentario».
 import { execFileSync } from 'child_process'
 import crypto from 'crypto'
@@ -67,6 +71,23 @@ export function aprobado (texto, sha, version) {
   })
 }
 
+// Estado de un canal: versiones del appcast (la más nueva primero) y versiones retiradas.
+function leerEstado (dir) {
+  const leer = (f) => fs.existsSync(path.join(dir, f)) ? JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) : []
+  return { items: leer('appcast.json'), retiradas: leer('retiradas.json') }
+}
+
+// La versión más alta que se ha publicado nunca en el canal (en el appcast o retirada).
+export function tope ({ items, retiradas }) {
+  return [...items.map((i) => i.version), ...retiradas.map((r) => r.version)].reduce((a, v) => (a && comparar(a, v) >= 0 ? a : v), null)
+}
+
+function subir (o, dir, canal, log) {
+  if (!o.subir) return
+  execFileSync('rsync', ['-t', '--chmod=F644', path.join(dir, 'appcast.xml'), `${o.subir}:${canal}/appcast.xml`], { stdio: 'inherit' })
+  log(`subido a ${o.subir}:${canal}/appcast.xml`)
+}
+
 async function leerDmg (origen, fetchFn) {
   if (/^https?:\/\//.test(origen)) {
     const u = new URL(origen)
@@ -92,9 +113,10 @@ export async function firmar (o, { fetchFn = fetch, log = console.log } = {}) {
   const dir = path.join(o.salida, canal)
   fs.mkdirSync(dir, { recursive: true })
   const estadoF = path.join(dir, 'appcast.json')
-  const items = fs.existsSync(estadoF) ? JSON.parse(fs.readFileSync(estadoF, 'utf8')) : []
-  if (items.length && comparar(o.version, items[0].version) <= 0) {
-    throw new Error(`la versión ${o.version} no es posterior a la publicada (${items[0].version})`)
+  const estado = leerEstado(dir); const { items } = estado
+  const max = tope(estado)
+  if (max && comparar(o.version, max) <= 0) {
+    throw new Error(`la versión ${o.version} no es posterior a la más alta publicada (${max}, aunque se haya retirado)`)
   }
   const privada = crypto.createPrivateKey(fs.readFileSync(o.clave))
   const firma = crypto.sign(null, datos, privada).toString('base64')
@@ -106,11 +128,29 @@ export async function firmar (o, { fetchFn = fetch, log = console.log } = {}) {
   fs.writeFileSync(estadoF, JSON.stringify(items, null, 2))
   fs.writeFileSync(path.join(dir, 'appcast.xml'), appcast(canal, items))
   log(`firmado ${o.version} (${o.visible}), ${datos.length} bytes, sha256 ${sha}`)
-  if (o.subir) {
-    execFileSync('rsync', ['-t', '--chmod=F644', path.join(dir, 'appcast.xml'), `${o.subir}:${canal}/appcast.xml`], { stdio: 'inherit' })
-    log(`subido a ${o.subir}:${canal}/appcast.xml`)
-  }
+  subir(o, dir, canal, log)
   return items[0]
+}
+
+export function retirar (o, { log = console.log } = {}) {
+  const canal = o.canal ?? 'stable'
+  if (!/^(stable|beta|dev|nightly)$/.test(canal)) throw new Error(`canal no válido: ${canal}`)
+  if (!versionValida(o.version)) throw new Error(`versión no válida: ${o.version}`)
+  const dir = path.join(o.salida, canal)
+  const estado = leerEstado(dir)
+  const quitada = estado.items.find((i) => i.version === o.version)
+  if (!quitada) throw new Error(`la versión ${o.version} no está en el appcast de ${canal}`)
+  const items = estado.items.filter((i) => i.version !== o.version)
+  const fecha = new Date().toISOString().replace(/[:.]/g, '-')
+  fs.copyFileSync(path.join(dir, 'appcast.json'), path.join(dir, `appcast.json.${fecha}`))
+  estado.retiradas.push({ version: quitada.version, visible: quitada.visible, sha256: quitada.sha256, retirada: new Date().toUTCString() })
+  fs.writeFileSync(path.join(dir, 'retiradas.json'), JSON.stringify(estado.retiradas, null, 2))
+  fs.writeFileSync(path.join(dir, 'appcast.json'), JSON.stringify(items, null, 2))
+  fs.writeFileSync(path.join(dir, 'appcast.xml'), appcast(canal, items))
+  log(`retirada ${quitada.version} (${quitada.visible}); en el appcast quedan: ${items.map((i) => `${i.version} (${i.visible})`).join(', ') || 'ninguna'}`)
+  if (estado.items[0].version === o.version) log('ojo: era la más nueva; los Mac que ya la tienen se quedan en ella hasta que se publique una posterior')
+  subir(o, dir, canal, log)
+  return items
 }
 
 async function main () {
@@ -127,8 +167,11 @@ async function main () {
   } else if (orden === 'firmar') {
     for (const k of ['dmg', 'version', 'visible', 'clave', 'aprobados', 'salida']) if (!o[k]) throw new Error(`falta --${k}`)
     await firmar(o)
+  } else if (orden === 'retirar') {
+    for (const k of ['version', 'salida']) if (!o[k]) throw new Error(`falta --${k}`)
+    retirar(o)
   } else {
-    console.error('Uso: firmar-actualizacion.mjs generar-clave|publica|firmar … (ver la cabecera)')
+    console.error('Uso: firmar-actualizacion.mjs generar-clave|publica|firmar|retirar … (ver la cabecera)')
     process.exit(2)
   }
 }
