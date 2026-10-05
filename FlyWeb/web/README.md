@@ -14,3 +14,6 @@ Provisional hasta el diseño del HUMANO (W1 de `../docs/web-flyweb.md`); cubre W
   de estilos ni scripts en línea, ni recursos de otros sitios.
 - Fuera del repo (en el servidor): `fuentes/` (D-DIN WOFF2 + `OFL.txt`, los de brave-core
   `components/flyweb_ntp/resources/fuentes/`), `img/flyweb.svg` (= `branding/M1-01.svg`) y `descargas/`.
+- `VERSION` (SV.6): una línea `<versión> <CFBundleVersion> <DMG> <sha256>` con la versión que describe la web. La
+  web se publica sola cuando coincide con la versión aprobada del appcast (`../servidor/web-auto/README.md`). Se
+  actualiza en el PR de la web de cada versión.
