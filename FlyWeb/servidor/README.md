@@ -9,6 +9,7 @@ Plan e inventario: [`FlyWeb/docs/componentes.md`](../docs/componentes.md).
 | `go-update/` | [`brave/go-update`](https://github.com/brave/go-update) 1da7d75 (`git subtree --squash`), con el parche de FlyWeb | **MPL-2.0** (la suya) |
 | `sync/` | **flyweb-sync**: sincronización de FlyWeb (go-sync de Brave con SQLite; F7.5). Ver su `README.md` | **MPL-2.0** (la de go-sync) |
 | `systemd/` | Unidades endurecidas de los servicios (`flyweb-components`, `flyweb-sync`) | MIT (raíz) |
+| `CAMBIOS.md`, `ESTADO.md` | Registro de cambios en ns2 y estado de los servicios (SERVIDOR) | MIT (raíz) |
 
 ## Parche de FlyWeb sobre go-update
 
