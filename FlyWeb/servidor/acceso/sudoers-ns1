@@ -1,0 +1,5 @@
+# Destino en ns1: /etc/sudoers.d/flyweb-servidor (root:root 0440). Lo instala SOLO el HUMANO (sudo visudo -cf sudoers-ns1).
+# Solo la zona lamosquita.net (registros de *.flyweb). Cambiar <ZONA> por la ruta real del fichero de zona.
+Cmnd_Alias FW_DNS = sudoedit <ZONA>, /usr/sbin/named-checkzone lamosquita.net <ZONA>, /usr/sbin/rndc reload lamosquita.net
+Defaults:servidor !visiblepw, log_subcmds
+servidor ALL=(root) NOPASSWD: FW_DNS

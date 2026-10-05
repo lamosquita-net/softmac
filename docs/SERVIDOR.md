@@ -1,6 +1,8 @@
 # Agente SERVIDOR — carta y reglas
 
-Agente de Claude (sesión en la nube, como NUBE) para los servicios internos de FlyWeb en **ns2.lamosquita.net**.
+Agente de Claude para los servicios internos de FlyWeb en **ns2.lamosquita.net** (y la zona DNS en ns1).
+**Desde el 05-10-2026 son dos sesiones** (§8): **SERVIDOR-LOCAL** en la MacPro7,1, que opera ns1 y ns2 por SSH con sudo
+limitado, y **SERVIDOR-NUBE**, que supervisa y revisa sin acceso a los servidores.
 Primer encargo: el servidor de componentes de la Fase 2 (F2.2, [`FlyWeb/docs/componentes.md`](../FlyWeb/docs/componentes.md)).
 Este documento es su punto de partida. Debe leerlo, junto con [`TAREAS.md`](TAREAS.md), al empezar cada sesión.
 
@@ -16,11 +18,14 @@ Este documento es su punto de partida. Debe leerlo, junto con [`TAREAS.md`](TARE
 
 ## 2. Principios
 
-1. **Producción primero no se toca.** Nada se ejecuta en ns2 sin aprobación explícita del HUMANO para ese cambio
-   concreto, mientras dure la supervisión (etapas E0–E2).
+1. **Permisos (decisión del HUMANO, 05-10):** en ns1 y ns2, **leer y auditar libremente**; **cambiar** (Apache,
+   servicios `flyweb-*`, DNS de `*.flyweb`, web) con PR, comprobaciones antes y después y vuelta atrás, **sin esperar el
+   «validado»** de cada cambio; el HUMANO puede vetar en cualquier momento. **En bak, nada sin el HUMANO.** Certificados
+   y lo que no esté en `FlyWeb/servidor/acceso/sudoers-*` siguen siendo del HUMANO.
 2. **Todo pasa por el repo.** Configuración, scripts y documentación viven en `FlyWeb/servidor/`. Un cambio es un PR;
    lo que se ejecuta en ns2 es siempre un commit concreto e identificable.
-3. **Sin acceso entrante nuevo.** El agente no entra en ns2 por SSH ni por ningún otro medio (§4).
+3. **Acceso mínimo.** SERVIDOR-LOCAL entra con su propio usuario `servidor`, clave solo en la 7,1 (sin `from=`: IP dinámica; ver `acceso/README.md`) y la
+   lista cerrada de `sudoers` (`FlyWeb/servidor/acceso/`). Nunca con el usuario del HUMANO ni con sudo total.
 4. **Mínimo privilegio.** Servicio con usuario propio sin privilegios, escuchando solo en `127.0.0.1`, con el
    endurecimiento de systemd. Nada se compila en ns2: los binarios llegan compilados en CI con su suma SHA-256.
 5. **Sin secretos en el repo** (regla 5 de `TAREAS.md`). El servicio de componentes no los necesita: sirve ficheros
@@ -41,7 +46,7 @@ Este documento es su punto de partida. Debe leerlo, junto con [`TAREAS.md`](TARE
 
 Clases de cambio autorizadas en E3: **ninguna todavía**.
 
-## 4. Cómo se ejecuta en ns2 sin que el agente entre
+## 4. Cómo se ejecuta en ns2 sin que el agente entre (propuesta inicial; desde el 05-10, ver §8)
 
 **Propuesta: ns2 trae los cambios, en vez de que el agente los empuje.**
 
@@ -131,3 +136,23 @@ Estado real y detalles en [`FlyWeb/servidor/e0/README.md`](../FlyWeb/servidor/e0
   `PrivateTmp` y `RestrictAddressFamilies`. Escucha en `127.0.0.1`.
 - **Copia diaria (temporizador en ns2).** Descarga los CRX de Brave y de Google, comprueba su SHA-256 contra lo que
   anuncia el origen y actualiza el JSON. Solo conexiones salientes por HTTPS a hosts fijos.
+
+## 8. SERVIDOR-LOCAL y SERVIDOR-NUBE (decisión del HUMANO, 05-10-2026)
+
+Crear SERVIDOR en la nube fue un error de partida: sin SSH solo podía escribir procedimientos para que otro los
+ejecutara. Ahora:
+
+| | SERVIDOR-LOCAL (MacPro7,1) | SERVIDOR-NUBE (claude.ai/code) |
+|---|---|---|
+| Sesión | «SERVIDOR — servidores (MacPro7,1)» | «SERVIDOR — servicios de FlyWeb en ns2» |
+| Acceso | SSH a ns1 y ns2 como `servidor`, sudo limitado (`acceso/sudoers-*`, `flyweb-desplegar`) | Ninguno a los servidores |
+| Hace | Auditar, desplegar, comprobar, anotar en `CAMBIOS.md`, poner al día `e0/` con lo que hay en producción (E1) | Revisar los PR de `FlyWeb/servidor/` **antes** de que LOCAL los aplique (segundo par de ojos), código y CI de los servicios, procedimientos, `ESTADO.md`, vigilar el tablero |
+| No hace | Nada en bak; certificados; ampliar su propio `sudoers` o `flyweb-desplegar` (solo el HUMANO) | Ejecutar nada en producción |
+
+- **Flujo de un cambio en ns2:** SERVIDOR-LOCAL abre el PR (qué, comprobaciones, vuelta atrás) → SERVIDOR-NUBE lo
+  revisa → se fusiona → SERVIDOR-LOCAL lo aplica, comprueba y lo anota en `CAMBIOS.md`. Si es urgente (servicio caído),
+  SERVIDOR-LOCAL puede volver atrás primero y anotarlo después.
+- **Rastro:** cada orden con sudo queda en el registro de `sudo` de cada máquina; cada despliegue, en
+  `/var/log/flyweb-deploy/desplegar.log`; cada cambio, en `CAMBIOS.md`.
+- **Hasta que exista SERVIDOR-LOCAL**, las tareas en ns1 y ns2 las hace LOCAL con permiso del HUMANO (SV.1, SV.3).
+
