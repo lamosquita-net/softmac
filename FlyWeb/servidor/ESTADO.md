@@ -48,7 +48,7 @@ los cuatro nombres → 51.91.19.170, TTL 3600; sin AAAA; sin `sync.`.
    pero conviene una propia (p. ej. `::1`) antes de publicar AAAA. HUMANO, sin prisa.
 6. **Sin rastro de despliegue:** `/var/log/flyweb-deploy/` no existe hasta el primer uso de `flyweb-desplegar`.
 7. **Incidente del 05-10:** `apachectl -S` imprimió las claves (`CAMBIOS.md`). Resuelto con una clave de Safe Browsing nueva;
-   `apachectl -S` quitado de `sudoers-ns2` en el repo; **en ns2 sigue instalado el antiguo** (14:50): lo instala el HUMANO. La clave de servicio de `components.`: decisión del
+   `apachectl -S` quitado de `sudoers-ns2` en el repo; instalado por el HUMANO el 05-10 (`flyweb-servidor` = `71c123e7…`); comprobado con `sudo -l`: sin `-S`. La clave de servicio de `components.`: decisión del
    HUMANO.
 
 ## Siguiente
