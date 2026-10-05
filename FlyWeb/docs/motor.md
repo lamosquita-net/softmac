@@ -143,6 +143,8 @@ Lo Baseline que Chrome 118 publicó (web-features): **unidades `cap` y `rcap`**,
   `font-relative-units-dynamic.html`) salen porque falta la fuente Ahem instalada en el sistema: Chromium 141 de serie
   falla lo mismo sin ella y pasa con ella. Las WPT necesitan Ahem en `~/Library/Fonts` (`wpt-app.sh` lo comprueba).
   Confirmado por LOCAL (17:10): con Ahem, 73/73.
+- **118 bueno (LOCAL, 05-10):** `ideographicBaseline` daba -39 (Chrome 118: 6.25): faltaban las líneas base de la tabla BASE
+  de la fuente (b14d2ed1, para la 1.2.1). Los 2 fallos de compilación de FM.8 están arreglados en 9c0e99de/b14d2ed1.
 
 ## Nivel 119 (en código, 05-10; pendiente de compilar → FlyWeb 1.3)
 
