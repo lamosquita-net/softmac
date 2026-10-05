@@ -61,6 +61,13 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    `Tagged<>` y handles directos en la API pública), o deja de funcionar en Mojave o en la 5,1, **se para en la última
    V8 que pasó** y desde ahí se vuelve a portar funciones sueltas de JavaScript, como antes. LOCAL anota en FM.5 cuántos
    errores de Blink dio cada salto para decidirlo con datos.
+   **Parar no es automático (HUMANO, 05-10):** cuando un salto salga caro, antes de parar se comparan los dos dolores
+   de cabeza: (a) **adaptar Blink** a esa V8 (cuántos ficheros y cuánto riesgo) frente a (b) **dejar V8 estacionada**
+   y vivir de parches: portar a mano cada función nueva de JavaScript (lo de la 11.6 → 117 dio tres fallos en un día:
+   `Map.groupBy` vacío, pestaña cerrada con grupos grandes, caché de código vieja) y rehacer cada parche de seguridad
+   sobre un código que se aleja cada vez más del de V8 (CVE-2024-0519 ya no aplicaba en la 11.8). El coste de (b)
+   crece con el tiempo; el de (a) se paga una vez por salto. Se decide con esas cifras (errores de Blink del salto,
+   portes y parches pendientes en la V8 estacionada), no por costumbre.
    **Blink no se sustituye entero como V8:** V8 es un repositorio aparte con una API de incrustación estable; Blink
    está dentro de Chromium y depende de `content/`, `cc`/`viz`, `gpu`, Mojo y `base` de la misma versión. Cambiarlo
    entero es subir Chromium, que es justo lo que no funciona en Mojave (principio 1). En Blink se sigue portando
