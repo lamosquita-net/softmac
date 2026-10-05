@@ -15,7 +15,7 @@ MODO=${1:-comprobar}; COMMIT=${2:-}
 CONF=/etc/apache2/sites-available/lamosquita.conf
 LR=/etc/logrotate.d/flyweb
 D=$HOME/e2-01; mkdir -p -m 0700 "$D"
-LR_SHA=a4dcc88e9b3afd2c316ef935aa0431bab51c7f5b46737fdb4fef3c76faba2262   # sha256 de e0/logrotate/flyweb en el commit aplicado
+LR_SHA=418ab467182bae8073fc45be305e170bf3203e28b474397d0fb932d4f2779d9f   # sha256 de e0/logrotate/flyweb en el commit aplicado
 RAW=https://raw.githubusercontent.com/lamosquita-net/softmac
 
 nuevo_conf () {

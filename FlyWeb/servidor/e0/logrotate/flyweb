@@ -1,6 +1,6 @@
-# FlyWeb (LOCAL, 03-10-2026; «create 0640 root adm»: SERVIDOR, E2-01, 05-10): registros de components., updates. y proxy. 7 días, como promete la página de privacidad.
-# flyweb.lamosquita.net (web pública, con IP para fail2ban) sigue la rotación general de Apache.
-/var/log/flyweb/components/*.log /var/log/flyweb/updates/*.log /var/log/flyweb/proxy/*.log {
+# FlyWeb (LOCAL, 03-10-2026; «create 0640 root adm»: SERVIDOR, E2-01, 05-10): registros de components., updates., proxy. y sync. 7 días, como promete la página de privacidad
+# (sync. desde E2-01, antes de instalarlo: missingok). La web pública va en el bloque de abajo, 14 días.
+/var/log/flyweb/components/*.log /var/log/flyweb/updates/*.log /var/log/flyweb/proxy/*.log /var/log/flyweb/sync/*.log {
     daily
     rotate 7
     missingok
