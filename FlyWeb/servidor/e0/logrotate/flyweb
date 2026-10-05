@@ -1,17 +1,26 @@
-# Destino: /etc/logrotate.d/flyweb  (si el logrotate de Apache del HUMANO no cubre ya /var/log/flyweb)
-# 7 días; updates. y components. no llevan IP, flyweb.lamosquita.net sí (decisión del HUMANO).
-/var/log/flyweb/*/*.log {
+# FlyWeb (LOCAL, 03-10-2026): registros de components., updates. y proxy. 7 días, como promete la página de privacidad.
+# flyweb.lamosquita.net (web pública, con IP para fail2ban) sigue la rotación general de Apache.
+/var/log/flyweb/components/*.log /var/log/flyweb/updates/*.log /var/log/flyweb/proxy/*.log {
     daily
     rotate 7
     missingok
     notifempty
-    compress
-    delaycompress
-    create 640 root adm
+    nocompress
     sharedscripts
     postrotate
-        if invoke-rc.d apache2 status > /dev/null 2>&1; then
-            invoke-rc.d apache2 reload > /dev/null 2>&1
-        fi
+        /usr/sbin/apache2ctl graceful >/dev/null 2>&1 || true
+    endscript
+}
+# Web pública flyweb.lamosquita.net (con IP, para seguridad): 14 días, como el resto de webs (LOCAL, 04-10-2026).
+/var/log/flyweb/flyweb.lamosquita.net/*.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        /usr/sbin/apache2ctl graceful >/dev/null 2>&1 || true
     endscript
 }

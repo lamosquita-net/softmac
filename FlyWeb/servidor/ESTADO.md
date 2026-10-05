@@ -1,43 +1,57 @@
-# Estado de los servicios de FlyWeb en ns2 (SV.2)
+# Estado de los servicios de FlyWeb en ns2 (SV.2, auditoría E1)
 
-Informe de SERVIDOR, 05-10-2026. **Fuente: el repo** (`e0/`, README de cada servicio, `docs/TAREAS.md`). No se ha
-podido mirar ns2 desde fuera: la red de la sesión de SERVIDOR no deja salir a `*.flyweb.lamosquita.net`
-(pendiente de `docs/SERVIDOR.md` §6). Cambios aplicados: [`CAMBIOS.md`](CAMBIOS.md).
+Informe de SERVIDOR-LOCAL, **05-10-2026, 14:30**. **Fuente: ns1 y ns2**, mirados desde dentro como usuario `servidor` (solo
+lectura; comprobaciones web desde el propio ns2 con `--resolve …:443:127.0.0.1`). Cambios aplicados: [`CAMBIOS.md`](CAMBIOS.md).
 
 ## Servicios
 
 | Servicio | En producción | Qué falta |
 |---|---|---|
-| `flyweb.lamosquita.net` (web) | Sí, desde el 04-10: FlyWeb 1.0 (DMG + SHA-256), descarga y privacidad provisionales. Registros **con IP**, 14 días | Diseño (W1); revisión legal del texto de privacidad; que la página cuente sync. antes de abrirlo a otros |
-| `components.` (go-update + firmador en bak) | Sí, desde el 03-10: 15 elementos (Shields propios + 7 de Google en espejo); `_estado.json` con 0 fallos | 3 componentes de Brave sin servir (Local Data Updater, NTP Background Images, HTTPS Everywhere; decide NUBE). Suma del binario en producción sin anotar |
-| `proxy.` (Safe Browsing, diccionarios) | Sí, desde el 03-10: diccionarios funcionan | **Safe Browsing no funciona**: Google da 403 porque ns2 sale por IPv6 y la clave solo admite la IPv4. Falta que el HUMANO añada la IPv6 a la restricción de la clave |
-| `updates.` (Sparkle) | Vhost y subida desde bak (04-10) listos; firmador y clave EdDSA en bak | Primera versión publicada así (1.0.1, a mano una vez). Copia cifrada de `actualizaciones.pem` fuera de bak (**si se pierde, ningún FlyWeb instalado acepta actualizaciones**) |
-| `sync.` (flyweb-sync) | No. El nombre aún no resuelve | SV.1: `sync/instalar-ns2.md` |
+| `flyweb.lamosquita.net` (web) | 200. Ofrece **FlyWeb 1.0** (`descargas/FlyWeb-1.0.dmg`, sha `2b932fc5…`). Registros con IP, 14 días | SV.3: publicar la 1.1.2 (PR #73) |
+| `components.` (go-update) | `flyweb-components` activo y habilitado, solo `127.0.0.1:8192`; binario `0e776013…` (= release `go-update` anotada); unidad = `systemd/flyweb-components.service` (`84d379be…`). `/extensions` sin clave → 403; `_estado.json` 200, firma de bak de las 05:27 | Nada urgente; ver hallazgos 1 y 3 |
+| `proxy.` (Safe Browsing, diccionarios) | **Safe Browsing funciona desde el 05-10, 14:12** (clave nueva con IPv4 e IPv6 de ns2; `threatListUpdates:fetch` → 200). Raíz 404 | — |
+| `updates.` (Sparkle) | appcast 200. DMG en `updates/`: 1.0.1, 1.1, 1.1.1, 1.1.2 | Ver hallazgo 2 |
+| `sync.` (flyweb-sync) | **No**: sin DNS, sin unidad ni binario | SV.1 |
 
-## Riesgos, por prioridad
+Certificado `flyweb.lamosquita.net`: 4 nombres (`flyweb.`, `components.`, `proxy.`, `updates.`), ECDSA, caduca el **1-01-2027**
+(88 días). Para `sync.` habrá que ampliarlo (HUMANO). DNS en ns1 (`/etc/bind/zones/lamosquita.net.hosts`, `7a9fc590…`): A de
+los cuatro nombres → 51.91.19.170, TTL 3600; sin AAAA; sin `sync.`.
 
-1. **Clave EdDSA de actualizaciones sin copia** fuera de bak. Pérdida = reinstalar a mano en cada Mac. Es lo más
-   caro de todo lo pendiente y lo más barato de evitar.
-2. **Safe Browsing apagado de hecho** en todos los FlyWeb mientras dure el 403. La protección contra phishing no
-   llega. Además, ns2 sale por la *Subnet-Router anycast* del /64 (`…:54aa::`, RFC 4291 §2.6.1), poco adecuada
-   para un host (los routers del enlace también responden a ella): conviene una fija propia (p. ej. `::1`) y esa en la
-   restricción de la clave.
-3. **Lo que hay en ns2 y lo que dice el repo ya no coincide** (contra el E1 de la carta): `e0/logrotate/flyweb` dice 7
-   días y ns2 tiene 14 para la web; ni la suma del binario de go-update ni la del vhost de `proxy.` instalado están
-   anotadas. Sin ejecutor (`flyweb-deploy`) ni `/var/log/flyweb-deploy/`, el rastro es solo lo que se anota a mano.
-4. **Releases mutables**: `go-update` y `flyweb-sync` se reescriben en cada fusión (`--clobber`); una instalación que
-   compara con la `.sha256` de la propia release no prueba nada. Hay que fijar la suma en el repo (hecho para sync).
-5. **Cuota de la clave de Safe Browsing**: cualquiera que conozca `proxy.` puede gastarla (riesgo ya asumido; vigilar).
-6. **fail2ban no mira los puertos 80** de ningún sitio de ns2 (solo CrowdSec). Es del agente de auditoría.
-7. **Acceso entrante nuevo a ns2**: `flywebsubida` (SSH desde bak, `rrsync` de solo escritura en una carpeta). Está
-   bien acotado, pero conviene que la auditoría lo conozca y que la clave sea `restrict` en `authorized_keys`.
+## Qué coincide con el repo (E1)
 
-## Qué propongo (por orden)
+| | Producción | Repo |
+|---|---|---|
+| Vhost de FlyWeb en `lamosquita.conf` (`c2dfcefd…`) | 8 vhost (80 y 443 de web, `updates.`, `components.`; `proxy.`) | `e0/apache/flyweb-vhosts.conf` + `flyweb-proxy-vhost.conf`: **iguales** salvo comentarios (tras este PR) |
+| `/etc/systemd/system/flyweb-components.service` | `84d379be…` | `systemd/flyweb-components.service`: **igual** |
+| `/etc/logrotate.d/flyweb` | `2d7266ee…` | `e0/logrotate/flyweb`: **igual** (tras este PR) |
+| `/opt/flyweb-components/flyweb-components` | `0e776013…` | `CAMBIOS.md`: igual |
+| Módulos | `ssl`, `headers`, `http2`, `proxy`, `proxy_http`, `rewrite` | `e0/README.md` |
+| Ficheros de claves | `/etc/apache2/flyweb-{components,proxy}-keys.conf`, root 0600 | Fuera del repo (modelos `.ejemplo`) |
 
-1. HUMANO: copia cifrada de `actualizaciones.pem` fuera de bak.
-2. HUMANO: IPv6 de ns2 en la restricción de la clave de Safe Browsing (o una IPv6 fija de salida), y LOCAL repite la
-   prueba de `/v4/threatListUpdates:fetch`.
-3. HUMANO: SV.1 (sync), con `sync/instalar-ns2.md`.
-4. SERVIDOR (E1): poner al día `e0/` con lo que hay en ns2. Para eso, el HUMANO pasa las sumas (no son secretas):
-   `sha256sum /opt/flyweb-components/flyweb-components /etc/logrotate.d/flyweb /etc/systemd/system/flyweb-*.service`.
-5. Después: ejecutor `flyweb-deploy` (E2), para que el rastro deje de ser manual.
+## Hallazgos, por prioridad
+
+1. **Una IP de cliente en un registro «sin IP».** `components/apache_error.log` tiene una línea `AH01095` (mod_proxy:
+   «prefetch request body failed … from <IP>») con una **IP pública** de un cliente (05-10, 02:06). `ErrorLogFormat` quita
+   `[client …]`, pero mod_proxy mete la IP **dentro del mensaje**. Rompe la promesa de privacidad, aunque sea raro (cliente
+   que corta la conexión) y se borre a los 7 días. **Propuesta E2:** `LogLevel proxy:crit proxy_http:crit` en los vhost de
+   `components.`, `proxy.` y `sync.` (o filtrar el mensaje), y borrar esa línea.
+2. **El appcast lista versiones malas.** bak vuelve a escribir la 1.1 (retirada: rompía perfiles) y la 1.1.1 con la firma de
+   un DMG que ya no existe (`length` 163576123; el DMG actual mide 163573570). Sparkle coge la 1.1.2, así que hoy no afecta;
+   pero si alguna vez se retirara la 1.1.2, los Mac recibirían la 1.1.1 con firma mala (fallo) o la 1.1. **HUMANO, en bak:**
+   quitar 157.64.2 y 157.64.3 del estado de `firmar-actualizacion.mjs`.
+3. **Sobrante en el vhost de `components.`:** un bloque de `updates.` (tipo `.dmg`, caché de DMG y `appcast.xml`). No tiene
+   efecto. Reproducido en `e0/` con un comentario; **propuesta E2:** quitarlo.
+4. **Registros de FlyWeb legibles por cualquier usuario de ns2** (`/var/log/flyweb/*/*.log`, root 0644; los de la web
+   llevan IP). ns2 aloja más sitios y usuarios (`sftp_users`). **Propuesta E2:** `create 0640 root adm` en
+   `logrotate/flyweb` y `chmod 0640` de los actuales.
+5. **IPv6 de ns2:** la única global es `2001:41d0:203:54aa::/64` (la *Subnet-Router anycast*, RFC 4291 §2.6.1). Funciona,
+   pero conviene una propia (p. ej. `::1`) antes de publicar AAAA. HUMANO, sin prisa.
+6. **Sin rastro de despliegue:** `/var/log/flyweb-deploy/` no existe hasta el primer uso de `flyweb-desplegar`.
+7. **Incidente del 05-10:** `apachectl -S` imprimió las claves (`CAMBIOS.md`). Resuelto con una clave de Safe Browsing nueva;
+   este PR quita `apachectl -S` de `sudoers-ns2` (lo instala el HUMANO). La clave de servicio de `components.`: decisión del
+   HUMANO.
+
+## Siguiente
+
+- HUMANO: instalar el `sudoers-ns2` de este PR; bak (hallazgo 2); decidir la clave de servicio.
+- SERVIDOR-LOCAL, tras la revisión de SERVIDOR-NUBE: PR E2 con los hallazgos 1, 3 y 4; SV.1 y SV.3 cuando el tablero los pase.
