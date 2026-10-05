@@ -1,4 +1,4 @@
-# Destino: /etc/systemd/system/flyweb-sync.service  (PROPUESTA de NUBE, 03-10; la instala el HUMANO o LOCAL)
+# Destino: /etc/systemd/system/flyweb-sync.service  (NUBE 03-10, revisada por SERVIDOR 05-10; pasos: sync/instalar-ns2.md)
 # Sincronización de FlyWeb (FlyWeb/servidor/sync): un binario estático y un fichero SQLite, solo en 127.0.0.1,
 # sin red saliente. Delante, Apache: sync.flyweb.lamosquita.net (e0/apache/flyweb-sync-vhost.conf).
 [Unit]
@@ -19,7 +19,7 @@ StateDirectoryMode=0700
 Restart=on-failure
 MemoryMax=512M
 
-# Endurecimiento (igual que flyweb-components.service)
+# Endurecimiento (el de flyweb-components.service, más ProtectKernelLogs)
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
@@ -27,6 +27,7 @@ PrivateTmp=yes
 PrivateDevices=yes
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
+ProtectKernelLogs=yes
 ProtectControlGroups=yes
 ProtectClock=yes
 ProtectHostname=yes
