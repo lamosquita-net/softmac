@@ -25,6 +25,8 @@ cat ~/.ssh/servidor_ed25519.pub                                               # 
 ```
 En `~/.ssh/config`: `Host ns2` / `HostName ns2.lamosquita.net` / `User servidor` / `IdentityFile ~/.ssh/servidor_ed25519`
 (y lo mismo con `ns1`).
+**Hecho el 05-10-2026** (SERVIDOR-LOCAL): sin frase de paso (el agente la usa sin el HUMANO delante), huella
+`SHA256:XEaTXR7hNvPaycMS30/3U2hwkVB8Xu3FpvQWkB+8Jxg`; `Host ns1` y `Host ns2` ya en `~/.ssh/config`.
 
 **2. En ns2:**
 ```sh
@@ -32,15 +34,21 @@ sudo adduser --disabled-password --gecos "Agente SERVIDOR (FlyWeb)" servidor
 sudo usermod -aG adm,systemd-journal servidor
 sudo install -d -m 0700 -o servidor -g servidor ~servidor/.ssh
 # Una línea en ~servidor/.ssh/authorized_keys (0600, de servidor):
-#   from="<IP pública de la 7,1>",no-agent-forwarding,no-X11-forwarding,no-port-forwarding ssh-ed25519 AAAA… servidor@macpro71
+#   no-agent-forwarding,no-X11-forwarding,no-port-forwarding ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL5nHaEAsnoKTAbyAZhVOGtqIbfWbZJlvcmQK9iOVNI7 servidor@macpro71
 sudo visudo -cf sudoers-ns2 && sudo install -m 0440 -o root -g root sudoers-ns2 /etc/sudoers.d/flyweb-servidor
 sha256sum flyweb-desplegar      # comparar con la del PR
 sudo install -m 0755 -o root -g root flyweb-desplegar /usr/local/sbin/flyweb-desplegar
 ```
-Si `AllowUsers` o `AllowGroups` están en `sshd_config`, añadir `servidor`. fail2ban y CrowdSec no cambian: la IP de la 7,1
-ya está en tu lista blanca.
+Si `AllowUsers` o `AllowGroups` están en `sshd_config`, añadir `servidor`. fail2ban y CrowdSec no cambian: la oficina ya
+está en su lista blanca por nombre (`lamosquita5g.duckdns.org`, que fail2ban vuelve a resolver en cada comprobación;
+verificado en la auditoría de los servidores).
 
-**3. En ns1:** igual que en ns2 (usuario, `.ssh`, `authorized_keys` con `from=`), sin grupos extra. Cambia `<ZONA>`
+**Sin `from=`:** la IP de la 7,1 es dinámica (5G) y cambia a menudo. `from=` solo admite nombres si sshd hace búsqueda
+inversa (`UseDNS yes`, apagado en Ubuntu), y la inversa de una IP de 5G es el nombre del operador, no el de DuckDNS, así
+que un `from=` con IP fija dejaría fuera al agente y uno con nombre no casaría nunca. Lo que acota la clave: la privada
+solo existe en la 7,1 (0600), las opciones de arriba y la lista cerrada de `sudoers`.
+
+**3. En ns1:** igual que en ns2 (usuario, `.ssh`, la misma línea en `authorized_keys`), sin grupos extra. Cambia `<ZONA>`
 en `sudoers-ns1` por la ruta real del fichero de zona, comprueba con `visudo -cf` e instala.
 
 **4. Comprobar** (desde la 7,1):

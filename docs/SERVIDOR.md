@@ -24,7 +24,7 @@ Este documento es su punto de partida. Debe leerlo, junto con [`TAREAS.md`](TARE
    y lo que no esté en `FlyWeb/servidor/acceso/sudoers-*` siguen siendo del HUMANO.
 2. **Todo pasa por el repo.** Configuración, scripts y documentación viven en `FlyWeb/servidor/`. Un cambio es un PR;
    lo que se ejecuta en ns2 es siempre un commit concreto e identificable.
-3. **Acceso mínimo.** SERVIDOR-LOCAL entra con su propio usuario `servidor`, clave solo en la 7,1 (`from=` su IP) y la
+3. **Acceso mínimo.** SERVIDOR-LOCAL entra con su propio usuario `servidor`, clave solo en la 7,1 (sin `from=`: IP dinámica; ver `acceso/README.md`) y la
    lista cerrada de `sudoers` (`FlyWeb/servidor/acceso/`). Nunca con el usuario del HUMANO ni con sudo total.
 4. **Mínimo privilegio.** Servicio con usuario propio sin privilegios, escuchando solo en `127.0.0.1`, con el
    endurecimiento de systemd. Nada se compila en ns2: los binarios llegan compilados en CI con su suma SHA-256.
