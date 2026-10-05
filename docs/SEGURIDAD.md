@@ -52,6 +52,8 @@ límites que NUBE: no compila Chromium ni ejecuta nada de macOS.
   brave-core aplicados → aplicar el commit → `git diff --full-index` contra la 116 original. Es el método de NUBE en
   la Fase M (`FlyWeb/docs/motor.md`).
 - V8: la 116 lleva V8 11.6.189.20; sus parches van en `patches/v8/` contra esa versión. Ojo: algunas funciones de la 11.6 detrás de flags son esqueletos (`TODO` en el `.tq`); no darlas por implementadas.
+- **Todo parche en `patches/v8/` sube `kFlyWebCacheEpoch`** (`patches/v8/src-utils-version.h.patch`); si no, la caché de
+  código de la versión anterior se acepta y las webs con JIT caen (fallo de la 1.1, `motor.md` principio 10).
 
 ## Primera tarea (05-10-2026): FS.1
 
