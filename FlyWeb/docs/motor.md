@@ -197,6 +197,23 @@ Lo Baseline que Chrome 121 publicó (web-features): `Array.fromAsync`, `scrollba
   la de *iterator helpers* apagados) y `FlyWeb/tools/wpt-121-lista.txt` (29 ficheros).
 - **Declarado 121 / FlyWeb 1.5** en 509bd3a3.
 
+## Nivel 122 (inventario, 05-10; sin portar)
+
+Lo Baseline que Chrome 122 publicó (web-features): **métodos de iteradores** (*iterator helpers*: `Iterator.prototype.map`,
+`filter`, `take`…) y **métodos de `Set`** (`union`, `intersection`, `difference`…). Los dos son de JavaScript y vienen de
+serie en la **V8 12.2.281.22** (la de Chrome 122.0.6261.128, que es también la base de Brave 1.63): en la 12.2
+`harmony_iterator_helpers` y `harmony_set_methods` están en *shipping*. **No hay trabajo de Blink por funciones.**
+
+- **V8 12.1 → 12.2:** quita `V8InspectorSession::CommandLineAPIScope` / `initializeCommandLineAPIScope()`, que usa
+  `core/inspector/inspector_page_agent.cc` de la 116 (solo DevTools: `Page.addScriptToEvaluateOnNewDocument` con
+  `includeCommandLineAPI`). Hay que portar el cambio de Chromium que lo sustituye por `V8InspectorSession::evaluate()`;
+  sin él no compila. Ninguna otra API pública quitada (nombres de `include/`).
+- **`chromium_src/v8` de Brave:** el de Brave 1.63.184 es igual que el de la 1.62 (nivel 121).
+- **Fuera (no Baseline):** Storage Buckets y lectura de portapapeles sin sanear (solo Chrome).
+- **Al portar:** *iterator helpers* encendidos a partir de este nivel (como Chrome 122); quitar el apagado del 118 no
+  hace falta (en la 11.9–12.1 ya venían apagados de serie y la 12.2 los trae encendidos). SEGURIDAD: FS.4 añade la 12.2.
+- **Coste estimado:** pequeño (V8 + un arreglo de Blink en el inspector); el grueso es la parte de seguridad.
+
 ## Inventario: CSS Baseline publicado después de la 116
 
 Datos de [web-features](https://www.npmjs.com/package/web-features) 3.40.1 (el catálogo de Baseline) y del fichero de
