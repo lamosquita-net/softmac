@@ -6,3 +6,9 @@ css/css-transforms/parsing/transform-box-valid.html
 css/css-typed-om/stylevalue-subclasses/numeric-objects/numeric-factory.tentative.html
 css/css-values/cap-invalidation.html
 css/css-values/rcap-invalidation.html
+css/css-logical/logical-values-float-clear.html
+html/canvas/element/text/2d.text.measure.baselines.html
+html/canvas/offscreen/text/2d.text.measure.baselines.html
+svg/embedded/image-crossorigin.sub.html
+html/browsers/browsing-the-web/history-traversal/popstate_event.html
+navigation-api/navigate-event/navigate-navigation-back-same-document.html

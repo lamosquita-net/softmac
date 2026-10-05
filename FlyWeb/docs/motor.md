@@ -72,6 +72,14 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    está dentro de Chromium y depende de `content/`, `cc`/`viz`, `gpu`, Mojo y `base` de la misma versión. Cambiarlo
    entero es subir Chromium, que es justo lo que no funciona en Mojave (principio 1). En Blink se sigue portando
    función a función.
+12. **Las subfunciones cuentan (decisión del HUMANO, 05-10; FM.8):** un nivel N no está completo con las funciones
+   nuevas de web-features; también hacen falta las **subfunciones** Baseline que Chrome publicó en la N (`by_compat_key`
+   de web-features: partes nuevas de funciones que ya existían, como `float: inline-start` o las opciones de
+   `checkVisibility()`). Si la función completa es Baseline más tarde (colores relativos → 125, `@scope`), la
+   subfunción va con el nivel de la función. El inventario de cada nivel se hace con las dos listas y con los flags que
+   pasan a `stable` en `runtime_enabled_features.json5` entre la N−1 y la N (las versiones de BCD no siempre son exactas).
+   Los niveles 117–121 se hicieron sin esto: se completan con un commit más por rama (opción A del HUMANO, aceptando una
+   compilación más por nivel).
 
 ## Tipos de trabajo y coste estimado
 
@@ -107,6 +115,9 @@ compara Sparkle) sube en cada versión publicada: 1.0 = 0, 1.0.1 = 1, 1.1 = 2. A
 - **Coste real del nivel 117:** 5 flags + 1 porte pequeño (`light-dark()`) + 1 porte de V8 + 1 porte de 3 commits + 10
   arreglos. Todo aplicó sobre la 116 sin reescribir nada: buena señal para los niveles 118–120.
 - **Comprobación:** `FlyWeb/tools/motor-117.html` y las web-platform-tests enlazadas en la página.
+- **Subfunciones (FM.8, `nube/motor-117` bf7c3bcf):** `font-variant-position`, `URLSearchParams.has()`/`delete()` con valor
+  y `<mtd columnspan/rowspan>` de MathML. **Excepción:** `Intl.PluralRules` con `roundingMode` es de V8 (c63522b, un
+  refactor de `Intl.NumberFormat`) y no se porta a la 11.6: llega con la V8 11.8 del nivel 118.
 
 ## Nivel 118 (hecho en código, 05-10; pendiente de compilar y probar → FlyWeb 1.2)
 
@@ -125,6 +136,9 @@ Lo Baseline que Chrome 118 publicó (web-features): **unidades `cap` y `rcap`**,
 - **Comprobación:** `FlyWeb/tools/motor-118.html` (15 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
   `FlyWeb/tools/wpt-118-lista.txt` con las herramientas de LOCAL. **Además**, por el riesgo del SVG: `motor-117.html` sigue
   14/14 y un repaso de webs con mucho SVG (iconos, gráficos, mapas).
+- **Subfunciones (FM.8, fb0feba6):** `float`/`clear` con `inline-start`/`inline-end` (`CSSLogical`), líneas base de
+  `TextMetrics`, `hasUAVisualTransition` en `PopStateEvent`/`NavigateEvent` y `crossOrigin` en `<image>` de SVG.
+  `Intl.PluralRules` con `roundingMode` viene en la V8 11.8.
 
 ## Nivel 119 (en código, 05-10; pendiente de compilar → FlyWeb 1.3)
 
@@ -151,6 +165,7 @@ y referencias tipadas a funciones.
 - **Comprobación:** `FlyWeb/tools/motor-119.html` (17 comprobaciones; en Chromium 141, 16 «ok» y la del UA) y
   `FlyWeb/tools/wpt-119-lista.txt`.
 - **Declarado 119 / FlyWeb 1.3** en 625b048e (paso 59; se revierte solo si el nivel no pasa).
+- **Subfunciones (FM.8):** ninguna propia; las de colores relativos van con el nivel 125 (principio 12).
 
 ## Nivel 120 (en código, 05-10; pendiente de compilar → FlyWeb 1.4)
 
@@ -177,6 +192,10 @@ prefijo, el nesting relajado, `@media (scripting)`, `URL.canParse`, `<details na
   `FlyWeb/tools/wpt-120-lista.txt` (46 ficheros). Los `.any.js`/`.window.js` necesitan su `.html`:
   `wpt-envolver.py <raíz de wpt>` los crea como wptserve antes de `python3 -m http.server`.
 - **Declarado 120 / FlyWeb 1.4** en 2b57270e (paso 66; se revierte solo si el nivel no pasa).
+- **Subfunciones (FM.8, aa62a9d7):** `IntersectionObserver` con `scrollMargin` (adaptado a la geometría de la 116; sin
+  el arreglo de scrollers anidados 569bff082e2b, que pide una `RootAndTarget` más nueva: con `scrollMargin` no se usan
+  rectángulos en caché; sin él, nada cambia) y `document.fonts.check()` según la spec nueva. El atributo `mask` de SVG
+  ya vino con las máscaras. Puede que `scroll-margin-nested.html` de WPT no salga igual que en Chrome 120.
 
 ## Nivel 121 (en código, 05-10; pendiente de compilar → FlyWeb 1.5)
 
@@ -196,6 +215,10 @@ Lo Baseline que Chrome 121 publicó (web-features): `Array.fromAsync`, `scrollba
 - **Comprobación:** `FlyWeb/tools/motor-121.html` (11 comprobaciones; en Chromium 141 fallan, como deben, la del UA y
   la de *iterator helpers* apagados) y `FlyWeb/tools/wpt-121-lista.txt` (29 ficheros).
 - **Declarado 121 / FlyWeb 1.5** en 509bd3a3.
+- **Subfunciones (FM.8, 58086979):** opciones nuevas de `checkVisibility()` (`contentVisibilityAuto`, `opacityProperty`,
+  `visibilityProperty`), números en `hsl()`/`hwb()` con la sintaxis moderna (escrito para el parser de colores de la
+  116) y `@import … supports()` con `CSSImportRule.supportsText` (el análisis queda en *experimental*, como en Chrome
+  121; lo enciende el 122).
 
 ## Nivel 122 (inventario, 05-10; sin portar)
 
@@ -213,6 +236,10 @@ serie en la **V8 12.2.281.22** (la de Chrome 122.0.6261.128, que es también la 
 - **Al portar:** *iterator helpers* encendidos a partir de este nivel (como Chrome 122); quitar el apagado del 118 no
   hace falta (en la 11.9–12.1 ya venían apagados de serie y la 12.2 los trae encendidos). SEGURIDAD: FS.4 añade la 12.2.
 - **Coste estimado:** pequeño (V8 + un arreglo de Blink en el inspector); el grueso es la parte de seguridad.
+- **Subfunciones (FM.8), a portar con el nivel:** `align-self`/`justify-self` en cajas con posición absoluta
+  (`LayoutAlignForPositioned`), herencia de `::backdrop` (`BackdropInheritOriginating`), `@import … supports()`
+  encendido (`CSSSupportsForImportRules`, el código ya está desde el 121), `URLPattern.hasRegExpGroups`, `rgb()` con
+  números y porcentajes mezclados en la sintaxis moderna. Los colores relativos en `rgb()`/`oklab()`/`oklch()` van al 125.
 
 ## Inventario: CSS Baseline publicado después de la 116
 

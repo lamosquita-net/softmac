@@ -74,6 +74,23 @@
     // Origen en (10,10) del borde: la caja escalada x2 empieza en -10px respecto a la zona.
     return { ok: Math.round(r.left - z.left) === -10, nota: `izquierda ${Math.round(r.left - z.left)}px` };
   });
+  // Subfunciones Baseline del nivel (FM.8, principio 12 de motor.md).
+  prueba('float/clear: inline-start e inline-end', () => s('float', 'inline-start') && s('clear', 'inline-end'));
+  prueba('TextMetrics: alphabeticBaseline, hangingBaseline, ideographicBaseline', () => {
+    const m = document.createElement('canvas').getContext('2d').measureText('x');
+    return ['alphabeticBaseline', 'hangingBaseline', 'ideographicBaseline'].every((k) => typeof m[k] === 'number');
+  });
+  prueba('PopStateEvent/NavigateEvent: hasUAVisualTransition', () =>
+    new PopStateEvent('popstate', { hasUAVisualTransition: true }).hasUAVisualTransition === true &&
+    'hasUAVisualTransition' in (window.NavigateEvent ? NavigateEvent.prototype : { hasUAVisualTransition: 0 }));
+  prueba('SVG <image crossorigin>', () => {
+    const i = document.createElementNS('http://www.w3.org/2000/svg', 'image'); i.crossOrigin = 'x';
+    return { ok: i.crossOrigin === 'anonymous' && i.getAttribute('crossorigin') === 'x', nota: String(i.crossOrigin) };
+  });
+  prueba('Intl.PluralRules con roundingMode (V8 11.8)', () => {
+    const r = new Intl.PluralRules('en', { maximumFractionDigits: 0, roundingMode: 'floor' }).select(1.9);
+    return { ok: r === 'one', nota: r };
+  });
   prueba('User-Agent declara Chrome/118', () => {
     const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '118', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
   });

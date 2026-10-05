@@ -64,6 +64,17 @@
   });
   prueba('Iterator helpers siguen apagados (como Chrome 121)', () => typeof Iterator === 'undefined' || typeof Iterator.prototype?.map !== 'function');
   prueba('V8 12.1 o posterior', () => typeof Array.fromAsync === 'function');
+  // Subfunciones Baseline del nivel (FM.8, principio 12 de motor.md).
+  prueba('checkVisibility({opacityProperty})', () => {
+    const e = document.createElement('div'); e.style.opacity = '0'; e.textContent = 'x'; document.getElementById('zona').append(e);
+    const r = e.checkVisibility({ opacityProperty: true }) === false && e.checkVisibility() === true; e.remove(); return r;
+  });
+  prueba('checkVisibility({visibilityProperty})', () => {
+    const e = document.createElement('div'); e.style.visibility = 'hidden'; e.textContent = 'x'; document.getElementById('zona').append(e);
+    const r = e.checkVisibility({ visibilityProperty: true }) === false; e.remove(); return r;
+  });
+  prueba('hsl() y hwb() con números en la sintaxis moderna', () => s('color', 'hsl(120 50 50)') && s('color', 'hwb(120 10 10)') && !s('color', 'hsl(120, 50, 50)'));
+  prueba('CSSImportRule.supportsText', () => 'supportsText' in CSSImportRule.prototype);
   prueba('User-Agent declara Chrome/121', () => {
     const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '121', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
   });
