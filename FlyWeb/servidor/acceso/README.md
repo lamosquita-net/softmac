@@ -30,14 +30,18 @@ En `~/.ssh/config`: `Host ns2` / `HostName ns2.lamosquita.net` / `User servidor`
 
 **2. En ns2:**
 ```sh
+# Primero, descargar los ficheros de un commit fijo de main (C = el último commit que los cambió):
+C=3bcd074292ba73230bcfd9df1730b3000ed66bca
+R=https://raw.githubusercontent.com/lamosquita-net/softmac/$C/FlyWeb/servidor/acceso
+mkdir -p ~/flyweb-acceso && cd ~/flyweb-acceso && curl -fsSLO "$R/flyweb-desplegar" && curl -fsSLO "$R/sudoers-ns2"
 sudo adduser --disabled-password --gecos "Agente SERVIDOR (FlyWeb)" servidor
 sudo usermod -aG adm,systemd-journal servidor
 sudo install -d -m 0700 -o servidor -g servidor ~servidor/.ssh
 # Una línea en ~servidor/.ssh/authorized_keys (0600, de servidor):
 #   no-agent-forwarding,no-X11-forwarding,no-port-forwarding ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL5nHaEAsnoKTAbyAZhVOGtqIbfWbZJlvcmQK9iOVNI7 servidor@macpro71
 sudo visudo -cf sudoers-ns2 && sudo install -m 0440 -o root -g root sudoers-ns2 /etc/sudoers.d/flyweb-servidor
-sha256sum flyweb-desplegar      # comparar con la del PR
-sudo install -m 0755 -o root -g root flyweb-desplegar /usr/local/sbin/flyweb-desplegar
+echo "4583f87e9b12df4f5c1e42f7f298f446b814db0537ea5ad2ce88c8633067556b  flyweb-desplegar" | sha256sum -c \
+  && sudo install -m 0755 -o root -g root flyweb-desplegar /usr/local/sbin/flyweb-desplegar
 ```
 Si `AllowUsers` o `AllowGroups` están en `sshd_config`, añadir `servidor`. fail2ban y CrowdSec no cambian: la oficina ya
 está en su lista blanca por nombre (`lamosquita5g.duckdns.org`, que fail2ban vuelve a resolver en cada comprobación;
@@ -48,7 +52,7 @@ inversa (`UseDNS yes`, apagado en Ubuntu), y la inversa de una IP de 5G es el no
 que un `from=` con IP fija dejaría fuera al agente y uno con nombre no casaría nunca. Lo que acota la clave: la privada
 solo existe en la 7,1 (0600), las opciones de arriba y la lista cerrada de `sudoers`.
 
-**3. En ns1:** igual que en ns2 (usuario, `.ssh`, la misma línea en `authorized_keys`), sin grupos extra. Cambia `<ZONA>`
+**3. En ns1:** igual que en ns2 (descargando `sudoers-ns1` del mismo `C`) (usuario, `.ssh`, la misma línea en `authorized_keys`), sin grupos extra. Cambia `<ZONA>`
 en `sudoers-ns1` por la ruta real del fichero de zona, comprueba con `visudo -cf` e instala.
 
 **4. Comprobar** (desde la 7,1):
