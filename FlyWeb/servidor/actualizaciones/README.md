@@ -20,7 +20,7 @@ MacPro7,1 (LOCAL)                             bak (HUMANO aprueba)              
                                     firmar-actualizacion.mjs: descarga el DMG de ns2,
                                     comprueba SHA-256 + versión aprobados, firma (ed25519)
                                     y genera el appcast                    ──rsync──►  /var/www/FlyWeb/updates/stable/appcast.xml
-FlyWeb (una vez al día) ◄────────────────────────────────────────────────────────────── appcast + DMG
+FlyWeb (cada 3 horas)   ◄────────────────────────────────────────────────────────────── appcast + DMG
  Sparkle comprueba: firma EdDSA con SUPublicEDKey, Developer ID igual que el instalado → instala al reiniciar
 ```
 
@@ -32,7 +32,8 @@ FlyWeb (una vez al día) ◄─────────────────�
 - **Nada se publica sin el HUMANO:** bak solo firma un DMG cuyo SHA-256 y versión estén en un fichero de root.
 - **Versiones:** la base de Brave sigue en 1.57.64 (`CFBundleVersion` 157.64). Cada versión de FlyWeb añade
   `FLYWEB_BUILD_NUMBER` → 157.64.1, 157.64.2… El firmador rechaza una versión que no sea posterior a la publicada.
-- **Privacidad:** Sparkle pide `https://updates.flyweb.lamosquita.net/stable/appcast.xml` una vez al día, sin datos
+- **Privacidad:** Sparkle pide `https://updates.flyweb.lamosquita.net/stable/appcast.xml` cada 3 horas (el intervalo del código de brave-core, comprobado
+  por SERVIDOR-LOCAL el 05-10; antes aquí ponía «una vez al día»), sin datos
   del sistema (`SUEnableSystemProfiling` = false); el vhost no guarda IP. Ya está en el texto de privacidad.
 - **Sparkle 1.24.3** (el que trae Brave 1.57) funciona en 10.9 o superior. Sus fallos conocidos posteriores son de
   escalada local (otro usuario del mismo Mac), no remotos. Riesgo asumido; subir a Sparkle 2 obligaría a reescribir
@@ -88,9 +89,24 @@ en ns2.
    Mac con la versión anterior (desde la 1.0.1): `flyweb://settings/help` → «Buscar actualizaciones» → descarga, pide
    reiniciar y, tras reiniciar, `flyweb://version` dice 157.64.N. Probar en la 6,1 (Mojave).
 
-**Si algo sale mal:** retirar la versión es publicar una posterior (Sparkle nunca baja de versión). Para parar las
-actualizaciones al momento, en ns2 dejar el appcast anterior (`/var/lib/flyweb-firma/actualizaciones/stable/` tiene
-el estado; el appcast de ns2 se puede restaurar a mano).
+## Retirar una versión (HUMANO, en bak)
+
+Si una versión publicada tiene fallos, `retirar` la quita del appcast para que **ningún Mac nuevo la reciba**:
+
+```sh
+sudo -u flywebfirma node /opt/flyweb-firma/firmar-actualizacion.mjs retirar --version 157.64.N \
+  --salida /var/lib/flyweb-firma/actualizaciones --subir ns2-updates
+```
+
+- Guarda el estado anterior (`stable/appcast.json.<fecha>`), anota la versión en `stable/retiradas.json`, regenera el
+  appcast y lo sube a ns2. Para deshacer: copiar ese `appcast.json.<fecha>` sobre `appcast.json`, borrar la entrada de
+  `retiradas.json` y volver a generar con la siguiente firma (o pedírselo a SERVIDOR-NUBE).
+- **Sparkle nunca baja de versión:** los Mac que ya la tienen se quedan en ella hasta que se publique una posterior. La
+  corrección es siempre **una versión nueva con número nuevo**: `firmar` no acepta un número igual o inferior al más alto
+  publicado, aunque se haya retirado.
+- **Limpieza del 05-10** (1.1 con fallos y 1.1.1 con la firma de un DMG perdido): `retirar --version 157.64.3` y
+  después `retirar --version 157.64.2`. Comprobar: `curl -s https://updates.flyweb.lamosquita.net/stable/appcast.xml |
+  grep -o 'sparkle:version="[^"]*"'` → solo `157.64.4` y `157.64.1`.
 
 ## Pruebas
 

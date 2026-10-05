@@ -14,38 +14,49 @@
 # Pruebas: tools/run-tests.py --outdir=out/x64 'mjsunit/compiler/*' (aplica las // Flags: de cada fichero).
 set -euo pipefail
 
-V8_TAG=11.6.189.20
 CR_TAG=116.0.5845.188
-GTEST_REV=af29db7ec28d6df1c7f0f745186884091e602e07  # el del DEPS de la 11.6
 
 W=${1:?uso: v8-d8.sh <carpeta> [<brave-core>]}
 BC=${2:-}
 mkdir -p "$W"
 W=$(cd "$W" && pwd)
 
+# V8: la de FlyWeb/v8-revision de la rama de brave-core (niveles 118+, FM.5); si no hay, la de la 116.
+V8_REV=11.6.189.20
+if [ -n "$BC" ] && [ -f "$BC/FlyWeb/v8-revision" ]; then
+  V8_REV=$(grep -v '^#' "$BC/FlyWeb/v8-revision" | grep -m1 -o '[0-9a-f.]\{7,\}')
+fi
+echo "V8: $V8_REV"
+
 if [ ! -d "$W/v8/.git" ]; then
   git init -q "$W/v8"
-  git -C "$W/v8" fetch -q --depth=1 https://github.com/v8/v8 "refs/tags/$V8_TAG"
+  case "$V8_REV" in
+    *.*) git -C "$W/v8" fetch -q --depth=1 https://github.com/v8/v8 "refs/tags/$V8_REV" ;;
+    *) git -C "$W/v8" fetch -q --depth=1 https://github.com/v8/v8 "$V8_REV" ;;
+  esac
   git -C "$W/v8" checkout -q -b flyweb-backports FETCH_HEAD
 fi
 
 # Directorios de Chromium que la V8 trae por DEPS: los de la propia 116 (mismo build/ y misma configuración de clang).
-if [ ! -d "$W/chromium/build" ]; then
+# abseil-cpp: la piden las V8 de los niveles 118+ (11.8 en adelante).
+CR_DIRS="build buildtools tools/clang base/trace_event/common third_party/zlib third_party/jinja2 third_party/markupsafe
+  third_party/abseil-cpp"
+if [ ! -d "$W/chromium/.git" ]; then
   git clone -q --filter=blob:none --no-checkout --depth=1 --branch "$CR_TAG" \
     https://github.com/chromium/chromium "$W/chromium"
-  git -C "$W/chromium" sparse-checkout set --no-cone /build/ /buildtools/ /tools/clang/ /base/trace_event/common/ \
-    /third_party/zlib/ /third_party/jinja2/ /third_party/markupsafe/
-  git -C "$W/chromium" checkout -q
 fi
+# shellcheck disable=SC2046
+git -C "$W/chromium" sparse-checkout set --no-cone $(for d in $CR_DIRS; do echo "/$d/"; done)
+git -C "$W/chromium" checkout -q
 cd "$W/v8"
-for d in build buildtools tools/clang base/trace_event/common third_party/zlib third_party/jinja2 \
-         third_party/markupsafe; do
+for d in $CR_DIRS; do
   if [ ! -e "$d/.flyweb-copied" ]; then
     mkdir -p "$d" && cp -a "$W/chromium/$d/." "$d/" && touch "$d/.flyweb-copied"
   fi
 done
 [ -f build/config/gclient_args.gni ] || echo '# FlyWeb: the V8 DEPS gclient_gn_args is empty' > build/config/gclient_args.gni
 
+GTEST_REV=$(grep -A1 "'third_party/googletest/src'" DEPS | grep -o '[0-9a-f]\{40\}' | head -1)
 if [ ! -d third_party/googletest/src/.git ]; then
   git init -q third_party/googletest/src
   git -C third_party/googletest/src fetch -q --depth=1 https://github.com/google/googletest "$GTEST_REV"
@@ -75,6 +86,14 @@ if [ -n "$BC" ]; then
     git apply "$p"
   done
 fi
+
+# Con la libstdc++ del sistema (no la libc++ de Chromium) algunos ficheros de las V8 11.8+ no incluyen <limits>.
+# Arreglo solo del entorno de la d8, no forma parte de los parches de FlyWeb.
+for f in src/compiler/turboshaft/utils.h; do
+  if [ -f "$f" ] && ! grep -q '#include <limits>' "$f"; then
+    sed -i '0,/^#include </s//#include <limits>\n#include </' "$f"
+  fi
+done
 
 mkdir -p out/x64
 cat > out/x64/args.gn <<'EOF'

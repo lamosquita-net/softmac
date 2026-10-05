@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 120 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 120 de FlyWeb 1.4 (brave-core nube/motor-120).
+     Abrir en FlyWeb con file:// o desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO.
+     Las pruebas oficiales (web-platform-tests) están enlazadas al final. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  #zona { position: absolute; left: 0; top: 0; opacity: 0; pointer-events: none; }
+  /* Nesting relajado: «p» anidado sin «&». */
+  #anidado { color: rgb(1, 2, 3); p { color: rgb(4, 5, 6); } }
+  /* :dir() */
+  #dirs :dir(rtl) { outline-color: rgb(7, 8, 9); }
+  /* Funciones exponenciales */
+  #exp { width: calc(pow(2, 3) * 1px + sqrt(16) * 1px + hypot(3px, 4px) + log(exp(2)) * 1px); }
+  /* Máscaras sin prefijo */
+  #mascara { mask: linear-gradient(black, transparent) center / 50% no-repeat; mask-mode: luminance;
+             mask-composite: exclude; }
+  @media (scripting: enabled) { #script { z-index: 7; } }
+</style>
+</head>
+<body>
+<h1>Motor 120 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<div id="zona">
+  <div id="anidado"><p id="anidado-p">x</p></div>
+  <div id="dirs"><div dir="rtl"><span id="rtl1">a</span></div><div dir="auto" id="auto1">שלום</div>
+    <div dir="auto" id="auto2"><span id="auto2-hijo">abc</span></div></div>
+  <div id="exp"></div><div id="mascara"></div><div id="script"></div>
+  <details name="acordeon" id="d1" open><summary>1</summary>uno</details>
+  <details name="acordeon" id="d2"><summary>2</summary>dos</details>
+</div>
+<h2>Pruebas oficiales (web-platform-tests)</h2>
+<p>Lista en <code>FlyWeb/tools/wpt-120-lista.txt</code>, para <code>wpt-app.sh</code> con los ficheros de la etiqueta
+120.0.6099.234 servidos en local. Comparar con los <code>-expected.txt</code> de Chrome 120.</p>
+<script>
+  const res = document.getElementById('res');
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li');
+    li.className = ok ? 'ok' : 'fallo';
+    li.textContent = nombre + (nota ? ` — ${nota}` : '');
+    res.append(li);
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+  const s = (p, v) => CSS.supports(p, v);
+  const cs = (id) => getComputedStyle(document.getElementById(id));
+
+  prueba('Nesting: regla anidada sin «&» se aplica', () => { const c = cs('anidado-p').color; return { ok: c === 'rgb(4, 5, 6)', nota: c }; });
+  prueba('Nesting: CSSOM ve la regla anidada', () => {
+    const r = [...document.styleSheets[0].cssRules].find((x) => x.selectorText === '#anidado');
+    return { ok: !!r && r.cssRules && r.cssRules.length === 1, nota: r && r.cssRules ? `${r.cssRules.length} regla(s)` : 'sin cssRules' };
+  });
+  prueba(':dir() se acepta', () => CSS.supports('selector(:dir(rtl))'));
+  prueba(':dir(rtl) hereda de un antepasado dir=rtl', () => document.getElementById('rtl1').matches(':dir(rtl)'));
+  prueba(':dir() con dir=auto y texto hebreo da rtl', () => document.getElementById('auto1').matches(':dir(rtl)'));
+  prueba(':dir() con dir=auto y texto latino da ltr', () => document.getElementById('auto2-hijo').matches(':dir(ltr)'));
+  prueba('dir=auto se actualiza al cambiar el texto', () => {
+    const e = document.getElementById('auto2'); e.firstChild.textContent = 'مرحبا';
+    const r = e.matches(':dir(rtl)'); e.firstChild.textContent = 'abc'; return r;
+  });
+  prueba('pow(), sqrt(), hypot(), log(), exp()', () => { const w = cs('exp').width; return { ok: w === '19px', nota: w }; });
+  prueba('mask (atajo sin prefijo)', () => s('mask', 'linear-gradient(black, transparent) center / 50% no-repeat'));
+  for (const [p, v] of [['mask-image', 'none'], ['mask-mode', 'luminance'], ['mask-composite', 'exclude'], ['mask-clip', 'no-clip'],
+                        ['mask-origin', 'fill-box'], ['mask-position', 'left 10px top 5px'], ['mask-repeat', 'round space'],
+                        ['mask-size', 'cover']]) prueba(`${p}: ${v}`, () => s(p, v));
+  prueba('mask-mode y mask-composite computados', () => { const c = cs('mascara'); return { ok: c.maskMode === 'luminance' && c.maskComposite === 'exclude', nota: `${c.maskMode} / ${c.maskComposite}` }; });
+  prueba('-webkit-mask sigue funcionando (alias)', () => s('-webkit-mask-image', 'none'));
+  prueba('@media (scripting: enabled)', () => { const z = cs('script').zIndex; return { ok: z === '7', nota: `z-index ${z}` }; });
+  prueba('URL.canParse', () => URL.canParse('https://a.b/') && !URL.canParse('no es una url'));
+  prueba('<details name>: abrir uno cierra el otro', () => {
+    const d1 = document.getElementById('d1'), d2 = document.getElementById('d2'); d2.open = true;
+    const r = d2.open && !d1.open; d1.open = true; return { ok: r && !d2.open, nota: `d1 ${d1.open}, d2 ${d2.open}` };
+  });
+  prueba('<details>: el evento toggle es ToggleEvent', () => typeof ToggleEvent === 'function' && 'newState' in ToggleEvent.prototype);
+  prueba('User-Agent declara Chrome/120', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '120', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+</script>
+<p>Los niveles 117–119 se comprueban aparte (<code>motor-117.html</code> … <code>motor-119.html</code>).</p>
+</body>
+</html>

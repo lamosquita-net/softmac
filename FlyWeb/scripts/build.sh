@@ -61,6 +61,32 @@ if [ -n "$SCCACHE" ] && [ "$SCCACHE" != "off" ]; then
 fi
 
 cd "$BUILD/brave-browser"
+# V8 por niveles (FM.5): cada nivel N lleva la V8 de Chrome N. La revisión la fija brave-core en
+# FlyWeb/v8-revision (un commit o una etiqueta de V8, p. ej. 11.7.439.21); sin ese fichero, la de la 116
+# (v8_revision de src/DEPS). Como aquí no se ejecuta gclient sync, se pone a mano antes de los parches.
+V8_REV_FILE=src/brave/FlyWeb/v8-revision
+if [ -f "$V8_REV_FILE" ]; then
+  V8_REV=$(grep -v '^#' "$V8_REV_FILE" | head -1 | tr -d '[:space:]')
+else
+  V8_REV=$(sed -n "s/^ *'v8_revision': '\([0-9a-f]*\)',.*/\1/p" src/DEPS | head -1)
+fi
+[ -n "$V8_REV" ] || { echo "No se pudo saber la revisión de V8" >&2; exit 1; }
+if ! git -C src/v8 rev-parse -q --verify "$V8_REV^{commit}" >/dev/null; then
+  echo "V8: trayendo $V8_REV"
+  git -C src/v8 fetch -q https://chromium.googlesource.com/v8/v8.git "$V8_REV" "+refs/tags/$V8_REV:refs/tags/$V8_REV" 2>/dev/null ||
+    git -C src/v8 fetch -q https://chromium.googlesource.com/v8/v8.git "$V8_REV"
+fi
+V8_WANT=$(git -C src/v8 rev-parse "$V8_REV^{commit}" 2>/dev/null || git -C src/v8 rev-parse FETCH_HEAD)
+if [ "$(git -C src/v8 rev-parse HEAD)" != "$V8_WANT" ]; then
+  echo "V8: $(git -C src/v8 describe --tags --always HEAD) -> $V8_REV"
+  # -f descarta los parches aplicados a la V8 anterior; apply_patches los vuelve a poner sobre la nueva.
+  git -C src/v8 checkout -q -f --detach "$V8_WANT"
+  rm -f src/brave/patches/v8/*.patchinfo
+fi
+echo "V8: $(git -C src/v8 describe --tags --always HEAD)"
+# Con una V8 más nueva que la de la 116, el código de Chromium 116 usa APIs que esa V8 marca como obsoletas;
+# con -Werror serían errores. Se apagan esos avisos (v8_deprecation_warnings más abajo): solo cuentan las APIs
+# que la V8 nueva ha quitado de verdad, y esas se arreglan con parches de Blink en cada nivel.
 # Si cambian los .patch de brave-core sin cambiar DEPS, basta con reaplicarlos.
 npm run apply_patches
 # "Revisión" de brave://version: Brave la toma del último commit de versión ("1.57.64") con el hook
@@ -142,6 +168,8 @@ npm run build -- "$CONFIG" --target_arch=x64 "$@" \
   --gn "webcompat_report_api_endpoint:$INERT" \
   --gn "mac_sdk_path:$SDK" \
   --gn symbol_level:0 \
+  --gn v8_deprecation_warnings:false \
+  --gn v8_imminent_deprecation_warnings:false \
   --gn "updater_prod_endpoint:$UPDATER" \
   --gn "updater_dev_endpoint:$UPDATER" \
   --gn "safebrowsing_api_endpoint:$PROXY" \

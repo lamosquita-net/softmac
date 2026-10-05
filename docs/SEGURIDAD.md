@@ -71,6 +71,8 @@ Cada porte de V8 de NUBE o LOCAL (filas FM.*) pasa por SEGURIDAD antes de public
   commondatastorage; ~35 min la primera vez con 4 núcleos, luego incremental). Con él se compila y se prueba un porte
   de V8 (`tools/run-tests.py`) antes de pasarlo a LOCAL. Pruebas de los portes: `FlyWeb/tools/v8-pruebas/`.
 - V8: la 116 lleva V8 11.6.189.20; sus parches van en `patches/v8/` contra esa versión. Ojo: algunas funciones de la 11.6 detrás de flags son esqueletos (`TODO` en el `.tq`); no darlas por implementadas.
+- **Todo parche en `patches/v8/` sube `kFlyWebCacheEpoch`** (`patches/v8/src-utils-version.h.patch`); si no, la caché de
+  código de la versión anterior se acepta y las webs con JIT caen (fallo de la 1.1, `motor.md` principio 10).
 
 ## Primera tarea (05-10-2026): FS.1
 
