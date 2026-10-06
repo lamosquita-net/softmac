@@ -250,27 +250,32 @@ las subfunciones de la lista de abajo. Rama brave-core `nube/motor-122` (encima 
   `FlyWeb/tools/wpt-122-lista.txt` (8 ficheros; los 2 de `css-align/abspos` fallarán mientras no se porte la alineación).
 - **Declarado 122 / FlyWeb 1.6** en 667d367b (se revierte solo si el nivel no pasa).
 
-## Nivel 123 (inventario, 06-10; sin portar → FlyWeb 1.7)
+## Nivel 123 (en código, 06-10; pendiente de compilar → FlyWeb 1.7)
 
-Datos: web-features 3.40.1 (funciones y subfunciones con Chrome 123) y flags que pasan a `stable` entre la 122 y la
-123.0.6312.122. V8 de Chrome 123: 12.3 (pendiente de mirar qué API quita).
+Baseline de Chrome 123 (web-features 3.40.1 + flags que pasan a `stable` entre la 122 y la 123.0.6312.122). Rama brave-core
+`nube/motor-123` (encima de `nube/motor-122`).
 
-| Pieza | Tipo | Commits (orientativo) | Coste / riesgo |
-|---|---|---|---|
-| `light-dark()` | CSS | ad1bc8e13485, e3cfad827fd4 (+ quizá el refactor de colores b60eb5841583) | bajo |
-| `paint-order` en texto HTML | CSS | 128e34b6f0e6 (+ 2 refactors de SVG de Söderquist) | bajo-medio |
-| `align-content` en bloques | CSS, layout | ~8 (e8505a327046 … cf37c9d48d84) | **medio-alto**: layout de bloques, mismo riesgo de base distinta que FM.9 |
-| `field-sizing` | CSS, formularios | ~10 desde julio de 2023 (`form-sizing` → `field-sizing`) | medio |
-| Módulos JSON con `with` (import attributes) | JS (V8 12.3) + Blink | cc6f957216fa y la serie de Ribaudo | medio (llega con la V8) |
-| `CSSKeyframesRule.length` | subfunción | a22c1207bb2c | bajo |
-| `shadowRootDelegatesFocus` en `<template>` | subfunción | 46a667bd42e8 | bajo |
-| `navigation.activation` | subfunción | a2c881f5002a … 8ced02d3dd19 | bajo-medio |
-| `Content-Encoding: zstd` | red | serie de `net/` + la librería `third_party/zstd`, que **no está en la 116** | alto (dependencia nueva en el checkout) |
-
+- **V8 12.3.219.16** (053fff59): `patches/v8/` rehechos desde la 12.2 sin conflictos; trae de serie los módulos JSON con
+  `with` (import attributes; Blink 116 ya cargaba módulos JSON). La 12.3 quita dos API que usa Blink 116: los *wrapper
+  class ids* de `TracedReference` (porte de Chromium 15fcb656b756 adaptado a `thread_state.cc`) e
+  `Isolate::SetWasmGCEnabledCallback()` (se quita el *callback*; Wasm GC sigue los flags de V8, como en Chrome 123).
+  `chromium_src/v8` de Brave 1.64 igual que el nuestro.
+- **`CSSKeyframesRule.length`, `shadowRootDelegatesFocus` en `<template>` y `navigation.activation`** (207ebea0): el
+  último toca `content/` (controlador de navegación) y el mojom de restauración de entradas.
+- **`paint-order` en texto HTML** (7738bc04): el commit final de Chromium sobre el pintado de texto de la 116, sin los
+  dos refactors de SVG previos.
+- **`field-sizing`** (142ecbad): 10 commits; `DefaultIntrinsicContentBlockSize()` y `ApplyControlFixedSize()` escritos
+  para la 116.
+- **`align-content` en bloques** (9b582742): bloques, celdas de tabla, multicolumna y la excepción de `ruby-text`. La
+  serie cruza el cambio de nombres de Chromium (`ng_`/`NG*`), así que la parte de tablas y multicolumna está escrita a
+  mano. **El porte de más riesgo del nivel** (layout de bloques): si una web descuadra contenido vertical, mirar aquí.
+- **`light-dark()`** ya entró en el nivel 117 (e50b83ff).
 - **`zstd`: excepción del nivel (HUMANO, 06-10).** Un servidor solo manda zstd si el navegador lo anuncia en
-  `Accept-Encoding`; si FlyWeb no lo anuncia, recibe gzip o brotli y ninguna web se rompe. Portarlo obliga a meter una
-  librería nueva en el checkout (`DEPS`, `gclient`), justo lo que nuestro flujo evita.
+  `Accept-Encoding`; FlyWeb no lo anuncia y recibe gzip o brotli. Portarlo metería una librería nueva en el checkout.
 - **Fuera (no Baseline):** CSS modules, Long Animation Frames, rutas estáticas de Service Worker, `text-spacing-trim`.
+- **Comprobación:** `FlyWeb/tools/motor-123.html` (10 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
+  `FlyWeb/tools/wpt-123-lista.txt` (12 ficheros).
+- **Declarado 123 / FlyWeb 1.7** en 372b2b1c (se revierte solo si el nivel no pasa).
 
 ## Inventario: CSS Baseline publicado después de la 116
 

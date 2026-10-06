@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 123 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 123 de FlyWeb 1.7 (brave-core nube/motor-123, V8 12.3).
+     Abrir en FlyWeb con file:// o desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  #zona { position: absolute; left: 0; top: 0; opacity: 0; pointer-events: none; }
+  #bloque { display: block; height: 100px; align-content: center; }
+  #bloque > div { height: 20px; }
+  #celda { display: table-cell; height: 100px; align-content: end; }
+  #celda > div { height: 20px; }
+  #campo { field-sizing: content; font: 16px monospace; }
+  #oscuro { color-scheme: dark; color: light-dark(rgb(1, 2, 3), rgb(4, 5, 6)); }
+  @keyframes tres { 0% { opacity: 0 } 50% { opacity: .5 } 100% { opacity: 1 } }
+</style>
+</head>
+<body>
+<h1>Motor 123 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<div id="zona">
+  <div id="bloque"><div id="hijo"></div></div>
+  <div id="celda"><div id="hijocelda"></div></div>
+  <input id="campo" value="abc"><input id="campofijo" value="abc" style="font: 16px monospace">
+  <p id="oscuro">x</p>
+  <div id="anfitrion"><template shadowrootmode="open" shadowrootdelegatesfocus></template></div>
+</div>
+<h2>Pruebas oficiales (web-platform-tests)</h2>
+<p>Lista en <code>FlyWeb/tools/wpt-123-lista.txt</code> (etiqueta 123.0.6312.122; Ahem instalada, la pone
+<code>wpt-app.sh</code>). Comparar con los <code>-expected.txt</code> de Chrome 123.</p>
+<script>
+  const res = document.getElementById('res');
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li');
+    li.className = ok ? 'ok' : 'fallo';
+    li.textContent = nombre + (nota ? ` — ${nota}` : '');
+    res.append(li);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : '');
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+  const s = (p, v) => CSS.supports(p, v);
+  const arriba = (id, ref) => Math.round(document.getElementById(id).getBoundingClientRect().top - document.getElementById(ref).getBoundingClientRect().top);
+
+  prueba('align-content: center en un bloque', () => { const t = arriba('hijo', 'bloque'); return { ok: t === 40, nota: `top ${t} (40 = centrado)` }; });
+  prueba('align-content: end en una celda de tabla', () => { const t = arriba('hijocelda', 'celda'); return { ok: t === 80, nota: `top ${t} (80 = al final)` }; });
+  prueba('field-sizing: content (el campo se ajusta al texto)', () => {
+    const a = document.getElementById('campo').offsetWidth, b = document.getElementById('campofijo').offsetWidth;
+    return { ok: s('field-sizing', 'content') && a < b, nota: `${a}px frente a ${b}px` };
+  });
+  prueba('light-dark() (llegó en el nivel 117)', () => { const c = getComputedStyle(document.getElementById('oscuro')).color; return { ok: c === 'rgb(4, 5, 6)', nota: c }; });
+  prueba('paint-order en texto HTML', () => s('paint-order', 'stroke fill') && (() => {
+    const p = document.createElement('p'); p.style.paintOrder = 'stroke'; document.getElementById('zona').append(p);
+    const v = getComputedStyle(p).paintOrder; p.remove(); return v === 'stroke';
+  })());
+  prueba('CSSKeyframesRule.length', () => {
+    const r = [...document.styleSheets[0].cssRules].find((x) => x instanceof CSSKeyframesRule);
+    return { ok: !!r && r.length === 3, nota: r ? `length ${r.length}` : 'sin regla' };
+  });
+  prueba('<template>.shadowRootDelegatesFocus', () => {
+    const t = document.createElement('template'); t.shadowRootDelegatesFocus = true;
+    return t.hasAttribute('shadowrootdelegatesfocus') && t.shadowRootDelegatesFocus === true;
+  });
+  prueba('navigation.activation', () => {
+    if (!('navigation' in window)) return { ok: false, nota: 'sin navigation' };
+    const a = navigation.activation; return { ok: !!a && typeof a.navigationType === 'string', nota: a ? a.navigationType : 'null' };
+  });
+  pruebaAsync('Módulos JSON con import attributes (with)', async () => {
+    const url = 'data:application/json,{"a":1}';
+    const m = await import(url, { with: { type: 'json' } }); return { ok: m.default.a === 1, nota: JSON.stringify(m.default) };
+  });
+  prueba('User-Agent declara Chrome/123', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '123', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+</script>
+<p>Excepción del nivel (HUMANO): <code>Content-Encoding: zstd</code>. Los niveles 117–122 se comprueban aparte.</p>
+</body>
+</html>
