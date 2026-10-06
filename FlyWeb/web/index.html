@@ -20,29 +20,33 @@ Chromium 116 y Brave 1.57, con el bloqueo de anuncios y rastreadores de Brave, p
 servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomonedas, ni noticias. Las listas de bloqueo y
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
-<h2>Descargar FlyWeb 1.3</h2>
-<p><a class="boton" href="descargas/FlyWeb-1.3.dmg" download>Descargar FlyWeb 1.3 (164 MB)</a></p>
+<h2>Descargar FlyWeb 1.4</h2>
+<p><a class="boton" href="descargas/FlyWeb-1.4.dmg" download>Descargar FlyWeb 1.4 (164 MB)</a></p>
 <p class="dato">macOS 10.13 o 10.14, Mac Intel (x86_64). En macOS 10.15 a 12 debería funcionar, sin garantía.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>d74ccf155ea63e89be832e232e9932ff3ecee34751e93243b372a5018f93fbb3</code></p>
+SHA-256: <code>294169627cea26b934ac5d1c3626b0048b9dd3c4cbdbc3ad64533a78a3c6d5b6</code></p>
 
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-1.3.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-1.4.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.3</h2>
+<h2 id="novedades">Notas de la versión 1.4</h2>
 <ul>
-  <li><strong>Motor de nivel Chrome 119.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 119 y FlyWeb se
-  presenta a las webs como Chrome 119. Funciones web nuevas: los selectores <code>:user-valid</code> y
-  <code>:user-invalid</code> para formularios, <code>clip-path</code> con cajas de referencia y con <code>rect()</code> y
-  <code>xywh()</code>, y <code>Promise.withResolvers</code> de serie.</li>
-  <li>Las líneas base del texto en los <code>&lt;canvas&gt;</code> se leen de la propia fuente, como en Chrome.</li>
-  <li><strong>Seguridad:</strong> parches posteriores portados al nuevo motor de JavaScript, entre ellos uno para
-  WebAssembly que este motor necesita; el compilador Maglev sigue apagado.</li>
+  <li><strong>Motor de nivel Chrome 120.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 120 y FlyWeb se
+  presenta a las webs como Chrome 120. Funciones web nuevas: el selector <code>:dir()</code>, las funciones
+  <code>pow()</code>, <code>sqrt()</code>, <code>hypot()</code>, <code>log()</code> y <code>exp()</code> de CSS, las
+  máscaras sin prefijo (<code>mask</code>, <code>mask-mode</code>, <code>mask-composite</code>…), las reglas CSS
+  anidadas sin <code>&amp;</code>, <code>@media (scripting)</code>, <code>URL.canParse</code> y los acordeones
+  exclusivos <code>&lt;details name&gt;</code> con su <code>ToggleEvent</code>.</li>
+  <li><strong>Seguridad:</strong> usamos la versión de V8 de la rama de soporte prolongado de Google para Chrome 120,
+  con sus correcciones de seguridad, y portamos además los parches posteriores. Este motor trae el optimizador
+  Turboshaft, ya encendido en Chrome 120; el compilador Maglev sigue apagado.</li>
+  <li>El submenú de «Bloquear elemento» del botón derecho dice «FlyWeb» en lugar de «Brave» (la 1.2 lo corrigió solo a
+  medias).</li>
 </ul>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
 
