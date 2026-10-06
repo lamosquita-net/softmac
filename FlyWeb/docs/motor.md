@@ -226,26 +226,29 @@ Lo Baseline que Chrome 121 publicó (web-features): `Array.fromAsync`, `scrollba
   116) y `@import … supports()` con `CSSImportRule.supportsText` (el análisis queda en *experimental*, como en Chrome
   121; lo enciende el 122).
 
-## Nivel 122 (inventario, 05-10; sin portar)
+## Nivel 122 (en código, 06-10; pendiente de compilar → FlyWeb 1.6)
 
 Lo Baseline que Chrome 122 publicó (web-features): **métodos de iteradores** (*iterator helpers*: `Iterator.prototype.map`,
-`filter`, `take`…) y **métodos de `Set`** (`union`, `intersection`, `difference`…). Los dos son de JavaScript y vienen de
-serie en la **V8 12.2.281.22** (la de Chrome 122.0.6261.128, que es también la base de Brave 1.63): en la 12.2
-`harmony_iterator_helpers` y `harmony_set_methods` están en *shipping*. **No hay trabajo de Blink por funciones.**
+`filter`, `take`…) y **métodos de `Set`** (`union`, `intersection`, `difference`…), los dos de serie en la **V8 12.2**, y
+las subfunciones de la lista de abajo. Rama brave-core `nube/motor-122` (encima de `nube/motor-121`).
 
-- **V8 12.1 → 12.2:** quita `V8InspectorSession::CommandLineAPIScope` / `initializeCommandLineAPIScope()`, que usa
-  `core/inspector/inspector_page_agent.cc` de la 116 (solo DevTools: `Page.addScriptToEvaluateOnNewDocument` con
-  `includeCommandLineAPI`). Hay que portar el cambio de Chromium que lo sustituye por `V8InspectorSession::evaluate()`;
-  sin él no compila. Ninguna otra API pública quitada (nombres de `include/`).
-- **`chromium_src/v8` de Brave:** el de Brave 1.63.184 es igual que el de la 1.62 (nivel 121).
-- **Fuera (no Baseline):** Storage Buckets y lectura de portapapeles sin sanear (solo Chrome).
-- **Al portar:** *iterator helpers* encendidos a partir de este nivel (como Chrome 122); quitar el apagado del 118 no
-  hace falta (en la 11.9–12.1 ya venían apagados de serie y la 12.2 los trae encendidos). SEGURIDAD: FS.4 añade la 12.2.
-- **Coste estimado:** pequeño (V8 + un arreglo de Blink en el inspector); el grueso es la parte de seguridad.
-- **Subfunciones (FM.8), a portar con el nivel:** `align-self`/`justify-self` en cajas con posición absoluta
-  (`LayoutAlignForPositioned`), herencia de `::backdrop` (`BackdropInheritOriginating`), `@import … supports()`
-  encendido (`CSSSupportsForImportRules`, el código ya está desde el 121), `URLPattern.hasRegExpGroups`, `rgb()` con
-  números y porcentajes mezclados en la sintaxis moderna. Los colores relativos en `rgb()`/`oklab()`/`oklch()` van al 125.
+- **V8 12.2.281.22** (8bbb2971; la de Chrome 122.0.6261.128, base también de Brave 1.63): `patches/v8/` rehechos desde la
+  12.1 sin conflictos; `chromium_src/v8` de Brave 1.63 igual que el de la 1.62. La 12.2 quita
+  `V8InspectorSession::CommandLineAPIScope`: `InspectorPageAgent::EvaluateScriptOnNewDocument()` evalúa con
+  `V8InspectorSession::evaluate()`, como Chromium 122 (solo DevTools). Los parches de seguridad de V8 los rehace SEGURIDAD
+  cuando se vaya a publicar (FS.4), Maglev apagado incluido.
+- **Subfunciones (FM.8, cd251be0):** herencia de `::backdrop` desde su elemento (adaptada al `StyleResolver` de la 116),
+  `URLPattern.hasRegExpGroups`, `rgb()` con números y porcentajes mezclados en la sintaxis moderna (escrito para el
+  parser de la 116) y `@import … supports()` encendido.
+- **Sin portar, pendiente de decisión del HUMANO:** `align-self`/`justify-self` en cajas con posición absoluta
+  (d5e6d59db47c, `LayoutAlignForPositioned`). `ng_absolute_utils.cc` de la 116 y la base de ese commit difieren en unas
+  640 líneas (refactors de por medio, anchor positioning entre ellos), y toca el posicionamiento absoluto, que usan casi
+  todas las webs: es un porte grande y de riesgo, no de un día.
+- **Fuera (no Baseline):** Storage Buckets y lectura de portapapeles sin sanear (solo Chrome). Los colores relativos en
+  `rgb()`/`oklab()`/`oklch()` van al nivel 125.
+- **Comprobación:** `FlyWeb/tools/motor-122.html` (10 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
+  `FlyWeb/tools/wpt-122-lista.txt` (8 ficheros; los 2 de `css-align/abspos` fallarán mientras no se porte la alineación).
+- **Declarado 122 / FlyWeb 1.6** en 667d367b (se revierte solo si el nivel no pasa).
 
 ## Inventario: CSS Baseline publicado después de la 116
 
