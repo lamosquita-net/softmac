@@ -26,7 +26,9 @@ Todas las páginas siguen el mismo patrón, sin modo oscuro:
   alternas. En las blancas los `h2` van en morado; en las naranjas, en negro. Código y direcciones internas
   (`<code>`), en JetBrains Mono y morado.
 - `<footer class="pie">` con la mosca del pie dentro del HTML (revolotea solo con CSS) y los créditos.
+- JavaScript solo en `js/` (`mosca.js`, `cifras.js`), con `integrity` en el `<script>`; **no se publica solo**: lo
+  instala el HUMANO en el servidor (`../servidor/web-auto/README.md`, «JavaScript»).
 - Portada: la descarga va en `<div class="descarga">` (el botón y el SHA-256 que comprueba `flyweb-web-auto`) y la
-  banda de las notas lleva `id="fin-vuelo"` (hasta ahí vuela la mosca de `mosca.js`).
+  banda de las notas lleva `id="fin-vuelo"` (hasta ahí vuela la mosca de `js/mosca.js`).
 - Fuentes: D-DIN (en el servidor, como antes) y `fuentes/JetBrainsMono.woff2` (OFL 1.1, variable 100–800, solo
   latín). Con «reducir movimiento», ninguna mosca se mueve.

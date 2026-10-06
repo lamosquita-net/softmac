@@ -6,8 +6,9 @@
 #
 #   flyweb-desplegar binario components|sync <sha256>        binario de la release del repo -> /opt/flyweb-<x>/, reinicia
 #   flyweb-desplegar dmg FlyWeb-<versión>.dmg <sha256>        /var/www/FlyWeb/updates/ -> descargas/ de la web (nunca sustituye)
-#   flyweb-desplegar web <commit> <fichero> <sha256>   FlyWeb/web/<fichero> de ese commit -> la web; <fichero>: index.html,
-#                        privacidad.html, estilo.css, ayuda/index.html o ayuda/sincronizar/index.html
+#   flyweb-desplegar web <commit> <fichero> <sha256>   FlyWeb/web/<fichero> de ese commit -> la web; <fichero>: las páginas
+#                        (index, privacidad, cifras, ayuda, ayuda/sincronizar), estilo.css, img/circulo.svg, img/mosca.svg y
+#                        fuentes/JetBrainsMono.woff2 + su OFL. NUNCA JavaScript (js/ lo instala el HUMANO, root:root)
 #   flyweb-desplegar borrar updates|descargas FlyWeb-<versión>.dmg   solo si quedan más de 10 DMG en esa carpeta, no está
 #                        en el appcast y no es FlyWeb-1.0.dmg (decisiones del HUMANO, 05/06-10)
 #   flyweb-desplegar cifras   ~servidor/.local/state/flyweb-cifras/cifras.csv -> la web, solo si cada línea es una cifra
@@ -23,7 +24,7 @@ DUENO=supermosquita:lamosquita
 REG=/var/log/flyweb-deploy/desplegar.log
 install -d -m 0750 -o root -g adm /var/log/flyweb-deploy
 registrar () { echo "$(date -u +%FT%TZ) ${SUDO_USER:-root} $*" >> "$REG"; }
-uso () { sed -n '7,13p' "$0" >&2; exit 2; }
+uso () { sed -n '7,14p' "$0" >&2; exit 2; }
 sha_ok () { [[ $1 =~ ^[0-9a-f]{64}$ ]]; }
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
@@ -51,7 +52,8 @@ dmg)
   registrar "ok dmg $2 $3" ;;
 web)
   [[ $# -eq 4 ]] && sha_ok "$4" && [[ $2 =~ ^[0-9a-f]{40}$ ]] || uso
-  case $3 in index.html|privacidad.html|estilo.css|cifras.html|cifras.js|ayuda/index.html|ayuda/sincronizar/index.html) ;; *) uso ;; esac
+  # Nunca JS: los instala el HUMANO a mano en js/ (root:root), ver web-auto/README.md.
+  case $3 in index.html|privacidad.html|estilo.css|cifras.html|ayuda/index.html|ayuda/sincronizar/index.html|img/circulo.svg|img/mosca.svg|fuentes/JetBrainsMono.woff2|fuentes/OFL-JetBrainsMono.txt) ;; *) uso ;; esac
   f=${3//\//_}
   curl -fsSL --proto =https -o "$tmp/$f" "$RAW/$2/FlyWeb/web/$3"
   echo "$4  $tmp/$f" | sha256sum -c --quiet
