@@ -91,6 +91,8 @@ ni `servidor`, ni `flyweb-desplegar` (que no los tiene en su lista) pueden cambi
 CSP impiden que otro fichero de la web se ejecute como script.
 
 - Cada `<script>` lleva `integrity="sha384-…"`: si el fichero del servidor cambia, el navegador no lo ejecuta.
-- `flyweb-web-auto` compara en cada cambio de `main` los JS del servidor con los de `main` y, si no coinciden, avisa
-  por correo; no los toca.
-- Cambiar un JS: PR (con el `integrity` nuevo en la página) → fusionar → el HUMANO lo instala a mano.
+- `flyweb-web-auto` compara en cada pasada los JS del servidor con los de `main` y, si no coinciden, **para** (no
+  publica nada, ni páginas ni DMG) y avisa por correo; no los toca. Si publicara la página con el `integrity` nuevo y
+  el JS viejo, el navegador no ejecutaría el script (`cifras.html` se quedaría vacía).
+- Cambiar un JS: PR (con el `integrity` nuevo en la página) → fusionar → el HUMANO lo instala a mano → la pasada
+  siguiente publica las páginas.
