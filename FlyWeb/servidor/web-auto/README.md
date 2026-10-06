@@ -82,3 +82,15 @@ El texto se publica tal como está en `main`, pero solo si cada fichero llegó p
 entra en un PR (GitHub lo da por fusionado); lo cubre la revisión de esos PR. El DMG, en
 cambio, solo se publica si lo firmó bak (EdDSA) y su SHA-256 es el anunciado: un repo comprometido no puede hacer que
 la web ofrezca un DMG que el HUMANO no aprobó.
+
+## JavaScript: nunca se publica solo (HUMANO, 06-10-2026)
+
+`js/mosca.js` (la mosca de la portada) y `js/cifras.js` los instala **el HUMANO a mano, una vez**, en
+`/var/www/flyweb.lamosquita.net/js/`, con la **carpeta y los ficheros `root:root`** (0755/0644): así ni `supermosquita`,
+ni `servidor`, ni `flyweb-desplegar` (que no los tiene en su lista) pueden cambiarlos ni sustituirlos. `nosniff` y la
+CSP impiden que otro fichero de la web se ejecute como script.
+
+- Cada `<script>` lleva `integrity="sha384-…"`: si el fichero del servidor cambia, el navegador no lo ejecuta.
+- `flyweb-web-auto` compara en cada cambio de `main` los JS del servidor con los de `main` y, si no coinciden, avisa
+  por correo; no los toca.
+- Cambiar un JS: PR (con el `integrity` nuevo en la página) → fusionar → el HUMANO lo instala a mano.
