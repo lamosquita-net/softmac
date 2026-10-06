@@ -1,21 +1,144 @@
-@font-face { font-family: "D-DIN"; src: url("fuentes/D-DIN.woff2") format("woff2"); font-weight: 400; }
-@font-face { font-family: "D-DIN"; src: url("fuentes/D-DIN-Bold.woff2") format("woff2"); font-weight: 700; }
-:root { --naranja: rgb(255,153,0); --rojo: rgb(210,10,17); --morado: rgb(149,27,129); --tinta: #111; --gris: #666; --fondo: #fff; --linea: #e5e5e5; }
-@media (prefers-color-scheme: dark) { :root { --tinta: #f2f2f2; --gris: #aaa; --fondo: #161616; --linea: #333; } }
+/* FlyWeb — web (diseño del HUMANO, 06-10-2026). Cabecera blanca, bandas naranjas y blancas alternas, pie con la mosca.
+   La CSP del vhost es default-src 'self': nada en línea ni de otros sitios. */
+@font-face { font-family: "D-DIN"; src: url("fuentes/D-DIN.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "D-DIN"; src: url("fuentes/D-DIN-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("fuentes/JetBrainsMono.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
+
+:root {
+  --naranja: #f90; --rojo: rgb(210,10,17); --morado: rgb(149,27,129);
+  --tinta: #111; --fondo: #fff;
+  --acento: var(--morado);          /* títulos de las bandas blancas, viñetas y código */
+  --sombra: rgba(0,0,0,.28);
+  --columna: 650px;
+  color-scheme: light;               /* sin modo oscuro (decisión del HUMANO, 06-10) */
+}
+
 * { box-sizing: border-box; }
-body { margin: 0; font: 18px/1.5 "D-DIN", -apple-system, sans-serif; color: var(--tinta); background: var(--fondo); }
-main { max-width: 760px; margin: 0 auto; padding: 48px 20px 64px; }
-header { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; }
-header img { width: 84px; height: 84px; }
-h1 { font-weight: 700; font-size: 44px; margin: 0; line-height: 1; }
-h1 small { display: block; font-size: 18px; font-weight: 400; color: var(--gris); margin-top: 6px; }
-h2 { font-weight: 700; font-size: 24px; margin: 40px 0 10px; }
-a { color: var(--rojo); }
-.boton { display: inline-block; background: var(--naranja); color: #000; text-decoration: none; font-weight: 700; font-size: 20px; padding: 14px 26px; border-radius: 10px; }
-.boton:hover { filter: brightness(1.05); }
-.dato { color: var(--gris); font-size: 15px; margin-top: 10px; }
-code { font-size: 13px; word-break: break-all; }
-ul { padding-left: 20px; }
-table { border-collapse: collapse; width: 100%; font-size: 15px; }
-th, td { text-align: left; vertical-align: top; padding: 8px; border-top: 1px solid var(--linea); }
-footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--linea); color: var(--gris); font-size: 14px; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font: 17px/1.45 "D-DIN", -apple-system, "Helvetica Neue", sans-serif; color: var(--tinta); background: var(--fondo); overflow-x: hidden; }
+.columna { max-width: calc(var(--columna) + 40px); margin: 0 auto; padding: 0 20px; position: relative; }
+
+/* Cabecera */
+.cabecera { background: var(--fondo); padding: 28px 0 22px; }
+.cabecera .columna { display: flex; align-items: center; gap: 22px; }
+.logo { position: relative; flex: none; width: 100px; height: 100px; display: block; }
+.logo img { position: absolute; display: block; }
+.logo .circulo { inset: 0; width: 100%; height: 100%; }
+.logo .mosca-logo { left: 14%; top: 15%; width: 70%; height: 70%; }
+.logo.sin-mosca .mosca-logo { visibility: hidden; }
+h1 { font-weight: 700; font-size: 46px; line-height: 1; margin: 0; letter-spacing: -.5px; }
+h1 small { display: block; font-size: 15px; font-weight: 400; letter-spacing: 0; margin-top: 8px; }
+
+/* Bandas */
+.banda { padding: 40px 0 44px; }
+.banda.naranja { background: var(--naranja); color: #111; box-shadow: inset 0 5px 4px -3px var(--sombra); }
+.banda.blanca { background: var(--fondo); }
+.banda > .columna > :first-child { margin-top: 0; }
+.banda > .columna > :last-child { margin-bottom: 0; }
+h2 { font-weight: 700; font-size: 25px; line-height: 1.15; margin: 36px 0 10px; }
+.banda.blanca h2 { color: var(--acento); }
+.banda.naranja h2 { color: #111; }
+p { margin: 0 0 12px; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.banda.blanca a { color: var(--acento); }
+ul, ol { padding-left: 22px; margin: 8px 0 12px; }
+li { margin: 0 0 3px; }
+li::marker { color: var(--acento); font-weight: 700; }
+.banda.naranja li::marker { color: var(--morado); }
+
+/* Código y direcciones internas del navegador: JetBrains Mono, en morado */
+code { font-family: "JetBrains Mono", Menlo, monospace; font-size: .86em; color: var(--morado); overflow-wrap: anywhere; }
+.banda.blanca code { color: var(--acento); }
+.dato { font-size: 13.5px; margin-top: 8px; }
+.dato code { color: inherit; font-size: .9em; }
+.mono { font-family: "JetBrains Mono", Menlo, monospace; font-size: 13px; line-height: 1.5; }
+.mono code { font-size: 1em; color: inherit; font-weight: 700; }
+
+/* Descarga */
+.descarga { margin: 30px 0 0 122px; }
+.descarga h2 { margin-top: 0; }
+.boton { display: inline-block; background: #000; color: #fff !important; text-decoration: none; font-weight: 700; font-size: 19px;
+  padding: 13px 16px; border-radius: 12px; margin: 4px 0 6px; }
+.boton:hover, .boton:focus-visible { background: #2a2a2a; }
+.boton:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+/* Índice de la ayuda */
+.indice { list-style: none; padding: 0; margin: 0; font-family: "JetBrains Mono", Menlo, monospace; font-size: 15px; line-height: 1.3; }
+.indice li { margin: 0; }
+.indice a { text-decoration: none; color: var(--acento); }
+.indice a:hover { text-decoration: underline; }
+
+/* Tablas (privacidad, cifras): caja blanca con cabecera negra y separadores naranjas */
+table { border-collapse: collapse; width: 100%; font-size: 15px; background: #fff; color: #111; margin: 14px 0; }
+th { background: #000; color: #fff; font-weight: 700; text-align: left; padding: 9px 12px; }
+td { padding: 9px 12px; border-top: 2px solid var(--naranja); vertical-align: top; }
+td code { color: var(--morado); }
+.cifras th, .cifras td { text-align: center; }
+.cifras th:first-child, .cifras td:first-child { text-align: left; }
+.tabla-ancha { overflow-x: auto; }
+
+/* Pie con la mosca que revolotea (solo CSS) */
+.pie { padding: 26px 0 34px; font-size: 12.5px; line-height: 1.4; background: var(--fondo); }
+.pie .columna { display: flex; align-items: center; gap: 14px; }
+.pie a { color: inherit; }
+.pie-casa { flex: none; width: 62px; height: 58px; position: relative; }
+.pie-mosca { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; fill: #000; }
+.pie-mosca .alas-batiendo { opacity: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .pie-mosca { animation: revoloteo 26s ease-in-out 4s infinite; }
+  .pie-mosca .alas-quietas { animation: quietas 26s step-end 4s infinite; }
+  .pie-mosca .alas-batiendo { animation: batiendo 26s step-end 4s infinite; }
+  .pie-mosca .alas-batiendo .ala { animation: aleteo .09s steps(2, jump-none) infinite alternate; }
+}
+/* Posada el 60 % del ciclo; después revolotea por encima de la firma y se vuelve a posar en su sitio. */
+@keyframes revoloteo {
+  0%, 60% { transform: translate(0, 0) rotate(0deg); }
+  62% { transform: translate(14px, -26px) rotate(18deg); }
+  66% { transform: translate(90px, -48px) rotate(62deg); }
+  70% { transform: translate(190px, -34px) rotate(96deg); }
+  73% { transform: translate(250px, -6px) rotate(150deg); }
+  76% { transform: translate(200px, 22px) rotate(220deg); }
+  79% { transform: translate(120px, 8px) rotate(260deg); }
+  82% { transform: translate(150px, -40px) rotate(330deg); }
+  85% { transform: translate(300px, -30px) rotate(400deg); }
+  88% { transform: translate(230px, -58px) rotate(470deg); }
+  92% { transform: translate(90px, -44px) rotate(520deg); }
+  95% { transform: translate(18px, -12px) rotate(560deg); }
+  97%, 100% { transform: translate(0, 0) rotate(720deg); }
+}
+@keyframes quietas { 0% { opacity: 1; } 61% { opacity: 0; } 96% { opacity: 1; } }
+@keyframes batiendo { 0% { opacity: 0; } 61% { opacity: 1; } 96% { opacity: 0; } }
+@keyframes aleteo { from { opacity: .45; } to { opacity: .12; } }
+
+/* Mosca de la portada (mosca.js): vuela por encima de todo, sin estorbar los clics */
+.mosca-vuelo { position: absolute; left: 0; top: 0; width: 70px; height: 70px; pointer-events: none; z-index: 10; }
+.mosca-vuelo.en-casa { visibility: hidden; }
+.mosca-vuelo svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.mosca-vuelo .ala { transition: opacity .25s; }
+.mosca-vuelo.vuela .ala { animation: aleteo .09s steps(2, jump-none) infinite alternate; }
+
+/* Móvil */
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .logo { width: 72px; height: 72px; }
+  h1 { font-size: 34px; }
+  h1 small { font-size: 13.5px; }
+  .cabecera .columna { gap: 14px; }
+  .descarga { margin-left: 0; }
+  h2 { font-size: 22px; }
+  table { font-size: 13.5px; }
+  th, td { padding: 7px 8px; }
+  .mosca-vuelo { width: 50px; height: 50px; }
+  .pie-mosca { animation-name: revoloteo-corto; }
+}
+@keyframes revoloteo-corto {
+  0%, 60% { transform: translate(0, 0) rotate(0deg); }
+  64% { transform: translate(40px, -36px) rotate(50deg); }
+  70% { transform: translate(130px, -20px) rotate(130deg); }
+  76% { transform: translate(90px, 14px) rotate(230deg); }
+  82% { transform: translate(170px, -40px) rotate(360deg); }
+  89% { transform: translate(60px, -40px) rotate(520deg); }
+  95% { transform: translate(12px, -10px) rotate(620deg); }
+  97%, 100% { transform: translate(0, 0) rotate(720deg); }
+}
