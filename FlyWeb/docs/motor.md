@@ -117,7 +117,7 @@ compara Sparkle) sube en cada versión publicada: 1.0 = 0, 1.0.1 = 1, 1.1 = 2. A
 - **Comprobación:** `FlyWeb/tools/motor-117.html` y las web-platform-tests enlazadas en la página.
 - **Subfunciones (FM.8, `nube/motor-117` bf7c3bcf):** `font-variant-position`, `URLSearchParams.has()`/`delete()` con valor
   y `<mtd columnspan/rowspan>` de MathML. **Excepción:** `Intl.PluralRules` con `roundingMode` es de V8 (c63522b, un
-  refactor de `Intl.NumberFormat`) y no se porta a la 11.6: llega con la V8 11.8 del nivel 118.
+  refactor de `Intl.NumberFormat`): **descartada** en el 117 (HUMANO, 06-10); llega con la V8 11.8 del nivel 118.
 
 ## Nivel 118 (hecho en código, 05-10; pendiente de compilar y probar → FlyWeb 1.2)
 
