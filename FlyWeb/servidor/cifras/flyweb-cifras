@@ -1,0 +1,69 @@
+#!/bin/bash
+# Cifras de FlyWeb (SERVIDOR-NUBE, 06-10-2026; decisión del HUMANO): cuántas veces se descarga cada versión, sin
+# guardar quién. Corre en ns2 como «servidor» (grupo adm: lee los registros), con un temporizador de usuario diario.
+#   web: descargas completas de descargas/FlyWeb-*.dmg en la web (registro con IP, 14 días; aquí solo se cuenta).
+#   act: descargas completas de FlyWeb-*.dmg en updates. (registro sin IP): cada Mac baja cada versión una vez al
+#        actualizarse, así que es la mejor aproximación a cuántos FlyWeb están en uso.
+# Guarda solo «fecha,tipo,dmg,descargas» (cifras.csv), lo publica en la web (flyweb-desplegar cifras, que valida que
+# solo haya cifras) y los lunes manda un resumen por correo.
+#   flyweb-cifras diario     lo que lanza el temporizador (cuenta los días que falten, publica y, el lunes, el correo)
+#   flyweb-cifras ver        resumen en pantalla, sin publicar ni mandar nada
+set -euo pipefail
+umask 077
+export LC_ALL=C
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+MODO=${1:-ver}
+case $MODO in diario|ver) ;; *) echo "uso: flyweb-cifras diario|ver" >&2; exit 2 ;; esac
+EST=$HOME/.local/state/flyweb-cifras; mkdir -p "$EST"
+CSV=$EST/cifras.csv
+WEBLOG=/var/log/flyweb/flyweb.lamosquita.net/apache_access.log
+UPDLOG=/var/log/flyweb/updates/apache_access.log
+APPCAST=/var/www/FlyWeb/updates/stable/appcast.xml
+AVISO=admin@lamosquita.net
+exec 9>"$EST/cerrojo"; flock -n 9 || exit 0
+[[ -f $CSV ]] || echo "fecha,tipo,dmg,descargas" > "$CSV"
+
+leer () { local f; for f in "$1" "$1".1 "$1".2.gz "$1".3.gz; do [[ -f $f ]] && zcat -f -- "$f"; done; return 0; }
+
+# contar <log> <prefijo de ruta> <fecha Apache dd/Mon/aaaa> [filtrar robots]: «n dmg» por versión, solo GET con 200
+contar () {
+  leer "$1" | grep -F "[$3:" | { if [[ ${4:-} ]]; then grep -viE 'bot|crawl|spider|curl|wget|python' || true; else cat; fi; } \
+    | grep -oE "\"GET $2FlyWeb-[0-9]+(\\.[0-9]+){1,3}\\.dmg HTTP/[0-9.]+\" 200 " | grep -oE 'FlyWeb-[0-9.]+[0-9]\.dmg' \
+    | sort | uniq -c || true
+}
+
+contar_dia () {  # contar_dia <aaaa-mm-dd>: añade sus líneas si no estaban
+  local d=$1 ap n f hay=0
+  grep -q "^$d," "$CSV" && return 0
+  ap=$(date -d "$d" +%d/%b/%Y)
+  while read -r n f; do [[ $n ]] && { echo "$d,web,$f,$n" >> "$CSV"; hay=1; }; done < <(contar "$WEBLOG" /descargas/ "$ap" robots)
+  while read -r n f; do [[ $n ]] && { echo "$d,act,$f,$n" >> "$CSV"; hay=1; }; done < <(contar "$UPDLOG" / "$ap")
+  (( hay )) || echo "$d,ninguna,-,0" >> "$CSV"
+}
+
+resumen () {  # funciona con mawk (el awk de Ubuntu)
+  local actual desde tabla
+  actual=$(grep -oE 'FlyWeb-[0-9.]+[0-9]\.dmg' "$APPCAST" 2>/dev/null | sort -V | tail -1)
+  desde=$(date -d '7 days ago' +%F)
+  tabla=$(awk -F, -v desde="$desde" 'NR > 1 && $2 != "ninguna" {
+      k = $3; v[k] = 1; t[$2 SUBSEP k] += $4; if ($1 >= desde) s[$2 SUBSEP k] += $4 }
+    END { for (k in v) printf "%s %d %d %d %d\n", k, s["web" SUBSEP k], t["web" SUBSEP k], s["act" SUBSEP k], t["act" SUBSEP k] }' "$CSV" | sort -V -r)
+  printf 'Versión actual: %s\n\n%-20s %21s %21s\n' "${actual:-?}" "" "web (7 días / total)" "actualiz. (7 d / total)"
+  [[ -n $tabla ]] && printf '%-20s %10d / %-8d %10d / %-8d\n' $tabla
+  printf '%s\n' "$tabla" | awk -v actual="${actual:-?}" '
+    NF { sw += $2; tw += $3; sa += $4; ta += $5; if ($1 == actual) en_uso = $3 + $5 }
+    END { printf "%-20s %10d / %-8d %10d / %-8d\n\n", "Total", sw, tw, sa, ta
+          printf "FlyWeb en uso con la versión actual (aprox.): %d\n", en_uso
+          printf "(actualizaciones a %s más descargas de %s desde la web; cuenta descargas, no personas)\n", actual, actual }'
+}
+
+if [[ $MODO == ver ]]; then resumen; exit 0; fi
+
+# Días que falten, hasta 13 atrás (la web guarda 14 días; updates., 7: más atrás, solo lo que quede), sin contar hoy.
+for i in $(seq 13 -1 1); do contar_dia "$(date -d "$i days ago" +%F)"; done
+sudo -n /usr/local/sbin/flyweb-desplegar cifras
+if [[ $(date +%u) == 1 && -n $AVISO ]] && ! grep -qxF "$(date +%G-%V)" "$EST/semanas" 2>/dev/null; then
+  { printf 'To: %s\nSubject: [FlyWeb] cifras de la semana %s\nContent-Type: text/plain; charset=utf-8\n\n' "$AVISO" "$(date +%G-%V)"
+    resumen; printf '\nPágina pública: https://flyweb.lamosquita.net/cifras.html\n\n-- flyweb-cifras en ns2\n'; } \
+    | /usr/sbin/sendmail -t && date +%G-%V >> "$EST/semanas"
+fi

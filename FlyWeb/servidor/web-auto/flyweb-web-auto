@@ -29,7 +29,7 @@ MAX_DMG=10
 APPCAST=/var/www/FlyWeb/updates/stable/appcast.xml
 UPD=/var/www/FlyWeb/updates
 WEB=/var/www/flyweb.lamosquita.net
-FICHEROS="index.html privacidad.html estilo.css ayuda/index.html ayuda/sincronizar/index.html"
+FICHEROS="index.html privacidad.html estilo.css cifras.html cifras.js ayuda/index.html ayuda/sincronizar/index.html"
 CLAVE_ED25519=I+N32uIF9KsQFRt2rt+qcYZKjEqMOyZ0PbUtam80xkw=      # FlyWeb/servidor/actualizaciones/clave-publica.txt
 AVISO=admin@lamosquita.net                                     # vacío = sin correo
 case $MODO in comprobar|ejecutar) ;; *) echo "uso: flyweb-web-auto comprobar|ejecutar" >&2; exit 2 ;; esac
