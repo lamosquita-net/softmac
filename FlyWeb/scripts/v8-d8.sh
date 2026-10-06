@@ -107,6 +107,7 @@ v8_enable_i18n_support = false
 v8_use_external_startup_data = false
 use_custom_libcxx = false
 use_sysroot = false
+v8_enable_fuzztest = false
 EOF
 gn gen out/x64
 [ "${FLYWEB_D8_NO_BUILD:-}" = 1 ] && exit 0
