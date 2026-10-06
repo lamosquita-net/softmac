@@ -32,3 +32,7 @@ Todas las páginas siguen el mismo patrón, sin modo oscuro:
   banda de las notas lleva `id="fin-vuelo"` (hasta ahí vuela la mosca de `js/mosca.js`).
 - Fuentes: D-DIN (en el servidor, como antes) y `fuentes/JetBrainsMono.woff2` (OFL 1.1, variable 100–800, solo
   latín). Con «reducir movimiento», ninguna mosca se mueve.
+- **Caché:** las páginas cargan `estilo.css`, `img/*.svg` y `js/*.js` con `?v=<huella>`. Quien cambie uno de esos ficheros
+  ejecuta `python3 FlyWeb/web/versionar.py` en el mismo PR (`--comprobar` lo verifica). Además, Apache manda
+  `Cache-Control: no-cache` para HTML, CSS, JS, SVG y CSV (E2-05).
+
