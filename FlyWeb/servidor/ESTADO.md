@@ -10,10 +10,10 @@ lectura; comprobaciones web desde el propio ns2 con `--resolve …:443:127.0.0.1
 | `flyweb.lamosquita.net` (web) | 200. Ofrece **FlyWeb 1.1.2** (LOCAL, SV.3, 05-10 14:01; `descargas/FlyWeb-1.1.2.dmg`; la 1.0 sigue en `descargas/` sin enlazar). Registros con IP, 14 días | — |
 | `components.` (go-update) | `flyweb-components` activo y habilitado, solo `127.0.0.1:8192`; binario `0e776013…` (= release `go-update` anotada); unidad = `systemd/flyweb-components.service` (`84d379be…`). `/extensions` sin clave → 403; `_estado.json` 200, firma de bak de las 05:27 | Nada urgente; ver hallazgos 1 y 3 |
 | `proxy.` (Safe Browsing, diccionarios) | **Safe Browsing funciona desde el 05-10, 14:12** (clave nueva con IPv4 e IPv6 de ns2; `threatListUpdates:fetch` → 200). Raíz 404 | — |
-| `updates.` (Sparkle) | appcast 200. DMG en `updates/`: 1.0.1, 1.1, 1.1.1, 1.1.2 | Ver hallazgo 2 |
+| `updates.` (Sparkle) | appcast 200; anuncia **1.1.2 y 1.0.1** (05-10, 18:40). DMG en `updates/`: 1.0.1, 1.1, 1.1.1, 1.1.2 | — |
 | `sync.` (flyweb-sync) | **Sí, desde el 05-10 16:09** (SV.1): `127.0.0.1:8295`, binario `6b690b21…`, POST `/v2/command/` 401 sin token; sin IP en registros | Prueba con FlyWeb en los tres Mac (LOCAL); copia de `sync.db` en bak (decisión del HUMANO) |
 
-Certificado `flyweb.lamosquita.net`: 5 nombres (`flyweb.`, `components.`, `proxy.`, `updates.`, `sync.`; ampliado el 05-10), ECDSA. DNS en ns1 (`/etc/bind/zones/lamosquita.net.hosts`, `7a9fc590…`): A de
+Certificado `flyweb.lamosquita.net`: 5 nombres (`flyweb.`, `components.`, `proxy.`, `updates.`, `sync.`; ampliado el 05-10), ECDSA, **caduca el 3-01-2027 13:09 UTC** (`certbot certificates` en ns2, 05-10). Renovación: temporizador `snap.certbot.renew.timer` activo (dos veces al día). `certbot renew --dry-run` (HUMANO, 05-10): simulación correcta para `flyweb.lamosquita.net` (y los demás certificados de ns2). DNS en ns1 (`/etc/bind/zones/lamosquita.net.hosts`, `7a9fc590…`): A de
 los cuatro nombres → 51.91.19.170, TTL 3600; sin AAAA; sin `sync.`.
 
 ## Qué coincide con el repo (E1)
@@ -34,7 +34,7 @@ los cuatro nombres → 51.91.19.170, TTL 3600; sin AAAA; sin `sync.`.
    `[client …]`, pero mod_proxy mete la IP **dentro del mensaje**. Rompe la promesa de privacidad, aunque sea raro (cliente
    que corta la conexión) y se borre a los 7 días. **Propuesta E2:** `LogLevel proxy:crit proxy_http:crit` en los vhost de
    `components.`, `proxy.` y `sync.` (o filtrar el mensaje), y borrar esa línea.
-2. **El appcast lista versiones malas.** bak vuelve a escribir la 1.1 (retirada: rompía perfiles) y la 1.1.1 con la firma de
+2. **[Resuelto el 05-10: 157.64.3 quitada a mano a las ~17:00 y 157.64.2 con `retirar` a las ~18:40; el appcast anuncia solo 1.1.2 y 1.0.1]** **El appcast lista versiones malas.** bak vuelve a escribir la 1.1 (retirada: rompía perfiles) y la 1.1.1 con la firma de
    un DMG que ya no existe (`length` 163576123; el DMG actual mide 163573570). Sparkle coge la 1.1.2, así que hoy no afecta;
    pero si alguna vez se retirara la 1.1.2, los Mac recibirían la 1.1.1 con firma mala (fallo) o la 1.1. **HUMANO, en bak:**
    quitar 157.64.2 y 157.64.3 del estado de `firmar-actualizacion.mjs`.
