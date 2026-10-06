@@ -267,7 +267,7 @@ Datos: web-features 3.40.1 (funciones y subfunciones con Chrome 123) y flags que
 | `navigation.activation` | subfunción | a2c881f5002a … 8ced02d3dd19 | bajo-medio |
 | `Content-Encoding: zstd` | red | serie de `net/` + la librería `third_party/zstd`, que **no está en la 116** | alto (dependencia nueva en el checkout) |
 
-- **Propuesta para `zstd`:** excepción del nivel. Un servidor solo manda zstd si el navegador lo anuncia en
+- **`zstd`: excepción del nivel (HUMANO, 06-10).** Un servidor solo manda zstd si el navegador lo anuncia en
   `Accept-Encoding`; si FlyWeb no lo anuncia, recibe gzip o brotli y ninguna web se rompe. Portarlo obliga a meter una
   librería nueva en el checkout (`DEPS`, `gclient`), justo lo que nuestro flujo evita.
 - **Fuera (no Baseline):** CSS modules, Long Animation Frames, rutas estáticas de Service Worker, `text-spacing-trim`.
