@@ -209,9 +209,13 @@ Lo Baseline que Chrome 121 publicó (web-features): `Array.fromAsync`, `scrollba
 `::spelling-error`/`::grammar-error` con sus decoraciones de texto y `ClipboardItem.supports()`. Rama brave-core
 `nube/motor-121` (encima de `nube/motor-120`).
 
-- **V8 12.1.285.28** (9f5634b2; la de Chrome 121): trae `Array.fromAsync` de serie. `patches/v8/` rehechos sin
-  conflictos; ninguna API pública de V8 quitada desde la 12.0; `chromium_src/v8` de Brave 1.62.166. CVE-2024-0519
-  sigue pendiente de SEGURIDAD (FS.4).
+- **V8 12.1.285.28** (V8 1fbb9881419d; el cambio de versión en brave-core es 9f5634b2; la V8 de Chrome 121): trae
+  `Array.fromAsync` de serie. `patches/v8/` rehechos sin conflictos; `chromium_src/v8` de Brave 1.62.166.
+  **Corrección (LOCAL de la 1.5, 06-10):** no era cierto que no quitara API pública: la 12.1 convierte 21
+  `v8::Isolate::UseCounterFeature` en `kOBSOLETE_*` y elimina `v8::TypedArray::kMaxLength`, que Blink 116 usa
+  (`use_counter_callback.cc`, `image_data.cc`, `shape.cc`, `gpu_buffer.cc`, `drawing_buffer.cc`). Arreglado por LOCAL
+  (f1cd46f0), junto con dos fallos del porte de `scrollbar-color` (452d297d: no compilaba en la 116 y una
+  desreferencia nula con `@keyframes { scrollbar-color: … }`). Integrado en `nube/motor-121` 4a8c006f y hacia arriba.
 - **`::spelling-error`/`::grammar-error`** (4921ff33): el flag ya estaba en la 116; se portan 2 arreglos
   (e9b876697fb1, 477ebb6082da) y se enciende. Fuera la fusión de flags (3981da4f277e, limpieza).
 - **`scrollbar-color`/`scrollbar-width`** (ead38049): 11 commits; el primero (4ef69ea532dc) es justo la
@@ -262,6 +266,18 @@ las subfunciones de la lista de abajo. Rama brave-core `nube/motor-122` (encima 
 
 Baseline de Chrome 123 (web-features 3.40.1 + flags que pasan a `stable` entre la 122 y la 123.0.6312.122). Rama brave-core
 `nube/motor-123` (encima de `nube/motor-122`).
+
+- **API pública de V8 contra Blink 116 (revisión de NUBE, 06-10, pedida por LOCAL):** comparando `include/` de V8
+  12.1 → 12.2 → 12.3 con Blink, gin, content, extensions y pdf de la 116. Hay un fallo nuevo:
+  `remote_window_proxy.cc` sigue llamando a `TracedReference::SetWrapperClassId()`, que la 12.3 quita. Se arregla
+  en 9d7603cb, igual que Chromium 122. Lo demás ya estaba resuelto o no rompe nada:
+  - `CommandLineAPIScope` (122), los *wrapper class ids* de `thread_state.cc`/`wrapper_type_info.h` y
+    `SetWasmGCEnabledCallback` (123) ya estaban resueltos.
+  - `SafeForTerminationScope`, `GetImportAssertions()` y `SetAccessor` con `AccessControl` siguen existiendo, marcados
+    como obsoletos.
+  - Los métodos de `v8::Platform` dejan de ser virtuales, pero gin de la 116 ya implementa los `*Impl`.
+  - `Value::IsTrue/IsFalse` y `Local` solo cambian de sitio.
+  - La 12.2 y la 12.3 no marcan más `UseCounterFeature` como obsoletos.
 
 - **V8 12.3.219.16** (053fff59): `patches/v8/` rehechos desde la 12.2 sin conflictos; trae de serie los módulos JSON con
   `with` (import attributes; Blink 116 ya cargaba módulos JSON). La 12.3 quita dos API que usa Blink 116: los *wrapper
