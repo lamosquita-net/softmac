@@ -18,11 +18,16 @@ En cada pasada:
    avisa una vez.
 4. Comprueba el DMG de `updates/`: tamaño = el del appcast; SHA-256 = el de `VERSION`; **firma EdDSA del appcast
    válida con la clave pública fijada en el script** (no la lee del repo).
-5. Baja las páginas de ese commit; la portada tiene que enlazar `descargas/<DMG>` y mostrar su SHA-256.
+5. Baja las páginas de ese commit; la portada tiene que enlazar `descargas/<DMG>` y mostrar su SHA-256. Además,
+   `VERSION` y cada página que vaya a cambiar tienen que haber llegado a `main` **por un PR fusionado** (API de
+   GitHub): `main` también recibe pushes directos (filas del tablero), y esos nunca se publican solos.
 6. Publica: el DMG en `descargas/` (`flyweb-desplegar dmg`, nunca sustituye) y **cada página que haya cambiado**
    (`flyweb-desplegar web <commit> <fichero> <sha256>`). Por eso también llegan solos los cambios de la ayuda, una
    vez fusionados en `main` (siempre que `VERSION` siga siendo la versión aprobada).
 7. Comprueba desde ns2 (portada, DMG y ayuda, 200; la portada enlaza el DMG), lo apunta y avisa por correo.
+8. **Limpieza** (decisión del HUMANO, 06-10): deja como mucho **10 DMG** en `updates/` y otros 10 en `descargas/`,
+   borrando los más antiguos con `flyweb-desplegar borrar`. Nunca borra uno que esté en el appcast ni
+   `FlyWeb-1.0.dmg`, y `flyweb-desplegar` vuelve a comprobarlo como root.
 
 Si algo no cuadra (firma, SHA-256, tamaño, portada), **no publica nada** y avisa (un correo por caso, no uno cada
 10 minutos). Si GitHub no responde, lo intenta en la pasada siguiente.
@@ -41,9 +46,13 @@ ayuda tampoco se publican hasta la firma (el script publica siempre una web cohe
 
 ## Instalar (SERVIDOR-LOCAL, desde un commit revisado de `main`)
 
-HUMANO, una vez (el temporizador de usuario tiene que correr sin sesión abierta):
+HUMANO, una vez: el temporizador de usuario tiene que correr sin sesión abierta, y `flyweb-desplegar` necesita la
+orden `borrar` (`C` = commit de `main` con este PR):
 ```sh
 sudo loginctl enable-linger servidor
+curl -fsSLo flyweb-desplegar "https://raw.githubusercontent.com/lamosquita-net/softmac/$C/FlyWeb/servidor/acceso/flyweb-desplegar"
+echo "<sha256 del PR>  flyweb-desplegar" | sha256sum -c \
+  && sudo install -m 0755 -o root -g root flyweb-desplegar /usr/local/sbin/flyweb-desplegar && rm flyweb-desplegar
 ```
 SERVIDOR-LOCAL, en ns2 como `servidor` (`C` = commit de `main`):
 ```sh
@@ -68,6 +77,8 @@ además borrar `~/bin/flyweb-web-auto` y las dos unidades. Volver a una página 
 
 ## Límite asumido
 
-El texto se publica tal como está en `main`; lo que protege es que `main` solo cambia por PR revisado. El DMG, en
+El texto se publica tal como está en `main`, pero solo si cada fichero llegó por un PR fusionado: un push directo a
+`main` (como los del tablero) nunca se publica solo. Queda un caso raro: un commit empujado directamente que luego
+entra en un PR (GitHub lo da por fusionado); lo cubre la revisión de esos PR. El DMG, en
 cambio, solo se publica si lo firmó bak (EdDSA) y su SHA-256 es el anunciado: un repo comprometido no puede hacer que
 la web ofrezca un DMG que el HUMANO no aprobó.

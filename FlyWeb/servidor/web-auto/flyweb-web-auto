@@ -8,6 +8,10 @@
 #   2. El DMG de updates/ mide lo que dice el appcast, su SHA-256 es el de VERSION y la firma EdDSA del appcast
 #      valida con la clave pública FIJADA aquí (no se lee del repo).
 #   3. La portada de main enlaza ese DMG y muestra ese SHA-256.
+#   4. VERSION y cada página que cambie llegaron a main por un PR fusionado (API de GitHub): main también recibe pushes
+#      directos (filas del tablero) y esos nunca se publican solos.
+# Después de publicar, deja como mucho 10 DMG en updates/ y en descargas/ (decisión del HUMANO, 06-10), con
+# «flyweb-desplegar borrar», que además se niega a borrar lo que esté en el appcast y la 1.0.
 # Entonces: DMG a descargas/ (flyweb-desplegar dmg, nunca sustituye) y cada página de main que haya cambiado
 # (flyweb-desplegar web <commit> <fichero> <sha256>). Así también llegan los cambios de la ayuda.
 #
@@ -20,6 +24,8 @@ PATH=/usr/sbin:/usr/bin:/sbin:/bin
 MODO=${1:-comprobar}
 REPO=https://github.com/lamosquita-net/softmac
 RAW=https://raw.githubusercontent.com/lamosquita-net/softmac
+API=https://api.github.com/repos/lamosquita-net/softmac
+MAX_DMG=10
 APPCAST=/var/www/FlyWeb/updates/stable/appcast.xml
 UPD=/var/www/FlyWeb/updates
 WEB=/var/www/flyweb.lamosquita.net
@@ -41,6 +47,34 @@ avisar () {  # avisar <clave única> <asunto> <cuerpo>: un correo por clave, no 
     "$AVISO" "$2" "$3" | /usr/sbin/sendmail -t && echo "$1" >> "$EST/avisados"
 }
 parar () { log "PARADO: $1"; avisar "parado:$CLAVE:$1" "no se publica $V_CORTA" "$1"; exit 1; }
+# viene_de_pr <ruta>: el último commit que tocó <ruta> en $C llegó a main por un PR fusionado.
+viene_de_pr () {
+  local x
+  x=$(curl -fsSL --proto =https -H 'Accept: application/vnd.github+json' "$API/commits?path=$1&sha=$C&per_page=1" \
+      | python3 -c 'import sys,json; print(json.load(sys.stdin)[0]["sha"])') || return 1
+  [[ $x =~ ^[0-9a-f]{40}$ ]] || return 1
+  curl -fsSL --proto =https -H 'Accept: application/vnd.github+json' "$API/commits/$x/pulls" | python3 -c '
+import sys, json
+sys.exit(0 if any(p.get("merged_at") and p["base"]["ref"] == "main" for p in json.load(sys.stdin)) else 1)'
+}
+# limpiar: como mucho MAX_DMG en updates/ y en descargas/; borra los más antiguos que no estén en el appcast ni sean la 1.0.
+limpiar () {
+  local carpeta dir f sobran
+  for carpeta in updates descargas; do
+    [[ $carpeta == updates ]] && dir=$UPD || dir=$WEB/descargas
+    mapfile -t todos < <(find "$dir" -maxdepth 1 -type f -name 'FlyWeb-*.dmg' -printf '%f\n' | sort -V)
+    sobran=$(( ${#todos[@]} - MAX_DMG ))
+    for f in "${todos[@]}"; do
+      (( sobran > 0 )) || break
+      [[ $f == FlyWeb-1.0.dmg ]] && continue
+      grep -qF "/$f\"" "$APPCAST" && continue
+      if [[ $MODO == ejecutar ]]; then
+        sudo -n /usr/local/sbin/flyweb-desplegar borrar "$carpeta" "$f" && log "borrado $carpeta/$f (más de $MAX_DMG)"
+      else echo "se borraría $carpeta/$f (más de $MAX_DMG)"; fi
+      sobran=$((sobran - 1))
+    done
+  done
+}
 
 # 1. Versión más alta del appcast
 read -r V_CORTA V_LARGA DMG LONG FIRMA < <(python3 - "$APPCAST" <<'PY'
@@ -92,6 +126,10 @@ for f in $FICHEROS; do
 done
 grep -qF "descargas/$DMG" "$tmp/index.html" && grep -qF "$SHA" "$tmp/index.html" \
   || parar "la portada de $C no enlaza $DMG con su SHA-256"
+viene_de_pr FlyWeb/web/VERSION || parar "FlyWeb/web/VERSION no llegó a main por un PR fusionado (¿push directo?)"
+for x in $CAMBIAN; do
+  viene_de_pr "FlyWeb/web/${x%%:*}" || parar "FlyWeb/web/${x%%:*} no llegó a main por un PR fusionado (¿push directo?): no se publica"
+done
 NUEVO_DMG=no; [[ -f $WEB/descargas/$DMG ]] || NUEVO_DMG=si
 if [[ -f $WEB/descargas/$DMG && $(sha256sum "$WEB/descargas/$DMG" | cut -d' ' -f1) != "$SHA" ]]; then
   parar "descargas/$DMG ya existe con otro contenido (cada DMG nuevo = versión nueva)"
@@ -99,10 +137,10 @@ fi
 
 if [[ $MODO == comprobar ]]; then
   echo "appcast: $V_CORTA ($V_LARGA) $DMG; main $C describe la misma; firma EdDSA y SHA-256 OK"
-  echo "DMG nuevo en descargas/: $NUEVO_DMG"; echo "páginas que cambiarían: ${CAMBIAN:-ninguna}"
-  exit 0
+  echo "DMG nuevo en descargas/: $NUEVO_DMG"; echo "páginas que cambiarían: ${CAMBIAN:-ninguna} (todas por PR fusionado)"
+  limpiar; exit 0
 fi
-[[ $NUEVO_DMG == no && -z $CAMBIAN ]] && { echo "$CLAVE" >> "$EST/hecho"; exit 0; }
+[[ $NUEVO_DMG == no && -z $CAMBIAN ]] && { limpiar; echo "$CLAVE" >> "$EST/hecho"; exit 0; }
 
 # 6. Publicar
 HECHO=""
@@ -118,6 +156,7 @@ r () { curl -sk -o /dev/null -w '%{http_code}' --resolve flyweb.lamosquita.net:4
 P=$(r /); D=$(r "/descargas/$DMG"); A=$(r /ayuda/)
 curl -sk --resolve flyweb.lamosquita.net:443:127.0.0.1 https://flyweb.lamosquita.net/ | grep -qF "descargas/$DMG" && E=si || E=no
 log "PUBLICADO $V_CORTA ($V_LARGA) desde $C: $HECHO| portada $P, DMG $D, ayuda $A, portada enlaza el DMG: $E"
+limpiar
 echo "$CLAVE" >> "$EST/hecho"
 avisar "publicado:$CLAVE" "publicada la $V_CORTA en flyweb.lamosquita.net" \
   "Versión: $V_CORTA ($V_LARGA), DMG $DMG, SHA-256 $SHA (firma EdDSA comprobada).
