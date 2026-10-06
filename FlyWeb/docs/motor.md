@@ -240,7 +240,7 @@ las subfunciones de la lista de abajo. Rama brave-core `nube/motor-122` (encima 
 - **Subfunciones (FM.8, cd251be0):** herencia de `::backdrop` desde su elemento (adaptada al `StyleResolver` de la 116),
   `URLPattern.hasRegExpGroups`, `rgb()` con números y porcentajes mezclados en la sintaxis moderna (escrito para el
   parser de la 116) y `@import … supports()` encendido.
-- **Sin portar, pendiente de decisión del HUMANO:** `align-self`/`justify-self` en cajas con posición absoluta
+- **Excepción del nivel (HUMANO, 06-10: se publica sin ella y se porta aparte, tarea FM.9):** `align-self`/`justify-self` en cajas con posición absoluta
   (d5e6d59db47c, `LayoutAlignForPositioned`). `ng_absolute_utils.cc` de la 116 y la base de ese commit difieren en unas
   640 líneas (refactors de por medio, anchor positioning entre ellos), y toca el posicionamiento absoluto, que usan casi
   todas las webs: es un porte grande y de riesgo, no de un día.
