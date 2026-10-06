@@ -1,0 +1,11 @@
+# Destino en ns2: ~servidor/.config/systemd/user/flyweb-cifras.timer. Después de la rotación diaria de registros.
+[Unit]
+Description=FlyWeb: cifras diarias
+
+[Timer]
+OnCalendar=*-*-* 07:10
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
