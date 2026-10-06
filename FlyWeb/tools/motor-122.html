@@ -70,7 +70,7 @@
     document.head.append(st); const r = st.sheet.cssRules[0]; const t = r && r.supportsText; st.remove();
     return { ok: t === 'display: grid', nota: String(t) };
   });
-  prueba('justify-self en cajas con posición absoluta (excepción del 122, se porta aparte: FM.9; FALLO esperado)', () => {
+  prueba('justify-self en cajas con posición absoluta (excepción del 122: FALLO esperado en la 1.6; llega con la 1.7, FM.9)', () => {
     const x = document.getElementById('abs').getBoundingClientRect().left - document.getElementById('caja').getBoundingClientRect().left;
     return { ok: Math.round(x) === 150, nota: `left ${Math.round(x)} (150 = alineada al final)` };
   });

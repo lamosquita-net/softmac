@@ -18,6 +18,9 @@
   #celda { display: table-cell; height: 100px; align-content: end; }
   #celda > div { height: 20px; }
   #campo { field-sizing: content; font: 16px monospace; }
+  #caja { position: relative; width: 200px; height: 20px; }
+  #abs { position: absolute; left: 0; right: 0; width: 50px; height: 10px; justify-self: end; }
+  #abscentro { position: absolute; left: 0; right: 0; width: 50px; height: 10px; justify-self: center; }
   #oscuro { color-scheme: dark; color: light-dark(rgb(1, 2, 3), rgb(4, 5, 6)); }
   @keyframes tres { 0% { opacity: 0 } 50% { opacity: .5 } 100% { opacity: 1 } }
 </style>
@@ -30,6 +33,7 @@
   <div id="bloque"><div id="hijo"></div></div>
   <div id="celda"><div id="hijocelda"></div></div>
   <input id="campo" value="abc"><input id="campofijo" value="abc" style="font: 16px monospace">
+  <div id="caja"><div id="abs"></div><div id="abscentro"></div></div>
   <p id="oscuro">x</p>
   <div id="anfitrion"><template shadowrootmode="open" shadowrootdelegatesfocus></template></div>
 </div>
@@ -81,6 +85,10 @@
   pruebaAsync('Módulos JSON con import attributes (with)', async () => {
     const url = 'data:application/json,{"a":1}';
     const m = await import(url, { with: { type: 'json' } }); return { ok: m.default.a === 1, nota: JSON.stringify(m.default) };
+  });
+  prueba('justify-self en cajas con posición absoluta (excepción del 122, FM.9)', () => {
+    const x = (id) => Math.round(document.getElementById(id).getBoundingClientRect().left - document.getElementById('caja').getBoundingClientRect().left);
+    return { ok: x('abs') === 150 && x('abscentro') === 75, nota: `end ${x('abs')} (150), center ${x('abscentro')} (75)` };
   });
   prueba('User-Agent declara Chrome/123', () => {
     const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '123', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };

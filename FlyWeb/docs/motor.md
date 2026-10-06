@@ -244,10 +244,18 @@ las subfunciones de la lista de abajo. Rama brave-core `nube/motor-122` (encima 
   (d5e6d59db47c, `LayoutAlignForPositioned`). `ng_absolute_utils.cc` de la 116 y la base de ese commit difieren en unas
   640 líneas (refactors de por medio, anchor positioning entre ellos), y toca el posicionamiento absoluto, que usan casi
   todas las webs: es un porte grande y de riesgo, no de un día.
+  **Portado aparte (FM.9, 06-10):** brave-core `nube/abspos-align` 0bb9d3bf (desde `nube/motor-122`), fusionado en
+  `nube/motor-123` (3aa4f33e): **llega con la 1.7**; la 1.6 sale sin ella. Escrito de nuevo sobre la 116, sin el
+  «inset-modified containing block» de Chromium: con los dos insets puestos, la alineación decide qué inset absorbe el
+  espacio libre (`center` lo reparte; `safe` vuelve al inicio si no cabe); solo `normal`/`stretch` estiran un tamaño
+  `auto`; las tablas se estiran con `stretch` explícito. Flag `LayoutAlignForPositioned` en `stable` (si da problemas,
+  se apaga sin recompilar con `--disable-blink-features=LayoutAlignForPositioned`). Fuera: elementos reemplazados con
+  `stretch` explícito. Riesgo: toca el posicionamiento absoluto; con alineación `normal` (casi todas las webs) el
+  resultado es el de antes.
 - **Fuera (no Baseline):** Storage Buckets y lectura de portapapeles sin sanear (solo Chrome). Los colores relativos en
   `rgb()`/`oklab()`/`oklch()` van al nivel 125.
 - **Comprobación:** `FlyWeb/tools/motor-122.html` (10 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
-  `FlyWeb/tools/wpt-122-lista.txt` (8 ficheros; los 2 de `css-align/abspos` fallarán mientras no se porte la alineación).
+  `FlyWeb/tools/wpt-122-lista.txt` (8 ficheros; los 2 de `css-align/abspos` fallan en la 1.6 y pasan desde la 1.7, FM.9).
 - **Declarado 122 / FlyWeb 1.6** en 667d367b (se revierte solo si el nivel no pasa).
 
 ## Nivel 123 (en código, 06-10; pendiente de compilar → FlyWeb 1.7)
@@ -272,6 +280,7 @@ Baseline de Chrome 123 (web-features 3.40.1 + flags que pasan a `stable` entre l
 - **`light-dark()`** ya entró en el nivel 117 (e50b83ff).
 - **`zstd`: excepción del nivel (HUMANO, 06-10).** Un servidor solo manda zstd si el navegador lo anuncia en
   `Accept-Encoding`; FlyWeb no lo anuncia y recibe gzip o brotli. Portarlo metería una librería nueva en el checkout.
+- **Alineación de cajas con posición absoluta** (excepción del 122, FM.9): fusionada aquí, 3aa4f33e.
 - **Fuera (no Baseline):** CSS modules, Long Animation Frames, rutas estáticas de Service Worker, `text-spacing-trim`.
 - **Comprobación:** `FlyWeb/tools/motor-123.html` (10 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
   `FlyWeb/tools/wpt-123-lista.txt` (12 ficheros).

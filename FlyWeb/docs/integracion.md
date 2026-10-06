@@ -122,6 +122,7 @@ es solo local), apuntar el error en `docs/TAREAS.md` (las últimas 30 líneas de
 | 85 | `nube/motor-123` | 142ecbad | `field-sizing` (formularios: `layout_box.cc`, `ng_block_node.cc`, `text_control_inner_elements.cc`). Comprobar: la de `motor-123.html`; formularios de webs normales sin cambios de tamaño |
 | 86 | `nube/motor-123` | 9b582742 | **`align-content` en bloques** (layout de bloques, tablas y multicolumna): el porte de más riesgo. Comprobar: las 2 de `motor-123.html`, `css-align/blocks` de WPT y webs con tablas y columnas (Wikipedia, El País) |
 | 87 | `nube/motor-123` | 372b2b1c | **Nivel 123 declarado, FlyWeb 1.7.** Excepción aprobada: `zstd`. Se revierte solo si el nivel no pasa |
+| 88 | `nube/motor-123` | 3aa4f33e | **FM.9: `align-self`/`justify-self` en cajas con posición absoluta** (excepción del 122; `ng_absolute_utils.cc` y la flag `LayoutAlignForPositioned`). Comprobar: la de `motor-123.html`, `css-align/abspos` de WPT y webs normales sin elementos desplazados (menús, modales, tooltips) |
 
 Después del paso 11 (el 12 no es necesario para esto): F0.2 queda cerrada, y el `.app` se puede copiar a la 6,1 y la 5,1 para F0.6.
 
