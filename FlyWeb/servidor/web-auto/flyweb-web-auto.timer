@@ -1,0 +1,12 @@
+# Destino en ns2: ~servidor/.config/systemd/user/flyweb-web-auto.timer (SV.6). Necesita «linger» para «servidor».
+[Unit]
+Description=FlyWeb: mirar cada 10 min si hay versión aprobada sin publicar (SV.6)
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+RandomizedDelaySec=60
+Persistent=true
+
+[Install]
+WantedBy=timers.target

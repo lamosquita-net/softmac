@@ -44,7 +44,11 @@ Este documento es su punto de partida. Debe leerlo, junto con [`TAREAS.md`](TARE
 | **E2. Cambios supervisados** | SERVIDOR, tras «validado» del HUMANO | El agente abre el PR, explica qué cambia y cómo se deshace, y **pregunta**. Con la aprobación, lo publica para despliegue (§4). ns2 lo aplica con comprobaciones antes y después, y vuelve atrás solo si algo falla. El agente lee el resultado y lo resume |
 | **E3. Rutina** | ns2 + SERVIDOR | Cuando el HUMANO lo decida. La copia diaria de componentes es un temporizador de systemd en ns2, no el agente. El agente vigila que todo siga funcionando y aplica solo las clases de cambio que el HUMANO haya autorizado por escrito en este documento; el resto sigue como E2 |
 
-Clases de cambio autorizadas en E3: **ninguna todavía**.
+Clases de cambio autorizadas en E3:
+- **Publicar en `flyweb.lamosquita.net` la versión aprobada** (HUMANO, 05-10-2026; SV.6): `flyweb-web-auto` en ns2
+  publica sin revisión previa el DMG firmado por bak y las páginas de `main` cuando `FlyWeb/web/VERSION` coincide con
+  el appcast y cuadran firma EdDSA, SHA-256 y tamaño (`FlyWeb/servidor/web-auto/README.md`). SERVIDOR-LOCAL revisa
+  después y lo anota en `CAMBIOS.md`.
 
 ## 4. Cómo se ejecuta en ns2 sin que el agente entre (propuesta inicial; desde el 05-10, ver §8)
 
