@@ -250,6 +250,28 @@ las subfunciones de la lista de abajo. Rama brave-core `nube/motor-122` (encima 
   `FlyWeb/tools/wpt-122-lista.txt` (8 ficheros; los 2 de `css-align/abspos` fallarán mientras no se porte la alineación).
 - **Declarado 122 / FlyWeb 1.6** en 667d367b (se revierte solo si el nivel no pasa).
 
+## Nivel 123 (inventario, 06-10; sin portar → FlyWeb 1.7)
+
+Datos: web-features 3.40.1 (funciones y subfunciones con Chrome 123) y flags que pasan a `stable` entre la 122 y la
+123.0.6312.122. V8 de Chrome 123: 12.3 (pendiente de mirar qué API quita).
+
+| Pieza | Tipo | Commits (orientativo) | Coste / riesgo |
+|---|---|---|---|
+| `light-dark()` | CSS | ad1bc8e13485, e3cfad827fd4 (+ quizá el refactor de colores b60eb5841583) | bajo |
+| `paint-order` en texto HTML | CSS | 128e34b6f0e6 (+ 2 refactors de SVG de Söderquist) | bajo-medio |
+| `align-content` en bloques | CSS, layout | ~8 (e8505a327046 … cf37c9d48d84) | **medio-alto**: layout de bloques, mismo riesgo de base distinta que FM.9 |
+| `field-sizing` | CSS, formularios | ~10 desde julio de 2023 (`form-sizing` → `field-sizing`) | medio |
+| Módulos JSON con `with` (import attributes) | JS (V8 12.3) + Blink | cc6f957216fa y la serie de Ribaudo | medio (llega con la V8) |
+| `CSSKeyframesRule.length` | subfunción | a22c1207bb2c | bajo |
+| `shadowRootDelegatesFocus` en `<template>` | subfunción | 46a667bd42e8 | bajo |
+| `navigation.activation` | subfunción | a2c881f5002a … 8ced02d3dd19 | bajo-medio |
+| `Content-Encoding: zstd` | red | serie de `net/` + la librería `third_party/zstd`, que **no está en la 116** | alto (dependencia nueva en el checkout) |
+
+- **Propuesta para `zstd`:** excepción del nivel. Un servidor solo manda zstd si el navegador lo anuncia en
+  `Accept-Encoding`; si FlyWeb no lo anuncia, recibe gzip o brotli y ninguna web se rompe. Portarlo obliga a meter una
+  librería nueva en el checkout (`DEPS`, `gclient`), justo lo que nuestro flujo evita.
+- **Fuera (no Baseline):** CSS modules, Long Animation Frames, rutas estáticas de Service Worker, `text-spacing-trim`.
+
 ## Inventario: CSS Baseline publicado después de la 116
 
 Datos de [web-features](https://www.npmjs.com/package/web-features) 3.40.1 (el catálogo de Baseline) y del fichero de
