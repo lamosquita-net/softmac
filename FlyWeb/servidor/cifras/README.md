@@ -15,7 +15,8 @@ Son descargas, no personas.
 ## Cómo funciona
 
 - `flyweb-cifras diario`, en ns2 como `servidor` (grupo `adm`, que lee los registros), con un temporizador de usuario
-  a las 07:10, después de la rotación de registros. Cuenta los días que falten (hasta 13 atrás), sin contar hoy.
+  cada hora (a y 7; desde el 07-10). Cuenta los días que falten (hasta 13 atrás) y vuelve a contar ayer y hoy en cada
+  pasada: una versión nueva sale en las cifras en menos de una hora tras sus primeras descargas.
 - Guarda `~servidor/.local/state/flyweb-cifras/cifras.csv` y lo publica con `flyweb-desplegar cifras`, que como root
   comprueba que **cada línea es una cifra** antes de copiarla a la web.
 - Página pública: `https://flyweb.lamosquita.net/cifras.html` (`FlyWeb/web/cifras.html` y `cifras.js`, publicadas por
