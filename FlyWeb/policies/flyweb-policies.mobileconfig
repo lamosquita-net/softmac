@@ -2,7 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   Políticas de FlyWeb:
-  - V8 sin JIT por defecto (DefaultJavaScriptJitSetting = 2) y sitios que sí pueden usarlo (JavaScriptJitAllowedForSites).
+  - V8 con JIT por defecto desde FlyWeb 1.6 (DefaultJavaScriptJitSetting = 1; decisión del HUMANO, 07/10). Para
+    volver a apagarlo en todas las webs sin recompilar (emergencia: un fallo de JIT explotado aún sin portar), poner
+    2. Sitios concretos sin JIT: JavaScriptJitBlockedForSites. Antes (1.0–1.5) iba a 2 con lista de permitidos.
   - Safe Browsing estándar (SafeBrowsingProtectionLevel = 1), por el proxy propio de ns2: Google ve la IP del servidor,
     no la del usuario, y nada pasa por Brave (decisión del HUMANO, 03/10). Antes estaba apagado (0) porque consultaba
     servidores de Brave/Google. **Instalar esta versión solo cuando** el proxy esté en producción
@@ -43,18 +45,13 @@
 							<key>mcx_preference_settings</key>
 							<dict>
 								<key>DefaultJavaScriptJitSetting</key>
-								<integer>2</integer>
+								<integer>1</integer>
 								<key>SafeBrowsingProtectionLevel</key>
 								<integer>1</integer>
 								<key>BraveWalletDisabled</key>
 								<true/>
 								<key>BraveRewardsDisabled</key>
 								<true/>
-								<key>JavaScriptJitAllowedForSites</key>
-								<array>
-									<string>[*.]claude.ai</string>
-									<string>[*.]google.com</string>
-								</array>
 							</dict>
 						</dict>
 					</array>
@@ -82,18 +79,13 @@
 							<key>mcx_preference_settings</key>
 							<dict>
 								<key>DefaultJavaScriptJitSetting</key>
-								<integer>2</integer>
+								<integer>1</integer>
 								<key>SafeBrowsingProtectionLevel</key>
 								<integer>1</integer>
 								<key>BraveWalletDisabled</key>
 								<true/>
 								<key>BraveRewardsDisabled</key>
 								<true/>
-								<key>JavaScriptJitAllowedForSites</key>
-								<array>
-									<string>[*.]claude.ai</string>
-									<string>[*.]google.com</string>
-								</array>
 							</dict>
 						</dict>
 					</array>

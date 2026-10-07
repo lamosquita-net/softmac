@@ -10,7 +10,7 @@ huecos. Este documento dice cómo diagnosticar cada fallo y qué hay ya hecho.
 | **Versión declarada** (User-Agent y Client Hints dicen Chrome 116) | Aviso de "navegador no compatible" o "actualiza Chrome", o una versión reducida del sitio, aunque todo funcionaría | Declarar una versión más nueva solo en ese sitio (pendiente: §4) |
 | **JavaScript que falta** | La página se queda en blanco o a medias; en la consola: `... is not a function`, `... is not defined` | Polyfill (§3) |
 | **CSS que falta** | Todo funciona, pero se ve mal: elementos solapados, sin estilo o descolocados | No tiene polyfill razonable. Se anota como deuda (Fase 6) |
-| **JIT desactivado** (jitless) | Lento, o falla WebAssembly (`WebAssembly is not defined`) | Añadir el sitio a la lista de JIT (`flyweb-policies.mobileconfig`) |
+| **JIT desactivado** (jitless; por defecto hasta la 1.5) | Lento, o falla WebAssembly (`WebAssembly is not defined`) | Desde la 1.6 el JIT va activado por defecto. Si aun así un sitio va sin JIT, revisar que no esté en `JavaScriptJitBlockedForSites` ni con el JIT bloqueado en la configuración del sitio |
 
 ## 2. Cómo diagnosticar un sitio (LOCAL o HUMANO)
 
@@ -26,8 +26,8 @@ Por cada sitio de la lista, probar en este orden y anotar el resultado en §5:
    ```
    Si así desaparece el aviso, es un **bloqueo por versión declarada**. Ojo: esta opción solo cambia el User-Agent; los Client
    Hints (`navigator.userAgentData`, `Sec-CH-UA`) siguen diciendo 116, así que un "no" aquí no descarta del todo la versión.
-4. **Con JIT:** si el sitio no está en la lista de JIT de `flyweb-policies.mobileconfig`, añadirlo, reinstalar el perfil y
-   repetir. Si mejora, se queda en la lista.
+4. **Con JIT** (solo hasta la 1.5; desde la 1.6 va por defecto): si el sitio no está en la lista de JIT de
+   `flyweb-policies.mobileconfig`, añadirlo, reinstalar el perfil y repetir. Si mejora, se queda en la lista.
 5. **Control:** el mismo sitio en un Chrome o Brave actual en la 7,1. Si allí también falla, no es cosa de FlyWeb.
 
 ## 3. Polyfills (hecho: brave-core `nube/polyfills`, paso 15 de `integracion.md`)
