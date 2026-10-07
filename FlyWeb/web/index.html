@@ -22,33 +22,37 @@ servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomoneda
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 1.5</h2>
-<p><a class="boton" href="descargas/FlyWeb-1.5.dmg" download>Descargar FlyWeb 1.5 (165 MB)</a></p>
+<h2>Descargar FlyWeb 1.6</h2>
+<p><a class="boton" href="descargas/FlyWeb-1.6.dmg" download>Descargar FlyWeb 1.6 (165 MB)</a></p>
 <p class="dato">macOS 10.13 o 10.14, Mac Intel (x86_64). En macOS 10.15 a 12 debería funcionar, sin garantía.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>f20415e0cf34f157aa5f9c72c0945fb3fd2904d08be40a537cb36cca7de6e196</code></p>
+SHA-256: <code>334f26c383217a8be12beeebef6949384598e19f9ac82f82edb78e93f2b6b670</code></p>
 </div>
 </div></section>
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-1.5.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-1.6.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.5</h2>
+<h2 id="novedades">Notas de la versión 1.6</h2>
 <ul>
-  <li><strong>Motor de nivel Chrome 121.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 121 y FlyWeb se
-  presenta a las webs como Chrome 121. Funciones web nuevas: <code>scrollbar-color</code> y
-  <code>scrollbar-width</code> para dar color y grosor a las barras de desplazamiento, los pseudoelementos
-  <code>::spelling-error</code> y <code>::grammar-error</code>, <code>Array.fromAsync</code>,
-  <code>ClipboardItem.supports()</code>, las opciones de opacidad y visibilidad de <code>checkVisibility()</code> y
-  los números en <code>hsl()</code> y <code>hwb()</code> con la sintaxis moderna.</li>
+  <li><strong>Motor de nivel Chrome 122.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 122 y FlyWeb se
+  presenta a las webs como Chrome 122. Funciones web nuevas: los métodos de iteradores (<code>map</code>,
+  <code>filter</code>, <code>take</code>, <code>toArray</code>, <code>Iterator.from</code>…), los métodos de conjuntos
+  de <code>Set</code> (<code>union</code>, <code>intersection</code>, <code>difference</code>,
+  <code>isSubsetOf</code>…), <code>::backdrop</code> hereda los estilos de su elemento,
+  <code>URLPattern.hasRegExpGroups</code>, <code>rgb()</code> con números y porcentajes mezclados y
+  <code>@import … supports()</code>.</li>
+  <li><strong>JavaScript más rápido.</strong> El compilador JIT de JavaScript viene activado, como en Chrome: las
+  aplicaciones web pesadas (por ejemplo, el editor de WordPress) vuelven a ir con fluidez y las webs que usan
+  WebAssembly funcionan. Para compensar, revisamos cada día los fallos de seguridad del motor que se aprovechan y
+  publicamos los parches urgentes en una actualización en menos de 48 horas. El compilador Maglev sigue apagado.</li>
   <li><strong>Seguridad:</strong> portamos al nuevo motor de JavaScript las correcciones de seguridad posteriores que
-  le aplican, entre ellas las de la rama de soporte prolongado de Google para Chrome 120; el compilador Maglev sigue
-  apagado.</li>
+  le aplican, entre ellas varias de la rama de Chrome 123 (WebAssembly y optimización).</li>
 </ul>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
 </div></section>
