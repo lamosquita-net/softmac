@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const desde = fechas[0]
     const hasta = fechas[fechas.length - 1]
     enUso.textContent = ultima
-      ? `FlyWeb ${ultima.replace(/^FlyWeb-|\.dmg$/g, '')} en uso (aprox.): ${v[ultima].web + v[ultima].act}. Contado del ${desde} al ${hasta}; se cuenta cada mañana hasta el día anterior.`
+      ? `FlyWeb ${ultima.replace(/^FlyWeb-|\.dmg$/g, '')} en uso (aprox.): ${v[ultima].web + v[ultima].act}. Contado del ${desde} al ${hasta}; se actualiza cada hora (el día de hoy, hasta la última hora).`
       : 'Todavía no hay descargas contadas.'
   } catch (e) {
     enUso.textContent = 'No se han podido cargar las cifras.'
