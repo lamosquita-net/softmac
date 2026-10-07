@@ -22,23 +22,30 @@ servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomoneda
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 1.7</h2>
-<p><a class="boton" href="descargas/FlyWeb-1.7.dmg" download>Descargar FlyWeb 1.7 (165 MB)</a></p>
+<h2>Descargar FlyWeb 1.7.1</h2>
+<p><a class="boton" href="descargas/FlyWeb-1.7.1.dmg" download>Descargar FlyWeb 1.7.1 (165 MB)</a></p>
 <p class="dato">macOS 10.13 o 10.14, Mac Intel (x86_64). En macOS 10.15 a 12 debería funcionar, sin garantía.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>cb359c22c04bb61f3d2f3916d9c68479d0ed7b4643466c284e94b09b8f689676</code></p>
+SHA-256: <code>ee21e86ed1e1ecc9437aca8041799baca8b3f63f1ae6935fc77e3b81cd246171</code></p>
 </div>
 </div></section>
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-1.7.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-1.7.1.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.7</h2>
+<h2 id="novedades">Notas de la versión 1.7.1</h2>
+<ul>
+  <li><strong>Actualización de seguridad.</strong> Portamos al motor de JavaScript de la 1.7 las correcciones de la
+  rama de soporte prolongado de Google para Chrome 126 (optimizador, intérprete, analizador y WebAssembly), que llegan
+  hasta enero de 2025, y apagamos el puente genérico entre WebAssembly y JavaScript que esta versión del motor
+  encendía, como en la 1.6. Ninguno de estos fallos consta como aprovechado; conviene actualizar igualmente.</li>
+</ul>
+<h2>Notas de la versión 1.7</h2>
 <ul>
   <li><strong>Motor de nivel Chrome 123.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 123 y FlyWeb se
   presenta a las webs como Chrome 123. Funciones web nuevas: <code>align-content</code> en bloques normales (centrar en
