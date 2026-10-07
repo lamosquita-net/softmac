@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 124 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 124 de FlyWeb 1.8 (brave-core nube/motor-124, V8 12.4).
+     Abrir en FlyWeb con file:// o desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+</style>
+</head>
+<body>
+<h1>Motor 124 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>Pruebas oficiales (web-platform-tests)</h2>
+<p>Lista en <code>FlyWeb/tools/wpt-124-lista.txt</code> (etiqueta 124.0.6367.207). Comparar con los
+<code>-expected.txt</code> de Chrome 124; las variantes <code>.worker</code> importan: la iteración asíncrona es
+nativa también en los workers.</p>
+<script>
+  const res = document.getElementById('res');
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li');
+    li.className = ok ? 'ok' : 'fallo';
+    li.textContent = nombre + (nota ? ` — ${nota}` : '');
+    res.append(li);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : '');
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+  const dsd = '<div><template shadowrootmode="open"><b>x</b></template></div>';
+
+  prueba('Element.setHTMLUnsafe() con Shadow DOM declarativo', () => {
+    const e = document.createElement('div'); e.setHTMLUnsafe(dsd);
+    const r = e.firstChild && e.firstChild.shadowRoot; return { ok: !!r && r.innerHTML === '<b>x</b>', nota: r ? 'con shadow root' : 'sin shadow root' };
+  });
+  prueba('ShadowRoot.setHTMLUnsafe()', () => {
+    const r = document.createElement('div').attachShadow({ mode: 'open' }); r.setHTMLUnsafe(dsd);
+    return !!(r.firstChild && r.firstChild.shadowRoot);
+  });
+  prueba('Document.parseHTMLUnsafe()', () => {
+    const d = Document.parseHTMLUnsafe('<body>' + dsd); const div = d.body.firstChild;
+    return { ok: d instanceof Document && !!(div && div.shadowRoot), nota: d.contentType };
+  });
+  prueba('attachShadow({clonable}) y ShadowRoot.clonable', () => {
+    const a = document.createElement('div'); const r = a.attachShadow({ mode: 'open', clonable: true }); r.innerHTML = '<i>y</i>';
+    const b = document.createElement('div'); b.attachShadow({ mode: 'open' });
+    const ca = a.cloneNode(false), cb = b.cloneNode(true);
+    return { ok: r.clonable === true && !!ca.shadowRoot && ca.shadowRoot.innerHTML === '<i>y</i>' && !cb.shadowRoot,
+             nota: `clonable ${r.clonable}, copia ${!!ca.shadowRoot}, sin clonable ${!!cb.shadowRoot}` };
+  });
+  prueba('<template shadowrootclonable> y shadowRootClonable', () => {
+    const e = document.createElement('div');
+    e.setHTMLUnsafe('<div><template shadowrootmode="open" shadowrootclonable><b>z</b></template></div>');
+    const copia = e.firstChild.cloneNode(true); const t = document.createElement('template'); t.shadowRootClonable = true;
+    return { ok: e.firstChild.shadowRoot.clonable === true && !!copia.shadowRoot && t.hasAttribute('shadowrootclonable'),
+             nota: `copia ${!!copia.shadowRoot}` };
+  });
+  pruebaAsync('for await sobre ReadableStream (@@asyncIterator)', async () => {
+    if (!ReadableStream.prototype[Symbol.asyncIterator]) return { ok: false, nota: 'sin @@asyncIterator' };
+    const rs = new ReadableStream({ start(c) { c.enqueue(1); c.enqueue(2); c.enqueue(3); c.close(); } });
+    const v = []; for await (const x of rs) v.push(x);
+    return { ok: v.join() === '1,2,3' && !rs.locked, nota: `[${v}] locked ${rs.locked}` };
+  });
+  pruebaAsync('ReadableStream: break cancela; preventCancel no', async () => {
+    let cancelado = false;
+    const hacer = () => new ReadableStream({ pull(c) { c.enqueue(0); }, cancel() { cancelado = true; } });
+    const a = hacer(); for await (const x of a) break;
+    const c1 = cancelado; cancelado = false;
+    const b = hacer(); for await (const x of b.values({ preventCancel: true })) break;
+    return { ok: c1 && !cancelado && !a.locked && !b.locked, nota: `cancel ${c1}, con preventCancel ${cancelado}` };
+  });
+  prueba('RTCRtpReceiver.jitterBufferTarget', () => 'RTCRtpReceiver' in window && 'jitterBufferTarget' in RTCRtpReceiver.prototype);
+  pruebaAsync('fetch() rechaza con signal.reason (AbortSignal.timeout → TimeoutError)', async () => {
+    const t = AbortSignal.timeout(0); await new Promise((r) => setTimeout(r, 50));
+    let e1, e2; const propia = new Error('motivo');
+    try { await fetch('data:,x', { signal: t }); } catch (e) { e1 = e; }
+    try { await fetch('data:,x', { signal: AbortSignal.abort(propia) }); } catch (e) { e2 = e; }
+    return { ok: !!e1 && e1.name === 'TimeoutError' && e2 === propia, nota: `${e1 && e1.name}, ${e2 === propia ? 'motivo propio' : e2}` };
+  });
+  prueba('User-Agent declara Chrome/124', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '124', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+</script>
+<p>Pendiente de decisión del HUMANO: controles de formulario verticales. Los niveles 117–123 se comprueban aparte.</p>
+</body>
+</html>

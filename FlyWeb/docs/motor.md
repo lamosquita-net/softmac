@@ -302,6 +302,34 @@ Baseline de Chrome 123 (web-features 3.40.1 + flags que pasan a `stable` entre l
   `FlyWeb/tools/wpt-123-lista.txt` (12 ficheros).
 - **Declarado 123 / FlyWeb 1.7** en 372b2b1c (se revierte solo si el nivel no pasa).
 
+## Nivel 124 (en código, 07-10; pendiente de compilar → FlyWeb 1.8)
+
+Baseline de Chrome 124 (web-features y `@mdn/browser-compat-data`, funciones con `chrome: 124` que también tienen Safari
+y Firefox). Rama brave-core `nube/motor-124` (encima de `nube/motor-123`). HUMANO (07-10): abrirlo ya, para ir dos
+niveles por delante, y **seguir subiendo V8 nivel a nivel**.
+
+- **V8 12.4.254.15 + ac8da461** (f75d5441). Antes de portar se comparó la API pública con Blink 116: la 12.4 parece
+  quitar mucho, pero los interceptores siguen (obsoletos) y `TaskRunner::PostTask` sigue siendo virtual. Rompen solo
+  tres cosas: `MeasurementComplete`, `CreateSyntheticModule` y los datos de continuación (del `Context` al `Isolate`).
+- **`setHTMLUnsafe`/`parseHTMLUnsafe`** (449020f7).
+- **Shadow DOM clonable** (d74c4b35): portado **a mano**, porque la serie de upstream (7 commits) se apoya en
+  `NodeCloningData` y `serializable`, que la 116 no tiene. Se escribe el comportamiento ya publicado tras la flag
+  `ShadowRootClonable` (apagada = comportamiento de la 116).
+- **`RTCRtpReceiver.jitterBufferTarget`** (c50e033b).
+- **Iteración asíncrona de `ReadableStream`, nativa** (2efbb747; HUMANO: nativo, no polyfill, para que funcione también
+  en los workers). La 116 no sabía generar `async iterable`: se porta el soporte del generador de bindings de la 124 al
+  diseño de la 116, en el que el iterador cuelga de su interfaz como `SyncIterator`. Probado en la nube ejecutando el
+  generador de la 116 (`FlyWeb/tools/bindings/`): solo cambian los bindings de `ReadableStream`. Deja la base hecha
+  para las próximas API con `async iterable`.
+- **`fetch()` con `signal.reason`** (2440af93): MDN da `AbortSignal.timeout()` como parcial hasta Chrome 124, porque
+  `fetch` rechazaba siempre con `AbortError`.
+- **Pendiente del HUMANO: controles de formulario verticales** (`writing-mode` en controles y `<input type=range>`
+  vertical). Es grande y toca el pintado nativo de formularios: o se porta aparte o va como excepción del nivel.
+- **Fuera (no Baseline):** `pageswap`, `writingSuggestions`, WebSocketStream, `inert` en la búsqueda.
+- **Comprobación:** `FlyWeb/tools/motor-124.html` (10 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
+  `FlyWeb/tools/wpt-124-lista.txt` (13 ficheros, con variantes `.worker`).
+- **Sin declarar todavía**: 124 / FlyWeb 1.8 se declara cuando el HUMANO decida sobre los controles verticales.
+
 ## Inventario: CSS Baseline publicado después de la 116
 
 Datos de [web-features](https://www.npmjs.com/package/web-features) 3.40.1 (el catálogo de Baseline) y del fichero de
