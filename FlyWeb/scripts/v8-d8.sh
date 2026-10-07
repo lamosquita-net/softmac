@@ -63,6 +63,14 @@ if [ ! -d third_party/googletest/src/.git ]; then
   git -C third_party/googletest/src checkout -q FETCH_HEAD
 fi
 
+# FP16: la piden las V8 12.4+ (niveles 124 en adelante).
+FP16_REV=$(grep -A1 "'third_party/fp16/src'" DEPS | grep -o '[0-9a-f]\{40\}' | head -1 || true)
+if [ -n "$FP16_REV" ] && [ ! -d third_party/fp16/src/.git ]; then
+  git init -q third_party/fp16/src
+  git -C third_party/fp16/src fetch -q --depth=1 https://github.com/Maratyszcza/FP16 "$FP16_REV"
+  git -C third_party/fp16/src checkout -q FETCH_HEAD
+fi
+
 # clang de Chromium 116 (la versión exacta de tools/clang/scripts/update.py).
 rev=$(sed -n "s/^CLANG_REVISION = '\(.*\)'/\1/p" tools/clang/scripts/update.py)
 sub=$(sed -n 's/^CLANG_SUB_REVISION = \([0-9]*\)/\1/p' tools/clang/scripts/update.py)
