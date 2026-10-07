@@ -334,6 +334,49 @@ niveles por delante, y **seguir subiendo V8 nivel a nivel**.
   `FlyWeb/tools/wpt-124-lista.txt` (13 ficheros, con variantes `.worker`).
 - **Declarado 124 / FlyWeb 1.8** en 94b58ec2 (se revierte solo si el nivel no pasa).
 
+## Nivel 125 (en código, 07-10; pendiente de compilar → FlyWeb 1.9)
+
+Baseline de Chrome 125 (web-features 3.40.1 y `@mdn/browser-compat-data`, con las subfunciones) y flags que pasan a
+`stable` entre la 124.0.6367.207 y la 125.0.6422.141. Rama brave-core `nube/motor-125` (encima de `nube/motor-124`;
+sesión NUBE-motor). **Sin excepciones.**
+
+- **V8 12.5.227.13** (e99930b4; fbcea6ee, la de Chrome 125.0.6422.141). Antes de portar se comparó `include/` 12.4 → 12.5
+  con Blink, gin, content, extensions, pdf y `chrome/renderer` de la 116 y con brave-core: solo quita
+  `Function::GetUnboundScript`, `ScriptCompiler::CompileFunctionInContext`, `CopyablePersistentTraits` y ayudas internas
+  de cppgc, que nadie usa (`Script::GetUnboundScript` sigue), y añade `StateTag::LOGGING` (el único `switch` tiene
+  `default`). Los `V8_DEPRECATED` nuevos solo avisan (`build.sh` apaga esos avisos). La 12.5 trae de serie los
+  **modificadores de RegExp** y los **grupos con nombre repetido** (Baseline del 125). Los parches de CVE-2024-5274 sobran:
+  la 12.5.227.13 ya lo lleva. **SEGURIDAD:** la rama 12.5 tiene después tres fusiones de Wasm (12.5.227.14–16, bugs
+  343772336, 343917751 y 342522151) que no van en la 125.0.6422.141: valorar si se traen.
+- **`WebSocket` con URL `http(s)` o relativas** (5614554f).
+- **`:state()`** (404c029a), con `:--foo` funcionando aún, como en la 125.
+- **`round()`, `mod()`, `rem()`** (4b5734f9): en la 116 estaban tras una flag experimental; se traen el análisis de la
+  estrategia de redondeo y `calc(NaN)` = 0 en el nivel superior.
+- **`getHTML()` y raíces *shadow* serializables** (70be0dec), **a mano**: la serie de upstream (9 commits) reescribe el
+  serializador (`ShadowRootInclusion`, `ContainerNode::getHTML`). Se añaden dos modos al de la 116. Como en la 125, las
+  plantillas serializadas usan `shadowrootmode` en lugar del viejo `shadowroot`.
+- **Colores relativos** (00cee7a7), **a mano**: la 116 no tiene `ColorFunctionParser` (la serie de upstream son ~15
+  commits, con el cambio de almacenamiento del sRGB «legacy» a [0,255]). Ruta aparte para `función(from <color> …)` con la
+  lógica de la 125 convertida a las unidades de la `Color` de la 116; los colores absolutos siguen por el parser de la
+  116. Orígenes: colores absolutos, con nombre, `transparent` y `color-mix()` de absolutos (`currentcolor` no, igual que
+  la 125).
+- **Tipos de View Transitions** (bd02e804), **a mano** (en la 116 `ViewTransition` aún es el objeto de JavaScript; no hay
+  `DOMViewTransition`): `startViewTransition()` sin argumento, con *callback* o con `{update, types}`,
+  `ViewTransition.types` (`ViewTransitionTypeSet`), `:active-view-transition` y `:active-view-transition-type()`.
+  **Importante para la compatibilidad:** con la 116, `startViewTransition({update})` (la forma de Safari 18.2 y Firefox
+  144) lanzaba `TypeError` y **no ejecutaba el `update`**: la página no se actualizaba. Necesitó portar un cambio pequeño del
+  generador de bindings de la 125 (un *callback* se distingue de un diccionario).
+- **`view-transition-class`** (dfd53448), a mano: propiedad, `::view-transition-*(nombre.clase)` y la lista de clases en
+  el capturador de estilos.
+- Las partes entre documentos de esas funciones no entran: la 116 no tiene transiciones entre documentos (Chrome 126, no
+  Baseline).
+- **Fuera (no Baseline):** anchor positioning, Compute Pressure, Storage Access más allá de cookies, motivos de bfcache.
+- **Comprobación:** `FlyWeb/tools/motor-125.html` (14 comprobaciones y un botón de transición a ojo; en Chromium 141 todas
+  «ok» salvo la del UA) y `FlyWeb/tools/wpt-125-lista.txt` (21 ficheros, con variantes `.worker`).
+- **Declarado 125 / FlyWeb 1.9** en a928a32b (se revierte solo si el nivel no pasa). Todos los parches de la rama
+  aplican sobre la 116 (`chk.sh`: 1014 parches, solo el aviso conocido de `menu_separator`). Bindings comprobados con
+  `FlyWeb/tools/bindings/`. Sin compilar.
+
 ## Inventario: CSS Baseline publicado después de la 116
 
 Datos de [web-features](https://www.npmjs.com/package/web-features) 3.40.1 (el catálogo de Baseline) y del fichero de
@@ -364,11 +407,11 @@ Baseline; el resto son solo de Chrome.
 | 123 | light-dark() | reciente | interno (`-internal-light-dark`) |
 | 123 | paint-order | amplia | no está |
 | 124 | Vertical form controls | reciente | flag (`FormControlsVerticalWritingModeSupport`) |
-| 125 | :state() | reciente | no está |
-| 125 | Active view transition | reciente | no está |
-| 125 | Relative colors | reciente | no está |
-| 125 | round(), mod(), and rem() | reciente | flag (`CSSSteppedValueFunctions`) |
-| 125 | view-transition-class | reciente | no está |
+| 125 | :state() | reciente | porte (nivel 125) |
+| 125 | Active view transition | reciente | porte a mano (nivel 125) |
+| 125 | Relative colors | reciente | porte a mano (nivel 125) |
+| 125 | round(), mod(), and rem() | reciente | flag + 2 arreglos (nivel 125) |
+| 125 | view-transition-class | reciente | porte a mano (nivel 125) |
 | 127 | font-size-adjust | reciente | flag (`CSSFontSizeAdjust`, test) |
 | 128 | ruby-align | reciente | no está |
 | 130 | text-wrap | reciente | no está |
