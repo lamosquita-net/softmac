@@ -10,7 +10,7 @@ huecos. Este documento dice cómo diagnosticar cada fallo y qué hay ya hecho.
 | **Versión declarada** (User-Agent y Client Hints dicen Chrome 116) | Aviso de "navegador no compatible" o "actualiza Chrome", o una versión reducida del sitio, aunque todo funcionaría | Declarar una versión más nueva solo en ese sitio (pendiente: §4) |
 | **JavaScript que falta** | La página se queda en blanco o a medias; en la consola: `... is not a function`, `... is not defined` | Polyfill (§3) |
 | **CSS que falta** | Todo funciona, pero se ve mal: elementos solapados, sin estilo o descolocados | No tiene polyfill razonable. Se anota como deuda (Fase 6) |
-| **JIT desactivado** (jitless; por defecto hasta la 1.5) | Lento, o falla WebAssembly (`WebAssembly is not defined`) | Desde la 1.6 el JIT va activado por defecto. Si aun así un sitio va sin JIT, revisar que no esté en `JavaScriptJitBlockedForSites` ni con el JIT bloqueado en la configuración del sitio |
+| **JIT desactivado** (jitless; por defecto hasta la 1.5) | Lento, o falla WebAssembly (`WebAssembly is not defined`) | Desde la 1.6 el JIT va activado por defecto. Si aun así un sitio va sin JIT, revisar que no esté en `JavaScriptJitBlockedForSites` (la 116 no tiene ajuste de JIT por sitio en `flyweb://settings`; solo la política) |
 
 ## 2. Cómo diagnosticar un sitio (LOCAL o HUMANO)
 

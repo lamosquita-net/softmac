@@ -1,0 +1,181 @@
+#!/bin/bash
+# SV.6 (SERVIDOR-LOCAL, 05-10-2026): publica sola en flyweb.lamosquita.net la versión que el HUMANO aprueba en bak.
+# Corre en ns2 como el usuario «servidor», con un temporizador de systemd de usuario (flyweb-web-auto.timer, cada
+# 10 min). Clase de cambio autorizada en E3 por el HUMANO (docs/SERVIDOR.md §3).
+#
+# Publica solo si TODO cuadra; si no, no toca nada y avisa:
+#   1. La versión más alta del appcast (lo escribe bak al firmar) es la de FlyWeb/web/VERSION en main.
+#   2. El DMG de updates/ mide lo que dice el appcast, su SHA-256 es el de VERSION y la firma EdDSA del appcast
+#      valida con la clave pública FIJADA aquí (no se lee del repo).
+#   3. La portada de main enlaza ese DMG y muestra ese SHA-256.
+#   4. VERSION y cada página que cambie llegaron a main por un PR fusionado (API de GitHub): main también recibe pushes
+#      directos (filas del tablero) y esos nunca se publican solos.
+# Después de publicar, deja como mucho 10 DMG en updates/ y en descargas/ (decisión del HUMANO, 06-10), con
+# «flyweb-desplegar borrar», que además se niega a borrar lo que esté en el appcast y la 1.0.
+# Entonces: DMG a descargas/ (flyweb-desplegar dmg, nunca sustituye) y cada página de main que haya cambiado
+# (flyweb-desplegar web <commit> <fichero> <sha256>). Así también llegan los cambios de la ayuda.
+#
+#   flyweb-web-auto comprobar     dice qué haría, sin publicar ni avisar
+#   flyweb-web-auto ejecutar      lo que lanza el temporizador
+# Registro: ~/.local/state/flyweb-web-auto/registro.log y journal (journalctl --user -u flyweb-web-auto).
+set -euo pipefail
+umask 077
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+MODO=${1:-comprobar}
+REPO=https://github.com/lamosquita-net/softmac
+RAW=https://raw.githubusercontent.com/lamosquita-net/softmac
+API=https://api.github.com/repos/lamosquita-net/softmac
+MAX_DMG=10
+APPCAST=/var/www/FlyWeb/updates/stable/appcast.xml
+UPD=/var/www/FlyWeb/updates
+WEB=/var/www/flyweb.lamosquita.net
+FICHEROS="index.html privacidad.html estilo.css cifras.html ayuda/index.html ayuda/sincronizar/index.html img/circulo.svg img/mosca.svg fuentes/JetBrainsMono.woff2 fuentes/OFL-JetBrainsMono.txt"
+# Los JS NO se publican nunca solos (decisión del HUMANO, 06-10): los instala el HUMANO en js/ (root:root, carpeta incluida).
+# Aquí solo se vigilan: si el del servidor no es el de main, aviso por correo y nada más.
+JS="js/mosca.js js/cifras.js"
+CLAVE_ED25519=I+N32uIF9KsQFRt2rt+qcYZKjEqMOyZ0PbUtam80xkw=      # FlyWeb/servidor/actualizaciones/clave-publica.txt
+AVISO=admin@lamosquita.net                                     # vacío = sin correo
+case $MODO in comprobar|ejecutar) ;; *) echo "uso: flyweb-web-auto comprobar|ejecutar" >&2; exit 2 ;; esac
+CLAVE="" V_CORTA="?"
+EST=$HOME/.local/state/flyweb-web-auto; mkdir -p "$EST"
+REG=$EST/registro.log
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+exec 9>"$EST/cerrojo"; flock -n 9 || exit 0
+
+log () { echo "$(date -Is) $*" | tee -a "$REG"; }
+avisar () {  # avisar <clave única> <asunto> <cuerpo>: un correo por clave, no en cada pasada
+  [[ $MODO == ejecutar && -n $AVISO ]] || return 0
+  grep -qxF "$1" "$EST/avisados" 2>/dev/null && return 0
+  printf 'To: %s\nSubject: [FlyWeb web] %s\nContent-Type: text/plain; charset=utf-8\n\n%s\n\n-- flyweb-web-auto en ns2 (SV.6)\n' \
+    "$AVISO" "$2" "$3" | /usr/sbin/sendmail -t && echo "$1" >> "$EST/avisados"
+}
+parar () { log "PARADO: $1"; avisar "parado:$CLAVE:$1" "no se publica $V_CORTA" "$1"; exit 1; }
+# viene_de_pr <ruta>: el último commit que tocó <ruta> en $C llegó a main por un PR fusionado.
+viene_de_pr () {
+  local x
+  x=$(curl -fsSL --proto =https -H 'Accept: application/vnd.github+json' "$API/commits?path=$1&sha=$C&per_page=1" \
+      | python3 -c 'import sys,json; print(json.load(sys.stdin)[0]["sha"])') || return 1
+  [[ $x =~ ^[0-9a-f]{40}$ ]] || return 1
+  curl -fsSL --proto =https -H 'Accept: application/vnd.github+json' "$API/commits/$x/pulls" | python3 -c '
+import sys, json
+sys.exit(0 if any(p.get("merged_at") and p["base"]["ref"] == "main" for p in json.load(sys.stdin)) else 1)'
+}
+# limpiar: como mucho MAX_DMG en updates/ y en descargas/; borra los más antiguos que no estén en el appcast ni sean la 1.0.
+limpiar () {
+  local carpeta dir f sobran
+  for carpeta in updates descargas; do
+    [[ $carpeta == updates ]] && dir=$UPD || dir=$WEB/descargas
+    mapfile -t todos < <(find "$dir" -maxdepth 1 -type f -name 'FlyWeb-*.dmg' -printf '%f\n' | sort -V)
+    sobran=$(( ${#todos[@]} - MAX_DMG ))
+    for f in "${todos[@]}"; do
+      (( sobran > 0 )) || break
+      [[ $f == FlyWeb-1.0.dmg ]] && continue
+      grep -qF "/$f\"" "$APPCAST" && continue
+      if [[ $MODO == ejecutar ]]; then
+        sudo -n /usr/local/sbin/flyweb-desplegar borrar "$carpeta" "$f" && log "borrado $carpeta/$f (más de $MAX_DMG)"
+      else echo "se borraría $carpeta/$f (más de $MAX_DMG)"; fi
+      sobran=$((sobran - 1))
+    done
+  done
+}
+
+# 1. Versión más alta del appcast
+read -r V_CORTA V_LARGA DMG LONG FIRMA < <(python3 - "$APPCAST" <<'PY'
+import sys, os, xml.etree.ElementTree as ET
+S='{http://www.andymatuschak.org/xml-namespaces/sparkle}'
+it=[e for e in ET.parse(sys.argv[1]).iter('enclosure')]
+k=lambda e: tuple(int(x) for x in e.get(S+'version').split('.'))
+e=max(it, key=k)
+print(e.get(S+'shortVersionString'), e.get(S+'version'), os.path.basename(e.get('url')), e.get('length'), e.get(S+'edSignature'))
+PY
+)
+[[ $DMG =~ ^FlyWeb-[0-9]+(\.[0-9]+){1,3}\.dmg$ ]] || { log "appcast raro: $DMG"; exit 1; }
+
+# 2. Commit de main (una petición a GitHub por pasada) y si algo ha cambiado desde la última
+C=$(timeout 30 git ls-remote "$REPO" refs/heads/main | cut -f1) || { log "sin respuesta de GitHub"; exit 0; }
+[[ $C =~ ^[0-9a-f]{40}$ ]] || { log "commit raro: $C"; exit 1; }
+CLAVE="$C $V_LARGA"
+[[ $MODO == ejecutar ]] && grep -qxF "$CLAVE" "$EST/hecho" 2>/dev/null && exit 0
+
+# 3. VERSION de main = versión aprobada
+curl -fsSL --proto =https -o "$tmp/VERSION" "$RAW/$C/FlyWeb/web/VERSION" || parar "main no tiene FlyWeb/web/VERSION"
+read -r W_CORTA W_LARGA W_DMG W_SHA < "$tmp/VERSION"
+if [[ $W_LARGA != "$V_LARGA" || $W_CORTA != "$V_CORTA" || $W_DMG != "$DMG" ]]; then
+  log "esperando: appcast $V_CORTA ($V_LARGA), main describe $W_CORTA ($W_LARGA); no se publica nada"
+  avisar "espera:$CLAVE" "la web aún no tiene el texto de la $V_CORTA" \
+    "El appcast anuncia $V_CORTA ($V_LARGA), pero FlyWeb/web/VERSION de main ($C) es $W_CORTA ($W_LARGA). Se publicará sola cuando se fusione el PR de la web de la $V_CORTA."
+  [[ $MODO == ejecutar ]] && echo "$CLAVE" >> "$EST/hecho"
+  exit 0
+fi
+[[ $W_SHA =~ ^[0-9a-f]{64}$ ]] || parar "SHA-256 raro en VERSION"
+
+# 4. DMG: tamaño, SHA-256 y firma EdDSA
+[[ -f $UPD/$DMG ]] || parar "no está $UPD/$DMG"
+[[ $(stat -c %s "$UPD/$DMG") == "$LONG" ]] || parar "$DMG no mide lo que dice el appcast ($LONG)"
+SHA=$(sha256sum "$UPD/$DMG" | cut -d' ' -f1)
+[[ $SHA == "$W_SHA" ]] || parar "SHA-256 de $DMG ($SHA) distinto del de VERSION ($W_SHA)"
+{ printf '\x30\x2a\x30\x05\x06\x03\x2b\x65\x70\x03\x21\x00'; echo "$CLAVE_ED25519" | base64 -d; } > "$tmp/clave.der"
+echo "$FIRMA" | base64 -d > "$tmp/firma.bin"
+openssl pkeyutl -verify -pubin -keyform DER -inkey "$tmp/clave.der" -rawin -in "$UPD/$DMG" -sigfile "$tmp/firma.bin" >/dev/null 2>&1 \
+  || parar "la firma EdDSA de $DMG NO valida con la clave pública fijada"
+
+# 5. Páginas de main: bajar, comprobar la portada y ver cuáles cambian
+CAMBIAN=""
+for f in $FICHEROS; do
+  n=${f//\//_}
+  curl -fsSL --proto =https -o "$tmp/$n" "$RAW/$C/FlyWeb/web/$f" || parar "no se pudo bajar $f de $C"
+  s=$(sha256sum "$tmp/$n" | cut -d' ' -f1)
+  [[ -f $WEB/$f && $(sha256sum "$WEB/$f" | cut -d' ' -f1) == "$s" ]] || CAMBIAN+="$f:$s "
+done
+for f in $JS; do
+  n=${f//\//_}
+  curl -fsSL --proto =https -o "$tmp/$n" "$RAW/$C/FlyWeb/web/$f" || { log "no se pudo bajar $f de $C"; continue; }
+  s=$(sha256sum "$tmp/$n" | cut -d' ' -f1)
+  if [[ ! -f $WEB/$f || $(sha256sum "$WEB/$f" | cut -d' ' -f1) != "$s" ]]; then
+    log "JS distinto del de main: $f (main $s)"
+    [[ $MODO == comprobar ]] && echo "JS que el HUMANO tiene que instalar a mano: $f ($s)"
+    avisar "js:$f:$s" "el JS $f del servidor no es el de main" \
+      "El fichero $f de la web no coincide con el de main ($C, SHA-256 $s), o no existe. Los JS no se publican solos: si el cambio de main es bueno, instálalo a mano en js/ (root:root 0644); si no has cambiado nada, alguien ha tocado el servidor."
+  fi
+done
+grep -qF "descargas/$DMG" "$tmp/index.html" && grep -qF "$SHA" "$tmp/index.html" \
+  || parar "la portada de $C no enlaza $DMG con su SHA-256"
+viene_de_pr FlyWeb/web/VERSION || parar "FlyWeb/web/VERSION no llegó a main por un PR fusionado (¿push directo?)"
+for x in $CAMBIAN; do
+  viene_de_pr "FlyWeb/web/${x%%:*}" || parar "FlyWeb/web/${x%%:*} no llegó a main por un PR fusionado (¿push directo?): no se publica"
+done
+NUEVO_DMG=no; [[ -f $WEB/descargas/$DMG ]] || NUEVO_DMG=si
+if [[ -f $WEB/descargas/$DMG && $(sha256sum "$WEB/descargas/$DMG" | cut -d' ' -f1) != "$SHA" ]]; then
+  parar "descargas/$DMG ya existe con otro contenido (cada DMG nuevo = versión nueva)"
+fi
+
+if [[ $MODO == comprobar ]]; then
+  echo "appcast: $V_CORTA ($V_LARGA) $DMG; main $C describe la misma; firma EdDSA y SHA-256 OK"
+  echo "DMG nuevo en descargas/: $NUEVO_DMG"; echo "páginas que cambiarían: ${CAMBIAN:-ninguna} (todas por PR fusionado)"
+  limpiar; exit 0
+fi
+[[ $NUEVO_DMG == no && -z $CAMBIAN ]] && { limpiar; echo "$CLAVE" >> "$EST/hecho"; exit 0; }
+
+# 6. Publicar
+HECHO=""
+if [[ $NUEVO_DMG == si ]]; then
+  sudo -n /usr/local/sbin/flyweb-desplegar dmg "$DMG" "$SHA"; HECHO+="descargas/$DMG "
+fi
+for x in $CAMBIAN; do
+  sudo -n /usr/local/sbin/flyweb-desplegar web "$C" "${x%%:*}" "${x#*:}"; HECHO+="${x%%:*} "
+done
+
+# 7. Comprobar desde el propio ns2
+r () { curl -sk -o /dev/null -w '%{http_code}' --resolve flyweb.lamosquita.net:443:127.0.0.1 "https://flyweb.lamosquita.net$1"; }
+P=$(r /); D=$(r "/descargas/$DMG"); A=$(r /ayuda/)
+curl -sk --resolve flyweb.lamosquita.net:443:127.0.0.1 https://flyweb.lamosquita.net/ | grep -qF "descargas/$DMG" && E=si || E=no
+log "PUBLICADO $V_CORTA ($V_LARGA) desde $C: $HECHO| portada $P, DMG $D, ayuda $A, portada enlaza el DMG: $E"
+limpiar
+echo "$CLAVE" >> "$EST/hecho"
+avisar "publicado:$CLAVE" "publicada la $V_CORTA en flyweb.lamosquita.net" \
+  "Versión: $V_CORTA ($V_LARGA), DMG $DMG, SHA-256 $SHA (firma EdDSA comprobada).
+Commit de la web: $C
+Publicado: $HECHO
+Comprobación en ns2: portada $P, DMG $D, ayuda $A, la portada enlaza el DMG: $E.
+Registro: /var/log/flyweb-deploy/desplegar.log. SERVIDOR-LOCAL lo anotará en CAMBIOS.md."
+[[ $P == 200 && $D == 200 && $E == si ]] || exit 1

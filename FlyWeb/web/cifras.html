@@ -3,58 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sincronizar FlyWeb entre tus Mac</title>
-<meta name="description" content="Cómo sincronizar contraseñas, marcadores, historial y pestañas de FlyWeb entre varios Mac, cifrado en tu equipo.">
-<link rel="stylesheet" href="../../estilo.css?v=9bc84f82c8">
-<link rel="icon" href="../../img/flyweb.svg" type="image/svg+xml">
+<title>Cifras — FlyWeb</title>
+<link rel="stylesheet" href="estilo.css?v=9bc84f82c8">
+<link rel="icon" href="img/flyweb.svg" type="image/svg+xml">
+<script src="js/cifras.js?v=b471b788f8" integrity="sha384-JDQnWdClr41rriJKi8thWdYgPkbLYQXyZGXFVpVtILWt7XGO1d45w0+re1gFwUkF" defer></script>
 </head>
 <body>
 <header class="cabecera"><div class="columna">
-  <a class="logo" href="../../"><img class="circulo" src="../../img/circulo.svg?v=dc9a2e413e" alt=""><img class="mosca-logo" src="../../img/mosca.svg?v=cb3e40e71f" alt="FlyWeb"></a>
-  <h1>Sincronizar<small>FlyWeb entre tus Mac</small></h1>
+  <a class="logo" href="./"><img class="circulo" src="img/circulo.svg?v=dc9a2e413e" alt=""><img class="mosca-logo" src="img/mosca.svg?v=cb3e40e71f" alt="FlyWeb"></a>
+  <h1>Cifras de FlyWeb</h1>
 </div></header>
 <main>
 <section class="banda naranja"><div class="columna">
-<p><strong>Todavía no está disponible.</strong> El servidor de sincronización de FlyWeb se está preparando. Hasta que
-esté en marcha, al empezar una cadena FlyWeb dará un error. Avisaremos en la <a href="../../">página principal</a>
-cuando funcione.</p>
-
-<p>FlyWeb podrá mantener iguales tus contraseñas, marcadores, historial, ajustes y pestañas abiertas en todos tus Mac.
-Los datos se guardan en un servidor de lamosquita <strong>cifrados en tu equipo</strong>: nosotros no podemos leerlos.
-Todo se hace en <code>flyweb://settings/braveSync</code>.</p>
-</div></section>
-<section class="banda blanca"><div class="columna">
-<h2>Empezar</h2>
-<p>En el primer Mac, empieza una cadena nueva. FlyWeb te mostrará un <strong>código de 24 palabras</strong>. Guárdalo en
-un sitio seguro: es la única llave de tus datos y nosotros no podemos recuperarlo.</p>
-</div></section>
-<section class="banda naranja"><div class="columna">
-<h2>Añadir otro Mac</h2>
-<p>En el otro Mac, elige que ya tienes un código y escribe las 24 palabras. Desde un Mac que ya sincroniza puedes volver a
-ver el código en los ajustes de Sincronizar.</p>
-<p>Puedes elegir qué se sincroniza en cada Mac, en esos mismos ajustes.</p>
-</div></section>
-<section class="banda blanca"><div class="columna">
-<h2>Pasar tus contraseñas de Safari</h2>
-<p>Importa las contraseñas en un solo Mac, como se explica en la <a href="../#importar">ayuda</a>; la sincronización las
-llevará a los demás. Después, borra el fichero exportado: las contraseñas van sin cifrar.</p>
-</div></section>
-<section class="banda naranja"><div class="columna">
-<h2>Si algo falla</h2>
+<p>Cuántas veces se descarga cada versión, contado cada día en nuestro servidor <strong>sin guardar quién</strong>:
+solo la fecha, la versión y el número. El navegador no envía nada para esto.</p>
 <ul>
-  <li><strong>«FlyWeb no puede acceder al almacenamiento seguro»:</strong> macOS no deja a FlyWeb abrir su llave
-  («FlyWeb Safe Storage»). Abre Acceso a Llaveros, busca «FlyWeb Safe Storage» y, en Control de acceso, permite a FlyWeb;
-  o reinicia el Mac y acepta el aviso al abrir FlyWeb.</li>
-  <li><strong>«No se pueden descifrar los datos»:</strong> ese Mac se unió con un código que no es el de la cadena. Sal de
-  la cadena en ese Mac y vuelve a unirte con el código correcto.</li>
+  <li><strong>Web:</strong> descargas completas del instalador desde esta página.</li>
+  <li><strong>Actualizaciones:</strong> cada FlyWeb instalado baja cada versión nueva una vez al actualizarse, así que
+  es la mejor aproximación a cuántos están en uso.</li>
 </ul>
-</div></section>
-<section class="banda blanca"><div class="columna">
-<h2>Borrar todo</h2>
-<p>Desde los ajustes de Sincronizar puedes borrar los datos de sincronización: se borra todo lo que hay en el servidor y
-la cadena deja de funcionar en todos tus Mac. No se puede deshacer.</p>
 
-<p class="dato">FlyWeb solo existe para Mac: las apps de Brave para móvil no pueden unirse a una cadena de FlyWeb.</p>
+<p id="en-uso">Cargando…</p>
+<div class="tabla-ancha">
+<table id="tabla" class="cifras">
+  <tr><th>Versión</th><th>Web, 30 días</th><th>Web, total</th><th>Actualizaciones, 30 días</th><th>Actualizaciones, total</th></tr>
+</table>
+</div>
+<p class="dato">Son descargas, no personas: quien descarga dos veces cuenta dos. Datos en bruto:
+<a href="cifras.csv">cifras.csv</a>. Más en <a href="privacidad.html">privacidad</a>.</p>
 </div></section>
 </main>
 <footer class="pie"><div class="columna">
@@ -62,7 +38,7 @@ la cadena deja de funcionar en todos tus Mac. No se puede deshacer.</p>
   <p>FlyWeb es un proyecto de <a href="https://www.lamosquita.net/">lamosquita</a> | admin@lamosquita.net<br>
   FlyWeb no está afiliado a Brave Software ni a Google.<br>
   Chrome y Chromium son marcas de Google LLC; Brave es marca de Brave Software, Inc.<br>
-  <a href="../../">Inicio</a> · <a href="../../ayuda/">Ayuda</a> · <a href="../../privacidad.html">Privacidad</a> · <a href="../../cifras.html">Cifras</a></p>
+  <a href="./">Inicio</a> · <a href="ayuda/">Ayuda</a> · <a href="privacidad.html">Privacidad</a> · <a href="cifras.html">Cifras</a></p>
 </div></footer>
 </body>
 </html>

@@ -14,3 +14,25 @@ Provisional hasta el diseño del HUMANO (W1 de `../docs/web-flyweb.md`); cubre W
   de estilos ni scripts en línea, ni recursos de otros sitios.
 - Fuera del repo (en el servidor): `fuentes/` (D-DIN WOFF2 + `OFL.txt`, los de brave-core
   `components/flyweb_ntp/resources/fuentes/`), `img/flyweb.svg` (= `branding/M1-01.svg`) y `descargas/`.
+- `VERSION` (SV.6): una línea `<versión> <CFBundleVersion> <DMG> <sha256>` con la versión que describe la web. La
+  web se publica sola cuando coincide con la versión aprobada del appcast (`../servidor/web-auto/README.md`). Se
+  actualiza en el PR de la web de cada versión.
+
+## Diseño (HUMANO, 06-10-2026; maquetado por SERVIDOR-LOCAL)
+
+Todas las páginas siguen el mismo patrón, sin modo oscuro:
+- `<header class="cabecera">` con `.logo` (`img/circulo.svg` + `img/mosca.svg`) y el `h1` (con `<small>` de subtítulo).
+- `<main>` con bandas a todo lo ancho: `<section class="banda naranja|blanca"><div class="columna">…</div></section>`,
+  alternas. En las blancas los `h2` van en morado; en las naranjas, en negro. Código y direcciones internas
+  (`<code>`), en JetBrains Mono y morado.
+- `<footer class="pie">` con la mosca del pie dentro del HTML (revolotea solo con CSS) y los créditos.
+- JavaScript solo en `js/` (`mosca.js`, `cifras.js`), con `integrity` en el `<script>`; **no se publica solo**: lo
+  instala el HUMANO en el servidor (`../servidor/web-auto/README.md`, «JavaScript»).
+- Portada: la descarga va en `<div class="descarga">` (el botón y el SHA-256 que comprueba `flyweb-web-auto`) y la
+  banda de las notas lleva `id="fin-vuelo"` (hasta ahí vuela la mosca de `js/mosca.js`).
+- Fuentes: D-DIN (en el servidor, como antes) y `fuentes/JetBrainsMono.woff2` (OFL 1.1, variable 100–800, solo
+  latín). Con «reducir movimiento», ninguna mosca se mueve.
+- **Caché:** las páginas cargan `estilo.css`, `img/*.svg` y `js/*.js` con `?v=<huella>`. Quien cambie uno de esos ficheros
+  ejecuta `python3 FlyWeb/web/versionar.py` en el mismo PR (`--comprobar` lo verifica). Además, Apache manda
+  `Cache-Control: no-cache` para HTML, CSS, JS, SVG y CSV (E2-05).
+
