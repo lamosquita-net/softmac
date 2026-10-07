@@ -133,6 +133,7 @@ es solo local), apuntar el error en `docs/TAREAS.md` (las últimas 30 líneas de
 | 105 | `nube/motor-124` | c50e033b | `RTCRtpReceiver.jitterBufferTarget`. Comprobar: la de `motor-124.html` |
 | 106 | `nube/motor-124` | 2efbb747 | **Iteración asíncrona de `ReadableStream`, nativa**: soporte de `async iterable` en el generador de bindings (`web_idl`, `bind_gen`), `async_iterator_base`, `async_iterable` y `ReadableStream`. **El porte de más riesgo de compilación del nivel**: si falla, mirar `async_iterable.{h,cc}`, `async_iterator_base.{h,cc}`, `readable_stream.{h,cc}` y los `v8_async_iterator_readable_stream.*` generados (el generador ya se probó en la nube con `FlyWeb/tools/bindings/`). Comprobar: las 2 de `motor-124.html` y `streams/readable-streams/async-iterator.any.worker.html` |
 | 107 | `nube/motor-124` | 2440af93 | `fetch()` rechaza con `signal.reason` (con `AbortSignal.timeout()`, `TimeoutError` en lugar de `AbortError`). Comprobar: la de `motor-124.html`; `fetch/api/abort/general.any.html` |
+| 108 | `nube/motor-124` | 94b58ec2 | **Declara el nivel 124 / FlyWeb 1.8** (`build/config.gni`). Excepción aprobada: controles de formulario verticales (`nube/form-vertical`, aparte). Comprobar: `motor-124.html` todo «ok» con UA `Chrome/124`; `brave://version` dice 1.8 |
 
 Después del paso 11 (el 12 no es necesario para esto): F0.2 queda cerrada, y el `.app` se puede copiar a la 6,1 y la 5,1 para F0.6.
 

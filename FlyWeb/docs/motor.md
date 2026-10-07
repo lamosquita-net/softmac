@@ -323,12 +323,14 @@ niveles por delante, y **seguir subiendo V8 nivel a nivel**.
   para las próximas API con `async iterable`.
 - **`fetch()` con `signal.reason`** (2440af93): MDN da `AbortSignal.timeout()` como parcial hasta Chrome 124, porque
   `fetch` rechazaba siempre con `AbortError`.
-- **Pendiente del HUMANO: controles de formulario verticales** (`writing-mode` en controles y `<input type=range>`
-  vertical). Es grande y toca el pintado nativo de formularios: o se porta aparte o va como excepción del nivel.
+- **Controles de formulario verticales: excepción del nivel (HUMANO, 07-10)**, portados aparte en `nube/form-vertical`
+  (FM.12) y fusionados en el nivel en que LOCAL los pruebe. En la 116 la parte de controles no textuales está tras una
+  flag experimental y la de `input`/`textarea` no existe; toca el pintado nativo de todos los formularios, también los
+  horizontales, y solo se puede comprobar a la vista en Mojave.
 - **Fuera (no Baseline):** `pageswap`, `writingSuggestions`, WebSocketStream, `inert` en la búsqueda.
 - **Comprobación:** `FlyWeb/tools/motor-124.html` (10 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
   `FlyWeb/tools/wpt-124-lista.txt` (13 ficheros, con variantes `.worker`).
-- **Sin declarar todavía**: 124 / FlyWeb 1.8 se declara cuando el HUMANO decida sobre los controles verticales.
+- **Declarado 124 / FlyWeb 1.8** en 94b58ec2 (se revierte solo si el nivel no pasa).
 
 ## Inventario: CSS Baseline publicado después de la 116
 
