@@ -94,3 +94,21 @@ CSP impiden que otro fichero de la web se ejecute como script.
 - `flyweb-web-auto` compara en cada cambio de `main` los JS del servidor con los de `main` y, si no coinciden, avisa
   por correo; no los toca.
 - Cambiar un JS: PR (con el `integrity` nuevo en la página) → fusionar → el HUMANO lo instala a mano.
+
+## Publicar una versión, de principio a fin (HUMANO, 07-10-2026)
+
+1. **LOCAL** compila, notariza y deja el DMG en `~/proyectos/softmac/entregas/FlyWeb-<v>/FlyWeb-<v>.dmg`.
+2. **LOCAL** lo sube a ns2 con `~/proyectos/softmac/herramientas/subir-dmg-ns2.sh <v> <sha256>`: usuario compartido
+   `claude` (`cc-ns2`), una sesión, comprueba la IP de la oficina contra `lamosquita5g.duckdns.org`, el SHA-256 antes y
+   después, no sustituye un DMG existente y lo deja root:root 0644 en `updates/`. Claude Code tiene una regla de permiso
+   para ese script (y solo ese), así que no se bloquea.
+3. **LOCAL** abre y fusiona el PR de la web: portada (botón, tamaño, SHA-256, notas en `#novedades`), ayuda si cambia, y
+   `FlyWeb/web/VERSION` = `<v> <CFBundleVersion> FlyWeb-<v>.dmg <sha256>`. Si cambia `estilo.css`, `img/` o `js/`:
+   `python3 FlyWeb/web/versionar.py`.
+4. **El HUMANO** firma en bak.
+5. **`flyweb-web-auto`** (ns2, cada 10 min) publica solo: DMG en `descargas/`, portada con la versión enlazada, notas y
+   ayuda; comprueba y avisa por correo. **Las cifras** de la versión nueva salen a la mañana siguiente (`flyweb-cifras`,
+   07:10, cuenta hasta el día anterior).
+
+Si algo falla, el correo dice qué; a mano solo SERVIDOR-LOCAL (`flyweb-desplegar`), anotándolo en `CAMBIOS.md` antes.
+
