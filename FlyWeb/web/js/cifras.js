@@ -26,9 +26,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       for (const c of [dmg.replace(/^FlyWeb-|\.dmg$/g, ''), v[dmg].web30, v[dmg].web, v[dmg].act30, v[dmg].act]) tr.insertCell().textContent = c
     }
     const ultima = orden[0]
-    const desde = filas.length ? filas.map((f) => f[0]).sort()[0] : null
+    const fechas = filas.map((f) => f[0]).sort()
+    const desde = fechas[0]
+    const hasta = fechas[fechas.length - 1]
     enUso.textContent = ultima
-      ? `FlyWeb ${ultima.replace(/^FlyWeb-|\.dmg$/g, '')} en uso (aprox.): ${v[ultima].web + v[ultima].act}. Contado desde el ${desde}.`
+      ? `FlyWeb ${ultima.replace(/^FlyWeb-|\.dmg$/g, '')} en uso (aprox.): ${v[ultima].web + v[ultima].act}. Contado del ${desde} al ${hasta}; se cuenta cada mañana hasta el día anterior.`
       : 'Todavía no hay descargas contadas.'
   } catch (e) {
     enUso.textContent = 'No se han podido cargar las cifras.'

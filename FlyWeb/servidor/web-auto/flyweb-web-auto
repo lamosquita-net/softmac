@@ -29,7 +29,10 @@ MAX_DMG=10
 APPCAST=/var/www/FlyWeb/updates/stable/appcast.xml
 UPD=/var/www/FlyWeb/updates
 WEB=/var/www/flyweb.lamosquita.net
-FICHEROS="index.html privacidad.html estilo.css cifras.html cifras.js ayuda/index.html ayuda/sincronizar/index.html"
+FICHEROS="index.html privacidad.html estilo.css cifras.html ayuda/index.html ayuda/sincronizar/index.html img/circulo.svg img/mosca.svg fuentes/JetBrainsMono.woff2 fuentes/OFL-JetBrainsMono.txt"
+# Los JS NO se publican nunca solos (decisión del HUMANO, 06-10): los instala el HUMANO en js/ (root:root, carpeta incluida).
+# Aquí solo se vigilan: si el del servidor no es el de main, aviso por correo y nada más.
+JS="js/mosca.js js/cifras.js"
 CLAVE_ED25519=I+N32uIF9KsQFRt2rt+qcYZKjEqMOyZ0PbUtam80xkw=      # FlyWeb/servidor/actualizaciones/clave-publica.txt
 AVISO=admin@lamosquita.net                                     # vacío = sin correo
 case $MODO in comprobar|ejecutar) ;; *) echo "uso: flyweb-web-auto comprobar|ejecutar" >&2; exit 2 ;; esac
@@ -123,6 +126,17 @@ for f in $FICHEROS; do
   curl -fsSL --proto =https -o "$tmp/$n" "$RAW/$C/FlyWeb/web/$f" || parar "no se pudo bajar $f de $C"
   s=$(sha256sum "$tmp/$n" | cut -d' ' -f1)
   [[ -f $WEB/$f && $(sha256sum "$WEB/$f" | cut -d' ' -f1) == "$s" ]] || CAMBIAN+="$f:$s "
+done
+for f in $JS; do
+  n=${f//\//_}
+  curl -fsSL --proto =https -o "$tmp/$n" "$RAW/$C/FlyWeb/web/$f" || { log "no se pudo bajar $f de $C"; continue; }
+  s=$(sha256sum "$tmp/$n" | cut -d' ' -f1)
+  if [[ ! -f $WEB/$f || $(sha256sum "$WEB/$f" | cut -d' ' -f1) != "$s" ]]; then
+    log "JS distinto del de main: $f (main $s)"
+    [[ $MODO == comprobar ]] && echo "JS que el HUMANO tiene que instalar a mano: $f ($s)"
+    avisar "js:$f:$s" "el JS $f del servidor no es el de main" \
+      "El fichero $f de la web no coincide con el de main ($C, SHA-256 $s), o no existe. Los JS no se publican solos: si el cambio de main es bueno, instálalo a mano en js/ (root:root 0644); si no has cambiado nada, alguien ha tocado el servidor."
+  fi
 done
 grep -qF "descargas/$DMG" "$tmp/index.html" && grep -qF "$SHA" "$tmp/index.html" \
   || parar "la portada de $C no enlaza $DMG con su SHA-256"
