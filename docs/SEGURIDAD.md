@@ -6,9 +6,14 @@ límites que NUBE: no compila Chromium ni ejecuta nada de macOS.
 
 ## Qué hace
 
-1. **Vigilar.** Cada semana, y siempre que Google publique un «exists in the wild»: `FlyWeb/scripts/cve-watch.py`
-   (catálogo KEV de CISA) y las notas de Chrome Releases. Todo CVE nuevo se clasifica en `FlyWeb/docs/cve-triage.md`
-   (¿el código vulnerable existe en la 116 o en lo que hemos portado?, ¿lo mitiga jitless?, ¿es de macOS?).
+1. **Vigilar. A diario** (decisión del HUMANO, 07-10-2026: desde la 1.6 el JIT está abierto a todas las webs, así que
+   un fallo de TurboFan o de Wasm ya no se limita a los sitios de confianza), y además siempre que Google publique un
+   «exists in the wild»: `FlyWeb/scripts/cve-watch.py` (catálogo KEV de CISA), prensa especializada (el blog de Chrome
+   Releases no es accesible desde el contenedor) y los *cherry-picks* de seguridad de las ramas de V8 que estén por
+   encima de la V8 del último nivel publicado (`Merged:` en `refs/branch-heads/X.Y` de V8, sobre todo `[wasm]`,
+   `[turbofan]` y `[runtime]`). Todo CVE nuevo se clasifica en `FlyWeb/docs/cve-triage.md` (¿el código vulnerable
+   existe en la V8 o el Chromium que publicamos?, ¿es de macOS?). La pregunta «¿lo mitiga jitless?» ya no rebaja la
+   prioridad a partir de la 1.6. Si un día no hay nada, se anota en una línea en la fila FS.2.
 2. **Portar.** Para cada CVE que aplique: localizar el commit de la corrección (Chromium, V8, Skia, ANGLE, Dawn…),
    adaptarlo a la 116 **y a lo ya portado por la Fase M** y dejarlo en una rama `seg/cve-AAAA-NNNNN` de brave-core,
    con su paso en `FlyWeb/docs/integracion.md` y la prueba que lo reproduce cuando sea posible.
@@ -53,7 +58,7 @@ Cada porte de V8 de NUBE o LOCAL (filas FM.*) pasa por SEGURIDAD antes de public
      SEGURIDAD regenera el `.patch` partiendo del que esté en `flyweb` y avisa en la fila; NUBE pone su rama de motor al
      día encima y regenera el combinado. SEGURIDAD nunca reescribe a mano los cambios de un porte de motor.
 3. **Tablero:** como los demás agentes, push directo de **sus propias filas** de `TAREAS.md`; el resto por PR.
-4. **Urgencias** (CVE explotado que aplica a la 116 y no lo mitiga jitless): avisar al HUMANO en la fila y en el PR, y
+4. **Urgencias** (CVE explotado que aplica a lo que publicamos; desde la 1.6, también los de JIT y Wasm): avisar al HUMANO en la fila y en el PR, y
    proponer una 1.x.y solo con ese parche.
 5. **Nunca:** forzar push en ramas compartidas, tocar `flyweb`, secretos en el repo, `gclient sync -D`. Las claves de
    firma no salen de bak. Nada de pedir al HUMANO que instale o ejecute algo en ns2 o bak sin explicar qué hace y cómo
