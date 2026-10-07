@@ -326,7 +326,9 @@ niveles por delante, y **seguir subiendo V8 nivel a nivel**.
 - **Controles de formulario verticales: excepción del nivel (HUMANO, 07-10)**, portados aparte en `nube/form-vertical`
   (FM.12) y fusionados en el nivel en que LOCAL los pruebe. En la 116 la parte de controles no textuales está tras una
   flag experimental y la de `input`/`textarea` no existe; toca el pintado nativo de todos los formularios, también los
-  horizontales, y solo se puede comprobar a la vista en Mojave.
+  horizontales, y solo se puede comprobar a la vista en Mojave. **Portado en `nube/form-vertical` f553e5d7** (19 commits de
+  upstream; se dejan fuera los avisos de `appearance`, los contadores de uso y el cursor en elementos vacíos, que
+  necesita refactors de layout). Página: `FlyWeb/tools/formularios-verticales.html`.
 - **Fuera (no Baseline):** `pageswap`, `writingSuggestions`, WebSocketStream, `inert` en la búsqueda.
 - **Comprobación:** `FlyWeb/tools/motor-124.html` (10 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
   `FlyWeb/tools/wpt-124-lista.txt` (13 ficheros, con variantes `.worker`).
