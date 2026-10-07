@@ -95,6 +95,7 @@ de sitios sigue diciendo 116.
 
 ### Prueba específica: envío de ficheros grandes (SwissTransfer, y WeTransfer de forma ocasional)
 
+**Desde la 1.6 (JIT por defecto) este riesgo desaparece**: la prueba solo hace falta en la 1.5 o anteriores.
 Riesgo: el sitio va **sin JIT** (no está en la lista). Si usa WebAssembly para trocear o calcular sumas de los ficheros, sin
 JIT no funciona (`WebAssembly is not defined` en la consola); si lo hace en JavaScript, funcionará pero puede ir muy lento
 con ficheros de varios GB. El envío en sí depende de la red, no del JIT. No se ha podido mirar desde la nube: el código

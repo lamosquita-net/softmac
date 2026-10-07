@@ -76,9 +76,11 @@ servidor, no desde Brave: la lista general (las de Brave, EasyList y EasyPrivacy
   entrar en una que solo funciona sin cifrar.</li>
   <li><strong>El candado</strong> de la barra de direcciones indica que la conexión con esa web está cifrada. No dice
   que la web sea de fiar: comprueba siempre el nombre antes de escribir una contraseña.</li>
-  <li><strong>JavaScript sin JIT.</strong> Chromium 116 ya no recibe parches de seguridad de Google, así que FlyWeb
-  porta los importantes y, además, ejecuta JavaScript sin el compilador JIT, donde están la mayoría de los fallos que
-  se aprovechan. Es más seguro, pero algunas webs pesadas van más lentas (ver <a href="#rendimiento">Rendimiento</a>).</li>
+  <li><strong>Parches de seguridad propios.</strong> Chromium 116 ya no recibe parches de seguridad de Google, así que
+  FlyWeb porta los importantes, en especial los del motor de JavaScript (V8), que revisamos a diario. Desde la 1.6
+  JavaScript va con el compilador JIT, como en Chrome; dejamos apagado el compilador intermedio (Maglev) para reducir
+  la superficie de ataque. Si no te fías de una web, puedes quitarle el JIT: candado de la barra de direcciones ›
+  Configuración del sitio › optimizador de V8 (JavaScript).</li>
 </ul>
 
 <h2 id="privacidad">Privacidad</h2>
@@ -165,9 +167,9 @@ inicio), FlyWeb te avisa y puedes deshacerlo desde el aviso.</p>
 
 <h2 id="rendimiento">Rendimiento y webs lentas</h2>
 <ul>
-  <li><strong>Webs pesadas:</strong> como JavaScript va sin JIT (ver <a href="#seguridad">Seguridad</a>), algunas
-  aplicaciones web muy pesadas van más lentas que en Chrome, y las que necesitan WebAssembly pueden no funcionar. Si
-  una web que usas a menudo no va, <a href="#informar">avísanos</a>.</li>
+  <li><strong>Webs pesadas:</strong> hasta la 1.5 JavaScript iba sin JIT y las aplicaciones web muy pesadas iban más
+  lentas; desde la 1.6 va con JIT (ver <a href="#seguridad">Seguridad</a>) y WebAssembly funciona. Si una web que usas
+  a menudo no va, <a href="#informar">avísanos</a>.</li>
   <li><strong>Vídeo:</strong> FlyWeb pide a YouTube y a otras webs el vídeo en H.264, que los Mac antiguos decodifican
   por hardware. El vídeo gasta mucha menos CPU, a cambio de un máximo de 1080p.</li>
   <li><strong>Ahorro de memoria y de energía:</strong> en Ajustes (busca «memoria» en el buscador de

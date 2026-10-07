@@ -2,9 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   Políticas de FlyWeb:
-  - V8 con JIT por defecto desde FlyWeb 1.6 (DefaultJavaScriptJitSetting = 1; decisión del HUMANO, 07/10). Para
-    volver a apagarlo en todas las webs sin recompilar (emergencia: un fallo de JIT explotado aún sin portar), poner
-    2. Sitios concretos sin JIT: JavaScriptJitBlockedForSites. Antes (1.0–1.5) iba a 2 con lista de permitidos.
+  - JIT de V8: este perfil ya no lo toca. Desde FlyWeb 1.6 el JIT va activado por defecto en el propio navegador
+    (decisión del HUMANO, 07/10) y cada usuario puede apagarlo por sitio en la configuración. Antes (1.0–1.5) el perfil
+    forzaba DefaultJavaScriptJitSetting = 2 con lista de permitidos (JavaScriptJitAllowedForSites). Emergencia (un
+    fallo de JIT explotado aún sin portar): añadir DefaultJavaScriptJitSetting = 2 a los dos bloques apaga el JIT en
+    todas las webs sin recompilar, pero solo en los Mac con el perfil instalado: el perfil no se distribuye.
   - Safe Browsing estándar (SafeBrowsingProtectionLevel = 1), por el proxy propio de ns2: Google ve la IP del servidor,
     no la del usuario, y nada pasa por Brave (decisión del HUMANO, 03/10). Antes estaba apagado (0) porque consultaba
     servidores de Brave/Google. **Instalar esta versión solo cuando** el proxy esté en producción
@@ -44,8 +46,6 @@
 						<dict>
 							<key>mcx_preference_settings</key>
 							<dict>
-								<key>DefaultJavaScriptJitSetting</key>
-								<integer>1</integer>
 								<key>SafeBrowsingProtectionLevel</key>
 								<integer>1</integer>
 								<key>BraveWalletDisabled</key>
@@ -78,8 +78,6 @@
 						<dict>
 							<key>mcx_preference_settings</key>
 							<dict>
-								<key>DefaultJavaScriptJitSetting</key>
-								<integer>1</integer>
 								<key>SafeBrowsingProtectionLevel</key>
 								<integer>1</integer>
 								<key>BraveWalletDisabled</key>
