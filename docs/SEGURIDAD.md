@@ -14,6 +14,8 @@ límites que NUBE: no compila Chromium ni ejecuta nada de macOS.
    `[turbofan]` y `[runtime]`). Todo CVE nuevo se clasifica en `FlyWeb/docs/cve-triage.md` (¿el código vulnerable
    existe en la V8 o el Chromium que publicamos?, ¿es de macOS?). La pregunta «¿lo mitiga jitless?» ya no rebaja la
    prioridad a partir de la 1.6. Si un día no hay nada, se anota en una línea en la fila FS.2.
+   **Objetivo (HUMANO, 07-10): ≤ 48 h** desde un *zero-day* de V8 que aplique hasta la 1.x.y con el parche; mientras
+   tanto, el interruptor de emergencia es la política `DefaultJavaScriptJitSetting = 2` (JIT apagado sin recompilar).
 2. **Portar.** Para cada CVE que aplique: localizar el commit de la corrección (Chromium, V8, Skia, ANGLE, Dawn…),
    adaptarlo a la 116 **y a lo ya portado por la Fase M** y dejarlo en una rama `seg/cve-AAAA-NNNNN` de brave-core,
    con su paso en `FlyWeb/docs/integracion.md` y la prueba que lo reproduce cuando sea posible.
