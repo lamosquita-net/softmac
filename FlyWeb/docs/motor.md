@@ -377,6 +377,30 @@ sesión NUBE-motor). **Sin excepciones.**
   aplican sobre la 116 (`chk.sh`: 1014 parches, solo el aviso conocido de `menu_separator`). Bindings comprobados con
   `FlyWeb/tools/bindings/`. Sin compilar.
 
+## Nivel 126 (en código, 07-10; pendiente de compilar → FlyWeb 1.10)
+
+Baseline de Chrome 126 (web-features 3.40.1 + BCD) y flags que pasan a `stable` entre la 125.0.6422.141 y la
+126.0.6478.182. Rama brave-core `nube/motor-126` (encima de `nube/motor-125`). **Sin excepciones.** Nivel pequeño: lo
+Baseline son `URL.parse()` y `toJSON()` en la geolocalización; el resto de lo nuevo del 126 (transiciones de vista entre
+documentos, `CloseWatcher`, `sizes="auto"`) no es Baseline.
+
+- **V8 12.6.228.49** (d3c410c8): la cabeza de la rama 12.6, es decir la V8 de Chrome 126.0.6478.182 (12.6.228.28) más
+  las ~20 fusiones de seguridad posteriores de su rama (M126-LTS: TurboFan, Maglev, Wasm, el intérprete y el *sandbox*).
+  **API pública 12.5 → 12.6 contra la 116** (Blink, gin, content, extensions, pdf, `chrome/renderer`, brave-core y,
+  por primera vez, **PDFium**): rompen dos cosas. (1) `v8::TaskRunner::Post*Task` deja de ser virtual: gin pasa a
+  sobrescribir `Post*TaskImpl` (Chromium bcd7d6bc1f5). (2) `ObjectTemplate::SetAccessor` con nombre `String` desaparece:
+  `chrome.app.isInstalled` (Chromium a3ac89ff609) y las propiedades de JavaScript de los PDF (PDFium 71bd32dce, que ya
+  va en la PDFium de Chrome 126), como parches nuevos en `patches/third_party/pdfium/`. Lo demás (`TracedReferenceBase::Get`
+  devuelve `Local<Data>`, sobrecargas nuevas de `ReturnValue::Set`, `Utf8Value` con opciones) no afecta a la 116.
+  **Ojo (LOCAL/SEGURIDAD):** los niveles 120–125 no revisaron PDFium; la revisión de hoy no ve usos de las API que
+  quitaron, pero conviene que la compilación lo confirme.
+- **`URL.parse()`** (d36f294b, Chromium d1db8ebec85).
+- **`GeolocationPosition.toJSON()` y `GeolocationCoordinates.toJSON()`** (d36f294b, Chromium 733c562491c), escritos
+  sobre las clases de la 116 sin el refactor de upstream ni tocar `v8_object_builder.h` (lo incluye medio Blink).
+- **Comprobación:** `FlyWeb/tools/motor-126.html` (5 comprobaciones y un botón de geolocalización real; en Chromium 141
+  todas «ok» salvo la del UA) y `FlyWeb/tools/wpt-126-lista.txt` (5 ficheros).
+- **Declarado 126 / FlyWeb 1.10** en 20ecf145. `chk.sh`: 1030 parches aplican sobre la 116 (más los 4 de PDFium, comprobados sobre su PDFium). Sin compilar.
+
 ## Inventario: CSS Baseline publicado después de la 116
 
 Datos de [web-features](https://www.npmjs.com/package/web-features) 3.40.1 (el catálogo de Baseline) y del fichero de

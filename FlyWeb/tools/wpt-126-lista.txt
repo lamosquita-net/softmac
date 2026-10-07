@@ -1,0 +1,5 @@
+url/url-statics-parse.any.html
+url/url-statics-parse.any.worker.html
+url/url-statics-canparse.any.html
+url/idlharness.any.html
+url/idlharness.any.worker.html
