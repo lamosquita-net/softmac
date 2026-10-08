@@ -23,7 +23,7 @@ añaden `patches/v8/` (y, en la 12.3, `flyweb_version`). LOCAL compila desde ell
 | 123 | 1.7 / **1.7.1** | 12.3.219.16 | `seg/v8-12.3` **5cb5bbe2** | 1.7.1 publicada (`flyweb` = b71c7a5e) |
 | 124 | 1.8 / 1.8.1 | 12.4.254.15 + ac8da461 | `seg/v8-12.4` **d88873b8** | 1.8 publicada (desde `local/motor-124-arreglos`, que añade `<iomanip>` en V8); 1.8.1 = `nube/v1.8.1` (funciones, no seguridad) |
 | 125 | 1.9 | 12.5.227.13 | `seg/v8-12.5` **11ca9807** | lista para compilar; en seco 1017/1017 sobre la 116 |
-| 126 | 1.10 | 12.6.228.49 | **no existe aún** | **pendiente: FS.8 (abajo)** |
+| 126 | 1.10 | 12.6.228.49 | `seg/v8-12.6` **67d7fdbf** | hecha en V8 y probada en `d8` (08-10, FS.8); FlyWeb sin compilar |
 
 Cada rama tiene `patches/v8/FLYWEB-SECURITY.md` con su contenido exacto y las pruebas hechas. Distinguir siempre
 **«probado en `d8`»** (solo V8, Linux, en la nube) de **«compilado en FlyWeb»** (lo hace LOCAL en la 7,1).
@@ -44,7 +44,12 @@ Cada rama tiene `patches/v8/FLYWEB-SECURITY.md` con su contenido exacto y las pr
 - Nunca: escribir en `flyweb`, forzar push en ramas compartidas, reescribir a mano un porte de motor de NUBE, secretos
   en el repo, `gclient sync -D`. Push directo solo de las filas FS.* de `TAREAS.md`; lo demás por PR.
 
-## 3. Pendiente: FS.8, nivel 126 (V8 12.6.228.49) para la 1.10
+## 3. FS.8, nivel 126 (V8 12.6.228.49) para la 1.10 — HECHO el 08-10 por la sesión siguiente
+
+Resultado: `seg/v8-12.6` 67d7fdbf (sobre `nube/motor-126` 36401e90; solo `patches/v8/`); detalle en
+`patches/v8/FLYWEB-SECURITY.md` de esa rama y en `FlyWeb/docs/cve-triage.md` («Nivel 126»). La rutina diaria de esa
+sesión es `trig_017eHmWVtUM8zquwVjXRAvAD` (la antigua, `trig_012mAwnVKtRrskyyVN2XAUGC`, debe desactivarla el HUMANO).
+Lo que sigue es el guion original, por si hay que rehacerlo sobre otro `nube/motor-126`:
 
 Base: `nube/motor-126` (20ecf145 o posterior; NUBE ya llevó ahí los arreglos de LOCAL de la 1.8). Pasos:
 
@@ -73,9 +78,10 @@ Base: `nube/motor-126` (20ecf145 o posterior; NUBE ya llevó ahí los arreglos d
 
 ## 4. Revisión diaria (FS.2)
 
-Hoy la lanza una rutina («SEGURIDAD: revisión diaria de CVE», `trig_012mAwnVKtRrskyyVN2XAUGC`, cada día a las 8:52
-hora de Madrid) **atada a la sesión saliente**. La sesión nueva debe crear la suya (mismo texto) y pedir al HUMANO
-que desactive o borre la antigua, para que no salten dos. Lo que hace cada día:
+Desde el 08-10 (mediodía) la lanza la rutina «SEGURIDAD: revisión diaria de CVE» `trig_017eHmWVtUM8zquwVjXRAvAD`
+(cada día a las 8:52, hora de Madrid), atada a la sesión SEGURIDAD en curso; la anterior (`trig_012mAwnVKtRrskyyVN2XAUGC`)
+la desactiva el HUMANO. **Cada relevo debe repetir esto** (crear la suya con el mismo texto y pedir que se desactive la
+antigua, para que no salten dos). Lo que hace cada día:
 
 1. `python3 FlyWeb/scripts/cve-watch.py` (catálogo KEV de CISA contra `cve-triage.md`).
 2. Prensa: zero-days de Chrome/V8 posteriores al último anotado (hoy, **CVE-2026-87491**, 08-09-2026). El blog de
