@@ -6,6 +6,8 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
 | Agente | Dónde corre | Puede | No puede |
 |---|---|---|---|
 | **NUBE** | Contenedor Linux (claude.ai/code) | Investigar, escribir código, parches, scripts y documentación, compilar Go (BackupDrive) y probar en Linux, CI, PRs | Compilar Chromium, ejecutar nada de macOS, ver los discos del Mac |
+| ↳ **NUBE-COORDINACIÓN** | Sesión en la nube, desde el 08-10 (antes NUBE-revisión) | Arquitectura general, revisión de todo (tablero cada hora, ramas `local/*`, `seg/*`, `nube/*`, PR de softmac), coordinación entre agentes; arreglos que pida LOCAL en el código de NUBE 117–124, FM.12 y F7.8 (los lleva a `nube/motor-124` y `nube/form-vertical`); ramas de integración (`nube/v1.8.1`) | Tocar `nube/motor-125+` (son de NUBE-MOTOR) |
+| ↳ **NUBE-MOTOR** | Sesión en la nube | Ports de nivel 125 en adelante (`nube/motor-125`, `-126`…); fusiona hacia arriba lo que suba NUBE-COORDINACIÓN | Tocar `nube/motor-117…124` salvo para fusionar |
 | **LOCAL** | MacPro7,1 (Claude Code local) | Compilar FlyWeb, ejecutar y medir, Xcode, firma y notarización, scripts que necesitan el checkout de Chromium | Trabajar sin el Mac encendido |
 | **HUMANO** | — | Decisiones, credenciales (Google, Apple), pruebas en la 6,1 y la 5,1, iconos | — |
 | **SERVIDOR-LOCAL** | MacPro7,1 (Claude Code local), desde el 05-10 | Operar ns1 (zona DNS) y ns2 (producción auditada) por SSH como `servidor`, con sudo limitado (`FlyWeb/servidor/acceso/`): auditar, desplegar, comprobar, anotar en `CAMBIOS.md` | bak; certificados; ampliar su propio acceso; secretos. Carta: `docs/SERVIDOR.md` §8 |
