@@ -22,42 +22,36 @@ servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomoneda
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 1.7.1</h2>
-<p><a class="boton" href="descargas/FlyWeb-1.7.1.dmg" download>Descargar FlyWeb 1.7.1 (165 MB)</a></p>
+<h2>Descargar FlyWeb 1.8</h2>
+<p><a class="boton" href="descargas/FlyWeb-1.8.dmg" download>Descargar FlyWeb 1.8 (165 MB)</a></p>
 <p class="dato">macOS 10.13 o 10.14, Mac Intel (x86_64). En macOS 10.15 a 12 debería funcionar, sin garantía.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>ee21e86ed1e1ecc9437aca8041799baca8b3f63f1ae6935fc77e3b81cd246171</code></p>
+SHA-256: <code>bc3a426e24a69e3ba840cc95f34cfa3d24ff0cb813861182ca2c3f4fa7a2443f</code></p>
 </div>
 </div></section>
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-1.7.1.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-1.8.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.7.1</h2>
+<h2 id="novedades">Notas de la versión 1.8</h2>
 <ul>
-  <li><strong>Actualización de seguridad.</strong> Portamos al motor de JavaScript de la 1.7 las correcciones de la
-  rama de soporte prolongado de Google para Chrome 126 (optimizador, intérprete, analizador y WebAssembly), que llegan
-  hasta enero de 2025, y apagamos el puente genérico entre WebAssembly y JavaScript que esta versión del motor
-  encendía, como en la 1.6. Ninguno de estos fallos consta como aprovechado; conviene actualizar igualmente.</li>
-</ul>
-<h2>Notas de la versión 1.7</h2>
-<ul>
-  <li><strong>Motor de nivel Chrome 123.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 123 y FlyWeb se
-  presenta a las webs como Chrome 123. Funciones web nuevas: <code>align-content</code> en bloques normales (centrar en
-  vertical sin flex ni grid), <code>field-sizing</code> para que los campos de formulario se ajusten a su contenido,
-  <code>paint-order</code> en el texto HTML, los módulos JSON con <code>import … with { type: "json" }</code>,
-  <code>navigation.activation</code>, <code>CSSKeyframesRule.length</code> y
-  <code>shadowRootDelegatesFocus</code> en <code>&lt;template&gt;</code>.</li>
-  <li><strong>Alineación de cajas con posición absoluta.</strong> <code>align-self</code> y <code>justify-self</code>
-  funcionan en los elementos con <code>position: absolute</code>, la parte del nivel de Chrome 122 que faltaba en la 1.6.</li>
-  <li><strong>Seguridad:</strong> portamos al nuevo motor de JavaScript las correcciones de seguridad posteriores que
-  le aplican, entre ellas la de un fallo del aislamiento interno del motor; la parte más reciente del optimizador
-  Turboshaft y el compilador Maglev siguen apagados.</li>
+  <li><strong>Motor de nivel Chrome 124.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 124 y FlyWeb se
+  presenta a las webs como Chrome 124. Funciones web nuevas: <code>setHTMLUnsafe()</code> y
+  <code>Document.parseHTMLUnsafe()</code> (HTML con Shadow DOM declarativo), las raíces de Shadow DOM clonables, recorrer
+  un <code>ReadableStream</code> con <code>for await</code>, <code>RTCRtpReceiver.jitterBufferTarget</code> y que
+  <code>fetch()</code> se rechace con el motivo de la señal de cancelación (por ejemplo, <code>TimeoutError</code> con
+  <code>AbortSignal.timeout()</code>).</li>
+  <li><strong>Actualizaciones sin contraseña.</strong> Hasta ahora, al instalar una actualización macOS pedía la
+  contraseña de administrador («FlyWeb quiere realizar cambios»). Desde la 1.8 se instalan sin pedirla.</li>
+  <li><strong>Seguridad:</strong> además de las correcciones posteriores que le aplican al nuevo motor de JavaScript,
+  incluye las de la rama de soporte prolongado de Google para Chrome 126 que llegaron con la 1.7.1, y el puente genérico
+  entre WebAssembly y JavaScript sigue apagado. El compilador Maglev y la parte más reciente del optimizador Turboshaft
+  siguen apagados.</li>
 </ul>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
 </div></section>
