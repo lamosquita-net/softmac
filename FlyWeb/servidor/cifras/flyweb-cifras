@@ -1,12 +1,13 @@
 #!/bin/bash
 # Cifras de FlyWeb (SERVIDOR-NUBE, 06-10-2026; decisión del HUMANO): cuántas veces se descarga cada versión, sin
-# guardar quién. Corre en ns2 como «servidor» (grupo adm: lee los registros), con un temporizador de usuario diario.
+# guardar quién. Corre en ns2 como «servidor» (grupo adm: lee los registros), con un temporizador de usuario cada hora (desde el 07-10).
 #   web: descargas completas de descargas/FlyWeb-*.dmg en la web (registro con IP, 14 días; aquí solo se cuenta).
 #   act: descargas completas de FlyWeb-*.dmg en updates. (registro sin IP): cada Mac baja cada versión una vez al
 #        actualizarse, así que es la mejor aproximación a cuántos FlyWeb están en uso.
 # Guarda solo «fecha,tipo,dmg,descargas» (cifras.csv), lo publica en la web (flyweb-desplegar cifras, que valida que
 # solo haya cifras) y los lunes manda un resumen por correo.
-#   flyweb-cifras diario     lo que lanza el temporizador (cuenta los días que falten, publica y, el lunes, el correo)
+#   flyweb-cifras diario     lo que lanza el temporizador (cuenta los días que falten y vuelve a contar ayer y hoy, publica
+#                            y, el lunes, el correo)
 #   flyweb-cifras ver        resumen en pantalla, sin publicar ni mandar nada
 set -euo pipefail
 umask 077
@@ -59,8 +60,12 @@ resumen () {  # funciona con mawk (el awk de Ubuntu)
 
 if [[ $MODO == ver ]]; then resumen; exit 0; fi
 
-# Días que falten, hasta 13 atrás (la web guarda 14 días; updates., 7: más atrás, solo lo que quede), sin contar hoy.
-for i in $(seq 13 -1 1); do contar_dia "$(date -d "$i days ago" +%F)"; done
+# Días que falten, hasta 13 atrás (la web guarda 14 días; updates., 7: más atrás, solo lo que quede). Ayer y hoy se
+# vuelven a contar en cada pasada (cada hora): hoy va incompleto hasta medianoche y ayer se cierra con la rotación.
+for d in "$(date -d yesterday +%F)" "$(date +%F)"; do
+  grep -v "^$d," "$CSV" > "$CSV.nuevo" || true; mv "$CSV.nuevo" "$CSV"
+done
+for i in $(seq 13 -1 0); do contar_dia "$(date -d "$i days ago" +%F)"; done
 sudo -n /usr/local/sbin/flyweb-desplegar cifras
 if [[ $(date +%u) == 1 && -n $AVISO ]] && ! grep -qxF "$(date +%G-%V)" "$EST/semanas" 2>/dev/null; then
   { printf 'To: %s\nSubject: [FlyWeb] cifras de la semana %s\nContent-Type: text/plain; charset=utf-8\n\n' "$AVISO" "$(date +%G-%V)"

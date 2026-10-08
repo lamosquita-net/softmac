@@ -11,7 +11,7 @@
 <body>
 <header class="cabecera"><div class="columna">
   <a class="logo" href="../"><img class="circulo" src="../img/circulo.svg?v=dc9a2e413e" alt=""><img class="mosca-logo" src="../img/mosca.svg?v=cb3e40e71f" alt="FlyWeb"></a>
-  <h1>Ayuda<small>FlyWeb 1.5 · motor de nivel Chrome 121</small></h1>
+  <h1>Ayuda<small>FlyWeb 1.8 · motor de nivel Chrome 124</small></h1>
 </div></header>
 <main>
 <section class="banda naranja"><div class="columna">
@@ -80,9 +80,10 @@ servidor, no desde Brave: la lista general (las de Brave, EasyList y EasyPrivacy
   entrar en una que solo funciona sin cifrar.</li>
   <li><strong>El candado</strong> de la barra de direcciones indica que la conexión con esa web está cifrada. No dice
   que la web sea de fiar: comprueba siempre el nombre antes de escribir una contraseña.</li>
-  <li><strong>JavaScript sin JIT.</strong> Chromium 116 ya no recibe parches de seguridad de Google, así que FlyWeb
-  porta los importantes y, además, ejecuta JavaScript sin el compilador JIT, donde están la mayoría de los fallos que
-  se aprovechan. Es más seguro, pero algunas webs pesadas van más lentas (ver <a href="#rendimiento">Rendimiento</a>).</li>
+  <li><strong>Parches del motor de JavaScript.</strong> Chromium 116 ya no recibe parches de seguridad de Google, así
+  que FlyWeb porta los importantes a su motor de JavaScript. Desde la 1.6 el compilador JIT viene activado, como en
+  Chrome; a cambio, revisamos cada día los fallos del motor que se aprovechan y publicamos los parches urgentes en una
+  actualización en menos de 48 horas. El compilador Maglev sigue apagado.</li>
 </ul>
 </div></section>
 <section class="banda blanca"><div class="columna">
@@ -90,8 +91,8 @@ servidor, no desde Brave: la lista general (las de Brave, EasyList y EasyPrivacy
 <p>FlyWeb no envía estadísticas de uso, informes de fallos ni datos de navegación a nadie. Respecto a Brave, quita las
 estadísticas (P3A), las recompensas, la cartera de criptomonedas, Brave News, la VPN, el asistente Leo, las imágenes
 patrocinadas y las comprobaciones diarias de uso.</p>
-<p>Por su cuenta, FlyWeb solo se conecta con nuestro servidor para tres cosas: las listas de los Escudos y otros
-componentes, las actualizaciones, y la navegación segura y los diccionarios. Nuestro servidor no guarda tu dirección IP.
+<p>Por su cuenta, FlyWeb solo se conecta con nuestro servidor para las listas de los Escudos y otros componentes, las
+actualizaciones, la navegación segura y los diccionarios y, si la activas, la <a href="sincronizar/">sincronización</a>. Nuestro servidor no guarda tu dirección IP.
 Las extensiones se descargan directamente de la Chrome Web Store de Google, y el traductor (apagado de serie) también va
 directo a Google si lo activas.</p>
 <ul>
@@ -178,9 +179,9 @@ inicio), FlyWeb te avisa y puedes deshacerlo desde el aviso.</p>
 <section class="banda blanca"><div class="columna">
 <h2 id="rendimiento">Rendimiento y webs lentas</h2>
 <ul>
-  <li><strong>Webs pesadas:</strong> como JavaScript va sin JIT (ver <a href="#seguridad">Seguridad</a>), algunas
-  aplicaciones web muy pesadas van más lentas que en Chrome, y las que necesitan WebAssembly pueden no funcionar. Si
-  una web que usas a menudo no va, <a href="#informar">avísanos</a>.</li>
+  <li><strong>Webs pesadas:</strong> desde la 1.6 JavaScript va con el compilador JIT y WebAssembly funciona (ver
+  <a href="#seguridad">Seguridad</a>), así que las aplicaciones web pesadas van como en Chrome. Si una web que usas a
+  menudo no va, <a href="#informar">avísanos</a>.</li>
   <li><strong>Vídeo:</strong> FlyWeb pide a YouTube y a otras webs el vídeo en H.264, que los Mac antiguos decodifican
   por hardware. El vídeo gasta mucha menos CPU, a cambio de un máximo de 1080p.</li>
   <li><strong>Ahorro de memoria y de energía:</strong> en Ajustes (busca «memoria» en el buscador de
@@ -191,8 +192,8 @@ inicio), FlyWeb te avisa y puedes deshacerlo desde el aviso.</p>
 <section class="banda naranja"><div class="columna">
 <h2 id="compatibilidad">Webs que avisan de navegador antiguo</h2>
 <p>FlyWeb se basa en Chromium 116, pero incorpora las funciones web de versiones posteriores de Chrome. A ese
-conjunto lo llamamos <em>nivel de motor</em>: la 1.5 tiene el nivel de Chrome 121 (y su motor de JavaScript) y se
-presenta a las webs como Chrome 121. Algunas webs, como Gmail, Drive o Docs, pueden mostrar una barra que dice que el navegador es antiguo; puedes
+conjunto lo llamamos <em>nivel de motor</em>: la 1.8 tiene el nivel de Chrome 124 (y su motor de JavaScript) y se
+presenta a las webs como Chrome 124. Algunas webs, como Gmail, Drive o Docs, pueden mostrar una barra que dice que el navegador es antiguo; puedes
 cerrarla y seguir usándolas. Los avisos irán desapareciendo a medida que el motor suba de nivel.</p>
 <p>FlyWeb funciona en macOS 10.13 y 10.14 en Mac Intel. En macOS 10.15 a 12 debería funcionar, pero no lo probamos.</p>
 </div></section>
