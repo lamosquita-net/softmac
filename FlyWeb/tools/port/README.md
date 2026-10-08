@@ -37,3 +37,5 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
 - Las flags que un commit añade y otro quita: dejar la flag en `stable` si quitarla arrastra refactors.
 - En la 116 `WebThemeEngine::ExtraParams` es una `union`: sin inicializadores por defecto en sus structs.
 - Contadores de uso (`web_feature.mojom`): valores de upstream, insertados en orden (`kNumberOfFeatures` = máx + 1).
+
+- `llevar.sh`: lleva commits de LOCAL a una rama `nube/*` y la fusiona en otra, sin checkout (ver `FlyWeb/docs/coordinacion.md`).
