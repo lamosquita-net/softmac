@@ -15,14 +15,14 @@ el 28-09). Leer antes: `CLAUDE.md`, `docs/TAREAS.md` (tabla de agentes y filas F
   (`nube/pinned-compartidas`) y de las ramas de integración (`nube/v1.8.1`). No toca `nube/motor-125+`
   (NUBE-MOTOR).
 
-## Vigilancia barata
+## Vigilancia
 
-- Rutina **«FlyWeb: revisión ligera horaria»** (Haiku, sesión nueva en cada disparo, 08:07–23:07 hora de Madrid):
-  mira los push de la última hora por la API y, si hay algo para coordinación, dispara la rutina
-  **«Despertar a NUBE-COORDINACIÓN»**, que entra en la sesión de coordinación. Al cambiar de sesión, hay que
-  apuntar esa segunda rutina a la sesión nueva (`update_trigger` / volver a crearla con `persistent_session_id`).
-- No hace falta programar revisiones horarias en la sesión de coordinación: una sesión larga relee todo su
-  contexto en cada despertar y es lo que más gasta.
+- La rutina con Haiku («FlyWeb: revisión ligera horaria») **no funcionó**: corría barata, pero en 8 horas con
+  mucha actividad (1.8.1 publicada, `flyweb` movida) no despertó nunca a coordinación, ni siquiera en una prueba
+  forzada. Queda desactivada. La rutina «Despertar a NUBE-COORDINACIÓN» queda apuntada a la sesión nueva por si
+  se reutiliza.
+- Mientras la sesión de coordinación tenga poco contexto, puede revisar ella misma cada 2–3 h con `send_later`
+  (barato porque relee poco). Cuando la sesión crezca mucho (cientos de miles de tokens), espaciar o relevarla.
 
 ## Flujo de un arreglo de LOCAL
 
@@ -36,14 +36,13 @@ LOCAL compila desde `local/motor-<N>-arreglos` y sube allí sus arreglos. Coordi
 
 Para comprobar fusiones sin checkout: `git merge-tree --write-tree A B` (git ≥ 2.38).
 
-## Ramas y versiones (al 08-10)
+## Ramas y versiones (al 08-10, 19:00)
 
-| Versión | Nivel | Rama que compila LOCAL | Estado |
+| Versión | Nivel | Rama | Estado |
 |---|---|---|---|
-| 1.7 / 1.7.1 | 123 | `flyweb` / `seg/v8-12.3` | publicada / subida, falta firma |
-| 1.8 | 124 | `local/motor-124-arreglos` (= `seg/v8-12.4` + arreglos) | Release en curso |
-| 1.8.1 | 124 + FM.12 + F7.8 | `nube/v1.8.1` | lista para después de la 1.8 |
-| 1.9 / 1.10 | 125 / 126 | `nube/motor-125/126` (+ `seg/v8-12.5`) | código hecho por NUBE-MOTOR, sin compilar |
+| 1.8.1 | 124 + FM.12 + F7.8 | `flyweb` | publicada y verificada |
+| 1.9 | 125 | `local/v1.9` / `seg/v8-12.5` (con FM.12, F7.8 y arreglo de `getHTML`) | en compilación (LOCAL) |
+| 1.10 | 126 | `nube/motor-126` / `seg/v8-12.6` | código hecho, sin compilar |
 
 Las ramas `nube/motor-N` se apilan (cada una sale de la anterior); los parches de V8 de cada nivel viven en
 `patches/v8/` y SEGURIDAD los mantiene en `seg/v8-12.x`, que sale de `nube/motor-N`.
@@ -68,8 +67,8 @@ Las ramas `nube/motor-N` se apilan (cada una sale de la anterior); los parches d
 
 ## Pendiente al relevo
 
-- Cuando LOCAL publique la 1.8: que compile `nube/v1.8.1` (sube `flyweb_version` a 1.8.1) y pruebe
-  `formularios-verticales.html`, F7.8 y formularios normales en Gmail y claude.ai. Si `local/motor-124-arreglos`
-  se mueve antes, rehacer `nube/v1.8.1`.
-- Con el visto bueno de LOCAL a la 1.8.1: avisar a NUBE-MOTOR para llevar FM.12 y F7.8 a 125/126.
-- 1.9 y 1.10: puntos de riesgo en el tablero (FM.13, FM.14): bindings nuevos del 125; gin y PDFium con la V8 12.6.
+- FM.12 y F7.8 ya están en 125/126 (NUBE-MOTOR) y en `seg/v8-12.5/12.6` (SEGURIDAD): no queda nada de la 1.8.1.
+- Los niveles 117–124 están cerrados; desde ahora los arreglos de motor son de NUBE-MOTOR (125+). Coordinación se
+  centra en estrategia (siguientes niveles de V8/Blink, excepciones), revisión de lo que sale de cada agente y
+  conversación con el HUMANO.
+- 1.9 y 1.10: riesgos en FM.13 y FM.14 (bindings del 125; gin y PDFium con la V8 12.6).
