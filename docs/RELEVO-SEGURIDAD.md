@@ -22,11 +22,13 @@ añaden `patches/v8/` (y, en la 12.3, `flyweb_version`). LOCAL compila desde ell
 | 122 | 1.6 | 12.2.281.22 | `seg/v8-12.2` 1d7c7f69 | publicada (JIT abierto desde aquí) |
 | 123 | 1.7 / **1.7.1** | 12.3.219.16 | `seg/v8-12.3` **5cb5bbe2** | 1.7.1 publicada (`flyweb` = b71c7a5e) |
 | 124 | 1.8 / 1.8.1 | 12.4.254.15 + ac8da461 | `seg/v8-12.4` **d88873b8** | 1.8 publicada (desde `local/motor-124-arreglos`, que añade `<iomanip>` en V8); 1.8.1 = `nube/v1.8.1` (funciones, no seguridad) |
-| 125 | 1.9 | 12.5.227.13 | `seg/v8-12.5` **11ca9807** | lista para compilar; en seco 1017/1017 sobre la 116 |
-| 126 | 1.10 | 12.6.228.49 | **no existe aún** | **pendiente: FS.8 (abajo)** |
+| 125 | 1.9 | 12.5.227.13 | `seg/v8-12.5` **d69f81aa** | lista para compilar (lleva FM.12, F7.8 y `getHTML()`; = `local/v1.9` 24ffcf37); en seco 1017/1017 sobre la 116 antes de esa fusión |
+| 126 | 1.10 | 12.6.228.49 | `seg/v8-12.6` **00cef94c** | parches de V8 de la sesión nueva (67d7fdbf) + FM.12, F7.8 y `getHTML()` (fusión de `nube/motor-126` d2a823f3) |
 
 Cada rama tiene `patches/v8/FLYWEB-SECURITY.md` con su contenido exacto y las pruebas hechas. Distinguir siempre
 **«probado en `d8`»** (solo V8, Linux, en la nube) de **«compilado en FlyWeb»** (lo hace LOCAL en la 7,1).
+
+**08-10, 18:40 — no deshacer:** las fusiones d69f81aa y 00cef94c las aprobó el HUMANO; cualquier cambio en esas ramas parte de ellas.
 
 ## 2. Decisiones en vigor (no cambiarlas sin el HUMANO)
 
