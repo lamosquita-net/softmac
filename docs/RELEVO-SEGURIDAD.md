@@ -23,7 +23,7 @@ añaden `patches/v8/` (y, en la 12.3, `flyweb_version`). LOCAL compila desde ell
 | 123 | 1.7 / **1.7.1** | 12.3.219.16 | `seg/v8-12.3` **5cb5bbe2** | 1.7.1 publicada (`flyweb` = b71c7a5e) |
 | 124 | 1.8 / 1.8.1 | 12.4.254.15 + ac8da461 | `seg/v8-12.4` **d88873b8** | 1.8 publicada (desde `local/motor-124-arreglos`, que añade `<iomanip>` en V8); 1.8.1 = `nube/v1.8.1` (funciones, no seguridad) |
 | 125 | 1.9 | 12.5.227.13 | `seg/v8-12.5` **11ca9807** | lista para compilar; en seco 1017/1017 sobre la 116 |
-| 126 | 1.10 | 12.6.228.49 | `seg/v8-12.6` **67d7fdbf** | hecha en V8 y probada en `d8` (08-10, FS.8); FlyWeb sin compilar |
+| 126 | 1.10 | 12.6.228.49 | `seg/v8-12.6` **3672391d** | hecha en V8 y probada en `d8` (08-10, FS.8); FlyWeb sin compilar. Load elimination y desenrollado de bucles de Turboshaft **encendidos** (decisión del HUMANO) |
 
 Cada rama tiene `patches/v8/FLYWEB-SECURITY.md` con su contenido exacto y las pruebas hechas. Distinguir siempre
 **«probado en `d8`»** (solo V8, Linux, en la nube) de **«compilado en FlyWeb»** (lo hace LOCAL en la 7,1).
@@ -35,6 +35,7 @@ Cada rama tiene `patches/v8/FLYWEB-SECURITY.md` con su contenido exacto y las pr
   **≤ 48 h** desde un zero-day de V8 que aplique hasta la 1.x.y con el parche.
 - **Maglev apagado** en todas las V8 de nivel (`maglev` = false) y `maglev_untagged_phis` = false (CVE-2026-3910).
 - **Selección de instrucciones de Turboshaft apagada** (`turboshaft_instruction_selection` = false) desde la 12.3.
+- **Nivel 126 (HUMANO, 08-10): `turboshaft_load_elimination` y `turboshaft_loop_unrolling` encendidos**, como en la 12.6 de Google (en 12.0–12.5 eran apagados de serie). Criterio del HUMANO: avanzar con el motor; si un fallo de esos pasos aparece, se porta el arreglo, no se apaga.
 - **Wrapper genérico wasm→JS apagado** (`wasm_to_js_generic_wrapper` = false) en 12.3 (1.7.1), 12.4 y 12.5, como
   estaba hasta la 12.2. En la 12.3 hizo falta además recuperar el interruptor de la 12.2 en
   `GetOrCreateWasmInternalFunction` (porte de c8c02de5); en 12.4/12.5 basta la opción.
@@ -46,7 +47,7 @@ Cada rama tiene `patches/v8/FLYWEB-SECURITY.md` con su contenido exacto y las pr
 
 ## 3. FS.8, nivel 126 (V8 12.6.228.49) para la 1.10 — HECHO el 08-10 por la sesión siguiente
 
-Resultado: `seg/v8-12.6` 67d7fdbf (sobre `nube/motor-126` 36401e90; solo `patches/v8/`); detalle en
+Resultado: `seg/v8-12.6` 3672391d (sobre `nube/motor-126` 36401e90 + las fusiones posteriores de NUBE; solo `patches/v8/`); detalle en
 `patches/v8/FLYWEB-SECURITY.md` de esa rama y en `FlyWeb/docs/cve-triage.md` («Nivel 126»). La rutina diaria de esa
 sesión es `trig_017eHmWVtUM8zquwVjXRAvAD` (la antigua, `trig_012mAwnVKtRrskyyVN2XAUGC`, debe desactivarla el HUMANO).
 Lo que sigue es el guion original, por si hay que rehacerlo sobre otro `nube/motor-126`:
