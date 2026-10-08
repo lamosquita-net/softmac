@@ -19,8 +19,8 @@ el 28-09). Leer antes: `CLAUDE.md`, `docs/TAREAS.md` (tabla de agentes y filas F
 
 - La rutina con Haiku («FlyWeb: revisión ligera horaria») **no funcionó**: corría barata, pero en 8 horas con
   mucha actividad (1.8.1 publicada, `flyweb` movida) no despertó nunca a coordinación, ni siquiera en una prueba
-  forzada. Queda desactivada. La rutina «Despertar a NUBE-COORDINACIÓN» queda apuntada a la sesión nueva por si
-  se reutiliza.
+  forzada. Quedan desactivadas las dos rutinas (la ligera y «Despertar a NUBE-COORDINACIÓN»); se pueden borrar o reutilizar si
+  se encuentra la causa.
 - Mientras la sesión de coordinación tenga poco contexto, puede revisar ella misma cada 2–3 h con `send_later`
   (barato porque relee poco). Cuando la sesión crezca mucho (cientos de miles de tokens), espaciar o relevarla.
 
