@@ -9,9 +9,9 @@ After=network.target
 ExecStart=/opt/flyweb-sync/flyweb-sync
 Environment=FLYWEB_SYNC_LISTEN=127.0.0.1:8295
 Environment=FLYWEB_SYNC_DB=/var/lib/flyweb-sync/sync.db
-# Borrar cadenas sin uso en un año (decisión del HUMANO, 03/10): activar si algún día se abre a otros usuarios, y
-# avisarlo en la página de privacidad. Mientras solo lo use el HUMANO, desactivado (0).
-#Environment=FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS=365
+# Borrar cadenas sin escrituras en un año (decisión del HUMANO, 03/10; activado el 09/10, avisado en privacidad.html).
+# En producción desde el 05/10/2026: no borra nada antes de octubre de 2027.
+Environment=FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS=365
 DynamicUser=yes
 # /var/lib/flyweb-sync (con DynamicUser, en realidad /var/lib/private/flyweb-sync), 0700.
 StateDirectory=flyweb-sync
