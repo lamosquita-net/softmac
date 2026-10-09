@@ -37,6 +37,7 @@ Si algo no cuadra (firma, SHA-256, tamaño, portada), **no publica nada** y avis
 En el PR de la web de cada versión, **antes de pedir la firma al HUMANO**:
 - `FlyWeb/web/index.html`: botón, tamaño, SHA-256 y notas en `#novedades`;
 - `FlyWeb/web/ayuda/…` si cambia algo;
+- `FlyWeb/web/novedades.html` (cuando esté en las listas, ver más abajo): la banda de la versión nueva, arriba;
 - `FlyWeb/web/VERSION`, una línea: `<versión> <CFBundleVersion> <DMG> <sha256>`, por ejemplo
   `1.2 157.64.5 FlyWeb-1.2.dmg 5b5a0742…475d6b` (el SHA-256 del DMG subido a `updates/`).
 
@@ -68,6 +69,17 @@ systemctl --user daemon-reload && systemctl --user enable --now flyweb-web-auto.
 
 Ver: `systemctl --user list-timers`, `journalctl --user -u flyweb-web-auto`, `~/.local/state/flyweb-web-auto/registro.log`
 y `/var/log/flyweb-deploy/desplegar.log`.
+
+## Añadir una página a la lista (HUMANO + SERVIDOR-LOCAL)
+
+Solo se publican los ficheros de `FICHEROS` (en `flyweb-web-auto`) y los que admite `flyweb-desplegar`. Para `novedades.html`
+(PR de CONTENIDOS-WEB) hay que cambiar **las dos** listas, y **en este orden**:
+
+1. **HUMANO:** instalar el `flyweb-desplegar` nuevo (revisando el diff: solo añade `novedades.html` a la lista del `case`).
+2. **SERVIDOR-LOCAL:** instalar el `flyweb-web-auto` nuevo y `flyweb-web-auto comprobar`.
+
+Al revés (primero `web-auto`), la siguiente publicación falla a mitad: `flyweb-desplegar` rechaza la página, y el DMG ya
+estaría puesto. Hasta que estén las dos, ninguna página debe enlazar a `novedades.html` (daría 404).
 
 ## Parar o quitar
 

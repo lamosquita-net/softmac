@@ -7,7 +7,7 @@
 #   flyweb-desplegar binario components|sync <sha256>        binario de la release del repo -> /opt/flyweb-<x>/, reinicia
 #   flyweb-desplegar dmg FlyWeb-<versión>.dmg <sha256>        /var/www/FlyWeb/updates/ -> descargas/ de la web (nunca sustituye)
 #   flyweb-desplegar web <commit> <fichero> <sha256>   FlyWeb/web/<fichero> de ese commit -> la web; <fichero>: las páginas
-#                        (index, privacidad, cifras, ayuda, ayuda/sincronizar), estilo.css, img/circulo.svg, img/mosca.svg y
+#                        (index, privacidad, cifras, novedades, ayuda, ayuda/sincronizar), estilo.css, img/circulo.svg, img/mosca.svg y
 #                        fuentes/JetBrainsMono.woff2 + su OFL. NUNCA JavaScript (js/ lo instala el HUMANO, root:root)
 #   flyweb-desplegar borrar updates|descargas FlyWeb-<versión>.dmg   solo si quedan más de 10 DMG en esa carpeta, no está
 #                        en el appcast y no es FlyWeb-1.0.dmg (decisiones del HUMANO, 05/06-10)
@@ -53,7 +53,7 @@ dmg)
 web)
   [[ $# -eq 4 ]] && sha_ok "$4" && [[ $2 =~ ^[0-9a-f]{40}$ ]] || uso
   # Nunca JS: los instala el HUMANO a mano en js/ (root:root), ver web-auto/README.md.
-  case $3 in index.html|privacidad.html|estilo.css|cifras.html|ayuda/index.html|ayuda/sincronizar/index.html|img/circulo.svg|img/mosca.svg|fuentes/JetBrainsMono.woff2|fuentes/OFL-JetBrainsMono.txt) ;; *) uso ;; esac
+  case $3 in index.html|privacidad.html|estilo.css|cifras.html|novedades.html|ayuda/index.html|ayuda/sincronizar/index.html|img/circulo.svg|img/mosca.svg|fuentes/JetBrainsMono.woff2|fuentes/OFL-JetBrainsMono.txt) ;; *) uso ;; esac
   f=${3//\//_}
   curl -fsSL --proto =https -o "$tmp/$f" "$RAW/$2/FlyWeb/web/$3"
   echo "$4  $tmp/$f" | sha256sum -c --quiet
