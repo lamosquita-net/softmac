@@ -36,7 +36,7 @@ JS="js/mosca.js js/cifras.js"
 CLAVE_ED25519=I+N32uIF9KsQFRt2rt+qcYZKjEqMOyZ0PbUtam80xkw=      # FlyWeb/servidor/actualizaciones/clave-publica.txt
 AVISO=admin@lamosquita.net                                     # vacío = sin correo
 case $MODO in comprobar|ejecutar) ;; *) echo "uso: flyweb-web-auto comprobar|ejecutar" >&2; exit 2 ;; esac
-CLAVE="" V_CORTA="?"
+CLAVE="" V_CORTA="?" JS_MAL=""
 EST=$HOME/.local/state/flyweb-web-auto; mkdir -p "$EST"
 REG=$EST/registro.log
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
@@ -134,10 +134,12 @@ for f in $JS; do
   if [[ ! -f $WEB/$f || $(sha256sum "$WEB/$f" | cut -d' ' -f1) != "$s" ]]; then
     log "JS distinto del de main: $f (main $s)"
     [[ $MODO == comprobar ]] && echo "JS que el HUMANO tiene que instalar a mano: $f ($s)"
-    avisar "js:$f:$s" "el JS $f del servidor no es el de main" \
-      "El fichero $f de la web no coincide con el de main ($C, SHA-256 $s), o no existe. Los JS no se publican solos: si el cambio de main es bueno, instálalo a mano en js/ (root:root 0644); si no has cambiado nada, alguien ha tocado el servidor."
+    JS_MAL+="$f "
   fi
 done
+# Las páginas llevan el integrity (SRI) del JS de main: publicarlas con el JS viejo en el servidor rompería el script
+# (cifras.html se quedaría vacía). Se espera a que el HUMANO instale el JS; el DMG y lo demás, en la pasada siguiente.
+[[ -z $JS_MAL ]] || parar "JS distinto del de main ($C): ${JS_MAL% }. Los JS no se publican solos: si el cambio de main es bueno, instálalo a mano en js/ (root:root 0644); si no has cambiado nada, alguien ha tocado el servidor. No se publica nada hasta que coincida"
 grep -qF "descargas/$DMG" "$tmp/index.html" && grep -qF "$SHA" "$tmp/index.html" \
   || parar "la portada de $C no enlaza $DMG con su SHA-256"
 viene_de_pr FlyWeb/web/VERSION || parar "FlyWeb/web/VERSION no llegó a main por un PR fusionado (¿push directo?)"
