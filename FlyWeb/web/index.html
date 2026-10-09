@@ -22,23 +22,37 @@ servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomoneda
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 1.9</h2>
-<p><a class="boton" href="descargas/FlyWeb-1.9.dmg" download>Descargar FlyWeb 1.9 (165 MB)</a></p>
+<h2>Descargar FlyWeb 1.10</h2>
+<p><a class="boton" href="descargas/FlyWeb-1.10.dmg" download>Descargar FlyWeb 1.10 (165 MB)</a></p>
 <p class="dato">macOS 10.13 o 10.14, Mac Intel (x86_64). En macOS 10.15 a 12 debería funcionar, sin garantía.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>20f1a40569bff57a763fa3324a5c89bff45958a18b5a01b2e67e7127a78073e3</code></p>
+SHA-256: <code>75379aaf53e34e1483146b4322014dd1778f1265d671551ef545a463614aef03</code></p>
 </div>
 </div></section>
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-1.9.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-1.10.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.9</h2>
+<h2 id="novedades">Notas de la versión 1.10</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 126.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 126 y FlyWeb se
+  presenta a las webs como Chrome 126. Funciones web nuevas: <code>URL.parse()</code> y <code>toJSON()</code> en la
+  geolocalización. El motor de JavaScript optimiza mejor algunos bucles y accesos a objetos.</li>
+  <li><strong>PDF:</strong> el visor de PDF (formularios, campos que se calculan, JavaScript de los PDF) pasa a funcionar
+  sobre el nuevo motor de JavaScript.</li>
+  <li><strong>Se mantiene todo lo anterior:</strong> pestañas fijadas en todas las ventanas y controles de formulario
+  verticales.</li>
+  <li><strong>Seguridad:</strong> el motor de JavaScript de Chrome 126 ya incluye entera la rama de soporte prolongado de
+  Google para Chrome 126; además lleva las correcciones posteriores que le aplican, incluidas varias de la rama de soporte
+  prolongado de Chrome 132 (2025). El puente genérico entre WebAssembly y JavaScript, el compilador Maglev y la
+  selección de instrucciones más reciente del optimizador Turboshaft siguen apagados.</li>
+</ul>
+<h2>Notas de la versión 1.9</h2>
 <ul>
   <li><strong>Motor de nivel Chrome 125.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 125 y FlyWeb se
   presenta a las webs como Chrome 125. Funciones web nuevas: <code>getHTML()</code> y raíces de Shadow DOM serializables,
@@ -55,15 +69,6 @@ SHA-256: <code>20f1a40569bff57a763fa3324a5c89bff45958a18b5a01b2e67e7127a78073e3<
   sigue incluyendo las de la rama de soporte prolongado de Google para Chrome 126, y el puente genérico entre
   WebAssembly y JavaScript sigue apagado. El compilador Maglev y la parte más reciente del optimizador Turboshaft
   siguen apagados.</li>
-</ul>
-<h2>Notas de la versión 1.8.1</h2>
-<ul>
-  <li><strong>Pestañas fijadas en todas las ventanas.</strong> Lo que fijas (clic derecho en una pestaña → «Fijar
-  pestaña») aparece en todas las ventanas, como en Safari: Gmail, el calendario o Drive siempre a mano. Se puede
-  desactivar en Ajustes → Aspecto → «Mostrar las pestañas fijadas en todas las ventanas».</li>
-  <li><strong>Controles de formulario verticales.</strong> Los botones, listas, campos de texto, deslizadores y barras de
-  progreso respetan la escritura vertical (<code>writing-mode</code>), la parte del nivel de Chrome 124 que faltaba en la
-  1.8. En Mac, Opción + ↑/↓ en un cuadro de texto salta de párrafo en párrafo, como en Chrome.</li>
 </ul>
 <p><a href="novedades.html">Todas las novedades, desde la 1.0</a></p>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
