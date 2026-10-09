@@ -1,8 +1,13 @@
 # Relevo del agente SEGURIDAD (08-10-2026)
 
 Para la sesión que sigue a SEGURIDAD. Leer antes: `CLAUDE.md`, `docs/TAREAS.md` (filas FS.*), `docs/SEGURIDAD.md`
-(procedimiento) y `FlyWeb/docs/cve-triage.md`. **Los tres últimos están al día en la rama `claude/seg-fs1-jit-cves`
-(PR #72), no en `main`**: el PR lleva días abierto; conviene fusionarlo (lo decide el HUMANO) o trabajar desde esa rama.
+(procedimiento) y `FlyWeb/docs/cve-triage.md`. Los tres están al día en `main` desde el 09-10 (PR #72 fusionado,
+dac9ac98).
+
+> **Relevo hecho (09-10-2026).** El papel se partió en SEGURIDAD-PORTES (`session_01NkotiT2nNYznsrQu9rssiy`, que tomó
+> FS.3, FS.8 y FS.9) y SEGURIDAD-VIGÍA (vigilancia de CVE; ver `docs/TAREAS.md`). Por eso, con el visto bueno del
+> HUMANO, se fusionó el PR #72 y se desactivó la rutina diaria de la sesión saliente (`trig_017eHmWVtUM8zquwVjXRAvAD`,
+> sección 4): lo que esta nota dice sobre ella y sobre el PR es historia.
 
 **Idioma:** al HUMANO, **siempre en castellano**, también justo después de leer commits o notas en inglés (es un
 despiste que ha pasado varias veces). Commits en inglés.
