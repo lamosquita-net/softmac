@@ -82,6 +82,13 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
 13. **Relevos:** una sesión se releva cuando su contexto crece mucho, siempre en un punto limpio (rama subida, fila al
     día, nota de relevo en `docs/` si el papel la tiene). El relevo se numera en la fila (MOTOR-1, MOTOR-2…) para saber
     quién hizo qué. No se abre un segundo agente del mismo papel en paralelo salvo que esta tabla lo diga.
+14. **El que publica, publica** (HUMANO, 09-10). Los agentes de la nube preparan (textos, código, PR, instrucciones) y
+    **ejecuta quien tiene el acceso**: SERVIDOR-LOCAL todo lo que se instala o se cambia en ns1/ns2 (web, imágenes,
+    unidades, scripts), PUBLICACIÓN las versiones (DMG, firma, web de la versión), LOCAL las compilaciones. Lo que no
+    puede ir por el repo (datos personales, ficheros privados) se le pasa **como instrucciones por `send_message`** y lo
+    genera quien lo instala; nunca se le manda un fichero al HUMANO para que lo suba. Quien prepara, al terminar, deja el
+    encargo en la fila del que ejecuta y se lo avisa. **Al HUMANO no se le asignan pasos de ejecución**: solo decisiones,
+    credenciales, firmas y pruebas en las Mac.
 
 ## Despliegue de la organización del 09-10
 
