@@ -117,9 +117,11 @@ ni `servidor`, ni `flyweb-desplegar` (que no los tiene en su lista) pueden cambi
 CSP impiden que otro fichero de la web se ejecute como script.
 
 - Cada `<script>` lleva `integrity="sha384-…"`: si el fichero del servidor cambia, el navegador no lo ejecuta.
-- `flyweb-web-auto` compara en cada cambio de `main` los JS del servidor con los de `main` y, si no coinciden, avisa
-  por correo; no los toca.
-- Cambiar un JS: PR (con el `integrity` nuevo en la página) → fusionar → el HUMANO lo instala a mano.
+- `flyweb-web-auto` compara en cada pasada los JS del servidor con los de `main` y, si no coinciden, **para** (no
+  publica nada, ni páginas ni DMG) y avisa por correo; no los toca. Si publicara la página con el `integrity` nuevo y
+  el JS viejo, el navegador no ejecutaría el script (`cifras.html` se quedaría vacía).
+- Cambiar un JS: PR (con el `integrity` nuevo en la página) → fusionar → el HUMANO lo instala a mano → la pasada
+  siguiente publica las páginas.
 
 ## Publicar una versión, de principio a fin (HUMANO, 07-10-2026)
 
@@ -130,7 +132,8 @@ CSP impiden que otro fichero de la web se ejecute como script.
    para ese script (y solo ese), así que no se bloquea.
 3. **LOCAL** abre y fusiona el PR de la web: portada (botón, tamaño, SHA-256, notas en `#novedades`), ayuda si cambia, y
    `FlyWeb/web/VERSION` = `<v> <CFBundleVersion> FlyWeb-<v>.dmg <sha256>`. Si cambia `estilo.css`, `img/` o `js/`:
-   `python3 FlyWeb/web/versionar.py`.
+   `python3 FlyWeb/web/versionar.py`. Si cambia un JS, **el HUMANO lo instala a mano** en `js/`; hasta entonces
+   `flyweb-web-auto` no publica nada.
 4. **El HUMANO** firma en bak.
 5. **`flyweb-web-auto`** (ns2, cada 10 min) publica solo: DMG en `descargas/`, portada con la versión enlazada, notas y
    ayuda; comprueba y avisa por correo. **Las cifras** de la versión nueva salen a la mañana siguiente (`flyweb-cifras`,
