@@ -15,7 +15,7 @@ hoy va marcado «(05-10)».
 | `flyweb-cifras` | Temporizador cada hora; `~servidor/bin/flyweb-cifras` `6ad19661…` (= repo); sube `cifras.csv` con `flyweb-desplegar cifras` (última subida 13:16). `cifras.csv` 200 | — |
 | `components.` (go-update) | `flyweb-components` activo, solo `127.0.0.1:8192`; binario `0e776013…`; unidad `84d379be…` (= repo). `_estado.json` 200 | — |
 | `proxy.` (Safe Browsing, diccionarios) | Raíz 404. Safe Browsing funciona desde el 05-10 con clave nueva (IPv4 + IPv6 /64) (05-10) | — |
-| `updates.` (Sparkle) | `stable/appcast.xml` 200; anuncia **1.9, 1.8.1, 1.8, 1.7.1 y 1.7**. En `updates/`: 1.2 a 1.9 (**10 DMG, el límite**). `stable/` es de `flywebsubida` (lo escribe bak) | Ver «Siguiente» (límite de 10 DMG) |
+| `updates.` (Sparkle) | `stable/appcast.xml` 200; anuncia **1.9, 1.8.1, 1.8, 1.7.1 y 1.7**. En `updates/`: 1.2 a 1.9 (**10 DMG, el límite**). `stable/` es de `flywebsubida` (lo escribe bak). **Desde el 09-10 (E2-06) solo sirve `FlyWeb-<versión>.dmg` y `stable/appcast.xml`; lo demás, 403** | Ver «Siguiente» (límite de 10 DMG) |
 | `sync.` (flyweb-sync) | `flyweb-sync` activo, solo `127.0.0.1:8295`; binario `6b690b21…`; unidad `e9b1b783…` (= repo). Raíz 404. En uso real | Copia de `sync.db` en bak: decisión del HUMANO (05-10) |
 | DNS (ns1) | `named` activo. Zona `lamosquita.net` `e46b2ca9…`, serie **2026100501**, `named-checkzone` OK. `flyweb.`, `components.`, `proxy.`, `updates.` y `sync.` → 51.91.19.170; sin AAAA | — |
 
@@ -35,7 +35,7 @@ Certificado TLS de `flyweb.lamosquita.net` (certbot, ECDSA; es el de los servido
 | `/etc/logrotate.d/flyweb` | `418ab467…` | `e0/logrotate/flyweb`: **igual** |
 | `/opt/flyweb-components/flyweb-components` | `0e776013…` | `CAMBIOS.md`: igual |
 | `/opt/flyweb-sync/flyweb-sync` | `6b690b21…` | `CAMBIOS.md`: igual |
-| `lamosquita.conf` (`/etc/apache2/sites-available/`) | `1e63fc85…` (tras E2-05) | `CAMBIOS.md`: igual. Se comparte con otros sitios del HUMANO: de FlyWeb solo se toca lo que ponen los `e2/*.sh` |
+| `lamosquita.conf` (`/etc/apache2/sites-available/`) | `aa2dee3c…` (tras E2-06; antes `1e63fc85…`) | `CAMBIOS.md`: igual. Se comparte con otros sitios del HUMANO: de FlyWeb solo se toca lo que ponen los `e2/*.sh` |
 | `sudo -l` de `servidor` | `apachectl configtest`, `reload apache2`, `daemon-reload`, `restart` de `flyweb-components` y `flyweb-sync`, `start`/`stop`/`enable`/`disable` de `flyweb-sync`, `sudoedit` de `lamosquita.conf`, las dos unidades y `logrotate.d/flyweb`, `ss -ltnp`, `certbot certificates`, `fail2ban-client status`, `cscli decisions list`, `ls -l /var/lib/private/flyweb-sync/` y `flyweb-desplegar`. **Sin `apachectl -S`** | `acceso/sudoers-ns2` `71c123e7…` (las mismas órdenes) |
 | Ficheros de claves | `/etc/apache2/flyweb-{components,proxy}-keys.conf`, root 0600 (no legibles por `servidor`) | Fuera del repo (modelos `.ejemplo`) |
 
@@ -57,7 +57,7 @@ registros de FlyWeb listados son `0640 root:adm`; `/var/log/flyweb-deploy/desple
 - **Pasada de `web-auto` de las 15:02:** publicará `novedades.html` y `ayuda/index.html` (PR #119). Después, el HUMANO puede fusionar el PR #120 (enlaces a `novedades.html`); si algo no llega a la web: `~servidor/.local/state/flyweb-web-auto/registro.log`.
 - **Límite de 10 DMG en `updates/`:** ya están los 10 (1.2 a 1.9). Con la 1.10 hay que quitar el más antiguo con `flyweb-desplegar borrar` (SERVIDOR-LOCAL, tras la subida de PUBLICACIÓN y con el appcast ya sin esa versión), no a mano.
 - **PR #99** (borrador, COORDINACIÓN): privacidad con `sync.` y `web-auto` que se para si un JS difiere de `main`. Al fusionarse, reinstalar `~servidor/bin/flyweb-web-auto` (comprobar suma) y anotarlo.
-- **E2 nuevo, a proponer:** que `updates.` sirva solo `.dmg` y `stable/appcast.xml` (hoy sirve cualquier fichero de su carpeta).
+- **E2-06 aplicado el 09-10 (~15:07)** (PR #121, sin fusionar aún: hay que fusionarlo para que `e0/` y `e2/` reflejen producción). Un canal nuevo de Sparkle (p. ej. `updates/beta/appcast.xml`) necesita su propio `<Directory>`; si no, da 403.
 - **Puntos del auditor sin decidir (HUMANO):** que `web-auto` vigile en cada pasada el DMG y las páginas publicadas (hoy sale antes si nada cambió); quitar `FW_EDITAR` o vhosts en `flyweb.conf` propio; `$INCLUDE` para que `servidor` no edite toda la zona; `servidor` fuera de `adm`; claves fuera de los `Define`. Los que tocan sudoers o accesos, solo con orden escrita del HUMANO.
 - **Salvaguarda contra baneos** puesta por el HUMANO y el auditor el 07-10 en los tres servidores: falta el detalle para anotarlo en `CAMBIOS.md`.
 - **Sudo de `claude` en bak:** el HUMANO lo limitó el 07-10 a `systemctl start flyweb-firma.service`; no hace falta para publicar.
