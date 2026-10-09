@@ -29,7 +29,7 @@ MAX_DMG=10
 APPCAST=/var/www/FlyWeb/updates/stable/appcast.xml
 UPD=/var/www/FlyWeb/updates
 WEB=/var/www/flyweb.lamosquita.net
-FICHEROS="index.html privacidad.html estilo.css cifras.html ayuda/index.html ayuda/sincronizar/index.html img/circulo.svg img/mosca.svg fuentes/JetBrainsMono.woff2 fuentes/OFL-JetBrainsMono.txt"
+FICHEROS="index.html privacidad.html estilo.css cifras.html novedades.html ayuda/index.html ayuda/sincronizar/index.html img/circulo.svg img/mosca.svg fuentes/JetBrainsMono.woff2 fuentes/OFL-JetBrainsMono.txt"
 # Los JS NO se publican nunca solos (decisión del HUMANO, 06-10): los instala el HUMANO en js/ (root:root, carpeta incluida).
 # Aquí solo se vigilan: si el del servidor no es el de main, aviso por correo y nada más.
 JS="js/mosca.js js/cifras.js"
