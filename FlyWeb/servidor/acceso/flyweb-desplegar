@@ -12,6 +12,8 @@
 #   flyweb-desplegar borrar updates|descargas FlyWeb-<versión>.dmg   solo si quedan más de 10 DMG en esa carpeta, no está
 #                        en el appcast y no es FlyWeb-1.0.dmg (decisiones del HUMANO, 05/06-10)
 #   flyweb-desplegar cifras   ~servidor/.local/state/flyweb-cifras/cifras.csv -> la web, solo si cada línea es una cifra
+#   flyweb-desplegar imagen <nombre>.png <sha256>   ~servidor/privado/<nombre>.png -> img/ de la web, para lo que no puede estar
+#                        en el repo público (p. ej. el NIF del aviso legal). Solo PNG de hasta 20 KB y 400x100 px; sustituye con copia
 set -euo pipefail
 umask 022
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
@@ -24,8 +26,18 @@ DUENO=supermosquita:lamosquita
 REG=/var/log/flyweb-deploy/desplegar.log
 install -d -m 0750 -o root -g adm /var/log/flyweb-deploy
 registrar () { echo "$(date -u +%FT%TZ) ${SUDO_USER:-root} $*" >> "$REG"; }
-uso () { sed -n '7,14p' "$0" >&2; exit 2; }
+uso () { sed -n '7,16p' "$0" >&2; exit 2; }
 sha_ok () { [[ $1 =~ ^[0-9a-f]{64}$ ]]; }
+# Imagen privada: PNG pequeño. Firma, IHDR, bytes y píxeles; nada más puede ser «una imagen» para este modo.
+imagen_ok () {
+  local f=$1 w h; local -a p
+  (( $(stat -c %s "$f") <= 20480 )) || { echo "imagen: más de 20 KB" >&2; return 1; }
+  [[ $(head -c 8 "$f" | od -An -tx1 | tr -d ' \n') == 89504e470d0a1a0a ]] || { echo "imagen: no es un PNG" >&2; return 1; }
+  [[ $(od -An -tx1 -j12 -N4 "$f" | tr -d ' \n') == 49484452 ]] || { echo "imagen: PNG sin IHDR" >&2; return 1; }
+  read -r -a p < <(od -An -tu1 -j16 -N8 "$f")
+  w=$(( p[0]*16777216 + p[1]*65536 + p[2]*256 + p[3] )); h=$(( p[4]*16777216 + p[5]*65536 + p[6]*256 + p[7] ))
+  (( w >= 1 && w <= 400 && h >= 1 && h <= 100 )) || { echo "imagen: ${w}x${h} px (máximo 400x100)" >&2; return 1; }
+}
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
 case ${1:-} in
@@ -84,5 +96,17 @@ cifras)
     || { echo "cifras.csv con líneas que no son cifras: no se publica" >&2; exit 1; }
   install -m 0644 -o "${DUENO%:*}" -g "${DUENO#*:}" "$tmp/cifras.csv" "$WEB/cifras.csv"
   registrar "ok cifras $(sha256sum "$tmp/cifras.csv" | cut -d' ' -f1)" ;;
+imagen)
+  [[ $# -eq 3 ]] && sha_ok "$3" && [[ $2 =~ ^[a-z0-9][a-z0-9-]{0,31}\.png$ ]] || uso
+  src=/home/servidor/privado/$2
+  # Se lee COMO «servidor» (no como root), con tiempo y bytes limitados: un enlace en la ruta, un FIFO o /dev/zero no dan
+  # a root nada que servidor no pueda leer ni cuelgan el script. Se valida e instala la COPIA (lo comprobado es lo publicado).
+  timeout 10 runuser -u servidor -- head -c 20481 -- "$src" > "$tmp/$2" || { echo "no se puede leer $src" >&2; exit 1; }
+  imagen_ok "$tmp/$2" || exit 1
+  echo "$3  $tmp/$2" | sha256sum -c --quiet
+  dest=$WEB/img/$2
+  [[ -f $dest ]] && cp -p "$dest" "/var/backups/flyweb-web-img_$2.$(date -u +%Y%m%d%H%M%S)"
+  install -m 0644 -o "${DUENO%:*}" -g "${DUENO#*:}" "$tmp/$2" "$dest"
+  registrar "ok imagen $2 $3" ;;
 *) uso ;;
 esac

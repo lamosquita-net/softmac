@@ -8,7 +8,7 @@ repo. Carta: `docs/SERVIDOR.md` §8.
 |---|---|---|
 | `sudoers-ns2` | ns2 `/etc/sudoers.d/flyweb-servidor` (0440) | Lista cerrada de órdenes como root |
 | `sudoers-ns1` | ns1 `/etc/sudoers.d/flyweb-servidor` (0440) | Solo la zona `lamosquita.net` |
-| `flyweb-desplegar` | ns2 `/usr/local/sbin/flyweb-desplegar` (root 0755) | Única vía para poner ficheros como root: binarios de las releases, DMG y páginas de la web, siempre con SHA-256 y registro en `/var/log/flyweb-deploy/` |
+| `flyweb-desplegar` | ns2 `/usr/local/sbin/flyweb-desplegar` (root 0755) | Única vía para poner ficheros como root: binarios de las releases, DMG y páginas de la web, y (modo `imagen`) los PNG privados de `img/` que no pueden estar en el repo público (≤ 20 KB y 400×100 px, desde `~servidor/privado/`), siempre con SHA-256 y registro en `/var/log/flyweb-deploy/` |
 
 ## Límite real (para el auditor)
 
