@@ -434,8 +434,12 @@ lo descartado.
   tiene `select.showPicker()`), `beforeinput` en los botones de `input type=number` y al deshacer/rehacer sobre el
   elemento del paso, texto alternativo de `content` con varios argumentos (sin `CSSParserSavePoint`: copia del rango) y
   `::selection` sin invertir el fondo cuando el autor pone sus colores (en la 116 la inversión está en
-  `NGHighlightPainter`). **Apartadas al portar** por no ser baratas: `TextDiffSplitFix` (depende del refactor
-  `TextDiffRange`) y `SvgFilterUserSpaceViewportForNonSvg` (~110 líneas en 12 ficheros).
+  `NGHighlightPainter`). Las dos que se apartaron al principio por no ser baratas, **portadas después a petición del
+  HUMANO (09-10):** `SvgFilterUserSpaceViewportForNonSvg` (b878f587, Chromium 24decde21a6, a mano: un `filter: url(#f)`
+  en HTML o `<canvas>` con `filterUnits="userSpaceOnUse"` y porcentajes ya no se queda con región vacía; el *viewport* es
+  la caja del borde, como en Gecko, o el tamaño del lienzo) y `TextDiffSplitFix` (639a7a71, faa6b2f5d67 + 1fb194ccced:
+  `splitText()` solo avisa a `LayoutText` del trozo borrado; no necesitaba el refactor `TextDiffRange`, porque
+  `SetTextWithOffset(texto, offset, longitud)` de la 116 es lo mismo que `TextDiffRange::Delete`).
 - **Descartado (HUMANO):** constructores de `RTCEncoded*Frame` (van con su función, nivel 141), `position-anchor: auto`,
   lo no Baseline (`ChapterInformation`, `VideoFrame.copyTo` RGB, Protected Audience, No-Vary-Search) y las flags de
   View Transitions por árbol y concurrentes, barras con `color-scheme`, copiar sin `text-transform`, `justify`/bidi y
@@ -445,7 +449,7 @@ lo descartado.
 - **Declarado 127 / FlyWeb 1.11** en f8087001. `chk.sh`: 1088 parches aplican sobre la 116 (solo el aviso conocido de
   `menu_separator`); cada `#include` nuevo existe en la 116 (c776bbf5 añade el que faltaba en `content_data.h`). Sin
   compilar. Aparcado mientras se compilaba la 1.10; **desaparcado por el HUMANO el 09-10** con sus arreglos fusionados
-  (cabeza `nube/motor-127` **adc17adc**).
+  (cabeza `nube/motor-127` **639a7a71**, con los dos portes de arriba).
 
 ## Inventario: CSS Baseline publicado después de la 116
 

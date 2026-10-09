@@ -1,6 +1,6 @@
 # FlyWeb 1.11 — nivel de motor 127 (MOTOR-2, 09-10-2026)
 
-**Estado:** en código en brave-core `nube/motor-127` **adc17adc**, sin compilar (desaparcado por el HUMANO el 09-10, con
+**Estado:** en código en brave-core `nube/motor-127` **639a7a71**, sin compilar (desaparcado por el HUMANO el 09-10, con
 los arreglos de la 1.10 dentro). No se publica antes que la 1.10 ni con menos correcciones de V8 que ella (FS.9,
 `seg/v8-12.7`). Detalle técnico: `motor.md`, «Nivel 127»; pasos 122–127 de `integracion.md`.
 
@@ -19,6 +19,8 @@ los arreglos de la 1.10 dentro). No se publica antes que la 1.10 ni con menos co
   alterados (integridad en los mapas de importación), como ya hacían Safari y Firefox.
 - **Selección de texto con los colores de la web.** Si una web elige los colores del texto seleccionado, FlyWeb los
   respeta en vez de invertirlos.
+- **Efectos de filtro SVG en páginas web.** Algunos efectos (sombras, desenfoques, colores) aplicados con filtros SVG a
+  partes de una web o a dibujos en `<canvas>` no se veían; ahora sí.
 - **JavaScript más reciente y seguro:** V8 de Chrome 127 con sus arreglos de seguridad.
 
 Nada cambia en los ajustes ni en los datos del usuario. Al actualizar, la caché de código de JavaScript se regenera sola
