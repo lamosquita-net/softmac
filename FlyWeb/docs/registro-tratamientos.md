@@ -5,8 +5,8 @@ aunque haya menos de 250 empleados porque los tratamientos de abajo no son ocasi
 `FlyWeb/web/privacidad.html` que afecte a datos personales se refleja aquí en el mismo PR.
 
 **Responsable:** Vicente Soriano Pérez-Almazán (nombre comercial lamosquita), profesional autónomo, Valencia.
-Contacto: admin@lamosquita.net. NIF y domicilio: en el aviso legal de `flyweb.lamosquita.net` (no se guardan en este
-repositorio, que es público). Sin delegado de protección de datos (no es obligatorio: art. 37).
+Contacto: admin@lamosquita.net. Domicilio y NIF: en el aviso legal de `flyweb.lamosquita.net` (el NIF, solo como
+imagen fuera de este repositorio, que es público). Sin delegado de protección de datos (no es obligatorio: art. 37).
 
 **Encargado de tratamiento:** OVH (servidor dedicado *bare metal* ns2, en la UE), solo como alojamiento: la máquina la
 administra el responsable y OVH no accede a los datos. Contrato del art. 28: el acuerdo de tratamiento de datos que OVH

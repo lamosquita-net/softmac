@@ -86,7 +86,8 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
     **ejecuta quien tiene el acceso**: SERVIDOR-LOCAL todo lo que se instala o se cambia en ns1/ns2 (web, imágenes,
     unidades, scripts), PUBLICACIÓN las versiones (DMG, firma, web de la versión), LOCAL las compilaciones. Lo que no
     puede ir por el repo (datos personales, ficheros privados) se le pasa **como instrucciones por `send_message`** y lo
-    genera quien lo instala; nunca se le manda un fichero al HUMANO para que lo suba. Quien prepara, al terminar, deja el
+    genera quien lo instala; nunca se le manda un fichero al HUMANO para que lo suba. Única excepción: lo que exige root en
+    ns2 y `servidor` no puede hacer; entonces SERVIDOR-LOCAL le da al HUMANO las órdenes exactas y comprueba el resultado. Quien prepara, al terminar, deja el
     encargo en la fila del que ejecuta y se lo avisa. **Al HUMANO no se le asignan pasos de ejecución**: solo decisiones,
     credenciales, firmas y pruebas en las Mac.
 
