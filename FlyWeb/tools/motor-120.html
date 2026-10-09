@@ -82,6 +82,12 @@
     const r = d2.open && !d1.open; d1.open = true; return { ok: r && !d2.open, nota: `d1 ${d1.open}, d2 ${d2.open}` };
   });
   prueba('<details>: el evento toggle es ToggleEvent', () => typeof ToggleEvent === 'function' && 'newState' in ToggleEvent.prototype);
+  // Subfunciones Baseline del nivel (FM.8, principio 12 de motor.md).
+  prueba('IntersectionObserver: scrollMargin', () => {
+    const o = new IntersectionObserver(() => {}, { scrollMargin: '10px' }); const m = o.scrollMargin; o.disconnect();
+    return { ok: m === '10px 10px 10px 10px', nota: String(m) };
+  });
+  prueba('document.fonts.check() con una fuente que no existe da true (spec nueva)', () => document.fonts.check('12px flyweb-no-existe'));
   prueba('User-Agent declara Chrome/120', () => {
     const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '120', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
   });

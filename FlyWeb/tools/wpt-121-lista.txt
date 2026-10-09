@@ -27,3 +27,7 @@ css/css-scrollbars/scrollbar-width-parsing.html
 css/css-text-decor/parsing/text-decoration-line-computed.html
 css/css-text-decor/parsing/text-decoration-line-invalid.html
 css/css-text-decor/parsing/text-decoration-line-valid.html
+css/cssom-view/checkVisibility.html
+css/css-color/parsing/color-valid-hsl.html
+css/css-cascade/import-conditions.html
+css/cssom/cssimportrule.html

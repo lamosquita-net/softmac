@@ -32,6 +32,8 @@
 <div id="zona">
   <div class="grid"><div class="sub"><span id="a">a</span><span id="b">b</span></div></div>
   <span class="claro" id="claro">x</span><span class="oscuro" id="oscuro">x</span>
+  <math><mtable><mtr><mtd id="m11" columnspan="2"><mspace width="100px" height="5px"></mspace></mtd></mtr>
+    <mtr><mtd><mspace width="40px" height="5px"></mspace></mtd><mtd id="m22"><mspace width="40px" height="5px"></mspace></mtd></mtr></mtable></math>
 </div>
 <h2>Pruebas oficiales (web-platform-tests, en wpt.live)</h2>
 <p>Abrir cada una en FlyWeb y anotar «X de Y pasan»; comparar con lo que da Chrome 117 en
@@ -112,6 +114,14 @@
   prueba('Array.prototype.groupToMap no existe (propuesta antigua)', () => !('groupToMap' in Array.prototype) && !('group' in Array.prototype));
   prueba('Iterator helpers siguen apagados (Chrome los publicó en la 122)', () => typeof Iterator === 'undefined' || !Iterator.prototype.map);
   // Versión declarada.
+  // Subfunciones Baseline del nivel (FM.8, principio 12 de motor.md).
+  prueba('URLSearchParams.has() con valor', () => { const u = new URLSearchParams('a=1&a=2'); return u.has('a', '2') && !u.has('a', '3'); });
+  prueba('URLSearchParams.delete() con valor', () => { const u = new URLSearchParams('a=1&a=2'); u.delete('a', '1'); return u.toString() === 'a=2'; });
+  prueba('font-variant-position', () => CSS.supports('font-variant-position', 'super'));
+  prueba('MathML <mtd columnspan>', () => {
+    const c = (id) => document.getElementById(id).getBoundingClientRect();
+    return { ok: c('m22').left < c('m11').right - 1, nota: `celda 2-2 empieza en ${Math.round(c('m22').left)}, la 1-1 acaba en ${Math.round(c('m11').right)}` };
+  });
   prueba('User-Agent declara Chrome/117', () => {
     const m = navigator.userAgent.match(/Chrome\/(\d+)/);
     return { ok: !!m && m[1] === '117', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };

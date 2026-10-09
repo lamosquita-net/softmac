@@ -18,3 +18,13 @@ css/css-transitions/starting-style-rule-basic.html
 css/css-transitions/starting-style-rule-none.html
 css/css-transitions/starting-style-rule-pseudo-elements.html
 css/css-transitions/starting-style-size-container.html
+url/urlsearchparams-has.any.js
+url/urlsearchparams-delete.any.js
+css/css-fonts/font-variant-position.html
+css/css-fonts/parsing/font-variant-position-valid.html
+mathml/presentation-markup/tables/columnspan-rowspan-001.html
+mathml/presentation-markup/tables/columnspan-rowspan-002.html
+mathml/presentation-markup/tables/columnspan-rowspan-003.html
+mathml/presentation-markup/tables/columnspan-rowspan-004.html
+mathml/presentation-markup/tables/columnspan-rowspan-005.html
+mathml/presentation-markup/tables/columnspan-rowspan-006.html

@@ -72,6 +72,14 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    está dentro de Chromium y depende de `content/`, `cc`/`viz`, `gpu`, Mojo y `base` de la misma versión. Cambiarlo
    entero es subir Chromium, que es justo lo que no funciona en Mojave (principio 1). En Blink se sigue portando
    función a función.
+12. **Las subfunciones cuentan (decisión del HUMANO, 05-10; FM.8):** un nivel N no está completo con las funciones
+   nuevas de web-features; también hacen falta las **subfunciones** Baseline que Chrome publicó en la N (`by_compat_key`
+   de web-features: partes nuevas de funciones que ya existían, como `float: inline-start` o las opciones de
+   `checkVisibility()`). Si la función completa es Baseline más tarde (colores relativos → 125, `@scope`), la
+   subfunción va con el nivel de la función. El inventario de cada nivel se hace con las dos listas y con los flags que
+   pasan a `stable` en `runtime_enabled_features.json5` entre la N−1 y la N (las versiones de BCD no siempre son exactas).
+   Los niveles 117–121 se hicieron sin esto: se completan con un commit más por rama (opción A del HUMANO, aceptando una
+   compilación más por nivel).
 
 ## Tipos de trabajo y coste estimado
 
@@ -107,6 +115,9 @@ compara Sparkle) sube en cada versión publicada: 1.0 = 0, 1.0.1 = 1, 1.1 = 2. A
 - **Coste real del nivel 117:** 5 flags + 1 porte pequeño (`light-dark()`) + 1 porte de V8 + 1 porte de 3 commits + 10
   arreglos. Todo aplicó sobre la 116 sin reescribir nada: buena señal para los niveles 118–120.
 - **Comprobación:** `FlyWeb/tools/motor-117.html` y las web-platform-tests enlazadas en la página.
+- **Subfunciones (FM.8, `nube/motor-117` bf7c3bcf):** `font-variant-position`, `URLSearchParams.has()`/`delete()` con valor
+  y `<mtd columnspan/rowspan>` de MathML. **Excepción:** `Intl.PluralRules` con `roundingMode` es de V8 (c63522b, un
+  refactor de `Intl.NumberFormat`): **descartada** en el 117 (HUMANO, 06-10); llega con la V8 11.8 del nivel 118.
 
 ## Nivel 118 (hecho en código, 05-10; pendiente de compilar y probar → FlyWeb 1.2)
 
@@ -125,6 +136,15 @@ Lo Baseline que Chrome 118 publicó (web-features): **unidades `cap` y `rcap`**,
 - **Comprobación:** `FlyWeb/tools/motor-118.html` (15 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
   `FlyWeb/tools/wpt-118-lista.txt` con las herramientas de LOCAL. **Además**, por el riesgo del SVG: `motor-117.html` sigue
   14/14 y un repaso de webs con mucho SVG (iconos, gráficos, mapas).
+- **Subfunciones (FM.8, fb0feba6):** `float`/`clear` con `inline-start`/`inline-end` (`CSSLogical`), líneas base de
+  `TextMetrics`, `hasUAVisualTransition` en `PopStateEvent`/`NavigateEvent` y `crossOrigin` en `<image>` de SVG.
+  `Intl.PluralRules` con `roundingMode` viene en la V8 11.8.
+- **Prueba de LOCAL (05-10):** 0 errores de compilación; WPT 71/73. Los 2 fallos (`cap`/`rcap` en
+  `font-relative-units-dynamic.html`) salen porque falta la fuente Ahem instalada en el sistema: Chromium 141 de serie
+  falla lo mismo sin ella y pasa con ella. Las WPT necesitan Ahem en `~/Library/Fonts` (`wpt-app.sh` lo comprueba).
+  Confirmado por LOCAL (17:10): con Ahem, 73/73.
+- **118 bueno (LOCAL, 05-10):** `ideographicBaseline` daba -39 (Chrome 118: 6.25): faltaban las líneas base de la tabla BASE
+  de la fuente (b14d2ed1, para la 1.2.1). Los 2 fallos de compilación de FM.8 están arreglados en 9c0e99de/b14d2ed1.
 
 ## Nivel 119 (en código, 05-10; pendiente de compilar → FlyWeb 1.3)
 
@@ -151,6 +171,7 @@ y referencias tipadas a funciones.
 - **Comprobación:** `FlyWeb/tools/motor-119.html` (17 comprobaciones; en Chromium 141, 16 «ok» y la del UA) y
   `FlyWeb/tools/wpt-119-lista.txt`.
 - **Declarado 119 / FlyWeb 1.3** en 625b048e (paso 59; se revierte solo si el nivel no pasa).
+- **Subfunciones (FM.8):** ninguna propia; las de colores relativos van con el nivel 125 (principio 12).
 
 ## Nivel 120 (en código, 05-10; pendiente de compilar → FlyWeb 1.4)
 
@@ -177,6 +198,10 @@ prefijo, el nesting relajado, `@media (scripting)`, `URL.canParse`, `<details na
   `FlyWeb/tools/wpt-120-lista.txt` (46 ficheros). Los `.any.js`/`.window.js` necesitan su `.html`:
   `wpt-envolver.py <raíz de wpt>` los crea como wptserve antes de `python3 -m http.server`.
 - **Declarado 120 / FlyWeb 1.4** en 2b57270e (paso 66; se revierte solo si el nivel no pasa).
+- **Subfunciones (FM.8, aa62a9d7):** `IntersectionObserver` con `scrollMargin` (adaptado a la geometría de la 116; sin
+  el arreglo de scrollers anidados 569bff082e2b, que pide una `RootAndTarget` más nueva: con `scrollMargin` no se usan
+  rectángulos en caché; sin él, nada cambia) y `document.fonts.check()` según la spec nueva. El atributo `mask` de SVG
+  ya vino con las máscaras. Puede que `scroll-margin-nested.html` de WPT no salga igual que en Chrome 120.
 
 ## Nivel 121 (en código, 05-10; pendiente de compilar → FlyWeb 1.5)
 
@@ -184,9 +209,13 @@ Lo Baseline que Chrome 121 publicó (web-features): `Array.fromAsync`, `scrollba
 `::spelling-error`/`::grammar-error` con sus decoraciones de texto y `ClipboardItem.supports()`. Rama brave-core
 `nube/motor-121` (encima de `nube/motor-120`).
 
-- **V8 12.1.285.28** (9f5634b2; la de Chrome 121): trae `Array.fromAsync` de serie. `patches/v8/` rehechos sin
-  conflictos; ninguna API pública de V8 quitada desde la 12.0; `chromium_src/v8` de Brave 1.62.166. CVE-2024-0519
-  sigue pendiente de SEGURIDAD (FS.4).
+- **V8 12.1.285.28** (V8 1fbb9881419d; el cambio de versión en brave-core es 9f5634b2; la V8 de Chrome 121): trae
+  `Array.fromAsync` de serie. `patches/v8/` rehechos sin conflictos; `chromium_src/v8` de Brave 1.62.166.
+  **Corrección (LOCAL de la 1.5, 06-10):** no era cierto que no quitara API pública: la 12.1 convierte 21
+  `v8::Isolate::UseCounterFeature` en `kOBSOLETE_*` y elimina `v8::TypedArray::kMaxLength`, que Blink 116 usa
+  (`use_counter_callback.cc`, `image_data.cc`, `shape.cc`, `gpu_buffer.cc`, `drawing_buffer.cc`). Arreglado por LOCAL
+  (f1cd46f0), junto con dos fallos del porte de `scrollbar-color` (452d297d: no compilaba en la 116 y una
+  desreferencia nula con `@keyframes { scrollbar-color: … }`). Integrado en `nube/motor-121` 4a8c006f y hacia arriba.
 - **`::spelling-error`/`::grammar-error`** (4921ff33): el flag ya estaba en la 116; se portan 2 arreglos
   (e9b876697fb1, 477ebb6082da) y se enciende. Fuera la fusión de flags (3981da4f277e, limpieza).
 - **`scrollbar-color`/`scrollbar-width`** (ead38049): 11 commits; el primero (4ef69ea532dc) es justo la
@@ -196,23 +225,181 @@ Lo Baseline que Chrome 121 publicó (web-features): `Array.fromAsync`, `scrollba
 - **Comprobación:** `FlyWeb/tools/motor-121.html` (11 comprobaciones; en Chromium 141 fallan, como deben, la del UA y
   la de *iterator helpers* apagados) y `FlyWeb/tools/wpt-121-lista.txt` (29 ficheros).
 - **Declarado 121 / FlyWeb 1.5** en 509bd3a3.
+- **Subfunciones (FM.8, 58086979):** opciones nuevas de `checkVisibility()` (`contentVisibilityAuto`, `opacityProperty`,
+  `visibilityProperty`), números en `hsl()`/`hwb()` con la sintaxis moderna (escrito para el parser de colores de la
+  116) y `@import … supports()` con `CSSImportRule.supportsText` (el análisis queda en *experimental*, como en Chrome
+  121; lo enciende el 122).
 
-## Nivel 122 (inventario, 05-10; sin portar)
+## Nivel 122 (en código, 06-10; pendiente de compilar → FlyWeb 1.6)
 
 Lo Baseline que Chrome 122 publicó (web-features): **métodos de iteradores** (*iterator helpers*: `Iterator.prototype.map`,
-`filter`, `take`…) y **métodos de `Set`** (`union`, `intersection`, `difference`…). Los dos son de JavaScript y vienen de
-serie en la **V8 12.2.281.22** (la de Chrome 122.0.6261.128, que es también la base de Brave 1.63): en la 12.2
-`harmony_iterator_helpers` y `harmony_set_methods` están en *shipping*. **No hay trabajo de Blink por funciones.**
+`filter`, `take`…) y **métodos de `Set`** (`union`, `intersection`, `difference`…), los dos de serie en la **V8 12.2**, y
+las subfunciones de la lista de abajo. Rama brave-core `nube/motor-122` (encima de `nube/motor-121`).
 
-- **V8 12.1 → 12.2:** quita `V8InspectorSession::CommandLineAPIScope` / `initializeCommandLineAPIScope()`, que usa
-  `core/inspector/inspector_page_agent.cc` de la 116 (solo DevTools: `Page.addScriptToEvaluateOnNewDocument` con
-  `includeCommandLineAPI`). Hay que portar el cambio de Chromium que lo sustituye por `V8InspectorSession::evaluate()`;
-  sin él no compila. Ninguna otra API pública quitada (nombres de `include/`).
-- **`chromium_src/v8` de Brave:** el de Brave 1.63.184 es igual que el de la 1.62 (nivel 121).
-- **Fuera (no Baseline):** Storage Buckets y lectura de portapapeles sin sanear (solo Chrome).
-- **Al portar:** *iterator helpers* encendidos a partir de este nivel (como Chrome 122); quitar el apagado del 118 no
-  hace falta (en la 11.9–12.1 ya venían apagados de serie y la 12.2 los trae encendidos). SEGURIDAD: FS.4 añade la 12.2.
-- **Coste estimado:** pequeño (V8 + un arreglo de Blink en el inspector); el grueso es la parte de seguridad.
+- **V8 12.2.281.22** (8bbb2971; la de Chrome 122.0.6261.128, base también de Brave 1.63): `patches/v8/` rehechos desde la
+  12.1 sin conflictos; `chromium_src/v8` de Brave 1.63 igual que el de la 1.62. La 12.2 quita
+  `V8InspectorSession::CommandLineAPIScope`: `InspectorPageAgent::EvaluateScriptOnNewDocument()` evalúa con
+  `V8InspectorSession::evaluate()`, como Chromium 122 (solo DevTools). Los parches de seguridad de V8 los rehace SEGURIDAD
+  cuando se vaya a publicar (FS.4), Maglev apagado incluido.
+- **Subfunciones (FM.8, cd251be0):** herencia de `::backdrop` desde su elemento (adaptada al `StyleResolver` de la 116),
+  `URLPattern.hasRegExpGroups`, `rgb()` con números y porcentajes mezclados en la sintaxis moderna (escrito para el
+  parser de la 116) y `@import … supports()` encendido.
+- **Excepción del nivel (HUMANO, 06-10: se publica sin ella y se porta aparte, tarea FM.9):** `align-self`/`justify-self` en cajas con posición absoluta
+  (d5e6d59db47c, `LayoutAlignForPositioned`). `ng_absolute_utils.cc` de la 116 y la base de ese commit difieren en unas
+  640 líneas (refactors de por medio, anchor positioning entre ellos), y toca el posicionamiento absoluto, que usan casi
+  todas las webs: es un porte grande y de riesgo, no de un día.
+  **Portado aparte (FM.9, 06-10):** brave-core `nube/abspos-align` 0bb9d3bf (desde `nube/motor-122`), fusionado en
+  `nube/motor-123` (3aa4f33e): **llega con la 1.7**; la 1.6 sale sin ella. Escrito de nuevo sobre la 116, sin el
+  «inset-modified containing block» de Chromium: con los dos insets puestos, la alineación decide qué inset absorbe el
+  espacio libre (`center` lo reparte; `safe` vuelve al inicio si no cabe); solo `normal`/`stretch` estiran un tamaño
+  `auto`; las tablas se estiran con `stretch` explícito. Flag `LayoutAlignForPositioned` en `stable` (si da problemas,
+  se apaga sin recompilar con `--disable-blink-features=LayoutAlignForPositioned`). Fuera: elementos reemplazados con
+  `stretch` explícito. Riesgo: toca el posicionamiento absoluto; con alineación `normal` (casi todas las webs) el
+  resultado es el de antes.
+- **Fuera (no Baseline):** Storage Buckets y lectura de portapapeles sin sanear (solo Chrome). Los colores relativos en
+  `rgb()`/`oklab()`/`oklch()` van al nivel 125.
+- **Comprobación:** `FlyWeb/tools/motor-122.html` (10 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
+  `FlyWeb/tools/wpt-122-lista.txt` (8 ficheros; los 2 de `css-align/abspos` fallan en la 1.6 y pasan desde la 1.7, FM.9).
+- **Declarado 122 / FlyWeb 1.6** en 667d367b (se revierte solo si el nivel no pasa).
+
+## Nivel 123 (en código, 06-10; pendiente de compilar → FlyWeb 1.7)
+
+Baseline de Chrome 123 (web-features 3.40.1 + flags que pasan a `stable` entre la 122 y la 123.0.6312.122). Rama brave-core
+`nube/motor-123` (encima de `nube/motor-122`).
+
+- **API pública de V8 contra Blink 116 (revisión de NUBE, 06-10, pedida por LOCAL):** comparando `include/` de V8
+  12.1 → 12.2 → 12.3 con Blink, gin, content, extensions y pdf de la 116. Hay un fallo nuevo:
+  `remote_window_proxy.cc` sigue llamando a `TracedReference::SetWrapperClassId()`, que la 12.3 quita. Se arregla
+  en 9d7603cb, igual que Chromium 122. Lo demás ya estaba resuelto o no rompe nada:
+  - `CommandLineAPIScope` (122), los *wrapper class ids* de `thread_state.cc`/`wrapper_type_info.h` y
+    `SetWasmGCEnabledCallback` (123) ya estaban resueltos.
+  - `SafeForTerminationScope`, `GetImportAssertions()` y `SetAccessor` con `AccessControl` siguen existiendo, marcados
+    como obsoletos.
+  - Los métodos de `v8::Platform` dejan de ser virtuales, pero gin de la 116 ya implementa los `*Impl`.
+  - `Value::IsTrue/IsFalse` y `Local` solo cambian de sitio.
+  - La 12.2 y la 12.3 no marcan más `UseCounterFeature` como obsoletos.
+
+- **V8 12.3.219.16** (053fff59): `patches/v8/` rehechos desde la 12.2 sin conflictos; trae de serie los módulos JSON con
+  `with` (import attributes; Blink 116 ya cargaba módulos JSON). La 12.3 quita dos API que usa Blink 116: los *wrapper
+  class ids* de `TracedReference` (porte de Chromium 15fcb656b756 adaptado a `thread_state.cc`) e
+  `Isolate::SetWasmGCEnabledCallback()` (se quita el *callback*; Wasm GC sigue los flags de V8, como en Chrome 123).
+  `chromium_src/v8` de Brave 1.64 igual que el nuestro.
+- **`CSSKeyframesRule.length`, `shadowRootDelegatesFocus` en `<template>` y `navigation.activation`** (207ebea0): el
+  último toca `content/` (controlador de navegación) y el mojom de restauración de entradas.
+- **`paint-order` en texto HTML** (7738bc04): el commit final de Chromium sobre el pintado de texto de la 116, sin los
+  dos refactors de SVG previos.
+- **`field-sizing`** (142ecbad): 10 commits; `DefaultIntrinsicContentBlockSize()` y `ApplyControlFixedSize()` escritos
+  para la 116.
+- **`align-content` en bloques** (9b582742): bloques, celdas de tabla, multicolumna y la excepción de `ruby-text`. La
+  serie cruza el cambio de nombres de Chromium (`ng_`/`NG*`), así que la parte de tablas y multicolumna está escrita a
+  mano. **El porte de más riesgo del nivel** (layout de bloques): si una web descuadra contenido vertical, mirar aquí.
+- **`light-dark()`** ya entró en el nivel 117 (e50b83ff).
+- **`zstd`: excepción del nivel (HUMANO, 06-10).** Un servidor solo manda zstd si el navegador lo anuncia en
+  `Accept-Encoding`; FlyWeb no lo anuncia y recibe gzip o brotli. Portarlo metería una librería nueva en el checkout.
+- **Alineación de cajas con posición absoluta** (excepción del 122, FM.9): fusionada aquí, 3aa4f33e.
+- **Fuera (no Baseline):** CSS modules, Long Animation Frames, rutas estáticas de Service Worker, `text-spacing-trim`.
+- **Comprobación:** `FlyWeb/tools/motor-123.html` (10 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
+  `FlyWeb/tools/wpt-123-lista.txt` (12 ficheros).
+- **Declarado 123 / FlyWeb 1.7** en 372b2b1c (se revierte solo si el nivel no pasa).
+
+## Nivel 124 (en código, 07-10; pendiente de compilar → FlyWeb 1.8)
+
+Baseline de Chrome 124 (web-features y `@mdn/browser-compat-data`, funciones con `chrome: 124` que también tienen Safari
+y Firefox). Rama brave-core `nube/motor-124` (encima de `nube/motor-123`). HUMANO (07-10): abrirlo ya, para ir dos
+niveles por delante, y **seguir subiendo V8 nivel a nivel**.
+
+- **V8 12.4.254.15 + ac8da461** (f75d5441). Antes de portar se comparó la API pública con Blink 116: la 12.4 parece
+  quitar mucho, pero los interceptores siguen (obsoletos) y `TaskRunner::PostTask` sigue siendo virtual. Rompen solo
+  tres cosas: `MeasurementComplete`, `CreateSyntheticModule` y los datos de continuación (del `Context` al `Isolate`).
+- **`setHTMLUnsafe`/`parseHTMLUnsafe`** (449020f7).
+- **Shadow DOM clonable** (d74c4b35): portado **a mano**, porque la serie de upstream (7 commits) se apoya en
+  `NodeCloningData` y `serializable`, que la 116 no tiene. Se escribe el comportamiento ya publicado tras la flag
+  `ShadowRootClonable` (apagada = comportamiento de la 116).
+- **`RTCRtpReceiver.jitterBufferTarget`** (c50e033b).
+- **Iteración asíncrona de `ReadableStream`, nativa** (2efbb747; HUMANO: nativo, no polyfill, para que funcione también
+  en los workers). La 116 no sabía generar `async iterable`: se porta el soporte del generador de bindings de la 124 al
+  diseño de la 116, en el que el iterador cuelga de su interfaz como `SyncIterator`. Probado en la nube ejecutando el
+  generador de la 116 (`FlyWeb/tools/bindings/`): solo cambian los bindings de `ReadableStream`. Deja la base hecha
+  para las próximas API con `async iterable`.
+- **`fetch()` con `signal.reason`** (2440af93): MDN da `AbortSignal.timeout()` como parcial hasta Chrome 124, porque
+  `fetch` rechazaba siempre con `AbortError`.
+- **Controles de formulario verticales: excepción del nivel (HUMANO, 07-10)**, portados aparte en `nube/form-vertical`
+  (FM.12) y fusionados en el nivel en que LOCAL los pruebe. En la 116 la parte de controles no textuales está tras una
+  flag experimental y la de `input`/`textarea` no existe; toca el pintado nativo de todos los formularios, también los
+  horizontales, y solo se puede comprobar a la vista en Mojave. **Portado en `nube/form-vertical` f553e5d7** (19 commits de
+  upstream; se dejan fuera los avisos de `appearance`, los contadores de uso y el cursor en elementos vacíos, que
+  necesita refactors de layout). Página: `FlyWeb/tools/formularios-verticales.html`.
+- **Fuera (no Baseline):** `pageswap`, `writingSuggestions`, WebSocketStream, `inert` en la búsqueda.
+- **Comprobación:** `FlyWeb/tools/motor-124.html` (10 comprobaciones; en Chromium 141 todas «ok» salvo la del UA) y
+  `FlyWeb/tools/wpt-124-lista.txt` (13 ficheros, con variantes `.worker`).
+- **Declarado 124 / FlyWeb 1.8** en 94b58ec2 (se revierte solo si el nivel no pasa).
+
+## Nivel 125 (en código, 07-10; pendiente de compilar → FlyWeb 1.9)
+
+Baseline de Chrome 125 (web-features 3.40.1 y `@mdn/browser-compat-data`, con las subfunciones) y flags que pasan a
+`stable` entre la 124.0.6367.207 y la 125.0.6422.141. Rama brave-core `nube/motor-125` (encima de `nube/motor-124`;
+sesión NUBE-motor). **Sin excepciones.**
+
+- **V8 12.5.227.13** (e99930b4; fbcea6ee, la de Chrome 125.0.6422.141). Antes de portar se comparó `include/` 12.4 → 12.5
+  con Blink, gin, content, extensions, pdf y `chrome/renderer` de la 116 y con brave-core: solo quita
+  `Function::GetUnboundScript`, `ScriptCompiler::CompileFunctionInContext`, `CopyablePersistentTraits` y ayudas internas
+  de cppgc, que nadie usa (`Script::GetUnboundScript` sigue), y añade `StateTag::LOGGING` (el único `switch` tiene
+  `default`). Los `V8_DEPRECATED` nuevos solo avisan (`build.sh` apaga esos avisos). La 12.5 trae de serie los
+  **modificadores de RegExp** y los **grupos con nombre repetido** (Baseline del 125). Los parches de CVE-2024-5274 sobran:
+  la 12.5.227.13 ya lo lleva. **SEGURIDAD:** la rama 12.5 tiene después tres fusiones de Wasm (12.5.227.14–16, bugs
+  343772336, 343917751 y 342522151) que no van en la 125.0.6422.141: valorar si se traen.
+- **`WebSocket` con URL `http(s)` o relativas** (5614554f).
+- **`:state()`** (404c029a), con `:--foo` funcionando aún, como en la 125.
+- **`round()`, `mod()`, `rem()`** (4b5734f9): en la 116 estaban tras una flag experimental; se traen el análisis de la
+  estrategia de redondeo y `calc(NaN)` = 0 en el nivel superior.
+- **`getHTML()` y raíces *shadow* serializables** (70be0dec), **a mano**: la serie de upstream (9 commits) reescribe el
+  serializador (`ShadowRootInclusion`, `ContainerNode::getHTML`). Se añaden dos modos al de la 116. Como en la 125, las
+  plantillas serializadas usan `shadowrootmode` en lugar del viejo `shadowroot`.
+- **Colores relativos** (00cee7a7), **a mano**: la 116 no tiene `ColorFunctionParser` (la serie de upstream son ~15
+  commits, con el cambio de almacenamiento del sRGB «legacy» a [0,255]). Ruta aparte para `función(from <color> …)` con la
+  lógica de la 125 convertida a las unidades de la `Color` de la 116; los colores absolutos siguen por el parser de la
+  116. Orígenes: colores absolutos, con nombre, `transparent` y `color-mix()` de absolutos (`currentcolor` no, igual que
+  la 125).
+- **Tipos de View Transitions** (bd02e804), **a mano** (en la 116 `ViewTransition` aún es el objeto de JavaScript; no hay
+  `DOMViewTransition`): `startViewTransition()` sin argumento, con *callback* o con `{update, types}`,
+  `ViewTransition.types` (`ViewTransitionTypeSet`), `:active-view-transition` y `:active-view-transition-type()`.
+  **Importante para la compatibilidad:** con la 116, `startViewTransition({update})` (la forma de Safari 18.2 y Firefox
+  144) lanzaba `TypeError` y **no ejecutaba el `update`**: la página no se actualizaba. Necesitó portar un cambio pequeño del
+  generador de bindings de la 125 (un *callback* se distingue de un diccionario).
+- **`view-transition-class`** (dfd53448), a mano: propiedad, `::view-transition-*(nombre.clase)` y la lista de clases en
+  el capturador de estilos.
+- Las partes entre documentos de esas funciones no entran: la 116 no tiene transiciones entre documentos (Chrome 126, no
+  Baseline).
+- **Fuera (no Baseline):** anchor positioning, Compute Pressure, Storage Access más allá de cookies, motivos de bfcache.
+- **Comprobación:** `FlyWeb/tools/motor-125.html` (14 comprobaciones y un botón de transición a ojo; en Chromium 141 todas
+  «ok» salvo la del UA) y `FlyWeb/tools/wpt-125-lista.txt` (21 ficheros, con variantes `.worker`).
+- **Declarado 125 / FlyWeb 1.9** en a928a32b (se revierte solo si el nivel no pasa). Todos los parches de la rama
+  aplican sobre la 116 (`chk.sh`: 1014 parches, solo el aviso conocido de `menu_separator`). Bindings comprobados con
+  `FlyWeb/tools/bindings/`. Sin compilar.
+
+## Nivel 126 (en código, 07-10; pendiente de compilar → FlyWeb 1.10)
+
+Baseline de Chrome 126 (web-features 3.40.1 + BCD) y flags que pasan a `stable` entre la 125.0.6422.141 y la
+126.0.6478.182. Rama brave-core `nube/motor-126` (encima de `nube/motor-125`). **Sin excepciones.** Nivel pequeño: lo
+Baseline son `URL.parse()` y `toJSON()` en la geolocalización; el resto de lo nuevo del 126 (transiciones de vista entre
+documentos, `CloseWatcher`, `sizes="auto"`) no es Baseline.
+
+- **V8 12.6.228.49** (d3c410c8): la cabeza de la rama 12.6, es decir la V8 de Chrome 126.0.6478.182 (12.6.228.28) más
+  las ~20 fusiones de seguridad posteriores de su rama (M126-LTS: TurboFan, Maglev, Wasm, el intérprete y el *sandbox*).
+  **API pública 12.5 → 12.6 contra la 116** (Blink, gin, content, extensions, pdf, `chrome/renderer`, brave-core y,
+  por primera vez, **PDFium**): rompen dos cosas. (1) `v8::TaskRunner::Post*Task` deja de ser virtual: gin pasa a
+  sobrescribir `Post*TaskImpl` (Chromium bcd7d6bc1f5). (2) `ObjectTemplate::SetAccessor` con nombre `String` desaparece:
+  `chrome.app.isInstalled` (Chromium a3ac89ff609) y las propiedades de JavaScript de los PDF (PDFium 71bd32dce, que ya
+  va en la PDFium de Chrome 126), como parches nuevos en `patches/third_party/pdfium/`. Lo demás (`TracedReferenceBase::Get`
+  devuelve `Local<Data>`, sobrecargas nuevas de `ReturnValue::Set`, `Utf8Value` con opciones) no afecta a la 116.
+  **Ojo (LOCAL/SEGURIDAD):** los niveles 120–125 no revisaron PDFium; la revisión de hoy no ve usos de las API que
+  quitaron, pero conviene que la compilación lo confirme.
+- **`URL.parse()`** (d36f294b, Chromium d1db8ebec85).
+- **`GeolocationPosition.toJSON()` y `GeolocationCoordinates.toJSON()`** (d36f294b, Chromium 733c562491c), escritos
+  sobre las clases de la 116 sin el refactor de upstream ni tocar `v8_object_builder.h` (lo incluye medio Blink).
+- **Comprobación:** `FlyWeb/tools/motor-126.html` (5 comprobaciones y un botón de geolocalización real; en Chromium 141
+  todas «ok» salvo la del UA) y `FlyWeb/tools/wpt-126-lista.txt` (5 ficheros).
+- **Declarado 126 / FlyWeb 1.10** en 20ecf145. `chk.sh`: 1030 parches aplican sobre la 116 (más los 4 de PDFium, comprobados sobre su PDFium). Sin compilar.
 
 ## Inventario: CSS Baseline publicado después de la 116
 
@@ -244,11 +431,11 @@ Baseline; el resto son solo de Chrome.
 | 123 | light-dark() | reciente | interno (`-internal-light-dark`) |
 | 123 | paint-order | amplia | no está |
 | 124 | Vertical form controls | reciente | flag (`FormControlsVerticalWritingModeSupport`) |
-| 125 | :state() | reciente | no está |
-| 125 | Active view transition | reciente | no está |
-| 125 | Relative colors | reciente | no está |
-| 125 | round(), mod(), and rem() | reciente | flag (`CSSSteppedValueFunctions`) |
-| 125 | view-transition-class | reciente | no está |
+| 125 | :state() | reciente | porte (nivel 125) |
+| 125 | Active view transition | reciente | porte a mano (nivel 125) |
+| 125 | Relative colors | reciente | porte a mano (nivel 125) |
+| 125 | round(), mod(), and rem() | reciente | flag + 2 arreglos (nivel 125) |
+| 125 | view-transition-class | reciente | porte a mano (nivel 125) |
 | 127 | font-size-adjust | reciente | flag (`CSSFontSizeAdjust`, test) |
 | 128 | ruby-align | reciente | no está |
 | 130 | text-wrap | reciente | no está |

@@ -4,6 +4,10 @@ Creado el 05-10-2026 a petición del HUMANO para llevar los parches de seguridad
 evolución del motor (NUBE) y a la compilación (LOCAL). Corre en una sesión de la nube (claude.ai/code), con los mismos
 límites que NUBE: no compila Chromium ni ejecuta nada de macOS.
 
+**Desde el 09-10-2026 son dos sesiones** (organización de `docs/TAREAS.md`): **SEGURIDAD-VIGÍA** (Haiku 5.5, rutina
+semanal y «exists in the wild») hace el punto 1 y avisa con `send_message`; **SEGURIDAD-PORTES** (Opus 5.5) hace los
+puntos 2 y 3 y lleva el tercer dígito. Las reglas de esta carta valen para las dos; «SEGURIDAD» a secas es PORTES.
+
 ## Qué hace
 
 1. **Vigilar. A diario** (decisión del HUMANO, 07-10-2026: desde la 1.6 el JIT está abierto a todas las webs, así que
