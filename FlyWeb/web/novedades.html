@@ -26,10 +26,11 @@ anterior. El nivel de tu versión aparece en <code>flyweb://settings/help</code>
 <h2>FlyWeb 1.10 · nivel de Chrome 126</h2>
 <ul>
   <li><strong>Motor de nivel Chrome 126.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 126 y FlyWeb se
-  presenta a las webs como Chrome 126. Funciones web nuevas: <code>URL.parse()</code> y <code>toJSON()</code> en la
-  geolocalización. El motor de JavaScript optimiza mejor algunos bucles y accesos a objetos.</li>
+  presenta a las webs como Chrome 126. Funciones web nuevas: <code>URL.parse()</code>, con la que las webs comprueban una dirección sin provocar
+  errores, y <code>toJSON()</code> en los datos de ubicación, con la que una web de mapas o de reparto puede guardar o
+  enviar tu posición en un solo paso. El motor de JavaScript optimiza mejor algunos bucles y accesos a objetos.</li>
   <li><strong>PDF:</strong> el visor de PDF (formularios, campos que se calculan, JavaScript de los PDF) pasa a funcionar
-  sobre el nuevo motor de JavaScript.</li>
+  sobre el nuevo motor de JavaScript. En pruebas automáticas con más de 280 PDF se comporta igual que la 1.9.</li>
   <li><strong>Se mantiene todo lo anterior:</strong> pestañas fijadas en todas las ventanas y controles de formulario
   verticales.</li>
   <li><strong>Seguridad:</strong> el motor de JavaScript de Chrome 126 ya incluye entera la rama de soporte prolongado de
