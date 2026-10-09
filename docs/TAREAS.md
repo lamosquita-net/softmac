@@ -1,18 +1,30 @@
 # Tablero de tareas y reparto entre agentes
 
-Hay varios agentes de Claude trabajando en paralelo (NUBE, LOCAL, SERVIDOR y SEGURIDAD), más el humano (titín), que decide y prueba en los Mac.
+Hay varios agentes de Claude trabajando en paralelo, más el humano (titín), que decide y prueba en los Mac.
 Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que leerlo al empezar cada sesión.
 
-| Agente | Dónde corre | Puede | No puede |
+**Organización del 09-10-2026** (decisión del HUMANO con ARQUITECTURA): cada agente lleva el modelo que le toca por lo
+que cuesta un error suyo, no por el volumen de trabajo; lo que es vigilancia o receta va en modelos baratos y sesiones
+cortas. En las reglas de abajo, «NUBE» significa cualquier agente de la nube.
+
+| Agente | Dónde corre y modelo | Puede | No puede |
 |---|---|---|---|
-| **NUBE** | Contenedor Linux (claude.ai/code) | Investigar, escribir código, parches, scripts y documentación, compilar Go (BackupDrive) y probar en Linux, CI, PRs | Compilar Chromium, ejecutar nada de macOS, ver los discos del Mac |
-| ↳ **NUBE-COORDINACIÓN** | Sesión en la nube `session_014Y7jw2wo7cnQBsPqVZ2Gyu` desde el 08-10, 19:30 (relevo de `session_01V7t82aGfNqPiB5rR6Potoo`, antes NUBE-revisión; nota en `FlyWeb/docs/coordinacion.md`). Vigilancia: sesión Haiku «Vigía» (`session_01XD1RBYQ5oESHWKeqZWSG4e`, cada hora 8–23 h Madrid con su propia rutina): ejecuta un script de solo lectura sobre ramas de brave-core y este tablero y, si hay cambios, los manda a esta sesión con `send_message` (probado el 09/10, 12:03). Las rutinas anteriores (`fire_trigger` o autodespertar) están desactivadas. Los commits de coordinación llevan `[coord]` y el Vigía los ignora | Arquitectura general, revisión de todo (tablero cada hora, ramas `local/*`, `seg/*`, `nube/*`, PR de softmac), coordinación entre agentes; arreglos que pida LOCAL en el código de NUBE 117–124, FM.12 y F7.8 (los lleva a `nube/motor-124` y `nube/form-vertical`); ramas de integración (`nube/v1.8.1`) | Tocar `nube/motor-125+` (son de NUBE-MOTOR) |
-| ↳ **NUBE-MOTOR** | Sesión en la nube | Ports de nivel 125 en adelante (`nube/motor-125`, `-126`…); fusiona hacia arriba lo que suba NUBE-COORDINACIÓN | Tocar `nube/motor-117…124` salvo para fusionar |
-| **LOCAL** | MacPro7,1 (Claude Code local) | Compilar FlyWeb, ejecutar y medir, Xcode, firma y notarización, scripts que necesitan el checkout de Chromium | Trabajar sin el Mac encendido |
+| **VIGÍA** | Nube, Haiku 5.5, sesión `session_01XD1RBYQ5oESHWKeqZWSG4e` con rutina cada hora 8–23 h Madrid (desde el 09-10) | Ejecutar el script de solo lectura sobre las ramas de brave-core y este tablero y, **solo si hay cambios** (commit nuevo en `local/*`, `seg/*` o `nube/*`; fila cambiada por otro agente; PR abierto o fusionado en softmac), mandárselos a COORDINACIÓN con `send_message` (probado el 09/10, 12:03). Ignora los commits `[coord]` | Decidir ni escribir nada; despertar a COORDINACIÓN sin cambios |
+| **COORDINACIÓN** (antes NUBE-COORDINACIÓN) | Nube, Opus 5.5, esfuerzo alto. `session_014Y7jw2wo7cnQBsPqVZ2Gyu` desde el 08-10, 19:30 (relevo de `session_01V7t82aGfNqPiB5rR6Potoo`; nota en `FlyWeb/docs/coordinacion.md`). Solo la despiertan VIGÍA y el HUMANO | Interlocutor técnico del HUMANO; revisión de todo (tablero, ramas `local/*`, `seg/*`, `nube/*`, PR de softmac, **incluidos los de `FlyWeb/servidor/`**, que antes revisaba SERVIDOR-NUBE); coordinación entre agentes; código de NUBE de los niveles 117–124, FM.12 y F7.8 (`nube/motor-124`, `nube/form-vertical`); ramas de integración (`nube/v1.8.1`) | Tocar `nube/motor-125+` (son de MOTOR); rutinas de vigilancia propias |
+| **MOTOR** (antes NUBE-MOTOR) | Nube, Opus 5.5, esfuerzo muy alto. **Una sola sesión**, relevada en un punto limpio (rama subida, nota en `motor.md`) cuando su contexto crece; los relevos se numeran en la fila (MOTOR-1 = 125 y 126; MOTOR-2 = 127, FM.15) | Ports de nivel 125 en adelante (`nube/motor-125`, `-126`…) y el V8 de cada nivel; fusiona hacia arriba los arreglos que suban LOCAL o COORDINACIÓN | Tocar `nube/motor-117…124` salvo para fusionar; abrir un nivel nuevo antes de fusionar los arreglos del anterior |
+| **LOCAL** | MacPro7,1 (Claude Code local), Opus 5.5, esfuerzo alto | Compilar FlyWeb (todas las versiones, también las 1.x.y), arreglar errores de compilación y caídas, ejecutar y medir, Xcode, scripts que necesitan el checkout de Chromium; pedir a MOTOR lo que haya que cambiar en el código. **Único que escribe en `flyweb`** y usa el checkout. Al acabar una compilación aprobada, la **entrega** a PUBLICACIÓN en la fila de la versión: commit de `flyweb`, `FLYWEB_BUILD_NUMBER`, ruta de la app y pruebas hechas | Publicar (DMG, Sparkle, web, `CAMBIOS.md`); trabajar sin el Mac encendido |
+| **PUBLICACIÓN** | MacPro7,1 (Claude Code local), Sonnet 5.5, esfuerzo medio (nueva, 09-10; empieza con la entrega de la 1.10) | Desde la entrega de LOCAL: firma y notarización (`herramientas/firmar-flyweb.sh`, `dmg-flyweb.sh`), subida a ns2 con `herramientas/subir-dmg-ns2.sh`, SHA y órdenes de bak al HUMANO, `verificar-appcast.sh`, subir `VERSION` para que `web-auto` publique la web junto con el binario, `FlyWeb/servidor/CAMBIOS.md`, tablero y aviso al HUMANO | Compilar; escribir en `flyweb`; tocar el checkout; **ir contra ns1/ns2 a la vez que SERVIDOR-LOCAL** (regla 10) |
+| **SEGURIDAD-VIGÍA** | Nube, Haiku 5.5, rutina semanal y cuando Google publique un «exists in the wild» (nueva, 09-10) | `cve-watch.py`, Chrome Releases y clasificación en `cve-triage.md` con los criterios de `docs/SEGURIDAD.md`; cuando un CVE aplica, avisa a SEGURIDAD-PORTES con `send_message` | Portar nada; tocar brave-core |
+| **SEGURIDAD-PORTES** | Nube, Opus 5.5, esfuerzo alto (relevo de SEGURIDAD, que iba en Sonnet; 09-10) | Portar las correcciones a ramas `seg/*` de brave-core, revisar los portes de V8 de la Fase M (FS.3) y llevar el **tercer dígito** de la versión. Reglas de la carta `docs/SEGURIDAD.md`: la seguridad va primero en los `.patch` compartidos y todo parche de V8 sube la época de caché | Compilar Chromium; escribir en `flyweb`; reescribir los cambios de un porte de motor |
+| **SERVIDOR-LOCAL** | MacPro7,1 (Claude Code local), Sonnet 5.5, esfuerzo medio (desde el 05-10; modelo desde el 09-10) | Operar ns1 (zona DNS) y ns2 (producción auditada) por SSH como `servidor`, con sudo limitado (`FlyWeb/servidor/acceso/`): auditar, desplegar, comprobar, anotar en `CAMBIOS.md`. Sus PR los revisa COORDINACIÓN | bak; certificados; ampliar su propio acceso; secretos; **ir contra ns1/ns2 a la vez que PUBLICACIÓN** (regla 10). Carta: `docs/SERVIDOR.md` §8 |
+| **CONTENIDOS-WEB** | Nube, Sonnet 5.5, esfuerzo medio (nueva, 09-10) | Web `flyweb.lamosquita.net`, ayuda, privacidad y texto de cada versión (lee la sección «Para la web» de `FlyWeb/docs/version-1.N.md`, regla 12); entrega por PR en `claude/*`, que revisa COORDINACIÓN; `VERSION` lo sube PUBLICACIÓN con el DMG | Publicar a mano; tocar código del navegador |
+| **ARQUITECTURA** | MacPro7,1 (Claude Code local), Fable 5.1, a demanda del HUMANO, sin rutinas | Decisiones sobre la organización del trabajo y sobre implementaciones sin precedente; deja cada decisión escrita en este tablero o en `docs/` | Código; tareas del día a día |
+| **INTERFAZ** (futuro) | MacPro7,1 (Claude Code local), Opus 5.5 | Diseño de la interfaz con el HUMANO: prototipos HTML/CSS de las páginas internas (como `FlyWeb/docs/prototipo-ntp`) que le enseña en el navegador, ramas `ui/*` de brave-core que compila LOCAL, encargos al resto del equipo | Compilar; tocar el checkout |
 | **HUMANO** | — | Decisiones, credenciales (Google, Apple), pruebas en la 6,1 y la 5,1, iconos | — |
-| **SERVIDOR-LOCAL** | MacPro7,1 (Claude Code local), desde el 05-10 | Operar ns1 (zona DNS) y ns2 (producción auditada) por SSH como `servidor`, con sudo limitado (`FlyWeb/servidor/acceso/`): auditar, desplegar, comprobar, anotar en `CAMBIOS.md` | bak; certificados; ampliar su propio acceso; secretos. Carta: `docs/SERVIDOR.md` §8 |
-| **SERVIDOR-NUBE** | Sesión en la nube (claude.ai/code) | Revisar los PR de `FlyWeb/servidor/` antes de aplicarlos, código y CI de los servicios, procedimientos, `ESTADO.md` | Ejecutar nada en los servidores (no tiene acceso). Carta: `docs/SERVIDOR.md` §8 |
-| **SEGURIDAD** | Sesión en la nube (claude.ai/code), desde el 05-10 | Vigilar CVE (`cve-watch.py`, Chrome Releases), clasificarlos en `cve-triage.md` (es su dueño), portar las correcciones a ramas `seg/*` de brave-core y llevar el **tercer dígito** de la versión (1.1.1, 1.1.2…) | Compilar Chromium, escribir en `flyweb`, reescribir los cambios de un porte de motor. Carta y reglas: `docs/SEGURIDAD.md` |
+
+Retirados el 09-10: **SERVIDOR-NUBE** (su revisión pasa a COORDINACIÓN) y **SEGURIDAD** como sesión única (partida en
+SEGURIDAD-VIGÍA y SEGURIDAD-PORTES). Los nombres antiguos (NUBE-COORDINACIÓN, NUBE-MOTOR, SEGURIDAD) siguen valiendo
+en las filas viejas del tablero y en los documentos; significan el agente que los hereda.
 
 ## Reglas para no pisarse
 
@@ -42,14 +54,45 @@ Este fichero es **la única fuente de verdad** sobre quién hace qué. Hay que l
    ver qué hace y hacerle encargos. Al terminar cada tarea, o al quedarse bloqueado, el agente deja **en su sesión** un
    resumen breve (qué ha hecho, qué propone, qué necesita del HUMANO o de otro agente) y **actualiza su fila** de este
    tablero, que es la vista conjunta. Lo urgente (sobre todo de seguridad) va marcado **URGENTE** en la fila y en el PR.
-   Sesiones: NUBE «Entorno macOS Mojave para desarrollo», LOCAL «LOCAL — compilación FlyWeb (MacPro7,1)», SEGURIDAD
-   «SEGURIDAD — parches de seguridad de FlyWeb», SERVIDOR-NUBE «SERVIDOR — servicios de FlyWeb en ns2», SERVIDOR-LOCAL «SERVIDOR — servidores (MacPro7,1)».
-9. **Modelo de cada agente** (HUMANO, 05-10): al crear un agente nuevo, elegir el modelo según lo que exige la tarea,
-   sin sobredimensionar (un modelo mayor es más lento y gasta más). Hoy: NUBE, LOCAL, SEGURIDAD y SERVIDOR en
-   **Opus 5.5** (portes de Blink/V8 sin compilar, CVE, producción con poco volumen). **Sonnet 5.5** para agentes con
-   tareas acotadas y repetitivas (informes, revisiones de configuración, vigilancia). **Fable 5.1** solo si una tarea
-   concreta se le atasca a Opus (p. ej. un porte grande que falle varias veces), y para esa tarea. Anotar el modelo y
-   el motivo en la fila del agente.
+   Sesiones: una por agente de la tabla de arriba, con su nombre en el título (p. ej. «LOCAL — compilación FlyWeb
+   (MacPro7,1)», «PUBLICACIÓN — FlyWeb (MacPro7,1)», «SEGURIDAD-PORTES»).
+9. **Modelo de cada agente** (HUMANO, 05-10; reparto del 09-10 en la tabla): elegir el modelo por lo que cuesta un
+   error, no por el volumen. **Opus 5.5** donde un fallo cuesta horas de compilación o un agujero de seguridad (MOTOR,
+   LOCAL, SEGURIDAD-PORTES, COORDINACIÓN). **Sonnet 5.5** para tareas con receta escrita y acceso acotado (PUBLICACIÓN,
+   SERVIDOR-LOCAL, CONTENIDOS-WEB). **Haiku 5.5** para vigilancia con criterio escrito, en sesiones nuevas cada vez
+   (VIGÍA, SEGURIDAD-VIGÍA). **Fable 5.1** solo ARQUITECTURA y, para una tarea concreta, un porte que se le atasque a
+   Opus varias veces. La lectura de caché cuesta lo mismo en Opus que en Sonnet: en una sesión larga, bajar de modelo
+   ahorra poco; lo que ahorra es despertar menos veces a las sesiones grandes y relevarlas antes. Anotar el modelo y el
+   motivo en la fila del agente.
+10. **ns1 y ns2, de uno en uno** (fail2ban banea una semana la IP de la oficina al primer exceso): PUBLICACIÓN y
+    SERVIDOR-LOCAL salen a los servidores desde la misma IP y **nunca a la vez**. Antes de tocar un servidor, mirar en
+    el tablero si el otro tiene una tarea `en curso` contra ns1/ns2 y, si la tiene, esperar. Una sesión SSH por paso,
+    peticiones web con pausa, comprobaciones desde el propio servidor.
+11. **Entrega de LOCAL a PUBLICACIÓN:** una compilación se da por aprobada cuando LOCAL lo escribe en la fila de la
+    versión con el commit de `flyweb`, `FLYWEB_BUILD_NUMBER`, la ruta de la app y las pruebas hechas. PUBLICACIÓN no
+    publica nada que no tenga esa entrega. Con la entrega, LOCAL queda libre para la siguiente compilación.
+12. **Sección «Para la web» en `FlyWeb/docs/version-1.N.md`:** MOTOR y LOCAL anotan ahí, en lenguaje de usuario, lo que
+    trae la versión y lo que cambia para quien la usa. CONTENIDOS-WEB escribe los textos de la web a partir de esa
+    sección, no del código.
+13. **Relevos:** una sesión se releva cuando su contexto crece mucho, siempre en un punto limpio (rama subida, fila al
+    día, nota de relevo en `docs/` si el papel la tiene). El relevo se numera en la fila (MOTOR-1, MOTOR-2…) para saber
+    quién hizo qué. No se abre un segundo agente del mismo papel en paralelo salvo que esta tabla lo diga.
+
+## Despliegue de la organización del 09-10
+
+Lo hace el HUMANO en las sesiones; cada agente marca su casilla al enterarse.
+
+- [x] VIGÍA en sesión Haiku propia con `send_message` a COORDINACIÓN (COORDINACIÓN, 09/10, 12:03).
+- [ ] COORDINACIÓN: sin rutina propia; asume la revisión de los PR de `FlyWeb/servidor/`.
+- [ ] SERVIDOR-NUBE: cerrar la sesión.
+- [ ] SEGURIDAD: cerrar la sesión Sonnet en un punto limpio (FS.3 anotada); abrir SEGURIDAD-PORTES (Opus 5.5) con la
+      carta y la fila FS.3, y SEGURIDAD-VIGÍA (Haiku 5.5) con rutina semanal.
+- [ ] SERVIDOR-LOCAL: pasar la sesión a Sonnet 5.5.
+- [ ] CONTENIDOS-WEB: abrir en la nube (Sonnet 5.5) con F7.3 (hoja de ruta de la web W1–W6).
+- [ ] LOCAL: **no se interrumpe** la compilación de la 1.10. Al entregarla (regla 11), relevo con este reparto.
+- [ ] PUBLICACIÓN: abrir en la 7,1 (Sonnet 5.5) cuando exista la entrega de la 1.10.
+- [ ] MOTOR: la sesión del 127 (FM.15) es MOTOR-2, relevo de MOTOR-1, no paralelo: inventario y revisión de la API de
+      V8 12.7 hasta que la 1.10 compile y sus arreglos estén fusionados.
 
 **Prohibido en `~/proyectos/flyweb-build`: `gclient sync -D`.** Borró el `src/brave` antiguo (worktree). Ahora `src/brave` es un clon `--shared` (ver `setup-build.sh`).
 

@@ -159,4 +159,8 @@ ejecutara. Ahora:
 - **Rastro:** cada orden con sudo queda en el registro de `sudo` de cada máquina; cada despliegue, en
   `/var/log/flyweb-deploy/desplegar.log`; cada cambio, en `CAMBIOS.md`.
 - **Hasta que exista SERVIDOR-LOCAL**, las tareas en ns1 y ns2 las hace LOCAL con permiso del HUMANO (SV.1, SV.3).
+- **09-10-2026 (organización de `docs/TAREAS.md`):** SERVIDOR-NUBE se retira; la revisión de los PR de
+  `FlyWeb/servidor/` la hace COORDINACIÓN. SERVIDOR-LOCAL pasa a **Sonnet 5.5** (procedimientos escritos y acceso
+  acotado). Regla nueva: SERVIDOR-LOCAL y PUBLICACIÓN (que sube los DMG a ns2) **nunca van contra ns1/ns2 a la vez**;
+  mirar el tablero antes (`TAREAS.md`, regla 10).
 
