@@ -1,15 +1,18 @@
 # Relevo de COORDINACIÓN
 
-Nota para la sesión que tome el papel de COORDINACIÓN (antes NUBE-COORDINACIÓN). Escrita el 09-10-2026, 16:10, por la
-sesión `session_014Y7jw2wo7cnQBsPqVZ2Gyu` (COORDINACIÓN-2, del 08-10 19:30 al 09-10), que relevó a la del 28-09.
+Nota para la sesión que tome el papel de COORDINACIÓN (antes NUBE-COORDINACIÓN). Escrita el 09-10-2026, ~17:40 (Madrid),
+por la sesión `session_01BnB6Ewqmfuh4VpFYLUYGef` (COORDINACIÓN-3, 16:17–17:40), que relevó a COORDINACIÓN-2
+(`session_014Y7jw2wo7cnQBsPqVZ2Gyu`, archivada). **COORDINACIÓN-3 se abrió por error en Sonnet 5.5**; el relevo vuelve a
+Opus 5.5, que es lo que pide la tabla del tablero (regla 9).
 Leer antes: `CLAUDE.md`, `docs/TAREAS.md` (tabla de agentes, reglas 1–13, lista «Despliegue de la organización del
-09-10», filas FM.13–FM.15, FS.3, FS.8, FS.9), `FlyWeb/docs/motor.md` (política de niveles) e `integracion.md`.
+09-10», filas FM.13–FM.15, FS.3, FS.8, FS.9 y F4.7), `FlyWeb/docs/motor.md` (política de niveles) e `integracion.md`.
 
 ## Qué hace este papel
 
 - **Interlocutor técnico del HUMANO**: estrategia de motor (niveles, V8, Blink, excepciones), recomendaciones
   razonadas y críticas, decisiones escritas en el tablero. El HUMANO prefiere respuestas breves, críticas y con
-  conclusión, y que se le pregunte antes de decisiones de producto.
+  conclusión, y que se le pregunte antes de decisiones de producto. **Corta las discusiones que no llevan a una
+  decisión** (lo dijo el 09-10): conclusión, nota en el tablero y seguir.
 - **Revisión**: tablero, ramas de brave-core (`local/*`, `seg/*`, `nube/*`) y todos los PR de softmac, **incluidos
   los de `FlyWeb/servidor/`** (desde el 09-10; SERVIDOR-NUBE se cierra) y los de CONTENIDOS-WEB. Revisión en el PR,
   con el pie de Claude Code; fusionar solo cuando lo diga el HUMANO.
@@ -25,8 +28,9 @@ Leer antes: `CLAUDE.md`, `docs/TAREAS.md` (tabla de agentes, reglas 1–13, list
   8–23 h Madrid. Ejecuta un script de solo lectura (commits de la última hora en `flyweb`, `local/*`, `seg/*`,
   `nube/*` de brave-core y lo añadido a cada fila de `docs/TAREAS.md`) y, si hay algo, lo manda **con `send_message`**
   a COORDINACIÓN. Ignora los commits cuyo asunto lleva `[coord]`: **marcar así los commits propios del tablero.**
-- **Al relevar: el Vigía tiene escrito el id de la sesión de COORDINACIÓN.** Hay que pedirle al HUMANO que le pegue
-  la línea con el id nuevo (está en el texto de arranque de esta nota).
+- **Destino actual del Vigía:** el HUMANO le pasó el 09-10 el id de COORDINACIÓN-3 (`session_01BnB6Ew…`). **Al
+  relevar, la sesión nueva se lo manda ella misma** con `send_message` (ver abajo), sin pedírselo al HUMANO.
+  Hasta que llegue su primer aviso no está comprobado que el mensaje llegue bien.
 - Lo que **no** funcionó, para no repetirlo: (1) Haiku en sesión nueva por cada pasada que despierta con
   `fire_trigger` (nunca disparó, ni la del 08-10 ni la del 09-10); (2) rutina horaria que despierta a la propia
   coordinación (funciona, pero cada despertar relee todo el contexto). Todas borradas o desactivadas.
@@ -35,9 +39,12 @@ Leer antes: `CLAUDE.md`, `docs/TAREAS.md` (tabla de agentes, reglas 1–13, list
 
 ## Cómo hablar con los demás
 
-- **COORDINACIÓN-2 no tenía `send_message`** (la creó otra sesión con `create_session`); las sesiones abiertas por el
-  HUMANO desde la app sí lo tienen. **Primera tarea de la sesión nueva: comprobar si tiene `send_message`** (buscarla
-  con ToolSearch). Si la tiene, es la vía normal para avisar a cualquier agente.
+- **COORDINACIÓN-3 sí tenía `send_message`** (cargada con ToolSearch, `select:SendMessage`); COORDINACIÓN-2 no (la creó
+  otra sesión con `create_session`). **Primera tarea de la sesión nueva: comprobarlo.** Con ella, avisar a cualquier
+  agente es **cosa tuya, no del HUMANO**: el 09-10 COORDINACIÓN-3 le pidió al HUMANO que le pasara el id al Vigía y
+  el HUMANO lo corrigió con razón. Pedirle al HUMANO solo decisiones de producto, credenciales y pruebas en las Mac.
+- **`ListAgents` no mostró ninguna sesión de la nube** (solo ve las de la máquina): no sirve para comprobar que el
+  Vigía o MOTOR-2 están vivos. Se escribe a `session_…` por su id. Si un envío falla, decir al HUMANO cuál falló.
 - Sin `send_message`: (a) **nota en la fila del agente** (regla 4; la lee cuando abre el tablero); (b) a una sesión
   **en la nube**, un aviso único con `create_trigger` (`persistent_session_id` = su sesión, `run_once_at` = dentro de
   2–3 min); probado con SEGURIDAD-PORTES el 09-10; (c) a las sesiones **locales** (LOCAL, PUBLICACIÓN,
@@ -46,13 +53,13 @@ Leer antes: `CLAUDE.md`, `docs/TAREAS.md` (tabla de agentes, reglas 1–13, list
   SEGURIDAD-PORTES `session_01NkotiT2nNYznsrQu9rssiy`; SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`;
   CONTENIDOS-WEB `session_014vNkVoSXJ91jX4QRXD7Szp`; locales: ver la tabla del tablero.
 
-## Ramas y versiones (al 09-10, 16:00)
+## Ramas y versiones (al 09-10, 17:40; solo lo del tablero y los PR de softmac, **no he mirado brave-core**)
 
 | Versión | Nivel | Rama | Estado |
 |---|---|---|---|
-| 1.9 | 125 + FM.12 + F7.8 | `flyweb` 64d61ebf (= `seg/v8-12.5` 50624c65) | publicada, firmada; web al día (#112, #120) |
-| 1.10 | 126 | `seg/v8-12.6` **c3d250ff** (= 08375efa + arreglos de LOCAL 502c090f + época de caché 4) | en compilación (LOCAL); el Static 1 falló por PDFium (parches que nunca se aplicaban) y Perfetto en la V8 12.6, ya arreglados |
-| 1.11 | 127 | `nube/motor-127` (V8 12.7.224.20) | **aparcado por el HUMANO** hasta que compile la 1.10 y sus arreglos estén fusionados (MOTOR-2, FM.15) |
+| 1.9 | 125 + FM.12 + F7.8 | `flyweb` 64d61ebf (= `seg/v8-12.5` 50624c65) | publicada, firmada; PR web #112 ya no figura entre los abiertos |
+| 1.10 | 126 | `seg/v8-12.6` **c3d250ff** | **compilada y notarizada (157.64.15), NO subida**: el HUMANO hace primero sus pruebas de PDF a mano (formularios, imprimir, guardar, PDF reales). `FlyWeb-1.10.dmg` sha256 `75379aaf53e3…`, 165 201 280 bytes. Tras su visto bueno: `subir-dmg-ns2.sh`, PR web, firma `--version 157.64.15 --visible 1.10` (PUBLICACIÓN, aún por abrir) |
+| 1.11 | 127 | `nube/motor-127` c776bbf5 (V8 12.7.224.20) | **aparcado por el HUMANO**. La condición «que compile la 1.10» ya se cumple; falta que el HUMANO la desaparque y que MOTOR-2 fusione e9e4b092 (los arreglos de LOCAL) en `motor-127` (MOTOR-2, FM.15) |
 
 - **FS.9 (riesgo de la 1.11):** la V8 12.7 **no tuvo rama LTS**. La 1.10 (12.6 = M126-LTS + 10 de la M132-LTS)
   lleva más correcciones que la 12.7 de serie; SEGURIDAD-PORTES está en espera y hará `seg/v8-12.7` cuando MOTOR-2
@@ -82,38 +89,51 @@ En 125+ los lleva MOTOR (a `nube/motor-N` y hacia arriba) y SEGURIDAD-PORTES los
 - **Dos sesiones del mismo agente** escribieron a la vez en `seg/*` el 08-10 (SEGURIDAD saliente y relevo). Al
   relevar a cualquiera: archivar la sesión vieja y desactivar sus rutinas.
 - **Las cosas cambian entre dos mensajes**: comprobar la rama en GitHub justo antes de afirmar su estado.
-- **Afirmar solo lo comprobado**, y decir qué no se ha podido comprobar.
+- **Afirmar solo lo comprobado**, y decir qué no se ha podido comprobar. El 09-10 se confundió una hipótesis (Client
+  Hints) con una causa: ver F4.7.
+- **Modelo de la sesión**: al abrir una sesión nueva, comprobar con `get_session` que `session_context.model` es el
+  que dice la tabla. COORDINACIÓN-3 salió en Sonnet por un despiste al arrancar.
+
+## F4.7 — Microsoft bloquea el `csignin` en Mojave (para no repetir la discusión)
+
+Resumen del 09-10, con el detalle en la fila F4.7 del tablero. «The request is blocked» (Azure Front Door) al abrir
+`support.microsoft.com/…/csignin?ru=…`: lo da el WAF, antes de ejecutar JavaScript. Falla en FlyWeb 1.9, Brave y
+Chromium 127 **en Mojave**; pasa en Chrome actual y FlyWeb en Sequoia, y en Firefox 115 ESR y Safari 14 en la misma
+Mojave. El login directo de Microsoft carga en Mojave. Hipótesis sin comprobar: Client Hints (`platformVersion` 10.14).
+Prueba pendiente (sin compilar, baja prioridad): consola `await navigator.userAgentData.getHighEntropyValues(['platformVersion'])` y
+DevTools › Condiciones de red con `platformVersion` ≥ 13. **No escribir «obsolescencia deliberada»**: la intención no
+se puede saber. Falsear `platformVersion` es decisión de producto del HUMANO (la anulación por sitio de la 1.0 lo hacía
+y se retiró en la 1.1). El Bluetooth del iPhone con esa Mojave no es de FlyWeb. El HUMANO dio la discusión por cerrada.
 
 ## Pendiente al relevo
 
-- **1.10**: esperar la entrega de LOCAL (regla 11) → PUBLICACIÓN (nueva, Sonnet; abrir cuando exista la entrega).
-  `updates/` tiene 10 DMG (el límite): al subir la 1.10, SERVIDOR-LOCAL borra el más antiguo.
-- **127**: cuando la 1.10 compile y sus arreglos estén fusionados en `nube/motor-127`, avisar a SEGURIDAD-PORTES (FS.9).
-- **PR #115 (CONTENIDOS-WEB)**: tiene conflicto en `docs/TAREAS.md`; revisión pedida (frase de la 1.9 que promete
-  de más, «algunas» correcciones de la 132, no explicar Turboshaft).
-- **E2-06** (`updates.` solo DMG y `appcast.xml`) aplicado en ns2 el 09-10, 15:07; SERVIDOR-LOCAL repite el grep de
-  `releaseNotesLink` tras aplicar (antes salió «ninguno»).
+- **1.10**: esperar el visto bueno del HUMANO a sus pruebas de PDF → LOCAL deja la entrega (regla 11) → PUBLICACIÓN
+  (nueva, Sonnet; abrir cuando exista la entrega, **no antes**). `updates/` tiene 10 DMG (el límite): al subir la 1.10,
+  SERVIDOR-LOCAL borra el más antiguo.
+- **127**: **preguntar al HUMANO si desaparca el 127** (la 1.10 ya compila). Si sí: MOTOR-2 fusiona e9e4b092 en
+  `nube/motor-127`, avisar a LOCAL (riesgo mayor: `SimpleFontData`/`HarfBuzzFace` del paso 126) y a SEGURIDAD-PORTES (FS.9).
+- **PR abiertos en softmac (09-10, 17:40):** #117 (CONTENIDOS-WEB: privacidad/seguridad/aviso legal; borrador, pide
+  revisión legal y tiene una discrepancia con `FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS`), #116 (MOTOR-2, docs del nivel 127,
+  aparcado), #115 (CONTENIDOS-WEB; tenía conflicto en `docs/TAREAS.md` y una revisión pedida: frase de la 1.9 que
+  promete de más, «algunas» correcciones de la 132, no explicar Turboshaft), #110 (FS.8, apilado sobre #72, de hace
+  días) y #99 (revisión de web-auto de hace días). **#110 y #99 parecen viejos: preguntar al HUMANO si siguen vivos.**
+  No he revisado ninguno en esta sesión.
+- **E2-06** aplicado en ns2 (09-10, 15:07); SERVIDOR-LOCAL anotó que el appcast no tiene `releaseNotesLink`.
 - **Despliegue de la organización**: marcar la casilla de SERVIDOR-NUBE cuando el HUMANO la cierre.
-- Sesiones relevadas y archivadas: COORDINACIÓN-1 (`session_01V7t82aGfNqPiB5rR6Potoo`), SEGURIDAD antigua
-  (`session_01BhHSWp2vNeVvVatBZozdoC`), NUBE-MOTOR-1 (`session_01E2aKsfuKBXjA4UmhRDA72x`).
+- Sesiones relevadas y archivadas: COORDINACIÓN-1 (`session_01V7t82aGfNqPiB5rR6Potoo`), COORDINACIÓN-2
+  (`session_014Y7jw2wo7cnQBsPqVZ2Gyu`), SEGURIDAD antigua (`session_01BhHSWp2vNeVvVatBZozdoC`), NUBE-MOTOR-1
+  (`session_01E2aKsfuKBXjA4UmhRDA72x`). **Al abrir COORDINACIÓN-4, archivar COORDINACIÓN-3
+  (`session_01BnB6Ewqmfuh4VpFYLUYGef`)** con `archive_session` si la tienes.
 
 ## Texto de arranque para la sesión nueva
 
-Abrirla **desde la app** (nube, repo `softmac` + `brave-core`, Opus 5.5, esfuerzo alto) y pegar:
+Abrirla **desde la app** (nube, repo `softmac` + `brave-core`, **Opus 5.5**, esfuerzo alto) y pegar:
 
 ```
-Eres COORDINACIÓN de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-net/brave-core), relevo de COORDINACIÓN-2 (session_014Y7jw2wo7cnQBsPqVZ2Gyu). Lee en este orden: CLAUDE.md, docs/TAREAS.md (tabla de agentes, reglas, lista de despliegue, filas FM.13–FM.15, FS.3, FS.8, FS.9) y FlyWeb/docs/coordinacion.md (nota de relevo). Después:
-1. Comprueba si tienes la herramienta send_message (búscala con ToolSearch). Dímelo en una línea.
-2. Dame tu id de sesión para que se lo pase al Vigía.
-3. Anota en tu fila de docs/TAREAS.md (push directo, solo esa fila, commit con «[coord]») que COORDINACIÓN es ahora esta sesión.
+Eres COORDINACIÓN de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-net/brave-core), relevo de COORDINACIÓN-3 (session_01BnB6Ewqmfuh4VpFYLUYGef). Lee en este orden: CLAUDE.md, docs/TAREAS.md (tabla de agentes, reglas, lista de despliegue, filas FM.13–FM.15, FS.3, FS.8, FS.9, F4.7) y FlyWeb/docs/coordinacion.md (nota de relevo). Después:
+1. Comprueba con get_session que tu modelo es Opus 5.5 y si tienes la herramienta send_message (búscala con ToolSearch). Dímelo en una línea.
+2. Dame tu id de sesión y mándaselo tú al Vigía (session_01XD1RBYQ5oESHWKeqZWSG4e) con send_message: «Cambio de destino: desde ahora manda tus avisos con send_message a la sesión <TU ID> (COORDINACIÓN-4), no a session_01BnB6Ewqmfuh4VpFYLUYGef. Lo demás, igual.» Si el envío falla, dímelo.
+3. Anota en tu fila de docs/TAREAS.md (push directo, solo esa fila, commit con «[coord]») que COORDINACIÓN es ahora esta sesión, y archiva session_01BnB6Ewqmfuh4VpFYLUYGef con archive_session.
 4. Resume el estado en 5–8 líneas.
-Trabajo en español, commits en inglés con la línea Co-Authored-By de Claude. Respuestas breves, críticas y con conclusión; pregunta antes de decisiones de producto; afirma solo lo que hayas comprobado. Sin rutinas propias: solo te despiertan el Vigía y el HUMANO.
+Trabajo en español, commits en inglés con la línea Co-Authored-By de Claude. Respuestas breves, críticas y con conclusión; pregunta antes de decisiones de producto; afirma solo lo que hayas comprobado. Lo que puedas hacer tú (avisar a agentes, archivar sesiones, anotar el tablero), hazlo tú: al HUMANO solo decisiones de producto, credenciales y pruebas en las Mac. Sin rutinas propias: solo te despiertan el Vigía y el HUMANO.
 ```
-
-Y al Vigía (sesión «Vigía FlyWeb»), con el id nuevo:
-
-```
-Cambio de destino: desde ahora manda tus avisos con send_message a la sesión <ID NUEVO> (COORDINACIÓN-3), no a session_014Y7jw2wo7cnQBsPqVZ2Gyu. Lo demás, igual.
-```
-
-Después: archivar `session_014Y7jw2wo7cnQBsPqVZ2Gyu`.
