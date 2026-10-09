@@ -10,6 +10,10 @@ Provisional hasta el diseño del HUMANO (W1 de `../docs/web-flyweb.md`); cubre W
 - `ayuda/index.html` y `ayuda/sincronizar/index.html` (SERVIDOR-LOCAL, 05-10-2026): ayuda con todas las anclas que abre
   la 1.1.2 (`../docs/web-flyweb.md` §5). Contenido comprobado contra brave-core `c5d7569574e`; el diseño lo hará el HUMANO.
   Se publica con `flyweb-desplegar web <commit> ayuda/index.html <sha256>` (necesita el `flyweb-desplegar` ampliado).
+- `novedades.html` (CONTENIDOS-WEB, 09-10-2026): las notas de todas las versiones, de la más nueva a la más antigua. Cada PR
+  de la web de una versión añade arriba su banda (misma lista que `#novedades` de la portada). **No se publica hasta que
+  `flyweb-desplegar` y `flyweb-web-auto` lleven la página en su lista** (`../servidor/web-auto/README.md`, «Añadir una
+  página»). Los enlaces (portada, ayuda y pie) van en un PR aparte que se fusiona **después** de instalar las dos.
 - `estilo.css`: D-DIN y colores del proyecto. El vhost tiene `Content-Security-Policy: default-src 'self'`: nada
   de estilos ni scripts en línea, ni recursos de otros sitios.
 - Fuera del repo (en el servidor): `fuentes/` (D-DIN WOFF2 + `OFL.txt`, los de brave-core
