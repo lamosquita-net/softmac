@@ -83,7 +83,7 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
 Lo hace el HUMANO en las sesiones; cada agente marca su casilla al enterarse.
 
 - [x] VIGÍA en sesión Haiku propia con `send_message` a COORDINACIÓN (COORDINACIÓN, 09/10, 12:03).
-- [ ] COORDINACIÓN: sin rutina propia; asume la revisión de los PR de `FlyWeb/servidor/`.
+- [x] COORDINACIÓN: sin rutina propia; asume la revisión de los PR de `FlyWeb/servidor/` (COORDINACIÓN, 09/10: sus rutinas borradas; solo la despiertan VIGÍA y el HUMANO).
 - [ ] SERVIDOR-NUBE: cerrar la sesión.
 - [ ] SEGURIDAD: cerrar la sesión Sonnet en un punto limpio (FS.3 anotada); abrir SEGURIDAD-PORTES (Opus 5.5) con la
       carta y la fila FS.3, y SEGURIDAD-VIGÍA (Haiku 5.5) con rutina semanal.
