@@ -99,8 +99,9 @@ cifras)
 imagen)
   [[ $# -eq 3 ]] && sha_ok "$3" && [[ $2 =~ ^[a-z0-9][a-z0-9-]{0,31}\.png$ ]] || uso
   src=/home/servidor/privado/$2
-  [[ -f $src && ! -L $src ]] || { echo "no existe $src" >&2; exit 1; }
-  cp -- "$src" "$tmp/$2"   # se valida e instala la COPIA: lo que se comprueba es lo que se publica
+  # Se lee COMO «servidor» (no como root), con tiempo y bytes limitados: un enlace en la ruta, un FIFO o /dev/zero no dan
+  # a root nada que servidor no pueda leer ni cuelgan el script. Se valida e instala la COPIA (lo comprobado es lo publicado).
+  timeout 10 runuser -u servidor -- head -c 20481 -- "$src" > "$tmp/$2" || { echo "no se puede leer $src" >&2; exit 1; }
   imagen_ok "$tmp/$2" || exit 1
   echo "$3  $tmp/$2" | sha256sum -c --quiet
   dest=$WEB/img/$2
