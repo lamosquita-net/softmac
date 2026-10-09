@@ -401,6 +401,52 @@ documentos, `CloseWatcher`, `sizes="auto"`) no es Baseline.
   todas «ok» salvo la del UA) y `FlyWeb/tools/wpt-126-lista.txt` (5 ficheros).
 - **Declarado 126 / FlyWeb 1.10** en 20ecf145. `chk.sh`: 1030 parches aplican sobre la 116 (más los 4 de PDFium, comprobados sobre su PDFium). Sin compilar.
 
+## Nivel 127 (en código, 09-10; aparcado hasta que compile la 1.10 → FlyWeb 1.11)
+
+Baseline de Chrome 127 (web-features 3.41.0 + BCD 8.1.5, con las subfunciones) y flags que pasan a `stable` entre la
+126.0.6478.182 y la 127.0.6533.144. Rama brave-core `nube/motor-127` (encima de `nube/motor-126` ae77b3e5; sesión
+MOTOR-2). **Sin excepciones.** Lo que se porta lo decidió el HUMANO sobre el inventario de FM.15, que incluye también
+lo descartado.
+
+- **V8 12.7.224.20** (9c7bd80e): la cabeza de la rama 12.7 = la V8 de Chrome 127.0.6533.144 (12.7.224.18) más dos
+  arreglos de seguridad (356196918 TurboFan, 360700873 Wasm). **El 127 no tuvo LTS** (FS.9). **API pública 12.6 →
+  12.7 contra la 116** (Blink, gin, content, extensions, `chrome/renderer`, components, pdf, brave-core y PDFium
+  6c2c8ce8): todo mecánico, ~16 líneas en 10 ficheros. `ScriptOrigin` pierde el constructor con `Isolate` (6 sitios de
+  Chromium y `safe_builtins_helpers.cc` de brave-core); desaparecen `Isolate::SafeForTerminationScope` (4 usos en
+  `v8_script_runner.cc`) y `only_terminate_in_safe_scope` (gin), `ObjectTemplate::SetIndexedPropertyHandler` (gin pasa a
+  `SetHandler`) y `kGCTypeMinorMarkCompact` (`thread_state.cc`). `MicrotasksScope(isolate, tipo)` solo lo usan
+  *unittests*; el `->` de `TracedReference`, `PersistentValueVector` e `IdleNotificationDeadline` no tienen usos; PDFium no
+  usa nada de lo quitado. `chromium_src/v8` de Brave 1.68 solo añade dos `#include` bajo la flag de PageGraph (apagada).
+  `patches/v8` rehechos con `v8re.sh` sin conflictos; **`kFlyWebCacheEpoch` 3 → 4**. Muy por debajo del criterio de
+  parada del principio 11.
+- **`font-size-adjust`** (1de1fd7e): en la 116 estaba tras `CSSFontSizeAdjust` (*test*) sin `from-font` ni `ic-height`.
+  Serie de upstream hasta la 127 (16 commits): `from-font` y su valor resuelto en `getComputedStyle`, fuentes de
+  reserva del sistema, `ic-width`/`ic-height` independientes de la orientación (métricas perezosas en
+  `SimpleFontData`, escritas a mano), grosor del subrayado con el tamaño calculado, `saturated_cast` en `FontCacheKey`.
+  **Fuera:** 539a017f9ed (`calc()` con unidades relativas al animar): necesita el `InterpolableNumber` con expresiones
+  que la 116 no tiene; el `calc()` numérico sigue funcionando.
+- **`selectionchange` en `input`/`textarea`** (3c87a851, Chromium 23e6216332d + f11b25d06a8): el evento llega al
+  control y burbujea, también cuando `setSelectionRange()` solo cambia la selección en caché.
+- **`integrity` en mapas de importación** (48721436, 18f9d2c2c61 + a6ec68885e0): SRI para módulos sin atributo
+  `integrity` (`<script type=module>`, `import` estático y dinámico, `modulepreload`). Sin el refactor de
+  `ConsoleLogger` → `ExecutionContext` ni el contador de uso.
+- **Interoperabilidad (decisión del HUMANO, 1095239f):** `showPicker()` consume la activación (solo `input`: la 116 no
+  tiene `select.showPicker()`), `beforeinput` en los botones de `input type=number` y al deshacer/rehacer sobre el
+  elemento del paso, texto alternativo de `content` con varios argumentos (sin `CSSParserSavePoint`: copia del rango) y
+  `::selection` sin invertir el fondo cuando el autor pone sus colores (en la 116 la inversión está en
+  `NGHighlightPainter`). **Apartadas al portar** por no ser baratas: `TextDiffSplitFix` (depende del refactor
+  `TextDiffRange`) y `SvgFilterUserSpaceViewportForNonSvg` (~110 líneas en 12 ficheros).
+- **Descartado (HUMANO):** constructores de `RTCEncoded*Frame` (van con su función, nivel 141), `position-anchor: auto`,
+  lo no Baseline (`ChapterInformation`, `VideoFrame.copyTo` RGB, Protected Audience, No-Vary-Search) y las flags de
+  View Transitions por árbol y concurrentes, barras con `color-scheme`, copiar sin `text-transform`, `justify`/bidi y
+  serialización corta de `transition`.
+- **Comprobación:** `FlyWeb/tools/motor-127.html` (11 comprobaciones y dos a mano: `::selection` y `beforeinput`; en
+  Chromium 141 todas «ok» salvo la del UA) y `FlyWeb/tools/wpt-127-lista.txt` (35 ficheros).
+- **Declarado 127 / FlyWeb 1.11** en f8087001. `chk.sh`: 1088 parches aplican sobre la 116 (solo el aviso conocido de
+  `menu_separator`); cada `#include` nuevo existe en la 116 (c776bbf5 añade el que faltaba en `content_data.h`). Sin
+  compilar. **Aparcado (HUMANO, 09-10):** no se entrega a LOCAL ni a SEGURIDAD-PORTES (FS.9) hasta que compile la 1.10 y
+  estén fusionados sus arreglos.
+
 ## Inventario: CSS Baseline publicado después de la 116
 
 Datos de [web-features](https://www.npmjs.com/package/web-features) 3.40.1 (el catálogo de Baseline) y del fichero de
@@ -436,7 +482,7 @@ Baseline; el resto son solo de Chrome.
 | 125 | Relative colors | reciente | porte a mano (nivel 125) |
 | 125 | round(), mod(), and rem() | reciente | flag + 2 arreglos (nivel 125) |
 | 125 | view-transition-class | reciente | porte a mano (nivel 125) |
-| 127 | font-size-adjust | reciente | flag (`CSSFontSizeAdjust`, test) |
+| 127 | font-size-adjust | reciente | flag + 15 arreglos (nivel 127) |
 | 128 | ruby-align | reciente | no está |
 | 130 | text-wrap | reciente | no está |
 | 131 | ::details-content | reciente | no está |
