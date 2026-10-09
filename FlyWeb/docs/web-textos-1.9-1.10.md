@@ -23,9 +23,10 @@ lleva la portada, la ayuda y `VERSION` = `1.9 157.64.14 FlyWeb-1.9.dmg 20f1a405�
 
 El contenido es correcto. Tres cosas que sugiero a LOCAL/COORDINACIÓN (no he tocado su rama):
 
-1. **Una frase de usuario al principio.** Las notas empiezan por una lista de nombres de funciones. Propuesta de frase
-   previa: «Las webs que usan colores y animaciones de CSS de 2024 se ven como en Chrome 125; para ti, casi siempre, la
-   diferencia es que menos webs se ven rotas.»
+1. **Una frase de usuario al principio.** Las notas empiezan por una lista de nombres de funciones. Propuesta
+   (ajustada tras la revisión de COORDINACIÓN, porque la primera versión prometía de más): «Las webs hechas con CSS y
+   JavaScript de 2024 se ven y funcionan mejor; FlyWeb tiene ya todo lo que comparten Chrome, Safari y Firefox hasta
+   Chrome 125.» (FlyWeb lleva lo Baseline de ese nivel, no todo Chrome 125.)
 2. **La portada pierde las notas de la 1.8.** Con #112 solo quedan la 1.9 y la 1.8.1, y la 1.8 era la única que contaba
    que las actualizaciones ya no piden contraseña de administrador. Propuesta: `novedades.html` con el historial
    (1.0.1 a la actual), sacado de las portadas anteriores; la portada solo lleva la última versión.
@@ -49,7 +50,7 @@ DMG, tamaño, SHA-256 ni `CFBundleVersion`.
 > de formulario verticales.
 >
 > **Seguridad.** El nuevo motor de JavaScript ya incluye las correcciones de la rama de soporte prolongado de Google para
-> Chrome 126, que hasta ahora portábamos a mano, y le hemos añadido otras posteriores de la rama de Chrome 132.
+> Chrome 126, que hasta ahora portábamos a mano, y le hemos añadido algunas correcciones posteriores de la rama de Chrome 132.
 > El compilador Maglev y el puente genérico entre WebAssembly y JavaScript siguen apagados.
 
 ### Trozo de `index.html` (para cuando exista el DMG; mismo patrón que la 1.9)
@@ -64,8 +65,8 @@ DMG, tamaño, SHA-256 ni `CFBundleVersion`.
   <li><strong>Se mantiene todo lo de la 1.9:</strong> el nivel de Chrome 125, las pestañas fijadas en todas las ventanas y
   los controles de formulario verticales.</li>
   <li><strong>Seguridad:</strong> el nuevo motor de JavaScript ya incluye las correcciones de la rama de soporte
-  prolongado de Google para Chrome 126, que hasta ahora portábamos a mano, y le hemos añadido otras posteriores de la
-  rama de Chrome 132. El compilador Maglev y el puente genérico entre WebAssembly y JavaScript siguen apagados.</li>
+  prolongado de Google para Chrome 126, que hasta ahora portábamos a mano, y le hemos añadido algunas correcciones posteriores de
+  la rama de Chrome 132. El compilador Maglev y el puente genérico entre WebAssembly y JavaScript siguen apagados.</li>
 </ul>
 ```
 
@@ -75,8 +76,8 @@ DMG, tamaño, SHA-256 ni `CFBundleVersion`.
 |---|---|---|
 | 1 | **Crear `FlyWeb/docs/version-1.10.md` con «Para la web»** (regla 12): qué cambia para el usuario. Mientras tanto, este borrador sale de las filas | LOCAL o MOTOR |
 | 2 | ¿Se nota algo en los **PDF**? La 1.10 toca PDFium (propiedades de JavaScript de los PDF, parches nuevos). Si LOCAL confirma que un PDF con JavaScript (un formulario) abre y funciona, no hace falta decir nada; si algo cambia, hay que contarlo | LOCAL |
-| 3 | La 12.6 enciende por defecto `turboshaft_load_elimination` y `turboshaft_loop_unrolling` (decisión del HUMANO, 08/10: se dejan encendidos). Las notas anteriores decían «la parte más reciente de Turboshaft sigue apagada»; no la repito porque ya no es del todo cierto. ¿Cómo se explica en lenguaje de usuario, o se omite? | SEGURIDAD-PORTES |
-| 4 | «otras posteriores de la rama de Chrome 132»: sale de la M132-LTS que cita FS.8 (10 de 51 portadas). ¿Se puede afirmar así en público? | SEGURIDAD-PORTES |
+| 3 | ~~Turboshaft~~ **Resuelto (COORDINACIÓN, 09/10):** no se explica al usuario cada opción de V8. El texto solo dice que Maglev y el puente genérico WebAssembly→JavaScript siguen apagados | — |
+| 4 | ~~Rama de Chrome 132~~ **Resuelto (COORDINACIÓN, 09/10):** «algunas correcciones posteriores» (son 10 de 51; sin «algunas» se leería como todas) | — |
 | 5 | Si en las pruebas del Release aparece algo visible (un arreglo, un aviso nuevo), añadirlo | LOCAL |
 | 6 | Datos de la entrega: `CFBundleVersion`, nombre del DMG, tamaño en MB y SHA-256 (los del botón y de `VERSION`) | LOCAL → PUBLICACIÓN |
 
