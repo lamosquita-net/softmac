@@ -19,7 +19,7 @@ hoy va marcado «(05-10)».
 | `sync.` (flyweb-sync) | `flyweb-sync` activo, solo `127.0.0.1:8295`; binario `6b690b21…`; unidad `e9b1b783…` (= repo). Raíz 404. En uso real | Copia de `sync.db` en bak: decisión del HUMANO (05-10) |
 | DNS (ns1) | `named` activo. Zona `lamosquita.net` `e46b2ca9…`, serie **2026100501**, `named-checkzone` OK. `flyweb.`, `components.`, `proxy.`, `updates.` y `sync.` → 51.91.19.170; sin AAAA | — |
 
-Certificado `flyweb.lamosquita.net` (certbot, ECDSA): **caduca el 3-01-2027 13:09 UTC** (86 días hoy). Cubre 5 nombres
+Certificado TLS de `flyweb.lamosquita.net` (certbot, ECDSA; es el de los servidores, **no** el de firma de Apple con el que se compila FlyWeb): **caduca el 3-01-2027 13:09 UTC** (86 días hoy; certbot lo renueva solo unas semanas antes, hacia principios de diciembre). Cubre 5 nombres
 (`flyweb.`, `components.`, `proxy.`, `updates.`, `sync.`) (05-10). Renovación: temporizador de certbot, y `certbot renew
 --dry-run` correcto el 05-10 (HUMANO). fail2ban activo con 13 jaulas; apache con `configtest` en Syntax OK.
 
