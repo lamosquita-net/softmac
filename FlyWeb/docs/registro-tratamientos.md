@@ -10,7 +10,7 @@ repositorio, que es público). Sin delegado de protección de datos (no es oblig
 
 **Encargado de tratamiento:** OVH (servidor dedicado *bare metal* ns2, en la UE), solo como alojamiento: la máquina la
 administra el responsable y OVH no accede a los datos. Contrato del art. 28: el acuerdo de tratamiento de datos que OVH
-incluye en sus condiciones (confirmar que consta aceptado en el panel de la cuenta).
+incluye en sus condiciones generales, aceptadas con el contrato (confirmado por el HUMANO, 09-10-2026).
 
 **Transferencias internacionales:** ninguna. A Google (navegación segura, diccionarios) solo le llega la IP del servidor y
 prefijos de huellas que, sin la IP del usuario, no identifican a nadie.
