@@ -8,8 +8,9 @@ Monorepo de software para Macs obsoletos de lamosquita.net. Idioma de trabajo: e
 - Nada de binarios que exijan AVX (la MacPro5,1 no lo tiene).
 
 ## Trabajo en paralelo
-Agentes NUBE (motor y código), LOCAL (compila y prueba en la 7,1), SERVIDOR (`docs/SERVIDOR.md`) y SEGURIDAD
-(CVE y parches, `docs/SEGURIDAD.md`), más el humano. **Leer `docs/TAREAS.md` al empezar**: reparto, ramas y reglas.
+Agentes en la nube (VIGÍA, COORDINACIÓN, MOTOR, SEGURIDAD-VIGÍA, SEGURIDAD-PORTES, CONTENIDOS-WEB) y en la 7,1
+(LOCAL compila, PUBLICACIÓN publica, SERVIDOR-LOCAL opera ns1/ns2, ARQUITECTURA decide), más el humano. Modelo y
+reparto de cada uno en la tabla de `docs/TAREAS.md`. **Leer `docs/TAREAS.md` al empezar**: reparto, ramas y reglas.
 Hoja de ruta de FlyWeb: `FlyWeb/docs/hoja-de-ruta.md`.
 
 ## Máquinas
