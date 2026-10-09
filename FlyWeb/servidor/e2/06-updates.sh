@@ -30,6 +30,7 @@ nuevo_conf () {
       r=1; next }
     v=="u" && r && !d && /^[[:space:]]*<\/Directory>/ {
       print "        </Directory>"
+      print "        # Canal nuevo (p. ej. beta/) = nuevo <Directory> con su appcast.xml; si no, da 403."
       print "        <Directory /var/www/FlyWeb/updates/stable>"
       print "            Require all denied"
       print "            <Files \"appcast.xml\">"
@@ -69,6 +70,8 @@ comprobar)
   mkdir -p -m 0700 "$D"
   grep -qF "$MARCA" "$CONF" && { echo "Ya aplicado"; probar si || true; exit 0; }
   nuevo_conf > "$D/lamosquita.conf.nuevo"; diff "$CONF" "$D/lamosquita.conf.nuevo" || true
+  echo "== releaseNotesLink del appcast (si hay alguno bajo updates., hay que permitirlo)"
+  grep -o 'releaseNotesLink>[^<]*' /var/www/FlyWeb/updates/stable/appcast.xml || echo "(ninguno)"
   echo "== antes"; probar no || true ;;
 aplicar)
   [[ -z $LTS ]] && { echo "no hay DMG en updates/"; exit 2; }
