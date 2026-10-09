@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 125 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 125 de FlyWeb 1.9 (brave-core nube/motor-125, V8 12.5).
+     Abrir en FlyWeb con file:// o desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+</style>
+</head>
+<body>
+<h1>Motor 125 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>Pruebas oficiales (web-platform-tests)</h2>
+<p>Lista en <code>FlyWeb/tools/wpt-125-lista.txt</code> (etiqueta 125.0.6422.141). Comparar con los
+<code>-expected.txt</code> de Chrome 125. Las transiciones de vista se ven también a ojo: el cuadrado de abajo debe
+pasar de rojo a verde con un fundido al pulsar el botón.</p>
+<p><button id="vt">Probar transición con tipos</button> <span id="cuadro" style="display:inline-block;width:3em;height:1em;background:red;view-transition-name:cuadro;view-transition-class:tarjeta"></span></p>
+<style>
+  ::view-transition-group(*.tarjeta) { animation-duration: 1s; }
+  html:active-view-transition-type(lento) ::view-transition-old(cuadro) { animation-duration: 1s; }
+</style>
+<script>
+  const res = document.getElementById('res');
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li');
+    li.className = ok ? 'ok' : 'fallo';
+    li.textContent = nombre + (nota ? ` — ${nota}` : '');
+    res.append(li);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : '');
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+  const css = (prop, valor) => { const e = document.createElement('div'); document.body.append(e); e.style.setProperty(prop, valor);
+    const r = getComputedStyle(e).getPropertyValue(prop); e.remove(); return r; };
+
+  prueba('RegExp: modificadores (?i:…) (V8 12.5)', () => {
+    const r = new RegExp('(?i:a)b'); return { ok: r.test('Ab') && !r.test('AB'), nota: `Ab ${r.test('Ab')}, AB ${r.test('AB')}` };
+  });
+  prueba('RegExp: grupos con nombre repetido en alternativas (V8 12.5)', () => {
+    const r = new RegExp('(?<a>x)|(?<a>y)'); const m = 'y'.match(r); return { ok: !!m && m.groups.a === 'y', nota: m ? m.groups.a : 'sin coincidencia' };
+  });
+  prueba('WebSocket acepta http:// (pasa a ws://)', () => {
+    const w = new WebSocket('http://127.0.0.1:9/flyweb'); const u = w.url; w.close();
+    return { ok: u === 'ws://127.0.0.1:9/flyweb', nota: u };
+  });
+  prueba(':state() en elementos personalizados', () => {
+    if (!customElements.get('fw-estado')) customElements.define('fw-estado', class extends HTMLElement {
+      constructor() { super(); this.i = this.attachInternals(); } });
+    const e = document.createElement('fw-estado'); e.i.states.add('encendido');
+    return e.matches(':state(encendido)') && !e.matches(':state(apagado)');
+  });
+  prueba('round(), mod() y rem()', () => {
+    const a = css('width', 'round(up, 10px, 3px)'), b = css('width', 'mod(-7px, 5px)'), c = css('width', 'calc(rem(-7px, 5px) + 10px)');
+    return { ok: a === '12px' && b === '3px' && c === '8px', nota: `${a}, ${b}, ${c}` };
+  });
+  prueba('getHTML() con raíces serializables', () => {
+    const d = document.createElement('div'); const r = d.attachShadow({ mode: 'open', serializable: true }); r.innerHTML = '<b>s</b>';
+    const h = d.getHTML({ serializableShadowRoots: true }), sin = d.getHTML();
+    return { ok: r.serializable === true && h === '<template shadowrootmode="open" shadowrootserializable=""><b>s</b></template>' && sin === '',
+             nota: h };
+  });
+  prueba('getHTML({shadowRoots}) incluye raíces cerradas indicadas', () => {
+    const d = document.createElement('div'); const r = d.attachShadow({ mode: 'closed' }); r.innerHTML = '<i>c</i>';
+    const h = d.getHTML({ shadowRoots: [r] }); return { ok: h === '<template shadowrootmode="closed"><i>c</i></template>', nota: h };
+  });
+  prueba('<template shadowrootserializable> y ShadowRoot.getHTML()', () => {
+    const e = document.createElement('div');
+    e.setHTMLUnsafe('<div><template shadowrootmode="open" shadowrootserializable><p>t</p></template></div>');
+    const r = e.firstChild.shadowRoot; const t = document.createElement('template'); t.shadowRootSerializable = true;
+    return { ok: !!r && r.serializable && r.getHTML() === '<p>t</p>' && t.hasAttribute('shadowrootserializable'), nota: r ? r.getHTML() : 'sin raíz' };
+  });
+  prueba('Colores relativos: rgb(from …) y hsl(from …)', () => {
+    const a = css('color', 'rgb(from red r g calc(b + 255))'), b = css('color', 'hsl(from blue h s l / 0.5)');
+    return { ok: a === 'color(srgb 1 0 1)' && b === 'color(srgb 0 0 1 / 0.5)', nota: `${a} | ${b}` };
+  });
+  prueba('Colores relativos: lab/oklch/color()', () => {
+    const a = css('color', 'lab(from lab(50 10 20) l calc(a * 2) b)'), b = css('color', 'oklch(from oklch(0.5 0.1 90) l c calc(h + 90))'),
+          c = css('color', 'color(from color(srgb 0.2 0.4 0.6) display-p3 r g b)');
+    return { ok: a === 'lab(50 20 20)' && b === 'oklch(0.5 0.1 180)' && c.startsWith('color(display-p3 '), nota: `${a} | ${b} | ${c}` };
+  });
+  prueba('view-transition-class y selectores con clase', () => {
+    const v = css('view-transition-class', 'a b');
+    return { ok: v === 'a b' && CSS.supports('selector(::view-transition-group(*.a))') && CSS.supports('selector(::view-transition-new(.a.b))'), nota: v };
+  });
+  prueba(':active-view-transition y :active-view-transition-type()', () =>
+    CSS.supports('selector(:active-view-transition)') && CSS.supports('selector(:active-view-transition-type(a, b))'));
+  pruebaAsync('startViewTransition({update, types}) ejecuta update; types y :active-view-transition-type', async () => {
+    let corrido = false, durante = false;
+    const t = document.startViewTransition({ update() { corrido = true; durante = document.documentElement.matches(':active-view-transition-type(x)'); }, types: ['x'] });
+    const tipos = [...t.types]; t.types.add('y');
+    try { await t.updateCallbackDone; } catch (e) {}
+    try { await t.finished; } catch (e) {}
+    return { ok: corrido && durante && tipos.join() === 'x' && t.types.has('y') && !document.documentElement.matches(':active-view-transition'),
+             nota: `update ${corrido}, tipo durante ${durante}, tipos [${tipos}]` };
+  });
+  prueba('User-Agent declara Chrome/125', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '125', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+  document.getElementById('vt').onclick = () => {
+    const c = document.getElementById('cuadro'); const v = c.style.background === 'green' ? 'red' : 'green';
+    document.startViewTransition({ update() { c.style.background = v; }, types: ['lento'] });
+  };
+</script>
+<p>Sin excepciones en el nivel 125. Los niveles 117–124 se comprueban aparte.</p>
+</body>
+</html>

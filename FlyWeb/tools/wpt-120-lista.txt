@@ -44,3 +44,5 @@ html/dom/elements/global-attributes/dir-auto-dynamic-changes.window.html
 html/dom/elements/global-attributes/dir-auto-form-associated.window.html
 html/dom/elements/global-attributes/dir-bdi-script.html
 html/dom/elements/global-attributes/dir-slots-directionality.html
+intersection-observer/scroll-margin.html
+intersection-observer/scroll-margin-nested.html
