@@ -401,7 +401,7 @@ documentos, `CloseWatcher`, `sizes="auto"`) no es Baseline.
   todas «ok» salvo la del UA) y `FlyWeb/tools/wpt-126-lista.txt` (5 ficheros).
 - **Declarado 126 / FlyWeb 1.10** en 20ecf145. `chk.sh`: 1030 parches aplican sobre la 116 (más los 4 de PDFium, comprobados sobre su PDFium). Sin compilar.
 
-## Nivel 127 (en código, 09-10; aparcado hasta que compile la 1.10 → FlyWeb 1.11)
+## Nivel 127 (en código, 09-10; pendiente de compilar → FlyWeb 1.11)
 
 Baseline de Chrome 127 (web-features 3.41.0 + BCD 8.1.5, con las subfunciones) y flags que pasan a `stable` entre la
 126.0.6478.182 y la 127.0.6533.144. Rama brave-core `nube/motor-127` (encima de `nube/motor-126` ae77b3e5; sesión
@@ -417,7 +417,7 @@ lo descartado.
   `SetHandler`) y `kGCTypeMinorMarkCompact` (`thread_state.cc`). `MicrotasksScope(isolate, tipo)` solo lo usan
   *unittests*; el `->` de `TracedReference`, `PersistentValueVector` e `IdleNotificationDeadline` no tienen usos; PDFium no
   usa nada de lo quitado. `chromium_src/v8` de Brave 1.68 solo añade dos `#include` bajo la flag de PageGraph (apagada).
-  `patches/v8` rehechos con `v8re.sh` sin conflictos; **`kFlyWebCacheEpoch` 3 → 4**. Muy por debajo del criterio de
+  `patches/v8` rehechos con `v8re.sh` sin conflictos; **`kFlyWebCacheEpoch` → 5** (adc17adc: la 1.10 ya sale con 4). Lleva también los dos arreglos de compilación de LOCAL en la 1.10 (7e222b20): parches de PDFium aplicados (`flywebRepos`) y V8 sin Perfetto fuera de Linux (`gni-v8.gni.patch`; la 12.7 tiene la misma condición). Muy por debajo del criterio de
   parada del principio 11.
 - **`font-size-adjust`** (1de1fd7e): en la 116 estaba tras `CSSFontSizeAdjust` (*test*) sin `from-font` ni `ic-height`.
   Serie de upstream hasta la 127 (16 commits): `from-font` y su valor resuelto en `getComputedStyle`, fuentes de
@@ -444,8 +444,8 @@ lo descartado.
   Chromium 141 todas «ok» salvo la del UA) y `FlyWeb/tools/wpt-127-lista.txt` (35 ficheros).
 - **Declarado 127 / FlyWeb 1.11** en f8087001. `chk.sh`: 1088 parches aplican sobre la 116 (solo el aviso conocido de
   `menu_separator`); cada `#include` nuevo existe en la 116 (c776bbf5 añade el que faltaba en `content_data.h`). Sin
-  compilar. **Aparcado (HUMANO, 09-10):** no se entrega a LOCAL ni a SEGURIDAD-PORTES (FS.9) hasta que compile la 1.10 y
-  estén fusionados sus arreglos.
+  compilar. Aparcado mientras se compilaba la 1.10; **desaparcado por el HUMANO el 09-10** con sus arreglos fusionados
+  (cabeza `nube/motor-127` **adc17adc**).
 
 ## Inventario: CSS Baseline publicado después de la 116
 
