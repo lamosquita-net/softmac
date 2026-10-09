@@ -15,7 +15,10 @@ Leer antes: `CLAUDE.md`, `docs/TAREAS.md` (tabla de agentes, reglas 1–13, list
   decisión** (lo dijo el 09-10): conclusión, nota en el tablero y seguir.
 - **Revisión**: tablero, ramas de brave-core (`local/*`, `seg/*`, `nube/*`) y todos los PR de softmac, **incluidos
   los de `FlyWeb/servidor/`** (desde el 09-10; SERVIDOR-NUBE se cierra) y los de CONTENIDOS-WEB. Revisión en el PR,
-  con el pie de Claude Code; fusionar solo cuando lo diga el HUMANO.
+  con el pie de Claude Code. **Desde el 09-10 (HUMANO), COORDINACIÓN fusiona y cierra los PR de softmac sin
+  preguntarle** y es a quien preguntan los agentes por fusiones, cierres y orden (regla 8 del tablero). Siguen siendo
+  del HUMANO: producto, textos legales, credenciales, firma y publicación, pruebas en las Mac. Ojo: fusionar en
+  `FlyWeb/web/` publica la web sola (`flyweb-web-auto`).
 - **Coordinación**: que cada arreglo llegue a todas las ramas que lo necesitan y avisar al agente que tiene que
   moverse (en su fila y, si corre prisa, por mensaje; ver «Cómo hablar con los demás»).
 - **Dueño del código de NUBE de los niveles 117–124**, de FM.12 (`nube/form-vertical`), de F7.8

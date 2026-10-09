@@ -56,6 +56,11 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
    tablero, que es la vista conjunta. Lo urgente (sobre todo de seguridad) va marcado **URGENTE** en la fila y en el PR.
    Sesiones: una por agente de la tabla de arriba, con su nombre en el título (p. ej. «LOCAL — compilación FlyWeb
    (MacPro7,1)», «PUBLICACIÓN — FlyWeb (MacPro7,1)», «SEGURIDAD-PORTES»).
+   **Fusiones, cierres y orden de trabajo, a COORDINACIÓN, no al HUMANO** (decisión del HUMANO, 09-10): COORDINACIÓN
+   revisa, fusiona y cierra los PR de softmac y decide en qué orden se llevan las ramas; los agentes de la nube le
+   preguntan con `send_message` y los locales en su fila. Al HUMANO solo le llegan las decisiones de producto, los
+   textos legales, las credenciales, la firma y publicación de versiones y las pruebas en las Mac. En brave-core, la
+   fusión en `flyweb` sigue siendo de LOCAL (regla 2).
 9. **Modelo de cada agente** (HUMANO, 05-10; reparto del 09-10 en la tabla): elegir el modelo por lo que cuesta un
    error, no por el volumen. **Opus 5.5** donde un fallo cuesta horas de compilación o un agujero de seguridad (MOTOR,
    LOCAL, SEGURIDAD-PORTES, COORDINACIÓN). **Sonnet 5.5** para tareas con receta escrita y acceso acotado (PUBLICACIÓN,
