@@ -37,6 +37,7 @@ Si algo no cuadra (firma, SHA-256, tamaño, portada), **no publica nada** y avis
 En el PR de la web de cada versión, **antes de pedir la firma al HUMANO**:
 - `FlyWeb/web/index.html`: botón, tamaño, SHA-256 y notas en `#novedades`;
 - `FlyWeb/web/ayuda/…` si cambia algo;
+- `FlyWeb/web/novedades.html` (cuando esté en las listas, ver más abajo): la banda de la versión nueva, arriba;
 - `FlyWeb/web/VERSION`, una línea: `<versión> <CFBundleVersion> <DMG> <sha256>`, por ejemplo
   `1.2 157.64.5 FlyWeb-1.2.dmg 5b5a0742…475d6b` (el SHA-256 del DMG subido a `updates/`).
 
@@ -68,6 +69,31 @@ systemctl --user daemon-reload && systemctl --user enable --now flyweb-web-auto.
 
 Ver: `systemctl --user list-timers`, `journalctl --user -u flyweb-web-auto`, `~/.local/state/flyweb-web-auto/registro.log`
 y `/var/log/flyweb-deploy/desplegar.log`.
+
+## Añadir una página a la lista (HUMANO + SERVIDOR-LOCAL)
+
+Solo se publican los ficheros de `FICHEROS` (en `flyweb-web-auto`) y los que admite `flyweb-desplegar`. Para `novedades.html`
+(PR de CONTENIDOS-WEB) hay que cambiar **las dos** listas, y **en este orden**:
+
+1. **HUMANO:** instalar el `flyweb-desplegar` nuevo. Con el PR ya fusionado, en ns2 con tu usuario (el que tiene `sudo`):
+   ```sh
+   C=<commit de main con el PR fusionado>      # git log -1 en main, o el "merge commit" del PR en GitHub
+   cd "$(mktemp -d)"
+   curl -fsSLo flyweb-desplegar "https://raw.githubusercontent.com/lamosquita-net/softmac/$C/FlyWeb/servidor/acceso/flyweb-desplegar"
+   sha256sum flyweb-desplegar                  # debe ser el SHA-256 que pone el PR
+   diff /usr/local/sbin/flyweb-desplegar flyweb-desplegar   # solo deben salir 2 líneas distintas: un comentario y el `case`, con `novedades.html`
+   bash -n flyweb-desplegar && echo sintaxis-ok
+   sudo install -m 0755 -o root -g root flyweb-desplegar /usr/local/sbin/flyweb-desplegar
+   ls -l /usr/local/sbin/flyweb-desplegar      # -rwxr-xr-x root root
+   sudo /usr/local/sbin/flyweb-desplegar 2>&1 | grep novedades   # sin argumentos imprime el uso; debe salir novedades
+   ```
+   Si el `diff` enseña algo más que esas dos líneas (por ejemplo, porque el instalado es más viejo que `main`), no instales:
+   pregunta antes. No hace falta tocar `sudoers`: la orden y sus permisos no cambian.
+2. **SERVIDOR-LOCAL:** instalar el `flyweb-web-auto` nuevo (receta de «Instalar» más arriba, con el mismo `C`), comprobar su
+   SHA-256 y ejecutar `~/bin/flyweb-web-auto comprobar`.
+
+Al revés (primero `web-auto`), la siguiente publicación falla a mitad: `flyweb-desplegar` rechaza la página, y el DMG ya
+estaría puesto. Hasta que estén las dos, ninguna página debe enlazar a `novedades.html` (daría 404).
 
 ## Parar o quitar
 
