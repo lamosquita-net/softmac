@@ -122,8 +122,8 @@ CSP impiden que otro fichero de la web se ejecute como script.
   el JS viejo, el navegador no ejecutaría el script (`cifras.html` se quedaría vacía).
 - Cambiar un JS: PR (con el `integrity` nuevo en la página) → fusionar → el HUMANO lo instala a mano → la pasada
   siguiente publica las páginas.
-- `img/titular.png` (NIF y domicilio del aviso legal) **no está en el repo, que es público**: la instala el HUMANO a mano
-  en `img/` (root:root 0644) y ni `flyweb-web-auto` ni `flyweb-desplegar` la tocan. La enlaza `privacidad.html#aviso-legal`.
+- `img/titular.png` (NIF y domicilio del aviso legal) **no está en el repo, que es público**: la instala SERVIDOR-LOCAL a mano
+  en `img/` (root:root 0644) desde `software/entregas/` (red), comprobando su SHA-256 en `docs/TAREAS.md` y ni `flyweb-web-auto` ni `flyweb-desplegar` la tocan. La enlaza `privacidad.html#aviso-legal`.
 
 ## Publicar una versión, de principio a fin (HUMANO, 07-10-2026)
 
