@@ -33,3 +33,4 @@ import-maps/no-referencing-script-integrity.html
 import-maps/no-referencing-script-integrity-valid.html
 html/semantics/forms/the-input-element/show-picker-user-gesture.html
 css/css-pseudo/selection-background-color-001.html
+css/filter-effects/filter-region-html-content-viewport.tentative.html
