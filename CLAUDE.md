@@ -3,6 +3,12 @@
 Monorepo de software para Macs obsoletos de lamosquita.net. Idioma de trabajo: español; commits en inglés.
 
 ## Reglas fijas
+- **Datos personales del HUMANO, NUNCA en GitHub** (decisión del HUMANO, 09-10-2026; por encima de cualquier otra regla):
+  nombre, NIF, domicilio, teléfono, documentos o cualquier dato que lo identifique no van en el repo (es **público e
+  indexado**), ni en ramas, commits, mensajes de commit, PR, comentarios o el tablero. Se pasan solo por `send_message`
+  al agente que los necesita y viven fuera del repo (p. ej. una imagen que SERVIDOR-LOCAL instala en el servidor).
+  **Antes de mover cualquier dato personal, decirle al HUMANO por dónde va a pasar y dónde va a quedar.** Si alguno
+  llega a GitHub por error: avisarle enseguida, reescribir la rama y preparar la petición a GitHub Support.
 - Objetivo garantizado: **macOS 10.14 Mojave, Intel, solo x86_64**. Monterey "debería" funcionar, sin garantía.
 - Un software por carpeta; **cada uno con su propia licencia** heredada del origen. La raíz es MIT.
 - Nada de binarios que exijan AVX (la MacPro5,1 no lo tiene).

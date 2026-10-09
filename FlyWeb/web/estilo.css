@@ -23,6 +23,12 @@ body { margin: 0; font: 17px/1.45 "D-DIN", -apple-system, "Helvetica Neue", sans
 .cabecera .columna { display: flex; align-items: center; gap: 22px; }
 .logo { position: relative; flex: none; width: 100px; height: 100px; display: block; }
 .logo img { position: absolute; display: block; }
+/* Datos del titular (aviso legal): imagen fuera del repo, que es público; su URL solo está aquí, no en el HTML */
+.titular summary { cursor: pointer; list-style: none; }
+.titular summary::-webkit-details-marker { display: none; }
+.titular .mostrar { text-decoration: underline; margin-left: 6px; }
+.titular[open] summary { display: none; }
+.titular-img { display: inline-block; max-width: 100%; width: 350px; height: 88px; background: #fff url(img/titular.png) no-repeat; background-size: contain; }
 .logo .circulo { inset: 0; width: 100%; height: 100%; }
 .logo .mosca-logo { left: 14%; top: 15%; width: 70%; height: 70%; }
 .logo.sin-mosca .mosca-logo { visibility: hidden; }
