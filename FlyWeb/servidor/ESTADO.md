@@ -1,6 +1,6 @@
 # Estado de los servicios de FlyWeb en ns1 y ns2 (SV.2)
 
-Informe de SERVIDOR-LOCAL (SERVIDOR-LOCAL-2), **09-10-2026, ~13:55 (hora peninsular)**. Sustituye al del 05-10 (auditoría E1),
+Informe de SERVIDOR-LOCAL (SERVIDOR-LOCAL-2), **09-10-2026, ~13:55 (hora peninsular); puesto al día a las 15:00** (1.9 publicada y `web-auto` nuevo). Sustituye al del 05-10 (auditoría E1),
 que quedó atrás. **Fuente: ns1 y ns2**, mirados desde dentro como usuario `servidor` en tres sesiones SSH de solo
 lectura, una por paso y nunca a la vez (ns2, ns1 y otra vez ns2); comprobaciones web desde el propio ns2 con
 `--resolve …:443:127.0.0.1`. Cambios aplicados, uno a uno: [`CAMBIOS.md`](CAMBIOS.md). Lo que no se ha vuelto a mirar
@@ -10,8 +10,8 @@ hoy va marcado «(05-10)».
 
 | Servicio | En producción | Qué falta |
 |---|---|---|
-| `flyweb.lamosquita.net` (web) | 200. Diseño del HUMANO (06-10), JS en `js/` root:root instalados por el HUMANO. La portada enlaza la **1.8.1**. En `descargas/`: 1.0 (sin enlazar), 1.2 a 1.8.1. Registros con IP, 14 días | Publicar la **1.9** (ver «Siguiente») |
-| `flyweb-web-auto` | Temporizador de usuario de `servidor`, cada 10 min; `~servidor/bin/flyweb-web-auto` `61dccb69…` (= repo). Última pasada 13:46: *«esperando: appcast 1.9 (157.64.14), main describe 1.8.1 (157.64.13); no se publica nada»*. Es lo correcto: `VERSION` de `main` aún es la 1.8.1 | Se publica sola ≤ 10 min después de fusionar el PR de la 1.9 |
+| `flyweb.lamosquita.net` (web) | 200. Diseño del HUMANO (06-10), JS en `js/` root:root instalados por el HUMANO. **FlyWeb 1.9** publicada por `web-auto` a las 14:30; la portada enlaza la 1.9. En `descargas/`: 1.0 (sin enlazar), 1.3 a 1.9 (`web-auto` borró la 1.2 por el límite de 10). Registros con IP, 14 días | PR #120 (enlaces a `novedades.html`), del HUMANO |
+| `flyweb-web-auto` | Temporizador de usuario de `servidor`, cada 10 min; `~servidor/bin/flyweb-web-auto` `e3638f84…` (= repo; instalado el 09-10 a las 14:54, PR #119: añade `novedades.html`). A las 14:30 publicó la 1.9 sola. `comprobar` (14:54): publicaría `novedades.html` y `ayuda/index.html` | — |
 | `flyweb-cifras` | Temporizador cada hora; `~servidor/bin/flyweb-cifras` `6ad19661…` (= repo); sube `cifras.csv` con `flyweb-desplegar cifras` (última subida 13:16). `cifras.csv` 200 | — |
 | `components.` (go-update) | `flyweb-components` activo, solo `127.0.0.1:8192`; binario `0e776013…`; unidad `84d379be…` (= repo). `_estado.json` 200 | — |
 | `proxy.` (Safe Browsing, diccionarios) | Raíz 404. Safe Browsing funciona desde el 05-10 con clave nueva (IPv4 + IPv6 /64) (05-10) | — |
@@ -27,8 +27,8 @@ Certificado TLS de `flyweb.lamosquita.net` (certbot, ECDSA; es el de los servido
 
 | | Producción (09-10) | Repo |
 |---|---|---|
-| `/usr/local/sbin/flyweb-desplegar` | `e4faf154…` | `acceso/flyweb-desplegar`: **igual** |
-| `~servidor/bin/flyweb-web-auto` | `61dccb69…` | `web-auto/flyweb-web-auto`: **igual** |
+| `/usr/local/sbin/flyweb-desplegar` | `fc63d884…` (instalado por el HUMANO el 09-10, 14:42; antes `e4faf154…`; acepta `novedades.html`) | `acceso/flyweb-desplegar`: **igual** |
+| `~servidor/bin/flyweb-web-auto` | `e3638f84…` (antes `61dccb69…`) | `web-auto/flyweb-web-auto`: **igual** |
 | `~servidor/bin/flyweb-cifras` | `6ad19661…` | `cifras/flyweb-cifras`: **igual** |
 | `/etc/systemd/system/flyweb-components.service` | `84d379be…` | `systemd/flyweb-components.service`: **igual** |
 | `/etc/systemd/system/flyweb-sync.service` | `e9b1b783…` | `systemd/flyweb-sync.service`: **igual** |
@@ -54,7 +54,7 @@ registros de FlyWeb listados son `0640 root:adm`; `/var/log/flyweb-deploy/desple
 
 ## Siguiente
 
-- **Publicar la 1.9:** firmada en bak y en el appcast; falta fusionar el PR #112 (`local/web-1.9`), que sube `VERSION`. Lo hace el HUMANO o PUBLICACIÓN. `web-auto` espera, correcto. Si tras fusionar no publica en 10 min: registro en `~servidor/.local/state/flyweb-web-auto/registro.log`.
+- **Pasada de `web-auto` de las 15:02:** publicará `novedades.html` y `ayuda/index.html` (PR #119). Después, el HUMANO puede fusionar el PR #120 (enlaces a `novedades.html`); si algo no llega a la web: `~servidor/.local/state/flyweb-web-auto/registro.log`.
 - **Límite de 10 DMG en `updates/`:** ya están los 10 (1.2 a 1.9). Con la 1.10 hay que quitar el más antiguo con `flyweb-desplegar borrar` (SERVIDOR-LOCAL, tras la subida de PUBLICACIÓN y con el appcast ya sin esa versión), no a mano.
 - **PR #99** (borrador, COORDINACIÓN): privacidad con `sync.` y `web-auto` que se para si un JS difiere de `main`. Al fusionarse, reinstalar `~servidor/bin/flyweb-web-auto` (comprobar suma) y anotarlo.
 - **E2 nuevo, a proponer:** que `updates.` sirva solo `.dmg` y `stable/appcast.xml` (hoy sirve cualquier fichero de su carpeta).
