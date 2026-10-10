@@ -46,7 +46,8 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
    - Si el push lo rechaza porque hay cambios nuevos: `git pull --rebase` y volver a subir. No forzar nunca el push.
 4. **Entregas entre agentes:** en "Notas", qué se deja hecho y qué necesita el otro (por ejemplo "rama
    `nube/jitless` lista para compilar").
-5. **Nunca en el repo:** tokens, `backupdrive.conf`, contraseñas ni certificados.
+5. **Nunca en el repo:** tokens, `backupdrive.conf`, contraseñas ni certificados, **ni datos personales del HUMANO**
+   (nombre, NIF, domicilio…; ver la primera regla fija de `CLAUDE.md`).
 6. Cuando una tarea termina: estado `hecho`, más el enlace al PR o commit.
 7. **Encargos al HUMANO** (gráficos, fuentes, subdominios, servicios del servidor): se apuntan en la sección 1 de
    `FlyWeb/docs/disenos.md`, que es la entrada de su cadena de diseño. No dejarlos solo en un chat o en Notas.
@@ -82,6 +83,14 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
 13. **Relevos:** una sesión se releva cuando su contexto crece mucho, siempre en un punto limpio (rama subida, fila al
     día, nota de relevo en `docs/` si el papel la tiene). El relevo se numera en la fila (MOTOR-1, MOTOR-2…) para saber
     quién hizo qué. No se abre un segundo agente del mismo papel en paralelo salvo que esta tabla lo diga.
+14. **El que publica, publica** (HUMANO, 09-10). Los agentes de la nube preparan (textos, código, PR, instrucciones) y
+    **ejecuta quien tiene el acceso**: SERVIDOR-LOCAL todo lo que se instala o se cambia en ns1/ns2 (web, imágenes,
+    unidades, scripts), PUBLICACIÓN las versiones (DMG, firma, web de la versión), LOCAL las compilaciones. Lo que no
+    puede ir por el repo (datos personales, ficheros privados) se le pasa **como instrucciones por `send_message`** y lo
+    genera quien lo instala; nunca se le manda un fichero al HUMANO para que lo suba. Única excepción: lo que exige root en
+    ns2 y `servidor` no puede hacer; entonces SERVIDOR-LOCAL le da al HUMANO las órdenes exactas y comprueba el resultado. Quien prepara, al terminar, deja el
+    encargo en la fila del que ejecuta y se lo avisa. **Al HUMANO no se le asignan pasos de ejecución**: solo decisiones,
+    credenciales, firmas y pruebas en las Mac.
 
 ## Despliegue de la organización del 09-10
 
