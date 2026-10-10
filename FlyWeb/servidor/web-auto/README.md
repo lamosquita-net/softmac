@@ -122,10 +122,6 @@ CSP impiden que otro fichero de la web se ejecute como script.
   el JS viejo, el navegador no ejecutaría el script (`cifras.html` se quedaría vacía).
 - Cambiar un JS: PR (con el `integrity` nuevo en la página) → fusionar → el HUMANO lo instala a mano → la pasada
   siguiente publica las páginas.
-- `img/titular.png` (datos del titular del aviso legal, 350×88 px) **no está en el repo, que es público**: la genera
-  SERVIDOR-LOCAL en la 7,1 y la instala con `flyweb-desplegar imagen titular.png <sha256>`. `flyweb-web-auto` no la toca.
-  Su URL solo está en `estilo.css` (`.titular-img`), no en el HTML: se ve al pulsar «Mostrar». Ningún dato personal del
-  HUMANO entra en el repo (decisión del HUMANO, 09-10-2026).
 
 ## Publicar una versión, de principio a fin (HUMANO, 07-10-2026)
 

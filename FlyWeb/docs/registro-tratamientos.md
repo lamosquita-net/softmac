@@ -4,9 +4,10 @@ Documento interno, para tenerlo a disposición de la AEPD si lo pide (art. 30.4)
 aunque haya menos de 250 empleados porque los tratamientos de abajo no son ocasionales (art. 30.5). Cada cambio de
 `FlyWeb/web/privacidad.html` que afecte a datos personales se refleja aquí en el mismo PR.
 
-**Responsable:** el titular de lamosquita (profesional autónomo). Contacto: admin@lamosquita.net. Nombre, NIF y
-domicilio: en el aviso legal de `flyweb.lamosquita.net`, como imagen; **no se guardan en este repositorio, que es
-público** (decisión del HUMANO, 09-10-2026). Sin delegado de protección de datos (no es obligatorio: art. 37).
+**Responsable:** lamosquita. Contacto: admin@lamosquita.net. **Ningún dato personal del titular se publica en la web
+ni se guarda en este repositorio, que es público** (decisiones del HUMANO del 09 y el 10-10-2026: el art. 13.1.a del
+RGPD pide identidad y contacto del responsable; el NIF y el domicilio son del art. 10 de la LSSI, que el HUMANO
+considera no aplicable porque FlyWeb no es una actividad económica; riesgo residual asumido por él). Sin delegado de protección de datos (no es obligatorio: art. 37).
 
 **Encargado de tratamiento:** OVH (servidor dedicado *bare metal* ns2, en la UE), solo como alojamiento: la máquina la
 administra el responsable y OVH no accede a los datos. Contrato del art. 28: el acuerdo de tratamiento de datos que OVH
