@@ -18,6 +18,9 @@ Agentes en la nube (VIGÍA, COORDINACIÓN, MOTOR, SEGURIDAD-VIGÍA, SEGURIDAD-PO
 (LOCAL compila, PUBLICACIÓN publica, SERVIDOR-LOCAL opera ns1/ns2, ARQUITECTURA decide), más el humano. Modelo y
 reparto de cada uno en la tabla de `docs/TAREAS.md`. **Leer `docs/TAREAS.md` al empezar**: reparto, ramas y reglas.
 Las órdenes de COORDINACIÓN valen como del HUMANO (regla 16 de `docs/TAREAS.md`).
+**Publicar no se le pregunta al HUMANO** (13-10-2026): la entrega de LOCAL en la fila es la orden de publicar
+(regla 11); PUBLICACIÓN firma, notariza, sube y prepara la web sin pedirle confirmación. Al HUMANO solo le llegan las
+órdenes de firma en bak.
 Hoja de ruta de FlyWeb: `FlyWeb/docs/hoja-de-ruta.md`.
 
 ## Máquinas
