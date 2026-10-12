@@ -136,6 +136,14 @@ Sparkle, y la auditoría de red ya no muestra ningún destino de Brave.
 
    Decide el dato de F5.5: si el Dawn de la 116 funciona sobre el Metal de Mojave en la 6,1 (D500) y en la 5,1.
 
+   **Las dos vías van sobre Metal** (ARQUITECTURA con el HUMANO, 12-10). Dawn no tiene backend OpenGL para Mac ni podría
+   tenerlo: el OpenGL de Apple se quedó en la 4.1, que no tiene los *shaders* de cómputo que WebGPU exige. Las tres
+   máquinas tienen Metal (Mojave lo exige para instalarse en la 5,1; la D500 de la 6,1 y la 580X de la 7,1 lo
+   admiten). La duda es si el Dawn de la 116 funciona con el Metal 2 de Mojave. **WebGL es otra cosa:** ANGLE ya trae
+   los dos backends y se elige al arrancar (`--use-angle`); no se porta nada, se decide por máquina con el punto 3. No
+   se desarrolla nada nuevo para OpenGL (Apple lo dejó en la 4.1 y lo declaró obsoleto en la 10.14); lo que Chromium
+   ha hecho en gráfica desde la 116 va por Metal.
+
 **Hito:** tabla de rendimiento por máquina y backend, con el backend por defecto decidido.
 
 ## Fase M — Evolución del motor (decidida el 04-10-2026)
