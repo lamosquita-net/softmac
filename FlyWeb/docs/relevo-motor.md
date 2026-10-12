@@ -28,7 +28,8 @@ y la fase 4 espera al Static de LOCAL de e9c4ad85 (decisión de COORDINACIÓN-4,
 2. **Arreglos del Static/ASan de LOCAL**, en commits aparte, con una fila cada uno en el §3.
 3. **Fase 4**, con el plan del §2 («Fase 4: plan de `patches/v8`»): `FlyWeb/v8-revision` de brave-core a d213b3bb,
    `v8re.sh`, quitar la 3d (aaa23fc87 ya está en la 12.8), época 9 y *cherry-pick* de (e). **Avisar a
-   SEGURIDAD-PORTES antes de tocar `patches/v8`.**
+   SEGURIDAD-PORTES antes de tocar `patches/v8`.** El plan ya tiene su visto bueno (12-10). Al terminar, avisarle
+   para FS.10 (`seg/v8-12.8`, época ≥ 10).
 4. Al terminar FM.17: nota final con las mediciones de todas las fases (decide el modelo del motor desde el 129).
 
 **Trampas de las fases 1–3:**
