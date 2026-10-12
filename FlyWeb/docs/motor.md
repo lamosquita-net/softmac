@@ -472,12 +472,18 @@ lo descartado.
   compilar. Aparcado mientras se compilaba la 1.10; **desaparcado por el HUMANO el 09-10** con sus arreglos fusionados
   (cabeza `nube/motor-127` **639a7a71**, con los dos portes de arriba).
 
-## Nivel 128 (en código desde el 12-10, a medias; pendiente de compilar → FlyWeb 1.12)
+## Nivel 128 (en código desde el 12-10; pendiente de compilar → FlyWeb 1.12 sin `ruby-align`; RubyLB → 1.12.x)
 
 Baseline de Chrome 128 y flags que pasan a `stable` entre la 127.0.6533.144 y la 128.0.6613.194 (inventario de MOTOR-2 en
 FM.16). Por decisión del HUMANO, el 128 va **sobre la V8 12.8** de FM.17: rama brave-core **`nube/motor-128`**, apilada
 sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). Si la fase 4 se mueve por el Static de FM.17, esta rama se rebasa.
 **Sin excepciones** salvo lo que se anota abajo. LOCAL no la compila hasta que compile FM.17.
+
+**Decisión del HUMANO (12-10, por COORDINACIÓN-4):** la **1.12 = nivel 128 sin `ruby-align`** (lo de
+`nube/motor-128`; 84735505 declara 128 / 1.12), sin esperar a RubyLB. **RubyLB va por etapas** (R1…R5, abajo) en la rama
+brave-core **`nube/motor-128-ruby`**, apilada sobre `nube/motor-128`, **un commit y un push por paso**. LOCAL compila y
+prueba cada etapa aparte, y cada una se publica en una 1.12.x (1.12.1, 1.12.2…) cuando esté estable. **El nivel 129 no
+empieza hasta terminar RubyLB.** Sin freno por el límite semanal.
 
 - **V8 12.8.374.38**: llega con FM.17 (`Promise.try` viene de serie, sin porte).
 - **`document.caretPositionFromPoint()`** (2922bcaa; feecdfbca29, 1b5fb86a995, 7d0dfc27610, 6635e2d6e41, 85e3baa70a3,
@@ -503,17 +509,19 @@ sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). Si la fase 4 se mueve por el Stat
     `CompositedAnimationsCancelledAsynchronously`.
   - **Sin efecto o sin interés:** `SelectOptionAccessibilityTargetSize` (en Mac `<select>` usa el menú nativo),
     `BreakIteratorSetStartOffset` (solo rendimiento), `AutomaticFullscreenPermissionsQuery` (no es de la web).
-- **`ruby-align`: pendiente, medido (MOTOR-4, 12-10).** El HUMANO eligió el porte completo de la reescritura del ruby
-  de upstream («RubyLB»). Entre la rama de la 116 (26-06-2023) y la de la 128 (23-07-2024) hay **198 commits de ruby**,
-  125 con la etiqueta RubyLB. Sin pruebas y sin 4 actualizaciones de dependencias que se cuelan en la búsqueda: unos
-  175 commits con código, ~580 ficheros tocados, **+6800/−3400 líneas**. Los más antiguos son `display: ruby`/`ruby-text`
-  (nivel 121), la «inlinificación» y los renombres. **Lo que encarece el
-  porte no es el tamaño sino que casi todo cae en el núcleo del *layout* de línea** (`LineBreaker`, `InlineItem`,
-  `LogicalLineBuilder`, justificación, `FragmentItem`, pintado y *hit-testing*). Entre la 116 y la 128 hay además
-  **68 commits que renombran ficheros y clases de `layout/ng/inline`** (`NGLineBreaker` → `LineBreaker`,
-  `ng_line_breaker.cc` → `inline/line_breaker.cc`…), así que `portar.sh` no encuentra ningún fichero de la 116. Cada
-  *hunk* hay que traducirlo de rutas y de nombres, o escribir antes un traductor de diffs (rutas + símbolos `NG*`).
-  Plan por etapas, cada una compilable y compilada aparte por LOCAL:
+- **`ruby-align`: fuera de la 1.12; RubyLB en curso por etapas** (medición de MOTOR-4, 12-10). El HUMANO eligió el porte
+  completo de la reescritura del ruby de upstream («RubyLB»). Entre la rama de la 116 (26-06-2023) y la de la 128
+  (23-07-2024) hay **198 commits de ruby**, 125 con la etiqueta RubyLB. Sin pruebas y sin 4 actualizaciones de
+  dependencias que se cuelan en la búsqueda: unos 175 commits con código, ~580 ficheros tocados, **+6800/−3400 líneas**.
+  Los más antiguos son `display: ruby`/`ruby-text` (nivel 121), la «inlinificación» y los renombres. **Lo que encarece
+  el porte no es el tamaño sino que casi todo cae en el núcleo del *layout* de línea** (`LineBreaker`, `InlineItem`,
+  `LogicalLineBuilder`, justificación, `FragmentItem`, pintado y *hit-testing*). Entre la 116 y la 128 hay además **68
+  commits que renombran ficheros y clases de `layout/ng/inline`** (`NGLineBreaker` → `LineBreaker`, `ng_line_breaker.cc`
+  → `inline/line_breaker.cc`…), así que `portar.sh` no encuentra ningún fichero de la 116. Cada *hunk* hay que
+  traducirlo de rutas y de nombres. **R0, decidido (MOTOR-4): no se portan los renombres** (serían 369 ficheros nuevos
+  sin poder borrar los viejos y 209 más parcheados, 70 con parche nuestro); se usa el **traductor de diffs**
+  (`FlyWeb/tools/port/ngmap.py`, `ngtraducir.py`, `portarng.sh`; README). Etapas, cada una compilable, compilada aparte
+  por LOCAL y publicada en una 1.12.x:
   - **R1** `display: ruby`/`ruby-text` (bf262bd8d1 … e60ed2dd1a, más los arreglos 207a403ed2, 189fa20e6f, 259c7e28f1,
     988652b535 y 3748c5249f): unos 2 días.
   - **R2** inlinificación (62b922872d, d94ec8e798, `LayoutRubyAsInline` → `LayoutRuby`): unos 2 días.
@@ -524,13 +532,11 @@ sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). Si la fase 4 se mueve por el Stat
     *overhang*: 2–3 días.
   - **R5** unos 60 arreglos de caídas y DCHECK de RubyLB: 2–3 días.
 
-  Las estimaciones son sin medir *hunks*: la traducción de rutas impide usar `portar.sh` sin el traductor. Con el
-  límite semanal casi agotado (12-10), no se empieza. Propuesta para decidir: o RubyLB como tarea propia, con su propia
-  sesión y sus rondas de LOCAL, empezando por R1 y el traductor; o la alternativa a mano sobre el ruby de la 116 que
-  valoró MOTOR-2 (2–3 días, comportamiento aproximado). El resto del 128 no depende de esto.
-- **Falta para cerrar el nivel:** `ruby-align`, declarar 128 / 1.12 en `build/config.gni` (`flyweb_engine_level`,
-  `flyweb_version`, `flyweb_engine_full_version` de `local/huella-127`), la sección «Para la web» de
-  `version-1.12.md` y la lista de WPT.
+  Las estimaciones son de antes de medir *hunks*. Con el traductor, R1 rechaza 25 *hunks* de 13 commits; con *fuzz*
+  entran 8 y quedan 5 a mano, más las listas (`json5`, `mojom`). El resto del 128 no depende de RubyLB.
+- **Falta para cerrar la 1.12:** `flyweb_engine_full_version` del 128 (al rebasar sobre `seg/v8-12.8`, después de la
+  1.11.2), la sección «Para la web» de `version-1.12.md` y la lista de WPT. Declarados ya 128 / 1.12 en
+  `build/config.gni` (84735505). **Para cerrar el nivel 128:** RubyLB R1…R5 (1.12.x).
 - Comprobación: `FlyWeb/tools/motor-128.html`.
 
 ## Apuntado para niveles futuros
