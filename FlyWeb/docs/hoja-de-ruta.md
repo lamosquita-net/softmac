@@ -124,6 +124,17 @@ Sparkle, y la auditoría de red ya no muestra ningún destino de Brave.
 3. **Backend de ANGLE:** comparar OpenGL y Metal en las FirePro D300/D500/D700 de la 6,1 y en la GPU de la 5,1.
    Fijar el backend por defecto según la GPU detectada.
 4. OpenCL: Chromium no lo usa. No invertir en él sin un caso concreto medible.
+5. **Punto de decisión: WebGPU hacia el nivel ~140** (ARQUITECTURA por encargo del HUMANO, 12-10; F5.4 y F5.5).
+   WebGPU **sí existe en la 116** (Chrome lo publicó en la 113, con Dawn sobre Metal). Está apagado por seguridad
+   (paso 2 de `integracion.md`, `nube/webgpu-off`, CVE-2026-5281 de Dawn). Pasa a Baseline cuando lo publican Firefox
+   (141) y Safari (26), en verano y otoño de 2025, lo que en nuestro esquema cae hacia el nivel 140. Desde entonces, el
+   principio 2 de `motor.md` lo exige. **Comprobarlo en web-features al llegar:** Firefox 141 lo publicó solo en
+   Windows, y si los datos de compatibilidad lo marcan como parcial, todavía no cuenta como Baseline. Dos vías:
+   - **(a)** encender el Dawn de la 116, con sus CVE portadas por SEGURIDAD-PORTES;
+   - **(b)** portar un Dawn nuevo (Dawn, Tint, SPIR-V). Es un porte grande y puede exigir funciones de Metal que
+     Mojave no tiene.
+
+   Decide el dato de F5.5: si el Dawn de la 116 funciona sobre el Metal de Mojave en la 6,1 (D500) y en la 5,1.
 
 **Hito:** tabla de rendimiento por máquina y backend, con el backend por defecto decidido.
 
