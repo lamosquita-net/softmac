@@ -95,10 +95,12 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    ellas: cabeceras, `navigator.userAgentData` y User-Agent declaran lo mismo (versión completa real del Chrome N,
    `flyweb_engine_full_version` en `config.gni`; GREASE con la semilla N; marcas GREASE + `Chromium`, sin `Brave` ni
    `Google Chrome`). La medición de F4.8 (`tls.peet.ws` y la lista de sitios de la fila) entra en la receta de cada
-   nivel. **Propuesta de ARQUITECTURA, pendiente del sí del HUMANO:** `platformVersion` = la versión real de macOS si el
-   Chrome N la admite y, si no, la mínima que admite el Chrome N (127–128: 10.15.7; 129–138: 11.7.10; 139+: 12.7.6), en
-   `config.gni` y revisada en cada nivel. Choca con el principio 4 (se declara lo real), pero Chrome 127 en 10.14 es una
-   combinación que no existe.
+   nivel. **`platformVersion` (decisión del HUMANO, 12-10, a propuesta de ARQUITECTURA):** la versión real de macOS si el
+   Chrome N la admite; si no, la mínima que admite el Chrome N (127–128: 10.15.7; 129–138: 11.7.10; 139+: 12.7.6), en
+   `config.gni` y revisada en cada nivel contra los requisitos publicados de Chrome. Excepción al principio 4 por dos
+   motivos: Chrome 127 en 10.14 es una combinación que no existe (un antibot la lee como suplantación), y **privacidad**:
+   10.14.6 identifica a muy pocos usuarios, mientras que 10.15.7 es lo que ya dice el User-Agent congelado de todos los
+   Mac. Hecho en brave-core `local/huella-127` (1608096de2c).
 
 ## Tipos de trabajo y coste estimado
 
