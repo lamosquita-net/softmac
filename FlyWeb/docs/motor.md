@@ -503,8 +503,30 @@ sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). Si la fase 4 se mueve por el Stat
     `CompositedAnimationsCancelledAsynchronously`.
   - **Sin efecto o sin interés:** `SelectOptionAccessibilityTargetSize` (en Mac `<select>` usa el menú nativo),
     `BreakIteratorSetStartOffset` (solo rendimiento), `AutomaticFullscreenPermissionsQuery` (no es de la web).
-- **`ruby-align`: pendiente.** El HUMANO eligió el porte completo de la reescritura del ruby de upstream («RubyLB»).
-  Medición en FM.16.
+- **`ruby-align`: pendiente, medido (MOTOR-4, 12-10).** El HUMANO eligió el porte completo de la reescritura del ruby
+  de upstream («RubyLB»). Entre la rama de la 116 (26-06-2023) y la de la 128 (23-07-2024) hay **198 commits de ruby**,
+  125 con la etiqueta RubyLB. En los 122 más recientes (sin pruebas): 241 ficheros tocados, +2855/−1432 líneas. Los 76
+  más antiguos son `display: ruby`/`ruby-text` (nivel 121), la «inlinificación» y los renombres. **Lo que encarece el
+  porte no es el tamaño sino que casi todo cae en el núcleo del *layout* de línea** (`LineBreaker`, `InlineItem`,
+  `LogicalLineBuilder`, justificación, `FragmentItem`, pintado y *hit-testing*). Entre la 116 y la 128 hay además
+  **68 commits que renombran ficheros y clases de `layout/ng/inline`** (`NGLineBreaker` → `LineBreaker`,
+  `ng_line_breaker.cc` → `inline/line_breaker.cc`…), así que `portar.sh` no encuentra ningún fichero de la 116. Cada
+  *hunk* hay que traducirlo de rutas y de nombres, o escribir antes un traductor de diffs (rutas + símbolos `NG*`).
+  Plan por etapas, cada una compilable y compilada aparte por LOCAL:
+  - **R1** `display: ruby`/`ruby-text` (bf262bd8d1 … e60ed2dd1a, más los arreglos 207a403ed2, 189fa20e6f, 259c7e28f1,
+    988652b535 y 3748c5249f): unos 2 días.
+  - **R2** inlinificación (62b922872d, d94ec8e798, `LayoutRubyAsInline` → `LayoutRuby`): unos 2 días.
+  - **R3** núcleo de RubyLB (5fa2b39df5 … 1786fbc146: tipos `kOpen/CloseRubyColumn`, `LineBreaker` anidados,
+    `LogicalLineContainer`, líneas de anotación como `kLine` anidados, pintado, justificación): 1–2 semanas. **Riesgo
+    alto: afecta a todo el texto.**
+  - **R4** `ruby-align` (32f83cfafc, 4edb29252e, 24a2779462), alineación en los bordes de línea, heurística «short» y
+    *overhang*: 2–3 días.
+  - **R5** unos 60 arreglos de caídas y DCHECK de RubyLB: 2–3 días.
+
+  Las estimaciones son sin medir *hunks*: la traducción de rutas impide usar `portar.sh` sin el traductor. Con el
+  límite semanal casi agotado (12-10), no se empieza. Propuesta para decidir: o RubyLB como tarea propia, con su propia
+  sesión y sus rondas de LOCAL, empezando por R1 y el traductor; o la alternativa a mano sobre el ruby de la 116 que
+  valoró MOTOR-2 (2–3 días, comportamiento aproximado). El resto del 128 no depende de esto.
 - **Falta para cerrar el nivel:** `ruby-align`, declarar 128 / 1.12 en `build/config.gni` (`flyweb_engine_level`,
   `flyweb_version`, `flyweb_engine_full_version` de `local/huella-127`), la sección «Para la web» de
   `version-1.12.md` y la lista de WPT.
