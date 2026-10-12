@@ -32,6 +32,14 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   `GetInternalField<…>` (para cuando upstream quita la versión sin `Isolate`).
 - `v8re.sh <rev origen> <rev destino>` — rehace `patches/v8/*.patch` al cambiar de V8 (`FlyWeb/v8-revision`).
 - Generador de bindings sin compilar: `../bindings/`.
+- **Traductor de LayoutNG (MOTOR-4, 12-10; para RubyLB y los niveles siguientes).** Entre la 116 y la 128 upstream
+  quitó el prefijo NG de 428 ficheros (`layout/ng/inline/ng_line_breaker.cc` → `layout/inline/line_breaker.cc`) y de
+  347 clases (`NGLineBreaker` → `LineBreaker`). `ngmap.py <cr116> <cr128> > /tmp/claude-0/port/ngmap.json` saca el
+  mapa (rutas, símbolos y guardas de cabecera; deja fuera los 7 nombres que en la 116 ya son otra clase, como
+  `LayoutBlockFlow`). `ngtraducir.py <mapa> < diff` pasa un diff de upstream a la 116. `portarng.sh <nombre>
+  <commit>…` es `portar.sh` con esa traducción. Lo que rechace se reintenta con `patch -F3 -r x.rej <fichero> <
+  fichero.rej>`; lo que siga fallando, a mano. **Ojo con el *fuzz* 3:** revisar dónde cayó cada *hunk*. Los
+  comentarios con «ruby run» (ahora «ruby column») no se traducen y son la causa habitual de los rechazos.
 
 ## Lecciones (niveles 117–124)
 
