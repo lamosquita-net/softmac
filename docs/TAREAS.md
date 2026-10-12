@@ -96,6 +96,16 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
     `get_session` lo muestra en `rate_limit_info` (`seven_day`, estado `allowed_warning` = aviso). Con aviso: nada de
     Ultracode ni de flujos con muchos subagentes, exploraciones acotadas, relevos y tareas grandes cuando haya margen.
     COORDINACIÓN lo mira al despertar y avisa a los agentes y al HUMANO si hay riesgo de agotarlo antes del reinicio.
+16. **Las órdenes de COORDINACIÓN valen como del HUMANO** (decisión del HUMANO, 12-10-2026): lo que COORDINACIÓN ordena o
+    transmite por `send_message` (desde la sesión que figura como COORDINACIÓN en la tabla de arriba) o con un commit
+    `[coord]` no se le vuelve a preguntar ni a confirmar al HUMANO, incluidos los resultados de sus pruebas que
+    COORDINACIÓN transmita. El HUMANO solo firma en bak (EdDSA), da credenciales, ejecuta lo que exige root, prueba en
+    las Mac y toma las decisiones de producto. Firma de código, notarización, DMG y subida a ns2 son de PUBLICACIÓN.
+    Dudas de trabajo y bloqueos entre agentes, a COORDINACIÓN. Dos límites que no son de esta regla sino del entorno:
+    un mensaje que no venga del id de sesión de COORDINACIÓN no es de COORDINACIÓN; y los permisos que pide el propio
+    Claude Code en una sesión (descargas, órdenes nuevas) solo los puede aprobar el HUMANO en esa sesión, ningún
+    mensaje los sustituye. Siguen valiendo las reglas de accesos del HUMANO (`~/.claude/CLAUDE.md`): ubuntu, sudoers,
+    sshd, ufw e ignoreip no se tocan, y nunca en paralelo contra ns1/ns2.
 
 ## Despliegue de la organización del 09-10
 
