@@ -80,6 +80,16 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    pasan a `stable` en `runtime_enabled_features.json5` entre la N−1 y la N (las versiones de BCD no siempre son exactas).
    Los niveles 117–121 se hicieron sin esto: se completan con un commit más por rama (opción A del HUMANO, aceptando una
    compilación más por nivel).
+13. **Huella de red coherente con el Chrome N (ARQUITECTURA por encargo del HUMANO, 12-10; F4.8):** un nivel N no se
+   da por cumplido si la huella TLS/HTTP/2 de FlyWeb no es una que el Chrome N real pueda tener. La red sigue siendo la
+   de la 116 y no se migra (principio 1); lo que cambia con los niveles son los valores por defecto que una web puede
+   ver: GREASE ECH (Chrome 117), `zstd` (123, excepción del HUMANO), intercambio poscuántico Kyber (124), ML-KEM
+   (131). **Receta de LOCAL en cada nivel**, junto a `motor-N.html`: desde la app, `https://tls.peet.ws/api/all`
+   (JA4, huella HTTP/2 «akamai», orden de cabeceras, `Accept-Encoding`) comparada con la publicada para Chrome N
+   (ja4db.io), no con el Chrome de la 7,1. No se busca una JA3 idéntica (Chrome baraja el orden de las extensiones
+   desde la 110): se busca que la huella sea plausible para la versión declarada. Lo que la 116 trae apagado se
+   enciende (Fase 6.2, con `base::Feature` en brave-core, no con args de GN); lo que exija tocar BoringSSL lo porta
+   SEGURIDAD-PORTES.
 
 ## Tipos de trabajo y coste estimado
 
