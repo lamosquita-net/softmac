@@ -505,8 +505,9 @@ sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). Si la fase 4 se mueve por el Stat
     `BreakIteratorSetStartOffset` (solo rendimiento), `AutomaticFullscreenPermissionsQuery` (no es de la web).
 - **`ruby-align`: pendiente, medido (MOTOR-4, 12-10).** El HUMANO eligió el porte completo de la reescritura del ruby
   de upstream («RubyLB»). Entre la rama de la 116 (26-06-2023) y la de la 128 (23-07-2024) hay **198 commits de ruby**,
-  125 con la etiqueta RubyLB. En los 122 más recientes (sin pruebas): 241 ficheros tocados, +2855/−1432 líneas. Los 76
-  más antiguos son `display: ruby`/`ruby-text` (nivel 121), la «inlinificación» y los renombres. **Lo que encarece el
+  125 con la etiqueta RubyLB. Sin pruebas y sin 4 actualizaciones de dependencias que se cuelan en la búsqueda: unos
+  175 commits con código, ~580 ficheros tocados, **+6800/−3400 líneas**. Los más antiguos son `display: ruby`/`ruby-text`
+  (nivel 121), la «inlinificación» y los renombres. **Lo que encarece el
   porte no es el tamaño sino que casi todo cae en el núcleo del *layout* de línea** (`LineBreaker`, `InlineItem`,
   `LogicalLineBuilder`, justificación, `FragmentItem`, pintado y *hit-testing*). Entre la 116 y la 128 hay además
   **68 commits que renombran ficheros y clases de `layout/ng/inline`** (`NGLineBreaker` → `LineBreaker`,
