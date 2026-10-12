@@ -531,10 +531,13 @@ empieza hasta terminar RubyLB.** Sin freno por el límite semanal.
     `ConsoleMessage::Source`, `include` para `IsA<HTMLRTElement>` en `layout_object.h`, y `OriginalDisplay` (en la 116
     sigue siendo un campo `EDisplay`) con las mismas palabras clave que `Display` (`EDisplay` pasa a 6 bits; el tamaño
     de `ComputedStyle` no cambia). Comprobado con `chk.sh` y con los generadores de Blink (`gencss.sh`).
-  - **R2** inlinificación: 62b922872d, 207a403ed2, d94ec8e798 (activa `RubyInlinify`), 189fa20e6f, 988652b535 y
-    3748c5249f (estos cuatro usan la inlinificación, por eso no van en R1), b40c24e2e02, y la retirada de las flags
-    `CssDisplayRuby` y `RubySimplePairing` (f7690c6fbc, 7d0a83fd26), que upstream hizo antes de empezar el núcleo:
-    unos 2 días.
+  - **R2** inlinificación: **en código** (MOTOR-5, 13-10), `nube/motor-128-ruby` **4f1ee98b**, sin compilar.
+    62b922872d, 207a403ed2, d94ec8e798, 189fa20e6f, 988652b535 y 3748c5249f (los cuatro arreglos usan la
+    inlinificación, por eso no van en R1), y la retirada de las flags `CssDisplayRuby`, `RubySimplePairing`,
+    `RubyInlinify` y `BlockRubyWrappingInlineRuby` (f7690c6fbc, 7d0a83fd26, 88c8510c16d, 891de733b48): `<ruby>` y
+    `<rt>` pasan a ser `HTMLElement` normales (estilo en `html.css`) y `display: block ruby` siempre envuelve un ruby
+    anónimo. `html_rt_element.*`/`html_ruby_element.*` no se borran (los parches no borran ficheros): salen de
+    `build.gni` y nadie los usa. Lo que upstream ya hacía depender de `RubyLineBreakable` (59564502ef3) queda para R3.
   - **R3** núcleo de RubyLB (5fa2b39df5 … 1786fbc146: tipos `kOpen/CloseRubyColumn`, `LineBreaker` anidados,
     `LogicalLineContainer`, líneas de anotación como `kLine` anidados, pintado, justificación): 1–2 semanas. **Riesgo
     alto: afecta a todo el texto.**

@@ -1,8 +1,9 @@
 #!/bin/bash
 # Uso: gencss.sh <dir>  Comprueba sin compilar los json5 de Blink que tocan los portes de CSS/estilo: monta <dir>/src con
 # third_party/blink de /home/user/cr116 + los parches third_party-blink-* de /home/user/brave-core (rama actual) y
-# ejecuta los generadores de flags, ComputedStyle, palabras clave y propiedades CSS en <dir>/src/out/gen. Necesita en
-# cr116 (sparse) third_party/{mako,ply,pyjson5,jinja2,markupsafe} y build. Compara con el de otra rama con `diff -r`.
+# ejecuta los generadores de flags, ComputedStyle, palabras clave y propiedades CSS y elementos HTML en
+# <dir>/src/out/gen. Necesita en cr116 (sparse) third_party/{mako,ply,pyjson5,jinja2,markupsafe} y build. Compara
+# con el de otra rama con `diff -r`.
 set -u
 D=$1/src; C=/home/user/cr116; BC=/home/user/brave-core
 rm -rf "${D:?}"; mkdir -p $D/third_party $D/build $D/out
@@ -30,6 +31,9 @@ run $G/core/css/properties $S/core/css/properties/make_css_property_subclasses.p
   $R/core/css/properties/css_property_methods.json5 $GP
 run $G/core/css/properties $S/core/css/properties/make_css_property_instances.py $CSS $GP
 run $G/core $S/core/css/make_cssom_types.py $CSS $GP
+run $G/core $S/make_element_factory.py $R/core/html/aria_properties.json5 $R/core/html/html_tag_names.json5 \
+  $R/core/html/html_attribute_names.json5 --generate_tag_enum
+run $G/core $S/make_element_type_helpers.py $R/core/html/html_tag_names.json5
 command -v gperf >/dev/null && { run $G/core/css $S/core/css/make_css_property_names.py $CSS $GP
   run $G/core $S/core/css/make_css_value_keywords.py $R/core/css/css_value_keywords.json5 $GP; } \
   || echo "sin gperf: no se generan css_property_names ni css_value_keywords"

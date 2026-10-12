@@ -21,8 +21,11 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   (`git show <commit>:<fichero>.rej`). Con `STEP=1` solo monta y guarda los diffs.
 - `mkws.sh <nombre> <fichero>…` — igual pero para portes a mano (sin commits de upstream).
 - `generar.sh <nombre>` — escribe los `.patch` de `w-<nombre>` en `brave-core/patches` (diff desde la 116, incluye lo de Brave).
+  Con `BASE_REF=<rama de brave-core de la que salió el porte>` borra además los parches que creó el porte para ficheros
+  que vuelven a quedar como en la 116; sin `BASE_REF` solo avisa.
 - `fixnew.sh` — lo llama `generar.sh`: rehace un parche de «fichero nuevo» si el fichero sí existe en la 116.
-- `chk.sh <rama>` — comprueba que todos los parches de la rama aplican sobre la 116 (el único aviso conocido es el
+- `chk.sh <rama> [<base>]` — comprueba que todos los parches de la rama (con `<base>`, solo los que cambian desde ahí)
+  aplican sobre la 116 (el único aviso conocido es el
   espacio final de `ui-views-controls-menu-menu_separator.cc.patch`, que aplica igual).
 - `addflag.py <json5> <Nombre> <status>` — inserta una flag en `runtime_enabled_features.json5` en orden.
 - `addfiles.sh <nombre> <commit>…` — añade a `w-<nombre>`, ya montado, los ficheros de esos commits que aún no estén
