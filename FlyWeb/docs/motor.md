@@ -472,6 +472,44 @@ lo descartado.
   compilar. Aparcado mientras se compilaba la 1.10; **desaparcado por el HUMANO el 09-10** con sus arreglos fusionados
   (cabeza `nube/motor-127` **639a7a71**, con los dos portes de arriba).
 
+## Nivel 128 (en código desde el 12-10, a medias; pendiente de compilar → FlyWeb 1.12)
+
+Baseline de Chrome 128 y flags que pasan a `stable` entre la 127.0.6533.144 y la 128.0.6613.194 (inventario de MOTOR-2 en
+FM.16). Por decisión del HUMANO, el 128 va **sobre la V8 12.8** de FM.17: rama brave-core **`nube/motor-128`**, apilada
+sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). Si la fase 4 se mueve por el Static de FM.17, esta rama se rebasa.
+**Sin excepciones** salvo lo que se anota abajo. LOCAL no la compila hasta que compile FM.17.
+
+- **V8 12.8.374.38**: llega con FM.17 (`Promise.try` viene de serie, sin porte).
+- **`document.caretPositionFromPoint()`** (2922bcaa; feecdfbca29, 1b5fb86a995, 7d0dfc27610, 6635e2d6e41, 85e3baa70a3,
+  439b835b5c0, eae54e1bf13): interfaz `CaretPosition` (`offsetNode`, `offset`, `getClientRect()`), diccionario
+  `CaretPositionFromPointOptions` con `shadowRoots`, y en controles de texto devuelve el propio control. A mano las
+  listas (`idl_in_core.gni`, `document.h`, `document.idl`, contador 4970, flag). La 116 tiene `NGCaretPosition`, así
+  que no hace falta el cambio de nombre de upstream (2ce426b3a16).
+- **`Element.currentCSSZoom`** (9590abf1; 6413e659bde + 4c05a0c8ccd): upstream la pone tras `StandardizedBrowserZoom`,
+  que no se porta (cambia el modelo de zoom de todo el motor), así que se expone sin flag y se divide por
+  `StyleResolver::InitialZoom()` para quitar el zoom del navegador, igual que 4c05a0c8ccd.
+- **`aria-colindextext` / `aria-rowindextext`** (e6614bc4; d1d8fd04816 + ec7a2121a01): reflejo en `ariaColIndexText`/
+  `ariaRowIndexText` y al árbol de accesibilidad (`StringAttribute` 39/40, `[MinVersion=4]` porque la 116 está en la
+  versión 4).
+- **Interoperabilidad** (flags a `stable` en el 128, medidas al portar):
+  - Portadas: `SelectTypeToSearchIgnoreAccents` (75b93522, 04dbfcbf633: la búsqueda al teclear en `<select>` ignora los
+    acentos), `HTMLMenuElementIsListOwner`, `KeepCSSTargetAfterReattach` y `SvgGradientColorInterpolationLinearRgbSupport`
+    (b96fee3e, un sitio cada una), `ModifyParagraphCrossEditingoundary` (c5642ecb, a95016b950e) e
+    `InlineCursorMultiColFix` (bdc358f6, 46e80444197, a mano: caída en multicolumna).
+  - **Fuera por coste** (dependen de código posterior a la 116; varios commits cada una):
+    `PreserveFollowingBlockStylesDuringBlockMerge`, `DropUrlAsPlainTextInPlainTextOnlyEditablePosition`,
+    `HandleDeletionWithNonEditableContentAtBlockBoundary`, `LabelAndDelegatesFocusNewHandling` (el foco de la 116 usa
+    `IsMouseFocusable`/`DelegatesFocus`), `CssDecoratingBoxFirstLine` (otra estructura de `InlinePaintContext`) y
+    `CompositedAnimationsCancelledAsynchronously`.
+  - **Sin efecto o sin interés:** `SelectOptionAccessibilityTargetSize` (en Mac `<select>` usa el menú nativo),
+    `BreakIteratorSetStartOffset` (solo rendimiento), `AutomaticFullscreenPermissionsQuery` (no es de la web).
+- **`ruby-align`: pendiente.** El HUMANO eligió el porte completo de la reescritura del ruby de upstream («RubyLB»).
+  Medición en FM.16.
+- **Falta para cerrar el nivel:** `ruby-align`, declarar 128 / 1.12 en `build/config.gni` (`flyweb_engine_level`,
+  `flyweb_version`, `flyweb_engine_full_version` de `local/huella-127`), la sección «Para la web» de
+  `version-1.12.md` y la lista de WPT.
+- Comprobación: `FlyWeb/tools/motor-128.html`.
+
 ## Apuntado para niveles futuros
 
 - **143 — `onselectionchange` como atributo de elemento** (`<div onselectionchange=…>`, `setAttribute`): Chromium
