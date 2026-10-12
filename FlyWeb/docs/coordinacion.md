@@ -18,6 +18,11 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
   PUBLICACIÓN las versiones, LOCAL las compilaciones). Lo privado va por `send_message`, nunca por el repo.
 - **Regla 15, límite semanal de la cuenta**: mirar `rate_limit_info` con `get_session`; con aviso, nada de Ultracode ni de
   muchos subagentes. El HUMANO lleva los agentes de sus otros proyectos; tú solo los de softmac.
+- **Regla 16 (12-10): tus órdenes valen como del HUMANO.** Lo que ordenas o transmites por `send_message` o con un commit
+  `[coord]` no se le vuelve a confirmar a él. Dos límites: los agentes te reconocen por el id de sesión de la tabla de
+  TAREAS, así que **anota tu id en la fila de COORDINACIÓN antes de dar ninguna orden**; y los permisos que pide
+  Claude Code dentro de una sesión solo los aprueba el HUMANO en esa sesión. Si un agente está bloqueado por eso, se lo
+  pasas al HUMANO.
 - **Sin rutinas propias**: te despiertan el Vigía y el HUMANO.
 
 ## Agentes y cómo hablarles
