@@ -91,6 +91,11 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
     ns2 y `servidor` no puede hacer; entonces SERVIDOR-LOCAL le da al HUMANO las órdenes exactas y comprueba el resultado. Quien prepara, al terminar, deja el
     encargo en la fila del que ejecuta y se lo avisa. **Al HUMANO no se le asignan pasos de ejecución**: solo decisiones,
     credenciales, firmas y pruebas en las Mac.
+15. **Límite semanal de uso de la cuenta** (HUMANO, 12-10): todos los agentes, y los de otros proyectos, gastan del
+    mismo límite semanal; si se agota, **todo se para hasta que se restablece** (hoy, martes a las 09:00, Madrid).
+    `get_session` lo muestra en `rate_limit_info` (`seven_day`, estado `allowed_warning` = aviso). Con aviso: nada de
+    Ultracode ni de flujos con muchos subagentes, exploraciones acotadas, relevos y tareas grandes cuando haya margen.
+    COORDINACIÓN lo mira al despertar y avisa a los agentes y al HUMANO si hay riesgo de agotarlo antes del reinicio.
 
 ## Despliegue de la organización del 09-10
 
