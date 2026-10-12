@@ -12,7 +12,7 @@ contexto al 46 %. MOTOR-5: Opus 5.5, esfuerzo extra. Leer esta sección, la fila
 | `nube/v8-12.8-fase4` | 493c8998 | FM.17 fase 4: V8 12.8 + flags caducados, con visto bueno de SEGURIDAD-PORTES |
 | `seg/v8-12.8` | f8cbd8c9 | FS.10, de SEGURIDAD-PORTES sobre 493c8998, época 10. **La 1.11.2 sale de aquí** |
 | `nube/motor-128` | 84735505 | Nivel 128 sin `ruby-align` = **1.12** (decisión del HUMANO): 7 portes + declara 128/1.12 |
-| `nube/motor-128-ruby` | = 84735505 | Creada en local, sin commits: aquí va RubyLB, un commit y un push por paso |
+| `nube/motor-128-ruby` | = 84735505 | Subida, sin commits propios: aquí va RubyLB, un commit y un push por paso |
 
 **Lo que queda, en orden (órdenes de COORDINACIÓN-4, 12-10):**
 1. **RubyLB por etapas** en `nube/motor-128-ruby`: R1 `display: ruby` → R2 inlinificación → R3 núcleo → R4
