@@ -180,3 +180,13 @@ GREASE + `Chromium`, sin `Brave` ni `Google Chrome`. Se quedan como están, por 
 10.15). En un Mac con Mojave, FlyWeb declararía Chrome 127 con `platformVersion` `10.14.x`, una combinación imposible para
 un antibot que pida esa *hint*. El UA ya dice siempre `10_15_7` (está congelado). Opción: declarar como mínimo `10.15.7`.
 Sin hacer: no lo he medido en la 6,1.
+
+**Mojave (6,1, macOS 10.14.6; `herramientas/mojave-uach.sh`).** Prueba hecha con la FlyWeb 1.3 que hay en su Escritorio,
+que tiene la misma lógica de UA y Client Hints de la 116, con `--enable-features=AllowCertainClientHints` y un eco local con
+`Accept-CH` (`herramientas/eco-accept-ch.py`, por túnel a `localhost`, que es contexto seguro):
+- UA: `Intel Mac OS X 10_15_7` también en 10.14.6 (congelada): **bien**.
+- `navigator.userAgentData.platform` = `"macOS"`: **bien**.
+- `sec-ch-ua-platform-version` solo sale en la segunda petición, tras el `Accept-CH`: **bien**.
+- Pero vale **`"10.14.0"`** (10.14.6 con el parche puesto a 0 por Brave): la incoherencia «Chrome 127 + Mojave».
+  `local/huella-127` 2.º commit: nunca menos que `flyweb_min_macos_version` (10.15.7 para el 127), pendiente del HUMANO.
+- La cabecera vuelve a declarar la 116 (`"Chromium";v="116"`): es el mismo fallo de arriba, ya arreglado en la rama.
