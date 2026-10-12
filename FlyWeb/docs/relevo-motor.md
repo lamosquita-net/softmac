@@ -1,3 +1,61 @@
+# Relevo de MOTOR: de MOTOR-4 a MOTOR-5 (12-10-2026, ~23:10)
+
+MOTOR-4 (`session_01TF1UZA4dTDReaRJUfTC5fU`, Opus 5.5, esfuerzo extra) deja el trabajo al empezar RubyLB, con el
+contexto al 46 %. MOTOR-5: Opus 5.5, esfuerzo extra. Leer esta sección, la fila FM.16 de `docs/TAREAS.md` y
+`motor.md` «Nivel 128». En esta sesión no hay nada a medio escribir ni sin subir.
+
+**Ramas de brave-core:**
+
+| Rama | Cabeza | Qué |
+|---|---|---|
+| `nube/v8-12.8-api` | e9c4ad85 | FM.17, fases 0–3. LOCAL hace el Static/ASan |
+| `nube/v8-12.8-fase4` | 493c8998 | FM.17 fase 4: V8 12.8 + flags caducados, con visto bueno de SEGURIDAD-PORTES |
+| `seg/v8-12.8` | f8cbd8c9 | FS.10, de SEGURIDAD-PORTES sobre 493c8998, época 10. **La 1.11.2 sale de aquí** |
+| `nube/motor-128` | 84735505 | Nivel 128 sin `ruby-align` = **1.12** (decisión del HUMANO): 7 portes + declara 128/1.12 |
+| `nube/motor-128-ruby` | = 84735505 | Creada en local, sin commits: aquí va RubyLB, un commit y un push por paso |
+
+**Lo que queda, en orden (órdenes de COORDINACIÓN-4, 12-10):**
+1. **RubyLB por etapas** en `nube/motor-128-ruby`: R1 `display: ruby` → R2 inlinificación → R3 núcleo → R4
+   `ruby-align` → R5 arreglos. LOCAL compila cada etapa aparte; saldrán en 1.12.1, 1.12.2… **El 129 no empieza hasta
+   terminar RubyLB.** Plan y medición en `motor.md` «Nivel 128».
+2. **R0, decidido: no se portan los renombres de LayoutNG.** Serían 369 ficheros nuevos, sin poder borrar los viejos,
+   y 209 más parcheados por los nombres (70 con parche nuestro). Se usa el traductor de diffs
+   (`FlyWeb/tools/port/ngmap.py`, `ngtraducir.py`, `portarng.sh`; README).
+3. **R1, ya probado** con `portarng.sh r1 fff250bc61 8e6792e47d f47ea0a5a5 d1aceb95f2 e63c1d7cf2 bf262bd8d1 bdb9aad17f
+   8b01cfed9a d4967df6da f551901fad 10fc889f33 37da5ae3a9 e60ed2dd1a` (163df85f89 y su revert, fuera: va el *reland*
+   d4967df6da). Rechaza 25 *hunks*. Los de `json5`/`mojom`, a mano (`addflag.py`, contadores en orden). Con `patch
+   -F3` entran 8 más. Quedan 5 a mano:
+   - `layout_ruby.cc`: `RemoveChild` y `DidRemoveChildFromColumn`.
+   - `layout_ng_ruby_as_block.cc`: lo mismo.
+   - `layout_ng_ruby_base.h`: `IsPlaceholder`.
+   - `ng_block_layout_algorithm.cc`: la limpieza f47ea0a5a5 de `HandleRubyText`; si nada posterior la pide, se puede
+     quitar de la cadena.
+   - `longhands_custom.cc`: `IsDisplayInside` con `kRuby`.
+
+   Faltan después los arreglos de R1 (207a403ed2, 189fa20e6f, 259c7e28f1, 988652b535, 3748c5249f) y la retirada de
+   flags (f7690c6fbc, 58b8c97874, 7d0a83fd26).
+4. **1.11.2**: cuando LOCAL dé el Static de 493c8998, montar `local/huella-127` + `flyweb_version` 1.11.2 **sobre
+   `seg/v8-12.8` f8cbd8c9** (no sobre 493c8998). `flyweb_engine_full_version` del 127.
+5. **Al cerrar la 1.11.2**: rebasar `nube/motor-128` (y `-ruby`) sobre `seg/v8-12.8` (solo difieren en `patches/v8`);
+   en la 1.12, `flyweb_engine_full_version` del 128. **No tocar `patches/v8/` sin avisar a SEGURIDAD-PORTES.**
+6. Si el Static de LOCAL de e9c4ad85 o de 493c8998 da fallos: los arreglos van primero en esas ramas y todo lo de
+   encima se rebasa.
+
+**Trampas nuevas:**
+- `brave-core` en el contenedor es un clon `--depth 60`; para ramas viejas, `git fetch --depth`.
+- `git show` en el clon `tree:0` de Chromium es lento con commits grandes, porque baja árbol a árbol: 198 commits
+  tardaron unos 40 minutos. Lánzalo en segundo plano.
+- `cr128` (copia parcial de la 128.0.6613.194: `third_party/blink`) sirve para ver el código final de upstream que
+  protege una flag.
+- La lista de commits de ruby está en `/tmp/claude-0/ruby-128.txt` de esta sesión. No se conserva: se rehace con
+  `git log --grep=ruby -i` entre el 26-06-2023 y el 23-07-2024.
+
+**Mediciones de MOTOR-4** (Opus 5.5, extra; `get_session`): 12-10, 18:36–23:05 UTC, unos 230 turnos, salida 143 k,
+caché leída 54,9 M, escrita 413 k, entrada sin caché 412. Fase 4 de FM.17 (18:36–18:50): 90 turnos, salida 52 k, caché
+16,3 M; retrabajo tras la revisión: 0. Nivel 128 (sin RubyLB) y medición de RubyLB: el resto.
+
+---
+
 # Relevo de MOTOR: de MOTOR-3 a MOTOR-4 (12-10-2026)
 
 MOTOR-3 (`session_01UiNp8ASzm2Sn5mbDycomnk`, Opus 5.5, esfuerzo extra) deja FM.17 al cerrar la fase 3, con el contexto
