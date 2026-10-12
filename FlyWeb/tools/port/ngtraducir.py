@@ -5,7 +5,7 @@ Pasa un diff de upstream (posterior a los renombres de LayoutNG) a las rutas, lo
 cabecera de la 116, con el mapa de ngmap.py. No toca los identificadores ambiguos (los lista en stderr si aparecen).
 Las líneas `index` se quitan: el diff resultante se aplica con `git apply --reject` o `patch`, no a tres bandas.
 """
-import json, re, sys
+import json, os, re, sys
 
 m = json.load(open(sys.argv[1]))
 paths, syms, guards = m['paths'], m['syms'], m['guards']
@@ -23,11 +23,29 @@ amb = set(m.get('ambiguous', []))
 seen_amb = set()
 same = set(m.get('same_paths', []))
 seen_same = set()
+base, files116 = m.get('base', {}), set(m.get('files116', []))
+seen_mid = {}
+any_path_re = re.compile(r'third_party/blink/renderer/[\w/.-]+\.(?:h|cc|mm)\b')
+
+
+def mid(x):
+    # Ruta intermedia de upstream (ni de la 116 ni del mapa): por el nombre canónico, si es único en la 116.
+    p = x.group(0)
+    if p in files116 or p in same or p in paths.values():
+        return p
+    b = os.path.basename(p)
+    cb = b[3:] if b.startswith('ng_') else b.replace('layout_ng_', 'layout_')
+    if cb in base:
+        seen_mid[p] = base[cb]
+        return base[cb]
+    return p
 
 
 def tr(text):
     if path_re:
         text = path_re.sub(lambda x: paths[x.group(0)], text)
+    if files116 and ('#include' in text or text.startswith(('diff --git', '--- ', '+++ '))):
+        text = any_path_re.sub(mid, text)
     if guard_re:
         text = guard_re.sub(lambda x: guards[x.group(0)], text)
     if sym_re:
@@ -65,6 +83,9 @@ for line in sys.stdin:
         sys.stdout.write(line)
 if seen_amb:
     print('AMBIGUOS sin traducir: ' + ' '.join(sorted(seen_amb)), file=sys.stderr)
+if seen_mid:
+    print('RUTAS intermedias traducidas por el nombre: ' + ' '.join(f'{a}->{b}' for a, b in sorted(seen_mid.items())),
+          file=sys.stderr)
 if seen_same:
     print('RUTAS que también existen en la 116 (sin traducir; en upstream es la clase fusionada con la NG, mirar a '
           'qué clase de la 116 corresponde cada hunk): ' + ' '.join(sorted(seen_same)), file=sys.stderr)

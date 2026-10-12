@@ -542,6 +542,11 @@ RubyLB.** Sin freno por el límite semanal.
   - **R3** núcleo de RubyLB (5fa2b39df5 … 1786fbc146: tipos `kOpen/CloseRubyColumn`, `LineBreaker` anidados,
     `LogicalLineContainer`, líneas de anotación como `kLine` anidados, pintado, justificación): 1–2 semanas. **Riesgo
     alto: afecta a todo el texto.**
+    **R3a en código** (MOTOR-5, 13-10, **e727339d**): flag `RubyLineBreakable` (apagada, como upstream hasta el R5),
+    ítems `kOpen/CloseRubyColumn`, `SetInputRange()`, y `ComputeRubyEmHeightBox()` como envoltorio del
+    `ScrollableOverflow(kEmHeight)` de la 116 en vez de portar cd1e15bd751/fe91db7955b/b40c24e2e02. Ensayo completo:
+    104 commits, 251 hunks rechazados en 65 (lista y cifras en `FlyWeb/tools/port/rubylb-r3.tsv`). Sigue MOTOR-6
+    desde 4a4c18ebbdd (`LogicalLineBuilder`).
   - **R4** `ruby-align` (32f83cfafc, 4edb29252e, 24a2779462), alineación en los bordes de línea, heurística «short» y
     *overhang*: 2–3 días.
   - **R5** unos 60 arreglos de caídas y DCHECK de RubyLB: 2–3 días.

@@ -86,10 +86,20 @@ def main(c116, c128):
         if f.endswith(('.h', '.cc')):
             code = re.sub(r'//[^\n]*|"(?:\\.|[^"\\\n])*"', '', open(os.path.join(c116, f), errors='ignore').read())
             calls.update(n for n in call_re.findall(code) if n in sym)
+    # Rutas intermedias de upstream (ficheros renombrados dos veces, p. ej. ng/physical_fragment_rare_data.cc o
+    # layout/layout_text_combine.h entre la 116 y la 128): por el nombre sin «ng_»/«layout_ng_», si es único.
+    base = {}
+    for f in f116:
+        b = os.path.basename(f)
+        if '/ng/' in f or b.startswith(('ng_', 'layout_ng_')):
+            cb = b[3:] if b.startswith('ng_') else b.replace('layout_ng_', 'layout_')
+            base.setdefault(cb, []).append(f)
+    base = {k: v[0] for k, v in base.items() if len(v) == 1}
     paths = {g: f for f, g in ren.items()}
     guards = {guard(g): guard(f) for g, f in paths.items() if g.endswith('.h')}
     json.dump({'paths': paths, 'syms': sym, 'guards': guards, 'ambiguous': sorted(ambiguous),
-               'calls': sorted(calls), 'same_paths': sorted(same)}, sys.stdout, indent=0, sort_keys=True)
+               'calls': sorted(calls), 'same_paths': sorted(same), 'base': base, 'files116': sorted(f116)},
+              sys.stdout, indent=0, sort_keys=True)
     print(f'ficheros {len(paths)}, símbolos {len(sym)}, ambiguos {len(ambiguous)}, también métodos {len(calls)}, '
           f'rutas que ya existen en la 116 {len(same)}', file=sys.stderr)
 

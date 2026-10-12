@@ -49,7 +49,11 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   `result->NGPhysicalFragment()`). **9 rutas nuevas ya existen en la 116** (`layout/layout_block_flow.cc`,
   `layout_view.cc`, `paint/text_painter.cc`…; lista `same_paths`): upstream fusionó ahí la clase NG, pero en la 116
   son la clase base, así que no se traducen y `ngtraducir.py` avisa («RUTAS que también existen») para decidir a mano
-  si el hunk va en la clase base o en la NG (antes se mandaba todo a `ng/layout_ng_block_flow.cc`).
+  si el hunk va en la clase base o en la NG (antes se mandaba todo a `ng/layout_ng_block_flow.cc`). Las **rutas
+  intermedias** de upstream (ficheros renombrados dos veces entre la 116 y la 128, como `layout/layout_text_combine.h`)
+  se traducen por el nombre sin «ng_» si es único en la 116 (aviso «RUTAS intermedias»).
+- **RubyLB:** `rubylb-r3.tsv` (R3 en orden, con los rechazos del ensayo) y `ruby-116-128.txt` (los 198 commits de ruby
+  entre la 116 y la 128).
 - **Paso a paso con el traductor (MOTOR-5, RubyLB):** `STEP=1 portarng.sh <nombre> <commit>…` monta el área y guarda
   los `<commit>.ng.diff`; `ap.sh <nombre> <commit>` aplica uno con `--reject` y lista los rechazos; se arreglan a mano y se
   hace commit en el área antes del siguiente (así los `.rej` de un commit no pisan los del anterior).
