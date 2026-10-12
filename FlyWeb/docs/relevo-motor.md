@@ -58,6 +58,7 @@ caché leída / caché escrita):
 | Arranque + plan + 0 + 1 | 14:42–15:26 | 177 | 362 | 150 239 | 53,1 M | 434 k | 0 |
 | 2 | 15:26–16:12 | 159 | 318 | 138 032 | 99,9 M | 318 k | 0 |
 | 3 (incluye una compactación) | 16:12–16:56 | 232 | 464 | 166 780 | 65,2 M | 397 k | pendiente de la revisión |
+| 4 (MOTOR-4, `session_01TF1UZA4dTDReaRJUfTC5fU`; incluye arranque y relevo) | 18:36–18:50 | 90 | 180 | 51 540 | 16,3 M | 203 k | pendiente de la revisión |
 
 El `usage` de `get_session` no se actualizó desde las 15:25 (16,86 USD en ese momento). `rate_limit_info`:
 `seven_day`, `allowed_warning`, sin porcentaje; se restablece el martes 13 a las 09:00 de Madrid.
