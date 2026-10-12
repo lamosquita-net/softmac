@@ -522,9 +522,19 @@ empieza hasta terminar RubyLB.** Sin freno por el límite semanal.
   sin poder borrar los viejos y 209 más parcheados, 70 con parche nuestro); se usa el **traductor de diffs**
   (`FlyWeb/tools/port/ngmap.py`, `ngtraducir.py`, `portarng.sh`; README). Etapas, cada una compilable, compilada aparte
   por LOCAL y publicada en una 1.12.x:
-  - **R1** `display: ruby`/`ruby-text` (bf262bd8d1 … e60ed2dd1a, más los arreglos 207a403ed2, 189fa20e6f, 259c7e28f1,
-    988652b535 y 3748c5249f): unos 2 días.
-  - **R2** inlinificación (62b922872d, d94ec8e798, `LayoutRubyAsInline` → `LayoutRuby`): unos 2 días.
+  - **R1** `display: ruby`/`ruby-text`: **en código** (MOTOR-5, 12-10), brave-core `nube/motor-128-ruby` **1e042ac6**,
+    sin compilar. 16 commits de upstream: fff250bc61, 8e6792e47d, f47ea0a5a5, d1aceb95f2, e63c1d7cf2, bf262bd8d1,
+    bdb9aad17f, 8b01cfed9a (`RubyContainer`), d4967df6da, f551901fad, 10fc889f33, 37da5ae3a9, e60ed2dd1a, 259c7e28f1
+    (`display: block ruby` envuelve un `ruby` anónimo), b70e524a7f9 (*display lock*) y 58b8c97874 (fuera
+    `BlockRubyConsoleMessage`). Flags `CssDisplayRuby`, `RubySimplePairing` y `BlockRubyWrappingInlineRuby` en `stable`.
+    Adaptado a la 116: el analizador de `display` aún con `CSSDisplayMultipleValues`, sin alias
+    `ConsoleMessage::Source`, `include` para `IsA<HTMLRTElement>` en `layout_object.h`, y `OriginalDisplay` (en la 116
+    sigue siendo un campo `EDisplay`) con las mismas palabras clave que `Display` (`EDisplay` pasa a 6 bits; el tamaño
+    de `ComputedStyle` no cambia). Comprobado con `chk.sh` y con los generadores de Blink (`gencss.sh`).
+  - **R2** inlinificación: 62b922872d, 207a403ed2, d94ec8e798 (activa `RubyInlinify`), 189fa20e6f, 988652b535 y
+    3748c5249f (estos cuatro usan la inlinificación, por eso no van en R1), b40c24e2e02, y la retirada de las flags
+    `CssDisplayRuby` y `RubySimplePairing` (f7690c6fbc, 7d0a83fd26), que upstream hizo antes de empezar el núcleo:
+    unos 2 días.
   - **R3** núcleo de RubyLB (5fa2b39df5 … 1786fbc146: tipos `kOpen/CloseRubyColumn`, `LineBreaker` anidados,
     `LogicalLineContainer`, líneas de anotación como `kLine` anidados, pintado, justificación): 1–2 semanas. **Riesgo
     alto: afecta a todo el texto.**
@@ -532,8 +542,10 @@ empieza hasta terminar RubyLB.** Sin freno por el límite semanal.
     *overhang*: 2–3 días.
   - **R5** unos 60 arreglos de caídas y DCHECK de RubyLB: 2–3 días.
 
-  Las estimaciones son de antes de medir *hunks*. Con el traductor, R1 rechaza 25 *hunks* de 13 commits; con *fuzz*
-  entran 8 y quedan 5 a mano, más las listas (`json5`, `mojom`). El resto del 128 no depende de RubyLB.
+  Las estimaciones son de antes de medir *hunks*. En R1, con el traductor corregido (MOTOR-5: no traduce los nombres
+  que en la 116 son métodos, como `PhysicalFragment()`), se rechazaron 27 *hunks* de 16 commits, todos resueltos a
+  mano uno a uno. Portar antes el renombre «ruby run» → «ruby column» (257af3736c2) no compensa: tiene 19 rechazos
+  propios y solo quita 4. El resto del 128 no depende de RubyLB.
 - **Falta para cerrar la 1.12:** `flyweb_engine_full_version` del 128 (al rebasar sobre `seg/v8-12.8`, después de la
   1.11.2), la sección «Para la web» de `version-1.12.md` y la lista de WPT. Declarados ya 128 / 1.12 en
   `build/config.gni` (84735505). **Para cerrar el nivel 128:** RubyLB R1…R5 (1.12.x).

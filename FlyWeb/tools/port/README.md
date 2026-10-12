@@ -40,6 +40,23 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   <commit>…` es `portar.sh` con esa traducción. Lo que rechace se reintenta con `patch -F3 -r x.rej <fichero> <
   fichero.rej>`; lo que siga fallando, a mano. **Ojo con el *fuzz* 3:** revisar dónde cayó cada *hunk*. Los
   comentarios con «ruby run» (ahora «ruby column») no se traducen y son la causa habitual de los rechazos.
+  **37 nombres nuevos son también métodos en la 116** (`PhysicalFragment()`, `ContainingBlock()`, `ConstraintSpace()`,
+  `BreakToken()`…; lista `calls` del mapa): seguidos de «(» no se traducen, y `ngtraducir.py` avisa («LLAMADAS sin
+  traducir») para revisar si alguno era un constructor de la clase renombrada (MOTOR-5, 12-10; antes salía
+  `result->NGPhysicalFragment()`). **9 rutas nuevas ya existen en la 116** (`layout/layout_block_flow.cc`,
+  `layout_view.cc`, `paint/text_painter.cc`…; lista `same_paths`): upstream fusionó ahí la clase NG, pero en la 116
+  son la clase base, así que no se traducen y `ngtraducir.py` avisa («RUTAS que también existen») para decidir a mano
+  si el hunk va en la clase base o en la NG (antes se mandaba todo a `ng/layout_ng_block_flow.cc`).
+- **Paso a paso con el traductor (MOTOR-5, RubyLB):** `STEP=1 portarng.sh <nombre> <commit>…` monta el área y guarda
+  los `<commit>.ng.diff`; `ap.sh <nombre> <commit>` aplica uno con `--reject` y lista los rechazos; se arreglan a mano y se
+  hace commit en el área antes del siguiente (así los `.rej` de un commit no pisan los del anterior).
+  `addfilesng.sh <nombre> <commit>…` traduce más commits y añade al área los ficheros que falten.
+- `gencss.sh <dir>` — ejecuta sin compilar los generadores de Blink de flags (`runtime_enabled_features.json5`),
+  `ComputedStyle` (`computed_style_extra_fields.json5`), palabras clave y propiedades CSS sobre la 116 + los parches
+  `third_party-blink-*` de la rama actual. Detecta listas incoherentes (p. ej. dos campos con el mismo `type_name` y
+  distintas palabras clave) y el paso de bits de los campos. Necesita `gperf` (`apt-get install gperf`) y, en
+  `cr116`, `git sparse-checkout add third_party/mako third_party/ply third_party/pyjson5 third_party/jinja2
+  third_party/markupsafe build`. Para ver qué cambia, se ejecuta también con la rama base y `diff -r`.
 
 ## Lecciones (niveles 117–124)
 

@@ -13,10 +13,16 @@ path_re = re.compile('|'.join(re.escape(p) for p in sorted(paths, key=len, rever
 # Rutas sin «third_party/blink/renderer/» (las de los #include van completas; las de los .gni, relativas).
 short = {p.split('third_party/blink/renderer/', 1)[1]: f.split('third_party/blink/renderer/', 1)[1]
          for p, f in paths.items()}
-sym_re = re.compile(r'\b(' + '|'.join(sorted(map(re.escape, syms), key=len, reverse=True)) + r')\b') if syms else None
+# Los nombres que en la 116 también son métodos no se traducen delante de «(» (`->PhysicalFragment()` sigue igual).
+calls = set(m.get('calls', []))
+sym_re = re.compile(r'\b(' + '|'.join(sorted(map(re.escape, syms), key=len, reverse=True)) + r')\b(\s*\()?') \
+    if syms else None
+seen_calls = set()
 guard_re = re.compile('|'.join(sorted(map(re.escape, guards), key=len, reverse=True))) if guards else None
 amb = set(m.get('ambiguous', []))
 seen_amb = set()
+same = set(m.get('same_paths', []))
+seen_same = set()
 
 
 def tr(text):
@@ -25,14 +31,24 @@ def tr(text):
     if guard_re:
         text = guard_re.sub(lambda x: guards[x.group(0)], text)
     if sym_re:
-        text = sym_re.sub(lambda x: syms[x.group(1)], text)
+        text = sym_re.sub(sym_sub, text)
     return text
+
+
+def sym_sub(x):
+    name, paren = x.group(1), x.group(2) or ''
+    if paren and name in calls:
+        seen_calls.add(name)
+        return x.group(0)
+    return syms[name] + paren
 
 
 for line in sys.stdin:
     if line.startswith('index '):
         continue
     if line.startswith(('diff --git', '--- ', '+++ ', 'rename ', 'similarity')):
+        if line.startswith('+++ b/') and line[6:].strip() in same:
+            seen_same.add(line[6:].strip())
         sys.stdout.write(tr(line))
         continue
     if line[:1] in ' +-':
@@ -49,3 +65,9 @@ for line in sys.stdin:
         sys.stdout.write(line)
 if seen_amb:
     print('AMBIGUOS sin traducir: ' + ' '.join(sorted(seen_amb)), file=sys.stderr)
+if seen_same:
+    print('RUTAS que también existen en la 116 (sin traducir; en upstream es la clase fusionada con la NG, mirar a '
+          'qué clase de la 116 corresponde cada hunk): ' + ' '.join(sorted(seen_same)), file=sys.stderr)
+if seen_calls:
+    print('LLAMADAS sin traducir (método en la 116; revisar si es un constructor): ' + ' '.join(sorted(seen_calls)),
+          file=sys.stderr)
