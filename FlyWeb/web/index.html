@@ -22,23 +22,40 @@ servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomoneda
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 1.10</h2>
-<p><a class="boton" href="descargas/FlyWeb-1.10.dmg" download>Descargar FlyWeb 1.10 (165 MB)</a></p>
+<h2>Descargar FlyWeb 1.11</h2>
+<p><a class="boton" href="descargas/FlyWeb-1.11.dmg" download>Descargar FlyWeb 1.11 (165 MB)</a></p>
 <p class="dato">macOS 10.13 o 10.14, Mac Intel (x86_64). En macOS 10.15 a 12 debería funcionar, sin garantía.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>75379aaf53e34e1483146b4322014dd1778f1265d671551ef545a463614aef03</code></p>
+SHA-256: <code>17baaa401a4d86e37abd99851cae2337e2536882a447cfa1f12c0f715bf9ef65</code></p>
 </div>
 </div></section>
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-1.10.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-1.11.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.10</h2>
+<h2 id="novedades">Notas de la versión 1.11</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 127.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 127 y FlyWeb se
+  presenta a las webs como Chrome 127. V8 de Chrome 127 con sus arreglos de seguridad.</li>
+  <li><strong>Texto más legible cuando una fuente no carga.</strong> Las webs pueden pedir que el texto mantenga el mismo
+  tamaño aparente aunque se use una fuente de reserva (<code>font-size-adjust</code>). Antes, si la fuente de la web no
+  llegaba, el texto podía verse mucho más grande o más pequeño.</li>
+  <li><strong>Editores y formularios web más fiables.</strong> Los editores de texto de las webs reciben el aviso de
+  cambio de selección dentro de los campos de texto, y el aviso previo a cada cambio al usar las flechas de un campo
+  numérico o al deshacer. Algunos editores (notas, correo, chats) dejaban de seguir el cursor o no podían deshacer bien.</li>
+  <li><strong>Más seguridad en webs modernas.</strong> Las webs que cargan módulos de JavaScript pueden comprobar que no
+  han sido alterados (integridad en los mapas de importación), como ya hacían Safari y Firefox.</li>
+  <li><strong>Selección de texto con los colores de la web.</strong> Si una web elige los colores del texto seleccionado,
+  FlyWeb los respeta en vez de invertirlos.</li>
+  <li><strong>Efectos de filtro SVG en páginas web.</strong> Algunos efectos (sombras, desenfoques, colores) aplicados con
+  filtros SVG a partes de una web o a dibujos en <code>&lt;canvas&gt;</code> no se veían; ahora sí.</li>
+</ul>
+<h2>Notas de la versión 1.10</h2>
 <ul>
   <li><strong>Motor de nivel Chrome 126.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 126 y FlyWeb se
   presenta a las webs como Chrome 126. Funciones web nuevas: <code>URL.parse()</code>, con la que las webs comprueban una dirección sin provocar
@@ -52,24 +69,6 @@ SHA-256: <code>75379aaf53e34e1483146b4322014dd1778f1265d671551ef545a463614aef03<
   Google para Chrome 126; además lleva las correcciones posteriores que le aplican, incluidas varias de la rama de soporte
   prolongado de Chrome 132 (2025). El puente genérico entre WebAssembly y JavaScript, el compilador Maglev y la
   selección de instrucciones más reciente del optimizador Turboshaft siguen apagados.</li>
-</ul>
-<h2>Notas de la versión 1.9</h2>
-<ul>
-  <li><strong>Motor de nivel Chrome 125.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 125 y FlyWeb se
-  presenta a las webs como Chrome 125. Funciones web nuevas: <code>getHTML()</code> y raíces de Shadow DOM serializables,
-  colores relativos en CSS (<code>rgb(from …)</code>, <code>oklch(from …)</code>…), las funciones <code>round()</code>,
-  <code>mod()</code> y <code>rem()</code>, la pseudoclase <code>:state()</code> para elementos personalizados,
-  <code>view-transition-class</code> y los tipos de transiciones de vista, modificadores <code>(?i:…)</code> y grupos con
-  nombre repetido en las expresiones regulares, y <code>WebSocket</code> con direcciones <code>http(s)</code> o
-  relativas.</li>
-  <li><strong>Se mantiene todo lo de la 1.8.1:</strong> pestañas fijadas en todas las ventanas y controles de formulario
-  verticales.</li>
-  <li><strong>Correcciones:</strong> colores con <code>calc(NaN)</code> y Shadow DOM declarativo con varias raíces en el
-  mismo elemento se comportan ya como en Chrome.</li>
-  <li><strong>Seguridad:</strong> además de las correcciones posteriores que le aplican al nuevo motor de JavaScript,
-  sigue incluyendo las de la rama de soporte prolongado de Google para Chrome 126, y el puente genérico entre
-  WebAssembly y JavaScript sigue apagado. El compilador Maglev y la parte más reciente del optimizador Turboshaft
-  siguen apagados.</li>
 </ul>
 <p><a href="novedades.html">Todas las novedades, desde la 1.0</a></p>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
