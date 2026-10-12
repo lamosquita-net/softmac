@@ -77,6 +77,9 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
 11. **Entrega de LOCAL a PUBLICACIÓN:** una compilación se da por aprobada cuando LOCAL lo escribe en la fila de la
     versión con el commit de `flyweb`, `FLYWEB_BUILD_NUMBER`, la ruta de la app y las pruebas hechas. PUBLICACIÓN no
     publica nada que no tenga esa entrega. Con la entrega, LOCAL queda libre para la siguiente compilación.
+    **La entrega es la orden de publicar** (HUMANO, 13-10): PUBLICACIÓN publica sin preguntar al HUMANO «¿confirmas?».
+    Al HUMANO solo le pasa las órdenes de firma en bak y, si hace falta, un permiso que tenga que aprobar en su ventana;
+    las dudas, a COORDINACIÓN.
 12. **Sección «Para la web» en `FlyWeb/docs/version-1.N.md`:** MOTOR y LOCAL anotan ahí, en lenguaje de usuario, lo que
     trae la versión y lo que cambia para quien la usa. CONTENIDOS-WEB escribe los textos de la web a partir de esa
     sección, no del código.
