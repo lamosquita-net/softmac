@@ -108,3 +108,40 @@ web de SwissTransfer no es público y el sitio está bloqueado en el entorno de 
    la pestaña Red, probablemente de `infomaniak.com`) a `JavaScriptJitAllowedForSites` en `flyweb-policies.mobileconfig`
    y repetir. El riesgo de dar JIT a un sitio concreto es el mismo que se ha asumido para Google (F3B.6).
 4. Control: el mismo envío en un navegador actual de la 7,1.
+
+### Huella de red (F4.8, T1) — LOCAL-2, 12-10-2026
+
+FlyWeb 1.11 Release sin firmar (`seg/v8-12.7` 94914682) en la 7,1, perfil temporal, `https://tls.peet.ws/api/all`
+(herramienta `herramientas/huella-tls.sh`; respuestas completas en `~/proyectos/softmac/temp/huella-*.json`). **Falta la
+referencia exacta de Chrome 127** (Chrome for Testing 127.0.6533.x, mac-x64): pendiente del permiso del HUMANO para
+descargarlo. Mientras, el control es el Chrome 155 de la 7,1.
+
+| | FlyWeb 1.11 (declara 127) | Chrome 155 (7,1, control) |
+|---|---|---|
+| JA4 | `t13d1516h2_8daaf6152771_e5627efa2ab1` | `t13d1517h2_8daaf6152771_cb7bf5808d99` |
+| Cifrados (2.ª parte de JA4) | iguales | iguales |
+| Grupos | GREASE, X25519, P-256, P-384 | GREASE, **X25519MLKEM768**, X25519, P-256, P-384 |
+| Extensiones que faltan | ECH GREASE (65037) | — |
+| ALPS | `application_settings_old` (17513) | `application_settings` (17613), nueva |
+| HTTP/2 (akamai) | `1:65536;2:0;3:1000;4:6291456;6:262144\|15663105\|0\|m,a,s,p` | igual **sin `3:1000`** |
+| `sec-ch-ua`, `-mobile`, `-platform` | **no se envían** (`navigator.userAgentData` sí existe: Chromium 127) | sí |
+| `sec-gpc: 1` | sí (Brave) | no |
+| `accept` | sin `application/signed-exchange;v=b3;q=0.7` | con él |
+| `accept-encoding` | `gzip, deflate, br` (sin `zstd`, excepción del HUMANO) | con `zstd` |
+| `priority: u=0, i` | no | sí |
+| `accept-language` | `es-ES,es;q=0.7` | `es-ES,es;q=0.9` |
+
+**Probable causa de la falta de `sec-ch-ua`:** Brave solo los envía con su `base::Feature` `kAllowCertainClientHints`
+(`chromium_src/third_party/blink/common/client_hints/{client_hints,enabled_client_hints}.cc`), que en FlyWeb está
+apagada. Es lo más llamativo para un gestor de bots: Chrome los envía en todas las peticiones desde la 89.
+
+**Sitios con reto (de uno en uno, 15 s cada uno; `herramientas/retos-sitios.sh`).** El Chrome 155 pasa en todos.
+
+| Sitio (proveedor) | Chrome 155 | FlyWeb 1.11 |
+|---|---|---|
+| claude.ai (Cloudflare) | pasa | **403 y reto «Un momento…»**; a los 45 s pasa solo (reto, no bloqueo) |
+| chatgpt.com, discord.com, canva.com, nowsecure.nl, crunchbase.com (Cloudflare) | pasan | pasan |
+| iberia.com, zara.com, elcorteingles.es (Akamai) | pasan | pasan |
+| **adidas.es** (Akamai Bot Manager) | pasa | **403, bloqueo** (página «¿Cuál puede ser el origen?») |
+| idealista.com, vinted.es (DataDome) | pasan | pasan |
+| fiverr.com (HUMAN/PerimeterX) | pasa | pasa |
