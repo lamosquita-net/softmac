@@ -475,13 +475,15 @@ lo descartado.
 ## Nivel 128 (en código desde el 12-10; pendiente de compilar → FlyWeb 1.12 sin `ruby-align`; RubyLB → 1.12.1)
 
 Baseline de Chrome 128 y flags que pasan a `stable` entre la 127.0.6533.144 y la 128.0.6613.194 (inventario de MOTOR-2 en
-FM.16). Por decisión del HUMANO, el 128 va **sobre la V8 12.8** de FM.17: rama brave-core **`nube/motor-128`**, apilada
-sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). Si la fase 4 se mueve por el Static de FM.17, esta rama se rebasa.
-**Sin excepciones** salvo lo que se anota abajo. LOCAL no la compila hasta que compile FM.17.
+FM.16). Por decisión del HUMANO, el 128 va **sobre la V8 12.8** de FM.17: rama brave-core **`nube/motor-128`**
+(**64545ca4**), rebasada por MOTOR-6 (13-10) sobre **`nube/v1.11.2` 56ed9d93** = `seg/v8-12.8` f8cbd8c9 (FM.17 + ronda de
+seguridad de V8 12.8) + la huella de red de la 1.11.1 (`local/huella-127`) + `flyweb_version` 1.11.2. Antes estaba
+apilada sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). **Sin excepciones** salvo lo que se anota abajo.
 
 **Decisión del HUMANO (12-10, por COORDINACIÓN-4):** la **1.12 = nivel 128 sin `ruby-align`** (lo de
 `nube/motor-128`; 84735505 declara 128 / 1.12), sin esperar a RubyLB. **RubyLB va por etapas** (R1…R5, abajo) en la rama
-brave-core **`nube/motor-128-ruby`**, apilada sobre `nube/motor-128`, **un commit y un push por paso**. **La 1.12.1 es
+brave-core **`nube/motor-128-ruby`**, apilada sobre `nube/motor-128`, **un commit y un push por paso** (tras el rebase
+de MOTOR-6: R1 d1ed7eff, R2 763bcc3c, R3a 7a4bf532). **La 1.12.1 es
 RubyLB completo (R1–R5), publicado de una vez cuando esté estable**; LOCAL hace compilaciones intermedias después de R2
 y después de R3 (R1 sola no se compila ni se publica; COORDINACIÓN-4, 13-10). **El nivel 129 no empieza hasta terminar
 RubyLB.** Sin freno por el límite semanal.
@@ -555,9 +557,10 @@ RubyLB.** Sin freno por el límite semanal.
   que en la 116 son métodos, como `PhysicalFragment()`), se rechazaron 27 *hunks* de 16 commits, todos resueltos a
   mano uno a uno. Portar antes el renombre «ruby run» → «ruby column» (257af3736c2) no compensa: tiene 19 rechazos
   propios y solo quita 4. El resto del 128 no depende de RubyLB.
-- **Falta para cerrar la 1.12:** `flyweb_engine_full_version` del 128 (al rebasar sobre `seg/v8-12.8`, después de la
-  1.11.2), la sección «Para la web» de `version-1.12.md` y la lista de WPT. Declarados ya 128 / 1.12 en
-  `build/config.gni` (84735505). **Para cerrar el nivel 128:** RubyLB R1…R5 (1.12.1).
+- **Falta para cerrar la 1.12:** la sección «Para la web» de `version-1.12.md` y la lista de WPT. Declarados ya 128 /
+  1.12 en `build/config.gni` (64545ca4), con `flyweb_engine_full_version` = **128.0.6613.138** (la última Stable normal
+  de la 128 para Mac, 10-09-2024, como la .120 de la 127) y `flyweb_min_macos_version` 10.15.7. **Para cerrar el
+  nivel 128:** RubyLB R1…R5 (1.12.1).
 - Comprobación: `FlyWeb/tools/motor-128.html`.
 
 ## Apuntado para niveles futuros
