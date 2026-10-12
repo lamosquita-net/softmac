@@ -24,6 +24,10 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
   Claude Code dentro de una sesión solo los aprueba el HUMANO en esa sesión. Si un agente está bloqueado por eso, se lo
   pasas al HUMANO.
 - **Sin rutinas propias**: te despiertan el Vigía y el HUMANO.
+- **Cuándo relevar a COORDINACIÓN** (HUMANO, 12-10): a partir del **50 % de contexto** (`context_usage` de
+  `get_session`), en un momento tranquilo: sin publicación a medio hacer ni decisión pendiente con el HUMANO. Antes de
+  irte, esta nota al día. La regla 16 se avisó a todos los agentes el 12-10 (SERVIDOR-LOCAL-2, por su fila, porque su
+  sesión estaba archivada).
 
 ## Agentes y cómo hablarles
 
