@@ -180,3 +180,27 @@ GREASE + `Chromium`, sin `Brave` ni `Google Chrome`. Se quedan como están, por 
 10.15). En un Mac con Mojave, FlyWeb declararía Chrome 127 con `platformVersion` `10.14.x`, una combinación imposible para
 un antibot que pida esa *hint*. El UA ya dice siempre `10_15_7` (está congelado). Opción: declarar como mínimo `10.15.7`.
 Sin hacer: no lo he medido en la 6,1.
+
+#### Referencia exacta: Chrome for Testing 127.0.6533.119 (mac-x64) — LOCAL-2, 12-10
+
+Descargado con permiso del HUMANO en `~/proyectos/softmac/temp/cft127/` (perfil temporal, sin tocar el Chrome de la 7,1).
+Es una compilación **con marca Chromium**, como FlyWeb: sus marcas son la referencia directa. Pero aplica la configuración
+de experimentos de prueba de Google (`fieldtrial_testing_config`), así que lo que sea experimento puede no coincidir con
+el Chrome 127 estable.
+
+| | Chrome for Testing 127 | FlyWeb 1.11 + las tres features (tanda b) | `local/huella-127` (1.11.1, esperado) |
+|---|---|---|---|
+| JA4 | `t13d1516h2_8daaf6152771_d8a2da3f94cd` | `t13d1516h2_8daaf6152771_02713d6af862` | como la tanda b |
+| Diferencia de extensiones | ALPS nuevo, `application_settings` (17613) | ALPS antiguo (17513) | — |
+| Grupos | GREASE, X25519Kyber768, X25519, P-256, P-384 | iguales | iguales |
+| HTTP/2 | `1:65536;2:0;4:6291456;6:262144;31434:…` (ajuste GREASE) | con `3:1000`, sin GREASE | sin `3:1000`, sin GREASE |
+| `sec-ch-ua` | `"Chromium";v="127", "Not)A;Brand";v="99"` | `"Not)A;Brand";v="24", "Chromium";v="116"` | **igual que Chrome for Testing** (semilla 127) |
+| `fullVersionList` / `uaFullVersion` | `127.0.6533.119` | `127.0.0.0` | `127.0.6533.120` |
+| `accept`, `accept-encoding`, `priority` | con `signed-exchange`, `zstd` y `priority` | sin ellos (excepciones decididas) | sin ellos |
+| adidas.es / claude.ai | 200 / 200 | 200 / 200 | — |
+
+**Pendiente de decidir (ARQUITECTURA/COORDINACIÓN):** si el ALPS nuevo y el GREASE de HTTP/2 eran el comportamiento del
+Chrome 127 estable o solo experimentos. En la 116, el GREASE de ajustes HTTP/2 se activa con un *switch*
+(`--enable-http2-grease-settings`) o con un parámetro de experimento (`network_session_configurator.cc`), no con una
+`base::Feature`. El ALPS nuevo **no existe en la 116**: sería un porte de BoringSSL (T3, SEGURIDAD-PORTES). El Chrome 155 de
+la 7,1 usa el ALPS nuevo y no manda el GREASE.
