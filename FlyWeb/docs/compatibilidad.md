@@ -145,3 +145,38 @@ apagada. Es lo más llamativo para un gestor de bots: Chrome los envía en todas
 | **adidas.es** (Akamai Bot Manager) | pasa | **403, bloqueo** (página «¿Cuál puede ser el origen?») |
 | idealista.com, vinted.es (DataDome) | pasan | pasan |
 | fiverr.com (HUMAN/PerimeterX) | pasa | pasa |
+
+#### Pasos 1 y 2 de ARQUITECTURA (features al arrancar, sin compilar) — LOCAL-2, 12-10
+
+FlyWeb 1.11 con `--enable-features=…` (`herramientas/huella-features.sh`; nombres comprobados: `AllowCertainClientHints`
+en `chromium_src/third_party/blink/common/features.cc` de Brave, `PostQuantumKyber` y `EncryptedClientHello` en
+`net/base/features.cc` de la 116; las tres vienen apagadas).
+
+| Tanda | JA4 | Grupos | adidas.es | claude.ai |
+|---|---|---|---|---|
+| sin nada (1.11) | `t13d1516h2_8daaf6152771_e5627efa2ab1` | X25519, P-256, P-384 | **403, bloqueo** | **403, reto** (~45 s) |
+| (a) `AllowCertainClientHints` | igual | igual | **200, pasa** | **200, pasa sin reto** |
+| (b) las tres | **`t13d1516h2_8daaf6152771_02713d6af862`** (el de Chrome 124–130) | + X25519Kyber768, + ECH GREASE | 200 | 200 |
+
+**La causa de los bloqueos es la falta de `sec-ch-ua`** (basta (a)). Kyber y ECH no quitan bloqueos, pero con ellos el
+JA4 es exactamente el de Chrome. HTTP/2 sigue con `3:1000` (no hay flag).
+
+**Paso 2, incoherencias con (a) encendida:**
+- `sec-ch-ua: "Not)A;Brand";v="24", "Chromium";v="116"`: la cabecera declara **116**, mientras el UA y
+  `navigator.userAgentData` declaran 127. Causa: la cabecera sale de `client_hints::ClientHints` →
+  `embedder_support::GetUserAgentMetadata()`, que se salta el ajuste de FlyWeb en `BraveContentBrowserClient`.
+- El GREASE se calcula con la semilla 116 (`{"8","99","24"}[116 % 3]` = «24»); con 127 sería «99».
+- `getHighEntropyValues`: `uaFullVersion` y `fullVersionList` = `127.0.0.0` (Brave pone a cero las tres últimas cifras);
+  un Chrome 127 da `127.0.6533.x`. `platformVersion` = `15.8.0` (macOS real; ver la nota de Mojave abajo).
+
+**Paso 3:** brave-core `local/huella-127` (sobre la 1.11, 94914682), pendiente de compilar y medir: las tres features
+encendidas por defecto; las Client Hints construidas en `embedder_support` con el nivel declarado (semilla 127, versión
+completa `flyweb_engine_full_version` = `127.0.6533.120` en `config.gni`) para cabeceras y JavaScript a la vez; sin
+`MAX_CONCURRENT_STREAMS` en HTTP/2 (Chromium 042b56f8cbc6e, adaptado: la 116 aún tiene el código de *push*). Marcas:
+GREASE + `Chromium`, sin `Brave` ni `Google Chrome`. Se quedan como están, por privacidad: `sec-gpc`, `accept` sin
+`signed-exchange` y `accept-language` con `q=0.7`.
+
+**Para decidir (ARQUITECTURA/HUMANO): `platformVersion` en Mojave.** Chrome 127 no funciona en macOS 10.13/10.14 (exige
+10.15). En un Mac con Mojave, FlyWeb declararía Chrome 127 con `platformVersion` `10.14.x`, una combinación imposible para
+un antibot que pida esa *hint*. El UA ya dice siempre `10_15_7` (está congelado). Opción: declarar como mínimo `10.15.7`.
+Sin hacer: no lo he medido en la 6,1.
