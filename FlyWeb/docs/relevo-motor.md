@@ -1,3 +1,78 @@
+# Relevo de MOTOR: de MOTOR-3 a MOTOR-4 (12-10-2026)
+
+MOTOR-3 (`session_01UiNp8ASzm2Sn5mbDycomnk`, Opus 5.5, esfuerzo extra) deja FM.17 al cerrar la fase 3, con el contexto
+cerca del 50 % (regla de ARQUITECTURA). MOTOR-4: Opus 5.5, esfuerzo extra (`xhigh`). Leer en este orden: esta sección,
+`FlyWeb/docs/v8-12.8-blink.md` (§2, el plan y lo que se hizo, y §3, una fila por adaptación), la fila FM.17 de
+`docs/TAREAS.md` y `FlyWeb/tools/port/README.md` y `FlyWeb/tools/bindings/README.md`. La nota de MOTOR-2, más
+abajo, sigue valiendo para las trampas de los niveles 125–127.
+
+**Hecho** (brave-core `nube/v8-12.8-api`, todo sobre la V8 12.7.224.20 y sin compilar):
+
+| Fase | Qué | Commits |
+|---|---|---|
+| 0 | `nube/motor-127` = 639a7a71 + 94914682 de LOCAL-2 | 0d6136c7 |
+| 1 | (c) `SetAccessor` | fa528ab2 |
+| 2 | (a) interceptores `v8::Intercepted`: 2a generador, 2b gin, 2c Blink (con 565f8ac357bf y la retirada de los `[Custom]`), 2d PDFium | 4df5719a, 03868d17, 7cbca6f2, 40b012f8, ab71e0a3, ade843c5 |
+| 3 | (b) `Object::Wrap`: 3a-1…12, 3d (V8 aaa23fc87, época 7), 3b-1…3, 3c | a115c0d6 … **e9c4ad85** (cabeza) |
+| (e) | `consoleTime*`, para el cambio de V8 | rama `nube/v8-12.8-paso-v8` 326f17ce |
+
+**En curso:** nada a medio escribir; no hay ningún fichero abierto. La fase 3 espera la revisión de SEGURIDAD-PORTES,
+y la fase 4 espera al Static de LOCAL de e9c4ad85 (decisión de COORDINACIÓN-4, para no mezclar fallos).
+
+**Lo que queda, en orden:**
+1. **Atender la revisión de SEGURIDAD-PORTES** de la fase 3. Lo que va a mirar: el almacenamiento en línea solo en
+   el mundo por defecto de cada *isolate* (3a-4/3a-5), `ClearIfEqualTo` en todos los caminos de liberación del
+   contexto (3a-2), los `DOMWrapperWorld` guardados en código de después de 2137f1da3a53 (revisado: ninguno), y una
+   prueba con ASan de un mundo aislado y el principal sobre el mismo nodo y la misma `window`. Si pide quitar
+   9401594f42b8, es un `git revert` de 85aa26ed, que no tiene dependientes.
+2. **Arreglos del Static/ASan de LOCAL**, en commits aparte, con una fila cada uno en el §3.
+3. **Fase 4**, con el plan del §2 («Fase 4: plan de `patches/v8`»): `FlyWeb/v8-revision` de brave-core a d213b3bb,
+   `v8re.sh`, quitar la 3d (aaa23fc87 ya está en la 12.8), época 8 y *cherry-pick* de (e). **Avisar a
+   SEGURIDAD-PORTES antes de tocar `patches/v8`.**
+4. Al terminar FM.17: nota final con las mediciones de todas las fases (decide el modelo del motor desde el 129).
+
+**Trampas de las fases 1–3:**
+- **El plan de MOTOR-2 se quedaba corto.** Los commits de upstream se apoyan en refactors que la 116 no tiene. Antes de
+  dar por buena una cadena, hay que aplicarla paso a paso (`portar.sh` con `STEP=1` y luego `addfiles.sh`) y buscar
+  en **toda** la 116 los llamadores de cada API que cambia (`args1.py`, `grep` en `/home/user/cr116`, en brave-core
+  y en los parches). Lo más grave que apareció así: f092aac67790. Sin él, quitar los campos internos dejaba
+  `ToExecutionContext()` siempre en `nullptr`.
+- **`generar.sh` diferencia contra el último commit del área de trabajo.** Lo arreglado a mano tiene que tener
+  commit, y después se comprueba que cada parche aplicado sobre la 116 da el fichero del área byte a byte (en el
+  registro hay un bucle hecho).
+- **brave-core no borra ficheros:** se quitan del `BUILD.gn`/`.gni` y se quedan en disco (`custom_wrappable.*`,
+  `v8_html_plugin_element_custom.cc`).
+- **El generador de la 116 es propio en partes** (`make_named_props_obj_*`, el objeto de propiedades con nombre de
+  `Window`): upstream lo convirtió en la interfaz `WindowProperties`. Cada cambio de upstream ahí se traduce a mano.
+- **Los `git log` por ruta en el clon sin árboles tardan muchísimo.** Mejor `git log --grep` o `--author` en un rango,
+  y `git show <tag>:<fichero> | grep -c` para fechar un cambio.
+- **No hacer `pkill -f` con un patrón que esté en el propio comando**: mata el comando.
+- La época de caché 6 es de `seg/v8-12.7`. No reutilizar números de época entre ramas con parches de V8 distintos.
+
+**Mediciones** (de la transcripción de la sesión; Opus 5.5, esfuerzo extra; tokens de entrada sin caché / salida /
+caché leída / caché escrita):
+
+| Fase | Tiempo (UTC) | Turnos | Entrada | Salida | Caché leída | Caché escrita | Retrabajo tras revisión |
+|---|---|---|---|---|---|---|---|
+| Arranque + plan + 0 + 1 | 14:42–15:26 | 177 | 362 | 150 239 | 53,1 M | 434 k | 0 |
+| 2 | 15:26–16:12 | 159 | 318 | 138 032 | 99,9 M | 318 k | 0 |
+| 3 (incluye una compactación) | 16:12–16:56 | 232 | 464 | 166 780 | 65,2 M | 397 k | pendiente de la revisión |
+
+El `usage` de `get_session` no se actualizó desde las 15:25 (16,86 USD en ese momento). `rate_limit_info`:
+`seven_day`, `allowed_warning`, sin porcentaje; se restablece el martes 13 a las 09:00 de Madrid.
+
+**Qué se espera de los demás:**
+- **SEGURIDAD-PORTES:** revisión de los 17 commits de la fase 3 (el mensaje con los puntos delicados está en su
+  sesión); después, `seg/v8-12.8`.
+- **LOCAL:** tras publicar la 1.11, un Static y un ASan de e9c4ad85, con las pruebas del §3 (las de 3b-1 y 3a-11 son
+  las importantes) y la de SEGURIDAD-PORTES con mundos aislados.
+
+**Entorno:** las herramientas están en `FlyWeb/tools/port/` y `FlyWeb/tools/bindings/`; se copian a
+`/tmp/claude-0/port/` (README). Clones, como en la nota de MOTOR-2: `/home/user/chromium/chromium` (sin árboles,
+con los tags 116–149 ya traídos), `/home/user/cr116` (copia parcial de la 116 para `grep`) y `/home/user/v8`.
+
+---
+
 # Relevo de MOTOR: de MOTOR-2 a MOTOR-3 (12-10-2026)
 
 MOTOR-2 (`session_01UPMDyUjBgk8osmWVJDQMWt`) llevó el nivel 127 (FlyWeb 1.11), los arreglos de la 1.10 y el

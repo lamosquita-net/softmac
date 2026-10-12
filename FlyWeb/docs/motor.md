@@ -451,6 +451,14 @@ lo descartado.
   compilar. Aparcado mientras se compilaba la 1.10; **desaparcado por el HUMANO el 09-10** con sus arreglos fusionados
   (cabeza `nube/motor-127` **639a7a71**, con los dos portes de arriba).
 
+## Apuntado para niveles futuros
+
+- **143 — `onselectionchange` como atributo de elemento** (`<div onselectionchange=…>`, `setAttribute`): Chromium
+  añade `kOnselectionchangeAttr` a la tabla `AttributeTriggers` de `html_element.cc` en la 143. De la 120 a la 142,
+  `selection/textcontrols/onselectionchange-content-attribute.html` y `selectionchange-bubble.html` están en
+  `TestExpectations` como `[ Timeout ]`, así que en el nivel 127 cuentan como «igual que Chrome 127» (MOTOR-3,
+  COORDINACIÓN-4, 12-10).
+
 ## Inventario: CSS Baseline publicado después de la 116
 
 Datos de [web-features](https://www.npmjs.com/package/web-features) 3.40.1 (el catálogo de Baseline) y del fichero de

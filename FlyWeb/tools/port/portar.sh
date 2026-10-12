@@ -6,7 +6,7 @@ set -u
 N=$1; shift; L="$@"
 CR=/home/user/chromium/chromium; BC=/home/user/brave-core; W=/tmp/claude-0/port/w-$N
 cd $CR
-F=$(for c in $L; do timeout 300 git show --name-only --format= $c; done | grep -v "web_tests/\|_test\.cc\|/test/\|devtools-frontend\|perftest\|perf_tests\|_unittest\|tools/metrics\|\.md$\|DEPS$\|OWNERS$" | sort -u)
+F=$(for c in $L; do timeout 300 git show --name-only --format= $c; done | grep -v "web_tests/\|_test\.cc\|browsertest\|/test/\|devtools-frontend\|perftest\|perf_tests\|_unittest\|tools/metrics\|\.md$\|DEPS$\|OWNERS$" | sort -u)
 echo "$F" > /tmp/claude-0/port/files-$N.txt
 rm -rf "${W:?}"; mkdir -p "$W"
 for f in $F; do mkdir -p "$W/$(dirname $f)"; timeout 200 git show 116.0.5845.188:$f > "$W/$f" 2>/dev/null || { rm -f "${W:?}/${f:?}"; echo "NUEVO $f"; }; done
