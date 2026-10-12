@@ -21,8 +21,11 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   (`git show <commit>:<fichero>.rej`). Con `STEP=1` solo monta y guarda los diffs.
 - `mkws.sh <nombre> <fichero>…` — igual pero para portes a mano (sin commits de upstream).
 - `generar.sh <nombre>` — escribe los `.patch` de `w-<nombre>` en `brave-core/patches` (diff desde la 116, incluye lo de Brave).
+  Con `BASE_REF=<rama de brave-core de la que salió el porte>` borra además los parches que creó el porte para ficheros
+  que vuelven a quedar como en la 116; sin `BASE_REF` solo avisa.
 - `fixnew.sh` — lo llama `generar.sh`: rehace un parche de «fichero nuevo» si el fichero sí existe en la 116.
-- `chk.sh <rama>` — comprueba que todos los parches de la rama aplican sobre la 116 (el único aviso conocido es el
+- `chk.sh <rama> [<base>]` — comprueba que todos los parches de la rama (con `<base>`, solo los que cambian desde ahí)
+  aplican sobre la 116 (el único aviso conocido es el
   espacio final de `ui-views-controls-menu-menu_separator.cc.patch`, que aplica igual).
 - `addflag.py <json5> <Nombre> <status>` — inserta una flag en `runtime_enabled_features.json5` en orden.
 - `addfiles.sh <nombre> <commit>…` — añade a `w-<nombre>`, ya montado, los ficheros de esos commits que aún no estén
@@ -40,6 +43,27 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   <commit>…` es `portar.sh` con esa traducción. Lo que rechace se reintenta con `patch -F3 -r x.rej <fichero> <
   fichero.rej>`; lo que siga fallando, a mano. **Ojo con el *fuzz* 3:** revisar dónde cayó cada *hunk*. Los
   comentarios con «ruby run» (ahora «ruby column») no se traducen y son la causa habitual de los rechazos.
+  **37 nombres nuevos son también métodos en la 116** (`PhysicalFragment()`, `ContainingBlock()`, `ConstraintSpace()`,
+  `BreakToken()`…; lista `calls` del mapa): seguidos de «(» no se traducen, y `ngtraducir.py` avisa («LLAMADAS sin
+  traducir») para revisar si alguno era un constructor de la clase renombrada (MOTOR-5, 12-10; antes salía
+  `result->NGPhysicalFragment()`). **9 rutas nuevas ya existen en la 116** (`layout/layout_block_flow.cc`,
+  `layout_view.cc`, `paint/text_painter.cc`…; lista `same_paths`): upstream fusionó ahí la clase NG, pero en la 116
+  son la clase base, así que no se traducen y `ngtraducir.py` avisa («RUTAS que también existen») para decidir a mano
+  si el hunk va en la clase base o en la NG (antes se mandaba todo a `ng/layout_ng_block_flow.cc`). Las **rutas
+  intermedias** de upstream (ficheros renombrados dos veces entre la 116 y la 128, como `layout/layout_text_combine.h`)
+  se traducen por el nombre sin «ng_» si es único en la 116 (aviso «RUTAS intermedias»).
+- **RubyLB:** `rubylb-r3.tsv` (R3 en orden, con los rechazos del ensayo) y `ruby-116-128.txt` (los 198 commits de ruby
+  entre la 116 y la 128).
+- **Paso a paso con el traductor (MOTOR-5, RubyLB):** `STEP=1 portarng.sh <nombre> <commit>…` monta el área y guarda
+  los `<commit>.ng.diff`; `ap.sh <nombre> <commit>` aplica uno con `--reject` y lista los rechazos; se arreglan a mano y se
+  hace commit en el área antes del siguiente (así los `.rej` de un commit no pisan los del anterior).
+  `addfilesng.sh <nombre> <commit>…` traduce más commits y añade al área los ficheros que falten.
+- `gencss.sh <dir>` — ejecuta sin compilar los generadores de Blink de flags (`runtime_enabled_features.json5`),
+  `ComputedStyle` (`computed_style_extra_fields.json5`), palabras clave y propiedades CSS sobre la 116 + los parches
+  `third_party-blink-*` de la rama actual. Detecta listas incoherentes (p. ej. dos campos con el mismo `type_name` y
+  distintas palabras clave) y el paso de bits de los campos. Necesita `gperf` (`apt-get install gperf`) y, en
+  `cr116`, `git sparse-checkout add third_party/mako third_party/ply third_party/pyjson5 third_party/jinja2
+  third_party/markupsafe build`. Para ver qué cambia, se ejecuta también con la rama base y `diff -r`.
 
 ## Lecciones (niveles 117–124)
 

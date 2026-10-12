@@ -34,7 +34,7 @@ def guard(path):
 
 def main(c116, c128):
     f116, f128 = files(c116), files(c128)
-    ren = {}
+    ren, same = {}, []
     for f in f116:
         if '/ng/' not in f and not os.path.basename(f).startswith(('ng_', 'layout_ng_')):
             continue
@@ -45,6 +45,11 @@ def main(c116, c128):
         b = b.replace('layout_ng_', 'layout_')
         g = os.path.join(os.path.dirname(g), b)
         if g in f128 and f not in f128:
+            if g in f116:
+                # La ruta nueva ya existe en la 116 (upstream fusionó LayoutNGBlockFlow en LayoutBlockFlow, que en la
+                # 116 sigue siendo la clase base): no se traduce; ngtraducir.py avisa para mirar cada hunk.
+                same.append(g)
+                continue
             ren[f] = g
     for a, b in EXTRA_FILES.items():
         if a in f116 and b in f128:
@@ -73,11 +78,30 @@ def main(c116, c128):
             ambiguous.append(new)
             continue
         sym[new] = old
+    # Nombres nuevos que en la 116 ya son métodos (`result->PhysicalFragment()`, `ContainingBlock()`,
+    # `ConstraintSpace()`…): seguidos de «(» no se traducen (ngtraducir.py avisa para revisarlos a mano).
+    calls = set()
+    call_re = re.compile(r'(?<![A-Za-z0-9_])(\w+)\s*\(')
+    for f in files(c116):
+        if f.endswith(('.h', '.cc')):
+            code = re.sub(r'//[^\n]*|"(?:\\.|[^"\\\n])*"', '', open(os.path.join(c116, f), errors='ignore').read())
+            calls.update(n for n in call_re.findall(code) if n in sym)
+    # Rutas intermedias de upstream (ficheros renombrados dos veces, p. ej. ng/physical_fragment_rare_data.cc o
+    # layout/layout_text_combine.h entre la 116 y la 128): por el nombre sin «ng_»/«layout_ng_», si es único.
+    base = {}
+    for f in f116:
+        b = os.path.basename(f)
+        if '/ng/' in f or b.startswith(('ng_', 'layout_ng_')):
+            cb = b[3:] if b.startswith('ng_') else b.replace('layout_ng_', 'layout_')
+            base.setdefault(cb, []).append(f)
+    base = {k: v[0] for k, v in base.items() if len(v) == 1}
     paths = {g: f for f, g in ren.items()}
     guards = {guard(g): guard(f) for g, f in paths.items() if g.endswith('.h')}
-    json.dump({'paths': paths, 'syms': sym, 'guards': guards, 'ambiguous': sorted(ambiguous)},
+    json.dump({'paths': paths, 'syms': sym, 'guards': guards, 'ambiguous': sorted(ambiguous),
+               'calls': sorted(calls), 'same_paths': sorted(same), 'base': base, 'files116': sorted(f116)},
               sys.stdout, indent=0, sort_keys=True)
-    print(f'ficheros {len(paths)}, símbolos {len(sym)}, ambiguos {len(ambiguous)}', file=sys.stderr)
+    print(f'ficheros {len(paths)}, símbolos {len(sym)}, ambiguos {len(ambiguous)}, también métodos {len(calls)}, '
+          f'rutas que ya existen en la 116 {len(same)}', file=sys.stderr)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,198 @@
+fff250bc616 2023-07-05 Layout: Avoid full-layout by background-color changes of <ruby>
+de6e30b80ca 2023-08-07 Mark ruby-position-modern-japanese-fonts.html flaky
+257af3736c2 2023-09-01 Layout: Rename LayoutNGRubyRun to LayoutRubyColumn
+be3e597486f 2023-09-05 Rename "ruby run" to "ruby column" in tests
+6fdf5882570 2023-09-05 Layout: Rename layout_ng_ruby_run*.* to layout_ruby_column*.*
+660ba9141ba 2023-09-21 [RemoveLegacy] Rename layout_ng_ruby_*.* to layout_ruby_*.*
+56641438f5d 2023-09-22 [RemoveLegacy] Rename LayoutNGRuby* to LayoutRuby*
+8e6792e47d5 2023-10-05 Ruby: Fix overflow computation of ruby annotation
+f47ea0a5a53 2023-10-12 [cleanup] Minor refactor in NGBlockLayoutAlgorithm::HandleRubyText
+1e0bdb89ba0 2023-10-18 [iOS blink] iOS platform-specific rebaseline for media
+d1aceb95f26 2023-10-27 Ruby: Show a console message for <ruby> with "display: block"
+e63c1d7cf2a 2023-10-27 Ruby: Add a UseCounter for block <ruby>s with <rt> children
+bf262bd8d16 2023-11-06 [CSS display:ruby*] Recognize three ruby values for `display` property
+bdb9aad17fe 2023-11-09 [CSS display:ruby*] Drop `ruby-base`
+8b01cfed9a6 2023-11-09 [CSS display:ruby*] Refactor LayoutRubyColumn generation code
+163df85f899 2023-11-09 [CSS display:ruby*] Make the feature testable
+35f6d928142 2023-11-09 Revert "[CSS display:ruby*] Make the feature testable"
+d4967df6dae 2023-11-10 Reland "[CSS display:ruby*] Make the feature testable"
+f551901fad0 2023-11-10 [CSS display:ruby*] Create appropriate LayoutObjects
+10fc889f33b 2023-11-13 [CSS display:ruby*] Update the default display values of <ruby> and <rt>
+37da5ae3a9d 2023-11-15 [CSS display:ruby*] Don't fix position and float for <rt>
+e60ed2dd1a9 2023-11-15 [CSS display:ruby*] Enable the feature by default
+62b922872db 2023-11-16 Ruby: Implement inlinification
+cd1e15bd751 2023-11-21 LayoutNG: Rename LayoutOverflow-related symbols
+fe91db7955b 2023-11-21 LayoutNG: Remove NGPhysicalFragment::TextHeightType
+0f0f714cc6f 2023-11-28 Enable RubyInlinify flag by default
+f12ff5c606c 2023-12-04 Revert "Enable RubyInlinify flag by default"
+207a403ed2f 2023-12-04 Ruby: Fix invalid layout tree generation
+5a747003c03 2023-12-11 align-content for blocks: Should not work with ruby-text
+d94ec8e7986 2023-12-12 Reland "Enable RubyInlinify flag by default"
+189fa20e6f1 2023-12-12 Ruby: Fix invalid layout tree by a LayoutImage with display:table-caption
+259c7e28f1e 2023-12-14 Ruby: "display: block ruby" should wrap an anonymous "display: ruby"
+988652b535d 2024-01-09 Style: display:ruby should invalidate descendant style
+3748c5249f2 2024-01-12 Ruby: Fix an invalid layout tree by a non-table LayoutObject with a table display type
+b40c24e2e02 2024-01-18 Ruby: Collect RubyEmHeight code into ruby_utils.*
+b70e524a7f9 2024-01-19 DL: Update display lock condition to use EDisplay::kRubyText.
+187be28f0e8 2024-01-24 Rename blink::LayoutRubyAsInline to blink::LayoutRuby
+58b8c97874d 2024-01-25 Remove BlockRubyConsoleMessage runtime flag
+59564502ef3 2024-02-15 BreakableRuby: Add a runtime flag
+f7690c6fbcc 2024-02-20 Remove `CssDisplayRuby` runtime flag
+7d0a83fd262 2024-02-21 Remove `RubySimplePairing` runtime flag
+5fa2b39df5a 2024-03-15 RubyLB: Add kOpenRubyColumn and kCloseRubyColumn types to InlineItem
+d0e0e437dca 2024-03-21 RubyLB: Add LineBreaker::SetInputRange()
+4a4c18ebbdd 2024-03-21 RubyLB: Move some code for CreateLine() to a new class
+dab6a520228 2024-03-21 RubyLB: Add InlineItemResultRubyColumn
+88c8510c16d 2024-03-22 Remove RubyInlinify flag
+891de733b48 2024-03-22 Remove BlockRubyWrappingInlineRuby flag
+c8b92563520 2024-03-23 RubyLB: Consume InlineItemResultRubyColumn::base_line
+92048611239 2024-03-25 RubyLB: Make InlineLayoutAlgorithm::ApplyJustify() static
+bbb168928bb 2024-03-25 RubyLB: Produce kOpenRubyColumn-type InlineItemResults
+8b95e970489 2024-04-02 RubyLB: Move out justification code from InlineLayoutAlgorithm
+e6a7223b781 2024-04-02 RubyLB: Add LogicalRubyColumn.
+b5c973c0910 2024-04-03 RubyLB: Create LogicalLineItems for ruby annotations
+4caca204015 2024-04-04 RubyLB: Add RubyBlockPositionCalculator class
+c4460ba11e6 2024-04-05 RubyLB: Introduce LogicalLineContainer class
+5ac2e39724e 2024-04-05 RubyLB: Update block positions of annotation lines
+7f0e95a7c21 2024-04-05 RubyLB: Move out the InlineItemResults handling in ApplyJustification()
+3237ed8597f 2024-04-09 RubyLB: Add LogicalLineItems for annotations to a LogicalLineContainer
+9fc077c18aa 2024-04-09 RubyLB: Move out the source text building in ApplyJustification()
+911e0726e8a 2024-04-09 RubyLB: TakeRubyColumnList() should always move ruby_column_list_
+be5ab3a2276 2024-04-09 RubyLB: Convert annotation LogicalLineItems to nested kLine FragmentItems
+99038b8f95b 2024-04-09 RubyLB: Support annotation-overflow in the new ruby architecture
+6b424240fe1 2024-04-10 RubyLB: Fix two DCHECK failures in LineBreaker
+0915fa75aaa 2024-04-10 RubyLB: Support painting and hit-testing nested kLine items
+f8c95bb68f7 2024-04-10 RubyLB: Remove LayoutRubyAsBlock::RemoveChild()
+8fd6e923dca 2024-04-10 RubyLB: Support justification of lines including <ruby>
+f4181c2c74b 2024-04-11 RubyLB: Improve debug strings for LineInfo and InlineItemResult
+505d10868b8 2024-04-11 RubyLB: Add a virtual test suite for RubyLineBreakable
+98817c0071e 2024-04-11 RubyLB: Fix crashes with atomic-inlines
+bb2837d38d9 2024-04-11 RubyLB: Fix min-max computation
+713c2f855cb 2024-04-12 RubyLB: Introduce kRubyLinePlaceholder InlineItem
+09c85e7cbc9 2024-04-12 RubyLB: Update LineInfo::is_ruby_base_ and is_ruby_text_
+24a27794625 2024-04-12 RubyLB: Support ruby-align behavior
+db39f97465f 2024-04-15 RubyLB: Support overhang
+3f5d6227dba 2024-04-15 RubyLB: Add a DCHECK to JustifyResults()
+0cf880c1d4d 2024-04-15 RubyLB: Fix float-related crashes
+e099d3f2e48 2024-04-15 RubyLB: Fix a crash by a BR in a RT
+2ac62d689a3 2024-04-15 Roll Skia from 70ff97b2d501 to 88196037bb29 (10 revisions)
+0728f0ad091 2024-04-16 RubyLB: Fix a DCHECK failure with a ruby-base line without any text
+882c1e1b5a8 2024-04-16 RubyLB: Fix a DCHECK failure on min-max computation
+1a7cfa895e8 2024-04-16 css-ruby: Import rubyDOM-*-rt-block-*.html in WebKit/Blink
+f3904cb3656 2024-04-16 RubyLB: Fix a crash with `display: block ruby`
+7764e459090 2024-04-16 RubyLB: Adjust TextExpectations
+4dbae6be36d 2024-04-16 RubyLB: Apply Ceil() in ComputeEmHeight()
+442d1128e10 2024-04-16 Roll Skia from 429ec245f4e2 to 75083dc8a34c (1 revision)
+02d097b581e 2024-04-16 RubyLB: Skip zero-width LayoutResults in em-height computation
+18569625889 2024-04-17 RubyLB: Fix getClientRects() and getBoundingClientRect() for <ruby>
+0224e16e5c6 2024-04-17 RubyLB: Fix annotation positioning for nested "under" annotations
+6384416ce71 2024-04-18 RubyLB: Add more tests to the virtual test suite
+3e1cee45b8f 2024-04-18 RubyLB: Fix block-direction positioning with vertical-align
+15f182e50e1 2024-04-19 WebVTT: Apply display:ruby and display:ruby-text
+2e2e5759d07 2024-04-19 RubyLB: Fix outline computation for ruby annotations
+2e31232befd 2024-04-19 RubyLB: Implement soft wrap opportunity check around a ruby column
+84d906834f9 2024-04-19 RubyLB: Fix C++ unit tests in Blink
+1bceb0ff9bd 2024-04-22 RubyLB: Sub-LineBreakers should inherit trailing_whitespace_
+d9a60d56e63 2024-04-22 RubyLB: Improve LayoutResult support in em-height computation
+ae6d9d5db8f 2024-04-22 [fast-min-max] Enable the runtimeflag for stable
+9cb70e8a8c8 2024-04-22 RubyLB: rebaseline of passing tests
+2fb786d16d1 2024-04-23 RubyLB: Fix crashes by text-decoration
+e228ea112d6 2024-04-23 RubyLB: Replace "\n" in white-space:pre <rt> with " "
+ea805061eff 2024-04-23 RubyLB: Fix a crash in FragmentItem::CanReuse()
+f8125dbff19 2024-04-23 RubyLB: Implement text-emphasis avoidance logic
+20e5fdf6583 2024-04-23 RubyLB: Merge two vectors in LogicalLineContainer into one
+7d73cb1110e 2024-04-23 Rename members of blink::RubyPosition
+d0cb0ae16d5 2024-04-23 RubyLB: Rebaseline of some tests
+b6deae8dc39 2024-04-24 css-break: Remove spaces between inline blocks in ruby-002.html
+58cb9e951ff 2024-04-24 Add a pixel test for ruby + text-decoration
+d66bb0877fe 2024-04-25 RubyLB: Move LogicalRubyColumn definition
+98fc178f4b3 2024-04-25 RubyLB: Support position:relative in annotation lines
+0cf02967ccf 2024-04-25 RubyLB: Apply ruby's insets to ShapeResult or margin if possible
+f4a9ca199d8 2024-04-25 RubyLB: Propagate oof boxes in ruby-text boxes
+4fd9fc827ff 2024-04-25 RubyLB: Disable forced-breaks in ruby-base boxes temporarily
+dd4372a1e5f 2024-05-01 RubyLB: Enable the flag in Blink tests
+1e3eda9848f 2024-05-01 RubyLB: Fix annotation inline positions with bidi reordering
+0225acbe1db 2024-05-02 RubyLB: Fix insets in RTL
+d3e0f45288e 2024-05-07 RubyLB: Fix a crash with a block ruby + text-combine-upright
+49ee37fcc31 2024-05-07 RubyLB: Fix a crash by wide ruby contents
+57fa3225c20 2024-05-07 RubyLB: Floats should not update available_width_ for sub-LineBreakers
+1094a4f126d 2024-05-08 RubyLB: Delay appending kFloating InlineItems
+d05cc149711 2024-05-08 RubyLB: Fix a DCHECK failure in FragmentItem::CanReuse()
+fe2a5d58a65 2024-05-08 RubyLB: Fix a crash by position:sticky
+cf644d46615 2024-05-09 RubyLB: position:relative outside of ruby-text should move it.
+8d5bae305f2 2024-05-09 Update Kusa-Makura-background-canvas.html
+d74962d0845 2024-05-09 RubyLB: Make the flag status "experimental"
+ca6a93b7226 2024-05-09 RubyLB: Fix incorrect bounding rectangles for ruby-text boxes
+b636fcca83b 2024-05-09 RubyLB: Move RebuildBoxStates() to LogicalLineBuilder
+f699965c7cd 2024-05-09 RubyLB: Fix justification with rubies
+15b3c17f810 2024-05-10 RubyLB: Fix justification with a ruby at the line end
+38c4b494b6c 2024-05-10 RubyLB: `ruby-position` should be valid for ::first-line
+dfb34de8b31 2024-05-10 RubyLB: RebuildBoxStates() supports ranges starting at <rt>
+f99d3226e6a 2024-05-10 RubyLB: Introduce RubyBreakTokenData
+36c14e92eb6 2024-05-13 RubyLB: Support continuous ruby columns in CreateLine()
+8a030f19a7b 2024-05-13 RubyLB: ::first-line style should not be applied to all rubies
+dbfc1a8c9e4 2024-05-13 RubyLB: Add InlineItemResult::IsRubyColumn()
+900ec6b5702 2024-05-13 RubyLB: Support "Line-edge Alignment"
+220c1e59247 2024-05-15 RubyLB: Support continuous ruby column in LineBreaker
+99a722b4455 2024-05-15 [text-box-trim] Fix when there is a Ruby annotation
+5199d5afae9 2024-05-15 [text-box-trim] Fix when there is an initial-letter
+33836c24d6c 2024-05-15 RubyLB: Improve justification for lines including base-shorter rubies
+942362472ab 2024-05-16 RubyLB: LineBreaker should have a RubyBreakTokenData
+d6f2c593fcd 2024-05-16 RubyLB: Fix a crash in InlineItemResult::ToString()
+d5d1cc0baae 2024-05-16 RubyLB: Add `column_end_item_index` argument to CanBreakAfterRubyColumn
+1786fbc1466 2024-05-17 RubyLB: Make ruby columns breakable
+a63d29859d1 2024-05-20 css-ruby: Update ruby-no-transform.html
+c44a2bf0a86 2024-05-20 RubyLB: Fix invalid current_ after an overflowing continuation ruby
+99ae7ffa56f 2024-05-21 RubyLB: Fix a crash by an oof box in nested rubies
+3e6cc50ba40 2024-05-21 Ruby: 'display: inline flow list-item` should inlinify children
+35bfdc1166f 2024-05-21 css-ruby: Add a test with block fragmentation
+0903875c8c4 2024-05-21 RubyLB: Fix an issue with text-indent
+012080321af 2024-05-22 RubyLB: Disable line-breaking in text-wrap:balance/pretty
+7ade97095ed 2024-05-22 RubyLB: Fix a crash with a BoxFragment in a ruby
+86427627e44 2024-05-22 RubyLB: Fix a CHECK failure in min-max computation with an atomic-inline
+52793450f7e 2024-05-22 [text-box-trim] Test block-end with Ruby
+166ca3fee34 2024-05-22 RubyLB: Count glyphs instead of code units in "short" detection
+2bad9c8d19e 2024-05-22 RubyLB: Introduce an about:flags entry for short ruby heuristics
+fac62987c67 2024-05-23 RubyLB: Fix a crash with an overflowing split ruby
+ebb948a6007 2024-05-24 Revert "RubyLB: Delay appending kFloating InlineItems"
+65190cdcdc5 2024-05-27 RubyLB: Support breaking in HandleOverflow()
+a91265e3868 2024-05-28 RubyLB: Avoid crashes by `float` property
+b1d0edbf7b9 2024-05-29 RubyLB: Fix rewinding a continuation ruby column
+674acdcee0c 2024-05-29 RubyLB: Fix a crash by a pseudo element with float
+331b5631a25 2024-05-29 RubyLine: Fix division-by-zero
+3369efbcd38 2024-05-30 RubyLB: Remove the first argument of HandleRuby()
+42e6a9e4186 2024-05-30 RubyLB: Remove useless InlineItem instances
+94f4d69f3a6 2024-05-30 RubyLB: Fix ruby-align behavior after justifying a line
+231e30ff575 2024-05-31 RubyLB: Fix line-edge-alignment with collapsed spaces at the end edge
+32f83cfafca 2024-05-31 ruby-align: Support for parsing and serialization
+2f78f258a20 2024-06-04 RubyLB: Fix line-edge-alignment on the start edge with OOF items
+4edb29252ec 2024-06-04 ruby-align: Implement the layout behavior
+8a2dc60068a 2024-06-04 Import wpt@93263b60a46dda6382fb6f093cc529fcb4433677
+3bf57f3312b 2024-06-05 css-ruby: Reorganize a text-wrap test
+39513bd260d 2024-06-05 RubyLB: Fix unexpected break inside a base-shorter ruby
+db6da6c412b 2024-06-05 RubyLB: Justify a line consisting of a base-shorter ruby only
+81e6e9f8ee8 2024-06-06 RubyLB: Fix a crash by an IMG in the alt mode
+6f220af43ca 2024-06-06 Add counters of `alternate` and `inter-character` keywords
+f9f99d05707 2024-06-07 RubyLB: Apply line-edge-alignment only if text-align*:justify
+71b76b57de0 2024-06-08 Enable recent ruby features in non-Blink tests
+801bb273971 2024-06-10 RubyLB: Fix a crash in ShapeResult::ApplyLeadingExpansion()
+4fb637454ac 2024-06-10 RubyLB: Fix a crash on rewinding
+f0559bac4e8 2024-06-10 RubyLB: Add a DumpAccessibilityTree testcase
+394809961cf 2024-06-11 RubyLB: Enable the runtime flag by default
+eebeab457ac 2024-06-11 RubyLB: Enable "RubyShortHeuristics" flag by default
+c91684bd1bc 2024-06-11 Enable "CssRubyAlign" flag by default
+092d9947202 2024-06-11 Revert "Enable "CssRubyAlign" flag by default"
+76130bc5555 2024-06-11 Enable "RubyLineEdgeAlignment" flag by default
+2d1321c4e7a 2024-06-12 css-ruby: Add a test for ::first-letter
+41fb168d0d6 2024-06-12 RubyLB: Performance nits
+5e4e1c67f01 2024-06-12 Reland "Enable "CssRubyAlign" flag by default"
+abcb933a292 2024-06-12 RubyLB: Annotation positioning should refer to padding/border/margin
+8c381ba81d5 2024-06-18 RubyLB: Fix PaintLayer for annotations
+ca2beeb9498 2024-06-20 RubyLB: Fix inconsistency between a physical fragment and a LayoutBox
+076c175464f 2024-06-24 RubyLB: Fix a crash in LineInfo::ComputeTrailingSpaceWidth()
+92063631629 2024-06-26 RubyLB: Do not break during ruby intrinsic size computation
+55621700445 2024-07-03 text-box-trim: add tests for text-emphasis + ruby
+a4a0cf221b1 2024-07-10 RubyLB: Fix a CHECK failure with a non-breakable ruby-base
+8a35fc6c8e8 2024-07-12 [line-clamp] [RubyLB] Make sure ruby isn't visible in clamped lines
+edec8ed675e 2024-07-12 spanification: Remove `#pragma allow_unsafe_buffers` from ruby_utils.cc
+e568e644898 2024-07-12 Import wpt@ce8be753c342569470b92d416ff232e0805892a2

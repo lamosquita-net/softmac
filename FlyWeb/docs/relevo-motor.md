@@ -1,3 +1,65 @@
+# Relevo de MOTOR: de MOTOR-5 a MOTOR-6 (13-10-2026, ~00:55)
+
+MOTOR-5 (`session_01K3rpheR26LcQJUHMYHnn7V`, Opus 5.5, esfuerzo extra) deja RubyLB en un punto limpio, al acabar R3a,
+con el contexto cerca de la mitad: el resto de R3 son ~95 commits de upstream con muchos turnos, y una sesión nueva los
+hace más barato. MOTOR-6: Opus 5.5, esfuerzo extra. Leer esta sección, la fila FM.16 de `docs/TAREAS.md`, `motor.md`
+«Nivel 128» y `FlyWeb/tools/port/README.md` (traductor y herramientas nuevas). No hay nada a medio escribir ni sin
+subir.
+
+**Plan de publicación (COORDINACIÓN-4, 13-10):** la **1.12.1 es RubyLB completo (R1–R5)**, de una vez. LOCAL compila
+después de R2 (4f1ee98b, en su cola tras la 1.12) y después de R3. El 129 no empieza hasta terminar RubyLB.
+
+**Ramas de brave-core** (las de la nota de MOTOR-4 no han cambiado; esta es la de RubyLB):
+
+| Cabeza | Qué |
+|---|---|
+| `nube/motor-128-ruby` **e727339d** | R3a. Debajo: 4f1ee98b R2 (inlinificación, fuera las flags de `display: ruby`), 1e042ac6 R1 (`display: ruby`), 84735505 (1.12) |
+
+**Lo que queda, en orden:**
+1. **R3, el resto del núcleo**, desde **4a4c18ebbdd** («Move some code for CreateLine() to a new class»: crea
+   `LogicalLineBuilder`; 14 rechazos en el ensayo). Lista completa, en orden y con los rechazos del ensayo:
+   `FlyWeb/tools/port/rubylb-r3.tsv` (104 commits; 9 son solo de pruebas). Todo va detrás de `RubyLineBreakable`, que
+   sigue apagada hasta 394809961cf (R5): R3 no cambia el comportamiento, pero tiene que compilar. Subirlo en partes
+   coherentes (R3b, R3c…), un commit de brave-core y un push por parte.
+2. **R4** `ruby-align` (24a2779462, 32f83cfafc, 4edb29252e, `RubyLineEdgeAlignment`, `RubyShortHeuristics`) y **R5**
+   arreglos y activación de las flags (394809961cf, eebeab457ac, 5e4e1c67f01, 76130bc5555). Lista completa de ruby
+   entre la 116 y la 128: `FlyWeb/tools/port/ruby-116-128.txt` (198 commits, `git log --grep=ruby -i`).
+3. Los puntos 4–6 de la nota de MOTOR-4 (1.11.2 sobre `seg/v8-12.8`, rebase de `nube/motor-128` y `-ruby` al cerrar la
+   1.11.2, arreglos del Static de LOCAL) siguen igual y van antes que RubyLB si llegan.
+
+**Cómo se trabaja** (en este orden; detalle en el README):
+- Entorno (~1 h): clon `tree:0` de Chromium con las etiquetas 116 y 128 (`git config gc.auto 0`: si no, repaquete en
+  bucle), `cr116` y `cr128` dispersos de `third_party/blink`, en `cr116` además `third_party/{mako,ply,pyjson5,jinja2,
+  markupsafe}` y `build`; `apt-get install gperf`; `ngmap.py` → `/tmp/claude-0/port/ngmap.json`.
+- `STEP=1 portarng.sh r3 <commits de rubylb-r3.tsv sin «hecho» ni «solo-pruebas»>` monta el área sobre la rama
+  actual (ya trae R1–R3a). Luego, por cada commit: `ap.sh r3 <commit>`, que dice qué hunks entraron y cuáles no;
+  arreglar a mano **solo los rechazados** (MOTOR-5 duplicó una vez una función por reaplicar un hunk que sí había
+  entrado), y commit en el área.
+- Al cerrar una parte: `BASE_REF=<cabeza anterior> generar.sh r3`, `gencss.sh` si toca algún `json5`, `chk.sh
+  nube/motor-128-ruby <cabeza anterior>`, commit y push. Si `generar.sh` cambia un parche ajeno solo en la línea
+  `index` (pasa con `ng_box_fragment_painter.cc`), devolverlo con `git checkout`.
+
+**Trampas nuevas:**
+- **Traductor:** ya no traduce los nombres que en la 116 son métodos (`PhysicalFragment()`, `ContainingBlock()`…) ni las
+  rutas que existen en la 116 (`layout/layout_block_flow.cc`: en la 116 es la clase base, no la NG), y traduce las rutas
+  intermedias de upstream (ficheros renombrados dos veces) por el nombre. Avisa de todo por stderr; mirar los avisos.
+- Los ficheros **nuevos** de RubyLB (`inline/logical_line_builder.*`, `logical_line_container.*`,
+  `justification_utils.*`, `inline_item_result_ruby_column.h`) se dejan en la ruta de upstream (`core/layout/inline/`)
+  y con sus nombres sin NG; lo que usan de la 116 se traduce dentro.
+- `physical_fragment_rare_data.*` no existe en la 116 (refactor posterior); lo que dependa de él, a mano.
+- En la 116 `ComputedStyle` es *refcounted* (`scoped_refptr`), no de Oilpan.
+- `html_rt_element.*` y `html_ruby_element.*` siguen en disco pero fuera de `build.gni` (los parches no borran
+  ficheros); nada los usa.
+- La altura em de ruby: `ComputeRubyEmHeightBox()` en `ng_ruby_utils` envuelve el `ScrollableOverflow(kEmHeight)` de la
+  116 (no se portaron cd1e15bd751, fe91db7955b ni b40c24e2e02).
+
+**Mediciones de MOTOR-5** (Opus 5.5, extra): de las 23:13 del 12-10 a las ~00:55 del 13-10, hora de Madrid (UTC
+21:13–22:55), unos 230 turnos; `get_session` no da tokens en esta sesión (`context_usage` a 0). Hecho: R1 (16 commits), R2
+(10), R3a (3 + adaptación), correcciones del traductor y herramientas (`ap.sh`, `addfilesng.sh`, `gencss.sh`,
+`generar.sh` con `BASE_REF`, `chk.sh` con base), ensayo completo de R3. Retrabajo tras revisión: ninguna todavía.
+
+---
+
 # Relevo de MOTOR: de MOTOR-4 a MOTOR-5 (12-10-2026, ~23:10)
 
 MOTOR-4 (`session_01TF1UZA4dTDReaRJUfTC5fU`, Opus 5.5, esfuerzo extra) deja el trabajo al empezar RubyLB, con el
