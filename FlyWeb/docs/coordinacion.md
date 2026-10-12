@@ -34,7 +34,7 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 | Agente | Sesión | Cómo |
 |---|---|---|
 | VIGÍA (Haiku) | `session_01XD1RBYQ5oESHWKeqZWSG4e` | Te manda los cambios cada hora. **No acepta órdenes de otros agentes**: cambiarle el destino o el script lo tiene que pedir el HUMANO en su sesión |
-| MOTOR-5 (Opus 5.5, `xhigh`) | `session_01K3rpheR26LcQJUHMYHnn7V` (desde el 12-10, ~23:15; MOTOR-3 y MOTOR-4 archivadas) | `send_message`. Lleva el 128 (1.12) y RubyLB (1.12.1) |
+| MOTOR-6 (Opus 5.5, `xhigh`) | `session_01L1KPtm9u4214pcJi5ipUit` (desde el 13-10, ~01:25; MOTOR-3, -4 y -5 archivadas) | `send_message`. Lleva la 1.11.2, el 128 (1.12) y RubyLB (1.12.1) |
 | SEGURIDAD-PORTES (Opus) | `session_01NkotiT2nNYznsrQu9rssiy` | `send_message` |
 | SEGURIDAD-VIGÍA (Haiku) | `session_019wTc3m4aVuvkKTEGMXdEHS` | `send_message` |
 | CONTENIDOS-WEB (Sonnet) | `session_014vNkVoSXJ91jX4QRXD7Szp` | `send_message` |
@@ -68,7 +68,7 @@ Versiones (decisiones del HUMANO del 12-10; detalle en las filas F4.8, FM.15, FM
 
 ## Pendiente de otros
 
-- **MOTOR-6:** abrirlo (el HUMANO) con la nota de arriba de `relevo-motor.md`; sigue R3 desde 4a4c18ebbdd y los puntos
+- **MOTOR-6** (abierta): sigue R3 desde 4a4c18ebbdd y los puntos
   4–6 de la nota de MOTOR-4 (1.11.2 sobre f8cbd8c9, rebase del 128).
 - **HUMANO:** firmar en bak la 1.11.1 cuando PUBLICACIÓN le pase las órdenes; pegar en la ventana de PUBLICACIÓN que
   no pida confirmación para publicar (regla 11; también en `CLAUDE.md`); `/remote-control` en SERVIDOR-LOCAL-2
