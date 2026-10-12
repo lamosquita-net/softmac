@@ -29,9 +29,10 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 | SEGURIDAD-PORTES (Opus) | `session_01NkotiT2nNYznsrQu9rssiy` | `send_message` |
 | SEGURIDAD-VIGÍA (Haiku) | `session_019wTc3m4aVuvkKTEGMXdEHS` | `send_message` |
 | CONTENIDOS-WEB (Sonnet) | `session_014vNkVoSXJ91jX4QRXD7Szp` | `send_message` |
-| SERVIDOR-LOCAL-2 (7,1) | `session_01QxM99SrrnUTS2i4XuAHKta` (Remote Control) | `send_message` si está activa; si no, nota en su fila (SV.6) |
+| SERVIDOR-LOCAL-2 (7,1) | `session_01QxM99SrrnUTS2i4XuAHKta` (Remote Control; **archivada el 12-10**) | Nota en su fila (SV.6) hasta que el HUMANO le active `/remote-control` |
 | ARQUITECTURA (7,1, Fable) | `session_01QT5cTiyXsBVnJfoXg2PJF7` (Remote Control) | Te escribe ella; anota en el tablero lo que pida |
-| LOCAL-2, PUBLICACIÓN (7,1) | locales | Nota en su fila (FM.15/FM.14) |
+| LOCAL-2 (7,1, Opus) | `session_01PenyqfVJwxLUc7kaS55MR3` (Remote Control) | `send_message`; las entregas, además, en su fila (FM.15) |
+| PUBLICACIÓN (7,1, Sonnet) | `session_01H791v6t2GL9FoNPAxJR6tq` (Remote Control, reactivada el 12-10; id local `local_1eb27eb5…`) | `send_message` |
 
 Notas de tablero: commits con `[coord]` (el Vigía los ignora), push directo a `main` solo de notas; reglas, CLAUDE.md y
 docs por PR. Trabajar solo en la rama asignada a tu sesión. Antes de afirmar el estado de una rama, mirarla en GitHub.
@@ -67,6 +68,10 @@ docs por PR. Trabajar solo en la rama asignada a tu sesión. Antes de afirmar el
   127 real (p. ej. `tls.peet.ws`), porque la red sigue siendo la de la 116 aunque se declare 127.
 
 ## Trampas de estos días
+
+- **Una sesión local solo recibe `send_message` con Remote Control activo** y sin archivar. Comprobarlo con
+  `list_sessions` (`connection_status`). Si alguien la archiva desde la web, la ventana sigue abierta en la 7,1 pero
+  deja de recibir mensajes. Se arregla con `/remote-control` en esa ventana (PUBLICACIÓN, 12-10).
 
 - **Comprobar antes de afirmar**: dos veces se dio por hecho algo sin mirar (el Vigía ya arreglado; un esfuerzo
   recomendado). Mirar la sesión o la rama.
