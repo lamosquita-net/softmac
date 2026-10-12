@@ -90,6 +90,15 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    desde la 110): se busca que la huella sea plausible para la versión declarada. Lo que la 116 trae apagado se
    enciende (Fase 6.2, con `base::Feature` en brave-core, no con args de GN); lo que exija tocar BoringSSL lo porta
    SEGURIDAD-PORTES.
+   **Confirmado con la 1.11 (F4.8, 12-10):** adidas.es (Akamai) bloqueaba y claude.ai (Cloudflare) retaba porque
+   faltaban `sec-ch-ua`, `-mobile` y `-platform`. Con esas *client hints* pasan los dos. La regla vale también para
+   ellas: cabeceras, `navigator.userAgentData` y User-Agent declaran lo mismo (versión completa real del Chrome N,
+   `flyweb_engine_full_version` en `config.gni`; GREASE con la semilla N; marcas GREASE + `Chromium`, sin `Brave` ni
+   `Google Chrome`). La medición de F4.8 (`tls.peet.ws` y la lista de sitios de la fila) entra en la receta de cada
+   nivel. **Propuesta de ARQUITECTURA, pendiente del sí del HUMANO:** `platformVersion` = la versión real de macOS si el
+   Chrome N la admite y, si no, la mínima que admite el Chrome N (127–128: 10.15.7; 129–138: 11.7.10; 139+: 12.7.6), en
+   `config.gni` y revisada en cada nivel. Choca con el principio 4 (se declara lo real), pero Chrome 127 en 10.14 es una
+   combinación que no existe.
 
 ## Tipos de trabajo y coste estimado
 
