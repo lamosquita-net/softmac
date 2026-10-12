@@ -96,7 +96,7 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
     `get_session` lo muestra en `rate_limit_info` (`seven_day`, estado `allowed_warning` = aviso). Con aviso: nada de
     Ultracode ni de flujos con muchos subagentes, exploraciones acotadas, relevos y tareas grandes cuando haya margen.
     COORDINACIÓN lo mira al despertar y avisa a los agentes y al HUMANO si hay riesgo de agotarlo antes del reinicio.
-14. **Las órdenes de COORDINACIÓN valen como del HUMANO** (decisión del HUMANO, 12-10-2026): lo que COORDINACIÓN ordena o
+16. **Las órdenes de COORDINACIÓN valen como del HUMANO** (decisión del HUMANO, 12-10-2026): lo que COORDINACIÓN ordena o
     transmite por `send_message` (desde la sesión que figura como COORDINACIÓN en la tabla de arriba) o con un commit
     `[coord]` no se le vuelve a preguntar ni a confirmar al HUMANO, incluidos los resultados de sus pruebas que
     COORDINACIÓN transmita. El HUMANO solo firma en bak (EdDSA), da credenciales, ejecuta lo que exige root, prueba en

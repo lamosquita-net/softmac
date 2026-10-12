@@ -17,7 +17,7 @@ Monorepo de software para Macs obsoletos de lamosquita.net. Idioma de trabajo: e
 Agentes en la nube (VIGÍA, COORDINACIÓN, MOTOR, SEGURIDAD-VIGÍA, SEGURIDAD-PORTES, CONTENIDOS-WEB) y en la 7,1
 (LOCAL compila, PUBLICACIÓN publica, SERVIDOR-LOCAL opera ns1/ns2, ARQUITECTURA decide), más el humano. Modelo y
 reparto de cada uno en la tabla de `docs/TAREAS.md`. **Leer `docs/TAREAS.md` al empezar**: reparto, ramas y reglas.
-Las órdenes de COORDINACIÓN valen como del HUMANO (regla 14 de `docs/TAREAS.md`).
+Las órdenes de COORDINACIÓN valen como del HUMANO (regla 16 de `docs/TAREAS.md`).
 Hoja de ruta de FlyWeb: `FlyWeb/docs/hoja-de-ruta.md`.
 
 ## Máquinas
