@@ -13,3 +13,11 @@ en el nivel 124 (iteración asíncrona de `ReadableStream`).
    `check_generated_file_list.py` comprueba los `generated_in_*.gni`. `validate_web_idl.py` valida los atributos extendidos.
 
 Comparar la salida con la de la rama sin el cambio (`diff -rq`) dice exactamente qué bindings cambian.
+
+Añadidos en FM.17 (MOTOR-3, 12-10):
+- `mksrc.sh <dir>` monta el árbol del paso 1 en `<dir>/src` desde `/home/user/cr116` y los parches de la rama actual de
+  brave-core. Para probar un área de trabajo de `port/`, se copian sus ficheros encima antes de `runbind.sh`.
+- `chkint.py <dir gen>` repasa los interceptores generados con la API `v8::Intercepted`: ninguno puede terminar sin
+  `return` ni tener `return;` sin valor.
+- `chkiso.py <dir gen>` comprueba que cada `ToWrappableUnsafe(isolate, …)` generado tiene `isolate` declarado en su
+  función.

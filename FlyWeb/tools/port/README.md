@@ -25,6 +25,11 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
 - `chk.sh <rama>` — comprueba que todos los parches de la rama aplican sobre la 116 (el único aviso conocido es el
   espacio final de `ui-views-controls-menu-menu_separator.cc.patch`, que aplica igual).
 - `addflag.py <json5> <Nombre> <status>` — inserta una flag en `runtime_enabled_features.json5` en orden.
+- `addfiles.sh <nombre> <commit>…` — añade a `w-<nombre>`, ya montado, los ficheros de esos commits que aún no estén
+  (116 + parche de Brave) y guarda sus diffs. Así se aplica una cadena paso a paso, con un commit del área por paso
+  (FM.17).
+- `args1.py <fichero>…` — lista las llamadas de un solo argumento a `ToScriptWrappable`, `ToWrappableUnsafe` y
+  `GetInternalField<…>` (para cuando upstream quita la versión sin `Isolate`).
 - `v8re.sh <rev origen> <rev destino>` — rehace `patches/v8/*.patch` al cambiar de V8 (`FlyWeb/v8-revision`).
 - Generador de bindings sin compilar: `../bindings/`.
 
