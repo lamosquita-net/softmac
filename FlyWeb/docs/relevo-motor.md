@@ -20,15 +20,16 @@ abajo, sigue valiendo para las trampas de los niveles 125–127.
 y la fase 4 espera al Static de LOCAL de e9c4ad85 (decisión de COORDINACIÓN-4, para no mezclar fallos).
 
 **Lo que queda, en orden:**
-1. **Atender la revisión de SEGURIDAD-PORTES** de la fase 3. Lo que va a mirar: el almacenamiento en línea solo en
-   el mundo por defecto de cada *isolate* (3a-4/3a-5), `ClearIfEqualTo` en todos los caminos de liberación del
-   contexto (3a-2), los `DOMWrapperWorld` guardados en código de después de 2137f1da3a53 (revisado: ninguno), y una
-   prueba con ASan de un mundo aislado y el principal sobre el mismo nodo y la misma `window`. Si pide quitar
-   9401594f42b8, es un `git revert` de 85aa26ed, que no tiene dependientes.
+1. **Revisión de SEGURIDAD-PORTES de la fase 3: hecha, con visto bueno (12-10, sin cambios; 9401594f42b8 se
+   queda).** Lo que miró, por si vuelve a salir: el almacenamiento en línea solo en el mundo por
+   defecto de cada *isolate* (3a-4/3a-5), `ClearIfEqualTo` en los caminos de liberación del contexto (3a-2) y los
+   `DOMWrapperWorld` guardados en código de después de 2137f1da3a53 (ninguno). Sus pruebas con ASan para LOCAL están
+   en el §2. Si algún día hay que quitar 9401594f42b8, es un `git revert` de 85aa26ed, que no tiene dependientes.
 2. **Arreglos del Static/ASan de LOCAL**, en commits aparte, con una fila cada uno en el §3.
 3. **Fase 4**, con el plan del §2 («Fase 4: plan de `patches/v8`»): `FlyWeb/v8-revision` de brave-core a d213b3bb,
-   `v8re.sh`, quitar la 3d (aaa23fc87 ya está en la 12.8), época 8 y *cherry-pick* de (e). **Avisar a
-   SEGURIDAD-PORTES antes de tocar `patches/v8`.**
+   `v8re.sh`, quitar la 3d (aaa23fc87 ya está en la 12.8), época 9 y *cherry-pick* de (e). **Avisar a
+   SEGURIDAD-PORTES antes de tocar `patches/v8`.** El plan ya tiene su visto bueno (12-10). Al terminar, avisarle
+   para FS.10 (`seg/v8-12.8`, época ≥ 10).
 4. Al terminar FM.17: nota final con las mediciones de todas las fases (decide el modelo del motor desde el 129).
 
 **Trampas de las fases 1–3:**
