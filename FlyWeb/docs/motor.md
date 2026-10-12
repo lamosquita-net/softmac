@@ -472,7 +472,7 @@ lo descartado.
   compilar. Aparcado mientras se compilaba la 1.10; **desaparcado por el HUMANO el 09-10** con sus arreglos fusionados
   (cabeza `nube/motor-127` **639a7a71**, con los dos portes de arriba).
 
-## Nivel 128 (en código desde el 12-10; pendiente de compilar → FlyWeb 1.12 sin `ruby-align`; RubyLB → 1.12.x)
+## Nivel 128 (en código desde el 12-10; pendiente de compilar → FlyWeb 1.12 sin `ruby-align`; RubyLB → 1.12.1)
 
 Baseline de Chrome 128 y flags que pasan a `stable` entre la 127.0.6533.144 y la 128.0.6613.194 (inventario de MOTOR-2 en
 FM.16). Por decisión del HUMANO, el 128 va **sobre la V8 12.8** de FM.17: rama brave-core **`nube/motor-128`**, apilada
@@ -481,9 +481,10 @@ sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). Si la fase 4 se mueve por el Stat
 
 **Decisión del HUMANO (12-10, por COORDINACIÓN-4):** la **1.12 = nivel 128 sin `ruby-align`** (lo de
 `nube/motor-128`; 84735505 declara 128 / 1.12), sin esperar a RubyLB. **RubyLB va por etapas** (R1…R5, abajo) en la rama
-brave-core **`nube/motor-128-ruby`**, apilada sobre `nube/motor-128`, **un commit y un push por paso**. LOCAL compila y
-prueba cada etapa aparte, y cada una se publica en una 1.12.x (1.12.1, 1.12.2…) cuando esté estable. **El nivel 129 no
-empieza hasta terminar RubyLB.** Sin freno por el límite semanal.
+brave-core **`nube/motor-128-ruby`**, apilada sobre `nube/motor-128`, **un commit y un push por paso**. **La 1.12.1 es
+RubyLB completo (R1–R5), publicado de una vez cuando esté estable**; LOCAL hace compilaciones intermedias después de R2
+y después de R3 (R1 sola no se compila ni se publica; COORDINACIÓN-4, 13-10). **El nivel 129 no empieza hasta terminar
+RubyLB.** Sin freno por el límite semanal.
 
 - **V8 12.8.374.38**: llega con FM.17 (`Promise.try` viene de serie, sin porte).
 - **`document.caretPositionFromPoint()`** (2922bcaa; feecdfbca29, 1b5fb86a995, 7d0dfc27610, 6635e2d6e41, 85e3baa70a3,
@@ -520,8 +521,8 @@ empieza hasta terminar RubyLB.** Sin freno por el límite semanal.
   → `inline/line_breaker.cc`…), así que `portar.sh` no encuentra ningún fichero de la 116. Cada *hunk* hay que
   traducirlo de rutas y de nombres. **R0, decidido (MOTOR-4): no se portan los renombres** (serían 369 ficheros nuevos
   sin poder borrar los viejos y 209 más parcheados, 70 con parche nuestro); se usa el **traductor de diffs**
-  (`FlyWeb/tools/port/ngmap.py`, `ngtraducir.py`, `portarng.sh`; README). Etapas, cada una compilable, compilada aparte
-  por LOCAL y publicada en una 1.12.x:
+  (`FlyWeb/tools/port/ngmap.py`, `ngtraducir.py`, `portarng.sh`; README). Etapas, cada una compilable
+  (LOCAL compila después de R2 y de R3; todo junto sale en la 1.12.1):
   - **R1** `display: ruby`/`ruby-text`: **en código** (MOTOR-5, 12-10), brave-core `nube/motor-128-ruby` **1e042ac6**,
     sin compilar. 16 commits de upstream: fff250bc61, 8e6792e47d, f47ea0a5a5, d1aceb95f2, e63c1d7cf2, bf262bd8d1,
     bdb9aad17f, 8b01cfed9a (`RubyContainer`), d4967df6da, f551901fad, 10fc889f33, 37da5ae3a9, e60ed2dd1a, 259c7e28f1
@@ -551,7 +552,7 @@ empieza hasta terminar RubyLB.** Sin freno por el límite semanal.
   propios y solo quita 4. El resto del 128 no depende de RubyLB.
 - **Falta para cerrar la 1.12:** `flyweb_engine_full_version` del 128 (al rebasar sobre `seg/v8-12.8`, después de la
   1.11.2), la sección «Para la web» de `version-1.12.md` y la lista de WPT. Declarados ya 128 / 1.12 en
-  `build/config.gni` (84735505). **Para cerrar el nivel 128:** RubyLB R1…R5 (1.12.x).
+  `build/config.gni` (84735505). **Para cerrar el nivel 128:** RubyLB R1…R5 (1.12.1).
 - Comprobación: `FlyWeb/tools/motor-128.html`.
 
 ## Apuntado para niveles futuros
