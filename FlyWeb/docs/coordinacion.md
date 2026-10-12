@@ -34,7 +34,7 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 | Agente | Sesión | Cómo |
 |---|---|---|
 | VIGÍA (Haiku) | `session_01XD1RBYQ5oESHWKeqZWSG4e` | Te manda los cambios cada hora. **No acepta órdenes de otros agentes**: cambiarle el destino o el script lo tiene que pedir el HUMANO en su sesión |
-| MOTOR-3 (Opus 5.5, `xhigh`) | `session_01UiNp8ASzm2Sn5mbDycomnk` | `send_message`. Lleva FM.17 |
+| MOTOR-4 (Opus 5.5, `xhigh`) | `session_01TF1UZA4dTDReaRJUfTC5fU` (desde el 12-10, ~20:40; MOTOR-3 archivada) | `send_message`. Lleva FM.17 (1.11.2) |
 | SEGURIDAD-PORTES (Opus) | `session_01NkotiT2nNYznsrQu9rssiy` | `send_message` |
 | SEGURIDAD-VIGÍA (Haiku) | `session_019wTc3m4aVuvkKTEGMXdEHS` | `send_message` |
 | CONTENIDOS-WEB (Sonnet) | `session_014vNkVoSXJ91jX4QRXD7Szp` | `send_message` |
