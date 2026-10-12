@@ -1,6 +1,6 @@
 # Relevo de COORDINACIÓN
 
-Nota para la sesión que tome el papel de COORDINACIÓN. Escrita el 12-10-2026, ~19:00 (Madrid), por COORDINACIÓN-4
+Nota para la sesión que tome el papel de COORDINACIÓN. Escrita el 12-10-2026, ~19:00 (Madrid), y puesta al día el 13-10, ~01:00,, por COORDINACIÓN-4
 (`session_01PiGz6Mzdjza8YJbFEFz4JP`, 09-10 a 12-10), que relevó a COORDINACIÓN-3 (archivada).
 Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca en GitHub**), `docs/TAREAS.md`
 (tabla de agentes, reglas 1–15, filas FM.15, FM.16, FM.17, FS.9 y SV.1/SV.6), `FlyWeb/docs/motor.md` (principio 11) y
@@ -46,35 +46,34 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 Notas de tablero: commits con `[coord]` (el Vigía los ignora), push directo a `main` solo de notas; reglas, CLAUDE.md y
 docs por PR. Trabajar solo en la rama asignada a tu sesión. Antes de afirmar el estado de una rama, mirarla en GitHub.
 
-## Estado al relevo (12-10, ~19:00)
+## Estado al relevo (13-10, ~01:00)
 
-- **1.10** publicada (157.64.15, nivel 126). Pruebas de PDF del HUMANO bien (FM.14).
-- **1.11** (nivel 127, V8 12.7): Release **157.64.16** de brave-core `seg/v8-12.7` **94914682** en marcha (LOCAL-2).
-  Antes de publicar, LOCAL repite la pasada de PDF (Hacienda, EE. UU., BOE). `onselectionchange` NO falta (Chrome 127
-  tampoco: `TestExpectations`; llega en la 143). Después: entrega a PUBLICACIÓN (regla 11), web por PR de LOCAL/PUBLICACIÓN
-  (revisarlo y fusionarlo: publica la web sola).
-- **1.11.1 = FM.17** (Blink sobre la API de V8 12.8; nivel 127): MOTOR-3, plan en `v8-12.8-blink.md`. Fases 1 y 2
-  hechas (`nube/v8-12.8-api` ade843c5, sin compilar). **Fase 3a en curso** (refactors de `ScriptWrappable`, cadena
-  aprobada: faf089b95a79 → 1b454576028b → 1e59163c7b24 → 766b09e84f37 → b148acd34a84 → 04bd00feaa86…). **No se portan**
-  2137f1da3a53/3379a89654e1 (`DOMWrapperWorld` al GC) ni c29211406542; `FastApiTypedArray` aplazada a la 13.3; V8
-  aaa23fc87 como parche de desarrollo en esa rama (condiciones de SEGURIDAD-PORTES en FM.17), llega a usuarios con la
-  1.11.1. Cada commit de `Object::Wrap` pasa por SEGURIDAD-PORTES antes de LOCAL (con ASan). **Reglas de relevo de
-  ARQUITECTURA en FM.17** (plan del ítem (b) escrito tras la compactación, tres pasos al cerrar cada fase, relevo si el
-  contexto pasa del 50 % al cerrar una fase; MOTOR-4 en `xhigh`). LOCAL compila FM.17 cuando se publique la 1.11.
-- **Nivel 128** (FM.16): después de la 1.11.1, ya sobre la V8 12.8; `ruby-align` completo (decisión del HUMANO).
-- **Web y datos personales**: ningún dato personal del HUMANO en la web ni en GitHub (decisiones del 09 y 10-10). El
-  aviso legal queda con lamosquita + `admin@`. Los commits de #134 que los llevaban se quitaron de la rama; **queda que el
-  HUMANO envíe el formulario a GitHub Support** (texto ya dado) y que GitHub confirme.
+Versiones (decisiones del HUMANO del 12-10; detalle en las filas F4.8, FM.15, FM.16 y FM.17):
+
+| Versión | Qué | Estado |
+|---|---|---|
+| 1.11 | Nivel 127 (V8 12.7) | **Publicada** (12-10) |
+| 1.11.1 | Huella de red: *client hints*, Kyber/ECH, HTTP/2 sin `3:1000`, `platformVersion` 10.15.7 (F4.8, brave-core `local/huella-127` 44c1d6e4) | Entregada por LOCAL-2; **PUBLICACIÓN publicando** (orden de COORDINACIÓN-4) |
+| 1.11.2 | FM.17: Blink sobre la API de V8 12.8 + V8 12.8 (`seg/v8-12.8` f8cbd8c9, FS.10 hecho) | Static y ASan de e9c4ad85 **hechos** (LOCAL-2); falta montar huella + `flyweb_version` 1.11.2 sobre f8cbd8c9 (MOTOR-6) y compilar |
+| 1.12 | Nivel 128 **sin `ruby-align`** (`nube/motor-128` 84735505) | En código; hay que rebasarla sobre `seg/v8-12.8` (MOTOR-6) |
+| 1.12.1 | RubyLB completo (R1–R5) en `nube/motor-128-ruby` | R1, R2 y R3a hechos (e727339d); R3 en curso. LOCAL compila tras R2 (4f1ee98b, en marcha) y tras R3; se publica todo junto |
+
+- **Cola de LOCAL** (FM.16): 1.11.1 → ASan de FM.17 (hecho) → 1.11.2 → 1.12 → Static R1+R2 → Static tras R3.
+- **No se empieza el nivel 129 hasta terminar RubyLB** (HUMANO). Renombres de LayoutNG: no se portan; traductor de diffs
+  en `FlyWeb/tools/port/`.
+- **Red y gráfica:** no se migran (F5.4 cerrada). Principio 13 de `motor.md`: huella coherente con el Chrome N
+  (medición de F4.8 en cada nivel). WebGPU: punto de decisión hacia el nivel 140 (hoja de ruta), experimento F5.5
+  pendiente en la 6,1.
+- **Límite semanal:** el HUMANO dice que no frene el trabajo por él (12-10, 23:00).
 
 ## Pendiente de otros
 
-- **SERVIDOR-LOCAL** (SV.1, SV.6, FM.14): borrar el DMG más antiguo de `updates/` y comprobar la web de la 1.10;
-  instalar el `flyweb-web-auto` de #126; instalar la unidad `flyweb-sync` de #132 (365 días); borrar las copias de las
-  imágenes del aviso legal; pasar al HUMANO las órdenes para instalar como root `flyweb-desplegar` de `main`
-  (SHA-256 `09cf93bd…`, modos `imagen` y `cifras` que leen como `servidor`).
-- **HUMANO**: formulario de GitHub Support; borrar la rama sobrante `claude/regla-14` de softmac (no tiene PR).
-- **Propuesta sin decidir** (COORDINACIÓN-4, 12-10): que LOCAL compare la huella TLS/HTTP2 de la 1.11 con la de Chrome
-  127 real (p. ej. `tls.peet.ws`), porque la red sigue siendo la de la 116 aunque se declare 127.
+- **MOTOR-6:** abrirlo (el HUMANO) con la nota de arriba de `relevo-motor.md`; sigue R3 desde 4a4c18ebbdd y los puntos
+  4–6 de la nota de MOTOR-4 (1.11.2 sobre f8cbd8c9, rebase del 128).
+- **HUMANO:** firmar en bak la 1.11.1 cuando PUBLICACIÓN le pase las órdenes; pegar en la ventana de PUBLICACIÓN que
+  no pida confirmación para publicar (regla 11; también en `CLAUDE.md`); `/remote-control` en SERVIDOR-LOCAL-2
+  (archivada); formulario de GitHub Support; borrar `claude/regla-14`.
+- **SERVIDOR-LOCAL** (SV.1, SV.6): lo de siempre, por su fila (no recibe mensajes hasta que tenga Remote Control).
 
 ## Trampas de estos días
 
