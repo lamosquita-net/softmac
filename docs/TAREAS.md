@@ -90,7 +90,9 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
     arranque que prepara COORDINACIÓN empieza siempre con el paso «escribe `/remote-control` en la ventana nueva antes de
     pegar nada». Sin eso la sesión no recibe `send_message`; la preferencia de la app se pierde al actualizarla. El
     agente nuevo, al anotarse en su fila, confirma que tiene Remote Control activo y **manda un mensaje de prueba a
-    COORDINACIÓN por id de sesión**; si no llega, el Remote Control no está activo. Sin él, una sesión local solo ve
+    COORDINACIÓN**; si no llega, el Remote Control no está activo. **Herramienta:** `SendMessage` (diferida: ToolSearch
+    «select:SendMessage»), tras `ListAgents`, con el **nombre** de la lista (p. ej. `to: "Nube Coordinación (5)"`),
+    no el `send_message` de gestión de sesiones, que solo ve las sesiones `local_…` (LOCAL-3, 13-10). Sin él, una sesión local solo ve
     las de su misma Mac y no llega a las de la nube (COORDINACIÓN, MOTOR, CONTENIDOS-WEB…). El 13-10 a las 20:32 la app
     cortó a la vez el Remote Control de todas las sesiones locales: si un agente local calla, mirar `list_sessions`.
 14. **El que publica, publica** (HUMANO, 09-10). Los agentes de la nube preparan (textos, código, PR, instrucciones) y
