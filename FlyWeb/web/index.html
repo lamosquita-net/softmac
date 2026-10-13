@@ -38,7 +38,21 @@ SHA-256: <code>17baaa401a4d86e37abd99851cae2337e2536882a447cfa1f12c0f715bf9ef65<
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.11</h2>
+<h2 id="novedades">Notas de la versión 1.11.1</h2>
+<ul>
+  <li><strong>Menos bloqueos y comprobaciones de «¿eres un robot?».</strong> Algunas webs protegidas contra bots (por
+  ejemplo tiendas o servicios que usan Akamai o Cloudflare) bloqueaban FlyWeb o le hacían esperar en una pantalla de
+  comprobación, porque la forma en que se presentaba no encajaba con la de un Chrome normal. Ahora FlyWeb se presenta
+  igual que Chrome 127, y esas webs deberían abrirse directamente.</li>
+  <li><strong>Conexiones cifradas más modernas.</strong> FlyWeb usa el intercambio de claves resistente a ordenadores
+  cuánticos y prepara el cifrado del nombre de la web que se visita (ECH), como Chrome.</li>
+  <li><strong>Más privacidad en Macs antiguos.</strong> A las webs que preguntan la versión de macOS, FlyWeb les dice la
+  mínima compatible con Chrome 127 (10.15.7) en lugar de la real cuando es más antigua. Un Mojave era un dato tan raro que
+  ayudaba a identificar al usuario.</li>
+  <li><strong>El motor no cambia:</strong> sigue siendo el de Chrome 127 de la 1.11. Nada cambia en los ajustes ni en los
+  datos del usuario.</li>
+</ul>
+<h2>Notas de la versión 1.11</h2>
 <ul>
   <li><strong>Motor de nivel Chrome 127.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 127 y FlyWeb se
   presenta a las webs como Chrome 127. V8 de Chrome 127 con sus arreglos de seguridad.</li>
@@ -54,21 +68,6 @@ SHA-256: <code>17baaa401a4d86e37abd99851cae2337e2536882a447cfa1f12c0f715bf9ef65<
   FlyWeb los respeta en vez de invertirlos.</li>
   <li><strong>Efectos de filtro SVG en páginas web.</strong> Algunos efectos (sombras, desenfoques, colores) aplicados con
   filtros SVG a partes de una web o a dibujos en <code>&lt;canvas&gt;</code> no se veían; ahora sí.</li>
-</ul>
-<h2>Notas de la versión 1.10</h2>
-<ul>
-  <li><strong>Motor de nivel Chrome 126.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 126 y FlyWeb se
-  presenta a las webs como Chrome 126. Funciones web nuevas: <code>URL.parse()</code>, con la que las webs comprueban una dirección sin provocar
-  errores, y <code>toJSON()</code> en los datos de ubicación, con la que una web de mapas o de reparto puede guardar o
-  enviar tu posición en un solo paso. El motor de JavaScript optimiza mejor algunos bucles y accesos a objetos.</li>
-  <li><strong>PDF:</strong> el visor de PDF (formularios, campos que se calculan, JavaScript de los PDF) pasa a funcionar
-  sobre el nuevo motor de JavaScript. En pruebas automáticas con más de 280 PDF se comporta igual que la 1.9.</li>
-  <li><strong>Se mantiene todo lo anterior:</strong> pestañas fijadas en todas las ventanas y controles de formulario
-  verticales.</li>
-  <li><strong>Seguridad:</strong> el motor de JavaScript de Chrome 126 ya incluye entera la rama de soporte prolongado de
-  Google para Chrome 126; además lleva las correcciones posteriores que le aplican, incluidas varias de la rama de soporte
-  prolongado de Chrome 132 (2025). El puente genérico entre WebAssembly y JavaScript, el compilador Maglev y la
-  selección de instrucciones más reciente del optimizador Turboshaft siguen apagados.</li>
 </ul>
 <p><a href="novedades.html">Todas las novedades, desde la 1.0</a></p>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
