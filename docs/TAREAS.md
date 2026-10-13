@@ -118,6 +118,11 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
     Claude Code en una sesión (descargas, órdenes nuevas) solo los puede aprobar el HUMANO en esa sesión, ningún
     mensaje los sustituye. Siguen valiendo las reglas de accesos del HUMANO (`~/.claude/CLAUDE.md`): ubuntu, sudoers,
     sshd, ufw e ignoreip no se tocan, y nunca en paralelo contra ns1/ns2.
+17. **Revisión de seguridad de cada porte grande de motor** (13-10, tras RubyLB): todo porte de Blink/LayoutNG de más de
+    unas decenas de commits de upstream lleva, antes del Static definitivo de su versión, una fila FS de
+    SEGURIDAD-PORTES: arreglos de seguridad y de caídas de upstream posteriores al nivel que toquen ese código
+    (`Merged:` de las ramas siguientes, LTS y crbugs con Security_Severity), portados en `seg/<tema>`. MOTOR la pide al
+    abrir el porte; COORDINACIÓN no da la entrega por buena sin ella.
 
 ## Despliegue de la organización del 09-10
 
