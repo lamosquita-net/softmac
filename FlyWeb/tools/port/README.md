@@ -52,12 +52,42 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   si el hunk va en la clase base o en la NG (antes se mandaba todo a `ng/layout_ng_block_flow.cc`). Las **rutas
   intermedias** de upstream (ficheros renombrados dos veces entre la 116 y la 128, como `layout/layout_text_combine.h`)
   se traducen por el nombre sin «ng_» si es único en la 116 (aviso «RUTAS intermedias»).
-- **RubyLB:** `rubylb-r3.tsv` (R3 en orden, con los rechazos del ensayo) y `ruby-116-128.txt` (los 198 commits de ruby
+- **RubyLB:** `rubylb-r3.tsv` (R3 en orden, con los rechazos del ensayo), `rubylb-r45.tsv` (R4–R5, estado de cada uno) y `ruby-116-128.txt` (los 198 commits de ruby
   entre la 116 y la 128).
 - **Paso a paso con el traductor (MOTOR-5, RubyLB):** `STEP=1 portarng.sh <nombre> <commit>…` monta el área y guarda
   los `<commit>.ng.diff`; `ap.sh <nombre> <commit>` aplica uno con `--reject` y lista los rechazos; se arreglan a mano y se
   hace commit en el área antes del siguiente (así los `.rej` de un commit no pisan los del anterior).
   `addfilesng.sh <nombre> <commit>…` traduce más commits y añade al área los ficheros que falten.
+- **Herramientas de MOTOR-6 (RubyLB R3, 13-10):** `next.sh <área> <lista>` dice qué commits de la lista faltan en el
+  área, en orden (cada commit del área lleva el hash de upstream como primera palabra; los que se saltan, un commit
+  vacío `<hash> SKIPPED: motivo`), y evita saltarse uno sin querer (pasó con 505d10868b8). `addf.sh <área> <ruta>…`
+  añade ficheros de la 116 + parche de Brave para un arreglo a mano (requisitos que no estaban en la lista).
+  `rejins.py` inserta un hunk rechazado que solo añade líneas tras una línea ancla. `idscan.py <w-área> <base>`
+  busca nombres de upstream sin traducir en lo añadido. Bucle típico: `c=$(./next.sh r3 lista.tsv | head -1);
+  ./ap.sh r3 $c`, y si no hay rechazos, commit `$c` en el área.
+- **Trampas de R3 (MOTOR-6):**
+  - **Un hunk que entra limpio no está revisado.** El traductor no cambia los métodos renombrados de upstream:
+    `GetPhysicalFragment()` → `PhysicalFragment()`, `GetBreakToken()` → `BreakToken()`, `GetConstraintSpace()` →
+    `ConstraintSpace()`, `ScrollableOverflowRect()` → `PhysicalLayoutOverflowRect()`, `LogicalFragment` → `NGFragment`.
+    Mirar cada commit «ok» y pasar `idscan.py` al cerrar cada parte.
+  - **`absl::optional` no es `std::optional` en la 116** (`ABSL_OPTION_USE_STD_OPTIONAL 0`): lo que devuelve o recibe
+    código de la 116 va con `absl`; el código nuevo de upstream puede quedarse con `std::optional` si no se mezcla.
+  - En la 116 `ShapeResult` es *refcounted* (`scoped_refptr`, `.get()`), `RunFontData` va en `Vector` (no
+    `HeapVector`) y `GlyphDataCollection` solo tiene `back()` const.
+  - Los commits que **mueven código** (`LogicalLineBuilder`, `justification_utils`) se portan moviendo el código de
+    la 116, no aplicando el de upstream.
+  - `NGInlineBoxState` no tiene `Member` en la 116: `NGInlineLayoutStateStack` se traza sin `stack_`.
+  - `text-box-trim`, `FasterMinContent` e `InlineItemResult::ToString()` no existen en la 116: sus commits se saltan.
+- **Trampas de R4–R5 (MOTOR-6, `rubylb-r45.tsv`):**
+  - Propiedades CSS nuevas: la 116 no tiene `invalidate:` ni `valid_for_permission_element` en
+    `css_properties.json5`; el diff de estilo va en `core/style/computed_style_diff_functions.json5` (p. ej. en
+    `DiffNeedsFullLayoutAndPaintInvalidation`). `CSSValueFromComputedStyleInternal` lleva 3 argumentos (sin
+    `CSSValuePhase`) y `ParseSingleValue` recibe `CSSParserTokenRange`, no `CSSParserTokenStream`.
+  - `ConsoleMessage::Source::k…`/`Level::k…` → `mojom::blink::ConsoleMessageSource::k…`/`ConsoleMessageLevel::k…`.
+  - En `ng_inline_items_builder.cc` el parámetro de plantilla es `OffsetMappingBuilder` (upstream: `MappingBuilder`).
+  - Los cambios de flags de upstream a `stable` llegan como hunks de `runtime_enabled_features.json5` que suelen
+    rechazarse por contexto: aplicarlos a mano y comprobar con `gencss.sh`.
+  - Si un commit toca `chrome/browser` (about:flags), portar solo la parte de Blink y devolver `chrome/` a la 116.
 - `gencss.sh <dir>` — ejecuta sin compilar los generadores de Blink de flags (`runtime_enabled_features.json5`),
   `ComputedStyle` (`computed_style_extra_fields.json5`), palabras clave y propiedades CSS sobre la 116 + los parches
   `third_party-blink-*` de la rama actual. Detecta listas incoherentes (p. ej. dos campos con el mismo `type_name` y

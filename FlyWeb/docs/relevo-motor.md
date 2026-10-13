@@ -1,3 +1,26 @@
+# Estado de MOTOR-6 (13-10-2026, ~09:50; sesión activa, esto no es un relevo)
+
+MOTOR-6 (`session_01L1KPtm9u4214pcJi5ipUit`, Opus 5.5, esfuerzo extra) sigue abierta. Si se corta, el siguiente MOTOR
+empieza por aquí, la fila FM.16 de `docs/TAREAS.md` y `motor.md` «Nivel 128». No hay nada a medio escribir ni sin subir.
+
+| Rama de brave-core | Cabeza | Qué |
+|---|---|---|
+| `nube/v1.11.2` | f6fd49f3 | 1.11.2: 56ed9d93 (`seg/v8-12.8` + huella 1.11.1) + arreglos de V8 de LOCAL-2 (fast-forward, orden de COORDINACIÓN-5) |
+| `nube/motor-128` | 724e4c27 | 1.12 (64545ca4) + merge de los arreglos de V8 12.8 de LOCAL-2 |
+| `nube/motor-128-ruby` | 38ad8ed0 | RubyLB completo en código: R1 d1ed7eff, R2 763bcc3c, R3a–R3d (…c6d4a354), R4–R5 1f490905; flags en `stable` |
+
+**Lo que queda:** (1) arreglar los errores del Static de RubyLB que mande LOCAL-2 (área de trabajo
+`/tmp/claude-0/port/w-r3`, un commit por arreglo; si el contenedor es nuevo, montarla con `portarng.sh`/`addfilesng.sh`
+sobre la rama, como dice el README); (2) llevar por merge a `nube/motor-128` y `-ruby` los arreglos nuevos que LOCAL
+suba a `local/v8-12.8-arreglos` (y fast-forward de `nube/v1.11.2` si son de la 1.11.2); (3) cuando RubyLB compile y pase `motor-128.html` y las WPT de `css/css-ruby`, la 1.12.1; el 129 no empieza antes.
+
+**Mediciones de MOTOR-6** (Opus 5.5, extra): de las ~01:25 a las ~09:50 del 13-10 (hora de Madrid), unos 740 turnos con
+herramienta. Hecho: 1.11.2 y rebase de la 1.12; R3b–R3d (≈95 commits) y R4–R5 (46: 38 portados, 8 saltados); arreglos
+de V8 de LOCAL-2 llevados por merge; herramientas `next.sh`, `addf.sh`, `rejins.py`, `idscan.py`. Retrabajo tras
+revisión: ninguno todavía (falta la primera compilación).
+
+---
+
 # Relevo de MOTOR: de MOTOR-5 a MOTOR-6 (13-10-2026, ~00:55)
 
 MOTOR-5 (`session_01K3rpheR26LcQJUHMYHnn7V`, Opus 5.5, esfuerzo extra) deja RubyLB en un punto limpio, al acabar R3a,

@@ -475,13 +475,16 @@ lo descartado.
 ## Nivel 128 (en código desde el 12-10; pendiente de compilar → FlyWeb 1.12 sin `ruby-align`; RubyLB → 1.12.1)
 
 Baseline de Chrome 128 y flags que pasan a `stable` entre la 127.0.6533.144 y la 128.0.6613.194 (inventario de MOTOR-2 en
-FM.16). Por decisión del HUMANO, el 128 va **sobre la V8 12.8** de FM.17: rama brave-core **`nube/motor-128`**, apilada
-sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). Si la fase 4 se mueve por el Static de FM.17, esta rama se rebasa.
-**Sin excepciones** salvo lo que se anota abajo. LOCAL no la compila hasta que compile FM.17.
+FM.16). Por decisión del HUMANO, el 128 va **sobre la V8 12.8** de FM.17: rama brave-core **`nube/motor-128`**
+(**64545ca4**), rebasada por MOTOR-6 (13-10) sobre **`nube/v1.11.2` 56ed9d93** = `seg/v8-12.8` f8cbd8c9 (FM.17 + ronda de
+seguridad de V8 12.8) + la huella de red de la 1.11.1 (`local/huella-127`) + `flyweb_version` 1.11.2. Antes estaba
+apilada sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). **Sin excepciones** salvo lo que se anota abajo.
 
 **Decisión del HUMANO (12-10, por COORDINACIÓN-4):** la **1.12 = nivel 128 sin `ruby-align`** (lo de
 `nube/motor-128`; 84735505 declara 128 / 1.12), sin esperar a RubyLB. **RubyLB va por etapas** (R1…R5, abajo) en la rama
-brave-core **`nube/motor-128-ruby`**, apilada sobre `nube/motor-128`, **un commit y un push por paso**. **La 1.12.1 es
+brave-core **`nube/motor-128-ruby`**, apilada sobre `nube/motor-128`, **un commit y un push por paso** (tras el rebase
+de MOTOR-6: R1 d1ed7eff, R2 763bcc3c, R3a 7a4bf532; luego R3b 83f81e6c, R3c 99887213, R3d c6d4a354, R4–R5 1f490905;
+cabeza **38ad8ed0**, con los arreglos de compilación de V8 12.8 de LOCAL-2 fusionados desde `nube/motor-128` 724e4c27). **La 1.12.1 es
 RubyLB completo (R1–R5), publicado de una vez cuando esté estable**; LOCAL hace compilaciones intermedias después de R2
 y después de R3 (R1 sola no se compila ni se publica; COORDINACIÓN-4, 13-10). **El nivel 129 no empieza hasta terminar
 RubyLB.** Sin freno por el límite semanal.
@@ -545,19 +548,52 @@ RubyLB.** Sin freno por el límite semanal.
     **R3a en código** (MOTOR-5, 13-10, **e727339d**): flag `RubyLineBreakable` (apagada, como upstream hasta el R5),
     ítems `kOpen/CloseRubyColumn`, `SetInputRange()`, y `ComputeRubyEmHeightBox()` como envoltorio del
     `ScrollableOverflow(kEmHeight)` de la 116 en vez de portar cd1e15bd751/fe91db7955b/b40c24e2e02. Ensayo completo:
-    104 commits, 251 hunks rechazados en 65 (lista y cifras en `FlyWeb/tools/port/rubylb-r3.tsv`). Sigue MOTOR-6
-    desde 4a4c18ebbdd (`LogicalLineBuilder`).
+    104 commits, 251 hunks rechazados en 65 (lista y cifras en `FlyWeb/tools/port/rubylb-r3.tsv`).
+    **R3 completo en código** (MOTOR-6, 13-10), sin compilar, en tres partes: **R3b 83f81e6c** (`LogicalLineBuilder`,
+    columnas de ruby en `LineBreaker`, `LogicalLineContainer`, líneas de anotación como `kLine` anidados; más el
+    requisito fb5131bcbd17, `NGLineInfo` `DISALLOW_NEW`, que no estaba en la lista), **R3c 99887213** (justificación,
+    `ruby-align`, *overhang*, posición en bloque, `RubyPosition` over/under, `VttCueDisplayRuby` en `stable`) y
+    **R3d c6d4a354** (columnas de ruby partibles entre líneas con `RubyBreakTokenData`, alineación en los bordes de
+    línea, `RubyLineBreakable` y `RubyLineEdgeAlignment` en `experimental`). Saltados con motivo (en la lista y en los
+    commits): f4181c2c74b y d6f2c593fcd (`InlineItemResult::ToString`, que la 116 no tiene), ae6d9d5db8f
+    (`FasterMinContent`), 1094a4f126d (revertido en upstream por ebb948a6007: no portar el revert) y 99a722b4455 y
+    5199d5afae9 (`text-box-trim`). Adaptaciones a la 116 más delicadas: `RareData` en `NGInlineBreakToken`
+    (conserva el sub-token genérico de la 116), `BoxData` en `HeapVector` y la pila de cajas trazable sin `stack_`,
+    `CommitPendingEndOverhang()` con la firma de la 116 (se llama después de `AddItem()`), y `absl::optional` donde
+    la 116 lo usa. Comprobado con `chk.sh` (todos los parches aplican), `gencss.sh` (generadores sin fallos) e
+    `idscan.py`. **Riesgo para R5:** las líneas de anotación son `kLine` sin `NGPhysicalLineBoxFragment`; revisar los
+    usos de `LineBoxFragment()` de la 116 que upstream ya no tenía.
   - **R4** `ruby-align` (32f83cfafc, 4edb29252e, 24a2779462), alineación en los bordes de línea, heurística «short» y
     *overhang*: 2–3 días.
   - **R5** unos 60 arreglos de caídas y DCHECK de RubyLB: 2–3 días.
+    **R4–R5 en código** (MOTOR-6, 13-10, **1f490905**), sin compilar: los 46 commits de ruby tras 1786fbc1466 (lista
+    `FlyWeb/tools/port/rubylb-r45.tsv`; 24a2779462 ya entró en R3c), uno por paso: 38 portados y 8 saltados. Entran `ruby-align` (parseo,
+    serialización y maquetación; flag `CssRubyAlign`; `CSSSampleId::kRubyAlign` = 795, como Chrome), `RubyShortHeuristics`
+    (detección «corta» contando glifos), romper columnas de ruby desde `HandleOverflow()` con rebobinado, anotaciones con
+    márgenes/bordes/relleno, `PaintLayer` de las anotaciones y arreglos de caídas. **Flags en `stable`:**
+    `RubyLineBreakable`, `RubyShortHeuristics`, `RubyLineEdgeAlignment` y `CssRubyAlign` (como upstream en la 128).
+    Saltados con motivo: la entrada de `about:flags` de 2bad9c8d19e (solo UI de Chrome; sí la flag de Blink),
+    6f220af43ca (contadores de uso de `ruby-position: alternate | inter-character`), 81e6e9f8ee8 (icono de `alt`: la 116
+    le pone `display`/`float` con estilo en línea antes de `StyleAdjuster`, que ya lo corrige con a91265e3868),
+    8a35fc6c8e8 (anotaciones con `line-clamp` estándar, que la 116 no tiene) y el `NOINLINE` de Android de
+    b1d0edbf7b9; además los revert/reland (ebb948a6007, c91684bd1bc, 092d9947202), 71b76b57de0 (solo pruebas) y
+    edec8ed675e (*spanification*). Adaptaciones a la 116: el diff de estilo de `ruby-align` va en
+    `computed_style_diff_functions.json5` (la 116 no tiene `invalidate:`), `CSSValueFromComputedStyleInternal` con 3
+    argumentos, `ConsoleMessage` con los `mojom::blink::ConsoleMessage*` de la 116, el parámetro de plantilla
+    `OffsetMappingBuilder` (upstream lo llama `MappingBuilder`) y `absl::optional`. Comprobado con `chk.sh`, `gencss.sh`
+    e `idscan.py`. **Revisado el riesgo apuntado en R3** (líneas de anotación = `kLine` anidados con `LineBoxFragment()`
+    nulo): los usos de la 116 o comprueban el nulo, o recorren solo el nivel superior (donde no hay anotaciones), o ya
+    los adaptó R3 (pintado, *hit-testing*, contornos); el único resto era un `DCHECK_EQ(kBox)` en
+    `AddScrollableOverflowForInlineChild()` (en *release* ya sumaba los hijos de la anotación), ajustado en 38ad8ed0.
 
   Las estimaciones son de antes de medir *hunks*. En R1, con el traductor corregido (MOTOR-5: no traduce los nombres
   que en la 116 son métodos, como `PhysicalFragment()`), se rechazaron 27 *hunks* de 16 commits, todos resueltos a
   mano uno a uno. Portar antes el renombre «ruby run» → «ruby column» (257af3736c2) no compensa: tiene 19 rechazos
   propios y solo quita 4. El resto del 128 no depende de RubyLB.
-- **Falta para cerrar la 1.12:** `flyweb_engine_full_version` del 128 (al rebasar sobre `seg/v8-12.8`, después de la
-  1.11.2), la sección «Para la web» de `version-1.12.md` y la lista de WPT. Declarados ya 128 / 1.12 en
-  `build/config.gni` (84735505). **Para cerrar el nivel 128:** RubyLB R1…R5 (1.12.1).
+- **Falta para cerrar la 1.12:** la sección «Para la web» de `version-1.12.md` y la lista de WPT. Declarados ya 128 /
+  1.12 en `build/config.gni` (64545ca4), con `flyweb_engine_full_version` = **128.0.6613.138** (la última Stable normal
+  de la 128 para Mac, 10-09-2024, como la .120 de la 127) y `flyweb_min_macos_version` 10.15.7. **Para cerrar el
+  nivel 128:** RubyLB R1…R5 (1.12.1).
 - Comprobación: `FlyWeb/tools/motor-128.html`.
 
 ## Apuntado para niveles futuros
