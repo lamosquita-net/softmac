@@ -40,8 +40,11 @@ except Exception:
 hm = lambda t: datetime.datetime.fromtimestamp(t, datetime.timezone.utc).strftime('%H:%M UTC') if t else '?'
 out = []
 if A[0] != V[0]:
+    st['n'] = st.get('n', 0) + 1
     if st['estado'] != 'desfasada':
         out.append('WEB DESFASADA: appcast %s / VERSION %s' % (A[0], V[0]))
+    elif st['n'] == 2:
+        out.append('ACCIÓN: WEB DESFASADA: sigue igual dos pasadas seguidas (appcast %s / VERSION %s)' % (A[0], V[0]))
     st['estado'] = 'desfasada'
 elif st['estado'] == 'desfasada':
     out.append('WEB SINCRONIZADA: appcast %s / VERSION %s' % (A[0], V[0]))
@@ -49,6 +52,8 @@ elif st['estado'] == 'desfasada':
 elif st['C'] and CT > st['C'] and P > CT:
     out.append('WEB DESFASADA (a posteriori): VERSION %s desde %s, appcast %s; no se vio entre pasadas' % (V[0], hm(CT), hm(P)))
     out.append('WEB SINCRONIZADA: appcast %s / VERSION %s' % (A[0], V[0]))
+if A[0] == V[0]:
+    st['n'] = 0
 st['C'] = CT
 json.dump(st, open(S, 'w'))
 for line in out:
