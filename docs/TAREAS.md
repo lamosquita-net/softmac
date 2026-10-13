@@ -89,7 +89,10 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
     **Relevo de un agente local** (LOCAL, PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA; HUMANO, 13-10): el texto de
     arranque que prepara COORDINACIÓN empieza siempre con el paso «escribe `/remote-control` en la ventana nueva antes de
     pegar nada». Sin eso la sesión no recibe `send_message`; la preferencia de la app se pierde al actualizarla. El
-    agente nuevo, al anotarse en su fila, confirma que tiene Remote Control activo.
+    agente nuevo, al anotarse en su fila, confirma que tiene Remote Control activo y **manda un mensaje de prueba a
+    COORDINACIÓN por id de sesión**; si no llega, el Remote Control no está activo. Sin él, una sesión local solo ve
+    las de su misma Mac y no llega a las de la nube (COORDINACIÓN, MOTOR, CONTENIDOS-WEB…). El 13-10 a las 20:32 la app
+    cortó a la vez el Remote Control de todas las sesiones locales: si un agente local calla, mirar `list_sessions`.
 14. **El que publica, publica** (HUMANO, 09-10). Los agentes de la nube preparan (textos, código, PR, instrucciones) y
     **ejecuta quien tiene el acceso**: SERVIDOR-LOCAL todo lo que se instala o se cambia en ns1/ns2 (web, imágenes,
     unidades, scripts), PUBLICACIÓN las versiones (DMG, firma, web de la versión), LOCAL las compilaciones. Lo que no
