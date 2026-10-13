@@ -38,7 +38,18 @@ SHA-256: <code>8bd8e58835dea7f2bc88ef12cf3e84adf75b04e098e4b6d45b90efc5f9af9f6a<
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.11.1</h2>
+<h2 id="novedades">Notas de la versión 1.11.2</h2>
+<ul>
+  <li><strong>Motor de JavaScript más reciente y más seguro.</strong> El motor que ejecuta el JavaScript de las webs pasa a
+  ser el de Chrome 128, con las correcciones de seguridad que le aplican. Las webs con mucho JavaScript (YouTube, Gmail,
+  Google Docs…) funcionan igual que antes.</li>
+  <li><strong>El nivel declarado sigue siendo Chrome 127.</strong> Las webs ven a FlyWeb igual que con la 1.11.1; lo nuevo
+  del nivel 128 llegará con la 1.12.</li>
+  <li><strong>Se mantiene todo lo de la 1.11.1:</strong> las webs protegidas contra bots siguen abriéndose directamente.</li>
+</ul>
+<p class="dato">Al actualizar, la caché de código de JavaScript se regenera sola: las primeras visitas pueden ir algo más
+lentas. Nada cambia en los ajustes ni en los datos del usuario.</p>
+<h2>Notas de la versión 1.11.1</h2>
 <ul>
   <li><strong>Menos bloqueos y comprobaciones de «¿eres un robot?».</strong> Algunas webs protegidas contra bots (por
   ejemplo tiendas o servicios que usan Akamai o Cloudflare) bloqueaban FlyWeb o le hacían esperar en una pantalla de
@@ -51,23 +62,6 @@ SHA-256: <code>8bd8e58835dea7f2bc88ef12cf3e84adf75b04e098e4b6d45b90efc5f9af9f6a<
   ayudaba a identificar al usuario.</li>
   <li><strong>El motor no cambia:</strong> sigue siendo el de Chrome 127 de la 1.11. Nada cambia en los ajustes ni en los
   datos del usuario.</li>
-</ul>
-<h2>Notas de la versión 1.11</h2>
-<ul>
-  <li><strong>Motor de nivel Chrome 127.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 127 y FlyWeb se
-  presenta a las webs como Chrome 127. V8 de Chrome 127 con sus arreglos de seguridad.</li>
-  <li><strong>Texto más legible cuando una fuente no carga.</strong> Las webs pueden pedir que el texto mantenga el mismo
-  tamaño aparente aunque se use una fuente de reserva (<code>font-size-adjust</code>). Antes, si la fuente de la web no
-  llegaba, el texto podía verse mucho más grande o más pequeño.</li>
-  <li><strong>Editores y formularios web más fiables.</strong> Los editores de texto de las webs reciben el aviso de
-  cambio de selección dentro de los campos de texto, y el aviso previo a cada cambio al usar las flechas de un campo
-  numérico o al deshacer. Algunos editores (notas, correo, chats) dejaban de seguir el cursor o no podían deshacer bien.</li>
-  <li><strong>Más seguridad en webs modernas.</strong> Las webs que cargan módulos de JavaScript pueden comprobar que no
-  han sido alterados (integridad en los mapas de importación), como ya hacían Safari y Firefox.</li>
-  <li><strong>Selección de texto con los colores de la web.</strong> Si una web elige los colores del texto seleccionado,
-  FlyWeb los respeta en vez de invertirlos.</li>
-  <li><strong>Efectos de filtro SVG en páginas web.</strong> Algunos efectos (sombras, desenfoques, colores) aplicados con
-  filtros SVG a partes de una web o a dibujos en <code>&lt;canvas&gt;</code> no se veían; ahora sí.</li>
 </ul>
 <p><a href="novedades.html">Todas las novedades, desde la 1.0</a></p>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
