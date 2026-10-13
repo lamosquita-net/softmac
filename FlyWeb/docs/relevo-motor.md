@@ -5,9 +5,9 @@ empieza por aquí, la fila FM.16 de `docs/TAREAS.md` y `motor.md` «Nivel 128».
 
 | Rama de brave-core | Cabeza | Qué |
 |---|---|---|
-| `nube/v1.11.2` | dca03f7a | 1.11.2: 56ed9d93 (`seg/v8-12.8` + huella 1.11.1) + arreglos de V8 de LOCAL-2 + v8 3349cb9fd (microtareas, época 11); fast-forward por orden de COORDINACIÓN-5 |
-| `nube/motor-128` | ba7c27b6 | 1.12 (64545ca4) + merge de los arreglos de V8 12.8 de LOCAL-2 + merge de `seg/v8-12.8` dca03f7a (v8 3349cb9fd, microtareas; época 11) |
-| `nube/motor-128-ruby` | 756b5437 | RubyLB completo en código: R1 d1ed7eff, R2 763bcc3c, R3a–R3d (…c6d4a354), R4–R5 1f490905; flags en `stable` |
+| `nube/v1.11.2` | 5aa57049f | 1.11.2: 56ed9d93 (`seg/v8-12.8` + huella 1.11.1) + arreglos de compilación de LOCAL-2 + v8 3349cb9fd (microtareas) + arreglos de la pasada de API del embedder; época 12 |
+| `nube/motor-128` | 710e7520 | 1.12 (64545ca4) + merges de los arreglos de V8 12.8 (LOCAL-2 y `seg/v8-12.8` 5aa57049f, época 12) |
+| `nube/motor-128-ruby` | 21b44804 | RubyLB completo en código: R1 d1ed7eff, R2 763bcc3c, R3a–R3d (…c6d4a354), R4–R5 1f490905; flags en `stable` |
 
 **Lo que queda:** (1) arreglar los errores del Static de RubyLB que mande LOCAL-2 (área de trabajo
 `/tmp/claude-0/port/w-r3`, un commit por arreglo; si el contenedor es nuevo, montarla con `portarng.sh`/`addfilesng.sh`
