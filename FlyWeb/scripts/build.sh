@@ -16,6 +16,7 @@
 #                                        build/config.gni (flyweb_version, flyweb_engine_level).
 #   FLYWEB_EXTRA_ARGS="…"                argumentos extra para el build de Brave (ASan: "--is_asan -C StaticAsan").
 #   FLYWEB_OUT=nombre                    carpeta de out/ si -C la cambia (ASan: StaticAsan); por defecto, el modo.
+#   FLYWEB_SYMBOL_LEVEL=0|1|2            símbolos (por defecto 0); 1 para backtraces legibles en lldb, en un out/ aparte.
 # Al terminar deja out/<modo>/flyweb-build-info.txt y, en builds sin firmar (no Release), las claves
 # FlyWebCommit, FlyWebBraveBrowserCommit, FlyWebChromium, FlyWebBuildDate y FlyWebBuildConfig en el Info.plist.
 set -eu
@@ -175,7 +176,7 @@ npm run build -- "$CONFIG" --target_arch=x64 "$@" \
   --gn "flyweb_source_commit:$CORE_SRC_COMMIT" \
   --gn "webcompat_report_api_endpoint:$INERT" \
   --gn "mac_sdk_path:$SDK" \
-  --gn symbol_level:0 \
+  --gn "symbol_level:${FLYWEB_SYMBOL_LEVEL:-0}" \
   --gn v8_deprecation_warnings:false \
   --gn v8_imminent_deprecation_warnings:false \
   --gn "updater_prod_endpoint:$UPDATER" \
