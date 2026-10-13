@@ -88,6 +88,10 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   - Los cambios de flags de upstream a `stable` llegan como hunks de `runtime_enabled_features.json5` que suelen
     rechazarse por contexto: aplicarlos a mano y comprobar con `gencss.sh`.
   - Si un commit toca `chrome/browser` (about:flags), portar solo la parte de Blink y devolver `chrome/` a la 116.
+- **Lista de commits de un porte grande (MOTOR-7, 13-10):** la de RubyLB (`git log --grep=ruby` en `main` entre dos fechas)
+  dejó fuera 1f0b377299b6 (el mensaje no dice «ruby»; daba una diferencia de WPT) y ef8ddcab1d8e (un `Merged:` en la rama
+  de la 128, que no está en `main` antes del corte). Para el 129+: `git log <tag N-1>..<tag N>` sobre las etiquetas (trae
+  los `Merged:`), más `--author` de los autores del porte, y comparar con la lista antes de dar el porte por completo.
 - `gencss.sh <dir>` — ejecuta sin compilar los generadores de Blink de flags (`runtime_enabled_features.json5`),
   `ComputedStyle` (`computed_style_extra_fields.json5`), palabras clave y propiedades CSS sobre la 116 + los parches
   `third_party-blink-*` de la rama actual. Detecta listas incoherentes (p. ej. dos campos con el mismo `type_name` y
