@@ -585,6 +585,8 @@ RubyLB.** Sin freno por el límite semanal.
     nulo): los usos de la 116 o comprueban el nulo, o recorren solo el nivel superior (donde no hay anotaciones), o ya
     los adaptó R3 (pintado, *hit-testing*, contornos); el único resto era un `DCHECK_EQ(kBox)` en
     `AddScrollableOverflowForInlineChild()` (en *release* ya sumaba los hijos de la anotación), ajustado en 38ad8ed0.
+    **Static de LOCAL-3 (13-10, sobre 21b44804): 20 errores en 7 objetos**, arreglados por MOTOR-7 en **f1b26d42** (dos
+    `#include` que en la 128 llegan de rebote y `auto*` en iteradores, que en la 116 son punteros); pendiente de recompilar.
 
   Las estimaciones son de antes de medir *hunks*. En R1, con el traductor corregido (MOTOR-5: no traduce los nombres
   que en la 116 son métodos, como `PhysicalFragment()`), se rechazaron 27 *hunks* de 16 commits, todos resueltos a
