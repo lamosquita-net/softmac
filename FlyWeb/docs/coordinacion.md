@@ -75,7 +75,24 @@ Versiones (decisiones del HUMANO del 12-10; detalle en las filas F4.8, FM.15, FM
   (archivada); formulario de GitHub Support; borrar `claude/regla-14`.
 - **SERVIDOR-LOCAL** (SV.1, SV.6): lo de siempre, por su fila (no recibe mensajes hasta que tenga Remote Control).
 
+## Red del entorno de la nube
+
+El entorno de la nube (el mismo para COORDINACIÓN, el Vigía y los demás agentes de la nube; se hereda en los relevos)
+tiene la red en «Personalizado», con la lista por defecto de gestores de paquetes y dos dominios nuestros añadidos por
+el HUMANO el 13-10:
+
+- `updates.flyweb.lamosquita.net`: el Vigía lee `stable/appcast.xml` cada hora y avisa si no coincide con
+  `FlyWeb/web/VERSION` de `main` («WEB DESFASADA» / «WEB SINCRONIZADA»).
+- `flyweb.lamosquita.net`: COORDINACIÓN comprueba la web tras cada publicación (portada, SHA, descarga).
+
+Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
+
 ## Trampas de estos días
+
+- **La web solo se publica sola si su PR (con `FlyWeb/web/VERSION`) está fusionado antes de la firma** (SV.6). En la
+  1.11.1 no lo estaba: el HUMANO firmó a las 9:00 y la web siguió en la 1.11 hasta las 16:00. Desde el 13-10,
+  PUBLICACIÓN no pasa órdenes de firma sin ese PR fusionado. Y el estado de una sesión puede ser viejo: para saber si
+  algo está publicado, mirar el appcast, no la sesión.
 
 - **Una sesión local solo recibe `send_message` con Remote Control activo** y sin archivar. Comprobarlo con
   `list_sessions` (`connection_status`). Si alguien la archiva desde la web, la ventana sigue abierta en la 7,1 pero
