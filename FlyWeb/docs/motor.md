@@ -586,7 +586,12 @@ RubyLB.** Sin freno por el límite semanal.
     los adaptó R3 (pintado, *hit-testing*, contornos); el único resto era un `DCHECK_EQ(kBox)` en
     `AddScrollableOverflowForInlineChild()` (en *release* ya sumaba los hijos de la anotación), ajustado en 38ad8ed0.
     **Static de LOCAL-3 (13-10, sobre 21b44804): 20 errores en 7 objetos**, arreglados por MOTOR-7 en **f1b26d42** (dos
-    `#include` que en la 128 llegan de rebote y `auto*` en iteradores, que en la 116 son punteros); pendiente de recompilar.
+    `#include` que en la 128 llegan de rebote y `auto*` en iteradores, que en la 116 son punteros). **Static de f1b26d42: 0 errores, `motor-128` 9/9, WPT de
+    `css-ruby` 110 iguales a Chrome 128, 1 mejor y 1 diferencia** (`line-spacing.html`), que arregla 1f0b377299b6. Con él,
+    en **e420119c**, entran otros dos que la lista no tenía: ef8ddcab1d8e (caída; `Merged:` en la rama de la 128) y
+    b877e3948a59 + 7e72ac335691 (`<rt>` sin `::first-letter`). **Lección para el 129+:** la lista de un porte grande se
+    saca de `git log <tag N-1>..<tag N>` (incluye los `Merged:` de la rama del nivel) y por autor y fichero, no solo con
+    `--grep` del nombre de la función.
 
   Las estimaciones son de antes de medir *hunks*. En R1, con el traductor corregido (MOTOR-5: no traduce los nombres
   que en la 116 son métodos, como `PhysicalFragment()`), se rechazaron 27 *hunks* de 16 commits, todos resueltos a
