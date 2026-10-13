@@ -93,6 +93,13 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
   1.11.1 no lo estaba: el HUMANO firmó a las 9:00 y la web siguió en la 1.11 hasta las 16:00. Desde el 13-10,
   PUBLICACIÓN no pasa órdenes de firma sin ese PR fusionado. Y el estado de una sesión puede ser viejo: para saber si
   algo está publicado, mirar el appcast, no la sesión.
+- **PUBLICACIÓN (local) no llega por `send_message` a las sesiones de la nube** (CONTENIDOS-WEB, MOTOR…): deja los
+  datos del DMG en el tablero y COORDINACIÓN se los pasa a CONTENIDOS-WEB. Las sesiones de la nube sí le llegan a ella.
+- **Relevos de agentes locales: `/remote-control` siempre** (regla 13). El HUMANO lo tiene marcado en las preferencias de
+  la app, pero se pierde al actualizarla. LOCAL-2 quedó archivada el 13-10 (~20:30) en mitad de la compilación de
+  RubyLB y dejó de recibir mensajes sin que nadie lo notara: si un agente local calla, mirar `get_session`.
+- **Antes de decir que algo espera la firma del HUMANO, mirar el appcast** (`curl …/stable/appcast.xml`). El 13-10 se
+  le dijo dos veces que faltaba su firma cuando ya había firmado.
 
 - **Una sesión local solo recibe `send_message` con Remote Control activo** y sin archivar. Comprobarlo con
   `list_sessions` (`connection_status`). Si alguien la archiva desde la web, la ventana sigue abierta en la 7,1 pero

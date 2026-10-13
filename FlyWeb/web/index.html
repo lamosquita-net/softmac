@@ -22,23 +22,53 @@ servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomoneda
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 1.11.2</h2>
-<p><a class="boton" href="descargas/FlyWeb-1.11.2.dmg" download>Descargar FlyWeb 1.11.2 (165 MB)</a></p>
+<h2>Descargar FlyWeb 1.12</h2>
+<p><a class="boton" href="descargas/FlyWeb-1.12.dmg" download>Descargar FlyWeb 1.12 (165 MB)</a></p>
 <p class="dato">macOS 10.13 o 10.14, Mac Intel (x86_64). En macOS 10.15 a 12 debería funcionar, sin garantía.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>8f26e598ec1dc1be91f2f3d6ba7f2801bf2264580da2ad9b4d361c33df483440</code></p>
+SHA-256: <code>722e831c600470a27fc7b8468bb2ff65e5d77a271e3008aaf21a347e060f8502</code></p>
 </div>
 </div></section>
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-1.11.2.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-1.12.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.11.2</h2>
+<h2 id="novedades">Notas de la versión 1.12</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 128.</strong> FlyWeb se presenta a las webs como Chrome 128 y suma las funciones web de
+  ese nivel que siguen.</li>
+  <li><strong>Colocar el cursor donde se pulsa o se suelta.</strong> Las webs pueden saber en qué punto exacto del texto se
+  ha hecho clic o se ha soltado algo arrastrado, con el método estándar que ya usaba Firefox
+  (<code>caretPositionFromPoint</code>), también dentro de campos de texto y de componentes web. Sirve, por ejemplo, a los
+  editores de texto y a las webs que permiten arrastrar texto.</li>
+  <li><strong>Webs ampliadas mejor colocadas.</strong> Las webs pueden saber cuánto zoom tiene cada parte de la página
+  (<code>currentCSSZoom</code>), lo que les ayuda a colocar bien menús y ventanas emergentes cuando han ampliado solo una
+  zona.</li>
+  <li><strong>Nombres de filas y columnas para la accesibilidad.</strong> Las webs pueden dar nombre propio a las filas y
+  columnas de sus tablas y hojas de cálculo (por ejemplo «columna B» en vez de «columna 2»), como en Chrome 128. En Mac,
+  VoiceOver todavía no lo lee, tampoco en Chrome.</li>
+  <li><strong>Listas desplegables sin acentos.</strong> Al escribir sobre una lista desplegable para saltar a una opción ya
+  no hace falta poner los acentos: «avila» lleva a «Ávila».</li>
+  <li><strong>Pequeños arreglos de compatibilidad:</strong>
+    <ul>
+      <li>En los editores de las webs, mover el cursor por párrafos ya no se atasca en partes que no se pueden editar.</li>
+      <li>La sección a la que lleva un enlace interno (<code>#…</code>) sigue marcada aunque la web la vuelva a colocar.</li>
+      <li>Los degradados de los gráficos SVG que lo piden se pintan con la mezcla de color que eligió quien los diseñó.</li>
+      <li>Las listas hechas con <code>&lt;menu&gt;</code> se numeran como las demás listas.</li>
+      <li>Una caída en páginas con texto en varias columnas, arreglada.</li>
+    </ul></li>
+  <li><strong>Se mantiene todo lo de la 1.11.2:</strong> el motor de JavaScript de Chrome 128 con sus arreglos de seguridad,
+  y las webs protegidas contra bots se siguen abriendo directamente.</li>
+  <li><strong>Llega en la 1.12.1:</strong> el texto con anotaciones <em>ruby</em> (la pronunciación encima de los caracteres
+  en japonés y chino) con el sistema nuevo de Chrome, incluida su alineación (<code>ruby-align</code>).</li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
+<h2>Notas de la versión 1.11.2</h2>
 <ul>
   <li><strong>Motor de JavaScript más reciente y más seguro.</strong> El motor que ejecuta el JavaScript de las webs pasa a
   ser el de Chrome 128, con las correcciones de seguridad que le aplican. Las webs con mucho JavaScript (YouTube, Gmail,
@@ -49,20 +79,6 @@ SHA-256: <code>8f26e598ec1dc1be91f2f3d6ba7f2801bf2264580da2ad9b4d361c33df483440<
 </ul>
 <p class="dato">Al actualizar, la caché de código de JavaScript se regenera sola: las primeras visitas pueden ir algo más
 lentas. Nada cambia en los ajustes ni en los datos del usuario.</p>
-<h2>Notas de la versión 1.11.1</h2>
-<ul>
-  <li><strong>Menos bloqueos y comprobaciones de «¿eres un robot?».</strong> Algunas webs protegidas contra bots (por
-  ejemplo tiendas o servicios que usan Akamai o Cloudflare) bloqueaban FlyWeb o le hacían esperar en una pantalla de
-  comprobación, porque la forma en que se presentaba no encajaba con la de un Chrome normal. Ahora FlyWeb se presenta
-  igual que Chrome 127, y esas webs deberían abrirse directamente.</li>
-  <li><strong>Conexiones cifradas más modernas.</strong> FlyWeb usa el intercambio de claves resistente a ordenadores
-  cuánticos y prepara el cifrado del nombre de la web que se visita (ECH), como Chrome.</li>
-  <li><strong>Más privacidad en Macs antiguos.</strong> A las webs que preguntan la versión de macOS, FlyWeb les dice la
-  mínima compatible con Chrome 127 (10.15.7) en lugar de la real cuando es más antigua. Un Mojave era un dato tan raro que
-  ayudaba a identificar al usuario.</li>
-  <li><strong>El motor no cambia:</strong> sigue siendo el de Chrome 127 de la 1.11. Nada cambia en los ajustes ni en los
-  datos del usuario.</li>
-</ul>
 <p><a href="novedades.html">Todas las novedades, desde la 1.0</a></p>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
 </div></section>
