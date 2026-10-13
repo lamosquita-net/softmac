@@ -38,8 +38,13 @@ def ev(expr, wait=False):
     r = call('Runtime.evaluate', {'expression': expr, 'awaitPromise': wait, 'returnByValue': True})
     return r.get('result', {}).get('result', {}).get('value')
 
-GANCHO = r'''(function(){var t=setInterval(function(){if(window.add_completion_callback){clearInterval(t);
-add_completion_callback(function(tests,st){window.__wpt=JSON.stringify({st:st.status,msg:st.message,tests:tests.map(function(x){return [x.name,x.status,x.message]})});});}},5);})();'''
+# Gancho: un «setter» en window registra el callback en una microtarea al acabar de cargar testharness.js (expone
+# add_completion_callback antes de crear `tests`, así que no se puede llamar en el acto). Antes se
+# buscaba cada 5 ms y, si el arnés terminaba antes, se perdía el resultado («SIN RESULTADO» intermitente; LOCAL-3, 13-10).
+GANCHO = r'''(function(){var cb=function(tests,st){window.__wpt=JSON.stringify({st:st.status,msg:st.message,tests:tests.map(function(x){return [x.name,x.status,x.message]})});};
+var f;try{Object.defineProperty(window,'add_completion_callback',{configurable:true,enumerable:true,get:function(){return f;},
+set:function(v){f=v;queueMicrotask(function(){try{v(cb);}catch(e){}});}});}catch(e){var t=setInterval(function(){if(window.add_completion_callback){clearInterval(t);
+window.add_completion_callback(cb);}},5);}})();'''
 call('Page.enable', {}); call('Page.addScriptToEvaluateOnNewDocument', {'source': GANCHO})
 call('Emulation.setDeviceMetricsOverride', {'width': 800, 'height': 600, 'deviceScaleFactor': 1, 'mobile': False})
 NOM = {0: 'PASS', 1: 'FAIL', 2: 'TIMEOUT', 3: 'NOTRUN', 4: 'PRECONDITION_FAILED'}
