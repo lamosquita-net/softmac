@@ -86,6 +86,10 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
 13. **Relevos:** una sesión se releva cuando su contexto crece mucho, siempre en un punto limpio (rama subida, fila al
     día, nota de relevo en `docs/` si el papel la tiene). El relevo se numera en la fila (MOTOR-1, MOTOR-2…) para saber
     quién hizo qué. No se abre un segundo agente del mismo papel en paralelo salvo que esta tabla lo diga.
+    **Relevo de un agente local** (LOCAL, PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA; HUMANO, 13-10): el texto de
+    arranque que prepara COORDINACIÓN empieza siempre con el paso «escribe `/remote-control` en la ventana nueva antes de
+    pegar nada». Sin eso la sesión no recibe `send_message`; la preferencia de la app se pierde al actualizarla. El
+    agente nuevo, al anotarse en su fila, confirma que tiene Remote Control activo.
 14. **El que publica, publica** (HUMANO, 09-10). Los agentes de la nube preparan (textos, código, PR, instrucciones) y
     **ejecuta quien tiene el acceso**: SERVIDOR-LOCAL todo lo que se instala o se cambia en ns1/ns2 (web, imágenes,
     unidades, scripts), PUBLICACIÓN las versiones (DMG, firma, web de la versión), LOCAL las compilaciones. Lo que no
