@@ -1,23 +1,70 @@
-# Estado de MOTOR-6 (13-10-2026, ~09:50; sesión activa, esto no es un relevo)
+# Relevo de MOTOR: de MOTOR-6 a MOTOR-7 (13-10-2026, ~18:05)
 
-MOTOR-6 (`session_01L1KPtm9u4214pcJi5ipUit`, Opus 5.5, esfuerzo extra) sigue abierta. Si se corta, el siguiente MOTOR
-empieza por aquí, la fila FM.16 de `docs/TAREAS.md` y `motor.md` «Nivel 128». No hay nada a medio escribir ni sin subir.
+MOTOR-6 (`session_01L1KPtm9u4214pcJi5ipUit`, Opus 5.5, esfuerzo extra) cierra por orden de COORDINACIÓN-5, con el
+contexto al ~77 % tras una compactación. MOTOR-7 la abre el HUMANO. Leer esta sección, la fila FM.16 de
+`docs/TAREAS.md`, `motor.md` «Nivel 128», `FlyWeb/tools/port/README.md` y `FlyWeb/docs/v8-12.8-blink.md` §4. No hay
+nada a medio escribir ni sin subir; el área de trabajo `/tmp/claude-0/port/w-r3` era de este contenedor y no pasa.
 
-| Rama de brave-core | Cabeza | Qué |
+**Ramas de brave-core:**
+
+| Rama | Cabeza | Qué |
 |---|---|---|
-| `nube/v1.11.2` | 5aa57049f | 1.11.2: 56ed9d93 (`seg/v8-12.8` + huella 1.11.1) + arreglos de compilación de LOCAL-2 + v8 3349cb9fd (microtareas) + arreglos de la pasada de API del embedder; época 12 |
-| `nube/motor-128` | 710e7520 | 1.12 (64545ca4) + merges de los arreglos de V8 12.8 (LOCAL-2 y `seg/v8-12.8` 5aa57049f, época 12) |
-| `nube/motor-128-ruby` | 21b44804 | RubyLB completo en código: R1 d1ed7eff, R2 763bcc3c, R3a–R3d (…c6d4a354), R4–R5 1f490905; flags en `stable` |
+| `nube/v1.11.2` | **5aa57049f** | = `seg/v8-12.8` 5aa57049f (época 12): huella 1.11.1 + arreglos de compilación de LOCAL-2 + v8 3349cb9fd (microtareas) + arreglos de la pasada de API del embedder. Entregada: notarizada y subida a ns2 (157.64.18); falta la web y las órdenes de bak (PUBLICACIÓN) |
+| `nube/motor-128` | **710e7520** | 1.12 (64545ca4) + merges de 724e4c27 (arreglos de LOCAL), ba7c27b6 (microtareas) y 710e7520 (arreglos del embedder, época 12) |
+| `nube/motor-128-ruby` | **21b44804** | RubyLB completo en código: R1 d1ed7eff, R2 763bcc3c, R3a–R3d (…c6d4a354), R4–R5 1f490905 (38 portados, 8 saltados; `rubylb-r45.tsv`), 38ad8ed0 (`DCHECK` de `LineBoxFragment`) + merges de `nube/motor-128`; flags en `stable` |
 
-**Lo que queda:** (1) arreglar los errores del Static de RubyLB que mande LOCAL-2 (área de trabajo
-`/tmp/claude-0/port/w-r3`, un commit por arreglo; si el contenedor es nuevo, montarla con `portarng.sh`/`addfilesng.sh`
-sobre la rama, como dice el README); (2) llevar por merge a `nube/motor-128` y `-ruby` los arreglos nuevos que LOCAL
-suba a `local/v8-12.8-arreglos` (y fast-forward de `nube/v1.11.2` si son de la 1.11.2); (3) cuando RubyLB compile y pase `motor-128.html` y las WPT de `css/css-ruby`, la 1.12.1; el 129 no empieza antes.
+De diagnóstico, no tocar: `nube/v8-12.8-fase4-diag` 8df1ba12, `nube/v8-12.8-microtask` 73fcc6af,
+`nube/motor-128-microtask` c3a399ad.
 
-**Mediciones de MOTOR-6** (Opus 5.5, extra): de las ~01:25 a las ~09:50 del 13-10 (hora de Madrid), unos 740 turnos con
-herramienta. Hecho: 1.11.2 y rebase de la 1.12; R3b–R3d (≈95 commits) y R4–R5 (46: 38 portados, 8 saltados); arreglos
-de V8 de LOCAL-2 llevados por merge; herramientas `next.sh`, `addf.sh`, `rejins.py`, `idscan.py`. Retrabajo tras
-revisión: ninguno todavía (falta la primera compilación).
+**Lo que queda, en orden:**
+1. **1.12** (`nube/motor-128` 710e7520): Static probado por LOCAL-2 (0 errores, `motor-128` 9/9, webs 8/8 con YouTube,
+   `motor-gc` 20/20, WPT = Chrome 128 salvo dos de entorno). ASan en marcha; después Release (build 19) y entrega. A
+   MOTOR solo le toca si el ASan saca algo: arreglo en `nube/motor-128` y merge a `-ruby`.
+2. **Errores del Static de RubyLB** (21b44804, o la cabeza que compile LOCAL-2; aún no ha compilado): un commit por
+   arreglo. El área `w-r3` hay que montarla de nuevo sobre la rama con `portarng.sh`/`addfilesng.sh`, como dice el README
+   (el entorno de Chromium `cr116`/`cr128` y `ngmap.json` también son de contenedor).
+3. **1.12.1** = RubyLB, cuando compile y pase `motor-128.html` y las WPT de `css/css-ruby` (iguales a Chrome 128). El
+   129 no empieza antes.
+4. Merges hacia arriba de lo que suba LOCAL a `local/v8-12.8-arreglos` o SEGURIDAD a `seg/v8-12.8` (y fast-forward de
+   `nube/v1.11.2` si es de la 1.11.x). `patches/v8/` no se toca sin avisar a SEGURIDAD-PORTES.
+
+**Cerrado en MOTOR-6:**
+- **Cuelgue de YouTube:** V8 b8235a685 hizo copia-al-escribir la lista de *callbacks* de «microtareas terminadas»; si el
+  último se quita a sí mismo durante la iteración, la baja se pierde. El `scheduler::EventLoop` de Blink 116 (sin cola
+  por agente: `kMicrotaskQueuePerWindowAgent` apagada) quita su *callback* dentro de
+  `RunEndOfMicrotaskCheckpointTasks` y hace `Release()` por llamada → uso tras liberar. Chrome 128 no lo pisa (siempre
+  cola por agente, registro único). Arreglo: v8 **3349cb9fd** (crbug 350350588) en
+  `patches/v8/src-execution-microtask-queue.{cc,h}.patch`, con `#include <optional>`.
+- **Pasada de API del embedder** (§4 de `v8-12.8-blink.md`): en `seg/v8-12.8` 5aa57049f están 3349cb9fd, 12e09a455,
+  8324ee42e, 6b85b7c6b, 367fce4df (adaptado a mano) y 279d28029 (lo añadió SEGURIDAD-PORTES). Fuera por decisión:
+  874d5646f y 9f7485309 (endurecimiento del *sandbox*, Chrome 128 igual; los decide SEGURIDAD-PORTES), f61df1b3f
+  (bajo, 3 líneas, solo si se toca la zona) y el resto de la tabla. `dfda1bfd4`: vigilar.
+- **`caretPositionFromPoint` 12/13:** diferencia de entorno (barras superpuestas de macOS); Chrome 155 en el mismo Mac
+  también da 6. No frena el nivel.
+
+**Trampas (además de las del README):**
+- **Traductor:** mirar siempre sus avisos por stderr (no traduce métodos de la 116 ni rutas que existen en la 116;
+  traduce las rutas intermedias de upstream por el nombre).
+- **116 frente a upstream:** `absl::optional`, no `std::optional`; `BreakToken()`, no `GetBreakToken()`; el parámetro de
+  plantilla es `OffsetMappingBuilder`, no `MappingBuilder`; `ConsoleMessage` con `mojom::blink::ConsoleMessageSource/Level`;
+  `CSSValueFromComputedStyleInternal` con 3 argumentos; no hay `valid_for_permission_element`.
+- **json5:** `css_properties.json5` no tiene `invalidate:`; las diferencias de estilo van en
+  `computed_style_diff_functions.json5`. Si se toca algún `json5`, `gencss.sh <área>` antes de `chk.sh`.
+- **`idscan.py <área> <base>`** antes de cerrar una parte: busca nombres de upstream sin traducir en lo añadido.
+- Las líneas de anotación de ruby son `kLine` con `LineBoxFragment()` nulo (38ad8ed0): cualquier `DCHECK` que dé por hecho
+  `kBox` o una caja de línea no nula hay que revisarlo.
+- **`git cherry-pick -q` no existe**: falla y deja la rama sin el commit; comprobar con `git log` antes del push.
+- **Merges de `docs/TAREAS.md` con `main`:** tomar la fila de `main` y añadir solo las notas propias; comprobar con
+  `git diff` que no quedan marcadores de conflicto antes del commit. Sin `push --force` en ramas con PR fusionado.
+- **Ganchos de parada:** los clones sin *checkout* (`v8`, `chromium`) en `/home/user` hacen que el gancho vea «cambios sin
+  subir». Tenerlos en `/tmp/claude-0/port/` y acabar cada turno en `/home/user/softmac`.
+
+**Mediciones de MOTOR-6** (Opus 5.5, extra): de las ~01:25 a las ~18:05 del 13-10, hora de Madrid; unos 1100 turnos con
+herramienta (≈740 hasta las 09:50); una compactación de contexto; `get_session` no da tokens. Hecho: 1.11.2 (entregada a PUBLICACIÓN) y
+rebase de la 1.12; RubyLB R3b–R3d (≈95 commits), R4–R5 (46) y 38ad8ed0; diagnóstico y arreglo del cuelgue de YouTube;
+pasada de API del embedder; merges de los arreglos de LOCAL-2 y SEGURIDAD-PORTES; herramientas `next.sh`, `addf.sh`,
+`rejins.py`, `idscan.py`. Retrabajo tras revisión: ninguno en código probado (RubyLB aún sin compilar); en la
+documentación, una rama de PR vaciada por error y restaurada, y marcadores de conflicto subidos y corregidos.
 
 ---
 
