@@ -1,11 +1,12 @@
 # FlyWeb 1.12.1 — nivel 128 completo, con el ruby nuevo de Chrome (MOTOR-7, 14-10-2026)
 
-**Estado:** en brave-core `nube/motor-128-ruby` **611642d8** = la 1.12 (`nube/motor-128` 710e7520, ya publicada) + RubyLB
-completo (R1–R5) + sus arreglos de compilación + tres portes que faltaban (e420119c) + `flyweb_version` 1.12.1. Static de
-LOCAL-3 de f1b26d42: 0 errores, `motor-128` 9/9, WPT de `css/css-ruby` 110 de 113 iguales a Chrome 128, 1 mejor y 1
-diferencia, que arregla e420119c (pendiente de recompilar). **El commit final espera a la revisión de seguridad de RubyLB**
-(FS.11, SEGURIDAD-PORTES, regla 17), que puede traer una rama `seg/rubylb-128` para fundir; después, Static definitivo,
-ASan, Release y entrega de LOCAL (regla 11). Detalle técnico: `motor.md`, «Nivel 128».
+**Estado:** brave-core `nube/motor-128-ruby` **44c2af834** (cabeza final salvo errores del Static) = la 1.12
+(`nube/motor-128` 710e7520, ya publicada) + RubyLB completo (R1–R5) + sus arreglos de compilación (f1b26d42) + tres portes
+que faltaban (e420119c) + `flyweb_version` 1.12.1 (611642d8) + la revisión de seguridad de RubyLB (FS.11, SEGURIDAD-PORTES,
+`seg/rubylb-128` 388643ed: 11 arreglos de seguridad y de caídas de upstream de la 128 a la 149). Static de f1b26d42: 0
+errores, `motor-128` 9/9, WPT de `css/css-ruby` 110 de 113 iguales a Chrome 128, 1 mejor y 1 diferencia (arreglada en
+e420119c). LOCAL-3 compila 44c2af834 (Static definitivo); después, ASan, Release y entrega (regla 11). Pruebas de los
+arreglos de seguridad: `FlyWeb/tools/ruby-fs11/`. Detalle técnico: `motor.md`, «Nivel 128».
 
 | Dato | Valor |
 |---|---|
@@ -13,7 +14,7 @@ ASan, Release y entrega de LOCAL (regla 11). Detalle técnico: `motor.md`, «Niv
 | Nivel declarado | Chrome 128, sin cambios desde la 1.12 (128.0.6613.138; `platformVersion` mínimo 10.15.7) |
 | Motor JavaScript | el de la 1.12: V8 12.8.374.38 con los arreglos de seguridad de FlyWeb (época de caché 12, sin cambios) |
 | Lo nuevo | RubyLB, la reescritura del texto *ruby* de Chrome 124–128: 156 commits de upstream portados, 14 saltados con motivo y 9 solo de pruebas (`FlyWeb/tools/port/rubylb-commits.tsv`) |
-| Pruebas | `motor-128.html`, `wpt-128-ruby-lista.txt` con `wpt-ref.py` (comparado con la 1.12 y con el Chrome del mismo Mac) |
+| Pruebas | `motor-128.html`, `wpt-128-ruby-lista.txt` y `ruby-fs11/` con `wpt-ref.py` (comparado con la 1.12 y con el Chrome del mismo Mac) |
 
 ## Para la web
 
