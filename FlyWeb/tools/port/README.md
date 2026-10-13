@@ -58,6 +58,26 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   los `<commit>.ng.diff`; `ap.sh <nombre> <commit>` aplica uno con `--reject` y lista los rechazos; se arreglan a mano y se
   hace commit en el área antes del siguiente (así los `.rej` de un commit no pisan los del anterior).
   `addfilesng.sh <nombre> <commit>…` traduce más commits y añade al área los ficheros que falten.
+- **Herramientas de MOTOR-6 (RubyLB R3, 13-10):** `next.sh <área> <lista>` dice qué commits de la lista faltan en el
+  área, en orden (cada commit del área lleva el hash de upstream como primera palabra; los que se saltan, un commit
+  vacío `<hash> SKIPPED: motivo`), y evita saltarse uno sin querer (pasó con 505d10868b8). `addf.sh <área> <ruta>…`
+  añade ficheros de la 116 + parche de Brave para un arreglo a mano (requisitos que no estaban en la lista).
+  `rejins.py` inserta un hunk rechazado que solo añade líneas tras una línea ancla. `idscan.py <w-área> <base>`
+  busca nombres de upstream sin traducir en lo añadido. Bucle típico: `c=$(./next.sh r3 lista.tsv | head -1);
+  ./ap.sh r3 $c`, y si no hay rechazos, commit `$c` en el área.
+- **Trampas de R3 (MOTOR-6):**
+  - **Un hunk que entra limpio no está revisado.** El traductor no cambia los métodos renombrados de upstream:
+    `GetPhysicalFragment()` → `PhysicalFragment()`, `GetBreakToken()` → `BreakToken()`, `GetConstraintSpace()` →
+    `ConstraintSpace()`, `ScrollableOverflowRect()` → `PhysicalLayoutOverflowRect()`, `LogicalFragment` → `NGFragment`.
+    Mirar cada commit «ok» y pasar `idscan.py` al cerrar cada parte.
+  - **`absl::optional` no es `std::optional` en la 116** (`ABSL_OPTION_USE_STD_OPTIONAL 0`): lo que devuelve o recibe
+    código de la 116 va con `absl`; el código nuevo de upstream puede quedarse con `std::optional` si no se mezcla.
+  - En la 116 `ShapeResult` es *refcounted* (`scoped_refptr`, `.get()`), `RunFontData` va en `Vector` (no
+    `HeapVector`) y `GlyphDataCollection` solo tiene `back()` const.
+  - Los commits que **mueven código** (`LogicalLineBuilder`, `justification_utils`) se portan moviendo el código de
+    la 116, no aplicando el de upstream.
+  - `NGInlineBoxState` no tiene `Member` en la 116: `NGInlineLayoutStateStack` se traza sin `stack_`.
+  - `text-box-trim`, `FasterMinContent` e `InlineItemResult::ToString()` no existen en la 116: sus commits se saltan.
 - `gencss.sh <dir>` — ejecuta sin compilar los generadores de Blink de flags (`runtime_enabled_features.json5`),
   `ComputedStyle` (`computed_style_extra_fields.json5`), palabras clave y propiedades CSS sobre la 116 + los parches
   `third_party-blink-*` de la rama actual. Detecta listas incoherentes (p. ej. dos campos con el mismo `type_name` y

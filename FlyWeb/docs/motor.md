@@ -547,8 +547,21 @@ RubyLB.** Sin freno por el límite semanal.
     **R3a en código** (MOTOR-5, 13-10, **e727339d**): flag `RubyLineBreakable` (apagada, como upstream hasta el R5),
     ítems `kOpen/CloseRubyColumn`, `SetInputRange()`, y `ComputeRubyEmHeightBox()` como envoltorio del
     `ScrollableOverflow(kEmHeight)` de la 116 en vez de portar cd1e15bd751/fe91db7955b/b40c24e2e02. Ensayo completo:
-    104 commits, 251 hunks rechazados en 65 (lista y cifras en `FlyWeb/tools/port/rubylb-r3.tsv`). Sigue MOTOR-6
-    desde 4a4c18ebbdd (`LogicalLineBuilder`).
+    104 commits, 251 hunks rechazados en 65 (lista y cifras en `FlyWeb/tools/port/rubylb-r3.tsv`).
+    **R3 completo en código** (MOTOR-6, 13-10), sin compilar, en tres partes: **R3b 83f81e6c** (`LogicalLineBuilder`,
+    columnas de ruby en `LineBreaker`, `LogicalLineContainer`, líneas de anotación como `kLine` anidados; más el
+    requisito fb5131bcbd17, `NGLineInfo` `DISALLOW_NEW`, que no estaba en la lista), **R3c 99887213** (justificación,
+    `ruby-align`, *overhang*, posición en bloque, `RubyPosition` over/under, `VttCueDisplayRuby` en `stable`) y
+    **R3d c6d4a354** (columnas de ruby partibles entre líneas con `RubyBreakTokenData`, alineación en los bordes de
+    línea, `RubyLineBreakable` y `RubyLineEdgeAlignment` en `experimental`). Saltados con motivo (en la lista y en los
+    commits): f4181c2c74b y d6f2c593fcd (`InlineItemResult::ToString`, que la 116 no tiene), ae6d9d5db8f
+    (`FasterMinContent`), 1094a4f126d (revertido en upstream por ebb948a6007: no portar el revert) y 99a722b4455 y
+    5199d5afae9 (`text-box-trim`). Adaptaciones a la 116 más delicadas: `RareData` en `NGInlineBreakToken`
+    (conserva el sub-token genérico de la 116), `BoxData` en `HeapVector` y la pila de cajas trazable sin `stack_`,
+    `CommitPendingEndOverhang()` con la firma de la 116 (se llama después de `AddItem()`), y `absl::optional` donde
+    la 116 lo usa. Comprobado con `chk.sh` (todos los parches aplican), `gencss.sh` (generadores sin fallos) e
+    `idscan.py`. **Riesgo para R5:** las líneas de anotación son `kLine` sin `NGPhysicalLineBoxFragment`; revisar los
+    usos de `LineBoxFragment()` de la 116 que upstream ya no tenía.
   - **R4** `ruby-align` (32f83cfafc, 4edb29252e, 24a2779462), alineación en los bordes de línea, heurística «short» y
     *overhang*: 2–3 días.
   - **R5** unos 60 arreglos de caídas y DCHECK de RubyLB: 2–3 días.
