@@ -472,7 +472,7 @@ lo descartado.
   compilar. Aparcado mientras se compilaba la 1.10; **desaparcado por el HUMANO el 09-10** con sus arreglos fusionados
   (cabeza `nube/motor-127` **639a7a71**, con los dos portes de arriba).
 
-## Nivel 128 (en código desde el 12-10; pendiente de compilar → FlyWeb 1.12 sin `ruby-align`; RubyLB → 1.12.1)
+## Nivel 128 (1.12 compilada y probada en Static el 13-10 → FlyWeb 1.12 sin `ruby-align`; RubyLB → 1.12.1)
 
 Baseline de Chrome 128 y flags que pasan a `stable` entre la 127.0.6533.144 y la 128.0.6613.194 (inventario de MOTOR-2 en
 FM.16). Por decisión del HUMANO, el 128 va **sobre la V8 12.8** de FM.17: rama brave-core **`nube/motor-128`**
@@ -590,11 +590,19 @@ RubyLB.** Sin freno por el límite semanal.
   que en la 116 son métodos, como `PhysicalFragment()`), se rechazaron 27 *hunks* de 16 commits, todos resueltos a
   mano uno a uno. Portar antes el renombre «ruby run» → «ruby column» (257af3736c2) no compensa: tiene 19 rechazos
   propios y solo quita 4. El resto del 128 no depende de RubyLB.
-- **Falta para cerrar la 1.12:** la sección «Para la web» de `version-1.12.md` y la lista de WPT. Declarados ya 128 /
-  1.12 en `build/config.gni` (64545ca4), con `flyweb_engine_full_version` = **128.0.6613.138** (la última Stable normal
-  de la 128 para Mac, 10-09-2024, como la .120 de la 127) y `flyweb_min_macos_version` 10.15.7. **Para cerrar el
-  nivel 128:** RubyLB R1…R5 (1.12.1).
-- Comprobación: `FlyWeb/tools/motor-128.html`.
+- **1.12:** Static de LOCAL-2 de `nube/motor-128` 710e7520 probado el 13-10 (0 errores, `motor-128` 9/9, webs 8/8 con
+  YouTube, WPT iguales a Chrome 128 salvo dos de entorno); faltan el ASan, la Release y la entrega de LOCAL. «Para la
+  web» en `version-1.12.md` (MOTOR-7, 13-10). Declarados 128 / 1.12 en `build/config.gni` (64545ca4), con
+  `flyweb_engine_full_version` = **128.0.6613.138** (la última Stable normal de la 128 para Mac, 10-09-2024, como la
+  .120 de la 127) y `flyweb_min_macos_version` 10.15.7. **Para cerrar el nivel 128:** RubyLB R1…R5 (1.12.1).
+- **Comprobación:** `FlyWeb/tools/motor-128.html` y `FlyWeb/tools/wpt-128-lista.txt` (8 ficheros; resultados en
+  `version-1.12.md`). Para la 1.12.1, además, `FlyWeb/tools/wpt-128-ruby-lista.txt`: las WPT de `css/css-ruby` de la
+  128 (97 *reftests* y 16 testharness) y `wpt-128-ruby-esperado.json` con lo que Chrome 128 falla (45 `[ Failure ]` de
+  `TestExpectations` y los subtests de 4 `-expected.txt`). Se ejecutan con `FlyWeb/tools/wpt-ref.py` (MOTOR-7), que
+  hace los dos tipos: captura a 800×600 con escala 1, como wptrunner, con `fuzzy`, y al final lista lo que difiere de
+  Chrome 128. Probado en el contenedor con Chromium 141 en Linux: 106 de 113 iguales; las 7 diferencias son de Chrome
+  141 (una revisada a ojo: un hueco real entre dos cajas). Las capturas dependen de las fuentes del sistema: para separar el entorno, pasar la lista también por la 1.12
+  (sin RubyLB) y por el Chrome del mismo Mac.
 
 ## Apuntado para niveles futuros
 
