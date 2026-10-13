@@ -1,11 +1,13 @@
 # FlyWeb 1.12.1 — nivel 128 completo, con el ruby nuevo de Chrome (MOTOR-7, 14-10-2026)
 
-**Estado:** brave-core `nube/motor-128-ruby` **44c2af834** (cabeza final salvo errores del Static) = la 1.12
+**Estado:** brave-core `nube/motor-128-ruby` **e6273d015** (**cabeza final de la 1.12.1**, COORDINACIÓN-5) = la 1.12
 (`nube/motor-128` 710e7520, ya publicada) + RubyLB completo (R1–R5) + sus arreglos de compilación (f1b26d42) + tres portes
 que faltaban (e420119c) + `flyweb_version` 1.12.1 (611642d8) + la revisión de seguridad de RubyLB (FS.11, SEGURIDAD-PORTES,
-`seg/rubylb-128` 388643ed: 11 arreglos de seguridad y de caídas de upstream de la 128 a la 149). Static de f1b26d42: 0
+`seg/rubylb-128` 388643ed: 11 arreglos de seguridad y de caídas de upstream de la 128 a la 149) + la parte urgente de
+FS.12 (`seg/inline-116` e6273d015: comillas y *container queries* a mitad de la maquetación de línea, 690ccf3b8df, y los
+`CHECK` de 527e0a1c8a8 y cc7d71057b7). Static de f1b26d42: 0
 errores, `motor-128` 9/9, WPT de `css/css-ruby` 110 de 113 iguales a Chrome 128, 1 mejor y 1 diferencia (arreglada en
-e420119c). LOCAL-3 compila 44c2af834 (Static definitivo); después, ASan, Release y entrega (regla 11). Pruebas de los
+e420119c). LOCAL-3 compila e6273d015 (Static definitivo); después, ASan, Release y entrega (regla 11). Pruebas de los
 arreglos de seguridad: `FlyWeb/tools/ruby-fs11/`. Detalle técnico: `motor.md`, «Nivel 128».
 
 | Dato | Valor |

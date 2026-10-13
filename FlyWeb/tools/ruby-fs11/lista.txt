@@ -1,5 +1,6 @@
 flyweb-fs11/bidi-crash.html
 flyweb-fs11/break-spaces-crash.html
+flyweb-fs11/counters-container-crash.html
 flyweb-fs11/float-beside-whitespace-ruby.html
 flyweb-fs11/hyphens-overflow-rewind.html
 flyweb-fs11/justification-crash.html

@@ -1,7 +1,7 @@
-# Pruebas de los arreglos de seguridad de RubyLB (FS.11, FlyWeb 1.12.1)
+# Pruebas de los arreglos de seguridad de RubyLB y de la base de línea (FS.11 y FS.12, FlyWeb 1.12.1)
 
-Pruebas de upstream de los arreglos que SEGURIDAD-PORTES portó en `seg/rubylb-128` (44c2af834, FS.11) y de los dos que
-añadió MOTOR-7 (e420119c). Son posteriores a la etiqueta 128, así que no están en el WPT de la 128: se copian a la raíz
+Pruebas de upstream de los arreglos que SEGURIDAD-PORTES portó en `seg/rubylb-128` (44c2af834, FS.11) y en
+`seg/inline-116` (e6273d015, FS.12), y de los dos que añadió MOTOR-7 (e420119c). Son posteriores a la etiqueta 128, así que no están en el WPT de la 128: se copian a la raíz
 del servidor WPT (p. ej. `temp/wpt128/flyweb-fs11/`) para que resuelvan `/resources/` y `/fonts/`. Las de `fast/` de
 Blink se han cambiado a `/resources/testharness.js`.
 
@@ -23,12 +23,13 @@ Comparar con el Chrome del mismo Mac: tiene que dar lo mismo o mejor.
 | `ruby-tab-in-base-00{1,2,3}.html` | reftest | fb5382de24c (505419357): tabuladores dentro de una base | igual que su `-ref` |
 | `ruby-tab-in-base-max-content-crash.html` | caída | fb5382de24c | no cae |
 | `ruby-align-in-text-align-crash.html` | testharness | 56be91796b = ef8ddcab1d8e (367764861): `text-align` no por defecto | 1/1 |
+| `counters-container-crash.html` | caída | 690ccf3b8df (1505164, FS.12): comillas y *container queries* a mitad de la maquetación de línea | no cae (ni salta un `CHECK` de `NeedsCollectInlines`) |
 
 Sin prueba de página: a88ef98354 (`InlineCursor`) y de6bea0628 + e79a89e550 (rubíes anidados en min/max), que upstream
 probó con tests de C++ de Blink; y 9edff04ccc (`<video>`/`<audio>`), con un test de C++ de `StyleAdjuster`.
 
 **Referencia en el contenedor de MOTOR-7 (Chromium 141 headless, Linux):** las 4 testharness pasan y 4 de las 5 de caída
-cargan sin caer. `hyphens-overflow-rewind.html` **cuelga la pestaña** en la 141 (su arreglo, d68c29e9d2d, es de junio de
+cargan sin caer (también `counters-container-crash.html`). `hyphens-overflow-rewind.html` **cuelga la pestaña** en la 141 (su arreglo, d68c29e9d2d, es de junio de
 2026): `wpt-ref.py` lo marca `COLGADO`, abre otra pestaña y sigue. Los tres `ruby-tab-in-base` y
 `whitespace-ruby-beside-float` fallan en la 141 porque sus arreglos son posteriores (crbugs 505419357 y 510947981). En
 la 1.12.1 tienen que pasar todas.
