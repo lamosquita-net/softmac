@@ -41,9 +41,8 @@ for b in bloques:
         if rx.search(texto):
             acciones.append("ACCIÓN: %s — %s" % (motivo, b[0][:100]))
 
-if not acciones and not bloques:
-    print("sin novedades " + ahora)
-else:
+# Sin ACCIÓN no se envía nada a COORDINACIÓN: salida vacía.
+if acciones:
     cuerpo = ["VIGÍA " + ahora] + [l for b in bloques for l in b]
     salida = "\n".join(acciones + cuerpo)
     if len(salida) > LIMITE:
