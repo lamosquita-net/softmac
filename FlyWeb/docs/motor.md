@@ -483,7 +483,8 @@ apilada sobre `nube/v8-12.8-fase4` 493c8998 (MOTOR-4). **Sin excepciones** salvo
 **Decisión del HUMANO (12-10, por COORDINACIÓN-4):** la **1.12 = nivel 128 sin `ruby-align`** (lo de
 `nube/motor-128`; 84735505 declara 128 / 1.12), sin esperar a RubyLB. **RubyLB va por etapas** (R1…R5, abajo) en la rama
 brave-core **`nube/motor-128-ruby`**, apilada sobre `nube/motor-128`, **un commit y un push por paso** (tras el rebase
-de MOTOR-6: R1 d1ed7eff, R2 763bcc3c, R3a 7a4bf532). **La 1.12.1 es
+de MOTOR-6: R1 d1ed7eff, R2 763bcc3c, R3a 7a4bf532; luego R3b 83f81e6c, R3c 99887213, R3d c6d4a354, R4–R5 1f490905;
+cabeza **38ad8ed0**, con los arreglos de compilación de V8 12.8 de LOCAL-2 fusionados desde `nube/motor-128` 724e4c27). **La 1.12.1 es
 RubyLB completo (R1–R5), publicado de una vez cuando esté estable**; LOCAL hace compilaciones intermedias después de R2
 y después de R3 (R1 sola no se compila ni se publica; COORDINACIÓN-4, 13-10). **El nivel 129 no empieza hasta terminar
 RubyLB.** Sin freno por el límite semanal.
@@ -565,6 +566,25 @@ RubyLB.** Sin freno por el límite semanal.
   - **R4** `ruby-align` (32f83cfafc, 4edb29252e, 24a2779462), alineación en los bordes de línea, heurística «short» y
     *overhang*: 2–3 días.
   - **R5** unos 60 arreglos de caídas y DCHECK de RubyLB: 2–3 días.
+    **R4–R5 en código** (MOTOR-6, 13-10, **1f490905**), sin compilar: los 46 commits de ruby tras 1786fbc1466 (lista
+    `FlyWeb/tools/port/rubylb-r45.tsv`; 24a2779462 ya entró en R3c), uno por paso: 38 portados y 8 saltados. Entran `ruby-align` (parseo,
+    serialización y maquetación; flag `CssRubyAlign`; `CSSSampleId::kRubyAlign` = 795, como Chrome), `RubyShortHeuristics`
+    (detección «corta» contando glifos), romper columnas de ruby desde `HandleOverflow()` con rebobinado, anotaciones con
+    márgenes/bordes/relleno, `PaintLayer` de las anotaciones y arreglos de caídas. **Flags en `stable`:**
+    `RubyLineBreakable`, `RubyShortHeuristics`, `RubyLineEdgeAlignment` y `CssRubyAlign` (como upstream en la 128).
+    Saltados con motivo: la entrada de `about:flags` de 2bad9c8d19e (solo UI de Chrome; sí la flag de Blink),
+    6f220af43ca (contadores de uso de `ruby-position: alternate | inter-character`), 81e6e9f8ee8 (icono de `alt`: la 116
+    le pone `display`/`float` con estilo en línea antes de `StyleAdjuster`, que ya lo corrige con a91265e3868),
+    8a35fc6c8e8 (anotaciones con `line-clamp` estándar, que la 116 no tiene) y el `NOINLINE` de Android de
+    b1d0edbf7b9; además los revert/reland (ebb948a6007, c91684bd1bc, 092d9947202), 71b76b57de0 (solo pruebas) y
+    edec8ed675e (*spanification*). Adaptaciones a la 116: el diff de estilo de `ruby-align` va en
+    `computed_style_diff_functions.json5` (la 116 no tiene `invalidate:`), `CSSValueFromComputedStyleInternal` con 3
+    argumentos, `ConsoleMessage` con los `mojom::blink::ConsoleMessage*` de la 116, el parámetro de plantilla
+    `OffsetMappingBuilder` (upstream lo llama `MappingBuilder`) y `absl::optional`. Comprobado con `chk.sh`, `gencss.sh`
+    e `idscan.py`. **Revisado el riesgo apuntado en R3** (líneas de anotación = `kLine` anidados con `LineBoxFragment()`
+    nulo): los usos de la 116 o comprueban el nulo, o recorren solo el nivel superior (donde no hay anotaciones), o ya
+    los adaptó R3 (pintado, *hit-testing*, contornos); el único resto era un `DCHECK_EQ(kBox)` en
+    `AddScrollableOverflowForInlineChild()` (en *release* ya sumaba los hijos de la anotación), ajustado en 38ad8ed0.
 
   Las estimaciones son de antes de medir *hunks*. En R1, con el traductor corregido (MOTOR-5: no traduce los nombres
   que en la 116 son métodos, como `PhysicalFragment()`), se rechazaron 27 *hunks* de 16 commits, todos resueltos a
