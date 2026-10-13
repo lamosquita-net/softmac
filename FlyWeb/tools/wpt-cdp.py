@@ -26,8 +26,13 @@ def call(method, params):
         elif n == 127: n = struct.unpack('>Q', rd(8))[0]
         r = json.loads(rd(n))
         if r.get('id') == i: return r
-GANCHO = r'''(function(){var t=setInterval(function(){if(window.add_completion_callback){clearInterval(t);
-add_completion_callback(function(tests,st){window.__wpt=JSON.stringify({st:st.status,msg:st.message,tests:tests.map(function(x){return [x.name,x.status,x.message]})});});}},5);})();'''
+# Gancho: un «setter» en window registra el callback en una microtarea al acabar de cargar testharness.js (expone
+# add_completion_callback antes de crear `tests`, así que no se puede llamar en el acto). Antes se
+# buscaba cada 5 ms y, si el arnés terminaba antes, se perdía el resultado («SIN RESULTADO» intermitente; LOCAL-3, 13-10).
+GANCHO = r'''(function(){var cb=function(tests,st){window.__wpt=JSON.stringify({st:st.status,msg:st.message,tests:tests.map(function(x){return [x.name,x.status,x.message]})});};
+var f;try{Object.defineProperty(window,'add_completion_callback',{configurable:true,enumerable:true,get:function(){return f;},
+set:function(v){f=v;queueMicrotask(function(){try{v(cb);}catch(e){}});}});}catch(e){var t=setInterval(function(){if(window.add_completion_callback){clearInterval(t);
+window.add_completion_callback(cb);}},5);}})();'''
 call('Page.enable', {}); call('Page.addScriptToEvaluateOnNewDocument', {'source': GANCHO})
 NOM = {0: 'PASS', 1: 'FAIL', 2: 'TIMEOUT', 3: 'NOTRUN', 4: 'PRECONDITION_FAILED'}
 res = {}
