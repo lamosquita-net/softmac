@@ -1,3 +1,58 @@
+# Relevo de MOTOR: de MOTOR-8 a MOTOR-9 (preparada el 14-10-2026, ~22:50; MOTOR-8 sigue hasta que COORDINACIÓN lo releve)
+
+MOTOR-8 (`session_01YAuwa2BsTVR6GZqzr1wtex`, esfuerzo extra) lleva el nivel 129 (FM.19) hasta la entrega de
+la **1.13**. MOTOR-9 empieza por aquí, la fila FM.19 de `docs/TAREAS.md` (reglas 16–19), `motor.md` «Nivel 129»,
+`version-1.13.md` y `FlyWeb/tools/port/README.md` («Lecciones del nivel 129»). Al HUMANO se le llama **Titín**
+(CLAUDE.md); en el tablero sigue siendo HUMANO.
+
+**Ramas de brave-core:**
+
+| Rama | Cabeza | Qué |
+|---|---|---|
+| `nube/motor-129` | **325686916c** | **1.13**: paso de V8 + FS.13 + Baseline y flags del 129 + `binaryType` (43ef04cf64) + Menlo. Static y WPT del 129 iguales a Chrome 129; ASan de 43ef04cf64 limpio; Release (build 22) en LOCAL-3 |
+| `nube/motor-129-v8` | fdac7ed13b | paso de V8 12.9.202.28 + `seg/v8-12.9` (árbol idéntico); Static y ASan limpios |
+| `seg/v8-12.9` / `seg/blink-129` | 2ffa1017bc / 63ea2663a0 | FS.13, fundidas |
+| `nube/fuente-menlo` | 325686916c | lo mismo que la cabeza; se puede borrar |
+
+**Lo que queda:**
+1. **Entrega de la 1.13** (regla 11): falta que Titín apruebe en LuLu el binario nuevo para las pruebas de red de la
+   Release (el caso de RTCDataChannel de `motor-129` necesita UDP local). Si LOCAL-3 encuentra algo, se arregla en
+   `nube/motor-129`.
+2. **`block-ruby-003`**: falla desde macOS 15.8.1 en la 1.12.2 y la 1.13 (Chrome 129 pasa). Con Menlo debería pasar
+   (era la fuente `monospace`); si no, mirar el texto de la anotación (glifo de 5 px).
+3. **Nivel 130** (lo abre COORDINACIÓN): inventario primero (Baseline, flags a `stable`, API de V8 13.0), lista de commits
+   de `git log <tag 129>..<tag 130>` y fila FS de la regla 17 al abrir un porte grande. **Regla 18:** un nivel, una
+   versión, con la V8 de Chrome N; solo un cambio muy amplio se reparte en 1.N.x. **Regla 19:** al saltar de V8,
+   comparar `flag-definitions.h` de upstream con nuestras opciones apagadas (la tabla la lleva SEGURIDAD-PORTES).
+4. **Fuera del 129, con motivo** (`motor.md`): `hints` y `supplementalPubKeys` de WebAuthn, 3 flags que dependen de
+   código posterior a la 116, lo no Baseline (*anchor positioning*, `scheduler.yield()`, `calc-size()`, eventos de
+   *scroll snap*) y la lista japonesa de fuente fija (necesita `PrefsFontList`).
+
+**Proceso (COORDINACIÓN-5, 14-10):** COORDINACIÓN funde los PR con *squash*; avisarle antes de subir más commits a un
+PR abierto, y si algo llega tarde, PR nuevo (nunca reutilizar el fundido). `patches/v8` es terreno de SEGURIDAD-PORTES:
+el permiso de la sesión bloqueó a MOTOR-8 encender una opción de V8 («Security Weaken») y no se rodeó; lo hizo ella.
+
+**Trampas nuevas:**
+- **Capturas de reftests:** con emulación de viewport la 116 daba 200 px falsos; `wpt-ref.py` ya no emula (README).
+  Antes de declarar una excepción: control sin la función, coordenadas de los píxeles y Chrome for Testing N en el
+  mismo Mac.
+- **Cambios fuera de Blink:** la fuente fija de Mac (`chrome/app/resources/locale_settings_mac.grd`) cambió en la 118 y
+  nadie la vio en cinco niveles. En cada nivel, mirar también `chrome/app/resources/*.grd` y las preferencias web por
+  defecto.
+- **Tipos del IDL:** comparar el `.idl` con el de la N aunque el commit portado no lo toque (`binaryType`).
+- **`chk.sh` no comprueba `patches/v8`:** `git apply --check` de cada parche sobre la V8 limpia (71/71 en la 12.9).
+- **Historia del clon de Chromium:** entre la 116 y la 129 está injertada (`git log` devuelve un «Roll R8» falso); para
+  fechar un cambio, bajar etiquetas sueltas (`git fetch --depth=1 --filter=tree:0 origin refs/tags/<t>:refs/tags/<t>`)
+  y bisecar. `chromium.googlesource.com` no resuelve desde el contenedor. En los clones, `git config gc.auto 0`.
+- **`runbind.sh`** solo genera *bindings* si se le pasa la tarea (`runbind.sh <árbol> interface`).
+
+**Mediciones de MOTOR-8** (`get_session`, del 14-10 10:53 a 20:45 UTC, con horas de espera a LOCAL-3 y SEGURIDAD-PORTES):
+salida 471 k, caché leída 255 M, escrita 1,68 M, entrada sin caché 34 k; 73,8 USD; contexto al 54 %. Retrabajo: el
+cierre de claude.ai en el paso de V8 (opción de V8 apagada, resuelto con la regla 19), 2 diferencias de WPT (una mía,
+`binaryType`; otra de la captura) y la fuente fija de la 118.
+
+---
+
 # Relevo de MOTOR: de MOTOR-7 a MOTOR-8 (14-10-2026, ~10:15)
 
 MOTOR-7 (`session_01FLXeqsEpvbFSdseBoe6hzc`, Opus 5.5, esfuerzo extra) cierra el nivel 128 (1.12.1 entregada) y deja la
