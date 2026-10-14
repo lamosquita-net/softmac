@@ -38,7 +38,34 @@ SHA-256: <code>efcc8c95e8bcc6bc2eb674ee1fd15482957bc5cc6ad7001c03b68c731ce8236a<
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.12.2</h2>
+<h2 id="novedades">Notas de la versión 1.13</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 129</strong>, con el motor de JavaScript de Chrome 129. Las webs ven FlyWeb como
+  Chrome 129, y lo es en lo que usan.</li>
+  <li><strong>Duraciones bien escritas.</strong> Las webs pueden mostrar duraciones en el idioma del usuario («1 hora y 2
+  minutos», «1:02:03») con la función estándar (<code>Intl.DurationFormat</code>) que ya tenían Safari y Firefox.</li>
+  <li><strong>Llaves de seguridad con las webs modernas.</strong> Las webs que usan llaves de seguridad USB (y, en general,
+  WebAuthn) pueden preparar el inicio de sesión con el formato JSON estándar, como hacen las librerías actuales de
+  <em>passkeys</em>.</li>
+  <li><strong>Archivos por conexiones directas.</strong> Las webs de videollamada, juegos o transferencia de archivos entre
+  usuarios (WebRTC) pueden enviar y recibir archivos directamente, sin convertirlos antes.</li>
+  <li><strong>Menús y ventanas emergentes mejor colocados.</strong> Las partes de una página que se adaptan a su propio
+  tamaño (<em>container queries</em>) ya no atrapan dentro a los menús y avisos flotantes, como en Chrome, Safari y
+  Firefox.</li>
+  <li><strong>Pequeños arreglos de compatibilidad:</strong>
+    <ul>
+      <li>Los editores de las webs avisan una sola vez de cada cambio de selección, como Safari y Firefox.</li>
+      <li>Al pegar en un área de texto, la web recibe el texto pegado.</li>
+      <li>Deshacer después de borrar entre párrafos funciona como en Chrome 129.</li>
+      <li>Al copiar texto, los párrafos que terminan en un elemento oculto ya no se pegan unidos.</li>
+      <li>Las casillas y botones se ven pulsados también en el segundo clic sobre su etiqueta.</li>
+      <li>Los controles deslizantes verticales se mueven con las flechas en el sentido esperado.</li>
+      <li>WebGL y los gráficos de las webs siguen igual de rápidos con el motor de JavaScript nuevo.</li>
+    </ul></li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario. La primera vez que se abra una web pesada puede tardar
+un poco más (el motor de JavaScript nuevo vuelve a preparar su caché).</p>
+<h2>Notas de la versión 1.12.2</h2>
 <ul>
   <li><strong>Un cuelgue menos.</strong> Algunas páginas que hacen fluir el texto alrededor de una forma (por ejemplo, un
   párrafo que rodea una imagen con forma, <code>shape-outside</code>) podían dejar la pestaña colgada. Ya no.</li>
@@ -46,29 +73,6 @@ SHA-256: <code>efcc8c95e8bcc6bc2eb674ee1fd15482957bc5cc6ad7001c03b68c731ce8236a<
   texto de una página mientras FlyWeb libera memoria en segundo plano.</li>
   <li><strong>Todo lo demás, igual que en la 1.12.1:</strong> el nivel de Chrome 128 con el <em>ruby</em> nuevo, el motor de
   JavaScript de Chrome 128 con sus arreglos de seguridad y la misma huella de red.</li>
-</ul>
-<p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
-<h2>Notas de la versión 1.12.1</h2>
-<ul>
-  <li><strong>Texto con anotaciones <em>ruby</em>, como en Chrome 128.</strong> El <em>ruby</em> son las pequeñas
-  anotaciones sobre el texto: la lectura (<em>furigana</em>) encima de los kanji en japonés, el <em>pinyin</em> o el
-  <em>zhuyin</em> en chino. FlyWeb pasa a usar el sistema nuevo con el que Chrome lo rehízo:
-    <ul>
-      <li>Una palabra anotada larga <strong>se puede partir entre dos líneas</strong> junto con su anotación, en vez de
-      saltar entera a la línea siguiente y dejar huecos.</li>
-      <li>Las webs pueden elegir <strong>cómo se reparte la anotación</strong> sobre su texto (<code>ruby-align</code>:
-      centrada, al principio o repartida) y FlyWeb lo respeta. Las anotaciones cortas y las que caen al borde de la línea
-      se colocan como en Chrome.</li>
-      <li>Las anotaciones <strong>no se montan sobre la línea de arriba</strong>, tampoco cuando en ella hay una imagen o
-      un botón alto.</li>
-      <li>Las anotaciones pueden ir <strong>encima o debajo</strong> del texto, y las webs pueden darles márgenes, bordes
-      y relleno.</li>
-      <li>Los <strong>subtítulos de vídeo</strong> que usan <em>ruby</em> se muestran con sus anotaciones.</li>
-    </ul></li>
-  <li><strong>Un detalle de estilo como en Chrome:</strong> la primera letra de una anotación ya no recibe el estilo de
-  «letra capital» de la web (<code>::first-letter</code>), que antes se le aplicaba por accidente.</li>
-  <li><strong>Todo lo demás, igual que en la 1.12:</strong> el nivel de Chrome 128, el motor de JavaScript de Chrome 128 con
-  sus arreglos de seguridad y la misma huella de red.</li>
 </ul>
 <p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
 <p><a href="novedades.html">Todas las novedades, desde la 1.0</a></p>
