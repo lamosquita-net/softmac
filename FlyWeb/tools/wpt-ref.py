@@ -1,15 +1,24 @@
 # Ejecuta WPT de tipo reftest (y testharness) en una FlyWeb abierta con --remote-debugging-port, y compara con Chrome.
-# Uso: python3 wpt-ref.py <puerto> <url base> <lista> [salida.json] [esperado.json]
+# Uso: python3 wpt-ref.py [--pasadas=N] <puerto> <url base> <lista> [salida.json] [esperado.json]
+# - El navegador se lanza con --force-device-scale-factor=1 (y, si se puede, --window-size=800,600): el script no emula
+#   nada; ajusta la ventana para que el viewport real sea 800×600 y para si devicePixelRatio no es 1.
 # - Lista: una ruta por línea (relativa a la raíz de WPT); «#» = comentario.
 # - Reftest: captura la prueba y sus referencias a 800×600 con escala 1 (como wptrunner), tras `load`, las fuentes y la
-#   retirada de `reftest-wait`. Pasa si coincide con alguna referencia `match` (o difiere de la `mismatch`), con el margen
-#   de `<meta name=fuzzy>`. No sigue cadenas de referencias (una referencia con sus propias referencias).
+#   retirada de `reftest-wait`, cada página en una pestaña nueva. Pasa si coincide con alguna referencia `match` (o
+#   difiere de la `mismatch`), con el margen de `<meta name=fuzzy>`, en las N pasadas (3 por defecto); si las pasadas no
+#   coinciden, sale INESTABLE con el detalle de cada una. No sigue cadenas de referencias.
+#   Trampa (MOTOR-8 y LOCAL-3, 14-10, nivel 129): con Emulation.setDeviceMetricsOverride y una sola pestaña, la 116 daba
+#   a veces el cuadrado media fila desplazado en la captura: 200 px falsos en 4 reftests de container-type que Chrome 129
+#   pasa. Sin emulación, con una pestaña por página, 0 px en 25/25. No volver a emular la captura.
 # - Testharness: el mismo gancho que wpt-cdp.py; pasa si el arnés termina bien y pasan todos los subtests.
 # - Sin referencia ni testharness (pruebas de caída): pasa si la página carga y el renderer sigue respondiendo.
 # - esperado.json: {ruta: "Failure"} para lo que Chrome falla entero (TestExpectations) y {ruta: [subtests]} para los
 #   subtests que falla (sus -expected.txt). Con él, al final dice qué difiere de Chrome.
 import base64, json, os, re, socket, struct, sys, time, urllib.parse, urllib.request, zlib
 
+PASADAS = 3
+for a in [a for a in sys.argv[1:] if a.startswith('--pasadas=')]:
+    PASADAS = max(1, int(a.split('=', 1)[1])); sys.argv.remove(a)
 port, base, lista = sys.argv[1], sys.argv[2].rstrip('/'), [l.split('#')[0].strip() for l in open(sys.argv[3])]
 lista = [l for l in lista if l]
 def conectar(t):  # WebSocket de CDP de la pestaña t, con tiempo máximo por lectura (página colgada → excepción)
@@ -53,16 +62,31 @@ GANCHO = r'''(function(){var cb=function(tests,st){window.__wpt=JSON.stringify({
 var f;try{Object.defineProperty(window,'add_completion_callback',{configurable:true,enumerable:true,get:function(){return f;},
 set:function(v){f=v;queueMicrotask(function(){try{v(cb);}catch(e){}});}});}catch(e){var t=setInterval(function(){if(window.add_completion_callback){clearInterval(t);
 window.add_completion_callback(cb);}},5);}})();'''
-def preparar():
+def viewport():
+    return ev('[innerWidth, innerHeight, devicePixelRatio]')
+def preparar():  # sin Emulation: el viewport real se lleva a 800×600 moviendo el tamaño de la ventana
     call('Page.enable', {}); call('Page.addScriptToEvaluateOnNewDocument', {'source': GANCHO})
-    call('Emulation.setDeviceMetricsOverride', {'width': 800, 'height': 600, 'deviceScaleFactor': 1, 'mobile': False})
-def pestana_nueva():  # tras una caída o un cuelgue: cierra la pestaña y sigue en otra nueva
-    for u in (f'http://127.0.0.1:{port}/json/close/{tab["id"]}',):
-        try: urllib.request.urlopen(u, timeout=10).read()
-        except Exception: pass
-    try: s.close()
+    for _ in range(3):
+        w, h, dpr = viewport()
+        if dpr != 1: raise SystemExit(f'devicePixelRatio {dpr}: lanzar el navegador con --force-device-scale-factor=1')
+        if (w, h) == (800, 600): return
+        v = call('Browser.getWindowForTarget', {}).get('result')
+        if not v: break
+        b = v['bounds']
+        call('Browser.setWindowBounds', {'windowId': v['windowId'], 'bounds': {'windowState': 'normal'}})
+        call('Browser.setWindowBounds', {'windowId': v['windowId'], 'bounds': {
+            'width': b['width'] + 800 - w, 'height': b['height'] + 600 - h}})
+        time.sleep(0.3)
+    w, h, _ = viewport()
+    if (w, h) != (800, 600): raise SystemExit(f'viewport {w}×{h}, no 800×600: lanzar con --window-size=800,600 (o mayor)')
+def pestana_nueva():  # abre otra pestaña y cierra la anterior (en este orden: así la ventana no se cierra)
+    viejo, viejo_s = tab, s
+    conectar(abrir())
+    try: urllib.request.urlopen(f'http://127.0.0.1:{port}/json/close/{viejo["id"]}', timeout=10).read()
     except Exception: pass
-    conectar(abrir()); preparar()
+    try: viejo_s.close()
+    except Exception: pass
+    preparar()
 preparar()
 NOM = {0: 'PASS', 1: 'FAIL', 2: 'TIMEOUT', 3: 'NOTRUN', 4: 'PRECONDITION_FAILED'}
 LISTO = '''new Promise(r=>{const t0=Date.now();(function f(){const d=document;
@@ -104,7 +128,8 @@ def diff(a, b):  # (máxima diferencia por canal, píxeles distintos)
         if d: n += 1; mx = max(mx, d)
     return mx, n
 
-def captura(url):
+def captura(url):  # cada captura en una pestaña nueva (ver la trampa del principio)
+    pestana_nueva()
     call('Page.navigate', {'url': url}); fin = time.time() + 5
     while ev('location.href') != url and time.time() < fin: time.sleep(0.05)
     ev(LISTO, True)
@@ -142,14 +167,18 @@ def una(p):
         res[p] = {'tipo': 'testharness', 'estado': 'PASS' if harn == 'OK' and ok == len(t) else 'FAIL', 'arnes': harn, 'tests': t}
         print(f'{res[p]["estado"]:9s} {ok}/{len(t)} {harn[:30]} {p}', flush=True)
     elif refs:
-        a = captura(url); det = []; estado = 'FAIL'
-        for rel, ref in refs:
-            (d0, d1), (n0, n1) = fuzzy(src, ref); mx, n = diff(a, captura(ref))
-            igual = mx == 0 or (d0 <= mx <= d1 and n0 <= n <= n1)
-            det.append(f'{rel} {os.path.basename(ref)}: max {mx}, {n} px')
-            if igual == (rel == 'match'): estado = 'PASS'; break
+        estados, det = [], []
+        for k in range(PASADAS):
+            a = captura(url); e = 'FAIL'; d = []
+            for rel, ref in refs:
+                (d0, d1), (n0, n1) = fuzzy(src, ref); mx, n = diff(a, captura(ref))
+                igual = mx == 0 or (d0 <= mx <= d1 and n0 <= n <= n1)
+                d.append(f'{rel} {os.path.basename(ref)}: max {mx}, {n} px')
+                if igual == (rel == 'match'): e = 'PASS'; break
+            estados.append(e); det.append(f'pasada {k + 1}: ' + '; '.join(d))
+        estado = estados[0] if len(set(estados)) == 1 else 'INESTABLE'
         res[p] = {'tipo': 'reftest', 'estado': estado, 'detalle': det}
-        print(f'{estado:9s} {"; ".join(det)[:80]} {p}', flush=True)
+        print(f'{estado:9s} {det[0][:80] if estado != "INESTABLE" else " / ".join(estados)} {p}', flush=True)
     else:  # prueba de caída (crashtest): pasa si la página carga y el renderer sigue respondiendo
         call('Page.navigate', {'url': url}); fin = time.time() + 5
         while ev('location.href') != url and time.time() < fin: time.sleep(0.05)
