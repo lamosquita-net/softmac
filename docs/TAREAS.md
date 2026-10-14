@@ -95,6 +95,20 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
     no el `send_message` de gestión de sesiones, que solo ve las sesiones `local_…` (LOCAL-3, 13-10). Sin él, una sesión local solo ve
     las de su misma Mac y no llega a las de la nube (COORDINACIÓN, MOTOR, CONTENIDOS-WEB…). El 13-10 a las 20:32 la app
     cortó a la vez el Remote Control de todas las sesiones locales: si un agente local calla, mirar `list_sessions`.
+    El Remote Control se pierde en **todas** las sesiones locales cada vez que se reinicia la app o el Mac (14-10; ni
+    la preferencia de la app ni `remoteControlAtStartup` reconectan una sesión ya abierta; enviado como *feedback*):
+    si `send_message` responde `session_inactive`, COORDINACIÓN se lo dice al HUMANO en ese momento, con el texto
+    que hay que pegar ya preparado.
+    **Cómo se hace un relevo (HUMANO, 14-10):**
+    - **No se archiva una sesión hasta que su relevo esté activo**, con su id anotado en la fila y el mensaje de prueba
+      recibido.
+    - El texto de arranque se le da al HUMANO **en un mensaje propio, listo para pegar y sin condiciones**. Si hay algo
+      que decidir antes, va con la opción recomendada ya puesta en el texto, para que no quede enterrado entre otros
+      avisos.
+    - Cada texto de arranque dice en su primera línea el **modelo y el esfuerzo** con los que el HUMANO tiene que abrir
+      la sesión, además del entorno (nube con qué repos, o local en qué Mac).
+    - **Toda orden de COORDINACIÓN a un agente queda también escrita en su fila** (o en la de la tarea), no solo en el
+      mensaje. Así, si el agente se para, el HUMANO ve en el tablero qué tenía que hacer y se lo puede pegar.
 14. **El que publica, publica** (HUMANO, 09-10). Los agentes de la nube preparan (textos, código, PR, instrucciones) y
     **ejecuta quien tiene el acceso**: SERVIDOR-LOCAL todo lo que se instala o se cambia en ns1/ns2 (web, imágenes,
     unidades, scripts), PUBLICACIÓN las versiones (DMG, firma, web de la versión), LOCAL las compilaciones. Lo que no
