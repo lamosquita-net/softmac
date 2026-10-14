@@ -92,6 +92,20 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   dejó fuera 1f0b377299b6 (el mensaje no dice «ruby»; daba una diferencia de WPT) y ef8ddcab1d8e (un `Merged:` en la rama
   de la 128, que no está en `main` antes del corte). Para el 129+: `git log <tag N-1>..<tag N>` sobre las etiquetas (trae
   los `Merged:`), más `--author` de los autores del porte, y comparar con la lista antes de dar el porte por completo.
+- **Inventario de un nivel (MOTOR-8, 14-10; usado en el 129).** Entorno en ~10 min: `mkcr.sh /tmp/claude-0/port/cr<N> <tag>`
+  para la 116, la N−1 y la N (copias parciales, ~800 MB cada una); historia sin blobs desde la 116 con `git init` +
+  `git fetch --filter=blob:none --shallow-since=2023-05-15 origin refs/tags/<tag N>:refs/tags/<tag N> …` (~460 MB; con
+  árboles, así `git log <tag N-1>..<tag N> -- <ruta>` tarda menos de un segundo); V8 igual, con las dos etiquetas.
+  - `baseline-nivel.js <N>` (en un directorio con `npm install web-features @mdn/browser-compat-data`): funciones,
+    subfunciones (`by_compat_key`) y claves de BCD que Chrome publicó en la N, y si Firefox y Safari las tienen.
+  - `flags-nivel.py <crN-1> <crN> [<cr116>]`: flags de Blink que pasan a `stable`, nacen, cambian o desaparecen
+    (necesita `pip install json5`).
+  - `medir.sh <nombre> <commit>…`: mide un porte antes de hacerlo: aplica la serie en orden sobre la 116 + los parches
+    de la rama de brave-core que haya en `/home/user/brave-core` y cuenta hunks, rechazos y *fuzz*. Para la API de V8:
+    `git diff <V8 N-1> <V8 N> -- include/`, buscar en la 116 lo que se quita, y `git apply --check` de cada
+    `patches/v8/*.patch` sobre la V8 nueva (y `-R` para ver los que ya están dentro).
+  - **Trampa:** `git grep` o `git show` sobre ficheros en un clon `blob:none` baja los blobs uno a uno (minutos); para
+    buscar en V8, `git worktree add` de la etiqueta (baja todo de una vez, ~190 MB).
 - `gencss.sh <dir>` — ejecuta sin compilar los generadores de Blink de flags (`runtime_enabled_features.json5`),
   `ComputedStyle` (`computed_style_extra_fields.json5`), palabras clave y propiedades CSS sobre la 116 + los parches
   `third_party-blink-*` de la rama actual. Detecta listas incoherentes (p. ej. dos campos con el mismo `type_name` y
