@@ -769,6 +769,7 @@ generadores de Blink (`gencss.sh` para flags y el generador de *bindings*):
 | **547f27e798** | FS.13: `seg/v8-12.9` 2ffa1017bc (SEGURIDAD-PORTES) | los 6 parches de V8 que el paso dejó fuera, época 13, `turboshaft_instruction_selection` y `wasm_to_js_generic_wrapper` otra vez en `true` (regla 19) con fc26d62d0, 153d4e84e, 94e495e1d y 34587b687, y a7c018806; sin la (a). `patches/v8` = `seg/v8-12.9` (71 parches, aplican sobre la 12.9.202.28 limpia). En `nube/motor-129-v8` **fdac7ed13b** (paso de V8 + FS.13, árbol = `seg/v8-12.9`) |
 | **ea0bc5f33d** | FS.13: `seg/blink-129` 63ea2663a0 | 8669b50ce1c (WebAudio, `automation_rate_` atómico) |
 | 43ef04cf64 | `RTCDataChannel.binaryType` como enum `BinaryType` | como en la 129: lo no válido se ignora en los *bindings* (aviso en consola) en vez de lanzar; lo vio LOCAL-3 con la WPT `RTCDataChannel-binaryType` (3/10 → Chrome 129 10/10) |
+| **325686916c** | fuente monoespaciada por defecto en Mac: Menlo | `IDS_FIXED_FONT_FAMILY` de `chrome/app/resources/locale_settings_mac.grd` (Courier en la 117.0.5938.0, Menlo en la 118.0.5993.0): se escapó en el nivel 118 por estar fuera de Blink; lo destapó `block-ruby-003` (métricas de `monospace` distintas de Chrome for Testing 129). Sin la lista japonesa (`PrefsFontList`, posterior a la 116) |
 
 Comprobación: `FlyWeb/tools/motor-129.html` (en Chromium 141 da ok todo lo que no es la versión declarada),
 `fastapi-129.html` (11/11 en Chromium 141) y `wpt-129-lista.txt` (27). «Para la web» en `version-1.13.md`.
