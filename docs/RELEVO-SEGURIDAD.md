@@ -41,10 +41,20 @@ Cada rama tiene `patches/v8/FLYWEB-SECURITY.md` con su contenido exacto y las pr
   recompilar: política `DefaultJavaScriptJitSetting = 2`. Por eso la revisión es **diaria** y el objetivo es
   **≤ 48 h** desde un zero-day de V8 que aplique hasta la 1.x.y con el parche.
 - **Maglev apagado** en todas las V8 de nivel (`maglev` = false) y `maglev_untagged_phis` = false (CVE-2026-3910).
-- **Selección de instrucciones de Turboshaft apagada** (`turboshaft_instruction_selection` = false) desde la 12.3.
-- **Wrapper genérico wasm→JS apagado** (`wasm_to_js_generic_wrapper` = false) en 12.3 (1.7.1), 12.4 y 12.5, como
-  estaba hasta la 12.2. En la 12.3 hizo falta además recuperar el interruptor de la 12.2 en
-  `GetOrCreateWasmInternalFunction` (porte de c8c02de5); en 12.4/12.5 basta la opción.
+  **Punto de decisión: nivel 132** (V8 13.2, LTS de M132, con sus fusiones de Maglev dentro; COORDINACIÓN-5, 14-10).
+- **Selección de instrucciones de Turboshaft:** apagada (`turboshaft_instruction_selection` = false) de la 12.3 a la 12.8;
+  **encendida desde la 12.9 (nivel 129, FlyWeb 1.13), como upstream (HUMANO, 14-10)**. Con ella apagada, la 12.9 usa
+  la ISel de TurboFan sobre el *schedule* recreado, que Chrome ya no usa para JS y que no trata `kTrustedHeapConstant`
+  (`ToConstant()` → `UNREACHABLE`): claude.ai se caía en el Static de LOCAL y mjsunit daba 100 fallos en 2123 tests;
+  encendida, 7216/7217. Se lleva su arreglo de la 13.2 LTS, fc26d62d0 (FS.13).
+- **Principio (HUMANO, 14-10):** lo que FlyWeb apaga respecto de upstream se vuelve a encender en cuanto upstream lo
+  lleva de serie, está maduro y trae sus arreglos, para no arrastrar portes más caros. Antes del nivel 130,
+  SEGURIDAD-PORTES entrega la tabla de todo lo apagado o distinto de upstream en V8 y en Blink (FS.13).
+- **Wrapper genérico wasm→JS** (`wasm_to_js_generic_wrapper`): apagado en 12.3–12.8 (1.7.1–1.12.x; en la 12.3 hizo
+  falta además el porte de c8c02de5); **encendido desde la 12.9 (1.13), como upstream (COORDINACIÓN-5 por la regla 19,
+  14-10)**, con 153d4e84e, 94e495e1d y 34587b687. Ojo: en la 12.8 el apagado no era completo (`GetOrCreateFuncRef`
+  miraba `wasm_generic_wrapper`); sin fallos en la `d8`.
+- **WebGPU apagado** (`kWebGPUService`, CVE-2026-5281): se mantiene hasta el punto de decisión del nivel ~140.
 - **CVE-2026-87491** solo se porta desde la 12.3 (el sandbox de V8 es frontera desde Chrome 123).
 - El **tercer dígito** es de SEGURIDAD: `flyweb_version` en `build/config.gni`, commit aparte, solo sobre el último
   nivel publicado. `FLYWEB_BUILD_NUMBER` lo pone LOCAL.
