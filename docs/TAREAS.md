@@ -137,6 +137,11 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
     SEGURIDAD-PORTES: arreglos de seguridad y de caídas de upstream posteriores al nivel que toquen ese código
     (`Merged:` de las ramas siguientes, LTS y crbugs con Security_Severity), portados en `seg/<tema>`. MOTOR la pide al
     abrir el porte; COORDINACIÓN no da la entrega por buena sin ella.
+18. **Un nivel, una versión, con su V8** (HUMANO, 14-10). Cada nivel N sale entero en una sola versión 1.(N−116), con la
+    V8 de Chrome N en el mismo paso; así cada salto es pequeño y barato (el 129 con la 12.9). Solo un cambio **muy amplio**
+    justifica repartir un nivel en varias versiones (1.N, 1.N.1, 1.N.2…), como el 128: V8 12.8 en la 1.11.2 y RubyLB
+    en la 1.12.1. Las 1.N.x quedan para arreglos de seguridad y de lo que saque LOCAL. MOTOR lo propone en el
+    inventario de cada nivel y COORDINACIÓN lo recuerda al aprobarlo.
 
 ## Despliegue de la organización del 09-10
 
