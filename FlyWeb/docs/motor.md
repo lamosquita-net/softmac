@@ -615,7 +615,7 @@ RubyLB.** Sin freno por el límite semanal.
   141 (una revisada a ojo: un hueco real entre dos cajas). Las capturas dependen de las fuentes del sistema: para separar el entorno, pasar la lista también por la 1.12
   (sin RubyLB) y por el Chrome del mismo Mac.
 
-## Nivel 129 — inventario (14-10, MOTOR-8; nada portado → FlyWeb 1.13)
+## Nivel 129 (en código, 14-10, MOTOR-8; pendiente de compilar y de FS.13 → FlyWeb 1.13)
 
 Inventario de FM.19, **para decidir COORDINACIÓN antes de portar**. Fuentes: web-features 3.42.0 + BCD 8.1.5
 (`FlyWeb/tools/port/baseline-nivel.js`), flags de `runtime_enabled_features.json5` entre la **128.0.6613.194** y la
@@ -742,6 +742,31 @@ y WPT → Static, ASan y Release de LOCAL.
 - **1.13.x:** lo que salga en LOCAL; los arreglos posteriores a la 129 que encuentre la fila FS en el código nuevo
   (envío de Blob, parseo JSON, llamadas rápidas) si no llegan a tiempo; y los 6 arreglos de la rama M129 sobre código de
   la 116, cuando SEGURIDAD-PORTES los dé por buenos (no frenan la 1.13 salvo daño de memoria explotable).
+
+### 7. Portado (MOTOR-8, 14-10): brave-core `nube/motor-129`
+
+Decisiones de COORDINACIÓN-5 (FM.19): V8 12.9 sí, llamadas rápidas con la opción A, FS.13 abierta, y un Static de LOCAL
+con YouTube y las webs con JIT en ASan **solo con el paso de V8** antes de seguir. Un commit por función, encima de la
+1.12.2 (bb6c7146); cada uno comprobado con `chk.sh` (los parches aplican sobre la 116) y, donde toca, con los
+generadores de Blink (`gencss.sh` para flags y el generador de *bindings*):
+
+| Commit | Qué | Upstream y adaptación |
+|---|---|---|
+| **b589e86dc7** | Paso de V8: 12.9.202.28 | `v8re.sh`: 57 parches entran, 7 fuera por estar ya en la 12.9 (también `js-to-wasm.tq`, que `git apply` daba como choque), **6 fuera hasta FS.13**. d9bfd74484c a mano (19 de 48 hunks): el generador ya no emite `fallback` ni la ruta de pruebas, y los ficheros `NoAllocDirectCall*` quedan en el árbol pero fuera de `platform/BUILD.gn`; el generador sin compilar solo cambia las 10 interfaces con `[NoAllocDirectCall]`. gin sin `GetZoneBackingAllocator` |
+| 170cc44a13 | `container-type` sin contención de *layout* | e28cd00c20c; dos hunks a mano |
+| d2c01e612e | `aria-*indextext` en la capa de plataforma | 75fdde77374 (rama M129), limpio |
+| 7919cb9d6c … 9f46f6419e | 6 flags limpias | f1ccaff48fb, c3113fb4a0a, ee343f49bbf, 4268dcfcc60, f93ba2512ae, 2a25e3550de; con el `#include` de `runtime_enabled_features.h` explícito donde la 116 no lo tenía |
+| 4570871899 | `selectionchange` coalescido | estado final de **f59df98d713** (de la 128, faltaba en el porte del 127: los controles dentro de una sombra avisan al documento) + 827877b838b + c8e11ca620e, a mano |
+| 54c6af04aa | `:active` con la etiqueta pulsada | bdb93badc1c |
+| 78fd6b670e | serialización de `display` | f4d6f2ea661; el analizador de la 116 usa `CSSParserTokenRange` |
+| 05821c83e3 | flechas en rangos verticales | 5610b4322aa adaptado: teclas como literales, `Over()/Under()` de la 116 y `!RemoveNonStandardAppearanceValueSliderVertical` |
+| 4eb59aba99 | Blob en `RTCDataChannel` | f1b59d2be7b + f12d06e864d a mano sobre el `RTCDataChannel` de la 116 (*thread checker*, temporizador de eventos); como en Chrome 129, `send(String)` no espera a un Blob pendiente |
+| e4e20f421b | WebAuthn JSON | estado final de 7 commits; sin `hints` ni `supplementalPubKeys` (la 116 no los tiene) y con la unión de la 116 como tipo de `toJSON()` en vez de `typedef object` (mismo objeto en JS) |
+| **1a93159423** | declara 129 / 1.13 | 129.0.6668.101, `platformVersion` mínimo 11.7.10 |
+| 9d83369504 | arreglos del Blob en `RTCDataChannel` (FS.13) | 6e4bc681b82 (crbug 374310077: `SelfKeepAlive` del `BlobReader`, uso tras liberar) y 1116bad3e0a (crbug 373898146); los únicos entre la 129 y la 132 LTS en ese código |
+
+Comprobación: `FlyWeb/tools/motor-129.html` (en Chromium 141 da ok todo lo que no es la versión declarada),
+`fastapi-129.html` (11/11 en Chromium 141) y `wpt-129-lista.txt` (27). «Para la web» en `version-1.13.md`.
 
 ## Apuntado para niveles futuros
 
