@@ -1,7 +1,7 @@
 # FlyWeb 1.13 — nivel de motor 129 (MOTOR-8, 14-10-2026)
 
-**Estado:** en código en brave-core `nube/motor-129` **43ef04cf64** (Static de ea0bc5f33d probado; falta el incremental del arreglo de
-`binaryType`, el ASan y aclarar 4 *reftests* de `container-type`), con FS.13 fundida (`seg/v8-12.9` y `seg/blink-129`;
+**Estado:** en código en brave-core `nube/motor-129` **43ef04cf64** (Static probado: WPT del 129 iguales a Chrome 129; falta el ASan del
+nivel completo), con FS.13 fundida (`seg/v8-12.9` y `seg/blink-129`;
 selección de instrucciones de Turboshaft y *wrapper* genérico wasm→JS encendidos, como en Chrome 129: regla 19). Encima de la 1.12.2 (bb6c7146) lleva
 la V8 de Chrome 129 (paso b589e86dc7), la Baseline y las flags de interoperabilidad del 129, y declara 129 / 1.13. Un
 solo nivel en una sola versión (regla 18). **No se publica sin FS.13** (`seg/v8-12.9`: los 6 parches de seguridad de V8
@@ -45,6 +45,13 @@ y las webs con JIT) y después todo el nivel. Detalle técnico: `motor.md`, «Ni
 
 ## WPT del nivel 129
 
-Pendiente del Static de LOCAL. Lista: `FlyWeb/tools/wpt-129-lista.txt` (27 pruebas). Se comparan con lo que Chrome 129
-falla (`TestExpectations` de la 129.0.6668.112): ahí `webrtc/RTCDataChannel-send-blob-order.html` está como `Timeout` en
-Mac 15. `webauthn/*.https.window.html` necesitan el servidor WPT con HTTPS.
+Static de 43ef04cf64 (LOCAL-3, 14-10), lista `FlyWeb/tools/wpt-129-lista.txt` (27), comparada con Chrome for Testing
+129.0.6668.100 en el mismo Mac y con las `TestExpectations` de la 129.0.6668.112: **iguales a Chrome 129**.
+
+- Dos diferencias reales encontradas y cerradas: `RTCDataChannel-binaryType.window` (el porte dejaba el IDL en
+  `DOMString` y lanzaba con valores no válidos; arreglado en 43ef04cf64: 10/10) y las 4
+  `container-queries/no-layout-containment-{abspos,fixedpos}[-dynamic]` (los 200 px eran de la captura con
+  `Emulation.setDeviceMetricsOverride`; con una pestaña por página y sin emulación, 0 px en 25/25, como Chrome 129).
+- No comparables: `webauthn/public-key-credential-to-json.https.window` (crea un autenticador virtual con WebDriver; falla
+  igual en Chrome sin él) y `webrtc/RTCDataChannel-send-close` (igual que la 1.12.2; en la 129 es `Skip Timeout` en
+  Mac 15).
