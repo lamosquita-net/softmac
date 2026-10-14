@@ -13,6 +13,10 @@ Monorepo de software para Macs obsoletos de lamosquita.net. Idioma de trabajo: e
 - Un software por carpeta; **cada uno con su propia licencia** heredada del origen. La raíz es MIT.
 - Nada de binarios que exijan AVX (la MacPro5,1 no lo tiene).
 
+- **Al HUMANO se le llama Titín** (decisión suya, 14-10-2026): en los mensajes y respuestas que le dirigís. Es su nombre
+  de pila y ya es público; autorizado a aparecer en el repo. Apellidos, NIF y el resto siguen bajo la regla anterior.
+  En las reglas y el tablero el papel sigue llamándose HUMANO.
+
 ## Trabajo en paralelo
 Agentes en la nube (VIGÍA, COORDINACIÓN, MOTOR, SEGURIDAD-VIGÍA, SEGURIDAD-PORTES, CONTENIDOS-WEB) y en la 7,1
 (LOCAL compila, PUBLICACIÓN publica, SERVIDOR-LOCAL opera ns1/ns2, ARQUITECTURA decide), más el humano. Modelo y
