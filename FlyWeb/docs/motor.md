@@ -730,6 +730,19 @@ Orden: (1) `nube/motor-129` desde `nube/motor-128-ruby` bb6c7146; (2) V8 12.9 co
 (en paralelo, la fila FS); (3) Baseline, flags y 75fdde77374, un commit cada uno; (4) declarar 129/1.13, `motor-129.html`
 y WPT → Static, ASan y Release de LOCAL.
 
+**Reparto entre 1.13 y 1.13.x (propuesta, lo pidió COORDINACIÓN-5):**
+
+- **1.13 = nivel 129 completo, de una vez:** V8 12.9 (con d9bfd74484c y gin) + `seg/v8-12.9`, `Intl.DurationFormat`,
+  `container-type`, Blob en `RTCDataChannel` (con f12d06e864d), WebAuthn JSON, las 10 flags y 75fdde77374. No compensa
+  partirlo como el 128: aquí no hay un RubyLB. Lo que marca la fecha es la ronda de seguridad de V8, que va en paralelo
+  y es requisito de la 1.13 (no publicar con menos correcciones que la 1.12.2). El porte más caro, WebAuthn JSON
+  (1,5–2 días), cabe en ese tiempo. Si COORDINACIÓN quiere la V8 12.9 antes, WebAuthn JSON es lo que se puede pasar a
+  la 1.13.1 sin romper nada: en los Mac del proyecto solo hay llaves USB y las librerías tienen su propio respaldo.
+  Mientras tanto, la 1.13 declararía 129 con esa excepción anotada, como la 1.12 sin `ruby-align`.
+- **1.13.x:** lo que salga en LOCAL; los arreglos posteriores a la 129 que encuentre la fila FS en el código nuevo
+  (envío de Blob, parseo JSON, llamadas rápidas) si no llegan a tiempo; y los 6 arreglos de la rama M129 sobre código de
+  la 116, cuando SEGURIDAD-PORTES los dé por buenos (no frenan la 1.13 salvo daño de memoria explotable).
+
 ## Apuntado para niveles futuros
 
 - **143 — `onselectionchange` como atributo de elemento** (`<div onselectionchange=…>`, `setAttribute`): Chromium
