@@ -123,4 +123,24 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
 - En la 116 `WebThemeEngine::ExtraParams` es una `union`: sin inicializadores por defecto en sus structs.
 - Contadores de uso (`web_feature.mojom`): valores de upstream, insertados en orden (`kNumberOfFeatures` = máx + 1).
 
+## Lecciones del nivel 129 (MOTOR-8)
+
+- **Trampa de las WPT de referencia (14-10):** `wpt-ref.py` capturaba con `Emulation.setDeviceMetricsOverride` en una
+  sola pestaña, y la 116 a veces sacaba la captura media fila desplazada. Resultado: 200 px falsos (máx. 56) en las 4
+  `container-queries/no-layout-containment-{abspos,fixedpos}[-dynamic]`, que Chrome 129 pasa. Casi se declara una
+  excepción que no lo era. La pista era la forma del fallo: dos filas de borde antialiasado, no el cuadrado rojo entero
+  (10000 px), y una página de control sin `container-type` con los mismos 200 px. Desde entonces `wpt-ref.py` no emula
+  nada: lleva el *viewport* real a 800×600 con `Browser.setWindowBounds`, exige `devicePixelRatio` 1
+  (`--force-device-scale-factor=1`), captura cada página en una pestaña nueva y repite cada reftest (`--pasadas=N`, 3
+  por defecto; si las pasadas no coinciden, sale `INESTABLE`). Antes de declarar una excepción en un reftest: control
+  sin la función, coordenadas de los píxeles y comparación con Chrome for Testing N en la misma máquina.
+- **Tipos del IDL:** al portar una función, comparar también el `.idl` con el de la N aunque el commit no lo toque. El
+  Blob de `RTCDataChannel` dejó `binaryType` como `DOMString` (116) en vez del enum `BinaryType` (129), y un valor no
+  válido lanzaba en vez de ignorarse (`RTCDataChannel-binaryType` 3/10).
+- **Opciones de V8 que upstream ya no prueba:** con `turboshaft_instruction_selection` apagada, la 12.9 cerraba
+  claude.ai (`kTrustedHeapConstant` sin tratar en la ISel de TurboFan). Se resolvió con la regla 19: lo apagado se
+  enciende cuando upstream lo lleva de serie. Al saltar de V8, mirar `flag-definitions.h` de upstream frente a nuestras
+  opciones apagadas.
+- **Regla 18:** un nivel, una versión, con la V8 de Chrome N; nada de partir el nivel en 1.N.x salvo un cambio muy amplio.
+
 - `llevar.sh`: lleva commits de LOCAL a una rama `nube/*` y la fusiona en otra, sin checkout (ver `FlyWeb/docs/coordinacion.md`).
