@@ -142,6 +142,12 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
     justifica repartir un nivel en varias versiones (1.N, 1.N.1, 1.N.2…), como el 128: V8 12.8 en la 1.11.2 y RubyLB
     en la 1.12.1. Las 1.N.x quedan para arreglos de seguridad y de lo que saque LOCAL. MOTOR lo propone en el
     inventario de cada nivel y COORDINACIÓN lo recuerda al aprobarlo.
+19. **Lo apagado se enciende cuando upstream lo lleva de serie** (HUMANO, 14-10). Las opciones de V8 y Blink que
+    apagamos por prudencia (Maglev, la ISel de Turboshaft, el *wrapper* genérico wasm→JS…) se encienden en cuanto Chrome
+    las usa por defecto, están maduras y traen sus arreglos: seguir en una ruta que Google ya no prueba sale más caro
+    (el 14-10, la ISel de TurboFan de la 12.9 tumbaba claude.ai; con la de Turboshaft, mjsunit 7216/7217). Ese día se
+    encendió `turboshaft_instruction_selection` en el 129. SEGURIDAD-PORTES revisa en cada nivel la tabla de lo apagado
+    (motivo, valor de upstream, arreglos hasta la LTS siguiente, recomendación) y la lleva en su fila FS.
 
 ## Despliegue de la organización del 09-10
 
