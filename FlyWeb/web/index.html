@@ -38,7 +38,17 @@ SHA-256: <code>5008a8928041d2be0dea13828797448d001177273b0608d594b27e0d0090fda0<
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.12.1</h2>
+<h2 id="novedades">Notas de la versión 1.12.2</h2>
+<ul>
+  <li><strong>Un cuelgue menos.</strong> Algunas páginas que hacen fluir el texto alrededor de una forma (por ejemplo, un
+  párrafo que rodea una imagen con forma, <code>shape-outside</code>) podían dejar la pestaña colgada. Ya no.</li>
+  <li><strong>Más estable al maquetar texto.</strong> Arreglado un fallo poco frecuente que podía aparecer al colocar el
+  texto de una página mientras FlyWeb libera memoria en segundo plano.</li>
+  <li><strong>Todo lo demás, igual que en la 1.12.1:</strong> el nivel de Chrome 128 con el <em>ruby</em> nuevo, el motor de
+  JavaScript de Chrome 128 con sus arreglos de seguridad y la misma huella de red.</li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
+<h2>Notas de la versión 1.12.1</h2>
 <ul>
   <li><strong>Texto con anotaciones <em>ruby</em>, como en Chrome 128.</strong> El <em>ruby</em> son las pequeñas
   anotaciones sobre el texto: la lectura (<em>furigana</em>) encima de los kanji en japonés, el <em>pinyin</em> o el
@@ -59,36 +69,6 @@ SHA-256: <code>5008a8928041d2be0dea13828797448d001177273b0608d594b27e0d0090fda0<
   «letra capital» de la web (<code>::first-letter</code>), que antes se le aplicaba por accidente.</li>
   <li><strong>Todo lo demás, igual que en la 1.12:</strong> el nivel de Chrome 128, el motor de JavaScript de Chrome 128 con
   sus arreglos de seguridad y la misma huella de red.</li>
-</ul>
-<p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
-<h2>Notas de la versión 1.12</h2>
-<ul>
-  <li><strong>Motor de nivel Chrome 128.</strong> FlyWeb se presenta a las webs como Chrome 128 y suma las funciones web de
-  ese nivel que siguen.</li>
-  <li><strong>Colocar el cursor donde se pulsa o se suelta.</strong> Las webs pueden saber en qué punto exacto del texto se
-  ha hecho clic o se ha soltado algo arrastrado, con el método estándar que ya usaba Firefox
-  (<code>caretPositionFromPoint</code>), también dentro de campos de texto y de componentes web. Sirve, por ejemplo, a los
-  editores de texto y a las webs que permiten arrastrar texto.</li>
-  <li><strong>Webs ampliadas mejor colocadas.</strong> Las webs pueden saber cuánto zoom tiene cada parte de la página
-  (<code>currentCSSZoom</code>), lo que les ayuda a colocar bien menús y ventanas emergentes cuando han ampliado solo una
-  zona.</li>
-  <li><strong>Nombres de filas y columnas para la accesibilidad.</strong> Las webs pueden dar nombre propio a las filas y
-  columnas de sus tablas y hojas de cálculo (por ejemplo «columna B» en vez de «columna 2»), como en Chrome 128. En Mac,
-  VoiceOver todavía no lo lee, tampoco en Chrome.</li>
-  <li><strong>Listas desplegables sin acentos.</strong> Al escribir sobre una lista desplegable para saltar a una opción ya
-  no hace falta poner los acentos: «avila» lleva a «Ávila».</li>
-  <li><strong>Pequeños arreglos de compatibilidad:</strong>
-    <ul>
-      <li>En los editores de las webs, mover el cursor por párrafos ya no se atasca en partes que no se pueden editar.</li>
-      <li>La sección a la que lleva un enlace interno (<code>#…</code>) sigue marcada aunque la web la vuelva a colocar.</li>
-      <li>Los degradados de los gráficos SVG que lo piden se pintan con la mezcla de color que eligió quien los diseñó.</li>
-      <li>Las listas hechas con <code>&lt;menu&gt;</code> se numeran como las demás listas.</li>
-      <li>Una caída en páginas con texto en varias columnas, arreglada.</li>
-    </ul></li>
-  <li><strong>Se mantiene todo lo de la 1.11.2:</strong> el motor de JavaScript de Chrome 128 con sus arreglos de seguridad,
-  y las webs protegidas contra bots se siguen abriendo directamente.</li>
-  <li><strong>Llegó en la 1.12.1:</strong> el texto con anotaciones <em>ruby</em> (la pronunciación encima de los caracteres
-  en japonés y chino) con el sistema nuevo de Chrome, incluida su alineación (<code>ruby-align</code>).</li>
 </ul>
 <p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
 <p><a href="novedades.html">Todas las novedades, desde la 1.0</a></p>
