@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 129 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 129 de FlyWeb 1.13 (brave-core nube/motor-129, V8 12.9).
+     Abrir en FlyWeb con file:// o desde el repo; no carga nada de fuera (la prueba de RTCDataChannel conecta dos
+     RTCPeerConnection dentro de la propia página). Cada línea dice ok o FALLO. Las llamadas rápidas que lanzan
+     excepciones (lo nuevo de la V8 12.9) se prueban aparte en fastapi-129.html. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+</style>
+</head>
+<body>
+<h1>Motor 129 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>A mano</h2>
+<ol>
+  <li>Hacer clic dos veces seguidas en el texto de la etiqueta de la casilla: la casilla debe verse pulsada
+    (<code>:active</code>, fondo amarillo) mientras se mantiene el botón, también en el segundo clic.</li>
+  <li>Con el foco en el control deslizante vertical, la flecha arriba sube el valor y la flecha abajo lo baja (en la
+    1.12 iban al revés en vertical).</li>
+  <li>Copiar una palabra y pegarla en el área de texto: el registro debe decir <code>insertFromPaste</code> con el
+    texto pegado, no <code>null</code>.</li>
+</ol>
+<p><label id="lab"><input type="checkbox" id="cb"> etiqueta de la casilla</label></p>
+<style>#cb:active { outline: 4px solid gold; background: yellow; }</style>
+<p><input type="range" id="rng" min="0" max="10" value="5" style="writing-mode: vertical-lr; direction: rtl">
+  valor: <output id="rngv">5</output></p>
+<p><textarea id="ta" rows="2" cols="40"></textarea> <span id="talog"></span></p>
+<script>
+  document.getElementById('rng').addEventListener('input', (e) => { document.getElementById('rngv').value = e.target.value; });
+  document.getElementById('ta').addEventListener('input', (e) => {
+    document.getElementById('talog').textContent = `${e.inputType}: ${JSON.stringify(e.data)}`;
+  });
+  const res = document.getElementById('res');
+  const pinta = (li, nombre, ok, nota) => { li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : ''); };
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li'); res.append(li); pinta(li, nombre, ok, nota);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    pinta(li, nombre, ok, nota);
+  };
+  const bytes = (buf) => Array.from(new Uint8Array(buf instanceof ArrayBuffer ? buf : buf.buffer)).join(',');
+  document.getElementById('ua').textContent = navigator.userAgent;
+
+  // Intl.DurationFormat (V8 12.9)
+  prueba('Intl.DurationFormat con estilo digital', () => {
+    const df = new Intl.DurationFormat('en', { style: 'digital' });
+    const s = df.format({ hours: 1, minutes: 2, seconds: 3 });
+    return { ok: s === '1:02:03' && df.resolvedOptions().style === 'digital' && typeof df.formatToParts === 'function', nota: s };
+  });
+  prueba('Intl.DurationFormat en español, estilo largo', () => {
+    const s = new Intl.DurationFormat('es', { style: 'long' }).format({ hours: 1, minutes: 2 });
+    return { ok: /1 hora/.test(s) && /2 minutos/.test(s), nota: s };
+  });
+
+  // WebAuthn JSON
+  const PKC = window.PublicKeyCredential;
+  prueba('PublicKeyCredential.parseCreationOptionsFromJSON() decodifica base64url', () => {
+    const o = PKC.parseCreationOptionsFromJSON({
+      rp: { name: 'FlyWeb', id: 'example.com' }, user: { id: 'AQID', name: 'u', displayName: 'U' }, challenge: 'BAUG',
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+      excludeCredentials: [{ id: 'Bw', type: 'public-key', transports: ['usb'] }], extensions: { credProps: true } });
+    const r = `${bytes(o.challenge)} | ${bytes(o.user.id)} | ${bytes(o.excludeCredentials[0].id)}`;
+    return { ok: r === '4,5,6 | 1,2,3 | 7' && o.excludeCredentials[0].transports[0] === 'usb' && o.extensions.credProps === true, nota: r };
+  });
+  prueba('parseCreationOptionsFromJSON() con base64url inválido lanza EncodingError', () => {
+    try {
+      PKC.parseCreationOptionsFromJSON({ rp: { name: 'x' }, user: { id: 'AQID', name: 'u', displayName: 'U' },
+        challenge: '***', pubKeyCredParams: [] });
+      return { ok: false, nota: 'no lanzó' };
+    } catch (e) { return { ok: e.name === 'EncodingError', nota: e.name }; }
+  });
+  prueba('PublicKeyCredential.parseRequestOptionsFromJSON()', () => {
+    const o = PKC.parseRequestOptionsFromJSON({ challenge: 'BAUG', allowCredentials: [{ id: 'Bw', type: 'public-key' }],
+      userVerification: 'required' });
+    return { ok: bytes(o.challenge) === '4,5,6' && bytes(o.allowCredentials[0].id) === '7' && o.userVerification === 'required' };
+  });
+  prueba('PublicKeyCredential.prototype.toJSON existe', () => typeof PKC.prototype.toJSON === 'function');
+
+  // container-type sin contención de layout
+  prueba('container-type ya no atrapa a un position: fixed', () => {
+    const c = document.createElement('div'); c.style.cssText = 'container-type: inline-size; margin: 50px 0 0 120px; width: 200px; height: 20px';
+    const f = document.createElement('div'); f.style.cssText = 'position: fixed; left: 0; top: 0; width: 5px; height: 5px';
+    c.append(f); document.body.append(c); const r = f.getBoundingClientRect(); c.remove();
+    return { ok: r.left === 0 && r.top === 0, nota: `fixed en ${r.left},${r.top}` };
+  });
+  // Serialización de display
+  prueba('display: inline flow-root se serializa como inline-block, y flow como block', () => {
+    const d = document.createElement('div');
+    d.style.display = 'inline flow-root'; const a = d.style.display;
+    d.style.display = 'inline flex'; const b = d.style.display;
+    d.style.display = 'flow'; const c = d.style.display;
+    return { ok: a === 'inline-block' && b === 'inline-flex' && c === 'block', nota: `${a}, ${b}, ${c}` };
+  });
+  // <base href> con data:
+  prueba('<base href="data:…"> usa la URL base de reserva, no la anterior', () => {
+    const d = document.implementation.createHTMLDocument('');
+    const b = d.createElement('base'); b.href = 'https://example.com/a/'; d.head.append(b); const antes = d.baseURI;
+    b.setAttribute('href', 'data:text/plain,x'); const despues = d.baseURI;
+    return { ok: antes === 'https://example.com/a/' && despues !== antes && !despues.startsWith('data:'), nota: `${antes} → ${despues}` };
+  });
+  // RTCDataChannel
+  prueba('RTCDataChannel.binaryType admite "blob"', () => {
+    const pc = new RTCPeerConnection(); const dc = pc.createDataChannel('x');
+    dc.binaryType = 'blob'; const v = dc.binaryType; pc.close(); return { ok: v === 'blob', nota: v };
+  });
+  pruebaAsync('RTCDataChannel envía un Blob y lo recibe como Blob (dos conexiones en la página)', async () => {
+    const a = new RTCPeerConnection(), b = new RTCPeerConnection();
+    a.onicecandidate = (e) => e.candidate && b.addIceCandidate(e.candidate);
+    b.onicecandidate = (e) => e.candidate && a.addIceCandidate(e.candidate);
+    const recibido = new Promise((ok, mal) => {
+      b.ondatachannel = (e) => { e.channel.binaryType = 'blob'; e.channel.onmessage = (m) => ok(m.data); };
+      setTimeout(() => mal(new Error('sin mensaje en 15 s')), 15000);
+    });
+    const dc = a.createDataChannel('blob');
+    dc.onopen = () => dc.send(new Blob([new Uint8Array([9, 8, 7, 6])]));
+    await a.setLocalDescription(); await b.setRemoteDescription(a.localDescription);
+    await b.setLocalDescription(); await a.setRemoteDescription(b.localDescription);
+    try {
+      const d = await recibido; const buf = d instanceof Blob ? await d.arrayBuffer() : null;
+      return { ok: d instanceof Blob && bytes(buf) === '9,8,7,6', nota: d instanceof Blob ? bytes(buf) : String(d) };
+    } finally { a.close(); b.close(); }
+  });
+  // selectionchange coalescido
+  pruebaAsync('selectionchange: varias selecciones seguidas en un input dan un solo evento', async () => {
+    const i = document.createElement('input'); i.value = 'abcdef'; document.body.append(i);
+    await new Promise((r) => setTimeout(r, 50));
+    let n = 0; i.addEventListener('selectionchange', () => n++);
+    i.setSelectionRange(0, 1); i.setSelectionRange(0, 2); i.setSelectionRange(1, 3);
+    await new Promise((r) => setTimeout(r, 200)); i.remove();
+    return { ok: n === 1, nota: `${n} eventos` };
+  });
+  // Versión declarada
+  prueba('User-Agent declara Chrome/129', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '129', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+  pruebaAsync('Client hints: 129.0.6668.101 y macOS ≥ 11 (Chrome 129 no existe en 10.15)', async () => {
+    const h = await navigator.userAgentData.getHighEntropyValues(['uaFullVersion', 'platformVersion']);
+    const mayor = parseInt(h.platformVersion, 10);
+    return { ok: h.uaFullVersion === '129.0.6668.101' && mayor >= 11, nota: `${h.uaFullVersion}, macOS ${h.platformVersion}` };
+  });
+  prueba('V8 12.9: lo de los niveles anteriores sigue', () => {
+    const r = new RegExp('(?i:a)b');
+    return typeof Promise.try === 'function' && typeof Promise.withResolvers === 'function' && r.test('Ab') &&
+      Object.groupBy([1, 2, 3], (x) => (x % 2 ? 'i' : 'p')).i.length === 2;
+  });
+</script>
+<p>Fuera del nivel 129 (motivo en <code>FlyWeb/docs/motor.md</code>, «Nivel 129»): las subfunciones de anchor
+positioning, <code>scheduler.yield()</code>, los eventos de scroll snap, <code>calc-size()</code> y tres flags de
+interoperabilidad que dependen de código posterior a la 116. WebAuthn JSON no lleva <code>hints</code> ni
+<code>supplementalPubKeys</code> (la 116 no los tiene).</p>
+</body>
+</html>
