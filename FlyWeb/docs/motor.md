@@ -764,6 +764,7 @@ generadores de Blink (`gencss.sh` para flags y el generador de *bindings*):
 | e4e20f421b | WebAuthn JSON | estado final de 7 commits; sin `hints` ni `supplementalPubKeys` (la 116 no los tiene) y con la unión de la 116 como tipo de `toJSON()` en vez de `typedef object` (mismo objeto en JS) |
 | **1a93159423** | declara 129 / 1.13 | 129.0.6668.101, `platformVersion` mínimo 11.7.10 |
 | 9d83369504 | arreglos del Blob en `RTCDataChannel` (FS.13) | 6e4bc681b82 (crbug 374310077: `SelfKeepAlive` del `BlobReader`, uso tras liberar) y 1116bad3e0a (crbug 373898146); los únicos entre la 129 y la 132 LTS en ese código |
+| 10173b669d | arreglos de WebAuthn JSON (FS.13) | 881db66b5c2 (`credBlob` leía el *getter* de `getCredBlob`: DCHECK al crear, valor falso en *release*) y 434f57a28bd (`prf.results` se construía y no se añadía); los dos fallos ya estaban en la 116, pero `toJSON()` solo es alcanzable desde la web ahora que la flag es *stable*. Pedidos por SEGURIDAD-PORTES |
 
 Comprobación: `FlyWeb/tools/motor-129.html` (en Chromium 141 da ok todo lo que no es la versión declarada),
 `fastapi-129.html` (11/11 en Chromium 141) y `wpt-129-lista.txt` (27). «Para la web» en `version-1.13.md`.
