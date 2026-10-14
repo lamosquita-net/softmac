@@ -1,5 +1,7 @@
 # FlyWeb 1.13 — nivel de motor 129 (MOTOR-8, 14-10-2026)
 
+**Cabeza final:** brave-core `nube/motor-129` **43ef04cf64**.
+
 **Estado:** en código en brave-core `nube/motor-129` **43ef04cf64** (Static probado: WPT del 129 iguales a Chrome 129; falta el ASan del
 nivel completo), con FS.13 fundida (`seg/v8-12.9` y `seg/blink-129`;
 selección de instrucciones de Turboshaft y *wrapper* genérico wasm→JS encendidos, como en Chrome 129: regla 19). Encima de la 1.12.2 (bb6c7146) lleva
@@ -11,6 +13,7 @@ y las webs con JIT) y después todo el nivel. Detalle técnico: `motor.md`, «Ni
 
 | Dato | Valor |
 |---|---|
+| Cabeza final | brave-core `nube/motor-129` **43ef04cf64** (paso de V8 + FS.13 en `nube/motor-129-v8` fdac7ed13b) |
 | Versión visible | 1.13 (`CFBundleVersion` la pone LOCAL en la entrega) |
 | Nivel declarado | Chrome 129 (`flyweb_engine_full_version` 129.0.6668.101; `platformVersion` mínimo **11.7.10**: Chrome 129 ya no funciona en 10.15) |
 | Motor JavaScript | V8 12.9.202.28 (la de Chrome 129) con los arreglos de seguridad de FlyWeb (FS.13; época de caché 13) |
