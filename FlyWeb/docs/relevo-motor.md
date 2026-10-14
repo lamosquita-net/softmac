@@ -1,3 +1,57 @@
+# Estado de MOTOR-7 y relevo preparado (14-10-2026, ~10:05)
+
+MOTOR-7 (`session_01FLXeqsEpvbFSdseBoe6hzc`, Opus 5.5, esfuerzo extra) cierra el nivel 128 con la entrega de la 1.12.1. Contexto
+al 66 %: **conviene relevar antes de abrir el 129** (lo decide COORDINACIÓN). Si se corta, el siguiente MOTOR empieza por
+aquí, la fila FM.16 de `docs/TAREAS.md`, `motor.md` «Nivel 128» y `FlyWeb/tools/port/README.md`. No hay nada a medio
+escribir ni sin subir.
+
+**Ramas de brave-core:**
+
+| Rama | Cabeza | Qué |
+|---|---|---|
+| `nube/v1.11.2` | 5aa57049f | 1.11.2, publicada |
+| `nube/motor-128` | 710e7520 | 1.12, publicada |
+| `nube/motor-128-ruby` | **e6273d015** | **1.12.1, entregada a PUBLICACIÓN (157.64.20)**: 1.12 + RubyLB + f1b26d42 + e420119c + 611642d8 (versión) + FS.11 (44c2af834) + parte urgente de FS.12 (e6273d015) |
+| `seg/rubylb-128` | 44c2af834 | FS.11, ya fundida en `-ruby` |
+| `seg/inline-116` | **907c95074** | FS.12 completa; 907c95074 (bucle con `shape-outside` y carrera al copiar `NGInlineItem`) es **para la 1.12.2** |
+
+**Lo que queda, en orden (lo ordena COORDINACIÓN):**
+1. **1.12.2** = e6273d015 + 907c95074 (avance directo a `seg/inline-116`) + `flyweb_version` 1.12.2 + `version-1.12.2.md`
+   con su «Para la web» (un cuelgue de pestaña con `shape-outside` y una carrera de datos al maquetar texto, arreglados).
+   V8 no cambia: época 12.
+2. **Nivel 129**: como el 128, primero inventario (Baseline + subfunciones + flags a `stable`, API de V8 12.9 contra la
+   116) y lista al HUMANO/COORDINACIÓN antes de portar. **Lecciones del 128:** la lista de commits de un porte grande sale
+   de `git log <tag 128>..<tag 129>` (con los `Merged:` de la rama) y por autor, no solo de `--grep`; la fila FS de la
+   regla 17 se pide al abrir el porte; `wpt-ref.py` compara las WPT del nivel con lo que Chrome N falla
+   (`TestExpectations` + `-expected.txt`), como `wpt-128-ruby-esperado.json`.
+
+**Hecho en MOTOR-7:** `version-1.12.md` y `version-1.12.1.md` («Para la web»); WPT del 128 (`wpt-128-lista.txt`,
+`wpt-128-ruby-*`); `wpt-ref.py` (reftests, testharness y pruebas de caída, con recuperación de pestañas colgadas) y la
+carrera del gancho de testharness también en `wpt-cdp.py`; los 20 errores del Static de RubyLB (f1b26d42); tres portes que
+faltaban (e420119c: 1f0b377299b6, ef8ddcab1d8e, b877e3948a59 + 7e72ac335691); FS.11 abierta (regla 17) con
+`rubylb-ficheros.tsv` y `rubylb-commits.tsv`; revisión y fusión de FS.11 y de la parte urgente de FS.12; pruebas de esos
+arreglos en `FlyWeb/tools/ruby-fs11/`.
+
+**Trampas nuevas (además de las de MOTOR-6):**
+- **Entorno rápido:** `cr116` y `cr128` se montan en ~1 min cada uno con `git init` + `sparse-checkout` +
+  `git fetch --depth 1 --filter=blob:none origin refs/tags/<tag>`. El clon de Chromium sin árboles (`tree:0`) pesa ~1 GB;
+  tenerlo en `/tmp/claude-0/port/chromium/` (no en `/home/user`, por el gancho de parada) y cambiar la ruta en las copias
+  de los scripts. El área `w-r3` se rehace con `mkws.sh r3 $(cat r-files.txt)` (los ficheros de los parches que cambian
+  entre `nube/motor-128` y `-ruby`) y se comprueba con `generar.sh` (0 cambios en brave-core).
+- **`git show <tag>:<ruta>` en el clon `tree:0` es lento** (baja árboles); para ficheros de Blink de la 116 usar `cr116`.
+- **`pkill -f` / `pgrep -f` con un patrón que aparece en el propio comando lo mata** (me pasó dos veces): matar por PID.
+- **Los *squash* de COORDINACIÓN pueden dejar fuera los últimos commits** si se fusiona mientras subes: comprobar con
+  `git diff <mi último commit> origin/main` tras cada fusión y recuperar lo que falte en un PR nuevo.
+- **Antes de fundir una rama `seg/*`:** pasarla al área (aplicar sus parches a los ficheros de la 116), leer el diff del
+  código fuente, comprobar la API de la 116 que usa, `idscan.py`, `chk.sh` y que el área regenere la rama.
+
+**Mediciones de MOTOR-7** (Opus 5.5, extra; `get_session`): del 13-10 16:04 al 14-10 08:00 UTC, con varias horas de espera
+a LOCAL; unos 330 turnos con herramienta; salida 217 k, caché leída 124 M, escrita 1,46 M, entrada sin caché 2,7 k;
+40,8 USD; contexto al 66 %. Retrabajo tras revisión: el Static de RubyLB dio 20 errores (3 tipos) y luego una diferencia de
+WPT por un porte que faltaba; ninguno en lo que revisaron SEGURIDAD-PORTES y LOCAL-3 después.
+
+---
+
 # Relevo de MOTOR: de MOTOR-6 a MOTOR-7 (13-10-2026, ~18:05)
 
 MOTOR-6 (`session_01L1KPtm9u4214pcJi5ipUit`, Opus 5.5, esfuerzo extra) cierra por orden de COORDINACIÓN-5, con el
