@@ -1,0 +1,42 @@
+# Nivel 129 (FM.19): commits por porte. Lista de git log 128.0.6613.194..129.0.6668.112 por fichero y autor
+# (incluye los Merged: de la rama 6668); los de antes del 128 salen de 116.0.5845.188..129.0.6668.112.
+# Medida: medir.sh sobre 116 + parches de brave-core nube/motor-128-ruby bb6c7146 (hunks/rechazados).
+# porte	commit	fecha	dónde	estado	medida	asunto
+V8-fastapi	8d78666bade	2024-02-06	antes del 128	pendiente	5/2	bindings: Remove DisallowGC scope from blink::NoAllocDirectCallScope
+V8-fastapi	d9bfd74484c	2024-05-08	antes del 128	pendiente	43/17	[v8][fastcall] Remove fallback for fast API users
+V8-gin	abf6e5b63e6	2024-08-06	main	pendiente (solo gin: quitar GetZoneBackingAllocator)	22/7, casi todo base/	base,gin: Remove nonscannable_memory and ZoneBackingAllocator for V8
+webauthn-json	2f5a1248572	2023-11-28	antes del 128	pendiente	1/0	webauthn: fix ToJson with PRF outputs.
+webauthn-json	95a8f00b45c	2024-01-02	antes del 128	pendiente	14/6	webauthn: implement PublicKeyCredential.parseCreationOptionsFromJSON()
+webauthn-json	b56aa79d938	2024-06-18	antes del 128	pendiente	26/17	webauthn: implement PublicKeyCredential.parseRequestOptionsFromJSON()
+webauthn-json	c4fff5a3d39	2024-06-21	antes del 128	pendiente	12/6	webauthn: Make PublicKeyCredential.toJSON() conform to the spec again
+webauthn-json	a9ec75b24ad	2024-08-06	main	pendiente (sin pruebas)	13/7	webauthn: add unit tests for request/creation options JSON parsing
+webauthn-json	3e310890d6d	2024-08-14	main	pendiente	2/0	webauthn: Make {Authentication,Registration}ResponseJSON.id a DOMString
+webauthn-json	4df593b6054	2024-08-08	main	pendiente (flag)	-	Make WebAuthn JSON serialization methods available in stable releases
+webauthn-json	ab91ac7b3a6	2023-12-06	antes del 128	fuera (supplementalPubKeys: lado navegador)	-	webauthn: supplementalPubKeys support in JSON conversions.
+webauthn-json	8863aedceed	2024-01-12	antes del 128	fuera (refactor de V8ObjectBuilder; adaptar json.cc a mano)	-	Use ToV8Traits for V8ObjectBuilder
+webauthn-json	07445b1d948	2024-08-15	main	fuera (WebAuthenticationAttestationFormats, experimental)	-	webauthn: support forwarding WebAuthn's attestationFormats parameter over JSON.
+rtc-blob	f1b59d2be7b	2024-08-01	main	pendiente	20/6	RTCDataChannel: Add support for the Blob type.
+rtc-blob	f12d06e864d	2024-09-09	rama M129	pendiente	1/2	[M129 Merge] Check that the data channel is open before sending Blobs
+container-type	e28cd00c20c	2024-07-25	main	pendiente	3/0	[container-queries] Drop layout containment from container-type.
+aria-indextext	75fdde77374	2024-09-06	rama M129	pendiente (arreglo del 128, e6614bc4)	6/0	M129: [A11y] Fix regression and update support for aria-[row|col]indextext
+flags-limpias	f1ccaff48fb	2024-08-05	main	pendiente (BaseElementUrlUseFallback)	2/0	Set the <base> element's base URL to document's base URL when href scheme is data or javascript
+flags-limpias	c3113fb4a0a	2024-08-07	main	pendiente (HandleSelectionChangeOnDeletingEmptyElement)	3/0	[Editing] Update Selection before removing element in contenteditable div
+flags-limpias	ee343f49bbf	2024-07-31	main	pendiente (MoveToParagraphStartOrEndSkipsNonEditable)	3/0	Move to beginning or end of paragraph ignore `contenteditable="false"`
+flags-limpias	4268dcfcc60	2024-07-25	main	pendiente (NonNullInputEventDataForTextArea)	5/0	Input event data should not be null when replace selection command is performed
+flags-limpias	f93ba2512ae	2024-08-15	main	pendiente (PreventUndoIfNotEditable)	2/0	[Editing] Fix errors in applying undo after deleting at block boundary
+flags-limpias	2a25e3550de	2024-07-25	main	pendiente (CallExitNodeWithoutLayoutObject)	3/0	[Editing] Append extra line break if the paragraph ends with or without any layout content.
+flags-pocos	827877b838b	2024-07-10	antes del 128	pendiente (CoalesceSelectionchangeEvent)	15/7	Avoid dispatching duplicated selectionchange events for the same target
+flags-pocos	c8e11ca620e	2024-07-24	main	pendiente (CoalesceSelectionchangeEvent a stable)	1/0	Enable flag-CoalesceSelectionchangeEvent by default
+flags-pocos	bdb93badc1c	2024-08-09	main	pendiente (KeepActiveIfLabelActive)	10/2	Fix :active state applying to control during second click on <label>
+flags-pocos	f4d6f2ea661	2024-07-30	main	pendiente (CssDisplaySerialziationFix)	5/2	css: Fix `display` property serialization
+flags-pocos	5610b4322aa	2024-07-30	main	pendiente (VerticalInputRangeKeyOperationFix)	3/2	input[type=range]: Fix arrow key behavior in vertical writing-modes
+flags-fuera	6916f1ac980	2024-08-15	main	fuera por coste (ScrollIntoViewRootFrameViewportBugFix)	22/18	Move scrollbar and border adjusting logic inside GetScrollOffsetToExpose
+flags-fuera	73881d441c2	2024-08-19	main	fuera por coste (DirAutoFixSlotExclusions: dir=auto de la 116 es otro)	4/4	Fix dir=auto traversal exclusions to apply to assigned nodes in a slot.
+flags-fuera	c0d09ea0876	2024-08-19	main	fuera por coste (ShapeOutsideClippedImageFix: 5 refactors de shape-outside antes)	22/15 con 763b1682ab	shape-outside: Fix for images clipped at the top or the bottom
+seguridad-M129	8669b50ce1c	2024-08-23	rama M129	para SEGURIDAD-PORTES (código de la 116)	-	Protect automation_rate_ from non-deterministic change
+seguridad-M129	0712fcc39d2	2024-09-03	rama M129	para SEGURIDAD-PORTES (código de la 116)	-	M128: [A11y] Do not update object's owner's children at a bad time
+seguridad-M129	ebe44c38be3	2024-09-09	rama M129	para SEGURIDAD-PORTES (código de la 116)	-	Check nullptr to avoid crash.
+seguridad-M129	7c883b00231	2024-09-02	rama M129	para SEGURIDAD-PORTES (código de la 116)	-	Fix 304 responses handling in ResourceLoader
+seguridad-M129	1d8dc1d8291	2024-09-13	rama M129	para SEGURIDAD-PORTES (código de la 116)	-	Don't consume into block in ConsumeDeprecatedGradient
+seguridad-M129	29d14f1cd9c	2024-09-09	rama M129	para SEGURIDAD-PORTES (código de la 116)	-	Don't perform pseudo-element ident parsing on non-ASCII
+ya-hecho	9900d924764	2024-09-23	rama M129	hecho (= ef8ddcab1d8, e420119c)	-	RubyLB: Fix a crash with a parent with a non-default text-align

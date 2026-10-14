@@ -615,6 +615,121 @@ RubyLB.** Sin freno por el límite semanal.
   141 (una revisada a ojo: un hueco real entre dos cajas). Las capturas dependen de las fuentes del sistema: para separar el entorno, pasar la lista también por la 1.12
   (sin RubyLB) y por el Chrome del mismo Mac.
 
+## Nivel 129 — inventario (14-10, MOTOR-8; nada portado → FlyWeb 1.13)
+
+Inventario de FM.19, **para decidir COORDINACIÓN antes de portar**. Fuentes: web-features 3.42.0 + BCD 8.1.5
+(`FlyWeb/tools/port/baseline-nivel.js`), flags de `runtime_enabled_features.json5` entre la **128.0.6613.194** y la
+**129.0.6668.112** (cabeza de la rama 6668; `flags-nivel.py`) y la API pública de V8. Cada porte se midió aplicando
+sus commits sobre la 116 + los parches de brave-core `nube/motor-128-ruby` **bb6c7146** (`medir.sh`; «hunks/rechazados»).
+Las listas de commits salen de `git log 128.0.6613.194..129.0.6668.112` por fichero y por autor (con los `Merged:` de la
+rama 6668) y, para lo anterior al 128, de `116.0.5845.188..129.0.6668.112`: `FlyWeb/tools/port/nivel129-commits.tsv`.
+
+**Resumen: el 129 es un nivel pequeño.** Poco Baseline nuevo, ningún porte grande (el mayor, WebAuthn JSON, son 7
+commits) y un salto de V8 barato. Estimación: **5–6 días de MOTOR**, una ronda de SEGURIDAD-PORTES para V8 12.9 y dos
+compilaciones de LOCAL (tras V8 y al final).
+
+### 1. V8 12.9 (`12.9.202.28`, f372edd3: la de Chrome 129, cabeza de la rama 12.9, 08-10-2024; sin LTS)
+
+**Salto barato** (principio 11: el criterio de parada no se cumple). `include/` cambia +131/−86 líneas (la 12.8 eran
+semanas). Lo que quita y la 116 usa:
+
+- **`FastApiCallbackOptions::fallback`** (V8 be03ed2). La 116 lo pone en el generador de bindings
+  (`bind_gen/interface.py`) y en `NoAllocDirectCallHost`, que usan los 158 métodos `[NoAllocDirectCall]` de WebGL,
+  WebGPU y canvas 2D. La 12.8 aún lo respeta (TurboFan y Turboshaft leen el campo), así que la 1.12.x está bien; con la
+  12.9 no compila. **(A, recomendada)** portar 8d78666bade + **d9bfd74484c** («Remove fallback for fast API users»: las
+  llamadas rápidas lanzan la excepción ellas mismas, como hace Chrome desde la 126): 48 hunks, 19 rechazados (5 en
+  `interface.py`, 2 en canvas), **~1 día**. **(B)** dejar de generar llamadas rápidas (`[NoAllocDirectCall]` pasa a
+  llamada normal): horas y menos código, pero WebGL y canvas 2D van más lentos en llamadas cortas. B queda de reserva
+  si A da problemas en LOCAL.
+- **`v8::ZoneBackingAllocator`** y `Platform::GetZoneBackingAllocator()` (V8 7448e8c): gin lo sobrescribe → quitar la
+  sobrescritura (parte de gin de abf6e5b63e6; el resto del commit es `base/`). Minutos.
+- **cppgc prohíbe `new` en un `GarbageCollectedMixin`** (V8 4483ef3): no hay casos conocidos en la 116; lo dirá la
+  compilación. Riesgo bajo.
+- Sin uso en la 116, brave-core ni nuestros parches: `V8_ENABLE_DIRECT_LOCAL` → `V8_ENABLE_DIRECT_HANDLE`,
+  `kFirst/LastStringMap`, `wasm_memory`, y los 3 flags de V8 que desaparecen (`direct_local`,
+  `invocation_count_for_turbofan_if_profile_guided_non_turbofan`, `maglev_track_object_changes`).
+- Lo nuevo es opcional (`Function::Call(isolate…)`, `Object::Clone(isolate)`, `GetCurrentHostDefinedOptions`,
+  `SetExceptionContext`…). `experimental_report_exceptions_from_callbacks` pasa a `true`, pero sin
+  `SetExceptionPropagationCallback` (la 116 no lo pone) no hace nada.
+
+Compilación: el `BUILD.gn` de V8 importa ahora `//third_party/icu/config.gni` (comprobar en `gn gen`); ICU mínimo 73,
+el de la 116; `gni-v8.gni.patch` (Perfetto) hay que rehacerlo; `chromium_src/v8` y `gin` de Brave no cambian entre la
+1.69.168 (Chromium 128) y la 1.70.133 (Chromium 129); `enable_f16c` se decide en tiempo de ejecución (no rompe la 5,1).
+**Seguridad:** de los 70 parches de `patches/v8`, 55 entran tal cual en la 12.9, 6 ya están dentro (`accessors.cc`,
+`heap-refs.cc`, `isolate.cc`, `value-serializer.{cc,h}`, `graph-builder-interface.cc`) y 9 chocan (`object-gen.cc`,
+`js-to-wasm.tq`, `access-builder.h`, `access-info.cc`, `js-native-context-specialization.cc`,
+`snapshot-table-opindex.h`, `ic.cc`, `bytecode-generator.cc`, `js-objects.cc`) → ronda `seg/v8-12.9` de
+SEGURIDAD-PORTES (como FS.10 con la 12.8) y `kFlyWebCacheEpoch` sube. Alternativa descartada: seguir en la 12.8 y
+encender `harmony_intl_duration_format` (el código es el mismo); ahorra la ronda, pero el principio 11 manda subir
+mientras el salto sea barato, y aplazarlo encarece el 130.
+
+### 2. Baseline del 129
+
+| Función | Baseline | Porte | Coste |
+|---|---|---|---|
+| `Intl.DurationFormat` | 2025-03-04 | de serie con V8 12.9 (pasa de *staged* a *shipping*; es lo único de JavaScript del 129) | — |
+| WebAuthn: `PublicKeyCredential.parseCreationOptionsFromJSON()`, `parseRequestOptionsFromJSON()`, `toJSON()` | 2025-03-31 | flag `WebAuthenticationJSONSerialization` (en la 116, `test` y solo `toJSON`): 2f5a1248572, 95a8f00b45c, b56aa79d938, c4fff5a3d39, a9ec75b24ad (sin pruebas), 3e310890d6d, 4df593b6054; 68 hunks, 36 rechazados. `json.cc` a su forma final, a mano donde la 116 difiere (sin 8863aedceed ni la parte de navegador de ab91ac7b3a6) | 1,5–2 días |
+| `RTCDataChannel.binaryType = "blob"` | 2024-09-19 | f1b59d2be7b + **f12d06e864d** (fusión M129: comprobar que el canal está abierto antes de enviar un Blob); 21 hunks, 8 rechazados | ~1 día |
+| `container-type` sin contención de *layout* (BCD `weak_containment`; Firefox 133, Safari 18.4) | sí (BCD) | flag `ContainerTypeNoLayoutContainment`, e28cd00c20c: entra limpio. Cambia qué caja es el bloque contenedor de los `position: fixed` dentro de un contenedor de consultas | horas |
+
+En los Mac del proyecto WebAuthn es con llaves USB (no hay Touch ID); las librerías de *passkeys* comprueban
+`parse*FromJSON` y, si falta, usan su propio código, así que el porte es de compatibilidad, no de función nueva.
+**Fuera:** las subfunciones de *anchor positioning* (`position-area`, palabras clave de `position-try(-fallbacks)`;
+Baseline por clave, pero la función no lo es y no está portada), `prefers-color-scheme` heredado del embebedor (no
+Baseline), `scheduler.yield()` (sin Safari; en la 116 está en `experimental`), *scroll snap events* y
+`calc-size()`/`interpolate-size` (solo Chrome).
+
+### 3. Flags a `stable` sin Baseline (12 que pasan y 21 que nacen en `stable`)
+
+- **Portables, limpias** (0 rechazos; horas entre todas): `BaseElementUrlUseFallback` (f1ccaff48fb, `<base href>`
+  con `data:`/`javascript:`), `HandleSelectionChangeOnDeletingEmptyElement` (c3113fb4a0a),
+  `MoveToParagraphStartOrEndSkipsNonEditable` (ee343f49bbf), `NonNullInputEventDataForTextArea` (4268dcfcc60),
+  `PreventUndoIfNotEditable` (f93ba2512ae) y `CallExitNodeWithoutLayoutObject` (2a25e3550de); además
+  `ContainerTypeNoLayoutContainment` (arriba).
+- **Portables, pocos rechazos** (~1 día entre las cuatro): `CoalesceSelectionchangeEvent` (827877b838b + c8e11ca620e,
+  7/15; la parte previa, `DispatchSelectionchangeEventPerElement`, va desde el 127), `KeepActiveIfLabelActive`
+  (bdb93badc1c, 2/10), `CssDisplaySerialziationFix` (f4d6f2ea661, 2/5; el analizador de `display` de la 116, adaptado
+  en R1) y `VerticalInputRangeKeyOperationFix` (5610b4322aa, 2/3).
+- **Fuera por coste** (dependen de código posterior a la 116): `ScrollIntoViewRootFrameViewportBugFix` (6916f1ac980,
+  18/22), `DirAutoFixSlotExclusions` (73881d441c2, 4/4: el `dir=auto` de la 116 es la versión con plantillas y
+  `is_deferred`) y `ShapeOutsideClippedImageFix` (c0d09ea0876, detrás de cinco refactors de `shape-outside`; 15/22
+  incluso con 763b1682ab).
+- **Sin efecto o sin interés:** rendimiento (`DynamicScrollCullRectExpansion`, `IntersectionOptimization`,
+  `ExcludePopupMainThreadScrollingReason`, `SvgTransformOptimization`), no son de Mac (`AuraScrollbarUses*`,
+  `UnblockTouchMoveEarlier`, `ViewportChangesUpdateTextAutosizing`), `UnrestrictedUsb` (solo apps aisladas),
+  `WebGPUHDR`, *anchor positioning* (`CSSPositionArea*`, `CSSInsetAreaProperty`) y lo no Baseline
+  (`CSSCalcSizeFunction`, `CSSScrollSnap*`, `SchedulerYield`). `KeyboardFocusableScrollers` llegó a `stable` y la propia
+  rama M129 lo retiró (22718b9af37). Las `base::Feature` de Blink que cambian (p. ej. `IndexedDBCompressValuesWithSnappy`,
+  formato en disco) no son de la web: fuera.
+
+### 4. Fusiones de la rama M129 sobre lo que ya tenemos
+
+- **75fdde77374** arregla el `aria-rowindextext`/`aria-colindextext` que portamos en el 128 (e6614bc4): entra
+  limpio (6 hunks, Blink y `ui/accessibility`). Va en el 129.
+- 9900d924764 (RubyLB) = ef8ddcab1d8, ya en e420119c.
+- Para SEGURIDAD-PORTES (código de la 116; que valore si aplican): 8669b50ce1c (WebAudio, carrera en
+  `automation_rate_`), 0712fcc39d2 (accesibilidad), ebe44c38be3 (nulo en `element.cc`), 7c883b00231 (304 en
+  `ResourceLoader`), 1d8dc1d8291 y 29d14f1cd9c (analizador CSS).
+
+### 5. Declaración y comprobación
+
+`flyweb_engine_level` 129, `flyweb_version` 1.13, **`flyweb_engine_full_version` = 129.0.6668.101** (la última Stable
+normal de la 129 para Mac al 100 %, 08-10-2024, según versionhistory de Google; como la .138 del 128) y
+`flyweb_min_macos_version` **11.7.10** (Chrome 129 ya no admite 10.15; decisión del HUMANO del 12-10, principio 13).
+Sin cambios conocidos de red en la 129: la receta de huella de LOCAL, como siempre. `motor-129.html` y
+`wpt-129-lista.txt` al portar (WebAuthn JSON, `RTCDataChannel` con Blob, `container-type`, `Intl.DurationFormat` con
+d8/test262).
+
+### 6. Regla 17 y orden propuesto
+
+Ningún porte llega a «decenas de commits», así que la regla 17 no obliga. La fila FS que sí hace falta es la ronda de
+V8 12.9 (`seg/v8-12.9`, con la regla de no tener menos correcciones que la 12.8); propongo sumarle la revisión de lo
+nuevo que una web puede alcanzar (envío de Blob por `RTCDataChannel`, parseo de JSON de WebAuthn, llamadas rápidas que
+lanzan excepciones) con los `Merged:` de las ramas 130–132 (LTS). MOTOR la abre al empezar el porte de V8.
+Orden: (1) `nube/motor-129` desde `nube/motor-128-ruby` bb6c7146; (2) V8 12.9 con d9bfd74484c y gin → Static de LOCAL
+(en paralelo, la fila FS); (3) Baseline, flags y 75fdde77374, un commit cada uno; (4) declarar 129/1.13, `motor-129.html`
+y WPT → Static, ASan y Release de LOCAL.
+
 ## Apuntado para niveles futuros
 
 - **143 — `onselectionchange` como atributo de elemento** (`<div onselectionchange=…>`, `setAttribute`): Chromium
