@@ -22,23 +22,46 @@ servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomoneda
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 1.12</h2>
-<p><a class="boton" href="descargas/FlyWeb-1.12.dmg" download>Descargar FlyWeb 1.12 (165 MB)</a></p>
+<h2>Descargar FlyWeb 1.12.1</h2>
+<p><a class="boton" href="descargas/FlyWeb-1.12.1.dmg" download>Descargar FlyWeb 1.12.1 (165 MB)</a></p>
 <p class="dato">macOS 10.13 o 10.14, Mac Intel (x86_64). En macOS 10.15 a 12 debería funcionar, sin garantía.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>722e831c600470a27fc7b8468bb2ff65e5d77a271e3008aaf21a347e060f8502</code></p>
+SHA-256: <code>5008a8928041d2be0dea13828797448d001177273b0608d594b27e0d0090fda0</code></p>
 </div>
 </div></section>
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-1.12.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-1.12.1.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.12</h2>
+<h2 id="novedades">Notas de la versión 1.12.1</h2>
+<ul>
+  <li><strong>Texto con anotaciones <em>ruby</em>, como en Chrome 128.</strong> El <em>ruby</em> son las pequeñas
+  anotaciones sobre el texto: la lectura (<em>furigana</em>) encima de los kanji en japonés, el <em>pinyin</em> o el
+  <em>zhuyin</em> en chino. FlyWeb pasa a usar el sistema nuevo con el que Chrome lo rehízo:
+    <ul>
+      <li>Una palabra anotada larga <strong>se puede partir entre dos líneas</strong> junto con su anotación, en vez de
+      saltar entera a la línea siguiente y dejar huecos.</li>
+      <li>Las webs pueden elegir <strong>cómo se reparte la anotación</strong> sobre su texto (<code>ruby-align</code>:
+      centrada, al principio o repartida) y FlyWeb lo respeta. Las anotaciones cortas y las que caen al borde de la línea
+      se colocan como en Chrome.</li>
+      <li>Las anotaciones <strong>no se montan sobre la línea de arriba</strong>, tampoco cuando en ella hay una imagen o
+      un botón alto.</li>
+      <li>Las anotaciones pueden ir <strong>encima o debajo</strong> del texto, y las webs pueden darles márgenes, bordes
+      y relleno.</li>
+      <li>Los <strong>subtítulos de vídeo</strong> que usan <em>ruby</em> se muestran con sus anotaciones.</li>
+    </ul></li>
+  <li><strong>Un detalle de estilo como en Chrome:</strong> la primera letra de una anotación ya no recibe el estilo de
+  «letra capital» de la web (<code>::first-letter</code>), que antes se le aplicaba por accidente.</li>
+  <li><strong>Todo lo demás, igual que en la 1.12:</strong> el nivel de Chrome 128, el motor de JavaScript de Chrome 128 con
+  sus arreglos de seguridad y la misma huella de red.</li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
+<h2>Notas de la versión 1.12</h2>
 <ul>
   <li><strong>Motor de nivel Chrome 128.</strong> FlyWeb se presenta a las webs como Chrome 128 y suma las funciones web de
   ese nivel que siguen.</li>
@@ -64,21 +87,10 @@ SHA-256: <code>722e831c600470a27fc7b8468bb2ff65e5d77a271e3008aaf21a347e060f8502<
     </ul></li>
   <li><strong>Se mantiene todo lo de la 1.11.2:</strong> el motor de JavaScript de Chrome 128 con sus arreglos de seguridad,
   y las webs protegidas contra bots se siguen abriendo directamente.</li>
-  <li><strong>Llega en la 1.12.1:</strong> el texto con anotaciones <em>ruby</em> (la pronunciación encima de los caracteres
+  <li><strong>Llegó en la 1.12.1:</strong> el texto con anotaciones <em>ruby</em> (la pronunciación encima de los caracteres
   en japonés y chino) con el sistema nuevo de Chrome, incluida su alineación (<code>ruby-align</code>).</li>
 </ul>
 <p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
-<h2>Notas de la versión 1.11.2</h2>
-<ul>
-  <li><strong>Motor de JavaScript más reciente y más seguro.</strong> El motor que ejecuta el JavaScript de las webs pasa a
-  ser el de Chrome 128, con las correcciones de seguridad que le aplican. Las webs con mucho JavaScript (YouTube, Gmail,
-  Google Docs…) funcionan igual que antes.</li>
-  <li><strong>El nivel declarado sigue siendo Chrome 127.</strong> Las webs ven a FlyWeb igual que con la 1.11.1; lo nuevo
-  del nivel 128 llegará con la 1.12.</li>
-  <li><strong>Se mantiene todo lo de la 1.11.1:</strong> las webs protegidas contra bots siguen abriéndose directamente.</li>
-</ul>
-<p class="dato">Al actualizar, la caché de código de JavaScript se regenera sola: las primeras visitas pueden ir algo más
-lentas. Nada cambia en los ajustes ni en los datos del usuario.</p>
 <p><a href="novedades.html">Todas las novedades, desde la 1.0</a></p>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
 </div></section>
