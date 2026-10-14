@@ -1,8 +1,8 @@
 # FlyWeb 1.13 — nivel de motor 129 (MOTOR-8, 14-10-2026)
 
-**Cabeza final:** brave-core `nube/motor-129` **43ef04cf64**.
+**Cabeza final:** brave-core `nube/motor-129` **325686916c** (43ef04cf64 + fuente monoespaciada Menlo, orden de COORDINACIÓN-5).
 
-**Estado:** en código en brave-core `nube/motor-129` **43ef04cf64** (Static probado: WPT del 129 iguales a Chrome 129; falta el ASan del
+**Estado:** en código en brave-core `nube/motor-129` **325686916c** (Static de 43ef04cf64 probado: WPT del 129 iguales a Chrome 129; falta el ASan del
 nivel completo), con FS.13 fundida (`seg/v8-12.9` y `seg/blink-129`;
 selección de instrucciones de Turboshaft y *wrapper* genérico wasm→JS encendidos, como en Chrome 129: regla 19). Encima de la 1.12.2 (bb6c7146) lleva
 la V8 de Chrome 129 (paso b589e86dc7), la Baseline y las flags de interoperabilidad del 129, y declara 129 / 1.13. Un
@@ -13,7 +13,8 @@ y las webs con JIT) y después todo el nivel. Detalle técnico: `motor.md`, «Ni
 
 | Dato | Valor |
 |---|---|
-| Cabeza final | brave-core `nube/motor-129` **43ef04cf64** (paso de V8 + FS.13 en `nube/motor-129-v8` fdac7ed13b) |
+| Cabeza final | brave-core `nube/motor-129` **325686916c** (paso de V8 + FS.13 en `nube/motor-129-v8` fdac7ed13b) |
+| Fuente monoespaciada | Menlo por defecto en Mac, como Chrome desde la 118 (antes Courier; se escapó en el nivel 118 por estar fuera de Blink). La lista japonesa de la 129 no, por necesitar código de preferencias posterior a la 116 |
 | Versión visible | 1.13 (`CFBundleVersion` la pone LOCAL en la entrega) |
 | Nivel declarado | Chrome 129 (`flyweb_engine_full_version` 129.0.6668.101; `platformVersion` mínimo **11.7.10**: Chrome 129 ya no funciona en 10.15) |
 | Motor JavaScript | V8 12.9.202.28 (la de Chrome 129) con los arreglos de seguridad de FlyWeb (FS.13; época de caché 13) |
@@ -35,6 +36,8 @@ y las webs con JIT) y después todo el nivel. Detalle técnico: `motor.md`, «Ni
   (WebRTC) pueden enviar y recibir archivos directamente, sin convertirlos antes.
 - **Menús y ventanas emergentes mejor colocados.** Las partes de una página que se adaptan a su propio tamaño
   (*container queries*) ya no atrapan dentro a los menús y avisos flotantes, como en Chrome, Safari y Firefox.
+- **Texto monoespaciado como en Chrome.** El código y el texto de ancho fijo de las webs que no eligen fuente se ven
+  con Menlo, como en Chrome y Firefox, en vez de con Courier. Si se eligió otra fuente en los ajustes, se respeta.
 - **Pequeños arreglos de compatibilidad:**
   - Los editores de las webs avisan una sola vez de cada cambio de selección, como Safari y Firefox.
   - Al pegar en un área de texto, la web recibe el texto pegado.
