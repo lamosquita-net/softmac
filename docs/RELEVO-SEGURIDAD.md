@@ -41,7 +41,14 @@ Cada rama tiene `patches/v8/FLYWEB-SECURITY.md` con su contenido exacto y las pr
   recompilar: política `DefaultJavaScriptJitSetting = 2`. Por eso la revisión es **diaria** y el objetivo es
   **≤ 48 h** desde un zero-day de V8 que aplique hasta la 1.x.y con el parche.
 - **Maglev apagado** en todas las V8 de nivel (`maglev` = false) y `maglev_untagged_phis` = false (CVE-2026-3910).
-- **Selección de instrucciones de Turboshaft apagada** (`turboshaft_instruction_selection` = false) desde la 12.3.
+- **Selección de instrucciones de Turboshaft:** apagada (`turboshaft_instruction_selection` = false) de la 12.3 a la 12.8;
+  **encendida desde la 12.9 (nivel 129, FlyWeb 1.13), como upstream (HUMANO, 14-10)**. Con ella apagada, la 12.9 usa
+  la ISel de TurboFan sobre el *schedule* recreado, que Chrome ya no usa para JS y que no trata `kTrustedHeapConstant`
+  (`ToConstant()` → `UNREACHABLE`): claude.ai se caía en el Static de LOCAL y mjsunit daba 100 fallos en 2123 tests;
+  encendida, 7216/7217. Se lleva su arreglo de la 13.2 LTS, fc26d62d0 (FS.13).
+- **Principio (HUMANO, 14-10):** lo que FlyWeb apaga respecto de upstream se vuelve a encender en cuanto upstream lo
+  lleva de serie, está maduro y trae sus arreglos, para no arrastrar portes más caros. Antes del nivel 130,
+  SEGURIDAD-PORTES entrega la tabla de todo lo apagado o distinto de upstream en V8 y en Blink (FS.13).
 - **Wrapper genérico wasm→JS apagado** (`wasm_to_js_generic_wrapper` = false) en 12.3 (1.7.1), 12.4 y 12.5, como
   estaba hasta la 12.2. En la 12.3 hizo falta además recuperar el interruptor de la 12.2 en
   `GetOrCreateWasmInternalFunction` (porte de c8c02de5); en 12.4/12.5 basta la opción.
