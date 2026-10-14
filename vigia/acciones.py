@@ -14,7 +14,7 @@ RULES = [
      "nota con datos de un DMG (nombre, bytes, SHA) para la web"),
     (re.compile(r"URGENT", re.I),
      "URGENTE"),
-    (re.compile(r"LOCAL.*PUBLICACI|PUBLICACI.*LOCAL", re.I),
+    (re.compile(r"LOCAL[^\n]{0,60}over to PUBLICACI|ENTREGA[^\n]{0,60}A PUBLICACI", re.I),
      "entrega de LOCAL a PUBLICACIÓN"),
     (re.compile(r"fusionar|pas[ae]? a listo|ready for review|listo para (fusi|revis)|pide (su )?fusi", re.I),
      "un PR pide fusionar o pasa a listo"),
