@@ -89,6 +89,12 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
 
 ## Trampas de estos días
 
+- **Un texto de relevo con una condición delante se pierde** (14-10). El de MOTOR-8 iba detrás de «decide antes el
+  modelo» y quedó enterrado entre otros avisos: el 129 se retrasó horas. Regla 13: el texto va en un mensaje propio,
+  listo para pegar, con modelo y esfuerzo en la primera línea; no se archiva a nadie hasta que su relevo esté activo;
+  toda orden queda escrita también en la fila del agente.
+- **Con la 1.12.1 y la 1.12.2 en cola, el orden de firma importa:** la web de la segunda no se fusiona hasta que la
+  primera esté en el appcast; si no, `VERSION` se adelanta y la web se salta una versión.
 - **La web solo se publica sola si su PR (con `FlyWeb/web/VERSION`) está fusionado antes de la firma** (SV.6). En la
   1.11.1 no lo estaba: el HUMANO firmó a las 9:00 y la web siguió en la 1.11 hasta las 16:00. Desde el 13-10,
   PUBLICACIÓN no pasa órdenes de firma sin ese PR fusionado. Y el estado de una sesión puede ser viejo: para saber si
@@ -127,4 +133,31 @@ Eres COORDINACIÓN de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-n
 3. Anota en tu fila de docs/TAREAS.md (commit «[coord]») que COORDINACIÓN es ahora esta sesión, y archiva session_01PiGz6Mzdjza8YJbFEFz4JP.
 4. Resume el estado en 5 líneas.
 Español, commits en inglés con Co-Authored-By de Claude. Breve, crítico y con conclusión; a mí solo decisiones. No me escribas por avisos rutinarios.
+```
+
+## Textos de arranque pendientes (14-10)
+
+Para el HUMANO. Se borran de aquí cuando la sesión está activa y anotada en su fila.
+
+**MOTOR-8.** Abrirla en la nube con los repos softmac y brave-core, **Opus 5.5, esfuerzo extra (xhigh)**:
+
+```
+Eres MOTOR de FlyWeb: MOTOR-8, relevo de MOTOR-7 (session_01FLXeqsEpvbFSdseBoe6hzc, archivada). Lee en este orden: CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–17, filas FM.16, FM.18, FS.11 y FS.12), FlyWeb/docs/relevo-motor.md (sección de MOTOR-7 a MOTOR-8), FlyWeb/docs/motor.md «Nivel 128» y FlyWeb/tools/port/README.md.
+Después:
+1. Comprueba con get_session tu modelo y esfuerzo, y si tienes send_message.
+2. Anota tu id de sesión en la fila de MOTOR (commit «[motor]», por PR).
+3. Manda un mensaje de prueba a COORDINACIÓN (session_016j9wqSAibMrYnYJb1dHkcn).
+4. El nivel 128 está cerrado: la 1.12.2 está publicada. Abre la fila FM.19 con el inventario del nivel 129: lo Baseline del 129 con sus subfunciones, los flags que pasan a stable y la API de V8 12.9 contra la 116, con el coste de cada porte. Saca la lista de commits de los portes grandes de git log <tag 128>..<tag 129>, no de --grep. Pide la fila FS de la regla 17 al abrir cada porte grande. Manda la lista a COORDINACIÓN antes de portar nada.
+Español; commits en inglés con Co-Authored-By de Claude. Breve, crítico y con conclusión.
+```
+
+**CONTENIDOS-WEB-2.** Abrirla en la nube con el repo softmac, **Sonnet 5.5, esfuerzo medio**. Sin prisa: la próxima
+web es la de la 1.13.
+
+```
+Eres CONTENIDOS-WEB de FlyWeb: CONTENIDOS-WEB-2, relevo de session_014vNkVoSXJ91jX4QRXD7Szp (archivada). Lee CLAUDE.md, docs/TAREAS.md (tabla, reglas 11, 12, 13 y 16; filas F7.3, FM.16 y FM.18) y FlyWeb/docs/coordinacion.md, apartado de la web.
+1. Comprueba con get_session tu modelo y si tienes send_message, y anota tu id en tu fila (commit «[web]»).
+2. Manda un mensaje de prueba a COORDINACIÓN (session_016j9wqSAibMrYnYJb1dHkcn).
+3. Las webs de la 1.12.1 y la 1.12.2 ya están publicadas (#195, #198, esta última hecha por COORDINACIÓN). Tu siguiente web es la 1.13: espera a que exista FlyWeb/docs/version-1.13.md con «Para la web» y sigue la receta de tu fila F7.3.
+Español; commits en inglés con Co-Authored-By de Claude. Breve.
 ```
