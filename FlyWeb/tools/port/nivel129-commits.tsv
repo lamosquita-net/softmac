@@ -15,6 +15,8 @@ webauthn-json	4df593b6054	2024-08-08	main	hecho (e4e20f421b, flag) — flag	-	Ma
 webauthn-json	ab91ac7b3a6	2023-12-06	antes del 128	fuera (supplementalPubKeys: lado navegador)	-	webauthn: supplementalPubKeys support in JSON conversions.
 webauthn-json	8863aedceed	2024-01-12	antes del 128	fuera (refactor de V8ObjectBuilder; adaptar json.cc a mano)	-	Use ToV8Traits for V8ObjectBuilder
 webauthn-json	07445b1d948	2024-08-15	main	fuera (WebAuthenticationAttestationFormats, experimental)	-	webauthn: support forwarding WebAuthn's attestationFormats parameter over JSON.
+webauthn-json	434f57a28bd	2026-07-03	main (2026)	hecho (10173b669d) — FS.13: prf.results no se añadía (el fallo ya estaba en la 116)	-	[webauthn] Fix PRF JSON data loss bug
+webauthn-json	881db66b5c2	2026-07-03	main (2026)	hecho (10173b669d) — FS.13: credBlob leía getCredBlob (DCHECK; ya estaba en la 116)	-	[webauthn] Fix credBlob JSON serialization bug
 rtc-blob	f1b59d2be7b	2024-08-01	main	hecho (4eb59aba99, a mano)	20/6	RTCDataChannel: Add support for the Blob type.
 rtc-blob	f12d06e864d	2024-09-09	rama M129	hecho (4eb59aba99)	1/2	[M129 Merge] Check that the data channel is open before sending Blobs
 rtc-blob	6e4bc681b82	2024-10-22	después del 129 (M130-M132)	hecho (9d83369504) — FS.13: crbug 374310077, uso tras liberar del BlobReader	-	datachannel: Keep the BlobReader alive until the FileReaderLoader resolves
