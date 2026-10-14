@@ -80,6 +80,8 @@ que tiene commit. **Nunca `gclient sync -D`** en `flyweb-build` (borró el workt
   seguridad sobre el último nivel publicado (1.1.1, 1.1.2…). Ambos en brave-core `build/config.gni`
   (`flyweb_engine_level`, `flyweb_version`); `FLYWEB_BUILD_NUMBER` sube en cada versión publicada (1.1 = 2). Un nivel
   se da por cumplido con `FlyWeb/tools/motor-N.html` en verde y las WPT de la N iguales a las del propio Chrome N.
+  **Cada nivel sale entero en una versión, con la V8 de Chrome N** (regla 18 de `docs/TAREAS.md`); solo un cambio muy
+  amplio (como RubyLB o la V8 12.8 en el 128) lo reparte en varias 1.N.x.
 - Riesgo asumido: Chromium de 2023 → aplicar parches de seguridad poco a poco.
 - Criterio de aceptación: claude.ai funciona por completo.
 
