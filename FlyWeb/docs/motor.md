@@ -472,7 +472,7 @@ lo descartado.
   compilar. Aparcado mientras se compilaba la 1.10; **desaparcado por el HUMANO el 09-10** con sus arreglos fusionados
   (cabeza `nube/motor-127` **639a7a71**, con los dos portes de arriba).
 
-## Nivel 128 (1.12 compilada y probada en Static el 13-10 → FlyWeb 1.12 sin `ruby-align`; RubyLB → 1.12.1)
+## Nivel 128 — cumplido (14-10, FlyWeb 1.12.1; la 1.12 sin `ruby-align`, publicada el 13-10)
 
 Baseline de Chrome 128 y flags que pasan a `stable` entre la 127.0.6533.144 y la 128.0.6613.194 (inventario de MOTOR-2 en
 FM.16). Por decisión del HUMANO, el 128 va **sobre la V8 12.8** de FM.17: rama brave-core **`nube/motor-128`**
@@ -602,6 +602,10 @@ RubyLB.** Sin freno por el límite semanal.
   web» en `version-1.12.md` (MOTOR-7, 13-10). Declarados 128 / 1.12 en `build/config.gni` (64545ca4), con
   `flyweb_engine_full_version` = **128.0.6613.138** (la última Stable normal de la 128 para Mac, 10-09-2024, como la
   .120 de la 127) y `flyweb_min_macos_version` 10.15.7. **Para cerrar el nivel 128:** RubyLB R1…R5 (1.12.1).
+- **Cumplido (14-10):** la 1.12.1 (`nube/motor-128-ruby` **e6273d015** = 1.12 + RubyLB + e420119c + FS.11 + parte urgente
+  de FS.12; 157.64.20) pasa `motor-128.html` 9/9 y las WPT del nivel: las 8 de `wpt-128-lista.txt` como Chrome 128 (con
+  las dos diferencias de entorno de la 1.12) y las 113 de `css/css-ruby` con 112 iguales a Chrome 128 y 1 mejor, más las
+  14 de `ruby-fs11/` de los arreglos de seguridad; ASan limpio (LOCAL-3). Entregada a PUBLICACIÓN.
 - **Comprobación:** `FlyWeb/tools/motor-128.html` y `FlyWeb/tools/wpt-128-lista.txt` (8 ficheros; resultados en
   `version-1.12.md`). Para la 1.12.1, además, `FlyWeb/tools/wpt-128-ruby-lista.txt`: las WPT de `css/css-ruby` de la
   128 (97 *reftests* y 16 testharness) y `wpt-128-ruby-esperado.json` con lo que Chrome 128 falla (45 `[ Failure ]` de
