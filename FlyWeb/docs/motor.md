@@ -971,10 +971,15 @@ brave-core; (iv) `MutationEvents` apagado como Chrome 130; (v) fuera por coste `
 
 Método: flags `stable` en la 116 que la 130 apaga, cambios de estado `stable` → otro entre 126→127→128→129, y
 `BASE_FEATURE` de `net`, `services/network`, `content` y Blink entre esas etiquetas. De las 125 flags `stable` de la
-116 que la 130 ya no tiene, 84 se quitaron en commits cuyo asunto dice que el cambio pasa a permanente; las otras 41
-se quitaron en limpiezas de varias flags a la vez y **no las he revisado una a una** (pasada aparte; entre ellas
-`CSSStyleQueriesBoolean` y `WebKitScrollbarStyling`, las que más me inquietan). Cuatro cambios visibles para las webs
-que ningún nivel recogió, todos de «apagar» y todos baratos (cambiar el estado de la flag, y como mucho añadirla):
+116 que la 130 ya no tiene, 84 se quitaron en commits cuyo asunto dice que el cambio pasa a permanente. Las otras 41
+se miraron una a una con `bisflag.py` (bisección sobre los commits de `runtime_enabled_features.json5` entre la 116 y
+la 126; todas desaparecen ahí): **todas pasan a permanentes**, ninguna quita comportamiento. Son limpiezas de
+funciones ya publicadas: MathML (4c179bccfbe), `offset-path` (1a9c63e62f4), FedCM (8c6c9ac464d), *style queries* con
+la booleana (2a33a1e9e50), selectores no tolerantes en `:is`/`:has` (9739e872414), `::-webkit-scrollbar` (ddb1db50abe:
+deja de depender de la preferencia, se sigue analizando), Resource Timing (b0b7955f811), ByobFetch, `linear()`,
+formatos web del portapapeles, `HTMLScriptElement.supports`, LoAF, layout de la 115 y WebGPU+WebCodecs (apagado en
+FlyWeb). Cuatro cambios visibles para las webs que ningún nivel recogió, todos de «apagar» y todos baratos (cambiar el
+estado de la flag, y como mucho añadirla):
 
 | Nivel | Qué apaga Chrome | Commit | En FlyWeb | Coste |
 |---|---|---|---|---|
@@ -983,7 +988,10 @@ que ningún nivel recogió, todos de «apagar» y todos baratos (cambiar el esta
 | 127 | sintaxis vieja de estados `:--foo` (`CSSCustomStateDeprecatedSyntax`) | 221eb242792 | sigue (el 125 la dejó «como en la 125») | horas |
 | 128 | `DOMParser.parseFromString(…, {includeShadowRoots})` (`DOMParserIncludeShadowRoots`) | 20695562040 | sigue (la 116 lo trae sin flag) | horas |
 
-Recomiendo apagar los cuatro en la 1.14, con `MutationEvents`. Hay tres motivos:
+**Decidido (COORDINACIÓN-6, 15-10): los cuatro se apagan en la 1.14, con `MutationEvents`,** después de que LOCAL-4 lo
+compruebe en la 1.13; en `version-1.14.md`, «Para la web»: «WebSQL ya no existe, como en Chrome desde la 119».
+`KeyboardFocusableScrollers` irá al 131 si es ligero, si no al 132 (se decide en su inventario); `IsolateSandboxedIframes`
+lo valora SEGURIDAD-PORTES-2. Motivos para apagarlos: Hay tres motivos:
 
 - Es lo que hace el Chrome que declaramos.
 - Cada uno es una prueba trivial de que no somos Chrome 129/130 (`typeof openDatabase`), en contra del principio 13.
