@@ -34,7 +34,7 @@ flags-131-interop	d04e13c6871	2024-10-11	main	propuesto	40/14 (10 commits)	The <
 flags-131-interop	3561ed8aa28	2024-10-01	main	propuesto	40/14 (10 commits)	[initial-letter] Fix positioning for raised/sunken initial letters
 flags-131-interop	1fea2fe8c97	2024-10-16	main	propuesto	40/14 (10 commits)	Always add new line box for content pushed down by float.
 flags-131-interop	1e4c5f5101d	2024-10-14	main	propuesto	40/14 (10 commits)	Use selection focus for caret position while navigating using arrow keys
-flag-TextTransformAndSecurityFix	45cfc7335f9	2024-12-06	rama M131	propuesto (y FS.16)	6/4	Merge "Layout: Fix a crash with tex-transform and -webkit-text-security" to M131 branch
+flag-TextTransformAndSecurityFix	45cfc7335f9	2024-12-06	rama M131	propuesto (y FS.17)	6/4	Merge "Layout: Fix a crash with tex-transform and -webkit-text-security" to M131 branch
 flag-SvgExternalResources	5e5a9e44286	2024-09-25	main	propuesto	25/6	Support SVG resource documents for additional properties
 flag-SvgExternalResources	1cdb2f557b7	2024-10-11	main	propuesto	25/6	Mark SvgExternalResources stable
 aplazado-PseudoElementsCorrectInGetComputedStyle	a97d3e46b05	2024-03-08	main	aprobado (al 131)	45/10 (cadena)	Fix getComputedStyle parsing with pseudo-element+argument to match spec
@@ -59,5 +59,5 @@ escape-MouseDragOnCancelledMouseMove	1583e508e68	2023-12-01	antes del 129 (125)	
 escape-MouseDragOnCancelledMouseMove	165b28d3f3e	2024-03-21	antes del 129 (125)	propuesto (§6)	—	[Interop] Enable MouseDragOnCancelledMouseMove on Stable
 escape-DateInputInlineBlock	5ff04491da5	2023-12-19	antes del 129 (122)	propuesto (§6)	—	Enable DateInputInlineBlock by default
 escape-DateInputInlineBlock	3858a835e3a	2024-01-17	antes del 129 (122)	propuesto (§6)	—	Reapply "Enable DateInputInlineBlock by default"
-mlkem	4beeb73c814	2024-10-07	net/ (131)	decisión (§4; FS.16, SEGURIDAD-PORTES)	—	Enable ML-KEM by default
+mlkem	4beeb73c814	2024-10-07	net/ (131)	decisión (§4; FS.17, SEGURIDAD-PORTES)	—	Enable ML-KEM by default
 nesting-inspector	4888675b6c9	2024-10-31	rama M131	1.14.1 o 131 (§8)	—	[nesting] Pop off invalid rules during ObserveNestedDeclarations

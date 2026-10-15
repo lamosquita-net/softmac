@@ -1179,7 +1179,7 @@ Medidas con `medirng.sh` sobre la 116 + los parches de `nube/motor-130` **ccc74e
 el intercambio poscuántico de TLS y QUIC de Kyber a ML-KEM, y el BoringSSL de la 116 no lo tiene (principio 13). La
 V8 13.1 es el salto más barato hasta ahora. Más los cuatro aplazados del 130, ya aprobados, y unos escapes de niveles
 anteriores que ha destapado el barrido nuevo (§6). **Estimación (§9): 13–17 h del paso de V8 a la entrega**, con
-FS.16 (V8 13.1 y ML-KEM) en paralelo.
+FS.17 (V8 13.1 y ML-KEM) en paralelo.
 
 ### 1. V8 13.1 (`13.1.201.22`, 9c09e787: cabeza de la rama 13.1 y la V8 de la 131.0.6778.265)
 
@@ -1195,7 +1195,7 @@ FS.16 (V8 13.1 y ML-KEM) en paralelo.
 - JavaScript: **nada nuevo sale.** *Explicit resource management* (`using`) y `Float16Array` pasan de *in progress* a
   *staged*. `harmony_remove_intl_locale_info_getters` también se queda en *staged*, y los *getters* de `Intl.Locale`
   siguen. Wasm: `wasm_inlining` deja de ser opción experimental (sigue encendida); `wasm_deopt` sigue apagada.
-- `patches/v8` contra la 13.1: el rebase lo hace SEGURIDAD-PORTES (FS.16), con época de caché nueva (16).
+- `patches/v8` contra la 13.1: el rebase lo hace SEGURIDAD-PORTES (FS.17), con época de caché nueva (16).
   `wasm_to_js_generic_wrapper` desaparece (la 13.1 lo da por fijo); el parche de `flag-definitions.h` que lo encendía
   (regla 19) se queda sin ese trozo.
 
@@ -1218,7 +1218,7 @@ Safari), WebHID en *workers*, WebXR y lo de Privacy Sandbox o FedCM.
   `HTMLEmbedElementNotForceLayout` (9b8c2484180), `HTMLObjectElementFallbackDetachContentFrame` (d04e13c6871),
   `InitialLetterRaiseBySpecified` (3561ed8aa28), `LineBoxBelowLeadingFloats` (1fea2fe8c97), `UseSelectionFocusNodeForCaretNavigation`
   (1e4c5f5101d) y **`TextTransformAndSecurityFix`** (45cfc7335f9, fusionado a M131: cierre con `text-transform` y
-  `-webkit-text-security`; para FS.16).
+  `-webkit-text-security`; para FS.17).
 - `CSSAtPropertyStringSyntax` (8ef3ec8c032 + 11de2beffb6, 8/3): `@property` con `syntax: "<string>"`. No consta en BCD; es
   barato y de interoperabilidad con la especificación.
 - `SvgExternalResources` (5e5a9e44286 + 1cdb2f557b7, 25/6): referencias a recursos SVG de otro documento
@@ -1299,7 +1299,7 @@ Sin cambios en lo que decide la regla 19: Maglev y `maglev_untagged_phis` siguen
 FlyWeb hasta la decisión del **132** (V8 13.2 LTS). `turboshaft_wasm` sigue apagada upstream, y
 `turboshaft_instruction_selection`, `turboshaft_csa` y `regexp_simd` siguen como en la 1.14.
 
-Fusiones de la rama M131 (72 en Blink) para FS.16, además de `TextTransformAndSecurityFix`: `EncodedFormData`
+Fusiones de la rama M131 (72 en Blink) para FS.17, además de `TextTransformAndSecurityFix`: `EncodedFormData`
 (d8f78a1c886, 0b1d6d2efc0), `XMLDocumentParser` con *isolate* nulo (bef5f3efe54), `AcceptLanguagesWatcher` (5973dd14151),
 `WorkerNavigator::NotifyUpdate` (968edf7d9de), `DocumentLoader::CalculateOrigin` (8ecb19166b6), las de accesibilidad y
 la de Web Serial (apagado). **4888675b6c9** arregla `ObserveNestedDeclarations` del inspector, que porté en el 130 (solo
@@ -1315,7 +1315,7 @@ LOCAL (7–8 h) es lo que manda en el total.
 | Partida | 130 (real) | 131 (estimado) | Por qué |
 |---|---|---|---|
 | Paso de V8 | ~10 min (más `fast_float`) | 10–15 min | una línea en Blink; sin dependencias nuevas |
-| FS.16 en paralelo | FS.14 ~3 h | 4–7 h | rebase de `patches/v8` + **ML-KEM** (3–5 h, probado en la nube) |
+| FS.17 en paralelo | FS.14 ~3 h | 4–7 h | rebase de `patches/v8` + **ML-KEM** (3–5 h, probado en la nube) |
 | Baseline | ~45 min (~190/65) | 1,5–2,5 h (~227/85) | colores relativos sobre `currentcolor` y `::details-content` con la cascada |
 | Flags del 131 | ~20 min | 30–45 min (~73/23, con `@property`) | casi todo json5 |
 | Los cuatro aplazados | — | 1,5–2,5 h (~162/44) | dependencias incluidas |
@@ -1324,13 +1324,13 @@ LOCAL (7–8 h) es lo que manda en el total.
 | **MOTOR en total** | **~1,6 h** | **5–7,5 h** | unas 2,3 veces el volumen del 130 |
 | LOCAL (Static, ASan, Release y pruebas) | 7–8 h (en curso) | 7–8 h | igual |
 | Arreglos tras las pruebas | por ver | 2–4 h | color y cascada tocan el CSS de todas las páginas |
-| **Total, del paso de V8 a la entrega** | — | **13–17 h** | con FS.16 en paralelo y sin esperar a ML-KEM para el Static de Blink |
+| **Total, del paso de V8 a la entrega** | — | **13–17 h** | con FS.17 en paralelo y sin esperar a ML-KEM para el Static de Blink |
 
 **Regla 18:** sale entero como 1.15 con la V8 13.1. Nada es «muy amplio»: el porte mayor (colores relativos) es del
 tamaño de *nested declarations*.
 
 **Decisiones que pido a COORDINACIÓN:** (i) V8 13.1.201.22; (ii) **ML-KEM** en la 1.15, portado por SEGURIDAD-PORTES
-(FS.16) y probado con los vectores de BoringSSL antes de LOCAL; sin él, el 131 no cumple el principio 13; (iii) la
+(FS.17) y probado con los vectores de BoringSSL antes de LOCAL; sin él, el 131 no cumple el principio 13; (iii) la
 Baseline del §2, incluidos los colores relativos sobre `currentcolor` (el porte de más riesgo); (iv) flags del §3 con
 `SvgExternalResources`; (v) **escapes del §6 en el 131** y la auditoría completa como fila aparte; (vi) 4888675b6c9 en la
 1.14.1 o en el 131.
