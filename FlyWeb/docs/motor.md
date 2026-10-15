@@ -1185,8 +1185,13 @@ FS.17 (V8 13.1 y ML-KEM) en paralelo.
 
 `include/` cambia +186/−41 en 18 ficheros, y casi nada rompe:
 
-- **Lo único que no compila en la 116:** `v8::Isolate::kImportAssertionDeprecatedSyntax` pasa a
+- **Lo que no compila en la 116:** `v8::Isolate::kImportAssertionDeprecatedSyntax` pasa a
   `kOBSOLETE_ImportAssertionDeprecatedSyntax` (`use_counter_callback.cc`, que ya tiene parche nuestro): una línea.
+  **Y una segunda que el inventario no vio (MOTOR-11):** `ModuleRequest::GetImportAssertions()` pasa de
+  `V8_DEPRECATE_SOON` a `V8_DEPRECATED`, y `module_record.cc` de la 116 lo llama. Chromium compila con
+  `V8_DEPRECATION_WARNINGS` y `-Werror` (solo quita los avisos «imminent»), así que no compila: pasa a
+  `GetImportAttributes()`, como en Chromium 131. Para cada salto de V8, buscar en la 116 lo que pasa a `V8_DEPRECATED`,
+  no solo lo que se quita.
 - Sin efecto: `EmbedderRootsHandler::IsRoot` y `V8InspectorClient::consoleTime*` dejan de ser virtuales puras y pasan
   a tener cuerpo por defecto, así que las sobrescrituras de la 116 y de nuestro parche siguen valiendo.
   `Object::GetCreationContext(PersistentBase)` sigue, con aviso. `v8-platform.h` no cambia: **gin no se toca**.
