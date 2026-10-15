@@ -105,8 +105,9 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
   algo está publicado, mirar el appcast, no la sesión.
 - **PUBLICACIÓN (local) no llega por `send_message` a las sesiones de la nube** (CONTENIDOS-WEB, MOTOR…): deja los
   datos del DMG en el tablero y COORDINACIÓN se los pasa a CONTENIDOS-WEB. Las sesiones de la nube sí le llegan a ella.
-- **Relevos de agentes locales: `/remote-control` siempre** (regla 13). El HUMANO lo tiene marcado en las preferencias de
-  la app, pero se pierde al actualizarla. LOCAL-2 quedó archivada el 13-10 (~20:30) en mitad de la compilación de
+- **Relevos de agentes locales: un solo texto, sin `/remote-control`** (regla 13, cambiada el 15-10): la app ya conecta
+  Remote Control al abrir la sesión, y una orden con barra pegada junto a texto se descarta entera. El agente lo
+  comprueba y, solo si falta, le pide a Titín `/remote-control` sola. LOCAL-2 quedó archivada el 13-10 (~20:30) en mitad de la compilación de
   RubyLB y dejó de recibir mensajes sin que nadie lo notara: si un agente local calla, mirar `get_session`.
 - **Antes de decir que algo espera la firma del HUMANO, mirar el appcast** (`curl …/stable/appcast.xml`). El 13-10 se
   le dijo dos veces que faltaba su firma cuando ya había firmado.
@@ -114,6 +115,10 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
 - **Una sesión local solo recibe `send_message` con Remote Control activo** y sin archivar. Comprobarlo con
   `list_sessions` (`connection_status`). Si alguien la archiva desde la web, la ventana sigue abierta en la 7,1 pero
   deja de recibir mensajes. Se arregla con `/remote-control` en esa ventana (PUBLICACIÓN, 12-10).
+
+- **Repos de la sesión** (15-10): MOTOR-9 y SEGURIDAD-PORTES-2 se abrieron solo con softmac aunque el texto pedía
+  también brave-core, y `add_repo` necesita un permiso de Titín para leer y **otro para escribir** (push). El agente nuevo
+  comprueba en el paso 1 qué repos tiene y, si falta brave-core, lo dice en el mensaje de prueba.
 
 - **Comprobar antes de afirmar**: dos veces se dio por hecho algo sin mirar (el Vigía ya arreglado; un esfuerzo
   recomendado). Mirar la sesión o la rama.
@@ -139,41 +144,8 @@ Eres COORDINACIÓN de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-n
 Al HUMANO se le llama Titín. Español, commits en inglés con Co-Authored-By de Claude. Breve, crítico y con conclusión; a mí solo decisiones. No me escribas por avisos rutinarios.
 ```
 
-## Textos de arranque pendientes (15-10)
+## Textos de arranque pendientes
 
-Para Titín (ids de COORDINACIÓN-6 ya puestos, 15-10). Se borran de aquí cuando la sesión está activa y anotada en su fila. No se archiva la anterior hasta entonces.
-
-**MOTOR-9** — nube, repos softmac y brave-core, **Opus 5.5, esfuerzo extra (xhigh)**. Ya se puede abrir.
-
-```
-Eres MOTOR de FlyWeb: MOTOR-9, relevo de MOTOR-8 (session_01YAuwa2BsTVR6GZqzr1wtex), que sigue activo solo para block-ruby-003; no toques ese tema. Lee CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–19, filas FM.19 y FS.13), FlyWeb/docs/relevo-motor.md (sección de MOTOR-8 a MOTOR-9), FlyWeb/docs/motor.md «Nivel 129» y FlyWeb/tools/port/README.md (lecciones del 129).
-1. Comprueba con get_session tu modelo, esfuerzo y si tienes send_message.
-2. Anota tu id en la fila de MOTOR (commit «[motor]», por PR) y manda un mensaje de prueba a COORDINACIÓN (session_01DdLcRgFWWjq51j1Hs5pLsn).
-3. Abre FM.20 con el inventario del nivel 130: Baseline y subfunciones, flags que pasan a stable 129→130, API de V8 13.0 contra la 116, cambios fuera de Blink que vean las webs (lección de Menlo) y la tabla de lo apagado (regla 19), con coste por porte. Regla 18: el 130 sale entero como 1.14, con V8 13.0. Manda la lista a COORDINACIÓN antes de portar nada.
-Al HUMANO se le llama Titín. Español; commits en inglés con Co-Authored-By de Claude. Breve, crítico y con conclusión.
-```
-
-**SEGURIDAD-PORTES-2** — nube, repos softmac y brave-core, **Opus 5.5, esfuerzo medio**. Abrir cuando SEGURIDAD-PORTES
-haya puesto al día `docs/RELEVO-SEGURIDAD.md`.
-
-```
-Eres SEGURIDAD-PORTES de FlyWeb: SEGURIDAD-PORTES-2, relevo de session_01NkotiT2nNYznsrQu9rssiy. Lee CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–19, fila FS.13), docs/RELEVO-SEGURIDAD.md y docs/SEGURIDAD.md.
-1. Comprueba con get_session tu modelo y si tienes send_message. Anota tu id en tu fila y manda un mensaje de prueba a COORDINACIÓN (session_01DdLcRgFWWjq51j1Hs5pLsn).
-2. Sin tareas hasta que MOTOR-9 abra el paso de V8 13.0 del nivel 130. Entonces abres FS.14: ronda seg/v8-13.0 (parches de patches/v8 contra la 13.0, época de caché nueva, d8 y mjsunit), pasada de API del embedder entre 12.9 y 13.0, la tabla de lo apagado (regla 19) y lo nuevo que una web pueda alcanzar.
-Al HUMANO se le llama Titín. Responde siempre en castellano. Commits en inglés con Co-Authored-By de Claude.
-```
-
-**LOCAL-4** — local en la MacPro7,1, **Opus 5.5, esfuerzo alto**. Abrir cuando LOCAL-3 haya movido `flyweb` a la
-1.13 y escrito `FlyWeb/docs/relevo-local.md`.
-
-```
-/remote-control
-```
-y después:
-```
-Eres LOCAL de FlyWeb: LOCAL-4, relevo de LOCAL-3 (session_01YWS5bh1uWYu5iPLHX3qx3N). Lee CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–19, fila FM.19) y FlyWeb/docs/relevo-local.md.
-1. Comprueba con get_session tu modelo, esfuerzo y que tienes Remote Control. Anota en la fila de LOCAL tu id local_ y el session_ con el que te llega send_message desde la nube.
-2. Manda un mensaje de prueba a COORDINACIÓN con SendMessage, tras ListAgents, al nombre «Nube Coordinación (6)».
-3. Tareas, por orden: (a) cuando MOTOR-8 entregue el arreglo de block-ruby-003, Static incremental y esa WPT con el wpt-ref.py nuevo; (b) cuando MOTOR-9 entregue el paso de V8 13.0, Static y ASan aislados con claude.ai, YouTube y las webs con JIT. Cada compilación larga despierta tu sesión al terminar; cada resultado va a la fila y a COORDINACIÓN.
-Al HUMANO se le llama Titín. Español.
-```
+Ninguno (15-10): MOTOR-9, SEGURIDAD-PORTES-2 y LOCAL-4 están activos y anotados; MOTOR-8 sigue solo para `block-ruby-003`.
+Los próximos textos de agentes locales, en un solo bloque, sin `/remote-control` (regla 13); en el paso 1, el agente
+comprueba sus repos y Remote Control.
