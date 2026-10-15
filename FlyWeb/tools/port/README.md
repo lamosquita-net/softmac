@@ -143,4 +143,22 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   opciones apagadas.
 - **Regla 18:** un nivel, una versión, con la V8 de Chrome N; nada de partir el nivel en 1.N.x salvo un cambio muy amplio.
 
+## Lecciones del inventario del 130 (MOTOR-9)
+
+- **`medir.sh` contaba de más los rechazos** (hasta el 15-10): `grep -c FAILED` sumaba también la línea de resumen de
+  `patch` («3 out of 4 hunks FAILED»), uno más por fichero con rechazos. Ahora cuenta solo `Hunk #… FAILED`. Las
+  medidas del 129 están infladas en esa cantidad (el orden de costes no cambia).
+- **`medirng.sh <nombre> <commit>…`**: `medir.sh` con el traductor de LayoutNG (`ngmap.json` de
+  `ngmap.py cr116 cr<N>`). Sin él, los ficheros renombrados (`layout/inline/line_breaker.cc` frente a
+  `layout/ng/inline/ng_line_breaker.cc`) salen como «ausentes» y el porte parece más barato de lo que es.
+- `mkcr.sh` no baja `net/` ni `chrome/browser`: para medir algo de red, `echo /net/base/ >> .git/info/sparse-checkout`
+  y `git sparse-checkout reapply` en la copia.
+- **Cambios fuera de Blink**, comprobación rápida: `BASE_FEATURE(...)` de `net/base/features.cc`,
+  `services/network/public/cpp/features.cc`, `content/public/common/content_features.cc` y
+  `third_party/blink/common/features.cc` en las dos etiquetas (con `git show <tag>:<ruta>`) y comparar el valor por
+  defecto; más `prefs_tab_helper.cc`, `locale_settings*.grd` y `ssl_client_socket_impl.cc`.
+- **Rutas GN nuevas de V8:** comparar las etiquetas `"//…"` de `BUILD.gn` y `gni/` entre la V8 N−1 y la N y buscar
+  cada una en el árbol de la 116 (`git cat-file -e 116.0.5845.188:<ruta>`). En la 13.0 salió `//third_party/fast_float`.
+- Sin brave-core en la sesión, las medidas se hacen sobre la 116 sola y hay que repetirlas antes de portar.
+
 - `llevar.sh`: lleva commits de LOCAL a una rama `nube/*` y la fusiona en otra, sin checkout (ver `FlyWeb/docs/coordinacion.md`).

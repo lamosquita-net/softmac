@@ -774,6 +774,162 @@ generadores de Blink (`gencss.sh` para flags y el generador de *bindings*):
 Comprobación: `FlyWeb/tools/motor-129.html` (en Chromium 141 da ok todo lo que no es la versión declarada),
 `fastapi-129.html` (11/11 en Chromium 141) y `wpt-129-lista.txt` (27). «Para la web» en `version-1.13.md`.
 
+## Nivel 130 (inventario, 15-10, MOTOR-9; nada portado → FlyWeb 1.14)
+
+Inventario de FM.20, **para decidir COORDINACIÓN antes de portar**. Fuentes: web-features 3.42.0 + BCD 8.1.5
+(`baseline-nivel.js 130`), flags de `runtime_enabled_features.json5` entre la **129.0.6668.112** y la **130.0.6723.192**
+(cabeza de la rama 6723; `flags-nivel.py`), `base::Feature` de red, content y Blink entre las mismas etiquetas, y la API
+pública de V8 entre la **12.9.202.28** y la **13.0.245.25**. Lista de commits: `FlyWeb/tools/port/nivel130-commits.tsv`.
+**Medidas provisionales:** esta sesión no tiene brave-core (el permiso de la sesión no deja añadirlo), así que cada porte
+se midió sobre la 116 **sin** nuestros parches 117–129 (`medirng.sh`, con el traductor de LayoutNG). Donde nuestros
+parches tocan los mismos ficheros (analizador CSS por el *nesting* del 120, `rtc_data_channel.cc` por el Blob del 129)
+habrá más rechazos; se vuelven a medir sobre `nube/motor-129` antes de portar.
+
+**Resumen: nivel mediano, sin porte grande y con un salto de V8 barato.** Tres portes de Baseline de 1–3 días
+(*nested declarations*, `text-wrap` y `RTCDataChannel` transferible), uno pequeño (`togglePopover({force})`), dos
+funciones que llegan solas con la V8 13.0 y ~12 flags pequeñas. Estimación: **8–10 días de MOTOR** (la misma unidad
+que el 129), una ronda de SEGURIDAD-PORTES-2 (FS.14) y dos compilaciones de LOCAL. **Regla 18: sale entero como 1.14,
+con la V8 13.0**; no hay nada del tamaño de RubyLB que justifique partirlo.
+
+### 1. V8 13.0 (`13.0.245.25`, 3551594a: cabeza de la rama 13.0, 06-01-2025; sin LTS)
+
+Chrome 130.0.6723.117 (la última Stable de Mac al 100 %) lleva la 13.0.245.18; propongo la cabeza de la rama, como en
+el 129. `include/` cambia +409/−204, casi todo reordenación e iteradores; **lo que rompe la 116:**
+
+- **`Platform::GetForegroundTaskRunner(Isolate*, TaskPriority)` pasa a virtual pura** y la de un argumento deja de ser
+  virtual. gin (116) sobrescribe la de un argumento → no compila. **(B, recomendada)** cambiar la sobrescritura de gin
+  a la de dos argumentos y devolver el mismo *task runner* para las tres prioridades (lo que hace hoy la 1.13): minutos.
+  **Nunca `nullptr`:** la 13.0 pide `kUserVisible` en `incremental-marking-job.cc` y el adaptador de cppgc pasa la
+  prioridad. **(A)** portar e97ba778462 + 8e42980ed5d (colas de V8 de prioridad baja en el planificador de Blink;
+  74 hunks, 10 rechazados, 22 ficheros, ~1 día): solo rendimiento, no hace falta.
+- **Dependencia nueva `//third_party/fast_float`** (la usa `v8_base`; la 116 no la tiene). Hace falta
+  `third_party/fast_float/BUILD.gn` (el de Chromium 130, como parche de fichero nuevo en brave-core) y el código
+  (`fastfloat/fast_float` 3e57d8dc, solo cabeceras; MIT/Apache-2.0/BSL). Propuesta: `build.sh` lo trae a
+  `src/third_party/fast_float/src` como ya trae V8 (sin `gclient sync`); es un cambio en softmac que revisa LOCAL.
+  ~2 h. Es lo único nuevo en las rutas GN de V8 frente a la 12.9 (comprobado contra el árbol de la 116).
+- Sin efecto en la 116: `AllowCodeGenerationFromStringsCallback` (no se usa), `kWasmImportedStringsUtf8` (el
+  contador de uso de Blink tiene `default:`), `Module::InstantiateModule` con un segundo argumento opcional,
+  `PageAllocator::SealPages` (virtual con valor por defecto), `cppgc::Platform::GetForegroundTaskRunner(TaskPriority)`
+  (ninguna subclase en la 116), `TracedReference` y `MemorySpan` (internos o compatibles; un solo uso en Blink).
+- Riesgo de compilación bajo: las cabeceras usan C++20 (`Iterator::iterator_concept` sin `typename`, `<compare>`),
+  que el clang de la 116 admite; ICU mínimo sigue en 73 y no hay cabeceras de ICU ni de abseil nuevas. Lo dirá LOCAL.
+- **Seguridad (FS.14, SEGURIDAD-PORTES-2):** `patches/v8` (71) contra la 13.0, época de caché nueva (**15**: la 14
+  está reservada), fusiones 13.0/13.1/13.2-LTS, pasada de API del *embedder* y la tabla de la regla 19 (§6). Según
+  `RELEVO-SEGURIDAD.md`, a7c018806, 153d4e84e y bc67262 ya están en la 13.0.245.25.
+- JavaScript y Wasm que llegan solos: `Intl.Locale.prototype.getCalendars()`, `getCollations()`, `getHourCycles()`,
+  `getNumberingSystems()`, `getTextInfo()`, `getTimeZones()`, `getWeekInfo()` (`harmony_intl_locale_info_func` pasa a
+  *shipping*; los *getters* antiguos siguen) y **Wasm JS String Builtins** (`imported_strings` = true; sin
+  `SetWasmImportedStringsEnabledCallback`, que la 116 no instala, manda la opción de V8). `Atomics.pause` queda en
+  *staged* (no sale).
+
+### 2. Baseline del 130
+
+| Función | Baseline | Porte | Medida (116 sola) | Coste |
+|---|---|---|---|---|
+| `CSSNestedDeclarations` (*nesting*: las declaraciones tras una regla anidada van en su propia regla, en orden) | 2024-12-11 | 3ae71aa0358, 61067c8a5ba, 11e3a184408, a9b425e2212, 0a6d3ac600e, b4b329c0e7a, 63303296ddf; sobre el *nesting* relajado del 120 y el analizador por `CSSParserTokenRange` de la 116 (los rechazos, en `css_parser_impl.cc` y el inspector) | 99/33, 26 ficheros | **2–3 días** |
+| `text-wrap` como abreviatura de `text-wrap-mode` + `text-wrap-style` (`stable`, `auto`) | 2024-10-17 | ee5d3f203d9 (sin flag en upstream; cambia `white-space` a `[white-space-collapse, text-wrap-mode]`); `pretty` sigue como en la 1.13 (no Baseline) | 39/21, 20 ficheros | **1,5–2 días** |
+| `RTCDataChannel` transferible a un *worker* dedicado | 2025-10-14 | 6e640199859, e112b3ea554, 1f5f2853635; choca con el Blob del 129 en `rtc_data_channel.cc` | 44/10, 18 ficheros | **1–1,5 días** |
+| `togglePopover({force})` (BCD `options_force_parameter`, Firefox 141, Safari 18.4) | sí (BCD) | la parte de 8010721fc51 que acepta `TogglePopoverOptions`; `source` queda tras `PopoverAnchorRelationships` (experimental), como en la 130 | 11/6 | **medio día** |
+| `Intl.Locale` info como funciones | 2026-07-21 | de serie con V8 13.0 | — | — |
+| Wasm JS String Builtins (`jsStringBuiltins`) | 2025-12-12 | de serie con V8 13.0; opcional el interruptor de Blink (1f2dd1392d2 + 37f9fd474bd: flag `WebAssemblyJSStringBuiltins` → `--no-experimental-wasm-imported-strings`) | 2/1 | minutos |
+
+**Fuera (no Baseline):** `box-decoration-break` sin prefijo y en fragmentación de bloque (Safari solo con prefijo;
+`-webkit-box-decoration-break` ya está en la 116), `justify-self` en bloques, *Compression Dictionary Transport*
+(red, solo Chrome), `preferInitialWindowPlacement` de Document PiP, `text-wrap-style: pretty`, las opciones de
+compilación de Wasm y lo de Web Serial.
+
+### 3. Flags a `stable` sin Baseline (11 que pasan y 16 que nacen en `stable`)
+
+- **Portables, limpias o casi** (horas entre todas): `PopoverDialogNewFocusBehavior` (e3092e4a179, 2/0),
+  `RemoveCollapsedPlaceholder` (5017a8fc5de, 7/0), `ResetInputTypeToNoneBeforeCharacterInput` (2b7df017cf3, 6/0),
+  `RootElementWithPlaceHolderAfterDeletingSelection` (95d6e97c5f7, 2/0), `StricterCellWidthContentSizeQuirk`
+  (d192ad18b88, 2/1), `PseudoElementsCorrectInGetComputedStyle` (7e13e3080e9, 2/1) y `PaintHighlightsForFirstLetter`
+  (f30d9fddc4b, 13/3).
+- **Portables, pocos rechazos** (~1,5 días entre todas): `CSSFlatTreeContainer` (8410509e422 + 9425692817a, 22/2:
+  *container queries* por el árbol plano), `MeterAppearanceNoneFallbackStyle` + `MeterDevolveAppearance` (5 commits,
+  24/4), `MultiSmoothScrollIntoView` (4 commits, 22/4), `PointerEventTargetsInEventLists` (365b4154cbd +
+  8f487908070, 5/4) y `CSSPartAllowsMoreSelectorsAfter` (4 commits, 15/10, `css_selector.cc`).
+- **Fuera por coste:** `KeyboardFocusableScrollers` (da12836a721 + 199d1a77501 + 6f8b4173951: 55 ficheros, ~60
+  rechazos; toca el foco en todo Blink), `ShapeOutsideWritingModeFix` (12/7; el `shape-outside` de la 116 va detrás de
+  los mismos refactors que dejaron fuera `ShapeOutsideClippedImageFix` en el 129) y `TextInputNotAlwaysDirAuto` (4/3;
+  el `dir=auto` de la 116, como `DirAutoFixSlotExclusions`).
+- **Sin efecto o sin interés:** `CSSLineClampWebkitBoxBlockification` (necesita `line-clamp` sin prefijo, que la 116 no
+  tiene), rendimiento (`SelectPopupLessUpdates`, `ReuseShapeResultsByFonts`,
+  `MinimimalResourceRequestPrepBeforeCacheLookup`), WebGPU (`DeprecatedRequestAdapterInfo`, apagado), FLEDGE
+  (`FledgePermitCrossOriginTrustedSignals`, apagado en Brave), no Baseline (`BoxDecorationBreak`,
+  `LayoutJustifySelfForBlocks`, `DocumentPictureInPicturePreferInitialPlacement`) y no Mac
+  (`AuraScrollbarUsesNinePatchTrack`). Las 55 flags que desaparecen quedan como estaban en la 129 (casi todas
+  `stable`, ahora permanentes; las apagadas se quitan): no cambian nada.
+- **`MutationEvents` pasa de `stable` a apagado (cc4fc38654c, «Land in M130») — decisión.** En Chrome 130 dejan de
+  dispararse `DOMNodeInserted`, `DOMSubtreeModified` y compañía (salvo *deprecation trial* o la política
+  `--mutation-events-enabled`). **Recomiendo hacer lo mismo:** es lo que espera una web que lee «Chrome 130», y los
+  eventos de mutación han sido durante años fuente de fallos de uso tras liberar en el DOM, que en una base de 2023 no
+  recibe arreglos. Coste: minutos. Riesgo: alguna web vieja que aún los use; Chrome 130 rompe igual.
+
+### 4. Fuera de Blink (lección de Menlo)
+
+Comparados `chrome/app/resources/locale_settings*.grd`, las preferencias web (`prefs_tab_helper.cc`, `settings.json5`),
+`net/socket/ssl_client_socket_impl.cc` y las `base::Feature` de `net`, `services/network`, `content` y Blink:
+
+- **Sin cambios de fuentes por defecto ni de TLS** (Kyber sigue; ML-KEM es de la 131). `PrefsFontList` solo pasa a
+  permanente en la 130; la lista japonesa de fuente fija y `kPrefsFontList` los lleva MOTOR-8 en `nube/ruby-003`
+  aa52bd0a60 (`block-ruby-003`), que entra en la base del 130 si LOCAL-4 lo confirma.
+- **`data:` URL: se conserva el espacio en blanco en las que no son base64** (`KeepWhitespaceForDataUrls`,
+  34b6c2b36e8; como Firefox y Safari y la especificación de Fetch). Propongo portarlo: solo `net/base/data_url.cc` y la
+  `base::Feature`, sin la política de empresa (16/3; horas).
+- *Compression Dictionary Transport* encendido (`network::features`): `Available-Dictionary` y `dcb`/`dcz` solo se
+  envían cuando la web ha registrado un diccionario, así que la huella por defecto no cambia. Fuera (no Baseline).
+- Lo demás es interno o de producto (`BackgroundResourceFetch`, *parkable strings*, Shared Storage, organización de
+  pestañas con IA, Esc mantenido para salir de pantalla completa).
+- **Declaración:** `flyweb_engine_level` 130, `flyweb_version` 1.14, **`flyweb_engine_full_version` =
+  130.0.6723.117** (la última Stable de Mac al 100 %, 05-11-2024, según versionhistory de Google; la .119 no pasó del
+  50 %), `platformVersion` mínimo **11.7.10** (129–138, principio 13). Receta de huella de LOCAL como siempre.
+
+### 5. Fusiones de la rama M130 (6723) sobre lo que ya tenemos
+
+- 66a556bd168 (RubyLB, `text-align`) = 56be91796b, ya en la 1.12.1 (FS.11).
+- Para SEGURIDAD-PORTES-2 (FS.14, punto 4; que valore si aplican a la 116 o a lo portado): e699ac35ac6 (Web Serial),
+  ffedc45b73e (nulo en `platform` por debilidad), f3300abe2fc (`AcceptLanguagesWatcher`), 59d46b95c01 (caché y
+  *service worker*), 6434353f319 (`AnimationFrameTimingMonitor`), 3d4d3dabe35 (`TextRenderingMode`), 4e10fc270e6 +
+  55f45c2ad79 + 116873c4367 (`EncodedFormData`), a3304d219b0 (`calc()` mal analizado), 5333441795f (*container
+  queries* y *subgrid*), f1e9e2c2e0b (colores relativos en canvas, nivel 125) y 7768072fa2d (`:visited` en iframes
+  *credentialless*).
+
+### 6. Lo apagado (regla 19) con la V8 13.0
+
+| Qué | FlyWeb (1.13) | Upstream 13.0 | Recomendación |
+|---|---|---|---|
+| `maglev` | apagado | encendido | sigue apagado; se decide en el **132** (V8 13.2 LTS), como dice SEGURIDAD-PORTES |
+| `maglev_untagged_phis` | apagado | encendido | con Maglev, en el 132 |
+| `turboshaft_wasm` | apagado (= upstream) | apagado (encendido en la 13.2) | nada; el 132 |
+| `turboshaft_instruction_selection`, `wasm_to_js_generic_wrapper` | encendidos | encendidos | nada |
+| `regexp_simd` (nueva, encendida) | — | encendida | dejar la de upstream: en x64 exige SSSE3 (`CpuFeatures::IsSupported(SSSE3)`), que la 5,1 tiene; **no usa AVX** |
+| `turboshaft_csa` | apagada (12.9) | **encendida** (los *builtins* CSA se generan con Turboshaft al compilar) | la de upstream; los parches de seguridad sobre CSA (`builtins-object-gen.cc`) pasan por ahí: mjsunit de FS.14 |
+| Wasm JS String Builtins | — | encendido (de serie) | de serie; superficie nueva para FS.14 |
+| WebGPU | apagado | encendido | sigue, ~140 |
+
+Nada que encender en el 130 por la regla 19.
+
+### 7. Regla 17 y orden propuesto
+
+Ningún porte llega a «decenas de commits» (el mayor, *nested declarations*, son 7). La fila FS necesaria es **FS.14**
+(ronda `seg/v8-13.0` como FS.13), más la revisión de lo nuevo que una web alcanza: *nested declarations* (analizador
+CSS y CSSOM: `insertRule`, `ReplaceRuleIfExists`), `RTCDataChannel` transferible (paso del canal entre hilos: la parte
+con más riesgo de uso tras liberar), `text-wrap`, Wasm JS String Builtins e `Intl.Locale`, con los `Merged:` de
+131–132 (LTS), y los arreglos de la rama M130 del §5. MOTOR la abre al empezar el paso de V8.
+
+Orden: (1) `nube/motor-130` desde `nube/motor-129` 325686916c (= `flyweb` 37197fe0, 1.13), más `nube/ruby-003` si LOCAL-4
+lo confirma; (2) **paso de V8:**
+`v8-revision` 13.0.245.25, `v8re.sh`, gin (B) y `fast_float` → Static y ASan aislados de LOCAL-4 con claude.ai, YouTube
+y webs con JIT (FS.14 en paralelo); (3) Baseline, flags, `data:` y `MutationEvents` (si se aprueba), un commit cada uno;
+(4) declarar 130/1.14, `motor-130.html` y `wpt-130-lista.txt` → Static, ASan y Release. Rehacer las medidas sobre
+`nube/motor-129` en cuanto haya brave-core en la sesión.
+
+**Decisiones que pido a COORDINACIÓN:** (i) V8 13.0.245.25 (cabeza) frente a la .18 de la Stable; (ii) gin con la
+opción B; (iii) `fast_float` traído por `build.sh` (cambio en softmac) o empaquetado como parches de fichero nuevo en
+brave-core; (iv) `MutationEvents` apagado como Chrome 130; (v) fuera por coste `KeyboardFocusableScrollers`,
+`ShapeOutsideWritingModeFix` y `TextInputNotAlwaysDirAuto`; (vi) acceso de esta sesión a brave-core.
+
 ## Apuntado para niveles futuros
 
 - **143 — `onselectionchange` como atributo de elemento** (`<div onselectionchange=…>`, `setAttribute`): Chromium
