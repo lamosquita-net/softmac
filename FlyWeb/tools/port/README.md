@@ -193,4 +193,17 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
 - **`git apply` sin parche lee la entrada estándar** y se queda esperando: comprobar que la lista no esté vacía.
   `git log -S` en el clon sin *blobs* tarda horas; usar `--grep` o la ruta.
 
+## Inventario del 131 (MOTOR-10)
+
+- **`flags-escapes.py <dir-json5> <json5-flyweb> <raíz>`**: flags que Chrome tuvo en `stable` en algún nivel y FlyWeb
+  no. El directorio lleva un json5 por nivel (`<N>.json5`, de la cabeza de cada rama). Las etiquetas 117–128 no estaban
+  en el clon: `git ls-remote --tags origin 'refs/tags/1[12][0-9].0.*'` da la última de cada rama, y
+  `git fetch --no-tags --filter=blob:none origin refs/tags/<t>:refs/tags/<t> …` las trae en ~20 s. Lo fiable es lo que
+  FlyWeb tiene en su json5 pero apagado; lo que no está puede ser un porte del estado final sin la flag.
+- `medirng.sh` lee el clon de Chromium de `CH` (por defecto `/home/user/chromium/chromium`); antes estaba fijado a la
+  ruta de MOTOR-9 y medía todo a cero sin avisar.
+- **Fuera de Blink, también BoringSSL:** ML-KEM (131) es un cambio de `net::features` que exige código nuevo en
+  BoringSSL. Comparar `boringssl_revision` del DEPS y buscar en ese repositorio (`github.com/google/boringssl`, sin
+  *blobs*) los ficheros que pide el cambio.
+
 - `llevar.sh`: lleva commits de LOCAL a una rama `nube/*` y la fusiona en otra, sin checkout (ver `FlyWeb/docs/coordinacion.md`).

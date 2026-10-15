@@ -1,6 +1,6 @@
 #!/bin/bash
 # medirng.sh <nombre> <commit>... : como medir.sh, pero traduce cada diff con ngtraducir.py (LayoutNG de la 116). MOTOR-9.
-CH=/tmp/claude-0/port/chromium/chromium; C116=/tmp/claude-0/port/cr116; BC=/home/user/brave-core/patches; P=/tmp/claude-0/port
+CH=${CH:-/home/user/chromium/chromium}; C116=/tmp/claude-0/port/cr116; BC=/home/user/brave-core/patches; P=/tmp/claude-0/port
 n=$1; shift; W=$P/medir/w-$n; mkdir -p $P/medir; rm -rf $W; mkdir -p $W; cd $W; git init -q .
 EXC=(':!*_test.cc' ':!*unittest*' ':!*/web_tests/*' ':!*/test/*' ':!AUTHORS' ':!content/public/android/*' ':!*browsertest*' ':!*/data/*' ':!tools/metrics/*')
 for c in "$@"; do git -C $CH show --format= $c -- . "${EXC[@]}" | python3 $P/ngtraducir.py $P/ngmap.json 2>/dev/null > $W/$c.ng.diff; sed -n 's#^+++ b/##p' $W/$c.ng.diff; done | sort -u > files.txt
