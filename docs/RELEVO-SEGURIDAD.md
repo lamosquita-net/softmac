@@ -1,7 +1,8 @@
 # Relevo de SEGURIDAD-PORTES (15-10-2026)
 
-Para **SEGURIDAD-PORTES-2**, relevo de SEGURIDAD-PORTES (`session_01NkotiT2nNYznsrQu9rssiy`). Leer antes:
-`CLAUDE.md`, `docs/TAREAS.md` (tabla, reglas 1–19, filas FS.10–FS.13), `docs/SEGURIDAD.md` y `FlyWeb/docs/cve-triage.md`.
+Para el siguiente relevo de SEGURIDAD-PORTES. Historia: SEGURIDAD-PORTES (`session_01NkotiT2nNYznsrQu9rssiy`) → -2
+(`session_01YPgb1ubsQCorSgZWaRVgoF`, sin brave-core) → **-3 (`session_01LKiaD9v2hcna6BUo6CfMBs`, FS.14)**. Leer antes:
+`CLAUDE.md`, `docs/TAREAS.md` (tabla, reglas 1–19, filas FS.10–FS.15), `docs/SEGURIDAD.md` y `FlyWeb/docs/cve-triage.md`.
 La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta y prueba.
 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
@@ -24,7 +25,8 @@ V8, Linux, en la nube) de **«compilado en FlyWeb»** (LOCAL, en la 7,1).
 | 126 | 1.10 | 12.6.228.49 (M126-LTS) | `seg/v8-12.6` c3d250ff | — | FS.8 |
 | 127 | 1.11 | 12.7.224.20 | `seg/v8-12.7` 94914682 | — | FS.9 |
 | 128 | 1.12, 1.12.1, 1.12.2 | 12.8.374.38 | `seg/v8-12.8` 5aa57049 | 12 | FS.10 |
-| **129** | **1.13** | **12.9.202.28** | **`seg/v8-12.9` 2ffa1017** | **13** | **FS.13** |
+| 129 | 1.13 | 12.9.202.28 | `seg/v8-12.9` 2ffa1017 | 13 | FS.13 |
+| **130** | **1.14** | **13.0.245.25** | **`seg/v8-13.0` 064323b537** | **15** | **FS.14** |
 
 Ramas de Blink (sin V8):
 
@@ -33,6 +35,7 @@ Ramas de Blink (sin V8):
 | `seg/rubylb-128` 44c2af83 | 12 arreglos de caídas y memoria de upstream en el código de RubyLB (6 parches); en la 1.12.1 | FS.11 |
 | `seg/inline-116` 907c9507 | deuda de la 116 en LayoutNG inline: CHECK de `NeedsCollectInlines` (posible UAF por *container queries*) en la 1.12.1; d7020222f64 + 9df6f20935b en la 1.12.2 | FS.12 |
 | `seg/blink-129` 63ea2663 | `automation_rate_` atómico en WebAudio (8669b50ce1c, crbug 357391257); en la 1.13 | FS.13 |
+| `seg/transfer-keys` 1df157fca7 | claves de `TransferList`/`Attachment` con su propia dirección (f66bd3243b, crbug 511006880); la 1.13 no está afectada (LOCAL-4, `nm`: el ICF no las fusionó); higiene para la 1.14 | FS.14 |
 
 Ramas viejas sin uso (no borrar sin preguntar): `seg/cve-2024-7971`, `seg/cve-2025-13223`, `seg/v8-groupby-contexto`.
 La época **14** se reservó para un plan B de la 1.12.3 que se abandonó (nunca se subió): **no usarla**.
@@ -50,38 +53,37 @@ trae sus arreglos. Valores comprobados en `src/flags/flag-definitions.h` de cada
 | `turboshaft_instruction_selection` | apagado 12.3–12.8; **encendido desde 12.9** | encendido desde 12.5 | hecho (1.13). Con él apagado la 12.9 caía en `ToConstant()` (`kTrustedHeapConstant`) |
 | `wasm_to_js_generic_wrapper` | apagado 12.3–12.8; **encendido desde 12.9** | encendido desde 12.3 | hecho (1.13) |
 | JSPI, `wasm_deopt`, *stack switching* | apagados (experimentales; Blink 116 no tiene *origin trial* de JSPI) | experimentales | cuando upstream los envíe y Blink los exponga |
+| `regexp_simd` | encendido (de upstream, nuevo en 13.0) | encendido | hecho (1.14). Exige SSSE3; AVX solo si la CPU lo tiene. Titín lo prueba en la 5,1 con `FlyWeb/tools/regexp-130.html` |
+| ORB v0.2 (`OpaqueResponseBlockingV02`) | **encendido en la 1.14** (COORDINACIÓN-6, 15-10; MOTOR-10) | encendido desde la 126 | hecho. Solo cambia la entrega: `ERR_BLOCKED_BY_ORB` en vez de respuesta vacía |
+| WebSQL, `MutationEvents`, pantalla completa prefijada de `<video>`, `:--foo`, `includeShadowRoots`, `<template shadowroot>` antiguo, `getInnerHTML()` | **apagados en la 1.14** (motor.md «Nivel 130» §9–§10; `getInnerHTML()` si CfT 130 lo confirma) | apagados en Chrome 119–131 | hecho. WebSQL quita SQLite del renderizador |
+| `OriginAgentClusterDefaultEnable` | **encendido en la 1.14** (tras la prueba de LOCAL-4 en CfT 129) | encendido desde la 119 | hecho |
+| `IsolateSandboxedIframes` (iframes *sandboxed* del mismo sitio en otro proceso) | apagado (116) | encendido desde la 127, agrupación por origen | **FS.15** (`seg/oopsif`), aprobada; LOCAL-4 midió +2 procesos y +27–39 MB |
 | WebGPU (`kWebGPUService`, CVE-2026-5281) | apagado (`chromium_src/gpu/config/gpu_finch_features.cc`, de `nube/webgpu-off`; está en la 1.13) | encendido | **nivel ~140** |
 | JIT y WebAssembly | abiertos a todas las webs desde la 1.6 | ídem | interruptor sin recompilar: política `DefaultJavaScriptJitSetting = 2` |
 
 Lo que no es de seguridad (Wallet, Rewards, News, Talk, Leo, VPN, P3A, Omaha) está en `CLAUDE.md`, no aquí.
 
-## 3. Lo que espero de la 13.0 (nivel 130, FS.14)
+## 3. FS.14 (nivel 130, V8 13.0): estado
 
-Empieza cuando MOTOR-9 abra el paso de V8 13.0 (`nube/motor-130` o la rama de paso que indique). Regla: **la 1.14
-no sale con menos arreglos de V8 que la 1.13**.
+Detalle en la fila FS.14 y en `patches/v8/FLYWEB-SECURITY.md` de `seg/v8-13.0`. Hecho: revisión del rebase de
+MOTOR-10, fusiones de 13.1.201.22 y 13.2.152.56 (contra la 13.0 y contra la 12.9 + parches de la 1.13), v8 924c1a79
+y 91343bb4, época 15, API del *embedder*, opciones. Método útil: `git show <merge> -- src include BUILD.gn` y
+`git apply --check` / `-R --check` sobre el árbol **con los parches de FlyWeb aplicados** (sobre el limpio, lo que
+FlyWeb ya lleva sale como «falta»).
 
-1. **Ronda `seg/v8-13.0`** desde la rama de MOTOR-9. Partir de los parches de `seg/v8-12.9` y clasificar cada uno
-   contra la 13.0 limpia: `git apply --check` (falta), `git apply -R --check` (ya está), conflicto → a mano. Ya
-   comprobado en el historial de V8: **a7c018806, 153d4e84e y bc67262 son antecesores de 13.0.245.25** (sobran);
-   94e495e1d, 34587b687, fc26d62d0, 357d0dd4 y 279d28029 **no** lo son (comprobar con `-R`; si no están, portarlos).
-2. **Fusiones posteriores:** las de la rama 13.0 por encima de la revisión que fije MOTOR-9, más 13.1.201.22 y
-   13.2.152.56 (M132-LTS), contra la 13.0. Ojo: lo que di por «no aplicable» en la 12.9 porque nació en la 13.0
-   **puede aplicar ahora**: la caché global de *regexp* ATOM, los arreglos de tipos canónicos de 13.x y, si la 13.0 ya
-   la tiene por proceso, la caché de *wrappers* de importación (`is_dying_`, crbug 391907159). Maglev y
-   Turboshaft-Wasm siguen sin aplicar (apagados) hasta el 132.
-3. **Época de caché:** una nueva, mayor que 13 y que la que ponga MOTOR-9 en su paso; nunca la 14.
-4. **Pasada de API del embedder 12.9 → 13.0:** `git diff 12.9.202.28 <revisión> -- include/` y revisar lo que Blink
-   adapte MOTOR-9 (como en la 12.9 con `FastApiCallbackOptions`: los callbacks rápidos lanzan ellos mismos).
-   Mirar sobre todo: callbacks rápidos, `ExceptionPropagationCallback`, etiquetas de punteros externos y del
-   *sandbox*, `CppHeap`/cppgc y constantes de `Internals`.
-5. **Opciones:** confirmar con `d8 --print-flag-values` que siguen `--no-maglev --no-maglev-untagged-phis
-   --turboshaft-instruction-selection --wasm-to-js-generic-wrapper` y que la 13.0 no enciende nada nuevo de JIT; si
-   lo hace, avisar a COORDINACIÓN y a Titín antes de decidir.
-6. Lo nuevo que una web pueda alcanzar en el nivel 130 (APIs que MOTOR-9 porte a Blink): buscar en Chromium 130–132
-   y `main` los arreglos posteriores de esos ficheros, por fichero y no por `--grep` (así salieron los de RubyLB).
-7. `d8`: pruebas de `FlyWeb/tools/v8-pruebas/`, regresión de cada arreglo portado y mjsunit completo (en la 12.9,
-   7216/7217; el fallo es `maglev/extras-cped`, que exige código de Maglev). `FLYWEB-SECURITY.md` de la rama y fila
-   FS.14 con el commit.
+- **91343bb4 también falta en la 1.13** (12.9). Decisión del HUMANO (15-10): no hay 1.13.1; va en la 1.14. Red: se
+  hace la 1.13.1 si aparece explotación conocida o si la 1.14 no está entregada antes del 17-10 a las 16:00. Entra
+  limpio en la 12.9. Mitigación sin recompilar: `DefaultJavaScriptJitSetting = 2`.
+- Explotación conocida (15-10): ni crbug 390743124 ni 511006880 están en el KEV de CISA (espejo
+  `raw.githubusercontent.com/cisagov/kev-data`, catálogo del 14-10-2026); chromereleases, cisa.gov y NVD están
+  bloqueados en el contenedor.
+- Pendiente: pruebas en `d8` y mjsunit; arreglos posteriores de upstream en los ficheros que porte MOTOR-10 (sobre
+  todo `RTCDataChannel` transferible: sus 2 claves nuevas con `= &Clase::kKey`).
+
+Para buscar arreglos de Chromium por fichero sin el checkout: `git fetch --filter=tree:0 --shallow-since=<fecha>
+https://github.com/chromium/chromium refs/heads/main` (solo commits, ~1 min) para los mensajes, y los ficheros con
+`raw.githubusercontent.com/chromium/chromium/<etiqueta>/<ruta>` para comparar versiones. `github.com` (web y API sin
+credenciales) está bloqueado.
 
 ## 4. Riesgos abiertos (anotados, sin portar)
 
