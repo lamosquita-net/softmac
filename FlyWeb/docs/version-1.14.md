@@ -29,7 +29,7 @@ técnico: `motor.md`, «Nivel 130», §12; commits: `FlyWeb/tools/port/nivel130-
 | `getInnerHTML()` | apagado (c5a094a9ab) y **se queda así**: LOCAL-4 lo comprobó en CfT 130.0.6723.116. Con la configuración de campo, `Element`/`ShadowRoot.getInnerHTML` es `undefined`; sin ella es `function`. En la 130 el código aún lo tiene y lo quita Finch, que es lo que recibe Chrome estable |
 | Diferencia conocida con Chrome 130 | **sin Web Share** (`navigator.share`/`canShare`): Chrome lo encendió en Mac en la 129, pero no es Baseline y nunca se ha probado en Mojave (decisión de COORDINACIÓN-6, principio 2; se revisa cuando sea Baseline). Brave quita además, a propósito, `navigator.connection`, File System Access y Web Serial |
 | Pendiente de datos | el código ALPS (F4.8, con los JA4 de LOCAL-4 frente a CfT 130) |
-| Comprobación | `FlyWeb/tools/motor-130.html` y `fastapi-129.html` (con JIT y Wasm en un origen http(s), nunca en `about:blank`), `wpt-130-lista.txt` (35), `regexp-130.html` (FS.14, en la 5,1), `sandbox-popups.html` (FS.15) y `seg-1.14.1.html` (las dos protecciones) |
+| Comprobación | `FlyWeb/tools/motor-130.html` y `fastapi-129.html` (con JIT y Wasm en un origen http(s), nunca en `about:blank`), `wpt-130-lista.txt` (37), `regexp-130.html` (FS.14, en la 5,1), `sandbox-popups.html` (FS.15) y `seg-1.14.1.html` (las dos protecciones) |
 
 ## Para la web
 
@@ -75,5 +75,5 @@ técnico: `motor.md`, «Nivel 130», §12; commits: `FlyWeb/tools/port/nivel130-
 
 ## WPT del nivel 130
 
-*(Pendiente de LOCAL-4: Static de `nube/motor-130` ccc74ea171 (las dos protecciones de 303e498fb5 no tocan ninguna de estas WPT), lista `FlyWeb/tools/wpt-130-lista.txt` (35), comparada con
+*(Pendiente de LOCAL-4: Static de `nube/motor-130` ccc74ea171 (las dos protecciones de 303e498fb5 no tocan ninguna de estas WPT), lista `FlyWeb/tools/wpt-130-lista.txt` (37; corregida el 15-10 por MOTOR-11: las de *container queries* están en `css/css-conditional/`), comparada con
 Chrome for Testing 130 en el mismo Mac y con las `TestExpectations` de la 130.0.6723.117.)*

@@ -1159,7 +1159,7 @@ Share solo cambian interfaz, actualizador, Privacy Sandbox (`KAnonymityService`,
 (navegación, lo decide Brave). Desde el 131, el barrido incluye `chrome/common`.
 
 Comprobación: `FlyWeb/tools/motor-130.html` (con las pruebas de superficie), `fastapi-129.html`, `wpt-130-lista.txt`
-(35), `regexp-130.html` (FS.14) y `sandbox-popups.html` (FS.15). **JIT y Wasm se comprueban en un origen http(s)**
+(37), `regexp-130.html` (FS.14) y `sandbox-popups.html` (FS.15). **JIT y Wasm se comprueban en un origen http(s)**
 (`motor-130.html` y `fastapi-129.html`): la decisión de JIT es por sitio y en `about:blank` no se ve. El Static de
 a7b5f3f4aa salió *jitless* en la 7,1 por una política vieja de la app de desarrollo (`DefaultJavaScriptJitSetting` = 2), y
 las pruebas en `about:blank` no lo vieron. «Para la web» en `version-1.14.md`.
@@ -1368,11 +1368,12 @@ Lista de commits con su estado: `FlyWeb/tools/port/nivel131-commits.tsv`.
 | 8ac23ca71a, 83308d0028 | FS.18: `seg/v8-13.1` 7b3c3e6cf5 y 364a9d554f | revisión del paso (época 16) y arreglo de compilación: fuera el parche de `wasm-objects.cc`, que usaba `wasm_to_js_generic_wrapper`, que ya no existe en la 13.1 (aplicaba limpio y no compilaba: **fallo mío del paso**, lo vio SEGURIDAD-PORTES-3); quedan 62 |
 | 57dda2531f | `::details-content`, cascada y `getComputedStyle()` con pseudoelementos | 18 commits; la cascada (9065c891224, 8a5bc8d0550, 951ace75914) en su forma final de la 131, a mano; `MatchResult` con el orden del árbol = índice del ámbito (idea de f4c890d7e6f, M118) |
 | 66a8436ed4 | colores relativos sobre `currentcolor` | **comportamiento de la 131 sobre el analizador de FlyWeb del 125**, no la serie de upstream (que rehace un `ColorFunctionParser` que FlyWeb no tiene): origen absoluto resuelto al analizar; si no, `CSSRelativeColorValue`, resuelto al calcular el estilo o, si el origen es `currentcolor`, al usarse. La puerta es la WPT de color completa frente a CfT 131 (decisión de COORDINACIÓN-6) |
-| f871534a91 | flags del §3, `@property <string>` y `SvgExternalResources` | 8 de las 10 flags de interoperabilidad; `BreakIteratorHyphenMinus` y `TextTransformAndSecurityFix` no aplican a la 116 (la 116 ya se comporta como el arreglo o no tiene el código); confirmación pedida a SEGURIDAD-PORTES-3 (FS.18) |
+| f871534a91 | flags del §3, `@property <string>` y `SvgExternalResources` | 8 de las 10 flags de interoperabilidad; `BreakIteratorHyphenMinus` y `TextTransformAndSecurityFix` no aplican a la 116 (la 116 ya se comporta como el arreglo o no tiene el código); confirmado por SEGURIDAD-PORTES-3 (FS.18) |
 | 1481da3472 | reserva de `<meter>` | `StyleUAShadowHostData` de 02492b88a85 sin su parte de `<img>`; reglas de `html.css` sin `@supports blink-feature()` |
 | f18bc09f0c | `MultiSmoothScrollIntoView` | 5 commits; de 621af243570 solo la firma de `ProgrammaticScrollHelper()` |
 | e2ed217536 | escapes del §6 y 4888675b6c9 | `CustomElementsGetName` y `DateInputInlineBlock` encendidas (el código de la 116 es el que publicó Chrome); 885747b4b60 (`style_adjuster.cc` a mano), 2623d401a2e, a451e490628, 1583e508e68 + 165b28d3f3e (`WebFeature` 4754), fb41d7f417e, aa36610ec66 (sin el enum de `ui/accessibility`: `insertLink` cuenta como `insertText` para la accesibilidad), 2ff15031068 y 4888675b6c9 sobre nuestro observador de `inspector_style_sheet.cc` |
-| **2f04e8614a** | declara 131 / 1.15 | 131.0.6778.265, `platformVersion` mínimo 11.7.10, `FLYWEB_BUILD_NUMBER` lo sube LOCAL. **Cabeza para LOCAL** |
+| **2f04e8614a** | declara 131 / 1.15 | 131.0.6778.265, `platformVersion` mínimo 11.7.10, `FLYWEB_BUILD_NUMBER` lo sube LOCAL |
+| **01b123af05** | FS.18 cerrada: `seg/v8-13.1` 634cedc130 | resultados de d8 en `FLYWEB-SECURITY.md` (pruebas de FlyWeb 8/8, mjsunit 7279/7280, Wasm con `--stress-wasm-code-gc` 394/394). **Cabeza para LOCAL** |
 
 **Fuera de la 1.15: `PaintHighlightsForFirstLetter` (decisión de COORDINACIÓN-7, 15-10, ~19:36).** Su dependencia
 1660cb958aa (`MarkerRangeMappingContext`) da 25 *hunks* rechazados en `ng_highlight_painter.cc`/`.h`,
