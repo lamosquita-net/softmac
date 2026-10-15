@@ -2,6 +2,8 @@
 
 Nota para la sesión que tome el papel de COORDINACIÓN. Puesta al día el **15-10-2026, ~18:20 (Madrid)** por COORDINACIÓN-6
 (`session_01DdLcRgFWWjq51j1Hs5pLsn`, «Nube Coordinación (6)», 15-10, Opus 5.5 alto), que relevó a COORDINACIÓN-5 (archivada).
+**Desde el 15-10, ~18:20, el papel lo lleva COORDINACIÓN-7** (`session_01Bd9Hw5nWqeXcgGZgMYtZ9n`, «Nube Coordinación (7)»,
+Opus 5.5 alto); COORDINACIÓN-6, archivada.
 Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca en GitHub**; al HUMANO se le llama
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–19**, filas FM.20, FM.21, FS.14–FS.17 y la de LOCAL),
 `FlyWeb/docs/motor.md` («Nivel 130» y «Nivel 131») y `FlyWeb/docs/relevo-motor.md`.
