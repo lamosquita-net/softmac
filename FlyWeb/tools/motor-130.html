@@ -161,6 +161,20 @@
     typeof SpeechSynthesis === 'function' && typeof SpeechSynthesisVoice === 'function' &&
     speechSynthesis instanceof SpeechSynthesis);
 
+  // JIT y WebAssembly en un origen web (COORDINACIÓN-6, 15-10). La decisión de JIT es por sitio: en about:blank o file://
+  // no se ve (así se escapó en el Static del 130 con una política vieja). Desde la V8 13.0, sin JIT tampoco hay
+  // WebAssembly, como en Chrome 130.
+  const enWeb = location.protocol === 'http:' || location.protocol === 'https:';
+  prueba('WebAssembly en un origen http(s)', () => ({ ok: enWeb && typeof WebAssembly === 'object',
+    nota: enWeb ? `typeof WebAssembly: ${typeof WebAssembly}` : `abrir desde http://127.0.0.1 (ahora ${location.protocol})` }));
+  prueba('JIT en un origen http(s): bucle de 5e7 vueltas en menos de 600 ms', () => {
+    const t0 = performance.now(); let s = 0;
+    for (let i = 0; i < 5e7; i++) s = (s + i) | 0;
+    const ms = Math.round(performance.now() - t0);
+    return { ok: enWeb && ms < 600, nota: `${ms} ms (con JIT ~200–250 ms; sin JIT ~1150 ms)` +
+      (enWeb ? '' : `; abrir desde http://127.0.0.1 (ahora ${location.protocol})`) };
+  });
+
   // V8 13.0
   prueba('V8 13.0: Intl.Locale.prototype.getWeekInfo() y compañía', () => {
     const l = new Intl.Locale('es-ES');
