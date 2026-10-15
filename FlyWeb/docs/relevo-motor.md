@@ -1,3 +1,73 @@
+# Relevo de MOTOR: de MOTOR-10 a MOTOR-11 (15-10-2026, ~18:35)
+
+MOTOR-10 (`session_017osmPdTipjmbHoMeuQDeJ4`, Opus 5.5, `xhigh`) ha hecho el nivel 130 en código (1.14), el recorte de
+superficie, los dos escapes de seguridad y el inventario del 131. **Lo decidido del 131 está en `motor.md` «Nivel 131»
+§1–§10 y en la fila FM.21**; lo del 130, en «Nivel 130» §12, FM.20 y `version-1.14.md`. Aquí va solo lo que no está
+allí.
+
+**Ramas de brave-core:**
+
+| Rama | Cabeza | Qué |
+|---|---|---|
+| `nube/escapes-seg-1.14.1` | **303e498fb5** | **la 1.14** (decisión de COORDINACIÓN-6): `nube/motor-130` + los dos escapes de seguridad. El nombre de la rama es anterior a esa decisión |
+| `nube/motor-130` | ccc74ea171 | nivel 130 + FS.14 + FS.15 (`seg/popup-sandbox`) |
+| `nube/motor-130-v8` | a7b5f3f4aa | solo el paso de V8 13.0 (referencia) |
+| `seg/ml-kem` | fc0f45c433 | FS.17 (SEGURIDAD-PORTES-3). **Solo en `nube/motor-131`, nunca en una 1.14.x.** Con `git merge-tree` entra sin conflictos sobre 303e498fb5. Cambia `build/commands/lib/util.js` (BoringSSL entra en `flywebRepos`) y `chromium_src/net/base/features.*`: si se tocan, avisar a SEGURIDAD-PORTES-3 |
+| `seg/oopsif` | 57c1b3fa2a | la 1.14.1 (la 1.14 + OOPSIF); no es de MOTOR |
+| `nube/prueba-motor10` | 0c95523439 | la prueba de escritura; el proxy no deja borrar ramas (403) |
+
+**Por dónde empezar** (orden de §10; el 131 empieza ya, por orden de COORDINACIÓN-7):
+
+1. `nube/motor-131` desde **303e498fb5**; `git merge` de `seg/ml-kem` fc0f45c433.
+2. Paso de V8: `FlyWeb/v8-revision` → `9c09e7876ff830e1f9a731aa930040d1028ff5a1` (13.1.201.22, la V8 de la
+   131.0.6778.265 y cabeza de su rama); `v8re.sh 3551594a5f6604c7e5070f408cc81d60d08ddbbf 9c09e787…`; en Blink, solo
+   `use_counter_callback.cc` (`kImportAssertionDeprecatedSyntax` → `kOBSOLETE_ImportAssertionDeprecatedSyntax`); en
+   `flag-definitions.h` desaparece `wasm_to_js_generic_wrapper`. Avisar a SEGURIDAD-PORTES-3 con la rama (como en el
+   130: MOTOR rehace `patches/v8`, ella revisa y sube la época de caché a 16).
+3. Baseline (§2), flags (§3), los cuatro aplazados (§7), los escapes del §6 que no son de seguridad y 4888675b6c9.
+   `wpt-131-lista.txt` con **todas** las WPT de color del 131 (decisión iii), para comparar con CfT 131.
+4. Declarar 131.0.6778.265 / 1.15; `motor-131.html`, `version-1.15.md`.
+
+**Entorno de MOTOR-10, que no pasa a otra sesión (rehacerlo cuesta ~30 min):**
+
+- Clon sin *blobs* de `github.com/chromium/chromium` en `/home/user/chromium/chromium`, con las etiquetas 116, 117–128
+  (la última de cada rama), 129.0.6668.112, 130.0.6723.192, 131.0.6778.265 y .268. Las 117–128 se traen con
+  `git ls-remote --tags` + `git fetch --no-tags --filter=blob:none origin refs/tags/<t>:refs/tags/<t>` (~20 s).
+  `git config gc.auto 0`, o cada `git show` dispara un `gc`.
+- `/tmp/claude-0/port`: copia de `FlyWeb/tools/port` con las copias parciales `cr116`, `cr130` y `cr131` (`mkcr.sh`), y
+  `bl/` con `npm install web-features @mdn/browser-compat-data` (3.42.0 / 8.1.6) y `bl/json5/<N>.json5` de cada nivel
+  (para `flags-escapes.py`).
+- V8: clon sin *blobs* de `github.com/v8/v8` con 13.0.245.25 y 13.1.201.22. BoringSSL: clon sin *blobs* de
+  `github.com/google/boringssl`, con ae88f198 (116) y cd952104 (131).
+- `gencss.sh` y `mksrc.sh` leen `/home/user/cr116` (sparse de la 116 con `third_party/{mako,ply,pyjson5,jinja2,markupsafe}`
+  y `build`).
+- `chromium.googlesource.com` está bloqueado: usar los espejos de GitHub. `pip install json5` puede pedir
+  `--break-system-packages`.
+
+**Trampas de esta sesión** (las de porte están en `FlyWeb/tools/port/README.md`, «Lecciones del porte del 130» e
+«Inventario del 131»):
+
+- Un `--amend` después de `commitarea.sh` cambia el hash. Di c6ab0716d4 por 303e498fb5 a tres agentes. El id se lee
+  con `git ls-remote` después del `push`.
+- Antes de nombrar una fila FS.N o FM.N, mirar en `docs/TAREAS.md` de `main` que no exista (la FS.16 ya estaba cogida).
+- `medirng.sh` medía todo a cero sin avisar cuando la ruta del clon no existía; ahora la lee de `CH`.
+- Notificaciones atrasadas: las decisiones de COORDINACIÓN pueden llegar en la cola con más de una hora de retraso
+  (las de superficie llegaron después de cerrar el código). Leer `ReadNotifications` al arrancar y antes de cada hito.
+- Para escribir a otra sesión, `send_message` del servidor `claude-code-remote` con el `session_…`; `SendMessage` al
+  puente `bridge:` falla desde la nube.
+- Un dato de compatibilidad (BCD o web-features) no se escribe sin consultarlo: tuve que quitar dos del inventario.
+
+**Mediciones de MOTOR-10** (`get_session` a las 16:22 UTC; desde las 13:46 UTC): salida 482 k, caché leída 299 M,
+escrita 1,35 M, 80,3 USD, contexto al 67 % (671 k de 1 M), con una compactación. Tiempos de reloj (hora de Madrid):
+paso de V8 13.0 a las ~15:55; nivel 130 en código a las ~17:25; recorte de superficie y documentos hasta las ~17:50;
+inventario del 131 de ~17:35 a ~18:05. Retrabajo: el hash del `--amend`, dos datos de compatibilidad sin verificar y
+FS.16 → FS.17. La estimación del 130 para MOTOR fue unas cuatro veces pesimista (§9 del 131).
+
+**Abierto al relevar:** PR softmac #264 (`getInnerHTML()` se queda apagado en la 1.14; solo documentos). Lo que
+encuentre LOCAL-4 en la 1.14 (303e498fb5) sigue siendo de MOTOR hasta que MOTOR-11 esté activa y anotada.
+
+---
+
 # Relevo de MOTOR: de MOTOR-9 a MOTOR-10 (15-10-2026, ~15:50)
 
 MOTOR-9 (`session_01A2ekckH79a4mrqqLCyERtY`, Opus 5.5, `xhigh`) hizo el inventario del nivel 130 (FM.20) pero no
