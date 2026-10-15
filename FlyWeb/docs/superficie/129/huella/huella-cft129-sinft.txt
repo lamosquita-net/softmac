@@ -1,0 +1,8 @@
+http_version h2
+ja4 t13d1516h2_8daaf6152771_02713d6af862
+ja3_hash 1eacf3713a34e0872b8aff846f5402b9
+akamai 1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p
+peetprint b8ce945a4d9a7a9b5b6132e3658fe033
+extensiones ['TLS_GREASE (0x6a6a)', 'supported_versions (43)', 'extensionRenegotiationInfo (boringssl) (65281)', 'compress_certificate (27)', 'psk_key_exchange_modes (45)', 'application_layer_protocol_negotiation (16)', 'server_name (0)', 'key_share (51)', 'signed_certificate_timestamp (18)', 'status_request (5)', 'extensionEncryptedClientHello (boringssl) (65037)', 'extended_master_secret (23)', 'supported_groups (10)', 'session_ticket (35)', 'ec_point_formats (11)', 'application_settings_old (17513)', 'signature_algorithms (13)', 'TLS_GREASE (0x9a9a)']
+grupos ['TLS_GREASE (0x9a9a)', 'X25519Kyber768 (25497)', 'X25519 (29)', 'P-256 (23)', 'P-384 (24)']
+cabeceras [':method: GET', ':authority: tls.peet.ws', ':scheme: https', ':path: /api/all', 'sec-ch-ua: "Chromium";v="129", "Not=A?Brand";v="8"', 'sec-ch-ua-mobile: ?0', 'sec-ch-ua-platform: "macOS"', 'upgrade-insecure-requests: 1', 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36', 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7', 'sec-fetch-site: none', 'sec-fetch-mode: navigate', 'sec-fetch-user: ?1', 'sec-fetch-dest: document', 'accept-encoding: gzip, deflate, br, zstd', 'accept-language: es-ES,es;q=0.9', 'priority: u=0, i']

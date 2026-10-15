@@ -1,0 +1,14 @@
+<!doctype html><meta charset=utf-8><title>document.domain</title>
+<iframe id=f src="http://b.web.localhost:8125/dom-hijo.html"></iframe>
+<script>
+window.resultado = new Promise(ok => {
+  document.getElementById('f').onload = () => {
+    const r = { origen: location.origin, originAgentCluster: String(window.originAgentCluster) };
+    try { document.domain = 'web.localhost'; r.setter = 'sin excepción'; } catch (e) { r.setter = 'lanza ' + e.name; }
+    r.domainTrasAsignar = document.domain;
+    try { r.accesoAlHijo = 'LEE: ' + document.getElementById('f').contentDocument.title; }
+    catch (e) { r.accesoAlHijo = 'bloqueado (' + e.name + ')'; }
+    ok(JSON.stringify(r));
+  };
+});
+</script>

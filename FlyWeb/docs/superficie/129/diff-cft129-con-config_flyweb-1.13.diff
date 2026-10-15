@@ -1,0 +1,594 @@
+173d172
+<   AudioContext.prototype.onerror
+615,690d613
+< interfaz CSSPositionTryDescriptors
+<   CSSPositionTryDescriptors.prototype.align-self
+<   CSSPositionTryDescriptors.prototype.alignSelf
+<   CSSPositionTryDescriptors.prototype.block-size
+<   CSSPositionTryDescriptors.prototype.blockSize
+<   CSSPositionTryDescriptors.prototype.bottom
+<   CSSPositionTryDescriptors.prototype.height
+<   CSSPositionTryDescriptors.prototype.inline-size
+<   CSSPositionTryDescriptors.prototype.inlineSize
+<   CSSPositionTryDescriptors.prototype.inset
+<   CSSPositionTryDescriptors.prototype.inset-area
+<   CSSPositionTryDescriptors.prototype.inset-block
+<   CSSPositionTryDescriptors.prototype.inset-block-end
+<   CSSPositionTryDescriptors.prototype.inset-block-start
+<   CSSPositionTryDescriptors.prototype.inset-inline
+<   CSSPositionTryDescriptors.prototype.inset-inline-end
+<   CSSPositionTryDescriptors.prototype.inset-inline-start
+<   CSSPositionTryDescriptors.prototype.insetArea
+<   CSSPositionTryDescriptors.prototype.insetBlock
+<   CSSPositionTryDescriptors.prototype.insetBlockEnd
+<   CSSPositionTryDescriptors.prototype.insetBlockStart
+<   CSSPositionTryDescriptors.prototype.insetInline
+<   CSSPositionTryDescriptors.prototype.insetInlineEnd
+<   CSSPositionTryDescriptors.prototype.insetInlineStart
+<   CSSPositionTryDescriptors.prototype.justify-self
+<   CSSPositionTryDescriptors.prototype.justifySelf
+<   CSSPositionTryDescriptors.prototype.left
+<   CSSPositionTryDescriptors.prototype.margin
+<   CSSPositionTryDescriptors.prototype.margin-block
+<   CSSPositionTryDescriptors.prototype.margin-block-end
+<   CSSPositionTryDescriptors.prototype.margin-block-start
+<   CSSPositionTryDescriptors.prototype.margin-bottom
+<   CSSPositionTryDescriptors.prototype.margin-inline
+<   CSSPositionTryDescriptors.prototype.margin-inline-end
+<   CSSPositionTryDescriptors.prototype.margin-inline-start
+<   CSSPositionTryDescriptors.prototype.margin-left
+<   CSSPositionTryDescriptors.prototype.margin-right
+<   CSSPositionTryDescriptors.prototype.margin-top
+<   CSSPositionTryDescriptors.prototype.marginBlock
+<   CSSPositionTryDescriptors.prototype.marginBlockEnd
+<   CSSPositionTryDescriptors.prototype.marginBlockStart
+<   CSSPositionTryDescriptors.prototype.marginBottom
+<   CSSPositionTryDescriptors.prototype.marginInline
+<   CSSPositionTryDescriptors.prototype.marginInlineEnd
+<   CSSPositionTryDescriptors.prototype.marginInlineStart
+<   CSSPositionTryDescriptors.prototype.marginLeft
+<   CSSPositionTryDescriptors.prototype.marginRight
+<   CSSPositionTryDescriptors.prototype.marginTop
+<   CSSPositionTryDescriptors.prototype.max-block-size
+<   CSSPositionTryDescriptors.prototype.max-height
+<   CSSPositionTryDescriptors.prototype.max-inline-size
+<   CSSPositionTryDescriptors.prototype.max-width
+<   CSSPositionTryDescriptors.prototype.maxBlockSize
+<   CSSPositionTryDescriptors.prototype.maxHeight
+<   CSSPositionTryDescriptors.prototype.maxInlineSize
+<   CSSPositionTryDescriptors.prototype.maxWidth
+<   CSSPositionTryDescriptors.prototype.min-block-size
+<   CSSPositionTryDescriptors.prototype.min-height
+<   CSSPositionTryDescriptors.prototype.min-inline-size
+<   CSSPositionTryDescriptors.prototype.min-width
+<   CSSPositionTryDescriptors.prototype.minBlockSize
+<   CSSPositionTryDescriptors.prototype.minHeight
+<   CSSPositionTryDescriptors.prototype.minInlineSize
+<   CSSPositionTryDescriptors.prototype.minWidth
+<   CSSPositionTryDescriptors.prototype.place-self
+<   CSSPositionTryDescriptors.prototype.placeSelf
+<   CSSPositionTryDescriptors.prototype.position-anchor
+<   CSSPositionTryDescriptors.prototype.position-area
+<   CSSPositionTryDescriptors.prototype.positionAnchor
+<   CSSPositionTryDescriptors.prototype.positionArea
+<   CSSPositionTryDescriptors.prototype.right
+<   CSSPositionTryDescriptors.prototype.top
+<   CSSPositionTryDescriptors.prototype.width
+< interfaz CSSPositionTryRule
+<   CSSPositionTryRule.prototype.name
+<   CSSPositionTryRule.prototype.style
+740,742d662
+< interfaz CSSScopeRule
+<   CSSScopeRule.prototype.end
+<   CSSScopeRule.prototype.start
+811,813d730
+< interfaz CSSViewTransitionRule
+<   CSSViewTransitionRule.prototype.navigation
+<   CSSViewTransitionRule.prototype.types
+916,922d832
+< interfaz ChapterInformation
+<   ChapterInformation.prototype.artwork
+<   ChapterInformation.prototype.startTime
+<   ChapterInformation.prototype.title
+< interfaz CharacterBoundsUpdateEvent
+<   CharacterBoundsUpdateEvent.prototype.rangeEnd
+<   CharacterBoundsUpdateEvent.prototype.rangeStart
+952,957d861
+< interfaz CloseWatcher
+<   CloseWatcher.prototype.close
+<   CloseWatcher.prototype.destroy
+<   CloseWatcher.prototype.oncancel
+<   CloseWatcher.prototype.onclose
+<   CloseWatcher.prototype.requestClose
+975,976d878
+< interfaz CookieDeprecationLabel
+<   CookieDeprecationLabel.prototype.getValue
+1012d913
+<   CustomElementRegistry.prototype.getName
+1249d1149
+<   DataTransferItem.prototype.getAsFileSystemHandle
+1370d1269
+<   Document.prototype.browsingTopics
+1419d1317
+<   Document.prototype.fragmentDirective
+1431,1434d1328
+<   Document.prototype.hasPrivateToken
+<   Document.prototype.hasRedemptionRecord
+<   Document.prototype.hasStorageAccess
+<   Document.prototype.hasUnpartitionedCookieAccess
+1531,1532d1424
+<   Document.prototype.onscrollsnapchange
+<   Document.prototype.onscrollsnapchanging
+1578,1579d1469
+<   Document.prototype.requestStorageAccess
+<   Document.prototype.requestStorageAccessFor
+1638,1654d1527
+< interfaz EditContext
+<   EditContext.prototype.attachedElements
+<   EditContext.prototype.characterBounds
+<   EditContext.prototype.characterBoundsRangeStart
+<   EditContext.prototype.oncharacterboundsupdate
+<   EditContext.prototype.oncompositionend
+<   EditContext.prototype.oncompositionstart
+<   EditContext.prototype.ontextformatupdate
+<   EditContext.prototype.ontextupdate
+<   EditContext.prototype.selectionEnd
+<   EditContext.prototype.selectionStart
+<   EditContext.prototype.text
+<   EditContext.prototype.updateCharacterBounds
+<   EditContext.prototype.updateControlBounds
+<   EditContext.prototype.updateSelection
+<   EditContext.prototype.updateSelectionBounds
+<   EditContext.prototype.updateText
+1731a1605
+>   Element.prototype.getInnerHTML
+1783a1658
+>   Element.prototype.setHTML
+1942,1949d1816
+< interfaz Fence
+<   Fence.prototype.getNestedConfigs
+<   Fence.prototype.reportEvent
+<   Fence.prototype.setReportEventDataForAutomaticBeacons
+< interfaz FencedFrameConfig
+<   FencedFrameConfig.prototype.setSharedStorageContext
+< interfaz FetchLaterResult
+<   FetchLaterResult.prototype.activated
+1999d1865
+<   FileSystemWritableFileStream.prototype.mode
+2051d1916
+< interfaz FragmentDirective
+2066d1930
+<   GPUAdapter.prototype.info
+2126a1991
+>   GPUCommandEncoder.prototype.writeTimestamp
+2262d2126
+<   GPUSupportedLimits.prototype.maxBindGroupsPlusVertexBuffers
+2334d2197
+<   GamepadHapticActuator.prototype.effects
+2398d2260
+<   HTMLAnchorElement.prototype.attributionSrc
+2406d2267
+<   HTMLAnchorElement.prototype.hrefTranslate
+2546d2406
+<   HTMLElement.prototype.editContext
+2637,2638d2496
+<   HTMLElement.prototype.onscrollsnapchange
+<   HTMLElement.prototype.onscrollsnapchanging
+2672d2529
+<   HTMLElement.prototype.writingSuggestions
+2681,2687d2537
+< interfaz HTMLFencedFrameElement
+<   HTMLFencedFrameElement.canLoadOpaqueURL
+<   HTMLFencedFrameElement.prototype.allow
+<   HTMLFencedFrameElement.prototype.config
+<   HTMLFencedFrameElement.prototype.height
+<   HTMLFencedFrameElement.prototype.sandbox
+<   HTMLFencedFrameElement.prototype.width
+2773d2622
+<   HTMLIFrameElement.prototype.adAuctionHeaders
+2778d2626
+<   HTMLIFrameElement.prototype.browsingTopics
+2781d2628
+<   HTMLIFrameElement.prototype.credentialless
+2792d2638
+<   HTMLIFrameElement.prototype.privateToken
+2796d2641
+<   HTMLIFrameElement.prototype.sharedStorageWritable
+2803d2647
+<   HTMLImageElement.prototype.attributionSrc
+2821d2664
+<   HTMLImageElement.prototype.sharedStorageWritable
+3102d2944
+<   HTMLScriptElement.prototype.attributionSrc
+3135d2976
+<   HTMLSelectElement.prototype.showPicker
+3231a3073
+>   HTMLTemplateElement.prototype.shadowRoot
+3304a3147
+>   HTMLVideoElement.prototype.webkitDisplayingFullscreen
+3305a3149,3153
+>   HTMLVideoElement.prototype.webkitEnterFullScreen
+>   HTMLVideoElement.prototype.webkitEnterFullscreen
+>   HTMLVideoElement.prototype.webkitExitFullScreen
+>   HTMLVideoElement.prototype.webkitExitFullscreen
+>   HTMLVideoElement.prototype.webkitSupportsFullscreen
+3456,3465d3303
+< interfaz IdentityCredential
+<   IdentityCredential.disconnect
+<   IdentityCredential.prototype.isAutoSelected
+<   IdentityCredential.prototype.token
+< interfaz IdentityCredentialError
+<   IdentityCredentialError.prototype.code
+<   IdentityCredentialError.prototype.url
+< interfaz IdentityProvider
+<   IdentityProvider.close
+<   IdentityProvider.getUserInfo
+3469,3474d3306
+< interfaz IdleDetector
+<   IdleDetector.requestPermission
+<   IdleDetector.prototype.onchange
+<   IdleDetector.prototype.screenState
+<   IdleDetector.prototype.start
+<   IdleDetector.prototype.userState
+3478d3309
+<   Image.prototype.attributionSrc
+3496d3326
+<   Image.prototype.sharedStorageWritable
+3665d3494
+<   LaunchParams.prototype.files
+3866,3867d3694
+<   MathMLElement.prototype.onscrollsnapchange
+<   MathMLElement.prototype.onscrollsnapchanging
+3966d3792
+<   MediaMetadata.prototype.chapterInfo
+4057d3882
+<   MediaStreamTrack.prototype.stats
+4059,4069d3883
+< interfaz MediaStreamTrackAudioStats
+<   MediaStreamTrackAudioStats.prototype.averageLatency
+<   MediaStreamTrackAudioStats.prototype.deliveredFrames
+<   MediaStreamTrackAudioStats.prototype.deliveredFramesDuration
+<   MediaStreamTrackAudioStats.prototype.latency
+<   MediaStreamTrackAudioStats.prototype.maximumLatency
+<   MediaStreamTrackAudioStats.prototype.minimumLatency
+<   MediaStreamTrackAudioStats.prototype.resetLatency
+<   MediaStreamTrackAudioStats.prototype.toJSON
+<   MediaStreamTrackAudioStats.prototype.totalFrames
+<   MediaStreamTrackAudioStats.prototype.totalFramesDuration
+4076,4080d3889
+< interfaz MediaStreamTrackVideoStats
+<   MediaStreamTrackVideoStats.prototype.deliveredFrames
+<   MediaStreamTrackVideoStats.prototype.discardedFrames
+<   MediaStreamTrackVideoStats.prototype.toJSON
+<   MediaStreamTrackVideoStats.prototype.totalFrames
+4132a3942,3954
+> interfaz MutationEvent
+>   MutationEvent.ADDITION
+>   MutationEvent.MODIFICATION
+>   MutationEvent.REMOVAL
+>   MutationEvent.prototype.ADDITION
+>   MutationEvent.prototype.MODIFICATION
+>   MutationEvent.prototype.REMOVAL
+>   MutationEvent.prototype.attrChange
+>   MutationEvent.prototype.attrName
+>   MutationEvent.prototype.initMutationEvent
+>   MutationEvent.prototype.newValue
+>   MutationEvent.prototype.prevValue
+>   MutationEvent.prototype.relatedNode
+4220d4041
+<   Navigator.prototype.adAuctionComponents
+4225,4226d4045
+<   Navigator.prototype.canLoadAdAuctionFencedFrame
+<   Navigator.prototype.canShare
+4228d4046
+<   Navigator.prototype.clearOriginJoinedAdInterestGroups
+4230,4231d4047
+<   Navigator.prototype.connection
+<   Navigator.prototype.cookieDeprecationLabel
+4233d4048
+<   Navigator.prototype.createAuctionNonce
+4235,4237d4049
+<   Navigator.prototype.deprecatedReplaceInURN
+<   Navigator.prototype.deprecatedRunAdAuctionEnforcesKAnonymity
+<   Navigator.prototype.deprecatedURNToURL
+4244a4057
+>   Navigator.prototype.globalPrivacyControl
+4250d4062
+<   Navigator.prototype.joinAdInterestGroup
+4254d4065
+<   Navigator.prototype.leaveAdInterestGroup
+4256d4066
+<   Navigator.prototype.login
+4271d4080
+<   Navigator.prototype.protectedAudience
+4275d4083
+<   Navigator.prototype.runAdAuction
+4278d4085
+<   Navigator.prototype.serial
+4281d4087
+<   Navigator.prototype.share
+4283d4088
+<   Navigator.prototype.storageBuckets
+4285d4089
+<   Navigator.prototype.updateAdInterestGroups
+4301,4302d4104
+< interfaz NavigatorLogin
+<   NavigatorLogin.prototype.setStatus
+4417,4427d4218
+< interfaz NotRestoredReasonDetails
+<   NotRestoredReasonDetails.prototype.reason
+<   NotRestoredReasonDetails.prototype.toJSON
+< interfaz NotRestoredReasons
+<   NotRestoredReasons.prototype.children
+<   NotRestoredReasons.prototype.id
+<   NotRestoredReasons.prototype.name
+<   NotRestoredReasons.prototype.reasons
+<   NotRestoredReasons.prototype.src
+<   NotRestoredReasons.prototype.toJSON
+<   NotRestoredReasons.prototype.url
+4469,4470d4259
+< interfaz OTPCredential
+<   OTPCredential.prototype.code
+4601,4605d4389
+< interfaz PageRevealEvent
+<   PageRevealEvent.prototype.viewTransition
+< interfaz PageSwapEvent
+<   PageSwapEvent.prototype.activation
+<   PageSwapEvent.prototype.viewTransition
+4728,4734d4511
+< interfaz PerformanceLongAnimationFrameTiming
+<   PerformanceLongAnimationFrameTiming.prototype.blockingDuration
+<   PerformanceLongAnimationFrameTiming.prototype.firstUIEventTimestamp
+<   PerformanceLongAnimationFrameTiming.prototype.renderStart
+<   PerformanceLongAnimationFrameTiming.prototype.scripts
+<   PerformanceLongAnimationFrameTiming.prototype.styleAndLayoutStart
+<   PerformanceLongAnimationFrameTiming.prototype.toJSON
+4763d4539
+<   PerformanceNavigationTiming.prototype.notRestoredReasons
+4783d4558
+<   PerformanceResourceTiming.prototype.deliveryType
+4803,4814d4577
+< interfaz PerformanceScriptTiming
+<   PerformanceScriptTiming.prototype.executionStart
+<   PerformanceScriptTiming.prototype.forcedStyleAndLayoutDuration
+<   PerformanceScriptTiming.prototype.invoker
+<   PerformanceScriptTiming.prototype.invokerType
+<   PerformanceScriptTiming.prototype.pauseDuration
+<   PerformanceScriptTiming.prototype.sourceCharPosition
+<   PerformanceScriptTiming.prototype.sourceFunctionName
+<   PerformanceScriptTiming.prototype.sourceURL
+<   PerformanceScriptTiming.prototype.toJSON
+<   PerformanceScriptTiming.prototype.window
+<   PerformanceScriptTiming.prototype.windowAttribution
+4879d4641
+<   PointerEvent.prototype.persistentDeviceId
+4924,4934d4685
+< interfaz PressureObserver
+<   PressureObserver.knownSources
+<   PressureObserver.prototype.disconnect
+<   PressureObserver.prototype.observe
+<   PressureObserver.prototype.takeRecords
+<   PressureObserver.prototype.unobserve
+< interfaz PressureRecord
+<   PressureRecord.prototype.source
+<   PressureRecord.prototype.state
+<   PressureRecord.prototype.time
+<   PressureRecord.prototype.toJSON
+4961,4962d4711
+< interfaz ProtectedAudience
+<   ProtectedAudience.prototype.queryFeatureSupport
+5057d4805
+<   RTCIceCandidate.prototype.relayProtocol
+5063d4810
+<   RTCIceCandidate.prototype.url
+5160,5161d4906
+<   RTCRtpTransceiver.prototype.getHeaderExtensionsToNegotiate
+<   RTCRtpTransceiver.prototype.getNegotiatedHeaderExtensions
+5166d4910
+<   RTCRtpTransceiver.prototype.setHeaderExtensionsToNegotiate
+5295a5040
+>   RegExp.escape
+5323,5326d5067
+< interfaz ReportingObserver
+<   ReportingObserver.prototype.disconnect
+<   ReportingObserver.prototype.observe
+<   ReportingObserver.prototype.takeRecords
+5348d5088
+<   Request.prototype.targetAddressSpace
+5462d5201
+<   SVGClipPathElement.prototype.transform
+5568,5569d5306
+<   SVGElement.prototype.onscrollsnapchange
+<   SVGElement.prototype.onscrollsnapchanging
+6350a6088,6090
+> interfaz Sanitizer
+>   Sanitizer.getDefaultConfiguration
+>   Sanitizer.prototype.getConfiguration
+6353d6092
+<   Scheduler.prototype.yield
+6443,6458d6181
+< interfaz Serial
+<   Serial.prototype.getPorts
+<   Serial.prototype.onconnect
+<   Serial.prototype.ondisconnect
+<   Serial.prototype.requestPort
+< interfaz SerialPort
+<   SerialPort.prototype.close
+<   SerialPort.prototype.forget
+<   SerialPort.prototype.getInfo
+<   SerialPort.prototype.getSignals
+<   SerialPort.prototype.onconnect
+<   SerialPort.prototype.ondisconnect
+<   SerialPort.prototype.open
+<   SerialPort.prototype.readable
+<   SerialPort.prototype.setSignals
+<   SerialPort.prototype.writable
+6519a6243
+>   ShadowRoot.prototype.getInnerHTML
+6531,6544d6254
+< interfaz SharedStorage
+<   SharedStorage.prototype.append
+<   SharedStorage.prototype.clear
+<   SharedStorage.prototype.createWorklet
+<   SharedStorage.prototype.delete
+<   SharedStorage.prototype.get
+<   SharedStorage.prototype.run
+<   SharedStorage.prototype.selectURL
+<   SharedStorage.prototype.set
+<   SharedStorage.prototype.worklet
+< interfaz SharedStorageWorklet
+<   SharedStorageWorklet.prototype.addModule
+<   SharedStorageWorklet.prototype.run
+<   SharedStorageWorklet.prototype.selectURL
+6548,6550d6257
+< interfaz SnapEvent
+<   SnapEvent.prototype.snapTargetBlock
+<   SnapEvent.prototype.snapTargetInline
+6571,6580d6277
+< interfaz SpeechSynthesis
+<   SpeechSynthesis.prototype.cancel
+<   SpeechSynthesis.prototype.getVoices
+<   SpeechSynthesis.prototype.onvoiceschanged
+<   SpeechSynthesis.prototype.pause
+<   SpeechSynthesis.prototype.paused
+<   SpeechSynthesis.prototype.pending
+<   SpeechSynthesis.prototype.resume
+<   SpeechSynthesis.prototype.speak
+<   SpeechSynthesis.prototype.speaking
+6603,6608d6299
+< interfaz SpeechSynthesisVoice
+<   SpeechSynthesisVoice.prototype.default
+<   SpeechSynthesisVoice.prototype.lang
+<   SpeechSynthesisVoice.prototype.localService
+<   SpeechSynthesisVoice.prototype.name
+<   SpeechSynthesisVoice.prototype.voiceURI
+6619,6632d6309
+< interfaz StorageBucket
+<   StorageBucket.prototype.caches
+<   StorageBucket.prototype.estimate
+<   StorageBucket.prototype.expires
+<   StorageBucket.prototype.getDirectory
+<   StorageBucket.prototype.indexedDB
+<   StorageBucket.prototype.name
+<   StorageBucket.prototype.persist
+<   StorageBucket.prototype.persisted
+<   StorageBucket.prototype.setExpires
+< interfaz StorageBucketManager
+<   StorageBucketManager.prototype.delete
+<   StorageBucketManager.prototype.keys
+<   StorageBucketManager.prototype.open
+6803,6809d6479
+< interfaz TextFormat
+<   TextFormat.prototype.rangeEnd
+<   TextFormat.prototype.rangeStart
+<   TextFormat.prototype.underlineStyle
+<   TextFormat.prototype.underlineThickness
+< interfaz TextFormatUpdateEvent
+<   TextFormatUpdateEvent.prototype.getTextFormats
+6849,6854d6518
+< interfaz TextUpdateEvent
+<   TextUpdateEvent.prototype.selectionEnd
+<   TextUpdateEvent.prototype.selectionStart
+<   TextUpdateEvent.prototype.text
+<   TextUpdateEvent.prototype.updateRangeEnd
+<   TextUpdateEvent.prototype.updateRangeStart
+7074a6739,6740
+>   Uint8Array.fromBase64
+>   Uint8Array.fromHex
+7075a6742,6745
+>   Uint8Array.prototype.setFromBase64
+>   Uint8Array.prototype.setFromHex
+>   Uint8Array.prototype.toBase64
+>   Uint8Array.prototype.toHex
+7183d6852
+<   VisualViewport.prototype.onscrollend
+8430d8098
+<   WebGL2RenderingContext.prototype.drawingBufferFormat
+8432d8099
+<   WebGL2RenderingContext.prototype.drawingBufferStorage
+8592d8258
+< interfaz WebGLObject
+8779d8444
+<   WebGLRenderingContext.RGB8
+8782d8446
+<   WebGLRenderingContext.RGBA8
+9077d8740
+<   WebGLRenderingContext.prototype.RGB8
+9080d8742
+<   WebGLRenderingContext.prototype.RGBA8
+9241d8902
+<   WebGLRenderingContext.prototype.drawingBufferFormat
+9243d8903
+<   WebGLRenderingContext.prototype.drawingBufferStorage
+9411,9418d9070
+< interfaz WebSocketError
+<   WebSocketError.prototype.closeCode
+<   WebSocketError.prototype.reason
+< interfaz WebSocketStream
+<   WebSocketStream.prototype.close
+<   WebSocketStream.prototype.closed
+<   WebSocketStream.prototype.opened
+<   WebSocketStream.prototype.url
+9516,9517d9167
+<   XMLHttpRequest.prototype.setAttributionReporting
+<   XMLHttpRequest.prototype.setPrivateToken
+9740a9391
+> global __core-js_shared__ (object)
+9759d9409
+< global credentialless (boolean)
+9774d9423
+< global fence (object)
+9776d9424
+< global fetchLater (function)
+9874d9521
+< global onpagereveal (object)
+9876d9522
+< global onpageswap (object)
+9897,9898d9542
+< global onscrollsnapchange (object)
+< global onscrollsnapchanging (object)
+9926a9571
+> global openDatabase (function)
+9966,9969d9610
+< global sharedStorage (object)
+< global showDirectoryPicker (function)
+< global showOpenFilePicker (function)
+< global showSaveFilePicker (function)
+10006a9648
+> css -webkit-highlight
+10034d9675
+< css anchor-name
+10191d9831
+< css inset-area
+10196d9835
+< css interpolate-size
+10277,10281d9915
+< css position-anchor
+< css position-area
+< css position-try-fallbacks
+< css position-try-order
+< css position-visibility
+10339d9972
+< css text-spacing-trim
+10376c10009
+< selector :--x false
+---
+> selector :--x true
+10380,10381c10013,10014
+< selector :open false
+< selector ::details-content true
+---
+> selector :open true
+> selector ::details-content false
+10387c10020
+< comportamiento DOMParser includeShadowRoots: no
+---
+> comportamiento DOMParser includeShadowRoots: crea la sombra
+10389,10391c10022,10024
+< comportamiento eventos de mutación: no saltan
+< comportamiento originAgentCluster: true
+< comportamiento template shadowroot (antiguo): no
+---
+> comportamiento eventos de mutación: saltan
+> comportamiento originAgentCluster: false
+> comportamiento template shadowroot (antiguo): crea la sombra

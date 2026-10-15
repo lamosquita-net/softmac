@@ -1,0 +1,36 @@
+974a975,976
+> interfaz CookieDeprecationLabel
+>   CookieDeprecationLabel.prototype.getValue
+1730d1731
+<   Element.prototype.getInnerHTML
+1946a1948,1949
+> interfaz FetchLaterResult
+>   FetchLaterResult.prototype.activated
+4130,4142d4132
+< interfaz MutationEvent
+<   MutationEvent.ADDITION
+<   MutationEvent.MODIFICATION
+<   MutationEvent.REMOVAL
+<   MutationEvent.prototype.ADDITION
+<   MutationEvent.prototype.MODIFICATION
+<   MutationEvent.prototype.REMOVAL
+<   MutationEvent.prototype.attrChange
+<   MutationEvent.prototype.attrName
+<   MutationEvent.prototype.initMutationEvent
+<   MutationEvent.prototype.newValue
+<   MutationEvent.prototype.prevValue
+<   MutationEvent.prototype.relatedNode
+4240a4231
+>   Navigator.prototype.cookieDeprecationLabel
+6529d6519
+<   ShadowRoot.prototype.getInnerHTML
+9785a9776
+> global fetchLater (function)
+10390c10381
+< selector ::details-content false
+---
+> selector ::details-content true
+10398c10389
+< comportamiento eventos de mutación: saltan
+---
+> comportamiento eventos de mutación: no saltan
