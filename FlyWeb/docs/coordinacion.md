@@ -163,6 +163,16 @@ Al HUMANO se le llama Titín. Español, commits en inglés con Co-Authored-By de
 
 ## Textos de arranque pendientes
 
-Ninguno (15-10): MOTOR-9, SEGURIDAD-PORTES-2 y LOCAL-4 están activos y anotados; MOTOR-8 sigue solo para `block-ruby-003`.
-Los próximos textos de agentes locales, en un solo bloque, sin `/remote-control` (regla 13); en el paso 1, el agente
-comprueba sus repos y Remote Control.
+**MOTOR-11** (15-10, ~18:40; orden de Titín: el 131 empieza ya). Abrirla desde la app: nube, repos `softmac` y
+`brave-core` (con escritura), **Opus 5.5, esfuerzo extra (`xhigh`)**, y pegar:
+
+```
+Eres MOTOR de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-net/brave-core): MOTOR-11, relevo de MOTOR-10 (session_017osmPdTipjmbHoMeuQDeJ4). COORDINACIÓN es COORDINACIÓN-7, session_01Bd9Hw5nWqeXcgGZgMYtZ9n. Lee en este orden: CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–19, filas FM.20, FM.21 y FS.17), FlyWeb/docs/motor.md «Nivel 131» §1–§10, FlyWeb/docs/relevo-motor.md (relevo de MOTOR-10 a MOTOR-11, 15-10, ~18:35) y FlyWeb/tools/port/README.md.
+1. Comprueba con get_session tu modelo y esfuerzo, si tienes send_message y tus repos. Si no puedes escribir en brave-core, dilo en el mensaje de prueba.
+2. Anota tu id en la fila de MOTOR de docs/TAREAS.md (por PR; lo fusiona COORDINACIÓN) y manda un mensaje de prueba a COORDINACIÓN con send_message.
+3. Empieza el nivel 131 (FM.21) por donde dice el relevo: nube/motor-131 desde 303e498fb5 con seg/ml-kem fc0f45c433, paso de V8 13.1.201.22 y aviso a SEGURIDAD-PORTES-3 (session_01LKiaD9v2hcna6BUo6CfMBs). Mientras MOTOR-10 siga activa, los fallos de la 1.14 son suyos; cuando COORDINACIÓN la archive, pasan a ti.
+Al HUMANO se le llama Titín. Español, commits en inglés con Co-Authored-By de Claude. Estimaciones en horas de reloj; ids de commit comprobados con git ls-remote tras el push.
+```
+
+Cuando esté anotada y su mensaje de prueba llegue, COORDINACIÓN archiva MOTOR-10. Los próximos textos de agentes locales,
+en un solo bloque, sin `/remote-control` (regla 13).
