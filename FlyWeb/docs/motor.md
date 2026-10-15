@@ -1355,6 +1355,41 @@ Baseline del §2, incluidos los colores relativos sobre `currentcolor` (el porte
 - **(vi)** 4888675b6c9 en el 131 (solo DevTools).
 - **Orden:** el 131 empieza cuando LOCAL-4 entregue la 1.14.
 
+### 11. Portado (MOTOR-11, 15-10): brave-core `nube/motor-131`
+
+Sobre la 1.14 (`nube/escapes-seg-1.14.1` 303e498fb5) + `seg/ml-kem` fc0f45c433 (FS.17). Un commit por función; cada uno
+con `chk.sh` (los parches aplican sobre la 116; los de V8, sobre una 13.1.201.22 limpia) y, donde toca, `gencss.sh`.
+Lista de commits con su estado: `FlyWeb/tools/port/nivel131-commits.tsv`.
+
+| Commit | Qué | Upstream y adaptación |
+|---|---|---|
+| 2331bba696 | FS.17: `seg/ml-kem` fc0f45c433 | ML-KEM en TLS y QUIC (SEGURIDAD-PORTES-3), sin conflictos |
+| **9b19e7dafc** | Paso de V8: 13.1.201.22 (también `nube/motor-131-v8`) | §1; `module_record.cc` con `GetImportAttributes()` (el inventario no lo vio: `V8_DEPRECATED` + `-Werror`) |
+| 8ac23ca71a, 83308d0028 | FS.18: `seg/v8-13.1` 7b3c3e6cf5 y 364a9d554f | revisión del paso (época 16) y arreglo de compilación: fuera el parche de `wasm-objects.cc`, que usaba `wasm_to_js_generic_wrapper`, que ya no existe en la 13.1 (aplicaba limpio y no compilaba: **fallo mío del paso**, lo vio SEGURIDAD-PORTES-3); quedan 62 |
+| 57dda2531f | `::details-content`, cascada y `getComputedStyle()` con pseudoelementos | 18 commits; la cascada (9065c891224, 8a5bc8d0550, 951ace75914) en su forma final de la 131, a mano; `MatchResult` con el orden del árbol = índice del ámbito (idea de f4c890d7e6f, M118) |
+| 66a8436ed4 | colores relativos sobre `currentcolor` | **comportamiento de la 131 sobre el analizador de FlyWeb del 125**, no la serie de upstream (que rehace un `ColorFunctionParser` que FlyWeb no tiene): origen absoluto resuelto al analizar; si no, `CSSRelativeColorValue`, resuelto al calcular el estilo o, si el origen es `currentcolor`, al usarse. La puerta es la WPT de color completa frente a CfT 131 (decisión de COORDINACIÓN-6) |
+| f871534a91 | flags del §3, `@property <string>` y `SvgExternalResources` | 8 de las 10 flags de interoperabilidad; `BreakIteratorHyphenMinus` y `TextTransformAndSecurityFix` no aplican a la 116 (la 116 ya se comporta como el arreglo o no tiene el código); confirmación pedida a SEGURIDAD-PORTES-3 (FS.18) |
+| 1481da3472 | reserva de `<meter>` | `StyleUAShadowHostData` de 02492b88a85 sin su parte de `<img>`; reglas de `html.css` sin `@supports blink-feature()` |
+| f18bc09f0c | `MultiSmoothScrollIntoView` | 5 commits; de 621af243570 solo la firma de `ProgrammaticScrollHelper()` |
+| e2ed217536 | escapes del §6 y 4888675b6c9 | `CustomElementsGetName` y `DateInputInlineBlock` encendidas (el código de la 116 es el que publicó Chrome); 885747b4b60 (`style_adjuster.cc` a mano), 2623d401a2e, a451e490628, 1583e508e68 + 165b28d3f3e (`WebFeature` 4754), fb41d7f417e, aa36610ec66 (sin el enum de `ui/accessibility`: `insertLink` cuenta como `insertText` para la accesibilidad), 2ff15031068 y 4888675b6c9 sobre nuestro observador de `inspector_style_sheet.cc` |
+| **2f04e8614a** | declara 131 / 1.15 | 131.0.6778.265, `platformVersion` mínimo 11.7.10, `FLYWEB_BUILD_NUMBER` lo sube LOCAL. **Cabeza para LOCAL** |
+
+**Fuera de la 1.15: `PaintHighlightsForFirstLetter` (decisión de COORDINACIÓN-7, 15-10, ~19:36).** Su dependencia
+1660cb958aa (`MarkerRangeMappingContext`) da 25 *hunks* rechazados en `ng_highlight_painter.cc`/`.h`,
+`ng_highlight_overlay.cc` y `ng_ink_overflow.cc` sobre una base que ya tocó RubyLB: mucho riesgo en el pintado de la
+selección, que se ve en todas las páginas, para algo marginal (las marcas de buscar en la página, ortografía, gramática
+y resaltados no se pintan en la parte de `::first-letter`). Pasa a **FM.22** como porte propio, con su Static y su ASan.
+**WPT que por eso no coinciden con CfT 131: ninguna.** La única prueba de f30d9fddc4b es la interna de Blink
+`paint/markers/first-letter.html` (no WPT). Comprobado en la 131.0.6778.265: ninguna WPT de `css/css-highlight-api/` ni
+de `css/css-pseudo/` con resaltados, `target-text`, ortografía o selección usa `::first-letter` salvo
+`active-selection-025.html` y `-027.html`, que son de `::selection` (no son marcas) y tienen la misma expectativa en
+`TestExpectations` en la 116 y en la 131.
+
+Comprobación: `FlyWeb/tools/motor-131.html` (en un origen http(s); en Chromium 141 sale todo ok salvo la versión y la
+prueba de que `Float16Array` y `using` aún no existen, que salen en la 134–135) y `wpt-131-lista.txt` (42 entradas,
+con `css/css-color/`, `html/rendering/the-details-element/` y `html/semantics/forms/the-meter-element/` enteros).
+«Para la web» en `version-1.15.md`.
+
 ## Apuntado para niveles futuros
 
 - **143 — `onselectionchange` como atributo de elemento** (`<div onselectionchange=…>`, `setAttribute`): Chromium

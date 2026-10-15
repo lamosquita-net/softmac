@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 131 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 131 de FlyWeb 1.15 (brave-core nube/motor-131, V8 13.1).
+     Abrir en FlyWeb desde http://127.0.0.1 (JIT y Wasm solo se ven en un origen http(s)); no carga nada de fuera.
+     Cada línea dice ok o FALLO. Comparar con Chrome for Testing 131: lo que allí sale ok tiene que salir ok aquí,
+     salvo la versión declarada. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  /* ::details-content */
+  #det::details-content { color: rgb(0, 128, 0); }
+  /* getComputedStyle() con ::placeholder y ::file-selector-button */
+  #ph::placeholder { color: rgb(0, 0, 255); }
+  #fsb::file-selector-button { color: rgb(255, 0, 0); }
+  /* colores relativos sobre currentcolor */
+  #rc1 { color: rgb(0, 128, 0); background-color: rgb(from currentcolor r g b / 0.5); }
+  #rc1abs { background-color: rgb(from rgb(0, 128, 0) r g b / 0.5); }
+  #rcpadre { color: rgb(255, 0, 0); }
+  #rc2 { border: 1px solid; border-color: rgb(from currentcolor b g r); }
+  #rc2abs { border: 1px solid; border-color: rgb(from rgb(255, 0, 0) b g r); }
+  /* content-visibility: auto implica contain-intrinsic-size: auto */
+  #cv { content-visibility: auto; contain-intrinsic-size: 100px 50px; }
+  /* scrollIntoView suave en paralelo */
+  .sc { height: 6em; overflow: auto; border: 1px solid #888; width: 20em; }
+</style>
+</head>
+<body>
+<h1>Motor 131 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>A mano</h2>
+<ol>
+  <li>El medidor de abajo tiene <code>appearance: none</code>: tiene que verse una barra (gris con relleno verde) y
+    no desaparecer, como en Firefox, Safari y Chrome 131.</li>
+  <li>Seleccionar con el ratón el texto del recuadro de puntos (su <code>mousemove</code> llama a
+    <code>preventDefault()</code>): la selección tiene que seguir al ratón, como en Chrome 131.</li>
+  <li>Copiar la línea en mayúsculas («texto en minúsculas») y pegarla en el campo de al lado: tiene que pegarse en
+    minúsculas (<code>text-transform</code> no cuenta al copiar texto plano).</li>
+  <li>Pulsar «Pedir confirmación al salir» y recargar: FlyWeb tiene que preguntar antes de salir
+    (<code>preventDefault()</code> en <code>beforeunload</code>).</li>
+</ol>
+<p><meter id="met" style="appearance: none; width: 12em; height: 1em" min="0" max="1" value="0.6">0.6</meter></p>
+<div id="sel" style="border:1px dotted #888; width:20em; padding:.3em">Texto para seleccionar arrastrando el ratón.</div>
+<p><span style="text-transform: uppercase">texto en minúsculas</span> <input placeholder="pegar aquí"></p>
+<p><button id="bu">Pedir confirmación al salir</button></p>
+<details id="det" open><summary>resumen</summary>contenido</details>
+<input id="ph" placeholder="marcador"> <input id="fsb" type="file">
+<div id="rc1">rc1</div><div id="rc1abs">rc1abs</div>
+<div id="rcpadre"><div id="rc2">rc2</div></div><div id="rc2abs">rc2abs</div>
+<div id="cv">cv</div>
+<div id="ext" class="sc"><div style="height:3000px"></div>
+  <div id="int" class="sc"><div style="height:3000px"></div><div id="obj">objetivo</div><div style="height:6em"></div></div>
+  <div style="height:3000px"></div></div>
+<script>
+  const res = document.getElementById('res');
+  const pinta = (li, nombre, ok, nota) => { li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : ''); };
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li'); res.append(li); pinta(li, nombre, ok, nota);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    pinta(li, nombre, ok, nota);
+  };
+  const cs = (sel, prop, pseudo) => getComputedStyle(document.querySelector(sel), pseudo).getPropertyValue(prop);
+  document.getElementById('ua').textContent = navigator.userAgent;
+  document.getElementById('sel').addEventListener('mousemove', (e) => e.preventDefault());
+  document.getElementById('bu').onclick = () => {
+    addEventListener('beforeunload', (e) => e.preventDefault()); document.getElementById('bu').textContent = 'activado: recargar';
+  };
+
+  // ::details-content y <details> con cualquier display
+  prueba('::details-content: selector válido y estilo de autor (getComputedStyle)', () => {
+    const c = cs('#det', 'color', '::details-content'), d = cs('#det', 'display', '::details-content');
+    return { ok: CSS.supports('selector(details::details-content)') && c === 'rgb(0, 128, 0)' && d === 'block', nota: `${c}, ${d}` };
+  });
+  prueba('::details-content admite pseudoclases detrás, como ::part()', () =>
+    CSS.supports('selector(details::details-content:hover)') && !CSS.supports('selector(details::details-summary)'));
+  prueba('getComputedStyle() con ::placeholder y ::file-selector-button', () => {
+    const a = cs('#ph', 'color', '::placeholder'), b = cs('#fsb', 'color', '::file-selector-button');
+    return { ok: a === 'rgb(0, 0, 255)' && b === 'rgb(255, 0, 0)', nota: `${a} / ${b}` };
+  });
+
+  // Colores relativos sobre currentcolor
+  prueba('rgb(from currentcolor …) es válido', () =>
+    CSS.supports('color', 'rgb(from currentcolor r g b)') && CSS.supports('color', 'hsl(from currentcolor h s l / 50%)') &&
+    CSS.supports('color', 'rgb(from light-dark(red, blue) r g b)'));
+  prueba('rgb(from currentcolor …) vale lo mismo que con el color escrito', () => {
+    const a = cs('#rc1', 'background-color'), b = cs('#rc1abs', 'background-color');
+    return { ok: a === b && a !== 'rgba(0, 0, 0, 0)', nota: `${a} / ${b}` };
+  });
+  prueba('rgb(from currentcolor …) usa el color heredado', () => {
+    const a = cs('#rc2', 'border-top-color'), b = cs('#rc2abs', 'border-top-color');
+    return { ok: a === b, nota: `${a} / ${b}` };
+  });
+  prueba('Serialización: el valor especificado conserva currentcolor', () => {
+    const d = document.createElement('div'); d.style.color = 'rgb(from currentcolor r g b)';
+    return { ok: d.style.color === 'rgb(from currentcolor r g b)', nota: d.style.color };
+  });
+
+  // Flags del 131
+  prueba('@property con syntax "<string>"', () => {
+    CSS.registerProperty({ name: '--cadena-131', syntax: '<string>', inherits: false, initialValue: '"a"' });
+    return true;
+  });
+
+  // Escapes de niveles anteriores
+  prueba('customElements.getName() (Chrome 117)', () => {
+    class X extends HTMLElement {} customElements.define('x-motor-131', X);
+    return { ok: customElements.getName(X) === 'x-motor-131' && customElements.getName(class {}) === null,
+      nota: String(customElements.getName && customElements.getName(X)) };
+  });
+  prueba('content-visibility: auto implica contain-intrinsic-size: auto (Chrome 117)', () => {
+    const v = cs('#cv', 'contain-intrinsic-size'); return { ok: v === 'auto 100px auto 50px', nota: v };
+  });
+  pruebaAsync('Atributo de importación desconocido: error (Chrome 118)', async () => {
+    let e1 = null, e2 = null;
+    try { await import('data:text/javascript,export default 1', { with: { foo: 'x' } }); } catch (e) { e1 = e; }
+    try { await import('data:text/javascript,export default 2', { with: {} }); } catch (e) { e2 = e; }
+    return { ok: e1 instanceof TypeError && e2 === null, nota: e1 ? e1.message : 'no lanzó' };
+  });
+  prueba('SVGClipPathElement.transform y herencia de SVGElement', () => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
+    return { ok: c.transform instanceof SVGAnimatedTransformList && !(c instanceof SVGGraphicsElement) && c instanceof SVGElement,
+      nota: String(c.transform) };
+  });
+  prueba('<input type=date> es inline-block (Chrome 122)', () => {
+    const i = document.createElement('input'); i.type = 'date'; document.body.append(i);
+    const d = getComputedStyle(i).display; i.remove(); return { ok: d === 'inline-block', nota: d };
+  });
+  prueba('createLink da un evento input con inputType insertLink (Chrome 125)', () => {
+    const e = document.createElement('div'); e.contentEditable = 'true'; e.textContent = 'enlace'; document.body.append(e);
+    let tipo = '', dato = ''; e.addEventListener('input', (ev) => { tipo = ev.inputType; dato = ev.data; });
+    getSelection().selectAllChildren(e); document.execCommand('createLink', false, 'https://example.com/');
+    e.remove(); getSelection().removeAllRanges();
+    return { ok: tipo === 'insertLink' && dato === 'https://example.com/', nota: `${tipo} ${dato}` };
+  });
+
+  // scrollIntoView suave: los dos recuadros se mueven a la vez (MultiSmoothScrollIntoView)
+  pruebaAsync('scrollIntoView({behavior: "smooth"}) desplaza los recuadros anidados a la vez', async () => {
+    const ext = document.getElementById('ext'), int = document.getElementById('int');
+    // Con el secuenciador antiguo, primero se mueve uno y después el otro: nunca los dos en el mismo fotograma.
+    let juntos = 0, e0 = ext.scrollTop, i0 = int.scrollTop;
+    document.getElementById('obj').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t0 = performance.now();
+    while (performance.now() - t0 < 2000 && juntos < 3) {
+      await new Promise((r) => requestAnimationFrame(r));
+      if (ext.scrollTop !== e0 && int.scrollTop !== i0) juntos++;
+      e0 = ext.scrollTop; i0 = int.scrollTop;
+    }
+    return { ok: juntos >= 3, nota: `${juntos} fotogramas con los dos en marcha` };
+  });
+
+  // V8 13.1: nada nuevo sale (como Chrome 131)
+  prueba('V8 13.1: Float16Array y using siguen sin salir, como en Chrome 131', () => {
+    let usingOk = false; try { new Function('{ using x = null; }'); usingOk = true; } catch (e) { /* SyntaxError */ }
+    return { ok: typeof Float16Array === 'undefined' && !usingOk, nota: `Float16Array: ${typeof Float16Array}, using: ${usingOk}` };
+  });
+  prueba('Sigue como en la 1.14: sin WebSQL ni eventos de mutación', () =>
+    typeof openDatabase === 'undefined' && typeof MutationEvent === 'undefined');
+
+  // JIT y WebAssembly en un origen web
+  const enWeb = location.protocol === 'http:' || location.protocol === 'https:';
+  prueba('WebAssembly en un origen http(s)', () => ({ ok: enWeb && typeof WebAssembly === 'object',
+    nota: enWeb ? `typeof WebAssembly: ${typeof WebAssembly}` : `abrir desde http://127.0.0.1 (ahora ${location.protocol})` }));
+  prueba('JIT en un origen http(s): bucle de 5e7 vueltas en menos de 600 ms', () => {
+    const t0 = performance.now(); let s = 0;
+    for (let i = 0; i < 5e7; i++) s = (s + i) | 0;
+    const ms = Math.round(performance.now() - t0);
+    return { ok: enWeb && ms < 600, nota: `${ms} ms (con JIT ~200–250 ms; sin JIT ~1150 ms)` +
+      (enWeb ? '' : `; abrir desde http://127.0.0.1 (ahora ${location.protocol})`) };
+  });
+
+  // Versión declarada
+  prueba('User-Agent declara Chrome/131', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '131', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+  pruebaAsync('Client hints: 131.0.6778.265 y macOS ≥ 11 (Chrome 131 no existe en 10.15)', async () => {
+    const h = await navigator.userAgentData.getHighEntropyValues(['uaFullVersion', 'platformVersion']);
+    const mayor = parseInt(h.platformVersion, 10);
+    return { ok: h.uaFullVersion === '131.0.6778.265' && mayor >= 11, nota: `${h.uaFullVersion}, macOS ${h.platformVersion}` };
+  });
+</script>
+<p>ML-KEM (FS.17) no se ve desde una página: lo comprueba LOCAL con JA4 frente a CfT 131. Fuera de la 1.15 (motivo en
+<code>FlyWeb/docs/motor.md</code>, «Nivel 131»): <code>PaintHighlightsForFirstLetter</code> (las marcas de buscar,
+ortografía y resaltados no se pintan en la letra de <code>::first-letter</code>; pasa a FM.22).</p>
+</body>
+</html>
