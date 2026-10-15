@@ -22,9 +22,10 @@ técnico: `motor.md`, «Nivel 130», §12; commits: `FlyWeb/tools/port/nivel130-
 | Seguridad | FS.14 (V8 13.0, época 15; claves de `TransferList`) y FS.15: un iframe con `sandbox` sin `allow-popups` ya no abre pestañas sin *sandbox* con un clic sintético con Ctrl/Cmd (fd7c878da2, crbug 544197473) |
 | Interruptor de emergencia del JIT | **desde la V8 13.0, sin JIT no hay WebAssembly** (`jitless` apaga `expose_wasm`, como en Chrome 130). Quien apague el JIT por política (`DefaultJavaScriptJitSetting` = 2) pierde también Wasm en esas webs |
 | Superficie, como Chrome 130 | fuera `Sanitizer`/`setHTML()` (los de 2022), `GPUCommandEncoder.writeTimestamp()`, `-webkit-highlight` y `:open`/`:closed`; fuera los polyfills de core-js; dentro las interfaces `SpeechSynthesis` y `SpeechSynthesisVoice` |
-| Fuera, con motivo | `PseudoElementsCorrectInGetComputedStyle`, `PaintHighlightsForFirstLetter`, estilos de reserva de `<meter>` y `MultiSmoothScrollIntoView` (dependen de código posterior a la 116; propuesta: 131); `ShapeOutsideWritingModeFix` y `TextInputNotAlwaysDirAuto` (decisión v); lo no Baseline |
+| Fuera, con motivo | `PseudoElementsCorrectInGetComputedStyle`, `PaintHighlightsForFirstLetter`, estilos de reserva de `<meter>` y `MultiSmoothScrollIntoView` (dependen de código posterior a la 116; van al 131, aprobado por COORDINACIÓN-6); `ShapeOutsideWritingModeFix` y `TextInputNotAlwaysDirAuto` (decisión v); lo no Baseline |
 | Condicional | `getInnerHTML()` apagado (c5a094a9ab) **se revierte si CfT 130 lo expone** (lo mira LOCAL-4) |
-| Pendiente de decisión | Web Share en Mac (Chrome lo encendió en la 129; no es Baseline) y el código ALPS (F4.8, con los JA4 de LOCAL-4) |
+| Diferencia conocida con Chrome 130 | **sin Web Share** (`navigator.share`/`canShare`): Chrome lo encendió en Mac en la 129, pero no es Baseline y nunca se ha probado en Mojave (decisión de COORDINACIÓN-6, principio 2; se revisa cuando sea Baseline). Brave quita además, a propósito, `navigator.connection`, File System Access y Web Serial |
+| Pendiente de datos | el código ALPS (F4.8, con los JA4 de LOCAL-4 frente a CfT 130) |
 | Comprobación | `FlyWeb/tools/motor-130.html` y `fastapi-129.html` (con JIT y Wasm en un origen http(s), nunca en `about:blank`), `wpt-130-lista.txt` (35), `regexp-130.html` (FS.14, en la 5,1) y `sandbox-popups.html` (FS.15) |
 
 ## Para la web

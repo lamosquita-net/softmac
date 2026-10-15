@@ -1134,7 +1134,7 @@ aplican sobre la 116: 127, más los de V8 contra la 13.0.245.25) y, donde toca, 
 | 8645de1731 | interfaces `SpeechSynthesis` y `SpeechSynthesisVoice` | a918a37bec1 (121): la 116 las tenía como `LegacyNoInterfaceObject`. Sin función nueva; el *farbling* de voces de Brave sigue |
 | 0fed65e758, **ccc74ea171** | FS.15 `seg/popup-sandbox` 1825a087d0 y `seg/v8-13.0` d6b66b7994 (SEGURIDAD-PORTES-3) | fd7c878da2 (crbug 544197473): un iframe con `sandbox` sin `allow-popups` ignora los modificadores de un clic sintético; los resultados de d8 en `FLYWEB-SECURITY.md`. **Cabeza final de la 1.14** |
 
-**Fuera de la 1.14, con motivo (propuesta: 131).** Cuatro flags que el inventario daba por «limpias o casi» dependen de
+**Fuera de la 1.14, con motivo (al 131, aprobado por COORDINACIÓN-6).** Cuatro flags que el inventario daba por «limpias o casi» dependen de
 código posterior a la 116, y la medida de hunks no lo ve (aplican, pero no compilan):
 `PseudoElementsCorrectInGetComputedStyle` (necesita `kPseudoIdPlaceholder` y `kPseudoIdFileSelectorButton`),
 `PaintHighlightsForFirstLetter` (`MarkerRangeMappingContext`), los estilos de reserva de `<meter>`
@@ -1151,7 +1151,7 @@ accesibilidad 8ddae9aa1fb tampoco.
 | Web Serial | Brave: `Serial` apagada en `brave_content_renderer_client.cc` | sigue fuera |
 | Storage Access | Brave (`kPermissionStorageAccessAPI`) y decisión del nivel 119 | sigue fuera |
 | interfaces `SpeechSynthesis`/`SpeechSynthesisVoice` | **nuestro**: la 116 no las expone (`speechSynthesis` sí estaba) | **dentro** (8645de1731) |
-| `navigator.share`/`canShare` | **Chromium**: Chrome lo encendió en Mac en la **129** (52c8632e39b, `chrome/common`); entre la 116 y la 129 solo hay un arreglo funcional (06bbfc17caa, archivos en disco) | **decisión**: no es Baseline (Firefox de escritorio no lo tiene) y nunca se probó en Mojave. Recomiendo dejarlo fuera; si entra, son la flag y 06bbfc17caa, y una prueba de LOCAL en la 6,1 |
+| `navigator.share`/`canShare` | **Chromium**: Chrome lo encendió en Mac en la **129** (52c8632e39b, `chrome/common`); entre la 116 y la 129 solo hay un arreglo funcional (06bbfc17caa, archivos en disco) | **fuera** (COORDINACIÓN-6, 15-10; principio 2): no es Baseline (Firefox de escritorio no lo tiene) y nunca se probó en Mojave. Diferencia conocida en `version-1.14.md`; se revisa cuando sea Baseline (son la flag y 06bbfc17caa, más una prueba de LOCAL en la 6,1) |
 
 **Lección (otra de Menlo):** el barrido de `base::Feature` del §4 miró `net`, `services/network`, `content` y Blink, y
 Web Share está en `chrome/common/chrome_features.cc`. Barrido ahora ese fichero entre la 116 y la 130: además de Web
