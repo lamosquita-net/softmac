@@ -17,7 +17,9 @@ css/css-text/parsing/white-space-shorthand-text-wrap.html
 webrtc-extensions/transfer-datachannel.html
 html/semantics/popovers/togglePopover.html
 html/semantics/popovers/popover-attribute-basic.html
-css/css-contain/container-queries/style-container-for-shadow-dom.html
+css/css-conditional/container-queries/style-container-for-shadow-dom.html
+css/css-conditional/container-queries/container-for-shadow-dom.html
+css/css-conditional/container-queries/container-units-shadow.html
 css/css-shadow-parts/pseudo-classes-after-part.html
 css/css-shadow-parts/pseudo-elements-after-part.html
 editing/other/br-tag-not-added-with-inline-root-editable-element.html

@@ -25,7 +25,7 @@ relative-color-currentcolor	a7fccf6b808	2024-09-24	main	portado 66a8436ed4 (comp
 relative-color-currentcolor	175d1e860fb	2024-10-14	main	no portado: maquinaria de calc() de upstream; FlyWeb usa su analizador del 125 (66a8436ed4)	149/59 (serie)	Don't convert intermediate relative colors out of legacy RGB
 flag-CSSAtPropertyStringSyntax	8ef3ec8c032	2024-08-30	main	portado f871534a91	8/3	[@property] Support <string> syntax
 flag-CSSAtPropertyStringSyntax	11de2beffb6	2024-09-18	main	portado f871534a91	8/3	Switch CSSAtPropertyStringSyntax runtime flag to stable
-flags-131-interop	a74ffca5520	2024-10-08	main	no aplica a la 116 (sin vía rápida por encima de U+007F); confirmación pedida a SEGURIDAD-PORTES-3	40/14 (10 commits)	[break-iterator] Make U+002D more context dependent
+flags-131-interop	a74ffca5520	2024-10-08	main	no aplica a la 116 (sin vía rápida por encima de U+007F); confirmado por SEGURIDAD-PORTES-3 (FS.18)	40/14 (10 commits)	[break-iterator] Make U+002D more context dependent
 flags-131-interop	cdd39e79efc	2024-10-10	main	portado f871534a91	40/14 (10 commits)	[Editing] Incorrect calculation of previous position
 flags-131-interop	77147f8ac66	2024-09-24	main	portado f871534a91	40/14 (10 commits)	finder: Fix a bug on decomposed queries
 flags-131-interop	91379783ec7	2024-09-24	main	portado f871534a91	40/14 (10 commits)	finder: Skip Text nodes without LayoutObjects
@@ -34,7 +34,7 @@ flags-131-interop	d04e13c6871	2024-10-11	main	portado f871534a91	40/14 (10 commi
 flags-131-interop	3561ed8aa28	2024-10-01	main	portado f871534a91	40/14 (10 commits)	[initial-letter] Fix positioning for raised/sunken initial letters
 flags-131-interop	1fea2fe8c97	2024-10-16	main	portado f871534a91	40/14 (10 commits)	Always add new line box for content pushed down by float.
 flags-131-interop	1e4c5f5101d	2024-10-14	main	portado f871534a91	40/14 (10 commits)	Use selection focus for caret position while navigating using arrow keys
-flag-TextTransformAndSecurityFix	45cfc7335f9	2024-12-06	rama M131	no aplica a la 116 (sin TextOffsetMap(map12, map23)); confirmación pedida a SEGURIDAD-PORTES-3	6/4	Merge "Layout: Fix a crash with tex-transform and -webkit-text-security" to M131 branch
+flag-TextTransformAndSecurityFix	45cfc7335f9	2024-12-06	rama M131	no aplica a la 116 (sin TextOffsetMap(map12, map23)); confirmado por SEGURIDAD-PORTES-3 (FS.18)	6/4	Merge "Layout: Fix a crash with tex-transform and -webkit-text-security" to M131 branch
 flag-SvgExternalResources	5e5a9e44286	2024-09-25	main	portado f871534a91	25/6	Support SVG resource documents for additional properties
 flag-SvgExternalResources	1cdb2f557b7	2024-10-11	main	portado f871534a91	25/6	Mark SvgExternalResources stable
 aplazado-PseudoElementsCorrectInGetComputedStyle	a97d3e46b05	2024-03-08	main	portado 57dda2531f	45/10 (cadena)	Fix getComputedStyle parsing with pseudo-element+argument to match spec
