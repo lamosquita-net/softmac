@@ -874,6 +874,15 @@ Comparados `chrome/app/resources/locale_settings*.grd`, las preferencias web (`p
 - **Sin cambios de fuentes por defecto ni de TLS** (Kyber sigue; ML-KEM es de la 131). `PrefsFontList` solo pasa a
   permanente en la 130; la lista japonesa de fuente fija y `kPrefsFontList` los lleva MOTOR-8 en `nube/ruby-003`
   aa52bd0a60 (`block-ruby-003`), que entra en la base del 130 si LOCAL-4 lo confirma.
+- **Barrido de fuentes y preferencias 117–130** (lo pidió COORDINACIÓN-6): en `locale_settings_mac.grd` solo cambian
+  dos cosas, la monoespaciada general (Courier → Menlo, 47c2f9b983b, nivel 118; en la 1.13) y la japonesa (Osaka-Mono →
+  «,Osaka,BIZ UDGothic,Menlo», niveles 127–128; `nube/ruby-003`); `locale_settings.grd` solo cambia en ChromeOS; los
+  valores por defecto de `WebPreferences` en Mac son los mismos (77d1c7a4af3 solo los mueve a la cabecera). La cadena
+  japonesa completa de upstream es c20e7d470d0, 4a7040197a4, 4fb67a95bdf, ce78dbafb47, **fff00651a17** (Blink:
+  `GenericFontFamilySettings` pasa «Osaka» a «Osaka-Mono» en `monospace`; sin él, con Osaka instalada, la monoespaciada
+  japonesa sería la proporcional), 663e2da6e4b y 6e966707997 (las dos cambian también
+  `platform_locale_settings/locale_settings_mac_ja.xtb`, que manda con la interfaz en japonés) y 2888995d9c6. Hay que
+  comprobar que `nube/ruby-003` lleve fff00651a17 y las `_ja.xtb`; no he podido mirarlo (sin brave-core).
 - **`data:` URL: se conserva el espacio en blanco en las que no son base64** (`KeepWhitespaceForDataUrls`,
   34b6c2b36e8; como Firefox y Safari y la especificación de Fetch). Propongo portarlo: solo `net/base/data_url.cc` y la
   `base::Feature`, sin la política de empresa (16/3; horas).
