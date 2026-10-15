@@ -1,3 +1,48 @@
+# Relevo de MOTOR: de MOTOR-9 a MOTOR-10 (15-10-2026, ~15:50)
+
+MOTOR-9 (`session_01A2ekckH79a4mrqqLCyERtY`, Opus 5.5, `xhigh`) hizo el inventario del nivel 130 (FM.20) pero no
+llegó a portar nada: la sesión no pudo escribir en brave-core. **Todo lo decidido está en `motor.md` «Nivel 130»
+§1–§11 y en la fila FM.20.** Aquí va solo lo que no está allí.
+
+- **Base de `nube/motor-130`: `nube/ruby-003` 0c95523439** (aprobada por LOCAL-4). Sale directamente de la 1.13
+  (325686916c) y ya lleva la fuente fija japonesa completa (fff00651a17 y las `_ja.xtb`).
+- **Preparado para brave-core** en `FlyWeb/tools/port/nivel130/`:
+  - `fast_float-revision` va a `FlyWeb/fast_float-revision` de brave-core.
+  - `fast_float/BUILD.gn` y `fast_float/README.chromium` van como parches de fichero nuevo
+    (`patches/third_party-fast_float-BUILD.gn.patch` y `…-README.chromium.patch`).
+  - `gin-opcion-b.diff` es el cambio contra la 116. Se junta con los parches de gin que ya hay, que no tocan
+    `GetForegroundTaskRunner`, y el `.patch` se rehace con el área (`mkws.sh` + `generar.sh`).
+  - `build.sh` de `main` ya trae `fast_float`; LOCAL-4 lo probó.
+- **Esperando a LOCAL-4** (está en su cola), antes de cerrar la lista de apagados:
+  - `getInnerHTML()` en CfT 130;
+  - `document.domain` en CfT 129;
+  - JA4 frente a CfT 129 y 130 para el código ALPS;
+  - la primera pasada de `superficie.html`, 1.13 frente a CfT 129.
+- **`version-1.14.md`** está por crear. En «Para la web» tiene que decir: «WebSQL ya no existe, como en Chrome desde la
+  119» (COORDINACIÓN-6).
+- **Avisos al empezar el paso de V8:** a SEGURIDAD-PORTES-2 (`session_01YPgb1ubsQCorSgZWaRVgoF`, FS.14) y a
+  COORDINACIÓN-6. Lo que FS.14 tiene que revisar está en §1 y §7.
+- **Entorno, ~1 h:**
+  - Historia de Chromium sin blobs en `/tmp/claude-0/port/chromium/chromium`, con las cabezas de rama de la 116 a la
+    133 (las de la 117–125 y 131–133, en `heads*.txt`).
+  - Copias parciales con `mkcr.sh` de la 116, la 129 y la 130.
+  - V8 sin blobs y `git worktree` de 12.9.202.28 y 13.0.245.25: para buscar, nunca `git grep` sobre el clon sin blobs.
+  - `npm install web-features @mdn/browser-compat-data` y `pip install json5`.
+  - brave-core en lectura se clona sin credenciales (es público). Para escribir hace falta `add_repo` con `push`, y
+    se clona en otra ruta (`/home/user/brave-core`). `medirng.sh` usa `BC=<ruta>/patches`.
+- **Trampas que se repitieron:**
+  - `pkill -f` con un patrón que sale en el propio comando mata la shell (me pasó otra vez): matar por PID.
+  - En una tubería, `$(…)` se evalúa antes de que termine el comando de la izquierda.
+  - `medir.sh` contaba un rechazo de más por cada fichero con rechazos (ya corregido).
+  - Copiar la unidad de estimación de otro inventario sin compararla con el tiempo real (§11).
+- **Mediciones de MOTOR-9** (`get_session`, de 07:42 a 13:45 UTC, con esperas): salida 217 k, caché leída 97 M,
+  escrita 1,09 M, 32,5 USD, contexto al 66 %. Retrabajo:
+  - la estimación en «días» (corregida a horas);
+  - `MutationEvents`: lo di por no escapado mirando solo el código, y Finch lo apagó en la 127;
+  - las medidas sobre la 116 sola, rehechas en cuanto hubo brave-core.
+
+---
+
 # Relevo de MOTOR: de MOTOR-8 a MOTOR-9 (preparada el 14-10-2026, ~22:50; MOTOR-8 sigue hasta que COORDINACIÓN lo releve)
 
 MOTOR-8 (`session_01YAuwa2BsTVR6GZqzr1wtex`, esfuerzo extra) lleva el nivel 129 (FM.19) hasta la entrega de
