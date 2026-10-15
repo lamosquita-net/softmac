@@ -170,4 +170,27 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   CfT N o un cambio del código poco después. La comprobación de verdad es `FlyWeb/tools/superficie.html` en FlyWeb y en
   CfT N, comparando los dos ficheros con `diff` (motor.md «Nivel 130» §10).
 
+## Lecciones del porte del 130 (MOTOR-10)
+
+- **Ayudantes nuevos:** `syncf.sh <área> <fichero>…` (vuelve a poner en el área un fichero de la 116 + el parche
+  *actual* de brave-core), `commitarea.sh <área> <mensaje>` (commit del área, `generar.sh`, commit en brave-core y
+  `chk.sh` de lo cambiado; `TRAILER` con las líneas de atribución), `doflag.sh <área> "<Flag[:status]>…" <mensaje>`
+  (flags + `commitarea.sh`) y `edits.py <área> <json>` (reemplazos exactos, cada uno una sola vez, o falla).
+- **Orden de las áreas:** un área se monta con los parches que haya en ese momento. Si se monta antes del commit de
+  otra que toca el mismo fichero compartido (`runtime_enabled_features.json5`, las listas `.gni`,
+  `element_rule_collector.cc`…), `generar.sh` pisa el cambio anterior. Montar cada área después del commit de la
+  anterior, o pasar `syncf.sh` por los compartidos antes de generar.
+- **Las medidas «2/0» no ven dependencias:** cuatro flags que aplicaban casi limpias usaban tipos o funciones
+  posteriores a la 116 (`kPseudoIdPlaceholder`, `MarkerRangeMappingContext`, `StyleUAShadowHostData`,
+  `SetScrollOffset` con `bool`). Antes de prometer una flag, buscar en la 116 cada símbolo nuevo que use el diff.
+- **El generador de la 116 ordena los enums de palabras clave por id** (y no tiene `kMaxEnumValue`): un enum nuevo
+  puede salir con otro orden que en upstream. Si el código mete el enum en un campo de bits o lo compara con otro
+  (`white-space` y `text-wrap-mode`), fijar los valores a mano.
+- **`addflag.py` inserta sin distinguir mayúsculas**, como el orden del json5; una flag mal colocada no rompe el
+  generador, pero sí el siguiente parche que toque al lado.
+- **Barrido de `base::Feature`:** incluir `chrome/common/chrome_features.cc` (Web Share en Mac, 129, se escapó por no
+  estar ahí).
+- **`git apply` sin parche lee la entrada estándar** y se queda esperando: comprobar que la lista no esté vacía.
+  `git log -S` en el clon sin *blobs* tarda horas; usar `--grep` o la ruta.
+
 - `llevar.sh`: lleva commits de LOCAL a una rama `nube/*` y la fusiona en otra, sin checkout (ver `FlyWeb/docs/coordinacion.md`).

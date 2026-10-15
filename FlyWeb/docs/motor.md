@@ -774,7 +774,7 @@ generadores de Blink (`gencss.sh` para flags y el generador de *bindings*):
 Comprobación: `FlyWeb/tools/motor-129.html` (en Chromium 141 da ok todo lo que no es la versión declarada),
 `fastapi-129.html` (11/11 en Chromium 141) y `wpt-129-lista.txt` (27). «Para la web» en `version-1.13.md`.
 
-## Nivel 130 (inventario, 15-10, MOTOR-9; nada portado → FlyWeb 1.14)
+## Nivel 130 (en código, 15-10, MOTOR-10; pendiente de compilar → FlyWeb 1.14)
 
 Inventario de FM.20, **para decidir COORDINACIÓN antes de portar**. Fuentes: web-features 3.42.0 + BCD 8.1.5
 (`baseline-nivel.js 130`), flags de `runtime_enabled_features.json5` entre la **129.0.6668.112** y la **130.0.6723.192**
@@ -1107,6 +1107,58 @@ en horas de reloj y se comparan, partida a partida, con el último nivel ya entr
 muchos portes que crean ficheros (`async_iterable.cc`…). Al volver a una rama sin el parche, `BUILD.gn` y
 `README.chromium` desaparecen. Solo se queda `src/third_party/fast_float/src`, que sin `BUILD.gn` nadie usa. LOCAL-4 lo
 comprueba una vez al cambiar de rama en su primera compilación del 130.
+
+### 12. Portado (MOTOR-10, 15-10): brave-core `nube/motor-130`
+
+Sobre `nube/motor-129` 325686916c + `nube/ruby-003` 0c95523439. Un commit por función; cada uno con `chk.sh` (los parches
+aplican sobre la 116: 127, más los de V8 contra la 13.0.245.25) y, donde toca, con `gencss.sh`, el generador de
+*bindings*, `check_generated_file_list` y `validate_web_idl`. Herramientas nuevas en `FlyWeb/tools/port/README.md`.
+
+| Commit | Qué | Upstream y adaptación |
+|---|---|---|
+| **a7b5f3f4aa** | Paso de V8: 13.0.245.25 (también `nube/motor-130-v8`) | `v8re.sh`: 62 parches; fuera por estar ya en la 13.0 los 8 del §1 más `builtins-object-gen.cc` y `wasm/wrappers.cc`; a mano `ic.cc` (comentarios), `js-to-wasm.tq` y `wasm-to-js.tq` (`check()` con el nombre `data` de upstream) y `builtins-wasm-gen.cc` (CVE-2026-87491 antes del nuevo `undef-code-stub-assembler-macros.inc`). gin opción B (`GetForegroundTaskRunner(isolate, priority)` devuelve el mismo *runner*). `fast_float-revision` + `BUILD.gn`/`README.chromium` como parches de fichero nuevo |
+| 6e190602bf | *nested declarations* | estado final de la 130: los 7 del §2 más **9aaf19c456c, 4988a26f3a1 y 4b38c7c215f** (no estaban en el inventario: arreglos del CSSOM y del inspector posteriores a la serie). Sobre el analizador por `CSSParserTokenRange` de la 116; `Reparent` → `ReplaceSelectorList`; `frame_serializer.cc` recoge las propiedades en vez de leer `cssRules` nulo (fallo de upstream con la regla nueva) |
+| 79dd7cef3c | `text-wrap` abreviatura | ee5d3f203d9. El generador de la 116 ordena los enums por id de palabra clave (`kNowrap` = 0), así que `white_space.h` lleva un bit explícito «sin corte» para que `EWhiteSpace::kNormal` siga en 0 (campo de 1 bit). `kTextWrapMode` = 805 y `kTextWrapStyle` = 806 en `css_property_id.mojom` |
+| 6197cba436 | `RTCDataChannel` transferible | 6e640199859, e112b3ea554 y 1f5f2853635 a mano sobre el Blob del 129 (*thread checker* de la 116, `RegisterObserver` diferido, `CHECK(!was_transferred_)` al enviar); etiqueta de serialización `'p'`. Claves de `TransferList`/`Attachment` con dirección única en **e8c575a07f** (FS.14, crbug 511006880) |
+| 60cbc4afdd | `togglePopover({force})` y `showPopover(options)` | parte de 8010721fc51: diccionarios nuevos; `source`/`invoker` se analiza y se ignora, como la 130 sin `PopoverAnchorRelationships` |
+| cbf130398e … c53e604ee6 | 8 flags | `PopoverDialogNewFocusBehavior`, `RemoveCollapsedPlaceholder`, `ResetInputTypeToNoneBeforeCharacterInput`, `RootElementWithPlaceHolderAfterDeletingSelection`, `StricterCellWidthContentSizeQuirk`, `CSSFlatTreeContainer`, `PointerEventTargetsInEventLists` y `CSSPartAllowsMoreSelectorsAfter` (`IsAllowedAfterPart` de la 130 filtrado a los tipos de la 116) |
+| d7518d129e | `KeyboardFocusableScrollers` | el comportamiento final de la 130 sin el enum de tres estados de 199d1a77501: `IsKeyboardFocusable()` acepta un *scroller* sin hijos enfocables (o ya enfocado), `IsFocusable()` también; el ratón sigue con `IsMouseFocusable()`. 3 ficheros (`element.cc`, `mouse_event_manager.cc` y la flag) en vez de 55. **LOCAL: pruebas de foco a mano** (formularios, `dialog`, *popover*) |
+| 0b19c68a77 | espacios en `data:` URL | 34b6c2b36e8, sin la política |
+| e35b106150 … c5a094a9ab | apagados del §9–§10 | WebSQL (`Database` → `test`, `kWebSQLAccess` apagado), `PrefixedVideoFullscreen` → `test`, `CSSCustomStateDeprecatedSyntax`, `MutationEvents`, `DeprecatedNonStreamingDeclarativeShadowDOM` y `DOMParserIncludeShadowRoots` (flags nuevas apagadas en `html_tree_builder.cc` y `dom_parser.cc`), `getInnerHTML()` (flag `ElementGetInnerHTML` apagada; **se revierte si CfT 130 lo expone**) |
+| f2a06dcfc9 | `OriginAgentClusterDefaultEnable` encendido | `blink::features`, como ead63e18b24 |
+| **bf596e40df** | declara 130 / 1.14 | 130.0.6723.117, `platformVersion` mínimo 11.7.10, `FLYWEB_BUILD_NUMBER` lo sube LOCAL |
+| 59a9752614, 171b37e5e4 | FS.14: `seg/v8-13.0` 064323b537 y `seg/transfer-keys` 1df157fca7 | 91343bb4 y 924c1a79 (V8), época 15, `FLYWEB-SECURITY.md`; las 9 claves de la 116 con dirección única |
+| 4caf11c4f6 | ORB v0.2 (FS.14) | fd38f4bbd62 (limpio) y el valor de fb43ec7b49a (122): bloqueo = error de red salvo en *fetch* de script |
+| 37976248c3 | fuera los polyfills de core-js | decisión de COORDINACIÓN-6: con la V8 13.0 lo Baseline que cubrían es nativo y lo que quedaba (`RegExp.escape`, base64 de `Uint8Array`) no existe en Chrome 130. Fuera el observador, la `base::Feature`, el recurso de 50 KB y su entrada de `about:credits`; el generador de softmac `FlyWeb/polyfills/` queda como histórico |
+| 4d6a8d5f60 | superficie que Chrome 130 no expone | `Sanitizer`/`setHTML()` tras `SanitizerAPI` (a24f025d3c3, 119), `writeTimestamp()` tras `WebGPUDeveloperFeatures` (feec40a09c3, 121; la 130 usa `WebGPUExperimentalFeatures`, que la 116 no tiene), `-webkit-highlight` quitada (d9ba00bd859, 117) y `:open`/`:closed` tras `HTMLSelectMenuElement` (0a36b431edd, 122; la 130 usa `CSSPseudoOpenClosed`). Los cuatro, restos de la 116 |
+| 8645de1731 | interfaces `SpeechSynthesis` y `SpeechSynthesisVoice` | a918a37bec1 (121): la 116 las tenía como `LegacyNoInterfaceObject`. Sin función nueva; el *farbling* de voces de Brave sigue |
+
+**Fuera de la 1.14, con motivo (propuesta: 131).** Cuatro flags que el inventario daba por «limpias o casi» dependen de
+código posterior a la 116, y la medida de hunks no lo ve (aplican, pero no compilan):
+`PseudoElementsCorrectInGetComputedStyle` (necesita `kPseudoIdPlaceholder` y `kPseudoIdFileSelectorButton`),
+`PaintHighlightsForFirstLetter` (`MarkerRangeMappingContext`), los estilos de reserva de `<meter>`
+(`StyleUAShadowHostData`) y `MultiSmoothScrollIntoView` (`SetScrollOffset` con `bool` y los refactores del secuenciador
+de *scroll*). El interruptor de Blink de Wasm JS String Builtins (opcional) tampoco entra, y el arreglo de
+accesibilidad 8ddae9aa1fb tampoco.
+
+**Superficie (pasada de LOCAL-4, 1.13 frente a CfT 129), clasificación pedida por COORDINACIÓN-6:**
+
+| En CfT 129, no en la 1.13 | De dónde | En la 1.14 |
+|---|---|---|
+| `navigator.connection` | Brave: `kNavigatorConnectionAttribute` apagada (`idl_member_installer.cc`) | sigue fuera (privacidad) |
+| File System Access (`show*Picker`, `getAsFileSystemHandle`…) | Brave: `kFileSystemAccessAPI` apagada | sigue fuera |
+| Web Serial | Brave: `Serial` apagada en `brave_content_renderer_client.cc` | sigue fuera |
+| Storage Access | Brave (`kPermissionStorageAccessAPI`) y decisión del nivel 119 | sigue fuera |
+| interfaces `SpeechSynthesis`/`SpeechSynthesisVoice` | **nuestro**: la 116 no las expone (`speechSynthesis` sí estaba) | **dentro** (8645de1731) |
+| `navigator.share`/`canShare` | **Chromium**: Chrome lo encendió en Mac en la **129** (52c8632e39b, `chrome/common`); entre la 116 y la 129 solo hay un arreglo funcional (06bbfc17caa, archivos en disco) | **decisión**: no es Baseline (Firefox de escritorio no lo tiene) y nunca se probó en Mojave. Recomiendo dejarlo fuera; si entra, son la flag y 06bbfc17caa, y una prueba de LOCAL en la 6,1 |
+
+**Lección (otra de Menlo):** el barrido de `base::Feature` del §4 miró `net`, `services/network`, `content` y Blink, y
+Web Share está en `chrome/common/chrome_features.cc`. Barrido ahora ese fichero entre la 116 y la 130: además de Web
+Share solo cambian interfaz, actualizador, Privacy Sandbox (`KAnonymityService`, apagado en Brave) y `HttpsUpgrades`
+(navegación, lo decide Brave). Desde el 131, el barrido incluye `chrome/common`.
+
+Comprobación: `FlyWeb/tools/motor-130.html` (con las pruebas de superficie), `wpt-130-lista.txt` (35) y
+`regexp-130.html` (FS.14). «Para la web» en `version-1.14.md`.
 
 ## Apuntado para niveles futuros
 
