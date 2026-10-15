@@ -64,8 +64,8 @@ recupéralo con *cherry-pick* en un PR nuevo (pasó dos veces con MOTOR-8; ya av
 
 - **block-ruby-003** (WPT de ruby que falla con Menlo y en Chrome 129 pasa): MOTOR-8 en `nube/ruby-003`; va en la
   1.13.1 o con la 1.14, según lo que salga.
-- **Pendiente de decisión de Titín:** JetBrains Mono solo en las páginas internas de FlyWeb (recomendado; las webs
-  siguen con Menlo como Chrome, por huella y métricas) o también en lo que ven las webs.
+- **Decidido por Titín (15-10):** JetBrains Mono solo en la interfaz y las páginas internas de FlyWeb; la monoespaciada
+  por defecto de las webs sigue en Menlo, como Chrome (huella y métricas). Anotado en FM.19.
 - **Reglas nuevas de estos días:** 13 ampliada (no archivar antes de que el relevo esté activo; textos de arranque en
   mensaje propio con modelo y esfuerzo; órdenes también en la fila), 17 (revisión de seguridad de portes grandes),
   18 (un nivel, una versión, con su V8), 19 (lo apagado se enciende cuando upstream lo lleva de serie). Al HUMANO se
@@ -75,7 +75,7 @@ recupéralo con *cherry-pick* en un PR nuevo (pasó dos veces con MOTOR-8; ya av
 ## Pendiente de otros
 
 - **Titín:** abrir COORDINACIÓN-6 (texto abajo) y luego, con los ids de COORDINACIÓN-6, MOTOR-9, LOCAL-4 y
-  SEGURIDAD-PORTES-2; decidir lo de JetBrains Mono; PUBLICACIÓN-2 antes de la 1.14.
+  SEGURIDAD-PORTES-2; PUBLICACIÓN-2 antes de la 1.14.
 - **Archivar al activarse su relevo:** LOCAL-3, SEGURIDAD-PORTES; MOTOR-8 al terminar block-ruby-003; COORDINACIÓN-5
   (esta) en cuanto COORDINACIÓN-6 esté anotada.
 
