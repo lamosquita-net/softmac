@@ -160,5 +160,9 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
 - **Rutas GN nuevas de V8:** comparar las etiquetas `"//…"` de `BUILD.gn` y `gni/` entre la V8 N−1 y la N y buscar
   cada una en el árbol de la 116 (`git cat-file -e 116.0.5845.188:<ruta>`). En la 13.0 salió `//third_party/fast_float`.
 - Sin brave-core en la sesión, las medidas se hacen sobre la 116 sola y hay que repetirlas antes de portar.
+- **Cambios «por defecto» que se escapan** (WebSQL en la 119, nunca recogido): en cada nivel, además de las flags que
+  pasan a `stable`, mirar las que dejan de serlo (`flags-nivel.py`, tipo `CHANGE` con `stable` antes) y las `stable`
+  de la 116 que desaparecen. Para saber si una flag desaparecida quitó comportamiento o lo hizo permanente,
+  `bisflag.py <flag>…` da el commit que la borra.
 
 - `llevar.sh`: lleva commits de LOCAL a una rama `nube/*` y la fusiona en otra, sin checkout (ver `FlyWeb/docs/coordinacion.md`).
