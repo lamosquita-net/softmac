@@ -1,10 +1,10 @@
 # Relevo de COORDINACIÓN
 
-Nota para la sesión que tome el papel de COORDINACIÓN. Puesta al día el **15-10-2026, ~09:45 (Madrid)** por COORDINACIÓN-5
-(`session_016j9wqSAibMrYnYJb1dHkcn`, 13-10 a 15-10, Opus 5.5 alto), que relevó a COORDINACIÓN-4 (archivada).
+Nota para la sesión que tome el papel de COORDINACIÓN. Puesta al día el **15-10-2026, ~18:20 (Madrid)** por COORDINACIÓN-6
+(`session_01DdLcRgFWWjq51j1Hs5pLsn`, «Nube Coordinación (6)», 15-10, Opus 5.5 alto), que relevó a COORDINACIÓN-5 (archivada).
 Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca en GitHub**; al HUMANO se le llama
-**Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–19**, filas FM.19, FS.13 y F7.3), `FlyWeb/docs/motor.md`
-(«Nivel 129») y `FlyWeb/docs/relevo-motor.md`.
+**Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–19**, filas FM.20, FM.21, FS.14–FS.17 y la de LOCAL),
+`FlyWeb/docs/motor.md` («Nivel 130» y «Nivel 131») y `FlyWeb/docs/relevo-motor.md`.
 
 ## Qué hace este papel (con lo que cambió el 09–12-10)
 
@@ -32,52 +32,57 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 ## Agentes y cómo hablarles
 
 Desde la nube, `send_message` (de gestión de sesiones) con el id **`session_…`**; con el `local_…` falla («could not be
-verified»). Los agentes locales te escriben con `SendMessage` a tu **nombre** de `ListAgents` («Nube Coordinación (6)»).
-Si `send_message` responde `session_inactive`, el agente local ha perdido el Remote Control (pasa en **todas** cada vez
-que Titín reinicia la app o el Mac): díselo a Titín al momento con el texto preparado.
+verified»). Los agentes locales te escriben con `SendMessage` a tu **nombre** de `ListAgents` («Nube Coordinación (7)»).
+Si `send_message` responde `session_inactive`, el agente local ha perdido el Remote Control: díselo a Titín al momento.
 
-| Agente | Sesión | Estado al 15-10, 09:45 |
+| Agente | Sesión | Estado al 15-10, ~18:20 |
 |---|---|---|
-| VIGÍA (Haiku) | `session_01XD1RBYQ5oESHWKeqZWSG4e` | Rutina cada hora, 8–23 h. **No acepta órdenes de agentes**: su destino lo cambia Titín |
-| MOTOR-8 (Opus, xhigh) | `session_01YAuwa2BsTVR6GZqzr1wtex` | Solo **block-ruby-003** (rama `nube/ruby-003`); al acabar, nota y archivar. Contexto ~55 % |
-| MOTOR-9 | por abrir | Nivel 130 (1.14, V8 13.0). Texto abajo |
-| SEGURIDAD-PORTES (Opus, medio) | `session_01NkotiT2nNYznsrQu9rssiy` | FS.13 hecha. Poniendo al día `RELEVO-SEGURIDAD.md` para relevarse (78 %) |
-| SEGURIDAD-PORTES-2 | por abrir | Texto abajo, cuando la nota esté |
+| VIGÍA (Haiku) | `session_01XD1RBYQ5oESHWKeqZWSG4e` | Rutina cada hora, 8–23 h. **No acepta órdenes de agentes**: su destino lo cambia Titín (texto en el arranque de COORDINACIÓN-7) |
+| MOTOR-10 (Opus, xhigh) | `session_017osmPdTipjmbHoMeuQDeJ4` | Nivel 130 entregado en código; inventario del 131 hecho y decidido (FM.21). **Parado hasta el reinicio del límite** (regla 15) salvo fallos de la 1.14 |
+| SEGURIDAD-PORTES-3 (Opus, medio) | `session_01LKiaD9v2hcna6BUo6CfMBs` | FS.14 y FS.17 hechas, FS.15 (`seg/oopsif` 57c1b3fa2a) para la 1.14.1, FS.16 aprobada (vía A) tras la 1.14.1. Parada |
 | SEGURIDAD-VIGÍA (Haiku) | `session_019wTc3m4aVuvkKTEGMXdEHS` | Rutina semanal |
-| CONTENIDOS-WEB-2 (Sonnet, medio) | `session_015tHV7uDdbAc6uZ1VwmgcqD` | Web de la 1.13 hecha (#209). Espera `version-1.14.md` |
-| LOCAL-3 (7,1, Opus, alto) | `session_01YWS5bh1uWYu5iPLHX3qx3N` | Relevo listo: `flyweb` = 1.13 (37197fe0), nota en `FlyWeb/docs/relevo-local.md`. Archivar cuando LOCAL-4 esté activa |
-| LOCAL-4 | por abrir | Texto abajo |
-| PUBLICACIÓN (7,1, Sonnet) | `session_01H791v6t2GL9FoNPAxJR6tq` | **Archivada el 15-10 a las 09:31** (¿por Titín?). Para la 1.14 hará falta PUBLICACIÓN-2 (Sonnet, medio, `/remote-control`) |
+| CONTENIDOS-WEB-2 (Sonnet, medio) | `session_015tHV7uDdbAc6uZ1VwmgcqD` | Espera `version-1.14.md` (ya en `main`) y los datos del DMG |
+| LOCAL-4 (7,1, Opus, alto) | `session_014pVFQScvJwumdaBwufvESX` | Compilando y probando la 1.14 (Static, ASan, pruebas **en la 6,1**). Luego la 1.14.1 |
+| PUBLICACIÓN (7,1, Sonnet) | `session_01TTieMjJGykHhdkXAYW8bZG` (sin confirmar) | La `session_01H791…` se archivó el 15-10; hay una sesión «Publicación» conectada con el mismo historial. **Comprobar con un mensaje antes de la entrega de la 1.14**; si no responde, PUBLICACIÓN-2 |
 | SERVIDOR-LOCAL, ARQUITECTURA (7,1) | ver su fila | Sin tareas abiertas |
 
-Notas de tablero: commits con `[coord]` (el Vigía los ignora); reglas, CLAUDE.md y docs por PR, que fusionas tú.
-**PR de otros agentes:** fusiona con `expectedHeadSha`; si un agente sube un commit tarde y se queda fuera del squash,
-recupéralo con *cherry-pick* en un PR nuevo (pasó dos veces con MOTOR-8; ya avisa antes).
+Archivados el 15-10: COORDINACIÓN-5, MOTOR-8, MOTOR-9, SEGURIDAD-PORTES, SEGURIDAD-PORTES-2, LOCAL-3.
 
-## Estado al relevo (15-10, ~09:45)
+Notas de tablero: commits con `[coord]` (el Vigía los ignora); reglas, CLAUDE.md y docs por PR, que fusionas tú.
+**PR de otros agentes:** pásalos a listos (`draft:false`) y fusiona con `expectedHeadSha` **de 40 caracteres**; antes,
+`git merge-tree` contra `main`. Si un agente sube un commit tarde y se queda fuera del squash, recupéralo con
+*cherry-pick* en un PR nuevo (pasó con MOTOR-9 y SEGURIDAD-PORTES-3 el 15-10).
+
+## Estado al relevo (15-10, ~18:20)
 
 | Versión | Qué | Estado |
 |---|---|---|
-| 1.12.1 / 1.12.2 | RubyLB y resto de FS.12 | Publicadas (14-10) |
-| **1.13** | Nivel 129 completo + V8 12.9 (ISel de Turboshaft y *wrapper* genérico wasm→JS encendidos, regla 19) + Menlo; brave-core `nube/motor-129` 325686916c, build 22 | **Firmada el 15-10 a las 09:28**; appcast 157.64.22. La web tardaba en publicarse: comprobado a las 09:56 con una rutina (`send_later`) |
-| 1.14 | Nivel 130 con V8 13.0 (regla 18) | Por empezar (MOTOR-9) |
+| 1.13 | Nivel 129 | Publicada (15-10, 09:28) |
+| **1.14** | Nivel 130 entero + V8 13.0.245.25 + FS.14 (incluye el arreglo de V8 91343bb4 de la regresión de la 1.13) + ORB v0.2 + fuera polyfills core-js y 6 apagados de Chrome + `block-ruby-003` + `seg/popup-sandbox` + los dos escapes de seguridad. **Cabeza: brave-core `nube/escapes-seg-1.14.1` 303e498fb5** (= `nube/motor-130` ccc74ea171 + 2 flags) | LOCAL-4: Static/ASan y pruebas en la 6,1; después Release y entrega (regla 11) |
+| 1.14.1 | 1.14 + `seg/oopsif` 57c1b3fa2a (FS.15, OOPSIF) | Después de la 1.14, Static aparte con las pruebas de FS.15 |
+| 1.15 | Nivel 131 + V8 13.1.201.22 + ML-KEM (`seg/ml-kem` fc0f45c433, **solo en el 131**) | Inventario decidido (FM.21). **No empieza hasta el reinicio del límite semanal** salvo orden de Titín |
 
-- **block-ruby-003** (WPT de ruby que falla con Menlo y en Chrome 129 pasa): MOTOR-8 en `nube/ruby-003`; va en la
-  1.13.1 o con la 1.14, según lo que salga.
-- **Decidido por Titín (15-10):** JetBrains Mono solo en la interfaz y las páginas internas de FlyWeb; la monoespaciada
-  por defecto de las webs sigue en Menlo, como Chrome (huella y métricas). Anotado en FM.19.
-- **Reglas nuevas de estos días:** 13 ampliada (no archivar antes de que el relevo esté activo; textos de arranque en
-  mensaje propio con modelo y esfuerzo; órdenes también en la fila), 17 (revisión de seguridad de portes grandes),
-  18 (un nivel, una versión, con su V8), 19 (lo apagado se enciende cuando upstream lo lleva de serie). Al HUMANO se
-  le llama Titín (CLAUDE.md).
+- **Plazo de seguridad:** si la 1.14 no está entregada antes del **17-10, 16:00**, SEGURIDAD-PORTES-3 prepara la 1.13.1
+  con 91343bb4 (decisión de Titín, FS.14). Ni crbug 390743124 ni 511006880 tienen explotación conocida (KEV 14-10).
+- **Límite semanal (regla 15):** en aviso (`seven_day`, `allowed_warning`) el 15-10; se restablece el **martes 20-10, 09:00**.
+  Agentes avisados: solo la 1.14 / 1.14.1 hasta entonces.
+- **Decisiones de Titín del 15-10:** JetBrains Mono solo en páginas internas; no hay 1.13.1; regla 13 sin
+  `/remote-control`; **pruebas de FlyWeb en la 6,1** (la 7,1 solo compila; ventanas en la 7,1 solo con ≥ 10 min de
+  inactividad; CfT siempre `--headless=new`).
+- **Decisiones de COORDINACIÓN-6** (en FM.20/FM.21/FS.14–FS.17): Web Share fuera; KeyboardFocusableScrollers dentro;
+  OriginAgentCluster por defecto; la 1.14 sin esperar a OOPSIF; ML-KEM solo en la 1.15; FS.16 por la vía A.
+- **Método nuevo (FM.20):** Brave compila con `disable_fieldtrial_testing_config`, así que lo que Chrome cambia por Finch
+  se nos escapa. Red: `FlyWeb/tools/superficie.html` (FlyWeb frente a CfT N) en cada nivel, y estimar en horas de reloj.
 - **Maglev:** punto de decisión en el nivel 132 (V8 13.2 LTS). **WebGPU:** hacia el 140.
 
 ## Pendiente de otros
 
-- **Titín:** abrir COORDINACIÓN-6 (texto abajo) y luego, con los ids de COORDINACIÓN-6, MOTOR-9, LOCAL-4 y
-  SEGURIDAD-PORTES-2; PUBLICACIÓN-2 antes de la 1.14.
-- **Archivar al activarse su relevo:** LOCAL-3, SEGURIDAD-PORTES; MOTOR-8 al terminar block-ruby-003; COORDINACIÓN-5
-  (esta) en cuanto COORDINACIÓN-6 esté anotada.
+- **Titín:** abrir COORDINACIÓN-7 (texto abajo) y pegar al Vigía el cambio de destino; aprobar en la ventana de LOCAL-4
+  la descarga de CfT 130 si aún no lo ha hecho (getInnerHTML y ALPS); permitir en LuLu la compilación nueva en la 6,1;
+  firmar en bak la 1.14 cuando PUBLICACIÓN se lo pida; prueba de `FlyWeb/tools/regexp-130.html` en la 5,1 con la 1.14.
+- **COORDINACIÓN-7:** comprobar PUBLICACIÓN antes de la entrega; pasar a CONTENIDOS-WEB-2 los datos del DMG; tras la
+  1.14, la 1.14.1; después del reinicio, el 131.
+- **Archivar** COORDINACIÓN-6 (`session_01DdLcRgFWWjq51j1Hs5pLsn`) en cuanto COORDINACIÓN-7 esté anotada.
 
 ## Red del entorno de la nube
 
@@ -120,6 +125,16 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
   también brave-core, y `add_repo` necesita un permiso de Titín para leer y **otro para escribir** (push). El agente nuevo
   comprueba en el paso 1 qué repos tiene y, si falta brave-core, lo dice en el mensaje de prueba.
 
+- **Lo que Chrome cambia por Finch no está en el código** (15-10): MutationEvents y getInnerHTML se quitaron por
+  configuración de campo; la referencia es lo que expone CfT N (`superficie.html`), no `runtime_enabled_features`.
+- **Las pruebas de JIT y Wasm, en un origen http(s)**, nunca en about:blank. Y en la 7,1 hay una política gestionada
+  antigua de la app de desarrollo (`DefaultJavaScriptJitSetting = 2`) que deja las webs sin JIT: el 15-10 dio una falsa
+  alarma de «el 130 no tiene WebAssembly». Con jitless no hay Wasm (también en la 116).
+- **Ids de commit**: el que se pasa a otro agente se comprueba con `git ls-remote` tras el push (MOTOR-10 dio uno de
+  antes de un `--amend`).
+- **Estimaciones de MOTOR en horas de reloj**, comparadas con el último nivel entregado: el «8–10 días» del 130 salió
+  diez veces pesimista (el 129 fueron ~10 h).
+
 - **Comprobar antes de afirmar**: dos veces se dio por hecho algo sin mirar (el Vigía ya arreglado; un esfuerzo
   recomendado). Mirar la sesión o la rama.
 - **Datos personales**: se subieron a una rama pública antes de preguntar por dónde iban; costó reescribir la rama y una
@@ -131,16 +146,16 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
 - **Esfuerzo**: los nombres reales son low, medium, high, `xhigh` («extra») y max. MOTOR va en `xhigh`; max solo para un
   paso atascado.
 
-## Texto de arranque para COORDINACIÓN-6
+## Texto de arranque para COORDINACIÓN-7
 
 Abrirla desde la app: nube, repos `softmac` y `brave-core`, **Opus 5.5, esfuerzo alto (`high`)**, y pegar:
 
 ```
-Eres COORDINACIÓN de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-net/brave-core): COORDINACIÓN-6, relevo de COORDINACIÓN-5 (session_016j9wqSAibMrYnYJb1dHkcn). Lee en este orden: CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–19, filas FM.19, FS.13 y F7.3) y FlyWeb/docs/coordinacion.md (nota de relevo del 15-10).
-1. Comprueba con get_session tu modelo y si tienes send_message. Dímelo en una línea.
+Eres COORDINACIÓN de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-net/brave-core): COORDINACIÓN-7, relevo de COORDINACIÓN-6 (session_01DdLcRgFWWjq51j1Hs5pLsn). Lee en este orden: CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–19, filas FM.20, FM.21, FS.14–FS.17 y la de LOCAL) y FlyWeb/docs/coordinacion.md (nota de relevo del 15-10, ~18:20).
+1. Comprueba con get_session tu modelo, si tienes send_message, tus repos y rate_limit_info. Dímelo en una línea.
 2. Dame tu id de sesión y el texto exacto que debo pegar al Vigía para cambiarle el destino.
-3. Anota en tu fila de docs/TAREAS.md (commit «[coord]») que COORDINACIÓN es ahora esta sesión. En coordinacion.md, «Textos de arranque pendientes», cambia el id y el nombre de COORDINACIÓN-5 por los tuyos (session_… y «Nube Coordinación (6)»). Archiva session_016j9wqSAibMrYnYJb1dHkcn.
-4. Dame los textos de MOTOR-9, LOCAL-4 y SEGURIDAD-PORTES-2, cada uno listo para pegar, con modelo y esfuerzo en la primera línea, y resume el estado en 5 líneas.
+3. Anota en tu fila de docs/TAREAS.md (commit «[coord]», por PR, que fusionas tú) que COORDINACIÓN es ahora esta sesión y cambia en coordinacion.md «Nube Coordinación (6)» por «(7)». Avisa con send_message a MOTOR-10, SEGURIDAD-PORTES-3 y LOCAL-4 de tu id. Archiva session_01DdLcRgFWWjq51j1Hs5pLsn.
+4. Comprueba que PUBLICACIÓN responde antes de la entrega de la 1.14 y resume el estado en 5 líneas.
 Al HUMANO se le llama Titín. Español, commits en inglés con Co-Authored-By de Claude. Breve, crítico y con conclusión; a mí solo decisiones. No me escribas por avisos rutinarios.
 ```
 
