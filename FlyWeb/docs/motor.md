@@ -780,10 +780,11 @@ Inventario de FM.20, **para decidir COORDINACIÓN antes de portar**. Fuentes: we
 (`baseline-nivel.js 130`), flags de `runtime_enabled_features.json5` entre la **129.0.6668.112** y la **130.0.6723.192**
 (cabeza de la rama 6723; `flags-nivel.py`), `base::Feature` de red, content y Blink entre las mismas etiquetas, y la API
 pública de V8 entre la **12.9.202.28** y la **13.0.245.25**. Lista de commits: `FlyWeb/tools/port/nivel130-commits.tsv`.
-**Medidas provisionales:** esta sesión no tiene brave-core (el permiso de la sesión no deja añadirlo), así que cada porte
-se midió sobre la 116 **sin** nuestros parches 117–129 (`medirng.sh`, con el traductor de LayoutNG). Donde nuestros
-parches tocan los mismos ficheros (analizador CSS por el *nesting* del 120, `rtc_data_channel.cc` por el Blob del 129)
-habrá más rechazos; se vuelven a medir sobre `nube/motor-129` antes de portar.
+**Medidas sobre la 1.13:** primero se midió sobre la 116 sola (sin brave-core en la sesión); el 15-10, con brave-core
+en lectura, se repitió todo sobre la 116 + los parches de `nube/motor-129` 325686916c (`medirng.sh`, con el traductor
+de LayoutNG). Apenas cambia: *nested declarations* 99/31 (11 de sus 26 ficheros ya llevan parche nuestro), `text-wrap`
+39/20 (13 de 20), `RTCDataChannel` transferible 44/8, `KeyboardFocusableScrollers` 75/67; el resto, igual. Las cifras
+de abajo son las de la 1.13 donde difieren.
 
 **Resumen: nivel mediano, sin porte grande y con un salto de V8 barato.** Tres portes de Baseline de 1–3 días
 (*nested declarations*, `text-wrap` y `RTCDataChannel` transferible), uno pequeño (`togglePopover({force})`), dos
@@ -813,8 +814,11 @@ el 129. `include/` cambia +409/−204, casi todo reordenación e iteradores; **l
   (ninguna subclase en la 116), `TracedReference` y `MemorySpan` (internos o compatibles; un solo uso en Blink).
 - Riesgo de compilación bajo: las cabeceras usan C++20 (`Iterator::iterator_concept` sin `typename`, `<compare>`),
   que el clang de la 116 admite; ICU mínimo sigue en 73 y no hay cabeceras de ICU ni de abseil nuevas. Lo dirá LOCAL.
-- **Seguridad (FS.14, SEGURIDAD-PORTES-2):** `patches/v8` (71) contra la 13.0, época de caché nueva (**15**: la 14
-  está reservada), fusiones 13.0/13.1/13.2-LTS, pasada de API del *embedder* y la tabla de la regla 19 (§6). Según
+- **Seguridad (FS.14, SEGURIDAD-PORTES-2):** `patches/v8` (71) contra la 13.0.245.25 limpia (`git apply --check`):
+  **55 entran, 8 parecen ya dentro** (`-R`: `wasm-compiler.cc`, `maglev-phi-representation-selector.cc`,
+  `map-inl.h`, `map.h`, `runtime-wasm.cc`, los dos `liftoff-assembler-*-inl.h`, `wasm-js.cc`) **y 8 chocan**
+  (`builtins-object-gen.cc`, `builtins-wasm-gen.cc`, `js-to-wasm.tq`, `wasm-to-js.tq`, `js-call-reducer.cc`, `ic.cc`,
+  `js-break-iterator.cc`, `wasm/wrappers.cc`). Época de caché nueva (**15**: la 14 está reservada), fusiones 13.0/13.1/13.2-LTS, pasada de API del *embedder* y la tabla de la regla 19 (§6). Según
   `RELEVO-SEGURIDAD.md`, a7c018806, 153d4e84e y bc67262 ya están en la 13.0.245.25.
 - JavaScript y Wasm que llegan solos: `Intl.Locale.prototype.getCalendars()`, `getCollations()`, `getHourCycles()`,
   `getNumberingSystems()`, `getTextInfo()`, `getTimeZones()`, `getWeekInfo()` (`harmony_intl_locale_info_func` pasa a
@@ -826,9 +830,9 @@ el 129. `include/` cambia +409/−204, casi todo reordenación e iteradores; **l
 
 | Función | Baseline | Porte | Medida (116 sola) | Coste |
 |---|---|---|---|---|
-| `CSSNestedDeclarations` (*nesting*: las declaraciones tras una regla anidada van en su propia regla, en orden) | 2024-12-11 | 3ae71aa0358, 61067c8a5ba, 11e3a184408, a9b425e2212, 0a6d3ac600e, b4b329c0e7a, 63303296ddf; sobre el *nesting* relajado del 120 y el analizador por `CSSParserTokenRange` de la 116 (los rechazos, en `css_parser_impl.cc` y el inspector) | 99/33, 26 ficheros | **2–3 días** |
-| `text-wrap` como abreviatura de `text-wrap-mode` + `text-wrap-style` (`stable`, `auto`) | 2024-10-17 | ee5d3f203d9 (sin flag en upstream; cambia `white-space` a `[white-space-collapse, text-wrap-mode]`); `pretty` sigue como en la 1.13 (no Baseline) | 39/21, 20 ficheros | **1,5–2 días** |
-| `RTCDataChannel` transferible a un *worker* dedicado | 2025-10-14 | 6e640199859, e112b3ea554, 1f5f2853635; choca con el Blob del 129 en `rtc_data_channel.cc` | 44/10, 18 ficheros | **1–1,5 días** |
+| `CSSNestedDeclarations` (*nesting*: las declaraciones tras una regla anidada van en su propia regla, en orden) | 2024-12-11 | 3ae71aa0358, 61067c8a5ba, 11e3a184408, a9b425e2212, 0a6d3ac600e, b4b329c0e7a, 63303296ddf; sobre el *nesting* relajado del 120 y el analizador por `CSSParserTokenRange` de la 116 (los rechazos, en `css_parser_impl.cc` y el inspector) | 99/31, 26 ficheros | **2–3 días** |
+| `text-wrap` como abreviatura de `text-wrap-mode` + `text-wrap-style` (`stable`, `auto`) | 2024-10-17 | ee5d3f203d9 (sin flag en upstream; cambia `white-space` a `[white-space-collapse, text-wrap-mode]`); `pretty` sigue como en la 1.13 (no Baseline) | 39/20, 20 ficheros | **1,5–2 días** |
+| `RTCDataChannel` transferible a un *worker* dedicado | 2025-10-14 | 6e640199859, e112b3ea554, 1f5f2853635; choca con el Blob del 129 en `rtc_data_channel.cc` | 44/8, 18 ficheros | **1–1,5 días** |
 | `togglePopover({force})` (BCD `options_force_parameter`, Firefox 141, Safari 18.4) | sí (BCD) | la parte de 8010721fc51 que acepta `TogglePopoverOptions`; `source` queda tras `PopoverAnchorRelationships` (experimental), como en la 130 | 11/6 | **medio día** |
 | `Intl.Locale` info como funciones | 2026-07-21 | de serie con V8 13.0 | — | — |
 | Wasm JS String Builtins (`jsStringBuiltins`) | 2025-12-12 | de serie con V8 13.0; opcional el interruptor de Blink (1f2dd1392d2 + 37f9fd474bd: flag `WebAssemblyJSStringBuiltins` → `--no-experimental-wasm-imported-strings`) | 2/1 | minutos |
