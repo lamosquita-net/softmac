@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Superficie web — volcado</title>
+<!-- Volcado de la superficie web visible desde JavaScript (MOTOR-9, nivel 130). Lista, ordenada y una por línea, cada
+     interfaz global, sus miembros estáticos y los de su prototipo, las propiedades CSS que admite el navegador y unas
+     pocas comprobaciones de comportamiento. Se abre en FlyWeb y en Chrome for Testing N con el mismo perfil limpio y
+     desde el mismo origen (127.0.0.1, contexto seguro); después, `diff` de los dos ficheros descargados. Sirve para
+     pillar lo que Chrome enciende o apaga por defecto, por código o por configuración de campo (Finch), sin tener que
+     adivinarlo leyendo flags: así se escaparon WebSQL (119), `:--foo` (127), los eventos de mutación (127, por Finch) y
+     otros. No sustituye a las WPT: solo ve si algo existe, no si funciona igual. No carga nada de fuera. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 70em; }
+  textarea { width: 100%; height: 30em; font: 12px/1.3 Menlo, monospace; }
+</style>
+</head>
+<body>
+<h1>Superficie web</h1>
+<p id="ua"></p>
+<p><button id="bajar">Descargar</button> <span id="cuenta"></span></p>
+<textarea id="out" readonly></textarea>
+<script>
+'use strict';
+const L = [];
+const add = s => L.push(s);
+const nombres = o => { try { return Object.getOwnPropertyNames(o); } catch (e) { return []; } };
+
+// 1. Interfaces globales: miembros estáticos y del prototipo (sin los heredados de Function/Object).
+const baseF = new Set(nombres(Function.prototype).concat(nombres(function () {})));
+const baseO = new Set(nombres(Object.prototype));
+for (const g of nombres(globalThis).sort()) {
+  let v;
+  try { v = globalThis[g]; } catch (e) { add(`global ${g} (lanza)`); continue; }
+  const t = typeof v;
+  if (t === 'function' && /^[A-Z]/.test(g)) {
+    add(`interfaz ${g}`);
+    for (const s of nombres(v).sort()) if (!baseF.has(s)) add(`  ${g}.${s}`);
+    if (v.prototype) for (const p of nombres(v.prototype).sort()) if (!baseO.has(p)) add(`  ${g}.prototype.${p}`);
+  } else if (t === 'object' && v !== null && /^[A-Z]/.test(g) && g !== 'Infinity') {
+    add(`espacio ${g}`);
+    for (const s of nombres(v).sort()) add(`  ${g}.${s}`);
+  } else {
+    add(`global ${g} (${t})`);
+  }
+}
+
+// 2. Propiedades CSS que entiende el navegador (lista del estilo calculado) y selectores dudosos.
+const cs = getComputedStyle(document.documentElement);
+const props = [];
+for (let i = 0; i < cs.length; i++) props.push(cs[i]);
+for (const p of props.sort()) add(`css ${p}`);
+const sel = [':--x', ':state(x)', ':has(a)', ':user-valid', ':open', '::details-content', ':popover-open',
+             '::part(x):hover', '::part(x)::placeholder', ':active-view-transition', ':dir(rtl)'];
+for (const s of sel) add(`selector ${s} ${CSS.supports(`selector(${s})`)}`);
+
+// 3. Comportamientos que no se ven en la lista de miembros.
+const comp = {};
+comp['document.domain asignable'] = (() => { try { const d = document.domain; document.domain = d; return 'sí'; } catch (e) { return 'lanza ' + e.name; } })();
+comp['originAgentCluster'] = String(window.originAgentCluster);
+comp['DOMParser includeShadowRoots'] = (() => {
+  try {
+    const d = new DOMParser().parseFromString('<div><template shadowrootmode="open">x</template></div>', 'text/html', { includeShadowRoots: true });
+    return d.querySelector('div').shadowRoot ? 'crea la sombra' : 'no';
+  } catch (e) { return 'lanza ' + e.name; }
+})();
+comp['template shadowroot (antiguo)'] = (() => {
+  if (!Document.parseHTMLUnsafe) return 'sin parseHTMLUnsafe';
+  const d = Document.parseHTMLUnsafe('<div><template shadowroot="open">x</template></div>');
+  return d.querySelector('div').shadowRoot ? 'crea la sombra' : 'no';
+})();
+comp['eventos de mutación'] = (() => {
+  let n = 0; const e = document.createElement('div');
+  e.addEventListener('DOMNodeInserted', () => n++);
+  e.appendChild(document.createElement('span'));
+  return n ? 'saltan' : 'no saltan';
+})();
+for (const k of Object.keys(comp).sort()) add(`comportamiento ${k}: ${comp[k]}`);
+
+const txt = L.join('\n') + '\n';
+document.getElementById('ua').textContent = navigator.userAgent;
+document.getElementById('out').value = txt;
+document.getElementById('cuenta').textContent = `${L.length} líneas`;
+document.getElementById('bajar').onclick = () => {
+  const a = document.createElement('a');
+  const v = (navigator.userAgent.match(/Chrome\/(\d+)/) || [, 'x'])[1];
+  a.href = URL.createObjectURL(new Blob([txt], { type: 'text/plain' }));
+  // FlyWeb declara el User-Agent de Chrome N: el nombre lo da ?n= (p. ej. superficie.html?n=flyweb-1.13).
+  a.download = `superficie-${new URLSearchParams(location.search).get('n') || v}.txt`;
+  a.click();
+};
+</script>
+</body>
+</html>

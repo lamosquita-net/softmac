@@ -786,11 +786,12 @@ de LayoutNG). Apenas cambia: *nested declarations* 99/31 (11 de sus 26 ficheros 
 39/20 (13 de 20), `RTCDataChannel` transferible 44/8, `KeyboardFocusableScrollers` 75/67; el resto, igual. Las cifras
 de abajo son las de la 1.13 donde difieren.
 
-**Resumen: nivel mediano, sin porte grande y con un salto de V8 barato.** Tres portes de Baseline de 1–3 días
-(*nested declarations*, `text-wrap` y `RTCDataChannel` transferible), uno pequeño (`togglePopover({force})`), dos
-funciones que llegan solas con la V8 13.0 y ~12 flags pequeñas. Estimación: **8–10 días de MOTOR** (la misma unidad
-que el 129), una ronda de SEGURIDAD-PORTES-2 (FS.14) y dos compilaciones de LOCAL. **Regla 18: sale entero como 1.14,
-con la V8 13.0**; no hay nada del tamaño de RubyLB que justifique partirlo.
+**Resumen: nivel mediano, sin porte grande y con un salto de V8 barato.** Tres portes de Baseline (*nested
+declarations*, `text-wrap` y `RTCDataChannel` transferible), uno pequeño (`togglePopover({force})`), dos funciones que
+llegan solas con la V8 13.0, ~12 flags pequeñas y los apagados que se escaparon (§9–§10). **Estimación en horas reales
+(§11): 11–14 h desde el paso de V8 hasta la entrega de LOCAL, frente a ~9,5 h del 129.** (La primera cifra, «8–10
+días», usaba la unidad del inventario del 129, que salió unas diez veces más pesimista que la realidad.) **Regla 18:
+sale entero como 1.14, con la V8 13.0**; no hay nada del tamaño de RubyLB que justifique partirlo.
 
 ### 1. V8 13.0 (`13.0.245.25`, 3551594a: cabeza de la rama 13.0, 06-01-2025; sin LTS)
 
@@ -958,13 +959,15 @@ brave-core; (iv) `MutationEvents` apagado como Chrome 130; (v) fuera por coste `
   `fast_float/BUILD.gn` (el de Chromium 130 sin las pruebas) y `fast_float/README.chromium` (`License File:
   src/LICENSE-MIT`, que es lo que lee `licenses.py` para `about:credits`), como parches de fichero nuevo. **LOCAL-4:
   comprobar que `about:credits` lista fast_float.**
-- **(iv)** `MutationEvents` apagado. **Chrome no los apagó en la 127:** `MutationEvents` sigue en `stable` en la
-  127.0.6533.144, la 128.0.6613.194 y la 129.0.6668.112, y `content/child/runtime_features.cc` solo los enciende con
-  `--mutation-events-enabled`. Se apagan en la 130 (cc4fc38654c, «Land in M130»). No se nos escapó. Sí se escaparon
-  otros cambios «por defecto» (§9).
+- **(iv)** `MutationEvents` apagado. **Corrección (15-10, tarde): sí se nos escapó en la 127.** En el código siguen
+  en `stable` de la 127 a la 129 y se apagan en la 130 (cc4fc38654c), pero Chrome los apagó antes **por configuración
+  de campo**: `fieldtrial_testing_config.json` los da por apagados en Mac desde la 124 y el despliegue a todos fue en
+  la 127. LOCAL-4 lo vio en Chrome for Testing 129 (`typeof MutationEvent` `undefined`). Mi primera lectura solo
+  miraba el código. Ver §10.
 - **(v)** `KeyboardFocusableScrollers`, `ShapeOutsideWritingModeFix` y `TextInputNotAlwaysDirAuto`, fuera de la 1.14.
   Si alguna de sus WPT entra en `wpt-130-lista.txt`, se escribe como diferencia conocida en `version-1.14.md` y aquí.
-  **Estimación de `KeyboardFocusableScrollers`: 3–4 días de MOTOR** más una ronda de pruebas de foco de LOCAL.
+  **Estimación de `KeyboardFocusableScrollers` (en horas reales, §11): 2–3 h de MOTOR** más una ronda de Static y ASan
+  de LOCAL (~3 h) con pruebas de foco a mano.
   199d1a77501 rehace `SupportsFocus()`/`IsFocusable()` como un enum de tres estados en 55 ficheros (+485/−173), sobre
   da12836a721 (todos los *scrollers* admiten el foco). El riesgo está en el foco de formularios, `dialog` y *popover*.
   Propongo meterlo en un nivel ligero (131 o 132), no en uno cargado.
@@ -1012,6 +1015,75 @@ en Brave), métricas de Event Timing, `IndexedDBShardBackingStores`/`CompressVal
 `LocalCompileHints` (rendimiento), `ServiceWorkerClientIdAlignedWithSpec` (128, ajuste menor) y
 `AncestorChainBitEnabledInPartitionedCookies` (128, cookies particionadas; se decide con la política de cookies de
 Brave).
+
+### 10. Configuración de campo (Finch), 116–130 (pedido de COORDINACIÓN-6 y Titín: «para ir a la par»)
+
+**Por qué se nos escapan:** Brave compila con `disable_fieldtrial_testing_config: true` (brave-core
+`build/commands/lib/config.js`), así que FlyWeb solo tiene los valores del código (y los que Brave cambia en
+`chromium_src/*/features.cc`). Chrome real tiene además lo que manda el servidor de variaciones, que no vemos. Chrome for
+Testing parece aplicar `testing/variations/fieldtrial_testing_config.json`: LOCAL-4 vio los eventos de mutación
+apagados en CfT 129, con el código aún en `stable`. **La referencia empírica es CfT N en el mismo Mac**, como ya se
+hace con las WPT.
+
+**Método:** de cada etiqueta 116–130 (cabezas de rama), los estudios de `fieldtrial_testing_config.json` con «mac», con
+su primer experimento, que es el que aplica Chromium. En la 130 hay 757 funciones; 182 tienen un valor por defecto que
+sabemos leer (flags de Blink y `BASE_FEATURE` de `net`, `services/network`, `content` y Blink) y 112 de ellas difieren
+del código. **La mayoría son experimentos, no despliegues:** rendimiento (LCPP, *prerender*, *parkable strings*,
+planificador), Privacy Sandbox y FLEDGE (apagados en Brave), interfaz. La configuración de pruebas no dice a qué
+porcentaje llegó cada experimento. Por eso solo cuento como «Chrome N lo hace» lo que tiene otra prueba: que el código
+cambie poco después (131–133), o que LOCAL lo vea en CfT N.
+
+| Qué | Código 130 | Campo 130 | Código 131–133 | Conclusión para la 1.14 |
+|---|---|---|---|---|
+| `MutationEvents` | on | **off** (desde la 124) | off | **apagar** (ya decidido; se escapó en la 127) |
+| `ElementGetInnerHTML` (`getInnerHTML()`, el viejo de DSD; la 116 lo trae sin flag) | on | **off** (129–130) | **off desde la 131** | **apagar**, si LOCAL-4 confirma que CfT 130 no lo tiene |
+| `UseNewAlpsCodepointHttp2`/`QUIC` (código nuevo de la extensión TLS ALPS) | off | on | off hasta la 133 | **no** sin datos: cambia la huella TLS (principio 13). LOCAL compara con ja4db de Chrome 130; si Chrome 130 ya usa el código nuevo, se enciende |
+| `DeprecateUnload`, `ReduceAcceptLanguage`, `CacheControlNoStoreEnterBackForwardCache`, `CookieSameSiteConsidersRedirectChain`, `BlockAcceptClientHints`, `EscapeLtGtInAttributes`, `NonStandardAppearanceValueSliderVertical` (off), `TextSizeAdjustImprovements` | igual que FlyWeb | distinto | sin cambio hasta la 133 (`TextSizeAdjust`, en la 133) | no: experimentos parciales en la 130 |
+
+**Barrido del código de la 116 a la 126 en `base::Feature`** (los niveles 117–125 solo miraron las flags de Blink). Uno
+visible para las webs y sin tocar en Brave: **`OriginAgentClusterDefaultEnable`** (ead63e18b24, nivel 119). Chrome
+agrupa por origen por defecto: `document.domain = …` ya no relaja el mismo origen salvo con `Origin-Agent-Cluster: ?0`.
+FlyWeb sigue con el valor de la 116 (apagado). Es un endurecimiento de seguridad y cuesta minutos. **Propongo
+encenderlo en la 1.14.** El resto del barrido son cosas que Brave ya decide en `chromium_src/net` (particiones,
+`SupportPartitionedBlobUrl`), Privacy Sandbox (apagado), FedCM, rendimiento o red interna. ORB v0.2
+(`OpaqueResponseBlockingV02`, encendido en el código en la 126) queda para que lo valore SEGURIDAD-PORTES-2.
+
+**LOCAL-4 añadió otro** al probar los cuatro de §9: el atributo antiguo `<template shadowroot>` (DSD no *streaming*)
+crea la sombra en la 1.13 con `Document.parseHTMLUnsafe` y no en CfT 129. Chrome lo apagó en la 121 (561042837d7) y
+lo quitó en la 122 (5f4c1fc06a1). Va con los de §9.
+
+**Lista para la 1.14 (apagar o encender, todo barato):** WebSQL, pantalla completa prefijada de `<video>`, `:--foo`,
+`includeShadowRoots`, `<template shadowroot>` antiguo, `MutationEvents`, `getInnerHTML()` (si CfT 130 lo confirma) y
+`OriginAgentClusterDefaultEnable` encendido. Pendiente de datos: el código ALPS.
+
+**Para que no vuelva a pasar:** `FlyWeb/tools/superficie.html` vuelca la superficie que ve una web: cada interfaz
+global con sus miembros, las propiedades CSS, algunos selectores y comportamientos (`document.domain`, eventos de
+mutación, DSD). LOCAL la abre en FlyWeb y en CfT N desde 127.0.0.1 y compara los dos ficheros con `diff`. Lo que
+salga distinto y no esté en el inventario es un cambio «por defecto» que se escapó, venga del código o de Finch.
+Propongo hacerlo en cada nivel, en la receta de LOCAL, junto a la huella de red. Primera pasada: 1.13 frente a CfT 129.
+
+### 11. Estimación en horas reales, partida a partida con el 129
+
+Tiempos del 129, sacados de FM.19 (14-10): inventario 12:55–13:20; paso de V8 en código 13:25–13:35; resto del nivel en
+código 13:35–14:05; LOCAL compila y prueba el paso de V8, sale el cierre de claude.ai y se resuelve con FS.13 hacia
+las 16:25; Static y WPT del nivel completo, con dos diferencias arregladas hacia las 20:45; ASan y Release; entrega a
+las 23:07. Desde el paso de V8 hasta la entrega, **~9,5 h**. FS.13 fue en paralelo (~3 h).
+
+| Partida | 129 (real) | 130 (estimado) | Por qué |
+|---|---|---|---|
+| Inventario | 25 min | hecho (~3 h, con los barridos de §9–§10) | — |
+| Paso de V8 en código | 10 min | 30–45 min | `v8re.sh` + gin B (preparado) + ficheros de `fast_float` (preparados) |
+| FS.14 (en paralelo) | ~3 h | 3–4 h | 8 parches chocan (6 a mano en el 129) + superficie nueva (Wasm JS String Builtins, `Intl.Locale`) |
+| Baseline en código | ~30 min (44 rechazos) | 1–1,5 h (65 rechazos) | *nested declarations* toca el analizador CSS: más lógica que copia |
+| Flags y apagados | dentro de esos 30 min (13 rechazos) | ~1 h | 12 flags (~21 rechazos), `data:` URL y 8 apagados o encendidos |
+| Declarar + `motor-130.html` + `wpt-130-lista.txt` + `version-1.14.md` | dentro del bloque | ~45 min | — |
+| Compilaciones y pruebas de LOCAL | ~7 h | 7–7,5 h | las mismas (Static y ASan del paso de V8, del nivel y Release), más la primera vez de `fast_float` |
+| Arreglos tras las pruebas | ~2–3 h (claude.ai, `binaryType`, WPT) | 2–4 h | *nested declarations* y `text-wrap` cambian CSS de todas las páginas: más probable una ronda extra |
+| **Total, del paso de V8 a la entrega** | **~9,5 h** | **11–14 h** | +20–45 %: más volumen de porte y más riesgo de regresión en CSS |
+
+Lo que más pesa en la diferencia es *nested declarations* (analizador CSS y CSSOM). Si COORDINACIÓN quiere acortar,
+es lo único que se podría pasar a una 1.14.1 sin romper nada, pero la regla 18 pide no partir sin un cambio muy amplio,
+y esto no lo es. Recomiendo no partir.
 
 ## Apuntado para niveles futuros
 
