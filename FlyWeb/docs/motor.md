@@ -774,7 +774,7 @@ generadores de Blink (`gencss.sh` para flags y el generador de *bindings*):
 Comprobación: `FlyWeb/tools/motor-129.html` (en Chromium 141 da ok todo lo que no es la versión declarada),
 `fastapi-129.html` (11/11 en Chromium 141) y `wpt-129-lista.txt` (27). «Para la web» en `version-1.13.md`.
 
-## Nivel 130 (en código, 15-10, MOTOR-10; pendiente de compilar → FlyWeb 1.14)
+## Nivel 130 (en código, 15-10, MOTOR-10; cabeza ccc74ea171, LOCAL-4 compilando → FlyWeb 1.14)
 
 Inventario de FM.20, **para decidir COORDINACIÓN antes de portar**. Fuentes: web-features 3.42.0 + BCD 8.1.5
 (`baseline-nivel.js 130`), flags de `runtime_enabled_features.json5` entre la **129.0.6668.112** y la **130.0.6723.192**
@@ -1132,6 +1132,7 @@ aplican sobre la 116: 127, más los de V8 contra la 13.0.245.25) y, donde toca, 
 | 37976248c3 | fuera los polyfills de core-js | decisión de COORDINACIÓN-6: con la V8 13.0 lo Baseline que cubrían es nativo y lo que quedaba (`RegExp.escape`, base64 de `Uint8Array`) no existe en Chrome 130. Fuera el observador, la `base::Feature`, el recurso de 50 KB y su entrada de `about:credits`; el generador de softmac `FlyWeb/polyfills/` queda como histórico |
 | 4d6a8d5f60 | superficie que Chrome 130 no expone | `Sanitizer`/`setHTML()` tras `SanitizerAPI` (a24f025d3c3, 119), `writeTimestamp()` tras `WebGPUDeveloperFeatures` (feec40a09c3, 121; la 130 usa `WebGPUExperimentalFeatures`, que la 116 no tiene), `-webkit-highlight` quitada (d9ba00bd859, 117) y `:open`/`:closed` tras `HTMLSelectMenuElement` (0a36b431edd, 122; la 130 usa `CSSPseudoOpenClosed`). Los cuatro, restos de la 116 |
 | 8645de1731 | interfaces `SpeechSynthesis` y `SpeechSynthesisVoice` | a918a37bec1 (121): la 116 las tenía como `LegacyNoInterfaceObject`. Sin función nueva; el *farbling* de voces de Brave sigue |
+| 0fed65e758, **ccc74ea171** | FS.15 `seg/popup-sandbox` 1825a087d0 y `seg/v8-13.0` d6b66b7994 (SEGURIDAD-PORTES-3) | fd7c878da2 (crbug 544197473): un iframe con `sandbox` sin `allow-popups` ignora los modificadores de un clic sintético; los resultados de d8 en `FLYWEB-SECURITY.md`. **Cabeza final de la 1.14** |
 
 **Fuera de la 1.14, con motivo (propuesta: 131).** Cuatro flags que el inventario daba por «limpias o casi» dependen de
 código posterior a la 116, y la medida de hunks no lo ve (aplican, pero no compilan):
@@ -1157,8 +1158,11 @@ Web Share está en `chrome/common/chrome_features.cc`. Barrido ahora ese fichero
 Share solo cambian interfaz, actualizador, Privacy Sandbox (`KAnonymityService`, apagado en Brave) y `HttpsUpgrades`
 (navegación, lo decide Brave). Desde el 131, el barrido incluye `chrome/common`.
 
-Comprobación: `FlyWeb/tools/motor-130.html` (con las pruebas de superficie), `wpt-130-lista.txt` (35) y
-`regexp-130.html` (FS.14). «Para la web» en `version-1.14.md`.
+Comprobación: `FlyWeb/tools/motor-130.html` (con las pruebas de superficie), `fastapi-129.html`, `wpt-130-lista.txt`
+(35), `regexp-130.html` (FS.14) y `sandbox-popups.html` (FS.15). **JIT y Wasm se comprueban en un origen http(s)**
+(`motor-130.html` y `fastapi-129.html`): la decisión de JIT es por sitio y en `about:blank` no se ve. El Static de
+a7b5f3f4aa salió *jitless* en la 7,1 por una política vieja de la app de desarrollo (`DefaultJavaScriptJitSetting` = 2), y
+las pruebas en `about:blank` no lo vieron. «Para la web» en `version-1.14.md`.
 
 ## Apuntado para niveles futuros
 

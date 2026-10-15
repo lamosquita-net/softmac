@@ -1,9 +1,9 @@
 # FlyWeb 1.14 — nivel de motor 130 (MOTOR-10, 15-10-2026)
 
-**Cabeza final:** brave-core `nube/motor-130` **8645de1731**.
+**Cabeza final:** brave-core `nube/motor-130` **ccc74ea171** (8645de1731 + `seg/popup-sandbox` y los resultados de d8 de `seg/v8-13.0`).
 
-**Estado:** en código en brave-core `nube/motor-130` **8645de1731**, con FS.14 fundida (`seg/v8-13.0` 064323b537 y
-`seg/transfer-keys` 1df157fca7) y ORB v0.2 encendido (FS.14). Encima de la 1.13 (325686916c) y de `nube/ruby-003`
+**Estado:** en código en brave-core `nube/motor-130` **ccc74ea171**, con FS.14 fundida (`seg/v8-13.0` d6b66b7994 y
+`seg/transfer-keys` 1df157fca7), ORB v0.2 encendido (FS.14) y FS.15 (`seg/popup-sandbox` 1825a087d0). Encima de la 1.13 (325686916c) y de `nube/ruby-003`
 (0c95523439, monoespaciada japonesa), lleva la V8 de Chrome 130 (paso a7b5f3f4aa, también en `nube/motor-130-v8`), la
 Baseline y las flags del 130, `KeyboardFocusableScrollers`, los apagados que se escaparon (§9–§10 de `motor.md`) y el
 recorte de superficie frente a Chrome 129/130. Declara 130 / 1.14. Un solo nivel en una sola versión (regla 18).
@@ -12,18 +12,20 @@ técnico: `motor.md`, «Nivel 130», §12; commits: `FlyWeb/tools/port/nivel130-
 
 | Dato | Valor |
 |---|---|
-| Cabeza final | brave-core `nube/motor-130` **8645de1731** (paso de V8 en `nube/motor-130-v8` a7b5f3f4aa) |
+| Cabeza final | brave-core `nube/motor-130` **ccc74ea171** (paso de V8 en `nube/motor-130-v8` a7b5f3f4aa) |
 | Versión visible | 1.14 (`CFBundleVersion` la pone LOCAL en la entrega) |
 | Nivel declarado | Chrome 130 (`flyweb_engine_full_version` 130.0.6723.117; `platformVersion` mínimo **11.7.10**) |
 | Motor JavaScript | V8 13.0.245.25 (cabeza de la rama 13.0) con los arreglos de seguridad de FlyWeb (FS.14; época de caché **15**). gin con la opción B. `fast_float` 3e57d8dc traído por `build.sh` con suma fija |
 | Portes del 130 | *nested declarations* (CSSOM incluido), `text-wrap` como abreviatura, `RTCDataChannel` transferible a un *worker*, `togglePopover({force})`, `KeyboardFocusableScrollers`, espacios en `data:` URL y 8 flags de interoperabilidad |
 | Apagados, como Chrome | WebSQL, pantalla completa prefijada de `<video>`, `:--foo`, eventos de mutación, DSD antiguo (`<template shadowroot>`, `includeShadowRoots`), `getInnerHTML()` |
 | Encendidos, como Chrome | agrupación por origen por defecto (`document.domain` ya no relaja el mismo origen), ORB v0.2 |
+| Seguridad | FS.14 (V8 13.0, época 15; claves de `TransferList`) y FS.15: un iframe con `sandbox` sin `allow-popups` ya no abre pestañas sin *sandbox* con un clic sintético con Ctrl/Cmd (fd7c878da2, crbug 544197473) |
+| Interruptor de emergencia del JIT | **desde la V8 13.0, sin JIT no hay WebAssembly** (`jitless` apaga `expose_wasm`, como en Chrome 130). Quien apague el JIT por política (`DefaultJavaScriptJitSetting` = 2) pierde también Wasm en esas webs |
 | Superficie, como Chrome 130 | fuera `Sanitizer`/`setHTML()` (los de 2022), `GPUCommandEncoder.writeTimestamp()`, `-webkit-highlight` y `:open`/`:closed`; fuera los polyfills de core-js; dentro las interfaces `SpeechSynthesis` y `SpeechSynthesisVoice` |
 | Fuera, con motivo | `PseudoElementsCorrectInGetComputedStyle`, `PaintHighlightsForFirstLetter`, estilos de reserva de `<meter>` y `MultiSmoothScrollIntoView` (dependen de código posterior a la 116; propuesta: 131); `ShapeOutsideWritingModeFix` y `TextInputNotAlwaysDirAuto` (decisión v); lo no Baseline |
 | Condicional | `getInnerHTML()` apagado (c5a094a9ab) **se revierte si CfT 130 lo expone** (lo mira LOCAL-4) |
 | Pendiente de decisión | Web Share en Mac (Chrome lo encendió en la 129; no es Baseline) y el código ALPS (F4.8, con los JA4 de LOCAL-4) |
-| Comprobación | `FlyWeb/tools/motor-130.html`, `wpt-130-lista.txt` (35) y `regexp-130.html` (FS.14, en la 5,1) |
+| Comprobación | `FlyWeb/tools/motor-130.html` y `fastapi-129.html` (con JIT y Wasm en un origen http(s), nunca en `about:blank`), `wpt-130-lista.txt` (35), `regexp-130.html` (FS.14, en la 5,1) y `sandbox-popups.html` (FS.15) |
 
 ## Para la web
 
@@ -46,6 +48,9 @@ técnico: `motor.md`, «Nivel 130», §12; commits: `FlyWeb/tools/port/nivel130-
   - Cada web queda aislada de sus subdominios aunque intente juntarse con ellos (`document.domain`), como en Chrome
     desde la 119.
   - Las respuestas de otras webs que el navegador bloquea llegan como error y no como respuesta vacía, como en Chrome.
+  - Un anuncio o contenido incrustado sin permiso para abrir ventanas ya no puede abrirlas con un clic simulado.
+  - Si se apaga el JIT de JavaScript por seguridad (el interruptor de emergencia), esas webs tampoco tienen
+    WebAssembly, igual que en Chrome 130.
 - **Lo que se va, como en Chrome:**
   - **WebSQL ya no existe, como en Chrome desde la 119.** Una web vieja que aún guarde datos con WebSQL deja de verlos,
     igual que en Chrome.
@@ -63,5 +68,5 @@ técnico: `motor.md`, «Nivel 130», §12; commits: `FlyWeb/tools/port/nivel130-
 
 ## WPT del nivel 130
 
-*(Pendiente de LOCAL-4: Static de `nube/motor-130` 8645de1731, lista `FlyWeb/tools/wpt-130-lista.txt` (35), comparada con
+*(Pendiente de LOCAL-4: Static de `nube/motor-130` ccc74ea171, lista `FlyWeb/tools/wpt-130-lista.txt` (35), comparada con
 Chrome for Testing 130 en el mismo Mac y con las `TestExpectations` de la 130.0.6723.117.)*

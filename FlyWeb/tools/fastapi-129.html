@@ -7,8 +7,8 @@
 <!-- Nivel 129, paso de V8 (FM.19, MOTOR-8): con la V8 12.9, las llamadas rápidas de V8 ([NoAllocDirectCall] de canvas 2D,
      WebGL y WebGPU) ya no tienen «fallback» y lanzan las excepciones ellas mismas (d9bfd74484c). Esta página calienta
      cada método para que TurboFan use la llamada rápida y después le pasa un argumento que debe lanzar: tiene que lanzar
-     lo mismo que en la 1.12.2 y en Chrome, sin cerrar la pestaña. Abrir con file:// (no carga nada de fuera); también en
-     el ASan. Cada línea dice ok o FALLO. -->
+     lo mismo que en la 1.12.2 y en Chrome, sin cerrar la pestaña. Abrir desde http://127.0.0.1 (no carga nada de fuera;
+     con file:// fallan a propósito las dos pruebas de JIT y Wasm, que solo valen en un origen web); también en el ASan. Cada línea dice ok o FALLO. -->
 <style>
   :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
   body { margin: 2em; max-width: 60em; }
@@ -84,6 +84,19 @@
               const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
               return { ok: px[1] === 255, nota: px.join(',') }; });
   }
+  // JIT y WebAssembly en un origen web (COORDINACIÓN-6, 15-10). La decisión de JIT es por sitio: en about:blank o file://
+  // no se ve (así se escapó en el Static del 130 con una política vieja). Desde la V8 13.0, sin JIT tampoco hay
+  // WebAssembly, como en Chrome 130.
+  const enWeb = location.protocol === 'http:' || location.protocol === 'https:';
+  prueba('WebAssembly en un origen http(s)', () => ({ ok: enWeb && typeof WebAssembly === 'object',
+    nota: enWeb ? `typeof WebAssembly: ${typeof WebAssembly}` : `abrir desde http://127.0.0.1 (ahora ${location.protocol})` }));
+  prueba('JIT en un origen http(s): bucle de 5e7 vueltas en menos de 600 ms', () => {
+    const t0 = performance.now(); let s = 0;
+    for (let i = 0; i < 5e7; i++) s = (s + i) | 0;
+    const ms = Math.round(performance.now() - t0);
+    return { ok: enWeb && ms < 600, nota: `${ms} ms (con JIT ~200–250 ms; sin JIT ~1150 ms)` +
+      (enWeb ? '' : `; abrir desde http://127.0.0.1 (ahora ${location.protocol})`) };
+  });
   if (typeof gc === 'function') { gc(); prueba('gc() después de todo', () => true); }
 </script>
 </body>
