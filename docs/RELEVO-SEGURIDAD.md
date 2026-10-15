@@ -1,129 +1,113 @@
-# Relevo del agente SEGURIDAD (08-10-2026)
+# Relevo de SEGURIDAD-PORTES (15-10-2026)
 
-Para la sesión que sigue a SEGURIDAD. Leer antes: `CLAUDE.md`, `docs/TAREAS.md` (filas FS.*), `docs/SEGURIDAD.md`
-(procedimiento) y `FlyWeb/docs/cve-triage.md`. Los tres están al día en `main` desde el 09-10 (PR #72 fusionado,
-dac9ac98).
+Para **SEGURIDAD-PORTES-2**, relevo de SEGURIDAD-PORTES (`session_01NkotiT2nNYznsrQu9rssiy`). Leer antes:
+`CLAUDE.md`, `docs/TAREAS.md` (tabla, reglas 1–19, filas FS.10–FS.13), `docs/SEGURIDAD.md` y `FlyWeb/docs/cve-triage.md`.
+La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta y prueba.
 
-> **Relevo hecho (09-10-2026).** El papel se partió en SEGURIDAD-PORTES (`session_01NkotiT2nNYznsrQu9rssiy`, que tomó
-> FS.3, FS.8 y FS.9) y SEGURIDAD-VIGÍA (vigilancia de CVE; ver `docs/TAREAS.md`). Por eso, con el visto bueno del
-> HUMANO, se fusionó el PR #72 y se desactivó la rutina diaria de la sesión saliente (`trig_017eHmWVtUM8zquwVjXRAvAD`,
-> sección 4): lo que esta nota dice sobre ella y sobre el PR es historia.
+**Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
+Commits en inglés.
 
-**Idioma:** al HUMANO, **siempre en castellano**, también justo después de leer commits o notas en inglés (es un
-despiste que ha pasado varias veces). Commits en inglés.
+## 1. Versiones y ramas de seguridad (15-10)
 
-## 1. Estado de las versiones y de las ramas de seguridad (08-10, mediodía)
+La 1.13 está publicada (157.64.22): `flyweb` = 37197fe04 = `nube/motor-129` 325686916c, cuyos `patches/v8` son
+idénticos a `seg/v8-12.9` y el parche de WebAudio, idéntico a `seg/blink-129` (comprobado con `git diff`).
 
-Cada nivel N lleva la V8 de Chrome N (FM.5). Mis ramas `seg/v8-X.Y` de brave-core salen de `nube/motor-N` y solo
-añaden `patches/v8/` (y, en la 12.3, `flyweb_version`). LOCAL compila desde ellas (a veces con una rama
-`local/motor-N-arreglos` encima, que debe **contener** la mía).
+Cada nivel N lleva la V8 de Chrome N. Las ramas `seg/v8-X.Y` de brave-core salen de `nube/motor-N` (o del paso de V8
+de MOTOR) y solo tocan `patches/v8/`; MOTOR las funde en `nube/motor-N` y LOCAL compila desde ahí. Cada una tiene
+`patches/v8/FLYWEB-SECURITY.md` con su contenido exacto y sus pruebas. Distinguir siempre **«probado en `d8`»** (solo
+V8, Linux, en la nube) de **«compilado en FlyWeb»** (LOCAL, en la 7,1).
 
-| Nivel | Versión | V8 | Rama de seguridad | Estado |
-|---|---|---|---|---|
-| 118 | 1.2 | 11.8.172.18 | `seg/v8-11.8` 75bee800 | publicada |
-| 119 | 1.3 | 11.9.169.7 | `seg/v8-11.9` cbf720c9 | publicada |
-| 120 | 1.4 | 12.0.267.36 (M120-LTS) | `seg/v8-12.0` 0640a4be | publicada |
-| 121 | 1.5 | 12.1.285.28 | `seg/v8-12.1` 23da5621 | publicada |
-| 122 | 1.6 | 12.2.281.22 | `seg/v8-12.2` 1d7c7f69 | publicada (JIT abierto desde aquí) |
-| 123 | 1.7 / **1.7.1** | 12.3.219.16 | `seg/v8-12.3` **5cb5bbe2** | 1.7.1 publicada (`flyweb` = b71c7a5e) |
-| 124 | 1.8 / 1.8.1 | 12.4.254.15 + ac8da461 | `seg/v8-12.4` **d88873b8** | 1.8 publicada (desde `local/motor-124-arreglos`, que añade `<iomanip>` en V8); 1.8.1 = `nube/v1.8.1` (funciones, no seguridad) |
-| 125 | 1.9 | 12.5.227.13 | `seg/v8-12.5` **d69f81aa** | lista para compilar (lleva FM.12, F7.8 y `getHTML()`; = `local/v1.9` 24ffcf37); en seco 1017/1017 sobre la 116 antes de esa fusión |
-| 126 | 1.10 | 12.6.228.49 | `seg/v8-12.6` **00cef94c** | parches de V8 de la sesión nueva (67d7fdbf) + FM.12, F7.8 y `getHTML()` (fusión de `nube/motor-126` d2a823f3) |
+| Nivel | Versión | V8 | Rama | Época de caché | Fila |
+|---|---|---|---|---|---|
+| 118–124 | 1.2–1.8.1 | 11.8 … 12.4 | `seg/v8-11.8` … `seg/v8-12.4` | — | FS.4–FS.7 (historia) |
+| 125 | 1.9 | 12.5.227.13 | `seg/v8-12.5` 50624c65 | — | FS.7 |
+| 126 | 1.10 | 12.6.228.49 (M126-LTS) | `seg/v8-12.6` c3d250ff | — | FS.8 |
+| 127 | 1.11 | 12.7.224.20 | `seg/v8-12.7` 94914682 | — | FS.9 |
+| 128 | 1.12, 1.12.1, 1.12.2 | 12.8.374.38 | `seg/v8-12.8` 5aa57049 | 12 | FS.10 |
+| **129** | **1.13** | **12.9.202.28** | **`seg/v8-12.9` 2ffa1017** | **13** | **FS.13** |
 
-Cada rama tiene `patches/v8/FLYWEB-SECURITY.md` con su contenido exacto y las pruebas hechas. Distinguir siempre
-**«probado en `d8`»** (solo V8, Linux, en la nube) de **«compilado en FlyWeb»** (lo hace LOCAL en la 7,1).
+Ramas de Blink (sin V8):
 
-**08-10, 18:40 — no deshacer:** las fusiones d69f81aa y 00cef94c las aprobó el HUMANO; cualquier cambio en esas ramas parte de ellas.
+| Rama | Qué | Fila |
+|---|---|---|
+| `seg/rubylb-128` 44c2af83 | 12 arreglos de caídas y memoria de upstream en el código de RubyLB (6 parches); en la 1.12.1 | FS.11 |
+| `seg/inline-116` 907c9507 | deuda de la 116 en LayoutNG inline: CHECK de `NeedsCollectInlines` (posible UAF por *container queries*) en la 1.12.1; d7020222f64 + 9df6f20935b en la 1.12.2 | FS.12 |
+| `seg/blink-129` 63ea2663 | `automation_rate_` atómico en WebAudio (8669b50ce1c, crbug 357391257); en la 1.13 | FS.13 |
 
-## 2. Decisiones en vigor (no cambiarlas sin el HUMANO)
+Ramas viejas sin uso (no borrar sin preguntar): `seg/cve-2024-7971`, `seg/cve-2025-13223`, `seg/v8-groupby-contexto`.
+La época **14** se reservó para un plan B de la 1.12.3 que se abandonó (nunca se subió): **no usarla**.
 
-- **JIT y WebAssembly abiertos a todas las webs desde la 1.6** (HUMANO, 07-10). Interruptor de emergencia sin
-  recompilar: política `DefaultJavaScriptJitSetting = 2`. Por eso la revisión es **diaria** y el objetivo es
-  **≤ 48 h** desde un zero-day de V8 que aplique hasta la 1.x.y con el parche.
-- **Maglev apagado** en todas las V8 de nivel (`maglev` = false) y `maglev_untagged_phis` = false (CVE-2026-3910).
-  **Punto de decisión: nivel 132** (V8 13.2, LTS de M132, con sus fusiones de Maglev dentro; COORDINACIÓN-5, 14-10).
-- **Selección de instrucciones de Turboshaft:** apagada (`turboshaft_instruction_selection` = false) de la 12.3 a la 12.8;
-  **encendida desde la 12.9 (nivel 129, FlyWeb 1.13), como upstream (HUMANO, 14-10)**. Con ella apagada, la 12.9 usa
-  la ISel de TurboFan sobre el *schedule* recreado, que Chrome ya no usa para JS y que no trata `kTrustedHeapConstant`
-  (`ToConstant()` → `UNREACHABLE`): claude.ai se caía en el Static de LOCAL y mjsunit daba 100 fallos en 2123 tests;
-  encendida, 7216/7217. Se lleva su arreglo de la 13.2 LTS, fc26d62d0 (FS.13).
-- **Principio (HUMANO, 14-10):** lo que FlyWeb apaga respecto de upstream se vuelve a encender en cuanto upstream lo
-  lleva de serie, está maduro y trae sus arreglos, para no arrastrar portes más caros. Antes del nivel 130,
-  SEGURIDAD-PORTES entrega la tabla de todo lo apagado o distinto de upstream en V8 y en Blink (FS.13).
-- **Wrapper genérico wasm→JS** (`wasm_to_js_generic_wrapper`): apagado en 12.3–12.8 (1.7.1–1.12.x; en la 12.3 hizo
-  falta además el porte de c8c02de5); **encendido desde la 12.9 (1.13), como upstream (COORDINACIÓN-5 por la regla 19,
-  14-10)**, con 153d4e84e, 94e495e1d y 34587b687. Ojo: en la 12.8 el apagado no era completo (`GetOrCreateFuncRef`
-  miraba `wasm_generic_wrapper`); sin fallos en la `d8`.
-- **WebGPU apagado** (`kWebGPUService`, CVE-2026-5281): se mantiene hasta el punto de decisión del nivel ~140.
-- **CVE-2026-87491** solo se porta desde la 12.3 (el sandbox de V8 es frontera desde Chrome 123).
-- El **tercer dígito** es de SEGURIDAD: `flyweb_version` en `build/config.gni`, commit aparte, solo sobre el último
-  nivel publicado. `FLYWEB_BUILD_NUMBER` lo pone LOCAL.
-- Nunca: escribir en `flyweb`, forzar push en ramas compartidas, reescribir a mano un porte de motor de NUBE, secretos
-  en el repo, `gclient sync -D`. Push directo solo de las filas FS.* de `TAREAS.md`; lo demás por PR.
+## 2. Lo apagado o distinto de upstream (regla 19)
 
-## 3. Pendiente: FS.8, nivel 126 (V8 12.6.228.49) para la 1.10
+Principio (Titín, 14-10): lo que FlyWeb apaga se vuelve a encender cuando upstream lo lleva de serie, está maduro y
+trae sus arreglos. Valores comprobados en `src/flags/flag-definitions.h` de cada etiqueta de V8.
 
-Base: `nube/motor-126` (20ecf145 o posterior; NUBE ya llevó ahí los arreglos de LOCAL de la 1.8). Pasos:
+| Qué | FlyWeb | Upstream | Punto de decisión |
+|---|---|---|---|
+| `maglev` | apagado (Titín, 05-10; también en la 116) | encendido desde 11.x | **nivel 132** (V8 13.2, M132-LTS, con sus fusiones de Maglev) |
+| `maglev_untagged_phis` | apagado (CVE-2026-3910) | encendido | con Maglev, en el **132** |
+| `turboshaft_wasm` | apagado (sin parche: es lo de upstream) | apagado en 12.9, 13.0 y 13.1; **encendido en 13.2** | **132**: si upstream lo enciende, regla 19 → encender con sus arreglos (`WasmGCTypeAnalyzer`, `array.fill`, `call_indirect` inlining…) |
+| `turboshaft_instruction_selection` | apagado 12.3–12.8; **encendido desde 12.9** | encendido desde 12.5 | hecho (1.13). Con él apagado la 12.9 caía en `ToConstant()` (`kTrustedHeapConstant`) |
+| `wasm_to_js_generic_wrapper` | apagado 12.3–12.8; **encendido desde 12.9** | encendido desde 12.3 | hecho (1.13) |
+| JSPI, `wasm_deopt`, *stack switching* | apagados (experimentales; Blink 116 no tiene *origin trial* de JSPI) | experimentales | cuando upstream los envíe y Blink los exponga |
+| WebGPU (`kWebGPUService`, CVE-2026-5281) | apagado (`chromium_src/gpu/config/gpu_finch_features.cc`, de `nube/webgpu-off`; está en la 1.13) | encendido | **nivel ~140** |
+| JIT y WebAssembly | abiertos a todas las webs desde la 1.6 | ídem | interruptor sin recompilar: política `DefaultJavaScriptJitSetting = 2` |
 
-1. Rama `seg/v8-12.6` desde `nube/motor-126`. Partir del conjunto de `seg/v8-12.5` y clasificar cada parche contra
-   la 12.6 limpia (`git apply --check` = falta; `git apply -R --check` = ya está; conflicto = mirar a mano).
-   La 12.6.228.49 **es** la M126-LTS: deberían sobrar casi todos los arreglos de la M126-LTS que porté a 12.3–12.5,
-   y también los de la M120-LTS. Lo que seguro hay que comprobar: CVE-2025-13223 (+ 9b5250b9), CVE-2025-5419 y
-   Turboshaft A3/A4/A6, CVE-2025-6554 (NUBE dice que lo rehízo limpio: comparar con el mío), CVE-2026-87491,
-   CVE-2024-7971, `groupBy` (77df647d + 92aba703) y `kFlyWebCacheEpoch`.
-2. **Arreglos posteriores a la M126-LTS (desde 01-2025):** la M126-LTS terminó; la siguiente LTS de Google es la
-   **M132-LTS (V8 13.2.152.x)**. Listar sus fusiones (`git ls-remote --tags https://github.com/v8/v8
-   'refs/tags/13.2.152.*'`, traer la última etiqueta con `--depth` ~200 y `git log -E --grep='Merged|LTS'`) y
-   clasificarlas contra la 12.6 igual que en el paso 1. Es la fuente principal de arreglos de 2025 para nuestras V8.
-3. Opciones (`src/flags/flag-definitions.h`): Maglev, `maglev_untagged_phis`, `turboshaft_instruction_selection` y
-   `wasm_to_js_generic_wrapper` apagados. Ojo: la 12.6 ya trae c8c02de5 y 8d6bd5e1, así que el *wrapper* genérico
-   podría quedarse encendido; por coherencia con 1.7.1–1.9 lo dejé apagado en todas. Mirar también si la 12.6
-   enciende por defecto algo nuevo (`turboshaft_wasm`, `turbolev`, *load elimination*…): si es así, apagarlo y
-   avisar al HUMANO, como con Maglev.
-4. `d8`: `FlyWeb/scripts/v8-d8.sh <carpeta> <worktree de seg/v8-12.6>` (ya baja FP16). Pasar las pruebas de
-   `FlyWeb/tools/v8-pruebas/`, las de regresión de cada arreglo portado, `groupBy` 17 M → `RangeError` y mjsunit
-   completo (`tools/run-tests.py --outdir=out/x64 -j4 mjsunit`). Con 4 núcleos, la `d8` tarda ~1 h 30 y mjsunit ~1 h.
-5. Comprobar en seco los parches de Chromium: `FlyWeb/scripts/chk116.py`. **Nuevo en el 126:** NUBE añadió parches
-   en `patches/third_party/pdfium/` (otro subrepo): el script los dará como «sin base» si PDFium no está en el clon
-   parcial; comprobarlos aparte o pedírselo a LOCAL.
-6. `FLYWEB-SECURITY.md` de la rama, nota en `TAREAS.md` (fila nueva FS.8) con el commit para LOCAL.
+Lo que no es de seguridad (Wallet, Rewards, News, Talk, Leo, VPN, P3A, Omaha) está en `CLAUDE.md`, no aquí.
 
-## 4. Revisión diaria (FS.2)
+## 3. Lo que espero de la 13.0 (nivel 130, FS.14)
 
-Hoy la lanza una rutina («SEGURIDAD: revisión diaria de CVE», `trig_012mAwnVKtRrskyyVN2XAUGC`, cada día a las 8:52
-hora de Madrid) **atada a la sesión saliente**. La sesión nueva debe crear la suya (mismo texto) y pedir al HUMANO
-que desactive o borre la antigua, para que no salten dos. Lo que hace cada día:
+Empieza cuando MOTOR-9 abra el paso de V8 13.0 (`nube/motor-130` o la rama de paso que indique). Regla: **la 1.14
+no sale con menos arreglos de V8 que la 1.13**.
 
-1. `python3 FlyWeb/scripts/cve-watch.py` (catálogo KEV de CISA contra `cve-triage.md`).
-2. Prensa: zero-days de Chrome/V8 posteriores al último anotado (hoy, **CVE-2026-87491**, 08-09-2026). El blog de
-   Chrome Releases no se puede leer desde el contenedor.
-3. Fusiones nuevas en las ramas de V8 por encima de la V8 del último nivel publicado (hoy 12.4–12.6; con la 1.10, la
-   M132-LTS) y si aplican a nuestras `seg/v8-*`.
-4. Notas nuevas de LOCAL y NUBE para SEGURIDAD en `TAREAS.md`; si LOCAL toca `patches/v8/`, revisarlo (último
-   caso: `<iomanip>` en `wasm-disassembler.cc` para la 12.4, correcto y sin efecto en la seguridad).
-5. Una línea en FS.2 y el periodo de `cve-triage.md` (PR #72). Si algo explotado aplica: urgencia al HUMANO y
-   porte en una rama `seg/*`.
+1. **Ronda `seg/v8-13.0`** desde la rama de MOTOR-9. Partir de los parches de `seg/v8-12.9` y clasificar cada uno
+   contra la 13.0 limpia: `git apply --check` (falta), `git apply -R --check` (ya está), conflicto → a mano. Ya
+   comprobado en el historial de V8: **a7c018806, 153d4e84e y bc67262 son antecesores de 13.0.245.25** (sobran);
+   94e495e1d, 34587b687, fc26d62d0, 357d0dd4 y 279d28029 **no** lo son (comprobar con `-R`; si no están, portarlos).
+2. **Fusiones posteriores:** las de la rama 13.0 por encima de la revisión que fije MOTOR-9, más 13.1.201.22 y
+   13.2.152.56 (M132-LTS), contra la 13.0. Ojo: lo que di por «no aplicable» en la 12.9 porque nació en la 13.0
+   **puede aplicar ahora**: la caché global de *regexp* ATOM, los arreglos de tipos canónicos de 13.x y, si la 13.0 ya
+   la tiene por proceso, la caché de *wrappers* de importación (`is_dying_`, crbug 391907159). Maglev y
+   Turboshaft-Wasm siguen sin aplicar (apagados) hasta el 132.
+3. **Época de caché:** una nueva, mayor que 13 y que la que ponga MOTOR-9 en su paso; nunca la 14.
+4. **Pasada de API del embedder 12.9 → 13.0:** `git diff 12.9.202.28 <revisión> -- include/` y revisar lo que Blink
+   adapte MOTOR-9 (como en la 12.9 con `FastApiCallbackOptions`: los callbacks rápidos lanzan ellos mismos).
+   Mirar sobre todo: callbacks rápidos, `ExceptionPropagationCallback`, etiquetas de punteros externos y del
+   *sandbox*, `CppHeap`/cppgc y constantes de `Internals`.
+5. **Opciones:** confirmar con `d8 --print-flag-values` que siguen `--no-maglev --no-maglev-untagged-phis
+   --turboshaft-instruction-selection --wasm-to-js-generic-wrapper` y que la 13.0 no enciende nada nuevo de JIT; si
+   lo hace, avisar a COORDINACIÓN y a Titín antes de decidir.
+6. Lo nuevo que una web pueda alcanzar en el nivel 130 (APIs que MOTOR-9 porte a Blink): buscar en Chromium 130–132
+   y `main` los arreglos posteriores de esos ficheros, por fichero y no por `--grep` (así salieron los de RubyLB).
+7. `d8`: pruebas de `FlyWeb/tools/v8-pruebas/`, regresión de cada arreglo portado y mjsunit completo (en la 12.9,
+   7216/7217; el fallo es `maglev/extras-cped`, que exige código de Maglev). `FLYWEB-SECURITY.md` de la rama y fila
+   FS.14 con el commit.
 
-## 5. Riesgos abiertos conocidos (anotados, sin portar)
+## 4. Riesgos abiertos (anotados, sin portar)
 
-- 31c7633a / 74d82249 (M126-LTS, compactación de la EPT durante el *scavenge*): escritos para el montículo de la
-  12.6, no aplican tal cual a 12.3–12.5; un fallo de tiempos del GC que una página no dispara directamente. La 12.6
-  ya los trae.
-- Las 1.4–1.6 publicadas (12.0–12.2) no llevan los arreglos de la M126-LTS; quedan superadas por las versiones
-  nuevas vía Sparkle.
-- La M126-LTS no cubre nada de 2025 en adelante: es lo que aporta el paso 2 de FS.8 (M132-LTS) para todos los niveles.
+- a7c018806 (crbug 364917763; nunca se fusionó a una rama de release): posible confusión de tipos en la conversión
+  JS→Wasm a tipos solo-nulos; **afecta a 1.11–1.12.2**, no confirmada, gravedad media-baja. Titín decidió no sacar
+  1.12.3: lo cubre la 1.13 vía Sparkle.
+- Igual que antes: las 1.4–1.6 (12.0–12.2) no llevan la M126-LTS; quedan superadas por Sparkle.
+- No portados a propósito en FS.12: b94803ac920 y la conversión a `raw_ptr` (demasiado amplios para la 116).
 
-## 6. Entorno y trampas
+## 5. Entorno y trampas de la `d8`
 
-- El contenedor es efímero: las `d8` y los clones se pierden. `v8-d8.sh` lo rehace todo (GitHub y commondatastorage;
-  googlesource y CIPD están bloqueados). Un clon de brave-core con `--filter=blob:none` y *sparse-checkout* de
-  `patches/v8`, `build` y `FlyWeb` basta; los `.patch` de Chromium se leen con `git show` / `git cat-file`.
-- `git worktree add` con ruta relativa la crea dentro del repo: usar rutas absolutas.
-- `patch -F3` (contexto flexible) puede dejar un trozo en un sitio equivocado (me pasó dentro de un comentario y dentro
-  de un `switch`): revisar siempre el resultado con `git diff`.
-- Para matar procesos, buscar el PID con `ps` y `kill <PID>`; `pkill -f` con un patrón mató la shell.
+- El contenedor es efímero: `FlyWeb/scripts/v8-d8.sh` lo rehace todo desde GitHub y commondatastorage (googlesource y
+  CIPD están bloqueados). Para no recompilar: `FLYWEB_D8_NO_BUILD=1 v8-d8.sh <carpeta> [brave-core]` y luego `ninja`.
+- **Memoria: el contenedor tiene ~15 GB; `ninja -j32` se queda sin memoria.** Usar `-j8`, o `-j4` en los enlaces.
+- En el árbol de la `d8`, quitar los ganchos de Brave: `BUILD.gn` importa `//brave/v8/sources.gni` y
+  `src/codegen/compiler.cc` usa `BRAVE_COMPILER_GET_FUNCTION_FROM_EVAL`; si no, falla `build.ninja.stamp`.
+- **Desde la 12.9**, `BUILD.gn` importa `//third_party/icu/config.gni`: basta un fichero mínimo con
+  `icu_use_data_file = false` (si no, `gn gen` pide `copy_icudata`). Sin ICU no se prueba Intl.
+- Regenerar parches: rama temporal con **solo** los commits de seguridad (nunca los de pruebas de la `d8`),
+  `git diff --full-index` desde la revisión fijada, un `.patch` por fichero, nombre = ruta con `/` → `-`.
+- `git am` puede fallar por falta de blobs para el 3-way en clones parciales: `git apply` y revisar a mano.
+- `git worktree add` con ruta relativa la crea dentro del repo: rutas absolutas.
+- `patch -F3` puede dejar un trozo en un sitio equivocado (comentarios, `switch`): revisar siempre con `git diff`.
+- Para matar procesos, `ps` y `kill <PID>`; `pkill -f` con un patrón mató la shell.
 - `d8` sin fichero espera en modo interactivo: `-e '' < /dev/null`.
-- La `d8` compila con la libstdc++ del sistema: no ve los `#include` que faltan con la libc++ de Chromium 116 (el
-  caso `<iomanip>`); eso lo encuentra LOCAL.
-- Un clasificador de seguridad bloqueó una vez preparar variantes de un exploit para una prueba de regresión: no
-  insistir; usar las pruebas de regresión de upstream.
+- La `d8` compila con la libstdc++ del sistema: no ve los `#include` que faltan con la libc++ de Chromium (caso
+  `<iomanip>`); eso lo encuentra LOCAL.
+- **No preparar pruebas de concepto ni variantes de exploits**: un clasificador de seguridad paró dos veces ese
+  trabajo. Validar con las pruebas de regresión de upstream, mjsunit y revisión de código.
