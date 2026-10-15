@@ -1164,7 +1164,7 @@ Comprobación: `FlyWeb/tools/motor-130.html` (con las pruebas de superficie), `f
 a7b5f3f4aa salió *jitless* en la 7,1 por una política vieja de la app de desarrollo (`DefaultJavaScriptJitSetting` = 2), y
 las pruebas en `about:blank` no lo vieron. «Para la web» en `version-1.14.md`.
 
-## Nivel 131 (inventario, 15-10, MOTOR-10; nada portado → FlyWeb 1.15)
+## Nivel 131 (inventario y decisiones, 15-10, MOTOR-10; se porta tras la entrega de la 1.14 → FlyWeb 1.15)
 
 Inventario de FM.21, **para decidir COORDINACIÓN antes de portar**. Fuentes: web-features 3.42.0 + BCD 8.1.6
 (`baseline-nivel.js 131`), flags de `runtime_enabled_features.json5` entre la **130.0.6723.192** y la **131.0.6778.268**
@@ -1334,6 +1334,20 @@ tamaño de *nested declarations*.
 Baseline del §2, incluidos los colores relativos sobre `currentcolor` (el porte de más riesgo); (iv) flags del §3 con
 `SvgExternalResources`; (v) **escapes del §6 en el 131** y la auditoría completa como fila aparte; (vi) 4888675b6c9 en la
 1.14.1 o en el 131.
+
+### 10. Decisiones de COORDINACIÓN-6 (15-10; valen como de Titín, regla 16)
+
+- **(i)** V8 13.1.201.22 y declarar 131.0.6778.265 con `platformVersion` 11.7.10: sí.
+- **(ii)** ML-KEM en la 1.15: sí. Lo lleva SEGURIDAD-PORTES-3 en **FS.17** (encargo de COORDINACIÓN); MOTOR no lo toca.
+- **(iii)** `::details-content` y los colores relativos sobre `currentcolor`: sí. Los colores, con **las WPT de color
+  del 131 completas** comparadas con CfT 131, por ser el porte de más riesgo.
+- **(iv)** Flags del §3: como se propone.
+- **(v)** Escapes del §6: **los dos de seguridad se adelantan a la 1.14.1** con `seg/oopsif`. Están hechos en brave-core
+  `nube/escapes-seg-1.14.1` **c6ab0716d4**, sobre `ccc74ea171`, y se funden sin conflictos con `seg/oopsif`
+  57c1b3fa2a. Prueba: `FlyWeb/tools/seg-1.14.1.html`. Los revisa SEGURIDAD-PORTES-3. El resto de escapes van en el 131.
+  La auditoría completa va en **FM.22, después de entregar el 131**.
+- **(vi)** 4888675b6c9 en el 131 (solo DevTools).
+- **Orden:** el 131 empieza cuando LOCAL-4 entregue la 1.14.
 
 ## Apuntado para niveles futuros
 
