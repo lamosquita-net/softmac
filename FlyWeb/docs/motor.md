@@ -991,7 +991,7 @@ estado de la flag, y como mucho añadirla):
 **Decidido (COORDINACIÓN-6, 15-10): los cuatro se apagan en la 1.14, con `MutationEvents`,** después de que LOCAL-4 lo
 compruebe en la 1.13; en `version-1.14.md`, «Para la web»: «WebSQL ya no existe, como en Chrome desde la 119».
 `KeyboardFocusableScrollers` irá al 131 si es ligero, si no al 132 (se decide en su inventario); `IsolateSandboxedIframes`
-lo valora SEGURIDAD-PORTES-2. Motivos para apagarlos: Hay tres motivos:
+lo valora SEGURIDAD-PORTES-2. Hay tres motivos:
 
 - Es lo que hace el Chrome que declaramos.
 - Cada uno es una prueba trivial de que no somos Chrome 129/130 (`typeof openDatabase`), en contra del principio 13.
