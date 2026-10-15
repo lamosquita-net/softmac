@@ -939,6 +939,68 @@ opción B; (iii) `fast_float` traído por `build.sh` (cambio en softmac) o empaq
 brave-core; (iv) `MutationEvents` apagado como Chrome 130; (v) fuera por coste `KeyboardFocusableScrollers`,
 `ShapeOutsideWritingModeFix` y `TextInputNotAlwaysDirAuto`; (vi) acceso de esta sesión a brave-core.
 
+### 8. Decisiones de COORDINACIÓN-6 (15-10; valen como de Titín, regla 16)
+
+- **(i)** V8 **13.0.245.25**. **(ii)** gin con la **opción B**, anotada como deuda: si una web nota que las tareas de
+  baja prioridad de V8 compiten con las visibles, se vuelve a mirar la A (e97ba778462 + 8e42980ed5d). Preparado en
+  `FlyWeb/tools/port/nivel130/gin-opcion-b.diff` (contra la 116; el parche final se rehace con el de gin que ya hay en
+  brave-core). En la 12.9 todas las llamadas de V8 usan la versión de un argumento, así que la 1.13 no tiene ningún
+  `nullptr` escondido.
+- **(iii)** `fast_float` traído por `build.sh`, como V8, con commit y suma fijos (si no cuadran, se para), y su
+  licencia en `about:credits`. Hecho en softmac: `build.sh` lee `src/brave/FlyWeb/fast_float-revision`
+  («<commit> <suma>»; sin el fichero no hace nada) y lo trae de `chromium.googlesource.com/external/github.com/fastfloat/fast_float.git`.
+  Probado con un espejo local: bien, segunda pasada sin traer, suma mala → para, fichero sin suma → para, sin fichero →
+  nada. Para brave-core, en `FlyWeb/tools/port/nivel130/`: `fast_float-revision` (3e57d8dc, v6.1.4; suma 6344e292…),
+  `fast_float/BUILD.gn` (el de Chromium 130 sin las pruebas) y `fast_float/README.chromium` (`License File:
+  src/LICENSE-MIT`, que es lo que lee `licenses.py` para `about:credits`), como parches de fichero nuevo. **LOCAL-4:
+  comprobar que `about:credits` lista fast_float.**
+- **(iv)** `MutationEvents` apagado. **Chrome no los apagó en la 127:** `MutationEvents` sigue en `stable` en la
+  127.0.6533.144, la 128.0.6613.194 y la 129.0.6668.112, y `content/child/runtime_features.cc` solo los enciende con
+  `--mutation-events-enabled`. Se apagan en la 130 (cc4fc38654c, «Land in M130»). No se nos escapó. Sí se escaparon
+  otros cambios «por defecto» (§9).
+- **(v)** `KeyboardFocusableScrollers`, `ShapeOutsideWritingModeFix` y `TextInputNotAlwaysDirAuto`, fuera de la 1.14.
+  Si alguna de sus WPT entra en `wpt-130-lista.txt`, se escribe como diferencia conocida en `version-1.14.md` y aquí.
+  **Estimación de `KeyboardFocusableScrollers`: 3–4 días de MOTOR** más una ronda de pruebas de foco de LOCAL.
+  199d1a77501 rehace `SupportsFocus()`/`IsFocusable()` como un enum de tres estados en 55 ficheros (+485/−173), sobre
+  da12836a721 (todos los *scrollers* admiten el foco). El riesgo está en el foco de formularios, `dialog` y *popover*.
+  Propongo meterlo en un nivel ligero (131 o 132), no en uno cargado.
+- **(vi)** brave-core: lo pide COORDINACIÓN a Titín. Para crear `nube/motor-130` hace falta poder escribir en el
+  fork, no solo leerlo (regla 2).
+
+### 9. Cambios «por defecto» que se escaparon (barrido 116–130, pedido en (iv))
+
+Método: flags `stable` en la 116 que la 130 apaga, cambios de estado `stable` → otro entre 126→127→128→129, y
+`BASE_FEATURE` de `net`, `services/network`, `content` y Blink entre esas etiquetas. De las 125 flags `stable` de la
+116 que la 130 ya no tiene, 84 se quitaron en commits cuyo asunto dice que el cambio pasa a permanente; las otras 41
+se quitaron en limpiezas de varias flags a la vez y **no las he revisado una a una** (pasada aparte; entre ellas
+`CSSStyleQueriesBoolean` y `WebKitScrollbarStyling`, las que más me inquietan). Cuatro cambios visibles para las webs
+que ningún nivel recogió, todos de «apagar» y todos baratos (cambiar el estado de la flag, y como mucho añadirla):
+
+| Nivel | Qué apaga Chrome | Commit | En FlyWeb | Coste |
+|---|---|---|---|---|
+| 119 | **WebSQL** (`openDatabase`; flag `Database` → `experimental`) | 23d1b425018 | **sigue encendido** (la 116 lo trae `stable`; no consta en ningún nivel) | horas |
+| 126 | API prefijadas de pantalla completa de `<video>` (`webkitEnterFullscreen`…; `PrefixedVideoFullscreen` → `test`) | c9fb12ce3ad | sigue encendido | minutos |
+| 127 | sintaxis vieja de estados `:--foo` (`CSSCustomStateDeprecatedSyntax`) | 221eb242792 | sigue (el 125 la dejó «como en la 125») | horas |
+| 128 | `DOMParser.parseFromString(…, {includeShadowRoots})` (`DOMParserIncludeShadowRoots`) | 20695562040 | sigue (la 116 lo trae sin flag) | horas |
+
+Recomiendo apagar los cuatro en la 1.14, con `MutationEvents`. Hay tres motivos:
+
+- Es lo que hace el Chrome que declaramos.
+- Cada uno es una prueba trivial de que no somos Chrome 129/130 (`typeof openDatabase`), en contra del principio 13.
+- WebSQL mete SQLite en el renderer, con un historial largo de CVE (Magellan) sobre una base que no recibe arreglos.
+
+Riesgo: una web que aún use WebSQL pierde el acceso a sus datos, lo mismo que en Chrome desde la 119. **Pido a LOCAL-4
+que lo compruebe en la 1.13 antes, sin compilar:** `typeof openDatabase`,
+`typeof HTMLVideoElement.prototype.webkitEnterFullscreen`, `CSS.supports('selector(:--x)')` y si
+`parseFromString` con `includeShadowRoots: true` crea la sombra (Brave podría haber apagado alguno).
+
+Sin efecto en la web o fuera por coste: `IsolateSandboxedIframes` (127: iframes con `sandbox` en otro proceso; es
+modelo de procesos, grande; para que lo valoren SEGURIDAD-PORTES y ARQUITECTURA), FLEDGE y *fenced frames* (apagados
+en Brave), métricas de Event Timing, `IndexedDBShardBackingStores`/`CompressValuesWithSnappy` (formato en disco),
+`LocalCompileHints` (rendimiento), `ServiceWorkerClientIdAlignedWithSpec` (128, ajuste menor) y
+`AncestorChainBitEnabledInPartitionedCookies` (128, cookies particionadas; se decide con la política de cookies de
+Brave).
+
 ## Apuntado para niveles futuros
 
 - **143 — `onselectionchange` como atributo de elemento** (`<div onselectionchange=…>`, `setAttribute`): Chromium
