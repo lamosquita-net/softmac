@@ -62,12 +62,13 @@ Notas de tablero: commits con `[coord]` (el Vigía los ignora); reglas, CLAUDE.m
 | 1.13 | Nivel 129 | Publicada (15-10, 09:28) |
 | **1.14** | Nivel 130 entero + V8 13.0.245.25 + FS.14 (incluye el arreglo de V8 91343bb4 de la regresión de la 1.13) + ORB v0.2 + fuera polyfills core-js y 6 apagados de Chrome + `block-ruby-003` + `seg/popup-sandbox` + los dos escapes de seguridad. **Cabeza: brave-core `nube/escapes-seg-1.14.1` 303e498fb5** (= `nube/motor-130` ccc74ea171 + 2 flags) | LOCAL-4: Static/ASan y pruebas en la 6,1; después Release y entrega (regla 11) |
 | 1.14.1 | 1.14 + `seg/oopsif` 57c1b3fa2a (FS.15, OOPSIF) | Después de la 1.14, Static aparte con las pruebas de FS.15 |
-| 1.15 | Nivel 131 + V8 13.1.201.22 + ML-KEM (`seg/ml-kem` fc0f45c433, **solo en el 131**) | Inventario decidido (FM.21). **No empieza hasta el reinicio del límite semanal** salvo orden de Titín |
+| 1.15 | Nivel 131 + V8 13.1.201.22 + ML-KEM (`seg/ml-kem` fc0f45c433, **solo en el 131**) | Inventario decidido (FM.21). **Empieza ya con MOTOR-11** (Titín, 15-10, ~18:30) |
 
 - **Plazo de seguridad:** si la 1.14 no está entregada antes del **17-10, 16:00**, SEGURIDAD-PORTES-3 prepara la 1.13.1
   con 91343bb4 (decisión de Titín, FS.14). Ni crbug 390743124 ni 511006880 tienen explotación conocida (KEV 14-10).
 - **Límite semanal (regla 15):** en aviso (`seven_day`, `allowed_warning`) el 15-10; se restablece el **martes 20-10, 09:00**.
-  Agentes avisados: solo la 1.14 / 1.14.1 hasta entonces.
+  **Titín (15-10, ~18:30): va al 56 %, se sigue trabajando jueves y viernes; el sábado decide.** Se levanta la parada del 131.
+  Ojo: `allowed_warning` no dice el porcentaje; el dato lo da Titín.
 - **Decisiones de Titín del 15-10:** JetBrains Mono solo en páginas internas; no hay 1.13.1; regla 13 sin
   `/remote-control`; **pruebas de FlyWeb en la 6,1** (la 7,1 solo compila; ventanas en la 7,1 solo con ≥ 10 min de
   inactividad; CfT siempre `--headless=new`).
@@ -79,8 +80,7 @@ Notas de tablero: commits con `[coord]` (el Vigía los ignora); reglas, CLAUDE.m
 
 ## Pendiente de otros
 
-- **Titín:** abrir COORDINACIÓN-7 (texto abajo) y pegar al Vigía el cambio de destino; aprobar en la ventana de LOCAL-4
-  la descarga de CfT 130 si aún no lo ha hecho (getInnerHTML y ALPS); permitir en LuLu la compilación nueva en la 6,1;
+- **Titín:** abrir COORDINACIÓN-7 (texto abajo) y pegar al Vigía el cambio de destino; abrir MOTOR-11 (texto en el mensaje de COORDINACIÓN-7 del 15-10, ~18:30); permitir en LuLu la compilación nueva en la 6,1;
   firmar en bak la 1.14 cuando PUBLICACIÓN se lo pida; prueba de `FlyWeb/tools/regexp-130.html` en la 5,1 con la 1.14.
 - **COORDINACIÓN-7:** comprobar PUBLICACIÓN antes de la entrega; pasar a CONTENIDOS-WEB-2 los datos del DMG; tras la
   1.14, la 1.14.1; después del reinicio, el 131.
