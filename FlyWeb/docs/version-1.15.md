@@ -1,17 +1,19 @@
 # FlyWeb 1.15 — nivel de motor 131 (MOTOR-11, 15-10-2026)
 
-**Cabeza final:** brave-core `nube/motor-131` **01b123af05** (`git ls-remote`), sobre la 1.14 (303e498fb5) +
-`seg/ml-kem` fc0f45c433 (FS.17) + `seg/v8-13.1` 634cedc130 (FS.18, cerrada). Un solo nivel en una sola versión, con la V8 de
+**Cabeza final:** brave-core `nube/motor-131` **1419974606** (`git ls-remote`), sobre la 1.14 (303e498fb5) +
+`seg/ml-kem` fc0f45c433 (FS.17) + `seg/v8-13.1` 634cedc130 (FS.18, cerrada) + los arreglos de la 1.14
+(`nube/arreglos-1.14` d12847a77f, fusión 391db5f63d) + el modo de petición de los recursos SVG externos (FS.19). Un solo nivel en una sola versión, con la V8 de
 Chrome 131 (regla 18).
 
-**Estado:** en código. **Pendiente:** revisión de SEGURIDAD-PORTES-3 de los portes grandes (regla 17: colores relativos
-sobre `currentcolor` y la cascada de `::details-content`); Static, ASan y
+**Estado:** en código. Revisión de la regla 17 (FS.19): colores relativos y cascada, bien; `SvgExternalResources`
+bloqueaba (no compilaba) y está arreglado con el modo de petición de la 131 (1419974606). **Pendiente:** el visto bueno de
+SEGURIDAD-PORTES-3 a 1419974606, y después Static, ASan y
 Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas frente a CfT 131. Detalle técnico:
 `motor.md`, «Nivel 131», §11; commits: `FlyWeb/tools/port/nivel131-commits.tsv`.
 
 | Dato | Valor |
 |---|---|
-| Cabeza final | brave-core `nube/motor-131` **01b123af05** (declaración en 2f04e8614a; paso de V8 en `nube/motor-131-v8` 9b19e7dafc) |
+| Cabeza final | brave-core `nube/motor-131` **1419974606** (declaración en 2f04e8614a; paso de V8 en `nube/motor-131-v8` 9b19e7dafc) |
 | Versión visible | 1.15 (`CFBundleVersion` la pone LOCAL en la entrega) |
 | Nivel declarado | Chrome 131 (`flyweb_engine_full_version` 131.0.6778.265; `platformVersion` mínimo **11.7.10**) |
 | Motor JavaScript | V8 13.1.201.22 (cabeza de la rama 13.1, la de la 131.0.6778.265) con los arreglos de seguridad de FlyWeb (FS.18; época de caché **16**; 62 parches; d8: pruebas de FlyWeb 8/8, mjsunit 7279/7280, Wasm con `--stress-wasm-code-gc` 394/394). gin sin cambios |
@@ -50,7 +52,7 @@ Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas f
 
 ## WPT del nivel 131
 
-*(Pendiente de LOCAL-4: Static de `nube/motor-131` 01b123af05, lista `FlyWeb/tools/wpt-131-lista.txt` (43 entradas),
+*(Pendiente de LOCAL-4: Static de `nube/motor-131` 1419974606 (tras el visto bueno de FS.19), lista `FlyWeb/tools/wpt-131-lista.txt` (43 entradas),
 comparada con Chrome for Testing 131 en el mismo Mac y con las `TestExpectations` de la 131.0.6778.265. **Las WPT de
 color van completas** (`css/css-color/`, decisión de COORDINACIÓN-6). Excepciones escritas: ninguna por
 `PaintHighlightsForFirstLetter`; su única prueba es la interna de Blink `paint/markers/first-letter.html`, que no es
