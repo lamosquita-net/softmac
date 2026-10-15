@@ -1,0 +1,76 @@
+# Nivel 130 (FM.20): commits por porte. Listas de git log 129.0.6668.112..130.0.6723.192 (cabeza de la rama 6723, con sus Merged:)
+# por fichero de runtime_enabled_features.json5, por --grep de flag/propiedad y por autor; lo anterior al 129, de 116.0.5845.188..130.0.6723.192.
+# Medida PROVISIONAL (MOTOR-9, 15-10): medirng.sh sobre la 116 SOLA (sin parches de brave-core: la sesión no tiene brave-core),
+# con el traductor de LayoutNG; hunks/rechazados. Rehacer con nube/motor-129 antes de portar.
+porte	commit	fecha	dónde	estado	medida	asunto
+nested-declarations	3ae71aa0358	2024-08-27	main	propuesto	99/33 (serie)	[css-nesting] Implement CSSNestedDeclarations behind a flag
+nested-declarations	61067c8a5ba	2024-08-29	main	propuesto	99/33 (serie)	[css-nesting] Send Start/EndRuleBody outside of ConsumeDeclarationList
+nested-declarations	11e3a184408	2024-08-29	main	propuesto	99/33 (serie)	[css-nesting] Just use ConsumeDeclarationList for nested grouping rules
+nested-declarations	a9b425e2212	2024-09-02	main	propuesto	99/33 (serie)	[css-nesting] Traverse child rules of StyleRule in ReplaceRuleIfExists
+nested-declarations	0a6d3ac600e	2024-09-02	main	propuesto	99/33 (serie)	[css-nesting] Add CSSNestedDeclarations support for insertRule
+nested-declarations	b4b329c0e7a	2024-09-02	main	propuesto	99/33 (serie)	[nesting] Cut off the outer rule body range at the first nested rule
+nested-declarations	63303296ddf	2024-09-04	main	propuesto	99/33 (serie)	[css-nesting] Enable CSSNestedDeclarations for stable
+text-wrap	ee5d3f203d9	2024-08-26	main	propuesto	39/21	[text-wrap] Update the syntax of `text-wrap` to match the new spec
+rtc-transferable	6e640199859	2024-08-05	antes del 129	propuesto	44/10 (serie)	Add transferability to RTCDataChannel
+rtc-transferable	e112b3ea554	2024-08-07	antes del 129	propuesto	44/10 (serie)	Allow RTCDataChannel transfer to dedicated workers
+rtc-transferable	1f5f2853635	2024-08-26	main	propuesto	44/10 (serie)	Enable transferable RTCDataChannels by default
+popover-force	8010721fc51	2024-09-09	main	propuesto (solo force; source tras PopoverAnchorRelationships)	11/6	Add PopoverAnchorRelationships flag and basic imperative API
+wasm-js-string-builtins	1f2dd1392d2	2024-09-04	main	de serie con V8 13.0 (+interruptor de Blink)	2/1	Ship WebAssembly JS String Builtins
+wasm-js-string-builtins	37f9fd474bd	2024-09-04	main	de serie con V8 13.0 (+interruptor de Blink)	2/1	WebAssembly JS String Builtins: tie kill switch to V8 commandline flag
+V8-gin	e97ba778462	2023-07-27	antes del 129	alternativa A (no recomendada)	37/0	Add V8_LOW_PRIORITY_TQ for main thread
+V8-gin	8e42980ed5d	2024-09-04	main	alternativa A (no recomendada)	37/10	[v8] Differentiate between UserVisible and BestEffort task runners
+V8-gin	2968192da05	2024-08-28	main	referencia (solo heap_test_platform)	-	[v8] Update GetForegroundTaskRunner override
+flag-CSSFlatTreeContainer	8410509e422	2024-06-14	antes del 129	propuesto	22/2 (serie)	[@container] Container lookup in flat tree
+flag-CSSFlatTreeContainer	9425692817a	2024-08-26	main	propuesto	22/2 (serie)	[@container] Ship flat tree query container lookup
+flag-meter	9471f0750b4	2024-08-02	antes del 129	propuesto	24/4 (serie)	Add fallback styles for <meter> element
+flag-meter	b5e9c3cde1a	2024-08-16	antes del 129	propuesto	24/4 (serie)	Support JS initiated meter appearance changes
+flag-meter	c175ade2630	2024-08-06	antes del 129	propuesto	24/4 (serie)	Switch MeterAppearanceNoneFallbackStyle flag to experimental
+flag-meter	c805397b42a	2024-08-23	main	propuesto	24/4 (serie)	Enable MeterAppearanceNoneFallbackStyle
+flag-meter	86b30d404ec	2024-09-11	main	propuesto	24/4 (serie)	Devolve <meter> widget appearance
+flag-MultiSmoothScrollIntoView	9539b1ffec5	2024-06-10	antes del 129	propuesto	22/4 (serie)	Quit no-op smooth programmatic scrolls early
+flag-MultiSmoothScrollIntoView	73ac2aa3a3c	2024-06-17	antes del 129	propuesto	22/4 (serie)	Execute scrollIntoView scrolls in parallel
+flag-MultiSmoothScrollIntoView	3e0915a8284	2024-06-26	antes del 129	propuesto	22/4 (serie)	Enable MultiSmoothScrollIntoView as experimental
+flag-MultiSmoothScrollIntoView	dbdf58279ce	2024-08-29	main	propuesto	22/4 (serie)	Enable MultiSmoothScrollIntoView
+flag-MultiSmoothScrollIntoView	16f1bb80b2e	2024-09-11	main	propuesto	22/4 (serie)	Enable MultiSmoothScrollIntoView
+flag-PointerEventTargetsInEventLists	365b4154cbd	2024-08-28	main	propuesto	5/4	[Interop] Fix coalesced/predicted event targets in trusted events.
+flag-PointerEventTargetsInEventLists	8f487908070	2024-09-06	main	propuesto	5/4	[Interop] Unmodified coalesced/predicted targets in untrusted events
+flag-PaintHighlightsForFirstLetter	f30d9fddc4b	2024-08-30	main	propuesto	13/3	[Editing] Paint highlights for first-letter text fragment
+flag-PopoverDialogNewFocusBehavior	e3092e4a179	2024-08-26	main	propuesto	2/0	Enable <dialog popover autofocus> new behavior
+flag-RemoveCollapsedPlaceholder	5017a8fc5de	2024-08-31	main	propuesto	7/0	Remove line break when it is collapsed while pasting in contenteditable
+flag-ResetInputTypeToNoneBeforeCharacterInput	2b7df017cf3	2024-09-06	main	propuesto	6/0	[Editing] Reset |input_type| to |kNone| before character input
+flag-RootElementWithPlaceHolderAfterDeletingSelection	95d6e97c5f7	2024-09-11	main	propuesto	2/0	[Editing] Inline and Text Control elements should stay open without placeholder
+flag-StricterCellWidthContentSizeQuirk	d192ad18b88	2024-09-06	main	propuesto	2/1	Make the sticky images quirk for table cell content size closer to spec.
+flag-PseudoElementsCorrectInGetComputedStyle	7e13e3080e9	2024-09-04	main	propuesto	2/1	Support ::cue, ::file-selector-button, and ::placeholder in getComputedStyle().
+flag-CSSPartAllowsMoreSelectorsAfter	93d7245624c	2024-08-26	main	propuesto	15/10 (serie)	Allow most non-structural pseudo-classes after ::part().
+flag-CSSPartAllowsMoreSelectorsAfter	4dc44de4d2b	2024-08-27	main	propuesto	15/10 (serie)	Improve comments/code/tests related to allowing :is()/:not()/:where() after ::part().
+flag-CSSPartAllowsMoreSelectorsAfter	8b4e6af3bdf	2024-09-02	main	propuesto	15/10 (serie)	Allow almost all other pseudo-elements after ::part().
+flag-CSSPartAllowsMoreSelectorsAfter	bce9d30ec57	2024-09-12	main	propuesto	15/10 (serie)	Enable CSSPartAllowsMoreSelectorsAfter on stable.
+data-url-whitespace	34b6c2b36e8	2024-09-09	main	propuesto (solo net/; sin la política)	16/3	[data URI] Do not remove whitespace on non-base64 encoded content
+MutationEvents	cc4fc38654c	2024-08-20	main	decisión (recomendado: como Chrome 130)	1/1 (json5)	Disable mutation events for entire repo (Land in M130)
+flag-TextInputNotAlwaysDirAuto	4a344bab8c9	2024-08-30	main	fuera por coste (dir=auto de la 116)	4/3	Don't treat all inputs and textareas as dir=auto when their value changes.
+flag-ShapeOutsideWritingModeFix	8777abe7aba	2024-08-20	main	fuera por coste	12/7	shape-outside: Build RasterShapeIntervals correctly in vertical writing modes.
+flag-ShapeOutsideWritingModeFix	a3a0358aeb3	2024-08-21	main	fuera por coste	12/7	shape-outside: Fix an ellipse() issue in vertical writing modes
+flag-CSSLineClampWebkitBoxBlockification	4cc57d9a2f7	2024-09-05	main	sin efecto (line-clamp no está en la 116)	7/3	[line-clamp] Change the computed value of `display: -webkit-box` when used with `line-clamp`
+flag-KeyboardFocusableScrollers	da12836a721	2023-11-20	antes del 129	fuera por coste (55 ficheros)	75/~60	Reland "SupportsFocus() should return true for all scrollers"
+flag-KeyboardFocusableScrollers	199d1a77501	2024-08-30	main	fuera por coste (55 ficheros)	75/~60	Make KeyboardFocusableScrollers keyboard-focus but not mouse-focus
+flag-KeyboardFocusableScrollers	6f8b4173951	2024-09-05	main	fuera por coste (55 ficheros)	75/~60	Enable KeyboardFocusableScrollers by default
+fuera-no-baseline-box-decoration-break	01f5969bb50	2024-06-28	antes del 129	fuera (no Baseline)	-	[box-decoration-break] Add box-decoration-break property
+fuera-no-baseline-box-decoration-break	5f4915c3241	2024-07-12	antes del 129	fuera (no Baseline)	-	Support for cloned box decorations inside block fragmentation.
+fuera-no-baseline-box-decoration-break	c9ce28826ba	2024-09-04	main	fuera (no Baseline)	-	Ship BoxDecorationBreak feature, enable in stable.
+fuera-no-baseline-justify-self-block	f47b3fe4434	2024-09-05	main	fuera (no Baseline)	-	[layout] Enable justify-self on blocks by default
+fuera-no-baseline-compression-dictionary	faacb0a3138	2024-08-30	main	fuera (no Baseline; red)	-	Launch CompressionDictionaryTransport feature
+fuera-no-baseline-pip-placement	b46f924e4fb	2024-09-10	main	fuera (no Baseline)	-	[pip] Enable preferInitialWindowPlacement on stable
+ya-hecho	66a556bd168	2024-09-24	rama M130	ya en FlyWeb (56be91796b, FS.11)	-	Merge "RubyLB: Fix a crash with a parent with a non-default text-align" to M130 branch
+seguridad-M130	e699ac35ac6	2024-10-29	rama M130	para FS.14 (valorar si aplica)	-	[M-130] serial: Cancel mojo::SimpleWatcher when source/sink become garbage
+seguridad-M130	ffedc45b73e	2024-09-30	rama M130	para FS.14 (valorar si aplica)	-	[Merge] platform: Fix nullptr deref due to weakness
+seguridad-M130	f3300abe2fc	2025-01-06	rama M130	para FS.14 (valorar si aplica)	-	[M130] Make AcceptLanguagesWatcher a weak persistent object
+seguridad-M130	59d46b95c01	2024-11-19	rama M130	para FS.14 (valorar si aplica)	-	[M130] Make GetCacheIdentifier() respect GetSkipServiceWorker().
+seguridad-M130	6434353f319	2024-10-11	rama M130	para FS.14 (valorar si aplica)	-	[M130] Add ScriptState null check in AnimationFrameTimingMonitor
+seguridad-M130	3d4d3dabe35	2024-10-28	rama M130	para FS.14 (valorar si aplica)	-	TextRenderingMode not being updated on FontDescription
+seguridad-M130	4e10fc270e6	2024-10-29	rama M130	para FS.14 (valorar si aplica)	-	[M130][Urgent Release Blocker] Handle invalid EncodedFormData.
+seguridad-M130	55f45c2ad79	2024-11-07	rama M130	para FS.14 (valorar si aplica)	-	[M130][Stable-blocker] Resume old EncodedFormData typing.
+seguridad-M130	116873c4367	2024-10-24	rama M130	para FS.14 (valorar si aplica)	-	[M130] DUMP_WILL_BE_NOTREACHED instead of NOTREACHED() in FormDataBytesConsumer
+seguridad-M130	a3304d219b0	2024-09-23	rama M130	para FS.14 (valorar si aplica)	-	Fix a misparse when a calc() starts with a non-paren block.
+seguridad-M130	5333441795f	2024-09-26	rama M130	para FS.14 (valorar si aplica)	-	[container-queries] Enforce independent formatting context for subgrid.
+seguridad-M130	f1e9e2c2e0b	2024-09-27	rama M130	para FS.14 (valorar si aplica)	-	[M130] Resolve relative colors for canvas 2d
+seguridad-M130	7768072fa2d	2024-09-23	rama M130	para FS.14 (valorar si aplica)	-	(M130 Merge) Stop storing/styling links as :visited in credentialless iframes

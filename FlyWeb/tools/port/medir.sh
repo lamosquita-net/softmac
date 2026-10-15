@@ -17,7 +17,7 @@ for c in "$@"; do
   git -C $CH show --format= $c -- . "${EXC[@]}" > $W.diff
   h=$(grep -c '^@@' $W.diff)
   out=$(patch -p1 -f --no-backup-if-mismatch -r - < $W.diff 2>&1)
-  f=$(echo "$out" | grep -c 'FAILED'); z=$(echo "$out" | grep -c 'fuzz'); m=$(echo "$out" | grep -c "can't find file")
+  f=$(echo "$out" | grep -c 'Hunk #.* FAILED'); z=$(echo "$out" | grep -c 'fuzz'); m=$(echo "$out" | grep -c "can't find file")
   tot=$((tot+h)); totf=$((totf+f))
   echo "  $(git -C $CH log -1 --format='%h' $c): $h hunks, $f rechazados, $z con fuzz, $m ficheros nuevos/ausentes"
   git add -A >/dev/null 2>&1; git commit -qm "$c" >/dev/null 2>&1
