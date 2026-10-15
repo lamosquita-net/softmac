@@ -872,7 +872,8 @@ Comparados `chrome/app/resources/locale_settings*.grd`, las preferencias web (`p
 `net/socket/ssl_client_socket_impl.cc` y las `base::Feature` de `net`, `services/network`, `content` y Blink:
 
 - **Sin cambios de fuentes por defecto ni de TLS** (Kyber sigue; ML-KEM es de la 131). `PrefsFontList` solo pasa a
-  permanente: la lista japonesa de fuente fija sigue fuera (MOTOR-8).
+  permanente en la 130; la lista japonesa de fuente fija y `kPrefsFontList` los lleva MOTOR-8 en `nube/ruby-003`
+  aa52bd0a60 (`block-ruby-003`), que entra en la base del 130 si LOCAL-4 lo confirma.
 - **`data:` URL: se conserva el espacio en blanco en las que no son base64** (`KeepWhitespaceForDataUrls`,
   34b6c2b36e8; como Firefox y Safari y la especificación de Fetch). Propongo portarlo: solo `net/base/data_url.cc` y la
   `base::Feature`, sin la política de empresa (16/3; horas).
@@ -917,7 +918,8 @@ CSS y CSSOM: `insertRule`, `ReplaceRuleIfExists`), `RTCDataChannel` transferible
 con más riesgo de uso tras liberar), `text-wrap`, Wasm JS String Builtins e `Intl.Locale`, con los `Merged:` de
 131–132 (LTS), y los arreglos de la rama M130 del §5. MOTOR la abre al empezar el paso de V8.
 
-Orden: (1) `nube/motor-130` desde `nube/motor-129` 325686916c (= `flyweb` 37197fe0, 1.13); (2) **paso de V8:**
+Orden: (1) `nube/motor-130` desde `nube/motor-129` 325686916c (= `flyweb` 37197fe0, 1.13), más `nube/ruby-003` si LOCAL-4
+lo confirma; (2) **paso de V8:**
 `v8-revision` 13.0.245.25, `v8re.sh`, gin (B) y `fast_float` → Static y ASan aislados de LOCAL-4 con claude.ai, YouTube
 y webs con JIT (FS.14 en paralelo); (3) Baseline, flags, `data:` y `MutationEvents` (si se aprueba), un commit cada uno;
 (4) declarar 130/1.14, `motor-130.html` y `wpt-130-lista.txt` → Static, ASan y Release. Rehacer las medidas sobre
