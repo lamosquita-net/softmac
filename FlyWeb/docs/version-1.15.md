@@ -6,8 +6,8 @@
 Chrome 131 (regla 18).
 
 **Estado:** en código. Revisión de la regla 17 (FS.19): colores relativos y cascada, bien; `SvgExternalResources`
-bloqueaba (no compilaba) y está arreglado con el modo de petición de la 131 (1419974606). **Pendiente:** el visto bueno de
-SEGURIDAD-PORTES-3 a 1419974606, y después Static, ASan y
+bloqueaba (no compilaba) y está arreglado con el modo de petición de la 131 (1419974606). SEGURIDAD-PORTES-3 dio el visto bueno a
+1419974606 (15-10, ~20:44). **Pendiente:** Static, ASan y
 Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas frente a CfT 131. Detalle técnico:
 `motor.md`, «Nivel 131», §11; commits: `FlyWeb/tools/port/nivel131-commits.tsv`.
 
@@ -52,7 +52,7 @@ Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas f
 
 ## WPT del nivel 131
 
-*(Pendiente de LOCAL-4: Static de `nube/motor-131` 1419974606 (tras el visto bueno de FS.19), lista `FlyWeb/tools/wpt-131-lista.txt` (43 entradas),
+*(Pendiente de LOCAL-4: Static de `nube/motor-131` 1419974606, lista `FlyWeb/tools/wpt-131-lista.txt` (43 entradas),
 comparada con Chrome for Testing 131 en el mismo Mac y con las `TestExpectations` de la 131.0.6778.265. **Las WPT de
 color van completas** (`css/css-color/`, decisión de COORDINACIÓN-6). Excepciones escritas: ninguna por
 `PaintHighlightsForFirstLetter`; su única prueba es la interna de Blink `paint/markers/first-letter.html`, que no es
