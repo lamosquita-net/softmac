@@ -45,7 +45,7 @@ Si `send_message` responde `session_inactive`, el agente local ha perdido el Rem
 | SEGURIDAD-VIGÍA (Haiku) | `session_019wTc3m4aVuvkKTEGMXdEHS` | Rutina semanal |
 | CONTENIDOS-WEB-2 (Sonnet, medio) | `session_015tHV7uDdbAc6uZ1VwmgcqD` | Espera `version-1.14.md` (ya en `main`) y los datos del DMG |
 | LOCAL-4 (7,1, Opus, alto) | `session_014pVFQScvJwumdaBwufvESX` | Compilando y probando la 1.14 (Static, ASan, pruebas **en la 6,1**). Luego la 1.14.1 |
-| PUBLICACIÓN (7,1, Sonnet) | `session_01TTieMjJGykHhdkXAYW8bZG` (sin confirmar) | La `session_01H791…` se archivó el 15-10; hay una sesión «Publicación» conectada con el mismo historial. **Comprobar con un mensaje antes de la entrega de la 1.14**; si no responde, PUBLICACIÓN-2 |
+| PUBLICACIÓN (7,1, Sonnet) | `session_01TTieMjJGykHhdkXAYW8bZG` (local `local_1eb27eb5-…`) | **Confirmada** por COORDINACIÓN-7 (15-10, ~18:20): responde, Remote Control activo, nada a medias en ns1/ns2. Espera la entrega de la 1.14 |
 | SERVIDOR-LOCAL, ARQUITECTURA (7,1) | ver su fila | Sin tareas abiertas |
 
 Archivados el 15-10: COORDINACIÓN-5, MOTOR-8, MOTOR-9, SEGURIDAD-PORTES, SEGURIDAD-PORTES-2, LOCAL-3.
