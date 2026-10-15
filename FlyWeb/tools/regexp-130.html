@@ -44,10 +44,14 @@
   const casos = [
     { re: /[aeiou]x/g, largo: 2, partes: [enClase('aeiou'), enClase('x')] },
     { re: /[0-9][a-f]/g, largo: 2, partes: [enClase('0123456789'), enClase('abcdef')] },
-    { re: /[qz]/g, largo: 1, partes: [enClase('qz')] },
+    { re: /[qz]/g, largo: 1, partes: [enClase('qz')] },  // con SIMD
     { re: /[ñÿ]k/g, largo: 2, partes: [enClase('ñÿ'), enClase('k')] },
     { re: /[  ][.,]/g, largo: 2, partes: [enClase('  '), enClase('.,')] },
     { re: /[k-m]{3}/g, largo: 3, partes: [enClase('klm'), enClase('klm'), enClase('klm')] },
+    // Estas tres van por el salto con SIMD (SkipUntilBitInTable con advance_by = 1, comprobado con
+    // d8 --trace-regexp-assembler); las demás, por el salto escalar o sin salto.
+    { re: /[a-f][0-9][x-z]/g, largo: 3, partes: [enClase('abcdef'), enClase('0123456789'), enClase('xyz')] },
+    { re: /[aeiouáéíóú]/g, largo: 1, partes: [enClase('aeiouáéíóú')] },
   ];
   const buscaJS = (caso, s) => {
     const r = [];
