@@ -1,4 +1,4 @@
-# Relevo de MOTOR: de MOTOR-8 a MOTOR-9 (preparada el 14-10-2026, ~22:50; MOTOR-8 sigue hasta que COORDINACIÓN lo releve)
+# Relevo de MOTOR: de MOTOR-8 a MOTOR-9 (preparada el 14-10-2026, ~22:50; cerrada el 15-10, ~15:45)
 
 MOTOR-8 (`session_01YAuwa2BsTVR6GZqzr1wtex`, esfuerzo extra) lleva el nivel 129 (FM.19) hasta la entrega de
 la **1.13**. MOTOR-9 empieza por aquí, la fila FM.19 de `docs/TAREAS.md` (reglas 16–19), `motor.md` «Nivel 129»,
@@ -46,10 +46,23 @@ el permiso de la sesión bloqueó a MOTOR-8 encender una opción de V8 («Securi
   y bisecar. `chromium.googlesource.com` no resuelve desde el contenedor. En los clones, `git config gc.auto 0`.
 - **`runbind.sh`** solo genera *bindings* si se le pasa la tarea (`runbind.sh <árbol> interface`).
 
+**Cierre (15-10, MOTOR-8, en paralelo a MOTOR-9 y solo con esto, por orden de COORDINACIÓN-5/6):** la 1.13 está
+publicada (157.64.22). `block-ruby-003` queda **resuelto en `nube/ruby-003` 0c95523439** (encima de 325686916c), probado
+por LOCAL-4: la «X» en Menlo y la «る» en Hiragino, como en CfT 129; 0 px en 3/3; ningún diálogo de descarga de
+fuentes; WPT de ruby 112/113 (la 1.13 daba 111). **La funde MOTOR-9 en `nube/motor-130` (va con la 1.14).** Causa:
+la prueba es `lang="ja"`, y el `monospace` japonés usa la fuente fija del alfabeto (`IDS_FIXED_FONT_FAMILY_JAPANESE`),
+que en la 116 era «Osaka-Mono», una fuente que se descarga desde Sierra (también falta en Mojave). Lleva la cadena de
+Chrome 127–128: `kPrefsFontList` (`prefs_tab_helper.cc`), la rama de Mac de `FirstAvailableOrFirst` (`font_list.cc`, sin el
+diálogo de descarga), la lista «,Osaka,BIZ UDGothic,Menlo» en `locale_settings_mac.grd` y `locale_settings_mac_ja.xtb`,
+y «Osaka» → «Osaka-Mono» en `GenericFontFamilySettings::Fixed()` (fff00651a17; el `.xtb` y esta última pieza las encontró MOTOR-9).
+**Lección:** las preferencias de fuentes por defecto (recursos de `chrome/` y su lectura en Blink) se escaparon en
+cinco niveles; MOTOR-9 las barre del 117 al 130 en FM.20 (#226).
+
 **Mediciones de MOTOR-8** (`get_session`, del 14-10 10:53 a 20:45 UTC, con horas de espera a LOCAL-3 y SEGURIDAD-PORTES):
 salida 471 k, caché leída 255 M, escrita 1,68 M, entrada sin caché 34 k; 73,8 USD; contexto al 54 %. Retrabajo: el
 cierre de claude.ai en el paso de V8 (opción de V8 apagada, resuelto con la regla 19), 2 diferencias de WPT (una mía,
-`binaryType`; otra de la captura) y la fuente fija de la 118.
+`binaryType`; otra de la captura) y la fuente fija de la 118. Al cerrar (15-10, 13:44 UTC): salida 527 k, caché leída 311 M, escrita 2,95 M, entrada sin caché 51 k; 96,3 USD;
+contexto al 71 %.
 
 ---
 
