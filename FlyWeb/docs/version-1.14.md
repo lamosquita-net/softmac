@@ -1,8 +1,26 @@
 # FlyWeb 1.14 — nivel de motor 130 (MOTOR-10, 15-10-2026)
 
-**Cabeza final:** brave-core `nube/escapes-seg-1.14.1` **303e498fb5** = `nube/motor-130` ccc74ea171 + las dos protecciones de
-seguridad que se escaparon en la 119–120 (decisión de COORDINACIÓN-6, 15-10: van en la 1.14, sin esperar a `seg/oopsif`;
-la rama conserva el nombre con el que se creó). La 1.14.1 será la 1.14 + `seg/oopsif`.
+**Cabeza final:** brave-core `nube/arreglos-1.14` **d12847a77f** (`git ls-remote`, 15-10, MOTOR-11) = 303e498fb5 (abajo) + los
+arreglos de la prueba de LOCAL-4: el CHECK de `togglePopover()`, que tumbaba la pestaña (bloqueo), lo que faltaba frente a
+las WPT de la 130 y WebSQL apagado de verdad (tabla de abajo). Antes: `nube/escapes-seg-1.14.1` **303e498fb5** =
+`nube/motor-130` ccc74ea171 + las dos protecciones de seguridad que se escaparon en la 119–120 (decisión de
+COORDINACIÓN-6, 15-10: van en la 1.14, sin esperar a `seg/oopsif`). La 1.14.1 será la 1.14 + `seg/oopsif`.
+
+| Arreglo (`nube/arreglos-1.14`) | Qué |
+|---|---|
+| 685f820c68 | **`togglePopover(true)` sobre un popover ya abierto tumbaba la pestaña** (CHECK, también en la Release): el porte del 130 trajo la rama nueva sin la retirada del CHECK de 63e395a18a0 (M117). Y `white-space: <palabra clave>` dejaba 66 «Check failed» (solo ruido) |
+| 47ecd3c46d | *Nesting* como Chrome 130: el `&` implícito se escribe al serializar (eaf72aae1cf) y `& {}` dentro de `@media` ya no se muestra como declaraciones sueltas (3bfc51bf4fa); índice opcional en `CSSGroupingRule.insertRule()` (e2ff44d09f5, M121, otro escape); fuera `HTMLTemplateElement.shadowRoot` (398d899d13b) y `DelegatedInkTrailPresenter.expectedImprovement` (1a9049fa8c4) |
+| cc316c5c9 | `togglePopover({force})`: el diccionario se admite pero no se lee, como Chrome 130 (solo lo lee con `PopoverAnchorRelationships`, experimental) |
+| d12847a77f | **WebSQL apagado de verdad**: `openDatabase` seguía expuesto porque `WebViewImpl` vuelve a encender `Database` desde la preferencia `databases_enabled`; como Chrome 130 en escritorio, FlyWeb la pone a `false` (`BraveContentBrowserClient::OverrideWebkitPrefs`). Lo encontró LOCAL-4 |
+
+**Excepciones escritas frente a CfT 130 (decisiones de COORDINACIÓN-7, 15-10):** (a) `fetch/data-urls/processing.any`
+(54/73 frente a 55/73, `data://test:test/,X`): es el análisis de URL de esquemas no especiales según el estándar
+(`kStandardCompliantNonSpecialSchemeURLParsing`, encendido en la 130; más de 60 commits en `url/` y en todo Chrome), que
+se valora en FM.23; (b) «Nested @scope rule» de `nested-declarations-cssom`: `@scope` está fuera por la decisión de
+Baseline; (c) `::part()::details-content` y el estilo calculado de `::part()::placeholder`/`::file-selector-button` en
+`pseudo-elements-after-part`: CfT los pasa porque el ejecutor de WPT de Chrome enciende lo experimental
+(`DetailsStyling` lo es en la 130); el estilo calculado es el aplazado al 131. Además, `transfer-datachannel` pasa 4/4 en
+la 1.14 y CfT 130 da ERROR: Chromium 130 la tiene como `[ Timeout ]` en su `TestExpectations`, así que no es un fallo de la 1.14.
 
 **Estado:** en código en brave-core `nube/motor-130` **ccc74ea171**, con FS.14 fundida (`seg/v8-13.0` d6b66b7994 y
 `seg/transfer-keys` 1df157fca7), ORB v0.2 encendido (FS.14) y FS.15 (`seg/popup-sandbox` 1825a087d0). Encima de la 1.13 (325686916c) y de `nube/ruby-003`
@@ -29,7 +47,7 @@ técnico: `motor.md`, «Nivel 130», §12; commits: `FlyWeb/tools/port/nivel130-
 | `getInnerHTML()` | apagado (c5a094a9ab) y **se queda así**: LOCAL-4 lo comprobó en CfT 130.0.6723.116. Con la configuración de campo, `Element`/`ShadowRoot.getInnerHTML` es `undefined`; sin ella es `function`. En la 130 el código aún lo tiene y lo quita Finch, que es lo que recibe Chrome estable |
 | Diferencia conocida con Chrome 130 | **sin Web Share** (`navigator.share`/`canShare`): Chrome lo encendió en Mac en la 129, pero no es Baseline y nunca se ha probado en Mojave (decisión de COORDINACIÓN-6, principio 2; se revisa cuando sea Baseline). Brave quita además, a propósito, `navigator.connection`, File System Access y Web Serial |
 | Pendiente de datos | el código ALPS (F4.8, con los JA4 de LOCAL-4 frente a CfT 130) |
-| Comprobación | `FlyWeb/tools/motor-130.html` y `fastapi-129.html` (con JIT y Wasm en un origen http(s), nunca en `about:blank`), `wpt-130-lista.txt` (37), `regexp-130.html` (FS.14, en la 5,1), `sandbox-popups.html` (FS.15) y `seg-1.14.1.html` (las dos protecciones) |
+| Comprobación | `FlyWeb/tools/motor-130.html` y `fastapi-129.html` (con JIT y Wasm en un origen http(s), nunca en `about:blank`), `wpt-130-lista.txt` (38), `regexp-130.html` (FS.14, en la 5,1), `sandbox-popups.html` (FS.15) y `seg-1.14.1.html` (las dos protecciones) |
 
 ## Para la web
 
@@ -75,5 +93,5 @@ técnico: `motor.md`, «Nivel 130», §12; commits: `FlyWeb/tools/port/nivel130-
 
 ## WPT del nivel 130
 
-*(Pendiente de LOCAL-4: Static de `nube/motor-130` ccc74ea171 (las dos protecciones de 303e498fb5 no tocan ninguna de estas WPT), lista `FlyWeb/tools/wpt-130-lista.txt` (37; corregida el 15-10 por MOTOR-11: las de *container queries* están en `css/css-conditional/`), comparada con
+*(Pendiente de LOCAL-4: Static de `nube/motor-130` ccc74ea171 (las dos protecciones de 303e498fb5 no tocan ninguna de estas WPT), lista `FlyWeb/tools/wpt-130-lista.txt` (38, con `css/cssom/CSSGroupingRule-insertRule.html`; corregida el 15-10 por MOTOR-11: las de *container queries* están en `css/css-conditional/`), comparada con
 Chrome for Testing 130 en el mismo Mac y con las `TestExpectations` de la 130.0.6723.117.)*

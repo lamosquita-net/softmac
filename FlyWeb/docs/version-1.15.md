@@ -21,7 +21,7 @@ Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas f
 | Escapes de niveles anteriores | `customElements.getName()`, `preventDefault()` en `beforeunload`, `content-visibility: auto` con `contain-intrinsic-size: auto`, error con atributos de importación desconocidos, `SVGClipPathElement.transform`, selección con `mousemove` cancelado, `<input type=date>` *inline-block*, `lostpointercapture` al quitar el nodo, `inputType` `insertLink` y copiar sin `text-transform` |
 | Fuera, con motivo | `PaintHighlightsForFirstLetter` (decisión de COORDINACIÓN-7: 25 *hunks* a mano en el pintado de selección; pasa a FM.22). Ninguna WPT depende de ello. `BreakIteratorHyphenMinus` y `TextTransformAndSecurityFix` no aplican a la 116 (confirmado por SEGURIDAD-PORTES-3, FS.18) |
 | Diferencias conocidas con Chrome 131 | las de la 1.14 (sin Web Share; Brave quita `navigator.connection`, File System Access y Web Serial) y las marcas de buscar/ortografía en la letra de `::first-letter` |
-| Comprobación | `FlyWeb/tools/motor-131.html` (en un origen http(s); comprobada en Chromium 141: solo fallan la versión y lo que sale después del 131), `wpt-131-lista.txt` (42 entradas, con `css/css-color/` entero, `html/rendering/the-details-element/` y `the-meter-element/`) |
+| Comprobación | `FlyWeb/tools/motor-131.html` (en un origen http(s); comprobada en Chromium 141: solo fallan la versión y lo que sale después del 131), `wpt-131-lista.txt` (43 entradas, con `css/css-color/` entero, `html/rendering/the-details-element/` y `the-meter-element/`) |
 
 ## Para la web
 
@@ -50,7 +50,7 @@ Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas f
 
 ## WPT del nivel 131
 
-*(Pendiente de LOCAL-4: Static de `nube/motor-131` 01b123af05, lista `FlyWeb/tools/wpt-131-lista.txt` (42 entradas),
+*(Pendiente de LOCAL-4: Static de `nube/motor-131` 01b123af05, lista `FlyWeb/tools/wpt-131-lista.txt` (43 entradas),
 comparada con Chrome for Testing 131 en el mismo Mac y con las `TestExpectations` de la 131.0.6778.265. **Las WPT de
 color van completas** (`css/css-color/`, decisión de COORDINACIÓN-6). Excepciones escritas: ninguna por
 `PaintHighlightsForFirstLetter`; su única prueba es la interna de Blink `paint/markers/first-letter.html`, que no es

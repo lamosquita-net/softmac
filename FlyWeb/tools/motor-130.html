@@ -86,11 +86,26 @@
       CSS.supports('text-wrap-mode: wrap') && CSS.supports('text-wrap: pretty'), nota: d.style.cssText };
   });
 
-  // togglePopover({force})
-  prueba('togglePopover({force: false}) oculta y {force: true} muestra', () => {
+  // togglePopover(force). Si la pestaña muere aquí («NO CARGA»), es el CHECK de la 1.14 (arreglado en 685f820c68).
+  prueba('togglePopover(true/false) con el popover ya abierto o cerrado no tumba la pestaña', () => {
     const p = document.createElement('div'); p.popover = 'manual'; document.body.append(p);
-    const r1 = p.togglePopover({ force: true }), r2 = p.togglePopover({ force: true }), r3 = p.togglePopover({ force: false });
-    p.remove(); return { ok: r1 === true && r2 === true && r3 === false, nota: `${r1} ${r2} ${r3}` };
+    const r = [p.togglePopover(true), p.togglePopover(true), p.togglePopover(false), p.togglePopover(false),
+      p.togglePopover(), p.togglePopover()];
+    p.remove(); return { ok: r.join(' ') === 'true true false false true false', nota: r.join(' ') };
+  });
+  prueba('togglePopover(true) lanza en un popover desconectado o sin atributo popover', () => {
+    const p = document.createElement('div'); p.popover = 'manual';
+    let a = '', b = '';
+    try { p.togglePopover(true); } catch (e) { a = e.name; }
+    const q = document.createElement('div'); document.body.append(q);
+    try { q.togglePopover(true); } catch (e) { b = e.name; }
+    q.remove(); return { ok: a === 'InvalidStateError' && b === 'NotSupportedError', nota: `${a} / ${b}` };
+  });
+  prueba('togglePopover({force}) admite el diccionario pero no lo lee, como Chrome 130', () => {
+    // Chrome 130 solo lee force/source del diccionario con PopoverAnchorRelationships (experimental): alterna.
+    const p = document.createElement('div'); p.popover = 'manual'; document.body.append(p);
+    const r = [p.togglePopover({ force: true }), p.togglePopover({ force: true }), p.togglePopover({ force: false })];
+    p.remove(); return { ok: r.join(' ') === 'true false true', nota: r.join(' ') };
   });
 
   // RTCDataChannel transferible

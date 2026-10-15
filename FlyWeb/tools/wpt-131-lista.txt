@@ -40,3 +40,4 @@ css/css-masking/clip-path/clip-path-transform-mutated-002.html
 pointerevents/pointerevent_lostpointercapture_remove_setcapture_node.html
 pointerevents/pointerevent_lostpointercapture_for_disconnected_node.html
 input-events/input-events-exec-command.html
+css/cssom/CSSGroupingRule-insertRule.html

@@ -1132,7 +1132,9 @@ aplican sobre la 116: 127, más los de V8 contra la 13.0.245.25) y, donde toca, 
 | 37976248c3 | fuera los polyfills de core-js | decisión de COORDINACIÓN-6: con la V8 13.0 lo Baseline que cubrían es nativo y lo que quedaba (`RegExp.escape`, base64 de `Uint8Array`) no existe en Chrome 130. Fuera el observador, la `base::Feature`, el recurso de 50 KB y su entrada de `about:credits`; el generador de softmac `FlyWeb/polyfills/` queda como histórico |
 | 4d6a8d5f60 | superficie que Chrome 130 no expone | `Sanitizer`/`setHTML()` tras `SanitizerAPI` (a24f025d3c3, 119), `writeTimestamp()` tras `WebGPUDeveloperFeatures` (feec40a09c3, 121; la 130 usa `WebGPUExperimentalFeatures`, que la 116 no tiene), `-webkit-highlight` quitada (d9ba00bd859, 117) y `:open`/`:closed` tras `HTMLSelectMenuElement` (0a36b431edd, 122; la 130 usa `CSSPseudoOpenClosed`). Los cuatro, restos de la 116 |
 | 8645de1731 | interfaces `SpeechSynthesis` y `SpeechSynthesisVoice` | a918a37bec1 (121): la 116 las tenía como `LegacyNoInterfaceObject`. Sin función nueva; el *farbling* de voces de Brave sigue |
-| 0fed65e758, **ccc74ea171** | FS.15 `seg/popup-sandbox` 1825a087d0 y `seg/v8-13.0` d6b66b7994 (SEGURIDAD-PORTES-3) | fd7c878da2 (crbug 544197473): un iframe con `sandbox` sin `allow-popups` ignora los modificadores de un clic sintético; los resultados de d8 en `FLYWEB-SECURITY.md`. **Cabeza final de la 1.14** |
+| 0fed65e758, **ccc74ea171** | FS.15 `seg/popup-sandbox` 1825a087d0 y `seg/v8-13.0` d6b66b7994 (SEGURIDAD-PORTES-3) | fd7c878da2 (crbug 544197473): un iframe con `sandbox` sin `allow-popups` ignora los modificadores de un clic sintético; los resultados de d8 en `FLYWEB-SECURITY.md` |
+| 303e498fb5 | dos escapes de seguridad (119–120) | `nube/escapes-seg-1.14.1`, MOTOR-10 |
+| 685f820c68 … **d12847a77f** | arreglos de la prueba de LOCAL-4 (`nube/arreglos-1.14`, MOTOR-11) | **`togglePopover(true)` sobre un popover abierto tumbaba la pestaña**: faltaba la retirada del CHECK de 63e395a18a0 (M117), que va con la rama `else` portada; abreviatura `-alternative-white-space` con su id; *nesting* como la 130 (eaf72aae1cf, 3bfc51bf4fa) e índice opcional de `CSSGroupingRule.insertRule()` (e2ff44d09f5); fuera `HTMLTemplateElement.shadowRoot` y `expectedImprovement`; diccionario de `togglePopover` sin leer, como la 130; WebSQL apagado de verdad (`databases_enabled` a `false`, como Chrome en escritorio). **Cabeza final de la 1.14.** Lección: al portar el estado final de una función, buscar también los cambios de upstream en las funciones a las que llama (aquí, `IsPopoverReady`) |
 
 **Fuera de la 1.14, con motivo (al 131, aprobado por COORDINACIÓN-6).** Cuatro flags que el inventario daba por «limpias o casi» dependen de
 código posterior a la 116, y la medida de hunks no lo ve (aplican, pero no compilan):
@@ -1387,7 +1389,7 @@ de `css/css-pseudo/` con resaltados, `target-text`, ortografía o selección usa
 `TestExpectations` en la 116 y en la 131.
 
 Comprobación: `FlyWeb/tools/motor-131.html` (en un origen http(s); en Chromium 141 sale todo ok salvo la versión y la
-prueba de que `Float16Array` y `using` aún no existen, que salen en la 134–135) y `wpt-131-lista.txt` (42 entradas,
+prueba de que `Float16Array` y `using` aún no existen, que salen en la 134–135) y `wpt-131-lista.txt` (43 entradas,
 con `css/css-color/`, `html/rendering/the-details-element/` y `html/semantics/forms/the-meter-element/` enteros).
 «Para la web» en `version-1.15.md`.
 
