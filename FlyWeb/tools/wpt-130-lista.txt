@@ -3,6 +3,7 @@ css/css-nesting/nested-declarations-matching.html
 css/css-nesting/nested-rule-cssom-invalidation.html
 css/css-nesting/nesting-basic.html
 css/css-nesting/serialize-group-rules-with-decls.html
+css/cssom/CSSGroupingRule-insertRule.html
 css/css-syntax/custom-property-rule-ambiguity.html
 css/css-text/parsing/text-wrap-computed.html
 css/css-text/parsing/text-wrap-invalid.html
