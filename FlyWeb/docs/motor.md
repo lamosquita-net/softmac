@@ -966,6 +966,8 @@ brave-core; (iv) `MutationEvents` apagado como Chrome 130; (v) fuera por coste `
   miraba el código. Ver §10.
 - **(v)** `KeyboardFocusableScrollers`, `ShapeOutsideWritingModeFix` y `TextInputNotAlwaysDirAuto`, fuera de la 1.14.
   Si alguna de sus WPT entra en `wpt-130-lista.txt`, se escribe como diferencia conocida en `version-1.14.md` y aquí.
+  **Cambio (COORDINACIÓN-6, 15-10, tarde): `KeyboardFocusableScrollers` entra en la 1.14**, porque estimado en horas
+  (2–3 h) ya no tiene sentido sacarlo por coste. Los otros dos siguen fuera.
   **Estimación de `KeyboardFocusableScrollers` (en horas reales, §11): 2–3 h de MOTOR** más una ronda de Static y ASan
   de LOCAL (~3 h) con pruebas de foco a mano.
   199d1a77501 rehace `SupportsFocus()`/`IsFocusable()` como un enum de tres estados en 55 ficheros (+485/−173), sobre
@@ -1052,6 +1054,12 @@ encenderlo en la 1.14.** El resto del barrido son cosas que Brave ya decide en `
 crea la sombra en la 1.13 con `Document.parseHTMLUnsafe` y no en CfT 129. Chrome lo apagó en la 121 (561042837d7) y
 lo quitó en la 122 (5f4c1fc06a1). Va con los de §9.
 
+**Decidido por COORDINACIÓN-6 (15-10, tarde):** fuera los cinco de §9 y el `<template shadowroot>` antiguo; fuera
+`getInnerHTML()` si LOCAL-4 lo ve apagado en CfT 130 (la referencia es lo que expone CfT, no el código); dentro
+`OriginAgentClusterDefaultEnable`, después de que LOCAL-4 compruebe en CfT 129 que asignar `document.domain` no relaja
+el mismo origen; el código ALPS se decide con los JA4 de LOCAL-4 frente a CfT 129 y 130 (la huella TLS tiene que
+cuadrar con la versión declarada, F4.8). La pasada de `superficie.html` va en la cola de LOCAL-4.
+
 **Lista para la 1.14 (apagar o encender, todo barato):** WebSQL, pantalla completa prefijada de `<video>`, `:--foo`,
 `includeShadowRoots`, `<template shadowroot>` antiguo, `MutationEvents`, `getInnerHTML()` (si CfT 130 lo confirma) y
 `OriginAgentClusterDefaultEnable` encendido. Pendiente de datos: el código ALPS.
@@ -1084,6 +1092,21 @@ las 23:07. Desde el paso de V8 hasta la entrega, **~9,5 h**. FS.13 fue en parale
 Lo que más pesa en la diferencia es *nested declarations* (analizador CSS y CSSOM). Si COORDINACIÓN quiere acortar,
 es lo único que se podría pasar a una 1.14.1 sin romper nada, pero la regla 18 pide no partir sin un cambio muy amplio,
 y esto no lo es. Recomiendo no partir.
+
+**Estimación aceptada por COORDINACIÓN-6 (15-10).** Con `KeyboardFocusableScrollers` dentro: **+2–3 h de MOTOR**, sin
+otra ronda de compilación si va en el mismo Static y ASan del nivel; más ~30 min de pruebas de foco a mano en LOCAL.
+**Total: 13–17 h** del paso de V8 a la entrega.
+
+**Lección de las unidades:** el inventario del 129 estimó «5–6 días de MOTOR» y el nivel salió en ~10 h de reloj. Copié
+esa unidad para el 130 («8–10 días») sin compararla con lo que tardó de verdad, y la cifra no servía para decidir:
+COORDINACIÓN sacó `KeyboardFocusableScrollers` por coste con un número inflado. **Desde el 130, las estimaciones van
+en horas de reloj y se comparan, partida a partida, con el último nivel ya entregado** (tiempos de su fila FM).
+
+**Riesgo del `BUILD.gn` de `fast_float` (lo señaló LOCAL-4): cubierto.** `gitPatcher.js` de brave-core
+(`resetRepoFiles`, cambio de FlyWeb) ya borra los ficheros sin seguimiento cuando su parche deja de estar. Pasa con
+muchos portes que crean ficheros (`async_iterable.cc`…). Al volver a una rama sin el parche, `BUILD.gn` y
+`README.chromium` desaparecen. Solo se queda `src/third_party/fast_float/src`, que sin `BUILD.gn` nadie usa. LOCAL-4 lo
+comprueba una vez al cambiar de rama en su primera compilación del 130.
 
 ## Apuntado para niveles futuros
 
