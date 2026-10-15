@@ -202,6 +202,8 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   FlyWeb tiene en su json5 pero apagado; lo que no está puede ser un porte del estado final sin la flag.
 - `medirng.sh` lee el clon de Chromium de `CH` (por defecto `/home/user/chromium/chromium`); antes estaba fijado a la
   ruta de MOTOR-9 y medía todo a cero sin avisar.
+- **Después de un `--amend`, el hash cambia:** el id que se da a otro agente se lee con `git ls-remote` después del
+  `push`, nunca de la salida de `commitarea.sh` (MOTOR-10 dio c6ab0716d4 por 303e498fb5 en la 1.14.1).
 - **Fuera de Blink, también BoringSSL:** ML-KEM (131) es un cambio de `net::features` que exige código nuevo en
   BoringSSL. Comparar `boringssl_revision` del DEPS y buscar en ese repositorio (`github.com/google/boringssl`, sin
   *blobs*) los ficheros que pide el cambio.
