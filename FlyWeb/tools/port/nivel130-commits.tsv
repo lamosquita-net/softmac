@@ -1,19 +1,19 @@
 # Nivel 130 (FM.20): commits por porte. Listas de git log 129.0.6668.112..130.0.6723.192 (cabeza de la rama 6723, con sus Merged:)
 # por fichero de runtime_enabled_features.json5, por --grep de flag/propiedad y por autor; lo anterior al 129, de 116.0.5845.188..130.0.6723.192.
-# Medida PROVISIONAL (MOTOR-9, 15-10): medirng.sh sobre la 116 SOLA (sin parches de brave-core: la sesión no tiene brave-core),
-# con el traductor de LayoutNG; hunks/rechazados. Rehacer con nube/motor-129 antes de portar.
+# Medida (MOTOR-9, 15-10): medirng.sh sobre la 116 + parches de brave-core nube/motor-129 325686916c (1.13), con el
+# traductor de LayoutNG; hunks/rechazados (solo «Hunk #… FAILED»).
 porte	commit	fecha	dónde	estado	medida	asunto
-nested-declarations	3ae71aa0358	2024-08-27	main	propuesto	99/33 (serie)	[css-nesting] Implement CSSNestedDeclarations behind a flag
-nested-declarations	61067c8a5ba	2024-08-29	main	propuesto	99/33 (serie)	[css-nesting] Send Start/EndRuleBody outside of ConsumeDeclarationList
-nested-declarations	11e3a184408	2024-08-29	main	propuesto	99/33 (serie)	[css-nesting] Just use ConsumeDeclarationList for nested grouping rules
-nested-declarations	a9b425e2212	2024-09-02	main	propuesto	99/33 (serie)	[css-nesting] Traverse child rules of StyleRule in ReplaceRuleIfExists
-nested-declarations	0a6d3ac600e	2024-09-02	main	propuesto	99/33 (serie)	[css-nesting] Add CSSNestedDeclarations support for insertRule
-nested-declarations	b4b329c0e7a	2024-09-02	main	propuesto	99/33 (serie)	[nesting] Cut off the outer rule body range at the first nested rule
-nested-declarations	63303296ddf	2024-09-04	main	propuesto	99/33 (serie)	[css-nesting] Enable CSSNestedDeclarations for stable
-text-wrap	ee5d3f203d9	2024-08-26	main	propuesto	39/21	[text-wrap] Update the syntax of `text-wrap` to match the new spec
-rtc-transferable	6e640199859	2024-08-05	antes del 129	propuesto	44/10 (serie)	Add transferability to RTCDataChannel
-rtc-transferable	e112b3ea554	2024-08-07	antes del 129	propuesto	44/10 (serie)	Allow RTCDataChannel transfer to dedicated workers
-rtc-transferable	1f5f2853635	2024-08-26	main	propuesto	44/10 (serie)	Enable transferable RTCDataChannels by default
+nested-declarations	3ae71aa0358	2024-08-27	main	propuesto	99/31 (serie)	[css-nesting] Implement CSSNestedDeclarations behind a flag
+nested-declarations	61067c8a5ba	2024-08-29	main	propuesto	99/31 (serie)	[css-nesting] Send Start/EndRuleBody outside of ConsumeDeclarationList
+nested-declarations	11e3a184408	2024-08-29	main	propuesto	99/31 (serie)	[css-nesting] Just use ConsumeDeclarationList for nested grouping rules
+nested-declarations	a9b425e2212	2024-09-02	main	propuesto	99/31 (serie)	[css-nesting] Traverse child rules of StyleRule in ReplaceRuleIfExists
+nested-declarations	0a6d3ac600e	2024-09-02	main	propuesto	99/31 (serie)	[css-nesting] Add CSSNestedDeclarations support for insertRule
+nested-declarations	b4b329c0e7a	2024-09-02	main	propuesto	99/31 (serie)	[nesting] Cut off the outer rule body range at the first nested rule
+nested-declarations	63303296ddf	2024-09-04	main	propuesto	99/31 (serie)	[css-nesting] Enable CSSNestedDeclarations for stable
+text-wrap	ee5d3f203d9	2024-08-26	main	propuesto	39/20	[text-wrap] Update the syntax of `text-wrap` to match the new spec
+rtc-transferable	6e640199859	2024-08-05	antes del 129	propuesto	44/8 (serie)	Add transferability to RTCDataChannel
+rtc-transferable	e112b3ea554	2024-08-07	antes del 129	propuesto	44/8 (serie)	Allow RTCDataChannel transfer to dedicated workers
+rtc-transferable	1f5f2853635	2024-08-26	main	propuesto	44/8 (serie)	Enable transferable RTCDataChannels by default
 popover-force	8010721fc51	2024-09-09	main	propuesto (solo force; source tras PopoverAnchorRelationships)	11/6	Add PopoverAnchorRelationships flag and basic imperative API
 wasm-js-string-builtins	1f2dd1392d2	2024-09-04	main	de serie con V8 13.0 (+interruptor de Blink)	2/1	Ship WebAssembly JS String Builtins
 wasm-js-string-builtins	37f9fd474bd	2024-09-04	main	de serie con V8 13.0 (+interruptor de Blink)	2/1	WebAssembly JS String Builtins: tie kill switch to V8 commandline flag
@@ -51,9 +51,9 @@ flag-TextInputNotAlwaysDirAuto	4a344bab8c9	2024-08-30	main	fuera por coste (dir=
 flag-ShapeOutsideWritingModeFix	8777abe7aba	2024-08-20	main	fuera por coste	12/7	shape-outside: Build RasterShapeIntervals correctly in vertical writing modes.
 flag-ShapeOutsideWritingModeFix	a3a0358aeb3	2024-08-21	main	fuera por coste	12/7	shape-outside: Fix an ellipse() issue in vertical writing modes
 flag-CSSLineClampWebkitBoxBlockification	4cc57d9a2f7	2024-09-05	main	sin efecto (line-clamp no está en la 116)	7/3	[line-clamp] Change the computed value of `display: -webkit-box` when used with `line-clamp`
-flag-KeyboardFocusableScrollers	da12836a721	2023-11-20	antes del 129	fuera por coste (55 ficheros)	75/~60	Reland "SupportsFocus() should return true for all scrollers"
-flag-KeyboardFocusableScrollers	199d1a77501	2024-08-30	main	fuera por coste (55 ficheros)	75/~60	Make KeyboardFocusableScrollers keyboard-focus but not mouse-focus
-flag-KeyboardFocusableScrollers	6f8b4173951	2024-09-05	main	fuera por coste (55 ficheros)	75/~60	Enable KeyboardFocusableScrollers by default
+flag-KeyboardFocusableScrollers	da12836a721	2023-11-20	antes del 129	fuera por coste (55 ficheros)	75/67	Reland "SupportsFocus() should return true for all scrollers"
+flag-KeyboardFocusableScrollers	199d1a77501	2024-08-30	main	fuera por coste (55 ficheros)	75/67	Make KeyboardFocusableScrollers keyboard-focus but not mouse-focus
+flag-KeyboardFocusableScrollers	6f8b4173951	2024-09-05	main	fuera por coste (55 ficheros)	75/67	Enable KeyboardFocusableScrollers by default
 fuera-no-baseline-box-decoration-break	01f5969bb50	2024-06-28	antes del 129	fuera (no Baseline)	-	[box-decoration-break] Add box-decoration-break property
 fuera-no-baseline-box-decoration-break	5f4915c3241	2024-07-12	antes del 129	fuera (no Baseline)	-	Support for cloned box decorations inside block fragmentation.
 fuera-no-baseline-box-decoration-break	c9ce28826ba	2024-09-04	main	fuera (no Baseline)	-	Ship BoxDecorationBreak feature, enable in stable.
