@@ -84,6 +84,31 @@ if [ "$(git -C src/v8 rev-parse HEAD)" != "$V8_WANT" ]; then
   rm -f src/brave/patches/v8/*.patchinfo
 fi
 echo "V8: $(git -C src/v8 describe --tags --always HEAD)"
+# fast_float (V8 13.0+, nivel 130; FM.20): V8 depende de //third_party/fast_float, que la 116 no tiene. El BUILD.gn y
+# el README.chromium (licencia para about:credits) los pone un parche de brave-core; el código se trae aquí, como V8,
+# en el commit de src/brave/FlyWeb/fast_float-revision («<commit> <suma>»). La suma es la sha256 de las sha256 de
+# include/ y las tres licencias (LC_ALL=C, en orden); si el commit o la suma no cuadran, se para. Sin el fichero
+# (niveles anteriores al 130), no se hace nada.
+FF_REV_FILE=src/brave/FlyWeb/fast_float-revision
+if [ -f "$FF_REV_FILE" ]; then
+  FF_REV=$(grep -v '^#' "$FF_REV_FILE" | awk 'NF{print $1; exit}')
+  FF_SUM=$(grep -v '^#' "$FF_REV_FILE" | awk 'NF{print $2; exit}')
+  [ -n "$FF_REV" ] && [ -n "$FF_SUM" ] || { echo "fast_float: $FF_REV_FILE sin commit o sin suma" >&2; exit 1; }
+  FF_DIR=src/third_party/fast_float/src
+  [ -d "$FF_DIR/.git" ] || { mkdir -p "$FF_DIR"; git -C "$FF_DIR" init -q; }
+  if [ "$(git -C "$FF_DIR" rev-parse -q --verify 'HEAD^{commit}' 2>/dev/null || true)" != "$FF_REV" ]; then
+    echo "fast_float: trayendo $FF_REV"
+    git -C "$FF_DIR" fetch -q --depth 1 \
+      https://chromium.googlesource.com/external/github.com/fastfloat/fast_float.git "$FF_REV"
+    git -C "$FF_DIR" checkout -q -f --detach FETCH_HEAD
+  fi
+  [ "$(git -C "$FF_DIR" rev-parse HEAD)" = "$FF_REV" ] || { echo "fast_float: el commit no es $FF_REV" >&2; exit 1; }
+  if command -v shasum >/dev/null 2>&1; then FF_SHA="shasum -a 256"; else FF_SHA=sha256sum; fi
+  FF_GOT=$(cd "$FF_DIR" && git ls-files -z include LICENSE-MIT LICENSE-APACHE LICENSE-BOOST |
+    LC_ALL=C sort -z | xargs -0 $FF_SHA | $FF_SHA | cut -d' ' -f1)
+  [ "$FF_GOT" = "$FF_SUM" ] || { echo "fast_float: suma $FF_GOT, esperada $FF_SUM" >&2; exit 1; }
+  echo "fast_float: $FF_REV (suma comprobada)"
+fi
 # Con una V8 más nueva que la de la 116, el código de Chromium 116 usa APIs que esa V8 marca como obsoletas;
 # con -Werror serían errores. Se apagan esos avisos (v8_deprecation_warnings más abajo): solo cuentan las APIs
 # que la V8 nueva ha quitado de verdad, y esas se arreglan con parches de Blink en cada nivel.
