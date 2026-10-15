@@ -1164,6 +1164,177 @@ Comprobación: `FlyWeb/tools/motor-130.html` (con las pruebas de superficie), `f
 a7b5f3f4aa salió *jitless* en la 7,1 por una política vieja de la app de desarrollo (`DefaultJavaScriptJitSetting` = 2), y
 las pruebas en `about:blank` no lo vieron. «Para la web» en `version-1.14.md`.
 
+## Nivel 131 (inventario, 15-10, MOTOR-10; nada portado → FlyWeb 1.15)
+
+Inventario de FM.21, **para decidir COORDINACIÓN antes de portar**. Fuentes: web-features 3.42.0 + BCD 8.1.6
+(`baseline-nivel.js 131`), flags de `runtime_enabled_features.json5` entre la **130.0.6723.192** y la **131.0.6778.268**
+(cabeza de la rama 6778; `flags-nivel.py`), `base::Feature` de `net`, `services/network`, `content`, Blink, permisos **y
+`chrome/common`**, configuración de campo de Mac (130 frente a 131), la API pública de V8 entre la **13.0.245.25** y la
+**13.1.201.22**, y un barrido nuevo de las flags `stable` de **todos** los niveles 117–131 contra el json5 de la 1.14.
+Medidas con `medirng.sh` sobre la 116 + los parches de `nube/motor-130` **ccc74ea171** (1.14). Lista de commits:
+`FlyWeb/tools/port/nivel131-commits.tsv`.
+
+**Resumen: nivel mediano con dos cosas grandes, una en Blink y otra fuera.** En Blink, los colores relativos sobre
+`currentcolor` (149 hunks, 59 rechazos: más que *nested declarations*). Fuera de Blink, **ML-KEM**: Chrome 131 cambia
+el intercambio poscuántico de TLS y QUIC de Kyber a ML-KEM, y el BoringSSL de la 116 no lo tiene (principio 13). La
+V8 13.1 es el salto más barato hasta ahora. Más los cuatro aplazados del 130, ya aprobados, y unos escapes de niveles
+anteriores que ha destapado el barrido nuevo (§6). **Estimación (§9): 13–17 h del paso de V8 a la entrega**, con
+FS.17 (V8 13.1 y ML-KEM) en paralelo.
+
+### 1. V8 13.1 (`13.1.201.22`, 9c09e787: cabeza de la rama 13.1 y la V8 de la 131.0.6778.265)
+
+`include/` cambia +186/−41 en 18 ficheros, y casi nada rompe:
+
+- **Lo único que no compila en la 116:** `v8::Isolate::kImportAssertionDeprecatedSyntax` pasa a
+  `kOBSOLETE_ImportAssertionDeprecatedSyntax` (`use_counter_callback.cc`, que ya tiene parche nuestro): una línea.
+- Sin efecto: `EmbedderRootsHandler::IsRoot` y `V8InspectorClient::consoleTime*` dejan de ser virtuales puras y pasan
+  a tener cuerpo por defecto, así que las sobrescrituras de la 116 y de nuestro parche siguen valiendo.
+  `Object::GetCreationContext(PersistentBase)` sigue, con aviso. `v8-platform.h` no cambia: **gin no se toca**.
+- **Sin dependencias nuevas** en `BUILD.gn` (al contrario que `fast_float` en la 13.0); `DEPS` solo cambia
+  herramientas.
+- JavaScript: **nada nuevo sale.** *Explicit resource management* (`using`) y `Float16Array` pasan de *in progress* a
+  *staged*. `harmony_remove_intl_locale_info_getters` también se queda en *staged*, y los *getters* de `Intl.Locale`
+  siguen. Wasm: `wasm_inlining` deja de ser opción experimental (sigue encendida); `wasm_deopt` sigue apagada.
+- `patches/v8` contra la 13.1: el rebase lo hace SEGURIDAD-PORTES (FS.17), con época de caché nueva (16).
+  `wasm_to_js_generic_wrapper` desaparece (la 13.1 lo da por fijo); el parche de `flag-definitions.h` que lo encendía
+  (regla 19) se queda sin ese trozo.
+
+### 2. Baseline del 131
+
+| Función | Baseline | Porte | Medida | Coste |
+|---|---|---|---|---|
+| `::details-content` y `display` libre en `<details>` (`DetailsStyling`) | 2025-09-16 | 6223abaa9f0, 0837f59ce2e, 3e8f8fe3b1a, b5310fa7027, bfe80d0c3bd, ca1fb13815a (pseudoelementos «como `::part`»), 60972f7d007; con **951ace75914** (`CSSCascadeCorrectScope`: orden de la cascada para estilos de ámbitos de sombra superiores, que necesita el pseudoelemento) | 34/8 + 44/18 | **2–3 h** |
+| Colores relativos sobre `currentcolor` (`rgb(from currentcolor …)`; subfunción de los colores relativos, nivel 125) | BCD: Firefox 133 y Safari 18, así que Baseline desde Firefox 133 (noviembre de 2024); web-features no le da fecha propia | 13 commits: 622fd7a782e … 9347d9baaa1, a7fccf6b808 y 175d1e860fb (`CSSRelativeColorPreserveNone`, que nace `stable`). Reorganiza cómo se calculan los colores (mapa de canales, palabras clave en `calc()`, resolución tardía): toca el CSS de color de todas las páginas | **149/59**, 28 ficheros (7 nuevos) | **3–4 h**, el mayor riesgo del nivel |
+
+**Fuera:** `anchor-scope` (es de *anchor positioning*, que FlyWeb no tiene), `font-variant-emoji` (Safari no lo tiene),
+márgenes de `@page` (`PageMarginBoxes`, ni Firefox ni Safari), `Request.duplex`, COOP `noopener-allow-popups` (solo
+Safari), WebHID en *workers*, WebXR y lo de Privacy Sandbox o FedCM.
+
+### 3. Flags a `stable` sin Baseline (16 que pasan y 18 que nacen en `stable`)
+
+- **Interoperabilidad y arreglos, portables** (~1 h entre todos; 40/14 en 10 commits, casi todos los rechazos son del
+  json5): `BreakIteratorHyphenMinus` (a74ffca5520), `CheckIfHighestRootContainsPositionAnchorNode` (cdd39e79efc),
+  `FindDecomposedInShortText` (77147f8ac66) y `FindTextSkipCollapsedText` (91379783ec7) de la búsqueda en la página,
+  `HTMLEmbedElementNotForceLayout` (9b8c2484180), `HTMLObjectElementFallbackDetachContentFrame` (d04e13c6871),
+  `InitialLetterRaiseBySpecified` (3561ed8aa28), `LineBoxBelowLeadingFloats` (1fea2fe8c97), `UseSelectionFocusNodeForCaretNavigation`
+  (1e4c5f5101d) y **`TextTransformAndSecurityFix`** (45cfc7335f9, fusionado a M131: cierre con `text-transform` y
+  `-webkit-text-security`; para FS.17).
+- `CSSAtPropertyStringSyntax` (8ef3ec8c032 + 11de2beffb6, 8/3): `@property` con `syntax: "<string>"`. No consta en BCD; es
+  barato y de interoperabilidad con la especificación.
+- `SvgExternalResources` (5e5a9e44286 + 1cdb2f557b7, 25/6): referencias a recursos SVG de otro documento
+  (`fill: url(otro.svg#degradado)`), como Firefox y Safari. Recomiendo portarlo.
+- **Sin efecto o fuera:** rendimiento (`HitTestOpaqueness` y `…OmitLineBox`, `SvgEagerPresAttrStyleUpdate`,
+  `FastNonCompositedScrollHitTest`), métricas (`ContinueEventTimingRecordingWhenBufferIsFull`), no Baseline (`FontVariantEmoji`,
+  `FontVariationSequences`, `SystemFallbackEmojiVSSupport`, `PageMarginBoxes`, `RTCRtpScaleResolutionDownTo`), apagado en
+  FlyWeb (`WebGPUCanvasContextGetConfiguration`, `WebHIDOnDedicatedWorkers`, `FedCmWithStorageAccessAPI`,
+  `FledgeRealTimeReporting`, `DirectSockets`, `WebXRHandInput`, `CSSAnchorScope`).
+- `ElementGetInnerHTML` pasa a apagada en el código: ya está así en la 1.14 (c5a094a9ab).
+
+### 4. Fuera de Blink
+
+- **ML-KEM (`net::features::kUseMLKEM`, 4beeb73c814): decisión.** Chrome 131 manda `X25519MLKEM768` (0x11ec) en vez
+  de `X25519Kyber768Draft00` (0x6399), en TLS (`ssl_client_socket_impl.cc`) y en QUIC (`quic_stream_factory.cc`). FlyWeb
+  manda hoy Kyber (`chromium_src/net/base/features.cc`). El BoringSSL de la 116 (ae88f198) no tiene ML-KEM; el porte es
+  `crypto/mlkem/mlkem.cc` (1097 líneas, autocontenido salvo Keccak, que la 116 ya trae en `crypto/kyber`),
+  `include/openssl/mlkem.h`, la clase `X25519MLKEM768KeyShare` de `ssl_key_share.cc` (~90 líneas), el grupo
+  `SSL_GROUP_X25519_MLKEM768` y el `NID`, las listas de fuentes de BoringSSL en Chromium y las dos líneas de `net/`. **Se
+  puede probar en la nube** sin LOCAL: BoringSSL compila solo con CMake y trae los vectores oficiales
+  (`mlkem768_*_tests.txt`, NIST incluidos). Sin esto, la huella TLS del 131 no es la de Chrome 131 (principio 13: el
+  nivel no se da por cumplido). Es de SEGURIDAD-PORTES (principio 13: lo que toca BoringSSL). **3–5 h**, en paralelo.
+- `services/network`: `CoopNoopenerAllowPopups` se enciende (no Baseline: fuera); el resto es rendimiento.
+- `chrome/common`: `HttpsFirstBalancedMode` (navegación: lo decide la política HTTPS de Brave) y cambios de interfaz.
+  Nada que vea una web.
+- Fuentes y preferencias web por defecto: sin cambios en Mac.
+- **Declaración:** `flyweb_engine_level` 131, `flyweb_version` 1.15, **`flyweb_engine_full_version` = 131.0.6778.265**
+  (la última Stable de Mac al 100 %, 07–14-01-2025, según versionhistory; lleva justo la V8 13.1.201.22),
+  `platformVersion` mínimo 11.7.10 (129–138).
+
+### 5. Configuración de campo (Finch), 130 → 131 en Mac
+
+De lo que cambia, casi todo es interfaz, *autofill* o rendimiento. Dos cosas confirman escapes del §6, porque estaban
+encendidas por campo en la 130 y en la 131 pasan a código: `BeforeunloadEventCancelByPreventDefault` y
+`MouseDragOnCancelledMouseMove`. `WebAudioBypassOutputBuffering` entra como experimento con política de empresa: fuera
+(experimento, no despliegue). ALPS sigue pendiente de los JA4 de LOCAL-4 (F4.8).
+
+### 6. Escapes de niveles anteriores (barrido nuevo: flags `stable` de 117–131 contra la 1.14)
+
+Para cada nivel 117–131 se leyó el json5 de su cabeza de rama y se comparó con el de la 1.14. Hay **354 flags** que
+Chrome tuvo en `stable` en algún nivel y FlyWeb no tiene en `stable`; **287 no salen por nombre en ningún documento**.
+Muchas son falsos positivos: niveles que portaron el estado final sin la flag (`@starting-style`, `light-dark()`,
+`<details name>`). Lo fiable son las que **la 1.14 sí tiene en su json5, pero apagadas**, más la pasada de
+`superficie.html`. De ahí salen, quitando Privacy Sandbox, lo que Brave quita, lo que no es Baseline y lo interno:
+
+| Qué | Chrome | En FlyWeb | Coste |
+|---|---|---|---|
+| `customElements.getName()` (`CustomElementsGetName`) | 117; **Baseline 2023** | flag `experimental`; `superficie.html` lo ve faltar | minutos (encender; comprobar que la 116 lo trae completo) |
+| `event.preventDefault()` en `beforeunload` pide confirmación (`BeforeunloadEventCancelByPreventDefault`) | 119 (campo en la 130, código en la 131) | `experimental` | minutos (8188517aca3) |
+| No resolver `data:` en `<use>` de SVG (`RemoveDataUrlInSvgUse`) | 120, **seguridad** | `experimental` | minutos |
+| Quitar el *dangling markup* de `target` (`RemoveDanglingMarkupInTarget`) | 119, **seguridad** | `experimental` | minutos |
+| Selección de texto con `mousemove` cancelado (`MouseDragOnCancelledMouseMove`) | 125 (campo en la 130) | sin la flag | 1583e508e68 + 165b28d3f3e |
+| `<input type=date>` como `inline-block` (`DateInputInlineBlock`) | 122 | `test` | 5ff04491da5 |
+| Copiar texto sin `text-transform` (`IgnoresCSSTextTransformsForPlainTextCopy`), `insertLink` en `inputType`, `lostpointercapture` al quitar el nodo | 127, 125, 122 | sin la flag | horas entre los tres |
+| `content-visibility: auto` implica `contain-intrinsic-size: auto` | 117 (`content-visibility`, Baseline 2024) | sin la flag | por medir |
+| Atributos de importación desconocidos dan error (`ImportAttributesDisallowUnknownKeys`) | 118 (Baseline 2025) | sin la flag | por medir |
+| `SVGClipPathElement.transform` | (`superficie.html`) | falta | minutos |
+
+Lo demás de la pasada de superficie ya estaba clasificado: Brave (`ReportingObserver`, `navigator.connection`, Web
+Serial, File System Access), Privacy Sandbox o FedCM, no Baseline (CloseWatcher, EditContext, `@scope`, *anchor
+positioning*, *scroll snap events*, LoAF, `scheduler.yield()`, `interpolate-size`, `text-spacing-trim`,
+`select.showPicker()`) o apagado por decisión (WebGPU). **Propuesta:** portar la tabla en el 131 (1–2 h), y una
+auditoría completa de las 287 en una fila aparte. El método: para cada flag, el commit que la quita (`bisflag.py`) y
+mirar si su código está en la 1.14. Son unas 3–4 h de MOTOR, sin compilar.
+
+### 7. Los cuatro aplazados del 130 (aprobados para el 131), con sus dependencias
+
+| Flag | Dependencia que faltaba | Medida (cadena entera) | Coste |
+|---|---|---|---|
+| `PseudoElementsCorrectInGetComputedStyle` | a97d3e46b05 (`CSSComputedStyleFullPseudoElementParser`, 124: otro escape) + 471ed5d216b (`kPseudoIdPlaceholder`/`kPseudoIdFileSelectorButton`) | 45/10, 15 ficheros | 1–1,5 h |
+| `PaintHighlightsForFirstLetter` | 1660cb958aa (`MarkerRangeMappingContext`: optimización del mapeo de desplazamientos del pintado de resaltados) | 49/17, 11 ficheros | 1,5–2 h; toca el pintado de selección y resaltados |
+| reserva de `<meter>` (`MeterAppearanceNoneFallbackStyle` + `MeterDevolveAppearance`) | 02492b88a85 (`StyleUAShadowHostData`) | 45/12, 24 ficheros | 1–1,5 h |
+| `MultiSmoothScrollIntoView` | `SetScrollOffset` que devuelve `bool`: viene de 621af243570 (eventos de *scroll snap*, no Baseline); se porta solo el cambio de firma | 23/5 + la firma | 1 h |
+
+### 8. Lo apagado (regla 19) con la V8 13.1, y la rama M131
+
+Sin cambios en lo que decide la regla 19: Maglev y `maglev_untagged_phis` siguen encendidos upstream y apagados en
+FlyWeb hasta la decisión del **132** (V8 13.2 LTS). `turboshaft_wasm` sigue apagada upstream, y
+`turboshaft_instruction_selection`, `turboshaft_csa` y `regexp_simd` siguen como en la 1.14.
+
+Fusiones de la rama M131 (72 en Blink) para FS.17, además de `TextTransformAndSecurityFix`: `EncodedFormData`
+(d8f78a1c886, 0b1d6d2efc0), `XMLDocumentParser` con *isolate* nulo (bef5f3efe54), `AcceptLanguagesWatcher` (5973dd14151),
+`WorkerNavigator::NotifyUpdate` (968edf7d9de), `DocumentLoader::CalculateOrigin` (8ecb19166b6), las de accesibilidad y
+la de Web Serial (apagado). **4888675b6c9** arregla `ObserveNestedDeclarations` del inspector, que porté en el 130 (solo
+DevTools; lógica, no memoria): propongo que vaya en la 1.14.1 con `seg/oopsif` o en el 131. ff0d92a5dd6 ya está (es
+1116bad3e0a, FS.13).
+
+### 9. Estimación en horas reales, con el 130
+
+El 130 en código, del paso de V8 a la cabeza final: **~1 h 35 min de MOTOR** (15:50–17:25) para unos 215 hunks y 90
+rechazos, más el recorte de superficie. La estimación del §11 del 130 decía 5–7 h: **cuatro veces pesimista para MOTOR**.
+LOCAL (7–8 h) es lo que manda en el total.
+
+| Partida | 130 (real) | 131 (estimado) | Por qué |
+|---|---|---|---|
+| Paso de V8 | ~10 min (más `fast_float`) | 10–15 min | una línea en Blink; sin dependencias nuevas |
+| FS.17 en paralelo | FS.14 ~3 h | 4–7 h | rebase de `patches/v8` + **ML-KEM** (3–5 h, probado en la nube) |
+| Baseline | ~45 min (~190/65) | 1,5–2,5 h (~227/85) | colores relativos sobre `currentcolor` y `::details-content` con la cascada |
+| Flags del 131 | ~20 min | 30–45 min (~73/23, con `@property`) | casi todo json5 |
+| Los cuatro aplazados | — | 1,5–2,5 h (~162/44) | dependencias incluidas |
+| Escapes del §6 | — | 1–1,5 h | encendidos y commits pequeños |
+| Declarar + `motor-131.html` + `wpt-131-lista.txt` + `version-1.15.md` | ~20 min | 30 min | — |
+| **MOTOR en total** | **~1,6 h** | **5–7,5 h** | unas 2,3 veces el volumen del 130 |
+| LOCAL (Static, ASan, Release y pruebas) | 7–8 h (en curso) | 7–8 h | igual |
+| Arreglos tras las pruebas | por ver | 2–4 h | color y cascada tocan el CSS de todas las páginas |
+| **Total, del paso de V8 a la entrega** | — | **13–17 h** | con FS.17 en paralelo y sin esperar a ML-KEM para el Static de Blink |
+
+**Regla 18:** sale entero como 1.15 con la V8 13.1. Nada es «muy amplio»: el porte mayor (colores relativos) es del
+tamaño de *nested declarations*.
+
+**Decisiones que pido a COORDINACIÓN:** (i) V8 13.1.201.22; (ii) **ML-KEM** en la 1.15, portado por SEGURIDAD-PORTES
+(FS.17) y probado con los vectores de BoringSSL antes de LOCAL; sin él, el 131 no cumple el principio 13; (iii) la
+Baseline del §2, incluidos los colores relativos sobre `currentcolor` (el porte de más riesgo); (iv) flags del §3 con
+`SvgExternalResources`; (v) **escapes del §6 en el 131** y la auditoría completa como fila aparte; (vi) 4888675b6c9 en la
+1.14.1 o en el 131.
+
 ## Apuntado para niveles futuros
 
 - **143 — `onselectionchange` como atributo de elemento** (`<div onselectionchange=…>`, `setAttribute`): Chromium
