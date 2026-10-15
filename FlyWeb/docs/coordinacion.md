@@ -40,15 +40,15 @@ Si `send_message` responde `session_inactive`, el agente local ha perdido el Rem
 | Agente | Sesión | Estado al 15-10, ~18:20 |
 |---|---|---|
 | VIGÍA (Haiku) | `session_01XD1RBYQ5oESHWKeqZWSG4e` | Rutina cada hora, 8–23 h. **No acepta órdenes de agentes**: su destino lo cambia Titín (texto en el arranque de COORDINACIÓN-7) |
-| MOTOR-10 (Opus, xhigh) | `session_017osmPdTipjmbHoMeuQDeJ4` | Nivel 130 entregado en código; inventario del 131 hecho y decidido (FM.21). **Parado hasta el reinicio del límite** (regla 15) salvo fallos de la 1.14 |
-| SEGURIDAD-PORTES-3 (Opus, medio) | `session_01LKiaD9v2hcna6BUo6CfMBs` | FS.14 y FS.17 hechas, FS.15 (`seg/oopsif` 57c1b3fa2a) para la 1.14.1, FS.16 aprobada (vía A) tras la 1.14.1. Parada |
+| MOTOR-11 (Opus, xhigh) | `session_01E9YyQZz5fNhwE1HdRNzw6f` | Desde el 15-10, ~18:30: nivel 131 (FM.21, 1.15); `nube/motor-131` 8ac23ca71a con V8 13.1 y `seg/v8-13.1`. **Los fallos de la 1.14 van primero.** MOTOR-10 archivada por COORDINACIÓN-7 |
+| SEGURIDAD-PORTES-3 (Opus, medio) | `session_01LKiaD9v2hcna6BUo6CfMBs` | FS.14 y FS.17 hechas, FS.15 (`seg/oopsif` 57c1b3fa2a) para la 1.14.1, FS.16 aprobada (vía A) tras la 1.14.1. **FS.18** (15-10): revisión de V8 13.1 del 131 (`seg/v8-13.1` 7b3c3e6cf5, época 16), en curso |
 | SEGURIDAD-VIGÍA (Haiku) | `session_019wTc3m4aVuvkKTEGMXdEHS` | Rutina semanal |
 | CONTENIDOS-WEB-2 (Sonnet, medio) | `session_015tHV7uDdbAc6uZ1VwmgcqD` | Espera `version-1.14.md` (ya en `main`) y los datos del DMG |
 | LOCAL-4 (7,1, Opus, alto) | `session_014pVFQScvJwumdaBwufvESX` | Compilando y probando la 1.14 (Static, ASan, pruebas **en la 6,1**). Luego la 1.14.1 |
 | PUBLICACIÓN (7,1, Sonnet) | `session_01TTieMjJGykHhdkXAYW8bZG` (local `local_1eb27eb5-…`) | **Confirmada** por COORDINACIÓN-7 (15-10, ~18:20): responde, Remote Control activo, nada a medias en ns1/ns2. Espera la entrega de la 1.14 |
 | SERVIDOR-LOCAL, ARQUITECTURA (7,1) | ver su fila | Sin tareas abiertas |
 
-Archivados el 15-10: COORDINACIÓN-5, MOTOR-8, MOTOR-9, SEGURIDAD-PORTES, SEGURIDAD-PORTES-2, LOCAL-3.
+Archivados el 15-10: COORDINACIÓN-5, COORDINACIÓN-6, MOTOR-8, MOTOR-9, MOTOR-10, SEGURIDAD-PORTES, SEGURIDAD-PORTES-2, LOCAL-3.
 
 Notas de tablero: commits con `[coord]` (el Vigía los ignora); reglas, CLAUDE.md y docs por PR, que fusionas tú.
 **PR de otros agentes:** pásalos a listos (`draft:false`) y fusiona con `expectedHeadSha` **de 40 caracteres**; antes,
@@ -163,16 +163,5 @@ Al HUMANO se le llama Titín. Español, commits en inglés con Co-Authored-By de
 
 ## Textos de arranque pendientes
 
-**MOTOR-11** (15-10, ~18:40; orden de Titín: el 131 empieza ya). Abrirla desde la app: nube, repos `softmac` y
-`brave-core` (con escritura), **Opus 5.5, esfuerzo extra (`xhigh`)**, y pegar:
-
-```
-Eres MOTOR de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-net/brave-core): MOTOR-11, relevo de MOTOR-10 (session_017osmPdTipjmbHoMeuQDeJ4). COORDINACIÓN es COORDINACIÓN-7, session_01Bd9Hw5nWqeXcgGZgMYtZ9n. Lee en este orden: CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–19, filas FM.20, FM.21 y FS.17), FlyWeb/docs/motor.md «Nivel 131» §1–§10, FlyWeb/docs/relevo-motor.md (relevo de MOTOR-10 a MOTOR-11, 15-10, ~18:35) y FlyWeb/tools/port/README.md.
-1. Comprueba con get_session tu modelo y esfuerzo, si tienes send_message y tus repos. Si no puedes escribir en brave-core, dilo en el mensaje de prueba.
-2. Anota tu id en la fila de MOTOR de docs/TAREAS.md (por PR; lo fusiona COORDINACIÓN) y manda un mensaje de prueba a COORDINACIÓN con send_message.
-3. Empieza el nivel 131 (FM.21) por donde dice el relevo: nube/motor-131 desde 303e498fb5 con seg/ml-kem fc0f45c433, paso de V8 13.1.201.22 y aviso a SEGURIDAD-PORTES-3 (session_01LKiaD9v2hcna6BUo6CfMBs). Mientras MOTOR-10 siga activa, los fallos de la 1.14 son suyos; cuando COORDINACIÓN la archive, pasan a ti.
-Al HUMANO se le llama Titín. Español, commits en inglés con Co-Authored-By de Claude. Estimaciones en horas de reloj; ids de commit comprobados con git ls-remote tras el push.
-```
-
-Cuando esté anotada y su mensaje de prueba llegue, COORDINACIÓN archiva MOTOR-10. Los próximos textos de agentes locales,
-en un solo bloque, sin `/remote-control` (regla 13).
+Ninguno (15-10, ~19:15): MOTOR-11 activa y anotada (#267). Los próximos textos de agentes locales, en un solo bloque,
+sin `/remote-control` (regla 13); en el paso 1, el agente comprueba sus repos y Remote Control.
