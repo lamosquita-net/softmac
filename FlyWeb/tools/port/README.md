@@ -164,5 +164,10 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   pasan a `stable`, mirar las que dejan de serlo (`flags-nivel.py`, tipo `CHANGE` con `stable` antes) y las `stable`
   de la 116 que desaparecen. Para saber si una flag desaparecida quitó comportamiento o lo hizo permanente,
   `bisflag.py <flag>…` da el commit que la borra.
+- **Finch:** Brave compila con `disable_fieldtrial_testing_config`; Chrome (y Chrome for Testing) no. Un cambio puede
+  llegar a Chrome N solo por configuración de campo (los eventos de mutación, en la 127). `ftc.py` lee
+  `fieldtrial_testing_config.json` por versión, pero esa configuración son experimentos: solo cuenta lo que confirme
+  CfT N o un cambio del código poco después. La comprobación de verdad es `FlyWeb/tools/superficie.html` en FlyWeb y en
+  CfT N, comparando los dos ficheros con `diff` (motor.md «Nivel 130» §10).
 
 - `llevar.sh`: lleva commits de LOCAL a una rama `nube/*` y la fusiona en otra, sin checkout (ver `FlyWeb/docs/coordinacion.md`).
