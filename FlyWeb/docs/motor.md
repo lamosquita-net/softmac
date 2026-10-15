@@ -1342,7 +1342,8 @@ Baseline del §2, incluidos los colores relativos sobre `currentcolor` (el porte
 - **(iii)** `::details-content` y los colores relativos sobre `currentcolor`: sí. Los colores, con **las WPT de color
   del 131 completas** comparadas con CfT 131, por ser el porte de más riesgo.
 - **(iv)** Flags del §3: como se propone.
-- **(v)** Escapes del §6: **los dos de seguridad se adelantan a la 1.14.1** con `seg/oopsif`. Están hechos en brave-core
+- **(v)** Escapes del §6: **los dos de seguridad se adelantan a la 1.14** (primero se dijo 1.14.1 con `seg/oopsif`;
+  COORDINACIÓN-6 lo cambió el 15-10, ~18:10: la 1.14 = ccc74ea171 + los escapes, y la 1.14.1 = la 1.14 + `seg/oopsif`). Están hechos en brave-core
   `nube/escapes-seg-1.14.1` **303e498fb5**, sobre `ccc74ea171`, y se funden sin conflictos con `seg/oopsif`
   57c1b3fa2a. Prueba: `FlyWeb/tools/seg-1.14.1.html`. Los revisa SEGURIDAD-PORTES-3. El resto de escapes van en el 131.
   La auditoría completa va en **FM.22, después de entregar el 131**.
