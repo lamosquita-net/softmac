@@ -20,6 +20,11 @@ puntos 2 y 3 y lleva el tercer dígito. Las reglas de esta carta valen para las 
    prioridad a partir de la 1.6. Si un día no hay nada, se anota en una línea en la fila FS.2.
    **Objetivo (HUMANO, 07-10): ≤ 48 h** desde un *zero-day* de V8 que aplique hasta la 1.x.y con el parche; mientras
    tanto, el interruptor de emergencia es la política `DefaultJavaScriptJitSetting = 2` (JIT apagado sin recompilar).
+   **Ojo: apaga también WebAssembly** en todas las webs (con `--jitless`, V8 quita `WebAssembly`: ya en la 11.6 de la
+   116, `flag-definitions.h` «--jitless also implies --no-expose-wasm»; desde la 12.7 con
+   `DEFINE_DISABLE_FLAG_IMPLICATION(jitless_and_not_correctness_fuzzer_suppressions, expose_wasm)`). Las webs que
+   necesiten Wasm dejan de funcionar mientras esté puesta; se avisa al HUMANO al proponerla. Una política así olvidada
+   en un Mac de pruebas parece un fallo del motor (caso de la app de desarrollo en la 7,1, 15-10).
 2. **Portar.** Para cada CVE que aplique: localizar el commit de la corrección (Chromium, V8, Skia, ANGLE, Dawn…),
    adaptarlo a la 116 **y a lo ya portado por la Fase M** y dejarlo en una rama `seg/cve-AAAA-NNNNN` de brave-core,
    con su paso en `FlyWeb/docs/integracion.md` y la prueba que lo reproduce cuando sea posible.
