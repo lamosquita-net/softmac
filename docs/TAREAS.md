@@ -86,11 +86,11 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
 13. **Relevos:** una sesión se releva cuando su contexto crece mucho, siempre en un punto limpio (rama subida, fila al
     día, nota de relevo en `docs/` si el papel la tiene). El relevo se numera en la fila (MOTOR-1, MOTOR-2…) para saber
     quién hizo qué. No se abre un segundo agente del mismo papel en paralelo salvo que esta tabla lo diga.
-    **Relevo de un agente local** (LOCAL, PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA; HUMANO, 13-10): el texto de
-    arranque que prepara COORDINACIÓN empieza siempre con el paso «escribe `/remote-control` en la ventana nueva antes de
-    pegar nada». Sin eso la sesión no recibe `send_message`; la preferencia de la app se pierde al actualizarla. El
-    agente nuevo, al anotarse en su fila, confirma que tiene Remote Control activo y **manda un mensaje de prueba a
-    COORDINACIÓN**; si no llega, el Remote Control no está activo. **Herramienta:** `SendMessage` (diferida: ToolSearch
+    **Relevo de un agente local** (LOCAL, PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA; HUMANO, 13-10, cambiada el 15-10):
+    el HUMANO pega **un solo texto**, sin `/remote-control` delante: la app ya conecta Remote Control al abrir la sesión, y
+    una orden con barra pegada junto a más texto se descarta entera (LOCAL-4, 15-10). El agente nuevo comprueba con
+    `get_session` que tiene Remote Control y **manda un mensaje de prueba a COORDINACIÓN**; solo si no lo tiene, le pide
+    al HUMANO que escriba `/remote-control`, **sola**, en esa ventana. **Herramienta:** `SendMessage` (diferida: ToolSearch
     «select:SendMessage»), tras `ListAgents`, con el **nombre** de la lista (p. ej. `to: "Nube Coordinación (5)"`),
     no el `send_message` de gestión de sesiones, que solo ve las sesiones `local_…` (LOCAL-3, 13-10). Sin él, una sesión local solo ve
     las de su misma Mac y no llega a las de la nube (COORDINACIÓN, MOTOR, CONTENIDOS-WEB…). El 13-10 a las 20:32 la app
