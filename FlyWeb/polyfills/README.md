@@ -1,5 +1,9 @@
 # Polyfills de FlyWeb
 
+**Retirados en la 1.14** (brave-core 37976248c3, decisión de COORDINACIÓN-6): con la V8 13.0 lo Baseline que cubrían
+es nativo, y lo que quedaba (`RegExp.escape`, base64 de `Uint8Array`) no existe en Chrome 130. Esta carpeta queda como
+histórico de las 1.0–1.13.
+
 FlyWeb (Chromium 116) inyecta en cada página web un paquete de polyfills de [core-js](https://github.com/zloirock/core-js)
 (MIT) para las funciones de JavaScript que la web moderna da por supuestas. Lo hace el proceso de render de brave-core
 (`renderer/flyweb/flyweb_polyfills_render_frame_observer.cc`, rama `nube/polyfills`) antes de cualquier script de la página.

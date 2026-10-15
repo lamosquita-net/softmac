@@ -30,7 +30,7 @@ Por cada sitio de la lista, probar en este orden y anotar el resultado en §5:
    `flyweb-policies.mobileconfig`, añadirlo, reinstalar el perfil y repetir. Si mejora, se queda en la lista.
 5. **Control:** el mismo sitio en un Chrome o Brave actual en la 7,1. Si allí también falla, no es cosa de FlyWeb.
 
-## 3. Polyfills (hecho: brave-core `nube/polyfills`, paso 15 de `integracion.md`)
+## 3. Polyfills (1.0–1.13: brave-core `nube/polyfills`, paso 15 de `integracion.md`; **retirados en la 1.14**, 37976248c3)
 
 FlyWeb inyecta en cada página, antes que sus propios scripts, los polyfills de core-js para el JavaScript Baseline que le
 falta: `Object.groupBy`/`Map.groupBy`, `Promise.withResolvers`, `Array.fromAsync`, `URL.canParse`/`URL.parse`, métodos de
