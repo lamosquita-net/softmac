@@ -1,0 +1,2418 @@
+{
+ "css/css-shadow-parts/host-part-002.html": {
+  "tipo": "testharness",
+  "estado": "FAIL",
+  "arnes": "OK",
+  "tests": [
+   [
+    ":host::part has correct cascading behavior",
+    "FAIL",
+    "assert_equals: :host::part() selectors are overridden by later selectors with same encapsulation context and specificity expected \"rgb(0, 128, 0)\" but got \"rgb(255, 0, 0)\""
+   ]
+  ]
+ },
+ "css/css-properties-values-api/at-property.html": {
+  "tipo": "testharness",
+  "estado": "FAIL",
+  "arnes": "OK",
+  "tests": [
+   [
+    "Attribute 'syntax' returns expected value for [\"<color>\"]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'syntax' returns expected value for [\"<color> | none\"]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'syntax' returns expected value for [\"<color># | <image> | none\"]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'syntax' returns expected value for [\"foo | <length>#\"]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'syntax' returns expected value for [\"foo | bar | baz\"]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'syntax' returns expected value for [\"notasyntax\"]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'syntax' returns expected value for [\"*\"]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'syntax' returns expected value for [\" * \"]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'syntax' returns expected value for [\"* \"]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'syntax' returns expected value for [\"\t*\t\"]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'syntax' returns expected value for [\"red\"]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"rgb(255, 0, 0)\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [<color>]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [foo | bar]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"default\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"Default\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"initial\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"Initial\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"inherit\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"Inherit\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"unset\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"Unset\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"revert\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"Revert\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"revert-layer\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"Revert-layer\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"foo bar\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"Foo <length>\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"foo, bar\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"<length> <percentage>\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'syntax' makes the @property rule invalid for [\"|<length>\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'initial-value' returns expected value for [10px]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'initial-value' returns expected value for [rgb(1, 2, 3)]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'initial-value' returns expected value for [red]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'initial-value' returns expected value for [foo]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'initial-value' returns expected value for [if(){}]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'initial-value' makes the @property rule invalid for [3em]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'initial-value' makes the @property rule invalid for [var(--x)]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'inherits' returns expected value for [true]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'inherits' returns expected value for [false]",
+    "PASS",
+    null
+   ],
+   [
+    "Attribute 'inherits' makes the @property rule invalid for [none]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'inherits' makes the @property rule invalid for [0]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'inherits' makes the @property rule invalid for [1]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'inherits' makes the @property rule invalid for [\"true\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'inherits' makes the @property rule invalid for [\"false\"]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Attribute 'inherits' makes the @property rule invalid for [calc(0)]",
+    "FAIL",
+    "assert_true: expected true got false"
+   ],
+   [
+    "Invalid property name does not parse [foo]",
+    "PASS",
+    null
+   ],
+   [
+    "Invalid property name does not parse [-foo]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [*, if(){}, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<angle>, 42deg, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<angle>, 1turn, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<color>, green, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<color>, rgb(1, 2, 3), false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<image>, url(\"http://a/\"), false]",
+    "FAIL",
+    "assert_equals: expected \"url(\\\"http://a/\\\")\" but got \"\""
+   ],
+   [
+    "Rule applied [<integer>, 5, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<length-percentage>, 10px, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<length-percentage>, 10%, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<length-percentage>, calc(10% + 10px), false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<length>, 10px, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<number>, 2.5, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<percentage>, 10%, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<resolution>, 50dppx, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<resolution>, 96dpi, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<time>, 10s, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<time>, 1000ms, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<transform-function>, rotateX(0deg), false]",
+    "FAIL",
+    "assert_equals: expected \"rotateX(0deg)\" but got \"\""
+   ],
+   [
+    "Rule applied [<transform-list>, rotateX(0deg), false]",
+    "FAIL",
+    "assert_equals: expected \"rotateX(0deg)\" but got \"\""
+   ],
+   [
+    "Rule applied [<transform-list>, rotateX(0deg) translateX(10px), false]",
+    "FAIL",
+    "assert_equals: expected \"rotateX(0deg) translateX(10px)\" but got \"\""
+   ],
+   [
+    "Rule applied [<url>, url(\"http://a/\"), false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string>, 'foo bar', false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string>,  'foo bar' , false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string>, '\"foo\" bar', false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string>, \"bar baz\", false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string>, \"bar 'baz'\", false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string>+, 'foo' 'bar', false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string>#, 'foo', 'bar', false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string>+ | <string>#, 'foo' 'bar', false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string>+ | <string>#,  'foo' 'bar', false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string>+ | <string>#, 'foo' \"bar\", false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string># | <string>+, 'foo', 'bar', false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string># | <string>+, 'foo', 'bar' , false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<string># | <string>+, \"foo\", 'bar', false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<string>, 1px, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<string>, foo, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<string>, calc(1 + 2), false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<string>, rgb(255, 99, 71), false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<string>, 'foo' 2px, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<color>, tomato, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied [<color>, tomato, true]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule applied for \"*\", even with no initial value",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [undefined, green, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<color>, undefined, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<color>, green, undefined]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<gandalf>, grey, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [gandalf, grey, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<color>, notacolor, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<length>, 10em, false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<transform-function>, translateX(1em), false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<transform-function>, translateY(1lh), false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<transform-list>, rotate(10deg) translateX(1em), false]",
+    "PASS",
+    null
+   ],
+   [
+    "Rule not applied [<transform-list>, rotate(10deg) translateY(1lh), false]",
+    "PASS",
+    null
+   ],
+   [
+    "Non-inherited properties do not inherit",
+    "PASS",
+    null
+   ],
+   [
+    "Inherited properties inherit",
+    "PASS",
+    null
+   ],
+   [
+    "Initial values substituted as computed value",
+    "PASS",
+    null
+   ],
+   [
+    "Non-universal registration are invalid without an initial value",
+    "PASS",
+    null
+   ],
+   [
+    "Initial value may be omitted for universal registration",
+    "PASS",
+    null
+   ]
+  ]
+ },
+ "css/css-properties-values-api/register-property-syntax-parsing.html": {
+  "tipo": "testharness",
+  "estado": "FAIL",
+  "arnes": "OK",
+  "tests": [
+   [
+    "syntax:'*', initialValue:'a' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:' * ', initialValue:'b' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'2px' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:' <number>', initialValue:'5' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<percentage> ', initialValue:'10%' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color>+', initialValue:'red' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:' <length>+ | <percentage>', initialValue:'2px 8px' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:' <length>+ | <color>#', initialValue:'red, blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>|<percentage>|<length-percentage>', initialValue:'2px' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color> | <image> | <url> | <integer> | <angle>', initialValue:'red' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<time> | <resolution> | <transform-list> | <custom-ident>', initialValue:'red' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'\t<color>\n|   foo', initialValue:'foo' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:':> hello' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'([ brackets ]) { yay (??)}' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'yep 'this is valid too'' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'unmatched opening bracket is valid :(' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'\"' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'default' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'0' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'10px /*:)*/' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:' calc(-2px)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'calc(2px*4 + 10px)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'calc(5px * 3px / 6px)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The initial value provided does not parse for the given syntax."
+   ],
+   [
+    "syntax:'<length>', initialValue:'7.1e-4cm' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'calc(7in - 12px)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'calc(15px + (sign(100vh - 10px) * 5px))' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The initial value provided does not parse for the given syntax."
+   ],
+   [
+    "syntax:'<length>+', initialValue:'2px 7px calc(8px)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>#', initialValue:'2px, 7px, calc(8px)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<percentage>', initialValue:'-9.3e3%' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length-percentage>', initialValue:'-54%' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length-percentage>', initialValue:'0' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length-percentage>', initialValue:'calc(-11px + 10.4%)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'10vmin' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<percentage> | <length>+', initialValue:'calc(100vh - 10px) 30px' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<number>', initialValue:'-109' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<number>', initialValue:'2.3e4' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<number>', initialValue:'calc(1 / 2)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<number>', initialValue:'calc(15 + (sign(100vh - 10px) * 5))' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The initial value provided does not parse for the given syntax."
+   ],
+   [
+    "syntax:'<integer>', initialValue:'-109' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>', initialValue:'19' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>', initialValue:'calc(1)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>', initialValue:'calc(1 + 2)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>', initialValue:'calc(3.1415)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>', initialValue:'calc(3.1415 + 3.1415)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>', initialValue:'calc(15 + (sign(100vh - 10px) * 5))' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The initial value provided does not parse for the given syntax."
+   ],
+   [
+    "syntax:'<angle>', initialValue:'10deg' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<angle>', initialValue:'20.5rad' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<angle>', initialValue:'calc(50grad + 3.14159rad)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<angle>', initialValue:'calc(15deg + (sign(100vh - 10px) * 5deg))' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The initial value provided does not parse for the given syntax."
+   ],
+   [
+    "syntax:'<time>', initialValue:'2s' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<time>', initialValue:'calc(2s - 9ms)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<time>', initialValue:'calc(15s + (sign(100vh - 10px) * 5s))' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The initial value provided does not parse for the given syntax."
+   ],
+   [
+    "syntax:'<resolution>', initialValue:'10dpi' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<resolution>', initialValue:'3dPpX' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<resolution>', initialValue:'calc(15dppx + (sign(100vh - 10px) * 5dpi))' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The initial value provided does not parse for the given syntax."
+   ],
+   [
+    "syntax:'<transform-function>', initialValue:'translateX(2px)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-function>|<integer>', initialValue:'5' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-function>|<integer>', initialValue:'scale(2)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-function>+', initialValue:'translateX(2px) rotate(42deg)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-list>', initialValue:'scale(2)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-list>', initialValue:'translateX(2px) rotate(20deg)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<string>', initialValue:''foo bar'' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:' 'foo bar' ' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:''foo bar' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:''\"foo\" bar'' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:'\"bar baz\"' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:'\"bar 'baz'\"' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:'\"bar 'baz'' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>+', initialValue:''foo' 'bar'' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>#', initialValue:''foo', 'bar'' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>+ | <string>#', initialValue:''foo' 'bar'' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>+ | <string>#', initialValue:' 'foo' 'bar'' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>+ | <string>#', initialValue:''foo' \"bar\"' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>+ | <string>#', initialValue:''foo' \"bar' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string># | <string>+', initialValue:''foo', 'bar'' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string># | <string>+', initialValue:''foo', 'bar' ' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string># | <string>+', initialValue:'\"foo\", 'bar'' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string># | <string>+', initialValue:'\"foo\", 'bar' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color>', initialValue:'rgb(12, 34, 56)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color>', initialValue:'lightgoldenrodyellow' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<image>', initialValue:'url(a)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<image>', initialValue:'linear-gradient(yellow, blue)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<url>', initialValue:'url(a)' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color>+', initialValue:'yellow blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color>+', initialValue:'yellow blue ' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color>+ | <color>', initialValue:'yellow blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color> | <color>+', initialValue:'yellow blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color># | <color>', initialValue:'yellow, blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color> | <color>#', initialValue:'yellow, blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color># | <color>+', initialValue:'yellow blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color>+ | <color>#', initialValue:'yellow, blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color>+ | yellow', initialValue:'yellow blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'yellow', initialValue:'yellow' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'yellow | <color>+', initialValue:'yellow blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color># | yellow', initialValue:'yellow, blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'yellow | <color>#', initialValue:'yellow, blue' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<transform-list> | <transform-function> ', initialValue:'scale(2) rotate(90deg)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-function> | <transform-list>', initialValue:'scale(2) rotate(90deg)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-list> | <transform-function>+ ', initialValue:'scale(2) rotate(90deg)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-function>+ | <transform-list>', initialValue:'scale(2) rotate(90deg)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-list> | <transform-function># ', initialValue:'scale(2) rotate(90deg)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-function># | <transform-list>', initialValue:'scale(2) rotate(90deg)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-list> | <transform-function># ', initialValue:'scale(2), rotate(90deg)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-function># | <transform-list>', initialValue:'scale(2), rotate(90deg)' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<transform-list>', initialValue:'scale(2) rotate(90deg) ' is valid",
+    "FAIL",
+    "Failed to execute 'registerProperty' on 'CSS': The syntax provided is not a valid custom property syntax."
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1 1' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1%' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1% 1%' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1px' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1px 1px' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'banana', initialValue:'banana' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'bAnAnA', initialValue:'bAnAnA' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'ba-na-nya', initialValue:'ba-na-nya' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'banana', initialValue:'banan\\61' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'banan\\61', initialValue:'banana' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>', initialValue:'banan\\61' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'big | bigger | BIGGER', initialValue:'bigger' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'foo+|bar', initialValue:'foo foo foo' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'banana\t', initialValue:'banana' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'\nbanana\r\n', initialValue:'banana' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'ba\f\n|\tna\r|nya', initialValue:'nya' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'null', initialValue:'null' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'undefined', initialValue:'undefined' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'array', initialValue:'array' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'\\1F914', initialValue:'🤔' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'hmm\\1F914', initialValue:'hmm🤔' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'\\1F914hmm', initialValue:'🤔hmm' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'\\1F914 hmm', initialValue:'🤔hmm' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'\\1F914\\1F914', initialValue:'🤔🤔' is valid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color>#', initialValue:'yellow blue' is invalid",
+    "FAIL",
+    "assert_throws_dom: function \"() => CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false})\" did not throw"
+   ],
+   [
+    "syntax:'banana,nya', initialValue:'banana' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<\\6c ength>', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<banana>', initialValue:'banana' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<Number>', initialValue:'10' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<LENGTH>', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'< length>', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length >', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length> +', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<transform-list>+', initialValue:'scale(2)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<transform-list>#', initialValue:'scale(2)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>++', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>##', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>+#', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>#+', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length> | *', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>+', initialValue:'2px,7px,calc(8px)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>#', initialValue:'2px 7px calc(8px)' is invalid",
+    "FAIL",
+    "assert_throws_dom: function \"() => CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false})\" did not throw"
+   ],
+   [
+    "syntax:'*|banana', initialValue:'banana' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'|banana', initialValue:'banana' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*+', initialValue:'banana' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'|', initialValue:'banana' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:' |', initialValue:'banana' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'||', initialValue:'banana' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'foo bar', initialValue:'foo bar' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'foo foo foo', initialValue:'foo foo foo' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'foo § bar', initialValue:'foo § bar' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'foo \\1F914 bar', initialValue:'foo \\1F914 bar' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length> <number>', initialValue:'0px 0' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length> <length> <length>', initialValue:'0px 0px 0px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1 1%' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1% 1' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1px 1' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1 1px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1px 1%' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>+ | <percentage>+ | <length>+ ', initialValue:'1% 1px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'initial', initialValue:'initial' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'inherit', initialValue:'inherit' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'unset', initialValue:'unset' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'revert', initialValue:'revert' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'revert-layer', initialValue:'revert-layer' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'default', initialValue:'default' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>|initial', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>|INHERIT', initialValue:'10px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<percentage>|unsEt', initialValue:'2%' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color>|REVert', initialValue:'red' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>|deFAUlt', initialValue:'1' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'initial' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'inherit' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'unset' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'revert' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'revert-layer' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>', initialValue:'initial' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>', initialValue:'inherit' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>', initialValue:'unset' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>', initialValue:'revert' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>', initialValue:'revert-layer' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>', initialValue:'default' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>+', initialValue:'foo initial bar' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>+', initialValue:'foo inherit bar' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>+', initialValue:'foo unset bar' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>+', initialValue:'foo revert bar' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>+', initialValue:'foo revert-layer bar' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<custom-ident>+', initialValue:'foo default bar' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:')' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'([)]' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'whee!' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'\"\n' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'url(moo '')' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'semi;colon' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'var(invalid var ref)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'*', initialValue:'var(--foo)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'banana', initialValue:'bAnAnA' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'var(--moo)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'10' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'10%' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'calc(5px + 10%)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'10em' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'calc(4px + 3em)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'calc(4px + calc(8 * 2em))' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>+', initialValue:'calc(2ex + 16px)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>+', initialValue:'10px calc(20px + 4rem)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>+', initialValue:'' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>#', initialValue:'' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length>', initialValue:'10px;' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<length-percentage>', initialValue:'calc(2px + 10% + 7ex)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<percentage>', initialValue:'0' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>', initialValue:'1.0' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<integer>', initialValue:'1e0' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<number>|foo', initialValue:'foo var(--foo, bla)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'Foo | bar', initialValue:'foo' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'Foo | bar', initialValue:'Bar' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<angle>', initialValue:'0' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<angle>', initialValue:'10%' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<time>', initialValue:'2px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<resolution>', initialValue:'10' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<resolution>', initialValue:'-5.3dpcm' is invalid",
+    "FAIL",
+    "assert_throws_dom: function \"() => CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false})\" did not throw"
+   ],
+   [
+    "syntax:'<transform-function>', initialValue:'scale()' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<transform-list>', initialValue:'scale()' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<transform-list>+', initialValue:'translateX(2px) rotate(20deg)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<color>', initialValue:'fancy-looking' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<image>', initialValue:'banana.png' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<url>', initialValue:'banana.png' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:'foo bar'' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:'foo bar\"' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:'\"foo\" bar' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:''foo' 2px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:'foo' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:'1' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:'1px' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:'calc(1 + 2)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>', initialValue:'rgb(255, 99, 71)' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>+', initialValue:'foo 'bar'' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string>#', initialValue:'foo, 'bar'' is invalid",
+    "PASS",
+    null
+   ],
+   [
+    "syntax:'<string># | <string>+', initialValue:'foo', 'bar'' is invalid",
+    "PASS",
+    null
+   ]
+  ]
+ },
+ "css/cssom-view/scrollIntoView-smooth.html": {
+  "tipo": "testharness",
+  "estado": "PASS",
+  "arnes": "OK",
+  "tests": [
+   [
+    "Smooth scrollIntoView should scroll the element to the 'nearest' position",
+    "PASS",
+    null
+   ],
+   [
+    "Smooth scrollIntoView should scroll the element to the 'start' position",
+    "PASS",
+    null
+   ],
+   [
+    "Smooth scrollIntoView should scroll the element to the 'center' position",
+    "PASS",
+    null
+   ],
+   [
+    "Smooth scrollIntoView should scroll the element to the 'end' position",
+    "PASS",
+    null
+   ]
+  ]
+ },
+ "css/css-color/display-p3-006.html": {
+  "tipo": "reftest",
+  "estado": "FAIL",
+  "detalle": [
+   "pasada 1: match mossgreensquare-ref.html: max 1, 24576 px",
+   "pasada 2: match mossgreensquare-ref.html: max 1, 24576 px",
+   "pasada 3: match mossgreensquare-ref.html: max 1, 24576 px"
+  ]
+ },
+ "css/css-color/hwb-005.html": {
+  "tipo": "reftest",
+  "estado": "FAIL",
+  "detalle": [
+   "pasada 1: match hwb-005-ref.html: max 1, 18432 px",
+   "pasada 2: match hwb-005-ref.html: max 1, 18432 px",
+   "pasada 3: match hwb-005-ref.html: max 1, 18432 px"
+  ]
+ },
+ "css/css-color/lab-004.html": {
+  "tipo": "reftest",
+  "estado": "FAIL",
+  "detalle": [
+   "pasada 1: match lab-004-ref.html: max 1, 18432 px",
+   "pasada 2: match lab-004-ref.html: max 1, 18432 px",
+   "pasada 3: match lab-004-ref.html: max 1, 18432 px"
+  ]
+ },
+ "css/css-color/lab-007.html": {
+  "tipo": "reftest",
+  "estado": "FAIL",
+  "detalle": [
+   "pasada 1: match lab-007-ref.html: max 1, 18432 px",
+   "pasada 2: match lab-007-ref.html: max 1, 18432 px",
+   "pasada 3: match lab-007-ref.html: max 1, 18432 px"
+  ]
+ },
+ "css/css-color/lch-004.html": {
+  "tipo": "reftest",
+  "estado": "FAIL",
+  "detalle": [
+   "pasada 1: match lch-004-ref.html: max 1, 18432 px",
+   "pasada 2: match lch-004-ref.html: max 1, 18432 px",
+   "pasada 3: match lch-004-ref.html: max 1, 18432 px"
+  ]
+ },
+ "css/css-color/lch-007.html": {
+  "tipo": "reftest",
+  "estado": "FAIL",
+  "detalle": [
+   "pasada 1: match lch-007-ref.html: max 1, 18432 px",
+   "pasada 2: match lch-007-ref.html: max 1, 18432 px",
+   "pasada 3: match lch-007-ref.html: max 1, 18432 px"
+  ]
+ },
+ "css/css-color/light-dark-currentcolor-in-color.html": {
+  "tipo": "testharness",
+  "estado": "FAIL",
+  "arnes": "OK",
+  "tests": [
+   [
+    "curentColor in light-dark() refers to parent color",
+    "FAIL",
+    "assert_equals: expected \"rgb(0, 128, 0)\" but got \"rgba(0, 0, 0, 0)\""
+   ]
+  ]
+ },
+ "css/css-color/light-dark-currentcolor.html": {
+  "tipo": "reftest",
+  "estado": "FAIL",
+  "detalle": [
+   "pasada 1: match ref-filled-green-100px-square-only.html: max 230, 10000 px",
+   "pasada 2: match ref-filled-green-100px-square-only.html: max 230, 10000 px",
+   "pasada 3: match ref-filled-green-100px-square-only.html: max 230, 10000 px"
+  ]
+ },
+ "css/css-color/nested-color-mix-with-currentcolor.html": {
+  "tipo": "testharness",
+  "estado": "FAIL",
+  "arnes": "OK",
+  "tests": [
+   [
+    "Nested color-mix function with inner currentColor should inherit unresolved",
+    "FAIL",
+    "assert_equals: expected \"lch(0 0 none)\" but got \"lch(0 0 0)\""
+   ]
+  ]
+ },
+ "css/css-color/oklab-005.html": {
+  "tipo": "reftest",
+  "estado": "PASS",
+  "detalle": [
+   "pasada 1: match oklab-005-ref.html: max 0, 0 px",
+   "pasada 2: match oklab-005-ref.html: max 0, 0 px",
+   "pasada 3: match oklab-005-ref.html: max 0, 0 px"
+  ]
+ },
+ "css/css-color/oklab-006.html": {
+  "tipo": "reftest",
+  "estado": "FAIL",
+  "detalle": [
+   "pasada 1: match oklab-006-ref.html: max 1, 18432 px",
+   "pasada 2: match oklab-006-ref.html: max 1, 18432 px",
+   "pasada 3: match oklab-006-ref.html: max 1, 18432 px"
+  ]
+ },
+ "css/css-color/oklch-004.html": {
+  "tipo": "reftest",
+  "estado": "FAIL",
+  "detalle": [
+   "pasada 1: match oklch-004-ref.html: max 1, 18432 px",
+   "pasada 2: match oklch-004-ref.html: max 1, 18432 px",
+   "pasada 3: match oklch-004-ref.html: max 1, 18432 px"
+  ]
+ },
+ "css/css-color/oklch-006.html": {
+  "tipo": "reftest",
+  "estado": "FAIL",
+  "detalle": [
+   "pasada 1: match oklch-006-ref.html: max 1, 18432 px",
+   "pasada 2: match oklch-006-ref.html: max 1, 18432 px",
+   "pasada 3: match oklch-006-ref.html: max 1, 18432 px"
+  ]
+ },
+ "css/css-color/oklch-007.html": {
+  "tipo": "reftest",
+  "estado": "FAIL",
+  "detalle": [
+   "pasada 1: match oklch-007-ref.html: max 1, 18432 px",
+   "pasada 2: match oklch-007-ref.html: max 1, 18432 px",
+   "pasada 3: match oklch-007-ref.html: max 1, 18432 px"
+  ]
+ },
+ "css/css-color/rgb-001.html": {
+  "tipo": "reftest",
+  "estado": "PASS",
+  "detalle": [
+   "pasada 1: match greensquare-ref.html: max 0, 0 px",
+   "pasada 2: match greensquare-ref.html: max 0, 0 px",
+   "pasada 3: match greensquare-ref.html: max 0, 0 px"
+  ]
+ },
+ "css/css-color/rgb-003.html": {
+  "tipo": "reftest",
+  "estado": "PASS",
+  "detalle": [
+   "pasada 1: match greensquare-ref.html: max 0, 0 px",
+   "pasada 2: match greensquare-ref.html: max 0, 0 px",
+   "pasada 3: match greensquare-ref.html: max 0, 0 px"
+  ]
+ },
+ "css/css-color/rgb-005.html": {
+  "tipo": "reftest",
+  "estado": "PASS",
+  "detalle": [
+   "pasada 1: match greensquare-ref.html: max 0, 0 px",
+   "pasada 2: match greensquare-ref.html: max 0, 0 px",
+   "pasada 3: match greensquare-ref.html: max 0, 0 px"
+  ]
+ },
+ "css/css-color/rgb-007.html": {
+  "tipo": "reftest",
+  "estado": "PASS",
+  "detalle": [
+   "pasada 1: match greensquare-ref.html: max 0, 0 px",
+   "pasada 2: match greensquare-ref.html: max 0, 0 px",
+   "pasada 3: match greensquare-ref.html: max 0, 0 px"
+  ]
+ },
+ "css/css-color/rgba-001.html": {
+  "tipo": "reftest",
+  "estado": "PASS",
+  "detalle": [
+   "pasada 1: match greensquare-ref.html: max 0, 0 px",
+   "pasada 2: match greensquare-ref.html: max 0, 0 px",
+   "pasada 3: match greensquare-ref.html: max 0, 0 px"
+  ]
+ },
+ "css/css-color/rgba-003.html": {
+  "tipo": "reftest",
+  "estado": "PASS",
+  "detalle": [
+   "pasada 1: match greensquare-ref.html: max 0, 0 px",
+   "pasada 2: match greensquare-ref.html: max 0, 0 px",
+   "pasada 3: match greensquare-ref.html: max 0, 0 px"
+  ]
+ },
+ "css/css-color/rgba-005.html": {
+  "tipo": "reftest",
+  "estado": "PASS",
+  "detalle": [
+   "pasada 1: match greensquare-ref.html: max 0, 0 px",
+   "pasada 2: match greensquare-ref.html: max 0, 0 px",
+   "pasada 3: match greensquare-ref.html: max 0, 0 px"
+  ]
+ },
+ "css/css-color/rgba-007.html": {
+  "tipo": "reftest",
+  "estado": "PASS",
+  "detalle": [
+   "pasada 1: match greensquare-ref.html: max 0, 0 px",
+   "pasada 2: match greensquare-ref.html: max 0, 0 px",
+   "pasada 3: match greensquare-ref.html: max 0, 0 px"
+  ]
+ },
+ "css/css-color/system-color-consistency.html": {
+  "tipo": "testharness",
+  "estado": "FAIL",
+  "arnes": "OK",
+  "tests": [
+   [
+    "Property color value 'ButtonBorder' resolves to the same color as the border-color of a button (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonFace' resolves to the same color as the background-color of a button (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonText' resolves to the same color as text on a button (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonBorder' resolves to the same color as the border-color of a submit button (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonFace' resolves to the same color as the background-color of a submit button (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonText' resolves to the same color as text on a submit button (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonBorder' resolves to the same color as the border-color of a reset button (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonFace' resolves to the same color as the background-color of a reset button (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonText' resolves to the same color as text on a reset button (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonBorder' resolves to the same color as the border-color of a color picker (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonFace' resolves to the same color as the background-color of a color picker (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonText' resolves to the same color as text on a color picker (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'CanvasText' has the same color as the color of the html element (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a text field (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a text field (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a password field (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a password field (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a email field (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a email field (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a number field (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a number field (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a date field (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a date field (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a text area (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a text area (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Mark' has the same color as the background-color of a mark element (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'MarkText' has the same color as the color of a mark element (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'LinkText' has the same color as the color of an anchor element (light)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonBorder' resolves to the same color as the border-color of a button (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonFace' resolves to the same color as the background-color of a button (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonText' resolves to the same color as text on a button (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonBorder' resolves to the same color as the border-color of a submit button (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonFace' resolves to the same color as the background-color of a submit button (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonText' resolves to the same color as text on a submit button (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonBorder' resolves to the same color as the border-color of a reset button (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonFace' resolves to the same color as the background-color of a reset button (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonText' resolves to the same color as text on a reset button (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonBorder' resolves to the same color as the border-color of a color picker (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonFace' resolves to the same color as the background-color of a color picker (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'ButtonText' resolves to the same color as text on a color picker (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'CanvasText' has the same color as the color of the html element (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a text field (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a text field (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a password field (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a password field (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a email field (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a email field (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a number field (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a number field (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a date field (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a date field (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Field' resolves to the same color as the background-color of a text area (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'FieldText' resolves to the same color as text on a text area (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'Mark' has the same color as the background-color of a mark element (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'MarkText' has the same color as the color of a mark element (dark)",
+    "PASS",
+    null
+   ],
+   [
+    "Property color value 'LinkText' has the same color as the color of an anchor element (dark)",
+    "FAIL",
+    "assert_equals: expected \"rgb(158, 158, 255)\" but got \"rgb(0, 0, 238)\""
+   ]
+  ]
+ },
+ "css/css-color/system-color-support.html": {
+  "tipo": "testharness",
+  "estado": "FAIL",
+  "arnes": "OK",
+  "tests": [
+   [
+    "System color Canvas works",
+    "PASS",
+    null
+   ],
+   [
+    "System color CanvasText works",
+    "PASS",
+    null
+   ],
+   [
+    "System color LinkText works",
+    "FAIL",
+    "assert_not_equals: LinkText should react to color-scheme got disallowed value \"rgb(0, 0, 238)\""
+   ],
+   [
+    "System color VisitedText works",
+    "FAIL",
+    "assert_not_equals: VisitedText should react to color-scheme got disallowed value \"rgb(85, 26, 139)\""
+   ],
+   [
+    "System color ActiveText works",
+    "PASS",
+    null
+   ],
+   [
+    "System color ButtonFace works",
+    "PASS",
+    null
+   ],
+   [
+    "System color ButtonText works",
+    "PASS",
+    null
+   ],
+   [
+    "System color ButtonBorder works",
+    "PASS",
+    null
+   ],
+   [
+    "System color Field works",
+    "PASS",
+    null
+   ],
+   [
+    "System color FieldText works",
+    "PASS",
+    null
+   ],
+   [
+    "System color Highlight works",
+    "FAIL",
+    "assert_not_equals: Highlight should react to color-scheme got disallowed value \"rgb(181, 213, 255)\""
+   ],
+   [
+    "System color HighlightText works",
+    "PASS",
+    null
+   ],
+   [
+    "System color SelectedItem works",
+    "PASS",
+    null
+   ],
+   [
+    "System color SelectedItemText works",
+    "PASS",
+    null
+   ],
+   [
+    "System color Mark works",
+    "PASS",
+    null
+   ],
+   [
+    "System color MarkText works",
+    "PASS",
+    null
+   ],
+   [
+    "System color GrayText works",
+    "PASS",
+    null
+   ],
+   [
+    "System color AccentColor works",
+    "FAIL",
+    "assert_equals: AccentColor should be parsed expected \"rgb(255, 255, 255)\" but got \"rgb(0, 0, 0)\""
+   ],
+   [
+    "System color AccentColorText works",
+    "FAIL",
+    "assert_equals: AccentColorText should be parsed expected \"rgb(255, 255, 255)\" but got \"rgb(0, 0, 0)\""
+   ],
+   [
+    "System color AppWorkspace works",
+    "PASS",
+    null
+   ],
+   [
+    "System color Scrollbar works",
+    "PASS",
+    null
+   ]
+  ]
+ }
+}
