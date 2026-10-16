@@ -31,6 +31,29 @@ Opus 5.5, esfuerzo alto, 15-10 ~15:25 – 16-10). Relevo pedido por COORDINACIÓ
   perfil al cerrar. Luego ASan corto, Release y entrega en FM.21. Falta descargar CfT 131 (permiso de Titín).
 - **Remote Control apagado** desde el reinicio de la app del 16-10 por la mañana; aun así los `send_message` de la nube llegan.
 
+### Estado de la 1.15 (16-10, ~14:30)
+
+- 1.14.1 **entregada** en FS.15 (build 24) y ya publicada (Titín la tiene instalada).
+- **1.15 = brave-core `nube/motor-131` 6f7d6a7fa4** (bcc6c90f30 + el `#include` de `css_string_value.h` que puso LOCAL-4;
+  MOTOR-11 lo fundió por fast-forward), build **25**. Static sin errores; en la 6,1: `motor-131` 21/21, `motor-117…130` sin
+  pasos atrás, `fastapi-129`, `seg-1.14.1`, `js-seg` bien; huella con **X25519MLKEM768** y JA4 igual a CfT 131 sin config;
+  superficie: solo `globalPrivacyControl` y `GPUAdapter.requestAdapterInfo` (resto, pasado a MOTOR-11). **ASan compilando.**
+- Faltan: WPT de `wpt-131-lista.txt` frente a **CfT 131.0.6778.264** (`temp/cft131`, ya bajado) — bajar las pruebas de gitiles
+  necesita el sí de Titín —; la sesión de Titín en la 6,1 (sin `--no-first-run`, para ver la bienvenida: P3A sin barra, sin
+  interruptor ni casilla, casilla de diagnóstico desmarcada; net-log sin `p3a*.brave.com`, `star-randsrv.bsg.brave.com`,
+  `cr.brave.com`, `clients2.google.com/cr`, `clientservices.googleapis.com`; Ghostery o KeePassXC-Browser desde la Web Store;
+  conversación en claude.ai); reproducir el cierre de **`SharedPinnedTabService`** (pila de la 1.14.1 de Titín:
+  `OnBrowserSetLastActive` → `OnActiveTabChanged`, puntero nulo) con el ASan: perfil con «Continuar donde lo dejaste», 2
+  ventanas, 2–4 fijadas, Cmd+Q, reabrir, pulsar una fijada fantasma desde la otra ventana (variante: segunda ventana desde el
+  Dock); pila a MOTOR-11 y COORDINACIÓN-7. Después, Release (build 25) y entrega en FM.21.
+
+### Lecciones de Titín (16-10)
+
+- **Nunca `npm run update_patches` para un solo parche:** regenera todos y, si el checkout no está completo, borra o cambia
+  decenas (pasó: 81 parches tocados al cortarse la sesión). Un solo parche se regenera con `git diff` del fichero de Chromium.
+- **Toda tarea larga, en segundo plano con `nohup` y registro**, para que sobreviva a un reinicio de la sesión (la app se
+  reinició dos veces el 16-10 y cortó lo que corría como tarea de la sesión).
+
 ### Receta nueva (órdenes de Titín del 15-10)
 
 - **Las pruebas de FlyWeb van a la 6,1** (Mojave), con perfil temporal propio y nunca el de Titín (allí tiene su FlyWeb
