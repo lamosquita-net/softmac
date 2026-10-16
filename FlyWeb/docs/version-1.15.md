@@ -7,10 +7,7 @@
 (1cc62618e) + casilla de informes de diagnóstico desmarcada (bcc6c90f3) + `minimum_chrome_version` y las peticiones de extensiones a la Web Store con la versión declarada (3af48da54 y c1b778809, FM.24, opción A). Un solo nivel en una sola
 versión, con la V8 de Chrome 131 (regla 18).
 
-**Estado:** en código. Revisión de la regla 17 (FS.19): colores relativos y cascada, bien; `SvgExternalResources`
-bloqueaba (no compilaba) y está arreglado con el modo de petición de la 131 (1419974606). SEGURIDAD-PORTES-3 dio el visto bueno a
-1419974606 (15-10, ~20:44). **Pendiente:** Static, ASan y
-Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas frente a CfT 131. Detalle técnico:
+**Estado:** entregada a PUBLICACIÓN (LOCAL-5, 16-10, ~22:00): `nube/motor-131` 057630a8c8, build 25 (157.64.25), Release compilada desde cero. Revisión de la regla 17 (FS.19): colores relativos y cascada, bien; `SvgExternalResources` arreglado con el modo de petición de la 131 (1419974606, visto bueno de SEGURIDAD-PORTES-3, 15-10, ~20:44). Pruebas en FM.21 (Static y ASan en la 6,1, JA4 de ML-KEM como CfT 131, WPT de color completas). Detalle técnico:
 `motor.md`, «Nivel 131», §11; commits: `FlyWeb/tools/port/nivel131-commits.tsv`.
 
 | Dato | Valor |
@@ -63,8 +60,4 @@ Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas f
 
 ## WPT del nivel 131
 
-*(Pendiente de LOCAL-4: Static de `nube/motor-131` 55b9b4d9d2, lista `FlyWeb/tools/wpt-131-lista.txt` (43 entradas),
-comparada con Chrome for Testing 131 en el mismo Mac y con las `TestExpectations` de la 131.0.6778.265. **Las WPT de
-color van completas** (`css/css-color/`, decisión de COORDINACIÓN-6). Excepciones escritas: ninguna por
-`PaintHighlightsForFirstLetter`; su única prueba es la interna de Blink `paint/markers/first-letter.html`, que no es
-WPT.)*
+Hechas por LOCAL-4 (16-10) con el Static de c1b778809c en la 6,1: lista `FlyWeb/tools/wpt-131-lista.txt` (294 pruebas, con `css/css-color/` entero) frente a Chrome for Testing 131 en el mismo Mac. **De 28 diferencias a 4** tras los pasos A (aff0f15742) y B (0fbbf9e775). Las 4 que quedan, aceptadas por COORDINACIÓN-7: `css-color/lab-004` y `lch-004` (1/255 en un canal, en el pintado), `oklab-005` (pasa aquí y falla en CfT 131) y `scrollIntoView-smooth` (la falla CfT). Excepciones escritas: ninguna por `PaintHighlightsForFirstLetter`; su única prueba es la interna de Blink `paint/markers/first-letter.html`, que no es WPT. Resultados en la rama de softmac `local/wpt-131`.
