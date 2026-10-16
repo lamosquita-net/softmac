@@ -58,6 +58,17 @@ Opus 5.5, esfuerzo alto, 15-10 ~15:25 – 16-10). Relevo pedido por COORDINACIÓ
   42 de la lista con `local4/descarga-wpt131.py`), servido en **8120**; lista completa `local4/lista-131.txt` (294).
   Referencia de CfT 131 corriendo (`local4/w131-cft131.*`).
 
+### Actualización (16-10, ~17:15)
+
+- **Cabeza de la 1.15: `nube/motor-131` c1b778809c** (0fbbf9e775 —pasos A y B de las WPT del 131— + la versión declarada en las
+  peticiones de extensiones a la tienda). Static probado en la 6,1: `motor-131` 21/21, sin pasos atrás; WPT del 131 con 4
+  diferencias frente a CfT (`lab-004`, `lch-004` por 1/255; `oklab-005` al revés; `scrollIntoView-smooth`, de CfT); superficie:
+  solo `globalPrivacyControl`; extensiones de la tienda instaladas por Titín; Cmd+Q limpio. **ASan compilando con nohup**
+  (`temp/m131-asan3.log`, PID en `.pid`). Siguen: ASan corto (control, claude.ai, YouTube, fijadas con `local4/ext-fijar`), Release
+  build 25 y entrega en FM.21. Guiones nuevos: `local4/diag-cierre.sh`, `diag-crx.sh`, `descarga-cdp.py`, `cmdq61.sh` (Cmd+Q real
+  en la 6,1), `sesion-titin-ext.sh`, `tanda131.py`, `gpu61.py`, `huella61.py`.
+- En la 7,1 (y quizá en la 6,1), `components.flyweb.lamosquita.net` no se resuelve: pasado a SERVIDOR-LOCAL, sin sondear.
+
 ### Lecciones de Titín (16-10)
 
 - **Palabras precisas con Titín:** lo que viene de la red se **descarga** (nunca «bajar», que confunde con bajar de versión).
