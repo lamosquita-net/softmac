@@ -100,6 +100,14 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
 
 ## Trampas de estos días
 
+- **`update_patches` nunca para un solo parche, y las tareas largas en segundo plano** (Titín, 16-10). LOCAL-4 lanzó
+  `npm run update_patches` dentro de su sesión para regenerar un parche; la sesión de Claude Code se reinició (la 7,1 no
+  se durmió), el proceso murió a medias, dejó 81 parches tocados y LOCAL estuvo 1 h 40 min parado. Un parche suelto se
+  regenera con `git diff` de ese fichero; toda tarea larga va con `nohup` y registro, para que sobreviva al reinicio.
+- **No encadenar avisos ni preguntas a Titín** (16-10): un mensaje con lo que hay que decidir y esperar su respuesta,
+  sin mandar otro antes. Lo que ya ha decidido no se le vuelve a plantear (p. ej. las fijadas compartidas se quedan
+  encendidas: se portan los arreglos de Brave o se arregla aquí).
+
 - **Un comentario de Titín es para debatir, no una orden** (16-10). Preguntó por qué había 1.14.1 y COORDINACIÓN-7 la
   canceló y luego la recuperó sin debatirlo: dos rondas de mensajes a cuatro agentes para nada. Antes de mover a nadie,
   se le dan las opciones con su coste y una recomendación, y se espera su decisión. **Nunca se para una compilación ni
