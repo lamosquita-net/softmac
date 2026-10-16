@@ -1,6 +1,6 @@
 # FlyWeb 1.15 — nivel de motor 131 (MOTOR-11, 15-10-2026)
 
-**Cabeza final:** brave-core `nube/motor-131` **c1b778809c** (`git ls-remote`), sobre la 1.14 (303e498fb5) +
+**Cabeza final:** brave-core `nube/motor-131` **057630a8c8** (`git ls-remote`), sobre la 1.14 (303e498fb5) +
 `seg/ml-kem` fc0f45c433 (FS.17) + `seg/v8-13.1` 634cedc130 (FS.18, cerrada) + los arreglos de la 1.14
 (`nube/arreglos-1.14` d12847a77f, fusión 391db5f63d) + el modo de petición de los recursos SVG externos (FS.19,
 1419974606) + OOPSIF (`seg/oopsif` 57c1b3fa2a, FS.15: lo que lleva la 1.14.1 va en la 1.15) + P3A apagado de serie
@@ -15,7 +15,7 @@ Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas f
 
 | Dato | Valor |
 |---|---|
-| Cabeza final | brave-core `nube/motor-131` **c1b778809c** (arreglos de las WPT del 131 en 7da4ea17f, aff0f1574, 96346db73, f98054586 y 0fbbf9e77; fijadas compartidas en 6a3ea2695; `GPUAdapter.info` en e51076b41; P3A en 1cc62618e; casilla de diagnóstico en bcc6c90f3; extensiones en 3af48da54 y c1b778809; OOPSIF fundido en 55b9b4d9d2; FS.19 en 1419974606; declaración en 2f04e8614a; paso de V8 en `nube/motor-131-v8` 9b19e7dafc) |
+| Cabeza final | brave-core `nube/motor-131` **057630a8c8** (arreglos de las WPT del 131 en 7da4ea17f, aff0f1574, 96346db73, f98054586 y 0fbbf9e77; fijadas compartidas en 6a3ea2695 y, al restaurar la sesión, en 057630a8c; `GPUAdapter.info` en e51076b41; P3A en 1cc62618e; casilla de diagnóstico en bcc6c90f3; extensiones en 3af48da54 y c1b778809; OOPSIF fundido en 55b9b4d9d2; FS.19 en 1419974606; declaración en 2f04e8614a; paso de V8 en `nube/motor-131-v8` 9b19e7dafc) |
 | Versión visible | 1.15 (`CFBundleVersion` la pone LOCAL en la entrega) |
 | Nivel declarado | Chrome 131 (`flyweb_engine_full_version` 131.0.6778.265; `platformVersion` mínimo **11.7.10**) |
 | Motor JavaScript | V8 13.1.201.22 (cabeza de la rama 13.1, la de la 131.0.6778.265) con los arreglos de seguridad de FlyWeb (FS.18; época de caché **16**; 62 parches; d8: pruebas de FlyWeb 8/8, mjsunit 7279/7280, Wasm con `--stress-wasm-code-gc` 394/394). gin sin cambios |
@@ -54,6 +54,8 @@ Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas f
 - **Más extensiones de la Chrome Web Store.** Las extensiones que piden una versión de Chrome reciente (hasta la 131) ya
   se instalan, por ejemplo Ghostery o KeePassXC-Browser. Algunas todavía no, como uBlock Origin Lite (necesita más
   reglas de bloqueo de las que admite FlyWeb) o Bitwarden (pide Chrome 134).
+- **Pestañas fijadas más fiables.** Las pestañas fijadas, que se comparten entre todas las ventanas, ya no cierran el
+  navegador al cambiar de ventana ni salen repetidas al volver a abrir FlyWeb con varias ventanas.
 - **Sin la pregunta de las estadísticas de uso.** FlyWeb no envía estadísticas de uso; en un perfil nuevo ya no aparece
   la barra que preguntaba por ellas.
 - **Nada cambia** en los ajustes ni en los datos del usuario. La primera vez que se abra una web pesada puede tardar un
