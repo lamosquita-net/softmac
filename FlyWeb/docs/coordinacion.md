@@ -61,7 +61,7 @@ Notas de tablero: commits con `[coord]` (el Vigía los ignora); reglas, CLAUDE.m
 |---|---|---|
 | 1.13 | Nivel 129 | Publicada (15-10, 09:28) |
 | **1.14** | Nivel 130 entero + V8 13.0.245.25 + FS.14 (incluye el arreglo de V8 91343bb4 de la regresión de la 1.13) + ORB v0.2 + fuera polyfills core-js y 6 apagados de Chrome + `block-ruby-003` + `seg/popup-sandbox` + los dos escapes de seguridad. **Cabeza: brave-core `nube/escapes-seg-1.14.1` 303e498fb5** (= `nube/motor-130` ccc74ea171 + 2 flags) | LOCAL-4: Static/ASan y pruebas en la 6,1; después Release y entrega (regla 11) |
-| 1.14.1 | 1.14 + `seg/oopsif` 57c1b3fa2a (FS.15, OOPSIF) | Después de la 1.14, Static aparte con las pruebas de FS.15 |
+| 1.14.1 | — | **Cancelada** (Titín, 16-10): OOPSIF (FS.15) sale con la 1.15, que ya lo lleva (`nube/motor-131` 55b9b4d9d2). La 1.14 (d12847a77f, build 23) entregada el 16-10 y firmada en bak; la 1.15 será el build 24 |
 | 1.15 | Nivel 131 + V8 13.1.201.22 + ML-KEM (`seg/ml-kem` fc0f45c433, **solo en el 131**) | Inventario decidido (FM.21). **Empieza ya con MOTOR-11** (Titín, 15-10, ~18:30) |
 
 - **Plazo de seguridad:** si la 1.14 no está entregada antes del **17-10, 16:00**, SEGURIDAD-PORTES-3 prepara la 1.13.1
