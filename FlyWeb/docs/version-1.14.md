@@ -4,7 +4,8 @@
 arreglos de la prueba de LOCAL-4: el CHECK de `togglePopover()`, que tumbaba la pestaña (bloqueo), lo que faltaba frente a
 las WPT de la 130 y WebSQL apagado de verdad (tabla de abajo). Antes: `nube/escapes-seg-1.14.1` **303e498fb5** =
 `nube/motor-130` ccc74ea171 + las dos protecciones de seguridad que se escaparon en la 119–120 (decisión de
-COORDINACIÓN-6, 15-10: van en la 1.14, sin esperar a `seg/oopsif`). La 1.14.1 será la 1.14 + `seg/oopsif`.
+COORDINACIÓN-6, 15-10: van en la 1.14, sin esperar a `seg/oopsif`). **No hay 1.14.1** (Titín, 16-10): OOPSIF
+(`seg/oopsif`) sale con la 1.15.
 
 | Arreglo (`nube/arreglos-1.14`) | Qué |
 |---|---|

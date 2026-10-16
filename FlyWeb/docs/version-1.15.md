@@ -3,13 +3,14 @@
 **Cabeza final:** brave-core `nube/motor-131` **55b9b4d9d2** (`git ls-remote`), sobre la 1.14 (303e498fb5) +
 `seg/ml-kem` fc0f45c433 (FS.17) + `seg/v8-13.1` 634cedc130 (FS.18, cerrada) + los arreglos de la 1.14
 (`nube/arreglos-1.14` d12847a77f, fusión 391db5f63d) + el modo de petición de los recursos SVG externos (FS.19,
-1419974606) + OOPSIF (`seg/oopsif` 57c1b3fa2a, FS.15: lo que lleva la 1.14.1 va en la 1.15). Un solo nivel en una sola versión, con la V8 de
-Chrome 131 (regla 18).
+1419974606) + OOPSIF (`seg/oopsif` 57c1b3fa2a, FS.15). Un solo nivel en una sola versión, con la V8 de
+Chrome 131 (regla 18). **No hay 1.14.1** (Titín, 16-10): OOPSIF, que iba a salir en ella, sale con la 1.15.
 
 **Estado:** en código. Revisión de la regla 17 (FS.19): colores relativos y cascada, bien; `SvgExternalResources`
 bloqueaba (no compilaba) y está arreglado con el modo de petición de la 131 (1419974606). SEGURIDAD-PORTES-3 dio el visto bueno a
 1419974606 (15-10, ~20:44). **Pendiente:** Static, ASan y
-Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas frente a CfT 131. Detalle técnico:
+Release de LOCAL-4, con los JA4 de ML-KEM (FS.17), las WPT de color completas frente a CfT 131 y las pruebas de OOPSIF
+(FS.15: claude.ai, Gmail, YouTube, una extensión de la Chrome Web Store, `srcdoc`/`data:` con *sandbox* y un ASan de navegación). Detalle técnico:
 `motor.md`, «Nivel 131», §11; commits: `FlyWeb/tools/port/nivel131-commits.tsv`.
 
 | Dato | Valor |
@@ -18,6 +19,7 @@ Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas f
 | Versión visible | 1.15 (`CFBundleVersion` la pone LOCAL en la entrega) |
 | Nivel declarado | Chrome 131 (`flyweb_engine_full_version` 131.0.6778.265; `platformVersion` mínimo **11.7.10**) |
 | Motor JavaScript | V8 13.1.201.22 (cabeza de la rama 13.1, la de la 131.0.6778.265) con los arreglos de seguridad de FlyWeb (FS.18; época de caché **16**; 62 parches; d8: pruebas de FlyWeb 8/8, mjsunit 7279/7280, Wasm con `--stress-wasm-code-gc` 394/394). gin sin cambios |
+| Aislamiento de procesos | **OOPSIF** (`IsolateSandboxedIframes`, FS.15): los iframes con `sandbox` van en su propio proceso, agrupados por origen, con los arreglos de upstream para `srcdoc`, `about:blank` y extensiones. Cuesta unos 2 procesos y 27–39 MB más (+4–5 %, medido por LOCAL-4 en la 1.13) |
 | TLS y QUIC | intercambio poscuántico **X25519MLKEM768** en lugar de Kyber, como Chrome 131 (FS.17; interruptor `--disable-features=UseMLKEM`) |
 | Portes del 131 | `::details-content` y `<details>` con cualquier `display`, con la cascada de ámbitos de sombra de la 131; colores relativos sobre `currentcolor` (y sobre colores de sistema, `light-dark()` y `color-mix()`); `@property` con `<string>`; recursos SVG de otro documento (`fill: url(otro.svg#id)`); 8 flags de interoperabilidad (búsqueda en la página, edición, `<embed>`/`<object>`, `initial-letter`, flotantes) |
 | Aplazados del 130 | `getComputedStyle()` con `::placeholder`, `::file-selector-button` y `::details-content`; estilos de reserva de `<meter>`; `scrollIntoView()` suave en paralelo |
@@ -35,6 +37,9 @@ Release de LOCAL-4, con los JA4 de ML-KEM (FS.17) y las WPT de color completas f
 - **Conexiones seguras preparadas para el futuro.** FlyWeb cifra las conexiones con el método poscuántico estándar
   (ML-KEM), el mismo que Chrome 131, pensado para que lo que se envía hoy no se pueda descifrar mañana con ordenadores
   cuánticos.
+- **Más aislamiento frente a contenido incrustado.** Los anuncios, vídeos y otros contenidos que una web incrusta en
+  modo restringido (*sandbox*) van ahora en un proceso aparte, como en Chrome: si fallan o alguien los usa para atacar,
+  no alcanzan a la página que los contiene. Usa algo más de memoria (unas decenas de MB).
 - **Secciones desplegables con más estilo.** Las secciones que se abren y cierran (`<details>`) se pueden diseñar como
   cualquier otro bloque, como en Chrome, Safari y Firefox.
 - **Colores que siguen al texto.** Las webs pueden calcular un color a partir del color del texto (por ejemplo, una
