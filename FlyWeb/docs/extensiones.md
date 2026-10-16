@@ -86,3 +86,16 @@ Lo cerrado y la versión real de la tienda solo se pueden medir instalando desde
 
 **Lo que esto no arregla:** las extensiones que exigen una versión por encima de la declarada (Bitwarden pide 134). Eso
 solo se resuelve subiendo de nivel.
+
+## 4. Decisión (Titín, por COORDINACIÓN-7, 16-10) y estado
+
+Las extensiones no son prioridad.
+
+- **A:** hecha en la 1.15 (brave-core 3af48da54, en `nube/motor-131`; FM.21). Se comparan con la versión declarada
+  `minimum_chrome_version` al instalar y el `prodversionmin` de la Web Store al actualizar (si no, una extensión
+  instalada se quedaría sin actualizaciones). Las consultas de actualización a la Web Store siguen enviando `prodversion`
+  116.0.5845.188, como los componentes; qué hace la tienda con eso se ve en la prueba C.
+- **C:** la lista de extensiones comprobadas la lleva LOCAL, con la muestra de 14 extensiones de la §2, instalando desde
+  la Web Store en la 6,1.
+- **B mínimo** (límites de DNR, API pequeñas y `action.openPopup`; 5–9 h): fila propia después del 132.
+- **El resto de B:** aparcado.
