@@ -14,17 +14,21 @@ Opus 5.5, esfuerzo alto, 15-10 ~15:25 – 16-10). Relevo pedido por COORDINACIÓ
   (157.64.23), app `~/proyectos/softmac/entregas/FlyWeb-1.14/FlyWeb.app`. Cuando PUBLICACIÓN la firme y verifique: llevar
   `flyweb` a la 1.14 con la receta de LOCAL-3 (`commit-tree "d12847a77fde^{tree}" -p d12847a77fde -p <flyweb actual>`,
   `update-ref`, `push origin flyweb`, `read-tree -m -u` en el checkout de Drive). `flyweb` sigue en **37197fe0** (1.13).
-- **No hay 1.14.1** (Titín, 16-10): la rama `local/1.14.1` 13138902af9e (1.14 + `seg/oopsif`) queda de referencia; su Release
-  está en `entregas/FlyWeb-1.14.1-NO-SE-ENTREGA`. **OOPSIF sale con la 1.15.**
-- **1.15 = brave-core `nube/motor-131` 55b9b4d9d2** (nivel 131 + `seg/oopsif` 57c1b3fa2a), **`FLYWEB_BUILD_NUMBER=24`**.
+- **1.14.1 (Titín, 16-10: «si ya está hecha, no pares nada»)**: brave-core `local/1.14.1` **13138902af9e** (1.14 +
+  `seg/oopsif` 57c1b3fa2a, `flyweb_version` 1.14.1), build **24** (157.64.24), Release en
+  `~/proyectos/softmac/entregas/FlyWeb-1.14.1/FlyWeb.app` (check-no-avx OK, `SUPublicEDKey` correcta). Pruebas de FS.15
+  hechas (6,1 y ASan, en la fila de LOCAL). **Lo primero de la cola, si no está hecho:** las pruebas de Titín con sus cuentas
+  en la 6,1 con la 1.14.1 (Gmail con sesión, extensión de la Chrome Web Store, conversación en claude.ai; el Static
+  13138902af9e ya está en `~/flyweb-pruebas/114-303e498f/`), las de red de la Release en la 7,1 sin ventana (LuLu tiene que
+  aprobar `entregas/FlyWeb-1.14.1`) y la **entrega en la fila de la 1.14.1** (regla 11).
+- **1.15 = brave-core `nube/motor-131` 55b9b4d9d2** (nivel 131 + `seg/oopsif`), **`FLYWEB_BUILD_NUMBER=25`**.
   Static compilando al relevar (rama `local/motor-131` en los dos repos; `temp/m131-static.log`). Si salen errores,
   a MOTOR-11 (`session_01E9YyQZz5fNhwE1HdRNzw6f`, «Nube Motor (11)»): lo más arriesgado son 66a8436ed4 (colores
   relativos), 57dda2531f (`::details-content`) y 1419974606 (`svg_resource`).
-- Pruebas de la 1.15 (orden de COORDINACIÓN-7): tanda corta de OOPSIF (`temp/local4/fs15-61.py`), FM.21 (`motor-131.html`,
-  `motor-130.html`, WPT de `wpt-131-lista.txt` frente a CfT 131 con `css/css-color/` entero, JA4 de ML-KEM) y, **una sola
-  vez**, las de Titín con sus cuentas en la 6,1 (Gmail con sesión, extensión de la Chrome Web Store, conversación en
-  claude.ai): perfil temporal sin depuración remota, vigilar el registro y borrar el perfil al cerrar. Luego ASan corto,
-  Release y entrega en FM.21.
+- Pruebas de la 1.15 (orden de COORDINACIÓN-7): FM.21 (`motor-131.html`, `motor-130.html`, WPT de `wpt-131-lista.txt` frente
+  a CfT 131 con `css/css-color/` entero, JA4 de ML-KEM) y la conversación de Titín en claude.ai (las de OOPSIF ya no se
+  repiten). Pruebas con cuentas de Titín: perfil temporal en la 6,1 sin depuración remota, vigilar el registro y borrar el
+  perfil al cerrar. Luego ASan corto, Release y entrega en FM.21. Falta descargar CfT 131 (permiso de Titín).
 - **Remote Control apagado** desde el reinicio de la app del 16-10 por la mañana; aun así los `send_message` de la nube llegan.
 
 ### Receta nueva (órdenes de Titín del 15-10)
