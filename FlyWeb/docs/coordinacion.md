@@ -104,7 +104,8 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
   canceló y luego la recuperó sin debatirlo: dos rondas de mensajes a cuatro agentes para nada. Antes de mover a nadie,
   se le dan las opciones con su coste y una recomendación, y se espera su decisión. **Nunca se para una compilación ni
   una tarea en curso sin acordarlo:** puede tirar horas de trabajo. El reparto en varios agentes es para gastar menos
-  tokens; cada orden y cada contraorden los gasta en todos.
+  tokens; cada orden y cada contraorden los gasta en todos. Titín: «prefiero que os quedéis parados durante horas a que
+  una decisión gaste innecesariamente tokens».
 
 - **Un texto de relevo con una condición delante se pierde** (14-10). El de MOTOR-8 iba detrás de «decide antes el
   modelo» y quedó enterrado entre otros avisos: el 129 se retrasó horas. Regla 13: el texto va en un mensaje propio,
