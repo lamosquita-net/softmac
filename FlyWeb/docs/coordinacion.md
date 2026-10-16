@@ -61,7 +61,7 @@ Notas de tablero: commits con `[coord]` (el Vigía los ignora); reglas, CLAUDE.m
 |---|---|---|
 | 1.13 | Nivel 129 | Publicada (15-10, 09:28) |
 | **1.14** | Nivel 130 entero + V8 13.0.245.25 + FS.14 (incluye el arreglo de V8 91343bb4 de la regresión de la 1.13) + ORB v0.2 + fuera polyfills core-js y 6 apagados de Chrome + `block-ruby-003` + `seg/popup-sandbox` + los dos escapes de seguridad. **Cabeza: brave-core `nube/escapes-seg-1.14.1` 303e498fb5** (= `nube/motor-130` ccc74ea171 + 2 flags) | LOCAL-4: Static/ASan y pruebas en la 6,1; después Release y entrega (regla 11) |
-| 1.14.1 | — | **Cancelada** (Titín, 16-10): OOPSIF (FS.15) sale con la 1.15, que ya lo lleva (`nube/motor-131` 55b9b4d9d2). La 1.14 (d12847a77f, build 23) entregada el 16-10 y firmada en bak; la 1.15 será el build 24 |
+| 1.14.1 | 1.14 + `seg/oopsif` 57c1b3fa2a (FS.15, OOPSIF): brave-core `local/1.14.1` 13138902af, build 24 | Release hecha (`entregas/FlyWeb-1.14.1`); faltan las pruebas con las cuentas de Titín en la 6,1 y la entrega. Decisión de Titín (16-10): se publica porque ya estaba compilada. La 1.15 será el build 25 |
 | 1.15 | Nivel 131 + V8 13.1.201.22 + ML-KEM (`seg/ml-kem` fc0f45c433, **solo en el 131**) | Inventario decidido (FM.21). **Empieza ya con MOTOR-11** (Titín, 15-10, ~18:30) |
 
 - **Plazo de seguridad:** si la 1.14 no está entregada antes del **17-10, 16:00**, SEGURIDAD-PORTES-3 prepara la 1.13.1
@@ -99,6 +99,13 @@ el HUMANO el 13-10:
 Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
 
 ## Trampas de estos días
+
+- **Un comentario de Titín es para debatir, no una orden** (16-10). Preguntó por qué había 1.14.1 y COORDINACIÓN-7 la
+  canceló y luego la recuperó sin debatirlo: dos rondas de mensajes a cuatro agentes para nada. Antes de mover a nadie,
+  se le dan las opciones con su coste y una recomendación, y se espera su decisión. **Nunca se para una compilación ni
+  una tarea en curso sin acordarlo:** puede tirar horas de trabajo. El reparto en varios agentes es para gastar menos
+  tokens; cada orden y cada contraorden los gasta en todos. Titín: «prefiero que os quedéis parados durante horas a que
+  una decisión gaste innecesariamente tokens».
 
 - **Un texto de relevo con una condición delante se pierde** (14-10). El de MOTOR-8 iba detrás de «decide antes el
   modelo» y quedó enterrado entre otros avisos: el 129 se retrasó horas. Regla 13: el texto va en un mensaje propio,
