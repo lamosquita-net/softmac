@@ -47,7 +47,20 @@ Opus 5.5, esfuerzo alto, 15-10 ~15:25 – 16-10). Relevo pedido por COORDINACIÓ
   ventanas, 2–4 fijadas, Cmd+Q, reabrir, pulsar una fijada fantasma desde la otra ventana (variante: segunda ventana desde el
   Dock); pila a MOTOR-11 y COORDINACIÓN-7. Después, Release (build 25) y entrega en FM.21.
 
+### Actualización (16-10, ~15:30)
+
+- **Cabeza de la 1.15: `nube/motor-131` 6a3ea2695a** (e51076b417 —`GPUAdapter.info`, `requestAdapterInfo` fuera— + los arreglos
+  de las pestañas fijadas compartidas de Brave posterior). Static compilando con `nohup` (`temp/m131d-static.log`, PID en
+  `.pid`). El ASan, una sola vez con esta cabeza. Pruebas de FM.25 con ventanas (fijar/desfijar, ventanas nuevas, arrastrar una
+  pestaña fuera y meterla, cerrar con la página viva, reabrir desde el Dock, la reproducción del cierre de Titín y la URL real de
+  la fijada de relleno en la ventana inactiva): en la sesión de Titín en la 6,1.
+- **WPT del 131:** `temp/wpt131` (copia del árbol del 130 + `css/css-color/` entero descargado como `.tar.gz` de gitiles + las
+  42 de la lista con `local4/descarga-wpt131.py`), servido en **8120**; lista completa `local4/lista-131.txt` (294).
+  Referencia de CfT 131 corriendo (`local4/w131-cft131.*`).
+
 ### Lecciones de Titín (16-10)
+
+- **Palabras precisas con Titín:** lo que viene de la red se **descarga** (nunca «bajar», que confunde con bajar de versión).
 
 - **Nunca `npm run update_patches` para un solo parche:** regenera todos y, si el checkout no está completo, borra o cambia
   decenas (pasó: 81 parches tocados al cortarse la sesión). Un solo parche se regenera con `git diff` del fichero de Chromium.
