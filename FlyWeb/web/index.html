@@ -22,23 +22,72 @@ servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomoneda
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 1.13</h2>
-<p><a class="boton" href="descargas/FlyWeb-1.13.dmg" download>Descargar FlyWeb 1.13 (165 MB)</a></p>
+<h2>Descargar FlyWeb 1.14</h2>
+<p><a class="boton" href="descargas/FlyWeb-1.14.dmg" download>Descargar FlyWeb 1.14 (165 MB)</a></p>
 <p class="dato">macOS 10.13 o 10.14, Mac Intel (x86_64). En macOS 10.15 a 12 debería funcionar, sin garantía.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>0b32371cb6bddebd82e22a35f0a4f56f0371d21d16179f4ba3c9f63a349e6a91</code></p>
+SHA-256: <code>6d6e3a8cb71fff4b7f607036924c01fc81873f29805f8696a999af4fd5d0f5bb</code></p>
 </div>
 </div></section>
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-1.13.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-1.14.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.13</h2>
+<h2 id="novedades">Notas de la versión 1.14</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 130</strong>, con el motor de JavaScript de Chrome 130. Las webs ven FlyWeb como
+  Chrome 130, y lo es en lo que usan.</li>
+  <li><strong>Estilos anidados en el orden en que se escriben.</strong> Las hojas de estilo que anidan reglas unas dentro de
+  otras aplican cada declaración en el orden escrito, como Chrome, Safari y Firefox. Antes, algunas declaraciones
+  escritas después de una regla anidada se aplicaban antes de tiempo.</li>
+  <li><strong>Cortes de línea como en los demás navegadores.</strong> La propiedad <code>text-wrap</code> funciona igual que
+  en Chrome, Safari y Firefox (por ejemplo, <code>text-wrap: nowrap</code> para que un texto no se parta).</li>
+  <li><strong>Conexiones directas en segundo plano.</strong> Las webs de videollamada, juegos o envío de archivos entre
+  usuarios pueden llevar una conexión directa a un hilo aparte, sin trabar la página.</li>
+  <li><strong>Teclado:</strong> las zonas de una página con desplazamiento propio se pueden alcanzar con el tabulador y
+  recorrer con las flechas aunque no tengan nada enfocable dentro, como en Chrome 130. Ayuda a quien navega sin
+  ratón.</li>
+  <li><strong>Ventanas emergentes de las webs:</strong> los avisos y menús que se abren y cierran con un botón se comportan
+  como en Chrome 130, también los que son diálogos.</li>
+  <li><strong>Más seguro:</strong>
+    <ul>
+      <li>Cada web queda aislada de sus subdominios aunque intente juntarse con ellos (<code>document.domain</code>), como
+      en Chrome desde la 119.</li>
+      <li>Las respuestas de otras webs que el navegador bloquea llegan como error y no como respuesta vacía, como en
+      Chrome.</li>
+      <li>Un anuncio o contenido incrustado sin permiso para abrir ventanas ya no puede abrirlas con un clic
+      simulado.</li>
+      <li>Dos protecciones que Chrome tiene desde la 119–120: una web ya no puede sacar datos de una página a través del
+      nombre de una ventana mal cerrado (<em>dangling markup</em>), y los dibujos SVG ya no cargan piezas escondidas en
+      direcciones <code>data:</code>. Las webs normales no notan nada.</li>
+      <li>Si se apaga el JIT de JavaScript por seguridad (el interruptor de emergencia), esas webs tampoco tienen
+      WebAssembly, igual que en Chrome 130.</li>
+    </ul></li>
+  <li><strong>Lo que se va, como en Chrome:</strong>
+    <ul>
+      <li><strong>WebSQL ya no existe, como en Chrome desde la 119.</strong> Una web vieja que aún guarde datos con WebSQL
+      deja de verlos, igual que en Chrome.</li>
+      <li>Los eventos antiguos de cambios en la página (eventos de mutación), la pantalla completa antigua de los vídeos
+      y otras funciones retiradas que FlyWeb aún tenía de su base de 2023.</li>
+      <li>FlyWeb ya no añade a cada página su paquete de compatibilidad de JavaScript: todo lo que cubría lo trae ahora
+      el propio motor, y así las webs no ven nada que Chrome 130 no tenga.</li>
+    </ul></li>
+  <li><strong>Pequeños arreglos de compatibilidad:</strong>
+    <ul>
+      <li>Las direcciones <code>data:</code> con texto conservan los espacios, como en Firefox y Safari.</li>
+      <li>Pegar y borrar en los editores de las webs deja el texto como en Chrome 130.</li>
+      <li>Las tablas antiguas calculan el ancho de las celdas como Chrome 130.</li>
+      <li>Los estilos de los componentes de las webs (<em>shadow DOM</em>) se adaptan bien al tamaño de su contenedor.</li>
+    </ul></li>
+</ul>
+<p class="dato">Nada cambia en los ajustes. Salvo WebSQL (arriba), nada cambia en los datos del usuario. La primera vez que se
+abra una web pesada puede tardar un poco más (el motor de JavaScript nuevo vuelve a preparar su caché).</p>
+<h2>Notas de la versión 1.13</h2>
 <ul>
   <li><strong>Motor al nivel de Chrome 129</strong>, con el motor de JavaScript de Chrome 129. Las webs ven FlyWeb como
   Chrome 129, y lo es en lo que usan.</li>
@@ -68,16 +117,6 @@ SHA-256: <code>0b32371cb6bddebd82e22a35f0a4f56f0371d21d16179f4ba3c9f63a349e6a91<
 </ul>
 <p class="dato">Nada cambia en los ajustes ni en los datos del usuario. La primera vez que se abra una web pesada puede tardar
 un poco más (el motor de JavaScript nuevo vuelve a preparar su caché).</p>
-<h2>Notas de la versión 1.12.2</h2>
-<ul>
-  <li><strong>Un cuelgue menos.</strong> Algunas páginas que hacen fluir el texto alrededor de una forma (por ejemplo, un
-  párrafo que rodea una imagen con forma, <code>shape-outside</code>) podían dejar la pestaña colgada. Ya no.</li>
-  <li><strong>Más estable al maquetar texto.</strong> Arreglado un fallo poco frecuente que podía aparecer al colocar el
-  texto de una página mientras FlyWeb libera memoria en segundo plano.</li>
-  <li><strong>Todo lo demás, igual que en la 1.12.1:</strong> el nivel de Chrome 128 con el <em>ruby</em> nuevo, el motor de
-  JavaScript de Chrome 128 con sus arreglos de seguridad y la misma huella de red.</li>
-</ul>
-<p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
 <p><a href="novedades.html">Todas las novedades, desde la 1.0</a></p>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
 </div></section>
