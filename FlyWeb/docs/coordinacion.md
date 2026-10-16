@@ -107,6 +107,8 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
 - **Nada de versiones 1.N.x para arreglar lo que ya se está probando** (Titín, 16-10): un arreglo sobre algo que va en la
   versión en curso entra en ella aunque la retrase; una 1.N.x duplica compilaciones y tiempos. La 1.14.1 se aceptó solo
   porque ya estaba compilada. Ejemplo: los arreglos de las pestañas fijadas compartidas esperan en la 1.15.
+- **Hablar con propiedad a Titín** (16-10): traer algo de la red es «descargar», nunca «bajar» (lo leyó como bajar de
+  versión). Siglas siempre explicadas la primera vez (WPT = Web Platform Tests, no WebGPU).
 - **No encadenar avisos ni preguntas a Titín** (16-10): un mensaje con lo que hay que decidir y esperar su respuesta,
   sin mandar otro antes. Lo que ya ha decidido no se le vuelve a plantear (p. ej. las fijadas compartidas se quedan
   encendidas: se portan los arreglos de Brave o se arregla aquí).
