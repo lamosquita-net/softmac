@@ -64,7 +64,7 @@ Opus 5.5, esfuerzo alto, 15-10 ~15:25 – 16-10). Relevo pedido por COORDINACIÓ
    de Drive sincronizado. **La 1.14.1 (`local/1.14.1` 13138902af9e, build 24) está publicada** (Titín la tiene instalada), pero en
    FS.15 aún no consta «firmada y verificada»: cuando PUBLICACIÓN lo escriba, `flyweb` = commit con el árbol de 13138902af9e y
    padres 13138902af9e + 780e380f55 (misma receta; **una orden `git -C` por llamada** y el hash antiguo exacto en `update-ref`).
-2. **ASan de la 1.15 compilando con `nohup`:** cabeza `nube/motor-131` **c1b778809c** (rama `local/motor-131`), registro
+2. **HECHO (18:15): ASan de c1b778809c limpio** (0 informes, 0 FATAL); **la Release (build 25) ya compila con `nohup`** (`temp/v115-release.log`, PID en `v115-release.pid`): sigue en el paso 3. Lo que había antes en este punto: **ASan de la 1.15 compilando con `nohup`:** cabeza `nube/motor-131` **c1b778809c** (rama `local/motor-131`), registro
    `~/proyectos/softmac/temp/m131-asan3.log`, PID en `m131-asan3.pid`, salida en `out/StaticAsan`. Al acabar (`grep -c ' error:'`
    = 0): ASan corto **sin ventana en la 7,1** con `ASAN_OPTIONS=log_path=…:detect_leaks=0`: `local4/fs15-61.py` (con `EXTPATH`),
    `local4/corta61.py` (motor-130, `togglePopover`, `openDatabase`, js-seg, claude.ai, YouTube) y `local4/diag-cierre.sh` (fijadas
