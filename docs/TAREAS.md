@@ -140,14 +140,24 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
 18. **Un nivel, una versión, con su V8** (HUMANO, 14-10). Cada nivel N sale entero en una sola versión 1.(N−116), con la
     V8 de Chrome N en el mismo paso; así cada salto es pequeño y barato (el 129 con la 12.9). Solo un cambio **muy amplio**
     justifica repartir un nivel en varias versiones (1.N, 1.N.1, 1.N.2…), como el 128: V8 12.8 en la 1.11.2 y RubyLB
-    en la 1.12.1. Las 1.N.x quedan para arreglos de seguridad y de lo que saque LOCAL. MOTOR lo propone en el
-    inventario de cada nivel y COORDINACIÓN lo recuerda al aprobarlo.
+    en la 1.12.1. Las 1.N.x son cambios **sobre el mismo nivel N, por tipo e importancia** (HUMANO, 17-10): arreglos de seguridad, lo
+    que saque LOCAL, escapes de niveles anteriores y funciones de Chromium que faltaban. Se hacen por tandas sobre la
+    misma rama del nivel, se compila solo lo necesario para comprobar cada tanda (Static/ASan; una Release completa solo
+    si hace falta para aislar errores, como con RubyLB) y se **publican agrupadas** en el menor número de 1.N.x. Lo
+    escapado se porta **antes** de abrir el nivel siguiente: aplazarlo encarece cada porte posterior. MOTOR lo propone en
+    el inventario de cada nivel y COORDINACIÓN lo recuerda al aprobarlo.
 19. **Lo apagado se enciende cuando upstream lo lleva de serie** (HUMANO, 14-10). Las opciones de V8 y Blink que
     apagamos por prudencia (Maglev, la ISel de Turboshaft, el *wrapper* genérico wasm→JS…) se encienden en cuanto Chrome
     las usa por defecto, están maduras y traen sus arreglos: seguir en una ruta que Google ya no prueba sale más caro
     (el 14-10, la ISel de TurboFan de la 12.9 tumbaba claude.ai; con la de Turboshaft, mjsunit 7216/7217). Ese día se
     encendió `turboshaft_instruction_selection` en el 129. SEGURIDAD-PORTES revisa en cada nivel la tabla de lo apagado
     (motivo, valor de upstream, arreglos hasta la LTS siguiente, recomendación) y la lleva en su fila FS.
+20. **Modelo: Brave del nivel de Chrome correspondiente, con más privacidad que Brave** (HUMANO, 17-10). Declaramos
+    Chromium y nos comportamos como Chromium, también en lo que Firefox y Safari no tienen; pero la referencia es **Brave
+    con ese Chrome** (Chrome 131 = Brave 1.73), no Chrome: lo que Brave apaga no se porta. Además, MOTOR valora cada
+    función desde la privacidad (qué expone, a quién, si sirve para la huella digital) y propone apagar lo que no tenga
+    sentido, aunque Brave lo deje; si una versión posterior de Brave lo apagó por privacidad, nos adelantamos y no se
+    porta. SEGURIDAD-PORTES revisa esas propuestas; lo dudoso lo decide el HUMANO.
 
 ## Despliegue de la organización del 09-10
 

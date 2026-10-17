@@ -80,8 +80,8 @@ que tiene commit. **Nunca `gclient sync -D`** en `flyweb-build` (borró el workt
   Chromium; no editar .grd/.xtb a mano: los ids de traducción son hashes del texto inglés), logotipos de NTP/welcome.
 - **Motor (Fase M, `FlyWeb/docs/motor.md`):** la base sigue en 116, pero el motor crece por niveles de Chrome portando
   Blink/V8 función a función. Versión declarada a **todas** las webs = último nivel completo (sin excepciones por sitio);
-  versión visible 1.N.x: N sigue al nivel (**1.1 = nivel 117**, 1.2 = 118…) y x cuenta las versiones con parches de
-  seguridad sobre el último nivel publicado (1.1.1, 1.1.2…). Ambos en brave-core `build/config.gni`
+  versión visible 1.N.x: N sigue al nivel (**1.1 = nivel 117**, 1.2 = 118…) y x cuenta las versiones con cambios
+  sobre el último nivel publicado (seguridad, escapes, funciones que faltaban; agrupados, regla 18) (1.1.1, 1.1.2…). Ambos en brave-core `build/config.gni`
   (`flyweb_engine_level`, `flyweb_version`); `FLYWEB_BUILD_NUMBER` sube en cada versión publicada (1.1 = 2). Un nivel
   se da por cumplido con `FlyWeb/tools/motor-N.html` en verde y las WPT de la N iguales a las del propio Chrome N.
   **Cada nivel sale entero en una versión, con la V8 de Chrome N** (regla 18 de `docs/TAREAS.md`); solo un cambio muy
