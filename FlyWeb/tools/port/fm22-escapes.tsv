@@ -1,0 +1,247 @@
+# FM.22 (MOTOR-11, 16/17-10): flags `stable` en algún nivel 117–131 que la 1.15 (brave-core nube/motor-131 057630a8c8) no tiene en `stable` y ningún documento nombra; filtro de la regla 20 contra Brave 1.73 (brave-core ec79ed456, último 1.73.x de master) y el master actual (bef7c36ce).
+# flag	grupo	primer nivel stable	después	estado en la 1.15	commit que la añade	commit que la quita	líneas sin tests (commit que la añade)	decisión	motivo
+AdInterestGroupAPI	privacidad	128	stable en 131					no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+AdjustEndOfNextParagraphIfMovedParagraphIsUpdated	escape:edicion	125	stable en 131	-	6a2402ff9e1		85	portar	tanda B
+AlignContentForScrollableBlocks	escape:layout	125	quitada en 127	-	e17e863fc0b	d2bdc2c2db2	6	portar	tanda C
+AllowSyntheticTimingForCanvasCapture	no_baseline	124	quitada en 125	-	36168a902bb	508e797194b		portar	tanda D (solo de Chrome)
+AnchorHrefCheckInvalidURL	seguridad	117	quitada en 120	-	a9232586fee	277a5bb3d20	7	portar	tanda A, con SEGURIDAD-PORTES
+ArrowKeysInVerticalWritingModes	escape:edicion	120	quitada en 123	-	75626f29431	cf30da22d14	69	portar	tanda B
+AsyncClipboardImplicitPermission	escape:portapapeles	122	quitada en 125	-	d9ecf073152	9a10d9a33cf	158	revisar (SEGURIDAD-PORTES)	cambia el permiso del portapapeles: revisar antes de portar
+AttributionReporting	privacidad	128	stable en 131	experimental				no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+AttributionReportingCrossAppWeb	privacidad	128	stable en 131					no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+AudioContextOnError	no_baseline	128	stable en 131	-	ea0415c2a92			portar	tanda D (solo de Chrome)
+AuraScrollbarUsesSolidColorThumb	interno	129	stable en 131	-	d3310fd73cb	0bd3c865e02		no aplica	interna o de rendimiento
+AutoSizeLazyLoadedImages	no_baseline	122	quitada en 130	-	5d4b16edc6d	951cb0fd66f		portar	tanda D (solo de Chrome)
+AvoidCaretVisibleSelectionAdjuster	escape:edicion	122	quitada en 128	-	045b13786dc	5c77745ee73	43	portar	tanda B
+BackForwardCacheNotRestoredReasons	no_baseline	125	stable en 131	experimental				portar	tanda D (solo de Chrome)
+BackfaceVisibilityNewInheritance	escape:layout	120	quitada en 122	-	cb0abd4a3c1	1d81eb91e2b	196	portar	tanda C
+BdiElementDirInheritance	escape:dom_html	122	quitada en 125	-	4278cdb00ac	d5821c379a5	9	portar	tanda B
+BoundaryEventDispatchTracksNodeRemoval	revertida	121	en 131: experimental	-	06445f6f55b			no aplica	Chrome la apagó antes de la 131
+BreakIteratorDataGenerator	interno	125	stable en 131	-	8a3bec69f37			no aplica	interna o de rendimiento
+BufferedBytesConsumerLimitSize	interno	126	stable en 131	-	f1358a419ad			no aplica	interna o de rendimiento
+CSSAnchorPositioning	no_baseline	125	quitada en 129	experimental		3253335fbac		portar	anchor positioning (grande)
+CSSBackgroundClipUnprefix	baseline	120	stable en 131	-	a3adead0eaa		21	portar	tanda A
+CSSDisplayModePictureInPicture	no_baseline	123	quitada en 130	-	feec59141df	f21df7fcc14		portar	tanda D (solo de Chrome)
+CSSFirstLetterNoNewLineAsPrecedingChar	escape:layout	118	quitada en 123	-	429cb28e648	fc807657775	57	portar	tanda C
+CSSFirstLetterTextRewrite	escape:layout	123	quitada en 127	-	d1e728b848d	649e375b2bf	339	portar	tanda C
+CSSLightDarkColors	portada_en_otro_nivel	123	quitada en 128	-	ad1bc8e1348	1549fd33668		ya portada	con otro nombre en un nivel anterior
+CSSMPCImprovements	escape:layout	121	quitada en 127	-	307d3e124c6	737ea012c96	18	portar	tanda C
+CSSPhraseLineBreak	no_baseline	119	quitada en 125	-	9b3d76990e5	f681496b09c		portar	tanda D (solo de Chrome)
+CSSPositionAreaProperty	no_baseline	129	quitada en 131	-	af046fa668e	08cc73f6704		portar	anchor positioning (grande)
+CSSPositionAreaValue	no_baseline	129	stable en 131	-	af046fa668e			portar	anchor positioning (grande)
+CSSPositionTryFallbacks	no_baseline	129	quitada en 131	-	28ba7b2a6c5	6ba834dd807		portar	anchor positioning (grande)
+CSSPositionTryOptions	no_baseline	128	quitada en 131	-	9ea8c9e25a0	c959fdf8dd8		portar	anchor positioning (grande)
+CSSResizeAuto	escape:css	122	stable en 131	-	e4aeb6a1ba3		14	portar	tanda C
+CSSScrollSnapChangeEvent	no_baseline	130	stable en 131	-	090dfd92b94			portar	tanda D (solo de Chrome)
+CSSScrollSnapChangingEvent	no_baseline	130	stable en 131	-	c3ed2e93f74			portar	tanda D (solo de Chrome)
+CSSScrollSnapEvents	no_baseline	130	stable en 131	-	149259c2932			portar	tanda D (solo de Chrome)
+CSSStartingStyle	portada_en_otro_nivel	117	quitada en 121	-	4419ff6883a	1343f1baea2		ya portada	con otro nombre en un nivel anterior
+CSSTextSpacingTrim	no_baseline	123	quitada en 126	-	c94bf36519f	c0a6514e533		portar	tanda D (solo de Chrome)
+CSSTextWrapBalanceByScore	interno	117	quitada en 125			4a5a5f4e9b2		no aplica	interna o de rendimiento
+CSSTransitionShorterSerialization	escape:css	127	quitada en 130	-	5875797bb70	8f4ecddb180	122	portar	tanda C
+CSSUnknownContainerQueriesNoSelection	escape:css	122	quitada en 128	-	ea5bd6075f2	bde4f624a6f	7	portar	tanda C
+CSSViewTimelineInsetShorthand	escape:css	118	quitada en 126	-	4245aa62319	2e2788424ab	190	portar	tanda C
+CanvasUsesArcPaintOp	interno	125	stable en 131	-	73a67b9c39b			no aplica	interna o de rendimiento
+ClipPathRejectEmptyPaths	escape:layout	120	stable en 131	-	fcf96d8d826		8	portar	tanda C
+ClipboardSvg	no_baseline	124	quitada en 130	experimental		a421b8fa800		portar	tanda D (solo de Chrome)
+ClipboardUnsanitizedContent	no_baseline	122	quitada en 125	experimental		f1c1199a180		no portar (privacidad, propuesta)	leer HTML del portapapeles sin sanear: riesgo para la web, poco uso
+ClipboardWellFormedHtmlSanitizationWrite	seguridad	122	quitada en 125	-	fe01bb93447	4e8ac4a29f0	42	portar	tanda A, con SEGURIDAD-PORTES
+CompositeBackgroundAttachmentFixed	interno	118	quitada en 119	experimental		e028cd543bb		no aplica	interna o de rendimiento
+CompositeScrollAfterPaint	interno	117	quitada en 120	experimental		ed913c72beb		no aplica	interna o de rendimiento
+CompositionUpdateBeforeBeforeInput	escape:edicion	119	quitada en 122	-	65dc0072cfd	573d38d268f	20	portar	tanda B
+ComputePressure	no_baseline	125	stable en 131	experimental				no portar (privacidad, propuesta)	estado de carga de la CPU: canal encubierto y huella
+ConcurrentViewTransitionsSPA	no_baseline	127	stable en 131	-	634678cf5e0			portar	view transitions entre documentos (grande)
+CounterStyleChangeShouleCollectInlines	escape:css	122	quitada en 125	-	86d998ceaee	50b18c1cedf	5	portar	tanda C
+CreateInputShadowTreeDuringLayout	interno	124	stable en 131	-	73e6a156d19			no aplica	interna o de rendimiento
+DOMParserUsesHTMLFastPathParser	interno	122	quitada en 130	-	6c56a5d6e3f	264232a4c6d		no aplica	interna o de rendimiento
+DataTransferClearStringItems	escape:portapapeles	122	quitada en 125	-	6bc5686b498	bd5e0124a9d	37	portar	tanda B
+DeliveryType	no_baseline	117	quitada en 120	experimental		f7ebd4cfda7		portar	tanda D (solo de Chrome)
+DirAutoNoInheritance	escape:dom_html	123	quitada en 127	-	7cbf3eaf3b4	8d3f2192151	9	portar	tanda B
+DirnameMoreInputTypes	baseline	121	quitada en 130	-	d673f3b60e6	ad87fab26e6	122	portar	tanda A
+DispatchHiddenVisibilityTransitions	escape:eventos	120	stable en 131	-	631c5e5ed94		68	portar	tanda B
+DocumentBaseURIFix	escape:dom_html	120	quitada en 130	-	e3019f47ab1	26528a4c06e	33	portar	tanda B
+DocumentInstallChunking	interno	128	stable en 131	-	c8aad07821f			no aplica	interna o de rendimiento
+DocumentPictureInPictureUserActivation	no_baseline	127	stable en 131	-	71f154468dd			portar	tanda D (solo de Chrome)
+DocumentRenderBlocking	no_baseline	124	stable en 131	-	3b48411d149			portar	tanda D (solo de Chrome)
+DontFireDblclickOnDisabledFormControls	escape:dom_html	121	quitada en 130	-	4210d4b0ef5	0aa8c88324c	5	portar	tanda B
+EmptyCaretInVertical	escape:edicion	120	quitada en 122	-	559c9298474	506e51ded2c	36	portar	tanda B
+EmptyClipboardRead	escape:portapapeles	122	quitada en 127	-	8ef6fe9d0df	05d355b09d6	6	portar	tanda B
+EnforceAnonymityExposure	privacidad	118	stable en 131	-	007d14d9176			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+ExcludeBrokenImageIconFromBeingLcpEligible	interno	122	quitada en 123	-	c21ff255eaa	ad93804cbf6		no aplica	interna o de rendimiento
+FastPathSingleSelectorExactMatch	interno	126	stable en 131	-	a2a4025edd7			no aplica	interna o de rendimiento
+FedCmAutoSelectedFlag	privacidad	120	stable en 131	-	81bfd6255e9			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FedCmDisconnect	privacidad	122	stable en 131	-	87f8ab1b7a0			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FedCmDomainHint	privacidad	123	stable en 131	-	97f3b75320b			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FedCmError	privacidad	120	stable en 131	-	3f65f1b06b7			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FedCmIdpSigninStatus	privacidad	120	stable en 131	test				no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FencedFrames	privacidad	128	stable en 131					no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FencedFramesAPIChanges	privacidad	128	stable en 131					no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FileSystemAccessLockingScheme	brave	122	stable en 131	-	94fef381b64			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FixOffsetInMultiColVerticalRl	escape:layout	117	quitada en 120	-	1e8cc54d7de	9b7f02d3174	55	portar	tanda C
+FledgeClearOriginJoinedAdInterestGroups	privacidad	121	quitada en 129	-	4b4dbfa5e53	81996ebb9fd		no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FledgeCreateAuctionNonceSynchronousResolution	privacidad	125	quitada en 129	-	fa15db9fb26	aaa0d5869c5		no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FledgeCustomMaxAuctionAdComponents	privacidad	128	stable en 131	-	738f1250512			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FledgeDeprecatedRenderURLReplacements	privacidad	127	stable en 131	-	738f1250512			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FledgeDirectFromSellerSignalsHeaderAdSlot	privacidad	121	stable en 131	-	127b2428881			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FledgeMultiBid	privacidad	128	stable en 131	-	f76955b929e			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FledgeNegativeTargeting	privacidad	122	quitada en 129	-	f6c1a210c48	f8439734d5b		no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FledgeReportingTimeout	privacidad	128	stable en 131	-	14b3b67ae58			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FledgeTrustedBiddingSignalsSlotSize	privacidad	124	quitada en 129	-	a29a35efd3d	bb29be3c052		no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+FlushParserBeforeCreatingCustomElements	escape:dom_html	118	quitada en 130	-	340b32d117d	85e09c992aa	6	portar	tanda B
+FocusStyleInvalidationOnPageActivation	interno	122	quitada en 125	-	0a6dada21a8	ff4a4875657		no aplica	interna o de rendimiento
+FontMatchingCTMigration	interno	122	quitada en 130	-	084bff8436f	96d2ad0df42		no aplica	interna o de rendimiento
+FontPaletteAnimation	escape:css	121	quitada en 130			cb510eb7efe	0	portar	tanda C
+GetComputedStyleOutOfFlowInsetsFix	escape:css	117	quitada en 121	-	6c6fc68fc55	3ea60b00cd4	269	portar	tanda C
+GetNextSiblingPositionWhenLastChild	escape:edicion	123	quitada en 128	-	158d5c7f1f0	5c77745ee73	19	portar	tanda B
+HTMLLangNewInheritance	escape:dom_html	120	quitada en 123	-	038534fdc0a	0edd70ff5c2	11	portar	tanda B
+HTMLParserFastPathBulkInsertNotify	interno	121	quitada en 124	-	b366b305efb	98f4c1e7041		no aplica	interna o de rendimiento
+HTMLSelectElementShowPicker	no_baseline	121	stable en 131	-	3fdd859c599			portar	tanda D (solo de Chrome)
+HangingWhitespaceDoesNotDependOnAlignment	escape:layout	119	stable en 131	-	4216172ffd0		67	portar	tanda C
+HighlightInheritance	revertida	121	en 131: experimental	test				no aplica	Chrome la apagó antes de la 131
+HitTestOpaquenessOmitLineBox	escape:layout	131	stable en 131	-	f4d277dc3d3		6	portar	tanda C
+ImprovedXMLErrors	escape:xml_url_idl	123	quitada en 130	-	6956ee0f197	bc6752d862a	71	portar	tanda B
+InertDisplayTransition	portada_en_otro_nivel	119	quitada en 130	experimental		91cfa77d3ee		ya portada	con otro nombre en un nivel anterior
+InertElementNonEditable	escape:dom_html	124	stable en 131	-	3cdaaca60b5		18	portar	tanda B
+InertElementNonSearchable	escape:dom_html	124	stable en 131	-	08b6a8d9f03		5	portar	tanda B
+InheritUserModifyWithoutContenteditable	escape:edicion	119	stable en 131	-	2192117acaf		10	portar	tanda B
+InlineBlockInSameLine	escape:layout	127	stable en 131	-	9e2c16c006d		32	portar	tanda C
+InputClipRulesCss	escape:css	127	quitada en 129	-	54cd03a3bce	dc831485ae4	13	portar	tanda C
+InputStepCurrentValueValidation	escape:dom_html	126	quitada en 130	-	b0dcab58561	ea4ddb5019f	38	portar	tanda B
+InsertBlockquoteBeforeOuterBlock	escape:edicion	124	stable en 131	-	2b542160832		18	portar	tanda B
+InsertLineBreakIfPhrasingContent	escape:edicion	117	stable en 131	-	7618f21f5da		57	portar	tanda B
+InterruptComposedScrollbarDisappearance	interno	120	quitada en 130	-	72d45d6f516	fe490b50ecc		no aplica	interna o de rendimiento
+IntersectionObserverIgnoreFilters	escape:eventos	120	quitada en 122	-	42188387e51	db69a7622fd	144	portar	tanda B
+InvisibleSVGAnimationThrottling	interno	118	stable en 131	-	35d2966c8ee			no aplica	interna o de rendimiento
+LabelEventHandlerCallSuper	escape:dom_html	123	stable en 131	-	a57c0872f36		22	portar	tanda B
+LastSuccessfulPositionOption	no_baseline	127	quitada en 130	-	13c717580f2	bf70c545190		portar	anchor positioning (grande)
+LayoutBaselineFix	escape:layout	126	quitada en 128	-	a19e4917d0e	c01d8f45bd2	140	portar	tanda C
+LayoutBlockButton	escape:layout	126	quitada en 128	-	eb52fa7ffc7	28ab350eab5	31	portar	tanda C
+LayoutFlexUnderInvalidationFix	escape:layout	125	quitada en 128	-	b6bd3ae3dec	efda9deca96	24	portar	tanda C
+LayoutIgnoreMarginsForSticky	revertida	117	en 131: none	-	b8f1b2596d3			no aplica	Chrome la apagó antes de la 131
+LayoutNGNoCopyBack	interno	118	quitada en 121	test		99752a105bf		no aplica	interna o de rendimiento
+LayoutNewContainingBlock	escape:layout	121	quitada en 123	-	ebca14d4298	2a30496818f	32	portar	tanda C
+LayoutNewFixedPositionInvalidation	interno	117	quitada en 119	-	333e01c6579	946f4bba093		no aplica	interna o de rendimiento
+LayoutNewMeasureCache	interno	121	quitada en 123	-	8e29c4482c8	4eefe7fc32e		no aplica	interna o de rendimiento
+LayoutNewMinMaxCache	interno	121	quitada en 123	-	2449efb337a	4eefe7fc32e		no aplica	interna o de rendimiento
+LayoutNewOverflowLogic	escape:layout	119	quitada en 121	-	0c3f3ee77f2	4269f466335	27	portar	tanda C
+LayoutNewSnapLogic	escape:layout	118	quitada en 121	-	395f757d6b4	6f2ab74c5db	229	portar	tanda C
+LayoutNewStickyLogic	escape:layout	117	quitada en 121	-	4cfe21e9aa5	948c6535bed	165	portar	tanda C
+LayoutOverflowNoClone	interno	117	quitada en 120	-	c9331451261	6b1ff20d064		no aplica	interna o de rendimiento
+LayoutSegmentationCache	interno	124	quitada en 127	-	009ecb88b43	ffe33ce4268		no aplica	interna o de rendimiento
+LayoutSegmentationFastPathForObjectReplacement	interno	127	quitada en 130	-	b8de2c78e22	eaaa9b6d35f		no aplica	interna o de rendimiento
+LazyLoadScrollMargin	escape:eventos	121	stable en 131	-	b315710fcff		0	portar	tanda B
+LazyLoadScrollMarginIframe	escape:eventos	124	stable en 131	-	4f2fc69f64c		0	portar	tanda B
+LongAnimationFrameTiming	no_baseline	123	stable en 131	experimental				portar	tanda D (solo de Chrome)
+LongTaskFromLongAnimationFrame	no_baseline	124	en 131: test					no aplica	interna (LoAF)
+MacFontsDeprecateFontTraitsWorkaround	interno	122	quitada en 130	-	e4b60712503	b967968b59b		no aplica	interna o de rendimiento
+MaskingGraphemeClusters	escape:edicion	123	quitada en 127	-	194260a9fdd	2e78b4e4c6e	50	portar	tanda B
+MediaCapabilitiesDynamicRange	no_baseline	121	stable en 131	test				no portar (privacidad, propuesta)	capacidad HDR de la pantalla en mediaCapabilities: huella
+MediaSessionChapterInformation	no_baseline	127	stable en 131	-	dd19278e217			portar	tanda D (solo de Chrome)
+MediaSessionEnterPictureInPicture	no_baseline	122	stable en 131	-	26c41733c2c			portar	tanda D (solo de Chrome)
+MessagePortCloseEvent	revertida	122	en 131: test	-	de0bd883a52			no aplica	Chrome la apagó antes de la 131
+MetaRefreshNoFractional	escape:dom_html	125	stable en 131	-	e7248ec27f7		7	portar	tanda B
+MonitorTypeSurfaces	no_baseline	119	quitada en 123	-	4db3cbc8d10	ae36a313d28		portar	tanda D (solo de Chrome)
+MouseDragFromIframeOnCancelledMouseDown	escape:eventos	122	quitada en 130	-	d6da5782835	3ee35d07233	18	portar	tanda B
+MoveEndingSelectionToListChild	escape:edicion	125	stable en 131	-	259a44fde2f		19	portar	tanda B
+MultiSelectDeselectWhenOnlyOption	revertida	125	en 131: test	-	9e3553c8bde			no aplica	Chrome la apagó antes de la 131
+NestedTopLayerSupport	portada_en_otro_nivel	125	quitada en 127	-	20fecf94cc2	26cffcd20c6		ya portada	con otro nombre en un nivel anterior
+NewFilterMapRect	escape:layout	126	quitada en 130	-	06a9c0fcf06	7380884e746	128	portar	tanda C
+NewGetFocusableAreaBehavior	escape:dom_html	124	stable en 131	-	2a6270727b6		4	portar	tanda B
+NextSiblingPositionUseNextCandidate	escape:edicion	121	quitada en 128	-	08a9b34f3b5	5c77745ee73	9	portar	tanda B
+NoIncreasingEndOffsetOnSplittingTextNodes	escape:edicion	124	stable en 131	-	028fd39e54c	00f7cb66433	18	portar	tanda B
+NoIntrinsicSizeOverride	escape:layout	125	quitada en 128	-	a80c432b2fb	c8b41e12a1d	17	portar	tanda C
+NoOffsetMappingForInconsistentText	interno	122	quitada en 127	-	6167f62656d	3cbeabf03c7		no aplica	interna o de rendimiento
+NonEmptyBlockquotesOnOutdenting	escape:edicion	124	stable en 131	-	45ad334e540		69	portar	tanda B
+NonInheritedWebkitBoxDirection	escape:layout	119	quitada en 121	-	c76650bedd9	f7e43824511	21	portar	tanda C
+NonStandardAppearanceValuesHighUsage	baseline	118	quitada en 129	-	3d4fad9e30f	8bd20f3447e	100	portar	tanda A
+NonStandardAppearanceValuesLowUsage	baseline	118	quitada en 126	-	3d4fad9e30f	85f8d9d541b	100	portar	tanda A
+OffsetMappingUnitVariable	interno	123	quitada en 127	-	86f83297bce	2936901c5a9		no aplica	interna o de rendimiento
+OptimizedNodeCloneOrder	interno	117	quitada en 120	-	751388b0b6d	29934927441		no aplica	interna o de rendimiento
+OptionElementAlwaysUseLabel	escape:dom_html	118	quitada en 128	-	d77748dccb2	e6da00a8617	8	portar	tanda B
+PageRevealEvent	no_baseline	123	stable en 131	-	0afb66b2392			portar	view transitions entre documentos (grande)
+PageSwapEvent	no_baseline	124	stable en 131	-	21c626810d0			portar	view transitions entre documentos (grande)
+PaintFlexGridSortedByOrder	escape:layout	117	quitada en 121	-	f314c5790e3	61a23f15625	4	portar	tanda C
+PaintHoldingForIframes	interno	129	stable en 131	-	c157ae2184a			no aplica	interna o de rendimiento
+PaintHoldingForLocalIframes	interno	127	stable en 131	-	8330a8cd35e			no aplica	interna o de rendimiento
+PaintNewReplacedInvalidation	interno	117	quitada en 119	-	56fbeeeccc4	c86e29e50d9		no aplica	interna o de rendimiento
+PastingBlocksSVGUseNonLocalHrefs	seguridad	120	quitada en 125	-	32da1204046	f64c54abd0c	13	portar	tanda A, con SEGURIDAD-PORTES
+PaymentHandlerMinimalHeaderUX	no_baseline	119	quitada en 126			33c44ba0ce7		no aplica	interfaz
+PaymentRequestAllowOneActivationlessShow	no_baseline	118	quitada en 126	-	dbe893b85af	bdf5a5fb8e3		portar	tanda D (solo de Chrome)
+PermissionsPolicyReporting	no_baseline	120	quitada en 122	-	155bd370301	3ad703c88ab		portar	tanda D (solo de Chrome)
+PermissionsPolicyUnload	no_baseline	118	quitada en 120	experimental		1a65ec24735		portar	tanda D (solo de Chrome)
+PointerEventDeviceId	no_baseline	128	stable en 131	test				portar	tanda D (solo de Chrome)
+PositionOutsideTabSpanCheckSiblingNode	escape:edicion	120	stable en 131	-	22d8d3f5f02		18	portar	tanda B
+PrefersReducedTransparency	no_baseline	118	quitada en 122	-	d8983b76203	c23a67092cc		no portar (privacidad, propuesta)	ajuste del sistema expuesto como media query: un bit más de huella; solo Chrome
+PrettyPrintJSONDocument	interno	117	quitada en 130	-	3de2ed86697	2998a72d2ea		no aplica	interna o de rendimiento
+PreventReadingSystemAccentColor	seguridad	121	quitada en 128	-	87770f369c9	4e9ec0ee7ae	69	portar	tanda A, con SEGURIDAD-PORTES
+PrivateAggregationApiFilteringIds	privacidad	128	stable en 131	-	a4738689c3d			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+PrivateAggregationAuctionReportBuyerDebugModeConfig	privacidad	123	stable en 131	-	60e5bace38d	95f25c4d7ed		no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+PrivateNetworkAccessPermissionPrompt	privacidad	124	stable en 131					no aplica	interfaz de un aviso que Chrome no usa de serie
+RTCRtpEncodingParametersCodec	no_baseline	119	stable en 131	-	c5c522ba916			portar	tanda D (solo de Chrome)
+RTCRtpHeaderExtensionControl	no_baseline	117	quitada en 130	experimental		ae0af53c42d		portar	tanda D (solo de Chrome)
+RareBorderPaddingInflow	interno	117	quitada en 120	-	1494a1b0a76	18994dab8fb		no aplica	interna o de rendimiento
+RecollectInlinesReserveCapacity	interno	127	quitada en 130	-	68a64c2be1e	918700ea66f		no aplica	interna o de rendimiento
+ReduceCookieIPCs	interno	123	stable en 131	-	05fbc19c184	44053a56a0d		no aplica	interna o de rendimiento
+ReferenceBoxNoPixelSnapping	escape:layout	121	quitada en 123	-	4abb5f09193	cf2f6330074	52	portar	tanda C
+RemotePlaybackBackend	brave	121	stable en 131					no aplica	sin Cast en FlyWeb
+RemoveNodeHavingChildrenIfFullySelected	escape:edicion	125	stable en 131	-	76b96062b86		37	portar	tanda B
+RenderBlockingInlineModuleScript	interno	123	stable en 131	-	5d1fb3a4570			no aplica	interna o de rendimiento
+RewindFloats	escape:layout	122	stable en 131	-	7ff67f60548		126	portar	tanda C
+RunMicrotaskBeforeXmlCustomElement	escape:dom_html	122	quitada en 130	-	243aa21a7b5	96e2b4716df	36	portar	tanda B
+ScrollNodeForOverflowHidden	interno	126	stable en 131	-	ab59a973033			no aplica	interna o de rendimiento
+ScrollTimelineAlwaysOnCompositor	interno	124	quitada en 128	-	f3f79863166	d599aeadaec		no aplica	interna o de rendimiento
+SecurePaymentConfirmationAllowOneActivationlessShow	no_baseline	118	quitada en 126	test		bdf5a5fb8e3		portar	tanda D (solo de Chrome)
+SecurePaymentConfirmationExtensions	no_baseline	120	quitada en 125	-	64dc287e677	fa9c2e1d1a1		portar	tanda D (solo de Chrome)
+SelectHr	baseline	119	quitada en 127	-	b221949fbc5	4ce63934fc6	15	portar	tanda A
+ShadowRootAttachmentNewBehavior	escape:dom_html	122	quitada en 125	-	fe5237a87b5	3976462ba0e	48	portar	tanda B
+ShapeResultCachedPreviousSafeToBreakOffset	interno	126	stable en 131	-	9a921764d5c			no aplica	interna o de rendimiento
+SharedStorageAPI	privacidad	128	stable en 131					no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+SimplifiedClearPropertyTreeChange	interno	117	quitada en 121	-	3ea5c7fda70	99ecc645180		no aplica	interna o de rendimiento
+SkipAd	privacidad	128	stable en 131	experimental				portar	tanda D (solo de Chrome): acción skipad de Media Session
+SkipShadowHostWhenHoveringForTooltip	interno	118	quitada en 122	-	a1d53f19928	cfd70b03793		no aplica	interna o de rendimiento
+SkipUpdateTypeForHTMLInputElementCreatedByParser	interno	124	quitada en 130	-	2ecdf8f6a15	d052cc24a41		no aplica	interna o de rendimiento
+SmilAutoSuspendOnLag	interno	118	stable en 131	-	764d2cd73a3			no aplica	interna o de rendimiento
+SoftNavigationDetection	no_baseline	122	stable en 131	-	278b3ba4d9d			no aplica	métricas internas
+SolidColorLayers	interno	121	quitada en 122			d86ca040357		no aplica	interna o de rendimiento
+SpeculationRulesDocumentRules	brave	121	quitada en 128	experimental		2ac979662d1		no portar (privacidad, propuesta)	carga especulativa sin acción del usuario; Brave apaga Prerender2
+SpeculationRulesDocumentRulesSelectorMatches	brave	121	quitada en 128	experimental		2ac979662d1		no portar (privacidad, propuesta)	idem
+SpeculationRulesEagerness	brave	121	quitada en 128	experimental		2ac979662d1		no portar (privacidad, propuesta)	idem
+SpeculationRulesFetchFromHeader	brave	121	quitada en 128	experimental		2ac979662d1		no portar (privacidad, propuesta)	idem
+SpeculationRulesImplicitSource	brave	122	quitada en 128	-	9acae07d537	2ac979662d1		no portar (privacidad, propuesta)	idem
+SpeculationRulesNoVarySearchHintShippedByDefault	brave	121	quitada en 128	-	992698b1c67	54e5e27173e		no portar (privacidad, propuesta)	idem
+SpeculationRulesRelativeToDocument	brave	121	quitada en 128	experimental		2ac979662d1		no portar (privacidad, propuesta)	idem
+SpellCheckerReplaceRangeUseInsertText	escape:edicion	122	quitada en 128	-	3c28714d7a0	5c77745ee73	11	portar	tanda B
+StorageAccessAPI	privacidad	119	quitada en 122	experimental		d1ed70df6bb		no portar (privacidad, propuesta)	acceso a cookies de terceros a petición: Brave las bloquea
+StorageAccessAPIForOriginExtension	privacidad	119	quitada en 122	test		7387be083e6		no portar (privacidad, propuesta)	idem
+StorageBuckets	no_baseline	122	stable en 131	experimental				portar	tanda D (solo de Chrome)
+SuggestionPickerDarkModeSupport	interno	119	quitada en 123	-	df72cacb4e6	03960ded601		no aplica	interna o de rendimiento
+SvgContextPaint	baseline	124	stable en 131	-	70e3f49e2fd		14	portar	tanda A
+SvgRasterOptimizations	interno	118	quitada en 122	experimental		7a07706ce03		no aplica	interna o de rendimiento
+SvgTextFixHittestAfterScale	escape:layout	120	quitada en 123	-	a0c7ae9832c	f0047036c1d	15	portar	tanda C
+SvgTextSkipZeroLengthItems	escape:layout	117	quitada en 120	-	a1ea595aa51	85917b326f0	5	portar	tanda C
+TestFeatureStable	interno	127	stable en 131	-	ed01101a326			no aplica	interna o de rendimiento
+TextAlignLastJustifyNewLine	escape:layout	125	quitada en 129	-	e7fbb56d29d	acacbc692eb	11	portar	tanda C
+TextAreaChildrenChangedStillValidates	escape:dom_html	126	quitada en 130	-	ab8e2d63ae8	c21f0b58aa1	5	portar	tanda B
+TopicsAPI	privacidad	128	stable en 131					no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+TopicsDocumentAPI	privacidad	128	stable en 131					no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+URLAttributeFix	escape:dom_html	120	quitada en 130	-	59c4c353d07	65557e78efe	17	portar	tanda B
+URLPatternRegexpUnicodeSetsMode	escape:xml_url_idl	121	quitada en 130	-	12825e04055	afb767ad076	9	portar	tanda B
+URLPatternWildcardMoreOften	escape:xml_url_idl	121	quitada en 130	-	4fdea99cc7b	b8784aa8952	203	portar	tanda B
+UnownedAnimationsSkipCSSEvents	escape:eventos	118	stable en 131	-	59d6765a68b		4	portar	tanda B
+ViewTransitionDisableSnapBrowserControlsOnHidden	no_baseline	128	stable en 131	-	571c69ad4b0			portar	view transitions entre documentos (grande)
+ViewTransitionOnNavigation	no_baseline	126	stable en 131					portar	view transitions entre documentos (grande)
+ViewTransitionOnNavigationForIframes	no_baseline	127	stable en 131	-	634678cf5e0			portar	view transitions entre documentos (grande)
+VisualViewportOnScrollEnd	no_baseline	126	stable en 131	-	85ef79b0a1a			portar	tanda D (solo de Chrome)
+WGIGamepadTriggerRumble	interno	126	quitada en 130	test		2fc12fc2d74		no aplica	interna o de rendimiento
+WebAuthAllowCreateInCrossOriginFrame	escape:xml_url_idl	123	quitada en 125	-	ab904a465bb	4e9e0a772f5	93	portar	tanda B
+WebCodecsContentHint	no_baseline	121	quitada en 127	-	bfda23bf51c	f646707d1a5		portar	tanda D (solo de Chrome)
+WebCodecsCopyToRGB	no_baseline	127	stable en 131	-	46a82a1b82b			portar	tanda D (solo de Chrome)
+WebCodecsHBDFormats	no_baseline	128	stable en 131	-	4d37f17e7a5			portar	tanda D (solo de Chrome)
+WebExposedScrollOffset	no_baseline	126	quitada en 129	-	af21eb5c8c9	48f5a1affdf		portar	tanda D (solo de Chrome)
+WebGLDrawingBufferStorage	no_baseline	122	stable en 131	experimental				portar	tanda D (solo de Chrome)
+WebIDLBigIntUsesToBigInt	escape:xml_url_idl	117	stable en 131	-	ac81cd32f2b		71	portar	tanda B
+WebSerialBluetooth	brave	117	stable en 131	experimental				no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
+WindowPlacementPermissionAlias	no_baseline	119	quitada en 126	-	875aff7d161	ca61a704a44		no portar (privacidad, propuesta)	Window Management (pantallas, posiciones): huella con permiso
+WritingSuggestions	no_baseline	124	quitada en 130	-	0c2f288d8f7	6a27d827306		portar	tanda D (solo de Chrome)
+XMLParserMergeAdjacentCDataSections	escape:xml_url_idl	118	stable en 131	-	f848cbce89b		12	portar	tanda B
+XPathLangUseAsciiCase	escape:xml_url_idl	125	quitada en 130	-	738f0c0fe51	3238a3d4e34	26	portar	tanda B
