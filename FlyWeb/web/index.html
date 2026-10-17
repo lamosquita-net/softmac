@@ -22,23 +22,56 @@ servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomoneda
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 1.14.1</h2>
-<p><a class="boton" href="descargas/FlyWeb-1.14.1.dmg" download>Descargar FlyWeb 1.14.1 (165 MB)</a></p>
+<h2>Descargar FlyWeb 1.15</h2>
+<p><a class="boton" href="descargas/FlyWeb-1.15.dmg" download>Descargar FlyWeb 1.15 (165 MB)</a></p>
 <p class="dato">macOS 10.13 o 10.14, Mac Intel (x86_64). En macOS 10.15 a 12 debería funcionar, sin garantía.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>9177845b5f8a820a1a7310cb3067a408078b96af375e174d7b40a9f43babd908</code></p>
+SHA-256: <code>565d9e05ebc1ebcfe58e4d0d719cda65280cd6bbbc2951d4b57f1cdbb71fe337</code></p>
 </div>
 </div></section>
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-1.14.1.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-1.15.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.14.1</h2>
+<h2 id="novedades">Notas de la versión 1.15</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 131</strong>, con el motor de JavaScript de Chrome 131. Las webs ven FlyWeb como
+  Chrome 131, y lo es en lo que usan.</li>
+  <li><strong>Conexiones seguras preparadas para el futuro.</strong> FlyWeb cifra las conexiones con el método poscuántico
+  estándar (ML-KEM), el mismo que Chrome 131, pensado para que lo que se envía hoy no se pueda descifrar mañana con
+  ordenadores cuánticos.</li>
+  <li><strong>Secciones desplegables con más estilo.</strong> Las secciones que se abren y cierran
+  (<code>&lt;details&gt;</code>) se pueden diseñar como cualquier otro bloque, como en Chrome, Safari y Firefox.</li>
+  <li><strong>Colores que siguen al texto.</strong> Las webs pueden calcular un color a partir del color del texto (por
+  ejemplo, una versión más clara para el fondo), también con modo oscuro, como en Chrome, Safari y Firefox.</li>
+  <li><strong>Medidores visibles.</strong> Las barras de nivel (<code>&lt;meter&gt;</code>) con estilo propio de la web ya no
+  desaparecen.</li>
+  <li><strong>Desplazamientos suaves más rápidos.</strong> Cuando una web lleva la vista hasta un elemento dentro de varias
+  zonas con desplazamiento, se mueven todas a la vez y no una detrás de otra.</li>
+  <li><strong>Pequeños arreglos de compatibilidad:</strong>
+    <ul>
+      <li>Al copiar texto que la web muestra en mayúsculas, se pega como está escrito de verdad.</li>
+      <li>Seleccionar texto con el ratón funciona también en webs que interceptan el movimiento del ratón.</li>
+      <li>Los campos de fecha ocupan su sitio en la línea como en los demás navegadores.</li>
+      <li>Las webs que piden confirmar antes de salir lo hacen igual que en Chrome.</li>
+      <li>Las imágenes SVG pueden usar degradados y recortes de otro archivo, como en Firefox y Safari.</li>
+    </ul></li>
+  <li><strong>Más extensiones de la Chrome Web Store.</strong> Las extensiones que piden una versión de Chrome reciente
+  (hasta la 131) ya se instalan, por ejemplo Ghostery o KeePassXC-Browser. Algunas todavía no, como uBlock Origin Lite
+  (necesita más reglas de bloqueo de las que admite FlyWeb) o Bitwarden (pide Chrome 134).</li>
+  <li><strong>Pestañas fijadas más fiables.</strong> Las pestañas fijadas, que se comparten entre todas las ventanas, ya no
+  cierran el navegador al cambiar de ventana ni salen repetidas al volver a abrir FlyWeb con varias ventanas.</li>
+  <li><strong>Sin la pregunta de las estadísticas de uso.</strong> FlyWeb no envía estadísticas de uso; en un perfil nuevo ya
+  no aparece la barra que preguntaba por ellas.</li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario. La primera vez que se abra una web pesada puede tardar
+un poco más (el motor de JavaScript nuevo vuelve a preparar su caché).</p>
+<h2>Notas de la versión 1.14.1</h2>
 <ul>
   <li><strong>Los marcos aislados, en su propio proceso.</strong> FlyWeb aísla en su propio proceso los marcos
   <em>sandboxed</em> de las webs (contenido incrustado, vistas previas, correos con formato), como Chrome desde la versión
@@ -46,55 +79,6 @@ SHA-256: <code>9177845b5f8a820a1a7310cb3067a408078b96af375e174d7b40a9f43babd908<
   <li><strong>Todo lo demás, igual que en la 1.14:</strong> el nivel de Chrome 130 y el motor de JavaScript de Chrome 130.</li>
 </ul>
 <p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
-<h2>Notas de la versión 1.14</h2>
-<ul>
-  <li><strong>Motor al nivel de Chrome 130</strong>, con el motor de JavaScript de Chrome 130. Las webs ven FlyWeb como
-  Chrome 130, y lo es en lo que usan.</li>
-  <li><strong>Estilos anidados en el orden en que se escriben.</strong> Las hojas de estilo que anidan reglas unas dentro de
-  otras aplican cada declaración en el orden escrito, como Chrome, Safari y Firefox. Antes, algunas declaraciones
-  escritas después de una regla anidada se aplicaban antes de tiempo.</li>
-  <li><strong>Cortes de línea como en los demás navegadores.</strong> La propiedad <code>text-wrap</code> funciona igual que
-  en Chrome, Safari y Firefox (por ejemplo, <code>text-wrap: nowrap</code> para que un texto no se parta).</li>
-  <li><strong>Conexiones directas en segundo plano.</strong> Las webs de videollamada, juegos o envío de archivos entre
-  usuarios pueden llevar una conexión directa a un hilo aparte, sin trabar la página.</li>
-  <li><strong>Teclado:</strong> las zonas de una página con desplazamiento propio se pueden alcanzar con el tabulador y
-  recorrer con las flechas aunque no tengan nada enfocable dentro, como en Chrome 130. Ayuda a quien navega sin
-  ratón.</li>
-  <li><strong>Ventanas emergentes de las webs:</strong> los avisos y menús que se abren y cierran con un botón se comportan
-  como en Chrome 130, también los que son diálogos.</li>
-  <li><strong>Más seguro:</strong>
-    <ul>
-      <li>Cada web queda aislada de sus subdominios aunque intente juntarse con ellos (<code>document.domain</code>), como
-      en Chrome desde la 119.</li>
-      <li>Las respuestas de otras webs que el navegador bloquea llegan como error y no como respuesta vacía, como en
-      Chrome.</li>
-      <li>Un anuncio o contenido incrustado sin permiso para abrir ventanas ya no puede abrirlas con un clic
-      simulado.</li>
-      <li>Dos protecciones que Chrome tiene desde la 119–120: una web ya no puede sacar datos de una página a través del
-      nombre de una ventana mal cerrado (<em>dangling markup</em>), y los dibujos SVG ya no cargan piezas escondidas en
-      direcciones <code>data:</code>. Las webs normales no notan nada.</li>
-      <li>Si se apaga el JIT de JavaScript por seguridad (el interruptor de emergencia), esas webs tampoco tienen
-      WebAssembly, igual que en Chrome 130.</li>
-    </ul></li>
-  <li><strong>Lo que se va, como en Chrome:</strong>
-    <ul>
-      <li><strong>WebSQL ya no existe, como en Chrome desde la 119.</strong> Una web vieja que aún guarde datos con WebSQL
-      deja de verlos, igual que en Chrome.</li>
-      <li>Los eventos antiguos de cambios en la página (eventos de mutación), la pantalla completa antigua de los vídeos
-      y otras funciones retiradas que FlyWeb aún tenía de su base de 2023.</li>
-      <li>FlyWeb ya no añade a cada página su paquete de compatibilidad de JavaScript: todo lo que cubría lo trae ahora
-      el propio motor, y así las webs no ven nada que Chrome 130 no tenga.</li>
-    </ul></li>
-  <li><strong>Pequeños arreglos de compatibilidad:</strong>
-    <ul>
-      <li>Las direcciones <code>data:</code> con texto conservan los espacios, como en Firefox y Safari.</li>
-      <li>Pegar y borrar en los editores de las webs deja el texto como en Chrome 130.</li>
-      <li>Las tablas antiguas calculan el ancho de las celdas como Chrome 130.</li>
-      <li>Los estilos de los componentes de las webs (<em>shadow DOM</em>) se adaptan bien al tamaño de su contenedor.</li>
-    </ul></li>
-</ul>
-<p class="dato">Nada cambia en los ajustes. Salvo WebSQL (arriba), nada cambia en los datos del usuario. La primera vez que se
-abra una web pesada puede tardar un poco más (el motor de JavaScript nuevo vuelve a preparar su caché).</p>
 <p><a href="novedades.html">Todas las novedades, desde la 1.0</a></p>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
 </div></section>

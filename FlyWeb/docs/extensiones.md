@@ -93,8 +93,12 @@ Las extensiones no son prioridad.
 
 - **A:** hecha en la 1.15 (brave-core 3af48da54, en `nube/motor-131`; FM.21). Se comparan con la versión declarada
   `minimum_chrome_version` al instalar y el `prodversionmin` de la Web Store al actualizar (si no, una extensión
-  instalada se quedaría sin actualizaciones). Las consultas de actualización a la Web Store siguen enviando `prodversion`
-  116.0.5845.188, como los componentes; qué hace la tienda con eso se ve en la prueba C.
+  instalada se quedaría sin actualizaciones).
+  **Segunda parte (c1b778809, cabeza `nube/motor-131` c1b778809c):** con eso no bastaba. La Web Store responde 204 sin
+  cuerpo a `prodversion=116.0.5845.188` y 200 con el CRX a `prodversion=131.0.6778.265` (LOCAL-4, con `curl`, para
+  Ghostery y KeePassXC-Browser), y la instalación acababa en «Se canceló la descarga». Ahora las peticiones de
+  extensiones (`prod=chromecrx`: instalación, consultas de actualización y la cabecera `X-Goog-Update-Updater`) envían la
+  versión declarada; los componentes siguen enviando 116.0.5845.188 (`componentes.md` §7). Falta la prueba de LOCAL-4.
 - **C:** la lista de extensiones comprobadas la lleva LOCAL, con la muestra de 14 extensiones de la §2, instalando desde
   la Web Store en la 6,1.
 - **B mínimo** (límites de DNR, API pequeñas y `action.openPopup`; 5–9 h): fila propia después del 132.
