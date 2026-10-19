@@ -127,7 +127,7 @@ CSP impiden que otro fichero de la web se ejecute como script.
 
 1. **LOCAL** compila, notariza y deja el DMG en `~/proyectos/softmac/entregas/FlyWeb-<v>/FlyWeb-<v>.dmg`.
 2. **LOCAL** lo sube a ns2 con `~/proyectos/softmac/herramientas/subir-dmg-ns2.sh <v> <sha256>`: usuario compartido
-   `claude` (`cc-ns2`), una sesión, comprueba la IP de la oficina contra `lamosquita5g.duckdns.org`, el SHA-256 antes y
+   `claude` (`cc-ns2`), una sesión, comprueba la IP de la oficina contra el host DuckDNS de la oficina, el SHA-256 antes y
    después, no sustituye un DMG existente y lo deja root:root 0644 en `updates/`. Claude Code tiene una regla de permiso
    para ese script (y solo ese), así que no se bloquea.
 3. **LOCAL** abre y fusiona el PR de la web: portada (botón, tamaño, SHA-256, notas en `#novedades`), ayuda si cambia, y

@@ -44,7 +44,7 @@ echo "4583f87e9b12df4f5c1e42f7f298f446b814db0537ea5ad2ce88c8633067556b  flyweb-d
   && sudo install -m 0755 -o root -g root flyweb-desplegar /usr/local/sbin/flyweb-desplegar
 ```
 Si `AllowUsers` o `AllowGroups` están en `sshd_config`, añadir `servidor`. fail2ban y CrowdSec no cambian: la oficina ya
-está en su lista blanca por nombre (`lamosquita5g.duckdns.org`, que fail2ban vuelve a resolver en cada comprobación;
+está en su lista blanca por nombre (el host DuckDNS de la oficina, que fail2ban vuelve a resolver en cada comprobación;
 verificado en la auditoría de los servidores).
 
 **Sin `from=`:** la IP de la 7,1 es dinámica (5G) y cambia a menudo. `from=` solo admite nombres si sshd hace búsqueda
