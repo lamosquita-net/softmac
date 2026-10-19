@@ -8,8 +8,9 @@ y «hecho en») **y el estado, en la fila FM.22.** Aquí va solo lo que no está
 
 | Rama | Cabeza | Qué |
 |---|---|---|
-| `nube/motor-131-escapes` | **a9733521ba** | 1.15 (057630a8c8) + tandas A, B y C + la D a medias + el arreglo de compilación de la A |
-| `nube/motor-131-escapes-ab` | bd51b99f03 | 917dc7cd1f (A+B y las 12 primeras de la C) + el mismo arreglo: la que compila LOCAL-5 (Static y ASan) |
+| `nube/motor-131-escapes` | **7fde3677af** | 1.15 (057630a8c8) + tandas A, B y C + la D a medias + los dos arreglos de abajo (bf66b41dcb, 7fde3677af) |
+| `nube/motor-131-escapes-c` | **233ad89d5e** | la C (4ea0170cd0) + include de TextControlElement en shadow_root.cc (546e638220) + alfa de :visited en VisitedDependentContextPaint (233ad89d5e, como upstream bb0351bff33): la que compila LOCAL-5 (Static, luego ASan) |
+| `nube/motor-131-escapes-ab` | bd51b99f03 | descartada por COORDINACIÓN-7 (no quiere dos rondas de compilación) |
 
 **Por dónde seguir:**
 
@@ -28,10 +29,10 @@ y «hecho en») **y el estado, en la fila FM.22.** Aquí va solo lo que no está
      CSSScrollSnapChangeEvent/ChangingEvent/Events (la cadena de los eventos de snap toca cc) y
      DocumentPictureInPictureUserActivation (lado navegador).
 2. **Pendiente de SEGURIDAD-PORTES:** ClipboardSvg (e5ade70967, escritura de SVG con DOMParser), JS Self-Profiling
-   apagado (a9733521ba, `Profiler` tras el flag propio `JSSelfProfiling`) y, si COORDINACIÓN lo pide, SvgContextPaint
-   (717c38e5a3, el porte más grande de la C).
-3. **Pendiente de COORDINACIÓN:** LayoutBlockButton + LayoutBaselineFix como porte propio; cuándo compila LOCAL la C y
-   la D. LOCAL-5 tiene la lista de WPT de A+B (`FlyWeb/tools/wpt-fm22-ab-lista.txt`, 903 pruebas).
+   apagado (a9733521ba, `Profiler` tras el flag propio `JSSelfProfiling`) y el arreglo de :visited (233ad89d5e), escrito
+   a partir de su descripción porque bb0351bff33 es posterior a la 131 y no está en el clon.
+3. **Decidido por COORDINACIÓN-7:** LayoutBlockButton + LayoutBaselineFix, porte propio después de la D; LOCAL compila
+   `-c` y la D irá en otra ronda. LOCAL-5 tiene la lista de WPT de A+B (`FlyWeb/tools/wpt-fm22-ab-lista.txt`, 903 pruebas).
 4. Cosmético: tres comentarios del json5 quedaron encima de la entrada equivocada (MetaRefreshNoFractional,
    MoveEndingSelectionToListChild, NoIncreasingEndOffsetOnSplittingTextNodes).
 
