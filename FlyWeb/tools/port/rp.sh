@@ -3,7 +3,7 @@
 # (sin los de ficheros de chrome://flags, variaciones y contadores de uso, que se descartan).
 set -u
 F=$1; shift; P=/tmp/claude-0/port; W=$P/w-$F
-cd $P && ./portar.sh $F "$@" > /dev/null 2>&1
+cd $P && ./portarng.sh $F "$@" 2>&1 | grep -E "does not exist|PARCHE BRAVE|NUEVO|rechazos=[0-9]+ [^ ]"
 cd $W
 for r in $(find . -name "*.rej" | sed 's#^\./##'); do
   f=${r%.rej}

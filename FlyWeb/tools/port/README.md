@@ -39,6 +39,9 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   `fin.sh <flag> <prefijo> <add> [<rem>…]` termina (genera, commit, `chk.sh`); `NOTE=…` añade un párrafo al mensaje
   y `MSGFILE=<fichero>` pone un mensaje entero. **Antes de portar, mirar que la columna «commit que la quita» no
   sea una reversión** (`git log -1 --format=%s`): en FM.22 hubo tres.
+  Los dos usan `portarng.sh` (rutas y nombres de LayoutNG de la 116): con `portar.sh`, un commit posterior al
+  renombrado NG (finales de 2023) que toca `layout/inline/line_breaker.cc` no deja `.rej`, simplemente no se aplica;
+  `tanda.py` pasa a mano cualquier fichero que no exista en la 116.
 - `addfiles.sh <nombre> <commit>…` — añade a `w-<nombre>`, ya montado, los ficheros de esos commits que aún no estén
   (116 + parche de Brave) y guarda sus diffs. Así se aplica una cadena paso a paso, con un commit del área por paso
   (FM.17).

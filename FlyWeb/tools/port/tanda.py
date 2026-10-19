@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# tanda.py <prefijo> <tsv> : porta cada flag "FLAG ADD [REM]" de <tsv> (una por línea, en orden) con portar.sh sobre la
+# tanda.py <prefijo> <tsv> : porta cada flag "FLAG ADD [REM]" de <tsv> (una por línea, en orden) con portarng.sh sobre la
 # rama actual de brave-core; arregla solo la entrada del json5 (quitarla si upstream la quitó, o dejarla en stable),
 # devuelve a su estado los ficheros de chrome://flags y variaciones, y si no queda ningún .rej genera, comprueba
 # (chk.sh) y hace commit. Lo que tenga rechazos se queda en w-<flag> y se lista al final para hacerlo a mano.
@@ -13,7 +13,14 @@ for line in open(sys.argv[2]):
     if not line.strip() or line.startswith('#'): continue
     flag, add, *rem = line.split()
     W=f'{P}/w-{flag}'
-    out=sh(f'./portar.sh {flag} {add} {" ".join(rem)}', cwd=P).stdout
+    out=sh(f'./portarng.sh {flag} {add} {" ".join(rem)}', cwd=P).stdout
+    # Ficheros que no existen en la 116 ni con el traductor NG, o parches de FlyWeb que no aplican: a mano.
+    lost=[l for l in out.split('\n') if 'PARCHE BRAVE NO APLICA' in l]
+    for l in out.split('\n'):
+        if 'rechazos=' not in l: continue
+        for f in l.split()[2:]:
+            if SKIP.search(f) or f.endswith('runtime_enabled_features.json5'): continue
+            if not glob.glob(f'{W}/**/{f}.rej', recursive=True): lost.append('no existe en la 116: '+f)
     # Ficheros de flags de Chrome y variaciones: como estaban.
     for f in sh('git diff --name-only HEAD~%d' % (1+len(rem)) , cwd=W).stdout.split():
         pass
@@ -35,6 +42,7 @@ for line in open(sys.argv[2]):
             if 'status:' not in nb: nb=nb.replace('name: "'+flag+'",\n', 'name: "'+flag+'",\n      status: "stable",\n')
             if nb!=blk: open(f'{W}/{J}','w').write(s.replace(blk,nb)); print('  status -> stable', flag, flush=True)
     rej=[r for r in glob.glob('**/*.rej', root_dir=W, recursive=True)]
+    if lost: rej=rej+['FALTAN: '+' | '.join(lost)]
     if rej:
         manual.append(f'{flag}: '+' '.join(rej)); print('MANUAL', flag, rej, flush=True); continue
     sh('git add -A && git -c user.email=x -c user.name=x commit -qm fix', cwd=W)
