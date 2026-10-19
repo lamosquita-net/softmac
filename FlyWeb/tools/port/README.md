@@ -42,6 +42,9 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   Los dos usan `portarng.sh` (rutas y nombres de LayoutNG de la 116): con `portar.sh`, un commit posterior al
   renombrado NG (finales de 2023) que toca `layout/inline/line_breaker.cc` no deja `.rej`, simplemente no se aplica;
   `tanda.py` pasa a mano cualquier fichero que no exista en la 116.
+  `rp.sh` también enseña los `.rej` de un commit que otro posterior pisó en el mismo fichero (marcados «pisado»).
+  `jdiff.sh [<rev>]` da el cambio real del json5 de flags entre `<rev>~1` y `<rev>` (para ver que un parche regenerado
+  no se ha comido entradas).
 - `addfiles.sh <nombre> <commit>…` — añade a `w-<nombre>`, ya montado, los ficheros de esos commits que aún no estén
   (116 + parche de Brave) y guarda sus diffs. Así se aplica una cadena paso a paso, con un commit del área por paso
   (FM.17).
