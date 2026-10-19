@@ -1,3 +1,66 @@
+# Relevo de MOTOR: de MOTOR-11 a MOTOR-12 (19-10-2026, ~14:00)
+
+MOTOR-11 (`session_01E9YyQZz5fNhwE1HdRNzw6f`, Opus 5.5, `xhigh`) ha hecho FM.22 (escapes posteriores al 131) hasta la
+mitad de la tanda D. **Lo decidido por flag está en `FlyWeb/tools/port/fm22-escapes.tsv`** (columnas «decisión», «motivo»
+y «hecho en») **y el estado, en la fila FM.22.** Aquí va solo lo que no está allí.
+
+**Ramas de brave-core** (sin compilar salvo lo que diga LOCAL; `chk.sh` limpio en cada commit):
+
+| Rama | Cabeza | Qué |
+|---|---|---|
+| `nube/motor-131-escapes` | **7fde3677af** | 1.15 (057630a8c8) + tandas A, B y C + la D a medias + los dos arreglos de abajo (bf66b41dcb, 7fde3677af) |
+| `nube/motor-131-escapes-c` | **233ad89d5e** | la C (4ea0170cd0) + include de TextControlElement en shadow_root.cc (546e638220) + alfa de :visited en VisitedDependentContextPaint (233ad89d5e, como upstream bb0351bff33): la que compila LOCAL-5 (Static, luego ASan) |
+| `nube/motor-131-escapes-ab` | bd51b99f03 | descartada por COORDINACIÓN-7 (no quiere dos rondas de compilación) |
+
+**Por dónde seguir:**
+
+1. **Tanda D, 20 flags sin hacer** (filas «portar · tanda D» del TSV sin «hecho en»). Mi triaje, sin verificar del todo:
+   - Probablemente asequibles: AutoSizeLazyLoadedImages (`sizes=auto`; 5d4b16edc6d solo añade el flag, la cadena
+     está alrededor), MediaSessionChapterInformation (dd19278e217), MediaSessionEnterPictureInPicture (26c41733c2c),
+     MonitorTypeSurfaces (4db3cbc8d10), WebCodecsContentHint (bfda23bf51c, toca `media/video/*_encoder.cc`),
+     WebCodecsCopyToRGB (46a82a1b82b), WebCodecsHBDFormats (4d37f17e7a5), WritingSuggestions (0c2f288d8f7 +
+     6a27d827306), SecurePaymentConfirmationExtensions (64dc287e677 + fa9c2e1d1a1).
+   - Ya están en la 116 como `experimental`: WebGLDrawingBufferStorage y LongAnimationFrameTiming. Comparar el código de
+     `cr116` con el del nivel en que pasaron a `stable` (122 y 123) antes de usar `flip.sh`.
+   - Mirar primero si la 116 tiene lo que hace falta: RTCRtpEncodingParametersCodec (c5c522ba916; ¿lo soporta la
+     WebRTC de la 116?), CSSPhraseLineBreak (9b3d76990e5 solo renombra el flag; ¿hay segmentación por frases en la
+     116?), CSSTextSpacingTrim (c94bf36519f solo añade el flag; la implementación es una cadena larga).
+   - Grandes, para proponer como porte propio: StorageBuckets, BackForwardCacheNotRestoredReasons,
+     CSSScrollSnapChangeEvent/ChangingEvent/Events (la cadena de los eventos de snap toca cc) y
+     DocumentPictureInPictureUserActivation (lado navegador).
+2. **Pendiente de SEGURIDAD-PORTES:** ClipboardSvg (e5ade70967, escritura de SVG con DOMParser), JS Self-Profiling
+   apagado (a9733521ba, `Profiler` tras el flag propio `JSSelfProfiling`) y el arreglo de :visited (233ad89d5e), escrito
+   a partir de su descripción porque bb0351bff33 es posterior a la 131 y no está en el clon.
+3. **Decidido por COORDINACIÓN-7:** LayoutBlockButton + LayoutBaselineFix, porte propio después de la D; LOCAL compila
+   `-c` y la D irá en otra ronda. LOCAL-5 tiene la lista de WPT de A+B (`FlyWeb/tools/wpt-fm22-ab-lista.txt`, 903 pruebas).
+4. Cosmético: tres comentarios del json5 quedaron encima de la entrada equivocada (MetaRefreshNoFractional,
+   MoveEndingSelectionToListChild, NoIncreasingEndOffsetOnSplittingTextNodes).
+
+**Método de la D** (herramientas en `FlyWeb/tools/port`, README): por cada flag, ver su uso en `cr116`/`cr131`
+(`grep -rn <Flag>`) y la cadena con `git log --grep` (los mensajes rara vez nombran el flag: buscar por la API). Si el
+código ya está completo en la 116, `flip.sh`; si no, `portarng.sh <flag> <commits…>` o `rp.sh`, arreglar a mano,
+`fin.sh` con `MSGFILE=`, `jdiff.sh HEAD` y `push` cada pocos commits.
+
+**Entorno de MOTOR-11, que no pasa a otra sesión:**
+
+- `/home/user/chromium/chromium`: clon sin *blobs* con las etiquetas 116.0.5845.188, 130.0.6723.192, 131.0.6778.265
+  y .268. `git grep` sobre él no acaba (baja *blobs*): para buscar, las copias parciales.
+- `/home/user/cr116` (sparse de la 116, con `components/`, `cc/paint`, `cc/trees`) y `/tmp/claude-0/port/cr131`
+  (`mkcr.sh`); `/tmp/claude-0/port` con las herramientas y `ngmap.json`.
+
+**Trampas de esta sesión:**
+
+- Rechazos solapados: si dos commits de una cadena fallan en el mismo fichero, el `.rej` del segundo pisa al primero
+  (pasó con el json5 de HTMLSelectElementShowPicker). `rp.sh` los enseña; mirar siempre que el flag quedó en el json5.
+- `portarng.sh` solo monta los ficheros que tocan los commits: si falta el json5 (para poner el flag en `stable`) o el
+  `ng/` de la 116 que corresponde a un `.rej`, volver a montar con `mkws.sh` o usar `addfiles.sh`.
+- El `context_usage` de `get_session` puede ir atrasado; contar con el contador de tokens.
+- LOCAL-5 (`session_01DCZDzGMM8VdHsV5B5JBXmv`) sí recibe `send_message` desde la nube.
+- Notificaciones en cola: dos órdenes de COORDINACIÓN llegaron con 30–45 min de retraso. Leer `ReadNotifications` en
+  cada hito.
+
+---
+
 # Relevo de MOTOR: de MOTOR-10 a MOTOR-11 (15-10-2026, ~18:35)
 
 MOTOR-10 (`session_017osmPdTipjmbHoMeuQDeJ4`, Opus 5.5, `xhigh`) ha hecho el nivel 130 en código (1.14), el recorte de

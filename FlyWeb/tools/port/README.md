@@ -45,6 +45,11 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   `rp.sh` también enseña los `.rej` de un commit que otro posterior pisó en el mismo fichero (marcados «pisado»).
   `jdiff.sh [<rev>]` da el cambio real del json5 de flags entre `<rev>~1` y `<rev>` (para ver que un parche regenerado
   no se ha comido entradas).
+  `flip.sh <flag> <prefijo> <nivel> [nota]` pasa a `stable` un flag que ya está en la 116 con su código completo
+  (solo el json5), con su commit y `chk.sh`; antes, comprobar en `cr116`/`cr131` que el código detrás del flag es el
+  mismo (FM.22 D). Si a un área ya montada le falta un fichero (por ejemplo, el `ng/` de la 116 que corresponde a un
+  `.rej`), añadirlo con `addfiles.sh` o volver a montarla con `mkws.sh`: un fichero copiado a mano después del commit
+  `raw116` sale entero como fichero nuevo en el parche.
 - `addfiles.sh <nombre> <commit>…` — añade a `w-<nombre>`, ya montado, los ficheros de esos commits que aún no estén
   (116 + parche de Brave) y guarda sus diffs. Así se aplica una cadena paso a paso, con un commit del área por paso
   (FM.17).

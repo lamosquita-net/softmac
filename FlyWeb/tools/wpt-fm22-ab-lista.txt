@@ -940,3 +940,8 @@ css/css-ui/resize-interactive.html
 html/rendering/non-replaced-elements/form-controls/resets.html
 html/rendering/widgets/baseline-alignment-and-overflow.tentative.html
 html/rendering/widgets/button-layout/computed-style.html
+# C · arreglo de :visited en SvgContextPaint (233ad89d5e; upstream bb0351bff33, posterior a la 131), pedido por SEGURIDAD-PORTES-3:
+# visited-link-context-fill-alpha.html y visited-link-context-stroke-alpha.html. No están en el WPT de upstream (wpt@38690cc):
+# serán pruebas de Blink (web_tests/wpt_internal); ruta por confirmar con el commit de upstream. Si no se encuentran, a mano:
+# un <a href> a una página visitada con a { fill: rgb(0 0 255 / 0) } y a:visited { fill: red }, y dentro un <svg> con
+# <use> cuyo símbolo usa fill: context-fill: el relleno no debe verse (alfa del estado no visitado). Igual con stroke.
