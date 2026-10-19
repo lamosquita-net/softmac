@@ -12,7 +12,7 @@ hoy va marcado «(05-10)».
 |---|---|---|
 | `flyweb.lamosquita.net` (web) | 200. Diseño del HUMANO (06-10), JS en `js/` root:root instalados por el HUMANO. **FlyWeb 1.9** publicada por `web-auto` a las 14:30; la portada enlaza la 1.9. En `descargas/`: 1.0 (sin enlazar), 1.3 a 1.9 (`web-auto` borró la 1.2 por el límite de 10). Registros con IP, 14 días | PR #120 (enlaces a `novedades.html`), del HUMANO |
 | `flyweb-web-auto` | Temporizador de usuario de `servidor`, cada 10 min; `~servidor/bin/flyweb-web-auto` `e3638f84…` (= repo; instalado el 09-10 a las 14:54, PR #119: añade `novedades.html`). A las 14:30 publicó la 1.9 sola. `comprobar` (14:54): publicaría `novedades.html` y `ayuda/index.html` | — |
-| `flyweb-cifras` | Temporizador cada hora; `~servidor/bin/flyweb-cifras` `6ad19661…` (= repo); sube `cifras.csv` con `flyweb-desplegar cifras` (última subida 13:16). `cifras.csv` 200 | — |
+| `flyweb-cifras` | Temporizador cada hora; `~servidor/bin/flyweb-cifras` `f8a4259f…` (= repo; desde el 19-10: sin la oficina en la web, IP distintas en un `ip.csv` privado); sube `cifras.csv` con `flyweb-desplegar cifras` (última subida 13:16). `cifras.csv` 200 | — |
 | `components.` (go-update) | `flyweb-components` activo, solo `127.0.0.1:8192`; binario `0e776013…`; unidad `84d379be…` (= repo). `_estado.json` 200 | — |
 | `proxy.` (Safe Browsing, diccionarios) | Raíz 404. Safe Browsing funciona desde el 05-10 con clave nueva (IPv4 + IPv6 /64) (05-10) | — |
 | `updates.` (Sparkle) | `stable/appcast.xml` 200; anuncia **1.9, 1.8.1, 1.8, 1.7.1 y 1.7**. En `updates/`: 1.2 a 1.9 (**10 DMG, el límite**). `stable/` es de `flywebsubida` (lo escribe bak). **Desde el 09-10 (E2-06) solo sirve `FlyWeb-<versión>.dmg` y `stable/appcast.xml`; lo demás, 403** | Ver «Siguiente» (límite de 10 DMG) |
@@ -29,7 +29,7 @@ Certificado TLS de `flyweb.lamosquita.net` (certbot, ECDSA; es el de los servido
 |---|---|---|
 | `/usr/local/sbin/flyweb-desplegar` | `fc63d884…` (instalado por el HUMANO el 09-10, 14:42; antes `e4faf154…`; acepta `novedades.html`) | `acceso/flyweb-desplegar`: **igual** |
 | `~servidor/bin/flyweb-web-auto` | `e3638f84…` (antes `61dccb69…`) | `web-auto/flyweb-web-auto`: **igual** |
-| `~servidor/bin/flyweb-cifras` | `6ad19661…` | `cifras/flyweb-cifras`: **igual** |
+| `~servidor/bin/flyweb-cifras` | `f8a4259f…` (19-10; antes `6ad19661…`) | `cifras/flyweb-cifras`: **igual** |
 | `/etc/systemd/system/flyweb-components.service` | `84d379be…` | `systemd/flyweb-components.service`: **igual** |
 | `/etc/systemd/system/flyweb-sync.service` | `e9b1b783…` | `systemd/flyweb-sync.service`: **igual** |
 | `/etc/logrotate.d/flyweb` | `418ab467…` | `e0/logrotate/flyweb`: **igual** |
