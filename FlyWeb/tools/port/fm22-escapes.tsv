@@ -1,6 +1,7 @@
 # FM.22 (MOTOR-11, 16/17-10): flags `stable` en algún nivel 117–131 que la 1.15 (brave-core nube/motor-131 057630a8c8) no tiene en `stable` y ningún documento nombra; filtro de la regla 20 contra Brave 1.73 (brave-core ec79ed456, último 1.73.x de master) y el master actual (bef7c36ce).
 # flag	grupo	primer nivel stable	después	estado en la 1.15	commit que la añade	commit que la quita	líneas sin tests (commit que la añade)	decisión	motivo	hecho en (brave-core nube/motor-131-escapes)
 # Fuera de la lista (SEGURIDAD-PORTES-3, 19-10): apagar JS Self-Profiling (Profiler, en FlyWeb desde la 116; Brave actual lo apaga) con su propio commit; Window Management, pendiente de Titín.
+# PaintHighlightsForFirstLetter (§11, a FM.22 por COORDINACIÓN-7): hecha en 4ea0170cd0, solo f30d9fddc4b con la flag en stable. 1660cb958aa (MarkerRangeMappingContext) no hace falta: en la 116 los marcadores se mapean por nodo DOM (Position → NGOffsetMapping), que ya cubre la primera letra; los 25 trozos estimados eran del porte de esa optimización.
 AdInterestGroupAPI	privacidad	128	stable en 131					no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
 AdjustEndOfNextParagraphIfMovedParagraphIsUpdated	escape:edicion	125	stable en 131	-	6a2402ff9e1		85	portar	tanda B	9608564b72
 AlignContentForScrollableBlocks	escape:layout	125	quitada en 127	-	e17e863fc0b	d2bdc2c2db2	6	portar	tanda C	a5ee9e618e
@@ -154,8 +155,8 @@ NoIntrinsicSizeOverride	escape:layout	125	quitada en 128	-	a80c432b2fb	c8b41e12a
 NoOffsetMappingForInconsistentText	interno	122	quitada en 127	-	6167f62656d	3cbeabf03c7		no aplica	interna o de rendimiento
 NonEmptyBlockquotesOnOutdenting	escape:edicion	124	stable en 131	-	45ad334e540		69	portar	tanda B	df190c26bd
 NonInheritedWebkitBoxDirection	escape:layout	119	quitada en 121	-	c76650bedd9	f7e43824511	21	portar	tanda C	db502bcf6d
-NonStandardAppearanceValuesHighUsage	baseline	118	quitada en 129	-	3d4fad9e30f	8bd20f3447e	100	portar	tanda C (pasa de la A)
-NonStandardAppearanceValuesLowUsage	baseline	118	quitada en 126	-	3d4fad9e30f	85f8d9d541b	100	portar	tanda C (pasa de la A)
+NonStandardAppearanceValuesHighUsage	baseline	118	quitada en 129	-	3d4fad9e30f	8bd20f3447e	100	portar	tanda C (pasa de la A); escrita a mano en CSSParserFastPaths con las palabras que acepta la 131 (la cadena upstream son flags y avisos de deprecación que no aplican a la 116)	9d9ee60d59
+NonStandardAppearanceValuesLowUsage	baseline	118	quitada en 126	-	3d4fad9e30f	85f8d9d541b	100	portar	tanda C (pasa de la A); junto con la anterior	9d9ee60d59
 OffsetMappingUnitVariable	interno	123	quitada en 127	-	86f83297bce	2936901c5a9		no aplica	interna o de rendimiento
 OptimizedNodeCloneOrder	interno	117	quitada en 120	-	751388b0b6d	29934927441		no aplica	interna o de rendimiento
 OptionElementAlwaysUseLabel	escape:dom_html	118	quitada en 128	-	d77748dccb2	e6da00a8617	8	portar	tanda B	edc4e8611a
@@ -216,7 +217,7 @@ StorageAccessAPI	privacidad	119	quitada en 122	experimental		d1ed70df6bb		no por
 StorageAccessAPIForOriginExtension	privacidad	119	quitada en 122	test		7387be083e6		no portar (privacidad, propuesta)	idem; confirmado por SEGURIDAD-PORTES-3, 19-10
 StorageBuckets	no_baseline	122	stable en 131	experimental				portar	tanda D (solo de Chrome)
 SuggestionPickerDarkModeSupport	interno	119	quitada en 123	-	df72cacb4e6	03960ded601		no aplica	interna o de rendimiento
-SvgContextPaint	baseline	124	stable en 131	-	70e3f49e2fd		14	portar	tanda C (pasa de la A)
+SvgContextPaint	baseline	124	stable en 131	-	70e3f49e2fd		14	portar	tanda C (pasa de la A); 1b0fe9a3d73 + 70e3f49e2fd + c06a1931039 + 9cf8ac20f21, con el texto SVG llevado a ng/ng_text_painter de la 116	717c38e5a3
 SvgRasterOptimizations	interno	118	quitada en 122	experimental		7a07706ce03		no aplica	interna o de rendimiento
 SvgTextFixHittestAfterScale	escape:layout	120	quitada en 123	-	a0c7ae9832c	f0047036c1d	15	portar	tanda C	ec1bf128c5
 SvgTextSkipZeroLengthItems	escape:layout	117	quitada en 120	-	a1ea595aa51	85917b326f0	5	portar	tanda C	b9193595ba
