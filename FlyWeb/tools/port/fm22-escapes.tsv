@@ -1,6 +1,6 @@
 # FM.22 (MOTOR-11, 16/17-10): flags `stable` en algún nivel 117–131 que la 1.15 (brave-core nube/motor-131 057630a8c8) no tiene en `stable` y ningún documento nombra; filtro de la regla 20 contra Brave 1.73 (brave-core ec79ed456, último 1.73.x de master) y el master actual (bef7c36ce).
 # flag	grupo	primer nivel stable	después	estado en la 1.15	commit que la añade	commit que la quita	líneas sin tests (commit que la añade)	decisión	motivo	hecho en (brave-core nube/motor-131-escapes)
-# Fuera de la lista (SEGURIDAD-PORTES-3, 19-10): apagar JS Self-Profiling (Profiler, en FlyWeb desde la 116; Brave actual lo apaga) con su propio commit; Window Management, pendiente de Titín.
+# Fuera de la lista (SEGURIDAD-PORTES-3, 19-10): apagar JS Self-Profiling (Profiler, en FlyWeb desde la 116; Brave actual lo apaga) con su propio commit; Window Management se mantiene (Titín, 19-10).
 # PaintHighlightsForFirstLetter (§11, a FM.22 por COORDINACIÓN-7): hecha en 4ea0170cd0, solo f30d9fddc4b con la flag en stable. 1660cb958aa (MarkerRangeMappingContext) no hace falta: en la 116 los marcadores se mapean por nodo DOM (Position → NGOffsetMapping), que ya cubre la primera letra; los 25 trozos estimados eran del porte de esa optimización.
 AdInterestGroupAPI	privacidad	128	stable en 131					no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
 AdjustEndOfNextParagraphIfMovedParagraphIsUpdated	escape:edicion	125	stable en 131	-	6a2402ff9e1		85	portar	tanda B	9608564b72
@@ -173,7 +173,7 @@ PermissionsPolicyReporting	no_baseline	120	quitada en 122	-	155bd370301	3ad703c8
 PermissionsPolicyUnload	no_baseline	118	quitada en 120	experimental		1a65ec24735		portar	tanda D (solo de Chrome)
 PointerEventDeviceId	no_baseline	128	stable en 131	test				portar	tanda D (solo de Chrome)
 PositionOutsideTabSpanCheckSiblingNode	escape:edicion	120	stable en 131	-	22d8d3f5f02		18	portar	tanda B	b3de68eef2
-PrefersReducedTransparency	no_baseline	118	quitada en 122	-	d8983b76203	c23a67092cc		pendiente (Titín)	propuesta de no portar; lo decide Titín (SEGURIDAD-PORTES-3, 19-10)
+PrefersReducedTransparency	no_baseline	118	quitada en 122	-	d8983b76203	c23a67092cc		portar	tanda D (Titín, 19-10: se porta, contra la propuesta de no portar de SEGURIDAD-PORTES-3)
 PrettyPrintJSONDocument	interno	117	quitada en 130	-	3de2ed86697	2998a72d2ea		no aplica	interna o de rendimiento
 PreventReadingSystemAccentColor	seguridad	121	quitada en 128	-	87770f369c9	4e9ec0ee7ae	69	portar	tanda A, con SEGURIDAD-PORTES	ac7042cfa7 + 7ae04c9456
 PrivateAggregationApiFilteringIds	privacidad	128	stable en 131	-	a4738689c3d			no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
@@ -243,7 +243,7 @@ WebExposedScrollOffset	no_baseline	126	quitada en 129	-	af21eb5c8c9	48f5a1affdf	
 WebGLDrawingBufferStorage	no_baseline	122	stable en 131	experimental				portar	tanda D (solo de Chrome)
 WebIDLBigIntUsesToBigInt	escape:xml_url_idl	117	stable en 131	-	ac81cd32f2b		71	portar	tanda B	6159c8395a
 WebSerialBluetooth	brave	117	stable en 131	experimental				no portar (Brave)	Brave 1.73 la apaga (Privacy Sandbox, FedCM, File System Access o Web Serial)
-WindowPlacementPermissionAlias	no_baseline	119	quitada en 126	-	875aff7d161	ca61a704a44		pendiente (Titín)	propuesta de no portar; lo decide Titín (SEGURIDAD-PORTES-3, 19-10)
+WindowPlacementPermissionAlias	no_baseline	119	quitada en 126	-	875aff7d161	ca61a704a44		portar	tanda D (Titín, 19-10: Window Management se mantiene y se porta este alias del permiso)
 WritingSuggestions	no_baseline	124	quitada en 130	-	0c2f288d8f7	6a27d827306		portar	tanda D (solo de Chrome)
 XMLParserMergeAdjacentCDataSections	escape:xml_url_idl	118	stable en 131	-	f848cbce89b		12	portar	tanda B	a5ae7c01ab
 XPathLangUseAsciiCase	escape:xml_url_idl	125	quitada en 130	-	738f0c0fe51	3238a3d4e34	26	portar	tanda B	99cd30c08a
