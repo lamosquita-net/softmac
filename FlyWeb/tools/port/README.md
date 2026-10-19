@@ -28,6 +28,23 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   aplican sobre la 116 (el único aviso conocido es el
   espacio final de `ui-views-controls-menu-menu_separator.cc.patch`, que aplica igual).
 - `addflag.py <json5> <Nombre> <status>` — inserta una flag en `runtime_enabled_features.json5` en orden.
+- `delflag.py <json5> <Nombre>` — quita la entrada de una flag (con sus líneas `//` de dentro; el comentario que va
+  justo antes de la `{` se queda y hay que quitarlo a mano).
+- Lotes de escapes (FM.22): `tanda.py <prefijo> <lista>` porta cada línea `FLAG ADD [REM]` de `<lista>` sobre la rama
+  actual de brave-core (entrada del json5 quitada o en `stable`, ficheros de chrome://flags y variaciones como
+  estaban); si no quedan `.rej`, genera, hace commit `FM.22 <prefijo>: <flag>` y pasa `chk.sh`; si quedan, lo lista
+  para hacerlo a mano. **Que aplique sin `.rej` no quiere decir que compile:** revisar cada diff contra las APIs de
+  la 116 (nombres NG, `Size()` como `LayoutSize`, funciones que upstream renombró en el mismo commit…).
+  Para los manuales: `rp.sh <flag> <add> [<rem>…]` vuelve a montar `w-<flag>` y enseña los `.rej` útiles, y
+  `fin.sh <flag> <prefijo> <add> [<rem>…]` termina (genera, commit, `chk.sh`); `NOTE=…` añade un párrafo al mensaje
+  y `MSGFILE=<fichero>` pone un mensaje entero. **Antes de portar, mirar que la columna «commit que la quita» no
+  sea una reversión** (`git log -1 --format=%s`): en FM.22 hubo tres.
+  Los dos usan `portarng.sh` (rutas y nombres de LayoutNG de la 116): con `portar.sh`, un commit posterior al
+  renombrado NG (finales de 2023) que toca `layout/inline/line_breaker.cc` no deja `.rej`, simplemente no se aplica;
+  `tanda.py` pasa a mano cualquier fichero que no exista en la 116.
+  `rp.sh` también enseña los `.rej` de un commit que otro posterior pisó en el mismo fichero (marcados «pisado»).
+  `jdiff.sh [<rev>]` da el cambio real del json5 de flags entre `<rev>~1` y `<rev>` (para ver que un parche regenerado
+  no se ha comido entradas).
 - `addfiles.sh <nombre> <commit>…` — añade a `w-<nombre>`, ya montado, los ficheros de esos commits que aún no estén
   (116 + parche de Brave) y guarda sus diffs. Así se aplica una cadena paso a paso, con un commit del área por paso
   (FM.17).
