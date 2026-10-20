@@ -126,7 +126,7 @@ resumen () {  # funciona con mawk (el awk de Ubuntu)
     END { printf "%-20s %10d / %-8d %10d / %-8d\n\n", "Total", sw, tw, sa, ta
           printf "FlyWeb en uso con la versión actual (aprox.): %d\n", en_uso
           printf "(actualizaciones a %s más descargas de %s desde la web; cuenta descargas, no personas)\n", actual, actual }'
-  if [[ $(grep -c . "$IPCSV" 2>/dev/null || echo 0) -gt 1 ]]; then
+  if awk -F, 'NR > 1 && $2 == "webip" { f = 1 } END { exit !f }' "$IPCSV" 2>/dev/null; then   # solo si hay IP que mostrar
     printf '\nIP distintas en la web (suma de las de cada día, últimos 7 días; solo el número):\n'
     awk -F, -v desde="$desde" 'NR > 1 && $2 == "webip" && $1 >= desde { s[$3] += $4 } END { for (k in s) printf "  %-20s %d\n", k, s[k] }' "$IPCSV" | sort -V -r
   fi
