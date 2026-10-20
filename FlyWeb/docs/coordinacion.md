@@ -187,8 +187,11 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
   nosotros la encendimos al leer el código. Brave lo refleja en su json5: mirar el de la versión de Brave del nivel.
 - **(20-10) Las estimaciones de horas siguen saliendo muy pesimistas** (anchor: 18–28 h estimadas, ~4 h reales; migración
   recalibrada de 550 a ~230 h). Pedir medición antes de decidir y desconfiar de los rangos de papel.
-- **(20-10) Notificaciones de GitHub:** cada PR propio genera dos avisos (suscripción y cierre); no hace falta escribir a
-  Titín por ellos.
+- **(20-10) Notificaciones de GitHub y coste:** cada PR genera dos avisos (suscripción y cierre) y **cada aviso despierta
+  a COORDINACIÓN y relee todo su contexto**; con ~30 PR al día y el contexto al 60 % es un gasto real. Agrupar los cambios
+  del tablero en pocos PR (uno por tanda de decisiones, no uno por fila) y relevar a tiempo. No escribir a Titín por ellos.
+- **(20-10) El reinicio semanal no ha cambiado:** es a las 07:00 UTC (09:00 en verano y 08:00 en invierno en Madrid; el
+  25-10 cambia la hora). Medir el gasto por tarea con `cost_usd` de `get_session`, no por intuición.
 
 ## Texto de arranque para COORDINACIÓN-9
 
