@@ -7,7 +7,8 @@
 <!-- Comprobación rápida del nivel de motor 130 de FlyWeb 1.14 (brave-core nube/motor-130, V8 13.0).
      Abrir en FlyWeb desde 127.0.0.1 (no con file://: el traspaso de RTCDataChannel usa un worker con blob:) o
      desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO. Comparar con Chrome for Testing 130: lo que
-     allí sale ok tiene que salir ok aquí, salvo la versión declarada. -->
+     allí sale ok tiene que salir ok aquí, salvo la versión declarada y KeyboardFocusableScrollers (apagado desde la
+     1.15.2 por la regla 20, como Brave 1.73: en Chrome sale FALLO). -->
 <style>
   :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
   body { margin: 2em; max-width: 60em; }
@@ -25,9 +26,9 @@
 <ul id="res"></ul>
 <h2>A mano</h2>
 <ol>
-  <li>Pulsar Tab desde el botón: el foco tiene que entrar en el recuadro con barra de desplazamiento (no tiene nada
-    enfocable dentro) y las flechas lo desplazan. Hacer clic dentro del recuadro <em>no</em> lo enfoca (anillo de
-    foco solo con teclado). El recuadro de abajo, con un enlace dentro, no se enfoca con Tab: se salta al enlace.</li>
+  <li>Pulsar Tab desde el botón: desde la 1.15.2 el foco <em>no</em> entra en el recuadro con barra de desplazamiento
+    (no tiene nada enfocable dentro), como Brave; tras hacer clic dentro, las flechas lo desplazan. En la 1.14–1.15.1
+    (y en Chrome 130) sí entraba. El recuadro de abajo, con un enlace dentro, no se enfoca con Tab: se salta al enlace.</li>
   <li>Pegar una palabra al final de la línea vacía del cuadro editable (debajo): no debe quedar un salto de línea de más.</li>
 </ol>
 <p><button id="antes">botón</button></p>
@@ -132,10 +133,12 @@
     const t = await (await fetch('data:application/octet-stream,a%20b c')).text();
     return { ok: t === 'a b c', nota: JSON.stringify(t) };
   });
-  prueba('Recuadro con desplazamiento: enfocable con teclado, no con ratón (KeyboardFocusableScrollers)', () => {
+  // Desde la 1.15.2, KeyboardFocusableScrollers apagado (regla 20: Brave 1.73 lo baja a experimental). En la
+  // 1.14–1.15.1 y en Chrome 130 el recuadro se enfocaba: allí esta línea sale FALLO.
+  prueba('Recuadro con desplazamiento sin nada enfocable: no enfocable (KeyboardFocusableScrollers apagado, como Brave)', () => {
     const s = document.getElementById('scroller'); s.focus();
     const enfocado = document.activeElement === s; document.activeElement.blur();
-    return { ok: enfocado && s.tabIndex === -1, nota: `focus(): ${enfocado}` };
+    return { ok: !enfocado && s.tabIndex === -1, nota: `focus(): ${enfocado}` };
   });
 
   // Apagados (como el Chrome que declaramos)

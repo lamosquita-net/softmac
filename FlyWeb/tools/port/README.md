@@ -26,7 +26,9 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
 - `fixnew.sh` — lo llama `generar.sh`: rehace un parche de «fichero nuevo» si el fichero sí existe en la 116.
 - `chk.sh <rama> [<base>]` — comprueba que todos los parches de la rama (con `<base>`, solo los que cambian desde ahí)
   aplican sobre la 116 (el único aviso conocido es el
-  espacio final de `ui-views-controls-menu-menu_separator.cc.patch`, que aplica igual).
+  espacio final de `ui-views-controls-menu-menu_separator.cc.patch`, que aplica igual). Al final pasa `gnirama.py`; sale
+  con error si hay problemas y con 2 si la rama o la base no existen (antes daba «0 parches, 0 problemas»). Los «SIN
+  BASE» de `patches/third_party/angle/*` (FS.22) son de subrepositorio y se esperan.
 - `addflag.py <json5> <Nombre> <status>` — inserta una flag en `runtime_enabled_features.json5` en orden.
 - `delflag.py <json5> <Nombre>` — quita la entrada de una flag (con sus líneas `//` de dentro; el comentario que va
   justo antes de la `{` se queda y hay que quitarlo a mano).
@@ -250,6 +252,11 @@ Diffs traducidos con `ngtraducir.py` (mapa en `ngmap-fm28.json.gz`, descomprimir
   `perdidas.py` (líneas que añade upstream y no llegaron; `MIN=1` para todas), `audit.py` (ficheros del diff que el
   commit no cambió), `gnichk.py` (entradas de `.gni` sin fichero en el área, la 116 ni un parche), `ciclos.py` (ciclos de
   `#include` nuevos) e `idmiss.py` (identificadores que no existen en la 116 ni en el área).
+- Controles de la rama, antes de cada entrega a LOCAL: `gnirama.py <rama> [<base>]` (entradas de los `.gn`/`.gni`
+  parcheados sin fichero en la 116 ni en un parche; con `<base>`, mucho más rápido), `barrido.py <área>` (frente a la
+  1.15.1 reconstruida en `base115/` = 116 + parches de la rama de partida: identificadores que desaparecen de las
+  cabeceras y funciones que pierden una aridad, con sus usos fuera del área) y `sueltas.py <área> <base>` (sentencias a
+  nivel de espacio de nombres; orientativo, con falsos positivos).
 - **Trampas que salieron en este porte:**
   - **La autorresolución pega código fuera de su sitio.** Un método de una clase que no existe en la 116 (p. ej.
     `CSSMathExpressionIdentifierLiteral`) acaba fuera de cualquier clase, y un `case` de una función que no existe acaba
@@ -279,3 +286,10 @@ Diffs traducidos con `ngtraducir.py` (mapa en `ngmap-fm28.json.gz`, descomprimir
   - **API de la 116 que no se puede cambiar para todos:** cuando upstream cambia una firma usada por mucho código de la
     116 (`ResolvedAlignSelf(StyleSelfAlignmentData)`), se porta la versión nueva y se deja una sobrecarga con la firma
     vieja para el resto.
+  - **Segunda Static (40 errores en 17 ficheros): API de upstream que la 116 llama de otra forma.** `MarginInlineStart`
+    → `MarginStart`, `GetPhysicalFragment` → `PhysicalFragment`, `has_value`/`value` de `crdtp::Maybe` →
+    `isJust`/`fromJust`, `AddMatchedProperties` con `AddMatchedPropertiesOptions::Builder`, `ConsumeDeclarationList` con
+    `nested_declarations_start_index` (del nivel 130). `ConversionChecker` no es GC en la 116: `std::make_unique`, sin
+    `Trace`, y los miembros a objetos GC con `Persistent`. `barrido.py` frente a `base115/`, no frente al commit F1.
+  - **Una fusión de `runtime_enabled_features.json5` puede borrar la flag de al lado** (`CSSPictureInPicture`, con 3
+    errores en 2 ficheros que no son del anchor). Al cerrar: comparar los nombres de flag con los de la 1.15.1.

@@ -1408,7 +1408,9 @@ de quien abre un popover (flags experimentales en la 131), `<select>` personaliz
 `aria-details` entre ancla y anclado (74a5382ac8b, por la infraestructura de accesibilidad de la 116). Adaptaciones a la
 116, controles y trampas en `FlyWeb/tools/port/README.md` («Porte grande con fusión a tres bandas»). Comprobación:
 sección «Anchor positioning (1.15.2)» de `motor-131.html` y `wpt-fm28-lista.txt`. Detalle y estado en
-`version-1.15.2.md`.
+`version-1.15.2.md`. En la misma versión, `KeyboardFocusableScrollers` (encendido en el 130, d7518d129e) vuelve a
+`experimental`, como en Brave 1.73 (regla 20; decisión de COORDINACIÓN-8, 20-10; `brave-vs-parches-motor.md`, punto 2), y
+`motor-130.html` lo espera apagado. FS.22 (4 CVE críticos de 117–128) entra en la 1.15.2 por fusión.
 
 ## Apuntado para niveles futuros
 
