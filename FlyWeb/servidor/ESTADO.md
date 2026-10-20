@@ -11,7 +11,7 @@ hoy va marcado «(05-10)».
 | Servicio | En producción | Qué falta |
 |---|---|---|
 | `flyweb.lamosquita.net` (web) | 200. Diseño del HUMANO (06-10), JS en `js/` root:root instalados por el HUMANO. **FlyWeb 1.9** publicada por `web-auto` a las 14:30; la portada enlaza la 1.9. En `descargas/`: 1.0 (sin enlazar), 1.3 a 1.9 (`web-auto` borró la 1.2 por el límite de 10). Registros con IP, 14 días | PR #120 (enlaces a `novedades.html`), del HUMANO |
-| `flyweb-web-auto` | Temporizador de usuario de `servidor`, cada 10 min; `~servidor/bin/flyweb-web-auto` `e3638f84…` (= repo; instalado el 09-10 a las 14:54, PR #119: añade `novedades.html`). A las 14:30 publicó la 1.9 sola. `comprobar` (14:54): publicaría `novedades.html` y `ayuda/index.html` | — |
+| `flyweb-web-auto` | Temporizador de usuario de `servidor`, cada 10 min; `~servidor/bin/flyweb-web-auto` `9d66aa97…` (= repo; instalado el 20-10 a las 17:27, PR #324: respaldo de `viene_de_pr`; antes `e3638f84…`, PR #119). A las 14:30 publicó la 1.9 sola. `comprobar` (14:54): publicaría `novedades.html` y `ayuda/index.html` | — |
 | `flyweb-cifras` | Temporizador cada hora; `~servidor/bin/flyweb-cifras` `67e9ef48…` (= repo; desde el 19-10: sin la oficina en la web, IP distintas en un `ip.csv` privado y **solo descargas completas**; 14 días recontados el 20-10); sube `cifras.csv` con `flyweb-desplegar cifras` (última subida 13:16). `cifras.csv` 200 | — |
 | `components.` (go-update) | `flyweb-components` activo, solo `127.0.0.1:8192`; binario `0e776013…`; unidad `84d379be…` (= repo). `_estado.json` 200 | — |
 | `proxy.` (Safe Browsing, diccionarios) | Raíz 404. Safe Browsing funciona desde el 05-10 con clave nueva (IPv4 + IPv6 /64) (05-10) | — |
@@ -28,7 +28,7 @@ Certificado TLS de `flyweb.lamosquita.net` (certbot, ECDSA; es el de los servido
 | | Producción (09-10) | Repo |
 |---|---|---|
 | `/usr/local/sbin/flyweb-desplegar` | `fc63d884…` (instalado por el HUMANO el 09-10, 14:42; antes `e4faf154…`; acepta `novedades.html`) | `acceso/flyweb-desplegar`: **igual** |
-| `~servidor/bin/flyweb-web-auto` | `e3638f84…` (antes `61dccb69…`) | `web-auto/flyweb-web-auto`: **igual** |
+| `~servidor/bin/flyweb-web-auto` | `9d66aa97…` (20-10; antes `e3638f84…` y `61dccb69…`) | `web-auto/flyweb-web-auto`: **igual** |
 | `~servidor/bin/flyweb-cifras` | `67e9ef48…` (20-10; antes `38b45710…`, `f8a4259f…` y `6ad19661…`) | `cifras/flyweb-cifras`: **igual** |
 | `/etc/systemd/system/flyweb-components.service` | `84d379be…` | `systemd/flyweb-components.service`: **igual** |
 | `/etc/systemd/system/flyweb-sync.service` | `e9b1b783…` | `systemd/flyweb-sync.service`: **igual** |
