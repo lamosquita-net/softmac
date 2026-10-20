@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width">
 <title>Motor 131 — comprobación</title>
-<!-- Comprobación rápida del nivel de motor 131 de FlyWeb 1.15 (brave-core nube/motor-131, V8 13.1).
+<!-- Comprobación rápida del nivel de motor 131 de FlyWeb 1.15 (brave-core nube/motor-131, V8 13.1); desde la 1.15.2
+     (FM.28), también el anchor positioning.
      Abrir en FlyWeb desde http://127.0.0.1 (JIT y Wasm solo se ven en un origen http(s)); no carga nada de fuera.
      Cada línea dice ok o FALLO. Comparar con Chrome for Testing 131: lo que allí sale ok tiene que salir ok aquí,
      salvo la versión declarada. -->
@@ -29,6 +30,24 @@
   #cv { content-visibility: auto; contain-intrinsic-size: 100px 50px; }
   /* scrollIntoView suave en paralelo */
   .sc { height: 6em; overflow: auto; border: 1px solid #888; width: 20em; }
+  /* Anchor positioning (1.15.2, FM.28) */
+  .ap-cont { position: relative; width: 300px; height: 200px; border: 1px dashed #888; margin: .5em 0; }
+  .ap-ancla { position: absolute; left: 40px; top: 30px; width: 60px; height: 20px; background: #9cf; }
+  .ap-obj { position: absolute; width: 30px; height: 10px; background: #f96; }
+  #ap1 { anchor-name: --ap1; }
+  #ap1-a { position-anchor: --ap1; top: anchor(bottom); left: anchor(left); }
+  #ap1-b { position-anchor: --ap1; position-area: bottom; }
+  #ap1-c { position-anchor: --ap1; top: anchor(top); width: anchor-size(width); left: 0; }
+  #ap1-d { position-anchor: --ap1; justify-self: anchor-center; top: 0; }
+  #ap2 { anchor-name: --ap2; top: 150px; }
+  #ap2-a { position-anchor: --ap2; top: anchor(bottom); left: anchor(left); height: 100px;
+           position-try-fallbacks: flip-block; }
+  @position-try --ap-arriba { bottom: anchor(top); top: auto; }
+  #ap2-b { position-anchor: --ap2; top: anchor(bottom); left: anchor(right); height: 100px;
+           position-try-fallbacks: --ap-arriba; }
+  .ap-scope { anchor-scope: --ap3; position: relative; height: 60px; }
+  .ap-scope .ap-ancla { anchor-name: --ap3; }
+  .ap-scope .ap-obj { position-anchor: --ap3; top: anchor(bottom); left: anchor(left); }
 </style>
 </head>
 <body>
@@ -58,6 +77,16 @@
 <div id="ext" class="sc"><div style="height:3000px"></div>
   <div id="int" class="sc"><div style="height:3000px"></div><div id="obj">objetivo</div><div style="height:6em"></div></div>
   <div style="height:3000px"></div></div>
+<h2>Anchor positioning (1.15.2)</h2>
+<div class="ap-cont"><div class="ap-ancla" id="ap1"></div><div class="ap-obj" id="ap1-a"></div>
+  <div class="ap-obj" id="ap1-b"></div><div class="ap-obj" id="ap1-c"></div><div class="ap-obj" id="ap1-d"></div></div>
+<div class="ap-cont"><div class="ap-ancla" id="ap2"></div><div class="ap-obj" id="ap2-a"></div>
+  <div class="ap-obj" id="ap2-b"></div></div>
+<div class="ap-cont" style="height: 130px">
+  <div class="ap-scope"><div class="ap-ancla" id="ap3a" style="left: 10px; top: 5px"></div>
+    <div class="ap-obj" id="ap3a-o"></div></div>
+  <div class="ap-scope"><div class="ap-ancla" id="ap3b" style="left: 150px; top: 5px"></div>
+    <div class="ap-obj" id="ap3b-o"></div></div></div>
 <script>
   const res = document.getElementById('res');
   const pinta = (li, nombre, ok, nota) => { li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : ''); };
@@ -158,6 +187,69 @@
       e0 = ext.scrollTop; i0 = int.scrollTop;
     }
     return { ok: juntos >= 3, nota: `${juntos} fotogramas con los dos en marcha` };
+  });
+
+  // Anchor positioning (1.15.2, FM.28): sintaxis de la 131
+  const sop = (p, v) => CSS.supports(p, v);
+  prueba('Anchor positioning: propiedades y funciones de la 131', () => {
+    const si = [['anchor-name', '--a'], ['position-anchor', '--a'], ['position-area', 'top span-left'],
+      ['position-try-fallbacks', 'flip-block, --x, flip-inline flip-start'], ['position-try-order', 'most-width'],
+      ['position-try', 'most-height flip-inline'], ['position-visibility', 'anchors-visible'],
+      ['position-visibility', 'no-overflow'], ['anchor-scope', 'all'], ['anchor-scope', '--a, --b'],
+      ['top', 'anchor(bottom)'], ['top', 'anchor(--a bottom, 10px)'], ['top', 'anchor(--a inside)'],
+      ['left', 'anchor(50%)'], ['top', 'anchor(bottom --a)'], ['width', 'anchor-size(width)'], ['width', 'anchor-size()'],
+      ['max-height', 'anchor-size(--a self-block)'], ['justify-self', 'anchor-center'], ['align-self', 'anchor-center'],
+      ['position-try-fallbacks', 'top span-right']];
+    const mal = si.filter(([p, v]) => !sop(p, v)).map(([p, v]) => `${p}: ${v}`);
+    return { ok: mal.length === 0, nota: mal.length ? 'no admite ' + mal.join('; ') : `${si.length} admitidas` };
+  });
+  prueba('Anchor positioning: lo que la 131 ya no admite o aún no ha sacado', () => {
+    const no = [['inset-area', 'top'], ['position-try-options', 'flip-block'], ['anchor-default', '--a'],
+      ['position-fallback', '--x'], ['top', 'anchor(auto bottom)'], ['top', 'anchor(implicit bottom)'],
+      ['margin-top', 'anchor-size(width)'], ['top', 'anchor-size(height)'], ['position-try-fallbacks', 'inset-area(top)']];
+    const mal = no.filter(([p, v]) => sop(p, v)).map(([p, v]) => `${p}: ${v}`);
+    return { ok: mal.length === 0, nota: mal.length ? 'admite ' + mal.join('; ') : `${no.length} rechazadas` };
+  });
+  prueba('@position-try en el CSSOM (CSSPositionTryRule, CSSPositionTryDescriptors)', () => {
+    const r = [...document.styleSheets].flatMap((s) => [...s.cssRules]).find((x) => x.name === '--ap-arriba');
+    if (!r) return { ok: false, nota: 'no está la regla' };
+    r.style.setProperty('color', 'red'); r.style.left = '1px';
+    const ok = r instanceof CSSPositionTryRule && r.style instanceof CSSPositionTryDescriptors &&
+      r.style.bottom === 'anchor(top)' && r.style.getPropertyValue('color') === '' && r.style.left === '1px';
+    r.style.removeProperty('left');
+    return { ok, nota: r.cssText };
+  });
+  const caja = (id) => document.getElementById(id).getBoundingClientRect();
+  const cerca = (a, b) => Math.abs(a - b) < 0.5;
+  prueba('anchor(): el elemento anclado se coloca bajo su ancla', () => {
+    const a = caja('ap1'), o = caja('ap1-a');
+    return { ok: cerca(o.top, a.bottom) && cerca(o.left, a.left), nota: `top ${o.top - a.bottom}, left ${o.left - a.left}` };
+  });
+  prueba('position-area: bottom centra bajo el ancla', () => {
+    const a = caja('ap1'), o = caja('ap1-b');
+    return { ok: cerca(o.top, a.bottom) && cerca(o.left + o.width / 2, a.left + a.width / 2),
+      nota: `top ${o.top - a.bottom}, centro ${o.left + o.width / 2 - (a.left + a.width / 2)}` };
+  });
+  prueba('anchor-size(width) toma el ancho del ancla', () => {
+    const a = caja('ap1'), o = caja('ap1-c'); return { ok: cerca(o.width, a.width), nota: `${o.width} / ${a.width}` };
+  });
+  prueba('justify-self: anchor-center centra sobre el ancla', () => {
+    const a = caja('ap1'), o = caja('ap1-d');
+    return { ok: cerca(o.left + o.width / 2, a.left + a.width / 2), nota: `${o.left + o.width / 2 - (a.left + a.width / 2)}` };
+  });
+  prueba('getComputedStyle() da en píxeles el valor de anchor()', () => {
+    const v = cs('#ap1-a', 'top'); return { ok: v === '50px', nota: v };
+  });
+  prueba('position-try-fallbacks: flip-block pasa arriba cuando abajo no cabe', () => {
+    const a = caja('ap2'), o = caja('ap2-a'); return { ok: cerca(o.bottom, a.top), nota: `bottom ${o.bottom - a.top}` };
+  });
+  prueba('position-try-fallbacks con una regla @position-try', () => {
+    const a = caja('ap2'), o = caja('ap2-b'); return { ok: cerca(o.bottom, a.top) && cerca(o.left, a.right),
+      nota: `bottom ${o.bottom - a.top}, left ${o.left - a.right}` };
+  });
+  prueba('anchor-scope: cada elemento anclado usa el ancla de su ámbito', () => {
+    const a = caja('ap3a'), oa = caja('ap3a-o'), b = caja('ap3b'), ob = caja('ap3b-o');
+    return { ok: cerca(oa.left, a.left) && cerca(ob.left, b.left), nota: `${oa.left - a.left}, ${ob.left - b.left}` };
   });
 
   // V8 13.1: nada nuevo sale (como Chrome 131)
