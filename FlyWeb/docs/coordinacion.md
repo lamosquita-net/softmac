@@ -1,12 +1,11 @@
 # Relevo de COORDINACIÓN
 
-Nota para la sesión que tome el papel de COORDINACIÓN. Puesta al día el **16-10-2026, ~17:30 (Madrid)** por COORDINACIÓN-7
-(`session_01Bd9Hw5nWqeXcgGZgMYtZ9n`, «Nube Coordinación (7)», 15-10 ~18:20 – 16-10, Opus 5.5 alto; relevada al 77 % de
-contexto), que relevó a COORDINACIÓN-6 (archivada).
+Nota para la sesión que tome el papel de COORDINACIÓN. Puesta al día el **20-10-2026, ~16:30 (Madrid)** por COORDINACIÓN-7
+(`session_01Bd9Hw5nWqeXcgGZgMYtZ9n`, «Nube Coordinación (7)», 15-10 – 20-10, Opus 5.5 alto; relevada al 73 % de contexto),
+que relevó a COORDINACIÓN-6 (archivada).
 Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca en GitHub**; al HUMANO se le llama
-**Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–19**, filas FM.21, FM.24, FM.25, FS.15, FS.18, FS.19 y la de LOCAL),
-`FlyWeb/docs/motor.md` («Nivel 130» y «Nivel 131») y `FlyWeb/docs/relevo-motor.md`.
-
+**Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.22, FM.26 y las de LOCAL, MOTOR e
+INVESTIGACIÓN-MOTOR), `FlyWeb/docs/version-1.15.1.md`, `FlyWeb/docs/vision-motor.md` y `FlyWeb/docs/base-128.md`.
 ## Qué hace este papel (con lo que cambió el 09–12-10)
 
 - **Interlocutor del HUMANO**: respuestas breves, críticas, con conclusión; solo le llegan decisiones de producto,
@@ -32,57 +31,52 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 
 ## Agentes y cómo hablarles
 
-Desde la nube, `send_message` (de gestión de sesiones) con el id **`session_…`**; con el `local_…` falla («could not be
-verified»). Los agentes locales te escriben con `SendMessage` a tu **nombre** de `ListAgents` («Nube Coordinación (7)»).
-Si `send_message` responde `session_inactive`, el agente local ha perdido el Remote Control: díselo a Titín al momento.
+Desde la nube, `send_message` con el id **`session_…`**. Los agentes de la 7,1 te escriben con `SendMessage` a tu nombre de
+`ListAgents`; **pierden Remote Control casi cada noche**: entonces la nube los marca «archivados» aunque sigan vivos. Si no
+responden, no abras otra sesión: pide a Titín que reactive `/remote-control` en la suya.
 
-| Agente | Sesión | Estado al 15-10, ~18:20 |
+| Agente | Sesión | Estado al 20-10, ~16:30 |
 |---|---|---|
-| VIGÍA (Haiku) | `session_01XD1RBYQ5oESHWKeqZWSG4e` | Rutina cada hora, 8–23 h. **No acepta órdenes de agentes**: su destino lo cambia Titín (texto en el arranque de COORDINACIÓN-7) |
-| MOTOR-11 (Opus, xhigh) | `session_01E9YyQZz5fNhwE1HdRNzw6f` | Nivel 131 (FM.21) en código y con arreglos: cabeza de la 1.15 `nube/motor-131` **c1b778809c**. FM.24 (extensiones, A hecha), FM.25 (fijadas compartidas, 4 arreglos de Brave). Diagnóstico de DNS hecho (abajo) |
-| SEGURIDAD-PORTES-3 (Opus, medio) | `session_01LKiaD9v2hcna6BUo6CfMBs` | FS.14 y FS.17 hechas, FS.15 (`seg/oopsif` 57c1b3fa2a) para la 1.14.1, FS.16 aprobada (vía A) tras la 1.14.1. **FS.18** (15-10): revisión de V8 13.1 del 131 (`seg/v8-13.1` 7b3c3e6cf5, época 16), en curso |
-| SEGURIDAD-VIGÍA (Haiku) | `session_019wTc3m4aVuvkKTEGMXdEHS` | Rutina semanal |
-| CONTENIDOS-WEB-2 (Sonnet, medio) | `session_015tHV7uDdbAc6uZ1VwmgcqD` | Espera `version-1.14.md` (ya en `main`) y los datos del DMG |
-| LOCAL-5 (7,1, Opus, alto) | `session_01DCZDzGMM8VdHsV5B5JBXmv` (local `local_eb0590c2-…`, «Compilación LOCAL (5)») | Desde el 16-10, ~17:25. ASan de la 1.15 (c1b778809c) en marcha con `nohup`; luego ASan corto con Titín en la 6,1, Release build 25 y entrega en FM.21. Nota: `relevo-local.md` |
-| PUBLICACIÓN (7,1, Sonnet) | `session_01TTieMjJGykHhdkXAYW8bZG` (local `local_1eb27eb5-…`) | **Confirmada** por COORDINACIÓN-7 (15-10, ~18:20): responde, Remote Control activo, nada a medias en ns1/ns2. Espera la entrega de la 1.14 |
-| SERVIDOR-LOCAL, ARQUITECTURA (7,1) | ver su fila | Sin tareas abiertas |
+| VIGÍA (Haiku) | `session_01XD1RBYQ5oESHWKeqZWSG4e` | Rutina cada hora. Su contexto va al 77 %: no hace falta relevo (compacta solo) |
+| MOTOR-12 (Opus, xhigh) | `session_011EsiQBkq6YnhGgGrmbgtLD` | FM.22 terminado (`nube/motor-131-escapes` fa4fae392f = 1.15.1). Parado. Al 60 %: **relevo a MOTOR-13 antes del siguiente porte grande** (anchor positioning) |
+| SEGURIDAD-PORTES-3 (Opus, medio) | `session_01LKiaD9v2hcna6BUo6CfMBs` | Revisó A, B, C y D de FM.22 y la lista de privacidad (regla 20). Sin encargos |
+| INVESTIGACIÓN-MOTOR-1 (Sonnet, alto) | `session_01KEXwPPgTGezmJikFPWgNRA` | Entregó `base-128.md` (#304) y `vision-motor.md` (#315). Parado hasta nueva orden |
+| CONTENIDOS-WEB-2 (Sonnet, medio) | `session_015tHV7uDdbAc6uZ1VwmgcqD` | Web de la 1.15.1 fusionada (#318) |
+| LOCAL-5 (7,1, Opus, alto) | `session_01DCZDzGMM8VdHsV5B5JBXmv` | Entregó la 1.15.1 (build 26). Prepara el acceso remoto a la 5,1 (abajo). Al 52 % |
+| PUBLICACIÓN (7,1, Sonnet) | `session_01TTieMjJGykHhdkXAYW8bZG` | 1.15.1 notarizada y en ns2; espera la firma de Titín en bak |
+| SERVIDOR-LOCAL-2 (7,1, Sonnet) | `session_01QxM99SrrnUTS2i4XuAHKta` | flyweb-cifras nuevo instalado (#307, #310, #312). Libre |
+| SEGURIDAD-VIGÍA, ARQUITECTURA | ver su fila | Sin tareas |
 
-Archivados el 15–16-10: COORDINACIÓN-5, COORDINACIÓN-6, MOTOR-8, MOTOR-9, MOTOR-10, SEGURIDAD-PORTES, SEGURIDAD-PORTES-2, LOCAL-3, LOCAL-4.
+Archivados hasta el 20-10: COORDINACIÓN-5/6, MOTOR-8 a 11, SEGURIDAD-PORTES-1/2, LOCAL-2 a 4.
 
-Notas de tablero: commits con `[coord]` (el Vigía los ignora); reglas, CLAUDE.md y docs por PR, que fusionas tú.
-**PR de otros agentes:** pásalos a listos (`draft:false`) y fusiona con `expectedHeadSha` **de 40 caracteres**; antes,
-`git merge-tree` contra `main`. Si un agente sube un commit tarde y se queda fuera del squash, recupéralo con
-*cherry-pick* en un PR nuevo (pasó con MOTOR-9 y SEGURIDAD-PORTES-3 el 15-10).
+Notas de tablero: commits con `[coord]`; reglas, CLAUDE.md y docs por PR, que fusionas tú (pasa a listo y fusiona con
+`expectedHeadSha` de 40 caracteres; antes `git merge-tree` contra `main` y un grep de datos personales/IP). Si una fusión da
+502, comprueba `main`: a veces entra igual.
 
-## Estado al relevo (16-10, ~17:30)
+## Estado al relevo (20-10, ~16:30)
 
 | Versión | Qué | Estado |
 |---|---|---|
-| 1.14 | Nivel 130 (brave-core `nube/arreglos-1.14` d12847a77f, build 23) | **Publicada** (16-10; web comprobada) |
-| 1.14.1 | 1.14 + OOPSIF (`local/1.14.1` 13138902af, build 24) | **Firmada en bak por Titín**; web #286 fusionada. **Falta comprobar** appcast y web de la 1.14.1 (PUBLICACIÓN avisa) |
-| **1.15** | Nivel 131 + V8 13.1 + ML-KEM + OOPSIF + extensiones A (FM.24) + P3A y diagnóstico apagados + fijadas compartidas (FM.25) + escapes de WPT | Cabeza **`nube/motor-131` c1b778809c**. Static bien; WPT 4 diferencias conocidas (lab-004/lch-004 1/255, oklab-005 y scrollIntoView-smooth al revés). ASan en marcha (LOCAL-5); luego ASan corto con Titín (Cmd+Q tras fijadas), Release build 25 |
+| 1.15 | Nivel 131 (build 25) | Publicada (17-10) |
+| **1.15.1** | 1.15 + FM.22: 101 escapes 117–131 (tandas A–D), `:visited` con context-paint (bb0351bff33), Profiler apagado (regla 20) | **Entregada, notarizada, web #318 fusionada; falta la firma de Titín en bak** y comprobar appcast y web (PUBLICACIÓN avisa) |
 
-- **DECISIÓN PENDIENTE CON TITÍN (DNS):** el resolvedor propio de FlyWeb (AsyncDns de Chromium) da ERR_NAME_NOT_RESOLVED
-  para `components.flyweb` en la 7,1 aunque macOS lo resuelve (dig y dscacheutil: 51.91.19.170). La 7,1 tiene 9 DNS; los 4
-  últimos (37.187.75.140, 94.23.62.217, 94.23.200.177, 51.77.66.127) parecen de OVH. Sin DoH, sin flags. Propuesto a Titín:
-  (3) consulta de solo lectura `dig @<cada uno>` de los nombres de flyweb (LOCAL-5, 5 min) y (1) apagar AsyncDns en macOS en
-  la 1.15 (MOTOR-11, ~15 min). **Esperando su respuesta; no mover a nadie sin ella.**
-- **Límite semanal:** en aviso; reinicio el **martes 20-10, 09:00**. Titín decide el sábado.
-- **Decisiones de Titín del 16-10:** la 1.14.1 se publica (estaba compilada); **nada de 1.N.x para arreglos de lo que se está
-  probando**; lo que trae Chrome 131 lo trae nuestra 131; extensiones: solo A (comparar con la versión declarada y pedir el CRX
-  con la versión declarada) + C (lista de comprobadas, LOCAL); B mínimo como fila propia tras el 132, el resto aparcado;
-  P3A y la casilla de diagnóstico, apagados; fijadas compartidas **encendidas**, con los arreglos de Brave.
-- **Cómo trabajar con Titín (16-10):** debatir antes de mover a nadie; un mensaje con lo que decidir y esperar; nunca parar
-  una compilación sin acordarlo; hablar con propiedad («descargar»). Ver «Trampas».
-
-## Pendiente de otros
-
-- **Titín:** la decisión del DNS (arriba); abrir COORDINACIÓN-8 (texto abajo) y pegar al Vigía el cambio de destino; la
-  sesión con el ASan de la 1.15 en la 6,1 cuando LOCAL-5 le avise.
-- **COORDINACIÓN-8:** comprobar la web de la 1.14.1 cuando PUBLICACIÓN diga que el appcast la anuncia; fusionar los PR de
-  documentos de MOTOR-11 (#292) y de PUBLICACIÓN (#282, CAMBIOS); la 1.15 hasta su publicación; después, el 132 (FM.22 y
-  FM.23 en cola).
-- **Archivar** COORDINACIÓN-7 (`session_01Bd9Hw5nWqeXcgGZgMYtZ9n`) en cuanto COORDINACIÓN-8 esté anotada.
+- **Siguiente, a decidir con Titín tras la 1.15.1** (lo dejó a mi propuesta): 1.15.2 = anchor positioning (18–28 h);
+  1.15.3 = view transitions entre documentos (14–22 h); 13 portes propios del TSV (`fm22-escapes.tsv`: StorageBuckets,
+  NotRestoredReasons, eventos de scroll snap, Document PiP, LoAF, SPC Extensions, text-spacing-trim, phrase line break,
+  RTCRtpEncodingParametersCodec, LayoutBlockButton+LayoutBaselineFix…); FM.23 (URL de esquemas no especiales: arregla las 3
+  subpruebas de `url/a-element-origin` y gran parte de `url/a-element`); después el 132 (1.16). Regla 18: lo grande, cada uno
+  en su 1.15.x.
+- **Rendimiento (aprobado por Titín):** medir antes de optimizar (V14 de `vision-motor.md`): Speedometer 3, JetStream 2,
+  MotionMark, arranque y memoria con claude.ai, en la 5,1, 6,1 y 7,1, con Firefox ESR 115 de referencia, sobre la Release
+  firmada. **Acceso remoto a la 5,1 (estudio de Valencia, 21-10):** clave y guía en la 7,1
+  (`~/proyectos/softmac/entregas/acceso-51/`); Titín lo configura allí; SSH solo con clave, pf con la IP de la oficina por
+  DuckDNS, LuLu solo deja binarios firmados. Titín **autorizó** a LOCAL-5 la tarea de madrugada (launchd en la 7,1) cuando
+  la 5,1 esté lista. Los hosts DuckDNS (oficina y estudio) **no van a GitHub** (decisión del 19-10).
+- **Salto de base al 128 (FM.26):** estudiado, ~330–710 h; no ahora. Antes, medir: Chromium 128 limpio para 10.14 (LOCAL)
+  y CVE de 117–128 fuera de Blink/V8 (SEGURIDAD).
+- **Cifras (ns2):** solo cuentan descargas completas; oficina fuera de la web; IP distintas privadas. Uso real ≈ los Macs de
+  Titín y su familia.
+- **Límite semanal:** se renovó el martes 20-10, 09:00.
 
 ## Red del entorno de la nube
 
@@ -166,20 +160,27 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
 - **Esfuerzo**: los nombres reales son low, medium, high, `xhigh` («extra») y max. MOTOR va en `xhigh`; max solo para un
   paso atascado.
 
+- **(17–20-10) Compilaciones de FM.22:** cada error de una línea costaba una ronda (~1 h). Pedir a MOTOR, antes de
+  entregar, un repaso contra las APIs de la 116 (absl::optional, base::expected, span, raw_ptr, gfx::SizeF, includes) y a
+  LOCAL `-k 0`. Fijar siempre un sha concreto para LOCAL; si MOTOR sigue subiendo encima, rama aparte (`-c`).
+- **(19-10) Mensajes cruzados:** MOTOR y LOCAL se escriben directamente; si una orden tuya cruza con la suya, deja claro
+  cuál vale («la rama -ab no se usa»). Un único punto de compilación por ronda.
+- **(19-10) LuLu retiene cada binario nuevo** aunque esté en una ruta aprobada: LOCAL abre una pestaña antes de cada tanda.
+- **(19-10) Cuando reinicia la app de la 7,1** vuelven sesiones viejas (LOCAL-4 se reabrió): que Titín archive las viejas.
+- **(19-10) Datos de Titín:** el host DuckDNS de la oficina estaba en `main`; Titín eligió quitarlo solo del texto (#309).
+  No repetir: hosts e IP solo por `send_message`.
+- **(20-10) Revisar lo que propone SEGURIDAD-PORTES con criterio:** un arreglo parcial en código sensible (URL) se revierte
+  si crea un tercer comportamiento; mejor diferencia conocida hasta el porte completo (FM.23).
+
 ## Texto de arranque para COORDINACIÓN-8
 
 Abrirla desde la app: nube, repos `softmac` y `brave-core`, **Opus 5.5, esfuerzo alto (`high`)**, y pegar:
 
 ```
-Eres COORDINACIÓN de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-net/brave-core): COORDINACIÓN-8, relevo de COORDINACIÓN-7 (session_01Bd9Hw5nWqeXcgGZgMYtZ9n). Lee en este orden: CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–19, filas FM.21, FM.24, FM.25, FS.15 y la de LOCAL) y FlyWeb/docs/coordinacion.md (nota de relevo del 16-10, ~17:30, sobre todo «Trampas»: debatir con Titín antes de mover a nadie).
+Eres COORDINACIÓN de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-net/brave-core): COORDINACIÓN-8, relevo de COORDINACIÓN-7 (session_01Bd9Hw5nWqeXcgGZgMYtZ9n). Lee en este orden: CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–20, FM.22 y FM.26) y FlyWeb/docs/coordinacion.md (nota de relevo del 20-10, sobre todo «Trampas»: debatir con Titín antes de mover a nadie).
 1. Comprueba con get_session tu modelo, si tienes send_message, tus repos y rate_limit_info. Dímelo en una línea.
 2. Dame tu id de sesión y el texto exacto que debo pegar al Vigía para cambiarle el destino.
-3. Anota en tu fila de docs/TAREAS.md (commit «[coord]», por PR, que fusionas tú) que COORDINACIÓN es ahora esta sesión. Avisa con send_message a MOTOR-11, SEGURIDAD-PORTES-3, LOCAL-5 y PUBLICACIÓN de tu id. Archiva session_01Bd9Hw5nWqeXcgGZgMYtZ9n.
-4. Retoma la decisión pendiente del DNS de components.flyweb (está en la nota) y espera mi respuesta antes de mover a nadie.
+3. Anota en tu fila de docs/TAREAS.md (commit «[coord]», por PR, que fusionas tú) que COORDINACIÓN es ahora esta sesión. Avisa con send_message a MOTOR-12, SEGURIDAD-PORTES-3, INVESTIGACIÓN-MOTOR, LOCAL-5, PUBLICACIÓN y SERVIDOR-LOCAL-2 de tu id. Archiva session_01Bd9Hw5nWqeXcgGZgMYtZ9n.
+4. Sigue la 1.15.1 hasta su publicación y prepárame la propuesta de orden de lo siguiente (está en la nota).
 Al HUMANO se le llama Titín. Español, commits en inglés con Co-Authored-By de Claude. Breve, crítico y con conclusión; a mí solo decisiones. No me escribas por avisos rutinarios.
 ```
-
-## Textos de arranque pendientes
-
-Ninguno (15-10, ~19:15): MOTOR-11 activa y anotada (#267). Los próximos textos de agentes locales, en un solo bloque,
-sin `/remote-control` (regla 13); en el paso 1, el agente comprueba sus repos y Remote Control.
