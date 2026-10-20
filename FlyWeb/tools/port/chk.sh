@@ -1,7 +1,9 @@
 #!/bin/bash
 # Uso: chk.sh <rama> [<base>]  → comprueba que todos los patches/*.patch (sin v8) aplican sobre la 116; los de fichero nuevo, que el fichero no exista en la 116.
 # Con <base>, solo los parches que cambian entre <base> y <rama> (mucho más rápido).
+# Al final, gnirama.py: toda entrada de los .gn/.gni parcheados existe en la 116 o en un parche (COORDINACIÓN-8, FM.28).
 B=$1; cd /home/user/brave-core; bad=0; cnt=0
+for r in $B ${2:-}; do git rev-parse -q --verify "$r^{commit}" >/dev/null || { echo "revisión desconocida: $r"; exit 2; }; done
 if [ -n "${2:-}" ]; then L=$(git diff --name-only --diff-filter=AM $2 $B -- patches/ | grep "\.patch$")
 else L=$(git ls-tree --name-only $B patches/ | grep "\.patch$"); fi
 for P in $L; do cnt=$((cnt+1)); T=$(mktemp -d)
@@ -14,3 +16,5 @@ for P in $L; do cnt=$((cnt+1)); T=$(mktemp -d)
   else echo "$B SIN BASE: $P"; bad=$((bad+1)); fi
   rm -rf $T; done
 echo "$B: $cnt parches, $bad problemas"
+python3 "$(dirname "$(readlink -f "$0")")/gnirama.py" $B ${2:-} || bad=$((bad+1))
+[ $bad -eq 0 ]

@@ -6,6 +6,10 @@ cabecera de la 116, con el mapa de ngmap.py. No toca los identificadores ambiguo
 Las líneas `index` se quitan: el diff resultante se aplica con `git apply --reject` o `patch`, no a tres bandas.
 """
 import json, os, re, sys
+KEEP_STD = os.environ.get('FLYWEB_STD_OPTIONAL') == '1'
+OPT = {'std::optional': 'absl::optional', 'std::nullopt': 'absl::nullopt', 'std::make_optional': 'absl::make_optional',
+       '#include <optional>': '#include "third_party/abseil-cpp/absl/types/optional.h"'}
+OPT_RE = re.compile('(?:' + '|'.join(re.escape(k) for k in sorted(OPT, key=len, reverse=True)) + r')(?![A-Za-z0-9_])')
 
 m = json.load(open(sys.argv[1]))
 paths, syms, guards = m['paths'], m['syms'], m['guards']
@@ -33,6 +37,9 @@ def mid(x):
     p = x.group(0)
     if p in files116 or p in same or p in paths.values():
         return p
+    # FM.28: solo en core/layout (los renombres NG); css/anchor_query.* es un fichero nuevo, no ng_anchor_query.
+    if '/core/layout/' not in p:
+        return p
     b = os.path.basename(p)
     cb = b[3:] if b.startswith('ng_') else b.replace('layout_ng_', 'layout_')
     if cb in base:
@@ -50,6 +57,10 @@ def tr(text):
         text = guard_re.sub(lambda x: guards[x.group(0)], text)
     if sym_re:
         text = sym_re.sub(sym_sub, text)
+    # FM.28 (MOTOR-13): la 116 tiene absl::optional distinto de std::optional (ABSL_OPTION_USE_STD_OPTIONAL 0);
+    # upstream pasó a std::optional en febrero de 2024 (d2b5c17eff3). Sin FLYWEB_STD_OPTIONAL=1, se vuelve a absl.
+    if not KEEP_STD:
+        text = OPT_RE.sub(lambda x: OPT[x.group(0)], text)
     return text
 
 
@@ -61,26 +72,43 @@ def sym_sub(x):
     return syms[name] + paren
 
 
+out = []
+gni_dir = ''
 for line in sys.stdin:
     if line.startswith('index '):
         continue
+    if line.startswith('+++ b/') or line.startswith('--- a/'):
+        g = line[6:].strip()
+        gni_dir = (g[len('third_party/blink/renderer/'):-len('build.gni')]
+                   if g.startswith('third_party/blink/renderer/') and g.endswith('/build.gni') else '')
     if line.startswith(('diff --git', '--- ', '+++ ', 'rename ', 'similarity')):
         if line.startswith('+++ b/') and line[6:].strip() in same:
             seen_same.add(line[6:].strip())
-        sys.stdout.write(tr(line))
+        out.append(tr(line))
         continue
     if line[:1] in ' +-':
         body = tr(line[1:])
         # Rutas cortas en listas de .gni ("inline/line_breaker.cc"): solo las que acaban en comillas.
         for s, f in short.items():
-            tail = s.split('/', 2)[-1] if s.count('/') >= 2 else s
             body = body.replace('"' + s + '"', '"' + f + '"')
+            # FM.28 (MOTOR-13): en el .gni de la carpeta, la entrada va relativa a ella ("anchor_evaluator_impl.cc"
+            # en core/layout/build.gni → "ng/ng_anchor_query.cc").
+            if gni_dir and s.startswith(gni_dir):
+                t = f[len(gni_dir):] if f.startswith(gni_dir) else '//third_party/blink/renderer/' + f
+                body = body.replace('"' + s[len(gni_dir):] + '"', '"' + t + '"')
         for a in amb:
             if re.search(r'\b' + a + r'\b', body):
                 seen_amb.add(a)
-        sys.stdout.write(line[0] + body)
+        out.append(line[0] + body)
     else:
-        sys.stdout.write(line)
+        out.append(line)
+# FM.28 (MOTOR-13): CSSValueFromComputedStyleInternal tiene 3 argumentos en la 116 (sin CSSValuePhase).
+for i in range(1, len(out)):
+    m = re.match(r'([ +-])(\s*)CSSValuePhase(?: value_phase)?\) const(.*)$', out[i], re.S)
+    if m and out[i - 1][:1] == m.group(1) and out[i - 1].rstrip().endswith('bool allow_visited_style,'):
+        out[i - 1] = out[i - 1].rstrip()[:-1] + ') const' + m.group(3)
+        out[i] = None
+sys.stdout.write(''.join(x for x in out if x is not None))
 if seen_amb:
     print('AMBIGUOS sin traducir: ' + ' '.join(sorted(seen_amb)), file=sys.stderr)
 if seen_mid:

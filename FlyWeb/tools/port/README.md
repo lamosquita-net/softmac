@@ -26,7 +26,9 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
 - `fixnew.sh` — lo llama `generar.sh`: rehace un parche de «fichero nuevo» si el fichero sí existe en la 116.
 - `chk.sh <rama> [<base>]` — comprueba que todos los parches de la rama (con `<base>`, solo los que cambian desde ahí)
   aplican sobre la 116 (el único aviso conocido es el
-  espacio final de `ui-views-controls-menu-menu_separator.cc.patch`, que aplica igual).
+  espacio final de `ui-views-controls-menu-menu_separator.cc.patch`, que aplica igual). Al final pasa `gnirama.py`; sale
+  con error si hay problemas y con 2 si la rama o la base no existen (antes daba «0 parches, 0 problemas»). Los «SIN
+  BASE» de `patches/third_party/angle/*` (FS.22) son de subrepositorio y se esperan.
 - `addflag.py <json5> <Nombre> <status>` — inserta una flag en `runtime_enabled_features.json5` en orden.
 - `delflag.py <json5> <Nombre>` — quita la entrada de una flag (con sus líneas `//` de dentro; el comentario que va
   justo antes de la `{` se queda y hay que quitarlo a mano).
@@ -231,3 +233,63 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
   *blobs*) los ficheros que pide el cambio.
 
 - `llevar.sh`: lleva commits de LOCAL a una rama `nube/*` y la fusiona en otra, sin checkout (ver `FlyWeb/docs/coordinacion.md`).
+
+## Porte grande con fusión a tres bandas (MOTOR-13, FM.28: anchor positioning)
+
+Para cadenas largas de upstream sobre ficheros que la 116 ya no tiene como upstream (230 commits, unos 3000 hunks).
+Diffs traducidos con `ngtraducir.py` (mapa en `ngmap-fm28.json.gz`, descomprimir como `ngmap.json`); fases y orden en
+`anchor-fases.tsv`.
+
+- `sig.sh <área> <lista>` — bucle: `paso.sh` (aplica con `ap.sh` lo que entra limpio y hace commit), en el primer commit
+  con rechazos `m3.sh` (fusión a tres bandas por fichero, con la base y la versión de upstream traducidas) y
+  `autores.py` (reglas de autorresolución). Si no quedan conflictos, hace commit «[m3]» y sigue; si quedan, se para y
+  los enseña. Tras cada tanda pasa unos controles: `css_properties.json5` sin `Member` ni `valid_for_permission_element`,
+  sin API de upstream en `properties/` (`CSSParserTokenStream& stream`, `value_phase`) y `fmtdelta.sh`.
+- `ok.sh <área> <hash> [nota]` cierra a mano un commit resuelto; `fixc.sh <área> <mensaje>`, un arreglo propio (se
+  niega si hay `.rej`, es decir, si el siguiente commit está a medio aplicar). `cf.py <fichero> <n> area|upstream|base|-`
+  resuelve un conflicto; `trf.py <rev> <ruta>` da el fichero de upstream ya traducido.
+- Controles del área: `fmtchk.sh` y `fmtdelta.sh` (clang-format reindenta mucho más que antes = bloque mal colocado),
+  `perdidas.py` (líneas que añade upstream y no llegaron; `MIN=1` para todas), `audit.py` (ficheros del diff que el
+  commit no cambió), `gnichk.py` (entradas de `.gni` sin fichero en el área, la 116 ni un parche), `ciclos.py` (ciclos de
+  `#include` nuevos) e `idmiss.py` (identificadores que no existen en la 116 ni en el área).
+- Controles de la rama, antes de cada entrega a LOCAL: `gnirama.py <rama> [<base>]` (entradas de los `.gn`/`.gni`
+  parcheados sin fichero en la 116 ni en un parche; con `<base>`, mucho más rápido), `barrido.py <área>` (frente a la
+  1.15.1 reconstruida en `base115/` = 116 + parches de la rama de partida: identificadores que desaparecen de las
+  cabeceras y funciones que pierden una aridad, con sus usos fuera del área) y `sueltas.py <área> <base>` (sentencias a
+  nivel de espacio de nombres; orientativo, con falsos positivos).
+- **Trampas que salieron en este porte:**
+  - **La autorresolución pega código fuera de su sitio.** Un método de una clase que no existe en la 116 (p. ej.
+    `CSSMathExpressionIdentifierLiteral`) acaba fuera de cualquier clase, y un `case` de una función que no existe acaba
+    entre dos funciones. `autores.py` rechaza ahora lo que añade llaves desequilibradas y los renombres de palabras
+    clave (`void`→`bool`). Aun así, `fmtdelta.sh` tras cada commit.
+  - **Pérdidas silenciosas.** Un cambio de `status` en `runtime_enabled_features.json5` que la fusión resuelve como «área»
+    deja el commit vacío (19879a57c77 «Enable anchor-scope for stable»). Al cerrar una fase: buscar los commits del área
+    sin ficheros cuyo `.ng.diff` no esté vacío, y comparar el `status` final de cada flag que toca la cadena con el de la
+    etiqueta N.
+  - **Renombres de fichero de upstream** (`inset_area` → `position_area`, `successful_position_option` →
+    `successful_position_fallback`, `position_try_options` → `position_try_fallbacks`): el diff traducido los da como
+    fichero nuevo, sin las adaptaciones a la 116 del viejo, y el viejo se queda. Hacer el fichero nuevo con
+    `git merge-file` (área vieja, base y upstream traducidos) y borrar el viejo si lo creó el porte. Un fichero de la 116
+    que deja de compilarse vuelve a su versión de la 116, sin parche.
+  - **Rutas de `.gni` relativas a su carpeta** (`"anchor_evaluator_impl.cc"` en `core/layout/build.gni`): el traductor no
+    las cambiaba y ninja se paraba en [0/1]. Ya las traduce, pero `gnichk.py` antes de cada entrega.
+  - **Includes cruzados por la traducción:** `css/anchor_query.h` (fichero nuevo) no es `layout/ng/ng_anchor_query.h`
+    (el `AnchorQuery` de la NG). Un include mal traducido de uno al otro hizo un ciclo, y LOCAL vio 4208 errores repetidos
+    de 3 cabeceras. `ciclos.py`.
+  - **Diferencias con el commit `brave`, no con la 116 pelada:** al revisar, comparar con el estado de partida
+    (la 1.15.1 ya trae niveles portados, p. ej. `kNestedDeclarationsRule`). Lo que es de la 116 se mira en `cr116`.
+  - **La lista de commits se queda corta en los ficheros compartidos:** `git log <116>..<131> -- <ficheros propios del
+    anchor>` salió completa, pero c959fdf8dd8 (quitar `position-try-options`) solo tocaba `css_properties.json5` y otros
+    compartidos. Comparar también las propiedades del json5 (flag, `surrogate_for`, `priority`) con las de la N.
+  - **`ComputedStyle` no es GC en la 116:** los tipos de campo con `Member<>` (p. ej. `StyleAnchorScope`) llevan
+    `Persistent<>`, con constructores fuera de línea donde el tipo apuntado está completo.
+  - **API de la 116 que no se puede cambiar para todos:** cuando upstream cambia una firma usada por mucho código de la
+    116 (`ResolvedAlignSelf(StyleSelfAlignmentData)`), se porta la versión nueva y se deja una sobrecarga con la firma
+    vieja para el resto.
+  - **Segunda Static (40 errores en 17 ficheros): API de upstream que la 116 llama de otra forma.** `MarginInlineStart`
+    → `MarginStart`, `GetPhysicalFragment` → `PhysicalFragment`, `has_value`/`value` de `crdtp::Maybe` →
+    `isJust`/`fromJust`, `AddMatchedProperties` con `AddMatchedPropertiesOptions::Builder`, `ConsumeDeclarationList` con
+    `nested_declarations_start_index` (del nivel 130). `ConversionChecker` no es GC en la 116: `std::make_unique`, sin
+    `Trace`, y los miembros a objetos GC con `Persistent`. `barrido.py` frente a `base115/`, no frente al commit F1.
+  - **Una fusión de `runtime_enabled_features.json5` puede borrar la flag de al lado** (`CSSPictureInPicture`, con 3
+    errores en 2 ficheros que no son del anchor). Al cerrar: comparar los nombres de flag con los de la 1.15.1.
