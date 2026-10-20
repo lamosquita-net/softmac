@@ -4,6 +4,8 @@ Estudio en papel (fila FM.26). Sin código ni ramas de brave-core. Propone; deci
 Pregunta: ¿qué APIs de macOS 10.15 usa Chromium 117–128, qué habría que reponer para que funcione en Mojave 10.14,
 con horas y riesgo por componente?
 
+> **Revisado el 20-10 (FM.32):** con el diff real de Chromium Legacy (44 ficheros de 10.15, 31 idénticos en la 128) la parte de APIs baja de 85–220 h a **25–55 h**; ver `migracion-128.md` §6. Lo que sigue es el análisis original.
+
 **Etiquetas de evidencia:** **[V]** visto en el código o la página citada; **[I]** inferido de lo visto;
 **[H]** hipótesis sin comprobar. Las horas son **estimación mía** (trabajo efectivo de un agente o de LOCAL, **sin**
 esperas de compilación ni tiempo del HUMANO delante de las máquinas), no una medición.
