@@ -115,6 +115,7 @@ parches no es lo mismo que fusionar código de Brave, que exige entender el camb
 Comparado el árbol de `blueboxd/chromium-legacy` (tag `1303823`, el 127.0.6494.0) con el `127.0.6494.0` de Chromium **[V]**:
 
 - **226 ficheros** con cambios de versión de macOS; **54** tocan 10.15 y **172** solo 10.14 y anteriores, que no nos hacen falta (Mojave ya los tiene; Legacy llega a 10.7).
+- **Mínimo decidido por Titín (20-10): Mojave 10.14.** Esta clase I (25–55 h) **no cambia**. Una marca `10.N` es una comprobación en esa frontera y solo hace falta si el mínimo es inferior a 10.N. Medido contra Chromium 128 sobre los ficheros de Legacy 124: con marca 10.15 son 53 (29 idénticos, 15 limpios, **9 a mano**); High Sierra habría añadido 37 ficheros (10 a mano, ≈ 19–42 h): ver `legacy-evolucion.md`.
 - De los 54, **44** (sin `remoting/` ni el README) tienen **≈ 2 500 líneas** de cambio. **31 de esos 44 son idénticos entre Chromium 127.0.6494.0 y 128.0.6613.138** (1 555 líneas): el diff de Legacy
   se aplica **tal cual**. **13 cambian de la 127 a la 128** (934 líneas de Legacy): `app_controller_mac.mm`, `screen_mac.mm`, `bluetooth_adapter_mac.mm`,
   `menu_controller_cocoa_delegate_impl.mm`, `browser_non_client_frame_view_mac.mm`, `supported_types.cc`, `message_pump_kqueue.cc`, `mac_intent_picker_helpers.mm`,

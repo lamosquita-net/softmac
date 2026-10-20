@@ -7,12 +7,20 @@ de Chromium en el espejo de GitHub.
 
 **Etiquetas:** **[V]** medido en los repos; **[I]** inferido; **[H]** hipótesis. Las horas son **estimación mía**.
 
-> **Cambia una cifra de FM.31 y FM.32.** Con **High Sierra (10.13) como mínimo** (decisión de Titín), los 69 ficheros de
-> 10.13/10.14 de Legacy se suman a la clase I de `migracion-128.md`, que solo contaba los de 10.15 (§5). Medido con una
-> fusión de tres vías contra Chromium 128: 16 de esos 69 necesitan mano (10 con conflicto y 6 que ya no existen en la
-> 128). **Clase I: de 25–55 h a ≈ 55–125 h. Total de la migración: de ≈ 130–330 h a ≈ 160–400 h (central ~280 h).**
-> Con Mojave como mínimo se ahorrarían ≈ 12–25 h y 34 ficheros que probar. No he encontrado una máquina con 10.13 en la
-> tabla de máquinas de `CLAUDE.md`: los parches de 10.13 saldrían sin probarse (§5).
+> **Corrección tras la decisión de Titín: el mínimo de la base 128 es Mojave 10.14.** En la primera versión de este
+> documento avisé de que «cambia una cifra de FM.31/FM.32» (+30–70 h para High Sierra). **Estaba mal agrupado, y con
+> Mojave no cambia nada:**
+>
+> - Una marca `10.N` en el código de Legacy es una **comprobación en esa frontera** (`@available(macOS 10.N)`,
+>   `IsAtLeastOS10_N`). Solo hay que mantenerla si el mínimo es **inferior** a 10.N. **Con Mojave hacen falta los ficheros
+>   con marca 10.15** (la clase I de `migracion-128.md`): en la 124 son **53**, y contra Chromium 128 aplican 29 tal cual,
+>   15 con fusión limpia, 8 con conflicto y 1 que ya no existe (**9 a mano**). Los de 10.14 y 10.13 no hacen falta.
+> - **La clase I de FM.32 se queda en 25–55 h y el total de la migración en ≈ 130–330 h.**
+> - High Sierra habría añadido **37 ficheros** (marca 10.14 o ramas propias de 10.13/10.14, sin 10.15), **10 a mano** (6
+>   conflictos y 4 que desaparecen): ≈ **19–42 h** [H, tasa de FM.32] y una máquina con 10.13 que no tenemos.
+> - Lo que dije (69 ficheros, 16 a mano, 31–68 h) **contaba además 32 ficheros con marca 10.13 que son código para 10.12 y
+>   anteriores** y no hacen falta ni con High Sierra. La misma agrupación estaba en la clase B de `chromium-legacy.md`
+>   (corregida en el mismo PR).
 
 ## 1. Resumen
 
@@ -42,7 +50,8 @@ de Chromium en el espejo de GitHub.
   versión de `chrome/VERSION` en su momento, su asunto y sus ficheros. **Clasificación por palabras del asunto:
   aproximada.**
 - **Qué aplica a la 128 [V].** Fusión de tres vías (`git merge-file`) de cada fichero con marca 10.13/10.14/10.15 de la 124:
-  base = Chromium 124, nuestro = Legacy 124, suyo = Chromium 128.
+  base = Chromium 124, nuestro = Legacy 124, suyo = Chromium 128. **Una marca `10.N` es una comprobación en esa frontera:
+  solo hace falta mantenerla si el mínimo es inferior a 10.N** (Mojave: las de 10.15; High Sierra: también las de 10.14).
 - **Límites.**
   - Los commits de las versiones 100–103 no están en la ventana (empieza en 06-2022); sus ficheros sí.
   - `stable.lion` no tiene etiquetas 122–123 ni 125–127: la 124 es el último dato de código, y la 127 de `master.lion` se
@@ -112,15 +121,14 @@ no de macOS.
    fija.
 6. **Lo que aplica a la 128.** De los 122 ficheros con marca 10.13/10.14/10.15 en la 124 [V]:
 
-   | Resultado contra Chromium 128 | Ficheros | De ellos solo 10.15 (32) | De ellos 10.13/10.14 (69) |
-   |---|---|---|---|
-   | Idéntico: aplica tal cual | 55 | 19 | 26 |
-   | Fusión limpia (tres vías) | 42 | 10 | 27 |
-   | **Conflictos** | **18** | 3 | **10** |
-   | **Ya no existe en la 128** | **7** | 0 | **6** |
+   | Resultado contra Chromium 128 | Ficheros | **10.15 (Mojave: lo que hace falta)** (53) | Solo 10.14 y ramas de 10.13/10.14 (High Sierra: **no**) (37) | Solo 10.13 (código para 10.12 y anteriores: **no**) (32) |
+   |---|---|---|---|---|
+   | Idéntico: aplica tal cual | 55 | 29 | 14 | 12 |
+   | Fusión limpia (tres vías) | 42 | 15 | 13 | 14 |
+   | **Conflictos** | **18** | 8 | 6 | 4 |
+   | **Ya no existe en la 128** | **7** | 1 | 4 | 2 |
 
-   Es decir, **el 80 % (97 de 122) aplica sin mano**. De los 69 de 10.13/10.14: 34 son solo de 10.13, 32 solo de 10.14 y 3
-   de ambos.
+   **El 80 % (97 de 122) aplica sin mano**; para Mojave, el 83 % (44 de 53).
 
 ## 6. Qué esperar por nivel en nuestro fork
 
@@ -128,22 +136,17 @@ no de macOS.
 |---|---|---|
 | **Nivel de motor N (129…) portado a Blink o V8 con la base 128** | Legacy no tiene fork de V8 [V, FM.33] y en Blink solo toca 15 ficheros de macOS (`layout_theme_mac.mm`, `memory_usage_monitor_mac.cc`, `substring_util.mm`, `file_system_access_regular_file_delegate.*`…) [V] | **Sin coste de plataforma por nivel.** Comprobación previa: el nivel no debe tocar esos 15 |
 | **Un commit del nivel que toque `*_mac*`, `ui/`, `base/mac`, `content/browser` o `sandbox`** | Chromium ≥ 129 puede usar API de macOS 11+ sin guarda (su mínimo es 11.0). Legacy tuvo 69 commits de guarda o evitar API en 24 meses (≈ 3 al mes), en rachas [V] | 1–3 h por commit afectado [H]. **Mejor filtrarlos del porte** (regla 2 de `motor.md`) |
-| **Cambiar la base 128 → 129** (mínimo 11.0, con 10.13 como objetivo) | Una versión más por debajo del mínimo: **+45–55 ficheros** y una serie de ≈ 15–30 reverts «Remove 10.15 support» (las dos anteriores: 20 y 30) | **30–60 h** [H]: ≈ 50 ficheros × 0,6–1,25 h (tasa de la clase I de FM.32) |
+| **Cambiar la base 128 → 129** (mínimo 11.0, con Mojave como objetivo) | Una versión más por debajo del mínimo: **+45–55 ficheros** y una serie de ≈ 15–30 reverts «Remove 10.15 support» (las dos anteriores: 20 y 30) | **30–60 h** [H]: ≈ 50 ficheros × 0,6–1,25 h (tasa de la clase I de FM.32) |
 | **Cambiar a la base 139** (mínimo 12.0) | Otra versión más: +45–55 ficheros y otra serie | **30–60 h más**, y la base empieza a diferir de Brave en unos 100 ficheros más |
 | **Quedarse en la 128** | Los 445 ficheros de la 124 aplican en un 80 % a la 128 (§5.6). El crecimiento neto sin cambio de base es cero | 0 h de plataforma; **seguridad por parches** (regla 17) |
-| **Subir el mínimo de macOS de nuestro lado (de 10.13 a 10.14)** | Quita 34 ficheros exclusivos de 10.13 (§5.6) | ≈ −12 a −25 h de la clase I y 34 ficheros menos que probar |
+| **Mínimo Mojave (decidido) en lugar de High Sierra** | High Sierra habría añadido 37 ficheros (10 a mano, §5.6) | 0 h con Mojave; ≈ 19–42 h y una máquina con 10.13 con High Sierra |
 
 **Proyección del tamaño del parche si se persigue a Chromium** [H, regla de §1]: 128 ≈ 470 ficheros; 129 ≈ 520–530;
 139 ≈ 650. Quedándose en la 128, **se queda en ≈ 470**.
 
-### Dos riesgos que Legacy hace visibles
+### Un riesgo que Legacy hace visible
 
-1. **Las pruebas en 10.13.** La tabla de máquinas de `CLAUDE.md` no incluye ninguna con High Sierra (5,1, 6,1 y 7,1 van con
-   Mojave o Sequoia). Los 69 ficheros de 10.13/10.14 aplican «limpios» el 77 % (53 de 69), pero **limpio no es probado**:
-   la serie de la 117 de Legacy tuvo un «fix build errors» al día siguiente y un revert a medias (`partially revert f6f71815…`). Sin una máquina o una VM con 10.13, esa parte sale
-   sin comprobar. **Propuesta:** decidir si High Sierra se prueba (VM, partición o un usuario voluntario) antes de
-   prometerlo en la 2.0.0.
-2. **Las series se hacen tarde.** Si el plan es 128, los *reverts* de la 117 llevan años de divergencia. Por eso conviene
+1. **Las series se hacen tarde.** Si el plan es 128, los *reverts* de la 117 llevan años de divergencia. Por eso conviene
    **aplicar el diff de la 124 (no los commits de revert)** sobre la 128: el diff ya tiene los conflictos resueltos por
    Legacy, y su reaplicación mide el 80 % de la tabla de §5.6.
 
