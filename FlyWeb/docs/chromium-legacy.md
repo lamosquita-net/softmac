@@ -15,8 +15,8 @@ Las horas, cuando salen, son **estimación mía**.
 2. **Su método:** una sola rama larga que **fusiona `origin/main` casi a diario** (68 fusiones en 2023–2025), sobre la que van **34 reverts de commits de
    Chromium**, **21 guardas** `@available` por versión de macOS, **18 «evitar tal API»**, 3 *frameworks* débiles y **23 arreglos de «fusiones mal hechas»**
    (el 17 % de sus commits propios), más ramas de las bibliotecas de terceros (Skia, ANGLE, Dawn…) que se superponen a las revisiones de `DEPS` [V: 200 commits propios].
-3. **Casi la mitad de sus cambios sobra:** de 226 ficheros con cambios por versión de macOS, **101 solo tocan 10.7–10.12**; **69** son de 10.13/10.14 (High Sierra y
-   Mojave); **52** tocan 10.15 (lo nuestro) [V].
+3. **Casi la mitad de sus cambios sobra:** de 226 ficheros con cambios por versión de macOS, **101 solo tocan 10.7–10.12**; **69** llevan marcas 10.13/10.14 sin 10.15 (**corregido en
+   `legacy-evolucion.md`:** 32 de ellos son código para 10.12 y anteriores y solo 37 serían para High Sierra); **52** tocan 10.15 (lo nuestro, con Mojave) [V].
 4. **Sus problemas en Mojave** (§5) son pocos y concretos; **lo que Titín vio en la 6,1 con la 127.0.6494.0 tiene explicación probable:** el **«Ya no se admite esta
    versión» y Gmail sin estilos** es la versión declarada (127) frente al mínimo actual de Google, el mismo caso que FlyWeb ya resolvió con la versión declarada [H, con
    prueba de 10 min]; las **cinco caídas de la GPU al arrancar** apuntan a **Dawn/WebGPU** (que su 127 enciende y la 116 de FlyWeb apaga) [H, con prueba de 10 min].
@@ -79,12 +79,12 @@ del tronco) [V]:
 | Clase | Ficheros | Líneas (+/−) | Para nosotros |
 |---|---|---|---|
 | **A.** tocan **10.15** | 52 (42 sin `remoting/` ni README) | +1 962 / −558 | **Lo que hace falta** (clase I de `migracion-128.md`) |
-| **B.** 10.13/10.14 **sin** 10.15 | 69 | +1 935 / −501 | **Solo High Sierra** (guardas de 10.13); **Mojave ya tiene** esas APIs. Directorios: `services/shape_detection` 9, `chrome/services` 7, `components/system_media_controls` 6, `device/bluetooth` 4, `gpu/config` 3… |
+| **B.** 10.13/10.14 **sin** 10.15 | 69 | +1 935 / −501 | **Corregido (`legacy-evolucion.md`):** 37 son de High Sierra (marca 10.14 o ramas de 10.13/10.14) y 32 son código para 10.12 y anteriores (sobran); **Mojave ya tiene** esas APIs. Directorios: `services/shape_detection` 9, `chrome/services` 7, `components/system_media_controls` 6, `device/bluetooth` 4, `gpu/config` 3… |
 | **C.** solo **10.7–10.12** | **101** | +3 068 / −1 102 | **Sobra** (`device/fido` 10, `components/remote_cocoa` 9, `partition_allocator`, `base/synchronization`…) |
 | D. sin versión en las líneas | 4 | +497 / −647 | revisar |
 
 **También sobra:** los parches de GPU para 10.7–10.9 (OpenGL antiguo), de `libc++` y `boringssl` para SO viejos, y la política que apaga la GPU en 10.7.
-**Decisión de Titín pendiente:** si el mínimo es **Mojave**, la clase B sobra entera; si es **High Sierra**, la B entra (≈ 69 ficheros, unas 2 400 líneas).
+**Decisión de Titín (20-10): el mínimo es Mojave**, así que la clase B sobra entera. Con High Sierra habrían entrado 37 ficheros de la B, no los 69 (≈ 19–42 h).
 
 ## 5. Problemas conocidos en Mojave y lo visto en la 6,1 (pregunta 4)
 
@@ -138,7 +138,7 @@ Gmail con «Ya no se admite esta versión» y sin estilos):
 
 - Las dos pruebas de §5 y los informes de caída de la GPU (Titín o LOCAL).
 - El tamaño de los forks de Dawn, ANGLE y Skia frente a su revisión de `DEPS` (solo vi los títulos de commit; las fusiones ocultan el contenido).
-- El mínimo definitivo (High Sierra o Mojave): decide si entra la clase B.
+- ~~El mínimo definitivo (High Sierra o Mojave)~~: decidido, **Mojave** (20-10); la clase B sobra.
 - Confirmar con Momiji (v156) en la 6,1 como referencia de otro motor (V14 de `vision-motor.md`).
 
 ## 9. Fuentes
