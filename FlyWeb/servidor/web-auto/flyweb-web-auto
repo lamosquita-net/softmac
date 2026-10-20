@@ -58,7 +58,21 @@ viene_de_pr () {
   [[ $x =~ ^[0-9a-f]{40}$ ]] || return 1
   curl -fsSL --proto =https -H 'Accept: application/vnd.github+json' "$API/commits/$x/pulls" | python3 -c '
 import sys, json
-sys.exit(0 if any(p.get("merged_at") and p["base"]["ref"] == "main" for p in json.load(sys.stdin)) else 1)'
+sys.exit(0 if any(p.get("merged_at") and p["base"]["ref"] == "main" for p in json.load(sys.stdin)) else 1)' && return 0
+  # Respaldo (20-10, la 1.15.1): a veces GitHub no asocia un commit de squash a su PR (devuelve []), aunque el PR esté
+  # fusionado. Se acepta SOLO si el título del commit acaba en «(#N)» y el PR N consta fusionado en main CON ESTE MISMO
+  # commit como merge_commit_sha: un push directo no puede imitarlo (su sha no puede ser el de la fusión del PR).
+  local n
+  n=$(curl -fsSL --proto =https -H 'Accept: application/vnd.github+json' "$API/commits/$x" | python3 -c '
+import sys, json, re
+t = json.load(sys.stdin)["commit"]["message"].splitlines()[0]
+m = re.search(r"\(#(\d+)\)\s*$", t) or re.match(r"Merge pull request #(\d+) ", t)
+print(m.group(1) if m else "")') || return 1
+  [[ $n =~ ^[0-9]{1,7}$ ]] || return 1
+  curl -fsSL --proto =https -H 'Accept: application/vnd.github+json' "$API/pulls/$n" | X=$x python3 -c '
+import sys, json, os
+d = json.load(sys.stdin)
+sys.exit(0 if d.get("merged") and d["base"]["ref"] == "main" and d.get("merge_commit_sha") == os.environ["X"] else 1)'
 }
 # limpiar: como mucho MAX_DMG en updates/ y en descargas/; borra los más antiguos que no estén en el appcast ni sean la 1.0.
 limpiar () {
