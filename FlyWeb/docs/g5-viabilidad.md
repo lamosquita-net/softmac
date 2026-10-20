@@ -8,10 +8,16 @@ big-endian, AltiVec, 12 GB). El criterio **no** es claude.ai. Solo G5; los G4 de
 resultado de búsqueda (la sesión de nube no abre todas las páginas). Las horas son **estimación mía**. **No he podido
 probar nada en un G5**: todo es de papel y por eso §9 propone una medición.
 
+> **Actualización 20-10 (2): aportación de Titín sobre Rust (`mrustc`) y WebAssembly (`w2c2`).** **El veredicto no cambia**
+> (no portar un motor), pero **el muro de Rust pasa de «imposible» a «camino indirecto posible y sin demostrar para algo del
+> tamaño de Gecko»**. Detalle y límites en §5.1. Los datos del G5 y de Sorbet Leopard (GPU, `gcc -v`, OpenSSL) siguen
+> pendientes de recibir.
+
 ## 1. Resumen
 
 1. **Ningún motor moderno se puede llevar a Darwin PPC con un esfuerzo razonable.** Gecko reciente y Servo exigen Rust y
-   Rust no tiene destino para Mac OS X PowerPC (el autor de TenFourFox lo declaró imposible desde Firefox 54 [V]);
+   no hay `rustc` oficial para Mac OS X PowerPC (el autor de TenFourFox lo declaró imposible desde Firefox 54 [V]); existe un
+   camino indirecto por C con `mrustc` (§5.1), sin demostrar para algo del tamaño de Gecko;
    Blink/V8 y WebKit modernos exigen años de trabajo de sistema operativo, compilador y GPU; Ladybird pide C++23 y
    es todavía una alfa. Lo único que pasa de la tabla (§4) son los navegadores que **ya existen** para Leopard.
 2. **La referencia, Aquafox, no es un Firefox 128/140.** Es un fork de TenFourFox (Gecko 45 con parches posteriores);
@@ -81,10 +87,10 @@ Dos tablas: capacidades y esfuerzo. «Horas» = estimación mía [H].
 | **Leopard WebKit** (WebKit 604.5.6 ≈ Safari 11) | ≈ 2017 | **No** (JSC no tiene JIT para PPC; LLInt/C Loop) [I] | Sí | Xcode 3.x | Core Graphics/CA del sistema | **Sin TLS 1.3**; más lento que InterWebPPC [V (resultado): foros]; proyecto parado |
 | **TenFourFox oficial** | = Aquafox sin la capa nueva | IonPower | Sí | — | — | Sin versiones nuevas desde la FPR32.5 (oct. 2021) [V (resultado)] |
 | **Arctic Fox PPC** (wicknix) | ≈ Pale Moon antiguo | — | — | — | — | **Archivado** en jul. 2023, «prueba de concepto, miles de commits por detrás» [V] |
-| **Gecko ESR reciente** (140/153) en Darwin PPC | = Firefox actual | Sin JIT para PPC (el de TenFourFox no sube a ESR) | SpiderMonkey tiene fallos de endianidad conocidos [V (resultado): [jitpower](https://github.com/classilla/jitpower)] | **Exige Rust**: no hay destino `powerpc-apple-darwin`; los destinos Apple de 32 bits son *tier 3* desde Rust 1.42 [V (resultado): [RFC 2837](https://www.ncameron.org/rfcs/2837.html)] | WebRender: OpenGL 3.x [H] | — |
+| **Gecko ESR reciente** (140/153) en Darwin PPC | = Firefox actual | Sin JIT para PPC (el de TenFourFox no sube a ESR) | SpiderMonkey tiene fallos de endianidad conocidos [V (resultado): [jitpower](https://github.com/classilla/jitpower)] | **Exige Rust**: no hay destino `powerpc-apple-darwin` oficial (camino indirecto: `mrustc`, §5.1); los destinos Apple de 32 bits son *tier 3* desde Rust 1.42 [V (resultado): [RFC 2837](https://www.ncameron.org/rfcs/2837.html)] | WebRender: OpenGL 3.x [H] | — |
 | **Blink/V8** en Darwin PPC | = Chrome actual | V8 tiene port ppc64 de IBM (AIX big-endian, Linux little-endian) [V (resultado): [Red Hat](https://developers.redhat.com/articles/2021/12/09/how-nodejs-uses-v8-javascript-engine-run-your-code)] | V8 ppc64 sí; Chromium no [I] | Chromium exige clang reciente y SO de 64 bits LE con APIs de 2018+ | ANGLE/Skia: GL ES 3 [H] | — |
 | **WebKit moderno** (WebKitGTK/WPE) | = Safari 17+ | **No** en ppc64: LLInt/C Loop; JSC con supuestos little-endian [V (resultado): [bug 128743](https://bugs.webkit.org/show_bug.cgi?id=128743), [webkit-dev 2017](https://lists.webkit.org/pipermail/webkit-dev/2017-February/028754.html)] | Soporte frágil (sí en C Loop de 64 bits [V (resultado): [bug 103128](https://bugs.webkit.org/show_bug.cgi?id=103128)]) | C++20; en Linux ppc64 BE existe; en Darwin PPC no | OpenGL | — |
-| **Servo** | Parcial (embebible, inmaduro) | SpiderMonkey sin JIT PPC | — | **Rust**: bloqueado | wgpu: no | — |
+| **Servo** | Parcial (embebible, inmaduro) | SpiderMonkey sin JIT PPC | — | **Rust**: solo por `mrustc` (§5.1) | wgpu: no | — |
 | **Ladybird** | Alfa; LibJS propio | Sin JIT útil [H] | Supuestos little-endian [H] | **C++23**, Skia, bibliotecas de 2024+; GCC 14 en Darwin PPC lo haría *en teoría* [I] | Metal/OpenGL moderno: no | — |
 | **NetSurf** | HTML 4/CSS 2.1 + flexbox (3.11); JS con Duktape, limitado y apagado de serie | Sin JIT | Portable | GCC; sin frontal Cocoa propio [H] | Propios | Depende de OpenSSL/GnuTLS del sistema |
 | **Renderizado remoto** (FlyWeb en la 7,1, Neko, Kasm, VNC) | = el Chromium del servidor (FlyWeb: nivel 131) | El del servidor | Irrelevante | Solo cliente en el G5: VNC (p. ej. Chicken) o WebRTC en Aquafox (TFF trae WebRTC y AltiVec para VP8) [H] | El servidor | Cifrado en el túnel; cuentas y cookies **en el servidor** |
@@ -100,7 +106,7 @@ Dos tablas: capacidades y esfuerzo. «Horas» = estimación mía [H].
 | Gecko ESR en Darwin PPC | **1 500–4 000 h** (Rust + SpiderMonkey sin JIT + WebRender) [H] | Alto | Inabordable; Kaiser lo dio por imposible [V] | **Descartar** |
 | Blink/V8 en Darwin PPC | **>3 000 h** [H] (SO, clang, GPU, V8 en Darwin) | Muy alto | Inabordable | **Descartar** |
 | WebKit moderno en Darwin PPC | **800–2 000 h** [H] | Alto | Sin JIT: lento en un 970 de 2 GHz | **Descartar** |
-| Servo | Bloqueado por Rust | — | Inmaduro | Descartar |
+| Servo | Rust solo por `mrustc` (§5.1); además GL 3 y SpiderMonkey | — | Inmaduro | Descartar |
 | Ladybird | >1 000 h [H] | Alto | Alfa; C++23 | Descartar ahora; revisar en 1–2 años |
 | NetSurf | 20–40 h [H] | Bajo | Compatibilidad baja | Opcional, para páginas de texto |
 | **Renderizado remoto** | **8–24 h** [H] | 1–2 h/mes | Latencia, vídeo, red; datos en el servidor | **Hacer como válvula** |
@@ -108,9 +114,10 @@ Dos tablas: capacidades y esfuerzo. «Horas» = estimación mía [H].
 
 ## 5. Por qué los motores nuevos no entran: cinco muros
 
-1. **Rust.** Gecko (desde la 54) y Servo lo exigen. No existe `powerpc-apple-darwin`; los destinos Apple de 32 bits son
-   *tier 3* [V (resultado)] y «Rust nunca ha estado soportado en PowerPC OS X» [V: FAQ de TenFourFox]. Portar `rustc`
-   y la `std` a Darwin PPC (más el *backend* PPC de LLVM, que sí existe en el árbol [I]) es un proyecto en sí mismo.
+1. **Rust.** Gecko (desde la 54) y Servo lo exigen. No existe `powerpc-apple-darwin` oficial; los destinos Apple de 32 bits son
+   *tier 3* [V (resultado)] y «Rust nunca ha estado soportado en PowerPC OS X» [V: FAQ de TenFourFox]. `rustc` genera código con
+   LLVM y el *backend* PPC de Darwin no está en uso [I]. **Camino indirecto:** `mrustc` (Rust → C → GCC), §5.1: **abre la puerta,
+   no la cruza todavía** para algo del tamaño de Gecko.
 2. **Sistema.** Los motores de 2024+ asumen APIs de macOS 10.12–10.15 y *toolchains* de la misma época. Sorbet añade
    piezas de 10.6.8, no de 10.12.
 3. **JIT en PPC big-endian.** SpiderMonkey tiene el de TenFourFox (32 bits, antiguo) y uno de Kaiser en preparación para
@@ -119,6 +126,42 @@ Dos tablas: capacidades y esfuerzo. «Horas» = estimación mía [H].
 4. **GPU.** OpenGL 2.1; WebRender y ANGLE piden GL 3.x/ES 3 o Metal [H].
 5. **Mano de obra.** El proyecto ya mantiene Blink/V8 sobre una 116 en Intel; sumar un segundo motor en otra
    arquitectura duplicaría el problema D1 de `vision-motor.md`.
+
+### 5.1 Rust por la vía C (`mrustc`) y WebAssembly a C (`w2c2`) — aportación de Titín (20-10)
+
+**`mrustc`** (compilador de Rust alternativo, en C++, que emite C y deja el binario a GCC):
+- **Qué dice su README [V: [repositorio](https://github.com/thepowersgang/mrustc)]:** arranca `rustc` (probado hasta 1.90.0, que
+  produce una 1.91.1 idéntica; también 1.19, 1.29, 1.39, 1.54 y 1.74); plataforma probada: **x86-64 Linux**; secundarias: macOS x86-64 y
+  arm64; **no menciona PowerPC ni big-endian**; **sin comprobador de préstamos** (asume código válido); macros procedurales: **solo
+  `derive` personalizado**; «mensajes de error terribles»; C generado «muy feo»; `cargo` a través de `minicargo`.
+- **PowerPC [V (resultado)]:** en la lista de MacPorts (dic. 2022) alguien dice que `mrustc` compila en ppc32 y propone la cadena
+  `mrustc` → Rust 1.54 → 1.55 → 1.56; hay tickets de MacPorts de un *Portfile* sin fusionar para Leopard
+  ([#65942](https://trac.macports.org/ticket/65942), [#64639](https://trac.macports.org/ticket/64639)). Titín cita hilos de MacRumors
+  («Rust on macOS PowerPC: Hello World» y «I have fixed Rust for PowerPC via mrustc… works with real apps now»); **no pude abrirlos**
+  (el dominio no resuelve desde la nube), así que **lo que afirman no está comprobado por mí**.
+- **Lo que permite:** compilar **código Rust propio y crates de tamaño moderado** en el G5 con GCC [I]; y, con ello, bibliotecas en
+  Rust (analizadores, codificación de texto, TLS) para proyectos propios.
+- **Lo que no garantiza (límites):**
+  1. Una cadena de `rustc` construida con `mrustc` **sigue necesitando LLVM** para generar código PPC; en la práctica el compilador
+     «de verdad» para PPC sería `mrustc` y no `rustc` [I].
+  2. Gecko lleva **cientos de crates**, macros procedurales más allá de `derive`, banderas de `rustc` propias y enlazado con C++; que
+     `mrustc` aguante eso **no está demostrado** [H].
+  3. Aunque se compilase, **los demás muros no caen** (§5, puntos 2–5): sin JIT para PPC big-endian, OpenGL 2.1 frente a WebRender,
+     APIs de 10.12+, C++20 y 32 bits.
+- **Veredicto:** **el muro de Rust baja de «imposible» a «posible y sin probar»**; **la recomendación no cambia** (Gecko/Servo siguen
+  descartados). Como **línea de largo plazo** (sin horas ni propuesta de trabajo): un motor mínimo escrito en Rust, con crates de análisis
+  de HTML/CSS y un intérprete de JS en C, compilado con `mrustc`, sería concebible en el G5 [H]; es un proyecto de años.
+
+**`w2c2`** (WebAssembly → C89):
+- **Qué dice su README [V: [repositorio](https://github.com/turbolent/w2c2)]:** traduce módulos Wasm (especificación 1.0, hilos y
+  atómicos, memoria en bloque, extensión de signo, conversiones sin trampa; **sin SIMD ni GC** en lo que consta) a C casi C89; lista Mac OS
+  X, PowerPC y **big-endian**; acepta GCC viejo; ~7 % más lento que el nativo en Coremark.
+- **Para qué sirve:** compilar Rust (o C) a `wasm32` en una máquina moderna y llevar el **C resultante** al G5 [I]. Sirve para **programas y
+  bibliotecas de cálculo** (sin red, ventanas ni sistema, salvo las capas que se escriban encima).
+- **Para qué no sirve:** **no da WebAssembly a Aquafox**: `w2c2` traduce **por adelantado** un módulo conocido; un navegador recibe módulos
+  desconocidos de las webs y necesitaría un intérprete o un compilador en ejecución [I]. Tampoco sustituye al JIT de un motor.
+- **Veredicto:** herramienta útil para **llevar código Rust ya escrito a PPC sin tocar el compilador**; **no cambia** el estado del
+  navegador. Útil, en su caso, para aislar un componente en una caja de Wasm.
 
 ## 6. Renderizado remoto
 
@@ -194,6 +237,7 @@ de respaldo; si no, la ventaja de PowerFox no compensa un proyecto beta.
 - Leopard WebKit: [SourceForge](https://www.sourceforge.net/p/leopard-webkit/), [MacRumors, encuesta de navegadores PPC](https://forums.macrumors.com/threads/powerpc-web-browser-options-poll.2042792/) (resultados).
 - Toolchain: [gcc-help, abr. 2023](https://lists.nongnu.org/archive/html/gm2/2023-04/msg00087.html); [Callahan, GCC 14.2 en Tiger](https://briancallahan.net/blog/20250329.html); [MacPorts #59268](https://trac.macports.org/ticket/59268); [RFC 2837 de Rust](https://www.ncameron.org/rfcs/2837.html) (resultados).
 - JIT en Power: [jitpower](https://github.com/classilla/jitpower); [OSNews](https://www.osnews.com/story/144144/firefox-on-power9-the-jit-of-it/); [Red Hat, V8 en Power](https://developers.redhat.com/articles/2021/12/09/how-nodejs-uses-v8-javascript-engine-run-your-code); WebKit: [bug 103128](https://bugs.webkit.org/show_bug.cgi?id=103128), [bug 128743](https://bugs.webkit.org/show_bug.cgi?id=128743), [webkit-dev, feb. 2017](https://lists.webkit.org/pipermail/webkit-dev/2017-February/028754.html) (resultados).
+- Rust en PPC (aportación de Titín): [mrustc](https://github.com/thepowersgang/mrustc), [w2c2](https://github.com/turbolent/w2c2); MacPorts: [lista de desarrollo, dic. 2022](https://lists.macosforge.org/pipermail/macports-dev/2022-December/044860.html), [#65942](https://trac.macports.org/ticket/65942), [#64639](https://trac.macports.org/ticket/64639) (resultados); hilos de MacRumors citados por Titín (no abiertos).
 - NetSurf: [Wikipedia](https://en.wikipedia.org/wiki/NetSurf), [OSNews, 3.11](https://www.osnews.com/story/138159/netsurf-3-11-released/) (resultados). Neko: [LinuxLinks](https://www.linuxlinks.com/neko-self-hosted-virtual-browser-remote-desktop/) (resultado).
 - Proyecto: `vision-motor.md` (V10, V11, D1), `motor.md` («riesgo asumido»), `docs/TAREAS.md` (FM.27, fila de INVESTIGACIÓN-MOTOR).
 
@@ -204,4 +248,5 @@ de respaldo; si no, la ventaja de PowerFox no compensa un proyecto beta.
 - Datos que solo Titín tiene: GPU del G5, `gcc -v`, `openssl version`, versión exacta de Sorbet Leopard y de Aquafox.
 - ¿PowerFox admite el 970 en 64 bits o solo 32? ¿Hay compilación específica para G5?
 - Verificar Linux ppc64 BE: qué distribución trae hoy Firefox ESR y con qué JIT (§7).
+- **Rust por `mrustc`:** comprobar con los hilos de MacRumors qué versión de Rust, qué *target* y qué aplicaciones reales compilan; si aguanta crates grandes con macros procedurales; y si hay una cadena que llegue a una versión de `rustc` reciente.
 - Si se sigue adelante con §6: probar Neko y VNC contra FlyWeb 1.15 en la 7,1 (desde el G5).
