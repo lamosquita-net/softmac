@@ -1,0 +1,128 @@
+# FM.22, tanda D (nube/motor-131-escapes): WPT que LOCAL pasa en FlyWeb y en CfT 131 (MOTOR-12, 20-10).
+# 108 pruebas del árbol de 131.0.6778.265 (sin referencias, recursos, crashtests ni manuales). Los .any.html / .window.html salen de
+# los .any.js / .window.js con wpt-envolver.py. Se compara FlyWeb contra CfT 131: cuenta la diferencia, no el FAIL absoluto.
+# Sin WPT útiles (a mano o no tienen): WebGLDrawingBufferStorage (conformidad de WebGL), MonitorTypeSurfaces (getdisplaymedia necesita
+# elegir pantalla: probar a mano que con monitorTypeSurfaces "exclude" el selector no ofrece pantallas enteras) y WindowPlacementPermissionAlias.
+# D · AutoSizeLazyLoadedImages (13)
+html/rendering/replaced-elements/images/img-sizes-auto.html
+html/semantics/embedded-content/the-img-element/sizes/implicit-sizes-ignores-width.html
+html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute-display-none.html
+html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute-quirks-mode.html
+html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute-standards-mode.html
+html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute-width-1000px.html
+html/semantics/embedded-content/the-img-element/sizes/sizes-auto-rendering-2.html
+html/semantics/embedded-content/the-img-element/sizes/sizes-auto-rendering-3.html
+html/semantics/embedded-content/the-img-element/sizes/sizes-auto-rendering-dynamic.html
+html/semantics/embedded-content/the-img-element/sizes/sizes-auto-rendering.html
+html/semantics/embedded-content/the-img-element/sizes/sizes-auto.html
+html/semantics/embedded-content/the-img-element/sizes/sizes-dynamic-001.html
+html/semantics/embedded-content/the-img-element/sizes/sizes-dynamic-002.html
+# D · WritingSuggestions (1)
+html/editing/editing-0/writing-suggestions/writingsuggestions.html
+# D · MediaSessionEnterPictureInPicture, MediaSessionChapterInformation, SkipAd (MOTOR-11) (7)
+mediasession/idlharness.window.html
+mediasession/mediametadata.html
+mediasession/playbackstate.html
+mediasession/positionstate.html
+mediasession/setactionhandler.html
+mediasession/setcameraactive.html
+mediasession/setmicrophoneactive.html
+# D · WebCodecsContentHint, WebCodecsCopyToRGB, WebCodecsHBDFormats (8)
+webcodecs/video-encoder-content-hint.https.any.html
+webcodecs/videoFrame-construction.any.html
+webcodecs/videoFrame-construction.crossOriginIsolated.https.any.html
+webcodecs/videoFrame-construction.crossOriginSource.sub.html
+webcodecs/videoFrame-construction.window.html
+webcodecs/videoFrame-copyTo-rgb.any.html
+webcodecs/videoFrame-copyTo.any.html
+webcodecs/videoFrame-copyTo.crossOriginIsolated.https.any.html
+# D · HTMLSelectElementShowPicker (MOTOR-11) (7)
+html/semantics/forms/the-select-element/show-picker-being-cv-hidden.html
+html/semantics/forms/the-select-element/show-picker-being-rendered.html
+html/semantics/forms/the-select-element/show-picker-cross-origin-iframe.html
+html/semantics/forms/the-select-element/show-picker-disabled.html
+html/semantics/forms/the-select-element/show-picker-multiple.html
+html/semantics/forms/the-select-element/show-picker-size.html
+html/semantics/forms/the-select-element/show-picker-user-gesture.html
+# D · VisualViewportOnScrollEnd (MOTOR-11) (1)
+dom/events/scrolling/scrollend-event-fires-on-visual-viewport.html
+# D · PrefersReducedTransparency (MOTOR-11) (1)
+css/mediaqueries/prefers-reduced-transparency.html
+# D · PointerEventDeviceId (MOTOR-11) (2)
+pointerevents/persistentDeviceId/get-persistendeviceid-from-pointer-event.tentative.html
+pointerevents/persistentDeviceId/pointer-event-has-persistentdeviceid-from-pointer-event-init.tentative.html
+# D · RTCRtpHeaderExtensionControl (MOTOR-11) (1)
+webrtc-extensions/RTCRtpTransceiver-headerExtensionControl.html
+# D · ClipboardSvg (MOTOR-11) (1)
+clipboard-apis/async-svg-read-write.tentative.https.html
+# D · DeliveryType (MOTOR-11) (1)
+resource-timing/delivery-type.tentative.any.html
+# D · MediaCapabilitiesDynamicRange (MOTOR-11) (6)
+media-capabilities/decodingInfo.any.html
+media-capabilities/decodingInfo.webrtc.html
+media-capabilities/decodingInfoEncryptedMedia.http.html
+media-capabilities/decodingInfoEncryptedMedia.https.html
+media-capabilities/encodingInfo.any.html
+media-capabilities/encodingInfo.webrtc.html
+# D · PermissionsPolicyUnload (MOTOR-11) (9)
+permissions-policy/experimental-features/unload-allowed-by-default.tentative.window.html
+permissions-policy/experimental-features/unload-allowed-embed.tentative.window.html
+permissions-policy/experimental-features/unload-allowed-frameset.tentative.window.html
+permissions-policy/experimental-features/unload-allowed-object.tentative.window.html
+permissions-policy/experimental-features/unload-disallowed-embed.tentative.window.html
+permissions-policy/experimental-features/unload-disallowed-frameset.tentative.window.html
+permissions-policy/experimental-features/unload-disallowed-object.tentative.window.html
+permissions-policy/experimental-features/unload-disallowed-subframe.tentative.window.html
+permissions-policy/experimental-features/unload-disallowed.tentative.window.html
+# D · PermissionsPolicyReporting (MOTOR-11) (33)
+permissions-policy/reporting/bluetooth-report-only.https.html
+permissions-policy/reporting/bluetooth-reporting.https.html
+permissions-policy/reporting/camera-report-only.https.html
+permissions-policy/reporting/camera-reporting.https.html
+permissions-policy/reporting/encrypted-media-report-only.https.html
+permissions-policy/reporting/encrypted-media-reporting.https.html
+permissions-policy/reporting/fullscreen-report-only.html
+permissions-policy/reporting/fullscreen-reporting.html
+permissions-policy/reporting/generic-sensor-report-only.https.html
+permissions-policy/reporting/generic-sensor-reporting.https.html
+permissions-policy/reporting/geolocation-report-only.https.html
+permissions-policy/reporting/geolocation-reporting.https.html
+permissions-policy/reporting/microphone-report-only.https.html
+permissions-policy/reporting/microphone-reporting.https.html
+permissions-policy/reporting/midi-report-only.https.html
+permissions-policy/reporting/midi-reporting.https.html
+permissions-policy/reporting/payment-report-only.https.html
+permissions-policy/reporting/payment-reporting.https.html
+permissions-policy/reporting/picture-in-picture-report-only.html
+permissions-policy/reporting/picture-in-picture-reporting.html
+permissions-policy/reporting/report-only-and-enforce.https.sub.html
+permissions-policy/reporting/report-only-single-endpoint.https.sub.html
+permissions-policy/reporting/report-to-multiple-endpoints.https.sub.html
+permissions-policy/reporting/report-to-single-endpoint.https.sub.html
+permissions-policy/reporting/screen-wake-lock-reporting.https.html
+permissions-policy/reporting/serial-report-only.https.html
+permissions-policy/reporting/serial-reporting.https.html
+permissions-policy/reporting/sync-xhr-report-only.html
+permissions-policy/reporting/sync-xhr-reporting.html
+permissions-policy/reporting/usb-report-only.https.html
+permissions-policy/reporting/usb-reporting.https.html
+permissions-policy/reporting/xr-report-only.https.html
+permissions-policy/reporting/xr-reporting.https.html
+# D · JS Self-Profiling apagado (a9733521ba): deben fallar todas, como en Brave (17)
+js-self-profiling/class-getter-names.https.html
+js-self-profiling/class-names.https.html
+js-self-profiling/class-setter-names.https.html
+js-self-profiling/concurrent-profilers.https.html
+js-self-profiling/cross-origin-script-cors.sub.html
+js-self-profiling/cross-origin-script-no-cors.sub.html
+js-self-profiling/external-script.https.html
+js-self-profiling/function-anonymous-names.https.html
+js-self-profiling/function-declaration-names.https.html
+js-self-profiling/function-expression-names.https.html
+js-self-profiling/idlharness.https.html
+js-self-profiling/iframe-context-filtration.https.html
+js-self-profiling/inline-script.html
+js-self-profiling/max-buffer-size.window.html
+js-self-profiling/tentative/marker-vm-state.https.html
+js-self-profiling/time-domain.window.html
+js-self-profiling/without-document-policy/disabled.https.html
