@@ -257,6 +257,9 @@ Diffs traducidos con `ngtraducir.py` (mapa en `ngmap-fm28.json.gz`, descomprimir
   1.15.1 reconstruida en `base115/` = 116 + parches de la rama de partida: identificadores que desaparecen de las
   cabeceras y funciones que pierden una aridad, con sus usos fuera del área) y `sueltas.py <área> <base>` (sentencias a
   nivel de espacio de nombres; orientativo, con falsos positivos).
+- `custfn.py <dir>`: cada método «custom» de `css_properties.json5` (`style_builder_custom_functions`,
+  `property_methods`) tiene su `Clase::Método` en `properties/*/*.cc`; si falta, el navegador compila y no enlaza (0 en la
+  116). `ver.sh <ruta>`: el fichero como queda en brave-core (116 + su parche), sin los `chromium_src` de Brave.
 - **Trampas que salieron en este porte:**
   - **La autorresolución pega código fuera de su sitio.** Un método de una clase que no existe en la 116 (p. ej.
     `CSSMathExpressionIdentifierLiteral`) acaba fuera de cualquier clase, y un `case` de una función que no existe acaba
@@ -293,3 +296,11 @@ Diffs traducidos con `ngtraducir.py` (mapa en `ngmap-fm28.json.gz`, descomprimir
     `Trace`, y los miembros a objetos GC con `Persistent`. `barrido.py` frente a `base115/`, no frente al commit F1.
   - **Una fusión de `runtime_enabled_features.json5` puede borrar la flag de al lado** (`CSSPictureInPicture`, con 3
     errores en 2 ficheros que no son del anchor). Al cerrar: comparar los nombres de flag con los de la 1.15.1.
+  - **Tercera Static: el navegador compiló entero y no enlazó.** La fusión de 8d091495b13 borró `Position::ApplyInherit`
+    junto a lo de `position-fallback-bounds`, y la 116 la sigue declarando en el json5. `custfn.py` antes de entregar.
+  - **`blink_unittests` no se había compilado nunca con los niveles** (115 errores en 33 ficheros, unos 88 de antes del
+    anchor). Muchos vienen de los `chromium_src` de Brave, que renombran o envuelven clases de Chromium
+    (`TimeClamper`, `WebSocketChannelImpl` → `_ChromiumImpl`, un virtual puro nuevo en `LinkLoaderClient`): mirar
+    `brave-core/chromium_src/<ruta>` antes de buscar el cambio en los niveles; `ver.sh` no los ve. Se arreglan en el
+    test, sin tocar el navegador ni quitar tests del build (COORDINACIÓN-8). Los tests de la 116 entran al área con
+    `addf.sh`. clang para en 20 errores por fichero: un test con 19–20 errores en la lista esconde más.

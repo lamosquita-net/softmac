@@ -2,18 +2,21 @@
 
 **Estado:** en código, con visto bueno de seguridad (SEGURIDAD-PORTES-3, FS.21, regla 17). brave-core
 `nube/motor-131-anchor` sobre la 1.15.1 (fa4fae392f). Compilaciones de prueba de LOCAL-5 (Static, `-k 0`): la primera
-(F2, 38097e9ea2) dio 14 errores en 3 cabeceras; la segunda (porte entero, 5312cb22da), 40 en 17 ficheros. Están todos
-arreglados en **767c49475b** (rama fija `nube/motor-131-anchor-f5`), que es la que falta compilar: navegador +
-`blink_unittests`. Desde la tarde del 20-10 la nube no puede escribir a LOCAL, así que Titín le pasa el sha en
-persona. El 21-10 la 7,1 compila Chromium 128 (FM.31), y la Release y la publicación esperan a que acabe. Falta: los
+(F2, 38097e9ea2) dio 14 errores en 3 cabeceras; la segunda (porte entero, 5312cb22da), 40 en 17 ficheros; la tercera
+(767c49475b), **el navegador entero sin errores de C++** y un símbolo sin definir al enlazar (`Position::ApplyInherit`),
+más 115 errores en `blink_unittests`, de los que unos 88 venían de antes del porte. Están todos arreglados en
+**7f864fb08c** (rama fija `nube/motor-131-anchor-f7`); los de `blink_unittests`, solo en ficheros de test. Es la que
+falta compilar: navegador + `blink_unittests`. Desde la tarde del 20-10 la nube no puede escribir a LOCAL, así que
+Titín le pasa el sha en persona. El 21-10 la 7,1 compila Chromium 128 (FM.31), y la Release y la publicación esperan a que acabe. Falta: los
 errores de esa Static, si hay; las pruebas a mano de LOCAL; las WPT, y la versión (`flyweb_version` 1.15.2). Detalle
 técnico: fila FM.28 de `docs/TAREAS.md`; criba de la cadena en `FlyWeb/tools/port/anchor-clas.tsv`.
 
 | Dato | Valor |
 |---|---|
 | Cabeza | brave-core `nube/motor-131-anchor`: F1 0f9820c4 (2023, sintaxis vieja), F2 4efeaf5685 + 38097e9ea2 (enero–abril de 2024, hasta «Ship the anchor positioning API»), F3+F4 848c954d (mayo–octubre de 2024, hasta la rama de la 131, con los arreglos de FS.21), arreglos de la primera Static 5312cb22da, pruebas unitarias de la 131 6266cb55, `StyleAnchorScope` con
-`WeakPersistent` y `KeyboardFocusableScrollers` apagado a35b831b, FS.22 fundida 2fba9e43 y arreglos de la segunda Static
-**767c49475b** (`nube/motor-131-anchor-f5`) |
+`WeakPersistent` y `KeyboardFocusableScrollers` apagado a35b831b, FS.22 fundida 2fba9e43, arreglos de la segunda Static
+767c49475b, `Position::ApplyInherit` 1b3878c1 y `blink_unittests` 4cd5d890 (del porte) + **7f864fb08c** (de antes del
+porte; `nube/motor-131-anchor-f7`) |
 | Versión visible / `CFBundleVersion` | 1.15.2 / 157.64.N (`FLYWEB_BUILD_NUMBER` lo pone LOCAL en la entrega) |
 | Nivel declarado | Chrome 131, sin cambios (131.0.6778.265) |
 | Motor JavaScript | el de la 1.15: V8 13.1.201.22 con los arreglos de FlyWeb (`patches/v8` igual) |
