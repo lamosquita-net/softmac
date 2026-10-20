@@ -10,8 +10,22 @@ probar nada en un G5**: todo es de papel y por eso §9 propone una medición.
 
 > **Actualización 20-10 (2): aportación de Titín sobre Rust (`mrustc`) y WebAssembly (`w2c2`).** **El veredicto no cambia**
 > (no portar un motor), pero **el muro de Rust pasa de «imposible» a «camino indirecto posible y sin demostrar para algo del
-> tamaño de Gecko»**. Detalle y límites en §5.1. Los datos del G5 y de Sorbet Leopard (GPU, `gcc -v`, OpenSSL) siguen
-> pendientes de recibir.
+> tamaño de Gecko»**. Detalle y límites en §5.1.
+
+> **Actualización 20-10 (3): datos del G5 de Titín (Terminal). El veredicto no cambia** (no portar un motor), y todo lo de
+> abajo es **[V]** salvo lo marcado. Lo que se concreta:
+>
+> - **GPU: NVIDIA GeForce 6600 LE, 128 MB, PCIe x16**, con Core Image y Quartz Extreme por hardware. OpenGL ≈ 2.1 [I] y
+>   **sin decodificación H.264 por hardware** en Leopard [I]: el vídeo web va por CPU. La pantalla es de **2560×1440**.
+> - **No hay compilador en este G5:** `gcc`, `g++` y `xcodebuild` dan «command not found» (en el PATH; falta comprobar
+>   `/Developer`). Cualquier camino de compilación (§5.1) empieza por instalar Xcode 3.1.3 o un GCC de MacPorts: **+ 2–4 h**
+>   [H], sin cambiar el veredicto.
+> - **OpenSSL 0.9.7l y curl 7.16.4 son los de serie:** Sorbet **no** los actualiza. Las herramientas del sistema solo hablan
+>   **TLS 1.0**, así que `curl`, `openssl`, `git` o `cargo` **no pueden bajar nada de la web actual** [I]: las fuentes hay
+>   que llevarlas desde otro Mac. Falta saber si el Safari/WebKit de Sorbet usa un TLS más nuevo (prueba en §9, punto 6).
+> - **`sw_vers` dice 10.5.9 (9L31b), Darwin 9.8.0;** CPU 970MP a **2,0 GHz**, **64 bits** (`hw.cpu64bit_capable = 1`) y
+>   **12 GB**: confirma lo supuesto.
+> - **Falta:** la salida de `file` sobre Aquafox (no llegó) y la versión de Aquafox.
 
 ## 1. Resumen
 
@@ -39,7 +53,7 @@ probar nada en un G5**: todo es de papel y por eso §9 propone una medición.
 ## 2. Punto de partida: el G5 y Sorbet Leopard
 
 - **Máquina** (PowerMac11,2, TAREAS): dos núcleos 970MP a 2 GHz, 1 MB de L2 por núcleo, 12 GB, SSD. **La GPU no consta**
-  en los documentos del proyecto: anotarla (§9). OpenGL de Leopard en PPC: 2.1 [I]; sin Metal.
+  en los documentos del proyecto, pero **ya consta: GeForce 6600 LE, 128 MB** (actualización 20-10 (3)). OpenGL de Leopard en PPC: 2.1 [I]; sin Metal.
 - **Qué es Sorbet Leopard** [V (resultado): [MacRumors](https://forums.macrumors.com/threads/sorbet-leopard-10-5-reinvigorated-updated.2300924/),
   [Macintosh Repository](https://www.macintoshrepository.org/39027-sorbet-leopard)]: Mac OS X 10.5.8 modernizado, con
   componentes de 10.6.8, retoques propios de rendimiento y de sistema. **Lo que enumera su autor:** Safari 11,
@@ -47,9 +61,10 @@ probar nada en un G5**: todo es de papel y por eso §9 propone una medición.
 - **Qué abre eso, y qué no:**
   - *Abre* la validación de HTTPS con raíces de 2018 en las apps que usan el llavero del sistema, y un Safari 11
     (WebKit 604, ≈ el Leopard WebKit de §4) [I].
-  - *No consta* (no lo he encontrado): versión de GCC, de OpenSSL, de libc++ ni de las bibliotecas de desarrollo.
-    MacPorts avisa de que Sorbet es una versión **no estándar** y que no la soporta ni la probó [V (resultado): lista
-    de MacPorts]. **Pregunta para Titín:** `gcc -v`, `openssl version` y `xcodebuild -version` en el G5.
+  - **Datos del G5 de Titín [V]:** `sw_vers` = 10.5.9 (9L31b); **OpenSSL 0.9.7l y curl 7.16.4 de serie** (Sorbet no los
+    toca); **sin `gcc`, `g++` ni `xcodebuild` en el PATH**. No consta la versión de libc++ ni de las bibliotecas de
+    desarrollo. MacPorts avisa de que Sorbet es una versión **no estándar** y que no la soporta ni la probó [V (resultado):
+    lista de MacPorts].
   - La cadena de compilación **no depende de Sorbet**: GCC admite `powerpc-darwin9` hasta GCC 14 (Iain Sandoe) y se
     llega a él desde Xcode 3.1.x (GCC 4.2) pasando por GCC 10 como puente [V (resultado): [gcc-help, abr. 2023](https://lists.nongnu.org/archive/html/gm2/2023-04/msg00087.html)];
     Brian Callahan compiló GCC 14.2 para Tiger con parches al ensamblador de `cctools` [V (resultado): [blog](https://briancallahan.net/blog/20250329.html)].
@@ -110,7 +125,7 @@ Dos tablas: capacidades y esfuerzo. «Horas» = estimación mía [H].
 | Ladybird | >1 000 h [H] | Alto | Alfa; C++23 | Descartar ahora; revisar en 1–2 años |
 | NetSurf | 20–40 h [H] | Bajo | Compatibilidad baja | Opcional, para páginas de texto |
 | **Renderizado remoto** | **8–24 h** [H] | 1–2 h/mes | Latencia, vídeo, red; datos en el servidor | **Hacer como válvula** |
-| Linux en el G5 + Firefox ESR / WebKitGTK | 4–12 h de SO + paquetes [H] | Bajo (distribución) | Sin JIT; GPU (r300/r600 *gallium*); abandona Sorbet | **Estudio aparte (§7)** |
+| Linux en el G5 + Firefox ESR / WebKitGTK | 4–12 h de SO + paquetes [H] | Bajo (distribución) | Sin JIT; GPU GeForce 6600 (NV43: *nouveau*, sin probar en PPC [I]); abandona Sorbet | **Estudio aparte (§7)** |
 
 ## 5. Por qué los motores nuevos no entran: cinco muros
 
@@ -173,7 +188,9 @@ Dos tablas: capacidades y esfuerzo. «Horas» = estimación mía [H].
 - **Gana:** compatibilidad total desde el día 1; **cero** mantenimiento de motor en PPC; seguridad (el motor viejo no
   toca las cuentas: cookies y contraseñas quedan en el servidor); aprovecha lo que ya hace FlyWeb.
 - **Cuesta:** 8–24 h [H]. Latencia de la LAN (≈ ms) y **decodificar el flujo en el G5**: VNC ZRLE a 1280×800 es
-  asumible para dos núcleos de 2 GHz; H.264 a 1080p no [H]. Sin red no hay navegador. Sonido y portapapeles requieren
+  asumible para dos núcleos de 2 GHz; H.264 a 1080p no [H]. **La pantalla del G5 es de 2560×1440 y la GeForce 6600 LE
+  no decodifica vídeo:** hay que pedir al servidor una salida **escalada** (1280×720 o 1600×900) y no el 1440p nativo,
+  que cuadruplica los píxeles a decodificar [I]. Sin red no hay navegador. Sonido y portapapeles requieren
   ajustes. Privacidad: **tú** guardas el historial de navegación en el servidor (decisión del proyecto: datos propios).
 - **No es** «un navegador moderno para el G5»; es el modo de que el G5 vea la web moderna. Por eso lo propongo como
   **complemento**, no como sustituto.
@@ -183,8 +200,8 @@ Dos tablas: capacidades y esfuerzo. «Horas» = estimación mía [H].
 El G5 corre Linux ppc64 big-endian (Debian ppc64 no oficial, Void, Adélie, Gentoo) [H]. Allí **sí hay Rust**
 (`powerpc64-unknown-linux-gnu`, nivel 2 [V (resultado): rustup-components-history]), así que Firefox ESR 140+ se compila;
 sin JIT para PPC (§5, punto 3) iría con el intérprete y el *Baseline Interpreter*, lento en un 970 pero con la
-compatibilidad de un Firefox actual. WebKitGTK/WPE iría con C Loop [V (resultado)]. GPU: controladores libres
-(r300/r600) con OpenGL 2.1/3.x [H]. **Coste:** instalar Linux (arranque doble) y probar. Enlaza con la idea de «Linux como
+compatibilidad de un Firefox actual. WebKitGTK/WPE iría con C Loop [V (resultado)]. GPU: *nouveau*
+para la GeForce 6600 (NV43), con OpenGL 2.1 [H, sin probar en PPC]. **Coste:** instalar Linux (arranque doble) y probar. Enlaza con la idea de «Linux como
 nexo» (V10 de `vision-motor.md`). **No lo recomiendo hoy**: abandona Sorbet y el rendimiento sin JIT es incierto;
 conviene medirlo antes con un *live* (§9).
 
@@ -208,8 +225,8 @@ los dos locales no abran y para cuentas sensibles. (4) No portar ningún motor (
 (2) y (3) no bastan.
 
 **Batería de medición (≈ 3 h en el G5, Titín o LOCAL con acceso):**
-1. **Datos de la máquina:** GPU y VRAM (`system_profiler SPDisplaysDataType`), `gcc -v`, `openssl version`,
-   `xcodebuild -version`.
+1. **Datos de la máquina: hechos (20-10, Titín)**: GPU, `openssl version`, `sw_vers`; **faltan** `gcc` (comprobar
+   `ls /Developer/usr/bin /opt/local/bin | grep gcc`) y la versión y arquitectura de Aquafox.
 2. **Qué motor es:** `about:support` (o equivalente) en Aquafox y PowerFox: versión de Gecko/Goanna, JIT activo
    (`javascript.options.ion`), WebGL.
 3. **Compatibilidad de JavaScript:** tabla de [compat-table de Kangax](https://compat-table.github.io/compat-table/) (ES6,
@@ -218,10 +235,11 @@ los dos locales no abran y para cuentas sensibles. (4) No portar ningún motor (
 5. **Veinte webs reales** con resultado «abre / abre mal / no abre»: Wikipedia, GitHub, un periódico, YouTube (en 360p
    y 480p; ¿H.264 o VP9?), un servicio con inicio de sesión moderno, un sitio con Cloudflare, una SPA (React/Vue),
    mapas, foros, comercio.
-6. **TLS:** badssl.com (TLS 1.2/1.3, cadenas modernas) y una web con certificado Let's Encrypt reciente.
+6. **TLS:** badssl.com (TLS 1.2/1.3, cadenas modernas) y una web con certificado Let's Encrypt reciente. **Además, en el Safari de Sorbet:** abrir `https://www.howsmyssl.com/` y anotar la versión de TLS que
+   negocia (decide si el WebKit del sistema abre HTTPS moderno; ver actualización 20-10 (3)).
 7. **Rendimiento:** Speedometer 2.1 o JetStream 2 si el motor lo termina (anotar el tiempo); CPU y RAM con el Monitor de
    Actividad.
-8. **Remoto:** VNC a 1280×800 desde el G5 contra FlyWeb en la 7,1: latencia al escribir y al desplazar, CPU del G5,
+8. **Remoto:** VNC a 1280×800 (**no a los 2560×1440 de la pantalla**) desde el G5 contra FlyWeb en la 7,1: latencia al escribir y al desplazar, CPU del G5,
    vídeo a 480p.
 
 **Criterio para decidir:** si PowerFox pasa más pruebas de la batería 3–5 que Aquafox, se queda como principal y Aquafox
@@ -245,7 +263,8 @@ de respaldo; si no, la ventaja de PowerFox no compensa un proyecto beta.
 
 - Abrir las fuentes «(resultado)» con red completa; **confirmar con el autor de Aquafox** si el motor recibe parches de
   seguridad de ESR más allá de las listas.
-- Datos que solo Titín tiene: GPU del G5, `gcc -v`, `openssl version`, versión exacta de Sorbet Leopard y de Aquafox.
+- ~~Datos que solo Titín tiene~~: llegados el 20-10 (GPU, OpenSSL, `sw_vers`). **Faltan:** `gcc` (¿hay Xcode en `/Developer`?),
+  versión y `file` de Aquafox, y **qué TLS usa el Safari de Sorbet** (§9 punto 6).
 - ¿PowerFox admite el 970 en 64 bits o solo 32? ¿Hay compilación específica para G5?
 - Verificar Linux ppc64 BE: qué distribución trae hoy Firefox ESR y con qué JIT (§7).
 - **Rust por `mrustc`:** comprobar con los hilos de MacRumors qué versión de Rust, qué *target* y qué aplicaciones reales compilan; si aguanta crates grandes con macros procedurales; y si hay una cadena que llegue a una versión de `rustc` reciente.
