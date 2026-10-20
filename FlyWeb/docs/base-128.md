@@ -184,7 +184,9 @@ parche aplica peor cuanto más lejos), pero lo reparte y no arriesga Mojave.
 
 ## 9. Pendiente de verificar (para la próxima vuelta)
 
-- Qué backend de ANGLE usa hoy FlyWeb 116 en cada Mac (Metal u OpenGL) y si Dawn/WebGPU está encendido en Mojave
-  (`hoja-de-ruta.md`, Fase 2): decide la gravedad de la fila 15.
+- **Respondido (20-10):** ANGLE usa **OpenGL 4.1 por defecto** en la 116, en Mojave y en Sequoia; Metal solo con
+  `--use-angle=metal` (`multimedia.md` §3). Falta saber el valor por defecto de Chromium 128 y si Dawn/WebGPU funciona
+  en Mojave (WebGPU está apagado, `integracion.md` paso 2); con OpenGL por defecto, la fila 15 es menos grave para el
+  arranque, pero pasa a ser decisiva si se quiere Metal (`vision-motor.md`, V16).
 - Si Brave 1.69 apaga `OptimizationGuide` y el modelo de autorrelleno (crash 242).
 - El mínimo real de macOS de los símbolos del §4 (lo cierra la medición).
