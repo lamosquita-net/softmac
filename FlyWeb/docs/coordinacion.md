@@ -1,11 +1,12 @@
 # Relevo de COORDINACIÓN
 
-Nota para la sesión que tome el papel de COORDINACIÓN. Puesta al día el **20-10-2026, ~16:30 (Madrid)** por COORDINACIÓN-7
-(`session_01Bd9Hw5nWqeXcgGZgMYtZ9n`, «Nube Coordinación (7)», 15-10 – 20-10, Opus 5.5 alto; relevada al 73 % de contexto),
-que relevó a COORDINACIÓN-6 (archivada).
+Nota para la sesión que tome el papel de COORDINACIÓN. Puesta al día el **20-10-2026, ~22:45 (Madrid)** por COORDINACIÓN-8
+(`session_0133Pd3pUk1DtKWpYpE53qB4`, «Coordinación (8)», 20-10, Opus 5.5 alto; relevada al 66 % de contexto),
+que relevó a COORDINACIÓN-7 (archivada).
 Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca en GitHub**; al HUMANO se le llama
-**Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.22, FM.26 y las de LOCAL, MOTOR e
-INVESTIGACIÓN-MOTOR), `FlyWeb/docs/version-1.15.1.md`, `FlyWeb/docs/vision-motor.md` y `FlyWeb/docs/base-128.md`.
+**Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
+`FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
+
 ## Qué hace este papel (con lo que cambió el 09–12-10)
 
 - **Interlocutor del HUMANO**: respuestas breves, críticas, con conclusión; solo le llegan decisiones de producto,
@@ -31,52 +32,60 @@ INVESTIGACIÓN-MOTOR), `FlyWeb/docs/version-1.15.1.md`, `FlyWeb/docs/vision-moto
 
 ## Agentes y cómo hablarles
 
-Desde la nube, `send_message` con el id **`session_…`**. Los agentes de la 7,1 te escriben con `SendMessage` a tu nombre de
-`ListAgents`; **pierden Remote Control casi cada noche**: entonces la nube los marca «archivados» aunque sigan vivos. Si no
-responden, no abras otra sesión: pide a Titín que reactive `/remote-control` en la suya.
+Desde la nube, `send_message` con el id **`session_…`**. Los agentes de la 7,1 te escriben con `SendMessage`.
+**Desde el 20-10, 19:19 (reinicio de la app de la 7,1), la nube NO puede escribir a las sesiones de la 7,1**
+(`elevated_session_untrusted_device`) hasta que Titín apruebe la tarjeta de `confirm_repository_trust` **desde la app de
+Claude en un dispositivo de confianza** (móvil o Mac, con sesión reciente; desde el terminal no vale). Es una aprobación
+por sesión de la nube y vale para siempre (la sesión queda limitada a sus dispositivos). Mientras no esté: LOCAL sí escribe
+a la nube; lo que haya que mandar a LOCAL se le da a Titín como texto listo para pegar. **No buscar otro canal** (bridge,
+sondeo del repo) sin que Titín lo decida: es saltarse un control de seguridad.
 
-| Agente | Sesión | Estado al 20-10, ~16:30 |
+| Agente | Sesión | Estado al 20-10, ~22:45 |
 |---|---|---|
-| VIGÍA (Haiku) | `session_01XD1RBYQ5oESHWKeqZWSG4e` | Rutina cada hora. Su contexto va al 77 %: no hace falta relevo (compacta solo) |
-| MOTOR-12 (Opus, xhigh) | `session_011EsiQBkq6YnhGgGrmbgtLD` | FM.22 terminado (`nube/motor-131-escapes` fa4fae392f = 1.15.1). Parado. Al 60 %: **relevo a MOTOR-13 antes del siguiente porte grande** (anchor positioning) |
-| SEGURIDAD-PORTES-3 (Opus, medio) | `session_01LKiaD9v2hcna6BUo6CfMBs` | Revisó A, B, C y D de FM.22 y la lista de privacidad (regla 20). Sin encargos |
-| INVESTIGACIÓN-MOTOR-1 (Sonnet, alto) | `session_01KEXwPPgTGezmJikFPWgNRA` | Entregó `base-128.md` (#304) y `vision-motor.md` (#315). Parado hasta nueva orden |
-| CONTENIDOS-WEB-2 (Sonnet, medio) | `session_015tHV7uDdbAc6uZ1VwmgcqD` | Web de la 1.15.1 fusionada (#318) |
-| LOCAL-5 (7,1, Opus, alto) | `session_01DCZDzGMM8VdHsV5B5JBXmv` | Entregó la 1.15.1 (build 26). Prepara el acceso remoto a la 5,1 (abajo). Al 52 % |
-| PUBLICACIÓN (7,1, Sonnet) | `session_01TTieMjJGykHhdkXAYW8bZG` | 1.15.1 notarizada y en ns2; espera la firma de Titín en bak |
-| SERVIDOR-LOCAL-2 (7,1, Sonnet) | `session_01QxM99SrrnUTS2i4XuAHKta` | flyweb-cifras nuevo instalado (#307, #310, #312). Libre |
-| SEGURIDAD-VIGÍA, ARQUITECTURA | ver su fila | Sin tareas |
+| VIGÍA (Haiku) | `session_01XD1RBYQ5oESHWKeqZWSG4e` | Rutina cada hora; destino = COORDINACIÓN-8 (cambiar al relevo). Su «web sincronizada» solo compara appcast y VERSION, no la web publicada |
+| MOTOR-13 (Opus, xhigh) | `session_01EqxadojDaRbipYn8TDzVd6` | FM.28 (1.15.2) portada en ~4 h y $3: sha `767c49475b` (`nube/motor-131-anchor-f5`, lleva FS.22, comprobado con merge-base). Espera a que LOCAL lo compile. Al 18 % |
+| SEGURIDAD-PORTES-3 (Opus, medio) | `session_01LKiaD9v2hcna6BUo6CfMBs` | FS.20, FS.21 y FS.22 hechas; visto bueno de la 1.15.2. **Al 76 %: el próximo encargo, a una sesión nueva** |
+| INVESTIGACIÓN-MOTOR-1 (Sonnet, alto) | `session_01KEXwPPgTGezmJikFPWgNRA` | FM.27, 30–35 hechas (estudios abajo). Espera 3 datos del G5 (sin prisa). **Al 78 %: el próximo encargo, a una sesión nueva** |
+| CONTENIDOS-WEB-2 (Sonnet, medio) | `session_015tHV7uDdbAc6uZ1VwmgcqD` | Libre; le toca la web de la 1.15.2 cuando LOCAL la entregue |
+| LOCAL-5 (7,1, Opus, alto) | `local_eb0590c2-…` / `session_01DCZDzGMM8VdHsV5B5JBXmv` | Compila la Static de prueba de F5 (767c49475b). **21-10: todo el día Chromium 128** (FM.31); la Release de la 1.15.2 espera a Titín. Descarga de la 128 a medias (429 de googlesource, `-j 2`) |
+| PUBLICACIÓN (7,1, Sonnet) | `session_01TTieMjJGykHhdkXAYW8bZG` | Libre (1.15.1 publicada) |
+| SERVIDOR-LOCAL-2 (7,1, Sonnet) | `session_01QxM99SrrnUTS2i4XuAHKta` | web-auto con #324 instalado; libre |
 
-Archivados hasta el 20-10: COORDINACIÓN-5/6, MOTOR-8 a 11, SEGURIDAD-PORTES-1/2, LOCAL-2 a 4.
+Archivados hasta el 20-10: COORDINACIÓN-5/6/7, MOTOR-8 a 12, SEGURIDAD-PORTES-1/2, LOCAL-2 a 4.
 
 Notas de tablero: commits con `[coord]`; reglas, CLAUDE.md y docs por PR, que fusionas tú (pasa a listo y fusiona con
-`expectedHeadSha` de 40 caracteres; antes `git merge-tree` contra `main` y un grep de datos personales/IP). Si una fusión da
-502, comprueba `main`: a veces entra igual.
+`expectedHeadSha`; antes `git merge-tree` contra `main` y un grep de datos personales/IP). Tu rama de trabajo se queda atrás
+tras cada squash: rehazla con `git checkout -B <rama> origin/main` + `git merge -s ours origin/<rama>` (sin force push, que el
+permiso bloquea).
 
-## Estado al relevo (20-10, ~16:30)
+## Estado al relevo (20-10, ~22:45)
 
 | Versión | Qué | Estado |
 |---|---|---|
-| 1.15 | Nivel 131 (build 25) | Publicada (17-10) |
-| **1.15.1** | 1.15 + FM.22: 101 escapes 117–131 (tandas A–D), `:visited` con context-paint (bb0351bff33), Profiler apagado (regla 20) | **Entregada, notarizada, web #318 fusionada; falta la firma de Titín en bak** y comprobar appcast y web (PUBLICACIÓN avisa) |
+| 1.15.1 | Nivel 131 + FM.22 | **Publicada** (firma 16:15; web por web-auto con el arreglo #324 a las 19:27) |
+| **1.15.2** | Anchor positioning (FM.28) + 4 CVE críticos (FS.22) + fuga de StyleAnchorScope + KeyboardFocusableScrollers a experimental | Portada; Static de prueba en LOCAL; visto bueno de SEGURIDAD. **Release y publicación cuando vuelva Titín (22-10 o después)** |
+| 1.15.3 | View transitions entre documentos (FM.29) | Pendiente, después de la 1.15.2. **Después no se abre el 132** |
+| **2.0.0** | Base Chromium 128 + Brave 1.69.168, **mínimo Mojave 10.14** | **Prioridad de Titín.** Fase 0: CVE (FS.20, hecho: 52 pendientes que la 128 ya corrige), Chromium Legacy 127 probado en la 6,1 (va, con 5 caídas de GPU al arrancar sin explicar), compilación limpia de la 128 el 21-10 |
 
-- **Siguiente, a decidir con Titín tras la 1.15.1** (lo dejó a mi propuesta): 1.15.2 = anchor positioning (18–28 h);
-  1.15.3 = view transitions entre documentos (14–22 h); 13 portes propios del TSV (`fm22-escapes.tsv`: StorageBuckets,
-  NotRestoredReasons, eventos de scroll snap, Document PiP, LoAF, SPC Extensions, text-spacing-trim, phrase line break,
-  RTCRtpEncodingParametersCodec, LayoutBlockButton+LayoutBaselineFix…); FM.23 (URL de esquemas no especiales: arregla las 3
-  subpruebas de `url/a-element-origin` y gran parte de `url/a-element`); después el 132 (1.16). Regla 18: lo grande, cada uno
-  en su 1.15.x.
-- **Rendimiento (aprobado por Titín):** medir antes de optimizar (V14 de `vision-motor.md`): Speedometer 3, JetStream 2,
-  MotionMark, arranque y memoria con claude.ai, en la 5,1, 6,1 y 7,1, con Firefox ESR 115 de referencia, sobre la Release
-  firmada. **Acceso remoto a la 5,1 (estudio de Valencia, 21-10):** clave y guía en la 7,1
-  (`~/proyectos/softmac/entregas/acceso-51/`); Titín lo configura allí; SSH solo con clave, pf con la IP de la oficina por
-  DuckDNS, LuLu solo deja binarios firmados. Titín **autorizó** a LOCAL-5 la tarea de madrugada (launchd en la 7,1) cuando
-  la 5,1 esté lista. Los hosts DuckDNS (oficina y estudio) **no van a GitHub** (decisión del 19-10).
-- **Salto de base al 128 (FM.26):** estudiado, ~330–710 h; no ahora. Antes, medir: Chromium 128 limpio para 10.14 (LOCAL)
-  y CVE de 117–128 fuera de Blink/V8 (SEGURIDAD).
-- **Cifras (ns2):** solo cuentan descargas completas; oficina fuera de la web; IP distintas privadas. Uso real ≈ los Macs de
-  Titín y su familia.
-- **Límite semanal:** se renovó el martes 20-10, 09:00.
+**Decisiones de Titín del 20-10** (todas en TAREAS): orden 1.15.2 → 1.15.3 → migración; no abrir el 132 sobre la 116;
+la 128 en paralelo pero nunca dos compilaciones a la vez en la 7,1; mínimo de la 2.0.0 = Mojave (su madre sube a Mojave
+el MacBook Air 2013); criba FM.30 aprobada (solo medir botones, LOCAL); G5 aparcado hasta tener fork; Leo y similares
+apagados, se borran cuando haya fork; copia de Chromium Legacy en `lamosquita-net/chromium-legacy` (la hizo Titín:
+COORDINACIÓN no puede hacer forks fuera de softmac).
+
+**Estudios del 20-10 (INVESTIGACIÓN):** `g5-viabilidad.md`, `criba-fm30.md`, `migracion-128.md` (130–330 h, central ~230),
+`chromium-legacy.md`, `legacy-evolucion.md` (Chromium sube el mínimo de macOS en 117, 129 y 139: cada salto de base cuesta
+~30–60 h por versión de macOS), `brave-sync-shields.md`, `brave-vs-flyweb.md` (**trampa: constantes de Brave en cabeceras**),
+`brave-servicios-nuevos.md`, `brave-170-173.md`, `brave-vs-parches-motor.md`, `cve-117-128-fuera.md` (SEGURIDAD).
+**Comprobaciones obligatorias de la Fase 1:** en la fila FM.31.
+
+**Pendiente con Titín:** descargar Xcode 15 (SDK 14) para compilar la 128; aprobar la tarjeta de confianza desde la app;
+configurar la 5,1 en el estudio (acceso remoto de LOCAL); dos decisiones menores de FM.35 (política `BraveSyncUrl`, MV2).
+Límite semanal en **aviso** (`allowed_warning`) hasta el **martes 27-10, 08:00**: nada de flujos grandes ni muchos agentes.
+
+**Coste observado (`cost_usd` de `get_session`):** lo caro es el contexto largo releído en cada turno, no el modelo.
+MOTOR-13 (Opus xhigh) portó el anchor por ~$3; INVESTIGACIÓN (Sonnet alto) ~$39 en 2 días; SEGURIDAD-PORTES-3 (Opus medio)
+~$116 en 5 días al 76 %. Relevar antes ahorra más que cambiar de modelo.
 
 ## Red del entorno de la nube
 
@@ -172,15 +181,28 @@ Solo lectura y pocas peticiones. Otro dominio se le pide al HUMANO.
 - **(20-10) Revisar lo que propone SEGURIDAD-PORTES con criterio:** un arreglo parcial en código sensible (URL) se revierte
   si crea un tercer comportamiento; mejor diferencia conocida hasta el porte completo (FM.23).
 
-## Texto de arranque para COORDINACIÓN-8
+- **(20-10) Comprobar tú lo que entra en un sha** con `git merge-base --is-ancestor` antes de darlo por bueno: MOTOR-13 dio
+  dos shas sin la rama de seguridad que tenía que llevar.
+- **(20-10) Finch otra vez:** `KeyboardFocusableScrollers` la apagó Google por servidor en Chrome 130/131 (rendimiento) y
+  nosotros la encendimos al leer el código. Brave lo refleja en su json5: mirar el de la versión de Brave del nivel.
+- **(20-10) Las estimaciones de horas siguen saliendo muy pesimistas** (anchor: 18–28 h estimadas, ~4 h reales; migración
+  recalibrada de 550 a ~230 h). Pedir medición antes de decidir y desconfiar de los rangos de papel.
+- **(20-10) Notificaciones de GitHub y coste:** cada PR genera dos avisos (suscripción y cierre) y **cada aviso despierta
+  a COORDINACIÓN y relee todo su contexto**; con ~30 PR al día y el contexto al 60 % es un gasto real. Agrupar los cambios
+  del tablero en pocos PR (uno por tanda de decisiones, no uno por fila) y relevar a tiempo. No escribir a Titín por ellos.
+- **(20-10) El reinicio semanal no ha cambiado:** es a las 07:00 UTC (09:00 en verano y 08:00 en invierno en Madrid; el
+  25-10 cambia la hora). Medir el gasto por tarea con `cost_usd` de `get_session`, no por intuición.
 
-Abrirla desde la app: nube, repos `softmac` y `brave-core`, **Opus 5.5, esfuerzo alto (`high`)**, y pegar:
+## Texto de arranque para COORDINACIÓN-9
+
+Abrirla desde la app: nube, repo `softmac`, **Opus 5.5, esfuerzo alto (`high`)**, y pegar:
 
 ```
-Eres COORDINACIÓN de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-net/brave-core): COORDINACIÓN-8, relevo de COORDINACIÓN-7 (session_01Bd9Hw5nWqeXcgGZgMYtZ9n). Lee en este orden: CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–20, FM.22 y FM.26) y FlyWeb/docs/coordinacion.md (nota de relevo del 20-10, sobre todo «Trampas»: debatir con Titín antes de mover a nadie).
+Eres COORDINACIÓN de FlyWeb (monorepo lamosquita-net/softmac; fork lamosquita-net/brave-core): COORDINACIÓN-9, relevo de COORDINACIÓN-8 (session_0133Pd3pUk1DtKWpYpE53qB4). Lee en este orden: CLAUDE.md, docs/TAREAS.md (tabla, reglas 1–20, FM.28, FM.29, FM.31 y FS.20–FS.22) y FlyWeb/docs/coordinacion.md (nota de relevo del 20-10, sobre todo «Agentes y cómo hablarles» y «Trampas»: debatir con Titín antes de mover a nadie).
 1. Comprueba con get_session tu modelo, si tienes send_message, tus repos y rate_limit_info. Dímelo en una línea.
 2. Dame tu id de sesión y el texto exacto que debo pegar al Vigía para cambiarle el destino.
-3. Anota en tu fila de docs/TAREAS.md (commit «[coord]», por PR, que fusionas tú) que COORDINACIÓN es ahora esta sesión. Avisa con send_message a MOTOR-12, SEGURIDAD-PORTES-3, INVESTIGACIÓN-MOTOR, LOCAL-5, PUBLICACIÓN y SERVIDOR-LOCAL-2 de tu id. Archiva session_01Bd9Hw5nWqeXcgGZgMYtZ9n.
-4. Sigue la 1.15.1 hasta su publicación y prepárame la propuesta de orden de lo siguiente (está en la nota).
+3. Anota en tu fila de docs/TAREAS.md (commit «[coord]», por PR, que fusionas tú) que COORDINACIÓN es ahora esta sesión. Avisa con send_message a MOTOR-13, SEGURIDAD-PORTES-3, INVESTIGACIÓN-MOTOR y CONTENIDOS-WEB-2 de tu id; a los de la 7,1 (LOCAL-5, PUBLICACIÓN, SERVIDOR-LOCAL-2) prueba también y, si la plataforma lo bloquea, dime qué tengo que aprobar. Archiva session_0133Pd3pUk1DtKWpYpE53qB4.
+4. Abre con create_session (este entorno, repo softmac, Opus 5.5, esfuerzo medio) la sesión CONOCIMIENTO-1 para la fila OR.1 de docs/TAREAS.md (optimizar el conocimiento: archivo del tablero, DIRECTIVAS.md, arranque mínimo, manuales de método); revisa y fusiona sus PR.
+5. Sigue la 1.15.2 hasta su publicación y la Fase 0 de la migración (compilación de Chromium 128 de LOCAL).
 Al HUMANO se le llama Titín. Español, commits en inglés con Co-Authored-By de Claude. Breve, crítico y con conclusión; a mí solo decisiones. No me escribas por avisos rutinarios.
 ```
