@@ -1396,6 +1396,20 @@ prueba de que `Float16Array` y `using` aún no existen, que salen en la 134–13
 con `css/css-color/`, `html/rendering/the-details-element/` y `html/semantics/forms/the-meter-element/` enteros).
 «Para la web» en `version-1.15.md`.
 
+### 12. Anchor positioning (FM.28, MOTOR-13, 20-10): FlyWeb 1.15.2
+
+Porte grande dentro del nivel 131 (regla 18). Era lo que «Fuera» de los §2–§3 dejaba aparte (`anchor-scope`,
+`CSSPositionArea*`, `CSSInsetAreaProperty`). brave-core `nube/motor-131-anchor` sobre la 1.15.1: la cadena entera de
+upstream de 2023 a la rama de la 131, unos 230 commits en cuatro fases (`FlyWeb/tools/port/anchor-fases.tsv`), con los
+arreglos posteriores a la 131 que pidió SEGURIDAD-PORTES (FS.21). Va igual que en la 131: `anchor()`/`anchor-size()`
+(no en insets ni márgenes), `position-area`, `position-try-fallbacks`/`-order`, `@position-try`,
+`position-visibility`, `anchor-scope` y el `anchor-center` nuevo. **No va:** el atributo `anchor` y el ancla implícita
+de quien abre un popover (flags experimentales en la 131), `<select>` personalizable y la relación de accesibilidad
+`aria-details` entre ancla y anclado (74a5382ac8b, por la infraestructura de accesibilidad de la 116). Adaptaciones a la
+116, controles y trampas en `FlyWeb/tools/port/README.md` («Porte grande con fusión a tres bandas»). Comprobación:
+sección «Anchor positioning (1.15.2)» de `motor-131.html` y `wpt-fm28-lista.txt`. Detalle y estado en
+`version-1.15.2.md`.
+
 ## Apuntado para niveles futuros
 
 - **143 — `onselectionchange` como atributo de elemento** (`<div onselectionchange=…>`, `setAttribute`): Chromium
