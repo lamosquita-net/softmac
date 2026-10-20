@@ -13,7 +13,7 @@ medidas de `migracion-128.md` (FM.31/FM.32); aquí se miran **una a una las edic
   toca, **71** se fusionan limpios, **16** son solo marca (se regeneran), **78** chocan poco (a mano), **5** chocan mucho y
   **34** los **movió o borró**. Chromium, no Brave, absorbió el grueso del motor (~1 040 de nuestros 1 372 parches de
   motor, FM.32).
-- **Brave no absorbió nada nuestro** [V]: solo hay 3 parches con el mismo nombre (colisiones, §4); no he visto ningún
+- **Brave no absorbió nada nuestro** [V]: solo hay **4** parches con el mismo nombre (colisiones, §4; **corregido el 20-10: eran 3, falta `runtime_enabled_features.json5`**); no he visto ningún
   commit de Brave que haga lo que hace una edición nuestra.
 - **Quitó** [V]: **IPFS de escritorio** (78 ficheros en `components/ipfs` → 10, y `ipfs_ui`, `browser/ipfs`), `adblock_rust_ffi` (movido a `brave_shields/adblock`) y
   `cdm` (sustituido por `widevine` [I]); `page_info` ya no existe como carpeta. **15 de nuestros 34 ficheros desaparecen con
@@ -22,7 +22,7 @@ medidas de `migracion-128.md` (FM.31/FM.32); aquí se miran **una a una las edic
   constexpr`) y **tres ediciones funcionales** quedarían en el aire con una fusión por defecto: el esquema `flyweb://`, los
   *proxies* de Safe Browsing y el monedero siempre apagado. No fallaría nada al compilar. **Es la trampa principal** (§3).
 - **Hay además una trampa ruidosa** (§5): tres argumentos de GN de `build.sh` dejan de existir en la 1.69 y `gn gen` falla.
-- **Horas:** ≈ **7–13 h** para reubicar lo que Brave movió (dentro de la clase C de FM.32); se **ahorran ≈ 1–4 h** de
+- **Horas:** ≈ **8–15 h** para reubicar lo que Brave movió (dentro de la clase C de FM.32); se **ahorran ≈ 1–4 h** de
   lo que desaparece. **El total de FM.32 no cambia.**
 
 ## 2. Método y límites
@@ -95,10 +95,13 @@ mínima: `window.ethereum` y `window.solana` indefinidos en una página cualquie
 
 ## 4. Parches propios
 
-[V] Colisiones: tres Chromium-ficheros que **Brave y nosotros parcheamos** con el mismo nombre en `patches/`:
-`content-app_shim_remote_cocoa-render_widget_host_view_cocoa.mm`, `...blink-renderer-core-editing-commands-clipboard_commands.cc`
-y `...blink-renderer-core-frame-local_dom_window.cc`. Hay que **fundirlos en uno** (1–2 h); `git` los da como «añadido en
-ambos».
+[V] Colisiones: **cuatro** Chromium-ficheros que **Brave y nosotros parcheamos** con el mismo nombre en `patches/` (Brave los añadió
+en 1.58–1.69): `content-app_shim_remote_cocoa-render_widget_host_view_cocoa.mm`,
+`...blink-renderer-core-editing-commands-clipboard_commands.cc`, `...blink-renderer-core-frame-local_dom_window.cc` y
+**`...blink-renderer-platform-runtime_enabled_features.json5`**. **Corrección del 20-10 (FM.35, parte 3):** en la primera versión
+de este documento la cuarta se me escapó, y es **la más importante**: es el fichero donde se encienden las *flags* de todos los
+niveles (nuestro parche lleva 107 *hunks*, ≈ 1 745 líneas; el de Brave, 4 hunks en la 1.69 y 5 en la 1.73). Hay que **fundirlos en
+uno** (2–4 h en total; la cuarta, 1–2 h por sí sola); `git` los da como «añadido en ambos». Detalle en `brave-vs-parches-motor.md`.
 
 - **Parches de motor y seguridad (1 327)**, ya medidos en FM.32: ~1 040 vienen de serie en la 128, ~320 se vuelven a cortar,
   14 de V8 siguen (el `v8-revision` independiente).
@@ -132,7 +135,7 @@ conviene mirar junto a la decisión sobre los componentes de Google.
 | | Cuánto | Dónde |
 |---|---|---|
 | **Se ahorra** | ≈ 1–4 h: 15 ficheros que desaparecen y 2 parches obsoletos | §3.4, §4 |
-| **Hay que reubicar** | ≈ 7–13 h: 5 constantes (1,5–3 h), ≈ 10 ediciones movidas (2–5 h), 3 colisiones de parches (1–2 h), 3 argumentos (0,5 h), marca (≤ 1 h) y la comprobación de §7 (1 h) | §3.1–§3.3, §4, §5 |
+| **Hay que reubicar** | ≈ 8–15 h: 5 constantes (1,5–3 h), ≈ 10 ediciones movidas (2–5 h), 4 colisiones de parches (2–4 h), 3 argumentos (0,5 h), marca (≤ 1 h) y la comprobación de §7 (1 h) | §3.1–§3.3, §4, §5 |
 | **Vigilar, silenciosos** | 6 (las 5 constantes, que incluyen `flyweb://` y los *proxies*, y el monedero) | §3.1, §3.2 |
 
 ### Comprobación propuesta (para LOCAL, tras fusionar)
