@@ -3,6 +3,57 @@
 Nota de relevo del agente LOCAL de FlyWeb (compila, prueba y lleva `flyweb`). La deja cada LOCAL al salir; el siguiente
 la lee después de `CLAUDE.md` y de `docs/TAREAS.md` (tabla, reglas y filas FM/FS abiertas).
 
+## LOCAL-7 → LOCAL-8 (22-10-2026)
+
+LOCAL-7 (`local_f2edb095-eee0-450b-bae3-0c69492607e2` «Compilación Local (7)»; Opus 5.5, esfuerzo alto, modo auto; 21-10 ~18:30 –
+22-10 ~00:30). Nota al 49 % de contexto, en punto limpio (sin compilación en marcha). Guiones y registros en `~/proyectos/softmac/temp/local7/`.
+**Canales:** COORDINACIÓN-11 («Coordinación (11)», `session_016LAphUszobDrthjRLX51N9`) y MOTOR-16 («Motor (16)»,
+`session_01R24qB8o9yirUqVC7H1ZVc6`) por `SendMessage` con el nombre de `ListAgents` (llegan; no contestan directo: su respuesta
+viene por **Cartero-Local FlyWeb**, buzón `AAAAMMDD-HHMM-*.md`).
+
+### PARA LOCAL-8: QUÉ HACER AL EMPEZAR
+
+1. **`flyweb` = 1.15.2 publicada** (9401833a66, árbol de `nube/motor-131-anchor-f16` af0328adeb; FM.28). Nada pendiente ahí.
+2. **Brave 1.69 / base 128 (FM.31), en `~/proyectos/brave-128/brave-browser`** (aparte de `flyweb-build` y de `chromium-128`):
+   - Última compilación: Static sin PCH de `nube/base-128-motor-p3` de4d1b24b1, **diagnóstico** (`DIAG=1`: el hunk de
+     `patches/v8/gni-v8.gni.patch` revertido en local; MOTOR-16 ya lo quitó en `nube/base-128-motor-c1` 7aeaf00b0a).
+     65 902/66 375 pasos, **solo 2 errores, de motor, ya enviados a MOTOR-16**: `css_selector.cc:1722` (`kPseudoHostHasAppearance`;
+     en la 128 es `kPseudoHostHasNonAutoAppearance`) y `style_builder_converter.cc:97` (incluye `style_view_transition_group.h`,
+     que la 128 no tiene). Registro: `temp/local7/brave128-compila.log`.
+   - **Siguiente:** cuando MOTOR-16 fije `-p4` (sha por el buzón; comprobar con `git ls-remote`), cambiar `SHA=` en
+     `temp/local7/brave128-compila.sh` y lanzarlo **sin** `DIAG` (`nohup zsh brave128-compila.sh > brave128-compila.nohup 2>&1 &`):
+     es incremental (~65 900 objetos hechos). Luego, la orden de COORDINACIÓN-11: `blink_unittests`, `motor-129…131.html` y WPT (como en
+     la 1.15.2), JA4 frente a CfT 131 (0x11ec) y el interruptor `--disable-features=UseMLKEM`; en la 6,1, `chrome://gpu`, caídas y vídeo
+     con CPU (`temp/local7/video61.sh`, `en-61-gpu.sh` + `gpu10.py`) frente a la 1.15.2. Resultados en FM.31 y a COORDINACIÓN.
+   - Argumentos: SDK 14.5, `mac_deployment_target`/`mac_min_system_version` 10.14, `treat_warnings_as_errors=false`,
+     `dcheck_always_on=false`, URL inertes de la 116. **Sin** `enable_ai_chat:false` ni `enable_brave_vpn:false` (Brave 1.69 puro
+     hace `assert(enable_ai_chat)` en `brave/test`; va con la Fase 2).
+   - Los parches de Mojave van en `temp/local7/parches-128/{src,angle,dawn}.diff` (Fase 0 de LOCAL-6 + Fase 1 de LOCAL-7) y el guion
+     los aplica tras `apply_patches`. Si `apply_patches` falla en un fichero que aplica limpio con `git apply --check --cached`, es que
+     quedó tocado de una pasada anterior: `git checkout --` ese fichero y repetir.
+3. **5,1:** sin configurar (`temp/local5/medir-51.conf` no existe; faltan usuario, puerto y host del estudio, de Titín por mensaje).
+
+### Hallazgos y trampas (21-10)
+
+- **GPU de la 128 en Mojave: hecho en la 6,1** (FM.31). Parches «FlyWeb (LOCAL-7)» en `~/proyectos/chromium-128` y en los diff:
+  `ui/gfx/mac/color_space_util.mm` (`kCMFormatDescriptionTransferFunction_sRGB`, 10.15: SEGV al crear IOSurfaces; se repone el
+  `@available` de la 116), Dawn `PhysicalDeviceMTL.mm` (2 `supportsFamily:` sin proteger + `GetMTLGPUFamily` con `MTLFeatureSet`) y
+  `AlignedAlloc.cpp` (`aligned_alloc` → `posix_memalign`), `components/metal_util/hdr_copier_layer.mm` (sin capa HDR en 10.14).
+  Resultado: todo acelerado, 0 caídas en 10 min, WebGL a 60 fps; vídeo 1080p H.264 18 % de un núcleo (1.15.2: 12 %).
+- **Patrón (COORDINACIÓN-11):** en cada aviso de los 70, mirar la versión de la 116; si tenía `@available`, recuperarlo.
+- **Chromium no oficial aplica `fieldtrial_testing_config.json`** (enciende SkiaGraphite → Dawn → caídas falsas): probar siempre
+  con `--disable-field-trial-config`.
+- **Cuelgue al arrancar = DIAL + LuLu, no GPU:** `Chrome_IOThread` bloqueado en `__sendto` de `media_router::DialServiceImpl`; en
+  Chromium limpio, `--disable-features=MediaRouter,DialMediaRouteProvider`. Para cuelgues: `sample` de TODOS los hilos
+  (`temp/local7/c128-cuelgue61.sh`), y la pila de una SEGV se simboliza con `atos -l <carga>` calculando la carga con un marco conocido.
+- **Restos en la 6,1:** matar el ssh local no cierra el navegador remoto y el siguiente arranque habla con el viejo por el mismo puerto
+  CDP; `en-61-gpu.sh` ya limpia restos de la misma app al empezar.
+- **Checkout `brave-128`:** `src` es un clon APFS del `src` de la 128 (copiar el CONTENIDO: brave-browser trae `src/.gitkeep`);
+  `src/brave/.env` con `projects_chrome_repository_url` (googlesource, para no volver a bajar Chromium) y
+  `projects_depot_tools_revision=31e21628` (el vpython de 2026 no resuelve `src/.vpython3`); `.gclient` con `custom_hooks`
+  `vpython3_common`. No usar `npm run sync -- --init` (regenera el `.gclient`). Si `ensure_bootstrap` se queda parado, es
+  `gsutil.py version` con una conexión colgada: matar ese python.
+
 ## LOCAL-6 → LOCAL-7 (21-10-2026)
 
 LOCAL-6 (`local_20642d1a-f0eb-4bf8-aef4-33710985666c` «Compilación Local (6)»; Opus 5.5, esfuerzo alto, modo auto; 21-10 ~10:00 –).
