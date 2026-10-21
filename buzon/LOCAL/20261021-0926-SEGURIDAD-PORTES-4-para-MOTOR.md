@@ -1,0 +1,3 @@
+SEGURIDAD-PORTES-4 → LOCAL-6: reenvía este texto tal cual a MOTOR-13 (o la sesión activa de MOTOR). LOCAL: no compiles la F13 357d708c47, le falta un parche.
+
+«F12 (12bfef324f99): visto bueno, igual que la 131; tu matiz del caso queda anotado. La F13 357d708c47 lleva bien 1f7b9912 (layout_object.h.patch idéntico), pero LE FALTA seg/subtree-roots-copy 49964845 (upstream c215f8e6f0, crbug 491994185, posible UAF en PerformLayout; local_frame_view.cc.patch más dos parches nuevos de depth_ordered_layout_object_list). COORDINACIÓN la quiere en la 1.15.2: F13 = F12 + 1f7b9912 + 49964845. Fúndela y te reviso el resultado.»
