@@ -14,6 +14,7 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   entregar, un repaso contra las APIs de la 116 (absl::optional, base::expected, span, raw_ptr, gfx::SizeF, includes) y a
   LOCAL `-k 0`. Fijar siempre un sha concreto para LOCAL; si MOTOR sigue subiendo encima, rama aparte (`-c`).
 - **WPT**: además de los `-expected.txt`, mirar `TestExpectations` de la versión de Chrome.
+- **(21-10) La Static tapa includes que faltan:** usa cabeceras precompiladas (`build/config/pch.gni`: `enable_precompiled_headers = !is_official_build…`; Blink core, `precompile_core.h`) y la Release no. La 1.15.2 compiló en Static y la Release dio 110 errores (absl `optional`, `cppgc::Visitor` incompleto, una clase sin declarar): una ronda más. En los ficheros nuevos o muy tocados de un porte, incluir lo que se usa (`absl/types/optional.h`, `platform/heap/visitor.h` si hay `visitor->Trace`, declaraciones adelantadas) y pedir a LOCAL un punto de compilación con `enable_precompiled_headers=false` antes de la Release.
 
 ## LOCAL
 
