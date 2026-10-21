@@ -15,7 +15,7 @@ confianza y dejó de recibir mensajes de la nube.
 **COORDINACIÓN-10 (`session_01U31mzo4UdTUgf3gkhqxKmb`), 21-10 ~10:05:** el clasificador del modo Auto **bloquea ordenar a
 otra sesión que llame a `confirm_repository_trust`** («Auto-Mode Bypass»): la tarjeta del cartero la tiene que pedir Titín
 en la sesión del Vigía. Archivar una sesión aprobada (COORDINACIÓN-9) falla desde la nube («requires a trusted device»):
-la archiva Titín. Buzón montado (rama `buzon`, `buzon/README.md`), con un primer mensaje para LOCAL.
+la archiva Titín. Buzón montado (rama `buzon`, `buzon/README.md`). **Corrección:** el CARTERO no es el Vigía sino una sesión nueva, CARTERO-1 `session_01RteKFFeayEirn8fTGKbFnC` (Haiku, aprobada; rutina `trig_01ByndD2HyrSWPyNqauBF7uH` a :37); el Vigía sigue solo vigilando. Como el cartero no recibe de la nube, sus instrucciones se cambian en `buzon/README.md`.
 
 **Canal entre sesiones (comprobado el 21-10; no documentado, deducido de estos casos):**
 - La tarjeta (`confirm_repository_trust`) la aprueba Titín, una vez por sesión. La sesión aprobada puede escribir a la
