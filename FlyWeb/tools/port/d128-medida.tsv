@@ -1,0 +1,117 @@
+# Fase 3, clase D (MOTOR-14, 21-10): commits de upstream de los niveles 129–131 (nivelN-commits.tsv, hechos), de anchor (anchor-clas.tsv, clase anchor) y escapes de FM.22 (fm22-escapes.tsv, portar) que NO están en 128.0.6613.138 (git merge-base --is-ancestor).
+# Medida: medirbase.sh sobre cr128 + patches/ de Brave v1.69.168 (6918a99a), en cadena N129→N130→N131→FM28, sin tests. Duplicados quitados (af046fa668e y 28ba7b2a6c5 de FM.22 van en FM28).
+grupo	porte	commit	fecha	hunks	rechazados	fuzz	ausentes
+N129	flags-pocos	c8e11ca620e	2024-07-24	1	0	0	0
+N129	flags-limpias	4268dcfcc60	2024-07-25	5	0	0	0
+N129	flags-limpias	2a25e3550de	2024-07-25	3	0	0	0
+N129	container-type	e28cd00c20c	2024-07-25	3	0	0	0
+N129	flags-pocos	f4d6f2ea661	2024-07-30	5	0	0	0
+N129	flags-pocos	5610b4322aa	2024-07-30	3	0	0	0
+N129	flags-limpias	ee343f49bbf	2024-07-31	3	0	0	0
+N129	rtc-blob	f1b59d2be7b	2024-08-01	20	1	0	0
+N129	flags-limpias	f1ccaff48fb	2024-08-05	2	0	0	0
+N129	webauthn-json	a9ec75b24ad	2024-08-06	13	0	0	0
+N129	V8-gin	abf6e5b63e6	2024-08-06	22	2	0	8
+N129	flags-limpias	c3113fb4a0a	2024-08-07	3	0	0	0
+N129	webauthn-json	4df593b6054	2024-08-08	1	0	0	0
+N129	flags-pocos	bdb93badc1c	2024-08-09	10	0	0	0
+N129	webauthn-json	3e310890d6d	2024-08-14	2	0	0	0
+N129	flags-limpias	f93ba2512ae	2024-08-15	2	0	0	0
+N129	aria-indextext	75fdde77374	2024-09-06	6	0	0	2
+N129	rtc-blob	f12d06e864d	2024-09-09	1	1	0	0
+N129	ya-hecho	9900d924764	2024-09-23	1	0	0	0
+N130	rtc-transferable	6e640199859	2024-08-05	15	2	0	0
+N130	rtc-transferable	e112b3ea554	2024-08-07	28	0	2	0
+N130	MutationEvents	cc4fc38654c	2024-08-20	1	0	0	0
+N130	text-wrap	ee5d3f203d9	2024-08-26	39	4	1	0
+N130	flag-CSSFlatTreeContainer	9425692817a	2024-08-26	1	0	0	0
+N130	flag-PopoverDialogNewFocusBehavior	e3092e4a179	2024-08-26	2	0	1	0
+N130	flag-CSSPartAllowsMoreSelectorsAfter	93d7245624c	2024-08-26	6	5	1	0
+N130	rtc-transferable	1f5f2853635	2024-08-26	1	0	0	0
+N130	nested-declarations	3ae71aa0358	2024-08-27	48	4	4	0
+N130	flag-CSSPartAllowsMoreSelectorsAfter	4dc44de4d2b	2024-08-27	1	1	0	0
+N130	flag-PointerEventTargetsInEventLists	365b4154cbd	2024-08-28	4	3	0	0
+N130	nested-declarations	61067c8a5ba	2024-08-29	15	4	2	0
+N130	nested-declarations	11e3a184408	2024-08-29	23	3	5	0
+N130	flag-KeyboardFocusableScrollers	199d1a77501	2024-08-30	70	0	3	0
+N130	flag-RemoveCollapsedPlaceholder	5017a8fc5de	2024-08-31	7	0	0	0
+N130	nested-declarations	a9b425e2212	2024-09-02	2	1	0	0
+N130	nested-declarations	0a6d3ac600e	2024-09-02	7	0	0	0
+N130	flag-CSSPartAllowsMoreSelectorsAfter	8b4e6af3bdf	2024-09-02	7	4	0	0
+N130	nested-declarations	b4b329c0e7a	2024-09-02	3	0	0	0
+N130	nested-declarations	63303296ddf	2024-09-04	1	0	0	0
+N130	flag-KeyboardFocusableScrollers	6f8b4173951	2024-09-05	1	0	0	0
+N130	flag-ResetInputTypeToNoneBeforeCharacterInput	2b7df017cf3	2024-09-06	6	0	0	0
+N130	flag-StricterCellWidthContentSizeQuirk	d192ad18b88	2024-09-06	2	1	0	0
+N130	flag-PointerEventTargetsInEventLists	8f487908070	2024-09-06	1	1	0	0
+N130	data-url-whitespace	34b6c2b36e8	2024-09-09	16	1	0	9
+N130	popover-force	8010721fc51	2024-09-09	11	0	1	0
+N130	flag-RootElementWithPlaceHolderAfterDeletingSelection	95d6e97c5f7	2024-09-11	2	0	0	0
+N130	flag-CSSPartAllowsMoreSelectorsAfter	bce9d30ec57	2024-09-12	1	0	1	0
+N131	aplazado-meter	9471f0750b4	2024-08-02	14	1	0	0
+N131	aplazado-meter	c175ade2630	2024-08-06	1	0	0	0
+N131	relative-color-currentcolor	46cf2dd8259	2024-08-09	33	10	3	0
+N131	aplazado-meter	b5e9c3cde1a	2024-08-16	6	0	0	0
+N131	aplazado-meter	c805397b42a	2024-08-23	1	0	0	0
+N131	aplazado-MultiSmoothScrollIntoView	dbdf58279ce	2024-08-29	1	0	0	0
+N131	flag-CSSAtPropertyStringSyntax	8ef3ec8c032	2024-08-30	7	0	1	0
+N131	aplazado-PseudoElementsCorrectInGetComputedStyle	471ed5d216b	2024-09-04	21	1	0	0
+N131	aplazado-PseudoElementsCorrectInGetComputedStyle	7e13e3080e9	2024-09-04	2	0	1	0
+N131	details-content (cascada)	9065c891224	2024-09-09	9	0	0	0
+N131	details-content (cascada)	8a5bc8d0550	2024-09-09	6	0	0	0
+N131	relative-color-currentcolor	bc80986ece2	2024-09-09	7	2	1	2
+N131	relative-color-currentcolor	0a5f7688162	2024-09-10	1	0	0	0
+N131	aplazado-meter	86b30d404ec	2024-09-11	2	0	0	0
+N131	aplazado-MultiSmoothScrollIntoView	16f1bb80b2e	2024-09-11	1	1	0	0
+N131	flag-CSSAtPropertyStringSyntax	11de2beffb6	2024-09-18	1	0	0	0
+N131	details-content (cascada)	951ace75914	2024-09-20	44	3	1	1
+N131	flags-131-interop	77147f8ac66	2024-09-24	2	1	1	0
+N131	flags-131-interop	91379783ec7	2024-09-24	2	1	0	0
+N131	relative-color-currentcolor	a7fccf6b808	2024-09-24	1	0	0	0
+N131	flag-SvgExternalResources	5e5a9e44286	2024-09-25	24	0	1	0
+N131	flags-131-interop	9b8c2484180	2024-09-25	2	0	0	0
+N131	flags-131-interop	3561ed8aa28	2024-10-01	2	0	0	0
+N131	details-content	ca1fb13815a	2024-10-09	6	2	1	0
+N131	details-content	60972f7d007	2024-10-09	1	0	0	0
+N131	flags-131-interop	cdd39e79efc	2024-10-10	2	0	0	0
+N131	flags-131-interop	d04e13c6871	2024-10-11	5	0	0	0
+N131	flag-SvgExternalResources	1cdb2f557b7	2024-10-11	1	0	0	0
+N131	flags-131-interop	1e4c5f5101d	2024-10-14	3	0	0	0
+N131	flags-131-interop	1fea2fe8c97	2024-10-16	14	0	1	0
+N131	nesting-inspector	4888675b6c9	2024-10-31	1	0	0	1
+FM28	anchor	4c44f76a30b	2024-07-24	1	0	0	0
+FM28	anchor	8e9ce7564ab	2024-07-29	1	1	0	0
+FM28	anchor	d24d4099735	2024-08-02	4	0	0	0
+FM28	anchor	7c108c7b2e7	2024-08-02	1	0	0	0
+FM28	anchor	af046fa668e	2024-08-06	113	1	0	0
+FM28	anchor	4e48c369ccb	2024-08-06	4	1	0	0
+FM28	anchor	36e8cecee4e	2024-08-06	1	0	0	0
+FM28	anchor	3253335fbac	2024-08-12	36	4	0	0
+FM28	anchor	b0118e89de4	2024-08-21	5	1	0	4
+FM28	anchor	bf70c545190	2024-08-26	6	0	1	0
+FM28	anchor	73a049f7c98	2024-08-29	1	0	0	0
+FM28	anchor	1e0d6c9265b	2024-08-29	24	2	0	0
+FM28	anchor	8a550063f6f	2024-08-30	1	0	0	0
+FM28	anchor	fdf0f2d78b8	2024-09-05	2	0	0	0
+FM28	anchor	b8d4478a949	2024-09-05	1	0	1	0
+FM28	anchor	73e7e3b55ee	2024-09-10	39	7	2	2
+FM28	anchor	d8145fe9e98	2024-09-23	36	1	1	0
+FM28	anchor	19879a57c77	2024-09-23	1	0	0	0
+FM28	anchor	0e664de7843	2024-09-24	2	0	0	1
+FM28	anchor	74a5382ac8b	2024-09-24	42	3	3	0
+FM28	anchor	2dd9aa86731	2024-10-01	1	0	0	0
+FM28	anchor	08cc73f6704	2024-10-01	5	0	1	0
+FM28	anchor	dc6dd8db71a	2024-10-09	24	0	0	0
+FM28	anchor	d4e557d30af	2024-10-10	15	0	0	0
+FM28	anchor	256175bafdd	2024-10-11	15	13	0	0
+FM28	anchor	f214d6ab8e8	2024-10-22	1	0	0	0
+# Los 9 commits que no salen en la historia 116..131/129: 7 del nivel 129 (webauthn-json, rtc-blob, aria-indextext, ya-hecho; Merged: de la rama 6668) y 2 sin commit (apagado-getInnerHTML, escape-CustomElementsGetName).
+N129	webauthn-json	434f57a28bd	desconocido
+N129	webauthn-json	881db66b5c2	desconocido
+N129	rtc-blob	f12d06e864d	desconocido
+N129	rtc-blob	6e4bc681b82	desconocido
+N129	rtc-blob	1116bad3e0a	desconocido
+N129	aria-indextext	75fdde77374	desconocido
+N129	ya-hecho	9900d924764	desconocido
+N130	apagado-getInnerHTML	—	desconocido
+N131	escape-CustomElementsGetName	—	desconocido
