@@ -17,6 +17,7 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Mínimo garantizado: macOS 10.14 Mojave, Intel x86_64; nada que exija AVX** (la MacPro5,1 no lo tiene). Monterey
   «debería» funcionar, sin garantía. La 2.0.0 (base 128) también exige Mojave (HUMANO, 20-10: se deja High Sierra);
   en su appcast, `sparkle:minimumSystemVersion` 10.14.0. Fuentes: [`CLAUDE.md`](../CLAUDE.md), fila FM.31.
+- **La 2.0.0 no sale sin GPU en Mojave** (HUMANO, 21-10): aceleración igual que la 1.15 (canvas, composición, WebGL, WebGL2, vídeo) y sin caídas del proceso GPU, traduciendo a las APIs de Mojave lo que la 128 usa de 10.15 (Dawn incluido). WebGPU sigue apagado (CVE-2026-5281) hasta el nivel que traiga su arreglo. Fuente: fila FM.31.
 - **Criterio de aceptación: claude.ai funciona por completo** en FlyWeb (vía elegida para usar Claude en Mojave; un
   cliente propio con cuentas Pro/Max lo impiden los términos de Anthropic). Fuente: [`CLAUDE.md`](../CLAUDE.md).
 - **Identidad fija** (empresa `lamosquita`, producto FlyWeb, bundle id `net.lamosquita.flyweb[.canal]`, Team ID, perfil,
