@@ -5,8 +5,13 @@
 (F2, 38097e9ea2) dio 14 errores en 3 cabeceras; la segunda (porte entero, 5312cb22da), 40 en 17 ficheros; la tercera
 (767c49475b), **el navegador entero sin errores de C++** y un símbolo sin definir al enlazar (`Position::ApplyInherit`),
 más 115 errores en `blink_unittests`, de los que unos 88 venían de antes del porte. Están todos arreglados en
-**7f864fb08c** (rama fija `nube/motor-131-anchor-f7`); los de `blink_unittests`, solo en ficheros de test. Es la que
-falta compilar: navegador + `blink_unittests`. Desde la tarde del 20-10 la nube no puede escribir a LOCAL, así que
+7f864fb08c (`-f7`); los de `blink_unittests`, solo en ficheros de test. Con ella (y 510aab322e, `-f8`) el navegador y
+`blink_unittests` compilan y enlazan, pero **el renderer se caía en cualquier recálculo de estilo** (SEGV 0x38 en
+`Element::RecalcOwnStyle`): el código de upstream lee `new_style` después de `std::move(new_style)`, que en upstream no
+lo vacía porque `ComputedStyle` es GC, y en la 116 (`scoped_refptr`) sí. Arreglado en **6fef4b8068** (rama fija
+`nube/motor-131-anchor-f9`), con el estilo candidato de `@position-try` guardado con referencia y sin el test que upstream
+quitó con los flags (3253335fbac); `trasmove.py` no encuentra más usos después de un `std::move` en el porte. Es la que
+falta compilar: navegador + `blink_unittests` y las pruebas a mano. Desde la tarde del 20-10 la nube no puede escribir a LOCAL, así que
 Titín le pasa el sha en persona. El 21-10 la 7,1 compila Chromium 128 (FM.31), y la Release y la publicación esperan a que acabe. Falta: los
 errores de esa Static, si hay; las pruebas a mano de LOCAL; las WPT, y la versión (`flyweb_version` 1.15.2). Detalle
 técnico: fila FM.28 de `docs/TAREAS.md`; criba de la cadena en `FlyWeb/tools/port/anchor-clas.tsv`.
