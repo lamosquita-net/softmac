@@ -6,12 +6,14 @@ Cada corte es un tramo de una fila entre dos marcas de texto (CORTES). El tramo 
 archivo, bajo el id de la fila, y en la fila queda un enlace. El script comprueba que, al volver a
 poner cada tramo en su sitio, la fila es idéntica a la original.
 
-Uso: historial-tablero.py [--dry-run] [ruta del repo]
+Uso: historial-tablero.py [--dry-run] [--filas=F0.8,FS.1,…] [ruta del repo]
+(--filas: solo esas filas y sin los cortes de la tabla de agentes, que ya se hicieron)
 """
 import re
 import sys
 
 DRY = '--dry-run' in sys.argv
+SOLO = [x for a in sys.argv[1:] if a.startswith('--filas=') for x in a[8:].split(',') if x]
 args = [a for a in sys.argv[1:] if not a.startswith('--')]
 ROOT = args[0] if args else '.'
 TAREAS = f'{ROOT}/docs/TAREAS.md'
@@ -34,7 +36,7 @@ CORTES = [
 lines = open(TAREAS, encoding='utf-8').read().split('\n')
 orig = list(lines)
 tramos = []  # (id, tramo)
-for pref, ini, fin in CORTES:
+for pref, ini, fin in ([] if SOLO else CORTES):
     n = [i for i, l in enumerate(lines) if l.startswith(pref + ' ')]
     assert len(n) == 1, f'fila {pref}: {len(n)}'
     l = lines[n[0]]
@@ -51,7 +53,7 @@ for pref, ini, fin in CORTES:
 
 # Filas vivas largas sin actividad reciente: se quedan el enunciado (lo anterior a la primera
 # entrada fechada), la entrada más reciente y las que recogen una decisión; el resto, al archivo.
-FILAS = ['F0.2', 'F1.8', 'F1.14', 'F2.2', 'F2.6', 'F4.7', 'F4.8', 'F7.2', 'F7.3', 'F7.5', 'F7.8',
+FILAS = SOLO or ['F0.2', 'F1.8', 'F1.14', 'F2.2', 'F2.6', 'F4.7', 'F4.8', 'F7.2', 'F7.3', 'F7.5', 'F7.8',
          'FM.5', 'FS.2', 'FS.3', 'FM.24', 'SV.6']
 ENTRADA = re.compile(r'\*\*(?:(?:[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ0-9\-/ ]{2,}[ ,]*)?(\d{1,2})[/-](\d{2})(?:[^*]{0,12}?(\d{1,2}):(\d{2}))?'
                      r'|Paso \d+)')

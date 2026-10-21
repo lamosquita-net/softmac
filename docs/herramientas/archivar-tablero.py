@@ -116,9 +116,14 @@ for sec, rows in moved.items():
             j -= 1
         arch[j:j] = nuevas_filas
     else:
-        if arch[-1] != '':
-            arch.append('')
-        arch += [sec, '', header[sec][0], header[sec][1]] + nuevas_filas + ['']
+        bloque = [sec, '', header[sec][0], header[sec][1]] + nuevas_filas + ['']
+        if '## Historial' in arch:  # las secciones del tablero van antes del historial
+            h = arch.index('## Historial')
+            arch[h:h] = bloque
+        else:
+            if arch[-1] != '':
+                arch.append('')
+            arch += bloque
 
 # Comprobaciones: nada se pierde.
 es_fila = lambda l: l.startswith('| ') and not l.startswith('|---') and l.split(' | ')[0] not in ('| #', '| Id')
