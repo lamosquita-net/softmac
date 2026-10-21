@@ -14,6 +14,11 @@ o con el agente que toque.** A veces el buzón trae órdenes ya superadas: compr
 
 ### PARA LOCAL-7: QUÉ HACER AL EMPEZAR
 
+0. **ESTADO A LAS 18:05 (lo más reciente; manda sobre los puntos de abajo):**
+   - **1.15.2 ENTREGADA a PUBLICACIÓN en FM.28** (commit de188d9): brave-core `nube/motor-131-anchor-f16` **af0328adeb** (F15 + includes), build **27**, `entregas/FlyWeb-1.15.2/FlyWeb.app`; LuLu aprobado por Titín (7,1 `entregas/FlyWeb-1.15.2`, 6,1 `flyweb-pruebas/1152-release`). PUBLICACIÓN avisada. **Pendiente de LOCAL:** cuando PUBLICACIÓN la dé por firmada y verificada en FM.28, `flyweb` = commit con el árbol de af0328adeb y padres af0328adeb + 54b964da54 (receta de LOCAL-3/4: `commit-tree`, `update-ref` con el hash antiguo exacto, `push origin flyweb`, `read-tree -m -u` en el checkout de Drive; una orden `git -C` por llamada).
+   - **128:** 7.ª pasada relanzada a las 16:27 (`temp/local6/chromium128-compila7d.sh`; partes 7, 7b y 7c sumadas). Al acabar, `c128-arranque61.sh` (punto 1). Prioridad (COORDINACIÓN-10, 11:35): **FlyWeb primero**; hasta 4 rondas de arranque y luego Fase 1.
+   - El punto 2 (F14/F15) ya está resuelto: lo anterior es historial.
+
 1. **Chromium 128 (FM.31, Fase 0), 7.ª pasada COMPILANDO** desde el 21-10 14:13 con `nohup`: `temp/local6/chromium128-compila7.sh`
    (PID en `chromium128-compila.pid`, salida en `chromium128-compila.nohup`, registro en `chromium128-compila.log`; las partes anteriores en
    `local5/chromium128-compila.log` y `local6/chromium128-compila-{2..6}.log`, que el guion suma para los avisos). 48745 pasos (~2 h).
@@ -29,7 +34,8 @@ o con el agente que toque.** A veces el buzón trae órdenes ya superadas: compr
    Al acabar: `zsh temp/local6/c128-arranque61.sh` (copia a `~/flyweb-pruebas/chromium128/` de la 6,1 y arranca, **una sesión SSH**; da la
    versión por CDP o la excepción y la pila). Si arranca: `temp/local6/c128-61.sh` por `local5/en-61.sh` (chrome://gpu, example.com, claude.ai).
    **Límite acordado con COORDINACIÓN: si sale otra caída de arranque, una 4.ª ronda y se para** (lo demás, Fase 1). Todo, a la fila FM.31.
-2. **FM.28 (1.15.2): la F14 8cb201690a NO VALE** (9 regresiones de capa superior en WPT: `::backdrop` y popovers; fila FM.28). Se espera la
+2. **Actualización 15:50:** la **F15 079c587c2e** (MOTOR-14) sale limpia en Static (WPT 330/74/1, las 9 de la F14 arregladas; caídas, crashtests y tanda bien), pero **su Release no compila** (includes; `temp/local6/r1152-errores.txt`). Pedida la F16 = F15 + includes. Con ella: Release directa (`temp/local6/release-1152.sh` como modelo: para la 128, build 27, comprueba y copia), tanda corta y caídas con la Release, y entrega en FM.28. La 128 (7.ª pasada) se relanzó a las 15:43 (`chromium128-compila7c.sh`, partes 7 y 7b ya sumadas).
+   Lo anterior: **FM.28 (1.15.2): la F14 8cb201690a NO VALE** (9 regresiones de capa superior en WPT: `::backdrop` y popovers; fila FM.28). Se espera la
    **F15 de MOTOR-14**. Con ella: `temp/local6/anchor-f14.sh` como modelo (cambiar sha y nombres; `update-ref` de
    `local/motor-131-anchor` en el bare con el hash antiguo exacto), `copia-f14-61.sh`, y `f14-todo61.sh` (caídas, crashtests, WPT de la lista,
    tanda corta). Referencia de CfT 131: `w28-cft131-*` (no hace falta repetirla). Las 9 a vigilar: `fm28dif-http.txt` actual
@@ -42,6 +48,7 @@ o con el agente que toque.** A veces el buzón trae órdenes ya superadas: compr
 
 ### Hallazgos y trampas (21-10)
 
+- **Una Static limpia no garantiza la Release:** la Static usa cabeceras precompiladas (`build/config/pch.gni`: `enable_precompiled_headers = !is_official_build…`; blink core, `precompile_core.h`), que tapan includes que faltan. La Release de la F15 (1.15.2) dio 25 errores de includes del porte (absl::optional, cppgc::Visitor, AnchorQuery) que la Static no vio. Para un porte grande, comprobar también sin PCH o con la Release.
 - **La 1.15 y la 1.15.1 publicadas se caen** con `FlyWeb/tools/caidas-fm28.html` (CHECK `has_oof_insets_for_get_computed_style`) y con los
   crashtests `css-conditional/container-queries/crashtests/top-layer-*crash.html` (SEGV null): la 1.15.2 los arregla.
 - Para ver si una caída es caída: la Static sin ventana en la 7,1 con `--enable-logging=stderr` (`Received signal`/`Check failed`);
