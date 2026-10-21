@@ -18,6 +18,9 @@ Haiku, esfuerzo bajo; lo abre Titín. Cada 30 min:
    commit en inglés y push a `buzon`.
 4. Si un envío falla: anótalo y avisa a COORDINACIÓN (la sesión de la tabla de agentes). No busques otro canal.
 5. Sin ficheros nuevos, no escribas a nadie.
+6. **Recordatorio de COORDINACIÓN-10 (21-10, 13:05):** desde las 08:07 UTC no hay ninguna línea nueva en `ENTREGADO.md`
+   aunque los mensajes llegan. Anota cada entrega (paso 3) y haz push; si el push falla, díselo a COORDINACIÓN con el error.
+   Los ficheros ya entregados sin anotar: anótalos de una vez con la hora aproximada.
 
 Reserva: CARTERO-1 de la nube (`session_01RteKFFeayEirn8fTGKbFnC`, aprobada; rutina `trig_01ByndD2HyrSWPyNqauBF7uH`
 desactivada). Si CARTERO-LOCAL falla, COORDINACIÓN reactiva esa rutina.
