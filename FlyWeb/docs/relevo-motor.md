@@ -2,7 +2,7 @@
 
 MOTOR-15 (`session_01FdmrW2VYyWxVvfdgdkzfTu`, Opus 5.5, `xhigh`) hizo los pasos (2) y (3) y la parte de flags del (4) de
 la clase D (fila FM.31). **Tu encargo: ML-KEM (resto del paso 4) y el paso (5)**, sobre `nube/base-128-motor`
-**4a8f1b37a2** (comprobado con `git ls-remote`). Sin compilar nada todavía.
+**3e5b517192** (comprobado con `git ls-remote`): 4a8f1b37a2 más las fusiones de S1, S2 y S4 de SEGURIDAD-PORTES-5 (orden de COORDINACIÓN-11; `computed_style.cc.patch` combinado a mano). Es la única rama de integración de la 128. Sin compilar nada todavía.
 
 **Commits de la rama** (sobre 3419255c8 = paso 1 + S3 de SEGURIDAD-PORTES-5, ya fusionado por MOTOR-14):
 2997fb6e34 nivel 129 · 2fc7bb2294 nivel 130 · 0fbe1299b7 nivel 131 · 71f0859504 anchor (FM.28) · 4a8f1b37a2 flags. 268
