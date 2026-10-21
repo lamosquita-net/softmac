@@ -10,7 +10,8 @@ canceló FM.29 (Titín, 21-10) y abrió la **Fase 3, clase D** de la migración 
 | Rama | Cabeza | Estado |
 |---|---|---|
 | `nube/base-128` | 6918a99aa6 | Brave 1.69.168 exacto (upstream), de SEGURIDAD-PORTES-5. Base común; no se toca |
-| `nube/base-128-motor` = `-p1` | **492dffb41d** | **paso (1) hecho**: V8 13.1.201.22 (`FlyWeb/v8-revision`), los 63 `patches/v8` de la 1.15.2, `fast_float`, gin sin `ZoneBackingAllocator` (abf6e5b63e6) y upstream 8e42980ed5d (colas de V8 UserVisible/BestEffort; en la 116 fue la «opción B»). Sin compilar |
+| `nube/base-128-motor` | **3419255c87** | `-p1` + `seg/128-s3` 1e9de56f43 (S3 de SEGURIDAD-PORTES-5, fundido por regla 2; sin ficheros en común con el paso 1). **Desde aquí sigue MOTOR-15** |
+| `nube/base-128-motor-p1` | 492dffb41d | **paso (1) hecho**: V8 13.1.201.22 (`FlyWeb/v8-revision`), los 63 `patches/v8` de la 1.15.2, `fast_float`, gin sin `ZoneBackingAllocator` (abf6e5b63e6) y upstream 8e42980ed5d (colas de V8 UserVisible/BestEffort; en la 116 fue la «opción B»). Sin compilar |
 | `nube/motor-131-anchor-f16` | af0328adeb | la 1.15.2 publicada; referencia de flags y de lo hecho a mano |
 
 **Pasos que quedan (aprobados por COORDINACIÓN-11):** (2) niveles 129 → 130 → 131, commit a commit, en el orden de
@@ -22,10 +23,12 @@ Dawn y Brave 1.69).
 
 **Condiciones:**
 
-- **Regla 2, S3 de seguridad va primero** (`FlyWeb/docs/seguridad-128.md`, SEGURIDAD-PORTES-5
-  `session_01H7fz6r296TWMGBgDfYzRgX`): no cortes `line_breaker*`, `inline_cursor*`, `inline_item*` ni
-  `layout/layout_object.cc` hasta que S3 esté en su rama. Afecta a ee5d3f203d9 (N130), 1fea2fe8c97 (N131) y af046fa668e
-  (anchor): déjalos al final de su grupo.
+- **Regla 2, S3 de seguridad ya está dentro** (`seg/128-s3` 1e9de56f43, fundido en 3419255c87; SEGURIDAD-PORTES-5
+  `session_01H7fz6r296TWMGBgDfYzRgX`). Toca `inline/line_breaker.*`, `line_info.cc`, `inline_cursor.cc`,
+  `justification_utils.cc`, `logical_line_builder.cc`, `inline_item.*`, `inline_items_builder.cc`,
+  `inline_layout_algorithm.cc`, `layout_object.cc`, `css/resolver/style_adjuster.cc` y `webaudio/audio_param_handler.h`:
+  al portar ee5d3f203d9 (N130), 1fea2fe8c97 (N131), af046fa668e (anchor) u otro commit sobre esos ficheros, el área se
+  monta desde **el parche de S3**, no desde el de Brave, y el resultado lo sustituye. S1 roza `local_frame_view.cc`.
 - **Includes sin cabeceras precompiladas** (`TRAMPAS.md`, MOTOR): la Release de la 1.15.2 falló por eso. En el paso (5),
   el primer punto de compilación con `enable_precompiled_headers=false`.
 
