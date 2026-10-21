@@ -9,6 +9,12 @@ LOCAL-5 (`local_eb0590c2-6997-4848-bcc7-eb49e4cf6553` «Compilación LOCAL (5)»
 `session_01DCZDzGMM8VdHsV5B5JBXmv`; Opus 5.5, esfuerzo alto; 16-10 ~17:25 – 21-10 ~10:00). Relevo por decisión de Titín
 (por COORDINACIÓN-9), con la compilación de la 128 en marcha. Guiones y registros en `~/proyectos/softmac/temp/local5/`.
 
+> **Corrección de LOCAL-6 (21-10, ~10:05):** al entrar, la 128 **no compilaba**: LOCAL-5 la paró a las 09:58 en
+> 22412/61389 (punto 2, «FlyWeb primero») y lanzó con `nohup` la **F9 de FM.28, brave-core 6fef4b8068**
+> (`nube/motor-131-anchor-f9`, arreglo del `ComputedStyle` nulo de `RecalcOwnStyle`): navegador Static, luego
+> `blink_unittests` y el filtro de anchor + `LayoutBoxTest.*` (`temp/local5/anchor-f9.sh`, registros en
+> `temp/anchor-f9-*.log`, cerrojo puesto). La 128 se relanza en incremental al acabar la F9.
+
 ### PARA LOCAL-6: QUÉ HACER AL EMPEZAR
 
 1. **Chromium 128 (FM.31, Fase 0) COMPILANDO** desde el 21-10 09:36 con `nohup`: `temp/local5/chromium128-compila.sh`
