@@ -1,27 +1,29 @@
 # FlyWeb 1.15.2 — anchor positioning del nivel 131 (FM.28, MOTOR-13, 20-10-2026)
 
-**Estado:** en código, con visto bueno de seguridad (SEGURIDAD-PORTES-3, FS.21, regla 17). brave-core
-`nube/motor-131-anchor` sobre la 1.15.1 (fa4fae392f). Compilaciones de prueba de LOCAL-5 (Static, `-k 0`): la primera
-(F2, 38097e9ea2) dio 14 errores en 3 cabeceras; la segunda (porte entero, 5312cb22da), 40 en 17 ficheros; la tercera
-(767c49475b), **el navegador entero sin errores de C++** y un símbolo sin definir al enlazar (`Position::ApplyInherit`),
-más 115 errores en `blink_unittests`, de los que unos 88 venían de antes del porte. Están todos arreglados en
-7f864fb08c (`-f7`); los de `blink_unittests`, solo en ficheros de test. Con ella (y 510aab322e, `-f8`) el navegador y
-`blink_unittests` compilan y enlazan, pero **el renderer se caía en cualquier recálculo de estilo** (SEGV 0x38 en
-`Element::RecalcOwnStyle`): el código de upstream lee `new_style` después de `std::move(new_style)`, que en upstream no
-lo vacía porque `ComputedStyle` es GC, y en la 116 (`scoped_refptr`) sí. Arreglado en **6fef4b8068** (rama fija
-`nube/motor-131-anchor-f9`), con el estilo candidato de `@position-try` guardado con referencia y sin el test que upstream
-quitó con los flags (3253335fbac); `trasmove.py` no encuentra más usos después de un `std::move` en el porte. Es la que
-falta compilar: navegador + `blink_unittests` y las pruebas a mano. Desde la tarde del 20-10 la nube no puede escribir a LOCAL, así que
-Titín le pasa el sha en persona. El 21-10 la 7,1 compila Chromium 128 (FM.31), y la Release y la publicación esperan a que acabe. Falta: los
-errores de esa Static, si hay; las pruebas a mano de LOCAL; las WPT, y la versión (`flyweb_version` 1.15.2). Detalle
-técnico: fila FM.28 de `docs/TAREAS.md`; criba de la cadena en `FlyWeb/tools/port/anchor-clas.tsv`.
+**Estado:** **en código y probada; falta la Release.** brave-core **`nube/motor-131-anchor-1152` 9069fb3e1a** = el porte
+(rama `nube/motor-131-anchor` sobre la 1.15.1, fa4fae392f) + FS.22 + `flyweb_version` 1.15.2. Visto bueno de seguridad de
+SEGURIDAD-PORTES-3 al porte (FS.21) y a la F9 (21-10, #391). Compilaciones de prueba (Static, `-k 0`): F2 38097e9ea2,
+14 errores en 3 cabeceras; F4 5312cb22da, 40 en 17 ficheros; F5 767c49475b, navegador sin errores de C++ pero sin enlazar
+(`Position::ApplyInherit`) y 115 errores en `blink_unittests` (unos 88 de antes del porte, arreglados solo en tests); F7
+7f864fb08c y F8 510aab322e, compilan y enlazan, pero **el renderer se caía en cualquier recálculo de estilo** (SEGV 0x38
+en `Element::RecalcOwnStyle`: el código de upstream lee `new_style` después de `std::move(new_style)`, que no lo vacía en
+upstream porque `ComputedStyle` es GC y en la 116, `scoped_refptr`, sí); F9 6fef4b8068 lo arregla (y guarda con referencia
+el estilo candidato de `@position-try`); F10 ecb6ce11ed, `shadowrootmode` en un test. **Pruebas de LOCAL-6 (21-10)** con
+la F9/F10: `blink_unittests` del anchor y `LayoutBoxTest.*` 476/477 (el que falla, `ElementFragmentAnchorTest`, es de los
+fragmentos `#ancla`, no del porte); en la 6,1 sin caídas, motor-117…130 iguales que la 1.15.1, **motor-131 32/32**,
+superficie +81 líneas (solo lo del anchor, nada quitado), shader WebGL2 `for(;;)` rechazado (FS.22; la 1.15.1 lo
+aceptaba), ventanas nuevas bien, carrusel `overflow: hidden` y página larga a 60 fps como la 1.15.1. Sin automatizar:
+`<webview>` de extensiones. **Falta:** la Release (cuando lo diga Titín; el 21-10 la 7,1 compila la 128, FM.31) y las WPT
+de `wpt-fm28-lista.txt` frente a CfT 131. Detalle técnico: fila FM.28 de `docs/TAREAS.md`; criba de la cadena en
+`FlyWeb/tools/port/anchor-clas.tsv`.
 
 | Dato | Valor |
 |---|---|
 | Cabeza | brave-core `nube/motor-131-anchor`: F1 0f9820c4 (2023, sintaxis vieja), F2 4efeaf5685 + 38097e9ea2 (enero–abril de 2024, hasta «Ship the anchor positioning API»), F3+F4 848c954d (mayo–octubre de 2024, hasta la rama de la 131, con los arreglos de FS.21), arreglos de la primera Static 5312cb22da, pruebas unitarias de la 131 6266cb55, `StyleAnchorScope` con
 `WeakPersistent` y `KeyboardFocusableScrollers` apagado a35b831b, FS.22 fundida 2fba9e43, arreglos de la segunda Static
-767c49475b, `Position::ApplyInherit` 1b3878c1 y `blink_unittests` 4cd5d890 (del porte) + **7f864fb08c** (de antes del
-porte; `nube/motor-131-anchor-f7`) |
+767c49475b, `Position::ApplyInherit` 1b3878c1, `blink_unittests` 4cd5d890 (del porte) y 7f864fb08c + 510aab322e (de antes
+del porte), la caída de `RecalcOwnStyle` 6fef4b8068, `shadowrootmode` ecb6ce11ed y **la versión 9069fb3e1a**
+(`nube/motor-131-anchor-1152`) |
 | Versión visible / `CFBundleVersion` | 1.15.2 / 157.64.N (`FLYWEB_BUILD_NUMBER` lo pone LOCAL en la entrega) |
 | Nivel declarado | Chrome 131, sin cambios (131.0.6778.265) |
 | Motor JavaScript | el de la 1.15: V8 13.1.201.22 con los arreglos de FlyWeb (`patches/v8` igual) |
@@ -41,7 +43,7 @@ CVE-2023-5218 |
 `aria-details` automático de 74a5382ac8b); `KeyboardFocusableScrollers` apagado (regla 20: Brave 1.73 lo baja a
 `experimental`; decisión de COORDINACIÓN-8, 20-10), así que un recuadro con desplazamiento sin nada enfocable dentro no
 recibe el foco con el tabulador, como antes de la 1.14; las demás, cuando estén las WPT |
-| WPT | `FlyWeb/tools/wpt-fm28-lista.txt`: `css/css-anchor-position/` (306 pruebas en la 131), `css/css-align/abspos/`, `html/semantics/popovers/` y 3 de `css/css-overflow/` (nodos de scroll para `overflow: hidden`). Pendiente (LOCAL) |
+| WPT | `FlyWeb/tools/wpt-fm28-lista.txt`: `css/css-anchor-position/` (306 pruebas en la 131), `css/css-align/abspos/`, `html/semantics/popovers/` y 3 de `css/css-overflow/` (nodos de scroll para `overflow: hidden`). Pendiente (LOCAL, con la Release) |
 | Comprobación | `FlyWeb/tools/motor-131.html` con la sección «Anchor positioning (1.15.2)»: 13 comprobaciones automáticas (sintaxis que admite y rechaza la 131, CSSOM de `@position-try` y maquetación). En Chromium 141 salen bien todas menos la de lo no admitido: `anchor-size()` en márgenes e insets se publicó después de la 131. `motor-130.html` espera ahora `KeyboardFocusableScrollers` apagado |
 | Pruebas a mano (LOCAL) | **FS.22:** un shader WebGL con `for(;;){}` sin `break` se rechaza al compilarlo; ventanas nuevas (`window.open`, `target=_blank`) y `<webview>` de extensiones. **`ScrollNodeForOverflowHidden`** (stable en la 131; da nodo de scroll a los `overflow: hidden` desplazados, ab59a973033): en páginas **sin** anchor, recuadros `overflow: hidden` desplazados por script (carruseles) y rendimiento al desplazar páginas largas, frente a la 1.15.1. Tanda de siempre (motor-117…131, claude.ai) |
 
