@@ -49,7 +49,11 @@ cerraba un ciclo que no dejaba liberar el documento). Se conserva FS.12 e6273d01
 `style_containment_scope*.cc`) |
 | Seguridad (FS.22) | los 4 CVE críticos de 117–128 que faltaban en la 116, fundidos sin rebase (`seg/cve-criticos-128`
 ad21546964): ANGLE CVE-2024-2883, CVE-2024-4058 y CVE-2024-7532 (parches del subrepositorio de ANGLE) y Site Isolation
-CVE-2023-5218 |
+CVE-2023-5218; y dos arreglos posteriores de upstream que tocan el código del porte (regla 17, SEGURIDAD-PORTES-4):
+c215f8e6f0 (crbug 491994185, posible uso tras liberar en `LocalFrameView::PerformLayout` si un recálculo de estilo con
+container queries destruye una raíz de maquetación de subárbol; `seg/subtree-roots-copy` 49964845, en la F14) y
+0e454ce616 (crbug 543070692, la pertenencia a la capa superior se decide por el árbol de cajas; `seg/top-layer-box`
+1f7b9912, en la F13) |
 | Fuera, con motivo | `anchor-size()` en insets y márgenes (experimental en la 131), el atributo `anchor` y la relación implícita con quien abre un popover (flags no activados en la 131), `<select>`/`selectlist` personalizables (fuera del alcance), la relación `aria-details` de accesibilidad entre el ancla y el elemento anclado (74a5382ac8b; necesita el mecanismo `TreeUpdateReason` de `AXObjectCacheImpl` que la 116 no tiene) y f8dd41bd01f (ancla dentro de una capa *sticky* fusionada; corrección, no seguridad, depende de refactors de composición de 2025–26) |
 | Diferencias conocidas con Chrome 131 | el lector de pantalla no anuncia la relación ancla–elemento (sin el
 `aria-details` automático de 74a5382ac8b); `KeyboardFocusableScrollers` apagado (regla 20: Brave 1.73 lo baja a
@@ -83,6 +87,7 @@ OOF que no se portaron) |
   o menús emergentes con diseños que se adaptan al tamaño de su recuadro, y en páginas que cambian el texto de un aviso o
   una etiqueta flotante y consultan luego su posición.
 - **Más seguro.** Lleva cuatro arreglos de seguridad graves de versiones posteriores de Chrome: tres en el dibujo con
-  la tarjeta gráfica (WebGL) y uno en el aislamiento entre webs.
+  la tarjeta gráfica (WebGL) y uno en el aislamiento entre webs. Además, arregla un posible fallo de memoria en la
+  maquetación con container queries.
 
 Nada cambia en los ajustes ni en los datos del usuario, y el motor de JavaScript es el mismo que en la 1.15.
