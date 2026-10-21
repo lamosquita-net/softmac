@@ -37,6 +37,10 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   algo está publicado, mirar el appcast, no la sesión.
 - **PUBLICACIÓN (local) no llega por `send_message` a las sesiones de la nube** (CONTENIDOS-WEB, MOTOR…): deja los
   datos del DMG en el tablero y COORDINACIÓN se los pasa a CONTENIDOS-WEB. Las sesiones de la nube sí le llegan a ella.
+- **(21-10) Base 128: la 128 se cortó el 23-07-2024.** Muchos commits de 129–131 chocan porque dependen de otros de
+  agosto del mismo fichero; portar antes esos prerrequisitos (`insert.sh`) suele dejarlos limpios, mejor que adaptar a
+  mano. Y **nunca `patch -F3` sin mirar el resultado**: en anchor colocó una entrada de mojom fuera del enum y un miembro
+  en otra struct, y en el json5 subió a stable la flag de al lado (MOTOR-15).
 
 ## De fondo (para todos)
 

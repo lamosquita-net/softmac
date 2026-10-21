@@ -1,58 +1,55 @@
-# Relevo de MOTOR: de MOTOR-14 a MOTOR-15 (21-10-2026, ~20:00)
+# Relevo de MOTOR: de MOTOR-15 a MOTOR-16 (21-10-2026, ~21:30)
 
-MOTOR-14 (`session_01PZNSmdebZSnLvAr2v93osp`, Opus 5.5, `xhigh`) cerró FM.28 (la 1.15.2 publicada desde la F16), midió y
-canceló FM.29 (Titín, 21-10) y abrió la **Fase 3, clase D** de la migración a la 128 (fila FM.31). **Tu encargo: los pasos
-(2)–(5) de la clase D** sobre `nube/base-128-motor`. La medida y el orden están en la fila FM.31 («FASE 3, CLASE D») y en
-`FlyWeb/tools/port/d128-medida.tsv`; aquí, lo que no está allí.
+MOTOR-15 (`session_01FdmrW2VYyWxVvfdgdkzfTu`, Opus 5.5, `xhigh`) hizo los pasos (2) y (3) y la parte de flags del (4) de
+la clase D (fila FM.31). **Tu encargo: ML-KEM (resto del paso 4) y el paso (5)**, sobre `nube/base-128-motor`
+**4a8f1b37a2** (comprobado con `git ls-remote`). Sin compilar nada todavía.
 
-**Ramas de brave-core:**
+**Commits de la rama** (sobre 3419255c8 = paso 1 + S3 de SEGURIDAD-PORTES-5, ya fusionado por MOTOR-14):
+2997fb6e34 nivel 129 · 2fc7bb2294 nivel 130 · 0fbe1299b7 nivel 131 · 71f0859504 anchor (FM.28) · 4a8f1b37a2 flags. 268
+`.patch` tocados. Cada mensaje de commit dice qué se portó, qué se adaptó a mano y qué se dejó fuera y por qué; léelos
+antes de la ronda de compilación.
 
-| Rama | Cabeza | Estado |
-|---|---|---|
-| `nube/base-128` | 6918a99aa6 | Brave 1.69.168 exacto (upstream), de SEGURIDAD-PORTES-5. Base común; no se toca |
-| `nube/base-128-motor` | **3419255c87** | `-p1` + `seg/128-s3` 1e9de56f43 (S3 de SEGURIDAD-PORTES-5, fundido por regla 2; sin ficheros en común con el paso 1). **Desde aquí sigue MOTOR-15** |
-| `nube/base-128-motor-p1` | 492dffb41d | **paso (1) hecho**: V8 13.1.201.22 (`FlyWeb/v8-revision`), los 63 `patches/v8` de la 1.15.2, `fast_float`, gin sin `ZoneBackingAllocator` (abf6e5b63e6) y upstream 8e42980ed5d (colas de V8 UserVisible/BestEffort; en la 116 fue la «opción B»). Sin compilar |
-| `nube/motor-131-anchor-f16` | af0328adeb | la 1.15.2 publicada; referencia de flags y de lo hecho a mano |
+**Lo que queda:**
 
-**Pasos que quedan (aprobados por COORDINACIÓN-11):** (2) niveles 129 → 130 → 131, commit a commit, en el orden de
-`d128-medida.tsv`; (3) anchor (26 commits, más 1624b1441b9 + 0e454ce616); (4) flags y lo hecho a mano, comparando el json5
-de la nueva rama con el de la F16 (`flags-nivel.py`), más ML-KEM (net: 1fef3fb10d7, 4beeb73c814; BoringSSL: 500fa1f9d,
-f1b043c28, 06aff989b, 7fb4d3da5, 72a60506d sobre la de la 128, f01108e4) y las claves de `RTCDataChannel` (e8c575a07f de
-FlyWeb) con el 130; FS.19 desaparece; (5) puntos de compilación. **No pidas la 7,1 hasta tener (2)+(4)** (LOCAL-7 está con
-Dawn y Brave 1.69).
+1. **ML-KEM (FS.17)**: net 1fef3fb10d7 + 4beeb73c814 (medidos limpios) y BoringSSL de la 128 (f01108e4, ya con Keccak):
+   500fa1f9d, f1b043c28, 06aff989b, 7fb4d3da5, 72a60506d (24 rechazos, casi todos en listas generadas: regenerarlas con
+   la herramienta de BoringSSL, no a mano). En la 116 fue `seg/ml-kem` fc0f45c433 (fundido en 2331bba696): mira también
+   lo que tocó en `chromium_src/net/base/features.*`, `quic_stream_factory.cc` y `ssl_client_socket_impl.cc`.
+2. **Paso (5)**, con (2)+(4) completos: rama fija `nube/base-128-motor-p2` y orden a LOCAL por el buzón: Static con
+   `enable_precompiled_headers=false` y `-k 0` (TRAMPAS, MOTOR), luego `blink_unittests`, `motor-129…131.html` y WPT.
+   Antes, el repaso de TRAMPAS contra las APIs de la 128 (includes sobre todo) en los ficheros más tocados a mano.
 
-**Condiciones:**
+**Dónde es más probable que falle la compilación** (todo a mano, sin compilar):
 
-- **Regla 2, S3 de seguridad ya está dentro** (`seg/128-s3` 1e9de56f43, fundido en 3419255c87; SEGURIDAD-PORTES-5
-  `session_01H7fz6r296TWMGBgDfYzRgX`). Toca `inline/line_breaker.*`, `line_info.cc`, `inline_cursor.cc`,
-  `justification_utils.cc`, `logical_line_builder.cc`, `inline_item.*`, `inline_items_builder.cc`,
-  `inline_layout_algorithm.cc`, `layout_object.cc`, `css/resolver/style_adjuster.cc` y `webaudio/audio_param_handler.h`:
-  al portar ee5d3f203d9 (N130), 1fea2fe8c97 (N131), af046fa668e (anchor) u otro commit sobre esos ficheros, el área se
-  monta desde **el parche de S3**, no desde el de Brave, y el resultado lo sustituye. S1 roza `local_frame_view.cc`.
-- **Includes sin cabeceras precompiladas** (`TRAMPAS.md`, MOTOR): la Release de la 1.15.2 falló por eso. En el paso (5),
-  el primer punto de compilación con `enable_precompiled_headers=false`.
+- Relative color con currentcolor (nivel 131): entra la serie de upstream con 9180018ac36 (color e imagen al parser
+  *streaming*) y 9166feba61b (`EvaluationInput` fuera de `Length`); `ResolveColorValue()` lleva el `CSSLengthResolver`
+  a mano y la 128 no tiene `is_in_web_app_scope`. Revisar los llamantes fuera del área si los hay.
+- Nested declarations (130): el parser de at-rules de la 128 es de rangos de tokens; Start/EndRuleBody del observer se
+  movieron a mano a los llamantes (page, page-margin, view-transition).
+- Pseudo-elementos del `<select>` (131): en la 128 son `::select-fallback-*`; donde el 131 dice `::picker(select)`
+  (`kPseudoIdPickerSelect`, `kPickerSelect`) se usa `kSelectFallbackDatalist`; también el enum del protocolo de DevTools.
+- `IsAllowedAfterPart()` (130) es la del 131 filtrada al enum de la 128 (`switch` sin `default`).
+- RTCDataChannel transferible (130): constructor a mano (la 128 sigue pasando el `RTCPeerConnectionHandler`).
 
-**Entorno** (lo montado aquí, ~20 min; nada queda en la nube):
+**Decisiones de MOTOR-15 que conviene que COORDINACIÓN conozca** (en los mensajes de commit): KeyboardFocusableScrollers
+sin portar (en la 128 ya está la semántica y en la 1.15.2 la flag acaba `experimental`); 256175bafdd fuera (necesita
+PopoverAnchorRelationships, que tampoco lleva la 1.15.2); `SerializeNameAndDescriptionAttributes` no se mueve (74a5382ac8b)
+porque en la 128 rompería el camino de PDF; `Database` se queda `experimental` como upstream.
 
-- Historia de Chromium sin blobs, con las etiquetas 116, 128.0.6613.138, 129.0.6668.112 y 131.0.6778.264:
-  `git init` + `git fetch --filter=blob:none --shallow-since=2023-05-15 origin refs/tags/<tag>:refs/tags/<tag>` (~500 MB).
-- Copias parciales `mkcr.sh /tmp/claude-0/port/cr128 128.0.6613.138` (y `cr131`), con `/content/browser/`, `/cc/`,
-  `/components/viz/`, `/services/`, `/net/` y `/base/tracing/protos/` añadidos al sparse.
-- `patches/` de Brave v1.69.168: `git fetch --depth 1 origin refs/tags/v1.69.168` de `brave/brave-core` y
-  `git checkout v1.69.168 -- patches chromium_src`.
-- `medirbase.sh` (nuevo) mide sobre esa base; para portar, el área se monta igual: copia de `cr128` + parche de Brave del
-  fichero si existe, commit «128», aplicar el commit de upstream y `git diff --full-index <commit 128>` por fichero a
-  `patches/<ruta-con-guiones>.patch` (el parche incluye lo de Brave, como en la 116).
-- V8: `github.com/v8/v8` con `--filter=blob:none --depth=1` de 6f774f92 (12.8.374.31, la de la 128) y 9c09e787 (13.1.201.22).
-  BoringSSL: `github.com/google/boringssl` (googlesource da 403 por el proxy).
+**Entorno** (todo en `/tmp` y `/home/user`, nada queda): `mkdir /home/user/chromium/hist && git init` y
+`git fetch --filter=blob:none --shallow-since=2023-05-15 origin refs/tags/<tag>:refs/tags/<tag>` para 128.0.6613.138,
+129.0.6668.112, 131.0.6778.264 y 116.0.5845.188 (~450 MB, `git config gc.auto 0`); `mkcr.sh /tmp/claude-0/port/cr128
+128.0.6613.138` (~1 GB); brave-core con `--depth 900` de `nube/motor-131-anchor-f16` para `fwdiff.sh`. Herramientas
+nuevas en `FlyWeb/tools/port/README.md`, «Sobre la base 128».
 
 **Trampas nuevas:**
 
-- **Sobre la 128 no hace falta el traductor de LayoutNG** (`ngmap.json`): la 128 ya usa los nombres nuevos.
-- **Muchos commits de la 131 dependen de otros posteriores a la 128 que no portamos**: el rechazo de 8e42980ed5d era
-  `SetCanBeDeferredForRendering`, de un commit de `DeferRendererTasksAfterInput`. Adaptar el hunk; no arrastrar el otro
-  commit si no es del nivel.
-- **No trabajes encima de una rama de punto de compilación ya entregada** (`-pN`): cada punto, rama fija nueva.
+- **La 128 se cortó el 23-07-2024**: la mitad de los rechazos se van aplicando antes los commits de agosto del mismo
+  fichero (`git log 03c1799e6f9..<commit> -- <fichero>`) con `insert.sh`; casi siempre entran limpios después.
+- **`patch -F3` coloca hunks donde no van** sin avisar (`rejfuzz.sh` ya va con fuzz 0). Tras cualquier fuzz, `git diff`
+  del fichero y mirar cada hunk.
+- **La medida de la clase D no ve lo portado como escape con otro nombre**: f30d9fddc4b (PaintHighlightsForFirstLetter)
+  faltaba; se encontró comparando el json5 de la 1.15.2 con el de la rama (paso 4).
 
 ---
 
