@@ -36,6 +36,10 @@ contexto al cerrar · notas.
 
 | Fecha | Agente | Modelo | Esfuerzo | Tarea | Horas | Salida | `cost_usd` | Contexto | Notas |
 |---|---|---|---|---|---|---|---|---|---|
+| 21-10 | SEGURIDAD-PORTES-5 (`…01H7fz6r`) | Opus 5.5 | medio | FM.31 clase D, S4 (1 `.patch`, brave-core #4) | ~0,05 | — | — | — | `get_session` no da `cost_usd`, tokens ni contexto (`used_tokens` 0) en esta sesión |
+| 21-10 | SEGURIDAD-PORTES-5 (`…01H7fz6r`) | Opus 5.5 | medio | FM.31 clase D, S3 (13 `.patch`, 4 a mano, brave-core #3) | ~0,2 | — | — | — | Ídem |
+| 21-10 | SEGURIDAD-PORTES-5 (`…01H7fz6r`) | Opus 5.5 | medio | FM.31 clase D, S2 (11 `.patch` + `util.js`, brave-core #2) | ~0,1 | — | — | — | Ídem |
+| 21-10 | SEGURIDAD-PORTES-5 (`…01H7fz6r`) | Opus 5.5 | medio | `nube/base-128` y S1 (17 `.patch`, brave-core #1), arranque incluido | ~0,2 | — | — | — | Ídem |
 | 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | **Cierre de sesión** (relevo a -5): FS.22 (F9–F16, 1.15.2), 2 ramas `seg/*`, inventario de clase D | ~11 (con esperas) | 98 807 | 24,66 | 45 % | Total de la sesión; 59,8 M de lectura y 1,3 M de escritura de caché |
 | 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FM.31 clase D: inventario de seguridad sobre la 128 (paso 1) | ~0,3 | 6 140 | 9,51 | 39 % | Desde la línea anterior; 1,0 M de escritura de caché (la sesión se recargó al despertar); sesión 21,69 $ |
 | 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FS.22: F15 de FM.28 | ~0,1 | 2 518 | 1,24 | 35 % | Desde la línea anterior; sesión acumulada 12,18 $ |
