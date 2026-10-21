@@ -1,6 +1,6 @@
 # FlyWeb 1.15.2 — anchor positioning del nivel 131 (FM.28, MOTOR-13, 20-10-2026)
 
-**Estado:** **en código; candidato a la entrega `nube/motor-131-anchor-f11` 9472de6fe0** (= 9069fb3e1a, `nube/motor-131-anchor-1152`, con los arreglos de las WPT; falta compilarlo y probarlo). 9069fb3e1a = el porte
+**Estado:** **en código; candidato a la entrega `nube/motor-131-anchor-f13` 357d708c47** (= 9069fb3e1a, `nube/motor-131-anchor-1152`, con los arreglos de las WPT de la F11, 12bfef324f99 y el seguimiento de upstream 0e454ce616 que portó SEGURIDAD-PORTES-4; falta compilarlo y probarlo). 9069fb3e1a = el porte
 (rama `nube/motor-131-anchor` sobre la 1.15.1, fa4fae392f) + FS.22 + `flyweb_version` 1.15.2. Visto bueno de seguridad de
 SEGURIDAD-PORTES-3 al porte (FS.21) y a la F9 (21-10, #391). Compilaciones de prueba (Static, `-k 0`): F2 38097e9ea2,
 14 errores en 3 cabeceras; F4 5312cb22da, 40 en 17 ficheros; F5 767c49475b, navegador sin errores de C++ pero sin enlazar
@@ -20,8 +20,12 @@ las dos arregladas en 9472de6fe0 junto con 14c9714ba83e (caída en cc con los no
 `anchor-getComputedStyle-002`, que queda como diferencia conocida; 6 del anchor salen bien en FlyWeb y mal en CfT 131, y 8
 fallan igual en la 1.15.1 (heredadas). **1624b1441b9 arregla además una caída del renderer que ya tenía la 1.15.1**: los
 dos crashtests de container queries con la capa superior del 131 tumban el renderer en la 1.15.1 y en la F9 (SEGV) y
-pasan en CfT 131. **Falta:** compilar y probar la F11 (navegador, `blink_unittests`, WPT y esos crashtests) y la Release
-(cuando lo diga Titín; el 21-10 la 7,1 es de la 128). Detalle técnico: fila FM.28 de `docs/TAREAS.md`; criba de la cadena en
+pasan en CfT 131. **Y la F12 (f2699e58e7) arregla otra caída que la 1.15 y la 1.15.1 tienen desde FM.22:** con
+`GetComputedStyleOutOfFlowInsetsFix` (6c6fc68fc55) vino un CHECK que exige que el resultado de layout de un absoluto guarde
+sus insets, pero no su complemento upstream 12bfef324f99 (crbug 1458561): tras un layout de subárbol de un absoluto que es
+límite de relayout, `getComputedStyle()` de un inset no fijo tumba el renderer (p. ej. cambiar el texto de un tooltip
+absoluto de tamaño fijo y leer su `top: 10%`). Prueba: `FlyWeb/tools/caidas-fm28.html`. **Falta:** compilar y probar la F13
+(navegador, `blink_unittests`, WPT, los crashtests y `caidas-fm28.html`) y la Release (cuando lo diga Titín). Detalle técnico: fila FM.28 de `docs/TAREAS.md`; criba de la cadena en
 `FlyWeb/tools/port/anchor-clas.tsv`.
 
 | Dato | Valor |
@@ -31,7 +35,7 @@ pasan en CfT 131. **Falta:** compilar y probar la F11 (navegador, `blink_unittes
 767c49475b, `Position::ApplyInherit` 1b3878c1, `blink_unittests` 4cd5d890 (del porte) y 7f864fb08c + 510aab322e (de antes
 del porte), la caída de `RecalcOwnStyle` 6fef4b8068, `shadowrootmode` ecb6ce11ed, la versión 9069fb3e1a
 (`nube/motor-131-anchor-1152`) y **los arreglos de las WPT 9472de6fe0** (`nube/motor-131-anchor-f11`: `overflow: hidden`,
-1624b1441b9 y 14c9714ba83e) |
+1624b1441b9 y 14c9714ba83e) 12bfef324f99 f2699e58e7 (`-f12`) y **0e454ce616** de SEGURIDAD-PORTES-4 (`seg/top-layer-box` 1f7b9912), fundida en **357d708c47** (`nube/motor-131-anchor-f13`) |
 | Versión visible / `CFBundleVersion` | 1.15.2 / 157.64.N (`FLYWEB_BUILD_NUMBER` lo pone LOCAL en la entrega) |
 | Nivel declarado | Chrome 131, sin cambios (131.0.6778.265) |
 | Motor JavaScript | el de la 1.15: V8 13.1.201.22 con los arreglos de FlyWeb (`patches/v8` igual) |
@@ -75,8 +79,9 @@ OOF que no se portaron) |
 - **Más compatible con las webs de hoy.** Muchas webs modernas, entre ellas editores, paneles de control y tiendas, ya
   usan esta función de CSS. Ahora se ven como en Chrome.
 
-- **Más estable con ventanas y menús emergentes.** Arregla un cierre de la pestaña que ya tenía la 1.15.1 en páginas que
-  combinan ventanas de diálogo o menús emergentes con diseños que se adaptan al tamaño de su recuadro.
+- **Más estable.** Arregla dos cierres de la pestaña que ya tenía la 1.15.1: en páginas que combinan ventanas de diálogo
+  o menús emergentes con diseños que se adaptan al tamaño de su recuadro, y en páginas que cambian el texto de un aviso o
+  una etiqueta flotante y consultan luego su posición.
 - **Más seguro.** Lleva cuatro arreglos de seguridad graves de versiones posteriores de Chrome: tres en el dibujo con
   la tarjeta gráfica (WebGL) y uno en el aislamiento entre webs.
 
