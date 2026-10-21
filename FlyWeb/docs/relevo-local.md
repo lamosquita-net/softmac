@@ -3,6 +3,55 @@
 Nota de relevo del agente LOCAL de FlyWeb (compila, prueba y lleva `flyweb`). La deja cada LOCAL al salir; el siguiente
 la lee después de `CLAUDE.md` y de `docs/TAREAS.md` (tabla, reglas y filas FM/FS abiertas).
 
+## LOCAL-6 → LOCAL-7 (21-10-2026)
+
+LOCAL-6 (`local_20642d1a-f0eb-4bf8-aef4-33710985666c` «Compilación Local (6)»; Opus 5.5, esfuerzo alto, modo auto; 21-10 ~10:00 –).
+Nota escrita al 44 % de contexto, en punto limpio, por si hace falta el relevo. Guiones y registros en `~/proyectos/softmac/temp/local6/`.
+**Canales:** COORDINACIÓN-10 (`session_01U31mzo4UdTUgf3gkhqxKmb`, «Coordinación (10)») y MOTOR-14 (`session_01PZNSmdebZSnLvAr2v93osp`,
+«Motor (14)»), por `SendMessage` con el nombre de `ListAgents`. Lo de la nube llega por **Cartero-Local FlyWeb** (buzón
+`AAAAMMDD-HHMM-*.md`); la nube no puede escribir a la 7,1. **Titín (21-10): no preguntarle; dejarlo escrito y moverlo por el cartero
+o con el agente que toque.** A veces el buzón trae órdenes ya superadas: comprobar el sha vigente antes de actuar.
+
+### PARA LOCAL-7: QUÉ HACER AL EMPEZAR
+
+1. **Chromium 128 (FM.31, Fase 0), 7.ª pasada COMPILANDO** desde el 21-10 14:13 con `nohup`: `temp/local6/chromium128-compila7.sh`
+   (PID en `chromium128-compila.pid`, salida en `chromium128-compila.nohup`, registro en `chromium128-compila.log`; las partes anteriores en
+   `local5/chromium128-compila.log` y `local6/chromium128-compila-{2..6}.log`, que el guion suma para los avisos). 48745 pasos (~2 h).
+   `args.gn`: lo de LOCAL-5 + `mac_min_system_version = "10.14"` + `dcheck_always_on = false` (como la oficial). **Cambios en el checkout
+   `~/proyectos/chromium-128`** (todos comentados «FlyWeb (LOCAL-6)»; `git diff` en `src`, `src/third_party/angle` y `src/third_party/dawn`):
+   - ANGLE `src/libANGLE/renderer/metal/BUILD.gn`: `metal`/`metallib` de los shaders internos del **Xcode 15.4**
+     (`~/proyectos/sdk/Xcode-15.4.app`, decisión de Titín: ni el 14.3.1 ni la Metal Toolchain de Xcode 26). El resto, con el Xcode 26
+     activo (`CR_XCODE_VERSION` va en todas las órdenes: cambiar el Xcode entero = compilar desde cero).
+   - 3 SPI en `weak_import` + comprobación de nulo: `base/mac/launch_services_spi.h` y `launch_application.mm`
+     (`_kLSOpenOptionBackgroundLaunchKey`), `sandbox/mac/system_services.cc` (`_CSCheckFixDisable`), blink `font_matcher_mac.mm`
+     (`CTFontCopyVariationAxesInternal`).
+   - `ui/display/mac/screen_mac.mm` (NSScreen EDR y `localizedName`) y Dawn `PhysicalDeviceMTL.mm` (`hasUnifiedMemory`) con `@available`.
+   Al acabar: `zsh temp/local6/c128-arranque61.sh` (copia a `~/flyweb-pruebas/chromium128/` de la 6,1 y arranca, **una sesión SSH**; da la
+   versión por CDP o la excepción y la pila). Si arranca: `temp/local6/c128-61.sh` por `local5/en-61.sh` (chrome://gpu, example.com, claude.ai).
+   **Límite acordado con COORDINACIÓN: si sale otra caída de arranque, una 4.ª ronda y se para** (lo demás, Fase 1). Todo, a la fila FM.31.
+2. **FM.28 (1.15.2): la F14 8cb201690a NO VALE** (9 regresiones de capa superior en WPT: `::backdrop` y popovers; fila FM.28). Se espera la
+   **F15 de MOTOR-14**. Con ella: `temp/local6/anchor-f14.sh` como modelo (cambiar sha y nombres; `update-ref` de
+   `local/motor-131-anchor` en el bare con el hash antiguo exacto), `copia-f14-61.sh`, y `f14-todo61.sh` (caídas, crashtests, WPT de la lista,
+   tanda corta). Referencia de CfT 131: `w28-cft131-*` (no hace falta repetirla). Las 9 a vigilar: `fm28dif-http.txt` actual
+   (`wpt-fm28dif.sh fw61 <salida>`). Árbol WPT del 131 con anchor, abspos y popovers descargados hoy (permiso de Titín); lo del 130 en
+   `temp/wpt131-fm28-antes/`. **Una compilación a la vez:** COORDINACIÓN dijo «no pares la 128 por la 1.15.2 salvo que Titín lo pida».
+3. **Release de la 1.15.2**, solo desde la F15 (o la que MOTOR-14 dé por final): `FLYWEB_BUILD_NUMBER` = 27 (la 1.15.1 es 26),
+   `check-no-avx.sh`, `SUPublicEDKey`, `ditto` a `entregas/FlyWeb-1.15.2/`, pruebas de red sin ventana (LuLu de la 7,1 tiene que aprobar
+   la ruta nueva) y **entrega en la fila FM.28** (regla 11: es la orden de publicar).
+4. **`flyweb` = 1.15.1, 54b964da54** (sin cambios hoy).
+
+### Hallazgos y trampas (21-10)
+
+- **La 1.15 y la 1.15.1 publicadas se caen** con `FlyWeb/tools/caidas-fm28.html` (CHECK `has_oof_insets_for_get_computed_style`) y con los
+  crashtests `css-conditional/container-queries/crashtests/top-layer-*crash.html` (SEGV null): la 1.15.2 los arregla.
+- Para ver si una caída es caída: la Static sin ventana en la 7,1 con `--enable-logging=stderr` (`Received signal`/`Check failed`);
+  `titulo.py` (título a los 6 s) para páginas de caída. En una página de prueba, `const top` global choca con `window.top`.
+- Un absoluto con `left`/`right` los dos `auto` no es límite de relayout en la 116 (`ObjectIsRelayoutBoundary`).
+- **`dyld` solo dice el primer símbolo que falta:** para la lista entera, `nm -m -u` sin `weak external` + `comprueba-simbolos.py` con el
+  Python 2.7 de Mojave en la 6,1 (`dyld_stub_binder` sale como falso positivo).
+- gitiles da 503 si se pide seguido: una descarga, pausa, y un único reintento.
+- Los buzones de la mañana repetían órdenes ya ejecutadas o superadas (F11→F12→F13→F14 en una hora): mirar siempre el último sha.
+
 ## LOCAL-5 → LOCAL-6 (21-10-2026)
 
 LOCAL-5 (`local_eb0590c2-6997-4848-bcc7-eb49e4cf6553` «Compilación LOCAL (5)»; desde la nube, `SendMessage` al nombre o
