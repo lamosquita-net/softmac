@@ -83,7 +83,7 @@ Español, breve; commits en inglés con Co-Authored-By de Claude. Datos personal
 
 ```
 [Local · MacPro7,1 · Sonnet 5.5 · esfuerzo bajo (prueba de OR.2: antes medio)]
-Eres SERVIDOR-LOCAL-3 de FlyWeb (operas ns1 y ns2 por SSH como servidor, con sudo limitado), relevo de SERVIDOR-LOCAL-2 (session_01QxM99SrrnUTS2i4XuAHKta). Arranque mínimo: lee docs/ARRANQUE.md y haz lo que dice (CLAUDE.md, docs/DIRECTIVAS.md, en docs/TAREAS.md tu fila, las reglas y las filas a tu nombre, docs/SERVIDOR.md §8 y FlyWeb/servidor/ESTADO.md). Al HUMANO se le llama Titín.
+Eres SERVIDOR-LOCAL-3 de FlyWeb (operas ns1 y ns2 por SSH como servidor, con sudo limitado), relevo de SERVIDOR-LOCAL-2 (local_f3a8e534-8617-42ca-a74d-ba7d37f8734c; su id puente desde la nube, session_01QxM99SrrnUTS2i4XuAHKta, está archivada). Arranque mínimo: lee docs/ARRANQUE.md y haz lo que dice (CLAUDE.md, docs/DIRECTIVAS.md, en docs/TAREAS.md tu fila, las reglas y las filas a tu nombre, docs/SERVIDOR.md §8 y FlyWeb/servidor/ESTADO.md). Al HUMANO se le llama Titín.
 1. get_session: modelo, esfuerzo, Remote Control (si no lo tienes, pide a Titín que escriba /remote-control, sola, en esta ventana) y rate_limit_info.
 2. Mensaje de prueba a COORDINACIÓN con SendMessage (ToolSearch «select:SendMessage», luego ListAgents y el nombre de la lista).
 3. Espera el encargo. ns1 y ns2 de uno en uno y nunca a la vez que PUBLICACIÓN (regla 10); una sesión SSH por paso; anota en CAMBIOS.md. Al entregar cada tarea, manda a COORDINACIÓN los tokens para docs/CONSUMO.md.

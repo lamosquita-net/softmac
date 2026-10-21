@@ -42,3 +42,4 @@ contexto al cerrar · notas.
 | 20→21-10 | MOTOR-13 (`…01EqxadojD`) | Opus 5.5 | xhigh | Sesión: FM.28 hasta f7 | ~6,5 | 118 634 | 15,14 | 36 % | La vuelta F5 sola: 2,87 $ |
 | 20-10 | COORDINACIÓN-8 (`…0133Pd3p`) | Opus 5.5 | alto | Sesión: un día de coordinación | — | 210 762 | 49,09 | 13 % tras compactar | Total de la sesión; la mayor parte, lectura de caché |
 | 16→21-10 | LOCAL-5 (`…01DCZDzG`) | Opus 5.5 | alto | Sesión: F5, f7, checkout 128 | — | 49 534 | — | 68 % | Local: sin `cost_usd`; 53,4 M tokens de lectura de caché |
+| 21-10 | CONOCIMIENTO-1 (`…01TRKSg5`) | Opus 5.5 | medio | OR.1 entera (9 PR: archivo del tablero, DIRECTIVAS, ARRANQUE, TRAMPAS, manuales) | ~1,1 | ≥12 503 | ≥2,93 | 37 % | **Parcial:** el contador de `get_session` se pone a cero en cada reinicio del proceso de la sesión (5 hoy) y al principio no daba `cost_usd`; solo cuenta desde el último reinicio |
