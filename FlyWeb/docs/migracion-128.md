@@ -109,6 +109,10 @@ parches no es lo mismo que fusionar código de Brave, que exige entender el camb
 - **Punto de contacto [V]:** de los 17 parches de Brave sobre ficheros de macOS de Chromium, **`chrome-browser-app_controller_mac.mm.patch` y `ui-base-cocoa-permissions_utils.mm.patch`**
   tocan ficheros que también cambian los reverts de Legacy (clase I): fusión a mano de esos dos.
 - **Consecuencia:** las clases C y E **no suman horas por macOS**; lo de macOS está todo en la clase I.
+- **Comprobado a fondo (21-10, [`brave-169-macos.md`](brave-169-macos.md)) [V]:** índice de disponibilidad del SDK 14.5 contra todas las líneas nuevas de macOS de la 1.69.
+  Hay **dos** guardas nuevas, no una: falta `default_accelerators_mac.mm`, con `@available(macos 12.0)` en minúsculas.
+  Ninguna llamada sin guarda; Brave no toca GPU ni Dawn; un solo framework nuevo (CoreLocation, 10.6). Rust queda en el
+  objetivo de Chromium. Conclusión igual: 0–2 h por macOS en brave-core.
 
 ## 6. Clase I: qué se aplica casi tal cual de Chromium Legacy (BSD-3)
 
