@@ -52,8 +52,8 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Finch: lo que Chrome cambia por configuración de campo no está en el código** (15-10 y 20-10): la referencia es lo
   que expone el Chrome for Testing N y el json5 de la Brave del nivel, no `runtime_enabled_features`
   (MutationEvents, `KeyboardFocusableScrollers`). Fuente: [`coordinacion.md`](../FlyWeb/docs/coordinacion.md), «Trampas».
-- **Prioridad actual: llegar a la base 128** (HUMANO, 20-10): se terminan la 1.15.2 y la 1.15.3 y no se abre el 132
-  sobre la 116. Fuentes: fila FM.31, [`migracion-128.md`](../FlyWeb/docs/migracion-128.md).
+- **Prioridad actual: llegar a la base 128, a fondo** (HUMANO, 20-10; 21-10): la 1.15.2 publicada cierra la 116; la 1.15.3
+  se cancela (view transitions vienen en la 128) y no se abre el 132 sobre la 116. En la 1.15.x solo seguridad urgente. Fuentes: fila FM.31, [`migracion-128.md`](../FlyWeb/docs/migracion-128.md).
 
 ## Seguridad
 
