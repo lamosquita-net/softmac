@@ -1,6 +1,6 @@
 # FlyWeb 1.15.2 — anchor positioning del nivel 131 (FM.28, MOTOR-13, 20-10-2026)
 
-**Estado:** **en código y probada; falta la Release.** brave-core **`nube/motor-131-anchor-1152` 9069fb3e1a** = el porte
+**Estado:** **en código; candidato a la entrega `nube/motor-131-anchor-f11` 9472de6fe0** (= 9069fb3e1a, `nube/motor-131-anchor-1152`, con los arreglos de las WPT; falta compilarlo y probarlo). 9069fb3e1a = el porte
 (rama `nube/motor-131-anchor` sobre la 1.15.1, fa4fae392f) + FS.22 + `flyweb_version` 1.15.2. Visto bueno de seguridad de
 SEGURIDAD-PORTES-3 al porte (FS.21) y a la F9 (21-10, #391). Compilaciones de prueba (Static, `-k 0`): F2 38097e9ea2,
 14 errores en 3 cabeceras; F4 5312cb22da, 40 en 17 ficheros; F5 767c49475b, navegador sin errores de C++ pero sin enlazar
@@ -13,8 +13,15 @@ la F9/F10: `blink_unittests` del anchor y `LayoutBoxTest.*` 476/477 (el que fall
 fragmentos `#ancla`, no del porte); en la 6,1 sin caídas, motor-117…130 iguales que la 1.15.1, **motor-131 32/32**,
 superficie +81 líneas (solo lo del anchor, nada quitado), shader WebGL2 `for(;;)` rechazado (FS.22; la 1.15.1 lo
 aceptaba), ventanas nuevas bien, carrusel `overflow: hidden` y página larga a 60 fps como la 1.15.1. Sin automatizar:
-`<webview>` de extensiones. **Falta:** la Release (cuando lo diga Titín; el 21-10 la 7,1 compila la 128, FM.31) y las WPT
-de `wpt-fm28-lista.txt` frente a CfT 131. Detalle técnico: fila FM.28 de `docs/TAREAS.md`; criba de la cadena en
+`<webview>` de extensiones. **WPT frente a CfT 131 (LOCAL-6, 21-10, F9; 405 pruebas, 2 pasadas iguales):** CfT 332/73,
+F9 328/76 y 1 colgada. Del anchor, 3 peores: `anchor-scroll-overflow-hidden` (fallo de traducción: los contenedores
+`overflow: hidden` no contaban para el ajuste por scroll) y `anchor-position-top-layer-007` (faltaba upstream 1624b1441b9),
+las dos arregladas en 9472de6fe0 junto con 14c9714ba83e (caída en cc con los nodos de scroll de `overflow: hidden`), y
+`anchor-getComputedStyle-002`, que queda como diferencia conocida; 6 del anchor salen bien en FlyWeb y mal en CfT 131, y 8
+fallan igual en la 1.15.1 (heredadas). **1624b1441b9 arregla además una caída del renderer que ya tenía la 1.15.1**: los
+dos crashtests de container queries con la capa superior del 131 tumban el renderer en la 1.15.1 y en la F9 (SEGV) y
+pasan en CfT 131. **Falta:** compilar y probar la F11 (navegador, `blink_unittests`, WPT y esos crashtests) y la Release
+(cuando lo diga Titín; el 21-10 la 7,1 es de la 128). Detalle técnico: fila FM.28 de `docs/TAREAS.md`; criba de la cadena en
 `FlyWeb/tools/port/anchor-clas.tsv`.
 
 | Dato | Valor |
@@ -22,8 +29,9 @@ de `wpt-fm28-lista.txt` frente a CfT 131. Detalle técnico: fila FM.28 de `docs/
 | Cabeza | brave-core `nube/motor-131-anchor`: F1 0f9820c4 (2023, sintaxis vieja), F2 4efeaf5685 + 38097e9ea2 (enero–abril de 2024, hasta «Ship the anchor positioning API»), F3+F4 848c954d (mayo–octubre de 2024, hasta la rama de la 131, con los arreglos de FS.21), arreglos de la primera Static 5312cb22da, pruebas unitarias de la 131 6266cb55, `StyleAnchorScope` con
 `WeakPersistent` y `KeyboardFocusableScrollers` apagado a35b831b, FS.22 fundida 2fba9e43, arreglos de la segunda Static
 767c49475b, `Position::ApplyInherit` 1b3878c1, `blink_unittests` 4cd5d890 (del porte) y 7f864fb08c + 510aab322e (de antes
-del porte), la caída de `RecalcOwnStyle` 6fef4b8068, `shadowrootmode` ecb6ce11ed y **la versión 9069fb3e1a**
-(`nube/motor-131-anchor-1152`) |
+del porte), la caída de `RecalcOwnStyle` 6fef4b8068, `shadowrootmode` ecb6ce11ed, la versión 9069fb3e1a
+(`nube/motor-131-anchor-1152`) y **los arreglos de las WPT 9472de6fe0** (`nube/motor-131-anchor-f11`: `overflow: hidden`,
+1624b1441b9 y 14c9714ba83e) |
 | Versión visible / `CFBundleVersion` | 1.15.2 / 157.64.N (`FLYWEB_BUILD_NUMBER` lo pone LOCAL en la entrega) |
 | Nivel declarado | Chrome 131, sin cambios (131.0.6778.265) |
 | Motor JavaScript | el de la 1.15: V8 13.1.201.22 con los arreglos de FlyWeb (`patches/v8` igual) |
@@ -42,8 +50,10 @@ CVE-2023-5218 |
 | Diferencias conocidas con Chrome 131 | el lector de pantalla no anuncia la relación ancla–elemento (sin el
 `aria-details` automático de 74a5382ac8b); `KeyboardFocusableScrollers` apagado (regla 20: Brave 1.73 lo baja a
 `experimental`; decisión de COORDINACIÓN-8, 20-10), así que un recuadro con desplazamiento sin nada enfocable dentro no
-recibe el foco con el tabulador, como antes de la 1.14; las demás, cuando estén las WPT |
-| WPT | `FlyWeb/tools/wpt-fm28-lista.txt`: `css/css-anchor-position/` (306 pruebas en la 131), `css/css-align/abspos/`, `html/semantics/popovers/` y 3 de `css/css-overflow/` (nodos de scroll para `overflow: hidden`). Pendiente (LOCAL, con la Release) |
+recibe el foco con el tabulador, como antes de la 1.14; `getComputedStyle()` de un elemento anclado cuyo bloque
+contenedor es un inline partido entre líneas da otros insets (WPT `anchor-getComputedStyle-002`; depende de refactors de
+OOF que no se portaron) |
+| WPT | `FlyWeb/tools/wpt-fm28-lista.txt` (405 sobre el árbol del 131: `css/css-anchor-position/`, `css/css-align/abspos/`, `html/semantics/popovers/` y 3 de `css/css-overflow/`). Con la F9: CfT 131 332 bien / 73 mal; FlyWeb 328 / 76 / 1 colgada (`popover-open-in-beforetoggle`, también en la 1.15.1). Del anchor: 3 peores (2 arregladas en la F11, 1 diferencia conocida) y 6 mejores; heredadas de la 1.15.1, 8 (`css-align/abspos/stretch-intrinsic-size-*` con `<canvas>` y 4 de popovers). Falta repetir con la F11 |
 | Comprobación | `FlyWeb/tools/motor-131.html` con la sección «Anchor positioning (1.15.2)»: 13 comprobaciones automáticas (sintaxis que admite y rechaza la 131, CSSOM de `@position-try` y maquetación). En Chromium 141 salen bien todas menos la de lo no admitido: `anchor-size()` en márgenes e insets se publicó después de la 131. `motor-130.html` espera ahora `KeyboardFocusableScrollers` apagado |
 | Pruebas a mano (LOCAL) | **FS.22:** un shader WebGL con `for(;;){}` sin `break` se rechaza al compilarlo; ventanas nuevas (`window.open`, `target=_blank`) y `<webview>` de extensiones. **`ScrollNodeForOverflowHidden`** (stable en la 131; da nodo de scroll a los `overflow: hidden` desplazados, ab59a973033): en páginas **sin** anchor, recuadros `overflow: hidden` desplazados por script (carruseles) y rendimiento al desplazar páginas largas, frente a la 1.15.1. Tanda de siempre (motor-117…131, claude.ai) |
 
@@ -65,6 +75,8 @@ recibe el foco con el tabulador, como antes de la 1.14; las demás, cuando esté
 - **Más compatible con las webs de hoy.** Muchas webs modernas, entre ellas editores, paneles de control y tiendas, ya
   usan esta función de CSS. Ahora se ven como en Chrome.
 
+- **Más estable con ventanas y menús emergentes.** Arregla un cierre de la pestaña que ya tenía la 1.15.1 en páginas que
+  combinan ventanas de diálogo o menús emergentes con diseños que se adaptan al tamaño de su recuadro.
 - **Más seguro.** Lleva cuatro arreglos de seguridad graves de versiones posteriores de Chrome: tres en el dibujo con
   la tarjeta gráfica (WebGL) y uno en el aislamiento entre webs.
 

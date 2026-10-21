@@ -10,16 +10,19 @@ de FM.28 (abajo). Después, FM.36 (tests de la 116 con `shadowroot=`), sin prisa
 
 | Rama | Cabeza | Estado |
 |---|---|---|
-| `nube/motor-131-anchor` = `nube/motor-131-anchor-1152` | **9069fb3e1a** | **1.15.2** (porte F1–F4 + arreglos de las compilaciones + FS.22 fundida + `flyweb_version` 1.15.2). Base de FM.29 |
+| `nube/motor-131-anchor` = `nube/motor-131-anchor-f11` | **9472de6fe0** | **candidato a la 1.15.2**: `-1152` (9069fb3e1a: porte F1–F4 + arreglos de las compilaciones + FS.22 + `flyweb_version` 1.15.2) + los arreglos de las WPT (`overflow: hidden`, 1624b1441b9, 14c9714ba83e). Base de FM.29 cuando LOCAL lo entregue |
 | `nube/motor-131-anchor-f2` … `-f10` | 4efeaf5685 … ecb6ce11ed | puntos de compilación de prueba de FM.28; solo de referencia |
 | `nube/motor-131-escapes` | fa4fae392f | 1.15.1, base del porte |
 | `seg/cve-criticos-128` | ad21546964 | FS.22, ya fundida en la 1.15.2 (`merge-base --is-ancestor` OK) |
 
 **Lo que queda de FM.28 (no bloquea FM.29 si ya está cerrado al llegar):**
 
-- **WPT** de `FlyWeb/tools/wpt-fm28-lista.txt` (405 sobre el árbol del 131) frente a CfT 131: las corre LOCAL-6. Si llegan
-  con diferencias que sean del porte, se arreglan en `nube/motor-131-anchor` (rama fija nueva para LOCAL) y se anotan en
-  «Diferencias conocidas» de `version-1.15.2.md`.
+- **F11 (9472de6fe0) por compilar y probar** (LOCAL-6, cuando la 7,1 acabe la 128): navegador, `blink_unittests`, WPT de
+  la lista y los dos crashtests de container queries con capa superior (se caen en la 1.15.1 y en la F9; con 1624b1441b9
+  deberían pasar). Las WPT de la F9 ya están en `version-1.15.2.md`; si la F11 deja algo del anchor peor que CfT 131, se
+  arregla en `nube/motor-131-anchor` (rama fija nueva) o va a «Diferencias conocidas».
+- **Revisión de SEGURIDAD-PORTES-4** (regla 17) de lo que cambió después de la F9: el porte de 1624b1441b9 en
+  `ng_out_of_flow_layout_part.cc`/`ng_fragment_builder.*` y 14c9714ba83e en `cc/trees/property_tree.cc`; pedida el 21-10.
 - **Release:** cuando lo diga Titín (FM.31: la 7,1 compila también la 128). La entrega en la fila es de LOCAL.
 - Fuera de FM.28, ya acordado: `ElementFragmentAnchorTest.AnchorRemovedBeforeBeginFrameCrash` (fragmentos `#ancla`).
 
