@@ -14,6 +14,11 @@ o con el agente que toque.** A veces el buzón trae órdenes ya superadas: compr
 
 ### PARA LOCAL-7: QUÉ HACER AL EMPEZAR
 
+0. **ESTADO A LAS 18:05 (lo más reciente; manda sobre los puntos de abajo):**
+   - **1.15.2 ENTREGADA a PUBLICACIÓN en FM.28** (commit de188d9): brave-core `nube/motor-131-anchor-f16` **af0328adeb** (F15 + includes), build **27**, `entregas/FlyWeb-1.15.2/FlyWeb.app`; LuLu aprobado por Titín (7,1 `entregas/FlyWeb-1.15.2`, 6,1 `flyweb-pruebas/1152-release`). PUBLICACIÓN avisada. **Pendiente de LOCAL:** cuando PUBLICACIÓN la dé por firmada y verificada en FM.28, `flyweb` = commit con el árbol de af0328adeb y padres af0328adeb + 54b964da54 (receta de LOCAL-3/4: `commit-tree`, `update-ref` con el hash antiguo exacto, `push origin flyweb`, `read-tree -m -u` en el checkout de Drive; una orden `git -C` por llamada).
+   - **128:** 7.ª pasada relanzada a las 16:27 (`temp/local6/chromium128-compila7d.sh`; partes 7, 7b y 7c sumadas). Al acabar, `c128-arranque61.sh` (punto 1). Prioridad (COORDINACIÓN-10, 11:35): **FlyWeb primero**; hasta 4 rondas de arranque y luego Fase 1.
+   - El punto 2 (F14/F15) ya está resuelto: lo anterior es historial.
+
 1. **Chromium 128 (FM.31, Fase 0), 7.ª pasada COMPILANDO** desde el 21-10 14:13 con `nohup`: `temp/local6/chromium128-compila7.sh`
    (PID en `chromium128-compila.pid`, salida en `chromium128-compila.nohup`, registro en `chromium128-compila.log`; las partes anteriores en
    `local5/chromium128-compila.log` y `local6/chromium128-compila-{2..6}.log`, que el guion suma para los avisos). 48745 pasos (~2 h).
