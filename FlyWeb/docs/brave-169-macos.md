@@ -40,8 +40,9 @@ Etiquetas: **[V]** verificado en el código o en las cabeceras; **[H]** hipótes
   lectura a mano. **Límite 2:** no ve llamadas dinámicas (`NSClassFromString`, `performSelector`). La única nueva,
   `NSMenuBarDisplayManager` en `app_controller_mac.mm.patch`, devuelve `nil` en 10.14 y no hace nada [V].
   **Límite 3:** no compila. Pero Chromium 128 ya pone `-Wunguarded-availability` en Apple
-  (`build/config/compiler/BUILD.gn`), con errores por aviso. **Cualquier uso sin guarda que se me haya escapado rompe la
-  compilación de la Fase 1 con 10.14**: no puede pasar sin que se vea.
+  (`build/config/compiler/BUILD.gn`), pero **no como error**: en la Fase 0 dio 70 avisos y 0 errores en Chromium 128
+  (COORDINACIÓN-11, 21-10). Un uso sin guarda que se me haya escapado **saldrá como aviso** en la compilación de la Fase 1
+  con 10.14: hay que buscarlo en el registro, porque no la para.
 - **Fuera del alcance:** binarios que Brave baja como componentes (cliente Tor y similares). No están en brave-core y
   dependen de nuestro servidor de componentes.
 
@@ -101,7 +102,7 @@ Etiquetas: **[V]** verificado en el código o en las cabeceras; **[H]** hipótes
 ## 7. Qué falta y quién lo cierra
 
 - **LOCAL (Fase 1, Brave 1.69.168 limpio con `mac_deployment_target = "10.14"`):** los avisos de
-  `-Wunguarded-availability` en `brave/` deben ser **0**. Cualquiera que salga es un fallo de este estudio.
+  `-Wunguarded-availability` en `brave/` deben ser **0** (contarlos en el registro: son avisos, no errores). Cualquiera que salga es un fallo de este estudio.
 - **Prueba en la 6,1 y la 5,1:**
   - color del título de la ventana (override privado);
   - burbuja de geolocalización;
