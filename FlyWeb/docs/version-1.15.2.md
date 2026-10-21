@@ -24,7 +24,7 @@ pasan en CfT 131. **Y la F12 (f2699e58e7) arregla otra caída que la 1.15 y la 1
 `GetComputedStyleOutOfFlowInsetsFix` (6c6fc68fc55) vino un CHECK que exige que el resultado de layout de un absoluto guarde
 sus insets, pero no su complemento upstream 12bfef324f99 (crbug 1458561): tras un layout de subárbol de un absoluto que es
 límite de relayout, `getComputedStyle()` de un inset no fijo tumba el renderer (p. ej. cambiar el texto de un tooltip
-absoluto de tamaño fijo y leer su `top: 10%`). Prueba: `FlyWeb/tools/caidas-fm28.html` (**confirmado por LOCAL-6, 21-10:** la F9 se cae con «Check failed: bitfields_.has_oof_insets_for_get_computed_style» y la 1.15.1 publicada tampoco llega al final). **Falta:** compilar y probar la F13
+absoluto de tamaño fijo y leer su `top: 10%`). Prueba: `FlyWeb/tools/caidas-fm28.html`. **Falta:** compilar y probar la F13
 (navegador, `blink_unittests`, WPT, los crashtests y `caidas-fm28.html`) y la Release (cuando lo diga Titín). Detalle técnico: fila FM.28 de `docs/TAREAS.md`; criba de la cadena en
 `FlyWeb/tools/port/anchor-clas.tsv`.
 
