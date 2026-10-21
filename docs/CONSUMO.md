@@ -36,6 +36,7 @@ contexto al cerrar · notas.
 
 | Fecha | Agente | Modelo | Esfuerzo | Tarea | Horas | Salida | `cost_usd` | Contexto | Notas |
 |---|---|---|---|---|---|---|---|---|---|
+| 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FS.22: F13/F14 de FM.28, cierre de la 1.15.2 | ~0,1 | 16 145 | 3,10 | 34 % | Desde la línea anterior; sesión acumulada 10,94 $, 68 340 de salida, 36,7 M de lectura de caché |
 | 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FS.22: arreglos posteriores de la F11 (0e454ce616), 01c7c1b09a, F12 y c215f8e6f0 | ~0,4 | 33 742 | 5,07 | 29 % | Desde la línea anterior (2,76 $ acumulados); 17,8 M de lectura de caché |
 | 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FS.22: regla 17 de la F11 de FM.28 | ~0,4 | 16 101 | 2,12 | 18 % | Diferencia desde la entrega anterior hasta el primer visto bueno (sin la búsqueda de arreglos posteriores ni seg/top-layer-box, que get_session aún no contaba); 6,2 M de lectura de caché |
 | 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FS.22: revisión f8→f9 de FM.28 (arranque incluido) | ~0,3 | 2 352 | 0,64 | 11 % | Desde el inicio de la sesión; 0,80 M de lectura de caché |
