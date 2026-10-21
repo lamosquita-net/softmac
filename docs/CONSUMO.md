@@ -36,6 +36,7 @@ contexto al cerrar · notas.
 
 | Fecha | Agente | Modelo | Esfuerzo | Tarea | Horas | Salida | `cost_usd` | Contexto | Notas |
 |---|---|---|---|---|---|---|---|---|---|
+| 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FS.22: revisión f8→f9 de FM.28 (arranque incluido) | ~0,3 | 2 352 | 0,64 | 11 % | Desde el inicio de la sesión; 0,80 M de lectura de caché |
 | 15→21-10 | SEGURIDAD-PORTES-3 (`…01LKiaD9`) | Opus 5.5 | medio | Sesión: FS.14–FS.22 y F9 | — | 446 987 | 129,94 | 78 % | Total de la sesión, al archivarla (21-10) |
 | 19→21-10 | INVESTIGACIÓN-MOTOR-1 (`…01KEXwPP`) | Sonnet 5.5 | alto | Sesión: FM.27, FM.30–35 | — | 894 569 | 42,25 | 78 % | Total de la sesión; el doble de salida que SEGURIDAD-PORTES-3 |
 | 14→21-10 | CONTENIDOS-WEB-2 (`…015tHV7u`) | Sonnet 5.5 | medio | Sesión: webs 1.13–1.15.1 | — | 32 504 | 8,57 | 32 % | Total de la sesión |
