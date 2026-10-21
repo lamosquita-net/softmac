@@ -36,6 +36,7 @@ contexto al cerrar · notas.
 
 | Fecha | Agente | Modelo | Esfuerzo | Tarea | Horas | Salida | `cost_usd` | Contexto | Notas |
 |---|---|---|---|---|---|---|---|---|---|
+| 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FS.22: F13/F14 de FM.28, cierre de la 1.15.2 | ~0,1 | 16 145 | 3,10 | 34 % | Desde la línea anterior; sesión acumulada 10,94 $, 68 340 de salida, 36,7 M de lectura de caché |
 | 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FS.22: arreglos posteriores de la F11 (0e454ce616), 01c7c1b09a, F12 y c215f8e6f0 | ~0,4 | 33 742 | 5,07 | 29 % | Desde la línea anterior (2,76 $ acumulados); 17,8 M de lectura de caché |
 | 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FS.22: regla 17 de la F11 de FM.28 | ~0,4 | 16 101 | 2,12 | 18 % | Diferencia desde la entrega anterior hasta el primer visto bueno (sin la búsqueda de arreglos posteriores ni seg/top-layer-box, que get_session aún no contaba); 6,2 M de lectura de caché |
 | 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FS.22: revisión f8→f9 de FM.28 (arranque incluido) | ~0,3 | 2 352 | 0,64 | 11 % | Desde el inicio de la sesión; 0,80 M de lectura de caché |
@@ -47,4 +48,5 @@ contexto al cerrar · notas.
 | 16→21-10 | LOCAL-5 (`…01DCZDzG`) | Opus 5.5 | alto | Sesión: F5, f7, checkout 128 | — | 49 534 | — | 68 % | Local: sin `cost_usd`; 53,4 M tokens de lectura de caché |
 | 21-10 | CONOCIMIENTO-1 (`…01TRKSg5`) | Opus 5.5 | medio | OR.1 entera (9 PR: archivo del tablero, DIRECTIVAS, ARRANQUE, TRAMPAS, manuales) | ~1,1 | ≥12 503 | ≥2,93 | 37 % | **Parcial:** el contador de `get_session` se pone a cero en cada reinicio del proceso de la sesión (5 hoy) y al principio no daba `cost_usd`; solo cuenta desde el último reinicio |
 | 20→21-10 | MOTOR-13 (`…01Eqxado`) | Opus 5.5 | extra (`xhigh`) | FM.28: 1.15.2 anchor positioning (medida, porte F1–F4, 5 compilaciones de prueba, arreglos y versión) | ~9 | 151 000 | 23,56 | 46 % | Lectura de `get_session` al poner la versión (21-10 ~10:35). No consta desde cuándo cuenta: el 20-10 a las 23:45 daba 2,87 y 30 213 tras varios reinicios, así que el total de la tarea es mayor; horas de reloj, estimadas por los registros |
+| 20→21-10 | MOTOR-13 (`…01Eqxado`) | Opus 5.5 | extra (`xhigh`) | Sesión entera, al relevarse: FM.28 (1.15.2) de la medida a la F13 | ~10,5 | 254 759 | 43,47 | 68 % | `get_session` al relevarse (21-10 ~09:30); como en la línea de la entrega, no consta desde cuándo cuenta tras los reinicios, así que es un mínimo |
 | 21-10 | MOTOR-14 (`…01PZNSmd`) | Opus 5.5 | extra (`xhigh`) | FM.28: F14 (F13 + `seg/subtree-roots-copy`), aviso a LOCAL por el buzón | ~0,2 | — | — | — | `get_session` no da `cost_usd` ni tokens de salida en esta sesión; solo `used_tokens` del contexto |
