@@ -7,6 +7,41 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 21-10 (tarde): COORDINACIÓN-10 → COORDINACIÓN-11 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-10 (`session_01U31mzo4UdTUgf3gkhqxKmb`, Opus 5.5) deja la nota al 45 % de contexto, en punto limpio; se
+releva cuando Titín lo pida o al pasar del 50 %. **Nunca aprobar la tarjeta de confianza** (ni tú ni la nube).
+
+**Canales (comprobado hoy):**
+- Nube → nube sin aprobar: `send_message`. Nube → 7,1 y → sesiones aprobadas: **rama `buzon`** (`buzon/README.md`);
+  reparte **CARTERO-LOCAL** en la 7,1 cada 30 min. **Entrega, pero no anota en `buzon/ENTREGADO.md`** (recordatorio en el
+  README). Lo urgente que no llega (pasó con la F15 a LOCAL-6) se lo pides a Titín para que lo pegue en la sesión.
+- 7,1 → nube: `SendMessage` directo, llega bien. Reserva: CARTERO-1 de la nube (rutina `trig_01ByndD2HyrSWPyNqauBF7uH`
+  desactivada). VIGÍA solo vigila (rutina reactivada, destino COORDINACIÓN-10: **cámbialo** con un mensaje al Vigía).
+- El clasificador del modo Auto bloquea ordenar a otra sesión `confirm_repository_trust`. Archivar una sesión aprobada
+  (MOTOR-13, COORDINACIÓN-9) solo lo puede hacer Titín.
+
+**Estado al relevo (21-10, ~18:10 Madrid):**
+- **1.15.2 ENTREGADA** a PUBLICACIÓN (FM.28): brave-core `nube/motor-131-anchor-f16` af0328adeb, build 27. Camino:
+  F9 → F14 (caídas de la 1.15.1 publicada y UAF c215f8e6f0 arreglados) → F15 (la F14 rompía 9 WPT de capa superior) →
+  F16 (includes que la Release sin PCH no encontraba). Falta: PUBLICACIÓN firma/sube (no le preguntes a Titín) y da nombre,
+  bytes y SHA-256 del DMG en FM.28 → CONTENIDOS-WEB-2 pasa **#420** (web) a listo → lo fusionas. Luego LOCAL mueve `flyweb`.
+- **Lecciones (en TRAMPAS):** la revisión en papel (MOTOR y SEGURIDAD) aprobó la F11/F14 y solo las WPT vieron la
+  regresión; una Static con PCH no garantiza la Release (`enable_precompiled_headers=false`).
+- **FM.31 Fase 0 HECHA:** Chromium 128 limpio compila en la 7,1 (SDK 14.5, Metal de Xcode 15.4) y **arranca en la 6,1 en
+  modo software**: 4 rondas (mac_min_system_version, 3 SPI en weak_import, EDR de screen_mac, Dawn hasUnifiedMemory;
+  `dcheck_always_on=false`). Queda para la Fase 1: Dawn en 10.14 (~50 usos de API 10.15 sin @available: protegerlos o
+  apagar WebGPU), el resto de los 70 avisos y la 5,1. **Decisión pendiente para Titín cuando se plantee la Fase 1:**
+  WebGPU apagado al principio (recomendado: menos trabajo; Chrome 128 no da soporte a 10.14) o portar Dawn.
+- **1.15.3 (FM.29, view transitions entre documentos):** MOTOR-14 (`session_01PZNSmdebZSnLvAr2v93osp`, sin aprobar) la
+  midió (#412: 159 commits, 6–10 h); abre rama cuando la 1.15.2 esté publicada. Lista para la 1.15.3: 01c7c1b09a
+  (::backdrop), getComputedStyle-002, 3aa7ad2a0d opcional.
+- **Agentes:** LOCAL-6 al 53 %, en punto limpio; **LOCAL-7 lo abre Titín** (texto en mi último mensaje a Titín: el de
+  LOCAL-6 en ARRANQUE con «relevo de LOCAL-6 (local_20642d1a-…)»). SEGURIDAD-PORTES-4 (`…011AG2q3`, 35 %) e
+  INVESTIGACIÓN-MOTOR-2 (`…014AE1uL`, sin encargo) quietas. SERVIDOR-LOCAL-3 sin encargo. MOTOR-13, COORDINACIÓN-9,
+  LOCAL-5, CONOCIMIENTO-1, SEGURIDAD-PORTES-3 e INVESTIGACIÓN-MOTOR-1: archivadas.
+- Consumo de COORDINACIÓN-10 al dejar la nota: 28,01 $, 112 275 tokens de salida, 45 % de contexto.
+
 ## 21-10: COORDINACIÓN-9 → COORDINACIÓN-10 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-9 (`session_01MMGz9HS8qH5Hzsne92zi7u`, Opus 5.5 alto) se releva el mismo día porque aprobó la tarjeta de
