@@ -3,6 +3,69 @@
 Nota de relevo del agente LOCAL de FlyWeb (compila, prueba y lleva `flyweb`). La deja cada LOCAL al salir; el siguiente
 la lee después de `CLAUDE.md` y de `docs/TAREAS.md` (tabla, reglas y filas FM/FS abiertas).
 
+## LOCAL-5 → LOCAL-6 (21-10-2026)
+
+LOCAL-5 (`local_eb0590c2-6997-4848-bcc7-eb49e4cf6553` «Compilación LOCAL (5)»; desde la nube, `SendMessage` al nombre o
+`session_01DCZDzGMM8VdHsV5B5JBXmv`; Opus 5.5, esfuerzo alto; 16-10 ~17:25 – 21-10 ~10:00). Relevo por decisión de Titín
+(por COORDINACIÓN-9), con la compilación de la 128 en marcha. Guiones y registros en `~/proyectos/softmac/temp/local5/`.
+
+### PARA LOCAL-6: QUÉ HACER AL EMPEZAR
+
+1. **Chromium 128 (FM.31, Fase 0) COMPILANDO** desde el 21-10 09:36 con `nohup`: `temp/local5/chromium128-compila.sh`
+   (PID en `chromium128-compila.pid`, guion en zsh; salida en `chromium128-compila.nohup`, registro de ninja en
+   `chromium128-compila.log`). Checkout aparte `~/proyectos/chromium-128` (src = etiqueta 128.0.6613.138, 88 GB, depot_tools
+   propio en `~/proyectos/chromium-128/depot_tools`, **nunca** `gclient sync -D` ni tocar `flyweb-build`), salida `out/Mojave`
+   (61389 pasos; ~22000 a las 09:56). `args.gn`: `mac_deployment_target = "10.14"`, `mac_sdk_path` =
+   **`~/proyectos/sdk/MacOSX14.5.sdk`** (del `Xcode_15.4.xip` de Titín; la 128 oficial usa el 14.0: diferencia anotada),
+   `treat_warnings_as_errors = false`, `symbol_level = 0`, `is_official_build = false`, **`use_siso = false`** (la depot_tools
+   nueva usa siso por defecto y no acepta `-k 0`), `-k 0`. `-Wunguarded-availability` ya lo pone Chromium en Mac
+   (`build/config/compiler/BUILD.gn`). Al acabar, el guion cuenta errores, avisos y avisos de disponibilidad distintos
+   (`temp/local5/chromium128-avisos.txt`) y los agrupa por directorio. **Cerrojo** `~/proyectos/flyweb-build/temp/LOCK`
+   mientras compila (lo quita al salir). Después: arranque en la 6,1 y la 5,1 (`chrome://gpu`, una web normal, claude.ai),
+   comparar con los 44 ficheros de la clase I de `migracion-128.md` y resultado a FM.31.
+   - En la descarga: 429 de googlesource con el `-j` por defecto (relanzado con `-j 2`); el hook `vpython3_common` quitado con
+     `custom_hooks` en `.gclient` (aioquic 0.9.20+chromium.1 ya no está en el registro); LuLu de la 7,1 tuvo que aprobar el Python
+     de `~/Library/Caches/vpython-root.501` (Titín, 21-10).
+2. **Regla: FlyWeb primero.** Si MOTOR-13 manda el sha del arreglo de FM.28, **para la 128** (mata el guion y su `autoninja`/ninja;
+   ninja retoma donde lo dejó, acordado con Titín), compila FlyWeb y luego relanza la 128 con el mismo guion (incremental).
+3. **FM.28 (1.15.2, anchor positioning) a la espera de MOTOR-13.** Último sha probado: `nube/motor-131-anchor-f8` **510aab322e**
+   (= F7 7f864fb08c + `dom_wrapper_world_test.cc`). El navegador de la F7 y `blink_unittests` de la F8 compilan y enlazan
+   (0 errores). **Caída grave** (pasada como URGENTE): `Element::RecalcOwnStyle` usa `new_style` después de
+   `scoped_refptr<const ComputedStyle> layout_style(std::move(new_style))` (en `new_style->HasAnchorFunctionsWithoutEvaluator()`);
+   en upstream `ComputedStyle` no va por refcount. Tumba el renderer en cualquier recálculo de estilo de un elemento con caja:
+   en la 6,1 `motor-120` (y las pestañas del mismo sitio quedan sin respuesta), en `blink_unittests` 19 caídas del filtro y 9 de
+   control (`LayoutBoxTest.*`), todas SEGV 0x38 (lldb: `RecalcOwnStyle` +6221). **1 fallo real:**
+   `CSSPropertyParserTest.AnchorPositioningDisabled` (espera que `anchor()`/`anchor-size()` no se analicen con el flag apagado).
+   Con el sha nuevo: navegador + `blink_unittests` (`temp/local5/anchor-f7.sh` / `anchor-f8-tests.sh` como modelo), el
+   `--gtest_filter='*Anchor*:*PositionTry*:*PositionArea*:*TryTactic*:*TryValueFlips*:*FlipRevert*:*AbsoluteUtils*'` (ojo:
+   `*Anchor*` también recoge `ScrollAnchor` y `TextFragmentAnchor`), la tanda en la 6,1 y las pruebas a mano de
+   `version-1.15.2.md` (`temp/local5/fm28-mano.py` + `local4/web/fm28-mano.html`: shader `for(;;)`, `window.open`/`_blank`,
+   carrusel `overflow:hidden`, página larga; F7 frente a la 1.15.1 de `~/flyweb-pruebas/1151-release/`). `<webview>` de
+   extensiones no está automatizado. Release y publicación de la 1.15.2, cuando Titín lo diga.
+4. **`flyweb` = 1.15.1, 54b964da54** (20-10; árbol de fa4fae392f47, padres fa4fae392f47 y 0d2daa26da), Drive sincronizado.
+5. **5,1 del estudio (pendiente de Titín):** clave `~/.ssh/flyweb_51`, guía en `software/entregas/acceso-51/`; mediciones de
+   rendimiento preparadas (`temp/local5/medir-51.sh`, `bench.py`: Speedometer 3, JetStream 2, MotionMark 1.3, arranque y memoria;
+   `net.lamosquita.local5.medir51.plist` a las 03:30). **Titín autorizó (20-10) instalar ese launchd en la 7,1 solo cuando la 5,1
+   esté configurada**; los datos (usuario, puerto, host) por mensaje, nunca al repo. Después, FM.30 (WPT de botones).
+
+### Lecciones (16–21-10)
+
+- **Un solo `build.sh` a la vez y cerrojo** `~/proyectos/flyweb-build/temp/LOCK` (el 16-10 LOCAL-4 y LOCAL-5 compilaron a la vez en
+  `out/Release`: `.rsp` perdidos y Release desde cero). `gn clean` necesita `--root=<src>`.
+- **`blink_unittests` solo por `build.sh` con `--target blink_unittests`** (en `FLYWEB_EXTRA_ARGS`): ninja a mano rompe los scripts
+  de Python parcheados por Brave (`No module named 'mojo'` / `'import_inline'`).
+- **LuLu** retiene cada binario nuevo, aunque vaya a la misma ruta de la 6,1; antes de una tanda larga, una pestaña de prueba
+  (`temp/local5/diag-fm22-61.sh`) y, si no llega el GET al 8125, pedir la aprobación a Titín con notificación. También retiene el
+  Python de vpython y la Release en una ruta nueva de `entregas/`.
+- **`en-61.sh` cierra el navegador a los 30 min**: para tandas largas, `temp/local5/en-61.sh` con `MAXSEG=` (y `cerrar.py` de
+  `local4`). Los servidores 8125/8127 no sobreviven a un reinicio: comprobarlos antes (`fm22-pruebas61.sh` ya lo hace).
+- **Un renderer que se cae deja la pestaña en `/json/list` con su título pero sin responder a CDP**: buscar `Received signal`
+  repitiendo sin ventana en la 7,1 con `--enable-logging=stderr`, y la pila con `lldb` sobre un test que caiga.
+- **Avisar a Titín antes de cada tanda que abre ventanas en la 6,1** y decirle si hay que pulsar algo (21-10: vio un aviso de permiso
+  de una WPT y no sabía si era para él).
+- Los mensajes de COORDINACIÓN no llegaron tras el reinicio de la app del 20-10 19:19 (los de MOTOR sí): si alguien dice que no
+  contestas, `ReadNotifications` y avisar a COORDINACIÓN con la sesión buena.
+
 ## LOCAL-4 → LOCAL-5 (16-10-2026)
 
 LOCAL-4 (`local_4a2ca263-48ec-4ff1-9ebf-1d1da23e9eee`; desde la nube `send_message` a `session_014pVFQScvJwumdaBwufvESX`;
@@ -145,98 +208,6 @@ Opus 5.5, esfuerzo alto, 15-10 ~15:25 – 16-10). Relevo pedido por COORDINACIÓ
 - `gh pr create` lo bloquea el clasificador de esta sesión: subir la rama y que el PR lo abra Titín
   (`local/superficie-129` sigue sin PR).
 
-## LOCAL-3 → LOCAL-4 (15-10-2026)
+## Relevos anteriores
 
-LOCAL-3 (`local_e47dd0d4-b894-4c29-8c8a-d4bb9002f78a`, Opus 5.5, esfuerzo alto, 13-10 ~23:45 – 15-10) deja todo en punto
-limpio: nada compilando, todas las versiones entregadas publicadas y `flyweb` al día.
-
-### Versiones y `flyweb`
-
-| Versión | Build | brave-core | `flyweb` |
-|---|---|---|---|
-| 1.11.1 / 1.11.2 | 17 / 18 | `local/huella-127` 44c1d6e4 / `seg/v8-12.8` 5aa57049f | 0b36d9b9 / 2cff04bd |
-| 1.12 | 19 | `nube/motor-128` 710e7520 | 357a19d9 |
-| 1.12.1 (RubyLB) | 20 | `nube/motor-128-ruby` e6273d015 | c78dae5c |
-| 1.12.2 (resto de FS.12) | 21 | `nube/motor-128-ruby` bb6c7146 | fd4d33b7 |
-| **1.13 (nivel 129)** | **22** | **`nube/motor-129` 325686916c** | **37197fe0** |
-
-`flyweb` = **37197fe0** (árbol de 325686916c, padres 325686916c y fd4d33b7), en GitHub; checkout de Drive
-(`softmac/FlyWeb/brave-core`) sincronizado. Receta para cada versión firmada: `git -C <bare> commit-tree "<cabeza>^{tree}"
--p <cabeza> -p <flyweb actual>`, `update-ref`, `push origin flyweb` y `git -C <checkout de Drive> read-tree -m -u
-"<flyweb anterior>^{tree}" flyweb`. **Una orden `git -C` por llamada**: las órdenes compuestas que mueven `flyweb` o
-suben el tablero las bloquea el clasificador («Modify Shared Resources»).
-
-### Checkout y `out/`
-
-- `~/proyectos/flyweb-build/brave-browser/src/brave` en 325686916c; V8 12.9.202.28 (f372edd3).
-- Rama de compilación `local/motor-129` (en el bare `~/proyectos/softmac/FlyWeb/brave-core.git` y en `brave-browser`, que
-  apunta a a17a0c0a): 325686916c. `build.sh` exige una rama del mismo nombre en los dos.
-- `out/Static`: 43ef04cf64 (nivel 129 sin Menlo). `out/StaticAsan`: 43ef04cf64. `out/Release`: 325686916c (1.13, build 22).
-- `build.sh` sale del worktree `~/proyectos/softmac/temp/wt-sm71` (a3abcd5): `FLYWEB_EXTRA_ARGS`, `FLYWEB_OUT`,
-  `FLYWEB_SYMBOL_LEVEL`. Recetas:
-  - Static: `nohup env FLYWEB_BRANCH=local/<rama> "FLYWEB_EXTRA_ARGS=--ninja k:0" …/build.sh Static > log &`
-    (`--ninja k:0` lo pasa Brave a ninja como `-k 0`: saca todos los errores de una vez sin ninja a pelo).
-  - ASan: `"FLYWEB_EXTRA_ARGS=--is_asan -C StaticAsan --ninja k:0" FLYWEB_OUT=StaticAsan`.
-  - Release: `FLYWEB_BUILD_NUMBER=<n> … build.sh Release`; luego `check-no-avx.sh` con
-    `PATH=…/src/third_party/ninja:$PATH`, `SUPublicEDKey` = `FlyWeb/servidor/actualizaciones/clave-publica.txt` y copia
-    con `ditto` a `~/proyectos/softmac/entregas/FlyWeb-<v>/` (con `flyweb-build-info.txt`).
-- Parar una compilación: `kill -INT` al proceso `third_party/ninja/ninja` (TERM no basta); lo compilado se reaprovecha.
-- **Cada compilación o prueba larga, con espera por PID en segundo plano que despierte la sesión** (regla de
-  COORDINACIÓN-5): el Static de RubyLB de LOCAL-2 falló a las 20:39 del 13-10 y nadie lo supo en 3 h.
-
-### Herramientas (`~/proyectos/softmac/temp/local3/`; el scratchpad de la sesión se borra al reiniciar)
-
-- `wpt-ruby.sh <exe> <base> <puerto>` (`LISTA=`, `ESPERADO=`): WPT por el servidor 8117 con `FlyWeb/tools/wpt-ref.py`.
-- `wpt-129.sh <exe> <base> <puerto>`: las 27 de `wpt-129-lista.txt`, 24 por HTTP 8118 y 3 por HTTPS 8443.
-- `asan-129full.sh <app ASan> <dir>`, `asan-129.sh`: pruebas con ASan (`ASAN_OPTIONS=log_path=…:detect_leaks=0`).
-- `webs-jit-log.sh <app>` (`ERR=<fichero>`): webs con JIT contando «Check failed», señales y «unrecognized flag».
-- `captura2.py` / `captura3.py`: reftests sin emulación (cada página en su pestaña nueva, load + fuentes + 2 rAF; lanzar
-  con `--window-size=800,600 --force-device-scale-factor=1`); `captura3` da coordenadas, colores y cajas de ruby.
-- `sonda-cuelgue.sh`, `regexp-turbofan.html` (regress-355683663 con JIT), `release-113.sh` (tanda de la Release).
-- **No usar `difpix.py`**: lee el rectángulo de la pestaña de la referencia.
-- **`FlyWeb/tools/wpt-ref.py` de `main`** ya captura sin `Emulation.setDeviceMetricsOverride` y repite (`--pasadas`,
-  INESTABLE); lanzar el navegador con `--window-size=800,600 --force-device-scale-factor=1`. El antiguo, con emulación,
-  daba 200 px falsos en las `no-layout-containment-*`.
-- Servidores WPT: 8117 = `temp/wpt128/…/external/wpt` (Chrome 128); 8118 = `temp/wpt129/…/external/wpt`
-  (129.0.6668.112, envuelto con `FlyWeb/tools/wpt-envolver.py` para los `.window.js`/`.any.js`); 8443 = HTTPS propio
-  (`local3/https-server.py`, certificado de 127.0.0.1 en `local3/cert/`). PIDs en `temp/wpt128-http.pid` y
-  `local3/*.pid`. Para HTTPS: navegador con `--ignore-certificate-errors` solo en el perfil temporal y `wpt-ref.py` con
-  `SSL_CERT_FILE=local3/cert/cert.pem` (si no, «NO CARGA»). Tras reiniciar la Mac se paran: relanzarlos.
-- `temp/wpt129/…/css/css-conditional/container-queries/flyweb-control-abspos-sin-container.html`: control propio
-  (no está en el repo). `temp/wpt128/…/flyweb-fs11/`: `ruby-fs11` servido. Fuente Ahem en `~/Library/Fonts`. **No borrar
-  ni `flyweb-fs11` ni Ahem** (COORDINACIÓN-5).
-- **Chrome for Testing 129.0.6668.100** en `temp/cft129/chrome-mac-x64/` (descargado con permiso del HUMANO el 14-10,
-  SHA-256 `522ab874…dc37`; sin firma de código, como todo CfT). Sirve para comparar con Chrome N de verdad, no con el
-  Chrome 155 instalado.
-- Perfiles: siempre temporales (`mktemp -d`), y `--use-mock-keychain --no-first-run`. Para el JIT, `Preferences` con
-  `javascript_jit:1` (la app de desarrollo tiene la política antigua). La prueba de conversación en claude.ai la hace el
-  HUMANO en un perfil temporal que abre LOCAL sin depuración remota; LOCAL vigila el stderr y borra el perfil al cerrar.
-
-### LuLu
-
-Cada binario nuevo en una ruta nueva se queda sin red hasta que el HUMANO lo aprueba en LuLu (pedírselo en la sesión
-y con una notificación). localhost sí funciona, también el WebRTC entre dos `RTCPeerConnection`… salvo cuando no hay red:
-`motor-129` cae a 14/15 sin la aprobación. Si una Release incremental no cambia el ejecutable ni los Helper (comparar
-SHA-256), la aprobación sigue valiendo.
-
-### Trampas vistas
-
-- **macOS 15.8.1** (14-10, 11:26, con reinicio): cambió el dibujado del texto. `block-ruby-003` y
-  `ruby-inlinize-recursive-simple` fallan igual en la 1.12.2 publicada; comparar las WPT siempre también con la versión
-  publicada en el mismo macOS.
-- **Red lenta**: las webs pueden tardar hasta 50 s; antes de dar un fallo, repetir con la versión publicada en el mismo
-  momento y medir con `curl`.
-- **Máquina saturada** (ASan compilando): falsos cuelgues en YouTube y WPT. Probar sin carga o comparar con la publicada.
-- **Un cuelgue «en reposo» con CDP sin respuesta** puede ser un renderer muerto: buscar `# Fatal error` en el stderr
-  (`--enable-logging=stderr`) antes de muestrear. Así salió el `UNREACHABLE` de `ToConstant()` (claude.ai, 129).
-- **Mensajes entre sesiones**: a la nube, `SendMessage` con el nombre de `ListAgents` («Nube Coordinación (5)», «Nube
-  Motor (8)», «Publicación»); `send_message` por `session_…` da «not found». Las sesiones de la nube no confirman lectura.
-- zsh: `$VAR:t…` se lee como modificador; escribir `"${VAR}:…"`. `echo ====` falla (`=` expande órdenes).
-
-### Pendiente (no es de LOCAL hasta que llegue la entrega)
-
-- **`block-ruby-003`** (19 px en el texto de la anotación, x 12–16, y 229–233): falla en la 1.12.2 y en la 1.13 desde
-  macOS 15.8.1; con Menlo sigue igual aunque `monospace` ya mide como Chrome 129. Va a **MOTOR-8** (después de la 1.13).
-- **Nivel 130, V8 13.0**: lo prepara **MOTOR-9**; LOCAL-4 compila cuando entregue.
-- Fuente monoespaciada interna (JetBrains Mono, decisión del HUMANO) y el matiz de MOTOR-8 (Menlo para las webs): lo
-  cierra COORDINACIÓN-5 con el HUMANO.
+LOCAL-3 → LOCAL-4 y anteriores: [`relevo-local-historial.md`](relevo-local-historial.md).
