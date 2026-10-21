@@ -12,7 +12,7 @@
 <style>
   :root { font: 15px/1.5 -apple-system, sans-serif; }
   .c { position: relative; width: 100px; height: 100px; background: #cfc; margin: 4px; }
-  .o { position: absolute; width: 30px; height: 30px; top: 10%; left: auto; overflow: hidden; background: #f9c; }
+  .o { position: absolute; width: 30px; height: 30px; top: 10%; left: 5%; overflow: hidden; background: #f9c; }
 </style>
 </head>
 <body>
@@ -21,8 +21,9 @@
 <div class="c"><div id="t1" class="o">hola</div></div>
 <div class="c"><div id="t2" class="o"><div>hola</div></div></div>
 <script>
-  // Cada absoluto tiene tamaño fijo y overflow:hidden: es un límite de relayout. Cambiar su texto provoca un layout de
-  // subárbol; luego se piden insets que no son fijos (10 % y auto), que salen del resultado de layout guardado.
+  // Cada absoluto tiene tamaño fijo, overflow:hidden y left/top no automáticos: es un límite de relayout (con left y
+  // right los dos auto no lo sería: ObjectIsRelayoutBoundary). Cambiar su texto provoca un layout de subárbol; luego se
+  // piden insets en %, que no son fijos y salen del resultado de layout guardado.
   document.body.offsetTop;
   t1.innerText = 'boom';
   const a = getComputedStyle(t1).top + ' ' + getComputedStyle(t1).left;
