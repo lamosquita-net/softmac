@@ -26,6 +26,19 @@ cat > .git/info/sparse-checkout <<'S'
 /v8/
 /third_party/pdfium/fxjs/
 /third_party/blink/web_tests/TestExpectations
+/content/browser/
+/cc/
+/components/viz/
+/services/
+/net/
+/base/tracing/protos/
+/third_party/blink/renderer/build/
+/chrome/browser/about_flags.cc
+/chrome/browser/flag_descriptions.h
+/chrome/browser/flag_descriptions.cc
+/chrome/browser/flag-metadata.json
+/content/child/
+/third_party/boringssl/
 S
 git fetch -q --depth 1 --filter=blob:none origin refs/tags/$t:refs/tags/$t
 git checkout -q $t

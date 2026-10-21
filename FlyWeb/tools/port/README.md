@@ -320,3 +320,22 @@ Diffs traducidos con `ngtraducir.py` (mapa en `ngmap-fm28.json.gz`, descomprimir
     flag que se enciende (ScrollNodeForOverflowHidden) arrastra arreglos posteriores sin etiqueta de anchor (14c9714ba83e
     en cc): buscar en la historia por el nombre de la flag y por lo que crea, no solo por la etiqueta. Las WPT de la
     función, frente a CfT N, antes de la Release.
+
+## Sobre la base 128 (MOTOR-15, Fase 3 clase D de FM.31)
+
+Entorno: `CH=/home/user/chromium/hist` (historia sin blobs con las etiquetas 116, 128.0.6613.138, 129.0.6668.112 y
+131.0.6778.264), `cr128` con `mkcr.sh` (sparse ampliado a content/browser, cc, viz, services, net, chrome/browser
+flags) y `brave-core` en `nube/base-128-motor`. Los parches son diff `--full-index` contra la 128 (incluyen lo de Brave).
+
+- `portar128.sh <área> <commit>|fw:<commit de FlyWeb>…` — como `portar.sh`, sobre la 128 + los parches de la rama; cada
+  rechazo queda como `<fichero>.rej.<commit>` (no se pisan). `fw:<sha>` aplica lo que hizo un commit de FlyWeb sobre la
+  116 (`fwdiff.sh`), para llevar lo hecho a mano.
+- `generar128.sh <área>` — escribe los `.patch` contra el contenido de la 128 (no contra la raíz del área: se pueden
+  añadir ficheros al área en cualquier momento) y borra los que vuelven a quedar como en la 128.
+- `insert.sh <área> <commit aplicado> <prerrequisito>…` — deshace un commit del área, aplica antes sus prerrequisitos
+  (añadiendo los ficheros que falten) y lo vuelve a aplicar. Es lo que más rechazos quita: la 128 se cortó el 23-07-2024
+  y muchos commits del 129–131 dependen de otros de agosto (`git log 03c1799e6f9..<commit> -- <fichero>`).
+- `fwdiff.sh`, `fwset.sh`, `fwapply.sh` — diff equivalente de un commit de FlyWeb sobre la 116, y aplicarlo.
+- `f16.sh <fichero>` — el fichero tal como queda en la 1.15.2 (116 + parche de `nube/motor-131-anchor-f16`).
+- `rejfuzz.sh <área>` — reintenta los `.rej` con fuzz 0 e ignorando espacios. **Nunca con fuzz 3**: en anchor metió una
+  entrada de mojom fuera del enum y un miembro en otra struct, y en el json5 subió a stable la flag equivocada.
