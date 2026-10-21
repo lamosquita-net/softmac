@@ -27,6 +27,11 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   alarma de «el 130 no tiene WebAssembly». Con jitless no hay Wasm (también en la 116).
 - **(19-10) LuLu retiene cada binario nuevo** aunque esté en una ruta aprobada: LOCAL abre una pestaña antes de cada tanda.
 
+- **(21-10) Un cuelgue «de GPU» era LuLu:** la 128 se colgaba al arrancar (el navegador esperando un Flush al GPU). La hipótesis
+  «alta, [V] en el código» del estudio en papel (CVDisplayLink del GPU) era falsa; lo resolvió una muestra (`sample`) de **todos**
+  los hilos: el Chrome_IOThread estaba en `sendto` UDP del descubrimiento DIAL de Media Router, retenido por LuLu. En un cuelgue,
+  **primero la muestra de todos los hilos de los dos procesos**, y luego hipótesis. Y con un binario nuevo, mirar antes LuLu.
+
 ## PUBLICACIÓN
 
 - **Con la 1.12.1 y la 1.12.2 en cola, el orden de firma importa:** la web de la segunda no se fusiona hasta que la
