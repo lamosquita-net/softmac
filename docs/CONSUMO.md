@@ -36,6 +36,7 @@ contexto al cerrar · notas.
 
 | Fecha | Agente | Modelo | Esfuerzo | Tarea | Horas | Salida | `cost_usd` | Contexto | Notas |
 |---|---|---|---|---|---|---|---|---|---|
+| 21-10 | SEGURIDAD-PORTES-5 (`…01H7fz6r`) | Opus 5.5 | medio | FS.23: regla 17 de la base 128 p2 (`seg/128-r17`, 9 `.patch`) | ~0,4 | — | — | — | `get_session` sigue sin dar `cost_usd` ni tokens |
 | 21-10 | SEGURIDAD-PORTES-5 (`…01H7fz6r`) | Opus 5.5 | medio | FM.31 clase D, S4 (1 `.patch`, brave-core #4) | ~0,05 | — | — | — | `get_session` no da `cost_usd`, tokens ni contexto (`used_tokens` 0) en esta sesión |
 | 21-10 | SEGURIDAD-PORTES-5 (`…01H7fz6r`) | Opus 5.5 | medio | FM.31 clase D, S3 (13 `.patch`, 4 a mano, brave-core #3) | ~0,2 | — | — | — | Ídem |
 | 21-10 | SEGURIDAD-PORTES-5 (`…01H7fz6r`) | Opus 5.5 | medio | FM.31 clase D, S2 (11 `.patch` + `util.js`, brave-core #2) | ~0,1 | — | — | — | Ídem |
