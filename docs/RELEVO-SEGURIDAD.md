@@ -1,4 +1,4 @@
-# Relevo de SEGURIDAD-PORTES (15-10-2026)
+# Relevo de SEGURIDAD-PORTES (21-10-2026)
 
 Para el siguiente relevo de SEGURIDAD-PORTES. Historia: SEGURIDAD-PORTES (`session_01NkotiT2nNYznsrQu9rssiy`) → -2
 (`session_01YPgb1ubsQCorSgZWaRVgoF`, sin brave-core) → **-3 (`session_01LKiaD9v2hcna6BUo6CfMBs`, FS.14)**. Leer antes:
@@ -7,6 +7,88 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
+
+## SEGURIDAD-PORTES-4 → 5 (21-10-2026, ~19:00)
+
+SEGURIDAD-PORTES-4 (`session_011AG2q3vyZyeMypwfR1RDVy`, Opus 5.5, medio) → **-5**. Se releva al 45 % de contexto, antes de S1.
+
+**Estado:**
+- **1.15.2 publicada**, con la revisión de la regla 17 cerrada en FS.22. Va de la F9 a la F16 de FM.28; la F16 es
+  `nube/motor-131-anchor-f16` af0328adeb.
+- **Ramas mías fundidas en la F14:** `seg/top-layer-box` 1f7b9912 (0e454ce616) y `seg/subtree-roots-copy` 49964845
+  (c215f8e6f0).
+- **Error mío de la F11**, corregido por MOTOR-14 en la F15: di por hecho que `HasPositionedObjects()` de la
+  LayoutNGView cubría la capa superior. En la 116 no la cubre.
+  **Lección:** una salida temprana que depende de un dato de la 116 se comprueba en el código, no por analogía con
+  upstream.
+- **1.15.3 cancelada** (Titín, 21-10). En la 1.15.x, solo seguridad urgente: un UAF o una caída explotable en código
+  que cambie esa versión se avisa a COORDINACIÓN.
+- **Siguiente hito: la base 128** (FM.31).
+
+**Encargo en curso (COORDINACIÓN-11, aprobado):** volver a cortar sobre la 128 los parches de seguridad de la clase D.
+- Inventario en [`FlyWeb/docs/seguridad-128.md`](../FlyWeb/docs/seguridad-128.md) (PR #430, fusionado): 41 `.patch` en
+  **S1 → S2 → S3 → S4**, 7–10 h.
+- **Primero S1**: Blink, aplica limpio, y lleva los dos UAF de 2026.
+- **S3 cruza con MOTOR-14** (`line_breaker`, `inline_cursor`, `inline_item*`, `layout_object.cc`). COORDINACIÓN ya le
+  avisa; va primero la seguridad.
+
+**Base de cada S:** la 128 de la Fase 1 de FM.31, es decir, Brave **1.69.168** = Chromium **128.0.6613.138**, ANGLE
+`713102774487`, Skia `938144dd79c6`.
+- En brave-core no hay aún rama de esa base limpia: solo `nube/motor-128*` y `seg/*-128`, que están sobre la 116 y
+  **no valen**.
+- Antes de S1, pregunta a COORDINACIÓN o LOCAL de qué rama parte. Si no la hay, prepara cada S como `.patch` por
+  fichero contra 128.0.6613.138 en una rama `seg/128-s1`… desde el tag `v1.69.168` de brave/brave-core (fetch del tag
+  al fork), y LOCAL los lleva a la Fase 1.
+- Los `.patch` de Brave 1.69 que ya tocan el mismo fichero mandan: el nuestro se regenera sobre el suyo, como con
+  `update_patches`.
+
+**Cómo se midió (`check.sh`, para rehacerlo):**
+- Necesita el clon de brave-core con historia (`git fetch --depth=1500 origin <rama>`).
+- `./check.sh <commit>` reconstruye, para cada `.patch` del commit, el diff del arreglo a nivel de Chromium:
+  `116 + .patch del padre → 116 + .patch del commit`, con los ficheros sacados de `raw.githubusercontent.com`
+  (chromium/chromium, google/angle, google/skia; googlesource está bloqueado).
+- Luego lo prueba con `patch --dry-run` sobre el fichero de la 128, primero al revés y luego al derecho. Devuelve
+  R/A/F/X/N y traduce las rutas `ng/`/`ng_` y los nombres `NG*` de la 116 a los de la 128.
+- **X no basta para decidir:** mira la fecha de upstream frente a la rama de la 128 (~22-07-2024) o lee el fichero de
+  la 128.
+- Para las fechas, `git fetch --filter=tree:0 --shallow-since=2024-07-15 https://github.com/chromium/chromium
+  refs/heads/main`. Si un commit falta ahí, es anterior o de una rama.
+- Para regenerar: 116 o 128 + `.patch` en un repo temporal, `git diff --full-index`, nombre = ruta con `/` → `-`.
+
+```bash
+#!/bin/bash
+# check.sh <commit>: per file of the commit, rebuild the Chromium-level fix diff (116+parent.patch -> 116+commit.patch)
+# and test it on the 128 file: R = already in 128 (reverse applies), A = applies, F = fuzz, X = fails, N = file absent in 128
+BC=/home/user/brave-core; W=/tmp/claude-0/cd/w; c=$1
+fetch() { # repo rev path out
+  case $1 in cr) u="https://raw.githubusercontent.com/chromium/chromium/$2/$3";; angle) u="https://raw.githubusercontent.com/google/angle/$2/$3";; skia) u="https://raw.githubusercontent.com/google/skia/$2/$3";; esac
+  curl -sS -m 60 -f -o "$4" "$u" 2>/dev/null; }
+for pf in $(git -C $BC show --format= --name-only $c -- patches | grep -v '^patches/v8/\|FLYWEB-SECURITY\|_test\|unittest'); do
+  case $pf in patches/third_party/angle/*) repo=angle; r116=b48983ab8c74d2fcd9ef17c80727affb9e690c53; r128=713102774487cf1a8b3f433529eb8181cbcec31a;;
+              patches/third_party/skia/*) repo=skia; r116=bb40886d43b5fcbcdfb5587a2d20db418622990a; r128=938144dd79c6e3664a3c0bbd019daedddf655ffa;;
+              *) repo=cr; r116=116.0.5845.188; r128=128.0.6613.138;; esac
+  newp=$(git -C $BC show $c:$pf 2>/dev/null); oldp=$(git -C $BC show $c^:$pf 2>/dev/null)
+  path=$(echo "${newp:-$oldp}" | sed -n 's#^+++ b/##p;s#^--- a/##p' | head -1)
+  rm -rf $W; mkdir -p $W; fetch $repo $r116 $path $W/f116 || { echo "  $pf: sin fichero en la 116"; continue; }
+  cp $W/f116 $W/before; cp $W/f116 $W/after
+  [ -n "$oldp" ] && { echo "$oldp" > $W/old.patch; (cd $W && sed "s#^--- a/.*#--- a/before#;s#^+++ b/.*#+++ b/before#" old.patch | patch -s -p1 >/dev/null 2>&1); }
+  [ -n "$newp" ] && { echo "$newp" > $W/new.patch; (cd $W && sed "s#^--- a/.*#--- a/after#;s#^+++ b/.*#+++ b/after#" new.patch | patch -s -p1 >/dev/null 2>&1); }
+  diff -u $W/before $W/after > $W/fix.diff; n=$(grep -c '^[-+][^-+]' $W/fix.diff)
+  p128=$path; if ! fetch $repo $r128 $path $W/f128; then p128=$(echo $path | sed 's#/ng/#/#; s#/ng_\([^/]*\)$#/\1#'); [ "$p128" != "$path" ] && fetch $repo $r128 $p128 $W/f128 || { echo "  N  $path (±$n)"; continue; }; sed -i 's/\bNG\([A-Z]\)/\1/g' $W/fix.diff; fi
+  cp $W/f128 $W/t; if patch -s -f --dry-run -R $W/t < $W/fix.diff >/dev/null 2>&1; then st=R
+  else o=$(patch -f --dry-run $W/t < $W/fix.diff 2>&1); if [ $? -eq 0 ]; then echo "$o" | grep -q fuzz && st=F || st=A; else st=X; fi; fi
+  echo "  $st  $p128 (±$n)"
+done
+```
+
+**Avisos:**
+- **A MOTOR-13 no le llega `send_message`** (`elevated_session_untrusted_device`); a MOTOR-14 sí. Las sesiones locales,
+  por la rama `buzon` (`docs/ARRANQUE.md`).
+- **No hay que llamar nunca a `confirm_repository_trust`.**
+- **Revisiones de la regla 17:** MOTOR puede pedirlas directamente; el resultado se le pasa a COORDINACIÓN.
+- **Pendiente de la lista de la 1.15.3** (ahora sin versión), por si vuelve a hacer falta:
+  - 01c7c1b09a (`::backdrop`, caída por CHECK).
+  - 3aa7ad2a0d (especulativo).
 
 ## 1. Versiones y ramas de seguridad (15-10)
 
