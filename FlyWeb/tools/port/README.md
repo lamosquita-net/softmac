@@ -260,6 +260,8 @@ Diffs traducidos con `ngtraducir.py` (mapa en `ngmap-fm28.json.gz`, descomprimir
 - `custfn.py <dir>`: cada método «custom» de `css_properties.json5` (`style_builder_custom_functions`,
   `property_methods`) tiene su `Clase::Método` en `properties/*/*.cc`; si falta, el navegador compila y no enlaza (0 en la
   116). `ver.sh <ruta>`: el fichero como queda en brave-core (116 + su parche), sin los `chromium_src` de Brave.
+- `trasmove.py <área> <base>`: usos de una variable después de `std::move(variable)` en la misma función, cuando el
+  move o el uso los añade el porte (da falsos positivos: cada aviso se mira a mano).
 - **Trampas que salieron en este porte:**
   - **La autorresolución pega código fuera de su sitio.** Un método de una clase que no existe en la 116 (p. ej.
     `CSSMathExpressionIdentifierLiteral`) acaba fuera de cualquier clase, y un `case` de una función que no existe acaba
@@ -304,3 +306,8 @@ Diffs traducidos con `ngtraducir.py` (mapa en `ngmap-fm28.json.gz`, descomprimir
     `brave-core/chromium_src/<ruta>` antes de buscar el cambio en los niveles; `ver.sh` no los ve. Se arreglan en el
     test, sin tocar el navegador ni quitar tests del build (COORDINACIÓN-8). Los tests de la 116 entran al área con
     `addf.sh`. clang para en 20 errores por fichero: un test con 19–20 errores en la lista esconde más.
+  - **Lo que compila puede caerse: `ComputedStyle` es GC en upstream y `scoped_refptr` en la 116.** Upstream hace
+    `layout_style(std::move(new_style))` y luego lee `new_style->…`; con un puntero GC sigue valiendo, y en la 116 el move
+    lo deja nulo. Resultado: el renderer se caía en cada recálculo de estilo (F7, SEGV 0x38 en `RecalcOwnStyle`). Antes de
+    entregar: `trasmove.py`, y buscar miembros `const ComputedStyle*` que añada el porte (en upstream los mantiene vivos el
+    GC; en la 116, nadie).
