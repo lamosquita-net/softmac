@@ -18,3 +18,6 @@ BackupDrive/branding/*.png
 # Claves de servicio y similares (regla 5 de docs/TAREAS.md)
 claves/
 *-keys.conf
+
+# Local scratch of the build agents (may hold hosts/ports of the office: never commit)
+temp/
