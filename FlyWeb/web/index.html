@@ -38,7 +38,29 @@ SHA-256: <code>d7de687566419eaf28cceaf33accad3737d16cae5155c4d1ddfe14de07190c2a<
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.15.1</h2>
+<h2 id="novedades">Notas de la versión 1.15.2</h2>
+<ul>
+  <li><strong>Menús, avisos y tooltips en su sitio.</strong> Las webs pueden pegar un menú desplegable, un aviso o una etiqueta
+  al botón o al texto que lo abre. FlyWeb los coloca como Chrome 131, sin depender de bibliotecas de JavaScript.</li>
+  <li><strong>Se recolocan solos.</strong> Si un menú no cabe debajo de su botón, por ejemplo al final de la pantalla, la web
+  puede pedir que se abra arriba o al lado, y FlyWeb elige el sitio donde cabe.</li>
+  <li><strong>Siguen al desplazar.</strong> Al desplazar la página o un recuadro, lo que va pegado a un elemento se mueve con
+  él, y se puede ocultar cuando ese elemento deja de verse.</li>
+  <li><strong>También en carruseles.</strong> Lo que va pegado a un elemento sigue en su sitio aunque esté dentro de un
+  carrusel o un panel que la web desplaza por su cuenta, sin barra de desplazamiento.</li>
+  <li><strong>El tabulador, como en Brave.</strong> Al recorrer una página con el tabulador, FlyWeb vuelve a saltarse los
+  recuadros con desplazamiento que no tienen nada que pulsar dentro, como Brave (en la 1.14 y la 1.15 se paraba en ellos,
+  como Chrome). Para desplazarlos con las flechas, basta hacer clic dentro.</li>
+  <li><strong>Más compatible con las webs de hoy.</strong> Muchas webs modernas, entre ellas editores, paneles de control y
+  tiendas, ya usan esta función de CSS. Ahora se ven como en Chrome.</li>
+  <li><strong>Más estable.</strong> Arregla dos cierres de la pestaña que ya tenía la 1.15.1: en páginas que combinan
+  ventanas de diálogo o menús emergentes con diseños que se adaptan al tamaño de su recuadro, y en páginas que cambian el
+  texto de un aviso o una etiqueta flotante y consultan luego su posición.</li>
+  <li><strong>Más seguro.</strong> Lleva cuatro arreglos de seguridad graves de versiones posteriores de Chrome: tres en el
+  dibujo con la tarjeta gráfica (WebGL) y uno en el aislamiento entre webs.</li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario, y el motor de JavaScript es el mismo que en la 1.15.</p>
+<h2>Notas de la versión 1.15.1</h2>
 <ul>
   <li><strong>Más compatible con las webs de hoy.</strong> FlyWeb incorpora un centenar de funciones y arreglos que Chrome fue
   añadiendo entre sus versiones 117 y 131, para que las webs funcionen como en Chrome 131.</li>
@@ -60,39 +82,6 @@ SHA-256: <code>d7de687566419eaf28cceaf33accad3737d16cae5155c4d1ddfe14de07190c2a<
     </ul></li>
 </ul>
 <p class="dato">Nada cambia en los ajustes ni en los datos del usuario, y el motor de JavaScript es el mismo que en la 1.15.</p>
-<h2>Notas de la versión 1.15</h2>
-<ul>
-  <li><strong>Motor al nivel de Chrome 131</strong>, con el motor de JavaScript de Chrome 131. Las webs ven FlyWeb como
-  Chrome 131, y lo es en lo que usan.</li>
-  <li><strong>Conexiones seguras preparadas para el futuro.</strong> FlyWeb cifra las conexiones con el método poscuántico
-  estándar (ML-KEM), el mismo que Chrome 131, pensado para que lo que se envía hoy no se pueda descifrar mañana con
-  ordenadores cuánticos.</li>
-  <li><strong>Secciones desplegables con más estilo.</strong> Las secciones que se abren y cierran
-  (<code>&lt;details&gt;</code>) se pueden diseñar como cualquier otro bloque, como en Chrome, Safari y Firefox.</li>
-  <li><strong>Colores que siguen al texto.</strong> Las webs pueden calcular un color a partir del color del texto (por
-  ejemplo, una versión más clara para el fondo), también con modo oscuro, como en Chrome, Safari y Firefox.</li>
-  <li><strong>Medidores visibles.</strong> Las barras de nivel (<code>&lt;meter&gt;</code>) con estilo propio de la web ya no
-  desaparecen.</li>
-  <li><strong>Desplazamientos suaves más rápidos.</strong> Cuando una web lleva la vista hasta un elemento dentro de varias
-  zonas con desplazamiento, se mueven todas a la vez y no una detrás de otra.</li>
-  <li><strong>Pequeños arreglos de compatibilidad:</strong>
-    <ul>
-      <li>Al copiar texto que la web muestra en mayúsculas, se pega como está escrito de verdad.</li>
-      <li>Seleccionar texto con el ratón funciona también en webs que interceptan el movimiento del ratón.</li>
-      <li>Los campos de fecha ocupan su sitio en la línea como en los demás navegadores.</li>
-      <li>Las webs que piden confirmar antes de salir lo hacen igual que en Chrome.</li>
-      <li>Las imágenes SVG pueden usar degradados y recortes de otro archivo, como en Firefox y Safari.</li>
-    </ul></li>
-  <li><strong>Más extensiones de la Chrome Web Store.</strong> Las extensiones que piden una versión de Chrome reciente
-  (hasta la 131) ya se instalan, por ejemplo Ghostery o KeePassXC-Browser. Algunas todavía no, como uBlock Origin Lite
-  (necesita más reglas de bloqueo de las que admite FlyWeb) o Bitwarden (pide Chrome 134).</li>
-  <li><strong>Pestañas fijadas más fiables.</strong> Las pestañas fijadas, que se comparten entre todas las ventanas, ya no
-  cierran el navegador al cambiar de ventana ni salen repetidas al volver a abrir FlyWeb con varias ventanas.</li>
-  <li><strong>Sin la pregunta de las estadísticas de uso.</strong> FlyWeb no envía estadísticas de uso; en un perfil nuevo ya
-  no aparece la barra que preguntaba por ellas.</li>
-</ul>
-<p class="dato">Nada cambia en los ajustes ni en los datos del usuario. La primera vez que se abra una web pesada puede tardar
-un poco más (el motor de JavaScript nuevo vuelve a preparar su caché).</p>
 <p><a href="novedades.html">Todas las novedades, desde la 1.0</a></p>
 <p class="dato">Si tienes FlyWeb 1.0, instala esta versión a mano una vez: la 1.0 no puede actualizarse sola.</p>
 </div></section>
