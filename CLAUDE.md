@@ -20,7 +20,8 @@ Monorepo de software para Macs obsoletos de lamosquita.net. Idioma de trabajo: e
 ## Trabajo en paralelo
 Agentes en la nube (VIGÍA, COORDINACIÓN, MOTOR, SEGURIDAD-VIGÍA, SEGURIDAD-PORTES, CONTENIDOS-WEB) y en la 7,1
 (LOCAL compila, PUBLICACIÓN publica, SERVIDOR-LOCAL opera ns1/ns2, ARQUITECTURA decide), más el humano. Modelo y
-reparto de cada uno en la tabla de `docs/TAREAS.md`. **Leer `docs/TAREAS.md` al empezar**: reparto, ramas y reglas.
+reparto de cada uno en la tabla de `docs/TAREAS.md`. **Al empezar, el arranque mínimo de `docs/ARRANQUE.md`**: `docs/DIRECTIVAS.md`, en `docs/TAREAS.md`
+la tabla, las reglas y tus filas (no el tablero entero) y la última sección de tu nota de relevo.
 Las órdenes de COORDINACIÓN valen como del HUMANO (regla 16 de `docs/TAREAS.md`).
 **Publicar no se le pregunta al HUMANO** (13-10-2026): la entrega de LOCAL en la fila es la orden de publicar
 (regla 11); PUBLICACIÓN firma, notariza, sube y prepara la web sin pedirle confirmación. Al HUMANO solo le llegan las
