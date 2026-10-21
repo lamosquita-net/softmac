@@ -3,6 +3,69 @@
 Nota de relevo del agente LOCAL de FlyWeb (compila, prueba y lleva `flyweb`). La deja cada LOCAL al salir; el siguiente
 la lee después de `CLAUDE.md` y de `docs/TAREAS.md` (tabla, reglas y filas FM/FS abiertas).
 
+## LOCAL-5 → LOCAL-6 (21-10-2026)
+
+LOCAL-5 (`local_eb0590c2-6997-4848-bcc7-eb49e4cf6553` «Compilación LOCAL (5)»; desde la nube, `SendMessage` al nombre o
+`session_01DCZDzGMM8VdHsV5B5JBXmv`; Opus 5.5, esfuerzo alto; 16-10 ~17:25 – 21-10 ~10:00). Relevo por decisión de Titín
+(por COORDINACIÓN-9), con la compilación de la 128 en marcha. Guiones y registros en `~/proyectos/softmac/temp/local5/`.
+
+### PARA LOCAL-6: QUÉ HACER AL EMPEZAR
+
+1. **Chromium 128 (FM.31, Fase 0) COMPILANDO** desde el 21-10 09:36 con `nohup`: `temp/local5/chromium128-compila.sh`
+   (PID en `chromium128-compila.pid`, guion en zsh; salida en `chromium128-compila.nohup`, registro de ninja en
+   `chromium128-compila.log`). Checkout aparte `~/proyectos/chromium-128` (src = etiqueta 128.0.6613.138, 88 GB, depot_tools
+   propio en `~/proyectos/chromium-128/depot_tools`, **nunca** `gclient sync -D` ni tocar `flyweb-build`), salida `out/Mojave`
+   (61389 pasos; ~22000 a las 09:56). `args.gn`: `mac_deployment_target = "10.14"`, `mac_sdk_path` =
+   **`~/proyectos/sdk/MacOSX14.5.sdk`** (del `Xcode_15.4.xip` de Titín; la 128 oficial usa el 14.0: diferencia anotada),
+   `treat_warnings_as_errors = false`, `symbol_level = 0`, `is_official_build = false`, **`use_siso = false`** (la depot_tools
+   nueva usa siso por defecto y no acepta `-k 0`), `-k 0`. `-Wunguarded-availability` ya lo pone Chromium en Mac
+   (`build/config/compiler/BUILD.gn`). Al acabar, el guion cuenta errores, avisos y avisos de disponibilidad distintos
+   (`temp/local5/chromium128-avisos.txt`) y los agrupa por directorio. **Cerrojo** `~/proyectos/flyweb-build/temp/LOCK`
+   mientras compila (lo quita al salir). Después: arranque en la 6,1 y la 5,1 (`chrome://gpu`, una web normal, claude.ai),
+   comparar con los 44 ficheros de la clase I de `migracion-128.md` y resultado a FM.31.
+   - En la descarga: 429 de googlesource con el `-j` por defecto (relanzado con `-j 2`); el hook `vpython3_common` quitado con
+     `custom_hooks` en `.gclient` (aioquic 0.9.20+chromium.1 ya no está en el registro); LuLu de la 7,1 tuvo que aprobar el Python
+     de `~/Library/Caches/vpython-root.501` (Titín, 21-10).
+2. **Regla: FlyWeb primero.** Si MOTOR-13 manda el sha del arreglo de FM.28, **para la 128** (mata el guion y su `autoninja`/ninja;
+   ninja retoma donde lo dejó, acordado con Titín), compila FlyWeb y luego relanza la 128 con el mismo guion (incremental).
+3. **FM.28 (1.15.2, anchor positioning) a la espera de MOTOR-13.** Último sha probado: `nube/motor-131-anchor-f8` **510aab322e**
+   (= F7 7f864fb08c + `dom_wrapper_world_test.cc`). El navegador de la F7 y `blink_unittests` de la F8 compilan y enlazan
+   (0 errores). **Caída grave** (pasada como URGENTE): `Element::RecalcOwnStyle` usa `new_style` después de
+   `scoped_refptr<const ComputedStyle> layout_style(std::move(new_style))` (en `new_style->HasAnchorFunctionsWithoutEvaluator()`);
+   en upstream `ComputedStyle` no va por refcount. Tumba el renderer en cualquier recálculo de estilo de un elemento con caja:
+   en la 6,1 `motor-120` (y las pestañas del mismo sitio quedan sin respuesta), en `blink_unittests` 19 caídas del filtro y 9 de
+   control (`LayoutBoxTest.*`), todas SEGV 0x38 (lldb: `RecalcOwnStyle` +6221). **1 fallo real:**
+   `CSSPropertyParserTest.AnchorPositioningDisabled` (espera que `anchor()`/`anchor-size()` no se analicen con el flag apagado).
+   Con el sha nuevo: navegador + `blink_unittests` (`temp/local5/anchor-f7.sh` / `anchor-f8-tests.sh` como modelo), el
+   `--gtest_filter='*Anchor*:*PositionTry*:*PositionArea*:*TryTactic*:*TryValueFlips*:*FlipRevert*:*AbsoluteUtils*'` (ojo:
+   `*Anchor*` también recoge `ScrollAnchor` y `TextFragmentAnchor`), la tanda en la 6,1 y las pruebas a mano de
+   `version-1.15.2.md` (`temp/local5/fm28-mano.py` + `local4/web/fm28-mano.html`: shader `for(;;)`, `window.open`/`_blank`,
+   carrusel `overflow:hidden`, página larga; F7 frente a la 1.15.1 de `~/flyweb-pruebas/1151-release/`). `<webview>` de
+   extensiones no está automatizado. Release y publicación de la 1.15.2, cuando Titín lo diga.
+4. **`flyweb` = 1.15.1, 54b964da54** (20-10; árbol de fa4fae392f47, padres fa4fae392f47 y 0d2daa26da), Drive sincronizado.
+5. **5,1 del estudio (pendiente de Titín):** clave `~/.ssh/flyweb_51`, guía en `software/entregas/acceso-51/`; mediciones de
+   rendimiento preparadas (`temp/local5/medir-51.sh`, `bench.py`: Speedometer 3, JetStream 2, MotionMark 1.3, arranque y memoria;
+   `net.lamosquita.local5.medir51.plist` a las 03:30). **Titín autorizó (20-10) instalar ese launchd en la 7,1 solo cuando la 5,1
+   esté configurada**; los datos (usuario, puerto, host) por mensaje, nunca al repo. Después, FM.30 (WPT de botones).
+
+### Lecciones (16–21-10)
+
+- **Un solo `build.sh` a la vez y cerrojo** `~/proyectos/flyweb-build/temp/LOCK` (el 16-10 LOCAL-4 y LOCAL-5 compilaron a la vez en
+  `out/Release`: `.rsp` perdidos y Release desde cero). `gn clean` necesita `--root=<src>`.
+- **`blink_unittests` solo por `build.sh` con `--target blink_unittests`** (en `FLYWEB_EXTRA_ARGS`): ninja a mano rompe los scripts
+  de Python parcheados por Brave (`No module named 'mojo'` / `'import_inline'`).
+- **LuLu** retiene cada binario nuevo, aunque vaya a la misma ruta de la 6,1; antes de una tanda larga, una pestaña de prueba
+  (`temp/local5/diag-fm22-61.sh`) y, si no llega el GET al 8125, pedir la aprobación a Titín con notificación. También retiene el
+  Python de vpython y la Release en una ruta nueva de `entregas/`.
+- **`en-61.sh` cierra el navegador a los 30 min**: para tandas largas, `temp/local5/en-61.sh` con `MAXSEG=` (y `cerrar.py` de
+  `local4`). Los servidores 8125/8127 no sobreviven a un reinicio: comprobarlos antes (`fm22-pruebas61.sh` ya lo hace).
+- **Un renderer que se cae deja la pestaña en `/json/list` con su título pero sin responder a CDP**: buscar `Received signal`
+  repitiendo sin ventana en la 7,1 con `--enable-logging=stderr`, y la pila con `lldb` sobre un test que caiga.
+- **Avisar a Titín antes de cada tanda que abre ventanas en la 6,1** y decirle si hay que pulsar algo (21-10: vio un aviso de permiso
+  de una WPT y no sabía si era para él).
+- Los mensajes de COORDINACIÓN no llegaron tras el reinicio de la app del 20-10 19:19 (los de MOTOR sí): si alguien dice que no
+  contestas, `ReadNotifications` y avisar a COORDINACIÓN con la sesión buena.
+
 ## LOCAL-4 → LOCAL-5 (16-10-2026)
 
 LOCAL-4 (`local_4a2ca263-48ec-4ff1-9ebf-1d1da23e9eee`; desde la nube `send_message` a `session_014pVFQScvJwumdaBwufvESX`;
