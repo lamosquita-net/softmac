@@ -115,3 +115,11 @@ N129	aria-indextext	75fdde77374	desconocido
 N129	ya-hecho	9900d924764	desconocido
 N130	apagado-getInnerHTML	—	desconocido
 N131	escape-CustomElementsGetName	—	desconocido
+# Añadidos a petición de COORDINACIÓN-11 (lo que SEGURIDAD-PORTES deja a MOTOR porque va con su nivel), misma medida:
+FM28	capa-superior (nivel 130)	1624b1441b9	2024-08-27	11	0	0	0
+FS17	ML-KEM net (flag)	1fef3fb10d7	2024-09-03	12	0	0	4
+FS17	ML-KEM net (por defecto)	4beeb73c814	2024-10-07	4	0	1	0
+# FS.17 BoringSSL: la de la 128 (f01108e4, 24-06-2024) ya trae la API de Keccak (4df6f97cf, 261fe436f, 1b7fdbd91); faltan 500fa1f9d (ML-KEM), f1b043c28, 06aff989b, 7fb4d3da5 (X25519MLKEM768 en TLS) y 72a60506d: 52 hunks, 24 rechazados, todos en listas generadas (build.json, gen/sources.*) salvo 2 de 7fb4d3da5.
+# 0e454ce616 (seg/top-layer-box) y las claves de RTCDataChannel (FlyWeb e8c575a07f, de upstream f66bd3243b) no están en esta historia: parches de 1 fichero, se llevan a mano con su nivel.
+# FS.19 (1419974606): la 128 ya trae AllowedRequestMode y SVGResource::Load(Document&, CrossOriginAttributeValue): desaparece.
+# Regla 2 (S3 de seguridad-128.md, va primero): ee5d3f203d9 (N130, line_breaker.cc), 1fea2fe8c97 (N131, line_breaker.*) y af046fa668e (anchor, layout_object.cc) se cortan después de S3.
