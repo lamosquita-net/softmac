@@ -23,6 +23,8 @@ para trabajar y consultar el resto **solo cuando la tarea lo pida**. El conocimi
 | INVESTIGACIÓN-MOTOR | — (su fila y la de su encargo) | `migracion-128.md`, `vision-motor.md` |
 | PUBLICACIÓN, CONTENIDOS-WEB | — (su fila y la fila de la versión) | `version-1.N.md` |
 
+5. Tu sección de [`TRAMPAS.md`](TRAMPAS.md) (MOTOR, LOCAL, PUBLICACIÓN) y, todos, «De fondo».
+
 Lo que no está en esta lista se busca (`grep`) cuando hace falta; no se lee «por si acaso».
 
 ## Pasos comunes al arrancar
