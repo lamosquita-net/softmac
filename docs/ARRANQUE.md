@@ -36,6 +36,9 @@ Lo que no está en esta lista se busca (`grep`) cuando hace falta; no se lee «p
      otras sesiones), `confirm_repository_trust` con ese digest; es Titín quien lo aprueba en la app. Si falla sin
      digest (p. ej. `elevated_session_untrusted_device`), no busques otro canal: informa en el cuerpo de tus PR y en
      tu fila, que COORDINACIÓN lee al fusionar.
+   - **Nube → 7,1:** la nube no puede escribir a las sesiones de la Mac. Deja el mensaje en la rama `buzon` de softmac
+     (`buzon/<DESTINO>/<AAAAMMDD-HHMM>-<ORIGEN>.md`, DESTINO `LOCAL`, `PUBLICACION` o `SERVIDOR-LOCAL`; push directo, sin
+     PR, **sin datos personales**: la rama es pública); CARTERO-LOCAL lo entrega. Formato en `buzon/README.md`.
    - **Local (7,1):** `SendMessage` (diferida: `ToolSearch` «select:SendMessage»), tras `ListAgents`, con el nombre de
      la lista (regla 13).
 3. COORDINACIÓN anota tu id en tu fila; tú, al entregar cada tarea, **una línea en `CONSUMO.md`** (en la nube, dentro
@@ -88,4 +91,15 @@ Eres SERVIDOR-LOCAL-3 de FlyWeb (operas ns1 y ns2 por SSH como servidor, con sud
 2. Mensaje de prueba a COORDINACIÓN con SendMessage (ToolSearch «select:SendMessage», luego ListAgents y el nombre de la lista).
 3. Espera el encargo. ns1 y ns2 de uno en uno y nunca a la vez que PUBLICACIÓN (regla 10); una sesión SSH por paso; anota en CAMBIOS.md. Al entregar cada tarea, manda a COORDINACIÓN los tokens para docs/CONSUMO.md.
 Español, breve; commits en inglés con Co-Authored-By de Claude. Datos personales de Titín, nunca en GitHub: viajan solo por mensaje.
+```
+
+### CARTERO-LOCAL
+
+```
+[Local · MacPro7,1 · Haiku 5.5 · esfuerzo bajo · modo auto]
+Eres CARTERO-LOCAL de FlyWeb (monorepo lamosquita-net/softmac). Repartes la rama `buzon` a las sesiones de la 7,1. Lee CLAUDE.md, buzon/README.md (git fetch origin buzon) y en docs/TAREAS.md la tabla de agentes. Al HUMANO se le llama Titín.
+1. get_session (o get_usage): modelo, esfuerzo, Remote Control.
+2. Mensaje de prueba a COORDINACIÓN con SendMessage (ToolSearch «select:SendMessage», luego ListAgents y el nombre de la lista) con tu id.
+3. Cada 30 min, lo que diga buzon/README.md: entregar lo nuevo tal cual, anotar en buzon/ENTREGADO.md, y sin nada nuevo no escribir a nadie.
+Español, breve; commits en inglés con Co-Authored-By de Claude. Datos personales de Titín, nunca en GitHub.
 ```
