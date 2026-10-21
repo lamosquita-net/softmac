@@ -311,3 +311,12 @@ Diffs traducidos con `ngtraducir.py` (mapa en `ngmap-fm28.json.gz`, descomprimir
     lo deja nulo. Resultado: el renderer se caía en cada recálculo de estilo (F7, SEGV 0x38 en `RecalcOwnStyle`). Antes de
     entregar: `trasmove.py`, y buscar miembros `const ComputedStyle*` que añada el porte (en upstream los mantiene vivos el
     GC; en la 116, nadie).
+  - **Nombres que upstream reutiliza con otro sentido:** `HasScrollableOverflow()` de la 131 es el `HasLayoutOverflow()`
+    de la 116 (se renombró «layout overflow» → «scrollable overflow»); `HasScrollableOverflowX/Y()` de la 116 es otra cosa
+    (exige `overflow: auto/scroll`). Traducirlo por parecido dejó fuera los `overflow: hidden` del ajuste por scroll, y solo
+    lo vio un reftest de las WPT. Ante un nombre de upstream que existe en la 116, mirar qué hace en las dos.
+  - **Lo que se descarta como «refactor de OOF» puede traer arreglos:** 1624b1441b9 (capa superior al final del OOF de la
+    raíz) estaba en `oof-otro` y arreglaba un fallo del anchor con `<dialog>` y una caída que ya tenía la 1.15.1. Y una
+    flag que se enciende (ScrollNodeForOverflowHidden) arrastra arreglos posteriores sin etiqueta de anchor (14c9714ba83e
+    en cc): buscar en la historia por el nombre de la flag y por lo que crea, no solo por la etiqueta. Las WPT de la
+    función, frente a CfT N, antes de la Release.
