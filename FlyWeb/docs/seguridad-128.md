@@ -83,6 +83,22 @@ af0328adeb (la 1.15.2).
   `inline_cursor`, `inline_item*`, `layout_object.cc`). Va primero la seguridad y se avisa a MOTOR-14 antes de abrirlo.
   El 1 roza `local_frame_view.cc`; el 2 y el 4 no cruzan con el motor.
 
+## Corte hecho (SEGURIDAD-PORTES-5, 21-10)
+
+Base: brave-core `nube/base-128` = **6918a99aa6** (commit del tag anotado `v1.69.168`, b44ebef655; sin nada de FlyWeb).
+Un PR en borrador por grupo, todos a `nube/base-128` e independientes entre sí:
+
+| Grupo | Rama y commit | PR | `.patch` | Cambios frente a la tabla de arriba |
+|---|---|---|---|---|
+| S1 | `seg/128-s1` 80c784e3be | brave-core #1 | 17 | Ninguno: todos A |
+| S2 | `seg/128-s2` d2be70346b | brave-core #2 | 11 + `util.js` | `validationES2.cpp` adaptado a `ANGLE_VALIDATION_ERROR`; graphite `AtlasManager.cpp` es `TextAtlasManager.cpp` en la 128. Hace falta portar a `util.js` el `applyPatches()` de `patches/third_party/{angle,skia,libvpx}` (Brave 1.69 no parchea esos repos) |
+| S3 | `seg/128-s3` 1e9de56f43 | brave-core #3 | 13 | `style_containment_scope_tree.cc` ya está en la 128 [V] (no se corta). **WebAudio:** la 128.0.6613.138 sí lleva 8669b50ce1c (`rate_lock_`), pero `IsAudioRate()` lee sin *lock*; solo se corta eso. `inline_item.h`, `inline_items_builder.cc` e `inline_layout_algorithm.cc`, adaptados a mano |
+| S4 | `seg/128-s4` 104f03ab62 | brave-core #4 | 1 | Ninguno |
+
+- **Método:** el `check.sh` de la nota de relevo, que además escribe el `.patch` (`git diff --full-index`, rutas relativas
+  al repo del parche) y traduce `ng/` y `NG*`. Cada X y cada *fuzz* se leyó contra el fichero de la 128.
+- **Para LOCAL:** los cuatro se aplican juntos sobre `nube/base-128` sin conflictos (no comparten ficheros).
+
 ## Límites
 
 - `patch --dry-run` sobre ficheros sueltos no compila nada: A no garantiza que el código siga teniendo sentido en la 128
