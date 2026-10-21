@@ -32,6 +32,10 @@ Hoja de ruta de FlyWeb: `FlyWeb/docs/hoja-de-ruta.md`.
 - **MacPro7,1** (macOS 15 Sequoia, Xcode 26.3, 16 núcleos / 32 hilos, 96 GB, SSD 2 TB): host de compilación principal.
 - **MacPro6,1** (Mojave, Xcode 11.3.1, 64 GB): compilación y pruebas en Mojave.
 - **MacPro5,1** (Mojave, 48 GB, sin AVX): pruebas de "peor caso", en el estudio.
+- **Pruebas ocasionales** (Titín, 21-10-2026; GPU integrada de Intel, que las Mac Pro no tienen; útiles sobre todo para la GPU de la 2.0.0):
+  MacBook Air 2013 (Mojave a partir del 24-10; Intel HD 5000, con AVX2: no vale como peor caso),
+  Mac mini 2012 (Catalina; Intel HD 4000) y, por confirmar, un MacBook Pro 2012 (Catalina). Las de Catalina sirven de
+  **control 10.15**: lo que falla en Mojave y no en Catalina apunta a una API de 10.15.
 
 ## Estructura en disco (MacPro7,1)
 Los metadatos de git van en el disco local; los ficheros de trabajo, en la red (Samba, que se
