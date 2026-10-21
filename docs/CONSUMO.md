@@ -36,9 +36,11 @@ contexto al cerrar · notas.
 
 | Fecha | Agente | Modelo | Esfuerzo | Tarea | Horas | Salida | `cost_usd` | Contexto | Notas |
 |---|---|---|---|---|---|---|---|---|---|
-| 15→21-10 | SEGURIDAD-PORTES-3 (`…01LKiaD9`) | Opus 5.5 | medio | Sesión: FS.14–FS.22 | — | 441 596 | 122,49 | 76 % | Total de la sesión al 21-10 ~09:10 |
+| 21-10 | SEGURIDAD-PORTES-4 (`…011AG2q3`) | Opus 5.5 | medio | FS.22: revisión f8→f9 de FM.28 (arranque incluido) | ~0,3 | 2 352 | 0,64 | 11 % | Desde el inicio de la sesión; 0,80 M de lectura de caché |
+| 15→21-10 | SEGURIDAD-PORTES-3 (`…01LKiaD9`) | Opus 5.5 | medio | Sesión: FS.14–FS.22 y F9 | — | 446 987 | 129,94 | 78 % | Total de la sesión, al archivarla (21-10) |
 | 19→21-10 | INVESTIGACIÓN-MOTOR-1 (`…01KEXwPP`) | Sonnet 5.5 | alto | Sesión: FM.27, FM.30–35 | — | 894 569 | 42,25 | 78 % | Total de la sesión; el doble de salida que SEGURIDAD-PORTES-3 |
 | 14→21-10 | CONTENIDOS-WEB-2 (`…015tHV7u`) | Sonnet 5.5 | medio | Sesión: webs 1.13–1.15.1 | — | 32 504 | 8,57 | 32 % | Total de la sesión |
 | 20→21-10 | MOTOR-13 (`…01EqxadojD`) | Opus 5.5 | xhigh | Sesión: FM.28 hasta f7 | ~6,5 | 118 634 | 15,14 | 36 % | La vuelta F5 sola: 2,87 $ |
 | 20-10 | COORDINACIÓN-8 (`…0133Pd3p`) | Opus 5.5 | alto | Sesión: un día de coordinación | — | 210 762 | 49,09 | 13 % tras compactar | Total de la sesión; la mayor parte, lectura de caché |
 | 16→21-10 | LOCAL-5 (`…01DCZDzG`) | Opus 5.5 | alto | Sesión: F5, f7, checkout 128 | — | 49 534 | — | 68 % | Local: sin `cost_usd`; 53,4 M tokens de lectura de caché |
+| 21-10 | CONOCIMIENTO-1 (`…01TRKSg5`) | Opus 5.5 | medio | OR.1 entera (9 PR: archivo del tablero, DIRECTIVAS, ARRANQUE, TRAMPAS, manuales) | ~1,1 | ≥12 503 | ≥2,93 | 37 % | **Parcial:** el contador de `get_session` se pone a cero en cada reinicio del proceso de la sesión (5 hoy) y al principio no daba `cost_usd`; solo cuenta desde el último reinicio |
