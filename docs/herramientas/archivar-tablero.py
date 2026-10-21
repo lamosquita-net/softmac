@@ -6,7 +6,10 @@ aparcada, cerrada, descartada, anulada, retirada). Las de estado mixto («hecho 
 «por compilar», «en PR»…) se quedan vivas. Si una fila viva, la tabla de agentes o las
 reglas citan una archivada, en TAREAS.md queda una línea corta que apunta al archivo.
 
-Uso: archivar-tablero.py [--dry-run] [ruta del repo]
+Con --ids=A,B,… archiva además esas filas (las que COORDINACIÓN da por cerradas aunque su
+estado sea mixto). Si el archivo ya existe, añade las filas al final de su sección.
+
+Uso: archivar-tablero.py [--dry-run] [--ids=F1.1,FM.2,…] [ruta del repo]
 """
 import os
 import re
@@ -14,6 +17,7 @@ import sys
 from collections import OrderedDict
 
 DRY = '--dry-run' in sys.argv
+FORZADAS = {x for a in sys.argv[1:] if a.startswith('--ids=') for x in a[6:].split(',') if x}
 args = [a for a in sys.argv[1:] if not a.startswith('--')]
 ROOT = args[0] if args else '.'
 TAREAS = f'{ROOT}/docs/TAREAS.md'
@@ -34,6 +38,8 @@ MARCA = 'archivada: [TAREAS-archivo.md](TAREAS-archivo.md) |'
 def cerrada(row):
     if row.endswith(MARCA):
         return False
+    if row_id(row) in FORZADAS:
+        return True
     st = estado(row)
     if CERRADOS.match(st.split(' por ')[0]):
         return True
@@ -43,9 +49,6 @@ def cerrada(row):
 def row_id(row):
     return row.split(' | ')[0][2:].strip()
 
-
-if os.path.exists(ARCHIVO) and not DRY:
-    sys.exit(f'{ARCHIVO} ya existe: esta versión solo hace la primera pasada (ampliarla para añadir filas)')
 
 src = open(TAREAS, encoding='utf-8').read()
 lines = src.split('\n')
@@ -75,7 +78,10 @@ def resumen(row):
     tarea = re.sub(r'\s+', ' ', c[1]).strip()
     if len(tarea) > 140:
         tarea = tarea[:140].rstrip() + '…'
-    return f'| {row_id(row)} | {tarea} | {c[2].strip()} | {estado(row)} | {MARCA}'
+    st = estado(row)
+    if len(st) > 140:
+        st = st[:140].rstrip() + '…'
+    return f'| {row_id(row)} | {tarea} | {c[2].strip()} | {st} | {MARCA}'
 
 
 out = []
@@ -92,11 +98,27 @@ pos = out.index('## Tablero') + 1
 nuevo_bloque = [] if nota.rstrip('\n') in out else ['', nota.rstrip('\n')]
 out[pos:pos] = nuevo_bloque
 
-arch = ['# Archivo del tablero', '',
-        'Filas cerradas de [`TAREAS.md`](TAREAS.md), movidas **tal cual** (sin resumir) por '
-        '`docs/herramientas/archivar-tablero.py` (OR.1, 21-10-2026). Solo lectura: lo vivo sigue en `TAREAS.md`.', '']
+if os.path.exists(ARCHIVO):
+    previo = open(ARCHIVO, encoding='utf-8').read().split('\n')
+else:
+    previo = ['# Archivo del tablero', '',
+              'Filas cerradas de [`TAREAS.md`](TAREAS.md), movidas **tal cual** (sin resumir) por '
+              '`docs/herramientas/archivar-tablero.py` (OR.1, 21-10-2026). Solo lectura: lo vivo sigue en '
+              '`TAREAS.md`.', '']
+arch = list(previo)
 for sec, rows in moved.items():
-    arch += [sec, '', header[sec][0], header[sec][1]] + [r for _, r in rows] + ['']
+    nuevas_filas = [r for _, r in rows]
+    if sec in arch:
+        j = arch.index(sec) + 1
+        while j < len(arch) and not arch[j].startswith('#'):
+            j += 1
+        while arch[j - 1] == '':
+            j -= 1
+        arch[j:j] = nuevas_filas
+    else:
+        if arch[-1] != '':
+            arch.append('')
+        arch += [sec, '', header[sec][0], header[sec][1]] + nuevas_filas + ['']
 
 # Comprobaciones: nada se pierde.
 es_fila = lambda l: l.startswith('| ') and not l.startswith('|---') and l.split(' | ')[0] not in ('| #', '| Id')
@@ -107,6 +129,8 @@ nuevas = {resumen(lines[i]) for i, l in keep if l is None and row_id(lines[i]) i
 stubs = [l for l in new_rows if l in nuevas]
 live = [l for l in new_rows if l not in stubs]
 assert all(r in arch for r in arch_rows)
+it = iter(arch)
+assert all(l in it for l in previo), 'el archivo previo ha perdido o desordenado líneas'
 assert len(arch_rows) == len(set(arch_rows))
 board_live = [l for l in live if l in orig_rows]
 assert sorted(board_live + arch_rows) == sorted(orig_rows), 'filas perdidas o duplicadas'
