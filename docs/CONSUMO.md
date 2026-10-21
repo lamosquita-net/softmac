@@ -53,3 +53,4 @@ contexto al cerrar · notas.
 | 21-10 | MOTOR-14 (`…01PZNSmd`) | Opus 5.5 | extra (`xhigh`) | FM.28: F14 (F13 + `seg/subtree-roots-copy`), aviso a LOCAL por el buzón | ~0,2 | — | — | — | `get_session` no da `cost_usd` ni tokens de salida en esta sesión; solo `used_tokens` del contexto |
 | 21-10 | LOCAL-6 (`local_20642d1a`) | Opus 5.5 | alto | F9→F16 (WPT, crashtests, tandas), 128 Fase 0 (7 pasadas), Release 1.15.2 | ~8 | — | — | 52 % | Local: sin `cost_usd`; 5 h nunca >37 %; semanal 32→40 % (cuenta compartida) |
 | 21-10 | COORDINACIÓN-10 (`…01U31mzo`) | Opus 5.5 | alto | Día de coordinación: relevos, buzón/cartero, 1.15.2 (F9→F16), 128 Fase 0 | ~8 | 112 275 | 28,01 | 45 % | Al dejar la nota de relevo |
+| 21-10 | COORDINACIÓN-10 (`…01U31mzo`) | Opus 5.5 | alto | Sesión entera, al archivarla | ~8 | 121 471 | 30,23 | 47 % | Total de `get_session` al archivar (21-10 ~18:10 Madrid); 93,8 M de lectura de caché |
