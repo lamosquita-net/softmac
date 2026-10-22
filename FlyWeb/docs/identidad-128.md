@@ -172,3 +172,24 @@ DuckDuckGo en normal y privada; instalar una extensión de la Chrome Web Store q
   objetivos (lo dice Brave): asumible, las versiones cambian poco.
 - **Esperando:** compilación y pruebas de LOCAL (identidad y `network-audit.py --mode reposo` en la 6,1). En reposo ya
   no debería salir DIAL (`:8008`) y el cliente de Safe Browsing debe declarar 131.0.6778.265.
+
+## Estado y relevo (IDENTIDAD-3, 22-10 ~19:00)
+
+- **Hecho:** `nube/base-128-motor-p14` 806e8caa96 sobre `-p13` (FM.39, punto 2).
+  - Sparkle: `browser/mac/sparkle_glue.mm` vuelve a los 3 cambios de la 1.15 (appcast propio, sin «-arm64», compara
+    con `GetFlyWebVersion()`). Sparkle sigue siendo el 1.24.3 de Brave (`DEPS`), el mismo que en la 1.15.
+  - Keystone: `+[KeystoneGlue defaultKeystoneGlue]` devuelve `nil` (todos los que la llaman aceptan `nil`). Omaha 4
+    de Brave (`brave_enable_updater`) ya es `false` por defecto y `build.sh` pasa `enable_updater:false`.
+  - Perfil: `brave_browser_main_parts_mac.mm`, `PreEarlyInitialization`: si hay `Local State` y falta la marca
+    «FlyWeb 2 Profile», copia la carpeta del perfil a «<nombre> antes de 2.0 (fecha)» con `NSFileManager` (copia los
+    enlaces como enlaces y luego quita `Singleton*` de la copia) y escribe la marca. Si la copia falla (disco lleno),
+    lo registra y sigue (no bloquea el navegador; la marca se escribe igual para no copiar después un perfil ya
+    migrado con ese nombre). `Local State` ya se ha leído para las *features*, pero sus escrituras van diferidas.
+  - Llavero, en papel: el `chromium_src` de `keychain_password_mac.mm` y su parche son los de la 1.15 («FlyWeb Safe
+    Storage», cuenta «FlyWeb»); el ACL del elemento confía en el requisito designado (identificador + Team ID), así
+    que con la misma firma no pide permiso. Lo confirma la prueba de LOCAL.
+- **No probado aquí (no hay compilación en la nube):** que `ChromeBrowserMainPartsMac::PreEarlyInitialization` sea
+  accesible desde la subclase; si no compila, la copia puede ir al principio de `PreCreateMainMessageLoop` (también
+  antes de abrir el perfil, que se abre en `PreMainMessageLoopRun`).
+- **Lo más visitado de la NTP:** sin cambio de código. Lógica idéntica a la 1.15; Brave apaga los sitios populares
+  (`chromium_src/components/ntp_tiles/features.cc`), así que sin historial la fila no sale.
