@@ -95,6 +95,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Una compilación a la vez en la 7,1** (HUMANO, 20-10): las de FlyWeb tienen prioridad. Tareas largas con `nohup` y
   registro; nunca `gclient sync -D` en `flyweb-build`; `update_patches` nunca para un solo parche (16-10). Fuentes:
   fila FM.31, [`CLAUDE.md`](../CLAUDE.md), [`coordinacion.md`](../FlyWeb/docs/coordinacion.md).
+- **No se tiene una sesión abierta para esperar** (Titín, 22-10): una sesión con mucho contexto gasta solo con despertarse.
+  Si el siguiente paso depende de una compilación, se archiva con la nota de relevo al día y el relevo se abre cuando llegue
+  el resultado (excepción a la regla 13). Antes de archivar, `list_triggers`. Fuente: fila OR.2.
 - **Esfuerzo de Opus 5.5** (HUMANO, 22-10): su defecto es medio y Anthropic recomienda empezar ahí; extra y máximo solo con
   mejora medida. MOTOR pasa de extra a alto desde MOTOR-18; IDENTIDAD-1 prueba medio; se decide el resto con CONSUMO.md.
   Fuente: guía de migración a Claude Opus 5.5 (Anthropic), fila OR.2.
