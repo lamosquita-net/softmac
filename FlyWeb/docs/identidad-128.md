@@ -21,7 +21,7 @@ entregas fijas en `nube/base-128-identidad-iN`. Esta página es también la nota
 |---|---|---|
 | **i1** | Cadenas (script), iconos y logotipos, D-DIN, identidad fija (BRANDING, perfil, llavero, carpeta de apps, versión 2.0.0, número de compilación y commit de origen), `flyweb://`, enlaces de ayuda, sin barra «macOS 11», sin `navigator.brave` | **entregado** `nube/base-128-identidad-i1` 0598ad79f8 |
 | **i2** | Servicios: Wallet (sin `ethereum`/`solana`), Rewards, News, Talk, referidos fuera; Leo y VPN por argumentos (`enable_ai_chat:false`, `enable_brave_vpn:false`); proxies de Safe Browsing, componentes propios (Shields, Local Data, clave de editor), petición del actualizador recortada y sin pings, stats, P3A, variations, crash, captive portal, traducción, DevTools remoto, DoH apagado, WebGPU apagado, JIT permitido, webcompat | **entregado** `nube/base-128-identidad-i2` 2fbba345c9 |
-| i3 | Funciones: NTP y bienvenida propias, pestañas fijadas compartidas (la 1.69 trae su servicio y su ajuste: comparar), ajustes (Web3, P3A, sync sin QR), buscador DuckDuckGo, versión declarada a las extensiones, fuentes CJK, `brave_license_helper.py` | pendiente |
+| **i3** | Funciones: NTP y bienvenida propias, pestañas fijadas compartidas encendidas, DuckDuckGo por defecto (también en privada), versión declarada a las extensiones (3 parches re-cortados sobre 128), créditos de D-DIN | **entregado** `nube/base-128-identidad-i3` 6cee51d215 |
 
 ## i1: adaptaciones a la 1.69 (no son cambios nuevos, son la misma regla donde Brave movió o añadió)
 
@@ -50,6 +50,18 @@ entregas fijas en `nube/base-128-identidad-iN`. Esta página es también la nota
   con las listas por defecto y de primera parte como entradas `hidden`). Hasta entonces, Shields en la 2.0 puede quedarse sin
   listas por defecto.
 
+## i3: qué no se lleva y por qué
+
+- **Pestañas fijadas compartidas:** Brave 1.69 trae su propia versión de lo que la 1.15 había portado de Brave posterior
+  (la misma preferencia `brave.tabs.shared_pinned_tab`, su interruptor en Ajustes, cambio en caliente). Solo se llevan los
+  valores por defecto de FlyWeb (encendido). **No** se lleva el arreglo propio de la 1.15 para ventanas restauradas
+  (`restored_browsers_`): la 1.69 resuelve la restauración de otra forma; **probar** restaurar sesión y ventana cerrada con
+  pestañas fijadas. Si falla, se porta.
+- **Fuentes CJK** (`PrefsFontList`, Menlo, `,Osaka,BIZ UDGothic,Menlo`): ya en Chromium 128.
+- **«Formularios verticales»** (`writing-mode` en controles): es motor (nivel), no identidad; ya en la base de MOTOR.
+- **NTP de la 1.69:** sin los iconos de Ajustes, Marcadores e Historial abajo a la izquierda (los quitó Brave); el
+  widget de búsqueda nuevo de la 1.69 (clase E) queda como venga.
+
 ## Qué comprobar en la compilación (LOCAL)
 
 `flyweb://version` (logo, «FlyWeb 2.0.0 (motor 131) · Brave 1.69.168»), menús y ajustes en español sin «Brave» salvo
@@ -62,3 +74,7 @@ sin `brave_ai_chat_endpoint`, `brave_zero_ex_api_key` ni `enable_updater` (ya no
 `typeof window.ethereum` y `window.solana` = `undefined`; sin Rewards, News, Talk ni Leo en barra, NTP y barra lateral;
 `flyweb://settings/privacy`: DNS seguro apagado; `network-audit.py` en un arranque limpio: nada a `*.brave.com` salvo lo de
 componentes que aún no sirva ns2.
+
+i3: NTP con fondos y mosca de FlyWeb y crédito propio, sin velo oscuro; bienvenida con estilo FlyWeb y sin el paso «Ayuda a
+mejorar»; pestaña fijada en una ventana aparece en las demás (y restaurar sesión no la duplica); buscador por defecto
+DuckDuckGo en normal y privada; instalar una extensión de la Chrome Web Store que pida `minimum_chrome_version` 129–131.
