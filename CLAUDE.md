@@ -35,7 +35,8 @@ Hoja de ruta de FlyWeb: `FlyWeb/docs/hoja-de-ruta.md`.
 - **Pruebas ocasionales** (Titín, 21-10-2026; GPU integrada de Intel, que las Mac Pro no tienen; útiles sobre todo para la GPU de la 2.0.0):
   MacBook Air 2013 (Mojave a partir del 24-10; Intel HD 5000, con AVX2: no vale como peor caso),
   Mac mini 2012 (Catalina; Intel HD 4000) y MacBook Pro 15" mediados de 2012 (Catalina; Core i7, 16 GB;
-  **dos GPU: NVIDIA GeForce GT 650M + Intel HD 4000**, la única NVIDIA: probar con las dos). Las de Catalina sirven de
+  **dos GPU: NVIDIA GeForce GT 650M + Intel HD 4000**, la única NVIDIA: probar con las dos). Además, MacBook Pro Retina 15" A1398 (2013–2015) con **Monterey**: el caso
+  «debería funcionar» del objetivo. Las de Catalina sirven de
   **control 10.15**: lo que falla en Mojave y no en Catalina apunta a una API de 10.15.
 
 ## Estructura en disco (MacPro7,1)
