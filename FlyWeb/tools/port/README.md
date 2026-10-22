@@ -342,5 +342,14 @@ flags) y `brave-core` en `nube/base-128-motor`. Los parches son diff `--full-ind
 - `pchchk.py <lista>` — repaso de includes que tapa el PCH (TRAMPAS, MOTOR) sobre `w-all` (montar con los ficheros de
   todos los `.patch` de la rama y `git apply` de cada uno): símbolos de lo adaptado a mano que solo trae `document.h` +
   `layout_object.h`. Con `--depth` de la historia hasta la 131. Lo que da, mirarlo: casi todo es declaración adelantada.
+- **Tests de los portes (MOTOR-17, `blink_unittests` de la base 128):** `w-all` = cr128 + todos los `.patch` de la rama
+  (con commit `raw128` y `bc`). `mark.py <lista>` marca cada commit (P/p/-/?) y lista sus tests (lista = salida de
+  `git log` de los commits que tocan código parcheado, con sus tests debajo). `m3t.py <lista> [omitir…]` fusiona a tres
+  bandas, en orden, los ficheros de test de cada commit en `w-all` (base = `c^`, suyo = `c`) y hace un commit por cada uno;
+  con conflicto se para y `res.py <fichero> o|t|ot|to…` resuelve los bloques. `gen128lista.sh <lista>` escribe los
+  `.patch` de esos ficheros contra la 128. La lista de commits portados sale de `d128-medida.tsv` y de los mensajes de
+  commit de la rama. **Trampas:** git 2.43 no entiende `GIT_NO_LAZY_FETCH`: limitar `git show` a rutas ya bajadas (si no,
+  baja blobs uno a uno); un test que entra limpio puede usar API de un commit no portado (p. ej.
+  `CSSParserTokenStream(String)` de 5144028324): revisar lo nuevo contra las cabeceras.
 - `rejfuzz.sh <área>` — reintenta los `.rej` con fuzz 0 e ignorando espacios. **Nunca con fuzz 3**: en anchor metió una
   entrada de mojom fuera del enum y un miembro en otra struct, y en el json5 subió a stable la flag equivocada.
