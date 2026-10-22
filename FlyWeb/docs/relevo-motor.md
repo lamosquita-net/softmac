@@ -11,8 +11,9 @@ Ramas fijas de brave-core (todas con `git ls-remote`; `nube/base-128-motor` = la
 | `-p5`/`-p6` | 93332ce63a / 02c9d0ca4b | versión declarada 131 (UA, Client Hints; F4.8 de la 1.15.2) y su error de compilación |
 | `-p7` | ebb5c09955 | regresiones de LOCAL-8: `togglePopover` (diccionario ignorado), `requestAdapterInfo` y `expectedImprovement` fuera como en la 131 |
 | `-p8` | 137d103a12 | parches de Mojave de LOCAL-6/7/8 (20 de `src`, ANGLE y Dawn nuevo en `util.js`) |
+| `-p9` | abb90752c3 | H.264 en vez de VP9/AV1 como la 1.15 (`chromium_src/media/base/supported_types.*`, fijo; flag `FlyWebSoftwareVp9Av1`) |
 
-**Sin compilar desde `-p6`:** `-p7` y `-p8` (LOCAL-8 compila `-p8` sin su `src.diff` local y comprueba en la 6,1).
+**Sin compilar desde `-p6`:** `-p7`, `-p8` y `-p9` (LOCAL-8 compila `-p8` sin su `src.diff` local y comprueba en la 6,1).
 
 **Lo que queda (tuyo):**
 
