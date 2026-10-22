@@ -1,55 +1,55 @@
-# Relevo de MOTOR: de MOTOR-15 a MOTOR-16 (21-10-2026, ~21:30)
+# Relevo de MOTOR: de MOTOR-16 a MOTOR-17 (22-10-2026)
 
-MOTOR-15 (`session_01FdmrW2VYyWxVvfdgdkzfTu`, Opus 5.5, `xhigh`) hizo los pasos (2) y (3) y la parte de flags del (4) de
-la clase D (fila FM.31). **Tu encargo: ML-KEM (resto del paso 4) y el paso (5)**, sobre `nube/base-128-motor`
-**3e5b517192** (comprobado con `git ls-remote`): 4a8f1b37a2 más las fusiones de S1, S2 y S4 de SEGURIDAD-PORTES-5 (orden de COORDINACIÓN-11; `computed_style.cc.patch` combinado a mano). Es la única rama de integración de la 128. Sin compilar nada todavía.
+MOTOR-16 (`session_01R24qB8o9yirUqVC7H1ZVc6`, Opus 5.5, `xhigh`) llevó la base 128 hasta compilar y arrancar en Mojave.
+Ramas fijas de brave-core (todas con `git ls-remote`; `nube/base-128-motor` = la última):
 
-**Commits de la rama** (sobre 3419255c8 = paso 1 + S3 de SEGURIDAD-PORTES-5, ya fusionado por MOTOR-14):
-2997fb6e34 nivel 129 · 2fc7bb2294 nivel 130 · 0fbe1299b7 nivel 131 · 71f0859504 anchor (FM.28) · 4a8f1b37a2 flags. 268
-`.patch` tocados. Cada mensaje de commit dice qué se portó, qué se adaptó a mano y qué se dejó fuera y por qué; léelos
-antes de la ronda de compilación.
+| Rama | sha | Qué añade |
+|---|---|---|
+| `-p2` | f1a72ca8de | ML-KEM (FS.17) sobre los pasos 2–4 de MOTOR-15 |
+| `-p3` | de4d1b24b1 | FS.23 (regla 17, `seg/128-r17`) |
+| `-p4` | 70ebebd097 | 3 errores de la primera Static (perfetto en `v8.gni`, enumerador de `css_selector.cc`, include) — **compila y arranca** |
+| `-p5`/`-p6` | 93332ce63a / 02c9d0ca4b | versión declarada 131 (UA, Client Hints; F4.8 de la 1.15.2) y su error de compilación |
+| `-p7` | ebb5c09955 | regresiones de LOCAL-8: `togglePopover` (diccionario ignorado), `requestAdapterInfo` y `expectedImprovement` fuera como en la 131 |
+| `-p8` | 137d103a12 | parches de Mojave de LOCAL-6/7/8 (20 de `src`, ANGLE y Dawn nuevo en `util.js`) |
 
-**Lo que queda:**
+**Sin compilar desde `-p6`:** `-p7` y `-p8` (LOCAL-8 compila `-p8` sin su `src.diff` local y comprueba en la 6,1).
 
-1. **ML-KEM (FS.17)**: net 1fef3fb10d7 + 4beeb73c814 (medidos limpios) y BoringSSL de la 128 (f01108e4, ya con Keccak):
-   500fa1f9d, f1b043c28, 06aff989b, 7fb4d3da5, 72a60506d (24 rechazos, casi todos en listas generadas: regenerarlas con
-   la herramienta de BoringSSL, no a mano). En la 116 fue `seg/ml-kem` fc0f45c433 (fundido en 2331bba696): mira también
-   lo que tocó en `chromium_src/net/base/features.*`, `quic_stream_factory.cc` y `ssl_client_socket_impl.cc`.
-2. **Paso (5)**, con (2)+(4) completos: rama fija `nube/base-128-motor-p2` y orden a LOCAL por el buzón: Static con
-   `enable_precompiled_headers=false` y `-k 0` (TRAMPAS, MOTOR), luego `blink_unittests`, `motor-129…131.html` y WPT.
-   Antes, el repaso de TRAMPAS contra las APIs de la 128 (includes sobre todo) en los ficheros más tocados a mano.
+**Lo que queda (tuyo):**
 
-**Dónde es más probable que falle la compilación** (todo a mano, sin compilar):
-
-- Relative color con currentcolor (nivel 131): entra la serie de upstream con 9180018ac36 (color e imagen al parser
-  *streaming*) y 9166feba61b (`EvaluationInput` fuera de `Length`); `ResolveColorValue()` lleva el `CSSLengthResolver`
-  a mano y la 128 no tiene `is_in_web_app_scope`. Revisar los llamantes fuera del área si los hay.
-- Nested declarations (130): el parser de at-rules de la 128 es de rangos de tokens; Start/EndRuleBody del observer se
-  movieron a mano a los llamantes (page, page-margin, view-transition).
-- Pseudo-elementos del `<select>` (131): en la 128 son `::select-fallback-*`; donde el 131 dice `::picker(select)`
-  (`kPseudoIdPickerSelect`, `kPickerSelect`) se usa `kSelectFallbackDatalist`; también el enum del protocolo de DevTools.
-- `IsAllowedAfterPart()` (130) es la del 131 filtrada al enum de la 128 (`switch` sin `default`).
-- RTCDataChannel transferible (130): constructor a mano (la 128 sigue pasando el `RTCPeerConnectionHandler`).
-
-**Decisiones de MOTOR-15 que conviene que COORDINACIÓN conozca** (en los mensajes de commit): KeyboardFocusableScrollers
-sin portar (en la 128 ya está la semántica y en la 1.15.2 la flag acaba `experimental`); 256175bafdd fuera (necesita
-PopoverAnchorRelationships, que tampoco lleva la 1.15.2); `SerializeNameAndDescriptionAttributes` no se mueve (74a5382ac8b)
-porque en la 128 rompería el camino de PDF; `Database` se queda `experimental` como upstream.
-
-**Entorno** (todo en `/tmp` y `/home/user`, nada queda): `mkdir /home/user/chromium/hist && git init` y
-`git fetch --filter=blob:none --shallow-since=2023-05-15 origin refs/tags/<tag>:refs/tags/<tag>` para 128.0.6613.138,
-129.0.6668.112, 131.0.6778.264 y 116.0.5845.188 (~450 MB, `git config gc.auto 0`); `mkcr.sh /tmp/claude-0/port/cr128
-128.0.6613.138` (~1 GB); brave-core con `--depth 900` de `nube/motor-131-anchor-f16` para `fwdiff.sh`. Herramientas
-nuevas en `FlyWeb/tools/port/README.md`, «Sobre la base 128».
+1. **`blink_unittests` no compila** (LOCAL-8, 196 errores en 28 objetos; el navegador sí). A la 128 no pasaron los tests de
+   los portes (`portar128.sh` los filtra). Plan: para cada test que falla, los commits de upstream 128→131 que lo tocan y
+   cuyo código ya está en la rama (`FlyWeb/tools/port/ported.py`; marca P/p/-/?), y aplicar sus hunks de test en orden.
+   Lo ya medido: casi todo es af046fa668 (inset-area → position-area), 3253335fba (flags de anchor) y 579ac56bb3
+   (nesting sin reglas «signaling»); los «?» son commits solo de tests (decidir uno a uno). Además, sin upstream:
+   `platform/heap/heap_test_platform.h` (V8 13.1: hay parche en la 1.15.2, `nube/motor-131-anchor-f16`), y los tests
+   de `chromium_src` de Brave (`time_clamper_test`, `websocket_channel_impl_test`, `link_loader_test`,
+   `base_fetch_context_test`: parches de FlyWeb en la 1.15.2). Las 5 entradas de `.gni`/`BUILD.gn` a tests inexistentes
+   (`css_relative_color_value_test`, `css_color_function_parser_test`, `style_color_test`, `position_area_test`,
+   `public_key_credential_unittest`) se arreglan portando esos tests. Lista completa de errores: en la 7,1,
+   `temp/local8/b128-blinktests-errores.txt` (pídesela a LOCAL-8 por fichero).
+2. **WPT `css/css-anchor-position/position-visibility-anchors-visible-change-anchor.html`** falla (CfT 131 y la 1.15.2
+   pasan). El observador de visibilidad es igual al de la 131 salvo `Visibility()`/`UsedVisibility()` y el arreglo de
+   FS.21 (05730fe4c1c); mirar `anchor_position_scroll_data.cc` y `paint_layer` frente a la 1.15.2.
+3. **WPT `css/css-color/hsla-clamp-negative-saturation.html`** falla (2 px; CfT 131 pasa). No hay commit con «hsl» o
+   «saturation» en 128→131; mirar si es redondeo de `Color::FromHSLA` o de la serie de colores relativos.
+4. **`launchQueue` falta:** no es un fallo. Brave apaga `FileSystemAccessLocal` y en la 128 `WebAppLaunchQueue` va
+   `implied_by: FileHandling` (que depende de ella). Regla 20: decide COORDINACIÓN (yo lo dejaría apagado).
 
 **Trampas nuevas:**
 
-- **La 128 se cortó el 23-07-2024**: la mitad de los rechazos se van aplicando antes los commits de agosto del mismo
-  fichero (`git log 03c1799e6f9..<commit> -- <fichero>`) con `insert.sh`; casi siempre entran limpios después.
-- **`patch -F3` coloca hunks donde no van** sin avisar (`rejfuzz.sh` ya va con fuzz 0). Tras cualquier fuzz, `git diff`
-  del fichero y mirar cada hunk.
-- **La medida de la clase D no ve lo portado como escape con otro nombre**: f30d9fddc4b (PaintHighlightsForFirstLetter)
-  faltaba; se encontró comparando el json5 de la 1.15.2 con el de la rama (paso 4).
+- **La historia de Chromium sin blobs es lentísima** (cada `git show` baja un blob por el proxy; hubo 504). Antes de
+  medir, bajar en bloque: `git rev-list --objects --missing=print 128.0.6613.138..131.0.6778.264 -- <rutas> | grep '^?'
+  | cut -c2- | git -c fetch.negotiationAlgorithm=noop fetch --no-tags --no-write-fetch-head --stdin origin` (3500
+  blobs en 3 min).
+- **Un `#define` que renombra una función con sobrecargas** (chromium_src) renombra todas: si una llama a otra antes de
+  su definición, declarar la renombrada antes del `#include` (error de `-p5`).
+- **Lo que la 1.15.2 leía «sin flag» puede depender de una flag que la 128 no tiene** (`togglePopover`): comparar con
+  la 131, no solo con la 1.15.2.
+- **Desde la nube no se puede escribir a las sesiones de la 7,1** (`send_message` falla): buzón (`docs/ARRANQUE.md`).
+
+Entorno (todo en `/tmp` y `/home/user`): `mkcr.sh` con el sparse ampliado (base, mojo, ui, url, gpu, abseil…;
+`pchchk.py` lo necesita), historia con 128.0.6613.138 y 131.0.6778.264 (falta 129: añádela si te hace falta),
+`w-all` = la 128 + todos los `.patch` de la rama (para `pchchk.py`; montarlo como dice el README).
 
 ---
 
