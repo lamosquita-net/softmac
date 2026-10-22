@@ -24,6 +24,11 @@ viene por **Cartero-Local FlyWeb**, buzón `AAAAMMDD-HHMM-*.md`).
    **08:41:** `-p5` 93332ce63a (versión declarada 131) compilado incremental: **1 error de motor**, enviado a MOTOR-16
    (`components/embedder_support/user_agent_utils.cc:455`, el `#define GetUserAgentMetadata …_ChromiumImpl` del `chromium_src` deja sin
    declarar la sobrecarga de dos argumentos). Esperar `-p6`, cambiar `SHA=` en `brave128-compila.sh` y relanzar (~2 min).
+   **09:15: `-p6` 02c9d0ca4b COMPILADO (0 errores) y copiado a la 6,1** (`~/flyweb-pruebas/brave128/`): arranca en 2 s; UA
+   `Chrome/131.0.0.0`; Client Hints (en `chrome://version`, contexto seguro): marcas Chromium 131 + GREASE «Not_A Brand» 24, sin «Brave»,
+   `uaFullVersion`/`fullVersionList` 131.0.6778.265, `platformVersion` 11.7.10. **Empieza por la tanda de pruebas sobre `-p6`.**
+   **Antes, LuLu:** el binario nuevo no tiene red en la 6,1 (ni siquiera `http://127.0.0.1:8125` por el túnel): pedir a Titín que lo
+   apruebe en LuLu de la 6,1 (ruta `~/flyweb-pruebas/brave128/Brave Browser Development.app`) y comprobar con una pestaña antes de la tanda.
 1. **`flyweb` = 1.15.2 publicada** (9401833a66, árbol de `nube/motor-131-anchor-f16` af0328adeb; FM.28). Nada pendiente ahí.
 2. **Brave 1.69 / base 128 (FM.31), en `~/proyectos/brave-128/brave-browser`** (aparte de `flyweb-build` y de `chromium-128`):
    - Última compilación: Static sin PCH de `nube/base-128-motor-p3` de4d1b24b1, **diagnóstico** (`DIAG=1`: el hunk de
