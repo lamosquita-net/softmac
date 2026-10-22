@@ -129,3 +129,12 @@ componentes que aún no sirva ns2.
 i3: NTP con fondos y mosca de FlyWeb y crédito propio, sin velo oscuro; bienvenida con estilo FlyWeb y sin el paso «Ayuda a
 mejorar»; pestaña fijada en una ventana aparece en las demás (y restaurar sesión no la duplica); buscador por defecto
 DuckDuckGo en normal y privada; instalar una extensión de la Chrome Web Store que pida `minimum_chrome_version` 129–131.
+
+## Trampas (para el relevo)
+
+- **Un PR por entrega, rama nueva desde `main`:** COORDINACIÓN fusiona enseguida. Tres veces se empujó a
+  `claude/base-128-identidad` con su PR (#472) ya cerrado y hubo que reaplicarlo a mano (#473, #475). Antes de empujar,
+  mirar si el PR de la rama sigue abierto; si no, rama nueva desde `main` y PR nuevo.
+- **Fuente de Chromium 128 sin descargarlo:** `raw.githubusercontent.com` da 429 y `googlesource` 403 desde la nube;
+  `git fetch --filter=tree:0` del tag y `git show` por fichero funciona (no usar `git grep`: baja medio árbol).
+- **`m3.sh` sobre un fichero que Brave borró o movió lo copia entero de la 1.15:** comprobar el destino antes.
