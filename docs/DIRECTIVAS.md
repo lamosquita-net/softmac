@@ -27,6 +27,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   1.73), no Chrome; lo que Brave apaga no se porta, y MOTOR propone apagar lo que sirva para huella aunque Brave lo
   deje. Servicios propios (componentes, sync, actualizaciones, proxy de Safe Browsing); nada pasa por servidores de
   Brave. Fuentes: [`TAREAS.md`](TAREAS.md) regla 20, [`CLAUDE.md`](../CLAUDE.md).
+- **Brave no se sigue por número** (HUMANO, 22-10): de Brave solo nos interesa la privacidad (por eso lo elegimos pese a
+  duplicar esfuerzo). Tras la 1.69 (base 128) no se fusionan sus versiones para ir a la par; INVESTIGACIÓN-MOTOR estudia
+  lo que publiquen de privacidad y solo se porta lo importante, con consenso. De la 1.57 a la 1.69 casi todo era ya
+  resuelto por nosotros o servicios suyos que no queremos (Leo). Fuente: fila FM.37.
+- **Niveles 132+ no empiezan hasta publicar la 2.0.0** (HUMANO, 22-10): nada en paralelo, por el gasto semanal.
 - **Apagar, no borrar, mientras fusionemos Brave** (HUMANO, 20-10): Leo y servicios parecidos se apagan (`enable_ai_chat:false`
   y comprobaciones tras cada fusión); se borran del código cuando tengamos el fork propio, porque borrar encarece cada
   fusión. Asistentes de IA, como extensión. Fuente: fila FM.31.
