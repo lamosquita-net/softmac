@@ -20,7 +20,7 @@ locales desde la nube **sí funciona** (LOCAL-7, 22-10). PR [coord] de COORDINAC
 - **Códec por hardware** como la 1.15 (YouTube en H.264 donde VP9 no va por hardware), mejor por capacidad (VideoToolbox).
 - Máquinas de prueba nuevas en CLAUDE.md (MBA 2013, Mac mini y MBP 2012 con Catalina, A1398 con Monterey).
 - **OR.2:** crédito de API de 100 $ (caduca 06-11, sin tarjeta) para una sesión local; LOCAL-8 se abrió **por el plan**
-  (sin clave en el entorno): sigue sin usar. Siguiente intento: la próxima sesión local larga, por Terminal. **Titín (22-10): el relevo de LOCAL-8 (LOCAL-9) se abre con la API y ese crédito**, para seguir avanzando esta semana con el plan lleno.
+  (sin clave en el entorno): sigue sin usar. Siguiente intento: la próxima sesión local larga, por Terminal. **Corrección (22-10): el crédito promocional NO vale para Claude Code** (se aplica a Agent SDK, API, API por lotes, Playground y Agentes gestionados; Claude Code da «Credit balance too low»). LOCAL-9 se abrió por el plan. Usos posibles antes del 06-11: un guion del Agent SDK para lecturas masivas o un Agente gestionado; se decide en el análisis del 23-10.
 - Titín quiere la 2.0 **lo antes posible**, pero COORDINACIÓN-11 le recomendó no forzarla esta semana (límite semanal al
   57 %, reinicio **martes 27-10 08:00 Madrid** = 07:00 UTC; ya en horario de invierno). **Viernes 23-10: análisis de gasto por tarea** (CONSUMO.md) con Titín.
 
