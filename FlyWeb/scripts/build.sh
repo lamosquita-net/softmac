@@ -179,7 +179,7 @@ if [ "$CONFIG" = "Release" ]; then
     fi
     SPARKLE=true
     set -- "$@" --gn "sparkle_eddsa_public_key:$EDKEY" --gn "flyweb_build_number:$FLYWEB_BUILD_NUMBER"
-    echo "Actualizaciones: activadas (FlyWeb build $FLYWEB_BUILD_NUMBER, CFBundleVersion 157.64.$FLYWEB_BUILD_NUMBER)"
+    echo "Actualizaciones: activadas (FlyWeb build $FLYWEB_BUILD_NUMBER, CFBundleVersion <base Brave>.$FLYWEB_BUILD_NUMBER: 157.64 en 1.x, 169.168 en 2.x)"
   else
     SPARKLE=false
     echo "AVISO: sin clave pública válida en $EDKEY_FILE: Release SIN actualizaciones automáticas" >&2
