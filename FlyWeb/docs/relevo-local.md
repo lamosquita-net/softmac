@@ -29,6 +29,8 @@ viene por **Cartero-Local FlyWeb**, buzón `AAAAMMDD-HHMM-*.md`).
    `uaFullVersion`/`fullVersionList` 131.0.6778.265, `platformVersion` 11.7.10. **Empieza por la tanda de pruebas sobre `-p6`.**
    **Antes, LuLu:** el binario nuevo no tiene red en la 6,1 (ni siquiera `http://127.0.0.1:8125` por el túnel): pedir a Titín que lo
    apruebe en LuLu de la 6,1 (ruta `~/flyweb-pruebas/brave128/Brave Browser Development.app`) y comprobar con una pestaña antes de la tanda.
+   **09:30: HECHO.** Titín aprobó en LuLu de la 6,1 Brave `-p6` y la Chromium 128 limpia; comprobado: example.com carga. Si se
+   recompila, LuLu puede volver a retener el binario: abrir una pestaña de prueba antes de cada tanda.
 1. **`flyweb` = 1.15.2 publicada** (9401833a66, árbol de `nube/motor-131-anchor-f16` af0328adeb; FM.28). Nada pendiente ahí.
 2. **Brave 1.69 / base 128 (FM.31), en `~/proyectos/brave-128/brave-browser`** (aparte de `flyweb-build` y de `chromium-128`):
    - Última compilación: Static sin PCH de `nube/base-128-motor-p3` de4d1b24b1, **diagnóstico** (`DIAG=1`: el hunk de
