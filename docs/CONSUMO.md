@@ -84,3 +84,6 @@ contexto al cerrar · notas.
 | 22-10 | MOTOR-17 (`…019jWves`) | Opus 5.5 | extra (`xhigh`) | FM.31: 2 WPT (ANGLE OpenGL, no motor), `-p11` cd9c85656b (ANGLE Metal ≥ 10.15, `flyweb_metal_bin_path`) y `-p12` ae5626ab1a (merge con identidad `-i5`) | ~0,6 | — | — | 52 % | Cifras de la sesión en la línea de cierre |
 | 22-10 | MOTOR-17 (`…019jWves`) | Opus 5.5 | extra (`xhigh`) | Cierre al relevar (total de la sesión: `-p10`…`-p12`, 2 WPT, relevo) | ~2 | 141 374 | 21,83 | 52 % | `get_session` al relevar; 76,1 M de lectura de caché, 0,47 M de escritura |
 | 22-10 | MOTOR-17 (`…019jWves`) | Opus 5.5 | extra (`xhigh`) | Cifra final al archivar (sustituye la de cierre de arriba) | ~1,6 | 156 167 | 24,51 | 55 % | `get_session` al archivar; 86,7 M de lectura de caché |
+| 22-10 | SEGURIDAD-PORTES-5 (`…01H7fz6r`) | Opus 5.5 | alto | Total al archivar (S1–S4, FS.23) | — | 96 924 | 18,52 | 41 % | `get_session` al archivar; 46,0 M de lectura de caché |
+| 22-10 | INVESTIGACIÓN-MOTOR-2 (`…014AE1uL`) | Opus 5.5 | medio | Total al archivar (hipótesis del cuelgue de GPU, #451) | — | 83 083 | 14,24 | 35 % | `get_session` al archivar; 29,9 M de lectura de caché |
+| 22-10 | CONTENIDOS-WEB-2 (`…015tHV7u`) | Sonnet 5.5 | medio | Total al archivar (web de la 1.15.x, desde el 14-10) | — | 44 642 | 12,79 | 38 % | `get_session` al archivar; 32,9 M de lectura de caché |
