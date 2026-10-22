@@ -62,6 +62,57 @@ entregas fijas en `nube/base-128-identidad-iN`. Esta página es también la nota
 - **NTP de la 1.69:** sin los iconos de Ajustes, Marcadores e Historial abajo a la izquierda (los quitó Brave); el
   widget de búsqueda nuevo de la 1.69 (clase E) queda como venga.
 
+## Dominios para `network-audit.py` (COORDINACIÓN-12: cualquier URL de Brave viva es un fallo)
+
+**Regla:** en un arranque limpio y en una navegación normal (nueva pestaña, una web, Ajustes, instalar una extensión),
+**ninguna** petición a `*.brave.com`, `*.bravesoftware.com`, `*.brave.software`, `*.brave.io` ni
+`*.brave-http-only.com`. Las que sí deben aparecer: `components.flyweb.lamosquita.net`, `sync.flyweb.lamosquita.net`
+(si se activa sync), `proxy.flyweb.lamosquita.net`, `updates.flyweb.lamosquita.net` y Google directo (Web Store,
+traducción si se activa, Safe Browsing por el proxy).
+
+Las que hay que mirar una a una, porque la 2.0 las tiene en el código (`git grep` en i3, sin pruebas, iOS ni Android):
+
+| Dominio | De qué es | Estado en la 2.0 |
+|---|---|---|
+| `safebrowsing.brave.com`, `sb-ssl.brave.com`, `safebrowsing2.brave.com`, `redirector.brave.com` | Safe Browsing, CRLSet, Chromecast | Van al proxy propio (`network_constants.h`); aparecer = fallo |
+| `clients4.brave.com`, `static1.brave.com` | Sync de Google, autorrelleno | Bloqueados (`blocked.flyweb.invalid`) |
+| `crxdownload.brave.com`, `extensionupdater.brave.com`, `go-updater.brave.com`, `componentupdater.brave.com` | Extensiones y componentes | Extensiones directas a Google; componentes, a ns2 por argumento |
+| `variations.brave.com`, `laptop-updates.brave.com`, `p3a*.brave.com`, `star.wdp.brave.com` | Variations, stats/referidos, P3A, Web Discovery | No se piden (sin cambio de URL: el código no llega) |
+| `translate.brave.com`, `translate-static.brave.com` | Traducción | Directa a Google |
+| `devtools.brave.com`, `detectportal.brave-http-only.com`, `cr.brave.com` | DevTools remoto, portal cautivo, informes de fallo | `flyweb.invalid` / apagados |
+| `dict.brave.com` | Diccionarios del corrector | **Mirar**: en la 1.15 pasaban por el proxy (`redirector`); confirmar que la 1.69 no los pide aquí |
+| `pcdn.brave.com`, `brave-today-cdn.brave.com` | Imágenes de la NTP y News | Componentes de NTP sin registrar y News sin controlador |
+| `account.brave.com`, `leo.bravesoftware.com`, `*.rewards.*`, `*.ads.*`, `*.wallet.brave.com`, `talk.brave.com` | Leo, Rewards, anuncios, monedero, Talk | Apagados; aparecer = fallo |
+| `search.brave.com` (y `imgs.`, `tiles.`, `cdn.`) | Brave Search | Solo si el usuario lo elige; el widget de búsqueda de la NTP de la 1.69 (clase E) puede pedir sugerencias: **mirar** |
+
+**Argumento recomendado (barato y de cinturón):** `brave_services_production_domain:flyweb.invalid` (y lo mismo en
+`_staging_` y `_dev_`): en la 1.69 Leo, News y P3A construyen sus hosts con `brave_domains::GetServicesDomain()`;
+aunque estén apagados, así ningún host derivado resuelve.
+
+## Shields: lo que falta para la 2.0 (clase H; lo lleva COORDINACIÓN con Titín y SERVIDOR-LOCAL)
+
+- **Hace falta:** un par de claves nuevo para el componente **de recursos** de Shields de la 2.0 (firmado en bak), con su
+  ID (los 32 caracteres `a`–`p` del hash de la clave pública), porque `resources.json` de adblock 0.8 no vale para la
+  0.7.9 de la 1.x (`brave-sync-shields.md` §3.4). El catálogo sigue con su ID y clave de la 1.x, pero el CRX tiene que
+  llevar además `list_catalog.json`.
+- **Qué cambia en brave-core cuando exista:** solo `components/brave_shields/core/common/brave_shield_constants.h`:
+  `kAdBlockResourceComponentId` y `kAdBlockResourceComponentBase64PublicKey` (y quitar el comentario de «pendiente»).
+  Nada más en el cliente: el catálogo y las listas por defecto los decide el servidor.
+
+## Pestañas fijadas compartidas: por qué el servicio de la 1.69 (decisión de COORDINACIÓN)
+
+COORDINACIÓN-12 pide conservar el comportamiento de la 1.15 y usar el de la 1.69 solo si es equivalente y más barato.
+
+- **Más barato:** sí. El de la 1.15 era el de la 1.57 más arreglos de Brave posterior (b0541dd7aba, 9b010f57069,
+  e0f8a1e720f, a172cff31b1) **que la 1.69 ya trae**; llevar el nuestro son 19 conflictos en un fichero que Brave sigue
+  cambiando.
+- **Equivalente:** igual o mejor en lo visto (misma preferencia `brave.tabs.shared_pinned_tab`, interruptor en Ajustes,
+  encendido por defecto con i3, y cambio en caliente en vez de al reiniciar). **Sin comprobar:** la restauración de
+  sesión y de ventanas cerradas, que en la 1.15 arregló un fallo visto con ASan (FM.25, 057630a8c). La 1.69 lo trata a su
+  manera en `SynchronizeNewBrowser()`. **Prueba para LOCAL:** con dos ventanas y pestañas fijadas, salir y volver a abrir
+  (restaurar sesión) y reabrir una ventana cerrada; sin duplicados ni caídas (ASan si se puede). Si falla, porto el
+  arreglo de la 1.15 (`restored_browsers_`), que es pequeño.
+
 ## Qué comprobar en la compilación (LOCAL)
 
 `flyweb://version` (logo, «FlyWeb 2.0.0 (motor 131) · Brave 1.69.168»), menús y ajustes en español sin «Brave» salvo
