@@ -3,6 +3,66 @@
 Nota de relevo del agente LOCAL de FlyWeb (compila, prueba y lleva `flyweb`). La deja cada LOCAL al salir; el siguiente
 la lee después de `CLAUDE.md` y de `docs/TAREAS.md` (tabla, reglas y filas FM/FS abiertas).
 
+## LOCAL-8 → LOCAL-9 (22-10-2026)
+
+LOCAL-8 (`local_5c6ba9f8-4205-46e5-98a8-b31a3eaa73c0` «Compilación Local (8)»; Opus 5.5, alto, modo auto; facturó por el plan Max;
+22-10 ~13:45 – ~17:50). Nota al 49 % de contexto. Guiones y registros en `~/proyectos/softmac/temp/local8/`.
+**Canales:** COORDINACIÓN-12 («Coordinación (12)», `session_01NjpdW4mhQMcN2EuNN8MivC`) por `SendMessage` con el nombre de `ListAgents`.
+MOTOR-17 e IDENTIDAD-1 (nube) **no salen en `ListAgents`**: a MOTOR-17, por la rama de softmac `local/b128-blinktests-errores`
+(sin historia previa; ficheros + `LEEME-*.md`, push directo) y por COORDINACIÓN; a IDENTIDAD-1, por COORDINACIÓN. Sus respuestas
+llegan por **Cartero-Local FlyWeb** (buzón).
+
+### PARA LOCAL-9: QUÉ HACER AL EMPEZAR
+
+1. **Compilación en marcha (nohup):** `-p12` **ae5626ab1a** (= motor `-p11` cd9c85656b + identidad `-i5` dff94888fe; orden de
+   COORDINACIÓN-12 y MOTOR-17) con `temp/local8/b128-p12.sh` (PID en `b128-p12.pid`; resumen en `b128-p12.nohup`). Encadena:
+   navegador Static (`b128-p12-build.log`, 12 796 pasos desde las 17:42) → `blink_unittests` (`b128-p12-tests-build.log`) → la suite
+   (`b128-p12-gtest.log` y `.json`). Mira `ps -p $(cat …/b128-p12.pid)` antes de lanzar nada (una compilación a la vez).
+   - Args nuevos de identidad: `enable_ai_chat:false`, `enable_brave_vpn:false` (P3A ya iba en false); **sin** `enable_updater`; y
+     `flyweb_metal_bin_path:<usr/bin del toolchain de ~/proyectos/sdk/Xcode-15.4.app>/` (la ruta solo en el guion, nunca en el repo).
+   - **Diagnóstico LOCAL en `src/brave/test/BUILD.gn`** (no entregable): `gn gen` fallaba en `assert(enable_ai_rewriter)` porque
+     `brave/test` añade `//brave/browser/ui/ai_rewriter:browsertest` sin condición. Lo protegí con `if (enable_ai_rewriter)` (diff en
+     `temp/local8/diag-ai_rewriter.diff`) y se lo pasé a COORDINACIÓN-12 para IDENTIDAD-1. Cuando llegue el arreglo (`-i6` / `-p13`),
+     `git -C src/brave checkout -- test/BUILD.gn` antes de cambiar de commit.
+2. **Con el `-p12` compilado** (orden de MOTOR-17, mensaje del buzón 20261022-1526):
+   - `blink_unittests`: comparar con `-p10` (26 143 bien, 58 fallos, 40 caídas; lista en `temp/local8/b128-p10-fallos.txt`). Lo nuevo,
+     a MOTOR-17 por su rama.
+   - ANGLE: en la 7,1, `chrome://gpu` sin flags = `angle=metal` y las 2 WPT pasan (`temp/local8/wpt2-medida.sh`: deja solo los casos
+     sin flags; `gpuinfo.py` saca el estado por CDP); en la 6,1 = `angle=opengl`, sin caídas.
+   - Identidad: «Qué comprobar en la compilación (LOCAL)» de `FlyWeb/docs/identidad-128.md`, más restaurar sesión con pestañas fijadas
+     compartidas en dos ventanas y reabrir una ventana cerrada (sin duplicados ni caídas; ASan si se puede).
+   - Repetir Google, WebAuthn y Ajustes en la 6,1 (`repro61.py todo`) y la GPU de 10 min.
+3. Resultados en FM.31 (filas de LOCAL-8 como modelo) y a COORDINACIÓN-12; tokens para `CONSUMO.md`.
+
+### Trampas nuevas (22-10)
+
+- **La app del `-p12` se llama `FlyWeb Development.app`** (identidad), no `Brave Browser Development.app`: ruta nueva → **LuLu** la
+  retiene en la 7,1 y en la 6,1 (pedir a Titín que la apruebe); actualizar las rutas de los guiones de `temp/local8/` y el patrón de
+  informes de `en-61-gpu.sh` (busca `chromium|brave`: añadir `flyweb`). En la 7,1 le aplica la **política antigua sin JIT** del bundle
+  de desarrollo (`DefaultJavaScriptJitSetting = 2`): JIT/Wasm, en la 6,1.
+- **APIs de 10.15 sin `@available`** = caída en Mojave (Google/WebAuthn por `CBCentralManager.authorization`, Ajustes por `LAContext`).
+  Repasados los 46 avisos `-Wunguarded-availability` (patrón de la 116); ya van en `patches/` desde `-p8`. Quedan 9 tras salidas
+  tempranas: si sale un aviso **nuevo** en un log, es una caída en potencia.
+- **Abrir una descarga no se puede comprobar por CDP** (ni con `Input.dispatchMouseEvent`; tampoco en la 1.15.2): a mano, Titín.
+- **CPU de vídeo:** la Static de la 128 tiene `is_official_build=false`; no se compara con la 1.15.2 Release. Decodificador: 1.15.2
+  `VDAVideoDecoder`, 2.0 `VideoToolboxVideoDecoder` (hardware las dos).
+- **Las 2 WPT de colores/anchor** que difieren de CfT 131 son de ANGLE OpenGL, no del motor (con `--use-angle=metal` pasan).
+- **`blink_unittests`**: Brave no los ejecuta (sin filtro); su anti-huella de canvas tumba 39 tests con un `NOTREACHED` (esperado).
+- **CDP**: `Runtime.evaluate` con `awaitPromise` se queda colgado si la promesa abre un diálogo (WebAuthn): lanzar sin esperar.
+- Lo que se sube a ramas públicas (logs de ninja/gtest): quitar `/Users/titin` y la **`brave_services_key`** (va en la orden de npm).
+
+### Herramientas (`~/proyectos/softmac/temp/local8/`)
+
+`repro61.py <puerto> <modo>` (modos `claude`, `google`, `webauthn`, `ajustes`, `todo`, `extra` —descargas y geolocalización—, `abrir`,
+`p9` —togglePopover, `isTypeSupported`, YouTube—, `decoder` —`chrome://media-internals`—) por el túnel de `en-61-gpu.sh`;
+`gpu-video61.sh` (GPU 10 min + vídeo frente a la 1.15.2); `wpt2-medida.sh` + `gpuinfo.py` + `wpt-ref-detalle.py`; `tanda-p6-71.sh`
+(motor-117…131, WPT, JA4 sin ventana en la 7,1); `brave128-p9.sh` (compilar un `-pN` sin diffs locales; cambiar `SHA=`).
+
+### Pendiente fuera de LOCAL
+
+`launchQueue` (Brave apaga `FileSystemAccessLocal`; lo decide COORDINACIÓN); referencia opcional de `blink_unittests` de Brave 1.69
+pura (con el sí de COORDINACIÓN); la 5,1 sigue sin configurar.
+
 ## LOCAL-7 → LOCAL-8 (22-10-2026)
 
 LOCAL-7 (`local_f2edb095-eee0-450b-bae3-0c69492607e2` «Compilación Local (7)»; Opus 5.5, esfuerzo alto, modo auto; 21-10 ~18:30 –
