@@ -12,13 +12,17 @@
 #   pasa. Sin emulación, con una pestaña por página, 0 px en 25/25. No volver a emular la captura.
 # - Testharness: el mismo gancho que wpt-cdp.py; pasa si el arnés termina bien y pasan todos los subtests.
 # - Sin referencia ni testharness (pruebas de caída): pasa si la página carga y el renderer sigue respondiendo.
+# - --detalle=<dir> (MOTOR-17, 22-10): en cada reftest que difiere, guarda la prueba y la referencia en <dir> (PNG) y
+#   da el rectángulo de los píxeles distintos y unas muestras «x,y prueba→ref» (para ver si es raster o motor).
 # - esperado.json: {ruta: "Failure"} para lo que Chrome falla entero (TestExpectations) y {ruta: [subtests]} para los
 #   subtests que falla (sus -expected.txt). Con él, al final dice qué difiere de Chrome.
 import base64, json, os, re, socket, struct, sys, time, urllib.parse, urllib.request, zlib
 
-PASADAS = 3
+PASADAS = 3; DETALLE = None
 for a in [a for a in sys.argv[1:] if a.startswith('--pasadas=')]:
     PASADAS = max(1, int(a.split('=', 1)[1])); sys.argv.remove(a)
+for a in [a for a in sys.argv[1:] if a.startswith('--detalle=')]:
+    DETALLE = a.split('=', 1)[1]; os.makedirs(DETALLE, exist_ok=True); sys.argv.remove(a)
 port, base, lista = sys.argv[1], sys.argv[2].rstrip('/'), [l.split('#')[0].strip() for l in open(sys.argv[3])]
 lista = [l for l in lista if l]
 def conectar(t):  # WebSocket de CDP de la pestaña t, con tiempo máximo por lectura (página colgada → excepción)
@@ -118,14 +122,20 @@ def png(b):  # PNG de 8 bits sin entrelazar (lo que da Chrome) → (ancho, alto,
         out[y * st:(y + 1) * st] = row; prev = row
     return w, h, c, bytes(out)
 
-def diff(a, b):  # (máxima diferencia por canal, píxeles distintos)
+def diff(a, b, info=None):  # (máxima diferencia por canal, píxeles distintos); con info, rectángulo y muestras
     if a == b: return 0, 0
     wa, ha, ca, pa = png(a); wb, hb, cb, pb = png(b)
     if (wa, ha) != (wb, hb): return 255, wa * ha
-    mx = n = 0
+    mx = n = 0; x0 = y0 = 1 << 30; x1 = y1 = -1; muestras = []
     for k in range(wa * ha):
         d = max(abs(pa[k * ca + j] - pb[k * cb + j]) for j in range(3))
-        if d: n += 1; mx = max(mx, d)
+        if d:
+            n += 1; mx = max(mx, d)
+            if info is not None:
+                x, y = k % wa, k // wa; x0, y0, x1, y1 = min(x0, x), min(y0, y), max(x1, x), max(y1, y)
+                if len(muestras) < 6 or d == mx and len(muestras) < 12:
+                    muestras.append(f'{x},{y} {tuple(pa[k * ca:k * ca + 3])}→{tuple(pb[k * cb:k * cb + 3])}')
+    if info is not None and n: info.append(f'rect {x0},{y0}-{x1},{y1}; ' + ' '.join(muestras))
     return mx, n
 
 def captura(url):  # cada captura en una pestaña nueva (ver la trampa del principio)
@@ -171,9 +181,14 @@ def una(p):
         for k in range(PASADAS):
             a = captura(url); e = 'FAIL'; d = []
             for rel, ref in refs:
-                (d0, d1), (n0, n1) = fuzzy(src, ref); mx, n = diff(a, captura(ref))
+                (d0, d1), (n0, n1) = fuzzy(src, ref); info = [] if DETALLE else None; b = captura(ref)
+                mx, n = diff(a, b, info)
                 igual = mx == 0 or (d0 <= mx <= d1 and n0 <= n <= n1)
                 d.append(f'{rel} {os.path.basename(ref)}: max {mx}, {n} px')
+                if info:
+                    nom = os.path.join(DETALLE, p.replace('/', '_'))
+                    open(f'{nom}.p{k + 1}.png', 'wb').write(a); open(f'{nom}.p{k + 1}.ref.png', 'wb').write(b)
+                    print(f'          {p} pasada {k + 1}: {info[0]}', flush=True)
                 if igual == (rel == 'match'): e = 'PASS'; break
             estados.append(e); det.append(f'pasada {k + 1}: ' + '; '.join(d))
         estado = estados[0] if len(set(estados)) == 1 else 'INESTABLE'
