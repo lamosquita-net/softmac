@@ -1,0 +1,188 @@
+base/numerics/clamped_math.h:195:10: error: no viable conversion from returned value of type 'int (*const)()' to function return type 'ClampedNumeric<typename UnderlyingType<int (*)()>::type>' (aka 'ClampedNumeric<int (*)()>')
+base/numerics/clamped_math.h:19:17: error: static assertion failed due to requirement 'std::is_arithmetic_v<int (*)()>': ClampedNumeric<T>: T must be a numeric type.
+base/time/time.h:905:39: error: no viable conversion from 'ClampedNumeric<typename UnderlyingType<int (*)()>::type>' (aka 'ClampedNumeric<int (*)()>') to 'int64_t' (aka 'long long')
+third_party/blink/renderer/core/css/css_rule_test.cc:34:30: error: no member named 'MakeSignalingRule' in namespace 'blink::css_test_helpers'
+third_party/blink/renderer/core/css/css_rule_test.cc:36:30: error: no member named 'kBareDeclarationShift' in 'sigval'
+third_party/blink/renderer/core/css/css_rule_test.cc:36:9: error: no member named 'Signal' in 'blink::CSSSelector'; did you mean 'sigval'?
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:373:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:375:23: error: variable type 'TestAnchorEvaluator' is an abstract class
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:37:27: error: use of undeclared identifier 'InsetAreaOffsets'
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:386:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:388:23: error: variable type 'TestAnchorEvaluator' is an abstract class
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:402:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:404:23: error: variable type 'TestAnchorEvaluator' is an abstract class
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:40:17: error: use of undeclared identifier 'InsetAreaOffsets'
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:417:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:419:23: error: variable type 'TestAnchorEvaluator' is an abstract class
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:42:16: error: variable has incomplete type 'css_longhand::InsetArea'
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:42:7: error: unknown type name 'InsetArea'; did you mean 'css_longhand::InsetArea'?
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:435:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:437:23: error: variable type 'TestAnchorEvaluator' is an abstract class
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:43:12: error: use of undeclared identifier 'InsetAreaOffsets'
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:467:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:469:23: error: variable type 'TestAnchorEvaluator' is an abstract class
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:493:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/css_to_length_conversion_data_test.cc:495:23: error: variable type 'TestAnchorEvaluator' is an abstract class
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:112:43: error: too few arguments to function call, expected 2, have 1
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:128:43: error: too few arguments to function call, expected 2, have 1
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:146:43: error: too few arguments to function call, expected 2, have 1
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:30:25: error: no member named 'ParseInvisibleRule' in namespace 'blink::css_test_helpers'
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:32:25: error: no member named 'ParseSignalingRule' in namespace 'blink::css_test_helpers'
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:375:79: error: too few arguments to function call, expected 2, have 1
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:610:13: error: no member named 'Signal' in 'blink::CSSSelector'; did you mean 'sigval'?
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:610:34: error: no member named 'kNone' in 'sigval'
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:611:25: error: no type named 'Signal' in 'blink::CSSSelector'; did you mean 'sigval'?
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:612:57: error: no member named 'signal' in 'blink::MatchedProperties::Data'
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:619:26: error: no member named 'Signal' in 'blink::CSSSelector'; did you mean 'sigval'?
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:619:47: error: no member named 'kBareDeclarationShift' in 'sigval'
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:625:13: error: no member named 'Signal' in 'blink::CSSSelector'; did you mean 'sigval'?
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:625:34: error: no member named 'kBareDeclarationShift' in 'sigval'
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:626:25: error: no type named 'Signal' in 'blink::CSSSelector'; did you mean 'sigval'?
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:627:57: error: no member named 'signal' in 'blink::MatchedProperties::Data'
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:640:26: error: no member named 'Signal' in 'blink::CSSSelector'; did you mean 'sigval'?
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:640:47: error: no member named 'kBareDeclarationShift' in 'sigval'
+third_party/blink/renderer/core/css/element_rule_collector_test.cc:82:43: error: too few arguments to function call, expected 2, have 1
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:101:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:119:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:137:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:155:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:172:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:190:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:209:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:229:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:254:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:281:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:307:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:333:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:357:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:375:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:398:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:444:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:469:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:67:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_parser_impl_test.cc:84:25: error: variable type 'TestCSSParserObserver' is an abstract class
+third_party/blink/renderer/core/css/parser/css_property_parser_test.cc:1036:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/properties/css_parsing_utils_test.cc:230:17: error: non-const lvalue reference to type 'blink::CSSParserTokenStream' cannot bind to a value of unrelated type 'CSSParserTokenRange'
+third_party/blink/renderer/core/css/properties/css_parsing_utils_test.cc:258:38: error: 'ConsumeColor' does not name a template but is followed by template arguments
+third_party/blink/renderer/core/css/properties/css_parsing_utils_test.cc:270:44: error: non-const lvalue reference to type 'CSSParserTokenStream' cannot bind to a value of unrelated type 'CSSParserTokenRange'
+third_party/blink/renderer/core/css/properties/css_parsing_utils_test.cc:323:56: error: non-const lvalue reference to type 'CSSParserTokenStream' cannot bind to a value of unrelated type 'CSSParserTokenRange'
+third_party/blink/renderer/core/css/properties/css_property_test.cc:355:31: error: variable type 'ModeCheckingAnchorEvaluator' is an abstract class
+third_party/blink/renderer/core/css/properties/css_property_test.cc:375:31: error: variable type 'ModeCheckingAnchorEvaluator' is an abstract class
+third_party/blink/renderer/core/css/properties/css_property_test.cc:395:31: error: variable type 'ModeCheckingAnchorEvaluator' is an abstract class
+third_party/blink/renderer/core/css/properties/css_property_test.cc:415:31: error: variable type 'ModeCheckingAnchorEvaluator' is an abstract class
+third_party/blink/renderer/core/css/properties/css_property_test.cc:435:67: error: no type named 'kSize' in 'blink::AnchorEvaluator::Mode'
+third_party/blink/renderer/core/css/properties/css_property_test.cc:44:27: error: use of undeclared identifier 'InsetAreaOffsets'
+third_party/blink/renderer/core/css/properties/css_property_test.cc:49:17: error: use of undeclared identifier 'InsetAreaOffsets'
+third_party/blink/renderer/core/css/properties/css_property_test.cc:51:7: error: unknown type name 'InsetArea'; did you mean 'css_longhand::InsetArea'?
+third_party/blink/renderer/core/css/properties/css_property_test.cc:52:12: error: no viable conversion from returned value of type 'const nullopt_t' to function return type 'int'
+third_party/blink/renderer/core/css/properties/longhands/custom_property_test.cc:250:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/properties/longhands/custom_property_test.cc:264:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/resolver/matched_properties_cache_test.cc:363:40: error: no member named 'Signal' in 'blink::CSSSelector'; did you mean 'sigval'?
+third_party/blink/renderer/core/css/resolver/matched_properties_cache_test.cc:363:61: error: no member named 'kNone' in 'sigval'
+third_party/blink/renderer/core/css/resolver/matched_properties_cache_test.cc:365:36: error: no member named 'Signal' in 'blink::CSSSelector'; did you mean 'sigval'?
+third_party/blink/renderer/core/css/resolver/matched_properties_cache_test.cc:365:57: error: no member named 'kBareDeclarationShift' in 'sigval'
+third_party/blink/renderer/core/css/resolver/matched_properties_cache_test.cc:381:11: error: no matching constructor for initialization of 'TestKey' (aka 'blink::MatchedPropertiesCacheTestKey')
+third_party/blink/renderer/core/css/resolver/matched_properties_cache_test.cc:383:11: error: no matching constructor for initialization of 'TestKey' (aka 'blink::MatchedPropertiesCacheTestKey')
+third_party/blink/renderer/core/css/resolver/matched_properties_cache_test.cc:398:11: error: no matching constructor for initialization of 'TestKey' (aka 'blink::MatchedPropertiesCacheTestKey')
+third_party/blink/renderer/core/css/resolver/matched_properties_cache_test.cc:400:11: error: no matching constructor for initialization of 'TestKey' (aka 'blink::MatchedPropertiesCacheTestKey')
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:133:5: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:2612:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3260:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3276:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3278:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3933:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3934:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3935:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3936:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3939:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3940:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3941:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3942:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3955:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3956:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3957:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3958:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:3960:11: error: no matching member function for call to 'Add'
+third_party/blink/renderer/core/css/resolver/style_cascade_test.cc:91:3: error: no type named 'Signal' in 'blink::CSSSelector'; did you mean 'sigval'?
+third_party/blink/renderer/core/css/resolver/style_resolver_test.cc:2985:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/resolver/style_resolver_test.cc:3031:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/resolver/style_resolver_test.cc:3078:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/resolver/style_resolver_test.cc:3107:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/resolver/style_resolver_test.cc:3140:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/resolver/style_resolver_test.cc:3199:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/resolver/style_resolver_test.cc:3249:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/rule_feature_set_test.cc:1957:28: error: no type named 'ChildRuleVector' in 'blink::StyleRuleBase'
+third_party/blink/renderer/core/css/selector_checker_test.cc:171:26: error: no type named 'ChildRuleVector' in 'blink::StyleRuleBase'
+third_party/blink/renderer/core/css/style_engine_test.cc:6854:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6875:31: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6880:41: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6882:31: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6890:41: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6892:31: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6903:41: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6906:31: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6917:41: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6920:31: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6931:41: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6934:31: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6945:41: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6948:31: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6961:41: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6967:31: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6979:40: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6982:31: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_engine_test.cc:6994:40: error: no member named 'kCSSDeclarationAfterNestedRule' in 'blink::mojom::WebFeature'; did you mean 'kOBSOLETE_CSSDeclarationAfterNestedRule'?
+third_party/blink/renderer/core/css/style_rule_test.cc:18:25: error: no member named 'MakeInvisibleRule' in namespace 'blink::css_test_helpers'
+third_party/blink/renderer/core/css/style_rule_test.cc:19:25: error: no member named 'MakeSignalingRule' in namespace 'blink::css_test_helpers'
+third_party/blink/renderer/core/css/style_rule_test.cc:20:25: error: no member named 'ParseInvisibleRule' in namespace 'blink::css_test_helpers'
+third_party/blink/renderer/core/css/style_rule_test.cc:22:25: error: no member named 'ParseSignalingRule' in namespace 'blink::css_test_helpers'
+third_party/blink/renderer/core/css/style_rule_test.cc:319:26: error: no member named 'Signal' in 'blink::CSSSelector'; did you mean 'sigval'?
+third_party/blink/renderer/core/css/style_rule_test.cc:319:47: error: no member named 'kBareDeclarationShift' in 'sigval'
+third_party/blink/renderer/core/css/style_rule_test.cc:321:29: error: no member named 'IsSignaling' in 'blink::StyleRule'
+third_party/blink/renderer/core/css/style_rule_test.cc:322:31: error: no member named 'IsSignaling' in 'blink::StyleRule'
+third_party/blink/renderer/core/css/style_rule_test.cc:324:29: error: no member named 'HasSignalingChildRule' in 'blink::StyleRule'
+third_party/blink/renderer/core/css/style_rule_test.cc:325:32: error: no member named 'HasSignalingChildRule' in 'blink::StyleRule'
+third_party/blink/renderer/core/css/style_rule_test.cc:329:28: error: no member named 'HasSignalingChildRule' in 'blink::StyleRule'
+third_party/blink/renderer/core/css/style_rule_test.cc:330:36: error: no member named 'HasSignalingChildRule' in 'blink::StyleRule'
+third_party/blink/renderer/core/css/style_rule_test.cc:332:32: error: no member named 'HasSignalingChildRule' in 'blink::StyleRule'
+third_party/blink/renderer/core/css/style_rule_test.cc:333:40: error: no member named 'HasSignalingChildRule' in 'blink::StyleRule'
+third_party/blink/renderer/core/css/style_rule_test.cc:342:31: error: no member named 'IsSignaling' in 'blink::StyleRuleSupports'
+third_party/blink/renderer/core/css/style_rule_test.cc:343:31: error: no member named 'HasSignalingChildRule' in 'blink::StyleRuleSupports'
+third_party/blink/renderer/core/css/style_rule_test.cc:344:39: error: no member named 'HasSignalingChildRule' in 'blink::StyleRuleSupports'
+third_party/blink/renderer/core/css/style_rule_test.cc:81:48: error: no type named 'ChildRuleVector' in 'blink::StyleRuleBase'
+third_party/blink/renderer/core/css/style_rule_test.cc:91:52: error: no type named 'ChildRuleVector' in 'blink::StyleRuleBase'
+third_party/blink/renderer/core/css/white_space_test.cc:41:30: error: use of undeclared identifier 'ToTextWrap'; did you mean 'css_shorthand::TextWrap'?
+third_party/blink/renderer/core/css/white_space_test.cc:49:31: error: use of undeclared identifier 'ToTextWrap'; did you mean 'css_shorthand::TextWrap'?
+third_party/blink/renderer/core/css/white_space_test.cc:57:31: error: use of undeclared identifier 'ToTextWrap'; did you mean 'css_shorthand::TextWrap'?
+third_party/blink/renderer/core/css/white_space_test.cc:65:30: error: use of undeclared identifier 'ToTextWrap'; did you mean 'css_shorthand::TextWrap'?
+third_party/blink/renderer/core/css/white_space_test.cc:73:30: error: use of undeclared identifier 'ToTextWrap'; did you mean 'css_shorthand::TextWrap'?
+third_party/blink/renderer/core/css/white_space_test.cc:81:30: error: use of undeclared identifier 'ToTextWrap'; did you mean 'css_shorthand::TextWrap'?
+third_party/blink/renderer/core/html/html_element_test.cc:257:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/html/html_element_test.cc:288:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/html/html_element_test.cc:325:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/html/html_element_test.cc:351:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/html/html_element_test.cc:380:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/html/html_element_test.cc:458:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/layout/absolute_utils_test.cc:128:9: error: no matching function for call to 'ComputeInsetModifiedContainingBlock'
+third_party/blink/renderer/core/layout/absolute_utils_test.cc:132:5: error: no matching function for call to 'ComputeOofInlineDimensions'
+third_party/blink/renderer/core/layout/absolute_utils_test.cc:169:9: error: no matching function for call to 'ComputeInsetModifiedContainingBlock'
+third_party/blink/renderer/core/layout/absolute_utils_test.cc:173:5: error: no matching function for call to 'ComputeOofBlockDimensions'
+third_party/blink/renderer/core/layout/anchor_evaluator_impl_test.cc:18:41: error: unknown class name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/layout/anchor_evaluator_impl_test.cc:20:31: error: member initializer 'ScopedCSSAnchorPositioningForTest' does not name a non-static data member or base class
+third_party/blink/renderer/core/layout/anchor_position_scroll_data_test.cc:18:46: error: unknown class name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/layout/anchor_position_scroll_data_test.cc:20:36: error: member initializer 'ScopedCSSAnchorPositioningForTest' does not name a non-static data member or base class
+third_party/blink/renderer/core/layout/layout_box_test.cc:1810:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/layout/layout_box_test.cc:1856:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/layout/layout_box_test.cc:1878:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/layout/visual_rect_mapping_test.cc:1291:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/loader/base_fetch_context_test.cc:71:28: error: non-virtual member function marked 'override' hides virtual member function
+third_party/blink/renderer/core/paint/compositing/compositing_reason_finder_test.cc:115:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/paint/compositing/compositing_reason_finder_test.cc:152:3: error: unknown type name 'ScopedCSSAnchorPositioningForTest'; did you mean 'ScopedCSSAnchorScopeForTest'?
+third_party/blink/renderer/core/timing/time_clamper_test.cc:20:18: error: no member named 'kFineResolutionMicroseconds' in 'blink::TimeClamper'
+third_party/blink/renderer/core/timing/time_clamper_test.cc:36:47: error: no member named 'kFineResolutionMicroseconds' in 'blink::TimeClamper'; did you mean 'FineResolutionMicroseconds'?
+third_party/blink/renderer/modules/websockets/websocket_channel_impl_test.cc:1732:15: error: incompatible pointer types assigning to 'WebSocketChannelImpl *' from 'WebSocketChannelImpl_ChromiumImpl *'
+third_party/blink/renderer/modules/websockets/websocket_channel_impl_test.cc:308:14: error: no viable overloaded '='
+third_party/blink/renderer/platform/heap/heap_test_platform.h:57:29: error: non-virtual member function marked 'final' hides virtual member function
+third_party/libc++/src/include/__memory/unique_ptr.h:620:30: error: allocating an object of abstract class type 'blink::HeapTestingPlatformAdapter'
+v8/include/cppgc/allocation.h:241:32: error: allocating an object of abstract class type 'blink::(anonymous namespace)::MockLinkLoaderClient'
+v8/include/cppgc/allocation.h:241:32: error: allocating an object of abstract class type 'blink::MockBaseFetchContext'
