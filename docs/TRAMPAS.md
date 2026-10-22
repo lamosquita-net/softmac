@@ -50,6 +50,10 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
 
 ## De fondo (para todos)
 
+- **Antes de archivar una sesión, `list_triggers`:** los agentes se programan avisos (`send_later`) que la despertarían ya
+  archivada, con todo su contexto (22-10: IDENTIDAD-1 tenía uno para las 16:05, borrado). **El contexto que da `get_session`
+  a un agente puede no actualizarse:** IDENTIDAD-1 se creía al ~33 % y estaba al 70 %; lo fiable es lo que ve Titín en la app.
+
 - **Una sesión abierta con `create_session` (o en la app) arranca con el último esfuerzo que eligió Titín**, no con el
   del texto de arranque: `create_session` no fija el esfuerzo. Comprobarlo con `get_session` y pedírselo a Titín si no cuadra
   (22-10: IDENTIDAD-1 salió en extra y COORDINACIÓN-12 en medio).
