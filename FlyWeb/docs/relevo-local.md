@@ -21,6 +21,9 @@ viene por **Cartero-Local FlyWeb**, buzón `AAAAMMDD-HHMM-*.md`).
    sin Finch de pruebas ni Media Router (`--disable-field-trial-config --disable-features=MediaRouter,DialMediaRouteProvider`).
    **COORDINACIÓN-11 (22-10 06:15):** la versión declarada (Chrome/131) la lleva MOTOR-16 a `-p5` (es motor). La tanda va sobre `-p5`
    cuando MOTOR-16 lo fije; si tarda, empezar por `blink_unittests` y ML-KEM sobre `-p4`, que no dependen de la versión.
+   **08:41:** `-p5` 93332ce63a (versión declarada 131) compilado incremental: **1 error de motor**, enviado a MOTOR-16
+   (`components/embedder_support/user_agent_utils.cc:455`, el `#define GetUserAgentMetadata …_ChromiumImpl` del `chromium_src` deja sin
+   declarar la sobrecarga de dos argumentos). Esperar `-p6`, cambiar `SHA=` en `brave128-compila.sh` y relanzar (~2 min).
 1. **`flyweb` = 1.15.2 publicada** (9401833a66, árbol de `nube/motor-131-anchor-f16` af0328adeb; FM.28). Nada pendiente ahí.
 2. **Brave 1.69 / base 128 (FM.31), en `~/proyectos/brave-128/brave-browser`** (aparte de `flyweb-build` y de `chromium-128`):
    - Última compilación: Static sin PCH de `nube/base-128-motor-p3` de4d1b24b1, **diagnóstico** (`DIAG=1`: el hunk de
