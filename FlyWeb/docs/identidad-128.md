@@ -21,7 +21,8 @@ entregas fijas en `nube/base-128-identidad-iN`. Esta página es también la nota
 |---|---|---|
 | **i1** | Cadenas (script), iconos y logotipos, D-DIN, identidad fija (BRANDING, perfil, llavero, carpeta de apps, versión 2.0.0, número de compilación y commit de origen), `flyweb://`, enlaces de ayuda, sin barra «macOS 11», sin `navigator.brave` | **entregado** `nube/base-128-identidad-i1` 0598ad79f8 |
 | **i2** | Servicios: Wallet (sin `ethereum`/`solana`), Rewards, News, Talk, referidos fuera; Leo y VPN por argumentos (`enable_ai_chat:false`, `enable_brave_vpn:false`); proxies de Safe Browsing, componentes propios (Shields, Local Data, clave de editor), petición del actualizador recortada y sin pings, stats, P3A, variations, crash, captive portal, traducción, DevTools remoto, DoH apagado, WebGPU apagado, JIT permitido, webcompat | **entregado** `nube/base-128-identidad-i2` 2fbba345c9 |
-| **i4** | Dominios de servicios de Brave inertes por defecto (`config.js`: `flyweb.invalid`) | **entregado** `nube/base-128-identidad-i4` 95b490bd34 (**la que hay que compilar**) |
+| **i5** | Componente de recursos de Shields propio de la 2.0: ID `nilendadbigifkognoeoodppkjkgmppg`, clave `recursos-20` | **entregado** `nube/base-128-identidad-i5` dff94888fe (**la que hay que compilar**) |
+| **i4** | Dominios de servicios de Brave inertes por defecto (`config.js`: `flyweb.invalid`) | **entregado** `nube/base-128-identidad-i4` 95b490bd34 |
 | **i3** | Funciones: NTP y bienvenida propias, pestañas fijadas compartidas encendidas, DuckDuckGo por defecto (también en privada), versión declarada a las extensiones (3 parches re-cortados sobre 128), créditos de D-DIN | **entregado** `nube/base-128-identidad-i3` 6cee51d215 |
 
 ## i1: adaptaciones a la 1.69 (no son cambios nuevos, son la misma regla donde Brave movió o añadió)
@@ -100,9 +101,9 @@ la clase E.
   ID (los 32 caracteres `a`–`p` del hash de la clave pública), porque `resources.json` de adblock 0.8 no vale para la
   0.7.9 de la 1.x (`brave-sync-shields.md` §3.4). El catálogo sigue con su ID y clave de la 1.x, pero el CRX tiene que
   llevar además `list_catalog.json`.
-- **Qué cambia en brave-core cuando exista:** solo `components/brave_shields/core/common/brave_shield_constants.h`:
-  `kAdBlockResourceComponentId` y `kAdBlockResourceComponentBase64PublicKey` (y quitar el comentario de «pendiente»).
-  Nada más en el cliente: el catálogo y las listas por defecto los decide el servidor.
+- **Hecho en -i5** (clave `recursos-20`, #479): `kAdBlockResourceComponentId` = `nilendadbigifkognoeoodppkjkgmppg`
+  (comprobado con el SHA-256 de la clave) y su clave pública en `brave_shield_constants.h`. Falta la parte de servidor:
+  empaquetar los recursos con el formato 0.8 bajo ese ID y `list_catalog.json` en el catálogo.
 
 ## Pestañas fijadas compartidas: por qué el servicio de la 1.69 (decisión de COORDINACIÓN)
 
