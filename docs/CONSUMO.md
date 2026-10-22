@@ -74,3 +74,5 @@ contexto al cerrar · notas.
 | 22-10 | MOTOR-16 (`…01R24qB8`) | Opus 5.5 | extra (`xhigh`) | FM.31: versión declarada 131 sobre la 128, rama fija `-p5` 93332ce63a | ~0,4 | — | — | ~23 % | Sin datos de `get_session` |
 | 21→22-10 | COORDINACIÓN-11 (`…016LAphU`) | Opus 5.5 | alto | Relevos (MOTOR-14→16, SEG-PORTES-4→5, LOCAL-6→8), 1.15.2 publicada, 2.0.0 hasta -p6 | ~20 | 135 266 | 40,33 | 54 % | Al dejar la nota de relevo; 105,5 M de lectura de caché |
 | 22-10 | MOTOR-16 (`…01R24qB8`) | Opus 5.5 | extra (`xhigh`) | FM.31: `-p7` (regresiones), `-p8` (parches de Mojave), medida de `blink_unittests` y relevo | ~2 | — | — | ~50 % | Sin datos de `get_session` |
+| 22-10 | COORDINACIÓN-11 (`…016LAphU`) | Opus 5.5 | alto | Cierre al archivar (cifra final; la de arriba era al dejar la nota) | — | 141 782 | 41,68 | 55 % | `get_session` al archivar; 110,9 M de lectura de caché |
+| 22-10 | MOTOR-16 (`…01R24qB8`) | Opus 5.5 | extra (`xhigh`) | Cierre al archivar (total de la sesión: `-p2`…`-p9` y relevo) | — | 142 404 | 28,81 | 49 % | `get_session` al archivar; 79,1 M de lectura de caché |
