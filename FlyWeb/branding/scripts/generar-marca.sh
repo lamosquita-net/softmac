@@ -13,6 +13,7 @@ r() { $R "$@"; print -r -- "  $4"; }   # r <svg> <ancho> <alto> <salida> [tinte]
 APP=$M/M1-01.svg; DEV=$M/O1-01.svg; DOC=$M/O2-02.svg
 SYM=$M/M2.svg; MONO=$M/M3_1.svg
 LOGO=$M/M4-fondo-claro.svg; LOGO_W=$M/M4-fondo-oscuro.svg; LOGO_S=$M/M4-fondo-claro-pequeño.svg
+LOGO_SW=$M/M4-fondo-oscuro-pequeño.svg
 
 # .icns con todos los tamaños de macOS (16–512 a 1x y 2x)
 icns() {
@@ -51,6 +52,11 @@ echo "== Logotipos con nombre (M4): 22 de alto con el pequeño, 48 y blanco con 
 A=$B/app/theme
 r $LOGO_S 77 22 $A/default_100_percent/brave/product_logo_name_22.png
 r $LOGO_S 154 44 $A/default_200_percent/brave/product_logo_name_22.png
+# Desde la base 128 (Brave 1.69): variante para fondo oscuro
+[ -f $A/default_100_percent/brave/product_logo_name_22_white.png ] && {
+  r $LOGO_SW 77 22 $A/default_100_percent/brave/product_logo_name_22_white.png
+  r $LOGO_SW 154 44 $A/default_200_percent/brave/product_logo_name_22_white.png
+}
 r $LOGO 164 48 $A/default_100_percent/brave/product_logo_name_48.png
 r $LOGO 328 96 $A/default_200_percent/brave/product_logo_name_48.png
 r $LOGO_W 214 64 $A/default_100_percent/brave/product_logo_white.png
