@@ -49,6 +49,10 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
 
 ## De fondo (para todos)
 
+- **Una sesión abierta con `create_session` (o en la app) arranca con el último esfuerzo que eligió Titín**, no con el
+  del texto de arranque: `create_session` no fija el esfuerzo. Comprobarlo con `get_session` y pedírselo a Titín si no cuadra
+  (22-10: IDENTIDAD-1 salió en extra y COORDINACIÓN-12 en medio).
+
 Resumidas en [`DIRECTIVAS.md`](DIRECTIVAS.md); aquí, el texto completo con su caso.
 
 - **Nada de versiones 1.N.x para arreglar lo que ya se está probando** (Titín, 16-10): un arreglo sobre algo que va en la

@@ -95,6 +95,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Una compilación a la vez en la 7,1** (HUMANO, 20-10): las de FlyWeb tienen prioridad. Tareas largas con `nohup` y
   registro; nunca `gclient sync -D` en `flyweb-build`; `update_patches` nunca para un solo parche (16-10). Fuentes:
   fila FM.31, [`CLAUDE.md`](../CLAUDE.md), [`coordinacion.md`](../FlyWeb/docs/coordinacion.md).
+- **Esfuerzo de Opus 5.5** (HUMANO, 22-10): su defecto es medio y Anthropic recomienda empezar ahí; extra y máximo solo con
+  mejora medida. MOTOR pasa de extra a alto desde MOTOR-18; IDENTIDAD-1 prueba medio; se decide el resto con CONSUMO.md.
+  Fuente: guía de migración a Claude Opus 5.5 (Anthropic), fila OR.2.
 - **Modelo por lo que cuesta un error, no por el volumen** (regla 9, 05/09-10); **medir el consumo con datos**
   (`cost_usd` y tokens de `get_session`, OR.2, 20-10): lo caro es el contexto largo releído, no el modelo. Fuentes:
   [`TAREAS.md`](TAREAS.md) regla 9 y fila OR.2.
