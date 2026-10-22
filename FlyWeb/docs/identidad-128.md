@@ -144,3 +144,19 @@ DuckDuckGo en normal y privada; instalar una extensión de la Chrome Web Store q
 - **Fuente de Chromium 128 sin descargarlo:** `raw.githubusercontent.com` da 429 y `googlesource` 403 desde la nube;
   `git fetch --filter=tree:0` del tag y `git show` por fichero funciona (no usar `git grep`: baja medio árbol).
 - **`m3.sh` sobre un fichero que Brave borró o movió lo copia entero de la 1.15:** comprobar el destino antes.
+
+## Estado y relevo (IDENTIDAD-1, 22-10 ~15:25)
+
+- **Hecho:** i1–i5 en brave-core; la que se compila es `nube/base-128-identidad-i5` dff94888fe (sobre p9). PR de softmac
+  fusionados: #472, #473, #475, #476, #478, #480.
+- **Esperando:** errores de compilación de LOCAL (en su fila o por COORDINACIÓN). Arreglos en `nube/base-128-identidad`
+  y punto fijo `-i5b`, `-i5c`…; si MOTOR mueve la base (p10…), fusionar la base nueva en `nube/base-128-identidad`
+  (sin reescribir) y dar un `-iN` nuevo.
+- **Prueba abierta de LOCAL/Titín:** restaurar sesión y reabrir ventana cerrada con pestañas fijadas compartidas; si
+  falla, portar el arreglo de FM.25 (`restored_browsers_` en `shared_pinned_tab_service.cc` de `flyweb`).
+- **No es de IDENTIDAD:** servidor de Shields (clase H: recursos 0.8 bajo `nilendadbigifkognoeoodppkjkgmppg`,
+  `list_catalog.json`, firma en bak), widget de búsqueda de la NTP (clase E), Sparkle y perfil (F).
+- **Herramientas que usé** (en el *scratchpad*, no en el repo; se rehacen en minutos): fusión de tres vías por fichero
+  (`git merge-file` con base `v1.57.64`, «nuestro» `flyweb` 9401833a, «suyo» la base de la 128), elegir bloques de
+  conflicto por lado, y llevar valores de constantes de un `.cc` de la 1.57 a la cabecera `inline constexpr` de la 1.69
+  (por nombre de constante, también `char16_t`). Clonado: `git init` + `git fetch --depth 1` de los sha concretos.
