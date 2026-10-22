@@ -20,7 +20,7 @@ entregas fijas en `nube/base-128-identidad-iN`. Esta página es también la nota
 | Bloque | Qué | Estado |
 |---|---|---|
 | **i1** | Cadenas (script), iconos y logotipos, D-DIN, identidad fija (BRANDING, perfil, llavero, carpeta de apps, versión 2.0.0, número de compilación y commit de origen), `flyweb://`, enlaces de ayuda, sin barra «macOS 11», sin `navigator.brave` | **entregado** `nube/base-128-identidad-i1` 0598ad79f8 |
-| i2 | Servicios: Wallet/Rewards/Ads/News/Talk/VPN/Leo fuera o apagados (`enable_ai_chat:false`), `braveEthereum`/`solana`, proxies de Safe Browsing (`network_constants.h`), componentes propios (IDs de Shields, Local Data, clave de editor), stats, P3A, referidos, variations, crash, captive portal, traducción, DevTools remoto, DoH, CoreLocation, webcompat, protocolo del actualizador | pendiente |
+| **i2** | Servicios: Wallet (sin `ethereum`/`solana`), Rewards, News, Talk, referidos fuera; Leo y VPN por argumentos (`enable_ai_chat:false`, `enable_brave_vpn:false`); proxies de Safe Browsing, componentes propios (Shields, Local Data, clave de editor), petición del actualizador recortada y sin pings, stats, P3A, variations, crash, captive portal, traducción, DevTools remoto, DoH apagado, WebGPU apagado, JIT permitido, webcompat | **entregado** `nube/base-128-identidad-i2` 2fbba345c9 |
 | i3 | Funciones: NTP y bienvenida propias, pestañas fijadas compartidas (la 1.69 trae su servicio y su ajuste: comparar), ajustes (Web3, P3A, sync sin QR), buscador DuckDuckGo, versión declarada a las extensiones, fuentes CJK, `brave_license_helper.py` | pendiente |
 
 ## i1: adaptaciones a la 1.69 (no son cambios nuevos, son la misma regla donde Brave movió o añadió)
@@ -33,8 +33,22 @@ entregas fijas en `nube/base-128-identidad-iN`. Esta página es también la nota
   `generar-marca.sh` lo genera en la Mac.
 - **D-DIN también como `Inter Variable`**: la NTP y otras páginas de la 1.69 cargan `inter.css` en vez de Poppins.
 - **Botón de Shields** a 18/36 px: la 1.69 usa `LOCATION_BAR_TRAILING_ICON_SIZE`, que Brave fija en 18: igual que la 1.15.
-- **`obsolete_system_mac.cc`**: el mismo reemplazo de `IsObsoleteNowOrSoon()`; sin verificar contra el fuente de la 128
-  (raw de GitHub limitado por el proxy): si no compila, mirar la firma allí.
+- **`obsolete_system_mac.cc`**: el mismo reemplazo de `IsObsoleteNowOrSoon()`; comprobado en Chromium 128.0.6613.138
+  (`namespace ObsoleteSystem`, `MacOSMajorVersion() < 11`). Fuente de Chromium sin descargarlo entero:
+  `git fetch --depth 1 --filter=tree:0 https://github.com/chromium/chromium refs/tags/128.0.6613.138` y `git show` por fichero.
+
+## i2: adaptaciones y pendientes
+
+- **Ya de serie en la 1.69, no se llevan:** ECH y clave poscuántica (Chromium 128 los trae encendidos; ML-KEM va por parche
+  de SEGURIDAD), CoreLocation (Brave usa `PlatformOnly`), Sync encendido. Las *client hints* son trabajo de MOTOR (p9).
+- **DoH:** Chromium 128 ya no lee la *feature* `DnsOverHttps`; se cambia el valor por defecto de la preferencia
+  (`chromium_src/chrome/browser/net/stub_resolver_config_reader.cc`).
+- **Leo:** `test/BUILD.gn` dependía de `ai_chat/core/browser` fuera de `enable_ai_chat` (el `assert` que vio LOCAL-7).
+  VPN: no he encontrado dependencias sin guarda, pero sin `gn` no está probado.
+- **Pendiente de servidor (clase H, fuera de este encargo):** el componente de recursos de Shields sigue con el ID de la 1.x;
+  `brave-sync-shields.md` §3.4 pide **ID y clave nuevos para la 2.0** (firma en bak) y el catálogo nuevo (`list_catalog.json`,
+  con las listas por defecto y de primera parte como entradas `hidden`). Hasta entonces, Shields en la 2.0 puede quedarse sin
+  listas por defecto.
 
 ## Qué comprobar en la compilación (LOCAL)
 
@@ -42,3 +56,9 @@ entregas fijas en `nube/base-128-identidad-iN`. Esta página es también la nota
 servicios y avisos legales, icono de la app y de las pestañas internas, `navigator.brave` indefinido, el llavero pide
 «FlyWeb Safe Storage», perfil en `~/Library/Application Support/LaMosquita/FlyWeb-Development`, sin barra de macOS 11,
 `flyweb://settings` y los enlaces «Más información» a `flyweb.lamosquita.net/ayuda`.
+
+i2: argumentos `enable_ai_chat:false`, `enable_brave_vpn:false`, `brave_p3a_enabled:false` (primero `gn gen`, barato);
+sin `brave_ai_chat_endpoint`, `brave_zero_ex_api_key` ni `enable_updater` (ya no existen en la 1.69, `brave-vs-flyweb.md` §5).
+`typeof window.ethereum` y `window.solana` = `undefined`; sin Rewards, News, Talk ni Leo en barra, NTP y barra lateral;
+`flyweb://settings/privacy`: DNS seguro apagado; `network-audit.py` en un arranque limpio: nada a `*.brave.com` salvo lo de
+componentes que aún no sirva ns2.
