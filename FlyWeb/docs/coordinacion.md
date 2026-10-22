@@ -7,6 +7,51 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 22-10: COORDINACIÓN-11 → COORDINACIÓN-12 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-11 (`session_016LAphUszobDrthjRLX51N9`, Opus 5.5 alto) se releva al 54 % de contexto (40,33 $, 135 266 de
+salida), en punto limpio: se espera la `-p7` de MOTOR-16. **Nunca aprobar la tarjeta de confianza.** Archivar sesiones
+locales desde la nube **sí funciona** (LOCAL-7, 22-10). PR [coord] de COORDINACIÓN: los fusionas tú con `expectedHeadSha`.
+
+**Decisiones de Titín (21–22-10), ya en el tablero:**
+- 1.15.2 **publicada** (appcast y web, 21-10). **1.15.3 cancelada**; la **base 128 (2.0.0) es el hito**, a fondo (DIRECTIVAS).
+- **GPU en Mojave, requisito de la 2.0.0**; WebGPU apagado (CVE-2026-5281) hasta su nivel. Maglev apagado hasta el 132
+  (tabla de la regla 19, RELEVO-SEGURIDAD).
+- **Códec por hardware** como la 1.15 (YouTube en H.264 donde VP9 no va por hardware), mejor por capacidad (VideoToolbox).
+- Máquinas de prueba nuevas en CLAUDE.md (MBA 2013, Mac mini y MBP 2012 con Catalina, A1398 con Monterey).
+- **OR.2:** crédito de API de 100 $ (caduca 06-11, sin tarjeta) para una sesión local; LOCAL-8 se abrió **por el plan**
+  (sin clave en el entorno): sigue sin usar. Siguiente intento: la próxima sesión local larga, por Terminal.
+- Titín quiere la 2.0 **lo antes posible**, pero COORDINACIÓN-11 le recomendó no forzarla esta semana (límite semanal al
+  57 %, reinicio 27-10 09:00). **Viernes 23-10: análisis de gasto por tarea** (CONSUMO.md) con Titín.
+
+**Estado de la 2.0.0 (FM.31) al relevo:**
+- brave-core: `nube/base-128` = Brave 1.69.168 puro (6918a99aa6). Rama de integración `nube/base-128-motor`; fijas
+  -p1…-p6. **-p6 02c9d0ca4b** = V8 13.1 + niveles 129–131 + anchor + flags + ML-KEM + seguridad S1–S4 + FS.23 + versión
+  declarada 131 (UA, Client Hints sin «Brave», platformVersion 11.7.10).
+- **Parches de Mojave** (GPU de la Fase 1 + 46 avisos de 10.15: Dawn, color_space_util, HDR, Bluetooth FIDO, LAContext,
+  descargas, geolocalización…): LOCAL-8 en brave-core `local/base-128-mojave` 88739f8c7f (`FlyWeb/mojave-128/*.diff`).
+  **MOTOR-16 los convierte en patches/ y hace -p7** con el códec por hardware y los tests de blink (41 *_test.cc.patch:
+  solo llegaron 2) y la regresión de togglePopover/WPT.
+- **Probado en la 6,1:** GPU todo acelerado, 0 caídas, WebGL 60 fps; MotionMark 570 (1.15.2: 412); html5test 579/588;
+  **claude.ai con Google funciona entero** (Titín, 22-10). Speedometer 3.0 = 3,99 (desarrollo, sin Maglev; falta la cifra de la 1.15.2).
+  WPT 695/699 iguales a CfT 131; JA4 idéntico. Vídeo 1080p (H.264): 1.15.2 12 % vs 128 18 % de un núcleo (repetir en Release).
+- **Pérdidas en Mojave:** EyeDropper y takePhoto apagados en 10.14 (la 128 quitó la alternativa de la 116).
+- **Riesgo:** Media Router (DIAL) con un cortafuegos que pregunta cuelga el hilo de E/S (Brave lo trae apagado).
+- **Pendiente:** -p7; vídeo y descargas/geolocalización en la 6,1 (LOCAL-8); 5,1 (Titín da usuario/host/puerto **solo en la
+  sesión de LOCAL**, a `temp/`, ignorado por git); **Fase 2** (marca, sin cartera/Rewards/VPN/Leo ni barra «macOS 11»,
+  `navigator.brave`/`braveEthereum`/`solana` fuera, servicios propios, Sparkle **y migración del perfil de la 1.15**);
+  Release; resto de máquinas; publicación. **El reparto de la Fase 2 se propone a Titín tras la -p7.**
+
+**Agentes:** MOTOR-16 `session_01R24qB8o9yirUqVC7H1ZVc6` (~20 %); SEGURIDAD-PORTES-5 `session_01H7fz6r296TWMGBgDfYzRgX`
+(~40 %, relevo antes de su próximo encargo); INVESTIGACIÓN-MOTOR-2 `session_014AE1uLN6wA98XeE3bdEbbV` (quieta);
+CONTENIDOS-WEB-2 `session_015tHV7uDdbAc6uZ1VwmgcqD` (quieta); LOCAL-8 `local_5c6ba9f8-…` (desde la nube
+`session_01S8dHbLwEmeH2dsnY88gBrz`, ~25 %). Vigía `session_01XD1RBYQ5oESHWKeqZWSG4e`: **cámbiale el destino** a ti.
+MOTOR-14/15, LOCAL-6/7, SEGURIDAD-PORTES-4 y COORDINACIÓN-10: archivadas.
+
+**Lecciones (en TRAMPAS):** la revisión en papel no sustituye a compilar y probar (FS.23 halló 7 arreglos perdidos; el
+«cuelgue de GPU» era LuLu). Mensajes cruzados: los agentes empujan a su PR después de que lo fusiones; mira la rama
+antes de fusionar y reaplica lo que llegue tarde.
+
 ## 21-10 (tarde): COORDINACIÓN-10 → COORDINACIÓN-11 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-10 (`session_01U31mzo4UdTUgf3gkhqxKmb`, Opus 5.5) deja la nota al 45 % de contexto, en punto limpio; se
