@@ -8,6 +8,15 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-5 → 6 (22-10-2026, escrita por COORDINACIÓN-12)
+
+SEGURIDAD-PORTES-5 (`session_01H7fz6r296TWMGBgDfYzRgX`) se archiva **parada y sin encargo**, al ~40 % (criterio de Titín,
+22-10: no se tiene una sesión abierta para esperar). Su estado al archivar, según su último mensaje: **S1–S4 entregados**
+(brave-core #1–#4, de registro) y **FS.23 hecha** (`seg/128-r17` a9d687a762), fundida por MOTOR-16 en `-p3`. Desde
+entonces la integración de la 128 va por `nube/base-128-motor-p12` ae5626ab1a (motor -p11 + identidad -i5; FM.31/FM.38).
+SEGURIDAD-PORTES-6 se abre con el siguiente encargo: probablemente la revisión de la regla 17 de lo nuevo de -p10…-p12
+y la clase E (servicios nuevos de Brave 1.58–1.69 y auditoría de red, `FlyWeb/docs/brave-servicios-nuevos.md`).
+
 ## SEGURIDAD-PORTES-4 → 5 (21-10-2026, ~19:00)
 
 SEGURIDAD-PORTES-4 (`session_011AG2q3vyZyeMypwfR1RDVy`, Opus 5.5, medio) → **-5**. Se releva al 45 % de contexto, antes de S1.

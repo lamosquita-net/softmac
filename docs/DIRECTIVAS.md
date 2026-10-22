@@ -95,6 +95,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Una compilación a la vez en la 7,1** (HUMANO, 20-10): las de FlyWeb tienen prioridad. Tareas largas con `nohup` y
   registro; nunca `gclient sync -D` en `flyweb-build`; `update_patches` nunca para un solo parche (16-10). Fuentes:
   fila FM.31, [`CLAUDE.md`](../CLAUDE.md), [`coordinacion.md`](../FlyWeb/docs/coordinacion.md).
+- **Subagentes para leer, relevo antes** (Titín, 22-10; a prueba en la próxima sesión que trabaje, se mide en CONSUMO.md):
+  lo caro es releer el contexto en cada turno (IDENTIDAD-1: ~30 de 38 $). En MOTOR, IDENTIDAD y parecidos: subagentes para
+  consultar la base de conocimiento, inventarios y triaje de errores o registros (devuelven conclusiones, no ficheros);
+  el porte y las decisiones de código, en la sesión principal; relevo hacia el 35–40 %. Fuente: guía de costes de la API
+  de Claude (subagentes para pasos autónomos con mucha lectura; no cuando quien decide necesita lo leído).
 - **No se tiene una sesión abierta para esperar** (Titín, 22-10): una sesión con mucho contexto gasta solo con despertarse.
   Si el siguiente paso depende de una compilación, se archiva con la nota de relevo al día y el relevo se abre cuando llegue
   el resultado (excepción a la regla 13). Antes de archivar, `list_triggers`. Fuente: fila OR.2.
