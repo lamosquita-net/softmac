@@ -21,6 +21,7 @@ entregas fijas en `nube/base-128-identidad-iN`. Esta página es también la nota
 |---|---|---|
 | **i1** | Cadenas (script), iconos y logotipos, D-DIN, identidad fija (BRANDING, perfil, llavero, carpeta de apps, versión 2.0.0, número de compilación y commit de origen), `flyweb://`, enlaces de ayuda, sin barra «macOS 11», sin `navigator.brave` | **entregado** `nube/base-128-identidad-i1` 0598ad79f8 |
 | **i2** | Servicios: Wallet (sin `ethereum`/`solana`), Rewards, News, Talk, referidos fuera; Leo y VPN por argumentos (`enable_ai_chat:false`, `enable_brave_vpn:false`); proxies de Safe Browsing, componentes propios (Shields, Local Data, clave de editor), petición del actualizador recortada y sin pings, stats, P3A, variations, crash, captive portal, traducción, DevTools remoto, DoH apagado, WebGPU apagado, JIT permitido, webcompat | **entregado** `nube/base-128-identidad-i2` 2fbba345c9 |
+| **i4** | Dominios de servicios de Brave inertes por defecto (`config.js`: `flyweb.invalid`) | **entregado** `nube/base-128-identidad-i4` 95b490bd34 (**la que hay que compilar**) |
 | **i3** | Funciones: NTP y bienvenida propias, pestañas fijadas compartidas encendidas, DuckDuckGo por defecto (también en privada), versión declarada a las extensiones (3 parches re-cortados sobre 128), créditos de D-DIN | **entregado** `nube/base-128-identidad-i3` 6cee51d215 |
 
 ## i1: adaptaciones a la 1.69 (no son cambios nuevos, son la misma regla donde Brave movió o añadió)
@@ -85,9 +86,13 @@ Las que hay que mirar una a una, porque la 2.0 las tiene en el código (`git gre
 | `account.brave.com`, `leo.bravesoftware.com`, `*.rewards.*`, `*.ads.*`, `*.wallet.brave.com`, `talk.brave.com` | Leo, Rewards, anuncios, monedero, Talk | Apagados; aparecer = fallo |
 | `search.brave.com` (y `imgs.`, `tiles.`, `cdn.`) | Brave Search | Solo si el usuario lo elige; el widget de búsqueda de la NTP de la 1.69 (clase E) puede pedir sugerencias: **mirar** |
 
-**Argumento recomendado (barato y de cinturón):** `brave_services_production_domain:flyweb.invalid` (y lo mismo en
-`_staging_` y `_dev_`): en la 1.69 Leo, News y P3A construyen sus hosts con `brave_domains::GetServicesDomain()`;
-aunque estén apagados, así ningún host derivado resuelve.
+**Dominios de servicios (i4, aprobado por COORDINACIÓN-12):** `brave_services_{production,staging,dev}_domain` valen
+`flyweb.invalid` por defecto (`build/commands/lib/config.js`). En la 1.69 solo Leo, News y P3A construyen sus hosts con
+`brave_domains::GetServicesDomain()`; ningún servicio propio (componentes, sync, proxy, actualizaciones) los usa.
+
+**Cerrados tras i3:** `dict.brave.com` solo está en la lista de permitidos de la auditoría de Brave (igual en la 1.57/1.15);
+ningún código lo pide. El widget de búsqueda de la NTP (`kBraveNtpSearchWidget`, encendido) es **nuevo de la 1.69**: va a
+la clase E.
 
 ## Shields: lo que falta para la 2.0 (clase H; lo lleva COORDINACIÓN con Titín y SERVIDOR-LOCAL)
 
@@ -129,3 +134,12 @@ componentes que aún no sirva ns2.
 i3: NTP con fondos y mosca de FlyWeb y crédito propio, sin velo oscuro; bienvenida con estilo FlyWeb y sin el paso «Ayuda a
 mejorar»; pestaña fijada en una ventana aparece en las demás (y restaurar sesión no la duplica); buscador por defecto
 DuckDuckGo en normal y privada; instalar una extensión de la Chrome Web Store que pida `minimum_chrome_version` 129–131.
+
+## Trampas (para el relevo)
+
+- **Un PR por entrega, rama nueva desde `main`:** COORDINACIÓN fusiona enseguida. Tres veces se empujó a
+  `claude/base-128-identidad` con su PR (#472) ya cerrado y hubo que reaplicarlo a mano (#473, #475). Antes de empujar,
+  mirar si el PR de la rama sigue abierto; si no, rama nueva desde `main` y PR nuevo.
+- **Fuente de Chromium 128 sin descargarlo:** `raw.githubusercontent.com` da 429 y `googlesource` 403 desde la nube;
+  `git fetch --filter=tree:0` del tag y `git show` por fichero funciona (no usar `git grep`: baja medio árbol).
+- **`m3.sh` sobre un fichero que Brave borró o movió lo copia entero de la 1.15:** comprobar el destino antes.
