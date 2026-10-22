@@ -70,3 +70,4 @@ contexto al cerrar · notas.
 | 21-10 | MOTOR-16 (`…01R24qB8`) | Opus 5.5 | extra (`xhigh`) | FM.31: merge de FS.23 (`seg/128-r17`) y rama fija `-p3` de4d1b24b1 | ~0,2 | — | — | ~17 % | Sin datos de `get_session` |
 | 21-10 | INVESTIGACIÓN-MOTOR-2 (`…014AE1uL`) | Opus 5.5 | medio | FM.31 Fase 1: hipótesis del cuelgue navegador↔GPU de la 128 (`cuelgue-gpu-128.md`) | ~0,15 | — | — | — | `usage` no se refresca dentro del turno; cifra real por mensaje a COORDINACIÓN |
 | 21→22-10 | LOCAL-7 (`local_f2edb095`) | Opus 5.5 | alto | 128 Fase 1: GPU en la 6,1 (Dawn, color_space_util, HDR; cuelgue = LuLu/DIAL), vídeo 1080p, Brave -p3 diagnóstico (2 errores) | ~6 | — | — | 49 % | Local: sin `cost_usd`; límite semanal de todos los modelos 42 → 50 % |
+| 22-10 | MOTOR-16 (`…01R24qB8`) | Opus 5.5 | extra (`xhigh`) | FM.31: arreglos de la Static de `-p3` y rama fija `-p4` 70ebebd097 (compila) | ~0,4 | — | — | ~20 % | Sin datos de `get_session` |
