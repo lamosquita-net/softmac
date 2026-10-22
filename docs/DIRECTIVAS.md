@@ -32,6 +32,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   lo que publiquen de privacidad y solo se porta lo importante, con consenso. De la 1.57 a la 1.69 casi todo era ya
   resuelto por nosotros o servicios suyos que no queremos (Leo). Fuente: fila FM.37.
 - **Niveles 132+ no empiezan hasta publicar la 2.0.0** (HUMANO, 22-10): nada en paralelo, por el gasto semanal.
+- **Solo se incorpora lo que aporta funcionalidad real** (Titín, 22-10): lo que sube el coste de desarrollo sin aportar algo
+  interesante no entra (como Leo: hay extensiones para cada IA y es un agujero de privacidad). Caso abierto: el widget de
+  búsqueda de la NTP de la 1.69 (apagado en la 2.0.0; estudiar si se enlaza a DuckDuckGo con icono propio o no se incorpora).
 - **Apagar, no borrar, mientras fusionemos Brave** (HUMANO, 20-10): Leo y servicios parecidos se apagan (`enable_ai_chat:false`
   y comprobaciones tras cada fusión); se borran del código cuando tengamos el fork propio, porque borrar encarece cada
   fusión. Asistentes de IA, como extensión. Fuente: fila FM.31.
