@@ -19,6 +19,8 @@ viene por **Cartero-Local FlyWeb**, buzón `AAAAMMDD-HHMM-*.md`).
    aún dice Chrome/128: la versión declarada (131) va con la capa de FlyWeb, que -p4 no lleva. **Falta toda la tanda de pruebas** de la
    orden de COORDINACIÓN-11 (`blink_unittests`, motor-129…131 y WPT, JA4 y `UseMLKEM`, GPU/caídas/vídeo en la 6,1). Para las pruebas,
    sin Finch de pruebas ni Media Router (`--disable-field-trial-config --disable-features=MediaRouter,DialMediaRouteProvider`).
+   **COORDINACIÓN-11 (22-10 06:15):** la versión declarada (Chrome/131) la lleva MOTOR-16 a `-p5` (es motor). La tanda va sobre `-p5`
+   cuando MOTOR-16 lo fije; si tarda, empezar por `blink_unittests` y ML-KEM sobre `-p4`, que no dependen de la versión.
 1. **`flyweb` = 1.15.2 publicada** (9401833a66, árbol de `nube/motor-131-anchor-f16` af0328adeb; FM.28). Nada pendiente ahí.
 2. **Brave 1.69 / base 128 (FM.31), en `~/proyectos/brave-128/brave-browser`** (aparte de `flyweb-build` y de `chromium-128`):
    - Última compilación: Static sin PCH de `nube/base-128-motor-p3` de4d1b24b1, **diagnóstico** (`DIAG=1`: el hunk de
