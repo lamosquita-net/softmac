@@ -166,3 +166,24 @@ sudo -u flywebfirma sh /opt/flyweb-firma/generar-claves.sh /var/lib/flyweb-firma
 ```
 
 Hasta que la clave pública esté en `claves-publicas.json`, el CI no construye este componente y nada cambia en bak.
+
+## Actualizar: clave de recursos de la 2.0 (FM.38, 22-10)
+
+La 2.0 (base 128, adblock-rust 0.8) necesita **ID y clave nuevos** para el componente de recursos de Shields
+(`brave-sync-shields.md` §3.4): el ID antiguo queda congelado para la 1.x. Solo cambia `generar-claves.sh` (añade
+`recursos-20`). **No cambia nada más todavía**: ni `firmar.mjs`, ni el servicio, ni ns2. El empaquetado y la firma de ese
+componente (y `list_catalog.json`) llegan después, en otro PR.
+
+```sh
+C=<commit>; U=https://raw.githubusercontent.com/lamosquita-net/softmac/$C/FlyWeb/servidor/componentes
+mkdir -p ~/flyweb-firma-src && cd ~/flyweb-firma-src
+curl -fsSLo generar-claves.sh "$U/generar-claves.sh"
+sha256sum generar-claves.sh     # compárala con la del PR
+sudo install -m 0644 generar-claves.sh /opt/flyweb-firma/
+
+# Crea SOLO la clave que falta (recursos-20); las demás dicen «existe». Muestra solo datos PÚBLICOS: pásaselos a COORDINACIÓN.
+sudo -u flywebfirma sh /opt/flyweb-firma/generar-claves.sh /var/lib/flyweb-firma/claves /opt/flyweb-firma/listas.json
+```
+
+Después: copia de seguridad del directorio de claves por tu canal habitual (hay una clave nueva). Hasta que la clave pública
+esté en `claves-publicas.json` y exista el empaquetado, nada cambia en bak.
