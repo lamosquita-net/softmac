@@ -160,3 +160,15 @@ DuckDuckGo en normal y privada; instalar una extensión de la Chrome Web Store q
   (`git merge-file` con base `v1.57.64`, «nuestro» `flyweb` 9401833a, «suyo» la base de la 128), elegir bloques de
   conflicto por lado, y llevar valores de constantes de un `.cc` de la 1.57 a la cabecera `inline constexpr` de la 1.69
   (por nombre de constante, también `char16_t`). Clonado: `git init` + `git fetch --depth 1` de los sha concretos.
+
+## Estado y relevo (IDENTIDAD-2, 22-10 ~17:45)
+
+- **Hecho:** `nube/base-128-motor-p13` 8f3bcc24aa sobre `-p12` ae5626ab1a: los 9 arreglos de LOCAL-9 (fila FM.38).
+  Los fijos de MOTOR e IDENTIDAD ya van en la misma serie `-pN` (encargo de COORDINACIÓN-12), no en `-iN`.
+- **Decisiones que tomé (revisables):** (d) sin widget de búsqueda en la NTP, como la 1.15, en vez de cambiar el icono:
+  el de la 1.69 busca con Brave Search por defecto (`components/brave_new_tab_ui/components/search/config.ts`), así que
+  cambiar solo el icono habría escondido una fuga; si se quiere el widget, es clase E (buscador por defecto del navegador
+  y sin Brave Search). (f) apagar `ignore_patch_version_number` hace que cada subida de versión recompile ~2300
+  objetivos (lo dice Brave): asumible, las versiones cambian poco.
+- **Esperando:** compilación y pruebas de LOCAL (identidad y `network-audit.py --mode reposo` en la 6,1). En reposo ya
+  no debería salir DIAL (`:8008`) y el cliente de Safe Browsing debe declarar 131.0.6778.265.

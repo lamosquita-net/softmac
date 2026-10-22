@@ -88,3 +88,4 @@ contexto al cerrar · notas.
 | 22-10 | INVESTIGACIÓN-MOTOR-2 (`…014AE1uL`) | Opus 5.5 | medio | Total al archivar (hipótesis del cuelgue de GPU, #451) | — | 83 083 | 14,24 | 35 % | `get_session` al archivar; 29,9 M de lectura de caché |
 | 22-10 | CONTENIDOS-WEB-2 (`…015tHV7u`) | Sonnet 5.5 | medio | Total al archivar (web de la 1.15.x, desde el 14-10) | — | 44 642 | 12,79 | 38 % | `get_session` al archivar; 32,9 M de lectura de caché |
 | 22-10 | LOCAL-8 (`local_5c6ba9f8`) | Opus 5.5 | alto | 128: -p9 sin diffs (fiel), -p10 blink_unittests (26 143 bien), 2 WPT = ANGLE OpenGL, -p12 lanzada; relevo | ~4 | 156 673 | — (plan) | 45 % | `get_session` al archivar; 62,6 M de lectura de caché; semanal de la cuenta 56 → 66 % en su turno (13:45–17:50, no solo suyo) |
+| 22-10 | IDENTIDAD-2 (`…01LDQZYw`) | Opus 5.5 | medio | FM.38: `-p13` (9 arreglos de LOCAL-9 sobre -p12) | ~0,3 | — | — | ~10 % | `get_session` no da cifras todavía; COORDINACIÓN las toma al archivar |
