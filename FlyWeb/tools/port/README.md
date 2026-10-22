@@ -337,6 +337,8 @@ flags) y `brave-core` en `nube/base-128-motor`. Los parches son diff `--full-ind
   y muchos commits del 129–131 dependen de otros de agosto (`git log 03c1799e6f9..<commit> -- <fichero>`).
 - `fwdiff.sh`, `fwset.sh`, `fwapply.sh` — diff equivalente de un commit de FlyWeb sobre la 116, y aplicarlo.
 - `f16.sh <fichero>` — el fichero tal como queda en la 1.15.2 (116 + parche de `nube/motor-131-anchor-f16`).
+- `ported.py <test>…` — commits 128→131 que tocan cada test y si su código ya está en la rama (P/p/-/?), para
+  portar los hunks de test que faltan (blink_unittests de la base 128). Bajar antes los blobs (trampa en `relevo-motor.md`).
 - `pchchk.py <lista>` — repaso de includes que tapa el PCH (TRAMPAS, MOTOR) sobre `w-all` (montar con los ficheros de
   todos los `.patch` de la rama y `git apply` de cada uno): símbolos de lo adaptado a mano que solo trae `document.h` +
   `layout_object.h`. Con `--depth` de la historia hasta la 131. Lo que da, mirarlo: casi todo es declaración adelantada.
