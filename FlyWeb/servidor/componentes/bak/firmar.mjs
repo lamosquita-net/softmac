@@ -3,10 +3,11 @@
 //
 // 1. Descarga indice.json y los zips sin firmar que construye GitHub Actions (release «shields» del repo).
 // 2. Comprueba cada zip: SHA-256 del índice; solo manifest.json y sus ficheros de datos; la clave del manifest es la
-//    NUESTRA; la versión es mayor que la ya firmada (nada de volver atrás); en el catálogo, cada lista apunta a
-//    nuestro ID y nuestra clave; una lista no pierde más de la mitad de sus reglas.
-// 3. resources.json (el único componente con JavaScript) solo se firma si su SHA-256 está en el fichero de
-//    aprobados, que mantiene el HUMANO. Si no, no se firma y se avisa con el hash.
+//    NUESTRA; la versión es mayor que la ya firmada (nada de volver atrás); en el catálogo (regional_catalog.json
+//    para la 1.x y list_catalog.json para la 2.0), cada lista apunta a nuestro ID y nuestra clave, sin repetir
+//    componente y con los permisos de uBlock Origin como máximo; una lista no pierde más de la mitad de sus reglas.
+// 3. resources.json (el único componente con JavaScript; el de la 1.x «recursos» y el de la 2.0 «recursos-20») solo se
+//    firma si su SHA-256 está en el fichero de aprobados, que mantiene el HUMANO. Si no, no se firma y se avisa con el hash.
 // 4. Firma (CRX3 + prueba de publicador), deja <salida>/release/<id>/extension_<versión>.crx, catalog.json
 //    (go-update) y _estado.json (público), y lo sube a ns2 con rsync (clave restringida a ese directorio).
 // 5. Con --google, copia además los componentes de Google sin volver a firmarlos (google.mjs) y los añade al catálogo.
@@ -48,8 +49,10 @@ const contarReglas = (t) => t.split('\n').filter((l) => l && !l.startsWith('!') 
 // Datos locales: lo que lee la 1.57 de la carpeta 1/. Greaselion debe ir vacío: bak nunca firma scripts inyectables.
 const DATOS_LOCALES = ['1/debounce.json', '1/clean-urls.json', '1/request-otr.json', '1/https-upgrade-exceptions-list.txt',
   '1/localhost-permission-allow-list.txt', '1/Greaselion.json']
-const FICHEROS = (n) => n === 'recursos' ? ['resources.json'] : n === 'catalogo' ? ['regional_catalog.json'] : n === 'datos-locales' ? DATOS_LOCALES : ['list.txt']
-const NOMBRE = /^(defecto|primera-parte|recursos|catalogo|datos-locales|lista-[A-Za-z0-9-]{1,64})$/
+// catalogo: un solo componente con el catálogo de la 1.x (regional_catalog.json) y el de la 2.0 (list_catalog.json), siempre los dos.
+// recursos-20: los recursos de la 2.0 (adblock-rust 0.8), con su propio ID y clave; 'recursos' queda congelado para la 1.x.
+const FICHEROS = (n) => n === 'recursos' || n === 'recursos-20' ? ['resources.json'] : n === 'catalogo' ? ['regional_catalog.json', 'list_catalog.json'] : n === 'datos-locales' ? DATOS_LOCALES : ['list.txt']
+const NOMBRE = /^(defecto|primera-parte|recursos|recursos-20|catalogo|datos-locales|lista-[A-Za-z0-9-]{1,64})$/
 
 const ESTADO = path.join(SALIDA, 'firmado.json')
 const estado = fs.existsSync(ESTADO) ? JSON.parse(fs.readFileSync(ESTADO, 'utf8')) : {}
@@ -61,6 +64,31 @@ const indice = JSON.parse(await traer('indice.json'))
 // El catálogo se comprueba contra nuestras claves de lista: primero se leen todas las que tenemos.
 const nuestras = Object.fromEntries(fs.readdirSync(CLAVES).filter((f) => /^lista-.*\.pem$/.test(f))
   .map((f) => { const der = spki(fs.readFileSync(path.join(CLAVES, f), 'utf8')); return [f.slice(6, -4), { id: idDe(der), b64: der.toString('base64') }] }))
+
+// list_catalog.json (2.0): cada entrada usa NUESTRO ID y NUESTRA clave (la de su lista regional, o la de la lista por
+// defecto o la de primera parte, que tienen ID propio), sin repetir componente, y solo con los permisos de uBlock Origin
+// (bit 0): bak nunca firma un catálogo que dé más permisos a una lista.
+const propias = ['defecto', 'primera-parte'].filter((n) => fs.existsSync(path.join(CLAVES, `${n}.pem`)))
+  .map((n) => { const der = spki(fs.readFileSync(path.join(CLAVES, `${n}.pem`), 'utf8')); return { id: idDe(der), b64: der.toString('base64') } })
+const validarCatalogo20 = (catalogo) => {
+  if (!Array.isArray(catalogo) || !catalogo.length) throw new Error('list_catalog.json vacío o no es una lista')
+  const vistos = new Set()
+  for (const e of catalogo) {
+    const comp = e?.list_text_component
+    const k = nuestras[e?.uuid] ?? propias.find((p) => p.id === comp?.component_id)
+    if (typeof e?.uuid !== 'string' || !k || comp?.component_id !== k.id || comp?.base64_public_key !== k.b64) {
+      throw new Error(`la lista ${e?.uuid} del list_catalog no usa nuestra clave`)
+    }
+    if (vistos.has(k.id)) throw new Error(`el componente ${k.id} sale dos veces en list_catalog`)
+    vistos.add(k.id)
+    if (!Number.isInteger(e.permission_mask) || e.permission_mask < 0 || e.permission_mask > 1) throw new Error(`${e.uuid}: permission_mask no válido`)
+    for (const b of ['hidden', 'default_enabled', 'first_party_protections']) if (typeof e[b] !== 'boolean') throw new Error(`${e.uuid}: ${b} no es booleano`)
+    for (const t of ['title', 'desc', 'url', 'support_url']) if (typeof e[t] !== 'string') throw new Error(`${e.uuid}: ${t} no es texto`)
+    for (const u of [e.url, e.support_url]) if (u && !/^https:\/\//.test(u)) throw new Error(`${e.uuid}: enlace que no es https`)
+    if (!Array.isArray(e.langs) || !e.langs.every((l) => typeof l === 'string')) throw new Error(`${e.uuid}: langs no válido`)
+    if (e.platforms !== undefined && !(Array.isArray(e.platforms) && e.platforms.every((l) => typeof l === 'string'))) throw new Error(`${e.uuid}: platforms no válido`)
+  }
+}
 
 for (const c of indice.componentes ?? []) {
   try {
@@ -81,16 +109,17 @@ for (const c of indice.componentes ?? []) {
     if (prev && prev.contenido === contenido) { console.log(`= ${c.nombre.padEnd(46)} sin cambios (${prev.version})`); continue }
     if (prev && !mayor(m.version, prev.version)) throw new Error(`versión ${m.version} no posterior a la firmada (${prev.version})`)
     let reglas
-    if (c.nombre === 'recursos') {
+    if (c.nombre === 'recursos' || c.nombre === 'recursos-20') {
       JSON.parse(datos)
       if (!aprobados.has(contenido)) { pendientes.push(contenido); throw new Error(`recursos nuevos SIN APROBAR: ${contenido}`) }
     } else if (c.nombre === 'catalogo') {
-      for (const e of JSON.parse(datos)) {
+      for (const e of JSON.parse(ficheros.get('regional_catalog.json'))) {
         const k = nuestras[e.uuid]
         if (!k || e.list_text_component?.component_id !== k.id || e.list_text_component?.base64_public_key !== k.b64) {
           throw new Error(`la lista ${e.uuid} del catálogo no usa nuestra clave`)
         }
       }
+      validarCatalogo20(JSON.parse(ficheros.get('list_catalog.json')))
     } else if (c.nombre === 'datos-locales') {
       reglas = 0
       for (const f of DATOS_LOCALES) {

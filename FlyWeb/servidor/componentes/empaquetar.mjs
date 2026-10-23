@@ -6,7 +6,9 @@
 //   - la lista de primera parte (list.txt, "primera_parte"): el componente kAdBlockExceptionComponent de la 1.57,
 //     que va a un motor aparte y se aplica también a las peticiones del propio sitio;
 //   - los recursos (resources.json), con recursos-157.mjs y el uBlock Origin fijado en fijado.json;
-//   - el catálogo (regional_catalog.json): las entradas de "regionales", con NUESTROS ID y claves públicas;
+//   - los recursos de la 2.0 (resources.json, "recursos-20"), con recursos-20.mjs (adblock-rust 0.8, ADBLOCK_RS_20);
+//   - el catálogo, un solo componente con dos ficheros: regional_catalog.json (1.x: las entradas de "regionales") y
+//     list_catalog.json (2.0: además las listas por defecto y de primera parte, ocultas), con NUESTROS ID y claves públicas;
 //   - cada lista regional (list.txt);
 //   - los datos locales (kLocalDataFilesComponentId de la 1.57): debounce, limpieza de URL, Request-OTR, excepciones de
 //     HTTPS por defecto y permiso de localhost, de brave/adblock-lists, en la carpeta 1/; Greaselion vacío (no se
@@ -27,6 +29,8 @@ import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { generarRecursos } from './recursos-157.mjs'
+import { generarRecursos20 } from './recursos-20.mjs'
+import { construirCatalogoV2 } from './catalogo-20.mjs'
 import { crearZip } from './bak/zip.mjs'
 
 const require = createRequire(import.meta.url)
@@ -161,6 +165,15 @@ await intentar('recursos', async () => {
   const { resources } = await generarRecursos(UBLOCK)
   componentes.push({ nombre: 'recursos', titulo: 'FlyWeb Shields: recursos', fichero: 'resources.json', datos: JSON.stringify(resources) })
 })
+// Recursos de la 2.0 (adblock-rust 0.8, ID y clave propios; el 'recursos' de arriba queda congelado para la 1.x).
+// Solo si claves-publicas.json ya tiene su clave y hay motor 0.8 (ADBLOCK_RS_20).
+const conRecursos20 = Boolean(publicas['recursos-20'])
+if (conRecursos20) {
+  await intentar('recursos-20', async () => {
+    const { resources } = await generarRecursos20(UBLOCK)
+    componentes.push({ nombre: 'recursos-20', titulo: 'FlyWeb Shields: recursos 2.0', fichero: 'resources.json', datos: JSON.stringify(resources) })
+  })
+} else console.log('recursos-20: sin clave pública todavía; no se construye')
 const catalogo = []
 for (const uuid of listas.regionales) {
   await intentar(`lista-${uuid}`, async () => {
@@ -174,9 +187,12 @@ for (const uuid of listas.regionales) {
   })
 }
 // Si falla alguna lista, no sale catálogo: bak conserva el anterior y la lista no desaparece de los navegadores.
+// Un solo componente (ID y clave del catálogo) con los dos ficheros: regional_catalog.json (1.x) y list_catalog.json (2.0).
 await intentar('catalogo', async () => {
   if (catalogo.length !== listas.regionales.length) throw new Error('falta alguna lista regional; no se genera catálogo')
-  componentes.push({ nombre: 'catalogo', titulo: 'FlyWeb Shields: catálogo de listas', fichero: 'regional_catalog.json', datos: JSON.stringify(catalogo) })
+  const catalogoV2 = construirCatalogoV2(listas, buscar, clave)
+  componentes.push({ nombre: 'catalogo', titulo: 'FlyWeb Shields: catálogo de listas',
+    ficheros: [{ nombre: 'regional_catalog.json', datos: JSON.stringify(catalogo) }, { nombre: 'list_catalog.json', datos: JSON.stringify(catalogoV2) }] })
 })
 
 // Datos locales. Formatos comprobados con los lectores de la 1.57 (debounce_rule.cc, url_sanitizer_service.cc,
@@ -206,8 +222,8 @@ if (conDatosLocales) {
 
 fs.mkdirSync(SALIDA, { recursive: true })
 // esperados: lo que pide listas.json; bak deja de servir lo que ya no esté (un fallo de hoy no lo quita).
-const esperados = ['defecto', 'primera-parte', 'recursos', ...listas.regionales.map((u) => `lista-${u}`), 'catalogo',
-  ...(conDatosLocales ? ['datos-locales'] : [])]
+const esperados = ['defecto', 'primera-parte', 'recursos', ...(conRecursos20 ? ['recursos-20'] : []),
+  ...listas.regionales.map((u) => `lista-${u}`), 'catalogo', ...(conDatosLocales ? ['datos-locales'] : [])]
 const indice = { generado: ahora.toISOString(), version: VERSION, ublock: fijado.ublock.tag, esperados, componentes: [] }
 for (const c of componentes) {
   await intentar(c.nombre, async () => {

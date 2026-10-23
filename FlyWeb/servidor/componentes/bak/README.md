@@ -187,3 +187,34 @@ sudo -u flywebfirma sh /opt/flyweb-firma/generar-claves.sh /var/lib/flyweb-firma
 
 Después: copia de seguridad del directorio de claves por tu canal habitual (hay una clave nueva). Hasta que la clave pública
 esté en `claves-publicas.json` y exista el empaquetado, nada cambia en bak.
+
+## Actualizar: recursos y catálogo de la 2.0 (FM.39 punto 1)
+
+Solo cambia `firmar.mjs`: firma el componente nuevo `recursos-20` (clave de FM.38; sus recursos, como los de la 1.x,
+**no se firman hasta que apruebes su hash**) y exige que `catalogo` lleve los dos ficheros, `regional_catalog.json` (1.x) y
+`list_catalog.json` (2.0), con las comprobaciones de `list_catalog` (ID y clave nuestros, sin repetir componente,
+`permission_mask` 0 o 1). `zip.mjs`, `crx3.mjs`, `google.mjs`, las claves, el servicio y ns2 no cambian. El CI ya publica
+`recursos-20.zip` y el catálogo de dos ficheros en el release «shields» cuando se fusiona el PR; **hasta que instales este
+`firmar.mjs`**, bak sigue firmando lo de la 1.x como siempre y esas dos cosas salen en `fallos` (sin efecto en producción).
+
+```sh
+C=<commit>; U=https://raw.githubusercontent.com/lamosquita-net/softmac/$C/FlyWeb/servidor/componentes
+mkdir -p ~/flyweb-firma-src && cd ~/flyweb-firma-src
+curl -fsSLo firmar.mjs "$U/bak/firmar.mjs"
+sha256sum firmar.mjs            # compárala con la del PR
+sudo install -m 0644 firmar.mjs /opt/flyweb-firma/
+sudo -u flywebfirma node /opt/flyweb-firma/firmar.mjs --help 2>&1 | head -2   # solo comprueba que carga (imprime el uso)
+sudo systemctl start flyweb-firma.service; sudo journalctl -u flyweb-firma -n 30
+```
+
+En el journal saldrá `recursos nuevos SIN APROBAR: <hash>` para `recursos-20` (y `_estado.json` lo mostrará en
+`recursos_pendientes`). Si el hash coincide con el que imprime el CI de ese commit («content hash to approve», paso
+«2.0 components» del trabajo `build`), apruébalo:
+
+```sh
+echo "<hash>  # recursos 2.0 (uBlock Origin 1.75.0, adblock-rust 0.8)" | sudo tee -a /etc/flyweb-firma/recursos-aprobados
+sudo systemctl start flyweb-firma.service; sudo journalctl -u flyweb-firma -n 30     # «+ recursos-20» y «+ catalogo»
+```
+
+Comprobación: `https://components.flyweb.lamosquita.net/_estado.json` lista `recursos-20` (ID
+`nilendadbigifkognoeoodppkjkgmppg`) entre los componentes y `recursos_pendientes` queda vacío.

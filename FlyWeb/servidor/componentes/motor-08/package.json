@@ -1,0 +1,8 @@
+{
+  "name": "flyweb-motor-08",
+  "private": true,
+  "description": "adblock-rs 0.8.11: el motor de FlyWeb 2.0 (Brave 1.69), para validar los recursos de la 2.0 en el CI",
+  "dependencies": {
+    "adblock-rs": "0.8.11"
+  }
+}

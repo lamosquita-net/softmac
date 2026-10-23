@@ -55,6 +55,10 @@ jobs:
         working-directory: FlyWeb/servidor/componentes/motor-07
         run: npm ci --no-audit --no-fund
 
+      - name: adblock-rs 0.8.x (FlyWeb 2.0 engine, locked)
+        working-directory: FlyWeb/servidor/componentes/motor-08
+        run: npm ci --no-audit --no-fund
+
       - name: Public keys
         id: keys
         run: |
@@ -71,6 +75,7 @@ jobs:
       - name: Build
         env:
           ADBLOCK_RS: ${{ github.workspace }}/FlyWeb/servidor/componentes/motor-07/node_modules/adblock-rs
+          ADBLOCK_RS_20: ${{ github.workspace }}/FlyWeb/servidor/componentes/motor-08/node_modules/adblock-rs
         run: |
           set -eu
           # A component that fails today (a list source down) must not block the others: bak keeps its last
@@ -85,6 +90,18 @@ jobs:
         run: |
           node pruebas/firma-bak.mjs
           node pruebas/google-bak.mjs
+          node pruebas/recursos-catalogo-20.mjs
+
+      - name: 2.0 components (resources with adblock-rs 0.8.x, catalog)
+        env:
+          ADBLOCK_RS_20: ${{ github.workspace }}/FlyWeb/servidor/componentes/motor-08/node_modules/adblock-rs
+        run: |
+          set -eu
+          test -f "$RUNNER_TEMP/salida/recursos-20.zip" || { echo "::error::recursos-20.zip was not built"; exit 1; }
+          node pruebas/prueba-motor-08.mjs "$RUNNER_TEMP/salida/recursos-20.zip"
+          node pruebas/catalogo-construido.mjs "$RUNNER_TEMP/salida"
+          # Content hash bak asks the HUMAN to approve (the same one shown in _estado.json as recursos_pendientes).
+          jq -r '.componentes[] | select(.nombre == "recursos-20") | "recursos-20 content hash to approve: \(.contenido)"' "$RUNNER_TEMP/salida/indice.json"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

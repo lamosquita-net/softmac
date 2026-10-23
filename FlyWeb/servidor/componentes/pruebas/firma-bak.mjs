@@ -19,26 +19,35 @@ let fallos = 0
 try {
   fs.mkdirSync(CLAVES, { mode: 0o700 }); fs.mkdirSync(SALIDA)
   const pem = {}
-  for (const n of ['publicador', 'defecto', 'recursos', 'catalogo', 'lista-ES', 'datos-locales', 'ajena']) {
+  for (const n of ['publicador', 'defecto', 'primera-parte', 'recursos', 'recursos-20', 'catalogo', 'lista-ES', 'datos-locales', 'ajena']) {
     pem[n] = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ type: 'pkcs8', format: 'pem' })
     if (n !== 'ajena') fs.writeFileSync(path.join(CLAVES, `${n}.pem`), pem[n], { mode: 0o600 })
   }
   const b64 = (n) => spki(pem[n]).toString('base64')
   const recursos1 = '[{"name":"noop.js","aliases":[],"kind":{"mime":"application/javascript"},"content":""}]'
-  fs.writeFileSync(APROBADOS, `# aprobados\n${hex(recursos1)}  # versión de prueba\n`)
+  // Recursos de la 2.0 (adblock-rust 0.8): con dependencies, sin envolver.
+  const recursos2 = '[{"name":"noop.js","aliases":[],"kind":{"mime":"application/javascript"},"content":"","dependencies":[]},{"name":"a.js","aliases":["b.js"],"kind":{"mime":"application/javascript"},"content":"","dependencies":["noop.js"]}]'
+  fs.writeFileSync(APROBADOS, `# aprobados\n${hex(recursos1)}  # versión de prueba\n${hex(recursos2)}  # recursos 2.0 de prueba\n`)
 
   // Fabrica un origen como el de GitHub Actions. cambios: { nombre: { datos, clave, extra, version, shaFalso } }
   const lista = (n) => Array.from({ length: n }, (_, i) => `||anuncio${i}.example^`).join('\n')
+  const comp = (n) => ({ component_id: id(spki(pem[n])), base64_public_key: b64(n) })
+  const entrada = (uuid, n, extra = {}) => ({ uuid, url: 'https://example.com/lista.txt', title: uuid, langs: [], support_url: 'https://example.com/', desc: '',
+    hidden: false, default_enabled: false, first_party_protections: false, permission_mask: 1, list_text_component: comp(n), ...extra })
+  const listCatalog = (cambio = (x) => x) => JSON.stringify(cambio([entrada('default', 'defecto', { hidden: true, default_enabled: true, first_party_protections: true }),
+    entrada('FP', 'primera-parte', { hidden: true, default_enabled: true }), entrada('ES', 'lista-ES', { langs: ['es'], platforms: ['MAC'] })]))
+  const regional = JSON.stringify([{ uuid: 'ES', title: 'es', langs: ['es'], list_text_component: comp('lista-ES') }])
+  const catalogos = () => ({ 'regional_catalog.json': regional, 'list_catalog.json': listCatalog() })
   const construir = (version, cambios = {}) => {
     fs.rmSync(ORIGEN, { recursive: true, force: true }); fs.mkdirSync(ORIGEN)
     const base = {
-      defecto: lista(1000), recursos: recursos1, 'lista-ES': lista(200),
-      catalogo: JSON.stringify([{ uuid: 'ES', title: 'es', langs: ['es'], list_text_component: { component_id: id(spki(pem['lista-ES'])), base64_public_key: b64('lista-ES') } }])
+      defecto: lista(1000), 'primera-parte': lista(50), recursos: recursos1, 'recursos-20': recursos2, 'lista-ES': lista(200),
+      catalogo: catalogos()
     }
     const reglasLocales = (n) => JSON.stringify(Array.from({ length: n }, (_, i) => ({ include: [`*://r${i}.example/*`], exclude: [] })))
     base['datos-locales'] = { '1/debounce.json': reglasLocales(40), '1/clean-urls.json': reglasLocales(40), '1/request-otr.json': reglasLocales(5),
       '1/https-upgrade-exceptions-list.txt': 'a.example\n', '1/localhost-permission-allow-list.txt': '# x\nb.example\n', '1/Greaselion.json': '[]' }
-    const fichero = (n) => n === 'recursos' ? 'resources.json' : n === 'catalogo' ? 'regional_catalog.json' : 'list.txt'
+    const fichero = (n) => n === 'recursos' || n === 'recursos-20' ? 'resources.json' : 'list.txt'
     const componentes = Object.entries(base).map(([n, datos]) => {
       const c = cambios[n] ?? {}
       const v = c.version ?? version
@@ -62,14 +71,14 @@ try {
 
   construir('2026.1003.900')
   let r = firmar()
-  comprobar('primera firma de los 5 componentes', r, ['+ defecto', '+ recursos', '+ lista-ES', '+ catalogo', '+ datos-locales'])
+  comprobar('primera firma de los 7 componentes', r, ['+ defecto', '+ primera-parte', '+ recursos ', '+ recursos-20', '+ lista-ES', '+ catalogo', '+ datos-locales'])
   const estado = JSON.parse(fs.readFileSync(path.join(SALIDA, 'firmado.json'), 'utf8'))
   for (const [n, e] of Object.entries(estado)) {
     const crx = fs.readFileSync(path.join(SALIDA, 'release', e.id, `extension_${e.version.replace(/\./g, '_')}.crx`))
     const v = verifyCrx3(crx, sha(spki(pem[n])), sha(spki(pem.publicador))); fallos += !v.startsWith('OK_FULL')
     console.log(`${v.startsWith('OK_FULL') ? 'ok  ' : 'FALLO'}   verificador 1.57: ${n} ${v}`)
   }
-  comprobar('segunda ejecución sin cambios', firmar(), ['= defecto', '= recursos', '= catalogo'])
+  comprobar('segunda ejecución sin cambios', firmar(), ['= defecto', '= recursos-20', '= catalogo'])
 
   const locales = () => ({ '1/debounce.json': '[]', '1/clean-urls.json': '[]', '1/request-otr.json': '[]', '1/https-upgrade-exceptions-list.txt': '',
     '1/localhost-permission-allow-list.txt': '', '1/Greaselion.json': '[]', ...JSON.parse(fs.readFileSync(path.join(tmp, 'locales.json'), 'utf8')) })
@@ -83,7 +92,16 @@ try {
     ['datos locales con Greaselion no vacío', { 'datos-locales': { datos: { ...locales(), '1/Greaselion.json': '[{"scripts":["x.js"]}]' } } }, ['Greaselion.json no está vacío']],
     ['datos locales con un fichero de más', { 'datos-locales': { datos: { ...locales(), '1/x.js': 'alert(1)' } } }, ['datos-locales: contenido inesperado']],
     ['datos locales que pierden más de la mitad', { 'datos-locales': { datos: { ...locales(), '1/debounce.json': '[]', '1/clean-urls.json': '[]' } } }, ['datos-locales: 7 reglas frente a 87']],
-    ['catálogo con una lista ajena', { catalogo: { datos: JSON.stringify([{ uuid: 'ES', list_text_component: { component_id: id(spki(pem.ajena)), base64_public_key: b64('ajena') } }]) } }, ['la lista ES del catálogo no usa nuestra clave']]
+    ['recursos 2.0 cambiados sin aprobar', { 'recursos-20': { datos: recursos2.replace('"a.js"', '"c.js"') } }, ['recursos-20: recursos nuevos SIN APROBAR']],
+    ['recursos 2.0 con la clave de los de la 1.x', { 'recursos-20': { clave: b64('recursos') } }, ['recursos-20: el manifest no lleva nuestra clave']],
+    ['catálogo con una lista ajena', { catalogo: { datos: { 'regional_catalog.json': JSON.stringify([{ uuid: 'ES', list_text_component: { component_id: id(spki(pem.ajena)), base64_public_key: b64('ajena') } }]), 'list_catalog.json': listCatalog() } } }, ['la lista ES del catálogo no usa nuestra clave']],
+    ['catálogo solo con el fichero de la 1.x', { catalogo: { datos: { 'regional_catalog.json': '[]' } } }, ['catalogo: contenido inesperado']],
+    ['list_catalog con una lista ajena', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => [...c, entrada('X', 'ajena')]) } } }, ['la lista X del list_catalog no usa nuestra clave']],
+    ['list_catalog con una clave de recursos', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => [...c, entrada('X', 'recursos-20')]) } } }, ['la lista X del list_catalog no usa nuestra clave']],
+    ['list_catalog con el mismo componente dos veces', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => [...c, entrada('otra', 'defecto')]) } } }, ['sale dos veces en list_catalog']],
+    ['list_catalog con más permisos', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => c.map((e) => ({ ...e, permission_mask: 255 }))) } } }, ['permission_mask no válido']],
+    ['list_catalog con un enlace que no es https', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => c.map((e) => ({ ...e, url: 'http://example.com/x' }))) } } }, ['enlace que no es https']],
+    ['list_catalog vacío', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': '[]' } } }, ['list_catalog.json vacío']]
   ]
   for (const [nombre, cambios, esperado] of casos) {
     construir('2026.1003.1000', cambios); r = firmar()
