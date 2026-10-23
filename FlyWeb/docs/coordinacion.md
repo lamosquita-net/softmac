@@ -7,6 +7,35 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 23-10: COORDINACIÓN-12 → COORDINACIÓN-13 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-12 (`session_01NjpdW4mhQMcN2EuNN8MivC`, Opus 5.5, medio) se releva al ~68 %. **Nunca aprobar la tarjeta de
+confianza.** Lo nuevo y decidido está en DIRECTIVAS (22–23-10) y en las filas **FM.38** (identidad, hecha) y **FM.39** (lo
+que falta para publicar la 2.0.0); el análisis de gasto, en `docs/CONSUMO.md` («Análisis del 23-10»).
+
+**Cómo trabajar ahora (Titín, 22–23-10):** una sesión por tarea con arranque mínimo, subagentes para leer, relevo hacia
+el 35–40 %, archivar al entregar (antes, `list_triggers` y borrar sus avisos) y abrir el relevo solo cuando haya trabajo.
+**Junta los cambios `[coord]` en pocos PR:** cada PR trae dos avisos largos que engordan tu contexto. Los agentes empujan
+a veces a un PR ya cerrado: reaplica sus commits en uno nuevo. La 7,1 no recibe `send_message` de la nube: buzón.
+
+**Estado de la 2.0.0:** candidata **-p14 806e8caa96** (motor 131 + Mojave + identidad + Sparkle + copia del perfil),
+probada por LOCAL-9 en la 6,1 (sin caídas, auditoría de red limpia, migración con el perfil real de Titín: marcadores y
+extensiones bien; contraseñas sin probar: su perfil no tenía) y por Titín en el A1398 (claude.ai bien; GPU OpenGL, Metal
+no admitido por esas GPU). `nube/base-128-motor` sigue en -p9: muévela a la candidata final (MOTOR o LOCAL).
+**En curso:** LOCAL-9 hace la **-p15** (león de la insignia de la barra; buzón del 23-10).
+**Falta (FM.39):** servidor de Shields (**SERVIDOR-LOCAL-2**, ordenado por Titín; Titín ya generó la clave `recursos-20`,
+ID `nilendadbigifkognoeoodppkjkgmppg`, #477/#479); pruebas a mano de Titín en la 6,1 (ventana cerrada con fijadas,
+llavero, menús, barra lateral, descargas) y contraseña de prueba para la migración; MacBook con Mojave el sábado 24-10
+(LOCAL-9 por SSH; la 5,1 no está accesible); Release firmada (llavero sin aviso, CPU de vídeo); web de la 2.0 con la
+ayuda de contraseñas (CONTENIDOS-WEB) y comprobar web-auto (SERVIDOR-LOCAL); appcast con `--min-macos 10.14.0` y sin
+`releaseNotesLink` (PUBLICACIÓN, respondido). **Después:** FM.37 (privacidad de Brave posterior a la 1.69), clase E
+(servicios nuevos), MOTOR-18 (8 fallos sueltos de `blink_unittests` y la caída de V8; esfuerzo alto), F5.6 (códec por
+capacidad en 2.0.x), widget de búsqueda de la NTP (¿DuckDuckGo o fuera?), registro de la AMD.
+
+**Agentes vivos:** LOCAL-9 (`local_ad0f5131-…`, bridge `session_01NqrwCVpYFvVS6m6fGZgAed`, medio, por el plan); VIGÍA
+(rutina horaria; cámbiale el destino a ti); CARTERO-LOCAL, PUBLICACIÓN y SERVIDOR-LOCAL en la 7,1. Todas las demás de la
+nube, archivadas (sus notas: `identidad-128.md`, `relevo-motor.md`, `RELEVO-SEGURIDAD.md`).
+
 ## 22-10: COORDINACIÓN-11 → COORDINACIÓN-12 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-11 (`session_016LAphUszobDrthjRLX51N9`, Opus 5.5 alto) se releva al 54 % de contexto (40,33 $, 135 266 de
