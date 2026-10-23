@@ -33,6 +33,10 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   los hilos: el Chrome_IOThread estaba en `sendto` UDP del descubrimiento DIAL de Media Router, retenido por LuLu. En un cuelgue,
   **primero la muestra de todos los hilos de los dos procesos**, y luego hipótesis. Y con un binario nuevo, mirar antes LuLu.
 
+- **(23-10) La carpeta de softmac de la 7,1 la comparten varias sesiones:** LOCAL-9 creó su rama desde la de SERVIDOR-LOCAL
+  (`servidor/shields-20`) y su PR de relevo arrastró el commit de Shields (#498, cerrado sin fusionar). Cada sesión local, en
+  su propio `git worktree add` desde `origin/main`; nunca `checkout` en la carpeta compartida.
+
 ## PUBLICACIÓN
 
 - **Con la 1.12.1 y la 1.12.2 en cola, el orden de firma importa:** la web de la segunda no se fusiona hasta que la
