@@ -1,6 +1,6 @@
 // Prueba sin red ni motor de recursos-20.mjs (convertirScriptlets) y catalogo-20.mjs (construirCatalogoV2).
 // Uso: node pruebas/recursos-catalogo-20.mjs
-import { convertirScriptlets } from '../recursos-20.mjs'
+import { convertirScriptlets, esTrusted } from '../recursos-20.mjs'
 import { construirCatalogoV2 } from '../catalogo-20.mjs'
 
 let fallos = 0
@@ -10,14 +10,22 @@ const lanza = (f) => { try { f(); return '' } catch (e) { return e.message } }
 // --- Recursos ---
 const fn = (t) => ({ toString: () => t })
 const s = (name, extra = {}) => ({ name, fn: fn(`function ${name.replace(/\W/g, '_')}(){}`), ...extra })
-const r = convertirScriptlets([s('a.fn'), s('b.fn', { dependencies: ['a.fn'] }), s('set-constant.js', { aliases: ['set.js'], dependencies: ['b.fn'] }), s('trusted-x.js', { requiresTrust: true })])
-ok('trusted excluido', r.excluidos === 1 && !r.scriptlets.some((x) => x.name === 'trusted-x.js'))
-const sc = r.scriptlets.find((x) => x.name === 'set-constant.js')
-ok('dependencias sin inlinar', JSON.stringify(sc.dependencies) === '["b.fn"]' && Buffer.from(sc.content, 'base64').toString() === 'function set_constant_js(){}')
-ok('alias, mime y forma de 0.8', sc.aliases[0] === 'set.js' && sc.kind.mime === 'application/javascript' && Object.keys(sc).sort().join() === 'aliases,content,dependencies,kind,name')
-ok('dependencias y alias vacíos por defecto', r.scriptlets[0].dependencies.length === 0 && r.scriptlets[0].aliases.length === 0)
+const base = [s('a.fn'), s('b.fn', { dependencies: ['a.fn'] }), s('set-constant.js', { aliases: ['set.js'], dependencies: ['b.fn'] }),
+  s('trusted-x.js', { requiresTrust: true }), s('trusted-prevent-xhr.js'), s('replace-node-text.js', { aliases: ['trusted-rpnt.js', 'rpnt.js'] }),
+  s('con-alias.js', { aliases: ['trusted-viejo.js'] })]
+const r = convertirScriptlets(base)
+const nombres = r.scriptlets.map((x) => x.name).join()
+ok('quedan solo los que no son «trusted» ni .fn', nombres === 'set-constant.js', nombres)
+ok('«trusted» excluidos por bandera, por nombre y por alias', r.excluidos === 4)
+const sc = r.scriptlets[0]
+const js = Buffer.from(sc.content, 'base64').toString()
+ok('dependencias inlinadas (0.8.11 ignora `dependencies`), de la más profunda a la más cercana', js.indexOf('function a_fn') >= 0 && js.indexOf('function a_fn') < js.indexOf('function b_fn') && js.includes('(function set_constant_js(){})(...args.slice(0, last_arg_index))'))
+ok('plantilla {{1}}..{{9}} y scriptletGlobals', js.includes("'{{9}}'") && js.includes('const scriptletGlobals = {}'))
+ok('forma del recurso: sin dependencies ni permission', sc.aliases[0] === 'set.js' && sc.kind.mime === 'application/javascript' && Object.keys(sc).sort().join() === 'aliases,content,kind,name')
+ok('esTrusted', esTrusted(s('trusted-a.js')) && esTrusted(s('x.js', { requiresTrust: true })) && esTrusted(s('x.js', { aliases: ['trusted-y.js'] })) && !esTrusted(s('set-constant.js')))
 ok('falta una dependencia', /falta la dependencia z\.fn/.test(lanza(() => convertirScriptlets([s('a.js', { dependencies: ['z.fn'] })]))))
-ok('depende de uno «trusted»', /es «trusted»/.test(lanza(() => convertirScriptlets([s('t.fn', { requiresTrust: true }), s('a.js', { dependencies: ['t.fn'] })]))))
+ok('depende de un scriptlet «trusted»', /es «trusted»/.test(lanza(() => convertirScriptlets([s('trusted-t.js'), s('a.js', { dependencies: ['trusted-t.js'] })]))))
+ok('depender de una función .fn sí vale', lanza(() => convertirScriptlets([s('t.fn'), s('a.js', { dependencies: ['t.fn'] })])) === '')
 
 // --- Catálogo ---
 const e = (uuid, extra = {}) => ({ uuid, title: uuid, desc: 'd', langs: [], sources: [{ url: `https://example.com/${uuid}.txt`, support_url: 'https://example.com/' }],

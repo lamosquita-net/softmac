@@ -110,7 +110,13 @@ for (const c of indice.componentes ?? []) {
     if (prev && !mayor(m.version, prev.version)) throw new Error(`versión ${m.version} no posterior a la firmada (${prev.version})`)
     let reglas
     if (c.nombre === 'recursos' || c.nombre === 'recursos-20') {
-      JSON.parse(datos)
+      const recursos = JSON.parse(datos)
+      if (c.nombre === 'recursos-20') {
+        // Defensa en profundidad antes de pedir la aprobación: ningún scriptlet «trusted» (nombre o alias trusted-…, ni los
+        // alias rpnt.js / replace-node-text.js de uno) y ningún recurso con permisos propios.
+        const malo = recursos.find((r) => [r.name, ...(r.aliases ?? [])].some((n) => /^trusted-|^(rpnt|replace-node-text)\.js$/.test(n)) || (r.permission ?? 0) !== 0)
+        if (malo) throw new Error(`recursos-20 lleva un recurso «trusted» o con permisos: ${malo.name}`)
+      }
       if (!aprobados.has(contenido)) { pendientes.push(contenido); throw new Error(`recursos nuevos SIN APROBAR: ${contenido}`) }
     } else if (c.nombre === 'catalogo') {
       for (const e of JSON.parse(ficheros.get('regional_catalog.json'))) {
