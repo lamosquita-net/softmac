@@ -15,6 +15,38 @@ nuestras. Base: [`brave/brave-core-crx-packager`](https://github.com/brave/brave
 El motor de FlyWeb es **adblock-rust 0.7.9** (`components/adblock_rust_ffi/Cargo.toml`). Al ser texto plano no hay un
 formato binario versionado, pero hay dos diferencias con el Brave actual.
 
+## Qué espera FlyWeb 2.0 (Brave 1.69, adblock-rust 0.8.11; FM.39 punto 1)
+
+El mismo servidor atiende a las dos versiones (`FlyWeb/docs/brave-sync-shields.md` §3.4). Lo que cambia:
+
+| Componente | Fichero dentro del CRX | Qué hay de nuevo |
+|---|---|---|
+| Catálogo (`catalogo`, ID y clave de siempre) | `regional_catalog.json` (1.x) **y** `list_catalog.json` (2.0), siempre los dos | `list_catalog.json` es el catálogo unificado de Brave 1.69 (`filter_list_catalog_entry.cc`): la lista por defecto y la de primera parte van como entradas **ocultas** con los ID y claves que ya tienen (el mismo `list.txt` lo leen las dos versiones); las regionales, con los de siempre. Las banderas (`hidden`, `default_enabled`, `first_party_protections`, `permission_mask`, `platforms`) se copian del catálogo de Brave. Las dos listas por defecto de `listas.json` son **una sola entrada** (`default`), porque van fusionadas en un componente |
+| Recursos de la 2.0 (`recursos-20`, ID y clave **nuevos**) | `resources.json` para adblock-rust 0.8.11: scriptlets autocontenidos (dependencias **inlinadas**, plantilla `{{1}}`), porque 0.8.11 ignora `dependencies` | El `recursos` de la 1.x queda **congelado** (un `resources.json` 0.8 en el ID viejo haría que la 0.7.9 «los cargara, pero no hicieran nada») |
+
+- **`recursos-20.mjs`** genera los recursos con el motor 0.8 (`motor-08/`, `ADBLOCK_RS_20`) y el mismo uBlock Origin fijado.
+  adblock-rust 0.8.11 **ignora el campo `dependencies`** (su doc: «Bundle any required dependencies inside the resource for
+  now»; lo comprobó el CI del PR #497), así que cada scriptlet va autocontenido como en el empaquetador de Brave de 2024 y
+  como en la 1.x. Diferencia con la 1.x: **se excluyen todos los scriptlets «trusted»**, no solo los que llevan
+  `requiresTrust`: uBlock Origin 1.75 no marca esa bandera en todos (`trusted-prevent-xhr.js` no la lleva), así que también
+  se quitan los que se llaman `trusted-…` o tienen un alias `trusted-…` (`rpnt.js` y `replace-node-text.js` son alias de uno).
+  Si un scriptlet que se conserva depende de uno «trusted», no sale. Sin recursos propios de Brave (punto 5 de
+  «Pendiente»). Quita `google-ima-dai.js`, como Brave. bak vuelve a comprobarlo antes de pedir la aprobación.
+- **Aviso sobre la 1.x:** el `recursos` de la 1.x (congelado, `recursos-157.mjs`) conserva los scriptlets `trusted-…` que uBlock
+  Origin no marca con `requiresTrust` (p. ej. `trusted-prevent-xhr.js`), y la 0.7.9 no tiene permisos. Las listas que
+  empaquetamos son las de siempre, pero queda pendiente decidir si se corrige en la 1.x (cambia el hash a aprobar).
+- **`permission_mask`:** los recursos no llevan `permission` (sin permisos propios), así que cualquier lista puede usar los
+  scriptlets que hay (no queda ninguno «trusted»); las listas por defecto y dos regionales llevan el bit 0 (uBlock Origin) en el
+  catálogo, como en Brave.
+  bak rechaza un `list_catalog.json` con cualquier valor mayor que 1.
+- **Aprobación de los recursos:** igual que `recursos`: bak no firma `recursos-20` hasta que el HUMANO añada su hash a
+  `/etc/flyweb-firma/recursos-aprobados` (`bak/README.md`). El CI de cada commit imprime ese hash («content hash to approve»).
+- **Pruebas:** `pruebas/recursos-catalogo-20.mjs` (sin red ni motor), `pruebas/firma-bak.mjs` (los rechazos nuevos),
+  `pruebas/prueba-motor-08.mjs` (CI: carga los recursos en adblock-rust 0.8.11, inyecta scriptlets y los ejecuta, y comprueba
+  que ninguno «trusted» se inyecta) y `pruebas/catalogo-construido.mjs` (CI: el catálogo construido).
+- **Sin comprobar todavía:** que un cliente 1.69 real acepte el CRX de `recursos-20` y el `list_catalog.json` (LOCAL, en el
+  primer arranque de la 2.0 con las constantes de brave-core: tres ID y claves, `brave_shield_constants.h`).
+
 ## Compatibilidad (probado en NUBE, 02-10-2026, con `adblock-rs` 0.7.17 = motor 0.7.x)
 
 **Listas: compatibles.**
