@@ -55,7 +55,10 @@ jobs:
         working-directory: FlyWeb/servidor/componentes/motor-07
         run: npm ci --no-audit --no-fund
 
+      # The 2.0 parts must never stop the daily 1.x publication: if the 0.8 engine does not install, recursos-20 simply
+      # fails to build (empaquetar.mjs records it in "fallos") and everything else goes on.
       - name: adblock-rs 0.8.x (FlyWeb 2.0 engine, locked)
+        continue-on-error: true
         working-directory: FlyWeb/servidor/componentes/motor-08
         run: npm ci --no-audit --no-fund
 
@@ -90,8 +93,35 @@ jobs:
         run: |
           node pruebas/firma-bak.mjs
           node pruebas/google-bak.mjs
-          node pruebas/recursos-catalogo-20.mjs
 
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: shields
+          path: ${{ runner.temp }}/salida/
+          retention-days: 7
+
+  # FlyWeb 2.0 checks (adblock-rust 0.8.x, list_catalog.json). Its own job on purpose: `publish` does not depend on it, so a
+  # failure here never stops the daily publication of the 1.x components. Look at it before approving anything in bak.
+  shields-20:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: FlyWeb/servidor/componentes
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: shields
+          path: ${{ runner.temp }}/salida
+      - name: adblock-rs 0.8.x (FlyWeb 2.0 engine, locked)
+        working-directory: FlyWeb/servidor/componentes/motor-08
+        run: npm ci --no-audit --no-fund
+      - name: Offline tests (resources and catalog)
+        run: node pruebas/recursos-catalogo-20.mjs
       - name: 2.0 components (resources with adblock-rs 0.8.x, catalog)
         env:
           ADBLOCK_RS_20: ${{ github.workspace }}/FlyWeb/servidor/componentes/motor-08/node_modules/adblock-rs
@@ -102,12 +132,6 @@ jobs:
           node pruebas/catalogo-construido.mjs "$RUNNER_TEMP/salida"
           # Content hash bak asks the HUMAN to approve (the same one shown in _estado.json as recursos_pendientes).
           jq -r '.componentes[] | select(.nombre == "recursos-20") | "recursos-20 content hash to approve: \(.contenido)"' "$RUNNER_TEMP/salida/indice.json"
-
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: shields
-          path: ${{ runner.temp }}/salida/
-          retention-days: 7
 
   # The same Google mirror code bak runs (bak/google.mjs), against Google for real: downloads and verifies the CRXs
   # (Google publisher proof, component ID, SHA-256). Nothing is uploaded; it only shows that bak would accept them.

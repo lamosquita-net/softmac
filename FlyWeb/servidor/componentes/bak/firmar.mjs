@@ -68,15 +68,20 @@ const nuestras = Object.fromEntries(fs.readdirSync(CLAVES).filter((f) => /^lista
 // list_catalog.json (2.0): cada entrada usa NUESTRO ID y NUESTRA clave (la de su lista regional, o la de la lista por
 // defecto o la de primera parte, que tienen ID propio), sin repetir componente, y solo con los permisos de uBlock Origin
 // (bit 0): bak nunca firma un catálogo que dé más permisos a una lista.
-const propias = ['defecto', 'primera-parte'].filter((n) => fs.existsSync(path.join(CLAVES, `${n}.pem`)))
-  .map((n) => { const der = spki(fs.readFileSync(path.join(CLAVES, `${n}.pem`), 'utf8')); return { id: idDe(der), b64: der.toString('base64') } })
+const propias = Object.fromEntries(['defecto', 'primera-parte'].filter((n) => fs.existsSync(path.join(CLAVES, `${n}.pem`)))
+  .map((n) => { const der = spki(fs.readFileSync(path.join(CLAVES, `${n}.pem`), 'utf8')); return [n, { id: idDe(der), b64: der.toString('base64') }] }))
+// nuestras es un objeto normal: sin hasOwn, un uuid «constructor» o «__proto__» devolvería algo del prototipo.
+const deLista = (uuid) => typeof uuid === 'string' && Object.hasOwn(nuestras, uuid) ? nuestras[uuid] : undefined
+const usaClave = (comp, k) => typeof comp?.component_id === 'string' && typeof comp?.base64_public_key === 'string' &&
+  comp.component_id === k.id && comp.base64_public_key === k.b64
 const validarCatalogo20 = (catalogo) => {
   if (!Array.isArray(catalogo) || !catalogo.length) throw new Error('list_catalog.json vacío o no es una lista')
+  for (const n of ['defecto', 'primera-parte']) if (!propias[n]) throw new Error(`en bak falta la clave de ${n}`)
   const vistos = new Set()
   for (const e of catalogo) {
     const comp = e?.list_text_component
-    const k = nuestras[e?.uuid] ?? propias.find((p) => p.id === comp?.component_id)
-    if (typeof e?.uuid !== 'string' || !k || comp?.component_id !== k.id || comp?.base64_public_key !== k.b64) {
+    const k = deLista(e?.uuid) ?? Object.values(propias).find((p) => p.id === comp?.component_id)
+    if (typeof e?.uuid !== 'string' || !k || !usaClave(comp, k)) {
       throw new Error(`la lista ${e?.uuid} del list_catalog no usa nuestra clave`)
     }
     if (vistos.has(k.id)) throw new Error(`el componente ${k.id} sale dos veces en list_catalog`)
@@ -87,6 +92,10 @@ const validarCatalogo20 = (catalogo) => {
     for (const u of [e.url, e.support_url]) if (u && !/^https:\/\//.test(u)) throw new Error(`${e.uuid}: enlace que no es https`)
     if (!Array.isArray(e.langs) || !e.langs.every((l) => typeof l === 'string')) throw new Error(`${e.uuid}: langs no válido`)
     if (e.platforms !== undefined && !(Array.isArray(e.platforms) && e.platforms.every((l) => typeof l === 'string'))) throw new Error(`${e.uuid}: platforms no válido`)
+  }
+  // Sin la lista por defecto y la de primera parte, la 2.0 se quedaría sin bloqueo de serie: no se firma.
+  for (const n of ['defecto', 'primera-parte']) {
+    if (!vistos.has(propias[n].id)) throw new Error(`list_catalog no lleva la entrada de ${n}`)
   }
 }
 
@@ -120,8 +129,8 @@ for (const c of indice.componentes ?? []) {
       if (!aprobados.has(contenido)) { pendientes.push(contenido); throw new Error(`recursos nuevos SIN APROBAR: ${contenido}`) }
     } else if (c.nombre === 'catalogo') {
       for (const e of JSON.parse(ficheros.get('regional_catalog.json'))) {
-        const k = nuestras[e.uuid]
-        if (!k || e.list_text_component?.component_id !== k.id || e.list_text_component?.base64_public_key !== k.b64) {
+        const k = deLista(e?.uuid)
+        if (!k || !usaClave(e.list_text_component, k)) {
           throw new Error(`la lista ${e.uuid} del catálogo no usa nuestra clave`)
         }
       }

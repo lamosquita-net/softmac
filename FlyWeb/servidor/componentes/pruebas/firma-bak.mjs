@@ -79,6 +79,8 @@ try {
     console.log(`${v.startsWith('OK_FULL') ? 'ok  ' : 'FALLO'}   verificador 1.57: ${n} ${v}`)
   }
   comprobar('segunda ejecución sin cambios', firmar(), ['= defecto', '= recursos-20', '= catalogo'])
+  const firmadoAntes = fs.readFileSync(path.join(SALIDA, 'firmado.json'), 'utf8')
+  const crxAntes = fs.readdirSync(path.join(SALIDA, 'release')).flatMap((d) => fs.readdirSync(path.join(SALIDA, 'release', d)).map((f) => `${d}/${f}`)).sort()
 
   const locales = () => ({ '1/debounce.json': '[]', '1/clean-urls.json': '[]', '1/request-otr.json': '[]', '1/https-upgrade-exceptions-list.txt': '',
     '1/localhost-permission-allow-list.txt': '', '1/Greaselion.json': '[]', ...JSON.parse(fs.readFileSync(path.join(tmp, 'locales.json'), 'utf8')) })
@@ -104,15 +106,24 @@ try {
     ['list_catalog con el mismo componente dos veces', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => [...c, entrada('otra', 'defecto')]) } } }, ['sale dos veces en list_catalog']],
     ['list_catalog con más permisos', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => c.map((e) => ({ ...e, permission_mask: 255 }))) } } }, ['permission_mask no válido']],
     ['list_catalog con un enlace que no es https', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => c.map((e) => ({ ...e, url: 'http://example.com/x' }))) } } }, ['enlace que no es https']],
+    ['list_catalog con un uuid «constructor» y sin componente', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => [...c, { ...entrada('constructor', 'lista-ES'), list_text_component: {} }]) } } }, ['la lista constructor del list_catalog no usa nuestra clave']],
+    ['list_catalog con uuid «__proto__»', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => [...c, { ...entrada('__proto__', 'lista-ES'), list_text_component: { component_id: 1, base64_public_key: 2 } }]) } } }, ['la lista __proto__ del list_catalog no usa nuestra clave']],
+    ['list_catalog con la clave en un tipo que no es texto', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => c.map((e) => e.uuid === 'ES' ? { ...e, list_text_component: { component_id: ['x'], base64_public_key: ['y'] } } : e)) } } }, ['la lista ES del list_catalog no usa nuestra clave']],
+    ['regional_catalog con uuid «constructor»', { catalogo: { datos: { ...catalogos(), 'regional_catalog.json': JSON.stringify([{ uuid: 'constructor', list_text_component: {} }]) } } }, ['la lista constructor del catálogo no usa nuestra clave']],
+    ['list_catalog sin la lista por defecto', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => c.filter((e) => e.uuid !== 'default')) } } }, ['list_catalog no lleva la entrada de defecto']],
+    ['list_catalog sin la lista de primera parte', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': listCatalog((c) => c.filter((e) => e.uuid !== 'FP')) } } }, ['list_catalog no lleva la entrada de primera-parte']],
     ['list_catalog vacío', { catalogo: { datos: { ...catalogos(), 'list_catalog.json': '[]' } } }, ['list_catalog.json vacío']]
   ]
   for (const [nombre, cambios, esperado] of casos) {
     construir('2026.1003.1000', cambios); r = firmar()
     comprobar(nombre, { salida: r.salida + (r.codigo === 1 ? ' [código 1]' : '') }, [...esperado, '[código 1]'])
   }
-  const despues = JSON.parse(fs.readFileSync(path.join(SALIDA, 'firmado.json'), 'utf8'))
-  const intacto = despues.defecto.version === '2026.1003.900' && despues.recursos.version === '2026.1003.900'
-  fallos += !intacto; console.log(`${intacto ? 'ok  ' : 'FALLO'} lo rechazado no ha cambiado lo firmado`)
+  // Nada de lo rechazado cambia lo firmado: ni una versión, ni un hash, ni un CRX (todos los componentes, también recursos-20 y catalogo).
+  const despues = fs.readFileSync(path.join(SALIDA, 'firmado.json'), 'utf8')
+  const crxDespues = fs.readdirSync(path.join(SALIDA, 'release')).flatMap((d) => fs.readdirSync(path.join(SALIDA, 'release', d)).map((f) => `${d}/${f}`)).sort()
+  const intacto = despues === firmadoAntes && JSON.stringify(crxDespues) === JSON.stringify(crxAntes) &&
+    ['recursos-20', 'catalogo', 'primera-parte'].every((n) => JSON.parse(despues)[n]?.version === '2026.1003.900')
+  fallos += !intacto; console.log(`${intacto ? 'ok  ' : 'FALLO'} lo rechazado no ha cambiado lo firmado (recursos-20 y catalogo incluidos)`)
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true })
 }
