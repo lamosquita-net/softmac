@@ -3,6 +3,56 @@
 Nota de relevo del agente LOCAL de FlyWeb (compila, prueba y lleva `flyweb`). La deja cada LOCAL al salir; el siguiente
 la lee después de `CLAUDE.md` y de `docs/TAREAS.md` (tabla, reglas y filas FM/FS abiertas).
 
+## LOCAL-9 → LOCAL-10 (23-10-2026)
+
+LOCAL-9 (`local_ad0f5131-2b0e-4712-8603-7017ddb6f455` «Compilación Local (9)»; Opus 5.5, **medio** (no alto), modo auto;
+plan Max; 22-10 ~18:10 – 23-10 ~14:30). Nota al 31 % de contexto, tras entregar la -p15. Guiones en `~/proyectos/softmac/temp/local8/`
+(los de compilación y pruebas) y `temp/local9/` (MotionMark, copia de la -p15, insignia).
+**Canales:** COORDINACIÓN-13 («Coordinación (13)», `session_01L7rpeb3sVii7F8jgApaAcB`) por `SendMessage` con el nombre de
+`ListAgents` (una vía: no contesta aquí). Sus encargos llegan por **Cartero-Local FlyWeb** (buzón).
+
+### Estado al relevar
+
+- **Nada compilando.** `nube/base-128-motor` = `-p15` **dcf6251201** (avance directo desde `-p9`; antes `-p13` 8f3bcc24aa y `-p14`
+  806e8caa96 de IDENTIDAD). Checkout `~/proyectos/brave-128`, `src/brave` en la rama local `nube/base-128-motor-p15`, sin cambios locales.
+- `-p15` = mosca en la insignia de `flyweb://` (`product_chrome_refresh.icon` ← `product.icon`) y sin `EGL_METAL_DEVICE_ANGLE` con
+  ANGLE OpenGL (`patches/gpu-ipc-service-image_transport_surface_overlay_mac.mm.patch`). 6,1: 0 líneas del error (antes ~2 800/min),
+  MotionMark 1.3 -p14 562,44 ± 2,38 → -p15 569,81 ± 1,72; GPU acelerada, sin caídas. Detalle en FM.39 y FM.31.
+- En la 6,1: `~/flyweb-pruebas/brave128/` = -p14 y `brave128-p15/` = -p15 (las dos aprobadas en LuLu); dos perfiles de desarrollo
+  apartados en `LaMosquita/` (`FlyWeb-Development.antes-…` de Titín y `.apartado-…` de LOCAL) y `FlyWeb-Development antes de 2.0
+  (2026-10-22)` de la prueba de migración: no borrar sin Titín.
+
+### PARA LOCAL-10: pendiente
+
+1. **Pruebas a mano de Titín** (órdenes enviadas a COORDINACIÓN-12 el 22-10; válidas cambiando la ruta a `brave128-p15`): 6,1 y
+   A1398. El zip de la A1398 en `software/entregas/FlyWeb-2.0-p13/` es la -p13: si hace falta, empaquetar la -p15 igual (`ditto -c -k
+   --keepParent`) en `FlyWeb-2.0-p15/`.
+2. **Sábado 24-10:** MacBook Air con Mojave por red; Titín da el acceso **en la sesión** (nunca al repo). Copiar con `copia61`.
+3. **Contraseñas:** la migración de contraseñas no se ha probado (el perfil de Titín tiene 0: usaba «Contraseñas en iCloud», que
+   apaga `credentials_enable_service`). Cuando Titín importe su CSV en FlyWeb, repetir `mig61.sh` (solo recuentos).
+4. Release oficial y CPU de vídeo: cuando lo ordene COORDINACIÓN (no antes).
+
+### Trampas nuevas (22–23-10)
+
+- **Worktree propio, separado del de SERVIDOR-LOCAL** (COORDINACIÓN-13, 23-10): la carpeta `…/software/softmac` la comparten otras
+  sesiones (estaba en `servidor/shields-20`); LOCAL-9 creó su rama desde ahí y arrastró un commit de Shields (PR #498, cerrado). LOCAL
+  trabaja en su propio `git worktree add` desde `origin/main` (p. ej. en el scratchpad) y nunca hace `checkout` en la carpeta compartida.
+- **LuLu retiene cada binario nuevo**: sin aprobar, las pestañas se quedan en `about:blank` y **la auditoría de red sale limpia en
+  falso**. No pedir a Titín que apruebe antes: lanzar y que apruebe cuando salga (memoria). Los guiones esperan a la red.
+- La identidad en la 128 rompió la Static tres veces (D-DIN con una línea «Name:», `AIChatUI` fuera del `#if`, `ai_rewriter` en
+  `test/BUILD.gn`); ya arreglados en `-p13`. Un `.patch` de Chromium se genera con `git -C src diff --full-index -- <fichero>` y luego
+  `git checkout --` del fichero (si no, `apply_patches` choca).
+- La barra de direcciones no sale en las capturas CDP: `screencapture -x -R…` en la 6,1 con la página abierta por `/json/new` (el
+  argumento URL de `open --args` se ignora).
+- claude.ai: «Continuar con Google» abre un hCaptcha con navegador automatizado: claude.ai entero, a mano.
+- MotionMark necesita ventana visible (`open -g`, no `-j`) y lanzar el binario directo para tener stderr (`mm61.sh`).
+
+### Herramientas
+
+`temp/local8/`: `b128-pN.sh` (cambiar `SHA=`), `b128-p12-copia61.sh` (a `brave128`), `en-61-gpu.sh`, `id61.py` (identidad por CDP),
+`ua61.py`, `pin61.sh` (fijadas con extensión de prueba), `ntp61.py`, `mig61.sh` (migración), `audit61.sh` (`APPP=`, `ETQ=`),
+`gpu61-p12.sh` (GPU 10 min), `repro61.py`. `temp/local9/`: `mm61.sh` (`cuenta SEG` / `pasadas N`), `copia61-p15.sh`.
+
 ## LOCAL-8 → LOCAL-9 (22-10-2026)
 
 LOCAL-8 (`local_5c6ba9f8-4205-46e5-98a8-b31a3eaa73c0` «Compilación Local (8)»; Opus 5.5, alto, modo auto; facturó por el plan Max;
