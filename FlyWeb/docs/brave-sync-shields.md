@@ -14,8 +14,8 @@ horas son **estimación mía**. Nada de esto se ha compilado ni probado en un na
   entre FlyWeb 1.x y 2.0 (§2.3).
 - **Shields: el servidor sigue valiendo en lo esencial, pero hay que cambiar tres cosas** (§3): (1) el catálogo pasa de
   `regional_catalog.json` a `list_catalog.json`, con las listas por defecto como entradas ocultas; (2) el motor pasa
-  de adblock-rust 0.7.9 a 0.8.11 y el `resources.json` actual de Brave lo entiende, así que `recursos-157.mjs` se
-  sustituye; (3) los ficheros de brave-core donde fijamos los ID y las claves **se movieron de carpeta**.
+  de adblock-rust 0.7.9 a 0.8.11 y el `resources.json` de 0.8.11 sigue siendo autocontenido (ignora `dependencies`),
+  así que `recursos-20.mjs` repite el formato de la 1.x salvo la política de scriptlets «trusted»; (3) los ficheros de brave-core donde fijamos los ID y las claves **se movieron de carpeta**.
 - **Servidor antes que cliente, y los dos formatos a la vez.** FlyWeb 1.x y 2.0 se actualizarán contra el mismo
   servidor: `regional_catalog.json` y `list_catalog.json` pueden ir en el mismo zip, pero los recursos necesitan **un
   ID nuevo para la 2.0** (§3.4).
@@ -113,7 +113,7 @@ la petición al actualizador, el fin de los pings y una lista de componentes de 
 | ID y claves (cinco) | Dos en `brave_shield_constants.h`, uno en `local_data_files_service.h`; los dos de listas pasan a entradas del catálogo. 1–2 h |
 | `empaquetar.mjs` y `listas.json` | Generar `list_catalog.json`: las listas por defecto y la de primera parte como entradas `hidden`, con sus ID y claves **de ahora** (se reutilizan) |
 | `regional_catalog.json` y la lista por defecto fusionada | **Siguen para los 1.x.** Mismo zip, los dos ficheros |
-| `recursos-157.mjs` | **Se sustituye** por la conversión del empaquetador de Brave (dependencias como recursos, plantillas con comillas dobles, oct.–nov. 2023) [I]; 0.8 admite `dependencies` y no hace falta inlinarlas |
+| `recursos-157.mjs` | **`recursos-20.mjs` (FM.39, PR #497)**: con adblock-rust **0.8.11** los scriptlets siguen autocontenidos (dependencias inlinadas, plantilla `{{1}}`): 0.8.11 **ignora** `dependencies` [V: doc de `Resource` en adblock-rust v0.8.11 y CI del #497; lo que decía esta fila antes [I] era falso]. Sin ningún scriptlet «trusted» (nombre `trusted-…`, alias o `requiresTrust`) |
 | Validación con `motor-07` | Añadir `motor-08` (0.8.11) para la 2.0; la 0.7 sigue para los 1.x |
 | Filtro de reglas que rompen adblock-rust anterior a la 0.8.7 | **Se mantiene mientras haya 1.x**: el mismo `list.txt` lo leen las dos |
 
