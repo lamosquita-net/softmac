@@ -34,6 +34,9 @@ plan Max; 22-10 ~18:10 – 23-10 ~14:30). Nota al 31 % de contexto, tras entrega
 
 ### Trampas nuevas (22–23-10)
 
+- **Worktree propio, separado del de SERVIDOR-LOCAL** (COORDINACIÓN-13, 23-10): la carpeta `…/software/softmac` la comparten otras
+  sesiones (estaba en `servidor/shields-20`); LOCAL-9 creó su rama desde ahí y arrastró un commit de Shields (PR #498, cerrado). LOCAL
+  trabaja en su propio `git worktree add` desde `origin/main` (p. ej. en el scratchpad) y nunca hace `checkout` en la carpeta compartida.
 - **LuLu retiene cada binario nuevo**: sin aprobar, las pestañas se quedan en `about:blank` y **la auditoría de red sale limpia en
   falso**. No pedir a Titín que apruebe antes: lanzar y que apruebe cuando salga (memoria). Los guiones esperan a la red.
 - La identidad en la 128 rompió la Static tres veces (D-DIN con una línea «Name:», `AIChatUI` fuera del `#if`, `ai_rewriter` en
