@@ -29,6 +29,25 @@ Una variable por papel y por relevo. La otra palanca, que pesa más, es el arran
 | CONOCIMIENTO-1 | — | Opus medio | Referencia para OR.1 |
 | CONTENIDOS-WEB-3 (cuando toque) | Sonnet medio | Opus bajo | Modelo (ya en OR.2) |
 
+## Análisis del 23-10 (COORDINACIÓN-12 con Titín)
+
+**Datos (22-10, sesiones de la nube cerradas; `cost_usd` = precio de API, el plan lo cubre):** 9 sesiones, ~185 $.
+COORDINACIÓN-11 41,7 · IDENTIDAD-1 38,1 · MOTOR-16 28,8 · MOTOR-17 24,5 · SEGURIDAD-PORTES-5 18,5 ·
+INVESTIGACIÓN-MOTOR-2 14,2 · CONTENIDOS-WEB-2 12,8 · IDENTIDAD-3 3,6 · IDENTIDAD-2 2,4. Semanal de la cuenta: 56 % → 66 %
+entre 13:45 y 17:50 (todas las sesiones).
+
+**Conclusiones:**
+1. **Lo caro es el contexto releído, no el modelo ni el esfuerzo.** IDENTIDAD-1 (esfuerzo medio): ~30 de 38 $ en lectura
+   de caché (148 M). Las sesiones largas cuestan 15–40 $; las cortas con arranque mínimo, 2–4 $ (IDENTIDAD-2 y -3: el
+   mismo tipo de trabajo, 7–9 min).
+2. **Abrir por tarea y archivar al entregar** funciona (DIRECTIVAS); una sesión quieta solo cuesta si se despierta, pero
+   cada despertar relee todo su contexto (y los avisos `send_later` las despiertan).
+3. **COORDINACIÓN también engorda:** cada PR que abre o fusiona le trae dos avisos de GitHub largos (~5 k tokens cada uno)
+   que se quedan en su contexto; ~35 PR el 22-10. Propuesta: juntar los cambios `[coord]` en menos PR (uno por tanda) y
+   relevar COORDINACIÓN hacia el 40 %.
+4. **Esfuerzo:** medio bastó en IDENTIDAD y LOCAL-9; MOTOR pasa a alto desde MOTOR-18. Sin datos para bajar más.
+5. **Crédito de 100 $:** no vale para Claude Code; solo Agent SDK/API/Agentes gestionados (caduca 06-11).
+
 ## Registro
 
 Columnas: fecha · agente (sesión) · modelo · esfuerzo · tarea · horas de reloj · tokens de salida · `cost_usd` ·
