@@ -17,6 +17,11 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
 - **(21-10) La Static tapa includes que faltan:** usa cabeceras precompiladas (`build/config/pch.gni`: `enable_precompiled_headers = !is_official_build…`; Blink core, `precompile_core.h`) y la Release no. La 1.15.2 compiló en Static y la Release dio 110 errores (absl `optional`, `cppgc::Visitor` incompleto, una clase sin declarar): una ronda más. En los ficheros nuevos o muy tocados de un porte, incluir lo que se usa (`absl/types/optional.h`, `platform/heap/visitor.h` si hay `visitor->Trace`, declaraciones adelantadas) y pedir a LOCAL un punto de compilación con `enable_precompiled_headers=false` antes de la Release.
 - **(22-10) WPT de 1–2 niveles de color en la 7,1 = ANGLE OpenGL, no el motor:** la base 128 usa ANGLE OpenGL (como Mojave) y CfT 131 Metal (desde `-p11`, Metal de serie en ≥ 10.15; en 10.14 sigue OpenGL y esas 2 WPT siguen difiriendo); el raster por GPU con OpenGL redondea distinto (`hsla-clamp-negative-saturation`, `position-visibility-anchors-visible-change-anchor`). Para comparar con CfT, FlyWeb con `--use-angle=metal` (o `--disable-gpu-rasterization` en los dos); `wpt-ref.py --detalle` dice dónde difieren los píxeles.
 
+- **(23-10) La huella de red tiene que subir con el nivel declarado:** Flickr (`live.staticflickr.com`) daba 429 solo a la 1.15.2,
+  que declara 131 con la red de la 116 (Kyber en vez de X25519MLKEM768, HTTP/2 `3:1000`); la 2.0 pasa. En cada nivel N del
+  fork: JA4, grupos TLS y HTTP/2 (akamai) frente a los de Chrome N (ja4db.io, `compatibilidad.md`) y la lista de sitios con
+  reto (`herramientas/retos-sitios.sh`, con Flickr) **antes de declarar N**. Si la red no puede seguir, no se declara ese nivel.
+
 ## LOCAL
 
 - **`update_patches` nunca para un solo parche, y las tareas largas en segundo plano** (Titín, 16-10). LOCAL-4 lanzó
