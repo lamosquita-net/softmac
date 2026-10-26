@@ -5,7 +5,8 @@
 #   install.sh --uninstall  lo quita todo salvo la configuración, los perfiles y los registros
 #
 # No toca backupdrive.conf ni profiles y NO activa la sincronización automática: la primera vez hay que
-# hacer --resync a mano (ver los pasos que imprime al final). Pide sudo solo si /usr/local/bin no es
+# hacer --resync a mano (ver los pasos que imprime al final). Modo predeterminado de los perfiles: «seguro»
+# (nunca se pierde nada: los borrados no se propagan, las versiones se guardan y caducan). Pide sudo solo si /usr/local/bin no es
 # escribible. Variables para pruebas: PREFIX, APPS_DIR, BACKUPDRIVE_DIR, LAUNCH_AGENTS.
 set -eu
 
@@ -96,9 +97,14 @@ fi
 mkdir -p "$APP_DIR"
 if [ ! -f "$APP_DIR/profiles" ]; then
   cat > "$APP_DIR/profiles" <<'EOF'
-# Un perfil por línea:  carpeta local|remoto:ruta
-# Ejemplo:
+# Un perfil por línea:  carpeta local|remoto:ruta[|días de versiones[|modo]]
+#   Modo seguro (predeterminado): nunca se pierde nada. Un borrado en un lado NO borra en el otro; lo que se
+#   sobrescribe se guarda como versión y caduca a los 90 días (o los de la tercera columna; 0 = no caducan).
+#   Modo «bisync» (avanzado): ¡PROPAGA LOS BORRADOS! Solo si de verdad quieres dos carpetas idénticas.
+# Ejemplos:
 # /Users/yo/Documents/Clientes|gdrive:Clientes
+# /Users/yo/Documents/Fotos|gdrive:Fotos|180
+# /Users/yo/Documents/Espejo|gdrive:Espejo|90|bisync
 EOF
   echo "Creado $APP_DIR/profiles (vacío, con un ejemplo)"
 fi
@@ -116,6 +122,6 @@ cat <<EOF
   $n. Autodiagnóstico:                    backupdrive-selftest.sh
   $((n + 1)). Añadir perfiles:                    open -e "$APP_DIR/profiles"
   $((n + 2)). Primera sincronización, simulada:   backupdrive-sync.sh --resync --dry-run
-  $((n + 3)). Primera sincronización, de verdad:  backupdrive-sync.sh --resync
+  $((n + 3)). Primera sincronización, de verdad:  backupdrive-sync.sh --resync   (revisa antes el registro de la simulación)
   $((n + 4)). Abrir BackupDrive.app y marcar "Sincronizar cada hora"
 EOF

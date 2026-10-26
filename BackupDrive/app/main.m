@@ -260,9 +260,10 @@ static const NSTimeInterval kPollSeconds = 2.0;
   alert.messageText = [NSString stringWithFormat:@"Primera sincronización de «%@»",
                                                  folder.lastPathComponent];
   alert.informativeText =
-      @"Se juntan los dos lados: lo que solo está en uno se copia al otro y, si un fichero es "
-      @"distinto en los dos, gana el más reciente (el otro se sobrescribe, sin copia). "
-      @"Conviene hacer antes la simulación y revisar el registro.";
+      @"Se juntan los dos lados sin borrar nada: lo que solo está en uno se copia al otro y, si un "
+      @"fichero es distinto en los dos, gana el más reciente y la versión anterior se guarda "
+      @"(caduca a los 90 días). Si el perfil está en modo avanzado «bisync», los borrados SÍ se "
+      @"propagan. Conviene hacer antes la simulación y revisar el registro.";
   [alert addButtonWithTitle:@"Sincronizar"];
   [alert addButtonWithTitle:@"Cancelar"];
   if ([alert runModal] != NSAlertFirstButtonReturn) return;
@@ -335,6 +336,7 @@ static const NSTimeInterval kPollSeconds = 2.0;
   NSMenu *sub = [[NSMenu alloc] initWithTitle:local];
   sub.autoenablesItems = NO;
   NSString *detail = @"Sincronizado";
+  BOOL bisync = [[self field:@"mode" of:p] isEqualToString:@"bisync"];
   if ([result isEqualToString:@"error"]) {
     id code = p[@"exit"];
     detail = [NSString stringWithFormat:@"Error en la última sincronización (código %@)",
@@ -347,6 +349,10 @@ static const NSTimeInterval kPollSeconds = 2.0;
     detail = @"Todavía no se ha sincronizado";
   }
   [self addItem:detail action:NULL to:sub];
+  [self addItem:bisync ? @"Modo bisync: los borrados se propagan"
+                       : @"Modo seguro: los borrados no se propagan"
+         action:NULL
+             to:sub];
   NSDate *finished = [self dateFromISO:[self field:@"finished" of:p]];
   if (finished) {
     [self addItem:[NSString stringWithFormat:@"Última vez: %@", [self describeDate:finished]]

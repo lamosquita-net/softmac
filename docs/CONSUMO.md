@@ -55,6 +55,7 @@ contexto al cerrar · notas.
 
 | Fecha | Agente | Modelo | Esfuerzo | Tarea | Horas | Salida | `cost_usd` | Contexto | Notas |
 |---|---|---|---|---|---|---|---|---|---|
+| 26-10 | BACKUPDRIVE-1 (`…01MMur1T`) | Sonnet 5.5 | medio | B.5: modo seguro de BackupDrive («nunca perder nada»: dos `rclone copy`, versiones con caducidad, conflictos, pruebas con remoto local) | ~0,2 | — | — | — | `get_session` no da `cost_usd` ni tokens (`used_tokens` 0) en esta sesión |
 | 22-10 | IDENTIDAD-1 (`…01DiRy6z`) | Opus 5.5 | medio | FM.38 i3: funciones de la 1.15 sobre la 128 (NTP, bienvenida, pestañas fijadas, buscador, extensiones; `nube/base-128-identidad-i3`) | ~0,4 | — | — | — | Total FM.38 i1–i3: ~1,1 h de reloj; `get_session` sin `cost_usd` ni tokens |
 | 22-10 | IDENTIDAD-1 (`…01DiRy6z`) | Opus 5.5 | medio | FM.38 i2: servicios de Brave apagados o propios sobre la 128 (53 ficheros, `nube/base-128-identidad-i2`) | ~0,3 | — | — | — | `get_session` sigue sin `cost_usd` ni tokens; su `context_usage` no se ha movido desde i1 (dato no fiable) |
 | 22-10 | IDENTIDAD-1 (`…01DiRy6z`) | Opus 5.5 | medio (alto al abrir) | FM.38 i1: marca, iconos, identidad fija y `flyweb://` sobre la 128 (896 ficheros, `nube/base-128-identidad-i1`), arranque incluido | ~0,4 | — | — | 12 % | `get_session` no da `cost_usd` ni tokens de salida; contexto 123 k de 1 M |
