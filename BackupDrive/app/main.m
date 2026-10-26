@@ -111,7 +111,7 @@ static const NSTimeInterval kPollSeconds = 2.0;
     if (![p isKindOfClass:NSDictionary.class]) continue;
     NSString *r = [self field:@"result" of:p];
     if ([r isEqualToString:@"error"] || [r isEqualToString:@"skipped"] ||
-        [r isEqualToString:@"needs-resync"])
+        [r isEqualToString:@"needs-resync"] || [r isEqualToString:@"blocked"])
       return YES;
   }
   return NO;
@@ -260,9 +260,9 @@ static const NSTimeInterval kPollSeconds = 2.0;
   alert.messageText = [NSString stringWithFormat:@"Primera sincronización de «%@»",
                                                  folder.lastPathComponent];
   alert.informativeText =
-      @"Se juntan los dos lados: lo que solo está en uno se copia al otro y, si un fichero es "
-      @"distinto en los dos, gana el más reciente (el otro se sobrescribe, sin copia). "
-      @"Conviene hacer antes la simulación y revisar el registro.";
+      @"Se juntan los dos lados sin borrar nada: lo que solo está en uno se copia al otro y, si un "
+      @"fichero es distinto en los dos, gana el más reciente y la otra versión se guarda "
+      @"(caduca a los 90 días). Conviene hacer antes la simulación y revisar el registro.";
   [alert addButtonWithTitle:@"Sincronizar"];
   [alert addButtonWithTitle:@"Cancelar"];
   if ([alert runModal] != NSAlertFirstButtonReturn) return;
@@ -322,6 +322,7 @@ static const NSTimeInterval kPollSeconds = 2.0;
     @"error" : @"✗",
     @"skipped" : @"✗",
     @"needs-resync" : @"⚠",
+    @"blocked" : @"⚠",
     @"never" : @"○",
   };
   NSString *mark = labels[result] ?: @"?";
@@ -341,6 +342,8 @@ static const NSTimeInterval kPollSeconds = 2.0;
                                         [code isKindOfClass:NSNumber.class] ? code : @"?"];
   } else if ([result isEqualToString:@"skipped"]) {
     detail = @"Omitido: no existe la carpeta local o la línea está incompleta";
+  } else if ([result isEqualToString:@"blocked"]) {
+    detail = @"Detenido por seguridad: la pasada borraría demasiados ficheros (no se ha tocado nada)";
   } else if ([result isEqualToString:@"needs-resync"]) {
     detail = @"Falta la primera sincronización";
   } else if ([result isEqualToString:@"never"]) {
@@ -369,7 +372,8 @@ static const NSTimeInterval kPollSeconds = 2.0;
     first.representedObject = local;
     first.enabled = !self.isRunning && open.enabled;
   }
-  if ([result isEqualToString:@"error"] || [result isEqualToString:@"skipped"]) {
+  if ([result isEqualToString:@"error"] || [result isEqualToString:@"skipped"] ||
+      [result isEqualToString:@"blocked"]) {
     [self addItem:@"Ver registro" action:@selector(openLog:) to:sub];
   }
   item.submenu = sub;
