@@ -21,6 +21,9 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   que declara 131 con la red de la 116 (Kyber en vez de X25519MLKEM768, HTTP/2 `3:1000`); la 2.0 pasa. En cada nivel N del
   fork: JA4, grupos TLS y HTTP/2 (akamai) frente a los de Chrome N (ja4db.io, `compatibilidad.md`) y la lista de sitios con
   reto (`herramientas/retos-sitios.sh`, con Flickr) **antes de declarar N**. Si la red no puede seguir, no se declara ese nivel.
+- **(26-10) En cada base nueva, recorrer la bienvenida y los Ajustes con un perfil nuevo buscando servicios de Brave.** La
+  revisión de identidad de la 128 miró la marca, no lo que se ofrece: el welcome de la 2.0 ofrecía el Web Discovery Project
+  de Brave con nuestro nombre (lo vio Titín en una captura; quitado en la -p17).
 
 ## LOCAL
 
@@ -41,6 +44,11 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
 - **(23-10) La carpeta de softmac de la 7,1 la comparten varias sesiones:** LOCAL-9 creó su rama desde la de SERVIDOR-LOCAL
   (`servidor/shields-20`) y su PR de relevo arrastró el commit de Shields (#498, cerrado sin fusionar). Cada sesión local, en
   su propio `git worktree add` desde `origin/main`; nunca `checkout` en la carpeta compartida.
+- **(26-10) `apply_patches` de Brave 1.69 no sabe deshacer un `.patch` que crea un fichero nuevo**
+  (`v8_external_memory_accounter.h`, -p17): el `git checkout` falla entero y los parches cambiados chocan con los viejos.
+  LOCAL-10 restauró a mano los ficheros de Chromium afectados y borró sus `.patchinfo`; después aplicaron los 48.
+- **(26-10) `FlyWeb/scripts/build.sh` no sirve para la 2.x** (depot_tools de la 116, rama de brave-browser, SDK 13.3, sin
+  10.14 ni `flyweb_metal_bin_path`): LOCAL compila la 128 con su guion. Adaptarlo es tarea de MOTOR (FM.39).
 
 ## PUBLICACIÓN
 

@@ -166,7 +166,11 @@ if [ "$CONFIG" = "Release" ]; then
     --gn "gemini_production_oauth_url:$INERT" \
     --gn "uphold_production_api_url:$INERT" --gn "uphold_production_client_id:flyweb" \
     --gn "uphold_production_client_secret:flyweb" --gn "uphold_production_fee_address:flyweb" \
-    --gn "uphold_production_oauth_url:$INERT"
+    --gn "uphold_production_oauth_url:$INERT" \
+    --gn "service_key_aichat:flyweb" --gn "brave_services_key_id:flyweb" \
+    --gn "zebpay_production_api_url:$INERT" --gn "zebpay_production_client_id:flyweb" \
+    --gn "zebpay_production_client_secret:flyweb" --gn "zebpay_production_oauth_url:$INERT"
+  # Las 6 últimas las exige Brave 1.69 (2.x) en oficial (LOCAL-10, FM.39); en la 1.x gn solo avisa de que no tienen efecto.
   # Actualizaciones (Sparkle, solo funciona en Release): appcast propio y clave EdDSA pública de bak
   # (FlyWeb/servidor/actualizaciones; necesita brave-core paso 45). FLYWEB_BUILD_NUMBER = número de versión de FlyWeb
   # (1.0 = 0, 1.0.1 = 1…): va a CFBundleVersion (157.64.N) y cada versión publicada debe subirlo.

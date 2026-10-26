@@ -5,7 +5,8 @@
 #   install.sh --uninstall  lo quita todo salvo la configuración, los perfiles y los registros
 #
 # No toca backupdrive.conf ni profiles y NO activa la sincronización automática: la primera vez hay que
-# hacer --resync a mano (ver los pasos que imprime al final). Pide sudo solo si /usr/local/bin no es
+# hacer --resync a mano (ver los pasos que imprime al final). Nunca se pierde nada: un borrado mueve la copia del otro
+# lado a una carpeta de versiones, lo sobrescrito también, y las versiones caducan (ver README). Pide sudo solo si /usr/local/bin no es
 # escribible. Variables para pruebas: PREFIX, APPS_DIR, BACKUPDRIVE_DIR, LAUNCH_AGENTS.
 set -eu
 
@@ -96,9 +97,14 @@ fi
 mkdir -p "$APP_DIR"
 if [ ! -f "$APP_DIR/profiles" ]; then
   cat > "$APP_DIR/profiles" <<'EOF'
-# Un perfil por línea:  carpeta local|remoto:ruta
-# Ejemplo:
+# Un perfil por línea:  carpeta local|remoto:ruta[|días de versiones]
+#   Nunca se pierde nada: un borrado en un lado mueve la copia del otro lado a una carpeta de versiones (en el Mac,
+#   en ~/Library/Application Support/BackupDrive/versions; en Drive, «ruta (versiones)» al lado de la carpeta), lo
+#   que se sobrescribe también, y las versiones caducan a los 90 días (o los de la tercera columna; 0 = nunca).
+#   El remoto debe llevar una carpeta (gdrive:Clientes), no la raíz.
+# Ejemplos:
 # /Users/yo/Documents/Clientes|gdrive:Clientes
+# /Users/yo/Documents/Fotos|gdrive:Fotos|180
 EOF
   echo "Creado $APP_DIR/profiles (vacío, con un ejemplo)"
 fi
@@ -116,6 +122,6 @@ cat <<EOF
   $n. Autodiagnóstico:                    backupdrive-selftest.sh
   $((n + 1)). Añadir perfiles:                    open -e "$APP_DIR/profiles"
   $((n + 2)). Primera sincronización, simulada:   backupdrive-sync.sh --resync --dry-run
-  $((n + 3)). Primera sincronización, de verdad:  backupdrive-sync.sh --resync
+  $((n + 3)). Primera sincronización, de verdad:  backupdrive-sync.sh --resync   (revisa antes el registro de la simulación)
   $((n + 4)). Abrir BackupDrive.app y marcar "Sincronizar cada hora"
 EOF

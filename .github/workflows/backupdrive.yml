@@ -34,6 +34,25 @@ jobs:
             BackupDrive/scripts/mojave-selftest.sh
             BackupDrive/launchd/net.lamosquita.backupdrive.plist
 
+  test-sync-safe:
+    # Modo seguro del guion de sincronización, con un remoto local de rclone (sin Drive). Binario de Linux.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.20.14"
+          cache-dependency-path: BackupDrive/rclone/go.sum
+      - name: Build rclone (linux/amd64)
+        working-directory: BackupDrive/rclone
+        env:
+          GOTOOLCHAIN: local
+        run: go build -trimpath -o ../build/rclone-linux .
+      - name: Shell syntax
+        run: for f in BackupDrive/scripts/*.sh BackupDrive/tests/*.sh; do sh -n "$f"; done
+      - name: Tests
+        run: BACKUPDRIVE_BIN="$PWD/BackupDrive/build/rclone-linux" sh BackupDrive/tests/test-sync-safe.sh
+
   build-menubar-app:
     # Runner de Apple Silicon: se compila como x86_64 para 10.14 (-arch/-mmacosx-version-min).
     runs-on: macos-latest
@@ -50,7 +69,7 @@ jobs:
 
   package:
     # Un solo zip para instalar en el Mac: descomprimir y ejecutar ./install.sh
-    needs: [build-darwin-amd64, build-menubar-app]
+    needs: [build-darwin-amd64, build-menubar-app, test-sync-safe]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
