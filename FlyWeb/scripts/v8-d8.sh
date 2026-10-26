@@ -55,6 +55,12 @@ for d in $CR_DIRS; do
   fi
 done
 [ -f build/config/gclient_args.gni ] || echo '# FlyWeb: the V8 DEPS gclient_gn_args is empty' > build/config/gclient_args.gni
+# V8 13.x importa //third_party/icu/config.gni aunque no haya Intl: basta un stub (FS.24).
+if [ ! -f third_party/icu/config.gni ]; then
+  mkdir -p third_party/icu
+  printf '# FlyWeb d8: stub (v8_enable_i18n_support = false)\nicu_use_data_file = false\nicu_use_stub_data = true\n' \
+    > third_party/icu/config.gni
+fi
 
 GTEST_REV=$(grep -A1 "'third_party/googletest/src'" DEPS | grep -o '[0-9a-f]\{40\}' | head -1)
 if [ ! -d third_party/googletest/src/.git ]; then
