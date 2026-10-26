@@ -1,8 +1,8 @@
 # FlyWeb 2.0.0 — base nueva: Chromium 128 (Brave 1.69.168), motor de nivel 131 (FM.31, FM.38, FM.39)
 
-**Estado (26-10-2026):** Release `-p15` compilada y probada por LOCAL en la 6,1 (FM.39); sin fecha de publicación. La
-web de este PR queda lista, con la descarga con el DMG definitivo (-p17, build 28 = 169.168.28, 174 786 565 bytes); `FlyWeb/web/VERSION` ya apunta a él
-y sube `FlyWeb/web/VERSION`. Sin `releaseNotesLink` (decisión de PUBLICACIÓN): las novedades van en la web.
+**Estado (26-10-2026):** DMG definitivo `-p17` (build 28 = 169.168.28, 174 786 565 bytes) firmado; sin fecha de publicación.
+La web de este PR lleva su tamaño y SHA-256, y `FlyWeb/web/VERSION` apunta a él; no se fusiona hasta el visto bueno de
+Titín en la 5,1 y el appcast. Sin `releaseNotesLink` (decisión de PUBLICACIÓN): las novedades van en la web.
 
 | Dato | Valor |
 |---|---|
