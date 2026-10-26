@@ -209,7 +209,7 @@ sudo systemctl start flyweb-firma.service; sudo journalctl -u flyweb-firma -n 30
 
 En el journal saldrá `recursos nuevos SIN APROBAR: <hash>` para `recursos-20` (y `_estado.json` lo mostrará en
 `recursos_pendientes`). Si el hash coincide con el que imprime el CI de ese commit («content hash to approve», paso
-«2.0 components» del trabajo `build`), apruébalo:
+«2.0 components» del trabajo `shields-20`), apruébalo:
 
 ```sh
 echo "<hash>  # recursos 2.0 (uBlock Origin 1.75.0, adblock-rust 0.8)" | sudo tee -a /etc/flyweb-firma/recursos-aprobados

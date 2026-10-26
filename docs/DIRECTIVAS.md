@@ -38,6 +38,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Apagar, no borrar, mientras fusionemos Brave** (HUMANO, 20-10): Leo y servicios parecidos se apagan (`enable_ai_chat:false`
   y comprobaciones tras cada fusión); se borran del código cuando tengamos el fork propio, porque borrar encarece cada
   fusión. Asistentes de IA, como extensión. Fuente: fila FM.31.
+- **El diseño visual aprobado no se toca sin que Titín lo vea antes** (Titín, 26-10): NTP, fondos, iconos, colores y
+  textos de la interfaz aprobados desde la 1.x no cambian, ni para «arreglar» algo, sin una captura y el sí de Titín. Caso:
+  la sombra de las estadísticas de la NTP de la -p16 puso un halo blanco ilegible en los fondos FlyWeb (arreglo en la 2.0.1, -p18).
 
 ## Motor
 
