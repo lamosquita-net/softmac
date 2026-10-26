@@ -22,11 +22,11 @@ servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomoneda
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 2.0.0</h2>
-<p><a class="boton" href="descargas/FlyWeb-2.0.0.dmg" download>Descargar FlyWeb 2.0.0 (175 MB)</a></p>
+<h2>Descargar FlyWeb 2.0.1</h2>
+<p><a class="boton" href="descargas/FlyWeb-2.0.1.dmg" download>Descargar FlyWeb 2.0.1 (175 MB)</a></p>
 <p class="dato">macOS 10.14 Mojave o superior, Mac Intel (x86_64). En macOS 10.15 a 12 funciona; solo Mojave está garantizado.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>8aff143f20245924aadc1eee655903d0cfd2d21356bd1966b33cab0df1e2c202</code></p>
+SHA-256: <code>1d7d6b0fec548e51e64a01c9ec3b29800d015d7ff34a214eebf905b898617b15</code></p>
 <p class="dato"><strong>¿Vienes de la 1.15?</strong> La 2.0 copia tu perfil antes de usarlo y desde él no se vuelve atrás sin esa
 copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High Sierra (10.13)?</strong> Tu última versión es la
 <a href="descargas/FlyWeb-1.15.2.dmg">1.15.2</a> (sha256 <code>fbca0533b634a323f839a6265fa9b1802e53e03fcbc500879bbdf0e16cf9f138</code>).</p>
@@ -35,13 +35,24 @@ copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-2.0.0.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-2.0.1.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 2.0.0</h2>
+<h2 id="novedades">Notas de la versión 2.0.1</h2>
+<ul>
+  <li><strong>Seguridad.</strong> Corrige dos vulnerabilidades que ya se están aprovechando: una del motor de JavaScript
+  (CVE-2026-11645) y otra del dibujo por Metal en macOS 10.15 y posteriores (CVE-2025-14174). Actualiza cuanto antes.</li>
+  <li><strong>Sin el aviso falso de «No se puede actualizar FlyWeb».</strong> La 2.0.0 lo mostraba a las pocas horas aunque
+  estuviera al día. Las actualizaciones siguen llegando solas, como siempre.</li>
+  <li><strong>Página de nueva pestaña como en la 1.15.</strong> Las estadísticas vuelven a leerse bien sobre todos los fondos.</li>
+  <li><strong>Problema conocido:</strong> si usas varias ventanas y tienes activada la opción de compartir las pestañas fijadas
+  entre ventanas, las fijadas pueden perderse al cerrar FlyWeb. Mientras sale la 2.0.2, apaga esa opción en Ajustes.</li>
+</ul>
+
+<h2>Notas de la versión 2.0.0</h2>
 <ul>
   <li><strong>Base nueva: Chromium 128.</strong> FlyWeb pasa de Chromium 116 a Chromium 128 (Brave 1.69). Las webs siguen viéndolo
   como Chrome 131 y funciona como él en lo que usan.</li>
