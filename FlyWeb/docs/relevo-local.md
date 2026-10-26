@@ -3,6 +3,57 @@
 Nota de relevo del agente LOCAL de FlyWeb (compila, prueba y lleva `flyweb`). La deja cada LOCAL al salir; el siguiente
 la lee después de `CLAUDE.md` y de `docs/TAREAS.md` (tabla, reglas y filas FM/FS abiertas).
 
+## LOCAL-10 → LOCAL-11 (26-10-2026)
+
+LOCAL-10 (`local_71a093c7-b93c-41a7-b6ca-888bdc07bd50` «Compilación Local (10)»; Opus 5.5 medio, modo auto, Remote Control, plan Max;
+23-10 ~14:20 – 26-10 ~20:00). Nota al ~33 % de contexto (directiva: relevo hacia el 35–40 %). Guiones en `~/proyectos/softmac/temp/local10/`.
+**Canales:** COORDINACIÓN-14 («Coordinación (14)», `session_017J2kfSt5BR2UuYSr8fYzvw`) por `SendMessage` con el nombre de `ListAgents`
+(una vía). Encargos por **Cartero-Local FlyWeb**; si tarda, `git fetch origin buzon` y leer `buzon/LOCAL/` (el 26-10 llegaron con horas
+de retraso). Las sesiones de la nube archivadas (MOTOR-18) salen como «not reachable»: entonces, a COORDINACIÓN.
+
+### Estado al relevar
+
+- **Release de la -p19** 4b4bb3cc68 (2.0.1, build 29) compilando con nohup desde las 19:40, **incremental** sobre `out/Release` de la -p17
+  (`release-p19.sh`, PID en `release-p19.pid`). Deja copia sin firmar y DMG de prueba en la carpeta de entregas de red
+  (`FlyWeb-2.0.1-p19-release/`). **No es entrega:** la 2.0.1 que se firma es la **-p20** (SEGURIDAD-PORTES-6: -p19 + 45f275a00e CVE-2026-11645
+  V8 + 8528639ead CVE-2025-14174 ANGLE Metal), que llega como bundle en `nube/seg6-p20` con orden en el buzón: subirla (comprobar sha y
+  padres), compilar en incremental (`release-p19.sh` con `SHA=` y nombres) y probar.
+- brave-core: -p16 a66f0e3b1f, -p17 1b0ebd4a00, -p18 16b6e01b57 y -p19 4b4bb3cc68 subidas (desde bundles de MOTOR: el `src/brave` de
+  `~/proyectos/brave-128` tiene de `origin` el espejo `~/proyectos/softmac/FlyWeb/brave-core.git`; push al espejo y del espejo a GitHub).
+- **2.0.0 = Release -p17** (build 28): entregada en FM.39 (#511) y firmada por PUBLICACIÓN. `out/Release-p15` (la -p15 apartada) se puede borrar.
+- Servidor `python3 -m http.server 8125` en `temp/local4/web` (gpu-carga, vídeo 1080p): **comprobar que está vivo** antes de GPU/vídeo en la 6,1.
+
+### PARA LOCAL-11: pendiente (FM.40)
+
+1. **-p20**: subir, Release (build 29), DMG de prueba, y pruebas de la orden `buzon/LOCAL/20261026-1815-MOTOR-19.md` (a–e: aviso falso de
+   actualización con `--simulate-outdated`, `flyweb://sync-internals`, NTP sin halo (capturas de los 7 fondos para Titín), pestañas fijadas
+   1.15.2 → 2.0 (§3 de `version-2.0.1.md`, vale la -p17), Sparkle con `enable_update_notifications=false`) + las a–g de la -p17 abreviadas
+   + la regresión del CVE que indique SEGURIDAD-PORTES-6. Resultados en FM.40.
+2. **Después:** línea base de rendimiento en la 7,1 (`…-1834` y `…-1836-COORDINACION-14.md`): solo con el FlyWeb de /Applications, perfil temporal,
+   PA271W a 60 Hz, 3 pasadas de Speedometer 3.1, JetStream 3.0 y MotionMark 1.3.2; reproducir web-ssr de JetStream y los «?» de Speedometer.
+3. Lo de antes que sigue: MacBook Air con Mojave (acceso, de Titín en la sesión); migración de contraseñas cuando Titín importe su CSV.
+
+### Trampas nuevas (23–26-10)
+
+- **Release oficial de la 128:** Brave 1.69 exige 6 claves más (ya en `build.sh`, #505) y avisa 30 veces de `-Wunguarded-availability-new`
+  (APIs de 10.15 en código de Chromium: ASWebAuthenticationSession, AVCapture…): sin `treat_warnings_as_errors:false` no compila. **Falta
+  en el `build.sh` del #513** (lo demás coincide con `release-p17.sh`); dicho a COORDINACIÓN-14.
+- **`apply_patches` con parches que crean ficheros:** antes de la -p19 (1f77e29f) el reset fallaba entero. Si vuelve a pasar: `git checkout`
+  de los ficheros de Chromium de la lista «failures during git reset», borrar el fichero nuevo y sus `.patchinfo`, y repetir.
+- **Pruebas por CDP en la NTP y Ajustes:** los paneles de posición fija tienen `offsetParent` nulo (usar `getClientRects()`), React necesita
+  clics de ratón reales (`Input.dispatchMouseEvent`), y la primera `.jpg` del DOM es la miniatura oculta de Personalizar (el fondo 1):
+  identificar el fondo por captura (`rota61.py`). Un «siempre el fondo 1» del 26-10 fue esto, no una regresión.
+- Ajustes de la 128: `cr.sendWithPromise` no existe en las páginas de Ajustes; `chrome.send` sí. Un filtro propio de Shields entra con
+  `chrome.send('brave_adblock.updateCustomFilters', [texto])`.
+- Una opción repetida en la línea de órdenes (`--user-data-dir`) vale la última: así `en-61-gpu.sh` abre un perfil persistente con `ARGS=`.
+
+### Herramientas (`temp/local10/`)
+
+`release-p17.sh` / `release-p19.sh` (Release completa: checkout, V8, fast_float, apply_patches, build, comprobaciones, copia y DMG ad hoc),
+`blink-p17.sh` (blink_unittests en Static con el filtro), `copia61-p17.sh` (DMG a la 6,1 y arranque), `pruebas61-p17.sh` (tanda a–g),
+`cdp61.py` (ayudante CDP), `p17-61.py`, `shields61.py`, `ddg61.py`, `wdp61.py`, `visita61.py`, `audit61-udd.sh` (`UDD=`, `VISITA=1`,
+`MODO=uso`), `rota61.py` / `rota61.sh` (rotación de fondos), `ntp7-61.py` (Personalizar por clics reales).
+
 ## LOCAL-9 → LOCAL-10 (23-10-2026)
 
 LOCAL-9 (`local_ad0f5131-2b0e-4712-8603-7017ddb6f455` «Compilación Local (9)»; Opus 5.5, **medio** (no alto), modo auto;
