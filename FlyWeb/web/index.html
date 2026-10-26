@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FlyWeb — navegador para Mac Intel con macOS Mojave</title>
-<meta name="description" content="FlyWeb: navegador para Mac Intel con macOS 10.13 y 10.14, basado en Chromium 116 y Brave, sin servicios de Brave.">
+<meta name="description" content="FlyWeb: navegador para Mac Intel con macOS 10.14 Mojave o superior, basado en Chromium 128 y Brave, sin servicios de Brave.">
 <link rel="stylesheet" href="estilo.css?v=9bc84f82c8">
 <link rel="icon" href="img/flyweb.svg" type="image/svg+xml">
 <script src="js/mosca.js?v=f0600c83ad" integrity="sha384-Yq0DDrN5jlA5uDsNkWR9l9Ju/JWRYT8AX/VB0exybvMULcfus19nicNt6VGLIEX/" defer></script>
@@ -16,30 +16,53 @@
 </div></header>
 <main>
 <section class="banda naranja"><div class="columna">
-<p>FlyWeb es un navegador para <strong>Mac Intel con macOS 10.13 High Sierra y 10.14 Mojave</strong>. Está basado en
-Chromium 116 y Brave 1.57, con el bloqueo de anuncios y rastreadores de Brave, pero <strong>sin ninguno de sus
+<p>FlyWeb es un navegador para <strong>Mac Intel con macOS 10.14 Mojave o superior</strong>. Está basado en
+Chromium 128 y Brave 1.69, con el motor web al nivel de Chrome 131, con el bloqueo de anuncios y rastreadores de Brave, pero <strong>sin ninguno de sus
 servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomonedas, ni noticias. Las listas de bloqueo y
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 1.15.2</h2>
-<p><a class="boton" href="descargas/FlyWeb-1.15.2.dmg" download>Descargar FlyWeb 1.15.2 (166 MB)</a></p>
-<p class="dato">macOS 10.13 o 10.14, Mac Intel (x86_64). En macOS 10.15 a 12 debería funcionar, sin garantía.<br>
+<h2>Descargar FlyWeb 2.0.0</h2>
+<p><a class="boton" href="descargas/FlyWeb-2.0.0.dmg" download>Descargar FlyWeb 2.0.0 ([TAMAÑO] MB)</a></p>
+<p class="dato">macOS 10.14 Mojave o superior, Mac Intel (x86_64). En macOS 10.15 a 12 funciona; solo Mojave está garantizado.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>fbca0533b634a323f839a6265fa9b1802e53e03fcbc500879bbdf0e16cf9f138</code></p>
+SHA-256: <code>[SHA256]</code></p>
+<p class="dato"><strong>¿Vienes de la 1.15?</strong> La 2.0 copia tu perfil antes de usarlo y desde él no se vuelve atrás sin esa
+copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High Sierra (10.13)?</strong> Tu última versión es la
+<a href="descargas/FlyWeb-1.15.2.dmg">1.15.2</a> (sha256 <code>fbca0533b634a323f839a6265fa9b1802e53e03fcbc500879bbdf0e16cf9f138</code>).</p>
 </div>
 </div></section>
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-1.15.2.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-2.0.0.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 1.15.2</h2>
+<h2 id="novedades">Notas de la versión 2.0.0</h2>
 <ul>
+  <li><strong>Base nueva: Chromium 128.</strong> FlyWeb pasa de Chromium 116 a Chromium 128 (Brave 1.69). Las webs siguen viéndolo
+  como Chrome 131 y funciona como él en lo que usan.</li>
+  <li><strong>Tarjeta gráfica acelerada también en Mojave.</strong> El dibujo de las páginas, WebGL, WebGL2 y el vídeo van
+  acelerados por hardware, como en la 1.15. En las pruebas, diez minutos de WebGL sin una caída ni un fotograma perdido.
+  WebGPU sigue apagado, por seguridad.</li>
+  <li><strong>Escudos nuevos.</strong> Motor de bloqueo actualizado y recursos de bloqueo propios, servidos desde nuestro servidor.</li>
+  <li><strong>Copia automática de tu perfil.</strong> La primera vez que abres la 2.0, FlyWeb copia tu perfil junto al original
+  (<code>LaMosquita/FlyWeb antes de 2.0 (AAAA-MM-DD)</code>). <a href="ayuda/#actualizar-2-0">Qué hacer si quieres volver a la 1.15.2</a>.</li>
+  <li><strong>Actualizaciones propias.</strong> Se instalan solas, desde nuestro servidor y con nuestra firma, como en la 1.15.</li>
+  <li><strong>Más privado.</strong> En reposo, FlyWeb solo habla con nuestros servidores (componentes y navegación segura): ninguna
+  petición a servicios de Brave. Los dispositivos de la red local (Media Router) vienen apagados.</li>
+  <li><strong>Nueva pestaña.</strong> Con «Personalizar» y, si tienes historial, tus cinco sitios más visitados.</li>
+  <li><strong>Quitado:</strong> Wallet, Rewards, News, Talk, VPN y el asistente Leo.</li>
+  <li><strong>Requisitos:</strong> macOS 10.14 Mojave o superior. Si tienes High Sierra, quédate con la 1.15.2.</li>
+  <li><strong>Ayuda nueva:</strong> <a href="ayuda/#no-guarda-contrasenas">«FlyWeb no me ofrece guardar contraseñas»</a> e
+  <a href="ayuda/#importar-contrasenas">pasar tus contraseñas de iCloud u otro navegador</a>.</li>
+</ul>
+<p class="dato">Problema conocido: el texto blanco de las estadísticas de la nueva pestaña se lee mal sobre fotos claras; se
+arreglará en una 2.0.x.</p>
+<h2>Notas de la versión 1.15.2</h2><ul>
   <li><strong>Menús, avisos y tooltips en su sitio.</strong> Las webs pueden pegar un menú desplegable, un aviso o una etiqueta
   al botón o al texto que lo abre. FlyWeb los coloca como Chrome 131, sin depender de bibliotecas de JavaScript.</li>
   <li><strong>Se recolocan solos.</strong> Si un menú no cabe debajo de su botón, por ejemplo al final de la pantalla, la web

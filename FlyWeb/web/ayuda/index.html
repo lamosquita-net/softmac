@@ -15,8 +15,8 @@
 </div></header>
 <main>
 <section class="banda naranja"><div class="columna">
-<p>FlyWeb es un navegador para Mac Intel con macOS 10.13 High Sierra y 10.14 Mojave, basado en Chromium 116 y Brave
-1.57, sin los servicios de Brave. Aquí tienes lo que hace distinto y qué hacer si algo no va. Si no encuentras la
+<p>FlyWeb es un navegador para Mac Intel con macOS 10.14 Mojave o superior, basado en Chromium 128 y Brave
+1.69, sin los servicios de Brave. Aquí tienes lo que hace distinto y qué hacer si algo no va. Si no encuentras la
 respuesta, <a href="#informar">escríbenos</a>.</p>
 
 <p class="mono">Las páginas internas del navegador empiezan por <code>flyweb://</code>. Las direcciones de esta ayuda
@@ -24,12 +24,12 @@ respuesta, <a href="#informar">escríbenos</a>.</p>
 </div></section>
 <section class="banda blanca"><div class="columna">
 <ul class="indice">
-  <li><a href="#actualizaciones">Actualizaciones</a></li>
+  <li><a href="#actualizaciones">Actualizaciones</a> · <a href="#actualizar-2-0">Pasar a la 2.0</a> · <a href="#volver-1-15">Volver a la 1.15.2</a></li>
   <li><a href="#escudos">Escudos: anuncios y rastreadores</a></li>
   <li><a href="#seguridad">Seguridad y navegación segura</a></li>
   <li><a href="#privacidad">Privacidad</a></li>
   <li><a href="#buscador">Buscador</a></li>
-  <li><a href="#contrasenas">Contraseñas</a> · <a href="#importar">Importar datos</a> · <a href="#autorrelleno">Autorrelleno</a></li>
+  <li><a href="#contrasenas">Contraseñas</a> · <a href="#no-guarda-contrasenas">No me ofrece guardarlas</a> · <a href="#importar">Importar datos</a> · <a href="#importar-contrasenas">Importar contraseñas</a> · <a href="#autorrelleno">Autorrelleno</a></li>
   <li><a href="sincronizar/">Sincronizar entre tus Mac</a></li>
   <li><a href="#permisos">Permisos de los sitios</a> · <a href="#descargas">Descargas</a> · <a href="#extensiones">Extensiones</a></li>
   <li><a href="#rendimiento">Rendimiento y webs lentas</a> · <a href="#compatibilidad">Webs que avisan de navegador antiguo</a></li>
@@ -54,6 +54,41 @@ instala nada que no lleve nuestra firma y la de desarrollador de Apple.</p>
 </ul>
 <p>Las novedades de la última versión están en la <a href="../#novedades">página principal</a>, y las de todas en
 <a href="../novedades.html">novedades</a>.</p>
+</div></section>
+<section class="banda blanca"><div class="columna">
+<h2 id="actualizar-2-0">Pasar de la 1.15 a la 2.0</h2>
+<p>La 2.0 usa un motor nuevo (Chromium 128) y necesita <strong>macOS 10.14 Mojave o superior</strong>. Mantiene tu perfil, tus
+marcadores, tus contraseñas, la llave del llavero («FlyWeb Safe Storage») y la firma, así que normalmente no vuelve a pedirte
+permiso. Pero <strong>el perfil de la 2.0 no se puede usar con la 1.15</strong>: es un camino de ida. Por eso:</p>
+<ul>
+  <li><strong>Copia automática.</strong> La primera vez que abres la 2.0 sobre un perfil existente, y antes de tocar nada, FlyWeb
+  copia la carpeta entera de tu perfil a otra que se llama <code>FlyWeb antes de 2.0 (AAAA-MM-DD)</code> (la fecha es la de
+  ese día), junto a la original, dentro de <code>~/Library/Application Support/LaMosquita/</code>. Solo se hace esa vez.</li>
+  <li><strong>Qué no se copia:</strong> la caché (está en otra carpeta y se vuelve a crear sola).</li>
+  <li><strong>Espacio en disco.</strong> La copia ocupa lo mismo que tu perfil. Si el disco está lleno y la copia falla, FlyWeb
+  sigue abriendo, no lo vuelve a intentar y no te avisa en pantalla: si te importa poder volver atrás, haz tú la copia
+  <em>antes</em> de abrir la 2.0 (cierra FlyWeb y copia la carpeta <code>FlyWeb</code> de ese mismo sitio).</li>
+  <li><strong>Después de abrir la 2.0, comprueba</strong> que ves tus marcadores y tus contraseñas
+  (<code>flyweb://settings/passwords</code>). Si algo falta, no sigas usando la 2.0 con ese perfil y mira
+  <a href="#volver-1-15">cómo volver</a>.</li>
+  <li><strong>Cuando estés seguro</strong> de que no vas a volver, puedes borrar la carpeta de la copia para recuperar espacio.</li>
+</ul>
+<p class="dato">Si tu Mac tiene High Sierra (10.13), no puedes pasar a la 2.0: quédate con la
+<a href="../descargas/FlyWeb-1.15.2.dmg">1.15.2</a>, que sigue funcionando.</p>
+
+<h2 id="volver-1-15">Volver a la 1.15.2</h2>
+<p>Solo es posible con la copia que hizo la 2.0 (o una tuya). Con FlyWeb cerrado:</p>
+<ol>
+  <li>Cierra FlyWeb del todo (menú FlyWeb › Salir de FlyWeb).</li>
+  <li>Descarga la <a href="../descargas/FlyWeb-1.15.2.dmg">1.15.2</a>, ábrela y arrastra FlyWeb a Aplicaciones, sustituyendo a la 2.0.</li>
+  <li>En el Finder, menú Ir › Ir a la carpeta, escribe <code>~/Library/Application Support/LaMosquita</code>.</li>
+  <li>Cambia el nombre de la carpeta <code>FlyWeb</code> (la del perfil de la 2.0) por <code>FlyWeb perfil 2.0</code>, para
+  no perderla.</li>
+  <li>Cambia el nombre de la carpeta <code>FlyWeb antes de 2.0 (AAAA-MM-DD)</code> a <code>FlyWeb</code>.</li>
+  <li>Abre la 1.15.2. Tendrás el perfil tal como estaba antes de pasar a la 2.0.</li>
+</ol>
+<p class="dato">Lo que hayas hecho en la 2.0 después de la copia (marcadores nuevos, contraseñas guardadas, historial) no
+estará en la copia. Si usas Sincronizar, lo que cambiaste en la 2.0 puede haberse subido ya al servidor.</p>
 </div></section>
 <section class="banda blanca"><div class="columna">
 <h2 id="escudos">Escudos: anuncios y rastreadores</h2>
@@ -124,9 +159,43 @@ contraseñas seguras. Se guardan cifradas en tu Mac, con una llave que macOS gua
   <li><strong>Si sale «FlyWeb no puede acceder al almacenamiento seguro»:</strong> abre Acceso a Llaveros, busca
   «FlyWeb Safe Storage» y, en Control de acceso, permite a FlyWeb. También vale reiniciar el Mac y aceptar el aviso al
   abrir FlyWeb.</li>
+  <li><strong>¿No te ofrece guardar contraseñas?</strong> Mira <a href="#no-guarda-contrasenas">esto</a>.</li>
   <li>FlyWeb no puede leer el llavero de iCloud ni las contraseñas de Safari directamente: macOS solo deja hacerlo a las
   apps de Apple. Para pasarlas, mira <a href="#importar">Importar datos</a>.</li>
 </ul>
+</div></section>
+<section class="banda naranja"><div class="columna">
+<h2 id="no-guarda-contrasenas">«FlyWeb no me ofrece guardar contraseñas»</h2>
+<p>Si al entrar en una web FlyWeb no te pregunta si quieres guardar la contraseña, casi seguro es esta causa: tienes
+instalada la extensión de Apple <strong>«Contraseñas en iCloud»</strong>, que apaga el gestor de contraseñas del navegador
+para encargarse ella. En un Mac con <strong>Mojave ni siquiera funciona</strong> (esa extensión exige macOS 14 o superior),
+así que te quedas sin ninguno de los dos. Para arreglarlo:</p>
+<ol>
+  <li>Escribe <code>flyweb://extensions</code> en la barra de direcciones.</li>
+  <li>Busca «Contraseñas en iCloud» (iCloud Passwords) y <strong>desactívala</strong> con el interruptor (o quítala).</li>
+  <li>Comprueba que <code>flyweb://settings/passwords</code> tiene activado «Ofrecer guardar contraseñas».</li>
+  <li>Recarga la web y entra de nuevo: FlyWeb debe volver a ofrecerte guardar la contraseña.</li>
+</ol>
+<p class="dato">Esto no borra nada de iCloud. Para traer tus contraseñas de iCloud a FlyWeb, mira
+<a href="#importar-contrasenas">Importar contraseñas</a>.</p>
+</div></section>
+<section class="banda blanca"><div class="columna">
+<h2 id="importar-contrasenas">Pasar mis contraseñas de iCloud o de otro navegador</h2>
+<p>FlyWeb no puede leer el llavero de iCloud ni las contraseñas de otro navegador: hay que exportarlas a un fichero CSV
+desde donde estén y luego importarlo en FlyWeb.</p>
+<ol>
+  <li><strong>Exporta.</strong> iCloud/Safari: en un Mac con macOS 15 o superior, app Contraseñas › Archivo › Exportar todas
+  las contraseñas (en Mojave no se pueden exportar). Chrome y otros navegadores: su página de contraseñas, «⋮» › Exportar.
+  Guarda el CSV en un sitio temporal, <strong>nunca en una carpeta que se sincronice con la nube</strong>.</li>
+  <li><strong>Comprueba el tamaño.</strong> FlyWeb importa como máximo <strong>150 KB y 3 000 filas por fichero</strong>
+  (lo primero que se alcance). Si tienes más, parte el CSV con
+  <a href="https://github.com/lamosquita-net/softmac/blob/main/FlyWeb/scripts/partir-csv-contrasenas.py">este script</a> e
+  importa los trozos uno a uno.</li>
+  <li><strong>Importa.</strong> Escribe <code>flyweb://password-manager/settings</code>, busca «Importar contraseñas» y elige el fichero.</li>
+  <li><strong>Borra el CSV</strong> en cuanto acabes y vacía la papelera: las contraseñas van <strong>en claro</strong>, sin cifrar.</li>
+</ol>
+<p class="dato">No salen en el CSV, y por tanto no se importan: las <strong>llaves de acceso</strong> (passkeys), los códigos
+de <strong>doble factor</strong> (2FA) y las entradas sin dirección web. Esas siguen en su sitio de origen.</p>
 </div></section>
 <section class="banda naranja"><div class="columna">
 <h2 id="importar">Importar datos</h2>
@@ -141,7 +210,7 @@ exportarlas a un fichero CSV y luego importarlo:</p>
   <li>En FlyWeb: <code>flyweb://settings/passwords</code> › menú «⋮» › Importar contraseñas, y elige el fichero.</li>
   <li><strong>Borra el fichero exportado</strong> en cuanto acabes, y vacía la papelera: las contraseñas van sin cifrar.</li>
 </ol>
-<p class="dato">FlyWeb importa hasta 150 KB por fichero, unas 1 800 contraseñas. Si tienes más, divide el CSV con
+<p class="dato">FlyWeb importa hasta 150 KB y 3 000 filas por fichero. Si tienes más, divide el CSV con
 <a href="https://github.com/lamosquita-net/softmac/blob/main/FlyWeb/scripts/partir-csv-contrasenas.py">este script</a>
 e importa los trozos uno a uno. No se importan los códigos de doble factor, las llaves de acceso ni las entradas sin
 dirección web.</p>
@@ -175,8 +244,9 @@ o avisar antes de guardar un fichero:</p>
 <h2 id="extensiones">Extensiones</h2>
 <p>Las extensiones se instalan desde la <a href="https://chromewebstore.google.com/">Chrome Web Store</a> y se
 actualizan desde allí. Se gestionan en <code>flyweb://extensions</code>.</p>
-<p>Ten en cuenta que las extensiones ven FlyWeb como Chromium 116. Las que exigen una versión más reciente no se pueden
-instalar, o se quedan en la última versión que admitía la 116. Si una extensión cambia tus ajustes (buscador, página de
+<p>Ten en cuenta que las extensiones ven FlyWeb como Chromium 128 (en la 1.15, como Chromium 116). Las que exigen una versión
+más reciente no se pueden instalar, o se quedan en la última versión que admitía FlyWeb. <strong>Desactiva «Contraseñas en
+iCloud»</strong> si la tienes: <a href="#no-guarda-contrasenas">te quita el gestor de contraseñas</a>. Si una extensión cambia tus ajustes (buscador, página de
 inicio), FlyWeb te avisa y puedes deshacerlo desde el aviso.</p>
 </div></section>
 <section class="banda blanca"><div class="columna">
