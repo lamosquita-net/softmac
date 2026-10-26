@@ -1,0 +1,86 @@
+From 9b6b88b6a8c89fe3bea7efed180633622604627a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 26 Oct 2026 08:16:00 +0000
+Subject: [PATCH 2/3] FlyWeb: build with enable_ai_chat=false in official
+ builds
+
+brave_settings_ui.h includes settings_helper.mojom.h unconditionally, so
+//brave/browser/ui and brave_chrome_browser_deps now depend on
+ai_chat/core/common/mojom whatever enable_ai_chat says (it was found only
+through other targets in Static builds). ai_chat_tab_helper.h in
+chrome_autocomplete_provider_client.cc moves inside ENABLE_AI_CHAT, the only
+place it is used (FM.39 item 12b).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LsgphgHrVXECyE51FhS4Av
+---
+ browser/sources.gni                                          | 5 ++++-
+ browser/ui/BUILD.gn                                          | 5 ++++-
+ .../autocomplete/chrome_autocomplete_provider_client.cc      | 2 +-
+ 3 files changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/browser/sources.gni b/browser/sources.gni
+index 1441da15..cfebe5eb 100644
+--- a/browser/sources.gni
++++ b/browser/sources.gni
+@@ -301,12 +301,15 @@ if (enable_request_otr) {
+   brave_chrome_browser_deps += [ "//brave/components/request_otr/common" ]
+ }
+ 
++# FlyWeb: brave_content_browser_client.cc reaches settings_helper.mojom.h
++# through brave_settings_ui.h even with enable_ai_chat=false.
++brave_chrome_browser_deps += [ "//brave/components/ai_chat/core/common/mojom" ]
++
+ if (enable_ai_chat) {
+   brave_chrome_browser_deps += [
+     "//brave/components/ai_chat/content/browser",
+     "//brave/components/ai_chat/core/browser",
+     "//brave/components/ai_chat/core/common",
+-    "//brave/components/ai_chat/core/common/mojom",
+   ]
+ 
+   brave_chrome_browser_sources += brave_browser_ai_chat_sources
+diff --git a/browser/ui/BUILD.gn b/browser/ui/BUILD.gn
+index a1f40ce4..4ae82041 100644
+--- a/browser/ui/BUILD.gn
++++ b/browser/ui/BUILD.gn
+@@ -1033,12 +1033,15 @@ source_set("ui") {
+     ]
+   }
+ 
++  # FlyWeb: brave_settings_ui.h includes settings_helper.mojom.h whatever
++  # enable_ai_chat says, so the mojom is needed with enable_ai_chat=false too.
++  deps += [ "//brave/components/ai_chat/core/common/mojom" ]
++
+   if (enable_ai_chat) {
+     deps += [
+       "//brave/components/ai_chat/content/browser",
+       "//brave/components/ai_chat/core/browser",
+       "//brave/components/ai_chat/core/common",
+-      "//brave/components/ai_chat/core/common/mojom",
+       "//brave/components/ai_chat/resources/page:generated_resources",
+     ]
+   }
+diff --git a/chromium_src/chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc b/chromium_src/chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc
+index 19326e8f..b1b6dffa 100644
+--- a/chromium_src/chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc
++++ b/chromium_src/chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc
+@@ -5,7 +5,6 @@
+ 
+ #include "src/chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc"
+ 
+-#include "brave/components/ai_chat/content/browser/ai_chat_tab_helper.h"
+ #include "brave/components/commander/common/buildflags/buildflags.h"
+ #include "build/build_config.h"
+ #include "chrome/browser/profiles/profile.h"
+@@ -23,6 +22,7 @@
+ #endif  // BUILDFLAG(ENABLE_COMMANDER)
+ 
+ #if BUILDFLAG(ENABLE_AI_CHAT)
++#include "brave/components/ai_chat/content/browser/ai_chat_tab_helper.h"
+ #include "brave/components/ai_chat/core/browser/ai_chat_metrics.h"
+ #include "brave/components/ai_chat/core/common/features.h"
+ #include "brave/components/ai_chat/core/common/pref_names.h"
+-- 
+2.43.0
+

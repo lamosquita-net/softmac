@@ -1,0 +1,46 @@
+From a66f0e3b1f6df75868c672f7e63e30d5d9b1348d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 26 Oct 2026 08:16:00 +0000
+Subject: [PATCH 3/3] FlyWeb: NTP stats readable on light photos
+
+Text shadow opposite to the stats text colour (--flyweb-sombra): white text
+on a light photo was unreadable (FM.39 item 9).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LsgphgHrVXECyE51FhS4Av
+---
+ .../brave_new_tab_ui/components/default/flyweb/estilos.ts      | 3 +++
+ components/brave_new_tab_ui/components/default/stats/style.ts  | 3 +++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/components/brave_new_tab_ui/components/default/flyweb/estilos.ts b/components/brave_new_tab_ui/components/default/flyweb/estilos.ts
+index 069eee4a..4ed581fe 100644
+--- a/components/brave_new_tab_ui/components/default/flyweb/estilos.ts
++++ b/components/brave_new_tab_ui/components/default/flyweb/estilos.ts
+@@ -41,6 +41,9 @@ export function EstiloFlyWeb ({ colores }: { colores?: NewTab.FlyWebColores }) {
+     s.setProperty('--flyweb-texto', colores ? colores.texto : 'var(--override-readability-color, #fff)')
+     s.setProperty('--flyweb-pie', colores ? colores.pie : 'var(--override-readability-color, rgba(255, 255, 255, 0.6))')
+     s.setProperty('--flyweb-tinta', colores ? '#000' : 'var(--override-readability-color, #fff)')
++    // Halo behind the Shields stats, opposite to their text: white text on a
++    // light photo was unreadable (FM.39, item 9).
++    s.setProperty('--flyweb-sombra', colores?.texto === '#000' ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.75)')
+   }, [colores?.texto, colores?.pie])
+   return null
+ }
+diff --git a/components/brave_new_tab_ui/components/default/stats/style.ts b/components/brave_new_tab_ui/components/default/stats/style.ts
+index 88399fae..60799eda 100644
+--- a/components/brave_new_tab_ui/components/default/stats/style.ts
++++ b/components/brave_new_tab_ui/components/default/stats/style.ts
+@@ -19,6 +19,9 @@ export const StyledStatsItemContainer = styled('ul')<{}>`
+   color: inherit;
+   font-size: inherit;
+   font-family: inherit;
++  /* FlyWeb: readable on light and dark photos (--flyweb-sombra, estilos.ts). */
++  text-shadow: 0 0 2px var(--flyweb-sombra, rgba(0, 0, 0, 0.75)),
++               0 1px 8px var(--flyweb-sombra, rgba(0, 0, 0, 0.75));
+ `
+ 
+ export const StyledStatsItem = styled('li')<{}>`
+-- 
+2.43.0
+
