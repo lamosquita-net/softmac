@@ -7,6 +7,40 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 26-10: COORDINACIÓN-13 → COORDINACIÓN-14 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-13 (`session_01L7rpeb3sVii7F8jgApaAcB`, Opus 5.5, medio) se releva al 40 % (29,8 $). **Nunca aprobar la
+tarjeta de confianza.** Desde la nube **no se puede escribir en sesiones locales** (`send_message` da
+`elevated_session_untrusted_device`): a la 7,1, por la rama `buzon` (lo reparte CARTERO-LOCAL, a veces con retraso; si
+corre prisa, Titín se lo dice al agente). Las sesiones locales sí te escriben a ti. **La nube no tiene escritura en
+brave-core:** MOTOR deja bundles en una rama de softmac y LOCAL los sube (decisión de Titín, 26-10).
+
+**2.0.0 (FM.39, punto 16 al día):** candidata final **-p17 1b0ebd4a00**. En curso: **Release de la -p17 (LOCAL-10, desde el
+26-10 12:50)** → pruebas a–g en la 6,1 → entrega en FM.39 → por buzón a PUBLICACIÓN: firmar, notarizar, subir a ns2 **sin
+tocar el appcast** (ya lo probó con la -p15; mensaje del 26-10 en `buzon/PUBLICACION/`) → **Titín prueba en la 5,1 el DMG
+firmado** (su decisión) → con su sí: orden de bak del appcast (PUBLICACIÓN la tiene preparada: `--min-macos 10.14.0`, sin
+`releaseNotesLink`, build 169.168.28) y fusionar la web **#504** (CONTENIDOS-WEB-3, `session_01QqPWLpqxHcnDhDS5gxyAmi`,
+viva; faltan tamaño y SHA-256 del DMG: que los rellene PUBLICACIÓN o ella). **Al fusionar la web se publica sola en ns2**:
+solo cuando el appcast esté. Antes de publicar, SERVIDOR-LOCAL confirma web-auto (FM.39 punto 8). Sin probar aún:
+contraseñas migradas y la actualización real 1.15.2 → 2.0 por Sparkle (pídela a PUBLICACIÓN con un appcast de pruebas).
+**Después de publicar:** reactivar el VIGÍA (tarea «⚡ Vigía FlyWeb (Haiku)», `trig_01YbVYXhSWE1L5nFiuvpRXug`, pausada por
+Titín) solo si sigue haciendo falta; **2.0.1** = -p18 16b6e01b57 (NTP sin halo, ya preparada) + `build.sh` para la 2.x.
+
+**Hecho (23–26-10):** Shields 2.0 (#497) revisado, firmado e instalado en bak por Titín (`recursos-20` 2026.1023.1316); -p15
+(insignia, EGL) → -p16/-p17 (MOTOR-18); web 2.0 (#504, sin fusionar); inventario de lo pendiente y optimizaciones
+(`FlyWeb/docs/investigacion-pendiente.md`, #507; prioridades: línea base medida en Release —**la 7,1 con su 580X antes de
+cambiarla por la W6600X**—, niveles 132+, descarte de pestañas por RAM, experimento `-march=haswell` solo si gana ≥5 %, matriz
+GPU + F5.6); BackupDrive en modo seguro (#508: bisync con comparación por hash, borrado blando a versiones con caducidad,
+frenos de borrados y de modificaciones masivas; **Titín lo prueba en la 6,1 con una carpeta de prueba, en paralelo a su
+FreeFileSync**). Decisiones de Titín: DuckDuckGo sin `t=`; Flickr 429 resuelto en la 2.0 (huella de red, regla en TRAMPAS);
+VIGÍA pausado; regla de diseño visual (DIRECTIVAS).
+
+**Agentes vivos:** LOCAL-10 (`local_71a093c7-…`, bridge `session_01R4rHSMbvvgjWeEedxJ39jG`); MOTOR-18
+(`session_01LsgphgHrVXECyE51FhS4Av`, <40 %, viva por si la Release de la -p17 falla; archívala cuando compile);
+CONTENIDOS-WEB-3 (viva hasta fusionar la web); BACKUPDRIVE-1 (`session_01MMur1TxacRpN7gNor98eYm`, viva hasta la prueba de
+Titín); en la 7,1 PUBLICACIÓN (~45 %), SERVIDOR-LOCAL-3 y CARTERO-LOCAL. Archivadas: COORDINACIÓN-12, LOCAL-9,
+INVESTIGACIÓN-MOTOR-3.
+
 ## 23-10: COORDINACIÓN-12 → COORDINACIÓN-13 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-12 (`session_01NjpdW4mhQMcN2EuNN8MivC`, Opus 5.5, medio) se releva al ~68 %. **Nunca aprobar la tarjeta de
