@@ -24,6 +24,12 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
 - **(26-10) En cada base nueva, recorrer la bienvenida y los Ajustes con un perfil nuevo buscando servicios de Brave.** La
   revisión de identidad de la 128 miró la marca, no lo que se ofrece: el welcome de la 2.0 ofrecía el Web Discovery Project
   de Brave con nuestro nombre (lo vio Titín en una captura; quitado en la -p17).
+- **(26-10) Una base nueva puede quitar guardas que nos protegían sin que lo sepamos:** la 116 no arrancaba el
+  `UpgradeDetector` en macOS sin Keystone; la 128 quitó esa guarda y la 2.0.0 Release se marcó «desactualizada» por su fecha
+  de compilación (solo con `enable_update_notifications`, es decir, solo en Release). En cada base: buscar en el diff de upstream
+  las comprobaciones de Keystone/Google Update que desaparecen y probar la Release horas, no minutos (MOTOR-19, FM.40).
+- **(26-10) `script/lib/l10n/grd_string_replacements.py` sigue cambiando Google/Chrome/Chromium por «Brave»:** antes de pasar
+  `chromium-rebase-l10n.py`, apuntarlo a FlyWeb, o vuelve «Brave» a todas las cadenas generadas.
 
 ## LOCAL
 
