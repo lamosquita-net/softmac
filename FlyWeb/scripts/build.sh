@@ -222,8 +222,10 @@ fi
 # 2.x: mínimo 10.14 (la 128 sube a 10.15 por defecto) y metal/metallib del toolchain de Xcode 15.4 para ANGLE Metal
 # (patches/third_party/angle/…metal-BUILD.gn.patch; sin él, ruta absoluta de otro Mac).
 if [ "$BASE" = 128 ]; then
+  # La Release de la 128 da ~30 avisos -Wunguarded-availability-new (APIs de 10.15 en código de Chromium) que
+  # cortan el build si los avisos son errores (LOCAL-10, 26-10).
   set -- "$@" --gn mac_deployment_target:10.14 --gn mac_min_system_version:10.14 \
-    --gn "flyweb_metal_bin_path:$METAL_BIN"
+    --gn "flyweb_metal_bin_path:$METAL_BIN" --gn treat_warnings_as_errors:false
 fi
 # Argumentos extra para el build de Brave (p. ej. ASan: FLYWEB_EXTRA_ARGS="--is_asan -C StaticAsan" con
 # FLYWEB_OUT=StaticAsan, para no pisar out/Static). Sin ellas, nada cambia.
