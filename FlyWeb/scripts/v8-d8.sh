@@ -76,6 +76,13 @@ if [ -n "$FP16_REV" ] && [ ! -d third_party/fp16/src/.git ]; then
   git -C third_party/fp16/src fetch -q --depth=1 https://github.com/Maratyszcza/FP16 "$FP16_REV"
   git -C third_party/fp16/src checkout -q FETCH_HEAD
 fi
+# fast_float: lo piden las V8 13.x (FS.24).
+FF_REV=$(grep -A1 "'third_party/fast_float/src'" DEPS | grep -o '[0-9a-f]\{40\}' | head -1 || true)
+if [ -n "$FF_REV" ] && [ ! -d third_party/fast_float/src/.git ]; then
+  git init -q third_party/fast_float/src
+  git -C third_party/fast_float/src fetch -q --depth=1 https://github.com/fastfloat/fast_float "$FF_REV"
+  git -C third_party/fast_float/src checkout -q FETCH_HEAD
+fi
 
 # clang de Chromium 116 (la versión exacta de tools/clang/scripts/update.py).
 rev=$(sed -n "s/^CLANG_REVISION = '\(.*\)'/\1/p" tools/clang/scripts/update.py)
