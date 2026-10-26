@@ -104,3 +104,34 @@ Un PR en borrador por grupo, todos a `nube/base-128` e independientes entre sí:
 - `patch --dry-run` sobre ficheros sueltos no compila nada: A no garantiza que el código siga teniendo sentido en la 128
   (por ejemplo, un nombre que cambió).
 - En el grupo S3 hay que leer cada X; son los únicos que piden criterio.
+
+## FS.24: explotados posteriores a la 128 y plan de porte (SEGURIDAD-PORTES-6, 26-10-2026)
+
+Triaje completo en [`cve-triage.md`](cve-triage.md) §0: 16 explotados después de 128.0.6613.138, todos comprobados contra
+el código de la base (V8 13.1.201.22, ANGLE `713102774487`, `.patch` de `-p19`). **Dos aplicaban a la 2.0.0 sin arreglo**,
+y ambos están portados para la 2.0.1:
+
+| Orden | CVE | Por qué ese puesto | Porte (brave-core, sobre `-p19` 4b4bb3cc68) | `.patch` | Horas medidas |
+|---|---|---|---|---|---|
+| 1 | CVE-2026-11645 (V8, objetos) | Explotado; JS normal, en el renderer, **jitless no lo mitiga**; afecta a todos los Mac | `seg6/cve-2026-11645` 45f275a00e: v8 3c869652b0 tal cual + época 16 → 17 | `patches/v8/src-objects-js-objects.cc.patch`, `src-utils-version.h.patch` | ~0,2 h (con triaje) |
+| 2 | CVE-2025-14174 (ANGLE Metal) | Explotado; escritura fuera de límites **en el proceso GPU** (fuera del sandbox del renderer) por WebGL2; solo en 10.15+ (en Mojave, ANGLE va por OpenGL) | 8528639ead (encima): angle 95a32cb37 tal cual | `patches/third_party/angle/src-libANGLE-renderer-metal-TextureMtl.mm.patch` (nuevo) | ~0,2 h |
+
+- **Regla 2:** ninguno cruza con `-p18`/`-p19` de MOTOR-19 (sus cambios son NTP, `config.js`, `gitPatcher.js`, `config.gni`,
+  sync); `patches/v8/` y ANGLE no los toca nadie más.
+- **Regla 17 (arreglos posteriores en el mismo código):**
+  - V8: después de 3c869652b0 no hay más commits con el bug 506689381; su prueba (`regress-crbug-506689381.js`) se pasa
+    en la `d8` 13.1 (abajo).
+  - ANGLE: el mismo bug tiene dos seguimientos. **0be1fe5a48** (12-05-2026) unifica en
+    `computeRowDepthSkipBytes` el cálculo de pitch y saltos para no usar UNPACK_IMAGE_HEIGHT en subidas 2D (14 ficheros,
+    todos los backends): lo motivó un fallo de validación de Metal, y en las rutas 2D de OpenGL (la de Mojave) el
+    `imageBytes` mal calculado no se usa (`computeSkipBytes` sin 3D lo ignora). **No se porta** (limpieza amplia sin
+    escritura fuera de límites demostrada). **29b4d05425** es solo de Vulkan (no se usa en Mac). Lo que queda con
+    `pixelsDepthPitch` en `setPerSliceSubImage` es la ruta PVRTC, que en Mac Intel no se expone (PVRTC solo con GPU
+    de Apple).
+- **Para LOCAL:** compilar la 2.0.1 con los dos commits (bundle por `buzon`). Prueba de humo del ANGLE: WebGL2 en una
+  Mac con Catalina o Monterey (MBP 2015, `about:gpu` con ANGLE Metal): una subida `DEPTH_COMPONENT32F` de 1×512 desde un
+  `PIXEL_UNPACK_BUFFER` con `UNPACK_IMAGE_HEIGHT` = 128 (la prueba `PackUnpackTest.D32FSaturateDepth` de 95a32cb37,
+  pasada a WebGL2) debe dibujar sin errores y sin caída del proceso GPU.
+
+**Lo que no hace falta portar** (§0 de `cve-triage.md`): 9 ya estaban en la 2.0.0 (S1, S2, `patches/v8/`), 5 no aplican o
+están apagados (Windows, ARM64, Maglev, `sort` sin incrustar en la 13.1, WebGPU).
