@@ -1,11 +1,20 @@
 #!/bin/sh
-# Compila FlyWeb (x86_64) con el SDK de macOS 13.3.
+# Compila FlyWeb (x86_64). Base 128 (2.x, por defecto) o 116 (1.x, FLYWEB_BASE=116).
 # Uso: build.sh [Static|Component|Release|Debug]   (por defecto Static)
 #   Static     sin componentes y sin ThinLTO: .app autocontenido para probar en la 6,1/5,1. Uso diario.
 #   Component  .dylib por componente: enlazado incremental muy rápido, solo se ejecuta en la 7,1.
 #   Release    is_official_build (ThinLTO, enlazado lento y con mucha RAM): solo para publicar.
 #
-# Variables opcionales:
+# Variables:
+#   FLYWEB_BASE=128|116                  base de Chromium (por defecto 128 = FlyWeb 2.x). Fija checkout, SDK y depot_tools:
+#                                          128: ~/proyectos/brave-128, SDK 14.5, depot_tools 31e21628, mínimo 10.14, Metal
+#                                          116: ~/proyectos/flyweb-build, SDK 13.3, depot_tools de la 116, rama flyweb
+#   FLYWEB_BRANCH=rama|sha               brave-core que se compila. En 1.x, por defecto flyweb (y la misma rama en
+#                                        brave-browser). En 2.x es obligatoria (p. ej. nube/base-128-motor-p19): brave-browser
+#                                        no se toca (etiqueta de Brave 1.69 del checkout).
+#   FLYWEB_SDK=/ruta, FLYWEB_BUILD=/ruta SDK de macOS y checkout, si no son los de la base.
+#   FLYWEB_METAL_BIN=/ruta/usr/bin/      (solo 2.x) carpeta con metal y metallib para los shaders de ANGLE Metal: la del
+#                                        toolchain de Xcode 15.4 (por defecto ~/proyectos/sdk/Xcode-15.4.app).
 #   FLYWEB_SCCACHE=/ruta/sccache | off   caché de compilación (por defecto, sccache del PATH si existe)
 #   FLYWEB_SERVICES_KEY_FILE=/ruta       clave de servicio para components.flyweb.lamosquita.net (F2.6).
 #                                        Por defecto ~/proyectos/softmac/claves/flyweb-services-key, FUERA
@@ -27,14 +36,28 @@ REPO=$(cd "$(dirname "$0")/../.." && pwd)
 # (dotenv…). En la MacPro7,1 esa variable llega del entorno de la app, no del perfil del shell.
 unset NODE_ENV
 
-# depot_tools fijado al commit del DEPS de Chromium 116: con uno más reciente, su vpython ya no resuelve las
-# dependencias de los hooks de la 116 (p. ej. numpy==1.21.1+supported.1). Y sin autoactualizaciones.
+# depot_tools fijado: con uno más reciente, su vpython ya no resuelve las dependencias de los hooks
+# (116: numpy==1.21.1+supported.1; 128: src/.vpython3 con el vpython de 2026). Y sin autoactualizaciones.
 export DEPOT_TOOLS_UPDATE=0
-DEPOT_TOOLS_PIN=fc75af35d41df6c7742caef751428aa875199990
-
-BUILD="${FLYWEB_BUILD:-$HOME/proyectos/flyweb-build}"
-SDK="${FLYWEB_SDK:-$HOME/proyectos/sdk/MacOSX13.3.sdk}"
-BRANCH="${FLYWEB_BRANCH:-flyweb}"
+BASE="${FLYWEB_BASE:-128}"
+case "$BASE" in
+  116)
+    DEPOT_TOOLS_PIN=fc75af35d41df6c7742caef751428aa875199990
+    BUILD="${FLYWEB_BUILD:-$HOME/proyectos/flyweb-build}"
+    SDK="${FLYWEB_SDK:-$HOME/proyectos/sdk/MacOSX13.3.sdk}"
+    BRANCH="${FLYWEB_BRANCH:-flyweb}"
+    ;;
+  128)
+    DEPOT_TOOLS_PIN=31e21628
+    BUILD="${FLYWEB_BUILD:-$HOME/proyectos/brave-128}"
+    SDK="${FLYWEB_SDK:-$HOME/proyectos/sdk/MacOSX14.5.sdk}"
+    BRANCH="${FLYWEB_BRANCH:-}"
+    [ -n "$BRANCH" ] || { echo "2.x: falta FLYWEB_BRANCH (rama o sha de brave-core, p. ej. nube/base-128-motor-p19)" >&2; exit 1; }
+    METAL_BIN="${FLYWEB_METAL_BIN:-$HOME/proyectos/sdk/Xcode-15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/}"
+    [ -x "${METAL_BIN%/}/metal" ] || { echo "No hay metal en $METAL_BIN (FLYWEB_METAL_BIN)" >&2; exit 1; }
+    ;;
+  *) echo "FLYWEB_BASE: 128 o 116" >&2; exit 1 ;;
+esac
 CONFIG="${1:-Static}"
 
 [ -d "$BUILD/brave-browser/src/brave" ] || { echo "Ejecuta antes setup-build.sh" >&2; exit 1; }
@@ -44,14 +67,18 @@ CONFIG="${1:-Static}"
 # brave-browser: worktree del .git local. src/brave: clon --shared del .git local (ver setup-build.sh).
 [ -d "$BUILD/brave-browser/src/brave/.git" ] || {
   echo "src/brave no es un clon (¿worktree antiguo o borrado?): rehacerlo con setup-build.sh" >&2; exit 1; }
-git -C "$BUILD/brave-browser" checkout -q --detach "$BRANCH"
+# En 2.x brave-browser se queda en la etiqueta de Brave 1.69 del checkout (no tiene rama de FlyWeb).
+[ "$BASE" = 116 ] && git -C "$BUILD/brave-browser" checkout -q --detach "$BRANCH"
 git -C "$BUILD/brave-browser/src/brave" fetch -q origin
-git -C "$BUILD/brave-browser/src/brave" checkout -q --detach "origin/$BRANCH"
+# Una rama de origin o un sha concreto.
+CORE_REF="origin/$BRANCH"
+git -C "$BUILD/brave-browser/src/brave" rev-parse -q --verify "$CORE_REF^{commit}" >/dev/null || CORE_REF="$BRANCH"
+git -C "$BUILD/brave-browser/src/brave" checkout -q --detach "$CORE_REF"
 for dir in "$BUILD/brave-browser" "$BUILD/brave-browser/src/brave"; do
   echo "$(basename "$dir"): $(git -C "$dir" log -1 --format='%h %s')"
 done
 DT="$BUILD/brave-browser/src/brave/vendor/depot_tools"
-if [ -d "$DT/.git" ] && [ "$(git -C "$DT" rev-parse HEAD)" != "$DEPOT_TOOLS_PIN" ]; then
+if [ -d "$DT/.git" ] && [ "$(git -C "$DT" rev-parse HEAD)" != "$(git -C "$DT" rev-parse "$DEPOT_TOOLS_PIN^{commit}" 2>/dev/null)" ]; then
   echo "depot_tools no está en $DEPOT_TOOLS_PIN: lo vuelvo a fijar"
   git -C "$DT" checkout -q "$DEPOT_TOOLS_PIN"
 fi
@@ -192,6 +219,12 @@ else
   SPARKLE=false
   set --
 fi
+# 2.x: mínimo 10.14 (la 128 sube a 10.15 por defecto) y metal/metallib del toolchain de Xcode 15.4 para ANGLE Metal
+# (patches/third_party/angle/…metal-BUILD.gn.patch; sin él, ruta absoluta de otro Mac).
+if [ "$BASE" = 128 ]; then
+  set -- "$@" --gn mac_deployment_target:10.14 --gn mac_min_system_version:10.14 \
+    --gn "flyweb_metal_bin_path:$METAL_BIN"
+fi
 # Argumentos extra para el build de Brave (p. ej. ASan: FLYWEB_EXTRA_ARGS="--is_asan -C StaticAsan" con
 # FLYWEB_OUT=StaticAsan, para no pisar out/Static). Sin ellas, nada cambia.
 if [ -n "${FLYWEB_EXTRA_ARGS:-}" ]; then
@@ -233,7 +266,7 @@ DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 mkdir -p "$OUT"
 cat > "$OUT/flyweb-build-info.txt" <<INFO
 FlyWeb $VERSION ($CONFIG)
-brave-core (flyweb): $CORE_COMMIT
+brave-core ($BRANCH): $CORE_COMMIT
 brave-browser:       $BROWSER_COMMIT
 Chromium:            $CHROMIUM
 Compilado:           $DATE en $(hostname -s)
