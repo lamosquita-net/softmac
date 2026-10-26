@@ -12,6 +12,7 @@ Se pasan con un `d8` de la V8 del nivel que toque (`FlyWeb/v8-revision`), compil
 | `flyweb-groupby-oom.js` | SEGURIDAD | FS.3: `Object.groupBy`/`Map.groupBy` con ~17 millones de grupos lanzan `RangeError`; sin `seg/v8-groupby-contexto`, el proceso cae (SEGV en Release). También se puede pegar en la consola de FlyWeb |
 | `regress-420636529.js` | V8 7bc0a67e (M132-LTS 80600881) | CVE-2025-5419: *store-store elimination* de Turboshaft con una carga indexada |
 | `regress-543557673.js` | V8 36079c36 | CVE-2026-87491: `WasmGetOwnProperty` no debe invocar *getters* (`--sandbox-testing`) |
+| `regress-crbug-506689381.js` | V8 3c869652b0 | CVE-2026-11645: `class C extends Function { [k] = v }` con cambio Smi → Double; en la 13.1.201.22 sin parche cae (`DCHECK` de descriptor fuera de rango), pasa con `-p20` (FS.24). Va en `test/mjsunit/regress/` |
 | `regress-430344952.js` | V8 9a884b1b (M132-LTS 42421010) | `ev\u0061l('var z = 3;')` sigue siendo `eval` (FS.8, nivel 126) |
 
 Las del nivel 126 (FS.8) se copian a `test/mjsunit/regress/` (o `sandbox/regress/`); para los cambios de `kMaxArguments`
