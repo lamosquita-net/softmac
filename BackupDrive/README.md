@@ -23,6 +23,7 @@ cuando caduca (90 días).
 | **Un Mac sube una copia vieja con fecha nueva** | Si el otro lado no había cambiado, la copia vieja se copia, pero la versión buena queda en versiones (recuperable 90 días). Si había cambiado, es un conflicto y se conservan las dos. |
 | **La carpeta aparece vacía o desmontada** (disco externo) | BackupDrive se niega a sincronizar con un lado vacío y no toca nada. |
 | **Borro muchos ficheros de golpe** (más del 10 %) | **Se detiene** sin tocar nada; el perfil sale con ⚠ y un aviso. Si es lo que quieres: `backupdrive-sync.sh --profile "/ruta" --dry-run` para ver qué pasaría y luego `--force`. |
+| **Cambia el contenido de muchos ficheros de golpe** (cifrado por ransomware) | Antes de cada pasada real se hace otra en seco; si en un lado cambia el contenido de **más del 20 % de los ficheros y de más de 50**, no se sincroniza nada y el perfil sale con ⚠ (`blocked`), con aviso en el registro y en la app. Umbrales por perfil: `…|90|20|50` (cuarta y quinta columna). Tras revisar, `--force`. |
 | **Se pierde o se estropea el estado** (`bisync/`) | La pasada siguiente solo copia (lo que falta en un lado se copia; nada se borra) y avisa en el registro. |
 | **Pasan 90 días** | Las versiones más viejas de 90 días se borran (por la fecha del nombre). Es lo único que BackupDrive borra de verdad, y solo dentro de las carpetas de versiones. |
 
@@ -30,6 +31,13 @@ cuando caduca (90 días).
 - Del lado del Mac: `~/Library/Application Support/BackupDrive/versions/<carpeta>-<número>/`.
 - Del lado de Drive: una carpeta **al lado** de la sincronizada, `<carpeta> (versiones)` (p. ej. `Clientes (versiones)`).
   No puede estar dentro: bisync lo prohíbe. Por eso el perfil debe apuntar a una carpeta de Drive, no a la raíz.
+
+**Qué protege y qué no.**
+- Protege del borrado accidental (la copia queda en versiones), del caso de la 5,1 (copia vieja con fecha nueva: la buena queda
+  en versiones o se conservan las dos), de un lado vacío o desmontado, de un borrado masivo y de un cifrado masivo *si el freno salta*.
+- **No protege** si el malware usa la credencial de rclone del Mac (`backupdrive.conf`) para borrar o cifrar directamente en
+  Drive, ni de un cifrado lento por debajo del umbral, ni de las versiones si se borran a mano. Para eso hace falta una **copia
+  fuera de línea**: Time Machine en un disco que se desconecta.
 
 **Cuántos días:** 90 por defecto. Tercera columna del perfil: `/ruta/local|gdrive:Carpeta|180`. Con `0` no caducan nunca.
 
@@ -60,13 +68,17 @@ guarda en versiones.
   fichero a versiones, así que `rclone delete --min-age 90d` borraría hoy la versión de un fichero viejo recién
   sobrescrito. Se lee la fecha del sufijo y solo se borra dentro de las carpetas de versiones; lo que no
   lleva fecha en el nombre no se toca. En Drive se borra de verdad (no a la papelera) para no gastar cuota.
-- Límites: el freno es un porcentaje (bisync no tiene umbral absoluto); en una carpeta pequeña (menos de 10 ficheros)
+- **Freno de modificaciones masivas:** bisync no lo trae; el guion hace antes una pasada `--dry-run`, lee del registro de
+  bisync los ficheros «modified» de cada lado y, si pasan de N y del porcentaje (contado con un listado de ese lado), devuelve
+  `blocked`. Coste: una pasada en seco más por hora. Medido en local con 5 000 ficheros: pasada real sin cambios ~1,0 s,
+  en seco ~0,4 s (disco local contra disco local; con Drive domina la latencia del listado, **por medir en la 6,1**).
+- Límites: el freno de borrados es un porcentaje (bisync no tiene umbral absoluto); en una carpeta pequeña (menos de 10 ficheros)
   borrar uno solo ya lo activa y pide `--force`. Dos pasadas en el mismo segundo comparten sufijo. Drive permite dos
   ficheros con el mismo nombre en una carpeta y rclone se queja: hay que renombrar uno en Drive. Con `--compare` con
   hash, cambiar los ajustes exige un `--resync`.
 - Pruebas: `BACKUPDRIVE_BIN=<rclone> BackupDrive/tests/test-sync-safe.sh` (remoto local de rclone, dos carpetas, sin
   Drive): primera sincronización, borrado deliberado en cada lado, editar en uno y en los dos, el caso de la 5,1,
-  carpeta vacía, freno, estado perdido y caducidad. La CI las ejecuta.
+  carpeta vacía, frenos (borrados y cifrado), estado perdido y caducidad. La CI las ejecuta.
 
 ## Compilar (en el Mac)
 

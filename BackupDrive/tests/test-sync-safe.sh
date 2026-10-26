@@ -16,7 +16,7 @@ MAC="$T/mac"; DRIVE="$T/drive"; VD="$T/drive (versiones)"; VM_ROOT="$T/app/versi
 export BACKUPDRIVE_DIR="$T/app" BACKUPDRIVE_LOG_DIR="$T/logs" BACKUPDRIVE_NOTIFY=0 HOME="$T/home"
 mkdir -p "$MAC" "$DRIVE" "$BACKUPDRIVE_DIR" "$HOME"
 printf '[fake]\ntype = local\n' > "$BACKUPDRIVE_DIR/backupdrive.conf"
-printf '%s\n' "$MAC|fake:$DRIVE|90" > "$BACKUPDRIVE_DIR/profiles"
+printf '%s\n' "$MAC|fake:$DRIVE|90|20|5" > "$BACKUPDRIVE_DIR/profiles"
 printf -- '- .DS_Store\n' > "$BACKUPDRIVE_DIR/filters.txt"
 
 n=0; fails=0
@@ -124,6 +124,24 @@ run
 has "$DRIVE/nuevo.txt" "estado perdido: lo nuevo del Mac sube"; has "$MAC/solo-drive.txt" "estado perdido: lo nuevo de Drive baja"
 has "$DRIVE/f20.txt" "estado perdido: f20.txt (borrado en el Mac) NO se borra en Drive"
 [ "$(count "$DRIVE")" -ge "$before" ] && ok "estado perdido: Drive no pierde ficheros" || fail "estado perdido: Drive perdió ficheros"
+
+# --- 9b. Modificaciones masivas (cifrado): el 50 % de un lado cambia de contenido ---
+run
+k=0
+for f in "$MAC"/*.txt; do
+  [ $((k % 2)) -eq 0 ] && echo "CIFRADO-$k" > "$f"
+  k=$((k + 1))
+done
+run
+[ "$(result)" = blocked ] && ok "cifrado del 50 %: resultado blocked" || fail "cifrado del 50 % ($(result))"
+grep -rl CIFRADO "$DRIVE" >/dev/null 2>&1 && fail "cifrado: Drive recibió ficheros cifrados" || ok "cifrado: Drive intacto"
+grep -rl CIFRADO "$VD" >/dev/null 2>&1 && fail "cifrado: se movieron versiones" || ok "cifrado: ninguna versión movida"
+run --profile "$MAC" --force
+[ "$(result)" = ok ] && ok "con --force sigue" || fail "cifrado con --force ($(result))"
+grep -rl CIFRADO "$DRIVE" >/dev/null 2>&1 && ok "con --force sube" || fail "con --force no sube"
+# el contenido bueno quedó en versiones de Drive
+good=$(grep -rL CIFRADO "$VD" 2>/dev/null | grep -c 'f[0-9]*-[0-9]' || true)
+[ "$good" -ge 1 ] && ok "los originales quedan en versiones" || fail "originales en versiones"
 
 # --- 10. Caducidad: por la fecha del nombre, y solo dentro de las versiones ---
 MV=$(vm); mkdir -p "$VD/dir"

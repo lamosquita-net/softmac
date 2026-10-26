@@ -10,13 +10,17 @@
 #     lo que se sobrescribe también va allí. Las versiones caducan a los N días (90 por defecto) por la fecha del nombre.
 #   - Freno: si una pasada fuera a borrar más del 10 % de los ficheros de un lado (disco desmontado, carpeta vacía),
 #     se detiene sin tocar nada (--max-delete). bisync también se niega a sincronizar con un lado vacío.
+#   - Freno de modificaciones masivas (ransomware: cifra, no borra): antes de cada pasada real se hace una en seco; si en un
+#     lado cambia el contenido de más del 20 % de los ficheros Y de más de 50 (configurable por perfil), no se sincroniza
+#     nada y el perfil queda «blocked». --force lo salta tras revisar.
 #   - Estado perdido o corrupto: la pasada siguiente solo copia y nunca borra (un --resync automático, con backup).
 #   - Documentos nativos de Google (Docs, Hojas): se saltan (--drive-skip-gdocs).
 #
 # Configuración en ~/Library/Application Support/BackupDrive/:
 #   backupdrive.conf   remotos (se crea con: backupdrive --config <esa ruta> config)
-#   profiles           una línea por perfil:  <carpeta local>|<remoto:ruta>[|<días de versiones>]
-#                      (# = comentario; días 0 = las versiones no caducan; el remoto debe llevar una carpeta, no la raíz)
+#   profiles           una línea por perfil:  <carpeta local>|<remoto:ruta>[|<días de versiones>[|<% de cambios>[|<nº de cambios>]]]
+#                      (# = comentario; días 0 = las versiones no caducan; el remoto debe llevar una carpeta, no la raíz;
+#                      % y nº: umbral del freno de modificaciones masivas, 20 y 50 por defecto)
 #   filters.txt        opcional: filtros de rclone comunes a todos los perfiles
 # Versiones: en el Mac, <config>/versions/<carpeta>-<id>/; en Drive, la carpeta «<remoto:ruta> (versiones)» al lado de la
 #   sincronizada (bisync exige que no estén dentro). Estado de bisync en <config>/bisync/; resultado por perfil en state/.
@@ -37,7 +41,7 @@
 #               fichero difiere en los dos lados no hay historia que consultar y se usa el más reciente (--resync-mode
 #               newer), pero el perdedor se guarda en versiones.
 #   --dry-run   no cambia nada (ni caduca versiones)
-#   --force     salta el freno de borrados (solo tras revisar con --dry-run que los borrados son lo que quieres)
+#   --force     salta los frenos de borrados y de modificaciones masivas (solo tras revisar con --dry-run)
 #   --profile   solo el perfil de esa carpeta local
 set -eu
 
@@ -69,6 +73,8 @@ LOG="$LOG_DIR/backupdrive.log"
 LOG_MAX=${BACKUPDRIVE_LOG_MAX:-5242880}
 DEFAULT_DAYS=90
 MAX_DELETE=${BACKUPDRIVE_MAX_DELETE:-10}
+DEFAULT_MOD_PCT=20
+DEFAULT_MOD_N=50
 BISYNC_DIR="$APP_DIR/bisync"
 
 mkdir -p "$APP_DIR" "$LOG_DIR" "$STATE_DIR" "$BISYNC_DIR"
@@ -185,9 +191,14 @@ versions_remote() {
   echo "$r (versiones)"
 }
 
-# bisync de un perfil. Devuelve 0 bien, 1 error, 3 falta la primera sincronización, 4 frenado por borrados.
-sync_profile() { # local remote días
-  ldir=$1; rem=$2; days=$3
+# Cuántos ficheros «modified» (contenido distinto) dice bisync que cambian en un lado, en una pasada en seco ($1 = Path1|Path2).
+mod_count() {
+  sed -n "s/.*$1: *[0-9]* changes: *[0-9]* new, *\([0-9]*\) modified.*/\1/p" "$2" | tail -1
+}
+
+# bisync de un perfil. Devuelve 0 bien, 1 error, 3 falta la primera sincronización, 4 frenado (borrados o modificaciones masivas).
+sync_profile() { # local remote días % nº
+  ldir=$1; rem=$2; days=$3; mpct=$4; mn=$5
   id=$(profile_id "$ldir" "$rem")
   init="$STATE_DIR/$id.init"
   vm="$APP_DIR/versions/$(basename "$ldir")-$id"
@@ -204,8 +215,26 @@ sync_profile() { # local remote días
     --compare size,modtime,checksum --slow-hash-sync-only --create-empty-src-dirs \
     --resilient --recover --max-lock 2h --max-delete "$MAX_DELETE" --conflict-resolve none \
     --backup-dir1 "$vm" --backup-dir2 "$vr" --suffix "-$stamp" --suffix-keep-extension \
-    --drive-skip-gdocs --log-file "$RUN_LOG" --log-level INFO
+    --drive-skip-gdocs --log-level INFO
   [ -f "$FILTERS" ] && set -- "$@" --filters-file "$FILTERS"
+  # Freno de modificaciones masivas: pasada en seco antes de la real (una más por hora).
+  if [ "$RESYNC" = 0 ] && [ "$DRY" = 0 ] && [ "$FORCE" = 0 ] && [ -f "$init" ]; then
+    pre="$WORK/pre.log"; : > "$pre"
+    if "$BIN" "$@" --dry-run --log-file "$pre" </dev/null; then
+      for side in Path1 Path2; do
+        mods=$(mod_count "$side" "$pre"); mods=${mods:-0}
+        [ "$mods" -gt "$mn" ] || continue
+        if [ "$side" = Path1 ]; then root=$ldir; else root=$rem; fi
+        total=$(rc_ lsf -R --files-only "$root" 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$total" -gt 0 ] && [ $((mods * 100 / total)) -gt "$mpct" ]; then
+          log "Modificaciones masivas en $side: $mods de $total ficheros cambian de contenido (umbral $mpct % y $mn)"
+          cat "$pre" >> "$RUN_LOG"
+          return 4
+        fi
+      done
+    fi
+  fi
+  set -- "$@" --log-file "$RUN_LOG"
   [ "$DRY" = 1 ] && set -- "$@" --dry-run
   [ "$FORCE" = 1 ] && set -- "$@" --force
   if [ "$RESYNC" = 1 ]; then
@@ -245,11 +274,13 @@ failed=""
 needs_resync=""
 blocked=""
 matched=0
-while IFS='|' read -r local_dir remote days; do
+while IFS='|' read -r local_dir remote days mod_pct mod_n; do
   case "$local_dir" in ''|'#'*) continue ;; esac
   [ -z "$ONLY" ] || [ "$local_dir" = "$ONLY" ] || continue
   matched=1
   case "$days" in ''|*[!0-9]*) days=$DEFAULT_DAYS ;; esac
+  case "$mod_pct" in ''|*[!0-9]*) mod_pct=$DEFAULT_MOD_PCT ;; esac
+  case "$mod_n" in ''|*[!0-9]*) mod_n=$DEFAULT_MOD_N ;; esac
   if [ -z "$remote" ]; then
     echo "Perfil incompleto: $local_dir" >&2; status=1; failed="$failed $local_dir"
     save_profile "$local_dir" "" skipped 2; write_status running running ""; continue
@@ -261,14 +292,14 @@ while IFS='|' read -r local_dir remote days; do
 
   log "== $(date '+%Y-%m-%d %H:%M:%S') $local_dir <-> $remote (versiones $days días)$([ "$DRY" = 1 ] && echo ', SIMULACIÓN')"
   : > "$RUN_LOG"
-  rc=0; sync_profile "$local_dir" "$remote" "$days" || rc=$?
+  rc=0; sync_profile "$local_dir" "$remote" "$days" "$mod_pct" "$mod_n" || rc=$?
   cat "$RUN_LOG" >> "$LOG"
   case "$rc" in
     0) save_profile "$local_dir" "$remote" ok 0 ;;
     3) status=1; needs_resync="$needs_resync $local_dir"
        save_profile "$local_dir" "$remote" needs-resync 3 ;;
     4) status=1; blocked="$blocked $local_dir"
-       log "FRENADO: la pasada borraría más del $MAX_DELETE % de los ficheros de $local_dir; no se ha tocado nada. Si es lo que quieres: backupdrive-sync.sh --profile \"$local_dir\" --dry-run y luego --force"
+       log "FRENADO: la pasada borraría más del $MAX_DELETE % de los ficheros, o cambiaría el contenido de muchos (¿cifrado?), en $local_dir; no se ha tocado nada. Si es lo que quieres: backupdrive-sync.sh --profile \"$local_dir\" --dry-run y luego --force"
        save_profile "$local_dir" "$remote" blocked 4 ;;
     *) status=1; failed="$failed $local_dir"
        save_profile "$local_dir" "$remote" error "$rc" ;;
@@ -287,7 +318,7 @@ if [ "$status" -eq 0 ]; then
 else
   write_status idle error "$(now)"
   [ -z "$failed" ] || notify "Fallo al sincronizar:$failed. Ver $LOG"
-  [ -z "$blocked" ] || notify "Frenado por seguridad (demasiados borrados):$blocked. No se ha tocado nada."
+  [ -z "$blocked" ] || notify "Frenado por seguridad (borrados o cambios masivos):$blocked. No se ha tocado nada."
   [ -z "$needs_resync" ] || notify "Falta la primera sincronización de:$needs_resync (menú de BackupDrive)"
 fi
 exit $status
