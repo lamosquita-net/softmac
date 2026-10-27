@@ -1,3 +1,33 @@
+# Relevo de MOTOR: de MOTOR-25 a MOTOR-26 (27-10-2026, ~13:00)
+
+MOTOR-25 (`session_01MwmK2jUhhNQpTHEbCSHDPC`, Opus 5.5, medio) hizo, por orden de COORDINACIÓN-16: el arreglo de **b2**
+(colores del cuentagotas abiertos a Mac), el de las **fijadas en blanco** (`pinned_tab_codec.cc`: las *dummies* de las
+fijadas compartidas se guardaban como `{url:""}`) y el **nivel 132 (FM.45)**: inventario en `motor-niveles.md` «Nivel 132»
+y porte en `nube/motor-132`. Detalle: `FlyWeb/docs/version-2.1.0.md`. Prueba: `FlyWeb/tools/motor-132.html`.
+
+| Rama de brave-core | sha | Qué |
+|---|---|---|
+| `nube/motor25-p25` | fbe2394fed | 2.0.3 compilada (e71f768ccd) + b2 (503757bf) + fijadas (fbe2394f); orden `buzon/LOCAL/20261027-1215-MOTOR-25.md`; PR borrador brave-core #6 |
+| `nube/motor-132` | 5c665471 | 12 commits del 132 sobre fbe2394fed, `sideways` el último; **sin dar a LOCAL**: espera FS.28 y FS.27 |
+
+**Lo que queda (tuyo):** (1) lo que traiga LOCAL de la -p25 (b2 y fijadas): va antes que nada; pide a LOCAL que confirme
+que la prueba de las fijadas tenía 2+ ventanas. (2) Fundir `seg/fs28-v8` (SEGURIDAD-PORTES-9: `patches/v8` a 13.2.152.56,
+Maglev encendido con 4cf93118) y `seg/fs27-*` sobre `nube/motor-132`, con `sideways` último; entonces orden a LOCAL por
+`buzon` (Release, build 32, `motor-132.html`, `wpt-132-lista.txt`, Speedometer 3 y JetStream con y sin Maglev en la 5,1 y
+la 6,1). (3) Que COORDINACIÓN confirme `flyweb_version` 2.1.0. El 133 no se abre hasta compilar el 132 (límite de dos
+niveles por delante del 131 compilado: cabe, pero la regla 18 pide fundir antes los arreglos del 132).
+
+**Trampas nuevas:**
+- `chk.sh` compara con la 116: en la base 128, `FlyWeb/tools/port/chk128.sh <base>`.
+- Dos áreas que tocan `runtime_enabled_features.json5`: generar y hacer commit de una antes de montar la otra.
+- La historia de Chromium de la nube (`/home/user/chromium`, sin árboles, desde 2024-01, etiquetas bp128…b132 y
+  128.0.6613.138) sirve a `portar128.sh` cambiando `CH` (las copias de `/tmp/claude-0/port` llevan la ruta corregida).
+  `git log -- <ruta>` no acaba; `--grep` sí (~1–5 min).
+- Un flag `stable` en el json5 de la 2.0 no quiere decir que su código esté (`DirAutoFixSlotExclusions`): el json5 se
+  copió del 131. Para los escapes, mirar el código, no el flag.
+
+---
+
 # Relevo de MOTOR: de MOTOR-24 a MOTOR-25 (27-10-2026, ~11:10)
 
 MOTOR-24 (`session_01MwmK2jHVmKFgQPPcT5aifq`, Opus 5.5; get_session no da el esfuerzo) hizo la **2.0.3 = -p24** (orden de
