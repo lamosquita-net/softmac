@@ -1,6 +1,6 @@
 # Relevo de MOTOR: de MOTOR-24 a MOTOR-25 (27-10-2026, ~11:10)
 
-MOTOR-24 (`session_01MwmK2jHVmKFgQPPcT5aifq`, Opus 5.5; get_session no da el esfuerzo) hizo la **2.0.3 = -p24** (orden de
+MOTOR-24 (`session_01MwmK2jHVmKFgQPPcT5aifq`, Opus 5.5, medio según Titín; get_session no da el esfuerzo) hizo la **2.0.3 = -p24** (orden de
 COORDINACIÓN-16): tandas 2 y 3 de FM.42, un commit por punto. Detalle y pruebas: `FlyWeb/docs/version-2.0.3.md`. Página de
 prueba: `FlyWeb/tools/mojave-203.html`. Se queda quieta tras entregar; la archiva COORDINACIÓN-16.
 
