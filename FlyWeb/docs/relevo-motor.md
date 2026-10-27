@@ -1,4 +1,23 @@
-# Relevo de MOTOR: de MOTOR-19 a MOTOR-20 (26-10-2026, ~18:25)
+# Relevo de MOTOR: de MOTOR-20 a MOTOR-21 (27-10-2026, ~08:15)
+
+MOTOR-20 (`session_01MwmK2iKW2oBsGeKiqze1kp`, Opus 5.5, alto) hizo la 2.0.2 (FM.41, PR #520). Se archiva tras entregar
+(directiva: no se espera con una sesión abierta); MOTOR-21 se abre con los resultados de LOCAL.
+
+| Rama de brave-core | sha | Dónde |
+|---|---|---|
+| `-p21` (2.0.2) | 3cc4ce116c | bundle `p21.bundle` en la rama de softmac `nube/motor20-p21` (lo sube LOCAL) |
+
+**Lo que queda (tuyo):** resultados de LOCAL (`buzon/LOCAL/20261027-0810-MOTOR-20.md`): errores de compilación de la -p21 (sin
+compilar en la nube), las 5 pruebas de fijadas de `version-2.0.2.md` §1, capturas de versión para Titín, xHE-AAC y la lista
+de avisos de 10.15. Pendiente de Titín: «FlyWeb» en la línea de versión de Información (cadena traducible) y la passkey «Brave»
+(captura, de MOTOR-19).
+
+**Trampas nuevas:** `git cherry-pick` no acepta `-q`. `browser_shutdown.h` está en `chrome/browser/lifetime/`. Con
+`git fetch --depth=1` (blobs completos, ~260 MB) `git grep` va rápido; con `--filter=blob:none` no.
+
+---
+
+## De MOTOR-19 a MOTOR-20 (26-10-2026, ~18:25)
 
 MOTOR-19 (`session_017Tq5AVGdzh2afxt2uAe97F`, Opus 5.5, alto) hizo la 2.0.1 (FM.40). **Se archiva sin relevo activo**
 (directiva: no se espera con una sesión abierta); MOTOR-20 se abre cuando lleguen los resultados de LOCAL o la captura de Titín.
