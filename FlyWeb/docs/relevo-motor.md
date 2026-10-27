@@ -1,4 +1,24 @@
-# Relevo de MOTOR: de MOTOR-20 a MOTOR-21 (27-10-2026, ~08:15)
+# Relevo de MOTOR: de MOTOR-21 a MOTOR-22 (27-10-2026, ~09:20)
+
+MOTOR-21 (`session_01MwmK2iH7RJ3swPYaFxtZPn`, Opus 5.5, alto) hizo el inventario FM.42: `FlyWeb/docs/mojave-128.md`.
+**Punto 0:** la línea 263 de `unexportable_key_mac.mm` no se alcanza en Mojave (parche LOCAL-8), así que no hay -p22.
+**No se ha portado nada.** Se archiva tras entregar. MOTOR-22 se abre cuando COORDINACIÓN apruebe la tanda 1 de la 2.0.3.
+
+**Lo que queda (tuyo):** la tanda 1 de `mojave-128.md` sobre la rama de la 2.0.2 que haya fusionado LOCAL. Esta sesión no
+creó ninguna rama de brave-core. Antes de tocar d1–d4, mira lo que diga LOCAL de
+`codesign -d --entitlements :- FlyWeb.app` (fila FM.41). Faltan el registro real de avisos `-Wunguarded-availability` de
+la Release (LOCAL) y saber si la 5,1 es Nehalem o Westmere.
+
+**Trampas nuevas:**
+- **Checkout parcial de Chromium, rápido** (10 s): `git fetch --depth=1 --filter=blob:none origin refs/tags/<tag>` de
+  github.com/chromium/chromium y luego
+  `git sparse-checkout set --no-cone '*.mm' '*_mac.cc' '*_mac.h' '*_apple.cc' '*.gni' '!/third_party/'`. Ocupa ~160 MB
+  y con él `grep -r` va bien. Encima se aplican los parches de bc cuyo fichero exista (59 de la -p21, sin fallos).
+- `chromium.googlesource.com` (`+archive`) da 502 en el proxy y `codeload.github.com`, 403: no insistir.
+
+---
+
+## De MOTOR-20 a MOTOR-21 (27-10-2026, ~08:15)
 
 MOTOR-20 (`session_01MwmK2iKW2oBsGeKiqze1kp`, Opus 5.5, alto) hizo la 2.0.2 (FM.41, PR #520). Se archiva tras entregar
 (directiva: no se espera con una sesión abierta); MOTOR-21 se abre con los resultados de LOCAL.

@@ -196,6 +196,10 @@ son claves ES256 (ECDSA P-256). Opciones:
     vulnerable a «guardar ahora, descifrar después».
     - **Propuesta: fila FS nueva** para portar ML-KEM y el grupo híbrido a la BoringSSL de la 128, más el cambio en
       `net/`.
+    - **Corrección de COORDINACIÓN-15 (27-10):** lo de arriba describe la 128 de upstream. FlyWeb ya porta ML-KEM
+      desde la FS.17 (nivel 131, 1.15), y la base 128 lo lleva desde la -p6 (`coordinacion.md`, `identidad-128.md`). No
+      hace falta una fila nueva: basta con medir el JA4 de la 2.0.x (`X25519MLKEM768`, 0x11EC) con
+      `herramientas/huella-tls.sh`.
     - Coste [E]: 6–12 h, más la prueba contra servidores reales. Es lo que más rinde de esta sección.
   - **Firmas:** los certificados web y WebAuthn (ES256) siguen con ECDSA. ML-DSA (FIPS 204) en COSE tiene solo
     códigos provisionales de IANA (−48/−49/−50) [F]. No hay nada que portar hasta que lo adopten los sitios y las
@@ -237,7 +241,7 @@ Titín las aprueba.
 **Orden que propongo:**
 
 1. El paso 0 ya, porque cuesta 5 minutos y decide lo de ChaCha.
-2. La fila de ML-KEM, por delante del módulo: es una exposición real en la red.
+2. ~~La fila de ML-KEM~~ Ya portado (FS.17, -p6): solo hay que comprobar el JA4 de la 2.0.x (corrección de COORDINACIÓN-15).
 3. El módulo `fw1` en una 2.0.x, sin ChaCha activo.
 4. Apagar el autenticador Touch ID/SE en FM.42.
 
