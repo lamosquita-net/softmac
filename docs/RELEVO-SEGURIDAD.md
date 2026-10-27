@@ -18,8 +18,10 @@ FS.28 (apto con cambios, filas en `TAREAS.md`), punto 3 (HSTS portado; CT → FS
   `nube/motor-132` 50f5d099b (475cb03ab90 + `IgnoreHSTSForLocalhost`).
 - `seg/fs28-v8` b9a044721 sobre 50f5d099b: `patches/v8` para 13.2.152.56 (32 parches, época 19). `seg/v8-13.2`: historia,
   no usar.
-- `seg/v8-13.1-lle` 470b5cc2b sobre fbe2394fed = **2.0.4** (build 32): los 4 arreglos de late load elimination en 13.1,
-  época 18, `flyweb_version` 2.0.4. Orden a LOCAL por `buzon` cuando pase mjsunit (ver fila FS.28).
+- `seg/v8-13.1-lle` 09efe2b30 sobre fbe2394fed: los 4 arreglos de late load elimination en 13.1, época 18,
+  `flyweb_version` 2.0.4. **La 2.0.4 la canceló Titín (27-10):** la rama queda de reserva por si la 2.1.0 se atasca más de
+  2 días. **No está probada en la `d8` 13.1** (se paró la compilación al cancelarse): si se usa, primero `v8-d8.sh` y
+  mjsunit. Los mismos cambios sí pasaron en la 13.2.
 
 **Decisión de Titín (27-10, vía COORDINACIÓN-17):** Maglev se enciende **como tarde en el nivel 134**, con su deuda de
 seguridad portada antes (la lista de ~15 arreglos está en el informe de FS.28: 0313bc72, 22e588df, 73ef2fa5, a7c1a463,

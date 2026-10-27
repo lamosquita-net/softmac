@@ -96,6 +96,14 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Lo apagado se enciende cuando upstream lo lleva de serie** (regla 19, 14-10): Maglev, ISel de Turboshaft, etc.;
   seguir en una ruta que Google ya no prueba sale más caro. SEGURIDAD-PORTES revisa la tabla en cada nivel. Fuente:
   [`TAREAS.md`](TAREAS.md) regla 19.
+- **Sin versiones de seguridad que la siguiente vaya a sustituir** (Titín, 27-10): si un arreglo no explotado se queda obsoleto con
+  el nivel que ya está listo para compilar, no se saca una 1.N.x/2.N.x para él; entra en ese nivel. Caso: la 2.0.4 (4 arreglos de V8 13.1)
+  cancelada por la 2.1.0 (V8 13.2). Reserva: si el nivel se atasca días, se publica la rama de seguridad ya hecha.
+- **Maglev, encendido como tarde en el nivel 134** (Titín, 27-10): apagado acumula deuda de seguridad (arreglos que hay que portar
+  al encenderlo, ~15 hoy) y se aleja de lo que Google prueba (regla 19). Antes de encenderlo, la deuda portada (SEGURIDAD-PORTES)
+  y pruebas de rendimiento con y sin él en la 5,1 y la 6,1; si empeora en la 5,1, vuelve a Titín con el dato. Fila FM.45.
+- **WebGL sin falsear** (Titín, 27-10): en Mojave la cadena del renderizador es la de OpenGL, distinta de la de Chrome 132 en Metal;
+  no se iguala con `ANGLE_GL_RENDERER`. Fuente: `gpu-red-129-132.md` (FM.46).
 - **Finch: lo que Chrome cambia por configuración de campo no está en el código** (15-10 y 20-10): la referencia es lo
   que expone el Chrome for Testing N y el json5 de la Brave del nivel, no `runtime_enabled_features`
   (MutationEvents, `KeyboardFocusableScrollers`). Fuente: [`coordinacion.md`](../FlyWeb/docs/coordinacion.md), «Trampas».
@@ -118,8 +126,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Nunca en el repo: tokens, contraseñas, certificados** (regla 5). Fuente: [`TAREAS.md`](TAREAS.md).
 - **ns1 y ns2, de uno en uno** (regla 10): fail2ban banea la IP de la oficina; PUBLICACIÓN y SERVIDOR-LOCAL nunca a la vez.
   Fuente: [`TAREAS.md`](TAREAS.md).
-- **Reescribir una rama (force push) necesita el sí explícito del HUMANO**, aunque la rama sea tuya. Fuente:
-  [`TRAMPAS.md`](TRAMPAS.md), «De fondo».
+- **Reescribir una rama (force push) necesita el sí explícito del HUMANO**, aunque la rama sea tuya. **Excepción (Titín,
+  27-10):** en las ramas `nube/*` propias se permite mientras nadie parta de ellas (ni rama encima ni orden de compilación
+  con ese sha). Fuente: [`TRAMPAS.md`](TRAMPAS.md), «De fondo».
 - **No buscar otro canal si la plataforma bloquea uno** (20-10): p. ej. `elevated_session_untrusted_device`; lo decide
   Titín. Fuente: [`coordinacion.md`](../FlyWeb/docs/coordinacion.md), «Agentes y cómo hablarles».
 
