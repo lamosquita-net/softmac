@@ -36,7 +36,7 @@ LOCAL-13 («Compilación Local (13)», `local_427af046-7b29-490a-b38e-722fa5185e
    - Speedometer base ya medido: 5,95 / 6,03 / 5,65 (pico de un renderer 624 MB).
    - JetStream 3.0: **nunca la lista de pruebas en la URL** (da 403). `local13/bench61.py` filtra en la página (`FUERA` en el entorno).
      Chrome 132 no corre: web-ssr, prismjs-startup-es6, mobx-startup, jsdom-d3-startup, babylonjs-startup-es6 (`RegExp.escape`, 136),
-     dotnet-interp-wasm y dotnet-aot-wasm (`exnref`). La criba con CfT 132 (`local13/js-criba.py`, `js-criba.nohup`) sigue al relevar;
+     dotnet-interp-wasm y dotnet-aot-wasm (`exnref`). La criba con CfT 132 (`local13/js-criba.py`, `js-criba.nohup`) **se cayó al relevar** (21:20: una evaluación por CDP sin respuesta en 900 s con JetStream corriendo; quizá una prueba que cuelga la página en `--headless=new`): mirar en qué prueba se queda (`.benchmark-running`) y añadirla a la lista o probar sin `--headless`… con cuidado de no robar el foco;
      cuando escriba `FUERA=[…]`, lanzar `nohup zsh local13/maglev61-alt.sh > maglev61-alt.nohup 2>&1 &` (5 rondas alternas; al final
      imprime mediana y rango). Necesita la 6,1 libre ~2 h: preguntárselo a Titín antes.
    - La **5,1** sigue sin acceso remoto (guía de LOCAL-5 en `entregas/acceso-51`): pendiente de Titín.
