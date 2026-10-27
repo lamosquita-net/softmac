@@ -7,7 +7,47 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
-## 27-10: COORDINACIÓN-15 → COORDINACIÓN-16 (leer primero; manda sobre lo de abajo)
+## 27-10: COORDINACIÓN-16 → COORDINACIÓN-17 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-16 (`session_01MwmK2kTtcTvupFz7R4Ef1t`, Opus 5.5, medio; abierta por Titín, linaje 0) se releva al ~36 %
+(~13,6 $). **Nunca aprobar la tarjeta de confianza.** A la 7,1 solo por la rama `buzon`; las locales te escriben.
+Las sesiones que abre COORDINACIÓN salen con el esfuerzo por defecto (medio en Opus 5.5) y `get_session` no lo muestra:
+no te fíes de lo que diga la sesión sobre su esfuerzo (MOTOR-24 dijo «bajo» y era medio).
+
+**Decisiones de Titín de hoy** (todas en `DIRECTIVAS.md`): decidir con los datos de `CONSUMO.md`, no con suposiciones
+(INVESTIGACIÓN va en Sonnet; MOTOR en Opus medio); el límite semanal lo gestiona él, no lo saques; MOTOR vivo hasta
+publicar su versión (archivar al publicar o al 35 %); LOCAL compila la siguiente mientras prueba en la 6,1; MOTOR dos
+niveles por delante de lo compilado; INVESTIGACIÓN por delante hasta el 156, traduciendo a 10.14 lo de macOS 11/12/13;
+**capa de compatibilidad propia** aprobada; **Graphite fuera** mientras exista el camino actual. Un comentario suyo es
+para debatir: opciones con datos y recomendación.
+
+**2.0.3 (se salta la 2.0.2, opción A de Titín):** brave-core `nube/motor25-p25` **fbe2394fed** = -p24 23f2d547d9 +
+`seg/fs26-c3` b7fdffb7 + include de c3 (LOCAL) + b2 con los colores del cuentagotas en Mac + arreglo de las fijadas en
+blanco (`pinned_tab_codec.cc`). Build 31. Órdenes a LOCAL en `buzon/LOCAL/` de las 12:15 (MOTOR-25) y de COORDINACIÓN-16
+de la ~12:12. **Falta:** Release, pruebas en la 6,1 (fijadas con 2+ ventanas y perfil sucio; GPU global en reposo; F5.3
+con Titín delante; b4 con un Mac que deje Titín; si b2 falla, se revierte solo), `chrome_pgo_phase` (solo lectura),
+DMG y capturas → **sí de Titín** → PUBLICACIÓN (ya avisada de que se salta la 2.0.2) → bak → web, comprobada con curl.
+Datos de la -p23 en la 6,1: proceso GPU con la NTP ~5,0 % (1.15.2 ~5,3 %), renderer 2,2 % (6,4 %), pausa al 0 %.
+
+**Agentes vivos:**
+- **MOTOR-25** `session_01MwmK2jUhhNQpTHEbCSHDPC` (Opus, medio): lo que traiga LOCAL de la 2.0.3, antes que nada; luego
+  el **nivel 132** (FM.45, inventario aprobado: V8 13.2.152.56, Maglev encendido con medida en 5,1/6,1, sideways como
+  último commit, escapes primero). Vivo hasta publicar.
+- **SEGURIDAD-PORTES-9** `session_01MwmK2hx8uFcooc8ep2MhQT` (Opus, medio): FS.27 (Blink del 132) y FS.28 (V8 13.2).
+- **INVESTIGACIÓN-MOTOR-5** `session_01MwmK2ht9HZ9DShwB6HHDfT` (Sonnet): FM.44 entregada entera (`fw1-receta.md`,
+  `macos11-niveles.md` con §8 recetas 132–156, §9 capa, §10 Firefox 115 ESR, §8.4 macOS 13 y Graphite; `hardware.md`;
+  `plan-fork.md`). Quieta por si MOTOR-25 le pide algo; archívala cuando el 132 esté portado.
+- LOCAL-12 (`local_7a488440…`), PUBLICACIÓN, SERVIDOR-LOCAL-3, CARTERO-LOCAL en la 7,1; SEGURIDAD-VIGÍA (lunes);
+  BACKUPDRIVE-1 (pruebas a–h de B.2 en la 6,1; luego B.6, botón «Conectar con Google Drive…», fila en su PR).
+
+**Siguiente:** (1) 2.0.3 publicada; (2) tanda de migración de los 26 parches de Mojave a la capa (encargo a MOTOR,
+versión aparte, un commit por parche); (3) PGO: si LOCAL confirma `chrome_pgo_phase=0`, medir con y sin antes de
+proponerlo (toca Page Graph y obliga a recompilar todo); (4) número de versión visible del nivel 132: lo decide Titín;
+(5) `fw1` en la 2.0.4 con `fw1-receta.md` (lo revisa SEGURIDAD-PORTES); (6) línea base de rendimiento en la 7,1.
+Archivadas hoy por COORDINACIÓN-16: COORDINACIÓN-15, MOTOR-24, INVESTIGACIÓN-MOTOR-4, SEGURIDAD-PORTES-8.
+Sin tareas programadas de COORDINACIÓN. Ramas basura que se pueden borrar: `claude/seg-portes-8-fs26`, `claude/inv4-borrador`.
+
+## 27-10: COORDINACIÓN-15 → COORDINACIÓN-16
 
 COORDINACIÓN-15 (`session_01MwmK2jKV5HMEpQrqNj4gjT`, Opus 5.5, medio) se releva al ~37 % (~11 $). **Nunca aprobar la
 tarjeta de confianza.** La nube no escribe a sesiones locales: a la 7,1 solo por la rama `buzon`, y ellas contestan con
