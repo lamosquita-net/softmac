@@ -3,6 +3,57 @@
 Nota de relevo del agente LOCAL de FlyWeb (compila, prueba y lleva `flyweb`). La deja cada LOCAL al salir; el siguiente
 la lee después de `CLAUDE.md` y de `docs/TAREAS.md` (tabla, reglas y filas FM/FS abiertas).
 
+## LOCAL-13 → LOCAL-14 (27-10-2026)
+
+LOCAL-13 («Compilación Local (13)», `local_427af046-7b29-490a-b38e-722fa5185e15`; Opus 5.5 medio, modo auto, Remote Control;
+27-10 ~14:10 – ~21:15). Relevo al 41 %. Guiones en `~/proyectos/softmac/temp/local13/`; worktree propio en `temp/local13/wt`.
+**Canales:** COORDINACIÓN-18 («Coordinación (18)», `session_01MwmK2kpAkjPBYo89FV7qEV`) por `SendMessage`; MOTOR-26
+(`session_01MwmK2ifjhdhoUu5VEpAigY`) recibe los errores vía COORDINACIÓN. PUBLICACIÓN = «Publicación» (local).
+
+### Hecho
+
+- **2.0.4 cancelada** (Titín): sus arreglos de V8 13.1 los sustituye la 13.2.
+- **2.1.0 = nivel 132 ENTREGADA y publicada** (FM.45): brave-core `local/2.1.0-arreglos` **5f2c1e51**, build 32. Arreglos de LOCAL-13
+  sobre 78eb79e8: 843cac4f (14 errores de compilación) y 5f2c1e51 (`<progress>` vertical al revés por `sideways`). Pruebas en FM.45.
+- **2.1.1 compilada, SIN PROBAR** (FM.48 + FM.47, orden `buzon/LOCAL/20261027-1918-MOTOR-26.md` y matiz `…-1920-COORDINACION-18`):
+  brave-core `local/2.1.1-arreglos` **7078c241** (= `nube/motor-211` 33a978bd + `c_str()` en `root_store_tool.cc`), **build 33 =
+  169.168.33**, 0 errores. App y DMG de prueba en `entregas/FlyWeb-2.1.1-release/`; también en `out/Release`.
+- FM.47: «Futura Book Oblique» está en `~/Library/Fonts/Futura 1` de la 7,1 (Type 1 de 1991, todo en el resource fork; hay
+  `Futura 2`); el `Futura.ttc` del sistema no la tiene. Ya enviado a COORDINACIÓN.
+
+### PARA LOCAL-14: pendiente, por orden
+
+1. **WPT 132 de la 2.1.1** (en marcha al relevar, `temp/local13/wpt132-211.nohup`, sin ventana en la 7,1, ~40 min): comparar
+   `wpt132-fw211.json` con `wpt132-fw210.json` (mismo script de comparación que en `wpt132-dif.txt`): los 11 escapes en verde y el
+   resto igual. Servidor WPT del 132 en el **8121** (`temp/wpt132`, PID en `temp/wpt132-http.pid`).
+2. **Resto de pruebas de la 2.1.1** (orden de MOTOR-26, puntos 1–5): copiar a la 6,1 con `local13/copia61-210c.sh` cambiando la ruta
+   del DMG (`FlyWeb-2.1.1-release/FlyWeb-2.1.1-prueba.dmg`); **LuLu**: lanzarla y dejarla abierta (`local13/espera-lulu*.sh`, MAXSEG
+   alto) y avisar a Titín en una línea; nunca cerrarla al minuto. `net-export` (CT `build_timely`), certificados Entrust/Chunghwa/NetLock,
+   `d8` + mjsunit (compilar `d8` en `out/Release`), motor-132, Futura en la 7,1 sin ventana (CfT y FlyWeb `--headless=new`), y una
+   pasada en la 6,1. **Sin sí de Titín** (Futura no es interfaz, COORDINACIÓN-18): si todo va bien, la entrega en FM.48 es la orden de
+   publicar.
+3. **Maglev en la 6,1** (orden `…-1420-COORDINACION-17` y `…-1909-COORDINACION-18`: 5 pasadas por modo, alternando, mediana y rango):
+   - Speedometer base ya medido: 5,95 / 6,03 / 5,65 (pico de un renderer 624 MB).
+   - JetStream 3.0: **nunca la lista de pruebas en la URL** (da 403). `local13/bench61.py` filtra en la página (`FUERA` en el entorno).
+     Chrome 132 no corre: web-ssr, prismjs-startup-es6, mobx-startup, jsdom-d3-startup, babylonjs-startup-es6 (`RegExp.escape`, 136),
+     dotnet-interp-wasm y dotnet-aot-wasm (`exnref`). La criba con CfT 132 (`local13/js-criba.py`, `js-criba.nohup`) sigue al relevar;
+     cuando escriba `FUERA=[…]`, lanzar `nohup zsh local13/maglev61-alt.sh > maglev61-alt.nohup 2>&1 &` (5 rondas alternas; al final
+     imprime mediana y rango). Necesita la 6,1 libre ~2 h: preguntárselo a Titín antes.
+   - La **5,1** sigue sin acceso remoto (guía de LOCAL-5 en `entregas/acceso-51`): pendiente de Titín.
+4. Al entregar cada versión, tokens a COORDINACIÓN para `CONSUMO.md`.
+
+### Trampas nuevas
+
+- Los guiones de Release dejan `src/brave` en *detached HEAD*: un arreglo commiteado ahí **no mueve la rama**. Crear la rama
+  (`git switch -c local/…`) antes del commit o `git branch -f` después, y comprobar con `git ls-remote` que GitHub la tiene
+  (pasó con 5f2c1e51, que COORDINACIÓN-18 no encontraba).
+- Para la ruta de `brave-core` nueva: `git --git-dir=…/brave-core.git branch -f <rama> origin/<rama>` (el clon de compilación hace
+  `fetch` de `refs/heads` del bare, no de `refs/remotes`).
+- FlyWeb en la 7,1 sin ventana dibuja los controles en gris (acento del sistema): comparar con la versión anterior, no solo con CfT.
+- En CfT `--headless=new`, una pestaña nueva abierta por `/json/new` queda en segundo plano y JetStream no se prepara:
+  `Page.bringToFront`. Y subir el tiempo de espera del socket (900 s): JetStream bloquea la página más de 60 s.
+- Capturas con el cursor real encima de un control (6,1 en uso) cambian su color de «hover»: repetir antes de dar un fallo.
+
 ## LOCAL-12 → LOCAL-13 (27-10-2026)
 
 LOCAL-12 («Compilación Local (12)», `local_7a488440-035b-42b9-a205-84fa21886743`; Opus 5.5 medio, modo auto, Remote Control, plan Max;
