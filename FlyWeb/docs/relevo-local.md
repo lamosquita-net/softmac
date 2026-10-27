@@ -3,6 +3,52 @@
 Nota de relevo del agente LOCAL de FlyWeb (compila, prueba y lleva `flyweb`). La deja cada LOCAL al salir; el siguiente
 la lee después de `CLAUDE.md` y de `docs/TAREAS.md` (tabla, reglas y filas FM/FS abiertas).
 
+## LOCAL-12 → LOCAL-13 (27-10-2026)
+
+LOCAL-12 («Compilación Local (12)», `local_7a488440-035b-42b9-a205-84fa21886743`; Opus 5.5 medio, modo auto, Remote Control, plan Max;
+27-10 ~11:30 – ~14:45). Relevo al 34 % en punto limpio: nada compilando, sin procesos de prueba en la 6,1. Guiones en
+`~/proyectos/softmac/temp/local12/`; worktree propio en `temp/local12/wt` (nunca `checkout` en la carpeta compartida). **Canales:**
+COORDINACIÓN-16 («Coordinación (16)», `session_01MwmK2kTtcTvupFz7R4Ef1t`) por `SendMessage`; la -15 está archivada (da 409).
+PUBLICACIÓN = «Publicación» (local). MOTOR-25 (`session_01MwmK2jUhhNQpTHEbCSHDPC`) recibe los errores de compilación, vía COORDINACIÓN.
+
+### Hecho
+
+- **2.0.2 (-p23 17e7858669, build 30)**: Release y pruebas en la 6,1 (mosca visible, GPU de la NTP ≤ 1.15.2, versión visible sin
+  Brave/Chromium). **No se publica** (Titín, opción A): va dentro de la 2.0.3.
+- **2.0.3 = -p25 fbe2394fed (build 31) ENTREGADA a PUBLICACIÓN** con el sí de Titín (FM.42). Camino: -p24 23f2d547d9 + `seg/fs26-c3`
+  b7fdffb72a; b2 no compilaba (colores del cuentagotas solo con `USE_AURA`) → revert y vuelta de MOTOR-25 con los colores en Mac;
+  c3 tenía un include de `public/common` en vez de `public/platform` (arreglo de LOCAL, e71f768ccd; rama `local/2.0.3-p24-sin-b2`);
+  fijadas sin rellenos vacíos (fbe2394fed). App sin firmar y DMG de prueba en `entregas/FlyWeb-2.0.3-p25-release/`.
+- Pruebas de la 2.0.3 en la 6,1: c3, c5, fijadas (también con perfil sucio), GPU, y a mano con Titín b2, b3, b6, F5.3, a2 (cámara USB)
+  bien; c4 sin insignia. **b4 sin probar**: no queda ningún Mac con Mojave en el que FlyWeb no haya pedido la ubicación (el MacBook Pro
+  es Monterey: no sirve para el camino de 10.14).
+- La Release va **sin PGO** (`chrome_pgo_phase=0` en `out/Release/args_generated.gni`); decidir activarlo es aparte.
+
+### PARA LOCAL-13: pendiente, por orden
+
+1. **2.0.4 solo de seguridad, build 32** (orden `buzon/LOCAL/20261027-1310-MOTOR-25.md`): *late load elimination* de V8 13.1, de
+   SEGURIDAD-PORTES-9. **Aún sin rama ni orden propia**: esperarla por el buzón. Copiar `temp/local12/release-p25.sh` (SHA, rama del
+   `fetch`, `BUILDNO`, carpeta de entregas).
+2. **Nivel 132, build 33** (`…-1305-MOTOR-25.md` y su corrección de las 13:10): `nube/motor-132` d834dffe, V8 13.2 (el checkout de V8
+   cambia de rama), `flyweb_version` 2.1.0 pendiente de Titín. Si `sideways` no compila y no es de una línea: revert de ec4d3b86 y
+   fbe98109, en ese orden.
+3. d11 (entitlements de la 2.0.3 firmada) lo mira PUBLICACIÓN al firmar.
+4. Línea base de rendimiento en la 7,1 con la 2.0.1 (`temp/local11/bench/`; JetStream sin web-ssr esperando a `JetStream.isReady`;
+   solo con Titín 10 min inactivo).
+
+### Trampas nuevas
+
+- **No me dejaron parar una compilación propia** (el clasificador lo bloquea): si cambia la cabeza a mitad, dejarla acabar y hacer una
+  segunda pasada incremental corta.
+- Al revertir un commit con un parche que **crea** un fichero de Chromium: antes de `apply_patches`, restaurar a mano los ficheros que
+  tocaba (`git -C src checkout -- …`), borrar el creado y sus `.patchinfo`.
+- Por CDP (pestaña de `/json/new`), EyeDropper, Pointer Lock y `getScreenDetails` fallan aunque el navegador esté bien: se prueban a mano.
+  OPFS no funciona en `file://`; servir la página en `http://127.0.0.1:8125` (servidor de `temp/local4/web`, reenviado con `-R` por
+  `local8/en-61-gpu.sh`).
+- Cada binario nuevo en la 6,1 queda sin red hasta que Titín lo aprueba en LuLu; el síntoma es `Page.navigate` colgado (la -p23 cargaba,
+  la -p24/-p25 no).
+- La 6,1 tiene cámara USB («Creative Live! Cam Sync 1080p V2») si Titín la conecta.
+
 ## LOCAL-11 → LOCAL-12 (27-10-2026)
 
 LOCAL-11 («Compilación Local (11)»; Opus 5.5 medio, modo auto, Remote Control, plan Max; 26-10 ~19:45 – 27-10 ~11:30). Relevo hacia el
