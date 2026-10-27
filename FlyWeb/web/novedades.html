@@ -22,6 +22,41 @@ llamamos <em>nivel de motor</em>: la 1.1 tiene el de Chrome 117, la 1.2 el de Ch
 nivel. Las versiones con un tercer número (por ejemplo la 1.7.1 o la 1.8.1) añaden correcciones o mejoras sobre el nivel
 anterior. El nivel de tu versión aparece en <code>flyweb://settings/help</code>.</p>
 </div></section>
+<section class="banda blanca"><div class="columna" id="v2-0-3">
+<h2>FlyWeb 2.0.3 · pestañas fijadas, llaves de acceso y mejoras en Mojave</h2>
+<p class="dato">Incluye lo de la 2.0.2, que no llegó a publicarse.</p>
+<ul>
+  <li><strong>Pestañas fijadas.</strong> Con «Pestañas fijadas compartidas» y dos o más ventanas, la 2.0 perdía las fijadas al
+  cerrar FlyWeb y, con «Continuar donde lo dejaste», una salía repetida. Arreglado.</li>
+  <li><strong>Versión.</strong> «Información de FlyWeb» muestra solo la versión de FlyWeb y su motor: «2.0.3 (motor 131)». Los
+  proyectos en los que se basa siguen reconocidos en <code>flyweb://credits</code>.</li>
+  <li><strong>Llaves de acceso (passkeys) y Touch ID.</strong> FlyWeb ya no guarda llaves de acceso en el chip de seguridad del
+  Mac ni usa Touch ID, en ningún Mac. Las versiones publicadas no podían guardarlas ahí, así que no hay que hacer nada. Si en
+  Ajustes › Autocompletar › Gestionar llaves de acceso ves alguna antigua que ya no funcione, bórrala y vuelve a registrarla
+  en esa web. Siguen funcionando el teléfono (código QR), las llaves de seguridad USB/NFC y los gestores de contraseñas con
+  llaves de acceso (por ejemplo, Bitwarden o KeePassXC). Para ver las contraseñas guardadas, FlyWeb pide la contraseña del
+  Mac, no la huella.</li>
+  <li><strong>Mejor en Mojave.</strong> Lo que la base nueva solo hacía en macOS 10.15 o posterior vuelve a funcionar en 10.14:
+    <ul>
+      <li>El audio en tiempo real (llamadas, Web Audio, reproducción) vuelve al modo de FlyWeb 1.x, para evitar cortes.</li>
+      <li>Las webs de videollamada pueden compartir la pantalla sin pedir un permiso de «Grabación de pantalla» que Mojave no tiene.</li>
+      <li>«Copiar texto de la imagen» ya no aparece en Mojave, porque macOS 10.14 no sabe reconocer texto en imágenes (antes
+      aparecía y no copiaba nada). En macOS 10.15 o posterior sigue igual.</li>
+      <li>El cuentagotas de las webs (editores de imagen y de diseño) vuelve a abrir la lupa para elegir un color de la pantalla.</li>
+      <li>Las webs que hacen fotos fijas con la cámara (no vídeo) vuelven a poder hacerlas.</li>
+      <li>Las webs que guardan ficheros en el almacenamiento privado del navegador (por ejemplo, SQLite en la web) y los editores web
+      dejan de fallar al acortar o alargar ficheros.</li>
+      <li>Los juegos que capturan el ratón pueden pedir el movimiento sin aceleración, como en macOS 10.15.</li>
+      <li>Las webs que colocan ventanas en varios monitores ven el nombre de cada uno.</li>
+      <li>Ubicación: el aviso de permiso dice si la ubicación del Mac está activada, y el diálogo de macOS para dar permiso a
+      FlyWeb sale cuando una web la pide por primera vez.</li>
+      <li>La insignia «Nuevo» de los menús ya no sale del revés y las listas de fuentes de Ajustes no muestran fuentes internas del sistema.</li>
+    </ul></li>
+  <li><strong>Mosca de la nueva pestaña.</strong> Vuelve a verse volando por la página, como en FlyWeb 1.x (desde la 2.0.0 quedaba
+  oculta detrás del fondo). Ahora la mueve la tarjeta gráfica sin ocupar el procesador, se para cuando la pestaña o la ventana
+  no se ven y, si «Reducir movimiento» está activado en Ajustes del Sistema › Accesibilidad, se queda quieta posada.</li>
+</ul>
+</div></section>
 <section class="banda blanca"><div class="columna" id="v2-0-1">
 <h2>FlyWeb 2.0.1 · seguridad</h2>
 <ul>
@@ -29,8 +64,8 @@ anterior. El nivel de tu versión aparece en <code>flyweb://settings/help</code>
   (CVE-2026-11645) y otra del dibujo por Metal en macOS 10.15 y posteriores (CVE-2025-14174).</li>
   <li><strong>Sin el aviso falso de «No se puede actualizar FlyWeb»</strong>, que la 2.0.0 mostraba aunque estuviera al día.</li>
   <li><strong>Página de nueva pestaña como en la 1.15:</strong> las estadísticas vuelven a leerse bien sobre todos los fondos.</li>
-  <li><strong>Problema conocido:</strong> con varias ventanas y las pestañas fijadas compartidas entre ventanas, las fijadas
-  pueden perderse al cerrar. Mientras sale la 2.0.2, apaga esa opción en Ajustes.</li>
+  <li><strong>Problema conocido (arreglado en la 2.0.3):</strong> con varias ventanas y las pestañas fijadas compartidas entre
+  ventanas, las fijadas podían perderse al cerrar.</li>
 </ul>
 </div></section>
 <section class="banda blanca"><div class="columna" id="v2-0-0">
