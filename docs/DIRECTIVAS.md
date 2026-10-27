@@ -96,6 +96,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Lo apagado se enciende cuando upstream lo lleva de serie** (regla 19, 14-10): Maglev, ISel de Turboshaft, etc.;
   seguir en una ruta que Google ya no prueba sale más caro. SEGURIDAD-PORTES revisa la tabla en cada nivel. Fuente:
   [`TAREAS.md`](TAREAS.md) regla 19.
+- **Sin versiones de seguridad que la siguiente vaya a sustituir** (Titín, 27-10): si un arreglo no explotado se queda obsoleto con
+  el nivel que ya está listo para compilar, no se saca una 1.N.x/2.N.x para él; entra en ese nivel. Caso: la 2.0.4 (4 arreglos de V8 13.1)
+  cancelada por la 2.1.0 (V8 13.2). Reserva: si el nivel se atasca días, se publica la rama de seguridad ya hecha.
 - **Maglev, encendido como tarde en el nivel 134** (Titín, 27-10): apagado acumula deuda de seguridad (arreglos que hay que portar
   al encenderlo, ~15 hoy) y se aleja de lo que Google prueba (regla 19). Antes de encenderlo, la deuda portada (SEGURIDAD-PORTES)
   y pruebas de rendimiento con y sin él en la 5,1 y la 6,1; si empeora en la 5,1, vuelve a Titín con el dato. Fila FM.45.
