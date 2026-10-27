@@ -3,6 +3,57 @@
 Nota de relevo del agente LOCAL de FlyWeb (compila, prueba y lleva `flyweb`). La deja cada LOCAL al salir; el siguiente
 la lee después de `CLAUDE.md` y de `docs/TAREAS.md` (tabla, reglas y filas FM/FS abiertas).
 
+## LOCAL-11 → LOCAL-12 (27-10-2026)
+
+LOCAL-11 («Compilación Local (11)»; Opus 5.5 medio, modo auto, Remote Control, plan Max; 26-10 ~19:45 – 27-10 ~11:30). Relevo hacia el
+40 %. Guiones en `~/proyectos/softmac/temp/local11/`. **Canales:** COORDINACIÓN-15 («Coordinación (15)», `session_01MwmK2jKV5HMEpQrqNj4gjT`)
+por `SendMessage` (una vía; la nube contesta por el buzón). COORDINACIÓN-14 está archivada: no escribirle. Encargos por Cartero-Local
+(a veces llegan con una hora de retraso: mirar la hora del fichero; los mensajes posteriores pueden anular a los anteriores).
+
+### Hecho
+
+- **2.0.1 = Release -p20** 8528639ead (169.168.29): entregada (FM.40, #517) y **en el appcast**. Sparkle actualizó solo el FlyWeb de /Applications de
+  la 7,1: descargó a las 09:29 e instaló al cerrar, a las 09:39 (firma y notarización bien). Así quedó hecha la prueba (e) de FM.40 (falta
+  apuntarlo en la fila).
+- FM.40: fijadas (fallo de la 2.0 con compartidas y 2+ ventanas, #516); halo resuelto en la 2.0.1; ANGLE Metal en la 7,1 sin diferencia
+  -p17/-p20 por WebGL (#518). Entitlements de la 2.0.1 firmada: solo `device.*` y `personal-information.*`, **sin `keychain-access-groups`**
+  (para FM.41/FM.42).
+- **FM.43 (GPU de la 6,1):** la carga alta era de FreeFileSync. Con la NTP, el proceso GPU gasta ~9 % de CPU en -p17, -p19 y -p20, y ~5 % en la
+  1.15.2; con about:blank, 0 %. **La mosca de la NTP sigue en el DOM y animándose, pero tapada por `StyledPage` desde la 2.0.0** (capturas
+  en la carpeta de entregas, `FM43-ntp-mosca/`). Arreglo para MOTOR-23 (lo decide COORDINACIÓN-15).
+- -p21 3cc4ce116c (2.0.2) subida a brave-core (padres comprobados) y **Release en `out/Release`** con `release-p21.sh` (build 30, desde
+  las 11:05; DMG de prueba en `FlyWeb-2.0.2-p21-release/`).
+
+### PARA LOCAL-12: pendiente
+
+1. **-p21 (FM.41, orden `buzon/LOCAL/20261027-0810-MOTOR-20.md`):** ver el final de `release-p21.nohup`. Pruebas en la 6,1:
+   (a) fijadas con la extensión de prueba (`pin61.sh`/`pin61.py` y `pinext/`; la de la -p17 está en FM.40, nota de las 20:10), también con
+   Cmd+Q real y Cmd+Shift+W; (b) capturas de «Información de FlyWeb» y `flyweb://version`, antes y después; (c) xHE-AAC; (d) **ya hecho**:
+   30 usos de APIs de 10.15 en `avisos-10.15-p17.txt`; la línea 263 de `unexportable_key_mac.mm` no se alcanza (COORDINACIÓN-15 y MOTOR-21).
+   **Regla nueva:** GPU en reposo 2 min con la NTP y con about:blank (`gpu61reposo.sh`, cambiando los casos), con un control a 0–1 % antes.
+   **No entregar la -p21** hasta la orden de COORDINACIÓN-15 (FM.43); además, lo visible necesita el sí de Titín (regla 11, #532): DMG de prueba y capturas
+   antes/después.
+2. **-p22 (2.0.3, FM.42, `…-0917-MOTOR-22.md`):** después de la -p21, nunca en paralelo.
+3. **Línea base en la 7,1** (`bench/bench71.sh`, `SECS=sp,js,mm`): FlyWeb de /Applications (ya es la 2.0.1), PA271W (−2560,0) a 60 Hz, perfil
+   temporal. Hecho: Speedometer 3.1 de la **2.0.0**: 12,3 ± 0,47; 12,3 ± 0,41; 12,68 ± 0,055. **JetStream 3.0 se cuelga en web-ssr**
+   (`RegExp.escape is not a function`, nivel 136; `JetStream.errors` en `bench-p17-200b.json`). Pasar la lista de pruebas por la URL da
+   **403** (URL demasiado larga): hay que cargar la página, esperar a `JetStream.isReady`, hacer
+   `JetStream.benchmarks = JetStream.benchmarks.filter(b => b.name != 'web-ssr')` y luego `JetStream.start()` (sin cambiar aún en `bench71.py`).
+   Falta todo con la 2.0.1: Speedometer, JetStream sin web-ssr y MotionMark. MOTOR-20 §5: «Rendered Fonts» y Futura.
+
+### Trampas nuevas
+
+- **LuLu** retiene cada binario nuevo en la 6,1 (sin red: las páginas se quedan en about:blank); Titín lo aprueba. En la 7,1, un DMG copiado
+  con `ditto` trae cuarentena: App Translocation y espera de Gatekeeper; antes de abrirlo, `xattr -dr com.apple.quarantine` (hay un
+  `gpu_shader_cache.bin` de solo lectura: `chmod u+w`).
+- **Sparkle instala solo** al cerrar una FlyWeb de /Applications abierta un rato (incluso con perfil temporal): la versión de /Applications
+  puede cambiar en medio de una medida. Anotar la versión en cada tanda.
+- Las capturas por SSH en la 6,1 salen en blanco (`screencapture -l` falla; la pantalla entera sale vacía). La interfaz del navegador se
+  lee con `--enable-ui-devtools=<puerto>` (`upd61.sh`, `uidev61.py`: el texto y el tooltip del botón del menú, en `matchedCSSRules`). Con
+  un binario retenido por LuLu, ese servidor no arranca.
+- `ioreg` da 4 valores de «Device Utilization %» en la 6,1. Con Titín trabajando, el fondo se ensucia (FreeFileSync llegó al 95 %): usar
+  también la CPU del proceso GPU.
+
 ## LOCAL-10 → LOCAL-11 (26-10-2026)
 
 LOCAL-10 (`local_71a093c7-b93c-41a7-b6ca-888bdc07bd50` «Compilación Local (10)»; Opus 5.5 medio, modo auto, Remote Control, plan Max;
