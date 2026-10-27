@@ -7,6 +7,44 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 27-10: COORDINACIÓN-14 → COORDINACIÓN-15 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-14 (`session_017J2kfSt5BR2UuYSr8fYzvw`, Opus 5.5, medio) se releva al 38 % (17,4 $). **Nunca aprobar la
+tarjeta de confianza.** A la 7,1, solo por la rama `buzon` (tarda horas a veces; si corre prisa, Titín se lo dice al
+agente); las sesiones locales sí te escriben. La nube no escribe en brave-core: bundles en ramas de softmac, LOCAL sube.
+
+**Publicado:** 2.0.0 (-p17, build 28) el 26-10, appcast y web. **2.0.1 (-p20 8528639ead, build 29)**: firmada,
+notarizada, en ns2 (`FlyWeb-2.0.1.dmg`, 174 780 539 B, SHA-256 `1d7d6b0f…7b15`), web fusionada (#519; web-auto publica sola
+cuando el appcast la anuncie). **Falta solo la firma de Titín en bak** (orden en FM.40; PUBLICACIÓN se la pasa). Lleva
+el aviso falso «No se puede actualizar FlyWeb» quitado (`enable_update_notifications=false`), NTP sin halo (-p18),
+«FlyWeb Sync», y **dos CVE explotados**: CVE-2026-11645 (V8, runtime) y CVE-2025-14174 (ANGLE Metal, 10.15+; no
+reproducible por WebGL en la 7,1, arreglo aplicado). Cuando esté el appcast: comprobar la web con curl.
+
+**2.0.2 (FM.41):** -p21 3cc4ce116c de MOTOR-20 (archivada; bundle `nube/motor20-p21`, orden en el buzón de LOCAL del
+27-10 08:10): fijadas compartidas con 2+ ventanas (se perdían; fallo de la 2.0), versión visible «2.0.2 (motor 131)»
+(capturas para Titín; la cadena traducible «FlyWeb 2.0.2…» la decide él), xHE-AAC solo en 10.15+, diagnóstico de JetStream
+web-ssr (`RegExp.escape`, Chrome 136) y Speedometer «?» en Sequoia (Futura/CoreText). `navigator.brave` ya no se expone.
+Flujo: LOCAL-11 compila y prueba → PUBLICACIÓN → orden de bak → web (VERSION, portada, novedades: la de la 2.0.1 es el
+modelo, #519; quita el «problema conocido» de las fijadas). MOTOR-21 solo si LOCAL trae fallos.
+
+**Seguridad:** triaje rehecho contra la 128 (FS.24, #514): con la -p20 no queda ningún explotado abierto. **Decisión
+pendiente de Titín:** tanda de críticos que salen del sandbox (~15–25 h sin medir) + revisión de ANGLE por backend; la
+cifra de 750 críticos/altos está sin verificar (3599 ID de 2026, anómalo). SEGURIDAD-VIGÍA = sesión de Titín
+`session_019wTc3m4aVuvkKTEGMXdEHS` (Haiku, medio), despertada por la tarea «Seguridad-Vigía FlyWeb (Haiku)»
+`trig_01RAtyyXH6fPZ9GAXRJYjYmV`, lunes 8:58 (Madrid), primera el 2-11; avisa a la COORDINACIÓN de la tabla. El blog de
+Chrome Releases no se alcanza desde la nube: Titín puede añadir `chromereleases.googleblog.com` a la red del entorno.
+
+**Pendiente con Titín:** capturas de la versión de la 2.0.2; si ve otra vez «Brave» al confirmar con el teléfono,
+captura; MotionMark de la 5,1 (su hija; la 5,1 actualizó a la 2.0 sin problemas); GPU al 100 % en la 6,1 (le di los pasos:
+`ioreg`, Administrador de tareas, perfil limpio); sesión `ubuntu` abierta en ns2 y «Auditoría ns1/ns2/bak» en la 7,1 (sin
+respuesta). **LOCAL-11**, después de la 2.0.1 publicada: línea base de rendimiento en la 7,1 con la **580X** (solo el
+FlyWeb instalado, por LuLu; PA271W a 60 Hz; 3 pasadas de Speedometer 3.1, JetStream 3.0, MotionMark 1.3.2). Niveles 132+:
+cuando la seguridad tenga plan (Titín, 26-10).
+
+**Agentes vivos:** LOCAL-11 (`session_01P7qNHoMWVrSBu4PL3iq6Gh`, bridge), PUBLICACIÓN, SERVIDOR-LOCAL-3, CARTERO-LOCAL
+(7,1); SEGURIDAD-VIGÍA (rutina); BACKUPDRIVE-1 (`session_01MMur1TxacRpN7gNor98eYm`, a la espera de la prueba de Titín).
+Archivadas hoy: COORDINACIÓN-13, MOTOR-18, -19, -20, CONTENIDOS-WEB-3, SEGURIDAD-PORTES-6. LOCAL-10: la archiva Titín.
+
 ## 26-10: COORDINACIÓN-13 → COORDINACIÓN-14 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-13 (`session_01L7rpeb3sVii7F8jgApaAcB`, Opus 5.5, medio) se releva al 40 % (29,8 $). **Nunca aprobar la

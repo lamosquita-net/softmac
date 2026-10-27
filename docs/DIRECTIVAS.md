@@ -42,6 +42,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   textos de la interfaz aprobados desde la 1.x no cambian, ni para «arreglar» algo, sin una captura y el sí de Titín. Caso:
   la sombra de las estadísticas de la NTP de la -p16 puso un halo blanco ilegible en los fondos FlyWeb (arreglo en la 2.0.1, -p18).
 
+- **Versión visible sin Brave ni Chromium** (Titín, 26-10): «Información de FlyWeb» y `flyweb://version` dicen
+  «FlyWeb 2.0.x (motor N)»; Brave y Chromium, solo en `about:credits` (lo que piden MPL-2.0 y BSD). La base real
+  (Chromium 128.0.6613.138) vive en la documentación del repo, porque el triaje de seguridad depende de ella. Fila FM.41.
+- **Seguridad fuera de Blink/V8, en línea propia** (Titín, 26-10): subir de base (129/130) no arregla los CVE de 2025–2026;
+  se portan en el fork. SEGURIDAD-VIGÍA semanal; cada base nueva obliga a rehacer el triaje (CVE-2026-11645 «no aplicaba»
+  a la 116 y sí a la 128). Fila FS.24.
+
 ## Motor
 
 - **Niveles de Chrome, portando función a función** (HUMANO, 04-10): el motor crece desde la base portando lo Baseline
