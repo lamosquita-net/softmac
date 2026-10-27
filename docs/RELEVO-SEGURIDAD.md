@@ -8,6 +8,28 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-10 → 11 (27-10-2026, ~18:15)
+
+SEGURIDAD-PORTES-10 (`session_01MwmK2iNSPnCnPkiEFHwqZ4`, Opus 5.5, medio) termina el encargo hacia el ~33 %. Entregado,
+todo sobre `nube/motor-132` 78eb79e8, en ramas independientes para una 2.1.x (filas en `TAREAS.md`):
+- **FS.30** `seg/fs30-ct` 2d022f2c: CT con la forma del M144 (compatibilidad 4). CT estaba apagado en toda la 2.x.
+- **FS.31** `seg/fs31-roots` dae06d65: Root Store v17, `permitted_dns_names`, HSTS de la 132,
+  `RequireKnownRootCert`; restricciones de versión del Root Store contra una **constante fija 139.0.0.0** (Titín).
+- **FS.29** `seg/fs29-v8` 53814453: V8 6937df3c, época 20; mjsunit 7340/7341.
+
+**Pendiente para la 11:** la deuda de Maglev para el 134 (lista en la sección de la -9; 22e588df ya va portado aquí,
+también su parte de Maglev). Revisar en cada nivel: `kMaxSupportedCTCompatibilityVersion` (si Google sube a 5, CT se
+apaga otra vez) y la constante 139.0.0.0 del Root Store (al subirla, mirar si hay restricciones con campos nuevos).
+
+**Lecciones:**
+- **Los datos con versión no son «solo datos»:** el Root Store y la lista de CT llevan restricciones por versión de
+  Chrome, que FlyWeb evalúa con la 128 real; sin tocar el código, los datos nuevos no cambian nada.
+- **Para leer Chromium sin googlesource:** `git fetch --depth 1 --filter=blob:none` de un tag de github.com/chromium/chromium
+  y `git diff --stat` por rutas; **no** usar `git grep` en un clon `blob:none` (baja los blobs de uno en uno; se
+  colgó dos veces). Para V8, un clon `--depth 1` sin filtro (36 MB) sí permite `grep`.
+- `v8-d8.sh` necesita `gn`: `apt-get update && apt-get install -y generate-ninja`. Compilar tarda ~1,5 h con 4 núcleos.
+- Las pruebas de upstream recientes usan ayudas de `mjsunit.js` que la 13.2 no tiene (`assertMaglevved`): adaptarlas.
+
 ## SEGURIDAD-PORTES-9 → 10 (27-10-2026, ~13:30)
 
 SEGURIDAD-PORTES-9 (`session_01MwmK2hx8uFcooc8ep2MhQT`, Opus 5.5, medio) se releva al ~38 % (22 $). Entregado: FS.27 y
