@@ -1,0 +1,507 @@
+nivel	tipo	componente	fichero	nombre	clase	desde	framework	antes	despues
+129	guarda	base	base/mac/mac_util.mm	macOS 13				13	14
+129	guarda	base	base/process/launch_mac.cc	macOS 11				1	0
+129	guarda	base	base/system/sys_info_mac.mm	macOS 11				1	0
+129	guarda	chrome	chrome/browser/icon_loader_mac.mm	macOS 11				2	0
+129	guarda	chrome	chrome/browser/local_discovery/service_discovery_client_mac.mm	macOS 15				0	1
+129	guarda	chrome	chrome/browser/mac/code_sign_clone_manager.mm	macOS 11				1	0
+129	guarda	chrome	chrome/browser/media/webrtc/thumbnail_capturer_mac.mm	macOS 14				8	9
+129	guarda	chrome	chrome/browser/media/webrtc/thumbnail_capturer_mac.mm	macOS 15				0	1
+129	guarda	ui-chrome	chrome/browser/ui/cocoa/main_menu_builder.mm	macOS 11				1	0
+129	guarda	ui-chrome	chrome/browser/ui/views/frame/browser_non_client_frame_view_mac.mm	macOS 11				1	0
+129	guarda	chrome	chrome/browser/web_applications/os_integration/mac/web_app_shortcut_mac.mm	macOS 11				0	1
+129	guarda	chrome	chrome/common/mac/app_mode_common.mm	macOS 11				1	0
+129	guarda	chrome	chrome/services/mac_notifications/mac_notification_service_ns.mm	macOS 11				2	0
+129	guarda	chrome	chrome/services/mac_notifications/mac_notification_service_un.mm	macOS 11				2	0
+129	guarda	chrome	chrome/services/mac_notifications/notification_category_manager.mm	macOS 11				3	0
+129	guarda	components	components/input/web_input_event_builders_mac.mm	macOS 10.15				1	0
+129	guarda	components	components/remote_cocoa/app_shim/immersive_mode_controller_cocoa.mm	macOS 11				3	0
+129	guarda	components	components/remote_cocoa/app_shim/select_file_dialog_bridge.mm	macOS 11				4	0
+129	guarda	components	components/storage_monitor/image_capture_device.mm	macOS 11				1	0
+129	guarda	content	content/app_shim_remote_cocoa/web_drag_source_mac.mm	macOS 11				2	0
+129	guarda	content	content/browser/accessibility/browser_accessibility_manager_mac.mm	macOS 11				1	0
+129	guarda	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	macOS 14				0	5
+129	guarda	content	content/browser/media/capture/screen_capture_kit_device_mac.h	macOS 13				0	1
+129	guarda	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	macOS 14				0	1
+129	guarda	content	content/browser/media/capture/screen_capture_kit_device_utils_mac.mm	macOS 13				0	1
+129	guarda	content	content/browser/renderer_host/render_widget_host_view_mac.mm	macOS 10.15				1	0
+129	guarda	content	content/browser/theme_helper_mac.mm	macOS 11				1	0
+129	guarda	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	macOS 11				1	0
+129	guarda	red	net/base/platform_mime_util_apple.mm	macOS 11				3	0
+129	guarda	services	services/webnn/coreml/buffer_impl_coreml.mm	macOS 12				0	1
+129	guarda	services	services/webnn/coreml/graph_impl_coreml.mm	macOS 14				1	0
+129	guarda	GPU	ui/accelerated_widget_mac/ca_renderer_layer_tree.mm	macOS 11				2	0
+129	guarda	ui	ui/accessibility/platform/ax_platform_node_cocoa.mm	macOS 11				2	0
+129	guarda	ui	ui/accessibility/platform/inspect/ax_call_statement_invoker_mac.mm	macOS 11				2	0
+129	guarda	ui	ui/accessibility/platform/inspect/ax_transform_mac.mm	macOS 11				1	0
+129	guarda	ui	ui/base/clipboard/clipboard_format_type_mac.mm	macOS 11				1	0
+129	guarda	ui	ui/base/clipboard/clipboard_util_mac.mm	macOS 11				2	0
+129	guarda	ui	ui/base/cocoa/permissions_utils.mm	macOS 11				2	0
+129	guarda	ui	ui/color/mac/css_system_color_mixer_mac.mm	macOS 11				1	0
+129	guarda	ui	ui/color/mac/native_color_mixers_mac.mm	macOS 11				2	0
+129	guarda	ui	ui/display/mac/display_link_mac.mm	macOS 14				1	0
+129	guarda	ui	ui/snapshot/snapshot_mac.mm	macOS 15				0	1
+129	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_provider_mac.mm	ASAuthorization	class	tbd	AuthenticationServices	0	1
+129	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_provider_mac.mm	ASAuthorizationController	class	tbd	AuthenticationServices	0	5
+129	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_provider_mac.mm	ASAuthorizationOperationLogin	sym	tbd	AuthenticationServices	0	2
+129	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_provider_mac.mm	ASAuthorizationSingleSignOnCredential	class	tbd	AuthenticationServices	0	1
+129	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_provider_mac.mm	ASAuthorizationSingleSignOnProvider	class	tbd	AuthenticationServices	0	2
+129	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_provider_mac.mm	ASAuthorizationSingleSignOnRequest	class	tbd	AuthenticationServices	0	3
+129	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_provider_mac.mm	presentationContextProvider	property	10.15	AuthenticationServices	0	1
+129	uso	chrome	chrome/browser/local_discovery/service_discovery_client_mac.mm	nw_browse_result_copy_endpoint	sym	tbd	Network	0	2
+129	uso	chrome	chrome/browser/local_discovery/service_discovery_client_mac.mm	nw_browse_result_get_changes	sym	tbd	Network	0	1
+129	uso	chrome	chrome/browser/local_discovery/service_discovery_client_mac.mm	nw_browser_set_browse_results_changed_handler	sym	tbd	Network	0	1
+129	uso	chrome	chrome/browser/local_discovery/service_discovery_client_mac.mm	nw_browser_set_queue	sym	tbd	Network	0	1
+129	uso	chrome	chrome/browser/local_discovery/service_discovery_client_mac.mm	nw_browser_set_state_changed_handler	sym	tbd	Network	0	1
+129	uso	chrome	chrome/browser/local_discovery/service_discovery_client_mac.mm	nw_browser_start	sym	tbd	Network	0	1
+129	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCContentFilter	class	tbd	ScreenCaptureKit	0	4
+129	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCContentSharingPicker	class	tbd	ScreenCaptureKit	0	6
+129	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCContentSharingPickerConfiguration	class	tbd	ScreenCaptureKit	0	1
+129	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCStream	class	tbd	ScreenCaptureKit	0	2
+129	uso	content	content/browser/media/capture/screen_capture_kit_device_mac.h	SCContentFilter	class	tbd	ScreenCaptureKit	0	1
+129	uso	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	SCContentFilter	class	tbd	ScreenCaptureKit	5	9
+129	uso	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	pointPixelScale	property	14.0	ScreenCaptureKit	0	2
+129	uso	services	services/webnn/coreml/buffer_impl_coreml.mm	getMutableBytesWithHandler	method	12.3	CoreML	0	1
+129	uso	services	services/webnn/coreml/utils_coreml.mm	getBytesWithHandler	method	12.3	CoreML	0	1
+129	uso	services	services/webnn/coreml/utils_coreml.mm	getMutableBytesWithHandler	method	12.3	CoreML	0	1
+129	uso	ui	ui/display/mac/screen_mac.mm	minimumRefreshInterval	property	12.0	AppKit	0	1
+130	guarda	chrome	chrome/browser/media/webrtc/system_media_capture_permissions_mac.mm	macOS 15				0	1
+130	guarda	chrome	chrome/browser/media/webrtc/thumbnail_capturer_mac.mm	macOS 14				9	8
+130	guarda	services	services/webnn/coreml/buffer_impl_coreml.mm	macOS 12				1	0
+130	guarda	services	services/webnn/coreml/graph_impl_coreml.mm	macOS 12				0	1
+130	guarda	services	services/webnn/coreml/tensor_impl_coreml.mm	macOS 12				0	1
+130	uso	services	services/webnn/coreml/tensor_impl_coreml.mm	getMutableBytesWithHandler	method	12.3	CoreML	0	1
+130	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityLanguageAttribute	sym	tbd	AppKit	0	4
+130	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityScrollToVisibleAction	sym	tbd	AppKit	0	3
+130	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityUIElementsForSearchPredicateParameterizedAttribute	sym	tbd	AppKit	0	3
+130	uso	ui	ui/accessibility/platform/browser_accessibility_manager_mac.mm	NSAccessibilityAutocorrectionOccurredNotification	sym	tbd	AppKit	0	1
+130	uso	ui	ui/accessibility/platform/browser_accessibility_manager_mac.mm	NSAccessibilityTextStateChangeTypeKey	sym	tbd	AppKit	0	3
+130	uso	ui	ui/accessibility/platform/browser_accessibility_manager_mac.mm	NSAccessibilityTextStateSyncKey	sym	tbd	AppKit	0	1
+131	guarda	base	base/mac/process_requirement.cc	macOS 13				0	1
+131	guarda	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	macOS 12				2	3
+131	guarda	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	macOS 14				1	2
+131	guarda	device	device/fido/mac/icloud_keychain.mm	macOS 15				0	4
+131	guarda	device	device/fido/mac/icloud_keychain_sys.mm	macOS 15				0	4
+131	guarda	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	macOS 13				0	1
+131	guarda	ui	ui/base/cocoa/cursor_utils.mm	macOS 15				0	16
+131	guarda	ui	ui/display/mac/ca_display_link_mac.mm	macOS 14				3	4
+131	guarda	ui	ui/snapshot/snapshot_mac.mm	macOS 14				6	4
+131	uso	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	SCStreamFrameInfoPresenterOverlayContentRect	sym	tbd	ScreenCaptureKit	0	1
+131	uso	device	device/fido/mac/icloud_keychain.mm	ASAuthorizationPlatformPublicKeyCredentialAssertion	class	tbd	AuthenticationServices	0	3
+131	uso	device	device/fido/mac/icloud_keychain.mm	ASAuthorizationPlatformPublicKeyCredentialRegistration	class	tbd	AuthenticationServices	0	3
+131	uso	device	device/fido/mac/icloud_keychain_sys.mm	ASAuthorizationPublicKeyCredentialPRFAssertionInput	class	tbd	AuthenticationServices	0	1
+131	uso	device	device/fido/mac/icloud_keychain_sys.mm	ASAuthorizationPublicKeyCredentialPRFAssertionInputValues	class	tbd	AuthenticationServices	0	5
+131	uso	device	device/fido/mac/icloud_keychain_sys.mm	ASAuthorizationPublicKeyCredentialPRFRegistrationInput	class	tbd	AuthenticationServices	0	2
+131	uso	ui	ui/base/cocoa/cursor_utils.mm	columnResizeCursor	property	15.0	AppKit	0	1
+131	uso	ui	ui/base/cocoa/cursor_utils.mm	frameResizeCursorFromPosition	method	15.0	AppKit	0	12
+131	uso	ui	ui/base/cocoa/cursor_utils.mm	rowResizeCursor	property	15.0	AppKit	0	1
+131	uso	ui	ui/base/cocoa/cursor_utils.mm	zoomInCursor	property	15.0	AppKit	0	1
+131	uso	ui	ui/base/cocoa/cursor_utils.mm	zoomOutCursor	property	15.0	AppKit	0	1
+131	uso	ui	ui/display/mac/ca_display_link_mac.mm	preferredFrameRateRange	property	12.0	QuartzCore	0	1
+132	guarda	chrome	chrome/browser/media/webrtc/thumbnail_capturer_mac.mm	macOS 13				4	1
+132	uso	ui	ui/accessibility/platform/inspect/ax_element_wrapper_mac.mm	AXCustomContent	class	tbd	Accessibility	0	4
+133	guarda	chrome	chrome/browser/local_discovery/service_discovery_client_mac.mm	macOS 15				1	2
+133	guarda	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	macOS 13				1	2
+133	guarda	GPU	ui/accelerated_widget_mac/ca_renderer_layer_tree.mm	macOS 12				0	1
+133	guarda	ui	ui/native_theme/native_theme_mac.mm	macOS 15				0	3
+133	uso	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	kVTCompressionPropertyKey_ReferenceBufferCount	sym	tbd	VideoToolbox	0	2
+133	uso	GPU	ui/accelerated_widget_mac/ca_renderer_layer_tree.mm	kCVImageBufferAmbientViewingEnvironmentKey	sym	tbd	CoreVideo	0	1
+133	uso	ui	ui/native_theme/native_theme_mac.mm	AXPrefersNonBlinkingTextInsertionIndicator	sym	tbd	Accessibility	0	1
+133	uso	ui	ui/native_theme/native_theme_mac.mm	AXPrefersNonBlinkingTextInsertionIndicatorDidChangeNotification	sym	tbd	Accessibility	0	1
+134	guarda	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_provider_mac.mm	macOS 12				0	1
+134	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_provider_mac.mm	userInterfaceEnabled	property	12.0	AuthenticationServices	0	1
+135	guarda	chrome	chrome/app_shim/chrome_main_app_mode_mac.mm	macOS 14				1	0
+135	guarda	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_entra.mm	macOS 12				0	1
+135	guarda	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_provider_mac.mm	macOS 12				1	0
+135	guarda	components	components/remote_cocoa/app_shim/browser_native_widget_window_mac.mm	macOS 13				0	1
+135	guarda	components	components/remote_cocoa/app_shim/immersive_mode_controller_cocoa.mm	macOS 13				0	1
+135	guarda	content	content/browser/accessibility/browser_accessibility_state_impl_mac.mm	macOS 14				1	0
+135	guarda	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	macOS 14				5	9
+135	guarda	device	device/fido/mac/icloud_keychain.mm	macOS 14				0	1
+135	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_entra.mm	ASAuthorization	class	tbd	AuthenticationServices	0	1
+135	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_entra.mm	ASAuthorizationController	class	tbd	AuthenticationServices	0	7
+135	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_entra.mm	ASAuthorizationSingleSignOnCredential	class	tbd	AuthenticationServices	0	1
+135	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_entra.mm	ASAuthorizationSingleSignOnProvider	class	tbd	AuthenticationServices	0	2
+135	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_entra.mm	ASAuthorizationSingleSignOnRequest	class	tbd	AuthenticationServices	0	4
+135	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_entra.mm	presentationContextProvider	property	10.15	AuthenticationServices	0	1
+135	uso	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_entra.mm	userInterfaceEnabled	property	12.0	AuthenticationServices	0	1
+135	uso	components	components/remote_cocoa/app_shim/bridged_content_view.mm	UTTypeUTF8PlainText	sym	tbd	UniformTypeIdentifiers	0	3
+135	uso	content	content/app_shim_remote_cocoa/render_widget_host_view_cocoa.mm	UTTypeUTF8PlainText	sym	tbd	UniformTypeIdentifiers	0	3
+135	uso	device	device/fido/mac/fake_icloud_keychain_sys.mm	providerName	property	14.0	AuthenticationServices	0	3
+135	uso	device	device/fido/mac/icloud_keychain.mm	providerName	property	14.0	AuthenticationServices	0	1
+135	uso	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	kVTEncodeFrameOptionKey_BaseFrameQP	sym	tbd	VideoToolbox	0	1
+136	guarda	chrome	chrome/browser/obsolete_system/obsolete_system_mac.cc	macOS 11				1	0
+136	guarda	components	components/device_signals/core/browser/mac/browser_utils_mac.cc	macOS 15				0	1
+136	guarda	media	media/audio/mac/screen_capture_kit_swizzler.mm	macOS 15				0	1
+136	uso	media	media/base/mac/video_capture_device_avfoundation_helpers.mm	AVCaptureDeviceTypeContinuityCamera	sym	tbd	AVFoundation	0	1
+137	guarda	chrome	chrome/browser/shell_integration_mac.mm	macOS 12				2	4
+137	uso	chrome	chrome/browser/shell_integration_mac.mm	URLForApplicationToOpenContentType	method	12.0	AppKit	0	1
+137	uso	chrome	chrome/browser/shell_integration_mac.mm	setDefaultApplicationAtURL	method	12.0	AppKit	4	5
+137	uso	GPU	components/viz/common/gpu/metal_context_provider.mm	supportsFamily	method	10.15	Metal	0	1
+138	guarda	media	media/audio/mac/catap_audio_input_stream.mm	macOS 14				0	3
+138	guarda	ui	ui/base/cocoa/appkit_utils.mm	macOS 15				0	1
+138	uso	GPU	gpu/config/gpu_info_collector_mac.mm	supportsFamily	method	10.15	Metal	0	1
+138	uso	media	media/audio/mac/catap_api.mm	AudioHardwareCreateProcessTap	sym	tbd	CoreAudio	0	2
+138	uso	media	media/audio/mac/catap_api.mm	AudioHardwareDestroyProcessTap	sym	tbd	CoreAudio	0	2
+138	uso	media	media/audio/mac/catap_api.mm	CATapDescription	class	tbd	CoreAudio	0	1
+138	uso	media	media/audio/mac/catap_audio_input_stream.mm	AudioHardwareCreateProcessTap	sym	tbd	CoreAudio	0	1
+138	uso	media	media/audio/mac/catap_audio_input_stream.mm	AudioHardwareDestroyProcessTap	sym	tbd	CoreAudio	0	1
+138	uso	media	media/audio/mac/catap_audio_input_stream.mm	CATapDescription	class	tbd	CoreAudio	0	5
+138	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLCPUComputeDevice	class	tbd	CoreML	0	1
+138	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLComputePlan	class	tbd	CoreML	0	2
+138	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLComputePlanCost	class	tbd	CoreML	0	1
+138	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLComputePlanDeviceUsage	class	tbd	CoreML	0	1
+138	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLGPUComputeDevice	class	tbd	CoreML	0	1
+138	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLModelStructureProgram	class	tbd	CoreML	0	1
+138	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLModelStructureProgramFunction	class	tbd	CoreML	0	1
+138	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLModelStructureProgramOperation	class	tbd	CoreML	0	2
+138	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLNeuralEngineComputeDevice	class	tbd	CoreML	0	1
+138	uso	services	services/webnn/coreml/graph_impl_coreml.mm	loadContentsOfURL	method	11.0	CoreML	0	1
+138	uso	ui	ui/base/cocoa/appkit_utils.mm	accessBehavior	property	15.4	AppKit	0	1
+139	guarda	base	base/mac/launch_application.mm	macOS 11				1	0
+139	guarda	chrome	chrome/browser/enterprise/platform_auth/extensible_enterprise_sso_entra.mm	macOS 12				1	0
+139	guarda	chrome	chrome/browser/mac/install_from_dmg.mm	macOS 12				1	0
+139	guarda	chrome	chrome/browser/shell_integration_mac.mm	macOS 12				4	0
+139	guarda	chrome	chrome/browser/shortcuts/platform_util_mac.mm	macOS 12				1	0
+139	guarda	ui-chrome	chrome/browser/ui/cocoa/accelerators_cocoa.mm	macOS 12				1	0
+139	guarda	ui-chrome	chrome/browser/ui/views/webauthn/mac_authentication_view.mm	macOS 12				1	0
+139	guarda	chrome	chrome/browser/web_applications/os_integration/mac/app_shim_launch.mm	macOS 12				1	0
+139	guarda	chrome	chrome/browser/web_applications/os_integration/mac/bundle_info_plist.mm	macOS 12				1	0
+139	guarda	chrome	chrome/browser/web_applications/os_integration/mac/web_app_shortcut_mac.mm	macOS 11				1	0
+139	guarda	components	components/remote_cocoa/app_shim/immersive_mode_controller_cocoa.mm	macOS 12				1	0
+139	guarda	components	components/remote_cocoa/app_shim/native_widget_mac_nswindow.mm	macOS 12				1	0
+139	guarda	device	device/fido/mac/fake_icloud_keychain_sys.mm	macOS 14				0	6
+139	guarda	device	device/fido/mac/icloud_keychain.mm	macOS 13				5	6
+139	guarda	device	device/fido/mac/icloud_keychain.mm	macOS 14				1	5
+139	guarda	device	device/fido/mac/icloud_keychain_sys.mm	macOS 14				0	2
+139	guarda	media	media/audio/mac/catap_audio_input_stream.mm	macOS 14				3	5
+139	guarda	media	media/base/mac/color_space_util_mac.mm	macOS 12				1	0
+139	guarda	media	media/base/mac/video_frame_mac.mm	macOS 12				1	0
+139	guarda	media	media/capture/video/apple/video_capture_device_avfoundation.mm	macOS 12				5	0
+139	guarda	media	media/capture/video/mac/uvc_control_mac.mm	macOS 12				1	0
+139	guarda	red	net/cert/x509_util_apple.cc	macOS 12				1	0
+139	guarda	services	services/shape_detection/barcode_detection_impl_mac_vision_api.mm	macOS 12				1	0
+139	guarda	services	services/webnn/coreml/tensor_impl_coreml.mm	macOS 12				1	0
+139	guarda	GPU	ui/accelerated_widget_mac/ca_renderer_layer_tree.mm	macOS 12				1	0
+139	uso	base	base/files/drive_info_mac.cc	kIOMainPortDefault	sym	tbd	IOKit	0	2
+139	uso	base	base/mac/mac_util.mm	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	base	base/power_monitor/battery_level_provider_mac.mm	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	chrome	chrome/browser/extensions/api/image_writer_private/removable_storage_provider_mac.cc	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	chrome	chrome/browser/mac/bluetooth_utility.mm	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	chrome	chrome/browser/mac/install_from_dmg.mm	kIOMainPortDefault	sym	tbd	IOKit	0	2
+139	uso	chrome	chrome/browser/shortcuts/shortcut_creator_mac.mm	setDefaultApplicationAtURL	method	12.0	AppKit	0	1
+139	uso	chrome	chrome/utility/image_writer/image_writer_mac.cc	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	components	components/power_metrics/energy_impact_mac.mm	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	components	components/power_metrics/smc_mac.mm	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	content	content/browser/renderer_host/render_widget_host_view_tvos_uiview.mm	isHidden	property	26.0	GameKit	0	2
+139	uso	device	device/bluetooth/bluetooth_adapter_mac.mm	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	device	device/fido/mac/fake_icloud_keychain_sys.mm	ASAuthorizationPlatformPublicKeyCredentialAssertion	class	tbd	AuthenticationServices	0	1
+139	uso	device	device/fido/mac/fake_icloud_keychain_sys.mm	ASAuthorizationPlatformPublicKeyCredentialRegistration	class	tbd	AuthenticationServices	0	1
+139	uso	device	device/fido/mac/fake_icloud_keychain_sys.mm	ASAuthorizationPublicKeyCredentialLargeBlobAssertionOutput	class	tbd	AuthenticationServices	0	1
+139	uso	device	device/fido/mac/fake_icloud_keychain_sys.mm	ASAuthorizationPublicKeyCredentialLargeBlobRegistrationOutput	class	tbd	AuthenticationServices	0	1
+139	uso	device	device/fido/mac/fake_icloud_keychain_sys.mm	largeBlob	property	14.0	AuthenticationServices	0	6
+139	uso	device	device/fido/mac/icloud_keychain.mm	ASAuthorizationPlatformPublicKeyCredentialAssertion	class	tbd	AuthenticationServices	3	6
+139	uso	device	device/fido/mac/icloud_keychain.mm	ASAuthorizationPlatformPublicKeyCredentialRegistration	class	tbd	AuthenticationServices	3	7
+139	uso	device	device/fido/mac/icloud_keychain.mm	largeBlob	property	14.0	AuthenticationServices	0	4
+139	uso	device	device/fido/mac/icloud_keychain_sys.mm	ASAuthorizationPublicKeyCredentialLargeBlobAssertionInput	class	tbd	AuthenticationServices	0	2
+139	uso	device	device/fido/mac/icloud_keychain_sys.mm	ASAuthorizationPublicKeyCredentialLargeBlobRegistrationInput	class	tbd	AuthenticationServices	0	2
+139	uso	device	device/fido/mac/icloud_keychain_sys.mm	largeBlob	property	14.0	AuthenticationServices	0	3
+139	uso	device	device/gamepad/xbox_data_fetcher_mac.cc	kIOMainPortDefault	sym	tbd	IOKit	0	2
+139	uso	media	media/audio/mac/catap_audio_input_stream.mm	CATapDescription	class	tbd	CoreAudio	5	10
+139	uso	media	media/capture/video/mac/uvc_control_mac.mm	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	red	net/ssl/client_cert_store_mac.cc	SecTrustCopyCertificateChain	sym	tbd	Security	0	1
+139	uso	otros	rlz/mac/lib/machine_id_mac.cc	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	services	services/device/hid/hid_service_mac.cc	kIOMainPortDefault	sym	tbd	IOKit	0	2
+139	uso	services	services/device/serial/serial_device_enumerator_mac.cc	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	services	services/preferences/tracked/device_id_mac.cc	kIOMainPortDefault	sym	tbd	IOKit	0	1
+139	uso	otros	tools/mac/power/power_sampler/battery_sampler.mm	kIOMainPortDefault	sym	tbd	IOKit	0	1
+140	guarda	chrome	chrome/browser/permissions/system/system_media_capture_permissions_mac.mm	macOS 15				0	1
+140	guarda	content	content/browser/renderer_host/clipboard_host_impl_mac.mm	macOS 15				0	1
+140	guarda	services	services/webnn/coreml/tensor_impl_coreml.mm	macOS 12				0	2
+140	uso	base	base/process/launch_mac.cc	posix_spawnattr_set_csm_np	sym	tbd	libSystem.B.dylib	1	2
+140	uso	chrome	chrome/browser/permissions/system/system_media_capture_permissions_mac.mm	accessBehavior	property	15.4	AppKit	0	1
+140	uso	components	components/remote_cocoa/app_shim/immersive_mode_tabbed_controller_cocoa.mm	toolbarStyle	property	11.0	AppKit	0	2
+140	uso	content	content/browser/renderer_host/clipboard_host_impl_mac.mm	accessBehavior	property	15.4	AppKit	0	1
+140	uso	GPU	gpu/command_buffer/service/metal_context_provider.mm	supportsFamily	method	10.15	Metal	0	1
+140	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLCPUComputeDevice	class	tbd	CoreML	1	2
+140	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLGPUComputeDevice	class	tbd	CoreML	1	2
+140	uso	services	services/webnn/coreml/graph_impl_coreml.mm	MLNeuralEngineComputeDevice	class	tbd	CoreML	1	2
+141	guarda	components	components/remote_cocoa/app_shim/select_file_dialog_bridge.mm	macOS 14				0	1
+141	guarda	content	content/app_shim_remote_cocoa/render_widget_host_ns_view_bridge.mm	macOS 13				0	1
+141	uso	content	content/app_shim_remote_cocoa/render_widget_host_ns_view_bridge.mm	NSPreviewRepresentingActivityItem	class	tbd	AppKit	0	1
+142	guarda	chrome	chrome/browser/mac/auth_session_request.mm	macOS 14				0	5
+142	guarda	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	macOS 14				9	10
+142	guarda	media	media/capture/video/apple/video_capture_device_factory_apple.mm	macOS 14				0	4
+142	guarda	ui	ui/native_theme/native_theme_mac.mm	macOS 15				3	0
+142	guarda	ui	ui/native_theme/os_settings_provider_mac.mm	macOS 15				0	3
+142	uso	chrome	chrome/browser/mac/auth_session_request.mm	ASWebAuthenticationSessionCallback	class	tbd	AuthenticationServices	0	2
+142	uso	ui-chrome	chrome/browser/ui/views/frame/browser_frame_view_mac.mm	safeAreaInsets	property	12.0	AppKit	0	1
+142	uso	ui-chrome	chrome/browser/ui/views/frame/browser_frame_view_mac.mm	toolbarStyle	property	11.0	AppKit	0	2
+142	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCContentFilter	class	tbd	ScreenCaptureKit	4	8
+142	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCContentSharingPicker	class	tbd	ScreenCaptureKit	6	8
+142	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCStream	class	tbd	ScreenCaptureKit	2	17
+142	uso	content	content/browser/media/capture/screen_capture_kit_device_mac.h	SCStream	class	tbd	ScreenCaptureKit	0	1
+142	uso	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	SCStream	class	tbd	ScreenCaptureKit	4	5
+142	uso	crypto	crypto/apple/unexportable_key_mac.mm	kSecUseDataProtectionKeychain	sym	tbd	Security	0	1
+142	uso	media	media/capture/video/apple/video_capture_device_factory_apple.mm	AVCaptureDeviceDiscoverySession	class	tbd	AVFoundation	0	6
+142	uso	media	media/capture/video/apple/video_capture_device_factory_apple.mm	AVCaptureDeviceTypeBuiltInWideAngleCamera	sym	tbd	AVFoundation	0	3
+142	uso	media	media/capture/video/apple/video_capture_device_factory_apple.mm	AVCaptureDeviceTypeContinuityCamera	sym	tbd	AVFoundation	0	3
+142	uso	media	media/capture/video/apple/video_capture_device_factory_apple.mm	AVCaptureDeviceTypeExternal	sym	tbd	AVFoundation	0	3
+142	uso	media	media/capture/video/apple/video_capture_device_factory_apple.mm	AVCaptureDeviceTypeMicrophone	sym	tbd	AVFoundation	0	1
+142	uso	ui	ui/accessibility/platform/ax_platform_node_cocoa.mm	NSAccessibilityBlockQuoteLevelAttribute	sym	tbd	AppKit	0	1
+142	uso	ui	ui/accessibility/platform/ax_platform_node_cocoa.mm	NSAccessibilityVisitedAttribute	sym	tbd	AppKit	0	1
+142	uso	ui	ui/accessibility/platform/ax_platform_node_cocoa.mm	NSAccessibilityWebAreaRole	sym	tbd	AppKit	0	4
+142	uso	ui	ui/accessibility/platform/ax_private_attributes_mac.h	NSAccessibilityLanguageAttribute	sym	tbd	AppKit	0	1
+142	uso	ui	ui/accessibility/platform/ax_private_attributes_mac.h	NSAccessibilityUIElementsForSearchPredicateParameterizedAttribute	sym	tbd	AppKit	0	1
+142	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityScrollToVisibleAction	sym	tbd	AppKit	0	1
+142	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityScrollToVisibleAction	sym	tbd	AppKit	1	2
+142	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityUIElementsForSearchPredicateParameterizedAttribute	sym	tbd	AppKit	1	2
+142	uso	ui	ui/accessibility/platform/browser_accessibility_manager_mac.mm	NSAccessibilityAutocorrectionOccurredNotification	sym	tbd	AppKit	0	1
+142	uso	ui	ui/accessibility/platform/inspect/ax_inspect_utils_mac.mm	NSAccessibilityBlockQuoteLevelAttribute	sym	tbd	AppKit	0	1
+142	uso	ui	ui/accessibility/platform/inspect/ax_inspect_utils_mac.mm	NSAccessibilityVisitedAttribute	sym	tbd	AppKit	0	1
+142	uso	ui	ui/native_theme/os_settings_provider_mac.mm	AXPrefersNonBlinkingTextInsertionIndicator	sym	tbd	Accessibility	0	1
+142	uso	ui	ui/native_theme/os_settings_provider_mac.mm	AXPrefersNonBlinkingTextInsertionIndicatorDidChangeNotification	sym	tbd	Accessibility	0	1
+143	guarda	media	media/audio/mac/catap_audio_input_stream.mm	macOS 14				5	6
+144	guarda	content	content/browser/media/capture/capture_util_mac.mm	macOS 13				0	1
+144	guarda	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	macOS 12				3	4
+144	guarda	content	content/browser/media/capture/screen_capture_kit_device_utils_mac.mm	macOS 13				1	0
+144	uso	chrome	chrome/browser/media/webrtc/thumbnail_capturer_mac.mm	SCContentFilter	class	tbd	ScreenCaptureKit	6	10
+144	uso	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	SCContentFilter	class	tbd	ScreenCaptureKit	9	11
+144	uso	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	SCDisplay	class	tbd	ScreenCaptureKit	2	4
+144	uso	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	SCShareableContent	class	tbd	ScreenCaptureKit	3	7
+144	uso	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	SCWindow	class	tbd	ScreenCaptureKit	2	6
+144	uso	media	media/audio/mac/catap_audio_input_stream.mm	CATapDescription	class	tbd	CoreAudio	5	6
+145	guarda	chrome	chrome/browser/media/webrtc/thumbnail_capturer_mac.mm	macOS 12				4	6
+145	guarda	chrome	chrome/browser/media/webrtc/thumbnail_capturer_mac.mm	macOS 14				8	9
+145	uso	chrome	chrome/browser/media/webrtc/thumbnail_capturer_mac.mm	SCDisplay	class	tbd	ScreenCaptureKit	8	9
+145	uso	chrome	chrome/browser/media/webrtc/thumbnail_capturer_mac.mm	SCShareableContent	class	tbd	ScreenCaptureKit	4	5
+145	uso	chrome	chrome/browser/media/webrtc/thumbnail_capturer_mac.mm	SCWindow	class	tbd	ScreenCaptureKit	28	33
+145	uso	services	services/device/public/cpp/geolocation/location_manager_delegate.mm	ellipsoidalAltitude	property	12.0	_LocationEssentials	0	1
+145	uso	ui	ui/display/mac/screen_mac.mm	maximumFramesPerSecond	property	12.0	AppKit	0	1
+145	uso	ui	ui/display/mac/screen_utils_mac.mm	displayUpdateGranularity	property	12.0	AppKit	0	1
+145	uso	ui	ui/display/mac/screen_utils_mac.mm	maximumRefreshInterval	property	12.0	AppKit	0	1
+145	uso	ui	ui/display/mac/screen_utils_mac.mm	minimumRefreshInterval	property	12.0	AppKit	0	2
+146	guarda	ui-chrome	chrome/browser/ui/cocoa/renderer_context_menu/chrome_swizzle_services_menu_updater.mm	macOS 14				0	1
+146	guarda	media	media/audio/mac/catap_audio_input_stream.mm	macOS 14				6	7
+146	guarda	ui	ui/display/mac/ca_metal_display_link_mac.h	macOS 14				0	1
+146	guarda	ui	ui/display/mac/ca_metal_display_link_mac.mm	macOS 14				0	4
+146	uso	crypto	crypto/apple/unexportable_key_apple.mm	kSecUseDataProtectionKeychain	sym	tbd	Security	0	1
+146	uso	device	device/gamepad/game_controller_data_fetcher_mac.mm	GCXboxGamepad	class	tbd	GameController	0	3
+146	uso	device	device/gamepad/game_controller_data_fetcher_mac.mm	buttonHome	property	11.0	GameController	0	1
+146	uso	device	device/gamepad/game_controller_data_fetcher_mac.mm	buttonMenu	property	10.15	GameController	0	1
+146	uso	device	device/gamepad/game_controller_data_fetcher_mac.mm	buttonOptions	property	10.15	GameController	0	1
+146	uso	device	device/gamepad/game_controller_data_fetcher_mac.mm	buttonShare	property	12.0	GameController	0	2
+146	uso	media	media/audio/mac/catap_audio_input_stream.mm	CATapDescription	class	tbd	CoreAudio	6	8
+146	uso	ui	ui/display/mac/ca_metal_display_link_mac.h	CAMetalDisplayLink	class	tbd	QuartzCore	0	1
+146	uso	ui	ui/display/mac/ca_metal_display_link_mac.h	CAMetalDisplayLinkUpdate	class	tbd	QuartzCore	0	1
+146	uso	ui	ui/display/mac/ca_metal_display_link_mac.mm	CAMetalDisplayLink	class	tbd	QuartzCore	0	9
+146	uso	ui	ui/display/mac/ca_metal_display_link_mac.mm	CAMetalDisplayLinkUpdate	class	tbd	QuartzCore	0	7
+146	uso	ui	ui/display/mac/ca_metal_display_link_mac.mm	addPresentedHandler	method	10.15	Metal	0	1
+146	uso	ui	ui/display/mac/ca_metal_display_link_mac.mm	drawableID	property	10.15	Metal	0	2
+146	uso	ui	ui/display/mac/ca_metal_display_link_mac.mm	presentedTime	property	10.15	Metal	0	1
+147	guarda	components	components/remote_cocoa/app_shim/bridged_content_view.mm	macOS 15				0	1
+147	guarda	components	components/remote_cocoa/app_shim/native_widget_ns_window_bridge.mm	macOS 15				0	1
+147	guarda	content	content/app_shim_remote_cocoa/render_widget_host_view_cocoa.mm	macOS 15				0	1
+147	uso	chrome	chrome/browser/platform_util_mac.mm	NSWorkspaceOpenConfiguration	class	tbd	AppKit	1	2
+147	uso	components	components/remote_cocoa/app_shim/bridged_content_view.mm	contextMenuKeyDown	method	15.0	AppKit	0	2
+147	uso	components	components/remote_cocoa/app_shim/native_widget_ns_window_bridge.mm	NSWindowRestorationOptions	class	tbd	AppKit	0	3
+147	uso	content	content/app_shim_remote_cocoa/render_widget_host_view_cocoa.mm	contextMenuKeyDown	method	15.0	AppKit	0	2
+147	uso	device	device/gamepad/game_controller_gamepad.mm	CHHapticDynamicParameter	class	tbd	CoreHaptics	0	2
+147	uso	device	device/gamepad/game_controller_gamepad.mm	CHHapticDynamicParameterIDHapticIntensityControl	sym	tbd	CoreHaptics	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	CHHapticDynamicParameterIDHapticSharpnessControl	sym	tbd	CoreHaptics	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	CHHapticEngine	class	tbd	CoreHaptics	0	5
+147	uso	device	device/gamepad/game_controller_gamepad.mm	CHHapticEvent	class	tbd	CoreHaptics	0	2
+147	uso	device	device/gamepad/game_controller_gamepad.mm	CHHapticEventParameter	class	tbd	CoreHaptics	0	4
+147	uso	device	device/gamepad/game_controller_gamepad.mm	CHHapticEventParameterIDHapticIntensity	sym	tbd	CoreHaptics	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	CHHapticEventParameterIDHapticSharpness	sym	tbd	CoreHaptics	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	CHHapticEventTypeHapticContinuous	sym	tbd	CoreHaptics	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	CHHapticPattern	class	tbd	CoreHaptics	0	2
+147	uso	device	device/gamepad/game_controller_gamepad.mm	GCDeviceHaptics	class	tbd	GameController	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	GCDualSenseGamepad	class	tbd	GameController	0	3
+147	uso	device	device/gamepad/game_controller_gamepad.mm	GCDualShockGamepad	class	tbd	GameController	0	3
+147	uso	device	device/gamepad/game_controller_gamepad.mm	GCHapticDurationInfinite	sym	tbd	GameController	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	GCHapticsLocalityDefault	sym	tbd	GameController	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	GCHapticsLocalityLeftHandle	sym	tbd	GameController	0	2
+147	uso	device	device/gamepad/game_controller_gamepad.mm	GCHapticsLocalityLeftTrigger	sym	tbd	GameController	0	3
+147	uso	device	device/gamepad/game_controller_gamepad.mm	GCHapticsLocalityRightHandle	sym	tbd	GameController	0	2
+147	uso	device	device/gamepad/game_controller_gamepad.mm	GCHapticsLocalityRightTrigger	sym	tbd	GameController	0	3
+147	uso	device	device/gamepad/game_controller_gamepad.mm	GCXboxGamepad	class	tbd	GameController	0	2
+147	uso	device	device/gamepad/game_controller_gamepad.mm	buttonHome	property	11.0	GameController	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	buttonMenu	property	10.15	GameController	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	buttonOptions	property	10.15	GameController	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	buttonShare	property	12.0	GameController	0	2
+147	uso	device	device/gamepad/game_controller_gamepad.mm	startAtTime	method	26.0	PHASE	0	1
+147	uso	device	device/gamepad/game_controller_gamepad.mm	stopWithCompletionHandler	method	12.0	Virtualization	0	5
+148	guarda	base	base/mac/mac_util.mm	macOS 15				0	1
+148	guarda	media	media/audio/mac/catap_audio_input_stream.mm	macOS 14				7	8
+148	uso	base	base/mac/mac_util.mm	NSWorkspaceOpenConfiguration	class	tbd	AppKit	0	1
+148	uso	chrome	chrome/browser/platform_util_mac.mm	NSWorkspaceOpenConfiguration	class	tbd	AppKit	2	3
+149	guarda	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	macOS 15				0	1
+149	guarda	media	media/audio/mac/catap_audio_input_stream.mm	macOS 14				8	10
+149	guarda	media	media/audio/mac/catap_audio_input_stream.mm	macOS 15				0	1
+149	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCContentFilter	class	tbd	ScreenCaptureKit	8	10
+149	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCWindow	class	tbd	ScreenCaptureKit	0	2
+149	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	includedWindows	property	15.2	ScreenCaptureKit	0	3
+149	uso	ui	ui/display/mac/screen_mac.mm	minimumRefreshInterval	property	12.0	AppKit	0	2
+150	guarda	content	content/browser/media/capture/capture_util_mac.mm	macOS 13				1	0
+150	guarda	content	content/browser/media/capture/desktop_capture_util_mac.mm	macOS 13				0	1
+150	guarda	content	content/browser/media/capture/native_screen_capture_picker_mac.h	macOS 14				0	1
+150	guarda	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	macOS 14				10	12
+150	uso	ui-chrome	chrome/browser/ui/views/frame/browser_native_widget_mac.mm	NSGlassEffectView	class	tbd	AppKit	0	2
+150	uso	components	components/remote_cocoa/app_shim/native_widget_ns_window_bridge.mm	NSGlassEffectView	class	tbd	AppKit	0	1
+150	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.h	SCContentFilter	class	tbd	ScreenCaptureKit	0	4
+150	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.h	SCStream	class	tbd	ScreenCaptureKit	0	6
+150	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCContentSharingPicker	class	tbd	ScreenCaptureKit	8	9
+150	uso	content	content/browser/web_contents/web_drag_dest_mac.mm	UTTypeImage	sym	tbd	UniformTypeIdentifiers	0	1
+150	uso	device	device/gamepad/game_controller_gamepad.mm	CHHapticEngine	class	tbd	CoreHaptics	5	7
+150	uso	ui	ui/accessibility/platform/browser_accessibility_manager_mac.mm	NSAccessibilityTextStateSyncKey	sym	tbd	AppKit	1	2
+150	uso	ui	ui/base/accelerators/media_keys_listener_mac.mm	IOHIDCheckAccess	sym	tbd	IOKit	0	1
+150	uso	ui	ui/base/dragdrop/os_exchange_data_provider_mac.mm	UTTypeImage	sym	tbd	UniformTypeIdentifiers	0	2
+151	guarda	base	base/mac/launch_application.mm	macOS 12				1	0
+151	guarda	base	base/mac/mac_util.mm	macOS 13				14	0
+151	guarda	base	base/mac/process_requirement.cc	macOS 13				1	0
+151	guarda	chrome	chrome/browser/device_reauth/mac/authenticator_mac.mm	macOS 15				0	1
+151	guarda	chrome	chrome/browser/media/webrtc/thumbnail_capturer_mac.mm	macOS 12				6	0
+151	guarda	ui-chrome	chrome/browser/ui/views/desktop_capture/screen_capture_permission_checker_mac.mm	macOS 13				1	0
+151	guarda	components	components/remote_cocoa/app_shim/browser_native_widget_window_mac.mm	macOS 13				1	0
+151	guarda	components	components/remote_cocoa/app_shim/immersive_mode_controller_cocoa.mm	macOS 13				1	0
+151	guarda	components	components/remote_cocoa/app_shim/native_widget_mac_nswindow.mm	macOS 13				3	0
+151	guarda	components	components/remote_cocoa/app_shim/native_widget_ns_window_bridge.mm	macOS 13				2	0
+151	guarda	content	content/app_shim_remote_cocoa/render_widget_host_ns_view_bridge.mm	macOS 13				1	0
+151	guarda	content	content/browser/media/capture/screen_capture_kit_device_mac.mm	macOS 12				4	0
+151	guarda	content	content/browser/media/capture/screen_capture_kit_fullscreen_module.mm	macOS 12				2	0
+151	guarda	media	media/audio/mac/audio_loopback_input_mac_impl.h	macOS 13				1	0
+151	guarda	media	media/audio/mac/audio_loopback_input_mac_impl.mm	macOS 13				3	0
+151	guarda	media	media/audio/mac/screen_capture_kit_swizzler.mm	macOS 13				1	0
+151	guarda	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	macOS 13				2	0
+151	guarda	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	macOS 14				1	3
+151	guarda	services	services/webnn/coreml/graph_impl_coreml.mm	macOS 12				1	0
+151	guarda	services	services/webnn/coreml/tensor_impl_coreml.mm	macOS 12				2	0
+151	uso	base	base/process/launch_mac.cc	posix_spawn_file_actions_addchdir	sym	tbd	libSystem.B.dylib	0	1
+151	uso	crypto	crypto/apple/unexportable_key_apple.mm	kSecUseDataProtectionKeychain	sym	tbd	Security	1	2
+151	uso	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	kVTCompressionPropertyKey_CalculateMeanSquaredError	sym	tbd	VideoToolbox	0	2
+151	uso	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	kVTSampleAttachmentQualityMetricsKey_ChromaBlueMeanSquaredError	sym	tbd	VideoToolbox	0	1
+151	uso	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	kVTSampleAttachmentQualityMetricsKey_ChromaRedMeanSquaredError	sym	tbd	VideoToolbox	0	1
+151	uso	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	kVTSampleAttachmentQualityMetricsKey_LumaMeanSquaredError	sym	tbd	VideoToolbox	0	1
+152	guarda	content	content/app_shim_remote_cocoa/web_menu_runner_mac.mm	macOS 14				1	2
+152	guarda	media	media/gpu/mac/video_toolbox_decompression_session_manager.mm	macOS 12				0	1
+152	guarda	GPU	ui/accelerated_widget_mac/ca_renderer_layer_tree.mm	macOS 14				0	1
+152	uso	ui-chrome	chrome/browser/ui/views/eye_dropper/eye_dropper_view_mac.mm	NSColorSampler	class	tbd	AppKit	1	3
+152	uso	content	content/app_shim_remote_cocoa/web_menu_runner_mac.mm	sectionHeaderWithTitle	method	14.0	AppKit	0	1
+152	uso	media	media/gpu/mac/video_toolbox_decompression_session_manager.mm	CVIsCompressedPixelFormatAvailable	sym	tbd	CoreVideo	0	1
+152	uso	media	media/midi/midi_manager_mac.cc	MIDIEventListAdd	sym	tbd	CoreMIDI	0	1
+152	uso	media	media/midi/midi_manager_mac.cc	MIDIEventListInit	sym	tbd	CoreMIDI	0	1
+152	uso	media	media/midi/midi_manager_mac.cc	MIDIInputPortCreateWithProtocol	sym	tbd	CoreMIDI	0	1
+152	uso	media	media/midi/midi_manager_mac.cc	MIDISendEventList	sym	tbd	CoreMIDI	0	1
+152	uso	GPU	ui/accelerated_widget_mac/ca_renderer_layer_tree.mm	AVSampleBufferVideoRenderer	class	tbd	AVFoundation	0	1
+152	uso	GPU	ui/accelerated_widget_mac/ca_renderer_layer_tree.mm	sampleBufferRenderer	property	14.0	AVFoundation	0	1
+152	uso	ui	ui/accessibility/platform/ax_platform_node_cocoa.mm	NSAccessibilityListMarkerRole	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_attributes_mac.h	NSAccessibilityFontBoldAttribute	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_attributes_mac.h	NSAccessibilityFontItalicAttribute	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_roles_mac.h	NSAccessibilityListMarkerRole	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityAnyTypeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityBlockquoteSameLevelSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityBlockquoteSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityBoldFontSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityButtonSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityCheckBoxSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityControlSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityDifferentTypeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityFontChangeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityFontColorChangeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityFrameSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityGraphicSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityHeadingLevel1SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityHeadingLevel2SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityHeadingLevel3SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityHeadingLevel4SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityHeadingLevel5SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityHeadingLevel6SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityHeadingSameLevelSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityHeadingSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityItalicFontSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityLandmarkSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityLinkSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityListSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityLiveRegionSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityMisspelledWordSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityOutlineSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityPlainTextSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityRadioGroupSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilitySameTypeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityStaticTextSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityStyleChangeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityTableSameLevelSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityTableSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityTextFieldSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityUnderlineSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityUnvisitedLinkSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/ax_private_webkit_constants_mac.h	NSAccessibilityVisitedLinkSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityAnyTypeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityBlockquoteSameLevelSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityBlockquoteSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityBoldFontSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityButtonSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityCheckBoxSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityControlSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityDifferentTypeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityFontChangeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityFontColorChangeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityFrameSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityGraphicSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityHeadingLevel1SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityHeadingLevel2SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityHeadingLevel3SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityHeadingLevel4SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityHeadingLevel5SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityHeadingLevel6SearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityHeadingSameLevelSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityHeadingSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityItalicFontSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityLandmarkSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityLinkSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityListSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityLiveRegionSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityMisspelledWordSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityOutlineSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityPlainTextSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityRadioGroupSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilitySameTypeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityStaticTextSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityStyleChangeSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityTableSameLevelSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityTableSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityTextFieldSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityUnderlineSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityUnvisitedLinkSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/browser_accessibility_cocoa.mm	NSAccessibilityVisitedLinkSearchKey	sym	tbd	AppKit	0	1
+152	uso	ui	ui/accessibility/platform/inspect/ax_event_recorder_mac.mm	NSAccessibilityAutocorrectionOccurredNotification	sym	tbd	AppKit	0	1
+153	guarda	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	macOS 14				12	14
+153	uso	ui-chrome	chrome/browser/ui/cocoa/main_menu_builder.mm	imageWithSystemSymbolName	method	11.0	AppKit	0	1
+153	uso	chrome	chrome/installer/gcapi_mac/gcapi.mm	NSWorkspaceOpenConfiguration	class	tbd	AppKit	0	1
+153	uso	chrome	chrome/installer/gcapi_mac/gcapi.mm	openApplicationAtURL	method	10.15	AppKit	0	1
+153	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCContentFilter	class	tbd	ScreenCaptureKit	6	7
+153	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCScreenshotManager	class	tbd	ScreenCaptureKit	0	1
+153	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCStreamConfiguration	class	tbd	ScreenCaptureKit	0	2
+153	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	captureImageWithFilter	method	14.0	ScreenCaptureKit	0	1
+153	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	ignoreShadowsSingleWindow	property	14.0	ScreenCaptureKit	0	1
+153	uso	device	device/gamepad/game_controller_data_fetcher_mac.mm	shouldMonitorBackgroundEvents	property	11.3	GameController	0	2
+153	uso	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	kVTCompressionPropertyKey_HDRMetadataInsertionMode	sym	tbd	VideoToolbox	0	2
+153	uso	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	kVTHDRMetadataInsertionMode_Auto	sym	tbd	VideoToolbox	0	1
+153	uso	GPU	ui/accelerated_widget_mac/ca_renderer_layer_tree.mm	CADynamicRangeHigh	sym	tbd	QuartzCore	0	1
+153	uso	GPU	ui/accelerated_widget_mac/ca_renderer_layer_tree.mm	CADynamicRangeStandard	sym	tbd	QuartzCore	0	1
+153	uso	GPU	ui/accelerated_widget_mac/ca_renderer_layer_tree.mm	contentsHeadroom	property	26.0	QuartzCore	0	2
+153	uso	GPU	ui/accelerated_widget_mac/ca_renderer_layer_tree.mm	preferredDynamicRange	property	26.0	QuartzCore	0	2
+153	uso	ui	ui/accessibility/platform/browser_accessibility_manager_mac.mm	NSAccessibilityTextStateChangeTypeKey	sym	tbd	AppKit	3	4
+154	guarda	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	macOS 14				14	16
+154	guarda	ui	ui/display/mac/ca_display_link_mac.mm	macOS 14				4	5
+154	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCContentFilter	class	tbd	ScreenCaptureKit	7	9
+154	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCStream	class	tbd	ScreenCaptureKit	11	16
+154	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	SCStreamConfiguration	class	tbd	ScreenCaptureKit	2	4
+154	uso	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	kVTCompressionPropertyKey_OutputBitDepth	sym	tbd	VideoToolbox	0	2
+154	uso	media	media/gpu/mac/vt_video_encode_accelerator_mac.mm	kVTProfileLevel_HEVC_Main42210_AutoLevel	sym	tbd	VideoToolbox	0	1
+155	guarda	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	macOS 15				1	2
+155	uso	content	content/browser/media/capture/native_screen_capture_picker_mac.mm	includedDisplays	property	15.2	ScreenCaptureKit	0	2
+155	uso	ui	ui/accessibility/platform/inspect/ax_event_recorder_mac.mm	NSAccessibilityTextStateSyncKey	sym	tbd	AppKit	0	1
+156	uso	device	device/fido/mac/icloud_keychain_sys.mm	ASAuthorizationWebBrowserPublicKeyCredentialManager	class	tbd	AuthenticationServices	2	3
+156	uso	device	device/fido/mac/icloud_keychain_sys.mm	isDeviceConfiguredForPasskeys	property	26.2	AuthenticationServices	0	1
