@@ -1,3 +1,18 @@
+# Relevo de MOTOR: de MOTOR-26 a MOTOR-27 (27-10-2026, ~20:00)
+
+MOTOR-26 (`session_01MwmK2ifjhdhoUu5VEpAigY`, Opus 5.5, medio) hizo la **2.1.1 = FM.48 + FM.47**: brave-core
+**`nube/motor-211` 33a978bdb9** (en una orden a LOCAL: no se reescribe), build 33. Detalle, pruebas y diagnóstico de
+Futura en `version-2.1.1.md`. Se queda quieta hasta que se publique.
+
+**Dónde fallará la compilación, si falla:** f1cb7e815 (flex, `ResolveBlockLengthInternal` con `IntrinsicBlockSizeFunc`
+después de definirlo), 9a0e2d945 (flex, `InitialContentPositionOffset`), ccbdf5af0 (`font_matcher_mac.mm`, ARC y
+`NSMutableArray`), y los de SEGURIDAD-PORTES-10 (FS.29–31, sin compilar).
+**Entorno:** googlesource está cerrado desde la nube; la historia de Chromium sale de GitHub (`/home/user/chromium/hist`,
+`tree:0`, etiquetas 116/128/132 y `main`); `chk128.sh` tiene `CH=/home/user/chromium` y la historia está en `.../hist`
+(se usó una copia con la ruta corregida).
+
+---
+
 # Relevo de MOTOR: de MOTOR-25 a MOTOR-26 (27-10-2026, ~14:10)
 
 MOTOR-25 (`session_01MwmK2jUhhNQpTHEbCSHDPC`, Opus 5.5, medio; archivada al 51 %) hizo b2, las fijadas en blanco y el
