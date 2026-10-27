@@ -157,7 +157,7 @@ ya tiene esas APIs [V].
 ## Orden propuesto (2.0.3 y siguientes; lo decide COORDINACIÓN)
 
 1. **2.0.3, tanda 1 (bajo coste, se nota o lo ha decidido Titín):** hecha por MOTOR-22 en la -p22 9b9fdbbd44, sin d11
-   ([`version-2.0.3.md`](version-2.0.3.md)). d8 se corta en `CreatePermanentKey`, porque `IsSecureEnclaveSupported` no tiene
+   ([`version-2.0.2.md`](version-2.0.2.md) §6). d8 se corta en `CreatePermanentKey`, porque `IsSecureEnclaveSupported` no tiene
    llamadas en producción.
    - d1 + d2 + d3 + d4: sin SE en todas las Mac; aviso de las passkeys en las notas de versión;
    - c1: hilos de audio;
