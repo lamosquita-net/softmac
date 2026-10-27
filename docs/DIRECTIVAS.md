@@ -50,6 +50,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   10.14 o el código de la 116), no un «no hay» silencioso. Es el trabajo de fondo del fork, antes de optimizar. Inventario
   y traducción en la fila FM.42 (2.0.3+). **Nada del chip T2 ni del Secure Enclave**: en todas las Mac, los caminos
   anteriores a 10.15 (claves por software, llavero clásico) para claves y verificación de usuario.
+- **Cifrado por software, estándar, modular y con la CPU** (Titín, 27-10): algoritmos existentes (nada inventado),
+  AES-256-GCM como objetivo, con la aceleración que tenga cada CPU sin exigir AVX; en un módulo cambiable para subir de
+  algoritmo cuando haga falta, y el procedimiento documentado. Pensado para Mojave y otras plataformas, sin T2. Fila FS.25.
 - **Seguridad fuera de Blink/V8, en línea propia** (Titín, 26-10): subir de base (129/130) no arregla los CVE de 2025–2026;
   se portan en el fork. SEGURIDAD-VIGÍA semanal; cada base nueva obliga a rehacer el triaje (CVE-2026-11645 «no aplicaba»
   a la 116 y sí a la 128). Fila FS.24.
