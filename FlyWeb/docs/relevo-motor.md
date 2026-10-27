@@ -8,11 +8,11 @@ y porte en `nube/motor-132`. Detalle: `FlyWeb/docs/version-2.1.0.md`. Prueba: `F
 | Rama de brave-core | sha | Qué |
 |---|---|---|
 | `nube/motor25-p25` | fbe2394fed | 2.0.3 compilada (e71f768ccd) + b2 (503757bf) + fijadas (fbe2394f); orden `buzon/LOCAL/20261027-1215-MOTOR-25.md`; PR borrador brave-core #6 |
-| `nube/motor-132` | 5c665471 | 12 commits del 132 sobre fbe2394fed, `sideways` el último; **sin dar a LOCAL**: espera FS.28 y FS.27 |
+| `nube/motor-132` | 50f5d099 | 12 commits del 132 + merge de FS.27 (54b1ae68) sobre fbe2394fed, `sideways` el último; **sin dar a LOCAL**: espera FS.28 (`seg/v8-13.2`, tras su d8) y 475cb03ab90 de SEGURIDAD-PORTES-9 encima |
 
 **Lo que queda (tuyo):** (1) lo que traiga LOCAL de la -p25 (b2 y fijadas): va antes que nada; pide a LOCAL que confirme
 que la prueba de las fijadas tenía 2+ ventanas. (2) Fundir `seg/fs28-v8` (SEGURIDAD-PORTES-9: `patches/v8` a 13.2.152.56,
-Maglev encendido con 4cf93118) y `seg/fs27-*` sobre `nube/motor-132`, con `sideways` último; entonces orden a LOCAL por
+Maglev según decida COORDINACIÓN; FS.27 ya fundida) sobre `nube/motor-132`, con `sideways` último y 475cb03ab90 de SEGURIDAD-PORTES-9 encima; entonces orden a LOCAL por
 `buzon` (Release, build 32, `motor-132.html`, `wpt-132-lista.txt`, Speedometer 3 y JetStream con y sin Maglev en la 5,1 y
 la 6,1). (3) Que COORDINACIÓN confirme `flyweb_version` 2.1.0. El 133 no se abre hasta compilar el 132 (límite de dos
 niveles por delante del 131 compilado: cabe, pero la regla 18 pide fundir antes los arreglos del 132).

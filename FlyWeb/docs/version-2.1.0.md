@@ -1,6 +1,6 @@
 # FlyWeb 2.1.0 — motor 132 (FM.45)
 
-**Estado (27-10-2026, MOTOR-25):** brave-core `nube/motor-132` **5c665471** (12 commits sobre `nube/motor25-p25` fbe2394fed =
+**Estado (27-10-2026, MOTOR-25):** brave-core `nube/motor-132` **50f5d099** (13 commits sobre `nube/motor25-p25` fbe2394fed =
 2.0.3 compilada por LOCAL-12 + b2 + arreglo de las fijadas). **Sin compilar.** Falta, antes de dársela a LOCAL: **FS.28**
 (rebase de `patches/v8` a la 13.2.152.56 y Maglev, SEGURIDAD-PORTES-9; sin él no aplican los parches de V8) y **FS.27**
 (regla 17 de `sideways` y `shape-outside`). Inventario y decisiones: [`motor-niveles.md`](motor-niveles.md), «Nivel 132».
@@ -23,7 +23,8 @@ Un commit por punto, para revertir uno solo:
 | b041904e | Flags del 132 sin Baseline (selección en Shadow DOM, *top layer* en documentos inactivos, `<li>` con `counter-set`, doble clic con `float`, `selectionchange` al borrar, selector de fecha) |
 | 541200a5 | `KeyboardFocusableScrollers` a `stable` (como Chrome for Testing 132 y Brave 1.74) |
 | 250c23a8 | Nivel 132 declarado: `132.0.6834.160`, `flyweb_version` 2.1.0 |
-| **5c665471** | **`writing-mode: sideways-rl` y `sideways-lr`**, el último (35 commits + encendido; si LOCAL o FS.27 lo tumban, se revierte solo) |
+| 915097fd | Merge de FS.27 (`seg/fs27-blink132` 54b1ae68, SEGURIDAD-PORTES-9: arreglos de caídas de upstream en el código que toca `sideways`) |
+| **50f5d099** | **`writing-mode: sideways-rl` y `sideways-lr`**, el último (35 commits + encendido; si LOCAL o FS.27 lo tumban, se revierte solo) |
 
 **Fuera del nivel, con motivo:** `SkipTemporaryDocumentFragment` (398837e6773: necesita los refactors de
 `Node::ConvertNodeUnionsIntoNode` de 129–131; núcleo del DOM y sin Baseline), `ViewTransitionOverflowRectFromSurface` (su
@@ -33,7 +34,7 @@ ya estaba: es CVE-2025-4664, portado en la 2.0.0.
 
 **Riesgos para LOCAL:** `sideways` (35 commits sobre la 128 sin compilar; tres adaptados a mano: sentido de los
 deslizadores, caret de bloque vacío y ancla de desplazamiento); la serie de `shape-outside`; V8 13.2 (que `patches/v8`
-compile tras FS.28). Maglev encendido: Speedometer 3 y JetStream con y sin él en la 5,1 y la 6,1; si la 5,1 empeora, se
+compile tras FS.28). **Maglev, pendiente de COORDINACIÓN** (SEGURIDAD-PORTES-9 recomienda no encenderlo en el 132: ~15 arreglos posteriores a la LTS); si se enciende: Speedometer 3 y JetStream con y sin él en la 5,1 y la 6,1; si la 5,1 empeora, se
 apaga con el dato (COORDINACIÓN-16).
 
 ## Para la web
@@ -48,4 +49,3 @@ apaga con el dato (COORDINACIÓN-16).
 - **Elementos anclados más flexibles**: `anchor-size()` también en posiciones y márgenes.
 - **Formas de texto alrededor de imágenes** (`shape-outside`) correctas también en texto vertical.
 - **Teclado**: los recuadros con barra de desplazamiento se pueden enfocar con Tab y mover con las flechas.
-- **JavaScript más rápido** (si las medidas en los Mac lo confirman): se enciende Maglev, el compilador intermedio de V8 que Chrome usa de serie.
