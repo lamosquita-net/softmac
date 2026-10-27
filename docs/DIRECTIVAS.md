@@ -42,6 +42,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   textos de la interfaz aprobados desde la 1.x no cambian, ni para «arreglar» algo, sin una captura y el sí de Titín. Caso:
   la sombra de las estadísticas de la NTP de la -p16 puso un halo blanco ilegible en los fondos FlyWeb (arreglo en la 2.0.1, -p18).
 
+- **Lo visible, con el visto bueno de Titín antes de publicar** (Titín, 27-10): si una versión cambia algo que se ve
+  (NTP, fondos, iconos, colores, textos, pestañas, animaciones como la mosca), LOCAL deja el DMG de prueba y capturas
+  antes y después, y PUBLICACIÓN no publica hasta su sí. Sin cambios visibles, se publica sin preguntar (regla 11). Caso:
+  la mosca animada de la NTP, que se veía en la 1.15 y no en la 2.0, desapareció sin que nadie se lo enseñara (FM.43).
 - **Versión visible sin Brave ni Chromium** (Titín, 26-10): «Información de FlyWeb» y `flyweb://version` dicen
   «FlyWeb 2.0.x (motor N)»; Brave y Chromium, solo en `about:credits` (lo que piden MPL-2.0 y BSD). La base real
   (Chromium 128.0.6613.138) vive en la documentación del repo, porque el triaje de seguridad depende de ella. Fila FM.41.
