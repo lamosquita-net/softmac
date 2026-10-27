@@ -96,6 +96,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Lo apagado se enciende cuando upstream lo lleva de serie** (regla 19, 14-10): Maglev, ISel de Turboshaft, etc.;
   seguir en una ruta que Google ya no prueba sale más caro. SEGURIDAD-PORTES revisa la tabla en cada nivel. Fuente:
   [`TAREAS.md`](TAREAS.md) regla 19.
+- **Maglev, encendido como tarde en el nivel 134** (Titín, 27-10): apagado acumula deuda de seguridad (arreglos que hay que portar
+  al encenderlo, ~15 hoy) y se aleja de lo que Google prueba (regla 19). Antes de encenderlo, la deuda portada (SEGURIDAD-PORTES)
+  y pruebas de rendimiento con y sin él en la 5,1 y la 6,1; si empeora en la 5,1, vuelve a Titín con el dato. Fila FM.45.
+- **WebGL sin falsear** (Titín, 27-10): en Mojave la cadena del renderizador es la de OpenGL, distinta de la de Chrome 132 en Metal;
+  no se iguala con `ANGLE_GL_RENDERER`. Fuente: `gpu-red-129-132.md` (FM.46).
 - **Finch: lo que Chrome cambia por configuración de campo no está en el código** (15-10 y 20-10): la referencia es lo
   que expone el Chrome for Testing N y el json5 de la Brave del nivel, no `runtime_enabled_features`
   (MutationEvents, `KeyboardFocusableScrollers`). Fuente: [`coordinacion.md`](../FlyWeb/docs/coordinacion.md), «Trampas».
