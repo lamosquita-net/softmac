@@ -1398,5 +1398,5 @@ y `ScrollIntoViewRootFrameViewportBugFix` (6916f1ac980).
   la lista WPT.
 - **Para COORDINACIÓN:** (a) declarar 132.0.6834.160 con la V8 13.2.152.56; (b) `turboshaft_wasm` encendido sin parche;
   (c) Maglev: encender en el 132 (4cf93118 + medición) o aplazarlo con su motivo; (d) `maglev_untagged_phis` cerrado;
-  (e) `KeyboardFocusableScrollers` a `stable`; (f) `sideways` en esta versión o en una 2.1.x aparte (regla 18: grande, pero
+  (e) `KeyboardFocusableScrollers` a `stable`; (f) `sideways` en la misma versión del nivel o en una versión aparte (regla 18: grande, pero
   no tanto como RubyLB); (g) `NoReferrerForPreloadFromSubresource` dentro.
