@@ -14,6 +14,7 @@ Regla (ver `docs/TAREAS.md`, regla 7): si un agente necesita un gráfico o un se
 | D4 | Iconos y logotipos del inventario de LOCAL | Siguiente versión | `FlyWeb/branding/imagenes.md` |
 | D5 | Símbolo definitivo del botón de Shields (18 y 36 px, activo y apagado) | Con D4 | `FlyWeb/docs/marca-pendiente.md` (M6) |
 | D7 | Diseño del resto de páginas internas (ajustes, historial, descargas, bienvenida…) con D-DIN | Sin prioridad | §2 |
+| D8 | **Pestañas** (Titín, 27-10): bocetos de pestañas de verdad, unidas a la barra de debajo, no los «botones» separados de Brave 1.69. Planas, sin volumen ni sombras, con esquinas rectas o mucho menos redondeadas que las de Chrome. Después, estudio de cómo aplicarlo y por tandas (la pestaña la pinta Brave en brave-core sobre el `TabStyle` de Chromium; las sombras las dibuja el navegador, no macOS) | Sin prioridad | — |
 | D6 | Diseño de la web pública `flyweb.lamosquita.net` | Antes de la primera versión pública | §4 |
 | S1 | Vhost `flyweb.lamosquita.net` (estático) | Antes de la primera versión pública | §4 |
 | S2 | Vhost `updates.flyweb.lamosquita.net` (estático, DMG grandes) | Fase 0.5: app firmada | §4 |
