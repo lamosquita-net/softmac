@@ -71,6 +71,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   nivel 146. Traducirlo a Mojave sería >20 h con riesgo alto de regresión de GPU; se reabre solo si upstream borra ese
   camino. Fuente: `macos11-niveles.md` §8.4, `plan-fork.md`.
 
+- **Saltos grandes por era de macOS, capa para lo intermedio** (Titín, 27-10): como el salto 116 → 128 (de Chromium Legacy
+  127 a la 128, con su Brave), la base cambia de golpe al final de cada era de macOS, ahorrando los pasos intermedios; el
+  siguiente gran salto, cuando lo abierto esté estable, será la era de macOS 11 (ya valorado en `plan-fork.md` y
+  `macos11-niveles.md`). Entre saltos, los niveles avanzan rápido con la capa de compatibilidad. Por nivel no solo Blink y
+  V8: también GPU, red y sandbox (FM.46), en una 2.1.x aparte y **solo si la huella sigue coincidiendo con la del Chrome
+  declarado** (TLS/JA4, HTTP/2, QUIC, Client Hints, WebGL/canvas): los antibots nos detectan por ahí.
+
 ## Motor
 
 - **Niveles de Chrome, portando función a función** (HUMANO, 04-10): el motor crece desde la base portando lo Baseline
