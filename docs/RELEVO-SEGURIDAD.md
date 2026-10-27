@@ -21,7 +21,15 @@ FS.28 (apto con cambios, filas en `TAREAS.md`), punto 3 (HSTS portado; CT → FS
 - `seg/v8-13.1-lle` 470b5cc2b sobre fbe2394fed = **2.0.4** (build 32): los 4 arreglos de late load elimination en 13.1,
   época 18, `flyweb_version` 2.0.4. Orden a LOCAL por `buzon` cuando pase mjsunit (ver fila FS.28).
 
-**Para SEGURIDAD-PORTES-10:** FS.30 paso 2 (CT con la forma del M144, `seg/fs30-ct` sobre la cabeza de `nube/motor-132`,
+**Decisión de Titín (27-10, vía COORDINACIÓN-17):** Maglev se enciende **como tarde en el nivel 134**, con su deuda de
+seguridad portada antes (la lista de ~15 arreglos está en el informe de FS.28: 0313bc72, 22e588df, 73ef2fa5, a7c1a463,
+be59876b, c9856bae, b9013994, 96975bd6, ddc4473b, 645f3356 + 07ad1d3a, 99209d95, fbaaf59c, a0f977f1, d5b0cb2a; más
+7076ba13 = `maglev_untagged_phis` apagado) y pruebas de rendimiento en la 5,1 y la 6,1.
+
+**Orden para SEGURIDAD-PORTES-10:** FS.30 → FS.31 (nueva: Root Store v17 + HSTS) → FS.29; la deuda de Maglev, planificada
+para el 134.
+
+**FS.30:** paso 2 (CT con la forma del M144, `seg/fs30-ct` sobre la cabeza de `nube/motor-132`,
 commit propio) y después FS.29 (22e588df). Fuentes de FS.30: Chromium f961e4985b, 0e9d449fac, 46415d1bdb, 94e9495231,
 abab372dda, 25cb1f94e7, e1867ca032, cfd8936a1e, **60533e104a** (forma final); ficheros: proto `log_type`,
 `ct_log_info.mojom`, `pki_metadata_component_installer.cc`, `chrome_ct_policy_enforcer.{h,cc}` (leaf index con CBS),
