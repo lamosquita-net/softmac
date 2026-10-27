@@ -1403,15 +1403,14 @@ y `ScrollIntoViewRootFrameViewportBugFix` (6916f1ac980).
 
 ### 8. Portado (MOTOR-25, 27-10): brave-core `nube/motor-132`
 
-Decisiones de COORDINACIÓN-16 (27-10, fila FM.45): (a)–(d) como se proponen, Maglev encendido con 4cf93118 y medido por
-LOCAL; (e) `KeyboardFocusableScrollers` como lo expone CfT 132 (`stable`); (f) `sideways` en la misma versión, último commit;
+Decisiones de COORDINACIÓN-16 (27-10, fila FM.45): (a), (b) y (d) como se proponen; (c) **Maglev apagado** (rectificado: ~15 arreglos de Maglev posteriores a la LTS 13.2, 4–6 días; FS.28); (e) `KeyboardFocusableScrollers` como lo expone CfT 132 (`stable`); (f) `sideways` en la misma versión, último commit;
 (g) `NoReferrerForPreloadFromSubresource` dentro (resultó ser CVE-2025-4664, ya portado en la 2.0.0). 12 commits sobre
-`nube/motor25-p25` fbe2394fed, cabeza **50f5d099** (con FS.27 fundida antes de `sideways`; un force push de la rama propia, sin el sí de Titín: avisado); tabla en [`version-2.1.0.md`](version-2.1.0.md). Medidas reales: casi
+`nube/motor25-p25` fbe2394fed, cabeza **fbe98109** (con FS.27 fundida antes de `sideways`; un force push de la rama propia, sin el sí de Titín: avisado); tabla en [`version-2.1.0.md`](version-2.1.0.md). Medidas reales: casi
 todo aplicó sin rechazos sobre la 128 (escapes 0–2 por commit tras añadir 291f585e77 y 940fa8c2098/96483a7f06b a sus series;
 `sideways`, 7 rechazos en 4 ficheros). Adaptados a mano: IDB (`OnLoadComplete` con `bool` en la 128), `isCollapsed`,
 `style_engine.cc`, y en `sideways` el sentido de los deslizadores (la 128 voltea al revés que el upstream posterior), el
 caret de bloque vacío y `SerializedAnchor`. `anchor-size()` en insets ya estaba (código del 131): solo el flag. Fuera:
 `SkipTemporaryDocumentFragment` (refactors de 129–131 en `node.cc`), `ViewTransitionOverflowRectFromSurface` (sin flag en la
-2.0) y el refactor 199d1a77501. `patches/v8` y Maglev, en FS.28 (SEGURIDAD-PORTES-9); regla 17 de `sideways` y
+2.0) y el refactor 199d1a77501. `patches/v8`, en FS.28; `IgnoreHSTSForLocalhost` (a5e738f2321) entra antes de `sideways` (SEGURIDAD-PORTES-9); regla 17 de `sideways` y
 `shape-outside`, FS.27. Comprobación de parches: `FlyWeb/tools/port/chk128.sh <base>` (el `chk.sh` antiguo compara con la
 116). Trampa: dos áreas que tocan el json5 no se generan seguidas sin commit en medio (la segunda pisa a la primera).
