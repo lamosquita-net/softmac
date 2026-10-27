@@ -8,6 +8,38 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-9 → 10 (27-10-2026, ~13:30)
+
+SEGURIDAD-PORTES-9 (`session_01MwmK2hx8uFcooc8ep2MhQT`, Opus 5.5, medio) se releva al ~38 % (22 $). Entregado: FS.27 y
+FS.28 (apto con cambios, filas en `TAREAS.md`), punto 3 (HSTS portado; CT → FS.30) y la 2.0.4 de seguridad.
+
+**Ramas (brave-core):**
+- `seg/fs27-blink132` 54b1ae68b (fundida por MOTOR-25 antes de sideways) y `seg/fs27-132` ff9e192c4 sobre
+  `nube/motor-132` 50f5d099b (475cb03ab90 + `IgnoreHSTSForLocalhost`).
+- `seg/fs28-v8` b9a044721 sobre 50f5d099b: `patches/v8` para 13.2.152.56 (32 parches, época 19). `seg/v8-13.2`: historia,
+  no usar.
+- `seg/v8-13.1-lle` 470b5cc2b sobre fbe2394fed = **2.0.4** (build 32): los 4 arreglos de late load elimination en 13.1,
+  época 18, `flyweb_version` 2.0.4. Orden a LOCAL por `buzon` cuando pase mjsunit (ver fila FS.28).
+
+**Para SEGURIDAD-PORTES-10:** FS.30 paso 2 (CT con la forma del M144, `seg/fs30-ct` sobre la cabeza de `nube/motor-132`,
+commit propio) y después FS.29 (22e588df). Fuentes de FS.30: Chromium f961e4985b, 0e9d449fac, 46415d1bdb, 94e9495231,
+abab372dda, 25cb1f94e7, e1867ca032, cfd8936a1e, **60533e104a** (forma final); ficheros: proto `log_type`,
+`ct_log_info.mojom`, `pki_metadata_component_installer.cc`, `chrome_ct_policy_enforcer.{h,cc}` (leaf index con CBS),
+`cert_verifier_service_factory.cc`, `system_network_context_manager.cc`, `ct_known_logs.h`. Brave: `kSCTAuditing` apagado
+(`chromium_src/chrome/common/chrome_features.cc`), `kCertificateTransparencyAskBeforeEnabling`
+(`chromium_src/chrome/browser/browser_features.cc`), hosts exentos de brave.com en
+`chromium_src/chrome/browser/net/profile_network_context_service.cc`.
+
+**Lecciones:**
+- **Que un parche aplique limpio no quiere decir que compile:** 153cde95 llama a `WipeAllMaps()`, que la 13.1/13.2 no
+  tienen (lo trajo otro commit). Buscar en el diff las funciones nuevas que usa.
+- **Un triaje «no aplica por las opciones» caduca con la V8:** la late load elimination de JS estaba apagada en la 12.0 y
+  encendida desde la 13.x; nadie volvió a mirarla. Al subir de V8, revisar los valores de las opciones de cada arreglo
+  descartado por «apagado».
+- Para buscar arreglos de una rama: `git fetch --filter=tree:0` de `refs/branch-heads/X.Y` de github.com/v8/v8 funciona;
+  para Chromium por fichero, un clon `--filter=blob:none --shallow-since` (~900 MB, 2 min) y blobs por lotes con
+  `git fetch --stdin` (método del subagente de FS.27 en la fila).
+
 ## SEGURIDAD-PORTES-5 → 6 (22-10-2026, escrita por COORDINACIÓN-12)
 
 SEGURIDAD-PORTES-5 (`session_01H7fz6r296TWMGBgDfYzRgX`) se archiva **parada y sin encargo**, al ~40 % (criterio de Titín,
@@ -138,9 +170,10 @@ trae sus arreglos. Valores comprobados en `src/flags/flag-definitions.h` de cada
 
 | Qué | FlyWeb | Upstream | Punto de decisión |
 |---|---|---|---|
-| `maglev` | apagado (Titín, 05-10; también en la 116) | encendido desde 11.x | **nivel 132** (V8 13.2, M132-LTS, con sus fusiones de Maglev) |
-| `maglev_untagged_phis` | apagado (CVE-2026-3910) | encendido | con Maglev, en el **132** |
-| `turboshaft_wasm` | apagado (sin parche: es lo de upstream) | apagado en 12.9, 13.0 y 13.1; **encendido en 13.2** | **132**: si upstream lo enciende, regla 19 → encender con sus arreglos (`WasmGCTypeAnalyzer`, `array.fill`, `call_indirect` inlining…) |
+| `maglev` | apagado (Titín, 05-10; también en la 116) | encendido desde 11.x | **sigue apagado en el 132** (COORDINACIÓN-16, 27-10): ~15 arreglos de Maglev posteriores a la LTS 13.2 que aplican (4–6 días) y ~1–1,5 nuevos al mes; revisar en cada nivel (FS.28) |
+| `maglev_untagged_phis` | apagado (CVE-2026-3910) | encendido en la 13.2; main lo apagó (7076ba13, 03-2026) | se mantiene apagado (igual que main) |
+| `turboshaft_wasm` | **encendido en el 132** (de upstream, sin parche) | encendido en 13.2 | hecho (FS.28), con 5 arreglos de Turboshaft-Wasm posteriores a la LTS |
+| `turboshaft_load_elimination` (JS) | encendido (de upstream) desde la 13.x | encendido | sus arreglos posteriores no se habían portado: 4 en la 2.0.4 y el 132 (FS.28) |
 | `turboshaft_instruction_selection` | apagado 12.3–12.8; **encendido desde 12.9** | encendido desde 12.5 | hecho (1.13). Con él apagado la 12.9 caía en `ToConstant()` (`kTrustedHeapConstant`) |
 | `wasm_to_js_generic_wrapper` | apagado 12.3–12.8; **encendido desde 12.9** | encendido desde 12.3 | hecho (1.13) |
 | JSPI, `wasm_deopt`, *stack switching* | apagados (experimentales; Blink 116 no tiene *origin trial* de JSPI) | experimentales | cuando upstream los envíe y Blink los exponga |
