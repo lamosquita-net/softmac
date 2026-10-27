@@ -45,6 +45,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Versión visible sin Brave ni Chromium** (Titín, 26-10): «Información de FlyWeb» y `flyweb://version` dicen
   «FlyWeb 2.0.x (motor N)»; Brave y Chromium, solo en `about:credits` (lo que piden MPL-2.0 y BSD). La base real
   (Chromium 128.0.6613.138) vive en la documentación del repo, porque el triaje de seguridad depende de ella. Fila FM.41.
+- **Compatible con Mojave = funciona igual en Mojave, traducido; no basta con que no se caiga** (Titín, 27-10): todo lo
+  que la 128 hace con APIs de 10.15+ («si es 10.15 haz esto») tiene en Mojave otro camino compatible con 10.14 (API de
+  10.14 o el código de la 116), no un «no hay» silencioso. Es el trabajo de fondo del fork, antes de optimizar. Inventario
+  y traducción en la fila FM.42 (2.0.3+). **Nada del chip T2 ni del Secure Enclave**: en todas las Mac, los caminos
+  anteriores a 10.15 (claves por software, llavero clásico) para claves y verificación de usuario.
 - **Seguridad fuera de Blink/V8, en línea propia** (Titín, 26-10): subir de base (129/130) no arregla los CVE de 2025–2026;
   se portan en el fork. SEGURIDAD-VIGÍA semanal; cada base nueva obliga a rehacer el triaje (CVE-2026-11645 «no aplicaba»
   a la 116 y sí a la 128). Fila FS.24.
