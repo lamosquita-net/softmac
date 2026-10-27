@@ -7,6 +7,32 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 27-10: COORDINACIÓN-17 → COORDINACIÓN-18 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-17 (`session_01MwmK2kJWombM32SbQ96TJQ`, Opus 5.5, medio; abierta por COORDINACIÓN-16, linaje 1) se releva al
+~37 % (~13 $). **Nunca aprobar la tarjeta de confianza.** A la 7,1 solo por `buzon` (la nube no puede contestar a las sesiones
+`bridge:`); ellas te escriben. Lectura larga y webs de versión, con subagentes Sonnet (barato: ~60–100 k tokens suyos).
+
+**Hecho hoy:** 2.0.3 publicada (comprobada con curl); **2.0.4 cancelada** (Titín: sus arreglos los sustituye la V8 13.2);
+**2.1.0 = nivel 132** compilada por LOCAL-13 sobre `local/2.1.0-arreglos` 5f2c1e51 (build 32), probada en la 6,1, sí de Titín
+a lo visible, entregada; PUBLICACIÓN la firmó, notarizó y subió (SHA 06f0e334…0d98, 174 879 611 bytes); web en main (#575).
+**Falta: firma de Titín en bak → PUBLICACIÓN verifica el appcast → comprobar con curl y avisar a Titín** (lo pidió).
+
+**Decisiones de Titín de hoy** (en `DIRECTIVAS.md`): force push en `nube/*` propias sin derivadas; Maglev encendido como tarde en
+el 134 con deuda portada y medida; WebGL sin falsear; sin versiones de seguridad que el nivel listo vaya a sustituir; raíces con
+constante propia fijada en 139.0.0.0; FM.47 sin versión propia.
+
+**Siguiente — FM.48 = 2.1.1:** abrir **MOTOR-26** (Opus medio) con la nota «De MOTOR-25 a MOTOR-26» de `relevo-motor.md` y la fila
+FM.48: (1) revisar 843cac4f/5f2c1e51 y que 84926a40d7e quedó entero; (2) los 12 escapes de WPT del 132 (lista en FM.45);
+(3) FM.47 (Futura en Sequoia: camino por familia → .LastResort; sospechoso nuestro parche de `font_matcher_mac.mm`); (4) fundir
+`seg/fs30-ct` 2d022f2c, `seg/fs31-roots` dae06d65, `seg/fs29-v8` 53814453 (época 20) → orden a LOCAL. Luego, inventario del 133.
+LOCAL-13 mide Maglev (orden 14:20) y se releva después (34 %). SEGURIDAD-PORTES-11 solo con encargo (deuda de Maglev para el 134;
+nota «10 → 11» en `RELEVO-SEGURIDAD.md`).
+
+**Agentes vivos:** LOCAL-13, PUBLICACIÓN, SERVIDOR-LOCAL-3, CARTERO-LOCAL (7,1); SEGURIDAD-VIGÍA (lunes); BACKUPDRIVE-1.
+Archivadas hoy por COORDINACIÓN-17: COORDINACIÓN-16, INVESTIGACIÓN-MOTOR-5, SEGURIDAD-PORTES-9 y -10, MOTOR-25. Sin tareas
+programadas de COORDINACIÓN. Para Titín, pendiente: nada salvo la firma en bak.
+
 ## 27-10: COORDINACIÓN-16 → COORDINACIÓN-17 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-16 (`session_01MwmK2kTtcTvupFz7R4Ef1t`, Opus 5.5, medio; abierta por Titín, linaje 0) se releva al ~36 %
