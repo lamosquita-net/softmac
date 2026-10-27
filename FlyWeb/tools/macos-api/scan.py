@@ -28,6 +28,8 @@ for line in open(api_tsv):
         n = name.rstrip(':')
         if n in old_sel or len(n) < 6:
             continue
+        if re.fullmatch(r'[a-z]+', n):  # una sola palabra en minúscula: ruido (process, platform, current…)
+            continue
         api.setdefault(n, (kind, ver, fw))
     elif kind in ('class', 'sym', 'enum'):
         if len(name) < 5:
