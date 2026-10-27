@@ -27,9 +27,9 @@ visibles** (versión en Información, mosca de la NTP, passkeys, menú de imagen
 - **Llaves de acceso (passkeys) y Touch ID:** FlyWeb ya no guarda llaves de acceso en el chip de seguridad del Mac (T2 /
   Secure Enclave) ni usa Touch ID, en ningún Mac. Es igual en todos los Mac compatibles y no depende de un chip que Mojave
   no aprovecha del todo.
-  - **Si creaste una llave de acceso con FlyWeb 2.0.0 o 2.0.1 en un Mac con chip T2** (MacBook Pro y MacBook Air de 2018
-    en adelante, Mac mini 2018, iMac Pro), tendrás que **volver a registrarla** en cada web, porque esa llave no se
-    puede sacar del chip. Puedes borrar las antiguas en Ajustes › Autocompletar › Gestionar llaves de acceso.
+  - Las versiones publicadas no podían guardar llaves en ese chip (la app firmada no tenía el permiso necesario), así que
+    **no hay que hacer nada**. Si aun así ves en Ajustes › Autocompletar › Gestionar llaves de acceso alguna llave antigua
+    que ya no funcione, bórrala y vuelve a registrarla en esa web.
   - Siguen funcionando: el **teléfono** (código QR), las **llaves de seguridad** USB/NFC y los **gestores de contraseñas**
     con llaves de acceso (por ejemplo, Bitwarden o KeePassXC).
   - Para ver las contraseñas guardadas, FlyWeb pide la **contraseña del Mac**, no la huella.
@@ -198,7 +198,7 @@ d1 (`nullptr`), como decía el inventario.
 - **7,1 (Sequoia, T2), sin ventanas si Titín trabaja (`--headless=new` donde se pueda):**
   a. Con la -p21 (o la 2.0.1) y la -p23: `log stream --predicate 'subsystem == "com.apple.security"'` durante el arranque, o
      `chrome://histograms` → `Crypto.TPMSupport2`: con la -p23, nada (la -p21 sí lo crea).
-  b. `isUserVerifyingPlatformAuthenticatorAvailable()` → `false` (en la -p21, `true` si la app lleva `.webauthn`).
+  b. `isUserVerifyingPlatformAuthenticatorAvailable()` → `false` (en la -p21 también `false` si la Release, como la 2.0.1 firmada, no lleva `keychain-access-groups`).
   c. Si había passkeys de la 2.0.x en el perfil de pruebas: aparecen en Ajustes › Autocompletar › Gestionar llaves de
      acceso y se pueden borrar.
   d. Menú de una imagen: «Copiar texto de la imagen» sí aparece y copia texto (en 10.15+ no cambia).
