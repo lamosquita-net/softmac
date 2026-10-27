@@ -22,7 +22,7 @@ aplicaron sin rechazo pero no existen; buscar el símbolo en `/tmp/claude-0/port
 `physical_rect.h`, `layout_size.h`); `main_thread_scheduler_impl.cc` (`SetIsLoading`) y `thread_state.cc`; IDB y
 `dom_selection.cc` (adaptados). `patches/v8` → SEGURIDAD-PORTES-9.
 
-**Maglev:** apagado hasta el 134 como pronto (COORDINACIÓN-17); la regla 19 pide sus arreglos y la LTS 13.2 no los trae.
+**Maglev:** se enciende **como tarde en el 134** (Titín, 27-10), con su deuda (~15 arreglos, SEGURIDAD-PORTES) portada y pruebas de rendimiento; la LTS 13.2 no trae esos arreglos.
 **133:** el escáner de INVESTIGACIÓN-MOTOR-5 no ve API de 10.15+ sin guarda en 132–133 (`inventario-129-156.tsv`); no
 perder las guardas de 13.0 en `vt_video_encode` ni la de 12 en `ca_renderer_layer_tree`. Inventario del 133 sin empezar:
 mismo método (3 subagentes: Blink, V8 13.3, fuera de Blink). Traducciones nuevas a 10.14, en la capa de compatibilidad
