@@ -22,11 +22,11 @@ servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomoneda
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 2.0.3</h2>
-<p><a class="boton" href="descargas/FlyWeb-2.0.3.dmg" download>Descargar FlyWeb 2.0.3 (175 MB)</a></p>
+<h2>Descargar FlyWeb 2.1.0</h2>
+<p><a class="boton" href="descargas/FlyWeb-2.1.0.dmg" download>Descargar FlyWeb 2.1.0 (175 MB)</a></p>
 <p class="dato">macOS 10.14 Mojave o superior, Mac Intel (x86_64). En macOS 10.15 a 12 funciona; solo Mojave está garantizado.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>6305c5c5df7ba612da805d8fdde084f5dd617bc60633017595eff7163644bba4</code></p>
+SHA-256: <code>06f0e334ee1cea441a29442d809592716d8ff89054d76edb7e2fe90ad12a0d98</code></p>
 <p class="dato"><strong>¿Vienes de la 1.15?</strong> La 2.0 copia tu perfil antes de usarlo y desde él no se vuelve atrás sin esa
 copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High Sierra (10.13)?</strong> Tu última versión es la
 <a href="descargas/FlyWeb-1.15.2.dmg">1.15.2</a> (sha256 <code>fbca0533b634a323f839a6265fa9b1802e53e03fcbc500879bbdf0e16cf9f138</code>).</p>
@@ -35,13 +35,27 @@ copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-2.0.3.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-2.1.0.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 2.0.3</h2>
+<h2 id="novedades">Notas de la versión 2.1.0</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 132.</strong> Las webs ven FlyWeb como Chrome 132.</li>
+  <li><strong>Texto girado de lado</strong> (<code>writing-mode: sideways-rl</code> y <code>sideways-lr</code>): las webs pueden
+  poner texto en vertical girado hacia un lado u otro, como en Firefox y Safari (títulos en lomos de libros, tablas con
+  cabeceras verticales).</li>
+  <li><strong>Diálogos que avisan al abrirse y cerrarse</strong> (eventos <code>toggle</code> en <code>&lt;dialog&gt;</code>),
+  como en Firefox y Safari.</li>
+  <li><strong><code>bytes()</code> en las respuestas de red</strong>, para que las webs lean datos binarios con menos código.</li>
+  <li><strong>Elementos anclados más flexibles:</strong> <code>anchor-size()</code> también en posiciones y márgenes.</li>
+  <li><strong>Formas de texto alrededor de imágenes</strong> (<code>shape-outside</code>) correctas también en texto vertical.</li>
+  <li><strong>Teclado:</strong> los recuadros con barra de desplazamiento se pueden enfocar con Tab y mover con las flechas.</li>
+</ul>
+
+<h2>Notas de la versión 2.0.3</h2>
 <p class="dato">Incluye lo de la 2.0.2, que no llegó a publicarse.</p>
 <ul>
   <li><strong>Pestañas fijadas.</strong> Con «Pestañas fijadas compartidas» y dos o más ventanas, la 2.0 perdía las fijadas al
