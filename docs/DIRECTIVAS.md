@@ -61,6 +61,16 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   se portan en el fork. SEGURIDAD-VIGÍA semanal; cada base nueva obliga a rehacer el triaje (CVE-2026-11645 «no aplicaba»
   a la 116 y sí a la 128). Fila FS.24.
 
+- **Capa de compatibilidad propia para Mojave** (Titín, 27-10): las APIs de macOS 10.15+ que pida cada nivel se traducen
+  a 10.14 en un solo módulo de FlyWeb (constantes, métodos y funciones que faltan, frameworks débiles; diseño en
+  [`macos11-niveles.md`](../FlyWeb/docs/macos11-niveles.md) §9), no en parches sueltos por todo Chromium: aísla los
+  problemas y abarata cada nivel. Lo nuevo entra ya en la capa; los 26 parches de Mojave actuales pasan a ella por tandas
+  propias, empezando por lo que se repite. Fila FM.45.
+- **Skia Graphite, fuera** (Titín, 27-10): mientras Chromium conserve el camino actual de dibujo (Ganesh; en Mac, ANGLE
+  sobre OpenGL en Mojave y sobre Metal desde 10.15, como en la 7,1), Graphite queda apagado por parche propio desde el
+  nivel 146. Traducirlo a Mojave sería >20 h con riesgo alto de regresión de GPU; se reabre solo si upstream borra ese
+  camino. Fuente: `macos11-niveles.md` §8.4, `plan-fork.md`.
+
 ## Motor
 
 - **Niveles de Chrome, portando función a función** (HUMANO, 04-10): el motor crece desde la base portando lo Baseline
