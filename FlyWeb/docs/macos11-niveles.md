@@ -16,7 +16,7 @@ que se diga otra cosa.
 
 Contraste con el último tag de cada nivel (`mac_deployment_target` en `build/config/mac/mac_sdk.gni`) [V]: 128 = 10.15; 129–138 = 11.0; 139–150 = 12.0; 151–158 = 13.0.
 
-SDK oficial: 14.0 hasta la 131, 15.x de la 132 a la 141, 26.x desde la 143, 27.0 en la 158.
+SDK oficial (`mac_sdk_official_version`, último tag de cada nivel) [V]: 14.0 hasta la 130, 15.x de la 131 a la 141, 26.x de la 142 a la 156, 27.0 desde la 157.
 
 ## 2. Método (reproducible, `FlyWeb/tools/macos-api/`)
 
