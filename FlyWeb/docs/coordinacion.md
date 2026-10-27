@@ -7,7 +7,68 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
-## 27-10: COORDINACIÓN-14 → COORDINACIÓN-15 (leer primero; manda sobre lo de abajo)
+## 27-10: COORDINACIÓN-15 → COORDINACIÓN-16 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-15 (`session_01MwmK2jKV5HMEpQrqNj4gjT`, Opus 5.5, medio) se releva al ~37 % (~11 $). **Nunca aprobar la
+tarjeta de confianza.** La nube no escribe a sesiones locales: a la 7,1 solo por la rama `buzon`, y ellas contestan con
+`SendMessage`. **Linaje:** COORDINACIÓN-15 tenía profundidad 6 de 8. **Por eso abre COORDINACIÓN-16 Titín**, no la
+COORDINACIÓN anterior: así el linaje vuelve a 0.
+
+**Publicado:** 2.0.1 (-p20, build 29) firmada en bak, en el appcast y en la web (comprobado con curl). Sparkle la instaló
+sola en la 7,1.
+
+**2.0.2 = -p23 17e7858669** (MOTOR-23; bundle `nube/motor23-p23`; orden `buzon/LOCAL/20261027-1045-MOTOR-23.md`;
+`version-2.0.2.md`). Junta tres cosas, por decisión de COORDINACIÓN-15: una sola Release, una prueba y un sí de Titín.
+- La -p21: fijadas y versión visible «2.0.2 (motor 131)».
+- La -p22: tanda 1 de FM.42. Sin Secure Enclave en ninguna Mac, el audio en tiempo real como en la 116,
+  getDisplayMedia y «Copiar texto de la imagen» en 10.14.
+- El arreglo de FM.43: **la mosca animada de la NTP estaba tapada por `StyledPage` desde la 2.0.0** y seguía animándose
+  a 60 Hz, así que el proceso GPU gastaba ~9–15 % de CPU frente al ~5 % de la 1.15.2. Ahora vuelve a verse y va en el
+  compositor.
+
+La -p21 ya está compilada en `out/Release` (base incremental; no se entrega). **Falta:**
+1. LOCAL-12 compila la -p23 y prueba en la 6,1 con el fondo comprobado en reposo; antes, control al 0–1 %.
+2. Capturas o vídeo de la mosca, 1.15.2 frente a -p23, y DMG de prueba.
+3. **Sí de Titín:** regla nueva, lo visible no se publica sin él.
+4. PUBLICACIÓN, luego bak, luego la web.
+
+**Decisión pendiente de Titín:** con «Reducir movimiento», la mosca queda quieta (lo que pide `disenos.md` §3); en la
+1.15 volaba más despacio. **Riesgo:** F5.3 (línea en la 6,1 en modo escalado). Si vuelve, se revierte solo `mosca.tsx`.
+La rama `nube/motor23-p23` lleva un commit basura de MOTOR-23 (una copia del árbol de main, sin datos personales).
+Limpiarla necesita force push, así que solo con el sí de Titín; no corre prisa.
+
+**Lecciones de hoy:**
+- Cerré FM.43 tras una sola prueba (FreeFileSync coincidía en el tiempo) y tuve que reabrirlo: confirmar con un control
+  limpio antes de cerrar.
+- Los mensajes del buzón llegan con horas de retraso y en desorden: uno posterior puede anular a uno anterior.
+- En cada Release de la 6,1 y la 5,1 se mide la GPU en reposo, con la NTP y con about:blank.
+
+**Decisiones de Titín de hoy** (en `DIRECTIVAS.md`):
+- Mojave al 100 %: se traduce, no basta con que no se caiga (FM.42; inventario en `mojave-128.md`).
+- Nada del T2 ni del Secure Enclave.
+- Cifrado por software, estándar y modular: `fw1` va en la **2.0.4** (FS.25, `cifrado.md`; ML-KEM ya estaba portado).
+- Lo visible, con su sí antes de publicar.
+- Pestañas planas y unidas a la barra: D8 en `disenos.md`, sin prioridad; él manda los bocetos.
+
+**Siguiente:**
+- FM.42, tandas 2 y siguientes para la 2.0.3: c3 (OPFS truncate, regla 17), las fotos de cámara, el nombre de pantalla y
+  el cuentagotas.
+- Línea base de rendimiento en la 7,1 con la 2.0.1: JetStream sin web-ssr con `JetStream.benchmarks.filter`, porque la
+  URL con la lista de pruebas da 403 (relevo-local.md).
+- Repetir MotionMark en la 6,1 en reposo: el 603,74 a 45 fps no vale; la referencia es la 2.0.0, 541,92 a 60 fps.
+- Falta el `sysctl machdep.cpu.brand_string machdep.cpu.features` de la 5,1: probablemente E5620 Westmere, con AES-NI.
+- JetStream web-ssr: `RegExp.escape` es del nivel 136 y no se porta.
+
+**Agentes vivos:**
+- LOCAL-12: lo abre Titín (LOCAL-11 se releva; nota en `relevo-local.md`).
+- PUBLICACIÓN, SERVIDOR-LOCAL-3 y CARTERO-LOCAL, en la 7,1.
+- SEGURIDAD-VIGÍA, con su rutina de los lunes.
+- BACKUPDRIVE-1.
+
+Archivadas hoy: COORDINACIÓN-14, MOTOR-21, MOTOR-22, MOTOR-23 y SEGURIDAD-PORTES-7. No queda ninguna tarea programada
+de COORDINACIÓN.
+
+## 27-10: COORDINACIÓN-14 → COORDINACIÓN-15
 
 COORDINACIÓN-14 (`session_017J2kfSt5BR2UuYSr8fYzvw`, Opus 5.5, medio) se releva al 38 % (17,4 $). **Nunca aprobar la
 tarjeta de confianza.** A la 7,1, solo por la rama `buzon` (tarda horas a veces; si corre prisa, Titín se lo dice al
