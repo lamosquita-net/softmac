@@ -128,6 +128,17 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **No se tiene una sesión abierta para esperar** (Titín, 22-10): una sesión con mucho contexto gasta solo con despertarse.
   Si el siguiente paso depende de una compilación, se archiva con la nota de relevo al día y el relevo se abre cuando llegue
   el resultado (excepción a la regla 13). Antes de archivar, `list_triggers`. Fuente: fila OR.2.
+- **MOTOR vivo hasta publicar su versión** (Titín, 27-10; matiza la anterior): la sesión de MOTOR que entregó una versión
+  sigue abierta y quieta hasta que esa versión se publique, para recibir sin retraso los errores de LOCAL y los arreglos de
+  SEGURIDAD o INVESTIGACIÓN; se archiva al publicar o si pasa del 35 % de contexto (con nota de relevo). Dato: despertar
+  una sesión de poco contexto cuesta 2–4 $; una larga, 15–40 $ (`CONSUMO.md`).
+- **LOCAL compila la siguiente mientras prueba en la 6,1** (Titín, 27-10): las pruebas van a la 6,1, así que la 7,1
+  compila la versión siguiente en cuanto la anterior está compilada y guardada su app y su DMG. Sigue habiendo una sola
+  compilación a la vez.
+- **MOTOR, dos niveles por delante de lo compilado** (Titín, 07-10 y 27-10). INVESTIGACIÓN va por delante de MOTOR, hasta
+  el 141 y después del 142 al 156: recetas por nivel, con la traducción a Mojave de lo que cada Chrome exige de macOS
+  (10.15, 11, desde el 139 macOS 12…). Es la gracia del fork: Blink, V8 y el resto avanzan asumiendo esas APIs con
+  caminos de 10.14, como se hizo con el cifrado y la GPU. Filas FM.44 y FM.45.
 - **Esfuerzo de Opus 5.5** (HUMANO, 22-10): su defecto es medio y Anthropic recomienda empezar ahí; extra y máximo solo con
   mejora medida. MOTOR pasa de extra a alto desde MOTOR-18; IDENTIDAD-1 prueba medio; se decide el resto con CONSUMO.md.
   Fuente: guía de migración a Claude Opus 5.5 (Anthropic), fila OR.2.
