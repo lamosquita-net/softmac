@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 132 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 132 de FlyWeb 2.1 (brave-core nube/motor-132, V8 13.2; FM.45).
+     Abrir en FlyWeb desde http://127.0.0.1 (JIT y Wasm solo se ven en un origen http(s)); no carga nada de fuera.
+     Cada línea dice ok o FALLO. Comparar con Chrome for Testing 132: lo que allí sale ok tiene que salir ok aquí,
+     salvo la versión declarada. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  /* writing-mode: sideways-* */
+  .sw { display: inline-block; font: 16px monospace; margin: 0 1em; }
+  #swrl { writing-mode: sideways-rl; }
+  #swlr { writing-mode: sideways-lr; }
+  #swh { writing-mode: horizontal-tb; }
+  /* anchor-size() en insets y márgenes */
+  .ap-cont { position: relative; width: 300px; height: 120px; border: 1px dashed #888; margin: .5em 0; }
+  #as-a { anchor-name: --as; position: absolute; left: 20px; top: 10px; width: 80px; height: 30px; background: #9cf; }
+  #as-o { position: absolute; position-anchor: --as; left: anchor-size(width); top: 0;
+          margin-top: anchor-size(height); width: 10px; height: 10px; background: #f96; }
+  /* KeyboardFocusableScrollers */
+  #scr { height: 3em; overflow: auto; width: 15em; border: 1px solid #888; }
+</style>
+</head>
+<body>
+<h1>Motor 132 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>A mano</h2>
+<ol>
+  <li>Los tres textos de abajo: «sideways-rl» girado 90° a la derecha (se lee de arriba abajo), «sideways-lr» girado a la
+    izquierda (se lee de abajo arriba) y el horizontal normal, como en Chrome for Testing 132.</li>
+  <li>Pulsar Tab desde el botón: el foco tiene que pasar al recuadro con barra de desplazamiento (no tiene nada que se
+    pueda enfocar dentro) y las flechas lo desplazan (<code>KeyboardFocusableScrollers</code>, como en Chrome 132).</li>
+  <li>El control deslizante en <code>sideways-lr</code> tiene las marcas de la lista y el valor bajo crece hacia arriba.</li>
+</ol>
+<p><span class="sw" id="swrl">sideways-rl</span><span class="sw" id="swlr">sideways-lr</span><span class="sw" id="swh">horizontal</span>
+  <input type="range" list="marcas" style="writing-mode: sideways-lr; height: 8em" value="20">
+  <datalist id="marcas"><option value="0"><option value="50"><option value="100"></datalist></p>
+<p><button>antes del recuadro</button></p>
+<div id="scr">Recuadro con desplazamiento y sin nada enfocable dentro.<br>línea<br>línea<br>línea<br>línea<br>línea</div>
+<div class="ap-cont"><div id="as-a"></div><div id="as-o"></div></div>
+<dialog id="dlg">diálogo</dialog>
+<div id="host"></div>
+<script>
+  const res = document.getElementById('res');
+  const pinta = (li, nombre, ok, nota) => { li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : ''); };
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li'); res.append(li); pinta(li, nombre, ok, nota);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    pinta(li, nombre, ok, nota);
+  };
+  const cs = (sel, prop, pseudo) => getComputedStyle(document.querySelector(sel), pseudo).getPropertyValue(prop);
+  document.getElementById('ua').textContent = navigator.userAgent;
+
+  // writing-mode: sideways-rl / sideways-lr (SidewaysWritingModes)
+  prueba('writing-mode: sideways-rl y sideways-lr son válidos', () =>
+    CSS.supports('writing-mode', 'sideways-rl') && CSS.supports('writing-mode', 'sideways-lr'));
+  prueba('getComputedStyle() da sideways-rl / sideways-lr', () => {
+    const a = cs('#swrl', 'writing-mode'), b = cs('#swlr', 'writing-mode');
+    return { ok: a === 'sideways-rl' && b === 'sideways-lr', nota: `${a}, ${b}` };
+  });
+  prueba('El texto sideways ocupa en vertical (más alto que ancho)', () => {
+    const r1 = document.getElementById('swrl').getBoundingClientRect(), r2 = document.getElementById('swlr').getBoundingClientRect();
+    return { ok: r1.height > r1.width && r2.height > r2.width,
+      nota: `rl ${Math.round(r1.width)}×${Math.round(r1.height)}, lr ${Math.round(r2.width)}×${Math.round(r2.height)}` };
+  });
+
+  // Eventos toggle y beforetoggle en <dialog> (DialogElementToggleEvents)
+  pruebaAsync('<dialog>: beforetoggle y toggle al abrir y cerrar', async () => {
+    const d = document.getElementById('dlg'), vistos = [];
+    d.addEventListener('beforetoggle', (e) => vistos.push(`before:${e.oldState}>${e.newState}`));
+    d.addEventListener('toggle', (e) => vistos.push(`toggle:${e.oldState}>${e.newState}`));
+    d.show(); await new Promise((r) => setTimeout(r, 50)); d.close(); await new Promise((r) => setTimeout(r, 50));
+    const esp = 'before:closed>open,toggle:closed>open,before:open>closed,toggle:open>closed';
+    return { ok: vistos.join() === esp, nota: vistos.join() || 'sin eventos' };
+  });
+
+  // Request.bytes(), Response.bytes(), PushMessageData.bytes()
+  pruebaAsync('Response.bytes() y Request.bytes() dan un Uint8Array', async () => {
+    const a = await new Response('abc').bytes();
+    const b = await new Request('http://127.0.0.1/', { method: 'POST', body: 'hola' }).bytes();
+    return { ok: a instanceof Uint8Array && a.length === 3 && b instanceof Uint8Array && b.length === 4, nota: `${a}, ${b}` };
+  });
+  prueba('PushMessageData.bytes() existe si hay Push', () => ({
+    ok: typeof PushMessageData === 'undefined' || typeof PushMessageData.prototype.bytes === 'function',
+    nota: typeof PushMessageData === 'undefined' ? 'sin Push en esta compilación' : 'con Push' }));
+  prueba('Blob.bytes() sigue sin salir, como en Chrome 132 (es del 144)', () => typeof Blob.prototype.bytes === 'undefined');
+
+  // anchor-size() en insets y márgenes (CSSAnchorSizeInsetsMargins)
+  prueba('anchor-size() se admite en insets y márgenes', () =>
+    CSS.supports('margin-top', 'anchor-size(width)') && CSS.supports('top', 'anchor-size(height)') &&
+    CSS.supports('left', 'calc(anchor-size(width) / 2)'));
+  prueba('anchor-size() en left y margin-top coloca el elemento', () => {
+    const c = document.querySelector('.ap-cont').getBoundingClientRect(), o = document.getElementById('as-o').getBoundingClientRect();
+    const x = Math.round(o.left - c.left - 1), y = Math.round(o.top - c.top - 1);
+    return { ok: x === 80 && y === 30, nota: `left ${x}, top ${y}` };
+  });
+
+  // Flags del 132 sin Baseline
+  prueba('Selection.isCollapsed dentro de un shadow DOM (SelectionIsCollapsedShadowDOMSupport)', () => {
+    const host = document.getElementById('host'); const sr = host.attachShadow({ mode: 'open' });
+    sr.innerHTML = '<span>texto en la sombra</span>';
+    const t = sr.querySelector('span').firstChild, r = document.createRange(); r.setStart(t, 0); r.setEnd(t, 5);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r); const v = s.isCollapsed; s.removeAllRanges();
+    return { ok: v === false, nota: `isCollapsed ${v}` };
+  });
+  prueba('showModal() y showPopover() en un documento inactivo lanzan InvalidStateError', () => {
+    const doc = document.implementation.createHTMLDocument(''); const d = doc.createElement('dialog'); doc.body.append(d);
+    const p = doc.createElement('div'); p.popover = 'auto'; doc.body.append(p); const err = [];
+    try { d.showModal(); } catch (e) { err.push(e.name); }
+    try { p.showPopover(); } catch (e) { err.push(e.name); }
+    return { ok: err.join() === 'InvalidStateError,InvalidStateError', nota: err.join() || 'sin excepciones' };
+  });
+
+  // V8 13.2: nada nuevo sale (como Chrome 132)
+  prueba('V8 13.2: Float16Array y using siguen sin salir, como en Chrome 132', () => {
+    let usingOk = false; try { new Function('{ using x = null; }'); usingOk = true; } catch (e) { /* SyntaxError */ }
+    return { ok: typeof Float16Array === 'undefined' && !usingOk, nota: `Float16Array: ${typeof Float16Array}, using: ${usingOk}` };
+  });
+  prueba('Sigue como en la 2.0: sin WebSQL ni eventos de mutación', () =>
+    typeof openDatabase === 'undefined' && typeof MutationEvent === 'undefined');
+  // JIT y WebAssembly en un origen web
+  const enWeb = location.protocol === 'http:' || location.protocol === 'https:';
+  prueba('WebAssembly en un origen http(s)', () => ({ ok: enWeb && typeof WebAssembly === 'object',
+    nota: enWeb ? `typeof WebAssembly: ${typeof WebAssembly}` : `abrir desde http://127.0.0.1 (ahora ${location.protocol})` }));
+  prueba('JIT en un origen http(s): bucle de 5e7 vueltas en menos de 600 ms', () => {
+    const t0 = performance.now(); let s = 0;
+    for (let i = 0; i < 5e7; i++) s = (s + i) | 0;
+    const ms = Math.round(performance.now() - t0);
+    return { ok: enWeb && ms < 600, nota: `${ms} ms (con JIT ~200–250 ms; sin JIT ~1150 ms)` +
+      (enWeb ? '' : `; abrir desde http://127.0.0.1 (ahora ${location.protocol})`) };
+  });
+
+  // Versión declarada
+  prueba('User-Agent declara Chrome/132', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '132', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+  pruebaAsync('Client hints: 132.0.6834.160 y macOS ≥ 11 (Chrome 132 no existe en 10.15)', async () => {
+    const h = await navigator.userAgentData.getHighEntropyValues(['uaFullVersion', 'platformVersion', 'fullVersionList']);
+    const mayor = parseInt(h.platformVersion, 10);
+    const cr = (h.fullVersionList || []).find((b) => b.brand === 'Chromium');
+    return { ok: h.uaFullVersion === '132.0.6834.160' && mayor >= 11 && !!cr && cr.version === '132.0.6834.160',
+      nota: `${h.uaFullVersion}, macOS ${h.platformVersion}, ${JSON.stringify(navigator.userAgentData.brands)}` };
+  });
+</script>
+<p>No se ve desde una página y lo comprueba LOCAL: Maglev sigue apagado (FM.45), <code>turboshaft_wasm</code> (mjsunit/wasm) y que la huella de red siga siendo la del 131 (JA4). En
+<code>motor-131.html</code> dos líneas pasan a FALLO a propósito: <code>margin-top: anchor-size(width)</code> y
+<code>top: anchor-size(height)</code>, que el 132 admite. Fuera del 132 (motivo en <code>motor-niveles.md</code>, «Nivel
+132»): <code>SkipTemporaryDocumentFragment</code>, <code>ViewTransitionOverflowRectFromSurface</code> y
+<code>FindRubyInPage</code>.</p>
+</body>
+</html>
