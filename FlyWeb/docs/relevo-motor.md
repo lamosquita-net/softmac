@@ -1,4 +1,32 @@
-# Relevo de MOTOR: de MOTOR-23 a MOTOR-24 (27-10-2026, ~10:45)
+# Relevo de MOTOR: de MOTOR-24 a MOTOR-25 (27-10-2026, ~11:10)
+
+MOTOR-24 (`session_01MwmK2jHVmKFgQPPcT5aifq`, Opus 5.5; get_session no da el esfuerzo) hizo la **2.0.3 = -p24** (orden de
+COORDINACIÓN-16): tandas 2 y 3 de FM.42, un commit por punto. Detalle y pruebas: `FlyWeb/docs/version-2.0.3.md`. Página de
+prueba: `FlyWeb/tools/mojave-203.html`. Se queda quieta tras entregar; la archiva COORDINACIÓN-16.
+
+| Rama de brave-core | sha | Dónde |
+|---|---|---|
+| `-p24` (2.0.3, build 31) | 23f2d547d9 | **subida a brave-core** desde la nube (`nube/base-128-motor-p24`); también `p24.bundle` en la rama de softmac `nube/motor24-p24` (base -p23 17e7858669) |
+
+**Lo que queda (tuyo):** resultados de LOCAL (`buzon/LOCAL/20261027-1110-MOTOR-24.md`): la prueba previa de b4 con la
+2.0.2 (si no hace falta, LOCAL revierte 4e84e03b), errores de compilación (b2 es el de más riesgo: activa
+`components/eye_dropper` en Mac) y las pruebas de `mojave-203.html` en la 6,1 y la 7,1. **c3 depende de FS.26**
+(SEGURIDAD-PORTES-8): si sale «no apto», se revierte 23f2d547; si «apto con cambios», los cambios van encima. Y lo que quede
+de la 2.0.2 (LOCAL-12) si llega tarde: va antes que la 2.0.3.
+
+**Trampas nuevas:**
+- **La nube sí puede subir ramas a brave-core** con `add_repo` en modo push: `git fetch --depth=2 origin <rama>` (~30 s) y
+  `git push` de la rama nueva encima (pack fino, segundos). MOTOR-23 lo daba por imposible; el bundle queda de respaldo.
+- Checkout parcial de la 128 y la 116 (`/home/user/cr128`, `cr116`) con `sparse-checkout add` para los ficheros que no
+  entran en el patrón (`BUILD.gn`, `.cc` sueltos): `git sparse-checkout add '/ruta/fichero'`. Antes de editar un fichero que
+  ya tiene parche de bc, aplicarlo (`patch -p1`) y luego `git diff --full-index HEAD -- <fichero>`; los nuevos, con
+  `git add -N` para que salgan como `new file mode`.
+- Para comprobar los parches antes de entregar: copiar cada fichero limpio de la 128 a un directorio aparte y
+  `patch -p1 --dry-run` con el parche nuevo.
+
+---
+
+## De MOTOR-23 a MOTOR-24 (27-10-2026, ~10:45)
 
 MOTOR-23 (`session_01MwmK2i3zsbvNZN1DxSpqcF`, Opus 5.5, alto) hizo la **2.0.2 = -p23** (orden de COORDINACIÓN-15): -p21 +
 -p22 + arreglo de la mosca de la NTP (FM.43). Detalle: `FlyWeb/docs/version-2.0.2.md` (§6 la antigua 2.0.3, §7 la mosca).

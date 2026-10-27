@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlyWeb 2.0.3 — Mojave</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 15px/1.45 -apple-system, sans-serif; margin: 16px; max-width: 760px; }
+  section { border: 1px solid #8884; border-radius: 6px; padding: 8px 12px; margin: 10px 0; }
+  h2 { font-size: 16px; margin: 4px 0; }
+  pre { white-space: pre-wrap; margin: 6px 0 0; font-size: 13px; }
+  .ok { color: #1a7f37; } .ko { color: #cf222e; }
+  #lock { width: 100%; height: 90px; background: #8882; display: grid; place-items: center; cursor: crosshair; }
+</style>
+</head>
+<body>
+<h1>FlyWeb 2.0.3 — tandas 2 y 3 de FM.42 en Mojave</h1>
+<p>Para LOCAL en la 6,1 (https o <code>file://</code>; la cámara, la ubicación y OPFS necesitan contexto seguro).
+Cada bloque dice qué esperar en 10.14 con la 2.0.3. En la 2.0.2 (-p23) los de a2, b2, b3, b6 y c3 fallan.</p>
+
+<section><h2>b6 · Pointer Lock con <code>unadjustedMovement</code></h2>
+<div id="lock">Haz clic aquí y mueve el ratón (Esc para salir)</div>
+<pre id="b6">—</pre>
+<p>Esperado: «bloqueado» y <code>movementX/Y</code> distintos de 0 al mover. La 2.0.2 da <code>NotSupportedError</code>.</p></section>
+
+<section><h2>b3 · Nombre de pantalla (<code>screen.label</code>)</h2>
+<button id="b3btn">Pedir pantallas</button><pre id="b3">—</pre>
+<p>Esperado: el nombre del monitor (p. ej. «DELL U2715H»), no vacío. Pide el permiso de «Gestión de ventanas».</p></section>
+
+<section><h2>a2 · Foto de cámara (<code>ImageCapture.takePhoto()</code>)</h2>
+<button id="a2btn">Hacer foto</button><pre id="a2">—</pre><img id="a2img" alt="" style="max-width:240px">
+<p>Esperado: un JPEG en ~3 s (la primera foto tarda por el ajuste de la cámara). La 2.0.2 da error.</p></section>
+
+<section><h2>b2 · Cuentagotas (<code>EyeDropper</code>)</h2>
+<button id="b2btn">Abrir cuentagotas</button><pre id="b2">—</pre>
+<p>Esperado: lupa redonda que sigue al ratón; clic = color, Esc = cancelar. La 2.0.2 la rechaza.</p></section>
+
+<section><h2>c3 · OPFS <code>truncate()</code> en un worker</h2>
+<button id="c3btn">Probar</button><pre id="c3">—</pre>
+<p>Esperado: tamaños 10 → 4 → 20 y «OK». La 2.0.2 falla en <code>truncate</code>.</p></section>
+
+<section><h2>b4 / b5 · Ubicación</h2>
+<button id="b4btn">Pedir ubicación</button><pre id="b4">—</pre>
+<p>b4: con FlyWeb «sin decidir» en Servicios de localización, debe salir el diálogo de macOS y luego la posición; si se queda
+esperando sin diálogo, b4 hace falta. b5: el aviso de FlyWeb dice si la ubicación del sistema está activa.</p></section>
+
+<section><h2>c5 · Fuentes ocultas</h2>
+<button id="c5btn">Listar fuentes</button><pre id="c5">—</pre>
+<p>Lo que cuenta es Ajustes › Aspecto › Personalizar fuentes: ninguna familia que empiece por «.». (<code>queryLocalFonts</code> usa otra lista; es solo orientativo.)</p></section>
+
+<script>
+const $ = id => document.getElementById(id);
+const say = (id, txt, ok) => { const e = $(id); e.textContent = txt; e.className = ok === undefined ? '' : ok ? 'ok' : 'ko'; };
+
+// b6
+$('lock').addEventListener('click', async () => {
+  try {
+    await $('lock').requestPointerLock({ unadjustedMovement: true });
+    say('b6', 'bloqueado (unadjustedMovement)', true);
+  } catch (e) { say('b6', e.name + ': ' + e.message, false); }
+});
+let moves = 0;
+document.addEventListener('mousemove', ev => {
+  if (document.pointerLockElement !== $('lock')) return;
+  if (ev.movementX || ev.movementY) moves++;
+  say('b6', `bloqueado · movementX=${ev.movementX} movementY=${ev.movementY} · eventos con movimiento: ${moves}`, moves > 0);
+});
+
+// b3
+$('b3btn').onclick = async () => {
+  try {
+    const d = await window.getScreenDetails();
+    say('b3', d.screens.map(s => `«${s.label}» ${s.width}×${s.height}${s.isInternal ? ' (interna)' : ''}`).join('\n'),
+        d.screens.every(s => s.label));
+  } catch (e) { say('b3', e.name + ': ' + e.message, false); }
+};
+
+// a2
+$('a2btn').onclick = async () => {
+  say('a2', 'abriendo cámara…');
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const t0 = performance.now();
+    const blob = await new ImageCapture(stream.getVideoTracks()[0]).takePhoto();
+    $('a2img').src = URL.createObjectURL(blob);
+    say('a2', `${blob.type}, ${blob.size} bytes, ${Math.round(performance.now() - t0)} ms`, blob.size > 0);
+  } catch (e) { say('a2', e.name + ': ' + e.message, false); }
+  finally { stream && stream.getTracks().forEach(t => t.stop()); }
+};
+
+// b2
+$('b2btn').onclick = async () => {
+  if (!('EyeDropper' in window)) return say('b2', 'EyeDropper no existe', false);
+  try { const r = await new EyeDropper().open(); say('b2', 'color: ' + r.sRGBHex, true); }
+  catch (e) { say('b2', e.name + ': ' + e.message, e.name === 'AbortError' ? undefined : false); }
+};
+
+// c3
+$('c3btn').onclick = () => {
+  const src = `onmessage = async () => {
+    try {
+      const root = await navigator.storage.getDirectory();
+      const fh = await root.getFileHandle('flyweb-c3.bin', { create: true });
+      const h = await fh.createSyncAccessHandle();
+      const sizes = [];
+      h.truncate(0); h.write(new Uint8Array(10), { at: 0 }); sizes.push(h.getSize());
+      h.truncate(4); sizes.push(h.getSize());
+      h.truncate(20); sizes.push(h.getSize());
+      h.close(); await root.removeEntry('flyweb-c3.bin');
+      postMessage({ ok: sizes.join() === '10,4,20', txt: 'tamaños ' + sizes.join(' → ') });
+    } catch (e) { postMessage({ ok: false, txt: e.name + ': ' + e.message }); }
+  };`;
+  const w = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+  w.onmessage = ev => { say('c3', ev.data.txt + (ev.data.ok ? ' · OK' : ''), ev.data.ok); w.terminate(); };
+  w.postMessage(0);
+};
+
+// b4 / b5
+$('b4btn').onclick = () => {
+  say('b4', 'esperando… (si en 30 s no hay diálogo ni respuesta, anótalo)');
+  const t0 = performance.now();
+  navigator.geolocation.getCurrentPosition(
+    p => say('b4', `posición ±${Math.round(p.coords.accuracy)} m en ${Math.round(performance.now() - t0)} ms`, true),
+    e => say('b4', `error ${e.code}: ${e.message} (${Math.round(performance.now() - t0)} ms)`, false),
+    { timeout: 60000 });
+};
+
+// c5
+$('c5btn').onclick = async () => {
+  if (!('queryLocalFonts' in window)) return say('c5', 'queryLocalFonts no existe: mirar Ajustes › Personalizar fuentes');
+  try {
+    const fams = [...new Set((await queryLocalFonts()).map(f => f.family))];
+    const dot = fams.filter(f => f.startsWith('.'));
+    say('c5', `${fams.length} familias; con «.» delante: ${dot.length ? dot.join(', ') : 'ninguna'}`, !dot.length);
+  } catch (e) { say('c5', e.name + ': ' + e.message, false); }
+};
+</script>
+</body>
+</html>
