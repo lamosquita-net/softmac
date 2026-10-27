@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>motor-gc</title>
+<style>li.ok { color: green } li.fallo { color: #b00; font-weight: bold }</style>
+<h1>Envoltorios, interceptores y GC de FlyWeb (FM.17)</h1>
+<p>Para el cambio de los bindings de Blink a la API de V8 12.8 (<code>FlyWeb/docs/v8-12.8-blink.md</code>, §4). Hay que
+servirla por HTTP (<code>herramientas/motor-gc.sh</code>) y arrancar con <code>--js-flags=--expose-gc</code>; si no hay
+<code>gc()</code>, se fuerza la recolección con mucha basura. Las <code>iframe</code> de otro origen se cargan desde el
+otro nombre del mismo servidor (<code>127.0.0.1</code> ↔ <code>localhost</code>).</p>
+<p id="ua"></p>
+<ul id="res"></ul>
+<div id="zona"><form name="formu" id="formu"><input name="campo" value="v"></form><img name="imagen" id="imagen"></div>
+<script>
+const res = document.getElementById('res');
+document.getElementById('ua').textContent = navigator.userAgent;
+const pinta = (nombre, ok, nota) => {
+  const li = document.createElement('li'); li.className = ok ? 'ok' : 'fallo';
+  li.textContent = nombre + (nota ? ` — ${nota}` : ''); res.append(li);
+};
+const prueba = async (nombre, f) => {
+  let ok = false, nota = '';
+  try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+  pinta(nombre, ok, nota);
+};
+const recoge = async () => {
+  if (typeof gc === 'function') { gc(); gc(); return; }
+  for (let i = 0; i < 30; i++) { let a = []; for (let j = 0; j < 1e5; j++) a.push({ j }); a = null; await null; }
+};
+const espera = (ms) => new Promise(r => setTimeout(r, ms));
+const otro = location.hostname === 'localhost' ? '127.0.0.1' : 'localhost';
+const base = location.href.replace(/[^/]*$/, '');
+const baseOtro = base.replace(location.hostname, otro);
+const carga = (f, url) => new Promise(r => { f.onload = () => r(); f.src = url; });
+
+(async () => {
+  await prueba('gc() disponible (--js-flags=--expose-gc)', () => ({ ok: typeof gc === 'function', nota: typeof gc === 'function' ? '' : 'se usa basura' }));
+
+  await prueba('Mismo envoltorio para el mismo nodo', () => {
+    const z = document.getElementById('zona');
+    return z.firstChild === z.firstChild && document.body === document.querySelector('body') && z.parentNode === document.body;
+  });
+
+  await prueba('Expandos de nodos conectados sobreviven al GC', async () => {
+    const z = document.getElementById('zona'); z.expando = { valor: 42 };
+    await recoge();
+    return document.getElementById('zona').expando && document.getElementById('zona').expando.valor === 42;
+  });
+
+  await prueba('10 000 nodos desconectados con expandos sobreviven al GC y siguen funcionando', async () => {
+    let nodos = [];
+    for (let i = 0; i < 10000; i++) { const d = document.createElement('div'); d.n = i; d.textContent = 't' + i; nodos.push(d); }
+    await recoge();
+    const raiz = document.createElement('div');
+    for (const d of nodos) raiz.appendChild(d);
+    const ok = nodos.every((d, i) => d.n === i && d.textContent === 't' + i && d.parentNode === raiz) &&
+      raiz.childNodes.length === 10000 && raiz.childNodes[1234] === nodos[1234];
+    nodos = null;
+    return ok;
+  });
+
+  await prueba('Soltar 50 000 nodos, recoger y volver a crear (sin caída)', async () => {
+    for (let r = 0; r < 5; r++) {
+      let a = []; for (let i = 0; i < 10000; i++) { const s = document.createElement('span'); s.x = { i }; a.push(s); }
+      a = null; await recoge();
+    }
+    const s = document.createElement('span'); s.y = 1; return s.y === 1 && s.tagName === 'SPAN';
+  });
+
+  await prueba('Envoltorio recuperado del DOM tras GC (sin referencia JS)', async () => {
+    const z = document.getElementById('zona'); const p = document.createElement('p'); p.id = 'temporal'; p.marca = 'm';
+    z.appendChild(p);
+    await recoge();
+    const q = document.getElementById('temporal'); const ok = q && q.marca === 'm' && q.tagName === 'P'; q.remove(); return ok;
+  });
+
+  await prueba('localStorage: propiedades con nombre (interceptor)', () => {
+    localStorage.clear(); localStorage.x = '1';
+    const a = 'x' in localStorage && localStorage.x === '1' && localStorage.getItem('x') === '1' && Object.keys(localStorage).includes('x');
+    delete localStorage.x;
+    const b = !('x' in localStorage) && localStorage.getItem('x') === null && localStorage.length === 0;
+    localStorage.setItem('length', '7'); const c = typeof localStorage.length === 'number';
+    localStorage.clear();
+    return { ok: a && b && c, nota: [a, b, c].join(',') };
+  });
+
+  await prueba('dataset (DOMStringMap)', () => {
+    const d = document.createElement('div'); d.dataset.fooBar = 'v';
+    const a = d.getAttribute('data-foo-bar') === 'v' && 'fooBar' in d.dataset && Object.keys(d.dataset).join() === 'fooBar';
+    delete d.dataset.fooBar;
+    return a && !d.hasAttribute('data-foo-bar') && !('fooBar' in d.dataset);
+  });
+
+  await prueba('document.forms, HTMLCollection y elementos con nombre', () => {
+    const f = document.forms['formu'];
+    return f === document.getElementById('formu') && document.forms.formu === f && document.forms[0] === f &&
+      f.elements.campo.value === 'v' && f.campo === f.elements.campo && document.images.imagen === document.getElementById('imagen') &&
+      document.getElementsByTagName('input')[0] === f.campo && document.forms['nada'] === undefined;
+  });
+
+  await prueba('document.<nombre> (img con name)', () => {
+    const img = document.getElementById('imagen'); const a = document.imagen === img;
+    const nuevo = document.createElement('img'); nuevo.name = 'otraimagen'; document.body.append(nuevo);
+    const b = document.otraimagen === nuevo; nuevo.remove();
+    const c = document.otraimagen === undefined;
+    const o = Object.create(document); o.imagen = 1; const d = Object.prototype.hasOwnProperty.call(o, 'imagen');
+    return { ok: a && b && c && d, nota: [a, b, c, d].join(',') };
+  });
+
+  await prueba('window.<id> y window.<name> (acceso con nombre)', () => {
+    const a = window.zona === document.getElementById('zona') && window.imagen === document.getElementById('imagen');
+    window.zona2 = 5; const b = window.zona2 === 5; delete window.zona2;
+    return a && b && window.noexiste === undefined && !('noexiste' in window);
+  });
+
+  await prueba('CSSStyleDeclaration y atributos reflejados', () => {
+    const d = document.createElement('div'); d.style.color = 'red'; d.style['background-color'] = 'blue';
+    return d.style.color === 'red' && d.style.backgroundColor === 'blue' && d.getAttribute('style').includes('blue');
+  });
+
+  await prueba('DOMException y TypeError de bindings', () => {
+    let e1, e2;
+    try { document.createElement('1x'); } catch (e) { e1 = e; }
+    try { document.body.appendChild('texto'); } catch (e) { e2 = e; }
+    return e1 instanceof DOMException && e1.name === 'InvalidCharacterError' && e1.code === 5 && e2 instanceof TypeError;
+  });
+
+  await prueba('iframe del mismo origen: 20 navegaciones, window[0] y contentWindow', async () => {
+    const f = document.createElement('iframe'); document.body.append(f);
+    for (let i = 0; i < 20; i++) await carga(f, base + 'blank.html?' + i);
+    await recoge();
+    const ok = window[0] === f.contentWindow && f.contentWindow.document.getElementById('p').textContent === 'vacía' &&
+      f.contentWindow.parent === window && window.length >= 1;
+    f.remove(); await recoge(); return ok;
+  });
+
+  await prueba('iframe de otro origen: navegaciones, acceso permitido y SecurityError', async () => {
+    const f = document.createElement('iframe'); document.body.append(f);
+    for (let i = 0; i < 10; i++) {
+      await carga(f, (i % 2 ? base : baseOtro) + 'blank.html?x' + i);
+    }
+    await carga(f, baseOtro + 'blank.html?final');
+    const w = f.contentWindow; let bloqueado = false;
+    try { w.document; } catch (e) { bloqueado = e.name === 'SecurityError'; }
+    const permitidos = typeof w.postMessage === 'function' && w.parent === window && w.length === 0 && w === window[0];
+    await recoge();
+    const sigue = f.contentWindow === w;
+    f.remove(); await recoge();
+    return { ok: bloqueado && permitidos && sigue, nota: [bloqueado, permitidos, sigue].join(',') };
+  });
+
+  await prueba('structuredClone de Blob, File y MessagePort', async () => {
+    const b = structuredClone(new Blob(['hola'])); const f = structuredClone(new File(['x'], 'f.txt'));
+    const { port1, port2 } = new MessageChannel();
+    const r = new Promise(ok => { port2.onmessage = (e) => ok(e.data); });
+    port1.postMessage('pong');
+    return (await b.text()) === 'hola' && f.name === 'f.txt' && (await r) === 'pong';
+  });
+
+  await prueba('Worker: postMessage de Blob e ImageBitmap, OffscreenCanvas y fetch', async () => {
+    const w = new Worker('worker.js');
+    const pide = (dato, transfer) => new Promise(ok => { w.onmessage = (e) => ok(e.data); w.postMessage(dato, transfer || []); });
+    const [r1, devuelto] = await pide(new Blob(['desde la página']));
+    const c = document.createElement('canvas'); c.width = 13; c.height = 7;
+    const bm = await createImageBitmap(c);
+    const [r2] = await pide(bm, [bm]);
+    w.terminate(); await recoge();
+    const ok = r1.texto === 'desde la página' && devuelto instanceof Blob && r2.ancho === 13 && r1.pixel === '255,0,0,255' && r1.fetch;
+    return { ok, nota: JSON.stringify([r1, r2]).slice(0, 160) };
+  });
+
+  await prueba('postMessage de Blob entre ventanas (a un iframe del mismo origen)', async () => {
+    const f = document.createElement('iframe'); document.body.append(f); await carga(f, base + 'blank.html?pm');
+    const r = new Promise(ok => { f.contentWindow.onmessage = async (e) => ok(await e.data.text()); });
+    f.contentWindow.postMessage(new Blob(['entre ventanas']), '*');
+    const t = await r; f.remove(); return t === 'entre ventanas';
+  });
+
+  await prueba('AudioWorklet en marcha (OfflineAudioContext)', async () => {
+    const ctx = new OfflineAudioContext(1, 4800, 48000);
+    await ctx.audioWorklet.addModule('worklet.js');
+    const n = new AudioWorkletNode(ctx, 'constante'); n.connect(ctx.destination);
+    const buf = await ctx.startRendering(); const d = buf.getChannelData(0);
+    return { ok: Math.abs(d[100] - 0.5) < 1e-6 && Math.abs(d[4000] - 0.5) < 1e-6, nota: `${d[100]}` };
+  });
+
+  await prueba('GC final y el documento sigue entero', async () => {
+    await recoge(); await espera(200); await recoge();
+    return document.getElementById('zona').expando.valor === 42 && document.forms.formu.campo.value === 'v';
+  });
+
+  document.title = 'motor-gc: hecho';
+})();
+</script>

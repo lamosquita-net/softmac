@@ -1,0 +1,49 @@
+# RubyLB R4–R5: los 46 commits de ruby de upstream tras 1786fbc1466 (fin de R3), en orden. Columnas: commit,
+# ficheros de código, estado, título. «hecho R4-R5» = en brave-core nube/motor-128-ruby 1f490905 (MOTOR-6, 13-10),
+# un commit del área de trabajo por paso. 38 portados, 8 saltados.
+c44a2bf0a86	1	hecho R4-R5	RubyLB: Fix invalid current_ after an overflowing continuation ruby
+99ae7ffa56f	1	hecho R4-R5	RubyLB: Fix a crash by an oof box in nested rubies
+3e6cc50ba40	1	hecho R4-R5	Ruby: 'display: inline flow list-item` should inlinify children
+0903875c8c4	1	hecho R4-R5	RubyLB: Fix an issue with text-indent
+012080321af	1	hecho R4-R5	RubyLB: Disable line-breaking in text-wrap:balance/pretty
+7ade97095ed	1	hecho R4-R5	RubyLB: Fix a crash with a BoxFragment in a ruby
+86427627e44	1	hecho R4-R5	RubyLB: Fix a CHECK failure in min-max computation with an atomic-inline
+166ca3fee34	3	hecho R4-R5	RubyLB: Count glyphs instead of code units in "short" detection
+2bad9c8d19e	6	hecho R4-R5 (solo Blink: flag y line_breaker; la entrada de about:flags es UI de Chrome)	RubyLB: Introduce an about:flags entry for short ruby heuristics
+fac62987c67	1	hecho R4-R5	RubyLB: Fix a crash with an overflowing split ruby
+ebb948a6007	2	saltado: revert de 1094a4f126d, que no se portó	Revert "RubyLB: Delay appending kFloating InlineItems"
+65190cdcdc5	3	hecho R4-R5	RubyLB: Support breaking in HandleOverflow()
+a91265e3868	1	hecho R4-R5 (ConsoleMessage con mojom::blink::ConsoleMessage*)	RubyLB: Avoid crashes by `float` property
+b1d0edbf7b9	2	hecho R4-R5 (sin el NOINLINE de HandleOverflow, que es para Android)	RubyLB: Fix rewinding a continuation ruby column
+674acdcee0c	1	hecho R4-R5	RubyLB: Fix a crash by a pseudo element with float
+331b5631a25	1	hecho R4-R5	RubyLine: Fix division-by-zero
+3369efbcd38	2	hecho R4-R5	RubyLB: Remove the first argument of HandleRuby()
+42e6a9e4186	4	hecho R4-R5 (parámetro de plantilla OffsetMappingBuilder)	RubyLB: Remove useless InlineItem instances
+94f4d69f3a6	5	hecho R4-R5	RubyLB: Fix ruby-align behavior after justifying a line
+231e30ff575	2	hecho R4-R5	RubyLB: Fix line-edge-alignment with collapsed spaces at the end edge
+32f83cfafca	6	hecho R4-R5 (diff de estilo en computed_style_diff_functions.json5; sin valid_for_permission_element)	ruby-align: Support for parsing and serialization
+2f78f258a20	3	hecho R4-R5	RubyLB: Fix line-edge-alignment on the start edge with OOF items
+4edb29252ec	3	hecho R4-R5	ruby-align: Implement the layout behavior
+39513bd260d	3	hecho R4-R5	RubyLB: Fix unexpected break inside a base-shorter ruby
+db6da6c412b	2	hecho R4-R5 (absl::optional)	RubyLB: Justify a line consisting of a base-shorter ruby only
+81e6e9f8ee8	1	saltado: la 116 pone display/float del icono de alt con estilo en línea antes de StyleAdjuster, que ya lo corrige (a91265e3868)	RubyLB: Fix a crash by an IMG in the alt mode
+6f220af43ca	5	saltado: solo contadores de uso de ruby-position alternate/inter-character; sin cambio de comportamiento	Add counters of `alternate` and `inter-character` keywords
+f9f99d05707	1	hecho R4-R5	RubyLB: Apply line-edge-alignment only if text-align*:justify
+71b76b57de0	1	saltado: solo testing/variations (pruebas)	Enable recent ruby features in non-Blink tests
+801bb273971	1	hecho R4-R5	RubyLB: Fix a crash in ShapeResult::ApplyLeadingExpansion()
+4fb637454ac	1	hecho R4-R5 (GetBreakToken() -> BreakToken())	RubyLB: Fix a crash on rewinding
+394809961cf	1	hecho R4-R5	RubyLB: Enable the runtime flag by default
+eebeab457ac	1	hecho R4-R5	RubyLB: Enable "RubyShortHeuristics" flag by default
+c91684bd1bc	1	saltado: activación revertida en 092d9947202; vale el reland 5e4e1c67f01	Enable "CssRubyAlign" flag by default
+092d9947202	1	saltado: revert de c91684bd1bc	Revert "Enable "CssRubyAlign" flag by default"
+76130bc5555	1	hecho R4-R5	Enable "RubyLineEdgeAlignment" flag by default
+41fb168d0d6	2	hecho R4-R5	RubyLB: Performance nits
+5e4e1c67f01	1	hecho R4-R5	Reland "Enable "CssRubyAlign" flag by default"
+abcb933a292	4	hecho R4-R5 (absl::optional)	RubyLB: Annotation positioning should refer to padding/border/margin
+8c381ba81d5	3	hecho R4-R5	RubyLB: Fix PaintLayer for annotations
+ca2beeb9498	1	hecho R4-R5	RubyLB: Fix inconsistency between a physical fragment and a LayoutBox
+076c175464f	1	hecho R4-R5	RubyLB: Fix a crash in LineInfo::ComputeTrailingSpaceWidth()
+92063631629	2	hecho R4-R5	RubyLB: Do not break during ruby intrinsic size computation
+a4a0cf221b1	1	hecho R4-R5	RubyLB: Fix a CHECK failure with a non-breakable ruby-base
+8a35fc6c8e8	1	saltado: CSS line-clamp estándar (líneas is_hidden_for_paint) no existe en la 116	[line-clamp] [RubyLB] Make sure ruby isn't visible in clamped lines
+edec8ed675e	1	saltado: spanification (#pragma allow_unsafe_buffers no existe en la 116)	spanification: Remove `#pragma allow_unsafe_buffers` from ruby_utils.cc

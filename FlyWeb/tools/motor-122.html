@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 122 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 122 de FlyWeb 1.6 (brave-core nube/motor-122, V8 12.2).
+     Abrir en FlyWeb con file:// o desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  #zona { position: absolute; left: 0; top: 0; opacity: 0; pointer-events: none; }
+  #dialogo { color: rgb(1, 2, 3); }
+  #caja { position: relative; width: 200px; height: 20px; }
+  #abs { position: absolute; left: 0; right: 0; width: 50px; height: 10px; justify-self: end; }
+</style>
+</head>
+<body>
+<h1>Motor 122 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<div id="zona">
+  <dialog id="dialogo">x</dialog>
+  <div id="caja"><div id="abs"></div></div>
+</div>
+<h2>Pruebas oficiales (web-platform-tests)</h2>
+<p>Lista en <code>FlyWeb/tools/wpt-122-lista.txt</code> (etiqueta 122.0.6261.128; <code>wpt-envolver.py</code> para los
+<code>.any.js</code>; Ahem instalada, la pone <code>wpt-app.sh</code>). Comparar con los <code>-expected.txt</code> de Chrome 122.</p>
+<script>
+  const res = document.getElementById('res');
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li');
+    li.className = ok ? 'ok' : 'fallo';
+    li.textContent = nombre + (nota ? ` — ${nota}` : '');
+    res.append(li);
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+  const s = (p, v) => CSS.supports(p, v);
+
+  // JavaScript (V8 12.2).
+  prueba('Iterator helpers (map, filter, take, toArray)', () => {
+    const r = [1, 2, 3, 4].values().map((x) => x * 2).filter((x) => x > 2).take(2).toArray();
+    return { ok: r.join() === '4,6', nota: r.join() };
+  });
+  prueba('Iterator.from y reduce', () => typeof Iterator === 'function' && Iterator.from([1, 2, 3]).reduce((a, b) => a + b) === 6);
+  prueba('Métodos de Set (union, intersection, difference, symmetricDifference)', () => {
+    const a = new Set([1, 2, 3]), b = new Set([3, 4]);
+    return a.union(b).size === 4 && a.intersection(b).size === 1 && a.difference(b).size === 2 && a.symmetricDifference(b).size === 3;
+  });
+  prueba('Métodos de Set (isSubsetOf, isSupersetOf, isDisjointFrom)', () => {
+    const a = new Set([1, 2]), b = new Set([1, 2, 3]);
+    return a.isSubsetOf(b) && b.isSupersetOf(a) && a.isDisjointFrom(new Set([9]));
+  });
+  // Subfunciones Baseline del nivel (FM.8, principio 12 de motor.md).
+  prueba('::backdrop hereda del elemento que lo genera', () => {
+    const d = document.getElementById('dialogo'); d.showModal();
+    const c = getComputedStyle(d, '::backdrop').color; d.close();
+    return { ok: c === 'rgb(1, 2, 3)', nota: c };
+  });
+  prueba('URLPattern.hasRegExpGroups', () =>
+    new URLPattern({ pathname: '/libros/(\\d+)' }).hasRegExpGroups === true && new URLPattern({ pathname: '/libros/:id' }).hasRegExpGroups === false);
+  prueba('rgb() con números y porcentajes mezclados (solo sintaxis moderna)', () => s('color', 'rgb(255 50% 0)') && !s('color', 'rgb(255, 50%, 0)'));
+  prueba('@import … supports()', () => {
+    const st = document.createElement('style'); st.textContent = '@import url("data:text/css,") supports(display: grid);';
+    document.head.append(st); const r = st.sheet.cssRules[0]; const t = r && r.supportsText; st.remove();
+    return { ok: t === 'display: grid', nota: String(t) };
+  });
+  prueba('justify-self en cajas con posición absoluta (excepción del 122: FALLO esperado en la 1.6; llega con la 1.7, FM.9)', () => {
+    const x = document.getElementById('abs').getBoundingClientRect().left - document.getElementById('caja').getBoundingClientRect().left;
+    return { ok: Math.round(x) === 150, nota: `left ${Math.round(x)} (150 = alineada al final)` };
+  });
+  prueba('User-Agent declara Chrome/122', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '122', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+</script>
+<p>Los niveles 117–121 se comprueban aparte (<code>motor-117.html</code> … <code>motor-121.html</code>).</p>
+</body>
+</html>

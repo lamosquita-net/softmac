@@ -1,0 +1,107 @@
+# RubyLB R3 (núcleo): commits de upstream en orden, con los hunks que rechazó el ensayo de MOTOR-5 (13-10)
+# sobre R2 con portarng.sh (traductor corregido). «hecho» = ya en nube/motor-128-ruby: R3a (7a4bf532 tras el rebase de MOTOR-6; antes e727339d),
+# R3b 83f81e6c, R3c 99887213 y R3d c6d4a354 (MOTOR-6, 13-10). Requisito que faltaba: fb5131bcbd17 (LineInfo
+# DISALLOW_NEW), portado en R3b antes de dab6a520228.
+# Los rechazos de cada commit cuentan también los que arrastran los anteriores; sirven de orden de magnitud.
+cd1e15bd751	18	hecho	LayoutNG: Rename LayoutOverflow-related symbols
+fe91db7955b	4	hecho	LayoutNG: Remove NGPhysicalFragment::TextHeightType
+b40c24e2e02	10	hecho	Ruby: Collect RubyEmHeight code into ruby_utils.*
+59564502ef3	6	hecho	BreakableRuby: Add a runtime flag
+5fa2b39df5a	3	hecho	RubyLB: Add kOpenRubyColumn and kCloseRubyColumn types to InlineItem
+d0e0e437dca	0	hecho	RubyLB: Add LineBreaker::SetInputRange()
+4a4c18ebbdd	14	hecho R3b	RubyLB: Move some code for CreateLine() to a new class
+dab6a520228	2	hecho R3b	RubyLB: Add InlineItemResultRubyColumn
+c8b92563520	0	hecho R3b	RubyLB: Consume InlineItemResultRubyColumn::base_line
+92048611239	4	hecho R3b	RubyLB: Make InlineLayoutAlgorithm::ApplyJustify() static
+bbb168928bb	6	hecho R3b	RubyLB: Produce kOpenRubyColumn-type InlineItemResults
+8b95e970489	5	hecho R3b	RubyLB: Move out justification code from InlineLayoutAlgorithm
+e6a7223b781	2	hecho R3b	RubyLB: Add LogicalRubyColumn.
+b5c973c0910	0	hecho R3b	RubyLB: Create LogicalLineItems for ruby annotations
+4caca204015	1	hecho R3b	RubyLB: Add RubyBlockPositionCalculator class
+c4460ba11e6	11	hecho R3b	RubyLB: Introduce LogicalLineContainer class
+5ac2e39724e	0	hecho R3b	RubyLB: Update block positions of annotation lines
+7f0e95a7c21	0	hecho R3b	RubyLB: Move out the InlineItemResults handling in ApplyJustification()
+3237ed8597f	0	hecho R3b	RubyLB: Add LogicalLineItems for annotations to a LogicalLineContainer
+9fc077c18aa	0	hecho R3b	RubyLB: Move out the source text building in ApplyJustification()
+911e0726e8a	0	hecho R3b	RubyLB: TakeRubyColumnList() should always move ruby_column_list_
+be5ab3a2276	2	hecho R3b	RubyLB: Convert annotation LogicalLineItems to nested kLine FragmentItems
+99038b8f95b	2	hecho R3c	RubyLB: Support annotation-overflow in the new ruby architecture
+6b424240fe1	0	hecho R3c	RubyLB: Fix two DCHECK failures in LineBreaker
+0915fa75aaa	1	hecho R3c	RubyLB: Support painting and hit-testing nested kLine items
+f8c95bb68f7	2	hecho R3c	RubyLB: Remove LayoutRubyAsBlock::RemoveChild()
+8fd6e923dca	4	hecho R3c	RubyLB: Support justification of lines including <ruby>
+f4181c2c74b	4	saltado: solo cadenas de depuración (la 116 no tiene InlineItemResult::ToString)	RubyLB: Improve debug strings for LineInfo and InlineItemResult
+505d10868b8	0	hecho R3c	RubyLB: Add a virtual test suite for RubyLineBreakable
+98817c0071e	1	hecho R3c	RubyLB: Fix crashes with atomic-inlines
+bb2837d38d9	5	hecho R3c	RubyLB: Fix min-max computation
+713c2f855cb	5	hecho R3c	RubyLB: Introduce kRubyLinePlaceholder InlineItem
+09c85e7cbc9	4	hecho R3c	RubyLB: Update LineInfo::is_ruby_base_ and is_ruby_text_
+24a27794625	1	hecho R3c	RubyLB: Support ruby-align behavior
+db39f97465f	3	hecho R3c	RubyLB: Support overhang
+3f5d6227dba	0	hecho R3c	RubyLB: Add a DCHECK to JustifyResults()
+0cf880c1d4d	0	hecho R3c	RubyLB: Fix float-related crashes
+e099d3f2e48	2	hecho R3c	RubyLB: Fix a crash by a BR in a RT
+0728f0ad091	0	hecho R3c	RubyLB: Fix a DCHECK failure with a ruby-base line without any text
+882c1e1b5a8	4	hecho R3c	RubyLB: Fix a DCHECK failure on min-max computation
+1a7cfa895e8	solo-pruebas		css-ruby: Import rubyDOM-*-rt-block-*.html in WebKit/Blink
+f3904cb3656	1	hecho R3c	RubyLB: Fix a crash with `display: block ruby`
+7764e459090	solo-pruebas		RubyLB: Adjust TextExpectations
+4dbae6be36d	0	hecho R3c	RubyLB: Apply Ceil() in ComputeEmHeight()
+02d097b581e	0	hecho R3c	RubyLB: Skip zero-width LayoutResults in em-height computation
+18569625889	0	hecho R3c	RubyLB: Fix getClientRects() and getBoundingClientRect() for <ruby>
+0224e16e5c6	0	hecho R3c	RubyLB: Fix annotation positioning for nested "under" annotations
+6384416ce71	solo-pruebas		RubyLB: Add more tests to the virtual test suite
+3e1cee45b8f	0	hecho R3c	RubyLB: Fix block-direction positioning with vertical-align
+15f182e50e1	1	hecho R3c	WebVTT: Apply display:ruby and display:ruby-text
+2e2e5759d07	0	hecho R3c	RubyLB: Fix outline computation for ruby annotations
+2e31232befd	3	hecho R3c	RubyLB: Implement soft wrap opportunity check around a ruby column
+84d906834f9	solo-pruebas		RubyLB: Fix C++ unit tests in Blink
+1bceb0ff9bd	8	hecho R3c	RubyLB: Sub-LineBreakers should inherit trailing_whitespace_
+d9a60d56e63	0	hecho R3c	RubyLB: Improve LayoutResult support in em-height computation
+ae6d9d5db8f	1	saltado: FasterMinContent no está en la 116 (rendimiento, no ruby)	[fast-min-max] Enable the runtimeflag for stable
+9cb70e8a8c8	solo-pruebas		RubyLB: rebaseline of passing tests
+2fb786d16d1	0	hecho R3c	RubyLB: Fix crashes by text-decoration
+e228ea112d6	2	hecho R3c	RubyLB: Replace "\n" in white-space:pre <rt> with " "
+ea805061eff	0	hecho R3c	RubyLB: Fix a crash in FragmentItem::CanReuse()
+f8125dbff19	3	hecho R3c	RubyLB: Implement text-emphasis avoidance logic
+20e5fdf6583	0	hecho R3c	RubyLB: Merge two vectors in LogicalLineContainer into one
+7d73cb1110e	6	hecho R3c	Rename members of blink::RubyPosition
+d0cb0ae16d5	solo-pruebas		RubyLB: Rebaseline of some tests
+b6deae8dc39	solo-pruebas		css-break: Remove spaces between inline blocks in ruby-002.html
+58cb9e951ff	solo-pruebas		Add a pixel test for ruby + text-decoration
+d66bb0877fe	1	hecho R3c	RubyLB: Move LogicalRubyColumn definition
+98fc178f4b3	4	hecho R3c	RubyLB: Support position:relative in annotation lines
+0cf02967ccf	2	hecho R3c	RubyLB: Apply ruby's insets to ShapeResult or margin if possible
+f4a9ca199d8	4	hecho R3c	RubyLB: Propagate oof boxes in ruby-text boxes
+4fd9fc827ff	1	hecho R3c	RubyLB: Disable forced-breaks in ruby-base boxes temporarily
+dd4372a1e5f	1	hecho R3c	RubyLB: Enable the flag in Blink tests
+1e3eda9848f	0	hecho R3c	RubyLB: Fix annotation inline positions with bidi reordering
+0225acbe1db	3	hecho R3c	RubyLB: Fix insets in RTL
+d3e0f45288e	1	hecho R3c	RubyLB: Fix a crash with a block ruby + text-combine-upright
+49ee37fcc31	5	hecho R3c	RubyLB: Fix a crash by wide ruby contents
+57fa3225c20	1	hecho R3c	RubyLB: Floats should not update available_width_ for sub-LineBreakers
+1094a4f126d	2	saltado: revertido en upstream por ebb948a6007 (saltar también el revert)	RubyLB: Delay appending kFloating InlineItems
+d05cc149711	0	hecho R3c	RubyLB: Fix a DCHECK failure in FragmentItem::CanReuse()
+fe2a5d58a65	8	hecho R3c	RubyLB: Fix a crash by position:sticky
+cf644d46615	4	hecho R3c	RubyLB: position:relative outside of ruby-text should move it.
+8d5bae305f2	solo-pruebas		Update Kusa-Makura-background-canvas.html
+d74962d0845	1	hecho R3d	RubyLB: Make the flag status "experimental"
+ca6a93b7226	0	hecho R3d	RubyLB: Fix incorrect bounding rectangles for ruby-text boxes
+b636fcca83b	2	hecho R3d	RubyLB: Move RebuildBoxStates() to LogicalLineBuilder
+f699965c7cd	0	hecho R3d	RubyLB: Fix justification with rubies
+15b3c17f810	3	hecho R3d	RubyLB: Fix justification with a ruby at the line end
+38c4b494b6c	3	hecho R3d	RubyLB: `ruby-position` should be valid for ::first-line
+dfb34de8b31	2	hecho R3d	RubyLB: RebuildBoxStates() supports ranges starting at <rt>
+f99d3226e6a	9	hecho R3d	RubyLB: Introduce RubyBreakTokenData
+36c14e92eb6	2	hecho R3d	RubyLB: Support continuous ruby columns in CreateLine()
+8a030f19a7b	7	hecho R3d	RubyLB: ::first-line style should not be applied to all rubies
+dbfc1a8c9e4	4	hecho R3d	RubyLB: Add InlineItemResult::IsRubyColumn()
+900ec6b5702	4	hecho R3d	RubyLB: Support "Line-edge Alignment"
+220c1e59247	8	hecho R3d	RubyLB: Support continuous ruby column in LineBreaker
+99a722b4455	3	saltado: text-box-trim no está en la 116	[text-box-trim] Fix when there is a Ruby annotation
+5199d5afae9	1	saltado: text-box-trim no está en la 116	[text-box-trim] Fix when there is an initial-letter
+33836c24d6c	0	hecho R3d	RubyLB: Improve justification for lines including base-shorter rubies
+942362472ab	3	hecho R3d	RubyLB: LineBreaker should have a RubyBreakTokenData
+d6f2c593fcd	1	saltado: solo InlineItemResult::ToString (no está en la 116)	RubyLB: Fix a crash in InlineItemResult::ToString()
+d5d1cc0baae	4	hecho R3d	RubyLB: Add `column_end_item_index` argument to CanBreakAfterRubyColumn
+1786fbc1466	6	hecho R3d	RubyLB: Make ruby columns breakable

@@ -1,0 +1,28 @@
+# FlyWeb (LOCAL, 03-10-2026; «create 0640 root adm»: SERVIDOR, E2-01, 05-10): registros de components., updates., proxy. y sync. 7 días, como promete la página de privacidad
+# (sync. desde E2-01, antes de instalarlo: missingok). La web pública va en el bloque de abajo, 14 días.
+/var/log/flyweb/components/*.log /var/log/flyweb/updates/*.log /var/log/flyweb/proxy/*.log /var/log/flyweb/sync/*.log {
+    daily
+    rotate 7
+    missingok
+    notifempty
+    nocompress
+    create 0640 root adm
+    sharedscripts
+    postrotate
+        /usr/sbin/apache2ctl graceful >/dev/null 2>&1 || true
+    endscript
+}
+# Web pública flyweb.lamosquita.net (con IP, para seguridad): 14 días, como el resto de webs (LOCAL, 04-10-2026).
+/var/log/flyweb/flyweb.lamosquita.net/*.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    create 0640 root adm
+    sharedscripts
+    postrotate
+        /usr/sbin/apache2ctl graceful >/dev/null 2>&1 || true
+    endscript
+}

@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Novedades — FlyWeb</title>
+<meta name="description" content="Qué cambió en cada versión de FlyWeb, desde la 1.0 hasta la última.">
+<link rel="stylesheet" href="estilo.css?v=9bc84f82c8">
+<link rel="icon" href="img/flyweb.svg" type="image/svg+xml">
+</head>
+<body>
+<header class="cabecera"><div class="columna">
+  <a class="logo" href="./"><img class="circulo" src="img/circulo.svg?v=dc9a2e413e" alt=""><img class="mosca-logo" src="img/mosca.svg?v=cb3e40e71f" alt="FlyWeb"></a>
+  <h1>Novedades<small>Qué cambió en cada versión de FlyWeb</small></h1>
+</div></header>
+<main>
+<section class="banda naranja"><div class="columna">
+<p>Aquí están las notas de todas las versiones de FlyWeb, de la más nueva a la más antigua. La versión que puedes
+descargar hoy está en la <a href="./">página principal</a>.</p>
+<p>La 2.0 es una base nueva (Chromium 128 con el motor al nivel de Chrome 131). Hasta la 1.15, FlyWeb se basaba en Chromium 116 y le fue sumando las funciones web de versiones posteriores de Chrome. A ese conjunto lo
+llamamos <em>nivel de motor</em>: la 1.1 tiene el de Chrome 117, la 1.2 el de Chrome 118, y cada versión nueva sube un
+nivel. Las versiones con un tercer número (por ejemplo la 1.7.1 o la 1.8.1) añaden correcciones o mejoras sobre el nivel
+anterior. El nivel de tu versión aparece en <code>flyweb://settings/help</code>.</p>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v2-0-1">
+<h2>FlyWeb 2.0.1 · seguridad</h2>
+<ul>
+  <li><strong>Seguridad.</strong> Corrige dos vulnerabilidades que ya se están aprovechando: una del motor de JavaScript
+  (CVE-2026-11645) y otra del dibujo por Metal en macOS 10.15 y posteriores (CVE-2025-14174).</li>
+  <li><strong>Sin el aviso falso de «No se puede actualizar FlyWeb»</strong>, que la 2.0.0 mostraba aunque estuviera al día.</li>
+  <li><strong>Página de nueva pestaña como en la 1.15:</strong> las estadísticas vuelven a leerse bien sobre todos los fondos.</li>
+  <li><strong>Problema conocido:</strong> con varias ventanas y las pestañas fijadas compartidas entre ventanas, las fijadas
+  pueden perderse al cerrar. Mientras sale la 2.0.2, apaga esa opción en Ajustes.</li>
+</ul>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v2-0-0">
+<h2>FlyWeb 2.0.0 · base nueva: Chromium 128, nivel de Chrome 131</h2>
+<ul>
+  <li><strong>Base nueva: Chromium 128.</strong> FlyWeb pasa de Chromium 116 a Chromium 128 (Brave 1.69). Las webs siguen viéndolo
+  como Chrome 131 y funciona como él en lo que usan.</li>
+  <li><strong>Tarjeta gráfica acelerada también en Mojave.</strong> El dibujo de las páginas, WebGL, WebGL2 y el vídeo van
+  acelerados por hardware, como en la 1.15. En las pruebas, diez minutos de WebGL sin una caída ni un fotograma perdido.
+  WebGPU sigue apagado, por seguridad.</li>
+  <li><strong>Escudos nuevos.</strong> Motor de bloqueo actualizado y recursos de bloqueo propios, servidos desde nuestro servidor.</li>
+  <li><strong>Copia automática de tu perfil.</strong> La primera vez que abres la 2.0, FlyWeb copia tu perfil junto al original
+  (<code>LaMosquita/FlyWeb antes de 2.0 (AAAA-MM-DD)</code>). <a href="ayuda/#actualizar-2-0">Qué hacer si quieres volver a la 1.15.2</a>.</li>
+  <li><strong>Actualizaciones propias.</strong> Se instalan solas, desde nuestro servidor y con nuestra firma, como en la 1.15.</li>
+  <li><strong>Más privado.</strong> En reposo, FlyWeb solo habla con nuestros servidores (componentes y navegación segura): ninguna
+  petición a servicios de Brave. Los dispositivos de la red local (Media Router) vienen apagados.</li>
+  <li><strong>Nueva pestaña.</strong> Con «Personalizar» y, si tienes historial, tus cinco sitios más visitados.</li>
+  <li><strong>Quitado:</strong> Wallet, Rewards, News, Talk, VPN y el asistente Leo.</li>
+  <li><strong>Requisitos:</strong> macOS 10.14 Mojave o superior. Si tienes High Sierra, quédate con la 1.15.2.</li>
+  <li><strong>Ayuda nueva:</strong> <a href="ayuda/#no-guarda-contrasenas">«FlyWeb no me ofrece guardar contraseñas»</a> e
+  <a href="ayuda/#importar-contrasenas">pasar tus contraseñas de iCloud u otro navegador</a>.</li>
+</ul>
+<p class="dato">Problema conocido: el texto blanco de las estadísticas de la nueva pestaña se lee mal sobre fotos claras; se
+arreglará en una 2.0.x.</p>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-15-2">
+<h2>FlyWeb 1.15.2 · nivel de Chrome 131 (menús y avisos en su sitio, más estable)</h2>
+<ul>
+  <li><strong>Menús, avisos y tooltips en su sitio.</strong> Las webs pueden pegar un menú desplegable, un aviso o una etiqueta
+  al botón o al texto que lo abre. FlyWeb los coloca como Chrome 131, sin depender de bibliotecas de JavaScript.</li>
+  <li><strong>Se recolocan solos.</strong> Si un menú no cabe debajo de su botón, por ejemplo al final de la pantalla, la web
+  puede pedir que se abra arriba o al lado, y FlyWeb elige el sitio donde cabe.</li>
+  <li><strong>Siguen al desplazar.</strong> Al desplazar la página o un recuadro, lo que va pegado a un elemento se mueve con
+  él, y se puede ocultar cuando ese elemento deja de verse.</li>
+  <li><strong>También en carruseles.</strong> Lo que va pegado a un elemento sigue en su sitio aunque esté dentro de un
+  carrusel o un panel que la web desplaza por su cuenta, sin barra de desplazamiento.</li>
+  <li><strong>El tabulador, como en Brave.</strong> Al recorrer una página con el tabulador, FlyWeb vuelve a saltarse los
+  recuadros con desplazamiento que no tienen nada que pulsar dentro, como Brave (en la 1.14 y la 1.15 se paraba en ellos,
+  como Chrome). Para desplazarlos con las flechas, basta hacer clic dentro.</li>
+  <li><strong>Más compatible con las webs de hoy.</strong> Muchas webs modernas, entre ellas editores, paneles de control y
+  tiendas, ya usan esta función de CSS. Ahora se ven como en Chrome.</li>
+  <li><strong>Más estable.</strong> Arregla dos cierres de la pestaña que ya tenía la 1.15.1: en páginas que combinan
+  ventanas de diálogo o menús emergentes con diseños que se adaptan al tamaño de su recuadro, y en páginas que cambian el
+  texto de un aviso o una etiqueta flotante y consultan luego su posición.</li>
+  <li><strong>Más seguro.</strong> Lleva cuatro arreglos de seguridad graves de versiones posteriores de Chrome: tres en el
+  dibujo con la tarjeta gráfica (WebGL) y uno en el aislamiento entre webs. Además, arregla un posible fallo de memoria
+  en la maquetación con <em>container queries</em>.</li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario, y el motor de JavaScript es el mismo que en la 1.15.</p>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-15-1">
+<h2>FlyWeb 1.15.1 · nivel de Chrome 131 (más compatible con las webs)</h2>
+<ul>
+  <li><strong>Más compatible con las webs de hoy.</strong> FlyWeb incorpora un centenar de funciones y arreglos que Chrome fue
+  añadiendo entre sus versiones 117 y 131, para que las webs funcionen como en Chrome 131.</li>
+  <li><strong>Escribir y editar texto, mejor.</strong> Las listas, las citas, los saltos de línea, borrar y pegar en editores
+  de texto web (correo, documentos, foros) se comportan como en Chrome.</li>
+  <li><strong>Imágenes más ligeras.</strong> Las webs que cargan sus imágenes a medida que se desplaza la página pueden pedir
+  solo el tamaño que de verdad se ve, y la página gasta menos datos.</li>
+  <li><strong>Compartir solo lo que quieres.</strong> Una web de videollamadas puede pedir que solo se ofrezca compartir una
+  pestaña o una ventana, nunca la pantalla entera.</li>
+  <li><strong>Vídeo en el navegador.</strong> Los editores de vídeo y las videollamadas en la web admiten más formatos (vídeo
+  de 10 y 12 bits) y pueden codificar mejor el contenido de una pantalla (texto y detalles finos).</li>
+  <li><strong>Respeta «Reducir transparencia».</strong> Si está activada en las preferencias de accesibilidad del Mac, las
+  webs que lo tienen en cuenta también la reducen.</li>
+  <li><strong>Más privacidad:</strong>
+    <ul>
+      <li>Las webs ya no pueden medir con detalle cómo se ejecuta su JavaScript en el ordenador (lo mismo hace Brave).</li>
+      <li>Un truco con iconos SVG que en Chrome 131 deja a una web saber si has visitado otra no funciona en FlyWeb.</li>
+      <li>Copiar y pegar HTML y SVG entre webs es más seguro.</li>
+    </ul></li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario, y el motor de JavaScript es el mismo que en la 1.15.</p>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-15">
+<h2>FlyWeb 1.15 · nivel de Chrome 131</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 131</strong>, con el motor de JavaScript de Chrome 131. Las webs ven FlyWeb como
+  Chrome 131, y lo es en lo que usan.</li>
+  <li><strong>Conexiones seguras preparadas para el futuro.</strong> FlyWeb cifra las conexiones con el método poscuántico
+  estándar (ML-KEM), el mismo que Chrome 131, pensado para que lo que se envía hoy no se pueda descifrar mañana con
+  ordenadores cuánticos.</li>
+  <li><strong>Secciones desplegables con más estilo.</strong> Las secciones que se abren y cierran
+  (<code>&lt;details&gt;</code>) se pueden diseñar como cualquier otro bloque, como en Chrome, Safari y Firefox.</li>
+  <li><strong>Colores que siguen al texto.</strong> Las webs pueden calcular un color a partir del color del texto (por
+  ejemplo, una versión más clara para el fondo), también con modo oscuro, como en Chrome, Safari y Firefox.</li>
+  <li><strong>Medidores visibles.</strong> Las barras de nivel (<code>&lt;meter&gt;</code>) con estilo propio de la web ya no
+  desaparecen.</li>
+  <li><strong>Desplazamientos suaves más rápidos.</strong> Cuando una web lleva la vista hasta un elemento dentro de varias
+  zonas con desplazamiento, se mueven todas a la vez y no una detrás de otra.</li>
+  <li><strong>Pequeños arreglos de compatibilidad:</strong>
+    <ul>
+      <li>Al copiar texto que la web muestra en mayúsculas, se pega como está escrito de verdad.</li>
+      <li>Seleccionar texto con el ratón funciona también en webs que interceptan el movimiento del ratón.</li>
+      <li>Los campos de fecha ocupan su sitio en la línea como en los demás navegadores.</li>
+      <li>Las webs que piden confirmar antes de salir lo hacen igual que en Chrome.</li>
+      <li>Las imágenes SVG pueden usar degradados y recortes de otro archivo, como en Firefox y Safari.</li>
+    </ul></li>
+  <li><strong>Más extensiones de la Chrome Web Store.</strong> Las extensiones que piden una versión de Chrome reciente
+  (hasta la 131) ya se instalan, por ejemplo Ghostery o KeePassXC-Browser. Algunas todavía no, como uBlock Origin Lite
+  (necesita más reglas de bloqueo de las que admite FlyWeb) o Bitwarden (pide Chrome 134).</li>
+  <li><strong>Pestañas fijadas más fiables.</strong> Las pestañas fijadas, que se comparten entre todas las ventanas, ya no
+  cierran el navegador al cambiar de ventana ni salen repetidas al volver a abrir FlyWeb con varias ventanas.</li>
+  <li><strong>Sin la pregunta de las estadísticas de uso.</strong> FlyWeb no envía estadísticas de uso; en un perfil nuevo ya
+  no aparece la barra que preguntaba por ellas.</li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario. La primera vez que se abra una web pesada puede tardar
+un poco más (el motor de JavaScript nuevo vuelve a preparar su caché).</p>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-14-1">
+<h2>FlyWeb 1.14.1 · nivel de Chrome 130 (marcos aislados)</h2>
+<ul>
+  <li><strong>Los marcos aislados, en su propio proceso.</strong> FlyWeb aísla en su propio proceso los marcos
+  <em>sandboxed</em> de las webs (contenido incrustado, vistas previas, correos con formato), como Chrome desde la versión
+  127: si uno de esos marcos tuviera un fallo aprovechable, no alcanzaría a la página que lo contiene.</li>
+  <li><strong>Todo lo demás, igual que en la 1.14:</strong> el nivel de Chrome 130 y el motor de JavaScript de Chrome 130.</li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-14">
+<h2>FlyWeb 1.14 · nivel de Chrome 130</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 130</strong>, con el motor de JavaScript de Chrome 130. Las webs ven FlyWeb como
+  Chrome 130, y lo es en lo que usan.</li>
+  <li><strong>Estilos anidados en el orden en que se escriben.</strong> Las hojas de estilo que anidan reglas unas dentro de
+  otras aplican cada declaración en el orden escrito, como Chrome, Safari y Firefox. Antes, algunas declaraciones
+  escritas después de una regla anidada se aplicaban antes de tiempo.</li>
+  <li><strong>Cortes de línea como en los demás navegadores.</strong> La propiedad <code>text-wrap</code> funciona igual que
+  en Chrome, Safari y Firefox (por ejemplo, <code>text-wrap: nowrap</code> para que un texto no se parta).</li>
+  <li><strong>Conexiones directas en segundo plano.</strong> Las webs de videollamada, juegos o envío de archivos entre
+  usuarios pueden llevar una conexión directa a un hilo aparte, sin trabar la página.</li>
+  <li><strong>Teclado:</strong> las zonas de una página con desplazamiento propio se pueden alcanzar con el tabulador y
+  recorrer con las flechas aunque no tengan nada enfocable dentro, como en Chrome 130. Ayuda a quien navega sin
+  ratón.</li>
+  <li><strong>Ventanas emergentes de las webs:</strong> los avisos y menús que se abren y cierran con un botón se comportan
+  como en Chrome 130, también los que son diálogos.</li>
+  <li><strong>Más seguro:</strong>
+    <ul>
+      <li>Cada web queda aislada de sus subdominios aunque intente juntarse con ellos (<code>document.domain</code>), como
+      en Chrome desde la 119.</li>
+      <li>Las respuestas de otras webs que el navegador bloquea llegan como error y no como respuesta vacía, como en
+      Chrome.</li>
+      <li>Un anuncio o contenido incrustado sin permiso para abrir ventanas ya no puede abrirlas con un clic
+      simulado.</li>
+      <li>Dos protecciones que Chrome tiene desde la 119–120: una web ya no puede sacar datos de una página a través del
+      nombre de una ventana mal cerrado (<em>dangling markup</em>), y los dibujos SVG ya no cargan piezas escondidas en
+      direcciones <code>data:</code>. Las webs normales no notan nada.</li>
+      <li>Si se apaga el JIT de JavaScript por seguridad (el interruptor de emergencia), esas webs tampoco tienen
+      WebAssembly, igual que en Chrome 130.</li>
+    </ul></li>
+  <li><strong>Lo que se va, como en Chrome:</strong>
+    <ul>
+      <li><strong>WebSQL ya no existe, como en Chrome desde la 119.</strong> Una web vieja que aún guarde datos con WebSQL
+      deja de verlos, igual que en Chrome.</li>
+      <li>Los eventos antiguos de cambios en la página (eventos de mutación), la pantalla completa antigua de los vídeos
+      y otras funciones retiradas que FlyWeb aún tenía de su base de 2023.</li>
+      <li>FlyWeb ya no añade a cada página su paquete de compatibilidad de JavaScript: todo lo que cubría lo trae ahora
+      el propio motor, y así las webs no ven nada que Chrome 130 no tenga.</li>
+    </ul></li>
+  <li><strong>Pequeños arreglos de compatibilidad:</strong>
+    <ul>
+      <li>Las direcciones <code>data:</code> con texto conservan los espacios, como en Firefox y Safari.</li>
+      <li>Pegar y borrar en los editores de las webs deja el texto como en Chrome 130.</li>
+      <li>Las tablas antiguas calculan el ancho de las celdas como Chrome 130.</li>
+      <li>Los estilos de los componentes de las webs (<em>shadow DOM</em>) se adaptan bien al tamaño de su contenedor.</li>
+    </ul></li>
+</ul>
+<p class="dato">Nada cambia en los ajustes. Salvo WebSQL (arriba), nada cambia en los datos del usuario. La primera vez que se
+abra una web pesada puede tardar un poco más (el motor de JavaScript nuevo vuelve a preparar su caché).</p>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-13">
+<h2>FlyWeb 1.13 · nivel de Chrome 129</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 129</strong>, con el motor de JavaScript de Chrome 129. Las webs ven FlyWeb como
+  Chrome 129, y lo es en lo que usan.</li>
+  <li><strong>Duraciones bien escritas.</strong> Las webs pueden mostrar duraciones en el idioma del usuario («1 hora y 2
+  minutos», «1:02:03») con la función estándar (<code>Intl.DurationFormat</code>) que ya tenían Safari y Firefox.</li>
+  <li><strong>Llaves de seguridad con las webs modernas.</strong> Las webs que usan llaves de seguridad USB (y, en general,
+  WebAuthn) pueden preparar el inicio de sesión con el formato JSON estándar, como hacen las librerías actuales de
+  <em>passkeys</em>.</li>
+  <li><strong>Archivos por conexiones directas.</strong> Las webs de videollamada, juegos o transferencia de archivos entre
+  usuarios (WebRTC) pueden enviar y recibir archivos directamente, sin convertirlos antes.</li>
+  <li><strong>Menús y ventanas emergentes mejor colocados.</strong> Las partes de una página que se adaptan a su propio
+  tamaño (<em>container queries</em>) ya no atrapan dentro a los menús y avisos flotantes, como en Chrome, Safari y
+  Firefox.</li>
+  <li><strong>Texto monoespaciado como en Chrome.</strong> El código y el texto de ancho fijo de las webs que no eligen
+  fuente se ven con Menlo, como en Chrome y Firefox, en vez de con Courier. Si se eligió otra fuente en los ajustes, se
+  respeta.</li>
+  <li><strong>Pequeños arreglos de compatibilidad:</strong>
+    <ul>
+      <li>Los editores de las webs avisan una sola vez de cada cambio de selección, como Safari y Firefox.</li>
+      <li>Al pegar en un área de texto, la web recibe el texto pegado.</li>
+      <li>Deshacer después de borrar entre párrafos funciona como en Chrome 129.</li>
+      <li>Al copiar texto, los párrafos que terminan en un elemento oculto ya no se pegan unidos.</li>
+      <li>Las casillas y botones se ven pulsados también en el segundo clic sobre su etiqueta.</li>
+      <li>Los controles deslizantes verticales se mueven con las flechas en el sentido esperado.</li>
+      <li>WebGL y los gráficos de las webs siguen igual de rápidos con el motor de JavaScript nuevo.</li>
+    </ul></li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario. La primera vez que se abra una web pesada puede tardar
+un poco más (el motor de JavaScript nuevo vuelve a preparar su caché).</p>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-12-2">
+<h2>FlyWeb 1.12.2 · nivel de Chrome 128 (dos arreglos de estabilidad)</h2>
+<ul>
+  <li><strong>Un cuelgue menos.</strong> Algunas páginas que hacen fluir el texto alrededor de una forma (por ejemplo, un
+  párrafo que rodea una imagen con forma, <code>shape-outside</code>) podían dejar la pestaña colgada. Ya no.</li>
+  <li><strong>Más estable al maquetar texto.</strong> Arreglado un fallo poco frecuente que podía aparecer al colocar el
+  texto de una página mientras FlyWeb libera memoria en segundo plano.</li>
+  <li><strong>Todo lo demás, igual que en la 1.12.1:</strong> el nivel de Chrome 128 con el <em>ruby</em> nuevo, el motor de
+  JavaScript de Chrome 128 con sus arreglos de seguridad y la misma huella de red.</li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-12-1">
+<h2>FlyWeb 1.12.1 · nivel de Chrome 128 (texto ruby nuevo)</h2>
+<ul>
+  <li><strong>Texto con anotaciones <em>ruby</em>, como en Chrome 128.</strong> El <em>ruby</em> son las pequeñas
+  anotaciones sobre el texto: la lectura (<em>furigana</em>) encima de los kanji en japonés, el <em>pinyin</em> o el
+  <em>zhuyin</em> en chino. FlyWeb pasa a usar el sistema nuevo con el que Chrome lo rehízo:
+    <ul>
+      <li>Una palabra anotada larga <strong>se puede partir entre dos líneas</strong> junto con su anotación, en vez de
+      saltar entera a la línea siguiente y dejar huecos.</li>
+      <li>Las webs pueden elegir <strong>cómo se reparte la anotación</strong> sobre su texto (<code>ruby-align</code>:
+      centrada, al principio o repartida) y FlyWeb lo respeta. Las anotaciones cortas y las que caen al borde de la línea
+      se colocan como en Chrome.</li>
+      <li>Las anotaciones <strong>no se montan sobre la línea de arriba</strong>, tampoco cuando en ella hay una imagen o
+      un botón alto.</li>
+      <li>Las anotaciones pueden ir <strong>encima o debajo</strong> del texto, y las webs pueden darles márgenes, bordes
+      y relleno.</li>
+      <li>Los <strong>subtítulos de vídeo</strong> que usan <em>ruby</em> se muestran con sus anotaciones.</li>
+    </ul></li>
+  <li><strong>Un detalle de estilo como en Chrome:</strong> la primera letra de una anotación ya no recibe el estilo de
+  «letra capital» de la web (<code>::first-letter</code>), que antes se le aplicaba por accidente.</li>
+  <li><strong>Todo lo demás, igual que en la 1.12:</strong> el nivel de Chrome 128, el motor de JavaScript de Chrome 128 con
+  sus arreglos de seguridad y la misma huella de red.</li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-12">
+<h2>FlyWeb 1.12 · nivel de Chrome 128</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 128.</strong> FlyWeb se presenta a las webs como Chrome 128 y suma las funciones web de
+  ese nivel que siguen.</li>
+  <li><strong>Colocar el cursor donde se pulsa o se suelta.</strong> Las webs pueden saber en qué punto exacto del texto se
+  ha hecho clic o se ha soltado algo arrastrado, con el método estándar que ya usaba Firefox
+  (<code>caretPositionFromPoint</code>), también dentro de campos de texto y de componentes web. Sirve, por ejemplo, a los
+  editores de texto y a las webs que permiten arrastrar texto.</li>
+  <li><strong>Webs ampliadas mejor colocadas.</strong> Las webs pueden saber cuánto zoom tiene cada parte de la página
+  (<code>currentCSSZoom</code>), lo que les ayuda a colocar bien menús y ventanas emergentes cuando han ampliado solo una
+  zona.</li>
+  <li><strong>Nombres de filas y columnas para la accesibilidad.</strong> Las webs pueden dar nombre propio a las filas y
+  columnas de sus tablas y hojas de cálculo (por ejemplo «columna B» en vez de «columna 2»), como en Chrome 128. En Mac,
+  VoiceOver todavía no lo lee, tampoco en Chrome.</li>
+  <li><strong>Listas desplegables sin acentos.</strong> Al escribir sobre una lista desplegable para saltar a una opción ya
+  no hace falta poner los acentos: «avila» lleva a «Ávila».</li>
+  <li><strong>Pequeños arreglos de compatibilidad:</strong>
+    <ul>
+      <li>En los editores de las webs, mover el cursor por párrafos ya no se atasca en partes que no se pueden editar.</li>
+      <li>La sección a la que lleva un enlace interno (<code>#…</code>) sigue marcada aunque la web la vuelva a colocar.</li>
+      <li>Los degradados de los gráficos SVG que lo piden se pintan con la mezcla de color que eligió quien los diseñó.</li>
+      <li>Las listas hechas con <code>&lt;menu&gt;</code> se numeran como las demás listas.</li>
+      <li>Una caída en páginas con texto en varias columnas, arreglada.</li>
+    </ul></li>
+  <li><strong>Se mantiene todo lo de la 1.11.2:</strong> el motor de JavaScript de Chrome 128 con sus arreglos de seguridad,
+  y las webs protegidas contra bots se siguen abriendo directamente.</li>
+  <li><strong>Llegó en la 1.12.1:</strong> el texto con anotaciones <em>ruby</em> (la pronunciación encima de los caracteres
+  en japonés y chino) con el sistema nuevo de Chrome, incluida su alineación (<code>ruby-align</code>).</li>
+</ul>
+<p class="dato">Nada cambia en los ajustes ni en los datos del usuario.</p>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-11-2">
+<h2>FlyWeb 1.11.2 · nivel de Chrome 127 (motor de JavaScript de Chrome 128)</h2>
+<ul>
+  <li><strong>Motor de JavaScript más reciente y más seguro.</strong> El motor que ejecuta el JavaScript de las webs pasa a
+  ser el de Chrome 128, con las correcciones de seguridad que le aplican. Las webs con mucho JavaScript (YouTube, Gmail,
+  Google Docs…) funcionan igual que antes.</li>
+  <li><strong>El nivel declarado sigue siendo Chrome 127.</strong> Las webs ven a FlyWeb igual que con la 1.11.1; lo nuevo
+  del nivel 128 llegará con la 1.12.</li>
+  <li><strong>Se mantiene todo lo de la 1.11.1:</strong> las webs protegidas contra bots siguen abriéndose directamente.</li>
+</ul>
+<p class="dato">Al actualizar, la caché de código de JavaScript se regenera sola: las primeras visitas pueden ir algo más
+lentas. Nada cambia en los ajustes ni en los datos del usuario.</p>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-11-1">
+<h2>FlyWeb 1.11.1 · nivel de Chrome 127 (sin cambios de motor)</h2>
+<ul>
+  <li><strong>Menos bloqueos y comprobaciones de «¿eres un robot?».</strong> Algunas webs protegidas contra bots (por
+  ejemplo tiendas o servicios que usan Akamai o Cloudflare) bloqueaban FlyWeb o le hacían esperar en una pantalla de
+  comprobación, porque la forma en que se presentaba no encajaba con la de un Chrome normal. Ahora FlyWeb se presenta
+  igual que Chrome 127, y esas webs deberían abrirse directamente.</li>
+  <li><strong>Conexiones cifradas más modernas.</strong> FlyWeb usa el intercambio de claves resistente a ordenadores
+  cuánticos y prepara el cifrado del nombre de la web que se visita (ECH), como Chrome.</li>
+  <li><strong>Más privacidad en Macs antiguos.</strong> A las webs que preguntan la versión de macOS, FlyWeb les dice la
+  mínima compatible con Chrome 127 (10.15.7) en lugar de la real cuando es más antigua. Un Mojave era un dato tan raro que
+  ayudaba a identificar al usuario.</li>
+  <li><strong>El motor no cambia:</strong> sigue siendo el de Chrome 127 de la 1.11. Nada cambia en los ajustes ni en los
+  datos del usuario.</li>
+</ul>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-11">
+<h2>FlyWeb 1.11 · nivel de Chrome 127</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 127.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 127 y FlyWeb se
+  presenta a las webs como Chrome 127. V8 de Chrome 127 con sus arreglos de seguridad.</li>
+  <li><strong>Texto más legible cuando una fuente no carga.</strong> Las webs pueden pedir que el texto mantenga el mismo
+  tamaño aparente aunque se use una fuente de reserva (<code>font-size-adjust</code>). Antes, si la fuente de la web no
+  llegaba, el texto podía verse mucho más grande o más pequeño.</li>
+  <li><strong>Editores y formularios web más fiables.</strong> Los editores de texto de las webs reciben el aviso de
+  cambio de selección dentro de los campos de texto, y el aviso previo a cada cambio al usar las flechas de un campo
+  numérico o al deshacer. Algunos editores (notas, correo, chats) dejaban de seguir el cursor o no podían deshacer bien.</li>
+  <li><strong>Más seguridad en webs modernas.</strong> Las webs que cargan módulos de JavaScript pueden comprobar que no
+  han sido alterados (integridad en los mapas de importación), como ya hacían Safari y Firefox.</li>
+  <li><strong>Selección de texto con los colores de la web.</strong> Si una web elige los colores del texto seleccionado,
+  FlyWeb los respeta en vez de invertirlos.</li>
+  <li><strong>Efectos de filtro SVG en páginas web.</strong> Algunos efectos (sombras, desenfoques, colores) aplicados con
+  filtros SVG a partes de una web o a dibujos en <code>&lt;canvas&gt;</code> no se veían; ahora sí.</li>
+</ul>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-10">
+<h2>FlyWeb 1.10 · nivel de Chrome 126</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 126.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 126 y FlyWeb se
+  presenta a las webs como Chrome 126. Funciones web nuevas: <code>URL.parse()</code>, con la que las webs comprueban una dirección sin provocar
+  errores, y <code>toJSON()</code> en los datos de ubicación, con la que una web de mapas o de reparto puede guardar o
+  enviar tu posición en un solo paso. El motor de JavaScript optimiza mejor algunos bucles y accesos a objetos.</li>
+  <li><strong>PDF:</strong> el visor de PDF (formularios, campos que se calculan, JavaScript de los PDF) pasa a funcionar
+  sobre el nuevo motor de JavaScript. En pruebas automáticas con más de 280 PDF se comporta igual que la 1.9.</li>
+  <li><strong>Se mantiene todo lo anterior:</strong> pestañas fijadas en todas las ventanas y controles de formulario
+  verticales.</li>
+  <li><strong>Seguridad:</strong> el motor de JavaScript de Chrome 126 ya incluye entera la rama de soporte prolongado de
+  Google para Chrome 126; además lleva las correcciones posteriores que le aplican, incluidas varias de la rama de soporte
+  prolongado de Chrome 132 (2025). El puente genérico entre WebAssembly y JavaScript, el compilador Maglev y la
+  selección de instrucciones más reciente del optimizador Turboshaft siguen apagados.</li>
+</ul>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-9">
+<h2>FlyWeb 1.9 · nivel de Chrome 125</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 125.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 125 y FlyWeb se
+  presenta a las webs como Chrome 125. Funciones web nuevas: <code>getHTML()</code> y raíces de Shadow DOM serializables,
+  colores relativos en CSS (<code>rgb(from …)</code>, <code>oklch(from …)</code>…), las funciones <code>round()</code>,
+  <code>mod()</code> y <code>rem()</code>, la pseudoclase <code>:state()</code> para elementos personalizados,
+  <code>view-transition-class</code> y los tipos de transiciones de vista, modificadores <code>(?i:…)</code> y grupos con
+  nombre repetido en las expresiones regulares, y <code>WebSocket</code> con direcciones <code>http(s)</code> o
+  relativas.</li>
+  <li><strong>Se mantiene todo lo de la 1.8.1:</strong> pestañas fijadas en todas las ventanas y controles de formulario
+  verticales.</li>
+  <li><strong>Correcciones:</strong> colores con <code>calc(NaN)</code> y Shadow DOM declarativo con varias raíces en el
+  mismo elemento se comportan ya como en Chrome.</li>
+  <li><strong>Seguridad:</strong> además de las correcciones posteriores que le aplican al nuevo motor de JavaScript,
+  sigue incluyendo las de la rama de soporte prolongado de Google para Chrome 126, y el puente genérico entre
+  WebAssembly y JavaScript sigue apagado. El compilador Maglev y la parte más reciente del optimizador Turboshaft
+  siguen apagados.</li>
+</ul>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-8-1">
+<h2>FlyWeb 1.8.1 · nivel de Chrome 124</h2>
+<ul>
+  <li><strong>Pestañas fijadas en todas las ventanas.</strong> Lo que fijas (clic derecho en una pestaña → «Fijar
+  pestaña») aparece en todas las ventanas, como en Safari: Gmail, el calendario o Drive siempre a mano. Se puede
+  desactivar en Ajustes → Aspecto → «Mostrar las pestañas fijadas en todas las ventanas».</li>
+  <li><strong>Controles de formulario verticales.</strong> Los botones, listas, campos de texto, deslizadores y barras de
+  progreso respetan la escritura vertical (<code>writing-mode</code>), la parte del nivel de Chrome 124 que faltaba en la
+  1.8. En Mac, Opción + ↑/↓ en un cuadro de texto salta de párrafo en párrafo, como en Chrome.</li>
+</ul>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-8">
+<h2>FlyWeb 1.8 · nivel de Chrome 124</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 124.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 124 y FlyWeb se
+  presenta a las webs como Chrome 124. Funciones web nuevas: <code>setHTMLUnsafe()</code> y
+  <code>Document.parseHTMLUnsafe()</code> (HTML con Shadow DOM declarativo), las raíces de Shadow DOM clonables, recorrer
+  un <code>ReadableStream</code> con <code>for await</code>, <code>RTCRtpReceiver.jitterBufferTarget</code> y que
+  <code>fetch()</code> se rechace con el motivo de la señal de cancelación (por ejemplo, <code>TimeoutError</code> con
+  <code>AbortSignal.timeout()</code>).</li>
+  <li><strong>Actualizaciones sin contraseña.</strong> Hasta ahora, al instalar una actualización macOS pedía la
+  contraseña de administrador («FlyWeb quiere realizar cambios»). Desde la 1.8 se instalan sin pedirla.</li>
+  <li><strong>Seguridad:</strong> además de las correcciones posteriores que le aplican al nuevo motor de JavaScript,
+  incluye las de la rama de soporte prolongado de Google para Chrome 126 que llegaron con la 1.7.1, y el puente genérico
+  entre WebAssembly y JavaScript sigue apagado. El compilador Maglev y la parte más reciente del optimizador Turboshaft
+  siguen apagados.</li>
+</ul>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-7-1">
+<h2>FlyWeb 1.7.1 · nivel de Chrome 123</h2>
+<ul>
+  <li><strong>Actualización de seguridad.</strong> Portamos al motor de JavaScript de la 1.7 las correcciones de la
+  rama de soporte prolongado de Google para Chrome 126 (optimizador, intérprete, analizador y WebAssembly), que llegan
+  hasta enero de 2025, y apagamos el puente genérico entre WebAssembly y JavaScript que esta versión del motor
+  encendía, como en la 1.6. Ninguno de estos fallos consta como aprovechado; conviene actualizar igualmente.</li>
+</ul>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-7">
+<h2>FlyWeb 1.7 · nivel de Chrome 123</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 123.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 123 y FlyWeb se
+  presenta a las webs como Chrome 123. Funciones web nuevas: <code>align-content</code> en bloques normales (centrar en
+  vertical sin flex ni grid), <code>field-sizing</code> para que los campos de formulario se ajusten a su contenido,
+  <code>paint-order</code> en el texto HTML, los módulos JSON con <code>import … with { type: "json" }</code>,
+  <code>navigation.activation</code>, <code>CSSKeyframesRule.length</code> y
+  <code>shadowRootDelegatesFocus</code> en <code>&lt;template&gt;</code>.</li>
+  <li><strong>Alineación de cajas con posición absoluta.</strong> <code>align-self</code> y <code>justify-self</code>
+  funcionan en los elementos con <code>position: absolute</code>, la parte del nivel de Chrome 122 que faltaba en la 1.6.</li>
+  <li><strong>Seguridad:</strong> portamos al nuevo motor de JavaScript las correcciones de seguridad posteriores que
+  le aplican, entre ellas la de un fallo del aislamiento interno del motor; la parte más reciente del optimizador
+  Turboshaft y el compilador Maglev siguen apagados.</li>
+</ul>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-6">
+<h2>FlyWeb 1.6 · nivel de Chrome 122</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 122.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 122 y FlyWeb se
+  presenta a las webs como Chrome 122. Funciones web nuevas: los métodos de iteradores (<code>map</code>,
+  <code>filter</code>, <code>take</code>, <code>toArray</code>, <code>Iterator.from</code>…), los métodos de conjuntos
+  de <code>Set</code> (<code>union</code>, <code>intersection</code>, <code>difference</code>,
+  <code>isSubsetOf</code>…), <code>::backdrop</code> hereda los estilos de su elemento,
+  <code>URLPattern.hasRegExpGroups</code>, <code>rgb()</code> con números y porcentajes mezclados y
+  <code>@import … supports()</code>.</li>
+  <li><strong>JavaScript más rápido.</strong> El compilador JIT de JavaScript viene activado, como en Chrome: las
+  aplicaciones web pesadas (por ejemplo, el editor de WordPress) vuelven a ir con fluidez y las webs que usan
+  WebAssembly funcionan. Para compensar, revisamos cada día los fallos de seguridad del motor que se aprovechan y
+  publicamos los parches urgentes en una actualización en menos de 48 horas. El compilador Maglev sigue apagado.</li>
+  <li><strong>Seguridad:</strong> portamos al nuevo motor de JavaScript las correcciones de seguridad posteriores que
+  le aplican, entre ellas varias de la rama de Chrome 123 (WebAssembly y optimización).</li>
+</ul>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-5">
+<h2>FlyWeb 1.5 · nivel de Chrome 121</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 121.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 121 y FlyWeb se
+  presenta a las webs como Chrome 121. Funciones web nuevas: <code>scrollbar-color</code> y
+  <code>scrollbar-width</code> para dar color y grosor a las barras de desplazamiento, los pseudoelementos
+  <code>::spelling-error</code> y <code>::grammar-error</code>, <code>Array.fromAsync</code>,
+  <code>ClipboardItem.supports()</code>, las opciones de opacidad y visibilidad de <code>checkVisibility()</code> y
+  los números en <code>hsl()</code> y <code>hwb()</code> con la sintaxis moderna.</li>
+  <li><strong>Seguridad:</strong> portamos al nuevo motor de JavaScript las correcciones de seguridad posteriores que
+  le aplican, entre ellas las de la rama de soporte prolongado de Google para Chrome 120; el compilador Maglev sigue
+  apagado.</li>
+</ul>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-4">
+<h2>FlyWeb 1.4 · nivel de Chrome 120</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 120.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 120 y FlyWeb se
+  presenta a las webs como Chrome 120. Funciones web nuevas: el selector <code>:dir()</code>, las funciones
+  <code>pow()</code>, <code>sqrt()</code>, <code>hypot()</code>, <code>log()</code> y <code>exp()</code> de CSS, las
+  máscaras sin prefijo (<code>mask</code>, <code>mask-mode</code>, <code>mask-composite</code>…), las reglas CSS
+  anidadas sin <code>&amp;</code>, <code>@media (scripting)</code>, <code>URL.canParse</code> y los acordeones
+  exclusivos <code>&lt;details name&gt;</code> con su <code>ToggleEvent</code>.</li>
+  <li><strong>Seguridad:</strong> usamos la versión de V8 de la rama de soporte prolongado de Google para Chrome 120,
+  con sus correcciones de seguridad, y portamos además los parches posteriores. Este motor trae el optimizador
+  Turboshaft, ya encendido en Chrome 120; el compilador Maglev sigue apagado.</li>
+  <li>El submenú de «Bloquear elemento» del botón derecho dice «FlyWeb» en lugar de «Brave» (la 1.2 lo corrigió solo a
+  medias).</li>
+</ul>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-3">
+<h2>FlyWeb 1.3 · nivel de Chrome 119</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 119.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 119 y FlyWeb se
+  presenta a las webs como Chrome 119. Funciones web nuevas: los selectores <code>:user-valid</code> y
+  <code>:user-invalid</code> para formularios, <code>clip-path</code> con cajas de referencia y con <code>rect()</code> y
+  <code>xywh()</code>, y <code>Promise.withResolvers</code> de serie.</li>
+  <li>Las líneas base del texto en los <code>&lt;canvas&gt;</code> se leen de la propia fuente, como en Chrome.</li>
+  <li><strong>Seguridad:</strong> parches posteriores portados al nuevo motor de JavaScript, entre ellos uno para
+  WebAssembly que este motor necesita; el compilador Maglev sigue apagado.</li>
+</ul>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-2">
+<h2>FlyWeb 1.2 · nivel de Chrome 118</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 118.</strong> El motor de JavaScript (V8) pasa a ser el de Chrome 118, con sus
+  mejoras y correcciones, y FlyWeb se presenta a las webs como Chrome 118. Llegan también las funciones web de Chrome 118:
+  unidades <code>cap</code> y <code>rcap</code>, el elemento <code>&lt;search&gt;</code>, <code>transform-box</code>,
+  <code>float</code> y <code>clear</code> lógicos, entre otras.</li>
+  <li><strong>Seguridad:</strong> parches posteriores portados al nuevo motor de JavaScript; el compilador Maglev sigue
+  apagado, como hasta ahora.</li>
+  <li><strong>Sincronización</strong> entre tus Mac (marcadores, contraseñas, historial…) con nuestro servidor, cifrada de
+  extremo a extremo: nosotros no podemos leer tus datos. Se activa en Ajustes → FlyWeb Sync.</li>
+  <li>El menú del botón derecho ya no dice «Brave».</li>
+</ul>
+</div></section>
+<section class="banda blanca"><div class="columna" id="v1-1-2">
+<h2>FlyWeb 1.1 · nivel de Chrome 117 (notas de la 1.1.2)</h2>
+<ul>
+  <li><strong>Motor de nivel Chrome 117.</strong> FlyWeb incorpora las funciones web que publicó Chrome 117 (entre otras,
+  <code>subgrid</code>, <code>@starting-style</code>, <code>transition-behavior</code>, <code>light-dark()</code>,
+  <code>Object.groupBy</code> y <code>Map.groupBy</code>) y se presenta a las webs como Chrome 117. Algunas webs de
+  Google todavía avisan de que el navegador es antiguo; los avisos irán desapareciendo a medida que el motor suba de nivel.</li>
+  <li><strong>Se actualiza sola.</strong> A partir de esta versión, FlyWeb avisa de las versiones nuevas y las instala al
+  reiniciar (firmadas por nosotros y notarizadas por Apple).</li>
+  <li>Parches de seguridad posteriores portados al motor de JavaScript (V8).</li>
+  <li>DNS seguro apagado por defecto: el navegador usa el DNS del sistema (se puede activar en Ajustes).</li>
+  <li>La ayuda y los enlaces del navegador ya no llevan a Brave, salvo dos avisos de la 1.1.2 (navegación segura y
+  conexión no segura, HTTPS), que se corrigen en la próxima versión.</li>
+</ul>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v1-0">
+<h2>FlyWeb 1.0 · primera versión pública</h2>
+<ul>
+  <li>Primera versión pública. Chromium 116.0.5845.188 y Brave 1.57.64, con parches de seguridad posteriores portados.</li>
+  <li>Bloqueo de anuncios y rastreadores con listas propias, actualizadas cada día.</li>
+  <li>Pestaña nueva y bienvenida propias.</li>
+  <li><strong>Esta versión no se actualiza sola.</strong> Para la siguiente habrá que descargarla de esta página; a partir
+  de la 1.1, FlyWeb avisa de las versiones nuevas y las instala sola.</li>
+</ul>
+</div></section>
+</main>
+<footer class="pie"><div class="columna">
+  <span class="pie-casa"><svg class="pie-mosca" viewBox="0 0 78.6 73.48" aria-hidden="true" focusable="false"><g class="alas-quietas"><path fill="#fff" opacity="0.3" d="M49.44,20.3c-3.67,0-15.71,3.66-17.89,5.27S15.33,41,17.06,44.07s16.72,4.8,29.69-2.74,21-13.4,24-13.53,5.36,2,5-1.86-4.37-8.45-7.37-10.72.16-6.54-4.77-6.84-6.87,2.15-5.5,5.61-2.93.7-4.59,3.38S53.11,20.29,49.44,20.3Z"/><path fill="#fff" opacity="0.6" d="M47.31,22.12s11.81,7.52,10,10.74,1.74,7.59-2.42,8.47-8.83,5.56-15.86,7-9.44,2-11.49-1.48-5.91-12.86-.95-17,18.2-9.2,19.18-9.44S47.31,22.12,47.31,22.12Z"/><path fill="#fff" opacity="0.5" d="M49.44,20.3s-8.21-5.77-22.06-8.67S7,8.65,5.66,12.47,19.31,28.16,27.54,31.13s19.27,3.17,20.75-1.06A19.74,19.74,0,0,0,49.44,20.3Z"/><path fill="#fff" opacity="0.5" d="M57.31,32.86S55.58,45.2,53.06,49.4,37.83,70.09,35.61,69.66,31.48,51,36,43.68s7-10.6,11.62-10.82S57.31,32.86,57.31,32.86Z"/></g><g class="alas-batiendo"><path class="ala" fill="#fff" d="M49.44,20.3c-3.67,0-15.71,3.66-17.89,5.27S15.33,41,17.06,44.07s16.72,4.8,29.69-2.74,21-13.4,24-13.53,5.36,2,5-1.86-4.37-8.45-7.37-10.72.16-6.54-4.77-6.84-6.87,2.15-5.5,5.61-2.93.7-4.59,3.38S53.11,20.29,49.44,20.3Z"/><path class="ala" fill="#fff" d="M47.31,22.12s11.81,7.52,10,10.74,1.74,7.59-2.42,8.47-8.83,5.56-15.86,7-9.44,2-11.49-1.48-5.91-12.86-.95-17,18.2-9.2,19.18-9.44S47.31,22.12,47.31,22.12Z"/><path class="ala" fill="#fff" d="M49.44,20.3s-8.21-5.77-22.06-8.67S7,8.65,5.66,12.47,19.31,28.16,27.54,31.13s19.27,3.17,20.75-1.06A19.74,19.74,0,0,0,49.44,20.3Z"/><path class="ala" fill="#fff" d="M57.31,32.86S55.58,45.2,53.06,49.4,37.83,70.09,35.61,69.66,31.48,51,36,43.68s7-10.6,11.62-10.82S57.31,32.86,57.31,32.86Z"/></g><g class="cuerpo"><path d="M54.15,15.55l2.16-1a7.68,7.68,0,0,1,.06-2.79,25.12,25.12,0,0,1,2.28-3.67.14.14,0,0,1,.11,0c1.66.07,3.4-.16,4.93.3a5.46,5.46,0,0,1,2.91,2.47c.54,1,1.52,2.06,1.25,3.46,0,.25.37.57.61.91,2.37-3.49,2.94-7.76,1.48-10.51-.54.38-1.06.79-1.63,1.14s-1.16.09-1.19-.56a2.11,2.11,0,0,1,.65-1.4,3.23,3.23,0,0,1,1.37-.54,7.65,7.65,0,0,0,1.18-.2A1.1,1.1,0,0,1,72,4a15.93,15.93,0,0,1-.58,8,15.25,15.25,0,0,1-1.14,3c-.46.77-.12,1.13.3,1.64a.89.89,0,0,0,1.45,0A31.38,31.38,0,0,0,75.17,13a11.41,11.41,0,0,0,2.34-7c0-.66-.13-1.26-1.17-1.39.16.53.29.91.41,1.29a1,1,0,0,1-1.5.39,1,1,0,0,1-.46-1.49c.37-.6.88-1.41,1.45-1.52.89-.17,1.59.48,1.92,1.44,1.09,3.16,0,5.94-1.66,8.48a55,55,0,0,1-4.37,5.31c-.07.08-.06.22,0,0a39.67,39.67,0,0,1,3.38,3.59,3.46,3.46,0,0,1,.33,3.83.92.92,0,0,0-.19.43c0,1.76-1.48,2.63-2.39,3.85s-2.19.6-3.33.63-2.47,0-3.55,0l-1.64,2.53c.44.14.9.3,1.37.44,1.56.47,3.14.87,4.67,1.42.5.17,1.08.53.76,1.36-.53,1.35-.93,2.75-1.44,4.1-.38,1-.89,1.94-1.26,2.94-.28.74,0,1.32.85,1.35A15.34,15.34,0,0,0,73,44.85c1.75-.34,1.45-2,1.79-3.22A15,15,0,0,0,75,39.49c0-.23.24-.44.37-.67.19.2.52.39.55.61a10.58,10.58,0,0,1,.1,2.25,13.42,13.42,0,0,1-.48,2.82,1.87,1.87,0,0,1-1,1.12c-2.09.7-4.22,1.21-6.32,0-.54-.32-1.65,0-1.43-1.14a7.87,7.87,0,0,1,.69-1.94c.72-1.5,1.54-2.94,2.23-4.45.39-.87-.3-1.86-1.47-2.21-1.87-.56-3.75-1.09-5.63-1.61-.22-.06-.54-.11-.68,0a17.54,17.54,0,0,0-3.48,3,22.58,22.58,0,0,0-2.13,4.68c-.53,1.28-1,2.6-1.47,3.89-.25.65-.26,1.1.58,1.36,1.65.53,3.29,1.13,4.91,1.76.88.34,1,1.25.22,1.88-1.38,1.19-2.83,2.32-4.12,3.6a39.58,39.58,0,0,0-2.83,3.36c-1.11,1.37-2.19,2.75-3.3,4.12-.88,1.09-.89,1.49.12,2.42,1.51,1.38,3.45,1.7,5.36,2.13a2.05,2.05,0,0,1,1,.74.92.92,0,0,1-.09.84c-.08.13-.5.15-.73.08a37.76,37.76,0,0,1-5.82-2c-1-.53-1.66-1.83-2.35-2.85-.12-.18.22-.8.48-1.11,2.25-2.74,4.5-5.47,6.8-8.16.8-.93,1.76-1.71,2.64-2.57.3-.29.55-.64.84-1a5.6,5.6,0,0,0-3.65-2,1.72,1.72,0,0,0-1.85,1c-1.86,3.14-3.78,6.25-5.65,9.39-2.4,4-5.92,6.89-9.72,9.46l-2.08,1.41c-.89.6-1.51.15-2.22-.43s-.33-1.16,0-1.83c.32.14.73.18.86.39.71,1.19,1.49.76,2.34.19,3-2,6-4.14,8-7.06,2.65-3.79,5.65-7.4,7.4-11.78.3-.74.26-1.13-.59-1.26-1.65-.23-3.29-.53-4.95-.68a4,4,0,0,0-1.91.33q-3.53,1.61-7,3.35a2.46,2.46,0,0,0-1,1.07c-.31.59-.46,1.26-.77,1.88l.57-2.39a24.19,24.19,0,0,0-3.26.93,1.71,1.71,0,0,0-.7,1.28c-.16,2.65-.3,5.3-.29,8A5.4,5.4,0,0,0,33,64.28c.46.75.12,1.2-.2,1.71-.1.15-.59.27-.67.19-.39-.4-1-.87-1-1.34-.11-2.57-.08-5.16-.09-7.73a1.28,1.28,0,0,0-.23-.82,8.86,8.86,0,0,0-1.25,1.58c-1.23,2.48-2.39,5-3.58,7.49,0,.07-.05.15-.08.23-.18.62-.18,1.49-.59,1.8s-1.26,0-1.92.09c-3,.27-6,.58-9,.81A3.41,3.41,0,0,1,13,67.86c-.08,0-.09-.51,0-.53,1-.43,2.23-1.35,3-1.08a6.63,6.63,0,0,0,3,.22c1.27-.14,2.52-.46,3.79-.49A2.44,2.44,0,0,0,25,64.41c1.63-3.3,3.29-6.58,4.92-9.88a12.24,12.24,0,0,0,.49-1.64H23.83v-.55h6.69l0-.6a8.72,8.72,0,0,0-2.76-.18c-2.59.66-5.14,0-7.7,0a7.85,7.85,0,0,1-2-.49,14.16,14.16,0,0,0-5.71-.71c-.29,0-.84-.3-.88-.53-.08-.4,0-1.11.28-1.24,1.42-.69,1.21-2,1.33-3.17a6.89,6.89,0,0,1,.6-1.83,28.46,28.46,0,0,0,1.74-3.88c.5-1.9,1.9-3.06,3.18-4.24,1.67-1.53,3.61-2.77,5.43-4.15a2.66,2.66,0,0,0,.33-.4c-.72-.46-1.42-.88-2.09-1.34-3.54-2.42-7.17-4.72-10.57-7.31A42.36,42.36,0,0,1,7,17.39c-.84-.89-1.7-1.76-2.82-2.92.24-.29.7-.85,1.15-1.42a1.7,1.7,0,0,0,.34-.58,5.38,5.38,0,0,1,5.07-3.85c3.14.13,6.3.22,9.42.61a61.6,61.6,0,0,1,7.46,1.62c1,.26,1.38,0,1.34-1-.06-1.29-.26-2.48-1.59-3.25a6.72,6.72,0,0,1-1.83-1.85,1.46,1.46,0,0,1-.06-1.23A14.85,14.85,0,0,1,27,.71c.26-.38.92-.48,1.41-.71l.81,2.1-1.44.54-.21-.28L27,3.68,29.44,5c-1.05.74-.81,1.32-.26,1.92A3.66,3.66,0,0,1,30,10.32c-.18.86.11,1.23,1,1.41a40.2,40.2,0,0,1,6.49,1.59c2.86,1.14,5.55,2.73,8.34,4.06A16.6,16.6,0,0,0,49,18.5c.38.1.9-.21,1.31-.42s.68-.56,1-.8a2.63,2.63,0,0,0,0-4.68,26.8,26.8,0,0,0-3.6-1.52,15,15,0,0,1-1.63-.73,1.37,1.37,0,0,1-.54-2c.85-1.88,1.72-3.75,2.63-5.61.26-.53.55-1.48,1.3-1a4.56,4.56,0,0,1,1.14,2,4.41,4.41,0,0,1-1.09.68c-.27.13-.78.08-.85.26-.54,1.26-1,2.56-1.48,3.87-.23.65,0,1.06.74,1.22.46.1.91.3,1.37.41A5.65,5.65,0,0,1,54.15,15.55ZM13.26,10.69l.06.37a5.76,5.76,0,0,1-.62.26C11,11.88,9.32,12.44,7.63,13c-.67.21-.89.55-.64,1.25A12.81,12.81,0,0,0,11,20q4.88,3.82,9.88,7.5a34.52,34.52,0,0,0,3.76,2.32c.61.34,1.25.65,1.93-.08a30.66,30.66,0,0,1,2.78-2.57,13.11,13.11,0,0,1,2.18-1.62c1.92-1.05,3.85-2.08,5.84-3a23.26,23.26,0,0,1,8.38-2.26,6.84,6.84,0,0,0,1-.24,31.72,31.72,0,0,0-17-7.59c.19,1.84,1,2.44,2.58,2,1.29-.38,2,.26,2,1.57,0,1.13-.87,2.34.27,3.41a10.94,10.94,0,0,1,1.15,1.45,1.88,1.88,0,0,1-1.14-.5,4.64,4.64,0,0,0-3.45-1.33A11.72,11.72,0,0,1,30,19q-4.49-.52-9-1.08c-1-.12-2.06-.27-3.1-.41l0-.35a16.34,16.34,0,0,1,2,0c3.79.43,7.58.91,11.37,1.35,1,.11,2,.34,1.71-1.32,0-.27.24-.62.38-1-2.9.56-4.78-1.42-4.81-3.31,0-.93-.49-1.18-1.16-1.34-2.17-.5-4.35-1-6.53-1.47a25.17,25.17,0,0,0-9-.59,19,19,0,0,0-3.17,1l.1.42Zm28.4,35.25c.28-.17.4-.29.47-.27,2.63.9,4.62-.56,6.55-1.91C51,42.12,54,41.37,55.39,38.38a3,3,0,0,0-1.62-4.11,22.28,22.28,0,0,0-4.56-.34c-1.54,0-3.09-.21-4.39,1-.41.38-1.22.29-1.82.48a7.15,7.15,0,0,0-2.41.95,9.55,9.55,0,0,0-1.93,2.51c-.94,1.57-1.84,3.16-2.62,4.8s-1.55,3.61-2.43,5.69L39,48.28c-1.64,1.1-1.64,1.1-1.54,2l6-3ZM27.54,31.13a18.71,18.71,0,0,0,3.17,1c3.43.4,6.87.68,10.32,1a.93.93,0,0,0,.63-.26c.69-.66,1.34-1.35,2-2,.31-.3.66-.55,1-.87l.9,1.7c.42-.59,1-1.23.93-1.35-.65-.86-.05-1.63.27-2.17,1.16-2,.81-4,.48-6-.09-.61-.39-.93-1-.83a43.07,43.07,0,0,0-5.36.86A26.83,26.83,0,0,0,32,26.91C30.5,28.09,29.2,29.55,27.54,31.13Zm30.62-9.69c.8-.26,1.47-.49,2.15-.67,1.11-.3,1.43-1.14,1.06-2.72-.28-1.23-1.14-.61-1.81-.6s-1.49.07-2.23.11a2,2,0,0,0-.85.09,8.28,8.28,0,0,1-3.73,1.41c-.43,0-1.12.2-.81,1,.25.62.52,1.22.92,2.16l.5-1.68c1.14.24,2.35.88,3.18.56S57.73,21,58.16,21.44ZM47.66,45.63l.05.3c1.62.3,3.23.66,4.85.87a1.48,1.48,0,0,0,1.07-.72,19.54,19.54,0,0,0,1.11-2.63c.22-.6.36-1.22.53-1.83l-.38-.29ZM23.5,40.34l.35-.23-.85-2c-.58.91-.92,1.75-1.93,1.36l-1.2,2.12c1.2-1.05,2.06.37,3.16.43l-.74-2.25Zm6.32-2.57-1.54-3.38c-1.23.45-1.38.74-1,1.69C27.91,37.58,28.87,38.22,29.82,37.77Zm7,11.63c-2.42.12-3.61.76-3.65,1.92C34.73,51.61,36.66,50.65,36.85,49.4ZM24.6,36.93a2.3,2.3,0,0,0,.88,2.91c1.08.54,1.08.54,1.59-.21ZM70.8,25.82c.36-.06.77-.15,1.18-.18a1.83,1.83,0,0,0,1.58-2.07.78.78,0,0,0-.5-.53.86.86,0,0,0-.64.35C71.91,24.1,71.44,24.84,70.8,25.82ZM22.1,43.31c.37,1,.65,1.87,1,2.69a1,1,0,0,0,.74.39c.11,0,.33-.39.36-.62A2.46,2.46,0,0,0,22.1,43.31Zm9.17-7.06a8,8,0,0,0-.2-1.42,1.77,1.77,0,0,0-.65-.79c-.08-.06-.5.1-.56.24a1.63,1.63,0,0,0,0,.85C30,35.89,30.45,36.4,31.27,36.25ZM59.23,12l1.87-1.74C59.66,9.8,59,10.46,59.23,12Z"/><path d="M20.07,29.84l-6.5-3.31c-.5-.25-1-.56-1.49-.77-1.5-.61-1.51-.57-2.26.87-1.08,2.06-2.3,4.07-3.31,6.17a6.9,6.9,0,0,0-.63,5.09c.11.38,0,1.16-.23,1.23A1.79,1.79,0,0,1,4.16,39C3,38.16,2.06,37,.45,37.06c-.16,0-.44-.35-.45-.55a1.08,1.08,0,0,1,.3-.82,1.09,1.09,0,0,1,.93-.07c.91.45,1.77,1,2.73,1.54A20.45,20.45,0,0,1,4.8,34c1.09-2.46,2.32-4.86,3.47-7.3a16.14,16.14,0,0,0,.88-2.21c.27-.86.75-1.09,1.52-.66,1.49.83,2.95,1.7,4.46,2.5.66.35,1.44.5,2.08.88A24.55,24.55,0,0,1,19.72,29C19.9,29.11,19.92,29.45,20.07,29.84Z"/><path d="M14.9,69l.65,1c.41.66.87,1.29,1.22,2a5.28,5.28,0,0,1,.29,1.29,8.4,8.4,0,0,1-1.32.11.8.8,0,0,1-.56-.41,6.12,6.12,0,0,1-.7-3.9Z"/><path d="M56.69,69.21c.25,1,.48,1.72.6,2.46a2.54,2.54,0,0,1-.13,1.12.76.76,0,0,1-.63.09c-.33-.4-.87-.91-.81-1.3A10.87,10.87,0,0,1,56.69,69.21Z"/><path d="M42.38,56.27l-1.74,5.52C40.22,60.5,41.17,57.18,42.38,56.27Z"/><path d="M34.68,63.89,36,57.47l.43.09L35,64Z"/></g></svg></span>
+  <p>FlyWeb es un proyecto de <a href="https://www.lamosquita.net/">lamosquita</a> | admin@lamosquita.net<br>
+  FlyWeb no está afiliado a Brave Software ni a Google.<br>
+  Chrome y Chromium son marcas de Google LLC; Brave es marca de Brave Software, Inc.<br>
+  <a href="./">Inicio</a> · <a href="ayuda/">Ayuda</a> · <a href="novedades.html">Novedades</a> · <a href="privacidad.html">Privacidad</a> · <a href="ayuda/#avisar-seguridad">Seguridad</a> · <a href="privacidad.html#aviso-legal">Aviso legal</a> · <a href="cifras.html">Cifras</a></p>
+</div></footer>
+</body>
+</html>

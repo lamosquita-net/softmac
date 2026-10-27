@@ -1,0 +1,10 @@
+# Destino en ns2: ~servidor/.config/systemd/user/flyweb-cifras.service (unidad de USUARIO de «servidor»)
+[Unit]
+Description=FlyWeb: contar descargas y actualizaciones (sin guardar quién)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/flyweb-cifras diario
+Nice=10
+IOSchedulingClass=idle

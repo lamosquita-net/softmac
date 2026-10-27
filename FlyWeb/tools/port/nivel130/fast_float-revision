@@ -1,0 +1,3 @@
+# fast_float para V8 13.0 (nivel 130). Lo lee FlyWeb/scripts/build.sh de softmac: «<commit> <suma>».
+# Suma: sha256 de las sha256 de include/ y LICENSE-{MIT,APACHE,BOOST} (git ls-files -z | LC_ALL=C sort -z).
+3e57d8dcfb0a04b5a8a26b486b54490a2e9b310f 6344e292686f2a4a12c9caae3cb45631bb2c149cbb4c11fab13db2e537465967

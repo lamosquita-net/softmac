@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Formularios verticales — comprobación</title>
+<!-- Comprobación de FM.12 (brave-core nube/form-vertical): controles de formulario con writing-mode vertical,
+     excepción del nivel 124. Sin red. Cada línea dice ok o FALLO; debajo, los controles para mirarlos a ojo en Mojave
+     (los horizontales de referencia deben verse igual que en la 1.7). -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  .v { writing-mode: vertical-lr; }
+  .fila { display: flex; gap: 1.5em; align-items: flex-start; margin: 1em 0; }
+</style>
+</head>
+<body>
+<h1>Controles de formulario verticales</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>A ojo: verticales</h2>
+<div class="fila">
+  <button class="v" id="b">Botón</button>
+  <select class="v" id="s"><option>Uno</option><option>Dos</option></select>
+  <input class="v" id="t" value="texto">
+  <input class="v" id="n" type="number" value="5">
+  <input class="v" id="d" type="date" value="2026-10-07">
+  <textarea class="v" id="ta" rows="3">área de texto</textarea>
+  <input class="v" id="r" type="range">
+  <input class="v" id="rr" type="range" style="direction: rtl">
+  <meter class="v" id="m" value="0.6"></meter>
+  <progress class="v" id="p" value="0.3"></progress>
+  <input class="v" type="checkbox" checked><input class="v" type="radio" checked>
+</div>
+<h2>A ojo: horizontales de referencia (deben verse como en la 1.7)</h2>
+<div class="fila">
+  <button id="bh">Botón</button>
+  <select id="sh"><option>Uno</option><option>Dos</option></select>
+  <input id="th" value="texto"><input type="number" value="5"><input type="date" value="2026-10-07">
+  <textarea rows="3">área de texto</textarea><input id="rh" type="range"><meter value="0.6"></meter>
+  <progress value="0.3"></progress><input type="checkbox" checked><input type="radio" checked>
+</div>
+<script>
+  const res = document.getElementById('res');
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li'); li.className = ok ? 'ok' : 'fallo';
+    li.textContent = nombre + (nota ? ` — ${nota}` : ''); res.append(li);
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+  const wm = (id) => getComputedStyle(document.getElementById(id)).writingMode;
+  const caja = (id) => document.getElementById(id).getBoundingClientRect();
+  for (const [id, nombre] of [['b', 'button'], ['s', 'select'], ['t', 'input de texto'], ['n', 'input number'],
+                              ['d', 'input date'], ['ta', 'textarea'], ['r', 'input range'], ['m', 'meter'], ['p', 'progress']]) {
+    prueba(`writing-mode vertical en ${nombre}`, () => ({ ok: wm(id) === 'vertical-lr', nota: wm(id) }));
+  }
+  prueba('el range vertical es más alto que ancho', () => { const c = caja('r'); return { ok: c.height > c.width, nota: `${Math.round(c.width)}×${Math.round(c.height)}` }; });
+  prueba('el progress vertical es más alto que ancho', () => { const c = caja('p'); return { ok: c.height > c.width, nota: `${Math.round(c.width)}×${Math.round(c.height)}` }; });
+  prueba('el textarea vertical es más alto que ancho', () => {
+    const c = caja('ta'); return { ok: c.height > c.width, nota: `${Math.round(c.width)}×${Math.round(c.height)}` };
+  });
+  prueba('los horizontales siguen horizontales', () => ['bh', 'sh', 'th', 'rh'].every((id) => wm(id) === 'horizontal-tb') && caja('rh').width > caja('rh').height);
+</script>
+</body>
+</html>

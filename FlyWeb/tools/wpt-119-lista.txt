@@ -1,0 +1,8 @@
+css/css-masking/hit-test/clip-path-svg-geometry-box.html
+css/css-masking/parsing/clip-path-computed.html
+css/css-masking/parsing/clip-path-invalid.html
+css/css-masking/parsing/clip-path-valid.html
+css/selectors/user-invalid.html
+css/selectors/user-valid-user-invalid-invalidation.html
+css/selectors/user-valid.html
+css/selectors/valid-invalid-form-fieldset.html

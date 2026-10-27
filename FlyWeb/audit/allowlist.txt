@@ -1,0 +1,22 @@
+# Destinos permitidos en una sesión en REPOSO (FlyWeb abierto sin navegar).
+# Un patrón por línea, estilo glob sobre el host (fnmatch). Comentarios con #.
+# Revisar tras la primera auditoría real (F1.6) y documentar cada alta.
+
+# Componentes y listas de Shields: nuestro servidor (F2.4, desde el paso 30). Los de Brave (go-updater,
+# componentupdater, crxdownload) ya no se permiten: si aparecen, es una fuga.
+components.flyweb.lamosquita.net
+
+# Safe Browsing estándar (threatListUpdates) a través de nuestro proxy en ns2 (FM.31/FM.38, -p12, 22-10): nada va a
+# Google ni a Brave directamente. Desde -p13 el cliente se declara con la versión de Chrome del nivel (131), como el UA.
+proxy.flyweb.lamosquita.net
+
+# DNS sobre HTTPS automático de Chromium (F1.6, 30/09): si el DNS del sistema es un proveedor con DoH conocido
+# (1.1.1.1, 8.8.8.8, Quad9…), Chromium le manda las MISMAS consultas cifradas en vez de en claro. No hay destino
+# nuevo, y sin DoH el proveedor lo vería igual, además de cualquiera en la red. Decisión: se permite, sin política.
+chrome.cloudflare-dns.com
+dns.google
+dns.google.com
+dns.quad9.net
+dns*.quad9.net
+doh.opendns.com
+doh.familyshield.opendns.com

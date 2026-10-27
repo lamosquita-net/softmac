@@ -1,0 +1,8 @@
+{
+  "name": "flyweb-motor-07",
+  "private": true,
+  "description": "adblock-rs 0.7.x: el motor de FlyWeb 1.57, para validar las listas en el CI",
+  "dependencies": {
+    "adblock-rs": "0.7.17"
+  }
+}

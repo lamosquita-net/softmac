@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 126 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 126 de FlyWeb 1.10 (brave-core nube/motor-126, V8 12.6).
+     Abrir en FlyWeb con file:// o desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+</style>
+</head>
+<body>
+<h1>Motor 126 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>Pruebas oficiales (web-platform-tests)</h2>
+<p>Lista en <code>FlyWeb/tools/wpt-126-lista.txt</code> (etiqueta 126.0.6478.182). Comparar con los
+<code>-expected.txt</code> de Chrome 126. La geolocalización real se prueba aparte: con permiso, el botón muestra el JSON
+de la posición.</p>
+<p><button id="geo">Probar geolocalización real</button> <code id="geojson"></code></p>
+</head>
+<body>
+<h1>Motor 126 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>Pruebas oficiales (web-platform-tests)</h2>
+<p>Lista en <code>FlyWeb/tools/wpt-125-lista.txt</code> (etiqueta 125.0.6422.141). Comparar con los
+<code>-expected.txt</code> de Chrome 125. Las transiciones de vista se ven también a ojo: el cuadrado de abajo debe
+pasar de rojo a verde con un fundido al pulsar el botón.</p>
+<p><button id="vt">Probar transición con tipos</button> <span id="cuadro" style="display:inline-block;width:3em;height:1em;background:red;view-transition-name:cuadro;view-transition-class:tarjeta"></span></p>
+<style>
+  ::view-transition-group(*.tarjeta) { animation-duration: 1s; }
+  html:active-view-transition-type(lento) ::view-transition-old(cuadro) { animation-duration: 1s; }
+</style>
+<script>
+  const res = document.getElementById('res');
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li');
+    li.className = ok ? 'ok' : 'fallo';
+    li.textContent = nombre + (nota ? ` — ${nota}` : '');
+    res.append(li);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : '');
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+
+  prueba('URL.parse() devuelve URL o null', () => {
+    const a = URL.parse('https://a.example/x?y'), b = URL.parse('nada'), c = URL.parse('z', 'https://b.example/d/');
+    return { ok: a instanceof URL && a.search === '?y' && b === null && c && c.href === 'https://b.example/d/z', nota: `${a && a.href}, ${b}, ${c && c.href}` };
+  });
+  prueba('URL.parse() con base no válida → null', () => URL.parse('x', 'nada') === null && URL.parse.length === 1);
+  prueba('GeolocationPosition.toJSON y GeolocationCoordinates.toJSON existen', () =>
+    'GeolocationPosition' in window && typeof GeolocationPosition.prototype.toJSON === 'function' &&
+    typeof GeolocationCoordinates.prototype.toJSON === 'function');
+  prueba('V8 12.6: Array, Promise y RegExp de los niveles anteriores siguen', () => {
+    const r = new RegExp('(?i:a)b'); return typeof Promise.withResolvers === 'function' && r.test('Ab') && [1, 2].findLast((x) => x < 2) === 1;
+  });
+  prueba('User-Agent declara Chrome/126', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '126', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+  document.getElementById('geo').onclick = () => {
+    const o = document.getElementById('geojson');
+    navigator.geolocation.getCurrentPosition((p) => { const j = p.toJSON();
+      o.textContent = JSON.stringify(j) + (typeof j.coords.latitude === 'number' && 'altitude' in j.coords ? '  — ok' : '  — FALLO'); },
+      (e) => { o.textContent = 'error ' + e.code + ': ' + e.message; });
+  };
+</script>
+<p>Sin excepciones en el nivel 126. Los niveles 117–125 se comprueban aparte.</p>
+</body>
+</html>

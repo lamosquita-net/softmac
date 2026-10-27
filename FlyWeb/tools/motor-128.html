@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 128 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 128 de FlyWeb 1.12 (brave-core nube/motor-128, V8 12.8).
+     Abrir en FlyWeb con file:// o desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  #texto { font: 20px monospace; position: absolute; left: 0; top: 0; visibility: hidden; }
+</style>
+</head>
+<body>
+<h1>Motor 128 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>A mano</h2>
+<ol>
+  <li>En el desplegable, con el foco puesto, escribir <code>e</code>: debe elegir «Éclair» (la búsqueda al teclear ignora
+    los acentos).</li>
+  <li>Los dos degradados deben verse distintos: el de la derecha (<code>color-interpolation: linearRGB</code>) es más
+    claro en el centro.</li>
+  <li>La lista dentro de <code>&lt;menu&gt;</code> empieza en 1, no sigue la numeración del <code>&lt;ol&gt;</code> de
+    fuera.</li>
+</ol>
+<p><select id="sel"><option>Arándano</option><option>Éclair</option><option>Fresa</option></select></p>
+<svg width="320" height="60" aria-hidden="true">
+  <defs>
+    <linearGradient id="gs"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="lime"/></linearGradient>
+    <linearGradient id="gl" color-interpolation="linearRGB"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="lime"/></linearGradient>
+  </defs>
+  <rect width="150" height="60" fill="url(#gs)"/><rect x="170" width="150" height="60" fill="url(#gl)"/>
+</svg>
+<ol start="5"><li>cinco<menu style="list-style: decimal inside"><li>uno</li><li>dos</li></menu></li></ol>
+<span id="texto">abcdefghij</span>
+<script>
+  const res = document.getElementById('res');
+  const pinta = (li, nombre, ok, nota) => { li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : ''); };
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li'); res.append(li); pinta(li, nombre, ok, nota);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    pinta(li, nombre, ok, nota);
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+  // document.caretPositionFromPoint()
+  prueba('document.caretPositionFromPoint() da nodo y desplazamiento', () => {
+    const t = document.getElementById('texto'); t.style.visibility = 'visible';
+    const r = t.getBoundingClientRect();
+    const c = document.caretPositionFromPoint(r.left + r.width * 0.55, r.top + r.height / 2);
+    t.style.visibility = 'hidden';
+    return { ok: c instanceof CaretPosition && c.offsetNode === t.firstChild && c.offset >= 4 && c.offset <= 7 &&
+      c.getClientRect() instanceof DOMRect, nota: c ? `offset ${c.offset}` : 'null' };
+  });
+  prueba('caretPositionFromPoint() con shadowRoots entra en una raíz de sombra cerrada', () => {
+    const host = document.createElement('div'); host.style.cssText = 'position:absolute;left:0;top:200px;font:20px monospace';
+    const sr = host.attachShadow({ mode: 'closed' }); sr.innerHTML = '<span>sombra</span>'; document.body.append(host);
+    const r = host.getBoundingClientRect(), x = r.left + 5, y = r.top + r.height / 2;
+    const fuera = document.caretPositionFromPoint(x, y), dentro = document.caretPositionFromPoint(x, y, { shadowRoots: [sr] });
+    host.remove();
+    return { ok: !!fuera && fuera.offsetNode !== sr.firstChild.firstChild && !!dentro && dentro.offsetNode === sr.firstChild.firstChild,
+      nota: `${fuera && fuera.offsetNode.nodeName} / ${dentro && dentro.offsetNode.nodeName}` };
+  });
+  // Element.currentCSSZoom
+  prueba('Element.currentCSSZoom acumula zoom y no incluye el del navegador', () => {
+    const a = document.createElement('div'); a.style.zoom = '2'; const b = document.createElement('div'); b.style.zoom = '1.5';
+    a.append(b); document.body.append(a); const za = a.currentCSSZoom, zb = b.currentCSSZoom; a.remove();
+    return { ok: za === 2 && zb === 3 && document.body.currentCSSZoom === 1, nota: `${za}, ${zb}, body ${document.body.currentCSSZoom}` };
+  });
+  prueba('currentCSSZoom de un elemento sin caja es 1', () => document.createElement('div').currentCSSZoom === 1);
+  // aria-colindextext / aria-rowindextext
+  prueba('ariaColIndexText y ariaRowIndexText reflejan sus atributos', () => {
+    const d = document.createElement('div'); d.ariaColIndexText = 'C'; d.setAttribute('aria-rowindextext', 'fila 2');
+    return d.getAttribute('aria-colindextext') === 'C' && d.ariaRowIndexText === 'fila 2';
+  });
+  // :target tras quitar y volver a poner el elemento
+  prueba(':target sigue tras quitar y volver a insertar el elemento', () => {
+    const d = document.createElement('div'); d.id = 'objetivo128'; document.body.append(d);
+    location.hash = 'objetivo128'; const antes = d.matches(':target');
+    d.remove(); document.body.append(d); const despues = d.matches(':target');
+    d.remove(); history.replaceState(null, '', location.pathname + location.search);
+    return { ok: antes && despues, nota: `antes ${antes}, después ${despues}` };
+  });
+  // V8 12.8
+  pruebaAsync('Promise.try (V8 12.8)', async () => {
+    const v = await Promise.try((a, b) => a + b, 2, 3);
+    let rechazo = false; try { await Promise.try(() => { throw new Error('x'); }); } catch { rechazo = true; }
+    return { ok: v === 5 && rechazo, nota: `valor ${v}` };
+  });
+  prueba('V8 12.8: lo de los niveles anteriores sigue', () => {
+    const r = new RegExp('(?i:a)b');
+    return typeof Promise.withResolvers === 'function' && r.test('Ab') && typeof URL.parse === 'function' &&
+      Object.groupBy([1, 2, 3], (x) => (x % 2 ? 'i' : 'p')).i.length === 2 && new ArrayBuffer(8, { maxByteLength: 16 }).resizable;
+  });
+  prueba('User-Agent declara Chrome/128', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '128', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+</script>
+<p>Sin excepciones en el nivel 128. Los niveles 117–127 se comprueban aparte. Fuera del nivel: <code>ruby-align</code>
+(pendiente, va con la reescritura del ruby de upstream), y las flags de interoperabilidad que no se portaron (lista en
+<code>FlyWeb/docs/motor.md</code>, «Nivel 128»).</p>
+</body>
+</html>

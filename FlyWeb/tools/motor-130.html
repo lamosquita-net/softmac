@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 130 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 130 de FlyWeb 1.14 (brave-core nube/motor-130, V8 13.0).
+     Abrir en FlyWeb desde 127.0.0.1 (no con file://: el traspaso de RTCDataChannel usa un worker con blob:) o
+     desde el repo; no carga nada de fuera. Cada línea dice ok o FALLO. Comparar con Chrome for Testing 130: lo que
+     allí sale ok tiene que salir ok aquí, salvo la versión declarada y KeyboardFocusableScrollers (apagado desde la
+     1.15.2 por la regla 20, como Brave 1.73: en Chrome sale FALLO). -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  /* Declaraciones anidadas: el orden de la fuente manda. */
+  .nd { color: red; .x { } color: green; }
+  .nd2 { & { color: red; } color: green; }
+</style>
+</head>
+<body>
+<h1>Motor 130 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>A mano</h2>
+<ol>
+  <li>Pulsar Tab desde el botón: desde la 1.15.2 el foco <em>no</em> entra en el recuadro con barra de desplazamiento
+    (no tiene nada enfocable dentro), como Brave; tras hacer clic dentro, las flechas lo desplazan. En la 1.14–1.15.1
+    (y en Chrome 130) sí entraba. El recuadro de abajo, con un enlace dentro, no se enfoca con Tab: se salta al enlace.</li>
+  <li>Pegar una palabra al final de la línea vacía del cuadro editable (debajo): no debe quedar un salto de línea de más.</li>
+</ol>
+<p><button id="antes">botón</button></p>
+<div id="scroller" style="height:4em; overflow:auto; border:1px solid #888; width:20em">
+  <div style="height:20em">recuadro con desplazamiento, sin nada enfocable dentro</div></div>
+<div id="scroller2" style="height:4em; overflow:auto; border:1px solid #888; width:20em; margin-top:.5em">
+  <div style="height:20em"><a href="#">enlace dentro</a></div></div>
+<div contenteditable style="border:1px dashed #888; width:20em; margin-top:.5em"><div><br></div></div>
+<div id="nd" class="nd">nd</div><div id="nd2" class="nd2">nd2</div>
+<script>
+  const res = document.getElementById('res');
+  const pinta = (li, nombre, ok, nota) => { li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : ''); };
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li'); res.append(li); pinta(li, nombre, ok, nota);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    pinta(li, nombre, ok, nota);
+  };
+  const css = (sel, prop) => getComputedStyle(document.querySelector(sel)).getPropertyValue(prop);
+  const hoja = (texto) => { const s = new CSSStyleSheet(); s.replaceSync(texto); return s; };
+  document.getElementById('ua').textContent = navigator.userAgent;
+
+  // CSSNestedDeclarations
+  prueba('Declaraciones anidadas: lo de después de una regla anidada gana (orden de la fuente)', () => {
+    const a = css('#nd', 'color'), b = css('#nd2', 'color');
+    return { ok: a === 'rgb(0, 128, 0)' && b === 'rgb(0, 128, 0)', nota: `${a} / ${b}` };
+  });
+  prueba('CSSNestedDeclarations en el CSSOM', () => {
+    const r = hoja('.a { color: red; .b { } width: 1px; }').cssRules[0];
+    const n = r.cssRules[1];
+    return { ok: typeof CSSNestedDeclarations === 'function' && r.cssRules.length === 2 && n instanceof CSSNestedDeclarations &&
+      n.style.width === '1px' && n.cssText === 'width: 1px;' && r.style.color === 'red', nota: n && n.constructor.name };
+  });
+  prueba('@media anidado: sus declaraciones van en un CSSNestedDeclarations', () => {
+    const m = hoja('.a { @media screen { color: red; } }').cssRules[0].cssRules[0];
+    return { ok: m.cssRules[0] instanceof CSSNestedDeclarations && m.cssRules[0].style.color === 'red', nota: m.cssText };
+  });
+  prueba('insertRule() de declaraciones sueltas en una regla anidada', () => {
+    const r = hoja('.a { .b { } }').cssRules[0];
+    r.insertRule('color: blue', 1);
+    return { ok: r.cssRules[1] instanceof CSSNestedDeclarations && r.cssRules[1].style.color === 'blue' };
+  });
+
+  // text-wrap-mode / text-wrap-style
+  prueba('text-wrap es abreviatura de text-wrap-mode + text-wrap-style', () => {
+    const d = document.createElement('div'); d.style.textWrap = 'nowrap balance';
+    return { ok: d.style.textWrapMode === 'nowrap' && d.style.textWrapStyle === 'balance' && d.style.textWrap === 'nowrap balance', nota: d.style.cssText };
+  });
+  prueba('text-wrap-style: stable y white-space → text-wrap-mode', () => {
+    const d = document.createElement('div'); d.style.textWrapStyle = 'stable'; d.style.whiteSpace = 'pre';
+    return { ok: d.style.textWrapStyle === 'stable' && d.style.textWrapMode === 'nowrap' && d.style.whiteSpaceCollapse === 'preserve' &&
+      CSS.supports('text-wrap-mode: wrap') && CSS.supports('text-wrap: pretty'), nota: d.style.cssText };
+  });
+
+  // togglePopover(force). Si la pestaña muere aquí («NO CARGA»), es el CHECK de la 1.14 (arreglado en 685f820c68).
+  prueba('togglePopover(true/false) con el popover ya abierto o cerrado no tumba la pestaña', () => {
+    const p = document.createElement('div'); p.popover = 'manual'; document.body.append(p);
+    const r = [p.togglePopover(true), p.togglePopover(true), p.togglePopover(false), p.togglePopover(false),
+      p.togglePopover(), p.togglePopover()];
+    p.remove(); return { ok: r.join(' ') === 'true true false false true false', nota: r.join(' ') };
+  });
+  prueba('togglePopover(true) lanza en un popover desconectado o sin atributo popover', () => {
+    const p = document.createElement('div'); p.popover = 'manual';
+    let a = '', b = '';
+    try { p.togglePopover(true); } catch (e) { a = e.name; }
+    const q = document.createElement('div'); document.body.append(q);
+    try { q.togglePopover(true); } catch (e) { b = e.name; }
+    q.remove(); return { ok: a === 'InvalidStateError' && b === 'NotSupportedError', nota: `${a} / ${b}` };
+  });
+  prueba('togglePopover({force}) admite el diccionario pero no lo lee, como Chrome 130', () => {
+    // Chrome 130 solo lee force/source del diccionario con PopoverAnchorRelationships (experimental): alterna.
+    const p = document.createElement('div'); p.popover = 'manual'; document.body.append(p);
+    const r = [p.togglePopover({ force: true }), p.togglePopover({ force: true }), p.togglePopover({ force: false })];
+    p.remove(); return { ok: r.join(' ') === 'true false true', nota: r.join(' ') };
+  });
+
+  // RTCDataChannel transferible
+  pruebaAsync('RTCDataChannel transferible a un worker dedicado', async () => {
+    const pc = new RTCPeerConnection(); const dc = pc.createDataChannel('x');
+    const w = new Worker(URL.createObjectURL(new Blob([
+      'onmessage = (e) => postMessage(e.data.dc instanceof RTCDataChannel ? e.data.dc.label : "no");'], { type: 'text/javascript' })));
+    const r = await new Promise((ok, mal) => { w.onmessage = (e) => ok(e.data); w.onerror = mal; w.postMessage({ dc }, [dc]); });
+    const cerrado = dc.readyState; w.terminate(); pc.close();
+    return { ok: r === 'x' && cerrado === 'closed', nota: `worker: ${r}, original: ${cerrado}` };
+  });
+  prueba('RTCDataChannel ya no es transferible tras send() o en otra tarea', () => {
+    const pc = new RTCPeerConnection(); const dc = pc.createDataChannel('y');
+    try { dc.send('a'); } catch (e) { /* no abierto: lanza, pero ya no es transferible */ }
+    let lanzo = false; try { structuredClone(dc, { transfer: [dc] }); } catch (e) { lanzo = e.name === 'DataCloneError'; }
+    pc.close(); return lanzo;
+  });
+
+  // Flags del 130
+  prueba('::part() admite :disabled y ::marker (CSSPartAllowsMoreSelectorsAfter)', () =>
+    CSS.supports('selector(::part(a):disabled)') && CSS.supports('selector(::part(a)::marker)') &&
+    !CSS.supports('selector(::part(a):first-child)'));
+  pruebaAsync('data: URL sin base64 conserva los espacios (fetch)', async () => {
+    const t = await (await fetch('data:application/octet-stream,a%20b c')).text();
+    return { ok: t === 'a b c', nota: JSON.stringify(t) };
+  });
+  // Desde la 1.15.2, KeyboardFocusableScrollers apagado (regla 20: Brave 1.73 lo baja a experimental). En la
+  // 1.14–1.15.1 y en Chrome 130 el recuadro se enfocaba: allí esta línea sale FALLO.
+  prueba('Recuadro con desplazamiento sin nada enfocable: no enfocable (KeyboardFocusableScrollers apagado, como Brave)', () => {
+    const s = document.getElementById('scroller'); s.focus();
+    const enfocado = document.activeElement === s; document.activeElement.blur();
+    return { ok: !enfocado && s.tabIndex === -1, nota: `focus(): ${enfocado}` };
+  });
+
+  // Apagados (como el Chrome que declaramos)
+  prueba('WebSQL no existe (Chrome 119+)', () => typeof openDatabase === 'undefined');
+  prueba('Pantalla completa prefijada de <video> no existe (Chrome 126+)', () =>
+    typeof HTMLVideoElement.prototype.webkitEnterFullscreen === 'undefined');
+  prueba('Sintaxis :--foo no vale, :state(foo) sí (Chrome 127+)', () =>
+    !CSS.supports('selector(:--x)') && CSS.supports('selector(:state(x))'));
+  prueba('Eventos de mutación apagados (Chrome 127+ por campo, 130 en código)', () => {
+    const d = document.createElement('div'); document.body.append(d); let n = 0;
+    d.addEventListener('DOMNodeInserted', () => n++); d.append(document.createElement('span')); d.remove();
+    return { ok: typeof MutationEvent === 'undefined' && n === 0, nota: `${typeof MutationEvent}, ${n} eventos` };
+  });
+  prueba('DOMParser ignora includeShadowRoots y <template shadowroot> antiguo', () => {
+    const d1 = new DOMParser().parseFromString('<div><template shadowrootmode=open>x</template></div>', 'text/html', { includeShadowRoots: true });
+    const d2 = Document.parseHTMLUnsafe ? Document.parseHTMLUnsafe('<div><template shadowroot=open>x</template></div>') : null;
+    const a = d1.querySelector('div').shadowRoot, b = d2 ? d2.querySelector('div').shadowRoot : null;
+    return { ok: a === null && b === null, nota: `includeShadowRoots: ${!!a}, shadowroot antiguo: ${!!b}` };
+  });
+  prueba('getInnerHTML() no existe; getHTML() sí', () =>
+    typeof Element.prototype.getInnerHTML === 'undefined' && typeof Element.prototype.getHTML === 'function');
+  prueba('Agrupación por origen por defecto: originAgentCluster true', () => window.originAgentCluster === true);
+
+  // Superficie: restos de la 116 que Chrome 130 ya no expone (superficie.html frente a CfT 129)
+  prueba('Sanitizer y setHTML() no existen (Chrome 119+)', () =>
+    typeof Sanitizer === 'undefined' && typeof Element.prototype.setHTML === 'undefined');
+  prueba('GPUCommandEncoder.writeTimestamp() no existe (Chrome 121+)', () =>
+    typeof GPUCommandEncoder === 'undefined' || !('writeTimestamp' in GPUCommandEncoder.prototype));
+  prueba('La propiedad -webkit-highlight no existe (Chrome 117+)', () => !CSS.supports('-webkit-highlight', 'none'));
+  prueba(':open y :closed no valen (Chrome 122+)', () =>
+    !CSS.supports('selector(:open)') && !CSS.supports('selector(:closed)'));
+  prueba('Sin polyfills de core-js: ni RegExp.escape, ni Uint8Array.fromBase64, ni __core-js_shared__', () => {
+    const fuera = typeof RegExp.escape === 'undefined' && typeof Uint8Array.fromBase64 === 'undefined' &&
+      !('__core-js_shared__' in globalThis);
+    return { ok: fuera, nota: `RegExp.escape: ${typeof RegExp.escape}, fromBase64: ${typeof Uint8Array.fromBase64}` };
+  });
+  prueba('Interfaces SpeechSynthesis y SpeechSynthesisVoice expuestas (Chrome 121+)', () =>
+    typeof SpeechSynthesis === 'function' && typeof SpeechSynthesisVoice === 'function' &&
+    speechSynthesis instanceof SpeechSynthesis);
+
+  // JIT y WebAssembly en un origen web (COORDINACIÓN-6, 15-10). La decisión de JIT es por sitio: en about:blank o file://
+  // no se ve (así se escapó en el Static del 130 con una política vieja). Desde la V8 13.0, sin JIT tampoco hay
+  // WebAssembly, como en Chrome 130.
+  const enWeb = location.protocol === 'http:' || location.protocol === 'https:';
+  prueba('WebAssembly en un origen http(s)', () => ({ ok: enWeb && typeof WebAssembly === 'object',
+    nota: enWeb ? `typeof WebAssembly: ${typeof WebAssembly}` : `abrir desde http://127.0.0.1 (ahora ${location.protocol})` }));
+  prueba('JIT en un origen http(s): bucle de 5e7 vueltas en menos de 600 ms', () => {
+    const t0 = performance.now(); let s = 0;
+    for (let i = 0; i < 5e7; i++) s = (s + i) | 0;
+    const ms = Math.round(performance.now() - t0);
+    return { ok: enWeb && ms < 600, nota: `${ms} ms (con JIT ~200–250 ms; sin JIT ~1150 ms)` +
+      (enWeb ? '' : `; abrir desde http://127.0.0.1 (ahora ${location.protocol})`) };
+  });
+
+  // V8 13.0
+  prueba('V8 13.0: Intl.Locale.prototype.getWeekInfo() y compañía', () => {
+    const l = new Intl.Locale('es-ES');
+    return { ok: typeof l.getWeekInfo === 'function' && l.getWeekInfo().firstDay === 1 && Array.isArray(l.getCalendars()),
+      nota: JSON.stringify(l.getWeekInfo()) };
+  });
+  prueba('V8 13.0: Wasm JS String Builtins (se instancia sin dar la importación)', () => {
+    // Módulo mínimo que importa wasm:js-string length: (externref) -> i32. Con builtins: ['js-string'] la
+    // importación la pone el motor; sin ellos, instanciar sin objeto de importaciones lanza.
+    const bytes = new Uint8Array([0,97,115,109,1,0,0,0, 1,6,1,96,1,111,1,127, 2,25,1,14,119,97,115,109,58,106,115,45,
+      115,116,114,105,110,103,6,108,101,110,103,116,104,0,0]);
+    new WebAssembly.Instance(new WebAssembly.Module(bytes, { builtins: ['js-string'] }), {});
+    let sinBuiltins = false;
+    try { new WebAssembly.Instance(new WebAssembly.Module(bytes), {}); } catch (e) { sinBuiltins = true; }
+    return { ok: sinBuiltins, nota: 'con builtins instancia; sin ellos lanza' };
+  });
+
+  // Versión declarada
+  prueba('User-Agent declara Chrome/130', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '130', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+  pruebaAsync('Client hints: 130.0.6723.117 y macOS ≥ 11 (Chrome 130 no existe en 10.15)', async () => {
+    const h = await navigator.userAgentData.getHighEntropyValues(['uaFullVersion', 'platformVersion']);
+    const mayor = parseInt(h.platformVersion, 10);
+    return { ok: h.uaFullVersion === '130.0.6723.117' && mayor >= 11, nota: `${h.uaFullVersion}, macOS ${h.platformVersion}` };
+  });
+</script>
+<p>Fuera de la 1.14 (motivo en <code>FlyWeb/docs/motor.md</code>, «Nivel 130»): <code>ShapeOutsideWritingModeFix</code>,
+<code>TextInputNotAlwaysDirAuto</code>, los estilos de reserva de <code>&lt;meter&gt;</code>,
+<code>MultiSmoothScrollIntoView</code>, <code>::placeholder</code>/<code>::file-selector-button</code> en
+<code>getComputedStyle()</code> y el pintado de resaltados en <code>::first-letter</code>.</p>
+</body>
+</html>

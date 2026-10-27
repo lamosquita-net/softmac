@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Seguridad 1.14.1 — comprobación</title>
+<!-- FlyWeb 1.14.1, brave-core nube/escapes-seg-1.14.1 (MOTOR-10, 15-10): dos protecciones que Chrome lleva desde la
+     119–120 y FlyWeb tenía apagadas (motor.md «Nivel 131» §6). Abrir desde 127.0.0.1; no carga nada de fuera. Cada
+     línea dice ok o FALLO; en la 1.14 las dos salen FALLO, en CfT 120+ y en la 1.14.1, ok. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  iframe { width: 1px; height: 1px; border: 0; }
+</style>
+</head>
+<body>
+<h1>Seguridad de la 1.14.1</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<svg width="60" height="60" aria-hidden="true">
+  <use id="uso" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect id='r' width='50' height='50' fill='green'/%3E%3C/svg%3E#r"/>
+</svg>
+<script>
+  const res = document.getElementById('res');
+  const anota = (nombre, ok, nota) => {
+    const li = document.createElement('li'); li.className = ok ? 'ok' : 'fallo';
+    li.textContent = nombre + (nota ? ` — ${nota}` : ''); res.append(li);
+  };
+  document.getElementById('ua').textContent = navigator.userAgent;
+
+  // 1. RemoveDataUrlInSvgUse (Chrome 120): <use> no carga documentos data:, así que no dibuja nada.
+  setTimeout(() => {
+    const w = document.getElementById('uso').getBBox().width;
+    anota('<use href="data:…"> bloqueado (Chrome 120+)', w === 0, `ancho dibujado: ${w}`);
+  }, 1500);
+
+  // 2. RemoveDanglingMarkupInTarget (Chrome 119): un destino con salto de línea y «<» pasa a _blank, así que no
+  // navega el iframe que se llama así (y la ventana nueva la para el bloqueador, porque no hay gesto del usuario).
+  const nombre = 'a\n<b';
+  const marco = document.createElement('iframe'); marco.name = nombre; marco.src = 'about:blank';
+  let cargas = 0;
+  marco.addEventListener('load', () => cargas++);
+  document.body.append(marco);
+  setTimeout(() => {
+    const antes = cargas;
+    const a = document.createElement('a'); a.href = 'about:blank#navegado'; a.target = nombre;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => {
+      let navegado = cargas > antes;
+      try { navegado = navegado || marco.contentWindow.location.hash === '#navegado'; } catch (e) {}
+      anota('Destino con «\\n<» no llega al iframe de ese nombre (Chrome 119+)', !navegado,
+            navegado ? 'el iframe navegó' : 'no navegó');
+    }, 1000);
+  }, 500);
+</script>
+</body>
+</html>

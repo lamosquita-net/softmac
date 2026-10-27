@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Nueva pestaña</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+@font-face { font-family: "D-DIN"; src: url("fuentes/D-DIN.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "D-DIN"; src: url("fuentes/D-DIN-Bold.woff2") format("woff2"); font-weight: 700; }
+
+:root {
+  --naranja: rgb(255, 153, 0);    /* el del icono */
+  --rojo:    rgb(210, 10, 17);    /* lamosquita */
+  --morado:  rgb(149, 27, 129);   /* desarrollo */
+  --texto: #000;                  /* lo cambia cada fondo (FONDOS, más abajo) */
+  --pie:   #000;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: "D-DIN", sans-serif; color: var(--texto);
+  background: #6b6b4a center / cover no-repeat;
+  overflow: hidden; -webkit-font-smoothing: antialiased;
+}
+
+/* ── Contadores de Escudos ─────────────────────────────── */
+.contadores { position: absolute; left: 2.9vw; top: 8.5vh; display: flex; gap: 0; }
+.contador { width: 22.6vw; }
+.contador:nth-child(3) { width: auto; }
+.contador b { display: block; font-weight: 700; font-size: 34px; line-height: 1; }
+.contador b small { font-size: 21px; }
+.contador span { display: block; margin-top: 8px; font-size: 14px; }
+.c1 b { color: var(--naranja); } .c2 b { color: var(--rojo); } .c3 b { color: var(--morado); }
+
+/* ── Accesos ───────────────────────────────────────────── */
+.accesos { position: absolute; left: 2.9vw; top: 20.8vh; display: flex; gap: 22px; }
+.acceso { width: 50px; text-align: left; text-decoration: none; color: var(--texto); font-size: 12px; }
+.acceso i {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 8px;
+  background: #1f2030; box-shadow: 0 0 0 1px rgba(255,255,255,.08); margin-bottom: 4px;
+  font-style: normal; font-weight: 700; font-size: 18px;
+}
+.acceso em { font-style: normal; white-space: nowrap; }
+
+/* ── Reloj ─────────────────────────────────────────────── */
+.reloj { position: absolute; right: 5.3vw; top: 4.8vh; font-weight: 700; font-size: 72px; line-height: 1; color: #000; letter-spacing: -1px; }
+
+/* ── Pie ───────────────────────────────────────────────── */
+.credito { position: absolute; left: 2.9vw; bottom: 4.6vh; font-size: 12px; color: var(--pie); }
+.botones { position: absolute; right: 8vw; bottom: 4.4vh; display: flex; align-items: center; gap: 12px; font-size: 12px; font-weight: 700; color: #000; }
+.botones svg { width: 14px; height: 14px; fill: none; stroke: #000; stroke-width: 1.4; }
+.botones .sep { width: 1px; height: 12px; background: #000; margin: 0 2px; }
+
+/* ── La mosca ──────────────────────────────────────────── */
+.mosca { position: absolute; left: 0; top: 0; width: 76px; height: 76px; pointer-events: none; }
+/* Sin will-change: en la 6,1 (FirePro D500, Mojave) con la pantalla en modo escalado, la capa propia de la mosca
+   provoca una línea intermitente en toda la pantalla (03/10). Sin capa, nada; tu web tampoco la usa. */
+.mosca svg { width: 100%; height: 100%; overflow: visible; }
+.mosca .ala { transition: opacity .25s; }
+body.sin-alas .mosca .ala { animation: none !important; opacity: .4; }
+.mosca.vuela .ala { animation: aleteo .09s steps(2, jump-none) infinite alternate; }
+@keyframes aleteo { from { opacity: .4; } to { opacity: .12; } }
+
+/* ── Sólo del prototipo ────────────────────────────────── */
+.proto { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 6px; opacity: .25; transition: opacity .2s; font-size: 11px; }
+.proto:hover { opacity: 1; }
+.proto button { font: inherit; border: 0; border-radius: 4px; padding: 3px 7px; background: rgba(0,0,0,.55); color: #fff; cursor: pointer; }
+.proto button.activo { background: #000; }
+#ruta { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
+body.ver-ruta #ruta { display: block; }
+</style>
+</head>
+<body>
+
+<div class="contadores">
+  <div class="contador c1"><b>0</b><span>rastreadores anunciados y bloqueados</span></div>
+  <div class="contador c2"><b>0<small>B</small></b><span>ancho de banda ahorrado</span></div>
+  <div class="contador c3"><b>0<small>segundos</small></b><span>tiempo de ahorro estimado</span></div>
+</div>
+
+<nav class="accesos">
+  <a class="acceso" href="#"><i style="color:#e66">R</i><em>Router</em></a>
+  <a class="acceso" href="#"><i style="color:#e9a066">✳</i><em>Signin</em></a>
+  <a class="acceso" href="#"><i style="color:#6af">V</i><em>Victron</em></a>
+  <a class="acceso" href="#"><i style="color:#b9f">✦</i><em>Signin</em></a>
+  <a class="acceso" href="#"><i style="color:#e44">M</i><em>Recibidos (1)</em></a>
+  <a class="acceso" href="#"><i style="color:#ddd">V</i><em>Victron SSD</em></a>
+</nav>
+
+<div class="reloj" id="reloj">12:03</div>
+
+<div class="credito">© fotografía @lamosquita</div>
+<div class="botones">
+  <svg viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12"/><circle cx="5" cy="4" r="1.5" fill="#000"/><circle cx="11" cy="8" r="1.5" fill="#000"/><circle cx="7" cy="12" r="1.5" fill="#000"/></svg>
+  personalizar <span class="sep"></span>
+  <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/></svg>
+  <svg viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11"/></svg>
+  <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/></svg>
+  <svg viewBox="0 0 16 16"><rect x="1.5" y="4" width="9" height="8" rx="1"/><path d="M10.5 7l4-2v6l-4-2"/></svg>
+</div>
+
+<svg id="ruta"></svg>
+<div class="mosca" id="mosca"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 78.42 77.04"><style>.cls-1,.cls-2{fill:#fff;}.cls-1{opacity:0.8;}.cls-2{opacity:0.4;}</style><path class="cls-1" d="M58.16,18.19c-3.79.63-3.94,1.44-8,2.52s-5,5.49-7.15,5.74S39.48,30.57,41,32.86s4,2.21,7.16,3.5,7.3-1.06,8.05-4.38,2-6.47,2.28-9.27A12.46,12.46,0,0,0,58.16,18.19Z"/><path class="cls-2 ala" d="M46.18,21.8S35.35,9.81,23.85,9.5,6.67,10.39,6.42,19.78s6.69,11.3,9.11,11.56,19.61-1,22.6-2.19S44.37,22.75,46.18,21.8Z"/><path class="cls-2 ala" d="M58.5,31.24s7.12,10.81,6.21,16.3,2.78,11.1-8.53,14.23S43.26,46.69,44.69,44.61s6.63-4.65,6.62-7S56.17,32,56.17,32Z"/><path d="M62.07,30.76,70,29.1a4.92,4.92,0,0,1,1.43-.29,15.23,15.23,0,0,1,2.06.46c-.42.6-.84,1.18-1.24,1.79-.67,1-1.33,2-2,3-.23.37-.27,1-.56,1.15a10.88,10.88,0,0,1-2.22.41,9.46,9.46,0,0,1,.92-2.29,15.4,15.4,0,0,1,2.13-2l-.32-.56c-1.38.26-2.75.55-4.14.77s-2.81.38-4.76.64c-1.78,1.4-.29,3.18.69,4.85C65.4,42.9,66.61,49,64.81,55.58A11.75,11.75,0,0,1,50,63.42c-1.29-.41-2.55.7-3.17,2.59a15.58,15.58,0,0,1-1.28,2.42c-.35-.2-1-.4-1-.61,0-1-.18-2.24.33-2.92,1.52-2,1.47-3.82.69-6.17C44.63,56,44.45,53,44,50.11c-.09-.5-.11-1-.16-1.54l-.73,0-.27,4.35c-.07,1.24.15,2.59-.29,3.68a10.91,10.91,0,0,1-2.46,3.38c-1.94,2-4.11,3.74-6,5.78-.4.45-.12,1.81.23,2.57a11.7,11.7,0,0,0,1.88,2.39c-1.76,1.35-4.45.82-4.78-1.12a23.48,23.48,0,0,1,.19-6.14c0-.36.69-.83,1.13-.94a10.48,10.48,0,0,0,8-11.23c-.09-1.31-.49-1.7-1.86-1.21a28.72,28.72,0,0,1-6.6,1.79c-1.48.14-3.06-.72-4.54-1.12.86,2.57-1.27,4.19-2.5,6.11-.19.29-1.49.35-1.61.13A3.26,3.26,0,0,1,23,54.73c.64-2.16,1.51-4.26,2.29-6.37C22,47.5,14.78,49.69,12.94,52a8.45,8.45,0,0,1-1.84,1.34c-.32-.56-1-1.21-.88-1.66a4.14,4.14,0,0,1,1.38-2.27c3.15-2.28,6.85-1.79,10.43-1.81a8,8,0,0,0,2.3-.14,2,2,0,0,0,1.21-1.16c.49-1.72.66-3.54,1.22-5.23A51.8,51.8,0,0,1,29.06,36l-1.81-.26c-.89,3.28-2.83,5.3-7.43,5.49-1.6.06-2.91.25-3.74,2-.74,1.58-2.14,1.42-3.78-.4,2.59-1.29,4.09-4.32,7.7-3.7a3.88,3.88,0,0,0,2.85-1.07c.5-.47.25-1.67.49-2.5.16-.52.55-1.26.95-1.35A8.61,8.61,0,0,1,27.56,34c2.66.45,3.59-.14,4.16-3.24a45.07,45.07,0,0,1-4.73.61c-3.83.09-7.74.55-11.46-.07-4.63-.77-7.38-4.29-8.81-8.65-.62-1.92-1.67-2.18-3.33-1.61a6.49,6.49,0,0,1-1.84.38A2.07,2.07,0,0,1,.13,21.1a1.34,1.34,0,0,1,.1-1.32,2.25,2.25,0,0,1,1.38-.48,13.48,13.48,0,0,1,1.67.1c1.79.08,2.77-.57,3.09-2.54.84-5,3.56-7.59,8.65-8.29A33.45,33.45,0,0,1,38.39,14.1c1.9,1.24,3.75,2.57,5.62,3.85l.69-.35A7.37,7.37,0,0,0,43.9,15a3.87,3.87,0,0,1-.44-4.58,5.46,5.46,0,0,0-.43-4c-1.29-2.75-1.39-2.76,1.36-4.3.44-.24.58-1,1-1.24A16.12,16.12,0,0,1,48,0c-.67,1.54-1.14,2.44-1.45,3.39a2.34,2.34,0,0,0,.88,2.9c1.87,1.5.83,3.6.39,5.39-.61,2.49-1.51,4.9-2.28,7.34l.35.54c2.28-.84,4.56-1.67,6.84-2.53a.88.88,0,0,0,.44-.43c1.61-4.32,5-5.34,9.15-4.89,1.64.18,1.28-.71,1.1-1.6a2.23,2.23,0,0,0-.5-.17L60.12,9.6c.41-1.25.51-2.79,1.32-3.66s3-1.28,3.22-1A11,11,0,0,1,66.49,9.6a39.68,39.68,0,0,1-.31,6.49c1.59-1,2.76-1.81,4-2.42a35.27,35.27,0,0,1,4.45-1.61,2.22,2.22,0,0,1,3,1.52c.27,1,.28,2.64-.29,3-.9.66-2.37.62-3.61.69-.44,0-.9-.5-1.87-1.09l3.25-1.78.07-.43A5.74,5.74,0,0,0,73,14c-1.58.71-3,1.68-4.55,2.54-1.8,1-2,2.93-2.11,4.57a10.39,10.39,0,0,1-2.95,6.29,26,26,0,0,0-1.79,2.68ZM31.93,19.68l0,.92c-5.57-.18-11.15-.38-16.73-.52-1.8,0-3.61,0-5.41.1-1.12.05-1.77.7-1.36,1.82,1.28,3.54,3.19,6.54,7.14,7.59,5,1.34,10,.41,14.93-.5.94-.18,2.29-.21,2.7-.81,1.32-1.94,2.38-4,5.23-3.74,0,0,.13-.05.17-.1l4.16-5.12c-2.91-2-5.78-4.45-9-6.15-5.73-3-12-3.6-18.35-2.82C10.8,10.91,8,14.23,8.43,18.2ZM53.26,44.94l.57.17a27.33,27.33,0,0,1-.78,4c-1.23,3.54-2.64,7-3.91,10.56a1.52,1.52,0,0,0,.33,1.38,8.27,8.27,0,0,0,3.45,1.21c3.94,0,6.83-2.06,9-5.26C65,52.58,64.58,47.73,63.25,43c-.73-2.6-2.25-5-3.56-7.74-1.3,1.48-1.79,3.41-3.7,2.39.06-1.84.11-3.49.18-5.62-1.08,2.1-2,3.7-2.7,5.35A10.82,10.82,0,0,0,53,39.56c-1.52,3.21-6,4.21-6.55,8.33-.5,3.69-1,7.49,2,11.08ZM43.05,26.45c4.33,7.84,6,9.81,8.25,8.89-3.43-1.48-3.73-4.66-5.07-7.27C45.78,27.19,45,25.54,43.05,26.45ZM50.7,22.3a14.83,14.83,0,0,0,1.78,2.82,17.9,17.9,0,0,0,3.2,2.1c-.49-2.68.25-5.08-2.3-6.54L53.8,23Z"/><path d="M73.28,38a17.13,17.13,0,0,1-2,.09,9.74,9.74,0,0,1-1.57-.39,6.47,6.47,0,0,1,1.17-2c1.38-1.07,2.9-2,4.38-2.91a3.74,3.74,0,0,1,1.48-.68,6.25,6.25,0,0,1,1.73.28c-.15.57-.12,1.33-.49,1.66C76.42,35.43,74.79,36.7,73.28,38Z"/><path d="M46.62,73.46c-2.32,1.46-4.63.88-5.34-1.1a2.22,2.22,0,0,1,.25-1.72c.14-.22,1.09-.2,1.45,0C44.18,71.47,45.28,72.42,46.62,73.46Z"/><path d="M49.92,77,47.1,74.46C48.69,73.45,49.71,74.26,49.92,77Z"/><path d="M36.8,17,21.19,13.11A41.06,41.06,0,0,1,37,16.31Z"/><path d="M54.4,57.3c1.16-4.85,2.25-9.39,3.37-14C58.85,45.86,56.66,55.4,54.4,57.3Z"/></svg></div>
+
+<div class="proto" id="proto"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ═══════════════════════════════════════════════════════════════
+     AJUSTES — lo que se toca para afinar el vuelo.
+     ═══════════════════════════════════════════════════════════════ */
+  var AJUSTES = {
+    velocidad:  105,   // píxeles por segundo en vuelo (a 1280 de ancho; escala con la ventana)
+    variacion:  0.18,  // cada tramo va entre un 18 % más lento y un 18 % más rápido
+    ondulacion: 10,    // píxeles que sube y baja sobre la ruta mientras vuela
+    temblor:    2.5,   // tembleque rápido mientras vuela
+    posado:     [2.5, 7],  // segundos que se queda en cada posadero (al azar entre los dos)
+    saltarse:   0.2,   // probabilidad de pasar de largo por un posadero
+    giroPosado: [35, 150], // al posarse se gira al azar entre estos grados (a un lado o al otro)
+    rumbo:      -53,   // hacia dónde mira el dibujo (0 = derecha; la cabeza va arriba a la derecha)
+    calma:      { velocidad: 0.35, amplitud: 0.3 }  // con «reducir movimiento»
+  };
+
+  /* La ruta: un bucle cerrado que pasa por estos puntos (0..1 del ancho y el alto de la ventana).
+     Evita los contadores, los accesos, el reloj y el pie. Los marcados con «posa» son posaderos. */
+  var RUTA = [   // ocho tumbado y desigual (maqueta de Titín, 03/10): pasa dos veces por el cruce y para en uno de los dos pasos
+    { x: 0.539, y: 0.625 },
+    { x: 0.508, y: 0.500 },
+    { x: 0.453, y: 0.412 },
+    { x: 0.352, y: 0.375 },
+    { x: 0.234, y: 0.369 },
+    { x: 0.133, y: 0.381, posa: true },
+    { x: 0.086, y: 0.438 },
+    { x: 0.047, y: 0.537 },
+    { x: 0.035, y: 0.650 },
+    { x: 0.055, y: 0.775 },
+    { x: 0.109, y: 0.875 },
+    { x: 0.195, y: 0.925 },
+    { x: 0.297, y: 0.931 },
+    { x: 0.406, y: 0.900 },
+    { x: 0.484, y: 0.838 },
+    { x: 0.531, y: 0.750 },
+    { x: 0.539, y: 0.562 },
+    { x: 0.547, y: 0.412 },
+    { x: 0.578, y: 0.312 },
+    { x: 0.648, y: 0.237 },
+    { x: 0.734, y: 0.215 },
+    { x: 0.812, y: 0.231 },
+    { x: 0.852, y: 0.275 },
+    { x: 0.859, y: 0.331 },
+    { x: 0.845, y: 0.412, posa: true },
+    { x: 0.867, y: 0.481 },
+    { x: 0.906, y: 0.562 },
+    { x: 0.928, y: 0.675 },
+    { x: 0.914, y: 0.775 },
+    { x: 0.859, y: 0.850 },
+    { x: 0.781, y: 0.887 },
+    { x: 0.711, y: 0.894 },
+    { x: 0.648, y: 0.850 },
+    { x: 0.602, y: 0.775 },
+    { x: 0.566, y: 0.700, posa: true }
+  ];
+
+  /* Cada fondo: color de los textos que lo pisan y del crédito. */
+  var FONDOS = [
+    { img: 'fondos/fondo-1.jpg', texto: '#000', pie: '#000' },
+    { img: 'fondos/fondo-2.jpg', texto: '#000', pie: '#000' },
+    { img: 'fondos/fondo-3.jpg', texto: '#fff', pie: '#fff' },
+    { img: 'fondos/fondo-4.jpg', texto: '#000', pie: '#fff' },
+    { img: 'fondos/fondo-5.jpg', texto: '#000', pie: '#000' },
+    { img: 'fondos/fondo-6.jpg', texto: '#fff', pie: '#fff' },
+    { img: 'fondos/fondo-7.jpg', texto: '#000', pie: '#000' }   // en la maqueta salía en blanco por error
+  ];
+  /* ═══════════════════ fin de los ajustes ══════════════════════ */
+
+  var reducir = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var CALMA  = reducir ? AJUSTES.calma.velocidad : 1;
+  var AMPLIA = reducir ? AJUSTES.calma.amplitud  : 1;
+
+  var mosca = document.getElementById('mosca');
+  var tabla = [], largo = 0, posaderos = [];
+
+  /* Curva cerrada (Catmull-Rom) por los puntos de RUTA, muestreada y medida
+     para que la mosca vaya a velocidad constante. */
+  function punto(p0, p1, p2, p3, t) {
+    var t2 = t * t, t3 = t2 * t;
+    function c(a, b, c_, d) { return 0.5 * (2 * b + (-a + c_) * t + (2 * a - 5 * b + 4 * c_ - d) * t2 + (-a + 3 * b - 3 * c_ + d) * t3); }
+    return { x: c(p0.x, p1.x, p2.x, p3.x), y: c(p0.y, p1.y, p2.y, p3.y) };
+  }
+  function medir() {
+    var W = innerWidth, H = innerHeight, n = RUTA.length, PASOS = 60;
+    var P = RUTA.map(function (r) { return { x: r.x * W, y: r.y * H }; });
+    tabla = []; posaderos = []; largo = 0;
+    var prev = null;
+    for (var i = 0; i < n; i++) {
+      if (RUTA[i].posa) { posaderos.push(largo); }
+      for (var k = 0; k < PASOS; k++) {
+        var q = punto(P[(i - 1 + n) % n], P[i], P[(i + 1) % n], P[(i + 2) % n], k / PASOS);
+        if (prev) { largo += Math.hypot(q.x - prev.x, q.y - prev.y); }
+        tabla.push({ d: largo, x: q.x, y: q.y });
+        prev = q;
+      }
+    }
+    largo += Math.hypot(tabla[0].x - prev.x, tabla[0].y - prev.y);
+    dibujarRuta();
+  }
+  function en(d) {  // punto de la ruta a la distancia d
+    d = ((d % largo) + largo) % largo;
+    var lo = 0, hi = tabla.length - 1;
+    while (lo < hi) { var mid = (lo + hi + 1) >> 1; if (tabla[mid].d <= d) { lo = mid; } else { hi = mid - 1; } }
+    var a = tabla[lo], b = tabla[(lo + 1) % tabla.length];
+    var tramo = (b.d > a.d ? b.d : largo) - a.d, f = tramo ? (d - a.d) / tramo : 0;
+    return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+  }
+
+  /* Estado del vuelo: vuela hacia el siguiente posadero, se posa un rato y sigue. */
+  var ENTEROS = false;
+  var enderezaDesde = -9, sinParar = false, giroIni = 0, giroFin = 0, girandoDesde = 0;
+  var d = 0, destino = 0, desde = 0, inicioTramo = 0, duracion = 1, posadoHasta = 0, volando = false, angulo = 0;
+  function siguientePosadero() {
+    // el siguiente posadero por delante; a veces se lo salta y va al otro
+    var orden = posaderos.map(function (p) { var x = p - (d % largo); return x <= 1 ? x + largo : x; }).sort(function (a, b) { return a - b; });
+    var salto = orden[0];
+    if (orden.length > 1 && Math.random() < AJUSTES.saltarse) { salto = orden[1]; }
+    return salto;
+  }
+  function despegar(ahora) {
+    var tramo = siguientePosadero();
+    var escala = innerWidth / 1280;
+    var vel = AJUSTES.velocidad * escala * CALMA * (1 + (Math.random() * 2 - 1) * AJUSTES.variacion);
+    angulo += giroFin; giroFin = 0; enderezaDesde = ahora;
+    desde = d; destino = d + tramo; inicioTramo = ahora; duracion = tramo / vel; volando = true;
+    mosca.classList.add('vuela');
+  }
+  function posar(ahora) {
+    volando = false; d = destino;
+    var g = AJUSTES.giroPosado, lado = Math.random() < 0.5 ? -1 : 1;
+    giroIni = 0; giroFin = lado * (g[0] + Math.random() * (g[1] - g[0])) * AMPLIA; girandoDesde = ahora;
+    var r = AJUSTES.posado; posadoHasta = ahora + (sinParar ? 0.3 : (r[0] + Math.random() * (r[1] - r[0])) / CALMA);
+    mosca.classList.remove('vuela');
+  }
+
+  var arranque = null, previa = null;
+  function volar(marca) {
+    if (arranque === null) { arranque = previa = marca; d = posaderos[Math.floor(Math.random() * posaderos.length)]; posar(0); posadoHasta = 1.5; }
+    var hueco = marca - previa; if (hueco > 800) { arranque += hueco - 16; }  // pestaña oculta: sin saltos
+    previa = marca;
+    var t = (marca - arranque) / 1000;
+
+    var x, y, giro;
+    if (volando) {
+      var f = Math.min(1, (t - inicioTramo) / duracion);
+      var s = f * f * (3 - 2 * f);                 // arranca y frena suave
+      d = desde + (destino - desde) * s;
+      var p = en(d), q = en(d + 30);
+      var sube = Math.sin(f * Math.PI) * Math.sin(t * 2.1) * AJUSTES.ondulacion * AMPLIA;
+      x = p.x + Math.sin(t * 23) * AJUSTES.temblor * AMPLIA;
+      y = p.y + sube + Math.cos(t * 19) * AJUSTES.temblor * AMPLIA;
+      var rumboVuelo = Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI;
+      var fe = Math.min(1, (t - enderezaDesde) / 0.4);              // al despegar endereza en 0,4 s
+      var dif = ((rumboVuelo - angulo + 540) % 360) - 180;          // por el camino corto
+      angulo = fe < 1 ? angulo + dif * fe : rumboVuelo;
+      giro = angulo - AJUSTES.rumbo;
+      if (f >= 1) { posar(t); }
+    } else {
+      var p2 = en(d);
+      // posada: se limpia las patas — giros cortos de pocos grados, sin moverse
+      x = p2.x; y = p2.y;
+      var fg = Math.min(1, (t - girandoDesde) / 0.6), eg = 1 - Math.pow(1 - fg, 3);   // gira en 0,6 s y frena
+      giro = angulo - AJUSTES.rumbo + giroIni + (giroFin - giroIni) * eg + Math.sin(t * 1.3) * 6 * AMPLIA + (Math.sin(t * 7) > 0.97 ? 4 : 0);
+      if (t > posadoHasta) { despegar(t); }
+    }
+    if (ENTEROS) { x = Math.round(x); y = Math.round(y); giro = Math.round(giro); }
+    mosca.style.transform = 'translate(' + (x - 38) + 'px,' + (y - 38) + 'px) rotate(' + giro + 'deg)';
+    requestAnimationFrame(volar);
+  }
+
+  /* Reloj */
+  function reloj() {
+    var h = new Date();
+    document.getElementById('reloj').textContent = String(h.getHours()).padStart(2, '0') + ':' + String(h.getMinutes()).padStart(2, '0');
+  }
+  reloj(); setInterval(reloj, 5000);
+
+  /* ── Sólo del prototipo: cambiar de fondo (1–7, ← →) y ver la ruta (R) ── */
+  var actual = 0;
+  function fondo(i) {
+    actual = (i + FONDOS.length) % FONDOS.length;
+    var f = FONDOS[actual];
+    document.body.style.backgroundImage = 'url("' + f.img + '")';
+    document.documentElement.style.setProperty('--texto', f.texto);
+    document.documentElement.style.setProperty('--pie', f.pie);
+    document.querySelectorAll('.proto button.n').forEach(function (b, k) { b.classList.toggle('activo', k === actual); });
+    try { history.replaceState(null, '', '#' + (actual + 1)); } catch (e) {}
+  }
+  var proto = document.getElementById('proto');
+  FONDOS.forEach(function (_, k) { var b = document.createElement('button'); b.className = 'n'; b.textContent = k + 1; b.onclick = function () { fondo(k); }; proto.appendChild(b); });
+  var bv = document.createElement('button'); bv.textContent = 'sin paradas'; bv.onclick = function () { sinParar = !sinParar; bv.classList.toggle('activo', sinParar); if (sinParar && !volando) { posadoHasta = 0; } }; proto.appendChild(bv);
+  // Pruebas del artefacto de pantalla en la 6,1: cada botón quita una cosa (marcado = quitado)
+  [['sin aleteo', function (on) { document.body.classList.toggle('sin-alas', on); }],
+   ['px enteros', function (on) { ENTEROS = on; }]].forEach(function (o) {
+    var b = document.createElement('button'), on = false; b.textContent = o[0];
+    b.onclick = function () { on = !on; b.classList.toggle('activo', on); o[1](on); }; proto.appendChild(b);
+  });
+  var br = document.createElement('button'); br.textContent = 'ruta'; br.onclick = function () { document.body.classList.toggle('ver-ruta'); }; proto.appendChild(br);
+  addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') { fondo(actual + 1); } else if (e.key === 'ArrowLeft') { fondo(actual - 1); }
+    else if (e.key >= '1' && e.key <= '7') { fondo(+e.key - 1); } else if (e.key === 'v' || e.key === 'V') { bv.click(); } else if (e.key === 'r' || e.key === 'R') { document.body.classList.toggle('ver-ruta'); }
+  });
+  function dibujarRuta() {
+    var s = document.getElementById('ruta'), pts = tabla.map(function (p) { return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+    var marcas = posaderos.map(function (d0) { var p = en(d0); return '<circle cx="' + p.x + '" cy="' + p.y + '" r="7" fill="none" stroke="#f90" stroke-width="2"/>'; }).join('');
+    s.innerHTML = '<polygon points="' + pts + '" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="1.5" stroke-dasharray="6 6"/>' + marcas;
+  }
+
+  var espera;
+  addEventListener('resize', function () { clearTimeout(espera); espera = setTimeout(medir, 150); });
+  fondo((parseInt(location.hash.slice(1), 10) || 1) - 1);
+  medir();
+  requestAnimationFrame(volar);
+})();
+</script>
+</body>
+</html>

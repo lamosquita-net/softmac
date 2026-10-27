@@ -1,0 +1,23 @@
+# Destino en ns2: /etc/sudoers.d/flyweb-servidor (root:root 0440). Lo instala SOLO el HUMANO; comprobar antes con
+#   sudo visudo -cf sudoers-ns2
+# Usuario «servidor» (agente SERVIDOR en la MacPro7,1). Lista cerrada: nada de shell, editores ni certbot como root
+# (certbot admite --deploy-hook: sería root total). Leer registros: grupos adm y systemd-journal, sin sudo.
+# Para editar ficheros sin editor interactivo: SUDO_EDITOR="cp /home/servidor/nuevo" sudoedit <fichero>.
+
+# Sin «apachectl -S»: imprime los Define, y las claves de FlyWeb van en Define (incidente del 05-10, CAMBIOS.md).
+Cmnd_Alias FW_APACHE  = /usr/sbin/apachectl configtest, /usr/bin/systemctl reload apache2
+Cmnd_Alias FW_UNIDAD  = /usr/bin/systemctl daemon-reload, \
+                        /usr/bin/systemctl restart flyweb-components, /usr/bin/systemctl restart flyweb-sync, \
+                        /usr/bin/systemctl start flyweb-sync, /usr/bin/systemctl stop flyweb-sync, \
+                        /usr/bin/systemctl enable flyweb-sync, /usr/bin/systemctl disable flyweb-sync
+Cmnd_Alias FW_EDITAR  = sudoedit /etc/apache2/sites-available/lamosquita.conf, \
+                        sudoedit /etc/systemd/system/flyweb-components.service, \
+                        sudoedit /etc/systemd/system/flyweb-sync.service, \
+                        sudoedit /etc/logrotate.d/flyweb
+Cmnd_Alias FW_LEER    = /usr/bin/ss -ltnp, /usr/bin/certbot certificates, \
+                        /usr/bin/fail2ban-client status, /usr/bin/cscli decisions list, \
+                        /usr/bin/ls -l /var/lib/private/flyweb-sync/
+Cmnd_Alias FW_DESPL   = /usr/local/sbin/flyweb-desplegar
+
+Defaults:servidor !visiblepw, log_subcmds
+servidor ALL=(root) NOPASSWD: FW_APACHE, FW_UNIDAD, FW_EDITAR, FW_LEER, FW_DESPL
