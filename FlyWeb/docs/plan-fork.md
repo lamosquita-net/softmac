@@ -3,8 +3,8 @@
 INVESTIGACIÓN-MOTOR-5, 27-10-2026. **Solo papel.** Parte de [`migracion-128.md`](migracion-128.md) (cómo se llegó a la 128),
 [`legacy-evolucion.md`](legacy-evolucion.md) §6 («qué esperar por nivel»), [`macos11-niveles.md`](macos11-niveles.md) (plataforma Mac por nivel,
 documento 1 de FM.44) y [`hardware.md`](hardware.md) (documento 3), **sin repetirlos**. Aquí: los hechos de plataforma de cada nivel, leídos en
-Chromium 129–158, lo que cuesta fuera de Blink y V8, y un plan por tandas con puertas de parada. Respeta la directiva del 22-10: **los
-niveles 132+ no empiezan hasta publicar la 2.0.0**; esto es el plan, no una orden de arrancar.
+Chromium 129–158, lo que cuesta fuera de Blink y V8, y un plan por tandas con puertas de parada. La directiva del 22-10 («los niveles 132+ no empiezan hasta publicar la 2.0.0») la matiza Titín el 27-10: **MOTOR va dos niveles
+por delante de lo compilado** (FM.45, nivel 132) e INVESTIGACIÓN va por delante de MOTOR, con recetas por nivel hasta el 156 (`DIRECTIVAS.md`). Este documento es el marco de esas recetas.
 
 Marcas: **[V]** leído en el código (espejo `chromium/chromium`, tags `129`…`158`); **[I]** inferencia mía; **[N]** sin comprobar. No he
 medido nada; las horas de §5 son las ya medidas de `migracion-128.md` §4, no estimaciones nuevas.
