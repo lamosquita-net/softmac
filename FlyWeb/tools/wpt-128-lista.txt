@@ -1,8 +1,0 @@
-css/cssom-view/Element-currentCSSZoom.html
-css/cssom/caretPositionFromPoint.html
-css/cssom/caretPositionFromPoint-with-transformation.html
-shadow-dom/Document-caretPositionFromPoint.tentative.html
-css/cssom-view/idlharness.html
-custom-elements/reactions/AriaMixin-string-attributes.html
-html/dom/aria-attribute-reflection.html
-custom-elements/ElementInternals-accessibility.html

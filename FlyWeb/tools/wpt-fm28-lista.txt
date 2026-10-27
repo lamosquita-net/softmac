@@ -1,6 +1,0 @@
-css/css-anchor-position/
-css/css-align/abspos/
-html/semantics/popovers/
-css/css-overflow/document-element-overflow-hidden-scroll.html
-css/css-overflow/overflow-hidden-resize-with-stacking-context-child.html
-css/css-overflow/overflow-scroll-resize-visibility-hidden.html
