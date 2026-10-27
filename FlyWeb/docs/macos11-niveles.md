@@ -156,5 +156,169 @@ que paga es `ui/`, `content/`, `media/`, `gpu/`, `net/`, `base/mac`. Coincide co
 5. Coste del método: preparar el escáner por nivel (`fetch.sh`, `scan.py`) ≈ 1 h; leer la serie de cada subida de mínimo ≈ 2–3 h
    [I, sin medir].
 
+## 8. Traducción a 10.14 por API y nivel (132–156)
+
+Encargo de Titín (27-10): no es decidir si nos quedamos en un nivel, sino **qué hay que traducir** en cada uno. Fuente: el escáner
+(`FlyWeb/tools/macos-api/`) pasado sobre el último tag de cada nivel 128–156 con la lista de API de macOS 26.5 menos 10.14 (≈165 000
+símbolos, métodos y clases): **`FlyWeb/tools/macos-api/inventario-129-156.tsv`** (506 filas: nivel, uso nuevo o cambio de guarda,
+fichero, API, versión de macOS, framework). Sin `ios/`, pruebas ni los falsos positivos conocidos (`validate`, `CGDirectDisplayID`,
+`MTLSharedEvent`, que existe desde 10.14). **Es un cribado, no el inventario real:** el compilador con destino 10.14 manda (§6).
+Coste: **S** < 1 h, **M** 1–4 h, **L** > 4 h; sin medir [I], sobre el patrón de §3 y la tasa de Legacy (1–3 h por commit, `legacy-evolucion.md` §6).
+
+**Mecanismo de traducción** (cinco, ver §9): **K** constante o macro local; **P** parche en tiempo de ejecución de un método o función que falta;
+**G** guarda `@available` con el camino de 10.14 que ya está en la 128; **F** función apagada en 10.14 (framework débil, sin equivalente);
+**R** reimplementación con API antigua.
+
+### 8.1 Primero: 132 y 133 (MOTOR-25 está con el 132)
+
+| Nivel | Qué sale del escáner [V] | Qué hace | Camino de 10.14 | Coste |
+|---|---|---|---|---|
+| **132** | `AXCustomContent` (clase, 11.0) en `ax_element_wrapper_mac.mm` | Contenido de accesibilidad en el volcado de árboles de pruebas | Es herramienta de volcado (`ui/accessibility/platform/inspect`), no producción: nada | — |
+| 132 | `thumbnail_capturer_mac.mm`: guardas de 13.2 reducidas de 4 a 1 y una nueva de **14.4** (ScreenCaptureKit) | Miniaturas del selector de pantalla | **F**: ya guardada; en Mojave el selector usa el camino antiguo | S (comprobar) |
+| **133** | `kVTCompressionPropertyKey_ReferenceBufferCount` + guarda **13.0** en `vt_video_encode_accelerator_mac.mm:1063` | Codificación de vídeo (WebCodecs/WebRTC) | **G**: llega guardada; no tocar | S |
+| 133 | `kCVImageBufferAmbientViewingEnvironmentKey` + guarda **12** en `ca_renderer_layer_tree.mm:174` | HDR en la capa del compositor | **G**: llega guardada. **Ojo:** la serie del 139 la quita (§3b); en 10.14 se conserva | S |
+| 133 | `AXPrefersNonBlinkingTextInsertionIndicator*` + 3 guardas **15.0** en `native_theme_mac.mm` | Preferencia de cursor no parpadeante | **G**: llega guardada | S |
+| 133 | `service_discovery_client_mac.mm:270`: `MacOSMajorVersion() >= 15` | Descubrimiento local (Cast) | **G** | S |
+| 133 | `tool_tip_base_view.mm`: se quita el `#if MIN_REQUIRED < 13.0` y el código **queda siempre activo** | Tooltips | Nada: lo que antes era condicional ahora vale para todos (incluido 10.14) [V: diff 132→133] | — |
+
+**Conclusión para 132 y 133 [V con el cribado, I en cobertura]:** el escáner no encuentra ninguna API de 10.15+ sin guarda; el coste de
+plataforma de los dos niveles es **comprobar** (compilar con destino 10.14 y `-Wunguarded-availability`) y **no perder las guardas** que
+traen. Lo que hay que vigilar es el 139, que las borra.
+
+### 8.2 134–141
+
+| Nivel | API que aparece (versión) | Qué hace | Camino de 10.14 | Mec. | Coste |
+|---|---|---|---|---|---|
+| 134 | `userInterfaceEnabled` (12.0, SSO de empresa) | Inicio de sesión de empresa (Entra) | No se usa en FlyWeb | F | S |
+| **135** | **`UTTypeUTF8PlainText` (11.0, UniformTypeIdentifiers)** en `bridged_content_view.mm` y `render_widget_host_view_cocoa.mm` | **Pegar y arrastrar texto** | `kUTTypeUTF8PlainText` (CoreServices) o `NSPasteboardTypeString` — lo que usa la 128 [V, `macos11-niveles.md` §3] | R | **M** (se nota: portapapeles) |
+| 135 | `providerName` (14.0, iCloud Keychain), `ASAuthorization*` (SSO) | Passkeys de iCloud y SSO | Fuera (FM.42 d10) | F | S |
+| 135 | `kVTEncodeFrameOptionKey_BaseFrameQP` | Codificación de vídeo | Símbolo débil con guarda | G/K | S |
+| 136 | `AVCaptureDeviceTypeContinuityCamera` (14) | Cámara del iPhone | Guardado por upstream | G | S |
+| **137** | **`-[MTLDevice supportsFamily:]` (10.15)** en `metal_context_provider.mm`; `URLForApplicationToOpenContentType:` y `setDefaultApplicationAtURL:` (12.0) en `shell_integration_mac.mm` | GPU: familia Metal; **navegador por defecto** | `supportsFamily:` → `supportsFeatureSet:` (10.11+; tabla de equivalencias de `MTLGPUFamily`); `LSSetDefaultHandlerForURLScheme` (código de la 128) | P / R | **M** (GPU: probar en la 6,1) |
+| 138 | `accessBehavior` (15.4, portapapeles), `CATapDescription`/`AudioHardwareCreateProcessTap` (14.2), 7 clases de CoreML | Aviso de acceso al portapapeles; captura de audio del sistema; WebNN | Guardadas; WebNN apagado | G/F | S |
+| **139** | **`kIOMainPortDefault`** (12.0) en 15 ficheros (batería, Bluetooth, serie, HID, mandos…); **`SecTrustCopyCertificateChain`** (12.0) en `client_cert_store_mac.cc`; `largeBlob` y 4 clases `ASAuthorizationPlatformPublicKey*` (iCloud) | Puerto de IOKit; **certificados de cliente**; passkeys de iCloud | `kIOMasterPortDefault` (macro local); `SecTrustGetCertificateCount`/`…AtIndex` (código de la 128); iCloud fuera | K / P / F | K: **S** (una línea); cadena: **M**; **L en conjunto** con la serie del 12 (§3b) |
+| 140 | `toolbarStyle` (11.0, `NSWindow`) en `immersive_mode_tabbed_controller_cocoa.mm`; `posix_spawnattr_set_csm_np` (11.0) en `launch_mac.cc`; `supportsFamily` otra vez | Barra de pestañas a pantalla completa; lanzar procesos | `toolbarStyle`: no existe en 10.14, es una propiedad estética → no-op (**P**); `csm_np`: guardar con `__builtin_available` | P/G | S |
+| 141 | `NSPreviewRepresentingActivityItem` (clase, 13.0) | Compartir con vista previa | Guarda de clase (`NSClassFromString`) | G | S |
+
+### 8.3 142–156 (resumen por nivel; el inventario completo, en el TSV)
+
+| Nivel | Nº usos | Lo que pesa | Camino de 10.14 | Coste |
+|---|---|---|---|---|
+| **142** | 27 | **Constantes de accesibilidad** (`NSAccessibilityBlockQuoteLevelAttribute`, `…VisitedAttribute`, `…WebAreaRole`, `…ScrollToVisibleAction`, `…UIElementsForSearchPredicateParameterizedAttribute`, `…LanguageAttribute`…): Chromium deja de definirlas él y usa las públicas del SDK 26; **`safeAreaInsets` (12.0)**, `toolbarStyle`, `ASWebAuthenticationSessionCallback` | **K**: definir las cadenas a mano (los valores públicos son literales conocidos); `safeAreaInsets` → `NSEdgeInsetsZero` (**P**); inicio de sesión web por sesión: F | **M** (VoiceOver depende de las constantes) |
+| 143 | 1 | `MTLSharedEvent` (falso positivo, existe en 10.14) | — | — |
+| 144 | 7 | `SCContentFilter`, `SCShareableContent`… (ScreenCaptureKit, 12.3) | Selector de captura de pantalla: F (camino `CGDisplayStream` de la 128) | S |
+| 145 | 10 | **`minimumRefreshInterval`, `maximumRefreshInterval`, `displayUpdateGranularity`, `maximumFramesPerSecond` (12.0)** en `screen_utils_mac.mm`/`screen_mac.mm`; `ellipsoidalAltitude` | **P**: emular con `CVDisplayLink` (como la 128) o ceros; altitud: guarda | **M** (arranque: ver §3b) |
+| **146** | 17 | `CAMetalDisplayLink` (14.0) y `presentedTime`/`drawableID` (10.15) en `ca_metal_display_link_mac.*`; `GCXboxGamepad` | Solo existe con ANGLE-Metal+Graphite (`plan-fork.md` §2): en Mojave no se activa | F | S, **más el hito de Graphite (GPU)** |
+| 147 | 30 | **CoreHaptics** (`CHHaptic*`, 10.15), `GCDualSenseGamepad`, `contextMenuKeyDown` (15.0) | Vibración de mandos: F; menú contextual: guarda | F | M |
+| 148 | 4 | **`NSWorkspaceOpenConfiguration` (10.15)** en `mac_util.mm` y `platform_util_mac.mm` | Es lo que la 128 ya traduce en `launch_application.mm` (nuestro parche de 90 líneas): **mismo mecanismo** que el 128; ejemplo de lo que la capa A reutilizaría | R | **M** |
+| 149 | 4 | `SCContentSharingPicker` (ScreenCaptureKit), `minimumRefreshInterval` otra vez | Igual que 144/145 | F/P | S |
+| 150 | 18 | **`NSGlassEffectView` (26.0)**, `IOHIDCheckAccess` (10.15, teclas multimedia), más CoreHaptics | Vidrio líquido: clase ausente → vista normal (F); `IOHIDCheckAccess` → devolver «concedido» (P) | F/P | M |
+| **151** | 8 | `kSecUseDataProtectionKeychain` (SE: fuera), `posix_spawn_file_actions_addchdir`, métricas de VideoToolbox. **Más la serie de macOS 13 (≈ la del 12: unas 115 ficheros)** | Serie sin leer; hay que abrirla antes de decidir (`plan-fork.md` §7.3) | G | **L** |
+| **152** | **90** | **Constantes de búsqueda de accesibilidad** (`NSAccessibility…SearchKey`, `…ListMarkerRole`, `…FontBoldAttribute`) | **K**: generar una cabecera de constantes a partir del SDK 26.5 | K | M (mecánico) |
+| 153 | 16 | HDR `preferredDynamicRange`/`contentsHeadroom` (26.0), `imageWithSystemSymbolName` (11.0) en `main_menu_builder.mm`, `openApplicationAtURL` (10.15), `SCScreenshotManager` (14) | HDR: guarda; **iconos de menú SF Symbols**: sin imagen en 10.14; abrir app: igual que 148 | G/R | M |
+| 154–156 | 6 / 3 / 2 | VideoToolbox HEVC 4:2:2, `includedDisplays`, `isDeviceConfiguredForPasskeys` | Guardadas o fuera | G/F | S |
+
+**Resumen del coste (S=0,5 h, M=2,5 h, L=6 h) [I]:** 132–138: ≈ 5 h; 139: ≈ 10–12 h (la serie de 12 con lo del 139); 140–141: ≈ 1 h; 142–150: ≈ 15–18 h; 151: ≈ 6 h
+sin leer la serie de 13 (más con ella); 152–156: ≈ 5 h. **Del 132 al 150, unas 35–40 h de papel** de traducción de plataforma, frente a las ≈ 9,5 h /
+≈ 1,6 h / ≈ 30 h del motor de cada nivel (`migracion-128.md` §4). Según `DIRECTIVAS.md`, las horas de papel salen pesimistas.
+
+## 9. (A) Capa de compatibilidad propia: «FlyWeb Compat»
+
+### 9.1 Qué hay hoy: parches sueltos [V]
+
+En `brave-core` `nube/motor25-p25` hay **1 160 `.patch`**; los que existen **solo** para Mojave o para quitar el Secure Enclave son **26 ficheros (medidos) y ≈ 620
+líneas cambiadas**, repartidos por 14 directorios:
+
+| Parche (`patches/…`) | Líneas | Qué traduce | Pasaría a la capa |
+|---|---|---|---|
+| `base-mac-launch_application.mm` + `base-mac-launch_services_spi.h` + `base-process-launch_mac.cc` | 90 + 2 + 40 | `NSWorkspaceOpenConfiguration` (10.15) y `posix_spawn` con `chdir` → `LSOpenApplication` y camino de 10.14 | **Sí** (R): mismo problema reaparece en 148, 153 |
+| `media-capture-video-apple-video_capture_device_avfoundation.mm` + `…helpers.mm` | 78 + 9 | `AVCapturePhotoOutput` → `AVCaptureStillImageOutput` | Parcial: es una función, no una API |
+| `components-eye_dropper-…_mac.mm` + `chrome-browser-ui-views-eye_dropper-…` | 89 + 48 | `NSColorSampler` (10.15) → reimplementación (cuentagotas) | No: función completa; vive en su módulo |
+| `services-device-public-cpp-geolocation-system_geolocation_source_apple.{h,mm}` | 31 | `requestWhenInUseAuthorization` | **Sí** (P) |
+| `components-input-web_input_event_builders_mac.mm`, `content-browser-renderer_host-render_widget_host_view_mac.mm`, `content-app_shim_remote_cocoa-render_widget_host_view_cocoa.mm` | 25 + 12 | Eventos y entrada | Revisar |
+| `device-bluetooth-…`, `device-gamepad-…`, `chrome-browser-platform_util_mac.mm`, `chrome-browser-app_controller_mac.mm`, `components-metal_util-hdr_copier_layer.mm`, `content-common-font_list_mac.mm`, `gpu-ipc-service-image_transport_surface_overlay_mac.mm`, `chrome-browser-apps-link_capturing-mac_intent_picker_helpers.mm` | 23, 20, 20, 19, 18, 12, 11, 10 | Guardas de APIs de 10.15 (Bluetooth, mandos, `platform_util`, ASWebAuthentication, HDR, fuentes, capas, intents) | **Sí** (G/P) |
+| `crypto-unexportable_key_mac.mm`, `device-fido-mac-*`, `chrome-browser-device_reauth-…`, `…secure_enclave_client_impl.mm`, `crypto-features.cc` | 7, 10, 4, 9, 19 | Sin Secure Enclave ni T2 (FM.42 d1–d8) | No: decisión de producto; quedan como parches |
+| `base-threading-platform_thread_apple.mm`, `media-mojo-services-gpu_mojo_media_client_mac.cc`, `components-os_crypt-sync-keychain_password_mac.mm` | 8, 6, 2 | Hilo de audio en tiempo real, xHE-AAC, nombre del llavero | Parcial |
+
+(No incluye ANGLE, Dawn ni Skia, que viven en `third_party/` y tienen sus propios parches.)
+
+### 9.2 Diseño propuesto
+
+**Idea central: una capa de *polyfills*, no de wrappers.** Si el código de upstream llama a la API nueva con su nombre, la capa hace que **esa
+llamada funcione también en 10.14**, sin que cada sitio se parchee. Los wrappers (`FlyWeb::IOMainPort()`) obligan a reescribir cada llamada y cada
+commit futuro de upstream que use la API; los polyfills no. Cinco mecanismos, de menos a más delicado:
+
+1. **K – constantes y macros** (cabecera de inclusión forzada con `-include`): `#define kIOMainPortDefault kIOMasterPortDefault`, las constantes de
+   accesibilidad del 142 y el 152, `UTTypeUTF8PlainText`→cadena equivalente. Sin código en tiempo de ejecución. Cubre 139 (15 ficheros), 142 y 152.
+2. **P – métodos que faltan, añadidos al arrancar** (`class_addMethod` solo si `![Cls instancesRespondToSelector:]`): `-[NSScreen minimumRefreshInterval]`,
+   `-[NSWindow toolbarStyle]`, `-[MTLDevice supportsFamily:]`, `safeAreaInsets`. **Nunca como categoría** (sobrescribiría la implementación real en 12+).
+3. **P – funciones C que faltan**: definición propia con el mismo nombre que cae en `dlsym` del real y, si no existe, en el camino de 10.14 (`SecTrustCopyCertificateChain`,
+   `IOHIDCheckAccess`). El espacio de nombres de dos niveles de macOS enlaza con la definición del ejecutable, así que el código de upstream no cambia [I; comprobar en Mojave].
+4. **F – frameworks y clases que no existen** (UniformTypeIdentifiers, ScreenCaptureKit, CoreHaptics, CoreML, `NSGlassEffectView`): enlace débil (`weak_frameworks` en el
+   `BUILD.gn`) y un `FlyWebCompat::HasClass()`; el sitio de upstream ya está guardado o se guarda una vez.
+5. **R – reimplementaciones** (lanzar aplicaciones, cuentagotas, foto, `UTType`): módulos propios con su prueba; **no** son polyfills y se quedan fuera de la capa.
+
+**Organización:** una cabecera por **familia de API** (`io_port`, `display_refresh`, `accessibility_constants`, `metal_family`, `sec_trust`, `workspace_launch`…)
+y un único registro (`flyweb_compat.mm`) que instala los polyfills de tipo P al arrancar, **por mecanismo y no por subsistema**: el mismo mecanismo se
+revisa de una vez (seguridad: hay *swizzling*), y la lista de familias es el inventario vivo. Una prueba por familia que corre en 10.14 y en 12+ y compara el
+polyfill con la API real donde existe (`compat_unittest.mm`).
+
+### 9.3 Qué ahorra y qué no (crítica)
+
+- **Ahorra [I]:** las llamadas nuevas de upstream (§8) dejan de necesitar parche si su API está en la capa. Del 139: la macro del puerto de IOKit evita
+  **15 ficheros**; las constantes de accesibilidad del 142 y 152, **otros ≈ 100 sitios** del TSV; `minimumRefreshInterval` y `supportsFamily` aparecen en 4 niveles
+  distintos. Cada commit de upstream que vuelva a usar esas API ya no cuesta 1–3 h (Legacy) sino **0**.
+- **Frente a Chromium Legacy:** Legacy tiene un parche de guarda por sitio y **69 commits de guarda o evitación de API en 24 meses** (≈ 3 al mes, en rachas de hasta
+  24 en tres días) y series de **20–30 *reverts*** cada vez que sube el mínimo (`legacy-evolucion.md` §4–5). Una capa convierte «muchos sitios, un parche cada uno» en
+  «una familia, un polyfill»: es la diferencia entre una deuda que crece con cada nivel y una que crece con cada API nueva.
+- **No ahorra:** (a) las funciones sin equivalente (ScreenCaptureKit, haptics: se apagan igual), (b) las reimplementaciones (R), (c) el trabajo de **detectar** qué API entra en
+  cada nivel (el escáner y el compilador siguen haciendo falta), y (d) la revisión: un polyfill mal hecho es peor que un parche visible porque oculta el problema.
+- **Riesgos:** *swizzling*/`class_addMethod` es frágil si Apple cambia la clase (pero solo actúa cuando el selector **falta**, o sea, nunca en 12+); un `-include` global
+  puede chocar con cabeceras (mitigación: nombres con prefijo `FLYWEB_` y `#ifndef`); el comportamiento emulado puede divergir (p. ej. `minimumRefreshInterval` desde `CVDisplayLink`).
+  Mitigación: cada familia declara su comportamiento y su prueba; **nada que toque seguridad** (Secure Enclave, T2) entra: sigue siendo decisión de producto.
+- **Orden recomendado [I]:** empezar por K (sin riesgo, ahorra más: 139, 142, 152), luego P para las familias que se repiten (`display_refresh`, `metal_family`),
+  y dejar R donde están. Primer paso útil: mover el `kIOMainPortDefault` y las constantes de accesibilidad **antes** de portar el 139 y el 142.
+
+## 10. (B) Firefox 115 ESR como referencia
+
+**Qué es:** la última versión de Firefox para **macOS 10.12–10.14** (y Windows 7/8/8.1). Firefox 116 pasó a exigir macOS 10.15; los usuarios de 10.12–10.14 se mueven
+automáticamente a la rama ESR 115 [F: Mozilla, «Firefox users on macOS 10.12, 10.13 and 10.14 moving to Extended Support Release»,
+`support.mozilla.org`, abierta desde el buscador; mis herramientas no podían abrir `mozilla.org`].
+
+**Fechas [F, con la fuente; las he cruzado entre varias, no abierto la original]:**
+
+| Fecha | Hecho | Fuente |
+|---|---|---|
+| 04-07-2023 | Salida de Firefox 115 ESR | endoflife.date, «115 (ESR)» |
+| 2024 (septiembre) | Fin previsto ampliado hasta **marzo de 2025** | AlternativeTo, 2024 |
+| 04-09-2025 | Ampliado hasta **marzo de 2026** (Windows 7/8/8.1 y macOS 10.12–10.14) | blog «Future Releases» de Mozilla; gHacks |
+| 2026 (marzo) | Ampliado hasta **agosto de 2026** | abit.ee |
+| 21-10-2026 | La página de soporte de macOS 10.12–10.14 dice **marzo de 2027** y que se reevaluará | support.mozilla.org; endoflife.date (actualizado 21-10-2026: «31 mar 2027») |
+
+Es decir: **unos 44 meses de actualizaciones de seguridad para un sistema que la rama principal dejó en agosto de 2023**, ampliados cuatro veces en tramos de 6–12 meses.
+
+**Lo que se ve en el código [V, `mozilla/gecko-dev`]:**
+
+- La rama `esr115` tiene la versión **115.26.0** y compila Intel con **destino 10.12** (`build/moz.configure/toolchain.configure:56-62`: «We continue to target 10.12 on Intel, but can target 11.0
+  for aarch64»).
+- Las ramas `esr128` y `esr140` compilan Intel con **destino 10.15** (l. 59-65 y 183-189): **Gecko ha mantenido 10.15 como mínimo en Intel durante tres ESR** (115→140), mientras que
+  Chromium subió el mínimo tres veces en el mismo tiempo (11.0, 12.0 y 13.0 en 129, 139 y 151). Gecko paga menos plataforma por nivel.
+- El destino de Intel y el de Apple Silicon son **independientes** («…since the earliest hardware was released alongside 11.0»): Mozilla separa por CPU lo que Chromium separa por versión.
+
+**Qué nos sirve:**
+
+1. **Modelo de mantenimiento:** una rama larga con **solo parches de seguridad** y el mínimo de SO congelado, sin portar funciones. Es lo que FlyWeb hace con la 128 en el eje de seguridad
+   (FS.24); la diferencia es que Mozilla lo sostiene con un equipo y una base de código mucho más pequeña, y aun así lo ha ampliado a tramos y **con una reevaluación cada seis meses** (decidida con el
+   uso real). Propongo que FlyWeb adopte la misma cadencia: reevaluar el nivel soportado cada seis meses con datos de uso, no una fecha única.
+2. **Plazo realista:** 44 meses, sin garantía de más. Si Titín quiere una promesa pública a los usuarios de Mojave, la referencia es «ampliaciones de 6–12 meses», no «para siempre».
+3. **El contraste del mínimo (115→140 en 10.15) es el argumento de `vision-motor.md` sobre Gecko:** un motor que no sube el mínimo de SO al ritmo de Chromium reduce el coste de plataforma de la capa A.
+   No cambia la decisión (Blink por la compatibilidad de claude.ai), pero cuantifica lo que se paga.
+4. **Lo que no nos sirve:** no es un motor al que portar (la base de código no es la nuestra) ni una fuente de parches de Blink.
+
+**Qué no pude comprobar:** el cuerpo de las páginas de Mozilla (el entorno no llega a `mozilla.org`): las fechas vienen de resúmenes del buscador y de `endoflife.date`; cómo
+selecciona Mozilla los parches que retroporta a la ESR 115 y cuántos CVE quedan sin corregir [N]; el número exacto de versiones 115.x publicadas.
+
 Fuentes: espejo `github.com/chromium/chromium` (tags y commits citados), `github.com/v8/v8` (tags 12.8.98 a 14.9.98),
-`github.com/alexey-lysiuk/macos-sdk` (SDK 10.14 y 15.5), `legacy-evolucion.md`, `mojave-128.md`, `chromium-legacy.md`.
+`github.com/alexey-lysiuk/macos-sdk` (SDK 10.14 y 26.5), `github.com/mozilla/gecko-dev` (ramas `esr115`, `esr128`, `esr140`), `brave-core` `nube/motor25-p25`,
+`legacy-evolucion.md`, `mojave-128.md`, `chromium-legacy.md`, `plan-fork.md`; Mozilla (vía buscador): [Extended Firefox ESR 115 Support…](https://blog.mozilla.org/futurereleases/2025/09/04/firefox-esr-115-support-for-windows-7-8-and-8-1-and-old-mac-os-versions-extended-until-march-2026/),
+[Firefox users on macOS 10.12–10.14 moving to ESR](https://support.mozilla.org/en-US/kb/firefox-users-macos-1012-1013-1014-moving-to-extended-support), [endoflife.date/firefox](https://endoflife.date/firefox).
