@@ -118,8 +118,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Nunca en el repo: tokens, contraseñas, certificados** (regla 5). Fuente: [`TAREAS.md`](TAREAS.md).
 - **ns1 y ns2, de uno en uno** (regla 10): fail2ban banea la IP de la oficina; PUBLICACIÓN y SERVIDOR-LOCAL nunca a la vez.
   Fuente: [`TAREAS.md`](TAREAS.md).
-- **Reescribir una rama (force push) necesita el sí explícito del HUMANO**, aunque la rama sea tuya. Fuente:
-  [`TRAMPAS.md`](TRAMPAS.md), «De fondo».
+- **Reescribir una rama (force push) necesita el sí explícito del HUMANO**, aunque la rama sea tuya. **Excepción (Titín,
+  27-10):** en las ramas `nube/*` propias se permite mientras nadie parta de ellas (ni rama encima ni orden de compilación
+  con ese sha). Fuente: [`TRAMPAS.md`](TRAMPAS.md), «De fondo».
 - **No buscar otro canal si la plataforma bloquea uno** (20-10): p. ej. `elevated_session_untrusted_device`; lo decide
   Titín. Fuente: [`coordinacion.md`](../FlyWeb/docs/coordinacion.md), «Agentes y cómo hablarles».
 
