@@ -164,7 +164,9 @@ ya tiene esas APIs [V].
    - c2: captura de pantalla;
    - b1: ocultar «Copiar texto de la imagen» en 10.14.
    - Antes de nada, LOCAL comprueba los entitlements reales de la app.
-2. **Tanda 2:** b4 (después de probarlo en Mojave), d11, b5, b6, c4, c5.
-3. **Tanda 3 (coste medio-alto):** c3 (OPFS truncate, con su fila FS por la regla 17), a2 (fotos), b3 (nombre de
-   pantalla), b2 (cuentagotas).
+2. **Tanda 2:** hecha por MOTOR-24 en la -p24 23f2d547d9 = 2.0.3 ([`version-2.0.3.md`](version-2.0.3.md)): b5, b6, c4, c5
+   y b4 en commit aparte (se quita si la prueba previa en Mojave dice que no hace falta). d11, no: lo decide PUBLICACIÓN.
+3. **Tanda 3:** también en la -p24: a2 (fotos), b3 (nombre de pantalla), b2 (cuentagotas) y, el último, c3 (OPFS
+   truncate; fila FS.26 por la regla 17).
+   - Quedan sin traducir: a1 y a3 (la API no existe en 10.14), c6 (solo DCHECK) y c7 (no aplica en 10.14.6).
 4. **Para Titín:** ¿passkeys del perfil por software (alto) o solo las llaves externas, el teléfono y los gestores?
