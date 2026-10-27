@@ -1,0 +1,16 @@
+*.mm
+*_mac.h
+*_mac.cc
+*_mac_*.h
+*_mac_*.cc
+*_apple.h
+*_apple.cc
+*/mac/*
+*/cocoa/*
+*/apple/*
+/build/config/mac/*
+!/ios/**
+!/third_party/**
+/third_party/blink/**/*.mm
+/third_party/blink/**/*_mac.*
+/third_party/blink/**/mac/*
