@@ -1294,3 +1294,109 @@ sección «Anchor positioning (1.15.2)» de `motor-131.html` y `wpt-fm28-lista.t
 `version-1.15.2.md`. En la misma versión, `KeyboardFocusableScrollers` (encendido en el 130, d7518d129e) vuelve a
 `experimental`, como en Brave 1.73 (regla 20; decisión de COORDINACIÓN-8, 20-10; `brave-vs-parches-motor.md`, punto 2), y
 `motor-130.html` lo espera apagado. FS.22 (4 CVE críticos de 117–128) entra en la 1.15.2 por fusión.
+
+## Nivel 132 (inventario para decidir, 27-10, MOTOR-25; FM.45, sobre la 2.0.3)
+
+Inventario de FM.45 con el método de los niveles 129–131, **para decidir COORDINACIÓN antes de portar**. La base es ahora la
+128 con Blink y V8 en el 131, así que se mide sobre la 128.0.6613.138 + los parches de la -p24 (23f2d547d9). Fuentes:
+web-features 3.44.0 y BCD 8.1.7 (`baseline-nivel.js 132`); `runtime_enabled_features.json5` de la 131.0.6778.268 y la
+132.0.6834.245 (cabeza de M132-LTS; `flags-nivel.py`); commits del tramo de main 128→132 (f88bd091e24..9eb617a342f);
+`base::Feature` de net, network, content, chrome/common y permisos; Finch de Mac 131 → 132; `include/` de V8 13.1.201.22 →
+13.2.152.56; Brave 1.73.105 → 1.74.51 (que llevan justo la 131.0.6778.265 y la 132.0.6834.160); y la receta de macOS 11+ de
+INVESTIGACIÓN-MOTOR-5 (`macos11-niveles.md`, #545). Hecho con subagentes de lectura; sin portar ni compilar nada.
+
+**Resumen: nivel pequeño, con una pieza grande (`writing-mode: sideways-*`) y una decisión de la regla 19 (Maglev).**
+Fuera de Blink no cambia nada que vea una web ni un servidor (TLS, HTTP/2, QUIC y Client Hints como en el 131), Brave 1.74 no
+apaga nada nuevo y **el 132 no trae ninguna API de macOS 11+** en código de producción. Estimación (horas de papel, que con
+el ritmo real de 129–131 suelen ser la mitad): **Blink 9–14 h + escapes 2,5–3,5 h + V8 2,5–3,5 h (4,5–7 h con Maglev)**.
+
+### 1. Versión declarada y V8
+
+- **Declarar 132.0.6834.160**: la última Stable de Mac al 100 % (28-01 → 04-02-2025) y la de Brave 1.74.51.
+  `platformVersion` sigue en el mínimo que admite el 132. Comprobación de huella: `Sec-CH-UA` con
+  `"Not A(Brand";v="8", "Chromium";v="132"` (semilla 132).
+- **V8 13.2.152.56** (5eabe0e1, cabeza de `branch-heads/13.2`, M132-LTS): la .36 de la .160 más las fusiones de
+  seguridad de la LTS. Como en el 131, se toma la cabeza de la rama; la V8 no sale en el UA. El json5 de Blink, el de la
+  cabeza de la rama: ya trae apagados `CSSRelativeColorLateResolveAlways` y `SvgInlineRootPixelSnappingScaleAdjustment`.
+- **Lo que no compila con la 13.2** (dos ficheros de Blink, 30–45 min): `EmbedderRootsHandler::IsRoot` desaparece
+  (`thread_state.cc:39`, sobrescrito con `final`: se borra); `SetRAILMode()` y `UpdateLoadStartTime()` pasan a
+  `V8_DEPRECATED` (`main_thread_scheduler_impl.cc:1513` y `:1930`, que ya lleva parche nuestro): `SetIsLoading()`, como
+  en la 132, y fuera `RAILModeToV8RAILMode()`, que queda sin uso (`-Wunused-function`). `FastApiTypedArray` pasa a
+  `V8_DEPRECATED` pero nadie lo usa (comprobado en la 128, PDFium, Brave 1.69 y la -p24). gin y DevTools no se tocan; sin
+  dependencias nuevas.
+- **JS y Wasm: nada nuevo sale.** Desaparece `--expose-wasm` (Wasm se oculta con `--jitless`, que ya usa
+  `proxy_resolver_v8`; solo sale un aviso en stderr).
+- **`patches/v8`** (SEGURIDAD-PORTES): de 61, 26 ya están dentro, 11 tienen su arreglo en upstream, 1 se rehace (gancho de
+  Brave en `compiler.cc`) y 23 aplican; quedan ~24, época de caché 18. Que apliquen no quiere decir que compilen (en el
+  131, `wasm-objects.cc`).
+- **CPU:** nada exige AVX (lo nuevo con AVX/AVX2/VNNI comprueba la CPU o es experimental).
+
+### 2. Lo apagado (regla 19) con la V8 13.2
+
+| Opción | FlyWeb | 13.2 | Propuesta |
+|---|---|---|---|
+| `turboshaft_wasm` (y la ISel de Turboshaft para Wasm en x64) | sin parche | **pasa a `true`** | encendido, como upstream; sus arreglos de rama ya vienen; prueba con mjsunit/wasm |
+| Maglev | apagado | encendido | **decidir**: encenderlo exige portar la parte de Maglev de CVE-2025-13223 (4cf93118, ~10 líneas) y medir Speedometer 3 y JetStream 2 en la 5,1 y la 6,1 (+2–4 h) |
+| `maglev_untagged_phis` | apagado | apagado upstream desde el 10-03-2026 (7076ba13) | se cierra la fila: «igual que upstream» |
+
+Cambian también `flush_liftoff_code` y dos de GC en segundo plano (a `true`): memoria, sin efecto visible.
+
+### 3. Baseline del 132
+
+| Función | Baseline | Porte | Tamaño | Coste |
+|---|---|---|---|---|
+| `writing-mode: sideways-rl` / `sideways-lr` (`SidewaysWritingModes`) | 2025-03 | 41 commits `sideways:` desde la 128; se enciende en 5a1ba09c9cd. Toca flex, fragmentación, SVG `<text>`, formularios y `position-try`. **Antes, la serie de `shape-outside` del 129 (§5)** | 214 ficheros, +4370/−688 | **4–6 h**, el riesgo del nivel; regla 17 |
+| `toggle`/`beforetoggle` en `<dialog>` (`DialogElementToggleEvents`) | 2025-09 | bec792eeaac, a076abdd30d, 84daae16519, ef1155930aa | 11 ficheros | 0,5–1 h |
+| `Request.bytes()`, `Response.bytes()`, `PushMessageData.bytes()` | 2025-01 | d741eabf4a5, 5c7532a8972, 812475a1cb0 (`Blob.bytes()` es del 144) | 42 ficheros | 0,5–1 h |
+| `anchor-size()` en insets y márgenes (`CSSAnchorSizeInsetsMargins`) | subfunción, 2026-01 | dc6dd8db71a, d4e557d30af, eb63933a4cb: lo que la 1.15.2 dejó fuera | — | 0,5–1 h |
+| IndexedDB: `NotReadableError` | — | 3fa6ab8b214 | — | minutos |
+
+**Fuera:** Device Posture, Element Capture, la *signal API* de WebAuthn (superficie nueva para huella), FedCM, Protected
+Audience, WebGPU y WebXR.
+
+### 4. Flags a `stable` sin Baseline (~2,5–3,5 h)
+
+Portables, de interoperabilidad y arreglos: `SelectionIsCollapsedShadowDOMSupport` (bea8eb7a19a),
+`TopLayerInactiveDocumentExceptions` (ac7cfddd363; estabilidad, a SEGURIDAD-PORTES), `TextSegmentBoundaryForElementWithFloatStyle`
+(0801480790e), `ListItemWithCounterSetNotSetExplicitValue` (f04300ab682, 24353eb454f), `SkipTemporaryDocumentFragment`
+(398837e6773), `ScheduleSelectionChangeOnBackspace` (340e132d8e3), `CalendarPickerMonthPopupButtonDisabledColor`
+(f1bae6ee920) y `ViewTransitionOverflowRectFromSurface` (6d0d43dfc2d). **Aplazado:** `FindRubyInPage` (23 commits, solo
+Cmd-F). El resto: métricas, rendimiento, Android, FedCM o Privacy Sandbox.
+
+**`KeyboardFocusableScrollers` vuelve a `stable`** (regla 20): la 1.15.2 lo bajó a `experimental` como Brave 1.73, y
+Brave 1.74 quita ese parche («Revert when cr132 is merged»). Con 199d1a77501, 6f8b4173951 y 5800d804208 si la 2.0 no los
+trae ya: 1–2 h. `motor-132.html` lo espera encendido.
+
+### 5. Escapes de niveles anteriores
+
+La 2.0.3 no tiene en `stable` 47 flags que la 131 sí; casi todas ya clasificadas en 129–131. Lo nuevo: cinco que sobre la
+116 quedaron «fuera por coste» dependen de código del 129 que ahora aplica sobre la 128, y se portan **antes** de abrir el
+132 (regla 18): la serie de `shape-outside` del 129 (763b1682aba … 1e0aa4d1b7a: `ShapeOutsideClippedImageFix` y
+`ShapeOutsideWritingModeFix`; la necesita `sideways`), `DirAutoFixSlotExclusions` (73881d441c2), `TextInputNotAlwaysDirAuto`
+y `ScrollIntoViewRootFrameViewportBugFix` (6916f1ac980).
+
+### 6. Fuera de Blink, privacidad y macOS
+
+- **Huella de red, sin cambios:** los 55 commits de BoringSSL son de DTLS 1.3 o pruebas (JA4 como el 131); HTTP/2 solo
+  histogramas; QUIC, nada en los parámetros del cliente. `Sec-Fetch-Storage-Access` no se envía sin `StorageAccessHeaders`.
+- **Para valorar (no son del nivel):** `NoReferrerForPreloadFromSubresource` (mejora de privacidad, pequeño: **propongo
+  portarlo**); `EnableStaticCTAPIEnforcement` (~1 día) e `IgnoreHSTSForLocalhost` (horas), a SEGURIDAD-PORTES;
+  `CrabbyAvif` (decodificador AVIF en Rust, grande) y `KeepAliveInBrowserMigration`, aplazados.
+- **Regla 20:** Brave 1.74 solo mueve sus ajustes de features de sitio y adapta sus ganchos a Blink 132 (farbling,
+  `cached_permission_status.cc`, navigator, plugins, media_devices): conservarlos al portar. `PartitionVisitedLinkDatabase`
+  (partición de `:visited`) sigue en experimento en Chrome: estudio aparte como privacidad por encima de Brave.
+- **macOS 11+:** ninguna serie «Assume macOS 11+» ni de 10.15 en el tramo (solo el paso al SDK 15.1). `AXCustomContent`
+  (611aefda, inspector de accesibilidad) es de 11.0 y no es de Blink: **no se porta**. ScreenCaptureKit (12.3+) nunca se
+  crea en Mojave. Se respeta `macos11-niveles.md` §7: no portar las series de 11+ (129) ni de 12 (139).
+
+### 7. Regla 17, orden y decisiones
+
+- **Filas FS (regla 17):** una para `sideways` (41 commits, 214 ficheros) más la serie de `shape-outside`, y otra para la
+  V8 13.2 (rebase de `patches/v8`, la tabla del §2 y, si se enciende Maglev, 4cf93118).
+- **Orden:** (1) escapes del §5; (2) V8 13.2 y los dos ficheros de Blink; (3) Baseline pequeño y flags del §3–§4;
+  (4) `sideways` en su propio commit, el último, para poder quitarlo si la regla 17 o LOCAL lo tumban; (5) `motor-132.html` y
+  la lista WPT.
+- **Para COORDINACIÓN:** (a) declarar 132.0.6834.160 con la V8 13.2.152.56; (b) `turboshaft_wasm` encendido sin parche;
+  (c) Maglev: encender en el 132 (4cf93118 + medición) o aplazarlo con su motivo; (d) `maglev_untagged_phis` cerrado;
+  (e) `KeyboardFocusableScrollers` a `stable`; (f) `sideways` en la misma versión del nivel o en una versión aparte (regla 18: grande, pero
+  no tanto como RubyLB); (g) `NoReferrerForPreloadFromSubresource` dentro.
