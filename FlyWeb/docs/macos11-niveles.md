@@ -134,8 +134,7 @@ que paga es `ui/`, `content/`, `media/`, `gpu/`, `net/`, `base/mac`. Coincide co
 
 ## 6. Qué queda abierto
 
-- **13.0 (nivel 151)** sin leer: la serie «Remove code supporting macOS 12 and earlier» no se ha abierto (es de `plan-fork.md`,
-  punto 4 de FM.44).
+- **13.0 (nivel 151):** leída en §8.4.
 - El **inventario real** lo da la compilación con `mac_deployment_target=10.14` y `-Wunguarded-availability`; este documento es el
   cribado de antes del porte, no sustituye al registro de avisos (LOCAL).
 - `scan.py` queda con el filtro de ruido de una sola palabra en minúscula (`process`, `platform`…); falta ampliar `sparse.txt` a
@@ -213,7 +212,7 @@ traen. Lo que hay que vigilar es el 139, que las borra.
 | 148 | 4 | **`NSWorkspaceOpenConfiguration` (10.15)** en `mac_util.mm` y `platform_util_mac.mm` | Es lo que la 128 ya traduce en `launch_application.mm` (nuestro parche de 90 líneas): **mismo mecanismo** que el 128; ejemplo de lo que la capa A reutilizaría | R | **M** |
 | 149 | 4 | `SCContentSharingPicker` (ScreenCaptureKit), `minimumRefreshInterval` otra vez | Igual que 144/145 | F/P | S |
 | 150 | 18 | **`NSGlassEffectView` (26.0)**, `IOHIDCheckAccess` (10.15, teclas multimedia), más CoreHaptics | Vidrio líquido: clase ausente → vista normal (F); `IOHIDCheckAccess` → devolver «concedido» (P) | F/P | M |
-| **151** | 8 | `kSecUseDataProtectionKeychain` (SE: fuera), `posix_spawn_file_actions_addchdir`, métricas de VideoToolbox. **Más la serie de macOS 13 (≈ la del 12: unas 115 ficheros)** | Serie sin leer; hay que abrirla antes de decidir (`plan-fork.md` §7.3) | G | **L** |
+| **151** | 8 | `kSecUseDataProtectionKeychain` (SE: fuera), `posix_spawn_file_actions_addchdir`, métricas de VideoToolbox. **Más la serie de macOS 13, ya leída (§8.4)** | §8.4: ≈ 65 ficheros (42 de producción), **más pequeña que la del 12** | G | **L** (6–10 h) |
 | **152** | **90** | **Constantes de búsqueda de accesibilidad** (`NSAccessibility…SearchKey`, `…ListMarkerRole`, `…FontBoldAttribute`) | **K**: generar una cabecera de constantes a partir del SDK 26.5 | K | M (mecánico) |
 | 153 | 16 | HDR `preferredDynamicRange`/`contentsHeadroom` (26.0), `imageWithSystemSymbolName` (11.0) en `main_menu_builder.mm`, `openApplicationAtURL` (10.15), `SCScreenshotManager` (14) | HDR: guarda; **iconos de menú SF Symbols**: sin imagen en 10.14; abrir app: igual que 148 | G/R | M |
 | 154–156 | 6 / 3 / 2 | VideoToolbox HEVC 4:2:2, `includedDisplays`, `isDeviceConfiguredForPasskeys` | Guardadas o fuera | G/F | S |
@@ -221,6 +220,30 @@ traen. Lo que hay que vigilar es el 139, que las borra.
 **Resumen del coste (S=0,5 h, M=2,5 h, L=6 h) [I]:** 132–138: ≈ 5 h; 139: ≈ 10–12 h (la serie de 12 con lo del 139); 140–141: ≈ 1 h; 142–150: ≈ 15–18 h; 151: ≈ 6 h
 sin leer la serie de 13 (más con ella); 152–156: ≈ 5 h. **Del 132 al 150, unas 35–40 h de papel** de traducción de plataforma, frente a las ≈ 9,5 h /
 ≈ 1,6 h / ≈ 30 h del motor de cada nivel (`migracion-128.md` §4). Según `DIRECTIVAS.md`, las horas de papel salen pesimistas.
+
+### 8.4 Del 151 en adelante: traducir lo de macOS 13 y Graphite, o dejarlo fuera
+
+Pedido por COORDINACIÓN-16 (decide Titín con estas cifras). **La serie de macOS 13** (espejo de GitHub, `--shallow-exclude=151.0.7872.0` hasta `152.0.7923.0`, 14 738 commits en el
+intervalo) es de **junio de 2026**: `ab7e2c0` «Change Chromium's deployment target to macOS 13» (2-06), revertida y reaplicada (`1d98034`, `3a7cdb6` «Make Chromium require macOS 13», 8-06) y **16 commits**
+«Remove code supporting macOS 12 from X» entre el 10 y el 16-06 [V]. En total **≈ 65 ficheros (42 de producción), +400 −870 líneas**: bastante menos que la del 12 (≈ 115 ficheros).
+
+| Commit | Área | Qué desaparece / cambia | Efecto en 10.14 | Qué hacer |
+|---|---|---|---|---|
+| `3a7cdb6` | `mac_sdk.gni`, `share_menu_controller.mm` (+9) | **Comprobación de «requiere macOS 13» al lanzar** (había una versión revertida, `8829a70`) | **Bloquearía el arranque** si se copiara | No portar; el `LSMinimumSystemVersion` de FlyWeb sale de `mac_min_system_version:10.14` (`build.sh`) |
+| `28cfa0a` base | `base/mac/mac_util.mm` (40/150), `launch_application.mm` (3/47), `process_requirement.cc` (9/27) | Detección de versión y el rodeo de «lanzamiento con error» de macOS 12 | `launch_application.mm` ya es nuestro parche (90 líneas): mantenerlo | G |
+| `4843d75` remote_cocoa | `immersive_mode_controller_cocoa.mm` (6/45), `native_widget_mac_nswindow.mm` (18/27), `browser_native_widget_window_mac.mm` | Barra de pestañas a pantalla completa, ventana nativa | Funcionalidad de 12: mantener la rama de la 128 | G/F |
+| `c9b0782` media | `vt_video_encode_accelerator_mac.mm` (49/76), `video_toolbox_frame_converter.cc` (0/20), `screen_capture_kit_swizzler.mm`, `audio_loopback_input_mac_impl.mm` | Rutas de VideoToolbox y de captura de audio | Mantener las guardas | G |
+| `461c392`, `2adb229` | ScreenCaptureKit (selector, miniaturas) | Quita las guardas de 12.3 | En 10.14 sigue apagado | F |
+| `05445ba` sandbox | `sandbox/policy/mac/common.sb` | **`(if (>= os-version 1300) (allow … /System/Cryptexes …))` pasa a ser incondicional** | Las rutas `Cryptexes` no existen en 10.14; una regla `allow` sobre una ruta inexistente es inocua [I; probar con el perfil V2 en Mojave] | Probar |
+| `5f58a1f` gpu | `webgpu_blocklist_impl.{cc,h}` | Quita la razón `DynamicArrayIndexInStruct` (AMD con Metal < 13) | WebGPU sigue apagada | Nada |
+| `d5d4f94` webnn, `be311d8` installer, `37144d8` | CoreML, firmador, caché persistente | — | No se usa | — |
+
+**Coste de traducir lo de macOS 13: L, ≈ 6–10 h de papel [I]** (lectura de la serie ≈ 2 h y 1–3 h por commit afectado en `base/`, `remote_cocoa` y `media/`); pesa más el 139 que el 151.
+
+**Graphite (146–151):** es la decisión que cuesta de verdad y no se resuelve con una guarda.
+- **Dejarlo fuera:** `kSkiaGraphite` apagada en nuestro parche (en Mojave ni siquiera se activaría: exige ANGLE-Metal, `plan-fork.md` §2) y seguir con Ganesh/OpenGL. **Coste ≈ 0 h** mientras el camino de OpenGL exista en la compositora: en el 158 siguen estando `skia_output_device_gl.{cc,h}` y `skia_output_device_buffer_queue.*` [V: `components/viz/service/display_embedder`]. Señal de alarma: que upstream los borre o que `kSkiaGraphite` deje de ser una función.
+- **Traducirlo:** Dawn-Metal en 10.14 y en GPU sin la familia Mac2 (las de 2012–2015), más Graphite sobre ello. **No tengo cifra publicada ni propia**; es el ámbito del «GPU en Mojave» (FM.31/FM.43) con una superficie mayor (Dawn + Graphite + shaders). Orden de magnitud **XL (> 20 h) y con riesgo alto de regresión de GPU** [I, sin medir].
+- **Recomendación a Titín:** **dejar Graphite fuera** y traducir solo lo de macOS 13 (L, 6–10 h); reabrir Graphite únicamente si aparece la señal de alarma. Con esto el 151 deja de ser una puerta y pasa a ser un nivel más, con su tanda de plataforma.
 
 ## 9. (A) Capa de compatibilidad propia: «FlyWeb Compat»
 
