@@ -19,6 +19,7 @@ para trabajar y consultar el resto **solo cuando la tarea lo pida**. El conocimi
 | MOTOR | [`FlyWeb/docs/relevo-motor.md`](../FlyWeb/docs/relevo-motor.md) | `motor.md` (principios), `FlyWeb/tools/port/README.md` |
 | LOCAL | [`FlyWeb/docs/relevo-local.md`](../FlyWeb/docs/relevo-local.md) | `integracion.md` |
 | SEGURIDAD-PORTES | [`RELEVO-SEGURIDAD.md`](RELEVO-SEGURIDAD.md) | `SEGURIDAD.md`, `cve-triage.md` |
+| BACKUPDRIVE | [`BackupDrive/docs/relevo-backupdrive.md`](../BackupDrive/docs/relevo-backupdrive.md) | `BackupDrive/README.md` |
 | SERVIDOR-LOCAL | [`SERVIDOR.md`](SERVIDOR.md) §8 y [`FlyWeb/servidor/ESTADO.md`](../FlyWeb/servidor/ESTADO.md) | `CAMBIOS.md` (solo lo último) |
 | INVESTIGACIÓN-MOTOR | — (su fila y la de su encargo) | `migracion-128.md`, `vision-motor.md` |
 | PUBLICACIÓN, CONTENIDOS-WEB | — (su fila y la fila de la versión) | `version-1.N.md` |
