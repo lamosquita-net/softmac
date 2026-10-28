@@ -180,11 +180,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **No se tiene una sesión abierta para esperar** (Titín, 22-10): una sesión con mucho contexto gasta solo con despertarse.
   Si el siguiente paso depende de una compilación, se archiva con la nota de relevo al día y el relevo se abre cuando llegue
   el resultado (excepción a la regla 13). Antes de archivar, `list_triggers`. Fuente: fila OR.2.
-- **MOTOR vivo hasta publicar su versión** (Titín, 27-10; matiza la anterior): la sesión de MOTOR que entregó una versión
-  sigue abierta hasta que esa versión se publique, para recibir sin retraso los errores de LOCAL y los arreglos de
-  SEGURIDAD o INVESTIGACIÓN con el contexto a mano; se archiva al publicar o si pasa del 35 % de contexto (con nota de
-  relevo). **No apagarla no es pararla** (Titín, 28-10): mientras LOCAL compila y prueba, MOTOR sigue con el nivel siguiente. Dato: despertar
-  una sesión de poco contexto cuesta 2–4 $; una larga, 15–40 $ (`CONSUMO.md`).
+- **MOTOR se archiva al entregar** (Titín, 28-10; sustituye a «MOTOR vivo hasta publicar» del 27-10): la sesión de MOTOR
+  que entrega una versión deja su nota de relevo y se archiva. Los errores de LOCAL y los `seg/*` de SEGURIDAD los atiende
+  la MOTOR siguiente, que COORDINACIÓN abre solo cuando hay algo que hacer (errores o el nivel siguiente). Motivo: una sesión
+  parada con 40–50 % de contexto cuesta varios dólares cada vez que la despiertan; el 28-10, MOTOR-26 y MOTOR-28 sumaban
+  46 $ esperando. **No apagarla no es pararla** sigue valiendo para la sesión activa: avanza el nivel siguiente mientras
+  LOCAL compila, hasta el máximo de dos niveles. Lo mismo para cualquier agente de la nube que espera una decisión de Titín
+  con mucho contexto (p. ej. BACKUPDRIVE): nota de relevo y se archiva; se abre otra cuando haya respuesta.
 - **LOCAL compila la siguiente mientras prueba en la 6,1** (Titín, 27-10): las pruebas van a la 6,1, así que la 7,1
   compila la versión siguiente en cuanto la anterior está compilada y guardada su app y su DMG. Sigue habiendo una sola
   compilación a la vez.
