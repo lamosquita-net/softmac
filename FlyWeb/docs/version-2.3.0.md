@@ -47,7 +47,9 @@ sobrecargas de la API rápida se distinguen solo por número de argumentos). Los
 atributo de los 30 grupos sobrecargados (`uniform*v`, `uniformMatrix*fv`, `vertexAttrib*fv`, `vertexAttribI4*v`,
 `clearBuffer*v`). Arreglo de upstream: **89faaa39fb47** (M130; generador de bindings con `[PassAsSpan]` en uniones y
 IDL de WebGL con `Float32List`/`Int32List`/`Uint32List`, que conserva las llamadas rápidas), portado en
-`nube/motor-134-webgl-up` **8eeb795e9e** (sobre fa6ccf3c76; aplica limpio sobre la 128), pendiente de compilar. Ningún otro IDL de la 128 tiene sobrecargas con el atributo. Descartada
+`nube/motor-134-webgl-up` **8eeb795e9e** (sobre fa6ccf3c76; aplica limpio sobre la 128), **entra con el 135** (COORDINACIÓN-19:
+sin regresión no hay 2.3.1). LOCAL-14 hizo el mismo arreglo que fa6ccf3c76 (816c878506, árbol idéntico); la 2.3.0 es
+fa6ccf3c76 si pasa las pruebas. Ningún otro IDL de la 128 tiene sobrecargas con el atributo. Descartada
 `nube/motor-134-scopeinfo` 784d9670b9 (`reuse_scope_infos`), no se compila.
 
 ## Dónde puede fallar la compilación
