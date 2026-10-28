@@ -4,7 +4,8 @@
 # parche de un fichero que vuelve a quedar como en la 128. Los ficheros se pueden añadir al área en cualquier momento.
 W=/tmp/claude-0/port/w-$1; cd $W; find . -name "*.rej*" | grep -q . && { echo "QUEDAN .rej"; exit 1; }
 CR=/tmp/claude-0/port/cr128; CH=/home/user/chromium/hist; T=$(mktemp -d)
-for f in $( (git diff --name-only $(git rev-list --max-parents=0 HEAD); git status --porcelain | cut -c4-) | sort -u); do
+# MOTOR-29: también los ficheros del área que tienen parche y han vuelto a quedar como en la 128 (si no, su parche se queda).
+for f in $( (git diff --name-only $(git rev-list --max-parents=0 HEAD); git status --porcelain | cut -c4-; R=$(git rev-list --max-parents=0 HEAD); for g in $(cat /tmp/claude-0/port/files-$1.txt 2>/dev/null); do [ -e /home/user/brave-core/patches/$(echo $g | tr / -).patch ] && git diff --quiet $R -- $g 2>/dev/null && echo $g; done) | sort -u); do
   P=/home/user/brave-core/patches/$(echo $f | tr / -).patch
   mkdir -p $T/a/$(dirname $f) $T/b/$(dirname $f); rm -f $T/a/$f $T/b/$f
   if [ -e $CR/$f ]; then cp $CR/$f $T/a/$f; else git -C $CH show 128.0.6613.138:$f > $T/a/$f 2>/dev/null || rm -f $T/a/$f; fi
