@@ -8,6 +8,38 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-11 → 12 (28-10-2026, ~12:30)
+
+SEGURIDAD-PORTES-11 (`session_01MwmK2m7q9Dk4L6Yc7GdsS9`, Opus 5.5, medio) se releva al ~42 %. Entregado (filas FS.31,
+FS.33 y FS.34 de `TAREAS.md`; brave-core):
+- **FS.31 → FS.33:** Root Store a **153.0.8010.0** (Titín, con el 133): `seg/fs33-roots153`. Ya fundida por MOTOR-28.
+- **FS.33 (regla 17 del 133):** `seg/fs33-blink133` (9044bcbe DevTools, 5e0a7a16, 2a251e72) y **stack clash de TurboFan**
+  v8 ea2f03dfff (`seg/v8-stackclash-133`; reserva 13.2 `seg/v8-stackclash-132`, solo si el 133 se atasca). Fundidas por
+  MOTOR-28. Los 12 solo-LTS de MOTOR-27: pasan mjsunit en la `d8` 13.3 (7464/7465, el de siempre).
+- **FS.34 (deuda de Maglev, nivel 134, V8 13.4.114.21):** `seg/maglev-134`: serie `git am` en `FlyWeb/v8-maglev-134/`
+  (20 parches + README con la tabla) sobre la 13.4 **limpia**; quien monte la V8 del 134 la aplica y regenera `patches/v8`.
+  Cifra aceptada por COORDINACIÓN-18: **16 arreglos de Maglev** (+2 de TurboFan) contra la 13.4, revisados commit a commit.
+
+**Pendiente para la 12:** cuando MOTOR monte la V8 13.4 del 134, revisar que la serie entre sobre sus `patches/v8` (choca
+en `maglev-graph-builder.cc` con el porte de FS.29, 6937df3c, que MOTOR lleva a la 13.4), subir la época de caché
+(af7d1483a5 cambia bytecode) y, al encender Maglev, la medida en la 5,1 y la 6,1 (LOCAL). Revisar en cada nivel la
+constante 153.0.8010.0 y `kMaxSupportedCTCompatibilityVersion`.
+
+**Lecciones:**
+- **Contar la deuda contra la V8 de destino, commit a commit:** contra la 13.3 salían 16, y contra la 13.4 también 16,
+  pero no los mismos (entran 3 cuyo código no existía en la 13.3; sale 1). Restar categorías da una cota (84 → 40–50),
+  no la cifra. Las pruebas de regresión de upstream en una `d8` limpia dicen qué reproduce (4 de 9 en la 13.3).
+- **Un porte que añade una salida de error destapa caminos que upstream nunca recorría:** con las salidas de
+  `MaglevCompiler::Compile`, la 13.3/13.4 destruía el trabajo fallido de OSR concurrente con el hilo aparcado (DCHECK en
+  `UnregisterStrongRoots`); upstream lo arregló en el dispatcher. Probar siempre la variante OSR.
+- **`[[nodiscard]]` nuevo: buscar todas las llamadas** (un `CHECK(AllocateRegisters(...))` habría convertido el corte en
+  una caída).
+- `v8-d8.sh` con la 13.3+ necesita `third_party/highway` (GitHub google/highway, rev del DEPS) y la 13.4 además
+  `third_party/simdutf` (googlesource bloqueado: amalgama v6.1.0 de la release de GitHub y un `BUILD.gn` mínimo). Los
+  parches con `//brave/` (BUILD.gn, `src-codegen-compiler.cc`) se dejan fuera de la `d8`. Compilar: ~2 h con 4 núcleos.
+- Para buscar fusiones: `/home/user/maglev-inv` con `--filter=blob:none` de las `branch-heads`; nada de `git log -S` ahí
+  (se cuelga bajando blobs).
+
 ## SEGURIDAD-PORTES-10 → 11 (27-10-2026, ~18:15)
 
 SEGURIDAD-PORTES-10 (`session_01MwmK2iNSPnCnPkiEFHwqZ4`, Opus 5.5, medio) termina el encargo hacia el ~33 %. Entregado,
