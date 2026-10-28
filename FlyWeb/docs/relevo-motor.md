@@ -1,3 +1,38 @@
+# Relevo de MOTOR: de MOTOR-27 a MOTOR-28 (28-10-2026, ~09:35)
+
+MOTOR-27 (`session_01MwmK2iYNS9JSPLVcpxc8mM`, Opus 5.5, medio; ~25 %, 11,7 $) hizo el inventario del 133 (`motor-niveles.md`
+§ «Nivel 133», decisiones de COORDINACIÓN-18 en la fila FM.49) y la primera parte del porte. Detalle: `version-2.2.0.md`.
+
+**Cabeza: brave-core `nube/motor-133` 426ed3c1** (15 commits sobre ef850e44, cabeza de la 2.1.1). Sin orden a LOCAL todavía:
+se puede reescribir si hace falta, pero mejor encima. SEGURIDAD-PORTES-11 pone `seg/maglev-134` sobre a833b085 (V8).
+
+**Lo que queda, en este orden** (decisiones de COORDINACIÓN-18): (1) `ClipboardItem` con `Promise<string>` (d72d71316f2,
+586423e8031, 887df9720c3): la 128 no tiene `ThenCallable` ni `MemberScriptPromise`; el IDL `record<DOMString,
+Promise<(DOMString or Blob)>>` sigue dando `ScriptPromiseUntyped` en la 128, así que es reescribir la conversión de cadena a
+`Blob` en `clipboard_item.cc` (`getType`) y `clipboard_promise.cc`/`clipboard_writer` con `ScriptFunction::Callable`;
+conservar el `#define WritePlainText` de Brave (`chromium_src/.../clipboard_promise.cc`). (2) `text-box-trim`: 30 commits
+8cc53df3787 … 336cc860afc (lista y rechazos de un subagente en `/tmp`, perdidos: rehacer con `git log --grep="text-box"`
+en el tramo 47a3549fac1..72dd0b377c0), último y en su commit; sin los de `line-clamp` (7f48814f67f 5c55151b220
+adbca44169f) si sigue apagado. (3) `attr()` avanzado (27 commits, núcleo 9edcb63ea87), detrás; si pasa de ~1 día, a una
+2.2.x antes del 134. (4) Escapes `flexbox-safe-overflow-position-002/005` si LOCAL los ve en rojo con la 2.1.1. (5)
+`motor-133.html`, lista WPT, sección «Para la web», orden a LOCAL por `buzon` y FS.33 avisada.
+
+**Herramientas nuevas** (en `/tmp/claude-0/port`, no persisten; copiar de aquí): `p133.sh <área> <msg> <commits>` =
+`portar128.sh` + `fin133.sh` (`generar128.sh`, commit con el trailer, `chk128.sh`); `setflag.py <json5> <Flag> <status>`;
+`rejchk.py <.rej>…` (por hunk, cuántas líneas `+` ya están en el destino: separa lo ya portado de lo que falta); `jdiff.sh`
+(arreglado para leer la 128 de `cr128`). Los tres scripts están en `FlyWeb/tools/port/` desde este PR.
+
+**Trampas de esta sesión:**
+- El clasificador del modo auto denegó `add_repo` con push y luego cualquier orden en el clon de brave-core; Titín lo aprobó
+  a mano. No buscar otro canal.
+- `portar128.sh` deja fuera `testing/variations/` (fieldtrial): sus rechazos se ignoran.
+- Varias flags del 133 ya estaban a medias por portes del 130–131 (`TogglePopoverOptions` de 8010721fc51 sin leer el
+  diccionario): tomar la forma final del 133 de cada función en vez de aplicar la cadena commit a commit.
+- `<select>` personalizable (`CustomizableSelect`, `StylableSelect`) no está en la 128: los hunks que lo tocan se saltan.
+- Un `patch -F3` puede meter un hunk dentro de la firma de una función (`messages.cc` de V8): revisar siempre el fuzz.
+
+---
+
 # Relevo de MOTOR: de MOTOR-26 a MOTOR-27 (28-10-2026, ~08:15)
 
 MOTOR-26 (`session_01MwmK2ifjhdhoUu5VEpAigY`, Opus 5.5, medio; ~32 %) hizo la **2.1.1 = FM.48 + FM.47** (build 33). Detalle,
