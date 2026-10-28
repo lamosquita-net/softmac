@@ -110,6 +110,9 @@ i=10; while [ $i -le 17 ]; do rm "$MAC/f$i.txt"; i=$((i + 1)); done
 run
 [ "$(result)" = blocked ] && ok "freno: resultado blocked" || fail "freno ($(result))"
 [ "$(count "$DRIVE")" = "$before" ] && ok "freno: Drive intacto" || fail "freno: Drive cambió"
+run --dry-run
+[ "$(result)" = ok ] && ok "--dry-run enseña el plan sin que lo corte el freno" || fail "--dry-run con borrados masivos ($(result))"
+[ "$(count "$DRIVE")" = "$before" ] && ok "--dry-run no cambia Drive" || fail "--dry-run cambió Drive"
 run --force
 [ "$(result)" = ok ] && ok "con --force sigue" || fail "con --force ($(result))"
 hasnt "$DRIVE/f10.txt" "con --force el borrado llega a Drive"

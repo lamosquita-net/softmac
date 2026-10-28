@@ -40,7 +40,7 @@
 #               «needs-resync» y no se toca nada). Haz antes --resync --dry-run. Solo copia, nunca borra; si un
 #               fichero difiere en los dos lados no hay historia que consultar y se usa el más reciente (--resync-mode
 #               newer), pero el perdedor se guarda en versiones.
-#   --dry-run   no cambia nada (ni caduca versiones)
+#   --dry-run   no cambia nada (ni caduca versiones); enseña el plan completo aunque el freno de borrados lo cortaría
 #   --force     salta los frenos de borrados y de modificaciones masivas (solo tras revisar con --dry-run)
 #   --profile   solo el perfil de esa carpeta local
 set -eu
@@ -235,7 +235,8 @@ sync_profile() { # local remote días % nº
     fi
   fi
   set -- "$@" --log-file "$RUN_LOG"
-  [ "$DRY" = 1 ] && set -- "$@" --dry-run
+  # En simulación se pasa --force: no cambia nada y así el freno de borrados de bisync no corta el plan que se quiere ver.
+  [ "$DRY" = 1 ] && set -- "$@" --dry-run --force
   [ "$FORCE" = 1 ] && set -- "$@" --force
   if [ "$RESYNC" = 1 ]; then
     # Solo copia. Sin historia no se puede decidir de otra forma; el perdedor queda en versiones.
