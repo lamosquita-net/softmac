@@ -21,7 +21,8 @@ MOTOR-29, 28-10-2026. Inventario: `motor-niveles.md` § «Nivel 134» (MOTOR-28)
   `--maglev` en la 6,1 (tablero, 28-10): hay que repetirlo con esta V8 antes de encender. Pendiente de COORDINACIÓN.
 - **No se porta 6736b12fb2** (canvas por software en Mac con NVIDIA): Chrome lo hizo porque quitaba la ruta de raster
   antigua; la 128 la conserva, así que el MacBook Pro 2012 (GT 650M) sigue con canvas acelerado. Si COORDINACIÓN prefiere
-  igualar a Chrome, es un parche de `software_rendering_list.json`.
+  igualar a Chrome, es un parche de `software_rendering_list.json`. COORDINACIÓN-19 (28-10): no se porta; probar el canvas en el MacBook Pro 2012
+  con la NVIDIA cuando Titín pueda.
 - **Fuera de Blink no hay nada que portar:** el informe de MOTOR-28 hablaba de rebasar parches como si la base subiera al
   134; la base sigue en la 128 y la huella de red del 134 no cambia (BoringSSL, HTTP/2, QUIC, grupos TLS iguales).
 - No se portan: Privacy Sandbox, WebGPU, `DocumentPolicyExpectNoLinkedResources`, `bfe02c237c` (comando
