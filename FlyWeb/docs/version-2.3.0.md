@@ -40,6 +40,18 @@ c56bbf9b). LOCAL-14: compila y enlaza; d8 13.4 mjsunit 7584/7585 (la de siempre,
 1257/1257. `motor-134.html` 7/8: `willReadFrequently` salía como texto; arreglado en **858f858dc3** (06ed9ecbb6:
 booleano en `CanvasRenderingContext2DSettings`, también en `<canvas>`; la mitad de `desynchronized_specified` no se porta).
 
+**Caída del renderer en GitHub, YouTube y Wikipedia** (LOCAL-14 con lldb, `caida-230.md`): `getContext('webgl'/'webgl2')`
+saltaba el CHECK de V8 13.4 en `FunctionTemplate::NewWithCFunctionOverloads` (c41f7a0e: sin `FastApiTypedArray`, las
+sobrecargas de la API rápida se distinguen solo por número de argumentos). Los IDL de WebGL de la 128 llevan
+`[NoAllocDirectCall]` en pares `Float32Array`/`sequence<>` de igual aridad. Arreglo **fa6ccf3c76** (MOTOR-30): se quita el
+atributo de los 30 grupos sobrecargados (`uniform*v`, `uniformMatrix*fv`, `vertexAttrib*fv`, `vertexAttribI4*v`,
+`clearBuffer*v`). Arreglo de upstream: **89faaa39fb47** (M130; generador de bindings con `[PassAsSpan]` en uniones y
+IDL de WebGL con `Float32List`/`Int32List`/`Uint32List`, que conserva las llamadas rápidas), portado en
+`nube/motor-134-webgl-up` **8eeb795e9e** (sobre fa6ccf3c76; aplica limpio sobre la 128), **entra con el 135** (COORDINACIÓN-19:
+sin regresión no hay 2.3.1). LOCAL-14 hizo el mismo arreglo que fa6ccf3c76 (816c878506, árbol idéntico); la 2.3.0 es
+fa6ccf3c76 si pasa las pruebas. Ningún otro IDL de la 128 tiene sobrecargas con el atributo. Descartada
+`nube/motor-134-scopeinfo` 784d9670b9 (`reuse_scope_infos`), no se compila.
+
 ## Dónde puede fallar la compilación
 
 - V8 13.4 entera: `maglev-graph-builder.cc` (visitantes con `ReduceResult`, el ayudante de

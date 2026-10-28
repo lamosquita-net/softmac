@@ -37,6 +37,12 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
 - **(28-10) `generar128.sh` no borraba el parche de un fichero que vuelve a quedar como en la 128** (solo miraba lo que
   difiere del commit raíz del área): en la 2.3.0 quedaron 4 parches del taint viejo de `attr()` y la Release falló. Ya
   lo mira (MOTOR-29). Y nunca regenerar desde un área montada antes de otro commit: reescribe los parches de ese commit.
+- **(28-10) `d8` verde no prueba la integración con Blink:** la 2.3.0 pasaba mjsunit y caía en GitHub, YouTube y
+  Wikipedia. V8 13.4 (c41f7a0e) hace CHECK en `FunctionTemplate::NewWithCFunctionOverloads` si dos sobrecargas rápidas
+  tienen la misma aridad, y los IDL de WebGL de la 128 ponen `[NoAllocDirectCall]` en pares `Float32Array`/`sequence<>`:
+  el renderer cae en el primer `getContext('webgl')`. En cada V8 nueva: diff de `src/api/api.cc` buscando `CHECK`/`ApiCheck`
+  nuevos y barrido de los IDL de la base que los provoquen; y en la prueba de humo de LOCAL, un `getContext('webgl')`
+  (MOTOR-30, FM.49). Sin volcado no prueba que el navegador mate al renderer (headless sin Crashpad): lldb lo separa.
 
 ## LOCAL
 
