@@ -1414,3 +1414,99 @@ caret de bloque vacío y `SerializedAnchor`. `anchor-size()` en insets ya estaba
 2.0) y el refactor 199d1a77501. `patches/v8`, en FS.28; `IgnoreHSTSForLocalhost` (a5e738f2321) entra antes de `sideways` (SEGURIDAD-PORTES-9); regla 17 de `sideways` y
 `shape-outside`, FS.27. Comprobación de parches: `FlyWeb/tools/port/chk128.sh <base>` (el `chk.sh` antiguo compara con la
 116). Trampa: dos áreas que tocan el json5 no se generan seguidas sin commit en medio (la segunda pisa a la primera).
+
+## Nivel 133 (inventario para decidir, 28-10, MOTOR-27; FM.49, sobre la 2.1.1)
+
+Base: 128.0.6613.138 + brave-core `nube/motor-211b` ef850e44 (2.1.1). Fuentes: web-features 3.44.0 y BCD 8.1.7
+(`baseline-nivel.js 133`); json5 de la 132.0.6834.160, la 133.0.6943.141 y el parcheado de bc (`flags-nivel.py`); tramo de main
+47a3549fac1..72dd0b377c0 (21 207 commits) y rama 72dd0b377c0..133.0.6943.141 (1912); V8 13.2.152.56 → 13.3.415.23; `base::Feature`
+de net, network, content y chrome/common. Tres subagentes de lectura (Blink, V8, fuera de Blink); sin portar ni compilar.
+
+**Resumen:** nivel mediano. Lo grande es `text-box-trim` (Baseline de todos los motores) y una sorpresa en V8: **la 13.3 tiene
+menos arreglos de seguridad que la 13.2 LTS que llevamos**. Fuera de Blink la huella de red no cambia; ninguna API de macOS 10.15+
+sin guarda. Papel: Blink 20–28 h (lo propuesto), V8 4–6 h, fuera de Blink ~4 h.
+
+### 1. Versión declarada y V8
+
+- **Declarar 133.0.6943.141** (última Stable de Mac del 133; su DEPS fija V8 93c6f108 = `branch-heads/13.3` = 13.3.415.23).
+  Pendiente comprobar con la Brave 1.75 qué .x lleva (sin acceso a brave/brave-core desde la nube).
+- **La 13.3 se congeló el 22-01-2025; la 13.2.152.56 es M132-LTS con fusiones hasta el 01-10-2025.** `git rev-list
+  93c6f108..5eabe0e1` deja **12 arreglos solo-LTS** que hay que portar encima de la 13.3 (~190 líneas): 3bdf541ae, 19301b95f,
+  725b6a21c, 385d92ca6, 42421010c, f39628536, 5a7e02c2e, 80600881c, 2b2a58c26, 45d40ca20 (Maglev) aplican; **20c1b8e9b**
+  (`js-regexp.cc`) y **5cf18d038** (LLE) con conflicto. 3–4 h. Sin ellos la 2.2.0 retrocedería en seguridad: no es opcional.
+- **API pública:** nada deja de compilar (lo retirado —`SetRAILMode`, `FastApiTypedArray`, `CPPGC_2GB_CAGE`— ya no se usa tras
+  el 132; `Utf8Length`/`Write*` y `AdjustAmountOfExternalAllocatedMemory` solo se deprecan y `build.sh` no las trata como error).
+  gin: quitar `kWebAssemblyLiftoffCodeFlushing`/`--flush-liftoff-code` (el flag desaparece de V8).
+- **`patches/v8`** (48): 43 aplican; `js-to-wasm.tq` (un hunk ya dentro), `store-store-elimination-reducer-inl.h` (tras
+  80600881c), `messages.cc` y `js-objects.cc` (`DirectHandle`, contexto) y **`late-load-elimination-reducer.cc` a mano** (~1 h,
+  junto a 5cf18d038). Época de caché nueva. → fila de SEGURIDAD-PORTES con los 12 solo-LTS.
+- **JS/Wasm que sale encendido:** `Atomics.pause` y **Wasm Memory64** (`memory64` shipped). Además `use_std_math_pow`,
+  `scavenger_max_new_space_capacity_mb` 8→32 y `script_context_mutable_heap_number` encendido (como Chrome 133: se dejan).
+  Staged/apagado: Float16Array (135), `Error.isError`, explicit resource management.
+- **CPU:** nada exige AVX sin comprobación (VAES/AVX2, revec y `Cvtpd2ph` se deciden en ejecución; la 5,1 no tiene F16C).
+
+### 2. Lo apagado (regla 19) con la 13.3
+
+| Opción | FlyWeb | 13.3 | Propuesta |
+|---|---|---|---|
+| Maglev | apagado (parche) | encendido | **134** (directiva): deuda contada por `Merged:` en 13.5–14.8 = 32 cherry-picks, **16–20 reales** (7 son de phis sin etiquetar), 4–6 días + medida en 5,1/6,1. Los de 13.3 ya vienen; 45d40ca20 va con los solo-LTS. Empezar a portarla ya en `seg/` para no atascar el 134 |
+| `maglev_untagged_phis` | apagado | encendido | seguir apagado al encender Maglev (quita 7 de la deuda) |
+| `turboshaft_wasm` | sin parche | **flag eliminado** | se cierra la fila |
+| `flush_liftoff_code` | sin parche | eliminado | gin, arriba |
+
+### 3. Escapes (regla 18, antes del nivel)
+
+| Flag | Commits | Coste | Propuesta |
+|---|---|---|---|
+| **`WebAssemblyJSStringBuiltins`** (Baseline 2025-12) | 1f2dd1392d2, 37f9fd474bd | minutos | **portar**: hoy FlyWeb las tiene apagadas (json5 en `experimental`); el 130 lo dejó «opcional» y no se hizo |
+| `BoxDecorationBreak` (FF; Safari con prefijo) | 904f3504be1, 26f726f450b, f7afd40fcbb, b34a6d5a6f6, c9ce28826ba | 2–3 h | portar (dos motores) |
+| `SchedulerYield` (FF142) | ea2bd51cd50, 3a35087087d | 1–1,5 h | portar (dos motores) |
+| `WebCryptoCurve25519` (X25519, Baseline 2025-02) | 3136845f1fb, fa2e69a1abf | 1 h | portar |
+| `TextSizeAdjustImprovements` | 5cec4efe5ec (flip) | minutos | portar |
+| Eventos de snap | 5458f67d491, c442049a8c8, 8694375dd34 | 1–2 h (no 25–50: el código ya está en la 128) | siguen fuera (solo Chrome) |
+| `FontVariantEmoji` | 7 commits | 4–6 h | aplazar (en Mac necesita el fallback de emoji entero) |
+| `PageMarginBoxes`, `HitTestOpaqueness`, `StaticAnimationOptimization`, Event Timing, FedCM, Fledge, PST, DevicePosture, DirectSockets, WebXR, USB | — | — | fuera (impresión, rendimiento, métricas o regla 20) |
+| Escapes de la 2.1.1 | `flexbox-safe-overflow-position-002/005` | — | si LOCAL los sigue viendo en rojo |
+
+### 4. Baseline y flags del 133
+
+| Función | Commits | Tamaño (rech. sobre 128+bc) | Coste | Propuesta |
+|---|---|---|---|---|
+| `text-box` / `-trim` / `-edge` (`CSSTextBoxTrim`; FF154, Safari 18.2) | 30 commits 8cc53df3787 … 336cc860afc (ba1e0b75565, 2d18c3e5a7d) | +941/−597 (43 rech., block/inline layout) | 8–12 h | **portar, último y en su commit** (como `sideways`); sin los de `line-clamp` si sigue apagado |
+| `:open` (Baseline 2026-05) | 6dfa7c8fc14, e0d51c14a17, ad3094520f8, 66d504d869c, 833248d9d46, 7d2b2076d87 | 39 ficheros (17 rech.) | 1,5–2,5 h | portar |
+| Ancla implícita de popover (`PopoverAnchorRelationships`, Baseline 2026-01) + `popover=hint` | 8010721fc51 … 92bc6e98708 + flips 2dfb69e116d, 7bca6f1675e, d7258369ec3 | 26 ficheros (38 rech.; choca con nuestro `TogglePopoverOptions`) | 4–6 h | portar ambas |
+| `ClipboardItem` con `Promise<string>` (Baseline 2025-02) | d72d71316f2, 586423e8031, 887df9720c3 | 12 ficheros (15 rech.) | 3–4 h | portar **conservando** el `WritePlainText` de Brave (`chromium_src`, regla 20) |
+| `Animation.overallProgress` | 27df435a1f5, 726ab567b10 | 7 (1 rech.) | 0,5 h | portar |
+| `finalResponseHeadersStart` | 006487e3ae3, 1249cc6be6b | 0 rech. | 0,5 h | portar |
+| `renderTime` de LCP/ET entre orígenes (`ExposeCoarsenedRenderTime`, 4 ms) | d6a8de54aeb, b6afc5e5047, 59c59f02d18, 31a0c0a83bb | 0 rech. | 1 h | portar; comprobar que manda el `time_clamper` de Brave |
+| `SelectionOnShadowDOMWithDelegatesFocus`; selectionchange del retroceso | 15d4924b212, c8a1a5f70f4; ddf020ca49b | pequeño | 1,3 h | portar |
+| attr() avanzado (`CSSAdvancedAttrFunction`; Baseline parcial 2025-03) | 27 commits (9edcb63ea87 …) | +1456/−1041 (56 rech.; cascada) | 14–22 h | **aplazar** (riesgo alto en variables CSS de todas las webs): 134 o fila propia |
+| `moveBefore`, scroll-state, varios import maps, `scroll-initial-target` | — | — | 4–6, 6–9, 3–5, 2–3 h | aplazar (no Baseline; import maps toca el `script_loader` de Brave) |
+| `FontationsFontBackend`, `CSSCaretAnimation`, `FileSystemObserver` | — | — | — | fuera (Mac sigue en CoreText; experimental; Brave apaga File System Access) |
+
+### 5. Fuera de Blink, privacidad y macOS
+
+- **Huella de red, sin cambios** 132→133: ClientHello (BoringSSL: DTLS 1.3, PQ dentro de FIPS; grupos iguales), HTTP/2, QUIC y
+  Client Hints. ALPS nuevo sigue apagado (135).
+- **Portar (≈ 4 h):** `kReportEcn` a ON (8b7ac0ea2bd, 1 línea), `kMacImeLiveConversionFix` (fa3bf858457e), `kUseBrowserCalculatedOrigin`,
+  lista HSTS; comprobar `user_agent_utils.cc.patch` (cambian firmas de GREASE). **Riesgo:** `kZstdContentEncoding` y `kPriorityHeader`
+  desaparecen como flag en la 133; si FlyWeb los apaga por feature (`compatibilidad.md`), hará falta parche (~1 h).
+- **Regla 20, propuesta:** `kStorageAccessHeaders` (`Sec-Fetch-Storage-Access`, ON en la 133, af95d9956afc) **apagado**: expone el
+  estado de cookies de terceros. Prefetch del navegador, `kPermissionPredictionsV3` y OHTTP de Safe Browsing, sin portar. Brave 1.75
+  sin revisar (sin red a brave/*): lo hace INVESTIGACIÓN o quien tenga acceso.
+- **macOS:** 4 guardas y 4 usos del inventario, todos con guarda (HEVC L1T2 de 13, 4:4:4 de 13, HDR de 12). **No portar 0bd13a6ea21**
+  (cursor sin parpadeo de macOS 15: enlaza `Accessibility.framework` fuerte y pide SDK 15). Nada nuevo para la capa de compatibilidad.
+- GPU/ANGLE/Skia/Dawn: nada para el camino OpenGL de Mojave; Graphite no se enciende en Mac. Sandbox: sin cambios.
+
+### 6. Regla 17, orden y decisiones
+
+- **FS.33 (regla 17 del 133):** (a) los 12 solo-LTS de V8 sobre la 13.3 y el rebase de `patches/v8`; (b) arreglos posteriores
+  de `text-box-trim` y popover/`:open`; (c) candidatos de Blink fusionados en la rama 133 (`/tmp` no persiste: lista en la fila):
+  5e0a7a16b019 (caret), 2466b6a78d62 (view transitions), 9a80935019b0 (cull rect), ad4d3e7eff4c y 2a251e725fe0 (anchor),
+  5c2bacf7420c (a11y), 9044bcbe4e16 (DevTools, posible UAF), 9f671e81d968 y 276c4ca4be4e (IDB `BlobReader`). Los de `moveBefore`,
+  scroll-state y attr() van con esas funciones cuando se porten. Severidad por cruzar con los CVE.
+- **Orden:** (1) V8 13.3 + 12 solo-LTS + gin; (2) escapes del §3; (3) Baseline pequeño del §4 y fuera de Blink del §5; (4) popover y
+  ClipboardItem; (5) `text-box-trim` el último; (6) declaración 133.0.6943.141 / 2.2.0, `motor-133.html` y lista WPT.
+- **Para COORDINACIÓN:** (a) declarar 133.0.6943.141 con V8 13.3.415.23 + 12 solo-LTS; (b) attr() aplazado; (c) BoxDecorationBreak y
+  SchedulerYield entran; (d) Storage Access Headers apagado (regla 20; si duda, a Titín); (e) Maglev en el 134 con su deuda empezada ya
+  por SEGURIDAD-PORTES.
