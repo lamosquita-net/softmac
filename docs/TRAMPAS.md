@@ -30,6 +30,10 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   las comprobaciones de Keystone/Google Update que desaparecen y probar la Release horas, no minutos (MOTOR-19, FM.40).
 - **(26-10) `script/lib/l10n/grd_string_replacements.py` sigue cambiando Google/Chrome/Chromium por «Brave»:** antes de pasar
   `chromium-rebase-l10n.py`, apuntarlo a FlyWeb, o vuelve «Brave» a todas las cadenas generadas.
+- **(28-10) Una lista de commits heredada puede estar incompleta, y `seq.sh` no lo nota:** a la de `attr()` de MOTOR-28
+  le faltaban 01b72da0c0 y 774c4ce6b3; se vio porque un commit posterior esperaba un `CSSAttrType::Consume` que no existía.
+  Antes de portar una cadena, `git log <primero>~1..<tag> -- <ficheros clave>` en la historia. Y `git apply` salta sin
+  `.rej` un hunk de un fichero que no existe en el área («does not exist»): `seq.sh` ya para con eso (MOTOR-29).
 
 ## LOCAL
 

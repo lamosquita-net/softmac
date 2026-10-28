@@ -1,5 +1,5 @@
 #!/bin/bash
-# fin133.sh <área> <mensaje>: generar128 y commit en brave-core con el trailer de la sesión (SESION=<id>; por defecto MOTOR-28).
+# fin133.sh <área> <mensaje>: generar128 y commit en brave-core con el trailer de la sesión (SESION=<id>; por defecto MOTOR-28: pasar siempre SESION).
 A=$1; M=$2; P=/tmp/claude-0/port; S=${SESION:-session_01MwmK2mPzyrf5do67riZaYB}
 (cd $P/w-$A && git add -A && git -c user.email=x -c user.name=x commit -qm final >/dev/null; true)
 $P/generar128.sh $A | grep -v '^[0-9]*$'
