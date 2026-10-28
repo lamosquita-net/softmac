@@ -1,3 +1,50 @@
+# Relevo de MOTOR: de MOTOR-28 a MOTOR-29 (28-10-2026, ~10:25)
+
+MOTOR-28 (`session_01MwmK2mPzyrf5do67riZaYB`, Opus 5.5, medio) cerró la **2.2.0** e hizo el inventario del 134. Detalle:
+`version-2.2.0.md` y `motor-niveles.md` § «Nivel 134».
+
+**2.2.0 (entregada, sin compilar):** brave-core `nube/motor-133` **2f268ee217** (orden `buzon/LOCAL/20261028-0953-MOTOR-28.md`
+y su corrección de las 10:16, build 34). Sobre 426ed3c1: roots 153, c1ff7342 `ClipboardItem`, 8da9f5f3 `text-box-trim`,
+merges FS.33 (77caf973 stack clash, 88732b96 Blink) y 2f268ee2 (tres flips del json5 que MOTOR-27 perdió entre commits).
+Errores de LOCAL: arreglarlos encima (no reescribir: hay orden con ese sha).
+
+**Siguiente, por orden de COORDINACIÓN-18 (regla 18): la 2.2.1 = `attr()` antes del 134.**
+- Rama `nube/motor-133-attr` (sobre 88732b96, no compilable): 5ce740bb = 8 commits de `attr()` (8026a18f3f … 58743c5967);
+  59d488dd = 1fc628b444, 0692e7d9b9 (`CSSSyntaxDefinition::Consume`, adaptado: `Parse()` sigue con `CSSTokenizedValue`) y
+  8e710e2016 (`TokenSequence` sin `tokens_`; el `AppendFallback` con la marca de taint ya en su forma final).
+  **Reponer encima 2f268ee2** (o fundir `nube/motor-133`) antes de seguir.
+- **Ojo, cambio de diagnóstico:** la 128+bc **ya trae buena parte** de la migración del parser a streaming (bc tiene 135
+  usos de `CSSParserTokenRange` en `css_parsing_utils.cc` frente a 199 en la 128; 9180018ac3 ya está), así que aplicar los
+  ~65 commits de la migración entera choca consigo misma (`sp-estado.txt`: 3 ya, 23 aplican, 53 parciales). Vía elegida:
+  **solo las dependencias que pide la cadena de `attr()`**. Siguiente paso: 5189858a61 (sintaxis registrada en streaming:
+  `CSSSyntaxDefinition::Parse(StringView)` y `CSSVariableParser::ParseDeclarationValue(StringView)`; toca
+  `property_registration.cc`, `inspector_style_sheet.cc`, `css_variable_parser.*`), luego 0c00afffe9 y el resto de
+  `attr2.txt`: 96a736734d (33 rechazos en el ensayo, el más gordo), c8d50d1a89, 162e74449d, 1bf714b913, 3d832173db
+  (flip), 8e507ecf45 (sin `type(<url>)`), 82d879b09e, 0c50bb37c1, ac008e348d. Si alguno pide más migración, portar solo
+  esa función. `GetUltimateOriginatingElementOrSelf()` puede faltar en la 128.
+- WPT: `css/css-values/attr-*`, `css/css-variables/`, `css/css-properties-values-api/`; `motor-133.html` deja de tener la
+  diferencia de `attr()`.
+
+**Después, el 134** (`motor-niveles.md` § «Nivel 134», orden propuesto allí). Lo gordo es Maglev: el subagente de V8 cuenta
+40–50 arreglos de deuda (SEGURIDAD-PORTES contó 16–20 hasta la 14.8): cruzarlo con SEGURIDAD-PORTES-11 y COORDINACIÓN antes
+de empezar. V8 13.4.114.21: otra vez los 11 solo-LTS (45d40ca20 ya viene) y ea2f03dfff; `simdutf` y `fast_float`.
+
+**Herramientas** (copiar de `FlyWeb/tools/port/` a `/tmp/claude-0/port/`; nuevas: `ap1.sh`, `ok1.sh`, `seq.sh`,
+`add128.sh`, `chk27.sh`). Montaje: `mkcr.sh` de cr128/cr133/cr134 (~3 min cada uno) y la historia en
+`/home/user/chromium/hist` (`git init`, `fetch --filter=blob:none --shallow-since=2024-06-10` de los tags 128.0.6613.138,
+132.0.6834.160, 133.0.6943.141, 134.0.6998.166; ~5 min). Áreas de trabajo: `STEP=1 portar128.sh <área> <commits>` y luego
+`seq.sh <área> <lista>` (aplica en orden y para en el primer rechazo; se arregla y `ok1.sh <área> <commit>`).
+
+**Trampas de esta sesión:**
+- **Un porte que regenera un `.patch` desde un área montada antes de otro commit borra ese commit.** Le pasó a MOTOR-27 con
+  el json5 (3 flips perdidos). Montar cada área justo antes de su commit y, al final, `chk27.sh <desde> <hasta> <cabeza>`.
+- Un fichero que se añade a mano a un área: copiarlo de la 128 **y aplicarle su parche de bc** (`add128.sh`). Copiar solo
+  la 128 borra lo de bc al regenerar (casi pierdo b94803ac92 en `inline_break_token.h`).
+- `fin133.sh` sigue aunque queden `.rej` (generar128 sale con «QUEDAN .rej» y el commit queda vacío): mirarlo.
+- `git grep`/`git log -S` en la historia sin blobs descargan mucho: acotar por ruta.
+
+---
+
 # Relevo de MOTOR: de MOTOR-27 a MOTOR-28 (28-10-2026, ~09:35)
 
 MOTOR-27 (`session_01MwmK2iYNS9JSPLVcpxc8mM`, Opus 5.5, medio; ~25 %, 11,7 $) hizo el inventario del 133 (`motor-niveles.md`
