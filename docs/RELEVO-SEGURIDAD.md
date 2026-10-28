@@ -8,7 +8,7 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
-## SEGURIDAD-PORTES-12 → 13 (28-10-2026, ~20:30)
+## SEGURIDAD-PORTES-12 → 13 (28-10-2026, ~19:10)
 
 SEGURIDAD-PORTES-12 (`session_01MwmK2ht74Zw1oGKA6mdQ4i`, Opus 5.5, medio) termina FS.35 (regla 17 del 134). Entregado
 para MOTOR-29, en brave-core sobre `nube/motor-134` 5107563b:
