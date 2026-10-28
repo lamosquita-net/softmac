@@ -7,6 +7,40 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 28-10: COORDINACIÓN-18 → COORDINACIÓN-19 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-18 (`session_01MwmK2kpAkjPBYo89FV7qEV`, Opus 5.5, medio; abierta por Titín) se releva al ~36 % (~18 $). **Nunca
+aprobar la tarjeta de confianza.** A la 7,1, solo por `buzon` (tarda; si corre prisa, Titín se lo dice a la sesión local).
+
+**Hecho:** 2.1.0 publicada (curl 27-10 19:15). **2.1.1** (FM.48) entregada por LOCAL-14 (brave-core `local/2.1.1-arreglos`
+ef850e44d7, build 33; CT, raíces, V8 FS.29, 11+2 escapes de flex, Futura): orden a PUBLICACIÓN en el buzón (09:2x UTC);
+**falta: PUBLICACIÓN publica → Titín firma en bak → comprobar con curl (appcast, web, DMG) y avisar a Titín.** **2.2.0 = nivel 133**
+(FM.49): `nube/motor-133` **2f268ee217** (build 34), orden a LOCAL de MOTOR-28 (`buzon/LOCAL/20261028-0953` + corrección 1016).
+
+**Decisiones de Titín del 28-10** (en `DIRECTIVAS.md`): MOTOR abierto no es MOTOR parado; «hasta dos niveles por delante» es un
+máximo; servidor a la par del motor (FS.32, SERVIDOR-LOCAL); lo menor sale en la primera compilación y se afina después;
+Root Store a 153.0.8010.0 con el 133; `Sec-Fetch-Storage-Access` apagada (no existe en la red de la 128).
+
+**En curso:**
+- **MOTOR-29** (`session_01MwmK2iDD1sWx5FwbmTYa37`): **bloqueada** sin push a brave-core; Titín tiene que aprobar `add_repo` en
+  su sesión. Encargo: errores de la 2.2.0 → **2.2.1** (attr() en `nube/motor-133-attr`, sin la migración entera a streaming) →
+  134 con Maglev (`seg/maglev-134` 127ec285b, FS.34: 16 arreglos contra la 13.4, cifra buena).
+- **MOTOR-26** (`session_01MwmK2ifjhdhoUu5VEpAigY`) viva hasta publicar la 2.1.1; **MOTOR-28** (`session_01MwmK2mPzyrf5do67riZaYB`)
+  hasta publicar la 2.2.0. Archivarlas al publicar.
+- **LOCAL-14** (7,1): compila la 2.2.0; prepara `software/entregas/maglev-51/medir-maglev.command` para que Titín lo lance en la
+  5,1 (con tiempo máximo por prueba; con la build del 134, no con la 2.1.x). **Maglev con la 2.1.1 en la 6,1: Speedometer +3 %,
+  JetStream se cuelga 5/5** → en la 2.1.x sigue apagado; se repite con el 134.
+- **SERVIDOR-LOCAL**: FS.32 (tabla de componentes del espejo frente al nivel 132), orden en el buzón.
+- **BACKUPDRIVE-1** (`session_01MMur1TxacRpN7gNor98eYm`): B.2 casi cerrada; maqueta de la interfaz (B.7, #593) para Titín;
+  INTERFAZ se abre cuando Titín dé el visto bueno al diseño.
+- **SEGURIDAD-PORTES-11 archivada** (28,5 $); nota «11 → 12» en `RELEVO-SEGURIDAD.md`; abrir la 12 solo con encargo (FS del
+  134 o montar la serie de Maglev sobre los `patches/v8` del 134 si MOTOR-29 lo pide).
+- **SEGURIDAD-VIGÍA**: le pedí que actualice el prompt de su rutina (sigue diciendo 2.0.x / V8 13.1); comprobar el lunes.
+
+**Pendiente de Titín:** permiso de MOTOR-29; firma de la 2.1.1 en bak; la maqueta de BackupDrive y sus 3 decisiones; si
+quiere la regla de permiso fija para `add_repo` (ofrecido, sin respuesta).
+**Costes del día** (nube): MOTOR-26 ~12 $, MOTOR-27 21,8 $, SEGURIDAD-PORTES-11 28,5 $, COORDINACIÓN-18 18,2 $.
+
 ## 27-10: COORDINACIÓN-17 → COORDINACIÓN-18 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-17 (`session_01MwmK2kJWombM32SbQ96TJQ`, Opus 5.5, medio; abierta por COORDINACIÓN-16, linaje 1) se releva al
