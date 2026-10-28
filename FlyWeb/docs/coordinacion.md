@@ -7,6 +7,37 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 29-10: COORDINACIÓN-19 → COORDINACIÓN-20 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-19 (`session_01MwmK2huC3sto9S6a1NY5Mn`, Opus 5.5, medio; abierta por la -18) se releva al ~41 % (~25 $). **Nunca
+llamar a confirm_repository_trust.** Decisiones de Titín del 28-10, ya en `DIRECTIVAS.md`: versión intermedia solo por
+regresión o fallo de seguridad explotado y con el nivel siguiente a >3 días; revisión diaria de gastos; MOTOR (y cualquier
+agente de la nube que espera con mucho contexto) se archiva al entregar y se abre otra solo cuando hay trabajo; **un error se
+analiza y se arregla antes de seguir** (criterio, no receta: arregla quien pueda antes; LOCAL si puede, MOTOR estandariza);
+nadie se queda parado. Titín no quiere normas rígidas: cada problema, su solución.
+
+**Hecho:** 2.1.1 publicada (appcast, web y DMG comprobados con curl 28-10 17:15 UTC). Se saltó la 2.2.0 (decisión de Titín): el
+nivel 133 va dentro de la **2.3.0 = nivel 134**. Permiso fijo de `add_repo` en `.claude/settings.json` (Titín; uso acordado solo
+brave-core; funciona en sesiones nuevas). Cartero con vigilante (Monitor) desde el 28-10 20:24: entregas en 1–3 min salvo una de
+54 min (21:08 → 22:02); **comprobar en cada despertar que no haya ficheros de >45 min sin anotar en `ENTREGADO.md`**. A las
+sesiones locales no se llega por send_message desde la nube (elevated_session_untrusted_device): solo por `buzon`; ellas sí nos
+escriben.
+
+**En curso (2.3.0):** brave-core `nube/motor-134` **479bcaf1e2**, build 35. Dos caídas ya resueltas (`caida-230.md`,
+`version-2.3.0.md`, `TRAMPAS.md`): (1) CHECK de V8 13.4 por `[NoAllocDirectCall]` en sobrecargas de WebGL (fa6ccf3c76; el port de
+upstream 89faaa39fb47 en `nube/motor-134-webgl-up` 8eeb795e9e entra con el 135, no en una 2.3.1); (2) SIGILL en Mojave por
+`OS_UNFAIR_LOCK_ADAPTIVE_SPIN` de la 10.15 (parche de LOCAL-14, 479bcaf1e2). FS.35 (regla 17 del 134) hecha y fundida. LOCAL-14
+prueba 479bcaf1e2 en la 6,1 y **prepara el guion `software/entregas/prueba-51-230/probar-230.command` para la 5,1** (LOCAL no
+tiene acceso a la 5,1): cuando avise, pedirle a Titín que lo lance (doble clic) y mirar `resultado-51-*.txt`. Sin la 5,1 en
+verde no se entrega. Después, regla 11: PUBLICACIÓN publica; comprobar con curl y hacer la web (como #602).
+**MOTOR-30** (`session_01MwmK2hpaEHYmeX2A1rMrMS`): viva hasta que LOCAL dé verde; luego nota de relevo y archivar. No empieza el
+135 (dos niveles por delante de lo publicado, la 132). Maglev apagado hasta medir con la 2.3.0 en la 6,1.
+
+**Pendiente de Titín:** las 3 decisiones de la maqueta de BackupDrive (nota `BackupDrive/docs/relevo-backupdrive.md`; abrir
+BACKUPDRIVE-2 en Sonnet bajo cuando conteste) y su prueba h; opcional: el NAVEGADOR del espejo en bak a la versión publicada
+(FS.32, #586). **Costes del 28-10** (nube): MOTOR-29 33,9 $, MOTOR-28 27,3, COORDINACIÓN-18 21,9, MOTOR-26 19,2,
+SEGURIDAD-PORTES-12 17,4, BACKUPDRIVE-1 11,7 (total), COORDINACIÓN-19 ~25.
+
 ## 28-10: COORDINACIÓN-18 → COORDINACIÓN-19 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-18 (`session_01MwmK2kpAkjPBYo89FV7qEV`, Opus 5.5, medio; abierta por Titín) se releva al ~36 % (~18 $). **Nunca
