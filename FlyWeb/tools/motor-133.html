@@ -7,7 +7,7 @@
 <!-- Comprobación rápida del nivel de motor 133 de FlyWeb 2.2 (brave-core nube/motor-133, V8 13.3; FM.49).
      Abrir en FlyWeb desde http://127.0.0.1 (JIT y Wasm solo se ven en un origen http(s)); no carga nada de fuera.
      Cada línea dice ok o FALLO. Comparar con Chrome for Testing 133: lo que allí sale ok tiene que salir ok aquí,
-     salvo la versión declarada. attr() con tipo llega en la 2.2.1 (nube/motor-133-attr). -->
+     salvo la versión declarada. -->
 <style>
   :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
   body { margin: 2em; max-width: 60em; }
@@ -21,7 +21,7 @@
   .bdb { font: 16px/2 sans-serif; padding: 0 .4em; border: 2px solid #c60; border-radius: 6px; background: #fec; }
   #bdb-clone { box-decoration-break: clone; }
   #bdb-cont { width: 9em; }
-  /* attr() con tipo (2.2.1) */
+  /* attr() con tipo */
   #at-len { width: attr(data-w type(<length>), 10px); }
   #at-px { height: attr(data-h px, 3px); }
   #at-col { color: attr(data-c type(<color>), black); }
@@ -83,7 +83,7 @@
     catch (e) { alert(String(e)); }
   };
 
-  // attr() con tipo (CSSAdvancedAttrFunction, 2.2.1)
+  // attr() con tipo (CSSAdvancedAttrFunction)
   prueba('attr(data-w type(<length>)) da 40px en width', () => ({ ok: cs('#at-len', 'width') === '40px', nota: cs('#at-len', 'width') }));
   prueba('attr(data-h px) convierte el número en 25px', () => ({ ok: cs('#at-px', 'height') === '25px', nota: cs('#at-px', 'height') }));
   prueba('attr(data-c type(<color>)) da el color', () => ({ ok: cs('#at-col', 'color') === 'rgb(0, 128, 0)', nota: cs('#at-col', 'color') }));
@@ -194,7 +194,7 @@
 </script>
 <p>No se ve desde una página y lo comprueba LOCAL: Maglev sigue apagado (se enciende en el 134), la huella de red igual
 que la del 132 (JA4) y que <code>Sec-Fetch-Storage-Access</code> no sale (decisión de Titín). <code>attr()</code> con
-tipo (<code>attr(data-w type(&lt;length&gt;))</code>) llega en la 2.2.1; con la 2.2.0 esas seis líneas salen en FALLO. Fuera del 133 (motivo en
+tipo (<code>attr(data-w type(&lt;length&gt;))</code>) está en la 2.2.0 (888963ca5); con 2f268ee217 esas seis líneas salen en FALLO. Fuera del 133 (motivo en
 <code>motor-niveles.md</code>, «Nivel 133»): <code>moveBefore</code>, scroll-state, <code>FontVariantEmoji</code> y los
 eventos de snap.</p>
 </body>

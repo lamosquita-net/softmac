@@ -3,8 +3,8 @@
 MOTOR-29, 28-10-2026. Inventario: `motor-niveles.md` § «Nivel 134» (MOTOR-28). Declaración: Chrome **134.0.6998.166**
 (la última Stable de Mac del 134; las .196 y siguientes son Extended). Mínimo de macOS declarado, igual: 11.7.10.
 
-**Rama:** brave-core `nube/motor-134` **5107563b28**, sobre la 2.2.1 (`nube/motor-133-attr` 25c9ea731d). Sin compilar.
-`FLYWEB_BUILD_NUMBER=36`.
+**Rama:** brave-core `nube/motor-134` **5107563b28**, sobre la 2.2.0 (`nube/motor-133` 888963ca5, con `attr()`). Sin compilar.
+`FLYWEB_BUILD_NUMBER=35`.
 
 | Commit | Qué |
 |---|---|

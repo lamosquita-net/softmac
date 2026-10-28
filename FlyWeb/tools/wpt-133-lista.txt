@@ -16,3 +16,9 @@ selection/shadow-dom/
 selection/textcontrols/
 wasm/jsapi/
 css/css-flexbox/
+css/css-values/attr-
+css/css-variables/
+css/css-properties-values-api/
+css/css-typed-om/the-stylepropertymap/
+css/css-paint-api/
+css/css-content/
