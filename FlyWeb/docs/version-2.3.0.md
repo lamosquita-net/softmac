@@ -35,6 +35,11 @@ MOTOR-29, 28-10-2026. Inventario: `motor-niveles.md` § «Nivel 134» (MOTOR-28)
 con un `KeyboardEvent` (rama muerta con CloseWatcher en `stable`, quitada) y `set_line`/`set_column` de perfetto en la
 V8 13.4 (`code-data-source.cc`, no se escriben).
 
+Después, FS.35 de SEGURIDAD-PORTES-12 fundida (**192ce3e811**: `seg/fs35-maglev-dead` 0ce38fe7 y `seg/fs35-blink134`
+c56bbf9b). LOCAL-14: compila y enlaza; d8 13.4 mjsunit 7584/7585 (la de siempre, `maglev/extras-cped`) y con `--maglev`
+1257/1257. `motor-134.html` 7/8: `willReadFrequently` salía como texto; arreglado en **858f858dc3** (06ed9ecbb6:
+booleano en `CanvasRenderingContext2DSettings`, también en `<canvas>`; la mitad de `desynchronized_specified` no se porta).
+
 ## Dónde puede fallar la compilación
 
 - V8 13.4 entera: `maglev-graph-builder.cc` (visitantes con `ReduceResult`, el ayudante de
