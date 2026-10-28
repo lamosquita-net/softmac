@@ -1,6 +1,6 @@
 # FlyWeb 2.1.1 — motor 132, seguridad y escapes (FM.48)
 
-MOTOR-26, 27-10-2026. brave-core **`nube/motor-211` 33a978bdb9**; sobre ella, LOCAL-14 `local/2.1.1-arreglos` **7078c241** (`root_store_tool.cc`: `std::string` de `permitted_dns_names` de FS.31 a `StringAppendF` con `.c_str()`, `-Wnon-pod-varargs`) y MOTOR-26 **`nube/motor-211b` b745a4473c** (28-10, safe-overflow 002/005, abajo). Base: la 2.1.0
+MOTOR-26, 27-10-2026. brave-core **`nube/motor-211` 33a978bdb9**; sobre ella, LOCAL-14 `local/2.1.1-arreglos` **7078c241** (`root_store_tool.cc`: `std::string` de `permitted_dns_names` de FS.31 a `StringAppendF` con `.c_str()`, `-Wnon-pod-varargs`) y MOTOR-26 **`nube/motor-211b` ef850e44d7** (28-10: safe-overflow 002/005, se revierte el xattr y se rehace el emparejado de FM.47; abajo). Base: la 2.1.0
 publicada (`local/2.1.0-arreglos` 5f2c1e51 = `nube/motor-132` 78eb79e8 + 843cac4f + 5f2c1e51). `flyweb_version` 2.1.1;
 `FLYWEB_BUILD_NUMBER` **33**. Motor declarado sin cambios (132.0.6834.160, V8 13.2.152.56).
 
@@ -24,6 +24,8 @@ publicada (`local/2.1.0-arreglos` 5f2c1e51 = `nube/motor-132` 78eb79e8 + 843cac4
 | 33a978bdb | merge `local/2.1.0-arreglos` 5f2c1e51 (`<progress>` vertical) | LOCAL-13 |
 | 7078c241f | `root_store_tool.cc`: `.c_str()` en `StringAppendF` (único error de la 1.ª Release) | LOCAL-14 |
 | b745a4473 | flex: `AlignFlexLines()` ya no sale antes de tiempo con `safe flex-start` (002/005 fallaban: la salida temprana de la 128 para `flex-start` sin hueco se saltaba el arreglo de 9a0e2d945) | propio |
+| dd784af57 | revierte c08792fee (`file-read-xattr`): LOCAL-14 vio que no hacía usables las Type 1; menos superficie de sandbox | — |
+| ef850e44d | FM.47: una cara se acepta solo si el CTFont es la pedida y dibuja con su familia; si no, la siguiente de la familia | propio |
 
 Los merges de FS.29–31 entraron sin conflictos (no comparten ficheros con 843cac4f). Todos los parches cambiados desde
 la 2.1.0 aplican sobre 128.0.6613.138 (`chk128.sh`: 30 + 1, 0 problemas); `patches/v8` como lo dejó SEGURIDAD-PORTES-10.
@@ -75,7 +77,18 @@ la 2.1.0 aplican sobre 128.0.6613.138 (`chk128.sh`: 30 + 1, 0 problemas); `patch
    toma la siguiente mejor de la familia (la Futura del sistema). Solo cambia el resultado cuando antes se dibujaba «?».
    Coste: una `CTFontCopyGraphicsFont` por emparejado (FontCache lo guarda).
 
-**Confirmado (LOCAL-14, 27-10):** la cara «Futura Book Oblique» viene de dos maletas PostScript Type 1 de Mac clásico (Adobe, 1987) en la carpeta de fuentes del usuario, con la parte de datos vacía y todo en el *resource fork*. La causa es el `file-read-xattr` que faltaba (c08792fee); ccbdf5af0 queda como red de seguridad.
+**Confirmado (LOCAL-14, 27–28-10):** la cara «Futura Book Oblique» viene de dos maletas PostScript Type 1 de Mac clásico
+(Adobe, 1987) en la carpeta de fuentes del usuario, con la parte de datos vacía y todo en el *resource fork*. Con la 1.ª
+compilación de la 2.1.1 ya no salía «?», pero `font-family: Futura` caía a **Times** (normal, cursiva y 700; 500 sí daba
+Futura-Medium); CfT 132 y la 2.1.0 dan `.LastResort` (fallo también de upstream). Lectura: `CTFontCreateWithName()` de una
+cara Type 1 que el renderer no puede cargar da un CTFont respaldado por un sustituto (Times), no por LastResort, así que
+ccbdf5af0 la aceptaba; y `file-read-xattr` (c08792fee) **no** hizo usables las Type 1. Por eso:
+- **dd784af57** revierte c08792fee (no aportaba nada demostrable y ensanchaba el sandbox).
+- **ef850e44d** sustituye la comprobación: la cara vale si el CTFont tiene el nombre PostScript pedido **y** dibuja con su
+  propia familia (familia del CTFont = familia del CTFont hecho desde su CGFont; así pasan las instancias de fuentes
+  variables, cuyo CGFont es el de la base). Si no vale, se prueban las demás caras con ese nombre (Futura-Bold está en la
+  maleta y en el .ttc) y luego el siguiente miembro de la familia, como Safari. Si ninguno vale, el resultado de la 128.
+  Esperado: normal → Futura-Medium, cursiva → Futura-MediumItalic, 700 → Futura-Bold del .ttc. Sin compilar.
 
 ~~**Para Titín (2 min, lo pide LOCAL):** en Catálogo Tipográfico, «Futura» → la cara Book Oblique → Mostrar en el Finder: ruta y
 tipo de fichero. Con eso se sabe cuál de los dos commits la arregla.~~ (resuelto arriba).
