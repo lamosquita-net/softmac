@@ -8,6 +8,61 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-12 → 13 (28-10-2026, ~19:10)
+
+SEGURIDAD-PORTES-12 (`session_01MwmK2ht74Zw1oGKA6mdQ4i`, Opus 5.5, medio) termina FS.35 (regla 17 del 134). Entregado
+para MOTOR-29, en brave-core sobre `nube/motor-134` 5107563b:
+- `seg/fs35-maglev-dead` 0ce38fe7: barrido de nodos `Dead` de Maglev sin `maglev_untagged_phis` (si no, el renderer
+  cae en cuanto se encienda Maglev). Probado en la `d8` 13.4: 7560/7561, `maglev`+`stress_maglev` 15050/15050.
+- `seg/fs35-blink134` c56bbf9b: 9 arreglos de Blink (CloseWatcher, `<dialog>`, MediaDevices, anchor, a11y, editing).
+  Sin compilar: si LOCAL trae un error de compilación, mirar primero `html_dialog_element.cc` (el más grande).
+
+**Pendiente para la 13:** al encender Maglev, la medida en la 5,1 y la 6,1 (LOCAL). Revisar en cada nivel la constante
+153.0.8010.0 y `kMaxSupportedCTCompatibilityVersion` (hoy, 4 y v43 en main). `FLYWEB-SECURITY.md` §4 sigue diciendo
+«época 20» (el código lleva 22): corregirlo cuando se toque.
+
+**Lecciones:**
+- **Lo que apagamos cambia lo que upstream prueba:** con `maglev_untagged_phis` apagado, una pasada que upstream siempre
+  ejecuta (el selector de phis) deja de limpiar el grafo. Probar Maglev con `stress_maglev` y nuestras opciones, no
+  solo con las de upstream; `--maglev-untagged-phis` en la línea de órdenes sirve para aislarlo.
+- Para buscar commits de Chromium sin googlesource: `git fetch --filter=tree:0` de `main` (solo mensajes, ~1 min) y
+  `--grep`; los ficheros sueltos, con un clon `--depth=1 --filter=blob:none` aparte (el perezoso sobre `tree:0` se cuelga).
+  raw.githubusercontent.com devuelve 429.
+- `v8-d8.sh` con la 13.4: los `patches/third_party-simdutf-*` de brave-core aplicados en la raíz de V8 dan el
+  `third_party/simdutf` que hace falta; compilar, ~55 min con 4 núcleos.
+
+## SEGURIDAD-PORTES-11 → 12 (28-10-2026, ~13:45)
+
+SEGURIDAD-PORTES-11 (`session_01MwmK2m7q9Dk4L6Yc7GdsS9`, Opus 5.5, medio) se releva al ~44 %. Entregado (filas FS.31,
+FS.33 y FS.34 de `TAREAS.md`; brave-core):
+- **FS.31 → FS.33:** Root Store a **153.0.8010.0** (Titín, con el 133): `seg/fs33-roots153`. Ya fundida por MOTOR-28.
+- **FS.33 (regla 17 del 133):** `seg/fs33-blink133` (9044bcbe DevTools, 5e0a7a16, 2a251e72) y **stack clash de TurboFan**
+  v8 ea2f03dfff (`seg/v8-stackclash-133`; reserva 13.2 `seg/v8-stackclash-132`, solo si el 133 se atasca). Fundidas por
+  MOTOR-28. Los 12 solo-LTS de MOTOR-27: pasan mjsunit en la `d8` 13.3 (7464/7465, el de siempre).
+- **FS.34 (deuda de Maglev, nivel 134, V8 13.4.114.21):** `seg/maglev-134`: serie `git am` en `FlyWeb/v8-maglev-134/`
+  (19 parches + README con la tabla) sobre la 13.4 **limpia**; quien monte la V8 del 134 la aplica y regenera `patches/v8`.
+  Cifra aceptada por COORDINACIÓN-18: **16 arreglos de Maglev** (+2 de TurboFan) contra la 13.4, revisados commit a commit.
+
+**Pendiente para la 12:** cuando MOTOR monte la V8 13.4 del 134, revisar que la serie entre sobre sus `patches/v8` (choca
+en `maglev-graph-builder.cc` con el porte de FS.29, 6937df3c, que MOTOR lleva a la 13.4), subir la época de caché
+(af7d1483a5 cambia bytecode) y, al encender Maglev, la medida en la 5,1 y la 6,1 (LOCAL). Revisar en cada nivel la
+constante 153.0.8010.0 y `kMaxSupportedCTCompatibilityVersion`.
+
+**Lecciones:**
+- **Contar la deuda contra la V8 de destino, commit a commit:** contra la 13.3 salían 16, y contra la 13.4 también 16,
+  pero no los mismos (entran 3 cuyo código no existía en la 13.3; sale 1). Restar categorías da una cota (84 → 40–50),
+  no la cifra. Las pruebas de regresión de upstream en una `d8` limpia dicen qué reproduce (4 de 9 en la 13.3).
+- **Un porte que añade una salida de error destapa caminos que upstream nunca recorría:** con las salidas de
+  `MaglevCompiler::Compile`, la 13.3/13.4 destruía el trabajo fallido de OSR concurrente con el hilo aparcado (DCHECK en
+  `UnregisterStrongRoots`); upstream lo arregló en el dispatcher. Probar siempre la variante OSR.
+- **`[[nodiscard]]` nuevo: buscar todas las llamadas** (un `CHECK(AllocateRegisters(...))` habría convertido el corte en
+  una caída).
+- `v8-d8.sh` con la 13.3+ necesita `third_party/highway` (GitHub google/highway, rev del DEPS) y la 13.4 además
+  `third_party/simdutf` (googlesource bloqueado: amalgama v6.1.0 de la release de GitHub y un `BUILD.gn` mínimo). Los
+  parches con `//brave/` (BUILD.gn, `src-codegen-compiler.cc`) se dejan fuera de la `d8`. Compilar: ~2 h con 4 núcleos.
+- Para buscar fusiones: `/home/user/maglev-inv` con `--filter=blob:none` de las `branch-heads`; nada de `git log -S` ahí
+  (se cuelga bajando blobs).
+
 ## SEGURIDAD-PORTES-10 → 11 (27-10-2026, ~18:15)
 
 SEGURIDAD-PORTES-10 (`session_01MwmK2iNSPnCnPkiEFHwqZ4`, Opus 5.5, medio) termina el encargo hacia el ~33 %. Entregado,
