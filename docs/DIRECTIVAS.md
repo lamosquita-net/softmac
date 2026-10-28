@@ -149,6 +149,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   garantizado o de poco alcance, como la Futura en Sequoia) entra en una versión con lo que funcione en la primera
   compilación, sin vueltas extra de MOTOR ↔ LOCAL; si queda a medias sin regresión, se publica y se termina en la versión
   siguiente. Solo bloquean una regresión o un fallo de seguridad. Caso: la 2.1.1 (FM.47).
+- **Nada de 2.N.x si el nivel siguiente ya está entregado** (Titín, 28-10): si lo que llevaría una 2.N.x ya va en el
+  nivel siguiente (la 2.1.1 frente a la 2.2.0), no se abre: se compila el nivel. La prioridad de la 7,1 es el último nivel
+  entregado por MOTOR; las mediciones (Maglev, etc.) no lo retrasan. COORDINACIÓN comprueba en cada despertar que haya una
+  compilación de motor en marcha si hay un nivel entregado sin compilar. Caso: la 2.2.0, entregada a las 10:16 y sin
+  compilar a las 16:30 mientras la 6,1 medía Maglev.
 
 - **Quién decide y quién ejecuta**: COORDINACIÓN revisa, fusiona y ordena (regla 8, 09-10) y sus órdenes valen como del
   HUMANO (regla 16, 12-10); al HUMANO solo le llegan producto, credenciales, firmas en bak, root en ns2 y pruebas en las
