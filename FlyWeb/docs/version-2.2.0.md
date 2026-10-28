@@ -24,6 +24,7 @@ de LOCAL (34). Inventario y decisiones: `motor-niveles.md` § «Nivel 133». Sin
 | 89978029 | `ReportEcn` y `MacImeLiveConversionFix` encendidos (mismo código en 128 y 133) | 8b7ac0ea2bd, fa3bf858457e |
 | 318ea64a | `popover=hint`, ancla implícita del invocador (`showPopover({source})`), popover dentro de su botón | 8010721fc51 … d7258369ec3 |
 | 426ed3c1 | declaración 133.0.6943.141 / 2.2.0 | — |
+| 25367508 | merge `seg/fs33-roots153` 7416f3bd: cortes del Root Store con la constante 153.0.8010.0 | FS.33 (Titín) |
 
 Sin cambio: `Sec-Fetch-Storage-Access` ya está apagado en la red de la 128 (`kStorageAccessHeaders`); la decisión de Titín
 solo importa si algún día se porta. `kUseBrowserCalculatedOrigin` no existe en la 128: no se porta.
