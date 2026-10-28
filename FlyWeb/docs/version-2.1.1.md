@@ -1,6 +1,6 @@
 # FlyWeb 2.1.1 — motor 132, seguridad y escapes (FM.48)
 
-MOTOR-26, 27-10-2026. brave-core **`nube/motor-211` 33a978bdb9** (sin compilar; en la nube no hay checkout). Base: la 2.1.0
+MOTOR-26, 27-10-2026. brave-core **`nube/motor-211` 33a978bdb9**; sobre ella, LOCAL-14 `local/2.1.1-arreglos` **7078c241** (`root_store_tool.cc`: `std::string` de `permitted_dns_names` de FS.31 a `StringAppendF` con `.c_str()`, `-Wnon-pod-varargs`) y MOTOR-26 **`nube/motor-211b` b745a4473c** (28-10, safe-overflow 002/005, abajo). Base: la 2.1.0
 publicada (`local/2.1.0-arreglos` 5f2c1e51 = `nube/motor-132` 78eb79e8 + 843cac4f + 5f2c1e51). `flyweb_version` 2.1.1;
 `FLYWEB_BUILD_NUMBER` **33**. Motor declarado sin cambios (132.0.6834.160, V8 13.2.152.56).
 
@@ -22,6 +22,8 @@ publicada (`local/2.1.0-arreglos` 5f2c1e51 = `nube/motor-132` 78eb79e8 + 843cac4
 | ccbdf5af0 | FM.47: el emparejado por familia descarta las caras que el renderer no puede cargar | propio |
 | df2495f40 | versión 2.1.1 | — |
 | 33a978bdb | merge `local/2.1.0-arreglos` 5f2c1e51 (`<progress>` vertical) | LOCAL-13 |
+| 7078c241f | `root_store_tool.cc`: `.c_str()` en `StringAppendF` (único error de la 1.ª Release) | LOCAL-14 |
+| b745a4473 | flex: `AlignFlexLines()` ya no sale antes de tiempo con `safe flex-start` (002/005 fallaban: la salida temprana de la 128 para `flex-start` sin hueco se saltaba el arreglo de 9a0e2d945) | propio |
 
 Los merges de FS.29–31 entraron sin conflictos (no comparten ficheros con 843cac4f). Todos los parches cambiados desde
 la 2.1.0 aplican sobre 128.0.6613.138 (`chk128.sh`: 30 + 1, 0 problemas); `patches/v8` como lo dejó SEGURIDAD-PORTES-10.
@@ -40,7 +42,7 @@ la 2.1.0 aplican sobre 128.0.6613.138 (`chk128.sh`: 30 + 1, 0 problemas); `patch
 
 | WPT | Arreglo |
 |---|---|
-| `css-flexbox/flexbox-safe-overflow-position-002…005` | 9a0e2d945. Upstream lo hace dentro de una serie de refactor (572789ee61c, 3d8a356e8d5, 6c616ac76fb, c5603051333, 8543c83fc67) con 22 rechazos sobre la 128; se porta solo la conducta: con espacio libre negativo y `safe`, la posición pasa a `start` dentro de `InitialContentPositionOffset` de la 128 (que ya traduce `start` con dirección invertida y la vuelta de wrap-reverse). `-webkit-box` sigue como en la 128. |
+| `css-flexbox/flexbox-safe-overflow-position-002…005` | 9a0e2d945 + b745a4473 (eje transversal: LOCAL-14 vio 002/005 en rojo con solo el primero). Upstream lo hace dentro de una serie de refactor (572789ee61c, 3d8a356e8d5, 6c616ac76fb, c5603051333, 8543c83fc67) con 22 rechazos sobre la 128; se porta solo la conducta: con espacio libre negativo y `safe`, la posición pasa a `start` dentro de `InitialContentPositionOffset` de la 128 (que ya traduce `start` con dirección invertida y la vuelta de wrap-reverse). `-webkit-box` sigue como en la 128. |
 | `flex-item-max-height-min-content`, `flex-item-max-width-min-content` | f1cb7e815. Upstream b534cd43421 depende de la función de tamaño de bloque con `SizeType` (agosto de 2024, era calc-size), que la 128 no tiene. Adaptado: el `max-*` intrínseco en el eje principal se resuelve con el `IntrinsicBlockSizeFunc` de la 128. Lo de `min-*` ya funcionaba por el camino de min-size:auto de la 128; el eje cruzado se queda como en la 128. |
 | `flexbox/baseline-outside-flex-item` | fe1b321d5 (0cc960d7c22, un hunk aplicado a mano por desplazamiento). |
 | `dir-auto-dynamic-changes.window.js` (slot) | 2b0689190 (0490d2ee3aa). |
@@ -73,8 +75,10 @@ la 2.1.0 aplican sobre 128.0.6613.138 (`chk128.sh`: 30 + 1, 0 problemas); `patch
    toma la siguiente mejor de la familia (la Futura del sistema). Solo cambia el resultado cuando antes se dibujaba «?».
    Coste: una `CTFontCopyGraphicsFont` por emparejado (FontCache lo guarda).
 
-**Para Titín (2 min, lo pide LOCAL):** en Catálogo Tipográfico, «Futura» → la cara Book Oblique → Mostrar en el Finder: ruta y
-tipo de fichero. Con eso se sabe cuál de los dos commits la arregla.
+**Confirmado (LOCAL-14, 27-10):** la cara «Futura Book Oblique» viene de dos maletas PostScript Type 1 de Mac clásico (Adobe, 1987) en la carpeta de fuentes del usuario, con la parte de datos vacía y todo en el *resource fork*. La causa es el `file-read-xattr` que faltaba (c08792fee); ccbdf5af0 queda como red de seguridad.
+
+~~**Para Titín (2 min, lo pide LOCAL):** en Catálogo Tipográfico, «Futura» → la cara Book Oblique → Mostrar en el Finder: ruta y
+tipo de fichero. Con eso se sabe cuál de los dos commits la arregla.~~ (resuelto arriba).
 
 ## Pruebas para LOCAL
 
