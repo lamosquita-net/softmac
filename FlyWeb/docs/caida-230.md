@@ -75,3 +75,30 @@ Portar lo que hizo Chromium al pasar a V8 13.4: quitar `[NoAllocDirectCall]` de 
 número de argumentos (o dejar una sola variante rápida por operación) en `modules/webgl/*.idl`. No relajar el CHECK
 de V8. Después, comprobar con `webgl-l14.html` (`webgl` y `webgl2`) y la prueba de humo: claude.ai, GitHub, YouTube
 y Wikipedia en la 7,1 y la 6,1.
+
+## Después del arreglo de WebGL (fa6ccf3c76): segunda caída, solo en Mojave
+
+**7,1 (macOS 15):** humo de WebGL 15/15 bien (`webgl-humo-l14.html`, `webgl` y `webgl2`, `uniform*v` en sus dos
+formas); claude.ai, GitHub, YouTube y Wikipedia cargan sin «Target crashed».
+
+**6,1 (Mojave 10.14.6, FirePro D500), 29-10 00:41:** WebGL bien (`2d`, `webgl`, `webgl2` y humo con «hecho 0 fallos»,
+un solo proceso GPU), pero **Wikipedia, YouTube, GitHub y claude.ai caen a los 1,5–4,6 s**; example.com (sin JS) no.
+Cae igual con `--js-flags=--jitless` (no es el JIT ni AVX2); con `--no-maglev` cae GitHub.
+
+Volcados de Crashpad de la 6,1 (`~/Library/Application Support/LaMosquita/FlyWeb/Crashpad/pending`), leídos en la 7,1:
+`EXC_CRASH` de `EXC_BAD_INSTRUCTION`/SIGILL, rip en `_sigtramp` de libsystem_platform, hilos de V8 (Scavenger,
+BackgroundCompileTask) y el mensaje de libplatform en el volcado:
+
+```
+BUG IN CLIENT OF LIBPLATFORM: Invalid options
+```
+
+**Causa:** `v8/src/base/platform/mutex.cc` de V8 13.4 (4fad600bd5 «[mutex] Readd adaptive spin», dic. 2024) bloquea
+`SpinningMutex` con `os_unfair_lock_lock_with_options(…, OS_UNFAIR_LOCK_DATA_SYNCHRONIZATION | OS_UNFAIR_LOCK_ADAPTIVE_SPIN)`
+si el símbolo débil existe. En 10.14 existe, pero `OS_UNFAIR_LOCK_ADAPTIVE_SPIN` es de 10.15: libplatform lo rechaza
+con una trampa. Chromium 134 ya no admite 10.14/10.15, por eso no lo protege. En la 7,1 no se ve.
+
+**Arreglo (LOCAL-14, brave-core `local/2.3.0-mojave` 479bcaf1e2 = fa6ccf3c76 + un parche):**
+`patches/v8/src-base-platform-mutex.cc.patch`: antes de macOS 10.15 (`__builtin_available`), `os_unfair_lock_lock`
+sin opciones. Para MOTOR: llevarlo a `nube/motor-134` y revisar en cada V8 nuevo cualquier API o opción de 10.15+
+que solo se compruebe con un símbolo débil.
