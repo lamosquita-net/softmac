@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 134 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 134 de FlyWeb 2.3 (brave-core nube/motor-134, V8 13.4).
+     Abrir en FlyWeb desde http://127.0.0.1; no carga nada de fuera. Cada línea dice ok o FALLO.
+     Comparar con Chrome for Testing 134: lo que allí sale ok tiene que salir ok aquí, salvo la versión declarada. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  /* HighlightInheritance: ::selection hereda de ::selection del padre */
+  #hl { --c: rgb(0, 128, 0); }
+  #hl::selection { color: var(--c); }
+  #hl-hijo::selection { background: yellow; }
+</style>
+</head>
+<body>
+<h1>Motor 134 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>A mano</h2>
+<ol>
+  <li>Pulsar «Abrir diálogo» y luego fuera del diálogo (sobre el fondo oscuro): se cierra solo
+    (<code>&lt;dialog closedby="any"&gt;</code>). Con «Abrir diálogo sin cierre» no se cierra al pulsar fuera ni con Esc.</li>
+  <li>Seleccionar el texto «heredado»: sale en verde con fondo amarillo (la selección del hijo hereda el color de la del padre).</li>
+</ol>
+<p><button id="abrir">Abrir diálogo</button> <button id="abrir2">Abrir diálogo sin cierre</button></p>
+<dialog id="dlg" closedby="any">Pulsa fuera para cerrar. <button id="rc">requestClose()</button></dialog>
+<dialog id="dlg2" closedby="none">Este solo se cierra con el botón. <button id="cerrar2">Cerrar</button></dialog>
+<p id="hl">texto <span id="hl-hijo">heredado</span></p>
+<script>
+  const res = document.getElementById('res');
+  const pinta = (li, nombre, ok, nota) => { li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : ''); };
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li'); res.append(li); pinta(li, nombre, ok, nota);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    pinta(li, nombre, ok, nota);
+  };
+  const cs = (sel, prop, pseudo) => getComputedStyle(document.querySelector(sel), pseudo).getPropertyValue(prop);
+  document.getElementById('ua').textContent = navigator.userAgent;
+
+  // <dialog closedby> y requestClose() (HTMLDialogLightDismiss)
+  const dlg = document.getElementById('dlg'), dlg2 = document.getElementById('dlg2');
+  prueba('dialog.closedBy refleja el atributo (any, none, closerequest)', () => {
+    const d = document.createElement('dialog'); d.setAttribute('closedby', 'closerequest');
+    return { ok: dlg.closedBy === 'any' && dlg2.closedBy === 'none' && 'requestClose' in d && d.closedBy === 'closerequest',
+      nota: `${dlg.closedBy}, ${dlg2.closedBy}, nuevo: ${d.closedBy}` };
+  });
+  pruebaAsync('requestClose() dispara cancel y cierra con el valor dado', async () => {
+    const d = document.createElement('dialog'); d.setAttribute('closedby', 'closerequest'); document.body.append(d);
+    let cancel = false; d.oncancel = () => { cancel = true; };
+    d.showModal(); d.requestClose('vale');
+    await new Promise((r) => setTimeout(r, 50));
+    const ok = !d.open && cancel && d.returnValue === 'vale'; const nota = `open=${d.open}, cancel=${cancel}, «${d.returnValue}»`; d.remove();
+    return { ok, nota };
+  });
+  prueba('CloseWatcher.requestClose() existe', () => typeof CloseWatcher === 'function' && 'requestClose' in CloseWatcher.prototype);
+  document.getElementById('abrir').onclick = () => dlg.showModal();
+  document.getElementById('abrir2').onclick = () => dlg2.showModal();
+  document.getElementById('rc').onclick = () => dlg.requestClose();
+  document.getElementById('cerrar2').onclick = () => dlg2.close();
+
+  // CSSFontFeatureValuesRule en window (ExposeCSSFontFeatureValuesRule)
+  prueba('CSSFontFeatureValuesRule está en window y en las reglas', () => {
+    const st = new CSSStyleSheet(); st.replaceSync('@font-feature-values Fuente { @swash { florido: 1; } }');
+    return { ok: typeof CSSFontFeatureValuesRule === 'function' && st.cssRules[0] instanceof CSSFontFeatureValuesRule,
+      nota: typeof CSSFontFeatureValuesRule };
+  });
+
+  // OffscreenCanvasRenderingContext2D.getContextAttributes (OffscreenCanvasGetContextAttributes)
+  prueba('OffscreenCanvas 2D: getContextAttributes()', () => {
+    const c = new OffscreenCanvas(4, 4).getContext('2d', { alpha: false, willReadFrequently: true });
+    const a = c.getContextAttributes();
+    return { ok: a.alpha === false && a.colorSpace === 'srgb' && a.willReadFrequently === true,
+      nota: JSON.stringify(a) };
+  });
+
+  // HighlightInheritance
+  prueba('::selection hereda del ::selection del padre (HighlightInheritance)', () => {
+    const c = cs('#hl-hijo', 'color', '::selection');
+    return { ok: c === 'rgb(0, 128, 0)', nota: c };
+  });
+
+  // Versión declarada
+  prueba('User-Agent declara Chrome/134', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '134', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+  pruebaAsync('Client hints: 134.0.6998.166 y macOS ≥ 11', async () => {
+    const h = await navigator.userAgentData.getHighEntropyValues(['uaFullVersion', 'platformVersion', 'fullVersionList']);
+    const mayor = parseInt(h.platformVersion, 10);
+    const cr = (h.fullVersionList || []).find((b) => b.brand === 'Chromium');
+    return { ok: h.uaFullVersion === '134.0.6998.166' && mayor >= 11 && !!cr && cr.version === '134.0.6998.166',
+      nota: `${h.uaFullVersion}, macOS ${h.platformVersion}, ${JSON.stringify(navigator.userAgentData.brands)}` };
+  });
+</script>
+<p>No se ve desde una página y lo comprueba LOCAL: Maglev sigue apagado (su deuda ya está en <code>patches/v8</code>; se
+enciende tras medir en la 5,1 y la 6,1), V8 13.4 con mjsunit, la huella de red igual que la del 133 (JA4) y que simdutf
+elige su versión sin AVX en la 5,1. Las correcciones de editing del 134 (listas, pegar, saltos de párrafo) no tienen prueba
+aquí: van en las WPT de <code>editing/</code>.</p>
+</body>
+</html>
