@@ -45,8 +45,9 @@ saltaba el CHECK de V8 13.4 en `FunctionTemplate::NewWithCFunctionOverloads` (c4
 sobrecargas de la API rápida se distinguen solo por número de argumentos). Los IDL de WebGL de la 128 llevan
 `[NoAllocDirectCall]` en pares `Float32Array`/`sequence<>` de igual aridad. Arreglo **fa6ccf3c76** (MOTOR-30): se quita el
 atributo de los 30 grupos sobrecargados (`uniform*v`, `uniformMatrix*fv`, `vertexAttrib*fv`, `vertexAttribI4*v`,
-`clearBuffer*v`); Chromium 134 los fundió en uniones `Float32List`/`Int32List`/`Uint32List` (port mayor, para un nivel
-posterior si hace falta la llamada rápida). Ningún otro IDL de la 128 tiene sobrecargas con el atributo. Descartada
+`clearBuffer*v`). Arreglo de upstream: **89faaa39fb47** (M130; generador de bindings con `[PassAsSpan]` en uniones y
+IDL de WebGL con `Float32List`/`Int32List`/`Uint32List`, que conserva las llamadas rápidas), portado en
+`nube/motor-134-webgl-up` **8eeb795e9e** (sobre fa6ccf3c76; aplica limpio sobre la 128), pendiente de compilar. Ningún otro IDL de la 128 tiene sobrecargas con el atributo. Descartada
 `nube/motor-134-scopeinfo` 784d9670b9 (`reuse_scope_infos`), no se compila.
 
 ## Dónde puede fallar la compilación
