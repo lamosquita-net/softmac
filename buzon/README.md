@@ -9,7 +9,9 @@ Rama `buzon` de softmac (pública: **nada de datos personales, hosts ni IP**). M
 - Push directo a `buzon` (sin PR). Antes, `git pull --rebase origin buzon`.
 
 ## Para el CARTERO (CARTERO-LOCAL, en la MacPro7,1; decisión de Titín, 21-10)
-Haiku, esfuerzo bajo; lo abre Titín. Cada 30 min:
+Haiku, esfuerzo bajo; lo abre Titín. **Desde el 28-10 (COORDINACIÓN-19, con Titín): vigilante en segundo plano** (Monitor) sobre
+un clon de `buzon` que mira cada 120 s y solo despierta al cartero cuando hay ficheros sin anotar; sin cron. Probado:
+entrega en ~2,5 min (19:22 → 19:25 UTC). COORDINACIÓN da por caído al cartero si hay ficheros de más de 45 min sin anotar. En cada pasada:
 1. `git fetch origin buzon main` y lista los ficheros de `buzon/*/` que no estén en `buzon/ENTREGADO.md`.
 2. Para cada uno: busca la sesión activa del DESTINO en la tabla de agentes de `docs/TAREAS.md` de `main` y mándale con
    `SendMessage` (misma Mac, `ListAgents` para el nombre) el contenido tal cual, empezando por
