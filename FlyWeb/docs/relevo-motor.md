@@ -3,7 +3,7 @@
 MOTOR-27 (`session_01MwmK2iYNS9JSPLVcpxc8mM`, Opus 5.5, medio; ~25 %, 11,7 $) hizo el inventario del 133 (`motor-niveles.md`
 § «Nivel 133», decisiones de COORDINACIÓN-18 en la fila FM.49) y la primera parte del porte. Detalle: `version-2.2.0.md`.
 
-**Cabeza: brave-core `nube/motor-133` 426ed3c1** (15 commits sobre ef850e44, cabeza de la 2.1.1). Sin orden a LOCAL todavía:
+**Cabeza: brave-core `nube/motor-133` 25367508** (15 commits sobre ef850e44, cabeza de la 2.1.1, + merge de `seg/fs33-roots153` 7416f3bd: constante del Root Store a 153.0.8010.0, decisión de Titín). **Pendiente de fundir:** el porte a la 13.3 de v8 ea2f03dfff (stack clash, crbug 574660146) cuando SEGURIDAD-PORTES-11 pase la rama. Titín: `Sec-Fetch-Storage-Access` apagada (definitivo; ya lo está en la red de la 128). Sin orden a LOCAL todavía:
 se puede reescribir si hace falta, pero mejor encima. SEGURIDAD-PORTES-11 pone `seg/maglev-134` sobre a833b085 (V8).
 
 **Lo que queda, en este orden** (decisiones de COORDINACIÓN-18): (1) `ClipboardItem` con `Promise<string>` (d72d71316f2,
