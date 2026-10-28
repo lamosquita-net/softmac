@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>BackupDrive, propuesta de interfaz</title>
+<style>
+/* Maqueta navegable. Capa: página (mapa + selector de pantallas) > ventana de macOS simulada > contenido.
+   Todo lo marcado «ejemplo» son datos inventados. Los iconos son provisionales: los sustituye Titín. */
+:root {
+  --page: #e9eaee; --win: #fbfbfc; --side: #eef0f4; --card: #ffffff; --line: #d9dce3;
+  --fg: #1d2330; --muted: #5d6676; --accent: #1f6feb; --accent-fg: #ffffff; --accent-soft: #e4eeff;
+  --ok: #1a7f4b; --ok-soft: #dff3e8; --warn: #9a5b00; --warn-soft: #fff0d2; --bad: #b3261e; --bad-soft: #fde4e1;
+  --shadow: 0 10px 30px rgba(20,28,46,.18), 0 1px 0 rgba(20,28,46,.06);
+  --bar: #d9dbe1; --bar-fg: #20252f;
+  --font: -apple-system, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #14171d; --win: #23272f; --side: #1c1f26; --card: #2b303a; --line: #3a404c;
+    --fg: #eceff5; --muted: #a2abbb; --accent: #5b9bff; --accent-fg: #0b1220; --accent-soft: #1f3050;
+    --ok: #55c78a; --ok-soft: #1c3a2b; --warn: #f0b252; --warn-soft: #3d2f12; --bad: #ff8a80; --bad-soft: #442220;
+    --shadow: 0 10px 30px rgba(0,0,0,.5); --bar: #2f343e; --bar-fg: #e6e9f0; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #14171d; --win: #23272f; --side: #1c1f26; --card: #2b303a; --line: #3a404c;
+  --fg: #eceff5; --muted: #a2abbb; --accent: #5b9bff; --accent-fg: #0b1220; --accent-soft: #1f3050;
+  --ok: #55c78a; --ok-soft: #1c3a2b; --warn: #f0b252; --warn-soft: #3d2f12; --bad: #ff8a80; --bad-soft: #442220;
+  --shadow: 0 10px 30px rgba(0,0,0,.5); --bar: #2f343e; --bar-fg: #e6e9f0; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.45;
+  padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 28px; }
+h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -.01em; text-wrap: balance; }
+h2 { font-size: 17px; margin: 0 0 10px; text-wrap: balance; }
+h3 { font-size: 14px; margin: 0 0 6px; }
+p { margin: 0 0 8px; }
+.lead { color: var(--muted); max-width: 70ch; }
+.note { background: var(--warn-soft); color: var(--fg); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+.note b { color: var(--warn); }
+section.panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.arch { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 12px; }
+.arch > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--win); min-width: 0; }
+.arch b { display: block; margin-bottom: 2px; }
+.arch span { color: var(--muted); font-size: 13px; }
+pre.mermaid { background: var(--win); border: 1px solid var(--line); border-radius: 10px; padding: 12px; overflow-x: auto; margin: 0; }
+
+/* selector de pantallas */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button, .seg button { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--fg); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.tabs button[aria-pressed="true"], .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 12px; }
+.seg small { color: var(--muted); }
+.stage { display: grid; gap: 12px; }
+.screen[hidden] { display: none; }
+
+/* ventana de macOS simulada */
+.win { background: var(--win); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; max-width: 940px; margin: 0 auto; width: 100%; }
+.titlebar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bar); color: var(--bar-fg); font-weight: 600; font-size: 13px; }
+.lights { display: flex; gap: 7px; }
+.lights i { width: 12px; height: 12px; border-radius: 50%; display: block; background: #ff5f57; }
+.lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+.titlebar .t { flex: 1; text-align: center; padding-right: 50px; }
+.split { display: grid; grid-template-columns: 190px minmax(0, 1fr); min-height: 460px; }
+.side { background: var(--side); border-right: 1px solid var(--line); padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; }
+.side .grp { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 8px 8px 4px; }
+.side button { font: inherit; text-align: left; border: 0; background: transparent; color: var(--fg); padding: 6px 8px; border-radius: 6px; display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.side button[aria-current="true"] { background: var(--accent-soft); color: var(--fg); font-weight: 600; }
+.side .grow { flex: 1; }
+.main { padding: 18px 20px; min-width: 0; }
+.ico { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 640px) {
+  .split { grid-template-columns: 1fr; }
+  .side { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--line); }
+  .side .grp, .side .grow { display: none; }
+}
+
+/* elementos de interfaz */
+.banner { display: flex; gap: 14px; align-items: center; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; flex-wrap: wrap; }
+.banner .big { font-size: 18px; font-weight: 650; }
+.banner .sub { color: var(--muted); font-size: 13px; }
+.banner > .txt { flex: 1; min-width: 200px; }
+.b-ok { background: var(--ok-soft); } .b-warn { background: var(--warn-soft); } .b-bad { background: var(--bad-soft); } .b-off { background: var(--side); }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; background: var(--ok); }
+.b-warn .dot { background: var(--warn); } .b-bad .dot { background: var(--bad); } .b-off .dot { background: var(--muted); }
+.btn { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--fg); border-radius: 7px; padding: 5px 12px; cursor: pointer; }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.btn.dng { color: var(--bad); }
+.btn[disabled] { opacity: .5; cursor: default; }
+.row { display: flex; gap: 12px; align-items: center; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); margin-bottom: 8px; flex-wrap: wrap; }
+.row .grow { flex: 1; min-width: 160px; }
+.row .name { font-weight: 600; }
+.row .path { color: var(--muted); font-size: 12px; font-family: var(--mono); overflow-wrap: anywhere; }
+.pill { display: inline-block; font-size: 12px; border-radius: 99px; padding: 2px 9px; background: var(--ok-soft); color: var(--ok); font-weight: 600; white-space: nowrap; }
+.pill.w { background: var(--warn-soft); color: var(--warn); } .pill.b { background: var(--bad-soft); color: var(--bad); } .pill.n { background: var(--side); color: var(--muted); }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.toast { position: sticky; bottom: 8px; margin-top: 10px; background: var(--fg); color: var(--win); border-radius: 8px; padding: 8px 12px; font-size: 13px; width: fit-content; max-width: 100%; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; }
+.tablewrap { overflow-x: auto; }
+label.field { display: grid; gap: 4px; margin-bottom: 12px; font-weight: 600; }
+label.field small { font-weight: 400; color: var(--muted); }
+input[type=text], select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--fg); width: 100%; max-width: 380px; }
+.check { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 10px; }
+.check input { margin-top: 3px; }
+.check small { color: var(--muted); display: block; }
+.steps { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.steps span { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--side); color: var(--muted); }
+.steps span.on { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.steps span.done { background: var(--ok-soft); color: var(--ok); }
+.tree { border: 1px solid var(--line); border-radius: 8px; background: var(--card); max-width: 420px; }
+.tree label { display: flex; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.tree label:last-child { border-bottom: 0; }
+.prefs-tabs { display: flex; gap: 4px; justify-content: center; padding: 8px; background: var(--bar); flex-wrap: wrap; }
+.prefs-tabs button { font: inherit; border: 0; background: transparent; color: var(--bar-fg); border-radius: 7px; padding: 6px 14px; cursor: pointer; display: grid; gap: 2px; justify-items: center; font-size: 12px; }
+.prefs-tabs button[aria-pressed="true"] { background: var(--accent-soft); font-weight: 600; }
+.menubar { background: var(--bar); color: var(--bar-fg); border-radius: 8px 8px 0 0; padding: 4px 10px; display: flex; gap: 14px; align-items: center; font-size: 13px; max-width: 520px; margin-left: auto; }
+.menubar .sp { flex: 1; }
+.pop { background: var(--win); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); width: min(100%, 340px); margin-left: auto; padding: 6px 0; }
+.pop .it { padding: 5px 14px; display: flex; justify-content: space-between; gap: 10px; }
+.pop .it.h { color: var(--muted); font-size: 12px; }
+.pop .it.a { cursor: pointer; } .pop .it.a:hover { background: var(--accent-soft); }
+.pop hr { border: 0; border-top: 1px solid var(--line); margin: 5px 0; }
+.legend { color: var(--muted); font-size: 12px; }
+.slider { display: flex; gap: 10px; align-items: center; max-width: 380px; }
+.slider input { flex: 1; }
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <h1>BackupDrive, propuesta de interfaz</h1>
+    <p class="lead">Maqueta navegable del flujo completo: sin terminal para quien lo use, con todo lanzable y configurable por línea de órdenes para quien quiera. Los textos, los datos y los iconos son provisionales; el objetivo es acordar el flujo y la arquitectura antes de diseñar el detalle.</p>
+  </header>
+
+  <section class="panel">
+    <h2>Arquitectura: cuatro superficies</h2>
+    <p class="lead">La app de barra de menús se queda como puerta de entrada y se añaden dos ventanas y un asistente. El motor sigue siendo el guion <code>backupdrive-sync.sh</code>: la interfaz solo lo lanza y lee <code>status.json</code>. Nada nuevo en el motor.</p>
+    <div class="arch">
+      <div><b>1. Menú de la barra</b><span>Estado de un vistazo, «Sincronizar ahora», pausar, abrir la ventana. Ya existe; se simplifica.</span></div>
+      <div><b>2. Ventana principal</b><span>Inicio (estado y carpetas), Versiones (recuperar) y Actividad (registro legible). Es lo nuevo más importante.</span></div>
+      <div><b>3. Asistente de conexión</b><span>Conectar con Google y añadir una carpeta con selector, simulación y primera copia. Es la tarea B.6.</span></div>
+      <div><b>4. Preferencias</b><span>Ventana estándar de macOS (Cmd+,) con pestañas: General, Carpetas, Protección, Avisos, Avanzado.</span></div>
+    </div>
+    <h3 style="margin-top:16px">Flujo</h3>
+    <pre class="mermaid">
+flowchart TD
+  A["Primer arranque"] --> B{"¿Hay cuenta de Google?"}
+  B -- "No" --> C["Asistente: conectar con Google"]
+  B -- "Sí" --> H["Ventana principal: Inicio"]
+  C --> D["Asistente: elegir carpeta del Mac"]
+  D --> E["Asistente: elegir carpeta de Drive"]
+  E --> F["Simulación: qué se copiaría"]
+  F --> G["Primera sincronización"]
+  G --> H
+  H --> I["Carpeta con aviso"]
+  I --> J["Frenado por seguridad: revisar y decidir"]
+  I --> K["Conflicto: elegir con qué versión quedarse"]
+  H --> L["Versiones: recuperar un fichero"]
+  H --> M["Preferencias"]
+  N["Icono de la barra"] --> H
+  N --> O["Sincronizar ahora"]
+    </pre>
+  </section>
+
+  <section class="panel">
+    <h2>Pantallas</h2>
+    <div class="tabs" role="group" aria-label="Pantalla">
+      <button data-go="barra" aria-pressed="true">Menú de la barra</button>
+      <button data-go="inicio">Inicio</button>
+      <button data-go="versiones">Versiones</button>
+      <button data-go="asistente">Asistente de conexión</button>
+      <button data-go="preferencias">Preferencias</button>
+    </div>
+    <div class="stage" style="margin-top:14px">
+
+      <!-- 1. MENÚ DE LA BARRA -->
+      <div class="screen" id="s-barra">
+        <div class="seg" role="group" aria-label="Estado del menú">
+          <small>Estado:</small>
+          <button data-pop="ok" aria-pressed="true">Todo al día</button>
+          <button data-pop="sync" aria-pressed="false">Sincronizando</button>
+          <button data-pop="warn" aria-pressed="false">Necesita atención</button>
+        </div>
+        <div class="menubar"><span>BackupDrive</span><span class="sp"></span><span id="popIcon">● icono (provisional)</span><span>Lun 10:42</span></div>
+        <div class="pop" id="pop" role="menu" aria-label="Menú de BackupDrive"></div>
+        <p class="legend" style="margin-top:8px">El menú se queda corto a propósito: lo que requiere decidir algo se hace en la ventana principal. Cuando algo necesita atención, la primera línea lo dice y lleva a la pantalla correcta.</p>
+      </div>
+
+      <!-- 2. INICIO -->
+      <div class="screen" id="s-inicio" hidden>
+        <div class="seg" role="group" aria-label="Estado de la ventana">
+          <small>Estado de ejemplo:</small>
+          <button data-st="ok" aria-pressed="true">Todo al día</button>
+          <button data-st="conf" aria-pressed="false">Conflictos</button>
+          <button data-st="stop" aria-pressed="false">Frenado</button>
+          <button data-st="off" aria-pressed="false">Sin conectar</button>
+        </div>
+        <div class="win">
+          <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><div class="t">BackupDrive</div></div>
+          <div class="split">
+            <nav class="side" aria-label="Secciones">
+              <div class="grp">Copia</div>
+              <button aria-current="true"><svg class="ico" viewBox="0 0 16 16"><path d="M2 7l6-5 6 5v7H2z"/></svg>Inicio</button>
+              <button data-go="versiones"><svg class="ico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>Versiones</button>
+              <button><svg class="ico" viewBox="0 0 16 16"><path d="M3 3h10M3 8h10M3 13h6"/></svg>Actividad</button>
+              <div class="grow"></div>
+              <button data-go="preferencias"><svg class="ico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2"/></svg>Preferencias…</button>
+            </nav>
+            <div class="main" id="inicioMain"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. VERSIONES -->
+      <div class="screen" id="s-versiones" hidden>
+        <div class="win">
+          <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><div class="t">BackupDrive · Versiones</div></div>
+          <div class="split">
+            <nav class="side" aria-label="Secciones">
+              <div class="grp">Copia</div>
+              <button data-go="inicio"><svg class="ico" viewBox="0 0 16 16"><path d="M2 7l6-5 6 5v7H2z"/></svg>Inicio</button>
+              <button aria-current="true"><svg class="ico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>Versiones</button>
+              <button><svg class="ico" viewBox="0 0 16 16"><path d="M3 3h10M3 8h10M3 13h6"/></svg>Actividad</button>
+              <div class="grow"></div>
+              <button data-go="preferencias"><svg class="ico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2"/></svg>Preferencias…</button>
+            </nav>
+            <div class="main">
+              <h2>Recuperar un fichero</h2>
+              <div class="seg" role="group" aria-label="Filtro">
+                <button data-vf="all" aria-pressed="true">Todas</button>
+                <button data-vf="del" aria-pressed="false">Borrados</button>
+                <button data-vf="con" aria-pressed="false">Conflictos</button>
+                <button data-vf="edit" aria-pressed="false">Sobrescritos</button>
+              </div>
+              <div class="tablewrap">
+                <table>
+                  <thead><tr><th>Fichero</th><th>Qué pasó</th><th>Guardado</th><th>Caduca</th><th></th></tr></thead>
+                  <tbody id="vers"></tbody>
+                </table>
+              </div>
+              <p class="legend" style="margin-top:10px">Ejemplo. «Restaurar» devuelve el fichero a su sitio; si ya hay uno con ese nombre, guarda el actual como otra versión, así que nada se pierde al restaurar. Las versiones caducan a los 90 días (se cambia en Preferencias).</p>
+              <div class="toast" id="vtoast" hidden></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. ASISTENTE -->
+      <div class="screen" id="s-asistente" hidden>
+        <div class="win" style="max-width:720px">
+          <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><div class="t">Añadir una carpeta a la copia</div></div>
+          <div class="main" style="min-height:400px">
+            <div class="steps" id="steps"></div>
+            <div id="wiz"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. PREFERENCIAS -->
+      <div class="screen" id="s-preferencias" hidden>
+        <div class="win" style="max-width:720px">
+          <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><div class="t" id="prefTitle">Preferencias · General</div></div>
+          <div class="prefs-tabs" role="group" aria-label="Preferencias">
+            <button data-pt="General" aria-pressed="true">General</button>
+            <button data-pt="Carpetas" aria-pressed="false">Carpetas</button>
+            <button data-pt="Protección" aria-pressed="false">Protección</button>
+            <button data-pt="Avisos" aria-pressed="false">Avisos</button>
+            <button data-pt="Avanzado" aria-pressed="false">Avanzado</button>
+          </div>
+          <div class="main" id="prefMain" style="min-height:360px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Decisiones que necesito de ti</h2>
+    <div class="grid2">
+      <div class="note"><b>Cuenta de Google.</b> Con la clave compartida de rclone la conexión es de un clic, pero fue lenta (40 ficheros, casi 4 minutos). Con clave propia hay que dar de alta la aplicación en Google Cloud una vez. Propuesta: asistente de un clic por defecto y la clave propia en Avanzado.</div>
+      <div class="note"><b>Cuánto se enseña.</b> Los frenos y los conflictos asustan si salen sin contexto. Propuesta: lenguaje llano y siempre un botón «Ver qué cambia» antes de «Continuar de todos modos».</div>
+      <div class="note"><b>Versiones.</b> ¿Quieres poder restaurar desde la app, o basta con abrir la carpeta de versiones en el Finder? La primera opción es más trabajo, pero es lo que hace visible «nunca perder nada».</div>
+      <div class="note"><b>Icono.</b> Todos los iconos de la maqueta son provisionales y sin mosca. Las pantallas no dependen de ellos: se cambian sin tocar el diseño.</div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var SCREENS = ['barra', 'inicio', 'versiones', 'asistente', 'preferencias'];
+
+  function go(name) {
+    if (SCREENS.indexOf(name) < 0) name = 'barra';
+    SCREENS.forEach(function (s) { $('#s-' + s).hidden = s !== name; });
+    $$('.tabs button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.go === name)); });
+    try { if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name); } catch (e) {}
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-go]');
+    if (t) { go(t.dataset.go); }
+  });
+  window.addEventListener('hashchange', function () { go(location.hash.slice(1)); });
+
+  function seg(attr, group, cb) {
+    $$('[' + attr + ']').forEach(function (b) {
+      b.addEventListener('click', function () {
+        $$('[' + attr + ']').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+        cb(b.getAttribute(attr));
+      });
+    });
+  }
+
+  /* ---- 1. menú de la barra ---- */
+  var POP = {
+    ok: { icon: '● al día', head: 'Todo al día · hace 12 min', items: [['Proyectos', '✓'], ['Fotos', '✓'], ['Manuales', '✓']] },
+    sync: { icon: '◐ sincronizando', head: 'Sincronizando… Fotos (12 de 40)', items: [['Proyectos', '✓'], ['Fotos', '◐'], ['Manuales', '✓']] },
+    warn: { icon: '▲ atención', head: '1 carpeta necesita que la revises', items: [['Proyectos', '✓'], ['Fotos', '▲ frenada por seguridad'], ['Manuales', '✓']] }
+  };
+  function renderPop(k) {
+    var p = POP[k];
+    $('#popIcon').textContent = p.icon + ' (provisional)';
+    var h = '<div class="it h"><span>' + p.head + '</span></div>';
+    h += p.items.map(function (i) { return '<div class="it"><span>' + i[0] + '</span><span>' + i[1] + '</span></div>'; }).join('');
+    h += '<hr><div class="it a" data-go="inicio"><span>' + (k === 'warn' ? 'Revisar…' : 'Abrir BackupDrive…') + '</span></div>';
+    h += '<div class="it a"><span>Sincronizar ahora</span></div>';
+    h += '<div class="it a"><span>Pausar durante…</span><span>›</span></div>';
+    h += '<hr><div class="it a" data-go="preferencias"><span>Preferencias…</span><span>⌘,</span></div>';
+    h += '<div class="it a"><span>Salir de BackupDrive</span></div>';
+    $('#pop').innerHTML = h;
+  }
+  seg('data-pop', null, renderPop);
+  renderPop('ok');
+
+  /* ---- 2. inicio ---- */
+  var ST = {
+    ok: { cls: 'b-ok', big: 'Todo al día', sub: 'Última copia hace 12 minutos · 3 carpetas · próxima en 48 minutos', act: '<button class="btn pri">Sincronizar ahora</button>',
+      rows: [['Proyectos', '~/Documentos/Proyectos', 'Al día', ''], ['Fotos', '~/Imágenes/Fotos', 'Al día', ''], ['Manuales', '~/Documentos/Manuales', 'Al día', '']] },
+    conf: { cls: 'b-warn', big: '2 ficheros cambiaron en los dos sitios', sub: 'Se han guardado los dos. Elige con cuál quedarte, o déjalos como están.', act: '<button class="btn pri" data-go="versiones">Revisar conflictos</button>',
+      rows: [['Proyectos', '~/Documentos/Proyectos', '2 conflictos', 'w'], ['Fotos', '~/Imágenes/Fotos', 'Al día', ''], ['Manuales', '~/Documentos/Manuales', 'Al día', '']] },
+    stop: { cls: 'b-bad', big: 'Detenido por seguridad: Fotos', sub: 'Han cambiado de contenido 16 de 31 ficheros a la vez. Puede ser un cifrado o un error. No se ha tocado nada en Drive.', act: '<button class="btn" id="seeChg">Ver qué cambia</button> <button class="btn dng" id="forceGo">Continuar de todos modos</button>',
+      rows: [['Proyectos', '~/Documentos/Proyectos', 'Al día', ''], ['Fotos', '~/Imágenes/Fotos', 'Frenada', 'b'], ['Manuales', '~/Documentos/Manuales', 'Al día', '']] },
+    off: { cls: 'b-off', big: 'Sin conectar con Google Drive', sub: 'Conecta tu cuenta para empezar a hacer copias.', act: '<button class="btn pri" data-go="asistente">Conectar con Google Drive…</button>', rows: [] }
+  };
+  function renderInicio(k) {
+    var s = ST[k], h = '';
+    h += '<div class="banner ' + s.cls + '"><span class="dot"></span><div class="txt"><div class="big">' + s.big + '</div><div class="sub">' + s.sub + '</div></div><div class="actions">' + s.act + '</div></div>';
+    if (s.rows.length) {
+      h += '<h2>Carpetas</h2>';
+      h += s.rows.map(function (r) {
+        return '<div class="row"><div class="grow"><div class="name">' + r[0] + '</div><div class="path">' + r[1] + ' ⇄ Drive/' + r[0] + '</div></div>' +
+          '<span class="pill ' + r[3] + '">' + r[2] + '</span>' +
+          '<div class="actions"><button class="btn">Abrir</button><button class="btn" data-go="versiones">Versiones</button></div></div>';
+      }).join('');
+      h += '<button class="btn" data-go="asistente">+ Añadir carpeta…</button>';
+    } else {
+      h += '<p class="legend">Cuando conectes, aquí aparecerá cada carpeta con su estado.</p>';
+    }
+    h += '<p class="legend" style="margin-top:12px">Datos de ejemplo.</p><div class="toast" id="itoast" hidden></div>';
+    $('#inicioMain').innerHTML = h;
+    var a = $('#seeChg'), b = $('#forceGo');
+    if (a) a.onclick = function () { toast('#itoast', 'Maqueta: aquí se abre la lista de los 16 ficheros que cambian, con su versión actual y la nueva.'); };
+    if (b) b.onclick = function () { toast('#itoast', 'Maqueta: pediría confirmación y recordaría que los originales se guardan en versiones 90 días.'); };
+  }
+  function toast(sel, msg) { var t = $(sel); t.textContent = msg; t.hidden = false; }
+  seg('data-st', null, renderInicio);
+  renderInicio('ok');
+
+  /* ---- 3. versiones ---- */
+  var V = [
+    ['presupuesto-obra.xlsx', 'del', 'Borrado en el Mac', 'ayer 18:20', 'en 89 días'],
+    ['informe-final.docx', 'con', 'Conflicto: se guardaron las dos', 'hoy 09:05', 'se queda'],
+    ['informe-final (conflicto Mac).docx', 'con', 'Conflicto: copia del Mac', 'hoy 09:05', 'se queda'],
+    ['planos/seccion-3.pdf', 'edit', 'Sobrescrito desde Drive', 'hace 3 días', 'en 87 días'],
+    ['notas.txt', 'del', 'Borrado en Drive', 'hace 12 días', 'en 78 días'],
+    ['fotos/IMG_0412.jpg', 'edit', 'Sobrescrito por una copia vieja', 'hace 40 días', 'en 50 días']
+  ];
+  function renderV(f) {
+    $('#vers').innerHTML = V.filter(function (v) { return f === 'all' || v[1] === f; }).map(function (v) {
+      var btn = v[1] === 'con' ? '<button class="btn" data-keep="' + v[0] + '">Quedarme con esta</button>' : '<button class="btn" data-rest="' + v[0] + '">Restaurar</button>';
+      return '<tr><td>' + v[0] + '</td><td>' + v[2] + '</td><td>' + v[3] + '</td><td>' + v[4] + '</td><td>' + btn + '</td></tr>';
+    }).join('');
+  }
+  seg('data-vf', null, renderV);
+  renderV('all');
+  document.addEventListener('click', function (e) {
+    var r = e.target.closest('[data-rest]'), k = e.target.closest('[data-keep]');
+    if (r) toast('#vtoast', 'Maqueta: «' + r.dataset.rest + '» vuelve a su sitio en el Mac y en Drive.');
+    if (k) toast('#vtoast', 'Maqueta: te quedas con «' + k.dataset.keep + '»; la otra pasa a versiones y caduca en 90 días.');
+  });
+
+  /* ---- 4. asistente ---- */
+  var NAMES = ['Conectar', 'Carpeta del Mac', 'Carpeta de Drive', 'Simulación', 'Listo'];
+  var step = 0, pickedDrive = 'Fotos';
+  function renderWiz() {
+    $('#steps').innerHTML = NAMES.map(function (n, i) { return '<span class="' + (i === step ? 'on' : i < step ? 'done' : '') + '">' + (i + 1) + '. ' + n + '</span>'; }).join('');
+    var h = '';
+    if (step === 0) {
+      h = '<h2>Conectar con Google Drive</h2><p>BackupDrive necesita permiso para leer y escribir en tu Drive. Se abrirá Google en el navegador; allí eliges la cuenta y aceptas. La contraseña nunca pasa por BackupDrive.</p>' +
+        '<p><button class="btn pri" id="wNext">Abrir Google…</button></p>' +
+        '<details><summary>Usar mi propia clave de Google (avanzado)</summary><label class="field" style="margin-top:8px">ID de cliente<input type="text" id="cid" placeholder="123456-abc.apps.googleusercontent.com"></label><small class="legend">Más rápida y con cuota propia. Hay que crearla una vez en Google Cloud.</small></details>';
+    } else if (step === 1) {
+      h = '<h2>¿Qué carpeta del Mac quieres copiar?</h2><label class="field">Carpeta<input type="text" value="~/Imágenes/Fotos" aria-label="Carpeta del Mac"></label><p><button class="btn">Elegir…</button></p>' +
+        '<p class="legend">Se abre el selector de carpetas de macOS. Si la carpeta está en un disco externo o en red, BackupDrive no hará nada mientras no esté disponible.</p>';
+    } else if (step === 2) {
+      var opts = ['Fotos', 'Proyectos', 'Manuales'].map(function (n) {
+        return '<label><input type="radio" name="d" value="' + n + '"' + (n === pickedDrive ? ' checked' : '') + '> Drive / ' + n + '</label>';
+      }).join('');
+      h = '<h2>¿Dónde, en Google Drive?</h2><div class="tree" id="tree">' + opts + '<label><input type="radio" name="d" value="__new"> + Crear una carpeta nueva…</label></div>' +
+        '<p class="legend" style="margin-top:8px">Siempre una carpeta, nunca la raíz de Drive: las versiones se guardan en una carpeta hermana, «' + pickedDrive + ' (versiones)».</p>';
+    } else if (step === 3) {
+      h = '<h2>Esto es lo que pasaría</h2><p><b>Es una simulación: no se copia ni se borra nada.</b></p>' +
+        '<div class="tablewrap"><table><thead><tr><th>Acción</th><th>Ficheros</th></tr></thead><tbody>' +
+        '<tr><td>Subir a Drive (solo están en el Mac)</td><td>40</td></tr><tr><td>Bajar al Mac (solo están en Drive)</td><td>0</td></tr>' +
+        '<tr><td>Distintos en los dos sitios (se guardan los dos)</td><td>0</td></tr><tr><td>Borrar</td><td>0</td></tr></tbody></table></div>' +
+        '<p class="legend" style="margin-top:8px">Datos de ejemplo. En la primera copia nunca se borra nada.</p>';
+    } else {
+      h = '<h2>Listo</h2><p>«Fotos» se copiará ahora. Después, BackupDrive la mantiene al día cada hora.</p><p><button class="btn pri" data-go="inicio">Empezar la copia</button></p>';
+    }
+    h += '<div class="actions" style="margin-top:16px">' + (step > 0 ? '<button class="btn" id="wBack">Atrás</button>' : '') + (step > 0 && step < 4 ? '<button class="btn pri" id="wNext2">' + (step === 3 ? 'Hacer la primera copia' : 'Continuar') + '</button>' : '') + '</div>';
+    $('#wiz').innerHTML = h;
+    var n = $('#wNext'), n2 = $('#wNext2'), b = $('#wBack');
+    if (n) n.onclick = function () { step++; renderWiz(); };
+    if (n2) n2.onclick = function () { step++; renderWiz(); };
+    if (b) b.onclick = function () { step--; renderWiz(); };
+    $$('input[name=d]').forEach(function (r) { r.onchange = function () { if (r.value !== '__new') { pickedDrive = r.value; renderWiz(); } }; });
+  }
+  renderWiz();
+
+  /* ---- 5. preferencias ---- */
+  var P = {
+    'General': function () {
+      return chk('Abrir BackupDrive al iniciar sesión', 'Para que la copia siga sin que tengas que acordarte.', true) +
+        '<label class="field">Sincronizar<select><option>Cada 15 minutos</option><option selected>Cada hora</option><option>Cada 6 horas</option><option>Solo cuando yo lo pida</option></select></label>' +
+        chk('Pausar con batería baja', 'En portátiles.', true) + chk('Mostrar el icono en la barra de menús', 'Si lo ocultas, se abre desde Aplicaciones.', true);
+    },
+    'Carpetas': function () {
+      return ['Proyectos', 'Fotos', 'Manuales'].map(function (n) {
+        return '<div class="row"><div class="grow"><div class="name">' + n + '</div><div class="path">~/…/' + n + ' ⇄ Drive/' + n + '</div></div><label>Conservar versiones <select><option>30 días</option><option selected>90 días</option><option>1 año</option><option>Siempre</option></select></label><button class="btn dng">Quitar</button></div>';
+      }).join('') + '<button class="btn" data-go="asistente">+ Añadir carpeta…</button><p class="legend" style="margin-top:8px">Quitar una carpeta deja de copiarla; no borra nada ni en el Mac ni en Drive.</p>';
+    },
+    'Protección': function () {
+      return '<p class="lead">Dos frenos evitan que un error o un cifrado malicioso se propague a Drive. Si saltan, no se toca nada y te avisamos.</p>' +
+        '<label class="field">Borrar muchos ficheros de golpe<small>Detener si una pasada borraría más de este porcentaje de una carpeta.</small><span class="slider"><input type="range" min="1" max="50" value="10" id="r1" aria-label="Porcentaje de borrados"><output id="o1">10 %</output></span></label>' +
+        '<label class="field">Cambiar el contenido de muchos ficheros<small>Detener si cambian más de este porcentaje y más de este número de ficheros (cubre el cifrado).</small><span class="slider"><input type="range" min="5" max="80" value="20" id="r2" aria-label="Porcentaje de cambios"><output id="o2">20 %</output></span></label>' +
+        '<label class="field">…y más de <input type="text" value="50" style="max-width:90px" aria-label="Número de ficheros"> ficheros</label>' +
+        '<div class="note"><b>Qué no cubre.</b> Si un programa malicioso usa la cuenta de Google conectada para borrar en Drive directamente, estos frenos no ayudan. Para eso conviene además una copia fuera de línea (Time Machine en un disco que se desconecta).</div>';
+    },
+    'Avisos': function () {
+      return chk('Cuando una carpeta se frene por seguridad', '', true) + chk('Cuando haya conflictos que revisar', '', true) + chk('Cuando falle una copia', '', true) + chk('Cuando termine bien', 'Normalmente no hace falta.', false);
+    },
+    'Avanzado': function () {
+      return '<div class="row"><div class="grow"><div class="name">Cuenta de Google</div><div class="path">usuario@ejemplo.com (ejemplo)</div></div><button class="btn dng">Desconectar</button></div>' +
+        '<label class="field">ID de cliente propio<small>Déjalo vacío para usar el compartido.</small><input type="text" placeholder="(compartido de rclone)"></label>' +
+        '<div class="actions"><button class="btn">Abrir el registro</button><button class="btn">Mostrar la carpeta de configuración</button><button class="btn">Copiar el comando de terminal</button></div>' +
+        '<p class="legend" style="margin-top:8px">Todo lo de esta ventana se puede hacer también con <code>backupdrive-sync.sh</code> y el fichero <code>profiles</code>.</p>';
+    }
+  };
+  function chk(t, s, on) { return '<label class="check"><input type="checkbox"' + (on ? ' checked' : '') + '><span>' + t + (s ? '<small>' + s + '</small>' : '') + '</span></label>'; }
+  function renderPref(k) {
+    $('#prefTitle').textContent = 'Preferencias · ' + k;
+    $('#prefMain').innerHTML = P[k]();
+    var r1 = $('#r1'), r2 = $('#r2');
+    if (r1) r1.oninput = function () { $('#o1').textContent = r1.value + ' %'; };
+    if (r2) r2.oninput = function () { $('#o2').textContent = r2.value + ' %'; };
+  }
+  $$('[data-pt]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      $$('[data-pt]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      renderPref(b.dataset.pt);
+    });
+  });
+  renderPref('General');
+
+  go(location.hash.slice(1) || 'barra');
+  if (window.mermaid) { try { mermaid.initialize({ startOnLoad: true, securityLevel: 'strict' }); } catch (e) {} }
+})();
+</script>
+</body></html>
