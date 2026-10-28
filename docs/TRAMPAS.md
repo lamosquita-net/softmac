@@ -44,7 +44,13 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   nuevos y barrido de los IDL de la base que los provoquen; y en la prueba de humo de LOCAL, un `getContext('webgl')`
   (MOTOR-30, FM.49). Sin volcado no prueba que el navegador mate al renderer (headless sin Crashpad): lldb lo separa.
 
-## LOCAL
+\n- **(28-10) Un SIGILL en Mojave puede ser una API del sistema, no la CPU:** V8 13.4 bloquea su `SpinningMutex` con
+  `os_unfair_lock_lock_with_options(…, DATA_SYNCHRONIZATION | ADAPTIVE_SPIN)`. La función existe en 10.14, así que la
+  comprobación del símbolo débil pasa, pero libplatform de Mojave no conoce `OS_UNFAIR_LOCK_ADAPTIVE_SPIN` (llegó con la
+  10.15) y aborta con `ud2` («BUG IN CLIENT OF LIBPLATFORM: Invalid options»). Toda web con JS caía en la 6,1 y la 7,1
+  (Sequoia) no lo veía. En cada V8 nueva: `grep` de `__attribute__((weak))`, `dlsym` y `__builtin_available` en
+  `src/base` y `src/libplatform`, y `d8` también en la 6,1 (MOTOR-30 y LOCAL-14, 479bcaf1e2).
+\n## LOCAL
 
 - **`update_patches` nunca para un solo parche, y las tareas largas en segundo plano** (Titín, 16-10). LOCAL-4 lanzó
   `npm run update_patches` dentro de su sesión para regenerar un parche; la sesión de Claude Code se reinició (la 7,1 no
