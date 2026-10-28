@@ -28,6 +28,13 @@ MOTOR-29, 28-10-2026. Inventario: `motor-niveles.md` § «Nivel 134» (MOTOR-28)
 - No se portan: Privacy Sandbox, WebGPU, `DocumentPolicyExpectNoLinkedResources`, `bfe02c237c` (comando
   `request-close`), `SvgViewportOptimization` y los de rendimiento sin cara web (regla 20 y tabla del inventario).
 
+## Primera Release (LOCAL-14, 28-10)
+
+6 errores, arreglados en **67eb39d988**: cuatro parches del taint viejo de `attr()` que `generar128.sh` no había borrado
+(`css_string_value`, `css_value_list`), `IsTablePartElement()` que no existe en la 128, `HandlePopoverLightDismiss()`
+con un `KeyboardEvent` (rama muerta con CloseWatcher en `stable`, quitada) y `set_line`/`set_column` de perfetto en la
+V8 13.4 (`code-data-source.cc`, no se escriben).
+
 ## Dónde puede fallar la compilación
 
 - V8 13.4 entera: `maglev-graph-builder.cc` (visitantes con `ReduceResult`, el ayudante de

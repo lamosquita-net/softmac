@@ -34,6 +34,9 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   le faltaban 01b72da0c0 y 774c4ce6b3; se vio porque un commit posterior esperaba un `CSSAttrType::Consume` que no existía.
   Antes de portar una cadena, `git log <primero>~1..<tag> -- <ficheros clave>` en la historia. Y `git apply` salta sin
   `.rej` un hunk de un fichero que no existe en el área («does not exist»): `seq.sh` ya para con eso (MOTOR-29).
+- **(28-10) `generar128.sh` no borraba el parche de un fichero que vuelve a quedar como en la 128** (solo miraba lo que
+  difiere del commit raíz del área): en la 2.3.0 quedaron 4 parches del taint viejo de `attr()` y la Release falló. Ya
+  lo mira (MOTOR-29). Y nunca regenerar desde un área montada antes de otro commit: reescribe los parches de ese commit.
 
 ## LOCAL
 
