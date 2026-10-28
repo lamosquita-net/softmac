@@ -105,6 +105,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Raíces de certificados al día, aparte de la versión declarada** (Titín, 27-10): los cortes de confianza del Root Store se
   aplican con una constante propia **fijada en 139.0.0.0** (Chunghwa, Netlock), no con la versión declarada; se sube a mano y
   revisando que la base entienda las restricciones nuevas. Una CA se desconfía por mala praxis, no por nivel. Fila FS.31.
+  **Con el 133 (2.2.0) sube a 153.0.8010.0** (Titín, 28-10): aplica las retiradas de raíces antiguas del Root Store v43 que
+  sirve el espejo (46 anclas; FS.33).
+- **`Sec-Fetch-Storage-Access`, apagada** (Titín, 28-10; nivel 133): revela el estado de las cookies de terceros; manda la
+  privacidad (regla 20) sobre la huella del Chrome declarado. Fila FM.49.
 - **WebGL sin falsear** (Titín, 27-10): en Mojave la cadena del renderizador es la de OpenGL, distinta de la de Chrome 132 en Metal;
   no se iguala con `ANGLE_GL_RENDERER`. Fuente: `gpu-red-129-132.md` (FM.46).
 - **Finch: lo que Chrome cambia por configuración de campo no está en el código** (15-10 y 20-10): la referencia es lo
