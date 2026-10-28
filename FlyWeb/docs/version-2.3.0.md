@@ -52,6 +52,20 @@ sin regresión no hay 2.3.1). LOCAL-14 hizo el mismo arreglo que fa6ccf3c76 (816
 fa6ccf3c76 si pasa las pruebas. Ningún otro IDL de la 128 tiene sobrecargas con el atributo. Descartada
 `nube/motor-134-scopeinfo` 784d9670b9 (`reuse_scope_infos`), no se compila.
 
+**Segunda caída, solo en Mojave** (6,1; toda web con JS; `caida-230.md`): V8 13.4 cambió su `Mutex` a Abseil y añadió un
+`SpinningMutex` que en macOS llama a `os_unfair_lock_lock_with_options` (SPI de libplatform, débil) con
+`OS_UNFAIR_LOCK_ADAPTIVE_SPIN`. La 10.14 tiene la función pero no esa opción y aborta con `ud2`: de ahí el SIGILL, que no
+es una instrucción de CPU que falte. La V8 13.2 de la 2.1.1 no tenía `SpinningMutex`. Arreglo de LOCAL-14 en
+**479bcaf1e2** (`patches/v8/src-base-platform-mutex.cc.patch`: antes de 10.15, `os_unfair_lock_lock`), llevado a
+`nube/motor-134` por fast-forward. **Cabeza de la 2.3.0: 479bcaf1e2**, build 35.
+
+Barrido de CPU para la 5,1 (sin AVX) y la 6,1 (sin AVX2), por código (MOTOR-30): no hay otro símbolo débil ni otro
+`__builtin_available` nuevo en `src/base`/`src/libplatform`. Las rutas F16C/AVX nuevas del JIT (Float16 y Wasm FP16)
+dependen de `CpuFeatures::IsSupported`; los builtins se generan sin extensiones (`ProbeImpl(cross_compile)`);
+`simd.cc` comprueba AVX2. Highway (nuevo: `JSON.stringify`) se usa con su objetivo estático, que en Mac x64 no pasa de
+SSE4. simdutf elige su versión en tiempo de ejecución, y fast_float es escalar. Lo que queda es empírico: `d8` y
+`atob`/`btoa` largos en la 5,1.
+
 ## Dónde puede fallar la compilación
 
 - V8 13.4 entera: `maglev-graph-builder.cc` (visitantes con `ReduceResult`, el ayudante de
