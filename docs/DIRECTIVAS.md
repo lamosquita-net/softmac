@@ -187,15 +187,15 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   46 $ esperando. **No apagarla no es pararla** sigue valiendo para la sesión activa: avanza el nivel siguiente mientras
   LOCAL compila, hasta el máximo de dos niveles. Lo mismo para cualquier agente de la nube que espera una decisión de Titín
   con mucho contexto (p. ej. BACKUPDRIVE): nota de relevo y se archiva; se abre otra cuando haya respuesta.
-- **Prueba de humo primero y parada en seco** (Titín, 28-10, tras la 2.3.0): en cuanto una versión compila, LOCAL abre
-  **antes que ninguna otra prueba** claude.ai, GitHub, YouTube y Wikipedia (7,1 y 6,1). Si una sola no carga o se cae la
-  pestaña: **para** (ni más pruebas, ni más arreglos encima, ni la siguiente compilación), avisa en ese momento a MOTOR y a
-  COORDINACIÓN con lo que vio y deja la 7,1 libre para el diagnóstico. Las pruebas largas (WPT, motor-N, d8, rendimiento)
-  solo con la prueba de humo en verde. Caso: la 2.3.0 se cayó en webs reales y LOCAL siguió con motor-134, d8 y otra
-  compilación encima antes de avisar.
-- **Nadie se para** (Titín, 28-10): ante un bloqueo, cada agente sigue con lo que no dependa de él (MOTOR diagnostica por
-  código mientras LOCAL prueba; LOCAL prueba sin compilar mientras MOTOR busca) y decide el siguiente paso sin esperar a
-  COORDINACIÓN si ya tiene los datos; a COORDINACIÓN, el resultado. A Titín solo las decisiones.
+- **Un error se analiza y se arregla antes de seguir** (Titín, 28-10; criterio, no receta): en cuanto se detecta un
+  error, se para lo que dependa de él, se busca por qué pasa y se arregla, porque todo lo que se haga encima queda anulado.
+  Quien pueda arreglarlo antes lo arregla: si LOCAL puede, lo hace en su rama `local/*` y se lo pasa a MOTOR para que lo
+  estandarice y no se repita en los niveles siguientes; si no, MOTOR lo arregla y se lo pasa a LOCAL. Cada problema pide su
+  propia solución; lo que no cambia es el orden: detectar, analizar, arreglar, seguir. Lo que se pruebe primero tras compilar
+  (webs reales como claude.ai, GitHub, YouTube o Wikipedia antes que las pruebas largas) lo decide LOCAL según el cambio.
+  Caso: la 2.3.0 se cayó en webs reales y se siguió compilando y probando encima antes de analizarlo.
+- **Nadie se queda parado** (Titín, 28-10): ante un bloqueo, cada agente sigue con lo que no dependa de él y decide el
+  siguiente paso si ya tiene los datos; a COORDINACIÓN, el resultado. A Titín solo las decisiones.
 - **LOCAL compila la siguiente mientras prueba en la 6,1** (Titín, 27-10): las pruebas van a la 6,1, así que la 7,1
   compila la versión siguiente en cuanto la anterior está compilada y guardada su app y su DMG. Sigue habiendo una sola
   compilación a la vez.
