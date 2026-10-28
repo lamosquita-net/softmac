@@ -1,3 +1,48 @@
+# Relevo de MOTOR: de MOTOR-29 a MOTOR-30 (28-10-2026, ~19:50)
+
+MOTOR-29 (`session_01MwmK2iDD1sWx5FwbmTYa37`, Opus 5.5, medio; ~30 % de contexto) metió `attr()` en el 133 e hizo el
+**nivel 134 = 2.3.0**. Se archiva al entregar (directiva de Titín del 28-10). Detalle: `version-2.2.0.md` (§ `attr()`) y
+`version-2.3.0.md`.
+
+**Estado de la 2.3.0 (decisión de Titín: se salta la 2.2.0, que no se compila ni publica):**
+- Cabeza: brave-core **`nube/motor-134` 858f858dc3**, build 35 = 192ce3e811 (lo que LOCAL-14 compiló y enlazó, con FS.35
+  fundida: `seg/fs35-maglev-dead` 0ce38fe7 y `seg/fs35-blink134` c56bbf9b) + 06ed9ecbb6 (`willReadFrequently` booleano,
+  el único FALLO de `motor-134.html`). Pendiente: incremental con 858f858dc3 y el resto de pruebas de LOCAL (WPT del 133 y
+  del 134, claude.ai, Speedometer, 6,1, 5,1 con simdutf). No reescribir: hay órdenes con esos sha.
+- d8 13.4 (LOCAL-14): mjsunit 7584/7585 (`maglev/extras-cped`, la de siempre), `--maglev` 1257/1257.
+- `nube/motor-133` se queda en 888963ca5 (2.2.0 + `attr()`) como historia.
+- **Maglev apagado**: su deuda (FS.34 + FS.35) está dentro; se enciende solo con la medida de LOCAL en la 6,1 con esta
+  build (en la 2.1.1, JetStream se colgaba 5/5 con `--maglev`). Es la línea `maglev` de `src-flags-flag-definitions.h.patch`.
+- **6736b12fb2 no se porta** (canvas por software con NVIDIA en Mac; la 128 conserva la ruta antigua). COORDINACIÓN-19
+  de acuerdo; probar el canvas en el MacBook Pro 2012 (GT 650M) cuando Titín pueda.
+
+**Si LOCAL trae errores de la 2.3.0:** lo más probable, `html_dialog_element.cc` (17 commits de `closedby` + FS.35),
+`pointer_event_manager.cc`, `offscreen_canvas_rendering_context_2d.cc`, simdutf en la 5,1, `v8/src/maglev/*`. Arreglar
+encima de 858f858dc3, buzón a LOCAL y sha a COORDINACIÓN (la nube no puede escribir a la 7,1:
+`elevated_session_untrusted_device`; no llamar a `confirm_repository_trust`).
+
+**Del 135 no hay nada hecho:** ni inventario ni rama. Mismo método que el 134 (3 subagentes Sonnet: Blink, V8 13.5, fuera
+de Blink), pero el informe «fuera de Blink» tiene que partir de que la base sigue en la 128 (el del 134 hablaba de rebasar
+parches como si la base subiera). V8 13.5: mirar qué arreglos de la serie de Maglev ya trae (varios son merges a 13.5).
+
+**Herramientas nuevas** (en `FlyWeb/tools/port/`, copiar a `/tmp/claude-0/port/`): `v8regen.sh <ruta> <contenido>`
+(rehace un `patches/v8/*.patch` frente a `V8_TO`, por defecto 13.4.114.21), `v8chk.sh [rev]` (`git apply --check` de
+todos los `patches/v8`), `fz.sh <área>` (reintenta los `.rej` con fuzz 3 y dice dónde caen). Arreglados: `seq.sh` para con
+un fichero que no existe en el área; `generar128.sh` borra el parche de un fichero que vuelve a quedar como en la 128
+(dejó 4 parches del taint viejo y la 1.ª Release falló); `chk128.sh` mira la historia en `/home/user/chromium/hist`.
+Montaje: `mkcr.sh` de cr128/cr133 (~3 min), historia de Chromium (`fetch --filter=blob:none --shallow-since=2024-06-10` de
+los tags) y de V8 (`/home/user/v8`, misma idea con 13.2.152.56, 13.3.415.23, 13.4.114.21).
+
+**Trampas de esta sesión:**
+- Una lista de commits heredada puede estar incompleta: antes de una cadena, `git log <primero>~1..<tag> -- <ficheros>`.
+- Nunca regenerar desde un área montada antes de otro commit (reescribe ese commit; me pasó probando `generar128.sh`, sin
+  llegar a commit).
+- `git log -S` y `git grep` en historias sin blobs tardan minutos por consulta: `--grep` del mensaje o `git blame -L` en
+  el json5 al tag van en segundos.
+- Antes de entregar, barrer con grep las API de la 128 que usa lo portado (COORDINACIÓN lo pide así desde hoy).
+
+---
+
 # Relevo de MOTOR: de MOTOR-28 a MOTOR-29 (28-10-2026, ~10:25)
 
 MOTOR-28 (`session_01MwmK2mPzyrf5do67riZaYB`, Opus 5.5, medio) cerró la **2.2.0** e hizo el inventario del 134. Detalle:
