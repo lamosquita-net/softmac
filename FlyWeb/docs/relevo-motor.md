@@ -4,13 +4,17 @@ MOTOR-26 (`session_01MwmK2ifjhdhoUu5VEpAigY`, Opus 5.5, medio; ~32 %) hizo la **
 pruebas y diagnóstico de Futura en `version-2.1.1.md`. COORDINACIÓN-18 la archiva al abrir MOTOR-27.
 
 **Estado de la 2.1.1 (tuya hasta publicar):**
-- Cabeza: brave-core **`nube/motor-211b` b745a4473c** = `local/2.1.1-arreglos` 7078c241 (LOCAL-14: `.c_str()` en
-  `root_store_tool.cc`, único error de la 1.ª Release) + el arreglo de `align-content: safe` con wrap-reverse.
-  **Pendiente de recompilar** (orden `buzon/LOCAL/20261028-0805-MOTOR-26.md`). No se reescribe: está en una orden.
+- Cabeza: brave-core **`nube/motor-211b` ef850e44d7** = `local/2.1.1-arreglos` 7078c241 (LOCAL-14: `.c_str()` en
+  `root_store_tool.cc`, único error de la 1.ª Release) + b745a4473 (`align-content: safe` con wrap-reverse) + dd784af57
+  (revierte el xattr del sandbox) + ef850e44d (FM.47: emparejado que no abandona la familia; Futura caía a Times).
+  **Pendiente de recompilar** (orden `buzon/LOCAL/20261028-0811-MOTOR-26.md`, sustituye a la de las 08:05). No se reescribe.
+- Si Futura sigue mal: el siguiente sospechoso es el camino por nombre PostScript de `MatchFontFamily` (cuando
+  `BestStyleMatchForFamilyNS` da null) y `CanLoadInProcess` de `font_platform_data_mac.mm`; mirar con
+  `CSS.getPlatformFontsForNode` qué cara sale.
 - Lo único abierto: WPT `flexbox-safe-overflow-position-002/005`. Sobre 7078c241 daban 9/11 escapes en verde, 2877 frente
   a 2876 de CfT 132, sin regresiones. Si con b745a4473c siguen en rojo, COORDINACIÓN-18 dijo: se entrega así y van a la
   2.2.0 (no seguir buscando).
-- FM.47 confirmado por LOCAL-14: la Futura que fallaba eran maletas Type 1 con resource fork → `file-read-xattr` (c08792fee).
+- FM.47: la Futura que fallaba eran maletas Type 1 con resource fork que el renderer no puede cargar (detalle en `version-2.1.1.md`).
 
 **Para el inventario del 133 (sin empezar):**
 - Método de MOTOR-25: 3 subagentes Sonnet en paralelo (Blink, V8 13.3, fuera de Blink), cada uno con la lista de commits
