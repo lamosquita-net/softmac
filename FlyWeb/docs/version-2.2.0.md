@@ -3,8 +3,9 @@
 MOTOR-27 y MOTOR-28, 28-10-2026. brave-core **`nube/motor-133`**, sobre la cabeza de la 2.1.1
 (`nube/motor-211b` ef850e44; si MOTOR-26 la mueve, se funde). Declaración **133.0.6943.141**, V8 **13.3.415.23** (93c6f108)
 con los 12 arreglos de la M132-LTS que la 13.3 no trae (época de caché 21). `flyweb_version` 2.2.0; `FLYWEB_BUILD_NUMBER`,
-de LOCAL (34). Inventario y decisiones: `motor-niveles.md` § «Nivel 133». **Cabeza para compilar: 2f268ee217**
-(órdenes `buzon/LOCAL/20261028-0953-MOTOR-28.md` y `…-1016-MOTOR-28.md`; sin compilar).
+de LOCAL (34). Inventario y decisiones: `motor-niveles.md` § «Nivel 133». **Cabeza para compilar: 888963ca5**
+(2f268ee217 + `attr()`; órdenes `buzon/LOCAL/20261028-0953-MOTOR-28.md`, `…-1016-MOTOR-28.md` y el aviso de
+COORDINACIÓN-19; sin compilar).
 
 ## Qué lleva
 
@@ -35,25 +36,61 @@ de LOCAL (34). Inventario y decisiones: `motor-niveles.md` § «Nivel 133». **C
 Sin cambio: `Sec-Fetch-Storage-Access` ya está apagado en la red de la 128 (`kStorageAccessHeaders`); la decisión de Titín
 solo importa si algún día se porta. `kUseBrowserCalculatedOrigin` no existe en la 128: no se porta.
 
+## `attr()` avanzado (MOTOR-29, 28-10)
+
+Primero iba en una 2.2.1. Titín decidió (DIRECTIVAS, PR #600) que solo sale una 2.N.x para una regresión o un fallo de
+seguridad explotado, así que entra en la 2.2.0 (COORDINACIÓN-19). Commit **888963ca5**, encima de 2f268ee217 y de los dos
+WIP de MOTOR-28 (5ce740bb, 59d488dd).
+
+
+`CSSAdvancedAttrFunction` completo y en `stable` (como en Chrome 133): `attr(data-x type(<length>))`, unidades
+(`attr(data-x px)`), `string` explícito, sustitución de `var()` dentro del valor del atributo, marca de *taint* del valor
+entero (un `attr()` no puede acabar en una `url()`) y búsqueda del atributo por nombre local sin espacio de nombres.
+
+Commits de upstream, en orden: 8026a18f3f … 58743c5967 (8, MOTOR-28), 1fc628b444, 0692e7d9b9, 8e710e2016 (MOTOR-28),
+5189858a61, 0c00afffe9, **01b72da0c0**, 96a736734d, **774c4ce6b3**, c8d50d1a89, 162e74449d, 1bf714b913, 3d832173db,
+8e507ecf45, 82d879b09e, 0c50bb37c1, ac008e348d. Los dos en negrita faltaban en la lista de MOTOR-28 (sin ellos no existe
+`CSSAttrType` ni la sintaxis `type()`): salieron con `git log` de la 133 sobre `css_attr_type.*` y `style_cascade.cc`.
+
+### Adaptaciones a la 128 (dónde puede fallar la compilación)
+
+- `CSSVariableParser::ContainsValidVariableReferences()` toma el texto y valida con el `ConsumeUnparsedDeclaration()` de
+  *streaming*; los validadores sobre `CSSParserTokenRange` se van, como en upstream. Llamadores: `style_value_factory.cc` y
+  `AddCSSPaintArgument()` en `css_parsing_utils.cc` (este serializa los tokens, como ya hacía).
+- `CSSParserTokenStream` gana un constructor `(CSSTokenizer&, rangos de taint)`: en la 128 el *stream* lee de un
+  `CSSTokenizer`, no del texto. `css_attr_type.cc` y `ResolveAttrInto()` crean su `CSSTokenizer`.
+- `ResolveAttrInto()` con la forma final de la 133. Sin `ElementResolveContext::GetUltimateOriginatingElementOrSelf()` en
+  la 128: un ayudante local sube desde el pseudoelemento. `ResolveTokensInto()` de la 128 no tiene `stop_type`.
+- `ConsumeUnparsedDeclaration()` de la 128 no tiene `comma_ends_declaration` (lo traía 5189858a61).
+- `CSSVariableData::Create()` gana `is_attr_tainted` en tercera posición: todos los llamadores están revisados (el de
+  `CSSTokenizedValue`, solo de la 128, pasa `false`). Si sale un «no matching function» en `Create`, es un llamador nuevo.
+- `css_attr_value_tainting.{cc,h}` desaparecen, como en upstream (sus parches, borrados).
+
+Los `_test.cc` no se portan (como siempre): si LOCAL compila tests de Blink, `css_variable_parser_test.cc` y
+`style_cascade_test.cc` no compilarán.
+
+### Pruebas
+
+`FlyWeb/tools/motor-133.html`: seis líneas nuevas de `attr()` (en Chromium 153 salen ok). WPT:
+las de `attr()`, `css-variables`, `css-properties-values-api`, typed OM, paint API y `css-content`, en `wpt-133-lista.txt`. Riesgo: toca el análisis de propiedades personalizadas y de toda
+propiedad con `var()`, así que hay que mirar también `css/css-variables/` y `css/css-properties-values-api/` enteras y
+una ronda de sitios (claude.ai, YouTube, GitHub).
+
 ## Fuera de la 2.2.0
 
-- **`attr()` avanzado** (`CSSAdvancedAttrFunction`), va en la **2.2.1** (COORDINACIÓN-18): 8 de 20 commits aplicaban, pero 0c00afffe9 necesita
-  `CSSSyntaxDefinition::Consume` y, debajo, la migración del analizador CSS a *streaming* (~40 commits de 2024:
-  7910c0201d «Remove the non-streaming parser», 5144028324, media queries, `@import`, keyframes, calc…). Toca el análisis
-  de CSS de todas las webs: >1 día y riesgo alto. Propuesta a COORDINACIÓN-18: 2.2.x propia antes del 134 (migración +
-  `attr()` encima). Es la única diferencia esperada con CfT 133 en `motor-133.html`.
 - Escapes `flexbox-safe-overflow-position-002/005`: sin noticias de LOCAL de que sigan en rojo con la 2.1.1; van en la
   lista WPT (`css/css-flexbox/`) para comprobarlo con esta compilación.
 
 Prueba: `FlyWeb/tools/motor-133.html` (comprobada en un Chromium 153: todo ok salvo la versión declarada y lo que el 153
-ya trae, `Float16Array`/`using`). WPT: `FlyWeb/tools/wpt-133-lista.txt`. **Cambios visibles en la interfaz:** ninguno.
+ya trae, `Float16Array`/`using`; sin diferencias de `attr()`). WPT: `FlyWeb/tools/wpt-133-lista.txt`. **Cambios visibles en la interfaz:** ninguno.
 
 ## Para la web
 
 FlyWeb 2.2.0 pone el motor al nivel de Chrome 133. Para quien hace webs: `text-box-trim` y `text-box-edge` (recortar el
 espacio de interlineado sobre las mayúsculas y bajo la línea base, para alinear texto con precisión), `:open` para
 desplegables y diálogos abiertos, popovers ligados a su botón y `popover="hint"`, `box-decoration-break: clone`,
-`scheduler.yield()`, X25519 en Web Crypto, `Animation.overallProgress` y elementos del portapapeles creados con texto
-directamente. El motor JavaScript pasa a V8 13.3, con los arreglos de seguridad posteriores de la versión anterior que la
+`scheduler.yield()`, X25519 en Web Crypto, `Animation.overallProgress`, elementos del portapapeles creados con texto
+directamente y la función `attr()` ampliada: los atributos de un elemento se usan como longitudes, colores, números con
+unidad y cualquier otro tipo de valor en cualquier propiedad, no solo como texto en `content`. El motor JavaScript pasa a V8 13.3, con los arreglos de seguridad posteriores de la versión anterior que la
 13.3 no traía, y WebAssembly admite memoria de 64 bits y las funciones de cadena de JavaScript. Las raíces de certificados
 se ponen al día con la lista de confianza de Chrome. Sin cambios visibles en la interfaz.
