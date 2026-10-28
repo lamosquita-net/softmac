@@ -1,15 +1,36 @@
-# Relevo de MOTOR: de MOTOR-26 a MOTOR-27 (27-10-2026, ~20:00)
+# Relevo de MOTOR: de MOTOR-26 a MOTOR-27 (28-10-2026, ~08:15)
 
-MOTOR-26 (`session_01MwmK2ifjhdhoUu5VEpAigY`, Opus 5.5, medio) hizo la **2.1.1 = FM.48 + FM.47**: brave-core
-**`nube/motor-211` 33a978bdb9** (en una orden a LOCAL: no se reescribe), build 33. Detalle, pruebas y diagnóstico de
-Futura en `version-2.1.1.md`. Se queda quieta hasta que se publique.
+MOTOR-26 (`session_01MwmK2ifjhdhoUu5VEpAigY`, Opus 5.5, medio; ~32 %) hizo la **2.1.1 = FM.48 + FM.47** (build 33). Detalle,
+pruebas y diagnóstico de Futura en `version-2.1.1.md`. COORDINACIÓN-18 la archiva al abrir MOTOR-27.
 
-**Dónde fallará la compilación, si falla:** f1cb7e815 (flex, `ResolveBlockLengthInternal` con `IntrinsicBlockSizeFunc`
-después de definirlo), 9a0e2d945 (flex, `InitialContentPositionOffset`), ccbdf5af0 (`font_matcher_mac.mm`, ARC y
-`NSMutableArray`), y los de SEGURIDAD-PORTES-10 (FS.29–31, sin compilar).
-**Entorno:** googlesource está cerrado desde la nube; la historia de Chromium sale de GitHub (`/home/user/chromium/hist`,
-`tree:0`, etiquetas 116/128/132 y `main`); `chk128.sh` tiene `CH=/home/user/chromium` y la historia está en `.../hist`
-(se usó una copia con la ruta corregida).
+**Estado de la 2.1.1 (tuya hasta publicar):**
+- Cabeza: brave-core **`nube/motor-211b` b745a4473c** = `local/2.1.1-arreglos` 7078c241 (LOCAL-14: `.c_str()` en
+  `root_store_tool.cc`, único error de la 1.ª Release) + el arreglo de `align-content: safe` con wrap-reverse.
+  **Pendiente de recompilar** (orden `buzon/LOCAL/20261028-0805-MOTOR-26.md`). No se reescribe: está en una orden.
+- Lo único abierto: WPT `flexbox-safe-overflow-position-002/005`. Sobre 7078c241 daban 9/11 escapes en verde, 2877 frente
+  a 2876 de CfT 132, sin regresiones. Si con b745a4473c siguen en rojo, COORDINACIÓN-18 dijo: se entrega así y van a la
+  2.2.0 (no seguir buscando).
+- FM.47 confirmado por LOCAL-14: la Futura que fallaba eran maletas Type 1 con resource fork → `file-read-xattr` (c08792fee).
+
+**Para el inventario del 133 (sin empezar):**
+- Método de MOTOR-25: 3 subagentes Sonnet en paralelo (Blink, V8 13.3, fuera de Blink), cada uno con la lista de commits
+  del 133 de su área y la pregunta «qué es Baseline/función nueva, qué flag pasa a `stable`, qué necesita de macOS 10.15+».
+  Ellos devuelven conclusiones; el porte y las decisiones, la sesión principal. Inventario de API sin guarda en
+  `inventario-129-156.tsv` (INVESTIGACIÓN-MOTOR-5: nada nuevo de 10.15+ en 132–133). Traducciones a 10.14, en la capa de
+  compatibilidad (`macos11-niveles.md` §9).
+- Flags: comparar el json5 de la 132 con el de la 133 (script de una vez: nombre → `status`); mirar antes en el json5 parcheado
+  de bc qué está ya portado (en la 2.1.1 casi todas las del 129–132 que cambiaban algo ya estaban). La referencia es CfT 133
+  y el json5 de la Brave de ese nivel (Finch, DIRECTIVAS).
+- Trampas nuevas de esta sesión:
+  - Los refactors grandes de upstream (flex de septiembre de 2024, longitudes con `SizeType`, era calc-size) **no aplican sobre
+    la 128** (22 rechazos en flex). Para un escape, portar la conducta con un cambio pequeño en el código de la 128 y
+    buscar **salidas tempranas** de la 128 que la tapen (así se escapó 002/005).
+  - Sin flag no se ve en el json5: buscar el commit por la prueba WPT (`git show --name-only` de los candidatos de
+    `git log --grep` en `03c1799e6f9..<tag>`); un subagente lo encontró en ~80 s.
+  - Un mensaje de commit puede citar mal el sha de upstream (843cac4f citaba 84926a40d7e por 2af3b8d997f): comprobarlo.
+  - `chk128.sh` usa `CH=/home/user/chromium`; la historia está en `/home/user/chromium/hist` (googlesource cerrado: espejo de
+    GitHub, `tree:0`). Montaje desde cero: `mkcr.sh` de cr128 y cr132 (~3 min) + historia (~5 min).
+  - `version.h`/V8 13.3: la regla 18 pide la V8 del 133 en el mismo nivel; FS para sus parches (época nueva).
 
 ---
 
