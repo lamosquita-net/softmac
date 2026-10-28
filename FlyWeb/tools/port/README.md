@@ -353,3 +353,9 @@ flags) y `brave-core` en `nube/base-128-motor`. Los parches son diff `--full-ind
   `CSSParserTokenStream(String)` de 5144028324): revisar lo nuevo contra las cabeceras.
 - `rejfuzz.sh <área>` — reintenta los `.rej` con fuzz 0 e ignorando espacios. **Nunca con fuzz 3**: en anchor metió una
   entrada de mojom fuera del enum y un miembro en otra struct, y en el json5 subió a stable la flag equivocada.
+- **Paso a paso sobre la 128 (MOTOR-28, 28-10):** `STEP=1 portar128.sh <área> <commits>` monta; `ap1.sh <área> <commit>`
+  aplica uno con `--reject` y lista rechazos; se arreglan a mano y `ok1.sh <área> <commit>` hace el commit del paso (falla
+  si quedan `.rej`). Así los rechazos no se encadenan (con todos de golpe, `text-box-trim` daba 43; paso a paso, 9 reales).
+  Un fichero que se añada al área a mano: **copiarlo de la 128 y aplicarle su parche de bc** antes de editar.
+  `fin133.sh` toma el id de sesión de `SESION`.
+
