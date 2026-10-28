@@ -149,12 +149,17 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   garantizado o de poco alcance, como la Futura en Sequoia) entra en una versión con lo que funcione en la primera
   compilación, sin vueltas extra de MOTOR ↔ LOCAL; si queda a medias sin regresión, se publica y se termina en la versión
   siguiente. Solo bloquean una regresión o un fallo de seguridad. Caso: la 2.1.1 (FM.47).
-- **Nada de 2.N.x si el nivel siguiente ya está entregado** (Titín, 28-10): si lo que llevaría una 2.N.x ya va en el
-  nivel siguiente (la 2.1.1 frente a la 2.2.0), no se abre: se compila el nivel. La prioridad de la 7,1 es el último nivel
-  entregado por MOTOR; las mediciones (Maglev, etc.) no lo retrasan. COORDINACIÓN comprueba en cada despertar que haya una
-  compilación de motor en marcha si hay un nivel entregado sin compilar. Caso: la 2.2.0, entregada a las 10:16 y sin
-  compilar a las 16:30 mientras la 6,1 medía Maglev.
-
+- **Versión intermedia (2.N.x) solo si compensa** (Titín, 28-10, tras la 2.1.1): se abre únicamente si arregla una
+  **regresión** o un **fallo de seguridad explotado** (KEV, «in the wild») **y** el nivel siguiente está a **más de ~3 días**
+  de publicarse. Todo lo demás (escapes, arreglos menores, parches sin explotar) entra en el nivel siguiente. Antes de
+  abrirla, COORDINACIÓN anota en la fila el motivo y la cuenta (días hasta el nivel, coste previsto). La 7,1 compila
+  primero el último nivel entregado por MOTOR; mediciones y guiones (Maglev, etc.) van después. En cada despertar,
+  COORDINACIÓN comprueba que haya compilación en marcha si hay un nivel entregado sin compilar. Caso: la 2.1.1 (~20–25 $
+  de nube, 4+ compilaciones) mientras la 2.2.0, entregada a las 10:16, seguía sin compilar a las 16:40.
+- **Revisión de gastos** (Titín, 28-10): COORDINACIÓN revisa `CONSUMO.md` y `get_session` de las sesiones vivas **en cada
+  relevo y una vez al día**; si un tipo de agente gasta más de lo que su tarea pide (sesión larga para trabajo con receta,
+  Opus donde Sonnet basta, esfuerzo alto sin fallos que lo justifiquen), propone a Titín bajarlo (modelo, esfuerzo o
+  relevo antes) con la cifra; la decisión es suya. El resultado, una línea en la nota de relevo.
 - **Quién decide y quién ejecuta**: COORDINACIÓN revisa, fusiona y ordena (regla 8, 09-10) y sus órdenes valen como del
   HUMANO (regla 16, 12-10); al HUMANO solo le llegan producto, credenciales, firmas en bak, root en ns2 y pruebas en las
   Mac. El que tiene el acceso ejecuta (regla 14); la entrega de LOCAL es la orden de publicar (regla 11, 13-10).
