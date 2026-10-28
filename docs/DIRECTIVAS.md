@@ -113,6 +113,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Prioridad actual: llegar a la base 128, a fondo** (HUMANO, 20-10; 21-10): la 1.15.2 publicada cierra la 116; la 1.15.3
   se cancela (view transitions vienen en la 128) y no se abre el 132 sobre la 116. En la 1.15.x solo seguridad urgente. Fuentes: fila FM.31, [`migracion-128.md`](../FlyWeb/docs/migracion-128.md).
 
+- **Servidor a la par del motor** (Titín, 28-10): el espejo de componentes de ns2 (`components.flyweb.lamosquita.net`:
+  CT, Root Store, Safe Browsing, Shields y demás) sirve los datos del nivel del motor que llevamos, igual que V8 y Blink, no
+  los de la base 128. Si el navegador pide o recibe algo «de 128», se sube el servidor (y, si hace falta, el lector del
+  navegador), nunca se rebaja. Caso: CT apagado desde la 2.0.0 por un `ct_config` que la 128 no entendía (FS.30).
+
 ## Seguridad
 
 - **Chromium de 2023, parches poco a poco** (riesgo asumido): SEGURIDAD-VIGÍA clasifica CVE, SEGURIDAD-PORTES porta.
@@ -136,6 +141,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   Titín. Fuente: [`coordinacion.md`](../FlyWeb/docs/coordinacion.md), «Agentes y cómo hablarles».
 
 ## Organización
+- **Primera versión funcional; lo menor se afina después** (Titín, 28-10): un arreglo menor (fuera del objetivo
+  garantizado o de poco alcance, como la Futura en Sequoia) entra en una versión con lo que funcione en la primera
+  compilación, sin vueltas extra de MOTOR ↔ LOCAL; si queda a medias sin regresión, se publica y se termina en la versión
+  siguiente. Solo bloquean una regresión o un fallo de seguridad. Caso: la 2.1.1 (FM.47).
 
 - **Quién decide y quién ejecuta**: COORDINACIÓN revisa, fusiona y ordena (regla 8, 09-10) y sus órdenes valen como del
   HUMANO (regla 16, 12-10); al HUMANO solo le llegan producto, credenciales, firmas en bak, root en ns2 y pruebas en las
