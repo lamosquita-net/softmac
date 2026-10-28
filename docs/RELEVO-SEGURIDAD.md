@@ -8,16 +8,16 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
-## SEGURIDAD-PORTES-11 → 12 (28-10-2026, ~12:30)
+## SEGURIDAD-PORTES-11 → 12 (28-10-2026, ~13:45)
 
-SEGURIDAD-PORTES-11 (`session_01MwmK2m7q9Dk4L6Yc7GdsS9`, Opus 5.5, medio) se releva al ~42 %. Entregado (filas FS.31,
+SEGURIDAD-PORTES-11 (`session_01MwmK2m7q9Dk4L6Yc7GdsS9`, Opus 5.5, medio) se releva al ~44 %. Entregado (filas FS.31,
 FS.33 y FS.34 de `TAREAS.md`; brave-core):
 - **FS.31 → FS.33:** Root Store a **153.0.8010.0** (Titín, con el 133): `seg/fs33-roots153`. Ya fundida por MOTOR-28.
 - **FS.33 (regla 17 del 133):** `seg/fs33-blink133` (9044bcbe DevTools, 5e0a7a16, 2a251e72) y **stack clash de TurboFan**
   v8 ea2f03dfff (`seg/v8-stackclash-133`; reserva 13.2 `seg/v8-stackclash-132`, solo si el 133 se atasca). Fundidas por
   MOTOR-28. Los 12 solo-LTS de MOTOR-27: pasan mjsunit en la `d8` 13.3 (7464/7465, el de siempre).
 - **FS.34 (deuda de Maglev, nivel 134, V8 13.4.114.21):** `seg/maglev-134`: serie `git am` en `FlyWeb/v8-maglev-134/`
-  (20 parches + README con la tabla) sobre la 13.4 **limpia**; quien monte la V8 del 134 la aplica y regenera `patches/v8`.
+  (19 parches + README con la tabla) sobre la 13.4 **limpia**; quien monte la V8 del 134 la aplica y regenera `patches/v8`.
   Cifra aceptada por COORDINACIÓN-18: **16 arreglos de Maglev** (+2 de TurboFan) contra la 13.4, revisados commit a commit.
 
 **Pendiente para la 12:** cuando MOTOR monte la V8 13.4 del 134, revisar que la serie entre sobre sus `patches/v8` (choca
