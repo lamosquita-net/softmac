@@ -1690,6 +1690,27 @@ grueso del nivel** (14–22 h reales sin carousel ni FetchLater; 33–45 h con t
 | 7df1ac0a94 | arreglos de compilación de LOCAL-14 (Perfetto `NamedTrack`, licencias) |
 | 56a99da5 | correcciones del 135 con su flag: `OptionLabelAttributeWhitespace`, `ResolveVarStylesOnCopy`, `SameValueTextContentFiresMutationObservers`, `SelectNoMouseUpForKeyboardSelection`, `StrongBolder`, `RadioInputNextButtonInScope`, `CorrectStylesForLists` |
 
+**Hecho por MOTOR-33 (`nube/motor-135` ebd8c17f, sin compilar; 29-10 ~17:20–17:55; opción A de Titín):**
+| Commit | Qué |
+|---|---|
+| 68585b1c | `AllowSameSiteNoneCookiesInSandbox` (b25e4d9b4 b2e2007e8 7fc76166e 41778368c 930296213, encendido). Regla 20: en `DecideAccess` el bloqueo de Shields (`IsAllowed(setting)`) y la macro 1PES de Brave van antes; solo abre cookies si la URL es del mismo sitio que la principal y todos los marcos antecesores son del mismo origen |
+| 423cadcb | `UpdateRequestForCorsRedirect` (reland edcb05836) |
+| 722d759c | `ServiceWorkerSrcdocSupport` (5b299cef9, 8d6a8c147) y `ServiceWorkerClientUrlIsCreationUrl` (ec3e438d8, 3a181153e); en la 128 la URL se recorta en `ServiceWorkerControlleeRequestHandler` |
+| 747e8405 | **`shape()`** (17 commits + flip 5646d3a9a): parser reescrito sobre `CSSParserTokenRange`; solo `clip-path` (`offset-path` y `shape-outside` lo rechazan, como el 135); `CSSShapeFunctionCompositeAnimation` sigue `experimental` |
+| 46fcecfd | **`interactivity`**: f88bfc0d5 + e47ead48d como un solo cambio, y 8b21209fb 3b8630b6c b73e018b7 4670338cc 66c0b303f 6f85e4ee1 ae21fa404; `CSSInert` estable; fuera la regla UA del select personalizable |
+| 48134b44 | editing e inline: 528bccdc9 9c070c13a (`EnterInOpenShadowRoots` en `test`, como el 135) 16874a564 bc351d721 b71045ab2 c933c8576 |
+| 3388c40a | HSTS, pins y `log_list.json` de la 135.0.7049.117 (los parches anteriores eran justo los de la 132) |
+| ebd8c17f | declaración 135.0.7049.117 / 2.4.0 |
+
+**Quedan fuera de la 2.4.0 (caros y menores, criterio de Titín):** `CSSAnchorRememberedScrollOffset` (cadena de anchor
+132–135, >1 h); `text-box-trim` con spanners (80505a9e751, exige el refactor del 134 de `BoxFragmentBuilder`);
+`preserveAspectRatio` en `feImage` (8692b015aaf: el diff es pequeño, pero en la 128 la imagen SVG se crea en
+`SVGFEImageElement` sin tamaño de contenedor y el 135 la crea en `FEImage::GetImage()`; habría que portar ese refactor);
+`text-emphasis-position: auto` (`experimental` en el 135); `CascadedAfterChangeStyle` (208c85057, solo rendimiento,
+no aplica sobre el recalc de la 128); `NodeInUAShadowRootUnderAnonymousBlockFlow` y
+`PartialCompletionNotAllowedInMoveParagraphs` (commit sin localizar con la historia ligera). Y lo que ya decidió Titín:
+Observable, select personalizable, carousel y FetchLater. `motor-135.html` en `FlyWeb/tools/`.
+
 **Lo que falta del Blink del 135, con lo medido (MOTOR-32):** las estimaciones del inventario eran optimistas en
 cuatro filas, porque el código «del 129–134» no está en la 128:
 - `CSSAnchorRememberedScrollOffset` (+88e081e06af): no es un flip; el flag no existe en FlyWeb y `out_of_flow_layout_part.cc`

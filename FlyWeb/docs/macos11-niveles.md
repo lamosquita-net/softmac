@@ -189,7 +189,7 @@ traen. Lo que hay que vigilar es el 139, que las borra.
 | Nivel | API que aparece (versión) | Qué hace | Camino de 10.14 | Mec. | Coste |
 |---|---|---|---|---|---|
 | 134 | `userInterfaceEnabled` (12.0, SSO de empresa) | Inicio de sesión de empresa (Entra) | No se usa en FlyWeb | F | S |
-| **135** | **`UTTypeUTF8PlainText` (11.0, UniformTypeIdentifiers)** en `bridged_content_view.mm` y `render_widget_host_view_cocoa.mm` | **Pegar y arrastrar texto** | `kUTTypeUTF8PlainText` (CoreServices) o `NSPasteboardTypeString` — lo que usa la 128 [V, `macos11-niveles.md` §3] | R | **M** (se nota: portapapeles) |
+| 135 | `UTTypeUTF8PlainText` (11.0, UniformTypeIdentifiers) en `bridged_content_view.mm` y `render_widget_host_view_cocoa.mm` | Tipos que se ofrecen al **menú Servicios** (no pegar ni arrastrar: corregido por MOTOR-32/33, 29-10, V en el inventario del 135) | Se queda la rama de la 128 (`kUTTypeUTF8PlainText`/`NSPasteboardTypeString`): no hace falta capa | F | S |
 | 135 | `providerName` (14.0, iCloud Keychain), `ASAuthorization*` (SSO) | Passkeys de iCloud y SSO | Fuera (FM.42 d10) | F | S |
 | 135 | `kVTEncodeFrameOptionKey_BaseFrameQP` | Codificación de vídeo | Símbolo débil con guarda | G/K | S |
 | 136 | `AVCaptureDeviceTypeContinuityCamera` (14) | Cámara del iPhone | Guardado por upstream | G | S |

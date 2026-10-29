@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 135 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 135 de FlyWeb 2.4 (brave-core nube/motor-135, V8 13.5).
+     Abrir en FlyWeb desde http://127.0.0.1; no carga nada de fuera. Cada línea dice ok o FALLO.
+     Comparar con Chrome for Testing 135: lo que allí sale ok tiene que salir ok aquí, salvo la versión declarada. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  #forma { width: 120px; height: 80px; background: green;
+           clip-path: shape(from 0 0, line to 100% 0, line to 50% 100%, close); }
+  #inerte { interactivity: inert; }
+  #negrita { font-weight: 700; }
+  #seguro { padding-top: env(safe-area-max-inset-top, 7px); }
+</style>
+</head>
+<body>
+<h1>Motor 135 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>A mano</h2>
+<ol>
+  <li>El recuadro verde de abajo es un triángulo con el vértice hacia abajo (<code>clip-path: shape()</code>).</li>
+  <li>Pulsar «Abrir con command»: se abre el diálogo sin JavaScript (<code>command="show-modal"</code>); «Cerrar» lo cierra
+    (<code>command="close"</code>).</li>
+  <li>El campo «inerte» no recibe el foco con el ratón ni con el tabulador (<code>interactivity: inert</code>).</li>
+</ol>
+<div id="forma"></div>
+<p><button id="abrir" commandfor="dlg" command="show-modal">Abrir con command</button></p>
+<dialog id="dlg">Diálogo abierto con <code>command</code>. <button commandfor="dlg" command="close">Cerrar</button></dialog>
+<p><input id="normal" value="normal"> <span id="inerte"><input id="campo-inerte" value="inerte"></span></p>
+<p id="negrita">padre 700 <b id="b">hijo b</b></p>
+<p id="seguro">safe-area-max-inset</p>
+<script>
+  const res = document.getElementById('res');
+  const pinta = (li, nombre, ok, nota) => { li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : ''); };
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li'); res.append(li); pinta(li, nombre, ok, nota);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    pinta(li, nombre, ok, nota);
+  };
+  const cs = (sel, prop, pseudo) => getComputedStyle(document.querySelector(sel), pseudo).getPropertyValue(prop);
+  document.getElementById('ua').textContent = navigator.userAgent;
+
+  // shape() (CSSShapeFunction)
+  prueba('clip-path: shape() se acepta y se computa', () => {
+    const c = cs('#forma', 'clip-path');
+    return { ok: CSS.supports('clip-path', 'shape(from 0 0, line to 100% 0, close)') && c.startsWith('shape('), nota: c };
+  });
+  prueba('shape(): curve, smooth, arc, hline y vline', () =>
+    CSS.supports('clip-path', 'shape(from 0 0, curve to 10px 10px with 5px 0, smooth by 5px 5px, ' +
+                 'arc to 20px 20px of 10px cw, hline to x-end, vline by 10%, close)'));
+  prueba('offset-path no admite shape() (como Chrome 135)', () =>
+    !CSS.supports('offset-path', 'shape(from 0 0, line to 10px 10px)'));
+
+  // interactivity (CSSInert)
+  prueba('interactivity: inert deja el campo sin foco', () => {
+    const i = document.getElementById('campo-inerte'); i.focus();
+    return { ok: CSS.supports('interactivity', 'inert') && cs('#inerte', 'interactivity') === 'inert' &&
+                 document.activeElement !== i, nota: `activo: ${document.activeElement && document.activeElement.id}` };
+  });
+  prueba('[inert] computa interactivity: inert (hoja UA)', () => {
+    const d = document.createElement('div'); d.inert = true; document.body.append(d);
+    const v = getComputedStyle(d).getPropertyValue('interactivity'); d.remove(); return { ok: v === 'inert', nota: v };
+  });
+
+  // command / commandfor (HTMLCommandAttributes)
+  prueba('button.command y commandForElement; CommandEvent', () => {
+    const b = document.getElementById('abrir');
+    return { ok: b.command === 'show-modal' && b.commandForElement === document.getElementById('dlg') &&
+                 typeof CommandEvent === 'function', nota: `${b.command}, ${typeof CommandEvent}` };
+  });
+  pruebaAsync('command="show-modal" abre el diálogo y dispara command', async () => {
+    const d = document.createElement('dialog'); d.id = 'dlg-prueba'; document.body.append(d);
+    const b = document.createElement('button'); b.setAttribute('commandfor', 'dlg-prueba'); b.setAttribute('command', 'show-modal');
+    document.body.append(b); let ev = '';
+    d.addEventListener('command', (e) => { ev = e.command; });
+    b.click(); await new Promise((r) => setTimeout(r, 20));
+    const ok = d.open && ev === 'show-modal'; d.close(); d.remove(); b.remove();
+    return { ok, nota: `open=${ok}, evento «${ev}»` };
+  });
+
+  // Flips pequeños del 135
+  prueba('ARIA: ariaControlsElements, ariaDescribedByElements…', () =>
+    ['ariaControlsElements', 'ariaDescribedByElements', 'ariaLabelledByElements', 'ariaActiveDescendantElement']
+      .every((p) => p in Element.prototype));
+  prueba('overflow-block / overflow-inline (CSSLogicalOverflow)', () =>
+    CSS.supports('overflow-inline', 'hidden') && CSS.supports('overflow-block', 'clip'));
+  prueba('env(safe-area-max-inset-top) existe (0px en escritorio)', () => {
+    const v = cs('#seguro', 'padding-top'); return { ok: v === '0px', nota: v };
+  });
+  prueba('NavigateEvent.sourceElement', () =>
+    typeof NavigateEvent === 'function' && 'sourceElement' in NavigateEvent.prototype);
+  prueba('<b> dentro de 700 computa 900 (StrongBolder)', () => {
+    const v = cs('#b', 'font-weight'); return { ok: v === '900', nota: v };
+  });
+
+  // Faltas del cruce con wpt.fyi y escapes del 134
+  prueba('Degradado con un solo stop', () => CSS.supports('background-image', 'linear-gradient(red)'));
+  prueba('font-variant-emoji y calc() en font-weight', () =>
+    CSS.supports('font-variant-emoji', 'text') && CSS.supports('font-weight', 'calc(400 + 100)'));
+
+  // Red
+  prueba('iframe sandbox admite allow-same-site-none-cookies', () =>
+    document.createElement('iframe').sandbox.supports('allow-same-site-none-cookies'));
+
+  // WebGL con las llamadas rápidas de la 2.4.0 ([PassAsSpan] y multi-draw)
+  const gl = (tipo) => {
+    const c = document.createElement('canvas').getContext(tipo);
+    if (!c) return { ok: false, nota: 'sin contexto' };
+    const u = c.getUniformLocation(c.createProgram(), 'x'); c.uniform4fv(u, new Float32Array(4)); c.vertexAttrib4fv(0, [0, 0, 0, 1]);
+    const md = c.getExtension('WEBGL_multi_draw');
+    return { ok: !!md && c.getError() !== undefined, nota: `${c.getParameter(c.VERSION)}; WEBGL_multi_draw: ${!!md}` };
+  };
+  prueba("getContext('webgl') con WEBGL_multi_draw", () => gl('webgl'));
+  prueba("getContext('webgl2') con WEBGL_multi_draw", () => gl('webgl2'));
+
+  // Versión declarada
+  prueba('User-Agent declara Chrome/135', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '135', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+  pruebaAsync('Client hints: 135.0.7049.117 y macOS ≥ 11', async () => {
+    const h = await navigator.userAgentData.getHighEntropyValues(['uaFullVersion', 'platformVersion', 'fullVersionList']);
+    const mayor = parseInt(h.platformVersion, 10);
+    const cr = (h.fullVersionList || []).find((b) => b.brand === 'Chromium');
+    return { ok: h.uaFullVersion === '135.0.7049.117' && mayor >= 11 && !!cr && cr.version === '135.0.7049.117',
+      nota: `${h.uaFullVersion}, macOS ${h.platformVersion}, ${JSON.stringify(navigator.userAgentData.brands)}` };
+  });
+</script>
+<p>No se ve desde una página y lo comprueba LOCAL: V8 13.5 con mjsunit (Maglev sigue apagado), la huella de red frente a
+Chrome 135 (ALPS 17613 en JA4 y <code>version_information</code> en el Initial de QUIC), las cookies
+<code>SameSite=None</code> en un iframe <code>sandbox="allow-scripts allow-same-site-none-cookies"</code> del mismo sitio
+(con Shields en «bloquear todas las cookies» no debe llegar ninguna), un service worker que controle un
+<code>&lt;iframe srcdoc&gt;</code> y su <code>Client.url</code> tras <code>history.pushState()</code> (sigue siendo la URL de
+creación), y las correcciones de editing del 135 (sangrar listas, MoveParagraphs con shadow roots), que van en las WPT de
+<code>editing/</code>.</p>
+</body>
+</html>
