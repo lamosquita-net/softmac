@@ -196,6 +196,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   Caso: la 2.3.0 se cayó en webs reales y se siguió compilando y probando encima antes de analizarlo.
 - **Nadie se queda parado** (Titín, 28-10): ante un bloqueo, cada agente sigue con lo que no dependa de él y decide el
   siguiente paso si ya tiene los datos; a COORDINACIÓN, el resultado. A Titín solo las decisiones.
+- **La 5,1 se prueba cuando se puede; no bloquea una salida** (Titín, 29-10): las pruebas de peor caso (sin AVX) en la
+  MacPro5,1 dependen de que Titín esté en el estudio; la versión sale con la 6,1 en verde. Si la 5,1 falla con alguna
+  versión, se analiza entonces qué hacer. Caso: la 2.3.0 (nivel 134).
 - **LOCAL compila la siguiente mientras prueba en la 6,1** (Titín, 27-10): las pruebas van a la 6,1, así que la 7,1
   compila la versión siguiente en cuanto la anterior está compilada y guardada su app y su DMG. Sigue habiendo una sola
   compilación a la vez.
