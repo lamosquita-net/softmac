@@ -102,3 +102,7 @@ con una trampa. Chromium 134 ya no admite 10.14/10.15, por eso no lo protege. En
 `patches/v8/src-base-platform-mutex.cc.patch`: antes de macOS 10.15 (`__builtin_available`), `os_unfair_lock_lock`
 sin opciones. Para MOTOR: llevarlo a `nube/motor-134` y revisar en cada V8 nuevo cualquier API o opción de 10.15+
 que solo se compruebe con un símbolo débil.
+
+**Comprobación en la 6,1 (29-10 10:11, guion `probar-230.command`, DMG 479bcaf1e2): VERDE.** WebGL y base64 de 1 a 8 MB
+«hecho 0 fallos»; example.com, Wikipedia, YouTube, GitHub y claude.ai cargan sin volcados de Crashpad; d8 13.4.114.21
+mjsunit 2195/2227, igual que la 7,1, sin SIGILL. Falta la 5,1 con el mismo guion.
