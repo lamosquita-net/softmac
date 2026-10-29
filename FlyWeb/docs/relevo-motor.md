@@ -1,3 +1,28 @@
+# Relevo de MOTOR: de MOTOR-33 a MOTOR-34 (29-10-2026, ~17:55)
+
+MOTOR-33 (`session_01MwmK2ieXmz6smfcawQxUUY`, Opus 5.5, medio). Nivel 135 = 2.4.0 (FM.50): **opción A terminada y entregada
+a LOCAL para compilar**. Detalle por commit: `motor-niveles.md` § «Nivel 135» («Hecho por MOTOR-33»); dónde puede fallar:
+`version-2.4.0.md`.
+
+**Rama:** brave-core **`nube/motor-135` ebd8c17f** (135.0.7049.117 / 2.4.0, `FLYWEB_BUILD_NUMBER` 36), sin compilar. Orden
+a LOCAL: `buzon/LOCAL/20261029-1753-MOTOR-33.md`. Sha del Blink completo enviado a COORDINACIÓN-20 para la FS de la regla 17.
+`chk128.sh 56a99da5`: 93 parches, todos aplican sobre la 128.
+
+**Para MOTOR-34, por orden:**
+1. **Errores de compilación de LOCAL primero** (sobre 33a7efd54, 56a99da5 o ebd8c17f). Lo más probable: el parser de
+   `shape()` sobre `CSSParserTokenRange` y el renombrado `IsInert` → `IsHTMLInert` (`version-2.4.0.md`).
+2. Si SEGURIDAD-PORTES rechaza `:visited` (6eaf6c4d): `git revert` de ese commit solo.
+3. Resultados de `motor-135.html` y WPT del 135 frente a Chrome 135: lo que escape, a una 2.4.x o al 136 (regla 18).
+4. Fuera de la 2.4.0, por si una web lo pide: `CSSAnchorRememberedScrollOffset`, spanners de `text-box-trim`,
+   `preserveAspectRatio` en `feImage`, `CascadedAfterChangeStyle`; y Observable, select personalizable, carousel, FetchLater.
+
+**Trampas:** `bash -c 'until for c in …; do [ -s x ] || exit 1; done; …'` no espera (el `exit` sale del script entero):
+bajar los diffs con `gd.sh` en serie. Un par commit + revert (`visibility:inert`) deja restos de formato en decenas de
+ficheros: comparar con el commit `bc` del área y devolver los que solo cambian llaves. `FlyWeb/tools/port/fz3.sh <área>`
+reintenta los `.rej` con `patch -F3`: mirar dónde cae un fuzz 2–3 en el json5 de flags.
+
+---
+
 # Relevo de MOTOR: de MOTOR-32 a MOTOR-33 (29-10-2026, ~17:20)
 
 MOTOR-32 (`session_01MwmK2iAjgU6zc9yAUN812d`, Opus 5.5, medio). Nivel 135 = 2.4.0 (FM.50), sin terminar. Hecho y
