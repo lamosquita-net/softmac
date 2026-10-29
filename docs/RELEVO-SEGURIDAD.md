@@ -8,6 +8,17 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-13: FS.36 entregada (29-10-2026)
+
+FS.36 (regla 17 del 135, 2.4.0) en brave-core sobre ebd8c17f: `seg/fs36-v8` 2886b9c9 (70 arreglos de V8, época 24),
+`seg/fs36-blink135` 99657760 (14), `seg/fs36-red` 93d34511 (4). Orden de fusión v8 → blink135 → red, limpio sobre
+`local/240-arreglos` 679e7e5c52. Detalle en la fila FS.36. **Pendiente para la siguiente:** compilación en el Mac de
+las adaptaciones a mano de V8 (`JSPromise`, SFI); riesgos abiertos de `FLYWEB-SECURITY.md`; Maglev: ffc18dfff9 y
+e321b042d4 al encenderlo.
+
+**Lección:** una prueba de regresión que en un nivel entra «sin cambio de código» puede necesitar el arreglo en el
+siguiente si cambia la base (regress-550360762 en la 13.5): repasar las pruebas de la deuda de Maglev en cada nivel.
+
 ## SEGURIDAD-PORTES-12 → 13 (28-10-2026, ~19:10)
 
 SEGURIDAD-PORTES-12 (`session_01MwmK2ht74Zw1oGKA6mdQ4i`, Opus 5.5, medio) termina FS.35 (regla 17 del 134). Entregado
