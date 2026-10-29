@@ -8,7 +8,7 @@ CR=/tmp/claude-0/port/cr128; CH=/home/user/chromium/hist; T=$(mktemp -d)
 for f in $( (git diff --name-only $(git rev-list --max-parents=0 HEAD); git status --porcelain | cut -c4-; R=$(git rev-list --max-parents=0 HEAD); for g in $(cat /tmp/claude-0/port/files-$1.txt 2>/dev/null); do [ -e /home/user/brave-core/patches/$(echo $g | tr / -).patch ] && git diff --quiet $R -- $g 2>/dev/null && echo $g; done) | sort -u); do
   P=/home/user/brave-core/patches/$(echo $f | tr / -).patch
   mkdir -p $T/a/$(dirname $f) $T/b/$(dirname $f); rm -f $T/a/$f $T/b/$f
-  if [ -e $CR/$f ]; then cp $CR/$f $T/a/$f; else git -C $CH show 128.0.6613.138:$f > $T/a/$f 2>/dev/null || rm -f $T/a/$f; fi
+  if [ -e $CR/$f ]; then cp $CR/$f $T/a/$f; else /tmp/claude-0/port/g128.sh $f > $T/a/$f 2>/dev/null || rm -f $T/a/$f; fi
   [ -e $f ] && cp $f $T/b/$f
   A=a/$f; B=b/$f; [ -e $T/$A ] || A=/dev/null; [ -e $T/$B ] || B=/dev/null
   if [ $A != /dev/null ] && [ $B != /dev/null ] && cmp -s $T/$A $T/$B; then

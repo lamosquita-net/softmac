@@ -1681,6 +1681,32 @@ grueso del nivel** (14–22 h reales sin carousel ni FetchLater; 33–45 h con t
 | 37c5e8a5e | **V8 13.5.212.10**: rebase de `patches/v8` (103, todos aplican sobre e2591684); stack clash a mano (`AllocateRegisters` en `pipelines.cc`); Maglev a mano; d73530cfd9 (regla 19: `typed_array_length_loading` sale encendido en 13.5). Maglev **sigue apagado**. Época 23 |
 | 33a7efd54 | ALPS 17613 (`UseNewAlpsCodepointHttp2/QUIC`) y QUIC `version_information` 0x11 (parche de QUICHE) |
 
+**Hecho por MOTOR-32 (`nube/motor-135`, sin compilar; 29-10 ~16:13–17:10):**
+| Commit | Qué |
+|---|---|
+| f9680180, 0bba4d30, 6eaf6c4d | faltas del cruce wpt.fyi (detalle y coste en `version-2.4.0.md`) |
+| 5eaf0562 | flips: `AOMAriaRelationshipProperties` (con `…AriaOwns` aparte, experimental como en el 135), `CSSLogicalOverflow`, `NavigateEventSourceElement`, `NavigateEventPopstateLimitations` (cd6fd72eb9), `CSSSafeAreaMaxInset` (0px; sin el setter de Android) |
+| 4f494d35 | `command`/`commandfor` (`HTMLCommandAttributes` estable): c121be19e, e38532a81, f4d84ff44, 33c0328e7, 8e63f280b, bfe02c237, bdfd9bd0e, 17926bb6e, 85364ff7e y la regla del 135 «sin `type` válido ⇒ botón» (sin su contador). Fuera: 1b6a541a2 (mapeos a11y) y 4be431c43 (referencetarget) |
+| 7df1ac0a94 | arreglos de compilación de LOCAL-14 (Perfetto `NamedTrack`, licencias) |
+| 56a99da5 | correcciones del 135 con su flag: `OptionLabelAttributeWhitespace`, `ResolveVarStylesOnCopy`, `SameValueTextContentFiresMutationObservers`, `SelectNoMouseUpForKeyboardSelection`, `StrongBolder`, `RadioInputNextButtonInScope`, `CorrectStylesForLists` |
+
+**Lo que falta del Blink del 135, con lo medido (MOTOR-32):** las estimaciones del inventario eran optimistas en
+cuatro filas, porque el código «del 129–134» no está en la 128:
+- `CSSAnchorRememberedScrollOffset` (+88e081e06af): no es un flip; el flag no existe en FlyWeb y `out_of_flow_layout_part.cc`
+  difiere en 366 líneas del 135 (cadena de anchor 132–135 sin portar). Más de 0,5 h.
+- `shape()`: 17 commits (3284a9ba2 044cf3710 5f81b5c59 e54847d7c 8a6bafe00 c5c80dd0c 1cab9fbd2 4fe008824 8fa10d7fa ce85d539f a8af49cc4 6f97f790f 86533cc4b 9ad18e925 2a7c281d1 ae261b0d4 ead0ee8d0; flip 5646d3a9a). El
+  parser de formas de la 128 usa `CSSParserTokenRange` y upstream ya `Stream`: hay que reescribir el parseo. 3–5 h reales.
+- Observable: 17 commits (42d10ecd1 d80b708f1 b48238464 54935a98d 1ef99987d 911786c09 77a8e718d 4a2006a57 c322807af 4b00956a8 151cbac18 b6729c19a 3fcb998ed e24c9459e e35d6616b bf92734b2 10a2f47af; 123e89265 es de glic, fuera). Arrastra APIs de bindings del 129–133 que la 128 no tiene
+  (`ThenCallable`, `TryRethrowScope`, `ScriptIterator` asíncrono): o se portan esas APIs o se reescribe con las de la
+  128. Más de 4 h.
+- `interactivity`: la cadena empieza en e47ead48d, revert de `visibility:inert` (que FlyWeb no tuvo) sobre ~100 ficheros:
+  portar el estado neto del 135 (f88bfc0d5 + e47ead48d como un solo cambio) y luego 8b21209fb … ae21fa404d.
+- Sin tocar: select personalizable, FetchLater (+8a947848b8), carousel, editing (`AdjustStartOfParagraphToMoveDuringIndent`…).
+- Fuera de Blink, ninguna de las 4 está en la 128: `UpdateRequestForCorsRedirect` (17d4c9271 → revert → reland
+  edcb05836), `ServiceWorkerClientUrlIsCreationUrl` (ec3e438d8, 3a181153e), `ServiceWorkerSrcdocSupport` (f0232ec8d →
+  revert → reland 5b299cef9, 8d6a8c147), `AllowSameSiteNoneCookiesInSandbox` (b25e4d9b4, b2e2007e8, 7fc76166e,
+  41778368c, 930296213; toca cookies: regla 20).
+
 **Decisiones:**
 - **Lecciones de la 2.3.0 aplicadas:** `api.cc` 13.4→13.5 sin `CHECK` nuevos alcanzables (el `CHECK_NE` de aridad de
   `NewWithCFunctionOverloads` sigue: el arreglo de IDL de la 2.3.0 vale); `FunctionCallbackInfo::Holder()` desaparece
