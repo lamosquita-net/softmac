@@ -3,7 +3,7 @@
 MOTOR-31, 29-10-2026. Inventario: `motor-niveles.md` § «Nivel 135». Declaración prevista: Chrome **135.0.7049.117** (la
 última Stable de Mac del 135). V8 **13.5.212.10**.
 
-**Rama:** brave-core `nube/motor-135`, sobre la 2.3.0 (`nube/motor-134` 479bcaf1e2). Sin compilar. Lo hecho y lo que
+**Rama:** brave-core `nube/motor-135` **ebd8c17f** (entrega de MOTOR-33, 29-10), sobre la 2.3.0 (`nube/motor-134` 479bcaf1e2). Sin compilar; orden a LOCAL en `buzon/LOCAL/20261029-1753-MOTOR-33.md`. `FLYWEB_BUILD_NUMBER` 36. Lo hecho y lo que
 falta, en la tabla de `motor-niveles.md` § «Nivel 135».
 
 ## Cruce con wpt.fyi antes de compilar (prueba de método de Titín)
@@ -71,6 +71,9 @@ Antes, buscadas en la 128 + parches: ninguna estaba. Resultado por causa:
 Chromium). `get_session` no da `cost_usd` en esta sesión: la cifra en dólares la saca COORDINACIÓN. Cubre ~55 de las 68
 pruebas (todas menos `text-emphasis` 12, spanners y `feImage`).
 
+**MOTOR-33 (opción A de Titín):** spanners y `feImage` quedan **fuera de la 2.4.0** (caros y menores: cada uno exige un
+refactor del 129–134; motivo en `motor-niveles.md` § «Nivel 135»). La causa 3 sigue fuera (`experimental`).
+
 **Lección para el método:** el run de wpt.fyi de Chrome 135 cuenta como mejora lo que va detrás de un flag
 `experimental` (causa 3). El cruce debe comprobar el `status` del flag en el json5 del 135 antes de dar una falta por
 buena.
@@ -95,6 +98,13 @@ buena.
   `invoker_element.idl` (fuera de `idl_in_core.gni`, sin borrar), `style_environment_variables.{h,cc}`,
   `block_layout_algorithm.cc` (`UpdateTextBoxTrim`), `color.{h,cc}`, `navigate_event.cc` (`IsBackForwardOrRestore` de
   `frame_loader.h`).
+- MOTOR-33 (sin compilar): `css_parsing_utils.cc` (`ConsumeBasicShapeShape` sobre `CSSParserTokenRange`),
+  `basic_shape_functions.cc`, `style_shape.cc`, `css_shape_interpolation_type.cc`, `style_builder_converter.{h,cc}`
+  (`ConvertPosition`/`ConvertRadius`/`ConvertPositionLength` con `const StyleResolverState&`); `computed_style.h` y
+  `computed_style_extra_fields.json5` (`IsInert` pasa a `IsHTMLInert` + `IsInert()` a mano), `style_adjuster.cc`,
+  `find_buffer.cc`; `cookie_settings_base.{h,cc}`, `net/cookies/*` (enums nuevos), `render_frame_host_impl.{h,cc}`,
+  `navigation_url_loader_impl.cc`; `navigation_request.cc` y `service_worker_*`; `cors_url_loader.cc`; generadores de
+  HSTS y de `ct_known_logs` con los datos de la 135.
 - Parches de repos nuevos en `util.js`: `third_party/emoji-segmenter/src` y `net/third_party/quiche/src`.
 
 ## Pruebas
@@ -111,7 +121,11 @@ buena.
 
 ## Para la web
 
-FlyWeb 2.4.0 pone el motor al nivel de Chrome 135. (Se completa al cerrar el nivel.) Por ahora: los emoji respetan
-`font-variant-emoji` y los selectores de variación (texto o color), `font-weight` admite `calc()`, pegar texto en una
-lista crea elementos nuevos, y el motor JavaScript pasa a V8 13.5. Para la red, FlyWeb se presenta igual que Chrome 135
+FlyWeb 2.4.0 pone el motor al nivel de Chrome 135: formas CSS con `shape()` en `clip-path`, la propiedad
+`interactivity` para dejar partes de la página inertes, botones que abren y cierran diálogos y popovers sin JavaScript
+(`command`/`commandfor`), los emoji respetan `font-variant-emoji` y los selectores de variación, `font-weight` admite
+`calc()`, correcciones de edición (listas, sangrado, corrector) y el motor JavaScript pasa a V8 13.5. En la red: los
+iframes aislados del mismo sitio pueden pedir sus cookies (`allow-same-site-none-cookies`, sin abrir las de terceros),
+las redirecciones CORS limpian cabeceras como manda el estándar y las listas HSTS y de Certificate Transparency son las
+de Chrome 135. Para la red, FlyWeb se presenta igual que Chrome 135
 (ALPS y QUIC).
