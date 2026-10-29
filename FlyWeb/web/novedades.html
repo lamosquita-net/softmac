@@ -22,6 +22,25 @@ llamamos <em>nivel de motor</em>: la 1.1 tiene el de Chrome 117, la 1.2 el de Ch
 nivel. Las versiones con un tercer número (por ejemplo la 1.7.1 o la 1.8.1) añaden correcciones o mejoras sobre el nivel
 anterior. El nivel de tu versión aparece en <code>flyweb://settings/help</code>.</p>
 </div></section>
+<section class="banda naranja"><div class="columna" id="v2-3-0">
+<h2>FlyWeb 2.3.0 · motor al nivel de Chrome 134</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 134</strong> (incluye el nivel 133, que no salió por separado). Las webs ven FlyWeb
+  como Chrome 134, con el motor de JavaScript de Chrome 134.</li>
+  <li><strong>Diálogos y menús emergentes más completos:</strong> <code>&lt;dialog closedby&gt;</code> y
+  <code>requestClose()</code> (cerrar al pulsar fuera o con Esc), <code>popover="hint"</code> y la pseudoclase
+  <code>:open</code>.</li>
+  <li><strong>Webs más rápidas y fluidas:</strong> <code>scheduler.yield()</code>, para que las webs pesadas no bloqueen la
+  página, y las funciones de texto de WebAssembly encendidas.</li>
+  <li><strong>Edición de texto:</strong> nueve correcciones de Chrome 134 al escribir y pegar en editores web, y selección
+  correcta dentro de componentes web.</li>
+  <li><strong>Más funciones web:</strong> X25519 en WebCrypto, <code>box-decoration-break</code>, estilos de resaltado
+  heredados, <code>Animation.overallProgress</code> y <code>ClipboardItem</code> con texto.</li>
+  <li><strong>Seguridad y privacidad:</strong> arreglos de seguridad del motor de JavaScript y almacén de certificados raíz al
+  día. La cabecera <code>Sec-Fetch-Storage-Access</code> de Chrome 133 sigue apagada, porque revela a las webs el estado de
+  tus cookies de terceros.</li>
+</ul>
+</div></section>
 <section class="banda naranja"><div class="columna" id="v2-1-1">
 <h2>FlyWeb 2.1.1 · seguridad y correcciones (motor 132)</h2>
 <ul>
