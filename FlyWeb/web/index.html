@@ -17,16 +17,16 @@
 <main>
 <section class="banda naranja"><div class="columna">
 <p>FlyWeb es un navegador para <strong>Mac Intel con macOS 10.14 Mojave o superior</strong>. Está basado en
-Chromium 128 y Brave 1.69, con el motor web al nivel de Chrome 131, con el bloqueo de anuncios y rastreadores de Brave, pero <strong>sin ninguno de sus
+Chromium 128 y Brave 1.69, con el motor web al nivel de Chrome 134, con el bloqueo de anuncios y rastreadores de Brave, pero <strong>sin ninguno de sus
 servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomonedas, ni noticias. Las listas de bloqueo y
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 2.1.1</h2>
-<p><a class="boton" href="descargas/FlyWeb-2.1.1.dmg" download>Descargar FlyWeb 2.1.1 (175 MB)</a></p>
+<h2>Descargar FlyWeb 2.3.0</h2>
+<p><a class="boton" href="descargas/FlyWeb-2.3.0.dmg" download>Descargar FlyWeb 2.3.0 (175 MB)</a></p>
 <p class="dato">macOS 10.14 Mojave o superior, Mac Intel (x86_64). En macOS 10.15 a 12 funciona; solo Mojave está garantizado.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>694a5477a0ed2b8920d060eb2c87c90542387f0f81b08e38f3ef8871666596c6</code></p>
+SHA-256: <code>ea16f0be67b99d00e68b311b9967cc9109a100ffc68aed8c182f26ba6a1d53c7</code></p>
 <p class="dato"><strong>¿Vienes de la 1.15?</strong> La 2.0 copia tu perfil antes de usarlo y desde él no se vuelve atrás sin esa
 copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High Sierra (10.13)?</strong> Tu última versión es la
 <a href="descargas/FlyWeb-1.15.2.dmg">1.15.2</a> (sha256 <code>fbca0533b634a323f839a6265fa9b1802e53e03fcbc500879bbdf0e16cf9f138</code>).</p>
@@ -35,13 +35,31 @@ copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-2.1.1.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-2.3.0.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 2.1.1</h2>
+<h2 id="novedades">Notas de la versión 2.3.0</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 134</strong> (incluye el nivel 133, que no salió por separado). Las webs ven FlyWeb
+  como Chrome 134, con el motor de JavaScript de Chrome 134.</li>
+  <li><strong>Diálogos y menús emergentes más completos:</strong> <code>&lt;dialog closedby&gt;</code> y
+  <code>requestClose()</code> (cerrar al pulsar fuera o con Esc), <code>popover="hint"</code> y la pseudoclase
+  <code>:open</code>.</li>
+  <li><strong>Webs más rápidas y fluidas:</strong> <code>scheduler.yield()</code>, para que las webs pesadas no bloqueen la
+  página, y las funciones de texto de WebAssembly encendidas.</li>
+  <li><strong>Edición de texto:</strong> nueve correcciones de Chrome 134 al escribir y pegar en editores web, y selección
+  correcta dentro de componentes web.</li>
+  <li><strong>Más funciones web:</strong> X25519 en WebCrypto, <code>box-decoration-break</code>, estilos de resaltado
+  heredados, <code>Animation.overallProgress</code> y <code>ClipboardItem</code> con texto.</li>
+  <li><strong>Seguridad y privacidad:</strong> arreglos de seguridad del motor de JavaScript y almacén de certificados raíz al
+  día. La cabecera <code>Sec-Fetch-Storage-Access</code> de Chrome 133 sigue apagada, porque revela a las webs el estado de
+  tus cookies de terceros.</li>
+</ul>
+
+<h2>Notas de la versión 2.1.1</h2>
 <ul>
   <li><strong>Seguridad.</strong> Comprobación de Certificate Transparency activada, almacén de certificados raíz y lista HSTS
   al día (se retiran raíces que Chrome ya no admite) y un arreglo de seguridad en el motor de JavaScript.</li>
