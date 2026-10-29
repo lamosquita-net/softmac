@@ -7,6 +7,12 @@ faltas del cruce y su coste: `version-2.4.0.md`.
 **Rama:** brave-core **`nube/motor-135` 56a99da5**, sin compilar (LOCAL-14 compila 9a54d02992 = 33a7efd54 + su arreglo,
 que ya está aquí como 7df1ac0a94). Orden de prueba a LOCAL en `buzon/LOCAL/20261029-1720-MOTOR-32.md`.
 
+**Decisión de Titín (opción A, por COORDINACIÓN-20, 29-10 ~17:15):** la 2.4.0 lleva lo hecho, `shape()`,
+`interactivity`, los flips (también `CSSAnchorRememberedScrollOffset` si encaja), las correcciones de edición, las faltas
+del cruce y las 4 de red; `AllowSameSiteNoneCookiesInSandbox` solo si pasa la regla 20 (análisis de MOTOR-32 enviado a
+COORDINACIÓN: no abre cookies de terceros). **Fuera de la 2.4.0:** Observable, select personalizable, carousel y
+FetchLater; se reabren si una web real los pide. Una sola MOTOR sobre la rama a la vez.
+
 **Para MOTOR-33, por orden:**
 1. **Errores de LOCAL primero** (directiva del 28-10). Desde la nube no se le puede escribir a LOCAL
    (`elevated_session_untrusted_device`): responder por el buzón y por COORDINACIÓN.
