@@ -1,3 +1,36 @@
+# Relevo de MOTOR: de MOTOR-31 a MOTOR-32 (29-10-2026, ~16:10)
+
+MOTOR-31 (`session_01MwmK2jaooqMPoHmosCsL9S`, Opus 5.5, medio; relevo al 38 % de contexto, 24,3 $). Nivel 135 = 2.4.0
+(FM.50). Estado y decisiones: `motor-niveles.md` § «Nivel 135»; cruce y coste: `version-2.4.0.md`.
+
+**Rama:** brave-core **`nube/motor-135` 33a7efd54**, sobre 479bcaf1e2, sin compilar. Encima: port de WebGL (9db2c47e3), los
+escapes del 134 (619397a95…5a8fe0bb8; falta `highlight-paired-cascade-004`, sin causa), **V8 13.5.212.10** (37c5e8a5e;
+`FlyWeb/v8-revision`, los 103 `patches/v8` aplican sobre e2591684) y ALPS/QUIC (33a7efd54). `util.js` aplica ya parches
+de `third_party/emoji-segmenter/src` y `net/third_party/quiche/src`.
+
+**Para MOTOR-32, por orden:**
+1. **Las 8 faltas del cruce wpt.fyi** (directiva «Las faltas, antes de compilar»; lista en `version-2.4.0.md`): mirar
+   antes en la 128 + parches si alguna ya está; `:visited` (b39d6582c8e), a SEGURIDAD-PORTES antes de portarlo. Medir el
+   coste del porte (`get_session` antes y después) y anotarlo en `version-2.4.0.md`.
+2. **Blink del 135** (orden del informe Blink en `motor-niveles.md`): flips pequeños, `command`, `shape()`, Observable,
+   correcciones, select personalizable, `interactivity`, FetchLater (+8a947848b8). El carousel (8–12 h, solo Chrome):
+   proponer a COORDINACIÓN si va en una 2.4.x. **Ojo:** los flips no son solo json5: comparar el código detrás de cada
+   flag entre la 128 + parches y la 135 (en `/tmp/claude-0/port/diffs/` estaban los de AOM, LogicalOverflow,
+   SafeAreaMaxInset, sourceElement y popstate; no persisten).
+3. Fuera de Blink: `AllowSameSiteNoneCookiesInSandbox`, `ServiceWorkerSrcdocSupport`,
+   `ServiceWorkerClientUrlIsCreationUrl`, `UpdateRequestForCorsRedirect` (código en la 128 o no: comprobar); regenerar
+   HSTS/CT; corregir §8.2 de `macos11-niveles.md` (`UTType` es del menú Servicios).
+4. Declaración 135.0.7049.117 / 2.4.0 en `build/config.gni` (`FLYWEB_BUILD_NUMBER` 36), `FlyWeb/tools/motor-135.html`
+   (incluir `getContext('webgl'/'webgl2')` con `ANGLE_multi_draw`), orden a LOCAL por `buzon/LOCAL/`, FM.50 y
+   `send_message` a COORDINACIÓN-20.
+
+**Trampas de esta sesión:** chromiumdash da 403 por el proxy (usar `versionhistory.googleapis.com`); Gitiles por HTTP
+sirve diffs con sha completo (`/tmp/claude-0/port/gd.sh` resuelve el corto; ahora en `FlyWeb/tools/port/`);
+`chk128.sh` no comprueba los parches de subrepos (emoji-segmenter, QUICHE): comprobarlos a mano; `git grep` sobre
+clones sin blobs se cuelga (mató un comando de 2 min).
+
+---
+
 # Relevo de MOTOR: de MOTOR-30 a MOTOR-31 (29-10-2026, ~14:10)
 
 MOTOR-30 (`session_01MwmK2hpaEHYmeX2A1rMrMS`, Opus 5.5, medio; ~17 % de contexto) sacó adelante la **2.3.0** de las dos
