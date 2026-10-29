@@ -1,3 +1,51 @@
+# Relevo de MOTOR: de MOTOR-30 a MOTOR-31 (29-10-2026, ~14:10)
+
+MOTOR-30 (`session_01MwmK2hpaEHYmeX2A1rMrMS`, Opus 5.5, medio; ~17 % de contexto) sacó adelante la **2.3.0** de las dos
+caídas del renderer. Se archiva al entregar. Detalle: `version-2.3.0.md`, `caida-230.md`, `wpt-230.md`.
+
+**Estado:** la **2.3.0 entregada por LOCAL-14** (FM.49): brave-core **`nube/motor-134` 479bcaf1e2**, build 35, V8 13.4.114.21;
+0 regresiones WPT frente a la 2.1.1. Encima de 858f858dc3:
+- **fa6ccf3c76**: caída en el primer `getContext('webgl')`. V8 13.4 (c41f7a0e) hace CHECK en
+  `FunctionTemplate::NewWithCFunctionOverloads` si dos sobrecargas rápidas tienen la misma aridad, y los IDL de WebGL de la
+  128 ponen `[NoAllocDirectCall]` en pares `Float32Array`/`sequence<>`. Se quitó el atributo de los 30 grupos sobrecargados
+  (el compilador de IDL lo exige en todas o en ninguna). LOCAL-14 llegó al mismo árbol (816c878506).
+- **479bcaf1e2** (de LOCAL-14): SIGILL en Mojave en toda web con JS. El `SpinningMutex` de la 13.4 pide
+  `OS_UNFAIR_LOCK_ADAPTIVE_SPIN` (10.15) a `os_unfair_lock_lock_with_options`; libplatform de 10.14 aborta con `ud2`.
+  Antes de 10.15, `os_unfair_lock_lock`.
+
+**Para el 135:**
+- **Port de upstream de WebGL:** `nube/motor-134-webgl-up` **8eeb795e9e** = 89faaa39fb47 (M130: `[PassAsSpan]` en uniones
+  `sequence<>`/array tipado + IDL con `Float32List`/`Int32List`/`Uint32List`; 10 parches). Recupera las llamadas rápidas de
+  WebGL que quitó fa6ccf3c76. Está sobre fa6ccf3c76: hay que **ponerlo sobre 479bcaf1e2** (solo toca IDL y bindings, no
+  choca con el parche del mutex). Aplica limpio sobre la 128 y sobre nuestro `bind_gen/interface.py`. Sin compilar. Por
+  norma de Titín, no hay 2.3.1: entra con el 135.
+- **Escapes WPT del 134** (`wpt-230.md`, decisión de COORDINACIÓN-20: van al 135). Son 16 que fallan siempre;
+  `highlight-cascade-010` está descartado (fue un tiempo agotado suelto). Grupos: `font-variant-emoji-*` y
+  `variation-sequences` (emoji/VS), `calc()` fuera de rango en `font-weight` (4 pruebas), `@font-feature-values` en la
+  serialización, highlight (`css-target-text-decoration-001`, `custom-highlight-painting-below-target-text`,
+  `highlight-paired-cascade-004`), `inserthtml` con `<li>`, OffscreenCanvas (`desynchronized` en `getContextAttributes`,
+  `direction` heredado al transferir). Del 133 siguen los de flexbox de 1 nivel de color (ANGLE OpenGL, ver TRAMPAS),
+  `text-box-trim-*` y `open-pseudo`.
+- **Informe de INVESTIGACIÓN-MOTOR-6:** llegará en `FlyWeb/docs/wpt-230-investigacion.md`, con los arreglos de Chrome que
+  hay que portar para esos escapes. Leerlo antes del inventario del 135.
+- **Maglev sigue apagado** hasta que LOCAL lo mida con la 2.3.0 (JetStream con y sin `--maglev` en la 5,1 y la 6,1).
+- **Pendiente de LOCAL, por código limpio:** `d8` mjsunit en la 6,1 y la 5,1 (antes solo en la 7,1) y `atob`/`btoa` largos
+  en la 5,1. El barrido de CPU de V8 13.3/13.4 está en `version-2.3.0.md`.
+- Descartada y sin uso: `nube/motor-134-scopeinfo` 784d9670b9 (`reuse_scope_infos`; no era la causa).
+
+**Trampas nuevas** (en `docs/TRAMPAS.md`, MOTOR): que `d8` pase no prueba Blink. En cada V8 nueva, diff de `src/api/api.cc`
+buscando `CHECK`/`ApiCheck` nuevos y barrido de los IDL de la base; `getContext('webgl')` en la prueba de humo; `grep` de
+`__attribute__((weak))`, `dlsym` y `__builtin_available` en `src/base` y `src/libplatform`; `d8` también en la 6,1. Sin
+volcado no prueba que el navegador mate al renderer: lldb lo separa (`--renderer-cmd-prefix`).
+
+**Método que funcionó:** V8 completa a la tag por `git fetch --depth 1` de `https://github.com/v8/v8` (googlesource está
+bloqueado en la nube); historia de Chromium y V8 con `--filter=tree:0 --shallow-since=…` y `--grep` (nada de `git grep`
+sobre árboles sin blobs: tarda minutos). Chromium 128 con sparse-checkout de `third_party/blink/renderer`
+(`https://github.com/chromium/chromium`, tag 128.0.6613.138); los parches se generan con `git diff --full-index` sobre ese
+árbol.
+
+---
+
 # Relevo de MOTOR: de MOTOR-29 a MOTOR-30 (28-10-2026, ~19:50)
 
 MOTOR-29 (`session_01MwmK2iDD1sWx5FwbmTYa37`, Opus 5.5, medio; ~30 % de contexto) metió `attr()` en el 133 e hizo el
