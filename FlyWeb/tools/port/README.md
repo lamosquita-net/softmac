@@ -359,3 +359,20 @@ flags) y `brave-core` en `nube/base-128-motor`. Los parches son diff `--full-ind
   Un fichero que se añada al área a mano: **copiarlo de la 128 y aplicarle su parche de bc** antes de editar.
   `fin133.sh` toma el id de sesión de `SESION`.
 
+
+## Sin historia completa de Chromium (MOTOR-32, 29-10)
+
+- **Historia ligera:** `git init /home/user/chromium/hist` + `git fetch --filter=tree:0 --shallow-since=2024-06-01 origin
+  refs/tags/135.0.7049.117:… refs/tags/128.0.6613.138:…` (~3 min, 60 MB). Solo commits: `git log --format='%cs %h %s'
+  128.0.6613.138..135.0.7049.117 > log128-135.txt` y **buscar por asunto** (con `--grep` sale de todo). `git show <sha>`
+  baja árboles y blobs a demanda en ~5 s. `git log -- <ruta>` sigue siendo inviable. El historial de Gitiles
+  (`+log/a..b/ruta`) pide sesión (403).
+- `gd.sh` usa esa historia y, si falta, Gitiles (~40 s por diff). `msg.sh <sha>…`: fecha, sha y asunto por Gitiles.
+- `g128.sh <fichero>`: el fichero en la 128 (cr128 o Gitiles); `generar128.sh`, `chk128.sh` y `add128.sh` lo usan en vez
+  de la historia completa.
+- `portgd.sh <área> <commits>` (= `portar128.sh` con `gd.sh`; `STEP=1` solo monta), `ap1gd.sh <área> <commit>` y el
+  `ok1.sh` de siempre, paso a paso. `mkws128.sh <área> <ficheros>`: área a mano sobre la 128 + parches.
+- `fwf.sh <fichero>…`: deja en `fw/` la versión FlyWeb (128 + parche) para `diff fw/X cr135/X`.
+- **Ficheros borrados por un commit:** `generar128.sh` no los expresa (aviso «borrado del área»). Se dejan como en la 128
+  y se quitan de su `.gni` (caso `invoker_element.idl`).
+- **`pkill -f`** vuelve a matar el propio shell: no usarlo.

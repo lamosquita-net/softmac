@@ -51,6 +51,30 @@ las faltas antes de compilar. Tabla completa: [`wpt-135-cruce.md`](wpt-135-cruce
   no veía**, porque son arreglos sin flag. La asignación es por nombre de directorio (S). Antes de portar hay que mirar en
   la 128 de FlyWeb si alguna ya está.
 
+## Porte de las faltas del cruce (MOTOR-32, 29-10, ~16:13–16:26 UTC)
+
+Antes, buscadas en la 128 + parches: ninguna estaba. Resultado por causa:
+
+| Causa | Estado | Commit de brave-core |
+|---|---|---|
+| 1. Gradientes de un solo stop y `hue longer` | **portada** (4 commits, limpios) | f9680180 |
+| 2. `:visited` hereda en todos los estilos | **portada en commit aparte** (revertible): solo llena los campos internos de «visited» con los heredados; `getComputedStyle` no cambia. **Pendiente de la revisión de SEGURIDAD-PORTES (regla 17)** | 6eaf6c4d |
+| 3. `text-emphasis-position: auto` | **no se porta**: en el 135 sigue `experimental`; Chrome 135 Stable no lo da | — |
+| 4. `text-shadow` en custom highlights | portada | 0bba4d30 |
+| 5. `color-mix` con componentes que faltan | portada | 0bba4d30 |
+| 6. `text-box-trim` con hijos BFC (6078e755853) | portada, adaptada (FlyWeb no tiene la pasada de `line-clamp: auto`) | 0bba4d30 |
+| 6. `text-box-trim` con spanners (80505a9e751) | **aplazada**: exige el refactor del 134 que lleva el estado a `BoxFragmentBuilder` | — |
+| 7. `SetIntervalWithoutClamp` | portada a mano (la 128 no tiene el flag; encendido como en el 135) | 0bba4d30 |
+| 8. `preserveAspectRatio` en `feImage` | **aplazada**: depende de un `FEImage::GetImage()` del 129–134 | — |
+
+**Coste:** ~13 min de reloj en la sesión principal (más ~10 min de montar el entorno sin la historia completa de
+Chromium). `get_session` no da `cost_usd` en esta sesión: la cifra en dólares la saca COORDINACIÓN. Cubre ~55 de las 68
+pruebas (todas menos `text-emphasis` 12, spanners y `feImage`).
+
+**Lección para el método:** el run de wpt.fyi de Chrome 135 cuenta como mejora lo que va detrás de un flag
+`experimental` (causa 3). El cruce debe comprobar el `status` del flag en el json5 del 135 antes de dar una falta por
+buena.
+
 ## Dónde puede fallar la compilación
 
 - V8 13.5: `turboshaft/pipelines.{h,cc}` y `compiler/pipeline.cc` (stack clash rehecho: `AllocateRegisters` devuelve
@@ -62,6 +86,15 @@ las faltas antes de compilar. Tabla completa: [`wpt-135-cruce.md`](wpt-135-cruce
   `third_party/emoji-segmenter/src`, que `util.js` aplica ahora).
 - `font_face.cc` (`MediaValuesDynamic`, `ComputeValueInCanonicalUnit`), `style_builder_converter.{h,cc}` y llamantes de
   `ConvertFontWeight` (firma con `CSSLengthResolver`).
+- **Arreglado por LOCAL-14 (7df1ac0a94):** `perfetto::NamedTrack` de V8 13.5 (cppgc `process-heap.h`) no existe en el
+  Perfetto de la 128 (parche con `perfetto::Track::Global` e id fijo); `licenses.py` y `brave/patches/net/third_party`.
+  Para los niveles siguientes: cada V8 nueva puede traer más usos de `NamedTrack`; buscarlos al rebasar `patches/v8`.
+- MOTOR-32 (sin compilar): `platform/timer.{h,cc}` (`RepeatInterval()` pasa a `std::optional`; llamantes de la 128:
+  `frame_caret.cc` compara con `==`), `html_button_element.cc` (trasplante del 135 de `command()`/`GetCommandEventType`
+  y del bloque `DOMActivate`), `html_dialog_element.cc` (`request-close`), `keywords.json5` (`request-close`),
+  `invoker_element.idl` (fuera de `idl_in_core.gni`, sin borrar), `style_environment_variables.{h,cc}`,
+  `block_layout_algorithm.cc` (`UpdateTextBoxTrim`), `color.{h,cc}`, `navigate_event.cc` (`IsBackForwardOrRestore` de
+  `frame_loader.h`).
 - Parches de repos nuevos en `util.js`: `third_party/emoji-segmenter/src` y `net/third_party/quiche/src`.
 
 ## Pruebas

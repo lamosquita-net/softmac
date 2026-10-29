@@ -1,3 +1,33 @@
+# Relevo de MOTOR: de MOTOR-32 a MOTOR-33 (29-10-2026, ~17:20)
+
+MOTOR-32 (`session_01MwmK2iAjgU6zc9yAUN812d`, Opus 5.5, medio). Nivel 135 = 2.4.0 (FM.50), sin terminar. Hecho y
+pendiente, con commits: `motor-niveles.md` § «Nivel 135» («Hecho por MOTOR-32» y «Lo que falta… con lo medido»);
+faltas del cruce y su coste: `version-2.4.0.md`.
+
+**Rama:** brave-core **`nube/motor-135` 56a99da5**, sin compilar (LOCAL-14 compila 9a54d02992 = 33a7efd54 + su arreglo,
+que ya está aquí como 7df1ac0a94). Orden de prueba a LOCAL en `buzon/LOCAL/20261029-1720-MOTOR-32.md`.
+
+**Para MOTOR-33, por orden:**
+1. **Errores de LOCAL primero** (directiva del 28-10). Desde la nube no se le puede escribir a LOCAL
+   (`elevated_session_untrusted_device`): responder por el buzón y por COORDINACIÓN.
+2. Lo que decida COORDINACIÓN sobre el resto del Blink del 135 (propuesta en el informe de MOTOR-32): `shape()`,
+   Observable, `interactivity`, select personalizable, FetchLater, anchor remembered offset y las 4 de red. Cada fila con
+   su cadena de commits en `motor-niveles.md`.
+3. `:visited` (6eaf6c4d) espera la revisión de SEGURIDAD-PORTES: si la rechaza, `git revert` de ese commit solo.
+4. Al cerrar: declaración 135.0.7049.117 / 2.4.0 en `build/config.gni` (`FLYWEB_BUILD_NUMBER` 36), `motor-135.html`
+   (con `getContext('webgl'/'webgl2')` y `ANGLE_multi_draw`), HSTS/CT, §8.2 de `macos11-niveles.md`, orden final a LOCAL.
+
+**Entorno (herramientas nuevas en `FlyWeb/tools/port/README.md` § «Sin historia completa»):** `mkcr.sh` de cr128 y
+cr135 (~1 min cada uno), historia ligera de Chromium (~3 min) y `portgd.sh`/`ap1gd.sh`/`ok1.sh` paso a paso;
+`fin133.sh` con `SESION=<id>` genera y hace commit.
+
+**Trampas:** el inventario dio por «flip» o «código ya en el 129–134» filas cuyo código no está en la 128 (ver
+«Lo que falta»): mirar `fwf.sh` + `diff fw/X cr135/X` antes de estimar. El run de wpt.fyi incluye funciones
+`experimental`. `pkill -f` mata el propio shell. El json5 del 135 tiene entradas con sangría rara (`CorrectStylesForLists`):
+`addflag.py` sí las mete bien.
+
+---
+
 # Relevo de MOTOR: de MOTOR-31 a MOTOR-32 (29-10-2026, ~16:10)
 
 MOTOR-31 (`session_01MwmK2jaooqMPoHmosCsL9S`, Opus 5.5, medio; relevo al 38 % de contexto, 24,3 $). Nivel 135 = 2.4.0
