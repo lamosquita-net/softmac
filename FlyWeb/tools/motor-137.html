@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 137 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 137 de FlyWeb 2.6 (brave-core nube/motor-137, V8 13.7).
+     Abrir en FlyWeb desde http://127.0.0.1; no carga nada de fuera. Cada línea dice ok o FALLO.
+     Comparar con Chrome for Testing 137: lo que allí sale ok tiene que salir ok aquí, salvo la versión declarada. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  #ifm { color: if(media(width > 0px): rgb(0, 128, 0); else: rgb(255, 0, 0)); }
+  #ifs { --x: 1; color: if(style(--x: 1): rgb(0, 128, 0); else: rgb(255, 0, 0)); }
+  #ifp { color: if(supports(display: grid): rgb(0, 128, 0); else: rgb(255, 0, 0)); }
+  #rf { display: flex; reading-flow: flex-visual; }
+  #rf > :first-child { order: 2; }
+  #vt { view-transition-name: match-element; }
+  #op { offset-path: shape(from 0 0, line to 10px 10px); }
+</style>
+</head>
+<body>
+<h1>Motor 137 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>A mano</h2>
+<ol>
+  <li><code>reading-flow</code>: pulsar Tab desde el campo de texto; el foco va a «primero» y luego a «segundo» en el orden
+    en que se ven (no en el del DOM).</li>
+  <li>Selección en Shadow DOM: seleccionar con el ratón desde «fuera» hasta «dentro»; la selección cruza la sombra.</li>
+  <li>Canvas float16 y su farbling: <code>canvas-float16.html</code>, desde dos orígenes.</li>
+  <li><code>:visited</code> particionado: un enlace a una página visitada desde otro sitio no sale como visitado aquí.</li>
+</ol>
+<p><input id="campo" placeholder="Tab desde aquí"></p>
+<div id="rf"><button>segundo</button><button>primero</button></div>
+<p>fuera <span id="host"></span></p>
+<p id="ifm">if(media)</p><p id="ifs">if(style)</p><p id="ifp">if(supports)</p>
+<div id="vt"></div><div id="op"></div>
+<script>
+  const res = document.getElementById('res');
+  const pinta = (li, nombre, ok, nota) => { li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : ''); };
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li'); res.append(li); pinta(li, nombre, ok, nota);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    pinta(li, nombre, ok, nota);
+  };
+  const cs = (sel, prop) => getComputedStyle(document.querySelector(sel)).getPropertyValue(prop);
+  document.getElementById('ua').textContent = navigator.userAgent;
+  const sombra = document.getElementById('host').attachShadow({ mode: 'open' });
+  sombra.innerHTML = '<b>dentro</b>';
+
+  // CSS if()
+  for (const id of ['ifm', 'ifs', 'ifp']) {
+    prueba(`CSS if(): #${id}`, () => { const v = cs('#' + id, 'color'); return { ok: v === 'rgb(0, 128, 0)', nota: v }; });
+  }
+  prueba('reading-flow / reading-order', () =>
+    CSS.supports('reading-flow', 'flex-visual') && CSS.supports('reading-order', '1') && cs('#rf', 'reading-flow') === 'flex-visual');
+  prueba('Selection.getComposedRanges({shadowRoots})', () => {
+    const s = getSelection(), b = sombra.querySelector('b');
+    s.setBaseAndExtent(b.firstChild, 0, b.firstChild, 3);
+    const r = s.getComposedRanges({ shadowRoots: [sombra] });
+    const ok = r.length === 1 && r[0].startContainer === b.firstChild; s.removeAllRanges(); return ok;
+  });
+  prueba('view-transition-name: match-element', () => cs('#vt', 'view-transition-name') === 'match-element');
+  prueba('offset-path: shape()', () => CSS.supports('offset-path', 'shape(from 0 0, line to 10px 10px)') && cs('#op', 'offset-path') !== 'none');
+  pruebaAsync('WebCrypto Ed25519 (firma y verificación)', async () => {
+    const k = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+    const datos = new TextEncoder().encode('flyweb'), firma = await crypto.subtle.sign('Ed25519', k.privateKey, datos);
+    const jwk = await crypto.subtle.exportKey('jwk', k.publicKey);
+    return { ok: await crypto.subtle.verify('Ed25519', k.publicKey, firma, datos) && jwk.alg === 'Ed25519', nota: `alg ${jwk.alg}` };
+  });
+  // Canvas float16 (A06)
+  prueba('ImageData.pixelFormat y Float16Array', () =>
+    new ImageData(1, 1).pixelFormat === 'rgba-unorm8' &&
+    new ImageData(new Float16Array(4), 1, 1, { pixelFormat: 'rgba-float16' }).data instanceof Float16Array);
+  prueba('getContextAttributes().colorType', () =>
+    document.createElement('canvas').getContext('2d', { colorType: 'float16' }).getContextAttributes().colorType === 'float16');
+  prueba('crypto.getRandomValues(Float16Array) sin caída (2.5.0)', () => crypto.getRandomValues(new Float16Array(2)).length === 2);
+  // V8 13.7
+  prueba('V8 13.7: Error.isError, RegExp.escape, Float16Array', () =>
+    Error.isError(new TypeError()) && typeof RegExp.escape === 'function' && typeof Float16Array === 'function');
+  // Lo que se queda fuera (como Chrome 137 o por privacidad)
+  prueba('sibling-index() NO (sale en el 138)', () => !CSS.supports('order', 'sibling-index()'));
+  prueba('Sin APIs de IA (LanguageModel, Summarizer, Translator)', () =>
+    typeof LanguageModel === 'undefined' && typeof Summarizer === 'undefined' && typeof Translator === 'undefined');
+
+  // Versión declarada
+  prueba('User-Agent declara Chrome/137', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '137', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+  pruebaAsync('Client hints: 137.0.7151.122 y macOS ≥ 11', async () => {
+    const h = await navigator.userAgentData.getHighEntropyValues(['uaFullVersion', 'platformVersion', 'fullVersionList']);
+    const mayor = parseInt(h.platformVersion, 10);
+    const cr = (h.fullVersionList || []).find((b) => b.brand === 'Chromium');
+    return { ok: h.uaFullVersion === '137.0.7151.122' && mayor >= 11 && !!cr && cr.version === '137.0.7151.122',
+      nota: `${h.uaFullVersion}, macOS ${h.platformVersion}, ${JSON.stringify(navigator.userAgentData.brands)}` };
+  });
+</script>
+<p>No se ve desde una página y lo comprueba LOCAL: V8 13.7 con mjsunit (Maglev sigue apagado; único fallo esperado
+<code>maglev/extras-cped</code>), JSPI y las banderas de Wasm de la 13.7 como en Chrome 137, el Root Store v19, la huella de
+red frente a Chrome 137 y que <code>fw1</code> sigue leyendo un perfil de la 2.5.0.</p>
+</body>
+</html>

@@ -71,4 +71,17 @@ fundidos en `nube/motor-137` 331b25b6 (tres parches resueltos en fuente: `style_
 
 ## Para la web
 
-(Se escribe al cerrar el nivel.)
+Declara Chrome **137** (137.0.7151.122). Prueba del nivel: `FlyWeb/tools/motor-137.html`.
+
+- CSS `if()`: valores condicionales con `media()`, `style()` y `supports()`.
+- `reading-flow` y `reading-order`: el tabulador sigue el orden en que se ven los elementos de un flex o una rejilla.
+- Selección de texto a través de Shadow DOM (`getComposedRanges`).
+- View Transitions con `view-transition-name: match-element`.
+- `offset-path: shape()`.
+- WebCrypto con Ed25519 (firmas modernas sin bibliotecas).
+- Canvas de alta precisión (`colorType: "float16"`) e `ImageData` con `Float16Array` y `pixelFormat`, con la misma
+  protección frente a la huella digital que el canvas normal.
+- Privacidad: los enlaces visitados ya no se ven entre sitios distintos (`:visited` particionado), y las pestañas que
+  abre un `blob:` de otro sitio no pueden acceder a la que las abrió.
+- Certificados raíz al día (Root Store v19).
+- JavaScript: V8 13.7 (WebAssembly con JSPI, como Chrome 137).
