@@ -54,6 +54,17 @@ La 2.5.0 se caía **siempre** al arrancar: `CHECK(password_sync_bridge_)` en
   upstream, entre la base y el Chrome en que se encendió, los commits que toquen el código que esa función controla, y
   portarlos con ella.
 
+## Caída del renderer con cualquier worker (LOCAL-14, 30-10)
+
+`CHECK_EQ(handle, registry_entry.handle)` en `ExternalPointerTable::SetUpFromReadOnlyArtifacts` al crear el segundo
+isolate (etiqueta 6 = `kExternalObjectValueTag`): claude.ai, YouTube y cualquier página con un worker perdían el renderer.
+V8 13.6 sube a espacio de solo lectura los `JSExternalObject` con valor serializable, y el Blink de la 128 los mete en su
+snapshot; esa etiqueta no está en el rango «maybe read-only», así que el registro del primer isolate no casa con los
+siguientes. La d8 no lo ve (su snapshot no tiene `v8::External`). Arreglo: brave-core `local/250-arreglos`
+**8bec0800e4**, `IsPromoCandidateJSExternalObject` devuelve `false` (como la 13.5). **En el 137 no hace falta:** la 13.7
+solo los promociona con su plantilla (`kMatchHost`, plantillas selladas con `SealAndPrepareForPromotionToReadOnly`, que
+la 128 no llama); `nube/motor-137` 24c781f6 funde la rama sin ese parche, que no aplicaría a la 13.7.
+
 ## Lo que no entra en la 2.5.0 (y por qué)
 
 - F12 `AudioContext` `interrupted`: en Chrome 136 solo lo dispara el camino de visibilidad del marco, tras una función
@@ -75,6 +86,7 @@ La 2.5.0 se caía **siempre** al arrancar: `CHECK(password_sync_bridge_)` en
 
 - `Node.moveBefore()`: mover elementos sin perder su estado (iframes, foco, animaciones).
 - JavaScript: `Float16Array`, `using`/`DisposableStack` y `RegExp.escape`.
+- Arreglada la caída de pestañas con workers (claude.ai, YouTube…).
 - Arreglada una caída al arrancar con contraseñas guardadas (cifrado propio `fw1`).
 - Arreglada una caída de pestaña con `Float16Array` (al pasarlo a funciones de la página como `crypto.getRandomValues`; venía de la 2.4.0).
 - Anchor positioning con desplazamiento: los elementos anclados recuerdan el desplazamiento al elegir posición
