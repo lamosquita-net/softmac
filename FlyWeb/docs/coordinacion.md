@@ -7,6 +7,47 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 30-10: COORDINACIÓN-20 → COORDINACIÓN-21 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-20 (`session_01MwmK2kk8g3seMyrErbkaeX`, Opus 5.5, medio) se releva al ~36 % (~20 $). **Nunca llamar a
+confirm_repository_trust.** A la 7,1 (LOCAL, PUBLICACIÓN, SERVIDOR-LOCAL) solo se llega por `buzon`; ellas nos escriben por
+send_message.
+
+**Hecho el 29-10:** 2.3.0 (nivel 134, build 35) publicada: appcast, web (#619) y DMG comprobados con curl y SHA-256.
+Probada por Titín en la 6,1 y en la 5,1 sin problemas. INVESTIGACIÓN-MOTOR-6 (`wpt-230-investigacion.md`): ninguno de los
+escapes es un fallo que Chrome arreglara después. MOTOR-31/32/33 hicieron el 135. SEGURIDAD-PORTES-13 hizo la FS.36. Todos
+archivados.
+
+**Decisiones de Titín del 29-10** (ya en DIRECTIVAS o en sus filas):
+- la 5,1 no bloquea y se prueba a mano tras publicar;
+- «Las faltas, antes de compilar»: MOTOR cruza el inventario con wpt.fyi. En el 135 costó 11 min y 1–2 $ y encontró 68 faltas;
+  propuesto dejarlo fijo y Titín no ha contestado;
+- 2.4.0 con la opción A: fuera Observable, select personalizable, carousel y FetchLater;
+- `fw1` (AES-256-GCM) es lo primero de la 2.5.0 (FS.25; la 5,1 es una E5620 con AES-NI);
+- ser mesurado con sus informes: las fijadas perdidas en la 7,1 son un fallo menor. LOCAL no lo reproduce, ni con un perfil
+  de la 1.15.2. Sospecha: fijadas compartidas con 2 ventanas al reiniciar Sparkle. Le pregunté a Titín si tenía 2 ventanas y
+  no ha contestado.
+
+**En curso: 2.4.0** (nivel 135, build 36), entregada por LOCAL en FM.50: brave-core `local/240-arreglos` **778fd91ca9**
+(ebd8c17f + los 3 arreglos de LOCAL + FS.36), carpeta `entregas/FlyWeb-2.4.0b-release`. Orden a PUBLICACIÓN en
+`buzon/PUBLICACION/20261030-0005-COORDINACION-20.md`. Cuando avise: firma de Titín en bak, curl a
+`https://updates.flyweb.lamosquita.net/stable/appcast.xml` (OJO: con `/stable/`), descarga del DMG y SHA-256, y web como
+#619 (VERSION, index.html, novedades.html; la web tarda ~9 min en servir `descargas/`). `nube/motor-135` sigue en ebd8c17f:
+la MOTOR del 136 la pone en 778fd91ca9 y estandariza los arreglos de LOCAL.
+
+**Pendiente de Titín:** (1) directiva propuesta: **la nube no compila V8**, LOCAL compila la d8 y pasa mjsunit (motivo:
+SEGURIDAD-PORTES-13 costó **96 $** frente a 17 $ de la -12, por esperar horas a la d8 en la nube); (2) si el cruce con
+wpt.fyi queda fijo; (3) BackupDrive (sus 3 decisiones, sin cambios).
+
+**Siguiente (2.5.0 = nivel 136):** abrir MOTOR-34 solo tras publicar la 2.4.0. Primero `fw1`, con `fw1-receta.md`, la
+migración `v10` → `fw1` probada por LOCAL sobre un perfil envejecido y la regla 17; después los 61 escapes de `wpt-240.md`
+(29 moveBefore, 15 anchor con scroll) y el inventario del 136 con el cruce de wpt.fyi. Maglev: la deuda está al día con la
+13.5 (FS.36: maglev+stress 15238/15238); falta que LOCAL mida JetStream con y sin Maglev en la 5,1 y la 6,1 antes de
+encenderlo (lo pide la directiva «como tarde en el 134»: ya vamos tarde, proponérselo a Titín con el dato).
+
+**Costes del 29-10** (nube): SEGURIDAD-PORTES-13 96,4 $, COORDINACIÓN-20 ~20, MOTOR-31 26,0, MOTOR-32 15,9, MOTOR-30 14,0,
+INVESTIGACIÓN-MOTOR-6 6,0. MOTOR-33 sin dato (get_session no dio el coste).
+
 ## 29-10: COORDINACIÓN-19 → COORDINACIÓN-20 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-19 (`session_01MwmK2huC3sto9S6a1NY5Mn`, Opus 5.5, medio; abierta por la -18) se releva al ~41 % (~25 $). **Nunca
