@@ -8,6 +8,28 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-14: FS.37 entregada (30-10-2026)
+
+FS.37 (regla 17 del 136, 2.5.0) en brave-core sobre 1747f79f: `seg/fs37-v8` 179e9dbd (13 arreglos de V8, época 26),
+`seg/fs37-blink136` 367967ae (15 de Blink, `setSinkId` incluido), `seg/fs37-red` 03025063 (c287a87a87, bfcache con
+`no-store` y precarga). Orden v8 → blink136 → red, limpio. Detalle en la fila FS.37 y en `patches/v8/FLYWEB-SECURITY.md`.
+**Pendiente:** resultado de la d8 13.6 de D8-LINUX con `seg/fs37-v8` (base 7731/7732); si falla una prueba nueva, mirar
+primero `source-text-module.cc` (d87667efce a mano) y `baseline-compiler.cc`. Dudosos de Blink sin portar (para MOTOR o
+SEGURIDAD-VIGÍA): 16f576f0d, 5e23d3e57b (`moveBefore` y React), 8bfb9c77e2+b95f9cc4e5, d3246d568e, 3bea7d665d,
+004280ecbb, e6b7839c2f, 31adde08d1, 5923de5fab, 8ffa9e3228, 1a31de5394, 75afc91d4a. Riesgos de V8 de FS.36 siguen
+abiertos; deuda de Maglev ampliada (lista en `FLYWEB-SECURITY.md`).
+
+**Lecciones:**
+- **Encender una función por configuración también pide regla 17:** la bfcache con `no-store` (un cambio de un valor)
+  necesitaba un arreglo posterior (páginas precargadas sin vigilar cookies). Mirar los arreglos de lo que se enciende, no
+  solo de lo que se porta.
+- Un subagente clasificó 4cf9311810 como «a mano» y ya estaba en `patches/v8` con otro texto: antes de portar, `grep` de
+  una línea característica del arreglo en el árbol con parches.
+- `patch -F3 --dry-run` cuenta mal: comprobar que no queden `.rej` antes de hacer commit.
+- Regenerar parches de Chromium: blob de la 128 (`git fetch --depth 1 --filter=blob:none` del tag en github.com/chromium/
+  chromium, `git show 128:<ruta>`) + parche actual con `patch`, editar y `git diff --no-index --full-index`; los hashes
+  `index` coinciden con los de brave-core.
+
 ## SEGURIDAD-PORTES-13: FS.36 entregada (29-10-2026)
 
 FS.36 (regla 17 del 135, 2.4.0) en brave-core sobre ebd8c17f: `seg/fs36-v8` 2886b9c9 (70 arreglos de V8, época 24),
