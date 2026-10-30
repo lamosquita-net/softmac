@@ -1,3 +1,32 @@
+# Relevo de MOTOR: de MOTOR-38 a MOTOR-39 (30-10-2026, ~18:10 UTC)
+
+MOTOR-38 (`session_01MwmK2ktzERuU6NyME2Zeyq`, Opus 5.5, medio). Nivel 137 = 2.6.0 (FM.52), **sigue a medias, sin
+compilar**. Hecho: `if()`, `reading-flow` y selección en Shadow DOM (tabla «Hecho por MOTOR-38» en `motor-niveles.md`
+§ «Nivel 137»; riesgos de compilación en `version-2.6.0.md`). Sin errores de LOCAL de la 2.5.0; el informe de la d8 13.7 llegó
+al final (abajo).
+
+**Rama:** brave-core **`nube/motor-137` 5abcd0cc** (`git ls-remote` comprobado). La d8 13.7 pedida con cc6ec885 sigue
+valiendo (nada nuevo toca V8).
+
+**d8 13.7:** verde salvo `mjsunit/maglev/extras-cped` (detalle y cifras en el punto 1 del pendiente).
+
+**Para MOTOR-39, por orden:** errores de LOCAL de la 2.5.0 si llegan; explicar `maglev/extras-cped` (¿parche que apaga
+Maglev? si no, error nuestro y va primero);
+`EnterInOpenShadowRoots` (punto 0 del pendiente); después los puntos 5–10 de MOTOR-37 (VT `match-element`,
+`SvgTransformOnNestedSvgElement`, float16 con farbling, DIP en Brave 1.79, FS del 137, declaración, Root Store v19). Al
+cerrar el inventario, avisar a COORDINACIÓN para la FS del 137 (regla 17; esta vez además: foco de `reading-flow`,
+`css_if_parser`/`style_cascade`, `mouse_event_manager`).
+
+**Entorno:** igual que la nota de MOTOR-37, pero `brave-core` hay que añadirlo con `add_repo` **antes** del primer push
+(sin eso el proxy da 403). `mkws128.sh` + `run.sh` (paso a paso) funcionó bien para `reading-flow` y selección.
+
+**Trampas:** `run.sh` arranca por el asunto del último commit del área; tras un `add128.sh` (commit «add») vuelve a
+empezar la lista: renombrar ese commit con el sha del paso (`git commit --amend -m <sha>`). Si un commit mete una flag que
+otro de la misma cadena quita después (aquí `MouseFocusFlatTreeParent`, `SelectionOnShadowDOMWithDelegatesFocus`,
+`DelegatesFocusTextControlFix`), escribir directamente la forma final de la N en vez de portar la flag.
+
+---
+
 # Relevo de MOTOR: de MOTOR-37 a MOTOR-38 (30-10-2026, ~17:30 UTC)
 
 MOTOR-37 (`session_01MwmK2kqGynL4v3YaYFNuLL`, Opus 5.5, medio). Nivel 137 = 2.6.0 (FM.52), **a medias, sin compilar**.
