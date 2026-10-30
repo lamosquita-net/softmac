@@ -1,0 +1,94 @@
+2025-04-21	b249bc61d	[M136] Avoid crash for un-ordered ShadowDOM text fragment	core/annotation	411457974 410033683 
+2025-04-15	bc3b8736c	Dispatch render error in OnDevicesChanged for all invalid sinks	modules/webaudio	40253667 364926894 410818045 
+2025-04-14	d6b334758	[SDA] Fix race condition in update of pending animations	core/animation	409086867, 409632308 
+2025-04-14	0bf06b9a9	[M136][PEPC]: Add more event handler content attributes	core/html,core/sanitizer	342325077 409815835 
+2025-04-07	3486865e1	[M136][fetchlater] Fix crash in `GetReservedDeferredFetchQuota()`	core/fetch	407556082,408106277 407556082 
+2025-04-07	b09ca4fd5	[M136] Optimize checking paid content	modules/content_extraction	407591001, 404835584 
+2025-04-07	b636c5225	[M136] Complete removal of kPlzDedicatedWorker feature, fixing crashes	core/workers,platform/loader,common/features.cc,common/service_worker	407563096 408413160 
+2025-04-07	de9afad74	[M136] Disable DocumentPolicyIncludeJSCallStacksInCrashReports by default	platform	40268201 408200589 
+2025-03-31	6c521ffff	[animation-trigger] Check for null timelines	core/animation	406043354 
+2025-03-31	21b7c5a5b	[shared storage] Validate that batchUpdate() cannot contain inner method locks	modules/shared_storage	404568020 
+2025-03-31	adc5b4698	[Trusted Types] Remove TT checks for child_node.idl.	core/dom	330516530 355484097, 388117624 
+2025-03-31	85576d781	Avoid calling spec() on invalid GURL instances	common/BUILD.gn,common/custom_handlers,public/common	405795968 
+2025-03-31	3b9a6ad28	Avoid crash when VTST::CreatePseudoElement cannot find the tag.	core/dom,core/view_transition	406828705, 405117185 
+2025-03-31	9ec585168	Revert "[carousel] Add invalidation logic and tests for scroll-marker-contain"	core/dom,core/html,core/css	398065922 
+2025-03-31	f19889374	Skip irrelevant fetch checks when there is a preloaded response candidate	core/loader,platform/loader,platform	348442535 
+2025-03-31	06d29b601	Rm RuntimeEnabled flag check inside fn IsCapturedSurfaceResolutionActive	modules/mediastream	383946052 
+2025-03-31	a3cb87a7a	Change DCHECK to CHECK in BaseFetchContext::CanRequestInternal()	core/loader	
+2025-03-30	cb45acdae	RubyLB: Fix a crash in ShouldBeInlinified()	core/css	406999114 
+2025-03-28	511088344	[WebAudio] Invalidate SetSinkId objects when AudioContext is closed	modules/webaudio	381126158, 40580068 
+2025-03-28	3423c91e3	[a11y] Stricter AXObject::ComputeCanSetFocusAttribute check	modules/accessibility	401019764 
+2025-03-28	e4007690b	Fix overflow in scrollbar scaling	core/scroll	397734696 
+2025-03-28	0dc2027ef	[rebaseline-cl] Fix manifest update race during baseline copying	tools/blinkpy	None 
+2025-03-28	27dcc74ed	[FPF-CI] Fix crash when setting RuntimeEnabledFeature	core/canvas_interventions	406987435, 377325952 
+2025-03-27	634a7e2ac	RubyLB: Fix a CHECK failure with a FIELDSET with display:contents	core/css,core/layout,platform	402200344 
+2025-03-27	dd9fe191f	[CompositeClipPathAnimation] Fix crash with non-shape clip path delays	core/paint,modules/csspaint	
+2025-03-27	1d8ac6ad4	Enable DocumentPolicyIncludeJSCallStacksInCrashReports by default	platform	40268201 
+2025-03-27	91e66f04b	VT: Invalidate types when creating a VT for snapshot.	core/view_transition	406317718 
+2025-03-27	aeceeb6f5	Remove obsolete FocusController/KeyboardEventManager trace events	core/input,core/page	40680754 
+2025-03-26	6b8e47152	[carousel] Add invalidation logic and tests for scroll-marker-contain	core/dom,core/html,core/css	398065922 
+2025-03-26	5cf8af29d	Printing: Fix counter crash when using containment.	core/css	400087471, 400087476 
+2025-03-26	b3ea66ce0	Fix a crash in HashTrieNode::operator==.	core/style	406054649 
+2025-03-26	fcb352f82	[Blink] Re-enable IsPaintableChecksResourceProviderInsteadOfBridge	common/features.cc,core/html	40280152, 399731315 
+2025-03-25	5fc3d3c78	Don't make a11y mappings for ::checkmark	core/html,modules/accessibility	405946933 
+2025-03-24	c5127f061	Prompt API: rename context overflow to quota overflow	modules/ai,public/mojom,core/events	381975242 
+2025-03-21	7e297f030	Remove unnecessary CHECK	core/html	405085122 
+2025-03-21	6ee9995db	Rename ConsumeNumberRaw() and make sure it does not crash	core/css	404174133 
+2025-03-21	f9458ac19	Check invalid variable ranges in GetFontPlatformData	platform/fonts	40062214 
+2025-03-21	a31e9e490	Fix crash on line-height:revert-layer under zoom	core/css	400052780 398060133 
+2025-03-21	5cdcaef8e	Only record EventEnqueuedToMainThread tracepoint if available	core/timing	405035569 
+2025-03-20	d0aa5fbbf	[tracing] Make TraceableState work in the field	platform/scheduler,public/platform	
+2025-03-20	0758480be	Harden checks in WTF::String::Format().	platform/wtf	395789217 
+2025-03-20	ca9f76d37	Add check for shorthand properties in resolveValues protocol	core/inspector	
+2025-03-20	5b8159c45	[blink/trace_events] A WheelEvent is not a MouseEvent, fix tracing	core/inspector	
+2025-03-20	2be6e0ea2	[Blink] Have WebGLRenderingContextBase check explicitly for passthrough	modules/webgl	352263194 
+2025-03-19	526d27325	Check for null LayerTreeHost in WebFrameWidgetImpl::RequestDecode	core/frame,platform/widget	chromium:396337809 
+2025-03-19	a5c30add1	[gc] Remove extraneous Trace method	core/css	404563940 
+2025-03-19	5eb7db3a3	CanvasTextNG: Fix a DCHECK failure by a vertical writing-mode	platform/fonts	404448251 
+2025-03-19	1b6c9d82e	[Blink] Remove meaningless DCHECK in CanvasResourceProviderSwapChain	platform/graphics	352263194 
+2025-03-18	83da2f850	Invalidation tracing: Handle multiple tree scopes	core/css,core/inspector	337076014, 394384897 
+2025-03-18	083d19125	[line-clamp] Fix crash when updating a BFC offset for a clamped box	core/layout	40336192, 404288146 
+2025-03-18	1f8d9579d	Check that <button>, <legend> are direct child of <select>, <optgroup>	core/html	402438864 
+2025-03-18	b9351548a	Pass in --enable-sanitizer to Wptrunner	tools/blinkpy	None 
+2025-03-18	67123e3d0	Writing Assistance API: Check context size before creating a client	modules/ai,public/mojom	381975242,398888519 
+2025-03-18	16f576f0d	Fix a crash by text-transform and -webkit-text-security	core/layout,platform/wtf,platform	396666438 
+2025-03-17	84119b4b9	[spanify] Spanify InkOverflow	core/layout	351564777 
+2025-03-17	85b6c229c	Add more tracelogging for OpenXR	modules/xr	394919669 
+2025-03-17	e30b40e45	Attempt at fixing UltimateOriginatingElement crash	core/css	402673873 
+2025-03-16	4614e31f1	[blink] Ensure queued device change events do not crash renderers	modules/mediastream	403348706 
+2025-03-14	df5c6dc46	[carousel] Avoid DCHECK violation when scrolling to selected marker	core/dom,core/frame	401443091 
+2025-03-14	d3d08eaf8	Factor out currentcolor depending check logic	build,core/css,core/style	401443084 
+2025-03-13	6196a71ed	Fix memory leak in WebUIBundledCodeCacheFetcher::Start()	platform/loader	403179264 
+2025-03-13	7ed2230bb	Validate display area against media::limits::kMaxCanavas.	modules/webcodecs	402939125 
+2025-03-13	e37327d8d	Fix crash for documents without active stylesheets	core/inspector	402052087 
+2025-03-13	cce890d34	Add isolate id in FunctionCall trace	core/inspector	337909145 
+2025-03-12	697fdb6a0	Fix crashes caused by missing/corrupted audio data in blob.	modules/ai	401585524 
+2025-03-12	0d6a1aff7	[DOM / Trusted Types] Fix order of Trusted Types checks.	core/dom	394760815, 330516530 
+2025-03-12	73174f9d3	Per-frame redaction of browser extension frames from crash reports	controller	40268201 
+2025-03-12	335f03976	Slot invalidation for sibling-index()/sibling-count()	core/dom	40282719 
+2025-03-12	d665074a4	Invalidation for sibling-count()/sibling-index()	core/css,core/inspector	40282719 
+2025-03-12	a914a6196	RubyLB: Fix a crash by BiDi reorder	core/layout	401056618 
+2025-03-11	7366f789d1	Drop 'Physical' from VisualOverflow-related symbols	core/paint	40056555 
+2025-03-11	b5c7da166b	[FLEDGE] Check owner origin in permission policy and log use counter	public/mojom	401234476 
+2025-03-11	d4c087bd37	Remove DCHECK(left < right) in image.cc	platform/graphics	401658608 
+2025-03-11	b23ac57b41	Downgrade ClipPathStatusResolved check to DCHECK	core/paint	
+2025-03-11	565e9ba050	Fix presence check for container relative units in radial-gradient()	core/css	40241715 
+2025-03-10	daac4aa11d	FindRubyInPage: Fix a crash with ignorable elements	core/editing	401444931 
+2025-03-10	1b8ed0f0c5	Reland "[iwa] Check if policies disable controlled frame."	core/frame,common/navigation,public/mojom,public/web	359846217 
+2025-03-10	a871183449	Fix race condition when window.open() is called from a popup	core/page	chromium:41168657 
+2025-03-10	2d96077a6a	Make CSS Parser reject invalid gradients	core/css	399153029 
+2025-03-10	93df39f546	RTCVideoEncoder: Fix the crash for dynamic video frame change to GBM	platform/peerconnection	337130619 
+2025-03-08	03fa95f4e8	Avoid int64_t overflow in TimeClamper.	core/timing	399818722 
+2025-03-07	bf7905fb34	Invalidate 'fill'/'stroke' color expressions on currentcolor changes	core/style,core/css	400828292 
+2025-03-07	2930c2764b	Local Network Access(LNA): Bypass frame navigation mixed content check	core/loader	395895368 
+2025-03-07	e0cc64d87c	Add null pointer checks in blink::RTCStatsToIDL	modules/peerconnection	398077421 
+2025-03-07	d29e168b8b	Remove IsAlive() flag from InvalidationSet	core/css	
+2025-03-06	d176addb31	Prerender: Remove kPrerender2NoVarySearch checks	public/common	41494389, 331591646 
+2025-03-06	2f818aa66f	[rebaseline-cl] Fix nonvirtual baseline deletion race	tools/blinkpy	401025410 
+2025-03-06	5619643c2a	DOM: Fix moveBefore() <object> element subframe crash	core/html	40150299 
+2025-03-05	487951d88a	Remove CHECK from scroll-marker code	core/dom	399696829 
+2025-03-05	3be2e483c2	[Sanitizer] Add error checking for configuration.	core/sanitizer	356601280 
+2025-03-04	9c6fb4c431	Remove "TextTransformAndSecurityFix" runtime flag	platform/wtf,core/layout,platform	379254069 
+2025-03-04	221c265615	Local Network Access(LNA): Bypass subresource mixed content check	core,core/loader	395895368 
+2025-03-03	2e03615fbe	Tentative fix for CreateUrlLoader crash	platform/media	399478934 
+2025-03-03	2488b1298c	Operate on spans of chars in content_security_policy_parsers.cc	platform/network	351564777 

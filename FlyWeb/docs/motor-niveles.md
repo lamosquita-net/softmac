@@ -2070,3 +2070,483 @@ Riesgo principal: la **captura** (JA4/JA4Q frente a un Chrome 135 real) es lo qu
 - Sin cambios en: `ssl_client_socket_impl.cc`, `net/ssl`, `spdy_*`, `quic_session_pool.cc`, `quic_chromium_client_session.cc`, `quic_context.*`, `ssl_config.h`, Accept-Encoding,
   Accept de navegación, orden de cabeceras, `http_util.cc`, `software_rendering_list.json`, `chrome_root_store`.
 - La cadena `ech_enabled`/ECH: sin diff. ML-KEM: sin diff (`kUseMLKEM` ON, ya portado).
+
+## Nivel 136
+
+MOTOR-35, 30-10-2026: inventario con 4 subagentes Sonnet (Blink, V8 13.6, fuera de Blink y cruce wpt.fyi) sobre
+**136.0.7103.116** (última Stable de Mac del 136, V por versionhistory.googleapis.com; V8 **13.6.233.10** = 5297e56d).
+Sus informes, abajo tal cual; cruce en [`wpt-136-cruce.md`](wpt-136-cruce.md); listas en `FlyWeb/tools/port/nivel136-*.tsv`.
+Rama brave-core **`nube/motor-136`**, sobre `fw1` (841029d2, que compila LOCAL).
+
+**Resumen:** nivel pequeño-medio. V8 13.6 barata (235 de 239 `patches/v8` siguen; lo único que rompe es que desaparecen
+`Isolate::AttachCppHeap/DetachCppHeap`, resuelto con e0ae83721). Blink sin bloques grandes nuevos: 11 flags a `stable`,
+39 nacen (casi todo arreglos), Baseline solo `print-color-adjust` (y `RegExp.escape` en V8); ~21–27 h de papel, menos
+en real. Fuera de Blink: huella TLS/HTTP2/QUIC/Client Hints sin cambio observable (por código; falta captura de un Chrome
+136), HSTS y `log_list.json` nuevos, Root Store sin cambio de confianza. Nada exige AVX ni APIs de 10.15+.
+
+**Hecho por MOTOR-35 (`nube/motor-136`, sin compilar):**
+| Commit | Qué |
+|---|---|
+| d3951086 | **`moveBefore()`** (29 escapes de `wpt-240.md`): cadena 128→136 sobre el prototipo `AtomicMoveAPI` de la 128 (35 commits, detalle en el mensaje). A mano: `RemovedFrom` del dialog con el `isConnected` de la 128, fuera el `CHECK` de `WillRemoveChildren`, `kMoveBeforeAPI = 229` |
+| 365bbb4c | faltas (c) del cruce, 1.ª tanda: `ch` con writing-mode, gradientes (missing components, sRGB por defecto; requisito 6dc105ef2), unidades de contenedor en `radial-gradient`, sin 1:1 en imagen rota, filtros de referencia con caja vacía, `safe` en OOF estáticos, `flex` con `ConsumeNumber` |
+| 670f8fa1 | **V8 13.6.233.10** (rebase de `patches/v8`; quitados 3 que ya trae; a mano 7, ver mensaje) + **CppHeap al crear el isolate** (e0ae83721: `ThreadState::ReleaseCppHeap`, `gin::IsolateHolder` con `cpp_heap`, `SnapshotCreator(isolate, params)`). Época de caché 25. Maglev **sigue apagado** |
+| ada7223e | `--js-float16array`, `--js-explicit-resource-management` y `--js-regexp-escape` desde gin, como Chromium 135/136 (**escape del 135**: la 2.4.0 declaraba 135 sin `Float16Array` ni `using`) |
+| 6a78dd41 | faltas (c), 2.ª tanda: 16 commits (lista en el mensaje); 7 saltados por infraestructura del 13x (1–2 pruebas cada uno) |
+
+**Pendiente del 136 (para MOTOR-36), por orden:**
+1. Errores de compilación de LOCAL (primero `fw1` 841029d2; después lo de arriba). Los más probables: el CppHeap
+   (`thread_state`, `v8_per_isolate_data`, workers), `TrustedTypesCheckFor` en `element.cc`, `kMoveBeforeAPI` en el
+   mojom de WebDX, `ConvertToColorSpaceForInterpolation`.
+2. d8 13.6 de D8-LINUX (encargo enviado a COORDINACIÓN con 670f8fa1): si mjsunit baja de la base, mirar primero
+   `rewriter.cc`, `shared-function-info` y la serie de Maglev.
+3. Escapes restantes de `wpt-240.md`: **anchor con scroll** (15; `CSSAnchorRememberedScrollOffset` y la cadena de anchor
+   132–136, más 628b74a88 y bab3300ad del 136) y los 17 sueltos (highlights, `text-emphasis`, `webkit-box`, gradientes en
+   espacios predefinidos —0d9a69115 necesita los `sk_colorspace` de Skia de 2025—, `dir`, `innerText`, render-blocking).
+   Causas por prueba: [`wpt-240-causas.md`](wpt-240-causas.md). A portar, en orden: f5074d96d (quita el cuelgue de los
+   gradientes en espacios predefinidos; las pruebas siguen fallando sin 0d9a69115 + Skia), 8183c1f69 → 482ca309f →
+   cd28cb10c (`dir=auto`), ae3880348 + 6f3ca1eaf (`innerText` con `::first-line`, flag
+   `ElementInnerTextHandleFirstLineStyle`), dba2b53e9 (`TextEmphasisNoPunctuation`), 7a6ed3a2c + c0159ab76 (highlights;
+   quitar `search_text_is_active_match` a mano), bf1511e11 (dirección del canvas al worker), 4cc57d9a2
+   (`CSSLineClampWebkitBoxBlockification`, riesgo medio, el último). **Los 3 de `::target-text` no son de Blink:** Brave
+   apaga Scroll-to-Text-Fragment (`kTextFragmentAnchor` y la pref `kScrollToTextFragmentEnabled`): decisión de producto
+   (regla 20), no porte. render-blocking 032/038 y `kind-of-widget`: sin causa (032 y `kind-of-widget`, intermitentes).
+4. Blink del 136 (informe abajo, §10): flips y CSS pequeños, `CanvasTextLang`, `SvgAnchorElementRelAttributes`,
+   `TimeClamper`/`StandardizedTimerClamping` (huella), `AudioContextInterruptedState`, layout, bloque calc, selección y
+   fuentes, redondeo de scroll. **No tomar** c6f0a7262 (select, Chrome lo apagó en M136). `HTMLCommandRequestClose`: el
+   136 lo deja `experimental`; FlyWeb lo tiene encendido desde el 135 → apagarlo.
+5. Fuera de Blink (informe abajo): `SplitCacheByCrossSiteMainFrameNavigationBoolean` y
+   `CacheControlNoStoreEnterBackForwardCache` a ON; HSTS y `log_list.json` de la 136; parche de
+   `NoReferrerForPreloadFromSubresource` (bug 415810136); **decidir** HEVC en WebRTC/MediaRecorder (huella de
+   `getCapabilities`; a COORDINACIÓN/Titín) y `PartitionVisitedLinkDatabaseWithSelfLinks`.
+6. Regla 17: pedir a SEGURIDAD-PORTES la FS del 136 con `nivel136-regla17.tsv` (94 commits) y el sha final.
+7. Al cerrar: declaración 136.0.7103.116 / 2.5.0 en `build/config.gni` (`FLYWEB_BUILD_NUMBER` 37), `motor-136.html`
+   (`moveBefore`, `Float16Array`, `RegExp.escape`, `using`, `print-color-adjust`, `ctx.lang`), orden a LOCAL por el buzón.
+
+**Coste del cruce wpt.fyi (directiva fija):** ~6 min de reloj, 5 consultas HTTP, un subagente Sonnet (137 000 tokens,
+~1–2 $). Dio 84 pruebas (c) en ~45 causas con commit; portadas 26 en ~1 h de sesión, 7 saltadas.
+
+
+### Inventario Blink del nivel 136 (136.0.7103.116)
+
+MOTOR-35, 30-10-2026, solo lectura. V = verificado, S = supuesto. Datos en `/tmp/claude-0/port/i136/` (flags.tsv, flags-fw.tsv, flip-commits.tsv, blink-commits.tsv, commits-136.tsv, regla17.tsv, idl-diff.txt, baseline136.txt, log.txt, fw/). Copias junto a este informe: `inv-blink-136-commits.tsv` (filas, rol, fecha, sha de 10, asunto), `inv-blink-136-blink-todos.tsv` (los 1177 commits con código de Blink del rango), `inv-blink-136-regla17.tsv`, `inv-blink-136-flags.tsv` (diff json5 135→136 con el estado en FW).
+
+## 0. Tags y rango
+
+- **V:** la etiqueta `136.0.7103.116` existe (sha 5e3a5617c213, «Incrementing VERSION to 136.0.7103.116», 13-05-2025). Es la última 136.0.7103.x del repo (tras ella solo hay .113 a .115). Que sea la última Stable de Mac no lo he podido comprobar (versionhistory no consultado): **S**.
+- **V (historia ligera, `git log 135.0.7049.117..136.0.7103.116`):** 15 310 commits (main del 03-03 al 03-31 + rama 136 hasta el 05-13). Con árboles (`blob:none --shallow-since=2025-03-01`, 44 MB, `git log -- third_party/blink` en 0,4 s): **1625 commits tocan `third_party/blink`, 1177 con código (no solo tests), 38 son de la rama tras el punto de corte** (01-04 a 13-05).
+- Punto de rama del 136: 31-03-2025 (V por fechas; el 135 se cortó el 03-03/04).
+- **Trampa de método:** `/tmp/claude-0/port/cr135|cr136|h|DEPS13x|log135-136.txt` los crea también otro subagente en paralelo (V8); no borrar nada ahí.
+
+## 1. Resumen
+
+Nivel **pequeño-medio en Blink**: ningún bloque grande nuevo enviado a `stable` (el carousel, el select personalizable, Observable, FetchLater y compañía ya eran `stable` en el 135 y siguen igual). Las novedades web del 136 son sobre todo **funciones pequeñas** (11 flags pasan a `stable` entre json5 135→136, V) y **correcciones de layout/paint** (22 flags nuevos nacen `stable`, casi todos arreglos). Baseline (web-features 3.44.0 / BCD 8.1.7, V): solo `print-color-adjust` y `RegExp.escape` (V8) llegan a Baseline «low» con el 136; el resto son subfunciones sin Baseline.
+**Estimación real (÷4 sobre papel; layout/paint sin dividir): 21–27 h** para el delta propio del 136 (filas F01–F22), +2 h WebAudio (opcional), +3–5 h `moveBefore` (nivel 133, nunca portado). Las filas aplazadas del 135 (carousel, select, Observable, FetchLater) **cuestan lo mismo que entonces**: el delta 135→136 es mínimo (§4).
+
+Cifras del json5 135→136 (`flags-nivel.py`, V): 11 `A_STABLE`, 17 `CHANGE`, 39 `NEW`, 34 `REMOVED`.
+
+## 2. Funciones y flags que pasan a stable (135 → 136)
+
+Estado FW = json5 de cr128 + `platform-runtime_enabled_features.json5.patch` de la rama `nube/motor-136` (V). «¿En 128?» = el código de la función ya está en la 128 (V por `grep` en cr128) o ausente. Horas = reales (S). Flip = commit que cambia el flag; impl = commit(s) de la implementación (a veces anteriores al 135: el flip solo toca el json5, por eso se listan aparte; todos en `commits-136.tsv`).
+
+| Fila | Flag (FW) | Commits | ¿En 128? | Horas | Propuesta / privacidad |
+|---|---|---|---|---|---|
+| F01 `print-color-adjust` sin prefijo (Baseline low 05-2025) | — (`-webkit-print-color-adjust` pasa a alias) | e81066c28 | prefijado sí | 0,3 | portar |
+| F02 `var()` fallback sin tipo (CSSTypeAgnosticVarFallback, ausente) | stable | 7b65a6f1e (1 fichero `style_cascade.cc` + flag) | no | 0,3 | portar |
+| F03 `attr(x raw-string)` (CSSAttrRawString, ausente) + arreglos de `attr()` | stable | dcc590f01 (impl), 924560fbc (flip), 1abd013ba, bc5b2bcf9 | FW lleva `CSSAdvancedAttrFunction` (V) | 0,6 | portar (bc5b2bcf9 = arreglo del `attr()` vacío ya anotado en el 135) |
+| F04 `dynamic-range-limit` (CSSDynamicRangeLimit, FW exp) | stable | flip 7bb8923dd; keywords nuevas b728122aa (`high`→`no-limit`, `constrained-high`→`constrained`); impl ≤135: 8c9599d7c, eea7d1daf (revert), aaf67e7be | sí (FW exp) | 0,3 | portar; las keywords del 135 de FW cambian. En Mojave sin HDR: sin efecto visible |
+| F05 colores relativos con resolución tardía (CSSRelativeColorLateResolveAlways, ausente) | stable | 354a5392a, cafe22137 (flip), 23e73b3fb (inf); impl ≤135 9347d9baa | `CSSRelativeColor` sí; late-resolve no | 1,0 | portar (8 ficheros de animación, mecánico) |
+| F06 canvas `ctx.lang` (CanvasTextLang, ausente) | stable | fe51f0bbd (flip); impl ab92db212 | no | 0,8 | portar. **Ojo:** el 136 mueve el IDL a `canvas_2d_recorder_context.idl`; FW sigue con `canvas_rendering_context_2d.idl` + `offscreen_canvas_rendering_context_2d.idl` de la 128: poner `lang` en esos dos |
+| F07 `SVGAElement.rel/relList` (SvgAnchorElementRelAttributes, ausente) | stable | 5cbc8cc71 (flip); impl 4848d6cf8 (≤135) | no | 0,5 | portar (Baseline low) |
+| F08 `isPointInFill/isPointInStroke/getCharNumAtPosition(DOMPointInit)` | — | 1c8516ad0 (6 ficheros SVG) | no | 0,3 | portar (Baseline low). Es cambio de IDL: `SVGPoint`→`optional DOMPointInit`, una sola firma |
+| F09 `ProgressEvent.loaded/total` como `double` | — | 5ad24b5ad (progress_event*, resource_progress_event) | no | 0,3 | portar; `unsigned long long`→`double` en IDL |
+| F10 `StandardizedTimerClamping` (ausente) + `TimeClamper` | stable | 427f9ba4e (flip), a78ea6f24 (impl ≤135), 03fa95f4e (desbordamiento int64 en `TimeClamper`, bug 399818722) | no | 0,4 | portar los dos; 03fa95f4e afecta a la resolución de `performance.now` (huella): **sí portar** |
+| F11 informes de Permissions Policy para iframes (PotentialPermissionsPolicyReporting, ausente) | stable | 868cb645c (flip); 2c433a7f5 (≤135) | Reporting API sí | 0,7 | **aplazar** (S): solo genera informes locales/`Reporting-Endpoints`; Brave apaga Reporting a red (S). Sin demanda |
+| F12 `AudioContext` estado `interrupted` (AudioContextInterruptedState, ausente) | stable | 49ce323ac (flip); impl 9d9ac4bd6 | no | 0,8 | portar (Safari lo tiene). Baseline false |
+| F13 `click` tras captura de puntero (ClickToCapturedPointer, FW exp) | stable | 76aefeea1; impl 49bfab42e, af98e568b | sí (exp) | 0,2 | portar (flip). Interop: dispara el `click` en el elemento capturador |
+| F14 flex: algoritmo nuevo de tamaño intrínseco de fila (LayoutFlexNewRowAlgorithm; en FW `LayoutFlexNewRowAlgorithmV3` = test) | stable | a309eab0e (renombra V3, 33 líneas en `flex_layout_algorithm.cc`) | V3 sí (test) | 0,5 | portar (flip + renombre). Cambia tamaños de contenedores flex en fila: probar con `motor-136.html` |
+| F22 `command="request-close"` pasa a experimental (HTMLCommandRequestClose, nueva) | exp | 0ea22962d | FW lo tiene encendido desde el 135 (V: parche `element.h` con `kRequestClose`) | 0,2 | **apagar**: en el 136 el valor `request-close` NO se acepta (V: `html_button_element.cc` lo guarda tras el flag). Para ser fiel a Chrome 136, gatear con flag `experimental` |
+
+Cambian de estado pero **no se portan** (V la lista; decisión S):
+
+| Flag | Cambio | Decisión |
+|---|---|---|
+| `CapturedSurfaceControl` (stable en escritorio), `CapturedSurfaceResolution` (Mac/Win stable) | commits X1 en el TSV (952cc74c ship; renombres de `CaptureController`: captureWheel→forwardWheel, getZoomLevel→atributo `zoomLevel`, setZoomLevel→increase/decrease/resetZoomLevel; 03e674667 quita el zoom de página de `screenPixelRatio`) | **fuera**: API de captura de pantalla (requiere permiso y navegador), solo Chrome. Sin demanda |
+| `FedCmMultipleIdentityProviders`, `FledgeTrustedSignalsKVv2Support`, `PrivateAggregationApiErrorReporting`, `FledgeTrustedSignalsKVv2ContextualData` | FedCM / Privacy Sandbox | **fuera** (regla 20; decididos en 129–135) |
+| `SpeculationRulesTag` (stable por merge 82ca828bd) | campo `tag` y cabecera `Sec-Speculation-Tags` (10 commits) | **fuera**: depende de `content/browser` (prefetch/prerender) y Brave apaga el precargado (S) |
+| `WebGPUAdapterInfoIsFallbackAdapter` | `GPUAdapterInfo.isFallbackAdapter` | **fuera** (WebGPU; además dato de GPU = huella) |
+| `MediaRecorderUseMediaVideoEncoder` | solo Android | fuera |
+| `RasterInducingScroll` (Linux/Win), `Serial` (Android) | otras plataformas | fuera |
+| `AIPageContentPaidContentAnnotation` | IA de Chrome | fuera |
+| `PartitionVisitedLinkDatabaseWithSelfLinks` (stable por defecto) | ver §6 | **valorar** (privacidad a favor) |
+
+## 3. Flags nuevos que nacen `stable` (correcciones; FW ausente) y limpiezas
+
+| Fila | Flags | Commits (flip/impl) | Horas | Propuesta |
+|---|---|---|---|---|
+| F15 Tamaños con porcentajes (LayoutMinSizeIndefinite) y replaced | `LayoutMinSizeIndefinite`, `LayoutImageForceAspectRatioOfOneOnError` (quitado) | fcd3f5f53, a8ad9ea3a, e8db6a7a4, 6f6398aef, b2dd60714, 5269fcdb7, 652700872, 165310213 | 2,5 | portar (cambia el layout de imágenes/replaced con %; probar a mano) |
+| F16 Layout/SVG/tabla | `TableIsAutoFixedLayout` 52a95f9bf, `ScrollbarGutterFixedPosBugfix` a218ae496, `LayoutWebkitBoxTreeFix`+`LayoutDisableWebkitBoxQuirks` (560fb6d62, cc8a6bef3), `RestrictGetBoundingClientRectForHiddenSVGElements` 8e0b5b604, `TextAutoSizingDisabledOnFlexbox` aa4e42273, `TextOffsetMapCrashFix` 16f576f0d, `RubyFieldsetCrashFix` 634a7e2ac (+cb45acdae, a914a6196) | ver TSV | 2 | portar (varios arreglan fallos; RubyLB ya es nuestro) |
+| F17 Redondeo de scroll y de paint offset | `RoundScrollOffsets` | fe3040617, 81436c404, 6ec45eab, 23aefe3c1, 9500dda9a, 704bef8a6, 2797fa283, c06eeb89e | 2,5 | portar con prueba visual (afecta a rasterizado y sticky); si cuesta, aplazar a 1.N.x |
+| F18 Selección/edición | `DelegatesFocusTextControlFix` d33187362, `SelectionVisibilityAfterPaint` 79db7b3e4, `SelectionUpdateToInitialSelectionInListify` c1fa6e7f0, `UseShadowHostStyleCheckEditable` 39caae030 (+0bca2ab2f, 7cc78c603 quita flags de selección en shadow DOM) | ver TSV | 1,5 | portar (SelectionVisibilityAfterPaint solo tiene sentido en móvil: aplazar) |
+| F19 Fuentes/texto | fallback de `ch`/`ex`/`ic` sin glifo 水/0 (05ebb1bcd, 24dd09a83), `src:local("")` b080fc583, `ch` según writing-mode 79495045a, rangos de variables inválidos f9458ac19 | | 1,0 | portar f9458ac19 (seguridad) y los dos de fallback; el resto, opcional |
+| F20 Bloque CSS math/`calc()` | sin flag: `calc()` sin resolver en `steps()`, `linear()`, cubic-bezier, cursor, `-webkit-perspective`, `flex`, formas básicas, `anchor()` (4914a98ba, 26f9fcb21, 22d5ce93c…), trigonometría no simplificable 61f96086e, `pow()` ae47ae4e0, gradientes (dd20dbfcd, 2d96077a6) | 23 commits en el TSV | 2,5 | portar como bloque único (`ConsumeNumberRaw`→`ConsumeNumber` es mecánico pero toca 15 ficheros del parser) |
+| F21 Anchor positioning (deltas) | `CSSAnchorRememberedScrollOffset` (stable desde el 135) | bab3300ad (opciones que no caben en el offset recordado), 628b74a88 (position-area expande el CB), 9a3fe1090, f812ab02e, 8e10adeb7, 83058c058, d63e50b22, a80abbd9a/bbcda52cd (static position seguro, con revert), 7e14bcd97, 49682a9c5, db5b93af2 | 3,0 | portar con la fila del 135 que ya lleva anchor (`anchor_evaluator_impl.cc` 135→136: 179 líneas) |
+| F23 WebAudio | `WebAudioBypassOutputBuffering` (Mac stable), `WebAudioRemoveAudioDestinationResampler` (base::Feature, **Finch/`features.cc`, no está en el json5**) | 6a48b34b2, c0ec0bb0e, dd2943e8, 511088344 (SetSinkId tras cerrar), bc3b8736c, 0d519d0aa, e26c8a91e | 2,0 | **opcional/aplazar**: toca el pipeline de audio de salida; riesgo en Mojave sin Mac real (S). Portar solo los arreglos 511088344 y 0d519d0aa |
+
+Sin cara web, **aplazar** (rendimiento): `HarfBuzzBufferPool` 328bd7e28, `FewerSubsequences` ef94cbcf7/590bd0dd8, `ReferenceFilterOutputBounds` 991185d49, `SelectionVisibilityAfterPaint`.
+Nuevos `experimental/test`, **no entran**: `HTMLCommandRequestClose` (ver F22), `HeadingOffset` (ca7f55d77), `MulticolColumnWrapping`+`column-wrap`/`column-height` (2544ae515), `CSSGapDecoration` (`row-rule-color`), `CSSReadingOrder` (`reading-flow: source-order` e278a7b65), `CanvasTextNg`/`PlainTextPainter` (25 commits CanvasTextNG), `SearchTextHighlightPseudo`, `AnimationTrigger`, `ScopedViewTransitions`, `CSSCornerShape` (`corner-shape`, ~10 commits), `ContainerTiming`, `PreferredAudioOutputDevices`, `ClipboardChangeEvent`, `TrustedTypesHTML` (document.write con TrustedHTML), `NoFontAntialiasing`, `AriaNotifyV2`.
+
+**Limpiezas de flag que fuerzan el estado de FW (S: revisar al fusionar):** al quitar el flag, el código queda siempre encendido. FW tiene estos en `experimental` o no-stable: `PageMarginBoxes` (26b6bf8af «enable forever»; FW lo dejó exp en 129–134), `StaticAnimationOptimization` (cc69f09c6), `JavaScriptCompileHintsMagicRuntime` (ce6806ab5, V8), `FindTextInReadonlyTextInput`, `SiteInitiatedMirroring` (8ddc27302), `OnDeviceChange` (61e8db21a). **Regla:** al portar esas limpiezas, dejar el flag en el parche de FW (o saltar el commit); no tomar la parte que borra el `status`. `UpdateSelectionOnNodeInsertion`: Chrome la apaga (0e69cebf); FW no tiene el flag: nada. `Database`, `WebAnimationsSVG`: pasan a `none`; FW exp → dejar.
+
+## 4. Filas aplazadas del 135: ¿qué cambia en el 136?
+
+Delta = líneas cambiadas cr135→cr136 en los ficheros clave (V, `diff`); «128→136» = techo de trabajo total.
+
+| Fila 135 | Estado json5 136 (FW) | Cambios en el 136 (commits) | 135→136 | Horas |
+|---|---|---|---|---|
+| `CSSAnchorRememberedScrollOffset` | stable (FW ausente) | F21: bab3300ad y los demás de anchor | 22 líneas en `anchor_position_scroll_data.cc`, 179 en `anchor_evaluator_impl.cc` | 0,5 (sola) / 3 con F21 |
+| `text-box-trim` con spanners | `CSSTextBoxTrim` stable en 135, 136 y FW (V) | **ninguno** (V: solo `HasRareData()`→`rare_data_` en `constraint_space.h` por «Make %-size non-rare»; sin commits por asunto) | 0 funcional | 0 |
+| `preserveAspectRatio` en `feImage` | sin flag | **ninguno** (V: `svg_fe_image_element.cc/.h/.idl` iguales; `svg_fe_image.cc` 6 líneas de `Member`) | 0 | 0 |
+| `text-emphasis-position: auto` | `TextEmphasisPositionAuto` **experimental** en 135 y 136 (FW ausente) | ninguno | 0 | no entra |
+| Observable (`ObservableAPI`) | stable (FW exp) | solo el flip en main 957fb6341 (03-10; en el 135 fue el merge 10a2f47aff) | `observable.cc` 2 líneas, `subscriber.cc` 0 | 3–4 (como en el 135) |
+| FetchLater | stable (FW exp) | solo 3486865e1 (= 8a947848b8 del 135, mismo bug 407556082) | `fetch_later_util.cc` 0 | 2–3 |
+| Select personalizable | `CustomizableSelect`, `SelectParserRelaxation`, `InputClosesSelect` stable (FW exp/exp/ausente) | 53987479a (estilos de disabled), c7405edb6 y d38bd78bc (quitan `option_slot_`), c6f0a7262 (quita `!important` de colores UA) **y su desactivación en M136: 693a5e108 (`SelectColorsRemoveImportant` = none): no tomar**, 1f8d9579d (`<button>`/`<legend>` hijos directos; bug 402438864), c7510df47 (color de `::picker`), 5fc3d3c78 y ce26744e7 (a11y), 1024e1694 (espacios en `label`), f7cbcc22f (ReferenceTarget: `.form` pasa a `HTMLElement?` con `formForBinding` en 10 IDL; **experimental, no portar**) | `html_select_element.cc` 23, `select_type.cc` 21, `html_option_element.cc` 7, `html.css` 36 | 5–8 + 1 |
+| Carousel CSS (`::scroll-marker`, `::column`, `::scroll-button`) | `CSSPseudoScrollMarkers/Buttons/Column`, `PseudoElementsFocusable`, `CSSNestedPseudoElements` stable (FW exp/ausente); `CSSScrollMarkerContain` y `CSSReadingOrder` siguen exp | 3e785ee6c (algoritmo de marcador activo), a7623c31b/438da0020/2277213a4 (foco en `::column`), 907a55c62 (elemento raíz), debeece9d→f8979e389→c221e0d41 (snap areas), 752792ccc, 60e7d5a42 y otros 8 (lista en TSV); `scroll-marker-contain` (0c9f84c18, 6b8e47152) **revertido** (9ec585168) y exp: no entra | `scroll_marker_group_pseudo_element.cc` 23, `scroll_marker_pseudo_element.cc` 28, `scroll_marker_group_data.h` 24, `pseudo_element.cc` 3 | 8–12 + 1 |
+
+Estado de los demás flags del 135 que FW ya lleva (`CSSShapeFunction`, `HTMLCommandAttributes`, `CSSInert`, `AOMAriaRelationshipProperties`, `NavigateEventSourceElement`, `CSSLogicalOverflow`, `CSSSafeAreaMaxInset`, `CSSTextBoxTrim`): sin cambio de estado en el 136 (V). Fuera del flag: `NavigateEvent.commit()/redirect()` desaparecen y aparece `precommitHandler` (71ee6c15d, `NavigateEventCommitBehavior`, exp): no entra. `CloseWatcher`: 3d52f68a6 y 082bc8d97 (grupo estable ante Esc, merge M136; bug no listado): portar si FW lleva CloseWatcher (V: sí, parche `close_watcher.cc`).
+
+## 5. `Node.prototype.moveBefore` (Chrome 133): ¿cambios en 134–136? (V, historia ligera)
+
+- **Sí hay cambios, y FW no lo tiene encendido** (`AtomicMoveAPI` = `test` en FW; en cr128 el IDL existe tras ese flag; Chrome lo envió en el 133: 133f1cb4b «Ship the moveBefore API», 27-12-2024, y quitó el flag).
+- **133→134** (3 arreglos de choque, 17-01-2025): 96e62c0d6 (padre nulo), ea2ba3fc1 (CHECK con iframe desconectado), f0dc0d21e (estilo de `CharacterData`).
+- **134→135:** 7f0b7aa30 (choque con custom element sin `disconnectedMoveCallback`, 11-02) y 7dc739393 (solo test).
+- **135→136:** caf55a633 («Reapply style after a moveBefore», `link_style.cc`, 14 líneas), 5619643c2 (choque con `<object>` subframe, `html_frame_owner_element.cc`, bug 40150299), fcad0ee2d (WPT no-tentative).
+- Total 128→135: **35 commits** de moveBefore (lista en el TSV, F24/F24b), más 2 del 136. Node.cc/container_node.cc cambian 510 y 512 líneas 128→136 (techo, incluye otras cosas).
+- **Horas reales: 3–5** (S), moveBefore + los 5 arreglos. Es una función Baseline-por-llegar (Firefox y Safari en curso, S); sin demanda conocida. Propuesta: portar en una 1.N.x o junto a la fusión de `node.cc`/`container_node.cc` de otra fila; no bloquea el 136.
+
+## 6. Privacidad y huella (regla: por encima de Brave; referencia Brave 1.78 = Chrome 136)
+
+- **A favor, valorar:** `PartitionVisitedLinkDatabaseWithSelfLinks` (65e131047 «Enable partitioned :visited links»; 2760e043 y 4f7177ca en `components/history`/`visitedlink`; 9252d771 en Blink). Particiona los enlaces `:visited` por (enlace, sitio superior, origen del marco) = cierra la fuga de historial por CSS. **Casi todo es de navegador (historial, `visitedlink`), no de Blink**: queda para el subagente «fuera de Blink». Si Brave 1.78 lo trae (S), la regla de privacidad pide portarlo; estimación aparte (S: 6–10 h con la migración de la base de historial).
+- **No portar:** FPF-CI = *Fingerprinting Protection / Canvas Interventions* de Chrome (ruido en lecturas de canvas, c12563dd/e6c6753b + 11 commits `core/canvas_interventions`, flags `CanvasInterventions*`): Brave ya tiene su propio *farbling*; dos sistemas se pisarían. `IsCapturedSurfaceResolutionActive`/`screenPixelRatio` (X1). `GPUAdapterInfo.isFallbackAdapter` (huella de GPU). Cabecera `Sec-Speculation-Tags`.
+- **Portar (robustez de timers = huella):** 03fa95f4e `TimeClamper` (F10).
+- **Pegado a navegador:** LNA (`local-network-access` en `PermissionDescriptor`, a9d4580fc; 2930c2764 y 221c26561 saltan comprobaciones de contenido mixto solo para LNA): permisos de red local, **fuera** (la parte útil está en el navegador).
+- Señalar: 76fa3c178 (rama 136, bug 415810136) pone `referrerpolicy: "no-referrer"` en las cabeceras `Link:` de subrecursos = fuga de Referer corregida. **Portar** (regla 17).
+
+## 7. Finch / `base::Feature` que Chrome enciende y no están en el json5
+
+(S, por asunto de commit): `WebAudioRemoveAudioDestinationResampler` (c0ec0bb0e), `RendererSideContentDecoding` (1c47ad0d reland en M136; descodifica `Content-Encoding` en el renderer; red/navegación), `SkipUnnecessaryRemoteFrameGeometryPropagation` (4514d724b, rendimiento), `ThrottleMainFrameTo60Hz` y variantes de frame rate (86571ee34, 51c7edd9b, 9373ec74f, rendimiento), `StaleSessionCookieCleanup` (navegador), `IsPaintableChecksResourceProviderInsteadOfBridge` y killswitches de `Canvas2DLayerBridge` (fcb352f82, 9cd92ae38, 8273759b1: canvas 2D, interno), compile hints de V8 (`ce6806ab5`, V8 13.6). Ninguno cambia la API web visible salvo RendererSideContentDecoding (invisible).
+
+## 8. IDL y bindings (V: 73 IDL cambiados, `idl-diff.txt`)
+
+- **Cambios que sí afectan a FW si se portan filas:** `progress_event*.idl` (double), `svg_geometry_element.idl` y `svg_text_content_element.idl` (`DOMPointInit`), `canvas_2d_recorder_context.idl` (nuevo `lang`; el refactor `base_rendering_context_2d`→`Canvas2DRecorderContext` **no se porta**: FW mantiene sus dos IDL de la 128 con sus parches, 22 atributos; hay que meter `lang` a mano), `html_dialog_element.idl` (`closedBy`, `requestClose()` sin flag; FW ya `stable`).
+- **`[NoAllocDirectCall]` y sobrecargas (V8 13.4 CHECK de «misma aridad»):** el único IDL nuevo con dos sobrecargas rápidas es `gpu_command_encoder.idl`: `copyBufferToBuffer(source, destination, optional size)` y `(source, sourceOffset, destination, destinationOffset, optional size)`; aridades 2–3 y 4–5, **no solapan**, y es WebGPU (fuera de FW). Sin cambios en `webgl_multi_draw*` ni en canvas respecto del 135.
+- Solo experimentales o fuera: `document.write(TrustedHTML)` (`TrustedTypesHTML`), `Element.headingOffset/headingReset`, `AnimationTrigger`, `navigation_intercept_options` (`precommitHandler`), Sanitizer `replaceWithChildrenElement`→`replaceElementWithChildren`, `TextCluster.begin`→`start`, `ImageData` `storageFormat`→`pixelFormat` y `Float16Array` (bindings 0ec014129, 11ddbcdbe, 72f7508df: ver X5; **aplazar**, `ImageDataPixelFormat` es exp), `AuctionAdConfig.sellerTKVSignals`, `PrivateAggregation.contributeToHistogramOnEvent`, `SpeechRecognition.availableOnDevice` → `AvailabilityStatus`, renombre del bloque AI (`AI*`→`LanguageModel/Summarizer/Writer/Rewriter/Translator/LanguageDetector`, 50 commits), WebNN `Exposed=(Window, Worker)`, constantes de `WEBGL_shader_pixel_local_storage` renumeradas, `MediaTrackSettings` (`screenPixelRatio`), `PermissionDescriptor` `local-network-access`.
+- Generador: sin cambios de bindings con riesgo; `0ec014129` («Float16Array: Add IDL bindings») toca `bind_gen` solo si algún IDL usa `Float16Array`.
+
+## 9. Candidatos regla 17 (V la lista; la gravedad hay que cruzarla con CVE)
+
+`regla17.tsv` (94 commits por asunto: crash/CHECK/overflow/race…). Los de áreas que portamos (los más importantes, todos con bug):
+
+| Commit | Qué | Bug |
+|---|---|---|
+| 76fa3c178 (rama) | `Link:` en subrecursos sin Referer | 415810136 |
+| b249bc61d (rama) | choque con *text fragment* en ShadowDOM desordenado | 411457974, 410033683 |
+| b636c5225 (rama) | quita `PlzDedicatedWorker` (choques) | 407563096, 408413160 |
+| d6b334758 (rama) | carrera en animaciones pendientes (= 5ba87566df del 135) | 409086867, 409632308 |
+| d26593a94 (rama) | rectángulo visual recortado con offsets de scroll grandes | 414412511, 413078309 |
+| 3486865e1 (rama) | FetchLater: choque en `GetReservedDeferredFetchQuota()` (= 8a947848b8) | 407556082, 408106277 |
+| a507cda33 (rama) | tamaño por defecto de SVG en `tex*Image*` de WebGL | 41357911, 409203678 |
+| 03fa95f4e | desbordamiento int64 en `TimeClamper` | 399818722 |
+| e4007690b | desbordamiento en escala de scrollbar | 397734696 |
+| f9458ac19 | rangos de variables de fuente inválidos | 40062214 |
+| 0758480be | `WTF::String::Format` reforzado | 395789217 |
+| 511088344, 0d519d0aa, bc3b8736c | WebAudio: `SetSinkId` tras cerrar, contexto cerrado, errores de render | 381126158, 408018835, 410818045 |
+| 3b9a6ad28, 91e66f04b | View Transitions: choques | 406828705, 406317718 |
+| 5619643c2, caf55a633 | moveBefore (§5) | 40150299 |
+| 1f8d9579d, ce26744e7, 5fc3d3c78 | select: hijos directos, a11y | 402438864, 405946933 |
+| 16f576f0d, 634a7e2ac, cb45acdae, a914a6196, daac4aa11 | text-transform/Ruby | 396666438, 402200344, 406999114, 401056618, 401444931 |
+| 5abd591b6 | `interactivity` fuera del shorthand `all` (= ae21fa404d) | 408241037 |
+| 6ee9995db, a31e9e490, 5cf8af29d, b3ea66ce0 | parser/estilo: choques con `calc`, `revert-layer`, contadores, HashTrie | 404174133, 400052780, 400087471, 406054649 |
+| 082bc8d97 (rama) | CloseWatcher: grupo estable ante Esc | — |
+
+Áreas a vigilar tras el 136 (para SEGURIDAD-PORTES): `core/html/forms/*`, `core/dom/{pseudo_element,scroll_marker*}.cc`, `core/animation/*` (carrera 409086867), `core/layout/{flex,length_utils,out_of_flow_layout_part}.cc`, `core/css/parser/*` (calc), `modules/webaudio/*`, `core/timing/time_clamper.cc`, `core/view_transition/*`.
+
+## 10. Orden propuesto y horas (reales, S)
+
+1. **F01, F02, F03, F04, F13, F22** (flips y CSS pequeños): 2 h.
+2. **F08, F09, F07, F06, F10** (IDL pequeños + timers): 2,3 h.
+3. **F05, F12** (colores relativos, `interrupted`): 1,8 h.
+4. **F14, F16, F15** (layout: flex, tabla/scrollbar/webkit-box, %-size): 5 h.
+5. **F20** (bloque `calc()` del parser): 2,5 h.
+6. **F18, F19** (selección, fuentes): 2,5 h.
+7. **F21** (anchor) junto con la fila `CSSAnchorRememberedScrollOffset` del 135: 3 h.
+8. **F17** (redondeo de scroll/paint): 2,5 h, con prueba visual; si hay duda, a 1.N.x.
+9. Arreglos regla 17 de §9 (los que no vengan en filas anteriores): 1 h.
+10. Opcionales: F23 WebAudio (2 h), moveBefore (3–5 h), PartitionVisited (§6, aparte).
+11. Filas aplazadas del 135, sin cambio de coste: Observable 3–4, FetchLater 2–3, select 5–9, carousel 9–13.
+
+**Total delta propio del 136: 21–27 h** (filas 1–9; ≈ 90–110 h de papel). Con las filas del 135 aplazadas y las opcionales: ~45–65 h.
+
+Declarar **Chrome 136.0.7103.116** exige solo el nivel; no cambia nada de lo anterior. `motor-136.html` debería probar: `attr(raw-string)`, `var()` con fallback sin tipo, `print-color-adjust`, `ctx.lang`, `SVGAElement.relList`, `isPointInFill({x,y})`, `ProgressEvent` con `loaded` fraccionario, `AudioContext.state === 'interrupted'` (enumeración), `click` con captura, y `command="request-close"` (debe fallar).
+
+### Inventario V8 para el nivel 136 (MOTOR-35, solo lectura)
+
+Marcas: V = verificado (git/diff/grep), S = supuesto. Trabajo: clon `/home/user/v8` (historia filtrada tree:0 desde 2025-02), worktrees `/home/user/v8-135` (e2591684) y `/home/user/v8-136` (5297e56d; queda limpio), scripts y listas en el scratchpad (`chk.sh`, `r135.txt`, `r136.txt`, `src135-136.diff`, `deps.py`). Referencias de Chromium: `/tmp/claude-0/port/cr128`, `cr135`, `cr136` (grep), raw github para simdutf.
+
+#### 1. Versión
+- V: **V8 13.6.233.10 = 5297e56d91816747d539abca52b578e5832135f0** (`Version 13.6.233.10`, 6-05-2025; la fija `DEPS` de Chromium 136.0.7103.116 en cr136). No es LTS. 571 commits de main desde el punto común con 13.5 (af3cadca9b, 2-03-2025) + 9 merges propios 233.1..10: `Add function's source code to the minidump` (x2), `Properly compare ScopeInfo.context_local_names_hashtable`, `Fix handling of mutable heap numbers in debugger ^2`, `Revert Reland maglev add->stringconcat`, `Revert regexp common prefix backwards`, `wasm: imports array filled with holes` (ya en `patches/v8`: ver 2), y dos de pruebas en Mac. Ninguno es de seguridad de TurboFan.
+- V: **`patches/v8` tiene 239 `.patch`, no 104** (240 ficheros con FLYWEB-SECURITY.md; son los de FS.36: 70 arreglos portados). Todo lo de abajo es sobre los 239.
+
+#### 2. patches/v8 sobre 13.6.233.10
+Comprobado con `git apply --check` (y `-R --check`, y `--3way` aplicando de verdad): **222 aplican limpios** (los 239 aplican limpios sobre 13.5: control AA), **6 aplican solo con 3-way sin conflicto** (contexto movido: `accessor-assembler.cc`, `json-parser.cc`, `maglev-basic-block.h`, `maglev-code-generator.cc` hunk 3, `elements.cc` hunks 8-9, `wasm/value-type.h`), **2 ya están dentro**, **1 falla por fichero movido**, **8 con conflicto real**. Lo que se suelta o rehace:
+- **Ya en 13.6 (se sueltan):** `src-wasm-wasm-module.cc` (merge 233.8 «imports array filled with holes» = nuestro arreglo, `-R --check` OK), `test-mjsunit-compiler-regress-402646504.js` (el test ya existe), `src-runtime-runtime-collections.cc` (los 4 hunks `clear_exception` ya son upstream, 92aba703; solo cambia el comentario), `js-native-context-specialization.cc` hunk 3 (**d73530cf ya está en 13.6**: existe `TypedArrayLength_string`; nuestro port con `length_string` sobra), `maglev-post-hoc-optimizations-processors.h` (upstream ya hace `if (!v8_flags.maglev_untagged_phis) return kRemove` en `Process(Dead*)`; se suelta el parche entero salvo que se quiera quitar el `UNREACHABLE` con untagged_phis encendido: Maglev está apagado).
+- **Fichero movido (1):** `include-cppgc-ephemeron-pair.h` -> `cppgc/ephemeron-pair.h` **ya no existe**; `EphemeronPair` se mudó a `cppgc/visitor.h`. `include-cppgc-visitor.h.patch` aplica, pero `ClearKeyAndValueIfKeyIsDead` hay que añadirla a mano en el `EphemeronPair` de `visitor.h` (0,3 h). Blink 128 no usa `EphemeronPair` (V grep cr128).
+- **Conflicto de contexto (se rehacen a mano):** `shared-function-info{.h,-inl.h,.tq}` (13.6 añade el bit `live_edited` en `relaxed_flags`; V: con él + nuestro `class_initializer_allows_await` son **justo 32 bits**, cabe; hay que conservar los dos), `maglev-graph-builder.cc` (2 hunks: `TryBuildStoreField` en 13.6 sigue siendo `access_mode == kStore`, nuestro cambio a `!= kStoreInLiteral` entra con una línea; el resto auto-fusiona), `parsing/rewriter.cc` (13.6 cambia `Rewriter::Rewrite/RewriteBody` a `bool* out_has_stack_overflow`; nuestro chequeo anticipado de `HasStackOverflow` hay que dejarlo con `*out_has_stack_overflow = true`, 0,3 h).
+- **Los 11 solo-LTS (a5f18bb86, ec6c18478, eba18128, c58fda1f, 9a884b1b, 22e9d962, 1d82eec6, 7bc0a67e, 45eb42cd, 62ee3244, 37d6fa3f) y ea2f03dfff: NO los trae la 13.6** (V: fechas 19-05 a 16-09-2025 y 26-10-2026; ninguno es ancestro de 5297e56d ni hay cherry-pick por asunto). Sus parches aplican todos limpios sobre 13.6. Stack clash: `turboshaft/pipelines.{h,cc}` son **idénticos** en 13.5 y 13.6 (V diff vacío en `.cc`; `.h` solo cambia el include de turbolev y quita loop peeling) y `pipeline.cc` solo cambia en partes wasm, así que el port de la 135 vale tal cual. S: `turbo_elide_frames` (nuevo, true) no interfiere con la guarda de 4 KB.
+- Época de caché: `version.h` aplica; subir (25, S).
+- Mjsunit: `stack-traces-overflow.js` borrado por nuestro parche sigue aplicando.
+
+#### 3. include/ 13.5 -> 13.6 y Blink/gin 128 (V: diff completo de include/, grep sobre cr128 y comparación con cr136)
+- **ROMPE: `Isolate::AttachCppHeap()` y `DetachCppHeap()` desaparecen** (v8-isolate.h/api.cc). Blink 128 los llama en `third_party/blink/renderer/platform/heap/thread_state.cc:119,128`. Ahora el `CppHeap` se pasa en `CreateParams::cpp_heap` y lo posee el isolate (`CHECK(!owning_cpp_heap_)`; si no hay, V8 crea uno por defecto). Chromium 136 lo resuelve con: `ThreadState::{owning_cpp_heap_, cpp_heap_, ReleaseCppHeap(), SetCppHeap(), RecoverCppHeapAfterIsolateTearDown()}`, `gin::IsolateHolder` con parámetro `std::unique_ptr<v8::CppHeap> cpp_heap` (-> `params->cpp_heap = cpp_heap.release()`) y los dos llamadores de Blink `v8_initializer.cc` y `worker_backing_thread.cc` (`ThreadState::Current()->ReleaseCppHeap()`), más `SnapshotCreator(isolate_, *params)`. `CreateParams::cpp_heap` ya existe en 13.5, así que se puede portar antes de subir V8. Ficheros: `thread_state.{h,cc}`, `v8_initializer.cc`, `worker_backing_thread.cc`, `gin/isolate_holder.{h,cc}` (FlyWeb ya parchea estos dos por las colas de tareas), `heap_test_utilities.cc`; otros creadores de isolate (pdf, services/accessibility, proxy_resolver) pasan `nullptr` por defecto. **~3 h**, y es lo único que impide compilar.
+- Quitado sin uso en 128 (V grep): `Isolate::AtomicsWaitCallback/SetAtomicsWaitCallback/AtomicsWaitWakeHandle`. `cppgc/ephemeron-pair.h` movido (128 no lo incluye). `kHolderIndex` privado -> `kUnusedIndex`. `kWasmContinuationJmpbufTag` interno. El orden de los offsets `kIsolateFastCCallCallerPc/Fp` cambia (Blink lo compila en línea: recompilar todo, nada que tocar). `#include <fstream>` fuera de `libplatform/v8-tracing.h` (S: nadie lo usa de rebote).
+- **gin/Holder: nada que hacer** (V: gin 128 ya usa `This()` para `FunctionCallbackInfo`; `Holder()` queda en `PropertyCallbackInfo`; ya lo estaba en la 135).
+- Compatibles: `MaybeLocal` con ctor implícito desde `Local` y upcast `requires`, `Maybe`/`WeakCallbackInfo` heredan `ConditionalStackAllocatedBase` (+ `cppgc/internal/conditional-stack-allocated.h`; Blink define su propio `WTF::IsStackAllocatedType`, otro espacio de nombres), `IsolateGroup` copiable, `Message::PrintCurrentStackTrace(..., filter = nullptr)` (Blink 128 lo llama con 2 args: vale), `FunctionTemplate::SealAndPrepareForPromotionToReadOnly`, `PrintCurrentStackTraceFilterCallback`, nuevos `UseCounterFeature` 166 `kExplicitResourceManagement` y 167 `kWasmBranchHinting` (S: sin `switch` exhaustivo; en cr136 `use_counter_callback.cc` lo trata), `V8Inspector::isolateId()` puro y `consoleTimeStampWithArgs` (solo los implementa V8; 128 no hereda de `V8Inspector`), `cppgc::IsInitialized()` (V8 llama `cppgc::InitializeProcess` si falta; gin lo hace antes: compatible, S).
+- CHECK nuevos alcanzables por el *embedder*: **ninguno en `api.cc`** (V: diff de 190 líneas; el único DCHECK nuevo es de `RequestGarbageCollectionForTesting`). No-API: `CHECK(!owning_cpp_heap_)` en heap.cc (relacionado con lo anterior), CHECK de `IsolateGroup`, `read-only-promotion` (plantillas selladas), `backing-store`.
+- Flags que pasa gin: `harmony_iterator_helpers` y `harmony_set_methods` **desaparecen** (ya no hay flag; SetFlagsFromString ignora/avisa como hoy con otros). `experimental_wasm_*` que gin/Blink 128 pasa siguen existiendo salvo los ya inexistentes en 13.4/13.5.
+
+#### 4. Regla 19 (V: diff de `flag-definitions.h`, 264 líneas)
+| Opción | FlyWeb | 13.6 | Nota |
+|---|---|---|---|
+| `maglev` | apagado (parche) | true | igual que 13.5; el parche aplica |
+| `maglev_untagged_phis` | apagado (parche) | true | igual |
+| `typed_array_length_loading` | encendido | true | ahora con d73530cf dentro (en 13.5 faltaba) |
+| `turbolev` | — | `DEFINE_BOOL false` (ya no experimental) + `turbolev_future` experimental | sigue apagado upstream |
+| `minor_gc_task_with_lower_priority` | — | **false -> true** | usa prioridad kUserVisible: FlyWeb ya tiene `user_visible_task_runner` en gin/PerIsolateData (V: `gin-isolate_holder.cc.patch`) |
+| `turbo_elide_frames` | — | nuevo, true | S: sin efecto en x64 de interés; revisar con mjsunit |
+| `wasm_opt` | — | `DEFINE_DEBUG_BOOL` (siempre true en release) | |
+| `conservative_stack_scanning` implica `scavenger_conservative_object_pinning` (antes `minor_ms`) | — | experimental, apagado | sin efecto |
+| `better_code_range_allocation` | — | quita exclusión de ChromeOS | sin efecto en Mac |
+| `js_regexp_escape` | — | **staged -> shipping** | RegExp.escape sale solo |
+Maglev (13.6): ~52 commits de Maglev (asunto) desde 13.5, `maglev_non_eager_inlining` y `maglev_inlining_following_eager_order` nuevos (false). De los 16 arreglos de Maglev de FS.34/36, siguen sin estar upstream los tests `mjsunit/maglev/regress-*` (13 ficheros nuevos aplican); ya upstream: write barrier, `maglev_allocation_folding`, typed array `super`, `Dead` en post-hoc. Deuda de Maglev ≈ la de la 135 menos 2; sigue apagado.
+
+#### 5. DEPS de terceros de V8 13.5 -> 13.6 (V)
+- **simdutf 5a9a2134 -> 40d1fa26** (Chromium 135: 6.0.2; **Chromium 136: 6.4.0**, `simdutf.cpp` 2,40 -> 2,72 MB, `simdutf.h` 224 -> 240 KB; BUILD.gn solo añade `SIMDUTF_DLLIMPORTEXPORT` en Windows). V: los usos `simdutf::` en `src/` son **idénticos** en 13.5 y 13.6, así que se puede **quedar con la 6.0.2 que ya está vendida en `patches/third_party-simdutf-*`** (S: compila; 0 h) o subir a 6.4.0 (regenerar `simdutf.cpp.patch` de 2,4 MB: ~1 h; S: arreglos de simdutf no relevantes).
+- fast_float cb1d42aa, highway 00fe003d, fp16 0a92994d: **iguales**. abseil 2705c665 -> 3fbb10e8 (V: lo pone Chromium; V: 13.6 no añade ningún `#include "absl/..."` respecto a 13.5), icu/protobuf/perfetto/libunwind/llvm-libc/googletest/catapult cambian (no entran: los trae Chromium o son de pruebas). `third_party/partition_alloc` no está en DEPS 13.6 (solo d8). Nuevo `rust-toolchain` en DEPS de V8 (no se usa).
+
+#### 6. JS/Wasm nuevo en 13.6
+- V: shipping nuevo: **RegExp.escape** (`js_regexp_escape` pasa a shipping). Iterator helpers y Set methods: flags eliminados (ya iban de serie). Sigue staged: `js_explicit_resource_management`, `js_float16array`, `harmony_remove_intl_locale_info_getters`; in progress: `js_base_64` (+ ruta SSE de hex nueva).
+- V: **Chromium (cr135/cr136 `gin/v8_initializer.cc`) enciende `--js-float16array` y `--js-explicit-resource-management`; gin 128 no, y FlyWeb no tiene parche de gin para ello.** Si el nivel 135/136 debe declarar `Float16Array` y `using`, hay que añadir esas dos líneas `SetV8Flags` (cr136 también `--js-regexp-escape`, innecesaria al ser shipping). Float16Array en x64 usa F16C solo con detección en ejecución (ver 7). S: decisión de producto, no de V8.
+- V: Wasm sin nada shipping nuevo: `type_reflection` desestagea, `branch_hinting` pasa a staged, nuevos experimentales (`custom_descriptors`, `rab_integration`, `ref_cast_nop`...); JSPI sigue experimental (`jspi` false).
+
+#### 7. Riesgos (V salvo S)
+- **AVX/CPU:** V: sin cambios en `base/cpu.cc` ni en flags `-m...` de `BUILD.gn`. Nuevo `Uint8ArrayFromHexWithSSE` (SSE2, `#ifdef __SSE3__` y `get_vectorization_kind()`; solo con `js_base_64`, apagado). x64: Maglev `CheckFloat64SameValue`, selector Turboshaft sin cambios de ISA. V: **la caché de código ya no incluye `CpuFeatures::SupportedFeatures()` en `ScriptCompiler::CachedDataVersionTag`** (solo versión + hash de flags): la caché de bytecode se comparte entre CPU (S: sin riesgo, el bytecode no depende de AVX). S: simdutf despacha por CPU en ejecución (Haswell/Icelake con atributos de región); comprobar en la 5,1 (igual que en 13.4/13.5).
+- **macOS 10.15+:** V: grep de `__builtin_available`, `dlsym`, `os_unfair`, `pthread_*_np`, `mach_`, `MAP_JIT`, `sysctl` sobre el diff completo `src/`: **nada nuevo**; `platform-darwin.cc`/`platform-posix.cc` no cambian. Único cambio: `IsRemapPageSupported` pasa de `V8_OS_DARWIN` a `V8_OS_MACOS` (sigue true en Mac). El `SpinningMutex` ya salió en 13.5. El `weak os_unfair_lock_lock_with_options` sigue estando solo en el `partition_alloc` de Chromium 133+, no en nuestra base 128.
+- **Época de caché:** cambia (versión y hash de flags): subir la época de FlyWeb a 25 (S) y regenerar el parche de `version.h`.
+- **Isolate/CppHeap:** primer arranque del isolate de Blink con el heap poseído por V8: probar cierre de workers y snapshot (S).
+- **Maglev:** apagado; riesgo bajo mientras siga así. `turbo_elide_frames` y `minor_gc_task_with_lower_priority` son los únicos defaults de producción que cambian en TurboFan/GC (S).
+
+#### 8. Estimación (horas reales)
+- Fijar 13.6.233.10 + `v8-revision` + FLYWEB-SECURITY.md + época: 0,5 h.
+- Parches: 6 de contexto (3-way limpio) 0,3 h; SFI x4 + maglev builder + rewriter + EphemeronPair/visitor 1,3 h; soltar 5 (wasm-module, test 402646504, runtime-collections, post-hoc, js-native-context hunk 3) 0,3 h; regenerar los 239 con `v8regen.sh` y repasar: 1 h. **~3 h.**
+- Blink/gin CppHeap (sección 3): **~3 h** (+ compilar, de LOCAL).
+- simdutf: 0 (o +1 h si se sube a 6.4.0). Gin flags de Float16Array/using: 0,2 h si se decide.
+- `d8` nube 13.6 + parches, mjsunit completo y FlyWeb 9/9: 3 h de reloj (~1 h atendidas).
+- **Total ≈ 7–8 h reales para V8 + pegamento (≈1 día)**, menos que la 135 (12 h): sin mutex, sin `Holder`, sin d73530cf. Riesgo no medido: CppHeap poseído por el isolate en workers/snapshot.
+
+# Nivel 136, inventario «fuera de Blink» (cr135 -> cr136), solo lectura
+
+MOTOR-35 (subagente de lectura), 30-10-2026. Marcas: **V** verificado en código o historial; **S** supuesto.
+Base: la 128 NO se rebasa. «Portar» = traer a la 128 el cambio de comportamiento observable de Chrome 136.
+Blink y V8 los hacen otros subagentes y no se repiten aquí.
+
+## 0. Tag y fuentes
+
+- **Tag de 136: `136.0.7103.116`** (V; versionhistory de Google, mac/stable: .114 al 100 % del 15-05 al 21-05-2025;
+  .116 servida con .114 del 27-05 al 02-06-2025, fracciones 0,099 -> 0,2475; .115 solo 0,5 %; luego 137). Es la última de la rama 136
+  para Mac. Origen: `.117` de 135 (la que declara FlyWeb). Chromiumdash no se usó.
+- Intervalo `135.0.7049.117..136.0.7103.116`: 15 310 commits (rev-list con merges). Incluye los merges de seguridad de la rama
+  (p. ej. `76fa3c17` «[M136 Minibranch] referrerpolicy no-referrer en Link de subrecursos», bug 415810136, flag
+  `NoReferrerForPreloadFromSubresource` ON en `third_party/blink/common/features.cc`: es de Blink, lo anoto para el otro subagente).
+- DEPS 135 -> 136 (V, `git show <tag>:DEPS`):
+  BoringSSL `673e61fc` -> `a9993612` (79 commits), QUICHE `25a56e31` -> `5077431b` (69), ANGLE `079266db` -> `fa40b7c5` (193),
+  Skia `5a44cdd7` -> `bcce46ca` (254), Dawn `53dfda5e` -> `1cffe7ec`, SwiftShader `c12c1383` -> `4982425f`, V8 `e2591684` -> `5297e56d`.
+- Método: `mkcr.sh` de cr135 y cr136 (en `/tmp/claude-0/port/cr135`, `cr136`; `diff -ruN` por directorio, guardados en
+  `/tmp/claude-0/port/f136/`), historia ligera `--filter=tree:0` en `/tmp/claude-0/port/h` (con `git diff --name-only` y `git show <tag>:<ruta>`:
+  rápido, 1 s), clones blobless de BoringSSL, QUICHE (`github.com/google/boringssl`, `github.com/google/quiche`), ANGLE y Skia (mirrors de github).
+  `feat136.py` / `featgit.py` (`/tmp/claude-0/port/s/`): BASE_FEATURE old/new. Listas de commits: `log135-136.txt`, `bssl-log.txt`,
+  `quiche-log.txt`, `angle-log.txt`, `skia-log.txt`. Googlesource no se usó.
+
+## 1. Huella de red 135 -> 136: ningún cambio observable en TLS, HTTP/2, QUIC ni Client Hints (V código, S captura)
+
+**1.1 TLS (ClientHello): igual que 135 (V).**
+- `net/ssl/*` **sin diff** (0 ficheros; incluye `ssl_config`, `cert_compression.cc`); `net/socket/ssl_client_socket_impl.cc` **sin diff**.
+  Grupos (`X25519MLKEM768, X25519, P-256, P-384`), sigalgs, ECH, GREASE, permutación, ALPS: iguales. `UseNewAlpsCodepointHttp2/QUIC` siguen ON
+  (ya cambiados en 135; `net/base/features.cc` líneas 553-559), y `ShouldQuicUseNewAlpsCodepoint` (`network_session_configurator.cc:312`) sin cambio.
+  `kEncryptedClientHello`, `kUseMLKEM`, `kReportEcn` (ON): sin cambio de valor.
+- BoringSSL (79 commits), revisados los que tocan `ssl/`: `02f0d877` «draft-kwiatkowski-tls-ecdhe-mlkem-01 es ahora draft-ietf-tls-ecdhe-mlkem-00»
+  (solo nombre/comentario en `ssl_key_share.cc`, 2 líneas; mismo codepoint 0x11EC); `7e529d2b` Trust Anchors (extensión `trust_anchors`: el cliente solo la
+  envía si `requested_trust_anchors` tiene valor; Chrome no lo llama, V `extensions.cc:2656`); `1f8dc079` «Compress the CA extension» (solo si hay CA names; Chrome no las pone);
+  `899b557b` cross-SNI-resumption / `tls_flags` (solo servidor y la API `resumption_across_names_enabled`, desactivada por defecto);
+  `f6bf5e2c` API de DTLS. **Nada nuevo en el ClientHello por defecto.** No hace falta subir BoringSSL (si se subiera, regenerar el parche de `BUILD.generated.gni`).
+- x86 (sin AVX obligatorio): `920bad63` quita la comprobación de FXSR (suponen SSE2), `a57d1b88` CLMUL AES-GCM exige además SSSE3, `b1ef5eee`/`d8beaa34`/`c2f05fa2`
+  añaden `vzeroupper`/movdqa en rutas AVX2 ya con detección en ejecución; `c7bec85f`/`11337e42` renombran avx10 -> avx512. Nada exige AVX (V: `crypto/cpu_intel.cc` -6 líneas, sin cambios de detección).
+  Mojave: SSE2/SSSE3/CLMUL de las MacPro 5,1 (Westmere) cubiertos.
+- Datos de CA: **Chrome Root Store pasa de v17 a v18** (`root_store.textproto` +664 líneas, `root_store.md`, `root_store.proto` +7), pero `root_store.certs` **idéntico** (V) y
+  los anclajes iguales: solo añade `eutl: true` y `additional_certs` (certificados de la UE para QWAC), detrás de `kVerifyQWACs` **OFF** (nueva, `net/base/features.cc`). No cambia la
+  confianza de ninguna web. Opcional: tomar solo la versión (S: cosmético, `chrome://net-internals`).
+
+**1.2 HTTP/2: sin cambios en lo que sale al cable (V).**
+- `spdy_session.cc` (+46/-29): solo «spanify» (copia de `kHttp2ConnectionHeaderPrefix` + SETTINGS + WINDOW_UPDATE con `SpanWriter`; mismo contenido y orden), `availability_state` en NetLog.
+  `http2_priority_dependencies.cc` (+7/-5): spanify. `spdy_session_pool.cc` -8: limpieza. `http_network_session.cc`: crea siempre `HttpStreamPool`, pero **se usa solo si**
+  `HostResolverManager::IsHappyEyeballsV3Enabled()`, que sale de `kHappyEyeballsV3` = **OFF** (V; mismo valor que 135; nueva política `HappyEyeballsV3Enabled`, irrelevante).
+- `http_request_headers.cc`, `http_util.cc`, `services/network/public/cpp/constants.cc` (`kDefaultAcceptHeaderValue "*/*"`), `source_stream_type.h`: **0 diff**. Accept-Encoding `gzip, deflate, br, zstd` sin cambio
+  (la excepción de FlyWeb sin zstd sigue). `RendererSideContentDecoding` nuevo, **OFF** (la descompresión en renderer no cambia la cabecera).
+
+**1.3 QUIC / HTTP/3: sin cambio en los parámetros de transporte ni en las tramas del cliente (V código, S captura).**
+- QUICHE 69 commits: MoQT, MASQUE/OHTTP (herramientas), `QuicTimeWaitList`, `QuicHeadersStream`/stream-closing, bzlmod, limpiezas de flags.
+  `transport_parameters.cc` **-71 líneas**: borra el camino antiguo (`0xFF73DB`) tras deprecar `quic_version_negotiation_rfc` (`064ae1b7`); el flag ya era `true` en el QUICHE de 135.
+  **El parche de 135 (`f4690dbf` + flag true) sigue valiendo tal cual**; no hay que añadir nada para 136 (opcional: borrar el camino antiguo, 0 h útiles).
+  `quic_config.cc`, `tls_client_handshaker.cc`, `quic_crypto_client_config.cc`: sin diff; `quic_spdy_session.cc`: solo parámetro `priority_type` (herramientas).
+- Flags de `quiche_feature_flags_list.h` que cambian de valor en 136 (V): `quic_use_alarm_multiplexer` false -> true (gestión interna de alarmas, sin efecto en el cable),
+  `quic_notify_ack_listener_earlier` y `quic_notify_stream_soon_to_destroy` -> true (interno), `quic_use_one_map_in_time_wait_list` -> true (servidor); se borran `quic_ack_ce_immediately`,
+  `quic_gfe_allow_alps_new_codepoint`, `quic_support_flow_label2`, `quic_no_vn_in_response_to_vn`, `quic_dispatcher_only_serialize...` (todos servidor). Nuevo `quic_record_tos_byte` false.
+- Chromium: `3eb1f7fe` envío de ECN en `QuicChromiumPacketWriter` (V `quic_chromium_packet_writer.cc`): `SupportsEcn()` pasa de `false` a **`true`** y el escritor hace `socket_->SetTos(DSCP_NO_CHANGE, ecn)` según
+  `params.ecn_codepoint`. **S**: solo marcaría ECT(0)/ECT(1) si `QuicSentPacketManager::EnableECT0/1()` (algoritmo de congestión) lo pide; por defecto no consta. Si lo hiciera, sería un cambio observable a nivel IP (bits ECN), no en JA4Q.
+  Es parte del propio Chrome 136 (V: está en el tag); portar el escritor son ~60 líneas (1 h), con captura de QUIC para confirmar.
+- `quic_session_pool_job.cc`/`quic_session_pool.h`: `AddedToJob/RemovedFromJob` (CHECK de depuración).
+
+**1.4 Client Hints / UA / cabeceras.**
+- **Refactor grande (V): `content/common/user_agent.cc` y `content/public/common/user_agent.h` DESAPARECEN** (`b742ad8b`, 04-03-2025, «Merge //content/common/user_agent.cc into //components/embedder_support:user_agent»);
+  sus funciones (`GetUserAgentPlatform`, `GetUnifiedPlatform` = `Macintosh; Intel Mac OS X 10_15_7`, `BuildCpuInfo`, `GetOSVersion` con el tope 10_15_7, `BuildUserAgentFromProduct`, `GetCpuArchitecture/Bitness`...)
+  pasan a `components/embedder_support/user_agent_utils.cc` (+~230 líneas) y `784ba703` borra `GetReducedUserAgent`. **Salida idéntica** (V: mismo cuerpo, mismo `10_15_7`).
+  Impacto en el porte: el parche `patches/content-common-user_agent.cc.patch` (solo `BRAVE_GET_ANDROID_OS_INFO`, Android) y `components-embedder_support-user_agent_utils.cc.patch` (BRAVE_GET_USER_AGENT_BRAND_LIST,
+  BRAVE_BRAND_VERSION_OVERRIDE...) chocan con el movimiento. Si se queda la estructura de la 128: **no portar el movimiento** (0 h); si se porta: 1,5–2 h (17 hunks en `user_agent_utils.cc`).
+- `GenerateBrandVersionList`/GREASE (`GetGreasedUserAgentBrandVersion`, `GetRandomOrder`): **sin cambio de algoritmo** (V). Con semilla 136 sale (calculado, V):
+  `Sec-CH-UA: "Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"` (grease `Not` + `chars[136%11]`=`.` + `A` + `chars[137%11]`=`/` + `Brand`; versión `[136%3]`=`99`; permutación `orders[136%6]`={2,0,1}).
+  `Sec-CH-UA-Full-Version-List: "Chromium";v="136.0.7103.116", "Google Chrome";v="136.0.7103.116", "Not.A/Brand";v="99.0.0.0"`. Solo depende de `flyweb_engine_level` y de la versión completa.
+  (El de 135 era `"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"`: el orden cambia.)
+- `third_party/blink/common/client_hints/*` y `services/network/public/cpp/client_hints.h` (solo `COMPONENT_EXPORT(NETWORK_CPP_WEB_PLATFORM)`): lista de hints igual. `permissions_policy_features.json5`: cambios en `services/network/public/cpp/permissions_policy/` (revisar: mapa client hints <-> políticas; es del otro subagente de Blink si toca `document.featurePolicy`).
+- Cabeceras nuevas o con cambio: `Sec-Speculation-Tags` (`d60f9ff8`, `c33034fb`; `content/browser/preloading/prerender/prerender_host.cc:1651`, `prefetch_container.cc`; solo si la regla de especulación lleva `tag`, shippeado en 136; S: baja).
+  `Accept-Signature` con orden nuevo (`d5222f4c`, SRI por firma; Blink/`sri_message_signatures.cc`, OFF). `Referer` ausente en preload de `Link:` de subrecursos (`NoReferrerForPreloadFromSubresource`, Blink).
+  `Sec-Fetch-Storage-Access`: `StorageAccessHeaders` ON desde 135; en 136 se borra `StorageAccessHeadersTrial` y la lógica queda `return IsEnabled(kStorageAccessHeaders)` (V `cookie_settings.cc`): sin cambio de comportamiento.
+  `Sec-Fetch-Frame-Top`/`FrameAncestorHeaders`, `ReduceAcceptLanguage`: sin cambio de valor.
+- `HttpCacheNoVarySearch` **OFF** en ambas (V), aunque `no_vary_search_cache.cc` crece (+487): no se ve.
+
+**Qué portar de la red para coincidir con Chrome 136 (resumen):** (a) la fórmula del Sec-CH-UA ya sale sola con `flyweb_engine_level=136`; (b) `SplitCacheByCrossSiteMainFrameNavigationBoolean` OFF -> ON (8bea9cb2); (c) regenerar HSTS/`.pins`/`log_list.json`;
+(d) (opcional, con captura) ECN del escritor QUIC. No hay que tocar TLS, ALPS, H2 ni QUICHE.
+
+## 2. BASE_FEATURE 135 -> 136 (V: lectura del código de ambos tags; «NUEVO/BORRADO» incluye traslados; solo los CAMBIO son seguros)
+
+Listados completos: `/tmp/claude-0/port/f136/feat.txt` (net/, services/network, content/{common,public/common,browser}, components/{embedder_support,network_session_configurator,variations}, blink/common) y
+`feat_git.txt` (99 ficheros `*features*.cc` cambiados en todo el árbol).
+
+**CAMBIO de valor que importan a la web/huella (portar):**
+| Feature | Fichero | Cambio | Nota |
+|---|---|---|---|
+| `SplitCacheByCrossSiteMainFrameNavigationBoolean` | `net/base/features.cc` | OFF -> **ON** | `8bea9cb2` (13-03-2025). Clave de caché HTTP con el bit «navegación principal cross-site»; no sale al cable pero cambia aciertos de caché/tiempos. Depende de `SplitCacheByNetworkIsolationKey` (ON). 0,25 h |
+| `CacheControlNoStoreEnterBackForwardCache` | `content/public/common/content_features.cc` | OFF -> **ON** | Páginas `Cache-Control: no-store` entran en bfcache (eventos `pageshow persisted`). Código en 128 (S). 0,5–1 h con prueba |
+| `WebRtcAllowH265Receive` / `WebRtcAllowH265Send`, `MediaRecorderHEVCSupport` | `media/webrtc/webrtc_features.cc`, `media/base/media_switches.cc` | OFF -> **ON** | `RTCRtpReceiver.getCapabilities('video')` y `MediaRecorder.isTypeSupported` listan H265 si hay HEVC por hardware (VideoToolbox). Huella observable; en Mojave depende del HW (S). Evaluar 0,5 h; no portar si FlyWeb no expone HEVC |
+| `DeleteStaleSessionCookiesOnStartup` | `content_features.cc` | OFF -> ON | Borra cookies de sesión viejas al arrancar. **No portar** (borra datos; S sin efecto de huella) |
+| `SiteInstanceGroupsForDataUrls` | `content_features.cc` | OFF -> ON | Modelo de procesos para `data:`. Interno; no portar (S) |
+| `EarlyEstablishGpuChannel` | `content_features.cc` | ON -> OFF | Rendimiento. No portar |
+| `EstablishGpuChannelAsync` | `blink/common/features.cc` | ON -> `#if Android ON else OFF` | Rendimiento en escritorio. Es de Blink-common; aviso |
+| `WebAuthenticationHybridLinking` | `device/fido/features.cc` | ON -> OFF | Fuera de FlyWeb (FM.42) |
+| `PdfCr23` | `pdf/pdf_features.cc` | OFF -> ON | Visor PDF con nueva UI (Blink/PDF); S, ver con el otro subagente |
+| `FileDialogsBlockPictureInPicture` | `media/base/media_switches.cc` | ON -> OFF | Interno |
+| `cc`: `NewContentForCheckerboardedScrolls`, `UseMapRectForPixelMovement`, `ViewTransitionCaptureAndDisplay`, `InitImageDecodeLastUseTime` | `cc/base/features.cc` | OFF -> ON | Rendimiento/compositor; `ViewTransitionCaptureAndDisplay` va con View Transitions (Blink). Ver con el otro subagente |
+| `UseFrameIntervalDecider`, `WebViewEnableADPFGpuMain`, `DevToolsWellKnown`, `Autofill*`, `Signin*`, `Sync*`, `Commerce*`, `Payments*`... | varios | OFF -> ON | UI/Android/servicios Google: **no portar** (fuera de FlyWeb) |
+
+**Nuevos ON que cambian el comportamiento de red/carga (valorar):**
+`PrefetchBumpNetworkPriorityAfterBeingServed`, `PrefetchNetworkPriorityForEmbedders` (prioridad de red de los prefetch de especulación; solo `Priority:`/prioridad HTTP/2 de esas peticiones, S baja),
+`Prerender2NoVarySearch` (con NVS OFF, inerte), `NoReferrerForPreloadFromSubresource` (Blink, seguridad: **portar**, 0,5 h, es del otro subagente), `RenderThrottleFrameRate` (cc, S),
+`CombineNewWindowIPCs`, `IsPaintableChecksResourceProviderInsteadOfBridge`, `AdjustCanCreateCanvas2dResourceProvider` (rendimiento/canvas), `PrefetchBrowsingDataRemoval`.
+
+**Nuevos OFF o inertes (no portar):** `RendererSideContentDecoding` (OFF), `GetCookiesOnSet` (OFF), `PopulatePermissionsPolicyOnRequest` (OFF), `NoThrowForCSPBlockedWorker` (OFF),
+`LocalNetworkAccessChecks` (+`...Warn`, OFF; en 135 ya constaba), `VerifyQWACs` (OFF), `SharedStorageTransactionalBatchUpdate` (OFF), `BackForwardCachePrioritizedEntry` (OFF),
+`EnableProbabilisticRevealTokens` (OFF; sustituye a los parámetros `IpPrivacyProbabilisticRevealToken*` de `kEnableIpProtectionProxy`, que se borran: **no portar, regla 20**).
+
+**Privacy Sandbox / telemetría (mantener APAGADO o ausente):** `FledgeUseKVv2SignalsCache` (OFF -> ON), `FledgeOriginScopedKeys` (nuevo ON), `ProtectedAudienceCorsSafelistKVv2Signals` (nuevo ON),
+`FledgePrepareSellerContextsInAdvance` (ON), `AttributionReportingRateLimitCheckSourceTime` (ON), `PrivacySandboxEqualizedPromptButtons` (ON), avisos `*NoticeModal` (ON, UI de Chrome), `BeaconLeakageLogging`.
+Brave ya apaga la parte de ads (`InterestGroupStorage`, `BrowsingTopics`, `SharedStorageAPI`), pero **revisar que los nuevos `Fledge*` no reabren nada**: 0,5 h.
+
+**BORRADOS (el flag desaparece; queda el valor):** `AncestorChainBitEnabledInPartitionedCookies` (ON; cookies particionadas con bit de cadena de ancestros, ya el valor de Chrome),
+`OptimizeParsingDataUrls` (ON; **choca con el parche `net-base-data_url.cc.patch`**, 7 hunks), `PervasivePayloadsList`, `PlzDedicatedWorker` (ON), `PrefetchNewWaitLoop` (ON),
+`StorageAccessHeadersTrial`, `SqlWALModeOnDipsDatabase` (ON; BTM/DIPS), `ThreadedScrollPreventRenderingStarvation`, `WebSQLWebViewAccess`, `UtilityWithUiPumpInitializesCom` (Win).
+Para la 128: si el flag existe allí, dejarlo en el valor ON (receta «dejar la flag en stable»).
+
+## 3. macOS: nada obligatorio; deployment target sigue en 11.0 (V)
+
+- `build/config/mac/mac_sdk.gni`: `mac_deployment_target = "11.0"` en ambos tags (V); `mac_sdk_official_version` 15.1 -> 15.2 (Xcode 16.2; FlyWeb sigue con SDK 13.3).
+  `obsolete_system_mac.cc`: «Chromium 138 será el último con macOS 11» (solo avisos de UI). Sin subida de mínimos.
+- Barrido de los 231 ficheros `.mm`/`_mac`/`_apple`/cocoa/metal cambiados (`/tmp/claude-0/port/f136/names_mac.txt`; diff en `mac.diff`): **0 APIs 10.15+ nuevas sin guarda** que lleguen a producción de Mojave.
+| Fichero / commit | API | Qué hace | Mojave | Coste |
+|---|---|---|---|---|
+| `media/base/mac/video_capture_device_avfoundation_helpers.mm` (`kUseAVCaptureDeviceTypeContinuity` ON) | `AVCaptureDeviceTypeContinuityCamera` (13+) | Cámaras de continuidad | **Dentro de `@available(macOS 14.0, *)`** (V, líneas 28-47); Mojave toma el `else` | 0 |
+| `media/audio/mac/screen_capture_kit_swizzler.mm` | `@available(macOS 15.0, *)` | Evita el swizzle en 15+ | Guardado | 0 |
+| `content/app_shim_remote_cocoa/web_menu_runner_mac.mm`, `ui/menus/cocoa/menu_controller.mm`, `ui/gfx/image/image_skia_util_mac.mm`, `ui/views/widget/native_widget_mac.mm`, `native_widget_ns_window_bridge.mm` | refactors AppKit (propiedades, `menuModelForNSMenuItem:`, `useWithPopUpButtonCell` fuera) | Selectores y limpieza | Sin API nueva (el comentario de macOS 14 para cabeceras de sección es un TODO) | 0 |
+| `gpu/ipc/service/image_transport_surface_overlay_mac.mm`, `shared_image/iosurface_image_backing*.mm`, `shared_image_format_service_utils_mac.mm` | `kIOSurfaceMultiThreading` (nuevo, **OFF**), `MTLPixelFormatRGBA16Float` (10.11) | IOSurface multihilo, formato HDR | OFF / API vieja | 0 (si se porta `image_transport_surface_overlay_mac.mm` ver 135 §4: `ShouldRecordSubsampledMetric`) |
+| `components/device_signals/core/{common,browser}/mac/*` | `MacOSMajorVersion() < 15` | Señales empresariales | Fuera de FlyWeb | 0 |
+| `components/metrics/drive_metrics_provider_mac.mm` | borrado (-79) | IOKit/DiskArbitration | n/a | 0 |
+| `device/fido/enclave/icloud_recovery_key_mac.mm`, `icloud_keychain.mm`, `extensible_enterprise_sso_entra.mm`, `immersive_mode_controller_cocoa.mm` | iCloud Keychain, SSO, inmersivo | Fuera / guardados por versión | 0 |
+| `base/mac/launch_application.{h,mm}`, `base/mac/code_signature.cc` | `absl::variant` -> `std::variant` | Cambio de tipo en `CommandLineArgs` | **Choca con tus parches `base-mac-launch_application.mm.patch`/`.h`**; no es API de macOS | 0,5 h |
+- Trampa transversal: `absl::variant/optional` -> `std::variant/optional` por todo `net/`, `base/`, `content/` (host resolver, connect jobs, `launch_application`): al portar una función de 136 a la 128 hay que usar el tipo de la 128.
+  Y `SHA256HashValue::data` pasa de miembro `data[32]` a `std::array` (`sha256.data()`; `net/base/hash_value.h`, `x509_util_apple.cc`, `trust_store_mac.cc`): afecta a cualquier parche que lea `.data` (HSTS/pins, trust store de Chrome). 0,5–1 h al portar `net/cert`.
+- `base/threading/platform_thread_apple.mm`: **sin diff** en 136 (V; el parche de 8 líneas de FlyWeb no se toca).
+
+## 4. GPU / ANGLE / Skia / Dawn
+
+- **Listas de bloqueo (V): `gpu/config/software_rendering_list.json` NO cambia** (id 183 «Block accelerated canvas on NVidia macs» intacto; sigue el aviso del MacBook Pro 2012 GT 650M).
+  `gpu_driver_bug_list.json`: solo Windows (ids 403 borrado, 442 nuevo, `disable_direct_composition` -> `..._video_overlays`); `gpu_workaround_list.txt`: `force_rgb10a2_overlay_support` Win. Mac sin entradas nuevas.
+  `gpu_util.cc`: renombra `swiftshader` -> `software_gl` y añade WARP de D3D11 (Windows). `feature_info.cc`: `is_swiftshader_for_webgl` -> `is_software_webgl`.
+- **Primitive restart (V):** la 136 **vuelve a activar** `GL_PRIMITIVE_RESTART_FIXED_INDEX` para WebGL2 en el decodificador (validating: `DoEnable` en `Initialize`; passthrough: bloque «TEMPORARY» + `IsIgnoredCap` para `GL_PRIMITIVE_RESTART_FIXED_INDEX`
+  en contextos WebGL). Es decir, **lo contrario de lo que borró la 135**: el comportamiento de la 134 que el informe 135 mandaba conservar queda **igual que Chrome 136**. Con nuestro ANGLE de la 128, probar WebGL2 con índices 0xFFFF/0xFFFFFFFF en Mojave (5,1/6,1 + MBP 2012 con GT 650M): 1 h.
+  También: `attrib_helper.enable_oop_rasterization` -> `enable_gpu_rasterization` (renombre) en passthrough.
+- **Nuevo `AllowANGLEPassthroughShaders` (ON, killswitch en `ui/gl/gl_features.cc`):** pasa un feature de ANGLE «shaders sin traducir al driver». Como no subimos ANGLE, es inerte (S: comprobar que `GetANGLEFeaturesFromCommandLineAndFinch` no peta con un nombre de feature que la ANGLE de la 128 desconoce; 0,25 h).
+- **ANGLE (193 commits, `079266db` -> `fa40b7c5`):** lo que toca el backend GL/CGL (S: no aplicable sin subir ANGLE, que seguimos sin subir): `db48967f50` «Reland: GL_BGRA_EXT como formato sized renderable» (`formatutilsgl.cpp` +79, `Caps.cpp`, `renderergl_utils.cpp`; esta vez **no** se revierte en el rango) —
+  cambia qué formatos reporta `getInternalformatParameter`/renderbuffers en GL (WebGL2 en Mac GL) y es un cambio de huella menor; `forceMaxCombinedShaderOutputResources` para NVIDIA (GLES 3.1 solamente, no afecta a WebGL);
+  `supportsShaderFramebufferFetchEXT` exige `drawBuffersIndexedAny()`. `IOSurfaceSurfaceCGL`/`PbufferSurfaceCGL`/`WindowSurfaceCGL`: solo renombres. El resto: Vulkan, Metal (líneas en bucle, `divMatrixScalar`), traductor (`textureGather`, swizzle), WebGPU.
+  Si algún día se quiere el reporte de `GL_BGRA_EXT`, es un parche de ~80 líneas (1–2 h, S).
+- **Skia (254 commits):** nada de Ganesh-GL/CoreText salvo `20e7a6c88fa` «Fix CoreText data font weight calculation» (peso de fuentes cargadas desde datos por CoreText; puede mover el `font-weight` efectivo de webfonts en Mac; **S**, 0,5 h para comprobar con una webfont variable) y
+  `0063b824168` (AAA, `updateQuadratic`: píxel). Fontations/Skrifa 0.29 y Graphite: no se usan en Mac Intel. Sin impacto en `software_rendering_list`.
+- **Dawn / SwiftShader:** WebGPU apagada en FlyWeb; sin impacto. `webnn/coreml/tensor_impl_coreml.mm` (WebNN, fuera).
+- Compositor/otros: `cc/paint/paint_shader.cc`, `cc/trees/property_tree.cc` (parches de FlyWeb) cambian en 136 (`property_tree.cc` 18 hunks): ver el otro subagente/CC; coste de rebase 1 h.
+
+## 5. HSTS preload, pins y log_list.json (CT) de la 136
+
+| Fichero (ruta) | 135 -> 136 | Notas |
+|---|---|---|
+| `net/http/transport_security_state_static.json` | **cambia**: 164 770 -> 165 699 entradas (+1285 nuevas, -356 quitadas, 0 modificadas; 18,27 -> 18,37 MB; ~349 hunks) | Todas `bulk-1-year force-https include_subdomains`, sin pins. `pinsets` vacío en ambas (V, comparado programáticamente). Parche de FlyWeb/Brave `net-http-transport_security_state_static.json.patch`: regenerar (V el parche existe) |
+| `net/http/transport_security_state_static.pins` | **2 líneas** (comentario «Last updated: 2025-04-21 12:54 UTC» -> 2025-05-10 12:55 UTC y el timestamp 1745240079 -> 1746881712) | Sin pins nuevos |
+| `net/http/transport_security_state_static_pins.json` | **1 línea** (mismo comentario) | idem |
+| `components/certificate_transparency/data/log_list.json` | **versión 53.19 -> 53.41**, `log_list_timestamp` 2025-04-21 -> 2025-05-11; **2 líneas**, sin logs nuevos ni quitados (V `diff` de 4 líneas) | Parche de Brave sobre este fichero y `ct_known_logs`: ver que sigue aplicando |
+| `net/data/ssl/chrome_root_store/root_store.{textproto,md,certs}` | textproto +664 (v17 -> v18, `eutl`/`additional_certs`), md 1 línea, **certs idéntico** | Ver §1.1: confianza igual |
+| `net/http/transport_security_state_static_unittest*.json` | sin cambio | n/a |
+Coste: regenerar los 3 parches HSTS/pins + CT = 0,5–1 h (mecánico, como en 135). El código de pins (`transport_security_state.cc`) no cambia salvo `SHA256HashValue`.
+
+## 6. Estimación en horas reales (las de papel ~4x pesimistas, ya divididas)
+
+| Tarea | Horas |
+|---|---|
+| `SplitCacheByCrossSiteMainFrameNavigationBoolean` + comprobar `CacheControlNoStoreEnterBackForwardCache` (ON) + decidir H265 (WebRTC/MediaRecorder) | 1–2 |
+| HSTS preload + `.pins` + `log_list.json` (regenerar los 3-4 parches de Brave) | 0,5–1 |
+| Captura TLS/HTTP2 (JA4/JA3, SETTINGS) y QUIC (Initial, ECN) frente a Chrome 136.0.7103.116 real: pasar S a V | 1–1,5 |
+| Sec-CH-UA con semilla 136 (verificar la cadena calculada en 1.4 con `flyweb_engine_level=136`) | 0,25 |
+| Comprobar que ningún parche se rompe por: movimiento de `user_agent.cc`, `absl::variant -> std::variant`, `SHA256HashValue.data`, `OptimizeParsingDataUrls` borrada (`data_url.cc`), `trust_store_chrome` refactor | 1–1,5 |
+| WebGL2 en Mojave (primitive restart vuelto a ON) en 5,1/6,1 + MBP 2012 | 1 |
+| Revisar que ningún `Fledge*`/`PrivacySandbox*` nuevo reabre algo (regla 20) | 0,5 |
+| **Total obligatorio / útil** | **≈ 5–7,5 h (red, macOS, GPU y datos; sin Blink ni V8)** |
+| Opcional: ECN del escritor QUIC (1 h), `GL_BGRA_EXT` renderable (1–2 h), CoreText data font weight (0,5 h), `PrefetchBump/NetworkPriority` (0,5 h) | +3–4 |
+
+Riesgo principal: la **captura** (JA4/JA4Q, ECN) sigue siendo lo que pasa S a V; y el **rebase de los 101 ficheros no-Blink parcheados** que también cambian en 136 (lista en `f136/colision.txt`; 1385 hunks de diff 135->136 sobre esos
+ficheros, de los que 349 son el JSON de HSTS y 111 `about_flags.cc`; el resto, ~50 con >5 hunks: `render_frame_host_impl.cc` 42, `web_contents_impl.cc` 37, `navigation_request.cc` 26, `network_handler.cc` 21, `canonical_cookie.cc` 20, `user_agent_utils.cc` 17...).
+Eso solo cuenta si se porta ese cambio; no hay que rebasar los ficheros.
+
+## 7. Lo no encontrado (para no buscarlo otra vez)
+
+- Sin cambios (0 líneas, V) en: `net/ssl/*`, `ssl_client_socket_impl.cc`, `net/http/http_util.cc`, `http_request_headers.cc`, `net/filter/source_stream_type.h`, `services/network/public/cpp/constants.cc`,
+  `quic_session_pool.cc`/`quic_chromium_client_session.cc`/`quic_context.*` (salvo `AddedToJob`), `third_party/blink/common/client_hints/*`, `gpu/config/software_rendering_list.json`,
+  `chrome_root_store/root_store.certs`, `base/threading/platform_thread_apple.mm`, `UseNewAlpsCodepoint*` (ya en ON).
+- No hay en 136 ningún cambio de BoringSSL en grupos, sigalgs, ECH, GREASE o permutación de extensiones; ni cambios de SETTINGS HTTP/2; ni de parámetros de transporte QUIC del cliente.
+- No comprobado (S): capturas reales de Chrome 136 (JA4, JA4Q, ECN); si `EnableECT1()` es true por defecto con el algoritmo de congestión de Chrome; el resultado exacto de `getCapabilities` para H265 en Mojave;
+  `AllowANGLEPassthroughShaders` con la ANGLE de la 128; el contenido de `content/browser` aparte de los features (838 ficheros cambiados, no leídos uno a uno: `diff` en `f136/content_browser.diff`);
+  `base/features.cc` y `ui/`/`media/` fuera de los `.mm` y los `*features*.cc`; Android/iOS/ChromeOS/Windows (fuera de alcance).
+- Pendiente de otros subagentes: Blink (incl. `NoReferrerForPreloadFromSubresource`, `ViewTransitionCaptureAndDisplay`, `EstablishGpuChannelAsync`, `PdfCr23`) y V8.

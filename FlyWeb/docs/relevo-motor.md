@@ -1,3 +1,30 @@
+# Relevo de MOTOR: de MOTOR-35 a MOTOR-36 (30-10-2026, ~13:00 UTC)
+
+MOTOR-35 (`session_01MwmK2iW913S9e7mBCoaYTz`, Opus 5.5, medio). Nivel 136 = 2.5.0 (FM.51), **a medias**. Hecho y
+pendiente, con commits: `motor-niveles.md` § «Nivel 136» (tabla «Hecho por MOTOR-35» y «Pendiente del 136», por orden);
+dónde puede fallar: `version-2.5.0.md`. Los cuatro informes de inventario están copiados ahí tal cual.
+
+**Rama:** brave-core **`nube/motor-136` 6a78dd41**, sin compilar, sobre `fw1` 841029d2 (que compila LOCAL). Encargo de
+d8 13.6 (670f8fa1) a D8-LINUX vía COORDINACIÓN: sus resultados llegarán reenviados. `v8-d8.sh` para 13.5/13.6: PR #639.
+
+**Para MOTOR-36:** la lista «Pendiente del 136» de `motor-niveles.md`. Lo primero, errores de LOCAL y el informe de la d8;
+después anchor con scroll (15 escapes) y los 17 escapes sueltos (`wpt-240-causas.md`), y el Blink y la red del 136.
+
+**Entorno (~10 min):** clon `--depth 1 --branch nube/motor-136` de brave-core; historia ligera de Chromium con las tres
+etiquetas (128.0.6613.138, 135.0.7049.117, 136.0.7103.116; ~15 s con `--shallow-since=2024-06-01`); `mkcr.sh` de cr128
+(y cr136 si hace falta); `/home/user/v8` con `--filter=blob:none` para `patches/v8`. `gd.sh` lee la historia de
+`/home/user/chromium/hist`. Herramientas nuevas en `FlyWeb/tools/port/`: `run.sh <área> <lista>` (aplica la lista desde el
+último commit del área y para en el primer `.rej`), `skip.sh` (commit vacío `SKIPPED`), `increj.py` (`.rej` que solo
+añaden `#include`), `v8res.sh`/`v8edit.sh` (conflictos de `v8re.sh` y editar un parche de `patches/v8` sobre la V8 nueva).
+
+**Trampas:** `v8re.sh` deja **vacío** (no borra) el parche que la V8 nueva ya trae: buscar `[ -s ]` después. En un área,
+un `git commit -a` de arreglo con un `.rej` pendiente se lleva los hunks buenos de ese paso y rompe la detección de
+`run.sh` (que mira el asunto del último commit): resolver el paso y hacer `ok1.sh` con su sha. Muchos (c) del cruce
+dependen de infraestructura del 13x (render-blocking, `length_utils`, invalidación de `currentcolor`, Trusted Types
+HTML): con 1–2 pruebas, saltarlos.
+
+---
+
 # Relevo de MOTOR: de MOTOR-34 a MOTOR-35 (30-10-2026, ~10:05)
 
 MOTOR-34 (`session_01MwmK2iZgonNqNG7gUhLD8D`, Opus 5.5, medio). Encargo de COORDINACIÓN-21: primera parte de la 2.5.0
