@@ -12,16 +12,25 @@
 # V8 a su revisión limpia (sin tocar build/, clang ni out/) y aplica todo de nuevo.
 #
 # Diferencias con la V8 de FlyWeb en el Mac: Linux, dcheck_always_on (encuentra más), sin Intl (sin ICU), libstdc++ del
-# sistema. Igual: compresión de punteros, sandbox, TurboFan/Maglev/Wasm, build/ y clang de Chromium 116.
+# sistema. Igual: compresión de punteros, sandbox, TurboFan/Maglev/Wasm, build/ y clang de la base de FlyWeb (la 128,
+# o el tag de package.json de <brave-core>; con el clang 17 de la 116 la V8 13.6 da segfault al compilar, MOTOR-36).
+# Si <carpeta>/v8 es de otra revisión que FlyWeb/v8-revision, la cambia (fetch + checkout limpio y parches de nuevo);
+# si <carpeta>/chromium es de otro tag, lo baja de nuevo y vuelve a copiar build/, clang, etc.
 # Pruebas: tools/run-tests.py --outdir=out/x64 'mjsunit/compiler/*' (aplica las // Flags: de cada fichero).
 set -euo pipefail
-
-CR_TAG=116.0.5845.188
 
 W=${1:?uso: v8-d8.sh <carpeta> [<brave-core>]}
 BC=${2:-}
 mkdir -p "$W"
 W=$(cd "$W" && pwd)
+
+# Chromium de la base de FlyWeb: config.projects.chrome.tag de package.json de brave-core (128.0.6613.138 en la 2.x).
+CR_TAG=128.0.6613.138
+if [ -n "$BC" ] && [ -f "$BC/package.json" ]; then
+  CR_TAG=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["config"]["projects"]["chrome"]["tag"])' \
+    "$BC/package.json")
+fi
+echo "Chromium (build/ y clang): $CR_TAG"
 
 # V8: la de FlyWeb/v8-revision de la rama de brave-core (niveles 118+, FM.5); si no hay, la de la 116.
 V8_REV=11.6.189.20
@@ -30,19 +39,36 @@ if [ -n "$BC" ] && [ -f "$BC/FlyWeb/v8-revision" ]; then
 fi
 echo "V8: $V8_REV"
 
-if [ ! -d "$W/v8/.git" ]; then
-  git init -q "$W/v8"
+v8_fetch() {
   case "$V8_REV" in
     *.*) git -C "$W/v8" fetch -q --depth=1 https://github.com/v8/v8 "refs/tags/$V8_REV" ;;
     *) git -C "$W/v8" fetch -q --depth=1 https://github.com/v8/v8 "$V8_REV" ;;
   esac
+}
+if [ ! -d "$W/v8/.git" ]; then
+  git init -q "$W/v8"
+  v8_fetch
   git -C "$W/v8" checkout -q -b flyweb-backports FETCH_HEAD
+  echo "$V8_REV" > "$W/v8/.git/flyweb-v8-rev"
+elif [ "$(cat "$W/v8/.git/flyweb-v8-rev" 2>/dev/null)" != "$V8_REV" ]; then
+  # Otra revisión (o un árbol de antes de este marcador): cambio limpio. build/, third_party/*/src, clang y out/ están en
+  # .gitignore y se quedan; out/x64 se compila de nuevo entero.
+  echo "V8: el árbol es de $(cat "$W/v8/.git/flyweb-v8-rev" 2>/dev/null || echo 'revisión desconocida'); paso a $V8_REV"
+  v8_fetch
+  git -C "$W/v8" checkout -q -f -B flyweb-backports FETCH_HEAD
+  git -C "$W/v8" clean -fdq
+  rm -rf "$W/v8/third_party/simdutf" "$W/v8/out/x64"
+  echo "$V8_REV" > "$W/v8/.git/flyweb-v8-rev"
 fi
 
 # Directorios de Chromium que la V8 trae por DEPS: los de la propia 116 (mismo build/ y misma configuración de clang).
 # abseil-cpp: la piden las V8 de los niveles 118+ (11.8 en adelante).
 CR_DIRS="build buildtools tools/clang base/trace_event/common third_party/zlib third_party/jinja2 third_party/markupsafe
   third_party/abseil-cpp"
+if [ -d "$W/chromium/.git" ] && [ "$(cat "$W/chromium/.git/flyweb-cr-tag" 2>/dev/null)" != "$CR_TAG" ]; then
+  echo "Chromium: la copia no es de $CR_TAG; la bajo de nuevo"
+  rm -rf "$W/chromium"
+fi
 if [ ! -d "$W/chromium/.git" ]; then
   git clone -q --filter=blob:none --no-checkout --depth=1 --branch "$CR_TAG" \
     https://github.com/chromium/chromium "$W/chromium"
@@ -50,10 +76,11 @@ fi
 # shellcheck disable=SC2046
 git -C "$W/chromium" sparse-checkout set --no-cone $(for d in $CR_DIRS; do echo "/$d/"; done)
 git -C "$W/chromium" checkout -q
+echo "$CR_TAG" > "$W/chromium/.git/flyweb-cr-tag"
 cd "$W/v8"
 for d in $CR_DIRS; do
-  if [ ! -e "$d/.flyweb-copied" ]; then
-    mkdir -p "$d" && cp -a "$W/chromium/$d/." "$d/" && touch "$d/.flyweb-copied"
+  if [ "$(cat "$d/.flyweb-copied" 2>/dev/null)" != "$CR_TAG" ]; then
+    rm -rf "$d" && mkdir -p "$d" && cp -a "$W/chromium/$d/." "$d/" && echo "$CR_TAG" > "$d/.flyweb-copied"
   fi
 done
 [ -f build/config/gclient_args.gni ] || echo '# FlyWeb: the V8 DEPS gclient_gn_args is empty' > build/config/gclient_args.gni
@@ -94,7 +121,7 @@ if [ -n "$FF_REV" ] && [ ! -d third_party/fast_float/src/.git ]; then
   git -C third_party/fast_float/src checkout -q FETCH_HEAD
 fi
 
-# clang de Chromium 116 (la versión exacta de tools/clang/scripts/update.py).
+# clang de la base (la versión exacta de tools/clang/scripts/update.py).
 rev=$(sed -n "s/^CLANG_REVISION = '\(.*\)'/\1/p" tools/clang/scripts/update.py)
 sub=$(sed -n 's/^CLANG_SUB_REVISION = \([0-9]*\)/\1/p' tools/clang/scripts/update.py)
 llvm=third_party/llvm-build/Release+Asserts
@@ -157,6 +184,7 @@ v8_use_external_startup_data = false
 use_custom_libcxx = false
 use_sysroot = false
 v8_enable_fuzztest = false
+enable_rust = false
 EOF
 # V8 13.5+: la d8 independiente usaría //third_party/partition_alloc (googlesource, no lo bajamos); FlyWeb no lo usa
 # en V8 (lo pone Chromium). Las V8 anteriores no conocen el argumento.
