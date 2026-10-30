@@ -153,6 +153,25 @@ Cuando se porte el nivel 143, hay **dos cosas que coinciden en el mismo sitio** 
 
 **Total 10–14 h.** ChaCha y la reescritura activa de `v10` siguen fuera, como en `cifrado.md`.
 
+## 6 bis. Fallos de `fw1` vistos al ejecutar la 2.5.0 y lo que sigue en `v10` (MOTOR-40, 30-10)
+
+Tres fallos que solo salieron al arrancar en la 7,1 (detalle en `version-2.5.0.md`), más uno de revisión:
+1. Caída al arrancar (`CHECK(password_sync_bridge_)`): brave-core 8ef2fe9cd5.
+2. Contraseñas nuevas en `v10` (`kEncryptSyncCompat`): 096c7d72f0.
+3. Caída de workers (V8 13.6, no es de `fw1`): 8bec0800e4.
+4. **Borrado en silencio** de las contraseñas `fw1` en la primera fusión de sync si la clave `fw1` no carga o se
+   regenera (`DeleteUndecryptableLogins` solo mira la clave `v10`): `nube/fw1-no-borrar` ddd9687f.
+
+**Sigue en `v10` (OSCrypt síncrono, no `os_crypt_async`; FS después de la 2.6.0):** tarjetas e IBAN de autofill
+(`autofill/.../webdata/system_encryptor.cc`), tokens OAuth (`signin/public/webdata/token_service_table.cc`,
+`device_oauth2_token_store_desktop.cc`), claves de sync (`sync/nigori/nigori_storage_impl.cc`,
+`sync/service/sync_service_crypto.cc`), GCM (`gcm_driver/system_encryptor.cc`), enclave de WebAuthn (`enclave_manager.cc`),
+`app_shim_registry.cc`, `hash_password_manager.cc` y `cookie_config/cookie_store_util.cc`. Ya en `fw1`: cookies y
+contraseñas. Volver a la 2.4.0 deja ilegible lo guardado o cambiado con la 2.5.0.
+
+**Sin probar al ejecutar (LOCAL, 30-10):** clave `fw1` ausente con sync, dos perfiles a la vez, importar y exportar,
+sync con servidor real.
+
 ## 7. Qué nos aleja de upstream
 
 - Un fichero nuevo (+ su prueba) y **dos parches pequeños**: bloque `IS_MAC` en `browser_process_impl.cc` (≈10 líneas) y la
