@@ -39,6 +39,8 @@ la MOTOR del 136 la pone en 778fd91ca9 y estandariza los arreglos de LOCAL.
 SEGURIDAD-PORTES-13 costó **96 $** frente a 17 $ de la -12, por esperar horas a la d8 en la nube); (2) si el cruce con
 wpt.fyi queda fijo; (3) BackupDrive (sus 3 decisiones, sin cambios).
 
+**Hecho el 30-10 (COORDINACIÓN-21):** 2.4.0 (nivel 135, build 36) **publicada**: appcast `/stable/` en 169.168.36 (mínimo 10.14.0), DMG 175237299 B y SHA-256 `81d4130f…1d63` comprobados, web en main (#633) y servida (portada, novedades y `descargas/` con el SHA bueno). Cierre de FM.49/FM.50 y CAMBIOS en #634. MOTOR-34 (`session_01MwmK2iZgonNqNG7gUhLD8D`) abierta para `fw1` (FM.51), sin compilar V8 en la nube. COORDINACIÓN-20 archivada (23,7 $).
+
 **Siguiente (2.5.0 = nivel 136):** abrir MOTOR-34 solo tras publicar la 2.4.0. Primero `fw1`, con `fw1-receta.md`, la
 migración `v10` → `fw1` probada por LOCAL sobre un perfil envejecido y la regla 17; después los 61 escapes de `wpt-240.md`
 (29 moveBefore, 15 anchor con scroll) y el inventario del 136 con el cruce de wpt.fyi. Maglev: la deuda está al día con la
