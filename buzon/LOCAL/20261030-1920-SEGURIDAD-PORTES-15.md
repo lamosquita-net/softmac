@@ -13,7 +13,7 @@ Sin compilar en el Mac. Si algo no compila, mirar primero:
 - las propiedades `-internal-visited-*` del json5 y `computed_style.h`;
 - `svg_image.*` (`base::PassKey`);
 - `image_data.cc` (`checked_cast`);
-- JSPI en `builtins-x64.cc` y `frame-constants-x64.h`.
+- JSPI en `builtins-x64.cc` y `execution/frame-constants.h`.
 
 Prueba en el navegador: `FlyWeb/tools/canvas-float16.html` (softmac PR de FS.38). Tiene que salir todo en verde, también
 `unorm8/rgba-float16`.
