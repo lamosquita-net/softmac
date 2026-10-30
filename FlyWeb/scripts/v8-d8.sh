@@ -25,8 +25,9 @@ mkdir -p "$W"
 W=$(cd "$W" && pwd)
 
 # Chromium de la base de FlyWeb: config.projects.chrome.tag de package.json de brave-core (128.0.6613.138 en la 2.x).
-CR_TAG=128.0.6613.138
-if [ -n "$BC" ] && [ -f "$BC/package.json" ]; then
+# FLYWEB_CR_TAG fuerza otro (la V8 13.7 pide el build/ de 137.0.7151.122; con el de la 128, gn falla: D8-LINUX, 30-10).
+CR_TAG=${FLYWEB_CR_TAG:-128.0.6613.138}
+if [ -z "${FLYWEB_CR_TAG:-}" ] && [ -n "$BC" ] && [ -f "$BC/package.json" ]; then
   CR_TAG=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["config"]["projects"]["chrome"]["tag"])' \
     "$BC/package.json")
 fi
