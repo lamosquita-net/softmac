@@ -87,6 +87,18 @@
   // V8 13.7
   prueba('V8 13.7: Error.isError, RegExp.escape, Float16Array', () =>
     Error.isError(new TypeError()) && typeof RegExp.escape === 'function' && typeof Float16Array === 'function');
+  // Arreglos que nacen stable en la 137 (78237a70)
+  prueba('pre con margin-block (PreLogicalMargin)', () => {
+    const p = document.createElement('pre'); p.style.writingMode = 'vertical-rl'; document.body.append(p);
+    const v = getComputedStyle(p), ok = v.marginRight !== '0px' && v.marginTop === '0px'; p.remove();
+    return { ok, nota: `top ${v.marginTop}, right ${v.marginRight}` };
+  });
+  prueba('ol con display: contents no es dueño de la lista (ListOwnerMustHaveCSSBox)', () => {
+    const d = document.createElement('div');
+    d.innerHTML = '<ol><li>a</li><ol style="display:contents"><li id="li2">b</li></ol></ol>'; document.body.append(d);
+    const v = getComputedStyle(d.querySelector('#li2'), '::marker').content; d.remove();
+    return { ok: v.startsWith('"2'), nota: v };
+  });
   // Lo que se queda fuera (como Chrome 137 o por privacidad)
   prueba('sibling-index() NO (sale en el 138)', () => !CSS.supports('order', 'sibling-index()'));
   prueba('Sin APIs de IA (LanguageModel, Summarizer, Translator)', () =>

@@ -2606,15 +2606,15 @@ comprobado el uso en la 137 y el código de la 128 + parche; horas supuestas). N
 
 | Flag | Qué | Horas | Propuesta |
 |---|---|---|---|
-| `PreLogicalMargin` | `html.css`: `pre, xmp, plaintext, listing` con `margin-block`/`margin-inline` (escritura vertical) | 0,25 | 2.6.0 |
-| `SkipLineBreakItemWhenIsCollapsed` | `layout_text.cc`: rango colapsado sobre un `<br>` no da un rect de más (`getClientRects`) | 0,5 | 2.6.0 |
-| `ListOwnerMustHaveCSSBox` | `list_item_ordinal.cc` `IsListOwner()`: `ol/ul/menu` sin caja (`display: contents`) no numeran | 0,5 | 2.6.0 |
-| `ViewTransitionUpdateLifecycleBeforeReady` | `view_transition.cc`: ciclo de vida y `RunPostPrePaintSteps()` antes de resolver `ready` | 0,5–1 | 2.6.0 |
+| `PreLogicalMargin` | `html.css`: `pre, xmp, plaintext, listing` con `margin-block`/`margin-inline` (escritura vertical) | 0,25 | **hecho**, 78237a70 |
+| `SkipLineBreakItemWhenIsCollapsed` | `layout_text.cc`: rango colapsado sobre un `<br>` no da un rect de más (`getClientRects`) | 0,5 | **hecho**, 78237a70 |
+| `ListOwnerMustHaveCSSBox` | `list_item_ordinal.cc` `IsListOwner()`: `ol/ul/menu` sin caja (`display: contents`) no numeran | 0,5 | **hecho**, 78237a70 |
+| `ViewTransitionUpdateLifecycleBeforeReady` | `view_transition.cc`: ciclo de vida y `RunPostPrePaintSteps()` antes de resolver `ready` | 0,5–1 | **hecho**, 78237a70 |
 | `CaretWithTextAffinityUpstream` | `editor.cc` + `insert_text_command.cc`: espacio al principio de una línea partida | 1–2 | 2.6.0 o 2.6.x |
 | `TextareaStableResizing` | `paint_layer_scrollable_area.cc`, `scroll_manager.cc`, `pointer_event_manager.cc`: redimensionar con transform/zoom | 3–5 | 2.6.x (choca con dos parches) |
 | `LineBreakEarlyReturn` | `shaping_line_breaker.cc`: solo rendimiento | 1–2 | no portar (regla 18 no lo exige; sin efecto visible) |
 
-`RubyJustificationFix` ya estaba (control). Commits sin sacar (gitiles `+log` pide sesión).
+`RubyJustificationFix` ya estaba (control). `PreLogicalMargin` va sin flag (hoja UA); las otras tres, con su flag stable. Commits sin sacar (gitiles `+log` pide sesión).
 
 Prueba: `FlyWeb/tools/canvas-float16.html` (dos orígenes; huellas iguales al recargar y distintas entre orígenes;
 cambios de 1 bit, alfa intacto, sin Inf/NaN).
