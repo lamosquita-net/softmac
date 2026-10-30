@@ -5,12 +5,8 @@ MOTOR-34 (`session_01MwmK2iZgonNqNG7gUhLD8D`, Opus 5.5, medio). Encargo de COORD
 pruebas de LOCAL, revisión de la regla 17, «Para la web»).
 
 **Rama:** brave-core `nube/motor-136` = 778fd91ca9 (`local/240-arreglos`, la 2.4.0 publicada) + **841029d2** (`fw1`).
-**Sin subir:** el clasificador de modo auto denegó `add_repo` con push y el `git push`. Decide COORDINACIÓN/Titín: aprobar
-`add_repo` en esta sesión (recomendado) o mandar el *bundle* por una rama de softmac (precedente: `-p23`). Si esta sesión
-se archiva antes, el commit se pierde: rehacerlo es copiar los ficheros de §1 de `fw1-migracion.md` (~20 min).
-
-**Orden a LOCAL (sin mandar: no tiene sentido sin la rama subida):** compilar `nube/motor-136` y hacer §3 de
-`fw1-migracion.md`; obligatorio el paso 9 (borrar el ítem de prueba «FlyWeb fw1»). Al subir la rama, mandarla por `buzon`.
+**Subida** el 30-10 ~10:20 UTC tras aprobar Titín `add_repo` con push (`git ls-remote`: 841029d24857). Orden a LOCAL:
+`buzon/LOCAL/20261030-1020-MOTOR-34.md` (compilar y §3 de `fw1-migracion.md`, paso 9 obligatorio).
 
 **Para MOTOR-35:** errores de compilación de `fw1` (los probables: `include_rules` de `components/flyweb_os_crypt/DEPS`,
 `TestFuture<Encryptor, bool>` con tipo solo movible, `-Wshorten-64-to-32` en las llamadas al llavero). Después, lo que pida

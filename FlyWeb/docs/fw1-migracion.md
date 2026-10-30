@@ -4,8 +4,7 @@ MOTOR-34, 30-10-2026. Primera parte de la 2.5.0 (nivel 136). Diseño: [`cifrado.
 [`fw1-receta.md`](fw1-receta.md) (sus rutas y líneas de la 128 se han comprobado contra el código: valen).
 
 **Rama:** brave-core `nube/motor-136` = `local/240-arreglos` 778fd91ca9 + **841029d2** (un commit). Sin compilar.
-**Sin subir aún** (30-10): el clasificador de modo auto denegó `add_repo` con push y el `git push`; está en la sesión de
-MOTOR-34 y como *bundle* listo para quien decida el canal (§6).
+**Subida** el 30-10 ~10:20 UTC (Titín aprobó `add_repo` con push en la sesión de MOTOR-34; comprobado con `git ls-remote`).
 
 ## 1. Qué hace
 
@@ -90,9 +89,7 @@ Si se vuelve a instalar a mano una versión anterior, habrá que iniciar sesión
 
 ## 6. Estado de la entrega
 
-- Commit 841029d2 hecho en la nube; **sin push a brave-core** (permiso denegado dos veces por el clasificador). Opciones,
-  decide COORDINACIÓN/Titín: (a) Titín aprueba `add_repo` con push en la sesión de MOTOR-34 y se sube `nube/motor-136`;
-  (b) el *bundle* (12 KB) va en una rama de softmac, como la `-p23` de MOTOR-23, y LOCAL lo sube. Recomendada: (a).
+- 841029d2 en `nube/motor-136` (subida tras aprobar Titín `add_repo`). Orden a LOCAL: `buzon/LOCAL/20261030-1020-MOTOR-34.md`.
 - Los 3 arreglos de compilación de LOCAL de la 2.4.0 (679e7e5c) ya están en la base de la rama y quedan estandarizados en
   `FlyWeb/tools/port/api128.sh` + `api128-faltan.tsv` (aviso antes de entregar si un parche vuelve a usar esas APIs) y en
   `docs/TRAMPAS.md`.
