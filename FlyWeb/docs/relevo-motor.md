@@ -1,3 +1,31 @@
+# Relevo de MOTOR: de MOTOR-37 a MOTOR-38 (30-10-2026, ~17:30 UTC)
+
+MOTOR-37 (`session_01MwmK2kqGynL4v3YaYFNuLL`, Opus 5.5, medio). Nivel 137 = 2.6.0 (FM.52), **a medias, sin compilar**.
+Hecho y pendiente, con commits: `motor-niveles.md` § «Nivel 137» (tabla «Hecho por MOTOR-37» y «Pendiente del 137», por
+orden); dónde puede fallar: `version-2.6.0.md`. Los tres inventarios y el cruce están copiados tal cual.
+
+**Rama:** brave-core **`nube/motor-137` dea5f3eb** (`git ls-remote` comprobado), sobre `local/250-arreglos` 3e8c8e219a.
+d8 13.7 pedida a COORDINACIÓN con cc6ec885 (los commits posteriores no tocan V8).
+
+**Para MOTOR-38, por orden:** errores de LOCAL de la 2.5.0 si llegan; informe de la d8 13.7; decisiones del 30-10 ya tomadas
+(JSPI y Wasm como Chrome 137; Maglev apagado; `ReduceScreenSize` no; float16 solo con farbling probado; Blob URL y
+`DocumentIsolationPolicy` en una 2.6.x propia, DIP solo si Brave 1.79 no la apaga: detalle en `version-2.6.0.md`); avisar a
+COORDINACIÓN cuando el inventario esté cerrado para que abra la FS del 137; después `if()` (con el plan escrito: parsers de la 128 por rangos), `reading-flow`, `getComposedRanges`.
+
+**Entorno (~10 min):** clon `--depth 1 --branch nube/motor-137` de brave-core; historia ligera de Chromium con
+128.0.6613.138, 135.0.7049.117, 136.0.7103.116 y 137.0.7151.122 (`--shallow-since=2024-06-01`, ~20 s;
+`log128-137.txt`, `log136-137.txt`); `mkcr.sh` de cr128, cr136 y cr137; `/home/user/v8` con los tags 13.6.233.10 y
+13.7.152.17 (`v8chk.sh 13.7.152.17` debe dar 240/0). Herramienta nueva: `ok0.sh <área> <commit>` (paso vacío o con los
+rechazos descartados, para que `run.sh` no repita el commit).
+
+**Trampas:** en una cadena larga sobre código muy divergente (`if()` en `style_cascade.cc`), `runfz.sh` mete hunks con
+fuzz 3 **fuera de la función** (la rama `kIf` cayó entre la firma y el cuerpo de `ResolveTokensInto`, y el hunk de
+`ResolveAutoBaseInto` reindentó `ResolveAttrInto`): si la cadena rechaza mucho, mejor ficheros nuevos de la N + integración a
+mano. `generar128.sh` sobre un área montada antes de un commit de otra área pisa sus parches: montar cada área después
+del commit anterior. `ok1.sh` falla con un paso vacío y `run.sh` vuelve a aplicar el mismo commit: usar `ok0.sh`.
+
+---
+
 # Relevo de MOTOR: de MOTOR-36 a MOTOR-37 (30-10-2026, ~14:30 UTC)
 
 MOTOR-36 (`session_01MwmK2h2ofiEWbnPrXRaVMa`, Opus 5.5, medio). Nivel 136 = 2.5.0 (FM.51): **código terminado y entregado
