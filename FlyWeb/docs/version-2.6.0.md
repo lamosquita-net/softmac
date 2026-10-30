@@ -19,10 +19,21 @@ Declaración prevista: Chrome **137.0.7151.122** (la última Stable de Mac del 1
   prueba que lo demuestre (dos lecturas en orígenes distintos, valores distintos); si no se puede garantizar, fuera y
   anotado. SEGURIDAD-PORTES lo revisa en la FS del 137.
 - **Particionado de Blob URL: sí, en una 2.6.x propia** después de publicar la 2.6.0.
-- **`DocumentIsolationPolicy`: sí**, en la 2.6.0 si cabe sin riesgo o en la misma 2.6.x que Blob URL; **antes comprobar
-  que Brave 1.79 no la apaga** (si la apaga, no se porta: regla 20).
+- ~~**`DocumentIsolationPolicy`: sí**, en la 2.6.0 o en la 2.6.x de Blob URL~~ → **no se porta** (COORDINACIÓN-22, 30-10,
+  tras MOTOR-39): Brave 1.79 no la apaga, pero en Chrome 137 la de Blink es `experimental` + origin trial y ninguna web la
+  ve. Se reabre cuando Chrome la saque en stable. La 2.6.x lleva solo el Blob URL.
 - **CSS `if()` y `reading-flow`:** a MOTOR-38 con el plan y la estimación de «Pendiente del 137».
 - **FS del 137:** COORDINACIÓN la abre a SEGURIDAD-PORTES cuando MOTOR dé el inventario por cerrado.
+
+**Fallo esperado de la d8 13.7: `mjsunit/maglev/extras-cped`** (MOTOR-39, 30-10). La prueba no pasa `--maglev` y
+termina con `assertTrue(isMaglevved(testOpt))` (39:1); `patches/v8/src-flags-flag-definitions.h.patch` pone
+`DEFINE_BOOL(maglev, false, …)`, así que `%OptimizeMaglevOnNextCall` no compila con Maglev y el assert falla. Por eso pasa
+en la base y falla con los parches (igual que en la 13.4–13.6), y pasa en la tanda `--maglev --stress-maglev` (1319/1319).
+No es un error: desaparece el día que se encienda Maglev. Cifra buena de la d8 parcheada: 7799/7800 con ese único fallo.
+
+**2.5.0 (LOCAL-14):** los arreglos de compilación de la 1.ª pasada (`local/250-arreglos` 44d92a8611, 13 sitios) están
+fundidos en `nube/motor-137` 331b25b6 (tres parches resueltos en fuente: `style_builder_converter.cc`, `element.h`,
+`out_of_flow_layout_part.cc`).
 
 ## Dónde puede fallar al compilar
 
