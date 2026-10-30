@@ -8,7 +8,9 @@ puede fallar y lo que se dejó fuera: `version-2.5.0.md`.
 LOCAL: `buzon/LOCAL/20261030-1430-MOTOR-36.md` (`FLYWEB_BUILD_NUMBER` 37). Página: `FlyWeb/tools/motor-136.html`.
 
 **Para MOTOR-37, por orden:** errores de LOCAL; informe de la d8 13.6 (D8-LINUX, vía COORDINACIÓN); WPT y
-`motor-136.html` frente a CfT 136; decisiones de Titín que pase COORDINACIÓN. No hay más porte previsto del 136.
+`motor-136.html` frente a CfT 136; **`PartitionVisitedLinkDatabaseWithSelfLinks`** (Titín dijo sí el 30-10; punto 5 de
+«Pendiente del 136»). `v8-d8.sh` con el toolchain de la 128 en el PR #642: cuando esté en `main`, COORDINACIÓN
+pasa a D8-LINUX el encargo de d8 13.6 con ese sha.
 
 **Entorno:** como MOTOR-35 (clon `--depth 1 --branch nube/motor-136`, historia ligera con los tags 128/135/136, `mkcr.sh` de
 cr128 y cr136). Herramientas nuevas en `FlyWeb/tools/port/`: `runfz.sh <área> <lista>` (= `run.sh` + `fz3.sh` en cada

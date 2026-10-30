@@ -2119,7 +2119,10 @@ los commits de F16/F18/F20/§9 que piden infraestructura del 13x (`GetValueIfKno
 2. d8 13.6 de D8-LINUX (si mjsunit baja: `rewriter.cc`, `shared-function-info`, Maglev).
 3. Resultados de `motor-136.html` y WPT frente a CfT 136; lo que escape, a una 2.5.x o al 137 (regla 18).
 4. Regla 17: COORDINACIÓN pide a SEGURIDAD-PORTES la FS del 136 (`nivel136-regla17.tsv`, sha 1747f79f).
-5. Decisiones de Titín (STTF, HEVC, `:visited` con self-links, gradientes en espacios amplios) cuando lleguen.
+5. **`PartitionVisitedLinkDatabaseWithSelfLinks`** (Titín: sí, 30-10): 65e131047, 2760e043, 4f7177ca
+   (`components/history`, `visitedlink`) y 9252d771 (Blink); antes, ver qué de la cadena de `:visited` particionado
+   del 129–135 falta en la 128. Resto de decisiones del 30-10: STTF apagado (3 escapes aceptados), HEVC sin exponer,
+   gradientes solo sin cuelgue (Skia aplazado). Detalle en `version-2.5.0.md`.
 
 **Coste del cruce wpt.fyi (directiva fija):** ~6 min de reloj, 5 consultas HTTP, un subagente Sonnet (137 000 tokens,
 ~1–2 $). Dio 84 pruebas (c) en ~45 causas con commit; portadas 26 en ~1 h de sesión, 7 saltadas.

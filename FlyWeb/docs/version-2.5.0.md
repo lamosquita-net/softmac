@@ -42,8 +42,12 @@ HSTS/CT y declaración 136.0.7103.116 / 2.5.0). Sin compilar. Detalle por commit
 - F17 (redondeo de scroll y de paint offset): pide prueba visual; a una 2.5.x solo si una web lo pide.
 - `SplitCacheByCrossSiteMainFrameNavigationBoolean`: la 128 no tiene ni la función ni el código de la clave de caché.
 - `d63e50b22` (nodos de compositor de anchor): `StackScrollTranslationVector` distinto en la 128; caso raro.
-- Pendientes de Titín: `::target-text`/STTF, HEVC en WebRTC/MediaRecorder, `:visited` con self-links, gradientes en
-  espacios amplios (solo se quitó el cuelgue, f5074d96d: se avisa en consola y se rechaza el degradado, como Chrome 136).
+- **Decisiones de Titín (30-10, vía COORDINACIÓN-21):** `::target-text`/Scroll-to-Text-Fragment, **apagado** como en
+  Brave (regla 20): los 3 escapes de `wpt-240` quedan aceptados. HEVC en WebRTC/MediaRecorder, **no se expone** (huella;
+  las Mac de Mojave no tienen HEVC por hardware). Gradientes en espacios amplios: **solo el cuelgue** (f5074d96d: aviso
+  en consola y rechazo del degradado, como Chrome 136); el parche de Skia, cuando una web lo pida.
+  `PartitionVisitedLinkDatabaseWithSelfLinks`: **sí** (privacidad), pendiente de portar (historial y `visitedlink` del
+  navegador, 6–10 h de papel): MOTOR-37.
 
 ## Para la web
 
