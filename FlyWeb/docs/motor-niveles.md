@@ -2102,7 +2102,14 @@ en real. Fuera de Blink: huella TLS/HTTP2/QUIC/Client Hints sin cambio observabl
 3. Escapes restantes de `wpt-240.md`: **anchor con scroll** (15; `CSSAnchorRememberedScrollOffset` y la cadena de anchor
    132–136, más 628b74a88 y bab3300ad del 136) y los 17 sueltos (highlights, `text-emphasis`, `webkit-box`, gradientes en
    espacios predefinidos —0d9a69115 necesita los `sk_colorspace` de Skia de 2025—, `dir`, `innerText`, render-blocking).
-   Causas por prueba: [`wpt-240-causas.md`](wpt-240-causas.md) si está; si no, rehacer con un subagente.
+   Causas por prueba: [`wpt-240-causas.md`](wpt-240-causas.md). A portar, en orden: f5074d96d (quita el cuelgue de los
+   gradientes en espacios predefinidos; las pruebas siguen fallando sin 0d9a69115 + Skia), 8183c1f69 → 482ca309f →
+   cd28cb10c (`dir=auto`), ae3880348 + 6f3ca1eaf (`innerText` con `::first-line`, flag
+   `ElementInnerTextHandleFirstLineStyle`), dba2b53e9 (`TextEmphasisNoPunctuation`), 7a6ed3a2c + c0159ab76 (highlights;
+   quitar `search_text_is_active_match` a mano), bf1511e11 (dirección del canvas al worker), 4cc57d9a2
+   (`CSSLineClampWebkitBoxBlockification`, riesgo medio, el último). **Los 3 de `::target-text` no son de Blink:** Brave
+   apaga Scroll-to-Text-Fragment (`kTextFragmentAnchor` y la pref `kScrollToTextFragmentEnabled`): decisión de producto
+   (regla 20), no porte. render-blocking 032/038 y `kind-of-widget`: sin causa (032 y `kind-of-widget`, intermitentes).
 4. Blink del 136 (informe abajo, §10): flips y CSS pequeños, `CanvasTextLang`, `SvgAnchorElementRelAttributes`,
    `TimeClamper`/`StandardizedTimerClamping` (huella), `AudioContextInterruptedState`, layout, bloque calc, selección y
    fuentes, redondeo de scroll. **No tomar** c6f0a7262 (select, Chrome lo apagó en M136). `HTMLCommandRequestClose`: el
