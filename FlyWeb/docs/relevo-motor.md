@@ -7,9 +7,10 @@ orden); dónde puede fallar: `version-2.6.0.md`. Los tres inventarios y el cruce
 **Rama:** brave-core **`nube/motor-137` dea5f3eb** (`git ls-remote` comprobado), sobre `local/250-arreglos` 3e8c8e219a.
 d8 13.7 pedida a COORDINACIÓN con cc6ec885 (los commits posteriores no tocan V8).
 
-**Para MOTOR-38, por orden:** errores de LOCAL de la 2.5.0 si llegan; informe de la d8 13.7; respuestas de COORDINACIÓN a
-las decisiones del 30-10 (JSPI, Maglev, `ReduceScreenSize`, canvas float16, Blob URL, `DocumentIsolationPolicy`);
-después `if()` (con el plan escrito: parsers de la 128 por rangos), `reading-flow`, `getComposedRanges`.
+**Para MOTOR-38, por orden:** errores de LOCAL de la 2.5.0 si llegan; informe de la d8 13.7; decisiones del 30-10 ya tomadas
+(JSPI y Wasm como Chrome 137; Maglev apagado; `ReduceScreenSize` no; float16 solo con farbling probado; Blob URL y
+`DocumentIsolationPolicy` en una 2.6.x propia, DIP solo si Brave 1.79 no la apaga: detalle en `version-2.6.0.md`); avisar a
+COORDINACIÓN cuando el inventario esté cerrado para que abra la FS del 137; después `if()` (con el plan escrito: parsers de la 128 por rangos), `reading-flow`, `getComposedRanges`.
 
 **Entorno (~10 min):** clon `--depth 1 --branch nube/motor-137` de brave-core; historia ligera de Chromium con
 128.0.6613.138, 135.0.7049.117, 136.0.7103.116 y 137.0.7151.122 (`--shallow-since=2024-06-01`, ~20 s;
