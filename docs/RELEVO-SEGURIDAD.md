@@ -8,6 +8,27 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-15: FS.38 entregada (30-10-2026)
+
+FS.38 (regla 17 del 137, 2.6.0) en brave-core sobre `nube/motor-137` 78237a70: `seg/fs38-v8` 068f195b (6 arreglos de V8,
+4 de ellos JSPI hechos a mano en x64; época 28), `seg/fs38-blink137` c7b24ba3 (15 de Blink), `seg/fs38-propio` 2d5b76e5
+(farbling de float16 y Root Store). Se funden en el orden v8 → blink137 → propio sin conflictos. La d8 13.7 de D8-LINUX
+da verde (7800/7801). Detalle en la fila FS.38 y en `patches/v8/FLYWEB-SECURITY.md`.
+
+**Para la siguiente:** quedan fuera del nivel, pendientes de un barrido general: 9fb841bf28, dffb572d0b (parece aplicar
+a la 128), 155b785d0e, 6aa38f2d02, 70c9c1f16b y a16cd5c0ad. Riesgos de V8 abiertos: b01d779c20, 19d60f6362, 28fc9a12ce
+y b5db50f99b. JSPI y `wasm_deopt` están encendidos desde este nivel: en cada nivel hay que revisar sus arreglos.
+
+**Lecciones:**
+- **El código propio también necesita una revisión adversaria.** El farbling de 16/32 bits solo tocaba el bit 0 de la
+  mantisa y `Math.round(v*255)` lo borraba: leer en `rgba-float16` un canvas de 8 bits devolvía la huella limpia. La
+  prueba (`canvas-float16.html`) comprobaba el bit que cambiaba, no que el cambio sobreviviera al redondeo. Una prueba
+  de farbling tiene que intentar deshacerlo.
+- **Las banderas por defecto cambian con la V8:** JSPI y `wasm_deopt` estaban apagadas en 13.5 y 13.6 y vienen encendidas
+  en 13.7. Hay que mirar `flag-definitions.h` en cada nivel, no solo gin.
+- `v8-d8.sh` se salta los parches que llevan hunks `BRAVE_`. Un porte que cambia una firma usada en uno de ellos rompe
+  la d8 aunque compile en el Mac (COORDINACIÓN-22 arregla el guion).
+
 ## SEGURIDAD-PORTES-14: FS.37 entregada (30-10-2026)
 
 FS.37 (regla 17 del 136, 2.5.0) en brave-core sobre 1747f79f: `seg/fs37-v8` 31edd5c3 (11 arreglos de V8, época 26; 179e9dbd no compilaba),
