@@ -81,19 +81,23 @@ function noFinito(v, bytes) {
 async function revisa(colorType, pixelFormat, bytes) {
   const [c, ctx] = lienzo(colorType);
   const leer = () => ctx.getImageData(0, 0, W, H, pixelFormat ? {pixelFormat} : undefined);
-  const a = bits(leer().data, bytes), b = bits(leer().data, bytes);
+  const d = leer().data;
+  const a = bits(d, bytes), b = bits(leer().data, bytes);
   const base = [0, 1, 2, 3].map(k => moda(a, k));
+  // En coma flotante, el cambio debe verse al redondear a 8 bits (q -> q ^ 1).
+  const q = v => Math.round(v * 255);
+  const q0 = base.map((v, k) => q(d[a.findIndex((x, i) => i % 4 === k && x === v)]));
   let cambiados = 0, alfa = 0, malos = 0, nofin = 0;
   for (let i = 0; i < a.length; i++) {
     if (a[i] === base[i % 4]) continue;
     if (i % 4 === 3) { alfa++; continue; }
     cambiados++;
-    if ((a[i] ^ base[i % 4]) !== 1) malos++;
+    if (bytes === 1 ? (a[i] ^ base[i % 4]) !== 1 : (q(d[i]) ^ q0[i % 4]) !== 1) malos++;
     if (noFinito(a[i], bytes)) nofin++;
   }
   const nombre = `${colorType}/${pixelFormat || 'rgba-unorm8'}`;
   linea(cambiados > 0 && cambiados <= 512, `${nombre}: canales cambiados ${cambiados} (1–512 con farbling)`);
-  linea(malos === 0, `${nombre}: todos los cambios son el bit 0 del canal (${malos} distintos)`);
+  linea(malos === 0, `${nombre}: todos los cambios son el bit 0 del canal en 8 bits (${malos} distintos)`);
   linea(alfa === 0, `${nombre}: alfa intacto (${alfa} cambiados)`);
   linea(nofin === 0, `${nombre}: sin Inf ni NaN (${nofin})`);
   const h1 = await huella(a.buffer), h2 = await huella(b.buffer);
@@ -102,6 +106,9 @@ async function revisa(colorType, pixelFormat, bytes) {
 }
 (async () => {
   await revisa('unorm8', null, 1);
+  // Un canvas de 8 bits leído en coma flotante: el farbling no se deshace redondeando (FS.38).
+  await revisa('unorm8', 'rgba-float16', 2);
+  await revisa('unorm8', 'rgba-float32', 4);
   await revisa('float16', 'rgba-float16', 2);
   await revisa('float16', 'rgba-float32', 4);
   const c = await revisa('float16', 'rgba-unorm8', 1);

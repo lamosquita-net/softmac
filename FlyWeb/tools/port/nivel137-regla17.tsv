@@ -1,0 +1,51 @@
+2026-10-14	ba15381f2	Prevent scripts from forcefully initiating drags on mousedown	core/input,platform/runtime_enabled_features.json5	40943926
+2026-10-12	e25dd39ee	[canvas] Harden ImageData size checks and cap byte size	core/html	568372097
+2026-10-05	0e43caddb	[flex] Only set reading flow nodes on first fragment	core/layout	568666838
+2026-09-29	29c3240bc	Reland "Avoid dangling reference in HTMLAnchorElementBase::NavigateToHyperlink."	core/html	565674529 567487270
+2026-09-11	b0365badb	Convert DCHECK before downcasting DOMArrayBufferBase to CHECK	core/typed_arrays	558764482
+2026-09-11	1434759f0	Prevent flood/lighting/stop-color from leaking :visited	core/animation,core/css,core/style,public/mojom	517708426
+2026-08-25	57683b55a	vt: Don't run post prepaint steps in situations we are in terminal state	core/view_transition	541702224
+2026-08-20	e2ff20dc1	Fix focus navigation loop for internal popover invokers	core/dom,core/page	542274292
+2026-08-07	a343a2822	[AW] Return null fingerprint if pseudo-partitioned link is not valid	components/visitedlink	
+2026-07-27	04993e845	Check null for originating element when synchronizing VT rects	core/view_transition	522621866
+2026-07-21	d2b80d098	[highlights] Fix StaticRange ownership after adoption	core/dom,core/editing	407812149
+2026-07-17	9fb841bf2	Add validity checks after `CompositionRange()`	core/editing,platform/widget	523292588
+2026-06-30	fc6612b7d	editing: Refactor DomSelection::Rescope to use Position	core/editing	519296902
+2026-06-02	7a5040845	Ensure the lifecycle is updated for external SVG resources	core/svg	517309206
+2026-05-22	d4db042c2	bindings: add checks for whether underlying array buffer is shared when converting array views	bindings/core	513773313
+2026-05-21	dffb572d0	Make Document::ProcessBaseElement store strings rather than pointers to strings.	core/dom	515155946
+2026-05-20	222fb949b	Fix arc length count in shape() neutral interpolation	core/animation	513192895
+2026-05-20	1b860cdc4	[webaudio] Fix race condition in OfflineAudioDestinationHandler	modules/webaudio	513750691
+2026-05-07	dbe2208e5	Fix URL resolution for nested external resource <use>	core/frame,core/loader,core/svg,platform/runtime_enabled_features.json5	508853930
+2026-04-30	d63ac39bd	Fix spellcheck restriction when no element is focused.	core/editing	502394674
+2026-04-30	1d1ffd535	Fix crash in MouseEventManager when removing pseudo element under mouse	core/input	507117702
+2026-04-30	0c3d803f2	Fix null dereference in ViewTransitionStyleTracker::RunPostPrePaintSteps	core/view_transition	507334958
+2026-04-17	82777e870	Fix click dispatch for ephemeral hit-testable pseudo-elements	core/dom,core/events,core/input	500640685
+2026-04-15	4d94eaa23	Don't honor transient canvas size restoration	modules/canvas	494352590
+2026-03-23	cd7d847f1	Fix traversal during VT tag discovery	core/view_transition	493132381, 493082131
+2026-03-19	8ced4e6c0	[reading-flow] Fix slotted node ordering in focus navigation	core/dom,core/page,modules/accessibility,platform/runtime_enabled_features.json5	452981723
+2026-03-18	0e84e9b32	[bindings] Perform detach check when passing span instead of retaining underlying array buffer	bindings/core,bindings/scripts	490810422, 489325431
+2026-03-13	40066a743	Fix retrieval of VT pseudo properties outside active transition	core/css,core/view_transition	487213151
+2026-03-09	93e47ab8b	CHECK token type in ConsumeVariableName	core/css	484751092
+2026-02-27	55f4ab521	Fix Range::extractContents() out-of-bounds extraction bug	core/dom	486423704
+2026-02-24	ec1a6357e	[bindings] Retain underlying array buffer for [PassAsSpan] arrays...	bindings/core,bindings/scripts	484946544
+2026-02-10	da6930aed	Reland "[Visited Link] Mitigate overflow in VisitedLinkWriter allocation"	components/visitedlink	483112206
+2026-01-20	c621d3b1f	Improve O(N^2) code in blink::Element::ReadingFlowChildren()	core/dom	
+2025-12-03	09b84b602	Fix a nullptr dereference in the MPC.	core/css	465223086
+2025-10-29	8ec781571	Fix MouseEventManager's element tracker after changes in shadow-DOM	core/input	41487938
+2025-10-28	d3644305e	VT: Fix style check to account for nullptr style	core/view_transition	455613016
+2025-10-06	84ee5bfc4	Fix infinite loop in popover/slot tab navigation	core/page	447888734
+2025-10-06	25562815b	Fix CHECK failure	core/view_transition	449500173
+2025-09-03	a16cd5c0a	[A11y] Avoid crashing by adding null checks and DUMP_WILL_BE_NOTREACHED	modules/accessibility,ui/accessibility	442619489
+2025-08-15	70c9c1f16	Avoid various crashes with animating custom property cycles	core/animation,core/css	40753334 433196586
+2025-08-12	62e63b840	Selection API: Do not accept null nodes for setBaseAndExtent()	core/editing,platform/runtime_enabled_features.json5	40502558
+2025-07-03	e91a98d2c	VT: Fix match-element computed style name.	core/css	
+2025-07-02	c5441f134	[Editing] Fix null offsets in SimplifiedBackwardsTextIteratorAlgorithm	core/editing	428041891
+2025-06-30	0862d7b47	Fix crash when if-testing for 'initial' under no property registrations	core/css	428131125
+2025-06-23	6f8d29bd9	Fix token pasting with empty fallbacks.	core/css	426549962
+2025-06-20	36c8e73e1	Carry attr-tainting through if() style ranges	core/css	408011559
+2025-06-10	e16f62098	Fix type match check in if() style ranges	core/css	408011559
+2025-06-04	27790a3fa	Return the actual :visited color from getComputedStyle().	build/scripts,core/css,core/style,platform/runtime_enabled_features.json5	
+2025-05-27	569f37edd	VT: Ensure to update container styles before resolving ready.	core/view_transition,platform/runtime_enabled_features.json5	387030974
+2025-05-19	fda8019f7	[Editing] InsertListCommand should not get stuck in infinite loop	core/editing,platform/runtime_enabled_features.json5	411739501
+2025-05-14	b0a9da663	[vt] Remove obsolete and problematic CHECK.	core/view_transition	415376109, 416811954
