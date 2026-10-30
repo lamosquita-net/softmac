@@ -15,6 +15,13 @@ fichero de Chromium por parche, diff `--full-index` contra 116.0.5845.188). Las 
 
 ## Scripts
 
+- `fuera.py [--base <tag>] [--ref <tag>] [--nombres] <parche>…` (MOTOR-39, 30-10) — detecta **trozos aplicados fuera de su
+  función** (el fallo que más repite LOCAL: un `case` tras el cierre del `switch`, una constante de clase dentro de una
+  función, una llamada fuera de toda función). Aplica cada parche a la base y compara, línea añadida a línea añadida, el
+  esqueleto de ámbitos (namespace/clase/función/`switch`) con el de la misma línea en Chromium `<ref>`. Validado: en
+  `local/250-arreglos` 3e8c8e219a da los 3 fallos de la 1.ª pasada de la 2.5.0 (con `--ref 136.0.7103.116`) y 0 avisos en
+  44d92a8611. Las líneas que no están en `<ref>` no se miran; `--nombres` avisa también si cambia la función o un `if`.
+  Pasarlo antes de entregar: `fuera.py $(git diff --name-only <base> HEAD -- patches | grep -E '\.(cc|h|mm)\.patch$')`.
 - `portar.sh <nombre> <commit>…` — monta `w-<nombre>` con los ficheros de la 116 + los parches de la rama de brave-core
   que esté en `/home/user/brave-core`, y aplica los commits en orden (sin tests). **Ojo:** si dos commits fallan en el
   mismo fichero, el `.rej` del segundo pisa al primero; cada commit del área de trabajo guarda los suyos
