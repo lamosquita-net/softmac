@@ -2584,6 +2584,12 @@ que la 128 no tiene (ver «Pendiente del 137»). Nada exige AVX ni APIs de 10.15
 | 5abcd0cc | **Selección a través de Shadow DOM**: `getComposedRanges`, `direction`, `UpdateSelectionBehavior`/`CollapseIfNeeded` (91084df601, bdeda3f178, 5c67432271, 293ab78a94, 74bc8664c7, 518f88cf9a, 4b1cbba41a, a485c783d8); foco y selección con ratón por el árbol plano en su forma final (b82f00e345, 0ecd2fcf04, d331873629, 7cc78c603a); `SelectionAcrossShadowDOM` stable. Ya estaban: bea8eb7a19, e16c86f61d, 15d4924b21, c8a1a5f70f |
 
 **Pendiente del 137 (para MOTOR-39), por orden** (los puntos 2 a 4 de MOTOR-37 están hechos arriba):
+1. **d8 13.7 (D8-LINUX, cc6ec885): en verde salvo `mjsunit/maglev/extras-cped`** (assertTrue en `extras-cped.js` 39:1;
+   pasa en la base 13.7.152.17 y falla con nuestros parches, igual que en la 13.6). Cifras: base 7756/7756; parcheada
+   7799/7800 (también `--always-osr`); maglev+compiler con `--maglev --stress-maglev` 1319/1319; jspi, `wasm/deopt*`,
+   `compiler/regress-*` sin fallos; Intl sin cubrir (d8 sin ICU). Hipótesis de COORDINACIÓN: el parche que apaga Maglev.
+   Confirmarlo leyendo la prueba y `patches/v8`; si es eso, anotarlo como esperado (`FLYWEB-SECURITY.md` o
+   `version-2.6.0.md`); si no, es un error nuestro y va antes que todo lo demás.
 0. **`EnterInOpenShadowRoots`** (FW: `test`; la 137.0.7151.122 la lleva **stable** aunque main la bajó a `test` el 14-04,
    3efb9e44bb: se volvió a subir en la rama). Falta en FlyWeb su uso en `apply_style_command.cc` (9c070c13a5 u otro;
    buscarlo) antes de subirla a stable. ~30 min.

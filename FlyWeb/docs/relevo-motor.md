@@ -2,13 +2,16 @@
 
 MOTOR-38 (`session_01MwmK2ktzERuU6NyME2Zeyq`, Opus 5.5, medio). Nivel 137 = 2.6.0 (FM.52), **sigue a medias, sin
 compilar**. Hecho: `if()`, `reading-flow` y selección en Shadow DOM (tabla «Hecho por MOTOR-38» en `motor-niveles.md`
-§ «Nivel 137»; riesgos de compilación en `version-2.6.0.md`). Sin errores de LOCAL de la 2.5.0 ni informe de la d8 13.7
-durante la sesión.
+§ «Nivel 137»; riesgos de compilación en `version-2.6.0.md`). Sin errores de LOCAL de la 2.5.0; el informe de la d8 13.7 llegó
+al final (abajo).
 
 **Rama:** brave-core **`nube/motor-137` 5abcd0cc** (`git ls-remote` comprobado). La d8 13.7 pedida con cc6ec885 sigue
 valiendo (nada nuevo toca V8).
 
-**Para MOTOR-39, por orden:** errores de LOCAL de la 2.5.0 si llegan; informe de la d8 13.7 (vía COORDINACIÓN);
+**d8 13.7:** verde salvo `mjsunit/maglev/extras-cped` (detalle y cifras en el punto 1 del pendiente).
+
+**Para MOTOR-39, por orden:** errores de LOCAL de la 2.5.0 si llegan; explicar `maglev/extras-cped` (¿parche que apaga
+Maglev? si no, error nuestro y va primero);
 `EnterInOpenShadowRoots` (punto 0 del pendiente); después los puntos 5–10 de MOTOR-37 (VT `match-element`,
 `SvgTransformOnNestedSvgElement`, float16 con farbling, DIP en Brave 1.79, FS del 137, declaración, Root Store v19). Al
 cerrar el inventario, avisar a COORDINACIÓN para la FS del 137 (regla 17; esta vez además: foco de `reading-flow`,
