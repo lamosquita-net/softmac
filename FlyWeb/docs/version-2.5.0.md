@@ -53,6 +53,7 @@ HSTS/CT y declaración 136.0.7103.116 / 2.5.0). Sin compilar. Detalle por commit
 
 - `Node.moveBefore()`: mover elementos sin perder su estado (iframes, foco, animaciones).
 - JavaScript: `Float16Array`, `using`/`DisposableStack` y `RegExp.escape`.
+- Arreglada una caída de pestaña con `Float16Array` (al pasarlo a funciones de la página como `crypto.getRandomValues`; venía de la 2.4.0).
 - Anchor positioning con desplazamiento: los elementos anclados recuerdan el desplazamiento al elegir posición
   (`CSSAnchorRememberedScrollOffset`), y `position-area` puede ampliar el bloque contenedor.
 - CSS: `print-color-adjust` sin prefijo, `attr(… raw-string)`, `var()` con cualquier fallback en propiedades registradas,

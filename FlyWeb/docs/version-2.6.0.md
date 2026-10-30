@@ -61,7 +61,27 @@ fundidos en `nube/motor-137` 331b25b6 (tres parches resueltos en fuente: `style_
   `idl_in_core.gni`/`generated_in_core.gni`), `UpdateSelectionBehavior` en `Range`; `HandleMouseFocus` y
   `SelectionHasFocus` suben por el árbol plano (forma final de la 137, sin las flags que upstream quitó);
   `WebFeature` 5040/5041.
+- **Canvas float16** (f52504fe, 94a1c75d, MOTOR-40): el generador de bindings conoce `Float16Array` (`idl_type.py`,
+  `ir_builder.py`, `interface.py`, `union.py`, `blink_v8_bridge.py`); la unión pasa a
+  `v8_union_float16array_float32array_uint8clampedarray` y los enums a `v8_image_data_pixel_format` y
+  `v8_canvas_color_type` (`generated_in_{core,modules}.gni`). `setColorType`/`setPixelFormat` reciben `String` como en
+  la 128. Farbling: `BraveSessionCache::PerturbPixels` con un tercer argumento (bytes por canal); `html_canvas_element.cc`
+  de `chromium_src` lo deduce del tamaño del búfer (`ImageDataBuffer` no da el tipo de color). Tests: `blink_unittests`
+  de canvas y de serialización actualizados (`setPixelFormat`, `DOMFloat16Array`).
 
 ## Para la web
 
-(Se escribe al cerrar el nivel.)
+Declara Chrome **137** (137.0.7151.122). Prueba del nivel: `FlyWeb/tools/motor-137.html`.
+
+- CSS `if()`: valores condicionales con `media()`, `style()` y `supports()`.
+- `reading-flow` y `reading-order`: el tabulador sigue el orden en que se ven los elementos de un flex o una rejilla.
+- Selección de texto a través de Shadow DOM (`getComposedRanges`).
+- View Transitions con `view-transition-name: match-element`.
+- `offset-path: shape()`.
+- WebCrypto con Ed25519 (firmas modernas sin bibliotecas).
+- Canvas de alta precisión (`colorType: "float16"`) e `ImageData` con `Float16Array` y `pixelFormat`, con la misma
+  protección frente a la huella digital que el canvas normal.
+- Privacidad: los enlaces visitados ya no se ven entre sitios distintos (`:visited` particionado), y las pestañas que
+  abre un `blob:` de otro sitio no pueden acceder a la que las abrió.
+- Certificados raíz al día (Root Store v19).
+- JavaScript: V8 13.7 (WebAssembly con JSPI, como Chrome 137).

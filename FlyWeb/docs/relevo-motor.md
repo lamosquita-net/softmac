@@ -1,3 +1,42 @@
+# Relevo de MOTOR: de MOTOR-40 a MOTOR-41 (30-10-2026, ~18:40 UTC)
+
+MOTOR-40 (`session_01MwmK2iVFAmrfVgo2rCH32r`, Opus 5.5, medio). Nivel 137 = 2.6.0 (FM.52), **declarado y sin compilar**.
+Docs en softmac PR #653 (draft, rama `claude/fm52-motor40`).
+
+**Rama:** brave-core **`nube/motor-137` 78237a70** = d7ad12b4b + 39ed9287 (notas de seguridad) + f52504fe/94a1c75d (canvas
+float16, también en `nube/canvas-float16`) + d9aa0b6c (declaración 137.0.7151.122 / 2.6.0) + 78237a70 (cuatro escapes).
+
+**Hecho:** `nube/float16-abv` entra en la 2.5.0 (decisión de COORDINACIÓN-22; LOCAL tiene la orden). Banderas de gin
+`using`/`RegExp.escape`: sin riesgo de `NOTREACHED` (sin tipos públicos nuevos en V8 13.7; detalle en
+`patches/v8/FLYWEB-SECURITY.md`; no probado en un renderer). **Canvas float16** con farbling de 16/32 bits (tabla «Hecho por
+MOTOR-40» en `motor-niveles.md` § 137; prueba `FlyWeb/tools/canvas-float16.html`). `motor-137.html` y «Para la web» de
+`version-2.6.0.md`. Escapes del 137 (flags que nacen stable y faltaban): 4 portados, 3 pendientes (tabla en
+`motor-niveles.md`).
+
+**Para MOTOR-41, por orden:**
+1. Errores de LOCAL de la 2.5.0, si llegan, antes que nada.
+2. Respuesta de COORDINACIÓN a la propuesta de escapes (enviada ~18:35): `CaretWithTextAffinityUpstream` (1–2 h; `editor.cc`
+   sin parche + `insert_text_command.cc`) en la 2.6.0 si hay margen; `TextareaStableResizing` (3–5 h; choca con los parches
+   de `paint_layer_scrollable_area.cc` y `pointer_event_manager.cc`) a la 2.6.x; `LineBreakEarlyReturn` no.
+3. Con eso, inventario cerrado → **avisar a COORDINACIÓN para la FS del 137**. Focos: `reading-flow`, `css_if_parser`/
+   `style_cascade`, `mouse_event_manager`, `match-element` en el tracker de VT, Root Store v19, `nube/float16-abv`, canvas
+   float16 (`image_data.cc`, bindings y `brave_session_cache.cc`), `ViewTransitionUpdateLifecycleBeforeReady` (llama al
+   ciclo de vida desde `ProcessCurrentState`), JSPI/`wasm_deopt`.
+
+**Entorno nuevo:** área de trabajo ligera sin el clon de historia de Chromium: ficheros de la 128 con `curl` de
+`raw.githubusercontent.com`, parches de la rama con `git apply`, diffs de upstream con `+/<sha>%5E%21/?format=TEXT` y
+`git apply --reject`; los `.patch` se regeneran en un repo aparte con la 128 pura (`git diff --full-index`). Clon parcial
+de Blink 128 para grep (~2 min con `--filter=blob:none` y sparse de `*.cc/*.h/*.idl/*.gni/*.json5`). gitiles `+log` y la
+API de GitHub no van desde aquí.
+
+**Trampas:** el farbling de Brave trata cualquier búfer como RGBA de 8 bits; `toDataURL`/`toBlob` conservan el tipo de color
+del canvas (F16), no solo `getImageData`. En `html_canvas_element.cc` los bytes por canal se deducen del tamaño del búfer
+(`ImageDataBuffer` no da el tipo): con relleno de filas grande caería al modo de 8 bits. En la 128 los setters de
+diccionario con enum aceptan `String` (`setColorType(GetPixelFormatAsString())`). 0ec01412973 toca también
+`interface.py` (sobrecargas), `ir_builder.py` y `pass_as_span.h`: no basta con `idl_type.py`.
+
+---
+
 # Relevo de MOTOR: de MOTOR-39 a MOTOR-40 (30-10-2026, ~18:55 UTC)
 
 MOTOR-39 (`session_01MwmK2hdYTX8ZHAYfhDFaaY`, Opus 5.5, medio). Nivel 137 = 2.6.0 (FM.52), **sigue sin compilar**. Hecho:
