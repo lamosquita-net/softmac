@@ -2593,6 +2593,17 @@ que la 128 no tiene (ver «Pendiente del 137»). Nada exige AVX ni APIs de 10.15
 | d7ad12b4b | merge de `nube/float16-abv` **f7a89181a** (sobre 44d92a8611): `Float16Array` como `ArrayBufferView` (parte de la 130). Sin él, `--js-float16array` (gin, 2.4.0) + `NOTREACHED_IN_MIGRATION()` fatal de la 128 = caída del renderer con `crypto.getRandomValues(new Float16Array(4))` |
 | c1e082f4 | **VT `view-transition-name: match-element`** a mano: keyword guardada como `ScopedCSSName` con nombre reservado (`view_transition_match_element.h`), el tracker la cambia por `-ua-auto-<token>-<DOMNodeId>` como la 137. `CSSViewTransitionMatchElement` stable; `auto` sigue fuera (experimental en la 137) |
 
+**Hecho por MOTOR-40 (`nube/motor-137` = `nube/canvas-float16`, sin compilar):**
+
+| Commit | Qué |
+|---|---|
+| 39ed9287 | caída de `Float16Array` anotada en `patches/v8/FLYWEB-SECURITY.md`; revisadas las otras banderas de gin (`using`, `RegExp.escape`): sin tipos públicos nuevos de V8 ni `NOTREACHED` en Blink 128 |
+| f52504fe | **A06 canvas float16** sobre las estructuras de la 128: tipo IDL `Float16Array` (0ec01412973), `ImageData` con `Float16Array` y `pixelFormat` `rgba-unorm8`/`rgba-float16`/`rgba-float32` (11ddbcdbe, 5177673d2, 72f7508df en lo visible; el enum interno `ImageDataStorageFormat` de la 128 se queda, `kUint16` = F16), contexto 2D `colorType` `unorm8`/`float16` (b188c95c0, ba1f99c0b), `CanvasFloatingPoint` e `ImageDataPixelFormat` stable (0d364e3a8). d0f5f58ca no hace falta. **Farbling** por tamaño de canal: en F16/F32, bit 0 de la mantisa de R/G/B (sin tocar Inf/NaN ni alfa), misma semilla HMAC; en `getImageData`, `toDataURL` y `toBlob` (sus búferes conservan el tipo de color del canvas). Brave 1.79 aplica el de 8 bits sobre los bytes: en F16 cambia el bit 8 de la mantisa (hasta un 25 %) y el alfa |
+| 94a1c75d | resto de 0ec01412973: `interface.py` (sobrecargas de los constructores de `ImageData`), `ir_builder.py`, `pass_as_span.h` |
+
+Prueba: `FlyWeb/tools/canvas-float16.html` (dos orígenes; huellas iguales al recargar y distintas entre orígenes;
+cambios de 1 bit, alfa intacto, sin Inf/NaN).
+
 **Resueltos sin código (MOTOR-39):**
 - `maglev/extras-cped`: fallo esperado (Maglev apagado por parche); detalle en `version-2.6.0.md`.
 - **`DocumentIsolationPolicy`: Brave 1.79 (v1.79.126) no la apaga** (0 referencias en `chromium_src`, `app`, `browser`,

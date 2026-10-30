@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Canvas float16 — farbling</title>
+<!-- FM.52 (MOTOR-40): canvas e ImageData con float16/float32 y el farbling de 16 y 32 bits (brave-core nube/canvas-float16).
+     Abrir en FlyWeb desde DOS orígenes servidos por la misma carpeta, p. ej. `python3 -m http.server 8000` y luego
+     http://127.0.0.1:8000/canvas-float16.html y http://localhost:8000/canvas-float16.html, con los escudos en «estándar».
+     Cada línea dice ok o FALLO. Las huellas (hash) tienen que coincidir al recargar en el mismo origen y cambiar entre
+     orígenes. Con los escudos sin bloqueo de huella digital, «canales cambiados» debe dar 0. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+</style>
+</head>
+<body>
+<h1>Canvas float16 y farbling</h1>
+<p>Origen: <code id="origen"></code></p>
+<ul id="r"></ul>
+<script>
+const r = document.getElementById('r');
+document.getElementById('origen').textContent = location.origin;
+function linea(ok, texto) {
+  const li = document.createElement('li');
+  li.className = ok ? 'ok' : 'fallo';
+  li.textContent = texto;
+  r.appendChild(li);
+}
+function prueba(texto, f) {
+  try { linea(!!f(), texto); } catch (e) { linea(false, texto + ' — ' + e); }
+}
+async function huella(buf) {
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', buf));
+  return Array.from(d.slice(0, 8), b => b.toString(16).padStart(2, '0')).join('');
+}
+function lanza(f, nombre) {
+  try { f(); return false; } catch (e) { return e.name === nombre; }
+}
+
+// API (Chrome 137).
+prueba('ImageData.pixelFormat = "rgba-unorm8" por defecto', () => new ImageData(1, 1).pixelFormat === 'rgba-unorm8');
+prueba('new ImageData(Float16Array) sin pixelFormat lanza InvalidStateError',
+       () => lanza(() => new ImageData(new Float16Array(4), 1), 'InvalidStateError'));
+prueba('new ImageData(Float16Array, {pixelFormat: "rgba-float16"})',
+       () => new ImageData(new Float16Array(4), 1, 1, {pixelFormat: 'rgba-float16'}).data instanceof Float16Array);
+prueba('new ImageData(1, 1, {pixelFormat: "rgba-float32"}).data es Float32Array',
+       () => new ImageData(1, 1, {pixelFormat: 'rgba-float32'}).data instanceof Float32Array);
+prueba('getContext("2d", {colorType: "float16"}).getContextAttributes().colorType',
+       () => document.createElement('canvas').getContext('2d', {colorType: 'float16'})
+                 .getContextAttributes().colorType === 'float16');
+prueba('crypto.getRandomValues(new Float16Array(4)) no tumba la pestaña',
+       () => crypto.getRandomValues(new Float16Array(4)).length === 4);
+
+// Farbling: un canvas de color liso; sin farbling todos los píxeles son iguales.
+const W = 64, H = 64;
+function lienzo(colorType) {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d', {colorType});
+  ctx.fillStyle = 'rgb(64 128 192)';
+  ctx.fillRect(0, 0, W, H);
+  return [c, ctx];
+}
+// Bits de cada canal como enteros, para comparar sin pasar por números.
+function bits(data, bytes) {
+  const b = data.buffer;
+  return bytes === 1 ? new Uint8Array(b) : bytes === 2 ? new Uint16Array(b) : new Uint32Array(b);
+}
+function moda(a, canal) {
+  const n = new Map();
+  for (let i = canal; i < a.length; i += 4) n.set(a[i], (n.get(a[i]) || 0) + 1);
+  return [...n].sort((x, y) => y[1] - x[1])[0][0];
+}
+function noFinito(v, bytes) {
+  return bytes === 2 ? (v & 0x7c00) === 0x7c00 : bytes === 4 ? (v & 0x7f800000) === 0x7f800000 : false;
+}
+async function revisa(colorType, pixelFormat, bytes) {
+  const [c, ctx] = lienzo(colorType);
+  const leer = () => ctx.getImageData(0, 0, W, H, pixelFormat ? {pixelFormat} : undefined);
+  const a = bits(leer().data, bytes), b = bits(leer().data, bytes);
+  const base = [0, 1, 2, 3].map(k => moda(a, k));
+  let cambiados = 0, alfa = 0, malos = 0, nofin = 0;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] === base[i % 4]) continue;
+    if (i % 4 === 3) { alfa++; continue; }
+    cambiados++;
+    if ((a[i] ^ base[i % 4]) !== 1) malos++;
+    if (noFinito(a[i], bytes)) nofin++;
+  }
+  const nombre = `${colorType}/${pixelFormat || 'rgba-unorm8'}`;
+  linea(cambiados > 0 && cambiados <= 512, `${nombre}: canales cambiados ${cambiados} (1–512 con farbling)`);
+  linea(malos === 0, `${nombre}: todos los cambios son el bit 0 del canal (${malos} distintos)`);
+  linea(alfa === 0, `${nombre}: alfa intacto (${alfa} cambiados)`);
+  linea(nofin === 0, `${nombre}: sin Inf ni NaN (${nofin})`);
+  const h1 = await huella(a.buffer), h2 = await huella(b.buffer);
+  linea(h1 === h2, `${nombre}: dos lecturas iguales; huella ${h1}`);
+  return c;
+}
+(async () => {
+  await revisa('unorm8', null, 1);
+  await revisa('float16', 'rgba-float16', 2);
+  await revisa('float16', 'rgba-float32', 4);
+  const c = await revisa('float16', 'rgba-unorm8', 1);
+  // toDataURL de un canvas float16: el buffer es de 16 bits por canal.
+  const u1 = c.toDataURL(), u2 = c.toDataURL();
+  linea(u1 === u2, `toDataURL de un canvas float16 estable; huella ${await huella(new TextEncoder().encode(u1))}`);
+})();
+</script>
+</body>
+</html>
