@@ -2590,6 +2590,7 @@ que la 128 no tiene (ver «Pendiente del 137»). Nada exige AVX ni APIs de 10.15
 | 331b25b6 | merge de `local/250-arreglos` 44d92a8611 (arreglos de LOCAL-14 de la 1.ª pasada de la 2.5.0); `style_builder_converter.cc`, `element.h` y `out_of_flow_layout_part.cc` resueltos con merge a 3 vías sobre la fuente |
 | 92748597 | `EnterInOpenShadowRoots` stable + su uso en `ApplyStyleCommand::ApplyBlockStyle` (el único que faltaba; en la 137 la flag sale en 4 ficheros: los otros 3 ya estaban) |
 | 18dc7d4a | **Root Store v19** compilado (118 anclas, −17 raíces): `root_store.{certs,md}` de la 137; el `textproto` sin `additional_certs`/`eutl` (solo alimentan QWAC, apagado; el proto de la 128 no los tiene). El componente del espejo sigue mandando si su `version_major` es mayor (`cert_verifier_service_factory.cc:310`) |
+| d7ad12b4b | merge de `nube/float16-abv` **f7a89181a** (sobre 44d92a8611): `Float16Array` como `ArrayBufferView` (parte de la 130). Sin él, `--js-float16array` (gin, 2.4.0) + `NOTREACHED_IN_MIGRATION()` fatal de la 128 = caída del renderer con `crypto.getRandomValues(new Float16Array(4))` |
 | c1e082f4 | **VT `view-transition-name: match-element`** a mano: keyword guardada como `ScopedCSSName` con nombre reservado (`view_transition_match_element.h`), el tracker la cambia por `-ua-auto-<token>-<DOMNodeId>` como la 137. `CSSViewTransitionMatchElement` stable; `auto` sigue fuera (experimental en la 137) |
 
 **Resueltos sin código (MOTOR-39):**
