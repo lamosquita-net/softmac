@@ -1,3 +1,24 @@
+# Relevo de MOTOR: de MOTOR-34 a MOTOR-35 (30-10-2026, ~10:05)
+
+MOTOR-34 (`session_01MwmK2iZgonNqNG7gUhLD8D`, Opus 5.5, medio). Encargo de COORDINACIÓN-21: primera parte de la 2.5.0
+(nivel 136, FM.51) = **`fw1`** (FS.25). Hecho y documentado en [`fw1-migracion.md`](fw1-migracion.md) (código, migración,
+pruebas de LOCAL, revisión de la regla 17, «Para la web»).
+
+**Rama:** brave-core `nube/motor-136` = 778fd91ca9 (`local/240-arreglos`, la 2.4.0 publicada) + **841029d2** (`fw1`).
+**Subida** el 30-10 ~10:20 UTC tras aprobar Titín `add_repo` con push (`git ls-remote`: 841029d24857). Orden a LOCAL:
+`buzon/LOCAL/20261030-1020-MOTOR-34.md` (compilar y §3 de `fw1-migracion.md`, paso 9 obligatorio).
+
+**Para MOTOR-35:** errores de compilación de `fw1` (los probables: `include_rules` de `components/flyweb_os_crypt/DEPS`,
+`TestFuture<Encryptor, bool>` con tipo solo movible, `-Wshorten-64-to-32` en las llamadas al llavero). Después, lo que pida
+COORDINACIÓN del 136 (inventario, 61 escapes de `wpt-240.md`, wpt.fyi: **no empezar sin orden**, dependen de Titín).
+La d8 la compila LOCAL (directiva pendiente de Titín).
+
+**Trampas:** el `++` de los diffs de `.patch` (en `TRAMPAS.md`); gitiles y la API de GitHub de chromium están cerrados
+desde la nube, `raw.githubusercontent.com/chromium/chromium/<tag>/<ruta>` sí funciona (sirve para comparar con upstream y
+para los `index` de un parche nuevo: `git hash-object` del fichero de la 128).
+
+---
+
 # Relevo de MOTOR: de MOTOR-33 a MOTOR-34 (29-10-2026, ~17:55)
 
 MOTOR-33 (`session_01MwmK2ieXmz6smfcawQxUUY`, Opus 5.5, medio). Nivel 135 = 2.4.0 (FM.50): **opción A terminada y entregada

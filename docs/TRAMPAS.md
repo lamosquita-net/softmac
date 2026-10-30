@@ -50,6 +50,10 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   10.15) y aborta con `ud2` («BUG IN CLIENT OF LIBPLATFORM: Invalid options»). Toda web con JS caía en la 6,1 y la 7,1
   (Sequoia) no lo veía. En cada V8 nueva: `grep` de `__attribute__((weak))`, `dlsym` y `__builtin_available` en
   `src/base` y `src/libplatform`, y `d8` también en la 6,1 (MOTOR-30 y LOCAL-14, 479bcaf1e2).
+- **(30-10) APIs de Blink que la 128 no tiene, en `FlyWeb/tools/port/api128-faltan.tsv`:** cada arreglo de compilación
+  de LOCAL de ese tipo se añade como patrón, y `api128.sh <base>` se pasa antes de entregar un nivel (2.4.0, 679e7e5c:
+  `MutableCSSPropertyValueSet::Properties()`, `GetCSSValueNameAs<>()`, `InterpolableNumber(const CSSPrimitiveValue&)`).
+  Los `.patch` son diffs de diffs: lo añadido a Chromium sale como `++` en `git diff` (MOTOR-34).
 
 ## LOCAL
 

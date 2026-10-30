@@ -1,0 +1,4 @@
+# Patrón (regex de grep -E sobre las líneas añadidas de los .patch)	Qué falta en la 128 y cómo se escribe ahí	Origen
+(->|\.)Properties\(\)	MutableCSSPropertyValueSet::Properties() no existe: recorrer con PropertyCount() y PropertyAt(i)	LOCAL, 2.4.0 (679e7e5c, editing_style.cc)
+GetCSSValueNameAs<	GetCSSValueNameAs<T>() no existe: getValueName(id) y construir el tipo a mano	LOCAL, 2.4.0 (679e7e5c, css_shape_value.cc)
+InterpolableNumber>\([^,]*(Angle|Length|Value|value)\(\)\)	InterpolableNumber(const CSSPrimitiveValue&) no existe: InterpolableNumber(double) con la unidad canónica, o desde la expresión matemática	LOCAL, 2.4.0 (679e7e5c, css_shape_interpolation_type.cc)
