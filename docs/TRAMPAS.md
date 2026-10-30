@@ -6,6 +6,10 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
 
 ## MOTOR
 
+- **(30-10) Encender una `base::Feature` que la 128 trae apagada obliga a portar con ella los commits de upstream que
+  toquen el código que gobierna.** `kUseAsyncOsCryptInLoginDatabase` (FS.25, `fw1`) retrasaba `Initialize()` sin el reparto
+  del 136 y la 2.5.0 caía siempre al arrancar (`CHECK(password_sync_bridge_)`); se vio en la 7,1, no en la nube. Igual con
+  banderas de V8 desde gin: `--js-float16array` sin `DOMFloat16Array` en Blink tumbaba pestañas desde la 2.4.0.
 - **Ids de commit**: el que se pasa a otro agente se comprueba con `git ls-remote` tras el push (MOTOR-10 dio uno de
   antes de un `--amend`).
 - **Estimaciones de MOTOR en horas de reloj**, comparadas con el último nivel entregado: el «8–10 días» del 130 salió
