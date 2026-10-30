@@ -6,8 +6,10 @@
 # Uso: v8-d8.sh <carpeta> [<brave-core>]
 #   <carpeta>     se crea si no existe; deja el árbol en <carpeta>/v8 (git, rama flyweb-backports) y d8 en out/x64.
 #   <brave-core>  opcional: aplica sus patches/v8/*.patch (como el GitPatcher de Brave) antes de compilar.
-# FLYWEB_D8_NO_BUILD=1 se queda en `gn gen`. La primera compilación tarda ~35 min con 4 núcleos; las siguientes son
-# incrementales: `git apply` + `ninja -C out/x64 d8`.
+# FLYWEB_D8_NO_BUILD=1 se queda en `gn gen`. La primera compilación tarda ~35 min con 4 núcleos (13.5: 6 min 37 s con
+# 32 hilos); las siguientes son incrementales. Se puede relanzar sobre un árbol ya parcheado: los parches que ya están
+# se saltan y solo se aplican los nuevos. Si un parche ya aplicado ha cambiado, FLYWEB_D8_RESET=1 devuelve el árbol de
+# V8 a su revisión limpia (sin tocar build/, clang ni out/) y aplica todo de nuevo.
 #
 # Diferencias con la V8 de FlyWeb en el Mac: Linux, dcheck_always_on (encuentra más), sin Intl (sin ICU), libstdc++ del
 # sistema. Igual: compresión de punteros, sandbox, TurboFan/Maglev/Wasm, build/ y clang de Chromium 116.
@@ -69,6 +71,14 @@ if [ ! -d third_party/googletest/src/.git ]; then
   git -C third_party/googletest/src checkout -q FETCH_HEAD
 fi
 
+# highway: la piden las V8 13.3+ (third_party/highway/src del DEPS; en la 13.5, 00fe003d).
+HWY_REV=$(grep -A1 "'third_party/highway/src'" DEPS | grep -o '[0-9a-f]\{40\}' | head -1 || true)
+if [ -n "$HWY_REV" ] && [ ! -d third_party/highway/src/.git ]; then
+  git init -q third_party/highway/src
+  git -C third_party/highway/src fetch -q --depth=1 https://github.com/google/highway "$HWY_REV"
+  git -C third_party/highway/src checkout -q FETCH_HEAD
+fi
+
 # FP16: la piden las V8 12.4+ (niveles 124 en adelante).
 FP16_REV=$(grep -A1 "'third_party/fp16/src'" DEPS | grep -o '[0-9a-f]\{40\}' | head -1 || true)
 if [ -n "$FP16_REV" ] && [ ! -d third_party/fp16/src/.git ]; then
@@ -96,15 +106,33 @@ if [ "$(cat "$llvm/cr_build_revision" 2>/dev/null)" != "$rev-$sub" ]; then
 fi
 
 if ! command -v gn >/dev/null; then
-  echo "Falta gn: sudo apt-get install -y generate-ninja (la de 2024 sirve para estos BUILD.gn)" >&2
+  echo "Falta gn: paquete generate-ninja (la de 2024 sirve para estos BUILD.gn)" >&2
   exit 1
 fi
 
+# Aplica un parche solo si no está ya (para relanzar sobre un árbol parcheado).
+aplicar() {
+  if git apply --check "$1" 2>/dev/null; then git apply "$1"
+  elif git apply -R --check "$1" 2>/dev/null; then echo "ya aplicado: $(basename "$1")"
+  else echo "no aplica ni está aplicado: $1 (¿cambió? relanzar con FLYWEB_D8_RESET=1)" >&2; return 1
+  fi
+}
+
+if [ "${FLYWEB_D8_RESET:-}" = 1 ]; then
+  # Solo lo que siguen git y los parches: build/, third_party/*/src, clang y out/ están en .gitignore y se quedan.
+  git reset -q --hard && git clean -fdq && rm -rf third_party/simdutf
+fi
+
 if [ -n "$BC" ]; then
+  # simdutf: las V8 13.4+ usan //third_party/simdutf, que en el DEPS viene de googlesource (bloqueado). brave-core lo
+  # trae como parches de ficheros nuevos (6.0.2, el de Chromium 134/135), que se aplican en la raíz de V8.
+  if grep -q "'third_party/simdutf'" DEPS; then
+    for p in "$BC"/patches/third_party-simdutf-*.patch; do [ -e "$p" ] && aplicar "$p"; done
+  fi
   for p in "$BC"/patches/v8/*.patch; do
     # Los de Brave que incluyen código de brave/ (seguimiento de scripts) no compilan fuera de su checkout.
     if grep -q '//brave/\|"brave/\|BRAVE_' "$p"; then echo "omitido (necesita brave/): $(basename "$p")"; continue; fi
-    git apply "$p"
+    aplicar "$p"
   done
 fi
 
@@ -130,6 +158,11 @@ use_custom_libcxx = false
 use_sysroot = false
 v8_enable_fuzztest = false
 EOF
+# V8 13.5+: la d8 independiente usaría //third_party/partition_alloc (googlesource, no lo bajamos); FlyWeb no lo usa
+# en V8 (lo pone Chromium). Las V8 anteriores no conocen el argumento.
+if grep -q "v8_enable_partition_alloc" BUILD.gn; then
+  echo 'v8_enable_partition_alloc = false' >> out/x64/args.gn
+fi
 gn gen out/x64
 [ "${FLYWEB_D8_NO_BUILD:-}" = 1 ] && exit 0
 ninja -C out/x64 d8
