@@ -205,10 +205,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **LOCAL compila la siguiente mientras prueba en la 6,1** (Titín, 27-10): las pruebas van a la 6,1, así que la 7,1
   compila la versión siguiente en cuanto la anterior está compilada y guardada su app y su DMG. Sigue habiendo una sola
   compilación a la vez.
-- **Las faltas, antes de compilar** (Titín, 29-10; a prueba en el 135): MOTOR cruza el inventario de cada nivel con lo que
+- **Las faltas, antes de compilar** (Titín, 29-10; **fija desde el 30-10**, tras el 135: 11 min, 1–2 $ y 68 faltas encontradas): MOTOR cruza el inventario de cada nivel con lo que
   Chrome N pasa en WPT y Chrome N−1 no (wpt.fyi), y porta esas faltas y los escapes del nivel anterior antes de entregar.
   LOCAL se centra en errores de compilación y en los fallos que salgan después (caídas, webs reales). Se mide el coste en
-  MOTOR frente a los escapes que ahorra y se decide con el dato. Caso: los 16 escapes WPT de la 2.3.0 (`wpt-230-investigacion.md`).
+  MOTOR frente a los escapes que ahorra. Caso: los 16 escapes WPT de la 2.3.0 (`wpt-230-investigacion.md`).
 - **MOTOR, hasta dos niveles por delante de lo compilado** (Titín, 07-10, 27-10 y 28-10): es el máximo, no una espera; MOTOR
   avanza sin pararse hasta llegar a él. INVESTIGACIÓN va por delante de MOTOR, hasta
   el 141 y después del 142 al 156: recetas por nivel, con la traducción a Mojave de lo que cada Chrome exige de macOS
