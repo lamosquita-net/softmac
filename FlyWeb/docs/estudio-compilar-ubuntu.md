@@ -142,29 +142,34 @@ sin datos de Titín, paquetes solo con `sudo apt-instalar`**. Lo que cambia con 
 
 ## (e) Medir tokens y contexto de los agentes de terminal
 
-**`FlyWeb/scripts/consumo-local.py` no está en el repo** (ni en `main` ni en ninguna rama a las 16:30 UTC del 30-10;
-`git log --all` vacío) [medido]. No he podido revisarlo; si está en la 7,1 sin subir, conviene subirlo. Lo que debe
-hacer para que baste:
+`FlyWeb/scripts/consumo-local.py` (COORDINACIÓN, #645, b81fd4e; 68 líneas) lee `~/.claude/projects/*/*.jsonl` sin
+tocarlo y da una fila por sesión [medido: leído el script].
 
-1. **Quitar los duplicados**: una misma respuesta de la API aparece en varias líneas del `.jsonl` con el mismo `usage`;
-   sumar todas las líneas cuenta de más. ccusage usa `message.id` + `requestId` como clave, y solo `message.id` si falta
-   `requestId` [medido, fuentes 2 y 3]. Hay un caso conocido de respuestas distintas con el mismo `message.id` bajo carga
-   [medido, fuente 3]: conviene comprobar `requestId` antes de descartar.
-2. **Los cuatro contadores por separado**: `input_tokens`, `cache_creation_input_tokens` (y, si viene, el desglose
-   5 min / 1 h), `cache_read_input_tokens` y `output_tokens`, más `message.model`. Es lo que pide `CONSUMO.md` para
-   los locales.
-3. **Subagentes**: sus transcripciones van en ficheros propios dentro de la carpeta de la sesión o con
-   `isSidechain: true`, según la versión de Claude Code [inferido]. Si no se leen, MOTOR o LOCAL con subagentes salen
-   baratos sin serlo.
-4. **Contexto**: el de la última respuesta (`input + cache_read + cache_creation`), no la suma; y marcar las
-   compactaciones, tras las cuales baja [inferido].
-5. **De sesión a agente**: casar cada `.jsonl` con su papel (LOCAL-14, PUBLICACIÓN-…) por el título o el primer
-   mensaje, y cortar por fecha o tarea para que salga una línea por tarea entregada, como pide `CONSUMO.md`.
-6. **Coste**: el $ equivalente de API, con la tabla de precios por modelo (como hace COORDINACIÓN). El % del límite del
-   plan Max **no está en el `.jsonl`**: hay que anotarlo a mano desde `/usage` [inferido].
+**Lo que ya hace bien:**
+- Quita duplicados por `requestId`, porque una respuesta se repite en varias líneas. Es el problema conocido [medido,
+  fuentes 2 y 3].
+- Separa los cuatro contadores (entrada, caché escrita, caché leída, salida) y el modelo.
+- Da el contexto de la última respuesta (`input + cache_creation + cache_read`), no la suma, con su % de la ventana.
 
-Lo que falta además del guion: **que LOCAL-14 y PUBLICACIÓN lo corran al entregar** (hoy no hay ni una fila de LOCAL-14
-en `CONSUMO.md`), y que D8-LINUX haga lo mismo en el Ubuntu.
+**Lo que falta**, de más a menos importante:
+1. **Subagentes: no se cuentan.** Se salta las líneas con `isSidechain` y solo lee `*/*.jsonl`, no los `.jsonl` de las
+   subcarpetas de cada sesión, donde las versiones recientes de Claude Code guardan los subagentes [inferido]. Una
+   sesión que delega mucho sale más barata de lo que es: justo lo que `DIRECTIVAS.md` pide medir («subagentes para
+   leer», a prueba). Arreglo: leer también `*/*/**/*.jsonl` y sumar los sidechain aparte, en su propia columna.
+2. **No casa la sesión con el agente.** Da los 8 primeros caracteres del id y la carpeta, no el papel (LOCAL-14,
+   PUBLICACIÓN…). Hace falta una columna con el título o el primer mensaje del usuario, para escribir sin adivinar una
+   línea por tarea, como pide `CONSUMO.md`.
+3. **No marca las compactaciones.** Tras una compactación el contexto baja y el último valor engaña. Basta con contarlas
+   (las líneas de resumen o de límite de compactación) y dar el contexto máximo además del último [inferido].
+4. **Respaldo de `requestId` con `message.id`, no con `uuid`.** El `uuid` es distinto en cada línea, así que si falta
+   `requestId` no quita ningún duplicado. ccusage usa `message.id` como respaldo por eso [medido, fuente 2]. Hay un caso
+   de respuestas distintas con el mismo `message.id` bajo carga [fuente 3], así que solo como respaldo. Pesa poco si las
+   versiones en uso siempre escriben `requestId`: se comprueba contando líneas sin él.
+
+**Lo que no puede dar el `.jsonl`:** el % del límite del plan Max, que se anota a mano desde `/usage`.
+
+**Lo que falta fuera del guion:** que LOCAL y PUBLICACIÓN lo corran al entregar, y D8-LINUX en el Ubuntu. Hoy no hay
+ninguna fila de LOCAL-14 en `CONSUMO.md`, y LOCAL-14 hizo las compilaciones de 2.1.1 a 2.4.0.
 
 ## Fuentes
 
