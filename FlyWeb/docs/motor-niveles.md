@@ -2601,6 +2601,21 @@ que la 128 no tiene (ver «Pendiente del 137»). Nada exige AVX ni APIs de 10.15
 | f52504fe | **A06 canvas float16** sobre las estructuras de la 128: tipo IDL `Float16Array` (0ec01412973), `ImageData` con `Float16Array` y `pixelFormat` `rgba-unorm8`/`rgba-float16`/`rgba-float32` (11ddbcdbe, 5177673d2, 72f7508df en lo visible; el enum interno `ImageDataStorageFormat` de la 128 se queda, `kUint16` = F16), contexto 2D `colorType` `unorm8`/`float16` (b188c95c0, ba1f99c0b), `CanvasFloatingPoint` e `ImageDataPixelFormat` stable (0d364e3a8). d0f5f58ca no hace falta. **Farbling** por tamaño de canal: en F16/F32, bit 0 de la mantisa de R/G/B (sin tocar Inf/NaN ni alfa), misma semilla HMAC; en `getImageData`, `toDataURL` y `toBlob` (sus búferes conservan el tipo de color del canvas). Brave 1.79 aplica el de 8 bits sobre los bytes: en F16 cambia el bit 8 de la mantisa (hasta un 25 %) y el alfa |
 | 94a1c75d | resto de 0ec01412973: `interface.py` (sobrecargas de los constructores de `ImageData`), `ir_builder.py`, `pass_as_span.h` |
 
+**Escapes del 137 hallados por MOTOR-40 (flags que nacen `stable` en la 137; ni en la 128 ni en el parche del json5;
+comprobado el uso en la 137 y el código de la 128 + parche; horas supuestas). Ninguno es de caída ni bucle:**
+
+| Flag | Qué | Horas | Propuesta |
+|---|---|---|---|
+| `PreLogicalMargin` | `html.css`: `pre, xmp, plaintext, listing` con `margin-block`/`margin-inline` (escritura vertical) | 0,25 | 2.6.0 |
+| `SkipLineBreakItemWhenIsCollapsed` | `layout_text.cc`: rango colapsado sobre un `<br>` no da un rect de más (`getClientRects`) | 0,5 | 2.6.0 |
+| `ListOwnerMustHaveCSSBox` | `list_item_ordinal.cc` `IsListOwner()`: `ol/ul/menu` sin caja (`display: contents`) no numeran | 0,5 | 2.6.0 |
+| `ViewTransitionUpdateLifecycleBeforeReady` | `view_transition.cc`: ciclo de vida y `RunPostPrePaintSteps()` antes de resolver `ready` | 0,5–1 | 2.6.0 |
+| `CaretWithTextAffinityUpstream` | `editor.cc` + `insert_text_command.cc`: espacio al principio de una línea partida | 1–2 | 2.6.0 o 2.6.x |
+| `TextareaStableResizing` | `paint_layer_scrollable_area.cc`, `scroll_manager.cc`, `pointer_event_manager.cc`: redimensionar con transform/zoom | 3–5 | 2.6.x (choca con dos parches) |
+| `LineBreakEarlyReturn` | `shaping_line_breaker.cc`: solo rendimiento | 1–2 | no portar (regla 18 no lo exige; sin efecto visible) |
+
+`RubyJustificationFix` ya estaba (control). Commits sin sacar (gitiles `+log` pide sesión).
+
 Prueba: `FlyWeb/tools/canvas-float16.html` (dos orígenes; huellas iguales al recargar y distintas entre orígenes;
 cambios de 1 bit, alfa intacto, sin Inf/NaN).
 
