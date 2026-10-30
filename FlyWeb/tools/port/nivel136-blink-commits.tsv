@@ -1,0 +1,227 @@
+fila	rol	fecha	sha	asunto
+F01 print-color-adjust (sin prefijo)	flip+impl	2025-03-20	e81066c2	Ship print-color-adjust
+F02 CSSTypeAgnosticVarFallback	flip+impl	2025-03-20	7b65a6f1	[css-properties-values-api] Ship CSSTypeAgnosticVarFallback
+F03 CSSAttrRawString + attr()	impl	2025-03-10	dcc590f0	Support raw-string type in attr()
+F03b	flip	2025-03-21	924560fb	Switch CSSAttrRawString runtime flag to stable
+F03c	fix	2025-03-27	1abd013b	Only allow numeric literals for attr(<attr-unit>)
+F03c	fix	2025-03-06	bc5b2bcf	Fix attr() fallback empty string if omitted
+F04 CSSDynamicRangeLimit	flip	2025-03-19	7bb8923d	Reland "Enable dynamic-range-limit CSS property"
+F04 CSSDynamicRangeLimit	flip	2025-03-14	b728122a	CSS dynamic-range-limit: Use new enum values
+F04b	impl<=135	2025-01-13	8c9599d7c	Enable dynamic-range-limit CSS property
+F04b	impl<=135	2025-02-14	eea7d1daf	Revert "Enable dynamic-range-limit CSS property"
+F04b	impl<=135	2025-02-04	aaf67e7be	dynamic-range-limit: Fix HDR headroom computation
+F04b	impl<=135	2024-10-29	07e092447	CSS dynamic-range-limit: Update dynamic-range-limit-mix, add WPT tests
+F05 CSSRelativeColorLateResolveAlways	impl	2025-03-04	354a5392	Plumb StyleResolverState into MaybeCreateInterpolableColor()
+F05 CSSRelativeColorLateResolveAlways	impl	2025-03-05	cafe2213	Resolve colors where possible when creating an animation effect
+F05 CSSRelativeColorLateResolveAlways	impl	2025-03-19	23e73b3f	Fix handling of infinity in late-resolved relative colors
+F05b	impl<=135	2024-09-11	9347d9baa	Late resolve all relative colors
+F06 CanvasTextLang	flip	2025-03-20	fe51f0bb	Enable Canvas Text lang attribute
+F06b	impl<=135	2025-02-21	ab92db212	Implement the Canvas TextStyles lang attribute
+F07 SvgAnchorElementRelAttributes	flip	2025-03-04	5cbc8cc7	[SVG] Updating `SvgAnchorElementRelAttributes` flag status to stable
+F07b	impl<=135	2025-02-20	4848d6cf8	[SVG] Add support for SVGAElement's rel / relList attributes
+F08 SVG DOMPointInit	impl	2025-03-04	1c8516ad	Use DOMPointInit for getCharNumAtPosition, isPointInFill, isPointInStroke
+F09 ProgressEvent double	impl	2025-03-10	5ad24b5a	Change loaded and total attributes in ProgressEvent to double
+F10 StandardizedTimerClamping	flip	2025-03-24	427f9ba4	Ship StandardizedTimerClamping
+F10 StandardizedTimerClamping	flip	2025-03-08	03fa95f4	Avoid int64_t overflow in TimeClamper.
+F10b	impl<=135	2025-02-03	a78ea6f24	Adjust nested timer clamping to be spec compliant.
+F11 PotentialPermissionsPolicyReporting	flip	2025-03-21	868cb645	Enable Permissions Policy reports for iframes
+F11b	impl<=135	2025-02-13	2c433a7f5	Add src attribute to potential Permissions Policy report
+F12 AudioContextInterruptedState	flip	2025-03-28	49ce323a	[Web Audio] Enable the AudioContext interrupted state
+F12b	impl<=135	2024-10-31	9d9ac4bd6	[WebAudio] Implement the AudioContext interrupted state
+F13 ClickToCapturedPointer	flip	2025-03-10	76aefeea	[Interop] Enable ClickToCapturedPointer on ToT
+F13b	impl<=135	2024-10-03	49bfab42e	[Interop] Fix user-counter for changed click target under capture.
+F13b	impl<=135	2024-10-03	af98e568b	[Interop] Defer PEM click dispatch to fix lostpointercapture order.
+F14 LayoutFlexNewRowAlgorithm	flip	2025-03-06	a309eab0	[css-flex] Rename and enable the flag for new intrinsic size algorithm
+F15 Layout %-size/min-size	impl	2025-03-17	fcd3f5f5	[layout] Coerce min-size indefinite %-size to zero.
+F15 Layout %-size/min-size	impl	2025-03-18	a8ad9ea3	[layout] Coerce the natural block-size to respect the aspect-ratio.
+F15 Layout %-size/min-size	impl	2025-03-17	e8db6a7a	[layout] Fix fit-content on min/max inline-sizes for contributions.
+F15 Layout %-size/min-size	impl	2025-03-11	6f6398ae	[layout] Make %-size non-rare.
+F15 Layout %-size/min-size	impl	2025-03-11	b2dd6071	[layout] Rework replaced %-size.
+F15 Layout %-size/min-size	impl	2025-03-04	5269fcdb	[layout] Implement stretch and margin collapsing interactions
+F15 Layout %-size/min-size	impl	2025-03-31	65270087	Remove 1:1 aspect ratio on error in LayoutImage
+F15 Layout %-size/min-size	impl	2025-03-12	16531021	Derive missing HTMLImageElement.natural{Width,Height} from aspect ratio
+F16 Layout/SVG/table bundle	flip	2025-03-03	52a95f9b	[css-tables] Trigger fixed table layout when not auto.
+F16 Layout/SVG/table bundle	flip	2025-03-06	a218ae49	[scrollbar-gutter] Make fixedpos respect the root's scrollbar-gutter
+F16 Layout/SVG/table bundle	flip	2025-03-18	560fb6d6	[layout] Remove more webkit-box quirks.
+F16 Layout/SVG/table bundle	flip	2025-03-05	cc8a6bef	[flex] Remove LayoutDisableWebkitBoxQuirks flag.
+F16 Layout/SVG/table bundle	flip	2025-03-03	8e0b5b60	[SVG] Enhance `getBoundingClientRect` API to return empty size for hidden layout containers.
+F16 Layout/SVG/table bundle	flip	2025-03-19	aa4e4227	Disable text autosizer for flex items
+F16b	fix	2025-03-18	16f576f0	Fix a crash by text-transform and -webkit-text-security
+F16b	fix	2025-03-27	634a7e2a	RubyLB: Fix a CHECK failure with a FIELDSET with display:contents
+F16b	fix	2025-03-30	cb45acda	RubyLB: Fix a crash in ShouldBeInlinified()
+F16b	fix	2025-03-12	a914a619	RubyLB: Fix a crash by BiDi reorder
+F16b	fix	2025-03-10	daac4aa1	FindRubyInPage: Fix a crash with ignorable elements
+F17 RoundScrollOffsets + paint rounding	impl	2025-03-06	fe304061	Round scroll offsets in Blink
+F17 RoundScrollOffsets + paint rounding	impl	2025-03-19	81436c40	Use same paint offset for rounding on cc and Blink.
+F17 RoundScrollOffsets + paint rounding	impl	2025-03-10	6ec45eab	Avoid rounding inconsistency between Blink and cc.
+F17 RoundScrollOffsets + paint rounding	impl	2025-03-20	23aefe3c	Discard subpixel accumulation through transform in x, y directions separately
+F17 RoundScrollOffsets + paint rounding	impl	2025-03-18	9500dda9	Fix fractional paint offset accumulation for sticky positioning
+F17 RoundScrollOffsets + paint rounding	impl	2025-03-11	704bef8a	Delay snapping due to layout shifts during animated scrolls
+F17 RoundScrollOffsets + paint rounding	impl	2025-03-28	2797fa28	Fix background image offset issue when there's gutter
+F17 RoundScrollOffsets + paint rounding	impl	2025-03-05	c06eeb89	Paint view background in contents space if <html> has effects or clip-path
+F18 Selection/editing	flip	2025-03-21	d3318736	[Selection] delegated target text control are mouse event handled
+F18 Selection/editing	flip	2025-03-12	79db7b3e	Update selection bounds visibility after paint
+F18 Selection/editing	flip	2025-03-19	c1fa6e7f	[Editing] Preserve initial selection after listify operation
+F18 Selection/editing	flip	2025-03-09	39caae03	The child of the shadow host that not assigned slot should use the the style of the shadow host to determine editable
+F18 Selection/editing	flip	2025-03-19	0bca2ab2	Editing: Do not use OriginalTextLength() for <br>
+F18 Selection/editing	flip	2025-03-20	7cc78c60	[selection] Remove feature flags for mouse selection in shadow dom
+F19 Fonts/text	fix	2025-03-17	05ebb1bc	Fix incorrect fallback when there's no '水' glyph in the first font of choice
+F19 Fonts/text	fix	2025-03-12	24dd09a8	Fix incorrect fallback when there's no '0' char in the first font of choice
+F19 Fonts/text	fix	2025-03-24	b080fc58	Chrome Incorrectly Selects Fallback Font When src:local("")
+F19 Fonts/text	fix	2025-03-05	79495045	Fix `ch` unit not depends on writing-mode and text-orientation,...
+F19 Fonts/text	fix	2025-03-21	f9458ac1	Check invalid variable ranges in GetFontPlatformData
+F20 CSS math/calc robustness	impl	2025-04-15	61f96086	Support non-simplifiable trigonometric functions
+F20 CSS math/calc robustness	impl	2025-03-19	ae47ae4e	Support complex CSS pow() parameters
+F20 CSS math/calc robustness	impl	2025-03-27	c82e4ff1	Support unresolved calc() expressions for steps() timing functions
+F20 CSS math/calc robustness	impl	2025-03-31	02c0f691	Disallow unresolved calc() in linear() timing function
+F20 CSS math/calc robustness	impl	2025-03-28	6bab48d8	Use ConsumeNumber() for flex shorthand
+F20 CSS math/calc robustness	impl	2025-03-28	a7385191	Use ConsumeNumber() for -webkit-perspective
+F20 CSS math/calc robustness	impl	2025-03-28	0a9179db	Use ConsumeNumber instead of ConsumeNumberRaw for cursor hotspot
+F20 CSS math/calc robustness	impl	2025-03-31	1dcc638a	Replace ConsumeNumberRaw with ConsumeNumber for cubic-bezier()
+F20 CSS math/calc robustness	impl	2025-03-31	9f201765	Call GetDoubleValue() on CSSNumericLiterValue for filter functions
+F20 CSS math/calc robustness	impl	2025-03-31	4bb18766	Somewhat handle calc() numbers in color-contrast()
+F20 CSS math/calc robustness	impl	2025-03-31	22d5ce93	Support calc() expressions for (100% - amount) in basic shape values
+F20 CSS math/calc robustness	impl	2025-03-25	6bbd3023	Use CSSToLengthConversionData for ConvertNumberOrPercentage
+F20 CSS math/calc robustness	impl	2025-03-27	0f8138b3	Pass length resolver to percentage value resolution for text-size-adjust
+F20 CSS math/calc robustness	impl	2025-03-21	6ee9995d	Rename ConsumeNumberRaw() and make sure it does not crash
+F20 CSS math/calc robustness	impl	2025-03-27	4914a98b	Resolve calc() inside anchor() functions at computed value time
+F20 CSS math/calc robustness	impl	2025-03-27	26f9fcb2	Flip calc() percentages for anchor() with try-tactics
+F20 CSS math/calc robustness	impl	2025-03-20	dd20dbfc	Fix conic-gradient edge cases
+F20 CSS math/calc robustness	impl	2025-03-10	2d96077a	Make CSS Parser reject invalid gradients
+F20 CSS math/calc robustness	impl	2025-03-11	565e9ba0	Fix presence check for container relative units in radial-gradient()
+F20 CSS math/calc robustness	impl	2025-03-31	72a5e69d	SVGLength::ValueInSpecifiedUnits only supports numeric literals
+F20 CSS math/calc robustness	impl	2025-03-21	e326a349	Simplify serialization for palette-mix() by reusing color-mix() logic
+F20 CSS math/calc robustness	impl	2025-03-19	0e03d2b8	Fix some cases of percentage serialization for color-mix() functions
+F20 CSS math/calc robustness	impl	2025-04-07	5abd591b	Exclude interactivity from all shorthand
+F21 Anchor positioning deltas	impl	2025-03-06	bab3300a	[anchor] Avoid options that don't fit at last remembered scroll offset.
+F21 Anchor positioning deltas	impl	2025-03-31	628b74a8	[anchor] Allow position-area to expand the containing-block rect.
+F21 Anchor positioning deltas	impl	2025-03-26	9a3fe109	Ignore common container for position-visibility: anchors-visible
+F21 Anchor positioning deltas	impl	2025-03-26	f812ab02	[anchor] Compare LayoutObject, not Element.
+F21 Anchor positioning deltas	impl	2025-03-13	8e10adeb	[anchor] Avoid being self-anchored.
+F21 Anchor positioning deltas	impl	2025-03-06	83058c05	Avoid storing LayoutObject pointers in anchor positioning data.
+F21 Anchor positioning deltas	impl	2025-03-28	d63e50b2	Ensure compositor nodes for all anchor scroll adjustment containers
+F21 Anchor positioning deltas	impl	2025-03-13	a80abbd9	Add safe static position edges
+F21 Anchor positioning deltas	impl	2025-03-18	bbcda52c	Revert "Add safe static position edges"
+F21 Anchor positioning deltas	impl	2025-03-31	7e14bcd9	Safe alignment in statically positioned OOFs
+F21 Anchor positioning deltas	impl	2025-03-25	49682a9c	Propagate static position's align-self direction
+F21 Anchor positioning deltas	impl	2025-03-21	db5b93af	Add align-self direction to static position
+F22 HTMLCommandRequestClose (apagar request-close)	gate	2025-03-04	0ea22962	Move 'request-close' dialog command to experimental
+F23 WebAudio	flip	2025-03-26	6a48b34b	Enable WebAudioBypassOutputBuffering by default
+F23 WebAudio	flip	2025-03-31	c0ec0bb0	webaudio: Enable WebAudioRemoveAudioDestinationResampler by default
+F23 WebAudio	flip	2025-03-24	dd2943e8	WebAudio: Remove AudioDestination resampler when feature enabled
+F23 WebAudio	flip	2025-03-28	51108834	[WebAudio] Invalidate SetSinkId objects when AudioContext is closed
+F23 WebAudio	flip	2025-04-15	bc3b8736	Dispatch render error in OnDevicesChanged for all invalid sinks
+F23 WebAudio	flip	2025-04-14	0d519d0a	Return early on closed context during state change
+F23 WebAudio	flip	2025-04-30	e26c8a91	Make MediaStreamAudioDestinationNode ActiveScriptWrappable
+F24 moveBefore (133-136)	136	2025-03-04	caf55a63	Reapply style after a moveBefore
+F24 moveBefore (133-136)	136	2025-03-06	5619643c	DOM: Fix moveBefore() <object> element subframe crash
+F24b	<=135	2024-07-25	ea09a8c9f	moveBefore: keep popover open
+F24b	<=135	2024-08-12	641c2acc8	Keep text selection during moveBefore
+F24b	<=135	2024-08-16	5668ebccd	moveBefore: don't release pointer capture when moving
+F24b	<=135	2024-08-19	d612bb78c	moveBefore: only call FlatParentChanged for the directly inserted node.
+F24b	<=135	2024-08-20	7a987a897	DOM: Suppress mutation events during `moveBefore()`
+F24b	<=135	2024-08-21	5d5ed766e	moveBefore: keep current modal dialog when performing an atomic move.
+F24b	<=135	2024-09-25	f89cc1433	DOM: Support atomic moves across shadow boundary
+F24b	<=135	2024-09-27	150ef02f5	DOM: Do not hide element nonce on atomic move
+F24b	<=135	2024-10-01	4e549b3a1	DOM: Ensure form owner is reset during atomic move
+F24b	<=135	2024-10-03	d81683e43	moveBefore: retain render-blocking state for styles and scripts
+F24b	<=135	2024-10-04	1598e5cec	DOM: Ensure atomic moves trigger relevant mutations
+F24b	<=135	2024-10-10	d1a500852	DOM: moveBefore() still runs the update selectedness algorithm
+F24b	<=135	2024-10-16	0e2a8e110	DOM: Make moveBefore() throw for all pre-move validity checks
+F24b	<=135	2024-10-16	e7b98bc21	Support custom element reactions for moveBefore
+F24b	<=135	2024-10-22	512c89b69	moveBefore: fire focusout/focusin when moving focused element
+F24b	<=135	2024-10-29	d7cb0e409	moveBefore: Update the :focus-within state
+F24b	<=135	2024-10-30	2d4cf4f88	DOM: Preserve selection during moveBefore()
+F24b	<=135	2024-10-31	a7b178144	DOM: Fix moveBefore() selection directionality crash
+F24b	<=135	2024-11-08	a8e1cb917	moveBefore: don't fire focusin/focusout
+F24b	<=135	2024-11-10	3119ac216	DOM: Add moveBefore() live range update tests
+F24b	<=135	2024-11-11	23c5c1720	DOM: Enable moveBefore() inside ShadowRoot DocumentFragments
+F24b	<=135	2024-11-14	c448f592c	DOM: Add moveBefore() WebDX use counter
+F24b	<=135	2024-11-19	3bececa95	DOM: Flag-guard moveBefore()'s range and selection preservation
+F24b	<=135	2024-11-21	f453439ce	DOM: Support disconnected->disconnected moveBefore()
+F24b	<=135	2024-12-10	ac1582c46	DOM: Enable moveBefore() into Document nodes
+F24b	<=135	2024-12-12	10343aa21	moveBefore: fail when moving across roots
+F24b	<=135	2024-12-16	2053898d7	DOM: Move moveBefore() to the ParentNode mixin
+F24b	<=135	2024-12-18	bc8b51022	DOM: Move moveBefore() returns undefined
+F24b	<=135	2024-12-26	a7cbd5882	DOM: Add basic moveBefore() MutationObserver tests
+F24b	<=135	2024-12-27	133f1cb4b	DOM: Ship the moveBefore API
+F24b	<=135	2025-01-17	96e62c0d6	DOM: Fix moveBefore null parent crash
+F24b	<=135	2025-01-17	ea2ba3fc1	DOM: Fix moveBefore() disconnected iframe CHECK crash
+F24b	<=135	2025-01-17	f0dc0d21e	DOM: Fix moveBefore() style CharacterData style calculation crash
+F24b	<=135	2025-02-11	7f0b7aa30	Fixed the crash when calling moveBefore on a custom element without implementing disconnectedCallback
+F25 ObservableAPI	flip	2025-03-10	957fb634	DOM: Enable the Observable API on stable
+F26 FetchLaterAPI	fix(merge)	2025-04-07	3486865e	[M136][fetchlater] Fix crash in `GetReservedDeferredFetchQuota()`
+F27 Carousel/reading-flow	impl	2025-03-11	3e785ee6	[carousel] Implement the active scroll marker determining algorithm
+F27 Carousel/reading-flow	impl	2025-03-11	a7623c31	[carousel] Focus a column from ::column::scroll-marker.
+F27 Carousel/reading-flow	impl	2025-03-27	438da002	[carousel] Focus a column with inlines from ::column::scroll-marker.
+F27 Carousel/reading-flow	impl	2025-03-27	2277213a	[carousel] Focus: Search past the active ::column if no elements.
+F27 Carousel/reading-flow	impl	2025-03-27	907a55c6	[carousel] Support carousel primitives on root element
+F27 Carousel/reading-flow	impl	2025-03-21	0c9f84c1	[carousel] Implement scroll-marker-contain property logic
+F27 Carousel/reading-flow	impl	2025-03-14	debeece9	[carousel] Update marker group scroll snap areas when they change.
+F27 Carousel/reading-flow	impl	2025-03-14	f8979e38	Revert "[carousel] Update marker group scroll snap areas when they change."
+F27 Carousel/reading-flow	impl	2025-03-17	c221e0d4	Reland "[carousel] Update marker group scroll snap areas when they change."
+F27 Carousel/reading-flow	impl	2025-03-21	c1b408c6	Stop looking for active scroll marker when targets are empty
+F27 Carousel/reading-flow	impl	2025-03-21	60e7d5a4	Create ::column pseudo elements correctly with multiple rows.
+F27 Carousel/reading-flow	impl	2025-03-13	1a780eb9	[carousel] Don't assume a ::scroll-marker to be LayoutBox.
+F27 Carousel/reading-flow	impl	2025-03-14	df5c6dc4	[carousel] Avoid DCHECK violation when scrolling to selected marker
+F27 Carousel/reading-flow	impl	2025-03-05	752792cc	cv/carousel: Allow layout in scroll-marker-group subtrees.
+F27 Carousel/reading-flow	impl	2025-03-11	af80c255	Move scroll marker group getters to LayoutBox.
+F27 Carousel/reading-flow	impl	2025-03-05	487951d8	Remove CHECK from scroll-marker code
+F27 Carousel/reading-flow	impl	2025-03-07	e278a7b6	[reading-flow] Implement source-order keyword
+F27 Carousel/reading-flow	impl	2025-03-18	2e5c63af	[reading-flow] Refactor ReadingFlowNodes logic to ContainerNode
+F27 Carousel/reading-flow	impl	2025-03-26	6b8e4715	[carousel] Add invalidation logic and tests for scroll-marker-contain
+F27 Carousel/reading-flow	impl	2025-03-31	9ec58516	Revert "[carousel] Add invalidation logic and tests for scroll-marker-contain"
+F28 Select personalizable	impl	2025-03-12	53987479	Add customizable select disabled styles
+F28 Select personalizable	impl	2025-03-12	c7405edb	Do not use MenuListSelectType::option_slot_ with CustomizableSelect
+F28 Select personalizable	impl	2025-03-10	d38bd78b	Remove unused HTMLSelectElement::option_slot_
+F28 Select personalizable	impl	2025-03-14	c6f0a726	Remove !important from UA select colors
+F28 Select personalizable	impl	2025-05-09	693a5e10	[M136] Disable SelectColorsRemoveImportant
+F28 Select personalizable	impl	2025-03-18	1f8d9579	Check that <button>, <legend> are direct child of <select>, <optgroup>
+F28 Select personalizable	impl	2025-03-19	c7510df4	Don't set ::picker(select) color in auto appearance
+F28 Select personalizable	impl	2025-03-25	5fc3d3c7	Don't make a11y mappings for ::checkmark
+F28 Select personalizable	impl	2025-03-11	ce26744e	Fix a11y imperative select regression
+F28 Select personalizable	impl	2025-03-20	1024e169	Don't strip/simplify whitespace in label attribute
+F28 Select personalizable	impl	2025-03-24	f7cbcc22	[ReferenceTarget] Ensure .list and .form reflect the shadow host
+F29 PartitionVisitedLinkDatabaseWithSelfLinks (navegador)	flip	2025-03-25	65e13104	Enable partitioned :visited links on ToT
+F29 PartitionVisitedLinkDatabaseWithSelfLinks (navegador)	flip	2025-03-18	2760e043	Update HistoryService::AddPage to construct self-links
+F29 PartitionVisitedLinkDatabaseWithSelfLinks (navegador)	flip	2025-03-14	4f7177ca	Remove VisitSource::SYNCED CHECK for VisitedLinks
+F29 PartitionVisitedLinkDatabaseWithSelfLinks (navegador)	flip	2025-03-14	9252d771	Give -internal-visited properties lower CSSPropertyIDs.
+F30 limpiezas de flag que fuerzan estado	cleanup	2025-03-07	26b6bf8a	Enable PageMarginBoxes runtime feature forever.
+F30 limpiezas de flag que fuerzan estado	cleanup	2025-03-25	cc69f09c	Remove launched StaticAnimationOptimization flag.
+F30 limpiezas de flag que fuerzan estado	cleanup	2025-03-13	ce6806ab	[compile hints] Ship per-file compile hints
+F30 limpiezas de flag que fuerzan estado	cleanup	2025-03-17	61e8db21	[blink] Clean-up MediaDevices
+F30 limpiezas de flag que fuerzan estado	cleanup	2025-03-24	8ddc2730	[Presentation API] Remove site-initiated mirroring.
+X1 CaptureController/CSC (fuera)	flip	2025-03-25	952cc74c	[CSC] Ship the "Captured Surface Control" API
+X1 CaptureController/CSC (fuera)	flip	2025-03-11	48278a4b	[CSC] Rename captureWheel() to forwardWheel()
+X1 CaptureController/CSC (fuera)	flip	2025-03-11	6c2c098d	[CSC] Rename oncapturedzoomlevelchange to zoomlevelchange
+X1 CaptureController/CSC (fuera)	flip	2025-03-10	cb105d79	[CSC] Replace setZoomLevel() with increase/decrease/reset-ZoomLevel()
+X1 CaptureController/CSC (fuera)	flip	2025-03-11	aa56657b	[CSC] Change getZoomLevel() to an attribute called zoomLevel
+X1 CaptureController/CSC (fuera)	flip	2025-03-14	0a943a81	[CSC] Remove sendWheel()
+X1 CaptureController/CSC (fuera)	flip	2025-03-31	79b4259d	[CSC] Remove the promise-returning CaptureController::SendWheel()
+X1 CaptureController/CSC (fuera)	flip	2025-03-11	cc30159f	[CSC] Make getSupportedZoomLevels() non-static
+X1 CaptureController/CSC (fuera)	flip	2025-03-07	d9683c31	Expose captured surface resolution for MacOS
+X1 CaptureController/CSC (fuera)	flip	2025-04-07	c6bd8636	[M136] Mark CapturedSurfaceResolution flag to stable in RunTimeEnabledFeatures
+X1 CaptureController/CSC (fuera)	flip	2025-03-31	06d29b60	Rm RuntimeEnabled flag check inside fn IsCapturedSurfaceResolutionActive
+X1 CaptureController/CSC (fuera)	flip	2025-03-30	a4b4fc17	Remove physical and logical attributes in MediaTrackSettings idl
+X1 CaptureController/CSC (fuera)	flip	2025-03-28	03e67466	Don't expose page zoom in screenPixelRatio
+X2 SpeculationRulesTag (fuera)	flip	2025-04-04	82ca828b	[M136] SpeculationRules: Enables SpeculationRulesTag by default
+X2 SpeculationRulesTag (fuera)	flip	2025-03-21	740620b4	Introduce a ruleset level tag field to speculation rules
+X2 SpeculationRulesTag (fuera)	flip	2025-03-25	56076746	preload: Introduce per-rule speculation rules tags
+X2 SpeculationRulesTag (fuera)	flip	2025-03-26	6d4fb315	Prerender: Pass SpeculationRulesTags up to PrerenderHost
+X2 SpeculationRulesTag (fuera)	flip	2025-03-24	3d431708	preload: rename ruleset level speculation rules tags
+X2 SpeculationRulesTag (fuera)	flip	2025-03-30	5860e8df	preload: speculation rules tag merging for eager preloading
+X2 SpeculationRulesTag (fuera)	flip	2025-03-27	9b73037b	preload: speculation rules tag merging for non-eager prefetch
+X2 SpeculationRulesTag (fuera)	flip	2025-03-26	d60f9ff8	Prerender: Set Sec-Speculation-Tags header
+X2 SpeculationRulesTag (fuera)	flip	2025-03-28	10559502	SpeculationRules: Dedup and sort tags passed to SpeculationRulesTags
+X3 FedCM multi-IDP (fuera)	flip	2025-03-31	df11fdf9	[FedCM] Enable multi IDP by default
+X3 FedCM multi-IDP (fuera)	flip	2025-03-31	fd34db1c	[FedCM] Limit the number of IDPs requested
+X4 WebGPU (fuera)	flip	2025-03-28	611b0d4b	WebGPU: Expose GPUAdapterInfo.isFallbackAdapter attribute by default
+X4 WebGPU (fuera)	flip	2025-03-19	9ec7eaa1	Add experimental GPUAdapterInfo.isFallbackAdapter attribute
+X4 WebGPU (fuera)	flip	2025-03-28	f0e55337	WebGPU: Measure usage for GPUAdapter isFallbackAdapter attribute
+X5 Float16/ImageData (aplazar)	impl	2025-03-14	0ec01412	Float16Array: Add IDL bindings
+X5 Float16/ImageData (aplazar)	impl	2025-03-19	11ddbcdb	ImageData: Use Float16Array
+X5 Float16/ImageData (aplazar)	impl	2025-03-14	72f7508d	ImageData: Update enums to match spec
+X5 Float16/ImageData (aplazar)	impl	2025-03-20	5177673d	ImageData: Update tests to use Float16Array
+X5 Float16/ImageData (aplazar)	impl	2025-03-19	b6114a00	Float16Array: Include in WebIDL fuzzer
+X6 FPF-CI canvas noise (Chrome, no portar)	impl	2025-03-20	c12563dd	[FPF-CI] Add CanvasNoiseTokenManager and CanvasNoiseToken.
+X6 FPF-CI canvas noise (Chrome, no portar)	impl	2025-03-20	e6c6753b	[FPF-CI] Add feature flags for canvas noise

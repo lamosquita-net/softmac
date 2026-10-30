@@ -1,0 +1,101 @@
+A_STABLE	AudioContextInterruptedState	test	stable	FW:ausente
+A_STABLE	CSSDynamicRangeLimit	experimental	stable	FW:experimental
+A_STABLE	CSSRelativeColorLateResolveAlways	experimental	stable	FW:ausente
+A_STABLE	CanvasTextLang	experimental	stable	FW:ausente
+A_STABLE	ClickToCapturedPointer	experimental	stable	FW:experimental
+A_STABLE	FedCmMultipleIdentityProviders	none	stable	FW:none
+A_STABLE	FledgeTrustedSignalsKVv2Support	test	stable	FW:ausente
+A_STABLE	MediaRecorderUseMediaVideoEncoder	dict:{'Android': '', 'default': 'stable'}	stable	FW:none
+A_STABLE	PotentialPermissionsPolicyReporting	experimental	stable	FW:ausente
+A_STABLE	StandardizedTimerClamping	experimental	stable	FW:ausente
+A_STABLE	SvgAnchorElementRelAttributes	experimental	stable	FW:ausente
+CHANGE	AriaNotify	test	dict:{'Android': 'experimental', 'Win': 'experimental', 'Mac': 'experimental', 'Linux': 'experimental'}	FW:test
+CHANGE	AriaNotifyV2	test	dict:{'Android': 'test', 'Win': 'test', 'Mac': 'test', 'Linux': 'test'}	FW:ausente
+CHANGE	CanvasTextNg	none	experimental	FW:ausente
+CHANGE	CapturedSurfaceControl	dict:{'Android': '', 'default': 'experimental'}	dict:{'Android': '', 'default': 'stable'}	FW:dict:{'Android': '', 'default': 'experimental'}
+CHANGE	CapturedSurfaceResolution	dict:{'Win': 'experimental', 'default': ''}	dict:{'Win': 'stable', 'Mac': 'stable', 'default': ''}	FW:ausente
+CHANGE	Database	experimental	none	FW:experimental
+CHANGE	PartitionVisitedLinkDatabaseWithSelfLinks	dict:{'iOS': '', 'default': 'experimental'}	dict:{'iOS': '', 'default': 'stable'}	FW:ausente
+CHANGE	PerformanceNavigateSystemEntropy	experimental	none	FW:experimental
+CHANGE	PlainTextPainter	none	experimental	FW:ausente
+CHANGE	PreferredAudioOutputDevices	test	experimental	FW:ausente
+CHANGE	RasterInducingScroll	test	dict:{'Linux': 'stable', 'Win': 'stable', 'default': 'test'}	FW:test
+CHANGE	SearchTextHighlightPseudo	test	experimental	FW:test
+CHANGE	Serial	dict:{'Android': '', 'default': 'stable'}	dict:{'Android': 'test', 'default': 'stable'}	FW:dict:{'Android': '', 'default': 'stable'}
+CHANGE	UpdateSelectionOnNodeInsertion	stable	none	FW:ausente
+CHANGE	WebAnimationsSVG	experimental	none	FW:experimental
+CHANGE	WebAudioBypassOutputBuffering	none	dict:{'Win': 'stable', 'ChromeOS': 'stable', 'Mac': 'stable', 'Linux': 'stable'}	FW:ausente
+CHANGE	WebAuthenticationAlignErrorTypeForPaymentCredentialCreate	none	experimental	FW:ausente
+NEW	AIPageContentPaidContentAnnotation	-	stable	FW:ausente
+NEW	AllowPreloadingWithCSPMetaTag	-	experimental	FW:ausente
+NEW	AsyncSetCookie	-	none	FW:ausente
+NEW	BypassCSPForPreloads	-	none	FW:ausente
+NEW	CSSAttrRawString	-	stable	FW:ausente
+NEW	CSSTypeAgnosticVarFallback	-	stable	FW:ausente
+NEW	CanvasInterventionsOnCpuForTesting	-	none	FW:ausente
+NEW	ClipboardChangeEvent	-	none	FW:ausente
+NEW	DelegatesFocusTextControlFix	-	stable	FW:ausente
+NEW	FewerSubsequences	-	stable	FW:ausente
+NEW	FledgeTrustedSignalsKVv2ContextualData	-	test	FW:ausente
+NEW	HTMLCommandRequestClose	-	experimental	FW:ausente
+NEW	HarfBuzzBufferPool	-	stable	FW:ausente
+NEW	HeadingOffset	-	experimental	FW:ausente
+NEW	LayoutFlexNewRowAlgorithm	-	stable	FW:ausente
+NEW	LayoutMinSizeIndefinite	-	stable	FW:ausente
+NEW	LayoutWebkitBoxTreeFix	-	stable	FW:ausente
+NEW	MulticolColumnWrapping	-	experimental	FW:ausente
+NEW	NoFontAntialiasing	-	test	FW:ausente
+NEW	PointerLockOnAndroid	-	none	FW:ausente
+NEW	PrivateAggregationApiErrorReporting	-	experimental	FW:ausente
+NEW	ReferenceFilterOutputBounds	-	stable	FW:ausente
+NEW	RenderBlockingFullFrameRate	-	test	FW:ausente
+NEW	RestrictGetBoundingClientRectForHiddenSVGElements	-	stable	FW:ausente
+NEW	RootScrollbarFollowsBrowserTheme	-	dict:{'Linux': 'test', 'Win': 'test'}	FW:ausente
+NEW	RoundScrollOffsets	-	stable	FW:ausente
+NEW	RubyFieldsetCrashFix	-	stable	FW:ausente
+NEW	ScrollbarGutterFixedPosBugfix	-	stable	FW:ausente
+NEW	SelectColorsRemoveImportant	-	none	FW:ausente
+NEW	SelectionUpdateToInitialSelectionInListify	-	stable	FW:ausente
+NEW	SelectionVisibilityAfterPaint	-	stable	FW:ausente
+NEW	ShadowRootReferenceTargetAriaOwns	-	none	FW:ausente
+NEW	SpeculationRulesTag	-	stable	FW:ausente
+NEW	TableIsAutoFixedLayout	-	stable	FW:ausente
+NEW	TextAutoSizingDisabledOnFlexbox	-	stable	FW:ausente
+NEW	TextOffsetMapCrashFix	-	stable	FW:ausente
+NEW	TrustedTypesHTML	-	test	FW:ausente
+NEW	UseShadowHostStyleCheckEditable	-	stable	FW:ausente
+NEW	WebGPUAdapterInfoIsFallbackAdapter	-	stable	FW:ausente
+REMOVED	BlinkExtensionDiagnostics	none	-	FW:none
+REMOVED	BoxDecorationBreak	stable	-	FW:stable
+REMOVED	CSSAtPropertyStringSyntax	stable	-	FW:stable
+REMOVED	Canvas2dTextMetricsShaping	experimental	-	FW:ausente
+REMOVED	DeprecateMaxInterStageShaderComponents	none	-	FW:ausente
+REMOVED	DisableAhemAntialias	none	-	FW:none
+REMOVED	DisableSelectAllForEmptyText	stable	-	FW:stable
+REMOVED	DragImageNoNodeId	stable	-	FW:ausente
+REMOVED	FindTextInReadonlyTextInput	experimental	-	FW:experimental
+REMOVED	FontVariantEmoji	stable	-	FW:stable
+REMOVED	FontVariationSequences	stable	-	FW:stable
+REMOVED	FontationsForSelectedFormats	stable	-	FW:stable
+REMOVED	HTMLDialogLightDismiss	stable	-	FW:stable
+REMOVED	JavaScriptCompileHintsMagicAlwaysRuntime	experimental	-	FW:ausente
+REMOVED	JavaScriptCompileHintsMagicRuntime	experimental	-	FW:experimental
+REMOVED	LayoutDisableWebkitBoxQuirks	stable	-	FW:ausente
+REMOVED	LayoutFlexNewRowAlgorithmV3	test	-	FW:test
+REMOVED	LayoutImageForceAspectRatioOfOneOnError	none	-	FW:ausente
+REMOVED	LineBoxBelowLeadingFloats	stable	-	FW:stable
+REMOVED	MouseFocusFlatTreeParent	stable	-	FW:ausente
+REMOVED	OnDeviceChange	stable	-	FW:dict:{'Android': '', 'default': 'stable'}
+REMOVED	PageMarginBoxes	stable	-	FW:experimental
+REMOVED	PaymentInstruments	none	-	FW:none
+REMOVED	ResetInputTypeToNoneBeforeCharacterInput	stable	-	FW:stable
+REMOVED	SelectionOnShadowDOMWithDelegatesFocus	stable	-	FW:stable
+REMOVED	SiteInitiatedMirroring	experimental	-	FW:experimental
+REMOVED	StaticAnimationOptimization	stable	-	FW:experimental
+REMOVED	StorageAccessHeader	experimental	-	FW:ausente
+REMOVED	SvgContextPaint	stable	-	FW:stable
+REMOVED	SvgTspanBboxCache	stable	-	FW:ausente
+REMOVED	SvgViewportOptimization	stable	-	FW:ausente
+REMOVED	TextEmphasisNoPunctuation	stable	-	FW:ausente
+REMOVED	TextTransformAndSecurityFix	stable	-	FW:ausente
+REMOVED	WebAuthenticationLargeBlobExtension	stable	-	FW:stable
