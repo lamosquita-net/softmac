@@ -158,8 +158,34 @@ if [ -n "$BC" ]; then
     for p in "$BC"/patches/third_party-simdutf-*.patch; do [ -e "$p" ] && aplicar "$p"; done
   fi
   for p in "$BC"/patches/v8/*.patch; do
-    # Los de Brave que incluyen código de brave/ (seguimiento de scripts) no compilan fuera de su checkout.
-    if grep -q '//brave/\|"brave/\|BRAVE_' "$p"; then echo "omitido (necesita brave/): $(basename "$p")"; continue; fi
+    # Los trozos que usan código de brave/ (seguimiento de scripts) no compilan fuera de su checkout: se quitan esos
+    # trozos y se aplica el resto, que puede adaptar firmas que otros parches cambian (FS.38: StartDeserializeOffThread
+    # en src-codegen-compiler.cc.patch; D8-LINUX, 30-10).
+    if grep -q '//brave/\|"brave/\|BRAVE_' "$p"; then
+      f="$W/sin-brave-$(basename "$p")"
+      python3 - "$p" "$f" <<'PY'
+import re, sys
+pat = re.compile(r'//brave/|"brave/|BRAVE_')
+out, fich, trozo = [], [], []
+def cerrar_trozo():
+    if trozo and not any(pat.search(l) for l in trozo): fich.extend(trozo)
+    trozo.clear()
+def cerrar_fich():
+    cerrar_trozo()
+    if any(l.startswith('@@') for l in fich): out.extend(fich)
+    fich.clear()
+for l in open(sys.argv[1], encoding='utf-8', errors='surrogateescape').read().splitlines(keepends=True):
+    if l.startswith('diff --git '): cerrar_fich(); fich.append(l)
+    elif l.startswith('@@'): cerrar_trozo(); trozo.append(l)
+    elif trozo: trozo.append(l)
+    else: fich.append(l)
+cerrar_fich()
+open(sys.argv[2], 'w', encoding='utf-8', errors='surrogateescape').write(''.join(out))
+PY
+      if [ -s "$f" ]; then echo "sin los trozos de brave/: $(basename "$p")"; aplicar "$f"
+      else echo "omitido (todo necesita brave/): $(basename "$p")"; fi
+      continue
+    fi
     aplicar "$p"
   done
 fi
