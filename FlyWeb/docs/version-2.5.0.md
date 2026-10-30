@@ -32,6 +32,28 @@ HSTS/CT y declaración 136.0.7103.116 / 2.5.0). Sin compilar. Detalle por commit
 - **CloseWatcher** (d84e5b8b): constructor `(LocalDOMWindow&, WatcherStack&)` y `CreateInternal`.
 - `.mojom` de contadores: `kPrintColorAdjust = 848` y `kTextAutoSizingDisabledOnFlexbox = 5374` (fuera de orden).
 
+## Caída al arrancar con `fw1` (LOCAL-14, 30-10)
+
+La 2.5.0 se caía **siempre** al arrancar: `CHECK(password_sync_bridge_)` en
+`LoginDatabaseAsyncHelper::GetSyncControllerDelegate()` (pila del minidump). Arreglo: brave-core `local/250-arreglos`
+**8ef2fe9cd5** (LOCAL-14; revisado por MOTOR-40), fundido en `nube/motor-137` **aaaaef17**.
+
+- **Causa.** `fw1` (FS.25) enciende `kUseAsyncOsCryptInLoginDatabase`, que la 128 trae **apagada**. Con ella,
+  `Initialize()` de la base de contraseñas espera a que llegue la clave de `os_crypt_async`, y en la 128 el puente de sync
+  de contraseñas se crea **dentro** de `Initialize()`. Sync pide el delegado del puente antes de que llegue la clave: no
+  existe y el `CHECK` mata el navegador. Upstream lo arregló en la 136 separando la creación del puente (al arrancar) de su
+  `Init()` (con la base abierta); el arreglo porta ese reparto. La migración `v10` → `fw1` no cambia: `Initialize()`
+  sigue igual salvo la creación del puente, y el puente se crea siempre (tarea encolada en la secuencia de la base antes
+  de `Initialize()`; si la base no abre, `Init()` sigue informando del error a sync como antes).
+- **Por qué nadie lo vio antes de compilar.** (1) Es un fallo de orden en tiempo de ejecución: solo sale al arrancar un
+  navegador con perfil y sync inicializado; ni `git apply`, ni `fuera.py`, ni la revisión de cifrado de FS.25 (que miró
+  claves, formato y migración, no el arranque de sync) lo podían ver. (2) Según LOCAL-14, la app con `fw1` no se había
+  arrancado nunca hasta esta compilación. (3) Encendimos una función que upstream llevaba apagada en la base: la 128 no
+  probaba ese camino, y el arreglo de upstream (136) es posterior a la base.
+- **Lección (para MOTOR y SEGURIDAD-PORTES):** al encender una `base::Feature` que la base trae apagada, buscar en
+  upstream, entre la base y el Chrome en que se encendió, los commits que toquen el código que esa función controla, y
+  portarlos con ella.
+
 ## Lo que no entra en la 2.5.0 (y por qué)
 
 - F12 `AudioContext` `interrupted`: en Chrome 136 solo lo dispara el camino de visibilidad del marco, tras una función
@@ -53,6 +75,7 @@ HSTS/CT y declaración 136.0.7103.116 / 2.5.0). Sin compilar. Detalle por commit
 
 - `Node.moveBefore()`: mover elementos sin perder su estado (iframes, foco, animaciones).
 - JavaScript: `Float16Array`, `using`/`DisposableStack` y `RegExp.escape`.
+- Arreglada una caída al arrancar con contraseñas guardadas (cifrado propio `fw1`).
 - Arreglada una caída de pestaña con `Float16Array` (al pasarlo a funciones de la página como `crypto.getRandomValues`; venía de la 2.4.0).
 - Anchor positioning con desplazamiento: los elementos anclados recuerdan el desplazamiento al elegir posición
   (`CSSAnchorRememberedScrollOffset`), y `position-area` puede ampliar el bloque contenedor.
