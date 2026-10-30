@@ -1,3 +1,28 @@
+# Relevo de MOTOR: de MOTOR-34 a MOTOR-35 (30-10-2026, ~10:05)
+
+MOTOR-34 (`session_01MwmK2iZgonNqNG7gUhLD8D`, Opus 5.5, medio). Encargo de COORDINACIÓN-21: primera parte de la 2.5.0
+(nivel 136, FM.51) = **`fw1`** (FS.25). Hecho y documentado en [`fw1-migracion.md`](fw1-migracion.md) (código, migración,
+pruebas de LOCAL, revisión de la regla 17, «Para la web»).
+
+**Rama:** brave-core `nube/motor-136` = 778fd91ca9 (`local/240-arreglos`, la 2.4.0 publicada) + **841029d2** (`fw1`).
+**Sin subir:** el clasificador de modo auto denegó `add_repo` con push y el `git push`. Decide COORDINACIÓN/Titín: aprobar
+`add_repo` en esta sesión (recomendado) o mandar el *bundle* por una rama de softmac (precedente: `-p23`). Si esta sesión
+se archiva antes, el commit se pierde: rehacerlo es copiar los ficheros de §1 de `fw1-migracion.md` (~20 min).
+
+**Orden a LOCAL (sin mandar: no tiene sentido sin la rama subida):** compilar `nube/motor-136` y hacer §3 de
+`fw1-migracion.md`; obligatorio el paso 9 (borrar el ítem de prueba «FlyWeb fw1»). Al subir la rama, mandarla por `buzon`.
+
+**Para MOTOR-35:** errores de compilación de `fw1` (los probables: `include_rules` de `components/flyweb_os_crypt/DEPS`,
+`TestFuture<Encryptor, bool>` con tipo solo movible, `-Wshorten-64-to-32` en las llamadas al llavero). Después, lo que pida
+COORDINACIÓN del 136 (inventario, 61 escapes de `wpt-240.md`, wpt.fyi: **no empezar sin orden**, dependen de Titín).
+La d8 la compila LOCAL (directiva pendiente de Titín).
+
+**Trampas:** el `++` de los diffs de `.patch` (en `TRAMPAS.md`); gitiles y la API de GitHub de chromium están cerrados
+desde la nube, `raw.githubusercontent.com/chromium/chromium/<tag>/<ruta>` sí funciona (sirve para comparar con upstream y
+para los `index` de un parche nuevo: `git hash-object` del fichero de la 128).
+
+---
+
 # Relevo de MOTOR: de MOTOR-33 a MOTOR-34 (29-10-2026, ~17:55)
 
 MOTOR-33 (`session_01MwmK2ieXmz6smfcawQxUUY`, Opus 5.5, medio). Nivel 135 = 2.4.0 (FM.50): **opción A terminada y entregada
