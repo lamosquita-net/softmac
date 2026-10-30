@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 136 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 136 de FlyWeb 2.5 (brave-core nube/motor-136, V8 13.6).
+     Abrir en FlyWeb desde http://127.0.0.1; no carga nada de fuera. Cada línea dice ok o FALLO.
+     Comparar con Chrome for Testing 136: lo que allí sale ok tiene que salir ok aquí, salvo la versión declarada. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  #impresion { print-color-adjust: exact; }
+  #attr::after { content: attr(data-x raw-string); }
+  #var { --t: 1px; width: var(--nada, red); }
+  #lc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+</style>
+</head>
+<body>
+<h1>Motor 136 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>A mano</h2>
+<ol>
+  <li>Anchor positioning con desplazamiento: abrir <code>css/css-anchor-position/anchor-scroll-position-try-001.html</code> y
+    <code>position-area-scrolling-005.html</code> de las WPT; tienen que salir como en Chrome 136.</li>
+  <li><code>moveBefore()</code> con un iframe: el botón de abajo mueve el iframe de un lado a otro y el contador de dentro
+    no vuelve a cero (con <code>insertBefore</code> se recargaría).</li>
+</ol>
+<p><button id="mover">moveBefore del iframe</button></p>
+<div id="a"><iframe id="vid" width="160" height="40" srcdoc="<script>let n=0;setInterval(()=>document.body.textContent=++n,500)</script>"></iframe></div><div id="b"></div>
+<p id="impresion">print-color-adjust</p>
+<p id="attr" data-x="1 + 1"></p>
+<p id="var"></p>
+<div id="lc" style="width:6em">uno dos tres cuatro cinco seis siete ocho nueve diez</div>
+<svg width="0" height="0"><a id="svga" href="#" rel="noopener noreferrer"><rect id="r" width="10" height="10"/></a></svg>
+<script>
+  const res = document.getElementById('res');
+  const pinta = (li, nombre, ok, nota) => { li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : ''); };
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li'); res.append(li); pinta(li, nombre, ok, nota);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    pinta(li, nombre, ok, nota);
+  };
+  const cs = (sel, prop, pseudo) => getComputedStyle(document.querySelector(sel), pseudo).getPropertyValue(prop);
+  document.getElementById('ua').textContent = navigator.userAgent;
+
+  document.getElementById('mover').onclick = () => {
+    const v = document.getElementById('vid'), a = document.getElementById('a'), b = document.getElementById('b');
+    (v.parentNode === a ? b : a).moveBefore(v, null);
+  };
+
+  // moveBefore (escapes del 135)
+  prueba('Node.prototype.moveBefore conserva el foco', () => {
+    const d = document.createElement('div'), e = document.createElement('div'), i = document.createElement('input');
+    document.body.append(d, e); d.append(i); i.focus(); e.moveBefore(i, null);
+    const ok = document.activeElement === i; d.remove(); e.remove(); return { ok, nota: `activo: ${document.activeElement && document.activeElement.tagName}` };
+  });
+
+  // V8 13.6 y escapes de V8 del 135
+  prueba('Float16Array y Math.f16round', () => typeof Float16Array === 'function' && Math.f16round(1.337) === 1.3369140625);
+  prueba('RegExp.escape', () => typeof RegExp.escape === 'function' && RegExp.escape('a.b') === '\\x61\\.b');
+  prueba('using / DisposableStack', () => {
+    let hecho = false;
+    new Function('s', '{ using x = { [Symbol.dispose]() { s.hecho = true; } }; }')({ set hecho(v) { hecho = v; } });
+    return typeof DisposableStack === 'function' && hecho;
+  });
+
+  // Blink 136
+  prueba('print-color-adjust sin prefijo; -webkit- es alias', () => {
+    const v = cs('#impresion', 'print-color-adjust');
+    return { ok: v === 'exact' && CSS.supports('-webkit-print-color-adjust', 'exact'), nota: v };
+  });
+  prueba('attr() con raw-string', () => {
+    const v = cs('#attr', 'content', '::after'); return { ok: v === '"1 + 1"', nota: v };
+  });
+  prueba('var() con fallback sin tipo (CSSTypeAgnosticVarFallback)', () => {
+    CSS.registerProperty({ name: '--reg136', syntax: '<length>', inherits: false, initialValue: '0px' });
+    const d = document.createElement('div'); d.style.setProperty('color', 'var(--reg136, red)'); document.body.append(d);
+    const v = getComputedStyle(d).color; d.remove(); return { ok: v === 'rgb(255, 0, 0)', nota: v };
+  });
+  prueba('dynamic-range-limit: no-limit / constrained', () =>
+    CSS.supports('dynamic-range-limit', 'no-limit') && CSS.supports('dynamic-range-limit', 'constrained') &&
+    !CSS.supports('dynamic-range-limit', 'high'));
+  prueba('canvas ctx.lang (CanvasTextLang)', () => {
+    const c = document.createElement('canvas').getContext('2d');
+    const antes = c.lang; c.lang = 'zh-CN'; return { ok: antes === 'inherit' && c.lang === 'zh-CN', nota: antes };
+  });
+  prueba('OffscreenCanvas ctx.lang', () => new OffscreenCanvas(1, 1).getContext('2d').lang === 'inherit');
+  prueba('SVGAElement.rel y relList', () => {
+    const a = document.getElementById('svga'); return a.rel === 'noopener noreferrer' && a.relList.contains('noreferrer');
+  });
+  prueba('isPointInFill({x, y}) con DOMPointInit', () => document.getElementById('r').isPointInFill({ x: 5, y: 5 }));
+  prueba('ProgressEvent.loaded fraccionario', () => new ProgressEvent('p', { loaded: 1.5, total: 3 }).loaded === 1.5);
+  prueba('command="request-close" NO se acepta (como Chrome 136)', () => {
+    const b = document.createElement('button'); b.setAttribute('command', 'request-close'); return { ok: b.command === '', nota: `«${b.command}»` };
+  });
+  prueba('-webkit-box con line-clamp computa flow-root', () => {
+    const v = cs('#lc', 'display'); return { ok: v === 'flow-root', nota: v };
+  });
+  prueba('pow() con argumentos complejos', () => CSS.supports('width', 'calc(pow(2, 3) * 1px)'));
+  pruebaAsync('setTimeout anidado: recorte a 4 ms desde el nivel 6', async () => {
+    let n = 0; const t = []; let p = performance.now();
+    await new Promise((r) => { const f = () => { const a = performance.now(); t.push(a - p); p = a; if (++n < 8) setTimeout(f, 0); else r(); }; setTimeout(f, 0); });
+    return { ok: t.slice(0, 4).every((x) => x < 4), nota: t.map((x) => x.toFixed(1)).join(' ') };
+  });
+
+  // WebGL con las llamadas rápidas de la 2.4.0 ([PassAsSpan] y multi-draw)
+  const gl = (tipo) => {
+    const c = document.createElement('canvas').getContext(tipo);
+    if (!c) return { ok: false, nota: 'sin contexto' };
+    const u = c.getUniformLocation(c.createProgram(), 'x'); c.uniform4fv(u, new Float32Array(4)); c.vertexAttrib4fv(0, [0, 0, 0, 1]);
+    const md = c.getExtension('WEBGL_multi_draw');
+    return { ok: !!md && c.getError() !== undefined, nota: `${c.getParameter(c.VERSION)}; WEBGL_multi_draw: ${!!md}` };
+  };
+  prueba("getContext('webgl') con WEBGL_multi_draw", () => gl('webgl'));
+  prueba("getContext('webgl2') con WEBGL_multi_draw", () => gl('webgl2'));
+
+  // Versión declarada
+  prueba('User-Agent declara Chrome/136', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '136', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+  pruebaAsync('Client hints: 136.0.7103.116 y macOS ≥ 11', async () => {
+    const h = await navigator.userAgentData.getHighEntropyValues(['uaFullVersion', 'platformVersion', 'fullVersionList']);
+    const mayor = parseInt(h.platformVersion, 10);
+    const cr = (h.fullVersionList || []).find((b) => b.brand === 'Chromium');
+    return { ok: h.uaFullVersion === '136.0.7103.116' && mayor >= 11 && !!cr && cr.version === '136.0.7103.116',
+      nota: `${h.uaFullVersion}, macOS ${h.platformVersion}, ${JSON.stringify(navigator.userAgentData.brands)}` };
+  });
+</script>
+<p>No se ve desde una página y lo comprueba LOCAL: V8 13.6 con mjsunit (Maglev sigue apagado; la d8 la compila D8-LINUX),
+la huella de red frente a Chrome 136 (sin cambios de TLS/HTTP2/QUIC respecto del 135, por código), una página con
+<code>Cache-Control: no-store</code> que vuelve del bfcache (<code>pageshow</code> con <code>persisted</code>) salvo si cambian
+las cookies, y que <code>fw1</code> sigue leyendo un perfil de la 2.4.0.</p>
+</body>
+</html>

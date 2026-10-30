@@ -54,6 +54,11 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   de LOCAL de ese tipo se añade como patrón, y `api128.sh <base>` se pasa antes de entregar un nivel (2.4.0, 679e7e5c:
   `MutableCSSPropertyValueSet::Properties()`, `GetCSSValueNameAs<>()`, `InterpolableNumber(const CSSPrimitiveValue&)`).
   Los `.patch` son diffs de diffs: lo añadido a Chromium sale como `++` en `git diff` (MOTOR-34).
+- **(30-10) `patch -F3` (fuzz 3) coloca hunks en la función equivocada sin avisar:** en el 136 metió un bloque de
+  `ViewTransition::InitTypes` en `MatchForActiveViewTransitionType`, uno de `SetContextState` en `GetPeriodicWave` y uno de
+  `AccessNaturalSize` en `ComputeResourcePriority`, porque esas funciones no existen en la 128. Cada «fuzz 3» de `fz3.sh` o
+  `runfz.sh` se revisa con `git show` contra el `@@ … función` del diff de upstream; si no cuadra, `ap3.sh` (fusión a tres
+  bandas) o a mano (MOTOR-36).
 
 ## LOCAL
 

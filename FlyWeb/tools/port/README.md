@@ -376,3 +376,8 @@ flags) y `brave-core` en `nube/base-128-motor`. Los parches son diff `--full-ind
 - **Ficheros borrados por un commit:** `generar128.sh` no los expresa (aviso «borrado del área»). Se dejan como en la 128
   y se quitan de su `.gni` (caso `invoker_element.idl`).
 - **`pkill -f`** vuelve a matar el propio shell: no usarlo.
+- **MOTOR-36:** `runfz.sh <área> <lista>` = `run.sh` + `fz3.sh` en cada parada (sigue si entran todos los `.rej`; revisar
+  cada fuzz 3). `ap3.sh <área> <commit>`: fusión a tres bandas (`git merge-file` con c^ y c de la historia ligera), para
+  refactors donde `git apply` rechaza casi todo; `cres.py <fichero> fw|up|both|@texto…` resuelve los bloques en orden.
+  `pres.sh <commit>…`: ¿está ya en FlyWeb? (`rev=0` sí; `fwd=0` aplica limpio). Las listas se ordenan por posición en
+  `log128-136.txt`, no por fecha.

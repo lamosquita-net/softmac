@@ -4,7 +4,8 @@ MOTOR-35, 30-10-2026. Inventario y estado: `motor-niveles.md` § «Nivel 136»; 
 Declaración prevista: Chrome **136.0.7103.116** (la última Stable de Mac del 136). V8 **13.6.233.10** (5297e56d).
 
 **Rama:** brave-core `nube/motor-136`: 778fd91ca9 (2.4.0) + 841029d2 (`fw1`, entregado a LOCAL) + d3951086, 365bbb4c,
-670f8fa1, ada7223e, 6a78dd41 (MOTOR-35, sin compilar). Falta el resto del Blink del 136, anchor y la declaración.
+670f8fa1, ada7223e, 6a78dd41 (MOTOR-35) + 8bc16792 … **1747f79f** (MOTOR-36: escapes, anchor, Blink del 136, regla 17,
+HSTS/CT y declaración 136.0.7103.116 / 2.5.0). Sin compilar. Detalle por commit en `motor-niveles.md` § «Nivel 136».
 
 ## Dónde puede fallar al compilar
 
@@ -18,9 +19,46 @@ Declaración prevista: Chrome **136.0.7103.116** (la última Stable de Mac del 1
 - **Faltas del cruce:** `element.cc` (`TrustedTypesCheckFor` de 4 argumentos), `color.cc`/`gradient.cc`
   (`ConvertToColorSpaceForInterpolation`), `cc/paint/paint_shader.cc` (`gfx::ClampFloatGeometry`).
 
+- **Anchor** (dff03148, 33 commits): `PhysicalFragment::OofData` con la consulta como `Member` y `EnsureAnchorQuery()`,
+  `LogicalFragmentLink` sigue siendo agregado, `AddOutOfFlowChildCandidate` con `align_self_direction` en medio
+  (llamadores de flex, grid, math y custom: los de 2–4 argumentos no cambian), `LogicalStaticPosition` con campo nuevo,
+  `FragmentBuilder::Finalize()`/`PropagateSizeDependentData()`.
+- **Canvas `lang`** (6f8abd3c): `lang` puesto a mano en los dos IDL de la 128 (no hay `base_rendering_context_2d.idl`);
+  `CanvasRenderingContextHost::GetLocale()` nuevo en `HTMLCanvasElement` y `OffscreenCanvas`.
+- **OffscreenCanvas transferido** (8bc16792 + 6f8abd3c): el serializador escribe locale y dirección; el deserializador los
+  lee en el mismo orden. `SerializedTextDirection*` vive en `serialized_color_params.{h,cc}` (sin el renombrado de upstream).
+- **Fuentes** (e28633a3): `PrimarySimpleFontData` → `…WithSpace/WithDigitZero/WithCjkWater` en `font_fallback_list.h`.
+- **CSS math** (28622769): `CSSMathOperator::kPow` y `CalculationOperator::kPow` (switch sin `default` en `ToString`).
+- **CloseWatcher** (d84e5b8b): constructor `(LocalDOMWindow&, WatcherStack&)` y `CreateInternal`.
+- `.mojom` de contadores: `kPrintColorAdjust = 848` y `kTextAutoSizingDisabledOnFlexbox = 5374` (fuera de orden).
+
+## Lo que no entra en la 2.5.0 (y por qué)
+
+- F12 `AudioContext` `interrupted`: en Chrome 136 solo lo dispara el camino de visibilidad del marco, tras una función
+  apagada; nada observable.
+- F15 (tamaños con % y elementos sustituidos) y parte de F16/F18/F20: exigen infraestructura del 13x que la 128 no tiene
+  (`HTMLImageElementActualNaturalSize`, quirks de `-webkit-box`, refactor del foco delegado, `GetValueIfKnown`). Lista de
+  saltados en cada mensaje de commit.
+- F17 (redondeo de scroll y de paint offset): pide prueba visual; a una 2.5.x solo si una web lo pide.
+- `SplitCacheByCrossSiteMainFrameNavigationBoolean`: la 128 no tiene ni la función ni el código de la clave de caché.
+- `d63e50b22` (nodos de compositor de anchor): `StackScrollTranslationVector` distinto en la 128; caso raro.
+- **Decisiones de Titín (30-10, vía COORDINACIÓN-21):** `::target-text`/Scroll-to-Text-Fragment, **apagado** como en
+  Brave (regla 20): los 3 escapes de `wpt-240` quedan aceptados. HEVC en WebRTC/MediaRecorder, **no se expone** (huella;
+  las Mac de Mojave no tienen HEVC por hardware). Gradientes en espacios amplios: **solo el cuelgue** (f5074d96d: aviso
+  en consola y rechazo del degradado, como Chrome 136); el parche de Skia, cuando una web lo pida.
+  `PartitionVisitedLinkDatabaseWithSelfLinks`: **sí** (privacidad), pendiente de portar (historial y `visitedlink` del
+  navegador, 6–10 h de papel): MOTOR-37.
+
 ## Para la web
 
 - `Node.moveBefore()`: mover elementos sin perder su estado (iframes, foco, animaciones).
 - JavaScript: `Float16Array`, `using`/`DisposableStack` y `RegExp.escape`.
+- Anchor positioning con desplazamiento: los elementos anclados recuerdan el desplazamiento al elegir posición
+  (`CSSAnchorRememberedScrollOffset`), y `position-area` puede ampliar el bloque contenedor.
+- CSS: `print-color-adjust` sin prefijo, `attr(… raw-string)`, `var()` con cualquier fallback en propiedades registradas,
+  `dynamic-range-limit`, colores relativos resueltos tarde, `pow()` con unidades, `-webkit-box` con `line-clamp`.
+- Canvas: `ctx.lang`. SVG: `<a rel>` y `relList`; `isPointInFill({x, y})`. `ProgressEvent` con decimales.
+- Temporizadores anidados como dice la especificación (recorte desde el nivel 6).
+- Las páginas con `Cache-Control: no-store` vuelven al instante con «Atrás» si no han cambiado las cookies.
 - Arreglos de CSS: unidad `ch` en texto vertical, gradientes con componentes ausentes, `flex` con `calc()`, columnas en
   `fieldset`, imágenes rotas sin forzar 1:1.
