@@ -63,6 +63,16 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   `AccessNaturalSize` en `ComputeResourcePriority`, porque esas funciones no existen en la 128. Cada «fuzz 3» de `fz3.sh` o
   `runfz.sh` se revisa con `git show` contra el `@@ … función` del diff de upstream; si no cuadra, `ap3.sh` (fusión a tres
   bandas) o a mano (MOTOR-36).
+- **(30-10) La d8 no caza lo que depende del snapshot de Blink ni de un segundo isolate (workers):** la 2.5.0 (V8 13.6)
+  tumbaba el renderer con cualquier worker porque V8 subía a solo lectura los `v8::External` que el snapshot de Blink 128
+  lleva (`ExternalPointerTable::SetUpFromReadOnlyArtifacts`); D8-LINUX salía en verde (su snapshot no tiene `External`).
+  En cada V8 nueva, mirar los cambios de `src/heap/read-only-promotion.cc` y de las etiquetas de `include/v8-internal.h`
+  contra lo que Blink 128 mete en su snapshot, y pedir a LOCAL una página con un worker en la primera prueba (LOCAL-14,
+  8bec0800e4; en la 13.7 no aplica: `kMatchHost`).
+- **(30-10) Encender una `base::Feature` que la base trae apagada arrastra los arreglos de upstream posteriores:**
+  `fw1` encendió `kUseAsyncOsCryptInLoginDatabase` y la 2.5.0 se caía siempre al arrancar (`CHECK(password_sync_bridge_)`);
+  el arreglo era de la 136. Buscar los commits entre la base y el Chrome que la enciende que toquen su código (LOCAL-14,
+  8ef2fe9cd5; `version-2.5.0.md`).
 
 ## LOCAL
 
