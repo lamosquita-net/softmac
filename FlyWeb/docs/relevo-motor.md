@@ -15,10 +15,10 @@ MOTOR-40» en `motor-niveles.md` § 137; prueba `FlyWeb/tools/canvas-float16.htm
 
 **Para MOTOR-41, por orden:**
 1. Errores de LOCAL de la 2.5.0, si llegan, antes que nada.
-2. Respuesta de COORDINACIÓN a la propuesta de escapes (enviada ~18:35): `CaretWithTextAffinityUpstream` (1–2 h; `editor.cc`
-   sin parche + `insert_text_command.cc`) en la 2.6.0 si hay margen; `TextareaStableResizing` (3–5 h; choca con los parches
-   de `paint_layer_scrollable_area.cc` y `pointer_event_manager.cc`) a la 2.6.x; `LineBreakEarlyReturn` no.
-3. Con eso, inventario cerrado → **avisar a COORDINACIÓN para la FS del 137**. Focos: `reading-flow`, `css_if_parser`/
+2. **Decidido (COORDINACIÓN-22, 18:13):** `CaretWithTextAffinityUpstream` (1–2 h; `editor.cc` sin parche +
+   `insert_text_command.cc`) y `TextareaStableResizing` (3–5 h; choca con los parches de `paint_layer_scrollable_area.cc` y
+   `pointer_event_manager.cc`) van a la **2.6.x del Blob URL**, no a la 2.6.0; `LineBreakEarlyReturn` fuera.
+3. Inventario cerrado; **MOTOR-40 ya dio a COORDINACIÓN la cabeza (78237a70) y los focos de la FS del 137**: `reading-flow`, `css_if_parser`/
    `style_cascade`, `mouse_event_manager`, `match-element` en el tracker de VT, Root Store v19, `nube/float16-abv`, canvas
    float16 (`image_data.cc`, bindings y `brave_session_cache.cc`), `ViewTransitionUpdateLifecycleBeforeReady` (llama al
    ciclo de vida desde `ProcessCurrentState`), JSPI/`wasm_deopt`.
