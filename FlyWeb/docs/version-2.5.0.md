@@ -54,6 +54,16 @@ La 2.5.0 se caía **siempre** al arrancar: `CHECK(password_sync_bridge_)` en
   upstream, entre la base y el Chrome en que se encendió, los commits que toquen el código que esa función controla, y
   portarlos con ella.
 
+## Contraseñas nuevas seguían en `v10` (LOCAL-14, 30-10)
+
+Con `fw1`, las cookies ya salían con la clave `fw1`, pero Login Data seguía escribiendo `v10`: el backend de contraseñas de
+la 128 pide a `os_crypt_async` `Option::kEncryptSyncCompat` (la clave compatible con OSCrypt, `v10`). Arreglo: brave-core
+`local/250-arreglos` **096c7d72f0**, `Option::kNone` en Mac (lo que hace `kUseNewEncryptionMethod` en la 136); fundido en
+`nube/motor-137` **127fd8bb** (revisado por MOTOR-40). Lo existente en `v10` se sigue leyendo (sin prefijo `fw1`,
+`Encryptor::DecryptData` cae a `OSCrypt::DecryptString`) y solo pasa a `fw1` cuando se modifica; si la clave `fw1` no
+carga, se cifra en `v10` como antes. Sync no cambia (viaja en claro hacia el cifrado de sync). Nada visible, salvo que
+**volver a la 2.4.0 deja ilegibles las contraseñas guardadas o cambiadas con la 2.5.0** (igual que las cookies).
+
 ## Caída del renderer con cualquier worker (LOCAL-14, 30-10)
 
 `CHECK_EQ(handle, registry_entry.handle)` en `ExternalPointerTable::SetUpFromReadOnlyArtifacts` al crear el segundo
