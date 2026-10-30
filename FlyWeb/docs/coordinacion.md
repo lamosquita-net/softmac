@@ -41,6 +41,8 @@ wpt.fyi queda fijo; (3) BackupDrive (sus 3 decisiones, sin cambios).
 
 **Hecho el 30-10 (COORDINACIÓN-21):** 2.4.0 (nivel 135, build 36) **publicada**: appcast `/stable/` en 169.168.36 (mínimo 10.14.0), DMG 175237299 B y SHA-256 `81d4130f…1d63` comprobados, web en main (#633) y servida (portada, novedades y `descargas/` con el SHA bueno). Cierre de FM.49/FM.50 y CAMBIOS en #634. MOTOR-34 (`session_01MwmK2iZgonNqNG7gUhLD8D`) abierta para `fw1` (FM.51), sin compilar V8 en la nube. COORDINACIÓN-20 archivada (23,7 $).
 
+**30-10, d8 en el Ubuntu de Titín (decisión 1):** D8-LINUX-1 compiló la d8 13.5.212.10 de `nube/motor-136` 841029d2 en 6 min 37 s y pasó mjsunit en 17 s: 7656/7657 (solo `maglev/extras-cped`); hay 25 pruebas menos que en la 7,1, sin explicar (¿sin Intl?). **Pendiente:** meter en `v8-d8.sh` lo que hizo a mano para la 13.5 (simdutf con `patches/third_party-simdutf-*`, highway 00fe003d en `third_party/highway/src`, `v8_enable_partition_alloc = false`) y que se pueda relanzar sobre un árbol ya parcheado. Cruce con wpt.fyi: fijo (decisión 2).
+
 **Siguiente (2.5.0 = nivel 136):** abrir MOTOR-34 solo tras publicar la 2.4.0. Primero `fw1`, con `fw1-receta.md`, la
 migración `v10` → `fw1` probada por LOCAL sobre un perfil envejecido y la regla 17; después los 61 escapes de `wpt-240.md`
 (29 moveBefore, 15 anchor con scroll) y el inventario del 136 con el cruce de wpt.fyi. Maglev: la deuda está al día con la
