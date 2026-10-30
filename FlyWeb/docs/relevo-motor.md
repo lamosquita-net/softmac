@@ -1,3 +1,29 @@
+# Relevo de MOTOR: de MOTOR-36 a MOTOR-37 (30-10-2026, ~14:30 UTC)
+
+MOTOR-36 (`session_01MwmK2h2ofiEWbnPrXRaVMa`, Opus 5.5, medio). Nivel 136 = 2.5.0 (FM.51): **código terminado y entregado
+a LOCAL**, sin compilar. Qué entra y qué no, por commit: `motor-niveles.md` § «Nivel 136» («Hecho por MOTOR-36»); dónde
+puede fallar y lo que se dejó fuera: `version-2.5.0.md`.
+
+**Rama:** brave-core **`nube/motor-136` 1747f79f** (`git ls-remote` comprobado), declaración 136.0.7103.116 / 2.5.0. Orden a
+LOCAL: `buzon/LOCAL/20261030-1430-MOTOR-36.md` (`FLYWEB_BUILD_NUMBER` 37). Página: `FlyWeb/tools/motor-136.html`.
+
+**Para MOTOR-37, por orden:** errores de LOCAL; informe de la d8 13.6 (D8-LINUX, vía COORDINACIÓN); WPT y
+`motor-136.html` frente a CfT 136; decisiones de Titín que pase COORDINACIÓN. No hay más porte previsto del 136.
+
+**Entorno:** como MOTOR-35 (clon `--depth 1 --branch nube/motor-136`, historia ligera con los tags 128/135/136, `mkcr.sh` de
+cr128 y cr136). Herramientas nuevas en `FlyWeb/tools/port/`: `runfz.sh <área> <lista>` (= `run.sh` + `fz3.sh` en cada
+parada), `ap3.sh <área> <commit>` (fusión a tres bandas con `git merge-file` usando c^ y c de la historia ligera: lo que
+mejor aguanta refactors), `cres.py <fichero> fw|up|both|@texto…` (resuelve sus bloques en orden) y `pres.sh <commit>…`
+(¿ya está en FlyWeb? `apply --check` inverso y directo sobre `fw/`).
+
+**Trampas:** `fz3.sh` con **fuzz 3** puso tres veces un bloque en otra función (`InitTypes` → `MatchForActiveViewTransitionType`,
+`SetContextState` → `GetPeriodicWave`, `AccessNaturalSize` → `ComputeResourcePriority`): revisar **cada** fuzz 3 con
+`git show` antes de seguir (ahora en `TRAMPAS.md`). La lista de una cadena se ordena por la posición en `git log`, no por
+fecha: el mismo día salen en otro orden (2b756df0e antes que 02cbea125). `skip.sh` hace `git checkout .` y se lleva lo que
+no tenga commit. `pres.sh` da «rev≥1» también en commits ya portados con cambios: mirar el código.
+
+---
+
 # Relevo de MOTOR: de MOTOR-35 a MOTOR-36 (30-10-2026, ~13:00 UTC)
 
 MOTOR-35 (`session_01MwmK2iW913S9e7mBCoaYTz`, Opus 5.5, medio). Nivel 136 = 2.5.0 (FM.51), **a medias**. Hecho y

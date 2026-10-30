@@ -2093,34 +2093,33 @@ en real. Fuera de Blink: huella TLS/HTTP2/QUIC/Client Hints sin cambio observabl
 | ada7223e | `--js-float16array`, `--js-explicit-resource-management` y `--js-regexp-escape` desde gin, como Chromium 135/136 (**escape del 135**: la 2.4.0 declaraba 135 sin `Float16Array` ni `using`) |
 | 6a78dd41 | faltas (c), 2.ª tanda: 16 commits (lista en el mensaje); 7 saltados por infraestructura del 13x (1–2 pruebas cada uno) |
 
-**Pendiente del 136 (para MOTOR-36), por orden:**
-1. Errores de compilación de LOCAL (primero `fw1` 841029d2; después lo de arriba). Los más probables: el CppHeap
-   (`thread_state`, `v8_per_isolate_data`, workers), `TrustedTypesCheckFor` en `element.cc`, `kMoveBeforeAPI` en el
-   mojom de WebDX, `ConvertToColorSpaceForInterpolation`.
-2. d8 13.6 de D8-LINUX (encargo enviado a COORDINACIÓN con 670f8fa1): si mjsunit baja de la base, mirar primero
-   `rewriter.cc`, `shared-function-info` y la serie de Maglev.
-3. Escapes restantes de `wpt-240.md`: **anchor con scroll** (15; `CSSAnchorRememberedScrollOffset` y la cadena de anchor
-   132–136, más 628b74a88 y bab3300ad del 136) y los 17 sueltos (highlights, `text-emphasis`, `webkit-box`, gradientes en
-   espacios predefinidos —0d9a69115 necesita los `sk_colorspace` de Skia de 2025—, `dir`, `innerText`, render-blocking).
-   Causas por prueba: [`wpt-240-causas.md`](wpt-240-causas.md). A portar, en orden: f5074d96d (quita el cuelgue de los
-   gradientes en espacios predefinidos; las pruebas siguen fallando sin 0d9a69115 + Skia), 8183c1f69 → 482ca309f →
-   cd28cb10c (`dir=auto`), ae3880348 + 6f3ca1eaf (`innerText` con `::first-line`, flag
-   `ElementInnerTextHandleFirstLineStyle`), dba2b53e9 (`TextEmphasisNoPunctuation`), 7a6ed3a2c + c0159ab76 (highlights;
-   quitar `search_text_is_active_match` a mano), bf1511e11 (dirección del canvas al worker), 4cc57d9a2
-   (`CSSLineClampWebkitBoxBlockification`, riesgo medio, el último). **Los 3 de `::target-text` no son de Blink:** Brave
-   apaga Scroll-to-Text-Fragment (`kTextFragmentAnchor` y la pref `kScrollToTextFragmentEnabled`): decisión de producto
-   (regla 20), no porte. render-blocking 032/038 y `kind-of-widget`: sin causa (032 y `kind-of-widget`, intermitentes).
-4. Blink del 136 (informe abajo, §10): flips y CSS pequeños, `CanvasTextLang`, `SvgAnchorElementRelAttributes`,
-   `TimeClamper`/`StandardizedTimerClamping` (huella), `AudioContextInterruptedState`, layout, bloque calc, selección y
-   fuentes, redondeo de scroll. **No tomar** c6f0a7262 (select, Chrome lo apagó en M136). `HTMLCommandRequestClose`: el
-   136 lo deja `experimental`; FlyWeb lo tiene encendido desde el 135 → apagarlo.
-5. Fuera de Blink (informe abajo): `SplitCacheByCrossSiteMainFrameNavigationBoolean` y
-   `CacheControlNoStoreEnterBackForwardCache` a ON; HSTS y `log_list.json` de la 136; parche de
-   `NoReferrerForPreloadFromSubresource` (bug 415810136); **decidir** HEVC en WebRTC/MediaRecorder (huella de
-   `getCapabilities`; a COORDINACIÓN/Titín) y `PartitionVisitedLinkDatabaseWithSelfLinks`.
-6. Regla 17: pedir a SEGURIDAD-PORTES la FS del 136 con `nivel136-regla17.tsv` (94 commits) y el sha final.
-7. Al cerrar: declaración 136.0.7103.116 / 2.5.0 en `build/config.gni` (`FLYWEB_BUILD_NUMBER` 37), `motor-136.html`
-   (`moveBefore`, `Float16Array`, `RegExp.escape`, `using`, `print-color-adjust`, `ctx.lang`), orden a LOCAL por el buzón.
+**Hecho por MOTOR-36 (`nube/motor-136`, sin compilar; 66 + 79 parches comprobados con `chk128.sh`):**
+| Commit | Qué |
+|---|---|
+| 8bc16792 | 11 escapes sueltos de `wpt-240`: f5074d96d (cuelgue de gradientes en espacios amplios: aviso y rechazo), `dir=auto` (8183c1f69 482ca309f cd28cb10c), `innerText` con `::first-line` (ae3880348 6f3ca1eaf), `TextEmphasisNoPunctuation` (dba2b53e9), highlights (7a6ed3a2c c0159ab76), dirección del OffscreenCanvas en workers (bf1511e11; ba17fa15d ya estaba), `CSSLineClampWebkitBoxBlockification` (4cc57d9a2) |
+| dff03148 | **anchor con scroll** (15 escapes): 33 commits 132–136 en orden de historia, `CSSAnchorRememberedScrollOffset` stable; 2b756df0e y b75a8aa4b por fusión a tres bandas (`ap3.sh`). Saltados: 9a3fe1090 (ya), a80abbd9a/bbcda52cd (par revertido), d63e50b22 (compositor) |
+| 2ca5a279 | F01 `print-color-adjust`, F02 `var()` sin tipo, F03 `attr()` raw-string, F04 `dynamic-range-limit` (palabras nuevas; mezcla binaria de FlyWeb), F13 click capturado, F22 `request-close` tras `HTMLCommandRequestClose` (experimental) |
+| ab14c905 | F07 `SVGAElement.rel/relList`; F10 `StandardizedTimerClamping` + 03fa95f4e (`TimeClamper`) |
+| 6f8abd3c | F06 `ctx.lang` (IDL a mano en los dos contextos de la 128) |
+| d287a07a | F05 colores relativos resueltos tarde |
+| 597b30b0 | F14 `LayoutFlexNewRowAlgorithm`; F16 `TableIsAutoFixedLayout`, `RestrictGetBoundingClientRectForHiddenSVGElements`, `TextAutoSizingDisabledOnFlexbox` |
+| e28633a3 | F18/F19: fallback de `ch`/`ic` sin «0»/«水», `src:local("")`, rangos de variables (f9458ac19), edición en shadow host, `<br>`, listify |
+| 28622769 | F20: `pow()` complejo, arreglo de choque de `ConsumeNumberRaw`, longitudes en `text-size-adjust`/porcentajes, formas básicas, `SVGLength` |
+| d84e5b8b | regla 17 (§9): 0758480be a31e9e490 3d52f68a6 d6b334758 a507cda33 0d519d0aa d26593a94 |
+| 4e259ef8 | HSTS, pins y `log_list.json` de la 136; `CacheControlNoStoreEnterBackForwardCache` con el nivel del 136 |
+| 1747f79f | declaración 136.0.7103.116 / 2.5.0 (`FLYWEB_BUILD_NUMBER` 37 en la orden de LOCAL) |
+
+**No entran (motivo en cada commit y en `version-2.5.0.md`):** F12, F15, F17, `SplitCacheByCrossSite…`, d63e50b22, y
+los commits de F16/F18/F20/§9 que piden infraestructura del 13x (`GetValueIfKnown`, quirks de `-webkit-box`, `HashTrie`,
+`InitTypes`…). 511088344 (`SetSinkIdResolver`) queda para SEGURIDAD-PORTES: la 128 es anterior al refactor.
+
+**Pendiente del 136 (para MOTOR-37):**
+1. Errores de compilación de LOCAL (orden `buzon/LOCAL/20261030-*-MOTOR-36.md`, sha 1747f79f). Los probables, en
+   `version-2.5.0.md` § «Dónde puede fallar».
+2. d8 13.6 de D8-LINUX (si mjsunit baja: `rewriter.cc`, `shared-function-info`, Maglev).
+3. Resultados de `motor-136.html` y WPT frente a CfT 136; lo que escape, a una 2.5.x o al 137 (regla 18).
+4. Regla 17: COORDINACIÓN pide a SEGURIDAD-PORTES la FS del 136 (`nivel136-regla17.tsv`, sha 1747f79f).
+5. Decisiones de Titín (STTF, HEVC, `:visited` con self-links, gradientes en espacios amplios) cuando lleguen.
 
 **Coste del cruce wpt.fyi (directiva fija):** ~6 min de reloj, 5 consultas HTTP, un subagente Sonnet (137 000 tokens,
 ~1–2 $). Dio 84 pruebas (c) en ~45 causas con commit; portadas 26 en ~1 h de sesión, 7 saltadas.
