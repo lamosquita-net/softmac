@@ -36,6 +36,20 @@ Declaración prevista: Chrome **137.0.7151.122** (la última Stable de Mac del 1
 - **`offset-path: shape()`** (d20bb0ed): `ShapeOffsetPathOperation` con `scoped_refptr` (`std::move(shape)`);
   `NOTREACHED_NORETURN()` de la 128.
 - **AudioWorklet** (2afdbe36): `ToV8Traits<AudioWorkletProcessor>` y `V8AtomicString` en `audio_worklet_processor.cc`.
+- **CSS `if()`** (ce442bec, MOTOR-38, a mano): `CSSIfParser` sobre stream pero con los parsers de media/container **por
+  rango** de la 128 (`ConsumeBlockContentsAsRange` re-tokeniza el bloque, como `@media`); `MediaQueryParser` hace
+  `friend class CSSIfParser` (constructor privado en la 128); `KleeneValue` pasa a `kleene_value.h`;
+  `css_variable_parser.cc` construye un `CSSParserContext` desde el `ExecutionContext`; `StyleCascade` con
+  `CSSTokenizer` + `CSSParserTokenStream(tokenizer)` (no hay `CSSParserTokenStream(String)` en la 128) y
+  `ResolveTokensInto` sobrecargado con `stop_type`; `SetAffectedByFunctionalMedia` sale del json5 de campos extra.
+  Prueba: `if(media(width > 0px): green; else: red)`, `if(style(--x: 1): …)`, `if(supports(display: grid): …)`.
+- **`reading-flow`/`reading-order`** (f4b4d1ec): `Element::ReadingFlowChildren` (foco y AX); `ReadingFlowNodes` en lugar
+  de `ReadingFlowElements` en layout; `CSSSampleId::kReadingOrder = 839`; `AXNodeObject::AddNodeChildren` sin
+  `IsAddedOnlyViaSpecialTraversal` (13x). Toca el foco con Tab: probar Tab en un flex con `reading-flow: flex-visual`.
+- **Selección en Shadow DOM** (5abcd0cc): `getComposedRanges` (IDL nuevo `get_composed_ranges_options.idl`, en
+  `idl_in_core.gni`/`generated_in_core.gni`), `UpdateSelectionBehavior` en `Range`; `HandleMouseFocus` y
+  `SelectionHasFocus` suben por el árbol plano (forma final de la 137, sin las flags que upstream quitó);
+  `WebFeature` 5040/5041.
 
 ## Para la web
 

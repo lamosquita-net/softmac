@@ -2576,7 +2576,19 @@ que la 128 no tiene (ver «Pendiente del 137»). Nada exige AVX ni APIs de 10.15
 | e14354b1 | arreglos que nacen stable: 0ed040ec0, 9c525476b + c2186af2a (`<use>` a raíz externa), 7ffa5b3a3, 768a189b0, 09c66878c, 0985ff647, a83881e2d, e423ccef7. Saltados: 430520313 (solo el flip de `SvgTransformOnNestedSvgElement`), 4c7536927 y d7020222f (ya estaban), 88a83e3a4 (camino de la 128 distinto), 0207b9d2a (line-clamp del 13x) |
 | dea5f3eb | `HandleScope` en `ScriptState::DisposePerContextData` (como Chromium 137) |
 
-**Pendiente del 137 (para MOTOR-38), por orden:**
+**Hecho por MOTOR-38 (`nube/motor-137`, sin compilar; `chk128.sh` en verde en cada commit):**
+| Commit | Qué |
+|---|---|
+| ce442bec | **CSS `if()`** con `style()`, `media()` y `supports()` (cadena de 19 commits, a mano): ficheros nuevos de la 137 (`if_condition.*`, `css_if_eval.h`, `kleene_value.h`, `media_eval_utils.h`, `parser/css_if_parser.*`); los bloques de `media()`/`style()` se pasan **por rango** a los parsers de la 128 (`MediaQueryParser::ConsumeIfMediaTest`, `ContainerQueryParser::ConsumeIfStyleQuery`); media funcional de 1ddf33edab (`StyleEngine::EvaluateFunctionalMediaQuery`, invalidación, `AffectedByFunctionalMedia`, fuera de la MPC); `EvalIfInitial/Inherit` seguros con nulos (la 137 desreferencia los dos lados). Flags `CSSInlineIfFor{Media,Style,Supports}Queries` stable |
+| f4b4d1ec | **`reading-flow`/`reading-order`** (11 commits; f9acfd178d, contador WebDX, fuera): `Element::ReadingFlowChildren`, nodos en vez de elementos, tabindex, `display: contents`, `reading-order` y `source-order`. A mano: flex queda como la 128 (= 137 tras e278a7b657), grid y AX como la 137 sobre estructuras de la 128. Flags `CSSReadingFlow`/`CSSReadingOrder` stable. Regla 17: foco |
+| 5abcd0cc | **Selección a través de Shadow DOM**: `getComposedRanges`, `direction`, `UpdateSelectionBehavior`/`CollapseIfNeeded` (91084df601, bdeda3f178, 5c67432271, 293ab78a94, 74bc8664c7, 518f88cf9a, 4b1cbba41a, a485c783d8); foco y selección con ratón por el árbol plano en su forma final (b82f00e345, 0ecd2fcf04, d331873629, 7cc78c603a); `SelectionAcrossShadowDOM` stable. Ya estaban: bea8eb7a19, e16c86f61d, 15d4924b21, c8a1a5f70f |
+
+**Pendiente del 137 (para MOTOR-39), por orden** (los puntos 2 a 4 de MOTOR-37 están hechos arriba):
+0. **`EnterInOpenShadowRoots`** (FW: `test`; la 137.0.7151.122 la lleva **stable** aunque main la bajó a `test` el 14-04,
+   3efb9e44bb: se volvió a subir en la rama). Falta en FlyWeb su uso en `apply_style_command.cc` (9c070c13a5 u otro;
+   buscarlo) antes de subirla a stable. ~30 min.
+
+**Pendiente del 137 que dejó MOTOR-37 (historial):**
 1. Errores de la compilación de la 2.5.0 (si llegan) y el informe de la d8 13.7 (D8-LINUX, sha cc6ec885b7 o posterior).
 2. **CSS `if()`** (A01, 3 WPT): la cadena (19 commits, `if.lst` abajo) choca con el parser de media/container queries por
    **rangos** de la 128 (la 137 los parsea por *stream*). Intento a medias en el área `w-if` (descartado): sirvió para
