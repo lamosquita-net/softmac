@@ -2596,8 +2596,8 @@ que la 128 no tiene (ver «Pendiente del 137»). Nada exige AVX ni APIs de 10.15
 - `maglev/extras-cped`: fallo esperado (Maglev apagado por parche); detalle en `version-2.6.0.md`.
 - **`DocumentIsolationPolicy`: Brave 1.79 (v1.79.126) no la apaga** (0 referencias en `chromium_src`, `app`, `browser`,
   `components`). Pero en Chrome 137 la de Blink es `experimental` con `origin_trial_feature_name` (solo por origin trial);
-  la `base::Feature` de red está activa en Mac. Portada o no, ninguna web la ve en la 2.6.0 → va con Blob URL en la 2.6.x
-  (opción ya decidida), sin urgencia.
+  la `base::Feature` de red está activa en Mac. Ninguna web la ve → **no se porta, tampoco en la 2.6.x** (COORDINACIÓN-22,
+  30-10; directiva del 22-10); se reabre cuando Chrome la saque en stable. En la 2.6.x va solo el Blob URL.
 - **`SvgTransformOnNestedSvgElement`: saltada** (1 WPT). En la 137 la usan `layout_svg_viewport_container.cc` y
   `layout_svg_container.cc` sobre la dependencia del viewport de los 13x (`SVGLayoutResult::has_viewport_dependence`,
   `HasViewportDependence()`), que la 128 lleva como bit de `LayoutObject`; portarla exige ese refactor de SVG.
