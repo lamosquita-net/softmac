@@ -205,10 +205,19 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **LOCAL compila la siguiente mientras prueba en la 6,1** (Titín, 27-10): las pruebas van a la 6,1, así que la 7,1
   compila la versión siguiente en cuanto la anterior está compilada y guardada su app y su DMG. Sigue habiendo una sola
   compilación a la vez.
-- **Las faltas, antes de compilar** (Titín, 29-10; a prueba en el 135): MOTOR cruza el inventario de cada nivel con lo que
+- **La d8 se compila en el Ubuntu de Titín, nunca en la nube** (Titín, 30-10): los portes de V8 se prueban con la d8 de
+  Linux x64 y mjsunit que compila **D8-LINUX** en el PC de Titín (i9 de 13.ª gen, 32 hilos, Ubuntu 26.04; arranque dual,
+  solo cuando está en Ubuntu). La nube escribe el código y no compila V8; si el Ubuntu está apagado, la compila LOCAL.
+  Motivo: SEGURIDAD-PORTES-13 costó 96 $ (frente a 17 $ de la -12) por esperar horas a la d8 en la nube; en el Ubuntu,
+  la 13.5 compila en 6 min 37 s (`ninja -j32`) y mjsunit tarda 17 s. Esa máquina solo compila y prueba: sin push, sin
+  llaves y sin datos de Titín; instala paquetes solo con `sudo apt-instalar` (envoltorio de Titín, nunca `apt-get`).
+  Se compara cada porte con la base de la misma máquina (13.5.212.10: mjsunit 7656/7657, solo falla
+  `maglev/extras-cped`), no con las cifras de la 7,1 (7681/7682; las 25 de diferencia, sin explicar). Los mensajes de
+  la nube no le llegan: los encargos se los pasa Titín y sus informes llegan reenviados.
+- **Las faltas, antes de compilar** (Titín, 29-10; **fija desde el 30-10**, tras el 135: 11 min, 1–2 $ y 68 faltas encontradas): MOTOR cruza el inventario de cada nivel con lo que
   Chrome N pasa en WPT y Chrome N−1 no (wpt.fyi), y porta esas faltas y los escapes del nivel anterior antes de entregar.
   LOCAL se centra en errores de compilación y en los fallos que salgan después (caídas, webs reales). Se mide el coste en
-  MOTOR frente a los escapes que ahorra y se decide con el dato. Caso: los 16 escapes WPT de la 2.3.0 (`wpt-230-investigacion.md`).
+  MOTOR frente a los escapes que ahorra. Caso: los 16 escapes WPT de la 2.3.0 (`wpt-230-investigacion.md`).
 - **MOTOR, hasta dos niveles por delante de lo compilado** (Titín, 07-10, 27-10 y 28-10): es el máximo, no una espera; MOTOR
   avanza sin pararse hasta llegar a él. INVESTIGACIÓN va por delante de MOTOR, hasta
   el 141 y después del 142 al 156: recetas por nivel, con la traducción a Mojave de lo que cada Chrome exige de macOS
