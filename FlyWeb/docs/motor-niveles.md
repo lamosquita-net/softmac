@@ -2583,6 +2583,25 @@ que la 128 no tiene (ver «Pendiente del 137»). Nada exige AVX ni APIs de 10.15
 | f4b4d1ec | **`reading-flow`/`reading-order`** (11 commits; f9acfd178d, contador WebDX, fuera): `Element::ReadingFlowChildren`, nodos en vez de elementos, tabindex, `display: contents`, `reading-order` y `source-order`. A mano: flex queda como la 128 (= 137 tras e278a7b657), grid y AX como la 137 sobre estructuras de la 128. Flags `CSSReadingFlow`/`CSSReadingOrder` stable. Regla 17: foco |
 | 5abcd0cc | **Selección a través de Shadow DOM**: `getComposedRanges`, `direction`, `UpdateSelectionBehavior`/`CollapseIfNeeded` (91084df601, bdeda3f178, 5c67432271, 293ab78a94, 74bc8664c7, 518f88cf9a, 4b1cbba41a, a485c783d8); foco y selección con ratón por el árbol plano en su forma final (b82f00e345, 0ecd2fcf04, d331873629, 7cc78c603a); `SelectionAcrossShadowDOM` stable. Ya estaban: bea8eb7a19, e16c86f61d, 15d4924b21, c8a1a5f70f |
 
+**Hecho por MOTOR-39 (`nube/motor-137`, sin compilar; parches regenerados en fuente desde 128.0.6613.138 y comprobados con `git apply`):**
+
+| Commit | Qué |
+|---|---|
+| 331b25b6 | merge de `local/250-arreglos` 44d92a8611 (arreglos de LOCAL-14 de la 1.ª pasada de la 2.5.0); `style_builder_converter.cc`, `element.h` y `out_of_flow_layout_part.cc` resueltos con merge a 3 vías sobre la fuente |
+| 92748597 | `EnterInOpenShadowRoots` stable + su uso en `ApplyStyleCommand::ApplyBlockStyle` (el único que faltaba; en la 137 la flag sale en 4 ficheros: los otros 3 ya estaban) |
+| 18dc7d4a | **Root Store v19** compilado (118 anclas, −17 raíces): `root_store.{certs,md}` de la 137; el `textproto` sin `additional_certs`/`eutl` (solo alimentan QWAC, apagado; el proto de la 128 no los tiene). El componente del espejo sigue mandando si su `version_major` es mayor (`cert_verifier_service_factory.cc:310`) |
+| c1e082f4 | **VT `view-transition-name: match-element`** a mano: keyword guardada como `ScopedCSSName` con nombre reservado (`view_transition_match_element.h`), el tracker la cambia por `-ua-auto-<token>-<DOMNodeId>` como la 137. `CSSViewTransitionMatchElement` stable; `auto` sigue fuera (experimental en la 137) |
+
+**Resueltos sin código (MOTOR-39):**
+- `maglev/extras-cped`: fallo esperado (Maglev apagado por parche); detalle en `version-2.6.0.md`.
+- **`DocumentIsolationPolicy`: Brave 1.79 (v1.79.126) no la apaga** (0 referencias en `chromium_src`, `app`, `browser`,
+  `components`). Pero en Chrome 137 la de Blink es `experimental` con `origin_trial_feature_name` (solo por origin trial);
+  la `base::Feature` de red está activa en Mac. Portada o no, ninguna web la ve en la 2.6.0 → va con Blob URL en la 2.6.x
+  (opción ya decidida), sin urgencia.
+- **`SvgTransformOnNestedSvgElement`: saltada** (1 WPT). En la 137 la usan `layout_svg_viewport_container.cc` y
+  `layout_svg_container.cc` sobre la dependencia del viewport de los 13x (`SVGLayoutResult::has_viewport_dependence`,
+  `HasViewportDependence()`), que la 128 lleva como bit de `LayoutObject`; portarla exige ese refactor de SVG.
+
 **Pendiente del 137 (para MOTOR-39), por orden** (los puntos 2 a 4 de MOTOR-37 están hechos arriba):
 1. **Hecho (MOTOR-39): fallo esperado, por el parche que apaga Maglev; explicación en `version-2.6.0.md`.** **d8 13.7 (D8-LINUX, cc6ec885): en verde salvo `mjsunit/maglev/extras-cped`** (assertTrue en `extras-cped.js` 39:1;
    pasa en la base 13.7.152.17 y falla con nuestros parches, igual que en la 13.6). Cifras: base 7756/7756; parcheada
