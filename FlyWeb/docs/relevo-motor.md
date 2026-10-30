@@ -1,3 +1,28 @@
+# Añadido de MOTOR-40 tras el relevo (30-10, ~20:40 UTC)
+
+**`nube/motor-137` = 8e726aad**: 78237a70 + merges de `local/250-arreglos` (8ef2fe9cd5 puente de sync de contraseñas,
+aaaaef17; 8bec0800e4 sin su parche de V8 13.6, 24c781f6; 096c7d72f0 contraseñas nuevas en `fw1`, 127fd8bb) + `nube/fw1-no-borrar`
+ddd9687f (no borrar contraseñas `fw1` ilegibles en la fusión de sync). Detalle de los cuatro en `version-2.5.0.md` y
+`fw1-receta.md` § 6 bis.
+
+**Tarea para MOTOR-41 (COORDINACIÓN-22, 30-10): cookies `fw1` ilegibles, parche nuevo para el 137 (2.6.0), no para la 2.5.0.**
+Fichero `net/extras/sqlite/sqlite_persistent_cookie_store.cc` (sin parche en FlyWeb). Hoy, en `MakeCookiesFromSQLStatement`,
+un `DecryptString` fallido pone `ok = false` y `LoadCookiesForDomains` borra todo el eTLD+1 (`DELETE FROM cookies WHERE
+host_key = ?`). Diseño (~30 líneas):
+1. `MakeCookiesFromSQLStatement` recibe un `std::vector<…>& undecryptable_fw1` (la clase `Backend` está en el `.cc`, sin
+   cabecera que tocar). Si el descifrado falla **y** `encrypted_value` empieza por `"fw1"`: guardar la clave única de la
+   fila (columnas 1 `host_key`, 2 `top_frame_site_key`, 19 `has_cross_site_ancestor`, 3 `name`, 5 `path`, 15
+   `source_scheme`, 16 `source_port`; comprobar el índice `UNIQUE` del esquema de la 128 en `CreateV*Schema`), registrar
+   `COOKIE_LOAD_PROBLEM_DECRYPT_FAILED` y `continue` **sin** `ok = false`. Las `v10` ilegibles siguen como upstream.
+2. En `LoadCookiesForDomains`, tras el bucle y antes de mover `cookies`, borrar solo esas filas con un `DELETE … WHERE
+   host_key = ? AND top_frame_site_key = ? AND has_cross_site_ancestor = ? AND name = ? AND path = ? AND source_scheme = ?
+   AND source_port = ?` (fuera del bucle de `Step()`, no con la sentencia de lectura abierta).
+3. Así se mantiene lo que busca upstream (nada sin cargar queda en la base: sin choque de unicidad en CookieMonster).
+4. Prueba: `sqlite_persistent_cookie_store_unittest` con un `CookieCryptoDelegate` falso que falle solo con el prefijo
+   `fw1`; y LOCAL: ítem `fw1` corrupto, un dominio con una cookie `fw1` y otra `v10` → la `v10` sigue.
+
+---
+
 # Relevo de MOTOR: de MOTOR-40 a MOTOR-41 (30-10-2026, ~18:40 UTC)
 
 MOTOR-40 (`session_01MwmK2iVFAmrfVgo2rCH32r`, Opus 5.5, medio). Nivel 137 = 2.6.0 (FM.52), **declarado y sin compilar**.

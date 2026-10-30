@@ -64,6 +64,13 @@ la 128 pide a `os_crypt_async` `Option::kEncryptSyncCompat` (la clave compatible
 carga, se cifra en `v10` como antes. Sync no cambia (viaja en claro hacia el cifrado de sync). Nada visible, salvo que
 **volver a la 2.4.0 deja ilegibles las contraseñas guardadas o cambiadas con la 2.5.0** (igual que las cookies).
 
+**Cookies con la clave `fw1` perdida o al volver a la 2.4.0 (LOCAL-14 y MOTOR-40, 30-10):** la 128 descarta y **borra de la
+base todas las cookies de un eTLD+1** en cuanto una sola no se descifra (`sqlite_persistent_cookie_store.cc`,
+`LoadCookiesForDomains`: «for data consistency, we drop the entire eTLD group»; Chrome hace lo mismo con `v10`). Así, una
+cookie `fw1` ilegible se lleva también las `v10` legibles de su sitio: se cierran las sesiones de esos sitios. Pasa si el
+ítem `fw1` del llavero se corrompe o se borra, y siempre al volver a la 2.4.0 (sin arreglo posible: es código publicado).
+Decisión de COORDINACIÓN-22 (30-10): no entra en la 2.5.0; el arreglo (borrar solo las filas `fw1` ilegibles) va al 137.
+
 ## Caída del renderer con cualquier worker (LOCAL-14, 30-10)
 
 `CHECK_EQ(handle, registry_entry.handle)` en `ExternalPointerTable::SetUpFromReadOnlyArtifacts` al crear el segundo
