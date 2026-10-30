@@ -7,6 +7,40 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 30-10: COORDINACIÓN-21 → COORDINACIÓN-22 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-21 (`session_01MwmK2juirHM3CHKudv5tND`, Opus 5.5, medio) se releva al ~34 % (14,4 $). **Nunca llamar a
+confirm_repository_trust.** A la 7,1 solo se llega por `buzon`; al Ubuntu (D8-LINUX), solo pasando el texto a Titín.
+
+**Hecho el 30-10:** 2.4.0 publicada (appcast, DMG, web #633). `fw1` (MOTOR-34, 6,0 $). Nivel 136 = 2.5.0 (MOTOR-35 26,4 $,
+MOTOR-36): `nube/motor-136` 1747f79f; FS.37 (SEGURIDAD-PORTES-14, 26,8 $, frente a 96 $ de la -13) con d8 verde en el
+Ubuntu (`seg/fs37-v8` 31edd5c3: mjsunit 7735/7736). Todos archivados.
+
+**Decisiones de Titín del 30-10** (en DIRECTIVAS, TAREAS o version-2.5.0.md): la d8 se compila en su Ubuntu (D8-LINUX),
+nunca en la nube; cruce con wpt.fyi fijo; STTF apagado, HEVC sin exponer, `:visited` con self-links SÍ (aplazado al 137),
+gradientes de gama amplia solo sin cuelgue. Push a brave-core: Titín aprueba `add_repo` en cada sesión que lo pide.
+
+**D8-LINUX (cómo hablarle):** la sesión de terminal del Ubuntu (titin-5f) no tiene `send_message`; manda por SendMessage
+a «ubuntu local» (`session_01MwmK2j97E5PaVDkurvaQce`, Remote Control), que te reenvía íntegro. De la nube hacia allí no
+llega nada: los encargos van en un bloque para que Titín los pegue. Base de esa máquina (clang 19 de la 128): 13.5
+7656/7657, 13.6 7731/7732 (solo `maglev/extras-cped`). Paquetes solo con `sudo apt-instalar`. Compilar con -j32 llega a
+~27 GB de 30: si da errores de memoria, bajar -j. Tokens de agentes de terminal: `FlyWeb/scripts/consumo-local.py`.
+
+**En curso:**
+- **LOCAL-14** compila la 2.5.0 (build 37) desde `local/250-arreglos` 3e8c8e219a (= 1747f79f + FS.37). Después: unitarias
+  de fw1, **migración v10 → fw1 sobre perfil envejecido** (no la mencionó: recordársela), humo, motor-136.html, WPT, 6,1.
+  Errores → a MOTOR-37. Cuando entregue: PUBLICACIÓN (regla 11) y la web como #633.
+- **MOTOR-37** (`session_01MwmK2kqGynL4v3YaYFNuLL`): nivel 137 (2.6.0, FM.52) sobre 3e8c8e219a, con `:visited` self-links.
+  Atiende primero los errores de la 2.5.0.
+- **INVESTIGACIÓN-MOTOR-7** (`session_01MwmK2jTfTBAra1WB6QRZk9`): estudio de compilar Blink en el Ubuntu para cazar errores
+  antes de LOCAL, y medir tokens de agentes de terminal. Archivar al entregar.
+- **Orden a LOCAL de prioridad baja** (`buzon/LOCAL/20261030-1520`): que LOCAL lea el buzón sola (no depender de CARTERO,
+  que no despierta tras reiniciar la 7,1) y un `arranque-7-1.command` para reabrir todos los agentes locales.
+
+**Pendiente de Titín:** BackupDrive (3 decisiones de `BackupDrive/docs/relevo-backupdrive.md`, recomendaciones dadas);
+umbral para encender Maglev (LOCAL mide JetStream con y sin él en la 6,1 y la 5,1); ¿2 ventanas cuando perdió las
+fijadas? JetStream 3 web-ssr debería pasar en la 2.5.0 (RegExp.escape portado): comprobarlo cuando LOCAL mida.
+
 ## 30-10: COORDINACIÓN-20 → COORDINACIÓN-21 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-20 (`session_01MwmK2kk8g3seMyrErbkaeX`, Opus 5.5, medio) se releva al ~36 % (~20 $). **Nunca llamar a
