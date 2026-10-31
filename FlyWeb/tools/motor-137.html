@@ -85,7 +85,7 @@
     new ImageData(new Float16Array(4), 1, 1, { pixelFormat: 'rgba-float16' }).data instanceof Float16Array);
   prueba('getContextAttributes().colorType', () =>
     document.createElement('canvas').getContext('2d', { colorType: 'float16' }).getContextAttributes().colorType === 'float16');
-  prueba('crypto.getRandomValues(Float16Array) sin caída (2.5.0)', () => crypto.getRandomValues(new Float16Array(2)).length === 2);
+  prueba('crypto.getRandomValues(Float16Array): TypeMismatchError sin caída, como Chrome (2.5.0)', () => (() => { try { crypto.getRandomValues(new Float16Array(2)); return false; } catch (e) { return e.name === 'TypeMismatchError'; } })());
   // V8 13.7
   prueba('V8 13.7: Error.isError, RegExp.escape, Float16Array', () =>
     Error.isError(new TypeError()) && typeof RegExp.escape === 'function' && typeof Float16Array === 'function');
