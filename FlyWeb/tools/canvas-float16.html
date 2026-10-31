@@ -52,8 +52,8 @@ prueba('new ImageData(1, 1, {pixelFormat: "rgba-float32"}).data es Float32Array'
 prueba('getContext("2d", {colorType: "float16"}).getContextAttributes().colorType',
        () => document.createElement('canvas').getContext('2d', {colorType: 'float16'})
                  .getContextAttributes().colorType === 'float16');
-prueba('crypto.getRandomValues(new Float16Array(4)) no tumba la pestaña',
-       () => crypto.getRandomValues(new Float16Array(4)).length === 4);
+prueba('crypto.getRandomValues(new Float16Array(4)): TypeMismatchError sin tumbar la pestaña, como Chrome',
+       () => (() => { try { crypto.getRandomValues(new Float16Array(4)); return false; } catch (e) { return e.name === 'TypeMismatchError'; } })());
 
 // Farbling: un canvas de color liso; sin farbling todos los píxeles son iguales.
 const W = 64, H = 64;
