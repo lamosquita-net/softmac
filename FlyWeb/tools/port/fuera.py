@@ -228,7 +228,14 @@ def check(patch, base_tag, ref_tag, cache, names=False):
                     if not (x == 'fn' and out and out[-1] == 'fn'):
                         out.append(x)
                 return tuple(out)
-            if skel(mine) in {skel(t) for t in theirs}:
+            # Una llamada que upstream hace una vez en su función y aquí cae dentro de un bucle (o bajo un if/for
+            # más hondo que en <ref> que empieza por un bucle) cambia de semántica aunque el esqueleto cuadre:
+            # `Finalize()` de ToBoxFragment acabó en el `for` de un `#if DCHECK_IS_ON()` del 136 (MOTOR-41).
+            def into_loop(t):
+                a, b = simp(mine), simp(t)
+                return (len(a) > len(b) and a[:len(b)] == b and
+                        any(x.split(' ')[0] in ('for', 'while', 'do') for x in a[len(b):]))
+            if skel(mine) in {skel(t) for t in theirs} and not all(into_loop(t) for t in theirs):
                 continue
         warn.append((path, no, txt.strip(), ' > '.join(mine) or '(fuera de todo)',
                      ' | '.join(sorted(' > '.join(t) or '(fuera de todo)' for t in theirs))))

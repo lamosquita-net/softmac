@@ -1,3 +1,23 @@
+# MOTOR-41 (31-10-2026, ~09:00 UTC)
+
+MOTOR-41 (`session_01MwmK2mMB5MqP7H57sSZJRD`, Opus 5.5, medio). **`nube/motor-137` = 1644d954** = 8e726aad +:
+- **8044f254**, regresiones de anchor de la 2.5.0 (9 WPT de LOCAL-14): causa en dff03148, no en la consulta stitched
+  (`anchor_query_map.cc`, `anchor_evaluator_impl.cc` y `fragment_builder.cc` cuadran con el 136), sino `Finalize()` metido
+  por fuzz dentro del bucle de DCHECK de `BoxFragmentBuilder::ToBoxFragment`. En Release no se llamaba, y los builders que
+  no pasan por `HandleOofsAndSpecialDescendants` (cajas inline, columnas) no vaciaban
+  `children_with_size_dependent_propagation_`. Una línea; sirve igual para una 2.5.x. Sin compilar.
+- **1644d954**, cookies `fw1` (diseño de MOTOR-40, arriba): `UndecryptableFw1Row` con la clave de `cookies_unique_index`,
+  borrado por fila tras el bucle; si falla, se cae al borrado del grupo de upstream. Test
+  `UndecryptableFw1DropsOnlyItsRow` (fila `fw1` ilegible → queda la otra; fila sin prefijo ilegible → se va el grupo).
+- `fuera.py`: aviso de línea metida en un bucle. Sobre los 435 parches C++ tocados desde d39510860~1: 11 avisos, todos
+  adaptaciones a mano (flex de la 2.1.1, `struct OofData`, `MaybeLogUnsupportedGradientInterpolationSpaceWarning`,
+  `ConsumeUnparsedValue`, el `#if` de `login_database_async_helper.cc` de 8ef2fe9cd5).
+
+**Pendiente para MOTOR-42:** lo de la sección de MOTOR-40 (escapes Caret/Textarea según COORDINACIÓN, FS del 137) y lo
+que devuelva LOCAL de la 2.6.0.
+
+---
+
 # Añadido de MOTOR-40 tras el relevo (30-10, ~20:40 UTC)
 
 **`nube/motor-137` = 8e726aad**: 78237a70 + merges de `local/250-arreglos` (8ef2fe9cd5 puente de sync de contraseñas,
