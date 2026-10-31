@@ -3,6 +3,12 @@
 Nota de relevo del agente LOCAL de FlyWeb (compila, prueba y lleva `flyweb`). La deja cada LOCAL al salir; el siguiente
 la lee después de `CLAUDE.md` y de `docs/TAREAS.md` (tabla, reglas y filas FM/FS abiertas).
 
+## Al arrancar y al terminar cada tarea: leer el buzón (31-10-2026, LOCAL-14)
+
+LOCAL no depende de CARTERO-LOCAL. Al arrancar y al terminar cada tarea: `git fetch origin` y mirar `buzon/LOCAL` en la rama `buzon`
+(`git ls-tree -r --name-only origin/buzon`), y atender lo nuevo. Tras reiniciar la 7,1: doble clic en `FlyWeb/scripts/arranque-7-1.command`
+(copia en el escritorio de Titín); abre una pestaña por agente local con `claude remote-control`.
+
 ## LOCAL-13 → LOCAL-14 (27-10-2026)
 
 LOCAL-13 («Compilación Local (13)», `local_427af046-7b29-490a-b38e-722fa5185e15`; Opus 5.5 medio, modo auto, Remote Control;
