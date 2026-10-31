@@ -80,6 +80,12 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   esqueleto namespace/clase/función/switch); ahora avisa si una línea que upstream tiene directamente en su función cae
   en un bucle. Las regresiones de WPT de un porte grande: primero `fuera.py --nombres` sobre sus parches (MOTOR-41).
 
+- **(31-10) Un valor de enum de Chrome puesto al final rompe el contador implícito:** 5abcd0cc añadió
+  `kSelectionDirection = 5040` y `kSelectionGetComposedRanges = 5041` tras `kTextAutoSizingDisabledOnFlexbox = 5374` en
+  `web_feature.mojom`; `kNumberOfFeatures` bajó a 5042 y contar 5043+ abortaba en el bitset de UseCounter (2.6.0 publicada,
+  8 de 20 subpruebas de Speedometer; LOCAL-15). Los valores se insertan en su sitio numérico; antes de entregar,
+  `FlyWeb/tools/port/enumorden.py` sobre los parches que numeran enums (arreglo: brave-core `nube/fix-260-webfeature` bcc3e2e3).
+
 ## LOCAL
 
 - **`update_patches` nunca para un solo parche, y las tareas largas en segundo plano** (Titín, 16-10). LOCAL-4 lanzó
