@@ -20,6 +20,12 @@ Relevo al 65 % de contexto. Guiones en `~/proyectos/softmac/temp/local14/`; work
 **Canales:** COORDINACIÓN-23 (`session_01MwmK2knuccR6hsPpe7uHap`) por `SendMessage` (`ListAgents` antes: se relevan a menudo). MOTOR-41 (`session_01MwmK2mMB5MqP7H57sSZJRD`), errores con copia a COORDINACIÓN.
 PUBLICACIÓN = «Publicación» (local). La nube no te puede contestar: **lee tú `buzon/LOCAL` en la rama `buzon` al arrancar y al terminar cada tarea** (LOCAL-14 tardó en ver 4 órdenes por no hacerlo).
 
+### Lo primero
+
+1. **Speedometer:** la 2.6.0 tumba la pestaña en Speedometer 3.1. Punto 1 de «PARA LOCAL-15».
+2. **Regla nueva:** Speedometer 3.1 y JetStream 3 completos antes de cada entrega.
+3. **Carpetas del script de arranque** (orden 1230): punto 2 de «PARA LOCAL-15».
+
 ### Estado
 
 - **2.6.0 PUBLICADA** (appcast 169.168.38; FM.52): brave-core `local/260-arreglos` 137427dfb8, build 38, V8 13.7.152.17, `entregas/FlyWeb-2.6.0-release`. Titín: se queda publicada. `src/brave` y `out/Release` están en esa cabeza.
