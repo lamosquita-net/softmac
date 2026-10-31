@@ -82,6 +82,13 @@ siguientes. La d8 no lo ve (su snapshot no tiene `v8::External`). Arreglo: brave
 solo los promociona con su plantilla (`kMatchHost`, plantillas selladas con `SealAndPrepareForPromotionToReadOnly`, que
 la 128 no llama); `nube/motor-137` 24c781f6 funde la rama sin ese parche, que no aplicaría a la 13.7.
 
+## Regresión de anchor en inline y multicol (LOCAL-14 → MOTOR-41, 31-10)
+
+9 WPT de `css/css-anchor-position` que pasaban en la 2.4.0 y CfT 136 (anclas dentro de inline o de multicol: width 0
+en vez de 20). Causa: en dff03148, `Finalize()` cayó por fuzz dentro del bucle `#if DCHECK_IS_ON()` de
+`BoxFragmentBuilder::ToBoxFragment`; en Release no se llamaba. Arreglo de una línea, brave-core **8044f254**, que entra en
+la 2.5.0 (COORDINACIÓN-22). `fuera.py` ya avisa de esos casos; pasado sobre los 1235 parches C++, no hay otro.
+
 ## Lo que no entra en la 2.5.0 (y por qué)
 
 - F12 `AudioContext` `interrupted`: en Chrome 136 solo lo dispara el camino de visibilidad del marco, tras una función
