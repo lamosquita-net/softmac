@@ -144,6 +144,9 @@ fi
 # que la V8 nueva ha quitado de verdad, y esas se arreglan con parches de Blink en cada nivel.
 # Si cambian los .patch de brave-core sin cambiar DEPS, basta con reaplicarlos.
 npm run apply_patches
+# Enums numerados de Blink con los parches puestos: un valor fuera de orden delante de kNumberOfFeatures hace abortar
+# a UseCounter (2.6.0, Speedometer; MOTOR-41). Corta aquí, antes de horas de compilación.
+python3 "$REPO/FlyWeb/scripts/comprobar-enums.py" src
 # "Revisión" de brave://version: Brave la toma del último commit de versión ("1.57.64") con el hook
 # brave_lastchange de DEPS, que aquí no se ejecuta. Se pone el commit de flyweb que se compila (--filter ""
 # = cualquier commit). lastchange.py solo reescribe el fichero si cambia: sin commits nuevos no recompila nada.
