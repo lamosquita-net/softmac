@@ -7,6 +7,43 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 31-10: COORDINACIÓN-23 → siguiente (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-23 (`session_01MwmK2knuccR6hsPpe7uHap`, Opus 5.5, medio; linaje 5 de 8) **para por orden de Titín** (31-10 ~21 h):
+límite semanal al **85 %** (se reinicia el martes 03-11 09:00 Madrid); **el lunes Titín decide si se sigue**. Nunca llamar a
+confirm_repository_trust. Linaje 6 = la siguiente; tras 1–2 más, Titín abre COORDINACIÓN desde cero (darle el texto listo).
+
+**Canales:** la nube **no llega** a las sesiones locales (send_message/SendMessage a la 7,1 → 401 / `elevated_session_untrusted_device`):
+órdenes por `buzon/` y, si urge, un bloque de texto para que Titín lo pegue. Los locales sí escriben a COORDINACIÓN.
+**LOCAL-15** (`local_19263447-…`, bridge `session_01MwmK2hvSxULrinRNcm4RhN`) relevó a LOCAL-14 el 31-10; LOCAL lee el buzón sola
+(#670). D8-LINUX: el Ubuntu está en Windows; nada pendiente.
+
+**Hecho el 31-10:**
+- **2.5.0 publicada** (nivel 136, build 37; #667, web #668). **2.6.0 publicada** (nivel 137, build 38; web #672) con una
+  **regresión**: `kNumberOfFeatures` = 5042 por dos valores puestos al final de `web_feature.mojom` (5abcd0cc) → SIGABRT del
+  bitset de UseCounter con flex `column wrap` (8/20 subpruebas de Speedometer 3.1). Diagnóstico LOCAL-15; arreglo MOTOR-41
+  `nube/fix-260-webfeature` bcc3e2e3. **2.6.1** (build 39, `local/261-arreglos` 480f73623798) entregada, firmada y en ns2
+  (DMG 175333341 B, SHA-256 c207aad6…5d33, comprobado). **Falta solo la firma de Titín en bak**; web ya en main (VERSION 2.6.1),
+  sale sola cuando el appcast pase a 169.168.39. Comprobar con `curl …/stable/appcast.xml`.
+- Lección (TRAMPAS #673; `comprobar-enums.py` #674 y `enumorden.py`): **Speedometer 3.1 y JetStream 3 completos antes de
+  toda entrega** (orden a LOCAL); el aviso de no firmar llegó tarde porque la 2.6.0 se entregó sin Speedometer.
+- FS.38: arreglo de LOCAL con ByteSizeLong revisado por MOTOR-41 (falla cerrado); prueba TLS con el Root Store del espejo
+  (v1820, crs v43) en verde. Abierto: 99 anclas en el espejo frente a 118 en la v19 compilada (probable retirada de raíces;
+  sin comprobar) y campos 6/11/12 de TrustAnchor que la 128 ignora.
+- canvas-float16: 1 canal con el bit 0 distinto en un origen → no bloquea (decisión COORDINACIÓN-23), mirar en la 2.6.x.
+- Archivadas: COORDINACIÓN-22, SEGURIDAD-PORTES-15, MOTOR-41.
+
+**Pendiente (tras el reinicio y si Titín sigue):**
+1. Verificar la 2.6.1 en el appcast y cerrar FM.52 (PR de cierre de PUBLICACIÓN).
+2. LOCAL: carpetas de `arranque-7-1.command` (buzon 1230) y llevar `comprobar-enums.py` al guion real de la 2.x (`build.sh` no
+   sirve para la 2.x; FM.39).
+3. 2.6.x: particionado de Blob URL, `CaretWithTextAffinityUpstream`, `TextareaStableResizing`; ordenar `CSSSampleId.kReadingOrder`.
+4. FS de OSCrypt v10 restante (`fw1-receta.md` §6 bis) y barrido fuera de nivel (FS.38). Nivel 138 cuando Titín lo diga.
+5. Speedometer en la 6,1: 5,7–5,9; ¿Maglev? (umbral pendiente de Titín).
+
+**Pendiente de Titín:** firmar la 2.6.1 en bak; seguir o no el lunes; umbral de Maglev; BackupDrive (3 decisiones); estudio
+Blink en el Ubuntu (#648).
+
 ## 31-10: COORDINACIÓN-22 → COORDINACIÓN-23 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-22 (`session_01MwmK2k3ySJohzburv2pUkR`, Opus 5.5, medio) se releva al ~40 % (23,4 $). **Nunca llamar a
