@@ -28,6 +28,9 @@ para trabajar y consultar el resto **solo cuando la tarea lo pida**. El conocimi
 
 Lo que no está en esta lista se busca (`grep`) cuando hace falta; no se lee «por si acaso».
 
+**LOCAL no depende del cartero:** al arrancar y al terminar cada tarea lee `buzon/LOCAL` en la rama `buzon` ella misma. Tras reiniciar la 7,1,
+`FlyWeb/scripts/arranque-7-1.command` abre una pestaña por agente local; el primer mensaje de una sesión nueva, el modelo y el esfuerzo no se automatizan.
+
 ## Pasos comunes al arrancar
 
 1. `get_session` (sin id): modelo, esfuerzo, repos, `rate_limit_info` y, si los da, `cost_usd` y tokens de salida
