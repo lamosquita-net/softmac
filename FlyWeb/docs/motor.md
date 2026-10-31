@@ -107,6 +107,11 @@ brave-core y los 45 pasos de FlyWeb para ganar 8 versiones y volver a quedarse p
    10.14.6 identifica a muy pocos usuarios, mientras que 10.15.7 es lo que ya dice el User-Agent congelado de todos los
    Mac. Hecho en brave-core `local/huella-127` (1608096de2c).
 
+**Enums numerados de Blink** (MOTOR-41, 31-10): al portar un valor de Chrome (`web_feature.mojom`, `webdx_feature.mojom`,
+`css_property_id.mojom`, `permissions_policy_feature.mojom`…), añadirlo siempre en su sitio numérico, o al final solo si
+su valor es mayor que el máximo. Si no, el contador implícito (`kNumberOfFeatures`) baja y UseCounter aborta (2.6.0,
+Speedometer). `build.sh` lo comprueba con `FlyWeb/scripts/comprobar-enums.py` tras `apply_patches`.
+
 ## Tipos de trabajo y coste estimado
 
 | Tipo | Ejemplo | Coste |
