@@ -13,6 +13,15 @@ LOCAL no depende de CARTERO-LOCAL. Al arrancar y al terminar cada tarea: `git fe
 
 Antes de entregar en la fila: **Speedometer 3.1 completo y JetStream 3 en la 7,1 con la versión candidata.** La 2.6.0 salió sin esto.
 
+## LOCAL-15, estado (31-10-2026)
+
+LOCAL-15 («Compilación Local (15)», `local_19263447-de4b-4c91-9c41-388e76778ccc`; Opus 5.5 medio, modo auto, Remote Control). Guiones en `~/proyectos/softmac/temp/local15/sp`; worktrees `temp/local15/wt` (softmac) y `temp/local15/bc-wt` (brave-core).
+
+- **2.6.1 entregada** (FM.52): `local/261-arreglos` 480f73623798, build 39, `entregas/FlyWeb-2.6.1-release`. `src/brave` y `out/Release` están en esa cabeza.
+- **Speedometer/JetStream por CDP:** `sp/lanza.sh` (subpruebas una a una, detecta `Inspector.targetCrashed`), `COMPLETO=1` para la pasada entera, `sp/js.py` para JetStream, `sp/red.py` espera a LuLu, `sp/s61.sh` para la 6,1 (una sesión SSH con túnel; cierra con `Browser.close`). Cada `.err` con `--enable-logging=stderr` lleva el mensaje del aborto.
+- **`comprobar-enums.py`:** `build.sh` no sirve para la 2.x, así que va a mano en el guion de Release tras `apply_patches` (`temp/local15/release-261.sh`).
+- **Trampas:** mientras LuLu retiene la app, `Page.navigate` no contesta: parece un cuelgue. Un `| cut` tras `grep --line-buffered` en un Monitor retiene los eventos. Barrer `/tmp/sp-*` con comodín lo bloquea el clasificador, con razón: borrar solo la ruta exacta.
+
 ## LOCAL-14 → LOCAL-15 (31-10-2026)
 
 LOCAL-14 («Compilación Local (14)», `local_3c1fd7c0-d66b-479f-bc7b-613c9effed41`; Opus 5.5 medio, modo auto, Remote Control; 28-10 → 31-10).
