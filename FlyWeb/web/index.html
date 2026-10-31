@@ -17,16 +17,16 @@
 <main>
 <section class="banda naranja"><div class="columna">
 <p>FlyWeb es un navegador para <strong>Mac Intel con macOS 10.14 Mojave o superior</strong>. Está basado en
-Chromium 128 y Brave 1.69, con el motor web al nivel de Chrome 135, con el bloqueo de anuncios y rastreadores de Brave, pero <strong>sin ninguno de sus
+Chromium 128 y Brave 1.69, con el motor web al nivel de Chrome 136, con el bloqueo de anuncios y rastreadores de Brave, pero <strong>sin ninguno de sus
 servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomonedas, ni noticias. Las listas de bloqueo y
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 2.4.0</h2>
-<p><a class="boton" href="descargas/FlyWeb-2.4.0.dmg" download>Descargar FlyWeb 2.4.0 (175 MB)</a></p>
+<h2>Descargar FlyWeb 2.5.0</h2>
+<p><a class="boton" href="descargas/FlyWeb-2.5.0.dmg" download>Descargar FlyWeb 2.5.0 (175 MB)</a></p>
 <p class="dato">macOS 10.14 Mojave o superior, Mac Intel (x86_64). En macOS 10.15 a 12 funciona; solo Mojave está garantizado.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>81d4130ff5f57e8086ab4fa44173f218cd8ae28ecb03f187c729c361a8281d63</code></p>
+SHA-256: <code>390fc5ef266c25805f914efa9a2deebc660d853c8d2c645a4211de8233626b26</code></p>
 <p class="dato"><strong>¿Vienes de la 1.15?</strong> La 2.0 copia tu perfil antes de usarlo y desde él no se vuelve atrás sin esa
 copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High Sierra (10.13)?</strong> Tu última versión es la
 <a href="descargas/FlyWeb-1.15.2.dmg">1.15.2</a> (sha256 <code>fbca0533b634a323f839a6265fa9b1802e53e03fcbc500879bbdf0e16cf9f138</code>).</p>
@@ -35,13 +35,33 @@ copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-2.4.0.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-2.5.0.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 2.4.0</h2>
+<h2 id="novedades">Notas de la versión 2.5.0</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 136</strong>, con el motor de JavaScript de Chrome 136 (V8 13.6). Las webs ven FlyWeb
+  como Chrome 136.</li>
+  <li><strong>Contraseñas y cookies con cifrado propio</strong> (AES-256-GCM). Al abrir la 2.5.0, tu perfil se pasa a ese
+  cifrado: <strong>no vuelvas a abrirlo con la 2.4.0 ni anteriores</strong>. La primera vez, macOS te pedirá permiso para el
+  llavero: pulsa «Permitir siempre».</li>
+  <li><strong>Mover elementos sin perder su estado</strong> (<code>Node.moveBefore()</code>): iframes, foco y animaciones
+  siguen como estaban.</li>
+  <li><strong>JavaScript:</strong> <code>Float16Array</code>, <code>using</code>/<code>DisposableStack</code> y
+  <code>RegExp.escape</code>.</li>
+  <li><strong>Más CSS:</strong> <code>print-color-adjust</code> sin prefijo, <code>attr()</code> con tipos,
+  <code>dynamic-range-limit</code>, <code>pow()</code> con unidades y mejoras en el anclaje de elementos con desplazamiento.</li>
+  <li><strong>«Atrás» más rápido</strong> en páginas con <code>Cache-Control: no-store</code> si no han cambiado las cookies.</li>
+  <li><strong>Arreglos:</strong> caídas de pestaña con workers (claude.ai, YouTube…) y con <code>Float16Array</code> (venía de la
+  2.4.0), una caída al arrancar con contraseñas guardadas, y varios fallos de CSS (unidad <code>ch</code> en texto vertical,
+  <code>flex</code> con <code>calc()</code>, columnas en <code>fieldset</code>).</li>
+  <li><strong>Seguridad:</strong> arreglos de seguridad del motor de JavaScript y del motor web.</li>
+</ul>
+
+<h2>Notas de la versión 2.4.0</h2>
 <ul>
   <li><strong>Motor al nivel de Chrome 135</strong>, con el motor de JavaScript de Chrome 135 (V8 13.5). Las webs ven FlyWeb
   como Chrome 135.</li>
