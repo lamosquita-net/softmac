@@ -9,6 +9,57 @@ LOCAL no depende de CARTERO-LOCAL. Al arrancar y al terminar cada tarea: `git fe
 (`git ls-tree -r --name-only origin/buzon`), y atender lo nuevo. Tras reiniciar la 7,1: doble clic en `FlyWeb/scripts/arranque-7-1.command`
 (copia en el escritorio de Titín); abre una pestaña por agente local con `claude remote-control`.
 
+## Regla de entrega (COORDINACIÓN-23, 31-10)
+
+Antes de entregar en la fila: **Speedometer 3.1 completo y JetStream 3 en la 7,1 con la versión candidata.** La 2.6.0 salió sin esto.
+
+## LOCAL-14 → LOCAL-15 (31-10-2026)
+
+LOCAL-14 («Compilación Local (14)», `local_3c1fd7c0-d66b-479f-bc7b-613c9effed41`; Opus 5.5 medio, modo auto, Remote Control; 28-10 → 31-10).
+Relevo al 65 % de contexto. Guiones en `~/proyectos/softmac/temp/local14/`; worktrees propios: `temp/local14/wt` (softmac) y `temp/local14/bc-wt` (brave-core).
+**Canales:** COORDINACIÓN-23 (`session_01MwmK2knuccR6hsPpe7uHap`) por `SendMessage` (`ListAgents` antes: se relevan a menudo). MOTOR-41 (`session_01MwmK2mMB5MqP7H57sSZJRD`), errores con copia a COORDINACIÓN.
+PUBLICACIÓN = «Publicación» (local). La nube no te puede contestar: **lee tú `buzon/LOCAL` en la rama `buzon` al arrancar y al terminar cada tarea** (LOCAL-14 tardó en ver 4 órdenes por no hacerlo).
+
+### Estado
+
+- **2.6.0 PUBLICADA** (appcast 169.168.38; FM.52): brave-core `local/260-arreglos` 137427dfb8, build 38, V8 13.7.152.17, `entregas/FlyWeb-2.6.0-release`. Titín: se queda publicada. `src/brave` y `out/Release` están en esa cabeza.
+- 2.5.0 publicada (FM.51): `local/250-arreglos` 3d314ec895, build 37, `entregas/FlyWeb-2.5.0g-release`.
+- Nada compilando. WPT 137 terminadas: `wpt137-{cft137,fw250,fw260}.txt`; árbol `temp/wpt137`, servidor 8126. `FlyWeb/docs/wpt-260.md`.
+
+### PARA LOCAL-15: pendiente, por orden
+
+1. **URGENTE, va antes que todo: la 2.6.0 tumba la pestaña en Speedometer 3.1** («¡Vaya!», código de error 6), en la 7,1 y la 6,1 (Titín); la 2.5.0 lo termina; JetStream 3 y MotionMark pasan. **Sin empezar.** Órdenes `buzon/LOCAL/20261031-1625`, `-1640`, `-1655` y `-1720`:
+   aislar con `https://browserbench.org/Speedometer3.1/?suites=<Nombre>`, de una en una, con la 2.6.0 (`?suites=`: TodoMVC-*, Editor-CodeMirror, Editor-TipTap, Charts-*, NewsSite-*, React-Stockcharts-SVG, Perf-Dashboard). Con la que caiga: pila (abajo) y mensaje del CHECK.
+   Si cae en Editor-* o TodoMVC, repetir con `--disable-blink-features=EnterInOpenShadowRoots`; si en NewsSite, con `--disable-features=PartitionVisitedLinkDatabaseWithSelfLinks` (confirmar nombres en flyweb://version). Sospechosos en la orden 1720. Resultado a COORDINACIÓN por `SendMessage`. Si el clasificador bloquea las banderas, decirlo sin rodearlo.
+2. **PR #671** (carpeta `softmac` por defecto en `arranque-7-1.command`): abierto al relevar; fusiona COORDINACIÓN. Falta poner cada agente en su carpeta real en `~/.config/flyweb/arranque.conf` (orden 1230). El guion solo se ha probado con `--prueba`.
+3. **Sin probar:** importar y exportar contraseñas (selector de ficheros nativo; a mano por Titín), sync real (ddd9687f; crear cuenta es escribir en producción), migración en la 6,1 con la 2.6.0, y la comprobación de campos desconocidos del Root Store con datos reales.
+4. **Para MOTOR/SEGURIDAD, sin respuesta:** el PKI Metadata del espejo trae 99 anclas frente a 118 del compilado y campos 6, 11 y 12 de `TrustAnchor` que la 128 ignora.
+5. Maglev con la 2.3.0 en la 6,1 (preguntar hora) y guion de Maglev de la 5,1: siguen desde antes; pueden haber quedado sin sentido, preguntar a COORDINACIÓN.
+6. Al entregar, tokens a COORDINACIÓN para `CONSUMO.md`.
+
+### Herramientas
+
+- **Pila de una caída:** el renderer cae en Crashpad, no en DiagnosticReports. `python3 -I temp/local14/humo/mdmp.py <dmp>` (lector mínimo de minidump: excepción, registros, direcciones de la pila) y `atos -o "out/Release/FlyWeb Framework.unstripped" -arch x86_64 -l 0x0 <offsets>`; para compilaciones publicadas hace falta el `.unstripped` de esa misma compilación. Volcados en `~/Library/Application Support/LaMosquita/FlyWeb/Crashpad/pending`. Desensamblar con el `llvm-objdump` de Xcode 15.4 (el del checkout no es de Mac).
+- **Humo:** `temp/local14/humo/humo.py` con `humo-135.html` y `humo-136.html`; `motor.py` lee `#res li`. 6,1: `entregas/prueba-51-260/probar-260.command` por SSH (`guion260-en-61.sh`).
+- **fw1:** `temp/local14/fw1/mig.py` y `mig260.sh` (siembra, migración, clave perdida, dos perfiles).
+- **Llavero aislado** (autorizado por Titín; nunca su llavero real): `HOME=<tmp> security create-keychain…`, `list-keychains -d user -s`, `default-keychain`, `unlock-keychain`, y el proceso con `HOME=<tmp>`. Los ítems de `security` solo abren a herramientas de Apple: `set-generic-password-partition-list -S apple-tool:,apple:,unsigned:` o saldrá un diálogo. `security -U` sobre un ítem creado por la app también saca diálogo. Si sale uno, se mata el proceso: Titín no debe escribir nada.
+- **WPT:** `wpt137.sh`, con `CASOS`, `PORT`, `LISTA` y `SUF`. Repetir 3 veces lo que empeore antes de llamarlo regresión: `render-blocking` es intermitente.
+- **`brave_unit_tests`:** compila en `out/Release` con `PYTHONPATH=src/brave/script`.
+
+### Trampas nuevas
+
+- La d8 de D8-LINUX no ve fallos que dependen del snapshot de Blink: la 2.5.0 caía en todo worker y la d8 estaba verde. Compilar no basta: ningún arreglo de `fw1` se había ejecutado nunca y el arranque caía siempre.
+- El humo debe incluir un worker; las webs reales que usan workers fallan aunque example.com cargue.
+- `/Volumes/googledrive` es SMB con cuarentena: lanzar una app sin firmar de ahí con `open` la traslada (`AppTranslocation`) y pierde `--args`, y usa **el perfil real de Titín**. Para Titín, copia local y binario directo. Comprobar `SingletonLock` antes de dar nada por perfil de prueba.
+- Si el llavero de sesión de Titín está bloqueado, `git push` y `gh` se cuelgan o dan «could not read Username». `git ls-remote` funciona igual: no sirve de prueba. Ni siquiera `security show-keychain-info`: se cuelga también.
+- `pkill -f 'zsh x.sh'` mata también el shell que lanzó `x.sh` y lo que cuelgue de él.
+- No hay `timeout` en macOS. En zsh, `=====` en un `echo` falla; `"$b:refs"` come el `:r`.
+- Farbling: no actúa en `127.0.0.1`; para `canvas-float16` usar `--host-resolver-rules` y `--unsafely-treat-insecure-origin-as-secure` (`crypto.subtle` exige contexto seguro).
+- La 2.4.0 no terminó de sembrar datos dentro de la 6,1 por SSH con el llavero aislado (no se llegó a la causa): sembrar en la 7,1 y llevar perfil y clave de prueba.
+- `git fetch` de V8 falla a veces sin motivo: reintentar antes de investigar.
+- Antes de recompilar con una WPT en marcha: pararla y seguir con la lista restante sobre la copia de `entregas`, que tiene el mismo código.
+- Una afirmación no comprobada en un mensaje a COORDINACIÓN cuesta caro: decir qué se ha probado y sobre qué compilación.
+
 ## LOCAL-13 → LOCAL-14 (27-10-2026)
 
 LOCAL-13 («Compilación Local (13)», `local_427af046-7b29-490a-b38e-722fa5185e15`; Opus 5.5 medio, modo auto, Remote Control;
