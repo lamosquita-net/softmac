@@ -11,7 +11,7 @@
 #   SESION_LOCAL=<id>    SESION_PUBLICACION=<id>    SESION_SERVIDOR=<id>    SESION_CARTERO=<id>
 PRUEBA=; [ "$1" = --prueba ] && PRUEBA=1
 BASE=/Volumes/googledrive/clientes/software
-CARPETA_LOCAL=$BASE; CARPETA_PUBLICACION=$BASE; CARPETA_SERVIDOR=$BASE; CARPETA_CARTERO=$BASE
+CARPETA_LOCAL=$BASE/softmac; CARPETA_PUBLICACION=$BASE/softmac; CARPETA_SERVIDOR=$BASE/softmac; CARPETA_CARTERO=$BASE/softmac  # las notas van relativas al repositorio
 [ -r ~/.config/flyweb/arranque.conf ] && . ~/.config/flyweb/arranque.conf
 
 if [ ! -d "$BASE" ]; then
