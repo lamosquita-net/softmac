@@ -7,6 +7,51 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 31-10: COORDINACIÓN-22 → COORDINACIÓN-23 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-22 (`session_01MwmK2k3ySJohzburv2pUkR`, Opus 5.5, medio) se releva al ~40 % (23,4 $). **Nunca llamar a
+confirm_repository_trust.** Linaje 5 de 8: tras 2–3 relevos más, Titín abre una COORDINACIÓN nueva desde cero (avisarle con
+el texto listo).
+
+**Canales:** 7,1 → por `buzon` (LOCAL lo lee sola al terminar cada tarea; CARTERO-LOCAL caído desde el 30-10 00:18, Titín
+no lo ha reabierto: no urge). LOCAL-14 escribe directo a COORDINACIÓN por SendMessage; la nube no le llega (si urge, texto
+para que Titín lo pegue). **D8-LINUX-2** (`session_01MwmK2j6YSaEEhNtRUhEFBN`, Sonnet, Ubuntu de Titín): encargos en
+`buzon/D8-LINUX/`, lo vigila sola cada 2 min y responde por SendMessage; ~7–9 min por d8, 27,6 GB de RAM de 30.
+
+**Límite semanal en `allowed_warning` (79 % el 31-10 por la mañana; se reinicia el martes 03-11 09:00 Madrid).** Titín
+(31-10): el sábado solo trabajan los agentes; ~10 $ ≈ 1 %; él decide si para el domingo. Tandas cortas, nada de sesiones
+ociosas abiertas, relevo hacia el 35 %.
+
+**Hecho el 30–31-10:**
+- **2.5.0 ENTREGADA** (FM.51, main a33036dd): brave-core `local/250-arreglos` **3d314ec895**, build 37,
+  `FlyWeb-2.5.0g-release`, DMG f3b8f047…. Ocho pasadas; arreglos de ejecución: fw1 al arrancar (8ef2fe9cd5), workers con
+  V8 13.6 (8bec0800e4), Float16Array (f7a89181a, caída de pestaña que **ya tiene la 2.4.0 publicada**), contraseñas nuevas
+  en v10 (096c7d72f0), sync que podía borrar contraseñas fw1 (ddd9687fa3) y anchor (8044f254, `Finalize()` caído por fuzz
+  en un bloque DCHECK). Titín la probó (f) **sobre su perfil real, ya migrado a fw1**: todo bien; **no debe volver a abrir la
+  2.4.0 con su perfil** (copia en su escritorio). Sin probar: sync real de ddd9687f, importar/exportar, firma real.
+  JetStream `dotnet-interp-wasm` no corre ni en CfT 136 (exnref): no es regresión.
+- **Nivel 137 = 2.6.0**: `nube/motor-137` **1644d954** (MOTOR-37…41; decisiones en FM.52/FS.38 y `version-2.6.0.md`) +
+  **FS.38** (SEGURIDAD-PORTES-15, 25,5 $): `seg/fs38-v8` 068f195b (d8 verde), `seg/fs38-blink137` c7b24ba3,
+  `seg/fs38-propio` 2d5b76e5, en ese orden. d8 13.7 verde (`maglev/extras-cped` es esperado: Maglev apagado).
+- Herramientas: `v8-d8.sh` con `FLYWEB_CR_TAG` y quitando solo los trozos de brave/ (#650, #655); `fuera.py` (trozos fuera
+  de su función, en bucles o DCHECK). TRAMPAS: banderas/features encendidas arrastran arreglos de upstream; la d8 no caza
+  snapshot de Blink ni workers.
+- Archivadas: COORDINACIÓN-21, INVESTIGACIÓN-MOTOR-7, MOTOR-37…40, SEGURIDAD-PORTES-15 (parada; archivar si no hace falta).
+
+**En curso:**
+1. **PUBLICACIÓN** publica la 2.5.0 (regla 11): firma, notarización, ns2, **orden de firma en bak a Titín**, appcast. Tú:
+   `curl` del appcast `/stable/`, SHA-256 y tamaño del DMG, y la web como #633. Al usar la 2.5.0 firmada, Titín verá una vez
+   el permiso del llavero (la entrada fw1 la creó la f sin firmar): «Permitir siempre».
+2. **LOCAL-14** compila la **2.6.0** (`buzon/LOCAL/20261031-0840`): 1644d954 + FS.38. Errores → MOTOR-41.
+3. **MOTOR-41** (`session_01MwmK2mMB5MqP7H57sSZJRD`, parada, contexto bajo) atiende esos errores. Pendiente para la 2.6.x:
+   particionado de Blob URL, `CaretWithTextAffinityUpstream`, `TextareaStableResizing`. DocumentIsolationPolicy no se porta.
+4. Después de la 2.6.0: FS de lo que sigue en OSCrypt v10 (tarjetas/IBAN, tokens OAuth, sync, GCM…; lista en
+   `fw1-receta.md` §6 bis) y barrido fuera de nivel (dffb572d0b y 5 más, FS.38). Nivel 138 cuando Titín lo diga.
+5. Prioridad baja de LOCAL: arranque de la 7,1 sin depender del cartero (`buzon/LOCAL/20261030-1520`).
+
+**Pendiente de Titín:** estudio de compilar Blink en el Ubuntu (#648): recomendé solo reforzar los chequeos estáticos; no
+ha respondido. Umbral de Maglev. BackupDrive (3 decisiones). Reabrir CARTERO-LOCAL (no urge).
+
 ## 30-10: COORDINACIÓN-21 → COORDINACIÓN-22 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-21 (`session_01MwmK2juirHM3CHKudv5tND`, Opus 5.5, medio) se releva al ~34 % (14,4 $). **Nunca llamar a
