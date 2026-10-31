@@ -22,6 +22,25 @@ llamamos <em>nivel de motor</em>: la 1.1 tiene el de Chrome 117, la 1.2 el de Ch
 nivel. Las versiones con un tercer número (por ejemplo la 1.7.1 o la 1.8.1) añaden correcciones o mejoras sobre el nivel
 anterior. El nivel de tu versión aparece en <code>flyweb://settings/help</code>.</p>
 </div></section>
+<section class="banda naranja"><div class="columna" id="v2-6-0">
+<h2>FlyWeb 2.6.0 · motor al nivel de Chrome 137</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 137</strong>, con el motor de JavaScript de Chrome 137 (V8 13.7, con JSPI para
+  WebAssembly). Las webs ven FlyWeb como Chrome 137.</li>
+  <li><strong>Más privacidad:</strong> los enlaces visitados ya no se distinguen entre sitios distintos (<code>:visited</code>
+  particionado), y las pestañas que abre un <code>blob:</code> de otro sitio no pueden acceder a la que las abrió.</li>
+  <li><strong>CSS:</strong> valores condicionales con <code>if()</code>, orden de tabulación según se ve
+  (<code>reading-flow</code>), <code>offset-path: shape()</code> y View Transitions con <code>match-element</code>.</li>
+  <li><strong>Selección de texto a través de Shadow DOM</strong> (<code>getComposedRanges</code>) y <strong>firmas
+  Ed25519</strong> en WebCrypto.</li>
+  <li><strong>Canvas de alta precisión</strong> (<code>float16</code>), con la misma protección frente a la huella digital
+  que el canvas normal.</li>
+  <li><strong>Arreglos:</strong> los elementos anclados con <code>anchor()</code> vuelven a encontrar su ancla dentro de un
+  texto o de columnas (fallaba desde la 2.5.0), y una cookie que no se pueda descifrar se pierde sola, no con las demás del
+  sitio.</li>
+  <li><strong>Seguridad:</strong> arreglos de seguridad del motor de JavaScript y del motor web, y certificados raíz al día.</li>
+</ul>
+</div></section>
 <section class="banda naranja"><div class="columna" id="v2-5-0">
 <h2>FlyWeb 2.5.0 · motor al nivel de Chrome 136</h2>
 <ul>
