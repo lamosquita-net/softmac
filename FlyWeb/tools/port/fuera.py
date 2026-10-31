@@ -165,6 +165,26 @@ def added_lines(patch_text):
     return res
 
 
+DEBUG_IF = re.compile(r'#\s*if\s+(DCHECK_IS_ON\(\)|EXPENSIVE_DCHECKS_ARE_ON\(\)|!defined\(NDEBUG\))|#\s*ifndef\s+NDEBUG')
+
+
+def debug_only(text):
+    """Por línea: True si está en la rama `#if DCHECK_IS_ON()` (o NDEBUG) de un bloque de preprocesador."""
+    out, stack = [], []
+    for l in text.split('\n'):
+        t = l.strip()
+        if t.startswith('#'):
+            t2 = re.sub(r'\s+', ' ', t)
+            if re.match(r'# ?if', t2):
+                stack.append(bool(DEBUG_IF.match(t)))
+            elif re.match(r'# ?(else|elif)', t2) and stack:
+                stack[-1] = False
+            elif re.match(r'# ?endif', t2) and stack:
+                stack.pop()
+        out.append(any(stack))
+    return out
+
+
 def check(patch, base_tag, ref_tag, cache, names=False):
     with open(patch, encoding='utf-8', errors='replace') as f:
         ptxt = f.read()
@@ -187,6 +207,8 @@ def check(patch, base_tag, ref_tag, cache, names=False):
         with open(dst, encoding='utf-8', errors='replace') as f:
             result = f.read()
     res_sc = scopes(result)
+    res_dbg = debug_only(result)
+    ref_dbg = debug_only(ref)
     ref_lines = ref.split('\n')
     ref_sc = scopes(ref)
     ref_idx = {}
@@ -202,6 +224,12 @@ def check(patch, base_tag, ref_tag, cache, names=False):
             continue
         mine = res_sc[no - 1] if no - 1 < len(res_sc) else ()
         theirs = {ref_sc[k] for k in hits if k < len(ref_sc)}
+        # Una línea que aquí solo existe con DCHECK y en <ref> también en Release: la Release la pierde (MOTOR-41).
+        if (no - 1 < len(res_dbg) and res_dbg[no - 1] and
+                not any(ref_dbg[k] for k in hits if k < len(ref_dbg))):
+            warn.append((path, no, txt.strip(), 'solo con DCHECK: ' + (' > '.join(mine) or '(fuera de todo)'),
+                         'en Release: ' + ' | '.join(sorted(' > '.join(t) or '(fuera de todo)' for t in theirs))))
+            continue
         if mine in theirs:
             continue
         # Mismo ámbito salvo bloques sin nombre o inicializadores: no es un fallo.
@@ -228,7 +256,14 @@ def check(patch, base_tag, ref_tag, cache, names=False):
                     if not (x == 'fn' and out and out[-1] == 'fn'):
                         out.append(x)
                 return tuple(out)
-            if skel(mine) in {skel(t) for t in theirs}:
+            # Una llamada que upstream hace una vez en su función y aquí cae dentro de un bucle (o bajo un if/for
+            # más hondo que en <ref> que empieza por un bucle) cambia de semántica aunque el esqueleto cuadre:
+            # `Finalize()` de ToBoxFragment acabó en el `for` de un `#if DCHECK_IS_ON()` del 136 (MOTOR-41).
+            def into_loop(t):
+                a, b = simp(mine), simp(t)
+                return (len(a) > len(b) and a[:len(b)] == b and
+                        any(x.split(' ')[0] in ('for', 'while', 'do') for x in a[len(b):]))
+            if skel(mine) in {skel(t) for t in theirs} and not all(into_loop(t) for t in theirs):
                 continue
         warn.append((path, no, txt.strip(), ' > '.join(mine) or '(fuera de todo)',
                      ' | '.join(sorted(' > '.join(t) or '(fuera de todo)' for t in theirs))))

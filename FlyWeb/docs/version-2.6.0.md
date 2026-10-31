@@ -69,6 +69,15 @@ fundidos en `nube/motor-137` 331b25b6 (tres parches resueltos en fuente: `style_
   de `chromium_src` lo deduce del tamaño del búfer (`ImageDataBuffer` no da el tipo de color). Tests: `blink_unittests`
   de canvas y de serialización actualizados (`setPixelFormat`, `DOMFloat16Array`).
 
+- **Anchor en inline/multicol** (8044f254, MOTOR-41): una línea en `box_fragment_builder.cc` (`Finalize()` fuera del bucle
+  de DCHECK). Pruebas: las 9 WPT de LOCAL-14 de `css/css-anchor-position` (anchor-getComputedStyle-002,
+  anchor-name-inline-001, anchor-name-multicol-002/-003, anchor-position-inline-004, anchor-position-multicol-003/-005/
+  -fixed-001, anchor-scroll-004), que deben pasar como en la 2.4.0 y CfT 136.
+- **Cookies `fw1`** (1644d954, MOTOR-41): `net/extras/sqlite/sqlite_persistent_cookie_store.cc` (sin parche antes) con
+  designadores (`UndecryptableFw1Row{.host_key = …}`), `BindBool`, `base::StartsWith`. Test nuevo
+  `SQLitePersistentCookieStoreTest.UndecryptableFw1DropsOnlyItsRow` en `net_unittests`. Prueba en la Mac: ítem `fw1`
+  corrupto, un dominio con una cookie `fw1` y otra `v10` → la `v10` sigue.
+
 ## Para la web
 
 Declara Chrome **137** (137.0.7151.122). Prueba del nivel: `FlyWeb/tools/motor-137.html`.
@@ -85,3 +94,6 @@ Declara Chrome **137** (137.0.7151.122). Prueba del nivel: `FlyWeb/tools/motor-1
   abre un `blob:` de otro sitio no pueden acceder a la que las abrió.
 - Certificados raíz al día (Root Store v19).
 - JavaScript: V8 13.7 (WebAssembly con JSPI, como Chrome 137).
+- Arreglado: los elementos colocados con `anchor()` y `anchor-size()` vuelven a encontrar su ancla cuando está dentro de un
+  texto (un `<span>`) o de un diseño en columnas (fallaba desde la 2.5.0).
+- Cookies: si una cookie cifrada con la clave de FlyWeb no se puede leer, se pierde solo esa, no todas las del mismo sitio.

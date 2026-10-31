@@ -74,6 +74,12 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   el arreglo era de la 136. Buscar los commits entre la base y el Chrome que la enciende que toquen su código (LOCAL-14,
   8ef2fe9cd5; `version-2.5.0.md`).
 
+- **(31-10) Un hunk metido por fuzz en un bloque `#if DCHECK_IS_ON()` solo rompe la Release:** en el 136 (dff03148)
+  `Finalize()` acabó dentro del bucle de DCHECK de `BoxFragmentBuilder::ToBoxFragment`; en Release no se llamaba y las
+  anclas dentro de inline o multicol no se propagaban (9 WPT de la 2.5.0). `fuera.py` no lo veía (solo mira el
+  esqueleto namespace/clase/función/switch); ahora avisa si una línea que upstream tiene directamente en su función cae
+  en un bucle. Las regresiones de WPT de un porte grande: primero `fuera.py --nombres` sobre sus parches (MOTOR-41).
+
 ## LOCAL
 
 - **`update_patches` nunca para un solo parche, y las tareas largas en segundo plano** (Titín, 16-10). LOCAL-4 lanzó
