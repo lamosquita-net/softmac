@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Flex column wrap — comprobación</title>
+<!-- Caso mínimo de la caída de la 2.6.0 (FM.52): el ancho intrínseco de un flex `column wrap` cuenta
+     WebFeature::kFlexNewColumnWrapIntrinsicSize (5043); con kNumberOfFeatures = 5042 el bitset de UseCounter abortaba
+     al cargar la página («código de error 6»). Abrir desde http://127.0.0.1; no carga nada de fuera.
+     Si la pestaña sigue viva y la línea dice ok, está bien. La 2.6.0 cae antes de escribir nada. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  #caja { position: absolute; left: 2em; top: 12em; }
+  #flex { display: flex; flex-flow: column wrap; height: 50px; }
+  #flex > div { width: 30px; height: 40px; background: #39c; }
+</style>
+</head>
+<body>
+<h1>Flex column wrap</h1>
+<ul id="res"></ul>
+<div id="caja"><div id="flex"><div></div><div></div></div></div>
+<script>
+  const ancho = document.getElementById('caja').getBoundingClientRect().width;
+  const li = document.createElement('li');
+  li.className = ancho === 60 ? 'ok' : 'fallo';
+  li.textContent = `ancho intrínseco de column wrap con dos columnas: ${ancho} px (esperado 60)`;
+  document.getElementById('res').append(li);
+</script>
+</body>
+</html>
