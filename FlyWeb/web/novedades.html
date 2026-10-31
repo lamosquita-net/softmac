@@ -22,6 +22,27 @@ llamamos <em>nivel de motor</em>: la 1.1 tiene el de Chrome 117, la 1.2 el de Ch
 nivel. Las versiones con un tercer número (por ejemplo la 1.7.1 o la 1.8.1) añaden correcciones o mejoras sobre el nivel
 anterior. El nivel de tu versión aparece en <code>flyweb://settings/help</code>.</p>
 </div></section>
+<section class="banda naranja"><div class="columna" id="v2-5-0">
+<h2>FlyWeb 2.5.0 · motor al nivel de Chrome 136</h2>
+<ul>
+  <li><strong>Motor al nivel de Chrome 136</strong>, con el motor de JavaScript de Chrome 136 (V8 13.6). Las webs ven FlyWeb
+  como Chrome 136.</li>
+  <li><strong>Contraseñas y cookies con cifrado propio</strong> (AES-256-GCM). Al abrir la 2.5.0, tu perfil se pasa a ese
+  cifrado: <strong>no vuelvas a abrirlo con la 2.4.0 ni anteriores</strong>. La primera vez, macOS te pedirá permiso para el
+  llavero: pulsa «Permitir siempre».</li>
+  <li><strong>Mover elementos sin perder su estado</strong> (<code>Node.moveBefore()</code>): iframes, foco y animaciones
+  siguen como estaban.</li>
+  <li><strong>JavaScript:</strong> <code>Float16Array</code>, <code>using</code>/<code>DisposableStack</code> y
+  <code>RegExp.escape</code>.</li>
+  <li><strong>Más CSS:</strong> <code>print-color-adjust</code> sin prefijo, <code>attr()</code> con tipos,
+  <code>dynamic-range-limit</code>, <code>pow()</code> con unidades y mejoras en el anclaje de elementos con desplazamiento.</li>
+  <li><strong>«Atrás» más rápido</strong> en páginas con <code>Cache-Control: no-store</code> si no han cambiado las cookies.</li>
+  <li><strong>Arreglos:</strong> caídas de pestaña con workers (claude.ai, YouTube…) y con <code>Float16Array</code> (venía de la
+  2.4.0), una caída al arrancar con contraseñas guardadas, y varios fallos de CSS (unidad <code>ch</code> en texto vertical,
+  <code>flex</code> con <code>calc()</code>, columnas en <code>fieldset</code>).</li>
+  <li><strong>Seguridad:</strong> arreglos de seguridad del motor de JavaScript y del motor web.</li>
+</ul>
+</div></section>
 <section class="banda naranja"><div class="columna" id="v2-4-0">
 <h2>FlyWeb 2.4.0 · motor al nivel de Chrome 135</h2>
 <ul>
