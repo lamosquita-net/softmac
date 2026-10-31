@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Enums con valores fuera de orden delante de un contador implícito (MOTOR-41, 31-10-2026).
+r"""Enums con valores fuera de orden delante de un contador implícito (MOTOR-41, 31-10-2026).
 
 Uso: enumorden.py <parche>...  Aplica cada parche a la 128 y avisa si un miembro sin `=` (p. ej. kNumberOfFeatures,
 kMaxValue implícito) vale menos o igual que un valor explícito anterior: un bitset o array dimensionado con él
