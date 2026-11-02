@@ -10,12 +10,8 @@ la 13.8 (dragonbox nuevo, simdutf 7.0.0, Temporal apagado: pasos para LOCAL en `
 banderas propias experimentales, como la 138); `ViewportSegments` (`window.viewport.segments`). `fuera.py` en verde.
 
 **Pendiente, por orden:**
-1. **Decisión de COORDINACIÓN-24** (pedida 02-11 ~12:50) sobre `sibling-index()`/`sibling-count()` (64 commits, ~2 000
-   líneas; el base 8b1026ab8 da 12 rechazos en 10 ficheros), `stretch` (~15 commits de layout) y
-   `CSSAlignBlockAndInlineOutOfFlows` (+`LayoutJustifySelfForBlocks`). Propuesta: 2.7.0 sin ellos, en una 2.7.1 propia
-   antes del 139. Lista de commits de sibling-index: `git log --grep` del punto «Entorno» con
-   `sibling-index\|sibling-count\|tree-counting\|TreeCounting` (64); medida por commit, arriba en esta sesión: el mayor es
-   8b1026ab8 (48 ficheros, 375 líneas).
+1. **Decidido (COORDINACIÓN-24, 02-11 12:43):** `sibling-index()`, `stretch` y la alineación OOF quedan fuera de la 2.7.0 y
+   sin 2.7.1: «Aplazado del 138» al principio del 139 (`version-2.7.0.md`). La 2.7.0 declara 138. #688 fusionado.
 2. **Integrity-Policy** (sin empezar en la rama): 9 commits, en orden 629b69e78b66, 93d38b50a171, 55bf0d1e8373,
    4458c6764c68, 5ba6c5d0df66, f8e3fd713bce, 227488522951, e9e51b382825, 7d991745c7df (~900 líneas; mirar si b3eedf580,
    «Remove require-sri-for», hace falta antes). `portar128g.sh ip <shas completos>` da **26 `.rej` (~35 hunks)**: los más
