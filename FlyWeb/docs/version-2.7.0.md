@@ -36,9 +36,37 @@ Inventario del 138: `motor-niveles.md` § «Nivel 138» (pendiente).
   cuenta como «cambiado» sin serlo. `canvas-float16.html` ahora informa del píxel, canal, bits y valores de cada caso
   (hasta 4): LOCAL lo pasa con la 2.7.0 y, con ese dato, se decide. No bloquea (COORDINACIÓN-23, 31-10).
 
+### Nivel 138, tanda del 02-11 (MOTOR-42; `nube/motor-138` 5a86f3aa, sin compilar)
+
+- **`MediaSourceNewAbortAndDuration`** (0cc875d9): encendido sin más; el código que gobierna es idéntico en la 128 y la 138.
+- **Contenido mixto** (993b32bd; 3e980163 + aa485810): `ShouldAutoupgrade` decide con `IsMixedContentRestrictedInFrameContext`
+  (esquema del marco superior y del actual) en vez del `HttpsState`. Afecta a la anulación de Brave
+  `chromium_src/.../mixed_content_checker.{cc,h}` (firma nueva con `LocalFrame*`) y a `.onion`: el camino viejo dependía de
+  que `https_state.cc` devolviera `kModern` para `.onion`; se añade el gancho
+  `BRAVE_MIXED_CONTENT_CHECKER_IS_MIXED_CONTENT_RESTRICTED_IN_FRAME_CONTEXT` tal como lo tiene Brave 1.80. Sin portar
+  `mixed_content_checker_test.cc` (si LOCAL compila `blink_unittests`, ese test no compilará con la firma vieja: pasarle
+  `nullptr` como último argumento).
+- **`QuotaExceededError`** (5a86f3aa; 3009dd8e, 1b6ec5ba, a7bea0c1, a162e5a3, 400a4608): interfaz nueva derivada de
+  `DOMException` con `quota`/`requested`. Adaptado a la 128: `ExceptionState` guarda la excepción construida con
+  `SetException` (la 128 la propaga después); sin isolate se lanza un `QuotaExceededError` normal en vez de no lanzar nada
+  (upstream volvía sin excepción); fuera los trozos de `modules/ai`. `DOMExceptionCode::kQuotaExceededError` pasa a
+  implícito = 37, igual que en la 138 (mismo orden), y `IDBException::kQuotaError` = 37 a juego (`idb_request.cc` hace un
+  `static_cast` entre los dos). S: no he barrido la 128 entera buscando otros sitios que supongan el 22.
+- **Aplazados a la tanda de mañana** (no son encendidos: piden código posterior a la 128):
+  - `progress()`, `abs()`/`sign()`: sintaxis nueva de `progress()` (b9417dbcfe2), recorte del resultado (0f954c71f10) y la
+    infraestructura de cálculo sin resolver que comparten con `sibling-index()` (se retiraron en marzo por caídas en flex).
+    Van con `sibling-index()`.
+  - `ViewportSegments`: `window.viewport` no existe en la 128 (ae78afaca30, ago. 2024). En Mac siempre es un segmento:
+    solo aporta coherencia con el Chrome declarado. Coste ~1 h.
+  - **Integrity-Policy**: función entera ausente en la 128 (~10 commits: análisis en `services/network`, mojom,
+    `navigation_request.cc`, informes, Blink). Más que una tanda corta.
+- `fuera.py --ref 138.0.7204.185`: 0 avisos en los 30 parches tocados; `enumorden.py`: sin avisos.
+
 ## Para la web
 
 - Al escribir un espacio al principio de una línea partida en un cuadro de texto, el espacio aparece donde está el
   cursor y no al final de la línea anterior.
 - Redimensionar un cuadro de texto con el tirador sigue al ratón aunque la página esté ampliada, girada o en
   escritura de derecha a izquierda.
+- `QuotaExceededError` es ahora un tipo de error propio, que indica cuánto espacio había y cuánto se pidió.
+- La subida automática a HTTPS del contenido mixto (imágenes, audio y vídeo) usa el mismo criterio que el bloqueo.
