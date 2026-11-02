@@ -114,31 +114,37 @@ if [ "$(git -C src/v8 rev-parse HEAD)" != "$V8_WANT" ]; then
   rm -f src/brave/patches/v8/*.patchinfo
 fi
 echo "V8: $(git -C src/v8 describe --tags --always HEAD)"
-# fast_float (V8 13.0+, nivel 130; FM.20): V8 depende de //third_party/fast_float, que la 116 no tiene. El BUILD.gn y
-# el README.chromium (licencia para about:credits) los pone un parche de brave-core; el código se trae aquí, como V8,
-# en el commit de src/brave/FlyWeb/fast_float-revision («<commit> <suma>»). La suma es la sha256 de las sha256 de
-# include/ y las tres licencias (LC_ALL=C, en orden); si el commit o la suma no cuadran, se para. Sin el fichero
-# (niveles anteriores al 130), no se hace nada.
-FF_REV_FILE=src/brave/FlyWeb/fast_float-revision
-if [ -f "$FF_REV_FILE" ]; then
-  FF_REV=$(grep -v '^#' "$FF_REV_FILE" | awk 'NF{print $1; exit}')
-  FF_SUM=$(grep -v '^#' "$FF_REV_FILE" | awk 'NF{print $2; exit}')
-  [ -n "$FF_REV" ] && [ -n "$FF_SUM" ] || { echo "fast_float: $FF_REV_FILE sin commit o sin suma" >&2; exit 1; }
-  FF_DIR=src/third_party/fast_float/src
-  [ -d "$FF_DIR/.git" ] || { mkdir -p "$FF_DIR"; git -C "$FF_DIR" init -q; }
-  if [ "$(git -C "$FF_DIR" rev-parse -q --verify 'HEAD^{commit}' 2>/dev/null || true)" != "$FF_REV" ]; then
-    echo "fast_float: trayendo $FF_REV"
-    git -C "$FF_DIR" fetch -q --depth 1 \
-      https://chromium.googlesource.com/external/github.com/fastfloat/fast_float.git "$FF_REV"
-    git -C "$FF_DIR" checkout -q -f --detach FETCH_HEAD
+# Dependencias de V8 que la 116/128 no tiene (fast_float desde V8 13.0, nivel 130, FM.20; dragonbox desde V8 13.8,
+# nivel 138, FM.53): V8 depende de //third_party/<nombre>. El BUILD.gn y el README.chromium (licencia para
+# about:credits) los pone un parche de brave-core; el código se trae aquí, como V8, en el commit de
+# src/brave/FlyWeb/<nombre>-revision («<commit> <suma>»). La suma es la sha256 de las sha256 de include/ y las
+# licencias (LC_ALL=C, en orden); si el commit o la suma no cuadran, se para. Sin el fichero (niveles anteriores),
+# no se hace nada.
+traer_dep_v8() {  # <nombre> <url> <ficheros de la suma…>
+  local NOMBRE=$1 URL=$2; shift 2
+  local REV_FILE=src/brave/FlyWeb/$NOMBRE-revision
+  [ -f "$REV_FILE" ] || return 0
+  local REV SUM DIR SHA GOT
+  REV=$(grep -v '^#' "$REV_FILE" | awk 'NF{print $1; exit}')
+  SUM=$(grep -v '^#' "$REV_FILE" | awk 'NF{print $2; exit}')
+  [ -n "$REV" ] && [ -n "$SUM" ] || { echo "$NOMBRE: $REV_FILE sin commit o sin suma" >&2; exit 1; }
+  DIR=src/third_party/$NOMBRE/src
+  [ -d "$DIR/.git" ] || { mkdir -p "$DIR"; git -C "$DIR" init -q; }
+  if [ "$(git -C "$DIR" rev-parse -q --verify 'HEAD^{commit}' 2>/dev/null || true)" != "$REV" ]; then
+    echo "$NOMBRE: trayendo $REV"
+    git -C "$DIR" fetch -q --depth 1 "$URL" "$REV"
+    git -C "$DIR" checkout -q -f --detach FETCH_HEAD
   fi
-  [ "$(git -C "$FF_DIR" rev-parse HEAD)" = "$FF_REV" ] || { echo "fast_float: el commit no es $FF_REV" >&2; exit 1; }
-  if command -v shasum >/dev/null 2>&1; then FF_SHA="shasum -a 256"; else FF_SHA=sha256sum; fi
-  FF_GOT=$(cd "$FF_DIR" && git ls-files -z include LICENSE-MIT LICENSE-APACHE LICENSE-BOOST |
-    LC_ALL=C sort -z | xargs -0 $FF_SHA | $FF_SHA | cut -d' ' -f1)
-  [ "$FF_GOT" = "$FF_SUM" ] || { echo "fast_float: suma $FF_GOT, esperada $FF_SUM" >&2; exit 1; }
-  echo "fast_float: $FF_REV (suma comprobada)"
-fi
+  [ "$(git -C "$DIR" rev-parse HEAD)" = "$REV" ] || { echo "$NOMBRE: el commit no es $REV" >&2; exit 1; }
+  if command -v shasum >/dev/null 2>&1; then SHA="shasum -a 256"; else SHA=sha256sum; fi
+  GOT=$(cd "$DIR" && git ls-files -z "$@" | LC_ALL=C sort -z | xargs -0 $SHA | $SHA | cut -d' ' -f1)
+  [ "$GOT" = "$SUM" ] || { echo "$NOMBRE: suma $GOT, esperada $SUM" >&2; exit 1; }
+  echo "$NOMBRE: $REV (suma comprobada)"
+}
+traer_dep_v8 fast_float https://chromium.googlesource.com/external/github.com/fastfloat/fast_float.git \
+  include LICENSE-MIT LICENSE-APACHE LICENSE-BOOST
+traer_dep_v8 dragonbox https://chromium.googlesource.com/external/github.com/jk-jeon/dragonbox.git \
+  include LICENSE-Apache2-LLVM LICENSE-Boost
 # Con una V8 más nueva que la de la 116, el código de Chromium 116 usa APIs que esa V8 marca como obsoletas;
 # con -Werror serían errores. Se apagan esos avisos (v8_deprecation_warnings más abajo): solo cuentan las APIs
 # que la V8 nueva ha quitado de verdad, y esas se arreglan con parches de Blink en cada nivel.
@@ -236,6 +242,9 @@ if [ -n "${FLYWEB_EXTRA_ARGS:-}" ]; then
   # shellcheck disable=SC2086
   set -- "$@" $FLYWEB_EXTRA_ARGS
 fi
+# V8 13.8+ (nivel 138, FM.53) enciende Temporal por defecto en Mac y depende del crate Rust temporal_capi, que la
+# base 128 no tiene; Chrome 138 no lo expone (solo con --harmony-temporal) y upstream compila sin él en Windows.
+# Con V8 anteriores, gn solo avisa de que el argumento no tiene efecto. Se revisa cuando el nivel declarado lo exponga.
 # Commit de brave-core que se compila: «Información» enlaza a su código fuente (obligación de la MPL-2.0;
 # brave-core paso 47). Sin ese paso, gn solo avisa de que el argumento no tiene efecto.
 CORE_SRC_COMMIT=$(git -C src/brave rev-parse HEAD)
@@ -246,6 +255,7 @@ npm run build -- "$CONFIG" --target_arch=x64 "$@" \
   --gn "symbol_level:${FLYWEB_SYMBOL_LEVEL:-0}" \
   --gn v8_deprecation_warnings:false \
   --gn v8_imminent_deprecation_warnings:false \
+  --gn v8_enable_temporal_support:false \
   --gn "updater_prod_endpoint:$UPDATER" \
   --gn "updater_dev_endpoint:$UPDATER" \
   --gn "safebrowsing_api_endpoint:$PROXY" \

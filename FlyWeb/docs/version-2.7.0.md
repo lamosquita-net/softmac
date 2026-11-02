@@ -62,6 +62,37 @@ Inventario del 138: `motor-niveles.md` § «Nivel 138» (pendiente).
     `navigation_request.cc`, informes, Blink). Más que una tanda corta.
 - `fuera.py --ref 138.0.7204.185`: 0 avisos en los 30 parches tocados; `enumorden.py`: sin avisos.
 
+### Blink frente a la API de V8 13.8 (MOTOR-43, 02-11; brave-core 2c94d743, sin compilar)
+
+- **API pública (`include/` 13.7.152.17 → 13.8.258.30): nada que la 128 use se ha quitado.** Barrido de Blink
+  (`renderer/` y `public/`), gin, `content/renderer`, `extensions/renderer`, `chrome/renderer`, components, pdf,
+  `proxy_resolver` y `v8_context_snapshot` de la 128 y de los parches de brave-core: ningún `Utf8Value` de 3 argumentos
+  (pierde `WriteOptions`), ningún `ThreadIsolatedAllocator::SetDefaultPermissionsForSignalHandler` (borrado) ni
+  `Member::GetRawAtomic` (ahora devuelve `const void*`). Lo demás son `DEPRECATE_SOON` (`GetIsolate()`,
+  `ContinuationPreservedEmbedderData` sin V2), apagados en `build.sh`. `Write`/`WriteUtf8` viejos siguen (`DEPRECATED`).
+- **`api.cc`: sin `ApiCheck`/`CHECK` nuevos** (el «Unaligned pointer» es el de siempre, reescrito). `read-only-promotion`
+  y `weak`/`dlsym`/`__builtin_available` sin cambios (MOTOR-42).
+- **Contadores de V8 168–174** (`kWasmMultiValue`… `kInvalidatedNoDateTimeConfigurationChangeProtector`): no se portan
+  sus `WebFeature`; `use_counter_callback.cc` de la 128 los ignora con `default:` y FlyWeb no envía UMA.
+- **`kUseContextSnapshot`** (ENABLED en la 138): se queda como en la 128.
+- **Dependencias: tres bloqueos de compilación que no eran de API**, todos resueltos:
+  - **dragonbox** (nuevo en V8 13.8; `numbers/conversions.cc`, solo cabecera): `BUILD.gn` y `README.chromium` de la 138
+    por parche, el código en `FlyWeb/dragonbox-revision` (6c7c925b, 1.1.3, con suma) y `build.sh` lo trae como a
+    fast_float (función común `traer_dep_v8`). Licencias Apache-2.0 con excepción LLVM y BSL-1.0 en `about:credits`. Sin
+    intrínsecos AVX en clang (solo `addcarry`, x86-64 base).
+  - **simdutf 6.4.0 → 7.0.0** (9d3e4d7c, el de la 138): V8 13.8 llama a `atomic_base64_to_binary_safe` y
+    `to_well_formed_utf16`. Mismo `BUILD.gn` y `LICENSE`; solo lo usa V8. Mismo despacho en tiempo de ejecución
+    (Westmere para la 5,1).
+  - **Temporal**: V8 13.8 lo enciende por defecto en Mac y depende del crate Rust `temporal_capi`, que la 128 no tiene.
+    `build.sh` pasa `v8_enable_temporal_support:false` (Chrome 138 no lo expone sin `--harmony-temporal`; upstream
+    compila así en Windows). Se reabre en el nivel cuyo Chrome lo exponga.
+  - ICU, abseil, highway, fp16 y cabeceras estándar: sin usos nuevos frente a la 13.7. `//build` de la 128 tiene todo
+    lo que pide el `BUILD.gn` de V8 13.8.
+- **S, para la primera prueba de LOCAL:** desde crrev.com/c/6458560, V8 saca el isolate del TLS
+  (`GetCurrentIsolate[ForSandbox]`) en los `inline` de campos internos, datos de contexto y cadenas externas, en vez de
+  la cabecera del objeto. Si Blink 128 toca un objeto de V8 en un hilo sin `Isolate::Scope`, falla ahí. Chrome 138 lo
+  da por bueno, pero la 128 es más vieja: probar workers, worklets (audio, paint) y service workers.
+
 ## Para la web
 
 - Al escribir un espacio al principio de una línea partida en un cuadro de texto, el espacio aparece donde está el
