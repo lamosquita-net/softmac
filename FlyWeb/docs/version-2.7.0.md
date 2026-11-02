@@ -126,6 +126,31 @@ Inventario del 138: `motor-niveles.md` § «Nivel 138» (pendiente).
   `document_isolation_policy`); si `content_unittests` o `blink_unittests` se compilan, sus pruebas con la firma vieja
   fallan (no portadas).
 
+### Lote B2/B3 y letter-spacing (MOTOR-44, 02-11; brave-core a77a0737 y 9714bc81, sin compilar)
+
+Arreglos que nacen `stable` en la 138, cada uno con su bandera (V: ninguna estaba en FlyWeb ni en el 137):
+- a82b813fa801 `Selection.deleteFromDocument()` no borra dentro de INPUT/TEXTAREA (`SelectionDeleteFromDocumentUaShadowFix`).
+- db062d2fc3c6 copiar no incluye contenido `user-select: none` (`SkipUnselectableContentInSerialization`).
+- 5ee3b4ac2a1f la instantánea del portapapeles se reinicia al escribir (`ClipboardSnapshotResetOnWrite`).
+- 132862ba859e CDATA se serializa como texto en documentos HTML (`SerializeCdataAsTextInHTMLDocuments`).
+- 2cd928936852 ajuste de anchor positioning con overscroll (`AnchorPositionAdjustmentWithoutOverflow`); se queda dentro
+  de la comprobación `ScrollNodeForOverflowHidden` de la 128 (stable aquí).
+- **9b7d041aae94 unidad `ch` sin glifo «0»: 0,5em** (`CSSChUnitSpecCompliantFallback`). V: FlyWeb arrastraba el fallo de
+  crrev.com/c/6333369 (136): devolvía `size / 0.5f` = 2em.
+- f746f478c914 invalidación de filtros de referencia en trozos vacíos (`EmptyReferenceFilterInvalidation`); añade
+  `EffectPaintPropertyNode::HasReferenceFilter()` sobre el `state_.filter` de la 128.
+- 51d0892240f1 elementos dentro de contenedores SVG ocultos no reciben foco (`RestrictTabFocusForHiddenSVGElements`);
+  `SupportsFocus()` es `bool` en la 128.
+- ba96d51e → 77ab8bb83726 + 97e135f47abc `letter-spacing` no se aplica en escrituras cursivas (árabe, siríaco, N'Ko,
+  mongol…; `IgnoreLetterSpacingInCursiveScripts`), con el espaciado `float` de la 128.
+- **No portados:** 1f5acb16b48e (herencia de prioridad de `scheduler.yield` entre marcos): FlyWeb no tiene
+  `SchedulerTaskContext`, es decir, **no tiene la herencia de `scheduler.yield`** (S: escape de un nivel anterior; mirar
+  en el 139 qué nivel la trajo). 9b98a818d86d (popover): su autor dice que no es observable. 1c066c83 y 3a7a9069
+  (rendimiento) y 0bc24ff1 (`LayoutIsAnonymousBlockFix`, refactor de layout, 9 rechazos): fuera de esta tanda.
+- **Textarea (`TextareaLineEndingsAsBr`, `TextareaMultipleIfcs`): no son encendidos**, son la reescritura interna del
+  textarea (~15 commits, 8cd6ad61d → 47cec2cbb). Propuesta a COORDINACIÓN-24 (02-11): «Aplazado del 138».
+- `fuera.py --ref 138.0.7204.185`: 0 avisos (22 parches); `chk128.sh` 15/15 y 9/9; `api128.sh 17a21921`: 0 avisos.
+
 ### Aplazado del 138 (COORDINACIÓN-24, 02-11; sin 2.7.1)
 
 Van al principio del 139 (2.8.0), como lo aplazado del 137 en esta. Sin 2.7.1, porque las 2.N.x solo salen por una
@@ -177,4 +202,7 @@ un service worker (S del apartado «Blink frente a la API de V8 13.8»).
 - `QuotaExceededError` es ahora un tipo de error propio, que indica cuánto espacio había y cuánto se pidió.
 - Las webs pueden exigir que todos sus scripts lleven comprobación de integridad (`Integrity-Policy`): FlyWeb bloquea
   los que no la lleven, como Chrome 138.
+- Al copiar, ya no se copia el texto que la página marca como no seleccionable.
+- La unidad CSS `ch` vuelve a medir media letra cuando la fuente no tiene «0» (antes salía cuatro veces mayor).
+- En árabe y otras escrituras cursivas, el espaciado entre letras ya no rompe las uniones.
 - La subida automática a HTTPS del contenido mixto (imágenes, audio y vídeo) usa el mismo criterio que el bloqueo.
