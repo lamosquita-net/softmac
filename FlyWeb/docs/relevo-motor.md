@@ -1,3 +1,27 @@
+# MOTOR-42 (02-11-2026, ~11:30 UTC)
+
+MOTOR-42 (`session_01MwmK2iD1rP6o3BQysRiiGF`, Opus 5.5, medio). Fila FM.53 (nivel 138 = 2.7.0). **brave-core
+`nube/motor-138` = 5a86f3aa** sobre `local/261-arreglos` 480f7362. Sin compilar. Detalle en `version-2.7.0.md`.
+
+**Hecho:** aplazado del 137 (kReadingOrder ordenado, Caret, Textarea; Blob URL no se porta, prueba
+`tools/blob-particion.html`; bit 0 de canvas-float16 sin causa, la página ahora informa del caso). Inventario del 138 en
+`motor-niveles.md` § «Nivel 138» (138.0.7204.185, V8 13.8.258.30). Tanda de hoy: `MediaSourceNewAbortAndDuration`,
+contenido mixto con el gancho `.onion` de Brave 1.80, `QuotaExceededError`.
+
+**Para mañana (después del reinicio del límite, 03-11 09:00), por orden de COORDINACIÓN-23:**
+1. V8 13.8.258.30: 44 de 252 parches de `patches/v8` no aplican (lista al final de «Nivel 138»); época de caché nueva;
+   `Utf8Value` sin `WriteOptions`; mirar `kUseContextSnapshot` (pasa a ENABLED en la 138) con la snapshot de Blink 128.
+2. Blink: `sibling-index()`/`sibling-count()` + `progress()`/`abs()`/`sign()` (infraestructura compartida), `stretch`,
+   lote de arreglos nacidos stable, WebCodecs orientation, letter-spacing en escritura cursiva, `ViewportSegments`,
+   Integrity-Policy (función entera).
+3. Declaración 138, `motor-138.html`, Root Store v23 y CT 59.19 (servidor), FS del 138 (la abre COORDINACIÓN).
+
+**Entorno:** clon de Chromium `--filter=tree:0` en `/home/user/chromium/chromium` (con `hist` enlazado; `gc.auto 0`; tags
+128, 137 y 138); `git log` con rutas es lentísimo, usar `--grep`. Herramientas de `FlyWeb/tools/port` copiadas a
+`/tmp/claude-0/port`; `FlyWeb/tools/port/jsonflip.sh` (nuevo) cambia el estado de una bandera en el parche del json5.
+
+---
+
 # MOTOR-41 (31-10-2026, ~09:00 UTC)
 
 MOTOR-41 (`session_01MwmK2mMB5MqP7H57sSZJRD`, Opus 5.5, medio). **`nube/motor-137` = 1644d954** = 8e726aad +:
