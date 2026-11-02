@@ -10,59 +10,56 @@ aa459f1b4f6f962e161874a5911f29ff3d09c2ca 0 fich 0 lin Add a WPT test for sibling
 f486465af7535306520be1f6d81dffb0e89bda1f 0 fich 0 lin Correct test for sibling-index() on pseudo element
 c65f9442cbe4dc3c8fda02c14b0623246f7b4fde 1 fich 13 lin Pseudo element styles use sibling-index/count() from originating element
 29d5367216f2c75672e14069f1acb0ab1f10c716 2 fich 49 lin Make tree-counting functions tree-scoped
-a1c00b2bd3a3650f87d8ac0cd23fb143c2a73382 /tmp/claude-0/port/gd/a1c00b2bd3a3650f87d8ac0cd23fb143c2a73382.diff: No such file or directory
-d665074a466b4828da886986716696473088aab1 /tmp/claude-0/port/gd/a1c00b2bd3a3650f87d8ac0cd23fb143c2a73382.diff: No such file or directory
-335f039762e05639ba4f0efc00022b36a631e259 line 3: /tmp/claude-0/port/gd/a1c00b2bd3a3650f87d8ac0cd23fb143c2a73382.diff: No such file or directory
-56cfc4af1dc0afe87bc582e9f0a642ac1e4cb8fc 0 fich 0 lin Support sibling-index()/sibling-count() in container queries
-65bc2d9dafc6c93b11a1bbc8fbd5fed735746adf 9 fich 125 lin Invalidation for sibling-count()/sibling-index()
-d5a269019d1e58a29a18d4cc40bde68f6c4c98b6 1 fich 12 lin Slot invalidation for sibling-index()/sibling-count()
-b3a8818c37db76d927d7d9f4ab7256b0d7986437 0 fich 0 lin Move tree-counting wpt test to separate directory
-5d92196daafb8bba3c25c80baa798743feb76c5a 15 fich 97 lin Disallow tree-counting functions in non-element contexts
-c82e4ff1304adb9c285e827479dbab18f939ac69 0 fich 0 lin Add tests for cursor including sign() and sibling-index()
-1abd013baa6e3a9af7b58e7f88083b0b238beeb3 0 fich 0 lin Add crash test for linear() with sign() and sibling-index()
-02c0f691ed2c6143494c1078a0a47f7812f3a282 0 fich 0 lin Add test for sign() and sibling-index() in flex shorthand
-22d5ce93c19a9d7191d9bb4ea10d7672f71642dc 2 fich 22 lin Support unresolved calc() expressions for steps() timing functions
-59d393acd314d5ef30c8a117823a1d90a34e8793 1 fich 9 lin Only allow numeric literals for attr(<attr-unit>)
-1f7283d208003afe5b4e21899f4c950728dfa488 1 fich 21 lin Disallow unresolved calc() in linear() timing function
-07c6ca13ad56aed10bb941a51c76ab1e2f667e04 1 fich 9 lin Support calc() expressions for (100% - amount) in basic shape values
-5b58378e50495ff45dda8929e36e30bda5de2905 5 fich 35 lin Support sibling-index() and sign() for font-variation-settings
-69e2e4a30da8bedd76f6a1c1953b3d343795824d 0 fich 0 lin Import wpt@f7bbe493b23ba41331f4bd35ef492c483b8aef94
-2e92ff41afdb273f1fcc58f69402002601e64b70 5 fich 15 lin Remove ConsumeSeconds() without CSSLengthResolver
-3b2cc1b0974964e1f1b00ff1fbc4b75dc50e923f 11 fich 73 lin Remove ComputeDotsPerPixel from CSSPrimitiveValue
-b388ddcc49951214fcb96e15f530686b217ba074 2 fich 6 lin Disallow calc() in named timeline range keyframe selectors
-d2413646fc343983f49609c24575094b3a74b2e8 4 fich 67 lin Remove CSSPrimitiveValue::GetFloatValue()
-a00789645e50fafe7273cd55f6b7c7564ced721e 4 fich 25 lin Get rid of CSSPrimitiveValue::GetIntValue()
-31e669ca4f603f5ea53f8578875d7f5ec2ba8ccb 1 fich 5 lin Get rid of DoubleValue() usage in SVG use counting
-d0e504d96a8bb6f112afe38b626e929a95292758 1 fich 9 lin Ignore legacy font sizes in editing with sibling-index()
-5b389be0c67d2edf669ec72bc0547f4a5b5a978f 1 fich 11 lin Check that numbers in calc() products are resolvable for DoubleValue()
-d9d9e83174ea9706802a4d402500f29f79102642 1 fich 69 lin Only accept resolvable calc()s for keyframe offsets for web animations
-b377c950c8162b7bdce9a93e9265ff3229061383 6 fich 278 lin Tree counting functions should not operate on the flat tree
-2594ee5131a5012e8a2706908f76466c50a3934d 0 fich 0 lin Add test for sibling-index() invalidation of length animations
-d0e9a0c212a1b5cea8656789f6c3036a59ca9877 1 fich 9 lin Resolve sibling-index() in percentage interpolations
-fe8df6574dcd23792023638be221c871dbdd9c12 1 fich 14 lin Typed OM px and percentage values are resolvable at specified time
-857e549d6bc29ae95125a7189e033a4f5715d3e5 4 fich 83 lin Support sibling-index() in number interpolations
-86adc3696917d3d5d5dc85337027f797b4b6c196 7 fich 26 lin Add TODOs for sibling-index() and sign() conversion checkers
-b2e57a1f8aa2927c0ca2a7bfaa0c0d8e7cfe59c4 3 fich 25 lin Check for element dependent components in DOMMatrix constructor
-8a825a7cf9d670e556cadb24da071b3197bb18d0 1 fich 7 lin Do not cache gradient images with calc() stops across elements
-71682a3968706f73b50074c4c4edadd9e2664b9d 23 fich 116 lin Pass node for tree counting conversions for gradients
-bf4032eb22d04fcdf5fc9e64f217a5d666a24528 1 fich 8 lin Set override parser mode for all @font-face descriptors
-708406b093d6001c1ac3ce7f68a02eaf2a105e36 4 fich 33 lin Tree counting functions should not be allowed in descriptors
-e891b31d30e54a2d44474f992aa9d4b93a72236b 1 fich 23 lin Disallow sibling-index() in @counter-style descriptors
-35cd96f67a24216ef33d388c64b89d1528d7d27d 0 fich 0 lin Import wpt@4127d111837966d457ea4af242176f754092a667
-71af9671208baed2bdf9922ff9ce7b64dea2fbd4 0 fich 0 lin Add sibling-index/count() tests for @font-feature-values parsing
-ad6a708fcd298b651c5104dbed97584e5bfbfb69 1 fich 8 lin Use TreeCountingChecker in percentage interpolations
-b39f14e469cce3fec9f424c15b1f126f9c93a1f1 0 fich 0 lin Import wpt@89c28f8c22b17d0e95d8ec13f3e5f3219bca778e
-c39290db5cda29b623e507d144ff8e6e1deb3eb6 5 fich 35 lin Use TreeCountingChecker in scale interpolations
-f4ecb98e619fc3b70f6b65be59a7335afb7ac271 1 fich 12 lin Use TreeCountingChecker for font-weight interpolations
-49b88d4739e3af76fdce6966c070e5acdac7c571 1 fich 5 lin Resolve registered <color> values at computed value time
-ba87c8e61fb10776edfd5d3392c0ca280d76fc78 1 fich 16 lin Use TreeCountingChecker when animating font-variation-settings
-8d12c02ee13c134f937a368c52434037cb9d0f0b 2 fich 26 lin Add tree counting conversion checkers to resolution and time
-d51435dc8bda7a277a2b023e25812f58db1e7332 0 fich 0 lin Import wpt@061b2f78cd1945d37b5b28cdeb19a8d411aaf6a9
-4c536680e08004fd5159fef6aae837f429fade76 1 fich 32 lin Use TreeCountingChecker for rotate interpolations
-69bcd1b6a85633d3ddb2c35268ced43873c6f0e8 3 fich 25 lin Put tree counting functions for @container behind a flag
-284d4813e72b67cd8a09892459585984a6a486f9 1 fich 4 lin Ship sibling-index()/sibling-count()
-15ce3aa27e535b9816f04d0ab226fd202d1319d7 8 fich 72 lin Invalidate container queries on sibling changes
-b51746a1c91a47222c0788a064020cbe330024ba 1 fich 18 lin Use TreeCountingChecker for transform interpolations
-284d4813e fich 72 lin Revert "Invalidate container queries on sibling changes"
-15ce3aa27 fich 98 lin Reland container queries invalidation with MSAN fix
-b51746a1c fich 40 lin [Merge M138] Fix using zoom on relative color calculation
+a1c00b2bd3a3650f87d8ac0cd23fb143c2a73382 3 fich 13 lin Support sibling-index()/sibling-count() in container queries
+d665074a466b4828da886986716696473088aab1 9 fich 125 lin Invalidation for sibling-count()/sibling-index()
+335f039762e05639ba4f0efc00022b36a631e259 1 fich 12 lin Slot invalidation for sibling-index()/sibling-count()
+56cfc4af1dc0afe87bc582e9f0a642ac1e4cb8fc 0 fich 0 lin Move tree-counting wpt test to separate directory
+65bc2d9dafc6c93b11a1bbc8fbd5fed735746adf 15 fich 97 lin Disallow tree-counting functions in non-element contexts
+d5a269019d1e58a29a18d4cc40bde68f6c4c98b6 0 fich 0 lin Add tests for cursor including sign() and sibling-index()
+b3a8818c37db76d927d7d9f4ab7256b0d7986437 0 fich 0 lin Add crash test for linear() with sign() and sibling-index()
+5d92196daafb8bba3c25c80baa798743feb76c5a 0 fich 0 lin Add test for sign() and sibling-index() in flex shorthand
+c82e4ff1304adb9c285e827479dbab18f939ac69 2 fich 22 lin Support unresolved calc() expressions for steps() timing functions
+1abd013baa6e3a9af7b58e7f88083b0b238beeb3 1 fich 9 lin Only allow numeric literals for attr(<attr-unit>)
+02c0f691ed2c6143494c1078a0a47f7812f3a282 1 fich 21 lin Disallow unresolved calc() in linear() timing function
+22d5ce93c19a9d7191d9bb4ea10d7672f71642dc 1 fich 9 lin Support calc() expressions for (100% - amount) in basic shape values
+59d393acd314d5ef30c8a117823a1d90a34e8793 5 fich 35 lin Support sibling-index() and sign() for font-variation-settings
+1f7283d208003afe5b4e21899f4c950728dfa488 0 fich 0 lin Import wpt@f7bbe493b23ba41331f4bd35ef492c483b8aef94
+07c6ca13ad56aed10bb941a51c76ab1e2f667e04 5 fich 15 lin Remove ConsumeSeconds() without CSSLengthResolver
+5b58378e50495ff45dda8929e36e30bda5de2905 11 fich 73 lin Remove ComputeDotsPerPixel from CSSPrimitiveValue
+69e2e4a30da8bedd76f6a1c1953b3d343795824d 2 fich 6 lin Disallow calc() in named timeline range keyframe selectors
+2e92ff41afdb273f1fcc58f69402002601e64b70 4 fich 67 lin Remove CSSPrimitiveValue::GetFloatValue()
+3b2cc1b0974964e1f1b00ff1fbc4b75dc50e923f 4 fich 25 lin Get rid of CSSPrimitiveValue::GetIntValue()
+b388ddcc49951214fcb96e15f530686b217ba074 1 fich 5 lin Get rid of DoubleValue() usage in SVG use counting
+d2413646fc343983f49609c24575094b3a74b2e8 1 fich 9 lin Ignore legacy font sizes in editing with sibling-index()
+a00789645e50fafe7273cd55f6b7c7564ced721e 1 fich 11 lin Check that numbers in calc() products are resolvable for DoubleValue()
+31e669ca4f603f5ea53f8578875d7f5ec2ba8ccb 1 fich 69 lin Only accept resolvable calc()s for keyframe offsets for web animations
+d0e504d96a8bb6f112afe38b626e929a95292758 6 fich 278 lin Tree counting functions should not operate on the flat tree
+5b389be0c67d2edf669ec72bc0547f4a5b5a978f 0 fich 0 lin Add test for sibling-index() invalidation of length animations
+d9d9e83174ea9706802a4d402500f29f79102642 1 fich 9 lin Resolve sibling-index() in percentage interpolations
+b377c950c8162b7bdce9a93e9265ff3229061383 1 fich 14 lin Typed OM px and percentage values are resolvable at specified time
+2594ee5131a5012e8a2706908f76466c50a3934d 4 fich 83 lin Support sibling-index() in number interpolations
+d0e9a0c212a1b5cea8656789f6c3036a59ca9877 7 fich 26 lin Add TODOs for sibling-index() and sign() conversion checkers
+fe8df6574dcd23792023638be221c871dbdd9c12 3 fich 25 lin Check for element dependent components in DOMMatrix constructor
+857e549d6bc29ae95125a7189e033a4f5715d3e5 1 fich 7 lin Do not cache gradient images with calc() stops across elements
+86adc3696917d3d5d5dc85337027f797b4b6c196 23 fich 116 lin Pass node for tree counting conversions for gradients
+b2e57a1f8aa2927c0ca2a7bfaa0c0d8e7cfe59c4 1 fich 8 lin Set override parser mode for all @font-face descriptors
+8a825a7cf9d670e556cadb24da071b3197bb18d0 4 fich 33 lin Tree counting functions should not be allowed in descriptors
+71682a3968706f73b50074c4c4edadd9e2664b9d 1 fich 23 lin Disallow sibling-index() in @counter-style descriptors
+bf4032eb22d04fcdf5fc9e64f217a5d666a24528 0 fich 0 lin Import wpt@4127d111837966d457ea4af242176f754092a667
+708406b093d6001c1ac3ce7f68a02eaf2a105e36 0 fich 0 lin Add sibling-index/count() tests for @font-feature-values parsing
+e891b31d30e54a2d44474f992aa9d4b93a72236b 1 fich 8 lin Use TreeCountingChecker in percentage interpolations
+35cd96f67a24216ef33d388c64b89d1528d7d27d 0 fich 0 lin Import wpt@89c28f8c22b17d0e95d8ec13f3e5f3219bca778e
+71af9671208baed2bdf9922ff9ce7b64dea2fbd4 5 fich 35 lin Use TreeCountingChecker in scale interpolations
+ad6a708fcd298b651c5104dbed97584e5bfbfb69 1 fich 12 lin Use TreeCountingChecker for font-weight interpolations
+b39f14e469cce3fec9f424c15b1f126f9c93a1f1 1 fich 5 lin Resolve registered <color> values at computed value time
+c39290db5cda29b623e507d144ff8e6e1deb3eb6 1 fich 16 lin Use TreeCountingChecker when animating font-variation-settings
+f4ecb98e619fc3b70f6b65be59a7335afb7ac271 2 fich 26 lin Add tree counting conversion checkers to resolution and time
+49b88d4739e3af76fdce6966c070e5acdac7c571 0 fich 0 lin Import wpt@061b2f78cd1945d37b5b28cdeb19a8d411aaf6a9
+ba87c8e61fb10776edfd5d3392c0ca280d76fc78 1 fich 32 lin Use TreeCountingChecker for rotate interpolations
+8d12c02ee13c134f937a368c52434037cb9d0f0b 3 fich 25 lin Put tree counting functions for @container behind a flag
+d51435dc8bda7a277a2b023e25812f58db1e7332 1 fich 4 lin Ship sibling-index()/sibling-count()
+4c536680e08004fd5159fef6aae837f429fade76 8 fich 72 lin Invalidate container queries on sibling changes
+69bcd1b6a85633d3ddb2c35268ced43873c6f0e8 1 fich 18 lin Use TreeCountingChecker for transform interpolations
+284d4813e72b67cd8a09892459585984a6a486f9 8 fich 72 lin Revert "Invalidate container queries on sibling changes"
+15ce3aa27e535b9816f04d0ab226fd202d1319d7 8 fich 98 lin Reland container queries invalidation with MSAN fix
+b51746a1c91a47222c0788a064020cbe330024ba 8 fich 40 lin [Merge M138] Fix using zoom on relative color calculation
