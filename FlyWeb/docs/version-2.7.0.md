@@ -105,6 +105,27 @@ Inventario del 138: `motor-niveles.md` § «Nivel 138» (pendiente).
   origin trial `FoldableAPIs` de `origin_trial_context.cc` queda como en la 128, porque `DevicePosture` sigue usándolo
   aquí (Chrome 138 lo tiene stable; no está en el inventario: S, sin mirar).
 
+### Integrity-Policy (MOTOR-44, 02-11; brave-core ca6014af, sin compilar)
+
+- **`IntegrityPolicyScript`** (629b69e78b66, 93d38b50a171, 55bf0d1e8373, 4458c6764c68, 5ba6c5d0df66, f8e3fd713bce,
+  227488522951, e9e51b382825, 7d991745c7df): cabeceras `Integrity-Policy` e `Integrity-Policy-Report-Only`; con
+  `blocked-destinations=(script)`, un script sin `integrity` (o `no-cors`) se bloquea y se informa. Regla 20: Brave 1.80
+  no lo toca (V, árbol de v1.80.125); los informes van por el mismo camino que los de CSP (`report-to` del propio sitio) y
+  `ReportingObserver` sigue anulado por Brave. Sin huella nueva: no cambia ninguna petición.
+- Adaptado a la 128 (V, contra `cr128`): el parser va en el componente `cpp` de red (ahí está `features.cc`; el
+  componente `integrity_policy` no puede depender de él sin ciclo); `ContentSecurityPolicy::StripURLForUseInReport` pasa
+  a miembro estático; `set_policy_container_host` → `SetPolicyContainerHost` (los llamadores de la 128 fuera de pruebas
+  son los cuatro del commit); `kIntegrityPolicyInServiceWorkerResponse` = 5557 en su sitio numérico
+  (`comprobar-enums.py` 0 errores). Pruebas, `fieldtrial_testing_config.json` y la lista del presubmit, fuera.
+- **Dos arreglos posteriores a la serie, incluidos:** `integrity_policy.cc` de 138.0.7204.185 (vuelve sin bloquear si no
+  hay policy container) y, de upstream `main`, el informe de integridad se envía **antes** del
+  `static_cast<LocationReportBody*>` de `ReportingContext::SendToReportingAPI`: en la 138 ese cast leía
+  `lineNumber()` fuera del objeto `IntegrityViolationReportBody` (regla 17: lo anoto para SEGURIDAD-PORTES).
+- `fuera.py --ref 138.0.7204.185`: 0 avisos en 41 parches; `chk128.sh`: 55/55 aplican.
+- **S para LOCAL:** `PolicyContainerPolicies` cambia de constructor (dos argumentos nuevos tras
+  `document_isolation_policy`); si `content_unittests` o `blink_unittests` se compilan, sus pruebas con la firma vieja
+  fallan (no portadas).
+
 ### Aplazado del 138 (COORDINACIÓN-24, 02-11; sin 2.7.1)
 
 Van al principio del 139 (2.8.0), como lo aplazado del 137 en esta. Sin 2.7.1, porque las 2.N.x solo salen por una
@@ -154,4 +175,6 @@ un service worker (S del apartado «Blink frente a la API de V8 13.8»).
 - Las funciones de CSS `progress()`, `abs()` y `sign()`, como en Chrome 138.
 - `window.viewport.segments` (pantallas plegables; en el ordenador, un solo segmento).
 - `QuotaExceededError` es ahora un tipo de error propio, que indica cuánto espacio había y cuánto se pidió.
+- Las webs pueden exigir que todos sus scripts lleven comprobación de integridad (`Integrity-Policy`): FlyWeb bloquea
+  los que no la lleven, como Chrome 138.
 - La subida automática a HTTPS del contenido mixto (imágenes, audio y vídeo) usa el mismo criterio que el bloqueo.
