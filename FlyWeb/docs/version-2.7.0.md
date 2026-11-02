@@ -25,8 +25,9 @@ Inventario del 138: `motor-niveles.md` § «Nivel 138» (pendiente).
   include de `runtime_enabled_features.h` explícito en `insert_text_command.cc`. Sin arreglos posteriores en upstream.
 - **`TextareaStableResizing`** (a687e1c3da8): 8a7edf40. Un hunk de `PointerEventManager::Clear()` a mano (contexto
   distinto en la 128). `PaintLayerScrollableArea::Resize` cambia de firma: los únicos llamadores en la 128 son
-  `scroll_manager.cc` y `pointer_event_manager.cc` (S: no he barrido el árbol entero; si LOCAL ve otro, es pasarle
-  `{}` como tercer argumento). Sin arreglos posteriores salvo quitar la bandera (026c1ff36ec).
+  `scroll_manager.cc` y `pointer_event_manager.cc` (S: no he barrido el árbol entero; si LOCAL ve otro, ese llamador
+  tiene que guardar `InitializeResizeTransform()` al empezar el arrastre, como hacen los dos; un `{}` daría tamaños
+  erróneos). Sin arreglos posteriores salvo quitar la bandera (026c1ff36ec).
 - `fuera.py --ref 137.0.7151.122` sobre los 8 parches tocados: 0 avisos. `enumorden.py`: sin avisos.
 - Pendiente del 137 en la fila: el bit 0 de canvas-float16.
 
