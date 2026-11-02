@@ -86,6 +86,11 @@ Lecciones que ya costaron horas, sacadas tal cual de «Trampas» de [`coordinaci
   8 de 20 subpruebas de Speedometer; LOCAL-15). Los valores se insertan en su sitio numérico; antes de entregar,
   `FlyWeb/tools/port/enumorden.py` sobre los parches que numeran enums (arreglo: brave-core `nube/fix-260-webfeature` bcc3e2e3).
 
+- **(02-11) Una V8 nueva puede pedir dependencias, no solo API:** la 13.8 añadía `//third_party/dragonbox`, subía simdutf
+  a 7.0.0 (funciones nuevas) y encendía Temporal con un crate Rust; el diff de `include/` salía limpio. En cada V8 nueva:
+  diff de su `DEPS`, de los `#include "third_party/…"`/`absl`/`hwy` de `src/` y de las etiquetas `//…` de `BUILD.gn`
+  frente a la V8 anterior (MOTOR-43).
+
 ## LOCAL
 
 - **`update_patches` nunca para un solo parche, y las tareas largas en segundo plano** (Titín, 16-10). LOCAL-4 lanzó
