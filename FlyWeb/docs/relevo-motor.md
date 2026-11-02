@@ -1,37 +1,22 @@
-# Relevo de MOTOR: de MOTOR-44 a MOTOR-45 (02-11-2026, ~14:00 UTC)
+# MOTOR-44: cierre del nivel 138 (02-11-2026, ~14:45 UTC)
 
-MOTOR-44 (`session_01MwmK2khgL2FTt7HVSDDaTs`, Opus 5.5, medio). FM.53, nivel 138 = 2.7.0. **brave-core `nube/motor-138` =
-9714bc81**, sin compilar. Push a brave-core por `add_repo` sin incidencias. softmac PR #695 (borrador, notas): lo vigila
-MOTOR-44 hasta archivarse; si sigue abierto, suscríbete tú.
+MOTOR-44 (`session_01MwmK2khgL2FTt7HVSDDaTs`, Opus 5.5, medio). COORDINACIÓN-24 no abrió MOTOR-45: MOTOR-44 cerró el
+nivel. **brave-core `nube/motor-138` = 06d351d3**, sin compilar, entregada a COORDINACIÓN-24 para LOCAL. Detalle en
+`version-2.7.0.md`. softmac PR #695 (notas y `motor-138.html`).
 
-**Hecho (detalle en `version-2.7.0.md`):** Integrity-Policy (ca6014af; con dos arreglos posteriores, uno de seguridad en
-`ReportingContext`); lote B2/B3 (a77a0737) y foco en SVG oculto + letter-spacing en cursiva (9714bc81).
-
-**Pendiente, por orden:**
-1. **Textarea:** decisión pedida a COORDINACIÓN-24 (propuesta: «Aplazado del 138»). Si dice que entra: 8cd6ad61d,
-   ddc3a0bd9, e6b0440ed, 42644b005, 1c066c83f, 41a0167e0, db70c626e, 4a70e6647, 7968faa18, bc1d9a3ea, 65d6fc454, 6e96e774e,
-   ce17fedfe, 9536ba2cd, 47cec2cbb; medir antes (`portar128g.sh`).
-2. **WebCodecs orientation** (A09): 9c860e15d46a (decoder, feb-25), 20e7aebf3e9a → revertido 49d5e7b218b6 → de28b866b678
-   (flip), más la parte de `VideoFrame` con `rotation`/`flip` anterior a 2025 (inventario: ed9a86388, ba847f538; no está
-   en el clon desde 2025-01-15). Sin medir.
-3. Declaración 138 (`config.gni`: 138.0.7204.185, `flyweb_version` 2.7.0, `platformVersion` 11.7.10), `motor-138.html`
-   (`progress(…, …, …)`, `abs()`/`sign()`, `window.viewport.segments.length === 1`, `QuotaExceededError`,
-   Integrity-Policy no se puede probar sin cabecera: comprobar `ReportingObserver`/`IntegrityViolationReportBody` en
-   `window`, `ch` de respaldo = 0,5em), `api128.sh`, `enumorden.py`/`comprobar-enums.py` y `fuera.py` sobre todo lo
-   tocado desde 480f7362, y entregar a COORDINACIÓN-24 (sha, pruebas para LOCAL, lo que pide SEGURIDAD-PORTES-16).
-4. **Para SEGURIDAD-PORTES-16 (`seg/fs39-propio`, regla 17):** código nuevo en la red y content (Integrity-Policy:
-   parser de cabecera estructurada en `services/network`, `PolicyContainerPolicies`, informes); el cast de
-   `ReportingContext` ya corregido; editing (serializador, `deleteFromDocument`), portapapeles y `shape_result_spacing`.
-5. Posible escape: la herencia de `scheduler.yield` (`SchedulerTaskContext`) no está en FlyWeb.
-
-**Entorno** (se pierde con el contenedor): brave-core `git clone --filter=blob:none -b nube/motor-138`; herramientas
-`cp FlyWeb/tools/port/* /tmp/claude-0/port/` y `mkdir gd gf` dentro (sin ellas `gdiff.sh` falla en silencio);
-`cr128` parcial por `+archive` (Blink core/platform/modules/public, content/{browser,renderer,common,public},
-services/network/public; ~260 MB, 10 min); metadatos de Chromium desde 2025-01-15 con `git fetch --filter=tree:0
---shallow-since=2025-01-15 origin tag 138.0.7204.185` (menos de 10 min) para `git log --grep`. `gmeta.sh` (nuevo, en
-`/tmp`; resuelve sha corto por gitiles con reintentos) no está en el repo: es un bucle de `curl …/+/<sha>?format=JSON`.
-Gitiles da 503 a ratos. Ojo: un `python3 -` con `assert` que falla a mitad deja el fichero sin escribir (me pasó con
-`mojom/BUILD.gn`): comprobar el diff del área antes de generar.
+**Para la MOTOR siguiente** (errores de LOCAL de la 2.7.0 o el nivel 139):
+1. Al principio del 139, «Aplazado del 138» (`version-2.7.0.md`): `sibling-index()`/`sibling-count()`, `stretch`,
+   alineación OOF, la reescritura del textarea y el escape del 136 de `scheduler.yield` (1988acd89 + 1f5acb16).
+2. Fuera de esta tanda y sin decidir: 0bc24ff1 (`LayoutIsAnonymousBlockFix`, 9 rechazos), 1c066c83 y 3a7a9069
+   (rendimiento), B4 `FlowThreadLess`, A11 `RenderSurfaceFor2DScaleTransform`.
+3. **Entorno** (se pierde con el contenedor): brave-core `git clone --filter=blob:none -b nube/motor-138`; herramientas
+   `cp FlyWeb/tools/port/* /tmp/claude-0/port/` y `mkdir gd gf` dentro (sin ellas `gdiff.sh` falla en silencio);
+   `cr128` parcial por `+archive` (Blink core/platform/modules/public, content/{browser,renderer,common,public},
+   services/network/public; ~260 MB, 10 min). Si falta un fichero en `cr128`, `generar128.sh` lo pide a gitiles: **si
+   gitiles da 503, el parche sale como «fichero nuevo»** (pasó con `core/dom/build.gni` en 5a86f3aa): `chk128.sh` lo
+   detecta («NO APLICA»), pasarlo siempre. Metadatos de Chromium desde 2025-01-15 con `git fetch --filter=tree:0
+   --shallow-since=2025-01-15 origin tag 138.0.7204.185` (menos de 10 min) para `git log --grep`. Un `python3 -` con
+   `assert` que falla a mitad deja el fichero sin escribir: mirar el diff del área antes de generar.
 
 ---
 

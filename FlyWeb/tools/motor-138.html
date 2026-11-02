@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Motor 138 — comprobación</title>
+<!-- Comprobación rápida del nivel de motor 138 de FlyWeb 2.7 (brave-core nube/motor-138, V8 13.8).
+     Abrir en FlyWeb desde http://127.0.0.1; no carga nada de fuera. Cada línea dice ok o FALLO.
+     Comparar con Chrome for Testing 138: lo que allí sale ok tiene que salir ok aquí, salvo la versión declarada y
+     las líneas «NO (aplazado al 139)», que en Chrome 138 salen FALLO a propósito. -->
+<style>
+  :root { color-scheme: light; font: 15px/1.5 -apple-system, sans-serif; }
+  body { margin: 2em; max-width: 60em; }
+  li.ok::marker { content: "ok  "; color: green; }
+  li.fallo::marker { content: "FALLO  "; color: #c00; font-weight: bold; }
+  code { background: #eee; padding: 0 .3em; }
+  .caja { position: absolute; left: -9999px; height: 1px; }
+  #pr1 { width: calc(progress(50px, 0px, 100px) * 100px); }
+  #pr2 { width: calc(progress(150px, 0px, 100px) * 100px); }
+  #ab { width: abs(-20px); }
+  #sg { width: calc(sign(-5px) * -10px); }
+  .ar { display: inline-block; font: 20px "Geeza Pro", sans-serif; white-space: nowrap; }
+  .lat { display: inline-block; font: 20px sans-serif; }
+  .sel-no { user-select: none; }
+</style>
+</head>
+<body>
+<h1>Motor 138 de FlyWeb</h1>
+<p id="ua"></p>
+<ul id="res"></ul>
+<h2>A mano</h2>
+<ol>
+  <li>Copiar: seleccionar toda la línea «se copia [no se copia] se copia» y pegar en un editor: no aparece «no se copia».</li>
+  <li>Árabe con <code>letter-spacing</code>: las dos líneas de abajo se ven unidas e iguales (la segunda lleva 10px).</li>
+  <li>Cuadro de texto: al escribir un espacio al principio de una línea partida, el espacio sale en el cursor (2.7.0,
+    aplazado del 137).</li>
+  <li>Integrity-Policy: una página servida con <code>Integrity-Policy: blocked-destinations=(script)</code> no carga un
+    <code>&lt;script src&gt;</code> sin <code>integrity</code> y avisa en la consola.</li>
+  <li>WebCodecs: un vídeo de móvil girado (metadatos de rotación) se decodifica con <code>VideoDecoder</code> y el
+    <code>VideoFrame</code> trae <code>rotation</code> 90 o 270.</li>
+</ol>
+<p>se copia <span class="sel-no">[no se copia]</span> se copia</p>
+<p class="ar" id="ar0">مرحبابكم</p>
+<p class="ar" id="ar1" style="letter-spacing: 10px">مرحبابكم</p>
+<p><span class="lat" id="la0">abc</span> <span class="lat" id="la1" style="letter-spacing: 10px">abc</span></p>
+<div class="caja" id="pr1"></div><div class="caja" id="pr2"></div>
+<div class="caja" id="ab"></div><div class="caja" id="sg"></div>
+<svg width="0" height="0"><defs><rect id="svgoculto" tabindex="0" width="10" height="10"/></defs></svg>
+<textarea id="ta">abc</textarea>
+<script>
+  const res = document.getElementById('res');
+  const pinta = (li, nombre, ok, nota) => { li.className = ok ? 'ok' : 'fallo'; li.textContent = nombre + (nota ? ` — ${nota}` : ''); };
+  const prueba = (nombre, f) => {
+    let ok = false, nota = '';
+    try { const r = f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    const li = document.createElement('li'); res.append(li); pinta(li, nombre, ok, nota);
+  };
+  const pruebaAsync = async (nombre, f) => {
+    const li = document.createElement('li'); res.append(li); let ok = false, nota = '';
+    try { const r = await f(); ok = r === true || (r && r.ok); nota = (r && r.nota) || ''; } catch (e) { nota = String(e); }
+    pinta(li, nombre, ok, nota);
+  };
+  const cs = (sel, prop) => getComputedStyle(document.querySelector(sel)).getPropertyValue(prop);
+  document.getElementById('ua').textContent = navigator.userAgent;
+
+  // CSS: progress(), abs(), sign() (A01, A02)
+  prueba('progress(a, b, c) con comas', () => ({ ok: cs('#pr1', 'width') === '50px', nota: cs('#pr1', 'width') }));
+  prueba('progress() recortado a [0, 1]', () => ({ ok: cs('#pr2', 'width') === '100px', nota: cs('#pr2', 'width') }));
+  prueba('abs() y sign()', () => ({ ok: cs('#ab', 'width') === '20px' && cs('#sg', 'width') === '10px',
+    nota: `${cs('#ab', 'width')}, ${cs('#sg', 'width')}` }));
+  prueba('media-progress() y container-progress() NO (como Chrome 138)', () =>
+    !CSS.supports('width', 'calc(media-progress(width, 0px, 100px) * 1px)') &&
+    !CSS.supports('width', 'calc(container-progress(width, 0px, 100px) * 1px)'));
+  // ViewportSegments (A07)
+  prueba('window.viewport.segments: un segmento', () => {
+    const s = window.viewport && window.viewport.segments;
+    return { ok: !!s && s.length === 1 && !('segments' in visualViewport), nota: s ? `${s.length}` : 'sin window.viewport' };
+  });
+  // QuotaExceededError (B1)
+  prueba('QuotaExceededError: tipo propio con quota y requested', () => {
+    const e = new QuotaExceededError('x', { quota: 10, requested: 20 });
+    return { ok: e instanceof DOMException && e.name === 'QuotaExceededError' && e.quota === 10 && e.requested === 20,
+      nota: `${e.name} ${e.quota}/${e.requested}` };
+  });
+  // Integrity-Policy (B1): sin cabecera solo se ve la interfaz del informe
+  prueba('Integrity-Policy: IntegrityViolationReportBody', () => typeof IntegrityViolationReportBody === 'function');
+  // B2/B3
+  prueba('deleteFromDocument() no borra dentro de un textarea', () => {
+    const ta = document.getElementById('ta'); ta.focus(); ta.select();
+    getSelection().deleteFromDocument(); const v = ta.value; ta.blur();
+    return { ok: v === 'abc', nota: JSON.stringify(v) };
+  });
+  prueba('CDATA en documento HTML se serializa como texto', () => {
+    const x = new DOMParser().parseFromString('<r/>', 'application/xml');
+    const d = document.createElement('div'); d.append(document.adoptNode(x.createCDATASection('a<b')));
+    return { ok: d.innerHTML === 'a&lt;b', nota: d.innerHTML };
+  });
+  prueba('Sin foco dentro de un contenedor SVG oculto (defs)', () => {
+    const r = document.getElementById('svgoculto'); r.focus(); return document.activeElement !== r;
+  });
+  prueba('letter-spacing no se aplica en escritura cursiva', () => {
+    const a = document.getElementById('ar0').getBoundingClientRect().width;
+    const b = document.getElementById('ar1').getBoundingClientRect().width;
+    const c = document.getElementById('la0').getBoundingClientRect().width;
+    const d = document.getElementById('la1').getBoundingClientRect().width;
+    // Control: en latín sí se aplica (3 letras × 10px).
+    return { ok: Math.abs(a - b) < 1 && d - c > 25, nota: `árabe ${a.toFixed(1)} / ${b.toFixed(1)} px, latín +${(d - c).toFixed(1)} px` };
+  });
+  // WebCodecs orientation (A09)
+  prueba('VideoFrame rotation y flip', () => {
+    const f = new VideoFrame(new Uint8Array(16), { format: 'RGBA', codedWidth: 2, codedHeight: 2, timestamp: 0,
+      rotation: 90, flip: true });
+    const ok = f.rotation === 90 && f.flip === true; const nota = `${f.rotation} ${f.flip}`; f.close();
+    return { ok, nota };
+  });
+  // V8 13.8
+  prueba('V8 13.8: using / DisposableStack y Float16Array por defecto', () =>
+    typeof DisposableStack === 'function' && typeof Float16Array === 'function' &&
+    new Function('{ using x = null; } return true;')());
+  // Lo que se queda fuera (aplazado al 139, o como Chrome 138 o por privacidad)
+  prueba('sibling-index() NO (aplazado al 139)', () => !CSS.supports('order', 'sibling-index()'));
+  prueba('width: stretch NO (aplazado al 139)', () => !CSS.supports('width', 'stretch'));
+  prueba('Temporal NO (Chrome 138 no lo expone)', () => typeof Temporal === 'undefined');
+  prueba('Sin APIs de IA (LanguageModel, Summarizer, Translator)', () =>
+    typeof LanguageModel === 'undefined' && typeof Summarizer === 'undefined' && typeof Translator === 'undefined');
+
+  // Versión declarada
+  prueba('User-Agent declara Chrome/138', () => {
+    const m = navigator.userAgent.match(/Chrome\/(\d+)/); return { ok: !!m && m[1] === '138', nota: m ? `Chrome/${m[1]}` : 'sin Chrome/' };
+  });
+  pruebaAsync('Client hints: 138.0.7204.185 y macOS ≥ 11', async () => {
+    const h = await navigator.userAgentData.getHighEntropyValues(['uaFullVersion', 'platformVersion', 'fullVersionList']);
+    const mayor = parseInt(h.platformVersion, 10);
+    const cr = (h.fullVersionList || []).find((b) => b.brand === 'Chromium');
+    return { ok: h.uaFullVersion === '138.0.7204.185' && mayor >= 11 && !!cr && cr.version === '138.0.7204.185',
+      nota: `${h.uaFullVersion}, macOS ${h.platformVersion}, ${JSON.stringify(navigator.userAgentData.brands)}` };
+  });
+</script>
+<p>No se ve desde una página y lo comprueba LOCAL: V8 13.8 con mjsunit (Maglev sigue apagado), JSPI y Wasm como en
+Chrome 138, workers, audio worklet y service worker (V8 saca el isolate del TLS), la huella de red frente a Chrome 138,
+la subida de contenido mixto a HTTPS y que <code>fw1</code> sigue leyendo un perfil de la 2.6.1.</p>
+</body>
+</html>
