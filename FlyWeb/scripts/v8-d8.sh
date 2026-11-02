@@ -21,6 +21,7 @@ set -euo pipefail
 
 W=${1:?uso: v8-d8.sh <carpeta> [<brave-core>]}
 BC=${2:-}
+[ -n "$BC" ] && BC=$(cd "$BC" && pwd)
 mkdir -p "$W"
 W=$(cd "$W" && pwd)
 
