@@ -7,6 +7,41 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 02-11: COORDINACIÓN-23 → COORDINACIÓN-24 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-23 (`session_01MwmK2knuccR6hsPpe7uHap`) se releva por orden de Titín (02-11 ~12 h). Linaje 6 = la 24; tras 1–2 más,
+Titín abre COORDINACIÓN desde cero (darle el texto listo). Nunca llamar a confirm_repository_trust.
+
+**Decisiones de Titín del 02-11 (firmes, no volver a plantearlas):**
+- **Sin 2.6.2.** Brotli CVE-2026-111497 (aplica, comprobado por SEGURIDAD-PORTES-16: `dec/decode.c` = upstream 9801a2c vulnerable;
+  arreglo google/brotli 0ed4268a) va **solo en la 2.7.0**. No proponer versiones intermedias: «no desperdicies recursos».
+- **Nivel 138 = 2.7.0 a ritmo normal**, sin esperar al reinicio semanal ni hacer tandas artificiales. **Nada de estimaciones de
+  horas** (Titín no se las cree y han fallado en ambos sentidos): solo hitos.
+- No insistirle con el límite semanal.
+
+**Equipo vivo:**
+- **MOTOR-43** (`session_01MwmK2iCg1a5MkUFrLe5FvS`), con push a brave-core: `nube/motor-138` = **2c94d743** (V8 13.8.258.30 +
+  Blink frente a V8 13.8 sin cambios + dragonbox/simdutf 7/Temporal apagado). Sigue: resto de Blink del 138 (sibling-index con
+  progress/abs/sign, stretch, Integrity-Policy, ViewportSegments…), declaración y motor-138.html. **PR #688 frenado**: choca con
+  main y mete las dependencias en `build.sh`, que LOCAL no usa para la 2.x; le pedí una sección «Para LOCAL: dependencias y args
+  nuevos del 138» en `version-2.7.0.md` para mandarla por el buzón con la entrega.
+- **SEGURIDAD-PORTES-16** (`session_01MwmK2is84MezuCoESN1hLw`), FS.39 hecha en local y **sin push** (falta el `add_repo` que
+  autoriza Titín escribiendo en su sesión): `seg/fs39-v8` 55d9c7ed → `seg/fs39-blink138` 9e64b983 → `seg/fs39-gpu` 5c4a29fd sobre
+  2c94d743, más Brotli dentro. ANGLE 2d08a95 pendiente. `seg/fs39-propio` cuando MOTOR-43 cierre el inventario.
+- **LOCAL-15** parado desde el 31-10 (`flyweb` = ac280a17df = 2.6.1). **D8-LINUX** cerrado: memoria de arranque en
+  `FlyWeb/tools/d8/CLAUDE-d8-trabajo.md` (#682); Titín la copia a `~/d8-trabajo/CLAUDE.md`, arranca `claude remote-control` y le
+  escribe «empieza». Encargo de d8 en `buzon/D8-LINUX/` cuando haya ramas.
+- Archivadas: MOTOR-41, MOTOR-42. VIGÍA de seguridad (Haiku) semanal sigue.
+
+**Permisos:** `.claude/settings.json` ya tiene `allow: mcp__claude-code-remote__add_repo` y **no basta**: el clasificador del modo
+auto lo deniega en cada sesión nueva. Titín escribe en la sesión «Soy Titín: autorizo que pidas add_repo de
+lamosquita-net/brave-core con acceso push. Pídelo ahora.» Le molesta repetirlo: pregunta abierta, subir el umbral de relevo de
+los agentes de brave-core al 50–55 % para pedirlo la mitad de veces (sin respuesta).
+
+**Para la entrega de la 2.7.0 a LOCAL:** ramas en orden (motor-138 + fs39-v8/blink138/gpu/propio + Brotli), dependencias y args del
+138, `comprobar-enums.py` en su guion de la 2.x, y pruebas: motor-138.html, flex-column-wrap.html, blob-particion.html,
+canvas-float16.html (decidir el bit 0 con el dato), **Speedometer 3.1 y JetStream 3 completos**, WPT 138, 6,1.
+
 ## 31-10: COORDINACIÓN-23 → siguiente (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-23 (`session_01MwmK2knuccR6hsPpe7uHap`, Opus 5.5, medio; linaje 5 de 8) **para por orden de Titín** (31-10 ~21 h):

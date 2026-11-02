@@ -93,6 +93,30 @@ Inventario del 138: `motor-niveles.md` § «Nivel 138» (pendiente).
   la cabecera del objeto. Si Blink 128 toca un objeto de V8 en un hilo sin `Isolate::Scope`, falla ahí. Chrome 138 lo
   da por bueno, pero la 128 es más vieja: probar workers, worklets (audio, paint) y service workers.
 
+## Para LOCAL: dependencias y args nuevos del 138
+
+V8 13.8.258.30 no compila con solo los parches de brave-core: hacen falta estos tres pasos en el árbol de la 128 (en
+tu guion de Release; `FlyWeb/scripts/build.sh` los hace igual, pero no es el que usas para la 2.x).
+
+1. **dragonbox** (nuevo; lo incluye `v8/src/numbers/conversions.cc`). El `BUILD.gn` y el `README.chromium` los pone
+   brave-core (`patches/third_party-dragonbox-*.patch`); el código hay que traerlo a `src/third_party/dragonbox/src`:
+   ```
+   mkdir -p src/third_party/dragonbox/src && cd src/third_party/dragonbox/src && git init -q
+   git fetch --depth 1 https://chromium.googlesource.com/external/github.com/jk-jeon/dragonbox.git 6c7c925b571d54486b9ffae8d9d18a822801cbda
+   git checkout -q --detach FETCH_HEAD
+   git ls-files -z include LICENSE-Apache2-LLVM LICENSE-Boost | LC_ALL=C sort -z | xargs -0 shasum -a 256 | shasum -a 256
+   ```
+   Suma esperada: `2a863ef8d1e6fedaab2fce779ff93c59a22b19d88d4bbf9fd41c740536453dec` (también en brave-core
+   `FlyWeb/dragonbox-revision`). Si no cuadra, parar.
+2. **simdutf 7.0.0**: nada que traer; los `patches/third_party-simdutf-*.patch` de brave-core ya llevan la 7.0.0
+   (Chromium `third_party/simdutf` 9d3e4d7c). Si tu árbol tiene un `src/third_party/simdutf` de la 6.4.0 con cambios
+   locales, `apply_patches` lo pisa; comprobar después `grep SIMDUTF_VERSION src/third_party/simdutf/simdutf.h` = 7.0.0.
+3. **Arg de gn nuevo:** `v8_enable_temporal_support=false`. Sin él, gn pide `//third_party/rust/temporal_capi`, que la
+   128 no tiene, y `gn gen` falla. Chrome 138 no expone Temporal.
+
+Los demás args, como en la 2.6.1. Primera prueba: además de lo de siempre, una página con worker, un audio worklet y
+un service worker (S del apartado «Blink frente a la API de V8 13.8»).
+
 ## Para la web
 
 - Al escribir un espacio al principio de una línea partida en un cuadro de texto, el espacio aparece donde está el
