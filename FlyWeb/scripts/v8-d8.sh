@@ -123,6 +123,9 @@ if [ -n "$FF_REV" ] && [ ! -d third_party/fast_float/src/.git ]; then
 fi
 # dragonbox: lo pide la V8 13.8+ (nivel 138, FM.53; D8-LINUX-3, 02-11).
 DB_REV=$(grep -A1 "'third_party/dragonbox/src'" DEPS | grep -o '[0-9a-f]\{40\}' | head -1 || true)
+if [ -z "$DB_REV" ] && [ -n "$BC" ] && [ -f "$BC/FlyWeb/dragonbox-revision" ]; then
+  DB_REV=$(grep -v '^#' "$BC/FlyWeb/dragonbox-revision" | awk 'NF{print $1; exit}')
+fi
 if [ -n "$DB_REV" ] && [ ! -d third_party/dragonbox/src/.git ]; then
   git init -q third_party/dragonbox/src
   git -C third_party/dragonbox/src fetch -q --depth=1 https://github.com/jk-jeon/dragonbox "$DB_REV"
