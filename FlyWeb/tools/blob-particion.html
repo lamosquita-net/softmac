@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Particionado de Blob URL</title>
+<style>
+body{font:14px/1.4 -apple-system,Helvetica,sans-serif;margin:16px;max-width:900px}
+.ok{color:#080}.mal{color:#c00;font-weight:bold}code{background:#eee;padding:0 3px}
+iframe{width:100%;height:220px;border:1px solid #999}
+</style>
+</head>
+<body>
+<h1>Particionado de Blob URL (FM.53, 2.7.0)</h1>
+<p>Comprueba que un Blob URL solo se puede usar desde la partición que lo creó (anulación de Brave
+<code>blob_url_store_impl.cc</code>), también desde workers. Sin red: dos orígenes locales del mismo servidor.</p>
+<ol>
+<li>Servir esta carpeta: <code>python3 -m http.server 8000</code> en <code>FlyWeb/tools</code>.</li>
+<li>Abrir <code>http://127.0.0.1:8000/blob-particion.html</code> (sitio A, pestaña 1). Deja esta pestaña abierta: el Blob
+vive mientras viva el documento.</li>
+<li>Pulsar el enlace que aparece: abre <code>http://localhost:8000/…?papel=anfitrion</code> (sitio B) con un iframe de
+127.0.0.1 (mismo origen que A, otra partición) y uno de localhost (otro origen).</li>
+</ol>
+<p>Resultado esperado: en la pestaña 1, todo <span class="ok">OK (se puede)</span>; en los iframes de la pestaña 2, todo
+<span class="ok">OK (bloqueado)</span>. Un <span class="mal">FALLO</span> en cualquier línea es un escape de partición.</p>
+<p>Lo que importa es el iframe de 127.0.0.1 (mismo origen, otra partición): el de localhost queda bloqueado por origen
+en cualquier navegador. Validada la lógica con el Chromium headless de Playwright (02-11): pestaña 1 todo «se puede»,
+iframe de otro origen todo bloqueado y el de mismo origen en otra partición todo «se puede» (FALLO). Ese Chromium no es
+la referencia: Chrome deja ciertos accesos de mismo origen entre particiones; la anulación de Brave que lleva FlyWeb
+debe bloquearlos.</p>
+<div id="out"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const papel = q.get('papel') || 'creador';
+const out = document.getElementById('out');
+function linea(txt, bien) {
+  const p = document.createElement('div');
+  p.className = bien ? 'ok' : 'mal';
+  p.textContent = (bien ? 'OK  ' : 'FALLO  ') + txt;
+  out.appendChild(p);
+  if (parent !== window) parent.postMessage({txt: location.origin + ': ' + txt, bien}, '*');
+}
+const MARCA = 'blob-particion-' + 1138;
+
+// Cada prueba resuelve true si pudo usar el Blob URL, false si no.
+async function porFetch(url) {
+  try { const r = await fetch(url); return (await r.text()).includes(MARCA); } catch (e) { return false; }
+}
+function porWorker(url) {
+  return new Promise(res => {
+    let w;
+    try { w = new Worker(url); } catch (e) { return res(false); }
+    const t = setTimeout(() => res(false), 3000);
+    w.onmessage = e => { clearTimeout(t); res(e.data === MARCA); };
+    w.onerror = () => { clearTimeout(t); res(false); };
+  });
+}
+function porSharedWorker(url) {
+  return new Promise(res => {
+    if (!window.SharedWorker) return res(false);
+    let w;
+    try { w = new SharedWorker(url); } catch (e) { return res(false); }
+    const t = setTimeout(() => res(false), 3000);
+    w.port.onmessage = e => { clearTimeout(t); res(e.data === MARCA); };
+    w.onerror = () => { clearTimeout(t); res(false); };
+    w.port.start();
+  });
+}
+// Un worker propio (de esta partición) que intenta hacer fetch del Blob URL ajeno.
+function fetchDesdeWorker(url) {
+  return new Promise(res => {
+    const src = `fetch(${JSON.stringify(url)}).then(r=>r.text()).then(t=>postMessage(t.includes(${JSON.stringify(MARCA)})),()=>postMessage(false));`;
+    const w = new Worker(URL.createObjectURL(new Blob([src], {type: 'text/javascript'})));
+    const t = setTimeout(() => res(false), 3000);
+    w.onmessage = e => { clearTimeout(t); res(e.data === true); };
+    w.onerror = () => { clearTimeout(t); res(false); };
+  });
+}
+async function bateria(url, debePoder) {
+  const pruebas = [['fetch', porFetch], ['new Worker', porWorker], ['new SharedWorker', porSharedWorker],
+                   ['fetch desde un worker propio', fetchDesdeWorker]];
+  for (const [nombre, f] of pruebas) {
+    const pudo = await f(url);
+    linea(`${nombre}: ${pudo ? 'se puede' : 'bloqueado'}`, pudo === debePoder);
+  }
+}
+
+if (papel === 'creador') {
+  const codigo = `const M=${JSON.stringify(MARCA)};
+self.onconnect=e=>{e.ports[0].postMessage(M)};
+if(!self.onconnect||typeof SharedWorkerGlobalScope==='undefined'||!(self instanceof SharedWorkerGlobalScope))postMessage(M);
+// ${MARCA}`;
+  const url = URL.createObjectURL(new Blob([codigo], {type: 'text/javascript'}));
+  const h = document.createElement('p');
+  h.innerHTML = 'Blob URL: <code></code>';
+  h.querySelector('code').textContent = url;
+  out.appendChild(h);
+  const host = location.origin.includes('127.0.0.1') ? 'localhost' : '127.0.0.1';
+  const a = document.createElement('a');
+  a.href = `${location.protocol}//${host}:${location.port}${location.pathname}?papel=anfitrion&blob=${encodeURIComponent(url)}&a=${encodeURIComponent(location.origin)}`;
+  a.target = '_blank';
+  a.textContent = 'Paso 3: abrir la pestaña del otro sitio';
+  out.appendChild(a);
+  out.appendChild(document.createElement('h2')).textContent = 'Pestaña 1 (misma partición: debe poder)';
+  bateria(url, true);
+} else if (papel === 'anfitrion') {
+  const url = q.get('blob'), origenA = q.get('a');
+  out.appendChild(document.createElement('h2')).textContent = 'Pestaña 2 (otra partición: debe estar bloqueado)';
+  window.addEventListener('message', e => linea(e.data.txt, e.data.bien));
+  for (const o of [origenA, location.origin]) {
+    const f = document.createElement('iframe');
+    f.src = `${o}${location.pathname}?papel=hijo&blob=${encodeURIComponent(url)}`;
+    document.body.appendChild(f);
+  }
+} else {
+  bateria(q.get('blob'), false);
+}
+</script>
+</body>
+</html>
