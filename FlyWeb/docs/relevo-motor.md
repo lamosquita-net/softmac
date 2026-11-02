@@ -1,3 +1,25 @@
+# MOTOR-44: cierre del nivel 138 (02-11-2026, ~14:45 UTC)
+
+MOTOR-44 (`session_01MwmK2khgL2FTt7HVSDDaTs`, Opus 5.5, medio). COORDINACIÓN-24 no abrió MOTOR-45: MOTOR-44 cerró el
+nivel. **brave-core `nube/motor-138` = 06d351d3**, sin compilar, entregada a COORDINACIÓN-24 para LOCAL. Detalle en
+`version-2.7.0.md`. softmac PR #695 (notas y `motor-138.html`).
+
+**Para la MOTOR siguiente** (errores de LOCAL de la 2.7.0 o el nivel 139):
+1. Al principio del 139, «Aplazado del 138» (`version-2.7.0.md`): `sibling-index()`/`sibling-count()`, `stretch`,
+   alineación OOF, la reescritura del textarea y el escape del 136 de `scheduler.yield` (1988acd89 + 1f5acb16).
+2. Fuera de esta tanda y sin decidir: 0bc24ff1 (`LayoutIsAnonymousBlockFix`, 9 rechazos), 1c066c83 y 3a7a9069
+   (rendimiento), B4 `FlowThreadLess`, A11 `RenderSurfaceFor2DScaleTransform`.
+3. **Entorno** (se pierde con el contenedor): brave-core `git clone --filter=blob:none -b nube/motor-138`; herramientas
+   `cp FlyWeb/tools/port/* /tmp/claude-0/port/` y `mkdir gd gf` dentro (sin ellas `gdiff.sh` falla en silencio);
+   `cr128` parcial por `+archive` (Blink core/platform/modules/public, content/{browser,renderer,common,public},
+   services/network/public; ~260 MB, 10 min). Si falta un fichero en `cr128`, `generar128.sh` lo pide a gitiles: **si
+   gitiles da 503, el parche sale como «fichero nuevo»** (pasó con `core/dom/build.gni` en 5a86f3aa): `chk128.sh` lo
+   detecta («NO APLICA»), pasarlo siempre. Metadatos de Chromium desde 2025-01-15 con `git fetch --filter=tree:0
+   --shallow-since=2025-01-15 origin tag 138.0.7204.185` (menos de 10 min) para `git log --grep`. Un `python3 -` con
+   `assert` que falla a mitad deja el fichero sin escribir: mirar el diff del área antes de generar.
+
+---
+
 # Relevo de MOTOR: de MOTOR-43 a MOTOR-44 (02-11-2026, ~13:00 UTC)
 
 MOTOR-43 (`session_01MwmK2iCg1a5MkUFrLe5FvS`, Opus 5.5, medio). FM.53, nivel 138 = 2.7.0. **brave-core `nube/motor-138` =

@@ -105,6 +105,65 @@ Inventario del 138: `motor-niveles.md` § «Nivel 138» (pendiente).
   origin trial `FoldableAPIs` de `origin_trial_context.cc` queda como en la 128, porque `DevicePosture` sigue usándolo
   aquí (Chrome 138 lo tiene stable; no está en el inventario: S, sin mirar).
 
+### Integrity-Policy (MOTOR-44, 02-11; brave-core ca6014af, sin compilar)
+
+- **`IntegrityPolicyScript`** (629b69e78b66, 93d38b50a171, 55bf0d1e8373, 4458c6764c68, 5ba6c5d0df66, f8e3fd713bce,
+  227488522951, e9e51b382825, 7d991745c7df): cabeceras `Integrity-Policy` e `Integrity-Policy-Report-Only`; con
+  `blocked-destinations=(script)`, un script sin `integrity` (o `no-cors`) se bloquea y se informa. Regla 20: Brave 1.80
+  no lo toca (V, árbol de v1.80.125); los informes van por el mismo camino que los de CSP (`report-to` del propio sitio) y
+  `ReportingObserver` sigue anulado por Brave. Sin huella nueva: no cambia ninguna petición.
+- Adaptado a la 128 (V, contra `cr128`): el parser va en el componente `cpp` de red (ahí está `features.cc`; el
+  componente `integrity_policy` no puede depender de él sin ciclo); `ContentSecurityPolicy::StripURLForUseInReport` pasa
+  a miembro estático; `set_policy_container_host` → `SetPolicyContainerHost` (los llamadores de la 128 fuera de pruebas
+  son los cuatro del commit); `kIntegrityPolicyInServiceWorkerResponse` = 5557 en su sitio numérico
+  (`comprobar-enums.py` 0 errores). Pruebas, `fieldtrial_testing_config.json` y la lista del presubmit, fuera.
+- **Dos arreglos posteriores a la serie, incluidos:** `integrity_policy.cc` de 138.0.7204.185 (vuelve sin bloquear si no
+  hay policy container) y, de upstream `main`, el informe de integridad se envía **antes** del
+  `static_cast<LocationReportBody*>` de `ReportingContext::SendToReportingAPI`: en la 138 ese cast leía
+  `lineNumber()` fuera del objeto `IntegrityViolationReportBody` (regla 17: lo anoto para SEGURIDAD-PORTES).
+- `fuera.py --ref 138.0.7204.185`: 0 avisos en 41 parches; `chk128.sh`: 55/55 aplican.
+- **S para LOCAL:** `PolicyContainerPolicies` cambia de constructor (dos argumentos nuevos tras
+  `document_isolation_policy`); si `content_unittests` o `blink_unittests` se compilan, sus pruebas con la firma vieja
+  fallan (no portadas).
+
+### Lote B2/B3 y letter-spacing (MOTOR-44, 02-11; brave-core a77a0737 y 9714bc81, sin compilar)
+
+Arreglos que nacen `stable` en la 138, cada uno con su bandera (V: ninguna estaba en FlyWeb ni en el 137):
+- a82b813fa801 `Selection.deleteFromDocument()` no borra dentro de INPUT/TEXTAREA (`SelectionDeleteFromDocumentUaShadowFix`).
+- db062d2fc3c6 copiar no incluye contenido `user-select: none` (`SkipUnselectableContentInSerialization`).
+- 5ee3b4ac2a1f la instantánea del portapapeles se reinicia al escribir (`ClipboardSnapshotResetOnWrite`).
+- 132862ba859e CDATA se serializa como texto en documentos HTML (`SerializeCdataAsTextInHTMLDocuments`).
+- 2cd928936852 ajuste de anchor positioning con overscroll (`AnchorPositionAdjustmentWithoutOverflow`); se queda dentro
+  de la comprobación `ScrollNodeForOverflowHidden` de la 128 (stable aquí).
+- **9b7d041aae94 unidad `ch` sin glifo «0»: 0,5em** (`CSSChUnitSpecCompliantFallback`). V: FlyWeb arrastraba el fallo de
+  crrev.com/c/6333369 (136): devolvía `size / 0.5f` = 2em.
+- f746f478c914 invalidación de filtros de referencia en trozos vacíos (`EmptyReferenceFilterInvalidation`); añade
+  `EffectPaintPropertyNode::HasReferenceFilter()` sobre el `state_.filter` de la 128.
+- 51d0892240f1 elementos dentro de contenedores SVG ocultos no reciben foco (`RestrictTabFocusForHiddenSVGElements`);
+  `SupportsFocus()` es `bool` en la 128.
+- ba96d51e → 77ab8bb83726 + 97e135f47abc `letter-spacing` no se aplica en escrituras cursivas (árabe, siríaco, N'Ko,
+  mongol…; `IgnoreLetterSpacingInCursiveScripts`), con el espaciado `float` de la 128.
+- **No portados:** 9b98a818d86d (popover): su autor dice que no es observable. 1f5acb16b48e: ver «Aplazado del 138». 1c066c83 y 3a7a9069
+  (rendimiento) y 0bc24ff1 (`LayoutIsAnonymousBlockFix`, refactor de layout, 9 rechazos): fuera de esta tanda.
+- `fuera.py --ref 138.0.7204.185`: 0 avisos (22 parches); `chk128.sh` 15/15 y 9/9; `api128.sh 17a21921`: 0 avisos.
+
+### WebCodecs orientation, declaración y cierre (MOTOR-44, 02-11; brave-core e5d0d5d9 → 06d351d3, sin compilar)
+
+- **`WebCodecsOrientation`** (e5d0d5d9): ed9a86388a56 y ba847f53800e (`VideoFrame.rotation`/`flip` y sus opciones de
+  inicio; `media::VideoTransformation(double, bool)` y `add()`), 9c860e15d46a (`rotation`/`flip` en
+  `VideoDecoderConfig`, aplicados con `OnActiveConfigChanged`) y de28b866b678 (stable). Regla 20: describe el propio
+  vídeo, sin datos del equipo; Brave 1.80 lo deja como Chrome (S).
+- **Declaración** (98c9ca01): `flyweb_version` 2.7.0, `flyweb_engine_level` 138, `flyweb_engine_full_version`
+  138.0.7204.185; `platformVersion` sigue en 11.7.10 (Chrome 129–138).
+- **Arreglo de un parche de MOTOR-42** (06d351d3): `third_party-blink-renderer-core-dom-build.gni.patch` (5a86f3aa,
+  `QuotaExceededError`) estaba escrito como «fichero nuevo» y `apply_patches` habría fallado sobre el `build.gni` de la
+  128. Rehecho como diff (solo añade `quota_exceeded_error.{cc,h}`). Ningún otro parche «nuevo» de la rama existe en la
+  128 (V, barrido).
+- **`FlyWeb/tools/motor-138.html`**: probado en el Chromium 153 del contenedor: todo ok salvo, como debe, lo aplazado,
+  Temporal, IA y la versión declarada.
+- Sobre todo lo tocado desde 480f7362: `fuera.py --ref 138.0.7204.185` 0 avisos (118 parches), `chk128.sh` 147/147,
+  `api128.sh` 0 avisos, `enumorden.py` sin avisos, `comprobar-enums.py` 0 errores en lo tocado.
+
 ### Aplazado del 138 (COORDINACIÓN-24, 02-11; sin 2.7.1)
 
 Van al principio del 139 (2.8.0), como lo aplazado del 137 en esta. Sin 2.7.1, porque las 2.N.x solo salen por una
@@ -118,6 +177,15 @@ regresión o un KEV. La 2.7.0 declara 138 de todos modos: es CSS nuevo con alter
 - **`stretch`** (`LayoutStretch`, `LayoutFlexNewStretch`): unos 15 commits de layout (79360f335 separa Stretch de
   FillAvailable, 5269fcdb7, 8e4d4b2a8, 1df0736d5/38883a97b abspos, 56092706c, el flip); empieza antes de nov-24
   (9ae24680f, 4287aedae). Encontrarlos: `git log --grep=stretch` y quitar el ruido de vistas/GPU.
+- **Reescritura del textarea** (`TextareaLineEndingsAsBr`, `TextareaMultipleIfcs`; COORDINACIÓN-24, 02-11): no son
+  encendidos sueltos sino ~15 commits de Kent Tamura (8cd6ad61d, ddc3a0bd9, e6b0440ed, 42644b005, 1c066c83f, 41a0167e0,
+  db70c626e, 4a70e6647, 7968faa18, bc1d9a3ea, 65d6fc454, 6e96e774e, ce17fedfe, 9536ba2cd, 47cec2cbb): saltos de línea
+  como `<br>` y varios bloques anónimos dentro del editor. Interno, riesgo en edición.
+- **Escape del 136: `SchedulerYieldCrossOriginFix`** (1988acd89, 28-02-25) y encima 1f5acb16 (138,
+  `SchedulerYieldDisallowCrossFrameInheritance`). V: FlyWeb hereda la prioridad de `scheduler.yield()` (`inherited_state`
+  en `dom_scheduler.cc`), pero sin el origen: en casos raros (un `postTask` que cambia el foco y provoca `blur` en un marco
+  de otro origen) ese marco hereda la señal. Baja gravedad (prioridad y aborto, no datos). No es pequeño: 12 rechazos
+  en 10 ficheros del planificador sobre refactors que la 128 no tiene. Lo anoto también para SEGURIDAD-PORTES.
 - **`CSSAlignBlockAndInlineOutOfFlows`** con `LayoutJustifySelfForBlocks` (babd2b646 lo quita del 137; 25bf90a44,
   4ada5a818, db5b93af2). Estimación de los dos bloques: 6–10 h.
 
@@ -154,4 +222,10 @@ un service worker (S del apartado «Blink frente a la API de V8 13.8»).
 - Las funciones de CSS `progress()`, `abs()` y `sign()`, como en Chrome 138.
 - `window.viewport.segments` (pantallas plegables; en el ordenador, un solo segmento).
 - `QuotaExceededError` es ahora un tipo de error propio, que indica cuánto espacio había y cuánto se pidió.
+- Las webs pueden exigir que todos sus scripts lleven comprobación de integridad (`Integrity-Policy`): FlyWeb bloquea
+  los que no la lleven, como Chrome 138.
+- Al copiar, ya no se copia el texto que la página marca como no seleccionable.
+- La unidad CSS `ch` vuelve a medir media letra cuando la fuente no tiene «0» (antes salía cuatro veces mayor).
+- En árabe y otras escrituras cursivas, el espaciado entre letras ya no rompe las uniones.
+- Vídeo con WebCodecs: los fotogramas indican su giro y volteo (`rotation`, `flip`), como en Chrome 138.
 - La subida automática a HTTPS del contenido mixto (imágenes, audio y vídeo) usa el mismo criterio que el bloqueo.
