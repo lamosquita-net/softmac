@@ -1,3 +1,41 @@
+# Relevo de MOTOR: de MOTOR-42 a MOTOR-43 (02-11-2026, ~11:05 UTC)
+
+MOTOR-42 (`session_01MwmK2iD1rP6o3BQysRiiGF`, Opus 5.5, medio). FM.53, nivel 138 = 2.7.0. **brave-core `nube/motor-138` =
+ae7e11c1** (sobre `local/261-arreglos` 480f7362). Sin compilar. Plan de Titín (02-11, 10:50): el 138 completo a ritmo normal,
+sin esperar al reinicio del límite; a COORDINACIÓN solo hitos (rama y commit, `enumorden.py`/`fuera.py` en verde, lo que queda).
+
+**Hecho (detalle en `version-2.7.0.md`):** aplazado del 137; `MediaSourceNewAbortAndDuration`; contenido mixto (anulación de
+Brave con firma nueva y gancho `.onion`); `QuotaExceededError`; **V8 13.8.258.30** (ae7e11c1: 189 parches rehechos, 27
+borrados por estar ya upstream, época 29; `FLYWEB-SECURITY.md` § «Level 138»).
+
+**Para MOTOR-43, por orden:**
+1. **Blink frente a la API de V8 13.8** (sin hacer): `String::Utf8Value` pierde `WriteOptions`; `GetIsolate()` pasa a
+   `DEPRECATE_SOON` (avisos apagados en `build.sh`); `ContinuationPreservedEmbedderDataV2`; `api-macros.h` borrado.
+   Trampas de V8 nueva (`TRAMPAS.md`, MOTOR): diff de `src/api/api.cc` (`CHECK`/`ApiCheck` nuevos: el subagente vio
+   «Unaligned pointer» y sandbox) contra los IDL de la 128; `read-only-promotion.cc` sin cambios; sin `weak`/`dlsym`/
+   `__builtin_available` nuevos. `kUseContextSnapshot` pasa a ENABLED en la 138: no encenderlo sin mirar la snapshot de
+   Blink 128. Mirar también si V8 13.8 pide otra versión de simdutf, highway o fast_float (DEPS de la 138).
+2. **7 parches de V8 con conflicto: los rehace SEGURIDAD-PORTES** (la abre COORDINACIÓN en paralelo sobre esta rama); no
+   duplicar. Lista en `FLYWEB-SECURITY.md`.
+3. **Blink del 138:** `sibling-index()`/`sibling-count()` con `progress()`/`abs()`/`sign()` (b9417dbcfe2, 0f954c71f10 y la
+   infraestructura de cálculo sin resolver; d0e9a0c212a, d9d9e83174e, 59d393acd31, c82e4ff1304, 02c0f691ed2…), `stretch`
+   (+`LayoutFlexNewStretch`), `CSSAlignBlockAndInlineOutOfFlows` con `LayoutJustifySelfForBlocks`, lote de arreglos
+   nacidos stable, WebCodecs orientation, `IgnoreLetterSpacingInCursiveScripts`, `ViewportSegments` (ae78afaca30 +
+   9ea51ed248c + fc24d6c7278), Integrity-Policy (629b69e78b66, 93d38b50a171, 55bf0d1e8373, 4458c6764c68, 5ba6c5d0df66,
+   f8e3fd713bce, 227488522951, e9e51b382825, 7d991745c7df; parte en `services/network` y `content`). Lista y commits en
+   `motor-niveles.md` § «Nivel 138» (inventario de un subagente: comprobar cada «flip sin código», que no siempre lo son).
+4. Declaración 138 (`config.gni`: 138.0.7204.185, `flyweb_version` 2.7.0, `platformVersion` 11.7.10), `motor-138.html`,
+   `api128.sh`, `enumorden.py` y `fuera.py` sobre todo lo tocado, y avisar a COORDINACIÓN.
+
+**Entorno que hay que rehacer** (el contenedor de MOTOR-42 se pierde): clon de brave-core; Chromium `--filter=tree:0` con
+los tags 128.0.6613.138, 137.0.7151.122 y 138.0.7204.185 en `/home/user/chromium/chromium` (+ enlace `hist`; `gc.auto 0`,
+que si no hace gc en cada `git show`); V8 en `/home/user/v8` con `git fetch --filter=tree:0 --depth=1 origin tag
+13.7.152.17 tag 13.8.258.30`; `FlyWeb/tools/port/*` copiado a `/tmp/claude-0/port/`. `git log` con rutas en el clon tree:0
+no acaba: usar `--grep`. `portar128.sh` + a mano + `generar128.sh` funcionan como siempre; `jsonflip.sh` para encender
+banderas.
+
+---
+
 # MOTOR-42 (02-11-2026, ~11:30 UTC)
 
 MOTOR-42 (`session_01MwmK2iD1rP6o3BQysRiiGF`, Opus 5.5, medio). Fila FM.53 (nivel 138 = 2.7.0). **brave-core
