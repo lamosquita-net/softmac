@@ -21,6 +21,18 @@ Inventario del 138: `motor-niveles.md` § «Nivel 138» (pendiente).
   he comprobado línea a línea los workers dedicados y compartidos creados desde un Blob URL de otra partición; lo cubre
   la prueba de Brave `blob_url_browsertest.cc` solo para marcos.
 
+- **`CaretWithTextAffinityUpstream`** (2a137720e54, crbug 40677155): c7fbf1e6. Bandera `stable` como en Chrome 137;
+  include de `runtime_enabled_features.h` explícito en `insert_text_command.cc`. Sin arreglos posteriores en upstream.
+- **`TextareaStableResizing`** (a687e1c3da8): 8a7edf40. Un hunk de `PointerEventManager::Clear()` a mano (contexto
+  distinto en la 128). `PaintLayerScrollableArea::Resize` cambia de firma: los únicos llamadores en la 128 son
+  `scroll_manager.cc` y `pointer_event_manager.cc` (S: no he barrido el árbol entero; si LOCAL ve otro, es pasarle
+  `{}` como tercer argumento). Sin arreglos posteriores salvo quitar la bandera (026c1ff36ec).
+- `fuera.py --ref 137.0.7151.122` sobre los 8 parches tocados: 0 avisos. `enumorden.py`: sin avisos.
+- Pendiente del 137 en la fila: el bit 0 de canvas-float16.
+
 ## Para la web
 
-- (pendiente)
+- Al escribir un espacio al principio de una línea partida en un cuadro de texto, el espacio aparece donde está el
+  cursor y no al final de la línea anterior.
+- Redimensionar un cuadro de texto con el tirador sigue al ratón aunque la página esté ampliada, girada o en
+  escritura de derecha a izquierda.
