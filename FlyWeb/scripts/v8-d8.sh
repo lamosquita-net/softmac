@@ -121,6 +121,13 @@ if [ -n "$FF_REV" ] && [ ! -d third_party/fast_float/src/.git ]; then
   git -C third_party/fast_float/src fetch -q --depth=1 https://github.com/fastfloat/fast_float "$FF_REV"
   git -C third_party/fast_float/src checkout -q FETCH_HEAD
 fi
+# dragonbox: lo pide la V8 13.8+ (nivel 138, FM.53; D8-LINUX-3, 02-11).
+DB_REV=$(grep -A1 "'third_party/dragonbox/src'" DEPS | grep -o '[0-9a-f]\{40\}' | head -1 || true)
+if [ -n "$DB_REV" ] && [ ! -d third_party/dragonbox/src/.git ]; then
+  git init -q third_party/dragonbox/src
+  git -C third_party/dragonbox/src fetch -q --depth=1 https://github.com/jk-jeon/dragonbox "$DB_REV"
+  git -C third_party/dragonbox/src checkout -q FETCH_HEAD
+fi
 
 # clang de la base (la versión exacta de tools/clang/scripts/update.py).
 rev=$(sed -n "s/^CLANG_REVISION = '\(.*\)'/\1/p" tools/clang/scripts/update.py)
@@ -217,6 +224,10 @@ EOF
 # en V8 (lo pone Chromium). Las V8 anteriores no conocen el argumento.
 if grep -q "v8_enable_partition_alloc" BUILD.gn; then
   echo 'v8_enable_partition_alloc = false' >> out/x64/args.gn
+fi
+# V8 13.8+: Temporal pide //third_party/rust/temporal_capi, que no bajamos; Chrome 138 no lo expone (FM.53).
+if grep -q "v8_enable_temporal_support" BUILD.gn; then
+  echo 'v8_enable_temporal_support = false' >> out/x64/args.gn
 fi
 gn gen out/x64
 [ "${FLYWEB_D8_NO_BUILD:-}" = 1 ] && exit 0
