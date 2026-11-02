@@ -214,6 +214,12 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   Se compara cada porte con la base de la misma máquina (13.5.212.10: mjsunit 7656/7657, solo falla
   `maglev/extras-cped`), no con las cifras de la 7,1 (7681/7682; las 25 de diferencia, sin explicar). Los mensajes de
   la nube no le llegan: los encargos se los pasa Titín y sus informes llegan reenviados.
+- **Orden fijo de cada nivel (Titín, 02-11): d8 en el Ubuntu ANTES de entregar a LOCAL.** MOTOR y SEGURIDAD-PORTES
+  suben sus ramas → D8-LINUX compila la d8 y pasa mjsunit (base y ramas de seguridad) → solo con la d8 en verde
+  COORDINACIÓN manda la entrega a LOCAL por el buzón → LOCAL compila y prueba → PUBLICACIÓN → web. No se cambia sin Titín.
+- **`add_repo` de brave-core lo ordena COORDINACIÓN, no Titín (Titín, 02-11):** COORDINACIÓN lo pone en el texto de
+  arranque de cada agente que lo necesita (excepción fija de la regla 16). Solo si aun así se deniega, se le dice a
+  Titín con el texto exacto de la denegación.
 - **Las faltas, antes de compilar** (Titín, 29-10; **fija desde el 30-10**, tras el 135: 11 min, 1–2 $ y 68 faltas encontradas): MOTOR cruza el inventario de cada nivel con lo que
   Chrome N pasa en WPT y Chrome N−1 no (wpt.fyi), y porta esas faltas y los escapes del nivel anterior antes de entregar.
   LOCAL se centra en errores de compilación y en los fallos que salgan después (caídas, webs reales). Se mide el coste en
