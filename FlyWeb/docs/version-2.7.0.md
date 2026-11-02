@@ -104,8 +104,22 @@ Inventario del 138: `motor-niveles.md` § «Nivel 138» (pendiente).
   (siempre devuelve los segmentos: uno en escritorio, sin entropía) y el flip de fc24d6c7278. La comprobación del
   origin trial `FoldableAPIs` de `origin_trial_context.cc` queda como en la 128, porque `DevicePosture` sigue usándolo
   aquí (Chrome 138 lo tiene stable; no está en el inventario: S, sin mirar).
-- **Aplazados a decisión de COORDINACIÓN** (más grandes que en el inventario): `sibling-index()`/`sibling-count()` (64
-  commits), `stretch` y `CSSAlignBlockAndInlineOutOfFlows`. Propuesta: una 2.7.1 propia (regla 18).
+
+### Aplazado del 138 (COORDINACIÓN-24, 02-11; sin 2.7.1)
+
+Van al principio del 139 (2.8.0), como lo aplazado del 137 en esta. Sin 2.7.1, porque las 2.N.x solo salen por una
+regresión o un KEV. La 2.7.0 declara 138 de todos modos: es CSS nuevo con alternativa y no cambia la huella de red
+(precedente: RubyLB en el 128). `motor-138.html` no prueba estas tres.
+- **`sibling-index()`/`sibling-count()`** (`CSSSiblingFunctions`, `CSSSiblingFunctionsInContainerQueries`): 64 commits
+  (8b1026ab8, 18-11-24 … d51435dc8 y el reland 15ce3aa27, 26-05-25), ~2 000 líneas sin pruebas. Incluye refactors de
+  `CSSPrimitiveValue` (fuera `GetFloatValue`, `GetIntValue`, `ComputeDotsPerPixel`; `DoubleValue` solo con calc
+  resolubles). Solo el commit base da 12 rechazos en 10 ficheros sobre la 128. Lista con tamaños:
+  `FlyWeb/tools/port/nivel138-sibling.tsv`. Estimación: 8–12 h. Regla 17: invalidación de estilo.
+- **`stretch`** (`LayoutStretch`, `LayoutFlexNewStretch`): unos 15 commits de layout (79360f335 separa Stretch de
+  FillAvailable, 5269fcdb7, 8e4d4b2a8, 1df0736d5/38883a97b abspos, 56092706c, el flip); empieza antes de nov-24
+  (9ae24680f, 4287aedae). Encontrarlos: `git log --grep=stretch` y quitar el ruido de vistas/GPU.
+- **`CSSAlignBlockAndInlineOutOfFlows`** con `LayoutJustifySelfForBlocks` (babd2b646 lo quita del 137; 25bf90a44,
+  4ada5a818, db5b93af2). Estimación de los dos bloques: 6–10 h.
 
 ## Para LOCAL: dependencias y args nuevos del 138
 
