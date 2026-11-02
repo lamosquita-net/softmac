@@ -29,7 +29,12 @@ Inventario del 138: `motor-niveles.md` § «Nivel 138» (pendiente).
   tiene que guardar `InitializeResizeTransform()` al empezar el arrastre, como hacen los dos; un `{}` daría tamaños
   erróneos). Sin arreglos posteriores salvo quitar la bandera (026c1ff36ec).
 - `fuera.py --ref 137.0.7151.122` sobre los 8 parches tocados: 0 avisos. `enumorden.py`: sin avisos.
-- Pendiente del 137 en la fila: el bit 0 de canvas-float16.
+- **Bit 0 de canvas-float16 (2.6.0: 1 canal de ~250 en un origen): sin causa encontrada, sin cambio de código.** Hipótesis
+  descartada con simulación del algoritmo de `PerturbPixelsInternal` (200 claves, 64×64, float16 y float32): un canal
+  elegido dos veces vuelve exacto a su valor, como el XOR de 8 bits; ninguna ejecución da un cambio fuera del bit 0.
+  Queda como sospecha (S) un píxel que la GPU no rellena idéntico (1 ULP de diferencia en un relleno liso), que la página
+  cuenta como «cambiado» sin serlo. `canvas-float16.html` ahora informa del píxel, canal, bits y valores de cada caso
+  (hasta 4): LOCAL lo pasa con la 2.7.0 y, con ese dato, se decide. No bloquea (COORDINACIÓN-23, 31-10).
 
 ## Para la web
 
