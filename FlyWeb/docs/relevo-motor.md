@@ -18,7 +18,7 @@ contenido mixto con el gancho `.onion` de Brave 1.80, `QuotaExceededError`.
 
 **Entorno:** clon de Chromium `--filter=tree:0` en `/home/user/chromium/chromium` (con `hist` enlazado; `gc.auto 0`; tags
 128, 137 y 138); `git log` con rutas es lentísimo, usar `--grep`. Herramientas de `FlyWeb/tools/port` copiadas a
-`/tmp/claude-0/port`; `jsonflip.sh` (nuevo, en el scratchpad de la sesión) cambia el estado de una bandera en el parche del json5.
+`/tmp/claude-0/port`; `FlyWeb/tools/port/jsonflip.sh` (nuevo) cambia el estado de una bandera en el parche del json5.
 
 ---
 
