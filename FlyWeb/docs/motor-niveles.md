@@ -3090,3 +3090,198 @@ Riesgo principal: la **captura** (JA4, JA4Q) sigue siendo lo que pasa S a V; y e
   (`f137/content.diff`, 96 731 líneas, no leído fichero a fichero); `media/`, `ui/` y `gpu/` fuera de los `.mm`, `*features*.cc` y `gpu/config`; si `CHROME_ROOT_STORE_SUPPORTED` está activo en Mac en la compilación de FlyWeb (afecta al peso del cambio de v19);
   si `PdfSearchify` necesita componente (sí: ScreenAI) o corre sin él; Android/iOS/ChromeOS/Windows (fuera de alcance).
 - Pendiente de otros subagentes: Blink (incl. `DocumentIsolationPolicy` en Blink, `IgnoreInputWhileHidden`, `EnforceNoopenerOnBlobURLNavigation`, `OptimizeHTMLElementUrls`) y V8 (`WebAssemblyExperimentalJSPI`).
+
+# Nivel 138 (MOTOR-42, 02-11; inventario de un subagente de lectura, revisado)
+
+**Corrección de MOTOR-42 (V):** la duda de Kyber del §3 no aplica: FlyWeb ya manda ML-KEM (`kUseMLKEM` ENABLED en `patches/net-base-features.cc.patch`).
+
+
+V = verificado leyendo código/datos; S = supuesto. Datos de trabajo en `(datos de trabajo del subagente, no guardados)` (d137-138.txt, d128-138.txt, imp.json, v8src.diff, subj.txt, log.txt).
+
+## 0. Tags y rango
+- V: último 138 estable de Mac = **138.0.7204.185** (versionhistory.googleapis.com; la serie: .35, .49-.51, .92-.94, .100-.102, .157-.159, .168-.170, .183-.185). Anterior de referencia: 137.0.7151.122.
+- V: DEPS de 138.0.7204.183 y .185: `v8_revision` 54f355e9ad = **V8 13.8.258.30**. Ojo: 138.0.7204.35 llevaba a14ab029 (otra revisión). Rama `refs/heads/13.8` de V8: **13.8.258.54** (V, v8-version.h; 24 puntos por encima de lo que lleva Chrome; fijar en .30 = nivel; el resto son arreglos candidatos a regla 17).
+- V: `git rev-list t137..t138` = **15 112** commits (16-06 a 28-07-2025); 137 449 commits de 20-07-2024 a 28-07-2025 (clon `--filter=tree:0 --shallow-since`).
+- Otras revisiones: skia a46d5732d9, angle e1dc0a7ab5, dawn 1fde167ae6, boringssl 9295969e1d, quiche 3b42119c3e (V, DEPS 138.185). 137: skia 0dfd95a49a, angle df9c59dcac, boringssl 918cf66ed8.
+
+## 1. Resumen
+Nivel **medio**. Cifras del json5 137→138 (V, `cmp.py`): **33 CHG, 68 NEW, 34 REM, 1 FEAT**; de los CHG, 15 son A_STABLE reales con cara web en Mac (resto: IA, ChromeOS/Android, DevTools). FW (base 128 + parche del json5 de `nube/motor-138`, aplicado con `patch`) todavía **no** tiene 98 flags que ya eran stable en 137 (diferidas de niveles anteriores: select personalizable, carousel, Observable, FetchLater, RoundScrollOffsets...; lista en `scratchpad/w` si hace falta) + 48 más que pasan a stable en 138 (V).
+Bloques con peso: (1) funciones de `calc()` del 13x: `sibling-index()/sibling-count()` (22 commits) y `stretch` (17 commits, layout); (2) lote de arreglos de edición/SVG/layout nacidos stable; (3) `FlowThreadLess`+`LayoutBoxVisualLocation` (refactor multicol, aplazar); (4) V8 13.8 con **cambio de ABI en `v8-internal.h`** y api.cc reescrito (1 083+/1 147− líneas), `git apply --check` de los 252 `patches/v8` contra 13.8.258.30: **208 limpios, 44 fallan** (V, §6).
+Nada exige AVX ni APIs 10.15+ (V en lo mirado). Deployment target sigue en 11.0 (V `mac_sdk.gni` 137 y 138).
+**Estimación real: ~33 h** (Blink 23 h + V8 6 h + root store/regla 17 4 h); papel ≈ 4×.
+
+## 2. Flags que pasan a stable (137 → 138), Mac (V json5; commits por asunto en `subj.txt`, S la completitud)
+Estado 128/FW = json5 de cr128.0.6613.138 + parche de `nube/motor-138`. Horas reales (S).
+
+| Fila | Flag | Flip / impl (por asunto) | ¿128 / FW? | Horas | Propuesta / privacidad (regla 20, ref. Brave 1.80) |
+|---|---|---|---|---|---|
+| A01 | `CSSProgressNotation` (exp→stable) `progress()` | flip 0cc9eb82e (19-05); 0f954c71f [M138] clamp; ya hubo flip/unship en 137 (c79930bba, a4d880da0, 64675edba) | exp en 128 y FW: **código ya está** | 0,4 | **portar** flip + clamp. Sin huella |
+| A02 | `CSSSignRelatedFunctions` `abs()`/`sign()` (exp→stable) | flip 9d01364eb (19-05) | exp en 128/FW | 0,3 | **portar** (WPT: filter-sign-function, zoom-with-sign, `*-math-functions` ≈ 110 pruebas de interpolación) |
+| A03 | `CSSSiblingFunctions` (exp→stable) + `CSSSiblingFunctionsInContainerQueries` (nace stable) `sibling-index()/sibling-count()` | impl 8b1026ab8 (18-11-24), 09ec78e01 flat tree, c65f9442c, a1c00b2bd (container queries), d665074a4/335f03976 (invalidación), 59d393acd, 2594ee513, d9d9e8317, 71682a396, 708406b09 ... ship d51435dc8 (22-05) = **22 commits** | ausente | 3,5 | **portar** (WPT css-anchor-position/flip-sibling-index, css-lists, css-values). Sin huella. Invalidación de estilo: regla 17 (`style/*`) |
+| A04 | `LayoutStretch` (exp→stable) `stretch` (width/height/flex-basis) + `LayoutFlexNewStretch` (nace stable) | 9ae24680f (accept), 4287aedae (Length::Stretch), 79360f335 (separar de FillAvailable), 529a9641b, 9e2aa651e, 5269fcdb7, 8e4d4b2a8, 1df0736d5/38883a97b (abspos), 56092706c ship (21-05) = **17 commits** | ausente (128 solo `-webkit-fill-available`) | 4 | **portar** (css-sizing/css-flexbox). Tocar `length_utils`, flex, abspos; prueba visual |
+| A05 | `CSSAlignBlockAndInlineOutOfFlows` (test→stable) | 25bf90a44 (06-05); soporte 4909eebba (justify-self en bloques, ya stable en 137 como `LayoutJustifySelfForBlocks`, **ausente en FW**), f47b3fe44, 439f07232, 73e7e3b55 (anchor-center) | ausente | 3 (S) | portar **junto con** `LayoutJustifySelfForBlocks` (hoy faltante, 137); si se aplaza, aplazar las dos |
+| A06 | `CSSSystemAccentColor` (exp→stable en Mac/Win/ChromeOS) | b914d703 «Enable system accent color for form elements» (13-05), 5da8314cb, 0996144ca | exp en 128/FW | 0 | **no encender**: expone el color de acento del SO (huella de preferencias, ~9 valores en Mac). Brave 1.80 sigue a Chrome (S). Dejar exp = apagado |
+| A07 | `ViewportSegments` (exp→stable) | fc24d6c72 (07-05), 9ea51ed24 (siempre 1 segmento) | exp en 128/FW | 0,3 | portar el flip (en escritorio devuelve 1 segmento: sin entropía). 3 WPT |
+| A08 | `MediaSourceNewAbortAndDuration` (exp→stable) | sin commit por asunto (S) | exp en 128/FW | 0,3 | portar flip (mediasource-duration 5/9>9/9) |
+| A09 | `WebCodecsOrientation` (exp→stable) | ed9a86388 (rotation/flip en VideoFrame), ba847f538, 20e7aebf3 → revertido 49d5e7b21 → de28b866b (30-04) | ausente | 1,5 | portar (12 WPT `*orientation*`). Huella baja |
+| A10 | `IgnoreLetterSpacingInCursiveScripts` | 97e135f4 (06-05) | ausente (exp en 137) | 1 | portar (texto árabe; sin huella) |
+| A11 | `RenderSurfaceFor2DScaleTransform` (exp→stable) | eabea0d77, 5fbb65c89 (07-03), f6734620/ebdfe519 (revert/reland mayo), 529286d04 (snapping), `cc/` | ausente | 2–3 | **aplazar**: compositor (`cc/trees`), riesgo en GPU de Mojave sin WPT que lo pida |
+| A12 | `SpeculationRulesTargetHint` | 51dceb6f [M138] | ausente | — | **fuera** (prefetch/prerender: red anticipada; 6 WPT de speculation-rules). Misma línea que 137 |
+| A13 | `CSSPreferredTextScale` | 50278475 `env(preferred-text-scale)` | ausente | 0 | fuera (solo Android/ChromeOS; en Mac vale 1) |
+| — | `LanguageDetectionAPI`, `TranslationAPI`, `AIPromptAPIStructuredOutput`, `AIPromptAPIForExtension`, `AISummarizationAPI` | — | — | 0 | **fuera** (APIs de IA; Mac stable en Chrome). `AIProofreadingAPI` nace test |
+| — | `InspectorGhostRules` (DevTools), `SecurePaymentConfirmation*`, `WebGPUCompatibilityMode`, `WebGLOnWebGPU`, `FledgeSellerScriptExecutionMode` | — | — | 0 | fuera (DevTools / pagos / WebGPU / Privacy Sandbox) |
+
+Eliminados del json5 (ya siempre encendidos; V): `CSSRelativeColor*`, `CSSScrollableContainerQueries`, `CSSSnapContainerQueries`, `CSSStickyContainerQueries`, `CSSLogicalOverflow`, `CSSAnchorSizeInsetsMargins`, `CSSViewTransitionMatchElement`, `FontationsFontBackend`, `InputClosesSelect`, `LayoutJustifySelfForBlocks`, `LayoutWebkitBoxTreeFix`, `ViewTransitionOnNavigation*`, `SpeculationRulesTag`, `SchedulerYieldCrossOriginFix`, `ScheduleSelectionChangeOnBackspace`, `PrevOrNextCandidateIsEditingRootChild`, `RemoveNodeHavingChildrenIfFullySelected`, `SvgFilterUserSpaceViewportForNonSvg`, `CssDecoratingBoxPseudoFix`, `FedCmWithStorageAccessAPI`, `CanvasElementDrawImage`/`CanvasPlaceElement` (retirados, ahora `CanvasDrawElement` test). Los que FW ya tenía en el parche como stable no cambian; `FontationsFontBackend`/`CSSLogicalOverflow` etc. ya cubiertos o diferidos desde el 137.
+
+## 3. Flags que nacen `stable` (correcciones) — candidatos, por orden de valor
+Commits por asunto (S: sin árbol no hay lista exhaustiva; sólo los que el log menciona).
+
+| Fila | Flag(s) | Commit(s) | Horas | Propuesta |
+|---|---|---|---|---|
+| B1 Seguridad / web-compat | `MixedContentAutoupgradesUseIsMixedContentRestrictedInFrame` (3e980163, aa485810 killswitch); `IntegrityPolicyScript` (4458c676, 5ba6c5d0, 7d991745, 22748852: `Integrity-Policy` para scripts + `Accept-Signature` aparte); `QuotaExceededErrorUpdate` (3009dd8e, a7bea0c1, 1b6ec5ba, a162e5a3, 400a4608: ahora `DOMException` derivada) | | 4 | portar los tres (mixed content = regla 17; Integrity-Policy no exfiltra; QuotaExceededError toca IDL/V8 bindings) |
+| B2 Edición / selección | `AvoidNormalizingVisiblePositionsWhenStartEqualsEnd`, `EditingFastDelete`, `EditingFastRichReplace` (1c066c83), `FastSelectionSync`, `FixNextPositionCalculationInInsertList`, `RemoveNodeDetermineNodeFullySelected`, `SelectionDeleteFromDocumentUaShadowFix` (a82b813f), `SkipUnselectableContentInSerialization` (db062d2f), `TextareaLineEndingsAsBr` (7968faa1), `TextareaMultipleIfcs` (bc1d9a3e, 47cec2cb [M138]), `ClipboardSnapshotResetOnWrite` (5ee3b4ac) | | 3 | portar los de comportamiento (db062d2f, a82b813f, textarea, clipboard); los «Fast*» son rendimiento: tras lo demás |
+| B3 Layout / render | `AnchorPositionAdjustmentWithoutOverflow` (2cd92893), `CSSChUnitSpecCompliantFallback` (9b7d041a), `LayoutIsAnonymousBlockFix` (0bc24ff1), `ClearPopoverInvokerAfterBeforeToggle` (9b98a818), `RestrictTabFocusForHiddenSVGElements` (51d08922, 3 WPT), `SerializeCdataAsTextInHTMLDocuments` (132862ba), `EmptyReferenceFilterInvalidation` (f746f478), `ClipPathNestedRasterOptimization` (3a7a9069), `SchedulerYieldDisallowCrossFrameInheritance` (1f5acb16), `MacCharacterFallbackCache` (Mac, perf; sin asunto localizado, S) | | 3 | portar los 6 primeros; el resto opcional |
+| B4 Refactor multicol | `FlowThreadLess` (17617a0c, 7ded10e3, fa48c79a, f110e9df) + `LayoutBoxVisualLocation` (f08270f4, e796c6ff offsetWidth con cajas de fragmentos, b82b816f) | | 6–10 | **aplazar** (11 WPT: css-multicol getclientrects 6, css-break 5). Sólo si WPT importa: e796c6ff + b82b816f (S) |
+| B5 Fuera | `HTMLInterestTarget*`, `TouchDragAndDrop`, `JavaScriptSourcePhaseImports` (flag de V8 en progreso), `LayoutReplacedReturnExplicitDefaultNaturalSize` | | 0 | no portar |
+Experimentales/test nuevos que **no entran** (V json5): `CSSAltCounter`, `CSSCaretShape`, `CSSContainerStyleQueriesRange`, `CSSFallbackContainerQueries`, `CSSIdentFunction` (ident(): be760d3c...), `CSSScrollDirectionContainerQueries`, `CSSShapeFunctionDirectionAgnosticArc`, `CSSShortCircuitVarAttr`, `CssFitWidthText`, `FetchRetry`, `FlexWrapBalance`, `ICUCapitalization`, `InputInSelect`, `MenuElements`, `ScrollIntoViewNearest`, `ToggleEventSource`, `TextareaSplitText`, `CanvasDrawElement`, `RestrictOwnAudio`, `PropagateOverscrollBehaviorFromRoot`.
+
+## 4. Cruce con wpt.fyi (V; datos: `(datos de trabajo del subagente, no guardados)imp.json`)
+Runs Linux, product=chrome, label=stable: **137.0.7151.119** (id 5127017282666496, 24-06-2025, wpt f9fe3ed961) vs **138.0.7204.157** (id 5098655704154112, 17-07-2025, wpt cff86e5985; el .185 no tiene run). Método: `summary_v2.json.gz` (decodificado por transporte), c=[pass,total], mejora si pass(138)>pass(137). 61 639 pruebas comunes: **421 mejoran, 770 empeoran, 526 nuevas** (cambios de wpt por medio: clase d).
+| Carpeta | Mejoras | Causa (S por nombre de prueba/commit) |
+|---|---|---|
+| css/css-values + css-sizing + css-transforms + css/motion + css-borders + css-images + css-variables + css-viewport + filter-effects + css-inline + css-properties-values-api | ~115 | A01/A02/A03: interpolación con funciones matemáticas (`*-math-functions*`, `calc-size-*-interpolation`, `filter-sign-function`, `zoom-with-sign`) |
+| css/css-fonts (18), css-color (13), css-animations (7), css-lists (6), css-grid (5), css-easing/transitions (9), css-tables (4), css-flexbox (3) | ~65 | computed/valid con `sign()`/`sibling-index()`/`stretch` (A02-A04) |
+| css/css-multicol (6) + css-break (5) | 11 | B4 `FlowThreadLess`/`LayoutBoxVisualLocation` |
+| css/css-anchor-position | 6 | A03 (`flip-sibling-index`), `AnchorPositionAdjustmentWithoutOverflow` |
+| webcodecs (≈16) | 16 | A09 `*-orientation*` |
+| viewport-segments (3) + viewport (1) | 4 | A07 |
+| svg (3) focus-inside-hidden-svg-containers | 3 | B3 `RestrictTabFocusForHiddenSVGElements` |
+| scheduler (3) | 3 | B3 `SchedulerYieldDisallowCrossFrameInheritance` |
+| html/syntax (1) serializing-cdata | 1 | B3 `SerializeCdata...` |
+| subresource-integrity (12 + integrity-policy 3) | 15 | B1 `IntegrityPolicyScript`; `signatures/accept-signature*` (9) sin flag en json5: S «Signature-based SRI» (sale en 141) |
+| speculation-rules (9), preload (1) | 10 | A12, fuera |
+| IndexedDB (≈33) | 33 | `getAll/getAllKeys` +1 subprueba: `*-options.tentative` (S: tests nuevos de wpt; getAllRecords no sale hasta 141) |
+| media-source (18) | 18 | A08 `mediasource-duration` (+4); `config-change-*` 0/1>1/1 = d (códec/entorno) |
+| ua-client-hints (2) + workers (1) | 3 | `NavigatorUAData.toJSON` (use counter 5581); S 0,3 h |
+| webnn (33), ai (9), webdriver (11), webrtc (3) | 56 | fuera |
+| url (3, +8 subpruebas), webidl `builtin-function-properties` (3), push-api idlharness (1, +14), webstorage symbol-props, fetch.tentative (3), dom createDocument/createElementNS (2) | ~14 | c?: URL (ada), propiedades de funciones nativas (**V8 13.8**, S), `PushSubscriptionChange` (content `PushSubscriptionChangeEventOnResubscribe` ENABLED, V) |
+Faltas portables antes de compilar (c): A01-A04, A07-A10, B1-B3 + `builtin-function-properties` (V8). Todo lo demás es b (fuera) o d.
+
+## 5. Fuera de Blink 137 → 138 (V código de ambos tags; `nb/` en scratchpad)
+### 5.1 Huella de red
+- **TLS (V)** `ssl_client_socket_impl.cc`: grupos siempre `{X25519MLKEM768, X25519, ...}`; se **borran** `kPostQuantumKyber` y `kUseMLKEM` (en 137 `kUseMLKEM` ya ENABLED: ningún cambio de ClientHello respecto de 137). **QUIC (V)** `quic_session_pool.cc` también fija `SSL_GROUP_X25519_MLKEM768` (antes con kUseMLKEM). S: la base 128 de FW sigue con su BoringSSL (Kyber draft00); la huella TLS de FW ≠ Chrome 131+ desde antes del 137 (fuera de este nivel, pregunta abierta a COORDINACIÓN).
+- BoringSSL `918cf66ed8` → `9295969e1d`. Nuevo `SSLConfig::trust_anchor_ids` + `SSL_set1_requested_trust_anchors` (Trust Anchor IDs): sólo se envía si la lista no está vacía y no hay feature que la llene en `net/base/features.cc` (V) → **inerte**.
+- **HTTP/2 (V)**: `spdy_session.cc` sin cambios; `spdy_session_pool.cc` sólo CHECK. **QUIC (V)**: `quic_context.h` sin cambios; `quic_session_pool.cc` refactor (`HasMatchingIpSession` devuelve sesión); nuevo `kQuicConnectionOptions` (param, vacío). Suspensión: `HttpNetworkSession::OnSuspend/OnResume` sólo Windows. `SetTLS13EarlyDataEnabled` nuevo (API).
+- **UA / Client Hints / cabeceras (V)**: `user_agent_utils.{cc,h}` sin diff, `user_agent_metadata.cc` sin diff, `http_request_headers.cc`, `http_util.cc` sin diff → UA reducida y `Accept-Language` iguales (la UA sube a 138.0.0.0 por versión). Sin cambio en cabeceras por defecto. `url_loader.cc`: sólo refactor de `SetFetchMetadataHeaders`.
+- Nuevo en `blink/common/features.cc`: `kSecPurposePrefetchHeaderRelPrefetch` DISABLED→ENABLED (cabecera `Sec-Purpose` en `rel=prefetch`; sólo si prefetch activo, S).
+### 5.2 BASE_FEATURE con valor por defecto cambiado (V, lectura de código; 6 ficheros + blink/common)
+- Con efecto en Mac/escritorio: `kMacAllowBackgroundingRenderProcesses` DISABLED→**ENABLED** (content_features: los renderers en segundo plano bajan de prioridad; S: riesgo bajo, es de proceso/QoS); `kUseContextSnapshot` DISABLED→ENABLED (renderer: snapshot de contexto V8; **mirar con la V8 13.8**); `kDisallowRasterInterfaceWithoutSkiaBackend` nuevo ENABLED; `kPriorityOverridePendingViews`, `kSkipGrantAccessToDataPathIfAlreadySet` ENABLED (proceso); `kIntegrityPolicyScript` ENABLED (red, ligado a B1); `kPushSubscriptionChangeEventOnResubscribe` ENABLED; `kSharedStorageTransactionalBatchUpdate` ENABLED (Privacy Sandbox: fuera); `kWorkerThreadRespectTermRequest` nuevo ENABLED (cierre de workers; estabilidad, regla 17 S).
+- Borrados (código fijo): `kSchemefulSameSite` (ya siempre), `kPrefetchFollowsNormalCacheSemantics`, `kSharedZstd`, `kCoopRestrictProperties*`, `kCacheCodeOnIdle`, `kWarmUpCompositor`, `kColorConversionInRenderer`, `kPrerender2MainFrameNavigation`, `kPrerender2WarmUpCompositor`, `kHiddenSelectionBounds`, `kAvifGainmapHdrImages` (AVIF HDR gainmap siempre on). Windows/Android/Wayland: irrelevantes.
+- Apagar (no tocar el defecto): `kCrashReportingAPIMoreContextData`, `kClearSiteDataPrefetchPrerenderCache`, `kAttributionReportingInBrowserMigration` (pasan a ENABLED en Chrome; Privacy Sandbox/crash: regla 20).
+### 5.3 macOS (V)
+- `mac_deployment_target = "11.0"` en 137 y 138. Ninguna API 10.15+ obligatoria vista en los asuntos mac (S, no hay árbol): lo nuevo es de 12+/14.2 con guarda (`CatapAudioInputStream` macOS 14.2+, `AVCaptureDeviceTypeExternalUnknown` en <14). Cuidado S: `IS_MAC`→`IS_APPLE` en `gpu_finch_features.cc` y `media_switches` (HEVC), sin efecto en Mac.
+### 5.4 GPU / ANGLE / Skia / Dawn
+- `kSkiaGraphite` y Dawn: etiquetas de depuración fuera salvo DCHECK; nueva `kWebGPUCompatibilityMode` DISABLED; `kWebGPUUseTintIR` quitado. WebGPU sigue apagado en FW. ANGLE df9c59dcac→e1dc0a7ab5, Skia 0dfd95a49a→a46d5732d9: `chk` de Metal en Mojave (10.14) pendiente, no se ha leído el código de ANGLE (S). Commits Mac vistos: `kIOSurfaceLockReadOnly` para readback (25210ac5), `waitUntilScheduled` en el mismo dispositivo Metal (be450562), fix de `IOSurface` EGL con varios hilos (3989bcdb, 59b5a2bf) = candidatos regla 17/GPU.
+### 5.5 HSTS / CT / raíces (V)
+- `root_store.textproto` **version_major 19 → 23**; `root_store.certs` **118 → 116** certificados. `log_list.json` **55.7 → 59.19** (41 → 47 logs: +Sectigo Tiger2025h2/2026h1/2026h2/2027h1/2027h2 qualified, Yeti2025 retired, bogus placeholder de Geomys). `transport_security_state_static.json` 18 513 154 → 18 583 575 bytes (+70 KB). Pins: regenerar con `FlyWeb/servidor` como en 137 (1,5 h).
+### 5.6 Privacidad: lo nuevo que expone datos (proponer apagar)
+`kCrashReportingAPIMoreContextData`, `kAttributionReportingInBrowserMigration`, `kPermissionsAIv3Geolocation`/`kApproximateGeolocationPermission` (permisos, DISABLED: ok), `CSSSystemAccentColor` (A06), `PermissionElementIcon`, `BackForwardCacheRestorationPerformanceEntry`, `SoftNavigationDetectionAdvancedPaintAttribution`, `ComputePressureOwnContributionEstimate`, `VideoFrameMetadataRtpTimestamp`: no tocar o dejar apagados. Use counters nuevos (web_feature 5555 `kC2PAManifest` etc.) sólo cuentan, no exponen.
+
+## 6. V8 13.7.152.17 (075234cf3d) → 13.8.258.30 (54f355e9ad) (V, `git diff` entre ambos; 1 238 ficheros)
+- **JS por defecto**: `js_explicit_resource_management` (`using`) y `js_float16array` pasan de STAGED a **SHIPPING** (V `flag-definitions.h`); `js_base_64` (Uint8Array base64/hex) pasa de INPROGRESS a STAGED (no por defecto); `js_regexp_escape` ya era shipping. Las banderas de gin de FW (`--js-float16array`, `--js-explicit-resource-management`...) siguen siendo inofensivas. Nuevos use counters en `v8-isolate.h`: 168 `kWasmMultiValue`, 169 `kUint8ArrayToFromBase64AndHex`, 170 `kAtomicsPause`, 171-173 `kTopLevelAwait/kLogicalAssignment/kNullishCoalescing`, 174 `kInvalidatedNoDateTimeConfigurationChangeProtector` (S: Blink 128 ignora valores desconocidos; hay que dejar la tabla de V8Initializer sin `NOTREACHED`).
+- **Wasm**: `wasm-feature-flags.h` **sin cambios** (V): shipped = legacy_eh, branch_hinting, imported_strings, exnref, jspi, más lo de 13.7; ningún flag Wasm nuevo a true. Cambios de flag: `wasm_inlining_call_indirect` sigue true; nuevo `NEG_NEG_IMPLICATION(wasm_inlining, wasm_inlining_call_indirect)`. Maglev: `DEFINE_BOOL(maglev, true)` upstream; FW lo apaga por parche (sigue apagado). Nuevos defaults true: `function_context_cells`, `json_stringify_fast_path`, `cache_property_key_string_adds`, `inline_date_accessors`, `safepoint_bump_qos_class`, `maglev_cons_string_elision` (S: puro rendimiento; Maglev apagado salvo los de intérprete/Turbofan).
+- **API pública (`include/`, V)** que toca Blink/gin de la 128: (a) `v8-internal.h`: `kExternalPointerTableSize`/`kTrustedPointerTableSize` pasan de 2 a 4 punteros + 4×uint32 (`kSegmentedTableSegmentPoolSize`), `kJSDispatchTableOffset` nuevo, `TheHoleValue` de root 0x761 → **0x7d9**, tags de punteros externos (quita 4 `kWasm*Tag`, añade `kTemporalInstantTag`), `GetCurrentIsolate()` nuevo: Blink y V8 se compilan juntos, sin ABI externa, pero **cualquier cabecera/snapshot compilado con la 13.7 hay que regenerarlo** (época de caché 28). (b) `GetIsolate()` de Object/Context/Message pasa a `V8_DEPRECATE_SOON` (sólo aviso con `V8_IMMINENT_DEPRECATION_WARNINGS`). Blink 128 ya hace `isolate->Enter()` (V `v8_per_isolate_data.cc:158`), así que la regla «`Isolate::GetCurrent()` siempre válido» (crrev 6458560) se cumple. (c) `String::Utf8Value` pierde el 3.er parámetro `WriteOptions` (S: comprobar usos en gin/Blink 128, normalmente no se pasa). (d) Nuevo `ContinuationPreservedEmbedderDataV2` (Local<Data>); el V1 queda deprecado «soon»; la 128 usa V1 → compila. (e) `Platform::PageAllocator::AllocatePages(.., AllocationHint)` nuevo virtual con implementación por defecto; se quita `SetDefaultPermissionsForSignalHandler`. (f) `Maybe()` constexpr; `Local` con `TypeCheckLocal` bajo `V8_ENABLE_CHECKS` (sólo builds con checks: FW no).
+- **`src/api/api.cc`**: 2 230 líneas; `api-macros.h` **borrado** (movido: `ENTER_V8` ahora con `DCHECK_EQ(i_isolate, TryGetCurrent())`, sólo DCHECK). `ApiCheck` nuevos: `store_aligned_pointer(...) "Unaligned pointer"` (en `SetAlignedPointerInInternalField(s)` — si Blink guarda un puntero no alineado hay fallo, V solo en builds con ApiCheck activo) y `"The sandbox must be initialized first"` (`GetSandboxAddressSpace`, sólo sandbox). Parche `src-api-api.cc.patch` de FW: rehacer a mano.
+- **`src/heap/read-only-promotion.cc`**: **sin cambios** (V, no está en el diff). Etiquetas de `v8-internal.h` (snapshot de Blink): cambian los tags y la tabla (arriba): regenerar `blink_snapshot`/`v8_context_snapshot` (con `kUseContextSnapshot` ENABLED).
+- **Trampa de Mojave (V)**: ningún `__builtin_available`/`@available`/`dlsym`/`weak_import`/`MAP_JIT`/`mach_vm_*` nuevo en `src/base`, `src/libplatform`, ni en el resto de `src` (grep de líneas añadidas en 50 203 líneas de diff, sin `compiler/codegen/regexp/inspector/d8/baseline/maglev/torque`). `platform-posix.cc` −2 líneas; `memory-protection-key.{cc,h}` reescrito (no es Mac, Linux PKU).
+- **Parches de FW (V)**: `git apply --check` de los 252 `.patch` de `patches/v8` sobre los ficheros de 54f355e9ad (raw.githubusercontent): **208 limpios, 44 fallan** (17,5 %; en el 137 fueron 25 de 256, 9,8 %). Lista en `scratchpad/v8-parches-conflicto-138.txt`. Desglose: **4 ya upstream** (tests `intl/regress-412149700`, `regress-425583995`, `regress-430344952`, `turboshaft/regress-419503126`: «already exists» = soltar); **6 sólo de otras arquitecturas** (builtins arm64/loong64/ppc/riscv, macro-assembler-arm64 .cc/.h: no afectan a x86_64, pero conviene mantenerlos); **34 relevantes**: `BUILD.gn`, `api.cc` (a mano), `asm-scanner.{cc,h}`, `builtins-wasm-gen`, `builtins-x64`, `source-position.h`, `turboshaft/graph-builder`, `wasm-load-elimination-reducer.h`, `wasm-gc-lowering.{cc,h}`, `liveedit`, `execution/frames.cc`, `execution/isolate.cc`, `flag-definitions.h`, `heap/mark-compact.cc`, `ic/ic.cc`, `bytecode-generator`, `json-parser.cc`, `maglev-graph-builder` (apagado), `elements.cc`, **9 `objects/js-*.cc` de Intl** (probable causa común: S el cambio de ICU/«fatal a excepción» de 13.7.152.18), `shared-function-info-inl.h`, `preparser.cc`, `regexp-compiler.h`. Parches nuevos de ficheros inexistentes (52 tests/ficheros añadidos) aplican limpios.
+
+## 7. Enums numerados (V, diff de los .mojom 137.0.7151.122 → 138.0.7204.185)
+`web_feature.mojom` — 41 valores nuevos 5552–5592; relevantes para lo propuesto:
+| Valor | Nombre | Va con |
+|---|---|---|
+| 5557 | `kIntegrityPolicyInServiceWorkerResponse` | B1 IntegrityPolicyScript |
+| 5577 | `kClearSiteData` | `ClearSiteData` (cache de prefetch; fuera) |
+| 5578 | `kScrollIntoViewContainerNearest` | `ScrollIntoViewNearest` (exp: no entra, pero el valor existe) |
+| 5579 | `kPopoverShown` | popover (B3) |
+| 5580 | `kInputParsedParentOptionOrOptgroup` | select/`InputInSelect` (exp) |
+| 5581 | `kNavigatorUAData_toJSON` | WPT ua-client-hints |
+| 5590, 5591 | `kSchedulerYieldNonTrivialInherit`, `...CrossFrameIgnored` | B3 SchedulerYield |
+| 5568, 5569 | `kDataUrlDedicatedWorker`, `kDataUrlSharedWorker` | contadores sueltos |
+| 5570–5573 | `kV8WebGL(2)RenderingContextWebGPU_*` | WebGPU: fuera |
+| 5552–5554, 5558–5559, 5582–5585 | `kEditContext*` | EditContext (no propuesto) |
+| 5555 | `kC2PAManifest` | no |
+| 5556, 5560–5567 | `kLanguageModel_Append`, `kProofreader_*` | IA: fuera |
+| 5574–5576 | `kCredentialsGetImmediateMediation*` | fuera |
+| 5586–5589 | `kClipboardChangeEvent*` | exp |
+| 5592 | `kLocalNetworkAccessPrivateAliasUse` | fuera |
+**Renombres que rompen código de la 128 si lo usa** (V): `kClientHintsUAReduced` → `kOBSOLETE_ClientHintsUAReduced` (3968), `kClientHintsUAFull` → `kOBSOLETE_ClientHintsUAFull` (4149). Recordar la regla de FW: valores en orden numérico (UseCounter aborta).
+`webdx_feature.mojom` — nuevos 330–342: 330 `kPrintColorAdjust`, 331 `kTextUnderlineOffset`, 332 `kWindowManagement`, 333 `kRequestclose`, 334 `kUint8ArrayBase64Hex`, 335 `kLineBreak`, 336 `kOverflowClip`, 337 `kLightDark`, 338 `kRequestidlecallback`, 339 `kClearSiteData`, 340 `kLinkRelExpect`, 341 `kUaClientHints`, 342 `kCustomizableSelect`. Renombres por mayúsculas: `kCanvas2d*`→`kCanvas2D*` (201–205), `kFloat16array`→`kFloat16Array` (298) (V). Nada de lo propuesto en esta tabla usa WebDX (sólo contadores; el 137 los dejó fuera).
+`css_property_id.mojom` (CSSSampleId) — nuevos **854 `kCaretShape`, 855 `kRowRule`, 856 `kTextGrow`, 857 `kTextShrink`, 858 `kRule`** (todos detrás de flags test/exp: no entran, pero si el generador de propiedades de FW lleva un orden fijo, esos ids no se asignan al no portar las propiedades; mantener la numeración en orden, como `kReadingOrder` en 2.7.0).
+`permissions_policy_feature.mojom` (`services/network/public/mojom/permissions_policy/`) — nuevo **138 `kOnDeviceSpeechRecognition`**: no portar (Web Speech en dispositivo; APIs de IA).
+
+## 8. Orden propuesto y horas reales (S; papel ≈ 4×)
+1. Flips con código ya en la 128 (A01, A02, A07, A08): **1,0 h** (+0,3 de pruebas).
+2. B1 (mixed content, Integrity-Policy, QuotaExceededError): **4 h**.
+3. A03 `sibling-index()/count()`: **3,5 h**.
+4. A04 `stretch`: **4 h** (+ A05 si se hace: **3 h**, junto con `LayoutJustifySelfForBlocks` del 137).
+5. B2 edición/selección + B3 layout/render (lote): **6 h**.
+6. A09 WebCodecs orientation: **1,5 h**; A10 letter-spacing cursiva: **1 h**.
+7. V8 13.8.258.30: rebase de 252 parches (34 relevantes a mano: ~1 h los 9 de Intl por causa común + ~3,5 h el resto + 1 h `api.cc`), regenerar snapshot, época de caché 28, ApiCheck: **6 h**.
+8. Root store v23, log_list 59.19, HSTS/pins: **1,5 h**. Regla 17 (cherry-picks 138, V8 .31–.54, GPU/IOSurface): **2 h**.
+**Total ≈ 33 h** (sin A05: 30 h). Aplazados: B4 FlowThreadLess/LayoutBoxVisualLocation 6–10 h, A11 RenderSurface 2–3 h, las 98 diferidas de niveles anteriores (sin cambio).
+`FlyWeb/tools/motor-138.html` debería probar: `sibling-index()/sibling-count()`, `width: stretch`, `progress()`, `abs()/sign()`, `getViewportSegments`, `VideoFrame` con `rotation/flip`, `QuotaExceededError instanceof DOMException`, mixed content upgrade, `Integrity-Policy` en script, `using`/`Float16Array` por defecto.
+
+## 9. Lo no encontrado (para no buscarlo otra vez)
+- Commits de implementación por flag con nombre en el mensaje: casi ninguno (se usan asuntos de función); `git log -S` sobre json5 no es posible con clon `tree:0`. gitiles `+log` y la API de GitHub (403, repo no añadido) no sirven; `raw.githubusercontent.com/chromium/chromium/<tag>/...` y `chromium.googlesource.com` por git protocolo sí.
+- wpt.fyi no tiene run del 138.0.7204.185; se usó el .157 (último 138 con run antes del 28-07).
+- Sin árbol de 128 no se pudo contar las líneas exactas de cada fichero; las horas son S.
+
+### Parches de V8 que no aplican sobre 13.8.258.30 (44 de 252)
+
+```
+BUILD.gn.patch :: error: patch failed: BUILD.gn:854
+src-api-api.cc.patch :: error: patch failed: src/api/api.cc:8706
+src-asmjs-asm-scanner.cc.patch :: error: patch failed: src/asmjs/asm-scanner.cc:22
+src-asmjs-asm-scanner.h.patch :: error: patch failed: src/asmjs/asm-scanner.h:135
+src-builtins-arm64-builtins-arm64.cc.patch :: error: patch failed: src/builtins/arm64/builtins-arm64.cc:5407
+src-builtins-builtins-wasm-gen.cc.patch :: error: patch failed: src/builtins/builtins-wasm-gen.cc:164
+src-builtins-loong64-builtins-loong64.cc.patch :: error: patch failed: src/builtins/loong64/builtins-loong64.cc:4886
+src-builtins-ppc-builtins-ppc.cc.patch :: error: patch failed: src/builtins/ppc/builtins-ppc.cc:178
+src-builtins-riscv-builtins-riscv.cc.patch :: error: patch failed: src/builtins/riscv/builtins-riscv.cc:5015
+src-builtins-x64-builtins-x64.cc.patch :: error: patch failed: src/builtins/x64/builtins-x64.cc:5105
+src-codegen-arm64-macro-assembler-arm64.cc.patch :: error: patch failed: src/codegen/arm64/macro-assembler-arm64.cc:1301
+src-codegen-arm64-macro-assembler-arm64.h.patch :: error: patch failed: src/codegen/arm64/macro-assembler-arm64.h:2480
+src-codegen-source-position.h.patch :: error: patch failed: src/codegen/source-position.h:116
+src-compiler-turboshaft-graph-builder.cc.patch :: error: patch failed: src/compiler/turboshaft/graph-builder.cc:221
+src-compiler-turboshaft-wasm-load-elimination-reducer.h.patch :: error: patch failed: src/compiler/turboshaft/wasm-load-elimination-reducer.h:391
+src-compiler-wasm-gc-lowering.cc.patch :: error: patch failed: src/compiler/wasm-gc-lowering.cc:67
+src-compiler-wasm-gc-lowering.h.patch :: error: patch failed: src/compiler/wasm-gc-lowering.h:41
+src-debug-liveedit.cc.patch :: error: patch failed: src/debug/liveedit.cc:546
+src-execution-frames.cc.patch :: error: patch failed: src/execution/frames.cc:796
+src-execution-isolate.cc.patch :: error: patch failed: src/execution/isolate.cc:2289
+src-flags-flag-definitions.h.patch :: error: patch failed: src/flags/flag-definitions.h:604
+src-heap-mark-compact.cc.patch :: error: patch failed: src/heap/mark-compact.cc:353
+src-ic-ic.cc.patch :: error: patch failed: src/ic/ic.cc:1355
+src-interpreter-bytecode-generator.cc.patch :: error: patch failed: src/interpreter/bytecode-generator.cc:1221
+src-json-json-parser.cc.patch :: error: patch failed: src/json/json-parser.cc:1494
+src-maglev-maglev-graph-builder.cc.patch :: error: patch failed: src/maglev/maglev-graph-builder.cc:8460
+src-objects-elements.cc.patch :: error: patch failed: src/objects/elements.cc:1294
+src-objects-js-break-iterator.cc.patch :: error: patch failed: src/objects/js-break-iterator.cc:43
+src-objects-js-collator.cc.patch :: error: patch failed: src/objects/js-collator.cc:357
+src-objects-js-date-time-format.cc.patch :: error: patch failed: src/objects/js-date-time-format.cc:2249
+src-objects-js-display-names.cc.patch :: error: patch failed: src/objects/js-display-names.cc:436
+src-objects-js-duration-format.cc.patch :: error: patch failed: src/objects/js-duration-format.cc:289
+src-objects-js-list-format.cc.patch :: error: patch failed: src/objects/js-list-format.cc:87
+src-objects-js-number-format.cc.patch :: error: patch failed: src/objects/js-number-format.cc:1108
+src-objects-js-plural-rules.cc.patch :: error: patch failed: src/objects/js-plural-rules.cc:107
+src-objects-js-relative-time-format.cc.patch :: error: patch failed: src/objects/js-relative-time-format.cc:110
+src-objects-js-segmenter.cc.patch :: error: patch failed: src/objects/js-segmenter.cc:53
+src-objects-shared-function-info-inl.h.patch :: error: patch failed: src/objects/shared-function-info-inl.h:401
+src-parsing-preparser.cc.patch :: error: patch failed: src/parsing/preparser.cc:41
+src-regexp-regexp-compiler.h.patch :: error: patch failed: src/regexp/regexp-compiler.h:308
+test-intl-regress-412149700.js.patch :: error: test/intl/regress-412149700.js: already exists in working directory
+test-mjsunit-regress-regress-425583995.js.patch :: error: test/mjsunit/regress/regress-425583995.js: already exists in working directory
+test-mjsunit-regress-regress-430344952.js.patch :: error: test/mjsunit/regress/regress-430344952.js: already exists in working directory
+test-mjsunit-turboshaft-regress-419503126.js.patch :: error: test/mjsunit/turboshaft/regress-419503126.js: already exists in working directory
+```
