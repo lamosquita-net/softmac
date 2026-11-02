@@ -394,3 +394,17 @@ flags) y `brave-core` en `nube/base-128-motor`. Los parches son diff `--full-ind
   refactors donde `git apply` rechaza casi todo; `cres.py <fichero> fw|up|both|@texto…` resuelve los bloques en orden.
   `pres.sh <commit>…`: ¿está ya en FlyWeb? (`rev=0` sí; `fwd=0` aplica limpio). Las listas se ordenan por posición en
   `log128-136.txt`, no por fecha.
+
+## Sin historia local (MOTOR-43, 02-11)
+
+El clon de Chromium `--filter=tree:0` hace `git show` lentísimo (descarga árboles a demanda) y un `fetch` largo se corta
+a los 10 min en la nube. Alternativa por gitiles, con caché en `/tmp/claude-0/port/gd` y `gf`:
+- `gdiff.sh <sha completo>` — diff del commit contra su padre (`+/<sha>^!/?format=TEXT`).
+- `gfile.sh <ref> <ruta>` — un fichero de Chromium en un tag o commit (sale 1 si no existe).
+- `filtdiff.py <ficheros>…` — deja de un diff solo esos ficheros.
+- `portar128g.sh <nombre> <sha>…` — `portar128.sh` con `gdiff.sh`/`gfile.sh` en vez de la historia local.
+- `traer.sh <sha corto>…` — sha completo por gitiles y `fetch --depth=2` del commit (lento; casi nunca hace falta).
+Para buscar commits por asunto: `git fetch --filter=tree:0 --shallow-since=<fecha> origin tag <tag>` (solo metadatos;
+desde nov-2024 hasta el 138, 87 214 commits en 2 min) y `git log --grep` sin rutas. `+log` de gitiles da 403.
+Los ficheros de la 128 para `cr128`: `curl …/+archive/128.0.6613.138/<carpeta>.tar.gz | tar xz` por carpeta
+(Blink `renderer/{core,modules,platform,bindings,controller}`, `public`, gin, `content/renderer`, components…; 594 MB).

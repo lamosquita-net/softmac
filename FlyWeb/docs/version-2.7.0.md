@@ -93,6 +93,20 @@ Inventario del 138: `motor-niveles.md` § «Nivel 138» (pendiente).
   la cabecera del objeto. Si Blink 128 toca un objeto de V8 en un hilo sin `Isolate::Scope`, falla ahí. Chrome 138 lo
   da por bueno, pero la 128 es más vieja: probar workers, worklets (audio, paint) y service workers.
 
+### Tanda de MOTOR-43 (02-11; brave-core e80d8d6e y 17a21921, sin compilar)
+
+- **`progress()` y `abs()`/`sign()` stable** (e80d8d6e): b9417dbcfe2 (sintaxis `progress(a, b, c)` en vez de `from`/`to`,
+  adaptada a `CSSParserTokenRange` de la 128) y 0f954c71f10 [M138] (recorte a [0, 1]), más el flip de las dos banderas.
+  **En la 128 `media-progress()` y `container-progress()` colgaban de la misma bandera que `progress()`**: encenderla sin
+  más habría expuesto dos funciones que Chrome 138 no tiene. Se separan en `CSSMediaProgressNotation` y
+  `CSSContainerProgressNotation` (experimentales), como en la 138.
+- **`ViewportSegments`** (17a21921): ae78afaca30 (`segments` pasa de `visualViewport` a `window.viewport`), 9ea51ed248c
+  (siempre devuelve los segmentos: uno en escritorio, sin entropía) y el flip de fc24d6c7278. La comprobación del
+  origin trial `FoldableAPIs` de `origin_trial_context.cc` queda como en la 128, porque `DevicePosture` sigue usándolo
+  aquí (Chrome 138 lo tiene stable; no está en el inventario: S, sin mirar).
+- **Aplazados a decisión de COORDINACIÓN** (más grandes que en el inventario): `sibling-index()`/`sibling-count()` (64
+  commits), `stretch` y `CSSAlignBlockAndInlineOutOfFlows`. Propuesta: una 2.7.1 propia (regla 18).
+
 ## Para LOCAL: dependencias y args nuevos del 138
 
 V8 13.8.258.30 no compila con solo los parches de brave-core: hacen falta estos tres pasos en el árbol de la 128 (en
@@ -123,5 +137,7 @@ un service worker (S del apartado «Blink frente a la API de V8 13.8»).
   cursor y no al final de la línea anterior.
 - Redimensionar un cuadro de texto con el tirador sigue al ratón aunque la página esté ampliada, girada o en
   escritura de derecha a izquierda.
+- Las funciones de CSS `progress()`, `abs()` y `sign()`, como en Chrome 138.
+- `window.viewport.segments` (pantallas plegables; en el ordenador, un solo segmento).
 - `QuotaExceededError` es ahora un tipo de error propio, que indica cuánto espacio había y cuánto se pidió.
 - La subida automática a HTTPS del contenido mixto (imágenes, audio y vídeo) usa el mismo criterio que el bloqueo.
