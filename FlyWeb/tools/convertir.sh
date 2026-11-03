@@ -36,6 +36,38 @@ prestar() {  # prestar <bare repo> <checkout whose objects it borrows>...
   git -C "$r" config gc.auto 0
 }
 
+comparar() {  # comparar <repo> <release checkout> <clean base> <branch>
+  # Tree of the release checkout (tracked + new non-ignored files) built in a
+  # temporary index of the flynk repo, so that the user's index is untouched.
+  local R=$1 W=$2 base=$3 rama=$4 T arbol flynk sub n
+  T=$(mktemp -d)
+  GIT_INDEX_FILE="$T/index" git --git-dir="$R" --work-tree="$W" read-tree "$base"
+  GIT_INDEX_FILE="$T/index" git --git-dir="$R" --work-tree="$W" add -A .
+  arbol=$(GIT_INDEX_FILE="$T/index" git --git-dir="$R" write-tree)
+  flynk=$(git --git-dir="$R" rev-parse "$rama^{tree}")
+  echo "== $rama: release $arbol, $rama $flynk"
+  # DEPS subrepos are gitlinks in the tree: their revision is DEPS business
+  # (v8 is flynk-v8), so they are counted apart, not compared.
+  git --git-dir="$R" diff --raw --no-renames "$flynk" "$arbol" > "$T/raw"
+  sub=$(awk '$1 == ":160000" || $2 == "160000"' "$T/raw" | wc -l | tr -d ' ')
+  awk '$1 != ":160000" && $2 != "160000"' "$T/raw" | cut -f2 | sort > "$T/ficheros"
+  # A differing file that the patches touch is a conversion error. One that
+  # flynk leaves as the clean base was written by the Brave build outside
+  # apply_patches (updateBranding, l10n rebase, chrome/VERSION).
+  git --git-dir="$R" diff --name-only "$base^{tree}" "$flynk" | sort > "$T/parcheados"
+  comm -12 "$T/ficheros" "$T/parcheados" > "$T/malos"
+  echo "subrepos de DEPS distintos (no cuentan): $sub"
+  echo "ficheros parcheados: $(wc -l < "$T/parcheados" | tr -d ' ')," \
+       "distintos de la release: $(wc -l < "$T/malos" | tr -d ' ')"
+  echo "ficheros que escribe el build de Brave fuera de apply_patches:" \
+       "$(comm -23 "$T/ficheros" "$T/parcheados" | wc -l | tr -d ' ')"
+  if [ -s "$T/malos" ]; then
+    head -40 "$T/malos"; return 1
+  fi
+  echo "capa de parches IDÉNTICA"
+  rm -rf "$T"
+}
+
 case "${1:-}" in
 preparar)
   prestar "$FLYNK/chromium.git" "$BASE128"
@@ -58,31 +90,11 @@ v8)
     --map "$FLYNK/flynk-v8.map" --fetch "$V8_GIT"
   ;;
 comprobar)
-  # Tree of the release src (tracked + new non-ignored files) built in a
-  # temporary index of the flynk repo, so that the user's index is untouched.
-  R="$FLYNK/chromium.git"; T=$(mktemp -d)
-  export GIT_INDEX_FILE="$T/index"
-  git --git-dir="$R" --work-tree="$SRC" read-tree "$TAG"
-  git --git-dir="$R" --work-tree="$SRC" add -A .
-  arbol=$(git --git-dir="$R" write-tree)
-  unset GIT_INDEX_FILE
-  flynk=$(git --git-dir="$R" rev-parse 'flynk^{tree}')
-  echo "src de la release: $arbol"
-  echo "flynk:             $flynk"
-  # DEPS subrepos are gitlinks in the tree: their revision is DEPS business
-  # (v8 is flynk-v8), so they are counted apart, not compared.
-  git --git-dir="$R" diff --raw --no-renames "$flynk" "$arbol" > "$T/raw"
-  sub=$(awk '$1 == ":160000" || $2 == "160000"' "$T/raw" | wc -l | tr -d ' ')
-  awk '$1 != ":160000" && $2 != "160000"' "$T/raw" > "$T/ficheros"
-  n=$(wc -l < "$T/ficheros" | tr -d ' ')
-  echo "subrepos de DEPS distintos (no cuentan): $sub"
-  if [ "$n" = 0 ]; then
-    echo "diff VACÍO"
-  else
-    echo "ficheros distintos: $n"; head -40 "$T/ficheros"
-    exit 1
-  fi
-  rm -rf "$T"
+  r=0
+  comparar "$FLYNK/chromium.git" "$SRC" "$TAG" flynk || r=1
+  v8=$(git -C "$BRAVE" show flyweb:FlyWeb/v8-revision | grep -v '^ *#' | grep . | head -1)
+  comparar "$FLYNK/v8.git" "$SRC/v8" "$v8" flynk-v8 || r=1
+  exit $r
   ;;
 *)
   sed -n '2,15p' "$0"; exit 2 ;;

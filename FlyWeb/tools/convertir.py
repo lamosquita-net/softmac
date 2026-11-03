@@ -163,10 +163,15 @@ class Converter:
         f = os.path.join(self.tmp, 'p.patch')
         with open(f, 'wb') as fh:
             fh.write(self.text(blob))
-        r = git(self.repo, 'apply', '--cached', *APPLY_ARGS, f, env=self.env,
-                check=False)
+        r = git(self.repo, 'apply', '--cached', '--whitespace=nowarn',
+                *APPLY_ARGS, f, env=self.env, check=False)
         if r.returncode:
-            return r.stderr.decode(errors='replace').strip().splitlines()[:1]
+            # The temporary path must not reach the commit message, or the
+            # SHAs would change from one run to the next.
+            lines = r.stderr.decode(errors='replace').replace(
+                f, pname).strip().splitlines()
+            errs = [l for l in lines if l.startswith('error:')]
+            return (errs or lines)[:1]
         return None
 
     def build(self, start_tree, base, old, new, full):
