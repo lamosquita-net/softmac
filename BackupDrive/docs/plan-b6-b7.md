@@ -64,8 +64,8 @@ reales creados desde la app, «Sincronizar cada hora» activado y una semana de 
 
 ## Riesgos y dudas
 
-- **Rendimiento con la clave compartida:** 40 ficheros, 3 min 51 s la primera vez. Con miles puede ser de horas; la pasada en
-  seco del freno duplica los listados. Si molesta, la salida es la clave propia (Avanzado), no tocar el freno.
+- **Rendimiento:** con la clave compartida, 40 ficheros tardaron 3 min 51 s la primera vez; la pasada en seco del freno duplica
+  los listados. Con la clave propia (ya obligatoria) hay que volver a medir, con miles de ficheros, antes de quitar FreeFileSync.
 - **La credencial de rclone sigue en claro** en `backupdrive.conf` (README, «Qué no protege»). Cifrarla con `RCLONE_CONFIG_PASS`
   guardada en el llavero es posible después de H9; no entra en este plan salvo que Titín lo pida.
 - **Quién programa la interfaz:** BACKUPDRIVE en la nube, con la CI de macOS; las pruebas con ventana, Titín en la 6,1
