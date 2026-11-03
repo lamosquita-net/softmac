@@ -148,7 +148,7 @@ good=$(grep -rL CIFRADO "$VD" 2>/dev/null | grep -c 'f[0-9]*-[0-9]' || true)
 
 # --- 10. Caducidad: por la fecha del nombre, y solo dentro de las versiones ---
 MV=$(vm); mkdir -p "$VD/dir"
-touch -d 2020-01-01 "$VD/dir/viejo-20200101-000000.txt" "$MV/viejo-20200101-000000.txt"
+touch -d 2020-01-01 "$VD/dir/viejo-20200101-000000.txt" "$MV/viejo-20200101-000000.txt" "$VD/dir/copia-20200101-000000.tar.gz"
 recent=$(date +%Y%m%d)
 echo r > "$VD/dir/reciente-$recent-000000.txt"; touch -d 2020-01-01 "$VD/dir/reciente-$recent-000000.txt"
 echo s > "$VD/sin-fecha.txt"
@@ -156,6 +156,7 @@ echo k > "$DRIVE/viejo-20200101-000000.txt"
 run
 hasnt "$VD/dir/viejo-20200101-000000.txt" "versión vieja caducada en Drive"
 hasnt "$MV/viejo-20200101-000000.txt" "versión vieja caducada en el Mac"
+hasnt "$VD/dir/copia-20200101-000000.tar.gz" "versión vieja con extensión compuesta (.tar.gz) caducada"
 has "$VD/dir/reciente-$recent-000000.txt" "versión reciente (con fichero antiguo) se conserva"
 has "$VD/sin-fecha.txt" "fichero sin fecha en el nombre no se toca"
 [ "$(result)" = ok ] || fail "tras caducar ($(result))"

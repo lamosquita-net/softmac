@@ -1,7 +1,7 @@
 #!/bin/sh
 # Instala BackupDrive en este Mac (macOS 10.14+). Se ejecuta desde el zip de la CI o desde el repositorio.
 #
-#   install.sh              instala o actualiza: binario y motor en /usr/local/bin, LaunchAgent, app
+#   install.sh              instala o actualiza: binario, motor y backupdrive-ctl.sh en /usr/local/bin, LaunchAgent, app
 #   install.sh --uninstall  lo quita todo salvo la configuración, los perfiles y los registros
 #
 # No toca backupdrive.conf ni profiles y NO activa la sincronización automática: la primera vez hay que
@@ -49,7 +49,7 @@ unload_agent() {
 if [ "${1:-}" = "--uninstall" ]; then
   unload_agent
   rm -f "$PLIST"
-  run_priv rm -f "$PREFIX/backupdrive" "$PREFIX/backupdrive-sync.sh" "$PREFIX/backupdrive-selftest.sh"
+  run_priv rm -f "$PREFIX/backupdrive" "$PREFIX/backupdrive-sync.sh" "$PREFIX/backupdrive-ctl.sh" "$PREFIX/backupdrive-selftest.sh"
   for d in /Applications "$HOME/Applications" "$APPS_DIR"; do rm -rf "$d/BackupDrive.app"; done
   echo "BackupDrive desinstalado. Se conservan $APP_DIR y ~/Library/Logs/BackupDrive."
   exit 0
@@ -58,6 +58,7 @@ fi
 
 BIN=$(find_file backupdrive backupdrive ../build/backupdrive)
 SYNC=$(find_file backupdrive-sync.sh backupdrive-sync.sh ../scripts/backupdrive-sync.sh)
+CTL=$(find_file backupdrive-ctl.sh backupdrive-ctl.sh ../scripts/backupdrive-ctl.sh)
 SELFTEST=$(find_file mojave-selftest.sh mojave-selftest.sh ../scripts/mojave-selftest.sh)
 AGENT=$(find_file "$LABEL.plist" "$LABEL.plist" "../launchd/$LABEL.plist")
 APP=$(find_file BackupDrive.app BackupDrive.app ../build/BackupDrive.app 2>/dev/null) || APP=""
@@ -72,6 +73,7 @@ echo "Instalando en $PREFIX"
 run_priv mkdir -p "$PREFIX"
 run_priv install -m 755 "$BIN" "$PREFIX/backupdrive"
 run_priv install -m 755 "$SYNC" "$PREFIX/backupdrive-sync.sh"
+run_priv install -m 755 "$CTL" "$PREFIX/backupdrive-ctl.sh"
 run_priv install -m 755 "$SELFTEST" "$PREFIX/backupdrive-selftest.sh"
 "$PREFIX/backupdrive" version 2>/dev/null | head -1 || echo "Aviso: el binario no arranca en este sistema" >&2
 
@@ -116,11 +118,11 @@ Instalado. Pasos siguientes:
 EOF
 n=1
 if [ ! -f "$CONF" ]; then
-  echo "  $n. Crear el remoto de Google Drive:  backupdrive --config \"$CONF\" config"; n=$((n + 1))
+  echo "  $n. Conectar con Google Drive con tu clave (docs/clave-google.md): backupdrive-ctl.sh connect --client-id TU-ID.apps.googleusercontent.com"; n=$((n + 1))
 fi
 cat <<EOF
   $n. Autodiagnóstico:                    backupdrive-selftest.sh
-  $((n + 1)). Añadir perfiles:                    open -e "$APP_DIR/profiles"
+  $((n + 1)). Añadir una carpeta:                 backupdrive-ctl.sh profile add "/ruta/de/la/carpeta" gdrive:CarpetaDeDrive
   $((n + 2)). Primera sincronización, simulada:   backupdrive-sync.sh --resync --dry-run
   $((n + 3)). Primera sincronización, de verdad:  backupdrive-sync.sh --resync   (revisa antes el registro de la simulación)
   $((n + 4)). Abrir BackupDrive.app y marcar "Sincronizar cada hora"

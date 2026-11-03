@@ -11,6 +11,21 @@ No tocar `BackupDrive/rclone/` (subtree). A Titín, siempre en castellano; commi
 Preferencias > Avanzado; (2) frenos y conflictos en lenguaje llano y siempre «Ver qué cambia» antes de «Continuar de todos
 modos»; (3) restaurar versiones desde la app: sí (si hay que recortar, se recorta Actividad, no Versiones).
 
+**Cambio de Titín (03-11, tarde, vía COORDINACIÓN-24): la clave propia de Google, primero y obligatoria** (sustituye a la
+decisión 1): cada usuario pone la suya, nunca en GitHub; `connect` la exige (el secreto se pide sin eco o va en
+`BACKUPDRIVE_CLIENT_SECRET`), `--shared` solo para pruebas; guía para Titín en `docs/clave-google.md`. Prioridad: que Titín
+pueda sustituir FreeFileSync en MacTrash con seguridad.
+
+**COORDINACIÓN-24 (03-11) aprueba:** (1) **la app solo lanza `backupdrive-sync.sh` y `backupdrive-ctl.sh`** y lee lo que
+escriben; (2) B.7 la programa BACKUPDRIVE en la nube (AppKit, objetivo 10.14, la CI de macOS compila); las pruebas con
+ventana, Titín en la 6,1 con órdenes listas para pegar. Los PR, sin borrador cuando estén listos, y avisar a COORDINACIÓN.
+
+**H1 hecho (rama `nube/backupdrive-ctl`):** `scripts/backupdrive-ctl.sh` (connect, check, folders, mkdir, profile, versions,
+plan) y `tests/test-ctl.sh` (79 pruebas, en la CI). El motor guarda el plan de cada simulación en `state/<id>.plan.log`.
+Arreglo de paso: las versiones con extensión compuesta (`a-AAAAMMDD-HHMMSS.tar.gz`; rclone conserva las extensiones con tipo
+MIME conocido) no caducaban; prueba nueva en `test-sync-safe.sh` (53). **Por probar en un Mac real:** `connect` contra Google
+(que abre el navegador de Mojave y no pregunta nada) y el `awk`/`date` de BSD.
+
 **Plan de B.6 y B.7:** `BackupDrive/docs/plan-b6-b7.md` (hitos H0–H9). Prueba h de B.2 enviada a Titín por COORDINACIÓN-24,
 con reinstalación desde el artefacto `BackupDrive-mojave` de `main` (ejecución 40757477334, 28-10).
 

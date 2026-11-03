@@ -52,6 +52,8 @@ jobs:
         run: for f in BackupDrive/scripts/*.sh BackupDrive/tests/*.sh; do sh -n "$f"; done
       - name: Tests
         run: BACKUPDRIVE_BIN="$PWD/BackupDrive/build/rclone-linux" sh BackupDrive/tests/test-sync-safe.sh
+      - name: Tests (backupdrive-ctl.sh)
+        run: BACKUPDRIVE_BIN="$PWD/BackupDrive/build/rclone-linux" sh BackupDrive/tests/test-ctl.sh
 
   build-menubar-app:
     # Runner de Apple Silicon: se compila como x86_64 para 10.14 (-arch/-mmacosx-version-min).
@@ -87,7 +89,7 @@ jobs:
           mkdir -p "$P"
           cp dl/engine/build/backupdrive "$P/"
           ditto -x -k dl/app/BackupDrive-app.zip "$P/"
-          cp BackupDrive/scripts/install.sh BackupDrive/scripts/backupdrive-sync.sh BackupDrive/scripts/mojave-selftest.sh "$P/"
+          cp BackupDrive/scripts/install.sh BackupDrive/scripts/backupdrive-sync.sh BackupDrive/scripts/backupdrive-ctl.sh BackupDrive/scripts/mojave-selftest.sh "$P/"
           cp BackupDrive/launchd/net.lamosquita.backupdrive.plist "$P/"
           cp BackupDrive/LICENSE "$P/LICENSE.txt"
           cp BackupDrive/rclone/COPYING "$P/LICENSE-rclone.txt"
