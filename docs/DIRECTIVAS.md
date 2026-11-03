@@ -238,6 +238,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   brave-core 1.69 entero). **El 139 a mano queda en pausa** mientras se mide; SEGURIDAD-PORTES sigue con los CVE
   explotados (2.7.x si hace falta). Con los datos, Titín decide: 156, 150 o seguir a mano. Hasta entonces sigue vigente
   «la 128 es la última base». La interfaz irá hacia la de Chrome más que hacia la de Brave.
+- **Poda de Brave: borrar, no apagar (Titín, 03-11; `brave-propio.md` §11, B2):** el código de Brave que FlyWeb ya no usa
+  (Wallet, Rewards y demás apagados; 74 directorios medidos) se **borra** en vez de mantenerse apagado. «Apagar, no borrar»
+  queda para lo que sirva a futuras plataformas (Android, iOS, Linux, Leopard/PowerPC), no para lo muerto de Brave.
+  Cómo: en el fork propio, después de F1, un commit por directorio (revertible), y nada que siga en uso aunque esté apagado
+  por ajuste. Si la puerta de la base decide seguir a mano en la 128, se revisa si compensa.
 - **BackupDrive trabaja directamente con Titín, sin COORDINACIÓN (Titín, 03-11):** el agente BACKUPDRIVE recibe los
   encargos y resultados de Titín y le contesta a él; fusiona él mismo sus PR de `BackupDrive/` (y su fila del tablero)
   con la CI en verde, como excepción a la regla 8; y abre él mismo su relevo (si su linaje se agota, lo abre Titín desde
