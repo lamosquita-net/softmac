@@ -55,7 +55,8 @@ versiones).
 
 **H6. Versiones (nube + Titín). Hecho (03-11).** Buscar por fichero, ver fechas y lado, «Restaurar» y «Mostrar en el Finder».
 
-**H7. Preferencias.** Carpetas (alta/baja, días de versiones), Protección (umbrales del freno), Avisos, Avanzado (cambiar la clave de
+**H7. Preferencias. Hecho en lo esencial (03-11), en el menú y no en una ventana aparte:** ajustes por carpeta e
+«Abrir al iniciar sesión»; cambiar la clave es «Volver a conectar…». Avisos: sin cambios (las notificaciones del motor). Carpetas (alta/baja, días de versiones), Protección (umbrales del freno), Avisos, Avanzado (cambiar la clave de
 Google; el asistente de H3 ya la pide desde el principio) y General (abrir al iniciar sesión).
 
 **H8. Actividad** (recortable si falta alcance): las últimas pasadas desde el registro.
