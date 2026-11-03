@@ -49,11 +49,11 @@ Mojave y que no hace preguntas.
 
 **H4. Ventana principal: Inicio (nube + Titín).** Estado general, cada carpeta con su último resultado, «Sincronizar ahora».
 
-**H5. Frenos y conflictos (nube + Titín). Frenos hechos (03-11); falta «Quedarme con este» en los conflictos.** Avisos en lenguaje llano; «Ver qué cambia» abre la lista de `plan`; solo después
+**H5. Frenos y conflictos (nube + Titín). Hecho (03-11): frenos y conflictos.** Avisos en lenguaje llano; «Ver qué cambia» abre la lista de `plan`; solo después
 aparece «Continuar de todos modos» (`--force`). Conflictos: lista de pares `conflict` con «Quedarme con este» (el otro va a
 versiones).
 
-**H6. Versiones (nube + Titín).** Buscar por fichero, ver fechas y lado, «Restaurar» y «Mostrar en el Finder».
+**H6. Versiones (nube + Titín). Hecho (03-11).** Buscar por fichero, ver fechas y lado, «Restaurar» y «Mostrar en el Finder».
 
 **H7. Preferencias.** Carpetas (alta/baja, días de versiones), Protección (umbrales del freno), Avisos, Avanzado (cambiar la clave de
 Google; el asistente de H3 ya la pide desde el principio) y General (abrir al iniciar sesión).

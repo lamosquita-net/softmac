@@ -10,6 +10,7 @@
 #import "AppDelegate.h"
 #import "BDRunner.h"
 #import "BDSetup.h"
+#import "BDVersionsWindow.h"
 
 static NSString *const kAgentLabel = @"net.lamosquita.backupdrive";
 static const NSTimeInterval kPollSeconds = 2.0;
@@ -21,7 +22,8 @@ static const NSTimeInterval kPollSeconds = 2.0;
 @property(copy) NSDictionary *status;
 @property(strong) NSTask *manualRun;
 @property(strong) BDSetup *setup;
-@property(copy) NSArray<NSDictionary *> *profiles;  // de backupdrive-ctl.sh profile list (nil: aún no)
+@property(copy) NSArray<NSDictionary *> *profiles;
+@property(strong) NSMutableDictionary<NSString *, BDVersionsWindow *> *versionWindows;  // de backupdrive-ctl.sh profile list (nil: aún no)
 @end
 
 @implementation AppDelegate
@@ -467,6 +469,30 @@ static const NSTimeInterval kPollSeconds = 2.0;
   [self.setup addFolder];
 }
 
+- (void)showVersions:(NSMenuItem *)item {
+  NSDictionary *p = item.representedObject;
+  NSString *local = [self field:@"local" of:p];
+  if (!local.length) return;
+  if (!self.versionWindows) self.versionWindows = [NSMutableDictionary dictionary];
+  BDVersionsWindow *window = self.versionWindows[local];
+  if (!window) {
+    __weak AppDelegate *weakSelf = self;
+    window = [[BDVersionsWindow alloc] initWithFolder:local
+                                          versionsMac:[self field:@"versions_mac" of:p]
+                                              changed:^{
+                                                [weakSelf refreshProfiles];
+                                              }];
+    self.versionWindows[local] = window;
+  }
+  [NSApp activateIgnoringOtherApps:YES];
+  [window showWindow:nil];
+  [window reload];
+}
+
+- (void)resolveConflicts:(NSMenuItem *)item {
+  [self.setup resolveConflictsIn:item.representedObject];
+}
+
 - (void)removeFolder:(NSMenuItem *)item {
   [self.setup removeFolder:item.representedObject];
 }
@@ -562,6 +588,8 @@ static const NSTimeInterval kPollSeconds = 2.0;
   NSMenuItem *open = [self addItem:@"Abrir la carpeta local" action:@selector(openFolder:) to:sub];
   open.representedObject = local;
   open.enabled = [NSFileManager.defaultManager fileExistsAtPath:local];
+  NSMenuItem *versions = [self addItem:@"Versiones…" action:@selector(showVersions:) to:sub];
+  versions.representedObject = p;
   if ([result isEqualToString:@"needs-resync"] || [result isEqualToString:@"never"]) {
     NSMenuItem *sim = [self addItem:@"Simular la primera sincronización"
                              action:@selector(simulateFirstSync:)
@@ -573,6 +601,15 @@ static const NSTimeInterval kPollSeconds = 2.0;
                                    to:sub];
     first.representedObject = local;
     first.enabled = !self.isRunning && open.enabled;
+  }
+  id conflicts = p[@"conflicts"];
+  if ([conflicts isKindOfClass:NSNumber.class] && [conflicts integerValue] > 0) {
+    NSMenuItem *resolve = [self
+        addItem:[NSString stringWithFormat:@"Resolver conflictos (%ld)…", (long)[conflicts integerValue] / 2 ?: 1]
+         action:@selector(resolveConflicts:)
+             to:sub];
+    resolve.representedObject = local;
+    resolve.enabled = !self.isRunning && !self.setup.busy;
   }
   if ([result isEqualToString:@"blocked"]) {
     NSMenuItem *review = [self addItem:@"Ver qué cambia…" action:@selector(reviewBlocked:) to:sub];

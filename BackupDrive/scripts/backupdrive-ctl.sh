@@ -21,6 +21,12 @@
 #   versions restore <carpeta> <mac|drive> <ruta de la versión>
 #                  copia la versión a su sitio en el Mac; si allí hay un fichero, va antes a versiones. La versión se
 #                  queda donde estaba. La siguiente pasada sube lo restaurado a Drive (y lo de Drive va a versiones).
+#   conflicts list <carpeta>        copias en conflicto (fichero cambiado en los dos lados; bisync conserva las dos como
+#                  «nombre.conflictN.ext»), en JSON: ruta, original, lado (conflict1 = Mac, conflict2 = Drive; si el mismo
+#                  fichero choca otra vez la numeración sigue y el lado es «?»), tamaño y fecha
+#   conflicts keep <carpeta> <ruta de la copia elegida>
+#                  la copia elegida vuelve a su nombre; las demás copias de ese fichero (y lo que hubiera con su nombre)
+#                  van a versiones del Mac. La siguiente pasada lo lleva a Drive (allí las copias van a versiones de Drive)
 #   plan <carpeta>                  último plan simulado del perfil (de un --dry-run de backupdrive-sync.sh), en JSON:
 #                  lo nuevo, cambiado y borrado en cada lado (se copia al otro; lo que se borra o se sobrescribe allí
 #                  va a versiones) y los conflictos (se conservan los dos)
@@ -234,8 +240,9 @@ cmd_profile_list() {
         res=$(sed -n 's/.*"result":"\([a-z-]*\)".*/\1/p' "$st"); fin=$(sed -n 's/.*"finished":"\([^"]*\)".*/\1/p' "$st")
       fi
       init=false; [ -f "$STATE_DIR/$(profile_id "$l" "$r").init" ] && init=true
-      printf '%s{"local":%s,"remote":%s,"days":%s,"pct":%s,"count":%s,"result":%s,"finished":%s,"initialized":%s,"versions_mac":%s,"versions_drive":%s}' \
-        "$sep" "$(json_str "$l")" "$(json_str "$r")" "$d" "$p" "$n" "$(json_str "${res:-never}")" "$(json_str "$fin")" "$init" \
+      nconf=0; [ -d "$l" ] && nconf=$(find "$l" -type f -name '*.conflict[0-9]*' 2>/dev/null | wc -l | tr -d ' ')
+      printf '%s{"local":%s,"remote":%s,"days":%s,"pct":%s,"count":%s,"result":%s,"finished":%s,"initialized":%s,"conflicts":%s,"versions_mac":%s,"versions_drive":%s}' \
+        "$sep" "$(json_str "$l")" "$(json_str "$r")" "$d" "$p" "$n" "$(json_str "${res:-never}")" "$(json_str "$fin")" "$init" "${nconf:-0}" \
         "$(json_str "$(versions_mac "$l" "$r")")" "$(json_str "$(versions_drive "$l" "$r")")"
       sep=","
     done < "$PROFILES"
@@ -339,6 +346,60 @@ cmd_versions_restore() {
   echo "Restaurado $orig. Se subirá a Drive en la próxima sincronización."
 }
 
+# Copias en conflicto: «nombre.conflictN[.ext]» (bisync 1.67, --conflict-resolve none, sufijo «conflict» numerado).
+conflict_original() { printf '%s\n' "$1" | sed -E 's/\.conflict[0-9]+//'; }
+
+conflict_rows() { # carpeta -> «ruta<TAB>tamaño<TAB>fecha» de cada copia en conflicto
+  rc_ lsjson -R --files-only --no-mimetype --include '*.conflict[0-9]*' "$1" 2>/dev/null \
+    | sed -n 's/.*"Path":"\(\([^"\\]\|\\.\)*\)".*"Size":\([0-9-]*\).*"ModTime":"\([^"]*\)".*/\1	\3	\4/p'
+}
+
+cmd_conflicts_list() {
+  [ $# -eq 1 ] || usage
+  get_profile "$1"; need_bin
+  conflict_rows "$PL" | while IFS='	' read -r path size mtime; do
+    orig=$(conflict_original "$path")
+    side='?'
+    case "${path##*/}" in *.conflict1|*.conflict1.*) side=mac ;; *.conflict2|*.conflict2.*) side=drive ;; esac
+    printf '%s\t{"path":%s,"original":%s,"side":"%s","size":%s,"date":%s}\n' \
+      "$orig" "$(json_str "$path")" "$(json_str "$orig")" "$side" "${size:-0}" "$(json_str "$mtime")"
+  done | sort | cut -f2- | awk 'BEGIN { printf "[" } { printf "%s%s", (NR > 1 ? "," : ""), $0 } END { print "]" }'
+}
+
+cmd_conflicts_keep() {
+  [ $# -eq 2 ] || usage
+  get_profile "$1"; keep=$2; need_bin
+  case "$keep" in /*|*../*|..*) die 6 "Ruta no válida." ;; esac
+  case "${keep##*/}" in *.conflict[0-9]*) ;; *) die 6 "Eso no es una copia en conflicto: $keep" ;; esac
+  [ -f "${PL%/}/$keep" ] || die 6 "Ya no existe $keep (¿se resolvió ya?)."
+  orig=$(conflict_original "$keep")
+  vm=$(versions_mac "$PL" "$PR")
+  lock
+  tmp=$(mktemp "$APP_DIR/.conflicts.XXXXXX")
+  conflict_rows "$PL" | cut -f1 > "$tmp"
+  # Lo que no se elige va a versiones del Mac, con el nombre del original y la fecha (como cualquier versión).
+  to_versions() { # ruta relativa
+    ext=""; case "${orig##*/}" in *.*) ext=".${orig##*.}" ;; esac
+    base=${orig%"$ext"}
+    while :; do
+      target="$vm/$base-$(date +%Y%m%d-%H%M%S)$ext"
+      [ -e "$target" ] || break
+      sleep 1
+    done
+    mkdir -p "$(dirname "$target")"
+    rc_ moveto "${PL%/}/$1" "$target" || { rm -f "$tmp"; die 1 "No se pudo guardar $1 en versiones."; }
+  }
+  while IFS= read -r other; do
+    [ "$other" != "$keep" ] || continue
+    [ "$(conflict_original "$other")" = "$orig" ] || continue
+    to_versions "$other"
+  done < "$tmp"
+  rm -f "$tmp"
+  [ ! -e "${PL%/}/$orig" ] || to_versions "$orig"
+  rc_ moveto "${PL%/}/$keep" "${PL%/}/$orig" || die 1 "No se pudo devolver $keep a su nombre."
+  echo "Te quedas con $keep como $orig. Las otras copias están en versiones; Drive se pondrá igual en la próxima sincronización."
+}
+
 # Plan de la última simulación (backupdrive-sync.sh --dry-run lo guarda en state/<id>.plan.log).
 cmd_plan() {
   [ $# -eq 1 ] || usage
@@ -397,6 +458,13 @@ case "$cmd" in
     case "$sub" in
       list) cmd_versions_list "$@" ;;
       restore) cmd_versions_restore "$@" ;;
+      *) usage ;;
+    esac ;;
+  conflicts)
+    [ $# -ge 1 ] || usage; sub=$1; shift
+    case "$sub" in
+      list) cmd_conflicts_list "$@" ;;
+      keep) cmd_conflicts_keep "$@" ;;
       *) usage ;;
     esac ;;
   plan) cmd_plan "$@" ;;

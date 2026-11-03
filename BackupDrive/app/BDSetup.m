@@ -280,6 +280,115 @@ static NSString *const kAccount = @"gdrive";
            }];
 }
 
+#pragma mark - Conflictos
+
+- (void)resolveConflictsIn:(NSString *)folder {
+  if (self.busy || !folder.length) return;
+  self.busy = YES;
+  [BDRunner run:BDRunner.ctlScript
+           args:@[ @"conflicts", @"list", folder ]
+            env:nil
+           done:^(int status, NSString *out, NSString *err) {
+             self.busy = NO;
+             if (status != 0) {
+               [self alert:@"No se pueden leer los conflictos" info:err];
+               return;
+             }
+             id rows = [NSJSONSerialization JSONObjectWithData:[out dataUsingEncoding:NSUTF8StringEncoding]
+                                                       options:0
+                                                         error:nil];
+             NSMutableArray<NSString *> *order = [NSMutableArray array];
+             NSMutableDictionary<NSString *, NSMutableArray *> *byOriginal = [NSMutableDictionary dictionary];
+             if ([rows isKindOfClass:NSArray.class]) {
+               for (id row in rows) {
+                 if (![row isKindOfClass:NSDictionary.class]) continue;
+                 NSString *original = row[@"original"];
+                 if (![original isKindOfClass:NSString.class]) continue;
+                 if (!byOriginal[original]) {
+                   byOriginal[original] = [NSMutableArray array];
+                   [order addObject:original];
+                 }
+                 [byOriginal[original] addObject:row];
+               }
+             }
+             if (!order.count) {
+               [self alert:@"No hay conflictos" info:@"Ya no queda ningún fichero con dos copias."];
+               if (self.changed) self.changed();
+               return;
+             }
+             [self resolve:order index:0 copies:byOriginal folder:folder];
+           }];
+}
+
+- (NSString *)describeCopy:(NSDictionary *)copy {
+  NSString *side = copy[@"side"];
+  if ([side isEqual:@"mac"]) return @"la del Mac";
+  if ([side isEqual:@"drive"]) return @"la de Drive";
+  return [NSString stringWithFormat:@"«%@»", [copy[@"path"] lastPathComponent]];
+}
+
+- (void)resolve:(NSArray<NSString *> *)order
+          index:(NSUInteger)index
+         copies:(NSDictionary<NSString *, NSArray *> *)byOriginal
+         folder:(NSString *)folder {
+  if (index >= order.count) {
+    if (self.changed) self.changed();
+    return;
+  }
+  NSString *original = order[index];
+  NSArray *copies = byOriginal[original];
+  NSUInteger choosable = MIN(copies.count, (NSUInteger)3);
+  [NSApp activateIgnoringOtherApps:YES];
+  NSAlert *alert = [[NSAlert alloc] init];
+  alert.messageText = [NSString stringWithFormat:@"«%@» se cambió en el Mac y en Google Drive (%lu de %lu)",
+                                                 original.lastPathComponent, (unsigned long)(index + 1),
+                                                 (unsigned long)order.count];
+  NSMutableString *info = [NSMutableString
+      stringWithString:@"BackupDrive guardó las dos copias para que elijas. La que no elijas irá a versiones: "
+                       @"se puede recuperar.\n\n"];
+  for (NSDictionary *copy in copies) {
+    NSNumber *size = [copy[@"size"] isKindOfClass:NSNumber.class] ? copy[@"size"] : @0;
+    NSString *date = [copy[@"date"] isKindOfClass:NSString.class] ? copy[@"date"] : @"";
+    if (date.length >= 16) date = [[date substringToIndex:16] stringByReplacingOccurrencesOfString:@"T" withString:@" "];
+    [info appendFormat:@"• %@: %@, modificada %@\n", [self describeCopy:copy],
+                       [NSByteCountFormatter stringFromByteCount:size.longLongValue
+                                                      countStyle:NSByteCountFormatterCountStyleFile],
+                       date];
+  }
+  alert.informativeText = info;
+  for (NSUInteger i = 0; i < choosable; i++) {
+    [alert addButtonWithTitle:[NSString stringWithFormat:@"Quedarme con %@", [self describeCopy:copies[i]]]];
+  }
+  [alert addButtonWithTitle:@"Decidir luego"];
+  [alert addButtonWithTitle:@"Mostrar en el Finder"];
+  NSInteger choice = [alert runModal] - NSAlertFirstButtonReturn;
+
+  if (choice >= 0 && (NSUInteger)choice < choosable) {
+    self.busy = YES;
+    [BDRunner run:BDRunner.ctlScript
+             args:@[ @"conflicts", @"keep", folder, copies[choice][@"path"] ]
+              env:nil
+             done:^(int status, NSString *out, NSString *err) {
+               self.busy = NO;
+               if (status != 0) {
+                 [self alert:@"No se pudo resolver el conflicto" info:err];
+                 if (self.changed) self.changed();
+                 return;
+               }
+               [self resolve:order index:index + 1 copies:byOriginal folder:folder];
+             }];
+  } else if ((NSUInteger)choice == choosable) {
+    [self resolve:order index:index + 1 copies:byOriginal folder:folder];
+  } else {
+    NSMutableArray<NSURL *> *urls = [NSMutableArray array];
+    for (NSDictionary *copy in copies) {
+      [urls addObject:[NSURL fileURLWithPath:[folder stringByAppendingPathComponent:copy[@"path"]]]];
+    }
+    [NSWorkspace.sharedWorkspace activateFileViewerSelectingURLs:urls];
+    if (self.changed) self.changed();
+  }
+}
+
 - (void)removeFolder:(NSString *)folder {
   if (self.busy || !folder.length) return;
   NSModalResponse r = [self

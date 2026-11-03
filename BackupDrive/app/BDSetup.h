@@ -15,4 +15,7 @@
 - (void)connect;                          // pide la clave propia y espera la autorización en el navegador
 - (void)addFolder;                        // carpeta del Mac + carpeta de Drive → perfil; ofrece simular
 - (void)removeFolder:(NSString *)folder;  // quita el perfil (no borra nada), con confirmación
+// Fichero cambiado en los dos lados: una pregunta por fichero, «Quedarme con la del Mac / la de Drive»; la otra
+// copia va a versiones (backupdrive-ctl.sh conflicts).
+- (void)resolveConflictsIn:(NSString *)folder;
 @end

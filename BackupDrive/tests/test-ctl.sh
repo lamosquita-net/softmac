@@ -166,5 +166,30 @@ expect 0 "restaurar sub/a.tar.gz" versions restore "$MAC" drive "$va"
 found=""; for f in "$vmac"sub/a-*.tar.gz; do [ "$(cat "$f" 2>/dev/null)" = s2 ] && found=1; done
 [ -n "$found" ] && ok "lo que había va a versiones del Mac en su subcarpeta, con la extensión compuesta" || fail "s2: $(ls -R "$vmac")"
 
+# --- Conflictos: f4.txt cambió en los dos lados (sección del plan) y bisync dejó las dos copias ---
+expect 0 "lista de conflictos" conflicts list "$MAC"
+out_has '"path":"f4.conflict1.txt","original":"f4.txt","side":"mac"' "conflicto: copia del Mac"
+out_has '"path":"f4.conflict2.txt","original":"f4.txt","side":"drive"' "conflicto: copia de Drive"
+ctl profile list
+out_has '"conflicts":2' "profile list cuenta las copias en conflicto"
+expect 6 "keep de algo que no es una copia en conflicto" conflicts keep "$MAC" f2.txt
+expect 6 "keep de una copia que no existe" conflicts keep "$MAC" nada.conflict1.txt
+expect 0 "quedarse con la copia de Drive" conflicts keep "$MAC" f4.conflict2.txt
+[ "$(cat "$MAC/f4.txt")" = f4-drive ] && ok "f4.txt es la copia de Drive" || fail "f4.txt: $(cat "$MAC/f4.txt" 2>/dev/null)"
+ls "$MAC"/f4.conflict* >/dev/null 2>&1 && fail "quedan copias en conflicto en el Mac" || ok "sin copias en conflicto en el Mac"
+found=""; for f in "$vmac"f4-*.txt; do [ "$(cat "$f" 2>/dev/null)" = f4-mac ] && found=1; done
+[ -n "$found" ] && ok "la copia del Mac está en versiones como f4-FECHA.txt" || fail "copia del Mac perdida: $(ls "$vmac")"
+# En una carpeta tan pequeña, quitar dos copias pasa del 10 % y salta el freno de borrados (como debe): se continúa a
+# propósito, igual que tras revisar «Ver qué cambia».
+sync_
+[ "$(sed -n 's/.*"result":"\([a-z-]*\)","exit".*/\1/p' "$APP/status.json" | head -1)" = blocked ] \
+  && ok "en una carpeta pequeña, resolver un conflicto activa el freno" || fail "sin freno: $(cat "$APP/status.json")"
+sync_ --force
+[ "$(cat "$D/f4.txt" 2>/dev/null)" = f4-drive ] && ok "Drive queda con f4.txt elegido" || fail "Drive f4.txt: $(cat "$D/f4.txt" 2>/dev/null)"
+ls "$D"/f4.conflict* >/dev/null 2>&1 && fail "quedan copias en conflicto en Drive" || ok "Drive sin copias en conflicto"
+ls "$D (versiones)"/f4.conflict* >/dev/null 2>&1 && ok "las copias de Drive van a versiones de Drive" || fail "copias de Drive perdidas"
+ctl conflicts list "$MAC"
+[ "$(cat "$T/out")" = "[]" ] && ok "lista de conflictos vacía" || fail "conflictos: $(cat "$T/out")"
+
 echo "$((n - fails))/$n correctas"
 [ "$fails" -eq 0 ]
