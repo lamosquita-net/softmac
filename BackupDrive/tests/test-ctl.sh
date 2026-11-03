@@ -40,6 +40,23 @@ expect 6 "check de una cuenta que no existe" check --name otra
 cp "$APP/backupdrive.conf" "$T/conf.antes"
 BACKUPDRIVE_CONNECT_TYPE=no-existe expect 1 "autorización fallida" connect --shared
 cmp -s "$APP/backupdrive.conf" "$T/conf.antes" && ok "si la autorización falla, la cuenta anterior sigue" || fail "conf cambiado tras un fallo: $(cat "$APP/backupdrive.conf")"
+# Cancelar mientras espera la autorización: un rclone falso que se queda esperando, como el de verdad.
+{
+  echo '#!/bin/sh'
+  echo 'case " $* " in *" config create "*) echo "[gdrive]" >> "$BACKUPDRIVE_DIR/backupdrive.conf"; echo $$ > "$ESPERA_PID"; exec sleep 60 ;; esac'
+  echo 'exec "$REAL_BIN" "$@"'
+} > "$T/rclone-espera"
+chmod +x "$T/rclone-espera"
+ESPERA_PID="$T/espera.pid" REAL_BIN="$BACKUPDRIVE_BIN" BACKUPDRIVE_BIN="$T/rclone-espera" \
+  sh "$CTL" connect --shared >/dev/null 2>&1 &
+cpid=$!
+i=0; while [ ! -s "$T/espera.pid" ] && [ $i -lt 50 ]; do sleep 0.1; i=$((i + 1)); done
+kill -TERM "$cpid"; wait "$cpid"; crc=$?
+[ "$crc" = 130 ] && ok "cancelar connect sale con 130" || fail "cancelar connect sale con $crc"
+sleep 0.2
+kill -0 "$(cat "$T/espera.pid")" 2>/dev/null && fail "rclone sigue esperando tras cancelar" || ok "cancelar para también a rclone"
+cmp -s "$APP/backupdrive.conf" "$T/conf.antes" && ok "al cancelar, la cuenta anterior sigue" || fail "conf cambiado al cancelar"
+[ -d "$APP/run.lock" ] && fail "el bloqueo no se suelta al cancelar" || ok "el bloqueo se suelta al cancelar"
 # Para el resto, la cuenta «fake» apunta a la carpeta de pruebas.
 printf '[fake]\ntype = local\n' >> "$APP/backupdrive.conf"
 

@@ -21,7 +21,7 @@ escriben; (2) B.7 la programa BACKUPDRIVE en la nube (AppKit, objetivo 10.14, la
 ventana, Titín en la 6,1 con órdenes listas para pegar. Los PR, sin borrador cuando estén listos, y avisar a COORDINACIÓN.
 
 **H1 hecho (rama `nube/backupdrive-ctl`):** `scripts/backupdrive-ctl.sh` (connect, check, folders, mkdir, profile, versions,
-plan) y `tests/test-ctl.sh` (79 pruebas, en la CI). El motor guarda el plan de cada simulación en `state/<id>.plan.log`.
+plan) y `tests/test-ctl.sh` (83 pruebas, en la CI). El motor guarda el plan de cada simulación en `state/<id>.plan.log`.
 Arreglo de paso: las versiones con extensión compuesta (`a-AAAAMMDD-HHMMSS.tar.gz`; rclone conserva las extensiones con tipo
 MIME conocido) no caducaban; prueba nueva en `test-sync-safe.sh` (53). **Por probar en un Mac real:** `connect` contra Google
 (que abre el navegador de Mojave y no pregunta nada) y el `awk`/`date` de BSD.

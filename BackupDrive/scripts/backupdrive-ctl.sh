@@ -175,9 +175,16 @@ cmd_connect() {
   # config create borra la cuenta anterior antes de autorizar: si algo falla (navegador cerrado), se deja como estaba.
   bak=""
   if [ -f "$CONF" ]; then bak=$(mktemp "$APP_DIR/.conf.XXXXXX"); cp -p "$CONF" "$bak"; fi
-  # Sin preguntas: rclone toma las respuestas por defecto y abre el navegador para autorizar.
-  if ! rc_ "$@" >/dev/null; then
-    if [ -n "$bak" ]; then mv -f "$bak" "$CONF"; else rm -f "$CONF"; fi
+  restore_conf() { if [ -n "$bak" ]; then mv -f "$bak" "$CONF"; else rm -f "$CONF"; fi; }
+  # Sin preguntas: rclone toma las respuestas por defecto y abre el navegador para autorizar. En segundo plano para que
+  # Cancelar (la app manda SIGTERM) pare también a rclone, que si no se queda esperando en el puerto 53682.
+  "$BIN" --config "$CONF" "$@" </dev/null >/dev/null &
+  cpid=$!
+  trap 'kill "$cpid" 2>/dev/null || true; wait "$cpid" 2>/dev/null || true; restore_conf; rm -rf "$LOCK"; exit 130' INT TERM
+  crc=0; wait "$cpid" || crc=$?
+  trap 'rm -rf "$LOCK"; exit 130' INT TERM
+  if [ "$crc" -ne 0 ]; then
+    restore_conf
     die 1 "No se pudo conectar con Google Drive; no se ha cambiado nada. Si cerraste el navegador antes de autorizar, vuelve a intentarlo."
   fi
   [ -z "$bak" ] || rm -f "$bak"
