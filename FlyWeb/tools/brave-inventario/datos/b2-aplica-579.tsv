@@ -1,0 +1,580 @@
+tipo	fichero	objetivo	e128	e156	en198	ap128	ap156	ap156_c1	ap156_donante	ident_total	ident_faltan	nota
+parche	patches/.rustfmt.toml.patch	.rustfmt.toml	1	1	1	1	0	0	1			error: patch failed: .rustfmt.toml:23
+parche	patches/base-BUILD.gn.patch	base/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: base/BUILD.gn:4418
+parche	patches/base-metrics-histogram_functions.h.patch	base/metrics/histogram_functions.h	1	1	1	1	0	0	1			error: patch failed: base/metrics/histogram_functions.h:75
+parche	patches/base-test-BUILD.gn.patch	base/test/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: base/test/BUILD.gn:342
+parche	patches/base-test-launcher-test_results_tracker.cc.patch	base/test/launcher/test_results_tracker.cc	1	1	1	1	1	1	1			
+parche	patches/base-threading-thread_restrictions.h.patch	base/threading/thread_restrictions.h	1	1	1	1	1	1	1			
+parche	patches/base-trace_event-builtin_categories.h.patch	base/trace_event/builtin_categories.h	1	1	1	1	0	0	1			error: patch failed: base/trace_event/builtin_categories.h:199
+parche	patches/base-version_info-BUILD.gn.patch	base/version_info/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/base-win-embedded_i18n-create_string_rc.py.patch	base/win/embedded_i18n/create_string_rc.py	1	0	0							
+parche	patches/base-win-embedded_i18n-generate_embedded_i18n.gni.patch	base/win/embedded_i18n/generate_embedded_i18n.gni	1	0	0							
+parche	patches/build-android-gradle-generate_gradle.py.patch	build/android/gradle/generate_gradle.py	1	1	0	1	0	1				warning: build/android/gradle/generate_gradle.py has type 100644, expected 100755
+parche	patches/build-android-gyp-dex.py.patch	build/android/gyp/dex.py	1	1	1	1	0	0	1			warning: build/android/gyp/dex.py has type 100644, expected 100755
+parche	patches/build-android-gyp-lint.py.patch	build/android/gyp/lint.py	1	1	1	1	0	1	1			warning: build/android/gyp/lint.py has type 100644, expected 100755
+parche	patches/build-android-gyp-proguard.py.patch	build/android/gyp/proguard.py	1	1	1	1	0	0	1			warning: build/android/gyp/proguard.py has type 100644, expected 100755
+parche	patches/build-android-gyp-util-resource_utils.py.patch	build/android/gyp/util/resource_utils.py	1	1	1	1	0	0	1			error: patch failed: build/android/gyp/util/resource_utils.py:256
+parche	patches/build-config-BUILDCONFIG.gn.patch	build/config/BUILDCONFIG.gn	1	1	1	1	0	0	1			error: patch failed: build/config/BUILDCONFIG.gn:335
+parche	patches/build-config-android-BUILD.gn.patch	build/config/android/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/build-config-android-config.gni.patch	build/config/android/config.gni	1	1	1	1	0	0	1			error: patch failed: build/config/android/config.gni:32
+parche	patches/build-config-android-internal_rules.gni.patch	build/config/android/internal_rules.gni	1	1	1	1	0	1	1			error: patch failed: build/config/android/internal_rules.gni:4152
+parche	patches/build-config-android-rules.gni.patch	build/config/android/rules.gni	1	1	1	1	0	1	1			error: patch failed: build/config/android/rules.gni:206
+parche	patches/build-config-chrome_build.gni.patch	build/config/chrome_build.gni	1	1	1	1	0	1	1			error: patch failed: build/config/chrome_build.gni:1
+parche	patches/build-rust-cargo_crate.gni.patch	build/rust/cargo_crate.gni	1	1	1	1	0	0	1			error: patch failed: build/rust/cargo_crate.gni:259
+parche	patches/build-rust-rust_target.gni.patch	build/rust/rust_target.gni	1	0	0							
+parche	patches/build-util-action_remote.py.patch	build/util/action_remote.py	1	0	0							
+parche	patches/build-util-android_chrome_version.py.patch	build/util/android_chrome_version.py	1	1	1	1	0	0	1			warning: build/util/android_chrome_version.py has type 100644, expected 100755
+parche	patches/buildtools-checkdeps-checkdeps.py.patch	buildtools/checkdeps/checkdeps.py	1	1	1	1	1	1	1			
+parche	patches/chrome-BUILD.gn.patch	chrome/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/BUILD.gn:191
+parche	patches/chrome-android-BUILD.gn.patch	chrome/android/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: chrome/android/BUILD.gn:280
+parche	patches/chrome-android-chrome_java_sources.gni.patch	chrome/android/chrome_java_sources.gni	1	1	1	1	0	1	1			error: patch failed: chrome/android/chrome_java_sources.gni:1225
+parche	patches/chrome-android-chrome_public_apk_tmpl.gni.patch	chrome/android/chrome_public_apk_tmpl.gni	1	1	1	1	0	0	1			error: patch failed: chrome/android/chrome_public_apk_tmpl.gni:342
+parche	patches/chrome-android-expectations-lint-suppressions.xml.patch	chrome/android/expectations/lint-suppressions.xml	1	1	0	1	0	1				error: patch failed: chrome/android/expectations/lint-suppressions.xml:289
+parche	patches/chrome-android-features-tab_ui-BUILD.gn.patch	chrome/android/features/tab_ui/BUILD.gn	1	1	0	1	1	1				
+parche	patches/chrome-android-feed-core-java-src-org-chromium-chrome-browser-feed-FeedSurfaceMediator.java.patch	chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceMediator.java	1	1	1	1	1	1	1			
+parche	patches/chrome-android-java-AndroidManifest.xml.patch	chrome/android/java/AndroidManifest.xml	1	1	1	1	0	0	1			error: patch failed: chrome/android/java/AndroidManifest.xml:28
+parche	patches/chrome-android-java-AndroidManifest_monochrome.xml.patch	chrome/android/java/AndroidManifest_monochrome.xml	1	0	0							
+parche	patches/chrome-android-java-res-layout-custom_tabs_toolbar.xml.patch	chrome/android/java/res/layout/custom_tabs_toolbar.xml	1	0	0							
+parche	patches/chrome-android-java-res-menu-save_password_preferences_action_bar_menu.xml.patch	chrome/android/java/res/menu/save_password_preferences_action_bar_menu.xml	1	0	0							
+parche	patches/chrome-android-java-src-org-chromium-chrome-browser-SwipeRefreshHandler.java.patch	chrome/android/java/src/org/chromium/chrome/browser/SwipeRefreshHandler.java	1	1	1	1	0	0	1			error: patch failed: chrome/android/java/src/org/chromium/chrome/browser/SwipeRefreshHandler.java:99
+parche	patches/chrome-android-java-src-org-chromium-chrome-browser-contextmenu-ChromeContextMenuItem.java.patch	chrome/android/java/src/org/chromium/chrome/browser/contextmenu/ChromeContextMenuItem.java	1	1	1	1	0	0	1			error: patch failed: chrome/android/java/src/org/chromium/chrome/browser/contextmenu/ChromeContextMenuItem.java:63
+parche	patches/chrome-android-java-src-org-chromium-chrome-browser-contextmenu-ChromeContextMenuPopulator.java.patch	chrome/android/java/src/org/chromium/chrome/browser/contextmenu/ChromeContextMenuPopulator.java	1	1	1	1	0	0	1			error: patch failed: chrome/android/java/src/org/chromium/chrome/browser/contextmenu/ChromeContextMenuPopulator.java:159
+parche	patches/chrome-android-java-src-org-chromium-chrome-browser-homepage-HomepageManager.java.patch	chrome/android/java/src/org/chromium/chrome/browser/homepage/HomepageManager.java	1	1	1	1	0	1	1			error: patch failed: chrome/android/java/src/org/chromium/chrome/browser/homepage/HomepageManager.java:50
+parche	patches/chrome-android-java-src-org-chromium-chrome-browser-notifications-NotificationPlatformBridge.java.patch	chrome/android/java/src/org/chromium/chrome/browser/notifications/NotificationPlatformBridge.java	1	1	1	1	0	0	1			error: patch failed: chrome/android/java/src/org/chromium/chrome/browser/notifications/NotificationPlatformBridge.java:97
+parche	patches/chrome-android-java-src-org-chromium-chrome-browser-notifications-NotificationServiceImpl.java.patch	chrome/android/java/src/org/chromium/chrome/browser/notifications/NotificationServiceImpl.java	1	1	0	1	0	0				error: patch failed: chrome/android/java/src/org/chromium/chrome/browser/notifications/NotificationServiceImpl.java:205
+parche	patches/chrome-android-java-src-org-chromium-chrome-browser-privacy-settings-PrivacySettings.java.patch	chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java	1	1	1	1	0	0	1			error: patch failed: chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java:52
+parche	patches/chrome-android-java-src-org-chromium-chrome-browser-sync-settings-ManageSyncSettings.java.patch	chrome/android/java/src/org/chromium/chrome/browser/sync/settings/ManageSyncSettings.java	1	1	1	1	0	0	1			error: patch failed: chrome/android/java/src/org/chromium/chrome/browser/sync/settings/ManageSyncSettings.java:58
+parche	patches/chrome-android-java-src-org-chromium-chrome-browser-tabbed_mode-TabbedRootUiCoordinator.java.patch	chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java	1	1	1	1	0	0	1			error: patch failed: chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java:940
+parche	patches/chrome-android-java_sources.gni.patch	chrome/android/java_sources.gni	1	1	1	1	1	1	1			
+parche	patches/chrome-app-BUILD.gn.patch	chrome/app/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/app/BUILD.gn:106
+parche	patches/chrome-app-chrome_crash_reporter_client.cc.patch	chrome/app/chrome_crash_reporter_client.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-app-chrome_dll.rc.patch	chrome/app/chrome_dll.rc	1	1	1	1	1	1	1			
+parche	patches/chrome-app-theme-BUILD.gn.patch	chrome/app/theme/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-BUILD.gn.patch	chrome/browser/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/browser/BUILD.gn:2759
+parche	patches/chrome-browser-about_flags.cc.patch	chrome/browser/about_flags.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/about_flags.cc:4186
+parche	patches/chrome-browser-android-browsing_data-browsing_data_bridge.cc.patch	chrome/browser/android/browsing_data/browsing_data_bridge.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/android/browsing_data/browsing_data_bridge.cc:133
+parche	patches/chrome-browser-app_controller_mac.mm.patch	chrome/browser/app_controller_mac.mm	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-browser_process_impl.h.patch	chrome/browser/browser_process_impl.h	1	1	1	1	0	1	1			error: patch failed: chrome/browser/browser_process_impl.h:242
+parche	patches/chrome-browser-browsing_data-chrome_browsing_data_remover_delegate.cc.patch	chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.cc:1633
+parche	patches/chrome-browser-browsing_data-chrome_browsing_data_remover_delegate.h.patch	chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.h	1	1	1	1	0	0	1			error: patch failed: chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.h:150
+parche	patches/chrome-browser-component_updater-updater_state_win.cc.patch	chrome/browser/component_updater/updater_state_win.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-content_settings-page_specific_content_settings_delegate.cc.patch	chrome/browser/content_settings/page_specific_content_settings_delegate.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-download-download_item_model.h.patch	chrome/browser/download/download_item_model.h	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-download-download_target_determiner.cc.patch	chrome/browser/download/download_target_determiner.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/download/download_target_determiner.cc:1346
+parche	patches/chrome-browser-download-internal-android-BUILD.gn.patch	chrome/browser/download/internal/android/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-extensions-BUILD.gn.patch	chrome/browser/extensions/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/browser/extensions/BUILD.gn:1561
+parche	patches/chrome-browser-extensions-api-developer_private-extension_info_generator.cc.patch	chrome/browser/extensions/api/developer_private/extension_info_generator.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/extensions/api/developer_private/extension_info_generator.cc:670
+parche	patches/chrome-browser-extensions-api-identity-identity_get_auth_token_function.cc.patch	chrome/browser/extensions/api/identity/identity_get_auth_token_function.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/extensions/api/identity/identity_get_auth_token_function.cc:185
+parche	patches/chrome-browser-extensions-api-webrtc_logging_private-webrtc_logging_private_api.cc.patch	chrome/browser/extensions/api/webrtc_logging_private/webrtc_logging_private_api.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-extensions-chrome_component_extension_resource_manager.cc.patch	chrome/browser/extensions/chrome_component_extension_resource_manager.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-extensions-extension_management.cc.patch	chrome/browser/extensions/extension_management.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-extensions-extension_tab_util.cc.patch	chrome/browser/extensions/extension_tab_util.cc	1	1	0	1	1	1				
+parche	patches/chrome-browser-extensions-updater-chrome_update_client_config.h.patch	chrome/browser/extensions/updater/chrome_update_client_config.h	1	1	1	1	0	1	1			error: patch failed: chrome/browser/extensions/updater/chrome_update_client_config.h:86
+parche	patches/chrome-browser-external_protocol-external_protocol_handler.cc.patch	chrome/browser/external_protocol/external_protocol_handler.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-first_run-upgrade_util_win.cc.patch	chrome/browser/first_run/upgrade_util_win.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/first_run/upgrade_util_win.cc:67
+parche	patches/chrome-browser-global_keyboard_shortcuts_mac.mm.patch	chrome/browser/global_keyboard_shortcuts_mac.mm	1	1	1	1	0	0	1			error: patch failed: chrome/browser/global_keyboard_shortcuts_mac.mm:149
+parche	patches/chrome-browser-hub-internal-BUILD.gn.patch	chrome/browser/hub/internal/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/browser/hub/internal/BUILD.gn:43
+parche	patches/chrome-browser-importer-external_process_importer_client.h.patch	chrome/browser/importer/external_process_importer_client.h	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-importer-external_process_importer_host.h.patch	chrome/browser/importer/external_process_importer_host.h	1	1	1	1	0	1	1			error: patch failed: chrome/browser/importer/external_process_importer_host.h:80
+parche	patches/chrome-browser-importer-importer_list.cc.patch	chrome/browser/importer/importer_list.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/importer/importer_list.cc:164
+parche	patches/chrome-browser-importer-in_process_importer_bridge.cc.patch	chrome/browser/importer/in_process_importer_bridge.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/importer/in_process_importer_bridge.cc:53
+parche	patches/chrome-browser-importer-in_process_importer_bridge.h.patch	chrome/browser/importer/in_process_importer_bridge.h	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-media-webrtc-webrtc_event_log_uploader.cc.patch	chrome/browser/media/webrtc/webrtc_event_log_uploader.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-media-webrtc-webrtc_log_uploader.cc.patch	chrome/browser/media/webrtc/webrtc_log_uploader.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-net-profile_network_context_service.cc.patch	chrome/browser/net/profile_network_context_service.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-net-proxy_config_monitor.cc.patch	chrome/browser/net/proxy_config_monitor.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/net/proxy_config_monitor.cc:52
+parche	patches/chrome-browser-net-proxy_config_monitor.h.patch	chrome/browser/net/proxy_config_monitor.h	1	1	0	1	1	1				
+parche	patches/chrome-browser-net-system_network_context_manager.cc.patch	chrome/browser/net/system_network_context_manager.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/net/system_network_context_manager.cc:400
+parche	patches/chrome-browser-notifications-BUILD.gn.patch	chrome/browser/notifications/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-notifications-android-java-src-org-chromium-chrome-browser-notifications-channels-ChromeChannelDefinitions.java.patch	chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java	1	1	1	1	0	1	1			error: patch failed: chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitio
+parche	patches/chrome-browser-notifications-notification_display_service_impl.cc.patch	chrome/browser/notifications/notification_display_service_impl.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-notifications-notification_platform_bridge_android.h.patch	chrome/browser/notifications/notification_platform_bridge_android.h	1	1	0	1	0	0				error: patch failed: chrome/browser/notifications/notification_platform_bridge_android.h:102
+parche	patches/chrome-browser-password_entry_edit-android-java-res-layout-credential_edit_view.xml.patch	chrome/browser/password_entry_edit/android/java/res/layout/credential_edit_view.xml	1	0	0							
+parche	patches/chrome-browser-prefs-browser_prefs.cc.patch	chrome/browser/prefs/browser_prefs.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/prefs/browser_prefs.cc:1746
+parche	patches/chrome-browser-profile_resetter-brandcode_config_fetcher.cc.patch	chrome/browser/profile_resetter/brandcode_config_fetcher.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-profile_resetter-reset_report_uploader.cc.patch	chrome/browser/profile_resetter/reset_report_uploader.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-profiles-bookmark_model_loaded_observer.h.patch	chrome/browser/profiles/bookmark_model_loaded_observer.h	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-profiles-profile.cc.patch	chrome/browser/profiles/profile.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/profiles/profile.cc:111
+parche	patches/chrome-browser-profiles-profile_attributes_entry.cc.patch	chrome/browser/profiles/profile_attributes_entry.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/profiles/profile_attributes_entry.cc:1059
+parche	patches/chrome-browser-profiles-profile_avatar_icon_util.cc.patch	chrome/browser/profiles/profile_avatar_icon_util.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/profiles/profile_avatar_icon_util.cc:317
+parche	patches/chrome-browser-renderer_context_menu-render_view_context_menu.cc.patch	chrome/browser/renderer_context_menu/render_view_context_menu.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-renderer_context_menu-render_view_context_menu.h.patch	chrome/browser/renderer_context_menu/render_view_context_menu.h	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-renderer_context_menu-spelling_options_submenu_observer.h.patch	chrome/browser/renderer_context_menu/spelling_options_submenu_observer.h	1	1	1	1	0	1	1			error: patch failed: chrome/browser/renderer_context_menu/spelling_options_submenu_observer.h:15
+parche	patches/chrome-browser-resources-bookmarks-BUILD.gn.patch	chrome/browser/resources/bookmarks/BUILD.gn	1	1	0	1	1	1				
+parche	patches/chrome-browser-resources-bookmarks-api_listener.ts.patch	chrome/browser/resources/bookmarks/api_listener.ts	1	1	0	1	0	0				error: patch failed: chrome/browser/resources/bookmarks/api_listener.ts:118
+parche	patches/chrome-browser-resources-bookmarks-bookmarks.html.patch	chrome/browser/resources/bookmarks/bookmarks.html	1	1	1	1	0	1	1			error: patch failed: chrome/browser/resources/bookmarks/bookmarks.html:25
+parche	patches/chrome-browser-resources-bookmarks-bookmarks.ts.patch	chrome/browser/resources/bookmarks/bookmarks.ts	1	1	0	1	1	1				
+parche	patches/chrome-browser-resources-bookmarks-command_manager.ts.patch	chrome/browser/resources/bookmarks/command_manager.ts	1	1	1	1	0	1	1			error: patch failed: chrome/browser/resources/bookmarks/command_manager.ts:426
+parche	patches/chrome-browser-resources-bookmarks-reducers.ts.patch	chrome/browser/resources/bookmarks/reducers.ts	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-resources-downloads-BUILD.gn.patch	chrome/browser/resources/downloads/BUILD.gn	1	1	0	1	1	1				
+parche	patches/chrome-browser-resources-downloads-downloads.html.patch	chrome/browser/resources/downloads/downloads.html	1	1	1	1	0	0	1			error: patch failed: chrome/browser/resources/downloads/downloads.html:7
+parche	patches/chrome-browser-resources-downloads-downloads.ts.patch	chrome/browser/resources/downloads/downloads.ts	1	1	0	1	0	1				error: patch failed: chrome/browser/resources/downloads/downloads.ts:2
+parche	patches/chrome-browser-resources-downloads-manager.html.patch	chrome/browser/resources/downloads/manager.html	1	0	0							
+parche	patches/chrome-browser-resources-extensions-BUILD.gn.patch	chrome/browser/resources/extensions/BUILD.gn	1	1	0	1	1	1				
+parche	patches/chrome-browser-resources-extensions-extensions.html.patch	chrome/browser/resources/extensions/extensions.html	1	1	1	1	0	1	1			error: patch failed: chrome/browser/resources/extensions/extensions.html:38
+parche	patches/chrome-browser-resources-extensions-extensions.ts.patch	chrome/browser/resources/extensions/extensions.ts	1	1	0	1	0	1				error: patch failed: chrome/browser/resources/extensions/extensions.ts:2
+parche	patches/chrome-browser-resources-extensions-item_list.html.patch	chrome/browser/resources/extensions/item_list.html	1	0	0							
+parche	patches/chrome-browser-resources-extensions-item_list.ts.patch	chrome/browser/resources/extensions/item_list.ts	1	1	0	1	0	0				error: patch failed: chrome/browser/resources/extensions/item_list.ts:16
+parche	patches/chrome-browser-resources-extensions-sidebar.html.patch	chrome/browser/resources/extensions/sidebar.html	1	0	0							
+parche	patches/chrome-browser-resources-history-BUILD.gn.patch	chrome/browser/resources/history/BUILD.gn	1	1	0	1	0	1				error: patch failed: chrome/browser/resources/history/BUILD.gn:83
+parche	patches/chrome-browser-resources-history-history.html.patch	chrome/browser/resources/history/history.html	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-resources-history-history.ts.patch	chrome/browser/resources/history/history.ts	1	1	0	1	0	1				error: patch failed: chrome/browser/resources/history/history.ts:2
+parche	patches/chrome-browser-resources-history-history_item.html.patch	chrome/browser/resources/history/history_item.html	1	0	0							
+parche	patches/chrome-browser-resources-history-history_item.ts.patch	chrome/browser/resources/history/history_item.ts	1	1	0	1	0	0				error: patch failed: chrome/browser/resources/history/history_item.ts:10
+parche	patches/chrome-browser-resources-history-shared_style.css.patch	chrome/browser/resources/history/shared_style.css	1	1	0	1	0	0				error: patch failed: chrome/browser/resources/history/shared_style.css:7
+parche	patches/chrome-browser-resources-history-synced_device_manager.html.patch	chrome/browser/resources/history/synced_device_manager.html	1	0	0							
+parche	patches/chrome-browser-resources-password_manager-BUILD.gn.patch	chrome/browser/resources/password_manager/BUILD.gn	1	1	0	1	1	1				
+parche	patches/chrome-browser-resources-password_manager-password_manager.ts.patch	chrome/browser/resources/password_manager/password_manager.ts	1	1	0	1	1	1				
+parche	patches/chrome-browser-resources-password_manager-shared_style.css.patch	chrome/browser/resources/password_manager/shared_style.css	1	1	0	1	1	1				
+parche	patches/chrome-browser-resources-pdf-manifest.json.patch	chrome/browser/resources/pdf/manifest.json	1	1	1	1	0	0	1			error: patch failed: chrome/browser/resources/pdf/manifest.json:20
+parche	patches/chrome-browser-resources-settings-BUILD.gn.patch	chrome/browser/resources/settings/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-resources-settings-people_page-sync_controls.ts.patch	chrome/browser/resources/settings/people_page/sync_controls.ts	1	1	1	1	0	0	1			error: patch failed: chrome/browser/resources/settings/people_page/sync_controls.ts:117
+parche	patches/chrome-browser-resources-settings-privacy_page-personalization_options.html.patch	chrome/browser/resources/settings/privacy_page/personalization_options.html	1	1	1	1	0	0	1			error: patch failed: chrome/browser/resources/settings/privacy_page/personalization_options.html:23
+parche	patches/chrome-browser-resources-settings-privacy_page-personalization_options.ts.patch	chrome/browser/resources/settings/privacy_page/personalization_options.ts	1	1	1	1	0	0	1			error: patch failed: chrome/browser/resources/settings/privacy_page/personalization_options.ts:91
+parche	patches/chrome-browser-resources-settings-privacy_page-privacy_page.html.patch	chrome/browser/resources/settings/privacy_page/privacy_page.html	1	1	1	1	0	0	1			error: patch failed: chrome/browser/resources/settings/privacy_page/privacy_page.html:36
+parche	patches/chrome-browser-resources-settings-privacy_page-privacy_page.ts.patch	chrome/browser/resources/settings/privacy_page/privacy_page.ts	1	1	1	1	0	0	1			error: patch failed: chrome/browser/resources/settings/privacy_page/privacy_page.ts:22
+parche	patches/chrome-browser-resources-settings-route.ts.patch	chrome/browser/resources/settings/route.ts	1	1	1	1	0	0	1			error: patch failed: chrome/browser/resources/settings/route.ts:311
+parche	patches/chrome-browser-resources-settings-router.ts.patch	chrome/browser/resources/settings/router.ts	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-resources-settings-settings.html.patch	chrome/browser/resources/settings/settings.html	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-resources-settings-settings.ts.patch	chrome/browser/resources/settings/settings.ts	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-resources-settings-settings_page-main_page_mixin.ts.patch	chrome/browser/resources/settings/settings_page/main_page_mixin.ts	1	0	0							
+parche	patches/chrome-browser-resources-settings-settings_shared.css.patch	chrome/browser/resources/settings/settings_shared.css	1	1	1	1	0	1	1			error: patch failed: chrome/browser/resources/settings/settings_shared.css:8
+parche	patches/chrome-browser-resources-settings-site_settings-constants.ts.patch	chrome/browser/resources/settings/site_settings/constants.ts	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-resources-settings-site_settings-settings_category_default_radio_group.ts.patch	chrome/browser/resources/settings/site_settings/settings_category_default_radio_group.ts	1	1	0	1	0	0				error: patch failed: chrome/browser/resources/settings/site_settings/settings_category_default_radio_group.ts:168
+parche	patches/chrome-browser-resources-settings-site_settings_page-site_settings_page.ts.patch	chrome/browser/resources/settings/site_settings_page/site_settings_page.ts	1	0	0							
+parche	patches/chrome-browser-resources-settings_shared-privacy_page-privacy_page_browser_proxy.ts.patch	chrome/browser/resources/settings_shared/privacy_page/privacy_page_browser_proxy.ts	1	1	1	1	0	0	1			error: patch failed: chrome/browser/resources/settings_shared/privacy_page/privacy_page_browser_proxy.ts:54
+parche	patches/chrome-browser-resources-side_panel-bookmarks-BUILD.gn.patch	chrome/browser/resources/side_panel/bookmarks/BUILD.gn	1	1	0	1	0	0				error: patch failed: chrome/browser/resources/side_panel/bookmarks/BUILD.gn:69
+parche	patches/chrome-browser-resources-side_panel-bookmarks-power_bookmarks_list.ts.patch	chrome/browser/resources/side_panel/bookmarks/power_bookmarks_list.ts	1	1	1	1	0	0	1			error: patch failed: chrome/browser/resources/side_panel/bookmarks/power_bookmarks_list.ts:3
+parche	patches/chrome-browser-resources-side_panel-read_anything-BUILD.gn.patch	chrome/browser/resources/side_panel/read_anything/BUILD.gn	1	1	0	1	1	1				
+parche	patches/chrome-browser-resources-signin-profile_customization-profile_customization_app.ts.patch	chrome/browser/resources/signin/profile_customization/profile_customization_app.ts	1	1	1	1	0	1	1			error: patch failed: chrome/browser/resources/signin/profile_customization/profile_customization_app.ts:2
+parche	patches/chrome-browser-resources-signin-profile_picker-profile_card.html.patch	chrome/browser/resources/signin/profile_picker/profile_card.html	1	0	0							
+parche	patches/chrome-browser-resources-signin-profile_picker-profile_picker.ts.patch	chrome/browser/resources/signin/profile_picker/profile_picker.ts	1	1	1	1	0	1	1			error: patch failed: chrome/browser/resources/signin/profile_picker/profile_picker.ts:2
+parche	patches/chrome-browser-resources-signin-profile_picker-profile_picker_main_view.html.patch	chrome/browser/resources/signin/profile_picker/profile_picker_main_view.html	1	0	0							
+parche	patches/chrome-browser-resources-signin-profile_picker-profile_picker_main_view.ts.patch	chrome/browser/resources/signin/profile_picker/profile_picker_main_view.ts	1	1	1	1	0	1	1			error: patch failed: chrome/browser/resources/signin/profile_picker/profile_picker_main_view.ts:132
+parche	patches/chrome-browser-resources_util.cc.patch	chrome/browser/resources_util.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/resources_util.cc:50
+parche	patches/chrome-browser-safe_browsing-download_protection-check_client_download_request_base.cc.patch	chrome/browser/safe_browsing/download_protection/check_client_download_request_base.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/safe_browsing/download_protection/check_client_download_request_base.cc:327
+parche	patches/chrome-browser-shell_integration.h.patch	chrome/browser/shell_integration.h	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-shell_integration_linux.cc.patch	chrome/browser/shell_integration_linux.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-signin-account_consistency_mode_manager.cc.patch	chrome/browser/signin/account_consistency_mode_manager.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/signin/account_consistency_mode_manager.cc:197
+parche	patches/chrome-browser-spellchecker-spellcheck_hunspell_dictionary.cc.patch	chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-storage_access_api-storage_access_grant_permission_context.cc.patch	chrome/browser/storage_access_api/storage_access_grant_permission_context.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-sync-sync_service_factory.cc.patch	chrome/browser/sync/sync_service_factory.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/sync/sync_service_factory.cc:167
+parche	patches/chrome-browser-tab_ui-android-BUILD.gn.patch	chrome/browser/tab_ui/android/BUILD.gn	1	1	0	1	0	1				error: patch failed: chrome/browser/tab_ui/android/BUILD.gn:19
+parche	patches/chrome-browser-themes-theme_service_factory.cc.patch	chrome/browser/themes/theme_service_factory.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/themes/theme_service_factory.cc:106
+parche	patches/chrome-browser-ui-BUILD.gn.patch	chrome/browser/ui/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/BUILD.gn:753
+parche	patches/chrome-browser-ui-actions-chrome_action_id.h.patch	chrome/browser/ui/actions/chrome_action_id.h	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/actions/chrome_action_id.h:539
+parche	patches/chrome-browser-ui-android-appmenu-internal-BUILD.gn.patch	chrome/browser/ui/android/appmenu/internal/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/android/appmenu/internal/BUILD.gn:21
+parche	patches/chrome-browser-ui-android-appmenu-internal-java-src-org-chromium-chrome-browser-ui-appmenu-AppMenu.java.patch	chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java:307
+parche	patches/chrome-browser-ui-android-omnibox-java-res-layout-url_action_container.xml.patch	chrome/browser/ui/android/omnibox/java/res/layout/url_action_container.xml	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/android/omnibox/java/res/layout/url_action_container.xml:22
+parche	patches/chrome-browser-ui-android-toolbar-BUILD.gn.patch	chrome/browser/ui/android/toolbar/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/android/toolbar/BUILD.gn:105
+parche	patches/chrome-browser-ui-android-toolbar-java-res-layout-toolbar_phone.xml.patch	chrome/browser/ui/android/toolbar/java/res/layout/toolbar_phone.xml	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/android/toolbar/java/res/layout/toolbar_phone.xml:38
+parche	patches/chrome-browser-ui-android-toolbar-java-res-layout-toolbar_tablet.xml.patch	chrome/browser/ui/android/toolbar/java/res/layout/toolbar_tablet.xml	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/android/toolbar/java/res/layout/toolbar_tablet.xml:66
+parche	patches/chrome-browser-ui-android-toolbar-java-src-org-chromium-chrome-browser-toolbar-top-ToolbarPhone.java.patch	chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java:594
+parche	patches/chrome-browser-ui-android-toolbar-java-src-org-chromium-chrome-browser-toolbar-top-ToolbarTablet.java.patch	chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarTablet.java	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarTablet.java:412
+parche	patches/chrome-browser-ui-browser.cc.patch	chrome/browser/ui/browser.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/browser.cc:528
+parche	patches/chrome-browser-ui-browser_actions.h.patch	chrome/browser/ui/browser_actions.h	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/browser_actions.h:22
+parche	patches/chrome-browser-ui-browser_navigator.cc.patch	chrome/browser/ui/browser_navigator.cc	1	0	0							
+parche	patches/chrome-browser-ui-browser_ui_prefs.cc.patch	chrome/browser/ui/browser_ui_prefs.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/browser_ui_prefs.cc:96
+parche	patches/chrome-browser-ui-chrome_pages.cc.patch	chrome/browser/ui/chrome_pages.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/chrome_pages.cc:403
+parche	patches/chrome-browser-ui-color-BUILD.gn.patch	chrome/browser/ui/color/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/color/BUILD.gn:64
+parche	patches/chrome-browser-ui-extensions-icon_with_badge_image_source.cc.patch	chrome/browser/ui/extensions/icon_with_badge_image_source.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-extensions-icon_with_badge_image_source.h.patch	chrome/browser/ui/extensions/icon_with_badge_image_source.h	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-omnibox-chrome_omnibox_client.h.patch	chrome/browser/ui/omnibox/chrome_omnibox_client.h	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/omnibox/chrome_omnibox_client.h:23
+parche	patches/chrome-browser-ui-tab_helpers.cc.patch	chrome/browser/ui/tab_helpers.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-tabs-recent_tabs_sub_menu_model.cc.patch	chrome/browser/ui/tabs/recent_tabs_sub_menu_model.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-tabs-recent_tabs_sub_menu_model_unittest.cc.patch	chrome/browser/ui/tabs/recent_tabs_sub_menu_model_unittest.cc	1	0	0							
+parche	patches/chrome-browser-ui-tabs-tab_strip_model.h.patch	chrome/browser/ui/tabs/tab_strip_model.h	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/tabs/tab_strip_model.h:662
+parche	patches/chrome-browser-ui-tabs-tab_strip_prefs.cc.patch	chrome/browser/ui/tabs/tab_strip_prefs.cc	1	1	0	1	0	0				error: patch failed: chrome/browser/ui/tabs/tab_strip_prefs.cc:19
+parche	patches/chrome-browser-ui-tabs-tab_style.cc.patch	chrome/browser/ui/tabs/tab_style.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/tabs/tab_style.cc:190
+parche	patches/chrome-browser-ui-views-bookmarks-bookmark_bar_view.cc.patch	chrome/browser/ui/views/bookmarks/bookmark_bar_view.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/views/bookmarks/bookmark_bar_view.cc:866
+parche	patches/chrome-browser-ui-views-bookmarks-bookmark_bubble_view.cc.patch	chrome/browser/ui/views/bookmarks/bookmark_bubble_view.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/bookmarks/bookmark_bubble_view.cc:446
+parche	patches/chrome-browser-ui-views-bubble-webui_bubble_manager.h.patch	chrome/browser/ui/views/bubble/webui_bubble_manager.h	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/bubble/webui_bubble_manager.h:169
+parche	patches/chrome-browser-ui-views-download-download_item_view.h.patch	chrome/browser/ui/views/download/download_item_view.h	1	0	0							
+parche	patches/chrome-browser-ui-views-extensions-extensions_menu_main_page_view.cc.patch	chrome/browser/ui/views/extensions/extensions_menu_main_page_view.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/extensions/extensions_menu_main_page_view.cc:727
+parche	patches/chrome-browser-ui-views-extensions-extensions_menu_view_controller.cc.patch	chrome/browser/ui/views/extensions/extensions_menu_view_controller.cc	1	0	0							
+parche	patches/chrome-browser-ui-views-frame-browser_view_layout.cc.patch	chrome/browser/ui/views/frame/browser_view_layout.cc	1	0	0							
+parche	patches/chrome-browser-ui-views-frame-tab_strip_region_view.h.patch	chrome/browser/ui/views/frame/tab_strip_region_view.h	1	1	0	1	0	0				error: patch failed: chrome/browser/ui/views/frame/tab_strip_region_view.h:25
+parche	patches/chrome-browser-ui-views-location_bar-icon_label_bubble_view.cc.patch	chrome/browser/ui/views/location_bar/icon_label_bubble_view.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/location_bar/icon_label_bubble_view.cc:730
+parche	patches/chrome-browser-ui-views-location_bar-location_bar_view.cc.patch	chrome/browser/ui/views/location_bar/location_bar_view.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/location_bar/location_bar_view.cc:717
+parche	patches/chrome-browser-ui-views-location_bar-location_bar_view.h.patch	chrome/browser/ui/views/location_bar/location_bar_view.h	1	1	0	1	0	0				error: patch failed: chrome/browser/ui/views/location_bar/location_bar_view.h:121
+parche	patches/chrome-browser-ui-views-overlay-video_overlay_window_views.cc.patch	chrome/browser/ui/views/overlay/video_overlay_window_views.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/overlay/video_overlay_window_views.cc:287
+parche	patches/chrome-browser-ui-views-page_info-page_info_view_factory.cc.patch	chrome/browser/ui/views/page_info/page_info_view_factory.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/page_info/page_info_view_factory.cc:426
+parche	patches/chrome-browser-ui-views-permissions-permission_prompt_bubble_base_view.cc.patch	chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc:154
+parche	patches/chrome-browser-ui-views-profiles-avatar_toolbar_button.h.patch	chrome/browser/ui/views/profiles/avatar_toolbar_button.h	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/profiles/avatar_toolbar_button.h:127
+parche	patches/chrome-browser-ui-views-profiles-incognito_menu_view.h.patch	chrome/browser/ui/views/profiles/incognito_menu_view.h	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-views-profiles-profile_menu_view.h.patch	chrome/browser/ui/views/profiles/profile_menu_view.h	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/views/profiles/profile_menu_view.h:50
+parche	patches/chrome-browser-ui-views-profiles-profile_menu_view_base.cc.patch	chrome/browser/ui/views/profiles/profile_menu_view_base.cc	1	1	0	1	0	0				error: patch failed: chrome/browser/ui/views/profiles/profile_menu_view_base.cc:603
+parche	patches/chrome-browser-ui-views-profiles-profile_menu_view_base.h.patch	chrome/browser/ui/views/profiles/profile_menu_view_base.h	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/views/profiles/profile_menu_view_base.h:171
+parche	patches/chrome-browser-ui-views-send_tab_to_self-send_tab_to_self_device_picker_bubble_view.cc.patch	chrome/browser/ui/views/send_tab_to_self/send_tab_to_self_device_picker_bubble_view.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-views-side_panel-side_panel_coordinator.h.patch	chrome/browser/ui/views/side_panel/side_panel_coordinator.h	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/side_panel/side_panel_coordinator.h:53
+parche	patches/chrome-browser-ui-views-side_panel-side_panel_entry_id.h.patch	chrome/browser/ui/views/side_panel/side_panel_entry_id.h	1	0	0							
+parche	patches/chrome-browser-ui-views-tabs-new_tab_button.h.patch	chrome/browser/ui/views/tabs/new_tab_button.h	1	1	0	1	0	0				error: patch failed: chrome/browser/ui/views/tabs/new_tab_button.h:50
+parche	patches/chrome-browser-ui-views-tabs-tab.cc.patch	chrome/browser/ui/views/tabs/tab.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/tabs/tab.cc:1090
+parche	patches/chrome-browser-ui-views-tabs-tab_group_views.cc.patch	chrome/browser/ui/views/tabs/tab_group_views.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-views-tabs-tab_hover_card_bubble_view.h.patch	chrome/browser/ui/views/tabs/tab_hover_card_bubble_view.h	1	0	0							
+parche	patches/chrome-browser-ui-views-tabs-tab_strip.cc.patch	chrome/browser/ui/views/tabs/tab_strip.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/tabs/tab_strip.cc:541
+parche	patches/chrome-browser-ui-views-tabs-tab_style_views.cc.patch	chrome/browser/ui/views/tabs/tab_style_views.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/tabs/tab_style_views.cc:138
+parche	patches/chrome-browser-ui-views-toolbar-app_menu.h.patch	chrome/browser/ui/views/toolbar/app_menu.h	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/toolbar/app_menu.h:31
+parche	patches/chrome-browser-ui-views-toolbar-toolbar_view.cc.patch	chrome/browser/ui/views/toolbar/toolbar_view.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/views/toolbar/toolbar_view.cc:464
+parche	patches/chrome-browser-ui-views-translate-translate_bubble_view_unittest.cc.patch	chrome/browser/ui/views/translate/translate_bubble_view_unittest.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-views-update_recommended_message_box.h.patch	chrome/browser/ui/views/update_recommended_message_box.h	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-webui-BUILD.gn.patch	chrome/browser/ui/webui/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/webui/BUILD.gn:104
+parche	patches/chrome-browser-ui-webui-bookmarks-bookmarks_ui.cc.patch	chrome/browser/ui/webui/bookmarks/bookmarks_ui.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/webui/bookmarks/bookmarks_ui.cc:128
+parche	patches/chrome-browser-ui-webui-chrome_web_ui_controller_factory.cc.patch	chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-webui-cr_components-theme_color_picker-theme_color_picker_handler.cc.patch	chrome/browser/ui/webui/cr_components/theme_color_picker/theme_color_picker_handler.cc	1	1	0	1	1	1				
+parche	patches/chrome-browser-ui-webui-downloads-downloads_ui.cc.patch	chrome/browser/ui/webui/downloads/downloads_ui.cc	1	1	0	1	0	0				error: patch failed: chrome/browser/ui/webui/downloads/downloads_ui.cc:66
+parche	patches/chrome-browser-ui-webui-extensions-extensions_ui.cc.patch	chrome/browser/ui/webui/extensions/extensions_ui.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/webui/extensions/extensions_ui.cc:491
+parche	patches/chrome-browser-ui-webui-history-history_ui.cc.patch	chrome/browser/ui/webui/history/history_ui.cc	1	1	0	1	0	1				error: patch failed: chrome/browser/ui/webui/history/history_ui.cc:85
+parche	patches/chrome-browser-ui-webui-print_preview-print_preview_ui.cc.patch	chrome/browser/ui/webui/print_preview/print_preview_ui.cc	1	1	0	1	0	0				error: patch failed: chrome/browser/ui/webui/print_preview/print_preview_ui.cc:149
+parche	patches/chrome-browser-ui-webui-settings-import_data_handler.cc.patch	chrome/browser/ui/webui/settings/import_data_handler.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/webui/settings/import_data_handler.cc:142
+parche	patches/chrome-browser-ui-webui-settings-import_data_handler.h.patch	chrome/browser/ui/webui/settings/import_data_handler.h	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/webui/settings/import_data_handler.h:37
+parche	patches/chrome-browser-ui-webui-settings-people_handler.cc.patch	chrome/browser/ui/webui/settings/people_handler.cc	1	1	1	1	0	1	1			error: patch failed: chrome/browser/ui/webui/settings/people_handler.cc:1092
+parche	patches/chrome-browser-ui-webui-settings-settings_localized_strings_provider.cc.patch	chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-webui-settings-site_settings_helper.cc.patch	chrome/browser/ui/webui/settings/site_settings_helper.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/webui/settings/site_settings_helper.cc:232
+parche	patches/chrome-browser-ui-webui-side_panel-bookmarks-bookmarks.mojom.patch	chrome/browser/ui/webui/side_panel/bookmarks/bookmarks.mojom	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-ui-webui-theme_source.cc.patch	chrome/browser/ui/webui/theme_source.cc	1	1	1	1	0	0	1			error: patch failed: chrome/browser/ui/webui/theme_source.cc:138
+parche	patches/chrome-browser-web_applications-os_integration-mac-apps_folder_support.mm.patch	chrome/browser/web_applications/os_integration/mac/apps_folder_support.mm	1	1	1	1	1	1	1			
+parche	patches/chrome-browser-webauthn-enclave_authenticator_browsertest.cc.patch	chrome/browser/webauthn/enclave_authenticator_browsertest.cc	1	1	0	1	0	0				error: patch failed: chrome/browser/webauthn/enclave_authenticator_browsertest.cc:980
+parche	patches/chrome-chrome_proxy-chrome_proxy_main_win.cc.patch	chrome/chrome_proxy/chrome_proxy_main_win.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-chrome_repack_locales.gni.patch	chrome/chrome_repack_locales.gni	1	1	1	1	1	1	1			
+parche	patches/chrome-common-BUILD.gn.patch	chrome/common/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/common/BUILD.gn:283
+parche	patches/chrome-common-extensions-api-developer_private.idl.patch	chrome/common/extensions/api/developer_private.idl	1	0	0							
+parche	patches/chrome-common-extensions-chrome_extensions_client.cc.patch	chrome/common/extensions/chrome_extensions_client.cc	1	1	1	1	0	0	1			error: patch failed: chrome/common/extensions/chrome_extensions_client.cc:13
+parche	patches/chrome-common-importer-importer_data_types.h.patch	chrome/common/importer/importer_data_types.h	1	0	0							
+parche	patches/chrome-common-importer-mock_importer_bridge.h.patch	chrome/common/importer/mock_importer_bridge.h	1	1	1	1	1	1	1			
+parche	patches/chrome-elevation_service-BUILD.gn.patch	chrome/elevation_service/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/elevation_service/BUILD.gn:105
+parche	patches/chrome-installer-gcapi-gcapi.cc.patch	chrome/installer/gcapi/gcapi.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-installer-gcapi-google_update_util.cc.patch	chrome/installer/gcapi/google_update_util.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-installer-launcher_support-chrome_launcher_support.cc.patch	chrome/installer/launcher_support/chrome_launcher_support.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-installer-linux-BUILD.gn.patch	chrome/installer/linux/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: chrome/installer/linux/BUILD.gn:60
+parche	patches/chrome-installer-linux-common-installer.include.patch	chrome/installer/linux/common/installer.include	1	0	0							
+parche	patches/chrome-installer-linux-common-repo.cron.patch	chrome/installer/linux/common/repo.cron	1	1	1	1	0	1	1			warning: chrome/installer/linux/common/repo.cron has type 100644, expected 100755
+parche	patches/chrome-installer-linux-common-rpmrepo.cron.patch	chrome/installer/linux/common/rpmrepo.cron	1	1	1	1	1	1	1			
+parche	patches/chrome-installer-linux-common-wrapper.patch	chrome/installer/linux/common/wrapper	1	1	1	1	0	0	1			warning: chrome/installer/linux/common/wrapper has type 100644, expected 100755
+parche	patches/chrome-installer-linux-debian-build.sh.patch	chrome/installer/linux/debian/build.sh	1	0	0							
+parche	patches/chrome-installer-linux-debian-changelog.template.patch	chrome/installer/linux/debian/changelog.template	1	1	1	1	0	0	1			error: patch failed: chrome/installer/linux/debian/changelog.template:1
+parche	patches/chrome-installer-linux-debian-control.template.patch	chrome/installer/linux/debian/control.template	1	1	1	1	0	0	1			error: patch failed: chrome/installer/linux/debian/control.template:1
+parche	patches/chrome-installer-linux-debian-postinst.patch	chrome/installer/linux/debian/postinst	1	1	1	1	0	1	1			warning: chrome/installer/linux/debian/postinst has type 100644, expected 100755
+parche	patches/chrome-installer-linux-debian-postrm.patch	chrome/installer/linux/debian/postrm	1	1	1	1	1	1	1			
+parche	patches/chrome-installer-linux-debian-update_dist_package_versions.py.patch	chrome/installer/linux/debian/update_dist_package_versions.py	1	1	1	1	1	1	1			
+parche	patches/chrome-installer-linux-rpm-build.sh.patch	chrome/installer/linux/rpm/build.sh	1	0	0							
+parche	patches/chrome-installer-linux-rpm-chrome.spec.template.patch	chrome/installer/linux/rpm/chrome.spec.template	1	1	1	1	1	1	1			
+parche	patches/chrome-installer-linux-rpm-update_package_provides.py.patch	chrome/installer/linux/rpm/update_package_provides.py	1	1	1	1	1	1	1			
+parche	patches/chrome-installer-mac-BUILD.gn.patch	chrome/installer/mac/BUILD.gn	1	1	0	1	0	1				error: patch failed: chrome/installer/mac/BUILD.gn:19
+parche	patches/chrome-installer-mac-signing-config.py.patch	chrome/installer/mac/signing/config.py	1	1	0	1	1	1				
+parche	patches/chrome-installer-mac-signing-config_factory.py.patch	chrome/installer/mac/signing/config_factory.py	1	1	0	1	0	1				error: patch failed: chrome/installer/mac/signing/config_factory.py:8
+parche	patches/chrome-installer-mac-signing-model.py.patch	chrome/installer/mac/signing/model.py	1	1	0	1	1	1				
+parche	patches/chrome-installer-mac-signing-parts.py.patch	chrome/installer/mac/signing/parts.py	1	1	1	1	0	1	1			error: patch failed: chrome/installer/mac/signing/parts.py:149
+parche	patches/chrome-installer-mac-signing-pipeline.py.patch	chrome/installer/mac/signing/pipeline.py	1	1	1	1	0	0	1			error: patch failed: chrome/installer/mac/signing/pipeline.py:737
+parche	patches/chrome-installer-mac-signing-signing.py.patch	chrome/installer/mac/signing/signing.py	1	1	1	1	0	0	1			error: patch failed: chrome/installer/mac/signing/signing.py:23
+parche	patches/chrome-installer-mini_installer-BUILD.gn.patch	chrome/installer/mini_installer/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-installer-mini_installer-chrome.release.patch	chrome/installer/mini_installer/chrome.release	1	1	1	1	0	1	1			error: patch failed: chrome/installer/mini_installer/chrome.release:18
+parche	patches/chrome-installer-mini_installer-configuration.cc.patch	chrome/installer/mini_installer/configuration.cc	1	1	1	1	0	0	1			error: patch failed: chrome/installer/mini_installer/configuration.cc:77
+parche	patches/chrome-installer-mini_installer-mini_installer.cc.patch	chrome/installer/mini_installer/mini_installer.cc	1	1	1	1	1	1	1			
+parche	patches/chrome-installer-setup-BUILD.gn.patch	chrome/installer/setup/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-installer-util-BUILD.gn.patch	chrome/installer/util/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/installer/util/BUILD.gn:196
+parche	patches/chrome-installer-util-google_update_settings.cc.patch	chrome/installer/util/google_update_settings.cc	1	0	0							
+parche	patches/chrome-installer-util-shell_util.cc.patch	chrome/installer/util/shell_util.cc	1	1	1	1	0	0	1			error: patch failed: chrome/installer/util/shell_util.cc:364
+parche	patches/chrome-renderer-BUILD.gn.patch	chrome/renderer/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: chrome/renderer/BUILD.gn:233
+parche	patches/chrome-renderer-chrome_content_renderer_client.cc.patch	chrome/renderer/chrome_content_renderer_client.cc	1	1	1	1	0	0	1			error: patch failed: chrome/renderer/chrome_content_renderer_client.cc:599
+parche	patches/chrome-renderer-chrome_content_renderer_client.h.patch	chrome/renderer/chrome_content_renderer_client.h	1	1	1	1	1	1	1			
+parche	patches/chrome-renderer-worker_content_settings_client.h.patch	chrome/renderer/worker_content_settings_client.h	1	1	0	1	1	1				
+parche	patches/chrome-services-printing-BUILD.gn.patch	chrome/services/printing/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-services-printing-public-mojom-BUILD.gn.patch	chrome/services/printing/public/mojom/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-test-BUILD.gn.patch	chrome/test/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-test-data-webui-settings-BUILD.gn.patch	chrome/test/data/webui/settings/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-test-include_js_tests.gni.patch	chrome/test/include_js_tests.gni	1	1	1	1	0	1	1			error: patch failed: chrome/test/include_js_tests.gni:1
+parche	patches/chrome-tools-build-mac-BUILD.gn.patch	chrome/tools/build/mac/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-tools-build-mac-infoplist_strings_util.cc.patch	chrome/tools/build/mac/infoplist_strings_util.cc	1	1	1	1	0	1	1			error: patch failed: chrome/tools/build/mac/infoplist_strings_util.cc:150
+parche	patches/chrome-tools-build-win-create_installer_archive.py.patch	chrome/tools/build/win/create_installer_archive.py	1	1	1	1	0	0	1			warning: chrome/tools/build/win/create_installer_archive.py has type 100644, expected 100755
+parche	patches/chrome-updater-branding.gni.patch	chrome/updater/branding.gni	1	1	1	1	0	0	1			error: patch failed: chrome/updater/branding.gni:102
+parche	patches/chrome-utility-BUILD.gn.patch	chrome/utility/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/chrome-utility-importer-external_process_importer_bridge.h.patch	chrome/utility/importer/external_process_importer_bridge.h	1	1	1	1	1	1	1			
+parche	patches/components-browser_ui-settings-android-BUILD.gn.patch	components/browser_ui/settings/android/BUILD.gn	1	1	0	1	1	1				
+parche	patches/components-browser_ui-site_settings-android-java-res-menu-website_preferences_menu.xml.patch	components/browser_ui/site_settings/android/java/res/menu/website_preferences_menu.xml	1	1	1	1	1	1	1			
+parche	patches/components-browser_ui-site_settings-android-java-src-org-chromium-components-browser_ui-site_settings-ChosenObjectSettings.java.patch	components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ChosenObjectSettings.java	1	1	1	1	1	1	1			
+parche	patches/components-browser_ui-site_settings-android-java-src-org-chromium-components-browser_ui-site_settings-SingleCategorySettings.java.patch	components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java	1	1	1	1	1	1	1			
+parche	patches/components-browser_ui-site_settings-android-java-src-org-chromium-components-browser_ui-site_settings-SiteSettingsCategory.java.patch	components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java	1	1	1	1	0	0	1			error: patch failed: components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCateg
+parche	patches/components-browser_ui-widget-android-java-res-values-dimens.xml.patch	components/browser_ui/widget/android/java/res/values/dimens.xml	1	1	1	1	0	0	1			error: patch failed: components/browser_ui/widget/android/java/res/values/dimens.xml:74
+parche	patches/components-browsing_data-core-BUILD.gn.patch	components/browsing_data/core/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: components/browsing_data/core/BUILD.gn:49
+parche	patches/components-component_updater-component_updater_service.h.patch	components/component_updater/component_updater_service.h	1	1	1	1	0	1	1			error: patch failed: components/component_updater/component_updater_service.h:205
+parche	patches/components-content_settings-browser-page_specific_content_settings.cc.patch	components/content_settings/browser/page_specific_content_settings.cc	1	1	1	1	0	1	1			error: patch failed: components/content_settings/browser/page_specific_content_settings.cc:821
+parche	patches/components-content_settings-core-browser-BUILD.gn.patch	components/content_settings/core/browser/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: components/content_settings/core/browser/BUILD.gn:85
+parche	patches/components-content_settings-core-browser-content_settings_default_provider.cc.patch	components/content_settings/core/browser/content_settings_default_provider.cc	1	1	1	1	0	0	1			error: patch failed: components/content_settings/core/browser/content_settings_default_provider.cc:378
+parche	patches/components-content_settings-core-browser-content_settings_policy_provider.cc.patch	components/content_settings/core/browser/content_settings_policy_provider.cc	1	1	1	1	0	0	1			error: patch failed: components/content_settings/core/browser/content_settings_policy_provider.cc:39
+parche	patches/components-content_settings-core-browser-content_settings_pref.cc.patch	components/content_settings/core/browser/content_settings_pref.cc	1	1	1	1	1	1	1			
+parche	patches/components-content_settings-core-browser-content_settings_pref_provider.h.patch	components/content_settings/core/browser/content_settings_pref_provider.h	1	1	1	1	1	1	1			
+parche	patches/components-content_settings-core-browser-content_settings_registry.cc.patch	components/content_settings/core/browser/content_settings_registry.cc	1	1	1	1	0	0	1			error: patch failed: components/content_settings/core/browser/content_settings_registry.cc:813
+parche	patches/components-content_settings-core-browser-content_settings_uma_util.cc.patch	components/content_settings/core/browser/content_settings_uma_util.cc	1	1	0	1	0	0				error: patch failed: components/content_settings/core/browser/content_settings_uma_util.cc:146
+parche	patches/components-content_settings-core-browser-content_settings_utils.cc.patch	components/content_settings/core/browser/content_settings_utils.cc	1	1	0	1	0	1				error: patch failed: components/content_settings/core/browser/content_settings_utils.cc:167
+parche	patches/components-content_settings-core-browser-website_settings_registry.h.patch	components/content_settings/core/browser/website_settings_registry.h	1	1	0	1	1	1				
+parche	patches/components-content_settings-core-common-content_settings_enums.mojom.patch	components/content_settings/core/common/content_settings_enums.mojom	1	1	1	1	0	0	1			error: patch failed: components/content_settings/core/common/content_settings_enums.mojom:70
+parche	patches/components-content_settings-core-common-cookie_settings_base.cc.patch	components/content_settings/core/common/cookie_settings_base.cc	1	1	1	1	0	0	1			error: patch failed: components/content_settings/core/common/cookie_settings_base.cc:716
+parche	patches/components-content_settings-core-common-cookie_settings_base.h.patch	components/content_settings/core/common/cookie_settings_base.h	1	1	1	1	1	1	1			
+parche	patches/components-content_settings-renderer-BUILD.gn.patch	components/content_settings/renderer/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/components-content_settings-renderer-content_settings_agent_impl.cc.patch	components/content_settings/renderer/content_settings_agent_impl.cc	1	1	0	1	0	0				error: patch failed: components/content_settings/renderer/content_settings_agent_impl.cc:360
+parche	patches/components-content_settings-renderer-content_settings_agent_impl.h.patch	components/content_settings/renderer/content_settings_agent_impl.h	1	1	1	1	1	1	1			
+parche	patches/components-crash-core-app-crash_reporter_client.cc.patch	components/crash/core/app/crash_reporter_client.cc	1	1	1	1	0	0	1			error: patch failed: components/crash/core/app/crash_reporter_client.cc:190
+parche	patches/components-crash-core-app-crashpad.cc.patch	components/crash/core/app/crashpad.cc	1	1	1	1	0	0	1			error: patch failed: components/crash/core/app/crashpad.cc:92
+parche	patches/components-crash-core-browser-resources-crashes.ts.patch	components/crash/core/browser/resources/crashes.ts	1	1	1	1	1	1	1			
+parche	patches/components-crx_file-BUILD.gn.patch	components/crx_file/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/components-crx_file-crx_creator.cc.patch	components/crx_file/crx_creator.cc	1	1	1	1	0	0	1			error: patch failed: components/crx_file/crx_creator.cc:71
+parche	patches/components-crx_file-crx_verifier.cc.patch	components/crx_file/crx_verifier.cc	1	1	1	1	0	0	1			error: patch failed: components/crx_file/crx_verifier.cc:205
+parche	patches/components-download-internal-background_service-proto-entry.proto.patch	components/download/internal/background_service/proto/entry.proto	1	1	1	1	1	1	1			
+parche	patches/components-download-internal-background_service-proto_conversions.cc.patch	components/download/internal/background_service/proto_conversions.cc	1	1	1	1	0	1	1			error: patch failed: components/download/internal/background_service/proto_conversions.cc:79
+parche	patches/components-download-internal-common-download_item_impl.cc.patch	components/download/internal/common/download_item_impl.cc	1	1	1	1	0	0	1			error: patch failed: components/download/internal/common/download_item_impl.cc:1958
+parche	patches/components-download-public-background_service-clients.cc.patch	components/download/public/background_service/clients.cc	1	1	1	1	1	1	1			
+parche	patches/components-download-public-background_service-clients.h.patch	components/download/public/background_service/clients.h	1	1	1	1	1	1	1			
+parche	patches/components-embedder_support-user_agent_utils.cc.patch	components/embedder_support/user_agent_utils.cc	1	1	1	1	0	0	1			error: patch failed: components/embedder_support/user_agent_utils.cc:190
+parche	patches/components-external_intents-android-BUILD.gn.patch	components/external_intents/android/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/components-history-core-browser-BUILD.gn.patch	components/history/core/browser/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: components/history/core/browser/BUILD.gn:151
+parche	patches/components-history-core-browser-history_types.h.patch	components/history/core/browser/history_types.h	1	1	1	1	0	0	1			error: patch failed: components/history/core/browser/history_types.h:53
+parche	patches/components-infobars-core-infobar_delegate.h.patch	components/infobars/core/infobar_delegate.h	1	1	1	1	0	0	1			error: patch failed: components/infobars/core/infobar_delegate.h:186
+parche	patches/components-metrics-BUILD.gn.patch	components/metrics/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: components/metrics/BUILD.gn:321
+parche	patches/components-metrics-machine_id_provider_win.cc.patch	components/metrics/machine_id_provider_win.cc	1	1	1	1	0	0	1			error: patch failed: components/metrics/machine_id_provider_win.cc:20
+parche	patches/components-minidump_uploader-android-java-src-org-chromium-components-minidump_uploader-MinidumpUploader.java.patch	components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploader.java	1	1	1	1	0	0	1			error: patch failed: components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploader.java:26
+parche	patches/components-omnibox-browser-BUILD.gn.patch	components/omnibox/browser/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: components/omnibox/browser/BUILD.gn:985
+parche	patches/components-omnibox-browser-autocomplete_controller.cc.patch	components/omnibox/browser/autocomplete_controller.cc	1	1	1	1	0	0	1			error: patch failed: components/omnibox/browser/autocomplete_controller.cc:1137
+parche	patches/components-omnibox-browser-omnibox_edit_model.cc.patch	components/omnibox/browser/omnibox_edit_model.cc	1	0	0							
+parche	patches/components-os_crypt-sync-BUILD.gn.patch	components/os_crypt/sync/BUILD.gn	1	0	0							
+parche	patches/components-os_crypt-sync-key_storage_kwallet.cc.patch	components/os_crypt/sync/key_storage_kwallet.cc	1	0	0							
+parche	patches/components-os_crypt-sync-key_storage_kwallet_unittest.cc.patch	components/os_crypt/sync/key_storage_kwallet_unittest.cc	1	0	0							
+parche	patches/components-os_crypt-sync-key_storage_libsecret.cc.patch	components/os_crypt/sync/key_storage_libsecret.cc	1	0	0							
+parche	patches/components-os_crypt-sync-key_storage_linux.cc.patch	components/os_crypt/sync/key_storage_linux.cc	1	0	0							
+parche	patches/components-os_crypt-sync-keychain_password_mac.mm.patch	components/os_crypt/sync/keychain_password_mac.mm	1	0	0							
+parche	patches/components-os_crypt-sync-os_crypt_win.cc.patch	components/os_crypt/sync/os_crypt_win.cc	1	0	0							
+parche	patches/components-page_info-page_info.cc.patch	components/page_info/page_info.cc	1	1	1	1	0	0	1			error: patch failed: components/page_info/page_info.cc:1237
+parche	patches/components-password_manager-core-browser-password_form_filling.cc.patch	components/password_manager/core/browser/password_form_filling.cc	1	1	1	1	1	1	1			
+parche	patches/components-permissions-BUILD.gn.patch	components/permissions/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: components/permissions/BUILD.gn:163
+parche	patches/components-permissions-android-BUILD.gn.patch	components/permissions/android/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: components/permissions/android/BUILD.gn:152
+parche	patches/components-permissions-android-permission_prompt-permission_dialog_delegate.cc.patch	components/permissions/android/permission_prompt/permission_dialog_delegate.cc	1	1	1	1	0	0	1			error: patch failed: components/permissions/android/permission_prompt/permission_dialog_delegate.cc:187
+parche	patches/components-permissions-permission_context_base.h.patch	components/permissions/permission_context_base.h	1	1	1	1	0	1	1			error: patch failed: components/permissions/permission_context_base.h:150
+parche	patches/components-permissions-permission_manager.cc.patch	components/permissions/permission_manager.cc	1	1	0	1	0	1				error: patch failed: components/permissions/permission_manager.cc:310
+parche	patches/components-permissions-permission_request_manager.cc.patch	components/permissions/permission_request_manager.cc	1	1	1	1	0	0	1			error: patch failed: components/permissions/permission_request_manager.cc:591
+parche	patches/components-permissions-permission_uma_util.cc.patch	components/permissions/permission_uma_util.cc	1	1	1	1	0	0	1			error: patch failed: components/permissions/permission_uma_util.cc:150
+parche	patches/components-permissions-permission_util.cc.patch	components/permissions/permission_util.cc	1	1	1	1	0	1	1			error: patch failed: components/permissions/permission_util.cc:356
+parche	patches/components-permissions-request_type.cc.patch	components/permissions/request_type.cc	1	1	1	1	0	1	1			error: patch failed: components/permissions/request_type.cc:451
+parche	patches/components-policy-tools-generate_policy_source.py.patch	components/policy/tools/generate_policy_source.py	1	1	1	1	1	1	1			
+parche	patches/components-policy-tools-template_writers-writer_configuration.py.patch	components/policy/tools/template_writers/writer_configuration.py	1	1	1	1	1	1	1			
+parche	patches/components-safe_browsing-content-browser-safe_browsing_network_context.cc.patch	components/safe_browsing/content/browser/safe_browsing_network_context.cc	1	1	1	1	1	1	1			
+parche	patches/components-safe_browsing-core-common-safe_browsing_prefs.cc.patch	components/safe_browsing/core/common/safe_browsing_prefs.cc	1	1	1	1	1	1	1			
+parche	patches/components-search_engines-BUILD.gn.patch	components/search_engines/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: components/search_engines/BUILD.gn:260
+parche	patches/components-search_engines-default_search_manager.cc.patch	components/search_engines/default_search_manager.cc	1	1	1	1	0	1	1			error: patch failed: components/search_engines/default_search_manager.cc:358
+parche	patches/components-search_engines-prepopulated_engines.json.patch	components/search_engines/prepopulated_engines.json	1	0	0							
+parche	patches/components-signin-internal-identity_manager-BUILD.gn.patch	components/signin/internal/identity_manager/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/components-strings-BUILD.gn.patch	components/strings/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: components/strings/BUILD.gn:53
+parche	patches/components-sync-engine-BUILD.gn.patch	components/sync/engine/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/components-sync-engine-model_type_worker.h.patch	components/sync/engine/model_type_worker.h	1	0	0							
+parche	patches/components-sync-engine-sync_scheduler_impl.cc.patch	components/sync/engine/sync_scheduler_impl.cc	1	1	1	1	0	1	1			error: patch failed: components/sync/engine/sync_scheduler_impl.cc:475
+parche	patches/components-sync-engine-syncer_proto_util.cc.patch	components/sync/engine/syncer_proto_util.cc	1	1	1	1	1	1	1			
+parche	patches/components-sync-protocol-device_info_specifics.proto.patch	components/sync/protocol/device_info_specifics.proto	1	1	1	1	0	0	1			error: patch failed: components/sync/protocol/device_info_specifics.proto:98
+parche	patches/components-sync-protocol-proto_visitors.h.patch	components/sync/protocol/proto_visitors.h	1	1	1	1	0	1	1			error: patch failed: components/sync/protocol/proto_visitors.h:599
+parche	patches/components-sync-protocol-protocol_sources.gni.patch	components/sync/protocol/protocol_sources.gni	1	1	1	1	1	1	1			
+parche	patches/components-sync-service-BUILD.gn.patch	components/sync/service/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/components-sync-service-sync_service_impl.h.patch	components/sync/service/sync_service_impl.h	1	1	1	1	0	1	1			error: patch failed: components/sync/service/sync_service_impl.h:258
+parche	patches/components-sync-service-sync_stopped_reporter.h.patch	components/sync/service/sync_stopped_reporter.h	1	1	1	1	0	1	1			error: patch failed: components/sync/service/sync_stopped_reporter.h:29
+parche	patches/components-sync_device_info-BUILD.gn.patch	components/sync_device_info/BUILD.gn	1	1	0	1	0	1				error: patch failed: components/sync_device_info/BUILD.gn:92
+parche	patches/components-sync_device_info-device_info.h.patch	components/sync_device_info/device_info.h	1	1	1	1	0	1	1			error: patch failed: components/sync_device_info/device_info.h:153
+parche	patches/components-sync_device_info-device_info_sync_bridge.cc.patch	components/sync_device_info/device_info_sync_bridge.cc	1	1	1	1	0	1	1			error: patch failed: components/sync_device_info/device_info_sync_bridge.cc:296
+parche	patches/components-system_media_controls-linux-system_media_controls_linux.cc.patch	components/system_media_controls/linux/system_media_controls_linux.cc	1	1	1	1	1	1	1			
+parche	patches/components-translate-content-renderer-translate_agent.cc.patch	components/translate/content/renderer/translate_agent.cc	1	1	1	1	1	1	1			
+parche	patches/components-translate-core-common-BUILD.gn.patch	components/translate/core/common/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/components-update_client-BUILD.gn.patch	components/update_client/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: components/update_client/BUILD.gn:183
+parche	patches/components-variations-variations_seed_store.cc.patch	components/variations/variations_seed_store.cc	1	1	0	1	1	1				
+parche	patches/components-vector_icons-aggregate_vector_icons.py.patch	components/vector_icons/aggregate_vector_icons.py	1	1	1	1	0	0	1			error: patch failed: components/vector_icons/aggregate_vector_icons.py:102
+parche	patches/components-vector_icons-vector_icons.gni.patch	components/vector_icons/vector_icons.gni	1	1	1	1	0	1	1			error: patch failed: components/vector_icons/vector_icons.gni:60
+parche	patches/content-app_shim_remote_cocoa-render_widget_host_view_cocoa.mm.patch	content/app_shim_remote_cocoa/render_widget_host_view_cocoa.mm	1	1	1	1	1	1	1			
+parche	patches/content-browser-browser_main_loop.h.patch	content/browser/browser_main_loop.h	1	1	0	1	0	1				error: patch failed: content/browser/browser_main_loop.h:153
+parche	patches/content-browser-browser_main_runner_impl.cc.patch	content/browser/browser_main_runner_impl.cc	1	1	0	1	0	1				error: patch failed: content/browser/browser_main_runner_impl.cc:19
+parche	patches/content-browser-browsing_data-browsing_data_filter_builder_impl.cc.patch	content/browser/browsing_data/browsing_data_filter_builder_impl.cc	1	1	1	1	0	0	1			error: patch failed: content/browser/browsing_data/browsing_data_filter_builder_impl.cc:58
+parche	patches/content-browser-gpu-gpu_internals_ui.cc.patch	content/browser/gpu/gpu_internals_ui.cc	1	1	1	1	1	1	1			
+parche	patches/content-browser-renderer_host-clipboard_host_impl.cc.patch	content/browser/renderer_host/clipboard_host_impl.cc	1	1	1	1	0	1	1			error: patch failed: content/browser/renderer_host/clipboard_host_impl.cc:545
+parche	patches/content-browser-renderer_host-navigation_controller_impl.cc.patch	content/browser/renderer_host/navigation_controller_impl.cc	1	1	1	1	0	0	1			error: patch failed: content/browser/renderer_host/navigation_controller_impl.cc:3649
+parche	patches/content-browser-renderer_host-navigation_request.cc.patch	content/browser/renderer_host/navigation_request.cc	1	1	1	1	0	1	1			error: patch failed: content/browser/renderer_host/navigation_request.cc:5234
+parche	patches/content-browser-renderer_host-render_frame_host_impl.cc.patch	content/browser/renderer_host/render_frame_host_impl.cc	1	1	1	1	0	1	1			error: patch failed: content/browser/renderer_host/render_frame_host_impl.cc:4584
+parche	patches/content-browser-resources-gpu-browser_bridge.ts.patch	content/browser/resources/gpu/browser_bridge.ts	1	1	1	1	1	1	1			
+parche	patches/content-browser-resources-gpu-info_view.ts.patch	content/browser/resources/gpu/info_view.ts	1	1	1	1	1	1	1			
+parche	patches/content-browser-web_contents-web_contents_impl.cc.patch	content/browser/web_contents/web_contents_impl.cc	1	1	1	1	1	1	1			
+parche	patches/content-browser-webui-web_ui_impl.cc.patch	content/browser/webui/web_ui_impl.cc	1	1	0	1	0	0				error: patch failed: content/browser/webui/web_ui_impl.cc:82
+parche	patches/content-browser-zygote_host-zygote_host_impl_linux.cc.patch	content/browser/zygote_host/zygote_host_impl_linux.cc	1	1	0	1	0	0				error: patch failed: content/browser/zygote_host/zygote_host_impl_linux.cc:124
+parche	patches/content-common-BUILD.gn.patch	content/common/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: content/common/BUILD.gn:69
+parche	patches/content-common-frame.mojom.patch	content/common/frame.mojom	1	1	1	1	1	1	1			
+parche	patches/content-common-user_agent.cc.patch	content/common/user_agent.cc	1	0	0							
+parche	patches/content-public-browser-browser_main_parts.h.patch	content/public/browser/browser_main_parts.h	1	1	1	1	1	1	1			
+parche	patches/content-renderer-render_frame_impl.cc.patch	content/renderer/render_frame_impl.cc	1	1	1	1	0	0	1			error: patch failed: content/renderer/render_frame_impl.cc:4744
+parche	patches/content-renderer-render_thread_impl.cc.patch	content/renderer/render_thread_impl.cc	1	1	0	1	0	1				error: patch failed: content/renderer/render_thread_impl.cc:904
+parche	patches/crypto-aead.cc.patch	crypto/aead.cc	1	1	1	1	0	0	1			error: patch failed: crypto/aead.cc:124
+parche	patches/crypto-unexportable_key_metrics.cc.patch	crypto/unexportable_key_metrics.cc	1	1	0	1	0	0				error: patch failed: crypto/unexportable_key_metrics.cc:30
+parche	patches/device-fido-features.cc.patch	device/fido/features.cc	1	0	0							
+parche	patches/extensions-browser-api-socket-tcp_socket.cc.patch	extensions/browser/api/socket/tcp_socket.cc	1	1	1	1	1	1	1			
+parche	patches/extensions-browser-api-web_request-extension_web_request_event_router.cc.patch	extensions/browser/api/web_request/extension_web_request_event_router.cc	1	1	1	1	1	1	1			
+parche	patches/extensions-browser-extension_creator.cc.patch	extensions/browser/extension_creator.cc	1	1	1	1	1	1	1			
+parche	patches/extensions-browser-user_script_manager.h.patch	extensions/browser/user_script_manager.h	1	1	0	1	0	1				error: patch failed: extensions/browser/user_script_manager.h:55
+parche	patches/extensions-renderer-native_extension_bindings_system.h.patch	extensions/renderer/native_extension_bindings_system.h	1	1	1	1	1	1	1			
+parche	patches/google_apis-google_api_keys-inc.cc.patch	google_apis/google_api_keys-inc.cc	1	0	0							
+parche	patches/google_update-BUILD.gn.patch	google_update/BUILD.gn	1	0	0							
+parche	patches/ios-chrome-app-BUILD.gn.patch	ios/chrome/app/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/ios-chrome-browser-flags-about_flags.mm.patch	ios/chrome/browser/flags/about_flags.mm	1	1	1	1	0	0	1			error: patch failed: ios/chrome/browser/flags/about_flags.mm:990
+parche	patches/ios-chrome-browser-net-model-BUILD.gn.patch	ios/chrome/browser/net/model/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: ios/chrome/browser/net/model/BUILD.gn:42
+parche	patches/ios-chrome-browser-net-model-ios_chrome_network_delegate.h.patch	ios/chrome/browser/net/model/ios_chrome_network_delegate.h	1	1	1	1	0	0	1			error: patch failed: ios/chrome/browser/net/model/ios_chrome_network_delegate.h:51
+parche	patches/ios-chrome-browser-shared-model-prefs-browser_prefs.mm.patch	ios/chrome/browser/shared/model/prefs/browser_prefs.mm	1	1	1	1	0	0	1			error: patch failed: ios/chrome/browser/shared/model/prefs/browser_prefs.mm:663
+parche	patches/ios-chrome-browser-sync-model-sync_service_factory.mm.patch	ios/chrome/browser/sync/model/sync_service_factory.mm	1	1	1	1	0	0	1			error: patch failed: ios/chrome/browser/sync/model/sync_service_factory.mm:93
+parche	patches/ios-chrome-common-ui-favicon-favicon_attributes.h.patch	ios/chrome/common/ui/favicon/favicon_attributes.h	1	1	1	1	0	0	1			error: patch failed: ios/chrome/common/ui/favicon/favicon_attributes.h:9
+parche	patches/media-audio-pulse-pulse_util.cc.patch	media/audio/pulse/pulse_util.cc	1	1	1	1	1	1	1			
+parche	patches/mojo-public-tools-bindings-checks-mojom_attributes_check.py.patch	mojo/public/tools/bindings/checks/mojom_attributes_check.py	1	1	1	1	0	0	1			error: patch failed: mojo/public/tools/bindings/checks/mojom_attributes_check.py:7
+parche	patches/mojo-public-tools-mojom-mojom_parser.py.patch	mojo/public/tools/mojom/mojom_parser.py	1	1	1	1	1	1	1			
+parche	patches/net-BUILD.gn.patch	net/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/net-base-proxy_server.cc.patch	net/base/proxy_server.cc	1	1	1	1	1	1	1			
+parche	patches/net-cookies-canonical_cookie.cc.patch	net/cookies/canonical_cookie.cc	1	1	1	1	1	1	1			
+parche	patches/net-cookies-cookie_deletion_info.h.patch	net/cookies/cookie_deletion_info.h	1	1	1	1	1	1	1			
+parche	patches/net-dns-BUILD.gn.patch	net/dns/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/net-dns-host_cache.cc.patch	net/dns/host_cache.cc	1	1	1	1	0	1	1			error: patch failed: net/dns/host_cache.cc:495
+parche	patches/net-dns-host_resolver_manager_job.cc.patch	net/dns/host_resolver_manager_job.cc	1	1	1	1	0	0	1			error: patch failed: net/dns/host_resolver_manager_job.cc:1051
+parche	patches/net-http-transport_security_state.cc.patch	net/http/transport_security_state.cc	1	1	1	1	1	1	1			
+parche	patches/net-proxy_resolution-configured_proxy_resolution_service.cc.patch	net/proxy_resolution/configured_proxy_resolution_service.cc	1	1	1	1	0	0	1			error: patch failed: net/proxy_resolution/configured_proxy_resolution_service.cc:988
+parche	patches/net-socket-socks5_client_socket.cc.patch	net/socket/socks5_client_socket.cc	1	1	1	1	0	0	1			error: patch failed: net/socket/socks5_client_socket.cc:256
+parche	patches/net-socket-socks5_client_socket.h.patch	net/socket/socks5_client_socket.h	1	1	1	1	0	1	1			error: patch failed: net/socket/socks5_client_socket.h:114
+parche	patches/net-socket-socks_connect_job.cc.patch	net/socket/socks_connect_job.cc	1	1	1	1	1	1	1			
+parche	patches/sandbox-policy-win-sandbox_win.cc.patch	sandbox/policy/win/sandbox_win.cc	1	1	1	1	0	0	1			error: patch failed: sandbox/policy/win/sandbox_win.cc:704
+parche	patches/sandbox-win-BUILD.gn.patch	sandbox/win/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/services-network-cookie_manager.cc.patch	services/network/cookie_manager.cc	1	1	1	1	1	1	1			
+parche	patches/services-network-cors-cors_url_loader.cc.patch	services/network/cors/cors_url_loader.cc	1	1	1	1	0	0	1			error: patch failed: services/network/cors/cors_url_loader.cc:868
+parche	patches/services-network-public-cpp-BUILD.gn.patch	services/network/public/cpp/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: services/network/public/cpp/BUILD.gn:191
+parche	patches/services-network-public-cpp-network_param_mojom_traits.cc.patch	services/network/public/cpp/network_param_mojom_traits.cc	1	1	1	1	1	1	1			
+parche	patches/services-network-public-cpp-network_param_mojom_traits.h.patch	services/network/public/cpp/network_param_mojom_traits.h	1	1	1	1	1	1	1			
+parche	patches/services-network-resolve_host_request.cc.patch	services/network/resolve_host_request.cc	1	1	1	1	0	0	1			error: patch failed: services/network/resolve_host_request.cc:94
+parche	patches/services-preferences-tracked-BUILD.gn.patch	services/preferences/tracked/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/services-preferences-tracked-device_id_win.cc.patch	services/preferences/tracked/device_id_win.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-android_deps-BUILD.gn.patch	third_party/android_deps/BUILD.gn	1	1	0	1	0	0				error: patch failed: third_party/android_deps/BUILD.gn:467
+parche	patches/third_party-blink-common-client_hints-client_hints.cc.patch	third_party/blink/common/client_hints/client_hints.cc	1	1	1	1	0	1	1			error: patch failed: third_party/blink/common/client_hints/client_hints.cc:105
+parche	patches/third_party-blink-common-permissions-permission_utils.cc.patch	third_party/blink/common/permissions/permission_utils.cc	1	1	1	1	0	1	1			error: patch failed: third_party/blink/common/permissions/permission_utils.cc:28
+parche	patches/third_party-blink-renderer-BUILD.gn.patch	third_party/blink/renderer/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-bindings-BUILD.gn.patch	third_party/blink/renderer/bindings/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-bindings-core-v8-referrer_script_info.cc.patch	third_party/blink/renderer/bindings/core/v8/referrer_script_info.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-bindings-core-v8-referrer_script_info.h.patch	third_party/blink/renderer/bindings/core/v8/referrer_script_info.h	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-bindings-core-v8-v8_script_runner.cc.patch	third_party/blink/renderer/bindings/core/v8/v8_script_runner.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-bindings-generated_in_modules.gni.patch	third_party/blink/renderer/bindings/generated_in_modules.gni	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-bindings-idl_in_modules.gni.patch	third_party/blink/renderer/bindings/idl_in_modules.gni	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-bindings-scripts-bind_gen-interface.py.patch	third_party/blink/renderer/bindings/scripts/bind_gen/interface.py	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-bindings-scripts-bind_gen-task_queue.py.patch	third_party/blink/renderer/bindings/scripts/bind_gen/task_queue.py	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-bindings-scripts-web_idl-composition_parts.py.patch	third_party/blink/renderer/bindings/scripts/web_idl/composition_parts.py	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-build-scripts-make_instrumenting_probes.py.patch	third_party/blink/renderer/build/scripts/make_instrumenting_probes.py	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-BUILD.gn.patch	third_party/blink/renderer/core/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-dom-events-event_target.cc.patch	third_party/blink/renderer/core/dom/events/event_target.cc	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/core/dom/events/event_target.cc:648
+parche	patches/third_party-blink-renderer-core-editing-commands-clipboard_commands.cc.patch	third_party/blink/renderer/core/editing/commands/clipboard_commands.cc	1	1	1	1	0	1	1			error: patch failed: third_party/blink/renderer/core/editing/commands/clipboard_commands.cc:341
+parche	patches/third_party-blink-renderer-core-frame-dom_window.h.patch	third_party/blink/renderer/core/frame/dom_window.h	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-frame-local_dom_window.cc.patch	third_party/blink/renderer/core/frame/local_dom_window.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-frame-navigator_device_memory.idl.patch	third_party/blink/renderer/core/frame/navigator_device_memory.idl	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/core/frame/navigator_device_memory.idl:5
+parche	patches/third_party-blink-renderer-core-html-canvas-canvas_async_blob_creator.cc.patch	third_party/blink/renderer/core/html/canvas/canvas_async_blob_creator.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-html-canvas-html_canvas_element.cc.patch	third_party/blink/renderer/core/html/canvas/html_canvas_element.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-html-canvas-html_canvas_element.h.patch	third_party/blink/renderer/core/html/canvas/html_canvas_element.h	1	1	1	1	0	1	1			error: patch failed: third_party/blink/renderer/core/html/canvas/html_canvas_element.h:316
+parche	patches/third_party-blink-renderer-core-html-canvas-html_canvas_element.idl.patch	third_party/blink/renderer/core/html/canvas/html_canvas_element.idl	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/core/html/canvas/html_canvas_element.idl:36
+parche	patches/third_party-blink-renderer-core-html-media-autoplay_policy.cc.patch	third_party/blink/renderer/core/html/media/autoplay_policy.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-loader-frame_fetch_context.cc.patch	third_party/blink/renderer/core/loader/frame_fetch_context.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-loader-mixed_content_checker.cc.patch	third_party/blink/renderer/core/loader/mixed_content_checker.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-loader-mixed_content_checker.h.patch	third_party/blink/renderer/core/loader/mixed_content_checker.h	1	1	1	1	0	1	1			error: patch failed: third_party/blink/renderer/core/loader/mixed_content_checker.h:100
+parche	patches/third_party-blink-renderer-core-loader-modulescript-module_script_loader.cc.patch	third_party/blink/renderer/core/loader/modulescript/module_script_loader.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-loader-modulescript-module_tree_linker.cc.patch	third_party/blink/renderer/core/loader/modulescript/module_tree_linker.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-permissions_policy-permissions_policy_features.json5.patch	third_party/blink/renderer/core/permissions_policy/permissions_policy_features.json5	1	0	0							
+parche	patches/third_party-blink-renderer-core-probe-BUILD.gn.patch	third_party/blink/renderer/core/probe/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-scheduler-scheduled_action.cc.patch	third_party/blink/renderer/core/scheduler/scheduled_action.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-script-dynamic_module_resolver.cc.patch	third_party/blink/renderer/core/script/dynamic_module_resolver.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-core-script-script_loader.cc.patch	third_party/blink/renderer/core/script/script_loader.cc	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/core/script/script_loader.cc:720
+parche	patches/third_party-blink-renderer-modules-BUILD.gn.patch	third_party/blink/renderer/modules/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/modules/BUILD.gn:178
+parche	patches/third_party-blink-renderer-modules-canvas-canvas2d-base_rendering_context_2d.cc.patch	third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-modules-canvas-canvas2d-canvas_rendering_context_2d.idl.patch	third_party/blink/renderer/modules/canvas/canvas2d/canvas_rendering_context_2d.idl	1	1	0	1	0	0				error: patch failed: third_party/blink/renderer/modules/canvas/canvas2d/canvas_rendering_context_2d.idl:118
+parche	patches/third_party-blink-renderer-modules-canvas-offscreencanvas2d-offscreen_canvas_rendering_context_2d.idl.patch	third_party/blink/renderer/modules/canvas/offscreencanvas2d/offscreen_canvas_rendering_context_2d.idl	1	1	0	1	0	0				error: patch failed: third_party/blink/renderer/modules/canvas/offscreencanvas2d/offscreen_canvas_rendering_context_2d.idl:66
+parche	patches/third_party-blink-renderer-modules-csspaint-paint_rendering_context_2d.idl.patch	third_party/blink/renderer/modules/csspaint/paint_rendering_context_2d.idl	1	1	0	1	0	0				error: patch failed: third_party/blink/renderer/modules/csspaint/paint_rendering_context_2d.idl:63
+parche	patches/third_party-blink-renderer-modules-encryptedmedia-navigator_request_media_key_system_access.cc.patch	third_party/blink/renderer/modules/encryptedmedia/navigator_request_media_key_system_access.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-modules-mediastream-media_devices.cc.patch	third_party/blink/renderer/modules/mediastream/media_devices.cc	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/modules/mediastream/media_devices.cc:1143
+parche	patches/third_party-blink-renderer-modules-plugins-dom_plugin_array.cc.patch	third_party/blink/renderer/modules/plugins/dom_plugin_array.cc	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/modules/plugins/dom_plugin_array.cc:194
+parche	patches/third_party-blink-renderer-modules-webaudio-analyser_handler.cc.patch	third_party/blink/renderer/modules/webaudio/analyser_handler.cc	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/modules/webaudio/analyser_handler.cc:23
+parche	patches/third_party-blink-renderer-modules-webaudio-audio_buffer.cc.patch	third_party/blink/renderer/modules/webaudio/audio_buffer.cc	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/modules/webaudio/audio_buffer.cc:271
+parche	patches/third_party-blink-renderer-modules-webaudio-audio_buffer.h.patch	third_party/blink/renderer/modules/webaudio/audio_buffer.h	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-modules-webaudio-audio_buffer.idl.patch	third_party/blink/renderer/modules/webaudio/audio_buffer.idl	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/modules/webaudio/audio_buffer.idl:37
+parche	patches/third_party-blink-renderer-modules-webaudio-realtime_analyser.cc.patch	third_party/blink/renderer/modules/webaudio/realtime_analyser.cc	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/modules/webaudio/realtime_analyser.cc:154
+parche	patches/third_party-blink-renderer-modules-webgl-webgl2_rendering_context_base.cc.patch	third_party/blink/renderer/modules/webgl/webgl2_rendering_context_base.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-modules-webgl-webgl_rendering_context_base.cc.patch	third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc:3828
+parche	patches/third_party-blink-renderer-modules-websockets-websocket_channel_impl.h.patch	third_party/blink/renderer/modules/websockets/websocket_channel_impl.h	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-platform-BUILD.gn.patch	third_party/blink/renderer/platform/BUILD.gn	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-platform-bindings-idl_member_installer.h.patch	third_party/blink/renderer/platform/bindings/idl_member_installer.h	1	1	1	1	1	1	1			
+parche	patches/third_party-blink-renderer-platform-fonts-font_fallback_list.cc.patch	third_party/blink/renderer/platform/fonts/font_fallback_list.cc	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/platform/fonts/font_fallback_list.cc:165
+parche	patches/third_party-blink-renderer-platform-runtime_enabled_features.json5.patch	third_party/blink/renderer/platform/runtime_enabled_features.json5	1	1	1	1	0	0	1			error: patch failed: third_party/blink/renderer/platform/runtime_enabled_features.json5:1819
+parche	patches/third_party-crashpad-crashpad-snapshot-win-process_snapshot_win.cc.patch	third_party/crashpad/crashpad/snapshot/win/process_snapshot_win.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-crashpad-crashpad-util-net-http_transport_win.cc.patch	third_party/crashpad/crashpad/util/net/http_transport_win.cc	1	1	1	1	1	1	1			
+parche	patches/third_party-inspector_protocol-pdl.py.patch	third_party/inspector_protocol/pdl.py	1	1	1	1	0	1	1			error: patch failed: third_party/inspector_protocol/pdl.py:179
+parche	patches/third_party-libaddressinput-chromium-chrome_metadata_source.cc.patch	third_party/libaddressinput/chromium/chrome_metadata_source.cc	1	1	1	1	0	0	1			error: patch failed: third_party/libaddressinput/chromium/chrome_metadata_source.cc:57
+parche	patches/third_party-lit-v3_0-BUILD.gn.patch	third_party/lit/v3_0/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: third_party/lit/v3_0/BUILD.gn:63
+parche	patches/third_party-lottie-lottie_worker.js.patch	third_party/lottie/lottie_worker.js	1	1	0	1	0	1				error: patch failed: third_party/lottie/lottie_worker.js:13455
+parche	patches/third_party-polymer-v3_0-BUILD.gn.patch	third_party/polymer/v3_0/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: third_party/polymer/v3_0/BUILD.gn:39
+parche	patches/third_party-rust-aho_corasick-v1-BUILD.gn.patch	third_party/rust/aho_corasick/v1/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: third_party/rust/aho_corasick/v1/BUILD.gn:71
+parche	patches/third_party-rust-anyhow-v1-BUILD.gn.patch	third_party/rust/anyhow/v1/BUILD.gn	1	1	0	1	0	0				error: patch failed: third_party/rust/anyhow/v1/BUILD.gn:48
+parche	patches/third_party-rust-base64-v0_13-BUILD.gn.patch	third_party/rust/base64/v0_13/BUILD.gn	1	0	0							
+parche	patches/third_party-rust-getrandom-v0_2-BUILD.gn.patch	third_party/rust/getrandom/v0_2/BUILD.gn	1	0	0							
+parche	patches/third_party-rust-hex-v0_4-BUILD.gn.patch	third_party/rust/hex/v0_4/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: third_party/rust/hex/v0_4/BUILD.gn:39
+parche	patches/third_party-rust-log-v0_4-BUILD.gn.patch	third_party/rust/log/v0_4/BUILD.gn	1	1	0	1	0	0				error: patch failed: third_party/rust/log/v0_4/BUILD.gn:40
+parche	patches/third_party-rust-ppv_lite86-v0_2-BUILD.gn.patch	third_party/rust/ppv_lite86/v0_2/BUILD.gn	1	0	0							
+parche	patches/third_party-rust-rand-v0_8-BUILD.gn.patch	third_party/rust/rand/v0_8/BUILD.gn	1	0	0							
+parche	patches/third_party-rust-rand_chacha-v0_3-BUILD.gn.patch	third_party/rust/rand_chacha/v0_3/BUILD.gn	1	0	0							
+parche	patches/third_party-rust-rand_core-v0_6-BUILD.gn.patch	third_party/rust/rand_core/v0_6/BUILD.gn	1	0	0							
+parche	patches/third_party-rust-regex-v1-BUILD.gn.patch	third_party/rust/regex/v1/BUILD.gn	1	1	0	1	0	0				error: patch failed: third_party/rust/regex/v1/BUILD.gn:68
+parche	patches/third_party-rust-regex_automata-v0_4-BUILD.gn.patch	third_party/rust/regex_automata/v0_4/BUILD.gn	1	1	0	1	0	0				error: patch failed: third_party/rust/regex_automata/v0_4/BUILD.gn:135
+parche	patches/third_party-rust-regex_syntax-v0_8-BUILD.gn.patch	third_party/rust/regex_syntax/v0_8/BUILD.gn	1	1	0	1	0	0				error: patch failed: third_party/rust/regex_syntax/v0_8/BUILD.gn:79
+parche	patches/third_party-rust-rustc_version-v0_4-BUILD.gn.patch	third_party/rust/rustc_version/v0_4/BUILD.gn	1	0	0							
+parche	patches/third_party-rust-semver-v1-BUILD.gn.patch	third_party/rust/semver/v1/BUILD.gn	1	0	0							
+parche	patches/third_party-rust-serde-v1-BUILD.gn.patch	third_party/rust/serde/v1/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: third_party/rust/serde/v1/BUILD.gn:55
+parche	patches/third_party-rust-serde_json-v1-BUILD.gn.patch	third_party/rust/serde_json/v1/BUILD.gn	1	1	0	1	0	0				error: patch failed: third_party/rust/serde_json/v1/BUILD.gn:78
+parche	patches/third_party-rust-syn-v1-BUILD.gn.patch	third_party/rust/syn/v1/BUILD.gn	1	0	0							
+parche	patches/third_party-rust-syn-v2-BUILD.gn.patch	third_party/rust/syn/v2/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: third_party/rust/syn/v2/BUILD.gn:98
+parche	patches/third_party-widevine-cdm-widevine.gni.patch	third_party/widevine/cdm/widevine.gni	1	1	1	1	1	1	1			
+parche	patches/tools-binary_size-libsupersize-archive.py.patch	tools/binary_size/libsupersize/archive.py	1	1	1	1	1	1	1			
+parche	patches/tools-clang-pylib-clang-compile_db.py.patch	tools/clang/pylib/clang/compile_db.py	1	1	1	1	1	1	1			
+parche	patches/tools-crates-gnrt-gen.rs.patch	tools/crates/gnrt/gen.rs	1	1	1	1	0	0	1			error: patch failed: tools/crates/gnrt/gen.rs:278
+parche	patches/tools-crates-gnrt-lib-gn.rs.patch	tools/crates/gnrt/lib/gn.rs	1	1	0	1	0	0				error: patch failed: tools/crates/gnrt/lib/gn.rs:202
+parche	patches/tools-crates-gnrt-lib-paths.rs.patch	tools/crates/gnrt/lib/paths.rs	1	1	1	1	0	1	1			error: patch failed: tools/crates/gnrt/lib/paths.rs:110
+parche	patches/tools-crates-gnrt-lib-platforms.rs.patch	tools/crates/gnrt/lib/platforms.rs	1	0	0							
+parche	patches/tools-crates-gnrt-lib-readme.rs.patch	tools/crates/gnrt/lib/readme.rs	1	1	1	1	0	0	1			error: patch failed: tools/crates/gnrt/lib/readme.rs:193
+parche	patches/tools-crates-gnrt-vendor.rs.patch	tools/crates/gnrt/vendor.rs	1	1	1	1	0	0	1			error: patch failed: tools/crates/gnrt/vendor.rs:96
+parche	patches/tools-git-move_source_file.py.patch	tools/git/move_source_file.py	1	1	1	1	0	0	1			warning: tools/git/move_source_file.py has type 100644, expected 100755
+parche	patches/tools-grit-grit-gather-policy_json.py.patch	tools/grit/grit/gather/policy_json.py	1	1	1	1	1	1	1			
+parche	patches/tools-gritsettings-resource_ids.spec.patch	tools/gritsettings/resource_ids.spec	1	1	1	1	0	0	1			error: patch failed: tools/gritsettings/resource_ids.spec:296
+parche	patches/tools-json_schema_compiler-cc_generator.py.patch	tools/json_schema_compiler/cc_generator.py	1	1	1	1	0	0	1			error: patch failed: tools/json_schema_compiler/cc_generator.py:28
+parche	patches/tools-json_schema_compiler-feature_compiler.py.patch	tools/json_schema_compiler/feature_compiler.py	1	1	1	1	0	1	1			error: patch failed: tools/json_schema_compiler/feature_compiler.py:973
+parche	patches/tools-json_schema_compiler-idl_schema.py.patch	tools/json_schema_compiler/idl_schema.py	1	1	1	1	0	0	1			warning: tools/json_schema_compiler/idl_schema.py has type 100644, expected 100755
+parche	patches/tools-json_to_struct-json_to_struct.gni.patch	tools/json_to_struct/json_to_struct.gni	1	1	1	1	0	1	1			error: patch failed: tools/json_to_struct/json_to_struct.gni:57
+parche	patches/tools-licenses-licenses.py.patch	tools/licenses/licenses.py	1	1	1	1	0	0	1			warning: tools/licenses/licenses.py has type 100644, expected 100755
+parche	patches/tools-metrics-histograms-metadata-histogram_suffixes_list.xml.patch	tools/metrics/histograms/metadata/histogram_suffixes_list.xml	1	0	0							
+parche	patches/tools-metrics-histograms-metadata-page-histograms.xml.patch	tools/metrics/histograms/metadata/page/histograms.xml	1	1	1	1	0	0	1			error: patch failed: tools/metrics/histograms/metadata/page/histograms.xml:183
+parche	patches/tools-perf-benchmarks-system_health.py.patch	tools/perf/benchmarks/system_health.py	1	1	1	1	1	1	1			
+parche	patches/tools-perf-core-perf_benchmark.py.patch	tools/perf/core/perf_benchmark.py	1	1	0	1	1	1				
+parche	patches/tools-perf-core-results_dashboard.py.patch	tools/perf/core/results_dashboard.py	1	1	1	1	1	1	1			
+parche	patches/tools-perf-core-services-dashboard_service.py.patch	tools/perf/core/services/dashboard_service.py	1	1	1	1	1	1	1			
+parche	patches/tools-perf-page_sets-system_health-system_health_stories.py.patch	tools/perf/page_sets/system_health/system_health_stories.py	1	1	0	1	0	0				error: patch failed: tools/perf/page_sets/system_health/system_health_stories.py:26
+parche	patches/tools-perf-process_perf_results.py.patch	tools/perf/process_perf_results.py	1	1	1	1	0	1	1			warning: tools/perf/process_perf_results.py has type 100644, expected 100755
+parche	patches/tools-search_engine_choice-search_engine_icons_utils.py.patch	tools/search_engine_choice/search_engine_icons_utils.py	1	0	0							
+parche	patches/tools-symsrc-source_index.py.patch	tools/symsrc/source_index.py	1	1	1	1	1	1	1			
+parche	patches/tools-typescript-ts_library.gni.patch	tools/typescript/ts_library.gni	1	1	1	1	1	1	1			
+parche	patches/tools-typescript-ts_library.py.patch	tools/typescript/ts_library.py	1	1	1	1	1	1	1			
+parche	patches/tools-web_dev_style-eslint.py.patch	tools/web_dev_style/eslint.py	1	1	1	1	0	1	1			warning: tools/web_dev_style/eslint.py has type 100644, expected 100755
+parche	patches/ui-accessibility-platform-ax_platform_node_cocoa.mm.patch	ui/accessibility/platform/ax_platform_node_cocoa.mm	1	1	1	1	1	1	1			
+parche	patches/ui-base-BUILD.gn.patch	ui/base/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: ui/base/BUILD.gn:561
+parche	patches/ui-base-accelerators-accelerator.cc.patch	ui/base/accelerators/accelerator.cc	1	1	1	1	0	0	1			error: patch failed: ui/base/accelerators/accelerator.cc:389
+parche	patches/ui-base-cocoa-permissions_utils.mm.patch	ui/base/cocoa/permissions_utils.mm	1	1	0	1	0	0				error: patch failed: ui/base/cocoa/permissions_utils.mm:23
+parche	patches/ui-native_theme-native_theme_win.cc.patch	ui/native_theme/native_theme_win.cc	1	1	0	1	0	0				error: patch failed: ui/native_theme/native_theme_win.cc:1680
+parche	patches/ui-native_theme-native_theme_win.h.patch	ui/native_theme/native_theme_win.h	1	1	0	1	0	1				error: patch failed: ui/native_theme/native_theme_win.h:86
+parche	patches/ui-views-accessibility-accessibility_paint_checks.cc.patch	ui/views/accessibility/accessibility_paint_checks.cc	1	1	1	1	0	1	1			error: patch failed: ui/views/accessibility/accessibility_paint_checks.cc:33
+parche	patches/ui-views-controls-menu-menu_separator.cc.patch	ui/views/controls/menu/menu_separator.cc	1	1	1	1	0	0	1			error: patch failed: ui/views/controls/menu/menu_separator.cc:51
+parche	patches/ui-webui-resources-BUILD.gn.patch	ui/webui/resources/BUILD.gn	1	1	1	1	0	1	1			error: patch failed: ui/webui/resources/BUILD.gn:131
+parche	patches/ui-webui-resources-cr_components-searchbox-BUILD.gn.patch	ui/webui/resources/cr_components/searchbox/BUILD.gn	1	1	0	1	0	0				error: patch failed: ui/webui/resources/cr_components/searchbox/BUILD.gn:9
+parche	patches/ui-webui-resources-cr_components-theme_color_picker-theme_color_picker.html.ts.patch	ui/webui/resources/cr_components/theme_color_picker/theme_color_picker.html.ts	1	1	0	1	0	0				error: patch failed: ui/webui/resources/cr_components/theme_color_picker/theme_color_picker.html.ts:25
+parche	patches/ui-webui-resources-cr_components-theme_color_picker-theme_color_picker.ts.patch	ui/webui/resources/cr_components/theme_color_picker/theme_color_picker.ts	1	1	0	1	0	1				error: patch failed: ui/webui/resources/cr_components/theme_color_picker/theme_color_picker.ts:18
+parche	patches/ui-webui-resources-cr_elements-BUILD.gn.patch	ui/webui/resources/cr_elements/BUILD.gn	1	1	1	1	0	0	1			error: patch failed: ui/webui/resources/cr_elements/BUILD.gn:215
+parche	patches/ui-webui-resources-cr_elements-cr_lottie-cr_lottie.ts.patch	ui/webui/resources/cr_elements/cr_lottie/cr_lottie.ts	1	0	0							
+parche	patches/ui-webui-resources-cr_elements-cr_radio_button-cr_radio_button_style.css.patch	ui/webui/resources/cr_elements/cr_radio_button/cr_radio_button_style.css	1	1	0	1	0	1				error: patch failed: ui/webui/resources/cr_elements/cr_radio_button/cr_radio_button_style.css:7
+parche	patches/ui-webui-resources-cr_elements-cr_shared_style.css.patch	ui/webui/resources/cr_elements/cr_shared_style.css	1	1	0	1	0	1				error: patch failed: ui/webui/resources/cr_elements/cr_shared_style.css:8
+parche	patches/ui-webui-resources-cr_elements-cr_shared_vars.css.patch	ui/webui/resources/cr_elements/cr_shared_vars.css	1	1	0	1	1	1				
+parche	patches/ui-webui-resources-cr_elements-cr_toolbar-cr_toolbar.ts.patch	ui/webui/resources/cr_elements/cr_toolbar/cr_toolbar.ts	1	1	0	1	1	1				
+parche	patches/ui-webui-resources-css-md_colors.css.patch	ui/webui/resources/css/md_colors.css	1	1	1	1	1	1	1			
+parche	patches/ui-webui-resources-tools-build_webui.gni.patch	ui/webui/resources/tools/build_webui.gni	1	1	1	1	0	0	1			error: patch failed: ui/webui/resources/tools/build_webui.gni:186
+parche	patches/ui-webui-resources-tools-bundle_js.gni.patch	ui/webui/resources/tools/bundle_js.gni	1	1	1	1	0	0	1			error: patch failed: ui/webui/resources/tools/bundle_js.gni:100
+parche	patches/ui-webui-resources-tools-bundle_js_excludes.gni.patch	ui/webui/resources/tools/bundle_js_excludes.gni	1	1	1	1	1	1	1			
