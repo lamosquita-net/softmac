@@ -7,6 +7,62 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 03-11: COORDINACIÓN-24 → COORDINACIÓN-25 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-24 (`session_01MwmK2hVdDLULexk6bBGVwA`, 02-11 → 03-11; Opus 5.5 medio; relevo al 41 %, 28,5 $) se releva
+por orden de Titín. Linaje 6 de 8: **la 25 la abre Titín desde cero**. Nunca llamar a confirm_repository_trust.
+
+**Estado al relevar**
+- **2.7.0 (nivel 138 = Flynk 138) ENTREGADA a PUBLICACIÓN** en FM.53 (LOCAL-16; brave-core `local/270-arreglos`
+  a78df81efd, build 40 = 169.168.40). Espera de MotionMark ANULADA (#711; buzón de PUBLICACION y LOCAL, 03-11 ~16:35 UTC).
+  Pruebas: d8 en verde (D8-LINUX-3), 7,1 y 6,1 en verde (Speedometer 3.1 5,84 en la 6,1; JetStream 3 89,3), WPT 138
+  sin empeorar (`wpt-270.md`), claude.ai probado por Titín. **Falta:** PUBLICACIÓN publica → orden de firma en bak a
+  Titín → appcast 169.168.40 → **web como #676** (`FlyWeb/web/VERSION`, `index.html`, `novedades.html` con «Para la web»
+  de `version-2.7.0.md`; comprobar SHA-256 y tamaño descargando de ns2) → LOCAL mueve `flyweb` a a78df81efd. Avisar a
+  Titín cuando esté subida.
+- Después de publicar, sin bloquear nada: LOCAL-16 compara MotionMark 1.3.2 2.6.1/2.7.0 en igualdad de condiciones;
+  Titín prueba GPU en webs (lista dada: Aquarium, three.js, Babylon, Earth, Photopea…). Bajada real → 2.7.x.
+- **Aplazado del 138** (al 139 o a la base nueva): sibling-index, stretch, alineación OOF, textarea de Tamura,
+  `scheduler.yield` (escape del 136). `quota_exceeded_error.cc`: DCHECK al tocarlo (version-2.7.0.md).
+
+**Lo siguiente (decisiones de Titín 03-11, en `docs/DIRECTIVAS.md`; leer las entradas Flynk, fork propio y siguiente base)**
+1. **Fork propio** (`fork-propio.md`, #700, aprobado entero): tras publicar la 2.7.0, F0 = LOCAL convierte la historia de
+   `flyweb` en commits de forks `lamosquita-net/chromium` y `lamosquita-net/v8` (crearlos), hito `diff -r` vacío; F1 corte.
+   Árbol en el disco local de la 7,1 + GitHub; **espejo git bare en Samba tras cada versión** (`push --mirror`, `gc.auto=0`).
+2. **Medidas para la siguiente base** (`base-siguiente.md`, #703): **B0** (SEGURIDAD-PORTES: fechas reales y ritmo de CVE
+   en Chrome Releases; muestra de 20 críticos 146–150 contra la 128), **B1** (LOCAL con MOTOR: Chromium 156 y 150 limpios
+   para 10.14, Graphite apagada, ¿arranca en la 6,1?), en paralelo con F0–F1; **B3** (ensayo de rebase de la capa
+   permanente a la 156) tras F1; **B2** mide la opción de `brave-propio.md` (C: podar lo muerto, absorber lo vivo; Brave
+   1.98.63 = Chromium 156 como DONANTE: 77 % de nuestros parches de Brave ya adaptados). Puerta: decide Titín (156, 150
+   o seguir a mano). **El 139 a mano está en pausa.** SEGURIDAD-PORTES sigue con KEV (2.7.x si hace falta).
+3. Pendientes del estudio de Brave (§11 de `brave-propio.md`): gn desc con LOCAL, revisar 138 parches y 418 envoltorios
+   que no existen en 1.98, P2. Abrir INVESTIGACIÓN-MOTOR-8 (Sonnet alto) cuando empiecen las medidas.
+4. **BackupDrive** (BACKUPDRIVE-2 `session_01MwmK2iDUP7F9s2StJNRgCj`, Opus medio): decisiones de Titín hechas
+   (clave propia obligatoria; lenguaje llano con «Ver qué cambia»; restaurar versiones desde la app). #704 y #708 en main
+   (backupdrive-ctl.sh, app con conexión y carpetas sin terminal). Sigue H5 (freno). Titín: crear su clave en Google
+   Cloud (`BackupDrive/docs/clave-google.md`), instalar en MacTrash (6,1), prueba h y carpeta grande de copia antes de
+   quitar FreeFileSync. Meta de Titín: sustituir FreeFileSync en MacTrash. Luego Titín tiene «un par de cosas» que analizar.
+
+**Equipo vivo:** LOCAL-16 (7,1, bridge `session_01MwmK2m6va5nJxS8PXyGSMR`, ~27 %); SEGURIDAD-PORTES-16
+(`session_01MwmK2is84MezuCoESN1hLw`, en espera de errores; archivar si no hace falta para B0); BACKUPDRIVE-2; D8-LINUX-3
+(Ubuntu, Sonnet; `~/d8-trabajo/CLAUDE.md` ya renombrado: arranca con «empieza»). Archivados: MOTOR-43, MOTOR-44,
+INVESTIGACIÓN-MOTOR-7 (relevo en §11 de `brave-propio.md`), COORDINACIÓN-23. ARQUITECTURA (7,1) entregó #700.
+
+**Canales y trampas**
+- La nube NO escribe a sesiones de la 7,1 ni del Ubuntu (`elevated_session_untrusted_device`): órdenes por `buzon/<DESTINO>/`
+  (rama `buzon`, incluido `buzon/ARQUITECTURA/` y `buzon/D8-LINUX/`); ellos sí nos escriben. No pedir el permiso fijo.
+- **`add_repo` de brave-core lo ordena COORDINACIÓN** en el texto de arranque de cada agente (DIRECTIVAS 02-11); no
+  pedírselo a Titín.
+- **Orden fijo del nivel:** ramas → d8 en D8-LINUX → entrega a LOCAL → PUBLICACIÓN → web. Encargos a D8-LINUX en lenguaje
+  neutro (sin CVE ni descripciones de fallos: saltó una salvaguarda).
+- **Un comentario u observación de Titín sobre una versión NO para la publicación**: se investiga después, salvo que diga
+  expresamente que se pare (error de COORDINACIÓN-24 el 03-11). Y cuando una decisión de Titín cambie una orden ya dada,
+  **anular expresamente la anterior** en el buzón y en la fila.
+- Revisar el código alrededor de un diff antes de pedir cambios (error de COORDINACIÓN-24 con `quota_exceeded_error.cc`).
+- Apps de prueba: nunca desde la carpeta de red (Samba rompe los enlaces del paquete): DMG → `ditto` al disco local →
+  `xattr -dr com.apple.quarantine` → `open -na … --args --user-data-dir=…` (perfil aparte).
+- Titín: ritmo normal, nada de estimaciones de horas (solo hitos), no insistir con el límite semanal.
+
 ## 02-11: COORDINACIÓN-23 → COORDINACIÓN-24 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-23 (`session_01MwmK2knuccR6hsPpe7uHap`) se releva por orden de Titín (02-11 ~12 h). Linaje 6 = la 24; tras 1–2 más,
