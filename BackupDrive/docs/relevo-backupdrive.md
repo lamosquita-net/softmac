@@ -1,9 +1,18 @@
 # Relevo de BACKUPDRIVE
 
-Para el siguiente relevo de BACKUPDRIVE. Historia: **BACKUPDRIVE-1 (`session_01MMur1TxacRpN7gNor98eYm`, 26-10) → 2**.
+Para el siguiente relevo de BACKUPDRIVE. Historia: **BACKUPDRIVE-1 (`session_01MMur1TxacRpN7gNor98eYm`, 26-10) → 2 (`session_01MwmK2iDUP7F9s2StJNRgCj`, 03-11)**.
 Leer antes: `CLAUDE.md` (sección BackupDrive), `docs/DIRECTIVAS.md`, en `docs/TAREAS.md` las reglas y las filas B.2–B.7,
 `BackupDrive/README.md` (sección «Cómo funciona») y `BackupDrive/scripts/backupdrive-sync.sh` (la cabecera lo explica todo).
 No tocar `BackupDrive/rclone/` (subtree). A Titín, siempre en castellano; commits en inglés.
+
+## BACKUPDRIVE-2 (03-11-2026, en curso)
+
+**Decisiones de Titín del 03-11 (firmes):** (1) cuenta de Google: clave compartida de rclone por defecto y clave propia en
+Preferencias > Avanzado; (2) frenos y conflictos en lenguaje llano y siempre «Ver qué cambia» antes de «Continuar de todos
+modos»; (3) restaurar versiones desde la app: sí (si hay que recortar, se recorta Actividad, no Versiones).
+
+**Plan de B.6 y B.7:** `BackupDrive/docs/plan-b6-b7.md` (hitos H0–H9). Prueba h de B.2 enviada a Titín por COORDINACIÓN-24,
+con reinstalación desde el artefacto `BackupDrive-mojave` de `main` (ejecución 40757477334, 28-10).
 
 ## BACKUPDRIVE-1 → 2 (28-10-2026, ~19:50)
 
