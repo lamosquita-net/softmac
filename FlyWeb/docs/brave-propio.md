@@ -216,3 +216,77 @@ La razón principal es el coste: cada vista de Brave que sustituye a otra de Chr
 **Fuentes:** `fork-propio`, `base-siguiente`, `brave-vs-flyweb`, `brave-vs-parches-motor`, `brave-sync-shields`, `brave-servicios-nuevos`, `brave-169-macos`, `brave-170-173`,
 `integracion`, `identidad-128`, `rebranding`, `componentes`, `disenos`, `marca-pendiente`, `migracion-128`, `web-flyweb`, `hoja-de-ruta`, `TRAMPAS.md`, `DIRECTIVAS.md`;
 `brave/brave-core` v1.69.168 (`LICENSE`, `package.json`, `BUILD.gn`); `brave/adblock-rust` `Cargo.toml` (rama principal); `brave/leo` `package.json` (rama principal).
+
+## 10. Brave 1.98.63 frente a 1.69.168 (ampliación de Titín, 03-11)
+
+Solo lo que FlyWeb usa; fuera, por orden: publicidad y sponsored images, Rewards, Wallet, Leo, VPN, News, Talk, P3A, stats, Brave Search. Método: dos etiquetas de `brave/brave-core`
+traídas con `git fetch --filter=blob:none` (árboles) y los mensajes de commit de 2024-09-02 a 2026-10-30 (sin árboles, así que **ningún cambio se ha leído como código fuente**:
+las conclusiones salen de listas de ficheros, `diff --stat`, indicadores y mensajes de commit). Cuatro subagentes de lectura, uno por área.
+
+### 10.1 Datos [V salvo marca]
+
+- **1.98.63 = Chromium 156.0.8078.80** (`package.json`, `projects.chrome.tag`). 1.69.168 = Chromium 128.
+- Tamaño: 32 764 → **63 639 ficheros**; `patches/` 590 → **1 242**; `chromium_src/` 1 549 → **2 071**; `third_party/rust` 12 119 → 6 633. Diferencia: 43 676 añadidos, 12 801 borrados, 9 618 modificados.
+  Crecimiento atribuido a Brave Origin (417 ficheros) y Brave Account (211) [I]; nada de eso lo usamos.
+- Herramientas de build: Node >= 24.16 y pnpm >= 11.11 (antes Node 20–21 y npm 10), guiones `.js` → `.ts`, desaparece `scripts/sync.js`; los endpoints del updater, Safe Browsing, variations y stats **ya no se reenvían desde el build** (son valores por defecto de GN desde 2026-07, #37324/#37752); `brave_services_key_id`, `service_key_*`, `sparkle_eddsa_*` y `is_brave_origin_branded` son argumentos nuevos.
+
+### 10.2 Qué cambió y qué merece traerse
+
+| Área | Qué cambió | ¿Mejora real? | Coste de traerlo | Depende de lo apagado / de Chromium ≥ 129 | Veredicto |
+|---|---|---|---|---|---|
+| **Filtro de parámetros** (`query_filter`) | Brave **borra la lista compilada** (55 simples + 4 condicionales + 3 con ámbito) y la sirve por un componente nuevo (`cemdlagocoimleflkfkjoihojfainiho`, flag ON). **Sin componente no filtra nada** (no hay lista de respaldo) | Actualizable sin release, pero **pierde autonomía** | Portar la lista: trivial. Traer el componente: instalador + esquema + updater | Servicio de componentes de Brave | **No traer el componente.** Conservar la lista estática de 1.69 + `srsltid`, `_bhlid` y la excepción `urldefense.com` (ya previstos en `brave-170-173`). Si se quiere actualizar sin release, publicar un componente **propio** con ID propio, como ya hacemos con Shields |
+| **Debounce** | Acción `regex-path-template`, rechazo de destinos sin eTLD+1 válido, arreglos de URLs sin ruta; 18 → 23 ficheros | Robustez modesta | Bajo: 0 parches y 0 `chromium_src` lo mencionan | No | **Traer** (aislado) |
+| **De-AMP** | Solo refactor de `de_amp_body_handler.cc` y política de empresa | No | — | No | Nada |
+| **HTTPS por defecto** | Brave migra de su mecanismo al HTTPS-upgrade de Chromium (flag 2026-09-09, migración de ajustes 2026-09-16) | Mejora a largo plazo (usar upstream) | Alto en Brave; **con la base 156 es nativo** | Chromium ≥ 150 [I] | **No portar lo de Brave.** Con base 156, el de Chromium + nuestra lista de excepciones (Datos locales) |
+| **Avisos de cookies** | La lista «Cookie» ya era ON por defecto en 1.69; se borra el diálogo opt-in | Producto | — | — | Nada |
+| **adblock-rust** | **0.8.11 → 0.13.3**; movido a `core/common/adblock`; servicio rehecho (`ad_block_service.cc` 619 líneas, `ad_block_engine_wrapper` +471), caché DAT, recursos compartidos, procedural, `removeparam`/CSP | Rendimiento y memoria, arreglos de hilos y de comprobación 3p en CSP [I por commits] | **Muy alto y acoplado**: no hay parche pequeño; 224 ficheros en `brave_shields` (+13 269/−4 259); 13 parches de 1.98 mencionan Shields (1 en 1.69) | **P3A dentro de `ad_block_service.cc`** (`AdBlockListP3A`): hay que recortarlo; crates Rust de Chromium ≥ 150 [I] | **No como parche suelto**; entra dentro del porte a 156 (P3), recortando P3A. Las listas ya se filtran para motores < 0,8,7 |
+| **Farbling** | Token **por perfil** (2026-07, #37897) y **por contenedor** (2026-05, #36474); `BraveFarblingService` eliminado (su lógica pasa a `BraveShieldsSettingsService`); WebGL (extensiones, `debug_renderer_info`, flag); pantalla activada por defecto en escritorio (2026-02); WebGPU | **Real** (evita correlar perfiles) | Alto: refactor de servicio y parches nuevos de Blink (22 añadidos en `patches/third_party-blink-*`) | Los contenedores necesitan la infraestructura de «Containers», **ausente en la 128** | **Después de la base 156**, de forma selectiva (WebGL y pantalla, luego token por perfil) |
+| **Almacenamiento** | `EphemeralStorage` deja de ser feature (permanente); cookies localhost/127.0.0.1 particionadas (2026-08); particionado de Blob URL | Real en parte | Medio-alto (`cookie_monster`, `cookie_settings`, `blob_url_store_impl`) | `PartitionKey`/CHIPS (cr143/145), `BlobURLStoreImpl` (cr140) | **Con la base 156** |
+| **Local Network Access** | Brave **borra** sus parches de permiso de localhost y usa el LNA de Chromium | Real (seguridad) | Con base 156, gratis | LNA de Chromium, no está en la 128 | **Adoptar el de Chromium**; quitar nuestro parche de Brave |
+| **Políticas** | `brave_simple_policy_map.h` 63 → 180 líneas (+32 constantes); 5 manejadores nuevos; la mayoría para Brave Origin | Producto/administración | Medio | — | Solo si interesa gestionarlas por MDM: `BraveSyncUrl`/`CustomSyncServiceUrl`, `TrackingQueryParametersFiltering`, `Debouncing`, `DeAmp`, `ReduceLanguage`, `GlobalPrivacyControl` |
+| **Sync** | 101 ficheros cambiados (casi todo adaptación a Chromium: `ModelType` → `DataType`, Nigori cr150/152); ajuste «Custom sync URL» (2024-11) | Sync propio **más cómodo** | Bajo (ajuste + política) | No | **Traer opcional** (encaja con nuestro `servidor/sync`) |
+| **Component updater** | Adaptación a Chromium 152 (clave CUP propia), sin cambio de protocolo | No | — | — | Nada |
+| **Actualizador de macOS** | **Omaha 4** sustituye a Sparkle/Keystone como principal; Sparkle 1.24.4 de reserva | No para FlyWeb | Alto (servidor Omaha, firma) | `enable_updater` | **No traer**: tenemos Sparkle propio |
+| **Políticas de privacidad que ya no están** | Se **revierten** las protecciones de `blob://` (2026-09-26) y se quita el bloqueo del modo oscuro (2026-09-01) | Retrocesos | — | — | **No copiar** |
+
+**Hosts nuevos** (ámbito limitado a constantes y red; no es un `git grep` global): `usage-ping.brave.com`, `search.brave.software`, `support.brave.app`, y `*.ads.brave.com`/`*.ads.bravesoftware.com`.
+**`brave.software` y `brave.app` no los cubre la lista de bloqueo `!*.brave.com`**: si alguna vez entra código de 1.98, añadirlos a `network-audit.py`. Desaparecen `laptop-updates.brave.com`, `p3a*.brave.com` y `support.brave.com`.
+
+### 10.3 Brave 1.98 como donante del porte a Chromium 156 (medido)
+
+Nombres de ficheros comparados entre `flyweb` (HEAD), v1.69.168 y v1.98.63 (hash de blobs; sin descargar contenido):
+
+| | De Brave 1.69 que siguen en FlyWeb | También en 1.98 | Cambiados por Brave entre 1.69 y 1.98 | Ya no existen en 1.98 |
+|---|---|---|---|---|
+| `patches/` | 590 | **452** | 440 | 138 |
+| `chromium_src/` | 1 549 | **1 131** | 1 026 | 418 |
+
+Lectura: Brave **ya adaptó a Chromium 156** (y a sus propias funciones nuevas) el 77 % de nuestros parches de Brave y el 73 % de los envoltorios. Para cada uno,
+`git diff v1.69.168 v1.98.63 -- patches/<fichero>` enseña cómo lo hizo. Los 138 parches y 418 envoltorios desaparecidos son código movido, obsoleto o de otras plataformas:
+hay que revisarlos uno a uno (ejemplos: parches de Windows, Android, `build/rust`). Límite: «mismo nombre, contenido distinto» mezcla la adaptación a 156 con funciones nuevas de Brave,
+y 25 de los parches y 35 de los envoltorios que FlyWeb modificó chocarán con la versión de 1.98.
+
+### 10.4 Efecto sobre A, B y C
+
+1. **Seguir Brave 1.98 como base: no.** Árbol ×1,9, parches ×2,1 (+652), herramientas nuevas (pnpm, TypeScript, Omaha 4) y casi todo lo nuevo es lo que apagamos. Confirma «Brave no se sigue por número».
+2. **Pero 1.98 abarata el porte de 1.69 a 156 (A, B y C por igual):** el 77 % de los parches y el 73 % de los envoltorios tienen un donante ya adaptado (§10.3). Eso **reduce el riesgo 1 de `base-siguiente.md`**, aunque no lo cuantifica: P2 puede medirlo (ficheros rotos *con y sin* donante).
+3. **No cambia la elección: sigue siendo C** (podar → medir → absorber). Lo que cambia es que la medida de P2 debe usar los donantes, y que B (disolver `brave-core`) pierde un argumento
+   (el miedo al rebase de Brave es menor del que se pensaba), mientras que A sigue pagando el código muerto.
+4. **Lo que de Brave 1.98 merece traerse, por orden:**
+   - (ya posible en la 128) los 3 parámetros de `query_filter` y el ID de ScreenAI, previstos en `brave-170-173`; la política `BraveSyncUrl` si se quiere.
+   - (con la base 156, casi gratis) HTTPS-upgrade y Local Network Access **de Chromium**; quitar nuestro parche de localhost de Brave; debounce nuevo (aislado).
+   - (después, selectivo) farbling: WebGL y pantalla; luego token por perfil y por contenedor; particionado localhost y Blob URL.
+   - (dentro del porte a 156) adblock-rust 0.13 con su servicio, recortando P3A. No antes, no suelto.
+   - No traer: Omaha 4, Origin, Account, modo «solo adblock», componente de `query_filter`, retrocesos de `blob://`, pnpm/TypeScript.
+5. **Riesgo nuevo:** si se sigue usando `brave-browser` 1.69 con Chromium 156, su `npm run sync` y sus argumentos de GN quedan lejos de lo que 1.98 espera (los endpoints ya no se reenvían). `build.sh` ya es nuestro; hay que
+   comprobar en B1/B2 qué argumentos declara `brave-core` 1.69 y cuáles Chromium 156.
+
+**Límites de este apartado:** [N] no se ha leído código de los cambios (solo listas y mensajes); [N] qué listas concretas añadió o quitó el catálogo remoto de Shields (viene de un componente); [N] versiones mínimas de macOS, SDK y Rust de 1.98; [N] el emisor de `usage-ping.brave.com`;
+[I] todas las valoraciones de «mejora real» que salen solo de mensajes de commit.
+
+## 11. Estado y relevo (03-11, ~50 % de contexto)
+
+- **Hecho:** v1 (#706), P0 (#707), este §10. Guion: `FlyWeb/tools/brave-inventario/` (`python3 -I p0.py salida.json`, ruta del checkout en `R`; con `git clone --depth 1 --branch flyweb https://github.com/lamosquita-net/brave-core`).
+  Para la comparación de etiquetas: `git remote add up https://github.com/brave/brave-core; git fetch --filter=blob:none --depth=1 up tag v1.69.168 tag v1.98.63` y, para mensajes de commit, `git fetch --filter=tree:0 --shallow-since=2024-09-01 up tag v1.98.63`.
+- **Falta:** (1) `gn desc` con LOCAL para saber qué se compila de verdad; (2) P2 (compilar el `brave-core` podado contra el árbol 156, con y sin donante) y B1; (3) revisar uno a uno los 138 parches y 418 envoltorios que Brave borró; (4) leer el código de los cambios de §10.2 que se decidan traer; (5) la puerta de Titín (A/B/C).
+- **Trampas de método:** la clasificación de P0 es por ruta con expresiones regulares (la regla de Tor dio falsos positivos); en `git log` con árboles ausentes no sirven los filtros por ruta; los blobs se descargan bajo demanda y un `git grep` global de un árbol de 63 639 ficheros agota el tiempo.
