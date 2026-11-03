@@ -189,7 +189,7 @@ pero no hay cifra propia; el ensayo de F1 la da. **Lo que pesa, por orden:**
 | 8 | El mínimo de macOS vuelve a subir y la capa Mojave se encarece (§3.2) | Alta a ~12 meses / medio | Criterio de «hasta cuándo» (decisión 5) |
 
 Efectos colaterales a decir: la declaración de versión a las webs pasa de 138 a 156 de golpe (el user agent ya se alinea con el
-último nivel completo); se pierde el ritmo de «un nivel por versión» durante la transición; las 590 líneas de la identidad de Brave
+último nivel completo); se pierde el ritmo de «un nivel por versión» durante la transición; los 590 parches de Brave
 (1.69) siguen siendo el primer commit del fork.
 
 ## 6. Fases e hitos (sin horas)
@@ -200,7 +200,7 @@ Los hitos de `fork-propio.md` F0–F1 se mantienen tal cual; esto se añade.
 |---|---|---|---|
 | **B0 Medidas de papel** | Verificar fechas y ritmo de CVE en Chrome Releases (acceso fuera de esta sesión). Muestra de 20 CVE críticos «fuga» de 146–150: ¿aplica el arreglo a la 128 sin conflictos? | Tabla con el % de arreglos que aplican limpios y el ritmo real por hito | SEGURIDAD-PORTES |
 | **B1 Chromium limpio** | Compilar Chromium 156 (y 150) sin parches nuestros, destino 10.14, `-Wunguarded-availability`, Graphite apagada, en la 7,1; arrancar en la 6,1 | Lista de avisos distintos frente a los 63–70 de la 128; arranca en la 6,1 con GPU estable (Ganesh/GL) | LOCAL con MOTOR |
-| **B2 Brave contra 156** | Compilar `brave-core` 1.69 con el árbol 156 y contar ficheros rotos | Número de ficheros de `chromium_src`/`browser`/`components` que fallan | MOTOR |
+| **B2 Brave contra 156** | Compilar `brave-core` 1.69 con el árbol 156 y contar ficheros rotos. **Actualizado (`brave-propio.md`):** se mide el `brave-core` podado de código muerto (P1) y se compara con el sin podar | Número de ficheros de `chromium_src`/`browser`/`components` que fallan | MOTOR |
 | **B3 Ensayo de rebase** (= F5 de `fork-propio.md`, adelantado) | `git rebase --onto 156 128` de la capa permanente sobre el árbol convertido (tras F0–F1) | Conflictos por `Flynk-Class` y por directorio; tamaño real de la capa permanente | MOTOR |
 | **Puerta (Titín)** | Con B0–B3 decide: **156**, **150** o **seguir en 128 a mano** | Decisión anotada en `DIRECTIVAS.md` | Titín, ARQUITECTURA |
 | **B4 Rebase real** | Capa permanente sobre 156 (o 150); capa Mojave `compat`; Graphite fuera; parches de SDK/toolchain | Arranca en 6,1, 5,1 y 7,1; sin caídas de GPU en A1398 (dos GPU), MBP 2012 (dos GPU) y Air 2013 | LOCAL, MOTOR |
