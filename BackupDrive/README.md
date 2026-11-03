@@ -112,9 +112,8 @@ sudo cp build/backupdrive scripts/backupdrive-sync.sh /usr/local/bin/
 APP="$HOME/Library/Application Support/BackupDrive"
 mkdir -p "$APP"
 
-# 1. Conectar con Google Drive: abre el navegador para autorizar, sin preguntas (clave compartida de rclone;
-#    la propia: --client-id … --client-secret …). A mano también vale: backupdrive --config "$APP/backupdrive.conf" config
-backupdrive-ctl.sh connect
+# 1. Conectar con Google Drive con tu clave (docs/clave-google.md): pide el secreto y abre el navegador para autorizar
+backupdrive-ctl.sh connect --client-id 'TU-ID.apps.googleusercontent.com'
 
 # 2. Perfiles: una línea por carpeta en "$APP/profiles", "carpeta local|remoto:ruta[|días de versiones]"
 backupdrive-ctl.sh profile add "/ruta/de/mi/carpeta" gdrive:MiCarpeta
@@ -150,6 +149,14 @@ launchctl load -w ~/Library/LaunchAgents/net.lamosquita.backupdrive.plist
 - Probado con un remoto local de rclone (altas, cambios, borrados, conflictos y caducidad; ver `tests/`). **Falta probarlo
   contra Google Drive real en Mojave.**
 
+## Tu propia clave de Google (obligatoria)
+
+**Cada usuario conecta BackupDrive con su propia clave de Google Cloud** (Titín, 03-11); en el repositorio no hay ninguna.
+Motivo: el permiso de Drive completo que necesita la sincronización es un alcance *restringido* para Google, y repartir una
+clave común obligaría a verificar la app y a pasar una auditoría de seguridad anual. Una clave personal «en producción» sin
+verificar vale para hasta 100 usuarios (con un aviso al conectar), no caduca a los 7 días y tiene su propia cuota (con la
+compartida de rclone, 40 ficheros tardaron casi 4 minutos). Pasos, listos para seguir: [`docs/clave-google.md`](docs/clave-google.md).
+
 ## Órdenes de control (`backupdrive-ctl.sh`)
 
 Lo que no es sincronizar: conectar con Drive, carpetas de Drive, perfiles, versiones y el plan de una simulación. **La app
@@ -159,7 +166,7 @@ que todo lo que hace la app se puede hacer también desde el terminal (decisión
 
 | Orden | Qué hace |
 |---|---|
-| `connect [--client-id ID --client-secret S]` | Crea la cuenta `gdrive` sin preguntas; abre el navegador para autorizar. Sin clave, la compartida de rclone (Titín, 03-11) |
+| `connect --client-id ID` | Crea (o sustituye) la cuenta `gdrive` con tu clave, sin preguntas; el secreto se pide sin eco (o `BACKUPDRIVE_CLIENT_SECRET`); abre el navegador para autorizar. Si falla, la cuenta anterior se queda como estaba. `--shared` (clave de rclone) solo para pruebas |
 | `check` | Comprueba la cuenta (JSON con el espacio de Drive) |
 | `folders gdrive:Ruta` / `mkdir gdrive:Ruta` | Carpetas de Drive (JSON) / crear una |
 | `profile list` | Perfiles con su último resultado (JSON) |

@@ -118,7 +118,7 @@ Instalado. Pasos siguientes:
 EOF
 n=1
 if [ ! -f "$CONF" ]; then
-  echo "  $n. Conectar con Google Drive (abre el navegador): backupdrive-ctl.sh connect"; n=$((n + 1))
+  echo "  $n. Conectar con Google Drive con tu clave (docs/clave-google.md): backupdrive-ctl.sh connect --client-id TU-ID.apps.googleusercontent.com"; n=$((n + 1))
 fi
 cat <<EOF
   $n. Autodiagnóstico:                    backupdrive-selftest.sh

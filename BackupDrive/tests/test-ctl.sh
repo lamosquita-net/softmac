@@ -29,12 +29,17 @@ sync_() { sleep 1; sh "$SYNC" "$@" >"$T/sync.out" 2>&1 || true; }
 
 # --- Conectar: sin cuenta, con clave incompleta, y con un remoto local en lugar de Drive ---
 expect 6 "check sin cuenta conectada" check
-expect 6 "clave propia incompleta" connect --client-id solo-id
-BACKUPDRIVE_CONNECT_TYPE=local expect 0 "connect crea la cuenta" connect
+expect 6 "sin clave propia" connect
+expect 6 "ID de cliente con otro formato" connect --client-id solo-id
+expect 6 "clave propia sin secreto" connect --client-id 123-abc.apps.googleusercontent.com </dev/null
+BACKUPDRIVE_CONNECT_TYPE=local BACKUPDRIVE_CLIENT_SECRET=s expect 0 "connect crea la cuenta" connect --client-id 123-abc.apps.googleusercontent.com
 out_has '"ok":true' "connect comprueba la cuenta"
 grep -q '^\[gdrive\]' "$APP/backupdrive.conf" && ok "remoto gdrive en backupdrive.conf" || fail "remoto gdrive en backupdrive.conf"
 expect 0 "check" check
 expect 6 "check de una cuenta que no existe" check --name otra
+cp "$APP/backupdrive.conf" "$T/conf.antes"
+BACKUPDRIVE_CONNECT_TYPE=no-existe expect 1 "autorización fallida" connect --shared
+cmp -s "$APP/backupdrive.conf" "$T/conf.antes" && ok "si la autorización falla, la cuenta anterior sigue" || fail "conf cambiado tras un fallo: $(cat "$APP/backupdrive.conf")"
 # Para el resto, la cuenta «fake» apunta a la carpeta de pruebas.
 printf '[fake]\ntype = local\n' >> "$APP/backupdrive.conf"
 

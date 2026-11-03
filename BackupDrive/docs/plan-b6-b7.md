@@ -5,8 +5,9 @@ Mojave 10.14.6). Maqueta de referencia: `BackupDrive/prototipo-ui/index.html`.
 
 ## Decisiones firmes (Titín, 03-11)
 
-1. **Cuenta de Google:** clave compartida de rclone por defecto (un clic); clave propia (client_id/secret de Google Cloud) en
-   Preferencias > Avanzado.
+1. **Cuenta de Google: la clave propia de cada usuario** (cambio de Titín del 03-11, por la tarde, que sustituye a «la
+   compartida por defecto»): ningún ID ni secreto en el repo; por qué y cómo en `docs/clave-google.md`. La compartida de rclone
+   queda solo para pruebas (`connect --shared`). **Va antes que el resto**: Titín quiere sustituir FreeFileSync en MacTrash pronto.
 2. **Frenos y conflictos:** lenguaje llano y siempre «Ver qué cambia» antes de «Continuar de todos modos».
 3. **Restaurar versiones desde la app: sí.** Si hay que recortar alcance, se recorta Actividad, no Versiones.
 
@@ -53,9 +54,8 @@ versiones).
 
 **H6. Versiones (nube + Titín).** Buscar por fichero, ver fechas y lado, «Restaurar» y «Mostrar en el Finder».
 
-**H7. Preferencias.** Carpetas (alta/baja, días de versiones), Protección (umbrales del freno), Avisos, Avanzado (clave propia de
-Google: guía para darla de alta, **publicarla en producción** para que el token no caduque a los 7 días; con alcance `drive`
-sale el aviso de «app no verificada», aceptable para uso propio, hasta 100 usuarios) y General (abrir al iniciar sesión).
+**H7. Preferencias.** Carpetas (alta/baja, días de versiones), Protección (umbrales del freno), Avisos, Avanzado (cambiar la clave de
+Google; el asistente de H3 ya la pide desde el principio) y General (abrir al iniciar sesión).
 
 **H8. Actividad** (recortable si falta alcance): las últimas pasadas desde el registro.
 

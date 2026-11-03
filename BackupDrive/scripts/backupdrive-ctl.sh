@@ -4,10 +4,12 @@
 # todo lo que hace la app se puede hacer también desde el terminal (B.6/B.7, plan en BackupDrive/docs/plan-b6-b7.md).
 #
 # Uso: backupdrive-ctl.sh <orden> [argumentos]
-#   connect [--client-id ID --client-secret S] [--name gdrive]
-#                  crea el remoto de Google Drive en backupdrive.conf sin preguntas: abre el navegador para autorizar
-#                  (rclone espera en 127.0.0.1:53682). Sin --client-id, la clave compartida de rclone (Titín, 03-11:
-#                  la compartida por defecto; la propia, en Avanzado). Si el remoto ya existe, lo vuelve a autorizar.
+#   connect --client-id ID [--name gdrive]   (o --shared)
+#                  crea la cuenta de Google Drive en backupdrive.conf sin preguntas: abre el navegador para autorizar
+#                  (rclone espera en 127.0.0.1:53682). Cada usuario usa SU clave de Google Cloud (Titín, 03-11; por qué y
+#                  cómo: BackupDrive/docs/clave-google.md). El secreto se pregunta sin eco o va en BACKUPDRIVE_CLIENT_SECRET
+#                  (--client-secret S también vale, pero queda en el historial). --shared: la clave compartida de rclone,
+#                  solo para pruebas. Si la cuenta ya existe, la sustituye; si la autorización falla, la deja como estaba.
 #   check [--name gdrive]           comprueba la conexión (rclone about); imprime JSON con el espacio de Drive
 #   folders <remoto:ruta>           carpetas de esa ruta de Drive, en JSON (lsjson --dirs-only)
 #   mkdir <remoto:ruta>             crea una carpeta en Drive
@@ -136,29 +138,49 @@ profile_line() { # local remoto días % nº (los tres últimos solo si no son lo
 }
 
 cmd_connect() {
-  name=gdrive; cid=""; csec=""
+  name=gdrive; cid=""; csec=${BACKUPDRIVE_CLIENT_SECRET:-}; shared=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --client-id) [ $# -ge 2 ] || usage; cid=$2; shift ;;
       --client-secret) [ $# -ge 2 ] || usage; csec=$2; shift ;;
+      --shared) shared=1 ;;
       --name) [ $# -ge 2 ] || usage; name=$2; shift ;;
       *) usage ;;
     esac
     shift
   done
-  { [ -z "$cid" ] && [ -z "$csec" ]; } || { [ -n "$cid" ] && [ -n "$csec" ]; } \
-    || die 6 "Para usar tu propia clave de Google hacen falta el ID de cliente y el secreto."
   case "$name" in ''|*[!A-Za-z0-9_-]*) die 6 "Nombre de cuenta no válido: $name" ;; esac
+  if [ "$shared" = 0 ]; then
+    [ -n "$cid" ] || die 6 "Falta tu ID de cliente de Google (--client-id). Cómo crearlo: BackupDrive/docs/clave-google.md."
+    case "$cid" in *[!A-Za-z0-9._-]*|*' '*) die 6 "El ID de cliente no es válido: cópialo entero desde Google Cloud." ;; esac
+    case "$cid" in *.apps.googleusercontent.com) ;; *) die 6 "El ID de cliente debe terminar en .apps.googleusercontent.com." ;; esac
+    # El secreto no va en la línea de órdenes (quedaría en el historial): variable de entorno o se pregunta sin eco.
+    if [ -z "$csec" ] && [ -r /dev/tty ] && [ -t 0 ]; then
+      printf 'Secreto de cliente (no se ve al escribir): ' >/dev/tty
+      stty -echo </dev/tty 2>/dev/null || true
+      IFS= read -r csec </dev/tty || csec=""
+      stty echo </dev/tty 2>/dev/null || true
+      printf '\n' >/dev/tty
+    fi
+    [ -n "$csec" ] || die 6 "Falta el secreto de cliente (BACKUPDRIVE_CLIENT_SECRET o se pregunta en el terminal)."
+  fi
   need_bin; lock
   # Tipo de remoto: drive; las pruebas usan «local» (BACKUPDRIVE_CONNECT_TYPE) porque no hay Google en la CI.
   type=${BACKUPDRIVE_CONNECT_TYPE:-drive}
   set -- config create "$name" "$type"
   if [ "$type" = drive ]; then
     set -- "$@" scope=drive
-    [ -z "$cid" ] || set -- "$@" client_id="$cid" client_secret="$csec"
+    [ "$shared" = 1 ] || set -- "$@" client_id="$cid" client_secret="$csec"
   fi
+  # config create borra la cuenta anterior antes de autorizar: si algo falla (navegador cerrado), se deja como estaba.
+  bak=""
+  if [ -f "$CONF" ]; then bak=$(mktemp "$APP_DIR/.conf.XXXXXX"); cp -p "$CONF" "$bak"; fi
   # Sin preguntas: rclone toma las respuestas por defecto y abre el navegador para autorizar.
-  rc_ "$@" >/dev/null || die 1 "No se pudo conectar con Google Drive. Si cerraste el navegador antes de autorizar, vuelve a intentarlo."
+  if ! rc_ "$@" >/dev/null; then
+    if [ -n "$bak" ]; then mv -f "$bak" "$CONF"; else rm -f "$CONF"; fi
+    die 1 "No se pudo conectar con Google Drive; no se ha cambiado nada. Si cerraste el navegador antes de autorizar, vuelve a intentarlo."
+  fi
+  [ -z "$bak" ] || rm -f "$bak"
   chmod 600 "$CONF" 2>/dev/null || true
   cmd_check --name "$name"
 }
