@@ -168,3 +168,4 @@ contexto al cerrar · notas.
 | 03-11 | INVESTIGACIÓN-MOTOR-7 (id en `get_session`) | Sonnet 5.5 | alto | `brave-propio.md` §10 (Brave 1.98.63 frente a 1.69.168); 4 subagentes de lectura | n/d | n/d |
 | 03-11 | SEGURIDAD-PORTES-17 (`session_01MwmK2h23XGknphhFuuhWG7`) | Opus 5.5 | medio | B0 de FM.55 (`b0-cve.md`): ritmo de CVE desde Chrome Releases, muestra de 20 arreglos contra la 128, KEV contra la 2.7.0; 1 subagente de lectura | n/d | n/d |
 | 03-11 | INVESTIGACIÓN-MOTOR-8 (`session_01MwmK2hmk5bxMJadUHhqwKY`) | Sonnet 5.5 | alto | B2 en papel de FM.55 (`brave-propio.md` §11: 556 ausentes de 1.98, medida de 579 parches sobre 156, poda, receta); sin subagentes; ~15 descargas y guiones propios | n/d | n/d |
+| 03-11 | INVESTIGACIÓN-MOTOR-8 (`session_01MwmK2hmk5bxMJadUHhqwKY`) | Sonnet 5.5 | alto | `brave-propio.md` §11.8: port a la 156 de Secure Enclave, llavero `fw1` y captive portal; sin subagentes | n/d | n/d |
