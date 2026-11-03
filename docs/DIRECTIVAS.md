@@ -217,6 +217,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Orden fijo de cada nivel (Titín, 02-11): d8 en el Ubuntu ANTES de entregar a LOCAL.** MOTOR y SEGURIDAD-PORTES
   suben sus ramas → D8-LINUX compila la d8 y pasa mjsunit (base y ramas de seguridad) → solo con la d8 en verde
   COORDINACIÓN manda la entrega a LOCAL por el buzón → LOCAL compila y prueba → PUBLICACIÓN → web. No se cambia sin Titín.
+- **Flynk (Titín, 03-11):** internamente, nuestro motor deja de ser «Blink 128 parcheado» y se llama **Flynk N**, con N
+  = nivel de Chrome (Flynk 138 = 2.7.0; a la par de Chrome, 140–156). Solo nombre interno y de la web: el código no se
+  renombra, `about:credits` sigue citando Blink (licencias) y el agente de usuario y las Client Hints siguen siendo los
+  de Chrome N sin marca propia (compatibilidad y huella; ver nota de COORDINACIÓN-24 del 03-11).
+- **Evolucionar el fork en vez de parchear (Titín, 03-11):** tras publicar la 2.7.0, ARQUITECTURA estudia pasar de
+  parches sobre la 128 a un árbol propio de Chromium en git. El estudio lee los informes de los otros motores y tiene
+  en cuenta los portes futuros (Android, iOS, Linux y, como posibilidad, Leopard/PowerPC). «Apagar, no borrar» sigue.
 - **`add_repo` de brave-core lo ordena COORDINACIÓN, no Titín (Titín, 02-11):** COORDINACIÓN lo pone en el texto de
   arranque de cada agente que lo necesita (excepción fija de la regla 16). Solo si aun así se deniega, se le dice a
   Titín con el texto exacto de la denegación.
