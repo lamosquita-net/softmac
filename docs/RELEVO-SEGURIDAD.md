@@ -8,6 +8,28 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-16: FS.39 entregada (02-11-2026)
+
+FS.39 (regla 17 del 138, 2.7.0), brave-core lineal sobre `nube/motor-138` 06d351d3: `seg/fs39-v8` 380f23cd →
+`-blink138` 9a25c236 → `-gpu` 5a0494c3 (con Brotli CVE-2026-111497) → `-propio` 17f009df → `-lts` 7b045fd0 (punta).
+d8 13.8 en verde (D8-LINUX-3). Detalle en la fila FS.39, `patches/v8/FLYWEB-SECURITY.md`, `patches/FLYWEB-SECURITY.md`
+y `patches/FLYWEB-SECURITY-fs39-propio.md` (brave-core) y `cve-triage.md` § FS.39.
+
+**Para la siguiente:** FS.40 propuesta (barrido de la LTS 138 .185 → .310 fuera de Blink y V8 sobre la 128, para el
+139). Pendientes: ANGLE 2d08a95 (pide antes Gerrit 5748789); V8 b01d779c20/19d60f6362 y 28fc9a12ce (a mano);
+scheduler.yield 1988acd89 (139). b5db50f99b ya está cubierto.
+
+**Lecciones:**
+- **Un CVE nuevo de una biblioteca de terceros se comprueba contra la copia de Chromium, no contra la versión del
+  nivel:** Chromium no actualizó brotli de 2022 a 2026 (hasta el 148), así que el arreglo no llega con ningún nivel.
+- **La rama «propia» del nivel destapa deuda vieja:** al mirar los ficheros que tocó el porte salieron arreglos de la
+  LTS en código de la 128 (PageState, `window.open` con POST, bfcache, MHTML). Revisar por fichero tocado, no solo por
+  función portada.
+- **Un arreglo de upstream puede necesitar su seguimiento:** ee4d43b9004 dejaba un iterador colgando; lo cierra
+  405dcf07fd1. Buscar siempre commits posteriores con el mismo crbug o sobre la misma función.
+- **Trabajar en local mientras falta el push funciona**, pero las ramas viven solo en el contenedor: rebasar sobre cada
+  avance de MOTOR (tres veces aquí) y subir en cuanto haya permiso.
+
 ## SEGURIDAD-PORTES-15: FS.38 entregada (30-10-2026)
 
 FS.38 (regla 17 del 137, 2.6.0) en brave-core sobre `nube/motor-137` 78237a70: `seg/fs38-v8` 068f195b (6 arreglos de V8,
