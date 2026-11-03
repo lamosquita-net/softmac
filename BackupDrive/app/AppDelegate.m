@@ -289,32 +289,170 @@ static const NSTimeInterval kPollSeconds = 2.0;
 }
 
 - (void)simulateFolder:(NSString *)folder {
+  [self reviewFolder:folder resync:YES];
+}
+
+- (void)reviewBlocked:(NSMenuItem *)item {
+  [self reviewFolder:item.representedObject resync:NO];
+}
+
+// Simula la pasada (no cambia nada) y enseña el plan en lenguaje llano. Titín, 03-11: siempre «Ver qué cambia»
+// antes de «Continuar de todos modos»; por eso continuar solo se ofrece desde aquí.
+- (void)reviewFolder:(NSString *)folder resync:(BOOL)resync {
   if (!folder.length) return;
+  NSArray *args = resync ? @[ @"--resync", @"--dry-run", @"--profile", folder ]
+                         : @[ @"--dry-run", @"--profile", folder ];
   __weak AppDelegate *weakSelf = self;
-  [self runEngine:@[ @"--resync", @"--dry-run", @"--profile", folder ]
+  NSDate *launched = [NSDate dateWithTimeIntervalSinceNow:-2];
+  [self runEngine:args
              then:^(int status) {
-               [NSApp activateIgnoringOtherApps:YES];
-               NSAlert *alert = [[NSAlert alloc] init];
-               alert.messageText = status == 0 ? @"Simulación terminada"
-                                               : @"La simulación ha fallado";
-               alert.informativeText = @"No se ha copiado ni borrado nada. En el registro "
-                                       @"están los cambios que haría la primera sincronización.";
-               [alert addButtonWithTitle:@"Ver registro"];
-               [alert addButtonWithTitle:@"Cerrar"];
-               if ([alert runModal] == NSAlertFirstButtonReturn) [weakSelf openLog:nil];
+               [BDRunner run:BDRunner.ctlScript
+                        args:@[ @"plan", folder ]
+                         env:nil
+                        done:^(int planStatus, NSString *out, NSString *err) {
+                          NSDictionary *plan = nil;
+                          if (planStatus == 0) {
+                            id json = [NSJSONSerialization
+                                JSONObjectWithData:[out dataUsingEncoding:NSUTF8StringEncoding]
+                                           options:0
+                                             error:nil];
+                            if ([json isKindOfClass:NSDictionary.class]) plan = json;
+                          }
+                          // Si launchd ya estaba sincronizando, el motor sale sin simular: el plan sería el viejo.
+                          NSDate *made = [weakSelf dateFromISO:[weakSelf field:@"date" of:plan]];
+                          if (plan && made && [made compare:launched] == NSOrderedAscending) {
+                            [weakSelf alert:@"BackupDrive estaba sincronizando"
+                                       info:@"No se ha podido simular ahora. Vuelve a intentarlo cuando termine."];
+                            return;
+                          }
+                          [weakSelf showPlan:plan folder:folder resync:resync failed:status != 0 && !plan];
+                        }];
              }];
 }
 
+- (NSArray *)planList:(NSDictionary *)dict key:(NSString *)key {
+  id list = [dict isKindOfClass:NSDictionary.class] ? dict[key] : nil;
+  return [list isKindOfClass:NSArray.class] ? list : @[];
+}
+
+- (NSUInteger)appendSection:(NSString *)title items:(NSArray *)items to:(NSMutableString *)text {
+  if (!items.count) return 0;
+  [text appendFormat:@"%@ (%lu):\n", title, (unsigned long)items.count];
+  NSUInteger shown = 0;
+  for (id item in items) {
+    if (shown == 100) {
+      [text appendFormat:@"   … y %lu más (lista completa en el registro)\n", (unsigned long)(items.count - shown)];
+      break;
+    }
+    [text appendFormat:@"   %@\n", item];
+    shown++;
+  }
+  [text appendString:@"\n"];
+  return items.count;
+}
+
+- (NSString *)describePlan:(NSDictionary *)plan resync:(BOOL)resync {
+  NSMutableString *text = [NSMutableString string];
+  id mac = plan[@"mac"];
+  id drive = plan[@"drive"];
+  NSArray *conflicts = [self planList:plan key:@"conflicts"];
+  NSUInteger total = 0;
+  if (resync) {
+    [text appendString:@"Primera sincronización: se juntan los dos lados sin borrar nada. Si un fichero es distinto "
+                       @"en los dos, gana el más reciente y el otro se guarda en versiones.\n\n"];
+    total += [self appendSection:@"Del Mac a Google Drive" items:[self planList:mac key:@"new"] to:text];
+    total += [self appendSection:@"De Google Drive al Mac" items:[self planList:drive key:@"new"] to:text];
+  } else {
+    total += [self appendSection:@"Borrados en el Mac: su copia de Drive irá a versiones"
+                           items:[self planList:mac key:@"deleted"]
+                              to:text];
+    total += [self appendSection:@"Borrados en Drive: su copia del Mac irá a versiones"
+                           items:[self planList:drive key:@"deleted"]
+                              to:text];
+    total += [self appendSection:@"Cambiados en el Mac: se subirán y la versión de Drive se guarda"
+                           items:[self planList:mac key:@"changed"]
+                              to:text];
+    total += [self appendSection:@"Cambiados en Drive: se bajarán y la versión del Mac se guarda"
+                           items:[self planList:drive key:@"changed"]
+                              to:text];
+    total += [self appendSection:@"Nuevos en el Mac: se subirán" items:[self planList:mac key:@"new"] to:text];
+    total += [self appendSection:@"Nuevos en Drive: se bajarán" items:[self planList:drive key:@"new"] to:text];
+    total += [self appendSection:@"Cambiados en los dos lados: se conservarán las dos copias"
+                           items:conflicts
+                              to:text];
+  }
+  if (!total) [text appendString:@"No hay nada que copiar ni borrar."];
+  return text;
+}
+
+- (void)showPlan:(NSDictionary *)plan folder:(NSString *)folder resync:(BOOL)resync failed:(BOOL)failed {
+  [NSApp activateIgnoringOtherApps:YES];
+  NSAlert *alert = [[NSAlert alloc] init];
+  NSString *name = folder.lastPathComponent;
+  if (!plan) {
+    alert.messageText = failed ? @"La simulación ha fallado" : @"Simulación terminada";
+    alert.informativeText = @"No se ha copiado ni borrado nada. Los detalles están en el registro.";
+    [alert addButtonWithTitle:@"Ver registro"];
+    [alert addButtonWithTitle:@"Cerrar"];
+    if ([alert runModal] == NSAlertFirstButtonReturn) [self openLog:nil];
+    return;
+  }
+  if (resync) {
+    alert.messageText = [NSString stringWithFormat:@"Qué haría la primera sincronización de «%@»", name];
+    alert.informativeText = @"Esto es una simulación: no se ha copiado ni borrado nada.";
+    [alert addButtonWithTitle:@"Primera sincronización…"];
+  } else {
+    alert.messageText = [NSString stringWithFormat:@"«%@» está detenida por seguridad", name];
+    alert.informativeText =
+        @"BackupDrive no ha tocado nada porque esta sincronización borraría o cambiaría muchos ficheros "
+        @"a la vez. Puede ser lo que querías (has ordenado o vaciado la carpeta) o una señal de problema "
+        @"(un disco que no está, un programa que cifra tus ficheros). Revisa la lista: lo que se borre o se "
+        @"sobrescriba irá a versiones.";
+    [alert addButtonWithTitle:@"Continuar de todos modos"];
+  }
+  [alert addButtonWithTitle:@"Cancelar"];
+  [alert addButtonWithTitle:@"Ver registro"];
+
+  NSScrollView *scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 500, 260)];
+  scroll.hasVerticalScroller = YES;
+  scroll.borderType = NSBezelBorder;
+  NSTextView *view = [[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, 500, 260)];
+  view.editable = NO;
+  view.font = [NSFont systemFontOfSize:12];
+  view.string = [self describePlan:plan resync:resync];
+  view.verticallyResizable = YES;
+  view.autoresizingMask = NSViewWidthSizable;
+  view.maxSize = NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX);
+  view.textContainer.widthTracksTextView = YES;
+  scroll.documentView = view;
+  alert.accessoryView = scroll;
+
+  NSModalResponse response = [alert runModal];
+  if (response == NSAlertThirdButtonReturn) {
+    [self openLog:nil];
+  } else if (response == NSAlertFirstButtonReturn) {
+    if (resync) {
+      [self firstSyncFolder:folder];
+    } else {
+      [self runEngine:@[ @"--force", @"--profile", folder ] then:nil];
+    }
+  }
+}
+
 - (void)firstSync:(NSMenuItem *)item {
-  NSString *folder = item.representedObject;
+  [self firstSyncFolder:item.representedObject];
+}
+
+- (void)firstSyncFolder:(NSString *)folder {
+  if (!folder.length) return;
   [NSApp activateIgnoringOtherApps:YES];
   NSAlert *alert = [[NSAlert alloc] init];
   alert.messageText = [NSString stringWithFormat:@"Primera sincronización de «%@»",
                                                  folder.lastPathComponent];
   alert.informativeText =
       @"Se juntan los dos lados sin borrar nada: lo que solo está en uno se copia al otro y, si un "
-      @"fichero es distinto en los dos, gana el más reciente y la otra versión se guarda "
-      @"(caduca a los 90 días). Conviene hacer antes la simulación y revisar el registro.";
+      @"fichero es distinto en los dos, gana el más reciente y la otra versión se guarda. Conviene "
+      @"hacer antes la simulación.";
   [alert addButtonWithTitle:@"Sincronizar"];
   [alert addButtonWithTitle:@"Cancelar"];
   if ([alert runModal] != NSAlertFirstButtonReturn) return;
@@ -407,7 +545,7 @@ static const NSTimeInterval kPollSeconds = 2.0;
   } else if ([result isEqualToString:@"skipped"]) {
     detail = @"Omitido: no existe la carpeta local o la línea está incompleta";
   } else if ([result isEqualToString:@"blocked"]) {
-    detail = @"Detenido por seguridad: la pasada borraría demasiados ficheros (no se ha tocado nada)";
+    detail = @"Detenido por seguridad: borraría o cambiaría muchos ficheros a la vez (no se ha tocado nada)";
   } else if ([result isEqualToString:@"needs-resync"]) {
     detail = @"Falta la primera sincronización";
   } else if ([result isEqualToString:@"never"]) {
@@ -435,6 +573,11 @@ static const NSTimeInterval kPollSeconds = 2.0;
                                    to:sub];
     first.representedObject = local;
     first.enabled = !self.isRunning && open.enabled;
+  }
+  if ([result isEqualToString:@"blocked"]) {
+    NSMenuItem *review = [self addItem:@"Ver qué cambia…" action:@selector(reviewBlocked:) to:sub];
+    review.representedObject = local;
+    review.enabled = !self.isRunning;
   }
   if ([result isEqualToString:@"error"] || [result isEqualToString:@"skipped"] ||
       [result isEqualToString:@"blocked"]) {

@@ -190,6 +190,9 @@ guiones, `BDSetup.m` los diálogos de conexión y carpetas) que **no sincroniza 
   abre el navegador para autorizar y espera, con «Cancelar»; «Añadir carpeta…» elige la carpeta del Mac y la de Drive (de
   una lista o escrita; si no existe, se crea) y ofrece la simulación; en cada carpeta, «Dejar de sincronizar…» (no borra
   nada). Con la cuenta ya conectada, «Volver a conectar con Google Drive…» la sustituye (p. ej. para cambiar de clave).
+- **Frenos en lenguaje llano** (Titín, 03-11): una carpeta detenida por seguridad (⚠) tiene «Ver qué cambia…», que simula la
+  pasada y enseña la lista (borrados primero: irán a versiones); solo desde ahí se puede «Continuar de todos modos». La
+  simulación de la primera sincronización enseña también la lista en lugar de mandar al registro.
 
 - Icono en la barra de menús: normal, sincronizando o con error (imágenes *template*, se adaptan al modo oscuro).
 - Menú: resumen de la última sincronización; cada perfil con ✓ / ✗ / ⚠ (falta la primera sincronización) /

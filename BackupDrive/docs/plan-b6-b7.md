@@ -49,7 +49,7 @@ Mojave y que no hace preguntas.
 
 **H4. Ventana principal: Inicio (nube + Titín).** Estado general, cada carpeta con su último resultado, «Sincronizar ahora».
 
-**H5. Frenos y conflictos (nube + Titín).** Avisos en lenguaje llano; «Ver qué cambia» abre la lista de `plan`; solo después
+**H5. Frenos y conflictos (nube + Titín). Frenos hechos (03-11); falta «Quedarme con este» en los conflictos.** Avisos en lenguaje llano; «Ver qué cambia» abre la lista de `plan`; solo después
 aparece «Continuar de todos modos» (`--force`). Conflictos: lista de pares `conflict` con «Quedarme con este» (el otro va a
 versiones).
 
