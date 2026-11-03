@@ -231,6 +231,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   cada versión publicada**: espejo git *bare* en `/Volumes/googledrive/clientes/software/softmac/` (nombre a fijar en
   F0), actualizado con `git push --mirror` (solo sube lo nuevo) y con `gc.auto=0` para no reempaquetar y obligar a
   Drive a volver a subir los 65 GB. Sirve de copia en la nube y de origen rápido para el Ubuntu (D8-LINUX) en la red local.
+- **Siguiente base (Titín, 03-11; `FlyWeb/docs/base-siguiente.md`, #703): medir antes de decidir.** Tras publicar la
+  2.7.0: B0 (CVE: ¿aplican limpios a la 128? fechas reales), B1 (Chromium 156 y 150 limpios para 10.14, ¿arrancan en la
+  6,1?) y B3 (ensayo de llevar la capa permanente a la 156, tras F0–F1 del fork), en paralelo con F0–F1. B2 mide la
+  opción que salga de `brave-propio.md` (estudio de absorber lo útil de Brave en nuestro fork en vez de llevar
+  brave-core 1.69 entero). **El 139 a mano queda en pausa** mientras se mide; SEGURIDAD-PORTES sigue con los CVE
+  explotados (2.7.x si hace falta). Con los datos, Titín decide: 156, 150 o seguir a mano. Hasta entonces sigue vigente
+  «la 128 es la última base». La interfaz irá hacia la de Chrome más que hacia la de Brave.
 - **`add_repo` de brave-core lo ordena COORDINACIÓN, no Titín (Titín, 02-11):** COORDINACIÓN lo pone en el texto de
   arranque de cada agente que lo necesita (excepción fija de la regla 16). Solo si aun así se deniega, se le dice a
   Titín con el texto exacto de la denegación.
