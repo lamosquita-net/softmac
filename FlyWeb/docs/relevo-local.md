@@ -13,6 +13,16 @@ LOCAL no depende de CARTERO-LOCAL. Al arrancar y al terminar cada tarea: `git fe
 
 Antes de entregar en la fila: **Speedometer 3.1 completo y JetStream 3 en la 7,1 con la versión candidata.** La 2.6.0 salió sin esto.
 
+## LOCAL-16, estado (03-11-2026)
+
+LOCAL-16 («Compilación Local (16)»; Opus 5.5 medio, modo auto). COORDINACIÓN-24 (`session_01MwmK2hVdDLULexk6bBGVwA`). Guiones en `~/proyectos/softmac/temp/local16`; worktree `temp/local16/wt` (softmac, rama `local16/notas`).
+
+- **2.7.0 entregada** (FM.53): `local/270-arreglos` a78df81efd (= `seg/fs39-lts` 7b045fd0 + adaptación al árbol de la 128), build 40, `entregas/FlyWeb-2.7.0-release`. `src/brave` y `out/Release` están en esa cabeza. Falta, tras publicar: mover `flyweb` a esa cabeza (como hizo LOCAL-15 con la 2.6.1) y llevar el checkout de Drive con `read-tree`.
+- **Guion de la 2.x:** `release-270.sh` (dragonbox con suma, simdutf 7.0.0, `v8_enable_temporal_support=false`, `comprobar-enums.py`, `kNumberOfFeatures` calculado del `.mojom`). Para rehacer el `.patch` de un fichero NUEVO de Chromium: `parche-nuevo.py <src> <ruta>`; para uno modificado: `git -C src diff --full-index <ruta> > brave/patches/<…>.patch` (sin `--full-index` cambia la línea `index`). Nunca `update_patches`.
+- **Pruebas:** `pruebas-270.sh` (7,1), `s61-270.sh` (6,1, una sesión SSH con `-R 8130` para las páginas locales), `canvas-270.sh` (farbling con hosts `.test`), `ip-270.sh` (Integrity-Policy con cabeceras), `amano.sh` (copiar: el text/plain ya salía bien en la 2.6.1; lo que cambia el 138 es el text/html), `wpt138.sh` + `comparar-wpt138.py` (árbol `temp/wpt138`, servidor 8127, CfT en `temp/cft138`).
+- **Sin probar (Titín):** espacio al principio de línea partida en textarea (el cursor no sale en capturas headless) y vídeo de móvil girado en VideoDecoder.
+- **Trampas:** no lanzar una segunda `ninja` sobre `out/Release` con la compilación en marcha (LOCAL-16 lo hizo una vez para probar un objeto). El `wpt138.sh` con `CASOS="a b"` corre en serie: si se lanza `b` aparte en paralelo, matar por PID la segunda pasada de `b` (no por patrón). La app de la 2.6.1 desde Drive tarda más de 6 s en abrir CDP: esperar a `/json/version`.
+
 ## LOCAL-15, estado (31-10-2026)
 
 LOCAL-15 («Compilación Local (15)», `local_19263447-de4b-4c91-9c41-388e76778ccc`; Opus 5.5 medio, modo auto, Remote Control). Guiones en `~/proyectos/softmac/temp/local15/sp`; worktrees `temp/local15/wt` (softmac) y `temp/local15/bc-wt` (brave-core).
