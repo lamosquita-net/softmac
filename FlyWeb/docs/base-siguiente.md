@@ -12,7 +12,7 @@ Continúa `base-128.md` (el salto 116 → 128) y `fork-propio.md` (aprobado el 0
    un salto completo y casi no cierran la deuda (§3.1).
 2. **Cuándo:** justo después de la 2.7.0 y de la conversión a git (F0–F1 de `fork-propio.md`), **en lugar de** el 139 a mano.
    La siguiente versión con motor nuevo no es la 2.8.0 = 139, sino un 156 nativo. Antes de comprometerse, dos
-   medidas baratas y una **puerta para Titín** (§7). Entre tanto sigue SEGURIDAD-PORTES con los CVE explotados.
+   medidas baratas y una **puerta para Titín** (§6). Entre tanto sigue SEGURIDAD-PORTES con los CVE explotados.
 3. **Qué cambia de idea rectora.** «La 128 es la última base que tomamos de fuera» (DIRECTIVAS, 20-10) se justificó con
    el suelo de macOS 11 de la 129. Hoy hay dos hechos nuevos: la traducción a Mojave de la 128 funciona (2.0.x), y la
    deuda fuera de Blink y V8 crece más deprisa de lo que se pensaba (§3.1). Pido a Titín que **revoque esa frase y el punto 6
@@ -84,7 +84,7 @@ Lectura crítica:
 - **Subir a una base ≤ 147 no compra seguridad**: el grueso (348 CVE) se arregla en 148–150. Por eso descarto 138/139/140/144.
 - La cifra es sospechosa y debe verificarse: el propio documento avisa de 3 599 registros de Chrome con ID de 2026 frente a
   190 de 2025. A ritmo de 2025 (~3 por hito, 2025 en el CSV) portar a mano sería asumible; a ritmo de 2026 (25–140 por hito
-  desde el 146) no. **La decisión depende de cuál sea el ritmo real**; SEGURIDAD-PORTES debe contrastarlo con Chrome Releases antes de la puerta (§7). [N]
+  desde el 146) no. **La decisión depende de cuál sea el ritmo real**; SEGURIDAD-PORTES debe contrastarlo con Chrome Releases antes de la puerta (§6). [N]
 - Portar a mano sale más barato de lo que sugiere el recuento: el documento da ~0,2 h por CVE si el arreglo aplica tal cual y
   ~15–25 h para los críticos «desde HTML». Pero el código se aleja de la 128 cada hito, y **el coste de cada backport crece con
   la distancia** (precedente: rechazos de parches V8 del 9,8 % en el 137 al 17,5 % en el 138, `fork-propio.md` §3). Una base
