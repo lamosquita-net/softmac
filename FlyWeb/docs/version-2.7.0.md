@@ -189,6 +189,20 @@ regresión o un KEV. La 2.7.0 declara 138 de todos modos: es CSS nuevo con alter
 - **`CSSAlignBlockAndInlineOutOfFlows`** con `LayoutJustifySelfForBlocks` (babd2b646 lo quita del 137; 25bf90a44,
   4ada5a818, db5b93af2). Estimación de los dos bloques: 6–10 h.
 
+### Compilación en la 7,1 (LOCAL-16, 03-11; brave-core `local/270-arreglos` a78df81efd, build 40)
+
+`seg/fs39-lts` 7b045fd0 compila con un commit de adaptación al árbol de la 128 (a78df81efd; revisado por COORDINACIÓN-24):
+`integrity_policy_parser.cc` (include de `base/strings/cstring_view.h`; `GetNormalizedHeader` de la 128 con parámetro de
+salida), `integrity_policy.h` (en la 128 `IntegrityMetadataSet` es un alias de `HashSet`: se incluye
+`integrity_metadata.h`), `integrity_policy.cc` (fuera el include de `integrity_algorithm.mojom`, que la 128 no tiene ni se
+usa), `content_security_policy.cc` (el parámetro de `AllowRequest` sigue llamándose `context`), `replace_node_with_span_command.cc`
+(`AttributeVector` no se construye desde `AttributeCollection`: copia uno a uno) y `quota_exceeded_error.cc`.
+
+**Para el 139, `quota_exceeded_error.cc`:** `ExceptionState::GetIsolate()` es protegido en la 128 y se usa
+`v8::Isolate::TryGetCurrent()`. El nulo no es una desreferencia muda: el `if (!isolate)` que ya estaba lanza la
+`DOMException` sin objeto de V8 (sin `quota` ni `requested`). Un `CHECK(isolate)` tumbaría la pestaña donde hoy hay
+un error de JS; si se toca, mejor un `DCHECK`. Al subir de base, volver a `exception_state.GetIsolate()`.
+
 ## Para LOCAL: dependencias y args nuevos del 138
 
 V8 13.8.258.30 no compila con solo los parches de brave-core: hacen falta estos tres pasos en el árbol de la 128 (en
