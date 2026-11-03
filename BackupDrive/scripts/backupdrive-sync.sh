@@ -41,6 +41,7 @@
 #               fichero difiere en los dos lados no hay historia que consultar y se usa el más reciente (--resync-mode
 #               newer), pero el perdedor se guarda en versiones.
 #   --dry-run   no cambia nada (ni caduca versiones); enseña el plan completo aunque el freno de borrados lo cortaría
+#               y lo guarda en state/<id>.plan.log (backupdrive-ctl.sh plan lo resume)
 #   --force     salta los frenos de borrados y de modificaciones masivas (solo tras revisar con --dry-run)
 #   --profile   solo el perfil de esa carpeta local
 set -eu
@@ -163,7 +164,7 @@ cutoff_date() { # días -> AAAAMMDD de hace N días (BSD date en macOS, GNU en l
 }
 
 # Caduca las versiones de $1 (carpeta o remoto) más viejas que $2 días. La fecha sale del NOMBRE
-# (…-AAAAMMDD-HHMMSS[.ext]), no de la fecha del fichero: rclone conserva la fecha de modificación original al
+# (…-AAAAMMDD-HHMMSS[.ext], o .tar.gz: rclone conserva las extensiones compuestas), no de la fecha del fichero: rclone conserva la fecha de modificación original al
 # mover a la carpeta de versiones, y un fichero viejo sobrescrito hoy no debe caducar hoy. Lo que no
 # lleva fecha en el nombre no se toca. Solo borra dentro de la carpeta de versiones.
 expire_versions() { # raíz de versiones, días
@@ -171,7 +172,7 @@ expire_versions() { # raíz de versiones, días
   cut=$(cutoff_date "$2")
   rc_ lsf -R --files-only "$1" > "$WORK/ver.all" 2>/dev/null || return 0
   awk -v cut="$cut" '
-    match($0, /-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9](\.[^.\/]*)?$/) {
+    match($0, /-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9](\.[^\/]*)?$/) {
       if (substr($0, RSTART + 1, 8) + 0 < cut + 0) print
     }' "$WORK/ver.all" > "$WORK/ver.old"
   n=$(wc -l < "$WORK/ver.old" | tr -d ' ')
@@ -295,6 +296,11 @@ while IFS='|' read -r local_dir remote days mod_pct mod_n; do
   : > "$RUN_LOG"
   rc=0; sync_profile "$local_dir" "$remote" "$days" "$mod_pct" "$mod_n" || rc=$?
   cat "$RUN_LOG" >> "$LOG"
+  # Plan de la simulación, para «Ver qué cambia» (backupdrive-ctl.sh plan).
+  if [ "$DRY" = 1 ]; then
+    { [ "$RESYNC" = 1 ] && echo "BACKUPDRIVE-PLAN resync" || echo "BACKUPDRIVE-PLAN"; cat "$RUN_LOG"; } \
+      > "$STATE_DIR/$(profile_id "$local_dir" "$remote").plan.log"
+  fi
   case "$rc" in
     0) save_profile "$local_dir" "$remote" ok 0 ;;
     3) status=1; needs_resync="$needs_resync $local_dir"

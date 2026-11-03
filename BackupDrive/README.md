@@ -112,11 +112,12 @@ sudo cp build/backupdrive scripts/backupdrive-sync.sh /usr/local/bin/
 APP="$HOME/Library/Application Support/BackupDrive"
 mkdir -p "$APP"
 
-# 1. Remoto de Google Drive (tipo "drive"), con tu propio client_id/client_secret de Google Cloud
-backupdrive --config "$APP/backupdrive.conf" config
+# 1. Conectar con Google Drive: abre el navegador para autorizar, sin preguntas (clave compartida de rclone;
+#    la propia: --client-id … --client-secret …). A mano también vale: backupdrive --config "$APP/backupdrive.conf" config
+backupdrive-ctl.sh connect
 
-# 2. Perfiles: una línea por carpeta, "carpeta local|remoto:ruta[|días de versiones]"
-echo "/ruta/de/mi/carpeta|gdrive:MiCarpeta" >> "$APP/profiles"
+# 2. Perfiles: una línea por carpeta en "$APP/profiles", "carpeta local|remoto:ruta[|días de versiones]"
+backupdrive-ctl.sh profile add "/ruta/de/mi/carpeta" gdrive:MiCarpeta
 
 # 3. Primera sincronización: primero en simulación y después de verdad
 backupdrive-sync.sh --resync --dry-run
@@ -148,6 +149,29 @@ launchctl load -w ~/Library/LaunchAgents/net.lamosquita.backupdrive.plist
   acceso total al disco. En Mojave, `~/Documents` no está protegido.
 - Probado con un remoto local de rclone (altas, cambios, borrados, conflictos y caducidad; ver `tests/`). **Falta probarlo
   contra Google Drive real en Mojave.**
+
+## Órdenes de control (`backupdrive-ctl.sh`)
+
+Lo que no es sincronizar: conectar con Drive, carpetas de Drive, perfiles, versiones y el plan de una simulación. **La app
+solo lanza `backupdrive-sync.sh` y `backupdrive-ctl.sh`** y lee lo que escriben (`status.json`, JSON por la salida), así
+que todo lo que hace la app se puede hacer también desde el terminal (decisión de COORDINACIÓN-24, 03-11; plan en
+[`docs/plan-b6-b7.md`](docs/plan-b6-b7.md)).
+
+| Orden | Qué hace |
+|---|---|
+| `connect [--client-id ID --client-secret S]` | Crea la cuenta `gdrive` sin preguntas; abre el navegador para autorizar. Sin clave, la compartida de rclone (Titín, 03-11) |
+| `check` | Comprueba la cuenta (JSON con el espacio de Drive) |
+| `folders gdrive:Ruta` / `mkdir gdrive:Ruta` | Carpetas de Drive (JSON) / crear una |
+| `profile list` | Perfiles con su último resultado (JSON) |
+| `profile add <carpeta> gdrive:Ruta [--days N] [--pct P] [--count N]` | Alta, validada: no la raíz de Drive, sin solapes con otros perfiles ni con las carpetas de versiones |
+| `profile set <carpeta> [--days N] [--pct P] [--count N]` / `profile remove <carpeta>` | Cambiar / quitar (no borra nada en ningún lado) |
+| `versions list <carpeta>` | Versiones de los dos lados, la más reciente primero (JSON) |
+| `versions restore <carpeta> mac\|drive <ruta de la versión>` | Vuelve a poner la versión en su sitio en el Mac; lo que hubiera va antes a versiones; la siguiente pasada la sube a Drive |
+| `plan <carpeta>` | Resumen de la última simulación (`backupdrive-sync.sh --dry-run`): nuevo, cambiado y borrado en cada lado y conflictos (JSON) |
+
+Las órdenes que escriben toman el mismo bloqueo que la sincronización (código 5 si hay una en curso); los errores de
+datos salen con código 6 y un mensaje en castellano llano en stderr. Pruebas: `tests/test-ctl.sh` (remoto local; la CI
+las ejecuta).
 
 ## App de barra de menús
 

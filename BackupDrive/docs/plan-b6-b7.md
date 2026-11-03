@@ -15,8 +15,7 @@ Mojave 10.14.6). Maqueta de referencia: `BackupDrive/prototipo-ui/index.html`.
 - **El motor no cambia de diseño** (`backupdrive-sync.sh` y `status.json`). Lo nuevo que no es sincronizar (conectar, perfiles,
   versiones, plan del freno) va a un guion de órdenes nuevo, `backupdrive-ctl.sh`, y la app solo lanza esos dos guiones y lee
   ficheros. Ventajas: todo se puede hacer también por línea de órdenes (requisito de B.7) y se prueba en la CI de Linux con un
-  remoto local, como `test-sync-safe.sh`. Es una ampliación de «la interfaz solo lanza `backupdrive-sync.sh`»: lo anoto para que
-  COORDINACIÓN lo vea.
+  remoto local, como `test-sync-safe.sh`. Ampliación de «la interfaz solo lanza `backupdrive-sync.sh`» **aprobada por COORDINACIÓN-24 (03-11)**.
 - **AppKit puro, sin nib ni SwiftUI**, SDK y objetivo 10.14, como `app/main.m`. La CI ya falla con APIs posteriores a 10.14.
 - **Nada se pierde tampoco al restaurar:** lo que se reemplaza va antes a versiones.
 - No se toca `BackupDrive/rclone/` (subtree v1.67.x, Go 1.20).
@@ -25,7 +24,8 @@ Mojave 10.14.6). Maqueta de referencia: `BackupDrive/prototipo-ui/index.html`.
 
 **H0. Cerrar B.2** (Titín, prueba h en la 6,1, tras reinstalar con el artefacto `BackupDrive-mojave` de `main`).
 
-**H1. `backupdrive-ctl.sh` con pruebas (nube, CI).**
+**H1. `backupdrive-ctl.sh` con pruebas (nube, CI). Hecho (03-11):** `plan` lee el registro que guarda cada simulación
+(`state/<id>.plan.log`).
 - `connect [--client-id X --client-secret Y]`: `backupdrive --config <conf> config create gdrive drive scope=drive [...]`.
   rclone abre el navegador y espera en `127.0.0.1:53682`; sin preguntas. Comprueba con `about gdrive:`.
 - `folders <remoto:ruta>` (lista carpetas en JSON con `lsjson --dirs-only`) y `mkdir`.
@@ -68,5 +68,5 @@ reales creados desde la app, «Sincronizar cada hora» activado y una semana de 
   seco del freno duplica los listados. Si molesta, la salida es la clave propia (Avanzado), no tocar el freno.
 - **La credencial de rclone sigue en claro** en `backupdrive.conf` (README, «Qué no protege»). Cifrarla con `RCLONE_CONFIG_PASS`
   guardada en el llavero es posible después de H9; no entra en este plan salvo que Titín lo pida.
-- **Quién programa la interfaz:** la fila B.7 la daba a INTERFAZ (7,1). Este plan la hace la nube con la CI de macOS y deja a
-  Titín (o LOCAL) las pruebas con ventana. Lo decide COORDINACIÓN.
+- **Quién programa la interfaz:** BACKUPDRIVE en la nube, con la CI de macOS; las pruebas con ventana, Titín en la 6,1
+  (COORDINACIÓN-24, 03-11).
