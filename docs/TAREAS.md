@@ -65,7 +65,7 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
    revisa, fusiona y cierra los PR de softmac y decide en qué orden se llevan las ramas; los agentes de la nube le
    preguntan con `send_message` y los locales en su fila. Al HUMANO solo le llegan las decisiones de producto, los
    textos legales, las credenciales, la firma y publicación de versiones y las pruebas en las Mac. En brave-core, la
-   fusión en `flyweb` sigue siendo de LOCAL (regla 2).
+   fusión en `flyweb` sigue siendo de LOCAL (regla 2). **Excepción (Titín, 03-11): BACKUPDRIVE trabaja directamente con Titín y fusiona sus propios PR de `BackupDrive/` (DIRECTIVAS).**
 9. **Modelo de cada agente** (HUMANO, 05-10; reparto del 09-10 en la tabla): elegir el modelo por lo que cuesta un
    error, no por el volumen. **Opus 5.5** donde un fallo cuesta horas de compilación o un agujero de seguridad (MOTOR,
    LOCAL, SEGURIDAD-PORTES, COORDINACIÓN). **Sonnet 5.5** para tareas con receta escrita y acceso acotado (PUBLICACIÓN,

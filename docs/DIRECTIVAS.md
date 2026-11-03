@@ -238,6 +238,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   brave-core 1.69 entero). **El 139 a mano queda en pausa** mientras se mide; SEGURIDAD-PORTES sigue con los CVE
   explotados (2.7.x si hace falta). Con los datos, Titín decide: 156, 150 o seguir a mano. Hasta entonces sigue vigente
   «la 128 es la última base». La interfaz irá hacia la de Chrome más que hacia la de Brave.
+- **BackupDrive trabaja directamente con Titín, sin COORDINACIÓN (Titín, 03-11):** el agente BACKUPDRIVE recibe los
+  encargos y resultados de Titín y le contesta a él; fusiona él mismo sus PR de `BackupDrive/` (y su fila del tablero)
+  con la CI en verde, como excepción a la regla 8; y abre él mismo su relevo (si su linaje se agota, lo abre Titín desde
+  la app). COORDINACIÓN no le escribe ni le fusiona nada; solo se cruzan si un cambio toca ficheros comunes (CLAUDE.md,
+  reglas del tablero), que siguen por PR revisado por COORDINACIÓN. Sin coordinador propio: es un único agente.
 - **`add_repo` de brave-core lo ordena COORDINACIÓN, no Titín (Titín, 02-11):** COORDINACIÓN lo pone en el texto de
   arranque de cada agente que lo necesita (excepción fija de la regla 16). Solo si aun así se deniega, se le dice a
   Titín con el texto exacto de la denegación.
