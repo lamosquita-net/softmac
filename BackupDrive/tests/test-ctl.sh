@@ -118,6 +118,7 @@ expect 6 "plan sin simulación" plan "$MAC"
 sync_ --resync --dry-run
 expect 0 "plan de la primera sincronización" plan "$MAC"
 out_has '"resync":true' "plan: es primera sincronización"
+out_has '"date":"20' "plan: con la fecha de la simulación"
 out_has '"drive":{"new":["d.txt"]' "plan: d.txt bajará"
 out_has '"doc.docx"' "plan: doc.docx subirá"
 sync_ --resync
