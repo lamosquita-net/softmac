@@ -48,7 +48,7 @@ unload_agent() {
 
 if [ "${1:-}" = "--uninstall" ]; then
   unload_agent
-  rm -f "$PLIST"
+  rm -f "$PLIST" "$LAUNCH_AGENTS/$LABEL.app.plist"   # el segundo: «Abrir al iniciar sesión» de la app
   run_priv rm -f "$PREFIX/backupdrive" "$PREFIX/backupdrive-sync.sh" "$PREFIX/backupdrive-ctl.sh" "$PREFIX/backupdrive-selftest.sh"
   for d in /Applications "$HOME/Applications" "$APPS_DIR"; do rm -rf "$d/BackupDrive.app"; done
   echo "BackupDrive desinstalado. Se conservan $APP_DIR y ~/Library/Logs/BackupDrive."

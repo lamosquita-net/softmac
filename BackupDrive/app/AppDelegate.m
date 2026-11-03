@@ -13,6 +13,9 @@
 #import "BDVersionsWindow.h"
 
 static NSString *const kAgentLabel = @"net.lamosquita.backupdrive";
+// Abrir la app al iniciar sesión: un LaunchAgent propio que hace «open» (sin la API de ítems de inicio, obsoleta desde
+// 10.11, ni SMLoginItemSetEnabled, que exige una app auxiliar). Basta con que el fichero exista; launchd lo lee al entrar.
+static NSString *const kLoginLabel = @"net.lamosquita.backupdrive.app";
 static const NSTimeInterval kPollSeconds = 2.0;
 
 @interface AppDelegate ()
@@ -469,6 +472,94 @@ static const NSTimeInterval kPollSeconds = 2.0;
   [self.setup addFolder];
 }
 
+#pragma mark - Ajustes
+
+- (NSString *)loginPlistPath {
+  return [NSHomeDirectory()
+      stringByAppendingPathComponent:[NSString stringWithFormat:@"Library/LaunchAgents/%@.plist", kLoginLabel]];
+}
+
+- (void)toggleLogin:(NSMenuItem *)item {
+  NSString *path = self.loginPlistPath;
+  NSFileManager *fm = NSFileManager.defaultManager;
+  if ([fm fileExistsAtPath:path]) {
+    [fm removeItemAtPath:path error:nil];
+    return;
+  }
+  NSString *app = NSBundle.mainBundle.bundlePath;
+  NSDictionary *plist = @{
+    @"Label" : kLoginLabel,
+    @"ProgramArguments" : @[ @"/usr/bin/open", app ],
+    @"RunAtLoad" : @YES,
+    @"LimitLoadToSessionType" : @"Aqua",
+  };
+  [fm createDirectoryAtPath:path.stringByDeletingLastPathComponent
+      withIntermediateDirectories:YES
+                       attributes:nil
+                            error:nil];
+  if (![plist writeToURL:[NSURL fileURLWithPath:path] error:nil]) {
+    [self alert:@"No se pudo activar" info:path];
+  }
+}
+
+- (NSTextField *)settingsField:(NSView *)view y:(CGFloat)y label:(NSString *)label value:(id)value {
+  NSTextField *text = [NSTextField labelWithString:label];
+  text.frame = NSMakeRect(0, y + 3, 300, 18);
+  [view addSubview:text];
+  NSTextField *field = [[NSTextField alloc] initWithFrame:NSMakeRect(306, y, 70, 24)];
+  field.stringValue = [value isKindOfClass:NSNumber.class] ? [value stringValue] : @"";
+  field.alignment = NSTextAlignmentRight;
+  [view addSubview:field];
+  return field;
+}
+
+- (void)folderSettings:(NSMenuItem *)item {
+  NSDictionary *p = item.representedObject;
+  NSString *local = [self field:@"local" of:p];
+  if (!local.length) return;
+  [NSApp activateIgnoringOtherApps:YES];
+  NSAlert *alert = [[NSAlert alloc] init];
+  alert.messageText = [NSString stringWithFormat:@"Ajustes de «%@»", local.lastPathComponent];
+  alert.informativeText =
+      @"Versiones: cuántos días se guarda lo borrado o sobrescrito (0 = no caducan nunca). Freno: si en una "
+      @"sincronización cambia el contenido de más de ese porcentaje de ficheros y de más de ese número, BackupDrive "
+      @"se detiene sin tocar nada (protege de un programa que cifre tus ficheros).";
+  NSView *view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 380, 96)];
+  NSTextField *days = [self settingsField:view y:66 label:@"Guardar versiones (días):" value:p[@"days"]];
+  NSTextField *pct = [self settingsField:view y:34 label:@"Freno: porcentaje de ficheros cambiados:" value:p[@"pct"]];
+  NSTextField *count = [self settingsField:view y:2 label:@"Freno: y al menos este número de ficheros:" value:p[@"count"]];
+  days.nextKeyView = pct;
+  pct.nextKeyView = count;
+  alert.accessoryView = view;
+  [alert addButtonWithTitle:@"Guardar"];
+  [alert addButtonWithTitle:@"Cancelar"];
+  [alert layout];
+  alert.window.initialFirstResponder = days;
+  if ([alert runModal] != NSAlertFirstButtonReturn) return;
+
+  NSCharacterSet *notDigits = NSCharacterSet.decimalDigitCharacterSet.invertedSet;
+  NSArray<NSTextField *> *fields = @[ days, pct, count ];
+  for (NSTextField *f in fields) {
+    NSString *v = [f.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+    if (!v.length || [v rangeOfCharacterFromSet:notDigits].location != NSNotFound) {
+      [self alert:@"Solo números enteros" info:@"Escribe un número en cada casilla (0 o más)."];
+      return;
+    }
+    f.stringValue = v;
+  }
+  __weak AppDelegate *weakSelf = self;
+  [BDRunner run:BDRunner.ctlScript
+           args:@[
+             @"profile", @"set", local, @"--days", days.stringValue, @"--pct", pct.stringValue, @"--count",
+             count.stringValue
+           ]
+            env:nil
+           done:^(int status, NSString *out, NSString *err) {
+             if (status != 0) [weakSelf alert:@"No se pudieron guardar los ajustes" info:err];
+             [weakSelf refreshProfiles];
+           }];
+}
+
 - (void)showVersions:(NSMenuItem *)item {
   NSDictionary *p = item.representedObject;
   NSString *local = [self field:@"local" of:p];
@@ -590,6 +681,9 @@ static const NSTimeInterval kPollSeconds = 2.0;
   open.enabled = [NSFileManager.defaultManager fileExistsAtPath:local];
   NSMenuItem *versions = [self addItem:@"Versiones…" action:@selector(showVersions:) to:sub];
   versions.representedObject = p;
+  NSMenuItem *settings = [self addItem:@"Ajustes de esta carpeta…" action:@selector(folderSettings:) to:sub];
+  settings.representedObject = p;
+  settings.enabled = !self.isRunning && !self.setup.busy && p[@"days"] != nil;
   if ([result isEqualToString:@"needs-resync"] || [result isEqualToString:@"never"]) {
     NSMenuItem *sim = [self addItem:@"Simular la primera sincronización"
                              action:@selector(simulateFirstSync:)
@@ -665,6 +759,9 @@ static const NSTimeInterval kPollSeconds = 2.0;
   [menu addItem:NSMenuItem.separatorItem];
   [self addItem:@"Ver registro" action:@selector(openLog:) to:menu];
   [self addItem:@"Abrir carpeta de configuración" action:@selector(openConfigFolder:) to:menu];
+  NSMenuItem *login = [self addItem:@"Abrir al iniciar sesión" action:@selector(toggleLogin:) to:menu];
+  login.state = [NSFileManager.defaultManager fileExistsAtPath:self.loginPlistPath] ? NSControlStateValueOn
+                                                                                     : NSControlStateValueOff;
   if (hasAccount) {
     NSMenuItem *reconnect = [self addItem:@"Volver a conectar con Google Drive…"
                                    action:@selector(connect:)

@@ -200,6 +200,8 @@ guiones, `BDSetup.m` los diálogos de conexión y carpetas) que **no sincroniza 
 - **Versiones** (Titín, 03-11: restaurar desde la app): «Versiones…» en cada carpeta abre una ventana con las versiones de
   los dos lados (buscar por nombre, fecha, lado, tamaño); «Restaurar…» la vuelve a poner en su sitio (lo que hubiera va antes
   a versiones) y «Mostrar en el Finder» para las del Mac.
+- **Ajustes:** «Ajustes de esta carpeta…» (días de versiones y los dos umbrales del freno, con `backupdrive-ctl.sh profile
+  set`) y «Abrir al iniciar sesión» (un LaunchAgent propio, `net.lamosquita.backupdrive.app`, que abre la app al entrar).
 
 - Icono en la barra de menús: normal, sincronizando o con error (imágenes *template*, se adaptan al modo oscuro).
 - Menú: resumen de la última sincronización; cada perfil con ✓ / ✗ / ⚠ (falta la primera sincronización) /
@@ -208,8 +210,7 @@ guiones, `BDSetup.m` los diálogos de conexión y carpetas) que **no sincroniza 
   **Sincronizar ahora** (lanza `/usr/local/bin/backupdrive-sync.sh`; su bloqueo evita solapes con launchd),
   **Sincronizar cada hora** (carga o descarga el LaunchAgent con `launchctl -w`), ver el registro en Consola
   y abrir la carpeta de configuración.
-- Sin icono en el Dock (`LSUIElement`). Para que arranque sola: Preferencias del Sistema > Usuarios y grupos >
-  Ítems de inicio.
+- Sin icono en el Dock (`LSUIElement`). Para que arranque sola: «Abrir al iniciar sesión» en su menú.
 
 ```sh
 BackupDrive/app/build-app.sh      # build/BackupDrive.app; basta con las herramientas de línea de comandos de Xcode 11
