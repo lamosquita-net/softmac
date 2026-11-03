@@ -1,48 +1,66 @@
 # Relevo de BACKUPDRIVE
 
-Para el siguiente relevo de BACKUPDRIVE. Historia: **BACKUPDRIVE-1 (`session_01MMur1TxacRpN7gNor98eYm`, 26-10) → 2 (`session_01MwmK2iDUP7F9s2StJNRgCj`, 03-11)**.
-Leer antes: `CLAUDE.md` (sección BackupDrive), `docs/DIRECTIVAS.md`, en `docs/TAREAS.md` las reglas y las filas B.2–B.7,
-`BackupDrive/README.md` (sección «Cómo funciona») y `BackupDrive/scripts/backupdrive-sync.sh` (la cabecera lo explica todo).
+Para el siguiente relevo de BACKUPDRIVE. Historia: **BACKUPDRIVE-1 (`session_01MMur1TxacRpN7gNor98eYm`, 26-10) → 2 (`session_01MwmK2iDUP7F9s2StJNRgCj`, 03-11) → 3**.
+Leer antes: `CLAUDE.md` (sección BackupDrive), `docs/DIRECTIVAS.md`, en `docs/TAREAS.md` las reglas y las filas B.2–B.7, `docs/plan-b6-b7.md`,
+`BackupDrive/README.md` (sección «Cómo funciona») y las cabeceras de `scripts/backupdrive-sync.sh` y `scripts/backupdrive-ctl.sh`.
 No tocar `BackupDrive/rclone/` (subtree). A Titín, siempre en castellano; commits en inglés.
 
-## BACKUPDRIVE-2 (03-11-2026, en curso)
+## BACKUPDRIVE-2 → 3 (03-11-2026, ~17:10)
 
-**Decisiones de Titín del 03-11 (firmes):** (1) cuenta de Google: clave compartida de rclone por defecto y clave propia en
-Preferencias > Avanzado; (2) frenos y conflictos en lenguaje llano y siempre «Ver qué cambia» antes de «Continuar de todos
-modos»; (3) restaurar versiones desde la app: sí (si hay que recortar, se recorta Actividad, no Versiones).
+**Coordinador:** COORDINACIÓN-25 (`session_01MwmK2i6N1Pz4VfDzzGQ59D`). Informes y bloques para Titín, a esa sesión (se los
+hace llegar ella). **Linaje:** BACKUPDRIVE-2 era el nivel 7 de 8; el siguiente relevo quizá no pueda crear otro (que lo cree
+COORDINACIÓN).
 
-**Cambio de Titín (03-11, tarde, vía COORDINACIÓN-24): la clave propia de Google, primero y obligatoria** (sustituye a la
-decisión 1): cada usuario pone la suya, nunca en GitHub; `connect` la exige (el secreto se pide sin eco o va en
-`BACKUPDRIVE_CLIENT_SECRET`), `--shared` solo para pruebas; guía para Titín en `docs/clave-google.md`. Prioridad: que Titín
-pueda sustituir FreeFileSync en MacTrash con seguridad.
+**Decisiones firmes de Titín (03-11):**
+1. **Clave propia de Google, obligatoria, de cada usuario y nunca en GitHub** (cambio de la tarde; sustituye a «compartida
+   por defecto»). Motivo y pasos: `docs/clave-google.md`. `--shared` solo para pruebas.
+2. Frenos y conflictos en lenguaje llano; **siempre «Ver qué cambia» antes de «Continuar de todos modos»**.
+3. **Restaurar versiones desde la app.** Si hay que recortar, se recorta Actividad, no Versiones.
+4. Objetivo: **sustituir FreeFileSync en MacTrash (6,1) con seguridad**. No tocar FreeFileSync hasta que la prueba h y la de
+   la carpeta grande salgan bien.
 
-**COORDINACIÓN-24 (03-11) aprueba:** (1) **la app solo lanza `backupdrive-sync.sh` y `backupdrive-ctl.sh`** y lee lo que
-escriben; (2) B.7 la programa BACKUPDRIVE en la nube (AppKit, objetivo 10.14, la CI de macOS compila); las pruebas con
-ventana, Titín en la 6,1 con órdenes listas para pegar. Los PR, sin borrador cuando estén listos, y avisar a COORDINACIÓN.
+**COORDINACIÓN-24 aprobó:** la app **solo lanza `backupdrive-sync.sh` y `backupdrive-ctl.sh`** y lee lo que escriben; la
+interfaz (B.7) la programa BACKUPDRIVE en la nube (AppKit, objetivo 10.14); Titín prueba con ventana. PR: borrador hasta que
+la CI esté en verde, luego listo y aviso a COORDINACIÓN.
 
-**H1 hecho (rama `nube/backupdrive-ctl`):** `scripts/backupdrive-ctl.sh` (connect, check, folders, mkdir, profile, versions,
-plan) y `tests/test-ctl.sh` (99 pruebas, en la CI). El motor guarda el plan de cada simulación en `state/<id>.plan.log`.
-Arreglo de paso: las versiones con extensión compuesta (`a-AAAAMMDD-HHMMSS.tar.gz`; rclone conserva las extensiones con tipo
-MIME conocido) no caducaban; prueba nueva en `test-sync-safe.sh` (53). **Por probar en un Mac real:** `connect` contra Google
-(que abre el navegador de Mojave y no pregunta nada) y el `awk`/`date` de BSD.
+**Hecho (plan `docs/plan-b6-b7.md`, H1–H7):**
+- #704 (main): `scripts/backupdrive-ctl.sh` (connect, check, folders, mkdir, profile, versions, plan) y `tests/test-ctl.sh`;
+  el motor guarda el plan de cada simulación en `state/<id>.plan.log`; arreglo: las versiones `a-FECHA.tar.gz` no caducaban.
+- #708 (main): la app por módulos (`AppDelegate`, `BDRunner`, `BDSetup`); «Conectar con Google Drive…», «Añadir carpeta…»,
+  «Dejar de sincronizar…». Lleva el arreglo de cancelar `connect` (rclone se quedaba en el puerto 53682 y, con `set -e`, el
+  `wait` del trap impedía restaurar la cuenta).
+- #710 (main): «Ver qué cambia…» en las carpetas detenidas; «Continuar de todos modos» solo desde ahí; plan viejo detectado
+  por la fecha.
+- #715 (listo, CI en verde): conflictos (`conflicts list|keep`, «Resolver conflictos (N)…») y ventana «Versiones…»
+  (`app/BDVersionsWindow.m`).
+- #719 (borrador): «Ajustes de esta carpeta…» y «Abrir al iniciar sesión» (LaunchAgent `net.lamosquita.backupdrive.app`).
+- Pruebas: `test-ctl.sh` 99, `test-sync-safe.sh` 53, en la CI con `sh`; en local también con `bash` (el `/bin/sh` de Mojave).
 
-**H2 + H3 (rama `nube/backupdrive-app`, PR encima de #704):** `app/main.m` partido en `AppDelegate`, `BDRunner` (lanza los
-guiones y recoge la salida) y `BDSetup` (conectar, añadir y quitar carpetas con diálogos). El menú toma las carpetas de
-`backupdrive-ctl.sh profile list` (así una carpeta nueva se ve sin esperar a sincronizar). Sin compilador de Cocoa en la nube:
-**la CI de macOS es la única comprobación de compilación**; la prueba con ventana, Titín en la 6,1. Siguiente: H5 (frenos y
-«Ver qué cambia», con `backupdrive-ctl.sh plan`), que es lo que da seguridad para dejar FreeFileSync.
+**Pendiente:**
+- **Titín en la 6,1** (bloque enviado a COORDINACIÓN-25 a las 16:46, con el añadido de las 16:48): crear la clave → instalar
+  el artefacto `BackupDrive-mojave` de main → «Volver a conectar…» con su clave → prueba h → carpeta grande (copia) con
+  medida de tiempo → freno con «Ver qué cambia». Con sus resultados: proponer qué carpetas reales pasar y cuándo apagar
+  FreeFileSync (H9).
+- **Sin probar en un Mac:** todo lo de la app (la CI solo compila) y `backupdrive-ctl.sh` con el `awk`/`date` de BSD.
+  Lo más probable que falle: la fecha del plan (`stat -f %m`, con alternativa) y el aspecto de los diálogos (tamaños fijos).
+- H8 Actividad (recortable). H3 tiene solo un desplegable con las carpetas de primer nivel de Drive y ruta escrita (sin
+  navegador de subcarpetas).
+- Filas de `docs/TAREAS.md` B.2/B.6/B.7: al día hasta H2+H3; actualizar con H5–H7 cuando entren.
 
-**H5, frenos (rama `nube/backupdrive-frenos`, encima de #708):** «Ver qué cambia…» en las carpetas detenidas: simula y enseña
-el plan (`backupdrive-ctl.sh plan`) en lenguaje llano; «Continuar de todos modos» (`--force`) solo desde ahí. Si launchd ya
-estaba sincronizando, el plan sería el viejo: la app lo detecta por la fecha y pide reintentar. #710 fusionado.
-
-**H5, conflictos (rama `nube/backupdrive-conflictos`):** `backupdrive-ctl.sh conflicts list|keep` (99 pruebas) y en la app
-«Resolver conflictos (N)…». **H6** en el mismo PR (#715): `app/BDVersionsWindow.m`, ventana «Versiones…» por carpeta.
-**H7** (rama `nube/backupdrive-ajustes`): «Ajustes de esta carpeta…» y «Abrir al iniciar sesión».
-Falta: Actividad (H8, recortable) y el cierre en MacTrash (H9), que depende de las pruebas de Titín en la 6,1.
-
-**Plan de B.6 y B.7:** `BackupDrive/docs/plan-b6-b7.md` (hitos H0–H9). Prueba h de B.2 enviada a Titín por COORDINACIÓN-24,
-con reinstalación desde el artefacto `BackupDrive-mojave` de `main` (ejecución 40757477334, 28-10).
+**Trampas aprendidas (03-11):**
+- `config create` de rclone **borra la cuenta antes de autorizar**: `connect` guarda una copia de `backupdrive.conf` y la
+  restaura si falla o se cancela. En los `trap`, con `set -e`, todo lo que pueda fallar lleva `|| true`.
+- `--suffix-keep-extension` conserva **extensiones compuestas** con tipo MIME conocido (`a-FECHA.tar.gz`): los patrones de
+  versiones aceptan `(\.[^/]*)?$`.
+- bisync nombra los conflictos `nombre.conflictN.ext` (1 = Mac, 2 = Drive; si vuelve a chocar, la numeración sigue).
+- Resolver un conflicto en una carpeta pequeña quita dos ficheros y **activa el freno de borrados** la pasada siguiente:
+  correcto; «Ver qué cambia» lo explica.
+- Si un PR se fusiona mientras subes un commit, el commit se queda fuera (pasó con #704): comprobar con
+  `git merge-base --is-ancestor` y llevarlo en el PR siguiente.
+- La CI del PR a veces cancela el trabajo de macOS sin arrancar (15 min sin máquina, cero pasos): relanzarlo una vez.
+- `awk -v re=…` quita la barra de `\.` en algunos awk: los patrones, literales dentro del awk.
+- Sin dominios de Google ni rclone.org desde la nube: la documentación de rclone está en el subtree
+  (`rclone/docs/content/drive.md`).
 
 ## BACKUPDRIVE-1 → 2 (28-10-2026, ~19:50)
 
