@@ -165,3 +165,4 @@ contexto al cerrar · notas.
 | 03-11 | INVESTIGACIÓN-MOTOR-7 (id en `get_session`) | Sonnet 5.5 | alto | Estudio de la siguiente base (`base-siguiente.md`); 3 subagentes de lectura | n/d | n/d |
 | 03-11 | INVESTIGACIÓN-MOTOR-7 (id en `get_session`) | Sonnet 5.5 | alto | Estudio «brave-propio» (`brave-propio.md`); 3 subagentes de lectura (~0,39 M tokens) | n/d | n/d |
 | 03-11 | INVESTIGACIÓN-MOTOR-7 (id en `get_session`) | Sonnet 5.5 | alto | `brave-propio.md` v2: P0 sobre brave-core (clasificación de 34 181 ficheros, guion en `FlyWeb/tools/brave-inventario/`) | n/d | n/d |
+| 03-11 | INVESTIGACIÓN-MOTOR-7 (id en `get_session`) | Sonnet 5.5 | alto | `brave-propio.md` §10 (Brave 1.98.63 frente a 1.69.168); 4 subagentes de lectura | n/d | n/d |
