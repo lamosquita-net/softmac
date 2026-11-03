@@ -10,7 +10,7 @@ mkdir -p "$OUT/Contents/MacOS" "$OUT/Contents/Resources"
 
 clang -fobjc-arc -arch x86_64 -mmacosx-version-min=10.14 \
   -Wall -Werror -Wunguarded-availability -Werror=unguarded-availability \
-  -framework Cocoa -o "$OUT/Contents/MacOS/BackupDrive" main.m
+  -framework Cocoa -o "$OUT/Contents/MacOS/BackupDrive" ./*.m
 
 cp Info.plist "$OUT/Contents/"
 plutil -lint "$OUT/Contents/Info.plist" >/dev/null
