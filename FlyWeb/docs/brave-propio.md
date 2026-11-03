@@ -1,30 +1,29 @@
 # ¿Llevar brave-core 1.69 entero a Chromium 156, o absorber solo lo que usamos?
 
-INVESTIGACIÓN-MOTOR-7, 03-11-2026, encargo de COORDINACIÓN-24 (con la pregunta de Titín). **Solo papel.** No he leído el código
-de `lamosquita-net/brave-core` (no está en el alcance de esta sesión): todo sale de los documentos del repo y de ficheros sueltos de
-`brave/brave-core` v1.69.168 (el listado de árbol de GitHub da 403 desde aquí). Marcas: **[V]** leído en documento del repo o en fuente
+INVESTIGACIÓN-MOTOR-7, 03-11-2026, encargo de COORDINACIÓN-24 (con la pregunta de Titín). **Solo papel** (no se ha compilado nada). La v1 (#706) salió de los documentos del repo; la **v2** (este cambio) añade P0: lectura de `lamosquita-net/brave-core`
+(`flyweb` ac280a17df, `add_repo` en lectura por orden de COORDINACIÓN) y las medidas del §2.4. Marcas: **[V]** leído en documento del repo o en fuente
 citada; **[I]** inferencia mía; **[N]** el repo no lo dice o no se ha medido. Sin horas nuevas: las que salen son de documentos previos.
 Complementa `base-siguiente.md` (riesgo 1, B2, decisión 3) y `fork-propio.md` (§5.1, F4).
 
-## 1. Conclusión
+## 1. Conclusión (revisada con las medidas de P0, 03-11)
 
-1. **Opción C, mixta y en orden: podar primero, absorber después, disolver solo si las medidas lo piden.**
-   - **Poda en sitio** de `brave-core` en la base 128: borrar el código de lo que ya está apagado (Wallet, Rewards/Ads/SKUs,
-     Leo/AI Rewriter, VPN, News, Talk, IPFS, Player, PSST…). Es lo que la directiva «apagar, no borrar» (DIRECTIVAS, 20-10) preveía
-     para «cuando tengamos el fork propio». Se hace antes del salto a 156, para que B2 mida el árbol ya podado.
-   - **Absorción gradual** en la capa permanente del fork (F4 de `fork-propio.md`): lo que siga vivo de `patches/` (590 parches de Brave)
-     y los `chromium_src` que solo envuelven un fichero de Chromium pasan a commits `Flynk-Class` del fork.
-   - **No disolver `brave-core` ahora.** Es el sistema de compilación, empaquetado, l10n, identidad y Shields; sacarlo a la vez que se
-     cambia de base suma dos transformaciones de riesgo alto. Decidir tras B2 (§7).
-2. **La premisa de Titín es cierta a medias.** Es cierto que lo añadido de la 1.57 a la 1.69 son sobre todo servicios que apagamos
-   (clase E: 10 subsistemas nuevos, 0 dependencias de macOS > 10.14, casi todos apagados o solo Android; `brave-servicios-nuevos.md`).
-   Pero el coste del salto a 156 no lo pone lo que Brave añadió, sino **lo que FlyWeb tiene enganchado a Chromium**: 590 parches de
-   Brave, 1 555 ficheros `chromium_src`, 2 422 ficheros propios sobre la 1.57 (257 de código) y, sobre todo, la capa de interfaz.
-   Que lo apagado no se deba arrastrar es correcto; que «el resto» se pueda tirar sin más no está medido.
-3. **Falta el dato decisivo**: cuánto de esos 590 + 1 555 + 257 pertenece a funciones muertas. Ningún documento lo da. Se mide en
-   un día de trabajo en la nube con lectura de `brave-core` (§6, P0); sin esa tabla, A, B y C son opiniones.
-4. **Cuidado con el nombre «Leo»**: es el asistente de IA (se quita) y también el sistema de diseño `@brave/leo` (MIT [V]), del que cuelgan
-   los WebUI que sí usamos (D-DIN se aplicó cambiando `@brave/leo`, `disenos.md` §2). Podar Leo no es borrar `@brave/leo`.
+**v1** (#706) recomendó la opción C sin cifras. **P0 está hecha** (lectura de `lamosquita-net/brave-core`, rama `flyweb` ac280a17df, 2.6.1; §2.4) y
+**mantiene C, pero cambia el porqué**:
+
+1. **La poda es barata, y no es lo que más pesa.** El 56 % de los ficheros de código y pruebas de Brave (7 010 de 12 549; 1,03 M de 1,91 M de líneas sin
+   traducciones) es de funciones apagadas y vive en directorios propios. Solo 19 de los 1 957 parches (1 %) y 116 de los 1 555 `chromium_src` (7 %)
+   mencionan esas funciones, y 223 ficheros vivos de escritorio las incluyen: son ~360 ediciones en las costuras y el resto es borrar carpetas.
+   Pero **no reduce la superficie de parches**: los parches y `chromium_src` que hay que rebasar son casi todos de lo vivo (1 790 parches y 1 258 `chromium_src` en «núcleo/UI/otros»).
+   La poda quita **superficie de compilación** (≈4 800 ficheros de código apagados que se siguen compilando, [I]), no de rebase.
+2. **Los 1 555 `chromium_src` son menos temibles de lo que `base-siguiente.md` suponía.** 1 300 son envoltorios finos (`#include` del mismo fichero de Chromium;
+   mediana de 22 líneas; 11 pasan de 300). Se rompen cuando cambia un identificador que sobrescriben, y se corrigen uno a uno.
+   El riesgo 1 de `base-siguiente.md` (brave-core contra la 156) está en el **código de Brave que llama a APIs de Chromium**, no en el recuento de `chromium_src`.
+3. **Dónde se gana de verdad:** el 61 % de los parches (1 209 de 1 957: Blink 956 y V8 ~250) son motor de FlyWeb y desaparecen como capa de nivel con la base nueva
+   (`base-siguiente.md`). Quedan unos 750, de los que ~590 son de Brave. **Absorberlos en commits del fork (P3) y no mantener `patches/`** es el ahorro de verdad, sea cual sea la opción.
+4. **Por tanto:** C sigue siendo la recomendación (podar → medir contra 156 → absorber), con la poda como paso **de bajo riesgo y alta higiene**, no como la gran palanca.
+   B (disolver `brave-core`) sigue sin justificarse ahora: quedan unos 850 ficheros vivos de Shields, sync y updater, 1 463 de núcleo/UI y 1 258 `chromium_src`, además del sistema de build, l10n e identidad.
+5. **Lo que decide la puerta:** el número de ficheros rotos al compilar el `brave-core` podado contra el árbol 156 (P2). Esa cifra sigue sin existir.
+6. **Cuidado con el nombre «Leo»**: es el asistente de IA (se quita) y también el sistema de diseño `@brave/leo` (MIT [V]), del que cuelgan los WebUI que sí usamos.
 
 ## 2. Inventario: lo que FlyWeb usa de Brave
 
@@ -77,9 +76,56 @@ Estas son las que impiden «borrar y ya» [V salvo indicación]:
   (510 apariciones de «Brave» en `brave_strings.grd`, 648 `.xtb`). Podar cadenas exige `chromium-rebase-l10n.py` (no editar `.grd`/`.xtb` a mano, CLAUDE.md).
 - Constantes que pasan a cabeceras en la 1.69 (`flyweb://`, proxies de Safe Browsing, monedero apagado) y un `UpgradeDetector` sin la guarda de Keystone:
   regresiones silenciosas (TRAMPAS 26-10). Un rebase a 156 repite el riesgo.
-- Mojom y recursos WebUI compartidos con lo apagado: **[N]** ningún documento los enumera. Es lo primero que mide P0.
+- Mojom y recursos WebUI compartidos con lo apagado: ahora medido en parte (§2.4: 223 ficheros vivos de escritorio incluyen código apagado, 25 de ellos en `browser/ui/webui`); la lista fichero a fichero sale de `p0.py`.
 - Pruebas: `brave/test/BUILD.gn` y los *browsertests* de lo apagado siguen compilándose [N: sin lista].
 - Los parches no se deshacen solos: `apply_patches` no revierte los que crean ficheros (TRAMPAS).
+
+### 2.4 Medidas de P0 (sobre `flyweb` ac280a17df)
+
+Clasificación **por ruta con expresiones regulares** (heurística, §9); guion reproducible en `FlyWeb/tools/brave-inventario/`. 34 181 ficheros: `third_party` 12 742 (374 MB; 12 119 de crates de Rust),
+código 10 282 (2,71 M de líneas), iOS 3 713, pruebas 2 267, parches 1 957 (21,7 MB; coincide con `fork-propio.md` §2), Android 1 665, `chromium_src` 1 555 (58 634 líneas).
+Las cifras de parches y `chromium_src` **coinciden con las de `fork-propio.md`** [V].
+
+| Función | Estado | Código: ficheros / líneas | Pruebas: ficheros | `chromium_src` | Parches | iOS | Android |
+|---|---|---|---|---|---|---|---|
+| Rewards, Ads, SKUs, CBR, referidos, Greaselion | apagada, **se compila** | 2 783 / 202 735 | 675 | 0 | 0 | 117 | 121 |
+| Wallet (+ Web3, IPFS-DNS, Filecoin) | apagada, **se compila** | 1 876 / 251 108 | 192 | 4 | 2 | 440 | 186 |
+| VPN | apagada (flag) | 282 / 24 452 | 17 | 0 | 0 | 62 | 56 |
+| Leo / AI Rewriter | apagada (flag) | 198 / 21 166 | 36 | 0 | 0 | 104 | 13 |
+| P3A, stats, métricas | apagada (flag) | 194 / 18 099 | 43 | 0 | 0 | 26 | 19 |
+| News | apagada, se compila | 132 / 14 135 | 461 (238 600 líneas, datos) | 0 | 0 | 0 | 23 |
+| Player, PSST, WebCompat, DayZero | apagada | 85 / 4 441 | 13 | 0 | 0 | 1 | 1 |
+| IPFS, Talk | apagada | 15 / 614 | 8 | 0 | 0 | 6 | 0 |
+| **Total apagado** | | **5 565 / 536 750** | **1 445 (488 587 líneas)** | **4** | **2** | 756 | 419 |
+| Tor | **sin decisión** | 93 / 8 898 | 50 (375 593 líneas, datos) | 0 | 0 | 0 | 0 |
+| Speedreader | sin decisión | 127 / 14 002 | 132 | 0 | 0 | 1 | 2 |
+| Playlist | sin decisión | 139 / 16 567 | 19 | 0 | 0 | 226 | 12 |
+| Sidebar | sin decisión | 65 / 7 437 | 4 | 0 | 2 | 0 | 0 |
+| WebTorrent, Wayback, Brave Search, Commander, Request-OTR | sin decisión | 234 / 14 117 | 22 | 0 | 0 | 0 | 1 |
+| NTP y bienvenida de Brave | sustituidas | 330 / 28 203 | 25 | 8 | 1 | 192 | 69 |
+| Shields y privacidad | viva | 506 / 43 641 | 100 | 107 | 31 | 67 | 15 |
+| Sync | viva | 89 / 7 858 | 12 | 68 | 3 | 59 | 27 |
+| Updater, componentes, claves, constantes | viva | 99 / 4 571 | 10 | 65 | 20 | 10 | 5 |
+| Identidad, l10n, recursos | viva | 1 572 / 1 789 396 (traducciones) | 39 | 45 | 108 | 459 | 93 |
+| Núcleo, UI y otros | viva/resto | 1 463 / 234 604 | 409 | **1 258** | **1 790** | 1 943 | 1 022 |
+
+Notas: (a) «Se compila» significa que `build.sh` no pasa ningún flag que lo excluya [V: `build.sh` ~255–272 según los informes]; no lo he comprobado con `gn desc` [N].
+(b) En «Wallet», 1 213 de los 1 876 ficheros son `brave_wallet_ui` (React/TS, webpack); en «Rewards/Ads», 2 152 son `brave_ads`. (c) Las pruebas de News y Tor son sobre todo datos de prueba.
+(d) La fila «Total apagado» es la suma de las filas apagadas: **7 010 ficheros de código y pruebas, 1 025 337 líneas**.
+
+**Cuánto de lo vivo toca lo apagado** [V, por inclusión y dependencias de GN/DEPS]:
+- Parches con alguna mención a funciones apagadas: **19 de 1 957** (Wallet 12, Playlist 4, Rewards 2, Sidebar 2, VPN 1, Leo 1).
+- `chromium_src` con alguna mención: **116 de 1 555** (Wallet 56, Leo 27, Rewards 20, VPN 20, Tor 18, Speedreader 17, P3A 9, Playlist 9, Sidebar 7, News 6, IPFS 5).
+- Ficheros vivos de escritorio (sin Android/iOS) que incluyen o dependen de código apagado: **223** (Rewards/Ads 92, Wallet 66, Leo 66, P3A 63, VPN 56, News 24, Player/PSST/… 18, IPFS 3; con solapes).
+  Concentrados en `browser/ui/webui` (25), `browser/ui/views` (18), `browser/ui/toolbar` (6), `components/brave_shields/content` (6, métricas P3A en `ad_block_service.h`),
+  barra lateral (8), `request_otr` (4) y `omnibox` (3). Más los `BUILD.gn`/`sources.gni`/`DEPS` de `browser/ui`, `chromium_src/chrome/browser`, `build/`.
+- En `third_party/rust` hay crates de funciones apagadas: `zcash*`, `orchard`, `libsecp256k1*`, `ed25519_dalek_bip32`, `adss`, `challenge_bypass_ristretto*` [V: nombres]. Caen con Wallet y Rewards; `curve25519_dalek` y `ed25519` pueden tener otros usos [N].
+
+**Dónde está el acoplamiento real con Chromium** (superficie de rebase):
+- Parches por área [V]: Blink 956, V8 ~250 (motor de FlyWeb, capa de nivel), `chrome/` 282 (201 de `chrome/browser`), `components/` 137, `content/` 47, `net/` 38, `tools/` 29, `ui/` 28, `services/` 19, BoringSSL 16, `build/` 15, `base/` 14.
+- Interfaz: **74 parches `chrome/browser/ui` + 323 ficheros `chromium_src/chrome/browser/ui` = ~400 puntos de contacto**. Mayores clientes en `browser/ui` de Brave: `views/frame` 40, `views/tabs` 39 + `tabs` 29,
+  `views/toolbar` 30 + `toolbar` 21, `views/sidebar` 25 + `sidebar` 14, `views/side_panel` 22, `commander` 29, `webui/settings` 50, `color` 13, `views/omnibox` 12.
+- `chromium_src`: 1 300 de 1 555 son envoltorios finos (mediana 22 líneas).
 
 ## 3. Opciones
 
@@ -118,15 +164,15 @@ león están sustituidos; los menús y ajustes están traducidos; la fuente de l
 (`disenos.md`); las pestañas planas de D8 (Titín, 27-10) son lo único que pide alejarse del aspecto actual, «sin prioridad». **Ningún documento pide
 «parecerse a Chrome» como tal** [N]: es la dirección que Titín ha dado hoy.
 
-Lo que sigue es propuesta mía; la composición de la UI de `brave-core` 1.69 es de conocimiento general, **no verificada aquí** [I]:
+Lo que sigue es propuesta mía. Los tamaños son **medidos** [V] (§2.4); la valoración de cada pieza, inferencia [I]. Puntos de contacto con la UI de Chromium: 74 parches `chrome/browser/ui` + 323 `chromium_src/chrome/browser/ui`.
 
 | Parte de la UI | Propuesta | Razón |
 |---|---|---|
 | Botón y panel de Shields, contadores | **Se queda** (WebUI, poco acoplado a las vistas de Chromium) | Es la razón de ser de FlyWeb |
 | NTP, bienvenida, `flyweb://` | **Propios** | Ya lo son |
-| Barra lateral de Brave (Sidebar) | **Sobra**: usar el panel lateral de Chromium si hace falta | Solo se parchea para quitar Talk; es una superficie de parches que cambia cada hito [I] |
+| Barra lateral de Brave (Sidebar: `views/sidebar` 25 + `sidebar` 14 + componente 65 ficheros) | **Sobra**: usar el panel lateral de Chromium (`views/side_panel`) si hace falta | Solo se parchea para quitar Talk; es una superficie de parches que cambia cada hito [I] |
 | Botones de barra de Rewards, Wallet, VPN, Leo | **Borrar** con su código | Muertos |
-| Pestañas verticales, tarjetas, estilo propio de pestaña | **Sobra**, salvo D8 si Titín lo mantiene | Se pinta sobre `TabStyle` de Chromium, que cambia con cada rediseño [I] |
+| Pestañas (`views/tabs` 39 + `tabs` 29 + 12 parches de `chrome/browser/ui/tabs`): verticales, tarjetas, estilo | **Sobra**, salvo D8 si Titín lo mantiene | Se pinta sobre `TabStyle` de Chromium, que cambia con cada rediseño [I] |
 | Menú de aplicación y menú contextual de Brave | **Sobra**: el de Chromium + las entradas de Shields | [I] |
 | Ajustes extra de Brave | **Podar** (Rewards, Web3, Leo, VPN, Sidebar…) | Muertos o prescindibles |
 | Temas y colores de Brave (`@brave/leo`) | **Se queda** `@brave/leo` en los WebUI; el tema de la ventana, a Chromium | `@brave/leo` es dependencia de los WebUI que usamos |
@@ -139,8 +185,8 @@ La razón principal es el coste: cada vista de Brave que sustituye a otra de Chr
 
 | Fase | Qué | Hito (se cumple cuando) | Quién |
 |---|---|---|---|
-| **P0 Medir** | Con lectura de `lamosquita-net/brave-core` (`add_repo`, que ordena COORDINACIÓN): clasificar cada fichero y parche por función (muerta, viva, UI, build) y tamaño: ficheros, líneas, `patches/`, `chromium_src`, mojom, recursos WebUI y pruebas | Tabla función × (ficheros, líneas, parches, `chromium_src`) y lista de dependencias vivas → muertas | INVESTIGACIÓN-MOTOR (nube) |
-| **P1 Poda en sitio** (rama de `brave-core`, base 128, **después** de publicar la 2.7.0) | Borrar por orden: hojas sin acoplamiento (Leo/AI Rewriter, VPN, News, Talk, Player, PSST, WebCompat, DayZero, IPFS) y luego las acopladas (Wallet, Rewards/Ads/SKUs/`cbr`) | Compila y arranca igual que antes; `network-audit.py` sin cambios; `strings` sin `bsg.brave.com`; tabla antes/después de ficheros y parches | MOTOR, LOCAL |
+| **P0 Medir** — **hecha** (03-11) | Clasificar cada fichero por función y tamaño sobre `flyweb` ac280a17df | Tabla del §2.4 y guion reproducible en `FlyWeb/tools/brave-inventario/`. `local/270-arreglos` a78df81efd (2.7.0) difiere de `flyweb` en 335 ficheros: 330 de `patches/` (+150, −28; V8 y pruebas), 2 de `chromium_src` (mixed content), `build/config.gni` y 2 revisiones; **no cambia el reparto por funciones**. Pendiente: `gn desc` para saber qué se compila de verdad | INVESTIGACIÓN-MOTOR |
+| **P1 Poda en sitio** (≈360 ediciones en costuras + borrado de directorios; orden de hojas a acopladas) (rama de `brave-core`, base 128, **después** de publicar la 2.7.0) | Borrar por orden: hojas (Leo, VPN, News, Talk, Player, PSST, WebCompat, DayZero, IPFS; ya excluidas por flag salvo News, IPFS y Talk), luego las acopladas (Wallet, Rewards/Ads/SKUs/CBR y P3A, que tocan `browser/ui` y Shields) | Compila y arranca igual que antes; `network-audit.py` sin cambios; `strings` sin `bsg.brave.com`; tabla antes/después de ficheros y parches | MOTOR, LOCAL |
 | **P2 B2 revisado** | Compilar el `brave-core` podado contra el árbol 156 de B1 y contar ficheros rotos | Número de ficheros rotos frente a los de la opción A (sobre `brave-core` sin podar, para comparar) | MOTOR |
 | **Puerta (Titín)** | Elegir A / C / B con P0 y P2 | Decisión anotada en `DIRECTIVAS.md` | Titín, ARQUITECTURA |
 | **P3 Absorción gradual** (= F4 de `fork-propio.md`) | Los parches vivos y los `chromium_src` que sean envoltorio de un fichero de Chromium pasan a commits `Flynk-Class`; los 49 de `third_party/` a forks o `DEPS` | `patches/` a cero; `chromium_src` reducido a lo que no es un envoltorio simple | MOTOR |
@@ -164,9 +210,9 @@ La razón principal es el coste: cada vista de Brave que sustituye a otra de Chr
 
 ## 9. Debilidades
 
-(i) No he visto el código de `lamosquita-net/brave-core`; las rutas de 1.69 que cito vienen de los documentos. (ii) No hay tamaños por función ni lista de dependencias
-muertas → vivas: es P0. (iii) De-AMP, Tor, Speedreader y Playlist no están documentados. (iv) La composición de la UI de Brave (§5) es de conocimiento general.
-(v) La lectura de licencias no es asesoría legal. (vi) Las horas citadas son de documentos anteriores y suelen salir pesimistas.
+(i) P0 clasifica por **ruta con expresiones regulares**: las filas son órdenes de magnitud (p. ej. «Shields» incluye `permissions` y `content_settings`, «Identidad» incluye todo `resources`; la regla de Tor dio falsos positivos que corregí). Los fallos son revisables en el guion. (ii) «Se compila» no está comprobado con `gn desc` [N].
+(iii) No distingo qué parches son de Brave (539–590) y cuáles de FlyWeb; lo da `fork-propio.md` (1 267 nuestros). (iv) Medido sobre `flyweb` ac280a17df (2.6.1); `local/270-arreglos` a78df81efd solo añade parches de V8/pruebas. (v) De-AMP (`components/de_amp`, 14 ficheros) existe en el árbol; si está encendido, [N]. Tor, Speedreader y Playlist siguen sin decisión.
+(vi) La lectura de licencias no es asesoría legal. (vii) Las horas citadas son de documentos anteriores y suelen salir pesimistas.
 **Fuentes:** `fork-propio`, `base-siguiente`, `brave-vs-flyweb`, `brave-vs-parches-motor`, `brave-sync-shields`, `brave-servicios-nuevos`, `brave-169-macos`, `brave-170-173`,
 `integracion`, `identidad-128`, `rebranding`, `componentes`, `disenos`, `marca-pendiente`, `migracion-128`, `web-flyweb`, `hoja-de-ruta`, `TRAMPAS.md`, `DIRECTIVAS.md`;
 `brave/brave-core` v1.69.168 (`LICENSE`, `package.json`, `BUILD.gn`); `brave/adblock-rust` `Cargo.toml` (rama principal); `brave/leo` `package.json` (rama principal).
