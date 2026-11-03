@@ -24,6 +24,7 @@ Complementa `base-siguiente.md` (riesgo 1, B2, decisión 3) y `fork-propio.md` (
    B (disolver `brave-core`) sigue sin justificarse ahora: quedan unos 850 ficheros vivos de Shields, sync y updater, 1 463 de núcleo/UI y 1 258 `chromium_src`, además del sistema de build, l10n e identidad.
 5. **Lo que decide la puerta:** el número de ficheros rotos al compilar el `brave-core` podado contra el árbol 156 (P2). Esa cifra sigue sin existir.
 6. **Cuidado con el nombre «Leo»**: es el asistente de IA (se quita) y también el sistema de diseño `@brave/leo` (MIT [V]), del que cuelgan los WebUI que sí usamos.
+7. **v3 (03-11, B2 en papel, §11):** (a) los 556 ausentes de 1.98 se clasifican con el commit de Brave que los quitó: 28+67 se caen, 46+96 ya no hacen falta, 30+232 se adaptan, 34+19 se reescriben, 4 a mano; (b) **el donante de 1.98 incluye 767 plasters** que §10.3 no contaba; (c) de 579 parches de Brave, **198 aplican tal cual sobre 156, 323 con una línea menos de contexto**, y los 441 que tienen donante en 1.98 aplican todos; (d) **tres cambios propios de FlyWeb no se portan solos** (clave del Secure Enclave, llavero `fw1`/«FlyWeb Safe Storage», captive portal): §11.4; (e) receta de B2 en §11.7.
 
 ## 2. Inventario: lo que FlyWeb usa de Brave
 
@@ -284,9 +285,104 @@ y 25 de los parches y 35 de los envoltorios que FlyWeb modificó chocarán con l
 **Límites de este apartado:** [N] no se ha leído código de los cambios (solo listas y mensajes); [N] qué listas concretas añadió o quitó el catálogo remoto de Shields (viene de un componente); [N] versiones mínimas de macOS, SDK y Rust de 1.98; [N] el emisor de `usage-ping.brave.com`;
 [I] todas las valoraciones de «mejora real» que salen solo de mensajes de commit.
 
-## 11. Estado y relevo (03-11, ~50 % de contexto)
+## 11. B2 en papel: ausentes de 1.98, poda y receta (INVESTIGACIÓN-MOTOR-8, 03-11)
 
-- **Hecho:** v1 (#706), P0 (#707), este §10. Guion: `FlyWeb/tools/brave-inventario/` (`python3 -I p0.py salida.json`, ruta del checkout en `R`; con `git clone --depth 1 --branch flyweb https://github.com/lamosquita-net/brave-core`).
-  Para la comparación de etiquetas: `git remote add up https://github.com/brave/brave-core; git fetch --filter=blob:none --depth=1 up tag v1.69.168 tag v1.98.63` y, para mensajes de commit, `git fetch --filter=tree:0 --shallow-since=2024-09-01 up tag v1.98.63`.
-- **Falta:** (1) `gn desc` con LOCAL para saber qué se compila de verdad; (2) P2 (compilar el `brave-core` podado contra el árbol 156, con y sin donante) y B1; (3) revisar uno a uno los 138 parches y 418 envoltorios que Brave borró; (4) leer el código de los cambios de §10.2 que se decidan traer; (5) la puerta de Titín (A/B/C).
-- **Trampas de método:** la clasificación de P0 es por ruta con expresiones regulares (la regla de Tor dio falsos positivos); en `git log` con árboles ausentes no sirven los filtros por ruta; los blobs se descargan bajo demanda y un `git grep` global de un árbol de 63 639 ficheros agota el tiempo.
+Cierra los pendientes (3) del relevo anterior y prepara (2). **Solo papel**: no se ha compilado nada. Sobre `flyweb` 5fdeb23d6 (2.7.0; P0 se midió sobre ac280a17df). Marcas: **[V]** medido o leído en fuente citada; **[I]** inferencia mía; **[N]** no se ha comprobado.
+Datos y guiones reproducibles en `FlyWeb/tools/brave-inventario/` (README: tabla de guiones; resultados en `datos/`).
+
+### 11.1 Método y límites
+
+1. Se reprodujeron las cifras de §10.3 [V]: de los 590 parches y 1 549 envoltorios de 1.69 que siguen en `flyweb`, **138 y 418 no existen en 1.98.63** (los 556 de `datos/b2-ausentes.tsv`).
+2. Por cada uno: (a) si el fichero de Chromium que parchea existe en **128 y en 156** (árboles de `github.com/chromium/chromium`, etiquetas 128.0.6613.138 y 156.0.8078.80) [V]; (b) si el parche aplica sobre el fichero de 156 (`git apply --check`; control en 128: los 80 aplican) [V]; (c) **el commit de Brave que lo borró**, con fecha y asunto (historial de 18 905 commits de 2024-09-02 a 1.98.63, con árboles y sin blobs; solo 3 de 556 sin commit: el borrado es anterior a 2024-09-02) [V]; (d) si Brave lo reexpresa como **plaster** (`rewrite/<ruta>.yaml` en 1.98.63) [V]; (e) si sus identificadores `BRAVE_*` siguen en 1.98.37 (`master` del fork, 28-09; no es la etiqueta 1.98.63) [V].
+3. La clase sale de reglas por asunto del commit y por ruta (`b2-clasifica.py`), con 35 revisiones a mano. **Es heurística**: el asunto dice *por qué lo quitó Brave*, no *si FlyWeb lo sigue necesitando*. No se ha leído el diff de cada commit [N]. Una muestra aleatoria de 24 filas leída contra el asunto: 22 coherentes y 2 dudosas (`content-browser-browser_main_runner_impl`, `chrome/browser/themes/theme_service_factory.h`) [I].
+4. Clases: **se cae** (otra plataforma, función apagada/podable o interfaz de Brave que P5 sustituye por la de Chromium); **ya no hace falta** (Chromium borró el fichero o Brave adoptó lo de Chromium); **se adapta** (el cambio existe, en otro fichero, con otra forma o con *plaster*; el donante de 1.98 lo enseña); **se reescribe** (el objetivo cambió y no hay donante utilizable, o el parche ya no aplica).
+
+### 11.2 Los 138 parches
+
+| Clase | Parches | De los cuales | Qué hacer |
+|---|---|---|---|
+| Se cae | 28 | 22 de otras plataformas (Android 12, Windows 5, Linux 5), 3 de funciones apagadas, 3 otros | Nada; salen con la poda y con «solo macOS» |
+| Ya no hace falta | 46 | 17 de `third_party/rust`, `tools` y `build` (crates que Chromium ya no necesita o parcheo redundante, [cr134–cr153]); 13 de WebUI (Brave quitó overrides redundantes o Chromium borró el fichero); resto sueltos | Nada; **comprobar** los de FlyWeb (§11.4) |
+| Se adapta | 30 | Chromium movió o renombró lo parcheado ([cr133] IDL de canvas, [cr143] `os_crypt`, [cr145] `TabStripRegionView`…); 3 con plaster | Tomar el donante de 1.98 (el nuevo nombre) |
+| Se reescribe | 34 | **20 son WebUI** (`chrome/browser/resources/{bookmarks,downloads,extensions,history,password_manager,side_panel}`): Brave cambió a un mecanismo nuevo de *overrides* de WebUI (#26881 y otros) y el parche de 1.69 no aplica; 4 de Rust | **Decisión de P5**: si la interfaz va hacia Chromium, no se reescriben; si se quiere el estilo de Brave, hay que adoptar el mecanismo nuevo |
+
+De los 138, **80 tienen el fichero en 156** y **58 no** (renombrado o borrado). De los 80: aplican sin tocar 21, con una línea menos de contexto otros 22, no aplican 37 [V].
+
+### 11.3 Los 418 envoltorios (`chromium_src`)
+
+| Clase | Envoltorios | Detalle |
+|---|---|---|
+| Se adapta | 232 | **143 los lleva Brave ahora como plaster**: 120 con `rewrite/<ruta>.yaml` en 1.98.63 [V] (migraciones `OVERRIDE_FEATURE_DEFAULT_STATES` I–V, `make_virtual` pt.1–4, `ECDSA_SHA384`, …); el resto, movidos o renombrados por Chromium ([cr140] 27, [cr142] 16, [cr143] 14…) o con el override rehecho |
+| Ya no hace falta | 96 | Chromium borró el fichero (141 de los 418 ya no existen en 156 con ese nombre; p. ej. [cr149] `os_crypt/sync`, [cr152] `attribution_reporting`) o Brave quitó/simplificó el override |
+| Se cae | 67 | 34 de Android/iOS/Windows; **19 de interfaz de Brave** (pestañas verticales, panel lateral, `tab_search`, `tab_drag`: P5 los sustituye por los de Chromium); 10 de funciones apagadas; 4 otros |
+| Se reescribe | 19 | 8 cuyos identificadores `#define` ya no existen en el fichero de 156 [V]; 6 de «Only use brave:// scheme for display» (§11.4b); `component_updater_utils` (2, sin commit en el historial: Brave lo quitó antes de 2024-09-02); 3 más |
+| A mano | 4 | `host_content_settings_map.h` (sin pistas) y los 3 de §11.4(c) |
+
+**Hallazgo que corrige §10.3 [V]:** el donante de 1.98 **no es solo `patches/` y `chromium_src/`**: Brave tiene **767 plasters** (`rewrite/*.yaml`, herramienta `tools/cr/plaster.py`, `docs/plaster.md`: una regex por fichero que *genera* el parche; ninguno existía en 1.69). Los 120 envoltorios de arriba solo se ven mirando `rewrite/`. Si se usa 1.98 como donante, o se **adopta plaster** (otra herramienta de build que mantener) o se **convierte el resultado en un commit** del fork; para el fork propio es lo segundo.
+Sobre el cruce con FlyWeb: de los 556 solo **8 los modificó FlyWeb** (4 parches y 4 envoltorios); con el donante de 1.98 hay además **28 parches y 37 envoltorios** que FlyWeb modificó y Brave también cambió y que chocan (`b2-donante.py`; §10.3 daba 25 y 35 sobre ac280a17df). 989 envoltorios y 412 parches son **sustituibles** por el de 1.98 sin pisar nada de FlyWeb.
+
+### 11.4 Lo que hay que mirar a mano (por riesgo)
+
+a. **Lo de FlyWeb que Brave ya no tiene, y que no se debe perder** [V salvo marca]:
+   - `crypto/unexportable_key_metrics.cc` (FM.42 d2): FlyWeb apagó `kTpmLatencyMetrics` porque creaba, usaba y borraba una clave del Secure Enclave en cada arranque de un Mac con T2. Brave borró su parche ([cr155]). **En el fichero de 156, `MaybeMeasureTpmOperations` ya no tiene el feature y lanza la medición sin condición** [V, leído en el fichero de 156]: el cambio de FlyWeb **no se puede portar tal cual y hay que rehacerlo** (quién llama a esa función: [N]).
+   - `components/os_crypt/sync/keychain_password_mac.mm` (**llavero «FlyWeb Safe Storage» / cuenta «FlyWeb»**, identidad fija de `CLAUDE.md`): Brave lo movió a `os_crypt/common` ([cr143]) y Chromium borró `os_crypt/sync` entero en la 149 (commit b8aa9d78b de Brave, «Remove sync backend» en Chromium). Además **`kUseAsyncOsCryptInLoginDatabase`, que FlyWeb enciende en FS.25 para las contraseñas `fw1`, ya no aparece en `password_features.cc` de 156** [V]; ha podido pasar a otro fichero o borrarse [N]. Hay que repasar el camino `fw1` (parches de `login_database.cc`, `password_store_built_in_backend.cc` y cookies, más `os_crypt/async/common/encryptor.cc`) **antes de B3**: un error aquí es pérdida de contraseñas del usuario [I].
+   - `components/captive_portal/.../captive_portal_service.cc`: FlyWeb apaga siempre la detección (Brave la fuerza y llama a su host). Brave lo pasó a plaster (b287783cd, 2026-08-06, «[plaster] `//components/captive_portal`»): rehacer como commit `privacy`.
+   - `ui/base/cocoa/permissions_utils.mm` (compat <10.15, FM.42 c2): **ya no hace falta**: el fichero de 156 devuelve `false` si `macos_version < 14'00'00` [V].
+   - IDL de canvas (`lang` con `RuntimeEnabled=CanvasTextLang`, nivel de motor): [cr133] Chromium fusionó los IDL; con la base 156 el atributo ya viene de upstream [I].
+   - `tab_hover_card_bubble_view.cc` («flyweb://» en la tarjeta): [cr148] la movió de sitio; re-anclar.
+b. **«Only use brave:// scheme for display» (#34610, 2026-03-20)**: Brave convierte `brave://` a `chrome://` lo antes posible y solo muestra `brave://`. Quitó 9 ficheros por ello (3 parches y 6 envoltorios) (`extension_tab_util`, `web_ui_impl`, `render_thread_impl`, `history_utils`, `profile_io_data`…). Afecta a cómo FlyWeb muestra `flyweb://`; **no se puede decidir en papel**: leer el diff de ese commit.
+c. **Reversiones de Brave que reabren funciones de Chromium** (regla 20, privacidad): «Revert "Disables Tracking Protection Onboarding"» y «Revert "Explicitly disable search engine choice flag check"»: los envoltorios que lo apagaban ya no existen en 1.98. Si FlyWeb quiere esas funciones apagadas, el cambio es **nuestro** y hay que decidir si se mantiene.
+d. **WebUI (34 parches «se reescribe»)**: depende de P5 (§5), no del coste técnico.
+e. **Sync**: [sync] `ModelType` → `DataType` renombra tipos en `components/sync/engine` (2 envoltorios, 1 parche) y en el código de `brave_sync` (101 ficheros, §10.2) [V]; **entra en el porte, no es opcional**.
+
+### 11.5 Medida de papel de P2: ¿aplican los parches de Brave sobre 156?
+
+`git apply --check` de cada parche **de Brave** (579 de los 590; no se probaron los 11 de subrepositorios: v8 2, `third_party/catapult` 8, `devtools-frontend` 1) sobre el fichero de Chromium 156, sin los demás parches [V, `datos/b2-aplica-579.tsv`]:
+
+| | Parches |
+|---|---|
+| El fichero de Chromium que parchean **existe en 156** | 521 de 579 (los otros 58: renombrado o borrado) |
+| El parche de 1.69 aplica **tal cual** | 198 (38 % de los 521) |
+| Aplica con una línea menos de contexto (`-C1`; incluye los 198) | 323 (62 %) |
+| No aplica ni así | 198 (38 %) |
+| Con donante en 1.98 y objetivo en 156 | 441; el parche de 1.98 **aplica en los 441** (control: valida el método) |
+
+Esto es una **cota de papel** («el hueco existe»), no «compila»: un parche que aplica puede no compilar y uno que no aplica puede arreglarse con un retoque. Aun así da orden de magnitud: **sin donante, ~200 parches de Brave habría que rehacer; con donante, el trabajo se reduce a los que FlyWeb tocó** (28 chocan) **y a los que Brave quitó** (§11.2). Los envoltorios no se midieron igual [N] (no hay equivalente barato de «aplica»).
+
+### 11.6 Poda (P1) preparada y medida (P2)
+
+Plan mecánico sobre `flyweb` 5fdeb23d6, solo escritorio (`b2-poda.py`; `datos/poda-*.tsv`; clasificación por ruta, heurística como P0): **74 directorios** que son ≥ 90 % de una función muerta (6 004 ficheros de código y pruebas), **217 costuras** (ficheros vivos que incluyen o dependen de código muerto; P0 daba 223 sobre ac280a17df) y **582 líneas de `BUILD.gn`/`.gni`/`DEPS`** que enlazan con directorios muertos.
+
+| Función | Directorios | Ficheros | Costuras | Líneas GN/DEPS (ficheros) |
+|---|---|---|---|---|
+| IPFS | 1 | 10 | 3 | 2 (2) |
+| Player, PSST, WebCompat, DayZero | 8 | 84 | 18 | 28 (8) |
+| News | 3 | 147 | 25 | 15 (8) |
+| Leo / AI Rewriter | 8 | 209 | 76 | 83 (21) |
+| P3A, stats, métricas | 10 | 194 | 65 | 62 (18) |
+| VPN | 4 | 254 | 60 | 74 (23) |
+| Wallet (+ Web3, IPFS-DNS, Filecoin) | 14 | 1 689 | 67 | 146 (22) |
+| Rewards, Ads, SKUs, CBR, referidos, Greaselion | 26 | 3 417 | 82 | 172 (24) |
+| **Total** (con solapes en costuras) | **74** | **6 004** | **217** | **582** |
+
+Orden propuesto (hojas → acopladas, un commit por función, cada uno revertible): IPFS → Player/PSST/WebCompat → News → Leo → P3A/stats → VPN → Wallet → Rewards/Ads/SKUs. **Puerta de cada paso** (en 128, LOCAL): `gn gen --check` sin errores nuevos; `ninja brave` compila; la app arranca igual; `network-audit.py` sin cambios; `strings` sin `bsg.brave.com`; tabla antes/después de ficheros y parches. Lo que **no** se puede decidir en papel: Tor, Speedreader, Playlist y Sidebar (sin decisión de Titín: 11 de los 19 envoltorios de interfaz de §11.3 son del panel lateral); cadenas de `.grd`/`.xtb` (se podan con `chromium-rebase-l10n.py`, no a mano); el `third_party/rust` de las funciones muertas (`zcash*`, `orchard`, `challenge_bypass_ristretto*`…); y los *mojom* y recursos WebUI compartidos.
+Nota de «apagar, no borrar» (Titín, 03-11): la poda **revoca** esa regla para lo ya apagado y **requiere su sí** (§8 punto 2).
+
+### 11.7 Receta de la medida B2 (para MOTOR o LOCAL, cuando LOCAL tenga el 156 limpio de B1)
+
+**Variantes.** (A) `flyweb` 5fdeb23d6 sin podar; (C) A + poda §11.6 en la rama `b2/podado`; cada una **sin donante** (S) y **con donante** (D: sustituibles de `b2-donante.py`). La puerta necesita **A-S y C-S** (§6); **C-D** mide lo que ahorra 1.98 (§10.4.3).
+**Insumos fijos:** Chromium **156.0.8078.80** (`fb096c0011f9d50f0a264a9376420cdea9c421e3`) limpio de B1, **en una copia** (`cp -c`, APFS) para no tocar B1; `flyweb` 5fdeb23d6; `v1.98.63` de `brave/brave-core` (donante, solo lectura). Una sola compilación a la vez en la 7,1; con `nohup` y registro.
+1. **Rama de medida.** `git clone --shared` de brave-core en `src/brave` de la copia; rama `b2/<A|C>-<S|D>`. Dejar en `patches/` **solo los parches de Brave**: `comm -12 <(git ls-tree -r --name-only v1.69.168 patches) <(git ls-tree -r --name-only origin/flyweb patches)` (590; los 1 267 de motor Blink/V8 son de otra capa y no se miden aquí). Para D: copiar de 1.98 los `sustituible` y anotar los `choque`.
+2. **Parches.** `npm run apply_patches` (`build/commands/scripts/commands.js`; no `gclient sync`). **Medida 1** = parches que fallan (esperado según §11.5: ~198 de 521 más los 58 sin objetivo, **para A-S**). Los fallidos se quedan fuera y se anotan; no se arreglan.
+3. **GN.** `gn gen out/B2` con los argumentos de `FlyWeb/scripts/build.sh` más `is_component_build=true symbol_level=0 blink_symbol_level=0 treat_warnings_as_errors=false mac_deployment_target="10.14"` y el SDK de B1; luego `gn gen --check`. GN se detiene en errores: **cada fichero GN que hay que tocar se cuenta (Medida 2) y se arregla con el cambio mínimo** (comentar la línea), un commit por fichero en `b2/…`. Esperados: `third_party/rust/*/BUILD.gn` de 128 que en 156 cambiaron ([cr134], [cr136], [cr137], [cr153]; §11.2) y los argumentos que Brave 1.98 ya no reenvía (§10.4.5).
+4. **Compilar sin parar.** `autoninja -C out/B2 -k 0 brave 2>&1 | tee b2-<variante>.log`; hito: ninja termina (todo compilado o fallado). Un error en una cabecera tumba muchas unidades: por eso la medida es **por fichero**, no por error.
+5. **Contar.** `python3 -I b2-cuenta.py b2-<variante>.log lista-parcheados.txt > b2-<variante>.tsv` (la lista = los ficheros de Chromium que tocan los parches que sí aplicaron: `git -C src diff --name-only`). Da, una vez por fichero roto: `gn`, `brave_falta` (cabecera de `brave/` inexistente: poda incompleta o donante incompatible), `brave`, `envoltorio`, `parcheado`, `chromium_via_brave` y el recuento de símbolos sin enlazar. Probado con un registro sintético (cada categoría sale una vez) [V]; **no probado contra un registro real** [N].
+6. **Reglas de lectura.** El número de la puerta es **ficheros rotos de `brave/` + envoltorios + parcheados + `gn`** (A-S frente a C-S). Los `brave_falta` se informan **aparte**: en C son costuras que faltan por podar (no rompe 156); en D, donante que usa código de 1.98. Si un fichero de `chromium_via_brave` apunta a una cabecera de Chromium cambiada, anotar cuál (suele cubrir 20–40 ficheros).
+7. **Entrega.** Tabla variante × categoría en `brave-propio.md` §11 y los `.tsv` en `datos/`; **no se arregla ningún fichero fuera de GN**: B2 mide, B4/B5 arreglan.
+Criterio de validez: `apply_patches` de A-S sobre una copia limpia da **el mismo número de fallos que §11.5** (si no, el árbol de B1 no es 156.0.8078.80 limpio).
+
+### 11.8 Estado y relevo
+
+- **Hecho:** v1 (#706), P0 (#707), §10, **esto**: §11.1–11.7 (clasificación de los 556 ausentes con el commit de Brave que los quitó; medida de papel de los 579 parches; plan de poda medido; receta de B2).
+- **Falta:** (1) `gn desc` con LOCAL (qué se compila de verdad); (2) la compilación de B2 y B1 (LOCAL/MOTOR); (3) leer los diffs de los commits de §11.4 (b, c) y las 8 filas FlyWeb de §11.4(a); (4) leer el código de los cambios de §10.2 que se decidan traer; (5) la puerta de Titín (A/B/C) y su sí a la poda; (6) los envoltorios se midieron por nombre y por `#define`, no por «aplica» [N].
+- **Trampas de método (nuevas):** (i) `git fetch <oid>` en un repo parcial de Chromium va de uno en uno (~20 s por blob): usar `curl` a `raw.githubusercontent.com/chromium/chromium/<etiqueta>/<ruta>` (0,4 s); (ii) `git log -M` en un repo sin blobs se queda calculando: usar `--no-renames` y comparar hashes de blob entre árboles; (iii) `git log --diff-filter=D --no-renames` con árboles funciona (1,6 s sobre 18 905 commits); (iv) el `master` del fork es 1.98.37 (28-09), no 1.98.63; (v) `pkill -f` con un patrón que aparece en la propia orden mata la shell.
