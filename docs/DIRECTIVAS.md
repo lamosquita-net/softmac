@@ -224,6 +224,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Evolucionar el fork en vez de parchear (Titín, 03-11):** tras publicar la 2.7.0, ARQUITECTURA estudia pasar de
   parches sobre la 128 a un árbol propio de Chromium en git. El estudio lee los informes de los otros motores y tiene
   en cuenta los portes futuros (Android, iOS, Linux y, como posibilidad, Leopard/PowerPC). «Apagar, no borrar» sigue.
+- **Fork propio: SÍ (Titín, 03-11; `FlyWeb/docs/fork-propio.md`, #700), tras publicar la 2.7.0 y antes de entregar
+  el 139 a LOCAL.** Aprobados los seis puntos de su §9: forks públicos `lamosquita-net/chromium` y `lamosquita-net/v8`;
+  el árbol vive en el disco local de la 7,1 y en GitHub (excepción a «ficheros de trabajo en la red»); los parches de
+  Brave 1.69 como primer commit; convierte LOCAL (F0, solo git); la base no sube con el fork. **Copia en Samba tras
+  cada versión publicada**: espejo git *bare* en `/Volumes/googledrive/clientes/software/softmac/` (nombre a fijar en
+  F0), actualizado con `git push --mirror` (solo sube lo nuevo) y con `gc.auto=0` para no reempaquetar y obligar a
+  Drive a volver a subir los 65 GB. Sirve de copia en la nube y de origen rápido para el Ubuntu (D8-LINUX) en la red local.
 - **`add_repo` de brave-core lo ordena COORDINACIÓN, no Titín (Titín, 02-11):** COORDINACIÓN lo pone en el texto de
   arranque de cada agente que lo necesita (excepción fija de la regla 16). Solo si aun así se deniega, se le dice a
   Titín con el texto exacto de la denegación.
