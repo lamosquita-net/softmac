@@ -8,8 +8,8 @@ No tocar `BackupDrive/rclone/` (subtree). A Titín, siempre en castellano; commi
 ## BACKUPDRIVE-2 → 3 (03-11-2026, ~17:10)
 
 **Coordinador:** COORDINACIÓN-25 (`session_01MwmK2i6N1Pz4VfDzzGQ59D`). Informes y bloques para Titín, a esa sesión (se los
-hace llegar ella). **Linaje:** BACKUPDRIVE-2 era el nivel 7 de 8; el siguiente relevo quizá no pueda crear otro (que lo cree
-COORDINACIÓN).
+hace llegar ella). **Linaje:** BACKUPDRIVE-2 era el nivel 7 de 8; BACKUPDRIVE-3 lo abre COORDINACIÓN-25 desde su sesión
+(linaje 0). Los relevos de BACKUPDRIVE, siempre desde COORDINACIÓN.
 
 **Decisiones firmes de Titín (03-11):**
 1. **Clave propia de Google, obligatoria, de cada usuario y nunca en GitHub** (cambio de la tarde; sustituye a «compartida
@@ -31,7 +31,7 @@ la CI esté en verde, luego listo y aviso a COORDINACIÓN.
   `wait` del trap impedía restaurar la cuenta).
 - #710 (main): «Ver qué cambia…» en las carpetas detenidas; «Continuar de todos modos» solo desde ahí; plan viejo detectado
   por la fecha.
-- #715 (listo, CI en verde): conflictos (`conflicts list|keep`, «Resolver conflictos (N)…») y ventana «Versiones…»
+- #715 (main): conflictos (`conflicts list|keep`, «Resolver conflictos (N)…») y ventana «Versiones…»
   (`app/BDVersionsWindow.m`).
 - #719 (borrador): «Ajustes de esta carpeta…» y «Abrir al iniciar sesión» (LaunchAgent `net.lamosquita.backupdrive.app`).
 - Pruebas: `test-ctl.sh` 99, `test-sync-safe.sh` 53, en la CI con `sh`; en local también con `bash` (el `/bin/sh` de Mojave).
