@@ -166,3 +166,4 @@ contexto al cerrar · notas.
 | 03-11 | INVESTIGACIÓN-MOTOR-7 (id en `get_session`) | Sonnet 5.5 | alto | Estudio «brave-propio» (`brave-propio.md`); 3 subagentes de lectura (~0,39 M tokens) | n/d | n/d |
 | 03-11 | INVESTIGACIÓN-MOTOR-7 (id en `get_session`) | Sonnet 5.5 | alto | `brave-propio.md` v2: P0 sobre brave-core (clasificación de 34 181 ficheros, guion en `FlyWeb/tools/brave-inventario/`) | n/d | n/d |
 | 03-11 | INVESTIGACIÓN-MOTOR-7 (id en `get_session`) | Sonnet 5.5 | alto | `brave-propio.md` §10 (Brave 1.98.63 frente a 1.69.168); 4 subagentes de lectura | n/d | n/d |
+| 03-11 | SEGURIDAD-PORTES-17 (`session_01MwmK2h23XGknphhFuuhWG7`) | Opus 5.5 | medio | B0 de FM.55 (`b0-cve.md`): ritmo de CVE desde Chrome Releases, muestra de 20 arreglos contra la 128, KEV contra la 2.7.0; 1 subagente de lectura | n/d | n/d |
