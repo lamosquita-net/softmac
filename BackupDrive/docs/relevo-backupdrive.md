@@ -21,10 +21,16 @@ escriben; (2) B.7 la programa BACKUPDRIVE en la nube (AppKit, objetivo 10.14, la
 ventana, Titín en la 6,1 con órdenes listas para pegar. Los PR, sin borrador cuando estén listos, y avisar a COORDINACIÓN.
 
 **H1 hecho (rama `nube/backupdrive-ctl`):** `scripts/backupdrive-ctl.sh` (connect, check, folders, mkdir, profile, versions,
-plan) y `tests/test-ctl.sh` (79 pruebas, en la CI). El motor guarda el plan de cada simulación en `state/<id>.plan.log`.
+plan) y `tests/test-ctl.sh` (83 pruebas, en la CI). El motor guarda el plan de cada simulación en `state/<id>.plan.log`.
 Arreglo de paso: las versiones con extensión compuesta (`a-AAAAMMDD-HHMMSS.tar.gz`; rclone conserva las extensiones con tipo
 MIME conocido) no caducaban; prueba nueva en `test-sync-safe.sh` (53). **Por probar en un Mac real:** `connect` contra Google
 (que abre el navegador de Mojave y no pregunta nada) y el `awk`/`date` de BSD.
+
+**H2 + H3 (rama `nube/backupdrive-app`, PR encima de #704):** `app/main.m` partido en `AppDelegate`, `BDRunner` (lanza los
+guiones y recoge la salida) y `BDSetup` (conectar, añadir y quitar carpetas con diálogos). El menú toma las carpetas de
+`backupdrive-ctl.sh profile list` (así una carpeta nueva se ve sin esperar a sincronizar). Sin compilador de Cocoa en la nube:
+**la CI de macOS es la única comprobación de compilación**; la prueba con ventana, Titín en la 6,1. Siguiente: H5 (frenos y
+«Ver qué cambia», con `backupdrive-ctl.sh plan`), que es lo que da seguridad para dejar FreeFileSync.
 
 **Plan de B.6 y B.7:** `BackupDrive/docs/plan-b6-b7.md` (hitos H0–H9). Prueba h de B.2 enviada a Titín por COORDINACIÓN-24,
 con reinstalación desde el artefacto `BackupDrive-mojave` de `main` (ejecución 40757477334, 28-10).

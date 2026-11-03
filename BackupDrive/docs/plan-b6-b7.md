@@ -37,10 +37,11 @@ Mojave 10.14.6). Maqueta de referencia: `BackupDrive/prototipo-ui/index.html`.
 - `plan <perfil>`: `--dry-run` y un resumen legible por la app (`state/<id>.plan.json`: se borrarían / cambiarían / conflictos).
 - Pruebas en `tests/test-ctl.sh` con remoto local; la CI las ejecuta. `connect` real solo se prueba en un Mac (H3).
 
-**H2. La app, por partes (nube, CI).** Partir `main.m` en módulos (estado, motor, menú) sin cambiar lo que hace; `build-app.sh`
+**H2. La app, por partes (nube, CI). Hecho (03-11), junto con lo esencial de H3 en el mismo PR.** Partir `main.m` en módulos (estado, motor, menú) sin cambiar lo que hace; `build-app.sh`
 compila varios `.m`. Prueba: lo mismo que la prueba h.
 
-**H3. Asistente de conexión (B.6, nube + Titín).** «Conectar con Google Drive…»: hoja «Autoriza en el navegador…» con Cancelar
+**H3. Asistente de conexión (B.6, nube + Titín). Hecho en lo esencial (03-11):** conectar con la clave propia, añadir y
+quitar carpetas; el navegador de subcarpetas de Drive se queda en un desplegable con las de primer nivel y ruta escrita. «Conectar con Google Drive…»: hoja «Autoriza en el navegador…» con Cancelar
 (mata el proceso), comprobación y paso siguiente: elegir carpeta del Mac (`NSOpenPanel`) y de Drive (navegador de carpetas con
 `folders`, «Nueva carpeta»), y la primera sincronización que ya existe (simulada → real). **Prueba de Titín en la 6,1:**
 conectar su cuenta desde cero, sin el asistente de `config`. Por verificar ahí: que rclone abre el navegador por defecto de

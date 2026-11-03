@@ -182,8 +182,14 @@ las ejecuta).
 
 ## App de barra de menús
 
-`app/` es una app mínima en Objective-C (`main.m`, sin proyecto de Xcode) que **no sincroniza por sí
-misma**: enseña el estado que deja `backupdrive-sync.sh` en `status.json` y controla el motor.
+`app/` es una app en Objective-C/AppKit (sin proyecto de Xcode ni nib; `AppDelegate.m` el menú, `BDRunner.m` lanza los
+guiones, `BDSetup.m` los diálogos de conexión y carpetas) que **no sincroniza por sí misma**: enseña el estado que deja
+`backupdrive-sync.sh` en `status.json` y solo lanza `backupdrive-sync.sh` y `backupdrive-ctl.sh`.
+
+- **Sin terminal** (B.6): «Conectar con Google Drive…» pide tu ID de cliente y secreto (ver «Tu propia clave de Google»),
+  abre el navegador para autorizar y espera, con «Cancelar»; «Añadir carpeta…» elige la carpeta del Mac y la de Drive (de
+  una lista o escrita; si no existe, se crea) y ofrece la simulación; en cada carpeta, «Dejar de sincronizar…» (no borra
+  nada). Con la cuenta ya conectada, «Volver a conectar con Google Drive…» la sustituye (p. ej. para cambiar de clave).
 
 - Icono en la barra de menús: normal, sincronizando o con error (imágenes *template*, se adaptan al modo oscuro).
 - Menú: resumen de la última sincronización; cada perfil con ✓ / ✗ / ⚠ (falta la primera sincronización) /
