@@ -197,6 +197,9 @@ guiones, `BDSetup.m` los diálogos de conexión y carpetas) que **no sincroniza 
 - **Conflictos:** «Resolver conflictos (N)…» en la carpeta pregunta fichero a fichero «Quedarme con la del Mac / la de
   Drive» (con tamaño y fecha), «Decidir luego» o «Mostrar en el Finder»; la copia que no se elige va a versiones. En una
   carpeta pequeña, quitar las copias puede activar el freno de borrados en la pasada siguiente: «Ver qué cambia» lo explica.
+- **Versiones** (Titín, 03-11: restaurar desde la app): «Versiones…» en cada carpeta abre una ventana con las versiones de
+  los dos lados (buscar por nombre, fecha, lado, tamaño); «Restaurar…» la vuelve a poner en su sitio (lo que hubiera va antes
+  a versiones) y «Mostrar en el Finder» para las del Mac.
 
 - Icono en la barra de menús: normal, sincronizando o con error (imágenes *template*, se adaptan al modo oscuro).
 - Menú: resumen de la última sincronización; cada perfil con ✓ / ✗ / ⚠ (falta la primera sincronización) /

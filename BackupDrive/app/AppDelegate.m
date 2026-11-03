@@ -10,6 +10,7 @@
 #import "AppDelegate.h"
 #import "BDRunner.h"
 #import "BDSetup.h"
+#import "BDVersionsWindow.h"
 
 static NSString *const kAgentLabel = @"net.lamosquita.backupdrive";
 static const NSTimeInterval kPollSeconds = 2.0;
@@ -21,7 +22,8 @@ static const NSTimeInterval kPollSeconds = 2.0;
 @property(copy) NSDictionary *status;
 @property(strong) NSTask *manualRun;
 @property(strong) BDSetup *setup;
-@property(copy) NSArray<NSDictionary *> *profiles;  // de backupdrive-ctl.sh profile list (nil: aún no)
+@property(copy) NSArray<NSDictionary *> *profiles;
+@property(strong) NSMutableDictionary<NSString *, BDVersionsWindow *> *versionWindows;  // de backupdrive-ctl.sh profile list (nil: aún no)
 @end
 
 @implementation AppDelegate
@@ -467,6 +469,26 @@ static const NSTimeInterval kPollSeconds = 2.0;
   [self.setup addFolder];
 }
 
+- (void)showVersions:(NSMenuItem *)item {
+  NSDictionary *p = item.representedObject;
+  NSString *local = [self field:@"local" of:p];
+  if (!local.length) return;
+  if (!self.versionWindows) self.versionWindows = [NSMutableDictionary dictionary];
+  BDVersionsWindow *window = self.versionWindows[local];
+  if (!window) {
+    __weak AppDelegate *weakSelf = self;
+    window = [[BDVersionsWindow alloc] initWithFolder:local
+                                          versionsMac:[self field:@"versions_mac" of:p]
+                                              changed:^{
+                                                [weakSelf refreshProfiles];
+                                              }];
+    self.versionWindows[local] = window;
+  }
+  [NSApp activateIgnoringOtherApps:YES];
+  [window showWindow:nil];
+  [window reload];
+}
+
 - (void)resolveConflicts:(NSMenuItem *)item {
   [self.setup resolveConflictsIn:item.representedObject];
 }
@@ -566,6 +588,8 @@ static const NSTimeInterval kPollSeconds = 2.0;
   NSMenuItem *open = [self addItem:@"Abrir la carpeta local" action:@selector(openFolder:) to:sub];
   open.representedObject = local;
   open.enabled = [NSFileManager.defaultManager fileExistsAtPath:local];
+  NSMenuItem *versions = [self addItem:@"Versiones…" action:@selector(showVersions:) to:sub];
+  versions.representedObject = p;
   if ([result isEqualToString:@"needs-resync"] || [result isEqualToString:@"never"]) {
     NSMenuItem *sim = [self addItem:@"Simular la primera sincronización"
                              action:@selector(simulateFirstSync:)

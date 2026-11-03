@@ -37,7 +37,8 @@ el plan (`backupdrive-ctl.sh plan`) en lenguaje llano; «Continuar de todos modo
 estaba sincronizando, el plan sería el viejo: la app lo detecta por la fecha y pide reintentar. #710 fusionado.
 
 **H5, conflictos (rama `nube/backupdrive-conflictos`):** `backupdrive-ctl.sh conflicts list|keep` (99 pruebas) y en la app
-«Resolver conflictos (N)…». Falta: Versiones (H6), Preferencias (H7), Actividad (H8, recortable).
+«Resolver conflictos (N)…». **H6** en el mismo PR (#715): `app/BDVersionsWindow.m`, ventana «Versiones…» por carpeta.
+Falta: Preferencias (H7), Actividad (H8, recortable) y el cierre en MacTrash (H9).
 
 **Plan de B.6 y B.7:** `BackupDrive/docs/plan-b6-b7.md` (hitos H0–H9). Prueba h de B.2 enviada a Titín por COORDINACIÓN-24,
 con reinstalación desde el artefacto `BackupDrive-mojave` de `main` (ejecución 40757477334, 28-10).
