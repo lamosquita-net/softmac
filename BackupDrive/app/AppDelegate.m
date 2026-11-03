@@ -467,6 +467,10 @@ static const NSTimeInterval kPollSeconds = 2.0;
   [self.setup addFolder];
 }
 
+- (void)resolveConflicts:(NSMenuItem *)item {
+  [self.setup resolveConflictsIn:item.representedObject];
+}
+
 - (void)removeFolder:(NSMenuItem *)item {
   [self.setup removeFolder:item.representedObject];
 }
@@ -573,6 +577,15 @@ static const NSTimeInterval kPollSeconds = 2.0;
                                    to:sub];
     first.representedObject = local;
     first.enabled = !self.isRunning && open.enabled;
+  }
+  id conflicts = p[@"conflicts"];
+  if ([conflicts isKindOfClass:NSNumber.class] && [conflicts integerValue] > 0) {
+    NSMenuItem *resolve = [self
+        addItem:[NSString stringWithFormat:@"Resolver conflictos (%ld)…", (long)[conflicts integerValue] / 2 ?: 1]
+         action:@selector(resolveConflicts:)
+             to:sub];
+    resolve.representedObject = local;
+    resolve.enabled = !self.isRunning && !self.setup.busy;
   }
   if ([result isEqualToString:@"blocked"]) {
     NSMenuItem *review = [self addItem:@"Ver qué cambia…" action:@selector(reviewBlocked:) to:sub];

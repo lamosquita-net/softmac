@@ -21,7 +21,7 @@ escriben; (2) B.7 la programa BACKUPDRIVE en la nube (AppKit, objetivo 10.14, la
 ventana, Titín en la 6,1 con órdenes listas para pegar. Los PR, sin borrador cuando estén listos, y avisar a COORDINACIÓN.
 
 **H1 hecho (rama `nube/backupdrive-ctl`):** `scripts/backupdrive-ctl.sh` (connect, check, folders, mkdir, profile, versions,
-plan) y `tests/test-ctl.sh` (83 pruebas, en la CI). El motor guarda el plan de cada simulación en `state/<id>.plan.log`.
+plan) y `tests/test-ctl.sh` (99 pruebas, en la CI). El motor guarda el plan de cada simulación en `state/<id>.plan.log`.
 Arreglo de paso: las versiones con extensión compuesta (`a-AAAAMMDD-HHMMSS.tar.gz`; rclone conserva las extensiones con tipo
 MIME conocido) no caducaban; prueba nueva en `test-sync-safe.sh` (53). **Por probar en un Mac real:** `connect` contra Google
 (que abre el navegador de Mojave y no pregunta nada) y el `awk`/`date` de BSD.
@@ -34,8 +34,10 @@ guiones y recoge la salida) y `BDSetup` (conectar, añadir y quitar carpetas con
 
 **H5, frenos (rama `nube/backupdrive-frenos`, encima de #708):** «Ver qué cambia…» en las carpetas detenidas: simula y enseña
 el plan (`backupdrive-ctl.sh plan`) en lenguaje llano; «Continuar de todos modos» (`--force`) solo desde ahí. Si launchd ya
-estaba sincronizando, el plan sería el viejo: la app lo detecta por la fecha y pide reintentar. Falta: conflictos con
-«Quedarme con este» (H5), Versiones (H6), Preferencias (H7).
+estaba sincronizando, el plan sería el viejo: la app lo detecta por la fecha y pide reintentar. #710 fusionado.
+
+**H5, conflictos (rama `nube/backupdrive-conflictos`):** `backupdrive-ctl.sh conflicts list|keep` (99 pruebas) y en la app
+«Resolver conflictos (N)…». Falta: Versiones (H6), Preferencias (H7), Actividad (H8, recortable).
 
 **Plan de B.6 y B.7:** `BackupDrive/docs/plan-b6-b7.md` (hitos H0–H9). Prueba h de B.2 enviada a Titín por COORDINACIÓN-24,
 con reinstalación desde el artefacto `BackupDrive-mojave` de `main` (ejecución 40757477334, 28-10).

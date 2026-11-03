@@ -174,6 +174,7 @@ que todo lo que hace la app se puede hacer también desde el terminal (decisión
 | `profile set <carpeta> [--days N] [--pct P] [--count N]` / `profile remove <carpeta>` | Cambiar / quitar (no borra nada en ningún lado) |
 | `versions list <carpeta>` | Versiones de los dos lados, la más reciente primero (JSON) |
 | `versions restore <carpeta> mac\|drive <ruta de la versión>` | Vuelve a poner la versión en su sitio en el Mac; lo que hubiera va antes a versiones; la siguiente pasada la sube a Drive |
+| `conflicts list <carpeta>` / `conflicts keep <carpeta> <copia>` | Ficheros cambiados en los dos lados (bisync deja `nombre.conflict1.ext`, la del Mac, y `.conflict2`, la de Drive) / quedarse con una: vuelve a su nombre y las demás van a versiones |
 | `plan <carpeta>` | Resumen de la última simulación (`backupdrive-sync.sh --dry-run`): nuevo, cambiado y borrado en cada lado y conflictos (JSON) |
 
 Las órdenes que escriben toman el mismo bloqueo que la sincronización (código 5 si hay una en curso); los errores de
@@ -193,6 +194,9 @@ guiones, `BDSetup.m` los diálogos de conexión y carpetas) que **no sincroniza 
 - **Frenos en lenguaje llano** (Titín, 03-11): una carpeta detenida por seguridad (⚠) tiene «Ver qué cambia…», que simula la
   pasada y enseña la lista (borrados primero: irán a versiones); solo desde ahí se puede «Continuar de todos modos». La
   simulación de la primera sincronización enseña también la lista en lugar de mandar al registro.
+- **Conflictos:** «Resolver conflictos (N)…» en la carpeta pregunta fichero a fichero «Quedarme con la del Mac / la de
+  Drive» (con tamaño y fecha), «Decidir luego» o «Mostrar en el Finder»; la copia que no se elige va a versiones. En una
+  carpeta pequeña, quitar las copias puede activar el freno de borrados en la pasada siguiente: «Ver qué cambia» lo explica.
 
 - Icono en la barra de menús: normal, sincronizando o con error (imágenes *template*, se adaptan al modo oscuro).
 - Menú: resumen de la última sincronización; cada perfil con ✓ / ✗ / ⚠ (falta la primera sincronización) /
