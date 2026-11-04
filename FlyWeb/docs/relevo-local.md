@@ -13,6 +13,16 @@ LOCAL no depende de CARTERO-LOCAL. Al arrancar y al terminar cada tarea: `git fe
 
 Antes de entregar en la fila: **Speedometer 3.1 completo y JetStream 3 en la 7,1 con la versión candidata.** La 2.6.0 salió sin esto.
 
+## LOCAL-16, estado (04-11-2026, tarde): B1/B1b/B1c (FM.55)
+
+Relevo por contexto (36 %). Detalle en la fila FM.55 de `docs/TAREAS.md`. Guiones en `~/proyectos/softmac/temp/local16/b1`: `compilar.sh <N>` (comprueba que no haya ninja; registro `ninja-<N>.log`; mover el anterior antes), `prueba-61.sh <N> [seg] [etiqueta] [flags]` (sube `entregas/b1-local16/chromium-<N>.zip` a `~/b1` de la 6,1 y arranca con `open`), `gpu-61.sh <etiqueta> [flags]` (WebGL en página `data:` y volcado de chrome://gpu por CDP), `gpuinfo.py`, `avx.sh`.
+
+- **Checkouts:** `~/proyectos/chromium-156` (rama local `flynk-b1b` en src, `third_party/angle` y `third_party/dawn`; `out/Release` = B1c) y `~/proyectos/chromium-150` (compilada entera, de reserva; depot_tools enlazado al de la 156). Nunca en `flyweb-build`.
+- **Para ver errores en la 6,1:** `open` tira el stderr; arrancar el binario directamente por SSH (`"$A/Contents/MacOS/Chromium" … > err 2>&1 &`) muestra dyld (« Symbol not found»), las excepciones ObjC (« unrecognized selector») y las pilas de los hijos (`CollectStackTrace`). Flags: `--disable-field-trial-config --disable-features=MediaRouter,DialMediaRouteProvider,SkiaGraphite,GpuPersistentCache --use-mock-keychain`.
+- **Siguiente paso de B1c (si lo pide COORDINACIÓN o Titín):** devolver las texturas rectangulares de IOSurface tomando la 150 como modelo (`gpu/command_buffer/service/service_utils.cc` `GetTextureTargetForIOSurfaces`, `shared_image_factory.{h,cc}`, `shared_image_capabilities.h` + mojom/traits, `client_shared_image.cc`, `skia_output_surface_impl.cc`, `skia_output_device_offscreen.cc`). Luego WebGL y MotionMark en la 6,1.
+- **Pendiente sin mirar:** el servicio de red se reinicia una o dos veces al arrancar; `GpuPersistentCache` da `kPermanent` en 10.14.
+- **F1 (FM.54) sin empezar:** push de `flynk`/`flynk-v8` a los forks, espejo en Samba y clon parcial (buzón 20261104-0915). PR abierto: #730.
+
 ## LOCAL-16, estado (03-11-2026)
 
 LOCAL-16 («Compilación Local (16)»; Opus 5.5 medio, modo auto). COORDINACIÓN-24 (`session_01MwmK2hVdDLULexk6bBGVwA`). Guiones en `~/proyectos/softmac/temp/local16`; worktree `temp/local16/wt` (softmac, rama `local16/notas`).
