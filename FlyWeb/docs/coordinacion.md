@@ -7,6 +7,53 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 04-11 (noche): COORDINACIÓN-26 → COORDINACIÓN-27 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-26 (`session_01MwmK2kNq1mUsfgAaeWBBhM`, 04-11; Opus 5.5 medio; abierta por la 25, linaje 1; relevo al 37 %).
+La 27 la abre la 26 (linaje 2). Nunca llamar a confirm_repository_trust.
+
+**Decisiones de Titín de hoy (en DIRECTIVAS y en la fila FM.55):**
+- **Puerta: base 156** (no la 150). Motivo: ir a la última y no con parches.
+- **Vía GPU en estudio:**
+  - **Metal (B1d) primero.** La sonda (#740) dice que la D500 en Mojave es Mac2 y que MSL 2.1 compila.
+  - **OpenGL (B1c) en reserva**, sin descartar: 11 ficheros añadidos sobre la 156, 66 en total, en `flynk-b1b`.
+  - Seguridad (#735): la vía GL obliga a portar a mano 34 CVE (16 críticos); la vía Metal tiene 10, que la 156 ya trae.
+- **Hito común de GPU:** `FlyWeb/docs/pruebas-gpu.md`, la batería de la 2.7.0 que dio Titín (Aquarium, WebGL Report,
+  three.js, Babylon, Earth, Photopea, Shadertoy, Fishbowl, YouTube 4K60, vsynctester, MotionMark, WebGPU), comparada
+  con la 2.7.0 en la 6,1. Si Metal no llega, se vuelve a GL.
+- **Contraseñas:** la puerta del llavero suma la prueba de sync (perfil vacío de la 156 que recupera las de la 2.7.0).
+  La importación por CSV, solo como último recurso. Recomendación: FileVault y contraseña de sesión larga.
+- Anulados por escrito: la prioridad del USB de la 5,1 y la B1b de la 150.
+
+**Dato fresco (Titín, 6,1 con Mojave 10.14.6, build de la 156 de LOCAL-17):**
+- ANGLE Metal funciona con la D500, con WebGL 1 y 2.
+- MotionMark **140,83 a 45 fps**, frente a 541,92 de la 2.0.0: unas 4 veces menos.
+- Sospechosos: Graphite, encendido por defecto en Apple en la 156, y la copia entre las dos D500 (el monitor cuelga de una).
+- **Pedido a Titín:** MotionMark repetido, con `--disable-features=SkiaGraphite`, y en `chrome://gpu` la GPU activa
+  frente a la del monitor. Si sin Graphite se acerca a 540, Metal queda casi decidido.
+- Fallos:
+  - SIGSEGV en 0x0 al abrir el menú contextual (`ClipboardFormatType::SvgType`, `UTType` de macOS 11 débil).
+  - La página de ayuda dice «macOS 12» en Mojave.
+  - Ordenado (buzón 14dc407b): arreglo, auditoría de los 145 débiles con tabla símbolo → usos → estado, y corrección
+    de la versión falsa.
+
+**Equipo vivo:**
+- LOCAL-17 (bridge `session_01MwmK2j4rFArRjQWbhP6iuQ`): B1d, el servicio de red que se reinicia, la auditoría y el
+  menú contextual; informa por PR o en la fila FM.55. **Ojo:** los PR de `local/fm55-estado-b1` chocan en TAREAS; si
+  choca, llevar el contenido a un PR [coord] y cerrar el suyo (como #739 → #740).
+- CARTERO-LOCAL (relevo de hoy, bridge `session_01MwmK2ihfHK1m4pkdAvtv8f`): anota ENTREGADO.md al día.
+- SEGURIDAD-PORTES-17 (`session_01MwmK2h23XGknphhFuuhWG7`): KEV sin novedades. Hará la regla 17 de la capa de GPU
+  que gane, con la lista nuevo/revertido.
+- INVESTIGACIÓN-MOTOR-8 (`session_01MwmK2hmk5bxMJadUHhqwKY`, ~45 %): quieta; sin encargos largos, mejor relevo antes.
+- BACKUPDRIVE no es nuestra.
+
+**Pendiente:**
+- Comparación final GL frente a Metal para Titín, con la batería.
+- F1 (FM.54) sigue sin empezar: va después de la vía GPU.
+- B3 (MOTOR) sobre la 156 tras F1.
+- La puerta del llavero, tras B3.
+- Tarea programada pendiente de la 26: `trig_012wUJdNwZF2LJVW8N4zrcvp` (revisión de las 21:24 UTC): borrarla.
+
 ## 04-11: COORDINACIÓN-25 → COORDINACIÓN-26 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-25 (`session_01MwmK2i6N1Pz4VfDzzGQ59D`, 03-11 → 04-11; Opus 5.5 medio; abierta por Titín, linaje 0; relevo
