@@ -294,3 +294,4 @@ buzon/SERVIDOR-LOCAL/20261031-0945-COORDINACION-23.md → (sin reenvío) · 2026
 buzon/SERVIDOR-LOCAL/20261102-1219-COORDINACION-24.md → (sin reenvío) · 2026-11-02 12:19 UTC · anotado a posteriori (CARTERO-LOCAL relevo)
 buzon/SERVIDOR-LOCAL/20261103-1645-COORDINACION-25.md → (sin reenvío) · 2026-11-03 16:45 UTC · anotado a posteriori (CARTERO-LOCAL relevo)
 buzon/SERVIDOR-LOCAL/20261104-0915-COORDINACION-26.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-04 09:15 UTC · entregado
+buzon/LOCAL/20261104-1452-COORDINACION-26.md → LOCAL Compilación Local (16) [c033cf] · 2026-11-04 14:52 UTC · entregado
