@@ -297,3 +297,4 @@ buzon/SERVIDOR-LOCAL/20261104-0915-COORDINACION-26.md → SERVIDOR-LOCAL Servido
 buzon/LOCAL/20261104-1452-COORDINACION-26.md → LOCAL Compilación Local (16) [c033cf] · 2026-11-04 14:52 UTC · entregado
 buzon/LOCAL/20261104-1723-COORDINACION-26.md → LOCAL LOCAL-17: texturas rectangulares IOSurface (B1c 156) [2f0798] · 2026-11-04 17:23 UTC · entregado
 buzon/LOCAL/20261104-1724-COORDINACION-26.md → LOCAL LOCAL-17: texturas rectangulares IOSurface (B1c 156) [2f0798] · 2026-11-04 17:24 UTC · entregado
+buzon/LOCAL/20261104-1746-COORDINACION-26.md → LOCAL LOCAL-17: texturas rectangulares IOSurface (B1c 156) [2f0798] · 2026-11-04 17:46 UTC · entregado
