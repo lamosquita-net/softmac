@@ -246,6 +246,18 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   como capa aparte e identificable (commits propios, revertibles, por subsistema) para medir su coste en cada rebase. Hito
   de B1c: en la 6,1 pinta, WebGL funciona y MotionMark queda al nivel de la 2.7.0. Anula la recomendación de 150 de
   COORDINACIÓN-26 y la puerta abierta del 03-11 («la 128 es la última base» deja de valer cuando B1c cumpla el hito).
+- **Contraseñas en el salto a la 156: sync primero (Titín, 04-11; `brave-propio.md` §11.8.2):** perder datos al migrar es
+  un mal menor, pero se evita si se puede. La puerta del llavero de la 156 (recuentos `v10`/`fw1` iguales, sin «Chromium
+  Safe Storage», sin aviso nuevo del llavero, sin borrados con la clave `fw1` ausente) suma una prueba: **la 156 con un
+  perfil vacío, contra nuestro sync (`sync.flyweb.lamosquita.net`), recupera todas las contraseñas de la 2.7.0**. El sync
+  es la vía preferida de rescate; **la importación (CSV en claro) solo como último recurso**, y el CSV se borra después. AES-256-GCM
+  (`fw1`) no cambia de formato. El eslabón débil es dónde vive la clave: el llavero antiguo de Mojave queda protegido
+  por la contraseña de sesión. Recomendación a usuarios y en la web: **FileVault activado y contraseña de sesión larga**;
+  no dar «Permitir siempre» del llavero a programas ajenos.
+- **Vía Metal en Mojave, en estudio (Titín, 04-11; FM.55):** la 6,1 llega a Monterey y allí su GPU usa Metal. En Mojave
+  lo impide el Metal 2.1 (la 156 usa APIs de macOS 10.15/11), no el hardware. INVESTIGACIÓN-MOTOR estudia en papel si el
+  ANGLE Metal de la 156 se puede adaptar a Metal 2.1, para compararlo con el porte de OpenGL de la 150 (B1c, que
+  sigue). Decide Titín con los dos datos.
 - **Poda de Brave: borrar, no apagar (Titín, 03-11; `brave-propio.md` §11, B2):** el código de Brave que FlyWeb ya no usa
   (Wallet, Rewards y demás apagados; 74 directorios medidos) se **borra** en vez de mantenerse apagado. «Apagar, no borrar»
   queda para lo que sirva a futuras plataformas (Android, iOS, Linux, Leopard/PowerPC), no para lo muerto de Brave.
