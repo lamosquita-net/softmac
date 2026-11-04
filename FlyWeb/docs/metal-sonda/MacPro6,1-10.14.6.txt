@@ -1,0 +1,51 @@
+modelo: MacPro6,1
+macOS: 10.14.6
+dispositivos Metal: 2
+
+== AMD Radeon HD - FirePro D500
+baja potencia (integrada): no | sin pantalla: no | extraíble: no
+supportsFeatureSet macOS_GPUFamily1_v1          sí
+supportsFeatureSet macOS_GPUFamily1_v2          sí
+supportsFeatureSet macOS_GPUFamily1_v3          sí
+supportsFeatureSet macOS_GPUFamily1_v4          sí
+supportsFeatureSet macOS_GPUFamily2_v1          sí
+supportsFeatureSet macOS_ReadWriteTextureTier2  sí
+supportsFamily: el selector no existe (macOS < 10.15)
+hasUnifiedMemory (10.15): selector ausente
+supports32BitFloatFiltering (11): selector ausente
+supportsBCTextureCompression (11): selector ausente
+supportsPullModelInterpolation (11): selector ausente
+supportsShaderBarycentricCoordinates (10.15): selector ausente
+argumentBuffersSupport: 1 (0 = tier 1, 1 = tier 2)
+readWriteTextureSupport: 2 (0 ninguno, 1 tier 1, 2 tier 2)
+maxThreadgroupMemoryLength: 32768 | maxBufferLength: 3758096384
+supportsTextureSampleCount(1): sí
+supportsTextureSampleCount(2): sí
+supportsTextureSampleCount(4): sí
+supportsTextureSampleCount(8): sí
+MSL 2.0: sí | 2.1: sí
+newSharedEvent (10.14): sí
+
+== AMD Radeon HD - FirePro D500
+baja potencia (integrada): no | sin pantalla: sí | extraíble: no
+supportsFeatureSet macOS_GPUFamily1_v1          sí
+supportsFeatureSet macOS_GPUFamily1_v2          sí
+supportsFeatureSet macOS_GPUFamily1_v3          sí
+supportsFeatureSet macOS_GPUFamily1_v4          sí
+supportsFeatureSet macOS_GPUFamily2_v1          sí
+supportsFeatureSet macOS_ReadWriteTextureTier2  sí
+supportsFamily: el selector no existe (macOS < 10.15)
+hasUnifiedMemory (10.15): selector ausente
+supports32BitFloatFiltering (11): selector ausente
+supportsBCTextureCompression (11): selector ausente
+supportsPullModelInterpolation (11): selector ausente
+supportsShaderBarycentricCoordinates (10.15): selector ausente
+argumentBuffersSupport: 1 (0 = tier 1, 1 = tier 2)
+readWriteTextureSupport: 2 (0 ninguno, 1 tier 1, 2 tier 2)
+maxThreadgroupMemoryLength: 32768 | maxBufferLength: 3758096384
+supportsTextureSampleCount(1): sí
+supportsTextureSampleCount(2): sí
+supportsTextureSampleCount(4): sí
+supportsTextureSampleCount(8): sí
+MSL 2.0: sí | 2.1: sí
+newSharedEvent (10.14): sí
