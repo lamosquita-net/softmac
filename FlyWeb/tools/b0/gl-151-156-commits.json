@@ -1,0 +1,2714 @@
+{
+ "CVE-2026-102301": {
+  "m": 154,
+  "sev": "High",
+  "bug": "562004351",
+  "desc": "Out of bounds write in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "545222b904aa446dcb40a51fdca3568f0e922ddb",
+    "2026-09-17",
+    "Limit ExternalVkImageBacking usage"
+   ]
+  ]
+ },
+ "CVE-2026-102303": {
+  "m": 154,
+  "sev": "High",
+  "bug": "559727039",
+  "desc": "Uninitialized resource in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "cb7ce881d745f379c0b8a00ec65c329df76543f4",
+    "2026-09-18",
+    "gpu: Don't mark attachments cleared when the lazy clear fails"
+   ]
+  ]
+ },
+ "CVE-2026-102311": {
+  "m": 154,
+  "sev": "High",
+  "bug": "559737160",
+  "desc": "Uninitialized resource in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "05b44a44882003b14cf261a6d7ddb2c6a8b49259",
+    "2026-09-18",
+    "gpu: Fix ScopedBufferReattacher backbuffer restoration"
+   ]
+  ]
+ },
+ "CVE-2026-102313": {
+  "m": 154,
+  "sev": "High",
+  "bug": "556789073",
+  "desc": "Uninitialized resource in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "60b56d107df667c82ce3b692a5d1adcd261824f5",
+    "2026-09-11",
+    "Roll ANGLE from 819e8c405b13 to 4f38545e688c (3 revisions)"
+   ],
+   [
+    "google/angle",
+    "c2b3395143b5b0ae3f74bd120ad5e7f1fbd9318a",
+    "2026-09-11",
+    "D3D11: fixing robust init for self copy same mip lvl"
+   ]
+  ]
+ },
+ "CVE-2026-102318": {
+  "m": 154,
+  "sev": "High",
+  "bug": "562279351",
+  "desc": "Out of bounds read in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "d3af0ad932cae4ac03762a381ccd02d4f50c27de",
+    "2026-09-21",
+    "gpu: Ignore client unpack geometry on compressed texture uploads"
+   ]
+  ]
+ },
+ "CVE-2026-102319": {
+  "m": 154,
+  "sev": "High",
+  "bug": "562042411",
+  "desc": "Uninitialized resource in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "d399d25e394d5c50d10ce8e63effd39ba4a365a2",
+    "2026-09-21",
+    "Check for GL driver errors before marking SharedImage cleared in RasterDecoder"
+   ]
+  ]
+ },
+ "CVE-2026-102331": {
+  "m": 154,
+  "sev": "Critical",
+  "bug": "551673541",
+  "desc": "Buffer overflow in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b280dcea487134f5b999203ab67221cd7a4f1a22",
+    "2026-09-17",
+    "Add round_up_3d_texture_size_to_pot_for_limit workaround for PowerVR"
+   ],
+   [
+    "chromium/chromium",
+    "94178862143a50d93282f8c5c6a84bf0ffabaae3",
+    "2026-09-18",
+    "Roll ANGLE from f0fea6e82ebe to 40b709be4f1f (2 revisions)"
+   ],
+   [
+    "google/angle",
+    "40b709be4f1f62cab5fac9d888cd5e8b9259d068",
+    "2026-09-18",
+    "Add round_up_3d_texture_size_to_POT_for_limit for PowerVR"
+   ]
+  ]
+ },
+ "CVE-2026-103621": {
+  "m": 154,
+  "sev": "High",
+  "bug": "556268833",
+  "desc": "Integer overflow in Compositing",
+  "commits": [
+   [
+    "chromium/chromium",
+    "7ff661871690f30cb1912652aaaab2eadc23903f",
+    "2026-09-23",
+    "cc, gpu: Widen PaintCacheId and paint cache deletion IPC to uint64_t"
+   ]
+  ]
+ },
+ "CVE-2026-103628": {
+  "m": 154,
+  "sev": "Critical",
+  "bug": "549995090",
+  "desc": "Out of bounds write in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "2194b85c9344d8f2920c887d32c5f8184492abe9",
+    "2026-09-17",
+    "Roll ANGLE from 5bafad4847ef to 9353ca1be29e (7 revisions)"
+   ],
+   [
+    "google/angle",
+    "0855dd00f9c0e449207bb141fb03067469e69d56",
+    "2026-10-01",
+    "GL: forcefullyFlush in useTempForNonZeroBaseLevelGenmipmap"
+   ],
+   [
+    "google/angle",
+    "cdea97f48c9fcdad495c4c9a3fff95afbc3f29c9",
+    "2026-09-17",
+    "GL: Change mipmap workaround from flush to forcefullyFlush"
+   ]
+  ]
+ },
+ "CVE-2026-106202": {
+  "m": 155,
+  "sev": "High",
+  "bug": "553117809",
+  "desc": "Uninitialized resource in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "17c57c6066ac4cd7f5b09a7e1a0fccf6be3dec97",
+    "2026-09-17",
+    "D3D11: Backup texture storage contents on base level changes"
+   ]
+  ]
+ },
+ "CVE-2026-106215": {
+  "m": 155,
+  "sev": "High",
+  "bug": "561066220",
+  "desc": "Uninitialized resource in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "7c4ce32df88b814f7aff3a8ad008c66bf53a06e0",
+    "2026-09-21",
+    "D3D11: Release storage on zero-dimension base level transition"
+   ]
+  ]
+ },
+ "CVE-2026-106239": {
+  "m": 155,
+  "sev": "High",
+  "bug": "546630009",
+  "desc": "Integer overflow in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "ffa67bc6b5b0d34e75eec39e6e961b29b08bdf4e",
+    "2026-09-11",
+    "GPU: enable adjust_src_dst_region_for_blitframebuffer on Mali."
+   ],
+   [
+    "chromium/chromium",
+    "7dac1bd682bbf0a97be97db0b96ac770a6098964",
+    "2026-09-11",
+    "Roll ANGLE from 94d4f6704238 to 819e8c405b13 (1 revision)"
+   ],
+   [
+    "google/angle",
+    "819e8c405b13ebe600f7e92c2a886ca0f2f47217",
+    "2026-09-11",
+    "GL: enable adjustSrcDstRegionForBlitFramebuffer on Mali GPUs."
+   ]
+  ]
+ },
+ "CVE-2026-106245": {
+  "m": 155,
+  "sev": "High",
+  "bug": "550302121",
+  "desc": "Uninitialized resource in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "5fc4e1234e46823322c7f4e3a5cc2f09ee0b4160",
+    "2026-09-04",
+    "Roll ANGLE from 766b970cf50e to d006b276e94d (4 revisions)"
+   ],
+   [
+    "google/angle",
+    "f9c58091598545e4d2def8a3b18bdb45e383341f",
+    "2026-09-04",
+    "Fix robust-init when OOB-copying between mips of same texture"
+   ],
+   [
+    "google/angle",
+    "ac048ffcee48b0bdc926d6dd3d2075dd309102ca",
+    "2026-09-04",
+    "Vulkan: Fix robust-init when OOB-self-image-copying"
+   ]
+  ]
+ },
+ "CVE-2026-106258": {
+  "m": 155,
+  "sev": "High",
+  "bug": "553857574",
+  "desc": "Uninitialized resource in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "5aaa642831a241872a8a21b43842316cc6916db3",
+    "2026-09-09",
+    "D3D: Release 2D array storage on base level layer count change"
+   ]
+  ]
+ },
+ "CVE-2026-106293": {
+  "m": 155,
+  "sev": "High",
+  "bug": "547343108",
+  "desc": "Type confusion in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "5882172c0b81009107cc97b6a2183b91e932e7d4",
+    "2026-09-02",
+    "Roll ANGLE from 4466b5e36d03 to 2da6a64218e3 (2 revisions)"
+   ],
+   [
+    "google/angle",
+    "803dfde1e22ed047be3e05028bd094cc2c716267",
+    "2026-09-02",
+    "Fix missing texture type match validation in MSRTT"
+   ]
+  ]
+ },
+ "CVE-2026-106332": {
+  "m": 155,
+  "sev": "High",
+  "bug": "553454734",
+  "desc": "Integer overflow in Compositing",
+  "commits": [
+   [
+    "chromium/chromium",
+    "9abe6c18e0cfbbd6887b921e81d375ff7b88e316",
+    "2026-08-31",
+    "Convert atomic sequences for cc::PaintImage to 64-bit integers"
+   ]
+  ]
+ },
+ "CVE-2026-106376": {
+  "m": 155,
+  "sev": "High",
+  "bug": "553881031",
+  "desc": "Uninitialized resource in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "ad72ad15e2c861de84807a86a024f5746c27cb38",
+    "2026-09-16",
+    "D3D11: Fix stale swizzle cache on robust resource init"
+   ]
+  ]
+ },
+ "CVE-2026-106419": {
+  "m": 155,
+  "sev": "High",
+  "bug": "550379413",
+  "desc": "Use after free in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "0a35d208b1a4234571e689b56fb52bebcaaf38e2",
+    "2026-09-01",
+    "GL: Fix UAF in ContextGL with depth init PBOs"
+   ]
+  ]
+ },
+ "CVE-2026-110152": {
+  "m": 155,
+  "sev": "Critical",
+  "bug": "567736859",
+  "desc": "Buffer overflow in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "e0e5a9bc99a7027268515fd6463768d7c6236293",
+    "2026-10-02",
+    "Change semantic of limitOutputVaryingsTo256 workaround."
+   ]
+  ]
+ },
+ "CVE-2026-110154": {
+  "m": 155,
+  "sev": "High",
+  "bug": "570167920",
+  "desc": "Use after free in Canvas",
+  "commits": [
+   [
+    "chromium/chromium",
+    "6aed6936e3fbd9f24f816ba18aed9936c6aad219",
+    "2026-10-07",
+    "[canvas2d] Pass precomputed image orientation into DrawImageInternal"
+   ]
+  ]
+ },
+ "CVE-2026-113012": {
+  "m": 156,
+  "sev": "High",
+  "bug": "568215670",
+  "desc": "Improper input validation in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "86cca8f0478c1f55964583d4b8036806c07e1bc2",
+    "2026-10-08",
+    "gpu: Restore GL context/surface after WrappedSkImageBacking MakeCurrent"
+   ]
+  ]
+ },
+ "CVE-2026-113082": {
+  "m": 156,
+  "sev": "High",
+  "bug": "556505644",
+  "desc": "Memory corruption in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "a248654e44df7b9c56ab4d42a49d0be8477455e1",
+    "2026-09-22",
+    "Roll ANGLE from c2fbfadacf86 to 48a16bd63d2d (1 revision)"
+   ],
+   [
+    "google/angle",
+    "48a16bd63d2d5ac42b133ff4da511928af02eb97",
+    "2026-09-22",
+    "D3D11: Fix InputLayoutCache key for disabled and multiview attributes"
+   ]
+  ]
+ },
+ "CVE-2026-113117": {
+  "m": 156,
+  "sev": "High",
+  "bug": "563788518",
+  "desc": "Improper input validation in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "25d32697e8b1d2660c851f6c7633e02bd889748a",
+    "2026-09-23",
+    "Roll ANGLE from f8951da3905a to 386bb0e11d39 (1 revision)"
+   ],
+   [
+    "google/angle",
+    "386bb0e11d39ae46d1367c9e9e8b50f46b27ca90",
+    "2026-09-23",
+    "MSL: Correctly identify uint >= 0 condition as an infinite loop"
+   ]
+  ]
+ },
+ "CVE-2026-113134": {
+  "m": 156,
+  "sev": "High",
+  "bug": "560423758",
+  "desc": "Memory corruption in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "a248654e44df7b9c56ab4d42a49d0be8477455e1",
+    "2026-09-22",
+    "Roll ANGLE from c2fbfadacf86 to 48a16bd63d2d (1 revision)"
+   ],
+   [
+    "google/angle",
+    "48a16bd63d2d5ac42b133ff4da511928af02eb97",
+    "2026-09-22",
+    "D3D11: Fix InputLayoutCache key for disabled and multiview attributes"
+   ]
+  ]
+ },
+ "CVE-2026-113154": {
+  "m": 156,
+  "sev": "High",
+  "bug": "569127861",
+  "desc": "Memory corruption in Canvas",
+  "commits": [
+   [
+    "chromium/chromium",
+    "15cfaf3d32610b6c376b88534fdfdf21e5bd2ae2",
+    "2026-10-08",
+    "[canvas2d] Obtain PaintCanvas and state after style resolution in DrawTextInternal"
+   ]
+  ]
+ },
+ "CVE-2026-113163": {
+  "m": 156,
+  "sev": "High",
+  "bug": "548066294",
+  "desc": "Use after free in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b37ab74fc3544499c0a1fa30866ef250ac387f4d",
+    "2026-10-23",
+    "Roll ANGLE from 192af4dd12ae to 48e22c0ca56f (3 revisions)"
+   ],
+   [
+    "chromium/chromium",
+    "96734b58c7bc315d9902781908fc865fc9f3a9ba",
+    "2026-09-28",
+    "Roll ANGLE from 8325ffbb753a to dfeede58b618 (1 revision)"
+   ],
+   [
+    "google/angle",
+    "48e22c0ca56fa259894b4af3572d7f9d94027e64",
+    "2026-10-23",
+    "Translator: Fix constant switch folding vs length()"
+   ],
+   [
+    "google/angle",
+    "dfeede58b6183e8964ae4b6d9612fe1d579403e3",
+    "2026-09-28",
+    "Translator: Fold constant switch statements"
+   ]
+  ]
+ },
+ "CVE-2026-113188": {
+  "m": 156,
+  "sev": "High",
+  "bug": "533122125",
+  "desc": "Memory corruption in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b7664cfc49cc7f7ec3674f19a44efa11170d86e9",
+    "2026-09-22",
+    "gpu: Reject separate GL texture mode for WebGPU/Vulkan GL interop"
+   ]
+  ]
+ },
+ "CVE-2026-113210": {
+  "m": 156,
+  "sev": "High",
+  "bug": "563354824",
+  "desc": "Use after free in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "05cb77392246a92ca8dab746f7211e5a68f8e84a",
+    "2026-09-23",
+    "D3D11: Test mip preservation on 2D array layer count change"
+   ]
+  ]
+ },
+ "CVE-2026-113234": {
+  "m": 156,
+  "sev": "High",
+  "bug": "556750158",
+  "desc": "Memory corruption in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "bac6bdb95f18dea69afbe3b912befd8ffa14c0db",
+    "2026-09-25",
+    "Roll ANGLE from 4cb3bebdc3b9 to 2c5e2a5229a7 (14 revisions)"
+   ],
+   [
+    "google/angle",
+    "3b30b49c041ff8d366ee660c93b9e0340361e1ce",
+    "2026-09-24",
+    "Vulkan: Pass vk::LevelIndex to ImageHelper::onWrite"
+   ],
+   [
+    "google/angle",
+    "5448925bdda3ab00f5120e4cb32f98a2ee06dd6a",
+    "2026-09-24",
+    "Vulkan: Use Rectangle instead of Box for ClearPartial"
+   ],
+   [
+    "google/angle",
+    "71141e1e11e3ac3b45617523851a6d4d022c6da3",
+    "2026-09-24",
+    "Vulkan: Track image \"subresources written\" by vk::LevelIndex"
+   ],
+   [
+    "google/angle",
+    "1efffc95e07e1c97ec427dccac9c433a06f87b61",
+    "2026-09-24",
+    "Vulkan: Fix content-defined tracking for 3D images"
+   ],
+   [
+    "google/angle",
+    "2c5e2a5229a7858b5d06063c6e8dea5d34fb145b",
+    "2026-09-24",
+    "Vulkan: Allow staged clears of 3D image slices"
+   ]
+  ]
+ },
+ "CVE-2026-113242": {
+  "m": 156,
+  "sev": "High",
+  "bug": "550626693",
+  "desc": "Memory corruption in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "67691470653ae44f88fe9c0da1215f0a1106c05f",
+    "2026-09-30",
+    "D3D11: Fix uniform and structured buffer partial update and zeroing"
+   ]
+  ]
+ },
+ "CVE-2026-113252": {
+  "m": 156,
+  "sev": "High",
+  "bug": "556750258",
+  "desc": "Improper input validation in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "906ad3fd30715befeb5a6fb01a4fabf1c9cdb15a",
+    "2026-10-05",
+    "D3D11: Fix UNPACK_ROW_LENGTH handling in fast PBO unpack"
+   ]
+  ]
+ },
+ "CVE-2026-113253": {
+  "m": 156,
+  "sev": "High",
+  "bug": "553117109",
+  "desc": "Use after free in Canvas",
+  "commits": [
+   [
+    "chromium/chromium",
+    "f8e59690fb80b99d226fe3f6fef0a0d555ef3c81",
+    "2026-10-12",
+    "[HiC] Fix IsInCanvasSubtree for pseudo element on shadow host"
+   ]
+  ]
+ },
+ "CVE-2026-113266": {
+  "m": 156,
+  "sev": "High",
+  "bug": "561499641",
+  "desc": "Memory corruption in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "1a4f8e7ad4f32eca0435f54b189406f55888ce97",
+    "2026-09-18",
+    "Roll ANGLE from 40b709be4f1f to 97941c8fa290 (2 revisions)"
+   ],
+   [
+    "google/angle",
+    "97941c8fa29062701a6d30d6a8b00218099c74a2",
+    "2026-09-18",
+    "Vulkan: Don't ghost images if base level has changed"
+   ]
+  ]
+ },
+ "CVE-2026-113273": {
+  "m": 156,
+  "sev": "High",
+  "bug": "561999377",
+  "desc": "Memory corruption in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "f4f9d8b8d98cec2ed1ffe78272e4989f16a107bf",
+    "2026-09-21",
+    "Roll ANGLE from 2bb28bbcef76 to bea9f5ec4d25 (1 revision)"
+   ],
+   [
+    "google/angle",
+    "bea9f5ec4d253a3435ecb2b08e6054f220aeb80d",
+    "2026-09-21",
+    "Translator: Fix off-by-one error in variable-size check"
+   ]
+  ]
+ },
+ "CVE-2026-113285": {
+  "m": 156,
+  "sev": "High",
+  "bug": "563355257",
+  "desc": "Memory corruption in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "b5bab166e6a7c94bd545babe61c3d9b82c56de3a",
+    "2026-10-01",
+    "D3D11: Sync image from storage before CPU CopyTexSubImage"
+   ]
+  ]
+ },
+ "CVE-2026-113293": {
+  "m": 156,
+  "sev": "High",
+  "bug": "562040486",
+  "desc": "Use after free in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "e26cd9101cdb11476dd48627de200eeaf1be9ba5",
+    "2026-09-21",
+    "Roll ANGLE from fd9ac29c6973 to e1d22eff1e8f (3 revisions)"
+   ],
+   [
+    "google/angle",
+    "3adcc064145b9a06658988724db784cecea9c744",
+    "2026-09-21",
+    "HLSL: Fix name collision due to lack of delimiter"
+   ]
+  ]
+ },
+ "CVE-2026-113295": {
+  "m": 156,
+  "sev": "High",
+  "bug": "568897206",
+  "desc": "Out of bounds read in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "8988bdf12f3bad432b523897cc940ccfa2f67275",
+    "2026-10-07",
+    "D3D11: Fix stale vertex and index buffer pointers"
+   ]
+  ]
+ },
+ "CVE-2026-113315": {
+  "m": 156,
+  "sev": "High",
+  "bug": "553117511",
+  "desc": "Memory corruption in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "c042c5922f41f22f4941070d1087bdb128f6373d",
+    "2026-09-16",
+    "Roll ANGLE from a5804ada06ac to cd26970bfada (3 revisions)"
+   ],
+   [
+    "google/angle",
+    "d219c4f45f932603b53e6ffb5c5295c2ed33758d",
+    "2026-09-16",
+    "Always robust init all levels of immutable textures"
+   ]
+  ]
+ },
+ "CVE-2026-113324": {
+  "m": 156,
+  "sev": "High",
+  "bug": "563357593",
+  "desc": "Use after free in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "7f1931770c353b2770af4c8bdd15e0f20b7dbb01",
+    "2026-10-07",
+    "Sync separate GL texture content on write access in ExternalVkImageBacking"
+   ]
+  ]
+ },
+ "CVE-2026-113334": {
+  "m": 156,
+  "sev": "High",
+  "bug": "564064199",
+  "desc": "Improper input validation in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "0b43596f51170a3cbddc86ed9913efee4fcaecea",
+    "2026-09-23",
+    "D3D11: Expand 3D texture depth in MakeValidSize"
+   ]
+  ]
+ },
+ "CVE-2026-113336": {
+  "m": 156,
+  "sev": "High",
+  "bug": "569286604",
+  "desc": "Memory corruption in Compositing",
+  "commits": [
+   [
+    "chromium/chromium",
+    "46d63b00ac54db566df482976c8bcee7d932181d",
+    "2026-10-14",
+    "Fix SoftwareImageDecodeCache UAF"
+   ]
+  ]
+ },
+ "CVE-2026-118322": {
+  "m": 156,
+  "sev": "High",
+  "bug": "568895029",
+  "desc": "Memory corruption in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "66410e1e427875e569753f22a5604c567ad7b600",
+    "2026-10-13",
+    "Manual roll ANGLE from 25078a7740fd to b07d4a63246a (14 revisions)"
+   ],
+   [
+    "google/angle",
+    "64b22df8fc3b8aa194e738ad292ea8da14358f67",
+    "2026-10-13",
+    "Metal: Handle non-OOM command buffer errors"
+   ]
+  ]
+ },
+ "CVE-2026-118329": {
+  "m": 156,
+  "sev": "High",
+  "bug": "568900535",
+  "desc": "Improper input validation in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "01ca0d0dfd2fd4d06211ab2f90c8755a24bfcd80",
+    "2026-10-09",
+    "Roll ANGLE from f65a434b6b3d to bdd330893ae2 (4 revisions)"
+   ],
+   [
+    "google/angle",
+    "974b79ad146a3dca3d9a54e13f38519a8269964e",
+    "2026-10-09",
+    "Metal: Fix 2D array layer count check in TextureMtl::redefineImage"
+   ]
+  ]
+ },
+ "CVE-2026-118332": {
+  "m": 156,
+  "sev": "High",
+  "bug": "574030524",
+  "desc": "Improper input validation in Compositing",
+  "commits": [
+   [
+    "chromium/chromium",
+    "547eca8b5a33fd2f5b8ce73527b11f2b3bc7f9dc",
+    "2026-10-19",
+    "Change ImageContext access failure"
+   ],
+   [
+    "chromium/chromium",
+    "30e4d30f53b3811a509ad899be7a38abf748af06",
+    "2026-10-21",
+    "Fix ImageContext thread safety"
+   ]
+  ]
+ },
+ "CVE-2026-118346": {
+  "m": 156,
+  "sev": "High",
+  "bug": "574382050",
+  "desc": "Use after free in Compositing",
+  "commits": [
+   [
+    "chromium/chromium",
+    "115f38332946734ac034c86c2357cc87cc6e11b4",
+    "2026-10-21",
+    "Fix CopyOutputRequest check with OffsetTags"
+   ]
+  ]
+ },
+ "CVE-2026-17650": {
+  "m": 151,
+  "sev": "Critical",
+  "bug": "514442821",
+  "desc": "Use after free in Compositing",
+  "commits": [
+   [
+    "chromium/chromium",
+    "4c246406e3da54bcb173894181a664b84450dcd9",
+    "2026-07-14",
+    "[viz] Fix UAF through surface re-entrancy for referenced surfaces"
+   ]
+  ]
+ },
+ "CVE-2026-17655": {
+  "m": 151,
+  "sev": "Critical",
+  "bug": "522556145",
+  "desc": "Insufficient validation of untrusted input in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "d2c3236e24be3e35b80d87de7a1148cc26237f01",
+    "2026-06-17",
+    "Translator: Disallow constructing too-large variables."
+   ]
+  ]
+ },
+ "CVE-2026-17663": {
+  "m": 151,
+  "sev": "High",
+  "bug": "500225310",
+  "desc": "Insufficient validation of untrusted input in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "bb7ece2d0b14c526c3ec944102273e1e52fb539b",
+    "2026-06-16",
+    "[viz] [gpu] Validate YCbCr info in Ganesh Vulkan path on Android"
+   ],
+   [
+    "chromium/chromium",
+    "a1f9e29bc085b5b5a30ee614ebde806c8a42c139",
+    "2026-06-24",
+    "Revert \"[viz] [gpu] Validate YCbCr info in Ganesh Vulkan path on Android\""
+   ]
+  ]
+ },
+ "CVE-2026-17667": {
+  "m": 151,
+  "sev": "High",
+  "bug": "513043537",
+  "desc": "Uninitialized Use in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "c4cb6feebb80299d9701988df545b88565855120",
+    "2026-07-01",
+    "Roll ANGLE from aea502e52005 to 6c4783073b2e (1 revision)"
+   ],
+   [
+    "chromium/chromium",
+    "7d59c61115b60097715a5db3a7c640d3f8eed80e",
+    "2026-06-11",
+    "Roll ANGLE from 2ff01896deba to 3733890f1b19 (2 revisions)"
+   ],
+   [
+    "chromium/chromium",
+    "d3cd17ef27a9c6544eec77432391ea10468490fa",
+    "2026-05-22",
+    "Roll ANGLE from 9ce3268f4c4b to 5242f8c4150e (1 revision)"
+   ],
+   [
+    "chromium/chromium",
+    "f5fd211711d60c66561e7f213a4588e7c7f82e64",
+    "2026-05-22",
+    "Roll ANGLE from 5242f8c4150e to bfe35ed754d8 (2 revisions)"
+   ],
+   [
+    "chromium/chromium",
+    "7b1c870b0a744f904d27e135a9352dcf87896b64",
+    "2026-07-22",
+    "Roll ANGLE from 484310cbc973 to cf254faf4fcc (11 revisions)"
+   ],
+   [
+    "chromium/chromium",
+    "4aae36c75d5073172591a3a4740448502eb412c3",
+    "2026-06-15",
+    "Roll ANGLE from 2aa40748e0be to ac2ad595b950 (17 revisions)"
+   ],
+   [
+    "google/angle",
+    "b7f8900a94b0eba67f950c159158ae21ea787d23",
+    "2026-06-15",
+    "Revert \"GL: Fix uninitialized textures on invalidate.\""
+   ],
+   [
+    "google/angle",
+    "e2cafaae76c29d4867263aaf164a13875ccde417",
+    "2026-07-22",
+    "GL: Move TextureGL::initializeContentsImpl to private section"
+   ],
+   [
+    "google/angle",
+    "89a2a20add5715869221e786d2e312f1a14e5e54",
+    "2026-05-21",
+    "skip init if the scissored clear covers all attachments"
+   ],
+   [
+    "google/angle",
+    "0d5df40d4a688e0c88fd3e51307faacc997902d3",
+    "2026-06-11",
+    "D3D11: Fix uninitialized textures on invalidate."
+   ],
+   [
+    "google/angle",
+    "a1f1461fe09e4a171546587a6dd2d770be0e14af",
+    "2026-06-12",
+    "GL: Fix uninitialized textures on invalidate."
+   ],
+   [
+    "google/angle",
+    "6c4783073b2e35aa0785d6979c825c9dcd2d9baa",
+    "2026-07-01",
+    "Reland: GL: Fix uninitialized textures on invalidate."
+   ],
+   [
+    "google/angle",
+    "5242f8c4150e57281ea7cfb12c2226a491194cad",
+    "2026-05-21",
+    "Metal: Fix uninitialized textures on invalidate."
+   ]
+  ]
+ },
+ "CVE-2026-17668": {
+  "m": 151,
+  "sev": "High",
+  "bug": "513134019",
+  "desc": "Uninitialized Use in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "8b9bae0102b9454b75eeb62709e6cf9cc8b1efb0",
+    "2026-06-07",
+    "Roll ANGLE from e53ecb3f8dbd to dc32cd831434 (1 revision)"
+   ],
+   [
+    "google/angle",
+    "dc32cd831434bf819b64b4f4aba80707cc57fd35",
+    "2026-06-07",
+    "Vulkan: Fix cubemap base-level change vs redefinition"
+   ]
+  ]
+ },
+ "CVE-2026-17671": {
+  "m": 151,
+  "sev": "High",
+  "bug": "513257423",
+  "desc": "Insufficient validation of untrusted input in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "673a8dc1a8e83fe5487e777acadf29fc483ef3c6",
+    "2026-06-11",
+    "Roll ANGLE from 2b192e062b1d to 0f0e84e97ac4 (3 revisions)"
+   ],
+   [
+    "google/angle",
+    "1b18da44dff8704b82f36d15424c7ac0583ce0ac",
+    "2026-06-10",
+    "Vulkan: Fix advanced blend validation + backend skip"
+   ]
+  ]
+ },
+ "CVE-2026-17675": {
+  "m": 151,
+  "sev": "High",
+  "bug": "513920258",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "1184faa057e3b606b072733a12f528fcd02d3c75",
+    "2026-06-04",
+    "PLS: Reject redefinition of attachments while active."
+   ]
+  ]
+ },
+ "CVE-2026-17676": {
+  "m": 151,
+  "sev": "High",
+  "bug": "513920298",
+  "desc": "Inappropriate implementation in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "a959d86fd599d308559cf8b623f53c76270b369b",
+    "2026-06-11",
+    "Roll ANGLE from 551e7074445e to 8e09325ebad4 (6 revisions)"
+   ],
+   [
+    "google/angle",
+    "16e19b23eab212afaba5dcfb680a3592a1c61bc3",
+    "2026-06-11",
+    "Vulkan: Fix MSRTT when all attachments are disabled"
+   ]
+  ]
+ },
+ "CVE-2026-17677": {
+  "m": 151,
+  "sev": "High",
+  "bug": "513921488",
+  "desc": "Inappropriate implementation in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "a0ccb587469be711c5e12adcf46a5e7be08aa327",
+    "2026-06-02",
+    "Roll ANGLE from a8f8038abbd1 to 1ae5e774dfea (4 revisions)"
+   ],
+   [
+    "google/angle",
+    "f0d2ebc2635c41149ef9f686b0db095339dc48e1",
+    "2026-06-02",
+    "SPIR-V: Fix combination of gl_SampleID/PointCoord/FragCoord"
+   ]
+  ]
+ },
+ "CVE-2026-17678": {
+  "m": 151,
+  "sev": "High",
+  "bug": "515452019",
+  "desc": "Out of bounds read in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "f7b01ef06b29e0e92ab4b4eb489a7d19ea4f3644",
+    "2026-06-16",
+    "Roll ANGLE from 3100009c283f to 9464aca6502c (1 revision)"
+   ],
+   [
+    "google/angle",
+    "9464aca6502c2f4ba787f8a8ec9d1f82788454ac",
+    "2026-06-16",
+    "Use uintptr_t instead of GLintptr for vertex binding offsets"
+   ]
+  ]
+ },
+ "CVE-2026-17682": {
+  "m": 151,
+  "sev": "High",
+  "bug": "516837126",
+  "desc": "Integer overflow in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "a4ebfe3de0336138d6776938943f5b4168e30aa9",
+    "2026-06-02",
+    "Roll ANGLE from 351211c297b3 to 1a7742a98d71 (1 revision)"
+   ],
+   [
+    "google/angle",
+    "1a7742a98d713597c64aa2e1b23ba229cd5da4ad",
+    "2026-06-02",
+    "Vulkan: Fix texture copy after base level change"
+   ]
+  ]
+ },
+ "CVE-2026-17683": {
+  "m": 151,
+  "sev": "High",
+  "bug": "516887576",
+  "desc": "Inappropriate implementation in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "41c0da1a6cdfbf8e771dc0c8e6036f4131b30742",
+    "2026-09-30",
+    "Roll ANGLE from b5762e77fea1 to bae3c5d66a8d (5 revisions)"
+   ],
+   [
+    "google/angle",
+    "8f1c9f81de2cefa909588558606517c7b0ee5cb9",
+    "2026-09-30",
+    "Revert \"Request robust access on native EGL contexts.\""
+   ],
+   [
+    "google/angle",
+    "ed784009865c3f8129f26083eb4e89df94fc1c4d",
+    "2026-06-11",
+    "Request robust access on native EGL contexts."
+   ]
+  ]
+ },
+ "CVE-2026-17687": {
+  "m": 151,
+  "sev": "High",
+  "bug": "516985726",
+  "desc": "Type Confusion in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "c8fe176d26a93904bc966984dad56466eb32d045",
+    "2026-06-04",
+    "Roll ANGLE from 99d11ab5af12 to 4923c0ae463a (8 revisions)"
+   ],
+   [
+    "google/angle",
+    "9fae371a99eb19d6e0880f229d7f1d9ecebe751b",
+    "2026-06-04",
+    "No actualImageFormatID in VkImageImageSiblingVk"
+   ]
+  ]
+ },
+ "CVE-2026-17689": {
+  "m": 151,
+  "sev": "High",
+  "bug": "517045160",
+  "desc": "Uninitialized Use in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "edf12968fa39c4b368fd8e91c5c9d9b5361efa8b",
+    "2026-08-05",
+    "Reland \"Replace mFunctions->clear in clearRenderbuffer\""
+   ],
+   [
+    "google/angle",
+    "fc174c46a1377375945c0f855f256e524288f55e",
+    "2026-07-09",
+    "Revert \"Replace mFunctions->clear in clearRenderbuffer\""
+   ],
+   [
+    "google/angle",
+    "ac2ad595b9508f8de80e7c80a36d8ad31c6cf11c",
+    "2026-06-15",
+    "Replace mFunctions->clear in clearRenderbuffer"
+   ]
+  ]
+ },
+ "CVE-2026-17691": {
+  "m": 151,
+  "sev": "High",
+  "bug": "517321292",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "82a623fafe0bcfdb4ae2f8dd3e13205584a64d42",
+    "2026-06-25",
+    "D3D: Handle uniforms that are optimized out by TranslatorHLSL"
+   ]
+  ]
+ },
+ "CVE-2026-17695": {
+  "m": 151,
+  "sev": "High",
+  "bug": "517543052",
+  "desc": "Inappropriate implementation in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "09993f06f425fe84c0e06ca4ab4e6b1edc0bced5",
+    "2026-06-24",
+    "Roll ANGLE from 7d1617f8c78d to afb8744a126e (1 revision)"
+   ],
+   [
+    "google/angle",
+    "afb8744a126e877471234d1b42113d3bd7310ab3",
+    "2026-06-24",
+    "MSL/AST: Handle non-unary/binary expr in loop-forward-progress"
+   ]
+  ]
+ },
+ "CVE-2026-17697": {
+  "m": 151,
+  "sev": "High",
+  "bug": "517575864",
+  "desc": "Type Confusion in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "4f5c328b8c56614f2b257d900be7b4ac3c643e2d",
+    "2026-06-03",
+    "Roll ANGLE from 688b0cf78eb0 to ac3ce93e2f4a (5 revisions)"
+   ],
+   [
+    "google/angle",
+    "165fb9fc835fd7e381c131c995ab7568db1d323a",
+    "2026-06-03",
+    "GL: Fix `invariant gl_FragColor;` + draw buffers"
+   ]
+  ]
+ },
+ "CVE-2026-17701": {
+  "m": 151,
+  "sev": "High",
+  "bug": "517972648",
+  "desc": "Out of bounds read in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "18340e52bb3c4ec23e97d6661dd9d90c12c37125",
+    "2026-06-05",
+    "Roll ANGLE from 1359a25fcf26 to bf459445a71f (2 revisions)"
+   ],
+   [
+    "google/angle",
+    "bf459445a71f5a0a33f5b20289169cda3ef4333e",
+    "2026-06-05",
+    "Metal: enable EGL_EXT_create_context_robustness"
+   ]
+  ]
+ },
+ "CVE-2026-17704": {
+  "m": 151,
+  "sev": "High",
+  "bug": "519259107",
+  "desc": "Use after free in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "4f5c328b8c56614f2b257d900be7b4ac3c643e2d",
+    "2026-06-03",
+    "Roll ANGLE from 688b0cf78eb0 to ac3ce93e2f4a (5 revisions)"
+   ],
+   [
+    "google/angle",
+    "ac3ce93e2f4a26108bbaaef70812ce16a219e86a",
+    "2026-06-03",
+    "Vulkan: Fix Use-After-Free in TextureVk::releaseImage"
+   ]
+  ]
+ },
+ "CVE-2026-17714": {
+  "m": 151,
+  "sev": "High",
+  "bug": "521293438",
+  "desc": "Uninitialized Use in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "3b227cfe0665905a8f82f34c8c5c3106752ce66c",
+    "2026-08-17",
+    "Skip flaky tests: R4G4B4A4_CubeTexImageRedefinedFace*"
+   ],
+   [
+    "google/angle",
+    "4a0e6eecaa9a1f20dd0f083ab9eeaab906c50602",
+    "2026-06-26",
+    "Vulkan: Fix Uninitialized GPU memory leak in reinitImageAsRenderable"
+   ]
+  ]
+ },
+ "CVE-2026-17717": {
+  "m": 151,
+  "sev": "High",
+  "bug": "522063116",
+  "desc": "Integer overflow in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "2cd723b4be98fae76610c3ab230436872066241f",
+    "2026-06-17",
+    "Roll ANGLE from c0106d6b9205 to 34aa4ac5d3b1 (16 revisions)"
+   ],
+   [
+    "google/angle",
+    "77ada6da2427ffc37c5f5afd19ed3e91160595be",
+    "2026-06-17",
+    "Vulkan: Fix integer overflow in vertex format conversion"
+   ],
+   [
+    "google/angle",
+    "69971dec5482d9fc2da93d24a5223ec46ae34d0f",
+    "2026-06-17",
+    "Vulkan: Fix integer overflow in vertex format conversion"
+   ],
+   [
+    "google/angle",
+    "c0106d6b9205e2eed2ad04e8dab1f492577e468e",
+    "2026-06-17",
+    "Revert \"Vulkan: Fix integer overflow in vertex format conversion\""
+   ]
+  ]
+ },
+ "CVE-2026-17718": {
+  "m": 151,
+  "sev": "High",
+  "bug": "522079372",
+  "desc": "Use after free in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "f296bf1ce3fd664d205d5181b72f15058ab74b7a",
+    "2026-06-26",
+    "Roll ANGLE from dc89a1293bdd to c740e731ac92 (7 revisions)"
+   ],
+   [
+    "google/angle",
+    "51afe011d31610979424e7491bea370ad9152c21",
+    "2026-06-26",
+    "vulkan: Fix UAF in VertexArrayVk"
+   ]
+  ]
+ },
+ "CVE-2026-17721": {
+  "m": 151,
+  "sev": "High",
+  "bug": "523495723",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "3634080d421fc8e10548e0e657d36173d921c585",
+    "2026-06-26",
+    "Roll ANGLE from c740e731ac92 to a4eea1fbedac (2 revisions)"
+   ],
+   [
+    "google/angle",
+    "a4eea1fbedace7a03bae52cd1bb9d6ebdfffb0f7",
+    "2026-06-26",
+    "Vulkan: Fix layer index/count for update from FBO"
+   ]
+  ]
+ },
+ "CVE-2026-17726": {
+  "m": 151,
+  "sev": "High",
+  "bug": "529867799",
+  "desc": "Integer overflow in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "23e991f942b4595ee8f6483751caf1d3d5e322ff",
+    "2026-07-16",
+    "[gpu] Add pack_large_row_length_separately_pack_buffer workaround"
+   ],
+   [
+    "chromium/chromium",
+    "f2c92c80187a6e1e05df1c09384003dcac969962",
+    "2026-10-20",
+    "Roll Dawn from 2aa48948064a to 48bfcb1d7037 (8 revisions)"
+   ],
+   [
+    "google/angle",
+    "1ca561b41b1c5172b081937d95add84155073bcd",
+    "2026-07-13",
+    "GL: workaround: pack large row lengths separately."
+   ]
+  ]
+ },
+ "CVE-2026-17727": {
+  "m": 151,
+  "sev": "High",
+  "bug": "529932631",
+  "desc": "Out of bounds write in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b3c5bda3adbff2b20e181090d05856d77060698a",
+    "2026-07-15",
+    "Suppress ASTC test with base level on Qualcomm GPUs."
+   ],
+   [
+    "chromium/chromium",
+    "bf5bfe8b43b54724b47392515414da3d286a1f6a",
+    "2026-07-16",
+    "Adjust test for strict ASTC sub-image upload semantics."
+   ],
+   [
+    "chromium/chromium",
+    "ff36c89e29d0584ead7effee88cd0d758638ca20",
+    "2026-07-15",
+    "Roll ANGLE from 5fd3f6b59f85 to 88229d73b7cf (4 revisions)"
+   ],
+   [
+    "google/angle",
+    "88229d73b7cf2b464ffd94621928690c08b16a1b",
+    "2026-07-15",
+    "GL: reset base level to 0 for ASTC uploads on PowerVR."
+   ]
+  ]
+ },
+ "CVE-2026-19137": {
+  "m": 151,
+  "sev": "Critical",
+  "bug": "499602793",
+  "desc": "Use after free in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "c5974c4fcceb7bf94d72fd275f497697dbd72e2e",
+    "2026-07-31",
+    "Rename ScopedDepthStencilReattacher to ScopedBufferReattacher"
+   ],
+   [
+    "chromium/chromium",
+    "7f40995cc185017a53392b8b32c23ef258a712dd",
+    "2026-07-30",
+    "Add GPU driver workaround reattach_texture_to_fbo_after_layer_increase"
+   ],
+   [
+    "chromium/chromium",
+    "3dc738b96b3102acecd75618158841ee791bf6ca",
+    "2026-07-31",
+    "Roll ANGLE from d0b4f4d215fa to 661885c1a696 (4 revisions)"
+   ],
+   [
+    "google/angle",
+    "b8352abce0383b26af32415c1d0f4a6912f665ae",
+    "2026-07-31",
+    "ANGLE: Reattach texture layer to FBO after layer count increase"
+   ]
+  ]
+ },
+ "CVE-2026-19140": {
+  "m": 151,
+  "sev": "High",
+  "bug": "513044017",
+  "desc": "Use after free in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "7247631764e0dc6dd1ec83912b0e05081b25bddc",
+    "2026-07-17",
+    "Fix release fence vkSemaphore destruction"
+   ]
+  ]
+ },
+ "CVE-2026-19146": {
+  "m": 151,
+  "sev": "High",
+  "bug": "523713150",
+  "desc": "Uninitialized Use in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "870caf4d48738256593ab12d80db2f0d8012b116",
+    "2026-07-14",
+    "gpu: Unbind unpack buffer for CopyTextureCHROMIUM intermediate"
+   ]
+  ]
+ },
+ "CVE-2026-19148": {
+  "m": 151,
+  "sev": "High",
+  "bug": "524460000",
+  "desc": "Out of bounds write in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "fe6faaabfe75a5ea9c4f2383ffc07ff80fdc3a74",
+    "2026-07-21",
+    "Compute XShmImagePool size including row bytes"
+   ]
+  ]
+ },
+ "CVE-2026-19157": {
+  "m": 151,
+  "sev": "Critical",
+  "bug": "534903095",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "cd7d046effc5d185ae117d18e036deac0fd0427f",
+    "2026-07-21",
+    "Add DontChangeBaseLevelForNPOTImmutableTextures driver bug workaround."
+   ],
+   [
+    "chromium/chromium",
+    "23ae0e94e24489098c000e9695faa1643094fd9a",
+    "2026-07-20",
+    "Roll ANGLE from d4ce3014dd92 to 5a62a37561da (9 revisions)"
+   ],
+   [
+    "google/angle",
+    "764bb891d3b8f4d3c06151d95deb5e70878cc9c5",
+    "2026-07-20",
+    "GL: Recreate PowerVR immutable texture on BASE_LEVEL increase"
+   ]
+  ]
+ },
+ "CVE-2026-19167": {
+  "m": 151,
+  "sev": "High",
+  "bug": "536666274",
+  "desc": "Integer overflow in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "75e83658911b277adcea35242890db6ffae7f371",
+    "2026-07-22",
+    "[GPU Security] Widen CompoundImageBacking content id to 64-bit."
+   ]
+  ]
+ },
+ "CVE-2026-19170": {
+  "m": 151,
+  "sev": "Critical",
+  "bug": "537729021",
+  "desc": "Use after free in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "c5974c4fcceb7bf94d72fd275f497697dbd72e2e",
+    "2026-07-31",
+    "Rename ScopedDepthStencilReattacher to ScopedBufferReattacher"
+   ],
+   [
+    "chromium/chromium",
+    "7f40995cc185017a53392b8b32c23ef258a712dd",
+    "2026-07-30",
+    "Add GPU driver workaround reattach_texture_to_fbo_after_layer_increase"
+   ],
+   [
+    "chromium/chromium",
+    "3dc738b96b3102acecd75618158841ee791bf6ca",
+    "2026-07-31",
+    "Roll ANGLE from d0b4f4d215fa to 661885c1a696 (4 revisions)"
+   ],
+   [
+    "google/angle",
+    "b8352abce0383b26af32415c1d0f4a6912f665ae",
+    "2026-07-31",
+    "ANGLE: Reattach texture layer to FBO after layer count increase"
+   ]
+  ]
+ },
+ "CVE-2026-76034": {
+  "m": 151,
+  "sev": "Critical",
+  "bug": "534923522",
+  "desc": "Buffer overflow in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "1a32335e63d64876cad520d31725d69fd4486dbf",
+    "2026-07-27",
+    "Roll ANGLE from 81324d996b13 to c3ede28106e9 (4 revisions)"
+   ],
+   [
+    "google/angle",
+    "ef03123d07332bc76db13395b6d3f3e8ac24a3b6",
+    "2026-07-24",
+    "GL: add mipmap generation and base level workaround."
+   ]
+  ]
+ },
+ "CVE-2026-76042": {
+  "m": 151,
+  "sev": "High",
+  "bug": "536460270",
+  "desc": "Use of uninitialized resource in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "a73a143f694c18300b9d87d3d489cddec4124f73",
+    "2026-07-22",
+    "[GPU Security] Fail CompoundImageBacking access when no latest element."
+   ]
+  ]
+ },
+ "CVE-2026-76045": {
+  "m": 151,
+  "sev": "High",
+  "bug": "543082390",
+  "desc": "Use after free in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "2b3a653dda35893442fbda35c6d8f89b0c683002",
+    "2026-08-11",
+    "Validate framebufferTextureMultiviewOVR target, attachment"
+   ]
+  ]
+ },
+ "CVE-2026-76046": {
+  "m": 151,
+  "sev": "High",
+  "bug": "536581050",
+  "desc": "Buffer overflow in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b3c072456958d7d51e3a386b260ce6838279ed24",
+    "2026-08-13",
+    "WebView: Increase the wait time for LCP in testLargestContentfulPaint"
+   ],
+   [
+    "google/angle",
+    "0cec00c68e27fd5708ca163fb192f350d395aa08",
+    "2026-08-07",
+    "Add test for R10X6G10X6B10X6A10X6 copy"
+   ],
+   [
+    "google/angle",
+    "8bbfb03f8fce362af0893d83bcf362b2cd08ac2a",
+    "2026-08-06",
+    "Fix pixel size of RGBA10X6"
+   ]
+  ]
+ },
+ "CVE-2026-78904": {
+  "m": 152,
+  "sev": "High",
+  "bug": "537835609",
+  "desc": "Type confusion in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "1a32335e63d64876cad520d31725d69fd4486dbf",
+    "2026-07-27",
+    "Roll ANGLE from 81324d996b13 to c3ede28106e9 (4 revisions)"
+   ],
+   [
+    "google/angle",
+    "c3ede28106e957254509e36fe94a838c761c77d0",
+    "2026-07-26",
+    "Translator: Handle comma and ternary for array checks"
+   ]
+  ]
+ },
+ "CVE-2026-78908": {
+  "m": 152,
+  "sev": "High",
+  "bug": "532904047",
+  "desc": "Information leak in Canvas",
+  "commits": [
+   [
+    "chromium/chromium",
+    "584ed97cc8158833992d052aa92b0cd0b9eff8f5",
+    "2026-08-18",
+    "[HiC] Privacy protection for pseudo elements"
+   ]
+  ]
+ },
+ "CVE-2026-78948": {
+  "m": 152,
+  "sev": "High",
+  "bug": "529991907",
+  "desc": "Buffer overflow in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "88cdab49ce29e4dd72488cf053e9a7fa1fb8484d",
+    "2026-07-20",
+    "[gpu] Limit declared vertex output varyings at compile time"
+   ],
+   [
+    "chromium/chromium",
+    "ad0cecc8be299f9d595c8c51542ed87a76334b8e",
+    "2026-07-18",
+    "Roll ANGLE from 20ba9991499b to 318948133839 (1 revision)"
+   ],
+   [
+    "chromium/chromium",
+    "0aef7b065b2dbcc51fd7413f56abd0b18ce791d2",
+    "2026-07-16",
+    "Roll ANGLE from 911e02025afc to 57ce6e20b57c (2 revisions)"
+   ],
+   [
+    "chromium/chromium",
+    "24277aae93381144dca8fd5f0d6d991609687c29",
+    "2026-07-17",
+    "Roll ANGLE from 8679cc8097be to 20ba9991499b (4 revisions)"
+   ],
+   [
+    "google/angle",
+    "3cf1a6c74785246ed0c29f58816632e05d7d6616",
+    "2026-07-17",
+    "Revert \"GL: Limit declared vertex output varying components\""
+   ],
+   [
+    "google/angle",
+    "5c2e15eebf4e811de5f4b332d461fe05997d376e",
+    "2026-07-16",
+    "GL: Limit declared vertex output varying components"
+   ],
+   [
+    "google/angle",
+    "318948133839dcf445f6b39854538f776e3302b3",
+    "2026-07-17",
+    "Reland \"GL: Limit declared vertex output varying components\""
+   ]
+  ]
+ },
+ "CVE-2026-78965": {
+  "m": 152,
+  "sev": "High",
+  "bug": "523723064",
+  "desc": "Uninitialized resource in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "3797d421ebd1f9ab59c4c382a8afe7998fc19b65",
+    "2026-07-09",
+    "Roll ANGLE from b2d2601e1499 to b2c5c7e8c582 (7 revisions)"
+   ],
+   [
+    "google/angle",
+    "0ec59299eab94c4f01855d56d6ecfac75d6ed939",
+    "2026-07-09",
+    "Always sync the texture after robust init sync"
+   ]
+  ]
+ },
+ "CVE-2026-78986": {
+  "m": 152,
+  "sev": "High",
+  "bug": "517527943",
+  "desc": "Uninitialized resource in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "79e5352b545898e6797e235996c43b0103d76dd9",
+    "2026-08-12",
+    "[webgpu] Check Skia flush success before calling SetCleared"
+   ]
+  ]
+ },
+ "CVE-2026-78989": {
+  "m": 152,
+  "sev": "High",
+  "bug": "532617619",
+  "desc": "Out of bounds read in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "5b683ed30122c78aa89aa51890868360ba97f117",
+    "2026-08-03",
+    "Optimize robust init check during GenerateMipmap"
+   ],
+   [
+    "google/angle",
+    "1b3a0894ee53ccb07d20c2d41ccc17ba449fb5e4",
+    "2026-07-30",
+    "D3D11: Fix buffer-overflow during robust texture initialization"
+   ]
+  ]
+ },
+ "CVE-2026-79019": {
+  "m": 152,
+  "sev": "High",
+  "bug": "523266585",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "edcfcbdf36b1187d86eadf8a6d4a522cf666b602",
+    "2026-07-09",
+    "Roll ANGLE from 4c9846573448 to dc4634c5d32a (3 revisions)"
+   ],
+   [
+    "google/angle",
+    "630cd843c4d352b46775f51d42f8da48e178c046",
+    "2026-07-08",
+    "HLSL: Fix name collision between globals and locals"
+   ]
+  ]
+ },
+ "CVE-2026-79043": {
+  "m": 152,
+  "sev": "High",
+  "bug": "532988552",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "1fe8af49d80eaa93885d12bc7eb9a9a06d87a94a",
+    "2026-07-20",
+    "Roll ANGLE from 5a62a37561da to d6247827bfd0 (3 revisions)"
+   ],
+   [
+    "google/angle",
+    "5bfb3c83c16f8e162ec9481228b2707f9980df08",
+    "2026-07-20",
+    "Vulkan: Fix blitting into 3D images"
+   ]
+  ]
+ },
+ "CVE-2026-79048": {
+  "m": 152,
+  "sev": "High",
+  "bug": "536531630",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "39d769c5b7aad759406aad6bcbc1401cd2c07083",
+    "2026-07-22",
+    "Roll ANGLE from 3abba2912f33 to 8521722b7ebc (1 revision)"
+   ],
+   [
+    "google/angle",
+    "8521722b7ebc715adb1cec75c722fa51942c73d2",
+    "2026-07-22",
+    "Translator: Fix gl_FragData clamp without EXT_draw_buffers"
+   ]
+  ]
+ },
+ "CVE-2026-79118": {
+  "m": 152,
+  "sev": "High",
+  "bug": "535379043",
+  "desc": "Uninitialized resource in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "dd6e3b30e15447d4ccc736d5e11d5b962afe65c0",
+    "2026-07-23",
+    "GL: Fix robust init bypass for packed depth-stencil"
+   ]
+  ]
+ },
+ "CVE-2026-79130": {
+  "m": 152,
+  "sev": "High",
+  "bug": "523717796",
+  "desc": "Buffer overflow in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "01f53e5ba36f755fcd923f8878000fe614b8957b",
+    "2026-07-17",
+    "Roll ANGLE from 57ce6e20b57c to 8679cc8097be (5 revisions)"
+   ],
+   [
+    "google/angle",
+    "5211acfc35dfc49a52defd510620449da4ce3e66",
+    "2026-07-17",
+    "Verify all cube faces when checking for enabled levels"
+   ]
+  ]
+ },
+ "CVE-2026-79131": {
+  "m": 152,
+  "sev": "High",
+  "bug": "536626343",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "826a0d0c0186b8887cf099da09a41a3b55a72166",
+    "2026-07-24",
+    "Roll ANGLE from 008675e505da to bfbd2ccf3ee1 (1 revision)"
+   ],
+   [
+    "google/angle",
+    "bfbd2ccf3ee14e66f162b333e9f0aa7cc6cb32c0",
+    "2026-07-24",
+    "Metal: Fix index buffer rewriting OOB write and rendering bug"
+   ]
+  ]
+ },
+ "CVE-2026-79138": {
+  "m": 152,
+  "sev": "High",
+  "bug": "536681676",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b61f397b38fffad09e02de2aecffc644f07b3864",
+    "2026-07-21",
+    "Roll ANGLE from b8d53cd2770b to 10dcf44dc8e0 (2 revisions)"
+   ],
+   [
+    "google/angle",
+    "10dcf44dc8e0d44596fa5a999117a04fddfcab8b",
+    "2026-07-21",
+    "Translator: Disallow gl_Clip/CullDistance declaration after use"
+   ]
+  ]
+ },
+ "CVE-2026-79142": {
+  "m": 152,
+  "sev": "High",
+  "bug": "529509587",
+  "desc": "Buffer overflow in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "15cb35d8100451df42c642d8a28689c0a33ec3db",
+    "2026-07-09",
+    "Roll ANGLE from 7ccab2ccb8ef to 3a674cbcaefe (2 revisions)"
+   ],
+   [
+    "chromium/chromium",
+    "1fe8af49d80eaa93885d12bc7eb9a9a06d87a94a",
+    "2026-07-20",
+    "Roll ANGLE from 5a62a37561da to d6247827bfd0 (3 revisions)"
+   ],
+   [
+    "chromium/chromium",
+    "a6638e8267ea0f9ee02c5aa8c9b4fdc9ce50859a",
+    "2026-07-13",
+    "Roll ANGLE from 9cf92a040212 to ef84704aca05 (4 revisions)"
+   ],
+   [
+    "chromium/chromium",
+    "db09e733fd7388fe814c87f8a545c49ae58c68bc",
+    "2026-07-13",
+    "Roll ANGLE from 5147f32e43fe to 9cf92a040212 (8 revisions)"
+   ],
+   [
+    "google/angle",
+    "f1cc6b2e2f5c4455886729bf9d2b044e07104b05",
+    "2026-07-13",
+    "IR: Make sure generated names are below 1024 chars"
+   ],
+   [
+    "google/angle",
+    "99ee9910c68b1c9ed8a8edc22ea6f284db6fa5a8",
+    "2026-07-13",
+    "Translator: Don't use kUserDefinedNamePrefix directly"
+   ],
+   [
+    "google/angle",
+    "922804e75179e45560959b935b5aebc895876fdf",
+    "2026-07-13",
+    "Translator: Always declare named structs globally"
+   ],
+   [
+    "google/angle",
+    "3a674cbcaefe1b27a05e86cf9f04668af38f86db",
+    "2026-07-09",
+    "IR: Fix name collision between global and local structs"
+   ],
+   [
+    "google/angle",
+    "0bdeec3fc0d336f7da2b10d23fe2cf2f4ccd4fed",
+    "2026-07-13",
+    "Translator: Fix block vs struct name collision"
+   ],
+   [
+    "google/angle",
+    "d6247827bfd0df0cb05dd78636ac7ba976f29933",
+    "2026-07-20",
+    "GL: Work around bug with complex expr in struct constructor"
+   ]
+  ]
+ },
+ "CVE-2026-79149": {
+  "m": 152,
+  "sev": "High",
+  "bug": "536636648",
+  "desc": "Use after free in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "f56a8e4f5f2852b9f58bbe1a9e79414b5246640c",
+    "2026-07-22",
+    "Vulkan: Fix UAF in DescriptorPoolHelper via unsafe WeakPtr upgrade"
+   ]
+  ]
+ },
+ "CVE-2026-79188": {
+  "m": 152,
+  "sev": "High",
+  "bug": "536444272",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b61f397b38fffad09e02de2aecffc644f07b3864",
+    "2026-07-21",
+    "Roll ANGLE from b8d53cd2770b to 10dcf44dc8e0 (2 revisions)"
+   ],
+   [
+    "google/angle",
+    "10dcf44dc8e0d44596fa5a999117a04fddfcab8b",
+    "2026-07-21",
+    "Translator: Disallow gl_Clip/CullDistance declaration after use"
+   ]
+  ]
+ },
+ "CVE-2026-79189": {
+  "m": 152,
+  "sev": "High",
+  "bug": "536505721",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b937390113595a7888ec9246f11ea64cdcbcef76",
+    "2026-07-21",
+    "Roll ANGLE from ab5bee732a58 to 3d3c181bdcf2 (2 revisions)"
+   ],
+   [
+    "google/angle",
+    "3d3c181bdcf2aa1e7b0f05637247479e56ca075e",
+    "2026-07-21",
+    "Translator: Check gl_FragData passed to function"
+   ]
+  ]
+ },
+ "CVE-2026-79235": {
+  "m": 152,
+  "sev": "High",
+  "bug": "534468209",
+  "desc": "Use after free in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "41e01b272f6c8008f07af406e547a08ed7495c2f",
+    "2026-08-12",
+    "[gpu] Add flush_queries_before_deleting_or_unbinding_fbo workaround"
+   ],
+   [
+    "chromium/chromium",
+    "27ae271326a88775cfacb72e3cd7cc5de92b845e",
+    "2026-10-31",
+    "gpu: Flush active/pending queries on virtual context switch and FBO change"
+   ],
+   [
+    "chromium/chromium",
+    "f37ab0f6176245ff398aa292eb2e62742d45e1fa",
+    "2026-07-22",
+    "Roll ANGLE from 0d4fbd213745 to 3abba2912f33 (3 revisions)"
+   ],
+   [
+    "google/angle",
+    "e33e55e0801c4ba770e39a8b52679c0205475184",
+    "2026-07-22",
+    "GL: workaround: Flush queries before deleting or unbinding FBOs on ARM"
+   ]
+  ]
+ },
+ "CVE-2026-79240": {
+  "m": 152,
+  "sev": "High",
+  "bug": "536532605",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "f37ab0f6176245ff398aa292eb2e62742d45e1fa",
+    "2026-07-22",
+    "Roll ANGLE from 0d4fbd213745 to 3abba2912f33 (3 revisions)"
+   ],
+   [
+    "google/angle",
+    "d3a7ea3c7fe2f189ed2c6dab1302dc1c24fa2a16",
+    "2026-07-22",
+    "HLSL: Fix name collision between parameters and locals"
+   ]
+  ]
+ },
+ "CVE-2026-79274": {
+  "m": 152,
+  "sev": "High",
+  "bug": "543707066",
+  "desc": "Information leak in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b261e1ba70cebb48b58560978af8a5978befe37e",
+    "2026-08-17",
+    "Fix incorrectly copying row padding in command buffer clients"
+   ]
+  ]
+ },
+ "CVE-2026-79275": {
+  "m": 152,
+  "sev": "High",
+  "bug": "536659904",
+  "desc": "Use after free in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b2002fb79c426a29909adcb9a675fbfd9dabbfec",
+    "2026-07-27",
+    "Roll ANGLE from 82eab5b3c665 to e4be88f08233 (1 revision)"
+   ],
+   [
+    "google/angle",
+    "e4be88f0823379ae1b20dcf20890df0a885a9ba0",
+    "2026-07-27",
+    "Unset active textures on program relink"
+   ]
+  ]
+ },
+ "CVE-2026-79282": {
+  "m": 152,
+  "sev": "Critical",
+  "bug": "496807874",
+  "desc": "Use after free in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "9abbc0c6d03fa8ce0ff450e7cf5b5ac29df8a641",
+    "2026-07-10",
+    "Add split_level_0_pbo_full_sub_image_2d workaround."
+   ],
+   [
+    "chromium/chromium",
+    "e0dd1411298a8a2e21d852261f13a118bdaa5ae1",
+    "2026-07-10",
+    "Roll ANGLE from ca42923e461d to 311c502e88d9 (3 revisions)"
+   ],
+   [
+    "google/angle",
+    "311c502e88d95d982295789f9d3cdc30e3d9bcf4",
+    "2026-07-10",
+    "GL: workaround: split PBO uploads to 2D textures' level 0."
+   ]
+  ]
+ },
+ "CVE-2026-84351": {
+  "m": 152,
+  "sev": "High",
+  "bug": "551593376",
+  "desc": "Buffer overflow in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "6454cd98685d08547fdf80ae56c31267381050ed",
+    "2026-08-26",
+    "gles2_implementation: Clamp the number of values returned by glGet*"
+   ]
+  ]
+ },
+ "CVE-2026-84352": {
+  "m": 152,
+  "sev": "Critical",
+  "bug": "546260492",
+  "desc": "Use after free in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "f4cb4a33442a3b89acdb1d03f000970bd77514f6",
+    "2026-08-24",
+    "Prevent buffer respec during paused Transform Feedback"
+   ]
+  ]
+ },
+ "CVE-2026-85048": {
+  "m": 152,
+  "sev": "High",
+  "bug": "540357382",
+  "desc": "Use after free in Compositing",
+  "commits": [
+   [
+    "chromium/chromium",
+    "053609913f8db7469fff46fe0170001d4123b094",
+    "2026-08-26",
+    "Fix re-entrancy bug in UpdateActivationDependencies()"
+   ]
+  ]
+ },
+ "CVE-2026-85050": {
+  "m": 152,
+  "sev": "High",
+  "bug": "549350408",
+  "desc": "Out of bounds write in WebGL",
+  "commits": [
+   [
+    "google/angle",
+    "921d48815f191d63b93aeb9c9921ba6dd95b054e",
+    "2026-08-26",
+    "Insert flush before generateMipmap on IMG"
+   ]
+  ]
+ },
+ "CVE-2026-85051": {
+  "m": 152,
+  "sev": "High",
+  "bug": "553449113",
+  "desc": "Type confusion in Compositing",
+  "commits": [
+   [
+    "chromium/chromium",
+    "deb41ddc5770bd74cc7d0e4d6a7d7b12e2c5ecec",
+    "2026-08-28",
+    "Promote DCHECK to CHECK in cc animation downcasts"
+   ]
+  ]
+ },
+ "CVE-2026-87438": {
+  "m": 153,
+  "sev": "Critical",
+  "bug": "548127218",
+  "desc": "Out of bounds write in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "efa9616b48ae3a70d87cb168666ea7808ee5a366",
+    "2026-08-28",
+    "GPU: upload oversized mipmap levels from PBO."
+   ],
+   [
+    "chromium/chromium",
+    "a2fe9dba7a79e3228e1ea1bbc03bc5dadb044171",
+    "2026-08-28",
+    "Roll ANGLE from bfc8fa3afb81 to 107da744f62a (2 revisions)"
+   ],
+   [
+    "google/angle",
+    "107da744f62a319b3c6851694740d9ebf247d048",
+    "2026-08-28",
+    "GL: upload oversized mip levels through PBO."
+   ]
+  ]
+ },
+ "CVE-2026-87464": {
+  "m": 153,
+  "sev": "Critical",
+  "bug": "544163112",
+  "desc": "Use after free in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "483c071feb240ceb9675a0e42ba64d584cf1d139",
+    "2026-08-18",
+    "Add ReattachTextureAfterLayerIncrease test for TexStorage3D."
+   ],
+   [
+    "chromium/chromium",
+    "2b716199a666b056c2902d24e4969c6067436722",
+    "2026-08-19",
+    "Roll ANGLE from 78f42c860864 to 87f5655006e4 (1 revision)"
+   ],
+   [
+    "google/angle",
+    "87f5655006e4a66842c004a722440a643cc03c22",
+    "2026-08-19",
+    "GL: Apply reattachTextureToFboAfterLayerIncrease to TexStorage3D"
+   ]
+  ]
+ },
+ "CVE-2026-87488": {
+  "m": 153,
+  "sev": "Critical",
+  "bug": "546252753",
+  "desc": "Use after free in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b8986b4e67e729acebe111e709b5b91c86477595",
+    "2026-08-31",
+    "GPU: add finish-before-multi-attachment-blit workaround."
+   ],
+   [
+    "chromium/chromium",
+    "423a34eebd649f16c9f3fb07b5d9928eca218d4e",
+    "2026-08-31",
+    "Roll ANGLE from 2910e29e5f44 to 8efd15f71c27 (3 revisions)"
+   ],
+   [
+    "google/angle",
+    "8efd15f71c27cd0bc2a9cf0074d77e899ca9c448",
+    "2026-08-31",
+    "GL: add finish-before-multi-attachment-blit workaround."
+   ]
+  ]
+ },
+ "CVE-2026-87500": {
+  "m": 153,
+  "sev": "High",
+  "bug": "540019091",
+  "desc": "Improper validation of array index in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "5b63cf217fdddb73b54866668c0c36dd564e2d90",
+    "2026-08-03",
+    "Roll ANGLE from 91d2d125ec00 to e422fa19258e (1 revision)"
+   ],
+   [
+    "google/angle",
+    "e422fa19258e4dfa2b56cd7a9185cae7a36cd502",
+    "2026-08-03",
+    "Translator: Fix index-checks vs comma"
+   ]
+  ]
+ },
+ "CVE-2026-87512": {
+  "m": 153,
+  "sev": "High",
+  "bug": "541715128",
+  "desc": "Use after free in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "a871bdb05932b9bbaf511e531a8497cf1a6e1865",
+    "2026-08-17",
+    "D3D11: Fix use-after-free when redefining 2D array mip levels"
+   ]
+  ]
+ },
+ "CVE-2026-87527": {
+  "m": 153,
+  "sev": "Critical",
+  "bug": "548130125",
+  "desc": "Buffer overflow in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "3b907e173dc4a643728a928f3d239fd99e1f2950",
+    "2026-08-24",
+    "gpu: Reject FBO attachment levels below TEXTURE_BASE_LEVEL"
+   ]
+  ]
+ },
+ "CVE-2026-87596": {
+  "m": 153,
+  "sev": "High",
+  "bug": "536434693",
+  "desc": "Out of bounds read in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "80d818134eca1042170fadce57e8067aee7c3316",
+    "2026-07-28",
+    "Roll ANGLE from d4107d48a662 to a946b8d38583 (11 revisions)"
+   ],
+   [
+    "google/angle",
+    "c553dab3a7b9599df176aa0f166c7d52e75bfed3",
+    "2026-07-27",
+    "Translator: Fix name collision in extracted samplers"
+   ]
+  ]
+ },
+ "CVE-2026-87604": {
+  "m": 153,
+  "sev": "High",
+  "bug": "536648007",
+  "desc": "Out of bounds read in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "57b3b7ec41fb718670554c0c6b1b467a37cde193",
+    "2026-07-31",
+    "Roll ANGLE from 2e484954bb49 to cdb28096ffbe (4 revisions)"
+   ],
+   [
+    "google/angle",
+    "72a097d38fafd58d33d3ae34c3fe4ab75acb5595",
+    "2026-07-31",
+    "Translator: Disallow arrays of external samplers"
+   ]
+  ]
+ },
+ "CVE-2026-87621": {
+  "m": 153,
+  "sev": "High",
+  "bug": "536664909",
+  "desc": "Out of bounds write in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "ee095a60509e52fccd6c28737ab672a1c696b892",
+    "2026-09-01",
+    "Remove blanket OpenGL expectations for DestLevelPastStorageMips"
+   ],
+   [
+    "google/angle",
+    "c477cf31f7a97abee4ce05a16b68ac6f1a852707",
+    "2026-08-20",
+    "D3D: Reject out-of-storage mip levels in completeness check"
+   ]
+  ]
+ },
+ "CVE-2026-87647": {
+  "m": 153,
+  "sev": "High",
+  "bug": "536673946",
+  "desc": "Uninitialized resource in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "5696f96dbbe9994e7025880bd78057444557ccdf",
+    "2026-09-01",
+    "[GPU Security]: Require initial data for compressed GL SharedImages."
+   ]
+  ]
+ },
+ "CVE-2026-87650": {
+  "m": 153,
+  "sev": "High",
+  "bug": "534912743",
+  "desc": "Out of bounds read in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "c6114b9cfebd10f3a25baf55000c2e8bcf6d549c",
+    "2026-08-11",
+    "[agy][gpu] Clamp texture levels in decoder."
+   ],
+   [
+    "google/angle",
+    "0e80263dfe758c132ec20c5ef649d587de3942f0",
+    "2026-08-04",
+    "GL: Clamp BASE/MAX texture levels"
+   ]
+  ]
+ },
+ "CVE-2026-87654": {
+  "m": 153,
+  "sev": "High",
+  "bug": "536444790",
+  "desc": "Buffer overflow in ANGLE",
+  "commits": [
+   [
+    "google/angle",
+    "14571794da4298cb35e7d5b43a96c452d9cb2df5",
+    "2026-07-30",
+    "D3D11: Fix dynamic vertex buffer reservation"
+   ]
+  ]
+ },
+ "CVE-2026-91720": {
+  "m": 153,
+  "sev": "High",
+  "bug": "523470135",
+  "desc": "Uninitialized resource in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "9b5a22fb0bac1e73d06f1d2d71bbfe793a5dc2ba",
+    "2026-10-14",
+    "Roll ANGLE from a33b086f5784 to afa978f8ca67 (7 revisions)"
+   ],
+   [
+    "google/angle",
+    "3126733e09d828a1967afa06916831fd33a4873a",
+    "2026-10-14",
+    "Skip robust cubemap test on Win/Intel"
+   ],
+   [
+    "google/angle",
+    "9ebe6aecc5d8f9119c78fcb5804f6ba31f4d02e2",
+    "2026-09-09",
+    "Metal: Avoid using stale render target in TextureMtl::getRenderTarget"
+   ]
+  ]
+ },
+ "CVE-2026-91726": {
+  "m": 153,
+  "sev": "Critical",
+  "bug": "556870863",
+  "desc": "Out of bounds read in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "1145ae564b46dc2825d688e242433f323e7075c4",
+    "2026-09-09",
+    "GPU: disable program cache on Imagination's GLES drivers."
+   ]
+  ]
+ },
+ "CVE-2026-91731": {
+  "m": 153,
+  "sev": "High",
+  "bug": "523554372",
+  "desc": "Type confusion in Compositing",
+  "commits": [
+   [
+    "chromium/chromium",
+    "7767cccfee47e42ca30da74cf6d84b80537462f1",
+    "2026-08-31",
+    "Add integer type template parameter to base::AtomicSequenceNumber"
+   ],
+   [
+    "chromium/chromium",
+    "d4b3ac2166682fee1e1e11f956b3a4d75d6ea011",
+    "2026-08-26",
+    "Prevent overflow of cc::Layer ID's."
+   ]
+  ]
+ },
+ "CVE-2026-91746": {
+  "m": 153,
+  "sev": "High",
+  "bug": "556260782",
+  "desc": "Integer overflow in Compositing",
+  "commits": [
+   [
+    "chromium/chromium",
+    "863daaa953d823531569d571cd77da02be50e265",
+    "2026-09-08",
+    "Check transfer cache entries for wrap around"
+   ]
+  ]
+ },
+ "CVE-2026-93372": {
+  "m": 153,
+  "sev": "Critical",
+  "bug": "548085797",
+  "desc": "Buffer overflow in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "02445b5049d75fbc8b5a9c2af883716a41f35ae9",
+    "2026-08-27",
+    "GPU: Clamp max_texture_image_units to 13 on PowerVR GPUs"
+   ]
+  ]
+ },
+ "CVE-2026-95281": {
+  "m": 154,
+  "sev": "Critical",
+  "bug": "551708184",
+  "desc": "Buffer overflow in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "d3f0c0ea4955d94e51c461eace31719de13b2bfa",
+    "2026-09-16",
+    "gpu: Reset base level for ASTC compressed image uploads"
+   ],
+   [
+    "chromium/chromium",
+    "1ecc0536cfb8dfc24bc6419e3c1218d5affe4492",
+    "2026-09-16",
+    "Roll ANGLE from 94e010815a2c to a5804ada06ac (3 revisions)"
+   ],
+   [
+    "google/angle",
+    "a5804ada06ac3756d2d1917912856d4ab110a434",
+    "2026-09-16",
+    "GL: Reset base level for ASTC compressed image uploads"
+   ]
+  ]
+ },
+ "CVE-2026-95284": {
+  "m": 154,
+  "sev": "Critical",
+  "bug": "556435507",
+  "desc": "Buffer overflow in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "069a204ae81338a90d88c622ac0bd5207a194041",
+    "2026-09-17",
+    "gpu: revise size checks for compressed texture workarounds."
+   ],
+   [
+    "chromium/chromium",
+    "b74fefe7f12212821610e04da687625bb548e7c5",
+    "2026-09-17",
+    "Roll ANGLE from 6ea6e00892cd to 714eedd84be1 (2 revisions)"
+   ],
+   [
+    "google/angle",
+    "d299c51cfc127586501403b86e08cdd4618a500e",
+    "2026-09-17",
+    "GL: revise size checks for compressed texture workarounds."
+   ]
+  ]
+ },
+ "CVE-2026-95293": {
+  "m": 154,
+  "sev": "High",
+  "bug": "550953039",
+  "desc": "Uninitialized resource in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "5edc4d1363bf6bf79ada91fa7ea709e0768f6f26",
+    "2026-09-02",
+    "More GL error checks in GLTextureHolder"
+   ]
+  ]
+ },
+ "CVE-2026-95299": {
+  "m": 154,
+  "sev": "High",
+  "bug": "561997427",
+  "desc": "Use after free in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "b77d42d0e0c86a2de962a7df5bdc357dd31446a8",
+    "2026-09-16",
+    "Skip Graphite async read pixels callback when context is lost"
+   ]
+  ]
+ },
+ "CVE-2026-95322": {
+  "m": 154,
+  "sev": "Critical",
+  "bug": "556576992",
+  "desc": "Out of bounds write in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "1ef712bafebc527732f7e769f168bafb8d1022e9",
+    "2026-09-15",
+    "[GPU Security]: Validate untrusted AHardwareBuffer description before NV12 readback."
+   ]
+  ]
+ },
+ "CVE-2026-95324": {
+  "m": 154,
+  "sev": "High",
+  "bug": "537857253",
+  "desc": "Uninitialized resource in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "2f291ea16923b2f39b5b7154c0dfa321520f07f5",
+    "2026-09-17",
+    "Ensure CompoundImageBacking::GetGpuBacking() validates latest content ID"
+   ]
+  ]
+ },
+ "CVE-2026-95329": {
+  "m": 154,
+  "sev": "Critical",
+  "bug": "559320837",
+  "desc": "Out of bounds write in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "594bffac95f78e6e73914b494359a3bbb7561826",
+    "2026-09-14",
+    "GPU: apply host-twiddled TexSubImage2D workaround to all formats."
+   ],
+   [
+    "chromium/chromium",
+    "d3255f65ad066ac87a57dd89a99caa60f216e5ca",
+    "2026-09-14",
+    "Roll ANGLE from 8194b221b014 to c888f37c3042 (4 revisions)"
+   ],
+   [
+    "google/angle",
+    "a1962ac29d86eae65a17d20c3c181e8052acd90a",
+    "2026-09-14",
+    "GL: apply host-twiddled TexSubImage2D workaround to all formats."
+   ]
+  ]
+ },
+ "CVE-2026-95349": {
+  "m": 154,
+  "sev": "Critical",
+  "bug": "553172761",
+  "desc": "Buffer overflow in WebGL",
+  "commits": [
+   [
+    "chromium/chromium",
+    "0ee892c1254deadf629092d0bd11b16d860b80d1",
+    "2026-09-01",
+    "GPU: add TexSubImage2D workaround for certain texture formats."
+   ],
+   [
+    "chromium/chromium",
+    "86ba626a12571f04a6e223a92aa5a7de5ce79d94",
+    "2026-09-01",
+    "Roll ANGLE from d80bb21cc0cf to 24d17c398128 (1 revision)"
+   ],
+   [
+    "google/angle",
+    "24d17c3981285f68de1a3a6ccfd1d051a3fd30f0",
+    "2026-09-01",
+    "GL: add TexSubImage2D workaround for certain texture formats."
+   ]
+  ]
+ },
+ "CVE-2026-95350": {
+  "m": 154,
+  "sev": "Critical",
+  "bug": "551573368",
+  "desc": "Buffer overflow in ANGLE",
+  "commits": [
+   [
+    "chromium/chromium",
+    "315a6ad02de9ca8afcac663b7cad4c557d423f84",
+    "2026-08-26",
+    "GPU: Reset base level before TexStorage in validating decoder"
+   ],
+   [
+    "chromium/chromium",
+    "5f287f7461d061cc2991c8d8dffb13d8318d29f3",
+    "2026-08-26",
+    "Roll ANGLE from 921d48815f19 to 2c68772a0eb7 (2 revisions)"
+   ],
+   [
+    "google/angle",
+    "2c68772a0eb74c771e2b0b6c490869c0e98fc412",
+    "2026-08-26",
+    "GL: Reset base level before TexStorage2D on PowerVR GPUs"
+   ]
+  ]
+ },
+ "CVE-2026-95357": {
+  "m": 154,
+  "sev": "Critical",
+  "bug": "530045332",
+  "desc": "Out of bounds write in GPU",
+  "commits": [
+   [
+    "chromium/chromium",
+    "4b7f62da7b542428920cc978520620c49b6be583",
+    "2026-08-21",
+    "GPU: Lose context on 3D texture depth increase for Qualcomm"
+   ],
+   [
+    "chromium/chromium",
+    "37ba03b5e7fd6f43f83ae6fe9016056f5ba17f95",
+    "2026-08-21",
+    "Roll ANGLE from 897bad1f41b2 to 8983f40bc8ef (1 revision)"
+   ],
+   [
+    "google/angle",
+    "8983f40bc8efc36cc64e1d30b2c2fb4c30c42aa1",
+    "2026-08-21",
+    "GL: Recreate texture on glTexImage3D with increased depth"
+   ]
+  ]
+ }
+}
