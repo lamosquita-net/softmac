@@ -1,0 +1,31 @@
+modelo: MacPro7,1
+macOS: 15.8.1
+dispositivos Metal: 1
+
+== AMD Radeon PRO W6600X
+baja potencia (integrada): no | sin pantalla: no | extraíble: no
+supportsFeatureSet macOS_GPUFamily1_v1          sí
+supportsFeatureSet macOS_GPUFamily1_v2          sí
+supportsFeatureSet macOS_GPUFamily1_v3          sí
+supportsFeatureSet macOS_GPUFamily1_v4          sí
+supportsFeatureSet macOS_GPUFamily2_v1          sí
+supportsFeatureSet macOS_ReadWriteTextureTier2  sí
+supportsFamily Mac1     sí
+supportsFamily Mac2     sí
+supportsFamily Common1  sí
+supportsFamily Common2  sí
+supportsFamily Common3  sí
+hasUnifiedMemory (10.15): no
+supports32BitFloatFiltering (11): sí
+supportsBCTextureCompression (11): sí
+supportsPullModelInterpolation (11): sí
+supportsShaderBarycentricCoordinates (10.15): sí
+argumentBuffersSupport: 1 (0 = tier 1, 1 = tier 2)
+readWriteTextureSupport: 2 (0 ninguno, 1 tier 1, 2 tier 2)
+maxThreadgroupMemoryLength: 65536 | maxBufferLength: 3758096384
+supportsTextureSampleCount(1): sí
+supportsTextureSampleCount(2): sí
+supportsTextureSampleCount(4): sí
+supportsTextureSampleCount(8): sí
+MSL 2.0: sí | 2.1: sí | 2.2: sí | 2.3: sí
+newSharedEvent (10.14): sí
