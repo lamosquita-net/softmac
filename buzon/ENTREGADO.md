@@ -303,3 +303,7 @@ buzon/LOCAL/20261104-1753-COORDINACION-26.md → LOCAL LOCAL-17: texturas rectan
 buzon/LOCAL/20261104-1841-COORDINACION-26.md → LOCAL LOCAL-17: texturas rectangulares IOSurface (B1c 156) [2f0798] · 2026-11-04 18:41 UTC · entregado
 buzon/LOCAL/20261104-1925-COORDINACION-26.md → LOCAL LOCAL-17: texturas rectangulares IOSurface (B1c 156) [2f0798] · 2026-11-04 19:25 UTC · entregado
 buzon/LOCAL/20261104-1928-COORDINACION-26.md → LOCAL LOCAL-17: texturas rectangulares IOSurface (B1c 156) [2f0798] · 2026-11-04 19:28 UTC · entregado
+buzon/ARQUITECTURA/20261104-1931-COORDINACION-27.md → ARQUITECTURA Arquitectura FlyWeb fork propio [05b11d] · 2026-11-04 19:31 UTC · entregado
+buzon/LOCAL/20261104-1931-COORDINACION-27.md → LOCAL LOCAL-17: texturas rectangulares IOSurface (B1c 156) [2f0798] · 2026-11-04 19:31 UTC · entregado
+buzon/PUBLICACION/20261104-1931-COORDINACION-27.md → PUBLICACION Publicación [e2247c] · 2026-11-04 19:31 UTC · entregado
+buzon/SERVIDOR-LOCAL/20261104-1931-COORDINACION-27.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-04 19:31 UTC · entregado
