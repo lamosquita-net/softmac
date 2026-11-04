@@ -238,6 +238,14 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   brave-core 1.69 entero). **El 139 a mano queda en pausa** mientras se mide; SEGURIDAD-PORTES sigue con los CVE
   explotados (2.7.x si hace falta). Con los datos, Titín decide: 156, 150 o seguir a mano. Hasta entonces sigue vigente
   «la 128 es la última base». La interfaz irá hacia la de Chrome más que hacia la de Brave.
+- **Puerta de la base: 156, con el OpenGL de Mac devuelto (Titín, 04-11; FM.55):** la siguiente base es Chromium
+  **156** (156.0.8078.90), no la 150 ni seguir a mano en la 128. Motivo de Titín: avanzar a una posición actual; para
+  futuras plataformas conviene ir en la última y no con parches («pan para hoy y hambre para mañana», comprobado con la
+  116 y la 128). Como la 156 quitó en Mac el camino OpenGL (Ganesh/GL y ANGLE GL) y ANGLE Metal no sirve en nuestras GPU
+  de Mojave (familia Mac1), FlyWeb **porta entero el OpenGL de Mac desde la 150** (LOCAL-17; B1c). Ese porte se mantiene
+  como capa aparte e identificable (commits propios, revertibles, por subsistema) para medir su coste en cada rebase. Hito
+  de B1c: en la 6,1 pinta, WebGL funciona y MotionMark queda al nivel de la 2.7.0. Anula la recomendación de 150 de
+  COORDINACIÓN-26 y la puerta abierta del 03-11 («la 128 es la última base» deja de valer cuando B1c cumpla el hito).
 - **Poda de Brave: borrar, no apagar (Titín, 03-11; `brave-propio.md` §11, B2):** el código de Brave que FlyWeb ya no usa
   (Wallet, Rewards y demás apagados; 74 directorios medidos) se **borra** en vez de mantenerse apagado. «Apagar, no borrar»
   queda para lo que sirva a futuras plataformas (Android, iOS, Linux, Leopard/PowerPC), no para lo muerto de Brave.
