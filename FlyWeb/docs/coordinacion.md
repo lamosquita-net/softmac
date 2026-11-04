@@ -7,6 +7,49 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 04-11: COORDINACIÓN-25 → COORDINACIÓN-26 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-25 (`session_01MwmK2i6N1Pz4VfDzzGQ59D`, 03-11 → 04-11; Opus 5.5 medio; abierta por Titín, linaje 0; relevo
+al 37 % a petición de Titín). La 26 la abre la 25 (linaje 1). Nunca llamar a confirm_repository_trust.
+
+**Hecho:** 2.7.0 publicada (appcast 169.168.40, web #717, DMG comprobado: 175389601 B, SHA a70c4162…0b2b; `flyweb` =
+5fdeb23d6f). MotionMark de Titín 2.6.1/2.7.0 en igualdad: empate o mejor; Speedometer +6 %, JetStream +5 %: sin 2.7.x.
+Fusionados #713–#723, #725. #679 cerrado (superado por FS.39). FM.54 y FM.55 creadas (#718).
+
+**Decisiones de Titín (en DIRECTIVAS):** BackupDrive trabaja directamente con él y fusiona sus PR (#721): COORDINACIÓN no
+le escribe (BACKUPDRIVE-3 `session_01MwmK2kYatKMK9H5fWRxtSY`). Poda de Brave: borrar lo muerto, no apagar (#725), en el
+fork tras F1, un commit por directorio. «Apagar, no borrar» queda para futuras plataformas.
+
+**Equipo vivo:** LOCAL-16 (bridge `session_01MwmK2m6va5nJxS8PXyGSMR`, ~21 %), SEGURIDAD-PORTES-17
+(`session_01MwmK2h23XGknphhFuuhWG7`, B0 hecho, vigila KEV), INVESTIGACIÓN-MOTOR-8 (`session_01MwmK2hmk5bxMJadUHhqwKY`,
+Sonnet; B2 en papel hecho #722/#723; quieta hasta B1), BACKUPDRIVE-3 (no es nuestra). Archivados: COORDINACIÓN-24,
+SEGURIDAD-PORTES-16, BACKUPDRIVE-2.
+
+**En curso (FM.54/FM.55):**
+- **F0:** hito cumplido en local (determinista; capa idéntica a la 2.7.0; push 3,9 MB + 1,7 MB). Forks creados por Titín:
+  `lamosquita-net/v8` y `lamosquita-net/chromium` = antiguo `chromium-legacy` renombrado (red chromium/chromium, «forked
+  from blueboxd»; nunca PR hacia arriba; comprobar antecesor antes del push, buzón 70f55df). Decidido: ficheros
+  generados de Brave FUERA de `flynk`; espejo Samba COMPLETO (`flynk-chromium.git`, `flynk-v8.git`, `gc.auto=0`)
+  (buzón d47a236). PR #724 (`local/fm54-convertir`): fusionar cuando LOCAL confirme determinismo; después, F1 con LOCAL.
+- **B1:** 156.0.8078.90 compila con Xcode 26.3/SDK 26.2 (no hace falta 26.5; Metal Toolchain instalado) y
+  `mac_min_system_version="10.14"`; 741 avisos de disponibilidad (dawn 231). **En la 6,1 no arranca:** faltan 5 símbolos
+  fuertes (`_kLSOpenOptionBackgroundLaunchKey`, `_CSCheckFixDisable`, `task_create_identity_token`,
+  `task_identity_token_get_task_port`, `_AperitifCheckInitialized`). Ordenado **B1b** (parche mínimo de símbolos
+  débiles, solo para medir) y comprobaciones de ANGLE Metal/GL (buzón 728d223, 101130a). 150.0.7871.287 compilando (407
+  avisos parciales).
+- **AVX (obligatorio, faltaba):** 6,1 y 7,1 tienen AVX; solo vale la **5,1**. Ordenado: flags, `otool` buscando
+  `%ymm/%zmm` sin despacho y arranque en la 5,1 (101130a). **Titín va hoy al estudio** con un USB que prepara LOCAL
+  (buzón af7fa0e: 156-B1b, 150 si está, `probar-51.command` → `resultado-51.txt`). Recoger ese resultado.
+- **Puerta 150/156 (Titín):** mi recomendación provisional: 156 si arranca con B1b, GPU bien (GL o Metal), sin AVX y los
+  741 avisos son tratables por directorio; si falla GPU o AVX, 150. Condición fija para cualquier base nueva: puerta M1
+  del llavero `fw1` (perfil real de la 2.7.0, mismos recuentos, sin clave nueva; `brave-propio.md` §11.8).
+- B3 (rebase de la capa a la 156) tras F1. El 139 a mano, en pausa.
+
+**Trampas nuevas:** la nube no escribe a LOCAL (bridge): solo buzón, y el cartero no anota desde el 30-10; si algo urge,
+pedir a Titín que pegue una línea en la sesión de LOCAL. La red de la oficina es 5G (datos ilimitados): con el router alto
+da ~67 Mbps; si va lenta, mirar la PlayStation y la posición del router. `git fetch` desde la nube a veces se cuelga:
+usar `timeout` y reintentar. Con Titín: decisiones claras, sin horas.
+
 ## 03-11: COORDINACIÓN-24 → COORDINACIÓN-25 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-24 (`session_01MwmK2hVdDLULexk6bBGVwA`, 02-11 → 03-11; Opus 5.5 medio; relevo al 41 %, 28,5 $) se releva
