@@ -1,0 +1,937 @@
+fichero	clase	primer_error
+brave/app/brave_main_delegate_browsertest.cc	brave	31: too few arguments to function call, single argument 'delegate' was not specified
+brave/app/command_utils_browsertest.cc	brave	8: 'base/containers/contains.h' file not found
+brave/app/command_utils_unittest.cc	brave	8: 'base/containers/contains.h' file not found
+brave/app/feature_defaults_unittest.cc	brave	12: 'chrome/browser/companion/core/features.h' file not found
+brave/base/trace_event/brave_process_memory_dump_unittest.cc	brave	13: no matching function for call to 'SetAllocatorDumpNameAllowlistForTesting'
+brave/brave_domains/service_domains.cc	brave	11: 'base/containers/contains.h' file not found
+brave/browser/about_flags.cc	brave	29: 'components/flags_ui/feature_entry.h' file not found
+brave/browser/autoplay/autoplay_browsertest.cc	brave	67: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/brave_autofill_browsertest.cc	brave	16: 'components/autofill/core/browser/browser_autofill_manager.h' file not found
+brave/browser/brave_browser_main_loop.h	brave	21: only virtual member functions can be marked 'override'
+brave/browser/brave_browser_main_parts.cc	brave	40: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/brave_content_browser_client.h	brave	55: only virtual member functions can be marked 'override'
+brave/browser/brave_content_browser_client_browsertest.cc	brave	147: no member named 'kChromeUIWelcomeHost' in namespace 'chrome'
+brave/browser/brave_drm_tab_helper.cc	brave	11: 'base/containers/contains.h' file not found
+brave/browser/brave_drm_tab_helper.h	brave	42: unknown type name 'Events'; did you mean 'ui::Event'?
+brave/browser/brave_prefs_browsertest.cc	brave	18: 'chrome/browser/ui/webui/new_tab_page/ntp_pref_names.h' file not found
+brave/browser/brave_resources_browsertest.cc	brave	13: unknown type name 'PlatformBrowserTest'
+brave/browser/brave_scheme_load_browsertest.cc	brave	13: 'chrome/browser/ui/browser_navigator.h' file not found
+brave/browser/brave_search/brave_search_browsertest.cc	brave	8: 'base/containers/contains.h' file not found
+brave/browser/brave_shell_integration.cc	brave	33: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/browser/brave_shields/ad_block_pref_service_factory.cc	brave	52: too few arguments to function call, expected 4, have 2
+brave/browser/brave_shields/ad_block_pref_service_factory.h	brave	39: non-virtual member function marked 'override' hides virtual member function
+brave/browser/brave_shields/ad_block_service_browsertest.h	brave	18: 'net/test/spawned_test_server/spawned_test_server.h' file not found
+brave/browser/brave_shields/brave_shields_tab_helper.cc	brave	94: member access into incomplete type 'NavigationController'
+brave/browser/brave_shields/brave_shields_web_contents_observer.cc	brave	62: member reference type 'mojo::AssociatedReceiver<brave_shields::mojom::BraveShields>' is not a pointer; did you
+brave/browser/brave_shields/brave_shields_web_contents_observer.h	brave	83: no template named 'AssociatedRemote' in namespace 'mojo'; did you mean 'AssociatedReceiver'?
+brave/browser/brave_shields/brave_shields_web_contents_observer_browsertest.cc	brave	68: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/brave_shields/cookie_expiry_browsertest.cc	brave	125: cannot initialize a parameter of type 'Browser *' with an rvalue of type 'BrowserWindowInterface *'
+brave/browser/brave_shields/cookie_list_opt_in_service_factory.cc	brave	67: use of undeclared identifier 'chrome'
+brave/browser/brave_shields/cookie_list_opt_in_service_factory.h	brave	46: non-virtual member function marked 'override' hides virtual member function
+brave/browser/brave_shields/eventsource_pool_limit_browsertest.cc	brave	115: invalid operands to binary expression ('std::string_view' (aka 'basic_string_view<char>') and 'const char[2]')
+brave/browser/brave_shields/filter_list_service_factory.cc	brave	66: use of undeclared identifier 'chrome'
+brave/browser/brave_shields/filter_list_service_factory.h	brave	45: non-virtual member function marked 'override' hides virtual member function
+brave/browser/brave_shields/https_upgrade_browsertest.cc	brave	31: 'chrome/browser/ui/browser_navigator_params.h' file not found
+brave/browser/brave_shields/websockets_pool_limit_browsertest.cc	brave	22: 'net/test/spawned_test_server/spawned_test_server.h' file not found
+brave/browser/browsing_data/brave_browsing_data_remover_browsertest.cc	brave	36: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/browsing_data/brave_clear_browsing_data_browsertest.cc	brave	27: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/component_updater/brave_component_updater_configurator.cc	brave	61: no viable conversion from 'PrefService *' to 'base::RepeatingCallback<PrefService *()>'
+brave/browser/component_updater/brave_component_updater_configurator.h	brave	64: only virtual member functions can be marked 'override'
+brave/browser/content_settings/brave_content_settings_browsertest.cc	brave	6: 'base/containers/contains.h' file not found
+brave/browser/content_settings/brave_content_settings_registry_unittest.cc	brave	6: 'base/containers/contains.h' file not found
+brave/browser/debounce/debounce_service_factory.cc	brave	60: use of undeclared identifier 'chrome'
+brave/browser/debounce/debounce_service_factory.h	brave	34: non-virtual member function marked 'override' hides virtual member function
+brave/browser/download/brave_download_item_model_unittest.cc	brave	147: no matching constructor for initialization of 'DownloadUIModel'
+brave/browser/download/bubble/download_display_controller_unittest.cc	brave	119: only virtual member functions can be marked 'override'
+brave/browser/ephemeral_storage/blob_url_browsertest.cc	brave	97: 'value' is a private member of 'content::EvalJsResult'
+brave/browser/ephemeral_storage/brave_ephemeral_storage_service_delegate.cc	brave	48: no member named 'NullCallback' in namespace 'base'; did you mean 'OnceCallback'?
+brave/browser/ephemeral_storage/ephemeral_storage_1p_browsertest.cc	brave	261: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/ephemeral_storage/ephemeral_storage_1p_domain_block_browsertest.cc	brave	76: too few arguments to function call, expected 3, have 2
+brave/browser/ephemeral_storage/ephemeral_storage_blink_memory_cache_browsertest.cc	brave	51: no member named 'StringPrintf' in namespace 'base'
+brave/browser/ephemeral_storage/ephemeral_storage_browsertest.h	brave	91: unknown type name 'Browser'
+brave/browser/ephemeral_storage/ephemeral_storage_forget_by_default_browsertest.cc	brave	62: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/ephemeral_storage/ephemeral_storage_qa_browsertest.cc	brave	182: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/ephemeral_storage/ephemeral_storage_service_factory.cc	brave	33: static_cast from 'KeyedService *' to 'ephemeral_storage::EphemeralStorageService *', which are not related by 
+brave/browser/ephemeral_storage/ephemeral_storage_service_factory.h	brave	37: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ephemeral_storage/ephemeral_storage_service_unittest.cc	brave	219: no viable conversion from 'std::string_view' (aka 'basic_string_view<char>') to 'const std::string' (aka 'cons
+brave/browser/ephemeral_storage/ephemeral_storage_tab_helper.h	brave	18: 'content/public/browser/session_storage_namespace.h' file not found
+brave/browser/ephemeral_storage/hsts_partitioning_browsertest.cc	brave	43: no member named 'path_piece' in 'GURL'
+brave/browser/ephemeral_storage/tld_ephemeral_lifetime.cc	brave	11: 'base/ranges/algorithm.h' file not found
+brave/browser/extensions/api/brave_extensions_api_client.cc	brave	20: no member named 'path_piece' in 'GURL'
+brave/browser/extensions/api/brave_extensions_api_client_unittest.cc	brave	39: no member named 'render_process_id' in 'extensions::WebRequestInfoInitParams'
+brave/browser/extensions/api/brave_shields_api.cc	brave	18: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/extensions/api/brave_theme_api_browsertest.cc	brave	47: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/extensions/api/identity/brave_web_auth_flow.cc	brave	101: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/browser/extensions/api/identity/test/identity_apitest.cc	brave	39: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/extensions/brave_base_local_data_files_browsertest.h	brave	11: 'chrome/browser/extensions/install_verifier.h' file not found
+brave/browser/extensions/brave_crx_generation_browsertest.cc	brave	12: 'chrome/browser/extensions/crx_installer.h' file not found
+brave/browser/extensions/brave_extension_functional_test.cc	brave	11: 'chrome/browser/extensions/crx_installer.h' file not found
+brave/browser/extensions/brave_extension_provider.cc	brave	20: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/browser/extensions/brave_extension_provider_browsertest.cc	brave	13: 'chrome/browser/extensions/crx_installer.h' file not found
+brave/browser/extensions/brave_extension_service.cc	brave	26: no matching constructor for initialization of 'ExtensionService'
+brave/browser/extensions/brave_extension_service.h	brave	30: only virtual member functions can be marked 'override'
+brave/browser/extensions/brave_extensions_browser_client_impl.cc	brave	23: too few arguments to function call, expected 2, have 1
+brave/browser/extensions/brave_theme_event_router_browsertest.cc	brave	38: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/extensions/brave_webtorrent_navigation_throttle.cc	brave	32: no matching constructor for initialization of 'content::NavigationThrottle'
+brave/browser/extensions/brave_webtorrent_navigation_throttle_unittest.cc	brave	18: 'chrome/browser/extensions/load_error_reporter.h' file not found
+brave/browser/extensions/install_verifier_unittest.cc	brave	6: 'chrome/browser/extensions/install_verifier.h' file not found
+brave/browser/extensions/mv2_warning_unittest.cc	brave	24: no type named 'Dict' in 'base::Value'
+brave/browser/extensions/updater/brave_update_client_config.cc	brave	40: 'network_fetcher_factory_' is a private member of 'extensions::ChromeUpdateClientConfig'
+brave/browser/farbling/brave_font_whitelist_browsertest.cc	brave	90: no member named 'FromUTF8' in 'blink::WebString'; did you mean 'FromUtf8'?
+brave/browser/farbling/brave_navigator_keyboard_api_browsertest.cc	brave	8: 'base/containers/contains.h' file not found
+brave/browser/farbling/brave_navigator_usb_farbling_browsertest.cc	brave	17: 'chrome/browser/ui/browser_dialogs.h' file not found
+brave/browser/farbling/brave_speech_synthesis_farbling_browsertest.cc	brave	47: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/geolocation/brave_geolocation_permission_context_delegate.cc	brave	32: too many arguments to function call, expected 3, have 5
+brave/browser/geolocation/brave_geolocation_permission_context_delegate.h	brave	30: non-virtual member function marked 'override' hides virtual member function
+brave/browser/importer/brave_external_process_importer_client.cc	brave	16: use of undeclared identifier 'importer'
+brave/browser/importer/brave_external_process_importer_client.h	brave	23: use of undeclared identifier 'importer'
+brave/browser/importer/brave_external_process_importer_host.h	brave	17: 'chrome/common/extensions/webstore_install_result.h' file not found
+brave/browser/importer/extensions_import_helpers_unittest.cc	brave	81: too few arguments to function call, expected at least 2, have 1
+brave/browser/importer/test_storage_utils.cc	brave	33: no member named 'Dict' in 'base::Value'
+brave/browser/importer/test_storage_utils.h	brave	17: no member named 'Dict' in 'base::Value'
+brave/browser/infobars/brave_sync_account_deleted_infobar_delegate.cc	brave	72: use of undeclared identifier 'BRAVE_SYNC_ACCOUNT_DELETED_INFOBAR'
+brave/browser/infobars/dev_channel_deprecation_infobar_delegate.cc	brave	37: use of undeclared identifier 'DEV_CHANNEL_DEPRECATION_INFOBAR_DELEGATE'
+brave/browser/infobars/sync_cannot_run_infobar_delegate.cc	brave	63: use of undeclared identifier 'SYNC_CANNOT_RUN_INFOBAR'
+brave/browser/metrics/enabled_state_provider_unittest.cc	brave	24: no member named 'GetEnabledStateProviderForTesting' in 'ChromeMetricsServicesManagerClient'
+brave/browser/metrics/metrics_reporting_util.cc	brave	30: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/browser/metrics/metrics_reporting_util_unittest.cc	brave	10: 'chrome/test/base/scoped_testing_local_state.h' file not found
+brave/browser/net/brave_accept_header_browsertest.cc	brave	6: 'base/containers/contains.h' file not found
+brave/browser/net/brave_ad_block_csp_network_delegate_helper.cc	brave	86: too many arguments to function call, expected single argument 'name', have 2 arguments
+brave/browser/net/brave_ad_block_tp_network_delegate_helper.cc	brave	144: non-virtual member function marked 'override' hides virtual member function
+brave/browser/net/brave_ad_block_tp_network_delegate_helper_unittest.cc	brave	24: 'chrome/test/base/scoped_testing_local_state.h' file not found
+brave/browser/net/brave_localhost_permission_network_delegate_helper.cc	brave	31: no viable conversion from 'int' to 'FrameTreeNodeId' (aka 'base::IdType<class FrameTreeNodeIdTag, int, -1, 1, 
+brave/browser/net/brave_network_audit_browsertest.cc	brave	24: 'chrome/browser/password_manager/profile_password_store_factory.h' file not found
+brave/browser/net/brave_network_delegate_browsertest.cc	brave	57: no member named 'scheme_piece' in 'GURL'
+brave/browser/net/brave_network_delegate_hsts_fingerprinting_browsertest.cc	brave	40: member access into incomplete type 'const net::HttpResponseHeaders'
+brave/browser/net/brave_proxying_url_loader_factory.cc	brave	52: no viable overloaded '='
+brave/browser/net/brave_proxying_url_loader_factory.h	brave	82: non-virtual member function marked 'override' hides virtual member function
+brave/browser/net/brave_proxying_web_socket.cc	brave	54: no matching member function for call to 'Run'
+brave/browser/net/brave_proxying_web_socket.h	brave	100: non-virtual member function marked 'override' hides virtual member function
+brave/browser/net/brave_reduce_language_network_delegate_helper.cc	brave	94: no member named 'host_piece' in 'GURL'
+brave/browser/net/brave_request_handler.cc	brave	11: 'base/containers/contains.h' file not found
+brave/browser/net/brave_service_key_network_delegate_helper.cc	brave	25: no matching constructor for initialization of 'const base::NoDestructor<std::vector<std::string>>' (aka 'const
+brave/browser/net/brave_service_key_network_delegate_helper_browsertest.cc	brave	6: 'base/containers/contains.h' file not found
+brave/browser/net/brave_site_hacks_network_delegate_helper_browsertest.cc	brave	20: 'content/public/browser/notification_service.h' file not found
+brave/browser/net/brave_site_hacks_network_delegate_helper_unittest.cc	brave	37: too many arguments to function call, expected single argument 'key', have 2 arguments
+brave/browser/net/brave_system_request_handler_browsertest.cc	brave	32: expected class name
+brave/browser/net/brave_system_request_handler_unittest.cc	brave	23: too many arguments to function call, expected single argument 'key', have 2 arguments
+brave/browser/net/brave_torrent_redirect_network_delegate_helper.cc	brave	72: no viable conversion from 'int' to 'FrameTreeNodeId' (aka 'base::IdType<class FrameTreeNodeIdTag, int, -1, 1, 
+brave/browser/net/brave_torrent_redirect_network_delegate_helper_browsertest.cc	brave	14: 'chrome/browser/ui/browser_navigator.h' file not found
+brave/browser/net/brave_torrent_redirect_network_delegate_helper_unittest.cc	brave	138: too many arguments to function call, expected single argument 'name', have 2 arguments
+brave/browser/net/url_context.cc	brave	102: no viable conversion from 'int' to 'FrameTreeNodeId' (aka 'base::IdType<class FrameTreeNodeIdTag, int, -1, 1, 
+brave/browser/new_tab/new_tab_shows_navigation_throttle.cc	brave	35: no matching constructor for initialization of 'content::NavigationThrottle'
+brave/browser/new_tab/new_tab_shows_options.cc	brave	48: no type named 'List' in 'base::Value'
+brave/browser/new_tab/new_tab_shows_options.h	brave	23: no type named 'List' in 'base::Value'
+brave/browser/ntp_background/brave_ntp_custom_background_service_delegate.h	brave	50: no type named 'Dict' in 'base::Value'
+brave/browser/ntp_background/brave_ntp_custom_background_service_factory.h	brave	40: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ntp_background/custom_background_file_manager.cc	brave	194: too many arguments to function call, expected 2, have 3
+brave/browser/ntp_background/custom_background_file_manager.h	brave	99: no member named 'DecodeURLEscapeSequences' in namespace 'url'; did you mean 'DecodeUrlEscapeSequences'?
+brave/browser/ntp_background/custom_background_file_manager_browsertest.cc	brave	62: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/ntp_background/ntp_background_prefs.cc	brave	12: 'base/ranges/algorithm.h' file not found
+brave/browser/ntp_background/ntp_background_prefs.h	brave	92: no type named 'Dict' in 'base::Value'
+brave/browser/ntp_background/view_counter_service_factory.h	brave	47: non-virtual member function marked 'override' hides virtual member function
+brave/browser/onboarding/onboarding_tab_helper.cc	brave	19: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/onboarding/onboarding_unittest.cc	brave	78: member access into incomplete type 'PrefService'
+brave/browser/p3a/p3a_core_metrics.h	brave	21: 'chrome/browser/ui/browser_list_observer.h' file not found
+brave/browser/perf/brave_perf_features_processor_browsertest.cc	brave	32: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/permissions/google_sign_in_permission_browsertest.cc	brave	72: no viable overloaded '='
+brave/browser/permissions/localhost_access_permission_browsertest.cc	brave	38: 'net/test/spawned_test_server/spawned_test_server.h' file not found
+brave/browser/permissions/mock_permission_lifetime_prompt.h	brave	30: only virtual member functions can be marked 'override'
+brave/browser/permissions/mock_permission_lifetime_prompt_factory.cc	brave	10: 'base/containers/contains.h' file not found
+brave/browser/permissions/permission_lifetime_manager_browsertest.cc	brave	180: no type named 'Dict' in 'base::Value'
+brave/browser/permissions/permission_lifetime_manager_factory.cc	brave	81: use of undeclared identifier 'chrome'
+brave/browser/permissions/permission_lifetime_manager_factory.h	brave	45: non-virtual member function marked 'override' hides virtual member function
+brave/browser/permissions/permission_lifetime_manager_unittest.cc	brave	609: no matching member function for call to 'WillOnce'
+brave/browser/permissions/permission_origin_lifetime_monitor_impl.cc	brave	10: 'base/containers/contains.h' file not found
+brave/browser/playlist/playlist_data_source.cc	brave	131: no member named 'TakeVector' in 'base::RefCountedBytes'
+brave/browser/playlist/playlist_service_factory.cc	brave	15: 'base/ranges/algorithm.h' file not found
+brave/browser/playlist/playlist_service_factory.h	brave	56: non-virtual member function marked 'override' hides virtual member function
+brave/browser/playlist/test/playlist_background_web_contents_unittest.cc	brave	6: 'base/containers/contains.h' file not found
+brave/browser/playlist/test/playlist_browsertest.cc	brave	10: 'base/ranges/algorithm.h' file not found
+brave/browser/playlist/test/playlist_media_discovery_browsertests.cc	brave	6: 'base/ranges/algorithm.h' file not found
+brave/browser/playlist/test/playlist_media_handler_unittest.cc	brave	25: no member named 'List' in 'base::Value'
+brave/browser/playlist/test/playlist_service_unittest.cc	brave	519: no member named 'ranges' in namespace 'base'; did you mean 'std::ranges'?
+brave/browser/playlist/test/playlist_unittest_base.cc	brave	25: no member named 'SetLocalState' in 'TestingBrowserProcess'
+brave/browser/policy/brave_policy_browsertest.cc	brave	60: no member named 'command_controller' in 'BrowserWindowInterface'
+brave/browser/profiles/brave_profile_manager.cc	brave	141: too many arguments to function call, expected 0, have 1
+brave/browser/profiles/brave_profile_manager_browsertest.cc	brave	58: expected class name
+brave/browser/profiles/brave_profile_manager_unittest.cc	brave	12: 'chrome/test/base/scoped_testing_local_state.h' file not found
+brave/browser/profiles/delete_profile_helper_browsertest.cc	brave	54: 'Create' is a private member of 'Browser'
+brave/browser/profiles/profile_attributes_entry_unittest.cc	brave	55: 'MigrateObsoleteProfileAttributes' is a private member of 'ProfileAttributesEntry'
+brave/browser/renderer_context_menu/brave_spelling_options_submenu_observer.cc	brave	29: 'use_spelling_service_' is a private member of 'SpellingOptionsSubMenuObserver'
+brave/browser/renderer_context_menu/test/render_view_context_menu_unittest.cc	brave	16: 'chrome/test/base/scoped_testing_local_state.h' file not found
+brave/browser/request_otr/request_otr_service_factory.cc	brave	68: no member named 'GetBrowserContextRedirectedInIncognito' in namespace 'chrome'; did you mean simply 'GetBrowse
+brave/browser/request_otr/request_otr_service_factory.h	brave	34: non-virtual member function marked 'override' hides virtual member function
+brave/browser/search/ntp_utils.cc	brave	11: 'chrome/browser/ui/webui/new_tab_page/ntp_pref_names.h' file not found
+brave/browser/search_engines/private_window_search_engine_provider_service_base.cc	brave	72: no member named 'GetLastUpdateTime' in 'extensions::ExtensionPrefs'
+brave/browser/search_engines/search_engine_provider_service_factory.h	brave	40: non-virtual member function marked 'override' hides virtual member function
+brave/browser/search_engines/search_engine_tracker.h	brave	87: non-virtual member function marked 'override' hides virtual member function
+brave/browser/sessions/brave_session_restore_browsertest.cc	brave	32: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/speedreader/speedreader_service_factory.cc	brave	40: use of undeclared identifier 'chrome'
+brave/browser/speedreader/speedreader_service_factory.h	brave	48: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ssl/certificate_transparency_browsertest.cc	brave	46: no matching constructor for initialization of 'net::HashValue'
+brave/browser/storage_access_api/api_browsertest.cc	brave	11: 'base/strings/string_piece.h' file not found
+brave/browser/sync/brave_sync_alerts_service.cc	brave	12: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/sync/brave_sync_alerts_service_factory.cc	brave	45: use of undeclared identifier 'chrome'
+brave/browser/sync/brave_sync_alerts_service_factory.h	brave	37: non-virtual member function marked 'override' hides virtual member function
+brave/browser/test/disabled_features/disable_client_hints_browsertest.cc	brave	10: 'base/containers/contains.h' file not found
+brave/browser/test/disabled_features/window_name_browsertest.cc	brave	64: too few arguments to function call, expected 3, have 2
+brave/browser/themes/brave_dark_mode_utils.cc	brave	57: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/browser/themes/brave_dark_mode_utils.h	brave	33: no type named 'List' in 'base::Value'
+brave/browser/themes/brave_dark_mode_utils_internal.cc	brave	19: no member named 'set_use_dark_colors' in 'ui::NativeTheme'
+brave/browser/themes/brave_theme_service_unittest.cc	brave	11: no type named 'List' in 'base::Value'
+brave/browser/translate/brave_translate_browsertest.cc	brave	10: 'base/ranges/algorithm.h' file not found
+brave/browser/ui/bookmark/bookmark_prefs_service.cc	brave	11: 'chrome/browser/ui/browser_list.h' file not found
+brave/browser/ui/bookmark/bookmark_prefs_service_factory.cc	brave	43: use of undeclared identifier 'chrome'
+brave/browser/ui/bookmark/bookmark_prefs_service_factory.h	brave	39: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ui/bookmark/brave_bookmark_tab_helper.cc	brave	25: member access into incomplete type 'NavigationController'
+brave/browser/ui/brave_browser.cc	brave	25: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/brave_browser.h	brave	28: unknown type name 'CreateParams'
+brave/browser/ui/brave_browser_actions.cc	brave	12: 'chrome/browser/ui/views/side_panel/side_panel_action_callback.h' file not found
+brave/browser/ui/brave_browser_actions.h	brave	14: unknown type name 'Browser'
+brave/browser/ui/brave_browser_browsertest.cc	brave	12: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/brave_browser_content_setting_bubble_model_delegate.cc	brave	14: out-of-line definition of 'BraveBrowserContentSettingBubbleModelDelegate' does not match any declaration in 'B
+brave/browser/ui/brave_browser_content_setting_bubble_model_delegate.h	brave	15: unknown type name 'Browser'
+brave/browser/ui/brave_browser_window.cc	brave	19: incomplete result type 'gfx::Rect' in function definition
+brave/browser/ui/brave_layout_constants.cc	brave	38: use of undeclared identifier 'TAB_HEIGHT'
+brave/browser/ui/brave_layout_constants_unittest.cc	brave	16: use of undeclared identifier 'TOOLBAR_BUTTON_HEIGHT'; did you mean 'TOOLBAR_BUTTON'?
+brave/browser/ui/brave_pages.cc	brave	13: 'chrome/browser/ui/browser_navigator_params.h' file not found
+brave/browser/ui/brave_shields_data_controller_unittest.cc	brave	386: member access into incomplete type 'PrefService'
+brave/browser/ui/brave_tab_strip_model_delegate.cc	brave	19: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/ui/brave_tooltips/bounds_util.h	brave	9: 'ui/gfx/native_widget_types.h' file not found
+brave/browser/ui/browser_commands.cc	brave	17: 'base/ranges/algorithm.h' file not found
+brave/browser/ui/color/brave_color_mixer.cc	brave	146: use of undeclared identifier 'kColorDownloadShelfButtonText'
+brave/browser/ui/color/brave_color_mixers_unittest.cc	brave	35: use of undeclared identifier 'kColorPageInfoIconHover'
+brave/browser/ui/commander/bookmark_command_source.cc	brave	40: no viable overloaded '='
+brave/browser/ui/commander/commander_service.cc	brave	20: 'base/ranges/algorithm.h' file not found
+brave/browser/ui/commander/commander_service_factory.h	brave	37: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ui/commander/entity_match.cc	brave	17: 'chrome/browser/ui/browser_list.h' file not found
+brave/browser/ui/commander/entity_match_unittest.cc	brave	15: 'base/ranges/algorithm.h' file not found
+brave/browser/ui/commander/fuzzy_finder.cc	brave	17: 'base/ranges/algorithm.h' file not found
+brave/browser/ui/commander/open_url_command_source.cc	brave	72: no viable overloaded '='
+brave/browser/ui/commander/simple_command_source.cc	brave	39: no member named 'command_controller' in 'Browser'
+brave/browser/ui/commander/tab_command_source.cc	brave	20: 'base/ranges/algorithm.h' file not found
+brave/browser/ui/commander/window_command_source.cc	brave	22: 'chrome/browser/ui/browser_list.h' file not found
+brave/browser/ui/commands/accelerator_service.cc	brave	14: 'base/containers/contains.h' file not found
+brave/browser/ui/commands/accelerator_service_factory.h	brave	41: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ui/content_settings/brave_autoplay_blocked_image_model.cc	brave	20: no member named 'MEDIASTREAM' in 'toolbar_ui_api::mojom::ContentSettingImageType'
+brave/browser/ui/content_settings/brave_autoplay_blocked_image_model.h	brave	23: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ui/content_settings/brave_autoplay_blocked_image_model_browsertest.cc	brave	38: no member named 'MEDIASTREAM' in 'toolbar_ui_api::mojom::ContentSettingImageType'
+brave/browser/ui/content_settings/brave_autoplay_content_setting_bubble_model.cc	brave	34: no matching constructor for initialization of 'ContentSettingSimpleBubbleModel'
+brave/browser/ui/content_settings/brave_content_setting_image_models.cc	brave	8: 'base/ranges/algorithm.h' file not found
+brave/browser/ui/omnibox/brave_omnibox_client_impl.cc	brave	35: use of undeclared identifier 'AutocompleteMatchType'; did you mean 'omnibox::AutocompleteMatchType'?
+brave/browser/ui/omnibox/brave_omnibox_client_impl.h	brave	18: base 'ChromeOmniboxClient' is marked 'final'
+brave/browser/ui/session_crashed_bubble_brave.cc	brave	21: cannot initialize a parameter of type 'BrowserWindowInterface *' with an lvalue of type 'Browser *'
+brave/browser/ui/sidebar/sidebar_controller.cc	brave	23: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/sidebar/sidebar_model.cc	brave	13: 'base/ranges/algorithm.h' file not found
+brave/browser/ui/sidebar/sidebar_model.h	brave	108: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ui/sidebar/sidebar_service_factory.cc	brave	103: no member named 'GetBrowserContextOwnInstanceInIncognito' in namespace 'chrome'; did you mean simply 'GetBrows
+brave/browser/ui/sidebar/sidebar_service_factory.h	brave	63: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ui/sidebar/sidebar_tab_helper.cc	brave	15: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/sidebar/sidebar_utils.cc	brave	26: 'chrome/browser/ui/views/side_panel/side_panel_entry_id.h' file not found
+brave/browser/ui/startup/brave_startup_tab_provider_impl.cc	brave	17: no member named 'kChromeUIWelcomeURL' in namespace 'chrome'
+brave/browser/ui/tabs/brave_tab_color_mixer.cc	brave	8: 'base/containers/contains.h' file not found
+brave/browser/ui/tabs/brave_tab_menu_model.h	brave	28: no member named 'CommandLast' in 'TabStripModel'
+brave/browser/ui/tabs/brave_tab_strip_model.cc	brave	15: 'base/ranges/algorithm.h' file not found
+brave/browser/ui/tabs/brave_tab_strip_model.h	brave	23: only virtual member functions can be marked 'override'
+brave/browser/ui/tabs/brave_tab_style.h	brave	68: use of undeclared identifier 'TAB_SEPARATOR_HEIGHT'
+brave/browser/ui/tabs/shared_pinned_tab_service.h	brave	15: 'chrome/browser/ui/browser_list_observer.h' file not found
+brave/browser/ui/tabs/shared_pinned_tab_service_factory.h	brave	32: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ui/tabs/split_view_browser_data.h	brave	18: 'chrome/browser/ui/browser_user_data.h' file not found
+brave/browser/ui/tabs/test/brave_tab_strip_model_browsertest.cc	brave	21: too few arguments to function call, expected 2, have 1
+brave/browser/ui/views/accelerator_table_unittest.cc	brave	9: 'chrome/browser/ui/views/accelerator_table.h' file not found
+brave/browser/ui/views/bookmarks/bookmark_bar_instructions_view.cc	brave	104: no member named 'GetAccessibleNodeData' in 'views::Label'
+brave/browser/ui/views/bookmarks/bookmark_bar_instructions_view.h	brave	42: only virtual member functions can be marked 'override'
+brave/browser/ui/views/bookmarks/brave_bookmark_bar_view.cc	brave	14: out-of-line definition of 'BraveBookmarkBarView' does not match any declaration in 'BraveBookmarkBarView'
+brave/browser/ui/views/bookmarks/brave_bookmark_bar_view.h	brave	18: unknown type name 'Browser'
+brave/browser/ui/views/bookmarks/saved_tab_groups/brave_saved_tab_group_button.cc	brave	58: member access into incomplete type 'Widget'
+brave/browser/ui/views/brave_shields/cookie_list_opt_in_bubble_host.h	brave	12: 'chrome/browser/ui/browser_user_data.h' file not found
+brave/browser/ui/views/brave_tooltips/brave_tooltip_popup.h	brave	20: 'ui/gfx/shadow_util.h' file not found
+brave/browser/ui/views/brave_tooltips/brave_tooltip_view.h	brave	48: only virtual member functions can be marked 'override'
+brave/browser/ui/views/commands/default_accelerators_views.cc	brave	8: 'base/ranges/algorithm.h' file not found
+brave/browser/ui/views/extensions/brave_extension_menu_item_view.cc	brave	13: 'chrome/browser/ui/toolbar/toolbar_action_view_controller.h' file not found
+brave/browser/ui/views/extensions/brave_extension_menu_item_view.h	brave	20: unknown type name 'Browser'
+brave/browser/ui/views/extensions/brave_extensions_menu_main_page_view.cc	brave	33: out-of-line definition of 'BraveExtensionsMenuMainPageView' does not match any declaration in 'BraveExtensions
+brave/browser/ui/views/extensions/brave_extensions_menu_main_page_view.h	brave	16: unknown type name 'Browser'
+brave/browser/ui/views/frame/brave_browser_frame_view_linux_native.h	brave	19: unknown type name 'BrowserFrame'; did you mean 'BrowserFrameView'?
+brave/browser/ui/views/frame/brave_browser_root_view.cc	brave	16: member access into incomplete type 'BrowserView'
+brave/browser/ui/views/frame/brave_browser_root_view.h	brave	22: base class has incomplete type
+brave/browser/ui/views/frame/brave_non_client_hit_test_helper_browsertest.cc	brave	8: 'chrome/browser/ui/views/frame/browser_non_client_frame_view.h' file not found
+brave/browser/ui/views/frame/brave_opaque_browser_frame_view.h	brave	17: unknown type name 'BrowserFrame'; did you mean 'BrowserFrameView'?
+brave/browser/ui/views/frame/brave_tab_strip_region_view.cc	brave	29: use of undeclared identifier 'new_tab_button_'
+brave/browser/ui/views/frame/brave_tab_strip_region_view.h	brave	29: only virtual member functions can be marked 'override'
+brave/browser/ui/views/frame/brave_tabs_search_button_browsertest.cc	brave	11: 'chrome/browser/ui/views/frame/browser_non_client_frame_view.h' file not found
+brave/browser/ui/views/frame/vertical_tab_strip_region_view.h	brave	17: 'chrome/browser/ui/browser_list_observer.h' file not found
+brave/browser/ui/views/frame/vertical_tab_strip_root_view.cc	brave	38: no member named 'WebView' in namespace 'views'
+brave/browser/ui/views/infobars/brave_confirm_infobar.cc	brave	39: 'AddChildView' is a private member of 'InfoBarView'
+brave/browser/ui/views/infobars/brave_sync_account_deleted_infobar.cc	brave	37: use of undeclared identifier 'label_'; did you mean 'layer_'?
+brave/browser/ui/views/infobars/custom_styled_label.cc	brave	41: no template named 'get_if' in namespace 'absl'; did you mean 'std::get_if'?
+brave/browser/ui/views/location_bar/brave_star_view.h	brave	9: 'chrome/browser/ui/views/location_bar/star_view.h' file not found
+brave/browser/ui/views/omnibox/brave_omnibox_view_views.cc	brave	16: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/views/page_action/brave_page_action_icon_container_view.h	brave	9: 'chrome/browser/ui/views/page_action/page_action_icon_container.h' file not found
+brave/browser/ui/views/playlist/selectable_list_view.h	brave	49: only virtual member functions can be marked 'override'
+brave/browser/ui/views/playlist/thumbnail_provider.cc	brave	34: no member named 'Contains' in namespace 'base'; did you mean 'base::ListValue::contains'?
+brave/browser/ui/views/renderer_context_menu/brave_render_view_context_menu_views.cc	brave	11: no matching constructor for initialization of 'RenderViewContextMenuViews'
+brave/browser/ui/views/rounded_separator.h	brave	36: only virtual member functions can be marked 'override'
+brave/browser/ui/views/side_panel/bookmarks/brave_bookmarks_side_panel_coordinator.h	brave	11: 'chrome/browser/ui/browser_user_data.h' file not found
+brave/browser/ui/views/side_panel/brave_bookmarks_side_panel_view.cc	brave	19: 'chrome/browser/ui/views/side_panel/read_later_side_panel_web_view.h' file not found
+brave/browser/ui/views/side_panel/brave_read_later_side_panel_view.cc	brave	17: 'chrome/browser/ui/views/side_panel/read_later_side_panel_web_view.h' file not found
+brave/browser/ui/views/side_panel/brave_side_panel.cc	brave	13: 'base/ranges/algorithm.h' file not found
+brave/browser/ui/views/side_panel/brave_side_panel_utils.cc	brave	8: 'chrome/browser/ui/views/side_panel/side_panel_registry.h' file not found
+brave/browser/ui/views/side_panel/brave_side_panel_view_base.cc	brave	9: 'chrome/browser/ui/views/side_panel/side_panel_content_proxy.h' file not found
+brave/browser/ui/views/side_panel/brave_side_panel_view_base.h	brave	30: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ui/views/side_panel/playlist/playlist_contents_wrapper.h	brave	14: 'chrome/browser/ui/exclusive_access/fullscreen_observer.h' file not found
+brave/browser/ui/views/side_panel/playlist/playlist_side_panel_web_view.cc	brave	12: no matching constructor for initialization of 'SidePanelWebUIView'
+brave/browser/ui/views/sidebar/sidebar_button_view.cc	brave	45: use of undeclared identifier 'ConfigureInkDropForToolbar'
+brave/browser/ui/views/sidebar/sidebar_button_view.h	brave	31: only virtual member functions can be marked 'override'
+brave/browser/ui/views/speedreader/reader_mode_toolbar_view.cc	brave	47: no member named 'CreateThemedSolidBackground' in namespace 'views'; did you mean 'CreateSolidBackground'?
+brave/browser/ui/views/tabs/brave_tab.h	brave	26: only virtual member functions can be marked 'override'
+brave/browser/ui/views/tabs/brave_tab_group_underline.h	brave	19: unknown type name 'TabGroupStyle'
+brave/browser/ui/views/tabs/shared_pinned_tab_dummy_view_views.cc	brave	15: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/webui/brave_shields/cookie_list_opt_in_ui.cc	brave	18: 'chrome/browser/ui/webui/webui_util.h' file not found
+brave/browser/ui/webui/brave_shields/shields_panel_handler.cc	brave	15: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/webui/brave_shields/shields_panel_ui.cc	brave	20: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/webui/new_tab_page/brave_new_tab_message_handler.h	brave	55: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/new_tab_page/brave_new_tab_ui.h	brave	19: 'ui/webui/resources/cr_components/searchbox/searchbox.mojom.h' file not found
+brave/browser/ui/webui/new_tab_page/top_sites_message_handler.h	brave	46: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ui/webui/playlist_ui.cc	brave	22: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/webui/settings/brave_adblock_handler.h	brave	41: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/settings/brave_appearance_handler.cc	brave	69: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/settings/brave_appearance_handler.h	brave	34: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/settings/brave_default_extensions_handler.h	brave	15: 'chrome/common/extensions/webstore_install_result.h' file not found
+brave/browser/ui/webui/settings/brave_extensions_manifest_v2_handler.h	brave	17: 'chrome/common/extensions/webstore_install_result.h' file not found
+brave/browser/ui/webui/settings/brave_import_bulk_data_handler.h	brave	35: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/settings/brave_import_data_handler.h	brave	44: no type named 'SourceProfile' in namespace 'importer'; did you mean 'user_data_importer::SourceProfile'?
+brave/browser/ui/webui/settings/brave_importer_observer.cc	brave	15: no type named 'SourceProfile' in namespace 'importer'; did you mean 'user_data_importer::SourceProfile'?
+brave/browser/ui/webui/settings/brave_importer_observer.h	brave	20: no type named 'SourceProfile' in namespace 'importer'; did you mean 'user_data_importer::SourceProfile'?
+brave/browser/ui/webui/settings/brave_privacy_handler.cc	brave	79: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/settings/brave_privacy_handler.h	brave	36: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/settings/brave_search_engines_handler.cc	brave	41: no member named 'OnModelChanged' in 'settings::SearchEnginesHandler'; did you mean simply 'OnModelChanged'?
+brave/browser/ui/webui/settings/brave_search_engines_handler.h	brave	25: only virtual member functions can be marked 'override'
+brave/browser/ui/webui/settings/brave_site_settings_handler.cc	brave	47: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/settings/brave_site_settings_handler.h	brave	28: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/settings/brave_site_settings_handler_unittest.cc	brave	31: no type named 'Dict' in 'base::Value'
+brave/browser/ui/webui/settings/brave_sync_handler.cc	brave	15: 'base/types/cxx23_to_underlying.h' file not found
+brave/browser/ui/webui/settings/brave_sync_handler.h	brave	42: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/settings/default_brave_shields_handler.cc	brave	147: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/settings/default_brave_shields_handler.h	brave	45: no type named 'List' in 'base::Value'
+brave/browser/ui/webui/side_panel/reading_list/brave_reading_list_page_handler.cc	brave	36: non-static member 'Observe' found in multiple base-class subobjects of type 'content::WebContentsObserver':
+brave/browser/ui/webui/speedreader/speedreader_toolbar_data_handler_impl.cc	brave	126: no member named 'profile' in 'Browser'
+brave/browser/ui/webui/speedreader/speedreader_toolbar_data_handler_impl.h	brave	98: non-virtual member function marked 'override' hides virtual member function
+brave/browser/ui/webui/speedreader/speedreader_toolbar_ui.cc	brave	18: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/webui/welcome_page/brave_welcome_ui_browsertest.cc	brave	11: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/webui/welcome_page/welcome_dom_handler.cc	brave	18: 'chrome/browser/ui/browser_finder.h' file not found
+brave/browser/ui/webui/welcome_page/welcome_dom_handler.h	brave	32: no type named 'List' in 'base::Value'
+brave/browser/ui/whats_new/whats_new_browsertest.cc	brave	79: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/ui/whats_new/whats_new_unittest.cc	brave	38: no member named 'UpdateLastUser' in 'TestingProfileManager'
+brave/browser/ui/whats_new/whats_new_util.cc	brave	12: 'base/ranges/algorithm.h' file not found
+brave/browser/url_sanitizer/url_sanitizer_browsertest.cc	brave	101: no member named 'profile' in 'BrowserWindowInterface'
+brave/browser/url_sanitizer/url_sanitizer_service_factory.cc	brave	68: no member named 'GetBrowserContextRedirectedInIncognito' in namespace 'chrome'; did you mean simply 'GetBrowse
+brave/browser/url_sanitizer/url_sanitizer_service_factory.h	brave	43: non-virtual member function marked 'override' hides virtual member function
+brave/browser/widevine/widevine_permission_android_unittest.cc	brave	14: 'chrome/test/base/scoped_testing_local_state.h' file not found
+brave/browser/widevine/widevine_permission_request.cc	brave	30: no matching constructor for initialization of 'permissions::PermissionRequest'
+brave/browser/widevine/widevine_utils.cc	brave	71: no viable conversion from 'WidevinePermissionRequest *' to 'std::unique_ptr<PermissionRequest>'
+brave/common/brave_channel_info_browsertest.cc	brave	18: unknown type name 'PlatformBrowserTest'
+brave/common/brave_content_client.h	brave	20: virtual function 'GetDataResourceBytes' has a different return type ('base::RefCountedMemory *') than the func
+brave/common/extensions/brave_extensions_api_provider.h	brave	33: non-virtual member function marked 'override' hides virtual member function
+brave/common/importer/chrome_importer_utils.h	brave	42: no type named 'List' in 'base::Value'
+brave/common/profiler/thread_profile_configuration_unittest.cc	brave	13: no member named 'CallStackProfileParams' in namespace 'metrics'
+brave/components/api_request_helper/api_request_helper.cc	brave	21: 'base/ranges/algorithm.h' file not found
+brave/components/assist_ranker/ranker_model_loader_impl_unittest.cc	brave	6: 'components/assist_ranker/ranker_model_loader_impl.h' file not found
+brave/components/body_sniffer/body_sniffer_url_loader.cc	brave	41: allocating an object of abstract class type 'BodySnifferURLLoader'
+brave/components/body_sniffer/body_sniffer_url_loader.h	brave	177: non-virtual member function marked 'override' hides virtual member function
+brave/components/brave_component_updater/browser/brave_component_installer.cc	brave	32: no type named 'Dict' in 'base::Value'
+brave/components/brave_component_updater/browser/brave_component_installer.h	brave	39: no type named 'Dict' in 'base::Value'
+brave/components/brave_component_updater/browser/brave_on_demand_updater.cc	brave	45: 'OnDemandUpdate' is a private member of 'component_updater::OnDemandUpdater'
+brave/components/brave_component_updater/browser/dat_file_util.cc	brave	22: too many arguments to function call, expected single argument 'file_path', have 2 arguments
+brave/components/brave_component_updater/browser/mock_on_demand_updater.h	brave	29: only virtual member functions can be marked 'override'
+brave/components/brave_perf_predictor/browser/bandwidth_savings_predictor.cc	brave	77: invalid operands to binary expression ('mapped_type' (aka 'double') and 'const ::base::ByteSize')
+brave/components/brave_perf_predictor/browser/bandwidth_savings_predictor_unittest.cc	brave	84: no viable overloaded '='
+brave/components/brave_perf_predictor/browser/named_third_party_registry_factory.h	brave	42: non-virtual member function marked 'override' hides virtual member function
+brave/components/brave_perf_predictor/browser/perf_predictor_tab_helper.cc	brave	60: no viable conversion from 'int' to 'FrameTreeNodeId' (aka 'base::IdType<class FrameTreeNodeIdTag, int, -1, 1, 
+brave/components/brave_perf_predictor/browser/perf_predictor_tab_helper.h	brave	84: non-virtual member function marked 'override' hides virtual member function
+brave/components/brave_perf_predictor/browser/perf_predictor_tab_helper_browsertest.cc	brave	32: no member named 'profile' in 'Browser'
+brave/components/brave_private_cdn/private_cdn_helper.cc	brave	32: no member named 'numerics' in namespace 'base'
+brave/components/brave_private_cdn/private_cdn_request_helper.cc	brave	67: no viable conversion from 'OnceCallback<UnboundRunType>' to 'OnceCallback<void (std::optional<std::string>)>'
+brave/components/brave_search/browser/brave_search_fallback_host.cc	brave	111: no viable conversion from 'OnceCallback<UnboundRunType>' to 'OnceCallback<void (std::optional<std::string>)>'
+brave/components/brave_search/common/brave_search_utils.cc	brave	12: 'base/containers/contains.h' file not found
+brave/components/brave_search/renderer/brave_search_fallback_js_handler.cc	brave	28: no member named 'GetIsolate' in 'v8::Context'
+brave/components/brave_search/renderer/brave_search_service_worker_holder.cc	brave	13: 'base/ranges/algorithm.h' file not found
+brave/components/brave_search_conversion/p3a.cc	brave	72: use of undeclared identifier 'NOTREACHED_NORETURN'
+brave/components/brave_search_conversion/utils.cc	brave	10: 'base/containers/contains.h' file not found
+brave/components/brave_service_keys/brave_service_key_utils.cc	brave	65: use of undeclared identifier 'NOTREACHED_NORETURN'
+brave/components/brave_shields/content/browser/ad_block_engine.cc	brave	14: 'base/containers/contains.h' file not found
+brave/components/brave_shields/content/browser/ad_block_engine.h	brave	61: no type named 'Dict' in 'base::Value'
+brave/components/brave_shields/content/browser/ad_block_service.cc	brave	190: no type named 'Dict' in 'base::Value'
+brave/components/brave_shields/content/browser/ad_block_service.h	brave	114: no type named 'Dict' in 'base::Value'
+brave/components/brave_shields/content/browser/ad_block_subscription_download_client.cc	brave	120: no viable conversion from 'BindFailedCheckPreviousErrors' to 'OnceClosure' (aka 'OnceCallback<void ()>')
+brave/components/brave_shields/content/browser/ad_block_subscription_service_manager.cc	brave	15: 'base/containers/contains.h' file not found
+brave/components/brave_shields/content/browser/ad_block_subscription_service_manager.h	brave	146: no type named 'Dict' in 'base::Value'
+brave/components/brave_shields/content/browser/adblock_stub_response.cc	brave	135: too many arguments to function call, expected single argument 'key', have 2 arguments
+brave/components/brave_shields/content/browser/brave_farbling_service.cc	brave	55: no member named 'HMAC' in namespace 'crypto'; did you mean simply 'HMAC'?
+brave/components/brave_shields/content/browser/brave_shields_util.cc	brave	159: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/components/brave_shields/content/browser/domain_block_controller_client.cc	brave	58: no viable conversion from 'base::WeakPtr<content::WebContents>' to 'content::WebContents *'
+brave/components/brave_shields/content/browser/domain_block_navigation_throttle.cc	brave	48: no viable conversion from 'std::string_view' (aka 'basic_string_view<char>') to 'const std::string' (aka 'cons
+brave/components/brave_shields/content/browser/domain_block_page.h	brave	56: no type named 'Dict' in 'base::Value'
+brave/components/brave_shields/content/test/brave_shields_util_unittest.cc	brave	22: 'chrome/test/base/scoped_testing_local_state.h' file not found
+brave/components/brave_shields/content/test/cosmetic_merge_unittest.cc	brave	26: too few arguments to function call, expected at least 2, have 1
+brave/components/brave_shields/core/browser/ad_block_component_installer.cc	brave	48: no type named 'Dict' in 'base::Value'
+brave/components/brave_shields/core/browser/ad_block_component_service_manager.cc	brave	168: no type named 'Dict' in 'base::Value'
+brave/components/brave_shields/core/browser/ad_block_component_service_manager.h	brave	47: no type named 'List' in 'base::Value'
+brave/components/brave_shields/core/browser/ad_block_filters_provider_manager.cc	brave	73: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/components/brave_shields/core/browser/ad_block_service_helper.cc	brave	45: no type named 'Dict' in 'base::Value'
+brave/components/brave_shields/core/browser/ad_block_service_helper.h	brave	22: no type named 'Dict' in 'base::Value'
+brave/components/brave_shields/core/browser/filter_list_catalog_entry.cc	brave	13: 'base/containers/contains.h' file not found
+brave/components/brave_shields/core/browser/filter_list_catalog_entry.h	brave	37: missing '#include <bits/stdint-uintn.h>'; 'uint8_t' must be declared before it is used
+brave/components/brave_sync/brave_sync_prefs.cc	brave	15: 'components/os_crypt/sync/os_crypt.h' file not found
+brave/components/brave_sync/brave_sync_prefs_unittest.cc	brave	15: 'components/os_crypt/sync/os_crypt_mocker.h' file not found
+brave/components/brave_sync/crypto/crypto.cc	brave	62: use of undeclared identifier 'DCHECK_EQ'
+brave/components/brave_sync/crypto/crypto.h	brave	17: missing '#include <bits/stdint-uintn.h>'; 'uint8_t' must be declared before it is used
+brave/components/brave_sync/crypto/crypto_unittest.cc	brave	119: no matching function for call to 'HexEncode'
+brave/components/brave_sync/qr_code_data.cc	brave	50: no type named 'Dict' in 'base::Value'
+brave/components/brave_sync/qr_code_data.h	brave	39: no type named 'Dict' in 'base::Value'
+brave/components/brave_sync/qr_code_validator.cc	brave	112: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/components/brave_sync/time_limited_words.cc	brave	190: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/components/brave_wayback_machine/brave_wayback_machine_tab_helper.h	brave	21: 'ui/gfx/native_widget_types.h' file not found
+brave/components/brave_wayback_machine/brave_wayback_machine_utils.cc	brave	54: no member named 'DecodeURLEscapeSequences' in namespace 'url'; did you mean 'DecodeUrlEscapeSequences'?
+brave/components/brave_webtorrent/browser/magnet_protocol_handler.cc	brave	53: member access into incomplete type 'NavigationController'
+brave/components/brave_webtorrent/browser/webtorrent_util.cc	brave	24: too many arguments to function call, expected single argument 'name', have 2 arguments
+brave/components/commands/browser/accelerator_pref_manager.cc	brave	12: 'base/containers/contains.h' file not found
+brave/components/commands/common/accelerator_parsing.cc	brave	14: 'base/containers/contains.h' file not found
+brave/components/content_settings/core/browser/brave_content_settings_pref_provider.cc	brave	11: 'base/containers/contains.h' file not found
+brave/components/content_settings/core/browser/brave_content_settings_pref_provider.h	brave	46: unknown type name 'PartitionKey'
+brave/components/content_settings/core/browser/brave_content_settings_pref_provider_unittest.cc	brave	56: no type named 'Dict' in 'base::Value'
+brave/components/content_settings/core/browser/brave_content_settings_utils.cc	brave	11: 'base/containers/contains.h' file not found
+brave/components/content_settings/core/browser/brave_content_settings_utils.h	brave	34: no type named 'Dict' in 'base::Value'
+brave/components/content_settings/core/browser/brave_global_value_map.cc	brave	30: no member named 'SetContentSetting' in 'content_settings::GlobalValueMap'; did you mean simply 'SetContentSett
+brave/components/content_settings/core/browser/remote_list_provider.cc	brave	46: unknown type name 'PartitionKey'
+brave/components/content_settings/core/browser/remote_list_provider.h	brave	29: unknown type name 'PartitionKey'
+brave/components/content_settings/renderer/brave_content_settings_agent_impl.cc	brave	14: 'base/containers/contains.h' file not found
+brave/components/content_settings/renderer/brave_content_settings_agent_impl_browsertest.cc	brave	235: no member named 'profile' in 'BrowserWindowInterface'
+brave/components/cosmetic_filters/browser/cosmetic_filters_resources.cc	brave	30: too few arguments to function call, expected at least 2, have 1
+brave/components/cosmetic_filters/renderer/cosmetic_filters_js_handler.cc	brave	148: no member named 'GetRegistryLength' in namespace 'net::registry_controlled_domains'
+brave/components/cosmetic_filters/renderer/cosmetic_filters_js_handler.h	brave	67: no type named 'Dict' in 'base::Value'
+brave/components/cosmetic_filters/renderer/cosmetic_filters_js_render_frame_observer.cc	brave	47: no member named 'FromUTF8' in 'blink::WebString'; did you mean 'FromUtf8'?
+brave/components/de_amp/browser/de_amp_body_handler.cc	brave	39: too many arguments to function call, expected single argument 'key', have 2 arguments
+brave/components/de_amp/browser/test/de_amp_browsertest.cc	brave	21: 'chrome/browser/ui/browser_list.h' file not found
+brave/components/debounce/content/browser/debounce_navigation_throttle.cc	brave	13: 'base/containers/contains.h' file not found
+brave/components/debounce/core/browser/debounce_rule.cc	brave	155: too few arguments to function call, expected at least 2, have 1
+brave/components/debounce/core/browser/debounce_service.cc	brave	12: 'base/containers/contains.h' file not found
+brave/components/embedder_support/user_agent_utils_unittest.cc	brave	50: no matching function for call to 'GetUserAgentMetadata'
+brave/components/ephemeral_storage/ephemeral_storage_service.cc	brave	342: no viable conversion from 'std::string_view' (aka 'basic_string_view<char>') to 'const std::string' (aka 'cons
+brave/components/ephemeral_storage/ephemeral_storage_service.h	brave	131: no type named 'List' in 'base::Value'
+brave/components/google_sign_in_permission/google_sign_in_permission_throttle.cc	brave	47: member access into incomplete type 'NavigationController'
+brave/components/google_sign_in_permission/google_sign_in_permission_util.cc	brave	72: no member named 'query_piece' in 'GURL'
+brave/components/history/core/browser/brave_visit_database_unittest.cc	brave	21: constructor for 'history::BraveVisitDatabaseTest' must explicitly initialize the member 'db_' which does not h
+brave/components/history/core/browser/sync/brave_history_delete_directives_model_type_controller.h	brave	10: 'components/history/core/browser/sync/history_delete_directives_model_type_controller.h' file not found
+brave/components/history/core/browser/sync/brave_history_model_type_controller.h	brave	9: 'components/history/core/browser/sync/history_model_type_controller.h' file not found
+brave/components/https_upgrade_exceptions/browser/https_upgrade_exceptions_service.cc	brave	14: 'base/containers/contains.h' file not found
+brave/components/https_upgrade_exceptions/browser/https_upgrade_exceptions_service.h	brave	30: unknown type name 'GURL'
+brave/components/l10n/common/ofac_sanction_util.cc	brave	10: 'base/containers/contains.h' file not found
+brave/components/l10n/common/un_m49_code_util.cc	brave	10: 'base/containers/contains.h' file not found
+brave/components/localhost_permission/localhost_permission_component.cc	brave	13: 'base/containers/contains.h' file not found
+brave/components/localhost_permission/localhost_permission_component.h	brave	36: unknown type name 'GURL'
+brave/components/ntp_background_images/browser/brave_ntp_custom_background_service.cc	brave	32: no type named 'Dict' in 'base::Value'
+brave/components/ntp_background_images/browser/brave_ntp_custom_background_service.h	brave	37: no type named 'Dict' in 'base::Value'
+brave/components/ntp_background_images/browser/ntp_background_images_component_installer.cc	brave	57: no type named 'Dict' in 'base::Value'
+brave/components/ntp_background_images/browser/ntp_background_images_data.cc	brave	58: too few arguments to function call, expected at least 2, have 1
+brave/components/ntp_background_images/browser/ntp_background_images_data.h	brave	45: no type named 'Dict' in 'base::Value'
+brave/components/ntp_background_images/browser/ntp_background_images_service.cc	brave	72: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/components/ntp_background_images/browser/ntp_background_images_service.h	brave	140: no type named 'Dict' in 'base::Value'
+brave/components/ntp_background_images/browser/ntp_background_images_service_unittest.cc	brave	175: cannot initialize object parameter of type 'ntp_background_images::NTPBackgroundImagesService' with an express
+brave/components/ntp_background_images/browser/ntp_background_images_source.cc	brave	89: no matching constructor for initialization of 'base::RefCountedBytes'
+brave/components/ntp_background_images/browser/ntp_background_images_source_unittest.cc	brave	33: no member named 'Dict' in 'base::Value'
+brave/components/ntp_background_images/browser/ntp_custom_images_source.cc	brave	74: no matching constructor for initialization of 'base::RefCountedBytes'
+brave/components/ntp_background_images/browser/ntp_sponsored_images_data.cc	brave	13: 'base/ranges/algorithm.h' file not found
+brave/components/ntp_background_images/browser/ntp_sponsored_images_data.h	brave	97: no type named 'List' in 'base::Value'
+brave/components/ntp_background_images/browser/ntp_sponsored_images_source.cc	brave	94: no matching constructor for initialization of 'base::RefCountedBytes'
+brave/components/ntp_background_images/browser/view_counter_model.cc	brave	42: no member named 'RandInt' in namespace 'base'
+brave/components/ntp_background_images/browser/view_counter_service.cc	brave	154: no member named 'Dict' in 'base::Value'
+brave/components/ntp_background_images/browser/view_counter_service.h	brave	76: no member named 'Dict' in 'base::Value'
+brave/components/ntp_background_images/browser/view_counter_service_unittest.cc	brave	129: no type named 'Dict' in 'base::Value'
+brave/components/ntp_widget_utils/browser/ntp_widget_utils_oauth.cc	brave	13: 'base/ranges/algorithm.h' file not found
+brave/components/ntp_widget_utils/browser/ntp_widget_utils_region.cc	brave	9: 'base/containers/contains.h' file not found
+brave/components/ntp_widget_utils/browser/ntp_widget_utils_region_unittest.cc	brave	25: no member named 'SetLocalState' in 'TestingBrowserProcess'
+brave/components/omnibox/browser/brave_autocomplete_result_unittest.cc	brave	28: use of undeclared identifier 'AutocompleteMatchType'; did you mean 'omnibox::AutocompleteMatchType'?
+brave/components/omnibox/browser/brave_bookmark_provider_unittest.cc	brave	46: no viable conversion from 'std::unique_ptr<TemplateURLService>' to 'TemplateURLService *'
+brave/components/omnibox/browser/brave_history_quick_provider_unittest.cc	brave	129: use of undeclared identifier 'AddFakeURLToHistoryDB'
+brave/components/omnibox/browser/brave_local_history_zero_suggest_provider_unittest.cc	brave	30: 'components/search_engines/prepopulated_engines.h' file not found
+brave/components/omnibox/browser/brave_search_suggestion_parser.h	brave	15: no type named 'List' in 'base::Value'
+brave/components/omnibox/browser/brave_search_suggestion_parser_unittest.cc	brave	14: no type named 'List' in 'base::Value'
+brave/components/omnibox/browser/brave_shortcuts_provider_unittest.cc	brave	40: no member named 'UTF8ToUTF16' in namespace 'base'
+brave/components/omnibox/browser/commander_provider.cc	brave	28: no member named 'TYPE_BRAVE_COMMANDER' in 'AutocompleteProvider'
+brave/components/omnibox/browser/commander_provider.h	brave	38: non-virtual member function marked 'override' hides virtual member function
+brave/components/omnibox/browser/commander_provider_unittest.cc	brave	71: use of undeclared identifier 'NOTIMPLEMENTED'
+brave/components/omnibox/browser/promotion_provider.cc	brave	22: no member named 'TYPE_SEARCH' in 'AutocompleteProvider'
+brave/components/omnibox/browser/promotion_unittest.cc	brave	12: 'base/ranges/algorithm.h' file not found
+brave/components/omnibox/browser/promotion_utils.cc	brave	8: 'base/ranges/algorithm.h' file not found
+brave/components/omnibox/browser/topsites_provider.cc	brave	537: no member named 'TYPE_SEARCH' in 'AutocompleteProvider'
+brave/components/permissions/brave_permission_manager.cc	brave	40: no matching constructor for initialization of 'content::PermissionRequestDescription'
+brave/components/permissions/brave_permission_manager.h	brave	33: only virtual member functions can be marked 'override'
+brave/components/permissions/contexts/brave_google_sign_in_permission_context.cc	brave	13: 'third_party/blink/public/mojom/permissions_policy/permissions_policy.mojom.h' file not found
+brave/components/permissions/contexts/brave_localhost_permission_context.cc	brave	13: 'third_party/blink/public/mojom/permissions_policy/permissions_policy.mojom.h' file not found
+brave/components/permissions/permission_expirations.cc	brave	226: no type named 'Dict' in 'base::Value'
+brave/components/permissions/permission_expirations.h	brave	80: no type named 'List' in 'base::Value'
+brave/components/permissions/permission_expirations_unittest.cc	brave	128: no matching conversion for functional-style cast from 'std::string_view' (aka 'basic_string_view<char>') to 'P
+brave/components/permissions/permission_lifetime_manager.cc	brave	12: 'base/containers/contains.h' file not found
+brave/components/permissions/permission_lifetime_utils.cc	brave	93: no viable conversion from 'const std::unique_ptr<permissions::PermissionRequest>' to 'PermissionRequest *'
+brave/components/playlist/browser/media_detector_component_installer.cc	brave	44: no type named 'Dict' in 'base::Value'
+brave/components/playlist/browser/mime_util.cc	brave	12: 'base/ranges/algorithm.h' file not found
+brave/components/playlist/browser/mime_util.h	brave	24: no type named 'StringPieceType' in 'base::FilePath'; did you mean 'StringViewType'?
+brave/components/playlist/browser/playlist_media_file_downloader.cc	brave	130: no member named 'ranges' in namespace 'base'; did you mean 'std::ranges'?
+brave/components/playlist/browser/playlist_media_handler.cc	brave	12: 'base/functional/overloaded.h' file not found
+brave/components/playlist/browser/playlist_service.cc	brave	40: no type named 'StringPieceType' in 'base::FilePath'; did you mean 'StringViewType'?
+brave/components/playlist/browser/playlist_tab_helper.cc	brave	11: 'base/ranges/algorithm.h' file not found
+brave/components/playlist/browser/playlist_thumbnail_downloader.cc	brave	68: no viable conversion from 'OnceCallback<UnboundRunType>' to 'OnceCallback<void (std::optional<std::string>)>'
+brave/components/playlist/browser/type_converter.cc	brave	13: 'base/containers/contains.h' file not found
+brave/components/playlist/browser/type_converter.h	brave	14: no type named 'Dict' in 'base::Value'
+brave/components/playlist/common/playlist_render_frame_observer_helper.cc	brave	22: no type named 'List' in 'base::Value'
+brave/components/playlist/common/playlist_render_frame_observer_helper.h	brave	20: no type named 'List' in 'base::Value'
+brave/components/playlist/common/playlist_render_frame_observer_helper_unittest.cc	brave	11: 'base/ranges/algorithm.h' file not found
+brave/components/playlist/renderer/playlist_render_frame_observer.cc	brave	138: no member named 'GetIsolate' in 'v8::Context'
+brave/components/playlist/renderer/playlist_render_frame_observer.h	brave	78: no type named 'List' in 'base::Value'
+brave/components/privacy_sandbox/brave_privacy_sandbox_settings.h	brave	17: 'components/privacy_sandbox/tpcd_experiment_eligibility.h' file not found
+brave/components/query_filter/utils.cc	brave	13: 'base/containers/contains.h' file not found
+brave/components/request_otr/browser/request_otr_blocking_page.h	brave	59: no type named 'Dict' in 'base::Value'
+brave/components/request_otr/browser/request_otr_controller_client.cc	brave	60: no viable conversion from 'base::WeakPtr<content::WebContents>' to 'content::WebContents *'
+brave/components/request_otr/browser/request_otr_navigation_throttle.cc	brave	88: no matching constructor for initialization of 'content::NavigationThrottle'
+brave/components/request_otr/browser/request_otr_rule.cc	brave	93: too few arguments to function call, expected at least 2, have 1
+brave/components/request_otr/browser/request_otr_service.cc	brave	10: 'base/containers/contains.h' file not found
+brave/components/safe_builtins/renderer/safe_builtins.cc	brave	130: no member named 'GetIsolate' in 'v8::Context'
+brave/components/safe_builtins/renderer/safe_builtins_helpers.cc	brave	33: no member named 'GetIsolate' in 'v8::Context'
+brave/components/search_engines/brave_prepopulated_engines.h	brave	13: 'components/search_engines/prepopulated_engines.h' file not found
+brave/components/sidebar/browser/sidebar_service.cc	brave	16: 'base/containers/contains.h' file not found
+brave/components/sidebar/browser/sidebar_service_unittest.cc	brave	13: 'base/containers/contains.h' file not found
+brave/components/signin/internal/identity_manager/brave_mutable_profile_oauth2_token_service_delegate.cc	brave	23: no type named 'AccountConsistencyMethod' in namespace 'signin'
+brave/components/signin/internal/identity_manager/brave_mutable_profile_oauth2_token_service_delegate.h	brave	22: no type named 'AccountConsistencyMethod' in namespace 'signin'
+brave/components/signin/internal/identity_manager/brave_primary_account_mutator_impl.cc	brave	30: out-of-line definition of 'ClearPrimaryAccount' does not match any declaration in 'signin::BravePrimaryAccount
+brave/components/signin/internal/identity_manager/brave_primary_account_mutator_impl.h	brave	21: function-like macro 'BUILDFLAG_INTERNAL_IS_CHROMEOS_ASH' is not defined
+brave/components/signin/public/identity_manager/brave_identity_manager_unittest.cc	brave	22: 'components/signin/internal/identity_manager/fake_account_capabilities_fetcher_factory.h' file not found
+brave/components/speedreader/common/url_readable_hints.cc	brave	48: no member named 'host_piece' in 'GURL'
+brave/components/speedreader/renderer/speedreader_js_handler.cc	brave	64: allocating an object of abstract class type 'SpeedreaderJSHandler'
+brave/components/speedreader/speedreader_service.cc	brave	183: invalid operands to binary expression ('const char[5]' and 'std::string_view' (aka 'basic_string_view<char>'))
+brave/components/speedreader/speedreader_util.cc	brave	149: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/components/speedreader/tts_player.cc	brave	190: no viable conversion from 'speedreader::TtsPlayer::Controller *' to 'std::unique_ptr<UtteranceEventDelegate>'
+brave/components/sync/engine/brave_sync_manager_impl.cc	brave	25: use of undeclared identifier 'ModelTypeSet'
+brave/components/sync/engine/brave_sync_server_commands.cc	brave	13: 'base/types/cxx23_to_underlying.h' file not found
+brave/components/sync/service/brave_sync_auth_manager.cc	brave	27: unknown type name 'AccountStateChangedCallback'
+brave/components/sync/service/brave_sync_auth_manager.h	brave	20: unknown type name 'AccountStateChangedCallback'
+brave/components/sync/service/brave_sync_auth_manager_unittest.cc	brave	48: no type named 'AccountStateChangedCallback' in 'syncer::SyncAuthManager'
+brave/components/sync/service/brave_sync_service_impl.cc	brave	37: 'sync_client_' is a private member of 'syncer::SyncServiceImpl'
+brave/components/sync/service/brave_sync_service_impl.h	brave	37: only virtual member functions can be marked 'override'
+brave/components/sync/service/brave_sync_stopped_reporter.h	brave	21: only virtual member functions can be marked 'override'
+brave/components/sync_device_info/brave_device_info.cc	brave	33: unknown type name 'ModelTypeSet'
+brave/components/sync_device_info/brave_device_info.h	brave	43: unknown type name 'ModelTypeSet'
+brave/components/time_period_storage/daily_storage.cc	brave	67: no type named 'Dict' in 'base::Value'
+brave/components/time_period_storage/time_period_storage.cc	brave	12: 'base/ranges/algorithm.h' file not found
+brave/components/time_period_storage/weekly_event_storage.cc	brave	91: use of undeclared identifier 'list'; did you mean 'std::list'?
+brave/components/url_sanitizer/browser/url_sanitizer_service.cc	brave	25: no type named 'List' in 'base::Value'
+brave/components/webcompat/webcompat_exceptions_browsertest.cc	brave	38: 'chrome/browser/ui/browser_navigator_params.h' file not found
+brave/components/webcompat/webcompat_exceptions_service.cc	brave	14: 'base/containers/contains.h' file not found
+brave/components/webcompat/webcompat_exceptions_service.h	brave	53: no type named 'List' in 'base::Value'
+brave/components/webui/about_ui.cc	brave	10: 'base/containers/contains.h' file not found
+brave/gin/converter_specializations.cc	brave	14: no member named 'List' in 'base::Value'
+brave/gin/converter_specializations.h	brave	16: no member named 'List' in 'base::Value'
+brave/mojo/brave_ast_patcher/brave_ast_patcher_unittest.cc	brave	63: no matching constructor for initialization of 'GlobalUnion'
+brave/net/http/partitioned_host_state_map.h	brave	15: 'base/ranges/algorithm.h' file not found
+brave/renderer/brave_content_renderer_client.cc	brave	11: 'base/ranges/algorithm.h' file not found
+brave/renderer/brave_content_renderer_client.h	brave	43: non-virtual member function marked 'override' hides virtual member function
+brave/renderer/test/digital_goods_api_browsertest.cc	brave	78: 'error' is a private member of 'content::EvalJsResult'
+brave/renderer/test/file_system_access_browsertest.cc	brave	77: 'value' is a private member of 'content::EvalJsResult'
+brave/renderer/test/subresource_web_bundles_browsertest.cc	brave	88: no matching function for call to 'GetHeadersForURL'
+brave/third_party/blink/renderer/brave_font_whitelist.cc	brave	1962: no member named 'make_span' in namespace 'base'
+brave/third_party/blink/renderer/brave_font_whitelist.h	brave	18: unknown type name 'AtomicString'; did you mean 'blink::AtomicString'?
+brave/third_party/blink/renderer/brave_font_whitelist_unittest.cc	brave	66: use of undeclared identifier 'WTF'
+brave/third_party/blink/renderer/core/brave_page_graph/blink_converters.cc	brave	73: unknown type name 'ScriptPromiseUntyped'
+brave/third_party/blink/renderer/core/brave_page_graph/blink_converters.h	brave	144: no type named 'List' in 'base::Value'
+brave/third_party/blink/renderer/core/brave_page_graph/blink_probe_types.h	brave	18: no type named 'List' in 'base::Value'
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/edge/attribute/edge_attribute.h	brave	24: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/edge/edge_text_change.h	brave	23: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/edge/event_listener/edge_event_listener.h	brave	23: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/edge/event_listener/edge_event_listener_action.h	brave	24: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/edge/execute/edge_execute_attr.h	brave	25: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/edge/js/edge_js_call.h	brave	25: no type named 'PageGraphValues' in namespace 'blink'; did you mean 'PageGraphValue'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/edge/js/edge_js_result.cc	brave	13: 'third_party/blink/renderer/platform/wtf/text/text_stream.h' file not found
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/edge/request/edge_request_complete.h	brave	26: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/edge/request/edge_request_start.h	brave	25: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/edge/storage/edge_storage.h	brave	23: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/graph_item.cc	brave	10: 'third_party/blink/renderer/platform/wtf/text/text_stream.h' file not found
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/actor/node_script.cc	brave	9: 'third_party/blink/renderer/platform/wtf/text/text_stream.h' file not found
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/actor/node_script_local.h	brave	24: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/actor/node_script_remote.cc	brave	9: 'third_party/blink/renderer/platform/wtf/text/text_stream.h' file not found
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/filter/node_ad_filter.h	brave	17: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/filter/node_fingerprinting_filter.cc	brave	9: 'third_party/blink/renderer/platform/wtf/text/text_stream.h' file not found
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/filter/node_tracker_filter.h	brave	16: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/html/node_html.cc	brave	11: 'third_party/blink/renderer/platform/wtf/text/text_stream.h' file not found
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/html/node_html_element.h	brave	23: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/html/node_html_text.h	brave	19: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/js/node_js_builtin.cc	brave	9: 'third_party/blink/renderer/platform/wtf/text/text_stream.h' file not found
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/js/node_js_webapi.cc	brave	9: 'third_party/blink/renderer/platform/wtf/text/text_stream.h' file not found
+brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/shield/node_shield.h	brave	17: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/graphml.h	brave	23: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/libxml_utils.cc	brave	30: no matching function for call to 'ReadUnicodeCharacter'
+brave/third_party/blink/renderer/core/brave_page_graph/libxml_utils.h	brave	22: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/requests/request_tracker.h	brave	59: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/brave_page_graph/requests/tracked_request.h	brave	38: unknown type name 'String'
+brave/third_party/blink/renderer/core/brave_page_graph/types.h	brave	33: unknown type name 'String'; did you mean 'blink::String'?
+brave/third_party/blink/renderer/core/farbling/brave_session_cache.cc	brave	147: unknown type name 'String'
+brave/third_party/blink/renderer/core/farbling/brave_session_cache.h	brave	58: unknown type name 'AtomicString'; did you mean 'blink::AtomicString'?
+brave/third_party/blink/renderer/core/resource_pool_limiter/resource_pool_limiter.cc	brave	56: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/third_party/libaddressinput/chromium/chrome_metadata_source_unittest.cc	brave	33: no matching constructor for initialization of 'std::unique_ptr< ::i18n::addressinput::Source::Callback>' (aka 
+brave/utility/importer/brave_profile_import_impl.h	brave	45: non-virtual member function marked 'override' hides virtual member function
+brave/utility/importer/chrome_importer.cc	brave	22: 'chrome/common/importer/imported_bookmark_entry.h' file not found
+brave/utility/importer/chrome_importer.h	brave	37: use of undeclared identifier 'importer'; did you mean 'Importer'?
+brave/utility/importer/chrome_importer_unittest.cc	brave	18: 'chrome/common/importer/imported_bookmark_entry.h' file not found
+brave/third_party/rust/chromium_crates_io/vendor/ahash-0.7.7/src/lib.rs	brave_rust	32: the feature `min_specialization` is not in the list of allowed features
+brave/third_party/rust/chromium_crates_io/vendor/ahash-0.7.7/src/random_state.rs	brave_rust	106: cannot find module or crate `getrandom` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/ahash-0.7.7/src/specialize.rs	brave_rust	64: specialization is experimental
+brave/third_party/rust/chromium_crates_io/vendor/cssparser-0.27.2/build/match_byte.rs	brave_rust	9: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/cssparser-0.28.1/build/match_byte.rs	brave_rust	9: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/cssparser-macros-0.6.0/lib.rs	brave_rust	19: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/add_assign_like.rs	brave_rust	5: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/add_helpers.rs	brave_rust	3: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/add_like.rs	brave_rust	9: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/as_mut.rs	brave_rust	6: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/as_ref.rs	brave_rust	6: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/constructor.rs	brave_rust	6: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/deref.rs	brave_rust	4: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/deref_mut.rs	brave_rust	4: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/display.rs	brave_rust	5: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/error.rs	brave_rust	3: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/from.rs	brave_rust	5: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/from_str.rs	brave_rust	4: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/index.rs	brave_rust	4: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/index_mut.rs	brave_rust	4: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/into.rs	brave_rust	5: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/into_iterator.rs	brave_rust	6: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/is_variant.rs	brave_rust	5: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/lib.rs	brave_rust	191: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/mul_assign_like.rs	brave_rust	8: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/mul_helpers.rs	brave_rust	4: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/mul_like.rs	brave_rust	8: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/not_like.rs	brave_rust	7: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/sum_like.rs	brave_rust	6: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/try_into.rs	brave_rust	7: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/unwrap.rs	brave_rust	5: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/derive_more-0.99.17/src/utils.rs	brave_rust	5: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/html5ever-0.25.1/macros/match_token.rs	brave_rust	103: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/phf_generator-0.10.0/src/lib.rs	brave_rust	3: cannot find module or crate `rand` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/rand_chacha-0.2.2/src/guts.rs	brave_rust	12: unresolved import `ppv_lite86`
+brave/third_party/rust/chromium_crates_io/vendor/thiserror-impl-1.0.38/src/ast.rs	brave_rust	4: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/thiserror-impl-1.0.38/src/attr.rs	brave_rust	5: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/thiserror-impl-1.0.38/src/expand.rs	brave_rust	7: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/thiserror-impl-1.0.38/src/fmt.rs	brave_rust	6: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/thiserror-impl-1.0.38/src/generics.rs	brave_rust	5: cannot find module or crate `syn` in this scope
+brave/third_party/rust/chromium_crates_io/vendor/thiserror-impl-1.0.38/src/lib.rs	brave_rust	27: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/thiserror-impl-1.0.38/src/prop.rs	brave_rust	2: unresolved import `syn`
+brave/third_party/rust/chromium_crates_io/vendor/thiserror-impl-1.0.38/src/valid.rs	brave_rust	5: unresolved import `syn`
+brave/chromium_src/base/json/json_reader.cc	chromium_src	10: function-like macro 'BUILDFLAG_INTERNAL_BUILD_RUST_JSON_READER' is not defined
+brave/chromium_src/base/task/task_features.cc	chromium_src	13: use of undeclared identifier 'kExplicitHighResolutionTimerWin'
+brave/chromium_src/base/test/launcher/test_launcher.cc	chromium_src	77: use of undeclared identifier 'Contains'; did you mean 'absl::str_format_internal::Contains'?
+brave/chromium_src/chrome/browser/browser_features.cc	chromium_src	16: use of undeclared identifier 'kBookmarkTriggerForPrerender2'; did you mean 'kBookmarkTriggerForPreconnect'?
+brave/chromium_src/chrome/browser/browser_process_impl.h	chromium_src	20: 'components/nacl/common/buildflags.h' file not found
+brave/chromium_src/chrome/browser/content_settings/host_content_settings_map_factory.cc	chromium_src	10: 'chrome/browser/supervised_user/supervised_user_settings_service_factory.h' file not found
+brave/chromium_src/chrome/browser/download/background_download_service_factory.cc	chromium_src	64: no matching function for call to 'BuildInMemoryDownloadService'
+brave/chromium_src/chrome/browser/extensions/chrome_content_verifier_delegate.cc	chromium_src	25: 'chrome/browser/extensions/install_verifier.h' file not found
+brave/chromium_src/chrome/browser/extensions/extension_install_prompt.cc	chromium_src	15: no member named 'Prompt' in 'ExtensionInstallPrompt'
+brave/chromium_src/chrome/browser/external_protocol/external_protocol_handler_unittest.cc	chromium_src	20: no member named 'SetLocalState' in 'TestingBrowserProcess'
+brave/chromium_src/chrome/browser/importer/profile_writer.cc	chromium_src	8: 'components/autofill/core/browser/personal_data_manager.h' file not found
+brave/chromium_src/chrome/browser/lookalikes/lookalike_url_navigation_throttle.cc	chromium_src	13: out-of-line definition of 'MaybeCreateNavigationThrottle' does not match any declaration in 'LookalikeUrlNavig
+brave/chromium_src/chrome/browser/lookalikes/lookalike_url_navigation_throttle_unittest.cc	chromium_src	23: no member named 'MaybeCreateNavigationThrottle' in 'LookalikeUrlNavigationThrottle'
+brave/chromium_src/chrome/browser/media/router/media_router_feature.cc	chromium_src	45: use of undeclared identifier 'kGlobalMediaControlsCastStartStop'; did you mean 'GlobalMediaControlsCastStartSt
+brave/chromium_src/chrome/browser/metrics/chrome_metrics_services_manager_client.cc	chromium_src	12: out-of-line definition of 'IsMetricsReportingEnabled' does not match any declaration in 'ChromeMetricsServices
+brave/chromium_src/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc	chromium_src	17: expected class name
+brave/chromium_src/chrome/browser/performance_manager/chrome_browser_main_extra_parts_performance_manager.cc	chromium_src	6: 'chrome/browser/performance_manager/metrics/page_resource_monitor.h' file not found
+brave/chromium_src/chrome/browser/profiles/profile_avatar_icon_util.cc	chromium_src	213: no type named 'Dict' in 'base::Value'
+brave/chromium_src/chrome/browser/profiles/profile_avatar_icon_util.h	chromium_src	15: no type named 'Dict' in 'base::Value'
+brave/chromium_src/chrome/browser/profiles/profile_avatar_icon_util_unittest.cc	chromium_src	34: no type named 'List' in 'base::Value'
+brave/chromium_src/chrome/browser/renderer_context_menu/render_view_context_menu.cc	chromium_src	22: 'chrome/browser/ui/browser_list.h' file not found
+brave/chromium_src/chrome/browser/renderer_context_menu/render_view_context_menu.h	chromium_src	50: only virtual member functions can be marked 'override'
+brave/chromium_src/chrome/browser/search_engine_choice/search_engine_choice_service_factory.cc	chromium_src	18: use of undeclared identifier 'chrome'
+brave/chromium_src/chrome/browser/search_engines/template_url_service_factory.cc	chromium_src	16: use of undeclared identifier 'chrome'
+brave/chromium_src/chrome/browser/sharing_hub/sharing_hub_model.cc	chromium_src	12: 'chrome/browser/ui/browser_finder.h' file not found
+brave/chromium_src/chrome/browser/shell_integration.cc	chromium_src	43: use of undeclared identifier 'NOTREACHED_IN_MIGRATION'
+brave/chromium_src/chrome/browser/ssl/https_upgrades_navigation_throttle.cc	chromium_src	29: out-of-line definition of 'MaybeCreateThrottleFor' does not match any declaration in 'HttpsUpgradesNavigationT
+brave/chromium_src/chrome/browser/sync/prefs/chrome_syncable_prefs_database.cc	chromium_src	53: no matching function for call to 'MakeFixedFlatMap'
+brave/chromium_src/chrome/browser/sync/sync_ui_util.cc	chromium_src	12: use of undeclared identifier 'AvatarSyncErrorType'
+brave/chromium_src/chrome/browser/themes/theme_service_factory.cc	chromium_src	9: 'chrome/browser/extensions/extension_system_factory.h' file not found
+brave/chromium_src/chrome/browser/ui/browser_tabrestore.cc	chromium_src	26: use of undeclared identifier 'Browser'; did you mean 'policy::kBrowser'?
+brave/chromium_src/chrome/browser/ui/content_settings/content_setting_image_model.cc	chromium_src	30: no member named 'kBlockedBadgeIcon' in namespace 'vector_icons'
+brave/chromium_src/chrome/browser/ui/hats/hats_service_browsertest.cc	chromium_src	71: no member named 'profile' in 'BrowserWindowInterface'
+brave/chromium_src/chrome/browser/ui/safety_hub/password_status_check_service.cc	chromium_src	14: no type named 'Dict' in 'base::Value'
+brave/chromium_src/chrome/browser/ui/safety_hub/password_status_check_service_unittest.cc	chromium_src	12: no viable conversion from 'PasswordForm' to 'StoredCredential'
+brave/chromium_src/chrome/browser/ui/singleton_tabs.cc	chromium_src	17: unknown type name 'Browser'
+brave/chromium_src/chrome/browser/ui/startup/infobar_utils.cc	chromium_src	42: unknown type name 'Browser'
+brave/chromium_src/chrome/browser/ui/ui_features.cc	chromium_src	14: use of undeclared identifier 'kChromeLabs'
+brave/chromium_src/chrome/browser/ui/views/dark_mode_manager_linux.h	chromium_src	14: 'src/chrome/browser/ui/views/dark_mode_manager_linux.h' file not found
+brave/chromium_src/chrome/browser/ui/views/download/download_shelf_context_menu_view.h	chromium_src	17: 'src/chrome/browser/ui/views/download/download_shelf_context_menu_view.h' file not found
+brave/chromium_src/chrome/browser/ui/views/frame/browser_frame.h	chromium_src	16: 'src/chrome/browser/ui/views/frame/browser_frame.h' file not found
+brave/chromium_src/chrome/browser/ui/views/frame/browser_view_layout.h	chromium_src	26: 'src/chrome/browser/ui/views/frame/browser_view_layout.h' file not found
+brave/chromium_src/chrome/browser/ui/views/location_bar/location_bar_view_browsertest.cc	chromium_src	9: 'chrome/browser/ssl/security_state_tab_helper.h' file not found
+brave/chromium_src/chrome/browser/ui/views/page_action/page_action_icon_view.h	chromium_src	19: 'src/chrome/browser/ui/views/page_action/page_action_icon_view.h' file not found
+brave/chromium_src/chrome/browser/ui/views/page_info/page_info_cookies_content_view.cc	chromium_src	15: unknown type name 'CookiesNewInfo'
+brave/chromium_src/chrome/browser/ui/views/permissions/chooser_bubble_ui.cc	chromium_src	10: 'chrome/browser/ui/browser_finder.h' file not found
+brave/chromium_src/chrome/browser/ui/views/profiles/avatar_toolbar_button_delegate.h	chromium_src	20: 'src/chrome/browser/ui/views/profiles/avatar_toolbar_button_delegate.h' file not found
+brave/chromium_src/chrome/browser/ui/views/profiles/profile_menu_view.cc	chromium_src	10: calling a private constructor of class 'gfx::VectorIcon'
+brave/chromium_src/chrome/browser/ui/views/sharing_hub/screenshot/screenshot_captured_bubble.cc	chromium_src	21: no member named 'host_piece' in 'GURL'
+brave/chromium_src/chrome/browser/ui/views/side_panel/reading_list/reading_list_side_panel_coordinator.cc	chromium_src	7: 'chrome/browser/ui/views/side_panel/read_later_side_panel_web_view.h' file not found
+brave/chromium_src/chrome/browser/ui/views/side_panel/side_panel_coordinator.h	chromium_src	19: 'chrome/browser/ui/views/side_panel/side_panel_entry.h' file not found
+brave/chromium_src/chrome/browser/ui/views/side_panel/side_panel_ui.h	chromium_src	13: 'src/chrome/browser/ui/views/side_panel/side_panel_ui.h' file not found
+brave/chromium_src/chrome/browser/ui/views/tabs/compound_tab_container.h	chromium_src	24: 'src/chrome/browser/ui/views/tabs/compound_tab_container.h' file not found
+brave/chromium_src/chrome/browser/ui/views/tabs/tab_drag_controller.h	chromium_src	35: 'src/chrome/browser/ui/views/tabs/tab_drag_controller.h' file not found
+brave/chromium_src/chrome/browser/ui/views/tabs/tab_hover_card_controller.h	chromium_src	19: 'src/chrome/browser/ui/views/tabs/tab_hover_card_controller.h' file not found
+brave/chromium_src/chrome/browser/ui/views/tabs/tab_search_button.h	chromium_src	16: 'src/chrome/browser/ui/views/tabs/tab_search_button.h' file not found
+brave/chromium_src/chrome/browser/ui/webui/password_manager/password_manager_ui.cc	chromium_src	9: 'chrome/browser/ui/webui/webui_util.h' file not found
+brave/chromium_src/chrome/browser/ui/webui/settings/browser_lifetime_handler.cc	chromium_src	22: no type named 'List' in 'base::Value'
+brave/chromium_src/chrome/browser/ui/webui/settings/browser_lifetime_handler.h	chromium_src	33: no type named 'List' in 'base::Value'
+brave/chromium_src/chrome/browser/ui/webui/settings/people_handler.cc	chromium_src	7: 'components/os_crypt/sync/os_crypt.h' file not found
+brave/chromium_src/chrome/browser/ui/webui/side_panel/bookmarks/bookmarks_side_panel_ui.cc	chromium_src	20: no type named 'Dict' in 'base::Value'
+brave/chromium_src/chrome/common/channel_info_posix.cc	chromium_src	58: too many arguments to function call, expected single argument 'variable_name', have 2 arguments
+brave/chromium_src/chrome/common/chrome_constants.cc	chromium_src	93: redefinition of 'kInitialProfile'
+brave/chromium_src/chrome/common/chrome_features.cc	chromium_src	17: use of undeclared identifier 'kDesktopPWAsLinkCapturing'
+brave/chromium_src/chrome/common/importer/importer_data_types.h	chromium_src	17: 'src/chrome/common/importer/importer_data_types.h' file not found
+brave/chromium_src/chrome/common/importer/importer_type.h	chromium_src	12: 'src/chrome/common/importer/importer_type.h' file not found
+brave/chromium_src/chrome/common/profiler/thread_profiler_configuration.cc	chromium_src	16: no member named 'CallStackProfileParams' in namespace 'metrics'
+brave/chromium_src/chrome/common/url_constants.h	chromium_src	15: 'ppapi/buildflags/buildflags.h' file not found
+brave/chromium_src/chrome/renderer/chrome_content_renderer_client.cc	chromium_src	10: 'components/feed/content/renderer/rss_link_reader.h' file not found
+brave/chromium_src/components/affiliations/core/browser/affiliation_fetcher_factory_impl.cc	chromium_src	16: non-virtual member function marked 'override' hides virtual member function
+brave/chromium_src/components/autofill/core/browser/payments/offer_notification_handler.cc	chromium_src	8: 'components/autofill/core/browser/data_model/autofill_offer_data.h' file not found
+brave/chromium_src/components/autofill/core/common/autofill_features.cc	chromium_src	14: use of undeclared identifier 'kAutofillDisableShadowHeuristics'
+brave/chromium_src/components/commerce/core/commerce_feature_list.cc	chromium_src	14: use of undeclared identifier 'kCommerceDeveloper'
+brave/chromium_src/components/component_updater/component_installer.cc	chromium_src	14: 'base/containers/contains.h' file not found
+brave/chromium_src/components/component_updater/component_updater_service.cc	chromium_src	15: out-of-line definition of 'OnDemandUpdate' does not match any declaration in 'component_updater::CrxUpdateServ
+brave/chromium_src/components/content_settings/core/browser/content_settings_registry.cc	chromium_src	55: no member named 'EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS' in 'content_settings::ContentSettingsInfo'; did yo
+brave/chromium_src/components/content_settings/core/browser/host_content_settings_map.cc	chromium_src	8: 'base/containers/contains.h' file not found
+brave/chromium_src/components/content_settings/core/common/cookie_settings_base.cc	chromium_src	76: definition of explicitly defaulted destructor
+brave/chromium_src/components/content_settings/core/common/features.cc	chromium_src	14: use of undeclared identifier 'kTrackingProtection3pcd'
+brave/chromium_src/components/content_settings/renderer/content_settings_agent_impl.cc	chromium_src	27: out-of-line definition of 'HasContentSettingsRules' does not match any declaration in 'content_settings::Conte
+brave/chromium_src/components/crx_file/crx_creator.cc	chromium_src	25: no matching function for call to 'GetCrxId'
+brave/chromium_src/components/crx_file/crx_creator.h	chromium_src	17: no member named 'RSAPrivateKey' in namespace 'crypto'; did you mean 'crypto::keypair::PrivateKey'?
+brave/chromium_src/components/crx_file/crx_verifier.cc	chromium_src	12: 'base/ranges/algorithm.h' file not found
+brave/chromium_src/components/device_signals/core/common/signals_features.cc	chromium_src	14: use of undeclared identifier 'kDeviceSignalsConsentDialog'
+brave/chromium_src/components/embedder_support/user_agent_utils.cc	chromium_src	34: unknown type name 'PrefService'
+brave/chromium_src/components/history/core/browser/features.cc	chromium_src	14: use of undeclared identifier 'kSyncSegmentsData'
+brave/chromium_src/components/history/core/browser/history_service.cc	chromium_src	12: use of undeclared identifier 'backend_task_runner_'; did you mean 'backend_runner_'?
+brave/chromium_src/components/history_clusters/core/features.cc	chromium_src	18: use of undeclared identifier 'kJourneysNamedNewTabGroups'
+brave/chromium_src/components/manta/features.cc	chromium_src	13: use of undeclared identifier 'kMantaService'
+brave/chromium_src/components/metrics/metrics_features.cc	chromium_src	13: use of undeclared identifier 'kMetricsServiceDeltaSnapshotInBg'
+brave/chromium_src/components/metrics/structured/structured_metrics_features.cc	chromium_src	13: use of undeclared identifier 'kEnabledStructuredMetricsService'
+brave/chromium_src/components/ntp_tiles/features.cc	chromium_src	17: use of undeclared identifier 'kUsePopularSitesSuggestions'
+brave/chromium_src/components/omnibox/browser/autocomplete_controller.cc	chromium_src	10: 'base/ranges/algorithm.h' file not found
+brave/chromium_src/components/omnibox/browser/location_bar_model_util.cc	chromium_src	24: no matching function for call to 'GetSecurityVectorIcon_Chromium'
+brave/chromium_src/components/omnibox/browser/omnibox_edit_model.h	chromium_src	9: 'components/omnibox/browser/omnibox_view.h' file not found
+brave/chromium_src/components/omnibox/browser/search_suggestion_parser.cc	chromium_src	23: no type named 'List' in 'base::Value'
+brave/chromium_src/components/omnibox/common/omnibox_features.cc	chromium_src	13: use of undeclared identifier 'kDocumentProviderNoSetting'
+brave/chromium_src/components/optimization_guide/core/optimization_guide_features.cc	chromium_src	17: use of undeclared identifier 'kRemoteOptimizationGuideFetching'
+brave/chromium_src/components/os_crypt/async/common/encryptor.cc	chromium_src	9: 'base/ranges/algorithm.h' file not found
+brave/chromium_src/components/page_content_annotations/core/page_content_annotations_features.cc	chromium_src	13: use of undeclared identifier 'kPageContentAnnotations'
+brave/chromium_src/components/permissions/permission_context_base.cc	chromium_src	33: no type named 'PermissionsPolicyFeature' in namespace 'blink::mojom'; did you mean 'network::mojom::Permission
+brave/chromium_src/components/permissions/permission_context_base.h	chromium_src	44: no type named 'PermissionsPolicyFeature' in namespace 'blink::mojom'; did you mean 'network::mojom::Permission
+brave/chromium_src/components/permissions/permission_request.cc	chromium_src	9: 'base/containers/contains.h' file not found
+brave/chromium_src/components/permissions/permission_request_manager.cc	chromium_src	8: 'base/containers/contains.h' file not found
+brave/chromium_src/components/permissions/permission_util.cc	chromium_src	126: no member named 'ContentSettingTypeToPermissionType' in 'permissions::PermissionUtil_ChromiumImpl'; did you me
+brave/chromium_src/components/printing/renderer/print_render_frame_helper.cc	chromium_src	29: function-like macro 'BUILDFLAG_INTERNAL_IS_CHROMEOS_ASH' is not defined
+brave/chromium_src/components/printing/renderer/print_render_frame_helper.h	chromium_src	41: function-like macro 'BUILDFLAG_INTERNAL_IS_CHROMEOS_ASH' is not defined
+brave/chromium_src/components/privacy_sandbox/privacy_sandbox_features.cc	chromium_src	14: use of undeclared identifier 'kOverridePrivacySandboxSettingsLocalTesting'
+brave/chromium_src/components/safe_browsing/core/common/features.cc	chromium_src	14: use of undeclared identifier 'kExtensionTelemetryDisableOffstoreExtensions'
+brave/chromium_src/components/search/ntp_features.cc	chromium_src	20: use of undeclared identifier 'kNtpHistoryClustersModule'
+brave/chromium_src/components/search_engines/search_engine_choice/search_engine_choice_utils.cc	chromium_src	14: unknown type name 'ChoicePromo'
+brave/chromium_src/components/search_engines/template_url_starter_pack_data.cc	chromium_src	26: use of undeclared identifier 'GetStarterPackEngines_ChromiumImpl'; did you mean 'template_url_starter_pack_dat
+brave/chromium_src/components/search_engines/util.cc	chromium_src	12: 'base/ranges/algorithm.h' file not found
+brave/chromium_src/components/segmentation_platform/public/features.cc	chromium_src	15: use of undeclared identifier 'kSegmentationPlatformCollectTabRankData'
+brave/chromium_src/components/sessions/content/content_serialized_navigation_driver.cc	chromium_src	8: 'base/containers/contains.h' file not found
+brave/chromium_src/components/shared_highlighting/core/common/shared_highlighting_features.cc	chromium_src	13: use of undeclared identifier 'kIOSSharedHighlightingV2'
+brave/chromium_src/components/signin/public/identity_manager/identity_manager.cc	chromium_src	22: no matching constructor for initialization of 'AccountsInCookieJarInfo'
+brave/chromium_src/components/sync/base/features.cc	chromium_src	13: use of undeclared identifier 'kSyncEnableBookmarksInTransportMode'
+brave/chromium_src/components/sync/base/model_type.h	chromium_src	11: 'src/components/sync/base/model_type.h' file not found
+brave/chromium_src/components/sync/engine/sync_scheduler_impl.cc	chromium_src	27: no viable overloaded '='
+brave/chromium_src/components/sync/engine/sync_scheduler_impl_unittest.cc	chromium_src	12: unknown type name 'ModelTypeSet'
+brave/chromium_src/components/sync/model/metadata_batch.cc	chromium_src	10: out-of-line definition of 'ClearProgressToken' does not match any declaration in 'syncer::MetadataBatch'
+brave/chromium_src/components/sync/service/sync_internals_util.cc	chromium_src	9: 'components/os_crypt/sync/os_crypt.h' file not found
+brave/chromium_src/components/sync/service/sync_internals_util.h	chromium_src	19: no type named 'Dict' in 'base::Value'
+brave/chromium_src/components/sync/service/sync_session_durations_metrics_recorder.cc	chromium_src	10: out-of-line definition of 'SyncSessionDurationsMetricsRecorder' does not match any declaration in 'syncer::Syn
+brave/chromium_src/components/sync_device_info/device_info_sync_bridge.cc	chromium_src	38: 'base/containers/contains.h' file not found
+brave/chromium_src/components/sync_device_info/device_info_sync_bridge_unittest.cc	chromium_src	172: too few arguments to function call, expected 2, have 1
+brave/chromium_src/components/sync_preferences/common_syncable_prefs_database.cc	chromium_src	26: no matching function for call to 'MakeFixedFlatMap'
+brave/chromium_src/components/translate/core/browser/translate_manager_unittest.cc	chromium_src	123: no member named 'DisableUpdate' in 'translate::TranslateLanguageList'
+brave/chromium_src/components/translate/core/browser/translate_script.h	chromium_src	34: non-virtual member function marked 'override' hides virtual member function
+brave/chromium_src/components/translate/core/common/translate_util.cc	chromium_src	16: use of undeclared identifier 'kTFLiteLanguageDetectionEnabled'; did you mean 'IsTFLiteLanguageDetectionEnabled
+brave/chromium_src/components/update_client/request_sender_unittest.cc	chromium_src	21: no viable overloaded '='
+brave/chromium_src/components/update_client/update_checker.cc	chromium_src	10: 'base/ranges/algorithm.h' file not found
+brave/chromium_src/components/update_client/update_client.cc	chromium_src	16: return type of out-of-line definition of 'update_client::CrxInstaller::IsBraveComponent' differs from that in 
+brave/chromium_src/components/viz/service/gl/gpu_service_impl.cc	chromium_src	23: out-of-line definition of 'InitializeWithHost' does not match any declaration in 'viz::GpuServiceImpl'
+brave/chromium_src/content/browser/browser_context.cc	chromium_src	12: 'content/browser/dom_storage/session_storage_namespace_impl.h' file not found
+brave/chromium_src/content/browser/media/session/media_session_impl.cc	chromium_src	13: use of undeclared identifier 'pepper_players_'; did you mean 'hidden_players_'?
+brave/chromium_src/content/browser/preloading/prefetch/prefetch_features.cc	chromium_src	14: use of undeclared identifier 'kPrefetchProxy'
+brave/chromium_src/content/browser/service_worker/service_worker_content_settings_proxy_impl.cc	chromium_src	10: out-of-line definition of 'GetBraveFarblingLevel' does not match any declaration in 'content::ServiceWorkerCon
+brave/chromium_src/content/browser/webui/web_ui_url_loader_factory.cc	chromium_src	37: invalid operands to binary expression ('std::optional<base::ByteSize>' and 'int')
+brave/chromium_src/content/browser/worker_host/shared_worker_content_settings_proxy_impl.cc	chromium_src	10: out-of-line definition of 'GetBraveFarblingLevel' does not match any declaration in 'content::SharedWorkerCont
+brave/chromium_src/content/common/features.cc	chromium_src	14: use of undeclared identifier 'kResourceTimingForCancelledNavigationInFrame'
+brave/chromium_src/content/public/browser/permission_controller_delegate.cc	chromium_src	11: out-of-line definition of 'GetPermissionStatusForOrigin' does not match any declaration in 'content::Permissio
+brave/chromium_src/content/public/common/content_features.cc	chromium_src	21: use of undeclared identifier 'kCookieDeprecationFacilitatedTesting'
+brave/chromium_src/crypto/signature_verifier.h	chromium_src	11: 'src/crypto/signature_verifier.h' file not found
+brave/chromium_src/extensions/common/extension_features.cc	chromium_src	13: use of undeclared identifier 'kExtensionManifestV2DeprecationWarning'
+brave/chromium_src/extensions/common/extension_urls.cc	chromium_src	18: no member named 'host_piece' in 'GURL'
+brave/chromium_src/net/base/features.cc	chromium_src	22: use of undeclared identifier 'kTopLevelTpcdOriginTrial'
+brave/chromium_src/net/base/lookup_string_in_fixed_set.cc	chromium_src	38: use of undeclared identifier 'kDafsaFound'
+brave/chromium_src/net/cookies/cookie_monster.cc	chromium_src	27: no matching constructor for initialization of 'ChromiumCookieMonster'
+brave/chromium_src/net/cookies/cookie_monster.h	chromium_src	40: non-virtual member function marked 'override' hides virtual member function
+brave/chromium_src/net/socket/socks5_client_socket.cc	chromium_src	33: out-of-line definition of 'DoAuth' does not match any declaration in 'net::SOCKS5ClientSocket'
+brave/chromium_src/net/socket/socks5_client_socket.h	chromium_src	32: only virtual member functions can be marked 'override'
+brave/chromium_src/net/tools/transport_security_state_generator/input_file_parsers.cc	chromium_src	877: use of undeclared identifier 'ParseJSON_ChromiumImpl'
+brave/chromium_src/net/url_request/redirect_util.cc	chromium_src	8: 'base/containers/contains.h' file not found
+brave/chromium_src/services/network/cookie_settings.cc	chromium_src	20: no type named 'FirstPartySetMetadata' in namespace 'net'
+brave/chromium_src/services/network/public/cpp/features.cc	chromium_src	14: use of undeclared identifier 'kFledgePst'
+brave/chromium_src/services/network/restricted_cookie_manager.cc	chromium_src	64: too few arguments to function call, expected 5, have 4
+brave/chromium_src/storage/browser/blob/blob_url_store_impl.cc	chromium_src	21: unknown type name 'ResolveAsURLLoaderFactoryCallback'; did you mean 'ResolveAsURLLoaderFactory_Sym'?
+brave/chromium_src/storage/browser/blob/blob_url_store_impl.h	chromium_src	37: unknown type name 'ResolveAsURLLoaderFactoryCallback'; did you mean 'ResolveAsURLLoaderFactory_Sym'?
+brave/chromium_src/third_party/blink/common/features.cc	chromium_src	16: use of undeclared identifier 'kPrefetchPrivacyChanges'
+brave/chromium_src/third_party/blink/common/permissions/permission_utils.cc	chromium_src	8: 'third_party/blink/public/mojom/permissions_policy/permissions_policy_feature.mojom.h' file not found
+brave/chromium_src/third_party/blink/renderer/bindings/core/v8/referrer_script_info.cc	chromium_src	46: no member named 'GetIsolate' in 'v8::Context'
+brave/chromium_src/third_party/blink/renderer/core/frame/location.cc	chromium_src	14: out-of-line definition of 'ancestorOrigins' does not match any declaration in 'blink::Location'
+brave/chromium_src/third_party/blink/renderer/core/frame/navigator_device_memory.cc	chromium_src	8: 'base/ranges/algorithm.h' file not found
+brave/chromium_src/third_party/blink/renderer/core/html/media/autoplay_policy.cc	chromium_src	28: member access into incomplete type 'const Document'
+brave/chromium_src/third_party/blink/renderer/core/html/media/html_video_element.cc	chromium_src	13: no matching member function for call to 'NotifyUserActivation'
+brave/chromium_src/third_party/blink/renderer/core/loader/image_loader.cc	chromium_src	10: 'third_party/blink/renderer/core/frame/ad_tracker.h' file not found
+brave/chromium_src/third_party/blink/renderer/core/page/create_window.cc	chromium_src	24: unknown type name 'String'
+brave/chromium_src/third_party/blink/renderer/modules/broadcastchannel/broadcast_channel.cc	chromium_src	20: no member named 'FromUTF8' in 'blink::String'; did you mean 'FromUtf8'?
+brave/chromium_src/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc	chromium_src	17: no member named 'StartsWith' in 'blink::StringView'
+brave/chromium_src/third_party/blink/renderer/modules/plugins/dom_plugin_array.cc	chromium_src	27: use of undeclared identifier 'WTF'
+brave/chromium_src/third_party/blink/renderer/modules/speech/speech_synthesis.cc	chromium_src	50: use of undeclared identifier 'WTF'
+brave/chromium_src/third_party/blink/renderer/modules/storage/storage_area.cc	chromium_src	12: unknown type name 'PageGraphObject'
+brave/chromium_src/third_party/blink/renderer/modules/storage/storage_area.h	chromium_src	28: unknown type name 'PageGraphObject'
+brave/chromium_src/third_party/blink/renderer/modules/websockets/websocket_channel_impl.h	chromium_src	34: base 'WebSocketChannelImpl_ChromiumImpl' is marked 'final'
+brave/chromium_src/third_party/blink/renderer/modules/webusb/usb_device.cc	chromium_src	24: use of undeclared identifier 'WTF'
+brave/chromium_src/third_party/blink/renderer/platform/bindings/idl_member_installer.cc	chromium_src	20: no member named 'name' in 'blink::bindings::IDLMemberInstaller::AttributeConfig'
+brave/chromium_src/third_party/blink/renderer/platform/fonts/font_fallback_list.h	chromium_src	21: no type named 'AtomicString' in namespace 'WTF'; did you mean 'blink::AtomicString'?
+brave/chromium_src/third_party/blink/renderer/platform/loader/fetch/https_state.cc	chromium_src	21: no member named 'EndsWith' in 'blink::String'
+brave/chromium_src/third_party/blink/renderer/platform/loader/fetch/script_fetch_options.cc	chromium_src	26: use of undeclared identifier 'WTF'
+brave/chromium_src/third_party/crashpad/crashpad/client/settings.cc	chromium_src	14: out-of-line definition of 'GetClientID' does not match any declaration in 'crashpad::Settings'
+brave/chromium_src/ui/accessibility/accessibility_features.cc	chromium_src	13: use of undeclared identifier 'kUseMoveNotCopyInMergeTreeUpdate'
+brave/chromium_src/ui/base/models/simple_menu_model.h	chromium_src	13: 'src/ui/base/models/simple_menu_model.h' file not found
+brave/chromium_src/ui/native_theme/native_theme.cc	chromium_src	18: use of undeclared identifier 'GetPreferredColorScheme'; did you mean 'PreferredColorScheme'?
+brave/chromium_src/ui/views/controls/button/md_text_button.cc	chromium_src	256: use of undeclared identifier 'GetCornerRadiusValue'
+brave/chromium_src/ui/views/input_event_activation_protector.h	chromium_src	9: 'ui/views/windows_stationarity_monitor.h' file not found
+brave/chromium_src/v8/src/builtins/builtins.cc	chromium_src	61: incomplete type 'v8::Utils' named in nested name specifier
+brave/chromium_src/v8/src/inspector/value-mirror.cc	chromium_src	158: no member named 'GetIsolate' in 'v8::Context'
+src/chrome/browser/component_updater/widevine_cdm_component_installer.h	chromium_src	19: no member named 'DoNothing' in namespace 'base'
+src/chrome/browser/download/background_download_service_factory.cc	chromium_src	181: no viable conversion from 'unique_ptr<(anonymous namespace)::URLLoaderFactoryGetter>' to 'scoped_refptr<networ
+src/chrome/browser/importer/external_process_importer_host.cc	chromium_src	108: no matching constructor for initialization of 'BraveExternalProcessImporterClient'
+src/chrome/browser/importer/importer_uma.cc	chromium_src	51: no member named 'TYPE_CHROME' in namespace 'user_data_importer'
+src/chrome/browser/ssl/https_upgrades_interceptor.cc	chromium_src	244: use of undeclared identifier 'http_interstitial_enabled_by_pref_'
+src/chrome/browser/storage_access_api/storage_access_grant_permission_context.cc	chromium_src	471: no member named 'id' in 'std::unique_ptr<permissions::PermissionRequestData>'; did you mean to use '->' instea
+src/chrome/browser/sync/prefs/chrome_syncable_prefs_database.h	chromium_src	21: virtual function 'GetSyncablePrefMetadata' has a different return type ('std::optional<sync_preferences::Synca
+src/chrome/browser/ui/layout_constants.cc	chromium_src	23: 'LayoutConstant' does not refer to a value
+src/chrome/browser/ui/safety_hub/password_status_check_service.cc	chromium_src	749: out-of-line definition of 'GetPasswordCardData_ChromiumImpl' does not match any declaration in 'PasswordStatus
+src/chrome/browser/ui/safety_hub/password_status_check_service.h	chromium_src	70: no type named 'Dict' in 'base::Value'
+src/chrome/browser/ui/session_crashed_bubble.h	chromium_src	20: unknown type name 'Browser'
+src/chrome/browser/ui/unload_controller.cc	chromium_src	630: no member named 'profile' in 'BrowserWindowInterface'
+src/chrome/browser/ui/views/frame/tab_strip_region_view.h	chromium_src	69: 'IsPositionInWindowCaption' is not virtual and cannot be declared pure
+src/chrome/browser/ui/views/infobars/confirm_infobar.h	chromium_src	45: functions that differ only in their return type cannot be overloaded
+src/chrome/browser/ui/views/page_info/page_info_cookies_content_view.cc	chromium_src	237: out-of-line definition of 'SetCookieInfo_ChromiumImpl' does not match any declaration in 'PageInfoCookiesConte
+src/chrome/browser/ui/views/page_info/page_info_cookies_content_view.h	chromium_src	38: unknown type name 'CookiesNewInfo'
+src/chrome/browser/ui/views/tabs/tab_group_views.h	chromium_src	55: unknown type name 'Browser'
+src/chrome/browser/ui/views/tabs/tab_style_views.h	chromium_src	58: 'IsTabTiled' marked 'override' but does not override any member functions
+src/chrome/browser/ui/webui/settings/search_engines_handler.h	chromium_src	66: no type named 'Dict' in 'base::Value'
+src/chrome/browser/ui/webui/settings/site_settings_helper.cc	chromium_src	268: static assertion failed due to requirement 'kContentSettingsTypeGroupNames.size() == 1 + static_cast<int>(cont
+src/chrome/browser/ui/webui/side_panel/bookmarks/bookmarks_side_panel_ui.cc	chromium_src	64: redefinition of 'BookmarksSidePanelUIConfig'
+src/chrome/browser/ui/webui/top_chrome/webui_contents_wrapper.cc	chromium_src	280: return type of out-of-line definition of 'WebUIContentsWrapper::AddNewContents' differs from that in the decla
+src/chrome/browser/ui/webui/top_chrome/webui_contents_wrapper.h	chromium_src	150: functions that differ only in their return type cannot be overloaded
+src/chrome/common/chrome_content_client.h	chromium_src	48: no member named 'ContentPluginInfo' in namespace 'content'
+src/components/captive_portal/core/captive_portal_detector.cc	chromium_src	41: built-in subscript operator for type 'const char[36]' expects exactly one argument
+src/components/component_updater/component_installer.cc	chromium_src	105: out-of-line definition of 'Register_ChromiumImpl' does not match any declaration in 'component_updater::Compon
+src/components/component_updater/component_installer.h	chromium_src	174: virtual function 'GetInstalledFile' has a different return type ('std::optional<base::FilePath>') than the fun
+src/components/component_updater/component_updater_service_internal.h	chromium_src	75: non-virtual member function marked 'override' hides virtual member function
+src/components/content_settings/browser/ui/cookie_controls_controller.cc	chromium_src	163: too few arguments provided to function-like macro invocation
+src/components/content_settings/core/browser/content_settings_uma_util.cc	chromium_src	26: static assertion failed due to requirement 'content_settings::kContentSettingsTypeToHistogramValue.size() == 1
+src/components/content_settings/core/common/content_settings.h	chromium_src	195: no member named 'kRemoteListProvider' in 'content_settings::mojom::ProviderType'
+src/components/content_settings/core/common/cookie_settings_base.cc	chromium_src	217: out-of-line definition of 'IsFullCookieAccessAllowed_ChromiumImpl' does not match any declaration in 'content_
+src/components/history/core/browser/visit_database.cc	chromium_src	124: use of undeclared identifier 'SOURCE_CHROME_IMPORTED'; did you mean 'SOURCE_IE_IMPORTED'?
+src/components/omnibox/browser/search_provider.cc	chromium_src	481: too many arguments provided to function-like macro invocation
+src/components/omnibox/browser/search_suggestion_parser.h	chromium_src	422: no type named 'List' in 'base::Value'
+src/components/signin/public/base/session_binding_utils.cc	chromium_src	43: no member named 'SignatureVerifier' in namespace 'crypto'
+src/components/sync/service/sync_user_settings.h	chromium_src	82: no member named 'GaiaIdHash' in namespace 'signin'
+src/components/sync_preferences/common_syncable_prefs_database.cc	chromium_src	591: return type of out-of-line definition of 'sync_preferences::CommonSyncablePrefsDatabase::GetSyncablePrefMetada
+src/components/sync_preferences/common_syncable_prefs_database.h	chromium_src	37: virtual function 'GetSyncablePrefMetadata' has a different return type ('std::optional<sync_preferences::Synca
+src/components/viz/service/gl/gpu_service_impl.cc	chromium_src	449: out-of-line definition of 'InitializeWithHost_ChromiumImpl' does not match any declaration in 'viz::GpuService
+src/content/browser/picture_in_picture/video_picture_in_picture_window_controller_impl.cc	chromium_src	32: cannot initialize return object of type 'VideoPictureInPictureWindowController *' with an rvalue of type 'cont
+src/content/browser/picture_in_picture/video_picture_in_picture_window_controller_impl.h	chromium_src	83: class member cannot be redeclared
+src/content/browser/renderer_host/clipboard_host_impl.cc	chromium_src	113: too many arguments to function call, expected 0, have 1
+src/content/browser/renderer_host/clipboard_host_impl.h	chromium_src	88: expression is not assignable
+src/content/browser/webui/web_ui_url_loader_factory.cc	chromium_src	251: use of undeclared identifier 'range'
+src/content/public/browser/video_picture_in_picture_window_controller.h	chromium_src	69: class member cannot be redeclared
+src/content/public/common/content_client.h	chromium_src	105: no member named 'ContentPluginInfo' in namespace 'content'
+src/extensions/browser/api/web_request/extension_web_request_event_router.cc	chromium_src	1402: use of undeclared identifier 'kOnBeforeSendHeaders'; did you mean 'OnBeforeSendHeaders'?
+src/extensions/browser/extension_creator.cc	chromium_src	221: no member named 'RSAPrivateKey' in namespace 'crypto'; did you mean 'crypto::keypair::PrivateKey'?
+src/net/base/proxy_string_util.cc	chromium_src	219: too many arguments provided to function-like macro invocation
+src/net/device_bound_sessions/session_binding_utils.cc	chromium_src	43: no member named 'SignatureVerifier' in namespace 'crypto'
+src/net/url_request/url_request_job.cc	chromium_src	315: no member named 'host_piece' in 'GURL'
+src/services/network/cookie_settings.h	chromium_src	92: no type named 'FirstPartySetMetadata' in namespace 'net'
+src/services/network/restricted_cookie_manager.cc	chromium_src	511: too many arguments to function call, expected 4, have 5; did you mean '::network::MakeOptionsForGet'?
+src/third_party/blink/public/common/permissions/permission_utils.h	chromium_src	31: expected '= constant-expression' or end of enumerator definition
+src/third_party/blink/renderer/core/dom/events/event_listener_map.cc	chromium_src	140: no viable conversion from 'const AddEventListenerOptionsResolved' to 'const AddEventListenerOptionsResolved *'
+src/third_party/blink/renderer/core/frame/location.cc	chromium_src	128: out-of-line definition of 'ancestorOrigins_ChromiumImpl' does not match any declaration in 'blink::Location'
+src/third_party/blink/renderer/core/inspector/inspector_page_agent.h	chromium_src	202: only virtual member functions can be marked 'override'
+src/third_party/blink/renderer/core/loader/mixed_content_checker.h	chromium_src	163: class member cannot be redeclared
+src/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h	chromium_src	328: class member cannot be redeclared
+src/third_party/blink/renderer/platform/loader/fetch/script_fetch_options.cc	chromium_src	44: out-of-line definition of 'CreateFetchParameters_ChromiumImpl' does not match any declaration in 'blink::Scrip
+src/third_party/blink/renderer/platform/loader/fetch/script_fetch_options.h	chromium_src	85: no type named 'TextEncoding' in namespace 'WTF'; did you mean simply 'TextEncoding'?
+base/containers/flat_map.h	chromium_via_brave	321: no matching constructor for initialization of 'mapped_type' (aka 'mojo::AssociatedReceiver<brave_shields::mojo
+base/functional/bind_internal.h	chromium_via_brave	1698: static assertion failed: Could not determine how to invoke functor. If this functor has an overloaded operator
+base/memory/scoped_refptr.h	chromium_via_brave	151: no matching constructor for initialization of 'update_client::UpdateClientImpl'
+base/no_destructor.h	chromium_via_brave	99: allocating an object of abstract class type 'commands::AcceleratorServiceFactory'
+chrome/browser/ui/views/infobars/confirm_infobar.cc	chromium_via_brave	192: return type of out-of-line definition of 'ConfirmInfoBar::GetDelegate' differs from that in the declaration
+chrome/browser/ui/webui/cr_components/searchbox/searchbox_handler.h	chromium_via_brave	269: 'const' is invalid in friend declarations
+chrome/common/chrome_features.h	chromium_via_brave	881: declaration of 'kHttpsUpgrades' with C language linkage conflicts with declaration in global scope
+content/public/browser/web_contents_user_data.h	chromium_via_brave	81: static_cast from 'Data *' to 'content::VideoPictureInPictureWindowControllerImpl *', which are not related by 
+content/public/test/browser_test_utils.h	chromium_via_brave	756: ambiguous conversion for functional-style cast from 'const std::nullptr_t' to 'base::Value'
+gen/third_party/blink/renderer/core/core_probes_inl.h	chromium_via_brave	134: unknown type name 'PageGraphObject'
+third_party/abseil-cpp/absl/container/inlined_vector.h	chromium_via_brave	143: expected unqualified-id
+third_party/abseil-cpp/absl/container/internal/inlined_vector.h	chromium_via_brave	431: 'virtual' cannot be specified on member function templates
+third_party/googletest/src/googletest/include/gtest/gtest-message.h	chromium_via_brave	148: invalid operands to binary expression ('std::stringstream' and 'const base::optional_ref<const std::string>')
+third_party/googletest/src/googletest/include/gtest/internal/gtest-internal.h	chromium_via_brave	448: cannot initialize return object of type 'Test *' with an rvalue of type 'SystemNetworkContextManagerBrowsertes
+ui/views/window/frame_view_utils_linux.h	chromium_via_brave	44: 'friend' used outside of class
+url/gurl.h	chromium_via_brave	351: unknown type name 'SkPath'
+brave/browser/extensions/brave_component_loader.cc	generado_falta	15: 'brave/components/brave_extension/grit/brave_extension.h' file not found
+brave/browser/infobars/request_otr_infobar_delegate.cc	generado_falta	16: 'components/grit/brave_components_resources.h' file not found
+brave/browser/speedreader/speedreader_tab_helper.cc	generado_falta	35: 'components/grit/brave_components_resources.h' file not found
+brave/browser/ui/webui/brave_adblock_internals_ui.cc	generado_falta	21: 'components/grit/brave_components_resources.h' file not found
+brave/browser/ui/webui/brave_adblock_ui.cc	generado_falta	24: 'components/grit/brave_components_resources.h' file not found
+brave/browser/ui/webui/brave_webui_source.cc	generado_falta	17: 'components/grit/brave_components_resources.h' file not found
+brave/browser/ui/webui/private_new_tab_page/brave_private_new_tab_ui.cc	generado_falta	17: 'components/grit/brave_components_resources.h' file not found
+brave/chromium_src/chrome/browser/extensions/chrome_component_extension_resource_manager.cc	generado_falta	8: 'brave/components/brave_extension/grit/brave_extension_generated_map.h' file not found
+brave/chromium_src/chrome/browser/extensions/component_extensions_allowlist/allowlist.cc	generado_falta	12: 'brave/components/brave_extension/grit/brave_extension.h' file not found
+brave/chromium_src/components/translate/core/browser/translate_script.cc	generado_falta	15: 'components/grit/brave_components_resources.h' file not found
+brave/common/brave_content_client.cc	generado_falta	13: 'components/grit/brave_components_resources.h' file not found
+brave/components/brave_perf_predictor/browser/named_third_party_registry.cc	generado_falta	21: 'components/grit/brave_components_resources.h' file not found
+brave/components/brave_shields/content/browser/domain_block_page.cc	generado_falta	15: 'components/grit/brave_components_resources.h' file not found
+brave/components/playlist/browser/media_detector_component_manager.cc	generado_falta	16: 'components/grit/brave_components_resources.h' file not found
+brave/components/request_otr/browser/request_otr_blocking_page.cc	generado_falta	16: 'components/grit/brave_components_resources.h' file not found
+brave/components/speedreader/speedreader_rewriter_service.cc	generado_falta	28: 'components/grit/brave_components_resources.h' file not found
+brave/components/webui/webui_resources.cc	generado_falta	15: 'components/grit/brave_components_resources.h' file not found
+src/content/browser/webui/shared_resources_data_source.cc	generado_falta	12: 'ui/webui/resources/grit/webui_resources.h' file not found
+third_party/libc++/src/include/__memory/unique_ptr.h	otro	708: no matching constructor for initialization of 'extensions::WebAuthFlow'
+third_party/rust/chromium_crates_io/vendor/aho-corasick-v1/src/ahocorasick.rs	rust_chromium	2661: implementation of an `unsafe` trait
+third_party/rust/chromium_crates_io/vendor/aho-corasick-v1/src/automaton.rs	rust_chromium	198: declaration of an `unsafe` trait
+third_party/rust/chromium_crates_io/vendor/aho-corasick-v1/src/dfa.rs	rust_chromium	190: implementation of an `unsafe` trait
+third_party/rust/chromium_crates_io/vendor/aho-corasick-v1/src/nfa/contiguous.rs	rust_chromium	176: implementation of an `unsafe` trait
+third_party/rust/chromium_crates_io/vendor/aho-corasick-v1/src/nfa/noncontiguous.rs	rust_chromium	591: implementation of an `unsafe` trait
+third_party/rust/chromium_crates_io/vendor/aho-corasick-v1/src/packed/ext.rs	rust_chromium	8: declaration of an `unsafe` method
+third_party/rust/chromium_crates_io/vendor/aho-corasick-v1/src/packed/pattern.rs	rust_chromium	153: implementation of an `unsafe` method
+third_party/rust/chromium_crates_io/vendor/aho-corasick-v1/src/packed/teddy/builder.rs	rust_chromium	362: usage of an `unsafe` block
+third_party/rust/chromium_crates_io/vendor/aho-corasick-v1/src/packed/teddy/generic.rs	rust_chromium	74: implementation of an `unsafe` method
+third_party/rust/chromium_crates_io/vendor/aho-corasick-v1/src/packed/vector.rs	rust_chromium	44: declaration of an `unsafe` method
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/calendar.rs	rust_chromium	1: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/duration.rs	rust_chromium	3: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/error.rs	rust_chromium	1: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/instant.rs	rust_chromium	1: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/options.rs	rust_chromium	3: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/plain_date.rs	rust_chromium	5: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/plain_date_time.rs	rust_chromium	3: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/plain_month_day.rs	rust_chromium	1: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/plain_time.rs	rust_chromium	1: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/plain_year_month.rs	rust_chromium	1: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/provider.rs	rust_chromium	32: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/time_zone.rs	rust_chromium	5: custom attribute panicked
+third_party/rust/chromium_crates_io/vendor/temporal_capi-v0_2/src/zoned_date_time.rs	rust_chromium	6: custom attribute panicked

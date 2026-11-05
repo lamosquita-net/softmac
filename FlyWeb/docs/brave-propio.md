@@ -456,3 +456,108 @@ Encargo de COORDINACIÓN-25 (03-11, tras #722). **Papel**: nada compilado ni eje
 - **Hecho:** v1 (#706), P0 (#707), §10, **esto**: §11.1–11.7 (clasificación de los 556 ausentes con el commit de Brave que los quitó; medida de papel de los 579 parches; plan de poda medido; receta de B2) y §11.8 (los tres cambios propios de FlyWeb: Secure Enclave, llavero `fw1`, captive portal; encargo de COORDINACIÓN-25).
 - **Falta:** (1) `gn desc` con LOCAL (qué se compila de verdad); (2) la compilación de B2 y B1 (LOCAL/MOTOR); (3) leer los diffs de los commits de §11.4 (b, c) y las 8 filas FlyWeb de §11.4(a); (4) leer el código de los cambios de §10.2 que se decidan traer; (5) la puerta de Titín (A/B/C) y su sí a la poda; (6) los envoltorios se midieron por nombre y por `#define`, no por «aplica» [N].
 - **Trampas de método (nuevas):** (i) `git fetch <oid>` en un repo parcial de Chromium va de uno en uno (~20 s por blob): usar `curl` a `raw.githubusercontent.com/chromium/chromium/<etiqueta>/<ruta>` (0,4 s); (ii) `git log -M` en un repo sin blobs se queda calculando: usar `--no-renames` y comparar hashes de blob entre árboles; (iii) `git log --diff-filter=D --no-renames` con árboles funciona (1,6 s sobre 18 905 commits); (iv) el `master` del fork es 1.98.37 (28-09), no 1.98.63; (v) `pkill -f` con un patrón que aparece en la propia orden mata la shell.
+
+## 12. Medida P2 (MOTOR-30, 05-11)
+
+Medida real de B2 (receta §11.7) en Ubuntu por MOTOR-30, redactada por MOTOR-31. Datos en `FlyWeb/tools/brave-inventario/datos/p2/`
+(`B2-entrega.txt` es el informe original). Marcas como en el resto: **[V]** medido; **[I]** inferencia; **[N]** sin medir.
+
+### 12.1 Condiciones
+
+- **Chromium 156.0.8078.90** (23b0e24adf), Linux x64. La receta pedía .80: los 10 parches que aplican en papel (§11.5) y no en real se achacan a esa diferencia [I].
+  GN: `is_debug=false is_component_build=true symbol_level=0 blink_symbol_level=0 use_remoteexec=false treat_warnings_as_errors=false`, más los args de Brave de `config.js` y los de `build.sh` válidos en Linux (en la poda, sin los que ya no se declaran).
+- **Base** `flyweb` 5fdeb23d6f (2.7.0); **poda** `nube/b2-poda` 742e13ff (70 dirs + Tor + corte `.onion`). Ambas desde la misma 156 limpia y en el mismo orden: parches como `apply_patches`, `chromium-rebase-l10n`, `updateBranding`, los mismos arreglos de medida (lista 3) y `gn gen`.
+- **Objetivos:** todo C++ y Rust de `brave/` y las unidades de Chromium con envoltorio o parche; no se compila `chrome` entero. `autoninja -k 0` con un `cc_wrapper` de medida que anota el fallo y deja seguir (Chromium se recompila sin envoltorio; Brave deja un objeto vacío). Lo bloqueado tras acciones de webui o Rust se compila desde `compdb`.
+- **Recuento:** un fichero roto cuenta **una vez**, en la clase del fichero donde cae su primer error. Sin medir: crates Rust bloqueados (65 base, 17 poda).
+
+### 12.2 Resultado [V]
+
+| Ficheros rotos por clase | Base | Poda | Cambio |
+|---|---|---|---|
+| **Total** | **1 682** | **936** | **−746** |
+| `brave` (código de Brave contra API de Chromium cambiada) | 1 281 | 584 | −697 |
+| `chromium_src` (envoltorio o el original que incluye) | 253 | 251 | −2 |
+| `brave_rust` | 77 | 43 | −34 |
+| `generado_falta` (cabecera generada bloqueada) | 26 | 18 | −8 |
+| `rust_chromium` (crate de Chromium que solo usa Brave) | 23 | 23 | 0 |
+| `chromium_via_brave` | 20 | 16 | −4 |
+| `otro` | 2 | 1 | −1 |
+
+| | Base | Poda |
+|---|---|---|
+| Unidades C++ que fallan / objetivos | 2 713 / 3 834 | 1 319 / 1 811 |
+| … con fuente en `brave/` | 2 187 / 3 069 | 799 / 1 054 |
+| Parches de Brave (1.69) aplican / no aplican / sin objetivo | 196 / 336 / 58 (de 590) | 195 / 330 / 58 (de 583) |
+
+De los 336 que no aplican en la base, 197 fallan del todo y 125 solo aplicarían con `-C1` (`apply_patches` no usa *fuzz*). Los 58 sin objetivo cuadran exactos con §11.5. **70 de los que no aplican son de GN**, entre ellos los que enganchan `brave/browser`, `brave/common` y `brave/renderer` a `chrome/`: sin ellos el grueso de Brave ni entra en el grafo.
+
+**Lectura:** la poda quita el **44 %** de los ficheros rotos (754 desaparecen: 711 borrados y 43 que ya no fallan) y casi no toca `chromium_src` (−2): confirma §1.1, la poda reduce **compilación**, no **rebase**. La superficie real del porte es la **lista 1 (928)**, la **lista 3 (255)** y los ~330 parches.
+
+### 12.3 Las tres listas
+
+**Lista 2: rotos por la poda: 2** [V], ya arreglados en `nube/b2-poda` (4127545c):
+- `browser/ntp_background/view_counter_service_factory.cc:82`: `sizeof` de tipo incompleto `NTPP3AHelper` (la cabecera llegaba por `ntp_p3a_helper_impl.h`, borrado con P3A). Arreglo: incluir `ntp_p3a_helper.h` (68828d14).
+- `components/common/typescript.gni:25`: listaba `definitions/rewardsInternals.d.ts`, borrado con Rewards. Arreglo: quitar la línea (4e7a0118).
+
+Ninguna unidad compila en la base y falla en la poda, ni hay `#include` de cabeceras borradas. Los 8 ficheros que salen rotos solo en la poda son de la 156: en la base su unidad caía antes por una cabecera de Ads o de la cartera [V].
+
+**Lista 1: rotos por la 156 (en las dos variantes): 928** (`B2-lista1-rotos-por-la-156.tsv`). Clasificación por el primer error (MOTOR-31, regex sobre el texto; aproximada [I]):
+
+| Causa | Ficheros | Ejemplos |
+|---|---|---|
+| Cabecera de Chromium quitada o movida | 241 | `base/containers/contains.h` 49, `base/ranges/algorithm.h` 35, `chrome/browser/ui/browser_finder.h` 18, `brave_components_resources.h` 14 (grit), `wtf/text/text_stream.h` 8, `scoped_testing_local_state.h` 6, `browser_list.h` 5 |
+| Firma cambiada (argumentos, conversiones, definición fuera de línea) | 120 | `no viable conversion`, `FrameTreeNodeId`, `does not match any declaration` |
+| Identificador o tipo desconocido | 117 | `String`/`WTF`/`AtomicString` de Blink 29, `Browser` 11, `ModelTypeSet` 4 |
+| `base::Value::Dict`/`List` (la 156 quitó esa forma) | 80 | |
+| `no member named` | 77 | `BrowserWindowInterface::profile` 19, `v8::Context::GetIsolate` 6, `GURL::host_piece` 5 |
+| `override` sobre método que ya no es virtual (`KeyedServiceFactory`…) | 63 | 40 «hides virtual», 22 «only virtual» |
+| `Browser` → `BrowserWindowInterface` | 37 | |
+| `NOTREACHED_IN_MIGRATION` | 15 | |
+| Rust (`custom attribute panicked`, `unsafe` traits) | 23 | crates de `chromium_crates_io` |
+| Tipo incompleto, miembro privado, clase abstracta | 24 | |
+| Otros | 101 | |
+
+Por zona: `brave/browser/ui` 147, `chromium_src/chrome` 68, `chromium_src/components` 67, `third_party/rust` 43, `third_party/blink` 38, Shields (`components/brave_shields` 24 + `browser/brave_shields` 15), `browser/net` 23, `browser/extensions` 21, `ntp_background_images` 16, **Playlist 25** (`components` 16 + `browser` 9), `ephemeral_storage` 14, `omnibox` 14.
+
+**Donante** (comparando los ficheros de la lista 1 con `master` del fork = **1.98.37**, no .63 [I: aproximación]): de los 825 de `brave/`, **633 tienen otra versión en 1.98** (Brave ya los adaptó), **188 no existen en 1.98** (Brave los movió o quitó: 43 crates de `chromium_crates_io`, 20 de `chromium_src/chrome/browser`, 13 de `browser/ui/views`, 16 de Playlist…) y **4 son iguales** (el donante no ayuda). 103 están fuera de `brave/` (Chromium o crates).
+
+**Lista 3: herramientas, generación y arreglos de medida: 255**, todas «arreglo de medida, **rehacer en el porte**» (`B2-lista3-arreglos-de-medida.tsv`). Lo que se repite: 64 parches GN puestos a mano, 44 líneas de Brave comentadas, 28 crates de Brave duplicados en la 156 (pasan a reenviar al de Chromium), 35 dependencias Rust sin resolver (`quote`, `proc_macro`), 7 visibilidades, 6 fuentes de Chromium desaparecidas, 4 crates `testonly`. Lo que **bloquea todo el árbol**:
+- `redirect_cc` (la herramienta de `chromium_src`) no compila en la 156 (`base::Contains`, `StringPieceType`, `make_span`, `Environment::GetVar`).
+- `mojom_parser.py` de `chromium_src` (firma de `_ParseAstHelper`); la 156 valida atributos de mojom: `[BraveAdd]`/`[BraveExtend]` y `[Native]` de `brave.mojom` (tumbaba `network_service.mojom`).
+- grit de la 156: `chromeos_ash` → `is_chromeos` (22 grd/grdp), `output_all_resource_defines` desaparece (12 grd y `gen-webpack-grd.js`), variantes de género, `resource_ids.spec`, 80 `.xtb` de locales nuevos.
+- `updateBranding` pega sobre la 156 los `.grd` de la 128: hay que pasar `chromium-rebase-l10n` en cada rebase.
+- `function_registration` exige `<ns>/<ns>_api.h` (7 cabeceras de reenvío).
+- Envoltorios de `base` que bloquean `libbase.so`: `json_reader.h` y `feature_list.cc` (la macro de `default_state` hay que rehacerla).
+- Webui: `cr_elements/BUILD.gn` y `aggregate_vector_icons.py` (parches que no aplican); sin resolver: `build_ts` de settings, password_manager y bookmarks, `brave_new_tab`, `brave_welcome`, web-discovery-project.
+- GN: un ciclo nuevo `content → language_detection → optimization_guide → unified_consent → sync → brave_sync → content`; objetivos de Chromium desaparecidos (`os_crypt/sync`, `flags_ui`, `companion`, `privacy_budget`, `ppapi`…); la 156 ya trae `brave_search_suggestion_parser.cc`.
+
+### 12.4 Rust: el donante resuelve Shields [V]
+
+Los crates de Brave que fallan dependen de crates que la 156 ya no trae (`syn 1`, `rand 0.7/0.8`, `rand_core 0.5/0.6`, `base64 0.13`, `getrandom 0.1/0.2`…; tabla en `B2-rust-donante.txt`). **El adblock 0.13.3 de 1.98 (cierre de 61 crates) solo usa `syn 2.0.119` y `3.0.5`, los de la 156. Shields se porta tomando el adblock 0.13.3 de 1.98 y su cierre**, no vendorizando los viejos (adblock 0.8.11, cssparser 0.27/0.28, selectors 0.22/0.23, html5ever 0.25). En 1.98 solo siguen con `syn 1` async-trait, data-encoding-macro-internal, derive_more 0.99, ff_derive y pin-project-internal, todos de la cartera y zcash, ya podados.
+Coste a vigilar [I]: adblock 0.8 → 0.13 cambia la API que usa `components/brave_shields/adblock/rs` (FFI cxx); el envoltorio de 1.98 es el donante natural.
+
+### 12.5 `.onion` y Mac
+
+- **`.onion` fuera del DNS** (RFC 7686): el envoltorio `chromium_src/net/dns/host_resolver_manager.cc` compila en la 156 y **pasa** con control negativo (`B2-onion-prueba.txt`): `x.onion`, `X.ONION.`, `onion` y `a.b.onion` dan `ERR_NAME_NOT_RESOLVED` **sin consulta**; con el filtro anulado, tres de ellos llegan al resolutor. No es `net_unittests` ni `tcpdump` [N]. La rama `source=MULTICAST_DNS` (`IsValidDnsName`) no pasaba por el filtro: **cortada también** en 4127545c (sin medir aún).
+- **Para LOCAL:** en Linux no se compilan los **50 `.mm` de escritorio** de la poda (`B2-mac-mm-para-LOCAL.txt`): entre ellos `keystone_glue`, `sparkle_glue`, `fw1_key_provider_mac` (llavero `fw1`, §11.8), `keychain_password_mac`, los marcos de ventana y 24 envoltorios `chromium_src` de Cocoa. Su medida es de LOCAL en la 7,1.
+
+### 12.6 Plan del porte de la lista 1 (propuesta de MOTOR-31; **no empezado**, espera aprobación)
+
+Principio: **tandas por causa común**, no por directorio, para que cada tanda sea mecánica, revisable y **medible por MOTOR-30** con la misma receta (§12.1) y el mismo recuento. Cada tanda: rama `nube/b2-porte-tN` encima de la anterior; commits por causa; entrega = sha + cifra esperada; MOTOR-30 vuelve a compilar y da la lista 1 nueva y la lista 2 de regresiones (debe ser 0). **Donante:** donde el fichero existe distinto en 1.98, se toma el cambio de Brave de ese fichero (diff 1.69 → 1.98 acotado a la causa de la tanda), no el fichero entero, para no arrastrar funciones nuevas de 1.98; se reaplican las ediciones de FlyWeb (rebranding, `flyweb://`, constantes) y se vigilan las regresiones silenciosas de §2.3.
+
+| Tanda | Qué | Ficheros (lista 1) | Donante | Riesgo |
+|---|---|---|---|---|
+| **T0** | **Lista 3 hecha bien** (no es lista 1, pero bloquea todo): `redirect_cc`, `mojom_parser.py` y atributos `[BraveAdd]`/`[BraveExtend]`/`[Native]`, grit (`is_chromeos`, `output_all_resource_defines`, géneros, `resource_ids.spec`, `.xtb` nuevos), `chromium-rebase-l10n` dentro de `updateBranding`, cabeceras `_api.h`, envoltorios de `base` (`json_reader.h`, `feature_list.cc`), los 70 parches GN rehechos como commits, Rust en GN (visibilidades, 28 duplicados → reenvío, `testonly`), ciclo `brave_sync`. Hito: `gn gen --check` limpio **sin** arreglos de medida | 255 (lista 3) | 1.98 tiene todas estas herramientas ya en 15x | alto: es la base de todo; sin ella la medida no es fiable |
+| **T1** | Renombres mecánicos de `base`/URL: `base/containers/contains.h` y `base/ranges/algorithm.h` → `std::ranges`, `NOTREACHED_IN_MIGRATION` → `NOTREACHED()`, `GURL::*_piece` → `host()`/`path()`, `StringPieceType`, `cxx23_to_underlying` → `std::to_underlying`, `base::NullCallback`, `StringPrintf` | ~120 | sí (sustituciones iguales en 1.98) | bajo; con guion y revisión de diff |
+| **T2** | `base::Value::Dict`/`List` → la forma de la 156 (`base::DictValue`/`base::ListValue`, clases propias en `base/values.h` de la 156 [V]) | ~80 | sí: 63 de 80 | bajo-medio: hay sobrecargas y *mojom* con `Value` |
+| **T3** | Blink: `WTF::String`/`AtomicString`/`text_stream.h` (WTF absorbido en `blink`), `v8::Context::GetIsolate`, `WebString::FromUTF8` | ~45 | sí: 29 de 30 | medio: toca farbling y los parches del motor (`brave-vs-parches-motor`) |
+| **T4** | `KeyedServiceFactory` y factorías: `override` sobre métodos ya no virtuales → la API nueva (`BuildServiceInstanceForBrowserContext` con `unique_ptr`, `ProfileKeyedServiceFactory`) | ~63 | sí: 52 de 63 | bajo-medio |
+| **T5** | Interfaz: `Browser` → `BrowserWindowInterface` (`profile()` 19, `browser_finder.h`/`browser_list.h` 23), `BrowserFrame`, `browser_navigator*`, `read_later_side_panel_web_view`, `browser_non_client_frame_view` | ~150 (`browser/ui` 147) | sí: la mayoría | **alto**: es la «capa de interfaz» que Titín quiere rehacer; propongo portarla **mínima** (compilar y arrancar) y no traer el rediseño de 1.98 |
+| **T6** | Shields y privacidad: adblock 0.13.3 de 1.98 y su cierre (§12.4), FFI de `brave_shields/adblock/rs`, `brave_shields` C++, `ephemeral_storage`, `content_settings`, `permissions`, `net` (`FirstPartySetMetadata`, `CookiesNewInfo`, `PartitionKey`), `query_filter`, `debounce`, `de_amp` | ~110 + 43 Rust | sí | **alto** en valor: es lo que FlyWeb conserva; prueba funcional de Shields después (listas propias de `components.flyweb`) |
+| **T7** | Sync y cuentas: `ModelTypeSet` → `DataTypeSet`, `AccountConsistencyMethod`, `os_crypt/sync` desaparecido (cruce con §11.8: `fw1`, llavero) | ~25 | sí | alto: datos del usuario; revisar con §11.8 |
+| **T8** | `chromium_src` restante (lo que no cayó en T1–T7): envoltorio a envoltorio, con el *plaster* o el envoltorio de 1.98 como donante | ~120 de 251 [I] | 1.98 (envoltorios y 767 *plasters*) | medio: cada `#define` puede dejar de aplicar **sin error** (§11.8: captive portal); añadir prueba donde el envoltorio apague algo |
+| **T9** | Los 188 **ausentes en 1.98**: decidir uno a uno (Brave lo quitó → ¿lo quitamos?, lo movió → seguir el movimiento) con el commit de Brave que lo quitó (§11.1). Incluye **Playlist (25)**, `webtorrent`, `ntp_widget_utils` | 188 (43 crates en T6) | el commit de 1.98 que lo movió o quitó | depende de decisiones de Titín |
+
+Orden: **T0 → T1 → T2 → T4 → T3 → T6 → T7 → T5 → T8 → T9**: primero lo mecánico y masivo (baja la cifra deprisa y despeja errores en cascada), después lo de más valor (Shields, sync) y al final la interfaz y lo que depende de decisiones.
+**Decisiones que ahorran trabajo** (para COORDINACIÓN/Titín antes de T5/T9): Playlist (25 rotos), Speedreader, Sidebar, WebTorrent, Wayback, Commander y el NTP de Brave (sustituido por `flyweb_ntp`; 16 rotos en `ntp_background_images`). Cada «fuera» se poda como en B2 y quita sus rotos de la lista 1.
+**Límites del plan:** la causa sale del **primer** error de cada fichero (puede esconder otros); el donante medido es 1.98.37, no .63; los ~330 parches de Brave y los ~1 267 del motor no están aquí (§11.5 y la capa de nivel), y Mac (50 `.mm`) lo mide LOCAL.

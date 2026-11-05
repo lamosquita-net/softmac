@@ -1,0 +1,256 @@
+fichero	qué	etiqueta
+build/config/chrome_build.gni	parche no aplica (cabecera de licencia nueva); import de brave_build.gni puesto a mano	arreglo de medida, rehacer en el porte
+build/config/BUILDCONFIG.gn	parche no aplica (lista default_compiler_configs cambiada); //brave/build:compiler puesto a mano	arreglo de medida, rehacer en el porte
+components/translate/core/common/BUILD.gn	public_deps ya no está vacío en 156; = cambiado a +=	arreglo de medida, rehacer en el porte
+components/sync/service/BUILD.gn	brave_components_sync_driver_sources sin definir: falta la cadena de imports de 128; import de brave_build.gni	arreglo de medida, rehacer en el porte
+chrome/browser/resources/extensions/BUILD.gn	línea de Brave comentada: Undefined identifier. (web_component_files)	arreglo de medida, rehacer en el porte
+chrome/browser/resources/bookmarks/BUILD.gn	línea de Brave comentada: Undefined identifier. (non_web_component_files)	arreglo de medida, rehacer en el porte
+brave/utility/importer/sources.gni	línea de Brave comentada: Unable to load "components/os_crypt/sync/BUILD.gn". ("//components/os_crypt/sync",)	arreglo de medida, rehacer en el porte
+chrome/browser/resources/settings/BUILD.gn	línea de Brave comentada: Undefined identifier. (non_web_component_files)	arreglo de medida, rehacer en el porte
+chrome/browser/resources/downloads/BUILD.gn	línea de Brave comentada: Undefined identifier. (non_web_component_files)	arreglo de medida, rehacer en el porte
+chrome/browser/resources/password_manager/BUILD.gn	línea de Brave comentada: Undefined identifier. (non_web_component_files)	arreglo de medida, rehacer en el porte
+brave/app/BUILD.gn	línea de Brave comentada: Unable to load "chrome/browser/promos/BUILD.gn". ("//chrome/browser/promos:utils",)	arreglo de medida, rehacer en el porte
+brave/app/BUILD.gn	línea de Brave comentada: Unable to load "chrome/common/privacy_budget/BUILD.gn". ("//chrome/common/privacy_budget",)	arreglo de medida, rehacer en el porte
+brave/components/brave_sync/BUILD.gn	línea de Brave comentada: Unable to load "components/os_crypt/sync/BUILD.gn". ("//components/os_crypt/sync",)	arreglo de medida, rehacer en el porte
+brave/app/BUILD.gn	línea de Brave comentada: Unable to load "components/aggregation_service/BUILD.gn". ("//components/aggregation_service",)	arreglo de medida, rehacer en el porte
+brave/app/BUILD.gn	línea de Brave comentada: Unable to load "chrome/browser/companion/core/BUILD.gn". ("//chrome/browser/companion/core",)	arreglo de medida, rehacer en el porte
+brave/app/BUILD.gn	línea de Brave comentada: Unable to load "chrome/common/companion/visual_query/BUILD.gn". ("//chrome/common/companion/visual_query:flags",)	arreglo de medida, rehacer en el porte
+brave/app/BUILD.gn	línea de Brave comentada: Unable to load "components/plus_addresses/BUILD.gn". ("//components/plus_addresses:features",)	arreglo de medida, rehacer en el porte
+brave/components/brave_sync/BUILD.gn	línea de Brave comentada: Unable to load "components/os_crypt/sync/BUILD.gn". ("//components/os_crypt/sync:test_support",)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/rand/v0_8/BUILD.gn	línea de Brave comentada: Unable to load "third_party/rust/rand/v0_8/BUILD.gn". ("//third_party/rust/rand/v0_8:lib")	arreglo de medida, rehacer en el porte
+brave/third_party/rust/base64/v0_13/BUILD.gn	línea de Brave comentada: Unable to load "third_party/rust/base64/v0_13/BUILD.gn". ("//third_party/rust/base64/v0_13:lib")	arreglo de medida, rehacer en el porte
+brave/third_party/rust/rand_core/v0_6/BUILD.gn	línea de Brave comentada: Unable to load "third_party/rust/rand_core/v0_6/BUILD.gn". ("//third_party/rust/rand_core/v0_6:lib")	arreglo de medida, rehacer en el porte
+brave/third_party/rust/syn/v1/BUILD.gn	línea de Brave comentada: Unable to load "third_party/rust/syn/v1/BUILD.gn". ("//third_party/rust/syn/v1:lib")	arreglo de medida, rehacer en el porte
+third_party/rust/memchr/v2/BUILD.gn	visibilidad de 156 solo //third_party/rust/*; añadido //brave/*	arreglo de medida, rehacer en el porte
+third_party/rust/regex/v1/BUILD.gn	visibilidad de 156 solo //third_party/rust/*; añadido //brave/*	arreglo de medida, rehacer en el porte
+third_party/rust/unicode_ident/v1/BUILD.gn	visibilidad de 156 solo //third_party/rust/*; añadido //brave/*	arreglo de medida, rehacer en el porte
+brave/third_party/rust/rustc_version/v0_4/BUILD.gn	línea de Brave comentada: Unable to load "third_party/rust/rustc_version/v0_4/BUILD.gn". ("//third_party/rust/rustc_version/v0_4:buildrs_support")	arreglo de medida, rehacer en el porte
+third_party/rust/regex/v1/BUILD.gn	crate testonly en 156 y Brave lo usa en producción; testonly quitado	arreglo de medida, rehacer en el porte
+third_party/rust/cfg_if/v1/BUILD.gn	visibilidad de 156 solo //third_party/rust/*; añadido //brave/*	arreglo de medida, rehacer en el porte
+brave/third_party/rust/ppv_lite86/v0_2/BUILD.gn	línea de Brave comentada: Unable to load "third_party/rust/ppv_lite86/v0_2/BUILD.gn". ("//third_party/rust/ppv_lite86/v0_2:lib")	arreglo de medida, rehacer en el porte
+brave/third_party/rust/unicode_ident/v1/BUILD.gn	visibilidad de 156 solo //third_party/rust/*; añadido //brave/*	arreglo de medida, rehacer en el porte
+brave/third_party/rust/syn/v1/BUILD.gn	visibilidad de 156 solo //third_party/rust/*; añadido //brave/*	arreglo de medida, rehacer en el porte
+brave/app/BUILD.gn	dependencia sin resolver //chrome/browser/enterprise/connectors/analysis:features; línea comentada	arreglo de medida, rehacer en el porte
+brave/app/BUILD.gn	dependencia sin resolver //components/attribution_reporting:attribution_reporting; línea comentada	arreglo de medida, rehacer en el porte
+brave/components/brave_new_tab_ui/BUILD.gn	dependencia sin resolver //ui/webui/resources/cr_components/searchbox:mojo_bindings; línea comentada	arreglo de medida, rehacer en el porte
+brave/components/brave_new_tab_ui/BUILD.gn	dependencia sin resolver //ui/webui/resources/cr_components/searchbox:mojo_bindings_js; línea comentada	arreglo de medida, rehacer en el porte
+brave/components/brave_drm/BUILD.gn	variante blink de mojom opcional en 156; generate_blink = true	arreglo de medida, rehacer en el porte
+brave/components/brave_geolocation_permission/common/BUILD.gn	variante blink de mojom opcional en 156; generate_blink = true	arreglo de medida, rehacer en el porte
+brave/components/sync/service/sources.gni	ciclo nuevo en 156 (content -> language_detection -> optimization_guide -> unified_consent -> sync -> brave_sync -> network_time_helper -> content); dep quitada	arreglo de medida, rehacer en el porte
+brave/components/brave_sync/BUILD.gn	mismo ciclo; brave_sync -> network_time_helper quitada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/android_system_properties/v0_1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/android_system_properties/v0_1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/autocfg/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/autocfg/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/byteorder/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/byteorder/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/bytes/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/bytes/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/chrono/v0_4/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/chrono/v0_4); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/core_foundation_sys/v0_8/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/core_foundation_sys/v0_8); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/either/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/either/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/iana_time_zone/v0_1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/iana_time_zone/v0_1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/libm/v0_2/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/libm/v0_2); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/lock_api/v0_4/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/lock_api/v0_4); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/num_bigint/v0_4/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/num_bigint/v0_4); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/num_integer/v0_1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/num_integer/v0_1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/num_traits/v0_2/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/num_traits/v0_2); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/once_cell/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/once_cell/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/parking_lot/v0_12/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/parking_lot/v0_12); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/parking_lot_core/v0_9/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/parking_lot_core/v0_9); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/proc_macro2/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/proc_macro2/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/quote/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/quote/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/scopeguard/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/scopeguard/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/smallvec/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/smallvec/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/stable_deref_trait/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/stable_deref_trait/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/subtle/v2/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/subtle/v2); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/unicode_ident/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/unicode_ident/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/unicode_xid/v0_2/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/unicode_xid/v0_2); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/uuid/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/uuid/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/version_check/v0_9/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/version_check/v0_9); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/zeroize/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/zeroize/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/zeroize_derive/v1/BUILD.gn	crate duplicado en Chromium 156 (third_party/rust/zeroize_derive/v1); reenvío al de Chromium (+visibilidad)	arreglo de medida, rehacer en el porte
+third_party/rust/version_check/v0_9/BUILD.gn	crate testonly en 156 y Brave lo usa en producción; testonly quitado	arreglo de medida, rehacer en el porte
+brave/third_party/rust/cssparser_macros/v0_6/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/curve25519_dalek_derive/v0_1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/curve25519_dalek_derive/v0_1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/derive_more/v0_99/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/derive_more/v0_99/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/ff_derive/v0_13/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/ff_derive/v0_13/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/phf_macros/v0_8/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/phf_macros/v0_8/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/thiserror_impl/v1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/thiserror_impl/v1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+(args.gn)	translate_genders = false: grit de Brave no genera las variantes de género de 156 (684 entradas sin generar en chrome_repack_locales)	arreglo de medida, rehacer en el porte
+brave/tools/redirect_cc/redirect_cc.cc	[C++, no GN] base/containers/contains.h quitado en 156; std::ranges::contains (herramienta necesaria para medir); FilePath::StringPieceType -> StringViewType; base::make_span -> base::span; Environment::GetVar devuelve optional	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	línea de Brave comentada: Unable to load "components/assist_ranker/proto/BUILD.gn". ("//components/assist_ranker/proto",)	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	línea de Brave comentada: Unable to load "components/os_crypt/sync/BUILD.gn". ("//components/os_crypt/sync:test_support",)	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	línea de Brave comentada: Unable to load "components/assist_ranker/BUILD.gn". ("//components/assist_ranker",)	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	línea de Brave comentada: Unable to load "ppapi/buildflags/BUILD.gn". ("//ppapi/buildflags",)	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	línea de Brave comentada: Unable to load "components/reading_list/features/BUILD.gn". ("//components/reading_list/features:flags",)	arreglo de medida, rehacer en el porte
+brave/components/sync/service/BUILD.gn	línea de Brave comentada: Unable to load "components/os_crypt/sync/BUILD.gn". ("//components/os_crypt/sync:test_support",)	arreglo de medida, rehacer en el porte
+brave/chromium_src/components/flags_ui/BUILD.gn	línea de Brave comentada: Unable to load "components/flags_ui/BUILD.gn". ("//components/flags_ui",)	arreglo de medida, rehacer en el porte
+brave/components/sync/service/BUILD.gn	línea de Brave comentada: Unable to load "components/os_crypt/sync/BUILD.gn". ("//components/os_crypt/sync:os_crypt",)	arreglo de medida, rehacer en el porte
+brave/chromium_src/components/flags_ui/BUILD.gn	línea de Brave comentada: Unable to load "components/flags_ui/BUILD.gn". ("//components/flags_ui:switches",)	arreglo de medida, rehacer en el porte
+brave/browser/ui/BUILD.gn	línea de Brave comentada: Unable to load "components/flags_ui/BUILD.gn". ("//components/flags_ui",)	arreglo de medida, rehacer en el porte
+brave/components/filecoin/rs/BUILD.gn	línea de Brave comentada: Unable to load "third_party/rust/base64/v0_13/BUILD.gn". ("//third_party/rust/base64/v0_13:lib",)	arreglo de medida, rehacer en el porte
+brave/components/privacy_sandbox/BUILD.gn	línea de Brave comentada: Unable to load "components/browsing_topics/common/BUILD.gn". ("//components/browsing_topics/common",)	arreglo de medida, rehacer en el porte
+brave/components/skus/browser/rs/lib/BUILD.gn	línea de Brave comentada: Unable to load "third_party/rust/base64/v0_13/BUILD.gn". ("//third_party/rust/base64/v0_13:lib",)	arreglo de medida, rehacer en el porte
+brave/third_party/rust/getrandom/v0_2/BUILD.gn	línea de Brave comentada: Unable to load "third_party/rust/getrandom/v0_2/BUILD.gn". ("//third_party/rust/getrandom/v0_2:lib")	arreglo de medida, rehacer en el porte
+third_party/rust/itoa/v1/BUILD.gn	visibilidad de 156 solo //third_party/rust/*; añadido //brave/*	arreglo de medida, rehacer en el porte
+third_party/rust/unicode_xid/v0_2/BUILD.gn	crate testonly en 156 y Brave lo usa en producción; testonly quitado	arreglo de medida, rehacer en el porte
+third_party/rust/hex/v0_4/BUILD.gn	crate testonly en 156 y Brave lo usa en producción; testonly quitado	arreglo de medida, rehacer en el porte
+brave/browser/farbling/BUILD.gn	dependencia sin resolver //components/embedder_support:browser_util; línea comentada	arreglo de medida, rehacer en el porte
+brave/browser/themes/BUILD.gn	dependencia sin resolver //ui/native_theme:native_theme_browser; línea comentada	arreglo de medida, rehacer en el porte
+brave/browser/ui/BUILD.gn	dependencia sin resolver //ui/webui/resources/cr_components/searchbox:mojo_bindings; línea comentada	arreglo de medida, rehacer en el porte
+brave/browser/ui/brave_ads/BUILD.gn	dependencia sin resolver //ui/gfx:native_widget_types; línea comentada	arreglo de medida, rehacer en el porte
+brave/chromium_src/components/privacy_sandbox/BUILD.gn	dependencia sin resolver //components/privacy_sandbox:tracking_protection_settings; línea comentada	arreglo de medida, rehacer en el porte
+brave/common/BUILD.gn	dependencia sin resolver //base:logging_buildflags; línea comentada	arreglo de medida, rehacer en el porte
+brave/components/brave_news/browser/BUILD.gn	dependencia sin resolver //components/feed:buildflags; línea comentada	arreglo de medida, rehacer en el porte
+brave/components/brave_wayback_machine/BUILD.gn	dependencia sin resolver //ui/gfx:native_widget_types; línea comentada	arreglo de medida, rehacer en el porte
+brave/components/embedder_support/BUILD.gn	dependencia sin resolver //components/embedder_support:browser_util; línea comentada	arreglo de medida, rehacer en el porte
+brave/components/privacy_sandbox/BUILD.gn	dependencia sin resolver //components/privacy_sandbox:tracking_protection_settings; línea comentada	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	dependencia sin resolver //chrome/browser/apps/app_service:constants; línea comentada	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	dependencia sin resolver //chrome/browser/enterprise/connectors/analysis:features; línea comentada	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	dependencia sin resolver //chrome/test:chrome_test_launcher; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/async_trait/v0_1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/async_trait/v0_1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/futures_macro/v0_3/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/futures_macro/v0_3/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/multihash_derive/v0_8/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/multihash_derive/v0_8/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/num_derive/v0_3/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/num_derive/v0_3/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/pin_project_internal/v0_4/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/pin_project_internal/v0_4/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/proc_macro_error/v1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/proc_macro_error/v1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/proc_macro_error_attr/v1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/proc_macro_error_attr/v1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/serde_repr/v0_1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/serde_repr/v0_1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/serde_tuple_macros/v0_5/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/serde_tuple_macros/v0_5/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/string_cache_codegen/v0_5/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/string_cache_codegen/v0_5/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/synstructure/v0_12/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/synstructure/v0_12/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/tracing_attributes/v0_1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/proc_macro2/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+brave/third_party/rust/tracing_attributes/v0_1/BUILD.gn	dependencia sin resolver //brave/third_party/rust/quote/v1:lib; línea comentada	arreglo de medida, rehacer en el porte
+(args.gn)	clang_unsafe_buffers_paths quitado: config.js apunta a brave/build/config/unsafe_buffers_paths.txt, que flyweb no tiene y 156 sí usa	arreglo de medida, rehacer en el porte
+brave/common/extensions/api/<ns>/<ns>_api.h (7 nuevos)	json_schema_compiler de 156: function_registration exige impl_dir/<ns>/<ns>_api.h; cabeceras de reenvío	arreglo de medida, rehacer en el porte
+brave/third_party/rust/syn/v1/BUILD.gn	syn 1.0.109 desaparecido de 156; crate vaciado (sus dependientes fallan al compilar)	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	fuente de Chromium desaparecida en 156 (model_type_unittest.cc); línea comentada	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	fuente de Chromium desaparecida en 156 (symmetric_key_unittest.cc); línea comentada	arreglo de medida, rehacer en el porte
+brave/browser/ui/toolbar/BUILD.gn	fuente de Chromium desaparecida en 156 (recent_tabs_sub_menu_model_unittest.cc); línea comentada	arreglo de medida, rehacer en el porte
+components/strings/components_brave_strings_<loc>.xtb (80)	l10n: locales nuevos de 156 sin traducción de Brave; xtb vacíos	arreglo de medida, rehacer en el porte
+brave/chromium_src/mojo/public/tools/mojom/mojom_parser.py	[chromium_src Python, no GN] _ParseAstHelper con mojom_path en 156; firma adaptada (sin esto no se genera ningún mojom de Brave)	arreglo de medida, rehacer en el porte
+brave/**/*.grd(p) (22)	grit de 156: variable chromeos_ash renombrada a is_chromeos	arreglo de medida, rehacer en el porte
+tools/gritsettings/resource_ids.spec	parche no aplica (156 movió los bloques); ids de brave_strings.grd y components_brave_strings.grd y tamaños de settings/history/extensions puestos a mano	arreglo de medida, rehacer en el porte
+brave/**/*.ts|html (1)	preprocesado de grit de 156: chromeos_ash renombrada a is_chromeos	arreglo de medida, rehacer en el porte
+mojo/public/tools/bindings/checks/mojom_attributes_check.py	mojom de 156 valida atributos: BraveAdd/BraveExtend y [Native] de brave.mojom.ImportItem/SourceProfile añadidos a las listas (sin esto falla network_service.mojom y bloquea casi todo)	arreglo de medida, rehacer en el porte
+brave/**/*.grd (12)	grit de 156: atributo output_all_resource_defines eliminado; quitado	arreglo de medida, rehacer en el porte
+brave/components/webpack/gen-webpack-grd.js	grit de 156: output_all_resource_defines eliminado de la plantilla de grd de webpack	arreglo de medida, rehacer en el porte
+brave/chromium_src/base/json/json_reader.h	[chromium_src, desbloqueo] base/rust_buildflags.h quitado en 156	arreglo de medida, rehacer en el porte
+brave/chromium_src/base/feature_list.cc	[chromium_src, desbloqueo] base/ranges quitado en 156; IsFeatureOverridden(string_view) en .h y .cc; macro default_state quitada (no casa con IsCountrySpecificFeatureState de 156)	arreglo de medida, rehacer en el porte
+(medida) build/config/BUILDCONFIG.gn + brave/build/BUILD.gn	config b2_medida: -z undefs, --allow-shlib-undefined, -z lazy (no es arreglo: deja enlazar con objetos de respaldo)	arreglo de medida, rehacer en el porte
+ui/webui/resources/cr_elements/cr_shared_vars.css	[parche, desbloqueo] el parche aplica pero necesita el de cr_elements/BUILD.gn, que no aplica; revertido (bloqueaba cr_elements:build_ts y casi toda la webui)	arreglo de medida, rehacer en el porte
+base/BUILD.gn	[parche GN] a mano: sin bloque ni ancla única: manual; sin bloque ni ancla única: manual; sin bloque ni ancla única: manual (patches/base-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+base/test/BUILD.gn	[parche GN] a mano: al final de static_library("test_support") (patches/base-test-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+build/config/android/config.gni	[parche GN] a mano: sin bloque ni ancla única: manual (patches/build-config-android-config.gni.patch)	arreglo de medida, rehacer en el porte
+build/config/android/internal_rules.gni	[parche GN] a mano: sin bloque ni ancla única: manual (patches/build-config-android-internal_rules.gni.patch)	arreglo de medida, rehacer en el porte
+build/config/android/rules.gni	[parche GN] a mano: tras su línea de contexto (patches/build-config-android-rules.gni.patch)	arreglo de medida, rehacer en el porte
+build/rust/cargo_crate.gni	[parche GN] a mano: al final de template("cargo_crate") (patches/build-rust-cargo_crate.gni.patch)	arreglo de medida, rehacer en el porte
+chrome/BUILD.gn	[parche GN] a mano: sin bloque ni ancla única: manual; sin bloque ni ancla única: manual; tras su línea de contexto (patches/chrome-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/android/BUILD.gn	[parche GN] a mano: sin bloque ni ancla única: manual; sin bloque ni ancla única: manual; sin bloque ni ancla única: manual; sin bloque ni ancla única: manual; sin bloque ni ancla única: manual; al final de generate_jni("chrome_jni_headers") (patches/chrome-android-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/android/chrome_java_sources.gni	[parche GN] a mano: sin bloque ni ancla única: manual (patches/chrome-android-chrome_java_sources.gni.patch)	arreglo de medida, rehacer en el porte
+chrome/android/chrome_public_apk_tmpl.gni	[parche GN] a mano: al final de template("chrome_common_apk_or_module_tmpl") (patches/chrome-android-chrome_public_apk_tmpl.gni.patch)	arreglo de medida, rehacer en el porte
+chrome/app/BUILD.gn	[parche GN] a mano: sin bloque ni ancla única: manual (patches/chrome-app-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/browser/extensions/BUILD.gn	[parche GN] a mano: al final de source_set("extensions") (patches/chrome-browser-extensions-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/browser/hub/internal/BUILD.gn	[parche GN] a mano: al final de android_library("java") (patches/chrome-browser-hub-internal-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/browser/resources/history/BUILD.gn	[parche GN] a mano: al final de build_webui("build") (patches/chrome-browser-resources-history-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/browser/resources/side_panel/bookmarks/BUILD.gn	[parche GN] a mano: al final de build_webui("build") (patches/chrome-browser-resources-side_panel-bookmarks-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/browser/tab_ui/android/BUILD.gn	[parche GN] a mano: al final de android_library("java") (patches/chrome-browser-tab_ui-android-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/browser/ui/BUILD.gn	[parche GN] a mano: al final de static_library("ui"); al final de static_library("ui"); trozo con borrados: manual (patches/chrome-browser-ui-BUILD.gn.patch); sin el trozo de FlyWeb solo para Mac (eye_dropper)	arreglo de medida, rehacer en el porte
+chrome/browser/ui/android/appmenu/internal/BUILD.gn	[parche GN] a mano: al final de android_library("java") (patches/chrome-browser-ui-android-appmenu-internal-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/browser/ui/android/toolbar/BUILD.gn	[parche GN] a mano: sin bloque ni ancla única: manual (patches/chrome-browser-ui-android-toolbar-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/browser/ui/color/BUILD.gn	[parche GN] a mano: al final de source_set("mixers") (patches/chrome-browser-ui-color-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/browser/ui/webui/BUILD.gn	[parche GN] a mano: al final de source_set("configs") (patches/chrome-browser-ui-webui-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/common/BUILD.gn	[parche GN] a mano: al final de static_library("common_lib"); al final de static_library("non_code_constants") (patches/chrome-common-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/elevation_service/BUILD.gn	[parche GN] a mano: al final de source_set("lib") (patches/chrome-elevation_service-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/installer/linux/BUILD.gn	[parche GN] no se pone: empaquetado Linux, fuera de la medida de compilación	arreglo de medida, rehacer en el porte
+chrome/installer/mac/BUILD.gn	[parche GN] a mano: trozo con borrados: manual (patches/chrome-installer-mac-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/installer/util/BUILD.gn	[parche GN] a mano: al final de static_library("with_no_strings") (patches/chrome-installer-util-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/renderer/BUILD.gn	[parche GN] a mano: al final de static_library("renderer") (patches/chrome-renderer-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/test/include_js_tests.gni	[parche GN] a mano: trozo con borrados: manual (patches/chrome-test-include_js_tests.gni.patch)	arreglo de medida, rehacer en el porte
+chrome/updater/branding.gni	[parche GN] a mano: sin bloque ni ancla única: manual (patches/chrome-updater-branding.gni.patch)	arreglo de medida, rehacer en el porte
+components/browsing_data/core/BUILD.gn	[parche GN] a mano: al final de static_library("core") (patches/components-browsing_data-core-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+components/content_settings/core/browser/BUILD.gn	[parche GN] a mano: al final de static_library("browser") (patches/components-content_settings-core-browser-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+components/history/core/browser/BUILD.gn	[parche GN] a mano: al final de static_library("browser") (patches/components-history-core-browser-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+components/metrics/BUILD.gn	[parche GN] a mano: sin bloque ni ancla única: manual (patches/components-metrics-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+components/omnibox/browser/BUILD.gn	[parche GN] a mano: al final de fuzzer_test("search_suggestion_parser_fuzzer") (patches/components-omnibox-browser-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+components/permissions/BUILD.gn	[parche GN] a mano: al final de source_set("permissions") (patches/components-permissions-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+components/permissions/android/BUILD.gn	[parche GN] a mano: al final de android_library("java") (patches/components-permissions-android-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+components/search_engines/BUILD.gn	[parche GN] a mano: sin bloque ni ancla única: manual (patches/components-search_engines-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+components/strings/BUILD.gn	[parche GN] a mano: sin bloque ni ancla única: manual (patches/components-strings-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+components/sync_device_info/BUILD.gn	[parche GN] a mano: al final de static_library("sync_device_info") (patches/components-sync_device_info-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+components/update_client/BUILD.gn	[parche GN] a mano: al final de static_library("update_client") (patches/components-update_client-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+components/vector_icons/vector_icons.gni	[parche GN] no se pone: depende del parche de aggregate_vector_icons.py, que tampoco aplica (iconos Leo de Brave)	arreglo de medida, rehacer en el porte
+content/common/BUILD.gn	[parche GN] visibilidad //brave/content/* a mano (156 compactó la lista)	arreglo de medida, rehacer en el porte
+ios/chrome/browser/net/model/BUILD.gn	[parche GN] a mano: al final de source_set("model") (patches/ios-chrome-browser-net-model-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+services/network/public/cpp/BUILD.gn	[parche GN] solo la dep de Brave; el resto del parche es un backport (integrity_policy) que 156 ya trae	arreglo de medida, rehacer en el porte
+third_party/android_deps/BUILD.gn	[parche GN] a mano: sin bloque ni ancla única: manual (patches/third_party-android_deps-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/blink/renderer/bindings/generated_in_modules.gni	[parche GN] a mano: trozo con borrados: manual (patches/third_party-blink-renderer-bindings-generated_in_modules.gni.patch)	arreglo de medida, rehacer en el porte
+third_party/blink/renderer/modules/BUILD.gn	[parche GN] a mano: al final de component("modules"); al final de source_set("modules_testing"); al final de source_set("unit_tests") (patches/third_party-blink-renderer-modules-BUILD.gn.patch); sin las fuentes de backports de FlyWeb que 156 ya trae	arreglo de medida, rehacer en el porte
+third_party/blink/renderer/platform/BUILD.gn	[parche GN] a mano: al final de component("platform"); trozo con borrados: manual; al final de component("platform") (patches/third_party-blink-renderer-platform-BUILD.gn.patch); sin las fuentes de backports de FlyWeb que 156 ya trae	arreglo de medida, rehacer en el porte
+third_party/lit/v3_0/BUILD.gn	[parche GN] a mano: al final de ts_library("build_ts") (patches/third_party-lit-v3_0-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/polymer/v3_0/BUILD.gn	[parche GN] a mano: sin bloque ni ancla única: manual; al final de ts_library("library") (patches/third_party-polymer-v3_0-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/rust/aho_corasick/v1/BUILD.gn	[parche GN] a mano: trozo con borrados: manual (patches/third_party-rust-aho_corasick-v1-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/rust/anyhow/v1/BUILD.gn	[parche GN] a mano: trozo con borrados: manual (patches/third_party-rust-anyhow-v1-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/rust/hex/v0_4/BUILD.gn	[parche GN] a mano: trozo con borrados: manual (patches/third_party-rust-hex-v0_4-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/rust/log/v0_4/BUILD.gn	[parche GN] a mano: trozo con borrados: manual (patches/third_party-rust-log-v0_4-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/rust/regex/v1/BUILD.gn	[parche GN] a mano: trozo con borrados: manual (patches/third_party-rust-regex-v1-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/rust/regex_automata/v0_4/BUILD.gn	[parche GN] a mano: trozo con borrados: manual (patches/third_party-rust-regex_automata-v0_4-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/rust/regex_syntax/v0_8/BUILD.gn	[parche GN] a mano: trozo con borrados: manual (patches/third_party-rust-regex_syntax-v0_8-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/rust/serde/v1/BUILD.gn	[parche GN] a mano: al final de cargo_crate("lib") (patches/third_party-rust-serde-v1-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/rust/serde_json/v1/BUILD.gn	[parche GN] a mano: trozo con borrados: manual (patches/third_party-rust-serde_json-v1-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/rust/syn/v2/BUILD.gn	[parche GN] a mano: al final de cargo_crate("lib") (patches/third_party-rust-syn-v2-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+tools/json_to_struct/json_to_struct.gni	[parche GN] additional_sources a mano dentro del source_set	arreglo de medida, rehacer en el porte
+ui/base/BUILD.gn	[parche GN] a mano: al final de component("base") (patches/ui-base-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+ui/webui/resources/BUILD.gn	[parche GN] a mano: al final de generate_grd("build_grd") (patches/ui-webui-resources-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+ui/webui/resources/cr_components/searchbox/BUILD.gn	[parche GN] a mano: sin bloque ni ancla única: manual (patches/ui-webui-resources-cr_components-searchbox-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+ui/webui/resources/cr_elements/BUILD.gn	[parche GN] a mano: al final de build_webui("build") (patches/ui-webui-resources-cr_elements-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+ui/webui/resources/tools/build_webui.gni	[parche GN] a mano: al final de template("build_webui"); al final de template("build_webui") (patches/ui-webui-resources-tools-build_webui.gni.patch)	arreglo de medida, rehacer en el porte
+ui/webui/resources/tools/bundle_js.gni	[parche GN] a mano: al final de template("bundle_js") (patches/ui-webui-resources-tools-bundle_js.gni.patch)	arreglo de medida, rehacer en el porte
+v8/BUILD.gn	[parche GN] a mano: al final de v8_header_set("v8_headers") (patches/v8/BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+chrome/browser/BUILD.gn	[parche GN] a mano: al final de static_library("browser") (patches/chrome-browser-BUILD.gn.patch)	arreglo de medida, rehacer en el porte
+third_party/search_engines_data/BUILD.gn	[parche GN] prepopulated_engines se mudó aquí en 156; additional_sources de Brave a mano	arreglo de medida, rehacer en el porte
+components/metrics/BUILD.gn	[parche GN] deps de Brave a mano en component("metrics_component")	arreglo de medida, rehacer en el porte
+brave/ui/webui/resources/sources.gni	línea de Brave comentada: Unable to load "ui/webui/resources/include_polymer.gni". (import("//ui/webui/resources/include_polymer.gni"))	arreglo de medida, rehacer en el porte
+chrome/installer/util/BUILD.gn	línea de Brave comentada: Assignment had no effect. ([)	arreglo de medida, rehacer en el porte
+brave/ui/webui/resources/sources.gni	include_polymer.gni no existe en 156; include_polymer = false	arreglo de medida, rehacer en el porte
+ui/webui/resources/tools/bundle_js.gni	línea de Brave comentada: Undefined identifier (is_chrome_untrusted))	arreglo de medida, rehacer en el porte
+build/rust/cargo_crate.gni	línea de Brave comentada: Undefined identifier. (visibility)	arreglo de medida, rehacer en el porte
+components/sync_device_info/BUILD.gn	brave_components_sync_device_info_sources sin definir: falta la cadena de imports de 128; import de brave_build.gni	arreglo de medida, rehacer en el porte
+chrome/browser/BUILD.gn	allow_circular_includes_from no definida antes en el source_set de 156; += cambiado a =	arreglo de medida, rehacer en el porte
+chrome/browser/resources/history/BUILD.gn	línea de Brave comentada: Undefined identifier. (web_component_files)	arreglo de medida, rehacer en el porte
+brave/browser/sources.gni	línea de Brave comentada: Unable to load "components/services/heap_profiling/public/mojom/BUILD.gn". ("//components/services/heap_profiling/public/mojom",)	arreglo de medida, rehacer en el porte
+brave/ui/webui/resources/BUILD.gn	línea de Brave comentada: Unable to load "ui/webui/resources/include_polymer.gni". (import("//ui/webui/resources/include_polymer.gni"))	arreglo de medida, rehacer en el porte
+brave/installer/linux/sources.gni	línea de Brave comentada: Item not found ("common/chromium-browser/chromium-browser.appdata.xml",)	arreglo de medida, rehacer en el porte
+brave/installer/linux/sources.gni	línea de Brave comentada: Item not found ("common/chromium-browser/chromium-browser.info",)	arreglo de medida, rehacer en el porte
+chrome/browser/resources/side_panel/bookmarks/BUILD.gn	línea de Brave comentada: Undefined identifier. (non_web_component_files)	arreglo de medida, rehacer en el porte
+ui/webui/resources/cr_elements/BUILD.gn	dependencia sin resolver //brave/ui/webui/resources:build_ts; línea comentada	arreglo de medida, rehacer en el porte
+brave/components/omnibox/browser/sources.gni	Chromium 156 ya trae components/omnibox/browser/brave_search_suggestion_parser.cc (mismo objeto); las de Brave comentadas	arreglo de medida, rehacer en el porte
+(medida-diff)	arreglos de la base reaplicados; rechazos en poda-arreglos.txt.rechazos	arreglo de medida, rehacer en el porte
+brave/third_party/rust/syn/v1/BUILD.gn	syn 1.0.109 desaparecido de 156; crate vaciado	arreglo de medida, rehacer en el porte
+brave/components/sync/service/sources.gni	ciclo nuevo en 156; dep network_time_helper quitada	arreglo de medida, rehacer en el porte
+brave/common/extensions/api/<ns>/<ns>_api.h (3 nuevos)	function_registration de 156 exige impl_dir/<ns>/<ns>_api.h; reenvíos	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	fuente de Chromium desaparecida en 156 (model_type_unittest.cc)	arreglo de medida, rehacer en el porte
+brave/test/BUILD.gn	fuente de Chromium desaparecida en 156 (symmetric_key_unittest.cc)	arreglo de medida, rehacer en el porte
+brave/browser/ui/toolbar/BUILD.gn	fuente de Chromium desaparecida en 156 (recent_tabs_sub_menu_model_unittest.cc)	arreglo de medida, rehacer en el porte
+brave/chromium_src/mojo/public/tools/mojom/mojom_parser.py	[chromium_src Python] firma de _ParseAstHelper de 156	arreglo de medida, rehacer en el porte
+brave/**/*.grd(p) (1)	grit de 156: chromeos_ash renombrada a is_chromeos	arreglo de medida, rehacer en el porte
+tools/gritsettings/resource_ids.spec	parche no aplica; ids de los grd de Brave y tamaños a mano	arreglo de medida, rehacer en el porte
+mojo/public/tools/bindings/checks/mojom_attributes_check.py	mojom de 156 valida atributos: BraveAdd/BraveExtend y [Native] de brave.mojom en las listas	arreglo de medida, rehacer en el porte
+brave/**/*.grd (9)	grit de 156: output_all_resource_defines eliminado	arreglo de medida, rehacer en el porte
+brave/chromium_src/base/feature_list.cc	[chromium_src, desbloqueo] base/ranges quitado en 156; IsFeatureOverridden(string_view); macro default_state quitada	arreglo de medida, rehacer en el porte
+ui/webui/resources/cr_elements/cr_shared_vars.css	[parche, desbloqueo] depende del parche de cr_elements/BUILD.gn; revertido	arreglo de medida, rehacer en el porte
+(xtb vacíos: 81)	l10n: locales nuevos de 156 sin traducción de Brave	arreglo de medida, rehacer en el porte
+brave/components/common/typescript.gni	[POR LA PODA] lista definitions/rewardsInternals.d.ts, que la poda borró; línea comentada para seguir	arreglo de medida, rehacer en el porte
