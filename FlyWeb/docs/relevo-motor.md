@@ -52,8 +52,8 @@ escribió §12 de `brave-propio.md` con la medida P2 de MOTOR-30. **El plan T0�
   el `.cc` quitaba las dos cosas a la vez). Comprobar que ninguna macro `BRAVE_*` que se deja de definir siga en
   `patches/` o `chromium_src/` (orden en `b2-poda.md`, sección Tor).
 - **Comprobación estática sin compilar** que sirvió: `#include "brave/…"` y etiquetas `//brave/…` inexistentes
-  comparadas con la base (guion `chk.py`, se reconstruye en 30 líneas: lista los includes/labels de ficheros de
-  escritorio y mira si existen; generados = existe el directorio); buildflags y args de gn de lo borrado; marcadores
+  comparadas con la base (`FlyWeb/tools/brave-inventario/b2-chk.py`; residuales de un directorio:
+  `b2-resid.sh`); buildflags y args de gn de lo borrado; marcadores
   de conflicto. Con eso la poda dio solo 2 rotos reales.
 - **Ocultos por el primer error:** la clase de un fichero sale del primer error; al arreglarlo puede aflorar otro.
   Contar con que la lista 1 no baje lo que suma la tanda.
