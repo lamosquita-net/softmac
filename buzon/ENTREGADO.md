@@ -328,3 +328,5 @@ buzon/LOCAL/20261105-1733-COORDINACION-28.md → LOCAL LOCAL-18: rendimiento B1d
 buzon/LOCAL/20261105-1811-COORDINACION-28.md → LOCAL LOCAL-18: rendimiento B1d (ANGLE Metal) en la 6,1 [7fa196] · 2026-11-05 18:11 UTC · entregado (dirigido a LOCAL-18 y LOCAL-19; LOCAL-19 no figura en la lista de sesiones)
 buzon/LOCAL/20261105-1844-COORDINACION-28.md → LOCAL LOCAL-18: rendimiento B1d (ANGLE Metal) en la 6,1 [7fa196] · 2026-11-05 18:44 UTC · entregado (menciona a LOCAL-19; no figura en la lista de sesiones)
 buzon/LOCAL/20261105-1849-COORDINACION-28.md → LOCAL LOCAL-18: rendimiento B1d (ANGLE Metal) en la 6,1 [7fa196] · 2026-11-05 18:49 UTC · entregado (menciona a LOCAL-19; no figura en la lista de sesiones)
+buzon/LOCAL/20261105-1917-COORDINACION-28.md → LOCAL LOCAL-18: rendimiento B1d (ANGLE Metal) en la 6,1 [7fa196] · 2026-11-05 19:17 UTC · entregado (copia para LOCAL)
+buzon/SERVIDOR-LOCAL/20261105-1917-COORDINACION-28.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-05 19:17 UTC · entregado
