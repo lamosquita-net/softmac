@@ -37,7 +37,7 @@ Las dos versiones se lanzan con un perfil nuevo y se manejan por CDP con `bat.py
 | 6 | Photopea (6 000 px y desenfoque) | 60. Aislada, un reinicio de la GPU y «Could not initialise shaders» | 60 |
 | 7 | Shadertoy Seascape / Elevated | 60 / 33 | 60 / 60 |
 | 8 | Fishbowl | No carga (la web ya no existe). Se salta | Igual |
-| 9 | YouTube 4K60 | Pendiente: el guion se queda colgado (CDP) | Igual |
+| 9 | YouTube 4K60 | **2160p60 VP9** (`vp09.00.51.08`, por software): 679 fotogramas y 10 perdidos en 15 s | Máximo 1080p60 H.264 (`avc1.64002A`), 0 perdidos |
 | 10 | vsynctester | 60, regular | 60, regular |
 | 11 | MotionMark 1.3.2 | **1381,31** | 566,38 |
 | 12 | WebGPU | Desactivado («sin adaptador»), como se esperaba | Igual |
@@ -54,3 +54,24 @@ Fallos que han salido con la 156:
   - La caída llega a ANGLE, la GPU se reinicia y, tras dos reinicios, Chromium bloquea WebGL para el resto de la sesión.
   - Google Earth y Photopea reinician la GPU sin que caiga el compilador, posiblemente por un error del command buffer.
   - Con GL (2.7.0) no pasa.
+
+### Widevine (orden de COORDINACIÓN-27, 05-11 11:28)
+
+Sin cuentas. Prueba EME `requestMediaKeySystemAccess('com.widevine.alpha')`, con 170 s de espera para que el component updater descargue el CDM, y el contenido Widevine público de Shaka (Angel One, licencia sin autenticación).
+
+| | 156 B1d | 2.7.0 |
+|---|---|---|
+| EME Widevine | **No**: «Unsupported keySystem» | **No**: «Unsupported keySystem» |
+| CDM en `chrome://components` | No aparece | No aparece |
+| Shaka Angel One | No se reproduce | No se reproduce |
+| Netflix, Spotify web, Prime Video, Movistar+ | La página carga, pero sin Widevine no se puede reproducir | Igual |
+
+**Causa:** ninguna de las dos lleva Widevine.
+- La 156 se compila como Chromium sin marca, así que `enable_widevine` queda en false (`third_party/widevine/cdm/widevine.gni`).
+- La 156 tampoco lleva códecs propietarios (`proprietary_codecs`, `ffmpeg_branding`). Sin H.264 ni AAC, Netflix, Spotify y Prime fallarían aunque hubiera Widevine.
+
+**Lo que haría falta, y es decisión de Titín o de COORDINACIÓN:**
+1. `enable_widevine=true` para que el component updater descargue el CDM de Google.
+2. Para Netflix y Prime, la firma VMP del navegador (castlabs EVS) y aceptar la licencia de Widevine.
+3. `proprietary_codecs=true` y `ffmpeg_branding="Chrome"` (licencias de H.264 y AAC).
+4. Comprobar que el CDM que se descargue hoy sigue funcionando en 10.14.
