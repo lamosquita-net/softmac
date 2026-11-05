@@ -697,3 +697,37 @@ La nueva pestaña de la 2.7.0 es `components/brave_new_tab_ui` modificado (`defa
 arranque en el primer inicio; mosca; sitios populares (añadir, quitar, reordenar); reloj (12/24 h); contador de Shields (anuncios,
 rastreadores, HTTPS, ancho de banda); buscador si sale; fondo propio del usuario (subir, quitar, color); ajustes de la pestaña (mostrar
 u ocultar cada elemento); sin rastro de patrocinados, Rewards, Talk ni News.
+
+### 12.12 T7-bis: llavero y `os_crypt_async` (MOTOR-33, 05-11)
+
+brave-core `nube/b2-porte-t7` = **7b2a0a79** (PR brave-core #15): ff2fa26e + `AUTOFILL_VALUABLE` fuera del sync (como 1.98;
+COORDINACIÓN-28) + `Fw1KeyProvider` para `os_crypt_async` + datos sin prefijo en claro. Sin compilar ni ejecutar.
+
+- **`Fw1KeyProvider`** (Mac) sobre `crypto::apple::KeychainV2` y el `KeyCallback` de 156: mismo ítem, clave Base64 de 256 bits,
+  AES-256-GCM y etiqueta `fw1` que la 2.x; todo fallo da `kTemporarilyUnavailable`. Registrado en `browser_process_impl` (parche)
+  con precedencia 20 (`v10`, 10). **Cifra con `fw1`** cuando su clave carga (como la 2.x); si no, `v10`.
+- **Sin prefijo**: envoltorio de `Encryptor::DecryptData` (parche de una línea): en Mac y Linux, un dato sin prefijo conocido se
+  devuelve en claro y marcado para recifrar, nunca `nullopt` silencioso. Pruebas: `fw1_key_provider_mac_unittest.mm`,
+  `encryptor_legacy_unittest.cc`.
+
+**Tabla de casos para LOCAL (puerta M1–M5, perfil real de la 2.7.0)** — `DecryptString`, flags y con qué se recifra:
+
+| Dato | Situación | Devuelve | Flags | Recifra |
+|---|---|---|---|---|
+| `fw1` | clave cargada | claro | — | fw1 |
+| `fw1` | llavero denegado o bloqueado, ítem corrupto | error | temporalmente no disponible | v10 |
+| `fw1` | otra clave en el ítem, o datos dañados | error | permanente | fw1 |
+| `v10` | las dos claves cargadas | claro | recifrar (Chromium) | fw1 |
+| `v10` | llavero de `v10` denegado | error | temporalmente no disponible | fw1 |
+| `v10` | corrupto | error | permanente | — |
+| sin prefijo (Mac/Linux) | algún proveedor registrado | **claro, tal cual** | recifrar | fw1 (o v10) |
+| prefijo de proveedor no cargado (`v11`, `fw2`…) | — | error | — | — |
+| vacío | — | `""` | — | `""` |
+| sin prefijo en Windows | — | error (como Chromium) | — | — |
+
+**Dudoso, solo comprobable en Mac:** que `KeychainV2` (`SecItemCopyMatching`) lea sin diálogo nuevo el ítem creado con
+`SecKeychain` por la 2.x, en una Release firmada en 10.14 (M4); recuentos `fw1`/`v10` antes y después; que no aparezca
+«Chromium Safe Storage». **Choque con M7 (§11.8):** Chromium marca para recifrar los `v10` en cuanto cifra `fw1`; qué hace cada
+llamante (contraseñas, cookies) con esa marca está sin revisar. Riesgo aceptado: un texto en claro antiguo que empiece por `vNN` o
+`fwN` da error en vez de salir en claro. M2 sigue abierto (`kUseKeychainKeyProvider` apagada → sin `v10`).
+**Para las notas de la 3.0.0:** volver de la 3.0 a la 2.x puede pedir otra vez las palabras de sync si la 3.0 reescribió la semilla.
