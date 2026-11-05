@@ -54,6 +54,32 @@
 - Los ocho parches de `angle/` **aplican sin cambios sobre `f10470c`** y dan exactamente el árbol de `e3917d6` (comprobado con `git am`). Siguen valiendo sobre `a66226b` (árbol `3b24dd0`).
 - Están también en `entregas/b1-local16/parches-b1d/`, con `SHA256SUMS-l19`.
 
+## Metal o GL: comparación y decisión (LOCAL-19, 05-11; punto 3 de COORDINACIÓN-28)
+
+**La referencia de GL es la 2.7.0** (ANGLE OpenGL, motor 138).
+- La 156 oficial **no puede usar GL**. `--use-angle=gl` acaba en «Requested GL implementation (angle=opengl) not found in allowed implementations: [angle=metal]»: el proceso de GPU no arranca y no hay WebGL.
+- Volver a GL en la 156 exige los siete commits de B1c (`flynk-b1b`): permitir ANGLE OpenGL, el modo GL por hardware y restaurar el target de texturas IOSurface en `gpu/`, `viz` y `mojom`. Eso supone otra compilación oficial de unas 3 h.
+- **Titín (05-11, noche):** no se gasta compilación en GL, porque Metal ya funciona y era la opción preferida.
+
+| En la 6,1 (FirePro D500, 10.14.6) | 156 **Metal** (`oficial-6`/`oficial-7`) | **GL** (2.7.0) |
+|---|---|---|
+| Caídas en la batería completa | **0** (compilador, GPU, contextos, navegador) | 0 |
+| MotionMark 1.3.2 | **1381** | 566 (×2,4 a favor de Metal) |
+| Aquarium 5 000 / 10 000 | 60 / 52–57 | 60 / 44–45 |
+| three.js bloom / keyframes / shadowmap | 60 / 60 / 60 | 60 / 60 / 37 |
+| Babylon, Earth, Photopea, Seascape | 60 | 60 |
+| Shadertoy Elevated | 33–58 (varía entre pasadas) | 60 |
+| YouTube | 2160p60 VP9 disponible | máximo 1080p60 H.264 |
+| Memoria del proceso de GPU, en reposo / con 3000 programas | 54 MB / 264 MB | 65 MB / 227 MB (ninguna de las dos la devuelve al borrar programas) |
+| Crear 500 programas WebGL | **22 s** | 1 s (×20 a favor de GL) |
+| Parón en la primera carga | 0,9–1,5 s (Earth, Babylon) | máximo 67 ms |
+
+**Decisión (Titín, en DIRECTIVAS): GPU por Metal.** La vía GL (B1c, `flynk-b1b`) queda **parada hasta después de la 3.0.0**: ni commits ni compilaciones. Se conserva tal cual y solo se reabre si la 5,1 falla con Metal.
+- Metal gana en todo lo que se dibuja: MotionMark ×2,4, más peces en Aquarium y shadowmap a 60. Y ya no tiene caídas.
+- GL solo gana al **compilar shaders**: Metal compila librerías y pipelines de forma síncrona, de ahí los ×20 y el parón de la primera carga.
+- Ese es el trabajo siguiente para Metal: compilar pipelines en paralelo o en segundo plano dentro de ANGLE. Una caché de binarios Metal en disco no sirve aquí: `MTLBinaryArchive` es de macOS 11.
+- Volver a GL obligaría a mantener código que upstream ya ha quitado, y costaría compilación, que hoy es el cuello de botella.
+
 ## ¿Compilar también en la 6,1? Medido: no compensa (LOCAL-19, 05-11; punto 3 de COORDINACIÓN-28)
 
 **Prueba justa.** Se tomaron cuatro unidades de compilación reales de la 156 (`v8 api.cc`, `render_frame_host_impl.cc`, `browser_process_impl.cc`, `blink element.cc`), preprocesadas en la 7,1 (18–43 MB cada una), y se compilaron en las dos máquinas con **el mismo clang de Chromium** y los mismos flags de `out/Oficial` (ThinLTO incluido). Ese clang declara como mínimo macOS 10.12 y funciona en Mojave.
@@ -164,6 +190,7 @@ Se guarda una contraseña de prueba con `chrome.passwordsPrivate.addPassword` en
 - Auditoría de selectores de Objective-C: lista en `selectores-unguarded-156.md` (631 avisos en 67 ficheros). **Falta** revisar a mano los ficheros no tocados que se ejecutan en rutas básicas.
 
 - Compilación Metal síncrona: parón en la primera carga y creación de programas 20 veces más lenta que con GL (ver la regla 17, cachés).
+- **B1c (GL) parada hasta después de la 3.0.0** (Titín, 05-11). Se conserva y se reabre solo si la 5,1 falla con Metal. Ver «Metal o GL».
 - Batería `pruebas-gpu.md`.
 - Widevine en la 2.7.0 y la 156 (orden de COORDINACIÓN-27, 05-11 11:28).
 - La causa de fondo del `fsync` del VFS en la sandbox de 10.14.
