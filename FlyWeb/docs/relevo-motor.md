@@ -19,10 +19,13 @@ MOTOR-30 pasó el relevo a MOTOR-31 (Ubuntu, misma máquina, puente); los sha se
   `profile_menu_view_base.cc` y `tab_style_views.cc`); **T10** (los ~55 «reportar» de §12.13, primero `audio_param_handler.h`,
   `trust_store_chrome.cc`, `pki_metadata_component_installer.cc`; cada parche Mojave se cruza antes con `lamosquita-net/chromium`
   `flynk-b1d`: lo que ya esté allí no se reporta; los 3 parches de extensiones de UA/versión sobran).
-- **Pendiente de COORDINACIÓN-29 (preguntado 05-11 ~23:55):** vista dividida y aviso de la lista de cookies (dependen de
-  `BrowserUserData`, que la 156 quitó; 1.98 los quitó); conformidad con la poda de los paneles de lectura y marcadores de Brave;
-  `brave_tooltips` y `BraveDownloadItemModel` sin usuarios; restos dudosos de Wallet (política `BraveWalletDisabled`,
-  `safe_builtins`, `third_party/rapidjson`).
+- **Decisiones de COORDINACIÓN-29 (05-11, 23:58), para T5-bis:** (1) fuera la vista dividida de Brave y el aviso de la lista de
+  cookies, **antes** comprobar si la 156 trae la vista dividida nativa de Chromium (si la trae, se queda la de Chromium sin tocar);
+  (2) conforme con la poda de los paneles de lectura y marcadores de Brave; (3) fuera `brave_tooltips` y `BraveDownloadItemModel`;
+  (4) `BraveWalletDisabled` se queda; `safe_builtins` y `third_party/rapidjson` fuera si `b2-chk` confirma que no tienen usuarios.
+  Pestañas verticales: mirar primero si la 156 tiene las nativas de Chromium; si las tiene, se quedan las de Chromium y no se portan
+  las de Brave; **avisar a COORDINACIÓN de lo encontrado antes de portar nada**. Las funciones perdidas por ganchos quitados en la
+  156 se aceptan (§12.14, «para las notas de la 3.0.0»).
 - Rama de prueba `nube/m34-probe` (= b02508af) sin borrar: el proxy corta el push de borrado; borrarla desde la web.
 
 ## Cómo se hizo
