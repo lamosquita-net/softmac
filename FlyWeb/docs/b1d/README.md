@@ -14,7 +14,8 @@
 
 | zip | sha256 | contenido |
 |---|---|---|
-| `chromium-156-b1d-oficial-2.zip` | `ce921ec0cdf832f2a5f9b90fee3732ead242b50351ffc2224542db81002c1cfe` | **La de entrega**: todo hasta `cd334eec2a` |
+| `chromium-156-b1d-oficial-3.zip` | `da00740df60b26f98a478599c657712bab79282132055494eb79ec1d4d321782` | **La de entrega**: todo hasta `a336fb0b2f` (corte de Graphite) |
+| `chromium-156-b1d-oficial-2.zip` | `ce921ec0cdf832f2a5f9b90fee3732ead242b50351ffc2224542db81002c1cfe` | Hasta `cd334eec2a` |
 | `chromium-156-b1d-oficial.zip` | `7a5a9729b3c4f37da30a142b995e0aa76b1cd71ab4e0f7dc5ec2964134a9dfa4` | La anterior, con src `87f4e8b263` más la caché persistente. Sin el aviso de obsoleto quitado y sin los débiles de prioridad 2 |
 
 ## Medidas en la 6,1 (FirePro D500, 10.14.6), frente a la 2.7.0
