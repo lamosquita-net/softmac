@@ -1025,8 +1025,8 @@ DIRECTIVAS (05-11) ya fija `flyweb_engine_level = 156` y `flyweb_version = 3.0.0
 - (2) Se conservan `declared_version` y el override de Client Hints, **reescritos para la 156** (FlyWeb seguirá portando por su
   cuenta tras la 3.0.0, #772); los 3 parches de extensiones sobran mientras declarada = real.
 - (3) `flyweb_min_macos_version` = la mínima del Chrome declarado (principio 13 de Titín, 12-10): con 156, el último 13.x publicado.
-  **Provisional: 13.7.x sin número exacto** (sin acceso a la página de Apple desde la nube); que lo confirme LOCAL en
-  Actualización de software o en la web de seguridad de Apple antes de fijarlo en `config.gni`.
+  **13.7.8** (build 22H730): confirmado por LOCAL-19 el 06-11 con `softwareupdate --list-full-installers` en la 7,1, único 13.x
+  publicado.
 - (4) Se mantiene «(motor N)». (5) `package.json` en la base de 1.98 → `CFBundleVersion` = `198.63.N` (> `169.168.N`: Sparkle lo
   ve como subida); `FLYWEB_BUILD_NUMBER` sube igual.
 
