@@ -123,3 +123,31 @@ La base fija 156 deja de recibir arreglos de ANGLE Metal posteriores a la rama `
 1. **Que LOCAL parta del último 156 estable**, no del `.0`.
 2. **Que los CVE de ANGLE Metal de la 157+ entren en los *backports* mensuales de B8.** Por tamaño, es el bloque de GPU
    más pequeño: 10 en seis hitos.
+
+## 8. Resultado: parte de src (05-11, `lamosquita-net/chromium` `flynk-b1d` cd334eec)
+
+Revisado sobre 156.0.8078.90, con 26 commits FlyWeb B1b/B1d (77 ficheros, +789/−191). Este punto estaba pendiente en el §6.1
+y queda cumplido: la base es el 156 estable .90, no el `.0`.
+
+| Punto | Resultado |
+|---|---|
+| §7 caché persistente (4147b706) | **Bien.** No toca la validación: **apaga `kGpuPersistentCache` en 10.14** y vuelve a la caché de shaders de siempre. La causa es que el `fsync` de SQLite falla dentro del sandbox de GPU. Solo se reactiva con la variable de entorno `FLYWEB_GPU_PERSISTENT_CACHE` (diagnóstico). Las comprobaciones 1–4 del §7 no aplican mientras siga apagada. **Si algún día se enciende**, hay que revisarla entonces. |
+| §4 WebGPU (c3865144) | **Bien.** `enable_webgpu` queda forzado a falso en 10.14, también con `--enable-unsafe-webgpu`. Dawn ya no enumera adaptadores en 10.14 (8ed42291). |
+| §4 Graphite (c3865144) | **Bien, con una salvedad.** No se enciende por *feature* ni por Finch: `IsSkiaGraphiteSupportedByDevice()` da falso. **El interruptor `--enable-skia-graphite` todavía lo fuerza** (`IsSkiaGraphiteEnabled` lo mira antes). Es un parámetro explícito de arranque, así que se admite. Recomiendo cortarlo también en 10.14 por coherencia: Graphite sobre Metal 2.1 no está probado. |
+| §3/§7 guardas: Web Share (945c9881) | **Bien.** Antes de macOS 13 comparte el título y la URL. Los permisos y la activación de usuario de Web Share se comprueban antes, en Blink y en el navegador; esto solo cambia la hoja del sistema. |
+| Notificaciones (cd334eec) | **Bien.** Solo cambia la forma de presentarlas (`Alert` en vez de `Banner/List`). Los permisos no se tocan. |
+| Ubicación (87f4e8b2) | **Bien.** En 10.14 no se llama a `requestWhenInUseAuthorization` (es de 10.15) y el sistema pregunta al empezar las actualizaciones. El permiso del sitio en Chromium no cambia. |
+| VideoToolbox/CoreVideo/CoreMIDI (6ad82400, 5660e893) | **Bien.** Las alternativas a `Copy` hacen `Get` y después `CFRetain`, con la propiedad correcta. Sin las claves de 11.3 el codificador de baja latencia **devuelve falso** (no se usa); no sigue con constantes NULL. MIDI se queda en `MIDIPacketList`, el camino de siempre. Enumerar cámaras usa `devicesWithMediaType:`. No sale nada del sandbox. |
+| HDR (c11d8d17) | **Bien.** Sin EDR en 10.14, la función devuelve falso. |
+| Reautenticación de contraseñas (`authenticator_mac.mm`) | **Bien [I].** En 10.14 la política 4 (biometría o reloj) no existe y se pregunta solo por biometría. Las Mac Pro no tienen Touch ID, así que da falso y queda la contraseña del sistema. **Probar en la 6,1** que ver las contraseñas guardadas sigue pidiendo autenticación. |
+| Certificados de cliente (`client_cert_store_mac.cc`) | **Bien.** Antes de macOS 12 la cadena se arma con `SecTrustGetCertificateAtIndex`: el mismo orden (hoja primero), con retención del array. |
+| Sandbox (`sandbox/mac/system_services.cc`) | **Bien [I].** `_CSCheckFixDisable` pasa a enlace débil y se omite si falta. En 10.14 esa función no existe, así que no hay nada que desactivar. No se abre ningún permiso del sandbox. |
+| Permiso de captura de pantalla (`permissions_utils.mm`) | **Bien.** 10.14 no tiene permiso TCC de grabación de pantalla. La elección y el permiso de `getDisplayMedia` de Chromium siguen igual. |
+| PartitionAlloc (`spinning_mutex.cc`) | **Bien.** Usa `kern.osrelease` en vez de `__builtin_available` para no volver a entrar en el cerrojo. Sin opciones en 10.14, solo pierde la espera adaptativa. |
+
+**Ningún `else` se salta una validación, un permiso o una inicialización de memoria** en lo que se ha visto.
+
+**Pendiente: §1, §2 y §5 (ANGLE).** El submódulo `third_party/angle` apunta a **2f34372aaf**, que no está en `google/angle`
+ni en ningún fork público. Lo mismo pasa con Dawn (31316d1c, aunque con WebGPU apagado importa menos). Sin ese código no se
+pueden revisar la caché de pipelines, la elección de `MTLDevice` ni el cruce con los 10 CVE. Hace falta que LOCAL-18 lo suba
+(fork `lamosquita-net/angle` o `.patch` en su PR).
