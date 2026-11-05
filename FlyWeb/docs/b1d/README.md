@@ -84,7 +84,11 @@ El navegador siguió vivo en todas las pruebas: 0 FATAL, 0 Check failed, 0 caíd
 
 ## Regla 17 (SEGURIDAD-PORTES-17, `b1d-regla17.md`)
 
-- **Cachés de 128 a 1024**: el parche `0003` solo cambia las dos constantes, `kMaxCachedLibraries` y `kMaxPipelines`, con un comentario. No toca `TrimCache` ni el `shared_ptr`. Después del cambio no aparece ningún «Overflowed» en MotionMark ni en Aquarium. **Pendiente:** una prueba que llene la caché por encima de 1024 y medir la memoria en la 6,1.
+- **Cachés de 128 a 1024**: el parche `0003` solo cambia las dos constantes, `kMaxCachedLibraries` y `kMaxPipelines`, con un comentario. No toca `TrimCache` ni el `shared_ptr`. Después del cambio no aparece ningún «Overflowed» en MotionMark ni en Aquarium. **Probado en la 6,1** (05-11, `oficial-4`, `cache.py`): se crean 500, 1024, 1500, 2000, 2500 y 3000 programas WebGL distintos, y se dibuja con cada uno, que es una pipeline y una librería por programa.
+  - Tarda unos 22 s por cada tramo de 500. No hay error GL ni pérdida de contexto. El registro tiene 784 «Overflowed», que es el recorte esperado por encima de 1024. Dibujar con los 3000 programas tarda 1 ms.
+  - Memoria del proceso de GPU (RSS): 54 MB en reposo, 106 MB con 500 programas, 153 MB con 1500 y 264 MB con 3000. Crece de forma lineal, unos 70 MB por cada 1000 programas.
+  - **Al borrar los programas no baja** (264 MB): los programas de WebGL borrados no liberan la caché de Metal.
+  - Así que el límite de 1024 no frena el crecimiento: lo que crece son los programas que tiene vivos la página, más lo que retiene ANGLE. Es acotado, pero una web hostil podría inflarlo. Pendiente: compararlo con la 2.7.0 y ver si conviene un límite de memoria en lugar de un número de entradas.
 - **MTLDevice** (parche `0002`):
   - En macOS < 10.15 todos los EGLDisplay usan `CGDirectDisplayCopyCurrentMetalDevice(CGMainDisplayID())`. Una web no puede influir, ni siquiera con `powerPreference`. Desde 10.15 se mantiene el comportamiento de serie.
   - El dispositivo es único, así que es el mismo que el de los IOSurface.
@@ -118,7 +122,6 @@ Se guarda una contraseña de prueba con `chrome.passwordsPrivate.addPassword` en
 - Auditoría de selectores Objective-C (no son símbolos débiles): recoger todos los `-Wunguarded-availability` en una compilación limpia con objetivo 10.14.
 
 - Parón de compilación de pipelines Metal en la primera carga (ver arriba).
-- Prueba de llenado de cachés y memoria.
 - Batería `pruebas-gpu.md`.
 - Widevine en la 2.7.0 y la 156 (orden de COORDINACIÓN-27, 05-11 11:28).
 - La causa de fondo del `fsync` del VFS en la sandbox de 10.14.
