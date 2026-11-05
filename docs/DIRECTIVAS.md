@@ -269,6 +269,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   web…) se conserva **desactivado por defecto**, como en Brave; el usuario lo activa y se descarga de Google. LOCAL
   comprueba en la 6,1 si llega a reproducir sin la firma VMP; si no funciona, se quita. Las **ventanas Tor se borran**
   con la poda (cliente Tor, componente y UI); si algún día se quieren para Mojave, como función propia.
+- **Maglev, a prueba en la validación de la 3.0.0 (Titín, 05-11 noche; B6 de `base-siguiente.md`):** en la 2.x está
+  apagado (FS.28, 27-10) por los arreglos de seguridad de Maglev que había que portar a mano; la V8 de la 156 ya los trae.
+  En B6 se enciende y se queda encendido solo si: (1) mjsunit de la V8 de la 156 con Maglev en verde en d8 (D8-LINUX);
+  (2) Speedometer 3.1 y JetStream 3 con y sin Maglev en la 6,1 y la 5,1, sin pérdida; (3) sin instrucciones AVX sin
+  despacho en la 5,1 (`otool`). Si falla algo, se publica apagado y se mira en optimizaciones.
 - **GPU: Metal (B1d); la vía OpenGL (B1c) queda parada hasta después de la 3.0.0 (Titín, 05-11 noche):** no se hacen más
   commits ni compilaciones de la opción GL; el cuello de botella es compilar. Motivos: MotionMark 1381 frente a 566,
   batería sin caídas con `oficial-6`, y en seguridad la vía GL obligaba a portar a mano 34 CVE (16 críticos) que la
