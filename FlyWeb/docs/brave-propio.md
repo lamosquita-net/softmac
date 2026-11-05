@@ -644,3 +644,56 @@ brave-core `nube/b2-porte-t6` = **820772ce** (PR brave-core #14, borrador, base 
 **Cifra esperada [I]:** ~50 de Rust, ~95 de los 184 de Shields/privacidad. **Quedan:** `browser/ui` y `BrowserWindowInterface`
 (T5), recursos grit, `temporal_capi` (sin causa clara), `ahash 0.7` (Speedreader, T9), `RegisterTrustedWebUIInterfaceBrokers`
 y `HandleURLOverrideRewrite` (T5).
+
+**Decisiones de COORDINACIÓN-28 sobre T6 (05-11):** pins estáticos de Brave fuera en T9; sin pins para `*.flyweb.lamosquita.net`
+(un pin caducado o mal puesto deja el servicio inaccesible; bastan HSTS preload y CT). En T8, comprobar que con JavaScript
+bloqueado en Shields siguen funcionando `chrome://settings`, la nueva pestaña y las extensiones (o portar la solución de 1.98).
+**T6-bis (medida de T3, a28f8adf):** permisos de Wallet (ethereum/solana) quitados del todo en 7 commits (permissions policy,
+`PermissionType`, `RequestType`, `ContentSettingsType`, ajustes, UMA con huecos «// Removed»); prefs `brave_ethereum`/`brave_solana`
+huérfanas e inocuas. `safety_hub_handler_unittest` (macros que pisaban `PermissionName`) y `local_frame.cc` (`Snapshot` sin
+`FlushReason`). Restos de Wallet para T9: Android (prompt, dapp), `wallet_strings.grdp`, allowlist `braveWallet`.
+
+### 12.10 T7: sync, cuentas y `os_crypt` (MOTOR-33, 05-11)
+
+brave-core `nube/b2-porte-t7` = **ff2fa26e** (PR brave-core #15, borrador, base T6 a28f8adf). 16 commits, sin compilar; `b2-chk.py` igual.
+
+- **Sync**: `ModelType` → `DataType`, controladores de historial, `BraveDataTypeWorker` (parche nuevo), `SyncScheduler`,
+  `sync_server_connection_manager` de 1.98 (la 156 rechaza el token con CRLF), device info con `SelfDeleteSupport`, prefs
+  sincronizables (se mantiene `cosmeticFiltering`), signin con las promos apagadas.
+- **Semilla**: misma pref (`brave_sync_v2.seed`) y base64, cifrada con el `Encryptor` de `os_crypt_async`; no se borra mientras el
+  `Encryptor` no está listo (1.98). Palabras, tamaño y derivación sin cambios.
+- **`os_crypt/sync` fuera**: nombres del llavero FlyWeb en `os_crypt/common/keychain_password_mac.mm` (v10: saltysalt, 1003
+  iteraciones, AES-128-CBC); Linux, nombres de Brave en `FreedesktopSecretKeyProvider`.
+- **Importer** → `user_data_importer`; sin contraseñas ni tarjetas de Chromium (OSCrypt síncrono; como 1.98).
+- **Buscadores**: `prepopulated_engines.json` → `patches/third_party/search_engines_data/resources/` (lo aplica `util.js`);
+  valores de FlyWeb (versión 29, DuckDuckGo sin `t=`); nuestro `startpage` pasa a `brave_startpage` (la 156 trae el suyo, id 113).
+
+**Datos del usuario (para LOCAL, puerta M1–M5 de §11.8 con perfil real de la 2.x):** la guarda `fw1` de `encryptor.cc` desaparece;
+falta reescribir `Fw1KeyProvider` para `os_crypt_async` (Mac). Un dato sin prefijo, o `fw1` sin proveedor, da `nullopt` (la 2.x lo
+devolvía en claro). Una semilla que la 3.0 vuelva a guardar (solo al unirse a una cadena) puede no leerse en una vuelta atrás a la 2.x.
+**Por decidir:** excluir `AUTOFILL_VALUABLE` del sync como 1.98, según lo que acepte go-sync.
+**Cifra esperada [I]:** ~80 de 94. **Quedan para T5:** `identity_apitest`, `brave_sync_account_deleted_infobar`, `brave::ShowSync`
+con `BrowserWindowInterface*`.
+
+### 12.11 Nueva pestaña: medida previa a T5 (MOTOR-33, 05-11)
+
+`components/flyweb_ntp` son **15 ficheros de recursos** (fuentes D-DIN, fondos 1–7 y de arranque, SVG de la mosca), sin código.
+La nueva pestaña de la 2.7.0 es `components/brave_new_tab_ui` modificado (`default/flyweb/`), que importa esos recursos;
+`brave_welcome_ui` también. Plan aprobado por COORDINACIÓN-28: (B) fuera en commits revertibles; (A) portado en su forma mínima.
+
+- **(A) Se queda:** `flyweb_ntp`; núcleo de `brave_new_tab_ui` (`flyweb/`, mojom `brave_new_tab_page`); `browser/ui/webui/new_tab_page`
+  (BraveNewTabUI, page handler, message handler, TopSites); de `ntp_background_images`, `view_counter_service`/`model`,
+  `brave_ntp_custom_background_service`, `ntp_custom_images_source`, `url_constants`, `pref_names`; de `browser/ntp_background`, la
+  fábrica, `custom_background_file_manager`, `ntp_background_prefs`, `constants`; `components/ntp_tiles`; prefs de reloj, stats,
+  fondo y buscador, y sus cadenas.
+- **(B) Se borra:** `ntp_widget_utils` (7); patrocinados y referidos (`component_installer`, `sponsored_images_*`,
+  `ntp_background_images_source`, `ntp_p3a_helper`, `ntp_tab_helper`…; `NTPBackgroundImagesService` fuera si sale barato); en
+  `brave_new_tab_ui`, ~35 muertos (exchangeWidget, popupMenu, braveTalk, brandedWallpaper, sponsoredImage(s), rewards_*,
+  newTabAdsData, widgetCard, stories); ~16 de `components/img/newtab`; Android/iOS.
+- **(C) Hay que tocar:** `brave_content_browser_client` (brokers, `NewTabShowsNavigationThrottle`), `brave_web_ui_controller_factory`,
+  `brave_browser_process`, fábricas y tab helpers, registro y migraciones de prefs, settings `brave_new_tab_page`, BUILD y pruebas.
+
+**Lista de comprobación visible (LOCAL, captura en B6 contra la 2.7.0):** diseño y tipografía D-DIN; fondos 1–7 rotando y fondo de
+arranque en el primer inicio; mosca; sitios populares (añadir, quitar, reordenar); reloj (12/24 h); contador de Shields (anuncios,
+rastreadores, HTTPS, ancho de banda); buscador si sale; fondo propio del usuario (subir, quitar, color); ajustes de la pestaña (mostrar
+u ocultar cada elemento); sin rastro de patrocinados, Rewards, Talk ni News.
