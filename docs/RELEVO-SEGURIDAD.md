@@ -8,7 +8,7 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
-## SEGURIDAD-PORTES-17 (`session_01MwmK2h23XGknphhFuuhWG7`, 03-11 → en curso)
+## SEGURIDAD-PORTES-17 (`session_01MwmK2h23XGknphhFuuhWG7`, 03-11 → 05-11, relevada al 46 %)
 
 **Hecho:**
 - B0 de FM.55 (#720, `b0-cve.md`).
@@ -17,8 +17,6 @@ Commits en inglés.
 - KEV contra la 2.7.0: sin novedad hasta el catálogo 2026.11.04.
 
 **Pendiente:**
-- Auditoría de selectores y avisos `-Wunguarded-availability` de la 156 (631 en 67 ficheros). La lista es de LOCAL-19 en
-  `FlyWeb/docs/b1d/selectores-unguarded-156.md` (#753). COORDINACIÓN-28 la ha aprobado, pero aún no la ha encargado.
 - **B5 (privacidad de la 3.0.0)**, aviso de COORDINACIÓN-28 del 05-11.
   - En el porte de Brave a la 156 (MOTOR-33), los 18 *overrides* de `blink::features` de Privacy Sandbox (SharedStorage*,
     PrivateAggregation, Fledge*, InterestGroup…) ya no existen en la 156.
