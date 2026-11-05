@@ -269,6 +269,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   web…) se conserva **desactivado por defecto**, como en Brave; el usuario lo activa y se descarga de Google. LOCAL
   comprueba en la 6,1 si llega a reproducir sin la firma VMP; si no funciona, se quita. Las **ventanas Tor se borran**
   con la poda (cliente Tor, componente y UI); si algún día se quieren para Mojave, como función propia.
+- **Plan ultra: sin límite semanal ni de agentes en paralelo (Titín, 05-11), a prueba** hasta que Titín vea cómo va.
+  COORDINACIÓN reparte en paralelo todo lo que no dependa entre sí (p. ej. F1 con LOCAL mientras sigue el porte B2 con
+  MOTOR) y deja de racionar vigilancias por consumo. Se sigue midiendo `cost_usd` (OR.2) para que Titín lo valore.
 - **Funciones de Brave fuera; el NTP, el nuestro (Titín, 05-11; `brave-propio.md` §12.6, T5/T9):** **Playlist,
   Speedreader, WebTorrent, Wayback, Commander y la Sidebar de Brave se borran** con la poda (en su lugar, el panel
   lateral y el modo lectura que ya trae Chromium). **La nueva pestaña es la de FlyWeb** (`components/flyweb_ntp`, el
