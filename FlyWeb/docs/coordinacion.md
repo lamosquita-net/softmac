@@ -7,6 +7,51 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 05-11 (noche): COORDINACIÓN-28 → COORDINACIÓN-29 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-28 (`session_01MwmK2kJamvybegV8BvFxJf`, 05-11; Opus 5.5 medio; abierta por la 27, linaje 3; relevo al ~40 %).
+La 29 la abre la 28 (linaje 4). **Nunca llamar a confirm_repository_trust.**
+
+**Decisiones de Titín de hoy** (todas en DIRECTIVAS): funciones de Brave fuera y el NTP, el nuestro (#759); plan ultra sin
+overage ni tope de agentes, con aviso propio a `resetsAt` si salta el límite de 5 h, que es **de toda la cuenta** (#761,
+#763; Titín lo revisa el 06-11); **la base 156 sale como FlyWeb 3.0.0** y la 6,1 sirve a LOCAL por ssh como banco de
+pruebas, pero no compila la 156 (#762); **GPU por Metal**, la vía GL (B1c) parada hasta después de la 3.0.0 (#765);
+**Maglev a prueba en B6** (#767); **tras la 3.0.0, nuestro fork a nuestro ritmo**: paridad portando, foco en rendimiento y
+después plataformas, de la más fácil a la más difícil (#772; Leopard/PPC con Chromium no es viable, ya dicho a Titín).
+Widevine queda fuera: no funciona ni en la 156 ni en la 2.7.0.
+
+**FM.55 B1d (GPU), CERRADA salvo la 5,1:** `oficial-6` (sha256 43fca6be…2ce5, src `flynk-b1d` 805e5d0cff, ANGLE 3b24dd0)
+sin caídas en la batería de la 6,1; MotionMark 1381 frente a 566. Regla 17 de ANGLE apta (#746, #760). PR #753 de LOCAL
+(lo vigilo) sigue abierto: falta `angle_revision` a la punta de 8078, revisar a mano los selectores ObjC de
+`selectores-unguarded-156.md` y comprobar PGO (Chrome 156 saca −25 % / −32 % en la 7,1, `comparativa-71.md`, #770).
+Cuando estén, fusionarlo.
+- **Kit de la 5,1:** lanzador firmado y notarizado (v2, dmg sha256 aa1e453b…7c9c) en un directorio oculto de ns2
+  (`/var/www/FlyWeb/kit-51`, creado por Titín). SERVIDOR-LOCAL lo sube y LOCAL-19 lo prueba desde la URL real.
+  **La URL solo a Titín, en su sesión.** La hija de Titín lo lanza en la 5,1 y le manda `resultado-51.txt` por correo;
+  Titín se lo pasa a LOCAL. Después se borra (Alias y contenido, SERVIDOR-LOCAL; el directorio, Titín).
+
+**FM.54 F1:** ordenado a LOCAL-18 hoy (buzón d3c582a), en paralelo. Sin noticias aún.
+
+**FM.55 B2 (porte de Brave a la 156):** brave-core, encadenadas: T0 146eeddc → arreglo de BUILDCONFIG en
+`nube/b2-porte-t4` 2dec767d → T3 8b2de20e → T6 a28f8adf → T7 7b2a0a79 (T7-bis: Fw1KeyProvider sobre os_crypt_async; los
+datos sin prefijo, en claro y marcados para recifrar; tabla en `brave-propio.md` §12.12). Rotos (MOTOR-30): 936 en la poda →
+879 en T0 → 743 en T4 → 644 en T3 → 557 en T6. **MOTOR-34** (`session_01MwmK2k5p4qtinBTbRDd26B`) sigue con T5 (poda de
+Playlist y compañía, y del NTP de Brave según §12.11, conservando la de la 2.7.0), luego T8 (bloqueantes: Privacy Sandbox
+apagado con prueba JS; JS bloqueado en Shields sin romper chrome://settings, la NTP ni las extensiones) y T9 (restos de
+Wallet, pins HSTS de Brave fuera; sin pins propios). **MOTOR-33** (`session_01MwmK2k3tUrKX1yNFM5soGn`) se archiva cuando
+MOTOR-34 confirme que su add_repo funcionó (a MOTOR-33 se lo denegó el clasificador y tuvo que autorizarlo Titín en su
+sesión; si vuelve a pasar, pedírselo a Titín con el texto exacto). MOTOR-30 (Ubuntu) mide T7 y se le pide relevo a Titín
+tras esa medida (Sonnet 5.5 medio basta; nota en su `RELEVO.md` local).
+- Decisiones mías de hoy: Page Graph fuera; pins HSTS de Brave fuera y ninguno propio; AUTOFILL_VALUABLE fuera de sync;
+  se acepta recifrar a fw1 (M7); al volver de la 3.0 a la 2.x pueden pedirse otra vez las palabras de sync (para las notas).
+
+**Puerta del llavero (LOCAL, en Mac):** M1–M5 de §11.8 con el perfil real de la 2.7.0 y la tabla de §12.12; además, que
+KeychainV2 lea sin diálogo nuevo el ítem de la 2.x en una Release firmada en 10.14.
+
+**Equipo vivo:** MOTOR-34, MOTOR-30 (bridge), LOCAL-18/LOCAL-19 (bridges; solo buzón o comentarios en #753),
+SEGURIDAD-PORTES-17 (`session_01MwmK2h23XGknphhFuuhWG7`; tiene apuntado revisar en B5 que Privacy Sandbox no exista),
+PUBLICACIÓN y SERVIDOR-LOCAL (kit), CARTERO-LOCAL. INVESTIGACIÓN-MOTOR-8 quieta. Tareas programadas mías: ninguna.
+
 ## 05-11 (tarde): COORDINACIÓN-27 → COORDINACIÓN-28 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-27 (`session_01MwmK2j9aGRTHMvVrCfE8vE`, 04-11 → 05-11; Opus 5.5 medio; abierta por la 26, linaje 2; relevo al ~33 %).
