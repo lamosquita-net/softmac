@@ -120,6 +120,10 @@ Se guarda una contraseña de prueba con `chrome.passwordsPrivate.addPassword` en
 
 ## Pendiente
 
+- **Para B3 (FlyWeb sobre la 156):** la compilación final tiene que reproducir H.264 y AAC, como la 2.7.0: `proprietary_codecs=true` y `ffmpeg_branding="Chrome"`, como en los args de Brave. En B1d no hace falta (COORDINACIÓN-28, 05-11).
+- **Widevine: fuera.** Decisión de Titín del 05-11: no funciona ni en la 156 ni en la 2.7.0, así que se quita. No se activa `enable_widevine`.
+- **Regresión abierta, sin prioridad de entrega:** Shadertoy Elevated da 33 fps frente a 60 de la 2.7.0.
+
 - **Bloquea la entrega:** la caída del compilador Metal de AMD en 10.14 con `three.js webgl_postprocessing_unreal_bloom` y `webgl_shadowmap`, y los reinicios de la GPU con Google Earth y Photopea (ver `../pruebas-gpu.md`).
 - Auditoría de selectores Objective-C (no son símbolos débiles): recoger todos los `-Wunguarded-availability` en una compilación limpia con objetivo 10.14.
 
