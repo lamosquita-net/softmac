@@ -697,3 +697,33 @@ La nueva pestaña de la 2.7.0 es `components/brave_new_tab_ui` modificado (`defa
 arranque en el primer inicio; mosca; sitios populares (añadir, quitar, reordenar); reloj (12/24 h); contador de Shields (anuncios,
 rastreadores, HTTPS, ancho de banda); buscador si sale; fondo propio del usuario (subir, quitar, color); ajustes de la pestaña (mostrar
 u ocultar cada elemento); sin rastro de patrocinados, Rewards, Talk ni News.
+
+### 12.12 T7-bis: llavero y datos del usuario en la 156 (MOTOR-33 y MOTOR-34, 05-11)
+
+brave-core `nube/b2-porte-t7` = **b02508af** (sobre 7b2a0a79 de MOTOR-33: `Fw1KeyProvider` sobre `KeychainV2`, datos sin
+prefijo en claro en `Encryptor`, `AUTOFILL_VALUABLE` fuera del sync). MOTOR-34 añade: cookies `fw1` por fila reancladas
+(la 156 ya borra por fila las no canónicas: se reutiliza), guarda de `DeleteUndecryptableLogins` ampliada a `v10`, fuera el
+parche de `password_store_built_in_backend.cc` y el override de `kUseAsyncOsCryptInLoginDatabase` (no existen en 156),
+`browser_process_impl.h` reanclado y el browsertest de nombres del llavero con «FlyWeb Safe Storage» / «FlyWeb» (M1 a).
+Sin compilar. Proveedores en Mac: `v10` (`KeychainKeyProvider` de upstream, precedencia 10, misma derivación: PBKDF2-SHA1,
+`saltysalt`, 1003, AES-128-CBC) y `fw1` (precedencia 20, mismo ítem «FlyWeb fw1» y formato que la 2.5–2.7).
+
+**Casos → resultado** (para LOCAL, puerta M1–M5 de §11.8.2 con una **copia** del perfil real de la 2.7.0; no va al repo):
+
+| Dato guardado | Situación del llavero | `DecryptData` | Contraseña (`login_database`) | Cookie |
+|---|---|---|---|---|
+| `fw1…` | ítem «FlyWeb fw1» presente | texto; `should_reencrypt` = no | se lee | se lee |
+| `fw1…` | denegado / bloqueado / ítem corrupto | nada; `temporarily_unavailable` | no se borra; las demás se ven (`kSkipUndecryptablePasswords`) | **se borra esa cookie** (como 2.x), no su eTLD+1 |
+| `fw1…` | ítem borrado (se crea clave nueva) | nada, permanente | no se borra | se borra esa cookie |
+| `v10…` | ítem «FlyWeb Safe Storage»/«FlyWeb» presente | texto; `should_reencrypt` = sí (al reescribirse pasa a `fw1`) | se lee | se lee |
+| `v10…` | `v10` denegado, `fw1` bien | nada; `temporarily_unavailable` | no se borra (guarda nueva) | cae su eTLD+1 (upstream, como 2.x) |
+| sin prefijo | cualquiera | **en claro**, `should_reencrypt` = sí (como OSCrypt de la 2.x) | se lee | se lee |
+| vacío | cualquiera | cadena vacía | — | — |
+| `fw1`/`v10` corrupto (GCM/CBC fallan) | clave presente | nada, permanente; nunca en claro | no se borra | `fw1`: esa cookie; `v10`: su eTLD+1 |
+
+Sin clave `fw1` (cualquier fallo) se cifra con `v10`, como en la 2.x. **Nunca** `kPermanentlyUnavailable`.
+**Para LOCAL, además de M1–M5:** tras el primer arranque no debe existir «Chromium Safe Storage» ni «Chrome Safe Storage»;
+los recuentos de `FlyWeb/tools/fw1-perfil.sh` antes y después iguales; sesiones de claude.ai y GitHub y autorrelleno intactos;
+con «FlyWeb fw1» denegado en el diálogo, ninguna contraseña desaparece.
+**Dudas:** el diálogo del llavero al leer por `SecItem` un ítem creado con `SecKeychain` (M4) solo se ve con la Release firmada;
+la cookie `fw1` con llavero denegado se pierde (decisión heredada de la 2.x; si se quiere conservar, hay que tocar el borrado).
