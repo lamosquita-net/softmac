@@ -205,7 +205,7 @@ Los hitos de `fork-propio.md` F0–F1 se mantienen tal cual; esto se añade.
 | **Puerta (Titín)** | Con B0–B3 decide: **156**, **150** o **seguir en 128 a mano** | Decisión anotada en `DIRECTIVAS.md` | Titín, ARQUITECTURA |
 | **B4 Rebase real** | Capa permanente sobre 156 (o 150); capa Mojave `compat`; Graphite fuera; parches de SDK/toolchain | Arranca en 6,1, 5,1 y 7,1; sin caídas de GPU en A1398 (dos GPU), MBP 2012 (dos GPU) y Air 2013 | LOCAL, MOTOR |
 | **B5 Brave/identidad** | `chromium_src` y código de Brave contra la 156; rebranding, privacidad (regla 20), servicios apagados verificados con `network-audit.py` | Cero destinos de Brave; identidad intacta; `about:credits` | MOTOR, SEGURIDAD-PORTES |
-| **B6 Validación** | `motor-117…138.html` en verde; WPT de la 156 iguales a las del Chrome 156 de referencia; d8 compilada desde el fork pasa mjsunit | Criterio de nivel (CLAUDE.md) cumplido para el 156 | MOTOR, D8-LINUX |
+| **B6 Validación** | `motor-117…138.html` en verde; WPT de la 156 iguales a las del Chrome 156 de referencia; d8 compilada desde el fork pasa mjsunit; **Maglev encendido a prueba** (mjsunit con Maglev, Speedometer/JetStream con y sin él en 6,1 y 5,1, sin AVX sin despacho; `DIRECTIVAS.md` 05-11) | Criterio de nivel (CLAUDE.md) cumplido para el 156 | MOTOR, D8-LINUX |
 | **B7 Publicación** | Orden de siempre: d8 en verde → LOCAL → PUBLICACIÓN → web | Versión con `flyweb_engine_level` = 156 | COORDINACIÓN |
 | **B8 Después** | Política de rama de soporte largo: backports mensuales de CVE sobre la base fija; nueva base solo por decisión de Titín con el criterio de la decisión 5 | Directiva escrita | ARQUITECTURA |
 
