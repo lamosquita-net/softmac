@@ -269,6 +269,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   web…) se conserva **desactivado por defecto**, como en Brave; el usuario lo activa y se descarga de Google. LOCAL
   comprueba en la 6,1 si llega a reproducir sin la firma VMP; si no funciona, se quita. Las **ventanas Tor se borran**
   con la poda (cliente Tor, componente y UI); si algún día se quieren para Mojave, como función propia.
+- **Después de la 3.0.0: nuestro fork a nuestro ritmo (Titín, 05-11 noche; precisa B8 de `base-siguiente.md`):** no se
+  sigue a Chrome versión a versión. Se va **a la par en funciones y en seguridad portando** lo que hagan Chrome y los
+  demás navegadores, sobre nuestra base y con nuestro calendario. Foco: **exprimir rendimiento** (PGO, GPU, hilos y
+  varias GPU, Maglev, OpenGL de comparación). Cuando haya desahogo, **plan de expansión a otras plataformas, de la más
+  fácil a la más difícil** (Linux, Android, iOS, Leopard/PowerPC…). Se acaba el ritmo actual. Salvaguarda propuesta por
+  COORDINACIÓN: medir cada mes cuántos arreglos de seguridad entran limpios; si la proporción cae mucho (como pasó con la
+  128), se le propone a Titín un salto de base con datos, no por calendario.
 - **Maglev, a prueba en la validación de la 3.0.0 (Titín, 05-11 noche; B6 de `base-siguiente.md`):** en la 2.x está
   apagado (FS.28, 27-10) por los arreglos de seguridad de Maglev que había que portar a mano; la V8 de la 156 ya los trae.
   En B6 se enciende y se queda encendido solo si: (1) mjsunit de la V8 de la 156 con Maglev en verde en d8 (D8-LINUX);
