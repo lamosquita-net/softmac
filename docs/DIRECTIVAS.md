@@ -258,6 +258,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   lo impide el Metal 2.1 (la 156 usa APIs de macOS 10.15/11), no el hardware. INVESTIGACIÓN-MOTOR estudia en papel si el
   ANGLE Metal de la 156 se puede adaptar a Metal 2.1, para compararlo con el porte de OpenGL de la 150 (B1c, que
   sigue). Decide Titín con los dos datos.
+- **Brave: fuera todo lo que descartamos; destino, nuestro fork (Titín, 05-11; `brave-propio.md`):** lo de Brave que FlyWeb
+  descarta se **borra sin paliativos**. FlyWeb es nuestro fork optimizado: de Brave se quedan solo las **mejoras de
+  privacidad** (Shields, sync propio, políticas y lo que las sostiene) y, como mucho, **la capa de interfaz**, para
+  modificarla después según las especificaciones de Titín. «Apagar, no borrar» valía solo para lo que pueda hacer falta
+  en migraciones a otros sistemas, nunca para la basura de Brave. Destino = opción B de `brave-propio.md` (lo útil,
+  absorbido en el fork; `brave-core` desaparece); camino = poda primero y después absorción por pasos medibles (C). La
+  pregunta «A, B o C» de §8 queda cerrada. Donante del porte: Brave 1.98.63.
 - **Poda de Brave: borrar, no apagar (Titín, 03-11; `brave-propio.md` §11, B2):** el código de Brave que FlyWeb ya no usa
   (Wallet, Rewards y demás apagados; 74 directorios medidos) se **borra** en vez de mantenerse apagado. «Apagar, no borrar»
   queda para lo que sirva a futuras plataformas (Android, iOS, Linux, Leopard/PowerPC), no para lo muerto de Brave.
