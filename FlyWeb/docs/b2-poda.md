@@ -1,6 +1,6 @@
 # B2, hito 1: poda de brave-core (FM.55)
 
-MOTOR-31, 05-11-2026, encargo de COORDINACIÓN-27. Rama `lamosquita-net/brave-core` `nube/b2-poda`, sha **9b8eb665**, sobre
+MOTOR-31, 05-11-2026, encargo de COORDINACIÓN-27. Rama `lamosquita-net/brave-core` `nube/b2-poda`, sha **9b8eb665** (70 dirs) y **eacb6fda** con Tor (§Tor), sobre
 `flyweb` 5fdeb23d (2.7.0); PR borrador brave-core #8. **Sin compilar**: la compilación y el recuento de ficheros rotos
 son de MOTOR-30 (Ubuntu). Plan de origen: `brave-propio.md` §11.6 (74 directorios).
 
@@ -11,7 +11,8 @@ son de MOTOR-30 (Ubuntu). Plan de origen: `brave-propio.md` §11.6 (74 directori
   `components/webcompat` (excepciones de Shields: `remote_list_provider`; la heurística lo cogió por el nombre),
   `components/p3a_utils` (Shields, sync, Playlist), `components/time_period_storage` (Speedreader, Brave Search, perf
   predictor) y `components/ntp_background_images` (NTP de Brave; se decide con la interfaz).
-- **Tor, Speedreader, Playlist, Widevine:** ningún directorio de la lista era suyo. Costura mínima en commits aparte
+- **Tor:** fuera entero por decisión de Titín (05-11), en un paso aparte: sección «Tor» al final. **Widevine se queda** (desactivado por defecto).
+- **Speedreader, Playlist, Widevine:** ningún directorio de la lista era suyo. Costura mínima en commits aparte
   (`… (speedreader|tor|playlist|sidebar)`).
 - **Costuras fuera de los 70:** 495 ficheros, 274 editados y 221 borrados (solo servían a lo borrado). Por tipo (M/D):
   gn/DEPS 68/6 · chromium_src 43/13 · parches 3/3 · grd/resource_ids 3/2 · prefs 7 · about_flags 1 · factorías 8 ·
@@ -1050,3 +1051,123 @@ a994e283 [b2-poda] seams for components/services/bat_ads
   no cambian. Ya no queda ninguna referencia dentro de los 70.
 - Pendiente al integrar: components/brave_wallet_ui todavía importa ../brave_rewards/resources/shared/lib/external_wallet
   (5 ficheros). En nube/b2-poda brave_wallet_ui aún no se ha borrado; si no se borrara, el TS de wallet no compilaría.
+
+---
+
+## Tor (decisión de Titín, 05-11): 7 directorios más
+
+Sobre 9b8eb665 → **eacb6fda** (11 commits). Widevine no se toca. Revisado por MOTOR-31: el envoltorio borrado de `profile.h`/`.cc` solo añadía Tor a `IsIncognitoProfile`/`IsPrimaryOTRProfile` (queda el comportamiento de Chromium), y ningún parche ni envoltorio usa macros `BRAVE_*` que hayan dejado de definirse (en toda la rama desde 5fdeb23d).
+
+Repo `/home/user/brave-core`, rama `nube/b2-poda`, sobre **9b8eb665**. Sin push. Widevine sin tocar.
+
+### sha final y commits (`git log --oneline 9b8eb665..`)
+sha final: **eacb6fda** (eacb6fda063a997fa9a9bc86ecd465dd9e8c3167)
+```
+eacb6fda [b2-poda] seams for browser/resources/settings/brave_tor_page
+e4567ef3 [b2-poda] seams for components/services/tor
+35d79544 [b2-poda] seams for components/tor
+edc71497 [b2-poda] seams for browser/tor
+3dc1a851 [b2-poda] remove components/child_process_monitor
+af354c9c [b2-poda] remove test/data/tor
+da09ce82 [b2-poda] remove browser/resources/settings/brave_tor_page
+42c3621e [b2-poda] remove components/third_party/tor
+2a91c61d [b2-poda] remove components/services/tor
+f671d689 [b2-poda] remove components/tor
+a9abbbe9 [b2-poda] remove browser/tor
+```
+Casi todas las costuras tocan varios directorios del grupo a la vez (buildflag `enable_tor` definido en components/tor,
+perfiles y servicios en browser/tor, lanzador en components/services/tor, pruebas con test/data/tor), así que van en
+`seams for browser/tor` (dicho en el cuerpo). `components/third_party/tor` y `test/data/tor` no tienen costuras propias.
+
+### Directorios
+- Borrados (7): browser/tor, components/tor, components/services/tor, components/third_party/tor,
+  browser/resources/settings/brave_tor_page, test/data/tor y **components/child_process_monitor** (añadido: solo lo
+  usaba `components/services/tor`; su `visibility` lo decía; 4 ficheros).
+- No borrados: ninguno. Nada vivo de §2.3 usaba Tor de verdad.
+- Ficheros solo-Tor fuera de esos directorios, también borrados: `net/proxy_resolution/` entero (ProxyConfigServiceTor y 3
+  pruebas), `browser/search_engines/tor_window_search_engine_provider_service.*`, `browser/ui/webui/tor_internals_ui.*`,
+  `browser/ui/webui/settings/brave_tor_handler.*`, `brave_tor_snowflake_extension_{handler.*,browsertest.cc}`,
+  `browser/ui/views/location_bar/onion_location_view.*`, `browser/ui/views/frame/brave_window_frame_graphic.*` (solo
+  pintaba en ventanas Tor) y sus `tor_window_frame_graphic.png` (100 y 200 %), `browser/ui/webui/private_new_tab_page/
+  brave_private_new_tab_page_browsertest.cc` (solo tenía la prueba Tor), `components/brave_private_new_tab_ui/resources/
+  page/components/badge-tor/`, `components/brave_new_tab_ui/api/torTabData.ts` (sin uso), `components/definitions/
+  torInternals.d.ts`, `components/img/newtab/{private-window-tor,tor-connected,tor-disconnected}.svg`.
+
+### Costuras (185 ficheros en los 4 commits de costuras: 147 M, 38 D)
+| tipo | M | D | qué |
+|---|---|---|---|
+| gn | 23 | 0 | import/deps de `tor/buildflags`, bloques `if (enable_tor)`, `brave_browser_tor_sources/deps`, DEPS de chromium_src, `typescript.gni`; `//chrome/browser/image_fetcher` se mantiene en browser/ui (lo usa sidebar_model.cc; antes llegaba por el bloque Tor) |
+| buildflag | (en los M de abajo) | | 45 ficheros con `#if BUILDFLAG(ENABLE_TOR)`: quitada la rama true, conservada la `#else`; grit: `components/resources` deja `"enable_tor=false"` con comentario (por el `<if>` de `tor_strings.grdp`); en settings el define se quita (ya no hay `<if>`) |
+| include/otros | 49 | 8 | `IsTor()` fuera de Profile y BrowserContext y de todos sus usos; comandos y menú (app, Mac main/dock, aceleradores, menú contextual «Abrir enlace en ventana Tor»); marco gráfico; mezcladores de color Tor; avatar e incognito menu; render updater/observer; renderer client; mojom de configuración del renderer |
+| keyed | 10 | 0 | factoría TorProfileService, tab helpers Tor/Onion, throttles de navegación Tor/onion, updaters del cliente Tor y pluggable transports en browser_process, servicio Tor del utility, servicio de buscador para ventana Tor |
+| prefs | 8 | 0 | registro local/perfil de Tor, migraciones (`kAutoOnionRedirect`, último perfil usado), allowlist de settings, `kTorDisabled` en `brave_simple_policy_map.h`, pref P3A `tor_used` y métrica `Brave.Core.TorEverUsed`, `kBraveTorWindowDisclaimerDismissed` |
+| features | 2 | 0 | `brave-tor-windows-https-only` en about_flags + `kBraveTorWindowsHttpsOnly`; switch `--tor` |
+| grd | 3 | 5 | `IDR_TOR_WINDOW_FRAME_GRAPHIC` en brave_theme_resources.grd, `IDR_BRAVE_PRIVATE_TAB_TOR_IMG` en brave_components_resources.grd, resource_ids.spec (tor_static_resources y tor_internals) y los png/svg |
+| webui | 21 | 9 | tor-internals (host, factoría, cadenas), página de ajustes Tor (basic_page.ts, sources.gni, handlers, cadenas registradas), NTP privada (mojom: fuera `GetIsTorConnected`, `GoToBraveSupport`, `ConnectionStatus` y los métodos Tor de `PrivateTabPage`, que queda vacía; handler, TS, `isWindowTor`), NTP normal (`isTor`), panel de Shields (`isTorProfile`) |
+| chromium_src | 18 | 8 | ver lista |
+| patches | 0 | 4 | ver lista |
+| test | 13 | 4 | pruebas Tor en browsertests de policy, perfiles, app controller Mac, menú, comandos, content client, site hacks, buscador; test/BUILD.gn |
+
+### chromium_src y parches
+Envoltorios **borrados** (cambian comportamiento de Chromium solo en lo que hacía Tor):
+`chrome/browser/profiles/profile.h` (TorID, IsTor, overrides de IsIncognitoProfile/IsPrimaryOTRProfile),
+`chrome/browser/themes/theme_service_factory.h` (GetBrowserContextToUse solo para Tor), `chrome/browser/devtools/devtools_window.h`
+(friend de un test Tor), `chrome/browser/ui/startup/startup_browser_creator.cc` y `startup_browser_creator_impl.h` (switch `--tor`),
+`chrome/browser/net/proxy_config_monitor.cc`, `net/proxy_resolution/configured_proxy_resolution_service.cc`,
+`chrome/renderer/url_loader_throttle_provider_impl.cc` (solo devolvía nullptr: throttle onion y el de AI chat ya muerto).
+Envoltorios **editados**: browser_context.h/.cc (content: fuera `IsTor()`), profile.cc, password_manager client, autofill client,
+page_info delegate (`BraveShouldShowPermission` devuelve siempre true), https_upgrades_navigation_throttle (fuera el retardo de 20 s
+de Tor), theme_service_factory.cc, browser_commands.cc (fuera el override de ReloadBypassingCache), cocoa accelerators y
+main_menu_builder, views/accelerator_table, incognito_menu_view.h (fuera el `virtual` de OnExitButtonClicked),
+render_view_context_menu, prefs/browser_prefs, webui_url_constants, net/base/features.{h,cc}.
+Parches **borrados** (su único cambio era Tor): `chrome-browser-profiles-profile.cc.patch`, `chrome-browser-global_keyboard_shortcuts_mac.mm.patch`,
+`chrome-browser-net-proxy_config_monitor.cc.patch`, `net-proxy_resolution-configured_proxy_resolution_service.cc.patch`.
+Ningún parche editado a medias.
+
+### Residuales
+- resid.sh: **0** en los 7 directorios (android/ios: 0).
+- `rg -n 'ENABLE_TOR|enable_tor|IsTorProfile|TorProfile|tor::'` (sin android/ios), lo que queda:
+  `test/filters/unit_tests.filter:264` (comentario de un filtro), `app/brave_settings_strings.grdp:958,961` (nombres de mensaje,
+  cadenas intocables), `components/resources/tor_strings.grdp:3` (`<if expr="enable_tor">`, cadenas intocables) y
+  `components/resources/BUILD.gn:108` (el define fijado a false que lo resuelve).
+- chk.py: nada nuevo frente a 9b8eb665 (solo desaparecen 5 líneas que venían de browser/tor y components/tor). Frente a
+  `chk-poda.txt` salen 3 líneas "nuevas", pero ya estaban en 9b8eb665 (duplicados de `vendor/sparkle` y
+  `components/brave_wallet/common` que esa salida guardada no repetía).
+- `git diff --check` limpio; sin marcadores de conflicto.
+- Lo que se deja a propósito (sin efecto, o compartido): motor de búsqueda prepoblado `brave_search_tor` /
+  `PREPOPULATED_ENGINE_ID_BRAVE_TOR` (ids persistidos; lo usan brave_search_conversion y el handler de buscadores);
+  definición de la política `TorDisabled` en `chromium_src/components/policy/tools/generate_policy_source.py` (igual que
+  Rewards/Wallet en sus grupos; ya no mapea a ningún pref); filtros de tests que citan Tor; inyección de auth SOCKS5 en
+  `chromium_src/net/base/proxy_string_util.cc` (genérica, ligada a parches de net); envoltorio `proxy_config_monitor.h` y
+  su parche (`GetProxyConfigServiceForTesting`, ya sin usuarios, pero quitar la línea `+` dejaría un `-` suelto);
+  pin HSTS de `tor.bravesoftware.com`; comentarios que dicen «private/tor»; override
+  `BraveProfileManager::SetNonPersonalProfilePrefs` (también lo usa el perfil invitado).
+
+### Args de gn/buildflags que pasa `FlyWeb/scripts/build.sh`
+Ninguno: build.sh no pasa `enable_tor` (antes valía el defecto `!is_android`, o sea **Tor estaba activo en FlyWeb macOS**).
+Quitada la línea `args.enable_tor = false` de `build/commands/lib/config.js` (rama android, arg ya inexistente). No hay que
+tocar softmac. Aparte: si `FlyWeb/policies/flyweb-policies.mobileconfig` tuviera `TorDisabled`, ya no hace nada.
+
+### Dudas (sin compilar)
+- `brave_private_new_tab.mojom`: `PrivateTabPage` queda como interfaz vacía (mojom lo admite); el `page_` remoto se sigue
+  enlazando. Android puede tener su implementación de esa NTP (no compilamos Android).
+- `brave_renderer_configuration.mojom`: fuera `SetInitialConfiguration` y `onion_only_in_tor_windows`; `DynamicParams::New`
+  pasa a 3 argumentos (de_amp, widevine, playlist). Revisar si algún uso en Android/iOS construye DynamicParams.
+- `brave_browser_process_impl.h` incluía sin guarda `brave_tor_pluggable_transport_updater.h`; si algo dependía de esa
+  inclusión transitiva, faltará un include.
+- `BraveGeolocationPermissionContextDelegate` queda como paso directo a la base (se podría quitar en otra poda).
+- `accelerators_cocoa.mm`: rehecho el macro que inyectaba entradas antes de IDC_NEW_WINDOW sin la de Tor; revisar llaves
+  al compilar en Mac.
+- Pruebas: `brave_site_hacks_network_delegate_helper_browsertest.cc` conserva helpers `onion_*` sin uso (no da error).
+
+### Cambios de comportamiento
+- Desaparecen la ventana privada con Tor, «Nueva conexión Tor para este sitio», «Abrir enlace en ventana Tor», el botón
+  .onion de la barra de direcciones, tor-internals, la sección Tor de ajustes, el cliente Tor (componente y
+  descarga desde tor.bravesoftware.com), puentes/Snowflake y el switch `--tor`.
+- Las direcciones .onion ya no se bloquean en el renderer (el throttle solo existía con Tor): ahora fallan por DNS como
+  en Chromium.
+- Ventana privada normal: igual que antes (Chromium + tema privado de Brave). La NTP privada pierde el enlace de ayuda
+  (`GoToBraveSupport`, solo lo usaba la insignia Tor).
+- Page info vuelve a mostrar siempre los permisos de Shields y geolocalización (solo se ocultaban en Tor).
+- Desaparece la métrica P3A `Brave.Core.TorEverUsed` y la flag `brave-tor-windows-https-only`.
+- Las prefs Tor ya guardadas en perfiles/local state quedan huérfanas (sin migración que las borre).
