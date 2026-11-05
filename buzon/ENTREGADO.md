@@ -331,3 +331,5 @@ buzon/LOCAL/20261105-1849-COORDINACION-28.md → LOCAL LOCAL-18: rendimiento B1d
 buzon/LOCAL/20261105-1917-COORDINACION-28.md → LOCAL LOCAL-18: rendimiento B1d (ANGLE Metal) en la 6,1 [7fa196] · 2026-11-05 19:17 UTC · entregado (copia para LOCAL)
 buzon/SERVIDOR-LOCAL/20261105-1917-COORDINACION-28.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-05 19:17 UTC · entregado
 buzon/LOCAL/20261105-1917-COORDINACION-28.md → corrección: la copia para LOCAL fue primero a LOCAL-18 [7fa196] (ya no alcanzable); reenviada a LOCAL-19 [f55e89] · 2026-11-05 19:20 UTC · entregado
+buzon/LOCAL/20261105-1921-COORDINACION-28.md → LOCAL LOCAL-19: compilador Metal en 10.14 [f55e89] · 2026-11-05 19:21 UTC · entregado
+buzon/PUBLICACION/20261105-1921-COORDINACION-28.md → PUBLICACION Publicación [e2247c] · 2026-11-05 19:21 UTC · entregado
