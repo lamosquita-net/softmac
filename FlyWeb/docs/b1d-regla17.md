@@ -178,3 +178,30 @@ algunos shaders que genera ANGLE, y Google Earth y Photopea reinician la GPU.
 **Regla 17 de B1d: apta**, con dos condiciones antes de entregar:
 1. Clasificar las caídas de GPU de Earth y Photopea con su informe.
 2. Tener en cuenta que el arreglo de la caída del compilador cambiará ANGLE o los shaders, y ese cambio se revisa aparte.
+
+## 10. Condiciones del §9 (05-11)
+
+**Condición 1: hecha** (LOCAL-18, comentario en #753).
+- Google Earth y Photopea no se caen. Salen de forma ordenada con `exit(34)`, `RESULT_CODE_GPU_EXIT_ON_CONTEXT_LOST`, porque
+  el Metal de 10.14 devuelve un `NSError` con solo advertencias («Compilation succeeded with:»).
+- Las caídas del navegador de ese día fueron dos, las dos DoS y las dos arregladas: un `SIGTRAP` de la caché persistente
+  (4147b706) y un `SIGILL` por un selector de `GCController` (8f4b6e97).
+- `MTLCompilerService` hace un `abort` controlado en un proceso del sistema.
+- **No hay corrupción de memoria.**
+
+**Condición 2: revisada** (LOCAL-19, parches `0006`–`0008` en `FlyWeb/docs/b1d/angle/`, ANGLE `flynk-b1d` 3b24dd0, src
+805e5d0cff). **Apta.**
+
+| Parche | Resultado |
+|---|---|
+| `0006` errores de compilación sin perder el contexto | **Bien.** `CreateMslShaderLib` decide por **`metalLibrary` no nula**, no por el texto del `NSError`, que era lo que pedía la regla 17. Con librería nula falla el enlazado de ese programa; nunca se usa una librería nula. Si `CreateRenderPipelineState` no crea el estado, devuelve `Stop` y se salta solo ese dibujo. El fallo se guarda en la caché (`failed`) para no recompilar en cada fotograma. Al saltar el dibujo, `mDirtyBits.set()` obliga a volver a aplicar todo el estado en el siguiente, así que no se dibuja con el pipeline o los *bindings* del programa anterior. **Salvedad de diseño [I]:** esto se aparta de la política de Chromium de «contexto endurecido» (`loseHardenedContextOnBackendError`), pero solo para los fallos de creación de pipeline y de librería, que son objetos que no llegan a existir. Los errores del command buffer siguen perdiendo el contexto: CVE-2026-118322 (127e783d) está en la base `a66226b` y `0006` no lo toca. Tiene que seguir así: **no ampliar esta excepción a otros errores del backend.** `FLYWEB_MTL_DUMP` (solo entorno) vuelca el MSL a stderr: puede incluir texto de shaders de la web, así que es solo para diagnóstico. |
+| `0007` `noinline` (AMD, < 10.15) | **Bien.** Solo añade `__attribute__((noinline))` a las funciones de usuario con parámetros `out`/`inout`. No toca nombres ni tipos. Las funciones con texturas o *samplers* quedan fuera. No cambia el acceso a memoria. |
+| `0008` `matriz / escalar` (< 10.15) | **Bien.** Plantillas en el preludio que dividen columna a columna, igual que GLSL. Dividir entre cero da inf/NaN en coma flotante; no es un comportamiento indefinido del lenguaje. |
+| Cruce con los CVE | Coinciden ficheros con CVE-2026-79142 (99ee9910c6, 0bdeec3fc0: `EmitMetal.cpp`) y con CVE-2026-118322 (`ContextMtl.mm`). En los dos casos son otras funciones: `0007` solo antepone un atributo al emitir la función, y `0006` toca `setupDrawImpl`, no `checkCommandBufferError` ni `getResetStatus`. En `ShaderLang.h` los parches solo añaden dos campos de opciones. Los tres arreglos están en `a66226b`. |
+
+**Nota:** `a66226b` va 3 commits por detrás de la punta de `chromium/8078` de ANGLE (f10470c7, 73295eaf y 35e8e7c5). Son de GL
+para IMG y de Vulkan, así que no afectan a Mac. Aun así, conviene subir `angle_revision` a la punta en la próxima compilación,
+para seguir los arreglos de la rama 156.
+
+**Regla 17 de B1d: cerrada.** Queda abierta la auditoría de selectores (`selectores-unguarded-156.md`: 631 avisos en 67
+ficheros), que COORDINACIÓN-28 aprobó como tarea aparte.
