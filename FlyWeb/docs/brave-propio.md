@@ -1062,8 +1062,9 @@ Sin compilar; `b2-chk.py` no añade nada en ninguna tanda. Ramas y sha en `relev
 - **T5, interfaz mínima** (donante 1.98, sin su rediseño): búsquedas de ventanas con `BrowserWindowInterface`, `navigator/`,
   delegados de BraveBrowser en `BrowserWindowFeatures`, cierre en `UnloadController`, pestañas fijadas compartidas, marco de Mac
   (`BrowserWidget`/`BrowserFrameView`), restos de T4. Parches de `chrome/browser/ui`: 43 de los 45 que no aplicaban, aplican.
-  Fuera los paneles de lectura y marcadores propios de Brave (1.98 también; revertible). **Se pierden** (la 156 quitó el gancho):
-  `brave://` en la burbuja de estado, la pestaña de la NTP sin favicon y «quitar de la lista» en el menú de descargas.
+  Fuera los paneles de lectura y marcadores propios de Brave (1.98 también; revertible). **Para las notas de la 3.0.0** (aceptado por COORDINACIÓN-29; la 156 quitó
+  el gancho): `brave://` ya no sale en la burbuja de estado, la pestaña de la nueva pestaña vuelve a tener favicon y desaparece
+  «quitar de la lista» del menú de descargas.
   **Falta (T5-bis):** vistas de pestañas, pestañas verticales, menú de perfil, maquetación del panel lateral, infobars.
 - **T8:** Privacy Sandbox apagado (`runtime_enabled_features.json5` desde 1.98, sin Tor; Private State Tokens a experimental) con
   la prueba de navegador `flyweb_privacy_sandbox_apis_browsertest` y su gemela `FlyWeb/tools/privacy-sandbox.html`; con JS
