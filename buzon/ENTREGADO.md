@@ -340,3 +340,5 @@ buzon/MOTOR/20261105-1936-COORDINACION-28.md → MOTOR Motor ubuntu (2) [44ebbb]
 buzon/PUBLICACION/20261105-1936-COORDINACION-28.md → PUBLICACION Publicación [e2247c] · 2026-11-05 19:36 UTC · entregado
 buzon/SERVIDOR-LOCAL/20261105-1936-COORDINACION-28.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-05 19:36 UTC · entregado
 buzon/LOCAL/20261105-1936-COORDINACION-28.md → corrección: el primer envío a LOCAL-19 falló (nombre cambiado); reenviado a Compilación Local (19) [f55e89] · 2026-11-05 19:40 UTC · entregado tras reintento
+buzon/MOTOR/20261105-1945-COORDINACION-28.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 19:45 UTC · entregado (sin confirmación de lectura: Remote Control)
+buzon/MOTOR/20261105-1945-MOTOR-32.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 19:45 UTC · entregado (sin confirmación de lectura: Remote Control)
