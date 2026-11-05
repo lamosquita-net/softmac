@@ -265,6 +265,14 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   en migraciones a otros sistemas, nunca para la basura de Brave. Destino = opción B de `brave-propio.md` (lo útil,
   absorbido en el fork; `brave-core` desaparece); camino = poda primero y después absorción por pasos medibles (C). La
   pregunta «A, B o C» de §8 queda cerrada. Donante del porte: Brave 1.98.63.
+- **Widevine se queda desactivado; Tor fuera (Titín, 05-11; `brave-propio.md` §8.4–8.5):** Widevine (Netflix, Spotify
+  web…) se conserva **desactivado por defecto**, como en Brave; el usuario lo activa y se descarga de Google. LOCAL
+  comprueba en la 6,1 si llega a reproducir sin la firma VMP; si no funciona, se quita. Las **ventanas Tor se borran**
+  con la poda (cliente Tor, componente y UI); si algún día se quieren para Mojave, como función propia.
+- **Hilos y varias GPU: línea de optimización de Flynk para el futuro (Titín, 05-11; FM.56):** con la B1d el límite de
+  la 6,1 es un hilo de CPU del proceso de GPU, no la GPU. Optimizar ese hilo y repartir trabajo entre hilos y entre
+  GPU (dos D500 en la 6,1; hasta cuatro en la 7,1 con Sequoia, memoria de texturas por GPU) queda apuntado como línea de
+  Flynk. No entra en la base 156; se abre cuando la base esté publicada.
 - **Poda de Brave: borrar, no apagar (Titín, 03-11; `brave-propio.md` §11, B2):** el código de Brave que FlyWeb ya no usa
   (Wallet, Rewards y demás apagados; 74 directorios medidos) se **borra** en vez de mantenerse apagado. «Apagar, no borrar»
   queda para lo que sirva a futuras plataformas (Android, iOS, Linux, Leopard/PowerPC), no para lo muerto de Brave.
