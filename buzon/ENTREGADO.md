@@ -318,3 +318,8 @@ buzon/MOTOR/20261105-1305-COORDINACION-27.md → MOTOR Motor ubuntu (2) [44ebbb]
 buzon/LOCAL/20261105-1328-COORDINACION-27.md → LOCAL LOCAL-18: rendimiento B1d (ANGLE Metal) en la 6,1 [7fa196] · 2026-11-05 13:28 UTC · entregado
 buzon/MOTOR/20261105-1508-COORDINACION-27.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 15:08 UTC · entregado (sin confirmación de lectura: Remote Control)
 buzon/MOTOR/20261105-1514-COORDINACION-27.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 15:14 UTC · entregado (sin confirmación de lectura: Remote Control)
+buzon/ARQUITECTURA/20261105-1520-COORDINACION-28.md → ARQUITECTURA Arquitectura FlyWeb fork propio [05b11d] · 2026-11-05 15:20 UTC · entregado
+buzon/LOCAL/20261105-1520-COORDINACION-28.md → LOCAL LOCAL-18: rendimiento B1d (ANGLE Metal) en la 6,1 [7fa196] · 2026-11-05 15:20 UTC · entregado
+buzon/MOTOR/20261105-1520-COORDINACION-28.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 15:20 UTC · entregado (sin confirmación de lectura: Remote Control)
+buzon/PUBLICACION/20261105-1520-COORDINACION-28.md → PUBLICACION Publicación [e2247c] · 2026-11-05 15:20 UTC · entregado
+buzon/SERVIDOR-LOCAL/20261105-1520-COORDINACION-28.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-05 15:20 UTC · entregado
