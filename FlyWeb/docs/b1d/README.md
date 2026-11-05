@@ -14,7 +14,8 @@
 
 | zip | sha256 | contenido |
 |---|---|---|
-| `chromium-156-b1d-oficial-3.zip` | `da00740df60b26f98a478599c657712bab79282132055494eb79ec1d4d321782` | **La de entrega**: todo hasta `a336fb0b2f` (corte de Graphite) |
+| `chromium-156-b1d-oficial-4.zip` | `18b55fc0adf6e017d3ef116672f01bcccba5de87f060070f207f55130c547629` | **La última**: todo hasta `8f4b6e971c` (mandos). **No se puede entregar todavía**: ver la caída del compilador Metal en `pruebas-gpu.md` |
+| `chromium-156-b1d-oficial-3.zip` | `da00740df60b26f98a478599c657712bab79282132055494eb79ec1d4d321782` | Hasta `a336fb0b2f`. Se cae con Babylon y Shadertoy (mandos) |
 | `chromium-156-b1d-oficial-2.zip` | `ce921ec0cdf832f2a5f9b90fee3732ead242b50351ffc2224542db81002c1cfe` | Hasta `cd334eec2a` |
 | `chromium-156-b1d-oficial.zip` | `7a5a9729b3c4f37da30a142b995e0aa76b1cd71ab4e0f7dc5ec2964134a9dfa4` | La anterior, con src `87f4e8b263` más la caché persistente. Sin el aviso de obsoleto quitado y sin los débiles de prioridad 2 |
 
@@ -112,6 +113,9 @@ Se guarda una contraseña de prueba con `chrome.passwordsPrivate.addPassword` en
 - Falta, si se quiere: ver el diálogo en la pantalla. `screencapture` por SSH sale en blanco en Mojave.
 
 ## Pendiente
+
+- **Bloquea la entrega:** la caída del compilador Metal de AMD en 10.14 con `three.js webgl_postprocessing_unreal_bloom` y `webgl_shadowmap`, y los reinicios de la GPU con Google Earth y Photopea (ver `../pruebas-gpu.md`).
+- Auditoría de selectores Objective-C (no son símbolos débiles): recoger todos los `-Wunguarded-availability` en una compilación limpia con objetivo 10.14.
 
 - Parón de compilación de pipelines Metal en la primera carga (ver arriba).
 - Prueba de llenado de cachés y memoria.
