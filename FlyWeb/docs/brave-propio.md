@@ -1038,3 +1038,40 @@ DIRECTIVAS (05-11) ya fija `flyweb_engine_level = 156` y `flyweb_version = 3.0.0
 - Ningún parche de `patches/` toca formularios verticales: es función de Blink de nivel (Chrome 119/12x) y ya está en 156.
 - Maglev: el parche lo apaga; DIRECTIVAS (05-11) lo pone a prueba en B6 con la V8 de la 156. Si B6 falla, se apaga con un flag (`--no-maglev` en gin o un parche de una línea), no con este parche.
 - El commit b70c6d590 (T8) ya quitó dos parches de nivel que aún aplicaban; f91290620 ya regeneró `runtime_enabled_features.json5` para 156.
+
+### 12.14 T5, T8 y T9 (MOTOR-34, 05-11)
+
+Sin compilar; `b2-chk.py` no añade nada en ninguna tanda. Ramas y sha en `relevo-motor.md` (MOTOR-34 → MOTOR-35).
+
+- **T5, poda** (un commit por función, revertibles): Playlist, Speedreader (con lol_html 0.3, ahash 0.7 y 65 crates de Cargo.lock
+  que solo colgaban de él), WebTorrent, Wayback Machine, Commander y la Sidebar de Brave (el panel lateral de Chromium se queda;
+  sin botón en la barra ni Cmd+B). Prefs que puede haber en perfiles de la 2.7.0: obsoletas y limpiadas con `ClearPref`
+  (`browser/flyweb/pruned_feature_prefs`).
+- **T5, NTP** (§12.11): fuera `ntp_widget_utils`, patrocinados y referidos (con `NTPBackgroundImagesService`), partes muertas de la
+  WebUI (Rewards, Talk, pila de tarjetas, widgets), imágenes sin uso y métricas. La clave `new-tab-data` de localStorage solo
+  guardaba Rewards y Talk: se borra al cargar. **Única diferencia visible con la 2.7.0:** desaparece la pestaña «Tarjetas» de los
+  ajustes de la página (su interruptor ya no controlaba nada).
+  **Lista para LOCAL (captura contra la 2.7.0; rutas bajo `components/brave_new_tab_ui`):** fondo (fotos 1–7 al azar, color o
+  degradado, foto propia) — `components/default/page/index.tsx`, datos en `components/default/flyweb/recursos.ts` y
+  `data/backgrounds.ts`; tipografía D-DIN — `components/default/flyweb/estilos.ts`; mosca — `components/default/flyweb/mosca.tsx`;
+  contador de Shields — `containers/newTab/stats.tsx`; reloj 12/24 h — `components/default/clock/index.tsx`; sitios populares
+  (añadir, quitar, reordenar) — `containers/newTab/gridSites.tsx`, `gridTile.tsx`, `addSiteTile.tsx`,
+  `components/default/editTopSite/index.tsx`; pie (crédito y Personalizar) — `components/default/footer/footer.tsx`; buscador —
+  `components/search/SearchPlaceholder.tsx`; ajustes — `containers/newTab/settings.tsx` (fondo, Shields, sitios, reloj,
+  buscador). El fondo de arranque del primer inicio es de `brave_welcome_ui`, sin tocar.
+- **T5, interfaz mínima** (donante 1.98, sin su rediseño): búsquedas de ventanas con `BrowserWindowInterface`, `navigator/`,
+  delegados de BraveBrowser en `BrowserWindowFeatures`, cierre en `UnloadController`, pestañas fijadas compartidas, marco de Mac
+  (`BrowserWidget`/`BrowserFrameView`), restos de T4. Parches de `chrome/browser/ui`: 43 de los 45 que no aplicaban, aplican.
+  Fuera los paneles de lectura y marcadores propios de Brave (1.98 también; revertible). **Se pierden** (la 156 quitó el gancho):
+  `brave://` en la burbuja de estado, la pestaña de la NTP sin favicon y «quitar de la lista» en el menú de descargas.
+  **Falta (T5-bis):** vistas de pestañas, pestañas verticales, menú de perfil, maquetación del panel lateral, infobars.
+- **T8:** Privacy Sandbox apagado (`runtime_enabled_features.json5` desde 1.98, sin Tor; Private State Tokens a experimental) con
+  la prueba de navegador `flyweb_privacy_sandbox_apis_browsertest` y su gemela `FlyWeb/tools/privacy-sandbox.html`; con JS
+  bloqueado en Shields, `chrome://settings`, la nueva pestaña y `chrome://extensions` siguen (la 156 decide el JS en el navegador
+  con la lista de esquemas exentos; prueba `flyweb_script_block_internal_pages_browsertest`).
+- **T9:** pins estáticos de Brave fuera; la capa de nivel (1319) y los 70 backports de seguridad, fuera (§12.13); fuera
+  `FlyWeb/{v8,dragonbox,fast_float}-revision`; restos de Wallet fuera (cadenas, ajustes, constantes y URLs, allowlists, Android
+  en C++, 15 dependencias npm, `third_party/{argon2,bitcoin-core,ethash}`, `crypto_wallets`; prefs `brave.wallet` limpiadas).
+- **T9-ver:** 3.0.0, nivel 156, 156.0.8078.82, mínimo macOS 13.7.8, `package.json` 1.98.63 (CFBundleVersion 198.63.N), Client
+  Hints reescritos para la 156; `declared_version` se conserva.
+

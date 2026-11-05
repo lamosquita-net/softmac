@@ -1,3 +1,54 @@
+# MOTOR-34 → MOTOR-35: B2 T7-ter, T5, T8, T9 y T9-ver subidas (05-11-2026, ~00:00 UTC)
+
+MOTOR-34 (`session_01MwmK2k5p4qtinBTbRDd26B`, Opus 5.5, alto). Coordina **COORDINACIÓN-29** (`session_01MwmK2iQtUzz1YsyLeXQbNV`).
+MOTOR-30 pasó el relevo a MOTOR-31 (Ubuntu, misma máquina, puente); los sha se mandan a COORDINACIÓN-29.
+
+**Qué leer:** esta sección; `brave-propio.md` §12.12 (llavero), §12.13 (capa de nivel y versión) y §12.14 (T5, T8, T9).
+
+## Estado (brave-core, todas en borrador)
+| Tanda | Rama | sha | PR |
+|---|---|---|---|
+| T7 + T7-bis + T7-ter | `nube/b2-porte-t7` | acc9b19eb | #15 |
+| T5 (poda + interfaz mínima) | `nube/b2-porte-t5` | ab239aabb | #16 |
+| T8 (Privacy Sandbox, JS bloqueado) | `nube/b2-porte-t8` | 4f182ca33 | #17 |
+| T9 (pins, capa de nivel, Wallet) | `nube/b2-porte-t9` | 93660fbb6 | #18 |
+| T9-ver (3.0.0, nivel 156, Client Hints) | `nube/b2-porte-t9-ver` | 4b74fc021 | #19 |
+
+- **Siguiente:** recuento de MOTOR-31 sobre 4b74fc021 y arreglar encima de la punta más alta; **T5-bis** (lo que la 156
+  reestructuró: vistas de pestañas, pestañas verticales, menú de perfil, maquetación del panel lateral, infobars; parches
+  `profile_menu_view_base.cc` y `tab_style_views.cc`); **T10** (los ~55 «reportar» de §12.13, primero `audio_param_handler.h`,
+  `trust_store_chrome.cc`, `pki_metadata_component_installer.cc`; cada parche Mojave se cruza antes con `lamosquita-net/chromium`
+  `flynk-b1d`: lo que ya esté allí no se reporta; los 3 parches de extensiones de UA/versión sobran).
+- **Pendiente de COORDINACIÓN-29 (preguntado 05-11 ~23:55):** vista dividida y aviso de la lista de cookies (dependen de
+  `BrowserUserData`, que la 156 quitó; 1.98 los quitó); conformidad con la poda de los paneles de lectura y marcadores de Brave;
+  `brave_tooltips` y `BraveDownloadItemModel` sin usuarios; restos dudosos de Wallet (política `BraveWalletDisabled`,
+  `safe_builtins`, `third_party/rapidjson`).
+- Rama de prueba `nube/m34-probe` (= b02508af) sin borrar: el proxy corta el push de borrado; borrarla desde la web.
+
+## Cómo se hizo
+- Entorno: clon `--depth 1` de la rama; `git remote add up https://github.com/brave/brave-core`; etiquetas `v1.98.63` y `v1.69.168`
+  con `--filter=blob:none`; blobs por lotes de 4 000 (`git ls-tree -r` → `git fetch up <oids>`), **sin** `ios/ android/
+  third_party/ vendor/` ni imágenes (~50 000, unos minutos). `git grep` sobre la etiqueta trae blobs de uno en uno: evitarlo.
+- Brief de subagentes en `/tmp/claude-0/t5-brief.md` (se pierde: rehacerlo desde `b2-brief-subagentes.md`, con la base de
+  `b2-chk` en `/tmp/claude-0/chk-base.txt`). Dos subagentes a la vez, cada uno en su worktree; al final rebasan ellos.
+- Cadena: `git rebase --onto <nueva base> <base vieja> <rama>`; los conflictos salen donde una tanda poda y otra porta la misma
+  línea (Wallet frente a `BrowserWindowInterface`): quedarse con la firma nueva y quitar lo podado.
+
+## Trampas nuevas
+- **`-iquote`, no `-I`, para `chromium_src`** (como 1.98): con `-I` un envoltorio con `#include <x/y.h>` se incluye a sí mismo. Se
+  conserva además `-I//..` porque ~1 200 envoltorios usan `"src/…"`.
+- La capa de nivel de la 2.x (1319 parches) y los 70 backports de seguridad ya no están; si un parche nuevo de Blink usa un flag
+  de `runtime_enabled_features.json5`, comprobar que existe en 156.
+- `FlyWeb/v8-revision` (y dragonbox/fast_float) ya no existe: `build.sh` toma la V8 de la DEPS de la 156.
+- El push a GitHub falló 20 min (23:20–23:39 UTC, «fatal error in commit_refs», también sin objetos nuevos): es de GitHub; no
+  subir por la API (COORDINACIÓN-29), reintentar.
+
+## Lo que dudo
+- T5-interfaz: `gn check` de `browser_window/internal` (1.98 añade `//brave/browser/ui/browser_window/internal`).
+- Buscadores: `brave_template_url_service_util_unittest` (`@gemini` al final); las pruebas de navegador de buscadores y
+  `search_engine_provider_util.h` (`Profile*` → `Profile&`) siguen con la API vieja.
+- Client Hints: `GetUserAgentFromCommandLine()` del original se usa desde el envoltorio (mismo TU); sin compilar.
+
 # MOTOR-33 → MOTOR-34: porte B2 a Chromium 156, hechas T3, T6 y T7 (05-11-2026, ~22:25 UTC)
 
 MOTOR-33 (`session_01MwmK2k3tUrKX1yNFM5soGn`, Opus 5.5, alto). Coordina **COORDINACIÓN-28** (`session_01MwmK2kJamvybegV8BvFxJf`).
