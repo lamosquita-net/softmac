@@ -520,6 +520,7 @@ Ninguna unidad compila en la base y falla en la poda, ni hay `#include` de cabec
 Por zona: `brave/browser/ui` 147, `chromium_src/chrome` 68, `chromium_src/components` 67, `third_party/rust` 43, `third_party/blink` 38, Shields (`components/brave_shields` 24 + `browser/brave_shields` 15), `browser/net` 23, `browser/extensions` 21, `ntp_background_images` 16, **Playlist 25** (`components` 16 + `browser` 9), `ephemeral_storage` 14, `omnibox` 14.
 
 **Donante** (comparando los ficheros de la lista 1 con `master` del fork = **1.98.37**, no .63 [I: aproximación]): de los 825 de `brave/`, **633 tienen otra versión en 1.98** (Brave ya los adaptó), **188 no existen en 1.98** (Brave los movió o quitó: 43 crates de `chromium_crates_io`, 20 de `chromium_src/chrome/browser`, 13 de `browser/ui/views`, 16 de Playlist…) y **4 son iguales** (el donante no ayuda). 103 están fuera de `brave/` (Chromium o crates).
+**Repetida con .63 (MOTOR-32, T0) [V]:** 632 distintos, 189 ausentes (además, `components/assist_ranker/ranker_model_loader_impl_unittest.cc`) y 4 iguales: las cifras casi no cambian. Pero de los 636 que están en las dos, **116 cambian de contenido entre .37 y .63** (sobre todo pruebas; también `about_flags.cc`, `brave_content_browser_client.h`, `brave_proxying_url_loader_factory`, omnibox, `ntp_background_images`, commander y playlist). En el árbol entero hay 2 698 distintos, 319 solo en .63 y 78 solo en .37. **El donante es .63**, no el `master` del fork.
 
 **Lista 3: herramientas, generación y arreglos de medida: 255**, todas «arreglo de medida, **rehacer en el porte**» (`B2-lista3-arreglos-de-medida.tsv`). Lo que se repite: 64 parches GN puestos a mano, 44 líneas de Brave comentadas, 28 crates de Brave duplicados en la 156 (pasan a reenviar al de Chromium), 35 dependencias Rust sin resolver (`quote`, `proc_macro`), 7 visibilidades, 6 fuentes de Chromium desaparecidas, 4 crates `testonly`. Lo que **bloquea todo el árbol**:
 - `redirect_cc` (la herramienta de `chromium_src`) no compila en la 156 (`base::Contains`, `StringPieceType`, `make_span`, `Environment::GetVar`).
@@ -561,3 +562,24 @@ Principio: **tandas por causa común**, no por directorio, para que cada tanda s
 Orden: **T0 → T1 → T2 → T4 → T3 → T6 → T7 → T5 → T8 → T9**: primero lo mecánico y masivo (baja la cifra deprisa y despeja errores en cascada), después lo de más valor (Shields, sync) y al final la interfaz y lo que depende de decisiones.
 **Decisiones que ahorran trabajo** (para COORDINACIÓN/Titín antes de T5/T9): Playlist (25 rotos), Speedreader, Sidebar, WebTorrent, Wayback, Commander y el NTP de Brave (sustituido por `flyweb_ntp`; 16 rotos en `ntp_background_images`). Cada «fuera» se poda como en B2 y quita sus rotos de la lista 1.
 **Límites del plan:** la causa sale del **primer** error de cada fichero (puede esconder otros); el donante medido es 1.98.37, no .63; los ~330 parches de Brave y los ~1 267 del motor no están aquí (§11.5 y la capa de nivel), y Mac (50 `.mm`) lo mide LOCAL.
+
+### 12.7 T0: lista 3 hecha bien (MOTOR-32, 05-11)
+
+**brave-core `nube/b2-porte-t0` = 146eeddc** (48 commits sobre 4127545c; PR #9 en borrador). Sin compilar: medida pendiente de MOTOR-30 (`buzon/MOTOR`). Donante v1.98.63 (Chromium 156.0.8078.80). Los parches de Chromium que se tocan pasan `git apply --check` contra los ficheros de 156.0.8078.90 [V]. La comprobación estática (`b2-chk.py`, `py_compile`, JSON, `node --check`, llaves de GN) no da roturas nuevas respecto a la poda [V]. Hecho por seis subagentes en paralelo, uno por grupo, cada uno en su worktree.
+
+| Grupo | Lista 3 | Estado |
+|---|---|---|
+| Herramientas | `redirect_cc` (a mano: 1.98 lo cambió por `-iquote`), `mojom_parser.py`, parche de `mojom_attributes_check.py` (`BraveAdd`/`BraveExtend`/`[Native]`), `json_reader`, `feature_list` (macro `default_state` rehecha para `IsCountrySpecificFeatureState`), `_api.h` por `custom_impl_schemas` (3 esquemas, no 10), `unsafe_buffers_paths.txt` como parche (arg quitado de `config.js`), `generate_blink`, iconos Leo | bien; `cr_shared_vars.css` depende de `cr_elements` (hecho) |
+| grit y l10n | grd/grdp regenerados desde 156 con `chromium-rebase-l10n` (fuera `chromeos_ash` y `chromeos_lacros`); `output_all_resource_defines` quitado; `resource_ids.spec`; variantes de género sin el arg; los 81 locales cuadran sin xtb vacíos (el parche lee `components_chromium_strings`); xtb de 1.98 pasados a FlyWeb con `flyweb-rebrand-strings.py` (idempotente); `updateBranding` comprueba `app/CHROMIUM_L10N_VERSION` | bien; tamaños de `resource_ids.spec` estimados |
+| Parches GN | Todos los de Brave en `chrome/`, `components/`, `base`, `build`, Blink, WebUI y `v8` aplican. Fuentes de Brave en `chrome/browser:core` (156 vacía `browser`). Lo de FlyWeb que 156 movió, en parches nuevos (eye_dropper, help). `prepopulated_engines` pasa a `third_party/search_engines_data`. Borrados como en 1.98: páginas WebUI que ahora son Lit, searchbox, `embedded_i18n`, `rust_target`, `google_update` | bien; Android parcial (Java/bytecode) |
+| Rust | Crates solo de lo podado, borrados (188 directorios); 12 duplicados reenviados a Chromium; vendorizados syn 1, rand 0.8, rand_core 0.6, rand_chacha 0.3, getrandom 0.2, ppv_lite86, rustc_version, semver y base64 0.13 (este solo para adblock 0.8, hasta T6); visibilidad por `cargo_crate.gni` | bien; sin `[patch]` en `Cargo.toml` (un `gnrt gen` los pisaría) |
+| GN de Brave | Deps movidas seguidas (flags_ui → `webui/flags`, searchbox → `omnibox/browser`, `native_ui_types`, `user_agent`…); ciclo `brave_sync` roto como en 1.98 (`NetworkTimeHelper` recibe el task runner); `include_polymer` como en 1.98; 156 ya trae el parser de Brave Search | bien; `os_crypt/sync` → `async` solo en GN (el C++ es de T7) |
+
+**Fuera de T0, siguen sin aplicar:**
+- Los parches GN propios de FlyWeb del motor (Blink core, `certificate_transparency`, `color`, `eye_dropper`, `dragonbox`, `fast_float`, `simdutf`, boringssl y mojom de network).
+- `components-os_crypt-sync-BUILD.gn` (T7, con §11.8).
+- `prepopulated_engines.json` (en 156 vive en el repo aparte `third_party/search_engines_data/resources`).
+
+**Cifra esperada [I]:** caen unos 41 crates de Rust, unos 5 de omnibox y `json_reader.cc`; la lista 3 debería quedar sin entradas a mano.
+**Avisos para la tanda de TS/C++:** los parches TS de las páginas WebUI que en 156 son Lit siguen en el árbol y romperán tsc; `components/flyweb_os_crypt` y `browser/test` siguen con `os_crypt/sync` (solo Mac: LOCAL).
+
