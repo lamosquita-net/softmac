@@ -25,8 +25,13 @@ Commits en inglés.
   - En Brave 1.98 se apagan con el parche de `runtime_enabled_features.json5`, que llega en T8. Hasta entonces pueden quedar
     encendidas.
   - Al revisar B5, comprobar en la build que **no existen** esas APIs, ni Topics, ni Attribution Reporting, ni FedCM si aplica.
-- Recomendación abierta: subir `angle_revision` a la punta de `chromium/8078`. Va 3 commits por detrás, de IMG/Vulkan, que
-  no afectan a Mac.
+- **Auditoría de selectores: entregada** (#776, `FlyWeb/docs/b1d/selectores-auditoria-seguridad.md`): 4 A sin caída para
+  la compilación de PGO de LOCAL-19 y varios B que conviene blindar. **Toca comprobar en la siguiente rama `flynk-b1d`
+  que las A1–A4 se aplicaron** y que la comprobación con `otool` de los frameworks débiles se hizo.
+- **Relevo (05-11 ~23:00): al 46 % de contexto.** Esta sesión queda quieta; la siguiente sigue desde aquí.
+- Recomendación de `angle_revision`: **hecha**, en 9da2d916 (ANGLE rebasado a f10470c).
+- ~~Recomendación abierta: subir `angle_revision` a la punta de `chromium/8078`. Va 3 commits por detrás, de IMG/Vulkan, que
+  no afectan a Mac.~~
 
 **Lecciones:**
 - Chrome Releases sí se lee desde el contenedor (canal Atom de Blogger).
