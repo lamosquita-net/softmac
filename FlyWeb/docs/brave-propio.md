@@ -749,8 +749,8 @@ lee, así que la vuelta atrás a la 2.x sigue funcionando.
 
 Encargo de COORDINACIÓN-29: los parches de nivel (funciones de Chrome ≥ 129 que la 156 ya trae) salen en T9; antes, esta lista de
 los que **no** son de nivel, con su veredicto. Papel: sin compilar; la columna «156» es orientativa (líneas añadidas por el parche
-que ya aparecen en el fichero de 156). **Aviso:** la capa Mojave solo cubría 10.14 → 10.15; la 156 exige macOS 13, así que falta
-además la traducción 10.15 → 13 (B1, LOCAL).
+que ya aparecen en el fichero de 156). La capa Mojave solo cubría 10.14 → 10.15; el 10.15 → 13 de Chromium 156 ya
+está hecho y probado en `lamosquita-net/chromium` `flynk-b1d` (B1b/B1d, LOCAL), con lo que T10 solo cubre huecos.
 
 Análisis en solo lectura de `/home/user/wt/t8` (rama `t9`, 14d0eac68), 05-11-2026. Brave = mismo nombre en `v1.69.168` o `v1.98.63`. Comprobación en 156 con `b2-cr156` (Chromium 156.0.8078.90; V8 d72e817d59): cuenta de líneas añadidas por el parche (sin comentarios) que ya aparecen literalmente en el fichero de 156; orientativa (código reestructurado da cifras bajas aunque el arreglo esté). ANGLE, Dawn y Skia son subrepositorios: no comprobados.
 
@@ -1011,6 +1011,24 @@ DIRECTIVAS (05-11) ya fija `flyweb_engine_level = 156` y `flyweb_version = 3.0.0
 6. **`CFBundleVersion`/Sparkle**: decidir qué versión de Brave queda en `package.json` (si pasa a 1.98.63 → `198.63.N`, mayor que `169.168.N`: Sparkle actualiza bien; si sigue 1.69.168, `FLYWEB_BUILD_NUMBER` debe superar el de la 2.7.x). En cualquier caso `FLYWEB_BUILD_NUMBER` sube.
 7. **Comentarios desfasados** (`declared_version.h` habla de «real 116», `config.gni` de la tabla 1.N/2.N, `version_info_values.h.version` de «2.0.2 (motor 131)»): actualizarlos con la regla nueva (3.0.0 = 156; 3.0.x = seguridad y arreglos).
 8. **`v8/src-utils-version.h.patch` (`kFlyWebCacheEpoch`)**: sin parches V8 propios en la 3.0.0 sobra; el cambio de versión de V8 ya invalida las cachés de la 2.x. Reponerlo con el primer parche propio de V8 de la 3.0.x.
+
+##### Decisiones de COORDINACIÓN-29 (05-11, 23:39 UTC)
+
+- **T9** borra (a) los 1319 de nivel y los 70 backports de seguridad de upstream. **T10** (aceptada) lleva los ~55 «reportar»,
+  con una condición previa: cruzar cada parche Mojave con `lamosquita-net/chromium` rama `flynk-b1d` (LOCAL ya hizo la capa 10.14
+  de Chromium 156 en B1b/B1d, incluido 10.15 → 13; oficial-6 pasa la batería en la 6,1). Lo que esté allí no se reporta en
+  brave-core; solo lo que falte o sea de código de Brave. Primero en T10: `audio_param_handler.h` (carrera real),
+  `trust_store_chrome.cc` y `pki_metadata_component_installer.cc`.
+- (1) `flyweb_engine_full_version` = la última Stable normal de la 156 para Mac (regla de `motor-niveles.md`, nivel 129):
+  **156.0.8078.82** según versionhistory (consultado 05-11 23:40 UTC: .82, .81, .80, .79, .76). La base es .90, no publicada como
+  Stable de Mac.
+- (2) Se conservan `declared_version` y el override de Client Hints, **reescritos para la 156** (FlyWeb seguirá portando por su
+  cuenta tras la 3.0.0, #772); los 3 parches de extensiones sobran mientras declarada = real.
+- (3) `flyweb_min_macos_version` = la mínima del Chrome declarado (principio 13 de Titín, 12-10): con 156, el último 13.x publicado.
+  **Provisional: 13.7.x sin número exacto** (sin acceso a la página de Apple desde la nube); que lo confirme LOCAL en
+  Actualización de software o en la web de seguridad de Apple antes de fijarlo en `config.gni`.
+- (4) Se mantiene «(motor N)». (5) `package.json` en la base de 1.98 → `CFBundleVersion` = `198.63.N` (> `169.168.N`: Sparkle lo
+  ve como subida); `FLYWEB_BUILD_NUMBER` sube igual.
 
 #### 12.13.5. Observaciones para quien borre la capa
 
