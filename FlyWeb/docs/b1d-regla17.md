@@ -81,6 +81,42 @@ Son 10 altos y ningún crítico (de `gl-150-156-seg.md`, categoría C). Commits 
 **Comprobación mecánica:** cruzar los ficheros de `6f8cb67` y `2f34372` con los de estos commits. Si coinciden, leer el
 bloque y asegurarse de que el arreglo sigue ahí.
 
+## 7. Caché persistente de GPU (src `flynk-b1d` 4147b70632) y segunda tanda de guardas
+
+Añadido el 05-11 a petición de COORDINACIÓN-27. **El commit no se ha visto aún**: la rama no está en GitHub.
+
+**Contexto.**
+- La caché persistente guarda en disco los binarios de programa (shaders compilados) de `GpuDiskCache`, del perfil.
+- Al arrancar, el proceso de GPU los recarga en ANGLE (`BlobCache`, luego `MemoryProgramCache`, luego
+  `glProgramBinary`/`getProgramBinaryOES`, que Metal anuncia en `DisplayMtl.mm:1051`) [V].
+- ANGLE comprime cada blob. Al cargar, descomprime, y si falla da `DecompressFailure` y el programa se recompila [V].
+- La clave incluye la versión del *shader program* de ANGLE [I: `MemoryProgramCache`].
+- El bucle de caídas en 10.14 indica que algo cargado de disco se usaba sin poder validarse. Por ejemplo, un binario de
+  Metal o un formato que 10.14 no entiende.
+
+**Qué comprobar en 4147b70632:**
+1. **Que arregle invalidando, no saltándose comprobaciones.** El arreglo correcto es meter en la clave (o en la cabecera)
+   lo que hace incompatible un binario: versión de macOS, `registryID` o nombre del `MTLDevice`, versión del driver y
+   commit de ANGLE de FlyWeb. Si no casa, se tira y se recompila. **No vale** quitar una validación ni capturar la caída y
+   seguir.
+2. **Que la carga sea robusta ante datos corruptos.** Un blob truncado o manipulado en disco, o una caché copiada desde
+   otra máquina o desde Monterey, debe acabar en «no encontrado / recompilar», nunca en lectura fuera de límites.
+   - La entrada es el perfil del usuario, no la web, pero un programa local que escriba en el perfil no debe poder
+     ganar ejecución en el proceso de GPU [I].
+   - Prueba: corromper bytes del fichero de caché en la 6,1 y arrancar.
+3. **Que no se cuele en disco nada que dependa de la web sin hash.** Las claves deben ser hashes del código fuente del
+   shader, como en upstream. No vale usar texto de la página en claro: eso sería una fuga de privacidad entre perfiles.
+4. **Dual GPU:** con la caché llena desde la GPU discreta, cambiar a la integrada (MBP 2012, A1398). Debe invalidar o
+   tener una entrada por dispositivo, no cargar binarios de la otra GPU.
+
+**Segunda tanda de guardas** (Cast, navegador predeterminado, Web Share, MIDI, mandos, VT, HDR, notificaciones): el criterio
+es el del §3.
+- Que ningún `else` se salte una validación o un permiso.
+- Atención especial a **Web Share** y a las **notificaciones**: tienen diálogos de permiso y un `else` que «acepte por
+  defecto» sería un fallo.
+- Atención también a **VideoToolbox** (VT): si cae al decodificador por software, que sea el de Chromium (en el sandbox
+  del renderer o del proceso de GPU), no un camino sin sandbox.
+
 ## 6. Después de B1d
 
 La base fija 156 deja de recibir arreglos de ANGLE Metal posteriores a la rama `chromium/8078`. Se necesitan dos cosas:
