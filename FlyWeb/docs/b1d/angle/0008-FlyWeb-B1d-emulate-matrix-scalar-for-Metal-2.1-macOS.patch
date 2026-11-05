@@ -1,0 +1,167 @@
+From 3b24dd0de0d2d114ab8997f0f99eb788c2332a40 Mon Sep 17 00:00:00 2001
+From: lamosquita <developer@lamosquita.com>
+Date: Thu, 5 Nov 2026 19:05:51 +0100
+Subject: [PATCH] FlyWeb B1d: emulate matrix / scalar for Metal 2.1 (macOS
+ 10.14)
+
+The Metal 2.1 standard library of macOS 10.14 has no matrix / scalar or
+matrix /= scalar operator, so shaders such as Babylon.js's
+("invalid operands to binary expression ('metal::float3x3' and 'float')")
+failed to compile and the page fell back to simpler shaders.
+
+New ShCompileOptionsMetal::emulateMatrixScalarDivision adds both operators
+to the program prelude (column-wise division) when a shader uses them. It
+is enabled before macOS 10.15 only, where the standard library lacks them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ include/GLSLANG/ShaderLang.h                  |  4 ++
+ .../translator/msl/ProgramPrelude.cpp         | 40 ++++++++++++++++++-
+ src/compiler/translator/msl/ProgramPrelude.h  |  2 +
+ src/compiler/translator/msl/TranslatorMSL.cpp |  1 +
+ src/libANGLE/renderer/metal/ShaderMtl.mm      |  3 +-
+ 5 files changed, 48 insertions(+), 2 deletions(-)
+
+diff --git a/include/GLSLANG/ShaderLang.h b/include/GLSLANG/ShaderLang.h
+index 69e9fd3..10aea82 100644
+--- a/include/GLSLANG/ShaderLang.h
++++ b/include/GLSLANG/ShaderLang.h
+@@ -94,6 +94,10 @@ struct ShCompileOptionsMetal
+     // (SelectionDAGISel::CannotYetSelect) on some fully inlined shaders, e.g. three.js
+     // MeshStandardMaterial with direct lights.
+     bool noinlineFunctionsWithOutParameters = false;
++
++    // FlyWeb B1d: emit matrix / scalar and matrix /= scalar operators, missing from the Metal 2.1
++    // standard library of macOS 10.14.
++    bool emulateMatrixScalarDivision = false;
+ };
+ 
+ // For ANGLE_shader_pixel_local_storage.
+diff --git a/src/compiler/translator/msl/ProgramPrelude.cpp b/src/compiler/translator/msl/ProgramPrelude.cpp
+index 164c176..4f2af5c 100644
+--- a/src/compiler/translator/msl/ProgramPrelude.cpp
++++ b/src/compiler/translator/msl/ProgramPrelude.cpp
+@@ -33,7 +33,9 @@ class ProgramPrelude : public TIntermTraverser
+ 
+   public:
+     ProgramPrelude(TInfoSinkBase &out, const ProgramPreludeConfig &ppc)
+-        : TIntermTraverser(true, false, false), mOut(out)
++        : TIntermTraverser(true, false, false),
++          mOut(out),
++          mEmulateMatrixScalarDivision(ppc.emulateMatrixScalarDivision)
+     {
+         mOut << "#include <metal_stdlib>\n\n";
+         ALWAYS_INLINE();
+@@ -146,6 +148,8 @@ class ProgramPrelude : public TIntermTraverser
+     void subMatrixScalar();
+     void subScalarMatrix();
+     void divScalarMatrix();
++    void divMatrixScalar();
++    void divMatrixScalarAssign();
+     void componentWiseDivide();
+     void componentWiseDivideAssign();
+     void componentWiseMultiply();
+@@ -299,6 +303,7 @@ class ProgramPrelude : public TIntermTraverser
+ 
+   private:
+     TInfoSinkBase &mOut;
++    const bool mEmulateMatrixScalarDivision;
+     std::unordered_set<LineTag> mEmitted;
+     std::unordered_set<const TSymbol *> mHandled;
+     const FuncToEmitter mFuncToEmitter = BuildFuncToEmitter();
+@@ -794,6 +799,31 @@ ANGLE_ALWAYS_INLINE metal::matrix<T, Cols, Rows> operator-(T x, metal::matrix<T,
+ }
+ )")
+ 
++// FlyWeb B1d: the Metal 2.1 standard library of macOS 10.14 has no matrix / scalar operator
++// (Babylon.js: "invalid operands to binary expression ('metal::float3x3' and 'float')").
++PROGRAM_PRELUDE_DECLARE(divMatrixScalarAssign, R"(
++template <typename T, int Cols, int Rows>
++ANGLE_ALWAYS_INLINE thread metal::matrix<T, Cols, Rows> &operator/=(thread metal::matrix<T, Cols, Rows> &m, T x)
++{
++    for (size_t col = 0; col < Cols; ++col)
++    {
++        m[col] /= x;
++    }
++    return m;
++}
++)")
++
++PROGRAM_PRELUDE_DECLARE(divMatrixScalar,
++                        R"(
++template <typename T, int Cols, int Rows>
++ANGLE_ALWAYS_INLINE metal::matrix<T, Cols, Rows> operator/(metal::matrix<T, Cols, Rows> m, T x)
++{
++    m /= x;
++    return m;
++}
++)",
++                        divMatrixScalarAssign())
++
+ PROGRAM_PRELUDE_DECLARE(divScalarMatrix,
+                         R"(
+ template <typename T, int Cols, int Rows>
+@@ -3681,6 +3711,10 @@ void ProgramPrelude::visitOperator(TOperator op,
+             break;
+ 
+         case TOperator::EOpDiv:
++            if (mEmulateMatrixScalarDivision && argType0->isMatrix() && argType1->isScalar())
++            {
++                divMatrixScalar();
++            }
+             if (argType1->isMatrix())
+             {
+                 if (argType0->isMatrix())
+@@ -3699,6 +3733,10 @@ void ProgramPrelude::visitOperator(TOperator op,
+             break;
+ 
+         case TOperator::EOpDivAssign:
++            if (mEmulateMatrixScalarDivision && argType0->isMatrix() && argType1->isScalar())
++            {
++                divMatrixScalarAssign();
++            }
+             if (argType0->isMatrix() && argType1->isMatrix())
+             {
+                 componentWiseDivideAssign();
+diff --git a/src/compiler/translator/msl/ProgramPrelude.h b/src/compiler/translator/msl/ProgramPrelude.h
+index eac1734..79c2576 100644
+--- a/src/compiler/translator/msl/ProgramPrelude.h
++++ b/src/compiler/translator/msl/ProgramPrelude.h
+@@ -32,6 +32,8 @@ struct ProgramPreludeConfig
+     ProgramPreludeConfig() {}
+     explicit ProgramPreludeConfig(MetalShaderType shaderType) : shaderType(shaderType) {}
+     bool usesDerivatives       = false;
++    // FlyWeb B1d: macOS 10.14 (Metal 2.1) lacks matrix / scalar.
++    bool emulateMatrixScalarDivision = false;
+     MetalShaderType shaderType = MetalShaderType::None;
+ };
+ 
+diff --git a/src/compiler/translator/msl/TranslatorMSL.cpp b/src/compiler/translator/msl/TranslatorMSL.cpp
+index 70b4494..02a57a3 100644
+--- a/src/compiler/translator/msl/TranslatorMSL.cpp
++++ b/src/compiler/translator/msl/TranslatorMSL.cpp
+@@ -879,6 +879,7 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
+     IdGen idGen;
+     ProgramPreludeConfig ppc(metalShaderTypeFromGLSL(getShaderType()));
+     ppc.usesDerivatives = usesDerivatives();
++    ppc.emulateMatrixScalarDivision = compileOptions.metal.emulateMatrixScalarDivision;
+ 
+     // The MSL generator prefers every struct to have a name, and is not bound by GLSL's requirement
+     // that anonymous structs match their (lack of) name between shader stages.
+diff --git a/src/libANGLE/renderer/metal/ShaderMtl.mm b/src/libANGLE/renderer/metal/ShaderMtl.mm
+index 29b6ee8..0249db8 100644
+--- a/src/libANGLE/renderer/metal/ShaderMtl.mm
++++ b/src/libANGLE/renderer/metal/ShaderMtl.mm
+@@ -122,7 +122,8 @@ std::shared_ptr<ShaderTranslateTask> ShaderMtl::compile(const gl::Context *conte
+         }
+         else
+         {
+-            noinline = displayMtl->isAMD();
++            noinline                                   = displayMtl->isAMD();
++            options->metal.emulateMatrixScalarDivision = true;
+         }
+         const std::string env = angle::GetEnvironmentVar("FLYWEB_MTL_NOINLINE");
+         if (!env.empty())
+-- 
+2.55.0
+

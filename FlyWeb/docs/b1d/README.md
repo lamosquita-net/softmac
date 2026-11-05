@@ -39,6 +39,15 @@
 - **Una sola GPU.** Se verifica en el registro con «FlyWeb: Metal device of the main display … registryID 10000069e».
 - **Dos D500** (WebGL en la segunda, con EGLDualGPURendering): Aquarium da lo mismo, 60 / 54 / 37. El límite es un hilo de CPU del proceso de GPU. Está en las ramas `flynk-b1d-dosgpu` (src `b8a4abda2f`, ANGLE `dc5ef06`) y queda **fuera de la entrega**. Titín lo quiere como optimización futura: reparto de calor y multihilo.
 
+## Entregas de LOCAL-19 (05-11)
+
+| Zip | sha256 | Contenido |
+|---|---|---|
+| `chromium-156-b1d-oficial-5.zip` | `bf1121752a114d392b634d98bccbf0fb718748355235000ed81cf98c948cbeec` | `oficial-4` + parches de ANGLE `0006` (sin pérdida de contexto) y `0007` (`noinline`). Batería completa: 0 caídas |
+| `chromium-156-b1d-oficial-6.zip` | `43fca6be0e6c76574789db3e0ceab69200ad10a9fe000adb368c07366b1f2ce5` | `oficial-5` + `0008` (`matriz / escalar`). Batería completa: 0 caídas. **Es la que va a la 5,1** |
+
+src `flynk-b1d` `805e5d0cff`. ANGLE `flynk-b1d` `3b24dd0`. Los parches están en `angle/` y en `entregas/b1-local16/parches-b1d/` (`SHA256SUMS-l19`).
+
 ## Fallos encontrados y arreglados en esta tanda
 
 1. **GpuPersistentCache tumbaba la 156 en 10.14** (`4147b70632`).
@@ -124,8 +133,8 @@ Se guarda una contraseña de prueba con `chrome.passwordsPrivate.addPassword` en
 - **Widevine: fuera.** Decisión de Titín del 05-11: no funciona ni en la 156 ni en la 2.7.0, así que se quita. No se activa `enable_widevine`.
 - **Regresión abierta, sin prioridad de entrega:** Shadertoy Elevated da 33 fps frente a 60 de la 2.7.0.
 
-- **Bloquea la entrega:** la caída del compilador Metal de AMD en 10.14 con `three.js webgl_postprocessing_unreal_bloom` y `webgl_shadowmap`, y los reinicios de la GPU con Google Earth y Photopea (ver `../pruebas-gpu.md`).
-- Auditoría de selectores Objective-C (no son símbolos débiles): recoger todos los `-Wunguarded-availability` en una compilación limpia con objetivo 10.14.
+- ~~Bloquea la entrega: la caída del compilador Metal de AMD en 10.14 (three.js) y los reinicios de la GPU (Earth, Photopea).~~ **Arreglado por LOCAL-19** con los parches de ANGLE `0006`, `0007` y `0008`. Batería completa en la 6,1 sin ninguna caída (ver `../pruebas-gpu.md`, sección LOCAL-19).
+- Auditoría de selectores de Objective-C: lista en `selectores-unguarded-156.md` (631 avisos en 67 ficheros). **Falta** revisar a mano los ficheros no tocados que se ejecutan en rutas básicas.
 
 - Compilación Metal síncrona: parón en la primera carga y creación de programas 20 veces más lenta que con GL (ver la regla 17, cachés).
 - Batería `pruebas-gpu.md`.

@@ -49,7 +49,7 @@ Fallos que han salido con la 156:
   - La causa era `+[GCController setShouldMonitorBackgroundEvents:]`, de macOS 11.3, que daba «unrecognized selector» al leer los mandos.
   - Ahora el fetcher de GameController no se registra antes de 11.3 y los mandos van por HID.
   - La auditoría de débiles no lo veía porque los selectores de Objective-C no son símbolos.
-- **Abierto, y bloquea la entrega:** el compilador de shaders de AMD de 10.14 (`AMDBronzeMTLCompilerPlugin`, LLVM `SelectionDAGISel::CannotYetSelect`) aborta con algunos shaders que genera ANGLE.
+- **Arreglado en `oficial-5` y `oficial-6` (LOCAL-19; ver más abajo):** el compilador de shaders de AMD de 10.14 (`AMDBronzeMTLCompilerPlugin`, LLVM `SelectionDAGISel::CannotYetSelect`) abortaba con algunos shaders que genera ANGLE. Lo que sigue es la descripción original.
   - Es seguro con `webgl_postprocessing_unreal_bloom` y `webgl_shadowmap`.
   - La caída llega a ANGLE, la GPU se reinicia y, tras dos reinicios, Chromium bloquea WebGL para el resto de la sesión.
   - Google Earth y Photopea reinician la GPU sin que caiga el compilador, posiblemente por un error del command buffer.
@@ -75,3 +75,48 @@ Sin cuentas. Prueba EME `requestMediaKeySystemAccess('com.widevine.alpha')`, con
 2. Para Netflix y Prime, la firma VMP del navegador (castlabs EVS) y aceptar la licencia de Widevine.
 3. `proprietary_codecs=true` y `ffmpeg_branding="Chrome"` (licencias de H.264 y AAC).
 4. Comprobar que el CDM que se descargue hoy sigue funcionando en 10.14.
+
+## 05-11-2026 · MacPro6,1 · LOCAL-19: compilador Metal arreglado (`oficial-6`)
+
+Batería completa con `chromium-156-b1d-oficial-6.zip` (sha256 `43fca6be…`), lanzada como un usuario (`--disable-features=MediaRouter,DialMediaRouteProvider`, con la caché persistente de serie).
+
+| # | Prueba | 156 `oficial-6` |
+|---|---|---|
+| 1 | Aquarium 5 000 / 10 000 | 60 / 52 |
+| 2 | WebGL Report | Sí / sí, «ANGLE Metal Renderer: FirePro D500» |
+| 3 | three.js bloom / keyframes / shadowmap | **60 / 60 / 60**, se dibujan bien (bloom y sombras en las capturas) |
+| 4 | Babylon Sponza | 53 de media; hay un parón de 0,6 s al compilar |
+| 5 | Google Earth (Madrid 3D) | 39 de media por un parón de 1,5 s en la primera carga; después, 60 (la pasada de `oficial-5`: 60) |
+| 6 | Photopea | 60 |
+| 7 | Shadertoy Seascape / Elevated | 60 / **58** (antes 33) |
+| 9 | YouTube 4K60 | El consentimiento ya no cuelga el guion. Se ofrece hd2160 a 60 fps, VP9 |
+| 10 | vsynctester | 58 (un parón de 0,37 s) |
+| 12 | WebGPU | Sin adaptador, como se esperaba |
+| — | **Caídas** | **0 de MTLCompilerService, 0 reinicios de la GPU, 0 contextos perdidos, 0 caídas del navegador, 0 pipelines o librerías Metal fallidas** |
+
+Los parones (Earth, Babylon, vsynctester) son la compilación síncrona de pipelines Metal en la primera carga, que ya estaba anotada como pendiente.
+
+### Qué fallaba y cómo se ha arreglado
+
+1. **La pérdida de contexto y el reinicio de la GPU no venían del command buffer.**
+   - ANGLE trae `loseHardenedContextOnBackendError` activado de serie. En un contexto WebGL, cualquier error interno del backend marca el contexto como perdido con `UnknownContextReset` (`Context.cpp`, `ErrorSet::handleError`).
+   - Chromium no sabe entonces a quién culpar y reinicia el proceso de GPU entero (exit 8704). Tras dos reinicios, bloquea WebGL.
+2. **Google Earth y Photopea.**
+   - En 10.14, `newLibraryWithSource` devuelve un `NSError` también cuando compila con solo advertencias («Compilation succeeded with: … unused variable 'p'»). `CreateMslShaderLib` lo tomaba por fallo.
+   - Ahora el éxito exige solo que la `MTLLibrary` no sea nil, y nunca se mira el texto del error (condición 2 de SEGURIDAD-PORTES-17).
+   - Si la librería es nil, falla el enlazado de ese programa, con su registro, y no se pierde el contexto.
+3. **three.js (bloom y shadowmap).**
+   - El compilador de AMD aborta al crear el **pipeline**, no al compilar el MSL.
+   - Se volcó el MSL (`FLYWEB_MTL_DUMP=1`) y se reprodujo fuera de Chromium con una herramienta mínima (`newRenderPipelineStateWithDescriptor` sobre el MSL de ANGLE): en la 6,1 falla y en la 7,1 compila.
+   - Reducción: la caída exige que `RE_Direct_Physical` (luces directas de `MeshStandardMaterial`) quede inlineada del todo.
+   - No influyen `pow`, las divisiones, `fast math`, la versión del MSL, el formato de profundidad ni el `bool` de la estructura.
+   - Con `__attribute__((noinline))` en esa función compila.
+   - **Arreglo:** el traductor marca `noinline` las funciones de usuario con parámetros `out`/`inout` y sin parámetros de textura o sampler. Solo en GPU AMD con macOS anterior a 10.15; `FLYWEB_MTL_NOINLINE=0/1` lo fuerza.
+4. **Defensa.** Si aun así un pipeline no se puede crear:
+   - Se guarda como fallido y se salta solo ese dibujo. El siguiente dibujo vuelve a aplicar todo el estado.
+   - No se pierde el contexto de la página ni el del compositor, y no se recompila en cada fotograma.
+5. **Babylon (salió en la batería).**
+   - El Metal 2.1 de 10.14 no tiene `matriz / escalar` ni `matriz /= escalar`, así que fallaba su shader principal y Babylon pasaba a uno de reserva.
+   - Ahora el prelude del MSL añade los dos operadores antes de 10.15.
+
+Parches de ANGLE: `b1d/angle/0006`, `0007` y `0008` (sobre `a66226b`; los ocho reproducen el árbol `3b24dd0`). src `flynk-b1d` `805e5d0cff`.
