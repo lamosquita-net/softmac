@@ -269,6 +269,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   web…) se conserva **desactivado por defecto**, como en Brave; el usuario lo activa y se descarga de Google. LOCAL
   comprueba en la 6,1 si llega a reproducir sin la firma VMP; si no funciona, se quita. Las **ventanas Tor se borran**
   con la poda (cliente Tor, componente y UI); si algún día se quieren para Mojave, como función propia.
+- **La base 156 se publica como FlyWeb 3.0.0 (Titín, 05-11; `base-siguiente.md` §7):** es un salto de base, no un nivel.
+  Excepción escrita a la regla 18: los niveles 139–155 no llevan versión propia; `flyweb_engine_level` = 156 y
+  `flyweb_version` = 3.0.0. Después, 3.0.x para backports de seguridad y arreglos (B8).
+- **La MacPro6,1 también trabaja para LOCAL (Titín, 05-11), con acceso por ssh desde la 7,1** (los datos de acceso, fuera
+  del repo). Ojo: con Mojave y Xcode 11.3.1 **no puede compilar la 156** (pide Xcode 26 / SDK 26). Uso: banco de pruebas
+  automático (batería de GPU, `motor-N.html`, WPT, llavero) lanzado desde la 7,1 mientras esta compila; compilar en ella
+  solo si LOCAL mide que la ejecución remota de acciones de compilación compensa.
 - **Plan ultra: sin límite semanal ni de agentes en paralelo (Titín, 05-11), a prueba** hasta que Titín vea cómo va.
   COORDINACIÓN reparte en paralelo todo lo que no dependa entre sí (p. ej. F1 con LOCAL mientras sigue el porte B2 con
   MOTOR) y deja de racionar vigilancias por consumo. Se sigue midiendo `cost_usd` (OR.2) para que Titín lo valore.
