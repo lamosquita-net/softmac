@@ -586,7 +586,7 @@ Orden: **T0 → T1 → T2 → T4 → T3 → T6 → T7 → T5 → T8 → T9**: pr
 
 ### 12.8 T3: Blink/V8 y poda de Page Graph (MOTOR-33, 05-11)
 
-brave-core `nube/b2-porte-t3` = **837c44f3** (PR brave-core #13, borrador), sobre T4 corregido (2dec767d: `//brave/build:compiler`
+brave-core `nube/b2-porte-t3` = **078fe70b** (PR brave-core #13, borrador; 837c44f3 + T3-bis: `update_client` y browsertest de device memory), sobre T4 corregido (2dec767d: `//brave/build:compiler`
 primero en `default_compiler_configs` y arreglos de `gn gen`, de MOTOR-32). 23 commits, sin compilar; `b2-chk.py` igual que en T4.
 Antes van T1 (5d7b856a, #10), T2 (7a6e1577, #11) y T4 (dbc5fbd5 → 2dec767d, #12), descritas en `relevo-motor.md`.
 
@@ -605,6 +605,12 @@ Antes van T1 (5d7b856a, #10), T2 (7a6e1577, #11) y T4 (dbc5fbd5 → 2dec767d, #1
 
 **Cifra esperada [I]:** caen unos 75 de los 80 de T3 en la lista 1 (32 de Page Graph, ~43 de Blink/V8).
 **Quedan:** 4 contextos de permisos (API `PermissionDecided` de 156: T6), `ephemeral_storage_blink_memory_cache_browsertest` (T5).
-**Para T8 (privacidad):** se quitaron 18 overrides de `blink::features` que ya no existen en 156 (SharedStorage*, PrivateAggregation,
+- **T3-bis**: `chromium_src/components/update_client` (ancla de `IsBraveComponent()` en `Uninstall()`, porque en 156
+  `GetInstalledFile` devuelve `std::optional<FilePath>`; `SequentialUpdateChecker` con la API de 156; el recorte de FlyWeb de
+  `MakeProtocolRequest` sigue valiendo) y browsertest de device memory con los valores de 1.98 (mismo PRNG randen) [I].
+
+**BLOQUEANTE de T8 (privacidad; COORDINACIÓN-28, 05-11):** se quitaron 18 overrides de `blink::features` que ya no existen en 156 (SharedStorage*, PrivateAggregation,
 Fledge*, InterestGroupStorage…); 1.98 los apaga con el parche de `runtime_enabled_features.json5` (`base_feature_status: "disabled"`).
-Hasta portarlo, esas APIs de Privacy Sandbox podrían quedar encendidas. El browsertest de device memory esperará los valores viejos.
+Hasta portarlo, esas APIs de Privacy Sandbox podrían quedar encendidas. T8 no se da por hecha sin ese parche y una prueba JS que
+compruebe que no existen en `window`/`document` (`sharedStorage`, `fence`, `runAdAuction`/`joinAdInterestGroup`,
+`browsingTopics`, `privateAggregation`, `attributionReporting`…).
