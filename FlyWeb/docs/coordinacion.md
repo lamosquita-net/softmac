@@ -7,6 +7,47 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 05-11 (tarde): COORDINACIÓN-27 → COORDINACIÓN-28 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-27 (`session_01MwmK2j9aGRTHMvVrCfE8vE`, 04-11 → 05-11; Opus 5.5 medio; abierta por la 26, linaje 2; relevo al ~33 %).
+La 28 la abre la 27 (linaje 3). **Nunca llamar a confirm_repository_trust.**
+
+**Decisiones de Titín de hoy** (todas en DIRECTIVAS):
+- Brave: fuera todo lo descartado; destino, nuestro fork con solo privacidad y, como mucho, la interfaz (#747).
+- **Widevine se queda desactivado** (prueba en la 6,1 encargada a LOCAL-18); **Tor fuera** (#751).
+- **FM.56**: hilos y varias GPU, línea de Flynk para después de publicar la base 156.
+
+**Pendiente de Titín** (se lo pregunté, sin respuesta aún): qué hacer con Playlist, Speedreader, WebTorrent, Wayback,
+Commander, Sidebar y el NTP de Brave. Mi propuesta: todo fuera; Sidebar → panel lateral de Chrome; NTP → el de
+Chromium revisando que no cargue nada de Google. Bloquea solo T5 y T9 del porte.
+
+**FM.55, vía GPU (B1d, Metal):**
+- LOCAL-18 (bridge `session_01MwmK2guGyVhheWxMd6has6`; **la nube no le puede escribir**: buzón `buzon/LOCAL`, el
+  CARTERO sí reparte, aunque `ENTREGADO.md` va con retraso). Build oficial: MotionMark 1660 a 45 fps (la detección
+  de 45 está mal; repetir a 60), Aquarium 60/54/37 frente a 60/44/30 de la 2.7.0. Dos D500: sin ganancia (límite: un
+  hilo de CPU de la GPU). Humo limpio. Arreglo de la caché persistente 4147b70632.
+- Pide: MotionMark a 60 fps, débiles de prioridad 2, aviso «macOS 13», batería `pruebas-gpu.md`, Widevine, Graphite
+  cortado también con switch, prueba de reautenticación de contraseñas y **publicar ANGLE 2f34372aaf y Dawn 31316d1c**
+  (forks o .patch), sin lo cual SEGURIDAD-PORTES-17 no cierra la regla 17 de ANGLE (#746; src ya revisado: nada
+  bloqueante). Si LOCAL no puede crear los repos, se le pide a Titín.
+- 5,1: Titín espera la build final de LOCAL-18 (con las guardas de prioridad 2) para mandarla al estudio. Pruebas: abrir,
+  `chrome://gpu`, webs pesadas, Aquarium; el `.crash`, nunca por GitHub.
+- Después: comparación Metal/GL para Titín (B1c en reserva), F1 (FM.54).
+
+**FM.55, capa de Brave (B2):**
+- Poda hecha: brave-core `nube/b2-poda` **4127545c** (PR brave-core #8 en borrador; 70+7 directorios, Tor incluido;
+  .onion fuera del DNS y de mDNS, probado). Informe en `FlyWeb/docs/b2-poda.md`.
+- Medida P2 hecha (MOTOR-30, `brave-propio.md` §12, #754): 1682 → 936 rotos; lista 2 = 0; Shields = adblock 0.13.3 de 1.98.
+- **Porte T0–T9 aprobado** (§12.6): MOTOR-32 (`session_01MwmK2gqciFCPCBxxQQaRW8`, nube) hace T0 sobre 4127545c con
+  donante v1.98.63 upstream; cada sha se pasa a MOTOR-30 por `buzon/MOTOR/`.
+- MOTOR-30 (Ubuntu, bridge `session_01MwmK2mUW77bRV7cXTjNweN`; **la nube no le escribe**: buzón `buzon/MOTOR/`, que
+  vigila cada 3 min; responde por SendMessage). Pasó el 35 %: nota en local `~/d8-trabajo/motor-b2/RELEVO.md`. Que cuente
+  T0 y después pedirle a Titín un relevo (Sonnet 5.5 medio basta: es receta). Disco: 38 GB libres; para a 10. Sin push ni
+  commits en esa máquina (CLAUDE.md de D8-LINUX).
+
+**Equipo vivo:** LOCAL-18, MOTOR-30, MOTOR-32, SEGURIDAD-PORTES-17 (`session_01MwmK2h23XGknphhFuuhWG7`),
+INVESTIGACIÓN-MOTOR-8 (quieta, ~45 %: relevarla antes de darle nada), CARTERO-LOCAL. Triggers míos: ninguno.
+
 ## 04-11 (noche): COORDINACIÓN-26 → COORDINACIÓN-27 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-26 (`session_01MwmK2kNq1mUsfgAaeWBBhM`, 04-11; Opus 5.5 medio; abierta por la 25, linaje 1; relevo al 37 %).
