@@ -269,6 +269,12 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   web…) se conserva **desactivado por defecto**, como en Brave; el usuario lo activa y se descarga de Google. LOCAL
   comprueba en la 6,1 si llega a reproducir sin la firma VMP; si no funciona, se quita. Las **ventanas Tor se borran**
   con la poda (cliente Tor, componente y UI); si algún día se quieren para Mojave, como función propia.
+- **GPU: Metal (B1d); la vía OpenGL (B1c) queda parada hasta después de la 3.0.0 (Titín, 05-11 noche):** no se hacen más
+  commits ni compilaciones de la opción GL; el cuello de botella es compilar. Motivos: MotionMark 1381 frente a 566,
+  batería sin caídas con `oficial-6`, y en seguridad la vía GL obligaba a portar a mano 34 CVE (16 críticos) que la
+  vía Metal ya trae. Lo que queda peor con Metal (parón en la primera carga, crear programas ~20× más lento) se trata
+  como optimización. `flynk-b1b`/B1c se conserva sin borrar; si la 5,1 fallara con Metal, se reabre. **Anula** el punto 3
+  de la orden a LOCAL 9b0fc7a (comparación Metal/GL): basta la tabla de `pruebas-gpu.md`.
 - **La base 156 se publica como FlyWeb 3.0.0 (Titín, 05-11; `base-siguiente.md` §7):** es un salto de base, no un nivel.
   Excepción escrita a la regla 18: los niveles 139–155 no llevan versión propia; `flyweb_engine_level` = 156 y
   `flyweb_version` = 3.0.0. Después, 3.0.x para backports de seguridad y arreglos (B8).
