@@ -1,0 +1,57 @@
+From e9d9f51caaee9575fd4d546f6e5d34477ed7ff5e Mon Sep 17 00:00:00 2001
+From: lamosquita <developer@lamosquita.com>
+Date: Wed, 4 Nov 2026 17:22:48 +0100
+Subject: [PATCH 1/5] FlyWeb B1b: kIOMainPortDefault/aligned_alloc for 10.14
+
+---
+ src/common/apple_platform_utils.mm    | 2 +-
+ src/gpu_info_util/SystemInfo_macos.mm | 6 +++---
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/common/apple_platform_utils.mm b/src/common/apple_platform_utils.mm
+index 635abb6..b985f3e 100644
+--- a/src/common/apple_platform_utils.mm
++++ b/src/common/apple_platform_utils.mm
+@@ -123,7 +123,7 @@ bool IsMetalRendererAvailable()
+ bool GetMacosMachineModel(std::string *outMachineModel)
+ {
+     io_service_t platformExpert = IOServiceGetMatchingService(
+-        kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
++        MACH_PORT_NULL /* FlyWeb B1b: kIOMainPortDefault is macOS 12+ */, IOServiceMatching("IOPlatformExpertDevice"));
+ 
+     if (platformExpert == IO_OBJECT_NULL)
+     {
+diff --git a/src/gpu_info_util/SystemInfo_macos.mm b/src/gpu_info_util/SystemInfo_macos.mm
+index 40c5ec9..1c9ea8b 100644
+--- a/src/gpu_info_util/SystemInfo_macos.mm
++++ b/src/gpu_info_util/SystemInfo_macos.mm
+@@ -65,7 +65,7 @@ void GetIORegistryDevices(std::vector<GPUDeviceInfo> *devices)
+             ANGLE_UNSAFE_TODO(IOServiceMatching(kServiceNames[i]));
+ 
+         io_iterator_t entryIterator;
+-        if (IOServiceGetMatchingServices(kIOMainPortDefault, matchDictionary, &entryIterator) !=
++        if (IOServiceGetMatchingServices(MACH_PORT_NULL /* FlyWeb B1b: kIOMainPortDefault is macOS 12+ */, matchDictionary, &entryIterator) !=
+             kIOReturnSuccess)
+         {
+             continue;
+@@ -160,7 +160,7 @@ void ForceGPUSwitchIndex(SystemInfo *info)
+         return;
+ 
+     CFMutableDictionaryRef matchDictionary = IORegistryEntryIDMatching(gpuID);
+-    io_service_t gpuEntry = IOServiceGetMatchingService(kIOMainPortDefault, matchDictionary);
++    io_service_t gpuEntry = IOServiceGetMatchingService(MACH_PORT_NULL /* FlyWeb B1b: kIOMainPortDefault is macOS 12+ */, matchDictionary);
+ 
+     if (gpuEntry == IO_OBJECT_NULL)
+     {
+@@ -267,7 +267,7 @@ VendorID GetVendorIDFromMetalDeviceRegistryID(uint64_t registryID)
+     // IOServiceGetMatchingService will consume the reference on the matching dictionary,
+     // so we don't need to release the dictionary.
+     io_registry_entry_t acceleratorEntry =
+-        IOServiceGetMatchingService(kIOMainPortDefault, matchingDict);
++        IOServiceGetMatchingService(MACH_PORT_NULL /* FlyWeb B1b: kIOMainPortDefault is macOS 12+ */, matchingDict);
+     if (acceleratorEntry == IO_OBJECT_NULL)
+     {
+         return 0;
+-- 
+2.55.0
+

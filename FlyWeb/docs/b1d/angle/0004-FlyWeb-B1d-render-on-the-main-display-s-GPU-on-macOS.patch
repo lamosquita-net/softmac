@@ -1,7 +1,7 @@
 From 6f8cb67ee4a99836d96542ebfe60cca18b7b44e3 Mon Sep 17 00:00:00 2001
 From: lamosquita <developer@lamosquita.com>
 Date: Wed, 4 Nov 2026 21:21:18 +0100
-Subject: [PATCH 2/3] FlyWeb B1d: render on the main display's GPU on macOS <
+Subject: [PATCH 4/5] FlyWeb B1d: render on the main display's GPU on macOS <
  10.15
 
 On MacPro6,1 (two FirePro D500) Chromium passes IOKit's active GPU, often the

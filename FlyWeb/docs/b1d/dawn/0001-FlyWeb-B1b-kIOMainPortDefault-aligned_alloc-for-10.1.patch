@@ -1,0 +1,41 @@
+From 31316d1c293d730270860490f80918be5061f8bb Mon Sep 17 00:00:00 2001
+From: lamosquita <developer@lamosquita.com>
+Date: Wed, 4 Nov 2026 17:22:49 +0100
+Subject: [PATCH] FlyWeb B1b: kIOMainPortDefault/aligned_alloc for 10.14
+
+---
+ src/dawn/common/AlignedAlloc.cpp           | 4 ++++
+ src/dawn/native/metal/PhysicalDeviceMTL.mm | 2 +-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src/dawn/common/AlignedAlloc.cpp b/src/dawn/common/AlignedAlloc.cpp
+index 7bbadce39..1722e1f20 100644
+--- a/src/dawn/common/AlignedAlloc.cpp
++++ b/src/dawn/common/AlignedAlloc.cpp
+@@ -49,6 +49,10 @@ void* AlignedAlloc(size_t size, size_t alignment) {
+     // instead.
+     return memalign(alignment, size);
+ 
++#elif defined(__APPLE__)
++    // FlyWeb B1b: aligned_alloc is macOS 10.15+.
++    void* ptr = nullptr;
++    return posix_memalign(&ptr, alignment, size) == 0 ? ptr : nullptr;
+ #else
+     return aligned_alloc(alignment, size);
+ 
+diff --git a/src/dawn/native/metal/PhysicalDeviceMTL.mm b/src/dawn/native/metal/PhysicalDeviceMTL.mm
+index 1db4c5d09..3cb988754 100644
+--- a/src/dawn/native/metal/PhysicalDeviceMTL.mm
++++ b/src/dawn/native/metal/PhysicalDeviceMTL.mm
+@@ -138,7 +138,7 @@ MaybeError GetDeviceIORegistryPCIInfo(id<MTLDevice> device, PCIIDs* ids) {
+     // IOServiceGetMatchingService will consume the reference on the matching dictionary,
+     // so we don't need to release the dictionary.
+     IORef<io_registry_entry_t> acceleratorEntry =
+-        AcquireIORef(IOServiceGetMatchingService(kIOMainPortDefault, matchingDict.Detach()));
++        AcquireIORef(IOServiceGetMatchingService(MACH_PORT_NULL /* FlyWeb B1b: kIOMainPortDefault is macOS 12+ */, matchingDict.Detach()));
+ 
+     if (acceleratorEntry == IO_OBJECT_NULL) {
+         return DAWN_INTERNAL_ERROR("Failed to get the IO registry entry for the accelerator");
+-- 
+2.55.0
+

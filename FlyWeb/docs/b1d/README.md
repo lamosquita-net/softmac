@@ -1,8 +1,12 @@
 # B1d (FM.55): la 156 con ANGLE Metal en macOS 10.14, entrega de LOCAL-18
 
 **Código.**
-- src: rama `flynk-b1d` en `github.com/lamosquita-net/chromium`, hasta `cd334eec2a`. Base: la 156.0.8078.90 de serie, padre de `95a974072b`.
-- ANGLE: no tiene fork. Sus tres commits van como parches en esta carpeta: `0001-…`, `0002-…` y `0003-…`, sobre `b404ef0`, que es la ANGLE de la 156 + B1b.
+- src: rama `flynk-b1d` en `github.com/lamosquita-net/chromium`, hasta `a336fb0b2f`. Base: la 156.0.8078.90 de serie, padre de `95a974072b`.
+- ANGLE (`2f34372aaf`) y Dawn (`31316d1c29`) no tienen fork público. Sus commits van como parches `git format-patch` **sobre la base de serie de la 156** (la del `DEPS`):
+  - [`angle/`](angle/): 5 parches sobre `a66226b1d3` (`angle_revision`). `0001`–`0002` son de B1b; `0003`–`0005`, de B1d (Metal 2.1, GPU de la pantalla, cachés a 1024).
+  - [`dawn/`](dawn/): 1 parche de B1b sobre `8ce9806ee5` (`dawn_revision`).
+  - Comprobado: `git am` sobre la base reproduce exactamente el árbol de `2f34372aaf` y de `31316d1c29`.
+  - Copia con `SHA256SUMS` en `entregas/b1-local16/parches-b1d/`.
 - Lista de ficheros por subsistema: [`ficheros-156.md`](ficheros-156.md). Son 77 ficheros, todos modificados y añadidos sobre la 156. No hay ningún fichero revertido a la 150, ni nuevo, ni borrado.
 - Auditoría de los 145 débiles: [`auditoria-debiles-156.md`](auditoria-debiles-156.md).
 
@@ -90,10 +94,21 @@ El navegador siguió vivo en todas las pruebas: 0 FATAL, 0 Check failed, 0 caíd
   - Ninguno se salta una validación ni deja memoria sin inicializar.
   - Los punteros que antes venían de `Copy*` se retienen igual (`FlyWebCopyAttachment`).
 - **Graphite, WebGPU y Dawn**: apagados **en código** en macOS < 10.15, no con un flag.
-  - `gpu_finch_features.cc:591`: `IsSkiaGraphiteEnabled` devuelve false.
+  - `a336fb0b2f`: Graphite sigue apagado **aunque llegue `--enable-skia-graphite`**. `IsSkiaGraphiteEnabled` devuelve false antes de mirar el flag, con un aviso en el registro, y el navegador no ofrece el modo `HARDWARE_GRAPHITE` ni con `kLateGraphiteFeatureCheck`.
+  - Probado en la 6,1 con `--enable-skia-graphite` (entrega `da00740d…`): `chrome://gpu` da «Skia Backend: GaneshGL» y «WebGPU: Disabled», sin caídas.
+  - `gpu_finch_features.cc:591`: `IsSkiaGraphiteSupportedByDevice` devuelve false.
   - `service_utils.cc:273,336`: sin WebGPU ni Dawn.
   - `gpu_info_collector.cc:837`: sin Dawn al recoger la información.
   - `compositor_util.cc:206` y `gpu_data_manager_impl_private.cc:442`.
+
+## Contraseñas guardadas (prueba en la 6,1, entrega `da00740d…`)
+
+Se guarda una contraseña de prueba con `chrome.passwordsPrivate.addPassword` en `chrome://password-manager` y se pide verla (`requestPlaintextPassword(id, 'VIEW')`).
+
+- **Lanzada desde la sesión gráfica** (`open`): se abre SecurityAgent, el diálogo de autorización de macOS, en cuanto se pide. El navegador queda esperándolo, como en Chrome. Al cerrar el navegador sin autenticar, el diálogo desaparece y la contraseña no se ha entregado.
+- **Lanzada por SSH** (sin sesión gráfica): macOS responde `errAuthorizationInteractionNotAllowed` (-60007) y la petición se **rechaza**. Falla cerrada: nunca da el texto sin autenticar.
+- El código es el de serie: `password_manager_util_mac::AuthenticateUser` con `AuthorizationCopyRights`. Lo único que toca B1b es la comprobación de biometría (`LAPolicy…WithBiometrics` en 10.14 en lugar de la política 4).
+- Falta, si se quiere: ver el diálogo en la pantalla. `screencapture` por SSH sale en blanco en Mojave.
 
 ## Pendiente
 

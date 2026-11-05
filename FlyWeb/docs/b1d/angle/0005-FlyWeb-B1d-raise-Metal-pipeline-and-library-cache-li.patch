@@ -1,7 +1,7 @@
 From 2f34372aaf62f0acd1b8ee75b0aa67951e14c006 Mon Sep 17 00:00:00 2001
 From: lamosquita <developer@lamosquita.com>
 Date: Wed, 4 Nov 2026 21:21:18 +0100
-Subject: [PATCH 3/3] FlyWeb B1d: raise Metal pipeline and library cache limits
+Subject: [PATCH 5/5] FlyWeb B1d: raise Metal pipeline and library cache limits
  to 1024
 
 The 128-entry caches (trimmed to 64) overflow on MotionMark and Aquarium and
