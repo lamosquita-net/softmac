@@ -744,3 +744,297 @@ lee, así que la vuelta atrás a la 2.x sigue funcionando.
 `SecKeychain` por la 2.x, en una Release firmada en 10.14 (M4). Riesgo aceptado: un texto en claro antiguo que empiece por `vNN` o
 `fwN` da error en vez de salir en claro. M2 sigue abierto (`kUseKeychainKeyProvider` apagada → sin `v10`).
 **Para las notas de la 3.0.0:** volver de la 3.0 a la 2.x puede pedir otra vez las palabras de sync si la 3.0 reescribió la semilla.
+
+### 12.13 T9: la capa de nivel de la 2.x en `patches/` (MOTOR-34, 05-11)
+
+Encargo de COORDINACIÓN-29: los parches de nivel (funciones de Chrome ≥ 129 que la 156 ya trae) salen en T9; antes, esta lista de
+los que **no** son de nivel, con su veredicto. Papel: sin compilar; la columna «156» es orientativa (líneas añadidas por el parche
+que ya aparecen en el fichero de 156). La capa Mojave solo cubría 10.14 → 10.15; el 10.15 → 13 de Chromium 156 ya
+está hecho y probado en `lamosquita-net/chromium` `flynk-b1d` (B1b/B1d, LOCAL), con lo que T10 solo cubre huecos.
+
+Análisis en solo lectura de `/home/user/wt/t8` (rama `t9`, 14d0eac68), 05-11-2026. Brave = mismo nombre en `v1.69.168` o `v1.98.63`. Comprobación en 156 con `b2-cr156` (Chromium 156.0.8078.90; V8 d72e817d59): cuenta de líneas añadidas por el parche (sin comentarios) que ya aparecen literalmente en el fichero de 156; orientativa (código reestructurado da cifras bajas aunque el arreglo esté). ANGLE, Dawn y Skia son subrepositorios: no comprobados.
+
+#### 12.13.1. Recuentos
+
+| Grupo | Ficheros |
+|---|---|
+| Total en `patches/` | 2025 (2020 `.patch` + 5 `.md`) |
+| Brave (nombre en 1.69 o 1.98) | 561 |
+|  · de ellos, Brave + añadidos de FlyWeb (difieren de 1.69 y de 1.98 con ≥5 líneas nuevas o comentario FlyWeb, sin contar adaptaciones del porte T5/T7) | 24 |
+| Propios de FlyWeb (`.patch`) | 1460 (+4 `FLYWEB-SECURITY*.md`) |
+|  · (a) nivel | 1319 |
+|  · (b) seguridad, backport de upstream (ya en 156) | 70 |
+|  · (b) mojave | 47 |
+|  · (b) función propia | 9 |
+|  · (b) seguridad propia | 6 |
+|  · (b) UA/versión | 3 |
+|  · (b) otro | 3 |
+|  · (b) dudoso (CT, Static CT API) | 2 |
+|  · (b) seguridad (Maglev, va con el flag) | 1 |
+
+De los 24 Brave+FlyWeb: 13 son de nivel, 5 seguridad upstream (`render_frame_host_impl.cc`, `navigation_request.cc`, `document.cc`, `webgl_rendering_context_base.cc`, `v8/src-codegen-compiler.cc`; ya en 156) y 6 no de nivel (en la tabla de (b), marcados [Brave+FlyWeb]). Otros 64 de Brave difieren de ambas etiquetas con <5 líneas nuevas: adaptaciones del porte (T5/T7: fuentes de `//brave`, quitar Speedreader/Leo…), no FlyWeb.
+
+Nota de contexto: de los 561 de Brave, 299 siguen idénticos a 1.69 (aún sin portar a 1.98); 89 ya son los de 1.98 tal cual.
+
+#### 12.13.2. (b) No son de nivel — tabla completa
+
+Veredicto: **reportar** = hay que llevarlo a la 156; **ya está** = la 156 lo trae; **sobra** = deja de tener objeto en la 3.0.0; **dudoso** = decidir.
+
+##### 2.1 Mojave, UA/versión, funciones propias, privacidad, otros
+
+| Fichero (`patches/…`) | Subtipo | Qué hace | 156 | Veredicto |
+|---|---|---|---|---|
+| `base-mac-launch_application.mm.patch` | mojave | Abrir apps/URLs sin NSWorkspaceOpenConfiguration (10.15) y con _kLSOpenOptionBackgroundLaunchKey débil (LOCAL-6/8) | 23/49 líneas añadidas presentes en 156 | reportar |
+| `base-mac-launch_services_spi.h.patch` | mojave | Declara _kLSOpenOptionBackgroundLaunchKey como weak_import (no existe en 10.14) | — (solo comentarios o borrados) | reportar |
+| `base-process-launch_mac.cc.patch` | mojave | Alternativa a posix_spawn_file_actions_addchdir_np (10.15+) (LOCAL-8) | 6/9 líneas añadidas presentes en 156 | reportar |
+| `base-threading-platform_thread_apple.mm.patch` | mojave | Política de hilos de tiempo real como en 116 por un fallo de 10.14 (FM.42 c1) | 0/2 líneas añadidas presentes en 156 | reportar |
+| `chrome-browser-apps-link_capturing-mac_intent_picker_helpers.mm.patch` | mojave | Sin enlaces universales (SFUniversalLink es 10.15+) (LOCAL-8) | 2/4 líneas añadidas presentes en 156 | reportar |
+| `chrome-browser-device_reauth-mac-authenticator_mac.mm.patch` | mojave (plataforma, decisión FlyWeb) | Reautenticación sin Touch ID en ningún Mac (FM.42 d4) | 0/1 líneas añadidas presentes en 156 | reportar |
+| `chrome-browser-enterprise-connectors-device_trust-key_management-core-mac-secure_enclave_client_impl.mm.patch` | mojave (plataforma, decisión FlyWeb) | kSecUseDataProtectionKeychain débil (10.15+) y nunca Secure Enclave (LOCAL-8, FM.42 d8) | 2/7 líneas añadidas presentes en 156 | reportar |
+| `chrome-browser-platform_util_mac.mm.patch` | mojave | -openURL:configuration:completionHandler: es 10.15+: vía antigua en 10.14 (LOCAL-8) | 4/12 líneas añadidas presentes en 156 | reportar |
+| `chrome-browser-ui-views-eye_dropper-BUILD.gn.patch` | mojave | Cuentagotas genérico (de 116) en 10.14, que no tiene NSColorSampler (FM.42 b2; 8 ficheros, eye_dropper_view_mac.mm es nuevo) | 1/1 líneas añadidas presentes en 156 | reportar |
+| `chrome-browser-ui-views-eye_dropper-eye_dropper_view_mac.mm.patch` | mojave | Cuentagotas genérico (de 116) en 10.14, que no tiene NSColorSampler (FM.42 b2; 8 ficheros, eye_dropper_view_mac.mm es nuevo) | 5/16 líneas añadidas presentes en 156 | reportar |
+| `components-color-BUILD.gn.patch` | mojave | Cuentagotas genérico (de 116) en 10.14, que no tiene NSColorSampler (FM.42 b2; 8 ficheros, eye_dropper_view_mac.mm es nuevo) | 0/1 líneas añadidas presentes en 156 | reportar |
+| `components-color-color_id.h.patch` | mojave | Cuentagotas genérico (de 116) en 10.14, que no tiene NSColorSampler (FM.42 b2; 8 ficheros, eye_dropper_view_mac.mm es nuevo) | — (solo comentarios o borrados) | reportar |
+| `components-color-color_mixers.cc.patch` | mojave | Cuentagotas genérico (de 116) en 10.14, que no tiene NSColorSampler (FM.42 b2; 8 ficheros, eye_dropper_view_mac.mm es nuevo) | — (solo comentarios o borrados) | reportar |
+| `components-eye_dropper-BUILD.gn.patch` | mojave | Cuentagotas genérico (de 116) en 10.14, que no tiene NSColorSampler (FM.42 b2; 8 ficheros, eye_dropper_view_mac.mm es nuevo) | 0/4 líneas añadidas presentes en 156 | reportar |
+| `components-eye_dropper-eye_dropper_view.h.patch` | mojave | Cuentagotas genérico (de 116) en 10.14, que no tiene NSColorSampler (FM.42 b2; 8 ficheros, eye_dropper_view_mac.mm es nuevo) | 0/2 líneas añadidas presentes en 156 | reportar |
+| `components-eye_dropper-eye_dropper_view_mac.mm.patch` | mojave | Cuentagotas genérico (de 116) en 10.14, que no tiene NSColorSampler (FM.42 b2; 8 ficheros, eye_dropper_view_mac.mm es nuevo) | no existe en 156 con ese nombre | reportar |
+| `components-input-web_input_event_builders_mac.mm.patch` | mojave | Campos de tableta/puntero leídos desde 10.14; si vienen vacíos, el puntero sigue (FM.42 b6) | 0/10 líneas añadidas presentes en 156 | reportar |
+| `components-metal_util-hdr_copier_layer.mm.patch` | mojave | Capa HDR sin CAEDRMetadata/preferredDevice (10.15) (LOCAL-7) | 4/7 líneas añadidas presentes en 156 | reportar |
+| `components-remote_cocoa-app_shim-menu_controller_cocoa_delegate_impl.mm.patch` | mojave | Etiqueta «New» de menús: celda propia porque los menús Carbon de 10.13-10.14 ignoran flipped (FM.42 c4) | 4/12 líneas añadidas presentes en 156 | reportar |
+| `content-browser-renderer_host-file_utilities_host_impl.cc.patch` | mojave (+ seguridad FS.26) | OPFS truncate()/SetLength por el navegador en 10.14, cuyo sandbox no deja ftruncate al renderer (de 116); FS.26 valida el descriptor (5 ficheros) | 0/17 líneas añadidas presentes en 156 | reportar |
+| `content-browser-renderer_host-file_utilities_host_impl.h.patch` | mojave (+ seguridad FS.26) | OPFS truncate()/SetLength por el navegador en 10.14, cuyo sandbox no deja ftruncate al renderer (de 116); FS.26 valida el descriptor (5 ficheros) | 0/3 líneas añadidas presentes en 156 | reportar |
+| `content-browser-renderer_host-render_widget_host_view_mac.mm.patch` | mojave | Anota que unas API funcionan desde 10.14 (aviso de disponibilidad) (FM.42 b6) | 1/1 líneas añadidas presentes en 156 | reportar |
+| `content-common-font_list_mac.mm.patch` | mojave | Oculta las fuentes de sistema que 10.14 lista con nombre (FM.42 c5, de 116) | 1/5 líneas añadidas presentes en 156 | reportar |
+| `crypto-features.cc.patch` | mojave (plataforma, decisión FlyWeb) | Sin claves en Secure Enclave en ningún Mac (FM.42 d1); en 156 el fichero es crypto/apple/unexportable_key_apple.mm | 0/1 líneas añadidas presentes en 156 | reportar |
+| `crypto-unexportable_key_mac.mm.patch` | mojave (plataforma, decisión FlyWeb) | Sin claves en Secure Enclave en ningún Mac (FM.42 d1); en 156 el fichero es crypto/apple/unexportable_key_apple.mm | no existe en 156 con ese nombre | reportar |
+| `crypto-unexportable_key_metrics.cc.patch` | mojave (plataforma, decisión FlyWeb) | Apaga la métrica que creaba y borraba una clave de Secure Enclave en cada arranque (FM.42 d2) [Brave+FlyWeb] | no comprobado | reportar |
+| `device-bluetooth-bluetooth_low_energy_adapter_apple.mm.patch` | mojave | CBCentralManager.authorization es 10.15+: en 10.14 se usa el estado (LOCAL-8) | 0/10 líneas añadidas presentes en 156 | reportar |
+| `device-fido-mac-touch_id_context.mm.patch` | mojave (plataforma, decisión FlyWeb) | Sin autenticador de plataforma (Touch ID) en ningún Mac (FM.42 d3/d4) | 1/1 líneas añadidas presentes en 156 | reportar |
+| `device-fido-mac-util.mm.patch` | mojave (plataforma, decisión FlyWeb) | Sin autenticador de plataforma (Touch ID) en ningún Mac (FM.42 d3/d4) | 0/1 líneas añadidas presentes en 156 | reportar |
+| `device-gamepad-game_controller_data_fetcher_mac.mm.patch` | mojave | productCategory es 10.15+ (selector desconocido en 10.14) (LOCAL-8) | 2/9 líneas añadidas presentes en 156 | reportar |
+| `gpu-ipc-service-image_transport_surface_overlay_mac.mm.patch` | mojave (vía GL) | Dispositivo CGL con el backend OpenGL de ANGLE en 10.14 | 0/6 líneas añadidas presentes en 156 | sobra si se mantiene la vía Metal (B1d); reportar solo si se reabre la GL |
+| `media-base-mac-video_capture_device_avfoundation_helpers.mm.patch` | mojave | Tipos de dispositivo y AVCaptureDeviceDiscoverySession 10.15+: enumeración antigua (LOCAL-8) | 0/2 líneas añadidas presentes en 156 | reportar |
+| `media-capture-video-apple-video_capture_device_avfoundation.mm.patch` | mojave | Fotos con AVCaptureStillImageOutput en 10.14 (AVCapturePhotoOutput es 10.15+) (FM.42 a2, de 116) | 9/41 líneas añadidas presentes en 156 | reportar |
+| `media-mojo-services-gpu_mojo_media_client_mac.cc.patch` | mojave | xHE-AAC por AudioToolbox solo en 10.15+ | 1/2 líneas añadidas presentes en 156 | reportar |
+| `sandbox-mac-system_services.cc.patch` | mojave | _CSCheckFixDisable como weak_import (no existe en 10.14) (LOCAL-6) | 1/1 líneas añadidas presentes en 156 | reportar |
+| `services-device-public-cpp-geolocation-system_geolocation_source_apple.h.patch` | mojave | Permiso de geolocalización en 10.14 arrancando las actualizaciones (requestWhenInUseAuthorization es 10.15+) (FM.42 b4) | 0/2 líneas añadidas presentes en 156 | reportar |
+| `services-device-public-cpp-geolocation-system_geolocation_source_apple.mm.patch` | mojave | Permiso de geolocalización en 10.14 arrancando las actualizaciones (requestWhenInUseAuthorization es 10.15+) (FM.42 b4) | 3/16 líneas añadidas presentes en 156 | reportar |
+| `third_party-blink-public-mojom-file-file_utilities.mojom.patch` | mojave (+ seguridad FS.26) | OPFS truncate()/SetLength por el navegador en 10.14, cuyo sandbox no deja ftruncate al renderer (de 116); FS.26 valida el descriptor (5 ficheros) | 0/4 líneas añadidas presentes en 156 | reportar |
+| `third_party-blink-renderer-core-editing-substring_util.mm.patch` | mojave | -[NSFont fontWithSize:] es 10.15+ (LOCAL-8) | 1/4 líneas añadidas presentes en 156 | reportar |
+| `third_party-blink-renderer-modules-file_system_access-file_system_access_regular_file_delegate.cc.patch` | mojave (+ seguridad FS.26) | OPFS truncate()/SetLength por el navegador en 10.14, cuyo sandbox no deja ftruncate al renderer (de 116); FS.26 valida el descriptor (5 ficheros) | 2/15 líneas añadidas presentes en 156 | reportar |
+| `third_party-blink-renderer-modules-file_system_access-file_system_access_regular_file_delegate.h.patch` | mojave (+ seguridad FS.26) | OPFS truncate()/SetLength por el navegador en 10.14, cuyo sandbox no deja ftruncate al renderer (de 116); FS.26 valida el descriptor (5 ficheros) | 0/4 líneas añadidas presentes en 156 | reportar |
+| `third_party-blink-renderer-platform-fonts-mac-font_matcher_mac.mm.patch` | mojave | CTFontCopyVariationAxesInternal débil y fuente que el renderer sí puede dibujar en 10.14 (LOCAL-6, FM.47) | 32/82 líneas añadidas presentes en 156 | reportar |
+| `third_party/angle/src-libANGLE-renderer-metal-BUILD.gn.patch` | mojave (compilación) | flyweb_metal_bin_path: ruta a metal/metallib de Xcode para el backend Metal de ANGLE (FM.31) | no comprobado (subrepositorio) | dudoso: depende de cómo compile LOCAL la 156 con Xcode 26 |
+| `third_party/dawn/src-dawn-common-AlignedAlloc.cpp.patch` | mojave | aligned_alloc es 10.15: posix_memalign en 10.14 (LOCAL-7) | no comprobado (subrepositorio) | reportar (si WebGPU/Dawn se compila para 10.14) |
+| `third_party/dawn/src-dawn-native-metal-PhysicalDeviceMTL.mm.patch` | mojave | supportsFamily:/hasUnifiedMemory son 10.15: MTLFeatureSet/isLowPower en 10.14 (LOCAL-6/7) | no comprobado (subrepositorio) | reportar (si WebGPU/Dawn se compila para 10.14) |
+| `ui-base-cocoa-permissions_utils.mm.patch` | mojave | Sin permiso de grabación de pantalla antes de 10.15: no se calienta ni se deniega getDisplayMedia (FM.42 c2) [Brave+FlyWeb] | no comprobado | reportar |
+| `ui-display-mac-screen_mac.mm.patch` | mojave | Nombres de pantalla y HDR en 10.14 por la vía de 116 (FM.42 b3, LOCAL-6) | 4/64 líneas añadidas presentes en 156 | reportar |
+| `ui-gfx-mac-color_space_util.mm.patch` | mojave | kCMFormatDescriptionTransferFunction_sRGB es 10.15 (LOCAL-7) | 4/5 líneas añadidas presentes en 156 | reportar |
+| `ui-gl-init-gl_display_initializer.cc.patch` | mojave (vía GL) | Backend OpenGL de ANGLE por defecto en 10.14, Metal desde 10.15 (FM.31) | 0/2 líneas añadidas presentes en 156 | sobra: contradice la vía Metal decidida para la 3.0.0 (B1d) |
+| `chrome-browser-extensions-chrome_extensions_browser_client.cc.patch` | UA/versión | Actualización de extensiones con la versión declarada [Brave+FlyWeb] | no comprobado | sobra mientras el nivel declarado sea 156 (= real); reportar si la 3.x declara más que el motor real (ver §4) |
+| `chrome-common-extensions-manifest_handlers-minimum_chrome_version_checker.cc.patch` | UA/versión | minimum_chrome_version de las extensiones contra la versión declarada (kFlyWebEngineFullVersion), no la real | 0/1 líneas añadidas presentes en 156 | sobra mientras el nivel declarado sea 156 (= real); reportar si la 3.x declara más que el motor real (ver §4) |
+| `components-update_client-update_query_params.cc.patch` | UA/versión | Las peticiones de extensiones (prod=CRX) llevan la versión declarada | 0/7 líneas añadidas presentes en 156 | sobra mientras el nivel declarado sea 156 (= real); reportar si la 3.x declara más que el motor real (ver §4) |
+| `components-update_client-update_query_params.h.patch` | UA/versión | Las peticiones de extensiones (prod=CRX) llevan la versión declarada | 0/1 líneas añadidas presentes en 156 | sobra mientras el nivel declarado sea 156 (= real); reportar si la 3.x declara más que el motor real (ver §4) |
+| `chrome-browser-component_updater-pki_metadata_component_installer.cc.patch` | seguridad propia (PKI Metadata) | Tipo de log CT desconocido → kUnspecified en vez de NOTREACHED (no tumba el navegador) | no comprobado | dudoso: mismo motivo; comprobar si la 156 aún hace NOTREACHED |
+| `components-password_manager-core-browser-password_store-login_database.cc.patch` | seguridad propia (FS.25) / fw1 | No borra contraseñas fw1/v10 que no se descifran (otro proveedor sin clave) | 3/5 líneas añadidas presentes en 156 | reportar (con la capa fw1 de components/flyweb_os_crypt) |
+| `net-cert-cert_verify_proc_builtin.cc.patch` | seguridad propia (CRS) | Restricciones de versión del Chrome Root Store contra una versión fija 153.0.8010.0 (desconfianzas hasta Chrome 153) | 18/19 líneas añadidas presentes en 156 | sobra (la 156 usa su propia versión); reponer si se quieren desconfianzas de Chrome > 156 |
+| `net-cert-internal-trust_store_chrome.cc.patch` | seguridad propia (PKI Metadata) | Un ConstraintSet con campos desconocidos (de un Chrome más nuevo) no casa nunca, en vez de ensancharse | 9/22 líneas añadidas presentes en 156 | dudoso: conviene reportarlo, FlyWeb se queda en 156 y recibirá PKI Metadata de Chrome más nuevos |
+| `third_party-blink-renderer-modules-webaudio-audio_param_handler.h.patch` | seguridad propia | IsAudioRate() lee la tasa bajo rate_lock_ (completa Chromium 8669b50ce1c; carrera entre hilos) | 0/1 líneas añadidas presentes en 156 | reportar: la 156 sigue leyendo automation_rate_ sin el cerrojo |
+| `v8/test-mjsunit-wasm-regress-flyweb-jspi-return.js.patch` | seguridad propia (prueba FS.38) | Prueba propia de retorno de pilas JSPI en V8 13.8 | no existe en 156 con ese nombre | sobra |
+| `chrome-browser-ui-tabs-pinned_tab_codec.cc.patch` | función propia (pestañas fijadas compartidas) | No guarda las pestañas fijadas «ficticias» de otras ventanas ni lee las vacías de perfiles 2.0.x [Brave+FlyWeb] | no comprobado | reportar |
+| `components-os_crypt-async-common-encryptor.cc.patch` | función propia (fw1) | Gancho BRAVE_ENCRYPTOR_DECRYPT_DATA para la capa fw1 | 0/1 líneas añadidas presentes en 156 | ya portado (T7, 48cb3cdf3) |
+| `components-password_manager-core-browser-password_store-login_database_async_helper.cc.patch` | función propia (fw1/OSCryptAsync) | Crea el puente de sync de contraseñas antes de que llegue la clave de OSCryptAsync (BD abierta después) (4 ficheros, sin comentario en 3) | 5/12 líneas añadidas presentes en 156 | dudoso: la 156 inicializa el almacén con OSCryptAsync de otra forma; revisar al portar fw1 |
+| `components-password_manager-core-browser-password_store-login_database_async_helper.h.patch` | función propia (fw1/OSCryptAsync) | Crea el puente de sync de contraseñas antes de que llegue la clave de OSCryptAsync (BD abierta después) (4 ficheros, sin comentario en 3) | 1/1 líneas añadidas presentes en 156 | dudoso: la 156 inicializa el almacén con OSCryptAsync de otra forma; revisar al portar fw1 |
+| `components-password_manager-core-browser-sync-password_sync_bridge.cc.patch` | función propia (fw1/OSCryptAsync) | Crea el puente de sync de contraseñas antes de que llegue la clave de OSCryptAsync (BD abierta después) (4 ficheros, sin comentario en 3) | 10/15 líneas añadidas presentes en 156 | dudoso: la 156 inicializa el almacén con OSCryptAsync de otra forma; revisar al portar fw1 |
+| `components-password_manager-core-browser-sync-password_sync_bridge.h.patch` | función propia (fw1/OSCryptAsync) | Crea el puente de sync de contraseñas antes de que llegue la clave de OSCryptAsync (BD abierta después) (4 ficheros, sin comentario en 3) | 5/7 líneas añadidas presentes en 156 | dudoso: la 156 inicializa el almacén con OSCryptAsync de otra forma; revisar al portar fw1 |
+| `net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch` | función propia (fw1) | Una cookie fw1 ilegible borra solo su fila, no todo el eTLD+1 (y su prueba) | 9/10 líneas añadidas presentes en 156 | reportar |
+| `net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch` | función propia (fw1) | Una cookie fw1 ilegible borra solo su fila, no todo el eTLD+1 (y su prueba) | 13/33 líneas añadidas presentes en 156 | reportar |
+| `v8/src-flags-flag-definitions.h.patch` | función propia / seguridad | Maglev apagado (decisión HUMANO 05-10) y maglev_untagged_phis apagado (CVE-2026-3910) | 0/2 líneas añadidas presentes en 156 | no reportar como parche: Maglev se decide en B6 (DIRECTIVAS 05-11); untagged_phis sobra (la 156 lo arregla) |
+| `v8/src-utils-version.h.patch` | función propia (V8) | kFlyWebCacheEpoch en el hash de versión: invalida cachés de código al cambiar parches V8 propios | 0/1 líneas añadidas presentes en 156 | sobra mientras la 3.0.0 no lleve parches V8 propios; reponer con el primero |
+| `third_party-blink-renderer-platform-runtime_enabled_features.json5.patch` | privacidad | Privacy Sandbox, Fledge, etc. apagados por defecto [Brave+FlyWeb] | no comprobado | ya portado (T8, f91290620) |
+| `components-certificate_transparency-chrome_ct_policy_enforcer.h.patch` | dudoso (nivel CT) | Tipos de log (Static CT API, M144) y lista embebida sin tiled_logs en la 128 | 2/7 líneas añadidas presentes en 156 | sobra (la 156 ya lo trae) |
+| `components-certificate_transparency-tools-make_ct_known_logs_list.py.patch` | dudoso (nivel CT) | Tipos de log (Static CT API, M144) y lista embebida sin tiled_logs en la 128 | no comprobado | sobra (la 156 ya lo trae) |
+| `build-config-unsafe_buffers_paths.txt.patch` | otro (compilación) | Exime brave/ y rutas con prefijo src/ de -Wunsafe-buffer-usage [Brave+FlyWeb] | no comprobado | dudoso: comprobar con la compilación de la 156; Brave 1.98 trae su propia lista |
+| `third_party-blink-renderer-core-loader-base_fetch_context_test.cc.patch` | otro (pruebas) | Adaptan pruebas de Chromium a los chromium_src de Brave 1.69 | 0/1 líneas añadidas presentes en 156 | sobra (rehacer contra Brave 1.98 si fallan) |
+| `third_party-blink-renderer-core-timing-time_clamper_test.cc.patch` | otro (pruebas) | Adaptan pruebas de Chromium a los chromium_src de Brave 1.69 | 0/11 líneas añadidas presentes en 156 | sobra (rehacer contra Brave 1.98 si fallan) |
+| `third_party-blink-renderer-modules-websockets-websocket_channel_impl_test.cc.patch` | otro (pruebas) | Adaptan pruebas de Chromium a los chromium_src de Brave 1.69 | 0/5 líneas añadidas presentes en 156 | sobra (rehacer contra Brave 1.98 si fallan) |
+| `v8/src-maglev-maglev-post-hoc-optimizations-processors.h.patch` | seguridad (acompaña a untagged_phis off) | Barre almacenes muertos de contexto cuando el selector de representación no corre | — (solo comentarios o borrados) | sobra |
+
+##### 2.2 Seguridad: backports de arreglos de Chromium/V8/ANGLE/Skia/Brotli (FS.17–FS.39)
+
+Todos son commits de upstream fusionados como muy tarde en M151 o en `main` antes de la rama 156 (registro en `patches/FLYWEB-SECURITY*.md`). Muestreados a mano en 156: `integrity_policy_parser.cc` (d71f062d656, solo main), `source-text-module.cc` (137e7f93d7), `css_font_feature_values_map.cc` (CVE-2026-2441), `builtins-wasm-gen.cc` (CVE-2026-87491), `baseline-batch-compiler.cc` (ebf970d8a3), Brotli `decode.c` (CVE-2026-111497): todos presentes. Veredicto común: **ya está → borrar**. Los mixtos (p. ej. `element.cc`, `css_math_expression_node.cc`, `integrity_policy_parser.cc`) llevan además código de nivel: también se borran enteros.
+
+| Fichero | Arreglo | 156 |
+|---|---|---|
+| `content-browser-bad_message.h.patch` | upstream 9971d3de459 | 0/1 líneas añadidas presentes en 156 |
+| `content-browser-renderer_host-ipc_utils.cc.patch` | upstream eb3896190a2 | 9/10 líneas añadidas presentes en 156 |
+| `content-browser-renderer_host-navigation_request.h.patch` | // is transferred to the committing RenderFrameHost. FlyWeb (FS.39): a | 8/8 líneas añadidas presentes en 156 |
+| `content-browser-service_worker-service_worker_version.cc.patch` | upstream 405dcf07fd1 | 26/30 líneas añadidas presentes en 156 |
+| `content-browser-service_worker-service_worker_version.h.patch` | upstream 405dcf07fd1 | 3/3 líneas añadidas presentes en 156 |
+| `content-public-browser-disallow_activation_reason.h.patch` | upstream 0dcb0580163 | 1/1 líneas añadidas presentes en 156 |
+| `gpu-command_buffer-service-shared_image-iosurface_image_backing.mm.patch` | 25210ac50d, crbug 40254930 | 5/7 líneas añadidas presentes en 156 |
+| `gpu-ipc-service-shared_image_stub.cc.patch` | f35ac32d66 / 6345b520b1, crbug 488270257 | 7/9 líneas añadidas presentes en 156 |
+| `media-gpu-mac-vt_video_encode_accelerator_mac.mm.patch` | upstream cdf876cf92ec; crbug 416294710 | 2/2 líneas añadidas presentes en 156 |
+| `services-network-public-cpp-integrity_policy_parser.cc.patch` | // FlyWeb (FS.39): GetString() on an integer, decimal or boolean item is // FlyWeb (level  | 40/67 líneas añadidas presentes en 156 |
+| `third_party-blink-common-page_state-page_state_serialization.cc.patch` | upstream cf3b685c0d5 | 16/24 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-animation-css_default_interpolation_type.cc.patch` | upstream 70c9c1f16b; crbug 433196586 | 2/2 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-animation-css_interpolation_type.cc.patch` | upstream 70c9c1f16b; crbug 433196586 | 2/2 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-animation-css_var_cycle_interpolation_type.cc.patch` | upstream 70c9c1f16b; crbug 433196586 | 2/5 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-css-css_font_feature_values_map.cc.patch` | CVE-2026-2441; crbug 483569511 | 2/5 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-css-css_math_expression_node.cc.patch` | // FlyWeb (FS.39): std::clamp() with NaN is unspecified (upstream // FlyWeb (nivel 138, FM | 113/128 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-dom-element.cc.patch` | upstream 155b785d0e, 3f4d114155; crbug 496280532, 410437529 | 159/189 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-editing-commands-replace_node_with_span_command.cc.patch` | upstream 155b785d0e; crbug 496280532 | 2/6 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-editing-frame_selection.cc.patch` | upstream 9fb841bf28; crbug 523292588 | 23/27 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-frame-local_frame_view.cc.patch` | upstream c215f8e6f0; crbug 491994185 | 13/13 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-html-forms-range_input_type.cc.patch` | upstream 926d3d2597 | 20/39 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-layout-layout_object.h.patch` | upstream 0e454ce616; crbug 543070692 | 6/7 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-core-loader-preload_helper.cc.patch` | CVE-2025-4664; crbug 415810136 | 13/14 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-modules-accessibility-ax_node_object.cc.patch` | upstream a16cd5c0ad | 10/13 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-modules-webcodecs-background_readback.cc.patch` | upstream 9cad4244e46 | 2/4 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-modules-webcodecs-video_encoder.cc.patch` | // FlyWeb (FS.39): cross-thread handles, the callback may be destroyed | 4/7 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-modules-webcodecs-video_frame.cc.patch` | // FlyWeb (FS.39): the callback may be destroyed off the main thread | 36/51 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-modules-webgl-webgl_context_group.cc.patch` | upstream c1433740f3ea; crbug 485935305 | no existe en 156 con ese nombre |
+| `third_party-blink-renderer-platform-geometry-calculation_expression_node.cc.patch` | upstream f27c40425db | 59/66 líneas añadidas presentes en 156 |
+| `third_party-blink-renderer-platform-widget-widget_base.cc.patch` | upstream 9fb841bf28; crbug 523292588 | 3/3 líneas añadidas presentes en 156 |
+| `third_party-brotli-dec-decode.c.patch` | CVE-2026-111497, brotli 0ed4268a (FS.39) | 49/51 líneas añadidas presentes en 156 |
+| `third_party-brotli-include-brotli-decode.h.patch` | CVE-2026-111497, brotli 0ed4268a (FS.39) | 1/1 líneas añadidas presentes en 156 |
+| `third_party/angle/src-compiler-translator-Compiler.cpp.patch` | ANGLE (FS.39 GPU: aa51faff/4664989d, 4e2ac155, e1dc0a7a) | no comprobado (subrepositorio) |
+| `third_party/angle/src-compiler-translator-ValidateOutputs.cpp.patch` | ANGLE (FS.39 GPU: aa51faff/4664989d, 4e2ac155, e1dc0a7a) | no comprobado (subrepositorio) |
+| `third_party/angle/src-libANGLE-TransformFeedback.cpp.patch` | ANGLE (FS.39 GPU: aa51faff/4664989d, 4e2ac155, e1dc0a7a) | no comprobado (subrepositorio) |
+| `third_party/angle/src-libANGLE-TransformFeedback.h.patch` | ANGLE (FS.39 GPU: aa51faff/4664989d, 4e2ac155, e1dc0a7a) | no comprobado (subrepositorio) |
+| `third_party/angle/src-libANGLE-renderer-metal-BufferMtl.mm.patch` | ANGLE (FS.39 GPU: aa51faff/4664989d, 4e2ac155, e1dc0a7a) | no comprobado (subrepositorio) |
+| `third_party/angle/src-libANGLE-renderer-metal-TextureMtl.mm.patch` | ANGLE (FS.39 GPU: aa51faff/4664989d, 4e2ac155, e1dc0a7a) | no comprobado (subrepositorio) |
+| `third_party/angle/src-libANGLE-validationES2.cpp.patch` | ANGLE (FS.39 GPU: aa51faff/4664989d, 4e2ac155, e1dc0a7a) | no comprobado (subrepositorio) |
+| `third_party/skia/src-gpu-ganesh-text-GrAtlasManager.cpp.patch` | Skia, crbug 491421267 (clave de átlas con formato) | no comprobado (subrepositorio) |
+| `third_party/skia/src-gpu-graphite-text-TextAtlasManager.cpp.patch` | Skia, crbug 491421267 (clave de átlas con formato) | no comprobado (subrepositorio) |
+| `third_party/skia/src-text-gpu-Glyph.h.patch` | Skia, crbug 491421267 (clave de átlas con formato) | no comprobado (subrepositorio) |
+| `third_party/skia/src-text-gpu-GlyphVector.cpp.patch` | Skia, crbug 491421267 (clave de átlas con formato) | no comprobado (subrepositorio) |
+| `third_party/skia/src-text-gpu-GlyphVector.h.patch` | Skia, crbug 491421267 (clave de átlas con formato) | no comprobado (subrepositorio) |
+| `third_party/skia/src-text-gpu-StrikeCache.cpp.patch` | Skia, crbug 491421267 (clave de átlas con formato) | no comprobado (subrepositorio) |
+| `third_party/skia/src-text-gpu-StrikeCache.h.patch` | Skia, crbug 491421267 (clave de átlas con formato) | no comprobado (subrepositorio) |
+| `third_party/skia/src-text-gpu-SubRunContainer.cpp.patch` | Skia, crbug 491421267 (clave de átlas con formato) | no comprobado (subrepositorio) |
+| `ui-accessibility-ax_tree_serializer.h.patch` | upstream a16cd5c0ad; crbug 442619489 | 6/7 líneas añadidas presentes en 156 |
+| `v8/include-cppgc-visitor.h.patch` | upstream 5a113ffdf2 | 6/6 líneas añadidas presentes en 156 |
+| `v8/src-baseline-baseline-batch-compiler.cc.patch` | upstream ebf970d8a3 | 0/4 líneas añadidas presentes en 156 |
+| `v8/src-baseline-baseline-compiler.cc.patch` | upstream ebf970d8a3; crbug 515431687 | 4/7 líneas añadidas presentes en 156 |
+| `v8/src-builtins-builtins-definitions.h.patch` | CVE-2026-87491; upstream 36079c36 | 0/1 líneas añadidas presentes en 156 |
+| `v8/src-builtins-builtins-internal-gen.cc.patch` | upstream c82024befb | 0/2 líneas añadidas presentes en 156 |
+| `v8/src-builtins-builtins-wasm-gen.cc.patch` | CVE-2026-87491; upstream 36079c36; crbug 543557673 | 33/38 líneas añadidas presentes en 156 |
+| `v8/src-builtins-x64-builtins-x64.cc.patch` | upstream 3137a74400, 49a1dbeb1b; crbug 561655173 | 5/7 líneas añadidas presentes en 156 |
+| `v8/src-compiler-js-native-context-specialization.cc.patch` | upstream 9b5250b9 | 25/36 líneas añadidas presentes en 156 |
+| `v8/src-compiler-turboshaft-pipelines.cc.patch` | // unchecked stack pointer jump of arbitrary size (FlyWeb: port of v8 | 6/6 líneas añadidas presentes en 156 |
+| `v8/src-execution-frame-constants.h.patch` | upstream 3137a74400 | 1/1 líneas añadidas presentes en 156 |
+| `v8/src-execution-isolate.cc.patch` | upstream 13c7629466; crbug 501147587 | 3/10 líneas añadidas presentes en 156 |
+| `v8/src-maglev-maglev-graph-builder.cc.patch` | upstream a068030f51, 811ebc89d5; crbug 495751197, 523884658 | 14/18 líneas añadidas presentes en 156 |
+| `v8/src-maglev-maglev-graph-builder.h.patch` | upstream dd7e9b5ef6 | 4/4 líneas añadidas presentes en 156 |
+| `v8/src-objects-elements.cc.patch` | upstream 0197c35257 | 35/54 líneas añadidas presentes en 156 |
+| `v8/src-objects-map-updater.cc.patch` | upstream 5a4d7a78db | 6/11 líneas añadidas presentes en 156 |
+| `v8/src-objects-shared-function-info.h.patch` | upstream 7fd662da8a | 2/2 líneas añadidas presentes en 156 |
+| `v8/src-objects-source-text-module.cc.patch` | upstream 137e7f93d7, d87667efce; crbug 574038247, 559893859 | 17/20 líneas añadidas presentes en 156 |
+| `v8/src-parsing-rewriter.cc.patch` | comprobación de desbordamiento de pila, como upstream | 12/12 líneas añadidas presentes en 156 |
+| `v8/src-wasm-module-compiler.cc.patch` | upstream 00250c2d2c | 3/3 líneas añadidas presentes en 156 |
+| `v8/src-wasm-wasm-external-refs.cc.patch` | upstream 54cf5fa964; crbug 485784597 | 2/7 líneas añadidas presentes en 156 |
+| `v8/test-mjsunit-regress-regress-559893859.mjs.patch` | // FlyWeb: upstream regress-559893859.js rewritten for V8 13.6, which has no | no existe en 156 con ese nombre |
+| `v8/test-mjsunit-regress-regress-574038247.mjs.patch` | // FlyWeb: upstream regress-574038247.js rewritten for V8 13.8, which has no | no existe en 156 con ese nombre |
+
+#### 12.13.3. (a) Nivel — recuentos y ejemplos
+
+| Directorio | Parches |
+|---|---|
+| third_party/blink/renderer/core | 715 |
+| v8/ | 211 |
+| third_party/blink/renderer/modules | 109 |
+| third_party/blink/renderer/platform | 81 |
+| third_party/blink/renderer/bindings | 32 |
+| content | 28 |
+| components | 24 |
+| third_party/boringssl/src/ | 23 |
+| third_party/blink (public, common) | 21 |
+| net | 17 |
+| services | 16 |
+| third_party (otros) | 13 |
+| gin | 7 |
+| chrome | 5 |
+| ash | 4 |
+| cc | 4 |
+| ui | 3 |
+| media | 2 |
+| base | 1 |
+| extensions | 1 |
+| net/third_party/quiche/src/ | 1 |
+| third_party/emoji-segmenter/src/ | 1 |
+| **Total** | **1319** |
+
+1239 de ellos no llevan ningún comentario «FlyWeb» (código de upstream copiado); los 80 restantes dicen «FlyWeb (level NNN)», «as Chrome NNN», «the 128 has…» o citan el commit de upstream.
+
+Ejemplos:
+
+- `third_party-blink-renderer-core-css-css_selector.cc.patch` (231 líneas): // FlyWeb (level 131): ca1fb13815a; the 128's ::select-fallback-datalist takes
+- `third_party-blink-renderer-core-css-parser-css_if_parser.cc.patch` (199 líneas): // FlyWeb: the 128's media and container query parsers work on ranges, not on
+- `third_party-blink-renderer-core-layout-layout_box.cc.patch` (53 líneas): // FlyWeb (level 132, sideways 0b24096ebe): logical caret rect, which also
+- `third_party-blink-renderer-modules-clipboard-clipboard_item.cc.patch` (73 líneas): // FlyWeb level 133 (d72d71316f2): getType() always gives a Blob, but the
+- `third_party-blink-renderer-core-scheduler-dom_timer.cc.patch` (51 líneas): // FlyWeb: setInterval(..., 0) without the 1ms clamp, as Chrome 135
+- `net-base-data_url.cc.patch` (12 líneas): // Strip whitespace for non-text MIME types. FlyWeb (level 130): only
+- `gin-v8_initializer.cc.patch` (6 líneas): // FlyWeb (engine level 136): the JS features Chromium 135/136 ship from
+- `third_party-simdutf-simdutf.cpp.patch` (67616 líneas): (sin comentario)
+- `third_party/boringssl/src/crypto-mlkem-mlkem.cc.patch` (1097 líneas): (sin comentario)
+- `ui-gl-gl_switches.cc.patch` (1 líneas): (sin comentario)
+
+Notas sobre (a): `gin-v8_initializer.cc` (flags JS de 135/136) se cuenta como nivel: en la 156 esas funciones van por defecto. ML-KEM de BoringSSL (FS.17, función de Chrome 131) y `ui-gl-gl_switches.cc` (Metal por defecto en Intel) también: la 156 los trae (en 156 `kDefaultANGLEMetal` ya no existe).
+
+
+#### 12.13.4. Versión declarada, nivel y número de versión (brave-core, fuera de `patches/`)
+
+##### Qué hay hoy (t9 = lo de la 2.7.0)
+
+| Dónde | Qué hace |
+|---|---|
+| `build/config.gni` | `flyweb_version = "2.7.0"`, `flyweb_engine_level = 138`, `flyweb_engine_full_version = "138.0.7204.185"`, `flyweb_min_macos_version = "11.7.10"`; argumento `flyweb_build_number` (0 por defecto; lo pasa `build.sh` con `FLYWEB_BUILD_NUMBER`). Comentarios con la tabla 1.N/2.N = nivel |
+| `components/version_info/BUILD.gn` + `version_info_values.h.version` | Genera `kFlyWebEngineLevel`, `kFlyWebEngineFullVersion`, `kFlyWebMinMacOSVersion` y `kBraveVersionNumberForDisplay = "2.7.0 (motor 138)"`; `GetFlyWebVersion()` lo usan `sparkle_glue.mm` y Ajustes/Acerca de |
+| `BUILD.gn` + `build/mac/tweak_info_plist.py` | `CFBundleShortVersionString = flyweb_version`; `CFBundleVersion = <brave minor+100·major>.<build>.<flyweb_build_number>`; hoy `package.json` sigue en 1.69.168 → `169.168.N` (lo que compara Sparkle) |
+| `browser/flyweb/declared_version.{h,cc}` + `BraveContentBrowserClient::GetUserAgent()` | Cambia `Chrome/<mayor real>.` por `Chrome/<nivel>.` en el User-Agent (salvo `--user-agent`) |
+| `chromium_src/components/embedder_support/user_agent_utils.cc` | Client Hints: sin marca propia (solo «Chromium» + GREASE), `Sec-CH-UA`/`fullVersionList`/`uaFullVersion` con el nivel y `flyweb_engine_full_version`; `platformVersion` nunca por debajo de `flyweb_min_macos_version` (privacidad: 10.14.6 identifica) |
+| `chromium_src/components/safe_browsing/core/browser/db/v4_protocol_manager_util.cc` | El cliente de Safe Browsing (al proxy propio) declara la versión completa declarada |
+| `patches/` (3 parches, tabla 2.1) | Extensiones: `minimum_chrome_version`, `prod=CRX` de update_client y la actualización de instaladas, con la versión declarada |
+
+##### Qué hay que decidir para la 3.0.0 (motor 156 nativo)
+
+DIRECTIVAS (05-11) ya fija `flyweb_engine_level = 156` y `flyweb_version = 3.0.0` (salto de base; 3.0.x después). Queda:
+
+1. **`flyweb_engine_full_version`**: una versión real de Chrome 156 para Mac. Propuesta: la de la base, `156.0.8078.90`; así declarada = real y el UA reducido de Chromium ya dice `Chrome/156.0.0.0`.
+2. **¿Se conserva el mecanismo de versión declarada?** Con nivel = motor real es un no-op (`DeclareUserAgent`, los 3 parches de extensiones, Safe Browsing). Pero DIRECTIVAS (05-11 noche) dice que tras la 3.0.0 FlyWeb porta funciones a su ritmo «a la par» con Chrome: si algún día declara > 156, hace falta otra vez. Opciones: (a) conservar `declared_version` y el override de Client Hints (baratos, en `chromium_src`) y borrar los 3 parches de extensiones hasta que hagan falta; (b) quitarlo todo y declarar siempre el real. Recomiendo (a).
+3. **El override de Client Hints no compila tal cual en 156**: en 156 `GetUserAgentBrandList(major, full, type, additional_brand_version)` ya no recibe el GREASE por política, `GetUserAgentMetadata` solo tiene la sobrecarga `(bool)` y la política `kUserAgentClientHintsGREASEUpdateEnabled` ya no se lee ahí. Además `patches/components-embedder_support-user_agent_utils.cc.patch` sigue siendo el de Brave 1.69 (los macros `BRAVE_GET_USER_AGENT_BRAND_LIST`/`BRAVE_BRAND_VERSION_OVERRIDE_*` hay que reportarlos con el de 1.98). Hay que reescribirlo aunque el nivel sea el real, porque lo de «sin marca Brave» y `platformVersion` mínimo sigue haciendo falta.
+4. **`flyweb_min_macos_version`**: Chrome 156 exige macOS 13 (subidas: 11 en 129, 12 en 139, 13 en 151; `base-siguiente.md`). El comentario de `config.gni` se queda en «139+ 12.7.6»: para 156 tocaría un 13.7.x real (comprobar el último Ventura publicado). Lo decide Titín (fue decisión suya, F4.8, por privacidad). El UA sigue diciendo `Intel Mac OS X 10_15_7` (congelado por Chromium).
+5. **Número visible**: `kBraveVersionNumberForDisplay` daría «3.0.0 (motor 156)»; decidir si se mantiene «(motor N)» ahora que motor = base.
+6. **`CFBundleVersion`/Sparkle**: decidir qué versión de Brave queda en `package.json` (si pasa a 1.98.63 → `198.63.N`, mayor que `169.168.N`: Sparkle actualiza bien; si sigue 1.69.168, `FLYWEB_BUILD_NUMBER` debe superar el de la 2.7.x). En cualquier caso `FLYWEB_BUILD_NUMBER` sube.
+7. **Comentarios desfasados** (`declared_version.h` habla de «real 116», `config.gni` de la tabla 1.N/2.N, `version_info_values.h.version` de «2.0.2 (motor 131)»): actualizarlos con la regla nueva (3.0.0 = 156; 3.0.x = seguridad y arreglos).
+8. **`v8/src-utils-version.h.patch` (`kFlyWebCacheEpoch`)**: sin parches V8 propios en la 3.0.0 sobra; el cambio de versión de V8 ya invalida las cachés de la 2.x. Reponerlo con el primer parche propio de V8 de la 3.0.x.
+
+##### Decisiones de COORDINACIÓN-29 (05-11, 23:39 UTC)
+
+- **T9** borra (a) los 1319 de nivel y los 70 backports de seguridad de upstream. **T10** (aceptada) lleva los ~55 «reportar»,
+  con una condición previa: cruzar cada parche Mojave con `lamosquita-net/chromium` rama `flynk-b1d` (LOCAL ya hizo la capa 10.14
+  de Chromium 156 en B1b/B1d, incluido 10.15 → 13; oficial-6 pasa la batería en la 6,1). Lo que esté allí no se reporta en
+  brave-core; solo lo que falte o sea de código de Brave. Primero en T10: `audio_param_handler.h` (carrera real),
+  `trust_store_chrome.cc` y `pki_metadata_component_installer.cc`.
+- (1) `flyweb_engine_full_version` = la última Stable normal de la 156 para Mac (regla de `motor-niveles.md`, nivel 129):
+  **156.0.8078.82** según versionhistory (consultado 05-11 23:40 UTC: .82, .81, .80, .79, .76). La base es .90, no publicada como
+  Stable de Mac.
+- (2) Se conservan `declared_version` y el override de Client Hints, **reescritos para la 156** (FlyWeb seguirá portando por su
+  cuenta tras la 3.0.0, #772); los 3 parches de extensiones sobran mientras declarada = real.
+- (3) `flyweb_min_macos_version` = la mínima del Chrome declarado (principio 13 de Titín, 12-10): con 156, el último 13.x publicado.
+  **Provisional: 13.7.x sin número exacto** (sin acceso a la página de Apple desde la nube); que lo confirme LOCAL en
+  Actualización de software o en la web de seguridad de Apple antes de fijarlo en `config.gni`.
+- (4) Se mantiene «(motor N)». (5) `package.json` en la base de 1.98 → `CFBundleVersion` = `198.63.N` (> `169.168.N`: Sparkle lo
+  ve como subida); `FLYWEB_BUILD_NUMBER` sube igual.
+
+#### 12.13.5. Observaciones para quien borre la capa
+
+- La capa Mojave de la 2.x (47 parches propios + 2 Brave+FlyWeb) solo cubre 10.14 → 10.15 sobre la 128. La 156 exige macOS 13: además de reportar estos, falta la traducción 10.15 → 11 → 12 → 13 (`base-siguiente.md` §3.2). Tres de los 47 dependen de la vía GPU: con la vía Metal decidida (B1d) sobran `ui-gl-init-gl_display_initializer.cc` y `gpu-ipc-service-image_transport_surface_overlay_mac.mm`; el `BUILD.gn` de Metal de ANGLE depende de cómo compile LOCAL.
+- Las decisiones de plataforma (sin Touch ID, sin Secure Enclave, sin autenticador de plataforma: FM.42 d1–d8, 7 parches) no son de Mojave sino de FlyWeb (27-10-2026): se reportan aunque la 156 tenga las API.
+- Funciones propias que hay que reportar: pestañas fijadas compartidas (`pinned_tab_codec.cc`), la capa `fw1` en cookies y contraseñas (`sqlite_persistent_cookie_store.cc`, `login_database.cc`; el puente de sync de contraseñas, dudoso), y el arreglo de carrera de `audio_param_handler.h` (la 156 aún lee `automation_rate_` sin cerrojo; candidato a mandarlo a upstream).
+- Ningún parche de `patches/` toca formularios verticales: es función de Blink de nivel (Chrome 119/12x) y ya está en 156.
+- Maglev: el parche lo apaga; DIRECTIVAS (05-11) lo pone a prueba en B6 con la V8 de la 156. Si B6 falla, se apaga con un flag (`--no-maglev` en gin o un parche de una línea), no con este parche.
+- El commit b70c6d590 (T8) ya quitó dos parches de nivel que aún aplicaban; f91290620 ya regeneró `runtime_enabled_features.json5` para 156.
