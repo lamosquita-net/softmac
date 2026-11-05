@@ -1,3 +1,75 @@
+# MOTOR-31 → MOTOR-32: porte de brave-core a Chromium 156, tandas T0–T9 (05-11-2026, ~15:20 UTC)
+
+MOTOR-31 (`session_01MwmK2m9AmTH8abi3xrc5gB`, Opus 5.5, alto; línea B2, distinta de la de niveles MOTOR-4x). Lo
+abrió y lo coordina COORDINACIÓN-27 (`session_01MwmK2j9aGRTHMvVrCfE8vE`). Hizo la **poda B2** (FM.55, hito 1) y
+escribió §12 de `brave-propio.md` con la medida P2 de MOTOR-30. **El plan T0–T9 de §12.6 está aprobado**
+(COORDINACIÓN-27, 05-11): en ese orden, una rama por tanda, y la lista 2 a 0 en cada medida.
+
+**Qué leer:** `brave-propio.md` §12 entero (sobre todo §12.3 listas, §12.4 Rust, §12.6 plan) y §11.7 (receta);
+`b2-poda.md` (resumen arriba; los informes por grupo, solo si una costura falla); datos en
+`FlyWeb/tools/brave-inventario/datos/p2/` (`B2-entrega.txt` es el informe original de MOTOR-30).
+
+## Estado
+- **brave-core `nube/b2-poda` = 4127545c** (comprobado con `git ls-remote`), sobre `flyweb` 5fdeb23d (2.7.0).
+  Contiene: los 70 directorios de §11.6, Tor entero (7 directorios, decisión de Titín del 05-11), el corte de `.onion`
+  en `chromium_src/net/dns/host_resolver_manager.cc` (DNS y mDNS) y los dos arreglos de la lista 2 de MOTOR-30.
+  PR #8 de brave-core en **borrador**, CI en verde; **no se fusiona** hasta que lo diga COORDINACIÓN.
+- Se quedan sin borrar a propósito: `components/webcompat`, `p3a_utils`, `time_period_storage`, `ntp_background_images`.
+  **Widevine se queda** (desactivado por defecto; no tocar).
+- Medida P2 (Linux, 156.0.8078.90): base 1 682 → poda **936** ficheros rotos; lista 1 = 928 (por la 156), lista 2 = 2
+  (arreglados), lista 3 = 255 (arreglos de medida, a rehacer en T0).
+
+## Cómo se trabaja una tanda
+1. Rama `nube/b2-porte-tN` **encima de la anterior** (T0 sobre `nube/b2-poda`). Commits por causa, en inglés, asunto
+   `[b2-porte-tN] …`. Sin compilar aquí (no hay Chromium): editar con el error de la lista 1 delante.
+2. **Donante = etiqueta `v1.98.63` de `brave/brave-core` upstream** (pública; fetch anónimo, p. ej.
+   `git fetch --depth=1 --filter=blob:none https://github.com/brave/brave-core refs/tags/v1.98.63` y los blobs que hagan
+   falta). **No** el `master` del fork, que es 1.98.37: MOTOR-31 comparó contra 1.98.37 en §12.3 (633 distintos / 188
+   ausentes / 4 iguales); **en T0 repite la comparación con .63 y anota en §12 si cambia**. Del donante se toma el
+   cambio de la causa de la tanda, no el fichero entero, y se reaplican las ediciones de FlyWeb (marca, `flyweb://`,
+   constantes de §2.3).
+3. **Entrega:** push de la rama, comprobar el sha con `git ls-remote`, y `send_message` a COORDINACIÓN con sha, causa,
+   ficheros tocados y la cifra esperada (cuántos de la lista 1 deberían caer). COORDINACIÓN lo pasa a MOTOR-30 por
+   `buzon/MOTOR` (Ubuntu); MOTOR-30 compila con la receta de §12.1 y devuelve lista 1 nueva y lista 2 (debe ser 0).
+   Si la lista 2 no es 0, se arregla en la misma rama antes de la tanda siguiente.
+4. Documentar cada tanda en `brave-propio.md` §12 (subsección nueva) por PR `claude/motor32-…` de softmac.
+
+## Qué depende de quién
+- **T0–T4 y T6–T7** no dependen de decisiones: empezar por **T0** (lista 3 bien hecha: `redirect_cc`, `mojom_parser.py`
+  y atributos `[BraveAdd]`/`[BraveExtend]`/`[Native]`, grit de la 156, `chromium-rebase-l10n` en `updateBranding`,
+  cabeceras `_api.h`, envoltorios de `base`, los 70 parches GN como commits, Rust en GN, ciclo `brave_sync`).
+- **T5 (interfaz) y T9 (ausentes en 1.98)** esperan a que Titín decida Playlist, Speedreader, Sidebar, WebTorrent,
+  Wayback, Commander y el NTP de Brave (lo pide COORDINACIÓN). Cada «fuera» se poda como en B2 antes de portar.
+- `FlyWeb/scripts/build.sh` **no se toca** hasta F1 (args que ya no se declaran: lista en `b2-poda.md`).
+
+## Trampas (de esta línea)
+- **Paralelizar con worktrees y rebasar después cuesta**: en B2 los 7 grupos chocaron en los mismos ficheros (prefs,
+  factorías, `about_flags`, `BUILD.gn`, `resource_ids.spec`). Funcionó pidiendo a **cada subagente que rebasara él
+  mismo** sobre la rama integrada (conoce sus cambios). Vigilar `}`/`#endif` sueltos, `},` duplicados en
+  `resource_ids.spec` y líneas en blanco dobles: salieron en todas las integraciones.
+- **Un envoltorio `chromium_src` borrado o recortado cambia Chromium sin error.** Antes de borrar uno, leerlo entero:
+  `profile.h` parecía solo de Tor y también renombraba `IsIncognitoProfile`/`IsPrimaryOTRProfile` (estaba bien porque
+  el `.cc` quitaba las dos cosas a la vez). Comprobar que ninguna macro `BRAVE_*` que se deja de definir siga en
+  `patches/` o `chromium_src/` (orden en `b2-poda.md`, sección Tor).
+- **Comprobación estática sin compilar** que sirvió: `#include "brave/…"` y etiquetas `//brave/…` inexistentes
+  comparadas con la base (`FlyWeb/tools/brave-inventario/b2-chk.py`; residuales de un directorio:
+  `b2-resid.sh`); buildflags y args de gn de lo borrado; marcadores
+  de conflicto. Con eso la poda dio solo 2 rotos reales.
+- **Ocultos por el primer error:** la clase de un fichero sale del primer error; al arreglarlo puede aflorar otro.
+  Contar con que la lista 1 no baje lo que suma la tanda.
+- La CI del fork (`compare-chromium-versions`) fallaba por una etiqueta inexistente: ya está creada
+  (`chromium-version-mismatch`). Un rojo nuevo ahí no es del porte si las versiones coinciden.
+- `raw.githubusercontent.com/chromium/chromium/<etiqueta>/<ruta>` para leer Chromium 128/156 (0,4 s por fichero).
+- **El nombre «Leo»** es también el sistema de diseño `@brave/leo` (MIT), del que dependen los WebUI: no tocarlo.
+
+## Lo que dudo
+- El corte de `.onion` por **mDNS** (4127545c) no se ha compilado ni probado; el de DNS sí (MOTOR-30, con control negativo).
+- La causa de cada fichero de la lista 1 es una regex sobre el primer error (aprox.): T1/T2 pueden salir algo más
+  pequeñas o mayores.
+- T6 (adblock 0.8 → 0.13.3) cambia la API que usa `brave_shields/adblock/rs`: es la tanda de más valor y más riesgo;
+  después hace falta una prueba funcional de Shields con las listas propias (`components.flyweb.lamosquita.net`).
+- Los ~330 parches de Brave que no aplican no están en T0–T9 (solo los 70 de GN en T0); Mac (50 `.mm`) lo mide LOCAL.
+
 # MOTOR-44: cierre del nivel 138 (02-11-2026, ~14:45 UTC)
 
 MOTOR-44 (`session_01MwmK2khgL2FTt7HVSDDaTs`, Opus 5.5, medio). COORDINACIÓN-24 no abrió MOTOR-45: MOTOR-44 cerró el
