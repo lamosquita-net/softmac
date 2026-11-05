@@ -1,0 +1,117 @@
+FM.55 B2 · medida P2 de brave-core contra Chromium 156 (Linux) · MOTOR-30, 05-11
+Para FlyWeb/docs/brave-propio.md §12. Responde a buzon/MOTOR/20261105-1026, -1114, -1158, -1200 y -1305.
+
+1. Qué se ha medido
+- Chromium 156.0.8078.90 (23b0e24adf, sin historia), Linux x64. GN: is_debug=false is_component_build=true
+  symbol_level=0 blink_symbol_level=0 use_remoteexec=false treat_warnings_as_errors=false; argumentos de Brave
+  sacados de build/commands/lib/config.js (buildArgs) más los de FlyWeb/scripts/build.sh que valen en Linux.
+  En la poda se quitan los argumentos que ya no existen (lista de COORDINACIÓN, 20261105-1114 punto 3).
+- Base: brave-core flyweb 5fdeb23d6f (2.7.0). Poda: nube/b2-poda 742e13ff (Tor fuera y .onion fuera del DNS).
+  Las dos variantes parten de la misma 156 limpia y siguen el mismo orden (prepara.sh): parches de Brave como
+  apply_patches, chromium-rebase-l10n y updateBranding, los mismos arreglos de medida y gn gen.
+- Objetivos: todo objeto C++ y crate Rust de brave/, más las unidades de Chromium con envoltorio chromium_src o con
+  parche de Brave. No se compila chrome entero. Base: 4040 objetivos (3834 C++). Poda: 1871 (1811 C++).
+- Método: autoninja -k 0 con un cc_wrapper de medida. Si una unidad falla, se anota el error y la compilación sigue:
+  el fichero de Chromium se recompila sin envoltorio; el de Brave deja un objeto vacío. El enlace tolera símbolos sin
+  definir (config b2_medida, solo para la medida). Lo que sigue bloqueado detrás de acciones que fallan (webui,
+  Rust) se compila directamente con su orden de compdb. Sin medir quedan solo crates Rust bloqueados: 65 en la base
+  y 17 en la poda.
+- Clase de cada fichero roto: la del fichero donde el compilador marca el primer error (un fichero cuenta una vez):
+  brave (código de Brave contra una API de Chromium cambiada), chromium_src (envoltorio, o el original src/... que
+  incluye), brave_rust, rust_chromium (crate de Chromium que solo se compila porque lo usa Brave), generado_falta
+  (cabecera generada que no se pudo generar), chromium_via_brave, otro.
+
+2. Parches de Brave (los de 1.69.168 que siguen en la rama)
+- Base: 590 = 196 aplican + 336 no aplican + 58 sin objetivo. Cuadra con §11.5: los 58 sin objetivo son exactos;
+  de los que no aplican, 197 fallan del todo y 125 solo aplicarían con -C1 (apply_patches no usa fuzz). Discrepan
+  10 frente al papel (aplican en papel y no en real), seguramente por .80 frente a .90.
+- Poda: 583 = 195 aplican + 330 no aplican + 58 sin objetivo.
+- 70 de los parches que no aplican son de GN. Entre ellos van los que enganchan brave/browser, brave/browser/ui,
+  brave/common, brave/renderer, search_engines, metrics, etc. a chrome/ y components/. Se ponen a mano
+  (gn-parches.py: cada trozo que solo añade líneas va al final del objetivo que nombra; lo demás, a mano). Sin
+  esto, el grueso de brave/browser ni entra en el grafo. Algunos de esos parches llevan también backports de FlyWeb
+  que la 156 ya trae (integrity_policy en services/network, fuentes de blink) o que son solo para Mac
+  (eye_dropper): esas partes no se ponen.
+
+3. Resultado
+                         base 5fdeb23d    poda 742e13ff
+ficheros rotos               1682              936
+  brave                      1281              584
+  chromium_src                253              251
+  brave_rust                   77               43
+  generado_falta               26               18
+  rust_chromium                23               23
+  chromium_via_brave           20               16
+  otro                          2                1
+unidades C++ que fallan  2713 de 3834     1319 de 1811
+  de ellas en brave/     2187 de 3069      799 de 1054
+
+LISTA 1 · rotos por la 156 (en las dos variantes): 928 ficheros -> B2-lista1-rotos-por-la-156.tsv
+  (fichero, clase, primer error). Zonas: browser/ui, chromium_src/chrome y components, blink, shields,
+  ntp_background_images, omnibox, permissions, content_settings, sync, ephemeral_storage, net.
+  Errores más repetidos: base::Value::Dict/List (la 156 quitó esa forma), «no member named», cabeceras de Chromium
+  quitadas o movidas (browser_finder.h, profile_password_store_factory.h, base/ranges, ...), métodos de
+  KeyedServiceFactory que ya no son virtuales («marked 'override' hides»).
+
+LISTA 2 · rotos por la poda (742e13ff frente a la base):
+  a) brave/browser/ntp_background/view_counter_service_factory.cc:82 — 'sizeof' a tipo incompleto
+     ntp_background_images::NTPP3AHelper: la poda quitó el #include de ntp_p3a_helper.h y pasa
+     /*ntp_p3a_helper=*/nullptr a un std::unique_ptr<NTPP3AHelper>. Arreglo: volver a incluir
+     brave/components/ntp_background_images/browser/ntp_p3a_helper.h (sigue existiendo).
+  b) brave/components/common/typescript.gni:25 — sigue listando ../definitions/rewardsInternals.d.ts, que la poda
+     borró (ninja no puede planificar; lo he comentado para seguir).
+  No hay ninguna unidad que compile en la base y falle en la poda, ni ningún «'brave/...' file not found» de
+  cabeceras borradas. Los 8 ficheros que salen rotos solo en la poda no son culpa de la poda: en la base su unidad
+  caía antes por una cabecera de ads o cartera y ahora aflora el error propio de la 156.
+  La poda quita 754 ficheros rotos de la base: 711 borrados y 43 que ya no fallan
+  (B2-arreglados-por-la-poda.tsv).
+
+LISTA 3 · herramientas y generación, y arreglos de medida: 255 entradas -> B2-lista3-arreglos-de-medida.tsv,
+  todas «arreglo de medida, rehacer en el porte». Las que bloquean todo el árbol:
+  - redirect_cc (la herramienta de chromium_src) no compila en la 156: base::Contains, StringPieceType, make_span y
+    Environment::GetVar.
+  - chromium_src/mojo/.../mojom_parser.py: firma de _ParseAstHelper con mojom_path.
+  - mojom de la 156 valida atributos: [BraveAdd]/[BraveExtend] y [Native] de brave.mojom (tumbaba
+    network_service.mojom y con él casi todo).
+  - grit de la 156: chromeos_ash pasa a is_chromeos (22 grd/grdp más webui); output_all_resource_defines
+    desaparece (12 grd más la plantilla gen-webpack-grd.js); variantes de género (translate_genders=false);
+    resource_ids.spec (el parche no aplica); 80 xtb de locales nuevos de la 156.
+  - updateBranding pega sobre los .grd de la 156 los de la 128 que generó Brave: hay que pasar
+    chromium-rebase-l10n en cada rebase (lo he hecho).
+  - json_schema_compiler de la 156: function_registration exige <ns>/<ns>_api.h (7 cabeceras de reenvío).
+  - Envoltorios de base que bloquean libbase.so: json_reader.h (base/rust_buildflags.h ya no existe) y
+    feature_list.cc (IsFeatureOverridden pasa a string_view; la macro de default_state no casa con
+    IsCountrySpecificFeatureState de la 156; hay que rehacerla).
+  - webui: cr_shared_vars.css depende del parche de cr_elements/BUILD.gn, que no aplica (bloqueaba
+    cr_elements:build_ts); vector_icons.gni depende del de aggregate_vector_icons.py, que tampoco aplica.
+  - GN: 34 visibilidades de crates Rust, 28 crates de Brave duplicados en la 156 (pasan a reenviar al de Chromium),
+    4 testonly, 2 mojom con generate_blink, 1 ciclo nuevo (content -> language_detection -> optimization_guide
+    -> unified_consent -> sync -> brave_sync -> content), objetivos de Chromium desaparecidos (os_crypt/sync,
+    flags_ui, companion, privacy_budget, assist_ranker, ppapi, heap_profiling...), include_polymer, la 156 ya trae
+    components/omnibox/browser/brave_search_suggestion_parser.cc.
+  Webui sin resolver (fuera de la medida C++): build_ts de settings, password_manager y bookmarks (overrides de
+  Brave), lint de cr_toolbar, webpack de brave_new_tab (rutas de searchbox movidas) y brave_welcome,
+  web-discovery-project.
+
+4. Rust (B2-rust-donante.txt): los crates de Brave que fallan dependen de crates que la 156 ya no trae (syn 1,
+  rand 0.8, rand_core 0.6, ppv-lite86 0.2, rustc_version 0.4, base64 0.13, getrandom 0.2). Brave 1.98.63 sigue
+  vendorizando syn 1.0.109, rand 0.8.7, ppv-lite86 0.2.21, rustc_version 0.4.1 y getrandom 0.2.15. Para Shields:
+  adblock 0.13.3 de 1.98 (cierre de 61 crates) solo usa syn 2.0.119 y 3.0.5, que trae la 156; el porte de
+  Shields es tomar el adblock de 1.98 y su cierre, no vendorizar los viejos (adblock 0.8.11, cssparser 0.27/0.28,
+  selectors 0.22/0.23). En 1.98 solo siguen con syn 1 async-trait, data-encoding-macro-internal, derive_more 0.99,
+  ff_derive y pin-project-internal (cartera/zcash).
+
+5. Envoltorio .onion (742e13ff, chromium_src/net/dns/host_resolver_manager.cc): compila. Prueba
+  (B2-onion-prueba.txt): ejecutable local con un HostResolver independiente cuyo resolvedor del sistema es un proc
+  que anota cada consulta, sin cliente DNS propio. x.onion, X.ONION., onion y a.b.onion dan ERR_NAME_NOT_RESOLVED
+  sin ninguna consulta; el testigo control.test sí consulta. Control negativo (mismo envoltorio con
+  IsOnionHostname()=false): x.onion, onion y a.b.onion sí llegan al resolvedor, así que la prueba detecta el fallo.
+  Salvedades: no es net_unittests ni tcpdump; las peticiones con source=MULTICAST_DNS siguen otra rama
+  (IsValidDnsName) y no pasan por el filtro.
+
+6. Mac, para LOCAL: B2-mac-mm-para-LOCAL.txt, los 50 .mm de escritorio de la poda (sin iOS). En Linux no se
+  compilan.
+
+Ficheros: B2-rotos-base-156.tsv, B2-rotos-poda-742e13ff.tsv, B2-lista1-rotos-por-la-156.tsv,
+B2-arreglados-por-la-poda.tsv, B2-lista3-arreglos-de-medida.tsv, B2-rust-donante.txt, B2-onion-prueba.txt,
+B2-mac-mm-para-LOCAL.txt. Sin commits ni push (CLAUDE.md de la carpeta); todo queda en local.

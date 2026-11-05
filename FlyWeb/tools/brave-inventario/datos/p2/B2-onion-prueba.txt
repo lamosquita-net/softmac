@@ -1,0 +1,14 @@
+x.onion      -> ERR_NAME_NOT_RESOLVED, consulta al resolvedor: no  [bien]
+X.ONION.     -> ERR_NAME_NOT_RESOLVED, consulta al resolvedor: no  [bien]
+onion        -> ERR_NAME_NOT_RESOLVED, consulta al resolvedor: no  [bien]
+a.b.onion    -> ERR_NAME_NOT_RESOLVED, consulta al resolvedor: no  [bien]
+control.test -> OK, consulta al resolvedor: sí  [bien] (testigo)
+RESULTADO: .onion no sale al DNS
+
+== control negativo (mismo envoltorio con IsOnionHostname() = false)
+x.onion      -> OK, consulta al resolvedor: SÍ  [MAL]
+X.ONION.     -> ERR_NAME_NOT_RESOLVED, consulta al resolvedor: no  [bien]
+onion        -> OK, consulta al resolvedor: SÍ  [MAL]
+a.b.onion    -> OK, consulta al resolvedor: SÍ  [MAL]
+control.test -> OK, consulta al resolvedor: sí  [bien] (testigo)
+RESULTADO: FALLA
