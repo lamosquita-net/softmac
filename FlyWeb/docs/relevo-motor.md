@@ -1,3 +1,72 @@
+# MOTOR-32 → MOTOR-33: porte B2 a Chromium 156, tandas T0–T2 (05-11-2026, ~20:30 UTC)
+
+MOTOR-32 (`session_01MwmK2gqciFCPCBxxQQaRW8`, Opus 5.5, alto). Lo abrió COORDINACIÓN-27; lo coordina
+**COORDINACIÓN-28** (`session_01MwmK2kJamvybegV8BvFxJf`). Plan «ultra» de COORDINACIÓN-28: cada tanda se sube y se
+pasa sin esperar el recuento de MOTOR-30; lo que salga del recuento se arregla encima.
+
+**Qué leer:** esta sección; `brave-propio.md` §12.6 (plan) y §12.7 (T0); la sección de MOTOR-31 de abajo («Cómo se
+trabaja una tanda», trampas).
+
+## Estado
+| Tanda | Rama brave-core | sha | PR | Estado |
+|---|---|---|---|---|
+| T0 (lista 3) | `nube/b2-porte-t0` | 146eeddc | #9 (borrador, CI verde) | entregada; medida de MOTOR-30 pendiente (`buzon/MOTOR`) |
+| T1 (renombres de `base`/URL) | `nube/b2-porte-t1` | T1_SHA | #10 (borrador) | T1_ESTADO |
+| T2 (`base::Value::Dict`/`List`) | `nube/b2-porte-t2` | T2_SHA | T2_PR | T2_ESTADO |
+
+- Cifra esperada: T0, unos 41 crates de Rust, 5 de omnibox y `json_reader.cc`; T1, unos 100 de 114.
+- **Siguiente: T4 → T3 → T6 → T7 → T5 → T8 → T9** (orden de §12.6).
+- Decisión de Titín para T5 y T9 (05-11, en `DIRECTIVAS`): Playlist, Speedreader, WebTorrent, Wayback, Commander y la
+  Sidebar de Brave quedan **fuera** y se podan como en B2.
+- La nueva pestaña es `components/flyweb_ntp` tal cual. El NTP de Brave (`ntp_background_images`,
+  `brave_new_tab_ui`, widgets) se borra salvo lo que `flyweb_ntp` use: **antes de borrar, medir sus dependencias y
+  decírselas a COORDINACIÓN**.
+- No se portan los parches GN propios de FlyWeb del motor (Blink, dragonbox, fast_float, simdutf, boringssl, CT…):
+  se deciden en B3 con LOCAL (COORDINACIÓN-28).
+- Para T7/T8 quedan anotados:
+  - el parche `prepopulated_engines.json`, que en la 156 vive en el repo aparte `external/search_engines_data`;
+  - `components-os_crypt-sync-BUILD.gn` y el C++ de `os_crypt` → `os_crypt_async` (`brave_sync_prefs`,
+    `chrome_importer`), con §11.8;
+  - `components/flyweb_os_crypt` y `browser/test`, que siguen con `os_crypt/sync` (solo Mac: LOCAL).
+
+## Cómo se hizo (y conviene repetir)
+- **Entorno** (se pierde con el contenedor):
+  - `git clone --depth 1 -b nube/b2-porte-tN …/brave-core`;
+  - `git remote add up https://github.com/brave/brave-core`;
+  - `git fetch --depth=1 --filter=blob:none up refs/tags/v1.98.63:refs/tags/v1.98.63 refs/tags/v1.69.168:refs/tags/v1.69.168`;
+  - después, **los blobs por lotes**: `git fetch up <oid…>` de a 4 000, con la lista sacada de `git ls-tree -r`.
+    Unos 2 min para 30 000. `git cat-file --batch-check` los baja de uno en uno y no termina.
+- **Herramientas** (`FlyWeb/tools/brave-inventario/`, en el PATH):
+  - `b2-cr156 <ruta>` baja el fichero de Chromium 156.0.8078.90, o de v8 en su revisión de DEPS, con caché;
+  - `b2-mkpatch <ruta> <modificado>` hace un parche al estilo de Brave (`--full-index`);
+  - `b2-chkpatch <.patch>` hace `git apply --check` contra 156.
+  - Comprobación estática: `b2-chk.py <checkout>`; su salida tiene que ser **idéntica** a la de la tanda anterior.
+- **Subagentes:** uno por grupo, en worktrees, con el brief común
+  `FlyWeb/tools/brave-inventario/b2-brief-subagentes.md` (método, herramientas, commits, informe). Cada uno rebasa él mismo al final.
+- **Límite de 5 h de la cuenta:** seis subagentes a la vez lo agotaron a mitad de T0 y se paró todo unas 2 h. Con dos
+  a la vez no pasó. Norma de COORDINACIÓN-28: si salta, `send_later` a la hora de `resetsAt` y seguir solo.
+
+## Trampas de esta línea
+- **El donante cambia el esquema de Brave.** Copiar un parche GN de 1.98 trae objetivos que aquí no existen
+  (`//brave/browser:core`, `brave_origin`, omaha4…). Se toma solo **dónde anclar** en 156, con nuestro contenido de
+  1.69 más FlyWeb.
+- **En 156, `source_set("browser")` de `chrome/browser` ya no compila código propio**: las fuentes de Brave van en
+  `core`. El arreglo de medida las ponía en `browser`, donde se perdían sin dar error.
+- Algunas páginas WebUI de 156 son Lit: los `brave_overrides` de Polymer ya no valen (1.98 los quitó). Los parches TS
+  que los importan siguen en el árbol y romperán tsc.
+- **`GURL::host()`/`path()` devuelven `string_view` en 156**: quien necesite un `std::string`, `GetHost()`/`GetPath()`
+  (T1-bis).
+- Los `.grd`/`.grdp` de Chromium que Brave copia **no se editan a mano**: se regeneran con `chromium-rebase-l10n`,
+  que ya va dentro de `updateBranding` y comprueba `app/CHROMIUM_L10N_VERSION`.
+  `script/flyweb-rebrand-strings.py --check` tiene que salir 0.
+- **Rust:** los reenvíos nuevos están solo en GN. Un `gnrt gen` los pisaría hasta que se pongan los `[patch]` en
+  `Cargo.toml`, que es trabajo de T6.
+
+## Lo que dudo
+- La macro `default_state` de `chromium_src/base/feature_list.cc` solo está probada en una maqueta.
+- Los tamaños de `resource_ids.spec` son estimados.
+- El reparto por causa sale del **primer** error: las tandas pueden bajar menos de lo esperado.
+
 # MOTOR-31 → MOTOR-32: porte de brave-core a Chromium 156, tandas T0–T9 (05-11-2026, ~15:20 UTC)
 
 MOTOR-31 (`session_01MwmK2m9AmTH8abi3xrc5gB`, Opus 5.5, alto; línea B2, distinta de la de niveles MOTOR-4x). Lo

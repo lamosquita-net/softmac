@@ -1,0 +1,11 @@
+#!/bin/bash
+# cr156 <ruta de Chromium>: imprime la ruta local del fichero de Chromium 156.0.8078.90 (cache)
+set -e
+p="$1"; c=${CR156_CACHE:-/tmp/claude-0/cr156}/$p
+if [ ! -s "$c" ]; then mkdir -p "$(dirname "$c")"
+  case "$p" in v8/*) url="https://raw.githubusercontent.com/v8/v8/d72e817d59894a332093c48beae5749fde6f320f/${p#v8/}";;
+    *) url="https://raw.githubusercontent.com/chromium/chromium/156.0.8078.90/$p";; esac
+  for i in 1 2 3; do curl -sSf -o "$c.tmp" "$url" && mv "$c.tmp" "$c" && break; sleep 2; done
+  [ -s "$c" ] || { echo "NO_EXISTE_EN_156: $p" >&2; rm -f "$c.tmp"; exit 1; }
+fi
+echo "$c"
