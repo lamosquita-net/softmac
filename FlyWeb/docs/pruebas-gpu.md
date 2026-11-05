@@ -21,3 +21,36 @@ ella. Para cada web se apunta la cifra, si va fluido y si algo sale mal dibujado
 | 12 | WebGPU | `chrome://gpu` y una demo | Anotar si funciona (en Mojave se espera que no) |
 
 Resultados: tabla por versión y backend en este fichero (sección nueva por prueba), con la fecha y la máquina, sin números de serie.
+
+## 05-11-2026 · MacPro6,1 (FirePro D500 ×2, macOS 10.14.6) · LOCAL-18
+
+Las dos versiones se lanzan con un perfil nuevo y se manejan por CDP con `bat.py`. Las cifras son fps por `requestAnimationFrame` durante 10 s; en la tabla va la media. Con fps «60» el p95 está entre 18 y 19 ms.
+
+| # | Prueba | 156 B1d (`angle=metal`, `oficial-4`) | 2.7.0 (`angle=opengl`) |
+|---|---|---|---|
+| — | `chrome://gpu` | Todo «Hardware accelerated». Skia GaneshGL. WebGPU desactivado | Todo «Hardware accelerated» |
+| 1 | Aquarium 5 000 / 10 000 | 60 / 54 | 60 / 45 |
+| 2 | WebGL Report 1 y 2 | Sí / sí. «ANGLE Metal Renderer: FirePro D500» | Sí / sí. «D500 OpenGL Engine, OpenGL 4.1» |
+| 3 | three.js bloom / keyframes / shadowmap | 60 · **caída del compilador Metal** / 60 / 60 (después, «Error creating WebGL context») | 60 / 60 / 37 |
+| 4 | Babylon Sponza | 60 aislada. En serie, «WebGL not supported» por el bloqueo de WebGL | 60 |
+| 5 | Google Earth (Madrid 3D) | 60. Aislada, un reinicio de la GPU | 60 |
+| 6 | Photopea (6 000 px y desenfoque) | 60. Aislada, un reinicio de la GPU y «Could not initialise shaders» | 60 |
+| 7 | Shadertoy Seascape / Elevated | 60 / 33 | 60 / 60 |
+| 8 | Fishbowl | No carga (la web ya no existe). Se salta | Igual |
+| 9 | YouTube 4K60 | Pendiente: el guion se queda colgado (CDP) | Igual |
+| 10 | vsynctester | 60, regular | 60, regular |
+| 11 | MotionMark 1.3.2 | **1381,31** | 566,38 |
+| 12 | WebGPU | Desactivado («sin adaptador»), como se esperaba | Igual |
+| — | Caídas en la batería completa | **3 de MTLCompilerService, 2 reinicios de la GPU, 7 contextos perdidos** | 0 |
+
+Fallos que han salido con la 156:
+
+- **Arreglado** (`8f4b6e971c`): Babylon y Shadertoy tiraban **el navegador entero**.
+  - La causa era `+[GCController setShouldMonitorBackgroundEvents:]`, de macOS 11.3, que daba «unrecognized selector» al leer los mandos.
+  - Ahora el fetcher de GameController no se registra antes de 11.3 y los mandos van por HID.
+  - La auditoría de débiles no lo veía porque los selectores de Objective-C no son símbolos.
+- **Abierto, y bloquea la entrega:** el compilador de shaders de AMD de 10.14 (`AMDBronzeMTLCompilerPlugin`, LLVM `SelectionDAGISel::CannotYetSelect`) aborta con algunos shaders que genera ANGLE.
+  - Es seguro con `webgl_postprocessing_unreal_bloom` y `webgl_shadowmap`.
+  - La caída llega a ANGLE, la GPU se reinicia y, tras dos reinicios, Chromium bloquea WebGL para el resto de la sesión.
+  - Google Earth y Photopea reinician la GPU sin que caiga el compilador, posiblemente por un error del command buffer.
+  - Con GL (2.7.0) no pasa.
