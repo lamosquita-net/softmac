@@ -586,7 +586,7 @@ Orden: **T0 → T1 → T2 → T4 → T3 → T6 → T7 → T5 → T8 → T9**: pr
 
 ### 12.8 T3: Blink/V8 y poda de Page Graph (MOTOR-33, 05-11)
 
-brave-core `nube/b2-porte-t3` = **078fe70b** (PR brave-core #13, borrador; 837c44f3 + T3-bis: `update_client` y browsertest de device memory), sobre T4 corregido (2dec767d: `//brave/build:compiler`
+brave-core `nube/b2-porte-t3` = **8b2de20e** (PR brave-core #13, borrador; 837c44f3 + T3-bis 078fe70b: `update_client` y browsertest de device memory + T3-ter: canvas, `partitioned_host_state_map`, `RandIntInclusive`), sobre T4 corregido (2dec767d: `//brave/build:compiler`
 primero en `default_compiler_configs` y arreglos de `gn gen`, de MOTOR-32). 23 commits, sin compilar; `b2-chk.py` igual que en T4.
 Antes van T1 (5d7b856a, #10), T2 (7a6e1577, #11) y T4 (dbc5fbd5 → 2dec767d, #12), descritas en `relevo-motor.md`.
 
@@ -614,3 +614,33 @@ Fledge*, InterestGroupStorage…); 1.98 los apaga con el parche de `runtime_enab
 Hasta portarlo, esas APIs de Privacy Sandbox podrían quedar encendidas. T8 no se da por hecha sin ese parche y una prueba JS que
 compruebe que no existen en `window`/`document` (`sharedStorage`, `fence`, `runAdAuction`/`joinAdInterestGroup`,
 `browsingTopics`, `privateAggregation`, `attributionReporting`…).
+- **T3-ter** (lo que afloró en la medida de 2dec767d): farbling de canvas `toDataURL`/`toBlob` con los parches de 1.98 (sin los
+  backports de motor de FlyWeb, que la 156 ya trae; envoltorio de `image_data_buffer.h` para `pixmap_multable()`; los bytes por
+  canal del F16 salen ahora del pixmap del propio búfer), `partitioned_host_state_map` sin `base::make_span`,
+  `RandIntInclusive`. `websocket_channel_impl`: nada que cambiar (fallaba porque no aplicaba el parche del `.h`).
+
+### 12.9 T6: Shields y privacidad (MOTOR-33, 05-11)
+
+brave-core `nube/b2-porte-t6` = **820772ce** (PR brave-core #14, borrador, base T3). 23 commits, sin compilar; `b2-chk.py` igual.
+
+- **Rust**: adblock 0.13.3 y su cierre de crates de 1.98; fuera los que solo usaba adblock 0.8 (base64 0.13, cssparser 0.28,
+  selectors 0.23, itertools 0.10, seahash 3, rmp…); shims url 2/idna 1 de 1.98 sobre `//url`; `[patch]` en `Cargo.toml` hacia
+  los 69 crates de 156; parches de aho-corasick y bitflags. La interfaz cxx no cambia; `cargo check` del FFI, limpio.
+  Comportamiento: `:style`/`:remove*` se devuelven a los campos que lee el renderer (igual que antes); las procedurales y
+  `$method` se parsean pero no se aplican (antes no se parseaban); el `.dat` serializado cambia de formato (FlyWeb carga
+  `list.txt`).
+- **C++**: permisos (`PermissionDecided`, `ContentSettingPermissionContextBase`; fuera las peticiones agrupadas de Wallet),
+  content settings (`PermissionSettingsRegistry`), ephemeral storage y cookies en el network service, HSTS particionado,
+  `URLRequestHttpJob`, envoltorios de `net`, HTTPS-Upgrades, throttles con `NavigationThrottleRegistry`, semillas de farbling
+  con `crypto::hmac`, `BraveContentBrowserClient` con las firmas de 156, Web Bluetooth con `BraveBluetoothDelegate` (1.98).
+  Se conservan los extras de FlyWeb (herencia de permisos en incógnito, tope de 7 días a las cookies de script, partición por
+  NIK, fallback HTTPS con ≥400, HTTPS estricto en incógnito). Más estricto: `BraveIsAllowedThirdParty` con
+  `SameDomainOrHost`. Se pierde (como en 1.98): la excepción de scripts chrome:// y de extensiones en `AllowScriptFromSource`.
+- **Seguridad de 1.98**: el proxy de URLLoader de Brave rechaza `FollowRedirect` no pedidos (crbug 497494634) y destinos
+  inseguros; las redirecciones propias usan `SetBypassRedirectChecksForNextRedirect` (parche nuevo de `navigation_handle.h`).
+- **Pins HSTS de Brave**: inertes ya en la 128 y en la 156 (`PinsListTimestamp` de 09-2024, más de 70 días); todos de hosts
+  de Brave. Propuesta: quitarlos en T9; pins propios, aparte.
+
+**Cifra esperada [I]:** ~50 de Rust, ~95 de los 184 de Shields/privacidad. **Quedan:** `browser/ui` y `BrowserWindowInterface`
+(T5), recursos grit, `temporal_capi` (sin causa clara), `ahash 0.7` (Speedreader, T9), `RegisterTrustedWebUIInterfaceBrokers`
+y `HandleURLOverrideRewrite` (T5).
