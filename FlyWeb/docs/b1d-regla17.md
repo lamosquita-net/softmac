@@ -151,3 +151,30 @@ y queda cumplido: la base es el 156 estable .90, no el `.0`.
 ni en ningún fork público. Lo mismo pasa con Dawn (31316d1c, aunque con WebGPU apagado importa menos). Sin ese código no se
 pueden revisar la caché de pipelines, la elección de `MTLDevice` ni el cruce con los 10 CVE. Hace falta que LOCAL-18 lo suba
 (fork `lamosquita-net/angle` o `.patch` en su PR).
+
+## 9. Resultado: ANGLE y Dawn (05-11, parches en softmac `local/fm55-b1d` 3a38bfac, `FlyWeb/docs/b1d/`)
+
+Cinco parches de ANGLE sobre `a66226b1d3` (el `angle_revision` de la 156); el último es `2f34372aaf`. Hay además uno de Dawn,
+que con WebGPU apagado importa poco.
+
+| Punto | Resultado |
+|---|---|
+| **§1 cachés (0005)** | **Bien.** Solo cambian `kMaxCachedLibraries` y `kMaxPipelines`, de 128 a 1024. No tocan `TrimCache`, `kGCLimit` ni el `shared_ptr` de CVE-2026-7901 (3bb4e242 es antecesor de la 156). LOCAL hizo la prueba de llenado que pedía el §1: con hasta 3000 programas no hay error ni pérdida de contexto, y salen 784 recortes. La memoria crece unos 70 MB por cada 1000 programas y no baja al borrar programas, **igual que la 2.7.0 con GL**. No es una regresión de B1d [V: `FlyWeb/docs/b1d/README.md`]. |
+| **§2 elección de dispositivo (0004)** | **Bien [I].** En 10.14 usa `CGDirectDisplayCopyCurrentMetalDevice(CGMainDisplayID())` (API de 10.11), es decir, la GPU de la pantalla principal. Pasa por delante del id de dispositivo de EGL y de `powerPreference`. **La web no influye en la elección**: es más cerrado que upstream, no más abierto. `FLYWEB_METAL_ACTIVE_GPU` (solo entorno) vuelve a la elección normal. Los IOSurface se comparten entre tarjetas. En 10.14 no hay cambio de GPU en caliente en nuestras máquinas (Mac Pro sin conmutación; Air 2013 con una sola GPU). La MBP 2012 y la A1398 van con 10.15 y 12, que usan el camino normal. |
+| **§3 alternativas (0001–0003)** | **Bien.** Las familias se comprueban con `supportsFeatureSet:` (equivalente en 10.14). En 10.14 se apagan *swizzle* y los pases sin adjuntos, y ANGLE los emula. La salida temprana en `convertToMetalDesc` solo omite `renderTargetWidth/Height`, que se usa con esa función apagada. `hasUnifiedMemory` pasa a valer `isLowPower`, lo que acierta con Intel integrada frente a AMD discreta; un error daría un modo de almacenamiento rechazado por Metal, no memoria corrupta [I]. `supports32BitFloatFiltering` y `supportsBCTextureCompression` valen `true` en 10.14: todas las GPU de Mac de familia 2 los tienen (documentación de Apple) [I]. **Salvedad:** sin `preserveInvariance` antes de macOS 11, `invariant` de GLSL puede no cumplirse entre programas. Es un problema de conformidad, no de memoria. |
+| **§5 los 10 CVE de ANGLE Metal** | **Ninguno se deshace.** Solo dos tocan ficheros que también cambian los parches: CVE-2026-17667 (5242f8c415, `DisplayMtl.mm` y `mtl_utils.mm`: `setNeedInitOnInvalidation` e `InitializeTextureContents`) y CVE-2026-17701 (bf459445a7, `DisplayMtl.mm`: `createContextRobustness`). Están en otras funciones, distintas de las de los parches, y los dos son antecesores de la base. Los otros 8 no comparten fichero. |
+| Dawn (0001) | Se sustituye `kIOMainPortDefault` por `MACH_PORT_NULL`, que es equivalente. Sin efecto con WebGPU apagado. |
+
+**Nota de seguridad sobre el fallo que bloquea la entrega** (`pruebas-gpu.md`): `MTLCompilerService` de AMD aborta con
+algunos shaders que genera ANGLE, y Google Earth y Photopea reinician la GPU.
+- Que el compilador aborte, en un servicio XPC aparte, es una **denegación de servicio**: cualquier web podría bloquear
+  WebGL durante la sesión.
+- Pero **los reinicios del proceso de GPU sin caída del compilador** hay que clasificarlos antes de entregar. Se necesita el
+  informe de la caída (`~/Library/Logs/DiagnosticReports/*GPU*`, con tipo de excepción y pila):
+  - Un `EXC_BAD_ACCESS` lejos de cero o un `abort` de PartitionAlloc sería **corrupción de memoria**, accesible desde la web.
+  - Un `ImmediateCrash`, un `CHECK` o un puntero nulo sería solo denegación de servicio.
+- CVE-2026-118322 («Metal: Handle non-OOM command buffer errors», ya en la 156) es del mismo terreno.
+
+**Regla 17 de B1d: apta**, con dos condiciones antes de entregar:
+1. Clasificar las caídas de GPU de Earth y Photopea con su informe.
+2. Tener en cuenta que el arreglo de la caída del compilador cambiará ANGLE o los shaders, y ese cambio se revisa aparte.
