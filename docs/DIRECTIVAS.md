@@ -269,6 +269,12 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   web…) se conserva **desactivado por defecto**, como en Brave; el usuario lo activa y se descarga de Google. LOCAL
   comprueba en la 6,1 si llega a reproducir sin la firma VMP; si no funciona, se quita. Las **ventanas Tor se borran**
   con la poda (cliente Tor, componente y UI); si algún día se quieren para Mojave, como función propia.
+- **Funciones de Brave fuera; el NTP, el nuestro (Titín, 05-11; `brave-propio.md` §12.6, T5/T9):** **Playlist,
+  Speedreader, WebTorrent, Wayback, Commander y la Sidebar de Brave se borran** con la poda (en su lugar, el panel
+  lateral y el modo lectura que ya trae Chromium). **La nueva pestaña es la de FlyWeb** (`components/flyweb_ntp`, el
+  diseño y los elementos que ya salen en la 2.7.0) y se porta tal cual; el NTP de Brave (`ntp_background_images`,
+  `brave_new_tab_ui` y widgets) se borra salvo lo que `flyweb_ntp` use de verdad. **Anula** la propuesta de COORDINACIÓN-27
+  de pasar al NTP de Chromium. Desbloquea T5 y T9.
 - **Hilos y varias GPU: línea de optimización de Flynk para el futuro (Titín, 05-11; FM.56):** con la B1d el límite de
   la 6,1 es un hilo de CPU del proceso de GPU, no la GPU. Optimizar ese hilo y repartir trabajo entre hilos y entre
   GPU (dos D500 en la 6,1; hasta cuatro en la 7,1 con Sequoia, memoria de texturas por GPU) queda apuntado como línea de
