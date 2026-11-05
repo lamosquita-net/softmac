@@ -88,7 +88,9 @@ El navegador siguió vivo en todas las pruebas: 0 FATAL, 0 Check failed, 0 caíd
   - Tarda unos 22 s por cada tramo de 500. No hay error GL ni pérdida de contexto. El registro tiene 784 «Overflowed», que es el recorte esperado por encima de 1024. Dibujar con los 3000 programas tarda 1 ms.
   - Memoria del proceso de GPU (RSS): 54 MB en reposo, 106 MB con 500 programas, 153 MB con 1500 y 264 MB con 3000. Crece de forma lineal, unos 70 MB por cada 1000 programas.
   - **Al borrar los programas no baja** (264 MB): los programas de WebGL borrados no liberan la caché de Metal.
-  - Así que el límite de 1024 no frena el crecimiento: lo que crece son los programas que tiene vivos la página, más lo que retiene ANGLE. Es acotado, pero una web hostil podría inflarlo. Pendiente: compararlo con la 2.7.0 y ver si conviene un límite de memoria en lugar de un número de entradas.
+  - **Con la 2.7.0 (GL) pasa lo mismo:** 65 MB en reposo y 227 MB con 3000 programas, que tampoco bajan al borrarlos. La memoria no es un problema de las cachés de B1d.
+  - **La diferencia grave es la velocidad de compilación.** La 2.7.0 crea 500 programas en **1 s**; la 156 Metal, en **22 s**, unas 20 veces más lenta. Es la compilación síncrona de librerías y pipelines Metal, la misma que causa el parón de la primera carga.
+  - Las webs que crean muchos shaders al cargar (juegos, Earth, editores) tardarán más en arrancar. Mejoraría compilando en paralelo o en segundo plano en ANGLE, o con una caché de binarios Metal en disco. Es trabajo pendiente para después del bloqueante.
 - **MTLDevice** (parche `0002`):
   - En macOS < 10.15 todos los EGLDisplay usan `CGDirectDisplayCopyCurrentMetalDevice(CGMainDisplayID())`. Una web no puede influir, ni siquiera con `powerPreference`. Desde 10.15 se mantiene el comportamiento de serie.
   - El dispositivo es único, así que es el mismo que el de los IOSurface.
@@ -121,7 +123,7 @@ Se guarda una contraseña de prueba con `chrome.passwordsPrivate.addPassword` en
 - **Bloquea la entrega:** la caída del compilador Metal de AMD en 10.14 con `three.js webgl_postprocessing_unreal_bloom` y `webgl_shadowmap`, y los reinicios de la GPU con Google Earth y Photopea (ver `../pruebas-gpu.md`).
 - Auditoría de selectores Objective-C (no son símbolos débiles): recoger todos los `-Wunguarded-availability` en una compilación limpia con objetivo 10.14.
 
-- Parón de compilación de pipelines Metal en la primera carga (ver arriba).
+- Compilación Metal síncrona: parón en la primera carga y creación de programas 20 veces más lenta que con GL (ver la regla 17, cachés).
 - Batería `pruebas-gpu.md`.
 - Widevine en la 2.7.0 y la 156 (orden de COORDINACIÓN-27, 05-11 11:28).
 - La causa de fondo del `fsync` del VFS en la sandbox de 10.14.
