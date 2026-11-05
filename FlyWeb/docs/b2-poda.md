@@ -1056,7 +1056,9 @@ a994e283 [b2-poda] seams for components/services/bat_ads
 
 ## Tor (decisión de Titín, 05-11): 7 directorios más
 
-Sobre 9b8eb665 → **eacb6fda** (11 commits). Widevine no se toca. Revisado por MOTOR-31: el envoltorio borrado de `profile.h`/`.cc` solo añadía Tor a `IsIncognitoProfile`/`IsPrimaryOTRProfile` (queda el comportamiento de Chromium), y ningún parche ni envoltorio usa macros `BRAVE_*` que hayan dejado de definirse (en toda la rama desde 5fdeb23d).
+Sobre 9b8eb665 → **eacb6fda** (11 commits) → **742e13ff** (corte de `.onion`).
+
+**`.onion` fuera de DNS (RFC 7686, a petición de COORDINACIÓN-27).** Chromium 128.0.6613.138 y 156.0.8078.80 **no** cortan los `.onion` en `net/dns` (sin rastro en `host_resolver_manager*.cc`, `dns_util.cc`, `dns_names_util.cc` ni `net/base/url_util.cc` [V]): sin el código de Tor, el nombre saldría al resolutor del sistema o al DoH. Corte añadido en `chromium_src/net/dns/host_resolver_manager.cc`: la única llamada a `IsCanonicalizedHostCompliant()` de `HostResolverManager::ResolveLocally()` (la misma línea en 128 y 156; por ahí pasan `RequestImpl` y `ServiceEndpointRequestImpl`) rechaza `*.onion` → `ERR_NAME_NOT_RESOLVED` sin consulta. Sin prueba unitaria aún [N]; con proxy configurado el resolutor local no interviene. Widevine no se toca. Revisado por MOTOR-31: el envoltorio borrado de `profile.h`/`.cc` solo añadía Tor a `IsIncognitoProfile`/`IsPrimaryOTRProfile` (queda el comportamiento de Chromium), y ningún parche ni envoltorio usa macros `BRAVE_*` que hayan dejado de definirse (en toda la rama desde 5fdeb23d).
 
 Repo `/home/user/brave-core`, rama `nube/b2-poda`, sobre **9b8eb665**. Sin push. Widevine sin tocar.
 
