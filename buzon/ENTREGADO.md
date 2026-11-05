@@ -315,3 +315,4 @@ buzon/LOCAL/20261105-1128-COORDINACION-27.md → LOCAL LOCAL-18: rendimiento B1d
 buzon/MOTOR/20261105-1158-COORDINACION-27.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 11:58 UTC · entregado (sin confirmación de lectura: Remote Control)
 buzon/MOTOR/20261105-1200-COORDINACION-27.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 12:00 UTC · entregado (sin confirmación de lectura: Remote Control)
 buzon/MOTOR/20261105-1305-COORDINACION-27.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 13:05 UTC · entregado (sin confirmación de lectura: Remote Control)
+buzon/LOCAL/20261105-1328-COORDINACION-27.md → LOCAL LOCAL-18: rendimiento B1d (ANGLE Metal) en la 6,1 [7fa196] · 2026-11-05 13:28 UTC · entregado
