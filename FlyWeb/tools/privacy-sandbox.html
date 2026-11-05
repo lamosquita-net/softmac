@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlyWeb · Privacy Sandbox apagado</title>
+<style>
+  body { font: 15px/1.4 -apple-system, sans-serif; margin: 16px; }
+  .ok { color: #0a7d22; } .ko { color: #b00020; font-weight: 600; }
+  li { margin: 2px 0; } code { font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>Privacy Sandbox apagado (T8)</h1>
+<p>Cada línea debe salir en verde: la API <strong>no existe</strong>. Abrir por HTTPS (algunas APIs solo se exponen en
+contexto seguro). Gemela de <code>brave-core browser/privacy_sandbox/flyweb_privacy_sandbox_apis_browsertest.cc</code>.</p>
+<p id="total"></p>
+<ul id="res"></ul>
+<script>
+const checks = [
+  "'sharedStorage' in window",
+  "typeof SharedStorage !== 'undefined'",
+  "'fence' in window",
+  "typeof HTMLFencedFrameElement !== 'undefined'",
+  "typeof FencedFrameConfig !== 'undefined'",
+  "'runAdAuction' in navigator",
+  "'joinAdInterestGroup' in navigator",
+  "'leaveAdInterestGroup' in navigator",
+  "'clearOriginJoinedAdInterestGroups' in navigator",
+  "'createAuctionNonce' in navigator",
+  "'adAuctionComponents' in navigator",
+  "'deprecatedURNToURL' in navigator",
+  "'deprecatedReplaceInURN' in navigator",
+  "'browsingTopics' in document",
+  "'privateAggregation' in window",
+  "'attributionSrc' in HTMLAnchorElement.prototype",
+  "'attributionSrc' in HTMLImageElement.prototype",
+  "'attributionSrc' in HTMLScriptElement.prototype",
+  "'hasPrivateToken' in document",
+  "'hasRedemptionRecord' in document",
+];
+let bad = 0;
+const ul = document.getElementById('res');
+for (const c of checks) {
+  let exposed;
+  try { exposed = Boolean((0, eval)(c)); } catch (e) { exposed = 'error: ' + e; }
+  const li = document.createElement('li');
+  li.className = exposed === false ? 'ok' : 'ko';
+  if (exposed !== false) bad++;
+  li.textContent = (exposed === false ? '✓ ' : '✗ ') + c + (exposed === false ? '' : ' → ' + exposed);
+  ul.appendChild(li);
+}
+document.getElementById('total').textContent =
+  bad ? `✗ ${bad} de ${checks.length} expuestas` : `✓ ${checks.length} de ${checks.length} ausentes`;
+document.getElementById('total').className = bad ? 'ko' : 'ok';
+</script>
+</body>
+</html>

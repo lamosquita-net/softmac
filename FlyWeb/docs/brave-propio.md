@@ -698,10 +698,15 @@ arranque en el primer inicio; mosca; sitios populares (añadir, quitar, reordena
 rastreadores, HTTPS, ancho de banda); buscador si sale; fondo propio del usuario (subir, quitar, color); ajustes de la pestaña (mostrar
 u ocultar cada elemento); sin rastro de patrocinados, Rewards, Talk ni News.
 
-### 12.12 T7-bis: llavero y `os_crypt_async` (MOTOR-33, 05-11)
+### 12.12 T7-bis: llavero y `os_crypt_async` (MOTOR-33 y MOTOR-34, 05-11)
 
-brave-core `nube/b2-porte-t7` = **7b2a0a79** (PR brave-core #15): ff2fa26e + `AUTOFILL_VALUABLE` fuera del sync (como 1.98;
-COORDINACIÓN-28) + `Fw1KeyProvider` para `os_crypt_async` + datos sin prefijo en claro. Sin compilar ni ejecutar.
+brave-core `nube/b2-porte-t7` = **b02508af** (PR brave-core #15). MOTOR-33, 7b2a0a79: ff2fa26e + `AUTOFILL_VALUABLE` fuera del
+sync (como 1.98; COORDINACIÓN-28) + `Fw1KeyProvider` para `os_crypt_async` + datos sin prefijo en claro. MOTOR-34, b02508af:
+parches de la 128 que no aplicaban sobre 156, reanclados (cookies `fw1` por fila, ahora con el borrado por fila de cookies no
+canónicas de la 156, y su prueba; `browser_process_impl.h`); guarda de `DeleteUndecryptableLogins` ampliada a `v10`; fuera el
+parche de `password_store_built_in_backend.cc` y el override de `kUseAsyncOsCryptInLoginDatabase` (no existen en 156); browsertest
+de nombres del llavero con «FlyWeb Safe Storage» / «FlyWeb» (M1 a). Todos pasan `git apply --check` sobre 156.0.8078.90. Sin
+compilar ni ejecutar.
 
 - **`Fw1KeyProvider`** (Mac) sobre `crypto::apple::KeychainV2` y el `KeyCallback` de 156: mismo ítem, clave Base64 de 256 bits,
   AES-256-GCM y etiqueta `fw1` que la 2.x; todo fallo da `kTemporarilyUnavailable`. Registrado en `browser_process_impl` (parche)
@@ -709,25 +714,33 @@ COORDINACIÓN-28) + `Fw1KeyProvider` para `os_crypt_async` + datos sin prefijo e
 - **Sin prefijo**: envoltorio de `Encryptor::DecryptData` (parche de una línea): en Mac y Linux, un dato sin prefijo conocido se
   devuelve en claro y marcado para recifrar, nunca `nullopt` silencioso. Pruebas: `fw1_key_provider_mac_unittest.mm`,
   `encryptor_legacy_unittest.cc`.
+- **Contraseñas**: una fila `fw1` o `v10` que no se descifra **nunca se borra** (`IsEncryptionAvailable()` solo mira el proveedor
+  de cifrado; con `fw1` cargada y `v10` denegada, la 156 habría borrado las `v10`).
+- **Cookies**: una cookie `fw1` ilegible se borra sola (no su eTLD+1), también con el llavero denegado, como en la 2.x
+  (COORDINACIÓN-28: confirmado; una sesión perdida se recupera). Una `v10` ilegible tira su eTLD+1 (upstream, como la 2.x).
 
-**Tabla de casos para LOCAL (puerta M1–M5, perfil real de la 2.7.0)** — `DecryptString`, flags y con qué se recifra:
+**Tabla de casos para LOCAL (puerta M1–M5, perfil real de la 2.7.0)** — `DecryptString`, flags, con qué se recifra y qué pasa con
+contraseñas y cookies:
 
-| Dato | Situación | Devuelve | Flags | Recifra |
-|---|---|---|---|---|
-| `fw1` | clave cargada | claro | — | fw1 |
-| `fw1` | llavero denegado o bloqueado, ítem corrupto | error | temporalmente no disponible | v10 |
-| `fw1` | otra clave en el ítem, o datos dañados | error | permanente | fw1 |
-| `v10` | las dos claves cargadas | claro | recifrar (Chromium) | fw1 |
-| `v10` | llavero de `v10` denegado | error | temporalmente no disponible | fw1 |
-| `v10` | corrupto | error | permanente | — |
-| sin prefijo (Mac/Linux) | algún proveedor registrado | **claro, tal cual** | recifrar | fw1 (o v10) |
-| prefijo de proveedor no cargado (`v11`, `fw2`…) | — | error | — | — |
-| vacío | — | `""` | — | `""` |
-| sin prefijo en Windows | — | error (como Chromium) | — | — |
+| Dato | Situación | Devuelve | Flags | Recifra | Contraseña | Cookie |
+|---|---|---|---|---|---|---|
+| `fw1` | clave cargada | claro | — | fw1 | se lee | se lee |
+| `fw1` | llavero denegado o bloqueado, ítem corrupto | error | temporalmente no disponible | v10 | no se borra | se borra esa cookie |
+| `fw1` | otra clave en el ítem, o datos dañados | error | permanente | fw1 | no se borra | se borra esa cookie |
+| `v10` | las dos claves cargadas | claro | recifrar (Chromium) | fw1 | se lee | se lee |
+| `v10` | llavero de `v10` denegado | error | temporalmente no disponible | fw1 | no se borra | cae su eTLD+1 |
+| `v10` | corrupto | error | permanente | — | no se borra | cae su eTLD+1 |
+| sin prefijo (Mac/Linux) | algún proveedor registrado | **claro, tal cual** | recifrar | fw1 (o v10) | se lee | se lee |
+| prefijo de proveedor no cargado (`v11`, `fw2`…) | — | error | — | — | no se borra si es `v10`/`fw1` | — |
+| vacío | — | `""` | — | `""` | — | — |
+| sin prefijo en Windows | — | error (como Chromium) | — | — | — | — |
 
+**Para LOCAL, además de M1–M5:** tras el primer arranque no debe existir «Chromium Safe Storage» ni «Chrome Safe Storage»; los
+recuentos de `FlyWeb/tools/fw1-perfil.sh` antes y después iguales; sesiones de claude.ai y GitHub y autorrelleno intactos; con
+«FlyWeb fw1» denegado en el diálogo, ninguna contraseña desaparece.
+**M7, decidido (COORDINACIÓN-28, 05-11):** se acepta que la 156 recifre a `fw1` lo que lea en `v10`; la 2.x ya escribía `fw1` y lo
+lee, así que la vuelta atrás a la 2.x sigue funcionando.
 **Dudoso, solo comprobable en Mac:** que `KeychainV2` (`SecItemCopyMatching`) lea sin diálogo nuevo el ítem creado con
-`SecKeychain` por la 2.x, en una Release firmada en 10.14 (M4); recuentos `fw1`/`v10` antes y después; que no aparezca
-«Chromium Safe Storage». **Choque con M7 (§11.8):** Chromium marca para recifrar los `v10` en cuanto cifra `fw1`; qué hace cada
-llamante (contraseñas, cookies) con esa marca está sin revisar. Riesgo aceptado: un texto en claro antiguo que empiece por `vNN` o
+`SecKeychain` por la 2.x, en una Release firmada en 10.14 (M4). Riesgo aceptado: un texto en claro antiguo que empiece por `vNN` o
 `fwN` da error en vez de salir en claro. M2 sigue abierto (`kUseKeychainKeyProvider` apagada → sin `v10`).
 **Para las notas de la 3.0.0:** volver de la 3.0 a la 2.x puede pedir otra vez las palabras de sync si la 3.0 reescribió la semilla.
