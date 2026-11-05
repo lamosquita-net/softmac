@@ -14,7 +14,8 @@
 
 | zip | sha256 | contenido |
 |---|---|---|
-| `chromium-156-b1d-oficial-4.zip` | `18b55fc0adf6e017d3ef116672f01bcccba5de87f060070f207f55130c547629` | **La última**: todo hasta `8f4b6e971c` (mandos). **No se puede entregar todavía**: ver la caída del compilador Metal en `pruebas-gpu.md` |
+| `chromium-156-b1d-oficial-6.zip` | `43fca6be0e6c76574789db3e0ceab69200ad10a9fe000adb368c07366b1f2ce5` | **La de entrega (5,1)**: src `805e5d0cff` y ANGLE `3b24dd0` (parches `0001`–`0008`). Batería completa sin caídas (ver más abajo) |
+| `chromium-156-b1d-oficial-4.zip` | `18b55fc0adf6e017d3ef116672f01bcccba5de87f060070f207f55130c547629` | Hasta `8f4b6e971c`. Tiene la caída del compilador Metal |
 | `chromium-156-b1d-oficial-3.zip` | `da00740df60b26f98a478599c657712bab79282132055494eb79ec1d4d321782` | Hasta `a336fb0b2f`. Se cae con Babylon y Shadertoy (mandos) |
 | `chromium-156-b1d-oficial-2.zip` | `ce921ec0cdf832f2a5f9b90fee3732ead242b50351ffc2224542db81002c1cfe` | Hasta `cd334eec2a` |
 | `chromium-156-b1d-oficial.zip` | `7a5a9729b3c4f37da30a142b995e0aa76b1cd71ab4e0f7dc5ec2964134a9dfa4` | La anterior, con src `87f4e8b263` más la caché persistente. Sin el aviso de obsoleto quitado y sin los débiles de prioridad 2 |
