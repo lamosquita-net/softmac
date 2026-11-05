@@ -307,3 +307,7 @@ buzon/ARQUITECTURA/20261104-1931-COORDINACION-27.md → ARQUITECTURA Arquitectur
 buzon/LOCAL/20261104-1931-COORDINACION-27.md → LOCAL LOCAL-17: texturas rectangulares IOSurface (B1c 156) [2f0798] · 2026-11-04 19:31 UTC · entregado
 buzon/PUBLICACION/20261104-1931-COORDINACION-27.md → PUBLICACION Publicación [e2247c] · 2026-11-04 19:31 UTC · entregado
 buzon/SERVIDOR-LOCAL/20261104-1931-COORDINACION-27.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-04 19:31 UTC · entregado
+buzon/LOCAL/20261105-0828-COORDINACION-27.md → LOCAL LOCAL-18: rendimiento B1d (ANGLE Metal) en la 6,1 [7fa196] · 2026-11-05 08:28 UTC · entregado
+buzon/LOCAL/20261105-0833-COORDINACION-27.md → LOCAL LOCAL-18: rendimiento B1d (ANGLE Metal) en la 6,1 [7fa196] · 2026-11-05 08:33 UTC · entregado
+buzon/MOTOR/20261105-1026-COORDINACION-27.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 10:26 UTC · entregado (sin confirmación de lectura: Remote Control)
+buzon/MOTOR/20261105-1114-COORDINACION-27.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 11:14 UTC · entregado (sin confirmación de lectura: Remote Control)
