@@ -8,6 +8,32 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-17 (`session_01MwmK2h23XGknphhFuuhWG7`, 03-11 → en curso)
+
+**Hecho:**
+- B0 de FM.55 (#720, `b0-cve.md`).
+- Lista de seguridad GL 151–156 (#735, `gl-150-156-seg.md`).
+- Regla 17 de B1d (Metal en 10.14), cerrada: #746 y #760, `b1d-regla17.md` §1–§10.
+- KEV contra la 2.7.0: sin novedad hasta el catálogo 2026.11.04.
+
+**Pendiente:**
+- Auditoría de selectores y avisos `-Wunguarded-availability` de la 156 (631 en 67 ficheros). La lista es de LOCAL-19 en
+  `FlyWeb/docs/b1d/selectores-unguarded-156.md` (#753). COORDINACIÓN-28 la ha aprobado, pero aún no la ha encargado.
+- **B5 (privacidad de la 3.0.0)**, aviso de COORDINACIÓN-28 del 05-11.
+  - En el porte de Brave a la 156 (MOTOR-33), los 18 *overrides* de `blink::features` de Privacy Sandbox (SharedStorage*,
+    PrivateAggregation, Fledge*, InterestGroup…) ya no existen en la 156.
+  - En Brave 1.98 se apagan con el parche de `runtime_enabled_features.json5`, que llega en T8. Hasta entonces pueden quedar
+    encendidas.
+  - Al revisar B5, comprobar en la build que **no existen** esas APIs, ni Topics, ni Attribution Reporting, ni FedCM si aplica.
+- Recomendación abierta: subir `angle_revision` a la punta de `chromium/8078`. Va 3 commits por detrás, de IMG/Vulkan, que
+  no afectan a Mac.
+
+**Lecciones:**
+- Chrome Releases sí se lee desde el contenedor (canal Atom de Blogger).
+- La búsqueda de commits de GitHub (`gh api search/commits`) encuentra el arreglo por su número de crbug.
+- skia.googlesource está bloqueado: para Skia, ANGLE y Chromium, usar `git fetch --filter=blob:none` desde GitHub.
+- Gitiles limita la velocidad: hay que ir en serie y con reintentos.
+
 ## SEGURIDAD-PORTES-16: FS.39 entregada (02-11-2026)
 
 FS.39 (regla 17 del 138, 2.7.0), brave-core lineal sobre `nube/motor-138` 06d351d3: `seg/fs39-v8` 380f23cd →
