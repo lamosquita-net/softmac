@@ -1,4 +1,4 @@
-# MOTOR-32 → MOTOR-33: porte B2 a Chromium 156, tandas T0–T2 (05-11-2026, ~20:30 UTC)
+# MOTOR-32 → MOTOR-33: porte B2 a Chromium 156, tandas T0–T4 (sin T3) (05-11-2026, ~20:30 UTC)
 
 MOTOR-32 (`session_01MwmK2gqciFCPCBxxQQaRW8`, Opus 5.5, alto). Lo abrió COORDINACIÓN-27; lo coordina
 **COORDINACIÓN-28** (`session_01MwmK2kJamvybegV8BvFxJf`). Plan «ultra» de COORDINACIÓN-28: cada tanda se sube y se
@@ -13,13 +13,20 @@ trabaja una tanda», trampas).
 | T0 (lista 3) | `nube/b2-porte-t0` | 146eeddc | #9 (borrador, CI verde) | entregada; medida de MOTOR-30 pendiente (`buzon/MOTOR`) |
 | T1 (renombres de `base`/URL) | `nube/b2-porte-t1` | 5d7b856a | #10 (borrador) | entregada (con T1-bis: `GURL::Get*()`), CI verde; dicho a MOTOR-30 que mida T1 si no empezó T0 |
 | T2 (`base::Value::Dict`/`List`) | `nube/b2-porte-t2` | 7a6e1577 | #11 (borrador) | entregada: renombre a `base::DictValue`/`ListValue` (145 ficheros) y `JSONReader` con opciones explícitas (20) |
+| T4 (factorías de servicios) | `nube/b2-porte-t4` | dbc5fbd5 | #12 (borrador) | entregada: `BuildServiceInstanceForBrowserContext` (15 factorías), ayudas de incógnito globales, `ProfileSelections` en TemplateURL/SearchEngineChoice |
 
 - Cifra esperada: T0, unos 41 crates de Rust, 5 de omnibox y `json_reader.cc`; T1, unos 100 de 114; T2, unos 69 de 82 más
   6 por el `JSONReader` de un argumento.
 - Restos de T2: `password_status_check_service.h` (la macro choca con una sobrecarga nueva de 156; 1.98 la resuelve con
   un parche: T8) y `content/public/test/browser_test_utils.h:756` (conversión ambigua de `nullptr` a `base::Value`;
   sin localizar quién la provoca).
-- **Siguiente: T4 → T3 → T6 → T7 → T5 → T8 → T9** (orden de §12.6).
+- **Siguiente: T3 (Blink: `WTF::String`/`AtomicString`, `v8::Context::GetIsolate`; toca farbling y la capa del motor)
+  → T6 → T7 → T5 → T8 → T9** (orden de §12.6), cada una sobre la anterior (T3 sobre `nube/b2-porte-t4`).
+- Restos de T4: las factorías de lo que se poda en T5/T9 (Playlist, Speedreader, Commander, Sidebar, NTP de Brave)
+  siguen con la API vieja; `patches/chrome-browser-themes-theme_service_factory.cc.patch` sigue anclado en
+  `BuildServiceInstanceFor` (de los ~330 parches que no aplican); el constructor de `privacy_sandbox_settings_factory.cc`.
+  T4 debería tumbar unos 15 de sus 64 más unos 15 `.cc` de otras causas; los otros ~42 de esas 64 líneas no eran
+  factorías (otros `override`: `ContentBrowserClient`, vistas, url_loader…) y quedan para T5/T8.
 - Decisión de Titín para T5 y T9 (05-11, en `DIRECTIVAS`): Playlist, Speedreader, WebTorrent, Wayback, Commander y la
   Sidebar de Brave quedan **fuera** y se podan como en B2.
 - La nueva pestaña es `components/flyweb_ntp` tal cual. El NTP de Brave (`ntp_background_images`,
