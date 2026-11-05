@@ -583,3 +583,117 @@ Orden: **T0 → T1 → T2 → T4 → T3 → T6 → T7 → T5 → T8 → T9**: pr
 **Cifra esperada [I]:** caen unos 41 crates de Rust, unos 5 de omnibox y `json_reader.cc`; la lista 3 debería quedar sin entradas a mano.
 **Avisos para la tanda de TS/C++:** los parches TS de las páginas WebUI que en 156 son Lit siguen en el árbol y romperán tsc; `components/flyweb_os_crypt` y `browser/test` siguen con `os_crypt/sync` (solo Mac: LOCAL).
 
+
+### 12.8 T3: Blink/V8 y poda de Page Graph (MOTOR-33, 05-11)
+
+brave-core `nube/b2-porte-t3` = **8b2de20e** (PR brave-core #13, borrador; 837c44f3 + T3-bis 078fe70b: `update_client` y browsertest de device memory + T3-ter: canvas, `partitioned_host_state_map`, `RandIntInclusive`), sobre T4 corregido (2dec767d: `//brave/build:compiler`
+primero en `default_compiler_configs` y arreglos de `gn gen`, de MOTOR-32). 23 commits, sin compilar; `b2-chk.py` igual que en T4.
+Antes van T1 (5d7b856a, #10), T2 (7a6e1577, #11) y T4 (dbc5fbd5 → 2dec767d, #12), descritas en `relevo-motor.md`.
+
+- **Page Graph podado** (COORDINACIÓN-28, 05-11: instrumentación de investigación de Brave, ni privacidad ni interfaz). Seis
+  commits revertibles: motor (`third_party/blink/renderer/core/brave_page_graph`, `components/brave_page_graph`), buildflags y args
+  `enable_brave_page_graph*` de `config.js`, ganchos de `chromium_src` en Blink y en V8 (`//brave/v8` y `chromium_src/v8/src` enteros),
+  pegamento de codegen (probes, bindings), 13 parches borrados y 3 recortados, comandos de DevTools. 242 ficheros, −14 700 líneas.
+- **Blink/V8 de 156**: `blink::String`/`AtomicString` (WTF absorbido), `FromUtf8`, `ends_with`, `v8::Context::GetIsolate`
+  (safe_builtins, brave_search, cosmetic_filters; `WebScriptController::RegisterExtension` ya no existe, como en 1.98), tipos de
+  permissions policy en `network::mojom` (parche nuevo de `services/network/.../permissions_policy_features.json5`),
+  `Location::ancestorOrigins`, WebSocketChannelImpl, ResourceFetcher, `IDLMemberInstaller`, mixed content `.onion`,
+  `BraveSessionCache` con `crypto::hmac` (misma clave y datos: las semillas deberían salir iguales [I]).
+- **Farbling conservado**: canvas 2D (`isPointInPath`/`isPointInStroke` pasan a `Canvas2DRecorderContext`, como en 1.98; se
+  mantienen la excepción de Google Maps y `bytes_per_channel` de FlyWeb), plugins (lista fija de visores PDF en 156: se farblea en el
+  constructor), device memory (156 limita a 2–32 GB: valores falsos en {2, 4, 8, 16, 32}), lista blanca de fuentes.
+
+**Cifra esperada [I]:** caen unos 75 de los 80 de T3 en la lista 1 (32 de Page Graph, ~43 de Blink/V8).
+**Quedan:** 4 contextos de permisos (API `PermissionDecided` de 156: T6), `ephemeral_storage_blink_memory_cache_browsertest` (T5).
+- **T3-bis**: `chromium_src/components/update_client` (ancla de `IsBraveComponent()` en `Uninstall()`, porque en 156
+  `GetInstalledFile` devuelve `std::optional<FilePath>`; `SequentialUpdateChecker` con la API de 156; el recorte de FlyWeb de
+  `MakeProtocolRequest` sigue valiendo) y browsertest de device memory con los valores de 1.98 (mismo PRNG randen) [I].
+
+**BLOQUEANTE de T8 (privacidad; COORDINACIÓN-28, 05-11):** se quitaron 18 overrides de `blink::features` que ya no existen en 156 (SharedStorage*, PrivateAggregation,
+Fledge*, InterestGroupStorage…); 1.98 los apaga con el parche de `runtime_enabled_features.json5` (`base_feature_status: "disabled"`).
+Hasta portarlo, esas APIs de Privacy Sandbox podrían quedar encendidas. T8 no se da por hecha sin ese parche y una prueba JS que
+compruebe que no existen en `window`/`document` (`sharedStorage`, `fence`, `runAdAuction`/`joinAdInterestGroup`,
+`browsingTopics`, `privateAggregation`, `attributionReporting`…).
+- **T3-ter** (lo que afloró en la medida de 2dec767d): farbling de canvas `toDataURL`/`toBlob` con los parches de 1.98 (sin los
+  backports de motor de FlyWeb, que la 156 ya trae; envoltorio de `image_data_buffer.h` para `pixmap_multable()`; los bytes por
+  canal del F16 salen ahora del pixmap del propio búfer), `partitioned_host_state_map` sin `base::make_span`,
+  `RandIntInclusive`. `websocket_channel_impl`: nada que cambiar (fallaba porque no aplicaba el parche del `.h`).
+
+### 12.9 T6: Shields y privacidad (MOTOR-33, 05-11)
+
+brave-core `nube/b2-porte-t6` = **820772ce** (PR brave-core #14, borrador, base T3). 23 commits, sin compilar; `b2-chk.py` igual.
+
+- **Rust**: adblock 0.13.3 y su cierre de crates de 1.98; fuera los que solo usaba adblock 0.8 (base64 0.13, cssparser 0.28,
+  selectors 0.23, itertools 0.10, seahash 3, rmp…); shims url 2/idna 1 de 1.98 sobre `//url`; `[patch]` en `Cargo.toml` hacia
+  los 69 crates de 156; parches de aho-corasick y bitflags. La interfaz cxx no cambia; `cargo check` del FFI, limpio.
+  Comportamiento: `:style`/`:remove*` se devuelven a los campos que lee el renderer (igual que antes); las procedurales y
+  `$method` se parsean pero no se aplican (antes no se parseaban); el `.dat` serializado cambia de formato (FlyWeb carga
+  `list.txt`).
+- **C++**: permisos (`PermissionDecided`, `ContentSettingPermissionContextBase`; fuera las peticiones agrupadas de Wallet),
+  content settings (`PermissionSettingsRegistry`), ephemeral storage y cookies en el network service, HSTS particionado,
+  `URLRequestHttpJob`, envoltorios de `net`, HTTPS-Upgrades, throttles con `NavigationThrottleRegistry`, semillas de farbling
+  con `crypto::hmac`, `BraveContentBrowserClient` con las firmas de 156, Web Bluetooth con `BraveBluetoothDelegate` (1.98).
+  Se conservan los extras de FlyWeb (herencia de permisos en incógnito, tope de 7 días a las cookies de script, partición por
+  NIK, fallback HTTPS con ≥400, HTTPS estricto en incógnito). Más estricto: `BraveIsAllowedThirdParty` con
+  `SameDomainOrHost`. Se pierde (como en 1.98): la excepción de scripts chrome:// y de extensiones en `AllowScriptFromSource`.
+- **Seguridad de 1.98**: el proxy de URLLoader de Brave rechaza `FollowRedirect` no pedidos (crbug 497494634) y destinos
+  inseguros; las redirecciones propias usan `SetBypassRedirectChecksForNextRedirect` (parche nuevo de `navigation_handle.h`).
+- **Pins HSTS de Brave**: inertes ya en la 128 y en la 156 (`PinsListTimestamp` de 09-2024, más de 70 días); todos de hosts
+  de Brave. Propuesta: quitarlos en T9; pins propios, aparte.
+
+**Cifra esperada [I]:** ~50 de Rust, ~95 de los 184 de Shields/privacidad. **Quedan:** `browser/ui` y `BrowserWindowInterface`
+(T5), recursos grit, `temporal_capi` (sin causa clara), `ahash 0.7` (Speedreader, T9), `RegisterTrustedWebUIInterfaceBrokers`
+y `HandleURLOverrideRewrite` (T5).
+
+**Decisiones de COORDINACIÓN-28 sobre T6 (05-11):** pins estáticos de Brave fuera en T9; sin pins para `*.flyweb.lamosquita.net`
+(un pin caducado o mal puesto deja el servicio inaccesible; bastan HSTS preload y CT). En T8, comprobar que con JavaScript
+bloqueado en Shields siguen funcionando `chrome://settings`, la nueva pestaña y las extensiones (o portar la solución de 1.98).
+**T6-bis (medida de T3, a28f8adf):** permisos de Wallet (ethereum/solana) quitados del todo en 7 commits (permissions policy,
+`PermissionType`, `RequestType`, `ContentSettingsType`, ajustes, UMA con huecos «// Removed»); prefs `brave_ethereum`/`brave_solana`
+huérfanas e inocuas. `safety_hub_handler_unittest` (macros que pisaban `PermissionName`) y `local_frame.cc` (`Snapshot` sin
+`FlushReason`). Restos de Wallet para T9: Android (prompt, dapp), `wallet_strings.grdp`, allowlist `braveWallet`.
+
+### 12.10 T7: sync, cuentas y `os_crypt` (MOTOR-33, 05-11)
+
+brave-core `nube/b2-porte-t7` = **ff2fa26e** (PR brave-core #15, borrador, base T6 a28f8adf). 16 commits, sin compilar; `b2-chk.py` igual.
+
+- **Sync**: `ModelType` → `DataType`, controladores de historial, `BraveDataTypeWorker` (parche nuevo), `SyncScheduler`,
+  `sync_server_connection_manager` de 1.98 (la 156 rechaza el token con CRLF), device info con `SelfDeleteSupport`, prefs
+  sincronizables (se mantiene `cosmeticFiltering`), signin con las promos apagadas.
+- **Semilla**: misma pref (`brave_sync_v2.seed`) y base64, cifrada con el `Encryptor` de `os_crypt_async`; no se borra mientras el
+  `Encryptor` no está listo (1.98). Palabras, tamaño y derivación sin cambios.
+- **`os_crypt/sync` fuera**: nombres del llavero FlyWeb en `os_crypt/common/keychain_password_mac.mm` (v10: saltysalt, 1003
+  iteraciones, AES-128-CBC); Linux, nombres de Brave en `FreedesktopSecretKeyProvider`.
+- **Importer** → `user_data_importer`; sin contraseñas ni tarjetas de Chromium (OSCrypt síncrono; como 1.98).
+- **Buscadores**: `prepopulated_engines.json` → `patches/third_party/search_engines_data/resources/` (lo aplica `util.js`);
+  valores de FlyWeb (versión 29, DuckDuckGo sin `t=`); nuestro `startpage` pasa a `brave_startpage` (la 156 trae el suyo, id 113).
+
+**Datos del usuario (para LOCAL, puerta M1–M5 de §11.8 con perfil real de la 2.x):** la guarda `fw1` de `encryptor.cc` desaparece;
+falta reescribir `Fw1KeyProvider` para `os_crypt_async` (Mac). Un dato sin prefijo, o `fw1` sin proveedor, da `nullopt` (la 2.x lo
+devolvía en claro). Una semilla que la 3.0 vuelva a guardar (solo al unirse a una cadena) puede no leerse en una vuelta atrás a la 2.x.
+**Por decidir:** excluir `AUTOFILL_VALUABLE` del sync como 1.98, según lo que acepte go-sync.
+**Cifra esperada [I]:** ~80 de 94. **Quedan para T5:** `identity_apitest`, `brave_sync_account_deleted_infobar`, `brave::ShowSync`
+con `BrowserWindowInterface*`.
+
+### 12.11 Nueva pestaña: medida previa a T5 (MOTOR-33, 05-11)
+
+`components/flyweb_ntp` son **15 ficheros de recursos** (fuentes D-DIN, fondos 1–7 y de arranque, SVG de la mosca), sin código.
+La nueva pestaña de la 2.7.0 es `components/brave_new_tab_ui` modificado (`default/flyweb/`), que importa esos recursos;
+`brave_welcome_ui` también. Plan aprobado por COORDINACIÓN-28: (B) fuera en commits revertibles; (A) portado en su forma mínima.
+
+- **(A) Se queda:** `flyweb_ntp`; núcleo de `brave_new_tab_ui` (`flyweb/`, mojom `brave_new_tab_page`); `browser/ui/webui/new_tab_page`
+  (BraveNewTabUI, page handler, message handler, TopSites); de `ntp_background_images`, `view_counter_service`/`model`,
+  `brave_ntp_custom_background_service`, `ntp_custom_images_source`, `url_constants`, `pref_names`; de `browser/ntp_background`, la
+  fábrica, `custom_background_file_manager`, `ntp_background_prefs`, `constants`; `components/ntp_tiles`; prefs de reloj, stats,
+  fondo y buscador, y sus cadenas.
+- **(B) Se borra:** `ntp_widget_utils` (7); patrocinados y referidos (`component_installer`, `sponsored_images_*`,
+  `ntp_background_images_source`, `ntp_p3a_helper`, `ntp_tab_helper`…; `NTPBackgroundImagesService` fuera si sale barato); en
+  `brave_new_tab_ui`, ~35 muertos (exchangeWidget, popupMenu, braveTalk, brandedWallpaper, sponsoredImage(s), rewards_*,
+  newTabAdsData, widgetCard, stories); ~16 de `components/img/newtab`; Android/iOS.
+- **(C) Hay que tocar:** `brave_content_browser_client` (brokers, `NewTabShowsNavigationThrottle`), `brave_web_ui_controller_factory`,
+  `brave_browser_process`, fábricas y tab helpers, registro y migraciones de prefs, settings `brave_new_tab_page`, BUILD y pruebas.
+
+**Lista de comprobación visible (LOCAL, captura en B6 contra la 2.7.0):** diseño y tipografía D-DIN; fondos 1–7 rotando y fondo de
+arranque en el primer inicio; mosca; sitios populares (añadir, quitar, reordenar); reloj (12/24 h); contador de Shields (anuncios,
+rastreadores, HTTPS, ancho de banda); buscador si sale; fondo propio del usuario (subir, quitar, color); ajustes de la pestaña (mostrar
+u ocultar cada elemento); sin rastro de patrocinados, Rewards, Talk ni News.

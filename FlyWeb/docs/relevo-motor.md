@@ -1,3 +1,56 @@
+# MOTOR-33 → MOTOR-34: porte B2 a Chromium 156, hechas T3, T6 y T7 (05-11-2026, ~22:25 UTC)
+
+MOTOR-33 (`session_01MwmK2k3tUrKX1yNFM5soGn`, Opus 5.5, alto). Coordina **COORDINACIÓN-28** (`session_01MwmK2kJamvybegV8BvFxJf`).
+Plan «ultra»: cada tanda se sube y se pasa sin esperar el recuento de MOTOR-30; lo que salga se arregla encima.
+
+**Qué leer:** esta sección; `brave-propio.md` §12.6 (plan), §12.8–§12.11 (T3, T6, T7 y la medida del NTP); «Cómo se hizo» y
+«Trampas» de la sección MOTOR-32 de abajo (siguen valiendo).
+
+## Estado
+| Tanda | Rama brave-core | sha | PR | Estado |
+|---|---|---|---|---|
+| T3 (Blink/V8, Page Graph podado) + T3-bis/ter | `nube/b2-porte-t3` | 8b2de20e | #13 | entregada; MOTOR-30 midió 078fe70b: 644 rotos (743 en T4), 0 regresiones |
+| T6 (Shields: adblock 0.13.3, C++) + T6-bis (Wallet fuera) | `nube/b2-porte-t6` | a28f8adf | #14 | entregada; MOTOR-30 mide 820772ce |
+| T7 (sync, `os_crypt_async`, importer, buscadores) | `nube/b2-porte-t7` | ff2fa26e | #15 | entregada; aviso en `buzon/MOTOR/20261105-2217-MOTOR-33.md` |
+| PR de documentación | softmac `claude/motor33-b2` | 19ec1c3 | #769 | §12.8–§12.11 |
+
+- **Siguiente: T5** (interfaz mínima, `Browser` → `BrowserWindowInterface`…) sobre `nube/b2-porte-t7`, con la **poda previa**
+  de Playlist, Speedreader, WebTorrent, Wayback, Commander y la Sidebar, y la del NTP según §12.11 (aprobada: (B) fuera en commits
+  revertibles, (A) mínima; criterio de Titín: la nueva pestaña de la 3.0.0 igual que la de la 2.7.0). Recoge también: los ~42
+  `override` no factoría de T4, `RegisterTrustedWebUIInterfaceBrokers`, `HandleURLOverrideRewrite` (sin `kChromeUISyncHost`/
+  `kChromeUIWelcomeHost`), `NewTabShowsNavigationThrottle`, el throttle de WebTorrent, `brave_adblock_handler` (browser_finder.h),
+  `brave_welcome_ui` (webpack; `kHasSeenWelcomePage` → `brave_welcome_page::prefs`), `identity_apitest`,
+  `brave_sync_account_deleted_infobar`, `brave::ShowSync(BrowserWindowInterface*)`, `ephemeral_storage_blink_memory_cache_browsertest`.
+- **Después: T8** (`chromium_src` restante). **Bloqueantes de T8** (COORDINACIÓN-28): el parche de `runtime_enabled_features.json5`
+  que apaga Privacy Sandbox (SharedStorage, PrivateAggregation, Fledge/InterestGroup, Topics, Attribution…) con prueba JS de que no
+  existen; comprobación de que con JS bloqueado en Shields siguen `chrome://settings`, la nueva pestaña y las extensiones;
+  `password_status_check_service.h`. **T9**: ausentes de 1.98, pins estáticos de Brave fuera, restos de Wallet (Android,
+  `wallet_strings.grdp`, allowlist `braveWallet`), Speedreader (con él caen `ahash 0.7` y lol_html).
+- Pendientes de decisión enviados a COORDINACIÓN-28: excluir `AUTOFILL_VALUABLE` del sync (como 1.98), según go-sync.
+- Para LOCAL (Mac): `Fw1KeyProvider` para `os_crypt_async` y la puerta M1–M5 del llavero con perfil real de la 2.x (§12.10).
+
+## Cómo se hizo (además de lo de MOTOR-32)
+- Blobs del donante: los de `chromium_src third_party patches components browser net build script common utility renderer v8`
+  de las dos etiquetas, por lotes de 4 000 (`git ls-tree -r <tag> -- <dirs>` → `git fetch up <oids>`); ~46 000 en total.
+- Dos subagentes a la vez, cada uno en su worktree sobre la punta, con un brief por tanda (copia del de T3 en
+  `/tmp/claude-0/t3-brief.md`, se pierde con el contenedor: rehacerlo desde `b2-brief-subagentes.md`). Las tandas grandes se parten
+  por zona (T3: Page Graph / envoltorios; T6: Rust / C++) y luego un «-bis» para los llamadores comunes
+  (`brave_content_browser_client`). Encadenar con `git branch -f` y `rebase`; `b2-chk.py` idéntico en cada paso.
+- Lo que aflora en cada medida de MOTOR-30 se arregla encima de la punta más alta, no en la rama vieja (evita reescribir las de
+  encima).
+
+## Trampas nuevas
+- **La «nueva pestaña de FlyWeb» no es `flyweb_ntp`**: es `brave_new_tab_ui` modificado; `flyweb_ntp` solo son recursos.
+- Un `#define` de ancla sobre un método cuyo tipo de retorno cambió en 156 rompe a todos los que incluyen la cabecera, en sitios
+  sin relación (`update_client.h` → `action_runner.cc`).
+- Macros de pruebas de `chromium_src` con nombres genéricos (`MIDI`) pisan enumeradores de mojom generados.
+- Los parches de Blink de FlyWeb mezclan ganchos de Brave con backports del motor: al regenerar, fuera lo que la 156 ya trae.
+
+## Lo que dudo
+- Valores esperados del browsertest de device memory (copiados de 1.98; mismo PRNG, sin ejecutar).
+- `temporal_capi` (Rust): causa sin aclarar; `stable_deref_trait` sin `std`; `raw_gn` de adblock de 1.98.
+- La causa de `permission.mojom-data-view.h:161` (atribuida a la macro de `safety_hub_handler_unittest`).
+
 # MOTOR-32 → MOTOR-33: porte B2 a Chromium 156, tandas T0–T4 (sin T3) (05-11-2026, ~20:30 UTC)
 
 MOTOR-32 (`session_01MwmK2gqciFCPCBxxQQaRW8`, Opus 5.5, alto). Lo abrió COORDINACIÓN-27; lo coordina
