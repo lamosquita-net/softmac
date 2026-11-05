@@ -11,10 +11,14 @@ trabaja una tanda», trampas).
 | Tanda | Rama brave-core | sha | PR | Estado |
 |---|---|---|---|---|
 | T0 (lista 3) | `nube/b2-porte-t0` | 146eeddc | #9 (borrador, CI verde) | entregada; medida de MOTOR-30 pendiente (`buzon/MOTOR`) |
-| T1 (renombres de `base`/URL) | `nube/b2-porte-t1` | T1_SHA | #10 (borrador) | T1_ESTADO |
-| T2 (`base::Value::Dict`/`List`) | `nube/b2-porte-t2` | T2_SHA | T2_PR | T2_ESTADO |
+| T1 (renombres de `base`/URL) | `nube/b2-porte-t1` | 5d7b856a | #10 (borrador) | entregada (con T1-bis: `GURL::Get*()`), CI verde; dicho a MOTOR-30 que mida T1 si no empezó T0 |
+| T2 (`base::Value::Dict`/`List`) | `nube/b2-porte-t2` | 7a6e1577 | #11 (borrador) | entregada: renombre a `base::DictValue`/`ListValue` (145 ficheros) y `JSONReader` con opciones explícitas (20) |
 
-- Cifra esperada: T0, unos 41 crates de Rust, 5 de omnibox y `json_reader.cc`; T1, unos 100 de 114.
+- Cifra esperada: T0, unos 41 crates de Rust, 5 de omnibox y `json_reader.cc`; T1, unos 100 de 114; T2, unos 69 de 82 más
+  6 por el `JSONReader` de un argumento.
+- Restos de T2: `password_status_check_service.h` (la macro choca con una sobrecarga nueva de 156; 1.98 la resuelve con
+  un parche: T8) y `content/public/test/browser_test_utils.h:756` (conversión ambigua de `nullptr` a `base::Value`;
+  sin localizar quién la provoca).
 - **Siguiente: T4 → T3 → T6 → T7 → T5 → T8 → T9** (orden de §12.6).
 - Decisión de Titín para T5 y T9 (05-11, en `DIRECTIVAS`): Playlist, Speedreader, WebTorrent, Wayback, Commander y la
   Sidebar de Brave quedan **fuera** y se podan como en B2.
