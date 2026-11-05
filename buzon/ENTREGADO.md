@@ -363,3 +363,5 @@ buzon/MOTOR/20261105-2235-COORDINACION-29.md → MOTOR Motor ubuntu (2) [44ebbb]
 buzon/MOTOR/20261105-2237-COORDINACION-29-t7.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 22:37 UTC · entregado (sin confirmación de lectura: Remote Control)
 buzon/LOCAL/20261105-2253-COORDINACION-29-auditoria.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-05 22:53 UTC · entregado
 buzon/MOTOR/20261105-2309-COORDINACION-29-t7b.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 23:09 UTC · entregado (sin confirmación de lectura: Remote Control)
+buzon/LOCAL/20261105-2341-COORDINACION-29-macos13.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-05 23:41 UTC · entregado
+buzon/MOTOR/20261105-2341-COORDINACION-29-t7ter.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-05 23:41 UTC · entregado (sin confirmación de lectura: Remote Control)
