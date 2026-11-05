@@ -583,3 +583,28 @@ Orden: **T0 → T1 → T2 → T4 → T3 → T6 → T7 → T5 → T8 → T9**: pr
 **Cifra esperada [I]:** caen unos 41 crates de Rust, unos 5 de omnibox y `json_reader.cc`; la lista 3 debería quedar sin entradas a mano.
 **Avisos para la tanda de TS/C++:** los parches TS de las páginas WebUI que en 156 son Lit siguen en el árbol y romperán tsc; `components/flyweb_os_crypt` y `browser/test` siguen con `os_crypt/sync` (solo Mac: LOCAL).
 
+
+### 12.8 T3: Blink/V8 y poda de Page Graph (MOTOR-33, 05-11)
+
+brave-core `nube/b2-porte-t3` = **837c44f3** (PR brave-core #13, borrador), sobre T4 corregido (2dec767d: `//brave/build:compiler`
+primero en `default_compiler_configs` y arreglos de `gn gen`, de MOTOR-32). 23 commits, sin compilar; `b2-chk.py` igual que en T4.
+Antes van T1 (5d7b856a, #10), T2 (7a6e1577, #11) y T4 (dbc5fbd5 → 2dec767d, #12), descritas en `relevo-motor.md`.
+
+- **Page Graph podado** (COORDINACIÓN-28, 05-11: instrumentación de investigación de Brave, ni privacidad ni interfaz). Seis
+  commits revertibles: motor (`third_party/blink/renderer/core/brave_page_graph`, `components/brave_page_graph`), buildflags y args
+  `enable_brave_page_graph*` de `config.js`, ganchos de `chromium_src` en Blink y en V8 (`//brave/v8` y `chromium_src/v8/src` enteros),
+  pegamento de codegen (probes, bindings), 13 parches borrados y 3 recortados, comandos de DevTools. 242 ficheros, −14 700 líneas.
+- **Blink/V8 de 156**: `blink::String`/`AtomicString` (WTF absorbido), `FromUtf8`, `ends_with`, `v8::Context::GetIsolate`
+  (safe_builtins, brave_search, cosmetic_filters; `WebScriptController::RegisterExtension` ya no existe, como en 1.98), tipos de
+  permissions policy en `network::mojom` (parche nuevo de `services/network/.../permissions_policy_features.json5`),
+  `Location::ancestorOrigins`, WebSocketChannelImpl, ResourceFetcher, `IDLMemberInstaller`, mixed content `.onion`,
+  `BraveSessionCache` con `crypto::hmac` (misma clave y datos: las semillas deberían salir iguales [I]).
+- **Farbling conservado**: canvas 2D (`isPointInPath`/`isPointInStroke` pasan a `Canvas2DRecorderContext`, como en 1.98; se
+  mantienen la excepción de Google Maps y `bytes_per_channel` de FlyWeb), plugins (lista fija de visores PDF en 156: se farblea en el
+  constructor), device memory (156 limita a 2–32 GB: valores falsos en {2, 4, 8, 16, 32}), lista blanca de fuentes.
+
+**Cifra esperada [I]:** caen unos 75 de los 80 de T3 en la lista 1 (32 de Page Graph, ~43 de Blink/V8).
+**Quedan:** 4 contextos de permisos (API `PermissionDecided` de 156: T6), `ephemeral_storage_blink_memory_cache_browsertest` (T5).
+**Para T8 (privacidad):** se quitaron 18 overrides de `blink::features` que ya no existen en 156 (SharedStorage*, PrivateAggregation,
+Fledge*, InterestGroupStorage…); 1.98 los apaga con el parche de `runtime_enabled_features.json5` (`base_feature_status: "disabled"`).
+Hasta portarlo, esas APIs de Privacy Sandbox podrían quedar encendidas. El browsertest de device memory esperará los valores viejos.
