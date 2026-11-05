@@ -120,3 +120,12 @@ Los parones (Earth, Babylon, vsynctester) son la compilación síncrona de pipel
    - Ahora el prelude del MSL añade los dos operadores antes de 10.15.
 
 Parches de ANGLE: `b1d/angle/0006`, `0007` y `0008` (sobre `a66226b`; los ocho reproducen el árbol `3b24dd0`). src `flynk-b1d` `805e5d0cff`.
+
+### `oficial-7` (ANGLE en la punta de `chromium/8078` y guardas de selectores), 05-11 20:10
+
+- **Batería completa:** Aquarium 60 / 52; three.js 60 / 60 / 60; Babylon 60; Earth 60; Photopea 60; Seascape 60; Elevated 33; vsynctester 60; WebGPU sin adaptador.
+  - **0 caídas** de MTLCompilerService, 0 reinicios de la GPU, 0 contextos perdidos, 0 pipelines o librerías fallidas, 0 «unrecognized selector».
+  - El parón de la primera carga de Earth no salió esta vez.
+  - Elevated vuelve a 33 (en `oficial-6`, 58). La diferencia entre pasadas parece del contenido de la página o de la descarga, no del cambio: oficial-7 no toca Metal.
+- **Humo:** WebGL normal y de alto rendimiento, UA-CH «macOS 10.14.6», clic derecho, descarga, pantalla completa, `enumerateDevices`, `getUserMedia` (NotFoundError, no hay cámara) y Web MIDI: todo bien.
+  - `navigator.share` abre el selector de compartir de macOS, que espera a que alguien elija, y deja la pestaña bloqueada para el resto del humo. Ya pasaba con `oficial-3`: es un efecto de la prueba, no una caída.

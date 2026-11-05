@@ -47,7 +47,33 @@
 | `chromium-156-b1d-oficial-5.zip` | `bf1121752a114d392b634d98bccbf0fb718748355235000ed81cf98c948cbeec` | `oficial-4` + parches de ANGLE `0006` (sin pérdida de contexto) y `0007` (`noinline`). Batería completa: 0 caídas |
 | `chromium-156-b1d-oficial-6.zip` | `43fca6be0e6c76574789db3e0ceab69200ad10a9fe000adb368c07366b1f2ce5` | `oficial-5` + `0008` (`matriz / escalar`). Batería completa: 0 caídas. **Es la que va a la 5,1** |
 
-src `flynk-b1d` `805e5d0cff`. ANGLE `flynk-b1d` `3b24dd0`. Los parches están en `angle/` y en `entregas/b1-local16/parches-b1d/` (`SHA256SUMS-l19`).
+| `chromium-156-b1d-oficial-7.zip` | `950789446c1b5274f3e4c2203da511d8db2395e181842130c1a5db348dc4da76` | `oficial-6`, más ANGLE en la punta de `chromium/8078` (3 arreglos de IMG/Vulkan) y las guardas de selectores de `selectores-unguarded-156.md`. Batería completa y humo: 0 caídas, 0 «unrecognized selector» |
+
+- oficial-6: src `805e5d0cff`, ANGLE `3b24dd0`.
+- **oficial-7**: src `flynk-b1d` `d11d785b43`; ANGLE `flynk-b1d` `e3917d6`, que son los mismos ocho parches rebasados sobre `f10470c` (la punta de `chromium/8078`, recomendada por SEGURIDAD-PORTES-17). La rama anterior se guarda como `flynk-b1d-sobre-a66226b`.
+- Los ocho parches de `angle/` **aplican sin cambios sobre `f10470c`** y dan exactamente el árbol de `e3917d6` (comprobado con `git am`). Siguen valiendo sobre `a66226b` (árbol `3b24dd0`).
+- Están también en `entregas/b1-local16/parches-b1d/`, con `SHA256SUMS-l19`.
+
+## ¿Compilar también en la 6,1? Medido: no compensa (LOCAL-19, 05-11; punto 3 de COORDINACIÓN-28)
+
+**Prueba justa.** Se tomaron cuatro unidades de compilación reales de la 156 (`v8 api.cc`, `render_frame_host_impl.cc`, `browser_process_impl.cc`, `blink element.cc`), preprocesadas en la 7,1 (18–43 MB cada una), y se compilaron en las dos máquinas con **el mismo clang de Chromium** y los mismos flags de `out/Oficial` (ThinLTO incluido). Ese clang declara como mínimo macOS 10.12 y funciona en Mojave.
+
+| | 7,1 (Xeon W-3245, 16 núcleos / 32 hilos) | 6,1 (Xeon E5-2696 v2, 12 / 24) |
+|---|---|---|
+| Las 4 unidades, una a una | 22 + 50 + 30 + 57 = **159 s** | 39 + 89 + 55 + 98 = **281 s** (**×1,77 por hilo**) |
+| Las 4 a la vez | — | 94 s (escala bien) |
+
+**Cuánto ganaría con un trabajador remoto (siso + RE) en la 6,1.**
+- **Techo teórico: un ~40 % más de capacidad**, y solo en compilaciones **completas** (16×1,25 frente a 12×1,25/1,77).
+- La compilación oficial completa de la 7,1 tarda ~3 h 08 min. En el mejor caso bajaría a unas 2 h 20 min, porque el enlazado ThinLTO final no se reparte.
+- A eso hay que restarle tres cosas:
+  - montar en Mojave un servidor de ejecución remota con CAS, que siso no trae;
+  - sincronizar las cabeceras y el SDK, decenas de GB la primera vez;
+  - subir las entradas de cada acción por 1 GbE.
+- En las compilaciones **incrementales**, que son las del día a día (unos ficheros y el enlazado), **no gana nada**.
+- Y ocuparía la 6,1, que es la máquina de pruebas: no se podría probar mientras compila.
+
+**Decisión: se descarta.** Lo útil de la 6,1 mientras la 7,1 compila es probar. Para eso está `FlyWeb/tools/remota61/prueba-remota.sh` (punto 2).
 
 ## Fallos encontrados y arreglados en esta tanda
 

@@ -16,6 +16,47 @@ LOCAL-19, 05-11-2026. Es la condición (c) de COORDINACIÓN-28.
 - Lo que hay que revisar a mano es lo que no está tocado y se ejecuta en una ruta básica: arranque, ventana, menú, descargas, diálogos y vídeo.
 - Dawn (11 ficheros) está apagado en 10.14 (WebGPU desactivado y Graphite cortado), así que no se ejecuta.
 
+## Revisión a mano (LOCAL-19, 05-11, `oficial-7`)
+
+**Criterio.**
+- Una **clase** nueva (`UTType`, `SC*`, `AS*`, `AXCustomContent`…) se enlaza débil y en 10.14 vale `nil`. Mandarle mensajes devuelve `nil` y no tira nada, salvo que ese `nil` acabe en una colección (`addObject:`, `@[…]`), como clave de un diccionario o en `CFEqual`.
+- Lo que tira el proceso es un **selector nuevo sobre una clase que ya existía** en 10.14 («unrecognized selector»), como pasó con `GCController`.
+- Se han revisado los 38 ficheros sin ninguna guarda FlyWeb, y de los demás, los que se ejecutan en rutas básicas.
+
+**Arreglado** (src `flynk-b1d` `d11d785b43`, «guard Objective-C APIs newer than 10.14 on basic paths»):
+
+| Ruta | API | Qué pasaba en 10.14 |
+|---|---|---|
+| Geolocalización (cualquier web que pide la ubicación) | `-[CLLocation ellipsoidalAltitude]` (12.0), con `kEllipsoidalAltitude` **activada de serie** | «unrecognized selector» en el servicio de dispositivos |
+| Cámara (`getUserMedia` de vídeo) | `activeFormat.portraitEffectSupported` / `portraitEffectActive` (12.0) | «unrecognized selector» al configurar la captura |
+| `ImageCapture.takePhoto()` | `AVCapturePhotoOutput` (10.15) nulo en `canAddOutput:` | Excepción. Ahora se devuelve el error de foto |
+| Arrastrar una imagen fuera de una página | `UTType.identifier` (11.0) nulo en `addObject:` | `NSInvalidArgumentException` en el navegador |
+| Diálogos de fichero con filtros de tipo | `UTType` (11.0) | Todas las extensiones se tomaban por inválidas. Ahora se usan las funciones UTI de 10.14 |
+| Web Bluetooth | `+[CBManager authorization]` (10.15) | «unrecognized selector». Antes de 10.15 no hay permiso TCC: se da por permitido |
+| Crear acceso directo / apps web | `-[NSWorkspace setDefaultApplicationAtURL:…]`, `URLsForApplicationsWithBundleIdentifier:` (12.0) | «unrecognized selector». Ahora se usa `LSCopyApplicationURLsForBundleIdentifier` |
+| Claves no exportables | `kSecUseDataProtectionKeychain` (10.15) nulo como clave de diccionario | Excepción. Antes de 10.15 no hay proveedor (además, la 6,1 no tiene Secure Enclave) |
+| `BarcodeDetector` | `-supportedSymbologiesAndReturnError:` (12.0) | «unrecognized selector». Ahora se usa `+supportedSymbologies` |
+| Pantalla completa de ventanas auxiliares | `NSWindowCollectionBehaviorPrimary` (13.0) | Bit desconocido. Solo se pone en 13 o posterior |
+| VoiceOver con `aria-description` | `AXCustomContent` (11.0) nulo en `@[…]` | Excepción. AppKit solo lo pide en 11 o posterior; protegido igualmente |
+
+**Ya protegidos** (guardas FlyWeb de B1b/B1d o de serie; clang sigue avisando porque no reconoce el patrón de `return` anticipado ni las comprobaciones en tiempo de ejecución):
+- Servicios y portapapeles: `render_widget_host_view_cocoa`, `bridged_content_view`, `clipboard_util_mac`, `appkit_utils`.
+- Tipos MIME y LaunchServices: `platform_mime_util_apple`, `icon_loader_mac`, `shell_integration_mac`, `launch_application`.
+- Vídeo y captura: `color_space_util_mac`, `video_frame_mac`, `video_capture_device_avfoundation_helpers`, `vt_video_encode_accelerator_mac`, `ca_renderer_layer_tree`.
+- Otros: `midi_manager_mac`, `service_discovery_client_mac`, `hdr_copier_layer`, `game_controller_*` (el fetcher no se registra antes de 11.3) y ScreenCaptureKit (`@available(macOS 13.2)` en `CreateScreenCaptureKitDeviceMac`).
+
+**Sin riesgo o fuera de las rutas básicas:**
+- Empresa: SSO de Entra, `url_session_helper`, `secure_enclave_client_impl`.
+- `ASWebAuthenticationSession`: solo lo pide macOS 10.15 o posterior.
+- `SFUniversalLink`: clase nula, devuelve NO.
+- EyeDropper (`NSColorSampler`, clase nula: no hace nada).
+- `LAAuthenticationView`: clase nula.
+- WebNN: apagado de serie.
+- Dawn: WebGPU apagado.
+- Inspectores de accesibilidad: herramientas de pruebas.
+
+**Comprobado en la 6,1 con `oficial-7`:** batería completa y humo con 0 «unrecognized selector», 0 caídas y 0 `Check failed`. La geolocalización, la cámara y el arrastre no se pueden probar allí sin pedir permisos al sistema o sin cámara: se protegieron por lectura de código.
+
 | Fichero | Tocado en flynk-b1d | APIs sin guarda (versión mínima) |
 |---|---|---|
 | `base/mac/launch_application.mm` | sí | `GetOpenConfiguration` (10.15); `NSWorkspaceOpenConfiguration` (10.15); `openApplicationAtURL:configuration:completionHandler:` (10.15); `openURLs:withApplicationAtURL:configuration:completionHandler:` (10.15) |
