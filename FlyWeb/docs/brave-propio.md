@@ -1169,6 +1169,7 @@ en `build.sh` mientras viva la 2.x (Brave 1.69 la exige en oficial).
 - Apariencia sin la fila de tema de Brave (`settings-brave-appearance-theme`).
 - **Provisional:** las secciones de Brave en Configuración (Shields, Sync, Primeros pasos…) no aparecen hasta portar
   `settings_main`/`*_page_index` de la 156 (tanda «settings 156», §12.16.2).
+- Si se aplica (B): el elemento de historial de Brave (`brave_history_item`) y el «más elementos» de extensiones.
 
 **Se queda (no es pérdida):** la lista de lectura de Chromium (antes la anulaba un stub de Brave que en la 156 ya no tenía
 efecto). Su tipo de sync `READING_LIST` lo admite nuestro go-sync (el fijado en `FlyWeb/servidor/sync/go.mod`):
@@ -1190,9 +1191,27 @@ la Ubuntu compila las unidades tocadas de cada sha.
 | 2af361b7, 6ab6e638 | Zona barra de herramientas/omnibox/marcos (7 commits); fuera AI Chat del menú |
 | 15963618 | Zona WebUI (12 commits): `cr_button`/`cr_toggle` en Lit, override de `webui_resources.h` movido, overrides de bookmarks y contraseñas fuera (como 1.98), 11 parches de settings rebasados, `appearance_page` en Lit |
 
-Pendiente: `brave_new_tab_generated_map.h` (webpack de `brave_new_tab_ui`, no `build_ts`); propuestas a COORDINACIÓN:
-(A) tanda «settings 156» (lit_mangler o equivalente mínimo para `settings_main`/`*_page_index`); (B) quitar los overrides
-de history, extensions y downloads si salen rotos (como 1.98; se perderían `brave_history_item` y «más elementos» de
-extensiones); (C) comprobar la subpágina de Background Sync. Limpieza posterior: la cadena `RequestFullscreen` de PiP que
-queda muerta (`chromium_src` de `video_picture_in_picture_window_controller*`, `media_player.mojom`,
-`html_{media,video}_element`).
+Pendiente: `brave_new_tab_generated_map.h` (sale del webpack de `brave_new_tab_ui`, no de `build_ts`).
+
+Decidido (COORDINACIÓN-30, 06-11):
+- **(A) Tanda «settings 156», obligatoria antes de cualquier build para Titín:** en la 156 `settings-basic-page` ya no
+  existe (`settings_main` + `*_page_index` con `cr-view-manager`). Sin la tanda no se ven Shields ni Sync en Configuración,
+  y el sync propio queda inaccesible. Se trae lo mínimo de 1.98 (lit_mangler o equivalente).
+- **(B)** Si la Ubuntu da rotos los overrides de history, extensions y downloads (sus parches importan `brave_overrides`
+  que ningún `BUILD.gn` incluye), se quitan como en 1.98. Para las notas: se pierden `brave_history_item` y el «más
+  elementos» de extensiones.
+- **(C)** Comprobación en ejecución para LOCAL: que la subpágina de Background Sync siga viéndose (el parche de
+  `privacy_page` de 1.98 ya no la envuelve).
+- **Password Checkup sin red:** la detección de filtraciones ya está apagada por defecto
+  (`kPasswordLeakDetectionEnabled` = false en `brave_profile_prefs.cc`). La comprobación masiva de Checkup exige cuenta de
+  Google, que FlyWeb no tiene. Siguiente tanda: ocultar «Checkup» del menú lateral del gestor (1.98 lo hace con un override
+  de `side_bar.ts`) y confirmar que ningún servicio de contraseñas de Google recibe peticiones.
+- **Lista de lectura: se queda** (lo nativo de la 156 primero). go-sync admite `READING_LIST`; falta el viaje real contra
+  ns2.
+
+Limpieza posterior: la cadena `RequestFullscreen` de PiP queda muerta (`chromium_src` de
+`video_picture_in_picture_window_controller*`, `media_player.mojom`, `html_{media,video}_element`).
+
+Comprobaciones en ejecución para LOCAL (Mac): (C); viaje de sync de `READING_LIST` contra ns2; PiP con la barra nativa;
+que Configuración muestre Shields y Sync (después de A); que «Checkup» no aparezca y no salga tráfico hacia los
+servicios de contraseñas de Google.
