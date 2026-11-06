@@ -445,3 +445,4 @@ buzon/MOTOR/20261106-1634-COORDINACION-31-4ab4a8c6.md → MOTOR Motor ubuntu (2)
 buzon/LOCAL/20261106-1645-COORDINACION-31-f1-llavero.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-06 16:45 UTC · entregado
 buzon/LOCAL/20261106-1923-COORDINACION-31-61-libre.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-06 19:23 UTC · entregado
 buzon/LOCAL/20261106-1924-COORDINACION-31-local20.md → LOCAL Compilación Local (20) [4a2db1] · 2026-11-06 19:24 UTC · entregado (destino LOCAL-20, F1)
+buzon/LOCAL/20261106-1925-COORDINACION-31-lulu.md → LOCAL Compilación Local (19) [f55e89] y Compilación Local (20) [4a2db1] · 2026-11-06 19:25 UTC · entregado (a ambas; destino LOCAL-19 y LOCAL-20)
