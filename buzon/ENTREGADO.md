@@ -375,3 +375,5 @@ buzon/MOTOR/20261106-1007-COORDINACION-29-filas-t5bis.md → MOTOR Motor ubuntu 
 buzon/MOTOR/20261106-1037-COORDINACION-29-t9f-filas.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 10:37 UTC · entregado (sin confirmación de lectura: Remote Control)
 buzon/MOTOR/20261106-1048-COORDINACION-29-compilador.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 10:48 UTC · entregado (sin confirmación de lectura: Remote Control)
 buzon/MOTOR/20261106-1049-COORDINACION-29-rapida1.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 10:49 UTC · entregado (sin confirmación de lectura: Remote Control)
+buzon/LOCAL/20261106-1050-COORDINACION-29-t10-b1d.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-06 10:50 UTC · entregado
+buzon/MOTOR/20261106-1051-COORDINACION-29-rapida2.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 10:51 UTC · entregado (sin confirmación de lectura: Remote Control)
