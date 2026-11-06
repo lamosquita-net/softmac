@@ -454,3 +454,4 @@ buzon/MOTOR/20261106-1938-COORDINACION-31-estado.md → MOTOR Motor ubuntu (2) [
 buzon/MOTOR/20261106-1944-COORDINACION-31-memoria.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 19:44 UTC · entregado (sin confirmación de lectura: Remote Control; la sesión figuraba offline al enviar)
 buzon/MOTOR/20261106-1946-COORDINACION-31-cpu-parada.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 19:46 UTC · entregado (sin confirmación de lectura: Remote Control; la sesión figuraba offline al enviar)
 buzon/MOTOR/20261106-1949-COORDINACION-31-30f94067.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 19:49 UTC · entregado (sin confirmación de lectura: Remote Control; la sesión figuraba offline al enviar)
+buzon/LOCAL/20261106-1959-COORDINACION-31-h4.md → LOCAL Compilación Local (20) [4a2db1] · 2026-11-06 19:59 UTC · entregado (destino LOCAL-20, F1)
