@@ -297,7 +297,8 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Plan ultra: sin límite semanal ni de agentes en paralelo (Titín, 05-11), a prueba** hasta que Titín vea cómo va.
   COORDINACIÓN reparte en paralelo todo lo que no dependa entre sí (p. ej. F1 con LOCAL mientras sigue el porte B2 con
   MOTOR) y deja de racionar vigilancias por consumo. Se sigue midiendo `cost_usd` (OR.2) para que Titín lo valore.
-  **Sin overage y sin tope de agentes** (Titín, 05-11 noche; lo revisa el 06-11). El límite de 5 horas es de **toda la
+  **Sin overage y sin tope de agentes** (Titín, 05-11 noche; **06-11: revisión cerrada, se queda así y no se le vuelve a
+  preguntar**: «olvídate del límite»). El límite de 5 horas es de **toda la
   cuenta** (el 05-11 a las 15:40 lo agotaron los 6 subagentes de MOTOR-32 y paró todo hasta las 17:30; un mensaje de Titín
   en ese hueco se perdió). Red de seguridad: el agente al que le salte el límite se programa con `send_later` un aviso
   para la hora de renovación (`resetsAt`) y sigue solo; COORDINACIÓN lo comprueba tras cada renovación.
