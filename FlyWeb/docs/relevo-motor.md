@@ -56,8 +56,8 @@ Nada medido todavía: MOTOR-30 tiene encargados el P2 de 8accd5ec, una rápida c
    - 67910a5f: fuera `brave_search_tor`.
 
 **Abierto:**
-- `kQuietNotificationPrompts` (Crowd Deny): se queda si el espejo lo sirve; COORDINACIÓN espera a SERVIDOR-LOCAL.
-  Si no lo sirve, se apaga.
+- ~~`kQuietNotificationPrompts`~~: resuelto (21:27); el espejo sirve Crowd Deny (`ggkkehgbnfjpeggfpleeakpidbkibbmn`), se
+  queda como está.
 - La sugerencia de Yandex lleva `srv=brave_desktop`, que identifica a Brave como el `t=` de DuckDuckGo. Consultado a
   COORDINACIÓN.
 - Menores: poda del código Windows de `brave/` que no es override.
