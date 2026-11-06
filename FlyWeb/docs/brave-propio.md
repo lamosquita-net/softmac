@@ -1156,3 +1156,62 @@ en `build.sh` mientras viva la 2.x (Brave 1.69 la exige en oficial).
 - Restos de Rewards y Talk (menú, página, botón), banner del omnibox y promo del NTP de Brave Search, sugerencias de sitios fijas de Brave en la barra de direcciones
   (`TopSitesProvider`, con su casilla de ajustes) y las métricas P3A de búsquedas y de cambio de motor.
 - Permiso «localhost» de Brave (cuando se haga su tanda): queda el Local Network Access nativo.
+- Diálogo de primer arranque de Brave («navegador predeterminado» + «fijar en el Dock»): en la 156 solo se muestra con
+  `GOOGLE_CHROME_BRANDING`; 1.98 también lo quitó.
+- PiP: fuera el seeker propio, la marca de tiempo y el botón de pantalla completa; quedan la barra de progreso y los ±10 s
+  nativos de Chromium.
+- Menú de la app: sin los retoques visuales de Brave (margen vertical de 8 px y radio de fondo −6); «Extensiones» queda donde
+  la pone la 156; el aviso de actualización solo colorea el resaltado, no el icono; sin la entrada de AI Chat (nunca se
+  activaba).
+- Barra de herramientas: las acciones del panel lateral ya no se pueden fijar; el botón de descargas sigue visible.
+- `flyweb://chrome-urls` sale con el texto y los enlaces de Chromium («chrome://»).
+- Marcadores y gestor de contraseñas sin el estilo de Brave en el menú lateral (el gestor puede volver a mostrar «Checkup»).
+- Apariencia sin la fila de tema de Brave (`settings-brave-appearance-theme`).
+- **Provisional:** las secciones de Brave en Configuración (Shields, Sync, Primeros pasos…) no aparecen hasta portar
+  `settings_main`/`*_page_index` de la 156 (tanda «settings 156», §12.16.2).
+- Si se aplica (B): el elemento de historial de Brave (`brave_history_item`) y el «más elementos» de extensiones.
+
+**Se queda (no es pérdida):** la lista de lectura de Chromium (antes la anulaba un stub de Brave que en la 156 ya no tenía
+efecto). Su tipo de sync `READING_LIST` lo admite nuestro go-sync (el fijado en `FlyWeb/servidor/sync/go.mod`):
+el proto trae `ReadingListSpecifics` y el servidor guarda cualquier tipo sin lista de permitidos. Falta la prueba
+real contra ns2 (LOCAL, en Mac).
+
+#### 12.16.2 T11 de MOTOR-37 (06-11)
+
+Sobre 2eb3838b5 (P2 de MOTOR-30 en 2eb3838b: 163 rotos = producción 68 + tests 95; 0 regresiones). Sin compilar en la nube;
+la Ubuntu compila las unidades tocadas de cada sha.
+
+| sha | Qué |
+|---|---|
+| 426a296b, 737f2e67 | `crx_verifier`: ninguna clave de Brave, solo `kFlyWebPublisherKeyHash` (= `publicador_sha256`) + la de Google (`kPublisherKeyHash` igual en 128 y 156); `IsFlyWebPublisher`; en oficial, comparación con el `constexpr` y setter de pruebas `NOTREACHED()` (revisado por SEGURIDAD-PORTES-18, punto d) |
+| c929ece5, 2af361b7 | `build_ts`: la 156 activa `noUncheckedSideEffectImports`; el import de `leo.bundle.js` (webpack) se mapea a un stub `leo/leo.bundle.d.ts`, declarado en `ts_definitions` |
+| 507dc0d6, 76537cac | top sites, NTP handler, extra parts; `feature_compiler.py` sin `extensions/shell`; `named_third_party_registry` de 1.98 |
+| 3eb84d23 | Zona diálogos/burbujas/infobars/PiP/permisos (7 commits) |
+| bc26bf04 | Zona browser/chromium_src/components (12 commits; incl. `#define Init` de `toolbar_view.h`) |
+| 2af361b7, 6ab6e638 | Zona barra de herramientas/omnibox/marcos (7 commits); fuera AI Chat del menú |
+| 15963618 | Zona WebUI (12 commits): `cr_button`/`cr_toggle` en Lit, override de `webui_resources.h` movido, overrides de bookmarks y contraseñas fuera (como 1.98), 11 parches de settings rebasados, `appearance_page` en Lit |
+
+Pendiente: `brave_new_tab_generated_map.h` (sale del webpack de `brave_new_tab_ui`, no de `build_ts`).
+
+Decidido (COORDINACIÓN-30, 06-11):
+- **(A) Tanda «settings 156», obligatoria antes de cualquier build para Titín:** en la 156 `settings-basic-page` ya no
+  existe (`settings_main` + `*_page_index` con `cr-view-manager`). Sin la tanda no se ven Shields ni Sync en Configuración,
+  y el sync propio queda inaccesible. Se trae lo mínimo de 1.98 (lit_mangler o equivalente).
+- **(B)** Si la Ubuntu da rotos los overrides de history, extensions y downloads (sus parches importan `brave_overrides`
+  que ningún `BUILD.gn` incluye), se quitan como en 1.98. Para las notas: se pierden `brave_history_item` y el «más
+  elementos» de extensiones.
+- **(C)** Comprobación en ejecución para LOCAL: que la subpágina de Background Sync siga viéndose (el parche de
+  `privacy_page` de 1.98 ya no la envuelve).
+- **Password Checkup sin red:** la detección de filtraciones ya está apagada por defecto
+  (`kPasswordLeakDetectionEnabled` = false en `brave_profile_prefs.cc`). La comprobación masiva de Checkup exige cuenta de
+  Google, que FlyWeb no tiene. Siguiente tanda: ocultar «Checkup» del menú lateral del gestor (1.98 lo hace con un override
+  de `side_bar.ts`) y confirmar que ningún servicio de contraseñas de Google recibe peticiones.
+- **Lista de lectura: se queda** (lo nativo de la 156 primero). go-sync admite `READING_LIST`; falta el viaje real contra
+  ns2.
+
+Limpieza posterior: la cadena `RequestFullscreen` de PiP queda muerta (`chromium_src` de
+`video_picture_in_picture_window_controller*`, `media_player.mojom`, `html_{media,video}_element`).
+
+Comprobaciones en ejecución para LOCAL (Mac): (C); viaje de sync de `READING_LIST` contra ns2; PiP con la barra nativa;
+que Configuración muestre Shields y Sync (después de A); que «Checkup» no aparezca y no salga tráfico hacia los
+servicios de contraseñas de Google.
