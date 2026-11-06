@@ -169,6 +169,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   horas a que una decisión gaste innecesariamente tokens». Fuente: [`coordinacion.md`](../FlyWeb/docs/coordinacion.md).
 - **Nada de 1.N.x para arreglar lo que ya se está probando** (16-10): el arreglo entra en la versión en curso aunque la
   retrase. Fuente: [`coordinacion.md`](../FlyWeb/docs/coordinacion.md).
+- **LuLu en las Mac de pruebas** (Titín, 06-11; ya lo había pedido antes): un binario nuevo de FlyWeb queda retenido
+  por LuLu hasta que Titín lo permite. Un aviso de LuLu en pantalla **no significa que la máquina esté ocupada**. Si
+  una build nueva no tiene red (webs que no cargan, Sparkle o sync sin respuesta), LOCAL lo dice a COORDINACIÓN con la
+  ruta del binario, y COORDINACIÓN avisa a Titín para que lo permita en LuLu. Mientras tanto, se sigue con lo que no
+  necesita red.
 - **Una compilación a la vez en la 7,1** (HUMANO, 20-10): las de FlyWeb tienen prioridad. Tareas largas con `nohup` y
   registro; nunca `gclient sync -D` en `flyweb-build`; `update_patches` nunca para un solo parche (16-10). Fuentes:
   fila FM.31, [`CLAUDE.md`](../CLAUDE.md), [`coordinacion.md`](../FlyWeb/docs/coordinacion.md).
