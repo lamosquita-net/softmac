@@ -1108,3 +1108,51 @@ estilo de pestañas); migración de verticales (si `brave.tabs.vertical_tabs_ena
 - Esquinas redondeadas del contenido web (flag experimental), icono de traducir propio, apaño al arrastrar cabeceras de
   grupo; en Linux (no objetivo), tema «igual que el sistema».
 - Ninguna por T10.
+
+### 12.16 T11 (MOTOR-36, 06-11)
+
+Sin compilar en la nube; la Ubuntu (MOTOR-30) compila las unidades tocadas de cada sha y hace el P2 al cerrar tanda.
+`b2-chk`: 0 roturas nuevas (solo el generado `grit/brave_generated_resources.h` movido a `install_prompt_data.cc`).
+
+| Tanda | Rama | sha | Qué |
+|---|---|---|---|
+| T11 | `nube/b2-porte-t11` | (ver `relevo-motor.md`, sección MOTOR-36 → MOTOR-37) | Previsibles de MOTOR-35 (tira de pestañas, `BrowserView`, tests con `BrowserWindowInterface*`), 4 errores nuevos del P2 de T10 y las 3 partes de producción del P2 de T10 (≈170 ficheros) en 9 zonas; WDP fuera; capa de features a 156; barra de marcadores nativa; CUP de extensiones; limpieza de Rewards/Talk/Brave Search/P3A |
+
+Decisiones de COORDINACIÓN-29 aplicadas: T11 = solo producción (los tests, en una tanda T-tests aparte: los 152 idénticos a
+1.98 se toman enteros, los 140 tocados se portan, y de los 39 sin equivalente se da una lista con propuesta); fuera Web
+Discovery Project entero (su `npm build-module` no corre con el node de la 156 y bloqueaba los grit de
+`brave_components_resources` y `brave_extension`); fuera el permiso «localhost» de Brave en favor del Local Network Access
+nativo (tanda propia, pendiente; no se trasladan los permisos concedidos); IA de DevTools, Prerender2 y
+`MetricsProviderDesktop` apagados; `kNtpSimplificationBookmarkBar` apagada (la barra solo cambia si el usuario lo pide);
+CUP activado en el updater de extensiones (FlyWeb las baja directamente de Google; los componentes de
+`components.flyweb` mantienen su clave propia); fuera restos de Rewards y Talk, la conversión a Brave Search (el buscador
+por defecto no cambia), el P3A del omnibox y `TopSitesProvider`; arreglo de seguridad de 1.98 en `body_sniffer`
+(no analizar respuestas `Content-Disposition: attachment`). `kTabStripUnification` está apagada de serie en la 156
+(`chrome/browser/ui/tabs/features.cc:91`): se usa la tira «Old» y por tanto `BraveTabStrip`.
+Pendiente de ARQUITECTURA: si `crx_verifier` sigue aceptando la clave de editor antigua de Brave (propuesta de
+COORDINACIÓN: ninguna de Brave, solo la nuestra) y que lo que firma bak no use ECDSA-SHA384. `brave_services_key_id` sigue
+en `build.sh` mientras viva la 2.x (Brave 1.69 la exige en oficial).
+
+#### 12.16.1 Para las notas de la 3.0.0 (funciones perdidas)
+
+- Ajuste «Mostrar botón de búsqueda de pestañas» (en la 156 se desfija desde el menú de Chromium; la pref vieja queda inerte).
+- Ya no se oculta el aviso IPH de la lista de lectura en el panel lateral, ni «Modo lectura» en el menú contextual (Brave lo
+  ocultaba por Speedreader).
+- No se puede desactivar la pantalla completa inmersiva de macOS (`kImmersiveFullscreen` ya no existe).
+- Icono de Sharing Hub de Brave en la barra de direcciones (las page actions son las nativas de la 156).
+- Infobar «el canal Dev deja de actualizarse» de Brave.
+- Flag «translate» en `flyweb://flags`; pestaña «Novedades» de Brave (nunca llegaba a abrirse); renombrado automático de
+  perfiles «Person X» → «Profile X».
+- Web Discovery Project entero (paso de la bienvenida, ajustes, infobar, HSTS de `*.wdp.brave.com`; sus prefs se borran).
+- Página de ajustes «Extensiones Manifest V2» (NoScript, uBO, uMatrix, AdGuard): la 156 ya no carga MV2.
+- Ajuste propio del lector de la lista de lectura (se usa el nativo); el buscador del NTP ya no abre sesiones contextuales
+  (Lens o IA).
+- Barra de marcadores: submenú, textos y desplegable de ajustes son los de Chromium (se conserva la elección: siempre /
+  solo en la nueva pestaña / nunca); en incógnito cambiar la visibilidad ya no se guarda en el perfil.
+- P3A de Request-OTR y de ahorro de ancho de banda (el contador local de Shields sigue); firma con claves de servicio de
+  Brave; CDN privada de Brave; verificación ECDSA-SHA384.
+- Botones con estilo Leo y candado propio de Brave (ahora los nativos de Chrome); detector RSS (Brave News); extracción de
+  la vista previa de impresión (Leo); redirección de popups del bubble WebUI (Wallet).
+- Restos de Rewards y Talk, conversión a Brave Search, sugerencias de sitios fijas de Brave en la barra de direcciones
+  (`TopSitesProvider`) y el recuento semanal de búsquedas para P3A.
+- Permiso «localhost» de Brave (cuando se haga su tanda): queda el Local Network Access nativo.
