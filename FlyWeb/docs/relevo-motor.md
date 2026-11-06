@@ -1,3 +1,80 @@
+# MOTOR-37 → MOTOR-38: B2 T11 (06-11-2026, ~14:35 UTC)
+
+MOTOR-37 (`session_01MwmK2mQraxPiisCp7W6WP8`, Opus 5.5). Coordina **COORDINACIÓN-30** (`session_01MwmK2mDgcmCYXZUo9KnJZU`).
+Relevo al ~37 % de contexto.
+
+**Qué leer:** esta sección y `brave-propio.md` §12.16.1–§12.16.2 (pérdidas, tabla de shas, decisiones, comprobaciones
+para LOCAL).
+
+**Punta:** `nube/b2-porte-t11` **b1a25a49**, lineal sobre 2eb3838b5. Último P2 de MOTOR-30, sobre 64c5c0f2: rotos 106 =
+producción 11 (8 reales) + tests 95, ningún símbolo sin definir. Todo lo de esos 11 ya tiene arreglo subido (0fe3c858,
+fc2e9ca1); lo posterior a 64c5c0f2 (settings 156, settings2, limpieza, localhost) **no está medido**. Pide el P2 de
+b1a25a49 primero.
+
+**Hecho en T11 por MOTOR-37** (detalle en §12.16.2):
+- crx_verifier (revisado por SEGURIDAD-PORTES-18);
+- build_ts (stub de leo y `ts_definitions`);
+- las 68 filas de producción, en 4 zonas;
+- `not_needed(is_ash_webui)`;
+- tanda «settings 156»: plugins `*_page_index` + mecanismo «-chromium.ts» de 1.98, sin lit_mangler;
+- Checkup oculto;
+- subpáginas de autoplay, estado de Shields y Google sign-in;
+- Storage Access visible;
+- auto-verify fuera;
+- webpack de la NTP con `//resources`;
+- origin_trials de 1.98;
+- cadena muerta de PiP fuera;
+- permiso localhost → LNA nativo.
+
+**Decisiones vigentes (COORDINACIÓN-30 / Titín):**
+- **Google sign-in se queda entero** (Titín). No lo quites.
+- La lista de lectura de Chromium se queda.
+- (B) history, extensions y downloads compilan: no se quitan.
+- AUTO_VERIFY y ANTI_ABUSE quedan como en 1.98: fuera de settings; el enum y el C++ se quedan.
+
+**Siguiente, en orden:**
+1. P2 de b1a25a49 y sus rotos de producción. Hay riesgo en:
+   - settings:build_ts, por los ~20 TS nuevos con mixins de la 156;
+   - el override global de `tools/grit/preprocess_if_expr.py`, que toca todo preprocess de WebUI;
+   - gn check de `ad_block_service.cc`: si falla, añade la dep `//services/network/public/cpp`;
+   - la regeneración del mojom `content_settings_types`.
+2. Parches de motor que nombran features de nivel borradas (punto 3 de la nota de MOTOR-36): navigation_request,
+   cors_url_loader, local_dom_window, navigation_url_loader_impl, render_frame_host_impl, enclave_authenticator_browsertest.
+   Solo si la Ubuntu los da rotos.
+3. Pendientes menores de MOTOR-36 que siguen abiertos:
+   - `ShouldUseDarkColors()` en `favicon_source.cc`;
+   - `bookmark_utils.cc` (iconos `ui::ColorVariant`);
+   - la bienvenida con `help-wdp`/`recordP3A`;
+   - `brave_shields_p3a`;
+   - el wrapper Android de `chrome_feature_list.cc`;
+   - `ModuleFileNamePatch` de Windows;
+   - el menú contextual (esquema 128).
+   Repásalos con `git grep` antes de nada: algunos los pueden haber tocado las zonas.
+4. Tanda T-tests: 95 rotos de tests y la lista base de MOTOR-36 (152 idénticos a 1.98, 140 tocados, 39 sin equivalente con
+   propuesta).
+5. Envoltorios `.cc` al esquema de 1.98 (`#include <...>`) sin `redirect_cc`.
+6. softmac: `brave_services_key_id` sale de `FlyWeb/scripts/build.sh` cuando build.sh pase a la 3.0.0.
+
+**Método que funcionó:**
+- Subagentes por zonas disjuntas, cada uno en su worktree (`git worktree add -b t11-<zona> /home/user/wt/<zona> <punta>`),
+  con un brief común en un fichero. El mío era `/tmp/claude-0/brief.md`, que no sobrevive: reescríbelo. Contenido:
+  - el donante 1.98 con `git show v1.98.63:` y `ls198.txt`;
+  - la 156 por gitiles con `?format=TEXT | base64 -d`;
+  - los criterios del porte;
+  - el formato de commit y del informe.
+- Cuatro subagentes a la vez fueron bien (150–450 k tokens cada uno).
+- Fusiona con `--ff-only`. Si la rama local de la punta va atrasada respecto a la remota (empujé desde un worktree),
+  `git fetch origin nube/b2-porte-t11` y rebasa sobre `origin/`.
+- Los diffs mecánicos de la Ubuntu llegan por COORDINACIÓN: aplícalos tal cual (ya vienen probados) y comprueba los
+  parches con `git apply --check` contra el fichero de la 156 descargado (`git hash-object` da el blob de la línea `index`).
+
+**Trampas:**
+- `add_repo` de brave-core lo deniega el clasificador la primera vez; Titín lo autoriza en tu sesión y entra al
+  reintentar. Mientras tanto, el clon de solo lectura (repositorio público) sirve para trabajar en local.
+- `IDC_*`/`IDS_*` de funciones quitadas: se quedan el id y las cadenas, porque alimentan tablas generadas; quita solo los usos.
+- Los overrides «../gen/…» de chromium_src son el patrón bueno para cabeceras grit; si salen «no encontrado», el problema
+  suele ser que el grit no ha llegado a correr (dependencia bloqueada), no la ruta.
+
 # MOTOR-36 → MOTOR-37: B2 T11 (06-11-2026, ~12:50 UTC)
 
 MOTOR-36 (`session_01MwmK2kkeRetx2LSfb5hfkz`, Opus 5.5). Coordina **COORDINACIÓN-29** (`session_01MwmK2iQtUzz1YsyLeXQbNV`).
