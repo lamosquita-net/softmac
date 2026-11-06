@@ -2,7 +2,8 @@
 
 MOTOR-38 (`session_01MwmK2gzv4SrPPzHLtAispT`, Opus 5.5). Coordina **COORDINACIÓN-31** (`session_01MwmK2iP27sssYimPaJ7scp`).
 
-**Punta:** `nube/b2-porte-t11` en **074ad6183e**, sin medir: el P2 de MOTOR-30 está pendiente. Detalle en
+**Punta:** `nube/b2-porte-t11` en **f81e6b8949** (T-tests, limpieza y tanda de seguridad desde 1.98), sin medir:
+el P2 de MOTOR-30 está pendiente. Detalle en
 `brave-propio.md` §12.16.3.
 
 **Hecho:**

@@ -1303,3 +1303,61 @@ cabecera Sec-GPC. **Para LOCAL**: en globalprivacycontrol.org, que el JS (ventan
   - starter packs `@page`/`@aimode`.
 - **Código muerto:** `components/brave_mobile_subscription` y `components/json`.
 - **OFAC:** nuestra lista mantiene a Siria; 1.98 la quita y añade a Tanzania. Es decisión de producto.
+
+**Decisiones de COORDINACIÓN-31** (06-11, 16:05) **y lo aplicado** (215cf586):
+- **SIN-1.98 borrados** (64fabb86): `generated_notification_pref`, `rss_links_fetcher`, `shared_storage`, `companion_page`,
+  `tools_sanity` (ahora se usa `//base/tools_sanity_unittest.cc`, como 1.98), `network_time_tracker`, `brave_shields_p3a`
+  y `brave_sync_p3a`. La producción P3A se queda: va a menores.
+- **Dudosos:** se quedan los tres (NTP `brave-new-tab-page`, dark mode fp y extensions import), porque lo que prueban
+  existe.
+- **OFAC:** sin consumidores en la punta, así que se borra (b664ff60).
+- **Código muerto:** `components/brave_mobile_subscription`, borrado (215cf586). `components/json` lo quita MOTOR-30 con
+  gnrt en `motor/b2-sin-json`.
+
+**Tanda «seguridad desde 1.98»** (053b84ba…4ab4a8c6 y f81e6b89, un commit por bloque):
+
+| sha | Bloque |
+|---|---|
+| 053b84ba | de_amp: lo de la barra de direcciones y Content-Disposition ya estaba en producción; entra la equivalencia con barra final y las regex acotadas. |
+| e66202f3 | debounce: `IgnoreHostnameMismatch`, eTLD+1 válido, destino con `?` sin ruta y `regex-path-template`. |
+| 1cfe2fd7 | url_sanitizer: `SanitizeURL` pasa a `std::optional<GURL>`. Antes se reescribía todo texto http(s) copiado por JS, contraseñas incluidas. |
+| ae22c5bb | Widevine: CDM solo por HTTPS; el permiso, con el origen del subframe. |
+| e4b675db | Borrar datos de navegación conserva los valores por defecto de Shields del usuario. |
+| fb4d1b0d | OCR en privado: `MarkAsOffTheRecord`. |
+| 76a46505 y f81e6b89 | crypto: fuera los overrides `symmetric_key` y `kdf`, sin llamadores. |
+| e8773d61 | `location_bar_view`: color del omnibox sin foco, como 1.98. |
+| d8fd9c94 | CUP: override de Brave fuera (ver abajo). |
+| 52d94bf9 | Privacidad por defecto como 1.98 (prefs y features; nada de IA ni de Google encendido). |
+| 4ab4a8c6 | Starter packs: lista cerrada @bookmarks/@history/@tabs/@gemini. Fuera @page, que manda la página a Google, y @aimode. |
+
+**Valores por defecto de privacidad (52d94bf9):**
+- **Prefs:** `deep_scanning_enabled`, logs de WebRTC y `split_view_drag_and_drop_enabled` en false;
+  `omnibox.ai_mode_settings` = -1; `scout_reporting` en false en todas las plataformas.
+- **Features apagadas:** `kApiGlicPrivate`, `kSkillsEnabled`, `kLaunchedHistoryEmbeddings`, `kWebUIOmniboxAimPopup`,
+  `kWebUIOmniboxPopup`, `kNtpCalendarModule`/`kNtpDriveModule`, `kEnableForceDownloadToCloud`,
+  `kSyncAutofillValuableMetadata` (escritorio), `kAutoplayBypassForMicCamera` y `kGetDisplayMediaConfersActivation`.
+- **Feature encendida:** `kSensorsAllowAskBlockPermissionModel`, con lo que los sensores pasan a Ask/Block.
+
+**CUP, si algún día se quiere para `components.flyweb`:** el override de 1.98 no sirve, porque firma todo update_client
+con la clave de Brave y rompería CUP con Google en las extensiones. Haría falta:
+- una clave propia generada en bak;
+- `EnabledCupSigning()` = true en `BraveConfigurator`;
+- un `BuildSigner` que la use solo para la URL de componentes.
+
+Hoy go-update no firma CUP.
+
+**Pendiente de producto (Titín, con la primera build que pueda ver):** `kThirdPartyAiChatSettings` («IA de terceros» de la
+156). Ni 1.98 ni nosotros la tocamos.
+
+**Riesgo Mojave** (para la capa flynk-b1d; LOCAL lo comprueba): en la 156, `ui/base/clipboard/clipboard_mac.mm:538` llama
+sin `respondsToSelector:` a la SPI `-[NSPasteboard _setExpirationDate:]`, que existe desde macOS 12. Lo disparan las copias
+desde ventanas privadas (`ClipboardHostImpl`) y el OCR en privado.
+
+**Funciones que se pierden en la 3.0.0** (para PUBLICACIÓN):
+- los atajos @page y @aimode del omnibox;
+- las tarjetas de Google Calendar y Drive en la NTP;
+- la búsqueda de historial con IA;
+- las skills de Gemini;
+- el popup del omnibox en WebUI (se queda el de views);
+- arrastrar pestañas para crear una vista dividida;
+- OFAC (sin efecto visible).
