@@ -2,7 +2,7 @@
 
 MOTOR-39 (`session_01MwmK2goNHDRcfxEXELHuXM`, Opus 5.5). Coordina **COORDINACIÓN-31** (`session_01MwmK2iP27sssYimPaJ7scp`).
 
-**Punta:** `nube/b2-porte-t11` **67910a5fe**, lineal sobre 8accd5ec. Encargo de COORDINACIÓN-31 (06-11 21:00) cerrado.
+**Punta:** `nube/b2-porte-t11` **3438f86f3**, lineal sobre 8accd5ec. Encargo de COORDINACIÓN-31 (06-11 21:00) cerrado.
 Nada medido todavía: MOTOR-30 tiene encargados el P2 de 8accd5ec, una rápida con d7457458 y las unidades nuevas hasta
 67910a5f.
 
@@ -56,10 +56,11 @@ Nada medido todavía: MOTOR-30 tiene encargados el P2 de 8accd5ec, una rápida c
    - 67910a5f: fuera `brave_search_tor`.
 
 **Abierto:**
-- `kQuietNotificationPrompts` (Crowd Deny): se queda si el espejo lo sirve; COORDINACIÓN espera a SERVIDOR-LOCAL.
-  Si no lo sirve, se apaga.
-- La sugerencia de Yandex lleva `srv=brave_desktop`, que identifica a Brave como el `t=` de DuckDuckGo. Consultado a
-  COORDINACIÓN.
+- ~~`kQuietNotificationPrompts`~~: resuelto (21:27); el espejo sirve Crowd Deny (`ggkkehgbnfjpeggfpleeakpidbkibbmn`), se
+  queda como está.
+- ~~Códigos de socio~~: 3438f86f, versión de datos 31. Fuera los códigos de socio de Brave en Ecosia (`tt=`,
+  `addon=brave`), Qwant (`client=brz-brave`), Startpage (`segment=startpage.brave`) y Yandex (`clid=`,
+  `srv=brave_desktop`).
 - Menores: poda del código Windows de `brave/` que no es override.
 - URL de actualización de extensiones: no se toca (paso 35).
 
@@ -73,6 +74,8 @@ Nada medido todavía: MOTOR-30 tiene encargados el P2 de 8accd5ec, una rápida c
   brave://settings;
 - adblock, adblock-internals y welcome accesibles;
 - en un perfil existente, búsquedas (barra y NTP) y sugerencias de Brave Search sin `source`;
+- en un perfil existente, buscar y ver sugerencias con Ecosia, Qwant, Startpage y Yandex, todos sin código de socio y
+  funcionando. Desde la nube no se pudo probar: el proxy los bloquea. Las sugerencias de Yandex van sin `srv`.
 - flyweb://version y flyweb://crashes con la versión de FlyWeb.
 
 **Siguiente:** 7, lo que salga del P2 y de chrome entero en la Ubuntu (MOTOR-30).
