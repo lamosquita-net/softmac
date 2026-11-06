@@ -1,3 +1,89 @@
+# MOTOR-38 → MOTOR-39: B2 T11 (06-11-2026, ~21:05 UTC)
+
+MOTOR-38 (`session_01MwmK2gzv4SrPPzHLtAispT`, Opus 5.5). Coordina **COORDINACIÓN-31** (`session_01MwmK2iP27sssYimPaJ7scp`).
+Relevo al ~49 % de contexto: me pasé del umbral. Vigila `get_session` antes de abrir tandas.
+
+**Qué leer:** esta sección y `brave-propio.md` §12.16.3, con la tanda de seguridad, las decisiones de COORDINACIÓN-31, el
+riesgo Mojave del portapapeles y lo que se pierde en la 3.0.0.
+
+**Punta:** `nube/b2-porte-t11` **8accd5ecd3**, lineal.
+
+**Estado de lo medido:**
+- **P2 completo de 30f94067** (1510 objetivos, incluidos 68 de `gen/`): 12 rotos. Todos arreglados después, salvo lo que
+  confirme el siguiente P2.
+- **Rápida de 900944be:** 0 rotos.
+- **Rápida de 39c40272:** `command_utils` compila.
+- **Arreglos subidos después, aún sin medir:**
+  - fc4bed2f: fuera el override `NotificationHandler::Type`, que rompía `chrome/browser/default_browser`;
+  - 997e25e3: `.gn` + `build/circular_includes_brave.gni` con `//chrome/browser:core`, para el «allow_circular_includes_from
+    is not allowed here» de `gn gen`;
+  - 71fb2416: `gn check`, visibilidad y deps de `browser_process` para tests;
+  - 8accd5ec: los 4 `!!` del lint de settings.
+- **En la Ubuntu:** MOTOR-30 tiene encargados el P2 de 8accd5ec y luego **chrome entero**. El P2 solo cuenta objetivos de
+  Brave, y nuestros overrides rompen ficheros de Chromium que no ve.
+
+**Hecho por MOTOR-38** (detalle en §12.16.3):
+- arreglos del P2 de b1a25a49 y GPC como 1.98;
+- tanda T-tests completa (314 ficheros, 5 zonas) y los 13 tests de la rápida;
+- tanda «seguridad desde 1.98» (11 bloques);
+- borrados aprobados: SIN-1.98, OFAC, `brave_mobile_subscription` y `kdf`;
+- settings: `build_ts` (stub de leo) y los 111 errores de `lint_ts` arreglados a mano, sin apagar reglas;
+- `command_utils` (generador de 1.98 sin pestañas verticales);
+- `FakeLocalFrame`;
+- `gn check`, partes A y B.
+
+**Siguiente, en orden (visto bueno de COORDINACIÓN-31, 21:00; commits separados por bloque):**
+1. **RequestType** (punto 2 de la auditoría de abajo): hunks en `patches/components-permissions-request_type.cc.patch`
+   como 1.98, y fuera el `#define kStorageAccessIcon` muerto.
+2. **PermissionType** (punto 1): las 4 piezas de 1.98 sin Speedreader, Wallet ni AI chat, más el case de
+   COSMETIC_FILTERING y `BRAVE_MIN_VALUE`. **Es el intocable (Google sign-in): tiene que funcionar en ejecución.**
+3. **Overrides 404 que tocan privacidad o servidores**, por delante de lo demás:
+   - la lista: `v4_protocol_manager_util` (Safe Browsing por `proxy.flyweb.lamosquita.net`), `google_api_keys-inc.cc`,
+     `content/common/user_agent.cc` (versión declarada y huella), `fcm_network_handler`, `geolocation.cc`,
+     `is_potentially_trustworthy.cc`, `redirect_heuristic_tab_helper` y `safety_check_handler`;
+   - por cada uno: a qué fichero se movió en la 156, qué hacía nuestro override y si 1.98 lo mantiene;
+   - si no hay sitio claro, se pregunta a COORDINACIÓN antes de inventar.
+4. `webui_url_constants`: adblock, adblock-internals y welcome en `ChromeURLHosts()`, con un patch como 1.98. Después,
+   borrar `autocomplete_provider.{h,cc}`.
+5. `data_decoder` `JSON_PARSE_RFC`: comprobar si perder `ALLOW_TRAILING_COMMAS` rompe la lectura de listas de filtros o de
+   componentes de components.flyweb. Si la rompe, sube al 3.
+6. Resto de macros muertas y 404, en una tanda con subagentes.
+7. Luego: lo que salga del P2 y de chrome entero; features de nivel solo si salen rotas; menores (P3A en producción,
+   `brave_icons.html` muerto); envoltorios `.cc`; `brave_services_key_id`.
+
+**Comprobaciones en ejecución para LOCAL** (COORDINACIÓN las pasa con la primera build Mac; ya están en §12.16.2/3):
+- caBLE;
+- GPC en globalprivacycontrol.org;
+- iconos Leo y spinners en Shields/filtros, Sync y buscadores (settings);
+- el permiso Google sign-in;
+- copiar en una ventana privada en Mojave (`_setExpirationDate:`).
+
+**Método que funcionó:**
+- **Brief común:** el de MOTOR-37, que repito aquí porque /tmp no sobrevive. Donante con `git show v1.98.63:`, la lista
+  con `git ls-tree -r --name-only v1.98.63` y la 156 por gitiles con `?format=TEXT | base64 -d`. Criterios: de 1.98
+  adaptado, conservando quitas e intocables; lo nativo primero; no inventar; parches con `git apply --check`.
+  Commits con Co-Authored-By y Claude-Session.
+- **Subagentes:** uno por zona disjunta, cada uno en su worktree; fusión con cherry-pick lineal.
+- **Clasificar sin bajar blobs:** por blob con `git ls-tree` frente a `v1.98.63` y la raíz 1.57.
+- **Nunca `push -f`:** el clasificador lo deniega, con razón. Si hace falta corregir, se hace un commit nuevo.
+
+**Pendiente de producto:** `kThirdPartyAiChatSettings` («IA de terceros» de la 156), para Titín con la primera build.
+
+## Auditoría de overrides que redefinen enums o listas (MOTOR-38, sobre fc4bed2f)
+
+ROTO SEGURO:
+1. blink::PermissionType: permission_utils.h añade 9 BRAVE_* (ADS, COSMETIC_FILTERING, TRACKERS, HTTP_UPGRADABLE_RESOURCES, FINGERPRINTING_V2, SHIELDS, REFERRERS, COOKIES, GOOGLE_SIGN_IN). El switch exhaustivo de content/browser/permissions/permission_descriptor_util.cc (CreatePermissionDescriptorForPermissionType) no los cubre → -Wswitch. En EJECUCIÓN, google_sign_in_permission_util.cc:118,142 llama con BRAVE_GOOGLE_SIGN_IN. 1.98 tiene cuatro piezas: chromium_src/content/browser/permissions/permission_descriptor_util.cc, chromium_src/third_party/blink/public/mojom/permissions/permission.mojom ([BraveExtend] PermissionName), el hook BRAVE_PERMISSION_UTIL_PERMISSION_DESCRIPTOR_INFO_TO_PERMISSION_TYPE en blink/common/permissions/permission_utils.cc (override y patch) y chromium_src/third_party/blink/renderer/modules/permissions/permission_utils.cc. Arreglo: portarlas sin Speedreader/Wallet/AI chat; COSMETIC_FILTERING necesita su case.
+2. permissions::RequestType: request_type.h mete kWidevine y kBraveGoogleSignInPermission tras kStorageAccess. En la 156, request_type.cc tiene dos switch exhaustivos (GetIconIdDesktop: nuestro #define kStorageAccessIcon está muerto; RequestTypeToContentSettingsType). 1.98 los cubre con hunks en patches/components-permissions-request_type.cc.patch (kExtensionOldIcon / std::nullopt). Arreglo: esos hunks y fuera el #define muerto.
+RIESGO:
+- webui_url_constants.cc: #define kChromeUIAttributionInternalsHost muerto, así que adblock, adblock-internals y welcome faltan en ChromeURLHosts(). 1.98 lo hace con un patch.
+- autocomplete_provider.{h,cc}: #define TYPE_BOOKMARK muerto (la 156 usa kBookmark); TYPE_BRAVE_LEO sin uso. Borrar.
+- PermissionType: falta BRAVE_MIN_VALUE para el permission_overrides_unittest de content.
+- request_type.h: los valores van en medio del enum (1.98 los pone al final). No urge.
+- Macros muertas: data_decoder JSON_PARSE_RFC (se pierde ALLOW_TRAILING_COMMAS), bubble_frame_view DIALOG_BUTTON_NONE, tab_helpers kWebUITabStrip, realbox_handler, omnibox_pedal kShare*ChromeRefreshIcon, chrome_browser_main_mac EnsureUpdater, profile.cc WipeSearchEngineChoicePrefs, DefaultBrowserWorker, opaque_browser_frame_view_layout.h, omnibox_result_view, ranker_url_fetcher.h, aggregatable_trigger_config.h, chrome_browsing_data_remover_delegate.h.
+- Overrides de ficheros que la 156 ya no tiene (404): prediction_based_permission_ui_selector, redirect_heuristic_tab_helper, click_to_call_utils, crashes_ui, webui_util, safety_check_handler, searchbox_handler, initialize_extensions_client, fcm_network_handler, v4_protocol_manager_util, version_handler_helper, content/common/user_agent.cc, manifest_url_handlers, google_api_keys-inc.cc, is_potentially_trustworthy.cc, geolocation.cc.
+- Solo Windows: chromium_install_modes, idl, elevator, sandbox interceptors.
+BIEN: ContentSettingsType, SiteSettingSource, ProviderType/SettingSource, ChromeIsolatedWorldIDs, DownloadClient, InfoBarIdentifier, ImporterType, HistogramValue, omnibox_action_concepts, api_permission_id, ChooserControllerType, SelfDeleteSupport, DataTypeForHistograms, url_constants, las 54 listas de features y origin_trials.
+
 # MOTOR-38: estado (06-11-2026, ~16:05 UTC)
 
 MOTOR-38 (`session_01MwmK2gzv4SrPPzHLtAispT`, Opus 5.5). Coordina **COORDINACIÓN-31** (`session_01MwmK2iP27sssYimPaJ7scp`).
