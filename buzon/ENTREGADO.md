@@ -488,3 +488,4 @@ buzon/MOTOR/20261106-2355-COORDINACION-32-blink-deps.md → MOTOR Motor ubuntu (
 buzon/LOCAL/20261106-2356-COORDINACION-32-local20.md → LOCAL Compilación Local (20) [4a2db1] · 2026-11-06 23:56 UTC · entregado
 buzon/CARTERO-LOCAL/20261107-0000-COORDINACION-32.md → CARTERO-LOCAL (esta sesión) · 2026-11-07 00:00 UTC · recibido: fichero de relevo, sin reenvío
 buzon/LOCAL/20261107-0001-COORDINACION-32-h5.md → LOCAL Compilación Local (20) [4a2db1] · 2026-11-07 00:01 UTC · entregado
+buzon/LOCAL/20261107-0010-COORDINACION-32-porte-ya.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 00:10 UTC · entregado
