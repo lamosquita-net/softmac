@@ -7,6 +7,53 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 06-11 (mediodía): COORDINACIÓN-29 → COORDINACIÓN-30 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-29 (`session_01MwmK2iQtUzz1YsyLeXQbNV`, 05-11 22:31 → 06-11; Opus 5.5 medio; abierta por la 28, linaje 4;
+relevo al ~50 %). La 30 la abre la 29 (linaje 5 de 8). **Nunca llamar a confirm_repository_trust.**
+
+**Decisiones de Titín de hoy:** límite de 5 h cerrado, sin cambios y **no volver a preguntarle** (DIRECTIVAS, #784).
+Titín autoriza en la sesión de cada MOTOR nuevo el `add_repo` de brave-core (el clasificador lo deniega siempre).
+
+**FM.55 B1d / #753: FUSIONADO.** PGO (perfil de Google 8078) en la 7,1 con `--disable-http2`: Speedometer 3.1
+CfT156 20,7 / oficial-8 16,5 / **oficial-9-pgo 20,6**; MotionMark CfT 3590 / of8 2831 / **PGO 3576** (gana en las 8).
+En la 6,1 Titín vio MotionMark 1493 con PGO (frente a 1381 sin PGO). **«PGO siempre» ANULADO por escrito** (buzón
+LOCAL 06-11) hasta tener el A/B en la **6,1 con benchmarks servidos en local**; si sale bien, vuelve. Causa del lío de
+hoy: **la red de la oficina rompe HTTP/2 desde ~10:00** (con `--disable-http2`, 0 fallos); JetStream 3 no termina de
+cargar en ninguno (CfT incluido): no es PGO. Investigación cerrada en `FlyWeb/docs/b1d/pgo-mojave.md` (#787, #788;
+INVESTIGACIÓN-MOTOR-9 `session_01MwmK2kr28rsdbDHXaa1Jxi`, en espera: archivable). Decidido:
+`disable_fieldtrial_testing_config = true` en las oficiales (ya en args.gn de LOCAL). Auditoría de selectores (#776)
+aplicada y probada (oficial-8). T10 de b1d: 9 parches Mojave como commits en `flynk-b1d` 1b82d33aca (#785).
+Regla: la capa Mojave de Chromium vive solo en `flynk-b1d`, nunca en brave-core/patches.
+
+**FM.55 B2 (porte de Brave a la 156):** cadena en brave-core T7-ter → T5 → T8 → T9 → T9-ver → T9-fix → T5-bis → T10
+→ **T11 = `nube/b2-porte-t11` 2eb3838b5** (punta). Rotos (P2 de MOTOR-30): 573 → 357 → 335 → 280 → **177 en T11
+d28ecad6 (producción 98, tests 79)**. P2 de 2eb3838b5 pedido (buzón MOTOR 12:43). Prioridad: producción; tests en
+tanda aparte (152 de 1.98 enteros, 140 a mano, 39 con propuesta). **MOTOR-37** (`session_01MwmK2mQraxPiisCp7W6WP8`)
+recién abierta: si el clasificador le deniega el add_repo, pedir a Titín que lo autorice en su sesión; al tenerlo,
+**archivar MOTOR-36** (`session_01MwmK2kkeRetx2LSfb5hfkz`). Encargo de MOTOR-37 en su prompt y en `relevo-motor.md`:
+(1) crx_verifier sin claves de Brave (ARQUITECTURA lo confirmó en #790; bak firma RSA-SHA256) → **abrir
+SEGURIDAD-PORTES-18** para revisarlo cuando haya sha (y luego B5); (2) los rotos de producción + build_ts
+(`leo.bundle.js`, TS2882); (3)–(7) en la nota. Decisiones mías del porte (todas en §12.11–§12.16): funciones de Brave
+fuera, lo nativo de la 156 primero (pestañas verticales y vista dividida nativas, panel lateral nativo, estilo de
+pestañas de Chromium, Local Network Access en vez del permiso localhost), fuera WDP, Rewards/Talk, Brave Search
+promo, P3A, TopSites; apagados IA de DevTools, Prerender2, AI Mode/Lens, NtpSimplificationBookmarkBar; CUP activo en
+el updater de extensiones (van directas a Google); versión 3.0.0 = 156.0.8078.82 declarada, mínimo macOS 13.7.8,
+198.63.N. Pérdidas para las notas de la 3.0.0 en §12.15.1 y §12.16.
+**Método con la Ubuntu (MOTOR-30, bridge «Motor ubuntu (2)»):** compilación rápida por cada sha de MOTOR-37 y P2 al
+cerrar tanda; no puede subir a GitHub: manda diffs y errores por su canal y COORDINACIÓN los reenvía. **Su relevo
+(MOTOR-31, Sonnet 5.5 medio) está pedido a Titín y sin abrir**; recordárselo.
+
+**Pendiente de Titín:** abrir MOTOR-31 (texto dado el 05-11); pasar el kit de la 5,1 a su hija (URL en su sesión;
+LOCAL-19 lo probó en verde) → `resultado-51.txt` a LOCAL → borrar kit (SERVIDOR-LOCAL) y directorio (Titín); borrar
+la rama `nube/m34-probe` de brave-core desde la web; revisar su red (HTTP/2 roto).
+**Sin noticias desde el 05-11:** LOCAL-18 (F1, FM.54) y la puerta del llavero (M1–M5 con sync y PasswordSyncBridge
+nativo de la 156). Preguntar.
+
+**Equipo vivo:** MOTOR-37 (nube), MOTOR-36 (archivar), MOTOR-30 (bridge Ubuntu), LOCAL-18/19 (bridges; solo buzón o
+SendMessage directo de ellos), INVESTIGACIÓN-MOTOR-9 (en espera), SERVIDOR-LOCAL, PUBLICACIÓN, ARQUITECTURA,
+CARTERO-LOCAL. SEGURIDAD-PORTES-17 archivada; -18 por abrir. Tareas programadas mías: ninguna.
+
 ## 05-11 (noche): COORDINACIÓN-28 → COORDINACIÓN-29 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-28 (`session_01MwmK2kJamvybegV8BvFxJf`, 05-11; Opus 5.5 medio; abierta por la 27, linaje 3; relevo al ~40 %).
