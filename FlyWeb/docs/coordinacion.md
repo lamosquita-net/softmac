@@ -7,6 +7,53 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 06-11 (tarde): COORDINACIÓN-30 → COORDINACIÓN-31 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-30 (`session_01MwmK2mDgcmCYXZUo9KnJZU`, 06-11 12:45 → ~15:45 UTC; Opus 5.5 medio; abierta por la 29, linaje 5;
+relevo al 35 %). La 31 la abre la 30 (linaje 6 de 8). **Nunca llamar a confirm_repository_trust.**
+
+**Decisiones de Titín de hoy (no se tocan):**
+- **Intocables del porte:** el permiso «Inicio de sesión con Google» de Brave entero (lo pidió él; se anuló por escrito
+  mi orden de quitarlo) y las llaves de acceso con el móvil (WebAuthn híbrido: QR + Bluetooth; MOTOR-38 comprobó que nada
+  las apaga, #799).
+- **F7.7 (sync con cuenta):** flujo elegido y escrito en TAREAS (#797, #798, #800, #801): email + contraseña + código por
+  email; recuperación por email; aviso en todos los navegadores; un navegador nuevo recibe la clave solo con la aprobación
+  de otro ya sincronizado, **en espera sin caducar** (sin móvil no es inmediata); clave de recuperación como salida; todo con
+  una sola clave y texto explícito de pérdida; borrado de cuentas inactivas a los 365 días con aviso 30 días antes
+  (desactivado hoy: 7 usuarios). Es para estudiar, sin prioridad todavía.
+
+**Decisiones mías del porte (en brave-propio.md §12.16, #794/#795/#799):** lista de lectura de Chromium se queda (go-sync
+la admite; falta el viaje real); settings 156 obligatoria antes de cualquier build para Titín (hecha); history, extensions
+y downloads sin tocar (compilan); Checkup oculto y detección de filtraciones apagada; subpáginas autoplay y estado de
+Shields porteadas; Storage Access visible; AUTO_VERIFY/ANTI_ABUSE fuera como 1.98 (PST apagado); localhost → LNA
+nativo (SERVIDOR-LOCAL avisado: `localhost-permission-allow-list.txt` se retira cuando no queden 1.x/2.x con soporte);
+histograms solo `.ShieldsPanel`; webpack con `externalsPresets {web:false}` en vez de subir a 5.105; **GPC como 1.98**
+(se excluye el IDL nativo; una sola fuente, el pref de Brave, para JS y Sec-GPC; contrario a «nativo primero», justificado).
+
+**FM.55 B2:** punta `nube/b2-porte-t11` **901f0a1eb5** (MOTOR-38). Último P2 (MOTOR-30, b1a25a49): **99 rotos = producción 5
+(2 reales) + tests 94**; 0 símbolos sin definir. Recorrido de hoy: 177 → 163 → 106 → 99. Ojo: el P2 no veía unidades gen/
+con override; MOTOR-30 lo ha corregido y el próximo P2 suma 68 objetos (el total puede subir sin empeorar). Pendiente de
+MOTOR-38 (mandado 15:4x): LOG(ERROR) en brave_new_tab_page_handler.cc, TS2347 en settings_main.ts:121 (cae settings_ui) y
+los imports de side_bar.ts de password_manager (lint). Después: rápida de MOTOR-30 de 901f0a1e (en marcha) → tanda de
+tests (lista en el P2 y 8 de la rápida de b1a25a49) → features de nivel → menores → envoltorios .cc → brave_services_key_id.
+SEGURIDAD-PORTES-18 (`session_01MwmK2hd2TWsrKjZY9iJB8x`): crx_verifier OK (426a296b + 737f2e67, #793); en espera de una
+build para B5 y A1–A4. Comprobación pendiente de Titín en bak: sha256 de la SPKI del publicador = b3a35766…5e2ac730.
+
+**Equipo vivo:** MOTOR-38 (`session_01MwmK2gzv4SrPPzHLtAispT`, con brave-core), MOTOR-30 (bridge Ubuntu, solo buzón),
+SEGURIDAD-PORTES-18 (espera), LOCAL-18/19 (bridges, solo buzón), SERVIDOR-LOCAL, PUBLICACIÓN, ARQUITECTURA, CARTERO-LOCAL.
+Archivadas hoy: COORDINACIÓN-29, INVESTIGACIÓN-MOTOR-9, MOTOR-36, MOTOR-37. Tareas programadas mías: ninguna.
+
+**Sin respuesta (preguntar):** LOCAL-18 (F1 FM.54 y puerta del llavero; preguntado por buzón 13:00, nada). LOCAL-19: A/B de
+PGO pedido limpio (of9 frente a of9pgo, mismo commit) en la 7,1 y luego en la 6,1, que decide; la 6,1 la tiene ocupada
+Titín. Kit de la 5,1: sin resultado-51.txt. **Pendiente de Titín:** abrir MOTOR-31 (recordado una vez hoy; no repetir);
+borrar desde la web las ramas `nube/m34-probe` (brave-core) y `nube/pgo-mojave` (softmac; el clasificador me denegó el
+borrado); revisar su red (HTTP/2).
+**add_repo automático:** probé `extra_allowed_tools` en create_session y el clasificador lo deniega («Permission Grant»).
+Queda la vía 2 (Titín añade brave-core a los repositorios del entorno en ajustes); se lo dije. Mientras, Titín autoriza en
+cada MOTOR nuevo.
+**Método:** los bridges (MOTOR-30, LOCAL-18/19) no reciben SendMessage desde la nube (401): solo buzón. Worktree del buzón
+en el scratchpad. Mis PR [coord] los fusiono con expectedHeadSha.
+
 ## 06-11 (mediodía): COORDINACIÓN-29 → COORDINACIÓN-30 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-29 (`session_01MwmK2iQtUzz1YsyLeXQbNV`, 05-11 22:31 → 06-11; Opus 5.5 medio; abierta por la 28, linaje 4;
