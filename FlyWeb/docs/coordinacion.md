@@ -7,6 +7,52 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 06-11 (noche): COORDINACIÓN-31 → COORDINACIÓN-32 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-31 (`session_01MwmK2iP27sssYimPaJ7scp`, 06-11 15:45 → ~22:55 UTC; Opus 5.5 medio; abierta por la 30,
+linaje 6; relevo al 42 %). La 32 la abre la 31 (linaje 7 de 8: **la 33 tiene que abrirla Titín desde la app**).
+**Nunca llamar a confirm_repository_trust.**
+
+**Decisiones de Titín de hoy (además de las de la nota de la 30):**
+- **LuLu** (DIRECTIVAS, Organización, #807): un aviso de LuLu no es «máquina ocupada»; si una build nueva no tiene red,
+  LOCAL da la ruta y COORDINACIÓN avisa a Titín.
+- **LOCAL-20 abierta para F1** (LOCAL-18 la archivó Titín el 05-11; nada de F1 hecho). No recuperar la 18.
+- **Fork de chromium:** `lamosquita-net/chromium` (antes chromium-legacy) YA está en la red de chromium/chromium y
+  guarda `flynk-b1d`: **no se borra ni se crea otro**. Pendiente de Titín: poner `flynk` como rama por defecto tras el
+  push (recordárselo) y **autorizar en la sesión de LOCAL-20** las etiquetas base y el push (lo bloquea su clasificador,
+  «Create Public Surface»). Texto propuesto en la conversación: etiqueta 128.0.6613.138 en chromium, 10 etiquetas base
+  de V8, push de flynk y flynk-v8, sin tocar master.lion, stable.lion ni flynk-b1d.
+- **RAM:** 32 GB bastan con -j 12; no comprar.
+- **Pendiente de Titín:** compilar `chrome` entero en la Ubuntu una vez (su regla allí: «nunca compilar Blink»). Le
+  llegó cortado un mensaje suyo a MOTOR-30; la excepción tiene que ser explícita y de Titín (el clasificador de la nube
+  bloquea con razón que COORDINACIÓN escriba «autorizado por Titín»). Recomendación: sí, una vez.
+
+**Decisiones mías:** «PGO siempre» RESTABLECIDO (A/B limpio en la 6,1: Speedometer +42 %, JetStream +9 %, MotionMark
++21 %, 0 fallos; 7,1 igual). Lint de settings se arregla, no se apaga. Brave Search y buscadores prepoblados sin
+`source=` ni códigos de socio de Brave (versión de datos 31). kQuietNotificationPrompts se queda (espejo sirve Crowd
+Deny, comprobado en ns2). OFAC, kdf, brave_mobile_subscription, overrides de Windows, P3A tests: borrados.
+kThirdPartyAiChatSettings: **pendiente de Titín** con la primera build Mac que pueda ver.
+
+**FM.55 B2 (porte):** punta `nube/b2-porte-t11` **89e14c56e** (MOTOR-39). Recorrido de los P2: 99 (b1a25a49) → 12
+(30f94067) → **6 (ab0be296)**; 0 símbolos sin definir; gn check limpio; lint de settings cerrado. Quedan 3 para
+MOTOR-39 (mandado 22:47): view_shadow.cc (ui::Layer::Create), location_bar_view.cc:404 (OmniboxPopupViewViews con
+BraveOmniboxViewViews*) y el mock del autoplay browsertest. Después: rápida de MOTOR-30 sobre la punta que haya
+(cubre 307f566c en adelante y las unidades de Chromium de mis mensajes del buzón de d7457458, c1d9d8ae, 307f566c y 2125)
+→ P2 → si da 0, **build Mac del porte con LOCAL-19 (con PGO y con e67de82a de flynk-b1d)** y lista de comprobaciones
+en ejecución de `relevo-motor.md` (#811/#812: Google sign-in, UA Chrome/156, GCM apagado, Safe Browsing por el proxy,
+iconos de Leo y spinners, buscadores sin source, portapapeles en incógnito).
+**Lección:** el P2 solo cuenta objetivos de Brave; los overrides de chromium_src rompen ficheros de Chromium que no ve
+(NotificationHandler::Type, PermissionType). Por eso chrome entero, si Titín lo autoriza.
+
+**Equipo vivo:** MOTOR-39 (`session_01MwmK2goNHDRcfxEXELHuXM`, con brave-core; MOTOR-38 archivada, 100 $),
+MOTOR-30 (Ubuntu, solo buzón; -j 12 en scope de systemd con MemoryHigh=24G; el servicio b2-cadena ya está borrado;
+**si calla, puede estar esperando una pregunta: preguntarle por el buzón antes de alarmar a Titín**), LOCAL-19 (6,1:
+canvas Metal/GL/2.7.0 hasta ~23:20; Ganesh cae ~15× en Canvas Arcs/Paths/Lines en la 7,1), LOCAL-20 (F1: H1–H3 hechos,
+H4 Release desde flynk-r2 f11fbc9866 al 79 % sin errores; espejo Samba hecho, flynk-chromium.git 2,6 GB y
+flynk-v8.git 1,1 GB), SEGURIDAD-PORTES-18 (espera build), SERVIDOR-LOCAL, PUBLICACIÓN, ARQUITECTURA, CARTERO-LOCAL.
+**Tareas programadas mías:** vigilancia horaria `trig_01L8upyXCDpiBPkbGwYMoife` (la borro al pasar el relevo; la 32 la
+crea en su sesión si sigue haciendo falta).
+
 ## 06-11 (tarde): COORDINACIÓN-30 → COORDINACIÓN-31 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-30 (`session_01MwmK2mDgcmCYXZUo9KnJZU`, 06-11 12:45 → ~15:45 UTC; Opus 5.5 medio; abierta por la 29, linaje 5;
