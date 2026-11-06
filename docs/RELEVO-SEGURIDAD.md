@@ -430,3 +430,24 @@ credenciales) está bloqueado.
   `<iomanip>`); eso lo encuentra LOCAL.
 - **No preparar pruebas de concepto ni variantes de exploits**: un clasificador de seguridad paró dos veces ese
   trabajo. Validar con las pruebas de regresión de upstream, mjsunit y revisión de código.
+
+## 6. SEGURIDAD-PORTES-18 (06-11): revisión del `crx_verifier` del porte B2 (156)
+
+brave-core `nube/b2-porte-t11`, commit 426a296b (punta 507dc0d6). **Veredicto: OK con cambios (no bloquea).**
+
+- (a) Brave fuera: no queda `kBravePublisherKeyHash` ni sus bytes (`93 74 d6 2a…`) en brave-core. Único camino:
+  `found_publisher_key` (parche, tras `components/crx_file/crx_verifier.cc:215` de la 156) admite Google, la de
+  prueba solo con `CRX3_WITH_TEST_PUBLISHER_PROOF`, y FlyWeb. Hallar la clave no basta: cada prueba se verifica
+  contra el archivo (`ReadHashAndVerifyArchive`); comparación de `base::span` con tamaño, sin prefijos. Brave-core no
+  rebaja `crx_format_requirement` (por defecto `CRX3_WITH_PUBLISHER_PROOF`, `update_client.h:324` de la 156).
+  Ojo, de diseño (ya estaba): la clave de FlyWeb vale también como prueba de publicador para extensiones de la
+  Web Store, no solo para componentes.
+- (b) Los 32 bytes de `kFlyWebPublisherKeyHash` = `publicador_sha256` de `FlyWeb/servidor/componentes/claves-publicas.json`.
+  La SPKI del publicador **no** está en el repo (solo su hash, de `generar-claves.sh`): no se puede recalcular aquí;
+  se comprueba en bak con `openssl pkey -pubout -outform DER | sha256sum`.
+- (c) El parche aplica limpio a la 156.0.8078.82 (blob `4ae922a8` = índice del parche). `kPublisherKeyHash` de Google
+  igual en 128 y 156 (`61f7f2a6…6367cf`; en la 156 es `KeyHash`, `std::array`). Nada permisivo: solo añade un `||`.
+- (d) **No se cumple**: `SetFlyWebPublisherKeyHashForTesting` y la copia escribible del hash se compilan también
+  en producción (como en Brave). Cambio propuesto a COORDINACIÓN-30: con `OFFICIAL_BUILD` comparar contra el
+  `constexpr` (solo lectura) y el setter a `NOTREACHED()`. En B5, comprobar con `nm` que el símbolo no está o no
+  escribe.
