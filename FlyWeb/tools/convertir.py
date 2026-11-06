@@ -269,11 +269,20 @@ class Converter:
     def run(self):
         lines = out(self.brave, 'rev-list', '--reverse', '--topo-order',
                     '--parents', '--full-history', '--simplify-merges',
-                    self.a.range, '--', *self.pspec).splitlines()
+                    self.a.range,
+                    *['^' + x for x in self.a.exclude],
+                    '--', *self.pspec).splitlines()
         print('%s: %d commits' % (self.kind, len(lines)), flush=True)
         head = None
         for n, line in enumerate(lines, 1):
             orig, *oparents = line.split()
+            # --exclude: a merge parent inside an excluded history (the 1.x
+            # line that "flyweb follows the release" merges bring in) is
+            # dropped, not converted as a root.
+            oparents = [p for p in oparents if not any(
+                git(self.brave, 'merge-base', '--is-ancestor', p, x,
+                    check=False).returncode == 0
+                for x in self.a.exclude)]
             if not oparents:
                 oparents = [out(self.brave, 'rev-parse',
                                 self.a.range.split('..')[0] + '^{commit}')]
@@ -325,6 +334,9 @@ def main():
     ap.add_argument('--ref', required=True)
     ap.add_argument('--map', required=True)
     ap.add_argument('--fetch')
+    ap.add_argument('--exclude', action='append', default=[],
+                    help='brave-core commit whose history is left out '
+                         '(e.g. the last 1.x flyweb commit); repeatable')
     Converter(ap.parse_args()).run()
 
 

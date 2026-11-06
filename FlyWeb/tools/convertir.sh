@@ -10,12 +10,17 @@
 #
 # Variables (defaults are the 7,1):
 #   BRAVE  brave-core repo         RANGE  brave-core range to convert
+#   EXCLUDE brave-core commit whose history is left out (the 1.x line)
 #   FLYNK  where the bare repos go SRC    src after apply_patches
 #   BASE128 clean Chromium 128 checkout
 set -euo pipefail
 H=$(cd "$(dirname "$0")" && pwd)
 BRAVE=${BRAVE:-$HOME/proyectos/softmac/FlyWeb/brave-core.git}
-RANGE=${RANGE:-v1.69.168..flyweb}
+# From the first commit on the 128 base (Brave 1.69.168, 6918a99aa6), without the 1.x
+# history that the 2.6.1 "flyweb follows the release" merge brings in (1.15.2,
+# 9401833a66): those patches were for Chromium 115/116 (fork-propio.md section 7).
+RANGE=${RANGE:-6918a99aa6^..flyweb}
+EXCLUDE=${EXCLUDE:-9401833a667}
 FLYNK=${FLYNK:-$HOME/proyectos/flynk}
 SRC=${SRC:-$HOME/proyectos/brave-128/brave-browser/src}
 BASE128=${BASE128:-$HOME/proyectos/chromium-128/src}
@@ -78,7 +83,7 @@ preparar)
   ;;
 src)
   python3 "$H/convertir.py" --kind src --brave "$BRAVE" --range "$RANGE" \
-    --repo "$FLYNK/chromium.git" --base "$TAG" --ref refs/heads/flynk \
+    --repo "$FLYNK/chromium.git" --base "$TAG" --ref refs/heads/flynk --exclude "$EXCLUDE" \
     --map "$FLYNK/flynk-src.map"
   ;;
 v8)
@@ -86,7 +91,7 @@ v8)
   V8=$(git -C "$BASE128" show "$TAG:DEPS" |
        sed -n "s/.*'v8_revision': '\([0-9a-f]*\)'.*/\1/p")
   python3 "$H/convertir.py" --kind v8 --brave "$BRAVE" --range "$RANGE" \
-    --repo "$FLYNK/v8.git" --base "$V8" --ref refs/heads/flynk-v8 \
+    --repo "$FLYNK/v8.git" --base "$V8" --ref refs/heads/flynk-v8 --exclude "$EXCLUDE" \
     --map "$FLYNK/flynk-v8.map" --fetch "$V8_GIT"
   ;;
 comprobar)
