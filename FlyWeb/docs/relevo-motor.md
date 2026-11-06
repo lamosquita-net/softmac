@@ -1,43 +1,81 @@
-# MOTOR-39: estado (06-11-2026, ~21:40 UTC)
+# MOTOR-39: estado (06-11-2026, ~21:35 UTC)
 
-MOTOR-39 (`session_01MwmK2goNHDRcfxEXELHuXM`, Opus 5.5). Coordina **COORDINACIÓN-31**.
+MOTOR-39 (`session_01MwmK2goNHDRcfxEXELHuXM`, Opus 5.5). Coordina **COORDINACIÓN-31** (`session_01MwmK2iP27sssYimPaJ7scp`).
 
-**Punta:** `nube/b2-porte-t11` **050d5b0cb**, lineal sobre 8accd5ec. Encargo 1–6 de COORDINACIÓN-31 (06-11 21:00) hecho:
-- 5dc69d55 RequestType como 1.98 (enum al final por patch de `request_type.h`, casos por patch de `.cc`).
-- d7457458 PermissionType: las 4 piezas de 1.98 con COSMETIC_FILTERING y `BRAVE_MIN_VALUE`; REFERRERS→REFERRERS (1.98
-  lo manda a SHIELDS).
-- 74c0bbaf overrides 404 de privacidad. **El «Chrome/x» del User-Agent estaba muerto**: ahora es
-  `version_info_with_user_agent.cc` (override + patch de 1.98). Además: `BuildModelInfo` en `user_agent_utils`,
-  `sb_protocol_config.cc`, `google_api_keys.cc`, `net/base/is_potentially_trustworthy`, blink `core/geolocation`.
-  GCM tomado de 1.98: el nuestro dejaba `enabled_` sin inicializar. Borrados `fcm_network_handler`, `tpcd` y
-  `safety_check_handler`.
-- c1d9d8ae `ChromeURLHosts()` por patch (adblock, adblock-internals, welcome); fuera `autocomplete_provider`.
-- ab0be296 `data_decoder`: muerto (no hay `DataDecoder::ParseJson` en 156); no rompe listas ni componentes.
-- 53fe078b, 1683bd41, f7a0b251, a69a5698 y 307f566c (tanda 6, tres subagentes): macros muertas y 404. Nuevo por
-  privacidad: servicio de predicción de permisos de Google apagado, como 1.98.
+**Punta:** `nube/b2-porte-t11` **67910a5fe**, lineal sobre 8accd5ec. Encargo de COORDINACIÓN-31 (06-11 21:00) cerrado.
+Nada medido todavía: MOTOR-30 tiene encargados el P2 de 8accd5ec, una rápida con d7457458 y las unidades nuevas hasta
+67910a5f.
 
-**Decisiones de COORDINACIÓN-31 (21:22):**
-- a) fuera `source=newtab` (de80e241; el browsertest comprueba que no va);
-- b) `kQuietNotificationPrompts` se queda si el espejo sirve Crowd Deny (lo pregunta a SERVIDOR-LOCAL; si no, se apaga);
-- c) borrados los overrides solo de Windows (3b84fb48);
-- d) la URL de actualización de extensiones no se toca.
+**Commits, por bloque:**
+1. 5dc69d55 **RequestType** como 1.98:
+   - `kWidevine` y `kBraveGoogleSignInPermission` al final del enum, por un patch de `request_type.h`, con
+     `kBraveMinValue` y `kBraveMaxValue`;
+   - sus casos en los switch de `request_type.cc`, por patch;
+   - fuera el override `.h`, los `_ChromiumImpl` y el `kStorageAccessIcon` muerto.
+2. d7457458 **PermissionType**: las 4 piezas de 1.98 sin Speedreader, Wallet ni AI chat, con COSMETIC_FILTERING:
+   - `[BraveExtend] PermissionName`;
+   - `permission_descriptor_util.cc`;
+   - el hook `PermissionDescriptorInfoToPermissionType`;
+   - el `permission_utils.cc` del renderer;
+   - además, `BRAVE_MIN_VALUE` y el override de `permission_overrides_unittest`.
+   - REFERRERS→REFERRERS (1.98 lo manda a SHIELDS).
+   - Cadena del sign-in revisada en código; falta probarla en ejecución.
+3. 74c0bbaf **overrides 404 de privacidad**:
+   - **User-Agent:** la versión salía de un override de `version_info.h` que estaba muerto y además chocaba con la
+     declaración de 156. Ahora va en `version_info_with_user_agent.cc` (override y patch de 1.98);
+   - `BuildModelInfo` pasa a `user_agent_utils`;
+   - `sb_protocol_config.cc` sigue con la versión del nivel declarado;
+   - `google_api_keys.cc` y `api_key_cache.h`;
+   - `net/base/is_potentially_trustworthy`;
+   - blink `core/geolocation`;
+   - **GCM** de 1.98: el nuestro dejaba `enabled_` sin inicializar;
+   - borrados `fcm_network_handler`, `tpcd` y `safety_check_handler`.
+4. c1d9d8ae `ChromeURLHosts()` por patch (adblock, adblock-internals, welcome); fuera `autocomplete_provider`.
+5. ab0be296 `data_decoder`: muerto, porque 156 no tiene `DataDecoder::ParseJson`. No rompe listas de filtros ni
+   componentes (`JSON.stringify`).
+6. Tanda de macros muertas y 404, con 3 subagentes:
+   - 53fe078b **UI**: `bubble_frame_view` por patch; `omnibox_result_view`; searchbox a `cr_components/searchbox`;
+     `webui_util` a `ui/webui`, con la CSP.
+   - 1683bd41 y f7a0b251 **components**:
+     - `ranker_url_fetcher` en translate: no baja el modelo;
+     - `manifest_url_handlers`: Web Store vacía para todas;
+     - `scoped_chrome_extensions_client`;
+     - fuera Attribution Reporting `aggregatable_*`.
+   - a69a5698 y 307f566c **browser**:
+     - tab_helpers;
+     - fuera EnsureUpdater (Sparkle sigue);
+     - DefaultBrowserWorker;
+     - `chrome_browsing_data_remover_delegate`;
+     - `permissions_ai_ui_selector`;
+     - `crashes_ui` y `version_handler_helper` con la versión de FlyWeb;
+     - **servicio de predicción de permisos de Google apagado**, de 1.98.
+7. Decisiones de COORDINACIÓN-31:
+   - de80e241: sin `source=newtab` (el browsertest comprueba que no va);
+   - 3b84fb48: fuera los overrides solo de Windows;
+   - 050d5b0c: sin `source=` en la búsqueda y las sugerencias de Brave Search (`kBraveCurrentDataVersion` 30);
+   - 67910a5f: fuera `brave_search_tor`.
 
-También fuera `source=` de la plantilla de Brave Search, en la búsqueda y en las sugerencias (050d5b0c,
-`kBraveCurrentDataVersion` 30). LOCAL: comprobar en un perfil existente que las búsquedas y las sugerencias van sin `source`.
+**Abierto:**
+- `kQuietNotificationPrompts` (Crowd Deny): se queda si el espejo lo sirve; COORDINACIÓN espera a SERVIDOR-LOCAL.
+  Si no lo sirve, se apaga.
+- La sugerencia de Yandex lleva `srv=brave_desktop`, que identifica a Brave como el `t=` de DuckDuckGo. Consultado a
+  COORDINACIÓN.
+- Menores: poda del código Windows de `brave/` que no es override.
+- URL de actualización de extensiones: no se toca (paso 35).
 
-Menores nuevos:
-- poda del código Windows de `brave/` que no es override;
-- `brave_search_tor` sigue en `brave_prepopulated_engines.cc`.
-
-**Para LOCAL en la primera build Mac** (lista de COORDINACIÓN-31, además de §12.16.2/3):
-- User-Agent con `Chrome/156.x`, y los client hints iguales;
-- GCM apagado: sin conexiones a mtalk.google.com;
+**Lista para LOCAL en la primera build Mac** (además de §12.16.2/3: caBLE, GPC, iconos Leo, portapapeles en Mojave):
+- User-Agent `Chrome/156.x`, nunca la versión del producto, y los client hints coherentes;
+- GCM apagado, sin conexiones a mtalk.google.com;
+- sin peticiones al servicio de predicción de permisos de Google ni al modelo de ranker de translate;
 - Safe Browsing solo hacia proxy.flyweb.lamosquita.net;
 - claves de API de Google vacías;
-- permiso de Google sign-in **en ejecución**;
-- adblock, adblock-internals y welcome accesibles.
+- permiso Google sign-in **funcionando en ejecución**: aviso en accounts.google.com desde un tercero y ajuste en
+  brave://settings;
+- adblock, adblock-internals y welcome accesibles;
+- en un perfil existente, búsquedas (barra y NTP) y sugerencias de Brave Search sin `source`;
+- flyweb://version y flyweb://crashes con la versión de FlyWeb.
 
-**Siguiente:** 7 (lo que salga del P2 de 8accd5ec, de la rápida de d7457458 y de chrome entero en la Ubuntu, MOTOR-30).
+**Siguiente:** 7, lo que salga del P2 y de chrome entero en la Ubuntu (MOTOR-30).
 
 # MOTOR-38 → MOTOR-39: B2 T11 (06-11-2026, ~21:05 UTC)
 
