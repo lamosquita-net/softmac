@@ -383,3 +383,5 @@ buzon/LOCAL/20261106-1054-COORDINACION-29-angle-metal-llavero.md → LOCAL Compi
 buzon/LOCAL/20261106-1100-COORDINACION-29-753.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-06 11:00 UTC · entregado (destino LOCAL sin número: enviado a LOCAL-19)
 buzon/MOTOR/20261106-1058-COORDINACION-29-rapida4.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 10:58 UTC · entregado (sin confirmación de lectura: Remote Control)
 buzon/LOCAL/20261106-1107-COORDINACION-29-bench-local.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-06 11:07 UTC · entregado (destino LOCAL sin número: enviado a LOCAL-19)
+buzon/LOCAL/20261106-1114-COORDINACION-29-pgo-6-1.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-06 11:14 UTC · entregado (destino LOCAL sin número: enviado a LOCAL-19)
+buzon/MOTOR/20261106-1115-COORDINACION-29-p2-t10.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 11:15 UTC · entregado (sin confirmación de lectura: Remote Control)
