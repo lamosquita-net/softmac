@@ -402,3 +402,8 @@ buzon/MOTOR/20261106-1211-COORDINACION-29-t11f.md → MOTOR Motor ubuntu (2) [44
 buzon/ARQUITECTURA/20261106-1222-COORDINACION-29-crx.md → ARQUITECTURA Arquitectura FlyWeb fork propio [05b11d] · 2026-11-06 12:22 UTC · entregado
 buzon/MOTOR/20261106-1240-COORDINACION-29-t11-filas.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 12:40 UTC · entregado (sin confirmación de lectura: Remote Control)
 buzon/MOTOR/20261106-1243-COORDINACION-29-p2-t11fin.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 12:43 UTC · entregado (sin confirmación de lectura: Remote Control)
+buzon/LOCAL/20261106-1300-COORDINACION-30.md → LOCAL-19 Compilación Local (19) [f55e89] · 2026-11-06 13:00 UTC · entregado (fichero dirigido a LOCAL-18 y LOCAL-19; no hay sesión LOCAL-18 en ListAgents, solo se entregó a LOCAL-19)
+buzon/MOTOR/20261106-1300-COORDINACION-30.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 13:00 UTC · entregado (sin confirmación de lectura: Remote Control)
+buzon/PUBLICACION/20261106-1300-COORDINACION-30.md → PUBLICACION Publicación [e2247c] · 2026-11-06 13:00 UTC · entregado
+buzon/SERVIDOR-LOCAL/20261106-1300-COORDINACION-30.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-06 13:00 UTC · entregado
+buzon/ARQUITECTURA/20261106-1300-COORDINACION-30.md → ARQUITECTURA Arquitectura FlyWeb fork propio [05b11d] · 2026-11-06 13:00 UTC · entregado
