@@ -1,0 +1,15 @@
+diff --git a/services/device/public/cpp/geolocation/system_geolocation_source_apple.h b/services/device/public/cpp/geolocation/system_geolocation_source_apple.h
+index 11d9e10fa1778c573a2b20f546aecab4f2aa8f30..d36e410e784e085d4e7da0d23956a483449b7c1c 100644
+--- a/services/device/public/cpp/geolocation/system_geolocation_source_apple.h
++++ b/services/device/public/cpp/geolocation/system_geolocation_source_apple.h
+@@ -136,6 +136,10 @@ class COMPONENT_EXPORT(GEOLOCATION) SystemGeolocationSourceApple
+   // Time when position watching started. Used to calculate the time to first
+   // position is updated.
+   base::TimeTicks watch_start_time_;
++  // FlyWeb (FM.42 b4): on 10.14 the permission is asked by starting location
++  // updates; these keep them running until the user answers.
++  bool watching_position_ = false;
++  bool requesting_permission_ = false;
+ #if BUILDFLAG(IS_IOS_TVOS)
+   // This timer is used to throttle location requests to mitigate a client
+   // control. Once the timer fires, OnRequestLocationThrottleTimerFiring() will

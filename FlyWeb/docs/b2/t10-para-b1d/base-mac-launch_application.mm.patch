@@ -1,0 +1,15 @@
+diff --git a/base/mac/launch_application.mm b/base/mac/launch_application.mm
+index ec785c6d48499234ccda6e02337cf1574f13ee1f..43de603d08ba8184b745c2947451b2c840a622a6 100644
+--- a/base/mac/launch_application.mm
++++ b/base/mac/launch_application.mm
+@@ -153,6 +153,10 @@ void LaunchApplication(const base::FilePath& app_bundle_path,
+     if (options.create_new_instance) {
+       launch_options |= NSWorkspaceLaunchNewInstance;
+     }
++    // FlyWeb: as config.promptsUserIfNeeded on 10.15+ (and as in 116).
++    if (options.prompt_user_if_needed) {
++      launch_options |= NSWorkspaceLaunchWithErrorPresentation;
++    }
+     if (options.hidden_in_background) {
+       launch_options |= NSWorkspaceLaunchAndHide |
+                         NSWorkspaceLaunchWithoutAddingToRecents;
