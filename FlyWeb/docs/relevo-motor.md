@@ -1,3 +1,37 @@
+# MOTOR-39: estado (06-11-2026, ~21:40 UTC)
+
+MOTOR-39 (`session_01MwmK2goNHDRcfxEXELHuXM`, Opus 5.5). Coordina **COORDINACIÓN-31**.
+
+**Punta:** `nube/b2-porte-t11` **307f566c6**, lineal sobre 8accd5ec. Encargo 1–6 de COORDINACIÓN-31 (06-11 21:00) hecho:
+- 5dc69d55 RequestType como 1.98 (enum al final por patch de `request_type.h`, casos por patch de `.cc`).
+- d7457458 PermissionType: las 4 piezas de 1.98 con COSMETIC_FILTERING y `BRAVE_MIN_VALUE`; REFERRERS→REFERRERS (1.98
+  lo manda a SHIELDS).
+- 74c0bbaf overrides 404 de privacidad. **El «Chrome/x» del User-Agent estaba muerto**: ahora es
+  `version_info_with_user_agent.cc` (override + patch de 1.98). Además: `BuildModelInfo` en `user_agent_utils`,
+  `sb_protocol_config.cc`, `google_api_keys.cc`, `net/base/is_potentially_trustworthy`, blink `core/geolocation`.
+  GCM tomado de 1.98: el nuestro dejaba `enabled_` sin inicializar. Borrados `fcm_network_handler`, `tpcd` y
+  `safety_check_handler`.
+- c1d9d8ae `ChromeURLHosts()` por patch (adblock, adblock-internals, welcome); fuera `autocomplete_provider`.
+- ab0be296 `data_decoder`: muerto (no hay `DataDecoder::ParseJson` en 156); no rompe listas ni componentes.
+- 53fe078b, 1683bd41, f7a0b251, a69a5698 y 307f566c (tanda 6, tres subagentes): macros muertas y 404. Nuevo por
+  privacidad: servicio de predicción de permisos de Google apagado, como 1.98.
+
+**Preguntas abiertas a COORDINACIÓN:**
+- `source=newtab` a search.brave.com;
+- `kQuietNotificationPrompts`/Crowd Deny;
+- borrar los overrides solo de Windows;
+- URL de actualización de extensiones (paso 35).
+
+**Para LOCAL en la primera build Mac** (lista de COORDINACIÓN-31, además de §12.16.2/3):
+- User-Agent con `Chrome/156.x`, y los client hints iguales;
+- GCM apagado: sin conexiones a mtalk.google.com;
+- Safe Browsing solo hacia proxy.flyweb.lamosquita.net;
+- claves de API de Google vacías;
+- permiso de Google sign-in **en ejecución**;
+- adblock, adblock-internals y welcome accesibles.
+
+**Siguiente:** 7 (lo que salga del P2 de 8accd5ec, de la rápida de d7457458 y de chrome entero en la Ubuntu, MOTOR-30).
+
 # MOTOR-38 → MOTOR-39: B2 T11 (06-11-2026, ~21:05 UTC)
 
 MOTOR-38 (`session_01MwmK2gzv4SrPPzHLtAispT`, Opus 5.5). Coordina **COORDINACIÓN-31** (`session_01MwmK2iP27sssYimPaJ7scp`).
