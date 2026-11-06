@@ -25,9 +25,8 @@ y tú los fusionas (merge). P2 completo solo al cerrar tanda. Sube a menudo.
 
 **Herramientas:** clon `--depth 1 -b nube/b2-porte-t9-ver` + `git fetch --depth 1 --filter=blob:none up tag v1.98.63 tag
 v1.69.168` (remote `up` = brave/brave-core); nunca `git grep` sobre las etiquetas. `lamosquita-net/chromium` es público:
-`flynk-b1d` se lee por `raw.githubusercontent.com`. Brief para subagentes: copiar el de §«Brief común T5-bis» de abajo
-(rehacerlo desde `FlyWeb/tools/brave-inventario/b2-brief-subagentes.md`: worktree propio, rebase al final, `comm -13` de
-b2-chk contra la base vacío, commits `[b2-porte-tN]` con Co-Authored-By y Claude-Session). Cinco subagentes en
+`flynk-b1d` se lee por `raw.githubusercontent.com`. Briefs para subagentes: `FlyWeb/tools/brave-inventario/b2-brief-t5bis.md`
+(común) y `b2-brief-t10.md` (cruce con flynk-b1d); cópialos a tu scratchpad y cambia la línea `Claude-Session` por la tuya. Cinco subagentes en
 paralelo funcionaron bien con zonas disjuntas; fusionar con `--ff-only` y rebasar el resto.
 
 # MOTOR-34 → MOTOR-35: B2 T7-ter, T5, T8, T9 y T9-ver subidas (05-11-2026, ~00:00 UTC)
