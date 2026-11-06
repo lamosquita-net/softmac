@@ -388,3 +388,5 @@ buzon/MOTOR/20261106-1115-COORDINACION-29-p2-t10.md → MOTOR Motor ubuntu (2) [
 buzon/LOCAL/20261106-1116-COORDINACION-29-pgo-pasos.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-06 11:16 UTC · entregado (destino LOCAL sin número: enviado a LOCAL-19)
 buzon/LOCAL/20261106-1119-COORDINACION-29-fieldtrials.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-06 11:19 UTC · entregado (destino LOCAL sin número: enviado a LOCAL-19)
 buzon/MOTOR/20261106-1122-COORDINACION-29-prod-tests.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 11:22 UTC · entregado (sin confirmación de lectura: Remote Control)
+buzon/LOCAL/20261106-1124-COORDINACION-29-pgo-anulado.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-06 11:24 UTC · entregado (destino LOCAL sin número: enviado a LOCAL-19)
+buzon/MOTOR/20261106-1126-COORDINACION-29-t11a.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 11:26 UTC · entregado (sin confirmación de lectura: Remote Control)
