@@ -1237,3 +1237,13 @@ que Configuración muestre Shields y Sync (después de A); que «Checkup» no ap
 servicios de contraseñas de Google; `flyweb://settings/` (Shields, filtros, Sync y su setup, Contenido, fuentes, atajos,
 gestionar perfil, búsqueda), `/content/autoplay`, `/content/braveShields`, `/content/googleSignIn` y Storage Access; el
 prompt de Google sign-in en un sitio con Shields bloqueando cookies de terceros, y FedCM.
+
+**Llaves de acceso con el móvil (WebAuthn híbrido: QR + Bluetooth, «caBLE»): intocables** (Titín, 06-11). Revisado en
+`b1a25a49` (MOTOR-38): ningún parche, override ni flag de brave-core apaga el modo híbrido ni el Bluetooth de
+`device/fido`. Los parches de `device/fido` solo quitan el autenticador de plataforma (Touch ID/Secure Enclave, FM.42
+d3/d4). `kBraveWebBluetoothAPI` cierra la API Web Bluetooth para los sitios, no el BLE de caBLE, porque `device/fido`
+no pasa por `BluetoothDelegate`. El parche de `device_info_sync_bridge` no toca la info de Phone-as-a-security-key.
+Tampoco hay overrides de `device::kWebAuthn*`. **Comprobación para LOCAL (Mac)**: en webauthn.io, crear e iniciar
+sesión con una llave del móvil (Android e iPhone) por QR + Bluetooth, en Mojave y en Catalina o Monterey. En las dos
+últimas, que salga el permiso de Bluetooth del sistema: comparar `NSBluetoothAlwaysUsageDescription` en el Info.plist
+de 2.0.x y de la 3.0.0.
