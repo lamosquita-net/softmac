@@ -2,7 +2,7 @@
 
 MOTOR-39 (`session_01MwmK2goNHDRcfxEXELHuXM`, Opus 5.5). Coordina **COORDINACIÓN-31**.
 
-**Punta:** `nube/b2-porte-t11` **3b84fb48a**, lineal sobre 8accd5ec. Encargo 1–6 de COORDINACIÓN-31 (06-11 21:00) hecho:
+**Punta:** `nube/b2-porte-t11` **050d5b0cb**, lineal sobre 8accd5ec. Encargo 1–6 de COORDINACIÓN-31 (06-11 21:00) hecho:
 - 5dc69d55 RequestType como 1.98 (enum al final por patch de `request_type.h`, casos por patch de `.cc`).
 - d7457458 PermissionType: las 4 piezas de 1.98 con COSMETIC_FILTERING y `BRAVE_MIN_VALUE`; REFERRERS→REFERRERS (1.98
   lo manda a SHIELDS).
@@ -22,7 +22,12 @@ MOTOR-39 (`session_01MwmK2goNHDRcfxEXELHuXM`, Opus 5.5). Coordina **COORDINACIÓ
 - c) borrados los overrides solo de Windows (3b84fb48);
 - d) la URL de actualización de extensiones no se toca.
 
-Pendiente de COORDINACIÓN: si se quita también el `source=desktop` de la plantilla de Brave Search.
+También fuera `source=` de la plantilla de Brave Search, en la búsqueda y en las sugerencias (050d5b0c,
+`kBraveCurrentDataVersion` 30). LOCAL: comprobar en un perfil existente que las búsquedas y las sugerencias van sin `source`.
+
+Menores nuevos:
+- poda del código Windows de `brave/` que no es override;
+- `brave_search_tor` sigue en `brave_prepopulated_engines.cc`.
 
 **Para LOCAL en la primera build Mac** (lista de COORDINACIÓN-31, además de §12.16.2/3):
 - User-Agent con `Chrome/156.x`, y los client hints iguales;
