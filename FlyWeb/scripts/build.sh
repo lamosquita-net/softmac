@@ -109,11 +109,30 @@ cd "$BUILD/brave-browser"
 # con parches; brave-core ya no tiene .patch de src ni de v8 ni FlyWeb/v8-revision. checkout -f descarta lo que
 # dejaron los parches de una compilación anterior (también los ficheros nuevos que estorben). Los .patchinfo de
 # src y v8 se borran: si no, apply_patches «restauraría» a HEAD los ficheros de parches que ya no existen.
+# Origen local (los bare de convertir.sh, superficiales y con objetos prestados): no se hace fetch (git no sabe
+# fusionar sus raíces superficiales y falla con «shallow file has changed»); se prestan sus objetos (alternates)
+# y sus raíces, y se pone la ref. Origen remoto (el fork): fetch normal.
+traer_flynk() {  # <repo del checkout> <origen: carpeta bare o url> <rama>
+  local R=$1 O=$2 REF=$3 GD SHA
+  if [ -d "$O" ]; then
+    GD=$(git -C "$R" rev-parse --path-format=absolute --git-common-dir)
+    O=$(cd "$O" && pwd)
+    touch "$GD/objects/info/alternates"
+    grep -qxF "$O/objects" "$GD/objects/info/alternates" || echo "$O/objects" >> "$GD/objects/info/alternates"
+    if [ -f "$O/shallow" ]; then
+      cat "$O/shallow" "$GD/shallow" 2>/dev/null | sort -u > "$GD/shallow.flynk"
+      mv "$GD/shallow.flynk" "$GD/shallow"
+    fi
+    SHA=$(git --git-dir="$O" rev-parse "refs/heads/$REF^{commit}")
+    git -C "$R" update-ref "refs/remotes/flynk/$REF" "$SHA"
+  else
+    git -C "$R" fetch -q "$O" "+refs/heads/$REF:refs/remotes/flynk/$REF"
+  fi
+  git -C "$R" checkout -q -f --detach "refs/remotes/flynk/$REF"
+}
 if [ "$BASE" = flynk ]; then
-  git -C src fetch -q "$FLYNK_SRC" "+refs/heads/$FLYNK_REF:refs/remotes/flynk/$FLYNK_REF"
-  git -C src checkout -q -f --detach "refs/remotes/flynk/$FLYNK_REF"
-  git -C src/v8 fetch -q "$FLYNK_V8" "+refs/heads/$FLYNK_V8_REF:refs/remotes/flynk/$FLYNK_V8_REF"
-  git -C src/v8 checkout -q -f --detach "refs/remotes/flynk/$FLYNK_V8_REF"
+  traer_flynk src "$FLYNK_SRC" "$FLYNK_REF"
+  traer_flynk src/v8 "$FLYNK_V8" "$FLYNK_V8_REF"
   rm -f src/brave/patches/*.patchinfo src/brave/patches/v8/*.patchinfo
   [ -f src/brave/FlyWeb/v8-revision ] && {
     echo "brave-core $BRANCH aún tiene FlyWeb/v8-revision: no es una rama del corte (FM.54 F1)" >&2; exit 1; }
@@ -264,7 +283,7 @@ fi
 if [ "$BASE" != 116 ]; then
   # La Release de la 128 da ~30 avisos -Wunguarded-availability-new (APIs de 10.15 en código de Chromium) que
   # cortan el build si los avisos son errores (LOCAL-10, 26-10).
-  set -- "$@" --gn mac_deployment_target:10.14 --gn mac_min_system_version:10.14 \
+  set -- "$@" --gn 'mac_deployment_target:"10.14"' --gn 'mac_min_system_version:"10.14"' \
     --gn "flyweb_metal_bin_path:$METAL_BIN" --gn treat_warnings_as_errors:false
 fi
 # Argumentos extra para el build de Brave (p. ej. ASan: FLYWEB_EXTRA_ARGS="--is_asan -C StaticAsan" con
