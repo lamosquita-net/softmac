@@ -1076,3 +1076,35 @@ Sin compilar; `b2-chk.py` no añade nada en ninguna tanda. Ramas y sha en `relev
 - **T9-ver:** 3.0.0, nivel 156, 156.0.8078.82, mínimo macOS 13.7.8, `package.json` 1.98.63 (CFBundleVersion 198.63.N), Client
   Hints reescritos para la 156; `declared_version` se conserva.
 
+
+### 12.15 T9-fix, T5-bis y T10 (MOTOR-35, 06-11)
+
+Sin compilar en la nube; `b2-chk.py` limpio en cada tanda (salvo falsos positivos de `vector_icons.h` generado). Desde el
+06-11 la Ubuntu (MOTOR-30/31) compila las unidades tocadas en cada sha y hace los arreglos mecánicos en `nube/b2-ubuntu-fix`.
+
+| Tanda | Rama | sha | Qué |
+|---|---|---|---|
+| T9-fix | `nube/b2-porte-t9-fix` | 29e723561 (PR #20) | 11 nuevos del P2 de t9-ver, importer, buscadores, decisión 3 (fuera `BraveDownloadItemModel` y `brave_tooltips`), menú de extensiones de 1.98 entero. P2: rotos 357 → 335, 0 regresiones |
+| T5-bis | `nube/b2-porte-t5-bis` | 84335a1a0 | bienvenida (tipos de `sendWithPromise`), barrido `browser()->GetProfile()` (76 tests), perfil/avatar/incógnito, infobars, estrella (por `page_action_controller`), Page Info cookies, poda de las decisiones 1 y 4 (vista dividida, verticales con migración, burbuja de la lista de cookies, `safe_builtins`, `rapidjson`), estilo de pestañas de Chromium, panel lateral nativo, modelo y marco, 23 overrides de `views` llevados a sus rutas de 156 o borrados |
+| T10 | `nube/b2-porte-t10` | 4445df1fd | §12.13.2 «reportar» llevados a la 156, cruzados con `flynk-b1d`; 9 parches sobre ficheros que modifica b1d pasan a `FlyWeb/docs/b2/t10-para-b1d/` (#785) para LOCAL; dudosos resueltos por COORDINACIÓN-29 (fuera los 4 del llavero y los 2 de CT, nativos en 156; fuera ANGLE `BUILD.gn`; se queda `unsafe_buffers_paths`); los 4 de UA/versión fuera |
+
+Decisiones de COORDINACIÓN-29 aplicadas: las nativas de 156 se quedan (pestañas verticales, vista dividida, panel lateral,
+estilo de pestañas); migración de verticales (si `brave.tabs.vertical_tabs_enabled`, `vertical_tabs.enabled` = true y
+`ClearPref` de las 7 prefs, en `browser/flyweb/pruned_feature_prefs.cc`); la capa Mojave de Chromium vive solo en
+`flynk-b1d` (en `patches/` no puede haber parches contra b1d).
+
+#### 12.15.1 Para las notas de la 3.0.0 (funciones perdidas)
+
+- Descargas: «Quitar de la lista» del menú contextual; anillo de progreso grande y colores propios del botón.
+- Avisos emergentes de Brave (`brave_tooltips`).
+- Menú de incógnito: subtítulo con el número de ventanas privadas (sigue en el botón del avatar).
+- Panel de marcadores: orden personalizado. Infobars de Brave: botón extra y orden de botones (ninguna lo usaba).
+- Vista dividida de Brave (queda la de Chromium). Pestañas verticales de Brave (flotantes, a la derecha, barra de título,
+  barra de desplazamiento, comando del menú de pestaña); quedan las nativas y quien las tenía activadas las recibe activadas.
+- Burbuja que ofrecía bloquear avisos de cookies (el filtro sigue).
+- Aspecto de pestañas de Brave (redondeadas, sombra, separadores, borde en fijadas, título atenuado), grupos al estilo Brave
+  (chip y subrayado), botones «+» y lupa propios.
+- Panel lateral: sin redimensionar ni anchura guardada (panel nativo).
+- Esquinas redondeadas del contenido web (flag experimental), icono de traducir propio, apaño al arrastrar cabeceras de
+  grupo; en Linux (no objetivo), tema «igual que el sistema».
+- Ninguna por T10.

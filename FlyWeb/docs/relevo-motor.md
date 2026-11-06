@@ -1,3 +1,35 @@
+# MOTOR-35 → MOTOR-36: B2 T9-fix, T5-bis y T10 subidas (06-11-2026, ~11:10 UTC)
+
+MOTOR-35 (`session_01MwmK2jBqgc4rNEXcQwzpbr`, Opus 5.5). Coordina **COORDINACIÓN-29** (`session_01MwmK2iQtUzz1YsyLeXQbNV`).
+Relevo al 39 % de contexto.
+
+**Qué leer:** esta sección y `brave-propio.md` §12.15 (y §12.13 si vas a tocar `patches/`).
+
+**Puntas (brave-core, cadena lineal con merges):** T9-fix `nube/b2-porte-t9-fix` 29e723561 (PR #20, medida: 335 rotos) →
+T5-bis `nube/b2-porte-t5-bis` 84335a1a0 → T10 `nube/b2-porte-t10` 4445df1fd (= T5-bis + T10, por merge). Trabaja encima
+de la punta más alta (t10). `nube/m34-probe` sigue sin borrar (el clasificador deniega `push --delete`; Titín desde la web).
+
+**Método nuevo (COORDINACIÓN-29, 06-11):** cada sha que subas lo compila la Ubuntu (MOTOR-30/31) solo en las unidades
+tocadas; COORDINACIÓN te pasa los errores; los arreglos mecánicos los hace ella en `nube/b2-ubuntu-fix` encima de tu punta
+y tú los fusionas (merge). P2 completo solo al cerrar tanda. Sube a menudo.
+
+**Siguiente:**
+1. Errores de la compilación de T5-bis/T10 que pase COORDINACIÓN. Previsibles: `BraveTabStrip` (`UpdateHoverCard(Tab*)`,
+   `GetBrowser()`), `BraveTabHoverCardController` y partes de `BraveBrowserView` con API de 128;
+   `brave_sharing_hub_browsertest.cc` incluye `page_action_icon_view.h` (ya no existe); 16 sitios en 10 tests con
+   `Browser* x = CreateIncognitoBrowser()/CreateBrowser()` (en 156 devuelven `BrowserWindowInterface*`).
+2. Tarea posterior ordenada por COORDINACIÓN-29: pasar los envoltorios `.cc` al esquema de 1.98, sin `redirect_cc`.
+3. Pendientes de otros: LOCAL confirma si ANGLE Metal necesita `flyweb_metal_bin_path` en `flynk-b1d` y mete los 9
+   parches de `FlyWeb/docs/b2/t10-para-b1d/`; LOCAL-19 comprueba que con WebGPU apagado nada llame a Dawn en 10.14;
+   la puerta del llavero debe probarse con T10 (los 4 parches de sync de contraseñas se quitaron por ser nativos en 156).
+
+**Herramientas:** clon `--depth 1 -b nube/b2-porte-t9-ver` + `git fetch --depth 1 --filter=blob:none up tag v1.98.63 tag
+v1.69.168` (remote `up` = brave/brave-core); nunca `git grep` sobre las etiquetas. `lamosquita-net/chromium` es público:
+`flynk-b1d` se lee por `raw.githubusercontent.com`. Brief para subagentes: copiar el de §«Brief común T5-bis» de abajo
+(rehacerlo desde `FlyWeb/tools/brave-inventario/b2-brief-subagentes.md`: worktree propio, rebase al final, `comm -13` de
+b2-chk contra la base vacío, commits `[b2-porte-tN]` con Co-Authored-By y Claude-Session). Cinco subagentes en
+paralelo funcionaron bien con zonas disjuntas; fusionar con `--ff-only` y rebasar el resto.
+
 # MOTOR-34 → MOTOR-35: B2 T7-ter, T5, T8, T9 y T9-ver subidas (05-11-2026, ~00:00 UTC)
 
 MOTOR-34 (`session_01MwmK2k5p4qtinBTbRDd26B`, Opus 5.5, alto). Coordina **COORDINACIÓN-29** (`session_01MwmK2iQtUzz1YsyLeXQbNV`).
