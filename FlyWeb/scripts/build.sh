@@ -6,8 +6,12 @@
 #   Release    is_official_build (ThinLTO, enlazado lento y con mucha RAM): solo para publicar.
 #
 # Variables:
-#   FLYWEB_BASE=128|116                  base de Chromium (por defecto 128 = FlyWeb 2.x). Fija checkout, SDK y depot_tools:
+#   FLYWEB_BASE=128|flynk|116            base de Chromium (por defecto 128 = FlyWeb 2.x). Fija checkout, SDK y depot_tools:
 #                                          128: ~/proyectos/brave-128, SDK 14.5, depot_tools 31e21628, mínimo 10.14, Metal
+#                                          flynk: como 128, pero src y src/v8 son las ramas flynk y flynk-v8 del árbol
+#                                            propio (FM.54 F1), en ~/proyectos/flynk-f1; brave-core, una rama del corte
+#                                            (sin .patch de src/v8). FLYWEB_FLYNK_SRC/_V8 (repo o URL) y
+#                                            FLYWEB_FLYNK_REF/_V8_REF (por defecto flynk y flynk-v8)
 #                                          116: ~/proyectos/flyweb-build, SDK 13.3, depot_tools de la 116, rama flyweb
 #   FLYWEB_BRANCH=rama|sha               brave-core que se compila. En 1.x, por defecto flyweb (y la misma rama en
 #                                        brave-browser). En 2.x es obligatoria (p. ej. nube/base-128-motor-p19): brave-browser
@@ -47,16 +51,25 @@ case "$BASE" in
     SDK="${FLYWEB_SDK:-$HOME/proyectos/sdk/MacOSX13.3.sdk}"
     BRANCH="${FLYWEB_BRANCH:-flyweb}"
     ;;
-  128)
+  128|flynk)
     DEPOT_TOOLS_PIN=31e21628
-    BUILD="${FLYWEB_BUILD:-$HOME/proyectos/brave-128}"
+    if [ "$BASE" = flynk ]; then
+      BUILD="${FLYWEB_BUILD:-$HOME/proyectos/flynk-f1}"
+      # Árbol propio (FM.54 F1): de dónde se traen flynk y flynk-v8 (repo local de convertir.sh o el fork).
+      FLYNK_SRC="${FLYWEB_FLYNK_SRC:-$HOME/proyectos/flynk/chromium.git}"
+      FLYNK_V8="${FLYWEB_FLYNK_V8:-$HOME/proyectos/flynk/v8.git}"
+      FLYNK_REF="${FLYWEB_FLYNK_REF:-flynk}"
+      FLYNK_V8_REF="${FLYWEB_FLYNK_V8_REF:-flynk-v8}"
+    else
+      BUILD="${FLYWEB_BUILD:-$HOME/proyectos/brave-128}"
+    fi
     SDK="${FLYWEB_SDK:-$HOME/proyectos/sdk/MacOSX14.5.sdk}"
     BRANCH="${FLYWEB_BRANCH:-}"
     [ -n "$BRANCH" ] || { echo "2.x: falta FLYWEB_BRANCH (rama o sha de brave-core, p. ej. nube/base-128-motor-p19)" >&2; exit 1; }
     METAL_BIN="${FLYWEB_METAL_BIN:-$HOME/proyectos/sdk/Xcode-15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/}"
     [ -x "${METAL_BIN%/}/metal" ] || { echo "No hay metal en $METAL_BIN (FLYWEB_METAL_BIN)" >&2; exit 1; }
     ;;
-  *) echo "FLYWEB_BASE: 128 o 116" >&2; exit 1 ;;
+  *) echo "FLYWEB_BASE: 128, flynk o 116" >&2; exit 1 ;;
 esac
 CONFIG="${1:-Static}"
 
@@ -91,6 +104,22 @@ if [ -n "$SCCACHE" ] && [ "$SCCACHE" != "off" ]; then
 fi
 
 cd "$BUILD/brave-browser"
+# Árbol propio (FM.54 F1, fork-propio.md §5–6): Chromium y V8 son las ramas flynk y flynk-v8, no la 128 limpia
+# con parches; brave-core ya no tiene .patch de src ni de v8 ni FlyWeb/v8-revision. checkout -f descarta lo que
+# dejaron los parches de una compilación anterior (también los ficheros nuevos que estorben). Los .patchinfo de
+# src y v8 se borran: si no, apply_patches «restauraría» a HEAD los ficheros de parches que ya no existen.
+if [ "$BASE" = flynk ]; then
+  git -C src fetch -q "$FLYNK_SRC" "+refs/heads/$FLYNK_REF:refs/remotes/flynk/$FLYNK_REF"
+  git -C src checkout -q -f --detach "refs/remotes/flynk/$FLYNK_REF"
+  git -C src/v8 fetch -q "$FLYNK_V8" "+refs/heads/$FLYNK_V8_REF:refs/remotes/flynk/$FLYNK_V8_REF"
+  git -C src/v8 checkout -q -f --detach "refs/remotes/flynk/$FLYNK_V8_REF"
+  rm -f src/brave/patches/*.patchinfo src/brave/patches/v8/*.patchinfo
+  [ -f src/brave/FlyWeb/v8-revision ] && {
+    echo "brave-core $BRANCH aún tiene FlyWeb/v8-revision: no es una rama del corte (FM.54 F1)" >&2; exit 1; }
+  echo "src: $(git -C src log -1 --format='%h %s')"
+  echo "V8: $(git -C src/v8 log -1 --format='%h %s')"
+fi
+if [ "$BASE" != flynk ]; then
 # V8 por niveles (FM.5): cada nivel N lleva la V8 de Chrome N. La revisión la fija brave-core en
 # FlyWeb/v8-revision (un commit o una etiqueta de V8, p. ej. 11.7.439.21); sin ese fichero, la de la 116
 # (v8_revision de src/DEPS). Como aquí no se ejecuta gclient sync, se pone a mano antes de los parches.
@@ -114,6 +143,7 @@ if [ "$(git -C src/v8 rev-parse HEAD)" != "$V8_WANT" ]; then
   rm -f src/brave/patches/v8/*.patchinfo
 fi
 echo "V8: $(git -C src/v8 describe --tags --always HEAD)"
+fi
 # Dependencias de V8 que la 116/128 no tiene (fast_float desde V8 13.0, nivel 130, FM.20; dragonbox desde V8 13.8,
 # nivel 138, FM.53): V8 depende de //third_party/<nombre>. El BUILD.gn y el README.chromium (licencia para
 # about:credits) los pone un parche de brave-core; el código se trae aquí, como V8, en el commit de
@@ -230,7 +260,7 @@ else
 fi
 # 2.x: mínimo 10.14 (la 128 sube a 10.15 por defecto) y metal/metallib del toolchain de Xcode 15.4 para ANGLE Metal
 # (patches/third_party/angle/…metal-BUILD.gn.patch; sin él, ruta absoluta de otro Mac).
-if [ "$BASE" = 128 ]; then
+if [ "$BASE" != 116 ]; then
   # La Release de la 128 da ~30 avisos -Wunguarded-availability-new (APIs de 10.15 en código de Chromium) que
   # cortan el build si los avisos son errores (LOCAL-10, 26-10).
   set -- "$@" --gn mac_deployment_target:10.14 --gn mac_min_system_version:10.14 \

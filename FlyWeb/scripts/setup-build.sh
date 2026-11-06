@@ -15,6 +15,43 @@ set -eu
 # (dotenv…). En la MacPro7,1 esa variable llega del entorno de la app, no del perfil del shell.
 unset NODE_ENV
 
+# Árbol propio (FM.54 F1, FlyWeb/docs/fork-propio.md §5–6): FLYWEB_BASE=flynk prepara ~/proyectos/flynk-f1 sin
+# descargar nada, como copia APFS (clonefile: comparte los bloques, casi no ocupa) de un checkout de la 128 que ya
+# compila (FLYWEB_FROM, por defecto ~/proyectos/brave-128, out/ incluido para compilar en incremental). Después
+# build.sh FLYWEB_BASE=flynk pone src y src/v8 en flynk y flynk-v8. El origen no se modifica.
+#   FLYWEB_FLYNK_URL   url de src para .gclient (el fork de Chromium; por defecto, el repo bare local de convertir.sh).
+#                      V8 sigue saliendo del DEPS de src hasta F3; build.sh la pone en flynk-v8.
+if [ "${FLYWEB_BASE:-}" = flynk ]; then
+  FROM="${FLYWEB_FROM:-$HOME/proyectos/brave-128}"
+  BUILD="${FLYWEB_BUILD:-$HOME/proyectos/flynk-f1}"
+  GITDIRS="${FLYWEB_GITDIRS:-$HOME/proyectos/softmac/FlyWeb}"
+  URL="${FLYWEB_FLYNK_URL:-$HOME/proyectos/flynk/chromium.git}"
+  [ -d "$FROM/brave-browser/src/.git" ] || { echo "ERROR: $FROM no es un checkout de la 128" >&2; exit 1; }
+  [ -e "$BUILD" ] && { echo "ERROR: $BUILD ya existe; no lo piso" >&2; exit 1; }
+  [ "$(df "$FROM" | awk 'NR==2{print $1}')" = "$(df "$(dirname "$BUILD")" | awk 'NR==2{print $1}')" ] ||
+    { echo "ERROR: $FROM y $BUILD han de estar en el mismo volumen APFS (clonefile)" >&2; exit 1; }
+  # Que nadie compile en el origen mientras se copia.
+  pgrep -f "$FROM/brave-browser" >/dev/null && { echo "ERROR: hay procesos en $FROM; espera" >&2; exit 1; }
+  echo "Copia APFS de $FROM en $BUILD…"
+  cp -cR "$FROM" "$BUILD"
+  # brave-browser es un worktree de brave-browser.git: la copia necesita su propia entrada de worktree.
+  WB="$BUILD/brave-browser"
+  COMMIT=$(git -C "$FROM/brave-browser" rev-parse HEAD)
+  rm "$WB/.git"
+  T="$BUILD/brave-browser-wt.tmp"
+  git --git-dir="$GITDIRS/brave-browser.git" worktree add -q --no-checkout --detach "$T" "$COMMIT"
+  mv "$T/.git" "$WB/.git"
+  rmdir "$T"
+  git --git-dir="$GITDIRS/brave-browser.git" worktree repair "$WB"
+  git -C "$WB" reset -q
+  # .gclient: src desde el árbol propio (solo cuenta si algún día se hace gclient sync; nunca con -D).
+  sed -i '' "s|\"url\": \"https://chromium.googlesource.com/chromium/src.git\"|\"url\": \"$URL\"|" "$WB/.gclient"
+  grep -q "\"url\": \"$URL\"" "$WB/.gclient" || { echo "ERROR: no he podido cambiar la url de src en .gclient" >&2; exit 1; }
+  git -C "$WB/src" remote add flynk "$URL" 2>/dev/null || git -C "$WB/src" remote set-url flynk "$URL"
+  echo "Listo: $BUILD. Compila con: FLYWEB_BASE=flynk FLYWEB_BRANCH=<rama del corte> $(dirname "$0")/build.sh"
+  exit 0
+fi
+
 # depot_tools fijado al commit del DEPS de Chromium 116: con uno más reciente, su vpython ya no resuelve las
 # dependencias de los hooks de la 116 (p. ej. numpy==1.21.1+supported.1). Y sin autoactualizaciones.
 export DEPOT_TOOLS_UPDATE=0
