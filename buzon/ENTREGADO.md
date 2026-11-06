@@ -407,3 +407,5 @@ buzon/MOTOR/20261106-1300-COORDINACION-30.md → MOTOR Motor ubuntu (2) [44ebbb]
 buzon/PUBLICACION/20261106-1300-COORDINACION-30.md → PUBLICACION Publicación [e2247c] · 2026-11-06 13:00 UTC · entregado
 buzon/SERVIDOR-LOCAL/20261106-1300-COORDINACION-30.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-06 13:00 UTC · entregado
 buzon/ARQUITECTURA/20261106-1300-COORDINACION-30.md → ARQUITECTURA Arquitectura FlyWeb fork propio [05b11d] · 2026-11-06 13:00 UTC · entregado
+buzon/LOCAL/20261106-1305-COORDINACION-30-ab-pgo.md → LOCAL-19 Compilación Local (19) [f55e89] · 2026-11-06 13:05 UTC · entregado
+buzon/MOTOR/20261106-1305-COORDINACION-30-p2.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 13:05 UTC · entregado (sin confirmación de lectura: Remote Control)
