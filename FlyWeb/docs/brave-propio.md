@@ -1116,7 +1116,7 @@ Sin compilar en la nube; la Ubuntu (MOTOR-30) compila las unidades tocadas de ca
 
 | Tanda | Rama | sha | Qué |
 |---|---|---|---|
-| T11 | `nube/b2-porte-t11` | (ver `relevo-motor.md`, sección MOTOR-36 → MOTOR-37) | Previsibles de MOTOR-35 (tira de pestañas, `BrowserView`, tests con `BrowserWindowInterface*`), 4 errores nuevos del P2 de T10 y las 3 partes de producción del P2 de T10 (≈170 ficheros) en 9 zonas; WDP fuera; capa de features a 156; barra de marcadores nativa; CUP de extensiones; limpieza de Rewards/Talk/Brave Search/P3A |
+| T11 | `nube/b2-porte-t11` | 2eb3838b5 (sin PR aún; P2 en d28ecad6: 280 → 177 rotos, 98 de producción) | Previsibles de MOTOR-35 (tira de pestañas, `BrowserView`, tests con `BrowserWindowInterface*`), 4 errores nuevos del P2 de T10 y las 3 partes de producción del P2 de T10 (≈170 ficheros) en 9 zonas; WDP fuera; capa de features a 156; barra de marcadores nativa; CUP de extensiones; limpieza de Rewards/Talk/Brave Search/P3A |
 
 Decisiones de COORDINACIÓN-29 aplicadas: T11 = solo producción (los tests, en una tanda T-tests aparte: los 152 idénticos a
 1.98 se toman enteros, los 140 tocados se portan, y de los 39 sin equivalente se da una lista con propuesta); fuera Web
@@ -1153,6 +1153,6 @@ en `build.sh` mientras viva la 2.x (Brave 1.69 la exige en oficial).
   Brave; CDN privada de Brave; verificación ECDSA-SHA384.
 - Botones con estilo Leo y candado propio de Brave (ahora los nativos de Chrome); detector RSS (Brave News); extracción de
   la vista previa de impresión (Leo); redirección de popups del bubble WebUI (Wallet).
-- Restos de Rewards y Talk, conversión a Brave Search, sugerencias de sitios fijas de Brave en la barra de direcciones
-  (`TopSitesProvider`) y el recuento semanal de búsquedas para P3A.
+- Restos de Rewards y Talk (menú, página, botón), banner del omnibox y promo del NTP de Brave Search, sugerencias de sitios fijas de Brave en la barra de direcciones
+  (`TopSitesProvider`, con su casilla de ajustes) y las métricas P3A de búsquedas y de cambio de motor.
 - Permiso «localhost» de Brave (cuando se haga su tanda): queda el Local Network Access nativo.

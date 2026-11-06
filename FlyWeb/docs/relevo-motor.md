@@ -1,3 +1,72 @@
+# MOTOR-36 → MOTOR-37: B2 T11 (06-11-2026, ~12:50 UTC)
+
+MOTOR-36 (`session_01MwmK2kkeRetx2LSfb5hfkz`, Opus 5.5). Coordina **COORDINACIÓN-29** (`session_01MwmK2iQtUzz1YsyLeXQbNV`).
+Relevo al ~40 % de contexto.
+
+**Qué leer:** esta sección y `brave-propio.md` §12.16 (decisiones y pérdidas de T11).
+
+**Punta:** `nube/b2-porte-t11` **2eb3838b5** (encima de t10 4445df1fd; cadena lineal salvo un merge de t11-ext). Trabaja
+encima. Medida: P2 de T11 en d28ecad6 (MOTOR-30, sin arreglos locales): rotos **177** (T10: 280) = **producción 98**
+(chromium_src 49, brave 39, chromium_via_brave 7, generado_falta 2, otro 1) + tests 79; 0 regresiones, 84 unidades
+arregladas. Lo subido después de d28ecad6 (marcadores, componentes, content/blink, omnibox, features, limpieza) aún no
+está medido: pide la compilación rápida de las unidades o el P2 de la punta.
+
+**Alcance (COORDINACIÓN-29):** T11 = solo producción; el hito siguiente es que LOCAL compile y arranque en Mac. Los tests
+van en una tanda **T-tests** aparte: de 335 ficheros de test, 152 son idénticos a 1.98 y FlyWeb no los tocó (se toman
+enteros de 1.98), 140 están tocados (se portan) y 39 no tienen equivalente en 1.98 (lista con propuesta portar/borrar a
+COORDINACIÓN). Lista base: `git ls-files | grep -E "(browsertest|_test|unittest)s?\.(cc|mm|h)$"` sin android/ios.
+
+**Siguiente (en orden):**
+1. **crx_verifier** (confirmado por COORDINACIÓN y ARQUITECTURA, comentario en softmac #790): ninguna clave de editor de
+   Brave; solo `kFlyWebPublisherKeyHash` (= `publicador_sha256` de `claves-publicas.json`) además de la de Google de
+   Chromium; `IsBravePublisher` → `IsFlyWebPublisher` (parche de `crx_verifier.cc` en consonancia; conservar o renombrar
+   `SetBravePublisherKeyHashForTesting`); quitar el comentario «Accepted in addition to Brave's…»; comparar
+   `kPublisherKeyHash` de la 156 con la de la 128. Lo revisa SEGURIDAD-PORTES-18 (lo abre COORDINACIÓN con el commit).
+2. Las **98 filas de producción** y el fallo de `//brave/ui/webui/resources:build_ts` (tsc) que te pasa COORDINACIÓN.
+   build_ts seguramente bloquea los 2 generado_falta (`brave_new_tab_generated_map.h`, `ui/webui/resources/grit/webui_resources.h`).
+   Pista del agente de extensiones: las sustituciones Polymer de `cr_toggle`, `cr_button` y `cr-toolbar` (`br_toolbar`) son
+   Lit en la 156; 1.98 quitó `br_shared_style`/`vars` y esos `#import`. `lint_css`: ya se puso un selector por línea en
+   `br_shared_style.css`. Nuevos ya conocidos: `post_task_and_reply_with_result_internal.h:47` (algún PostTaskAndReplyWithResult
+   con tipos que no casan), `brave_browser_main_extra_parts.cc:59` (`set_silence_deprecated_manifest_version_warnings_for_testing`),
+   `brave_new_tab_page_handler.cc:34` (`chrome_select_file_policy.h`), `top_sites_message_handler.cc:21` (`ntp_pref_names.h`
+   → `chrome/browser/new_tab_page/prefs`).
+3. **Riesgo:** el agente de features borró 6 parches de nivel (content/net/network/blink/fido features: la 156 los trae
+   de serie), pero algunos parches de motor aún nombran esas features: `navigation_request`, `cors_url_loader`,
+   `local_dom_window`, `navigation_url_loader_impl`, `render_frame_host_impl` (y `enclave_authenticator_browsertest`).
+   Si la Ubuntu los da rotos, quita esas condiciones.
+4. **Tanda propia aprobada:** fuera el permiso «localhost» de Brave en favor del Local Network Access nativo (~50 ficheros:
+   `components/localhost_permission`, permission contexts, content settings, about_flags, ajustes); no se trasladan los
+   permisos concedidos. Ahora solo compila (`brave_localhost_permission_network_delegate_helper.cc`).
+5. Pendientes menores: `ShouldUseDarkColors()` en `chromium_src/ui/native_theme/native_theme_android.cc` y
+   `chromium_src/chrome/browser/ui/webui/favicon_source.cc`; seeker propio de `brave_video_overlay_window_views` +
+   `chromium_src/content/public/browser/overlay_window.h` → barra de progreso nativa de la 156 (como 1.98);
+   `chromium_src/chrome/browser/ui/bookmarks/bookmark_utils.cc` (iconos con `absl::variant` → `ui::ColorVariant`, IDR) y
+   `chromium_src/.../views/bookmarks/*`; `appearance_page.ts` (Polymer → Lit); frontend de bienvenida con `help-wdp` y
+   `recordP3A` (manejadores vacíos); `brave_shields_p3a` sigue; wrapper Android `chrome_feature_list.cc` nombra lo quitado;
+   cadena de Windows `ModuleFileNamePatch` (muerta en Mac); menú contextual sigue con el esquema 128
+   (`BraveRenderViewContextMenu` + `#define`); 1.98 pasó a clase propia: adóptalo si al compilar hay choques.
+6. Después (ya encargado): envoltorios `.cc` al esquema de 1.98 (`#include <...>` en vez de `"src/..."`), sin `redirect_cc`.
+7. softmac: `brave_services_key_id` sigue en `FlyWeb/scripts/build.sh` mientras viva la 2.x (Brave 1.69 la exige en
+   oficial); quitarla cuando build.sh pase a la 3.0.0.
+
+**Método:** igual que MOTOR-35: cada sha que subas lo compila la Ubuntu en las unidades tocadas (dale a COORDINACIÓN la
+lista de `.cc`); P2 completo al cerrar tanda. Sube a menudo.
+
+**Herramientas y trucos:**
+- Clon: `git clone --depth 1 -b nube/b2-porte-t11 https://github.com/lamosquita-net/brave-core /home/user/brave-core`;
+  luego `git remote add up https://github.com/brave/brave-core` y `git fetch --depth 1 --filter=blob:none up tag v1.98.63`
+  (y `tag v1.69.168`). Nunca `git grep` sobre las etiquetas; `git ls-tree -r --name-only v1.98.63 > ls198.txt` y `git show`.
+- `b2-chk` sobre la punta antes de tocar nada (chk-base); ~33 falsos positivos de generados (`app/`, `vector_icons.h`).
+  `b2-cr156` cachea en `/tmp/claude-0/cr156`; exporta `FlyWeb/tools/brave-inventario` al PATH.
+- **Subagentes por zonas disjuntas** con worktrees (`git worktree add -b t11-<zona> /home/user/wt/<zona> nube/b2-porte-t11`)
+  y el brief `b2-brief-t5bis.md` adaptado (sed de la sesión, asunto `[b2-porte-t11]`, rebase sobre la punta); fusionar con
+  `--ff-only` (rebasan ellos). Seis a la vez fueron bien; cada uno ~230–400 k tokens.
+- Script para features: comparar cada `{kX,` de `OVERRIDE_FEATURE_DEFAULT_STATES` con el `.cc`/`.h` de la 156 y con el
+  wrapper de 1.98; ojo, `grep -q` con lista de ficheros vacía lee stdin y se cuelga (usa `</dev/null`). Las features que la
+  156 cambió de fichero salen en `v1.98.63:app/feature_defaults_unittest.cc`.
+- La medida de contexto de `get_session` (`context_usage.used_tokens`) es la fiable; al principio puede marcar 0.
+- `push --delete` lo deniega el clasificador; `nube/m34-probe` lo borra Titín desde la web.
+
 # MOTOR-35 → MOTOR-36: B2 T9-fix, T5-bis y T10 subidas (06-11-2026, ~11:10 UTC)
 
 MOTOR-35 (`session_01MwmK2jBqgc4rNEXcQwzpbr`, Opus 5.5). Coordina **COORDINACIÓN-29** (`session_01MwmK2iQtUzz1YsyLeXQbNV`).
