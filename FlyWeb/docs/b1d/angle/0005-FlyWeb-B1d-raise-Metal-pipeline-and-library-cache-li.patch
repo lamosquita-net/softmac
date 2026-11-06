@@ -1,0 +1,46 @@
+From 2f34372aaf62f0acd1b8ee75b0aa67951e14c006 Mon Sep 17 00:00:00 2001
+From: lamosquita <developer@lamosquita.com>
+Date: Wed, 4 Nov 2026 21:21:18 +0100
+Subject: [PATCH 5/5] FlyWeb B1d: raise Metal pipeline and library cache limits
+ to 1024
+
+The 128-entry caches (trimmed to 64) overflow on MotionMark and Aquarium and
+recompile Metal pipelines every frame.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/libANGLE/renderer/metal/mtl_library_cache.h  | 3 ++-
+ src/libANGLE/renderer/metal/mtl_pipeline_cache.h | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/libANGLE/renderer/metal/mtl_library_cache.h b/src/libANGLE/renderer/metal/mtl_library_cache.h
+index 93dfc15..e73d962 100644
+--- a/src/libANGLE/renderer/metal/mtl_library_cache.h
++++ b/src/libANGLE/renderer/metal/mtl_library_cache.h
+@@ -79,7 +79,8 @@ class LibraryCache : angle::NonCopyable
+ 
+     std::shared_ptr<LibraryCacheEntry> getCacheEntry(LibraryKey &&key);
+ 
+-    static constexpr unsigned int kMaxCachedLibraries = 128;
++    // FlyWeb B1d: 128 (trimmed to 64) thrashes on MotionMark/Aquarium; keep compiled libraries.
++    static constexpr unsigned int kMaxCachedLibraries = 1024;
+ 
+     // The cache tries to clean up this many states at once.
+     static constexpr unsigned int kGCLimit = 32;
+diff --git a/src/libANGLE/renderer/metal/mtl_pipeline_cache.h b/src/libANGLE/renderer/metal/mtl_pipeline_cache.h
+index b5bf77c..8089414 100644
+--- a/src/libANGLE/renderer/metal/mtl_pipeline_cache.h
++++ b/src/libANGLE/renderer/metal/mtl_pipeline_cache.h
+@@ -68,7 +68,8 @@ class PipelineCache : angle::NonCopyable
+         angle::ObjCPtr<id<MTLComputePipelineState>> *outComputePipeline);
+ 
+   private:
+-    static constexpr unsigned int kMaxPipelines = 128;
++    // FlyWeb B1d: 128 (trimmed to 64) thrashes on MotionMark/Aquarium; keep compiled pipelines.
++    static constexpr unsigned int kMaxPipelines = 1024;
+ 
+     // The cache tries to clean up this many states at once.
+     static constexpr unsigned int kGCLimit = 32;
+-- 
+2.55.0
+
