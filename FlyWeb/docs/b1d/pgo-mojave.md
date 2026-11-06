@@ -4,6 +4,19 @@ Problema: `oficial-8-pgo`, compilada con el perfil de Google, mejora mucho en la
 (Speedometer 15,8 → 19,6, MotionMark 2585 → 3244). En la MacPro6,1 con Mojave va muy lenta, se cuelga en
 React-stockcharts-SVG y da «error al cargar el manifest».
 
+**Cierre (06-11, medidas de LOCAL-19):**
+- Desde las 10:00, fallan **igual** `oficial-8` sin PGO, `oficial-8-pgo` y Chrome for Testing 156:
+  - Entre 250 y 400 recursos de JetStream dan ERR_HTTP2_PROTOCOL_ERROR.
+  - Chrome da ERR_CERT_VERIFIER_CHANGED.
+  - En la 7,1, `git clone` y los tarballs se cortan.
+- Antes de las 10:00 sí cargaban Chrome 156 (163,4) y `oficial-8` sin PGO (158,0).
+- **Causa probable de JetStream y del manifest: H5, la red de la oficina.** No es el PGO ni V8.
+- **H7 (miscompilación por PGO): ningún dato a favor.**
+- **H2/H3: frío en el perfil, sin efecto medible.**
+- Las oficiales aplicaban `fieldtrial_testing_config`. **Decidido: `disable_fieldtrial_testing_config = true`.**
+- **Pendiente:** comparar PGO y sin PGO con Speedometer, JetStream y MotionMark servidos en local en la 6,1, cuando la
+  red vuelva a estar bien. La sección 6e queda como procedimiento si el fallo vuelve con la red sana.
+
 **Conclusión (revisada el 06-11 con datos de Titín y COORDINACIÓN-29):**
 - **Rendimiento.** El perfil de Google no vio nunca ejecutarse la ruta de dibujo que usa Mojave (Skia Ganesh GL sobre
   ANGLE/Metal), así que esas funciones salen `cold`. Pero en la práctica **no se nota**: MotionMark en la 6,1 da 1494
