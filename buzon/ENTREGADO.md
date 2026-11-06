@@ -392,3 +392,4 @@ buzon/LOCAL/20261106-1124-COORDINACION-29-pgo-anulado.md → LOCAL Compilación 
 buzon/MOTOR/20261106-1126-COORDINACION-29-t11a.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 11:26 UTC · entregado (sin confirmación de lectura: Remote Control)
 buzon/LOCAL/20261106-1130-COORDINACION-29-red.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-06 11:30 UTC · entregado (destino LOCAL sin número: enviado a LOCAL-19)
 buzon/LOCAL/20261106-1131-COORDINACION-29-6e.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-06 11:31 UTC · entregado (destino LOCAL sin número: enviado a LOCAL-19)
+buzon/MOTOR/20261106-1141-COORDINACION-29-t11b.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-06 11:41 UTC · entregado (sin confirmación de lectura: Remote Control)
