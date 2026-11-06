@@ -29,6 +29,7 @@
 #                                        build/config.gni (flyweb_version, flyweb_engine_level).
 #   FLYWEB_EXTRA_ARGS="…"                argumentos extra para el build de Brave (ASan: "--is_asan -C StaticAsan").
 #   FLYWEB_OUT=nombre                    carpeta de out/ si -C la cambia (ASan: StaticAsan); por defecto, el modo.
+#   FLYWEB_SOLO_GN=1                     prepara el checkout y hace gn gen, sin compilar.
 #   FLYWEB_SYMBOL_LEVEL=0|1|2            símbolos (por defecto 0); 1 para backtraces legibles en lldb, en un out/ aparte.
 # Al terminar deja out/<modo>/flyweb-build-info.txt y, en builds sin firmar (no Release), las claves
 # FlyWebCommit, FlyWebBraveBrowserCommit, FlyWebChromium, FlyWebBuildDate y FlyWebBuildConfig en el Info.plist.
@@ -272,6 +273,11 @@ if [ -n "${FLYWEB_EXTRA_ARGS:-}" ]; then
   # shellcheck disable=SC2086
   set -- "$@" $FLYWEB_EXTRA_ARGS
 fi
+# FLYWEB_SOLO_GN=1: todo lo de antes (checkout, parches, enums, marca) y gn gen, sin compilar: ninja solo
+# construye build.ninja, que gn acaba de escribir. Para comprobar un checkout sin ocupar la máquina (FM.54 F1).
+if [ "${FLYWEB_SOLO_GN:-}" = 1 ]; then
+  set -- "$@" --force_gn_gen --target build.ninja
+fi
 # V8 13.8+ (nivel 138, FM.53) enciende Temporal por defecto en Mac y depende del crate Rust temporal_capi, que la
 # base 128 no tiene; Chrome 138 no lo expone (solo con --harmony-temporal) y upstream compila sin él en Windows.
 # Con V8 anteriores, gn solo avisa de que el argumento no tiene efecto. Se revisa cuando el nivel declarado lo exponga.
@@ -300,6 +306,10 @@ npm run build -- "$CONFIG" --target_arch=x64 "$@" \
   --gn enable_brave_vpn:false \
   --gn enable_brave_vpn_panel:false \
   --gn enable_gemini_wallet:false
+if [ "${FLYWEB_SOLO_GN:-}" = 1 ]; then
+  echo "FLYWEB_SOLO_GN: gn gen hecho en out/${FLYWEB_OUT:-$CONFIG}, sin compilar"
+  exit 0
+fi
 
 OUT="$BUILD/brave-browser/src/out/${FLYWEB_OUT:-$CONFIG}"
 CORE="$BUILD/brave-browser/src/brave"
