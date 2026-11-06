@@ -1247,3 +1247,59 @@ Tampoco hay overrides de `device::kWebAuthn*`. **Comprobación para LOCAL (Mac)*
 sesión con una llave del móvil (Android e iPhone) por QR + Bluetooth, en Mojave y en Catalina o Monterey. En las dos
 últimas, que salga el permiso de Bluetooth del sistema: comparar `NSBluetoothAlwaysUsageDescription` en el Info.plist
 de 2.0.x y de la 3.0.0.
+
+#### 12.16.3 T11 de MOTOR-38 (06-11)
+
+Lineal sobre b1a25a49, en `nube/b2-porte-t11`; sin compilar en la nube.
+
+**Arreglos de producción** (P2 y rápida de b1a25a49):
+
+| sha | Qué |
+|---|---|
+| c2bba0f0 | `bookmark_utils.cc`: `ui::ColorVariant` en el icono de carpeta. Con la firma vieja el símbolo real quedaba sin definir. Se queda el icono «filled» de FlyWeb. |
+| 1083e1fe | WebGL: `getExtension` devuelve `ScriptObject`. Mismo efecto de Shields: con la huella bloqueada solo se ve `WEBGL_debug_renderer_info`. |
+| 901f0a1e | GPC: fuera el IDL nativo de la 156 (`brave_static_idl_files_to_exclude_in_modules`, parche de 1.98) y se quedan nuestros IDL. |
+| 26d3b955 | `base/logging.h` en el handler de la NTP. |
+| 903ea13d | TS2347 en `settings_main.ts`. |
+| 6364f1a3 | Imports de `side_bar.ts` de contraseñas (como 1.98). |
+
+**Excepción a «lo nativo de la 156 primero»: GPC** (aceptada por COORDINACIÓN-30). El IDL nativo es un mixin de Navigator
+y WorkerNavigator con `RuntimeEnabled=GlobalPrivacyControl`, que solo encienden `GlobalPrivacyControlForce`/`Test`
+(apagados), y su getter lee `RendererPreferences`. Adoptarlo exigía encender el runtime feature y un chromium_src en
+`IsGlobalPrivacyControlFeatureAndSettingEnabled` para no tener dos fuentes. Brave 1.98, sobre la misma 156, excluye el
+IDL nativo. Así queda una sola fuente, `kBraveGlobalPrivacyControl` (activado por defecto), para navigator/worker y para la
+cabecera Sec-GPC. **Para LOCAL**: en globalprivacycontrol.org, que el JS (ventana y worker) y la cabecera digan lo mismo.
+
+**Tanda T-tests** (074ad618, 38 commits, 190 ficheros):
+- **Base:** 314 ficheros de test en 6364f1a3 frente a v1.98.63, por blob: 46 idénticos, 236 distintos y 32 sin
+  equivalente.
+- **Cobertura:** atiende las 94 líneas de tests del P2 de b1a25a49.
+- **Shields:** no se toman los tests de 1.98, porque nuestra producción sigue en la estructura de 1.69 (farbling, tope de
+  cookies JS de 7 días, sin `BraveShieldsSettingsService`). Los tests casan con NUESTRA producción.
+- **Google sign-in:** su browsertest está portado entero.
+- **Producción tocada dentro de la tanda:**
+  - restaurados los overrides de color del omnibox (`kColorOmniboxIconHover`/`Background`);
+  - **crash del omnibox**: `OpenHereAction` devolvía `UNKNOWN`, que en la 156 es `NOTREACHED`. Ahora devuelve
+    `OPEN_HERE` (overrides `omnibox_action_concepts.h` y `autocomplete_match.cc`, como 1.98).
+
+**Propuesta para los SIN-1.98** (decide COORDINACIÓN):
+- **Borrar:** `generated_notification_pref`, `rss_links_fetcher`, `shared_storage`, `companion_page`, `symmetric_key`,
+  `tools_sanity`, `network_time_tracker` y `brave_shields_p3a`/`brave_sync_p3a` (con su producción P3A).
+- **Conservar:** los que prueban lo nuestro.
+
+**Pendiente de producción**, por detrás de 1.98; candidato a una tanda «seguridad desde 1.98»:
+- **de_amp:** sin el arreglo de suplantación de la barra de direcciones (`PendingCanonicalDoesNotSpoofOmnibox`), sin el
+  de Content-Disposition y sin `AmpPagesCycledSelf`.
+- **Widevine:** el CRX no se baja solo por HTTPS y el permiso no se atribuye al origen del subframe.
+- **Borrar datos de navegación:** borra también los valores por defecto de Shields.
+- **url_sanitizer:** limpia textos copiados que no son URL.
+- **debounce:** sin `IgnoreHostnameMismatch` ni regex-path-template.
+- **Ventanas privadas:** el texto reconocido en imágenes no se marca como privado en el portapapeles.
+- **Prefs por defecto de 1.98:** DeepScanning, logs de WebRTC, AI Mode y SplitView.
+- **Overrides sin efecto en la 156:**
+  - `crypto/symmetric_key` (en 1.98 es `kdf`);
+  - `request_sender` CUP (solo con updater);
+  - `location_bar_view` (`#define` de 1.69);
+  - starter packs `@page`/`@aimode`.
+- **Código muerto:** `components/brave_mobile_subscription` y `components/json`.
+- **OFAC:** nuestra lista mantiene a Siria; 1.98 la quita y añade a Tanzania. Es decisión de producto.

@@ -1,3 +1,29 @@
+# MOTOR-38: estado (06-11-2026, ~16:05 UTC)
+
+MOTOR-38 (`session_01MwmK2gzv4SrPPzHLtAispT`, Opus 5.5). Coordina **COORDINACIÓN-31** (`session_01MwmK2iP27sssYimPaJ7scp`).
+
+**Punta:** `nube/b2-porte-t11` en **074ad6183e**, sin medir: el P2 de MOTOR-30 está pendiente. Detalle en
+`brave-propio.md` §12.16.3.
+
+**Hecho:**
+- arreglos del P2 y de la rápida de b1a25a49;
+- GPC como 1.98;
+- tanda T-tests completa (5 subagentes por zonas, con el brief de MOTOR-37 adaptado y lista de zona por fichero);
+- caBLE revisado: ningún parche ni flag lo apaga (§12.16.2).
+
+**Siguiente:**
+1. P2 o rápida de 074ad618: arreglar lo que salga.
+2. Features de nivel, solo si salen rotas.
+3. Decisiones de COORDINACIÓN sobre los SIN-1.98 y OFAC.
+4. Tanda «seguridad desde 1.98» (lista en §12.16.3), si COORDINACIÓN la aprueba.
+5. Envoltorios `.cc`.
+6. `brave_services_key_id`.
+
+**Método T-tests que funcionó:**
+- clasificar por blob con `git ls-tree` frente a `v1.98.63` y la raíz 1.57 (no baja blobs);
+- una zona por subagente, con su lista etiquetada TOMAR-1.98/PORTAR/SIN-1.98;
+- cherry-pick lineal de las cinco ramas: no hubo conflictos.
+
 # MOTOR-37 → MOTOR-38: B2 T11 (06-11-2026, ~14:35 UTC)
 
 MOTOR-37 (`session_01MwmK2mQraxPiisCp7W6WP8`, Opus 5.5). Coordina **COORDINACIÓN-30** (`session_01MwmK2mDgcmCYXZUo9KnJZU`).
