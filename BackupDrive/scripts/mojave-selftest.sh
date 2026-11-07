@@ -49,8 +49,8 @@ fi
 # 3. Certificados y hora: Go usa los certificados del sistema; Mojave es de 2018.
 for url in https://oauth2.googleapis.com https://www.googleapis.com; do
   out=$("$BIN" --config /dev/null lsf --http-url "$url" :http: 2>&1)
-  if printf '%s' "$out" | grep -qi 'x509\|certificate'; then
-    fail "TLS con $url: $(printf '%s' "$out" | grep -i -m1 'x509\|certificate')"
+  if printf '%s' "$out" | grep -qiE 'x509|certificate'; then
+    fail "TLS con $url: $(printf '%s' "$out" | grep -iE -m1 'x509|certificate')"
   else
     ok "TLS con $url"
   fi

@@ -60,16 +60,23 @@ versions_mac() { echo "$APP_DIR/versions/$(basename "$1")-$(profile_id "$1" "$2"
 versions_drive() { echo "${2%/} (versiones)"; }
 
 # Bloqueo compartido con backupdrive-sync.sh (mkdir es atómico; uno de un proceso muerto se recupera).
+# lock [segundos]: con segundos, espera ese tiempo a que termine una sincronización en curso antes de rendirse
+# (connect: justo después de instalar, launchd lanza una pasada y el usuario no tiene por qué saberlo).
 lock() {
   mkdir -p "$APP_DIR"
-  if ! mkdir "$LOCK" 2>/dev/null; then
+  waited=0
+  until mkdir "$LOCK" 2>/dev/null; do
     pid=$(cat "$LOCK/pid" 2>/dev/null || true)
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+      [ "$waited" -lt "${1:-0}" ] || die 5 "BackupDrive está sincronizando ahora. Vuelve a intentarlo cuando termine."
+      sleep 1; waited=$((waited + 1))
+    else
+      # Bloqueo abandonado (proceso muerto): se quita y se vuelve a intentar una vez.
+      rm -rf "$LOCK"
+      mkdir "$LOCK" 2>/dev/null && break
       die 5 "BackupDrive está sincronizando ahora. Vuelve a intentarlo cuando termine."
     fi
-    rm -rf "$LOCK"
-    mkdir "$LOCK" || die 5 "BackupDrive está sincronizando ahora. Vuelve a intentarlo cuando termine."
-  fi
+  done
   echo $$ > "$LOCK/pid"
   trap 'rm -rf "$LOCK"' EXIT
   trap 'rm -rf "$LOCK"; exit 130' INT TERM
@@ -181,7 +188,7 @@ cmd_connect() {
     fi
     [ -n "$csec" ] || die 6 "Falta el secreto de cliente (BACKUPDRIVE_CLIENT_SECRET o se pregunta en el terminal)."
   fi
-  need_bin; lock
+  need_bin; lock "${BACKUPDRIVE_CONNECT_WAIT:-120}"
   # Tipo de remoto: drive; las pruebas usan «local» (BACKUPDRIVE_CONNECT_TYPE) porque no hay Google en la CI.
   type=${BACKUPDRIVE_CONNECT_TYPE:-drive}
   set -- config create "$name" "$type"
@@ -373,7 +380,7 @@ conflict_original() { printf '%s\n' "$1" | sed -E 's/\.conflict[0-9]+//'; }
 
 conflict_rows() { # carpeta -> «ruta<TAB>tamaño<TAB>fecha» de cada copia en conflicto
   rc_ lsjson -R --files-only --no-mimetype --include '*.conflict[0-9]*' "$1" 2>/dev/null \
-    | sed -n 's/.*"Path":"\(\([^"\\]\|\\.\)*\)".*"Size":\([0-9-]*\).*"ModTime":"\([^"]*\)".*/\1	\3	\4/p'
+    | sed -nE 's/.*"Path":"(([^"\\]|\\.)*)".*"Size":([0-9-]*).*"ModTime":"([^"]*)".*/\1	\3	\4/p'
 }
 
 cmd_conflicts_list() {
