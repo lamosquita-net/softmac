@@ -13,6 +13,23 @@ BC=${1:-/home/user/brave-core}; CR=$(dirname "$0")/b2-cr156
 f=$(bash "$CR" chrome/browser/net/default_dns_over_https_config_source.cc) || exit 1
 n=$(grep -c 'ModeToString(' "$f")
 [ "$n" = 1 ] || echo -e "chromium_src/chrome/browser/net/default_dns_over_https_config_source.cc\tModeToString\tLLAMADAS=$n (se espera 1)"
+# Guarda fija 2: en la 156, base_feature_status "disabled" (parche del json5)
+# no apaga una feature de Blink "stable": el generador solo copia el estado del
+# base::Feature si cuenta como overridden, es decir, si está también en
+# OVERRIDE_FEATURE_DEFAULT_STATES de chromium_src/third_party/blink/common/features.cc.
+JP="$BC/patches/third_party-blink-renderer-platform-runtime_enabled_features.json5.patch"
+OV="$BC/chromium_src/third_party/blink/common/features.cc"
+if [ -f "$JP" ]; then
+  j=$(bash "$CR" third_party/blink/renderer/platform/runtime_enabled_features.json5) || exit 1
+  grep -B3 '^+.*base_feature_status: "disabled"' "$JP" | grep -o 'name: "[A-Za-z0-9]*"' | cut -d'"' -f2 | sort -u | while read -r n; do
+    e=$(awk -v n="\"$n\"" '$0 ~ "name: "n"," {p=1} p {printf "%s ", $0} p && /^    },?$/ {exit}' "$j")
+    echo "$e" | grep -qE 'status: "stable"|"Mac": "stable"' || continue
+    bf=$(echo "$e" | grep -o 'base_feature: "[A-Za-z0-9]*"' | cut -d'"' -f2); bf=${bf:-$n}
+    # base_feature "none" en el original: el parche le pone uno; míralo en el parche.
+    [ "$bf" = none ] && bf=$(grep -A3 "name: \"$n\"" "$JP" | grep -o '^+ *base_feature: "[A-Za-z0-9]*"' | cut -d'"' -f2)
+    grep -qw "k$bf" "$OV" || echo -e "patches/…runtime_enabled_features.json5.patch\t$n\tSTABLE_SIN_OVERRIDE (añade k${bf:-?} a OVERRIDE_FEATURE_DEFAULT_STATES)"
+  done
+fi
 check1() {
   BC=$1; CR=$2; o=$3; rel=${o#chromium_src/}
   for src in $(grep -oE '#include "src/[^"]+"' "$BC/$o" | sed 's/#include "src\///; s/"$//'); do
@@ -20,6 +37,11 @@ check1() {
     pat="$BC/patches/$(echo "$src" | tr / -).patch"
     for m in $(grep -E '^\s*#\s*define\s+[A-Za-z_][A-Za-z0-9_]*' "$BC/$o" | sed -E 's/^\s*#\s*define\s+([A-Za-z_][A-Za-z0-9_]*).*/\1/' | sort -u); do
       case "$m" in *_H_|*_H) continue;; esac
+      # Marca vacía (#define X, para un #if defined(X)) o pieza de otra macro
+      # del propio override (usada dentro de otro #define): no apunta al original.
+      ov=$(sed -e :a -e '/\\$/N; s/\\\n//; ta' "$BC/$o")
+      echo "$ov" | grep -qE "^\s*#\s*define\s+$m\s*$" && continue
+      echo "$ov" | grep -E '^\s*#\s*define\b' | grep -vE "^\s*#\s*define\s+$m\b" | grep -qw -- "$m" && continue
       t=$m
       case "$m" in
         BUILDFLAG_INTERNAL_*) t=${m#BUILDFLAG_INTERNAL_};;  # BUILDFLAG(X) en el original
