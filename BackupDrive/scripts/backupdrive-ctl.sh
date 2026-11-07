@@ -143,6 +143,17 @@ profile_line() { # local remoto días % nº (los tres últimos solo si no son lo
   printf '%s\n' "$out"
 }
 
+# Escribe client_secret en la sección [nombre] de backupdrive.conf sin pasarlo por argumentos (awk lo lee del entorno).
+add_secret() {
+  ( umask 077
+    tmp=$(mktemp "$APP_DIR/.conf.XXXXXX") || exit 1
+    BD_SECRET=$2 awk -v sec="[$1]" '
+      { print }
+      $0 == sec { print "client_secret = " ENVIRON["BD_SECRET"]; done = 1 }
+      END { if (!done) exit 1 }' "$CONF" >"$tmp" || { rm -f "$tmp"; exit 1; }
+    mv -f "$tmp" "$CONF" )
+}
+
 cmd_connect() {
   name=gdrive; cid=""; csec=${BACKUPDRIVE_CLIENT_SECRET:-}; shared=0
   while [ $# -gt 0 ]; do
@@ -176,15 +187,22 @@ cmd_connect() {
   set -- config create "$name" "$type"
   if [ "$type" = drive ]; then
     set -- "$@" scope=drive
-    [ "$shared" = 1 ] || set -- "$@" client_id="$cid" client_secret="$csec"
+    [ "$shared" = 1 ] || set -- "$@" client_id="$cid"
   fi
+  # El secreto tampoco va en los argumentos de rclone (cualquier usuario del Mac los ve con ps): rclone lo lee de su
+  # variable de entorno durante la autorización y después se escribe en la sección de la cuenta (ver add_secret).
+  envname=RCLONE_CONFIG_$(printf '%s' "$name" | tr 'a-z-' 'A-Z_')_CLIENT_SECRET
   # config create borra la cuenta anterior antes de autorizar: si algo falla (navegador cerrado), se deja como estaba.
   bak=""
   if [ -f "$CONF" ]; then bak=$(mktemp "$APP_DIR/.conf.XXXXXX"); cp -p "$CONF" "$bak"; fi
   restore_conf() { if [ -n "$bak" ]; then mv -f "$bak" "$CONF"; else rm -f "$CONF"; fi; }
   # Sin preguntas: rclone toma las respuestas por defecto y abre el navegador para autorizar. En segundo plano para que
   # Cancelar (la app manda SIGTERM) pare también a rclone, que si no se queda esperando en el puerto 53682.
-  "$BIN" --config "$CONF" "$@" </dev/null >/dev/null &
+  if [ -n "$csec" ]; then
+    env "$envname=$csec" "$BIN" --config "$CONF" "$@" </dev/null >/dev/null &
+  else
+    "$BIN" --config "$CONF" "$@" </dev/null >/dev/null &
+  fi
   cpid=$!
   trap 'kill "$cpid" 2>/dev/null || true; wait "$cpid" 2>/dev/null || true; restore_conf; rm -rf "$LOCK"; exit 130' INT TERM
   crc=0; wait "$cpid" || crc=$?
@@ -192,6 +210,10 @@ cmd_connect() {
   if [ "$crc" -ne 0 ]; then
     restore_conf
     die 1 "No se pudo conectar con Google Drive; no se ha cambiado nada. Si cerraste el navegador antes de autorizar, vuelve a intentarlo."
+  fi
+  if [ -n "$csec" ] && ! add_secret "$name" "$csec"; then
+    restore_conf
+    die 1 "No se pudo guardar el secreto en la configuración; no se ha cambiado nada."
   fi
   [ -z "$bak" ] || rm -f "$bak"
   chmod 600 "$CONF" 2>/dev/null || true

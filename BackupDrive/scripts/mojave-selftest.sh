@@ -83,7 +83,8 @@ fi
 
 # 5. Perfiles
 if [ -f "$PROFILES" ]; then
-  while IFS='|' read -r local_dir remote; do
+  # Línea: carpeta|remoto:ruta[|días|porcentaje|número]; lo que va tras el segundo «|» no es parte del remoto.
+  while IFS='|' read -r local_dir remote _rest; do
     case "$local_dir" in ''|'#'*) continue ;; esac
     [ -d "$local_dir" ] && ok "carpeta local: $local_dir" || fail "no existe la carpeta local: $local_dir"
     if [ -n "$remote" ] && "$BIN" --config "$CONF" lsf --max-depth 1 "$remote" >/dev/null 2>&1 </dev/null; then
