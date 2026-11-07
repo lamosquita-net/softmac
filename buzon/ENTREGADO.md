@@ -564,3 +564,5 @@ buzon/LOCAL/20261107-1527-COORDINACION-34-marca.md → LOCAL Compilación Local 
 buzon/LOCAL/20261107-1535-COORDINACION-34-check-ok.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 15:29 UTC · entregado
 buzon/LOCAL/20261107-1535-COORDINACION-34-final.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 15:32 UTC · entregado
 buzon/LOCAL/20261107-2200-COORDINACION-34-B-ok.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 19:43 UTC · entregado
+buzon/LOCAL/20261107-2230-COORDINACION-34-kit51.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 19:52 UTC · entregado
+buzon/SERVIDOR-LOCAL/20261107-2230-COORDINACION-34-kit51-300.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-07 19:52 UTC · entregado (destino supuesto, mismo caso que antes)
