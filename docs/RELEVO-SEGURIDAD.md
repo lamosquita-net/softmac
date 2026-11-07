@@ -479,3 +479,11 @@ Build: chromium `flynk-b1d` 33a1745949 + brave-core `nube/b2-porte-t11` f3f65b60
   kControlledFrame, kExtensionScriptTagging (y kUserMediaElement si se sigue a Brave) a DISABLED en ese override.
 - **Pendiente:** el sha de MOTOR-41, repetir la prueba 3, A3 a mano y la lista de MOTOR-41 de overrides de `chromium_src`
   muertos (revisarla entera). Lección: tras un salto de base, comprobar en ejecución cada override, no solo que compile.
+- **Overrides muertos de la 156 (lista de MOTOR-41), lectura de seguridad:**
+  - `BraveBrowserMainPartsMac`: **grave, bloquea la publicación.** La 156 crea las MainParts en `ChromeBrowserMainParts::Create`
+    (`chrome_browser_main.cc:779`), así que el `#define` de `chromium_src/.../chrome_content_browser_client.cc:15` no actúa: sin
+    `registerWithSparkle` no hay actualizaciones automáticas (la 3.0.0 no recibiría parches) ni copia del perfil. Mover a
+    `chromium_src/chrome/browser/chrome_browser_main.cc`; probar con un appcast de pruebas que Sparkle detecta solo, que lleva
+    `SUPublicEDKey` y que rechaza un paquete sin firmar (`kUpdateFeedURL` acepta otra URL por línea de comandos).
+  - `supported_types` (VP9/AV1 ocultos): media-baja, defensa en profundidad (libvpx-VP9 y dav1d vuelven a estar expuestos).
+  - `TOOLBAR_CORNER_RADIUS`: sin lectura de seguridad.
