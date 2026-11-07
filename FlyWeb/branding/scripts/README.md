@@ -15,6 +15,18 @@ tabla "Dónde acaba cada cosa" de `imagenes.md`. Si cambia un maestro, volver a 
 `local/*` o `nube/*` de brave-core. CoreSVG avisa "ellipses path has invalid rx or ry" con los M4: es un arco de radio
 0, que el estándar dibuja como recta; el resultado es correcto.
 
+**Base 156 (3.0.0): catálogo de activos de macOS.** La 156 pide `chrome/app/theme/<marca>/mac/Assets.car`; se genera
+desde M1-01 con el `compile_car.py` de Chromium (necesita Xcode 26):
+
+```sh
+./generar-assets-car.sh <chromium-src-156> <brave-core>/app/theme/brave/mac
+```
+
+Deja `Assets.car` y sus fuentes (`Assets.xcassets`, `AppIcon.icon`). El icono de macOS 26 (Icon Composer) lleva el fondo
+naranja y la mosca en dos capas, con variantes oscura y teñida; los bitmaps de macOS 11–15, M1-01 con el margen de la
+rejilla de 824. En Mojave se sigue usando `app.icns` (`generar-marca.sh`). Ni macOS 15 ni anteriores pueden pintar el
+icono de 26: hay que mirarlo en un Mac con macOS 26.
+
 **Generadores anteriores** (un único SVG provisional, `../icon_FlyWeb.svg`; se conservan como referencia):
 
 **Alternativa de NUBE (sin integrar en `flyweb`, rama `nube/iconos-entrega`):**
