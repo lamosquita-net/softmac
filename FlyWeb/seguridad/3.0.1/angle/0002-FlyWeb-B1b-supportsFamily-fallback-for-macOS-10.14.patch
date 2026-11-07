@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: lamosquita <developer@lamosquita.com>
+Date: Wed, 4 Nov 2026 18:11:52 +0100
+Subject: [PATCH 02/12] FlyWeb B1b: supportsFamily fallback for macOS 10.14
+
+---
+ src/common/apple_platform_utils.mm       |  7 ++++++-
+ src/libANGLE/renderer/metal/mtl_utils.mm | 20 ++++++++++++++++++++
+ 2 files changed, 26 insertions(+), 1 deletion(-)
+
+diff --git a/src/common/apple_platform_utils.mm b/src/common/apple_platform_utils.mm
+index b985f3e..4f78343 100644
+--- a/src/common/apple_platform_utils.mm
++++ b/src/common/apple_platform_utils.mm
+@@ -108,7 +108,12 @@ bool IsMetalRendererAvailable()
+             return [device supportsFamily:MTLGPUFamilyMacCatalyst2];
+ #elif TARGET_OS_MACCATALYST || TARGET_OS_OSX
+             // Devices in family 1, such as MacBookPro11,4, cannot use ANGLE's Metal backend.
+-            return [device supportsFamily:MTLGPUFamilyMac2];
++            // FlyWeb B1b: -supportsFamily: is macOS 10.15+.
++            if (@available(macOS 10.15, *))
++            {
++                return [device supportsFamily:MTLGPUFamilyMac2];
++            }
++            return [device supportsFeatureSet:MTLFeatureSet_macOS_GPUFamily2_v1];
+ #else
+             // Devices starting with A9 onwards are supported. Simulator is supported as per
+             // definition that running simulator on Mac Family 1 devices is not supported.
+diff --git a/src/libANGLE/renderer/metal/mtl_utils.mm b/src/libANGLE/renderer/metal/mtl_utils.mm
+index 6912d1c..7f516f5 100644
+--- a/src/libANGLE/renderer/metal/mtl_utils.mm
++++ b/src/libANGLE/renderer/metal/mtl_utils.mm
+@@ -1388,6 +1388,15 @@ bool DeviceHasMaximumRenderTargetSize(id<MTLDevice> device)
+ 
+ bool SupportsAppleGPUFamily(id<MTLDevice> device, uint8_t appleFamily)
+ {
++#if TARGET_OS_OSX
++    if (@available(macOS 10.15, *))
++    {
++    }
++    else
++    {
++        return false;  // FlyWeb B1b: no Apple GPU families on macOS 10.14.
++    }
++#endif
+     MTLGPUFamily family;
+     switch (appleFamily)
+     {
+@@ -1420,6 +1429,17 @@ bool SupportsAppleGPUFamily(id<MTLDevice> device, uint8_t appleFamily)
+ 
+ bool SupportsMacGPUFamily(id<MTLDevice> device, uint8_t macFamily)
+ {
++#if TARGET_OS_OSX
++    if (@available(macOS 10.15, *))
++    {
++    }
++    else
++    {
++        // FlyWeb B1b: -supportsFamily: is macOS 10.15+.
++        return macFamily == 1 ? [device supportsFeatureSet:MTLFeatureSet_macOS_GPUFamily1_v1]
++                              : [device supportsFeatureSet:MTLFeatureSet_macOS_GPUFamily2_v1];
++    }
++#endif
+ #if TARGET_OS_OSX || TARGET_OS_MACCATALYST
+     switch (macFamily)
+     {
+-- 
+2.43.0
+

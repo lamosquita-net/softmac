@@ -1,0 +1,245 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: lamosquita <developer@lamosquita.com>
+Date: Thu, 5 Nov 2026 18:36:19 +0100
+Subject: [PATCH 06/12] FlyWeb B1d: Metal compiler failures must not lose the
+ WebGL context
+
+WebGL contexts are hardened (loseHardenedContextOnBackendError), so any
+backend error is turned into an UnknownContextReset and Chromium restarts
+the whole GPU process; after two restarts WebGL is blocked.
+
+On macOS 10.14 this happened for two reasons:
+- newLibraryWithSource returns an NSError even when compilation succeeds
+  with warnings ("Compilation succeeded with: ... unused variable"), and
+  CreateMslShaderLib treated any NSError as a failure (Google Earth,
+  Photopea). Success now requires a non-nil MTLLibrary, and only that; the
+  error text is never inspected. A nil library fails the link of that
+  program (with the info log) instead of losing the context.
+- The AMD compiler aborts on some render pipelines (three.js). A failed
+  render pipeline is now cached as failed and only the draws that use it
+  are skipped; the next draw re-applies all state.
+
+FLYWEB_MTL_DUMP=1 prints the MSL of a program whose pipeline fails to
+stderr (the GPU sandbox cannot write files).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/libANGLE/renderer/metal/ContextMtl.mm     | 13 +++-
+ .../renderer/metal/ProgramExecutableMtl.h     |  2 +
+ .../renderer/metal/ProgramExecutableMtl.mm    | 61 +++++++++++++++++--
+ .../renderer/metal/mtl_pipeline_cache.h       |  3 +
+ .../renderer/metal/mtl_pipeline_cache.mm      | 28 ++++++++-
+ 5 files changed, 98 insertions(+), 9 deletions(-)
+
+diff --git a/src/libANGLE/renderer/metal/ContextMtl.mm b/src/libANGLE/renderer/metal/ContextMtl.mm
+index c8d7639..ffa1162 100644
+--- a/src/libANGLE/renderer/metal/ContextMtl.mm
++++ b/src/libANGLE/renderer/metal/ContextMtl.mm
+@@ -2612,9 +2612,16 @@ angle::Result ContextMtl::setupDrawImpl(const gl::Context *context,
+     }
+     else
+     {
+-        ANGLE_TRY(mExecutable->setupDraw(context, &mRenderEncoder, mRenderPipelineDesc,
+-                                         isPipelineDescChanged, textureChanged,
+-                                         uniformBuffersDirty));
++        if (mExecutable->setupDraw(context, &mRenderEncoder, mRenderPipelineDesc,
++                                   isPipelineDescChanged, textureChanged,
++                                   uniformBuffersDirty) != angle::Result::Continue)
++        {
++            // FlyWeb B1d: this draw is skipped (e.g. its pipeline failed to compile). The
++            // encoder may still hold the previous program's pipeline and bindings, so make the
++            // next draw re-apply everything instead of drawing with stale state.
++            mDirtyBits.set();
++            return angle::Result::Stop;
++        }
+     }
+ 
+     return checkCommandBufferError();
+diff --git a/src/libANGLE/renderer/metal/ProgramExecutableMtl.h b/src/libANGLE/renderer/metal/ProgramExecutableMtl.h
+index 2d239d8..858154b 100644
+--- a/src/libANGLE/renderer/metal/ProgramExecutableMtl.h
++++ b/src/libANGLE/renderer/metal/ProgramExecutableMtl.h
+@@ -229,6 +229,7 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
+ 
+     mtl::BufferPool *getBufferPool(ContextMtl *context, gl::ShaderType shaderType);
+ 
++    void dumpFailedPipelineSource(const mtl::RenderPipelineDesc &pipelineDesc);
+     angle::Result getSpecializedShader(ContextMtl *context,
+                                        gl::ShaderType shaderType,
+                                        const mtl::RenderPipelineDesc &renderPipelineDesc,
+@@ -294,6 +295,7 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
+     // A unique ID to identify this program executable across its lifetime. It's guaranteed that
+     // there is no duplicated ID ever even if the program is deleted.
+     Serial mProgramSerialId;
++    bool mFailedPipelineDumped = false;
+ };
+ 
+ angle::Result CreateMslShaderLib(mtl::Context *context,
+diff --git a/src/libANGLE/renderer/metal/ProgramExecutableMtl.mm b/src/libANGLE/renderer/metal/ProgramExecutableMtl.mm
+index 1495633..786e257 100644
+--- a/src/libANGLE/renderer/metal/ProgramExecutableMtl.mm
++++ b/src/libANGLE/renderer/metal/ProgramExecutableMtl.mm
+@@ -11,6 +11,7 @@
+ #include <array>
+ 
+ #include "common/span_util.h"
++#include "common/system_utils.h"
+ #include "common/unsafe_buffers.h"
+ #include "libANGLE/renderer/metal/BufferMtl.h"
+ #include "libANGLE/renderer/metal/ContextMtl.h"
+@@ -379,13 +380,21 @@ angle::Result CreateMslShaderLib(mtl::Context *context,
+         translatedMslInfo->metalLibrary = libraryCache.getOrCompileShaderLibrary(
+             context->getDisplay(), translatedMslInfo->metalShaderSource, substitutionMacros,
+             disableFastMath, usesInvariance, &err);
+-        if (err || !translatedMslInfo->metalLibrary)
++        // FlyWeb B1d: the Metal compiler of macOS 10.14 also returns an NSError when the
++        // compilation succeeds with warnings ("Compilation succeeded with: ... warning: unused
++        // variable"). Only a missing library is a failure; otherwise Google Earth and Photopea
++        // lost their WebGL context (and the GPU process) on a harmless warning.
++        if (!translatedMslInfo->metalLibrary)
+         {
+             infoLog << "Internal error while linking shader. MSL compilation error:\n"
+                     << (err ? err.get().localizedDescription.UTF8String : "unknown error")
+                     << ".\nTranslated source:\n"
+                     << *(translatedMslInfo->metalShaderSource);
+-            ANGLE_MTL_CHECK(context, translatedMslInfo->metalLibrary, err);
++            // FlyWeb B1d: a shader the driver cannot compile fails the link of that program
++            // (with the info log above) instead of losing the hardened WebGL context.
++            WARN() << "Metal shader library compilation failed: "
++                   << (err ? err.get().localizedDescription.UTF8String : "unknown error");
++            return angle::Result::Stop;
+         }
+         return angle::Result::Continue;
+     }
+@@ -911,8 +920,13 @@ angle::Result ProgramExecutableMtl::setupDraw(const gl::Context *glContext,
+             getSpecializedShader(context, gl::ShaderType::Fragment, pipelineDesc, &fragmentShader));
+ 
+         angle::ObjCPtr<id<MTLRenderPipelineState>> pipelineState;
+-        ANGLE_TRY(context->getPipelineCache().getRenderPipeline(
+-            context, vertexShader, fragmentShader, pipelineDesc, &pipelineState));
++        if (context->getPipelineCache().getRenderPipeline(context, vertexShader, fragmentShader,
++                                                          pipelineDesc, &pipelineState) !=
++            angle::Result::Continue)
++        {
++            dumpFailedPipelineSource(pipelineDesc);
++            return angle::Result::Stop;
++        }
+ 
+         cmdEncoder->setRenderPipelineState(pipelineState);
+ 
+@@ -950,6 +964,45 @@ angle::Result ProgramExecutableMtl::setupDraw(const gl::Context *glContext,
+     return angle::Result::Continue;
+ }
+ 
++// FlyWeb B1d: diagnostics for pipelines the Metal compiler rejects. With FLYWEB_MTL_DUMP=1 the
++// MSL of the program is written to stderr (the GPU process sandbox cannot write files), once per
++// program, between "FLYWEB-MSL-BEGIN" and "FLYWEB-MSL-END" markers.
++void ProgramExecutableMtl::dumpFailedPipelineSource(const mtl::RenderPipelineDesc &pipelineDesc)
++{
++    if (mFailedPipelineDumped)
++    {
++        return;
++    }
++    mFailedPipelineDumped = true;
++    if (!angle::GetBoolEnvironmentVar("FLYWEB_MTL_DUMP"))
++    {
++        return;
++    }
++    const unsigned long long id = mProgramSerialId.getValue();
++    fprintf(stderr,
++            "FLYWEB-MSL-PIPELINE prog=%llu rasterization=%d samples=%u depthFormat=%lu "
++            "stencilFormat=%lu alphaToCoverage=%d\n",
++            id, static_cast<int>(pipelineDesc.getRasterizationType()),
++            static_cast<unsigned>(pipelineDesc.outputDescriptor.getRasterSampleCount()),
++            static_cast<unsigned long>(pipelineDesc.outputDescriptor.getDepthAttachmentPixelFormat()),
++            static_cast<unsigned long>(
++                pipelineDesc.outputDescriptor.getStencilAttachmentPixelFormat()),
++            pipelineDesc.getAlphaToCoverageEnabled() ? 1 : 0);
++    for (gl::ShaderType type : {gl::ShaderType::Vertex, gl::ShaderType::Fragment})
++    {
++        const auto &src = mMslShaderTranslateInfo[type].metalShaderSource;
++        if (!src)
++        {
++            continue;
++        }
++        const char *name = type == gl::ShaderType::Vertex ? "vert" : "frag";
++        fprintf(stderr, "FLYWEB-MSL-BEGIN prog=%llu %s\n", id, name);
++        fwrite(src->data(), 1, src->size(), stderr);
++        fprintf(stderr, "\nFLYWEB-MSL-END prog=%llu %s\n", id, name);
++    }
++    fflush(stderr);
++}
++
+ angle::Result ProgramExecutableMtl::getSpecializedShader(
+     ContextMtl *context,
+     gl::ShaderType shaderType,
+diff --git a/src/libANGLE/renderer/metal/mtl_pipeline_cache.h b/src/libANGLE/renderer/metal/mtl_pipeline_cache.h
+index 8089414..fc2e654 100644
+--- a/src/libANGLE/renderer/metal/mtl_pipeline_cache.h
++++ b/src/libANGLE/renderer/metal/mtl_pipeline_cache.h
+@@ -78,6 +78,9 @@ class PipelineCache : angle::NonCopyable
+     {
+         angle::ObjCPtr<id<MTLRenderPipelineState>> renderPipeline;
+         angle::ObjCPtr<id<MTLComputePipelineState>> computePipeline;
++        // FlyWeb B1d: the Metal compiler rejected (or crashed on) this pipeline. Remember it so
++        // the failing draw is skipped without recompiling on every frame.
++        bool failed = false;
+     };
+ 
+     using RenderPipelineMap = angle::base::HashingMRUCache<PipelineKey, PipelineVariant>;
+diff --git a/src/libANGLE/renderer/metal/mtl_pipeline_cache.mm b/src/libANGLE/renderer/metal/mtl_pipeline_cache.mm
+index 5f4d5e9..012331b 100644
+--- a/src/libANGLE/renderer/metal/mtl_pipeline_cache.mm
++++ b/src/libANGLE/renderer/metal/mtl_pipeline_cache.mm
+@@ -120,7 +120,17 @@ angle::Result CreateRenderPipelineState(
+         // Create pipeline state
+         NSError *err  = nil;
+         auto newState = metalDevice.newRenderPipelineStateWithDescriptor(objCDesc, &err);
+-        ANGLE_MTL_CHECK(context, newState, err);
++        if (!newState)
++        {
++            // FlyWeb B1d: a pipeline the driver cannot build (e.g. the AMD compiler of macOS
++            // 10.14 aborting with "Compiler encountered an internal error") must only fail the
++            // draws that use it. Reporting it through handleNSError() makes it a backend error,
++            // which loses every hardened (WebGL) context with an unknown reset and makes
++            // Chromium restart the whole GPU process. The caller caches the failure.
++            WARN() << "Metal render pipeline creation failed; skipping the draws that use it: "
++                   << (err ? err.localizedDescription.UTF8String : "unknown error");
++            return angle::Result::Stop;
++        }
+         *outRenderPipeline = newState;
+         return angle::Result::Continue;
+     }
+@@ -207,6 +217,11 @@ angle::Result PipelineCache::getRenderPipeline(
+     auto iter = mPipelineCache.Get(key);
+     if (iter != mPipelineCache.end())
+     {
++        if (iter->second.failed)
++        {
++            // FlyWeb B1d: known-bad pipeline, skip the draw (see CreateRenderPipelineState).
++            return angle::Result::Stop;
++        }
+         // Should be no way that this key matched a compute pipeline entry
+         ASSERT(iter->second.renderPipeline);
+         *outRenderPipeline = iter->second.renderPipeline;
+@@ -216,7 +231,16 @@ angle::Result PipelineCache::getRenderPipeline(
+     angle::TrimCache(kMaxPipelines, kGCLimit, "render pipeline", &mPipelineCache);
+ 
+     PipelineVariant newPipeline;
+-    ANGLE_TRY(CreateRenderPipelineState(context, key, &newPipeline.renderPipeline));
++    if (CreateRenderPipelineState(context, key, &newPipeline.renderPipeline) !=
++        angle::Result::Continue)
++    {
++        if (!newPipeline.renderPipeline)
++        {
++            newPipeline.failed = true;
++            mPipelineCache.Put(std::move(key), std::move(newPipeline));
++        }
++        return angle::Result::Stop;
++    }
+ 
+     iter = mPipelineCache.Put(std::move(key), std::move(newPipeline));
+ 
+-- 
+2.43.0
+
