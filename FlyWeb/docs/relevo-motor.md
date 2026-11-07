@@ -1,4 +1,4 @@
-# MOTOR-40: estado (07-11-2026, ~02:00 UTC)
+# MOTOR-40: estado (07-11-2026, ~01:45 UTC)
 
 MOTOR-40 (`session_01MwmK2mJrB3myzidqeC1BfM`, Opus 5.5). Coordina **COORDINACIÓN-32** (`session_01MwmK2iTqaffXip3r8YT1NG`).
 
@@ -35,16 +35,18 @@ Lo saca `FlyWeb/tools/brave-inventario/check-parches-156.sh`:
   `css_to_wrapper.py`.
 - **Includes.** Al copiar un override de 1.98, el include del original va como `"src/<ruta>"`, no como `<ruta>`.
 
-**Preguntas abiertas a COORDINACIÓN** (enviadas a las 07-11 ~01:55):
-1. ¿Quitar `maglev_untagged_phis=false` de v8 flag-definitions? La 15.6 ya trae el arreglo del CVE-2026-3910.
-2. GPU (FM.31, gl_display_initializer): en macOS anterior a 10.15 se usa ANGLE OpenGL, no Metal. ¿Es compatible con
-   B1d?
-3. ¿Quitar el entitlement de VPN de `app-entitlements-brave.plist`?
-4. Restos de IPFS (`kIPFSCache`) y la cadena `privateAndTorInfoWarning`.
-5. v8: `kFlyWebCacheEpoch` en version.cc o en `v8_embedder_string`. Lo decide ARQUITECTURA.
+**Decisiones de COORDINACIÓN-32 (07-11 ~01:37), ya aplicadas:**
+- 18d292b5f: fuera `maglev_untagged_phis=false` (regla 19). `maglev=false` se queda hasta la validación de la 3.0.0 (B6).
+- 60031ef11: fuera el parche FM.31 de `gl_display_initializer`. **Metal por defecto también en Mojave** (B1d): el
+  fichero de flynk-b1d es el de la 156 tal cual, y LOCAL-19 lo midió en la 6,1.
+- 5a691a6d6: fuera el entitlement de VPN (`app-entitlements-brave.plist`).
+- `kFlyWebCacheEpoch` sigue en version.cc. COORDINACIÓN lo consulta con ARQUITECTURA (alternativa: `v8_embedder_string`).
+- Las 5 políticas de Shields por defecto de 1.98: después de la 3.0.0.
+- IPFS (`kIPFSCache`) y Tor (`privateAndTorInfoWarning`): tanda aparte, después de la primera build Mac.
 
-COORDINACIÓN-32 ya respondió a otra pregunta: las 5 políticas de Shields por defecto de 1.98 no entran; quedan para
-después de la 3.0.0.
+**Punta para P2 y para LOCAL-19: f5133ee5b.** Es `nube/b2-parches` y también `nube/b2-porte-t11`, que avanzó por
+fast-forward desde accfb0c61. Encima lleva el cherry-pick de 3f5d9c293 (nube/b2-iconos). Medida de nuevo: 513 parches,
+**todos aplican**.
 
 **De 1.98, sin portar (fuera de la tanda):**
 - borrar window.name al cambiar de origen;
@@ -53,6 +55,11 @@ después de la 3.0.0.
 - `css_to_wrapper.py`;
 - history `app.html.ts`;
 - la etiqueta «Brave hosted».
+
+Qué se hace con cada uno (COORDINACIÓN-32):
+- window.name, el farbling WebGL y la restauración de sesiones brave://: tanda después de la build Mac (regla 20).
+- css_to_wrapper e history `app.html.ts`: solo si hacen falta.
+- «Brave hosted»: no.
 
 **Unidades para MOTOR-30:**
 - components_unittests: content_settings*, ProtoConversions*, DownloadItemImpl*, ChromeMetadataSource*
@@ -88,9 +95,11 @@ después de la 3.0.0.
 - extensiones, historial, descargas, selector de perfil y personalización de perfil (Enter);
 - color de tema gris por defecto;
 - el visor de PDF;
-- en Mojave, ANGLE (con OpenGL o con Metal).
+- en Mojave, ANGLE con Metal (chrome://gpu);
+- **captura de flyweb://settings** con los iconos Leo (nube/b2-iconos: brave_icons.html quitado, iconMap como 1.98);
+- prefs: la app arranca y las contraseñas guardadas siguen ahí.
 
-**Siguiente:** las respuestas a las preguntas 1–5 y lo que salga de la build de LOCAL y de las unidades de MOTOR-30.
+**Siguiente:** lo que salga de la build de LOCAL y de las unidades de MOTOR-30.
 
 # MOTOR-39 → MOTOR-40: B2 T11 (07-11-2026, ~01:20 UTC)
 
