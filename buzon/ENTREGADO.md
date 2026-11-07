@@ -512,3 +512,4 @@ buzon/LOCAL/20261107-0545-COORDINACION-32-errores.md → LOCAL Compilación Loca
 buzon/LOCAL/20261107-0550-COORDINACION-32-eaefe8115.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 05:50 UTC · entregado
 buzon/LOCAL/20261107-0623-COORDINACION-32-552d66e27.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 06:22 UTC · entregado
 buzon/MOTOR/20261107-0645-COORDINACION-32-552d66e27.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-07 06:33 UTC · entregado (ruta MOTOR-30 vía Motor ubuntu (2), según reenvio-motor30)
+buzon/MOTOR/20261107-0700-COORDINACION-32-p2-ampliado.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-07 06:39 UTC · entregado (ruta MOTOR-30 vía Motor ubuntu (2))
