@@ -100,6 +100,27 @@ Qué se hace con cada uno (COORDINACIÓN-32):
 - **captura de flyweb://settings** con los iconos Leo (nube/b2-iconos: brave_icons.html quitado, iconMap como 1.98);
 - prefs: la app arranca y las contraseñas guardadas siguen ahí.
 
+**Para el build.sh de la 3.0.0: Sparkle** (COORDINACIÓN-32, 07-11). `build/mac_files/sparkle_binaries` (`sign_update`,
+`BinaryDelta`, Sparkle.framework) llega con gclient: no está en brave-core.
+- Nuestro DEPS lo baja con el hook `download_sparkle` (`build/mac/download_sparkle.py 1.24.3`).
+- 1.98 lo baja con `tools/cr/install_extra_deps.py sync src/build/mac_files/sparkle_binaries` (EXTRA_DEPS:
+  `sparkle-1.24.4.tar.gz` desde `brave-build-deps-public.s3.brave.com`).
+
+build.sh no hace gclient sync, así que tiene que bajarlo él una vez, antes de compilar. Desde `src/brave`:
+`vpython3 build/mac/download_sparkle.py 1.24.3`.
+
+Es una descarga de Brave en tiempo de compilación, no en el navegador. Si no se quiere depender de Brave, se puede
+copiar desde la máquina que ya lo tiene. Hay que mirar si FlyWeb usa de verdad esos binarios: las actualizaciones se
+firman en bak.
+
+**nube/b2-mac 9611d4638** (sobre f5133ee5b), lo que se compila en la Mac:
+- quitado `icons_html_files` del parche de settings;
+- fuera `require('ip')`;
+- `use_siso=false` hasta la tanda de envoltorios .cc (`nube/b2-redirect-cc` = 58be92043, sin juntar);
+- Release = compilación de publicación, con PGO oficial: `chrome_pgo_phase` ya no se escribe en args_generated.gni;
+- fuera los 9 parches de FM.42 b2/d8, que ahora están en flynk-b1d 58cec3d923;
+- redirect_cc con objetivo macOS 10.14.
+
 **Siguiente:** lo que salga de la build de LOCAL y de las unidades de MOTOR-30.
 
 # MOTOR-39 → MOTOR-40: B2 T11 (07-11-2026, ~01:20 UTC)
