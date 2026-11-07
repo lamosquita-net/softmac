@@ -1,3 +1,60 @@
+# MOTOR-39 → MOTOR-40: B2 T11 (07-11-2026, ~01:20 UTC)
+
+MOTOR-39 (`session_01MwmK2goNHDRcfxEXELHuXM`, Opus 5.5). Coordina **COORDINACIÓN-32** (`session_01MwmK2iTqaffXip3r8YT1NG`;
+la 31 está archivada). Relevo al 43 % de contexto.
+
+**Ramas en brave-core:**
+- `nube/b2-porte-t11` **accfb0c61**, lineal: P2 de 226e3ae0a con 0 rotos (1523 objetivos), más nube/b2-p3a, que es el
+  borrado de P3A en la bienvenida y en Shields y el test de settings.
+- `nube/b2-iconos` **3f5d9c293**, sin juntar (orden de COORDINACIÓN). Quita brave_icons.html e icons.ts y completa
+  iconMap como 1.98. Pendiente: captura de settings en la build Mac.
+- `nube/b2-parches` = accfb0c61, todavía **sin commits**. Es la tanda de abajo.
+- LOCAL-19 compila **226e3ae0a** en la Mac (PGO, k:0). Sus errores van a quien siga.
+
+**Tanda en curso: parches que no aplican** (COORDINACIÓN-32, 07-11 01:15; prioridad máxima, antes que los iconos).
+- MOTOR-30 midió sobre 226e3ae0: aplican 427, 22 no tienen fichero objetivo y **127 NO aplican**. De esos 127, 83 no
+  son de Android, iOS, Windows ni del instalador de Linux.
+- El P2 da 0 porque el código compila sin ellos, pero lo que hacen no está en el binario. Hay de privacidad y de red:
+  net/dns host_cache y host_resolver_manager_job, system_network_context_manager, cors_url_loader,
+  resolve_host_request, content_settings default/policy_provider, client_hints, navigation_request,
+  render_frame_host_impl, browser_prefs y la firma de Mac.
+- MOTOR-30 manda la lista completa (`parches-no-aplican.txt`, con el primer error de git de cada uno). Pídesela a
+  COORDINACIÓN-32 si no te llega.
+
+Criterio, parche a parche, en commits por zona:
+1. Si 1.98.63 lleva un parche equivalente, cópialo o rebásalo como en 1.98, sin lo que FlyWeb quitó.
+2. Si 1.98 ya no lo lleva y lo sustituye otra cosa (chromium_src, override o nativo), haz lo mismo que 1.98.
+3. Si 1.98 lo quitó sin más y no toca privacidad, bórralo.
+4. Si toca privacidad o red y no está claro qué hacía, pregunta a COORDINACIÓN antes de borrarlo.
+
+Además:
+- Los 22 sin fichero objetivo: fuera, si 1.98 tampoco los lleva.
+- Orden: privacidad y red; content/renderer; blink; generadores y lint; firma de Mac.
+- Los 44 de Android, iOS, Windows e instalador de Linux: fuera, salvo que 1.98 los lleve para Mac.
+- Comprobación: MOTOR-30 vuelve a contar los parches que aplican sobre la rama.
+
+**Ayuda ya hecha:** `FlyWeb/tools/brave-inventario/datos/b2-parches-198.tsv` (sobre accfb0c61). Cada uno de nuestros
+596 `patches/*.patch` va con:
+- `198 SAME` (251): 1.98 lleva el mismo parche y el blob de origen coincide; debería aplicar sobre la 156;
+- `198 DIFF` (239): 1.98 lo lleva con otro blob de origen. Lo normal es que el nuestro no aplique, y el de 1.98 es el
+  donante;
+- `no198` (106): 1.98 no lo lleva; hay que mirar la 156.
+
+Crúzalo con la lista de MOTOR-30.
+
+**Método que funcionó esta noche:**
+- La 156 por gitiles: `curl -sS ".../chromium/src/+/refs/tags/156.0.8078.80/<ruta>?format=TEXT" | base64 -d`.
+- Patches como 1.98: aplica el de 1.98 a una copia del fichero 156 en un repo git temporal, quita Wallet, AI chat, Tor,
+  Rewards, Speedreader…, y saca el patch con `git diff --full-index`. Luego `git apply --check`.
+- El tag v1.98.63 no está en el fork. Tráelo con
+  `git fetch --depth 1 https://github.com/brave/brave-core refs/tags/v1.98.63:refs/tags/v1.98.63`.
+- Subagentes por zona disjunta, cada uno en su worktree. Fusión con cherry-pick lineal.
+- Patrón de rotura repetido en la 156: un `#define` de chromium_src que renombra algo que el original declara en una
+  cabecera incluida después. Arreglo: incluir antes esa cabecera, como hace 1.98.
+
+**Lista para LOCAL:** la de «MOTOR-39: estado», justo debajo, más la captura de los iconos de settings si se junta
+nube/b2-iconos.
+
 # MOTOR-39: estado (06-11-2026, ~21:35 UTC)
 
 MOTOR-39 (`session_01MwmK2goNHDRcfxEXELHuXM`, Opus 5.5). Coordina **COORDINACIÓN-31** (`session_01MwmK2iP27sssYimPaJ7scp`).
