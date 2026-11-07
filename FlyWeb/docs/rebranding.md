@@ -99,6 +99,7 @@ La página "Acerca de" de ajustes usa los `IDR_PRODUCT_LOGO_*` de Chromium, que 
 | Wallet | `components/brave_wallet_ui/page/screens/send/assets/brave-logo-{dark,light}.svg` (solo si se deja Wallet) |
 | Ajustes / signin / perfiles | Directorios que `util.js` copia sobre Chromium: `browser/resources/settings/images/`, `browser/resources/signin/images/`, `browser/resources/signin/profile_picker/images/`, `browser/resources/signin/profile_customization/images/` (revisar si llevan marca, **sin verificar**) |
 | Otros | `browser/resources/chrome-logo-faded.png`; iconos vectoriales en `components/vector_icons/brave/` (copiados a `src/components/vector_icons/brave/`) |
+| **Pendiente (MOTOR-40, 07-11-2026)** | `util.updateBranding()` (brave-core `build/commands/lib/util.js`) sigue copiando el **logotipo de Brave** de `node_modules/@brave/leo/icons/` (`config.getBraveLogoIconName()`: `brave-icon-{dev,release,beta,nightly}-color.svg`) sobre `src/ui/webui/resources/images/chrome_logo_dark.svg`. Desde nube/b2-mac (Release = compilación de publicación), una Release copia el de release; antes copiaba el de dev. Hay que sustituirlo por el logotipo de FlyWeb. No se ha tocado (COORDINACIÓN-32). |
 
 ---
 
