@@ -53,6 +53,14 @@ Mac en verde de LOCAL-19 (PGO, 0 FAILED, arranca). Encima:
   también el método virtual MediaClient::IsDecoderSupportedVideoType, que en la 156 se llama igual que la función libre.
   Funciona porque va por la misma entrada de la vtable. Se deja así.
 
+**Actualización (07-11 ~15:05 UTC): punta 49becf98e5** (ls-remote). La build limpia de c7e39138ca dio 2 FAILED:
+c1497981d (crear la carpeta del depfile de preprocess_if_expr) y d2fd3793c («extensions/api» relativa en common/sources.gni,
+que resolvía a //chrome/common; repasados los 97 .gni que importan BUILD.gn de Chromium: ninguna más en Mac). 49becf98e:
+LocalizedObsoleteString() vacío e IsEndOfTheLine() false en Mac (el About cargaba IDS_MACOS_OBSOLETE en un elemento oculto).
+Las pruebas de la 6,1 sobre d2fd3793c5 salieron en verde (Sparkle, vídeo, B5, DoH, External Extensions, GPU Metal y GPC).
+El .82 de los client hints es flyweb_engine_full_version, a propósito; el .90 de /json/version es la base. COORDINACIÓN pasa
+a ser COORDINACIÓN-34 (`session_01MwmK2m1QvhRzNFCDSWtvkf`).
+
 **Decidido por COORDINACIÓN-33:** si `HTMLScriptElement.supports('speculationrules')` sale true (por el prefetch) o
 HTMLPermissionElement sale definido (por GeolocationElement), se deja como en 1.98.
 
