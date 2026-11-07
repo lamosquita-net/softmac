@@ -1,3 +1,107 @@
+# MOTOR-40: estado (07-11-2026, ~01:45 UTC)
+
+MOTOR-40 (`session_01MwmK2mJrB3myzidqeC1BfM`, Opus 5.5). Coordina **COORDINACIÓN-32** (`session_01MwmK2iTqaffXip3r8YT1NG`).
+
+**Tanda de parches que no aplican: cerrada.** Primero 37 commits lineales sobre accfb0c61, hasta ed1721260. Después
+vinieron las 3 decisiones de abajo y el cherry-pick de los iconos. Punta: **f5133ee5b**, la misma en `nube/b2-parches`
+y en `nube/b2-porte-t11` (push hecho).
+
+**Recuento contra la 156:** quedan 514 parches y aplican **todos**; ninguno se queda sin fichero y ninguno falla.
+Antes había 596: 436 aplicaban, 22 no tenían fichero y 138 fallaban. El recuento incluye `v8/` y `third_party/`.
+Lo saca `FlyWeb/tools/brave-inventario/check-parches-156.sh`:
+- se ejecuta desde un directorio de trabajo vacío, con xargs sobre la lista de `patches/*.patch`;
+- descarga de gitiles los ficheros de la 156 y los subrepos en las revisiones del DEPS;
+- usa los flags de Brave: `--ignore-space-change --ignore-whitespace`;
+- también comprueba que todas las macros `BRAVE_*` que meten los parches estén definidas.
+
+**Commits por zona:**
+- privacidad y red: aada1a481, 51e6980a4
+- no-Mac (53 fuera): 08643a397
+- content: ae65eb2ac, 4b9cbd2d1, ccac706ae, a356c06b6 (Private State Tokens apagados como en 1.98)
+- tools y firma de Mac: 615677c7e, 3f97b0274
+- C++: 12 commits, hasta d5cabed89
+- WebUI: 7 commits
+- blink y v8: 9 commits, hasta ed1721260
+
+**Trampas de la 156** (para TRAMPAS.md):
+- **«Login Data».** Al migrar las prefs del perfil, la 156 borra los ficheros de contraseñas `Login Data*`. 1.98 lo
+  anula con `#if 0` en `patches/chrome-browser-prefs-browser_prefs.cc.patch`, y nosotros también. Si ese parche deja
+  de aplicar, el P2 sigue dando 0 rotos, pero el navegador pierde las contraseñas y además no registra las prefs de
+  Brave. Hay que revisarlo en cada rebase.
+- **El P2 no basta.** Un parche que no aplica no rompe la compilación: sus macros quedan sin usar. Pasa el script de
+  arriba antes de dar una rama por buena.
+- **1.98 usa `rewrite/*.yaml` (plaster) y `lit_mangler`**, y nosotros no tenemos ninguno de los dos. Su equivalente
+  en nuestro árbol es un `.patch` o un override `.ts` de chromium_src. Los overrides `.ts` funcionan por
+  `preprocess_if_expr`, que guarda el original como `-chromium.js`. Los overrides `.css` todavía no funcionan: falta
+  `css_to_wrapper.py`.
+- **Includes.** Al copiar un override de 1.98, el include del original va como `"src/<ruta>"`, no como `<ruta>`.
+
+**Decisiones de COORDINACIÓN-32 (07-11 ~01:37), ya aplicadas:**
+- 18d292b5f: fuera `maglev_untagged_phis=false` (regla 19). `maglev=false` se queda hasta la validación de la 3.0.0 (B6).
+- 60031ef11: fuera el parche FM.31 de `gl_display_initializer`. **Metal por defecto también en Mojave** (B1d): el
+  fichero de flynk-b1d es el de la 156 tal cual, y LOCAL-19 lo midió en la 6,1.
+- 5a691a6d6: fuera el entitlement de VPN (`app-entitlements-brave.plist`).
+- `kFlyWebCacheEpoch` sigue en version.cc. COORDINACIÓN lo consulta con ARQUITECTURA (alternativa: `v8_embedder_string`).
+- Las 5 políticas de Shields por defecto de 1.98: después de la 3.0.0.
+- IPFS (`kIPFSCache`) y Tor (`privateAndTorInfoWarning`): tanda aparte, después de la primera build Mac.
+
+**Punta para P2 y para LOCAL-19: f5133ee5b.** Es `nube/b2-parches` y también `nube/b2-porte-t11`, que avanzó por
+fast-forward desde accfb0c61. Encima lleva el cherry-pick de 3f5d9c293 (nube/b2-iconos). Medida de nuevo: 513 parches,
+**todos aplican**.
+
+**De 1.98, sin portar (fuera de la tanda):**
+- borrar window.name al cambiar de origen;
+- el farbling WebGL nuevo;
+- `navigation_entry_impl` y la restauración de sesiones brave://;
+- `css_to_wrapper.py`;
+- history `app.html.ts`;
+- la etiqueta «Brave hosted».
+
+Qué se hace con cada uno (COORDINACIÓN-32):
+- window.name, el farbling WebGL y la restauración de sesiones brave://: tanda después de la build Mac (regla 20).
+- css_to_wrapper e history `app.html.ts`: solo si hacen falta.
+- «Brave hosted»: no.
+
+**Unidades para MOTOR-30:**
+- components_unittests: content_settings*, ProtoConversions*, DownloadItemImpl*, ChromeMetadataSource*
+- brave_unit_tests: BraveContentSettings*, brave_shields_util*, EphemeralStorage*, brave_font_whitelist
+- network_service_unittests: CorsURLLoader*, ResolveHostRequest*
+- net_unittests: HostCache*, HostResolverManager*
+- blink_common_unittests: ClientHints*
+- content_unittests: BrowsingDataFilterBuilderImpl*, NavigationController*, RenderFrameHostImpl*
+- unit_tests: HistoryTabHelper*, PageInfo*, DownloadTargetDeterminer*, ExtensionInfoGenerator*,
+  ChromeBrowsingDataRemoverDelegate*, DeveloperPrivateApi*
+- ui_base_unittests: Accelerator*
+- base_unittests: HistogramFunctions*
+- crypto_unittests: AEAD*
+- views_unittests: MenuSeparator*
+- v8_unittests y cctest: test-version, test-serialize
+- brave_browser_tests:
+  - farbling: webaudio, webgl, enumeratedevices, font
+  - BraveSchemeLoad*, BraveContentBrowserClient*, url_sanitizer, BraveWelcome*
+  - brave_shields_web_contents_observer, flyweb_script_block_internal_pages
+- browser_tests:
+  - CrExtensions*, CrHistory*, CrDownloads*
+  - ProfilePicker*, ProfileCustomization*, CrComponentsThemeColorPicker*
+  - PDFExtension*, TrustToken* (deben quedar filtrados)
+  - EnclaveAuthenticator*
+- firma: `chrome/installer/mac/signing/run_mac_signing_tests.py`
+- herramientas: json_schema_compiler_tests y licenses_test.py
+
+**Lista para LOCAL** (además de la de MOTOR-39):
+- arranca sin fallo de prefs;
+- las contraseñas guardadas siguen ahí después del primer arranque en la 156;
+- flyweb:// en la barra y en el título;
+- la bienvenida con lottie;
+- extensiones, historial, descargas, selector de perfil y personalización de perfil (Enter);
+- color de tema gris por defecto;
+- el visor de PDF;
+- en Mojave, ANGLE con Metal (chrome://gpu);
+- **captura de flyweb://settings** con los iconos Leo (nube/b2-iconos: brave_icons.html quitado, iconMap como 1.98);
+- prefs: la app arranca y las contraseñas guardadas siguen ahí.
+
+**Siguiente:** lo que salga de la build de LOCAL y de las unidades de MOTOR-30.
+
 # MOTOR-39 → MOTOR-40: B2 T11 (07-11-2026, ~01:20 UTC)
 
 MOTOR-39 (`session_01MwmK2goNHDRcfxEXELHuXM`, Opus 5.5). Coordina **COORDINACIÓN-32** (`session_01MwmK2iTqaffXip3r8YT1NG`;
