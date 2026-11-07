@@ -451,3 +451,31 @@ brave-core `nube/b2-porte-t11`, commit 426a296b (punta 507dc0d6). **Veredicto: O
   en producción (como en Brave). Cambio propuesto a COORDINACIÓN-30: con `OFFICIAL_BUILD` comparar contra el
   `constexpr` (solo lectura) y el setter a `NOTREACHED()`. En B5, comprobar con `nm` que el símbolo no está o no
   escribe.
+
+## 7. SEGURIDAD-PORTES-18 (07-11): FS.41, B5 y A1–A4 de la build Mac del porte B2
+
+Build: chromium `flynk-b1d` 33a1745949 + brave-core `nube/b2-porte-t11` f3f65b603 (Release oficial con PGO). Fila FS.41.
+
+- **A1–A4 aplicadas** (revisadas contra la 156.0.8078.82): A1 `web_drag_dest_mac.mm` l.864–902; A2 `web_drag_source_mac.mm`
+  con `_fileUTI`; A4 `media_switches.cc` l.2004–2011 y `audio_loopback_input_mac_impl.mm` l.571–577. **A3 distinta de lo
+  propuesto:** en 10.14 abre el cuentagotas genérico (`eye_dropper::EyeDropperView`, como en la 116) en vez de nullptr. Vale
+  (foco y gesto; la web solo recibe el píxel elegido), pero falta probarla a mano (ronda 2 de la 6,1).
+- **otool (LOCAL-19):** ScreenCaptureKit, UniformTypeIdentifiers y AuthenticationServices, débiles en FlyWeb Framework; el
+  resto no las enlaza. `is_official_build` true; `SetFlyWebPublisherKeyHashForTesting` no está (737f2e67 surte efecto).
+- **External Extensions (57c54579d6): OK.** Ruta propia `/Library/Application Support/LaMosquita/FlyWeb/External Extensions`;
+  se mantienen `ENSURE_PATH_CONTROLLED_BY_ADMIN` y `prompt_for_external_extensions`. Gravedad del hallazgo original: baja
+  (la ruta era la global, protegida por root:admin).
+- **DoH automático:** no es vulnerabilidad si el DNS del sistema es del mismo proveedor; MOTOR-41 encontró que el override
+  «off» de la 2.7.0 quedó muerto en la 156 (`default_dns_over_https_config_source.cc`) y lo vuelve a apagar.
+- **B5 no pasa** (prueba 3 por CDP): `joinAdInterestGroup`, `getInterestGroupAdAuctionData` y `protectedAudience` visibles; lo
+  demás (Topics, Shared Storage, Attribution Reporting, Fenced Frames, FedCM/`IdentityCredential`, Private State Tokens),
+  oculto. **Riesgo: solo superficie.** En la 156 no hay `content/browser/interest_group/` ni binder de `AdAuctionService`, y
+  `navigator_auction.cc` son stubs que resuelven `undefined`: ni subasta, ni `updateURL`, ni k-anon.
+- **Causa (clase de rotura «override muerto», como el DoH):** el generador de la 156 solo copia el `base::Feature` al flag de
+  Blink si está habilitado o cuenta como «overridden»; `base_feature_status: "disabled"` sin override deja `status: "stable"`.
+  Brave 1.98+ lo resuelve con `brave_base_feature_overridden` + parche de `features_generated.cc.tmpl` + `BASE_OVERRIDDEN_FEATURE`;
+  FlyWeb solo cuenta como «overridden» lo de `OVERRIDE_FEATURE_DEFAULT_STATES` (`chromium_src/base/feature_list.cc:92–121`).
+  Arreglo mínimo pedido a MOTOR-41: kAdInterestGroupAPI, kFledge, kFencedFramesRuntime, kParakeet, kPrerender2,
+  kControlledFrame, kExtensionScriptTagging (y kUserMediaElement si se sigue a Brave) a DISABLED en ese override.
+- **Pendiente:** el sha de MOTOR-41, repetir la prueba 3, A3 a mano y la lista de MOTOR-41 de overrides de `chromium_src`
+  muertos (revisarla entera). Lección: tras un salto de base, comprobar en ejecución cada override, no solo que compile.
