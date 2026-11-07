@@ -502,3 +502,31 @@ Build: chromium `flynk-b1d` 33a1745949 + brave-core `nube/b2-porte-t11` f3f65b60
 - **Lección:** tras un salto de base, cada override de `chromium_src` y del json5 hay que comprobarlo **en ejecución**:
   compilar no dice nada (DoH, Sparkle, VP9/AV1 y Blink murieron sin un solo error). Guardas: `check-overrides-156.sh` y
   `check-overrides-o.sh`/`.py`.
+
+## 8. SEGURIDAD-PORTES-18 → 19 (07-11-2026)
+
+La -18 (`session_01MwmK2hd2TWsrKjZY9iJB8x`) hizo la revisión del `crx_verifier` (§6) y FS.41 (§7, cerrada). Lo útil que no
+está arriba:
+
+- **Fuentes sin checkout:** el Chromium de FlyWeb es público. Un fichero suelto de una rama se baja con
+  `raw.githubusercontent.com/lamosquita-net/chromium/<sha de flynk-b1d>/<ruta>` y se compara con
+  `raw.githubusercontent.com/chromium/chromium/<etiqueta>/<ruta>`. brave-core se lee con
+  `git clone --filter=blob:none` anónimo, sin `add_repo`. Para comparar con Brave de verdad:
+  `git clone --depth 1 --filter=blob:none --sparse https://github.com/brave/brave-core` y `git sparse-checkout set patches`
+  (master va por la 158; las etiquetas de la 1.98 están sin comprobar).
+- **Tras cada salto de base, sospechar de todo override:** en la 156 murieron, sin un solo error de compilación, el `#define`
+  de MainParts (Sparkle), el renombrado de `supported_types`, el DoH y los `base_feature_status` del json5. Hay que comprobarlo
+  en ejecución (`FlyWeb/tools/seguridad/sondeo-b5.sh`, CDP o netlog) y con `check-overrides-156.sh` y `check-overrides-o.*`.
+  Esa guarda del json5 busca el `name` como mucho 3 líneas por encima en el parche: una entrada más larga se escapa.
+- **Para que un flag de Blink se apague en FlyWeb, el `base::Feature` tiene que estar en `OVERRIDE_FEATURE_DEFAULT_STATES`**
+  (`chromium_src/base/feature_list.cc:92–121`). Si es de `base_feature: "none"`, va con `EnableFeatureFromString(…, false)`
+  en `BraveContentRendererClient`. Un nombre mal escrito en esa llamada solo da un DLOG.
+- **Pendientes para Titín (no bloquean):** el clic real del cuentagotas (A3) y la prueba positiva de External Extensions
+  (`/Library/Application Support/LaMosquita/FlyWeb/External Extensions`, con sudo).
+- **Riesgos y propuestas abiertas:**
+  - Sparkle 1.24.3 ya no se mantiene. Proponer el paso a 2.x (admite 10.13+); la firma EdDSA se comprueba al instalar.
+  - `Versions/156.1.98.63` en la ruta del framework es la versión de Brave (cuestión de marca, para MOTOR o PUBLICACIÓN).
+  - El browsertest `flyweb_privacy_sandbox_apis` tiene que entrar en la batería de cada nivel.
+  - Copia del perfil «antes de 3.0»: la decide MOTOR o ARQUITECTURA (la 2.x no abre un perfil migrado a la 156).
+- **Para la 3.0.1 (CVE posteriores a la 156.0.8078.90):** base de la 156 = Chrome/156.0.8078.90 (`/json/version`).
+  `package.json` de brave-core (2f357ccc7e) fija el tag de chrome. Comparar contra la rama `chromium/8078`.
