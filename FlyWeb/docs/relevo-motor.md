@@ -35,8 +35,23 @@ Mac en verde de LOCAL-19 (PGO, 0 FAILED, arranca). Encima:
    La guarda está en check-overrides-156.sh.
 3. **.o viejo** (pendiente de confirmar por LOCAL): si se añade un override .cc nuevo cuando el .o del original ya
    existe, ninja no recompila y la build sale en verde con el código de Chromium. Esa es la explicación probable de que
-   supported_types, que no podía compilar, diera verde. `check-overrides-o.sh <out> <src/brave>` (en la 7,1) lo detecta
+   supported_types, que no podía compilar, diera verde. `check-overrides-o.py <out> <src/brave>` (en la 7,1) lo detecta
    con `ninja -t deps`. COORDINACIÓN ha pedido a LOCAL-19 una build LIMPIA y que pase esa herramienta sobre el out viejo.
+
+**Actualización (07-11 ~11:05 UTC).**
+- `check-overrides-o.py` es la versión en Python de LOCAL-19 y sustituye al .sh, que solo veía 26 de 552 originales:
+  redirect_cc deja el original en deps como «../../../src/<ruta>». Lo validó LOCAL en la 7,1, con brave-core en c7e39138ca
+  y el out de f3f65b603: 688 overrides, 551 con el original compilado y 1 SIN_COMPILAR, el override nuevo del DoH.
+  La clase 3 existe, pero **no** explicaba supported_types: su override sí estaba en deps.
+- **Clase 4: override que compila y que LTO elimina sin dar error.** supported_types en f3f65b603 compilaba porque
+  nuestro propio .h, expandido con la macro todavía activa, declaraba los *_ChromiumImpl. Nadie los definía, y nadie llamaba
+  a los envoltorios con los nombres de la 128, así que ThinLTO los eliminó y desaparecieron también las referencias.
+  Verde, y sin filtro VP9/AV1. Prueba en el binario: `strings` de FlyWeb Framework | grep FlyWebSoftwareVp9Av1, que
+  debe dar 0 en f3f65 y ≥1 desde 81a466871; el recuento lo tiene pedido LOCAL. Esta clase la descubren los avisos MUERTO
+  de check-overrides-156.sh sobre nombres que ya no existen en la 156: **no se ignoran nunca**.
+- **Trampa conocida (aceptada, igual que en la 2.x):** en la unidad de compilación de supported_types.cc, la macro renombra
+  también el método virtual MediaClient::IsDecoderSupportedVideoType, que en la 156 se llama igual que la función libre.
+  Funciona porque va por la misma entrada de la vtable. Se deja así.
 
 **Decidido por COORDINACIÓN-33:** si `HTMLScriptElement.supports('speculationrules')` sale true (por el prefetch) o
 HTMLPermissionElement sale definido (por GeolocationElement), se deja como en 1.98.
