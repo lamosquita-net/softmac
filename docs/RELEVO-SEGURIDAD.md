@@ -487,3 +487,9 @@ Build: chromium `flynk-b1d` 33a1745949 + brave-core `nube/b2-porte-t11` f3f65b60
     `SUPublicEDKey` y que rechaza un paquete sin firmar (`kUpdateFeedURL` acepta otra URL por línea de comandos).
   - `supported_types` (VP9/AV1 ocultos): media-baja, defensa en profundidad (libvpx-VP9 y dav1d vuelven a estar expuestos).
   - `TOOLBAR_CORNER_RADIUS`: sin lectura de seguridad.
+- **07-11 tarde, cerrados** (LOCAL-19, 7,1 headless, d2fd3793c5): **B5** (todo undefined/false, también IA, HTMLPermissionElement,
+  HTMLUserMediaElement y speculationrules; arreglo b857fad7aa con las 17 features en `OVERRIDE_FEATURE_DEFAULT_STATES`);
+  **VP9/AV1** (WebCodecs y MSE false, true con el flag; 81a466871); **DoH** off, 0 en netlog (5a93b80b92); `check-overrides-o.py`
+  vacío; Sparkle con una sola copia y `SUPublicEDKey`. Sparkle en BraveBrowserMainPartsMac: 1e490a6b1.
+  **Siguen abiertos en la 6,1:** Sparkle con appcast de pruebas y paquete sin firmar (bloquea la 3.0.0) y A3 a mano. El browsertest
+  `flyweb_privacy_sandbox_apis` queda como regresión, no bloquea.
