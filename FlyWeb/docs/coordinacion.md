@@ -7,6 +7,46 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 07-11 (mañana): COORDINACIÓN-32 → COORDINACIÓN-33 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-32 (`session_01MwmK2iTqaffXip3r8YT1NG`, 06-11 22:51 → 07-11 ~06:00 UTC; Opus 5.5 medio; abierta por la 31,
+linaje 7 de 8; relevo al ~32 %). **La 33 la abre Titín desde la app** (linaje nuevo). **Nunca llamar a confirm_repository_trust.**
+
+**Hitos de la noche:**
+- **FM.54 F1 cumplido** (LOCAL-20): H4 (2.7.0 desde flynk f11fbc9866 / flynk-v8 08384eca7e, #815) y H5 (6,1 verde; WPT
+  138: sin regresiones reales frente a la 2.7.0 publicada; nota #819). Falta solo el push de flynk/flynk-v8 con sus
+  etiquetas base: **lo autoriza Titín en la sesión de LOCAL-20**; después, flynk como rama por defecto.
+- **FM.55 B2:** P2 de 226e3ae0a = 0 rotos, pero MOTOR-30 vio que **127 parches no aplicaban** sobre la 156. **Regla nueva:
+  un P2 con parches que no aplican no cuenta como 0.** MOTOR-40 rehízo la tanda (514/514; trampa de la 156: borra
+  «Login Data» al migrar prefs, anulado como 1.98). Punta `nube/b2-porte-t11` = f5133ee5b → **eaefe8115** (ff de
+  nube/b2-mac, pedido 05:46; confirmar). P3A borrado, iconos Leo, FM.31 fuera (Mojave va con Metal, como flynk-b1d).
+- **Primera build Mac del porte** (LOCAL-19, f5133ee5b sobre flynk-b1d e67de82aba, PGO, -k 0): compila entera salvo 3 de
+  C++ y 56 de lint, ya arreglados en eaefe8115. LOCAL-19 recompila para enlazar y arrancar headless. flynk-b1d =
+  58cec3d923 (nunca Secure Enclave; cuentagotas genérico): 9 parches fuera de brave-core.
+- Canvas 6,1 (LOCAL-19): Metal 2,4–2,6× la 2.7.0; 60 fps reales (los 45 de MotionMark eran suyos).
+
+**Decisiones mías:** build Mac sin esperar al P2; F1 sin PGO (compara con la 2.7.0); redirect_cc se queda hasta la tanda
+de envoltorios (`nube/b2-redirect-cc` 58be92043, sin juntar); use_siso=false; Release = oficial con PGO
+(isBraveReleaseBuild); 5 políticas de Shields de 1.98: no (después de la 3.0.0); maglev_untagged_phis fuera (regla 19);
+entitlement de VPN fuera; IPFS/Tor y los 3 de privacidad de 1.98 (window.name, farbling WebGL, sesiones brave://) en
+tandas aparte tras la build Mac; Assets.car de FlyWeb → LOCAL-19; SDK 26.2 para la 156 (build.sh de la 3.0.0 deja de
+pasar mac_sdk_path; también sparkle con download_sparkle.py, relevo-motor #821).
+
+**Equipo vivo:** MOTOR-40 (`session_01MwmK2mJrB3myzidqeC1BfM`, nube, brave-core con push; MOTOR-39 archivada),
+LOCAL-19 (build del porte; bridge, solo buzón o SendMessage suyo), LOCAL-20 (F1, esperando el push), **MOTOR-30
+(Ubuntu) DESCONECTADA desde ~01:15 UTC**: el cartero deja sus mensajes en cola; Titín avisado por push (03:55). Tiene en
+cola la orden del P2 de f5133ee5b (ahora: de la punta que haya). ARQUITECTURA: pregunta de kFlyWebCacheEpoch
+(version.cc frente a v8_embedder_string). SEGURIDAD-PORTES-18: espera la build con los arreglos.
+**Siguiente:** arranque headless de LOCAL-19 → build de eaefe8115 → comprobaciones en ejecución de relevo-motor.md
+(«MOTOR-40», con la captura de iconos) en la 6,1 → SEGURIDAD-PORTES-18 (B5, A1–A4). P2 de MOTOR-30 cuando vuelva.
+**Pendiente de Titín:** push de F1 en LOCAL-20; flynk por defecto; chrome entero en la Ubuntu (recomendación: sí, una
+vez); kThirdPartyAiChatSettings con la primera build Mac; borrar ramas `nube/b2-mac-flynk`, `nube/m34-probe`
+(brave-core) y `nube/pgo-mojave` (softmac); mirar la red de la oficina (de madrugada bajó a 30 KB/s, no eran las Mac);
+encender la Ubuntu.
+**Tareas programadas mías:** vigilancia horaria `trig_01Fk4iHWqMecJoRanjpRYdmb` (la borro al pasar el relevo).
+**Método:** el buzón de MOTOR solo entrega con la sesión conectada; LOCAL-19 puede reenviar a MOTOR-30 por SendMessage.
+Desde la nube no se escribe a CARTERO ni a los bridges.
+
 ## 06-11 (noche): COORDINACIÓN-31 → COORDINACIÓN-32 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-31 (`session_01MwmK2iP27sssYimPaJ7scp`, 06-11 15:45 → ~22:55 UTC; Opus 5.5 medio; abierta por la 30,
