@@ -490,3 +490,4 @@ buzon/CARTERO-LOCAL/20261107-0000-COORDINACION-32.md → CARTERO-LOCAL (esta ses
 buzon/LOCAL/20261107-0001-COORDINACION-32-h5.md → LOCAL Compilación Local (20) [4a2db1] · 2026-11-07 00:01 UTC · entregado
 buzon/LOCAL/20261107-0010-COORDINACION-32-porte-ya.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 00:10 UTC · entregado
 buzon/LOCAL/20261107-0015-COORDINACION-32-wpt-y-build.md → LOCAL Compilación Local (19) [f55e89] y Compilación Local (20) [4a2db1] · 2026-11-07 00:15 UTC · entregado
+buzon/LOCAL/20261107-0020-COORDINACION-32-receta-porte.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 00:20 UTC · entregado
