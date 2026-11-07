@@ -491,3 +491,7 @@ buzon/LOCAL/20261107-0001-COORDINACION-32-h5.md → LOCAL Compilación Local (20
 buzon/LOCAL/20261107-0010-COORDINACION-32-porte-ya.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 00:10 UTC · entregado
 buzon/LOCAL/20261107-0015-COORDINACION-32-wpt-y-build.md → LOCAL Compilación Local (19) [f55e89] y Compilación Local (20) [4a2db1] · 2026-11-07 00:15 UTC · entregado
 buzon/LOCAL/20261107-0020-COORDINACION-32-receta-porte.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 00:20 UTC · entregado
+buzon/MOTOR/20261107-0020-COORDINACION-32-prepara.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-07 01:13 UTC · entregado
+buzon/MOTOR/20261107-0021-COORDINACION-32-accfb0c6.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-07 01:13 UTC · entregado
+buzon/MOTOR/20261107-0030-COORDINACION-32-p2-cero.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-07 01:13 UTC · entregado
+buzon/CARTERO-LOCAL/20261107-0112-COORDINACION-32-motor.md (sin reenvío) · 2026-11-07 01:13 UTC · anotado a posteriori
