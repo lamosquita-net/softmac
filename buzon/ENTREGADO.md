@@ -568,6 +568,6 @@ buzon/LOCAL/20261107-2230-COORDINACION-34-kit51.md → LOCAL Compilación Local 
 buzon/SERVIDOR-LOCAL/20261107-2230-COORDINACION-34-kit51-300.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-07 19:52 UTC · entregado (destino supuesto, mismo caso que antes)
 buzon/LOCAL/20261107-2245-COORDINACION-34-C-tests.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 19:54 UTC · entregado
 buzon/LOCAL/20261107-2000-COORDINACION-34-b2-tests.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 19:58 UTC · entregado
-buzon/LOCAL/20261107-2005-COORDINACION-34-kit51-zip.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 20:04 UTC · entregado (solo lectura: el fichero dice que la URL la da COORDINACIÓN-34; no se envía nada a LOCAL-19)
 buzon/PUBLICACION/20261107-2005-COORDINACION-34-lanzador51.md → PUBLICACION Publicación [e2247c] · 2026-11-07 20:04 UTC · entregado
 buzon/SERVIDOR-LOCAL/20261107-2005-COORDINACION-34-kit51-corrige.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-07 20:04 UTC · entregado (destino supuesto, mismo caso que antes)
+buzon/LOCAL/20261107-2005-COORDINACION-34-kit51-zip.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 20:05 UTC · entregado (corregido: la primera anotación decía solo lectura y no había envío)
