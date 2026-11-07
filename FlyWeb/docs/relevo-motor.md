@@ -3,6 +3,19 @@
 MOTOR-40 (`session_01MwmK2mJrB3myzidqeC1BfM`, Opus 5.5), relevo al 36 % de contexto. Coordina **COORDINACIÓN-32**
 (`session_01MwmK2iTqaffXip3r8YT1NG`).
 
+**Actualización (07-11 ~08:10 UTC): punta 799d3ad01** (`nube/b2-porte-t11` = `nube/b2-mac`, comprobada con
+ls-remote). Encima de eaefe8115 lleva estos arreglos de build:
+- 552d66e27: 6 errores de Mac, como 1.98 (menú Ayuda, Dock, importador, IDC_CLOSE_TAB, PPAPI, FullDiskAccess). Además
+  quita del menú Google Lens, AI Mode y Search Shortcuts.
+- 0f71c8b4e: los imports copiados en los overrides de WebUI conservan sus `<if>`. `internal/` solo existe en Google
+  Chrome.
+- 32b30ea73: la subclase del menú contextual se llama RenderViewContextMenu, como 1.98, sin el #define final.
+- 799d3ad01: preprocess_if_expr declara un depfile con los overrides de chromium_src que usa, para que ninja recompile
+  al cambiarlos. 1.98 lo resuelve con siso. Limitación: un override **nuevo** no lo detecta hasta la siguiente
+  regeneración del paso o una build limpia.
+
+Regla de COORDINACIÓN-32: dar el hash solo después de comprobarlo con `git ls-remote`.
+
 **Ramas en brave-core:**
 - `nube/b2-porte-t11` = `nube/b2-mac` = **eaefe8115**. Es la punta que compila LOCAL-19, con estos commits encima de
   f5133ee5b:
