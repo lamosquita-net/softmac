@@ -103,6 +103,7 @@ expect 6 "carpeta del Mac dentro de otra configurada" profile add "$MAC/sub" "fa
 expect 6 "carpeta de Drive dentro de otra configurada" profile add "$T/otra" "fake:$DRIVE/Clientes/sub"
 expect 6 "carpeta de Drive dentro de las versiones de otra" profile add "$T/otra" "fake:$DRIVE/Clientes (versiones)/a"
 expect 0 "segundo perfil" profile add "$T/otra" "fake:$DRIVE/Fotos" --pct 10 --count 5
+out_has "Añadida $T/otra ↔ fake:$DRIVE/Fotos." "el mensaje nombra la carpeta añadida, no otra"
 grep -qx "$T/otra|fake:$DRIVE/Fotos|90|10|5" "$APP/profiles" && ok "umbrales del freno en la línea" || fail "umbrales: $(cat "$APP/profiles")"
 expect 0 "cambiar los días" profile set "$MAC" --days 0
 grep -qx "$MAC|fake:$DRIVE/Clientes|0" "$APP/profiles" && ok "días cambiados" || fail "días: $(cat "$APP/profiles")"
@@ -116,6 +117,12 @@ expect 0 "baja" profile remove "$T/otra"
 grep -q "Fotos" "$APP/profiles" && fail "el perfil sigue en profiles" || ok "perfil quitado"
 grep -qx '# comentario de Titín' "$APP/profiles" && ok "comentario conservado tras la baja" || fail "comentario tras la baja"
 expect 6 "baja de una carpeta sin perfil" profile remove "$T/otra"
+# Una simulación que falla no deja un plan vacío que parezca «nada que hacer».
+sh "$CTL" profile add "$T/otra" "nada:Fotos" >/dev/null
+sync_ --profile "$T/otra" --resync --dry-run
+expect 1 "plan de una simulación fallida" plan "$T/otra"
+grep -q "falló" "$T/err" && ok "plan dice que la simulación falló" || fail "plan tras un fallo: $(cat "$T/err")"
+sh "$CTL" profile remove "$T/otra" >/dev/null
 
 # --- Bloqueo compartido con backupdrive-sync.sh ---
 mkdir "$APP/run.lock"; echo $$ > "$APP/run.lock/pid"

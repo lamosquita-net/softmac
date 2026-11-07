@@ -216,7 +216,7 @@ sync_profile() { # local remote días % nº
     --compare size,modtime,checksum --slow-hash-sync-only --create-empty-src-dirs \
     --resilient --recover --max-lock 2h --max-delete "$MAX_DELETE" --conflict-resolve none \
     --backup-dir1 "$vm" --backup-dir2 "$vr" --suffix "-$stamp" --suffix-keep-extension \
-    --drive-skip-gdocs --log-level INFO
+    --drive-skip-gdocs --links --log-level INFO
   [ -f "$FILTERS" ] && set -- "$@" --filters-file "$FILTERS"
   # Freno de modificaciones masivas: pasada en seco antes de la real (una más por hora).
   if [ "$RESYNC" = 0 ] && [ "$DRY" = 0 ] && [ "$FORCE" = 0 ] && [ -f "$init" ]; then
@@ -240,6 +240,12 @@ sync_profile() { # local remote días % nº
   [ "$DRY" = 1 ] && set -- "$@" --dry-run --force
   [ "$FORCE" = 1 ] && set -- "$@" --force
   if [ "$RESYNC" = 1 ]; then
+    # La carpeta de Drive puede no existir aún (perfil nuevo): bisync no la crea y la simulación fallaría con
+    # «directory not found». Se crea vacía, también en simulación (es lo único que se toca).
+    if ! rc_ lsf --max-depth 1 "$rem" >/dev/null 2>&1; then
+      rc_ mkdir "$rem" && log "Creada la carpeta $rem (vacía) para la primera sincronización" \
+        || { log "No se pudo crear la carpeta $rem"; return 1; }
+    fi
     # Solo copia. Sin historia no se puede decidir de otra forma; el perdedor queda en versiones.
     set -- "$@" --resync --resync-mode newer
   fi
@@ -298,7 +304,9 @@ while IFS='|' read -r local_dir remote days mod_pct mod_n; do
   cat "$RUN_LOG" >> "$LOG"
   # Plan de la simulación, para «Ver qué cambia» (backupdrive-ctl.sh plan).
   if [ "$DRY" = 1 ]; then
-    { [ "$RESYNC" = 1 ] && echo "BACKUPDRIVE-PLAN resync" || echo "BACKUPDRIVE-PLAN"; cat "$RUN_LOG"; } \
+    # Si la simulación falló (no por el freno), la cabecera lo dice: «plan» no debe enseñar una lista vacía.
+    perr=""; case "$rc" in 0|4) ;; *) perr=" error=$rc" ;; esac
+    { [ "$RESYNC" = 1 ] && echo "BACKUPDRIVE-PLAN resync$perr" || echo "BACKUPDRIVE-PLAN$perr"; cat "$RUN_LOG"; } \
       > "$STATE_DIR/$(profile_id "$local_dir" "$remote").plan.log"
   fi
   case "$rc" in
