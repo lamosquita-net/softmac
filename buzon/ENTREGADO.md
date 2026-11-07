@@ -497,3 +497,4 @@ buzon/MOTOR/20261107-0030-COORDINACION-32-p2-cero.md → MOTOR Motor ubuntu (2) 
 buzon/CARTERO-LOCAL/20261107-0112-COORDINACION-32-motor.md (sin reenvío) · 2026-11-07 01:13 UTC · anotado a posteriori
 buzon/LOCAL/20261107-0120-COORDINACION-32-parches.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 01:20 UTC · entregado
 buzon/LOCAL/20261107-0140-COORDINACION-32-red.md → LOCAL Compilación Local (19) [f55e89] y Compilación Local (20) [4a2db1] · 2026-11-07 01:30 UTC · entregado
+buzon/ARQUITECTURA/20261107-0145-COORDINACION-32-cache-epoch.md → ARQUITECTURA Arquitectura FlyWeb fork propio [05b11d] · 2026-11-07 01:38 UTC · entregado
