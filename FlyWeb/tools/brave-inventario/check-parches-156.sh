@@ -1,5 +1,7 @@
 #!/bin/bash
-# Mide los parches de brave-core contra Chromium 156 (MOTOR-40, 07-11-2026). Uso: cd <dir vacío> && find <brave-core>/patches -name "*.patch" | sed "s#^<brave-core>/##" | xargs -P 24 -I{} <este script> {}  (BC=brave-core en /home/user/brave-core; ajusta la variable BC)
+# Mide los parches de brave-core contra Chromium 156 (MOTOR-40, 07-11-2026).
+# Los overrides de chromium_src que se quedan sin efecto (y la guarda del DNS seguro) los mide check-overrides-156.sh: pásalo también.
+# Uso: cd <dir vacío> && find <brave-core>/patches -name "*.patch" | sed "s#^<brave-core>/##" | xargs -P 24 -I{} <este script> {}  (BC=brave-core en /home/user/brave-core; ajusta la variable BC)
 # usage: check1.sh <patch path relative to brave-core> ; cwd = work dir
 p="$1"; BC=/home/user/brave-core; W=$PWD
 rel=${p#patches/}; d=$(dirname "$rel")
