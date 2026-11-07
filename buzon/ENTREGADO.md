@@ -558,3 +558,4 @@ buzon/CARTERO-LOCAL/20261107-1515-COORDINACION-34.md (sin reenvío) · 2026-11-0
 buzon/MOTOR/20261107-1515-COORDINACION-34.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-07 15:09 UTC · PENDIENTE: envío fallido (sesión no alcanzable en ese momento; reintentar)
 buzon/LOCAL/20261107-1530-COORDINACION-34-49becf98e5.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 15:11 UTC · entregado
 buzon/LOCAL/20261107-1530-COORDINACION-34-LOCAL20.md → LOCAL Compilación Local (20) [4a2db1] · 2026-11-07 15:11 UTC · entregado
+buzon/LOCAL/20261107-1545-COORDINACION-34-b-fallos.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 15:15 UTC · entregado
