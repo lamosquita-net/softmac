@@ -2,8 +2,9 @@
 
 MOTOR-40 (`session_01MwmK2mJrB3myzidqeC1BfM`, Opus 5.5). Coordina **COORDINACIÓN-32** (`session_01MwmK2iTqaffXip3r8YT1NG`).
 
-**Tanda de parches que no aplican: cerrada.** `nube/b2-parches` **ed1721260**, 37 commits lineales sobre accfb0c61
-(push hecho). `nube/b2-porte-t11` sin tocar.
+**Tanda de parches que no aplican: cerrada.** Primero 37 commits lineales sobre accfb0c61, hasta ed1721260. Después
+vinieron las 3 decisiones de abajo y el cherry-pick de los iconos. Punta: **f5133ee5b**, la misma en `nube/b2-parches`
+y en `nube/b2-porte-t11` (push hecho).
 
 **Recuento contra la 156:** quedan 514 parches y aplican **todos**; ninguno se queda sin fichero y ninguno falla.
 Antes había 596: 436 aplicaban, 22 no tenían fichero y 138 fallaban. El recuento incluye `v8/` y `third_party/`.
