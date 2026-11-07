@@ -111,8 +111,9 @@ rewrite_profiles() {
   if [ -f "$PROFILES" ]; then
     while IFS= read -r line || [ -n "$line" ]; do
       case "$line" in ''|'#'*) printf '%s\n' "$line" >> "$tmp"; continue ;; esac
-      l=${line%%|*}
-      if [ -n "$1" ] && [ "${l%/}" = "${1%/}" ]; then
+      # rl, no l: las órdenes que llaman a esta función usan $l (sh no tiene variables locales).
+      rl=${line%%|*}
+      if [ -n "$1" ] && [ "${rl%/}" = "${1%/}" ]; then
         [ -z "$2" ] || printf '%s\n' "$2" >> "$tmp"
         done_=1
       else
@@ -437,6 +438,8 @@ cmd_plan() {
   [ -f "$f" ] || die 6 "Aún no hay ninguna simulación de $PL."
   when=$(date -u -r "$(stat -f %m "$f" 2>/dev/null)" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
          || date -u -r "$f" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "")
+  frc=$(head -1 "$f" | sed -n 's/.* error=\([0-9]*\).*/\1/p')
+  [ -z "$frc" ] || die 1 "La última simulación de $PL falló (código $frc); no hay plan. Mira el registro: ~/Library/Logs/BackupDrive/backupdrive.log"
   resync=false; head -1 "$f" | grep -q '^BACKUPDRIVE-PLAN resync' && resync=true
   # Líneas de bisync 1.67 (las del análisis, con rutas relativas):
   #   «- Path1  File is new - x», «- Path1  File changed: … - x», «- Path1  File was deleted - x» (Path1 = Mac),

@@ -163,6 +163,22 @@ has "$VD/sin-fecha.txt" "fichero sin fecha en el nombre no se toca"
 # el fichero normal con nombre parecido viaja al Mac como cualquier otro y no se borra
 has "$DRIVE/viejo-20200101-000000.txt" "fichero normal con nombre parecido no se toca"
 
+# --- 11. Enlaces simbólicos: se guardan como enlaces (.rclonelink en Drive), no se pierden en silencio ---
+ln -s f5.txt "$MAC/enlace-f5"
+run
+[ -L "$DRIVE/enlace-f5" ] && [ "$(readlink "$DRIVE/enlace-f5")" = f5.txt ] && ok "el enlace simbólico llega como enlace" \
+  || fail "el enlace simbólico no llega ($(ls -la "$DRIVE" | grep enlace))"
+[ "$(result)" = ok ] && ok "con un enlace simbólico, resultado ok" || fail "con un enlace simbólico ($(result))"
+
+# --- 12. Perfil nuevo con la carpeta de Drive aún sin crear: la simulación funciona y la crea vacía ---
+MAC2="$T/mac2"; DRIVE2="$T/drive2-nueva"; mkdir -p "$MAC2"; echo n > "$MAC2/n.txt"
+printf '%s\n' "$MAC2|fake:$DRIVE2|90|20|5" >> "$BACKUPDRIVE_DIR/profiles"
+run --profile "$MAC2" --resync --dry-run
+grep -q "Bisync critical error" "$T/out" && fail "la simulación falla sin la carpeta de Drive" || ok "simulación sin la carpeta de Drive"
+[ -d "$DRIVE2" ] && [ "$(count "$DRIVE2")" = 0 ] && ok "la carpeta de Drive se crea vacía" || fail "carpeta de Drive tras la simulación"
+run --profile "$MAC2" --resync
+has "$DRIVE2/n.txt" "primera sincronización en una carpeta de Drive nueva"
+
 [ -n "${KEEP_LOG:-}" ] && cp "$BACKUPDRIVE_LOG_DIR/backupdrive.log" "$KEEP_LOG"
 echo "$((n - fails))/$n correctas"
 [ "$fails" -eq 0 ]

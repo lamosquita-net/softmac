@@ -48,6 +48,10 @@ copia en las carpetas de versiones (o espera 90 días). Lo borrado en Drive va a
 exportarlos a .docx/.xlsx crearía duplicados que luego se subirían de nuevo. Esos documentos viven solo en Drive; para
 tener copia hay que descargarlos desde Drive («Descargar como…»). Tampoco sincroniza `.DS_Store` ni lo que pongas en `filters.txt`.
 
+**Enlaces simbólicos:** se guardan como enlaces, no se siguen (en Drive aparecen como `nombre.rclonelink`, un fichero de
+texto con la ruta a la que apuntan; al bajar vuelven a ser enlaces). Lo que hay al otro lado del enlace no se copia: si
+está fuera de la carpeta, añade esa carpeta como otra.
+
 **Primera vez:** una carpeta nueva no se sincroniza sola. Primero la simulación (`--resync --dry-run`, no cambia nada y el
 registro dice qué haría) y luego `--resync` (solo copia). Es el mismo botón «Primera sincronización» de la app. En esa
 primera pasada, si un fichero es distinto en los dos lados no hay historia que consultar: gana el más reciente y el otro se
