@@ -7,6 +7,58 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 07-11 (tarde): COORDINACIÓN-33 → COORDINACIÓN-34 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-33 (`session_01MwmK2kDoYYca7UqZKpt6gH`, 07-11 09:42 → ~15:15 UTC; Opus 5.5 medio; abierta por Titín, linaje
+nuevo, profundidad 0; relevo al ~33 %). La 34 la abre la 33 con `create_session` (linaje 1 de 8). **Nunca llamar a
+confirm_repository_trust.**
+
+**Hitos del día:**
+- **Porte B2 (FM.55): la 3.0.0 compila, arranca y pasa casi todo en la 6,1.** Punta `nube/b2-porte-t11` = `nube/b2-mac` =
+  **d2fd3793c5** (ls-remote). Build de LOCAL-19 «limpia en c7e39138ca + incremental en d2fd», PGO, oficial, 0 FAILED,
+  CFBundleVersion 198.63.40 / 3.0.0. Verde (informe por letras de LOCAL-19): Sparkle (se registra solo, detecta un appcast
+  de pruebas y rechaza un paquete sin firmar), YouTube con H.264 por VideoToolbox, B5 (Privacy Sandbox, APIs de IA,
+  HTMLPermissionElement/UserMediaElement, speculationrules: todo undefined o false), DoH apagado, External Extensions
+  (lado negativo), /json/version 156, lista «MOTOR-40» (flyweb://, bienvenida, NTP, settings con iconos Leo, PDF, Metal en
+  la D500, GPC), 0 FATAL/Check failed en 4 rondas.
+- **Clases de rotura del salto 128 → 156** (relevo-motor.md, «MOTOR-41»): override muerto (DoH, BraveBrowserMainPartsMac =
+  sin Sparkle ni copia de perfil, supported_types, radio del omnibox); `base_feature_status: "disabled"` sin override en el
+  json5 (Protected Audience + 16 de 1.98); .o viejo (DoH); override que compila y elimina LTO sin error (supported_types).
+  Herramientas: `check-overrides-156.sh` (con guarda del json5) y `check-overrides-o.py` (de LOCAL-19).
+- **Copia del perfil «antes de 3.0»** (c7e39138c, decisión mía): marca «FlyWeb 3 Profile»; sirve para volver a la 2.x.
+- **FS.41 cerrada** (SEGURIDAD-PORTES-18, #834 y #842). Riesgo anotado: Sparkle 1.24.3 sin mantenimiento → valorar la 2.x
+  **después** de la 3.0.0.
+- **FM.54 F1 hecho** (#831, #838): `lamosquita-net/chromium` flynk ae83e77df4 (por defecto), `lamosquita-net/v8` flynk-v8
+  f3b9aa2599. Autores revisados por Titín a ojo: limpios. El correo genérico del autor es suyo y correcto (no reescribir).
+- **5,1:** kit oficial-6 apto (Metal en la RX 580, 0 errores, sin AVX); resumen en el buzón de LOCAL-19 para
+  `pruebas-gpu.md`. Kit borrado de ns2 por SERVIDOR-LOCAL; el directorio vacío, de Titín.
+
+**Decisiones mías:** regla 20 para todo lo de privacidad (lo que Brave 1.98 apaga, fuera; lo que deja, se queda:
+speculationrules por prefetch y HTMLPermissionElement por GeolocationElement); DoH como la 2.7.0 (off); External Extensions
+en `/Library/Application Support/LaMosquita/FlyWeb/External Extensions`; build limpia para validar la 3.0.0; MediaClient
+renombrado por la macro, aceptado (como la 2.x); fuera el aviso de sistema obsoleto (ya decidido el 04-11).
+
+**Abierto:**
+- MOTOR-41: aviso «macOS 13 / este ordenador usa macOS 12» en flyweb://help (ObsoleteSystem en Mac → nunca), y confirmar
+  que el .82 de client hints es `flyweb_engine_full_version` a propósito. Hash comprobado con ls-remote → LOCAL-19.
+- LOCAL-19: letra b) perfil 2.7.0 sobre una **copia** (llavero: avisar a Titín), y lo que pide interacción nativa.
+- **Antes de publicar la 3.0.0:** build limpia de verdad sobre la punta final, con **FLYWEB_BUILD_NUMBER = 41** (la de prueba
+  lleva 40, copiado a mano de la 2.7.0), la 5,1 con esa build y entrega en la fila (regla 11).
+- Pendiente de Titín (manual en la 6,1, app en `~/flyweb-pruebas/porte-156/`, ya permitida en LuLu o por permitir): Claude
+  desde la Web Store, menú contextual (copiar sin rastreo, OCR, corrector), clic del cuentagotas, píldoras del omnibox,
+  passkey con el móvil (caBLE), copiar en ventana privada, llavero. Opcional con sudo: lado positivo de External Extensions.
+  Sin prisa: borrar `nube/b2-mac-flynk` y `nube/m34-probe` (brave-core), `nube/pgo-mojave` y `nube/coord33-arranque`
+  (softmac), y el directorio vacío del kit en ns2; kThirdPartyAiChatSettings; aprobar el icono de macOS 26; red de la oficina.
+- Riesgo a futuro: CFBundleVersion = 198.63.N viene de la versión de Brave; si se deja de partir de Brave, debe seguir
+  subiendo o Sparkle no ofrecerá la actualización.
+
+**Equipo vivo:** MOTOR-41 (`session_01MwmK2hUzGWKU8HxCSRGfc2`, brave-core con push, ~25 %; MOTOR-40 archivada), LOCAL-19
+(build del porte; bridge, solo buzón), LOCAL-20 (F1 cerrado; libre), MOTOR-30 (Ubuntu, libre; buzón vía «Motor ubuntu (2)»),
+SEGURIDAD-PORTES-18 (`session_01MwmK2hd2TWsrKjZY9iJB8x`, en espera), SERVIDOR-LOCAL y PUBLICACIÓN sin encargo.
+**Tareas programadas mías:** vigilancia horaria de sesión (CronCreate, se va con la sesión).
+**Método:** dar un hash solo tras `git ls-remote`; a los bridges solo por el buzón; revisar el diff de cada PR (datos
+personales) antes de fusionar con expectedHeadSha.
+
 ## 07-11 (mañana): COORDINACIÓN-32 → COORDINACIÓN-33 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-32 (`session_01MwmK2iTqaffXip3r8YT1NG`, 06-11 22:51 → 07-11 ~06:00 UTC; Opus 5.5 medio; abierta por la 31,
