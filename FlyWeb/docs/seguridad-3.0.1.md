@@ -1,6 +1,8 @@
 # FlyWeb 3.0.1: inventario de CVE posteriores a la 156.0.8078.90 (FS.42)
 
-SEGURIDAD-PORTES-19, 07-11-2026. Es la primera tanda de seguridad sobre la 3.0.0. **Todavía no se ha portado nada**: falta el sí a la tanda (§4).
+SEGURIDAD-PORTES-19, 07-11-2026. Es la primera tanda de seguridad sobre la 3.0.0. **COORDINACIÓN-34 aprobó T1 y T2 el 07-11; los parches están en [`../seguridad/3.0.1/`](../seguridad/3.0.1/README.md) y en brave-core `seg/3.0.1`.**
+
+**Corrección (07-11, al montar la serie):** la rama 8078 tiene **34** merges `[M156]` después de la .90, no 31. El clon superficial ocultaba 76f1ad165f (PDF), 237003a061 (HWND, Windows), 346080b440 (SimpleCache), dcf08f668d (gainmap, CVE-2026-121213) y e051d26756 (ChromeOS). Los 34 entran limpios.
 
 ## 0. Base y fuentes
 
@@ -126,6 +128,8 @@ Unidad: un arreglo (commit) que nos afecta y que está localizado.
 | Grupo 1 (rama 8078; afectan: 29 Chromium + 13 V8 + 7 Skia) | 49 | 0 | 0 | **100 %** |
 | Grupo 2 (solo en la 157: A = 17 Chromium + 4 ANGLE + 2 V8; F = 6 + 1 V8; X = 5 + 1 V8) | 23 | 7 | 6 | **64 %** (23/36); 83 % con fuzz |
 | **Noviembre 2026, total** | 72 | 7 | 6 | **85 %** (72/85) |
+
+**Corregido al portar:** en el grupo 1 son 34 Chromium (31 nos afectan), así que el total es **74/87 = 85 %**. En la práctica, 3 de las F entraron con `cherry-pick` de 3 vías sin tocar nada (403a04e98d, e886fddb58, 21c3fb6886). 0f12a22f12 entró limpio después de su requisito 7d7ffedf61. Se portaron a mano 8fde5a8071, 776099dc87, 4c4bf6a5eb y 31e05381bd. No se portaron: CVE-2026-121082 (V8, parser) y los 3 de HiC (feature apagada).
 
 **Referencia**: en la 128, B0 daba una proporción mucho más baja (`b0-cve.md`). Con la 156, recién estrenada, no hay motivo para proponer un salto de base. Lo que hay que vigilar cada mes es el grupo 2: lo que Google no fusiona hacia la 156 y que se aleja cada mes.
 

@@ -1,0 +1,150 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: lamosquita <developer@lamosquita.com>
+Date: Thu, 5 Nov 2026 18:36:26 +0100
+Subject: [PATCH 07/12] FlyWeb B1d: noinline functions with out params for the
+ 10.14 AMD compiler
+
+The AMD Metal compiler of macOS 10.14 (AMDBronzeMTLCompilerPlugin) aborts
+in LLVM instruction selection (SelectionDAGISel::CannotYetSelect) when
+building the render pipeline of three.js MeshStandardMaterial shaders with
+direct lights (webgl_postprocessing_unreal_bloom, webgl_shadowmap). The
+MTLCompilerService crashes and the pipeline cannot be created.
+
+Reduced on a MacPro6,1 (FirePro D500) with the dumped MSL: the crash
+needs RE_Direct_Physical fully inlined; pow/div/fast math, the bool struct
+member and the material struct are not the cause. Marking that function
+noinline is enough.
+
+New ShCompileOptionsMetal::noinlineFunctionsWithOutParameters marks user
+functions with out/inout parameters (and no texture or sampler parameters)
+__attribute__((noinline)). It is enabled on AMD GPUs before macOS 10.15;
+FLYWEB_MTL_NOINLINE=0/1 overrides it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ include/GLSLANG/ShaderLang.h              |  6 ++++
+ src/compiler/translator/msl/EmitMetal.cpp | 34 +++++++++++++++++++++++
+ src/libANGLE/renderer/metal/ShaderMtl.mm  | 20 +++++++++++++
+ 3 files changed, 60 insertions(+)
+
+diff --git a/include/GLSLANG/ShaderLang.h b/include/GLSLANG/ShaderLang.h
+index e59c7e7..69e9fd3 100644
+--- a/include/GLSLANG/ShaderLang.h
++++ b/include/GLSLANG/ShaderLang.h
+@@ -88,6 +88,12 @@ struct ShCompileOptionsMetal
+     // Insert asm("") instructions into loop bodies, telling the compiler that all loops have side
+     // effects and cannot be optimized out.
+     bool injectAsmStatementIntoLoopBodies = false;
++
++    // FlyWeb B1d: mark user functions with out/inout parameters (and no texture parameters)
++    // noinline. The AMD Metal compiler of macOS 10.14 aborts in instruction selection
++    // (SelectionDAGISel::CannotYetSelect) on some fully inlined shaders, e.g. three.js
++    // MeshStandardMaterial with direct lights.
++    bool noinlineFunctionsWithOutParameters = false;
+ };
+ 
+ // For ANGLE_shader_pixel_local_storage.
+diff --git a/src/compiler/translator/msl/EmitMetal.cpp b/src/compiler/translator/msl/EmitMetal.cpp
+index b7aa310..fca36d6 100644
+--- a/src/compiler/translator/msl/EmitMetal.cpp
++++ b/src/compiler/translator/msl/EmitMetal.cpp
+@@ -202,6 +202,7 @@ class GenMetalTraverser : public TIntermTraverser
+     size_t mMainUniformBufferIndex         = 0;
+     size_t mDriverUniformsBindingIndex     = 0;
+     size_t mUBOArgumentBufferBindingIndex  = 0;
++    bool mNoinlineFunctionsWithOutParameters = false;
+     bool mRasterOrderGroupsSupported       = false;
+     bool mInjectAsmStatementIntoLoopBodies = false;
+ };
+@@ -229,6 +230,8 @@ GenMetalTraverser::GenMetalTraverser(const TCompiler &compiler,
+       mMainUniformBufferIndex(compileOptions.metal.defaultUniformsBindingIndex),
+       mDriverUniformsBindingIndex(compileOptions.metal.driverUniformsBindingIndex),
+       mUBOArgumentBufferBindingIndex(compileOptions.metal.UBOArgumentBufferBindingIndex),
++      mNoinlineFunctionsWithOutParameters(
++          compileOptions.metal.noinlineFunctionsWithOutParameters),
+       mRasterOrderGroupsSupported(compileOptions.pls.fragmentSyncType ==
+                                   ShFragmentSynchronizationType::RasterOrderGroups_Metal),
+       mInjectAsmStatementIntoLoopBodies(compileOptions.metal.injectAsmStatementIntoLoopBodies)
+@@ -2037,10 +2040,41 @@ bool GenMetalTraverser::visitCase(Visit, TIntermCase *caseNode)
+     return false;
+ }
+ 
++// FlyWeb B1d: see ShCompileOptionsMetal::noinlineFunctionsWithOutParameters.
++static bool ShouldNotInlineFunction(const TFunction &func)
++{
++    if (func.isMain() || func.symbolType() != SymbolType::UserDefined)
++    {
++        return false;
++    }
++    bool hasOutParam = false;
++    for (size_t i = 0; i < func.getParamCount(); ++i)
++    {
++        const TType &type = func.getParam(i)->getType();
++        if (IsSampler(type.getBasicType()) || IsImage(type.getBasicType()))
++        {
++            return false;
++        }
++        const TStructure *structure = type.getStruct();
++        if (structure && (structure->name().beginsWith("ANGLE_TextureEnv") ||
++                          structure->name() == "metal::sampler"))
++        {
++            return false;
++        }
++        const TQualifier qual = type.getQualifier();
++        hasOutParam = hasOutParam || qual == EvqParamOut || qual == EvqParamInOut;
++    }
++    return hasOutParam;
++}
++
+ void GenMetalTraverser::emitFunctionSignature(const TFunction &func)
+ {
+     const bool isMain = func.isMain();
+ 
++    if (mNoinlineFunctionsWithOutParameters && ShouldNotInlineFunction(func))
++    {
++        mOut << "__attribute__((noinline)) ";
++    }
+     emitFunctionReturn(func);
+ 
+     mOut << " ";
+diff --git a/src/libANGLE/renderer/metal/ShaderMtl.mm b/src/libANGLE/renderer/metal/ShaderMtl.mm
+index 5fb6ca4..29b6ee8 100644
+--- a/src/libANGLE/renderer/metal/ShaderMtl.mm
++++ b/src/libANGLE/renderer/metal/ShaderMtl.mm
+@@ -9,6 +9,8 @@
+ 
+ #include "libANGLE/renderer/metal/ShaderMtl.h"
+ 
++#include "common/system_utils.h"
++
+ #include "common/WorkerThread.h"
+ #include "common/debug.h"
+ #include "libANGLE/Context.h"
+@@ -111,6 +113,24 @@ std::shared_ptr<ShaderTranslateTask> ShaderMtl::compile(const gl::Context *conte
+     {
+         options->metal.injectAsmStatementIntoLoopBodies = true;
+     }
++    // FlyWeb B1d: the AMD Metal compiler of macOS 10.14 aborts on some fully inlined shaders
++    // (three.js lights). FLYWEB_MTL_NOINLINE=0/1 overrides the default.
++    {
++        bool noinline = false;
++        if (@available(macOS 10.15, *))
++        {
++        }
++        else
++        {
++            noinline = displayMtl->isAMD();
++        }
++        const std::string env = angle::GetEnvironmentVar("FLYWEB_MTL_NOINLINE");
++        if (!env.empty())
++        {
++            noinline = env != "0";
++        }
++        options->metal.noinlineFunctionsWithOutParameters = noinline;
++    }
+     if (displayMtl->getFeatures().ensureLoopForwardProgress.enabled)
+     {
+         options->ensureLoopForwardProgress = true;
+-- 
+2.43.0
+

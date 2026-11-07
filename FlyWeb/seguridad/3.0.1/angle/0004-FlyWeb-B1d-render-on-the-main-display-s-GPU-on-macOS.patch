@@ -1,0 +1,79 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: lamosquita <developer@lamosquita.com>
+Date: Wed, 4 Nov 2026 21:21:18 +0100
+Subject: [PATCH 04/12] FlyWeb B1d: render on the main display's GPU on macOS <
+ 10.15
+
+On MacPro6,1 (two FirePro D500) Chromium passes IOKit's active GPU, often the
+headless one, so every frame crossed cards. Use
+CGDirectDisplayCopyCurrentMetalDevice(CGMainDisplayID()) unless
+FLYWEB_METAL_ACTIVE_GPU is set (A/B measurements).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/libANGLE/renderer/metal/BUILD.gn      |  5 ++++-
+ src/libANGLE/renderer/metal/DisplayMtl.mm | 24 +++++++++++++++++++++++
+ 2 files changed, 28 insertions(+), 1 deletion(-)
+
+diff --git a/src/libANGLE/renderer/metal/BUILD.gn b/src/libANGLE/renderer/metal/BUILD.gn
+index 8e4c836..50bda29 100644
+--- a/src/libANGLE/renderer/metal/BUILD.gn
++++ b/src/libANGLE/renderer/metal/BUILD.gn
+@@ -184,7 +184,10 @@ angle_source_set("angle_metal_backend") {
+       "QuartzCore.framework",
+     ]
+     if (is_mac) {
+-      frameworks += [ "Cocoa.framework" ]
++      frameworks += [
++        "Cocoa.framework",
++        "CoreGraphics.framework",  # FlyWeb B1d: CGDirectDisplayCopyCurrentMetalDevice
++      ]
+     }
+   }
+ }
+diff --git a/src/libANGLE/renderer/metal/DisplayMtl.mm b/src/libANGLE/renderer/metal/DisplayMtl.mm
+index d09b074..c892757 100644
+--- a/src/libANGLE/renderer/metal/DisplayMtl.mm
++++ b/src/libANGLE/renderer/metal/DisplayMtl.mm
+@@ -7,7 +7,11 @@
+ // DisplayMtl.mm: Metal implementation of DisplayImpl
+ 
+ #include "libANGLE/renderer/metal/DisplayMtl.h"
++#include <TargetConditionals.h>  // FlyWeb B1d
+ #include <sys/param.h>
++#if TARGET_OS_OSX
++#    include <CoreGraphics/CoreGraphics.h>  // FlyWeb B1d
++#endif
+ 
+ #include "common/apple_platform_utils.h"
+ #include "common/system_utils.h"
+@@ -231,6 +235,26 @@ DeviceImpl *DisplayMtl::createDevice()
+ angle::ObjCPtr<id<MTLDevice>> DisplayMtl::getMetalDeviceMatchingAttribute(
+     const egl::AttributeMap &attribs)
+ {
++#if TARGET_OS_OSX
++    // FlyWeb B1d: on macOS < 10.15 render on the GPU that drives the main display. On
++    // MacPro6,1 (two FirePro D500) the device id Chromium passes is IOKit's "active" GPU,
++    // which is often the headless one, and every frame then crosses cards. Set
++    // FLYWEB_METAL_ACTIVE_GPU=1 to keep the stock choice (for A/B measurements).
++    if (@available(macOS 10.15, *))
++    {
++    }
++    else if (angle::GetEnvironmentVar("FLYWEB_METAL_ACTIVE_GPU").empty())
++    {
++        auto displayDevice =
++            angle::adoptObjCPtr(CGDirectDisplayCopyCurrentMetalDevice(CGMainDisplayID()));
++        if (displayDevice)
++        {
++            NSLog(@"FlyWeb: Metal device of the main display: %@ (registryID %llx)",
++                  [displayDevice name], [displayDevice registryID]);
++            return displayDevice;
++        }
++    }
++#endif
+ #if TARGET_OS_OSX || TARGET_OS_MACCATALYST
+     auto deviceList = angle::adoptObjCPtr(MTLCopyAllDevices());
+ 
+-- 
+2.43.0
+
