@@ -134,3 +134,35 @@ Unidad: un arreglo (commit) que nos afecta y que está localizado.
 **Referencia**: en la 128, B0 daba una proporción mucho más baja (`b0-cve.md`). Con la 156, recién estrenada, no hay motivo para proponer un salto de base. Lo que hay que vigilar cada mes es el grupo 2: lo que Google no fusiona hacia la 156 y que se aleja cada mes.
 
 Sin localizar: 9 CVE (§3). No cuentan en la proporción.
+
+## 6. CVE-2026-121082 (V8, parser): riesgo y alternativa (07-11, a petición de COORDINACIÓN-34)
+
+**Qué es.**
+- High, type confusion en V8 (crbug 567222737, restringido). No está en KEV ni hay explotación «in the wild».
+- En main no es un arreglo, sino una campaña de **20 commits del parser** (Toon Verwaest, 07-10 → 17-10):
+  - validación de patrones y cabezas de arrow;
+  - errores de modo estricto;
+  - `for-in/of`;
+  - marcas `maybe_assigned` (1aae39c).
+- Google no ha llevado ninguno a la 15.6.
+- No se sabe cuál de los 20 cierra el fallo: el bug es privado.
+
+**Riesgo si no se porta.**
+- El parser procesa todo el JS de cualquier web, así que el vector es remoto y no requiere interacción.
+- Lo que conocemos del mecanismo apunta a una clasificación equivocada de variables o de ámbitos. Esa información se la pasa el parser al intérprete y a los JIT (por ejemplo, `maybe_assigned` permite tratar una variable como constante).
+- El daño queda dentro del renderer con sandbox: para salir hace falta una segunda vulnerabilidad.
+- Nivel: **alto pero no urgente**. Es el mismo nivel que los otros High de la tanda, sin explotación conocida.
+
+**Apagado alternativo: no hay uno fiable.**
+- El fallo está en el análisis del parser, que va antes de todos los niveles de ejecución.
+- `--jitless` o apagar Maglev/TurboFan limitarían lo que un JIT puede suponer a partir de `maybe_assigned`. Pero no está demostrado que lo cierren (el intérprete también usa la información de ámbitos), y el coste de rendimiento choca con el objetivo de la 3.x.
+- No hay ninguna feature de Blink ni de V8 que deje fuera esta parte del parser.
+
+**Propuesta: portar la serie entera.**
+- Con 48baedfda delante («Disallow conditional chaining after non-short-circuit expressions», el requisito de 1aae39c), los **21 commits entran limpios** sobre 15.6.75.50 + b56fe9b.
+- Tamaño: src +194/−158 en 6 ficheros del parser, más 21 tests de mjsunit.
+- Está en brave-core **`seg/3.0.1-parser` = bee89ad8a6** (ls-remote), encima de `seg/3.0.1`. Los `.patch` reproducen el árbol exacto.
+- La época de caché se queda en 31: la sube esta misma versión.
+- Condición: el mjsunit de MOTOR-30 tiene que salir en verde **con** la serie (`seg/3.0.1-parser`) y **sin** ella (`seg/3.0.1`). Si con la serie aparece una sola caída que no esté sin ella, la serie pasa a la 3.0.2.
+- El riesgo de compatibilidad es bajo: los cambios afinan qué errores de sintaxis se dan y en qué orden, para alinearse con la especificación y con Chrome 157, que ya los publica.
+
