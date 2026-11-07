@@ -169,6 +169,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   horas a que una decisión gaste innecesariamente tokens». Fuente: [`coordinacion.md`](../FlyWeb/docs/coordinacion.md).
 - **Nada de 1.N.x para arreglar lo que ya se está probando** (16-10): el arreglo entra en la versión en curso aunque la
   retrase. Fuente: [`coordinacion.md`](../FlyWeb/docs/coordinacion.md).
+- **Nada de `chrome` entero en la Ubuntu** (Titín, 07-11): la build Mac completa (objetivo de la app, con Chromium y
+  Blink de Mac y el enlace) ya cubre las roturas de Chromium por overrides; en la Ubuntu se mantiene «nunca compilar
+  Blink». Si hace falta más cobertura allí, se amplía el P2 a los .cc de Chromium que incluyen una cabecera con override.
+  Linger de la Ubuntu: quitado. Fuente: [`coordinacion.md`](../FlyWeb/docs/coordinacion.md) (07-11).
 - **LuLu en las Mac de pruebas** (Titín, 06-11; ya lo había pedido antes): un binario nuevo de FlyWeb queda retenido
   por LuLu hasta que Titín lo permite. Un aviso de LuLu en pantalla **no significa que la máquina esté ocupada**. Si
   una build nueva no tiene red (webs que no cargan, Sparkle o sync sin respuesta), LOCAL lo dice a COORDINACIÓN con la
