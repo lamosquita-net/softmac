@@ -479,3 +479,26 @@ Build: chromium `flynk-b1d` 33a1745949 + brave-core `nube/b2-porte-t11` f3f65b60
   kControlledFrame, kExtensionScriptTagging (y kUserMediaElement si se sigue a Brave) a DISABLED en ese override.
 - **Pendiente:** el sha de MOTOR-41, repetir la prueba 3, A3 a mano y la lista de MOTOR-41 de overrides de `chromium_src`
   muertos (revisarla entera). Lección: tras un salto de base, comprobar en ejecución cada override, no solo que compile.
+- **Overrides muertos de la 156 (lista de MOTOR-41), lectura de seguridad:**
+  - `BraveBrowserMainPartsMac`: **grave, bloquea la publicación.** La 156 crea las MainParts en `ChromeBrowserMainParts::Create`
+    (`chrome_browser_main.cc:779`), así que el `#define` de `chromium_src/.../chrome_content_browser_client.cc:15` no actúa: sin
+    `registerWithSparkle` no hay actualizaciones automáticas (la 3.0.0 no recibiría parches) ni copia del perfil. Mover a
+    `chromium_src/chrome/browser/chrome_browser_main.cc`; probar con un appcast de pruebas que Sparkle detecta solo, que lleva
+    `SUPublicEDKey` y que rechaza un paquete sin firmar (`kUpdateFeedURL` acepta otra URL por línea de comandos).
+  - `supported_types` (VP9/AV1 ocultos): media-baja, defensa en profundidad (libvpx-VP9 y dav1d vuelven a estar expuestos).
+  - `TOOLBAR_CORNER_RADIUS`: sin lectura de seguridad.
+- **07-11 tarde, cerrados** (LOCAL-19, 7,1 headless, d2fd3793c5): **B5** (todo undefined/false, también IA, HTMLPermissionElement,
+  HTMLUserMediaElement y speculationrules; arreglo b857fad7aa con las 17 features en `OVERRIDE_FEATURE_DEFAULT_STATES`);
+  **VP9/AV1** (WebCodecs y MSE false, true con el flag; 81a466871); **DoH** off, 0 en netlog (5a93b80b92); `check-overrides-o.py`
+  vacío; Sparkle con una sola copia y `SUPublicEDKey`. Sparkle en BraveBrowserMainPartsMac: 1e490a6b1.
+  **Siguen abiertos en la 6,1:** Sparkle con appcast de pruebas y paquete sin firmar (bloquea la 3.0.0) y A3 a mano. El browsertest
+  `flyweb_privacy_sandbox_apis` queda como regresión, no bloquea.
+- **07-11, FS.41 cerrada.** Sparkle en la 6,1 sobre d2fd3793c5: se registra solo, detecta la 99.0.0 de un appcast de pruebas
+  y rechaza el paquete sin firmar («There is no EdDSA signature»). Ojo: en Sparkle 1.24 la firma se comprueba al instalar,
+  no al descargar. A3: Esc → AbortError sin cuelgue. External Extensions: el negativo, en verde. Quedan para Titín, sin
+  bloquear: el clic real de A3 (CDP no llega al selector nativo) y el positivo de External Extensions (necesita sudo).
+- **Riesgo anotado:** Sparkle 1.24.3 ya no se mantiene (la rama 2.x es la viva y admite 10.13+). Valorar el paso a Sparkle 2
+  en un nivel futuro: es lo que valida y aplica todos los parches. Revisarlo en cuanto salga un aviso de Sparkle.
+- **Lección:** tras un salto de base, cada override de `chromium_src` y del json5 hay que comprobarlo **en ejecución**:
+  compilar no dice nada (DoH, Sparkle, VP9/AV1 y Blink murieron sin un solo error). Guardas: `check-overrides-156.sh` y
+  `check-overrides-o.sh`/`.py`.
