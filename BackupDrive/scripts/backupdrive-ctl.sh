@@ -373,7 +373,7 @@ conflict_original() { printf '%s\n' "$1" | sed -E 's/\.conflict[0-9]+//'; }
 
 conflict_rows() { # carpeta -> «ruta<TAB>tamaño<TAB>fecha» de cada copia en conflicto
   rc_ lsjson -R --files-only --no-mimetype --include '*.conflict[0-9]*' "$1" 2>/dev/null \
-    | sed -n 's/.*"Path":"\(\([^"\\]\|\\.\)*\)".*"Size":\([0-9-]*\).*"ModTime":"\([^"]*\)".*/\1	\3	\4/p'
+    | sed -nE 's/.*"Path":"(([^"\\]|\\.)*)".*"Size":([0-9-]*).*"ModTime":"([^"]*)".*/\1	\3	\4/p'
 }
 
 cmd_conflicts_list() {
