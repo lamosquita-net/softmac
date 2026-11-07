@@ -496,3 +496,4 @@ buzon/MOTOR/20261107-0021-COORDINACION-32-accfb0c6.md → MOTOR Motor ubuntu (2)
 buzon/MOTOR/20261107-0030-COORDINACION-32-p2-cero.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-07 01:13 UTC · entregado
 buzon/CARTERO-LOCAL/20261107-0112-COORDINACION-32-motor.md (sin reenvío) · 2026-11-07 01:13 UTC · anotado a posteriori
 buzon/LOCAL/20261107-0120-COORDINACION-32-parches.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 01:20 UTC · entregado
+buzon/LOCAL/20261107-0140-COORDINACION-32-red.md → LOCAL Compilación Local (19) [f55e89] y Compilación Local (20) [4a2db1] · 2026-11-07 01:30 UTC · entregado
