@@ -1,3 +1,69 @@
+# MOTOR-41 (07-11-2026, ~10:40 UTC): estado
+
+MOTOR-41 (`session_01MwmK2hUzGWKU8HxCSRGfc2`, Opus 5.5, modo auto; brave-core con push, aprobado por Titín en la sesión).
+Coordina **COORDINACIÓN-33** (`session_01MwmK2kDoYYca7UqZKpt6gH`). MOTOR-40 archivada.
+
+**Punta `nube/b2-porte-t11` = `nube/b2-mac` = c7e39138ca** (comprobada con ls-remote). La base es f3f65b603, la primera build
+Mac en verde de LOCAL-19 (PGO, 0 FAILED, arranca). Encima:
+- 2f357ccc: tag de chrome = 156.0.8078.90 en package.json. Llega a BRAVE_CHROMIUM_VERSION, que es lo que salía como Chrome/128 en /json/version.
+- 57c54579: External Extensions propias en `/Library/Application Support/LaMosquita/FlyWeb/External Extensions`.
+  Las contesta el proveedor de rutas de Brave en chromium_src/chrome/common/chrome_paths.cc. La 2.x y 1.98 leían la de Google.
+  Se mantienen las dos guardas de upstream: ENSURE_PATH_CONTROLLED_BY_ADMIN y prompt_for_external_extensions.
+- 5a93b80b9: DNS seguro apagado otra vez. En la 156 el valor por defecto pasó a default_dns_over_https_config_source.cc,
+  así que el override de stub_resolver_config_reader.cc se había quedado muerto y la 3.0.0 hacía DoH automático a Cloudflare/Google.
+- 6af35191f + b857fad7a: B5, Protected Audience y el resto de lo que 1.98 apaga en Blink (17 features, lista de su plaster).
+  Ver «Clase 2». FledgeBiddingAndAuctionServerAPI se apaga aparte con EnableFeatureFromString, porque no tiene base::Feature.
+- cd4cd2a2b: Sparkle solo como bundle_dep del framework, como en 1.98. Antes había una copia en cada helper.
+- 7939b9298: fuera allow_runtime_configurable_key_storage, que en la 156 no existe.
+- 1e490a6b1: BraveBrowserMainPartsMac otra vez, ahora en chromium_src/chrome/browser/chrome_browser_main.cc. Sin ella no se
+  registraba Sparkle ni se hacía la copia del perfil. BLOQUEANTE de la 3.0.0 (SEGURIDAD-PORTES-18).
+- 81a466871: supported_types, con IsDecoderSupportedVideoType / IsDefaultDecoderSupportedVideoType de la 156
+  (filtro VP9/AV1 → H.264 por VideoToolbox).
+- 87aad81ae: radio 8 de los botones de sugerencia, sobre kToolbarCornerRadius.
+- 4caf5330e: fuera tres overrides muertos (show_params CHECK_IS_TEST, keystone .h, PermissionContextBase).
+- c7e39138c: copia del perfil «<perfil> antes de 3.0 (fecha)» con su propia marca, «FlyWeb 3 Profile».
+  BackUpProfileBeforeFirstStartOf(marca, versión) sustituye a la función de la 2.0.
+
+**Tres clases de rotura que no ven ni el compilador ni el P2:**
+1. **Override muerto**: un `#define X` en chromium_src cuyo X ya no está en el original de la 156. Lo detecta
+   `FlyWeb/tools/brave-inventario/check-overrides-156.sh` (#833, #835), que lleva además guardas fijas para
+   ModeToString del DoH y para el json5. Hoy en Mac sale limpio; lo que queda es de Win, Android e iOS (para la poda).
+2. **json5**: en la 156, `base_feature_status: "disabled"` no apaga una feature de Blink «stable». El generador
+   (runtime_enabled_features.cc.tmpl, UpdateStatusFromBaseFeatures) solo copia el estado si el base::Feature cuenta como
+   overridden. 1.98 lo marca con plaster; nosotros, con OVERRIDE_FEATURE_DEFAULT_STATES en
+   chromium_src/third_party/blink/common/features.cc, que nuestro chromium_src/base/feature_list.cc trata como overridden.
+   La guarda está en check-overrides-156.sh.
+3. **.o viejo** (pendiente de confirmar por LOCAL): si se añade un override .cc nuevo cuando el .o del original ya
+   existe, ninja no recompila y la build sale en verde con el código de Chromium. Esa es la explicación probable de que
+   supported_types, que no podía compilar, diera verde. `check-overrides-o.py <out> <src/brave>` (en la 7,1) lo detecta
+   con `ninja -t deps`. COORDINACIÓN ha pedido a LOCAL-19 una build LIMPIA y que pase esa herramienta sobre el out viejo.
+
+**Actualización (07-11 ~11:05 UTC).**
+- `check-overrides-o.py` es la versión en Python de LOCAL-19 y sustituye al .sh, que solo veía 26 de 552 originales:
+  redirect_cc deja el original en deps como «../../../src/<ruta>». Lo validó LOCAL en la 7,1, con brave-core en c7e39138ca
+  y el out de f3f65b603: 688 overrides, 551 con el original compilado y 1 SIN_COMPILAR, el override nuevo del DoH.
+  La clase 3 existe, pero **no** explicaba supported_types: su override sí estaba en deps.
+- **Clase 4: override que compila y que LTO elimina sin dar error.** supported_types en f3f65b603 compilaba porque
+  nuestro propio .h, expandido con la macro todavía activa, declaraba los *_ChromiumImpl. Nadie los definía, y nadie llamaba
+  a los envoltorios con los nombres de la 128, así que ThinLTO los eliminó y desaparecieron también las referencias.
+  Verde, y sin filtro VP9/AV1. Prueba en el binario: `strings` de FlyWeb Framework | grep FlyWebSoftwareVp9Av1, que
+  debe dar 0 en f3f65 y ≥1 desde 81a466871; el recuento lo tiene pedido LOCAL. Esta clase la descubren los avisos MUERTO
+  de check-overrides-156.sh sobre nombres que ya no existen en la 156: **no se ignoran nunca**.
+- **Trampa conocida (aceptada, igual que en la 2.x):** en la unidad de compilación de supported_types.cc, la macro renombra
+  también el método virtual MediaClient::IsDecoderSupportedVideoType, que en la 156 se llama igual que la función libre.
+  Funciona porque va por la misma entrada de la vtable. Se deja así.
+
+**Decidido por COORDINACIÓN-33:** si `HTMLScriptElement.supports('speculationrules')` sale true (por el prefetch) o
+HTMLPermissionElement sale definido (por GeolocationElement), se deja como en 1.98.
+
+**Abierto:**
+- Errores y resultados de LOCAL-19 sobre c7e39138ca. Lista de pruebas en la Mac: Sparkle (registro solo, SUPublicEDKey
+  que rechaza paquetes sin firmar, una sola copia en el framework y que registerWithSparkle la encuentre), copia del perfil
+  antes de 3.0, H.264 en media-internals, píldoras del omnibox, B5 por CDP, DoH apagado, External Extensions y Chrome/156.
+- Siguen sin juntar: `nube/b2-privacidad` (cuando arranque la build de f3f65b603 o una posterior, por orden de COORDINACIÓN)
+  y `nube/b2-redirect-cc` (tanda de envoltorios .cc).
+- Lo de MOTOR-40 que sigue abierto: tanda de IPFS y Tor, logo en chrome_logo_dark.svg, Sparkle en build.sh 3.0.0.
+
 # MOTOR-40 → MOTOR-41 (07-11-2026, ~06:15 UTC)
 
 MOTOR-40 (`session_01MwmK2mJrB3myzidqeC1BfM`, Opus 5.5), relevo al 36 % de contexto. Coordina **COORDINACIÓN-32**
