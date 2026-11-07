@@ -71,3 +71,6 @@ a4b0d4d14297a081bcdcb216603cae037ebe4259ca991986751428ab14907417  angle/0005-Fly
 1be19f034d67937b1b526915b4d576f20f3aaab940b6d835dbbb4c1bc6a12c5b  angle/0010-3.0.1-CVE-2026-121197-Translator-Fix-name-collision-.patch
 1ed7c5bf3546df33a6ba8e0190cd42bde609fcc951459fefff7246d9b85dc1bd  angle/0011-3.0.1-CVE-2026-121140-Translator-Work-around-monomor.patch
 91602e2275f202057dbfc46da6def927b3ec4432dd3f8a0325ccbb0667e4c26c  angle/0012-3.0.1-CVE-2026-121037-Translator-Validate-constructo.patch
+3dc57d9ae90d560070ea5cf4f0bf007d9f7d1e49f762ab583afba272917c1d10  ffmpeg/0001-3.0.1-sin-CVE-publicado-avformat-mov-zero-uninitiali.patch
+be62db1ea97d1ba4c3dd305a658ed1d96793eb6e426ac655db18d36dc80bdccb  ffmpeg/0002-3.0.1-CVE-2026-121180-avcodec-h264_slice-reset-next_.patch
+a321249b944b46197060611b90e979ec8c7638c73f0711fbd4ffdd4cc200f0f0  ffmpeg/0003-3.0.1-CVE-2026-121047-avformat-mov-keep-frag_index.c.patch

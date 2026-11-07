@@ -530,3 +530,32 @@ está arriba:
   - Copia del perfil «antes de 3.0»: la decide MOTOR o ARQUITECTURA (la 2.x no abre un perfil migrado a la 156).
 - **Para la 3.0.1 (CVE posteriores a la 156.0.8078.90):** base de la 156 = Chrome/156.0.8078.90 (`/json/version`).
   `package.json` de brave-core (2f357ccc7e) fija el tag de chrome. Comparar contra la rama `chromium/8078`.
+
+## 9. SEGURIDAD-PORTES-19 (`session_01MwmK2hrcXTzbQgJfQ2PL5U`, 07-11-2026): FS.42, la 3.0.1
+
+Hecho:
+- Inventario: `FlyWeb/docs/seguridad-3.0.1.md` (#861).
+- Parches (#862):
+  - `FlyWeb/seguridad/3.0.1/` en softmac: Chromium 61, ANGLE 12 y ffmpeg 3, como format-patch comprobados con `git am`;
+  - brave-core `seg/3.0.1` 6415661d24: V8 b56fe9b, época 31 y `kCanvasDrawElement` apagada.
+- Medida de noviembre: 74/87 = 85 % limpios.
+
+Método que funcionó (sin checkout):
+- Clon `--filter=blob:none` de `chromium/chromium` con los tags, más el fork (`git fetch` de `lamosquita-net/chromium` por sha).
+- Worktree en 33a1745949 y `cherry-pick -x` de 3 vías: entra más que `git apply --check`.
+- Para buscar el arreglo de un CVE: `git fetch --filter=tree:0 --shallow-since=<fecha> origin main` y buscar el crbug en `Bug:`/`Fixed:`.
+- V8, Skia, ANGLE, Dawn y CrabbyAvif tienen espejo en GitHub. ffmpeg, en `chromium.googlesource.com/chromium/third_party/ffmpeg`.
+- **PDFium no es accesible:** pdfium.googlesource da 403 y el espejo de GitHub es de 2025-11.
+
+Trampas:
+- **Un clon superficial esconde merges de la rama:** con `--depth=60` salían 31 de 34. Comprobar siempre `merge-base --is-ancestor` de la .90.
+- Un `[M156]` que «choca» en el primero de la lista puede ser el borde del clon.
+- `git log -- <ruta>` sobre un clon `tree:0` es lentísimo: buscar por mensaje.
+
+Pendiente:
+- **CVE-2026-121082** (parser de V8: 1aae39c, 7f9cb9e, 87fabc8). 1aae39c necesita de main el `else_found` de ConditionalChain y quitar `ValidateAsExpression` en `ParsePossibleDestructuringSubPattern`.
+- PDFium ×3, que comprueba LOCAL.
+- CVE-2026-121112, sin localizar.
+- **HiC:** si upstream lo pasa a `stable`, regla 19, y entonces hay que portar c8449108a0, bf298c5fc5, db4fe6fb90 y 63d3b40075.
+- Para la 3.0.2: volver a revisar la rama 8078 después de la .96 y las notas de la 157 siguientes.
+
