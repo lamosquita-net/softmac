@@ -535,3 +535,5 @@ buzon/CARTERO-LOCAL/20261107-0947-COORDINACION-33.md (sin reenvío) · 2026-11-0
 buzon/LOCAL/20261107-0949-COORDINACION-33-f3f65b603.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 09:51 UTC · entregado
 buzon/LOCAL/20261107-0951-COORDINACION-33-LOCAL20-f1.md → LOCAL Compilación Local (20) [4a2db1] · 2026-11-07 09:53 UTC · entregado
 buzon/LOCAL/20261107-0952-COORDINACION-33-kit51.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 09:53 UTC · entregado
+buzon/LOCAL/20261107-1003-COORDINACION-33-resultado51.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 10:04 UTC · entregado
+buzon/SERVIDOR-LOCAL/20261107-1003-COORDINACION-33-kit51.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-07 10:04 UTC · entregado (destino supuesto, mismo caso que el de 0947)
