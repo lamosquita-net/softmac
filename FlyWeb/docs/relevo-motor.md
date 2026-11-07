@@ -1,3 +1,60 @@
+# MOTOR-40 → MOTOR-41 (07-11-2026, ~06:15 UTC)
+
+MOTOR-40 (`session_01MwmK2mJrB3myzidqeC1BfM`, Opus 5.5), relevo al 36 % de contexto. Coordina **COORDINACIÓN-32**
+(`session_01MwmK2iTqaffXip3r8YT1NG`).
+
+**Ramas en brave-core:**
+- `nube/b2-porte-t11` = `nube/b2-mac` = **eaefe8115**. Es la punta que compila LOCAL-19, con estos commits encima de
+  f5133ee5b:
+  - 9e70783ee: parche de settings sin `icons_html_files`;
+  - 995b975ac: ninja (`use_siso=false`) y fuera `require('ip')`;
+  - 86af47bfc: Release = compilación de publicación, con PGO oficial;
+  - 33f16a464: fuera los 9 parches de FM.42 b2/d8, que ahora están en flynk-b1d 58cec3d923;
+  - 9611d4638: redirect_cc con objetivo macOS 10.14;
+  - a3200aee9: native_theme, resolve_host_request (span) y notimplemented;
+  - f9b25e5dc: `-iquote` también en asmflags, para los `.S` de boringssl;
+  - eaefe8115: lint de WebUI arreglado, con la regla de imports activa. 1.98 la apaga.
+- `nube/b2-redirect-cc` = 58be92043, **sin juntar**: fuera redirect_cc y siso de 1.98. Entra en la tanda de
+  envoltorios .cc, después de la primera build Mac y con su propio P2.
+- `nube/b2-privacidad` = **df54efacc** sobre eaefe8115, **sin juntar** (orden de COORDINACIÓN-32):
+  - fa5a3cc1b: window.name entre orígenes en marcos provisionales, como 1.98.
+  - bd9214694 y 713bc10d3: modelo de esquema de 1.98. Restaura sesiones con flyweb:// o brave:// antiguos (borra su
+    PageState). Título por defecto flyweb://. Orígenes chrome:// mostrados como flyweb:// (antes salía «brave»).
+  - df54efacc: farbling WebGL equilibrado de 1.98, desactivado por defecto: flag
+    `brave-webgl-balanced-fingerprinting-protections` (feature `kWebGLBalancedFingerprintingProtection`). Cambio
+    propio: vendor/renderer responden «WebKit», no «Brave».
+  - Sin portar:
+    - el panel React de Shields;
+    - WebGPU: necesita un valor nuevo de ContentSettingsType **antes** de `BRAVE_WEBCOMPAT_WEB_SOCKETS_POOL`, lo que
+      cambia el histograma;
+    - los Containers;
+    - `UpdateTargetURL` (burbuja de estado).
+  - Unidades:
+    - brave_unit_tests: `WebGLExtensionHandlerTest.*`, `BraveNavigationEntryTest.*`,
+      `BraveContentSerializedNavigationDriverTest.*`;
+    - brave_browser_tests: `BraveWindowNameBrowserTest*`, `BraveWebGLFarblingBrowserTest.*`,
+      `BraveWebGLExtensionFarblingTest.*`.
+  - En la Mac:
+    - un perfil 2.x con pestañas flyweb:// y brave:// tiene que restaurarse;
+    - window.name se mantiene en el mismo origen y se borra al cambiar de sitio;
+    - claude.ai y Plotly funcionan con el flag WebGL activado.
+- `nube/b2-mac-flynk` (4172a610f): obsoleta; la sustituye 33f16a464. Se puede borrar. A MOTOR-40 el modo automático le
+  denegó el force-push.
+
+**Abierto:**
+- los errores de la build de LOCAL-19 sobre eaefe8115;
+- juntar nube/b2-privacidad cuando COORDINACIÓN lo diga;
+- después de la build Mac: la tanda de IPFS y Tor (`kIPFSCache`, `privateAndTorInfoWarning`) y la de envoltorios .cc;
+- de marca: el logo de Brave en chrome_logo_dark.svg (rebranding.md §2.3);
+- Sparkle en el build.sh de la 3.0.0 (abajo).
+
+**Trampas:**
+- Antes de dar una rama por buena, `FlyWeb/tools/brave-inventario/check-parches-156.sh` (el P2 no ve los parches que
+  no aplican).
+- «Login Data» en browser_prefs.
+- En esta sesión no se puede hacer force-push ni `send_later` (profundidad de sesiones 8/8). Si hace falta deshacer,
+  hay que hacerlo con commits encima.
+
 # MOTOR-40: estado (07-11-2026, ~01:45 UTC)
 
 MOTOR-40 (`session_01MwmK2mJrB3myzidqeC1BfM`, Opus 5.5). Coordina **COORDINACIÓN-32** (`session_01MwmK2iTqaffXip3r8YT1NG`).
