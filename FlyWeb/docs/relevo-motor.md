@@ -61,6 +61,13 @@ Las pruebas de la 6,1 sobre d2fd3793c5 salieron en verde (Sparkle, vídeo, B5, D
 El .82 de los client hints es flyweb_engine_full_version, a propósito; el .90 de /json/version es la base. COORDINACIÓN pasa
 a ser COORDINACIÓN-34 (`session_01MwmK2m1QvhRzNFCDSWtvkf`).
 
+**Actualización (07-11 ~15:15 UTC): punta 6bafb6e2c1** (ls-remote) = 49becf98e5 + merge de `nube/b2-privacidad` (df54efacc:
+window.name, restauración y títulos de flyweb://, farbling de WebGL con flag). La fusión entra limpia y check-overrides-156.sh
+no marca nada en Mac. Es la punta de la build limpia final de la 3.0.0 (FLYWEB_BUILD_NUMBER 41), por decisión de COORDINACIÓN-34.
+Esa build lleva además las 3 unidades y los 3 browsertests de b2-privacidad, y las pruebas a mano (perfil 2.x con pestañas flyweb://,
+window.name, claude.ai y Plotly con el flag). **Para la 3.0.x:** `nube/b2-redirect-cc` (58be92043, con su P2), panel de Shields,
+WebGPU (ContentSettingsType antes de BRAVE_WEBCOMPAT_WEB_SOCKETS_POOL), Containers y UpdateTargetURL.
+
 **Decidido por COORDINACIÓN-33:** si `HTMLScriptElement.supports('speculationrules')` sale true (por el prefetch) o
 HTMLPermissionElement sale definido (por GeolocationElement), se deja como en 1.98.
 
