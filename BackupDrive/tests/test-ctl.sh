@@ -124,6 +124,15 @@ rm -rf "$APP/run.lock"; mkdir "$APP/run.lock"; echo 999999 > "$APP/run.lock/pid"
 expect 0 "un bloqueo de un proceso muerto se recupera" profile add "$T/otra" "fake:$DRIVE/Fotos"
 [ -d "$APP/run.lock" ] && fail "el bloqueo no se suelta" || ok "el bloqueo se suelta al terminar"
 sh "$CTL" profile remove "$T/otra" >/dev/null
+# connect espera a que termine una sincronización en curso (la que lanza launchd al instalar) en vez de fallar.
+sleep 30 & spid=$!
+mkdir "$APP/run.lock"; echo "$spid" > "$APP/run.lock/pid"
+BACKUPDRIVE_CONNECT_WAIT=0 BACKUPDRIVE_CONNECT_TYPE=local BACKUPDRIVE_CLIENT_SECRET=s \
+  expect 5 "connect sin espera, con una sincronización en curso" connect --client-id 123-abc.apps.googleusercontent.com
+( sleep 2; kill "$spid" 2>/dev/null; rm -rf "$APP/run.lock" ) &
+BACKUPDRIVE_CONNECT_WAIT=20 BACKUPDRIVE_CONNECT_TYPE=local BACKUPDRIVE_CLIENT_SECRET=s \
+  expect 0 "connect espera a que termine la sincronización" connect --client-id 123-abc.apps.googleusercontent.com
+wait
 
 # --- Plan: sin simulación, primera sincronización simulada y una pasada con cambios ---
 D="$DRIVE/Clientes"
