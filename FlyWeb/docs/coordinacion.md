@@ -43,6 +43,7 @@ cola la orden del P2 de f5133ee5b (ahora: de la punta que haya). ARQUITECTURA: p
 vez); kThirdPartyAiChatSettings con la primera build Mac; borrar ramas `nube/b2-mac-flynk`, `nube/m34-probe`
 (brave-core) y `nube/pgo-mojave` (softmac); mirar la red de la oficina (de madrugada bajó a 30 KB/s, no eran las Mac);
 encender la Ubuntu.
+**Añadido 05:58 UTC:** punta confirmada **eaefe8115** (mandada a LOCAL-19). `nube/b2-privacidad` = df54efacc (window.name en marcos provisionales, sesiones flyweb:// y brave:// → chrome://, farbling WebGL de 1.98 con vendor «WebKit»), sin juntar; WebGPU con ContentSettingsType nuevo, tarea aparte. **MOTOR-40 está en el 36 % y en el límite de profundidad (8/8): la 33 abre MOTOR-41** con la nota «MOTOR-40 → MOTOR-41» de relevo-motor.md (#823). Hasta entonces, MOTOR-40 solo atiende los errores de la build de eaefe8115.
 **Tareas programadas mías:** vigilancia horaria `trig_01Fk4iHWqMecJoRanjpRYdmb` (la borro al pasar el relevo).
 **Método:** el buzón de MOTOR solo entrega con la sesión conectada; LOCAL-19 puede reenviar a MOTOR-30 por SendMessage.
 Desde la nube no se escribe a CARTERO ni a los bridges.
