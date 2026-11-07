@@ -556,3 +556,5 @@ buzon/PUBLICACION/20261107-1515-COORDINACION-34.md → PUBLICACION Publicación 
 buzon/SERVIDOR-LOCAL/20261107-1515-COORDINACION-34.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-07 15:09 UTC · entregado (destino supuesto, mismo caso que antes)
 buzon/CARTERO-LOCAL/20261107-1515-COORDINACION-34.md (sin reenvío) · 2026-11-07 15:09 UTC · anotado a posteriori: relevo a esta sesión, sin acción
 buzon/MOTOR/20261107-1515-COORDINACION-34.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-07 15:09 UTC · PENDIENTE: envío fallido (sesión no alcanzable en ese momento; reintentar)
+buzon/LOCAL/20261107-1530-COORDINACION-34-49becf98e5.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 15:11 UTC · entregado
+buzon/LOCAL/20261107-1530-COORDINACION-34-LOCAL20.md → LOCAL Compilación Local (20) [4a2db1] · 2026-11-07 15:11 UTC · entregado
