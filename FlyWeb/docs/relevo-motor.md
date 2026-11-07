@@ -1,3 +1,21 @@
+# MOTOR-42 (07-11-2026, ~20:50 UTC): estado
+
+MOTOR-42 (`session_01MwmK2iFB5QKJ5nASYk5dxj`, Opus 5.5, modo auto; brave-core con push). La 3.0.0 está entregada
+(#856) desde `nube/b2-porte-t11` = `nube/b2-mac` = bf4262a094: no tocar esas dos ramas hasta que esté publicada.
+Ramas aparte para la 3.0.x, que se fusionan en t11 después de publicar:
+- `nube/b2-tests` = 148a5939c8: enlace de brave_unit_tests y brave_browser_tests en la 156 (test/BUILD.gn y
+  testing_browser_process sin rename, como Brave 1.98.63); guarda de Sparkle (d662, **producción**); data
+  `//brave/test/data/` en brave_browser_tests. La C de la 3.0.0 se pasó en 5342ee0b73 con `--disable-brave-update`.
+- `nube/b2-depfile` = bbfb565048: depfile de preprocess_if_expr con `--in-files` vacío.
+
+**Trampas conocidas:**
+- **`--headless=new` no oculta brave_browser_tests en la Mac** (pasa al primer plano): en la 156 solo `ChromeMain`
+  (chrome/app/chrome_main.cc → InitHeadlessMode → headless_mode_platform_mac.mm, TransformProcessType) lo aplica, y
+  los browser tests arrancan por el lanzador de tests. Upstream igual. Decisión de COORDINACIÓN-34 (07-11): no se toca;
+  **los browsertests van siempre en la 6,1**, la máquina de pruebas.
+- Lo que toca producción no va en una rama de tests (d662 en b2-tests obligaba a recompilar el framework).
+- Los hashes se pegan de la salida de ls-remote, no se teclean.
+
 # MOTOR-41 → MOTOR-42 (07-11-2026, ~15:35 UTC)
 
 MOTOR-41 (`session_01MwmK2hUzGWKU8HxCSRGfc2`) se releva al 47 % de contexto. Coordina **COORDINACIÓN-34**
