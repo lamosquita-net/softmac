@@ -35,6 +35,21 @@ expect 6 "clave propia sin secreto" connect --client-id 123-abc.apps.googleuserc
 BACKUPDRIVE_CONNECT_TYPE=local BACKUPDRIVE_CLIENT_SECRET=s expect 0 "connect crea la cuenta" connect --client-id 123-abc.apps.googleusercontent.com
 out_has '"ok":true' "connect comprueba la cuenta"
 grep -q '^\[gdrive\]' "$APP/backupdrive.conf" && ok "remoto gdrive en backupdrive.conf" || fail "remoto gdrive en backupdrive.conf"
+grep -qx 'client_secret = s' "$APP/backupdrive.conf" && ok "el secreto queda en backupdrive.conf" || fail "falta el secreto en backupdrive.conf"
+# El secreto no debe ir en los argumentos de rclone (se ven con ps), sino por su variable de entorno.
+{
+  echo '#!/bin/sh'
+  echo 'case " $* " in *" config create "*) echo "$*" > "$ARGV_LOG"; env | grep "^RCLONE_CONFIG_GDRIVE_CLIENT_SECRET=" > "$ENV_LOG" ;; esac'
+  echo 'exec "$REAL_BIN" "$@"'
+} > "$T/rclone-mira"
+chmod +x "$T/rclone-mira"
+ARGV_LOG="$T/argv" ENV_LOG="$T/env" REAL_BIN="$BACKUPDRIVE_BIN" BACKUPDRIVE_BIN="$T/rclone-mira" \
+  BACKUPDRIVE_CONNECT_TYPE=local BACKUPDRIVE_CLIENT_SECRET=SECRETO-X expect 0 "connect con otro secreto" \
+  connect --client-id 123-abc.apps.googleusercontent.com
+grep -q SECRETO-X "$T/argv" && fail "el secreto va en los argumentos de rclone: $(cat "$T/argv")" || ok "el secreto no va en los argumentos de rclone"
+grep -qx 'RCLONE_CONFIG_GDRIVE_CLIENT_SECRET=SECRETO-X' "$T/env" && ok "rclone recibe el secreto por el entorno" || fail "rclone no recibe el secreto por el entorno"
+[ "$(grep -c '^client_secret = ' "$APP/backupdrive.conf")" = 1 ] && grep -qx 'client_secret = SECRETO-X' "$APP/backupdrive.conf" \
+  && ok "al volver a conectar, un solo secreto, el nuevo" || fail "secretos en backupdrive.conf: $(grep -c '^client_secret' "$APP/backupdrive.conf")"
 expect 0 "check" check
 expect 6 "check de una cuenta que no existe" check --name otra
 cp "$APP/backupdrive.conf" "$T/conf.antes"
