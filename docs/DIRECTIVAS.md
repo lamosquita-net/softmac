@@ -296,6 +296,14 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   vía Metal ya trae. Lo que queda peor con Metal (parón en la primera carga, crear programas ~20× más lento) se trata
   como optimización. `flynk-b1b`/B1c se conserva sin borrar; si la 5,1 fallara con Metal, se reabre. **Anula** el punto 3
   de la orden a LOCAL 9b0fc7a (comparación Metal/GL): basta la tabla de `pruebas-gpu.md`.
+- **Versiones desde la 3.0.0 (Titín, 07-11; sustituye a la regla 18 y a «1.N = nivel» para la 3.x):** el **segundo dígito**
+  (3.1, 3.2…) son nuestros avances: el primero, rendimiento (PGO, GPU, hilos y varias GPU, Maglev, OpenGL de comparación;
+  directiva del 05-11 noche), con claude.ai como criterio de aceptación de cada uno. El **tercer dígito** (3.0.1, 3.0.2…)
+  son tandas de seguridad al ritmo de Chrome estable (una cada 2–4 semanas; críticos y KEV en cuanto salgan) más los arreglos
+  de fallos y lo que quedó sin portar. Cada mes se mide cuántos arreglos de seguridad entran limpios. El estudio del plan de
+  avances lo hace ARQUITECTURA con datos de SEGURIDAD-PORTES y MOTOR; decide Titín. FLYWEB_BUILD_NUMBER sigue subiendo en
+  cada versión (CFBundleVersion 198.63.N; si se deja de partir de Brave, debe seguir creciendo o Sparkle no la ofrecerá).
+  La 3.0.0 se publicó sin esperar a la 5,1 (Titín, 07-11): si falla allí, 3.0.1 o vuelta manual a la 2.7.0 con la copia «antes de 3.0».
 - **La base 156 se publica como FlyWeb 3.0.0 (Titín, 05-11; `base-siguiente.md` §7):** es un salto de base, no un nivel.
   Excepción escrita a la regla 18: los niveles 139–155 no llevan versión propia; `flyweb_engine_level` = 156 y
   `flyweb_version` = 3.0.0. Después, 3.0.x para backports de seguridad y arreglos (B8).

@@ -93,6 +93,8 @@ que tiene commit. **Nunca `gclient sync -D`** en `flyweb-build` (borró el workt
   se da por cumplido con `FlyWeb/tools/motor-N.html` en verde y las WPT de la N iguales a las del propio Chrome N.
   **Cada nivel sale entero en una versión, con la V8 de Chrome N** (regla 18 de `docs/TAREAS.md`); solo un cambio muy
   amplio (como RubyLB o la V8 12.8 en el 128) lo reparte en varias 1.N.x.
+- **Desde la 3.0.0 (base 156, 07-11):** el esquema 1.N de arriba es historia. Segundo dígito = avances propios (3.1, 3.2…);
+  tercer dígito = seguridad y arreglos (3.0.1…). Detalle en `docs/DIRECTIVAS.md` («Versiones desde la 3.0.0»).
 - Riesgo asumido: Chromium de 2023 → aplicar parches de seguridad poco a poco.
 - Criterio de aceptación: claude.ai funciona por completo.
 
