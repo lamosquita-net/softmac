@@ -215,6 +215,8 @@ found=""; for f in "$vmac"f4-*.txt; do [ "$(cat "$f" 2>/dev/null)" = f4-mac ] &&
 sync_
 [ "$(sed -n 's/.*"result":"\([a-z-]*\)","exit".*/\1/p' "$APP/status.json" | head -1)" = blocked ] \
   && ok "en una carpeta pequeña, resolver un conflicto activa el freno" || fail "sin freno: $(cat "$APP/status.json")"
+expect 0 "plan de una pasada frenada (sin simular aparte)" plan "$MAC"
+out_has '"deleted":["f4.conflict1.txt"' "el plan de la pasada frenada enseña los borrados"
 sync_ --force
 [ "$(cat "$D/f4.txt" 2>/dev/null)" = f4-drive ] && ok "Drive queda con f4.txt elegido" || fail "Drive f4.txt: $(cat "$D/f4.txt" 2>/dev/null)"
 ls "$D"/f4.conflict* >/dev/null 2>&1 && fail "quedan copias en conflicto en Drive" || ok "Drive sin copias en conflicto"

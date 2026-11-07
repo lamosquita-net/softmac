@@ -93,6 +93,8 @@ if ! mkdir "$LOCK" 2>/dev/null; then
   pid=$(cat "$LOCK/pid" 2>/dev/null || true)
   if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
     echo "BackupDrive ya se está ejecutando (pid $pid); no hago nada."
+    # También en el registro: si no, una pasada de launchd que coincide con otra larga no deja rastro.
+    echo "== $(date '+%Y-%m-%d %H:%M:%S') pasada saltada: ya hay otra en curso (pid $pid)" >> "$LOG" 2>/dev/null || true
     exit 0
   fi
   rm -rf "$LOCK"
@@ -302,8 +304,9 @@ while IFS='|' read -r local_dir remote days mod_pct mod_n; do
   : > "$RUN_LOG"
   rc=0; sync_profile "$local_dir" "$remote" "$days" "$mod_pct" "$mod_n" || rc=$?
   cat "$RUN_LOG" >> "$LOG"
-  # Plan de la simulación, para «Ver qué cambia» (backupdrive-ctl.sh plan).
-  if [ "$DRY" = 1 ]; then
+  # Plan de la simulación, para «Ver qué cambia» (backupdrive-ctl.sh plan). También cuando una pasada real se frena:
+  # bisync ya ha listado lo que cambia antes de detenerse, y un plan viejo enseñaría otra cosa.
+  if [ "$DRY" = 1 ] || [ "$rc" = 4 ]; then
     # Si la simulación falló (no por el freno), la cabecera lo dice: «plan» no debe enseñar una lista vacía.
     perr=""; case "$rc" in 0|4) ;; *) perr=" error=$rc" ;; esac
     { [ "$RESYNC" = 1 ] && echo "BACKUPDRIVE-PLAN resync$perr" || echo "BACKUPDRIVE-PLAN$perr"; cat "$RUN_LOG"; } \
