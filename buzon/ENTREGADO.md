@@ -549,3 +549,10 @@ buzon/LOCAL/20261107-1351-COORDINACION-33-d2fd3793c5.md → LOCAL Compilación L
 buzon/LOCAL/20261107-1441-COORDINACION-33-plist.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 14:41 UTC · entregado
 buzon/LOCAL/20261107-1502-COORDINACION-33-informe.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 15:03 UTC · entregado
 buzon/LOCAL/20261107-1506-COORDINACION-33-49becf98e5.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 15:07 UTC · entregado
+buzon/LOCAL/20261107-1515-COORDINACION-34-LOCAL19.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 15:09 UTC · entregado
+buzon/LOCAL/20261107-1515-COORDINACION-34-LOCAL20.md → LOCAL Compilación Local (20) [4a2db1] · 2026-11-07 15:09 UTC · entregado
+buzon/ARQUITECTURA/20261107-1515-COORDINACION-34.md → ARQUITECTURA Arquitectura FlyWeb fork propio [05b11d] · 2026-11-07 15:09 UTC · entregado
+buzon/MOTOR/20261107-1515-COORDINACION-34.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-07 15:09 UTC · entregado (ruta MOTOR-30 vía Motor ubuntu (2))
+buzon/PUBLICACION/20261107-1515-COORDINACION-34.md → PUBLICACION Publicación [e2247c] · 2026-11-07 15:09 UTC · entregado
+buzon/SERVIDOR-LOCAL/20261107-1515-COORDINACION-34.md → SERVIDOR-LOCAL Servidor Local (2) [c796b9] · 2026-11-07 15:09 UTC · entregado (destino supuesto, mismo caso que antes)
+buzon/CARTERO-LOCAL/20261107-1515-COORDINACION-34.md (sin reenvío) · 2026-11-07 15:09 UTC · anotado a posteriori: relevo a esta sesión, sin acción
