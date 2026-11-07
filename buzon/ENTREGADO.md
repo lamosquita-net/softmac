@@ -560,3 +560,4 @@ buzon/LOCAL/20261107-1530-COORDINACION-34-49becf98e5.md → LOCAL Compilación L
 buzon/LOCAL/20261107-1530-COORDINACION-34-LOCAL20.md → LOCAL Compilación Local (20) [4a2db1] · 2026-11-07 15:11 UTC · entregado
 buzon/LOCAL/20261107-1545-COORDINACION-34-b-fallos.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 15:15 UTC · entregado
 buzon/LOCAL/20261107-1525-COORDINACION-34-check.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 15:23 UTC · entregado
+buzon/LOCAL/20261107-1527-COORDINACION-34-marca.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 15:27 UTC · entregado
