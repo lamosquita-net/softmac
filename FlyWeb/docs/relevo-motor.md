@@ -1,3 +1,45 @@
+# MOTOR-41 → MOTOR-42 (07-11-2026, ~15:35 UTC)
+
+MOTOR-41 (`session_01MwmK2hUzGWKU8HxCSRGfc2`) se releva al 47 % de contexto. Coordina **COORDINACIÓN-34**
+(`session_01MwmK2m1QvhRzNFCDSWtvkf`). brave-core con push (add_repo aprobado por Titín en la sesión de MOTOR-41; el
+nuevo MOTOR lo necesita en la suya).
+
+**Punta final para la build limpia de la 3.0.0 (FLYWEB_BUILD_NUMBER 41): `nube/b2-porte-t11` = `nube/b2-mac` =
+bf4262a094** (comprobada con ls-remote). Encima de 49becf98e5:
+- 6bafb6e2c: merge de `nube/b2-privacidad` (decisión de COORDINACIÓN-34);
+- bd751f76b: copia «antes de 3.0» que aguanta un perfil vivo (salta los temporales de ImportantFileWriter y los
+  ficheros que desaparecen, reintenta una vez). La marca «FlyWeb 3 Profile» solo se escribe si la copia sale bien; si
+  no, se escribe «FlyWeb 3 Profile sin copia» (aceptado por COORDINACIÓN-34). Sin esa marca, un arranque posterior
+  copiaría el perfil ya migrado con el nombre «antes de 3.0»;
+- dee68bd0b: Brave Sync. OnBraveSyncPrefsChanged ya no hace CHECK de la semilla, y StopAndClear(kNotSignedIn) no
+  borra la semilla de un perfil 2.x cuando no se puede descifrar (llavero bloqueado o arranque por SSH);
+- bf4262a09: **el CHECK del primer arranque.** DeviceInfoSyncClientImpl::GetLocalPersonalContextInfo() de la 156
+  hace CHECK del PersonalContextEligibilityService, que no existe porque apagamos kPersonalContext (heredado de
+  Brave). Cualquier perfil con Sync caía al reconciliar DeviceInfo. Override .h + .cc en
+  chromium_src/chrome/browser/sync/: con la feature apagada, NotEligible. LOCAL-19 lo localizó con el dSYM.
+  `--disable-features=OSCryptAsyncAvailabilityInfoBar` evitaba la caída, pero no es la causa: la barra no se toca.
+
+**Pruebas de la build final**, todas pedidas a LOCAL-19 por COORDINACIÓN:
+- las de la sección «MOTOR-41» de abajo;
+- las de b2-privacidad: 3 de unidades, 3 browsertests y a mano;
+- la copia con variations activo, y la marca solo cuando la copia sale bien;
+- arranque sin llavero por SSH;
+- primer arranque de un perfil 2.x con Sync, por SSH y en sesión gráfica; en el segundo arranque, la semilla sigue ahí;
+- brave://sync-internals;
+- los intocables: llaves de acceso con el móvil e «Inicio de sesión con Google».
+
+**Abierto para MOTOR-42:**
+- errores o resultados de esa build;
+- para la 3.0.x: `nube/b2-redirect-cc`, el panel de Shields, WebGPU, Containers, UpdateTargetURL y la tanda de IPFS/Tor;
+- logo de chrome_logo_dark.svg, carpeta Versions/ (poda) e IDS_MACOS_OBSOLETE en los .grd (poda/l10n).
+
+**Trampas nuevas** (detalle en la sección «MOTOR-41»):
+- cuatro clases de rotura que no ve el compilador: override muerto, json5 sin override, .o viejo y LTO que borra
+  sin error. Los avisos MUERTO de check-overrides-156.sh no se ignoran nunca;
+- una feature que Brave apaga puede encontrarse un CHECK de upstream que da por hecho que el servicio existe
+  (kPersonalContext). Al apagar algo en OVERRIDE_FEATURE_DEFAULT_STATES, busca CHECK(…Factory::GetForProfile…)
+  en quien lo consume.
+
 # MOTOR-41 (07-11-2026, ~10:40 UTC): estado
 
 MOTOR-41 (`session_01MwmK2hUzGWKU8HxCSRGfc2`, Opus 5.5, modo auto; brave-core con push, aprobado por Titín en la sesión).
