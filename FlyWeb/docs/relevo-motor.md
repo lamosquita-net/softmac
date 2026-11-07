@@ -63,7 +63,7 @@ HTMLPermissionElement sale definido (por GeolocationElement), se deja como en 1.
 - Siguen sin juntar: `nube/b2-privacidad` (cuando arranque la build de f3f65b603 o una posterior, por orden de COORDINACIÓN)
   y `nube/b2-redirect-cc` (tanda de envoltorios .cc).
 - Para la poda, sin prisa: la carpeta interna del framework es `Versions/156.1.98.63` (chrome_version_full de Brave:
-  major de Chromium + versión de Brave; en la 2.7.0 era el mismo esquema, 128.1.69.168). No la ve el usuario ni Sparkle.
+  major de Chromium + versión de Brave; la 2.7.0 usa el mismo código de Brave, así que sería 128.1.69.168; no lo he visto en una app). No la ve el usuario ni Sparkle.
   El Info.plist principal está bien: CFBundleShortVersionString = flyweb_version (3.0.0) y CFBundleVersion =
   198.63.FLYWEB_BUILD_NUMBER (tweak_info_plist.py), mayor que el 169.168.N de la 2.x.
 - Lo de MOTOR-40 que sigue abierto: tanda de IPFS y Tor, logo en chrome_logo_dark.svg, Sparkle en build.sh 3.0.0.
