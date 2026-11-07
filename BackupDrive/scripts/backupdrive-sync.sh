@@ -199,6 +199,24 @@ mod_count() {
   sed -n "s/.*$1: *[0-9]* changes: *[0-9]* new, *\([0-9]*\) modified.*/\1/p" "$2" | tail -1
 }
 
+# Pasada en seco del freno ($1 = registro, resto = orden de bisync). Solo hacen falta los recuentos de cambios, que
+# bisync escribe antes de «Applying changes»; después, en seco, recorre una a una las copias que haría (con Drive,
+# ~1 fichero/s: 36 min con 1858 cambios en la 6,1), así que se corta ahí. Devuelve 0 si llegó a contar los cambios.
+pre_dry_run() {
+  plog=$1; shift
+  "$BIN" "$@" --dry-run --log-file "$plog" </dev/null &
+  ppid_=$!
+  while kill -0 "$ppid_" 2>/dev/null; do
+    if grep -q 'Applying changes' "$plog" 2>/dev/null; then
+      kill -INT "$ppid_" 2>/dev/null || true
+      wait "$ppid_" 2>/dev/null || true
+      return 0
+    fi
+    sleep 1
+  done
+  wait "$ppid_"
+}
+
 # bisync de un perfil. Devuelve 0 bien, 1 error, 3 falta la primera sincronización, 4 frenado (borrados o modificaciones masivas).
 sync_profile() { # local remote días % nº
   ldir=$1; rem=$2; days=$3; mpct=$4; mn=$5
@@ -223,7 +241,7 @@ sync_profile() { # local remote días % nº
   # Freno de modificaciones masivas: pasada en seco antes de la real (una más por hora).
   if [ "$RESYNC" = 0 ] && [ "$DRY" = 0 ] && [ "$FORCE" = 0 ] && [ -f "$init" ]; then
     pre="$WORK/pre.log"; : > "$pre"
-    if "$BIN" "$@" --dry-run --log-file "$pre" </dev/null; then
+    if pre_dry_run "$pre" "$@"; then
       for side in Path1 Path2; do
         mods=$(mod_count "$side" "$pre"); mods=${mods:-0}
         [ "$mods" -gt "$mn" ] || continue
