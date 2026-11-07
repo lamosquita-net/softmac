@@ -533,3 +533,5 @@ buzon/SERVIDOR-LOCAL/20261107-0947-COORDINACION-33.md → SERVIDOR-LOCAL Servido
 buzon/MOTOR/20261107-0947-COORDINACION-33.md → MOTOR Motor ubuntu (2) [44ebbb] · 2026-11-07 09:49 UTC · entregado (ruta MOTOR-30 vía Motor ubuntu (2))
 buzon/CARTERO-LOCAL/20261107-0947-COORDINACION-33.md (sin reenvío) · 2026-11-07 09:49 UTC · anotado a posteriori: relevo a esta sesión, sin acción
 buzon/LOCAL/20261107-0949-COORDINACION-33-f3f65b603.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 09:51 UTC · entregado
+buzon/LOCAL/20261107-0951-COORDINACION-33-LOCAL20-f1.md → LOCAL Compilación Local (20) [4a2db1] · 2026-11-07 09:53 UTC · entregado
+buzon/LOCAL/20261107-0952-COORDINACION-33-kit51.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 09:53 UTC · entregado
