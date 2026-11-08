@@ -93,6 +93,8 @@ if ! mkdir "$LOCK" 2>/dev/null; then
   pid=$(cat "$LOCK/pid" 2>/dev/null || true)
   if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
     echo "BackupDrive ya se está ejecutando (pid $pid); no hago nada."
+    # También en el registro: si no, una pasada de launchd que coincide con otra larga no deja rastro.
+    echo "== $(date '+%Y-%m-%d %H:%M:%S') pasada saltada: ya hay otra en curso (pid $pid)" >> "$LOG" 2>/dev/null || true
     exit 0
   fi
   rm -rf "$LOCK"
@@ -197,6 +199,24 @@ mod_count() {
   sed -n "s/.*$1: *[0-9]* changes: *[0-9]* new, *\([0-9]*\) modified.*/\1/p" "$2" | tail -1
 }
 
+# Pasada en seco del freno ($1 = registro, resto = orden de bisync). Solo hacen falta los recuentos de cambios, que
+# bisync escribe antes de «Applying changes»; después, en seco, recorre una a una las copias que haría (con Drive,
+# ~1 fichero/s: 36 min con 1858 cambios en la 6,1), así que se corta ahí. Devuelve 0 si llegó a contar los cambios.
+pre_dry_run() {
+  plog=$1; shift
+  "$BIN" "$@" --dry-run --log-file "$plog" </dev/null &
+  ppid_=$!
+  while kill -0 "$ppid_" 2>/dev/null; do
+    if grep -q 'Applying changes' "$plog" 2>/dev/null; then
+      kill -INT "$ppid_" 2>/dev/null || true
+      wait "$ppid_" 2>/dev/null || true
+      return 0
+    fi
+    sleep 1
+  done
+  wait "$ppid_"
+}
+
 # bisync de un perfil. Devuelve 0 bien, 1 error, 3 falta la primera sincronización, 4 frenado (borrados o modificaciones masivas).
 sync_profile() { # local remote días % nº
   ldir=$1; rem=$2; days=$3; mpct=$4; mn=$5
@@ -221,7 +241,7 @@ sync_profile() { # local remote días % nº
   # Freno de modificaciones masivas: pasada en seco antes de la real (una más por hora).
   if [ "$RESYNC" = 0 ] && [ "$DRY" = 0 ] && [ "$FORCE" = 0 ] && [ -f "$init" ]; then
     pre="$WORK/pre.log"; : > "$pre"
-    if "$BIN" "$@" --dry-run --log-file "$pre" </dev/null; then
+    if pre_dry_run "$pre" "$@"; then
       for side in Path1 Path2; do
         mods=$(mod_count "$side" "$pre"); mods=${mods:-0}
         [ "$mods" -gt "$mn" ] || continue
@@ -302,8 +322,9 @@ while IFS='|' read -r local_dir remote days mod_pct mod_n; do
   : > "$RUN_LOG"
   rc=0; sync_profile "$local_dir" "$remote" "$days" "$mod_pct" "$mod_n" || rc=$?
   cat "$RUN_LOG" >> "$LOG"
-  # Plan de la simulación, para «Ver qué cambia» (backupdrive-ctl.sh plan).
-  if [ "$DRY" = 1 ]; then
+  # Plan de la simulación, para «Ver qué cambia» (backupdrive-ctl.sh plan). También cuando una pasada real se frena:
+  # bisync ya ha listado lo que cambia antes de detenerse, y un plan viejo enseñaría otra cosa.
+  if [ "$DRY" = 1 ] || [ "$rc" = 4 ]; then
     # Si la simulación falló (no por el freno), la cabecera lo dice: «plan» no debe enseñar una lista vacía.
     perr=""; case "$rc" in 0|4) ;; *) perr=" error=$rc" ;; esac
     { [ "$RESYNC" = 1 ] && echo "BACKUPDRIVE-PLAN resync$perr" || echo "BACKUPDRIVE-PLAN$perr"; cat "$RUN_LOG"; } \
