@@ -98,4 +98,5 @@ Decisión de Titín (08-11): **primero revisión y sandbox**. Nada de este códi
 2. **Límite de la revisión:** con unos 3,3 millones de líneas propias y cientos de crates no se puede leer todo. Se
    revisa a fondo lo que se ejecuta al compilar (build.rs y proc-macros) y lo de storytold. El resto lo cubre el
    sandbox, que bloquea la red y la escritura fuera de `~/dfs`.
-3. Crate `freehand` en Rust a partir de libfreehand, probado contra el banco de pruebas privado.
+3. **Fase 1 de vectorcraft v0.22.0 hecha en la nube (08-11)**: [`craft-revision-vectorcraft.md`](craft-revision-vectorcraft.md). Veredicto: se puede compilar en la 6,1 dentro del sandbox.
+4. Crate `freehand` en Rust a partir de libfreehand, probado contra el banco de pruebas privado.
