@@ -588,3 +588,4 @@ buzon/SERVIDOR-LOCAL/20261108-1140-COORDINACION-34-borra-kit51.md → SERVIDOR-L
 buzon/CARTERO-LOCAL/20261108-1200-COORDINACION-34-motor.md → (sin reenvío) · para CARTERO-LOCAL: sin sesión «Motor ubuntu» en ListAgents; los dos mjsunit siguen en fallo, se revisa en cada pasada · 2026-11-08 12:59 UTC · entregado
 buzon/LOCAL/20261108-1215-COORDINACION-34-pdfium-parches.md → LOCAL Compilación Local (19) [161960] · 2026-11-08 12:59 UTC · entregado
 buzon/LOCAL/20261108-1330-COORDINACION-34-motionmark-71.md → LOCAL Compilación Local (19) [161960] · 2026-11-08 13:49 UTC · entregado
+buzon/LOCAL/20261108-1350-COORDINACION-34-mm-adelante.md → LOCAL Compilación Local (19) [161960] · 2026-11-08 13:57 UTC · entregado
