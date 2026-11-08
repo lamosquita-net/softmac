@@ -576,3 +576,12 @@ buzon/PUBLICACION/20261107-2030-COORDINACION-34-entrega300.md → PUBLICACION Pu
 buzon/LOCAL/20261107-2125-COORDINACION-34-C-61.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 20:24 UTC · entregado
 buzon/LOCAL/20261107-2030-COORDINACION-34-quedate-5342.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 20:26 UTC · entregado
 buzon/LOCAL/20261107-2045-COORDINACION-34-entrega-ok.md → LOCAL Compilación Local (19) [f55e89] · 2026-11-07 20:46 UTC · entregado
+buzon/MOTOR/20261107-0120-COORDINACION-32-parches.md → (sin reenvío) · obsoleto, anotado por el relevo · 2026-11-08 12:56 UTC · entregado
+buzon/PUBLICACION/20261107-2100-COORDINACION-34-publica-300.md → PUBLICACION Publicación [93b857] · 2026-11-08 12:56 UTC · entregado
+buzon/SERVIDOR-LOCAL/20261107-2100-COORDINACION-34-kit-y-publicacion.md → SERVIDOR-LOCAL Servidor Local (2) [5ec86c] · 2026-11-08 12:56 UTC · entregado
+buzon/ARQUITECTURA/20261107-2220-COORDINACION-34-estudio-3x.md → ARQUITECTURA Arquitectura FlyWeb fork propio [c1d701] · 2026-11-08 12:56 UTC · entregado (en cola: esa sesión está offline por Remote Control; sin confirmación de lectura)
+buzon/LOCAL/20261107-2220-COORDINACION-34-LOCAL20-pruebas300.md → LOCAL Compilación Local (20) [7c1749] · 2026-11-08 12:56 UTC · entregado
+buzon/MOTOR/20261107-2310-COORDINACION-34-mjsunit-301.md → MOTOR Motor ubuntu (2) · 2026-11-08 12:56 UTC · fallo: no hay sesión «Motor ubuntu (2)» en ListAgents; avisado a COORDINACIÓN-34
+buzon/MOTOR/20261107-2320-COORDINACION-34-mjsunit-parser.md → MOTOR Motor ubuntu (2) · 2026-11-08 12:56 UTC · fallo: no hay sesión «Motor ubuntu (2)» en ListAgents; avisado a COORDINACIÓN-34
+buzon/LOCAL/20261107-2320-COORDINACION-34-pdfium.md → LOCAL Compilación Local (19) [161960] · 2026-11-08 12:56 UTC · entregado
+buzon/SERVIDOR-LOCAL/20261108-1140-COORDINACION-34-borra-kit51.md → SERVIDOR-LOCAL Servidor Local (2) [5ec86c] · 2026-11-08 12:56 UTC · entregado
