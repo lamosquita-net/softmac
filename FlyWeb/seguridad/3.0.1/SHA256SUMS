@@ -74,6 +74,6 @@ a4b0d4d14297a081bcdcb216603cae037ebe4259ca991986751428ab14907417  angle/0005-Fly
 3dc57d9ae90d560070ea5cf4f0bf007d9f7d1e49f762ab583afba272917c1d10  ffmpeg/0001-3.0.1-sin-CVE-publicado-avformat-mov-zero-uninitiali.patch
 be62db1ea97d1ba4c3dd305a658ed1d96793eb6e426ac655db18d36dc80bdccb  ffmpeg/0002-3.0.1-CVE-2026-121180-avcodec-h264_slice-reset-next_.patch
 a321249b944b46197060611b90e979ec8c7638c73f0711fbd4ffdd4cc200f0f0  ffmpeg/0003-3.0.1-CVE-2026-121047-avformat-mov-keep-frag_index.c.patch
-aa34aa5e7224579e5f9e49776198f4edba9adb25b24ff22e24d84dc53b96f73b  pdfium/0001-Construct-array-at-once-in-CJS_Global-EnumProperties.patch
-bd4de1c19eeaa177b63f4687540e10fba72a1b459566549fe50799c65892b0f6  pdfium/0002-Avoid-const_cast-when-repairing-malformed-JPEG-input.patch
-4450576034387800a67bbc7888f3ee742216f0fa4dd61dd5cf86493b48710975  pdfium/0003-Handle-re-entrancy-during-form-field-focus-transitio.patch
+ff0fbce5be72674cf9a9ec812687017f6aab6606a1a170379357e0dfeaec2b50  pdfium/0001-Construct-array-at-once-in-CJS_Global-EnumProperties.patch
+cd973a20cbbdd18bed8fc8fa87aa3574bb444474d003bc888ffb6896db49d222  pdfium/0002-Avoid-const_cast-when-repairing-malformed-JPEG-input.patch
+3c605ffe44d6992ae9da84d04687523864fbe50169912bb0873ef009ac6dda2d  pdfium/0003-Handle-re-entrancy-during-form-field-focus-transitio.patch

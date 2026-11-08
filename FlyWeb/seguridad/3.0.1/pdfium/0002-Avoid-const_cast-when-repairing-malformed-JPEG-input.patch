@@ -1,7 +1,7 @@
 From 6aeca9ce1a8d085e81539aa40054fd602df298ca Mon Sep 17 00:00:00 2001
 From: Tom Sepez <tsepez@google.com>
 Date: Wed, 30 Sep 2026 14:41:23 -0700
-Subject: [PATCH 2/3] [3.0.1][PDFium crbug 567106301, CVE por asignar] Avoid const_cast when repairing malformed JPEG input data
+Subject: [PATCH 2/3] [3.0.1][CVE-2026-121113] Avoid const_cast when repairing malformed JPEG input data
 
 LibjpegScanlineDecoder previously used a const_cast in
 GetWritableSrcData() to mutate the input span in place when repairing

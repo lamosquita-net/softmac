@@ -98,7 +98,8 @@ Son 53 CVE Critical/High de la nota de la 157.0.8103.38/.39. Abajo, el arreglo l
 | **X** | 121188 → 0f12a22f12 (`animation_frame_timing_monitor`) · 121038 (HiC) → c8449108a0 · 121052 (HiC) → bf298c5fc5 · 121214 Passwords → 31e05381bd (override de Brave en `chrome_password_manager_client.cc`) · V8 121082 → 1aae39c (falla 1 trozo de 8, `parser-base.h:5711`) |
 | **N** | 121051, 121090 y 121087 (iOS) · 121178 (Aura de Windows, 1775ec03a1) · 121173 y 121249 (ANGLE GL Mali/Adreno, Vulkan) · 121207 y 121089 (Dawn) |
 | **Ya en el grupo 1** | 121233, 121095, 121213, 121208, 121076, 121068 |
-| **Sin localizar** | 121166, 121113 y 121179 (PDFium: el espejo de GitHub no tiene el crbug en el mensaje y pdfium.googlesource está bloqueado) · 121047 y 121180 (ffmpeg: el arreglo es el uprev a0add0878d, de 853 commits) · 121080 (CrabbyAvif, roll 8943e633bb) · 121124 (XML: el único commit con el crbug es el CPEPrefix de libxml; falta el roll real) · 121112 (Permissions: solo coincide un commit de gardener) |
+| **PDFium (T3, 08-11)** | 121166 → cce5c5ed801f · 121113 → 4150fb564e0d · 121179 → 0a21f66dd0c6. Los tres **A** sobre `pdfium_revision` c97f02a3519c (LOCAL-19 en la 7,1; árbol 98a993d818); `FlyWeb/seguridad/3.0.1/pdfium/` |
+| **Sin localizar (inventario del 07-11)** | 121047 y 121180 (ffmpeg: el arreglo es el uprev a0add0878d, de 853 commits) · 121080 (CrabbyAvif, roll 8943e633bb) · 121124 (XML: el único commit con el crbug es el CPEPrefix de libxml; falta el roll real) · 121112 (Permissions: solo coincide un commit de gardener) |
 
 Notas:
 - **HiC (html-in-canvas)**: `CanvasDrawElement` está en `experimental` con origin trial `HTMLInCanvas`. Solo está expuesto si una web trae token y las origin trials no están apagadas en FlyWeb. Antes de portar las X de HiC, comprobar si la OT está abierta. Si lo está, lo más barato es apagarla: regla 20 y propuesta para revisar.
@@ -165,4 +166,27 @@ Sin localizar: 9 CVE (§3). No cuentan en la proporción.
 - La época de caché se queda en 31: la sube esta misma versión.
 - Condición: el mjsunit de MOTOR-30 tiene que salir en verde **con** la serie (`seg/3.0.1-parser`) y **sin** ella (`seg/3.0.1`). Si con la serie aparece una sola caída que no esté sin ella, la serie pasa a la 3.0.2.
 - El riesgo de compatibilidad es bajo: los cambios afinan qué errores de sintaxis se dan y en qué orden, para alinearse con la especificación y con Chrome 157, que ya los publica.
+
+## 7. Cierre de T3 y medida final de noviembre (08-11)
+
+| CVE | Pieza | Arreglo | Clase |
+|---|---|---|---|
+| CVE-2026-121166 | PDFium, type confusion | cce5c5ed801f | A |
+| CVE-2026-121113 | PDFium, buffer overflow | 4150fb564e0d | A |
+| CVE-2026-121179 | PDFium, UAF | 0a21f66dd0c6 | A |
+| CVE-2026-121047 | ffmpeg | fb424c4 | A |
+| CVE-2026-121180 | ffmpeg | 5eed87f | X (le faltaban 2 líneas de ER de FFmpeg, que van con él) |
+| sin CVE (568986882) | ffmpeg | f4bee18 | A |
+| CVE-2026-121080 | CrabbyAvif | — | ya en la 156 |
+| CVE-2026-121124 | libxml | — | solo metadato |
+| CVE-2026-121112 | Permissions | — | sin localizar → 3.0.2 |
+
+Revisión de PDFium (SEGURIDAD-PORTES-19):
+- **cce5c5ed80**: construye el array de una vez (`v8::LocalVector` + `v8::Array::New`, que existen en la V8 15.6) en vez de `PutArrayElementReentrant`, que podía reentrar en JS.
+- **4150fb564e**: copia los datos del JPEG antes de corregirlos, en vez de escribir con `const_cast` sobre el búfer del documento. `corrected_src_data_` va declarado antes de `src_span_`, como pide su comentario.
+- **0a21f66dd0**: `ObservedPtr` sobre `this` en cada llamada que puede ejecutar JS. Compila porque `CFFL_FormField` es `Observable` a través de `CPWL_Wnd::ProviderIface`.
+
+**Medida final de noviembre de 2026** (misma unidad que en §5; se suman ffmpeg y PDFium): **79 de 93 = 85 % limpios**, contando 79 A, 7 F y 7 X.
+- No entran en la cuenta la serie del parser de V8 (CVE-2026-121082), que es una propuesta aparte (§6), ni lo que no nos afecta.
+- La proporción se mantiene. Lo que no entra limpio está casi todo en código que la 156 todavía no tiene (refactorizaciones de main), no en nuestros parches de Mojave. Con nuestro fork solo chocaron los `.patch` de Brave, y todos siguen aplicando.
 
