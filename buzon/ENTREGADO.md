@@ -589,3 +589,4 @@ buzon/CARTERO-LOCAL/20261108-1200-COORDINACION-34-motor.md → (sin reenvío) ·
 buzon/LOCAL/20261108-1215-COORDINACION-34-pdfium-parches.md → LOCAL Compilación Local (19) [161960] · 2026-11-08 12:59 UTC · entregado
 buzon/LOCAL/20261108-1330-COORDINACION-34-motionmark-71.md → LOCAL Compilación Local (19) [161960] · 2026-11-08 13:49 UTC · entregado
 buzon/LOCAL/20261108-1350-COORDINACION-34-mm-adelante.md → LOCAL Compilación Local (19) [161960] · 2026-11-08 13:57 UTC · entregado
+buzon/ARQUITECTURA/20261107-2220-COORDINACION-34-estudio-3x.md → ARQUITECTURA Arquitectura FlyWeb fork propio [ce8bbb] · 2026-11-08 19:58 UTC · entregado (reenvío: la sesión [c1d701] seguía offline; la activa es [ce8bbb])
