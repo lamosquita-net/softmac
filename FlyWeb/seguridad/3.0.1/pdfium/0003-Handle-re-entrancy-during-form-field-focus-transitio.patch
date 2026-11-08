@@ -1,7 +1,7 @@
 From 3c329121518d07ab4b8609084e82090ee171c0b6 Mon Sep 17 00:00:00 2001
 From: Tom Sepez <tsepez@google.com>
 Date: Thu, 1 Oct 2026 14:01:00 -0700
-Subject: [PATCH 3/3] [3.0.1][PDFium crbug 567936263, CVE por asignar] Handle re-entrancy during form field focus transitions
+Subject: [PATCH 3/3] [3.0.1][CVE-2026-121179] Handle re-entrancy during form field focus transitions
 
 Track CFFL_FormField lifetime using ObservedPtr during focus
 transitions and PWL window updates. Return early if the form field
