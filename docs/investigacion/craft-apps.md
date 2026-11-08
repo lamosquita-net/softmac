@@ -63,7 +63,7 @@ original se para o cambia de rumbo, seguimos nosotros.
   color de la pantalla»). Solo se usa al llamar a esa función, así que basta con un parche pequeño. La búsqueda
   estática no ha encontrado más, pero es limitada.
 - **Pendiente:** saber si wgpu 30 y su fork de winit funcionan en 10.14 y con las GPU de la 5,1. Solo se sabrá
-  compilando y arrancando en la máquina. Es la primera tarea de LOCAL-CRAFT (abajo).
+  compilando y arrancando en la máquina. Es la tarea de COMPILACIÓN-DFS (abajo).
 - Rust se ejecuta en Mojave, así que **la 6,1 también podría compilar** (más despacio, con Xcode 11.3.1). La primera
   prueba se hace en la 7,1 por velocidad y la segunda, compilando en la propia 6,1.
 
@@ -86,7 +86,16 @@ original se para o cambia de rumbo, seguimos nosotros.
 
 ## Siguientes pasos
 
-1. **LOCAL-CRAFT** (nuevo agente local de la 7,1; texto de arranque en `docs/ARRANQUE.md`): compilar vectorcraft solo
-   para x86_64 con `MACOSX_DEPLOYMENT_TARGET=10.14`, arrancarla en la 6,1 y la 5,1 y anotar qué falla.
-2. Después, probar a compilar en la propia 6,1.
+Decisión de Titín (08-11): **primero revisión y sandbox**. Nada de este código se ejecuta en la 7,1.
+
+1. **COMPILACIÓN-DFS-1** (Design Fly Suite; texto de arranque en `docs/ARRANQUE.md`). Corre en la 7,1 solo para dar
+   órdenes por SSH, porque Claude Code exige macOS 13 o superior. Todo se ejecuta en la 6,1, con la cuenta `craft`:
+   - **Fase 0:** cuenta aislada y perfil de `sandbox-exec` sin red.
+   - **Fase 1:** revisión sin ejecutar nada (build.rs, proc-macros, dependencias git, binarios incluidos,
+     cargo-audit y cargo-deny).
+   - **Fase 2:** compilación en sandbox, sin red y en modo `--offline --locked`.
+   - **Fase 3:** arranque en sandbox.
+2. **Límite de la revisión:** con unos 3,3 millones de líneas propias y cientos de crates no se puede leer todo. Se
+   revisa a fondo lo que se ejecuta al compilar (build.rs y proc-macros) y lo de storytold. El resto lo cubre el
+   sandbox, que bloquea la red y la escritura fuera de `~/dfs`.
 3. Crate `freehand` en Rust a partir de libfreehand, probado contra el banco de pruebas privado.
