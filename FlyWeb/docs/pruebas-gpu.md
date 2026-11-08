@@ -129,3 +129,20 @@ Parches de ANGLE: `b1d/angle/0006`, `0007` y `0008` (sobre `a66226b`; los ocho r
   - Elevated vuelve a 33 (en `oficial-6`, 58). La diferencia entre pasadas parece del contenido de la página o de la descarga, no del cambio: oficial-7 no toca Metal.
 - **Humo:** WebGL normal y de alto rendimiento, UA-CH «macOS 10.14.6», clic derecho, descarga, pantalla completa, `enumerateDevices`, `getUserMedia` (NotFoundError, no hay cámara) y Web MIDI: todo bien.
   - `navigator.share` abre el selector de compartir de macOS, que espera a que alguien elija, y deja la pestaña bloqueada para el resto del humo. Ya pasaba con `oficial-3`: es un efecto de la prueba, no una caída.
+
+## 08-11-2026 · MacPro5,1 (Radeon RX 580 8 GB, Xeon E5620 sin AVX, macOS 10.14.6) · FlyWeb 3.0.0 publicada (198.63.41)
+
+Kit «Prueba FlyWeb 3.0.0» (lanzador firmado y notarizado; copia aparte con perfil temporal), ejecutado por Titín en la 5,1.
+Transcrito por COORDINACIÓN-34 a partir de `resultado-51.txt`, sin rutas locales.
+
+- Arranque en 2 s; Chrome/156.0.8078.90; Metal en la RX 580 (feature set macOS GPUFamily2 v1). AVX: la CPU no tiene y la app
+  arranca y completa todo (sin SIGILL).
+- chrome://gpu: Canvas, Compositing, Rasterization y WebGL «Hardware accelerated»; WebGPU desactivado; GaneshGL passthrough
+  sobre «ANGLE Metal Renderer: AMD Radeon RX 580».
+- Aquarium 5 000: 60,0 fps (peor 19 ms) · 10 000: 40,9 fps (peor 35 ms) · Google Earth (Madrid 3D): 60,0 fps (peor 18 ms).
+- MotionMark 1.3.2 a 60 fps: **864,10 ±2,81 %** (Multiply 490,02 · Canvas Arcs 2420,67 · Leaves 624,64 · Paths 10253,46 ·
+  Canvas Lines 13192,12 · Images 68,38 · Design 146,71 · Suits 309,16).
+- Registro: 0 Check failed, 0 FATAL, 0 caídas o reinicios del proceso GPU, 0 context lost, 0 selectores no reconocidos;
+  ningún informe de caída.
+
+Conclusión: la 3.0.0 pasa el peor caso (sin AVX, Metal en Mojave con la RX 580). La 5,1 puede actualizarse por Sparkle.
