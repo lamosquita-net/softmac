@@ -1,7 +1,7 @@
 #!/bin/bash
 # FlyHand fase 1: lcms2, librevenge y libfreehand estáticas x86_64 para 10.14, en la 6,1 (cuenta craft).
 set -eu
-for s in /tmp/local19-61-en-uso /tmp/local20-61-en-uso; do
+for s in /tmp/local*-61-en-uso; do
   if [ -e "$s" ]; then echo "6,1 ocupada: $s"; exit 3; fi
 done
 touch /tmp/flyhand-61-en-uso; trap 'rm -f /tmp/flyhand-61-en-uso' EXIT

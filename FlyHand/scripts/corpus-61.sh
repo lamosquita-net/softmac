@@ -4,7 +4,7 @@
 # Por pantalla y en resultados/fase1.tsv solo aparecen docNN.
 set -u
 umask 077
-for s in /tmp/local19-61-en-uso /tmp/local20-61-en-uso; do
+for s in /tmp/local*-61-en-uso; do
   if [ -e "$s" ]; then echo "6,1 ocupada: $s"; exit 3; fi
 done
 C=$HOME/flyhand/corpus

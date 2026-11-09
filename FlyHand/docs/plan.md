@@ -170,7 +170,7 @@ Tabla completa en [`suites-25.1.tsv`](suites-25.1.tsv); el 0 indica que no estab
 
 - **137 coinciden.**
 - **5 tienen una versión menos en la 25.1:** User (1018), **Artboard (1004)**, Document View (1014), Runtime (1013) y
-  Annotator Drawer (1007). Además ATE GlyphRun (1). [`src/FlyHandSuiteVersions.h`](../src/FlyHandSuiteVersions.h)
+  Annotator Drawer (1007). Además ATE GlyphRun (1). [`plugin/FlyHandSuiteVersions.h`](../plugin/FlyHandSuiteVersions.h)
   fija esas versiones. Con ellas solo se pueden llamar funciones que ya existían en la 25.1.
 - **20 no estaban disponibles al arrancar.** Entre ellas Paint Style, Swatch Libraries, Pathfinder, Expand, Geometry y
   Planar Object. Casi todas las publican otros plugins de Illustrator, que pueden cargar después del nuestro, así que
