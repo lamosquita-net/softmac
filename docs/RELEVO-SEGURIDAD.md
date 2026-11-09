@@ -552,10 +552,29 @@ Trampas:
 - Un `[M156]` que «choca» en el primero de la lista puede ser el borde del clon.
 - `git log -- <ruta>` sobre un clon `tree:0` es lentísimo: buscar por mensaje.
 
-Pendiente:
-- **CVE-2026-121082** (parser de V8: 1aae39c, 7f9cb9e, 87fabc8). 1aae39c necesita de main el `else_found` de ConditionalChain y quitar `ValidateAsExpression` en `ParsePossibleDestructuringSubPattern`.
-- PDFium ×3, que comprueba LOCAL.
-- CVE-2026-121112, sin localizar.
-- **HiC:** si upstream lo pasa a `stable`, regla 19, y entonces hay que portar c8449108a0, bf298c5fc5, db4fe6fb90 y 63d3b40075.
-- Para la 3.0.2: volver a revisar la rama 8078 después de la .96 y las notas de la 157 siguientes.
+**Estado al relevo (09-11, ~32 % de contexto):** todo lo de la 3.0.1 está entregado y en main (#861, #862, #864, #871, #880).
 
+| Pieza | Dónde | Punta (ls-remote) |
+|---|---|---|
+| Chromium, 61 commits | fork `lamosquita-net/chromium` **`seg/3.0.1`** sobre `flynk-b1d` 33a1745949 (sin tocar); copia en `FlyWeb/seguridad/3.0.1/chromium/` | **c4b1caf806e2**, árbol 2723e1b371c |
+| ANGLE 12, ffmpeg 3, PDFium 3 | `.patch` en `FlyWeb/seguridad/3.0.1/` (no tienen fork accesible) | árboles d094abc / fd96f28 / 98a993d818 |
+| brave-core | `seg/3.0.1` (V8 b56fe9b, época 31, `kCanvasDrawElement` apagada) | **6415661d24** |
+| brave-core, parser | `seg/3.0.1-parser`, encima de la anterior (21 commits para CVE-2026-121082) | **bee89ad8a6** |
+
+- **Acceso:** Titín aprobó el 09-11 el `add_repo` de `lamosquita-net/chromium` (push) en esta sesión. La rama se sube desde un clon parcial (`--filter=blob:none`) con el remoto del fork, sin clonarlo entero.
+- **Medida de noviembre:** 79/93 = 85 % limpios (`seguridad-3.0.1.md` §7).
+
+Pendiente para la siguiente:
+- **mjsunit de MOTOR-30** con tres V8: 3.0.0, `seg/3.0.1` y `seg/3.0.1-parser`.
+  - Si la de parser no tiene caídas propias, la 3.0.1 sale de `seg/3.0.1-parser`.
+  - Si las tiene, CVE-2026-121082 pasa a la 3.0.2 y LOCAL usa `seg/3.0.1`.
+  - Lo decide COORDINACIÓN, ahora COORDINACIÓN-35 (`session_01MwmK2h9VVd6d8t4mGrtmzp`).
+- **3.0.2:**
+  - CVE-2026-121112 (Permissions, crbug 40063728): ningún commit de main lo cita;
+  - volver a revisar la rama 8078 después de la .96, las notas de la 157 siguientes y KEV;
+  - la medida de diciembre.
+- **HiC:** si upstream lo pasa a `stable`, se aplica la regla 19 y hay que portar c8449108a0, bf298c5fc5, db4fe6fb90 y 63d3b40075.
+- **Tras compilar LOCAL, comprobar en ejecución:**
+  - que `drawElementImage` no existe, tampoco con experimental web platform features;
+  - que la UA da 156.0.8078.96;
+  - el formulario de contraseñas: 31e05381bd se portó a mano.
