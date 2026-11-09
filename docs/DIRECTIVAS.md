@@ -326,6 +326,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
        solo si una web real la necesita (claude.ai, el primero), nunca por paridad.
     9. 3.0.2: apagar XSLT (antes, SEGURIDAD cuenta los CVE de libxslt), CORS en Background Fetch y bloqueo del foco sin
        interacción del usuario; LOCAL comprueba si la 3.0.x expone WebHID, Web Install y Direct Sockets, y si sí, se apagan.
+- **Contenido cerrado antes de compilar (Titín, 09-11):** antes de cada orden de compilar una versión, COORDINACIÓN cierra
+  la lista de contenido. Cada decisión pendiente que la toque se pregunta antes o se pasa por escrito a la versión siguiente.
+  Nunca se compila con una pregunta abierta sobre lo que va dentro.
 - **Design Fly Suite (Craft, Titín, 09-11):** el fork de vectorcraft espera a que storytold llegue a beta
   (`docs/investigacion/craft-apps.md`). Mientras, el agente del proyecto hace el módulo de importación de FreeHand.
   La jaula `craft` de la 6,1 lleva, cuando se monte, pf por usuario, `Match User craft`, `sudo -k` y la comprobación de
