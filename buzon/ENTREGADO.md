@@ -611,3 +611,13 @@ buzon/LOCAL/20261109-1348-COORDINACION-35-b2tests-gn.md → LOCAL Compilación L
 buzon/LOCAL/20261109-1553-COORDINACION-35-301-webhid.md → LOCAL Compilación Local (19) · 2026-11-09 15:54 UTC · entregado
 buzon/LOCAL/20261109-1617-COORDINACION-35-local20-estado.md → LOCAL Compilación Local (20) · 2026-11-09 16:19 UTC · entregado
 buzon/CARTERO-LOCAL/20261109-1706-LOCAL19-301-arreglos-b2tests-v8.md → (sin reenvío) · de LOCAL-19 para COORDINACIÓN-35; el cartero lo envió a COORDINACIÓN-35 directamente · 2026-11-09 17:07 UTC · entregado
+buzon/ARQUITECTURA/20261109-1720-COORDINACION-36-relevo.md → ARQUITECTURA Arquitectura FlyWeb fork propio [9aa437] · 2026-11-09 17:14 UTC · entregado
+buzon/CARTERO-LOCAL/20261109-1720-COORDINACION-36-relevo.md → (sin reenvío) · para CARTERO-LOCAL: relevo de COORDINACIÓN-36 recibido · 2026-11-09 17:14 UTC · entregado
+buzon/CARTERO-LOCAL/20261109-1706-LOCAL19-301-arreglos-b2tests-v8.md → (sin reenvío) · atendido por COORDINACIÓN-36 (relevo leído en la rama) · 2026-11-09 17:14 UTC · entregado
+buzon/FLYHAND-LOCAL/20261109-1712-COORDINACION-36-61-libre.md → FLYHAND-LOCAL session_01MwmK2imxzm1dF7p4BdPeUv · 2026-11-09 17:14 UTC · fallo: id no alcanzable por SendMessage (no está en ListAgents); avisado a COORDINACIÓN-36
+buzon/FLYHAND-LOCAL/20261109-1720-COORDINACION-36-relevo.md → FLYHAND-LOCAL session_01MwmK2imxzm1dF7p4BdPeUv · 2026-11-09 17:14 UTC · fallo: id no alcanzable por SendMessage (no está en ListAgents); avisado a COORDINACIÓN-36
+buzon/LOCAL/20261109-1712-COORDINACION-36-local20-libera-61.md → LOCAL Compilación Local (20) [3eed64] · 2026-11-09 17:14 UTC · entregado
+buzon/LOCAL/20261109-1720-COORDINACION-36-relevo.md → LOCAL Compilación Local (19) [a7b6cf] y Compilación Local (20) [3eed64] · 2026-11-09 17:14 UTC · entregado
+buzon/MOTOR/20261109-1720-COORDINACION-36-mjsunit-302.md → MOTOR session_01MwmK2kVVMhxRUscaawz4rP · 2026-11-09 17:14 UTC · fallo: id no alcanzable por SendMessage (no está en ListAgents; «ubuntu motor (3)» [e9c55d] no confirmada como la misma); avisado a COORDINACIÓN-36
+buzon/PUBLICACION/20261109-1720-COORDINACION-36-relevo.md → PUBLICACION Publicación [f9f5e3] · 2026-11-09 17:14 UTC · entregado
+buzon/SERVIDOR-LOCAL/20261109-1720-COORDINACION-36-relevo.md → SERVIDOR-LOCAL Servidor Local (2) [f9fa38] · 2026-11-09 17:14 UTC · entregado
