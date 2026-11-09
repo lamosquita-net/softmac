@@ -1,0 +1,57 @@
+From 7f4cf8b0fa12c4c71236bfa10342341589e49dff Mon Sep 17 00:00:00 2001
+From: Fernando Fiori <ffiori@microsoft.com>
+Date: Mon, 19 Oct 2026 17:34:55 -0700
+Subject: [PATCH 10/11] [3.0.2][foco] [focus-without-user-activation] Remove
+ the policy console warning
+
+Blocked focus calls emit a feature-specific console warning in addition
+to enforcing the focus-without-user-activation permissions policy. This
+runtime warning conflicts with the DevTools console policy:
+https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/policy/console-policy.md
+
+Remove the custom warning without changing the focus decision or use
+counters.
+
+Bug: 40095111
+Change-Id: I307434f10b8b71a947f3627b8e218a93f52943bd
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8582703
+Reviewed-by: Ana Sollano Kim <ansollan@microsoft.com>
+Commit-Queue: Fernando Fiori <ffiori@microsoft.com>
+Reviewed-by: Dan Clark <daniec@microsoft.com>
+Auto-Submit: Fernando Fiori <ffiori@microsoft.com>
+Reviewed-by: Fernando Fiori <ffiori@microsoft.com>
+Cr-Commit-Position: refs/heads/main@{#1722466}
+
+(cherry picked from commit 2d8fb5ddf913eb207457c1ac5a692e6ecfa371c2)
+
+diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink/renderer/core/dom/document.cc
+index 36926bcb59a..511ff0fcb6a 100644
+--- a/third_party/blink/renderer/core/dom/document.cc
++++ b/third_party/blink/renderer/core/dom/document.cc
+@@ -9756,11 +9756,6 @@ bool Document::IsFocusAllowed(FocusTrigger trigger,
+     return true;
+   }
+ 
+-  AddConsoleMessage(MakeGarbageCollected<ConsoleMessage>(
+-      ConsoleMessage::Source::kOther, ConsoleMessage::Level::kWarning,
+-      "Blocked focus call from a frame because its "
+-      "'focus-without-user-activation' permissions policy is denied."));
+-
+   CountUse(WebFeature::kFocusWithoutUserActivationBlocked);
+   return false;
+ }
+diff --git a/third_party/blink/renderer/core/dom/document_test.cc b/third_party/blink/renderer/core/dom/document_test.cc
+index 9bcd43f207c..232e5750b71 100644
+--- a/third_party/blink/renderer/core/dom/document_test.cc
++++ b/third_party/blink/renderer/core/dom/document_test.cc
+@@ -2537,6 +2537,7 @@ TEST_F(DocumentFocusUseCounterTest,
+ 
+   EXPECT_TRUE(GetDocument().IsUseCounted(
+       WebFeature::kFocusWithoutUserActivationBlocked));
++  EXPECT_THAT(ConsoleMessages(), IsEmpty());
+ }
+ 
+ // Regression coverage for the activated-target variant of crbug.com/513330788:
+-- 
+2.43.0
+

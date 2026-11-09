@@ -597,3 +597,19 @@ Entorno útil (todo se pierde con el contenedor; se rehace en minutos con §9):
 - el remoto del fork `lamosquita-net/chromium` (`add_repo` con push ya aprobado por Titín en la -19; la -20 tendrá que pedirlo de nuevo);
 - los espejos de V8, ANGLE, Dawn, CrabbyAvif y ffmpeg.
 
+## 11. SEGURIDAD-PORTES-20 (`session_01MwmK2kRbhaWsL8yMfFgtD8`, 09-11-2026): FS.43, la 3.0.2
+
+Entregada para compilar (`FlyWeb/docs/seguridad-3.0.2.md`): chromium `seg/3.0.2` 502e3c5b85 y brave-core `seg/3.0.2`
+0d6a771f23. Titín aprobó en esta sesión el `add_repo` de brave-core y chromium (push).
+
+Método nuevo, sin worktree ni checkout: `git merge-tree --write-tree --merge-base=C^ <base> C` + `commit-tree` (git 2.43)
+hace el cherry-pick de 3 vías y solo baja los blobs necesarios. `git grep` y `read-tree` en un clon `blob:none` son lentísimos
+(minutos): leer ficheros concretos con `git show`.
+
+Pendiente para la siguiente:
+- mjsunit del parser, ahora con la V8 15.6.75.51; si sale limpio, rebasar `seg/3.0.2` sobre `seg/3.0.1-parser`.
+- 460ab884005 (GC, `length.cc`, X) y la nota de la **158 estable (17-11)**: 3.0.3 y medida de diciembre.
+- CVE-2026-121112: revisar cuando se abra el crbug 40063728.
+- Propuesta a Titín: WebUSB y Web Serial, como WebHID.
+- Comprobaciones en ejecución de LOCAL: README de `FlyWeb/seguridad/3.0.2/` y las de §9 (UA ahora .98 en `chrome/VERSION`).
+

@@ -1,0 +1,23 @@
+From 502e3c5b85f534fa6b8c47135f7236b611b7ce1b Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-20 <noreply@anthropic.com>
+Date: Mon, 9 Nov 2026 16:25:02 +0000
+Subject: [PATCH 11/11] [3.0.2] chrome/VERSION 156.0.8078.96 -> 156.0.8078.98
+
+The 8078 branch from .96 to .98 only adds the V8 roll to 15.6.75.51,
+which is in this series, so the declared Chrome version follows it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/chrome/VERSION b/chrome/VERSION
+index 6f596b342de..afd582441ef 100644
+--- a/chrome/VERSION
++++ b/chrome/VERSION
+@@ -1,4 +1,4 @@
+ MAJOR=156
+ MINOR=0
+ BUILD=8078
+-PATCH=96
++PATCH=98
+-- 
+2.43.0
+
