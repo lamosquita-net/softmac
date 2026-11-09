@@ -314,6 +314,23 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     de qué trae cada Chrome, qué se puede portar a la 156 y qué interesa. MOTOR implementa solo lo que Titín apruebe, dentro
     de una 3.x, para no distraerse de la 3.1.
   - **Primer hito de la 3.1:** perfil del hilo del proceso de GPU en la 6,1 y la 7,1 (LOCAL) y lectura de ANGLE Metal (MOTOR).
+  - **Decisiones de `plan-3x.md` §7 y de `novedades-motor.md` (Titín, 09-11, todas sí):**
+    1. El criterio de la 3.1 en la 7,1 (hueco con Chrome) se fija con el hito 0, con el mismo guion para los dos navegadores.
+    2. Puerta de los hilos: hilo del proceso de GPU ≥ 90 % y driver > 25 %.
+    3. Base nueva: umbrales S1 50/35 % y S2 5/10 críticos (§6.3); se revisan con la medida de diciembre.
+    4. `flyweb_bundle_version_base = "198.63"`: entra en la 3.0.2 (la 3.0.1 ya compilaba).
+    5. Sparkle 2: se valora durante la 3.1 y se migra en la 3.3.
+    6. Containers no; WebGPU apagado y fuera de la 3.x.
+    7. Vigilancia diaria de KEV entre tandas (rutina de SEGURIDAD-VIGÍA en Haiku, pasada diaria).
+    8. **Versión declarada:** FlyWeb sigue declarando 156 en toda la 3.x. Una función de un Chrome posterior se enciende
+       solo si una web real la necesita (claude.ai, el primero), nunca por paridad.
+    9. 3.0.2: apagar XSLT (antes, SEGURIDAD cuenta los CVE de libxslt), CORS en Background Fetch y bloqueo del foco sin
+       interacción del usuario; LOCAL comprueba si la 3.0.x expone WebHID, Web Install y Direct Sockets, y si sí, se apagan.
+- **Design Fly Suite (Craft, Titín, 09-11):** el fork de vectorcraft espera a que storytold llegue a beta
+  (`docs/investigacion/craft-apps.md`). Mientras, el agente del proyecto hace el módulo de importación de FreeHand.
+  La jaula `craft` de la 6,1 lleva, cuando se monte, pf por usuario, `Match User craft`, `sudo -k` y la comprobación de
+  `/Volumes` y `/Users/Shared`. `craft-update` se quita antes de la primera ejecución fuera de la jaula. COORDINACIÓN
+  fusiona sus PR.
 - **La base 156 se publica como FlyWeb 3.0.0 (Titín, 05-11; `base-siguiente.md` §7):** es un salto de base, no un nivel.
   Excepción escrita a la regla 18: los niveles 139–155 no llevan versión propia; `flyweb_engine_level` = 156 y
   `flyweb_version` = 3.0.0. Después, 3.0.x para backports de seguridad y arreglos (B8).
