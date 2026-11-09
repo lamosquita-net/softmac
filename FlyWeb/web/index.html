@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FlyWeb — navegador para Mac Intel con macOS Mojave</title>
-<meta name="description" content="FlyWeb: navegador para Mac Intel con macOS 10.14 Mojave o superior, basado en Chromium 128 y Brave, sin servicios de Brave.">
+<meta name="description" content="FlyWeb: navegador para Mac Intel con macOS 10.14 Mojave o superior, basado en Chromium 156 y Brave, sin servicios de Brave.">
 <link rel="stylesheet" href="estilo.css?v=9bc84f82c8">
 <link rel="icon" href="img/flyweb.svg" type="image/svg+xml">
 <script src="js/mosca.js?v=f0600c83ad" integrity="sha384-Yq0DDrN5jlA5uDsNkWR9l9Ju/JWRYT8AX/VB0exybvMULcfus19nicNt6VGLIEX/" defer></script>
@@ -17,16 +17,16 @@
 <main>
 <section class="banda naranja"><div class="columna">
 <p>FlyWeb es un navegador para <strong>Mac Intel con macOS 10.14 Mojave o superior</strong>. Está basado en
-Chromium 128 y Brave 1.69, con el motor web al nivel de Chrome 137, con el bloqueo de anuncios y rastreadores de Brave, pero <strong>sin ninguno de sus
+Chromium 156 y Brave, con el bloqueo de anuncios y rastreadores de Brave, pero <strong>sin ninguno de sus
 servicios</strong>: ni estadísticas, ni recompensas, ni cartera de criptomonedas, ni noticias. Las listas de bloqueo y
 las actualizaciones de seguridad llegan desde un servidor propio en la UE.</p>
 
 <div class="descarga">
-<h2>Descargar FlyWeb 2.7.0</h2>
-<p><a class="boton" href="descargas/FlyWeb-2.7.0.dmg" download>Descargar FlyWeb 2.7.0 (175 MB)</a></p>
+<h2>Descargar FlyWeb 3.0.0</h2>
+<p><a class="boton" href="descargas/FlyWeb-3.0.0.dmg" download>Descargar FlyWeb 3.0.0 (210 MB)</a></p>
 <p class="dato">macOS 10.14 Mojave o superior, Mac Intel (x86_64). En macOS 10.15 a 12 funciona; solo Mojave está garantizado.<br>
 Firmado con Developer ID y notarizado por Apple.<br>
-SHA-256: <code>a70c41622b7884c96c8f4c3239dd19791cae3bc8248b73acf793f2496c780b2b</code></p>
+SHA-256: <code>143d58aedcbe4762bc175904ee1ae10eb5e09b5fbf15fbeb1b4bd65e77de8a25</code></p>
 <p class="dato"><strong>¿Vienes de la 1.15?</strong> La 2.0 copia tu perfil antes de usarlo y desde él no se vuelve atrás sin esa
 copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High Sierra (10.13)?</strong> Tu última versión es la
 <a href="descargas/FlyWeb-1.15.2.dmg">1.15.2</a> (sha256 <code>fbca0533b634a323f839a6265fa9b1802e53e03fcbc500879bbdf0e16cf9f138</code>).</p>
@@ -35,13 +35,25 @@ copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
 <ol>
-  <li>Abre el archivo <code>FlyWeb-2.7.0.dmg</code> descargado.</li>
+  <li>Abre el archivo <code>FlyWeb-3.0.0.dmg</code> descargado.</li>
   <li>Arrastra FlyWeb a la carpeta Aplicaciones.</li>
   <li>Ábrelo desde Aplicaciones. La primera vez, macOS te pedirá permiso para guardar la clave de FlyWeb en el
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
-<h2 id="novedades">Notas de la versión 2.7.0</h2>
+<h2 id="novedades">Notas de la versión 3.0.0</h2>
+<ul>
+  <li><strong>Base nueva: Chromium 156.</strong> Es un salto de base, no un nivel más: FlyWeb pasa de la base 128 a la 156 de
+  golpe. Las webs ven FlyWeb como Chrome 156.</li>
+  <li><strong>Gráficos con Metal.</strong> La aceleración gráfica usa Metal, la tecnología gráfica de Apple.</li>
+  <li><strong>Seguridad:</strong> entran de una vez las correcciones de seguridad de Chromium hasta la versión 156.</li>
+  <li><strong>Tu perfil se conserva.</strong> La primera vez que abras la 3.0.0, FlyWeb hace una copia de tu perfil de la 2.x
+  llamada «antes de 3.0» y trabaja con un perfil nuevo («FlyWeb 3 Profile») migrado desde ella. Si algo no te convence, la
+  copia se abre con la 2.7.0.</li>
+  <li><strong>Requisitos:</strong> macOS 10.14 Mojave o superior y Mac Intel (x86_64), como hasta ahora.</li>
+</ul>
+
+<h2>Notas de la versión 2.7.0</h2>
 <ul>
   <li><strong>Motor al nivel de Chrome 138</strong>, con el motor de JavaScript de Chrome 138 (V8 13.8). Las webs ven FlyWeb
   como Chrome 138.</li>
