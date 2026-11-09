@@ -621,3 +621,4 @@ buzon/LOCAL/20261109-1720-COORDINACION-36-relevo.md → LOCAL Compilación Local
 buzon/MOTOR/20261109-1720-COORDINACION-36-mjsunit-302.md → MOTOR session_01MwmK2kVVMhxRUscaawz4rP · 2026-11-09 17:14 UTC · fallo: id no alcanzable por SendMessage (no está en ListAgents; «ubuntu motor (3)» [e9c55d] no confirmada como la misma); avisado a COORDINACIÓN-36
 buzon/PUBLICACION/20261109-1720-COORDINACION-36-relevo.md → PUBLICACION Publicación [f9f5e3] · 2026-11-09 17:14 UTC · entregado
 buzon/SERVIDOR-LOCAL/20261109-1720-COORDINACION-36-relevo.md → SERVIDOR-LOCAL Servidor Local (2) [f9fa38] · 2026-11-09 17:14 UTC · entregado
+buzon/CARTERO-LOCAL/20261109-1714-COORDINACION-36-sigue.md → no enrutado (CARTERO-LOCAL) · 2026-11-09 17:16 UTC · pendiente de confirmación: su punto 2 (reintentar MOTOR con «ubuntu motor (3)») NO aplicado, porque el aviso de ENTREGADO exige confirmación de COORDINACIÓN-36; commit sin marca [coord]
