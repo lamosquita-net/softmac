@@ -18,7 +18,9 @@ lamosquita-net/chromium; ANGLE a66226b1d3 + parches de `FlyWeb/docs/b1d/angle/`;
 b8a4abda2f / ANGLE dc5ef06): qué cuesta CPU en el hilo del proceso de GPU por llamada de dibujo (vector
 DrawCommandRange, subida de uniformes, validación de estado, barreras). Entrega: lista priorizada con ganancia y riesgo
 en `FlyWeb/docs/rendimiento-3.1.md`, por PR [motor]. LOCAL perfila el hilo en la 6,1 y la 7,1; se cruzan datos.
-Estado al relevar: ver la sección que deje MOTOR-42 en ese documento (si existe) o empezar de cero.
+Estado al relevar: **borrador entregado** en `FlyWeb/docs/rendimiento-3.1.md` (lectura de código, sin medir; 8 cambios; la variante de dos GPU dc5ef06 sin leer). Siguiente: cruzar con el perfil de LOCAL y empezar por los de riesgo bajo (3 y 4).
+
+**PR de softmac (COORDINACIÓN-35, 09-11):** sin borrador y **no los fusiona MOTOR** (regla 8): se abre, se pasa el número a COORDINACIÓN y lo fusiona ella. El «PR [motor] y fusión» de MOTOR-41 queda sustituido.
 
 # MOTOR-42 (07-11-2026, ~20:50 UTC): estado
 
