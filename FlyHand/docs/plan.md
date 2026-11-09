@@ -129,7 +129,21 @@ no arrancan si hay un semáforo de LOCAL (`/tmp/local*-61-en-uso`).
   `MACOSX_DEPLOYMENT_TARGET=10.14` el `.aip` sale con `minos 10.14`, x86_64 y sin AVX.
 - Las configuraciones se llaman `debug` y `release`, en minúscula: con `-configuration Release`, xcodebuild compila
   la de depuración sin avisar.
-- Pendiente: que Titín instale el `.aip` en Illustrator 25.1, en la 6,1, y compruebe que carga.
+- **El SDK «2021 v5» es el de Illustrator 25.4** (`kPluginInterfaceVersion25041`) y en la 6,1 hay la **25.1**.
+  Compilado tal cual, el ejemplo da «Error al cargar plugin». La causa son las versiones de las suites, no Xcode ni
+  macOS: el binario carga con `dlopen` en Mojave.
+- Con una variante de diagnóstico, que apunta cada suite y, si falta, usa la versión que tenga la 25.1, el ejemplo
+  **carga en Illustrator 25.1** (lo ha comprobado Titín el 09-11). De las 105 suites que pide, solo cambian dos:
+
+  | Suite | SDK 25.4 | Illustrator 25.1 |
+  |---|---|---|
+  | AI User Suite | 1019 | 1018 |
+  | ATE GlyphRun Suite | 2 | 1 |
+
+- Para FlyHand: cada suite se pide en la versión de la 25.1, con un fichero de versiones propio en vez de las
+  constantes del SDK, y así carga en la 25.1 y en las posteriores. Antes de la fase 2, la misma variante de
+  diagnóstico debe probar también las suites que FlyHand usará: muestras, colores personalizados, mesas de trabajo,
+  capas, estilos de trazado y texto.
 
 ### Banco de pruebas
 
