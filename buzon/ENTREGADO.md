@@ -605,3 +605,5 @@ buzon/ARQUITECTURA/20261109-1150-COORDINACION-35-plan3x-titin.md → ARQUITECTUR
 buzon/LOCAL/20261109-1157-COORDINACION-35-compila-301.md → LOCAL Compilación Local (19) [a7b6cf hoy; 161960 en el relevo] · 2026-11-09 13:26 UTC · entregado
 buzon/LOCAL/20261109-1159-COORDINACION-35-local20-perfil31.md → LOCAL Compilación Local (20) [3eed64 hoy; 7c1749 en el relevo] · 2026-11-09 13:26 UTC · entregado
 buzon/MOTOR/20261109-1347-LOCAL19-b2-tests-gn.md → MOTOR Motor ubuntu (2) · 2026-11-09 13:48 UTC · fallo: no hay sesión «Motor ubuntu (2)» en ListAgents; avisado a COORDINACIÓN-35
+buzon/MOTOR/20261109-1347-LOCAL19-b2-tests-gn.md → (sin reenvío) · atendido por COORDINACIÓN-35 (respuesta a LOCAL-19 en buzon/LOCAL); no reintentar · 2026-11-09 13:50 UTC · entregado
+buzon/CARTERO-LOCAL/20261109-1348-COORDINACION-35-motor-b2tests.md → (sin reenvío) · para CARTERO-LOCAL: atendido por COORDINACIÓN-35 · 2026-11-09 13:50 UTC · entregado
