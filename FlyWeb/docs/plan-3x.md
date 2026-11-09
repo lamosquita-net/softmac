@@ -269,6 +269,11 @@ El diseño tiene que dejar escrito, en `FlyWeb/docs/sync-cuenta.md`:
      ofrece «volver a unir este Mac» en vez de mostrar una página rota.
    - **Volver a unir sin duplicar:** al reincorporar un aparato, opción «sustituir lo local por lo de la cuenta» (o fusión
      sin duplicados por URL/GUID), además de «combinar».
+   - **Cadena borrada desde otro Mac:** el servidor marca la cadena (`disabled`) y responde DISABLED_BY_ADMIN; la 3.0.0
+     no lo trata: la 7,1 se queda con la lista vacía y sin que respondan «Ver el código», «Añadir dispositivo» ni
+     «Abandonar la cadena». Debe avisar «la cadena se ha eliminado» y dejar empezar otra o unirse con un código.
+   - **Servidor:** contar en el registro, sin identificar la cadena, los borrados de cuenta y las respuestas
+     DISABLED_BY_ADMIN, para poder diagnosticar sin abrir la base.
    - Literales: «Passwords» sin traducir en la lista de tipos de datos (también en la 3.0.x).
    - Volver de la 3.0 a la 2.7 abriendo la 2.7.0 sobre el perfil migrado rompe el llavero: la 2.7.x no debe abrir un
      perfil con la marca «FlyWeb 3 Profile» (o la salida documentada es solo restaurar la copia «antes de 3.0»).
