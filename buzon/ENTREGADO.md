@@ -604,3 +604,4 @@ buzon/PUBLICACION/20261109-0812-COORDINACION-35-web300-fusionada.md → PUBLICAC
 buzon/ARQUITECTURA/20261109-1150-COORDINACION-35-plan3x-titin.md → ARQUITECTURA Arquitectura FlyWeb fork propio [9aa437 hoy; ce8bbb en el relevo] · 2026-11-09 13:26 UTC · entregado
 buzon/LOCAL/20261109-1157-COORDINACION-35-compila-301.md → LOCAL Compilación Local (19) [a7b6cf hoy; 161960 en el relevo] · 2026-11-09 13:26 UTC · entregado
 buzon/LOCAL/20261109-1159-COORDINACION-35-local20-perfil31.md → LOCAL Compilación Local (20) [3eed64 hoy; 7c1749 en el relevo] · 2026-11-09 13:26 UTC · entregado
+buzon/MOTOR/20261109-1347-LOCAL19-b2-tests-gn.md → MOTOR Motor ubuntu (2) · 2026-11-09 13:48 UTC · fallo: no hay sesión «Motor ubuntu (2)» en ListAgents; avisado a COORDINACIÓN-35
