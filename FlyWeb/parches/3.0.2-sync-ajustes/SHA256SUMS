@@ -1,2 +1,4 @@
 e221bd43e8794b5f7ade2eae8aa0391615115977a7439beb66eb814b7f4fa74f  0001-settings-create-BraveSettingsUI-through-the-WebUICon.patch
 19318596e057f521a33ac16dc2f3811e93cb88cbfed0176c846410ee1e3ecb11  0002-l10n-translate-the-sync-Passwords-data-type-label.patch
+5390fe19a6edae308ceadcaf5244fa74a81ba556231ac11315938469da88ef5f  0003-settings-let-sync-type-toggles-follow-Sync-everythin.patch
+0b37dc4f1489b5141c13328170cf64eb321d98a9ac49d14e62626a5c1f9f0e27  0004-ntp-create-BravePrivateNewTabUI-through-the-WebUICon.patch

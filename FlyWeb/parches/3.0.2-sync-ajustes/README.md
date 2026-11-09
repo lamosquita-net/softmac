@@ -8,9 +8,14 @@ MOTOR-43, 09-11-2026, por encargo de COORDINACIÓN-36. Esta sesión no tiene pus
 |---|---|
 | `0001-settings-create-BraveSettingsUI-through-the-WebUICon.patch` | `BraveSettingsUIConfig`; quita `SettingsUIConfig` del `WebUIConfigMap` y pone la nuestra en su lugar |
 | `0002-l10n-translate-the-sync-Passwords-data-type-label.patch` | traducción de «Passwords» en 53 idiomas (es: «Contraseñas») |
+| `0003-settings-let-sync-type-toggles-follow-Sync-everythin.patch` | porte del arreglo de `disableTypeCheckBox_` de Brave 1.98 (parche de `sync_controls.ts` regenerado sobre 156.0.8078.90) |
+| `0004-ntp-create-BravePrivateNewTabUI-through-the-WebUICon.patch` | `BravePrivateNewTabUIConfig`: la NTP privada y la de invitado vuelven a ser las de Brave |
 
-Comprobado con `git am`: entran limpios sobre bf4262a094 (árbol `b1fa1a5b0`, igual que la rama local) y sobre `seg/3.0.2`
-**0d6a771f23**. Nada compilado (en la nube no se compila).
+Los parches entran en la **3.0.1 unificada** (build 42); la carpeta conserva el nombre 3.0.2.
+
+Comprobado con `git am` (los 4; ls-remote del 09-11): entran limpios sobre bf4262a094 (árbol `a99b13aef`, igual que la rama
+local), `seg/3.0.1` **6415661d24**, `seg/3.0.1-parser` **bee89ad8a6** y `seg/3.0.2` **0d6a771f23**. El 0003 da avisos de
+espacios en blanco: son líneas de contexto del `.patch` que lleva dentro; no fallan. Nada compilado (en la nube no se compila).
 
 ## Por qué falla
 
@@ -48,6 +53,28 @@ tienen traducción al español.
   las dos vías crean lo mismo.
 - `app/resources/brave_generated_resources_*.xtb` (53): la traducción de «Passwords».
 
+## Auditoría de WebUIConfig (0004)
+
+Se han comparado las WebUIConfig que Brave 1.98.63 quita o sustituye con nuestro
+`chromium_src/chrome/browser/ui/webui/chrome_web_ui_configs.cc` (que solo añadía `ShieldsPanelUIConfig`). Chromium 156
+registra sus configs en `RegisterChromeWebUIConfigs`; el `WebUIConfigMap` se consulta antes que
+`BraveWebUIControllerFactory`. Solo hay dos hosts en los que una config de Chromium choca con nuestra fábrica: `settings` y
+`newtab`.
+
+| Config | Qué hace Brave 1.98 | 3.0.0 | Qué se ve en la 3.0.0 | Ahora |
+|---|---|---|---|---|
+| `settings::SettingsUIConfig` | la quita y pone `BraveSettingsUIConfig` | nada | ajustes sin manejadores de Brave (sync, Shields, apariencia…) | 0001 |
+| `NewTabUIConfig` (incógnito/invitado) | la quita y pone `BravePrivateNewTabUIConfig` | nada | NTP privada y de invitado de **Chromium** | 0004 (sin Tor: no está en FlyWeb) |
+| `TabSearchUIConfig`, `BookmarksSidePanelUIConfig` | las sustituye por `#define` con versiones de Brave (recursos y opciones propias) | nada | las de Chromium, que funcionan | no se portan: no faltan funciones, solo personalización de Brave |
+| `ShieldsPanelUIConfig` | la añade | la añade | panel de Shields de Brave | igual |
+| `BraveAdblockUIConfig`, `BraveAdblockInternalsUIConfig` | las añade | por la fábrica (sin choque con Chromium) | las de Brave | igual |
+| `BraveWelcomePageUIConfig` | la añade (bienvenida nueva) | `BraveWelcomeUI` por la fábrica; Chromium 156 no registra config para `welcome` | la bienvenida de Brave | igual |
+| Wallet (página, panel y las no confiables: market, nft, line_chart, ledger, trezor, snap), Rewards, News (y su barra lateral), VPN, Playlist, AI Chat/Leo (y sus no confiables), IA local, Ads internals | las añade | no existen en nuestro árbol | — | funciones quitadas: siguen sin registrarse |
+| Speedreader, Webcompat reporter, Brave Account, Brave Education, Brave Origin, Email Aliases, PSST | las añade | no existen en nuestro árbol (no hay `chrome_untrusted_web_ui_configs.cc` propio) | — | no se tocan |
+
+Un perfil OTR que no es el principal (p. ej. el de DevTools) no entra en `BravePrivateNewTabUIConfig` y cae en la fábrica,
+igual que en Brave 1.98.
+
 ## Para LOCAL
 
 1. `git am` de los dos parches sobre la brave-core de la 3.0.2 (`seg/3.0.2`, o la rebasada sobre `seg/3.0.1-parser`).
@@ -64,16 +91,14 @@ tienen traducción al español.
    - listas de filtros (`flyweb://settings/shields/filters`);
    - Apariencia;
    - y, si `kBraveCommands` está encendida, Atajos de teclado (enlazada por mojo a `BraveSettingsUI`).
-4. Los interruptores de tipos de datos tienen que poder cambiarse cuando «Sincronizar todo» está apagado. Brave 1.98 trae un
-   arreglo (`disableTypeCheckBox_` sin `syncStatus`) que nuestro parche de `sync_controls.ts` no tiene. Si salen grises,
-   avisar a MOTOR: no se ha tocado porque nuestra página sí pasa `syncStatus`.
+4. Tipos de datos (0003): con «Sincronizar todo» encendido, los interruptores están grises y marcados; al apagarlo se
+   pueden cambiar uno a uno, y el cambio se mantiene al recargar la página.
+5. NTP privada (0004): una ventana privada (⇧⌘N) y una de invitado muestran la nueva pestaña privada de **Brave/FlyWeb**,
+   no la de incógnito de Chromium. Una pestaña nueva normal sigue siendo la NTP de FlyWeb, con sus fondos.
 
 ## Notas (no arregladas)
 
 - **DISABLED_BY_ADMIN** (cadena borrada desde otro Mac): queda para la 3.2. El servicio lo trata como Brave 1.98
   (`BraveSyncServiceImpl::ResetEngine`: abandona la cadena y deja pendiente el aviso de cuenta borrada). La página solo
   enseña «inhabilitado por el administrador» con `syncStatus.managed`. No se ha cambiado nada.
-- Chromium 156 también registra `NewTabUIConfig`. Brave 1.98 lo quita para las ventanas privadas y la de invitado y pone
-  `BravePrivateNewTabUIConfig`; nuestro porte no lo hace. Es probable que la nueva pestaña privada sea la de Chromium.
-  No se ha tocado (no es de este encargo).
 - Intocables respetados: ni el permiso «Inicio de sesión con Google» ni las llaves de acceso con el móvil.
