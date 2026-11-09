@@ -578,3 +578,22 @@ Pendiente para la siguiente:
   - que `drawElementImage` no existe, tampoco con experimental web platform features;
   - que la UA da 156.0.8078.96;
   - el formulario de contraseñas: 31e05381bd se portó a mano.
+
+## 10. SEGURIDAD-PORTES-19 → 20 (09-11-2026, relevada al 43 %): encargo de la 3.0.2, sin empezar
+
+COORDINACIÓN-35 (`session_01MwmK2h9VVd6d8t4mGrtmzp`) lo encargó el 09-11. Lo fijó Titín en DIRECTIVAS (#888, puntos 4 y 9 de la lista de la 3.x). Hay que preparar la **propuesta de tanda en `FlyWeb/docs/seguridad-3.0.2.md`**; no se porta nada que dependa del mjsunit. Contenido:
+1. **Serie del parser** (`seg/3.0.1-parser` bee89ad8a6, §9 y `seguridad-3.0.1.md` §6). Depende del mjsunit de MOTOR-30 (tres V8). Con caídas propias hay que analizarlas; sin ellas, entra tal cual.
+2. **CVE-2026-121112** (Permissions, crbug 40063728): ningún commit de main cita el número. Buscar en las notas de la 157 siguientes y en `git log --grep` por palabras de Permissions; el bug puede ser antiguo, con otro id interno.
+3. **Apagar XSLT.** Antes hay que contar los CVE de libxslt y de `XSLTProcessor` de los últimos 24 meses (Chrome Releases, NVD y `third_party/libxslt` del fork).
+   - En la 3.0.1 ya entró un UAF de libxslt (2ad9b7f5a8, sin CVE publicado).
+   - Mecanismo: upstream lo está quitando (`XSLTProcessor` y XSLT del navegador detrás de una feature). Buscar el `base::Feature`/json5 de la 156 y apagarlo con `OVERRIDE_FEATURE_DEFAULT_STATES`, como `kCanvasDrawElement`, o con la política que tenga.
+4. **CORS en Background Fetch: ya está en la 3.0.1.** ed790a1a8e («Enforce CORS in Background Fetch») y 4519f82a82 son los parches `0041` y `0042` de la serie de Chromium (CVE-2026-121107 y -121174). Comprobar con `FlyWeb/docs/novedades-motor.md` §6.3 si se pide algo más que eso; si no, hay que decírselo a COORDINACIÓN.
+5. **BlockingFocusWithoutUserActivation** (§6.3 de `novedades-motor.md`): mirar si en la 156 es una feature de Blink y en qué estado está; encenderla, comprobando la compatibilidad con claude.ai.
+6. **`flyweb_bundle_version_base = "198.63"`** (brave-core `build/config.gni`). Es de versión, no de seguridad, pero va en la misma 3.0.2.
+7. Medida de diciembre: rama 8078 después de la .96, notas de la 157 siguientes y KEV.
+
+Entorno útil (todo se pierde con el contenedor; se rehace en minutos con §9):
+- un clon parcial de `chromium/chromium` con tags y main desde el 20-09;
+- el remoto del fork `lamosquita-net/chromium` (`add_repo` con push ya aprobado por Titín en la -19; la -20 tendrá que pedirlo de nuevo);
+- los espejos de V8, ANGLE, Dawn, CrabbyAvif y ffmpeg.
+
