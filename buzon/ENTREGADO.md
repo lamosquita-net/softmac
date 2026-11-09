@@ -625,3 +625,4 @@ buzon/CARTERO-LOCAL/20261109-1714-COORDINACION-36-sigue.md → no enrutado (CART
 buzon/LOCAL/20261109-1718-COORDINACION-36-local20-perfil.md → LOCAL Compilación Local (20) [3eed64] · 2026-11-09 17:19 UTC · entregado
 buzon/LOCAL/20261109-1731-COORDINACION-36-local20-perfil-roto.md → LOCAL Compilación Local (20) [3eed64] · 2026-11-09 17:32 UTC · entregado
 buzon/LOCAL/20261109-1733-COORDINACION-36-local20-perfil-roto-2.md → LOCAL Compilación Local (20) [3eed64] · 2026-11-09 17:35 UTC · entregado
+buzon/LOCAL/20261109-1735-COORDINACION-36-local20-perfil-roto-3.md → LOCAL Compilación Local (20) [3eed64] · 2026-11-09 17:37 UTC · entregado
