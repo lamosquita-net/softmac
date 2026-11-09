@@ -81,8 +81,8 @@ texto, mezclas…) y el resultado de cada fase.
 Qué hay que hacer:
 1. Compilar libfreehand 0.1.4 (commit `85ac573`), librevenge 0.0.5 y lcms2 como **bibliotecas estáticas** x86_64 con
    `MACOSX_DEPLOYMENT_TARGET=10.14`. El plugin no puede depender de bibliotecas dinámicas externas.
-   - libfreehand usa ICU para convertir las codificaciones del texto. Hay dos opciones: compilar ICU estática o
-     sustituirla por CoreFoundation o iconv. Hay que proponer una y justificarla.
+   - De ICU, libfreehand solo usa las macros de `unicode/utf8.h` y `unicode/utf16.h`, que son cabeceras sin
+     biblioteca (comprobado en la nube el 09-11). Basta con las cabeceras de ICU: no hay que compilarla ni enlazarla.
 2. Compilar `fh2raw` y `fh2svg` y pasarlos por los documentos de prueba. Por cada documento se anota, **sin nombres
    de cliente**:
    - versión de FreeHand y número de páginas;
