@@ -10,7 +10,7 @@ ENT=$(mktemp -d)
 cp $SRC/chrome/app/app-entitlements.plist $ENT/app.plist
 cp $SRC/chrome/app/helper-renderer-entitlements.plist $ENT/renderer.plist
 cp $SRC/chrome/app/helper-gpu-entitlements.plist $ENT/gpu.plist
-cp $SRC/chrome/app/helper-plugin-entitlements.plist $ENT/plugin.plist
+[ -f $SRC/chrome/app/helper-plugin-entitlements.plist ] && cp $SRC/chrome/app/helper-plugin-entitlements.plist $ENT/plugin.plist || true
 cp $SRC/brave/app/helper-entitlements.plist $ENT/helper.plist
 # Las plantillas de Chromium llevan variables de compilación (${…}); se quitan las claves que las usen.
 for f in $ENT/*.plist; do plutil -lint "$f" >/dev/null || { echo "plist no válido: $f"; exit 1; }; done
@@ -31,10 +31,10 @@ fi
 # 2) helpers .app, cada uno con sus permisos
 for h in "$VER"/Helpers/*.app; do
   case "$h" in
-    *"(Renderer).app") e=$ENT/renderer.plist ;;
-    *"(GPU).app")      e=$ENT/gpu.plist ;;
+    *"(Renderer).app"|*"(Aperitif Renderer).app") e=$ENT/renderer.plist ;;
+    *"(GPU).app"|*"(Aperitif GPU).app")      e=$ENT/gpu.plist ;;
     *"(Plugin).app")   e=$ENT/plugin.plist ;;
-    *"(Alerts).app")   e="" ;;
+    *"(Alerts).app"|*"(Aperitif Alerts).app")   e="" ;;
     *)                 e=$ENT/helper.plist ;;
   esac
   if [ -n "$e" ]; then firma --entitlements "$e" "$h"; else firma "$h"; fi
