@@ -1,0 +1,131 @@
+From 11c507b7a485436a58328b822c6729179603ec14 Mon Sep 17 00:00:00 2001
+From: "MOTOR-43 (Claude)" <noreply@anthropic.com>
+Date: Mon, 9 Nov 2026 20:09:21 +0000
+Subject: [PATCH 4/4] Metal: append to the intermediate command stream without
+ vector::insert
+
+RenderCommandEncoder records every command into IntermediateCommandStream
+field by field, and each field was a std::vector<uint8_t>::insert of an
+iterator range (__insert_with_size plus memmove): ~8% of the GPU main
+thread in Aquarium on a Mac Pro 6,1.
+
+Keep the byte buffer as reusable capacity (it only grows, zero-filled on
+growth, and clear() keeps it) with a separate size, and append each field
+with a bounds check and a fixed-size memcpy. The recorded bytes and the
+read side are unchanged.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2keCUcEPJ6KTcxicZD
+---
+ .../renderer/metal/mtl_command_buffer.h       | 46 +++++++++++++++----
+ 1 file changed, 36 insertions(+), 10 deletions(-)
+
+diff --git a/src/libANGLE/renderer/metal/mtl_command_buffer.h b/src/libANGLE/renderer/metal/mtl_command_buffer.h
+index fb31cf0..42b05a8 100644
+--- a/src/libANGLE/renderer/metal/mtl_command_buffer.h
++++ b/src/libANGLE/renderer/metal/mtl_command_buffer.h
+@@ -13,7 +13,9 @@
+ 
+ #import <Metal/Metal.h>
+ #import <QuartzCore/CAMetalLayer.h>
++#include <algorithm>
+ #include <cstdint>
++#include <cstring>
+ 
+ #include <deque>
+ #include <memory>
+@@ -319,28 +321,35 @@ class CommandEncoder : public WrappedObject<id<MTLCommandEncoder>>, angle::NonCo
+ class IntermediateCommandStream
+ {
+   public:
++    // FlyWeb 3.1: every render command is recorded field by field here. std::vector::insert per
++    // field (__insert_with_size plus memmove) was ~8% of the GPU main thread in Aquarium on the
++    // 6,1. Keep a byte buffer that only grows (zero-filled on growth, reused after clear()) and
++    // append each field with a bounds check and a fixed-size memcpy.
+     template <typename T>
+     inline IntermediateCommandStream &push(const T &val)
+     {
+-        auto ptr = reinterpret_cast<const uint8_t *>(&val);
+-        ANGLE_UNSAFE_TODO(mBuffer.insert(mBuffer.end(), ptr, ptr + sizeof(T)));
++        uint8_t *dst = grow(sizeof(T));
++        ANGLE_UNSAFE_TODO(memcpy(dst, reinterpret_cast<const uint8_t *>(&val), sizeof(T)));
+         return *this;
+     }
+ 
+     inline IntermediateCommandStream &push(const uint8_t *bytes, size_t len)
+     {
+-        ANGLE_UNSAFE_TODO(mBuffer.insert(mBuffer.end(), bytes, bytes + len));
++        if (len > 0)
++        {
++            uint8_t *dst = grow(len);
++            ANGLE_UNSAFE_TODO(memcpy(dst, bytes, len));
++        }
+         return *this;
+     }
+ 
+     template <typename T>
+     inline T peek()
+     {
+-        ASSERT(mReadPtr <= mBuffer.size() - sizeof(T));
++        ASSERT(mReadPtr <= mSize - sizeof(T));
+         T re;
+         auto ptr = reinterpret_cast<uint8_t *>(&re);
+-        ANGLE_UNSAFE_TODO(
+-            std::copy(mBuffer.data() + mReadPtr, mBuffer.data() + mReadPtr + sizeof(T), ptr));
++        ANGLE_UNSAFE_TODO(memcpy(ptr, mBuffer.data() + mReadPtr, sizeof(T)));
+         return re;
+     }
+ 
+@@ -354,7 +363,7 @@ class IntermediateCommandStream
+ 
+     inline const uint8_t *fetch(size_t bytes)
+     {
+-        ASSERT(mReadPtr <= mBuffer.size() - bytes);
++        ASSERT(mReadPtr <= mSize - bytes);
+         auto cur = mReadPtr;
+         mReadPtr += bytes;
+         return ANGLE_UNSAFE_TODO(mBuffer.data() + cur);
+@@ -362,20 +371,37 @@ class IntermediateCommandStream
+ 
+     inline void clear()
+     {
+-        mBuffer.clear();
++        mSize    = 0;
+         mReadPtr = 0;
+     }
+ 
+     inline void resetReadPtr(size_t readPtr)
+     {
+-        ASSERT(readPtr <= mBuffer.size());
++        ASSERT(readPtr <= mSize);
+         mReadPtr = readPtr;
+     }
+ 
+-    inline bool good() const { return mReadPtr < mBuffer.size(); }
++    inline bool good() const { return mReadPtr < mSize; }
+ 
+   private:
++    // Returns where to write |bytes| more bytes, growing the storage if needed.
++    inline uint8_t *grow(size_t bytes)
++    {
++        const size_t newSize = mSize + bytes;
++        if (ANGLE_UNLIKELY(newSize > mBuffer.size()))
++        {
++            mBuffer.resize(std::max<size_t>({newSize, mBuffer.size() * 2, kInitialCapacity}));
++        }
++        uint8_t *dst = ANGLE_UNSAFE_TODO(mBuffer.data() + mSize);
++        mSize        = newSize;
++        return dst;
++    }
++
++    static constexpr size_t kInitialCapacity = 4096;
++
++    // mBuffer.size() is the capacity; mSize is how much of it holds commands.
+     std::vector<uint8_t> mBuffer;
++    size_t mSize    = 0;
+     size_t mReadPtr = 0;
+ };
+ 
+-- 
+2.43.0
+
