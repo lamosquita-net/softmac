@@ -1,0 +1,163 @@
+suite	sdk_25.4	illustrator_25.1
+AI ATE Current Text Features Suite	1003	1003
+AIATE Paint Suite	1003	1003
+AI ATE Text Util Suite	1004	1004
+AI Action Manager Suite	1005	1005
+AI Annotator Suite	1006	1006
+AI Annotator Drawer Suite	1008	1007
+AI Application Suite	1003	1003
+AI Array Suite	1006	1006
+AI Art Suite	1021	1021
+AI Art Converter Suite	1003	0
+AI Art Set Suite	1009	1009
+AI Art Set Generator Suite	1003	1003
+AI Art Style Suite	1008	1008
+AI Art Style Parser Suite	1009	1009
+AI Artboard Suite	1005	1004
+AI Artboard Range Suite	1004	1004
+AI Assertion Suite	1001	1001
+AI Asset Management Suite	1009	1009
+AI Beautiful Strokes Suite	1003	1003
+AI Block Suite	1004	1004
+AI Color Management System Suite	1003	0
+AI CSXS Extension Suite	1004	0
+AI Character Encoding Suite	1005	1005
+AI Clipboard Suite	1005	1005
+AI Cloud Document Suite	1001	1001
+AI Color Suite	1001	1001
+AI Color Conversion Suite	1010	1010
+AI Color Harmony Suite	1003	0
+AI Color Space Suite	1007	1007
+AI Command Manager Suite	1005	1005
+AI Context Suite	1010	1010
+AI Control Bar Suite	1002	1002
+AI Counted Object Suite	1003	1003
+AI Cursor Snap Suite	1016	1016
+AI Curve Fitting Suite	1011	1011
+AI Custom Color Suite	1008	1008
+AI Data Filter Suite	1009	1009
+AI DeviceInfo Suite	1001	1001
+AI Dictionary Suite	1010	1010
+AI Dictionary Iterator Suite	1005	1005
+AI Document Suite	1019	1019
+AI Document List Suite	1011	1011
+AI Document View Suite	1015	1014
+AI Draw Art Suite	1011	1011
+AI Dynamic Symbol Suite	1001	1001
+AI Entry Suite	1007	1007
+AI Envelope Suite	1004	1004
+AI Eraser Tool Suite	1002	0
+AI Expand Suite	1004	0
+AI FO Conversion Suite	1004	1004
+AI FXG File Format Suite	1004	0
+AI File Format Suite	1015	1015
+AI Mac File Format Suite	1005	1005
+AI File Path Suite	1008	1008
+AI Filter Suite	1004	1004
+AI Fixed Math Suite	1004	1004
+AI Folders Suite	1005	1005
+AI Font Suite	1006	1006
+AI ME Font Suite	1001	1001
+AI Foreign Object Suite	1004	1004
+AI Geometry Suite	1006	0
+AI Global UnicodeString Suite	1001	1001
+AI Gradient Suite	1009	1009
+AI Grid Suite	1006	1006
+AI Group Suite	1005	1005
+AI HTML Art Conversion Suite	1002	0
+AI HTML Art Conversion Suites Suites	1002	0
+AI Hard Soft Suite	1006	1006
+AI Hit Test Suite	1007	1007
+AI Image Optimization Suite	1007	1007
+AI Isolation Mode	1006	1006
+AI Layer Suite	1013	1013
+AI Layer List	1004	1004
+AI Legacy Text Conversion Suite	1003	1003
+AI Limits Suite	1002	1002
+AI Live Effect Suite	1007	1007
+AI Blend Style Suite	1005	1005
+AI Mask Suite	1005	1005
+AI Mask Flattener Suite	1005	1005
+AI Matching Art Suite	1007	1007
+AI MdMemory Suite	1003	1003
+AI Menu Suite	1011	1011
+AI Mesh Suite	1006	1006
+AI Mesh Hit Suite	1003	1003
+AI Mesh Selection Suite	1003	1003
+AI Mesh Patch Suite	1003	1003
+AI Mesh Vertex Suite	1004	1004
+AI Mesh Segment Suite	1003	1003
+AI Modal Parent Suite	1002	1002
+AI Name Space Suite	1004	1004
+AI Notifier Suite	1004	1004
+AI ObjectSet Suite	1005	1005
+Override AI Color Conversion Suite	1008	1008
+AI Paint Style Suite	1010	0
+AI Panel Suite	1004	1004
+AI Panel Flyout Menu Suite	1002	1002
+AI Path Suite	1012	1012
+AI PathConstruction Suite	1005	1005
+AI Path Interpolate Suite	1004	1004
+AI Path Style Suite	1014	1014
+AI Pathfinder Suite	1006	0
+AI Pattern Suite	1010	1010
+AI Perspective Grid Suite	1003	0
+AI Perspective Transform Suite	1003	0
+AI Placed Suite	1010	1010
+AI Planar Object Suite	1004	0
+AI Platform Memory Suite	1003	1003
+AI Plugin Suite	1005	1005
+AI Plugin Group Suite	1006	1006
+AI Preference Suite	1007	1007
+AI Random Suite	1005	1005
+AI Random Bell Curve Suite	1004	1004
+AI Raster Suite	1010	1010
+AI Raster Export Suite	1001	1001
+AI Rasterize Suite	1012	1012
+AI Real Bezier Suite	1004	1004
+AI Real Math Suite	1005	1005
+AI Repeat Suite	1002	1002
+AI Runtime Suite	1014	1013
+AI SFW Utilities Suite	1004	1004
+AI SVG Filter Suite	1004	1004
+AI Selection Context Manager Suite	1001	1001
+AI Shape Construction Suite	1008	1008
+AI Slicing Suite	1004	0
+AI Optimization Settings Suite	1003	0
+AI Smooth Shading Style Suite	1001	1001
+AI String Format Utils Suite	1003	1003
+AI String Pool Suite	1004	1004
+AI Swatch Libraries Suite	1008	0
+AI Swatch List Suite	1007	1007
+AI Swatch Group Suite	1003	1003
+AI Symbol Suite	1008	1008
+AI Symbol Palette Suite	1003	0
+AI TabletData Suite	1003	1003
+AI Tag Suite	1004	1004
+AI Text Frame Suite	1004	1004
+AI Text Frame ME Suite	1003	1003
+AI Text Frame Hit Suite	1002	1002
+AI Timer Suite	1005	1005
+AI Tool Suite	1019	1019
+AI Toolbox Suite	1007	1007
+AI Transform Again Suite	1004	1004
+AI Transform Art Suite	1003	1003
+AI UID Pool Suite	1007	1007
+AI UID Suite	1008	1008
+AI UIDREF Suite	1008	1008
+AI UID Utils Suite	1009	1009
+AI User Interface Theme Suite	1002	1002
+AI URL Suite	1003	1003
+AI UUID Suite	1003	1003
+AI Undo Suite	1009	1009
+AI Unicode String Suite	1009	1009
+AI User Suite	1019	1018
+AI Mac User Suite	1009	0
+AI Vectorize Suite	1001	1001
+AI Workspace Suite	1003	1003
+AI XML Node Suite	1005	1005
+AI XML Document Suite	1004	1004
+AI XML Element Suite	1004	1004
+AI XML Node List Suite	1003	1003
+AI XML Named Node Map Suite	1004	1004
+AI XML Name Utilities Suite	1004	1004

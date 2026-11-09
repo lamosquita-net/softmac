@@ -161,3 +161,18 @@ extensión y el resource fork). Todavía no hay PDF de referencia del G5.
   no cuánto usa. En los dos de la 11 hay que confirmar con el PDF de referencia si de verdad llevan lentes y efectos.
 - Los tres abren sin avisos, pero todos salen en **una sola página**, y el color queda en RGB, como ya se sabía. Es lo
   que hay que ampliar en las fases 3 y 4.
+
+### Suites de Illustrator 25.1 (sondeo del 09-11)
+
+Un plugin de sondeo, compilado del ejemplo con una tabla generada a partir de todas las cabeceras del SDK, pidió al
+arrancar cada una de las 162 suites en su versión del SDK (25.4) y, si fallaba, buscó la versión que tiene la 25.1.
+Tabla completa en [`suites-25.1.tsv`](suites-25.1.tsv); el 0 indica que no estaba disponible.
+
+- **137 coinciden.**
+- **5 tienen una versión menos en la 25.1:** User (1018), **Artboard (1004)**, Document View (1014), Runtime (1013) y
+  Annotator Drawer (1007). Además ATE GlyphRun (1). [`src/FlyHandSuiteVersions.h`](../src/FlyHandSuiteVersions.h)
+  fija esas versiones. Con ellas solo se pueden llamar funciones que ya existían en la 25.1.
+- **20 no estaban disponibles al arrancar.** Entre ellas Paint Style, Swatch Libraries, Pathfinder, Expand, Geometry y
+  Planar Object. Casi todas las publican otros plugins de Illustrator, que pueden cargar después del nuestro, así que
+  hay que volver a sondearlas cuando el plugin abra un documento (fase 2). FlyHand las pedirá al usarlas, no al
+  arrancar.
