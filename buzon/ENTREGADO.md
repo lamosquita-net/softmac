@@ -627,3 +627,4 @@ buzon/LOCAL/20261109-1731-COORDINACION-36-local20-perfil-roto.md → LOCAL Compi
 buzon/LOCAL/20261109-1733-COORDINACION-36-local20-perfil-roto-2.md → LOCAL Compilación Local (20) [3eed64] · 2026-11-09 17:35 UTC · entregado
 buzon/LOCAL/20261109-1735-COORDINACION-36-local20-perfil-roto-3.md → LOCAL Compilación Local (20) [3eed64] · 2026-11-09 17:37 UTC · entregado
 buzon/LOCAL/20261109-1741-COORDINACION-36-local20-cancela.md → LOCAL Compilación Local (20) [3eed64] · 2026-11-09 17:41 UTC · entregado
+buzon/SERVIDOR-LOCAL/20261109-1748-COORDINACION-36-sync-estado.md → SERVIDOR-LOCAL Servidor Local (2) [f9fa38] · 2026-11-09 17:49 UTC · entregado
