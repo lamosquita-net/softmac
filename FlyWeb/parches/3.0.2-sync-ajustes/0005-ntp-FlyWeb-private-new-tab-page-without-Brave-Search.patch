@@ -1,0 +1,295 @@
+From d03ff5db035332e455913fb9772e664e80eb5f71 Mon Sep 17 00:00:00 2001
+From: "MOTOR-43 (Claude)" <noreply@anthropic.com>
+Date: Mon, 9 Nov 2026 23:06:26 +0000
+Subject: [PATCH] ntp: FlyWeb private new tab page without Brave Search or Tor
+
+With BravePrivateNewTabUI back on private and guest windows, the page
+showed the Brave Search logo (lion and "brave search"), searched on Brave
+Search regardless of the user's default search engine, and its notice
+ended by suggesting a private window with Tor, which FlyWeb does not
+have.
+
+- Search box: FlyWeb's fly (the new tab page's drawing, copied into this
+  bundle with its Trusted Types-safe converter, as brave_welcome_ui does)
+  instead of the Brave Search logo; the form's accessible name comes from
+  the localized placeholder instead of "Brave".
+- GoToBraveSearch becomes GoToSearch and uses the profile's default
+  search engine (TemplateURLServiceFactory redirects off-the-record and
+  guest profiles to the original one).
+- The notice shows only headerText1 (IDS_..._PRIVATE_WINDOW_DESC1). The
+  dropped headerText2 mentions Tor in every translation. No string or
+  translation file is changed.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2keCUcEPJ6KTcxicZD
+---
+ .../brave_private_new_tab_page_handler.cc     | 28 ++++++---
+ .../brave_private_new_tab_page_handler.h      |  2 +-
+ .../common/brave_private_new_tab.mojom        |  3 +-
+ .../page/components/flyweb/moscaSvg.ts        | 11 ++++
+ .../page/components/flyweb/svgEnReact.tsx     | 63 +++++++++++++++++++
+ .../page/components/search-box/index.tsx      | 38 +++++------
+ .../resources/page/container.tsx              |  6 +-
+ 7 files changed, 118 insertions(+), 33 deletions(-)
+ create mode 100644 components/brave_private_new_tab_ui/resources/page/components/flyweb/moscaSvg.ts
+ create mode 100644 components/brave_private_new_tab_ui/resources/page/components/flyweb/svgEnReact.tsx
+
+diff --git a/browser/ui/webui/private_new_tab_page/brave_private_new_tab_page_handler.cc b/browser/ui/webui/private_new_tab_page/brave_private_new_tab_page_handler.cc
+index 0bb6cbe67..545a4bc3d 100644
+--- a/browser/ui/webui/private_new_tab_page/brave_private_new_tab_page_handler.cc
++++ b/browser/ui/webui/private_new_tab_page/brave_private_new_tab_page_handler.cc
+@@ -9,13 +9,12 @@
+ 
+ #include "base/strings/utf_string_conversions.h"
+ #include "brave/components/brave_private_new_tab_ui/common/pref_names.h"
+-#include "brave/components/search_engines/brave_prepopulated_engines.h"
+ #include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/search_engines/template_url_service_factory.h"
+ #include "chrome/browser/ui/browser.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+ #include "components/prefs/pref_service.h"
+ #include "components/search_engines/template_url.h"
+-#include "components/search_engines/template_url_data_util.h"
+ #include "components/search_engines/template_url_service.h"
+ #include "content/public/browser/page_navigator.h"
+ #include "content/public/browser/web_contents.h"
+@@ -52,18 +51,29 @@ void BravePrivateNewTabPageHandler::GetDisclaimerDismissed(
+   std::move(callback).Run(dismissed);
+ }
+ 
+-void BravePrivateNewTabPageHandler::GoToBraveSearch(const std::string& input,
+-                                                    bool open_new_tab) {
++void BravePrivateNewTabPageHandler::GoToSearch(const std::string& input,
++                                               bool open_new_tab) {
+   DCHECK(profile_);
+ 
+-  auto provider_data = TemplateURLDataFromPrepopulatedEngine(
+-      TemplateURLPrepopulateData::brave_search);
+-  auto t_url = std::make_unique<TemplateURL>(*provider_data);
+-  SearchTermsData search_terms_data;
++  // FlyWeb: search with the user's default search engine, not a hardcoded Brave Search.
++  // For an off-the-record profile the factory returns the original profile's service.
++  TemplateURLService* template_url_service =
++      TemplateURLServiceFactory::GetForProfile(profile_);
++  if (!template_url_service) {
++    return;
++  }
++  const TemplateURL* t_url = template_url_service->GetDefaultSearchProvider();
++  if (!t_url || !t_url->url_ref().SupportsReplacement(
++                    template_url_service->search_terms_data())) {
++    return;
++  }
+ 
+   auto url = GURL(t_url->url_ref().ReplaceSearchTerms(
+       TemplateURLRef::SearchTermsArgs(base::UTF8ToUTF16(input)),
+-      search_terms_data));
++      template_url_service->search_terms_data()));
++  if (!url.is_valid()) {
++    return;
++  }
+ 
+   auto window_open_disposition = WindowOpenDisposition::CURRENT_TAB;
+ 
+diff --git a/browser/ui/webui/private_new_tab_page/brave_private_new_tab_page_handler.h b/browser/ui/webui/private_new_tab_page/brave_private_new_tab_page_handler.h
+index 0a86bd35d..8e11a8dfe 100644
+--- a/browser/ui/webui/private_new_tab_page/brave_private_new_tab_page_handler.h
++++ b/browser/ui/webui/private_new_tab_page/brave_private_new_tab_page_handler.h
+@@ -45,7 +45,7 @@ class BravePrivateNewTabPageHandler
+       override;
+   void SetDisclaimerDismissed(bool dismissed) override;
+   void GetDisclaimerDismissed(GetDisclaimerDismissedCallback callback) override;
+-  void GoToBraveSearch(const std::string& input, bool open_new_tab) override;
++  void GoToSearch(const std::string& input, bool open_new_tab) override;
+ 
+  private:
+   // Handle back to the page by which we can pass results.
+diff --git a/components/brave_private_new_tab_ui/common/brave_private_new_tab.mojom b/components/brave_private_new_tab_ui/common/brave_private_new_tab.mojom
+index 857cf36f0..a0f5bf6e0 100644
+--- a/components/brave_private_new_tab_ui/common/brave_private_new_tab.mojom
++++ b/components/brave_private_new_tab_ui/common/brave_private_new_tab.mojom
+@@ -11,7 +11,8 @@ interface PageHandler {
+   SetClientPage(pending_remote<PrivateTabPage> page);
+   SetDisclaimerDismissed(bool dismissed);
+   GetDisclaimerDismissed() => (bool dismissed);
+-  GoToBraveSearch(string input, bool open_new_tab);
++  // FlyWeb: searches with the default search engine (was Brave Search).
++  GoToSearch(string input, bool open_new_tab);
+ };
+ 
+ // Page-side interface; it had only Tor callbacks, which FlyWeb removed.
+diff --git a/components/brave_private_new_tab_ui/resources/page/components/flyweb/moscaSvg.ts b/components/brave_private_new_tab_ui/resources/page/components/flyweb/moscaSvg.ts
+new file mode 100644
+index 000000000..a77486dd9
+--- /dev/null
++++ b/components/brave_private_new_tab_ui/resources/page/components/flyweb/moscaSvg.ts
+@@ -0,0 +1,11 @@
++// Copyright (c) 2026 lamosquita. All rights reserved.
++// This Source Code Form is subject to the terms of the Mozilla Public
++// License, v. 2.0. If a copy of the MPL was not distributed with this file,
++// You can obtain one at https://mozilla.org/MPL/2.0/.
++
++// FlyWeb: copy of brave_new_tab_ui/components/default/flyweb/moscaSvg.ts for the private
++// new tab page (each WebUI bundle keeps its own copy, as brave_welcome_ui does).
++// The fly of the new tab page, as marked up in softmac FlyWeb/docs/prototipo-ntp/newtab.html
++// (from components/flyweb_ntp/resources/moscas/mosca-newtab.svg; wings carry the class "ala").
++// Inline so that CSS can reach the wings.
++export default `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 78.42 77.04"><style>.cls-1,.cls-2{fill:#fff;}.cls-1{opacity:0.8;}.cls-2{opacity:0.4;}</style><path class="cls-1" d="M58.16,18.19c-3.79.63-3.94,1.44-8,2.52s-5,5.49-7.15,5.74S39.48,30.57,41,32.86s4,2.21,7.16,3.5,7.3-1.06,8.05-4.38,2-6.47,2.28-9.27A12.46,12.46,0,0,0,58.16,18.19Z"/><path class="cls-2 ala" d="M46.18,21.8S35.35,9.81,23.85,9.5,6.67,10.39,6.42,19.78s6.69,11.3,9.11,11.56,19.61-1,22.6-2.19S44.37,22.75,46.18,21.8Z"/><path class="cls-2 ala" d="M58.5,31.24s7.12,10.81,6.21,16.3,2.78,11.1-8.53,14.23S43.26,46.69,44.69,44.61s6.63-4.65,6.62-7S56.17,32,56.17,32Z"/><path d="M62.07,30.76,70,29.1a4.92,4.92,0,0,1,1.43-.29,15.23,15.23,0,0,1,2.06.46c-.42.6-.84,1.18-1.24,1.79-.67,1-1.33,2-2,3-.23.37-.27,1-.56,1.15a10.88,10.88,0,0,1-2.22.41,9.46,9.46,0,0,1,.92-2.29,15.4,15.4,0,0,1,2.13-2l-.32-.56c-1.38.26-2.75.55-4.14.77s-2.81.38-4.76.64c-1.78,1.4-.29,3.18.69,4.85C65.4,42.9,66.61,49,64.81,55.58A11.75,11.75,0,0,1,50,63.42c-1.29-.41-2.55.7-3.17,2.59a15.58,15.58,0,0,1-1.28,2.42c-.35-.2-1-.4-1-.61,0-1-.18-2.24.33-2.92,1.52-2,1.47-3.82.69-6.17C44.63,56,44.45,53,44,50.11c-.09-.5-.11-1-.16-1.54l-.73,0-.27,4.35c-.07,1.24.15,2.59-.29,3.68a10.91,10.91,0,0,1-2.46,3.38c-1.94,2-4.11,3.74-6,5.78-.4.45-.12,1.81.23,2.57a11.7,11.7,0,0,0,1.88,2.39c-1.76,1.35-4.45.82-4.78-1.12a23.48,23.48,0,0,1,.19-6.14c0-.36.69-.83,1.13-.94a10.48,10.48,0,0,0,8-11.23c-.09-1.31-.49-1.7-1.86-1.21a28.72,28.72,0,0,1-6.6,1.79c-1.48.14-3.06-.72-4.54-1.12.86,2.57-1.27,4.19-2.5,6.11-.19.29-1.49.35-1.61.13A3.26,3.26,0,0,1,23,54.73c.64-2.16,1.51-4.26,2.29-6.37C22,47.5,14.78,49.69,12.94,52a8.45,8.45,0,0,1-1.84,1.34c-.32-.56-1-1.21-.88-1.66a4.14,4.14,0,0,1,1.38-2.27c3.15-2.28,6.85-1.79,10.43-1.81a8,8,0,0,0,2.3-.14,2,2,0,0,0,1.21-1.16c.49-1.72.66-3.54,1.22-5.23A51.8,51.8,0,0,1,29.06,36l-1.81-.26c-.89,3.28-2.83,5.3-7.43,5.49-1.6.06-2.91.25-3.74,2-.74,1.58-2.14,1.42-3.78-.4,2.59-1.29,4.09-4.32,7.7-3.7a3.88,3.88,0,0,0,2.85-1.07c.5-.47.25-1.67.49-2.5.16-.52.55-1.26.95-1.35A8.61,8.61,0,0,1,27.56,34c2.66.45,3.59-.14,4.16-3.24a45.07,45.07,0,0,1-4.73.61c-3.83.09-7.74.55-11.46-.07-4.63-.77-7.38-4.29-8.81-8.65-.62-1.92-1.67-2.18-3.33-1.61a6.49,6.49,0,0,1-1.84.38A2.07,2.07,0,0,1,.13,21.1a1.34,1.34,0,0,1,.1-1.32,2.25,2.25,0,0,1,1.38-.48,13.48,13.48,0,0,1,1.67.1c1.79.08,2.77-.57,3.09-2.54.84-5,3.56-7.59,8.65-8.29A33.45,33.45,0,0,1,38.39,14.1c1.9,1.24,3.75,2.57,5.62,3.85l.69-.35A7.37,7.37,0,0,0,43.9,15a3.87,3.87,0,0,1-.44-4.58,5.46,5.46,0,0,0-.43-4c-1.29-2.75-1.39-2.76,1.36-4.3.44-.24.58-1,1-1.24A16.12,16.12,0,0,1,48,0c-.67,1.54-1.14,2.44-1.45,3.39a2.34,2.34,0,0,0,.88,2.9c1.87,1.5.83,3.6.39,5.39-.61,2.49-1.51,4.9-2.28,7.34l.35.54c2.28-.84,4.56-1.67,6.84-2.53a.88.88,0,0,0,.44-.43c1.61-4.32,5-5.34,9.15-4.89,1.64.18,1.28-.71,1.1-1.6a2.23,2.23,0,0,0-.5-.17L60.12,9.6c.41-1.25.51-2.79,1.32-3.66s3-1.28,3.22-1A11,11,0,0,1,66.49,9.6a39.68,39.68,0,0,1-.31,6.49c1.59-1,2.76-1.81,4-2.42a35.27,35.27,0,0,1,4.45-1.61,2.22,2.22,0,0,1,3,1.52c.27,1,.28,2.64-.29,3-.9.66-2.37.62-3.61.69-.44,0-.9-.5-1.87-1.09l3.25-1.78.07-.43A5.74,5.74,0,0,0,73,14c-1.58.71-3,1.68-4.55,2.54-1.8,1-2,2.93-2.11,4.57a10.39,10.39,0,0,1-2.95,6.29,26,26,0,0,0-1.79,2.68ZM31.93,19.68l0,.92c-5.57-.18-11.15-.38-16.73-.52-1.8,0-3.61,0-5.41.1-1.12.05-1.77.7-1.36,1.82,1.28,3.54,3.19,6.54,7.14,7.59,5,1.34,10,.41,14.93-.5.94-.18,2.29-.21,2.7-.81,1.32-1.94,2.38-4,5.23-3.74,0,0,.13-.05.17-.1l4.16-5.12c-2.91-2-5.78-4.45-9-6.15-5.73-3-12-3.6-18.35-2.82C10.8,10.91,8,14.23,8.43,18.2ZM53.26,44.94l.57.17a27.33,27.33,0,0,1-.78,4c-1.23,3.54-2.64,7-3.91,10.56a1.52,1.52,0,0,0,.33,1.38,8.27,8.27,0,0,0,3.45,1.21c3.94,0,6.83-2.06,9-5.26C65,52.58,64.58,47.73,63.25,43c-.73-2.6-2.25-5-3.56-7.74-1.3,1.48-1.79,3.41-3.7,2.39.06-1.84.11-3.49.18-5.62-1.08,2.1-2,3.7-2.7,5.35A10.82,10.82,0,0,0,53,39.56c-1.52,3.21-6,4.21-6.55,8.33-.5,3.69-1,7.49,2,11.08ZM43.05,26.45c4.33,7.84,6,9.81,8.25,8.89-3.43-1.48-3.73-4.66-5.07-7.27C45.78,27.19,45,25.54,43.05,26.45ZM50.7,22.3a14.83,14.83,0,0,0,1.78,2.82,17.9,17.9,0,0,0,3.2,2.1c-.49-2.68.25-5.08-2.3-6.54L53.8,23Z"/><path d="M73.28,38a17.13,17.13,0,0,1-2,.09,9.74,9.74,0,0,1-1.57-.39,6.47,6.47,0,0,1,1.17-2c1.38-1.07,2.9-2,4.38-2.91a3.74,3.74,0,0,1,1.48-.68,6.25,6.25,0,0,1,1.73.28c-.15.57-.12,1.33-.49,1.66C76.42,35.43,74.79,36.7,73.28,38Z"/><path d="M46.62,73.46c-2.32,1.46-4.63.88-5.34-1.1a2.22,2.22,0,0,1,.25-1.72c.14-.22,1.09-.2,1.45,0C44.18,71.47,45.28,72.42,46.62,73.46Z"/><path d="M49.92,77,47.1,74.46C48.69,73.45,49.71,74.26,49.92,77Z"/><path d="M36.8,17,21.19,13.11A41.06,41.06,0,0,1,37,16.31Z"/><path d="M54.4,57.3c1.16-4.85,2.25-9.39,3.37-14C58.85,45.86,56.66,55.4,54.4,57.3Z"/></svg>`
+diff --git a/components/brave_private_new_tab_ui/resources/page/components/flyweb/svgEnReact.tsx b/components/brave_private_new_tab_ui/resources/page/components/flyweb/svgEnReact.tsx
+new file mode 100644
+index 000000000..f9b43961c
+--- /dev/null
++++ b/components/brave_private_new_tab_ui/resources/page/components/flyweb/svgEnReact.tsx
+@@ -0,0 +1,63 @@
++// Copyright (c) 2026 lamosquita. All rights reserved.
++// This Source Code Form is subject to the terms of the Mozilla Public
++// License, v. 2.0. If a copy of the MPL was not distributed with this file,
++// You can obtain one at https://mozilla.org/MPL/2.0/.
++
++// FlyWeb: copy of brave_new_tab_ui/components/default/flyweb/svgEnReact.tsx.
++// Turns our own fixed fly SVG (moscaSvg.ts) into React elements.
++// WebUI pages enforce Trusted Types, so `innerHTML` / `dangerouslySetInnerHTML`
++// with a plain string throws ("This document requires 'TrustedHTML'
++// assignment") and the whole page fails to mount. Only what our SVGs use:
++// <svg>, <style>, <g>, <path>, <rect>, <circle>, <ellipse>, with their
++// attributes; `class` becomes `className`.
++
++import * as React from 'react'
++
++const ETIQUETA = /<(\/?)([a-zA-Z]+)([^>]*?)(\/?)>|([^<]+)/g
++const ATRIBUTO = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)="([^"]*)"/g
++const VALIDAS = new Set(['svg', 'style', 'g', 'path', 'rect', 'circle', 'ellipse'])
++
++interface Nodo { etiqueta: string, atributos: { [k: string]: string }, hijos: Array<Nodo | string> }
++
++function analizar (svg: string): Nodo {
++  const raiz: Nodo = { etiqueta: '', atributos: {}, hijos: [] }
++  const pila: Nodo[] = [raiz]
++  let m: RegExpExecArray | null
++  ETIQUETA.lastIndex = 0
++  while ((m = ETIQUETA.exec(svg)) !== null) {
++    const actual = pila[pila.length - 1]
++    if (m[5] !== undefined) {
++      if (actual.etiqueta === 'style') actual.hijos.push(m[5])
++      continue
++    }
++    const [, cierre, etiqueta, resto, sola] = m
++    if (cierre) { pila.pop(); continue }
++    const atributos: { [k: string]: string } = {}
++    let a: RegExpExecArray | null
++    ATRIBUTO.lastIndex = 0
++    while ((a = ATRIBUTO.exec(resto)) !== null) atributos[a[1]] = a[2]
++    const nodo: Nodo = { etiqueta, atributos, hijos: [] }
++    actual.hijos.push(nodo)
++    if (!sola) pila.push(nodo)
++  }
++  return raiz.hijos[0] as Nodo
++}
++
++function aReact (n: Nodo | string, clave: number): React.ReactNode {
++  if (typeof n === 'string') return n
++  if (!VALIDAS.has(n.etiqueta)) return null
++  const props: { [k: string]: string | number | object } = { key: clave }
++  // The drawing relies on the default black fill; WebUI pages set `fill` on
++  // every <svg> (currentColor: grey on the new tab, white on the welcome page).
++  if (n.etiqueta === 'svg') props.style = { fill: '#000' }
++  for (const [k, v] of Object.entries(n.atributos)) {
++    if (k === 'class') props.className = v
++    else if (k === 'xmlns' || k.startsWith('data-')) continue
++    else props[k] = v
++  }
++  return React.createElement(n.etiqueta, props, ...n.hijos.map(aReact))
++}
++
++export default function svgEnReact (svg: string): React.ReactNode {
++  return aReact(analizar(svg), 0)
++}
+diff --git a/components/brave_private_new_tab_ui/resources/page/components/search-box/index.tsx b/components/brave_private_new_tab_ui/resources/page/components/search-box/index.tsx
+index 29a8015b6..e8a107fd8 100644
+--- a/components/brave_private_new_tab_ui/resources/page/components/search-box/index.tsx
++++ b/components/brave_private_new_tab_ui/resources/page/components/search-box/index.tsx
+@@ -5,6 +5,8 @@
+ import * as React from 'react'
+ import styled from 'styled-components'
+ import { getLocale } from '$web-common/locale'
++import moscaSvg from '../flyweb/moscaSvg'
++import svgEnReact from '../flyweb/svgEnReact'
+ 
+ const Box = styled.div`
+   display: flex;
+@@ -73,23 +75,21 @@ const IconButton = styled.button`
+   }
+ `
+ 
+-function BraveSearchLogo () {
+-  return (
+-    <svg xmlns="http://www.w3.org/2000/svg" width="210" height="64" fill="none">
+-      <path fill="url(#a)" fillRule="evenodd" d="m54.318 15.321 1.523-3.676s-1.938-2.043-4.292-4.358c-2.353-2.315-7.337-.953-7.337-.953L38.536 0H18.601l-5.676 6.334s-4.983-1.362-7.337.953c-2.353 2.315-4.291 4.358-4.291 4.358l1.522 3.676-1.938 5.447s5.7 21.236 6.368 23.83c1.316 5.106 2.215 7.08 5.953 9.668 3.738 2.587 10.522 7.08 11.629 7.762 1.108.68 2.492 1.84 3.738 1.84s2.63-1.16 3.738-1.84c1.107-.681 7.89-5.175 11.628-7.762 3.738-2.587 4.638-4.562 5.953-9.668.668-2.594 6.368-23.83 6.368-23.83l-1.938-5.447Z" clipRule="evenodd"/>
+-      <path fill="#fff" d="M35.63 11.508c.83 0 6.99-1.157 6.99-1.157s7.3 8.68 7.3 10.536c0 1.534-.627 2.134-1.366 2.842-.155.148-.315.3-.475.468l-5.474 5.717a9.92 9.92 0 0 1-.179.18c-.546.54-1.35 1.336-.783 2.658l.117.269c.622 1.432 1.39 3.2.413 4.99-1.041 1.906-2.823 3.178-3.965 2.967-1.143-.21-3.825-1.589-4.811-2.218-.987-.63-4.113-3.166-4.113-4.137 0-.809 2.248-2.155 3.34-2.81.218-.13.39-.232.489-.298.112-.075.301-.19.533-.332.997-.61 2.798-1.71 2.843-2.197.056-.602.034-.778-.77-2.264-.17-.316-.37-.654-.577-1.004-.765-1.295-1.622-2.745-1.432-3.784.214-1.173 2.082-1.845 3.664-2.415.198-.07.391-.14.576-.209l1.648-.609c1.58-.582 3.336-1.229 3.625-1.36.4-.181.297-.355-.916-.468-.16-.015-.36-.036-.59-.06-1.502-.157-4.273-.446-5.62-.077-.265.073-.562.152-.873.235-1.514.403-3.369.897-3.547 1.182-.031.05-.062.093-.09.133-.171.238-.282.394-.094 1.406.056.302.172.895.315 1.629.418 2.148 1.07 5.498 1.152 6.25l.036.305c.105.84.175 1.399-.817 1.622l-.26.058c-1.118.252-2.758.623-3.35.623-.593 0-2.234-.37-3.353-.623l-.258-.058c-.991-.223-.921-.782-.817-1.622.012-.098.025-.2.036-.305.083-.753.737-4.112 1.155-6.259.142-.73.256-1.32.312-1.62.189-1.012.078-1.168-.093-1.406-.029-.04-.06-.083-.09-.133-.179-.285-2.033-.779-3.547-1.182-.311-.083-.608-.162-.873-.235-1.348-.37-4.118-.08-5.62.077-.23.024-.43.045-.59.06-1.214.113-1.317.287-.917.468.29.131 2.044.778 3.624 1.36.606.223 1.187.437 1.65.609.184.069.378.138.576.21 1.582.57 3.45 1.241 3.664 2.414.19 1.039-.667 2.489-1.432 3.784-.207.35-.407.688-.578 1.004-.804 1.486-.825 1.662-.77 2.264.046.488 1.846 1.587 2.843 2.197.232.142.42.257.534.332.099.066.27.168.487.298 1.092.654 3.341 2 3.341 2.81 0 .97-3.126 3.507-4.112 4.137-.987.63-3.669 2.008-4.81 2.218-1.143.21-2.925-1.061-3.966-2.966-.978-1.791-.21-3.559.413-4.99l.116-.27c.568-1.322-.237-2.118-.783-2.658-.064-.063-.124-.123-.178-.18l-5.475-5.717c-.16-.167-.32-.32-.474-.468-.74-.707-1.367-1.308-1.367-2.842 0-1.855 7.3-10.536 7.3-10.536s6.16 1.157 6.992 1.157c.662 0 1.942-.433 3.276-.885.338-.114.68-.23 1.015-.34 1.661-.545 2.769-.549 2.769-.549s1.107.004 2.769.549c.335.11.676.226 1.014.34 1.335.452 2.614.885 3.277.885Z"/>
+-      <path fill="#fff" d="M34.572 42.214c1.302.66 2.226 1.128 2.575 1.343.452.278.176.803-.235 1.09-.412.285-5.944 4.499-6.48 4.965-.07.06-.142.124-.218.191-.518.459-1.177 1.044-1.645 1.044-.468 0-1.128-.586-1.646-1.044-.075-.067-.148-.132-.217-.191-.537-.466-6.069-4.68-6.48-4.966-.412-.286-.688-.81-.236-1.09.35-.214 1.275-.683 2.578-1.344l1.24-.629c1.95-.992 4.381-1.837 4.76-1.837.38 0 2.811.844 4.762 1.837.444.226.859.437 1.242.63Z"/>
+-      <path fill="#F3F5F7" d="M81.233 21.553c1.648-.855 3.532-1.283 5.648-1.283 2.466 0 4.695.6 6.689 1.795 1.993 1.195 3.575 2.898 4.737 5.102 1.162 2.205 1.743 4.759 1.743 7.666s-.58 5.479-1.743 7.716c-1.162 2.237-2.744 3.972-4.737 5.205-1.998 1.232-4.228 1.846-6.688 1.846-2.154 0-4.034-.419-5.65-1.256-1.615-.837-2.909-1.92-3.877-3.256v4.051h-7.288V11.2h7.288v13.688c.935-1.367 2.23-2.479 3.877-3.33v-.005Zm10.31 8.847c-.713-1.246-1.648-2.195-2.81-2.846a7.597 7.597 0 0 0-3.774-.973c-1.35 0-2.56.335-3.722 1-1.162.666-2.102 1.633-2.81 2.898-.713 1.265-1.068 2.754-1.068 4.46 0 1.708.355 3.196 1.068 4.461.713 1.265 1.648 2.228 2.81 2.898a7.38 7.38 0 0 0 3.722 1c1.318 0 2.612-.34 3.774-1.024 1.162-.683 2.102-1.655 2.81-2.92.714-1.266 1.068-2.768 1.068-4.512 0-1.744-.354-3.186-1.068-4.433V30.4ZM113.2 21.605c1.511-.856 3.235-1.284 5.181-1.284v7.535h-1.927c-2.291 0-4.02.53-5.181 1.59-1.162 1.061-1.743 2.907-1.743 5.535v14.15h-7.288v-28.4h7.288v4.409a10.17 10.17 0 0 1 3.67-3.54v.005ZM121.059 27.195c1.162-2.223 2.74-3.93 4.738-5.125 1.993-1.196 4.227-1.796 6.688-1.796 2.154 0 4.033.428 5.649 1.284 1.615.856 2.905 1.93 3.878 3.228v-4.051h7.34v28.4h-7.34V44.98c-.936 1.335-2.23 2.438-3.878 3.307-1.649.87-3.547 1.307-5.701 1.307-2.428 0-4.643-.614-6.636-1.846-1.998-1.233-3.576-2.963-4.738-5.205-1.162-2.237-1.743-4.81-1.743-7.716 0-2.907.581-5.419 1.743-7.637v.004Zm19.913 3.256c-.694-1.246-1.629-2.204-2.81-2.87a7.623 7.623 0 0 0-3.802-1 7.502 7.502 0 0 0-3.75.973c-1.143.65-2.074 1.6-2.787 2.846-.713 1.247-1.068 2.726-1.068 4.433 0 1.706.355 3.204 1.068 4.483.713 1.284 1.648 2.265 2.81 2.95a7.22 7.22 0 0 0 3.722 1.022 7.722 7.722 0 0 0 3.802-1c1.181-.665 2.116-1.623 2.811-2.87.694-1.246 1.039-2.744 1.039-4.483 0-1.74-.35-3.237-1.039-4.484h.004ZM166.431 42.526l7.288-21.791h7.756l-10.675 28.4h-8.851l-10.623-28.4h7.807l7.288 21.79h.01ZM209.073 37.088h-21.085c.175 2.051.902 3.656 2.187 4.819 1.285 1.163 2.862 1.744 4.737 1.744 2.707 0 4.634-1.144 5.782-3.437h7.859c-.831 2.735-2.428 4.981-4.789 6.74-2.362 1.762-5.257 2.641-8.696 2.641-2.777 0-5.266-.604-7.472-1.818-2.206-1.214-3.92-2.93-5.153-5.154-1.233-2.223-1.847-4.786-1.847-7.688s.605-5.521 1.823-7.74c1.214-2.223 2.914-3.93 5.101-5.125 2.187-1.196 4.705-1.796 7.548-1.796 2.844 0 5.196.582 7.368 1.745 2.168 1.162 3.855 2.814 5.05 4.948 1.195 2.135 1.794 4.591 1.794 7.359 0 1.023-.07 1.948-.207 2.767v-.005Zm-7.34-4.818c-.033-1.847-.714-3.326-2.031-4.433-1.318-1.111-2.934-1.665-4.842-1.665-1.804 0-3.325.54-4.553 1.614-1.233 1.074-1.988 2.572-2.262 4.484h13.692-.004Z"/>
+-      <defs>
+-        <linearGradient id="a" x1=".881" x2="56.256" y1="64.319" y2="64.319" gradientUnits="userSpaceOnUse">
+-          <stop stopColor="#FF5601"/>
+-          <stop offset=".5" stopColor="#FF4000"/>
+-          <stop offset="1" stopColor="#FF1F01"/>
+-        </linearGradient>
+-      </defs>
+-    </svg>
+-  )
+-}
++// FlyWeb: the fly instead of the Brave Search logo (the search now goes to the user's default
++// search engine, see BravePrivateNewTabPageHandler::GoToSearch). Built once: React elements,
++// not an HTML string (Trusted Types, see flyweb/svgEnReact.tsx).
++const moscaDibujo = svgEnReact(moscaSvg)
++
++const Mosca = styled.div`
++  width: 72px;
++  height: 72px;
++  margin: 0 auto 24px;
++
++  svg {
++    width: 100%;
++    height: 100%;
++  }
++`
+ 
+ interface Props {
+   onSubmit?: (value: string, openNewTab: boolean) => unknown
+@@ -122,8 +122,8 @@ function Search (props: Props) {
+ 
+   return (
+     <Box>
+-      <BraveSearchLogo />
+-      <Form onSubmit={handleSubmit} onClick={handleFormBoxClick} role="search" aria-label="Brave">
++      <Mosca aria-hidden="true">{moscaDibujo}</Mosca>
++      <Form onSubmit={handleSubmit} onClick={handleFormBoxClick} role="search" aria-label={getLocale('searchPlaceholderLabel')}>
+         <input ref={inputRef} onChange={onInputChange} onKeyDown={handleKeyDown} type="text" placeholder={getLocale('searchPlaceholderLabel')} value={value} autoCapitalize="off" autoComplete="off" autoCorrect="off" spellCheck="false" aria-label="Search" title="Search" aria-autocomplete="none" aria-haspopup="false" maxLength={2048} autoFocus />
+         <IconButton data-test-id="submit_button" aria-label="Submit">
+           <svg width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" clipRule="evenodd" d="M8 16a8 8 0 1 1 5.965-2.67l5.775 5.28a.8.8 0 1 1-1.08 1.18l-5.88-5.375A7.965 7.965 0 0 1 8 16Zm4.374-3.328a.802.802 0 0 0-.201.18 6.4 6.4 0 1 1 .202-.181Z" fill="url(#search_icon_gr)"/><defs><linearGradient id="search_icon_gr" x1="20" y1="20" x2="-2.294" y2="3.834" gradientUnits="userSpaceOnUse"><stop stopColor="#BF14A2"/><stop offset="1" stopColor="#F73A1C"/></linearGradient></defs></svg>
+diff --git a/components/brave_private_new_tab_ui/resources/page/container.tsx b/components/brave_private_new_tab_ui/resources/page/container.tsx
+index f33116f03..dff86bb8e 100644
+--- a/components/brave_private_new_tab_ui/resources/page/container.tsx
++++ b/components/brave_private_new_tab_ui/resources/page/container.tsx
+@@ -56,16 +56,16 @@ function Container () {
+     </BadgePrivateWindow>
+   )
+ 
++  // FlyWeb: only headerText1. headerText2 ends by suggesting a private window with Tor, in
++  // every translation, and FlyWeb has no Tor.
+   const dialogContent = (
+     <p>
+       {getLocale('headerText1')}
+-      {' '}
+-      {getLocale('headerText2')}
+     </p>
+   )
+ 
+   const handleSearchSubmit = (value: string, openNewTab: boolean) => {
+-    getPageHandlerInstance().pageHandler.goToBraveSearch(value, openNewTab)
++    getPageHandlerInstance().pageHandler.goToSearch(value, openNewTab)
+   }
+ 
+   const handleDialogClose = () => {
+-- 
+2.43.0
+
