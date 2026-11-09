@@ -1,21 +1,23 @@
 #!/bin/zsh
 # Genera el catálogo de activos de macOS (Assets.car) de FlyWeb para la base 156 desde el maestro M1-01.
-# Uso: generar-assets-car.sh <chromium-src> <destino>
+# Uso: generar-assets-car.sh <chromium-src> <destino> <app.icns de la 2.7.0>
 #   <chromium-src>: árbol de Chromium 156 (usa tools/mac/icons/compile_car.py y su mac_sdk.gni).
 #   <destino>: carpeta donde quedan Assets.car y sus fuentes (Assets.xcassets y AppIcon.icon); en brave-core,
 #              app/theme/brave/mac (updateBranding lo copia a chrome/app/theme/brave/mac).
+#   <app.icns de la 2.7.0>: FlyWeb.app/Contents/Resources/app.icns de la 2.7.0 (entregas/FlyWeb-2.7.0-release).
 # Necesita Xcode 26 (actool >= 24112) y swiftc. La 156 pide chrome/app/theme/<marca>/mac/Assets.car
 # (chrome/BUILD.gn); el de Chromium no puede salir en una build de FlyWeb.
 #
 # Qué lleva el catálogo (ver docs/mac/icons.md de Chromium):
-# - AppIcon (bitmaps, macOS 11–15): M1-01 con margen de ~100/1024 por lado, la rejilla de 824 de los iconos de
-#   Apple (en Mojave se sigue usando app.icns, a sangre, que genera generar-marca.sh).
+# - AppIcon (bitmaps, macOS 11–15): las imágenes del app.icns de la 2.7.0 tal cual (iconutil), para que en el Dock y
+#   el Finder el icono se vea idéntico al de siempre (Titín, 09-11). Antes era M1-01 con margen de ~100/1024 por
+#   lado (la rejilla de 824 de Apple), que se veía más pequeño. En Mojave se sigue usando app.icns.
 # - AppIcon (macOS 26+, Icon Composer): fondo naranja #f90 y la mosca de M1-01 en dos capas (alas blancas
 #   translúcidas y cuerpo negro). Variante oscura: fondo gris oscuro y cuerpo naranja. Variante teñida: grises, como
 #   Chromium.
 # - Icon (insignia de documentos, UTTypeIconBadgeName): M1-01 a sangre, 256 y 512.
 set -eu
-CR=${1:?chromium-src}; DEST=${2:?destino}
+CR=${1:?chromium-src}; DEST=${2:?destino}; ICNS=${3:?app.icns de la 2.7.0}
 D=${0:A:h}; M=$D/..
 APP=$M/M1-01.svg
 TMP=$(mktemp -d); trap 'rm -rf $TMP' EXIT
@@ -29,7 +31,10 @@ X=$W/Assets.xcassets
 mkdir -p $X/AppIcon.appiconset $X/Icon.iconset
 cp $CRT/Contents.json $X/Contents.json
 cp $CRT/AppIcon.appiconset/Contents.json $X/AppIcon.appiconset/Contents.json
-for s in 16 32 64 128 256 512 1024; do $R $APP $s $s $X/AppIcon.appiconset/appicon_$s.png - 0.0977; done
+iconutil -c iconset -o $TMP/app.iconset $ICNS
+for p in 16:16x16 32:32x32 64:32x32@2x 128:128x128 256:256x256 512:512x512 1024:512x512@2x; do
+  cp $TMP/app.iconset/icon_${p#*:}.png $X/AppIcon.appiconset/appicon_${p%%:*}.png
+done
 $R $APP 256 256 $X/Icon.iconset/icon_256x256.png
 $R $APP 512 512 $X/Icon.iconset/icon_256x256@2x.png
 
