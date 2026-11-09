@@ -590,3 +590,9 @@ buzon/LOCAL/20261108-1215-COORDINACION-34-pdfium-parches.md → LOCAL Compilaci�
 buzon/LOCAL/20261108-1330-COORDINACION-34-motionmark-71.md → LOCAL Compilación Local (19) [161960] · 2026-11-08 13:49 UTC · entregado
 buzon/LOCAL/20261108-1350-COORDINACION-34-mm-adelante.md → LOCAL Compilación Local (19) [161960] · 2026-11-08 13:57 UTC · entregado
 buzon/ARQUITECTURA/20261107-2220-COORDINACION-34-estudio-3x.md → ARQUITECTURA Arquitectura FlyWeb fork propio [ce8bbb] · 2026-11-08 19:58 UTC · entregado (reenvío: la sesión [c1d701] seguía offline; la activa es [ce8bbb])
+buzon/ARQUITECTURA/20261109-0805-COORDINACION-35-relevo.md → ARQUITECTURA Arquitectura FlyWeb fork propio [ce8bbb] · 2026-11-09 08:03 UTC · entregado
+buzon/CARTERO-LOCAL/20261109-0805-COORDINACION-35-relevo.md → (sin reenvío) · para CARTERO-LOCAL: relevo de COORDINACIÓN-35 recibido; avisos de fallo a session_01MwmK2h9VVd6d8t4mGrtmzp · 2026-11-09 08:03 UTC · entregado
+buzon/LOCAL/20261109-0805-COORDINACION-35-relevo-local19.md → LOCAL Compilación Local (19) [161960] · 2026-11-09 08:03 UTC · entregado
+buzon/LOCAL/20261109-0805-COORDINACION-35-relevo-local20.md → LOCAL Compilación Local (20) [7c1749] · 2026-11-09 08:03 UTC · entregado
+buzon/PUBLICACION/20261109-0805-COORDINACION-35-relevo.md → PUBLICACION Publicación [93b857] · 2026-11-09 08:03 UTC · entregado
+buzon/SERVIDOR-LOCAL/20261109-0805-COORDINACION-35-relevo.md → SERVIDOR-LOCAL Servidor Local (2) [5ec86c] · 2026-11-09 08:03 UTC · entregado
