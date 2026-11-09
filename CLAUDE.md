@@ -98,6 +98,12 @@ que tiene commit. **Nunca `gclient sync -D`** en `flyweb-build` (borró el workt
 - Riesgo asumido: Chromium de 2023 → aplicar parches de seguridad poco a poco.
 - Criterio de aceptación: claude.ai funciona por completo.
 
+### FlyHand/ (importador de FreeHand para Illustrator)
+- Plugin de Illustrator 2021 (25.x) que abre documentos de FreeHand 3–11/MX conservándolo todo (CMYK, tintas planas,
+  páginas, capas, texto editable). **MPL-2.0**, libre. Base: fork de libfreehand (LibreOffice); el lector se amplía
+  porque hoy lo convierte todo a RGB y a una sola página. Plan: `FlyHand/docs/plan.md`.
+- El SDK de Illustrator y los documentos .fh de Titín **nunca van al repo**.
+
 ### Cliente Claude
 - Descartado un cliente propio con cuentas Pro/Max: los términos de Anthropic (feb. 2026) solo
   permiten esas credenciales en Claude Code y claude.ai. Claude Code exige macOS 13 o superior.
