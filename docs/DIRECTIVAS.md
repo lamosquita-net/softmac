@@ -304,6 +304,16 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   avances lo hace ARQUITECTURA con datos de SEGURIDAD-PORTES y MOTOR; decide Titín. FLYWEB_BUILD_NUMBER sigue subiendo en
   cada versión (CFBundleVersion 198.63.N; si se deja de partir de Brave, debe seguir creciendo o Sparkle no la ofrecerá).
   La 3.0.0 se publicó sin esperar a la 5,1 (Titín, 07-11): si falla allí, 3.0.1 o vuelta manual a la 2.7.0 con la copia «antes de 3.0».
+- **Plan de la 3.x aprobado (Titín, 09-11; detalle en `FlyWeb/docs/plan-3x.md`):** la línea 3.0.x de seguridad, siempre
+  en marcha → **3.1, GPU e hilos (FM.56), adelante ya** → 3.2, sync con cuenta (F7.7), con su diseño en paralelo a la 3.1.
+  - **La 3.0.1 va en paralelo con la 3.1**, con los parches ya preparados, sin competir por la 7,1: la compilación de la 3.0.1
+    va primero, y el perfilado de la 3.1 puede ir en la 6,1.
+  - **Seguridad continua con SEGURIDAD-PORTES, siempre en marcha:** tandas cada 2–4 semanas, KEV y críticos al momento,
+    y la medida mensual de cuántos arreglos entran limpios.
+  - **Novedades de los motores (Chrome 157+, Blink, V8):** INVESTIGACIÓN-MOTOR vigila y propone, con un informe periódico
+    de qué trae cada Chrome, qué se puede portar a la 156 y qué interesa. MOTOR implementa solo lo que Titín apruebe, dentro
+    de una 3.x, para no distraerse de la 3.1.
+  - **Primer hito de la 3.1:** perfil del hilo del proceso de GPU en la 6,1 y la 7,1 (LOCAL) y lectura de ANGLE Metal (MOTOR).
 - **La base 156 se publica como FlyWeb 3.0.0 (Titín, 05-11; `base-siguiente.md` §7):** es un salto de base, no un nivel.
   Excepción escrita a la regla 18: los niveles 139–155 no llevan versión propia; `flyweb_engine_level` = 156 y
   `flyweb_version` = 3.0.0. Después, 3.0.x para backports de seguridad y arreglos (B8).
