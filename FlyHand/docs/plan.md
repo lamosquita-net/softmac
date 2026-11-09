@@ -53,7 +53,7 @@ todo**: tintas, colores, páginas, texto editable… Se hará poco a poco. Conte
 
 | Fase | Qué | Estado |
 |---|---|---|
-| 1 | Base: fork de libfreehand en `FlyHand/`, compilado para x86_64 y 10.14; herramienta de línea de comandos que vuelca el modelo; banco de pruebas privado con los documentos de Titín (de la 3.1 a la 11) y referencia de CS4 y FreeHand 11 en el G5 | en curso: libfreehand compila (nube, 09-11) |
+| 1 | Base: fork de libfreehand en `FlyHand/`, compilado para x86_64 y 10.14; herramienta de línea de comandos que vuelca el modelo; banco de pruebas privado con los documentos de Titín (de la 3.1 a la 11) y referencia de CS4 y FreeHand 11 en el G5 | en curso: bibliotecas y herramientas compiladas en la 6,1; ejemplo del SDK compilado; 3 documentos probados (09-11) |
 | 2 | Plugin mínimo: Archivo → Abrir con trazados, rellenos y trazos en CMYK | — |
 | 3 | Color: proceso, tintas planas como muestras globales, tintes y RGB | — |
 | 4 | Páginas como mesas de trabajo, y capas | — |
@@ -92,3 +92,58 @@ Qué hay que hacer:
    compruebe que carga en Illustrator 25.1 en la 6,1. Si el SDK de 2021 exige un Xcode más nuevo, se anota y se
    propone compilar en la 7,1 con un SDK de macOS antiguo.
 4. Entregar la tabla de resultados en este fichero, por PR.
+
+## Resultados de la fase 1 (FLYHAND-LOCAL, 09-11, en la 6,1)
+
+### Compilación
+
+Guiones en [`scripts/`](../scripts/): `compilar-libs-61.sh` (las tres bibliotecas y las herramientas) y `corpus-61.sh`
+(pasada por los documentos de prueba). Se ejecutan en la 6,1 con la cuenta `craft`, en `~/flyhand/`, con `nice`, y
+no arrancan si hay un semáforo de LOCAL (`/tmp/local*-61-en-uso`).
+
+| Pieza | Versión | Resultado |
+|---|---|---|
+| lcms2 | 2.16 | `liblcms2.a`, sin jpeg, tiff ni zlib |
+| librevenge | 0.0.5 | `librevenge-0.0.a`, `-stream`, `-generators` |
+| libfreehand | 0.1.4 (`85ac573`) | `libfreehand-0.1.a`, `fh2raw`, `fh2svg`, `fh2text` |
+| Boost | 1.83.0 | solo cabeceras |
+| ICU | 74.2 | solo `common/unicode/*.h`, sin biblioteca |
+| zlib | la del sistema | `/usr/lib/libz.1.dylib` |
+
+- Todo sale x86_64 con `minos 10.14`, compilado con el SDK 10.15 de Xcode 11.3.1 y sin instrucciones AVX (`ymm`: 0).
+  Las herramientas solo enlazan bibliotecas del sistema (`libSystem`, `libc++` y `libz`).
+- En la 6,1 hay Xcode 11.3.1, pero `xcode-select` apunta a las Command Line Tools: se usa
+  `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, sin cambiar la configuración del sistema.
+- La 6,1 no tiene autoconf, automake ni pkg-config:
+  - El `configure` de libfreehand (que viene de git) se genera en la 7,1 con `autoreconf -fi` y se copia. Tras copiarlo,
+    hay que ordenar las fechas (`aclocal.m4` → `configure` → `Makefile.in`) para que make no intente regenerarlo.
+  - Las dependencias se pasan con las variables `*_CFLAGS`/`*_LIBS` de `PKG_CHECK_MODULES`, sin pkg-config.
+- Las fuentes se descargan en la 7,1 de sus sitios oficiales y van a la 6,1 por SSH.
+
+### SDK de Illustrator 2021 (Build 492)
+
+- **Compila con Xcode 11.3.1 en Mojave**: no hace falta pasar a la 7,1. El ejemplo `TextFileFormat` (un plugin de
+  formato de fichero, como será FlyHand) sale con `BUILD SUCCEEDED` y un solo aviso (`auto_ptr` obsoleto, del propio
+  ejemplo).
+- Los proyectos del SDK piden el SDK 10.15 y `MACOSX_DEPLOYMENT_TARGET = 10.15`. Con
+  `MACOSX_DEPLOYMENT_TARGET=10.14` el `.aip` sale con `minos 10.14`, x86_64 y sin AVX.
+- Las configuraciones se llaman `debug` y `release`, en minúscula: con `-configuration Release`, xcodebuild compila
+  la de depuración sin avisar.
+- Pendiente: que Titín instale el `.aip` en Illustrator 25.1, en la 6,1, y compruebe que carga.
+
+### Banco de pruebas
+
+Tres documentos de momento; Titín añadirá más cuando compruebe que están sanos (algunos de la red perdieron la
+extensión y el resource fork). Todavía no hay PDF de referencia del G5.
+
+| Doc | FreeHand | Páginas (PDF ref.) | fh2raw | fh2svg | Avisos | Páginas que saca | Trazados | Textos | Tipos de registro del diccionario |
+|---|---|---|---|---|---|---|---|---|---|
+| doc01 | 11/MX | — | abre | abre (43 KB) | 0 | 1 | 57 | 0 | tintas planas, tintes, proceso, mezclas, símbolos, degradados, lentes, patrones, efectos |
+| doc02 | 11/MX | — | abre | abre (31 KB) | 0 | 1 | 38 | 0 | tintas planas, tintes, proceso, mezclas, símbolos, degradados, lentes, patrones, efectos |
+| doc03 | 6 | — | abre | abre (88 KB) | 0 | 1 | 128 | 101 | tintas planas, tintes, proceso, texto, imágenes |
+
+- La versión sale de la cabecera (`AGD` + versión, o `FH3`).
+- La última columna son los tipos de registro que el documento declara en su diccionario. Indica qué puede contener,
+  no cuánto usa. En los dos de la 11 hay que confirmar con el PDF de referencia si de verdad llevan lentes y efectos.
+- Los tres abren sin avisos, pero todos salen en **una sola página**, y el color queda en RGB, como ya se sabía. Es lo
+  que hay que ampliar en las fases 3 y 4.
