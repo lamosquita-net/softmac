@@ -610,3 +610,4 @@ buzon/CARTERO-LOCAL/20261109-1348-COORDINACION-35-motor-b2tests.md → (sin reen
 buzon/LOCAL/20261109-1348-COORDINACION-35-b2tests-gn.md → LOCAL Compilación Local (19) · 2026-11-09 13:50 UTC · entregado
 buzon/LOCAL/20261109-1553-COORDINACION-35-301-webhid.md → LOCAL Compilación Local (19) · 2026-11-09 15:54 UTC · entregado
 buzon/LOCAL/20261109-1617-COORDINACION-35-local20-estado.md → LOCAL Compilación Local (20) · 2026-11-09 16:19 UTC · entregado
+buzon/CARTERO-LOCAL/20261109-1706-LOCAL19-301-arreglos-b2tests-v8.md → (sin reenvío) · de LOCAL-19 para COORDINACIÓN-35; el cartero lo envió a COORDINACIÓN-35 directamente · 2026-11-09 17:07 UTC · entregado
