@@ -601,3 +601,6 @@ buzon/LOCAL/20261109-0805-COORDINACION-35-local20-pruebas300.md → LOCAL Compil
 buzon/PUBLICACION/20261109-0805-COORDINACION-35-web300.md → PUBLICACION Publicación [93b857] · 2026-11-09 08:07 UTC · entregado
 buzon/PUBLICACION/20261109-0810-COORDINACION-35-web300-cambios.md → PUBLICACION Publicación [93b857] · 2026-11-09 08:11 UTC · entregado
 buzon/PUBLICACION/20261109-0812-COORDINACION-35-web300-fusionada.md → PUBLICACION Publicación [93b857] · 2026-11-09 08:13 UTC · entregado
+buzon/ARQUITECTURA/20261109-1150-COORDINACION-35-plan3x-titin.md → ARQUITECTURA Arquitectura FlyWeb fork propio [9aa437 hoy; ce8bbb en el relevo] · 2026-11-09 13:26 UTC · entregado
+buzon/LOCAL/20261109-1157-COORDINACION-35-compila-301.md → LOCAL Compilación Local (19) [a7b6cf hoy; 161960 en el relevo] · 2026-11-09 13:26 UTC · entregado
+buzon/LOCAL/20261109-1159-COORDINACION-35-local20-perfil31.md → LOCAL Compilación Local (20) [3eed64 hoy; 7c1749 en el relevo] · 2026-11-09 13:26 UTC · entregado
