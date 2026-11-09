@@ -1,6 +1,7 @@
 # FlyWeb 3.x: cómo avanzar después de la 3.0.0
 
-ARQUITECTURA, 08-11-2026. Encargo de COORDINACIÓN-34 (buzón `20261107-2220`) por orden de Titín. **Solo papel.**
+ARQUITECTURA, 08-11-2026; revisado el 09-11 con las tres correcciones de COORDINACIÓN-35 (cifras de §3.3, A/B de PGO, F7.7 y
+FM.56). Encargo de COORDINACIÓN-34 (buzón `20261107-2220`) por orden de Titín. **Solo papel.**
 Marco: directiva «Versiones desde la 3.0.0» (Titín, 07-11; `docs/DIRECTIVAS.md`): el **segundo dígito** (3.1, 3.2…)
 son nuestros avances, el primero rendimiento; el **tercero** (3.0.1, 3.0.2…), tandas de seguridad al ritmo de Chrome
 estable más arreglos. claude.ai es el criterio de aceptación de cada versión. Sin horas: hitos y criterios. Decide Titín.
@@ -13,8 +14,8 @@ Marcas: **[V]** verificado en el repo (fichero citado); **[I]** inferencia mía;
 
 1. **La 3.1 no «introduce» el rendimiento: lo exprime.** PGO y la GPU por Metal (B1d) ya van en la 3.0.0 [V:
    `TAREAS.md:246`, `pruebas-gpu.md:42,143`]. Lo que queda de la directiva son tres cosas medibles: quitar el parón de
-   primera carga de Metal (compilación síncrona de pipelines, ×20 al crear programas), comprobar si el perfil de PGO de
-   Google perjudica las rutas que solo usa Mojave (Ganesh GL y ANGLE Metal frías al 100 % y al 55 %), y decidir Maglev
+   primera carga de Metal (compilación síncrona de pipelines, ×20 al crear programas), comprobar, solo si el hito 0 lo
+   señala, si el perfil de PGO de Google perjudica las rutas que solo usa Mojave (Ganesh GL y ANGLE Metal frías al 100 % y al 55 %), y decidir Maglev
    con las tres condiciones de B6, que la 3.0.0 **no** cumplió antes de salir. Hilos y varias GPU son investigación con
    expectativa baja y se abren después, con perfil antes que código.
 2. **Antes de cualquier 3.1, una línea base de la 3.0.0** en la 6,1 y la 5,1 con los mismos cuatro números (Speedometer
@@ -25,8 +26,8 @@ Marcas: **[V]** verificado en el repo (fichero citado); **[I]** inferencia mía;
    publicada y solo llevan seguridad y arreglos; la 3.1.0 nace de la punta de desarrollo e incluye todo lo anterior;
    publicada la 3.1.0, no hay más 3.0.x (como Chrome). La medida mensual de «entran limpios» se define en una sola unidad
    (commit de upstream localizado que nos afecta) y separando lo que Google aún fusiona a la rama 156 de lo que solo
-   está en ramas posteriores: noviembre da **85 %** en total pero **64 %** en el segundo grupo, que es la cifra real de
-   partida [V: `seguridad-3.0.1.md:129-135`].
+   está en ramas posteriores: noviembre cierra en **85 %** en total (79/93) pero **67 %** en el segundo grupo (28/42), que
+   es la cifra real de partida [V: `seguridad-3.0.1.md:129-133,189`].
 4. **Otra base: no por calendario, y con un techo de hardware a la vista.** Xcode 27 y posteriores son solo ARM; los
    anfitriones Intel compilan `main` (159) con un Xcode 26 universal y SDK 26.5 [V: `base-siguiente.md:40-44`, del
    comentario de `mac_sdk.gni`]. El día que Chromium exija el SDK 27 (`macos11-niveles.md:19` lo sitúa en la 158;
@@ -46,16 +47,29 @@ Marcas: **[V]** verificado en el repo (fichero citado); **[I]** inferencia mía;
 
 | Medida | 6,1 (Mojave, D500) | 5,1 (RX 580, sin AVX) | 7,1 (Sequoia, Graphite) | Fuente |
 |---|---|---|---|---|
-| MotionMark 1.3.2 | 3.0.0 Metal **1381** (60 fps); 2.7.0 GL 566 | 3.0.0 **864** ±2,8 % | 3.0.0 PGO 3576; Chrome 156 3861 | `pruebas-gpu.md:42,143`; `coordinacion.md:203` |
-| Speedometer 3.1 | 2.7.0 **5,84**; 3.0.0 sin medir | **ninguna** | 3.0.0 PGO 20,6; Chrome 156 20,7–21,0 | `coordinacion.md:426,203`; `comparativa-71.md:7-16` |
+| MotionMark 1.3.2 | 3.0.0 Metal **1381** (60 fps); 2.7.0 GL 566 | 3.0.0 **864** ±2,8 % | 3.0.0 PGO 3576; Chrome 156 3861 | `pruebas-gpu.md:42,143`; `coordinacion.md:262` |
+| Speedometer 3.1 | 2.7.0 **5,84**; 3.0.0 sin medir | **ninguna** | 3.0.0 PGO 20,6; Chrome 156 20,7–21,0 | `coordinacion.md:485,262`; `comparativa-71.md:7-16` |
 | JetStream 3 | 2.7.0 **89,3**; 3.0.0 sin medir | **ninguna** | 3.0.0 160,7 (sin PGO) | ídem |
 | Aquarium 5k/10k/15k | 60/54/37 (3.0.0) frente a 60/44/30 (2.7.0) | 60/40,9/– | — | `b1d/README.md:31`; `pruebas-gpu.md:142` |
 | Crear 500 programas WebGL | **22 s** Metal frente a 1 s GL | sin medir | — | `b1d/README.md:74` |
 | claude.ai | sí/no a mano (Titín) | ídem | ídem | `relevo-local.md:351` |
 
-La 7,1 mide con Graphite y no sirve de objetivo [V: `comparativa-71.md:4-5`]. El A/B de PGO en la 6,1 (+42 % Speedometer,
-+9 % JetStream, +21 % MotionMark) consta solo como porcentajes en `coordinacion.md:122`, sin valores absolutos ni fichero, y
-`b1d/pgo-mojave.md` avisa de que no fue A/B limpio. **No se puede planificar rendimiento sobre esto.**
+La 7,1 mide con Graphite y no sirve de objetivo [V: `comparativa-71.md:4-5`]. Sobre PGO en la 6,1 hay dos relatos que no
+dicen lo mismo, y hay que fijar cuál vale:
+
+- `b1d/pgo-mojave.md:20-37` (revisado el 06-11 a mediodía) compara `oficial-6` sin PGO con `oficial-8-pgo`: MotionMark
+  1381 → 1494 (+8 %) y avisa de que **no es un A/B limpio** (ANGLE, guardas de selectores y T10 cambian entre las dos,
+  días distintos, red con fallos de HTTP/2). Con ese dato COORDINACIÓN-30 anuló «PGO siempre» hasta tener un A/B en la 6,1
+  con benchmarks en local [V: `coordinacion.md:262-265`].
+- `coordinacion.md:181` (06-11 noche) recoge el A/B pedido limpio, `of9` frente a `of9pgo` **del mismo commit**
+  [V: `coordinacion.md:244`]: Speedometer +42 %, JetStream +9 %, MotionMark +21 %, 0 fallos, y restablece «PGO siempre».
+
+**Vale el segundo**: es el único con el mismo commit a los dos lados, es posterior y es el que decidió que la 3.0.0 saliera
+con PGO. El aviso de `pgo-mojave.md` se refiere al contraste anterior y no lo contradice. Lo que no vale todavía es la cifra
+como ganancia planificable: consta solo en porcentajes, sin valores absolutos, sin fichero y sin decir si los benchmarks se
+sirvieron en local; y +21 % en MotionMark frente al +8 % del contraste sucio es una diferencia que alguien tiene que
+explicar. Por eso el hito 0 pide a LOCAL publicar ese A/B con sus números y condiciones. **No se puede planificar
+rendimiento sobre porcentajes sueltos.**
 
 ### 2.2 Hito 0: línea base (dentro del ciclo 3.0.x, no es una versión)
 
@@ -63,7 +77,8 @@ La 7,1 mide con Graphite y no sirve de objetivo [V: `comparativa-71.md:4-5`]. El
   mediana y dispersión; mismo guion para cada candidata después. Más dos medidas de claude.ai que no dependan de hCaptcha:
   tiempo hasta primer renderizado de una conversación guardada en local (HAR reproducido o copia estática) y p95 del
   intervalo entre fotogramas al desplazar 500 mensajes. Se guarda en `FlyWeb/docs/rendimiento-3x.md` (tabla única, pedida
-  desde `investigacion-pendiente.md:12`).
+  desde `investigacion-pendiente.md:12`). Y una fila más, previa: el A/B `of9`/`of9pgo` del 06-11 con sus valores
+  absolutos, fecha, red (local o no) y fichero, para que B (§2.3) se decida con dato y no con porcentaje.
 - **Hito:** la tabla existe para la 3.0.0 en las dos Mac, y el guion corre desde la 7,1 por ssh en la 6,1 (banco de
   pruebas, `DIRECTIVAS.md:310`). La 5,1 se mide cuando Titín puede; no bloquea (memoria `feedback-5-1-no-bloquea`).
 - **Quién:** LOCAL (guion y medidas), con el criterio de aceptación de Titín para claude.ai: la prueba manual sigue siendo
@@ -74,21 +89,35 @@ La 7,1 mide con Graphite y no sirve de objetivo [V: `comparativa-71.md:4-5`]. El
 | # | Avance | Qué se gana | Coste | Riesgo | Dónde se mide | Aceptación |
 |---|---|---|---|---|---|---|
 | **A** | **Metal sin parón de primera carga**: compilar pipelines fuera del hilo de render o precalentar los más comunes; recuperar la caché persistente de programas (`GpuPersistentCache` va desactivada, `TAREAS.md:317`) | Parón de 0,9–1,5 s en primera carga y 22 s/500 programas → objetivo ≤ 2 s [V: `b1d/README.md:64-81`]; Shadertoy Elevated 33–58 → 60 | Medio: interior de ANGLE Metal; `MTLBinaryArchive` es de macOS 11, hay que hacerlo a mano | Medio: la 5,1 tiene otra GPU; regresiones de estabilidad en drivers de 2018 sin pruebas de Google (`metal-mojave.md:11`) | 6,1 y 5,1; batería `pruebas-gpu.md` | Sin caídas en la batería; parón ≤ 0,2 s; MotionMark ≥ línea base; claude.ai |
-| **B** | **PGO afinado para Mojave**: primero el A/B barato (quitar PGO a Ganesh/ANGLE, `-pgso=false`), después, solo si compensa, perfil propio recogido en la 6,1 | Desconocido en Mojave. En la 7,1 PGO dio +25 % Speedometer [V: `coordinacion.md:203`]; el perfil de Google tiene frías las rutas de Mojave [V: `b1d/pgo-mojave.md:103-108`] | A/B: una Release por variante. Perfil propio: build instrumentada + recogida + fusión, **y rehacerlo en cada subida de base** (`pgo-mojave.md:188-223`) | Bajo el A/B; alto el perfil propio (mantenimiento) | 6,1 (A/B limpio: mismo commit, mismo día, red local) | ≥ 5 % en Speedometer o MotionMark sin perder en el otro; si no, se queda el perfil de Google |
-| **C** | **Maglev** (B6): (1) mjsunit con Maglev en verde en d8 (D8-LINUX); (2) Speedometer y JetStream con y sin Maglev en 6,1 **y** 5,1 sin pérdida; (3) sin AVX sin despacho en la 5,1 (`otool`) [V: `DIRECTIVAS.md:288-292`] | Fuente publicada: el blog de V8 anunció Maglev con mejoras de un dígito en JetStream y Speedometer en escritorio [N: cifra exacta a confirmar]. Único dato nuestro: 2.1.1 +3 % Speedometer y **JetStream colgado 5/5** [V: `coordinacion.md:722`] | Bajo: es un interruptor; el coste es medir y, si cuelga, depurar | Medio: cuelgue de la 2.1.1; la V8 de la 156 ya trae sus arreglos de seguridad (`DIRECTIVAS.md:289`), así que la deuda de FS.28 desaparece | d8 Ubuntu; 6,1; 5,1 | Las tres condiciones; si falla una, sigue apagado y se anota |
+| **B** | **PGO afinado para Mojave**, solo si el hito 0 muestra alguna medida de dibujo (SVG, canvas, MotionMark) peor con PGO que sin él: primero el A/B barato (quitar PGO a Ganesh/ANGLE, `-pgso=false`), después, solo si compensa, perfil propio recogido en la 6,1. `pgo-mojave.md:222` concluye que hoy ningún remedio hace falta | PGO ya gana en la 6,1 (A/B limpio +42/+9/+21 %, `coordinacion.md:181`); aquí se mide si las rutas frías de Mojave (Ganesh GL 100 % y ANGLE Metal 55 % a 0) dejan algo sobre la mesa [V: `b1d/pgo-mojave.md:103-108`] | A/B: una Release por variante. Perfil propio: build instrumentada + recogida + fusión, **y rehacerlo en cada subida de base** (`pgo-mojave.md:188-223`) | Bajo el A/B; alto el perfil propio (mantenimiento) | 6,1 (A/B limpio: mismo commit, mismo día, red local) | ≥ 5 % en Speedometer o MotionMark sin perder en el otro; si no, se queda el perfil de Google |
+| **C** | **Maglev** (B6): (1) mjsunit con Maglev en verde en d8 (D8-LINUX); (2) Speedometer y JetStream con y sin Maglev en 6,1 **y** 5,1 sin pérdida; (3) sin AVX sin despacho en la 5,1 (`otool`) [V: `DIRECTIVAS.md:288-292`] | Fuente publicada: el blog de V8 anunció Maglev con mejoras de un dígito en JetStream y Speedometer en escritorio [N: cifra exacta a confirmar]. Único dato nuestro: 2.1.1 +3 % Speedometer y **JetStream colgado 5/5** [V: `coordinacion.md:781`] | Bajo: es un interruptor; el coste es medir y, si cuelga, depurar | Medio: cuelgue de la 2.1.1; la V8 de la 156 ya trae sus arreglos de seguridad (`DIRECTIVAS.md:289`), así que la deuda de FS.28 desaparece | d8 Ubuntu; 6,1; 5,1 | Las tres condiciones; si falla una, sigue apagado y se anota |
 | **D** | **Hilo de CPU del proceso de GPU** (FM.56, fase 1): perfil con `sample` por fotograma, después repartir contextos/`DrawCommandRange` entre hilos | Desconocida. El límite medido en la 6,1 es ese hilo, no la GPU [V: `b1d/README.md:41`]; con WebGL en la segunda D500 Aquarium no cambia | Alto: código de Chromium y ANGLE sin donante | Alto: ningún navegador lo hace así (`vision-motor.md:156-163`, V20 «expectativa baja») | 6,1 (perfil), 7,1 | **Hito previo obligatorio:** perfil publicado que diga dónde se va el tiempo; sin él no se escribe código |
 | **E** | **Varias GPU** (FM.56, fase 2) | Desconocida; V21 «descartar» antes de la directiva | Muy alto | Muy alto | 6,1 (dos D500), 7,1 (hasta cuatro) | Solo después de D y con dato de D |
 | **F** | **Sparkle 2** (plataforma, no rendimiento) | Dejar un actualizador sin mantenimiento desde 2023 [V: `DEPS:14`]; instalador en proceso aparte; FlyWeb ya firma EdDSA | Medio: reescribir `browser/mac/sparkle_glue.mm` y el empaquetado de `build/mac/BUILD.gn` sin donante (Brave sigue en 1.24) | Medio: una actualización rota deja a los usuarios en la versión anterior; se prueba con canal aparte | 7,1, 6,1, 5,1 (actualización real con la FlyWeb de Titín cerrada) | Actualiza desde la 3.N−1 en las tres Mac y mantiene la exigencia de Developer ID |
+| **G** | **F7.7, cuenta de sincronización** (email + contraseña + código por email; clave derivada en el cliente; un navegador nuevo lo aprueba uno ya sincronizado) | Usabilidad: sustituye las 24 palabras, que Titín da por inmanejables; sin cifra medible | Alto: servidor (ns2, correo, RGPD), cliente (página de Sincronización, KDF, aprobación en espera sin caducar) y texto de privacidad | Medio-alto: criptografía propia y un dato personal en ns2; revisión obligatoria de SEGURIDAD | Los tres Mac (sin banco); pruebas de recuperación y de aprobación diferida | Diseño aprobado por Titín antes de escribir código; sincronización completa entre tres navegadores con cuenta nueva, recuperada y aprobada [V: `TAREAS.md:280`] |
 | — | OpenGL de comparación (B1c) | Solo referencia: ya está medida (2.7.0 GL frente a 3.0.0 Metal) | Una oficial de ~3 h si se reabre | — | — | **No se compila**; se reabre solo si la 5,1 falla con Metal (`DIRECTIVAS.md:297`) |
 
 **Orden propuesto y agrupación.** Cada 3.N lleva como mucho dos avances, para poder atribuir una regresión:
 
-- **3.1 = A + B(A/B) + decisión de C.** Metal sin parón es lo que más nota el usuario y lo que más se aleja hoy de Chrome;
-  el A/B de PGO es barato y responde la duda del perfil frío; Maglev se decide con las tres condiciones y entra encendido
-  solo si pasa. Hito de la 3.1: línea base superada en los cuatro números en la 6,1, igual o mejor en la 5,1, claude.ai
+- **3.1 = A + decisión de C (+ B(A/B) solo si el hito 0 lo pide).** Metal sin parón es lo que más nota el usuario y lo
+  que más se aleja hoy de Chrome; el A/B de PGO es barato pero solo tiene sentido si alguna medida de dibujo sale peor con
+  PGO; Maglev se decide con las tres condiciones y entra encendido solo si pasa. Hito de la 3.1: línea base superada en los cuatro números en la 6,1, igual o mejor en la 5,1, claude.ai
   aprobado por Titín.
 - **3.2 = C (si quedó pendiente) + D fase de perfil + B perfil propio (si el A/B lo justificó).**
 - **3.3 = F (Sparkle 2) + D código (si el perfil lo justifica).** E queda como investigación sin versión asignada.
+- **G (F7.7): diseño en paralelo desde ya, código en la primera 3.N que tenga el diseño aprobado (la 3.2 si llega).** No es
+  rendimiento y no compite por la 6,1 como banco, pero sí por la 7,1 para compilar y por SEGURIDAD para revisar; por eso no
+  va junto a A en la 3.1.
+
+**Dónde me aparto de la recomendación de COORDINACIÓN-34** (`coordinacion.md:51-53`: «la 3.1 sea la línea de GPU e hilos,
+FM.56; el sync con email, F7.7, va como diseño en paralelo»). Coincido en F7.7. No coincido en FM.56 para la 3.1, por tres
+razones: (1) no existe ningún perfil que diga dónde se va el tiempo de ese hilo del proceso de GPU; lo único medido es que el
+límite es ese hilo y que una segunda D500 no cambia Aquarium [V: `b1d/README.md:41`, `TAREAS.md:318`]; (2) no hay donante:
+ningún navegador reparte así el trabajo y `vision-motor.md:156-163` le da expectativa baja; (3) A (Metal sin parón) ataca el
+mismo proceso de GPU con un dato medido (0,9–1,5 s de parón y 22 s por 500 programas) y con un donante parcial. Escribir
+código de hilos sin perfil es el riesgo más alto de la tabla para la ganancia menos conocida. Lo que sí propongo es que la
+**fase de perfil de FM.56 (D) empiece como investigación durante la 3.1**, sin versión asignada, para que la 3.2 decida con
+datos. Si Titín prefiere FM.56 en la 3.1, el orden cambia y A pasa a la 3.2; el hito 0 vale igual.
 
 Lo que **no** entra como avance: WebGPU (es Dawn sobre Metal 2.1 en 10.14, trabajo de base, no de versión; sigue apagado por
 CVE-2026-5281, `DIRECTIVAS.md:20`) y Containers (decisión de producto, §5.3).
@@ -139,8 +168,10 @@ rechazo de V8 mide lo contrario (nuestros parches sobre la V8 nueva) [V: `b0-cve
 - **Anotar la distancia:** hitos de Chrome publicados desde la base y meses desde la publicación de la 3.0.0.
 - **Dónde:** una tabla por tanda en `seguridad-3.0.N.md` y una fila por mes en `docs/SEGURIDAD.md`.
 
-Noviembre de 2026, con esa definición: **85 %** en total (79/93), **100 %** en el grupo 1 (49/49), **64 %** en el grupo 2
-(23/36; 83 % con fuzz) [V: `seguridad-3.0.1.md:129-130,189-191`]. Fuera del denominador: 121082 (parser de V8, 21 commits aparte)
+Noviembre de 2026, con esa definición y la tabla final de `seguridad-3.0.1.md` (08-11, con ffmpeg y PDFium): **85 %** en
+total (79/93: 79 A, 7 F, 7 X), **100 %** en el grupo 1 (51/51: 31 Chromium + 13 V8 + 7 Skia, corregido al portar) y **67 %**
+en el grupo 2 (28/42, derivado del total: todo lo añadido el 08-11 es de la 157). La tabla del 07-11 (72/85, 49/49, 23/36)
+quedó superada [V: `seguridad-3.0.1.md:129-133,183-191`]. Fuera del denominador: 121082 (parser de V8, 21 commits aparte)
 y tres críticos no portados; conviene que SEGURIDAD diga en cada tanda cuántos críticos quedan fuera y por qué.
 
 ### 3.4 Huecos que esta convivencia no tapa
@@ -159,7 +190,7 @@ y tres críticos no portados; conviene que SEGURIDAD diga en cada tanda cuántos
 
 | Dato | 128 (medido 18–22 hitos después) | 156 (medido a 0–1 hito) | Fuente |
 |---|---|---|---|
-| Arreglos críticos que aplican limpios | **15 %** (3 de 20; intervalo 5–36 %); 50 % con conflicto | 64 % grupo 2; 85 % total | `b0-cve.md:91-101`; `seguridad-3.0.1.md:129` |
+| Arreglos críticos que aplican limpios | **15 %** (3 de 20; intervalo 5–36 %); 50 % con conflicto | 67 % grupo 2 (28/42); 85 % total (79/93) | `b0-cve.md:91-101`; `seguridad-3.0.1.md:189` |
 | CVE altos/críticos acumulados sin portar | 750 (611 alcanzables, 99 críticos) | 3 críticos fuera | `cve-128-no-explotados.md:11`; `seguridad-3.0.1.md:191` |
 | Nuestros parches de V8 rechazados al subir nivel | 9,8 % (137) → 17,5 % (138) | no aplica (sin niveles) | `fork-propio.md:69-73` |
 | Bloques de Blink aplazados por refactor ausente | 1 → 2 → 4 → 5 por nivel | 0 | `base-siguiente.md:95-104` |
@@ -280,8 +311,10 @@ uno debería tener ficha propia en `TAREAS.md` con la versión en la que entra.
 1. **El techo de hardware (§4.3):** aceptar que la 156 es la rama de soporte largo y decidir, con margen, qué se hace el día
    que la base siguiente exija Xcode 27: máquina ARM para compilar, compilación cruzada por estudiar, o quedarse en la 156.
    Es la decisión que da sentido a las demás.
-2. **Orden de las 3.N (§2.3):** 3.1 = Metal sin parón + A/B de PGO + decisión de Maglev; 3.2 = Maglev/perfil del hilo de
-   GPU/perfil propio de PGO; 3.3 = Sparkle 2 + hilos. O cambiar el orden.
+2. **Orden de las 3.N (§2.3):** 3.1 = Metal sin parón + decisión de Maglev (+ A/B de PGO si el hito 0 lo pide), con el
+   perfil del hilo de GPU y el diseño de la cuenta de sincronización (F7.7) en paralelo; 3.2 = Maglev / perfil propio de
+   PGO / código de F7.7; 3.3 = Sparkle 2 + hilos. COORDINACIÓN-34 recomienda hilos y GPU (FM.56) en la 3.1; §2.3 dice por
+   qué no lo propongo. O cambiar el orden.
 3. **Criterio de aceptación de claude.ai:** la prueba manual de Titín sigue siendo la definitiva; las dos medidas de §2.2 se
    usan para detectar regresiones. Umbral de las dos medidas: lo pone Titín cuando exista la línea base.
 4. **Umbrales de §4.2** (S1 50/35 %, S2 5/10 críticos) o sus cifras.
