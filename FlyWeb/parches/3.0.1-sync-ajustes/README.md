@@ -1,4 +1,6 @@
-# FlyWeb 3.0.2: página de ajustes de sync (FS.43)
+# FlyWeb 3.0.1 (build 42): página de ajustes de sync (FS.43)
+
+Titín juntó la 3.0.1 y la 3.0.2 en una sola 3.0.1 (build 42), 09-11; por eso la carpeta es `3.0.1-sync-ajustes`.
 
 MOTOR-43, 09-11-2026, por encargo de COORDINACIÓN-36. Esta sesión no tiene push a brave-core, así que la entrega va como
 `git format-patch`: la rama local `nube/b2-sync-ajustes` está sobre brave-core `nube/b2-porte-t11` **bf4262a094**
@@ -9,8 +11,8 @@ MOTOR-43, 09-11-2026, por encargo de COORDINACIÓN-36. Esta sesión no tiene pus
 | `0001-settings-create-BraveSettingsUI-through-the-WebUICon.patch` | `BraveSettingsUIConfig`; quita `SettingsUIConfig` del `WebUIConfigMap` y pone la nuestra en su lugar |
 | `0002-l10n-translate-the-sync-Passwords-data-type-label.patch` | traducción de «Passwords» en 53 idiomas (es: «Contraseñas») |
 
-Comprobado con `git am`: entran limpios sobre bf4262a094 (árbol `b1fa1a5b0`, igual que la rama local) y sobre `seg/3.0.2`
-**0d6a771f23**. Nada compilado (en la nube no se compila).
+Comprobado con `git am` (ls-remote del 09-11): entran limpios sobre bf4262a094 (árbol `b1fa1a5b0`, igual que la rama local),
+`seg/3.0.1` **6415661d24**, `seg/3.0.1-parser` **bee89ad8a6** y `seg/3.0.2` **0d6a771f23**. Nada compilado (en la nube no se compila).
 
 ## Por qué falla
 
@@ -50,7 +52,7 @@ tienen traducción al español.
 
 ## Para LOCAL
 
-1. `git am` de los dos parches sobre la brave-core de la 3.0.2 (`seg/3.0.2`, o la rebasada sobre `seg/3.0.1-parser`).
+1. `git am` de los dos parches sobre la brave-core de la 3.0.1 que se compile (cualquiera de las ramas de arriba).
 2. En ejecución, en Sequoia y en Mojave, en `flyweb://settings/braveSync/setup`, con un perfil que ya esté en una cadena:
    - **Lista de dispositivos**: sale este Mac, marcado como el actual, y los demás de la cadena.
    - **Ver el código de sincronización**: salen las 25 palabras y el QR.
@@ -67,6 +69,9 @@ tienen traducción al español.
 4. Los interruptores de tipos de datos tienen que poder cambiarse cuando «Sincronizar todo» está apagado. Brave 1.98 trae un
    arreglo (`disableTypeCheckBox_` sin `syncStatus`) que nuestro parche de `sync_controls.ts` no tiene. Si salen grises,
    avisar a MOTOR: no se ha tocado porque nuestra página sí pasa `syncStatus`.
+
+No hay vía por la consola de DevTools sin compilar: el manejador no llega a existir, así que ningún `chrome.send` tiene
+respuesta.
 
 ## Notas (no arregladas)
 
