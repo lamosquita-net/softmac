@@ -1,0 +1,308 @@
+From 2768aa5095117b1b093884f187d5167370b5b960 Mon Sep 17 00:00:00 2001
+From: Fernando Fiori <ffiori@microsoft.com>
+Date: Thu, 8 Oct 2026 18:05:25 -0700
+Subject: [PATCH 08/11] [3.0.2][foco] [focus-without-user-activation] Fix label
+ forwarding
+
+Preserve the calling frame when a label forwards focus to its associated
+control, both for label.focus() and scripted click activation. Losing
+the caller caused these paths to check the target document's permissions
+policy instead.
+
+Forward FocusParams::initiator_frame from HTMLLabelElement::Focus(). For
+untrusted click events, use the incumbent window's frame as the
+initiator, matching Element::focusForBindings(). Trusted clicks (user
+input, accessibility, UA-simulated) still use the label's frame.
+
+The new WPT is tentative while initiator attribution is specified:
+https://github.com/whatwg/html/issues/12032
+
+Bug: 523708065
+Change-Id: I2e4ac1ba4a6b836594512105e21ed03e5668a528
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8464353
+Reviewed-by: Jacques Newman <janewman@microsoft.com>
+Reviewed-by: Dan Clark <daniec@microsoft.com>
+Commit-Queue: Fernando Fiori <ffiori@microsoft.com>
+Cr-Commit-Position: refs/heads/main@{#1715143}
+
+(cherry picked from commit e9d7b2341384c8a1cb7fbd49ce054f533457625d)
+
+diff --git a/third_party/blink/renderer/core/dom/document_test.cc b/third_party/blink/renderer/core/dom/document_test.cc
+index 41a5446adc9..17525da3956 100644
+--- a/third_party/blink/renderer/core/dom/document_test.cc
++++ b/third_party/blink/renderer/core/dom/document_test.cc
+@@ -47,6 +47,7 @@
+ #include "third_party/blink/public/platform/browser_interface_broker_proxy.h"
+ #include "third_party/blink/public/web/web_print_page_description.h"
+ #include "third_party/blink/renderer/bindings/core/v8/isolated_world_csp.h"
++#include "third_party/blink/renderer/bindings/core/v8/script_evaluation_result.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_tester.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_testing.h"
+@@ -66,6 +67,7 @@
+ #include "third_party/blink/renderer/core/dom/document_fragment.h"
+ #include "third_party/blink/renderer/core/dom/dom_exception.h"
+ #include "third_party/blink/renderer/core/dom/dom_implementation.h"
++#include "third_party/blink/renderer/core/dom/events/simulated_click_options.h"
+ #include "third_party/blink/renderer/core/dom/focus_params.h"
+ #include "third_party/blink/renderer/core/dom/node_with_index.h"
+ #include "third_party/blink/renderer/core/dom/range.h"
+@@ -93,6 +95,7 @@
+ #include "third_party/blink/renderer/core/page/page.h"
+ #include "third_party/blink/renderer/core/page/page_animator.h"
+ #include "third_party/blink/renderer/core/page/validation_message_client.h"
++#include "third_party/blink/renderer/core/script/classic_script.h"
+ #include "third_party/blink/renderer/core/svg_names.h"
+ #include "third_party/blink/renderer/core/testing/color_scheme_helper.h"
+ #include "third_party/blink/renderer/core/testing/mock_policy_container_host.h"
+@@ -2300,6 +2303,16 @@ class DocumentFocusUseCounterTest : public DocumentSimTest {
+   }
+ 
+   Document* ChildDocument() { return ChildFrame()->GetDocument(); }
++
++  Element* AddLabel() {
++    Element* container = GetDocument().CreateRawElement(html_names::kDivTag);
++    container->SetInnerHTMLWithoutTrustedTypes(R"HTML(
++      <input id="label-target">
++      <label id="label" for="label-target">Label</label>
++    )HTML");
++    GetDocument().body()->AppendChild(container);
++    return GetDocument().getElementById(AtomicString("label"));
++  }
+ };
+ 
+ TEST_F(DocumentFocusUseCounterTest, Blocked) {
+@@ -2378,6 +2391,73 @@ TEST_F(DocumentFocusUseCounterTest, NotFiredWithFeatureDisabled) {
+       WebFeature::kFocusWithoutUserActivationBlocked));
+ }
+ 
++TEST_F(DocumentFocusUseCounterTest, LabelFocusUsesInitiator) {
++  ScopedBlockingFocusWithoutUserActivationForTest feature(true);
++  SetUpChildFrame("focus-without-user-activation 'none'");
++  Element* label = AddLabel();
++  ASSERT_TRUE(label);
++  ASSERT_FALSE(GetDocument().FocusedElement());
++
++  FocusParams params;
++  params.initiator_frame = ChildFrame();
++  label->Focus(params);
++  EXPECT_FALSE(GetDocument().FocusedElement());
++}
++
++TEST_F(DocumentFocusUseCounterTest, LabelFocusAllowedWithFeatureDisabled) {
++  ScopedBlockingFocusWithoutUserActivationForTest feature(false);
++  SetUpChildFrame("focus-without-user-activation 'none'");
++  Element* label = AddLabel();
++  ASSERT_TRUE(label);
++  Element* target = GetDocument().getElementById(AtomicString("label-target"));
++  ASSERT_TRUE(target);
++  ASSERT_FALSE(GetDocument().FocusedElement());
++
++  FocusParams params;
++  params.initiator_frame = ChildFrame();
++  label->Focus(params);
++  EXPECT_EQ(target, GetDocument().FocusedElement());
++}
++
++TEST_F(DocumentFocusUseCounterTest, LabelClickAllowedWithFeatureDisabled) {
++  ScopedBlockingFocusWithoutUserActivationForTest feature(false);
++  SetUpChildFrame("focus-without-user-activation 'none'");
++  ASSERT_TRUE(AddLabel());
++  Element* target = GetDocument().getElementById(AtomicString("label-target"));
++  ASSERT_TRUE(target);
++  ASSERT_FALSE(GetDocument().FocusedElement());
++
++  ChildFrame()->GetSettings()->SetScriptEnabled(true);
++  v8::HandleScope handle_scope(ChildFrame()->DomWindow()->GetIsolate());
++  ASSERT_EQ(ScriptEvaluationResult::ResultType::kSuccess,
++            ClassicScript::CreateUnspecifiedScript(
++                "parent.document.getElementById('label').click()")
++                ->RunScriptAndReturnValue(ChildFrame()->DomWindow())
++                .GetResultType());
++
++  EXPECT_EQ(target, GetDocument().FocusedElement());
++}
++
++TEST_F(DocumentFocusUseCounterTest,
++       TrustedLabelActivationIgnoresScriptContext) {
++  ScopedBlockingFocusWithoutUserActivationForTest feature(true);
++  SetUpChildFrame("focus-without-user-activation 'none'");
++  Element* label = AddLabel();
++  ASSERT_TRUE(label);
++  Element* target = GetDocument().getElementById(AtomicString("label-target"));
++  ASSERT_TRUE(target);
++
++  ScriptState::Scope script_scope(ToScriptStateForMainWorld(ChildFrame()));
++  for (auto creation_scope :
++       {SimulatedClickCreationScope::kFromUserAgent,
++        SimulatedClickCreationScope::kFromAccessibility}) {
++    GetDocument().ClearFocusedElement();
++    ASSERT_FALSE(GetDocument().FocusedElement());
++    label->DispatchSimulatedClick(nullptr, creation_scope);
++    EXPECT_EQ(target, GetDocument().FocusedElement());
++  }
++}
++
+ TEST_F(DocumentFocusUseCounterTest, PolicySetViaAllow) {
+   ScopedBlockingFocusWithoutUserActivationForTest feature(true);
+   SetUpChildFrame("focus-without-user-activation 'none'");
+diff --git a/third_party/blink/renderer/core/dom/focus_params.h b/third_party/blink/renderer/core/dom/focus_params.h
+index cbfd4d5c9c1..84ff22be08e 100644
+--- a/third_party/blink/renderer/core/dom/focus_params.h
++++ b/third_party/blink/renderer/core/dom/focus_params.h
+@@ -41,12 +41,14 @@ struct FocusParams {
+               mojom::blink::FocusType focus_type,
+               InputDeviceCapabilities* capabilities,
+               const FocusOptions* focus_options = FocusOptions::Create(),
+-              FocusTrigger focus_trigger = FocusTrigger::kScript)
++              FocusTrigger focus_trigger = FocusTrigger::kScript,
++              LocalFrame* initiator_frame = nullptr)
+       : selection_behavior(selection),
+         type(focus_type),
+         source_capabilities(capabilities),
+         options(focus_options),
+-        focus_trigger(focus_trigger) {}
++        focus_trigger(focus_trigger),
++        initiator_frame(initiator_frame) {}
+ 
+   SelectionBehaviorOnFocus selection_behavior =
+       SelectionBehaviorOnFocus::kRestore;
+diff --git a/third_party/blink/renderer/core/html/forms/html_label_element.cc b/third_party/blink/renderer/core/html/forms/html_label_element.cc
+index 01a2635c593..3b665ff122a 100644
+--- a/third_party/blink/renderer/core/html/forms/html_label_element.cc
++++ b/third_party/blink/renderer/core/html/forms/html_label_element.cc
+@@ -25,6 +25,7 @@
+ #include "third_party/blink/renderer/core/html/forms/html_label_element.h"
+ 
+ #include "third_party/blink/public/mojom/input/focus_type.mojom-blink.h"
++#include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
+ #include "third_party/blink/renderer/core/dom/document.h"
+ #include "third_party/blink/renderer/core/dom/element_traversal.h"
+ #include "third_party/blink/renderer/core/dom/events/event_path.h"
+@@ -36,6 +37,8 @@
+ #include "third_party/blink/renderer/core/editing/selection_controller.h"
+ #include "third_party/blink/renderer/core/editing/visible_selection.h"
+ #include "third_party/blink/renderer/core/events/mouse_event.h"
++#include "third_party/blink/renderer/core/execution_context/agent.h"
++#include "third_party/blink/renderer/core/frame/local_dom_window.h"
+ #include "third_party/blink/renderer/core/frame/local_frame.h"
+ #include "third_party/blink/renderer/core/frame/web_feature.h"
+ #include "third_party/blink/renderer/core/html/custom/element_internals.h"
+@@ -265,9 +268,22 @@ void HTMLLabelElement::DefaultEventHandlerInternal(Event& evt) {
+         const mojom::blink::FocusType focus_type =
+             evt.isTrusted() ? mojom::blink::FocusType::kMouse
+                             : mojom::blink::FocusType::kScript;
++
++        LocalFrame* initiator_frame = GetDocument().GetFrame();
++        if (RuntimeEnabledFeatures::BlockingFocusWithoutUserActivationEnabled(
++                GetDocument().GetExecutionContext()) &&
++            !evt.isTrusted()) {
++          v8::Isolate* isolate = GetDocument().GetAgent().isolate();
++          if (isolate->InContext()) {
++            if (LocalDOMWindow* window = IncumbentDOMWindow(isolate)) {
++              initiator_frame = window->GetFrame();
++            }
++          }
++        }
++
+         element->Focus(FocusParams(SelectionBehaviorOnFocus::kRestore,
+-                                   focus_type, nullptr,
+-                                   FocusOptions::Create()));
++                                   focus_type, nullptr, FocusOptions::Create(),
++                                   FocusTrigger::kScript, initiator_frame));
+       }
+     }
+ 
+@@ -330,7 +346,7 @@ void HTMLLabelElement::Focus(const FocusParams& params) {
+   if (HTMLElement* element = Control()) {
+     element->Focus(FocusParams(SelectionBehaviorOnFocus::kRestore, params.type,
+                                params.source_capabilities, params.options,
+-                               params.focus_trigger));
++                               params.focus_trigger, params.initiator_frame));
+   }
+ }
+ 
+diff --git a/third_party/blink/web_tests/external/wpt/permissions-policy/experimental-features/focus-without-user-activation-label-click.tentative.html b/third_party/blink/web_tests/external/wpt/permissions-policy/experimental-features/focus-without-user-activation-label-click.tentative.html
+new file mode 100644
+index 00000000000..6928b477fd5
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/permissions-policy/experimental-features/focus-without-user-activation-label-click.tentative.html
+@@ -0,0 +1,75 @@
++<!doctype html>
++<meta charset="utf-8">
++<title>Scripted label activation uses the caller's focus permission</title>
++<link rel="help" href="https://html.spec.whatwg.org/#allow-focus-steps">
++<script src="/resources/testharness.js"></script>
++<script src="/resources/testharnessreport.js"></script>
++<input id="parking">
++<label id="label" for="target">Target</label>
++<input id="target">
++<script>
++for (const method of ["click", "dispatchEvent"]) {
++  promise_test(async t => {
++    const parking = document.getElementById("parking");
++    const label = document.getElementById("label");
++    const target = document.getElementById("target");
++    const frame = document.createElement("iframe");
++    frame.allow = "focus-without-user-activation 'none'";
++    frame.srcdoc = `
++      <label for="input">Child target</label><input id="input">
++      <script>
++        function activateParentLabel(method) {
++          const label = parent.document.getElementById("label");
++          if (method === "click") {
++            label.click();
++          } else {
++            label.dispatchEvent(
++                new parent.MouseEvent("click", {view: parent}));
++          }
++        }
++      <\/script>`;
++
++    t.add_cleanup(() => {
++      frame.remove();
++      label.onclick = target.onclick = null;
++    });
++
++    const loaded = new Promise(resolve => frame.onload = resolve);
++    document.body.append(frame);
++    await loaded;
++
++    const feature = "focus-without-user-activation";
++    assert_true(document.featurePolicy.allowsFeature(feature),
++                "The parent may initiate focus");
++    assert_false(frame.contentDocument.featurePolicy.allowsFeature(feature),
++                 "The child may not initiate focus without activation");
++    assert_false(frame.contentWindow.navigator.userActivation.isActive);
++    parking.focus();
++    assert_equals(document.activeElement, parking);
++
++    // Check the restricted child activating the parent's label.
++    let labelClicked = false;
++    let controlClicked = false;
++    label.onclick = () => { labelClicked = true; };
++    target.onclick = () => { controlClicked = true; };
++    frame.contentWindow.activateParentLabel(method);
++    assert_equals(document.activeElement, parking,
++                  "Label activation must not bypass the child's restriction");
++    assert_true(labelClicked, "The parent's label listener ran");
++    assert_true(controlClicked,
++                "Blocking focus does not suppress the control's click event");
++
++    // Check the allowed parent activating the child's label.
++    const childLabel = frame.contentDocument.querySelector("label");
++    if (method === "click") {
++      childLabel.click();
++    } else {
++      childLabel.dispatchEvent(new MouseEvent("click"));
++    }
++    assert_equals(document.activeElement, frame,
++                  "The allowed parent can activate the child's label");
++    assert_equals(frame.contentDocument.activeElement,
++                  frame.contentDocument.getElementById("input"));
++  }, `${method} on a label checks the caller's focus permission`);
++}
++</script>
+-- 
+2.43.0
+
