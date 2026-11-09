@@ -7,6 +7,65 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 09-11: COORDINACIÓN-34 → COORDINACIÓN-35 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-34 (`session_01MwmK2m1QvhRzNFCDSWtvkf`, 07-11 15:05 → 09-11 ~08:00 UTC; Opus 5.5 medio; abierta por la 33,
+linaje 1 de 8; relevo al 64 %, tarde: el umbral era el 35 %). La 35 la abre la 34 (linaje 2 de 8). **Nunca llamar a
+confirm_repository_trust.**
+
+**Hitos:**
+- **FlyWeb 3.0.0 publicada en lo nuestro, salvo la firma en bak.** Build limpia de LOCAL-19 sobre brave-core
+  `nube/b2-porte-t11` = **bf4262a094**, FLYWEB_BUILD_NUMBER 41, CFBundleVersion 198.63.41. Pruebas A–E en verde
+  (FM.55, #856), incluidas la migración del perfil 2.x sobre copias y los browsertests de b2-privacidad en la 6,1. PUBLICACIÓN
+  firmó la copia `software/entregas/FlyWeb-3.0.0-release/FlyWeb.app` (sha del framework ccabdcd9…2e98) y subió el DMG (sha
+  143d58ae…8a25). **Falta: Titín firma en bak; después, appcast y web (PUBLICACIÓN avisa).**
+- Arreglos de última hora en la 3.0.0: b2-privacidad dentro; la copia «antes de 3.0» tolera los temporales y solo pone la
+  marca si sale bien («… sin copia» si no); la semilla de sync ya no se borra sin llavero; CHECK de
+  GetLocalPersonalContextInfo por kPersonalContext apagado (bf4262a09).
+- **5,1:** el kit de la 3.0.0 da verde (MotionMark 864 a 60 fps, sin AVX, Metal en la RX 580; `pruebas-gpu.md`, #868). El kit
+  ya está borrado de ns2; Titín borra el directorio vacío `kit-51`.
+- **Versiones desde la 3.0.0** (Titín, DIRECTIVAS, #859): el segundo dígito son avances; el tercero, seguridad y arreglos.
+- **3.0.1 (FS.42, SEGURIDAD-PORTES-19 `session_01MwmK2hrcXTzbQgJfQ2PL5U`):** seguridad cerrada en main (#861, #862, #864,
+  #870, #871): 79 parches, 85 % limpios. Chromium (61 format-patch sobre flynk-b1d 33a1745949, árbol 2723e1b371c), ANGLE,
+  ffmpeg y PDFium en `FlyWeb/seguridad/3.0.1/`. brave-core `seg/3.0.1` = 6415661d24 y `seg/3.0.1-parser` = bee89ad8a6 (los 21
+  commits del parser de V8, CVE-2026-121082). CanvasDrawElement apagado. CVE-2026-121112 pasa a la 3.0.2.
+- **Marca para la 3.0.1 (MOTOR-42 `session_01MwmK2iFB5QKJ5nASYk5dxj`):** `nube/b2-icono-restaurar` = d3fae32d5b: barra de
+  restaurar, browser_logo, SVG de Sync y bienvenida, pedales. También para la 3.0.x: `nube/b2-tests` 148a5939c8 (desde
+  d662 toca producción: la guarda de Sparkle), `nube/b2-depfile` bbfb565048 y `nube/b2-redirect-cc`, más lo no portado
+  (Shields, WebGPU, Containers, UpdateTargetURL).
+- **MotionMark de la 7,1** (LOCAL-19): la nota baja de Titín viene de la pantalla de 144 Hz y de su sesión cargada. A 60 Hz,
+  FlyWeb da 3400–3700, al nivel de Brave 1.99 y entre un 8 y un 15 % por debajo de Chrome 157. No hay guarda nuestra
+  culpable.
+
+**Abierto (por orden):**
+1. **Firma en bak de la 3.0.0** (Titín) → PUBLICACIÓN: appcast y web → URL y appcast comprobados.
+2. **mjsunit de la 3.0.1** con tres V8 (3.0.0, `seg/3.0.1`, `seg/3.0.1-parser`): el encargo está en `buzon/MOTOR/` y sin
+   entregar, porque la Ubuntu (MOTOR-30) está desconectada. Pregunté a Titín: A) reabrir «Motor ubuntu», o B) que lo haga
+   LOCAL-20 en la 7,1 con d8. Sin respuesta. Si el parser no tiene caídas propias, la 3.0.1 sale de `seg/3.0.1-parser`.
+3. **add_repo de lamosquita-net/chromium** para SEGURIDAD-PORTES-19: lo autorizó Titín, pero el modo auto lo denegó.
+   Espera a que Titín lo apruebe en esa sesión. Si no, LOCAL aplica los 61 parches con `git am`.
+4. **Orden de compilar la 3.0.1** a LOCAL-19 cuando estén 2 y 3: brave-core = `seg/3.0.1(-parser)` + marca + lo que se
+   decida de la 3.0.x; `flyweb_version` 3.0.1, FLYWEB_BUILD_NUMBER 42; las pruebas de la marca, en la fila de MOTOR-42.
+5. **LOCAL-20:** pruebas de la 3.0.0 publicada en la 6,1 (actualización por Sparkle sobre una copia del perfil y la lista
+   manual). Esperan al appcast.
+6. **ARQUITECTURA:** el estudio de la 3.x (`FlyWeb/docs/plan-3x.md`) le llegó el 08-11 a las 12:56, offline. Titín habla
+   con ella directamente. Mi recomendación: la 3.1 sea la línea de GPU e hilos (FM.56); el sync con email (F7.7) va como
+   diseño en paralelo.
+7. **Design Fly Suite** (proyecto aparte de Titín, en Rust; apps Craft de storytold): análisis en la nube primero; la jaula
+   `craft` de la 6,1 la hace LOCAL-19 solo tras el informe. #869 revisado: sin datos del entorno, pero **no fusionar** hasta
+   que su Fase 1 pase a «partir del informe de la nube» y la jaula sume pf por usuario, `Match User craft`, `sudo -k` y la
+   comprobación de /Volumes y /Users/Shared. Titín no ha dicho si ese proyecto fusiona sus propios PR.
+8. Limpieza sin prisa (Titín): las ramas `nube/b2-iconos`, `nube/b2-mac-flynk` y `nube/m34-probe` (brave-core), y
+   `nube/pgo-mojave`, `nube/coord33-arranque` y las `claude/coord34-*` (softmac).
+
+**Lección:** el cartero se cayó el 07-11 a las 20:46 UTC y nadie lo vio en 13 h; la orden de publicar la 3.0.0 no llegó.
+Compara a mano `buzon/ENTREGADO.md` con `buzon/*/` en **cada** turno en que mandes algo al buzón; la vigilancia
+de CronCreate no sirvió. El CARTERO-LOCAL nuevo (relevo del 08-11) está bien. Los mensajes a MOTOR fallan mientras la
+Ubuntu esté apagada.
+
+**Equipo vivo:** MOTOR-42, SEGURIDAD-PORTES-19, LOCAL-19 y LOCAL-20 (bridges, solo buzón), PUBLICACIÓN, SERVIDOR-LOCAL,
+CARTERO-LOCAL (relevo del 08-11), ARQUITECTURA (offline). MOTOR-41 y SEGURIDAD-PORTES-18, archivadas.
+
 ## 07-11 (tarde): COORDINACIÓN-33 → COORDINACIÓN-34 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-33 (`session_01MwmK2kDoYYca7UqZKpt6gH`, 07-11 09:42 → ~15:15 UTC; Opus 5.5 medio; abierta por Titín, linaje
