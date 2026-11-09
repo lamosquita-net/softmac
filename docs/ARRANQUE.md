@@ -110,6 +110,8 @@ Español, breve; commits en inglés con Co-Authored-By de Claude. Datos personal
 
 ### COMPILACIÓN-DFS-1 (Design Fly Suite)
 
+**APLAZADO (Titín, 09-11): no se abre hasta que las apps Craft lleguen a beta.**
+
 Agente nuevo (Titín, 08-11). Revisa y compila en sandbox las apps Craft de `storytold` como base de los forks propios
 (Design Fly Suite). Contexto en [`docs/investigacion/craft-apps.md`](investigacion/craft-apps.md).
 

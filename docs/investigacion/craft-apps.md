@@ -86,6 +86,8 @@ original se para o cambia de rumbo, seguimos nosotros.
 
 ## Siguientes pasos
 
+> **APLAZADO (Titín, 09-11):** no se empieza nada con las apps Craft hasta que lleguen a beta y se hayan hecho todas las pruebas. COMPILACIÓN-DFS no se abre hasta entonces. El filtro de FreeHand sí sigue adelante, independiente de Craft.
+
 Decisión de Titín (08-11): **primero revisión y sandbox**. Nada de este código se ejecuta en la 7,1.
 
 1. **COMPILACIÓN-DFS-1** (Design Fly Suite; texto de arranque en `docs/ARRANQUE.md`). Corre en la 7,1 solo para dar
