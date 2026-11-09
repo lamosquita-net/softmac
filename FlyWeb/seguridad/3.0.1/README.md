@@ -1,5 +1,7 @@
 # FlyWeb 3.0.1: parches de seguridad (FS.42)
 
+
+**Fork (09-11, aprobado por Titín):** la serie de Chromium está también como rama **`seg/3.0.1`** de `lamosquita-net/chromium`, con punta **c4b1caf806e2** (ls-remote) sobre `flynk-b1d` 33a1745949 y árbol `2723e1b371c` (comprobado). `flynk-b1d` no se ha tocado. ANGLE, ffmpeg y PDFium no tienen fork accesible: siguen como `.patch` en esta carpeta.
 SEGURIDAD-PORTES-19, 07-11-2026. La tanda la aprobó COORDINACIÓN-34 (T1 + T2). Inventario y criterios en
 [`../../docs/seguridad-3.0.1.md`](../../docs/seguridad-3.0.1.md).
 
