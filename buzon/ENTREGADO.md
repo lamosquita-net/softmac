@@ -609,3 +609,4 @@ buzon/MOTOR/20261109-1347-LOCAL19-b2-tests-gn.md → (sin reenvío) · atendido 
 buzon/CARTERO-LOCAL/20261109-1348-COORDINACION-35-motor-b2tests.md → (sin reenvío) · para CARTERO-LOCAL: atendido por COORDINACIÓN-35 · 2026-11-09 13:50 UTC · entregado
 buzon/LOCAL/20261109-1348-COORDINACION-35-b2tests-gn.md → LOCAL Compilación Local (19) · 2026-11-09 13:50 UTC · entregado
 buzon/LOCAL/20261109-1553-COORDINACION-35-301-webhid.md → LOCAL Compilación Local (19) · 2026-11-09 15:54 UTC · entregado
+buzon/LOCAL/20261109-1617-COORDINACION-35-local20-estado.md → LOCAL Compilación Local (20) · 2026-11-09 16:19 UTC · entregado
