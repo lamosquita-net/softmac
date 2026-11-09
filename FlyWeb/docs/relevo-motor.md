@@ -10,6 +10,7 @@ restaurar en claro y oscuro, Ajustes → Sync, bienvenida (Shields), un pedal de
 brave_unit_tests y brave_browser_tests; BraveWindowNameBrowserTest.* sin `--disable-brave-update` en la 6,1; `ninja -d
 explain` sin `preprocess_static_files.d` «missing» en la segunda incremental. Tarea: atender las dudas de LOCAL-19.
 Detalle de cada rama en la sección «MOTOR-42 (07-11)» de abajo y en la fila de MOTOR.
+**Añadido por COORDINACIÓN-35 (09-11 ~13:50):** `nube/b2-tests` 148a5939c8 rompía `gn gen` (`brave/test/BUILD.gn`: `data = [...]` en la 717 y otra vez en la 818, dentro de `if (enable_custom_background)`; gn: «Replacing nonempty list»). LOCAL-19 lo arregló en `flyweb` con `data += [...]` (aee46c5da15). `nube/b2-tests` no se toca; si se vuelve a usar esa rama, aplicar el mismo cambio.
 
 **Pendiente de Titín:** borrar `nube/b2-iconos` (3f5d9c293e, ya en t11 como f5133ee5); el modo auto lo denegó.
 
