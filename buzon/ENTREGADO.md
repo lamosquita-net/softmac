@@ -624,3 +624,4 @@ buzon/SERVIDOR-LOCAL/20261109-1720-COORDINACION-36-relevo.md → SERVIDOR-LOCAL 
 buzon/CARTERO-LOCAL/20261109-1714-COORDINACION-36-sigue.md → no enrutado (CARTERO-LOCAL) · 2026-11-09 17:16 UTC · pendiente de confirmación: su punto 2 (reintentar MOTOR con «ubuntu motor (3)») NO aplicado, porque el aviso de ENTREGADO exige confirmación de COORDINACIÓN-36; commit sin marca [coord]
 buzon/LOCAL/20261109-1718-COORDINACION-36-local20-perfil.md → LOCAL Compilación Local (20) [3eed64] · 2026-11-09 17:19 UTC · entregado
 buzon/LOCAL/20261109-1731-COORDINACION-36-local20-perfil-roto.md → LOCAL Compilación Local (20) [3eed64] · 2026-11-09 17:32 UTC · entregado
+buzon/LOCAL/20261109-1733-COORDINACION-36-local20-perfil-roto-2.md → LOCAL Compilación Local (20) [3eed64] · 2026-11-09 17:35 UTC · entregado
