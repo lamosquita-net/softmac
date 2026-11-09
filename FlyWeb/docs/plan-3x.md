@@ -259,6 +259,25 @@ El diseño tiene que dejar escrito, en `FlyWeb/docs/sync-cuenta.md`:
    (`FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS`, hoy 365 y desactivado).
 5. **Compatibilidad** con la sincronización actual (24 palabras) durante la transición, y qué pasa con los 7 usuarios de hoy.
 
+6. **Lecciones del 09-11 (Titín, 6,1 con el llavero desajustado tras 3.0.0 → 2.7.0 → 3.0.0)**, requisitos de la página nueva:
+   - **Dos botones, dos alcances, sin confusión:** «salir de la sincronización **en este Mac**» frente a «borrar la cuenta
+     y los datos del servidor **en todos**». El segundo, con confirmación que diga cuántos navegadores se desconectan.
+   - **Nada se queda «en curso» para siempre:** «Eliminación de la cuenta en curso…» se quedó colgado sin error ni
+     tiempo límite; con la lista de dispositivos vacía y sin que «Ver el código» ni «Añadir dispositivo» hicieran nada. Toda
+     operación de sync tiene tiempo límite, mensaje de error claro y botón de reintentar.
+   - **Claves locales ilegibles = estado propio:** si el navegador no puede descifrar (llavero cambiado), lo detecta y
+     ofrece «volver a unir este Mac» en vez de mostrar una página rota.
+   - **Volver a unir sin duplicar:** al reincorporar un aparato, opción «sustituir lo local por lo de la cuenta» (o fusión
+     sin duplicados por URL/GUID), además de «combinar».
+   - **Cadena borrada desde otro Mac:** el servidor marca la cadena (`disabled`) y responde DISABLED_BY_ADMIN; la 3.0.0
+     no lo trata: la 7,1 se queda con la lista vacía y sin que respondan «Ver el código», «Añadir dispositivo» ni
+     «Abandonar la cadena». Debe avisar «la cadena se ha eliminado» y dejar empezar otra o unirse con un código.
+   - **Servidor:** contar en el registro, sin identificar la cadena, los borrados de cuenta y las respuestas
+     DISABLED_BY_ADMIN, para poder diagnosticar sin abrir la base.
+   - Literales: «Passwords» sin traducir en la lista de tipos de datos (también en la 3.0.x).
+   - Volver de la 3.0 a la 2.7 abriendo la 2.7.0 sobre el perfil migrado rompe el llavero: la 2.7.x no debe abrir un
+     perfil con la marca «FlyWeb 3 Profile» (o la salida documentada es solo restaurar la copia «antes de 3.0»).
+
 ### 5.2 Hitos y riesgo
 
 - **Hito 1:** diseño aprobado por Titín (es suyo: él decide). Antes de eso, ni una línea de código.
