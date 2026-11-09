@@ -67,3 +67,28 @@ Cada mejora genérica del lector se ofrece también a libfreehand (LibreOffice).
 Los documentos de Titín, de FreeHand 3.1 a la 11, **no se suben a GitHub**. En el repo solo se anota una tabla por
 documento, sin nombres que identifiquen al cliente: versión de FreeHand, número de páginas, qué usa (tintas planas,
 texto, mezclas…) y el resultado de cada fase.
+
+## Encargo de la fase 1 (FLYHAND-LOCAL, 09-11)
+
+- **Agente:** FLYHAND-LOCAL. Es la sesión local con puente que se abrió como «Compilación design flysuit». Corre en la
+  7,1 y **compila en la 6,1 (Mojave, Xcode 11.3.1)** por SSH, con la cuenta `craft`.
+- **SDK de Illustrator 2021 v5:** en la 6,1, en `/Users/Shared/SDK/Illustrator-2021-v5/`. Es disco local: no está
+  en el Samba ni en el repo, y Titín y `craft` lo pueden leer. El zip original se guarda aparte, como copia de
+  seguridad privada.
+- **Documentos de prueba:** en la 6,1, en `~craft/flyhand/corpus/`, con permisos 700. Junto a cada documento va el PDF
+  de referencia exportado desde CS4 o FreeHand 11 en el G5.
+
+Qué hay que hacer:
+1. Compilar libfreehand 0.1.4 (commit `85ac573`), librevenge 0.0.5 y lcms2 como **bibliotecas estáticas** x86_64 con
+   `MACOSX_DEPLOYMENT_TARGET=10.14`. El plugin no puede depender de bibliotecas dinámicas externas.
+   - libfreehand usa ICU para convertir las codificaciones del texto. Hay dos opciones: compilar ICU estática o
+     sustituirla por CoreFoundation o iconv. Hay que proponer una y justificarla.
+2. Compilar `fh2raw` y `fh2svg` y pasarlos por los documentos de prueba. Por cada documento se anota, **sin nombres
+   de cliente**:
+   - versión de FreeHand y número de páginas;
+   - si lo abre o no y qué avisos da;
+   - qué usa: tintas planas, texto, mezclas…
+3. Compilar un ejemplo del SDK con Xcode 11.3.1 para comprobar que la cadena de compilación sirve, y que Titín
+   compruebe que carga en Illustrator 25.1 en la 6,1. Si el SDK de 2021 exige un Xcode más nuevo, se anota y se
+   propone compilar en la 7,1 con un SDK de macOS antiguo.
+4. Entregar la tabla de resultados en este fichero, por PR.
