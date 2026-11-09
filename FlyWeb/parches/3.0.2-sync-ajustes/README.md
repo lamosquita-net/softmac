@@ -10,11 +10,15 @@ MOTOR-43, 09-11-2026, por encargo de COORDINACIÓN-36. Esta sesión no tiene pus
 | `0002-l10n-translate-the-sync-Passwords-data-type-label.patch` | traducción de «Passwords» en 53 idiomas (es: «Contraseñas») |
 | `0003-settings-let-sync-type-toggles-follow-Sync-everythin.patch` | porte del arreglo de `disableTypeCheckBox_` de Brave 1.98 (parche de `sync_controls.ts` regenerado sobre 156.0.8078.90) |
 | `0004-ntp-create-BravePrivateNewTabUI-through-the-WebUICon.patch` | `BravePrivateNewTabUIConfig`: la NTP privada y la de invitado vuelven a ser las de Brave |
+| `0005-ntp-FlyWeb-private-new-tab-page-without-Brave-Search.patch` | NTP privada de FlyWeb: sin el logo de Brave Search, búsqueda con el buscador del usuario y sin la mención a Tor |
 
-Los parches entran en la **3.0.1 unificada** (build 42); la carpeta conserva el nombre 3.0.2.
+0001–0003 entran en la **3.0.1 unificada** (build 42); la carpeta conserva el nombre 3.0.2. **0004 y 0005 son de la 3.1 y
+van juntos** (COORDINACIÓN-36, 09-11): con solo 0004, LOCAL-19 vio en la 6,1 el logo «brave» con el león y un texto
+de Tor.
 
-Comprobado con `git am` (los 4; ls-remote del 09-11): entran limpios sobre bf4262a094 (árbol `a99b13aef`, igual que la rama
-local), `seg/3.0.1` **6415661d24**, `seg/3.0.1-parser` **bee89ad8a6** y `seg/3.0.2` **0d6a771f23**. El 0003 da avisos de
+Comprobado con `git am` (ls-remote del 09-11): los 4 primeros entran limpios sobre bf4262a094 (árbol `a99b13aef`),
+`seg/3.0.1` **6415661d24**, `seg/3.0.1-parser` **bee89ad8a6** y `seg/3.0.2` **0d6a771f23**. Los 5 juntos, sobre
+bf4262a094 (árbol `b1dc13fdf`, igual que la rama local), `seg/3.0.1` y `seg/3.0.2`. El 0003 da avisos de
 espacios en blanco: son líneas de contexto del `.patch` que lleva dentro; no fallan. Nada compilado (en la nube no se compila).
 
 ## Por qué falla
@@ -95,6 +99,45 @@ igual que en Brave 1.98.
    pueden cambiar uno a uno, y el cambio se mantiene al recargar la página.
 5. NTP privada (0004): una ventana privada (⇧⌘N) y una de invitado muestran la nueva pestaña privada de **Brave/FlyWeb**,
    no la de incógnito de Chromium. Una pestaña nueva normal sigue siendo la NTP de FlyWeb, con sus fondos.
+
+## 0005: NTP privada y de invitado sin marca de Brave ni Tor (3.1)
+
+**Qué se veía con 0004** (componente React de `components/brave_private_new_tab_ui/resources/page`):
+- **El león y «brave search»:** el SVG `BraveSearchLogo` de `components/search-box`. Además, la caja buscaba **siempre en
+  Brave Search** (`GoToBraveSearch` → `TemplateURLPrepopulateData::brave_search`), aunque el usuario tuviera otro buscador.
+- **Tor:** el diálogo une `headerText1` y `headerText2`. `headerText2` (`IDS_BRAVE_PRIVATE_NEW_TAB_PRIVATE_WINDOW_DESC2`)
+  acaba con «…open a private window with Tor.», y la frase está en sus 49 traducciones. Las cadenas `…_TOR` de la grd
+  no se usan en esta página.
+- El resto no lleva marca: fondo de ondas, la insignia «Ventana privada» con su icono de gafas y el placeholder
+  «Buscar en la web de forma privada».
+
+**Por qué esta y no la de Chromium:** la página de incógnito de Chromium (la de la 3.0.0), con las cadenas que Brave
+rebasa, dice «You've gone Private». Además trae un «including FlyWeb» que es una sustitución errónea de «including
+Google», y su enlace «Más información» va a la ayuda de Google. Arreglar eso pide cambiar cadenas (y perder sus
+traducciones) y una URL de Chromium. La de Brave se arregla sin tocar ninguna cadena ni ningún `.xtb`.
+
+**Qué cambia:**
+- **Logo:** la mosca de FlyWeb (el dibujo de la NTP, `mosca-newtab.svg`) en lugar del logo de Brave Search. Copio
+  `moscaSvg.ts` y `svgEnReact.tsx` en `components/flyweb/` de este paquete, igual que hace `brave_welcome_ui`: cada WebUI
+  lleva su copia, y el conversor evita `innerHTML` por Trusted Types. El nombre accesible del formulario deja de ser
+  «Brave» y pasa a ser el placeholder traducido.
+- **Búsqueda:** `GoToBraveSearch` → `GoToSearch` (mojom, TS y C++), con el **buscador predeterminado** del perfil.
+  `TemplateURLServiceFactory` redirige el perfil privado y el de invitado al original. Si no hay buscador o su URL no
+  admite términos, no hace nada.
+- **Texto:** el diálogo solo enseña `headerText1` (`…_DESC1`), sin Tor en ningún idioma. `headerText2` sigue en la lista
+  de cadenas, pero sin usarse.
+
+**Queda pendiente (no es de este parche):**
+- La traducción **coreana** de `…_DESC1` dice «Brave». Es el mismo problema que el resto de los `.xtb`: lo arregla el flujo
+  de `chromium-rebase-l10n.py` (`FlyWeb/docs/rebranding.md`), no a mano.
+- Si Titín prefiere otro dibujo, o la mosca con otro tamaño, se cambia en `search-box`.
+
+**LOCAL comprueba (3.1), en una ventana privada (⇧⌘N) y en una de invitado:**
+- arriba, la mosca blanca de FlyWeb; nada de león, de «brave» ni de «search»;
+- buscar algo va al buscador predeterminado (el de `flyweb://settings/search`), y ⌘↩ lo abre en otra pestaña;
+- el diálogo de la esquina (y el botón ⓘ) dice solo «FlyWeb nunca guarda lo que haces…», sin Tor;
+- en la consola de DevTools de la página, ningún error de Trusted Types;
+- una pestaña nueva normal sigue igual.
 
 ## Notas (no arregladas)
 
