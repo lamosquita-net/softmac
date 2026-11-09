@@ -7,6 +7,52 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 09-11 (noche): COORDINACIÓN-36 → COORDINACIÓN-37 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-36 (`session_01MwmK2gmWuLtoTHjfCXLggq`, 09-11 17:07 → ~23:15 UTC; Opus 5.5 medio; abierta por la 35, linaje 3
+de 8; relevo al 35 %). La 37 la abre la 36 (linaje 4 de 8). **Nunca llamar a confirm_repository_trust.**
+
+**Canales (importante):** desde la nube **no se puede escribir a ninguna sesión local** (bridges: LOCAL-19, LOCAL-21,
+cartero, ARQUITECTURA, SERVIDOR-LOCAL, PUBLICACIÓN, FLYHAND-LOCAL, «ubuntu motor (3)»): `send_message` da
+`elevated_session_untrusted_device`. Todo va por el buzón (el cartero entrega en 1–2 min) o Titín pega el texto. Ellas sí
+nos escriben por SendMessage. A la nube (MOTOR-43) sí se le escribe.
+
+**Hitos del día (tarde-noche):**
+- **mjsunit** (D8-LINUX, «ubuntu motor (3)» = `session_01MwmK2kVVMhxRUscaawz4rP`): A/B/C sin caídas; el parser entra (#896).
+- **3.0.1 UNIFICADA (decisión de Titín):** 79 de la 3.0.1 + todo lo de la 3.0.2 (V8 .51, [M157], parser, XSLT/WebHID fuera,
+  foco, `flyweb_bundle_version_base`) + parches 0001–0003 de `FlyWeb/parches/3.0.2-sync-ajustes/` + icono de la 2.7.0
+  (#898). Build 42. LOCAL-19: compilada, 0 FAILED, brave-core `local/3.0.1` 2ebd2e08731 (sin comprobar con ls-remote aún),
+  todo en verde. **Orden de las ~23:05 (buzón):** quitar 0004 (NTP privada con marca de Brave), incremental tras la
+  medición de LOCAL-21 en la 7,1, comprobar ventana privada = la de la 3.0.0, entregar en FS.42 → PUBLICACIÓN.
+- **Causa de la sync rota de la 3.0.0** (MOTOR-43, #897/#899): Chromium 156 crea chrome://settings con su
+  SettingsUIConfig y no la de Brave: sin ningún manejador de Brave (sync, Shields por defecto, filtros, Apariencia). El
+  servidor y la cadena de Titín están bien (comprobado en ns2: ningún borrado hoy).
+- **Perfil de Titín en la 6,1** roto por 3.0.0 → 2.7.0 → 3.0.0 (llavero): sin sesiones ni contraseñas. **Titín se queda en
+  la 3.0.0** y espera la 3.0.1 para volver a unirse a la cadena (7,1: «Ver código»; 6,1: abandonar y unirse; nunca
+  «Eliminar cuenta»). Las cookies de la 6,1 no vuelven. Requisitos de la 3.2 en `plan-3x.md` §5.1 punto 6 (#895).
+- **3.1:** LOCAL-21 (`session_01MwmK2kS4ykodCqtwk7ypLU`, «FlyWeb 3.0.0 benchmark medición», bridge) midió la 6,1:
+  Speedometer 10,3 (2.7.0: 5,84), JetStream 107,6 (89,3); perfil del hilo de GPU en `rendimiento-3x.md` (#903): puerta de
+  hilos NO se abre (15,1 % < 25 %). MOTOR-43 (`session_01MwmK2keCUcEPJ6KTcxicZD`, nube, alto) entregó
+  `FlyWeb/parches/3.1-angle/` 0001–0004 (#904; 0001 = texturas re-enlazadas en cada dibujo, 18,6 %, bug de ANGLE desde
+  2020) y la NTP privada con marca FlyWeb (0004 + 0005 de 3.0.2-sync-ajustes, #906). **Orden en cola a LOCAL-19:** tras la
+  3.0.1, candidata 3.1 = 3.0.1 + 4 de ANGLE + 0004/0005 (no se publica); LOCAL-21 la mide en la 6,1 (Titín aprueba LuLu).
+- LOCAL-20 retirada (perdió el día; provocó el incidente del perfil). FlyHand fase 1 fusionada (#890, #901); la 6,1 se
+  turna entre LOCAL-21 (medidas) y FLYHAND-LOCAL. ARQUITECTURA tiene el encargo del diseño `sync-cuenta.md` (3.2).
+
+**Abierto (por orden):**
+1. **Entrega de la 3.0.1** de LOCAL-19 en FS.42: hash de `local/3.0.1` con ls-remote; PUBLICACIÓN; **avisar a Titín
+   para firmar en bak** (lo pidió expresamente) y recordarle cómo volver a unir la sync.
+2. Candidata de la 3.1 (LOCAL-19 compila, LOCAL-21 mide) → si hay mejora y texturas bien, decidir contenido de la 3.1.
+3. Parte de la 7,1 del hito 0 (LOCAL-21, empezó ~23:55 hora local).
+4. Diseño de sync de ARQUITECTURA → revisión de SEGURIDAD → Titín aprueba.
+5. 3.0.2 (nueva): con la 158 estable (17-11), SEGURIDAD-PORTES-21; INVESTIGACIÓN-MOTOR-10.
+6. FlyHand: Titín prueba el `.aip` en Illustrator 25.1.
+7. Limpieza: ramas `claude/coord3*`, `nube/motor43-sync-ajustes` (e8c20faf1c huérfana), `nube/b2-iconos`.
+
+**Lecciones:** antes de dar una versión por probada, abrir la página de sync y las de ajustes; no pedir medidas que ya
+existen (Titín, con razón); al ordenar a LOCAL, pasos con informe por paso; un cambio de contenido tras ordenar compilar
+solo si Titín lo decide.
+
 ## 09-11 (tarde): COORDINACIÓN-35 → COORDINACIÓN-36 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-35 (`session_01MwmK2h9VVd6d8t4mGrtmzp`, 09-11 08:00 → ~17:15 UTC; Opus 5.5 medio; abierta por la 34, linaje 2
