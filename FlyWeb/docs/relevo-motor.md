@@ -1,3 +1,25 @@
+# MOTOR-42 → MOTOR-43 (09-11-2026, ~12:00 UTC)
+
+MOTOR-42 (`session_01MwmK2iFB5QKJ5nASYk5dxj`) se releva hacia el 35 % de contexto. Coordina **COORDINACIÓN-35**
+(`session_01MwmK2h9VVd6d8t4mGrtmzp`, abierta por la 34 el 09-11 ~08:00; comprobado con `get_session`). brave-core con
+push (add_repo en la sesión; el nuevo MOTOR lo necesita en la suya).
+
+**3.0.1 (en compilación, LOCAL-19):** seg/3.0.1 + `nube/b2-icono-restaurar` d3fae32d5b + `nube/b2-tests` 148a5939c8 +
+`nube/b2-depfile` bbfb565048 (todas sobre bf4262a094; `nube/b2-redirect-cc` no entra). Pruebas pedidas: barra de
+restaurar en claro y oscuro, Ajustes → Sync, bienvenida (Shields), un pedal del omnibox («borrar historial»); enlace de
+brave_unit_tests y brave_browser_tests; BraveWindowNameBrowserTest.* sin `--disable-brave-update` en la 6,1; `ninja -d
+explain` sin `preprocess_static_files.d` «missing» en la segunda incremental. Tarea: atender las dudas de LOCAL-19.
+Detalle de cada rama en la sección «MOTOR-42 (07-11)» de abajo y en la fila de MOTOR.
+
+**Pendiente de Titín:** borrar `nube/b2-iconos` (3f5d9c293e, ya en t11 como f5133ee5); el modo auto lo denegó.
+
+**3.1 (FM.56, GPU e hilos), primer hito, parte de MOTOR:** lectura de ANGLE Metal (src `flynk-b1d` 33a1745949 en
+lamosquita-net/chromium; ANGLE a66226b1d3 + parches de `FlyWeb/docs/b1d/angle/`; varias GPU: `flynk-b1d-dosgpu`
+b8a4abda2f / ANGLE dc5ef06): qué cuesta CPU en el hilo del proceso de GPU por llamada de dibujo (vector
+DrawCommandRange, subida de uniformes, validación de estado, barreras). Entrega: lista priorizada con ganancia y riesgo
+en `FlyWeb/docs/rendimiento-3.1.md`, por PR [motor]. LOCAL perfila el hilo en la 6,1 y la 7,1; se cruzan datos.
+Estado al relevar: ver la sección que deje MOTOR-42 en ese documento (si existe) o empezar de cero.
+
 # MOTOR-42 (07-11-2026, ~20:50 UTC): estado
 
 MOTOR-42 (`session_01MwmK2iFB5QKJ5nASYk5dxj`, Opus 5.5, modo auto; brave-core con push). La 3.0.0 está entregada
