@@ -7,7 +7,56 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
-## 09-11: COORDINACIÓN-34 → COORDINACIÓN-35 (leer primero; manda sobre lo de abajo)
+## 09-11 (tarde): COORDINACIÓN-35 → COORDINACIÓN-36 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-35 (`session_01MwmK2h9VVd6d8t4mGrtmzp`, 09-11 08:00 → ~17:15 UTC; Opus 5.5 medio; abierta por la 34, linaje 2
+de 8; relevo al 37 %). La 36 la abre la 35 (linaje 3 de 8). **Nunca llamar a confirm_repository_trust.** Lo decidido hoy
+está en DIRECTIVAS («Plan de la 3.x aprobado», sus decisiones, «Contenido cerrado antes de compilar», «Design Fly Suite»).
+
+**Hitos del día:**
+- **3.0.0 CERRADA:** firmada en bak, appcast verificado, web publicada y comprobada (#875, #876, #878).
+- **Plan de la 3.x aprobado por Titín** (#883, #888; `plan-3x.md` #872): 3.0.x de seguridad siempre en marcha → 3.1 de GPU e
+  hilos (FM.56) ya → 3.2 de sync con el diseño en paralelo. Los siete puntos de §7 de `plan-3x.md` aprobados. Versión
+  declarada: 156; una función nueva solo si una web real la necesita.
+- **3.0.1 compilándose** (LOCAL-19, 7,1, build 42): chromium fork `seg/3.0.1` c4b1caf806 + ANGLE, ffmpeg y PDFium (.patch) +
+  brave-core `seg/3.0.1` 6415661d24 + marca d3fae32d5b + b2-tests 148a5939c8 + b2-depfile bbfb565048, **sin parser**.
+  Arreglos de LOCAL-19 en `flyweb`: aee46c5da15 (gn `data +=`), f4f92db833e (include de `content_switches.h` en
+  `sparkle_glue.mm`) y perfil PGO de V8 al día (`download_profiles.py --check-v8-revision`; **hay que correrlo en cada
+  cambio de V8**). En la entrega: sí o no de `navigator.hid`, `navigator.install` y `TCPSocket`.
+- **3.0.2 preparada** (SEGURIDAD-PORTES-20, #892, archivada): chromium `seg/3.0.2` 502e3c5b85 (V8 15.6.75.51, .98, 6 de la
+  157, foco), brave-core `seg/3.0.2` 0d6a771f23 (XSLT y WebHID apagados, foco, `flyweb_bundle_version_base` 198.63).
+  **No se puede ordenar compilarla** sin el mjsunit (cambia V8; d8 verde en el Ubuntu antes de LOCAL).
+- **3.1:** MOTOR-42 entregó la lectura de ANGLE Metal (`rendimiento-3.1.md`, #885) y está archivado; nota en
+  `relevo-motor.md` (MOTOR-43 implementa 3 y 4 primero, cuando llegue el perfil de LOCAL).
+- INVESTIGACIÓN-MOTOR-9: primer informe (`novedades-motor.md`, #884), archivada; el siguiente, con la 158 (17-11).
+- Cartero: se quedó mudo al 50 % (08:13 → 13:17 UTC); relevo al 35 % aprobado (#886). El nuevo es
+  `session_01MwmK2i8TWjiAS24Km8Rb1Z` y entrega en 1–2 min.
+- SEGURIDAD-VIGÍA pasa a **diaria** (08:58 Madrid). Su texto de pasada sigue hablando de la 128 y no se puede cambiar desde
+  COORDINACIÓN; se le corrigió por send_message. Titín puede cambiarlo en su conversación.
+- Craft (#869) fusionado: espera a la beta de storytold. Titín puso a FLYHAND-LOCAL (`session_01MwmK2imxzm1dF7p4BdPeUv`) a
+  hacer el módulo de Illustrator que abre FreeHand en la 6,1, con la cuenta `craft` (creada por Titín el 09-11 por la
+  tarde; la clave `dfs_craft` estaba en ello). FlyHand no es código de storytold y no necesita la jaula.
+
+**Abierto (por orden):**
+1. **mjsunit (decisión de Titín, sin respuesta):** A) reabrir «Motor ubuntu» (recomendada; una pasada valida la V8 .51 y el
+   parser), o B) LOCAL con d8 en la 7,1 (rompe la directiva). Bloquea la orden de compilar la 3.0.2.
+2. **Entrega de la 3.0.1** de LOCAL-19 en FS.42 → PUBLICACIÓN (regla 11). Comprobar los hashes con ls-remote antes.
+3. **LOCAL-20 sin señales desde las 08:07 UTC:** pruebas de Sparkle de la 3.0.0, luego el hito 0 y el perfil de la 3.1 en la
+   6,1. Se le preguntó por el buzón (16:15) cuándo deja libre la 6,1. **FlyHand no compila en la 6,1 mientras haya
+   medidas.** Si no contesta, decírselo a Titín.
+4. Duda de FlyHand: el SDK de Illustrator reciente puede no compilar con Xcode 11.3.1 (6,1); quizá deba ir a la 7,1.
+5. Cuando llegue el perfil de LOCAL: abrir MOTOR-43 (arreglos 3 y 4 de `rendimiento-3.1.md`).
+6. 3.0.3 y medida de diciembre: con la 158 estable (17-11), abrir SEGURIDAD-PORTES-21; también INVESTIGACIÓN-MOTOR-10.
+7. Limpieza sin prisa: ramas `nube/b2-iconos` (brave-core) y las `claude/coord3*` (softmac).
+
+**Lecciones:** comprueba `buzon/ENTREGADO.md` en cada turno en que mandes algo al buzón, con un `send_later` a los 15–20
+min; más de 45 min sin anotar = aviso a Titín. Cierra el contenido antes de ordenar compilar. Los PR de softmac los
+fusiona COORDINACIÓN (MOTOR-42 se fusionaba los suyos; corregido).
+
+**Equipo vivo:** LOCAL-19 y LOCAL-20 (bridges, solo buzón), PUBLICACIÓN, SERVIDOR-LOCAL, CARTERO-LOCAL, ARQUITECTURA
+(local), FLYHAND-LOCAL, SEGURIDAD-VIGÍA (rutina). Archivadas hoy: MOTOR-42, SEGURIDAD-PORTES-19 y -20, INVESTIGACIÓN-MOTOR-9.
+
+## 09-11: COORDINACIÓN-34 → COORDINACIÓN-35
 
 COORDINACIÓN-34 (`session_01MwmK2m1QvhRzNFCDSWtvkf`, 07-11 15:05 → 09-11 ~08:00 UTC; Opus 5.5 medio; abierta por la 33,
 linaje 1 de 8; relevo al 64 %, tarde: el umbral era el 35 %). La 35 la abre la 34 (linaje 2 de 8). **Nunca llamar a
