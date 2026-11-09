@@ -1,0 +1,132 @@
+From 275c5533404ee55ebcb09fe2bd6f0436e86b2976 Mon Sep 17 00:00:00 2001
+From: "MOTOR-43 (Claude)" <noreply@anthropic.com>
+Date: Mon, 9 Nov 2026 18:13:39 +0000
+Subject: [PATCH 1/2] settings: create BraveSettingsUI through the
+ WebUIConfigMap
+
+Chromium 156 registers settings::SettingsUIConfig in the WebUIConfigMap,
+which is asked before BraveWebUIControllerFactory. chrome://settings was
+therefore built as upstream's SettingsUI and none of the Brave message
+handlers were attached: on the sync page the device list stayed empty
+and every chrome.send (show code, add device, leave chain, delete
+account) went unanswered.
+
+As in Brave 1.98, add BraveSettingsUIConfig, remove SettingsUIConfig in
+RegisterChromeWebUIConfigs and register ours instead. BraveSettingsUI
+now takes only the WebUI, as DefaultWebUIConfig requires.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2keCUcEPJ6KTcxicZD
+---
+ browser/ui/webui/brave_settings_ui.cc         |  4 +---
+ browser/ui/webui/brave_settings_ui.h          | 20 ++++++++++++++++++-
+ .../webui/brave_web_ui_controller_factory.cc  |  4 +++-
+ .../browser/ui/webui/chrome_web_ui_configs.cc | 14 +++++++++++++
+ 4 files changed, 37 insertions(+), 5 deletions(-)
+
+diff --git a/browser/ui/webui/brave_settings_ui.cc b/browser/ui/webui/brave_settings_ui.cc
+index e21280109..4b74cecb9 100644
+--- a/browser/ui/webui/brave_settings_ui.cc
++++ b/browser/ui/webui/brave_settings_ui.cc
+@@ -39,9 +39,7 @@
+ #include "brave/browser/ui/webui/settings/pin_shortcut_handler.h"
+ #endif
+ 
+-BraveSettingsUI::BraveSettingsUI(content::WebUI* web_ui,
+-                                 const std::string& host)
+-    : SettingsUI(web_ui) {
++BraveSettingsUI::BraveSettingsUI(content::WebUI* web_ui) : SettingsUI(web_ui) {
+   web_ui->AddMessageHandler(
+       std::make_unique<settings::MetricsReportingHandler>());
+   web_ui->AddMessageHandler(std::make_unique<BravePrivacyHandler>());
+diff --git a/browser/ui/webui/brave_settings_ui.h b/browser/ui/webui/brave_settings_ui.h
+index 0d328632e..094250a5e 100644
+--- a/browser/ui/webui/brave_settings_ui.h
++++ b/browser/ui/webui/brave_settings_ui.h
+@@ -11,6 +11,11 @@
+ 
+ #include "brave/components/commands/common/commands.mojom.h"
+ #include "chrome/browser/ui/webui/settings/settings_ui.h"
++#include "chrome/common/webui_url_constants.h"
++#include "content/public/browser/webui_config.h"
++#include "content/public/common/url_constants.h"
++
++class BraveSettingsUI;
+ 
+ namespace content {
+ class WebUIDataSource;
+@@ -18,9 +23,22 @@ class WebUIDataSource;
+ 
+ class Profile;
+ 
++// FlyWeb: since Chromium 156 the settings WebUI is created from the
++// WebUIConfigMap, which is asked before BraveWebUIControllerFactory. Without
++// this config chrome://settings got upstream's SettingsUI and none of the
++// Brave handlers (sync, shields, appearance...) were attached. As in
++// Brave 1.98, chrome_web_ui_configs.cc swaps SettingsUIConfig for this one.
++class BraveSettingsUIConfig
++    : public content::DefaultWebUIConfig<BraveSettingsUI> {
++ public:
++  BraveSettingsUIConfig()
++      : DefaultWebUIConfig(content::kChromeUIScheme,
++                           chrome::kChromeUISettingsHost) {}
++};
++
+ class BraveSettingsUI : public settings::SettingsUI {
+  public:
+-  BraveSettingsUI(content::WebUI* web_ui, const std::string& host);
++  explicit BraveSettingsUI(content::WebUI* web_ui);
+   BraveSettingsUI(const BraveSettingsUI&) = delete;
+   BraveSettingsUI& operator=(const BraveSettingsUI&) = delete;
+   ~BraveSettingsUI() override;
+diff --git a/browser/ui/webui/brave_web_ui_controller_factory.cc b/browser/ui/webui/brave_web_ui_controller_factory.cc
+index 86258783c..3089344d6 100644
+--- a/browser/ui/webui/brave_web_ui_controller_factory.cc
++++ b/browser/ui/webui/brave_web_ui_controller_factory.cc
+@@ -55,7 +55,9 @@ WebUIController* NewWebUI(WebUI* web_ui, const GURL& url) {
+   } else if (host == kWelcomeHost && !profile->IsGuestSession()) {
+     return new BraveWelcomeUI(web_ui, url.GetHost());
+   } else if (host == chrome::kChromeUISettingsHost) {
+-    return new BraveSettingsUI(web_ui, url.GetHost());
++    // FlyWeb: normally created through BraveSettingsUIConfig (see
++    // chrome_web_ui_configs.cc); kept so both paths build the same UI.
++    return new BraveSettingsUI(web_ui);
+   } else if (host == chrome::kChromeUINewTabHost) {
+     if (profile->IsIncognitoProfile() || profile->IsGuestSession()) {
+       return new BravePrivateNewTabUI(web_ui, url.GetHost());
+diff --git a/chromium_src/chrome/browser/ui/webui/chrome_web_ui_configs.cc b/chromium_src/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+index 000276878..0aacdd6a3 100644
+--- a/chromium_src/chrome/browser/ui/webui/chrome_web_ui_configs.cc
++++ b/chromium_src/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+@@ -13,7 +13,13 @@
+ #undef RegisterChromeWebUIConfigs
+ 
+ #if !BUILDFLAG(IS_ANDROID)
++#include "base/strings/strcat.h"
++#include "brave/browser/ui/webui/brave_settings_ui.h"
+ #include "brave/browser/ui/webui/brave_shields/shields_panel_ui.h"
++#include "chrome/common/webui_url_constants.h"
++#include "content/public/common/url_constants.h"
++#include "url/gurl.h"
++#include "url/url_constants.h"
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ 
+ void RegisterChromeWebUIConfigs() {
+@@ -21,6 +27,14 @@ void RegisterChromeWebUIConfigs() {
+ 
+ #if !BUILDFLAG(IS_ANDROID)
+   auto& map = content::WebUIConfigMap::GetInstance();
++  // FlyWeb: Chromium 156 registers settings::SettingsUIConfig, and the config
++  // map wins over BraveWebUIControllerFactory, so chrome://settings ended up
++  // as upstream's SettingsUI without the Brave handlers (sync page dead in
++  // 3.0.0). Swap it for BraveSettingsUIConfig, as Brave 1.98 does.
++  map.RemoveConfig(GURL(base::StrCat({content::kChromeUIScheme,
++                                      url::kStandardSchemeSeparator,
++                                      chrome::kChromeUISettingsHost})));
++  map.AddWebUIConfig(std::make_unique<BraveSettingsUIConfig>());
+   map.AddWebUIConfig(std::make_unique<ShieldsPanelUIConfig>());
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ }
+-- 
+2.43.0
+
