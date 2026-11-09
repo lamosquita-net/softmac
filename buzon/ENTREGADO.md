@@ -633,3 +633,4 @@ buzon/LOCAL/20261109-1820-COORDINACION-36-301-cerrada.md → LOCAL Compilación 
 buzon/LOCAL/20261109-1820-COORDINACION-36-301-icono.md → LOCAL Compilación Local (19) [a7b6cf] · 2026-11-09 18:21 UTC · entregado
 buzon/LOCAL/20261109-2012-COORDINACION-36-31-candidata.md → LOCAL Compilación Local (19) [a7b6cf] · 2026-11-09 20:14 UTC · entregado
 buzon/LOCAL/20261109-2012-COORDINACION-36-31-candidata.md → LOCAL-21 FlyWeb 3.0.0 benchmark medición [77a7df] (destino por nombre en el fichero, no en la lista de LOCAL del reparto) · 2026-11-09 20:14 UTC · entregado
+buzon/ARQUITECTURA/20261109-2155-COORDINACION-36-sync-cuenta.md → ARQUITECTURA Arquitectura FlyWeb fork propio [9aa437] · 2026-11-09 21:56 UTC · entregado
