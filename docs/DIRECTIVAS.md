@@ -333,8 +333,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   77ae53e5f6, chromium `seg/3.0.2` 502e3c5b85): (1) ANGLE Metal `FlyWeb/parches/3.1-angle/` 0001–0004 (t4: Aquarium 10k a
   60 fps, 15k +3–10 %, texturas 69/69); (2) NTP privada de FlyWeb, 0004 + 0005 de `3.0.2-sync-ajustes`; (3) favicons con la
   mosca, `3.1-favicons` (#926); (4) Escudos, `3.1-cosmetic-style` (#921), si la build de medida de LOCAL-19 confirma la
-  mejora en MotionMark y pasa la prueba funcional de bloqueo; si no, a la 3.2; (5) Maglev encendido si se cumplen las
-  condiciones 2 y 3 de B6 (6,1, 5,1 y AVX); si no, apagado. Las dos condiciones son medidas, no preguntas: se comprueban
+  mejora en MotionMark y pasa la prueba funcional de bloqueo; si no, a la 3.2; (5) **Maglev encendido** (Titín, 10-11 noche: con
+  7,1 +8,2 %, 6,1 +6,8/+6,6 %, AVX sin despacho 0 en Maglev y mjsunit en verde, la 5,1 no bloquea; su medida va
+  después de publicar, con la versión instalada y el perfil de quien la use, y si pierde se estudia para la 3.2). Las dos condiciones son medidas, no preguntas: se comprueban
   antes de la orden de compilar. **Fuera, a la 3.2:** el diseño de Titín de la pantalla privada (parte de la de la 3.1) y
   los cambios ligeros de las pestañas (colores, esquinas, separadores, pestaña activa; no la forma ni el alto).
 - **Design Fly Suite (Craft, Titín, 09-11):** el fork de vectorcraft espera a que storytold llegue a beta
