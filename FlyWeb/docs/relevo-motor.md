@@ -1,3 +1,43 @@
+# MOTOR-44 → MOTOR-45 (10-11-2026, ~18:50 UTC)
+
+MOTOR-44 (`session_01MwmK2h13FSCtFp8GwQLUyv`, Opus 5.5, alto, modo auto) se releva al 37 % de contexto. Coordina
+**COORDINACIÓN-38** (`session_01MwmK2hsPeczzmEjVZHW81X`). brave-core **solo lectura** (público: el proxy sirve
+`git fetch` anónimo; `add_repo` no da push). Los parches se entregan con `git format-patch` en softmac.
+
+**Hecho:**
+- **[style] de Shields** (#921, fusionado): `rendimiento-motionmark.md` §«Reglas `[style…]`». Son 24 genéricas de
+  adblock-rust 0.13.3 (`misc_generic_selectors`, en todas las páginas); con las 23 de la lista por defecto, la pasada de
+  estilo es 9,4 veces más lenta. Parche candidato `FlyWeb/parches/3.1-cosmetic-style/` (sin compilar; TS con `tsc
+  --strict` y JS probado en Chromium; flag `FlyWebDeferStyleAttrSelectors`). **Lo decide Titín.** Speedometer y
+  JetStream: la 3.0.x lleva **Maglev apagado** (`patches/v8/src-flags-flag-definitions.h.patch`); A/B con
+  `--js-flags=--maglev`.
+- **claude.ai en la 6,1** (#923 y #924, fusionados): `rendimiento-3x.md` §3.5 bis, con sospechosos y bisección.
+  Primero en Mojave: la 0055 (CVE-2026-121140, contexto compartido de Ganesh GL). **COORDINACIÓN-38, 18:38:** Titín no
+  lo reproduce a mano (carga con sesión y en privada con hCaptcha). Se trata como propio de la automatización hasta que
+  LOCAL-19 repita (paso 0). **No preparar arreglo.**
+- **Favicon de Chrome en la NTP** (#926, fusionado): `FlyWeb/parches/3.1-favicons/`. Pone la mosca en `IDR_NTP_FAVICON` y
+  en `IDR_PRODUCT_FAVICON` (`flyweb://version` llevaba el logo de Chromium) y saca la NTP del tematizado. Sin
+  compilar. `generar-marca.sh` y `rebranding.md` §2.3, al día.
+
+**Abierto:**
+- Favicons: pendiente de que LOCAL compile `3.1-favicons` y pruebe la NTP (tema claro y oscuro, privada) y
+  `flyweb://version`.
+- [style]: solo si LOCAL-19 informa de errores al compilar el parche o de que deja de bloquear algo (orden de
+  COORDINACIÓN-38).
+- claude.ai: si LOCAL-19 trae un `bt` del minivolcado, leerlo según §3.5 bis.
+
+**Trampas:**
+- Clon de trabajo: `/home/user/bc` (brave-core con `--depth=1` sobre `bf4262a094`; `local/3.0.1` = `77ae53e` se trae
+  igual). Es de este contenedor: hay que recrearlo.
+- Chromium se lee por gitiles (`…/+/refs/tags/156.0.8078.90/<ruta>?format=TEXT`, luego `base64 -d`); los directorios
+  con `?format=JSON`. `gh api search/code` con `repo:chromium/chromium` sirve para encontrar dónde se define un IDR.
+- Las sustituciones de recursos de marca las hace `updateBranding` (brave-core `build/commands/lib/util.js` 336–347):
+  `app/theme/default_*/{common,brave}` y `components/resources/default_*/brave` se copian encima de Chromium.
+- Un PR puede fusionarse mientras se le sube otro commit: comprobar `origin/main` después de cada push.
+- `git cherry-pick` no admite `-q`.
+
+---
+
 # MOTOR-43 → MOTOR-44 (10-11-2026, ~15:50 UTC)
 
 MOTOR-43 (`session_01MwmK2keCUcEPJ6KTcxicZD`, Opus 5.5) se releva al 57 % de contexto. Coordina **COORDINACIÓN-38**
