@@ -396,6 +396,26 @@ SharedImages y el compositor aún las pide. Si sale sin caída del renderer, los
   virtual).
 - 0032/0033 solo actúan en Mali (`gpu_driver_bug_list`).
 
+**Lo que solo pasa en Mojave** (dato de Titín: en la 7,1 la 3.0.1 carga claude.ai, aunque con sesión iniciada y no la
+entrada con hCaptcha):
+- En 10.14, Skia dibuja con **Ganesh GL sobre ANGLE Metal**, porque Graphite está apagado en código (`b1d/README.md`). En
+  Sequoia dibuja con Graphite sobre Dawn. Así que en la 6,1 el contexto GL compartido de `SharedContextState` es de
+  ANGLE Metal con nuestros parches de 10.14, y el decodificador *passthrough* lo usa para lecturas y copias de
+  SharedImage.
+- Por eso la **0055** sube al primer puesto de los sospechosos de Mojave. Antes, si `MakeCurrent` del contexto compartido
+  fallaba o no restauraba el del decodificador, no pasaba nada. Ahora **se pierde el contexto**. Un contexto WebGL perdido
+  a mitad de fotograma deja al compositor pidiendo SharedImages que ya no existen, que es justo el error del registro. La
+  huella de hCaptcha (lecturas de WebGL y canvas) pasa por ese camino.
+- Para comprobarlo, buscar en los registros que ya hay (`301-claude`, `t4-claude`):
+  - `failed to restore context after using the shared context`;
+  - `Failed to make SharedContextState context current`, que llega como error de WebGL `GL_INVALID_OPERATION`.
+
+  Si sale alguna de las dos, es la 0055.
+- **Repetirlo en la 7,1, más rápido de bisecar:** la 3.0.1 con `--disable-features=SkiaGraphite` dibuja con Ganesh, como
+  Mojave. Cargar la entrada de claude.ai sin sesión y con perfil nuevo. Si cae, el fallo es del camino Ganesh/passthrough
+  y no de 10.14, y se biseca en la 7,1.
+- En la 6,1, `--use-angle=gl` (ANGLE sobre OpenGL en vez de Metal) separa ANGLE Metal del resto.
+
 **Bisección para LOCAL (6,1), en este orden:**
 0. **¿Se repite? Sin recompilar.** Perfil nuevo en cada lanzamiento y **solo claude.ai** (tres cargas), sin `perf` ni Maps
    antes. Alternando 3.0.0 → 3.0.1 → t3 → t4, dos vueltas, a la misma hora. Anotar caída sí o no y las líneas de
