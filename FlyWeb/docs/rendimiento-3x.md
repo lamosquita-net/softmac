@@ -3,7 +3,8 @@
 Datos medidos por LOCAL-21 el 09-11-2026 con la **FlyWeb 3.0.0 publicada** (198.63.41, Chrome/156.0.8078.90, PGO),
 por orden de COORDINACIÓN-36. Cumple el hito 0 de [`plan-3x.md`](plan-3x.md) §3 en la 6,1 y el primer hito de la 3.1
 (§4.1), con la receta de [`rendimiento-3.1.md`](rendimiento-3.1.md) §4. La parte de la 7,1 (3.0.0 frente a Chrome, §1.1)
-se midió la noche del 09 al 10-11-2026, con la 7,1 libre de compilaciones.
+se midió la noche del 09 al 10-11-2026, con la 7,1 libre de compilaciones. La candidata de la 3.1 (parches de ANGLE
+0001–0004 y NTP privada) se midió en la 6,1 el 10-11-2026 (§3).
 
 ## 1. Hito 0: tabla única
 
@@ -166,7 +167,112 @@ Funciones más caras de `CrGpuMain` con 15 000 peces (tiempo propio, % del tiemp
 | `rx::VertexArrayMtl::resolveDrawElementsDraw` | 2,3 |
 | `amdMtlBronzeResourceMgrValidateConstantState` (driver) | 2,0 |
 
-## 3. Método y datos
+## 3. Candidata de la 3.1 en la 6,1 (10-11-2026)
+
+Medida por LOCAL-21, por orden de COORDINACIÓN-36. LOCAL-19 compiló cuatro tandas, todas desde brave-core b6c544471ec,
+como 3.0.1 (198.63.42, Chrome/156.0.8078.98). Las cuatro llevan además los parches 0004 y 0005 de
+`parches/3.0.2-sync-ajustes/` (NTP privada y de invitado). Cada tanda añade un parche de ANGLE de `3.1-angle`:
+
+| Tanda | Parches de ANGLE | UUID del framework |
+|---|---|---|
+| t1 | 0001 | 4C4C444C-…-BB1019620F3A |
+| t2 | 0001–0002 | 4C4C44AD-…-1ADE0E71321B |
+| t3 | 0001–0003 | 4C4C44E2-…-65D2D41364AF |
+| t4 | 0001–0004 | 4C4C4448-…-7D985778A276 |
+
+Condiciones, las de §1 en la 6,1:
+- Cada tanda se copió a `~/flyweb-pruebas/<tanda>` por la red local, con el sha256 del framework comprobado, nunca a
+  `/Applications`.
+- Perfil nuevo en `/tmp`. La 3.0.0 de control se midió el mismo día con el mismo guion.
+- Cada binario nuevo sin firmar necesita la aprobación de LuLu antes de tener red, también hacia 127.0.0.1.
+
+### 3.1 Rendimiento
+
+Mediana de 3 pasadas.
+
+| Medida | 3.0.0 (control, 10-11) | t1 (0001) | t2 (0001–0002) | t3 | t4 |
+|---|---|---|---|---|---|
+| Aquarium 5 000 peces | 60,0 | 60,0 | 60,0 | | |
+| Aquarium 10 000 peces | 57,1 (56,6 · 57,5 · 57,1) | **60,0** (tope) | **60,0** (tope) | | |
+| Aquarium 15 000 peces | 39,7 (39,7 · 40,2 · 39,6) | **42,9** (42,9 · 44,1 · 41,0), +8 % | **43,8** (49,1 · 43,8 · 43,1), +10 % | | |
+| MotionMark 1.3.2 | 1351 (1355 · 1350 · 1351) | 1343 (1352 · 1333)¹ | 1363 (1343 · 1363 · 1380) | | |
+| Texturas WebGL 1 y 2 (69 pruebas) | 69 bien | 69 bien | 69 bien | | |
+
+¹ La primera pasada de la t1 detectó «Framerate 45fps» al cargar justo después de Aquarium (como en §1) y no cuenta.
+Desde la t2, el conductor recarga MotionMark hasta que detecta 60 fps.
+
+- **Aquarium:** con 10 000 peces, la 6,1 llega al tope de 60 fps a partir de la t1. Con 15 000, la t1 gana un 8 %. La t2
+  añade un 2 % más, poco frente a la dispersión de 6 puntos que tiene.
+- **MotionMark:** igual en las tres, dentro del ruido. Sus pruebas no cambian texturas por dibujo, que es lo que ataca
+  el 0001.
+- **Texturas:** página propia `correccion-texturas.html`, que lee píxeles con tolerancia 3 (12 en vídeo). Cubre:
+  varias texturas y programas en un fotograma; `uniform1i` y `texParameteri` entre dibujos; render a textura;
+  `generateMipmap`; samplers de WebGL2; textura desde vídeo; `getError` al final. Las tres, 69 de 69.
+- **Páginas reales:** cuatro ejemplos de three.js (keyframes, envmaps, unreal bloom, texture2darray) cargan sin errores
+  de consola en la 3.0.0, la t1 y la t2; claude.ai también carga.
+
+### 3.2 `sample` del hilo de GPU con 15 000 peces
+
+Porcentaje del tiempo activo de `CrGpuMain` en el que el símbolo está en la pila. Cada `sample` está simbolizado con el
+dSYM de su tanda (UUID comprobado). Los parches de ANGLE de la 3.1 buscan bajar estos símbolos.
+
+| Símbolo | 3.0.0 (control) | t1 | t2 | t3 | t4 |
+|---|---|---|---|---|---|
+| `updateTextures` | 21,9 | **0,0** | 0,0 | | |
+| `bindToShader` | 18,2 | **0,1** | 0,1 | | |
+| `setTexture` | 14,3 | **0,1** | 0,2 | | |
+| `ProgramExecutableMtl` | 30,1 | **10,8** | 12,2 | | |
+| `ContextMtl::drawElementsImpl` | 52,7 | 41,5 | **36,1** | | |
+| `partition_alloc` | 5,2 | 7,3 | **1,6** | | |
+| malloc/free bajo `resolveDrawElementsDraw` (fila 3) | 1,6 | 2,5 | **0,0** | | |
+| `vector<unsigned char>::__insert_with_size` | 5,9 | 8,8 | 9,4 | | |
+| `deviceOrFeatureProfileSupportsFeatureSet:` | 0,5 | 0,7 | 1,8 | | |
+| `encodeMetalEncoder`/`endEncodingImpl` + driver AMD (fila 5) | 16,5 | 22,2 | 24,5 | | |
+
+- **0001** quita la reasignación de texturas y samplers de cada dibujo. `updateTextures`, `bindToShader` y `setTexture`
+  pasan de más del 50 % a casi nada.
+- **0002** quita las asignaciones del dibujo: `partition_alloc` baja de 7,3 a 1,6 % y la fila 3 a cero.
+- Lo que sigue presente: el flujo intermedio (`__insert_with_size`, 9 %) y el encoder con el driver, que sube en
+  proporción porque el resto baja.
+- El control de la 3.0.0 repite el perfil del 09-11 (§2.3) con diferencias de 1–2 puntos.
+
+### 3.3 Google Maps tumba el proceso de GPU, también en la 3.0.0
+
+Al pintar el mapa (tras rechazar el aviso de cookies), Maps no consigue compilar ni enlazar el programa «AtlasWrite» de
+Filament, con el registro de información vacío. El proceso de GPU cae con `exit_code=6` (SIGABRT) dos veces seguidas.
+Maps se rinde («The rendering context was not restored after 25 rendering frames») y todas las pestañas con WebGL pierden
+el contexto.
+
+- **No es de la candidata:** pasa igual con la 3.0.0 de `/Applications`, con la t1 y con la t2.
+- En la referencia del 09-11 no se vio porque Maps se quedó en el aviso de cookies.
+- Las caídas no dejan informe en `DiagnosticReports`.
+- Con la t1, después de las dos caídas, claude.ai dejó de responder por CDP. No se repitió con la 3.0.0 ni con la t2, ni
+  cargando claude.ai antes que Maps.
+- Avisado a COORDINACIÓN y MOTOR para abrir fila. No se ha quitado el 0001, porque el fallo ya está en la 3.0.0.
+
+### 3.4 NTP privada y de invitado (parches 0004 y 0005)
+
+Probada con la t1. Son los mismos parches en las cuatro tandas.
+
+| Comprobación | Resultado |
+|---|---|
+| La mosca en la ventana privada (`--incognito`) | **Sí**, en el centro, sobre el fondo morado de la página privada |
+| La mosca en la ventana de invitado (`--guest`) | **Sí**, con la misma página. La cabecera dice «Ventana Privada»: no hay texto propio de invitado |
+| Sin león, sin «brave search» y sin Tor | **Sí**. Texto entero: «Ventana Privada · FlyWeb nunca guarda lo que haces…» (solo `headerText1`) |
+| Sin errores de Trusted Types en DevTools | **Sí**. Solo un 404 del `favicon.ico` del servidor de pruebas y el aviso de siempre `crbug/1173575` |
+| La NTP normal, igual que en la 3.0.0 | **Sí**: foto de la mosca, logo, «© fotografía @lamosquita» y los mismos avisos |
+| La búsqueda va al buscador predeterminado del perfil | **No** |
+
+Cómo se probó la búsqueda:
+1. En un perfil nuevo, el predeterminado es DuckDuckGo, y la NTP privada abre `duckduckgo.com/?q=…`.
+2. En ventana normal se eligió Google en Ajustes. Al relanzar, Ajustes sigue diciendo «Google».
+3. Con el mismo perfil y `--incognito`, la NTP privada **sigue abriendo DuckDuckGo**.
+
+Causa probable: `GoToSearch` usa `TemplateURLServiceFactory::GetForProfile(profile_)` y da por hecho que el perfil
+privado se redirige al original. En la base Brave, la ventana privada tiene su propio buscador predeterminado
+(DuckDuckGo), y FlyWeb no lo muestra en Ajustes. Avisado a MOTOR y COORDINACIÓN.
+
+## 4. Método y datos
 
 - **Guion:** `s61-l21.sh` corre en la 6,1 por una sola sesión SSH con túnel CDP. `l21.py` conduce desde la 7,1.
   - El guion aborta si hay otra FlyWeb, Chromium, compilación o semáforo `/tmp/*61-en-uso`.
@@ -182,10 +288,20 @@ Funciones más caras de `CrGpuMain` con 15 000 peces (tiempo propio, % del tiemp
   `interactive`, que es antes de que Aquarium cree el contexto en `DOMContentLoaded`.
 - **7,1 (§1.1):** `m71/lanzar.sh` arranca el navegador siempre con `--headless=new` y perfil en `/tmp`; `m71/m71.py` es
   `l21.py` (`PASO=2`) sobre el puerto 9445; `m71/todo.sh` mide FlyWeb y después Chrome, y aborta si hay una compilación.
+- **Candidata (§3):** `s61-c31.sh` (6,1) y `c31.py` (conductor) por `corre.sh ETQ TANDA MODO [FLX]`. Modos: `corr`
+  (texturas, capturas, NTP normal, páginas de fuera), `perf` (Aquarium y MotionMark con `sample` a 15 000), `ntp`
+  (NTP de la ventana inicial y búsqueda desde su cuadro), `buscador` y `ajustes` (cambiar y leer el predeterminado).
+  `corr` va en un lanzamiento aparte después de `perf`, porque Maps tumba el proceso de GPU. `SEGUIR`/`CONSERVAR`
+  reutilizan el perfil de `/tmp` entre lanzamientos, y se borra al final.
+  `comparar-sample.py` compara dos análisis; resultados en `entregas/local21/c31/<tanda>`.
 - **Ficheros:** guiones, `sample`, `ps -M`, `spector.json` y análisis JSON están en la carpeta de entregas de LOCAL-21
   (`entregas/local21/paso2`, `paso3` y `hito0-71`), fuera del repo.
 
-## 4. Pendiente
+## 5. Pendiente
+
+- **Candidata:** t3 y t4 (§3), cada una a la espera de que Titín la apruebe en LuLu.
+- **7,1 con ventana:** COORDINACIÓN-37 pide repetir con ventana visible MotionMark y Aquarium de §1.1 (las cifras
+  headless no son comparables con la 6,1). A la espera de que Titín autorice abrir ventanas en la 7,1.
 
 - **7,1:** el mismo perfil del hilo de GPU como control (Sequoia, W6600X), y repetir §1.1 con una Chrome 156 (hoy está
   la 157) para separar la versión de lo que es de FlyWeb. Perfilar Multiply, Leaves y Suits de MotionMark.
