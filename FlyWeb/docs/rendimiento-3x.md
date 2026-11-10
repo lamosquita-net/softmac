@@ -457,6 +457,32 @@ entrada con hCaptcha):
   command buffer y la validación en el cliente. Falta perfilarlo; el `sample` del renderer lo congela y engaña, así que
   hay que usar `ps -M` o trazas.
 
+### 3.7 Maglev en la 6,1 (3.0.1 publicada; condición 2 de B6)
+
+Orden de COORDINACIÓN-38, 10-11-2026. Es la condición 2 de B6 en [`DIRECTIVAS.md`](../../docs/DIRECTIVAS.md), «Maglev,
+a prueba…».
+- FlyWeb 3.0.1 publicada (`entregas/FlyWeb-3.0.1-release`, framework `efbe530f…`), Chrome/156.0.8078.98, V8 15.6.75.51.
+- Dos lanzamientos seguidos con el mismo guion de §3: perfil nuevo en `/tmp`, ventana de 1920×1200 a la vista,
+  benchmarks en 127.0.0.1. El primero sin opciones y el segundo con `--js-flags=--maglev`, que se comprobó en la línea
+  de órdenes de `chrome://version`.
+- Tres pasadas de cada prueba; se da la mediana, y la dispersión es (máx. − mín.) / mediana.
+
+| Prueba | Sin Maglev | Con `--maglev` | Diferencia |
+|---|---|---|---|
+| Speedometer 3.1 | **10,48** (10,3 · 10,5 · 10,48; 1,9 %) | **11,19** (11,0 · 11,20 · 11,19; 1,8 %) | **+6,8 %** |
+| JetStream 3 (76 pruebas, sin web-ssr) | **114,57** (111,09 · 114,92 · 114,57; 3,3 %; 0 errores) | **122,15** (121,32 · 122,41 · 122,15; 0,9 %; 0 errores) | **+6,6 %** |
+
+- **Sin pérdida, y la ganancia queda fuera del ruido:** la peor pasada con Maglev supera a la mejor sin Maglev en las
+  dos pruebas. En la 7,1 la ganancia fue del +8,2 % en ambas.
+- **Ninguna caída, ningún `Check failed`:** en los dos lanzamientos no hay informes de caída, `Check failed` ni FATAL
+  en el registro del navegador (`--enable-logging`).
+- **Ninguna subprueba con error:** ninguna de JetStream (`.benchmark-error` vacío en las 6 pasadas) y ninguna de
+  Speedometer. La consola solo muestra el aviso de JetStream por los parámetros de la URL.
+- Los dos registros tienen las mismas tres líneas de ERROR, que no son de V8: el `.dat` de clean-urls y «Unable to get
+  gpu adapter» (WebGPU en Mojave).
+- La línea base sin Maglev (10,48 y 114,57) cuadra con el hito 0 de la 3.0.0 (10,3 y 107,63, una pasada).
+- **Para B6 falta la 5,1**, cuando Titín pueda.
+
 ## 4. Método y datos
 
 - **Guion:** `s61-l21.sh` corre en la 6,1 por una sola sesión SSH con túnel CDP. `l21.py` conduce desde la 7,1.
@@ -479,6 +505,12 @@ entrada con hCaptcha):
   (NTP de la ventana inicial y búsqueda desde su cuadro), `buscador` y `ajustes` (cambiar y leer el predeterminado),
   `aq` (serie de Aquarium sin `sample`; con `HILOS=1`, `ps -M` y `sample` al final) y `claude` (tres cargas; si una no
   responde, la orden `todos` del vigilante saca `sample` de cada proceso del perfil).
+  Hay tres modos más:
+  - `sp` y `js` (§3.7): tres pasadas de Speedometer 3.1 y de JetStream 3. Antes leen `chrome://version` para comprobar
+    `--js-flags`.
+  - `diseno`: capturas de la NTP privada y de las ventanas para el diseño de la 3.2, en `entregas/local21/diseno-32`.
+    Cambia el tema con `setBraveThemeType`. Las órdenes `privada` y `ventanas` del vigilante abren la ventana privada
+    en el mismo navegador y hacen `screencapture -l` de cada ventana.
   `corr` va en un lanzamiento aparte después de `perf`, porque Maps tumba el proceso de GPU. `SEGUIR`/`CONSERVAR`
   reutilizan el perfil de `/tmp` entre lanzamientos, y se borra al final.
   `comparar-sample.py` compara dos análisis; resultados en `entregas/local21/c31/<tanda>`.
