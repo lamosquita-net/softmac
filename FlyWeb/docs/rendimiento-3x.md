@@ -483,6 +483,58 @@ a prueba…».
 - La línea base sin Maglev (10,48 y 114,57) cuadra con el hito 0 de la 3.0.0 (10,3 y 107,63, una pasada).
 - **Para B6 falta la 5,1**, cuando Titín pueda.
 
+### 3.8 Maglev: AVX sin despacho (condición 3 de B6) y guion de la 5,1 (condición 2)
+
+Orden de COORDINACIÓN-38, 10-11-2026 (LOCAL-19, 7,1). En la 7,1, con el mismo guion de §1.1 bis, Maglev da +8,2 % en
+Speedometer 3.1 y en JetStream 3, sin caídas (`rendimiento-motionmark.md`, «Medida de Maglev y del parche `[style…]`»).
+
+**Condición 3: sin AVX sin despacho en V8 ni en Maglev. Se cumple.**
+- **Binario:** framework de la 3.0.1 publicada (`efbe530f…`; el del DMG, firmado ad hoc, es `5cf631a3…`, con la misma
+  sección `__TEXT,__text`, comprobado con `llvm-objcopy --dump-section`).
+- **Método:**
+  - `llvm-objdump -d` de todo `__TEXT,__text` (238 MB) y recuento de las instrucciones VEX: mnemónico `v…` salvo las de
+    VMX, es decir, AVX, AVX2, FMA, F16C y AVX-512 en VEX/EVEX.
+  - La 3.0.1 tiene `symbol_level=0`, así que, para saber de qué fichero fuente es cada instrucción, se repitió con la
+    candidata t4 (`out/Release-31`, `symbol_level=1`, con dSYM). Tiene el mismo V8, el mismo Maglev y los mismos flags;
+    solo cambia ANGLE. Las dos dan **el mismo total: 403 376 instrucciones VEX**. Cada dirección se pasó por
+    `llvm-symbolizer` con el dSYM: fichero, línea y cadena de inline.
+  - Flags de compilación: ningún objetivo de `obj/v8/` lleva `-mavx` ni `-march=`. Los únicos con `-mavx` son
+    xnnpack (261), ruy (6), webrtc (3), libvpx, libaom y skia (2 cada uno), opus, libwebp y blink (1 cada uno), todos
+    fuera de V8.
+- **V8: 14 instrucciones, todas en `v8/src/objects/simd.cc`** (líneas 78, 300–333). Son `fast_search_avx`, marcada con
+  `__attribute__((target("avx2")))` (`TARGET_AVX2`), para la búsqueda vectorizada de `Array.prototype.includes` e
+  `indexOf`. **Despacho:** solo se llama si `get_vectorization_kind()` devuelve `kAVX2`, es decir, si
+  `CpuFeatures::IsSupported(AVX2)`. Si no, va a `fast_search_noavx` (SSE).
+- **Maglev: 0 instrucciones AVX en el binario.** `src/maglev/` no tiene código con `target(...)`, y su única mención a
+  AVX es `CpuFeatures::IsSupported(SSE4_1) || CpuFeatures::IsSupported(AVX)` (`maglev-reducer.h:61`).
+- **Código JIT (Maglev, TurboFan, Sparkplug, Liftoff):** emiten AVX solo si `CpuFeatures` lo marca.
+  `CpuFeatures::ProbeImpl` (`codegen/x64/assembler-x64.cc:198`) solo pone AVX, AVX2 y FMA3 si CPUID dice AVX, OSXSAVE
+  está activo y XCR0 confirma el estado YMM (`OSHasAVXSupport`, con `xgetbv`). Sin `-mavx` no se definen `__AVX__` ni
+  `__AVX2__`, así que no se activan en compilación. En la 5,1 (Westmere, sin AVX) Maglev emite SSE.
+- **Fuera de V8 (no lo pide B6; para el registro):** el resto de las 403 376 se reparte así:
+  - crates de Rust (~100 000);
+  - sin línea en el dSYM (~121 000; casi todo ensamblador: libaom, libvpx, BoringSSL, ffmpeg o dav1d);
+  - libaom (68 000), xnnpack (36 000), skia (33 000), simdutf (12 700), libvpx (12 200), BoringSSL (9 700), ruy, libyuv,
+    `pdf/paint_manager_simd.cc`, opus, libwebp, webrtc, `media/base` y blink (167).
+
+  Todas son bibliotecas con despacho propio por CPUID (`target`/`-mavx` en ficheros aparte). **No lo he comprobado
+  función a función.** La prueba real es la 5,1: un SIGILL saldría como caída.
+- Ficheros: `temp/local19/avx/` (`avx.sh`, `avx-301.tsv`, `avx-t4.tsv`, `sym.jsonl`).
+
+**Condición 2 en la 5,1: guion preparado para Titín.** Está en `entregas/prueba-51-301-maglev/`, con `LEEME.txt`.
+- Se lanza con doble clic en `medir-maglev-51.command`.
+- Copia la 3.0.1 del DMG publicado a `/tmp` y la abre dos veces, con ventana y perfil nuevo en `/tmp`: sin opciones y
+  con `--js-flags=--maglev`.
+- En cada una pasa Speedometer 3.1 y JetStream 3 (76 pruebas, sin web-ssr) tres veces, servidos en 127.0.0.1 desde
+  `bench/`.
+- Comprueba el flag en `chrome://version` y cuenta los volcados de Crashpad y las líneas `Check failed`, `FATAL` y
+  `SIGILL` del registro.
+- Deja `resultado-51-<fecha>.txt` con las medianas y un `.json` por caso.
+- El conductor (`mb51.py`) es un cliente CDP solo con la biblioteca estándar, válido para el Python 2.7 de Mojave y para
+  Python 3. Mide como `l21.py`/`m71.py`.
+- Probado en la 7,1 sin ventana, con una pasada y Python 3: sin Maglev, 18,9 y 165,6; con Maglev, 20,7 y 180,3; sin
+  caídas. Con Python 2.7 no se ha podido probar (no hay ninguno en la 7,1).
+
 ## 4. Método y datos
 
 - **Guion:** `s61-l21.sh` corre en la 6,1 por una sola sesión SSH con túnel CDP. `l21.py` conduce desde la 7,1.
@@ -530,4 +582,4 @@ a prueba…».
 - **Fila 6:** `sample` de una 3.0.0 sin PGO del mismo commit.
 - **`angle_perftests`** (`DrawCallPerfBenchmark.Run/metal*`, `DrawElementsPerf*`, `UniformsPerf*`): no intentado.
 - **Del hito 0, sin hacer:** las dos medidas de claude.ai sin hCaptcha y la fila del A/B de PGO con valores absolutos.
-  La 5,1, cuando Titín pueda.
+  La 5,1, cuando Titín pueda: Maglev con `entregas/prueba-51-301-maglev/medir-maglev-51.command` (§3.8).
