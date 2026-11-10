@@ -169,7 +169,8 @@ Funciones más caras de `CrGpuMain` con 15 000 peces (tiempo propio, % del tiemp
 
 ## 3. Candidata de la 3.1 en la 6,1 (10-11-2026)
 
-Medida por LOCAL-21, por orden de COORDINACIÓN-36. LOCAL-19 compiló cuatro tandas, todas desde brave-core b6c544471ec,
+Medida por LOCAL-21, por orden de COORDINACIÓN-36 y COORDINACIÓN-38 (que pide la t4 frente a la 3.0.1 publicada).
+LOCAL-19 compiló cuatro tandas, todas desde brave-core b6c544471ec,
 como 3.0.1 (198.63.42, Chrome/156.0.8078.98). Las cuatro llevan además los parches 0004 y 0005 de
 `parches/3.0.2-sync-ajustes/` (NTP privada y de invitado). Cada tanda añade un parche de ANGLE de `3.1-angle`:
 
@@ -188,28 +189,44 @@ Condiciones, las de §1 en la 6,1:
 
 ### 3.1 Rendimiento
 
-Mediana de 3 pasadas.
+Mediana de 3 pasadas; «serie» es una tanda aparte de 5 pasadas sin `sample`, sin la ruta de páginas antes. Controles
+medidos el mismo día con el mismo guion: la 3.0.0 de `/Applications` y la **3.0.1 publicada** (la compilación 198.63.42
+de `entregas/FlyWeb-3.0.1-release`, sha256 del framework `efbe530f…`, la misma que firmó PUBLICACIÓN), que es la base de
+la candidata.
 
-| Medida | 3.0.0 (control, 10-11) | t1 (0001) | t2 (0001–0002) | t3 | t4 |
-|---|---|---|---|---|---|
-| Aquarium 5 000 peces | 60,0 | 60,0 | 60,0 | | |
-| Aquarium 10 000 peces | 57,1 (56,6 · 57,5 · 57,1) | **60,0** (tope) | **60,0** (tope) | | |
-| Aquarium 15 000 peces | 39,7 (39,7 · 40,2 · 39,6) | **42,9** (42,9 · 44,1 · 41,0), +8 % | **43,8** (49,1 · 43,8 · 43,1), +10 % | | |
-| MotionMark 1.3.2 | 1351 (1355 · 1350 · 1351) | 1343 (1352 · 1333)¹ | 1363 (1343 · 1363 · 1380) | | |
-| Texturas WebGL 1 y 2 (69 pruebas) | 69 bien | 69 bien | 69 bien | | |
+| Medida | 3.0.0 | 3.0.1 | t1 (0001) | t2 (0001–0002) | t3 (0001–0003) | t4 (0001–0004) |
+|---|---|---|---|---|---|---|
+| Aquarium 5 000 peces | 60,0 | – | 60,0 | 60,0 | – | – |
+| Aquarium 10 000 peces | 57,1 | 57,7 (serie)¹ | **60,0** | **60,0** | **60,0** | 58,9; **60,0** (serie) |
+| Aquarium 15 000 peces | 39,7 | 39,8 (serie) | 42,9 | 43,8 | 44,8 | 49,2; 41,2 (serie)² |
+| MotionMark 1.3.2 | 1351 | 1342 | 1343³ | 1363 | 1352 | 1365 |
+| Texturas WebGL 1 y 2 (69 pruebas) | 69 bien | 69 bien | 69 bien | 69 bien | 69 bien | 69 bien |
 
-¹ La primera pasada de la t1 detectó «Framerate 45fps» al cargar justo después de Aquarium (como en §1) y no cuenta.
-Desde la t2, el conductor recarga MotionMark hasta que detecta 60 fps.
+Pasadas sueltas:
+- 3.0.0: 10 000 → 56,6 · 57,5 · 57,1; 15 000 → 39,7 · 40,2 · 39,6; MotionMark 1355 · 1350 · 1351.
+- 3.0.1 (serie): 10 000 → 27,1 · 57,0 · 58,0 · 60,0 · 57,7; 15 000 → 39,7 · 39,9 · 39,8 · 40,0 · 39,5; MotionMark
+  1360 · 1338 · 1342.
+- t1: 15 000 → 42,9 · 44,1 · 41,0; MotionMark 1352 · 1333.
+- t2: 15 000 → 49,1 · 43,8 · 43,1; MotionMark 1343 · 1363 · 1380.
+- t3: 15 000 → 44,8 · 50,5 · 40,9; MotionMark 1331 · 1365 · 1352.
+- t4: 10 000 → 60 · 58,9 · 58,9 y (serie) 60 · 60 · 60 · 60 · 58,9; 15 000 → 39,8 · 49,2 · 53,0 y (serie)
+  46,3 · 55,6 · 41,0 · 40,0 · 41,2; MotionMark 1348 · 1365 · 1366.
 
-- **Aquarium:** con 10 000 peces, la 6,1 llega al tope de 60 fps a partir de la t1. Con 15 000, la t1 gana un 8 %. La t2
-  añade un 2 % más, poco frente a la dispersión de 6 puntos que tiene.
-- **MotionMark:** igual en las tres, dentro del ruido. Sus pruebas no cambian texturas por dibujo, que es lo que ataca
-  el 0001.
+¹ La primera pasada de la serie (27,1) es el arranque en frío: la serie no calienta antes con otras páginas.
+² Bimodal: unas pasadas dan 40–41 (lo mismo que la 3.0.1) y otras 46–56. La mediana de las 8 pasadas es 43,8 (+10 %
+  sobre la 3.0.1). Ver §3.6.
+³ La primera pasada de la t1 detectó «Framerate 45fps» al cargar justo después de Aquarium (como en §1) y no cuenta.
+  Desde la t2, el conductor recarga MotionMark hasta que detecta 60 fps.
+
+- **t4 frente a 3.0.1:** con 10 000 peces, de 57,7 al tope de 60 fps. Con 15 000, entre +3 % (serie) y +10 % (8 pasadas),
+  con mucha dispersión. MotionMark igual (+2 %, dentro del ruido). Texturas, 69 de 69. **Nada empeora.**
+- **MotionMark:** igual en todas, dentro del ruido. Sus pruebas no cambian texturas por dibujo ni van limitadas por el
+  hilo de GPU de WebGL.
 - **Texturas:** página propia `correccion-texturas.html`, que lee píxeles con tolerancia 3 (12 en vídeo). Cubre:
   varias texturas y programas en un fotograma; `uniform1i` y `texParameteri` entre dibujos; render a textura;
-  `generateMipmap`; samplers de WebGL2; textura desde vídeo; `getError` al final. Las tres, 69 de 69.
+  `generateMipmap`; samplers de WebGL2; textura desde vídeo; `getError` al final.
 - **Páginas reales:** cuatro ejemplos de three.js (keyframes, envmaps, unreal bloom, texture2darray) cargan sin errores
-  de consola en la 3.0.0, la t1 y la t2; claude.ai también carga.
+  de consola en las seis. claude.ai y Maps, en §3.3 y §3.5.
 
 ### 3.2 `sample` del hilo de GPU con 15 000 peces
 
@@ -218,22 +235,26 @@ dSYM de su tanda (UUID comprobado). Los parches de ANGLE de la 3.1 buscan bajar 
 
 | Símbolo | 3.0.0 (control) | t1 | t2 | t3 | t4 |
 |---|---|---|---|---|---|
-| `updateTextures` | 21,9 | **0,0** | 0,0 | | |
-| `bindToShader` | 18,2 | **0,1** | 0,1 | | |
-| `setTexture` | 14,3 | **0,1** | 0,2 | | |
-| `ProgramExecutableMtl` | 30,1 | **10,8** | 12,2 | | |
-| `ContextMtl::drawElementsImpl` | 52,7 | 41,5 | **36,1** | | |
-| `partition_alloc` | 5,2 | 7,3 | **1,6** | | |
-| malloc/free bajo `resolveDrawElementsDraw` (fila 3) | 1,6 | 2,5 | **0,0** | | |
-| `vector<unsigned char>::__insert_with_size` | 5,9 | 8,8 | 9,4 | | |
-| `deviceOrFeatureProfileSupportsFeatureSet:` | 0,5 | 0,7 | 1,8 | | |
-| `encodeMetalEncoder`/`endEncodingImpl` + driver AMD (fila 5) | 16,5 | 22,2 | 24,5 | | |
+| `CrGpuMain` activo (% del tiempo) | 92,2 | 90,4 | 87,5 | 76,7 | **66,5** |
+| `updateTextures` | 21,9 | **0,0** | 0,0 | 0,0 | 0,0 |
+| `bindToShader` | 18,2 | **0,1** | 0,1 | 0,0 | 0,1 |
+| `setTexture` | 14,3 | **0,1** | 0,2 | 0,1 | 0,2 |
+| `ProgramExecutableMtl` | 30,1 | **10,8** | 12,2 | 12,1 | 13,2 |
+| `ContextMtl::drawElementsImpl` | 52,7 | 41,5 | 36,1 | 30,7 | **23,6** |
+| `partition_alloc` | 5,2 | 7,3 | **1,6** | 1,2 | 1,0 |
+| malloc/free bajo `resolveDrawElementsDraw` (fila 3) | 1,6 | 2,5 | **0,0** | 0,0 | 0,0 |
+| `deviceOrFeatureProfileSupportsFeatureSet:` (fila 4) | 0,5 | 0,7 | 1,8 | **0,0** | 0,0 |
+| `vector<unsigned char>::__insert_with_size` | 5,9 | 8,8 | 9,4 | 8,7 | **0,0** |
+| Flujo intermedio entero (fila 2b) | 7,8 | 10,6 | 12,1 | 11,5 | **5,4** |
+| `encodeMetalEncoder`/`endEncodingImpl` + driver AMD (fila 5) | 16,5 | 22,2 | 24,5 | 29,8 | 33,8 |
 
 - **0001** quita la reasignación de texturas y samplers de cada dibujo. `updateTextures`, `bindToShader` y `setTexture`
   pasan de más del 50 % a casi nada.
 - **0002** quita las asignaciones del dibujo: `partition_alloc` baja de 7,3 a 1,6 % y la fila 3 a cero.
-- Lo que sigue presente: el flujo intermedio (`__insert_with_size`, 9 %) y el encoder con el driver, que sube en
-  proporción porque el resto baja.
+- **0003** quita la consulta de capacidades por dibujo (fila 4) y, con ella, la actividad del hilo baja al 77 %.
+- **0004** quita el `insert` por campo del flujo intermedio, que baja a la mitad.
+- Con las cuatro, los seis símbolos de la lista del README de `3.1-angle` desaparecen. `drawElementsImpl` baja a menos de
+  la mitad, y lo que queda es el encoder con el driver de AMD (un tercio del tiempo activo).
 - El control de la 3.0.0 repite el perfil del 09-11 (§2.3) con diferencias de 1–2 puntos.
 
 ### 3.3 Google Maps tumba el proceso de GPU, también en la 3.0.0
@@ -243,16 +264,15 @@ Filament, con el registro de información vacío. El proceso de GPU cae con `exi
 Maps se rinde («The rendering context was not restored after 25 rendering frames») y todas las pestañas con WebGL pierden
 el contexto.
 
-- **No es de la candidata:** pasa igual con la 3.0.0 de `/Applications`, con la t1 y con la t2.
+- **No es de la candidata:** pasa igual con la 3.0.0 de `/Applications`, la t1, la t2 y la t3. Con la t4 y la 3.0.1 no
+  se llegó a Maps porque antes se colgó claude.ai (§3.5).
 - En la referencia del 09-11 no se vio porque Maps se quedó en el aviso de cookies.
 - Las caídas no dejan informe en `DiagnosticReports`.
-- Con la t1, después de las dos caídas, claude.ai dejó de responder por CDP. No se repitió con la 3.0.0 ni con la t2, ni
-  cargando claude.ai antes que Maps.
 - Avisado a COORDINACIÓN y MOTOR para abrir fila. No se ha quitado el 0001, porque el fallo ya está en la 3.0.0.
 
 ### 3.4 NTP privada y de invitado (parches 0004 y 0005)
 
-Probada con la t1. Son los mismos parches en las cuatro tandas.
+Probada con la t1 y repetida con la t4 (ventana privada: mismo resultado). Son los mismos parches en las cuatro tandas.
 
 | Comprobación | Resultado |
 |---|---|
@@ -272,6 +292,42 @@ Causa probable: `GoToSearch` usa `TemplateURLServiceFactory::GetForProfile(profi
 privado se redirige al original. En la base Brave, la ventana privada tiene su propio buscador predeterminado
 (DuckDuckGo), y FlyWeb no lo muestra en Ajustes. Avisado a MOTOR y COORDINACIÓN.
 
+### 3.5 claude.ai: la pestaña se cae o deja de responder, también con la 3.0.1 publicada
+
+Con la t4 y con la 3.0.1, al cargar `https://claude.ai/` (página de entrada, con hCaptcha invisible):
+- La 3.0.1, en la carga 1, da «Target crashed» (se cae el renderer de la pestaña). Después, la pestaña no responde por
+  CDP. Con la t4, no responde desde la primera carga. Se repite en todos los lanzamientos: 2 con la t4, 2 con la 3.0.1.
+- En ese momento, el proceso de GPU llena el registro de `SharedImageManager::ProduceOverlay/ProduceSkia: Trying to
+  Produce … from a non-existent mailbox` y `skia_output_device_buffer_queue.cc:258 Invalid mailbox`. Son 23–46 líneas con
+  la t4 y la 3.0.1, y ninguna con la 3.0.0 ni con t1–t3.
+- `sample` de todos los procesos durante el cuelgue con la t4: los nueve en reposo (navegador, GPU, utilidades, cinco
+  renderers), sin ningún hilo principal bloqueado. Ficheros en `entregas/local21/c31/t4-claude` y `301-claude`.
+- La 3.0.0 carga claude.ai bien (09-11 y 10-11), y la t2 y la t3 también. La t1 se colgó una vez, pero después de dos
+  caídas de GPU por Maps.
+
+**No es de los parches de ANGLE:** ya está en la 3.0.1 publicada. Falta mirar en una ventana a la vista si un usuario
+lo nota (pestaña «¡Vaya!» o página congelada) y bisecar 3.0.0 → 3.0.1. Avisado a COORDINACIÓN-38 y MOTOR.
+
+### 3.6 Dónde está ahora el límite, y la puerta de §4.3
+
+`ps -M` del hilo principal de cada proceso con 15 000 peces (% de CPU; tres lecturas iguales ±1):
+
+| Hilo principal | 3.0.0 | 3.0.1 (serie) | t1 | t2 | t3 | t4 | t4 (serie) |
+|---|---|---|---|---|---|---|---|
+| Proceso de GPU (`CrGpuMain`) | 93,5 | 87,7 | 90,2 | 89,4 | 86,3 | 56,7 | 64,8 |
+| Renderer de Aquarium (JS y llamadas WebGL) | 61,5 | 100 | 75,3 | 82,8 | 87,7 | 100 | 100 |
+
+(Las columnas sin «serie» son la lectura de la pasada 1, justo antes del `sample`; las de la serie, al acabarla.)
+
+- Con la t4, el hilo de GPU queda al 57–65 % y el renderer de la página al 100 %. **El límite pasa al renderer.** La
+  dispersión de 15 000 peces desde la t2 viene de ahí: ya no hay un único hilo saturado, sino dos casi a la par.
+- Puerta de §4.3 para hilos y varias GPU, con la t4: (1) `CrGpuMain` > 90 %: **ya no** (57–67 %); (2) encoder + driver
+  > 25 %: **sí** (33,8 %); (3) cambios 1–4 aplicados: **sí**.
+- **Repartir el proceso de GPU entre hilos o entre las dos D500 no subiría Aquarium ahora:** esperaría al renderer. El
+  siguiente objetivo, para WebGL pesado, es el hilo principal del renderer: los enlaces WebGL de Blink, el cliente del
+  command buffer y la validación en el cliente. Falta perfilarlo; el `sample` del renderer lo congela y engaña, así que
+  hay que usar `ps -M` o trazas.
+
 ## 4. Método y datos
 
 - **Guion:** `s61-l21.sh` corre en la 6,1 por una sola sesión SSH con túnel CDP. `l21.py` conduce desde la 7,1.
@@ -290,7 +346,9 @@ privado se redirige al original. En la base Brave, la ventana privada tiene su p
   `l21.py` (`PASO=2`) sobre el puerto 9445; `m71/todo.sh` mide FlyWeb y después Chrome, y aborta si hay una compilación.
 - **Candidata (§3):** `s61-c31.sh` (6,1) y `c31.py` (conductor) por `corre.sh ETQ TANDA MODO [FLX]`. Modos: `corr`
   (texturas, capturas, NTP normal, páginas de fuera), `perf` (Aquarium y MotionMark con `sample` a 15 000), `ntp`
-  (NTP de la ventana inicial y búsqueda desde su cuadro), `buscador` y `ajustes` (cambiar y leer el predeterminado).
+  (NTP de la ventana inicial y búsqueda desde su cuadro), `buscador` y `ajustes` (cambiar y leer el predeterminado),
+  `aq` (serie de Aquarium sin `sample`; con `HILOS=1`, `ps -M` y `sample` al final) y `claude` (tres cargas; si una no
+  responde, la orden `todos` del vigilante saca `sample` de cada proceso del perfil).
   `corr` va en un lanzamiento aparte después de `perf`, porque Maps tumba el proceso de GPU. `SEGUIR`/`CONSERVAR`
   reutilizan el perfil de `/tmp` entre lanzamientos, y se borra al final.
   `comparar-sample.py` compara dos análisis; resultados en `entregas/local21/c31/<tanda>`.
@@ -299,7 +357,8 @@ privado se redirige al original. En la base Brave, la ventana privada tiene su p
 
 ## 5. Pendiente
 
-- **Candidata:** t3 y t4 (§3), cada una a la espera de que Titín la apruebe en LuLu.
+- **claude.ai (§3.5):** verlo en una ventana a la vista y bisecar 3.0.0 → 3.0.1. Maps con la t4 y la 3.0.1.
+- **Renderer (§3.6):** perfilar el hilo principal del renderer de Aquarium con 15 000 peces con la t4.
 - **7,1 con ventana:** COORDINACIÓN-37 pide repetir con ventana visible MotionMark y Aquarium de §1.1 (las cifras
   headless no son comparables con la 6,1). A la espera de que Titín autorice abrir ventanas en la 7,1.
 
