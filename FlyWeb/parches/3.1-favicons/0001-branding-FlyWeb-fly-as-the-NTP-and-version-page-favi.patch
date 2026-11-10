@@ -1,0 +1,197 @@
+From 683459767c14db88c8192b15125f05e1ff6ba665 Mon Sep 17 00:00:00 2001
+From: "MOTOR-44 (Claude)" <noreply@anthropic.com>
+Date: Tue, 10 Nov 2026 18:44:05 +0000
+Subject: [PATCH] branding: FlyWeb fly as the NTP and version page favicons
+
+Chromium 156 shows its own logos on two internal pages that Brave's
+resource overrides do not cover:
+- IDR_NTP_FAVICON (common/favicon_ntp.png, a grey Chrome logo): the new
+  tab page, also used by What's New and contextual tasks;
+- IDR_PRODUCT_FAVICON (components/resources/*/chromium/favicon_product.png,
+  the Chromium logo): chrome://version.
+Add both, copied from the FlyWeb tab logo (product_logo_16.png, from M2),
+so updateBranding copies them over Chromium's.
+
+The NTP favicon is themified by Chromium because its own icon is a glyph;
+ThemeFavicon() would mask the colored fly into a silhouette on light tabs
+(contrast 2.2-2.9 against the 3.0 threshold). Skip it for the NTP hosts,
+as Brave already does for the welcome page. chrome://version is not
+themified.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2h13FSCtFp8GwQLUyv
+---
+ .../default_100_percent/common/favicon_ntp.png   | Bin 0 -> 721 bytes
+ .../default_200_percent/common/favicon_ntp.png   | Bin 0 -> 1595 bytes
+ chromium_src/chrome/browser/ui/tabs/tab_data.cc  |  12 ++++++++++--
+ .../brave/favicon_product.png                    | Bin 0 -> 721 bytes
+ .../brave/favicon_product.png                    | Bin 0 -> 1595 bytes
+ 5 files changed, 10 insertions(+), 2 deletions(-)
+ create mode 100644 app/theme/default_100_percent/common/favicon_ntp.png
+ create mode 100644 app/theme/default_200_percent/common/favicon_ntp.png
+ create mode 100644 components/resources/default_100_percent/brave/favicon_product.png
+ create mode 100644 components/resources/default_200_percent/brave/favicon_product.png
+
+diff --git a/app/theme/default_100_percent/common/favicon_ntp.png b/app/theme/default_100_percent/common/favicon_ntp.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..d46a7ba0f8a1b72babf46ea7b78600e317364156
+GIT binary patch
+literal 721
+zcmeAS@N?(olHy`uVBq!ia0vp^0wB!61|;P_|4#%`jKx9jP7LeL$-D$|EK(yp(|mmy
+zw18|52FCVG1{RPKAeI7R1_q`DOmGo_1<VLGNK$-m@Cl$2cTX3`5DUSzlYKox0!5D3
+zzc;;~oGjnA)FjBn_{I#uPJ^w+QXZNUPMGB_5@=buz*S|7MAWtd)n0B@0|67Qj6g+0
+z7x@Iirb{BJO<p}#K_-1iZq)2~SNmSm*wN)eYxQ~S=Xd`9pZB}|xz-=EEp|;2I}{Ej
+z8tzT2io0R>iAO_FD9y+G)UL&@8#hjldsx1B!Mfw8*SH1#FcjOl$mOSIu~j2yoz9+V
+zMhE80^zKlwRP@yOC0DtLq24R}<A=v(cSPm1?v{PJX|nrDWZ!S2C1DBO+&Myu{6?#K
+zHJ;5~K2L|`YO1^N+~rOxcIq?z>zswFw}(YY%I@=3`#U#_e~WCx;@>V#aq9kyUAd;|
+zYP|Xq)zF>Z|AN)@N7lsRCl{st%D%sJF)G|E>QwzzcN14=($a{BM-HjY;{SEFCsEF3
+z?t;&+9<W7pg>F9E7p0dUu`4b<bY8lCT%d->L`B27Ph!q1=t)<|RCTPoe71sr`{$Zt
+zc`Q9wS9iZCJT&vx^gFvOTQ5I-bnLE({U%luMW?ueZEdeC?icnrf8D*aUf<PB{CJ|N
+zgvi=>leR<uf^H><7)3_JiGJt)DfzB9VdILL8IdX*me2YTz@Ph7Y30YbFaxzTNk?bi
+zM<NAQIWfEMG~P~~qI=M2+PRa}oJ@^dPka-}in|m#RngFG7til9z2jbL$reddAMDik
+zwh;79{Bw-)>YKMWj;)*2zs#!l`s2qU-EBLBC%>22d)dEw@x7yloqw~n_1E5#oOS15
+w+H0wQr`B&_VTttA{y+bCNRa9OUvugiW9}T?BD&+MI4Eg(y85}Sb4q9e0OSTLf&c&j
+
+literal 0
+HcmV?d00001
+
+diff --git a/app/theme/default_200_percent/common/favicon_ntp.png b/app/theme/default_200_percent/common/favicon_ntp.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..c1cebd12fc4be33393bb3e8696c02cc10e4ba985
+GIT binary patch
+literal 1595
+zcmV-B2E_S^P)<h;3K|Lk000e1NJLTq001BW001Be1^@s6b9#F800001b5ch_0Itp)
+z=>Px#IAvH#W=%~1DgXcg2mk?xX#fNO00031000^Q000000-yo_1ONa40RR91AfN*P
+z1ONa40RR91AOHXW0FO>U$p8Qau}MThR9FeUSA9@aRTTg2vb(Z;$akbEfgm8`@HHic
+z`GJFJO=VIzWla-`*(6RwHG^ZOHZ{}WjL{#dG?SK<V1<H-GYLsCW+_9+hcF=$O^l$R
+z2)Hcl7u&gS-+lXbc`Rs+XXd_h-o5AJzH`qx_dFG*3HE*PgBnjkg%u={L^z6YfG9o$
+zJGzK&q)`JKPN}xQAg*~tDvztQNQPseK>?BLY4}XVFRmL2m%xfb+Q=18GLvq=z8l_{
+zh4)D~pN7_x5)W$@S}Q^?cByt_Oo>l%1NP4lP0Yt>Bq|Br#auJVWT`fz(_MDL2FT^f
+z@WN?2<NMs1|I@o2eH0t3=tx+cNZ_&o;mhs#?SD7U&9P0WkS_Oxv;pzVFA%Sb+piA;
+zWf!$L*QG)C0N}6p!l=m#o!WwBF*f8Z24?YG;D$WoW{Qb49updg*AZ}%af3Y&JF7zR
+zORE8|tX+a_+3|>vx*s~7L*(|z7=FLdfL)bmkQ~yBH<sEYRo|Qkmd62ef}|-qkthZ?
+z%PevTftYG-L<-T~WK6`%`}(nEeFk1zw*+dnnz6w+Y6deL;ID`G3}<4LpZXc?btkbc
+zb41|FIsiPA1iYFqyed5`l%feNMIE2x$a6ts_joKBzk#m{HzIk#TuHdKqX);T8(=b9
+z(bG4G>o<oHJvR(5J)H(`|1j(<AH|7!Kuw=?o=Q?%FR<$*U?s;~{s8cuA*o`7R;(?X
+zR6>Q*;5tnTMP}W13y_nYi6@pWbdgYc`SI)}tjXICv&HFt&Zi-#eU$^ONhZZQKI?*w
+z<b`mJP+mpjowt0@d&@E{<1Lr3V&jg(ipH6l<*~qvi(Cx4zxXiQ8j1o|+XXn&?u93(
+z@#XcG{>G}@PcSe%%0(yO`Qa0$CQhi3!J>=8#Q_6DMuY|V@>fON-gOO`8;U#{*H9o-
+zG;7h?qo_hYnXD!cMDdxlNE=SqQY1|RCbI?4y;+PQgJM~iq$-QI;`si2yzqsO=S`4p
+z<^idUWKix}Z};HcqH-80-Q>VhaO;Oh(R!s9ddinjKOlsh6%j1w0=($!QxhWaNK!N^
+z4{k@^_ddAos!A>pprZ0?q8TYpSwQbNsYPiW5Ij>4U%d_{>o{7w1~FzC7lZ@#0E_Y)
+zj<lB)rp7;j>O*g%tm+S{A4`S#x{GZn{jwNE&oeU<z|88v5REXtr1b&{pS93nGwe2X
+zz&mBY-f9Ous1SQ$fj%hzG!ManzOdQsxH)J*NT44Ur6k};c`W|wZ^1mt3fGDuwb;o>
+zGm{bj&^^F_<@92@teN{cM9vPPFMkUWvmNJ=wK4_Asv7t*@-}4S;01+VhPo)`fhHQB
+zGnN?mIU3EtxlTzplH%szr$hM&4WghBAv|=ZOMRFh8IJaTRtk-rh2uu%fg1ki3Cq8j
+z@#*NO^g0zb(^<=na~&(w7jRO*{(gG&vcq<T8V$x#Nfn80O~FS_?yMBx>LBpwJYX4B
+zxyNFF+@pSYP;|SK(?P}2%_)a5vkjC;axk*yRl~Yh%7hYH$(66V(^;w1Q_+w^M1Tpy
+zZs{st=d_h>q^8bW?kQWsY_mE*$&W&MIzwKVocgh1z8UB0TBc;&`*{V{KV*T1j!gu1
+z9W$Hcd;)ea6Dnf#oj@iXbA59MuJunmT&}0|hhI@!dluVQ+xZm3MWRi|280!Aoe4J!
+z^fVt{wEd6PjwAQI!x%BT7Mg2)19-jQV^mgri}FpQ)YM2ySxd%j2_SSt{N-+&(j!e_
+z*nMIQnGZ*S>Jb|M?8ey0FbW>GVf8|;ov^2-l(XG!TRuQ#`D_Q3XgcRKy587b;R4fX
+z%ejEyiF@>8;yf8{ov_fiQ|nCR9vXL?9Wqr+c8}18EBqBPK9?Af2}-2cF&EIpz5O|r
+tb|4Z$^E&nKd6Q7usk*Wv<E}&L{a;r{(Ec3I4%`3$002ovPDHLkV1l@~-_HO5
+
+literal 0
+HcmV?d00001
+
+diff --git a/chromium_src/chrome/browser/ui/tabs/tab_data.cc b/chromium_src/chrome/browser/ui/tabs/tab_data.cc
+index 8372d4fa..43d36945 100644
+--- a/chromium_src/chrome/browser/ui/tabs/tab_data.cc
++++ b/chromium_src/chrome/browser/ui/tabs/tab_data.cc
+@@ -15,6 +15,7 @@
+ #include "brave/components/constants/webui_url_constants.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+ #include "chrome/browser/ui/tabs/tab_strip_model.h"
++#include "chrome/common/webui_url_constants.h"
+ #include "content/public/browser/web_contents.h"
+ #include "content/public/common/url_constants.h"
+ #include "url/gurl.h"
+@@ -53,12 +54,19 @@ std::optional<tabs::TabData> MaybeGetSharedPinnedTabData(
+   return std::nullopt;
+ }
+ 
+-// Don't themify the favicon of the welcome WebUI.
++// Don't themify the favicon of the welcome WebUI, nor the new tab page's.
++// FlyWeb: both show the colored fly (IDR_NTP_FAVICON is replaced with it in
++// app/theme/*/common/favicon_ntp.png). Chromium themifies the NTP because its
++// own icon is a monochrome glyph; with the fly, ThemeFavicon() would turn it
++// into a flat silhouette on light tabs (contrast 2.2-2.9, threshold 3.0).
+ tabs::TabData MaybeApplyBraveTabDataOverrides(tabs::TabInterface* tab,
+                                               tabs::TabData data) {
+   if (data.should_themify_favicon) {
+     const GURL& url = tab->GetContents()->GetVisibleURL();
+-    if (url.SchemeIs(content::kChromeUIScheme) && url.host() == kWelcomeHost) {
++    if (url.SchemeIs(content::kChromeUIScheme) &&
++        (url.host() == kWelcomeHost ||
++         url.host() == chrome::kChromeUINewTabHost ||
++         url.host() == chrome::kChromeUINewTabPageHost)) {
+       data.should_themify_favicon = false;
+     }
+   }
+diff --git a/components/resources/default_100_percent/brave/favicon_product.png b/components/resources/default_100_percent/brave/favicon_product.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..d46a7ba0f8a1b72babf46ea7b78600e317364156
+GIT binary patch
+literal 721
+zcmeAS@N?(olHy`uVBq!ia0vp^0wB!61|;P_|4#%`jKx9jP7LeL$-D$|EK(yp(|mmy
+zw18|52FCVG1{RPKAeI7R1_q`DOmGo_1<VLGNK$-m@Cl$2cTX3`5DUSzlYKox0!5D3
+zzc;;~oGjnA)FjBn_{I#uPJ^w+QXZNUPMGB_5@=buz*S|7MAWtd)n0B@0|67Qj6g+0
+z7x@Iirb{BJO<p}#K_-1iZq)2~SNmSm*wN)eYxQ~S=Xd`9pZB}|xz-=EEp|;2I}{Ej
+z8tzT2io0R>iAO_FD9y+G)UL&@8#hjldsx1B!Mfw8*SH1#FcjOl$mOSIu~j2yoz9+V
+zMhE80^zKlwRP@yOC0DtLq24R}<A=v(cSPm1?v{PJX|nrDWZ!S2C1DBO+&Myu{6?#K
+zHJ;5~K2L|`YO1^N+~rOxcIq?z>zswFw}(YY%I@=3`#U#_e~WCx;@>V#aq9kyUAd;|
+zYP|Xq)zF>Z|AN)@N7lsRCl{st%D%sJF)G|E>QwzzcN14=($a{BM-HjY;{SEFCsEF3
+z?t;&+9<W7pg>F9E7p0dUu`4b<bY8lCT%d->L`B27Ph!q1=t)<|RCTPoe71sr`{$Zt
+zc`Q9wS9iZCJT&vx^gFvOTQ5I-bnLE({U%luMW?ueZEdeC?icnrf8D*aUf<PB{CJ|N
+zgvi=>leR<uf^H><7)3_JiGJt)DfzB9VdILL8IdX*me2YTz@Ph7Y30YbFaxzTNk?bi
+zM<NAQIWfEMG~P~~qI=M2+PRa}oJ@^dPka-}in|m#RngFG7til9z2jbL$reddAMDik
+zwh;79{Bw-)>YKMWj;)*2zs#!l`s2qU-EBLBC%>22d)dEw@x7yloqw~n_1E5#oOS15
+w+H0wQr`B&_VTttA{y+bCNRa9OUvugiW9}T?BD&+MI4Eg(y85}Sb4q9e0OSTLf&c&j
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/resources/default_200_percent/brave/favicon_product.png b/components/resources/default_200_percent/brave/favicon_product.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..c1cebd12fc4be33393bb3e8696c02cc10e4ba985
+GIT binary patch
+literal 1595
+zcmV-B2E_S^P)<h;3K|Lk000e1NJLTq001BW001Be1^@s6b9#F800001b5ch_0Itp)
+z=>Px#IAvH#W=%~1DgXcg2mk?xX#fNO00031000^Q000000-yo_1ONa40RR91AfN*P
+z1ONa40RR91AOHXW0FO>U$p8Qau}MThR9FeUSA9@aRTTg2vb(Z;$akbEfgm8`@HHic
+z`GJFJO=VIzWla-`*(6RwHG^ZOHZ{}WjL{#dG?SK<V1<H-GYLsCW+_9+hcF=$O^l$R
+z2)Hcl7u&gS-+lXbc`Rs+XXd_h-o5AJzH`qx_dFG*3HE*PgBnjkg%u={L^z6YfG9o$
+zJGzK&q)`JKPN}xQAg*~tDvztQNQPseK>?BLY4}XVFRmL2m%xfb+Q=18GLvq=z8l_{
+zh4)D~pN7_x5)W$@S}Q^?cByt_Oo>l%1NP4lP0Yt>Bq|Br#auJVWT`fz(_MDL2FT^f
+z@WN?2<NMs1|I@o2eH0t3=tx+cNZ_&o;mhs#?SD7U&9P0WkS_Oxv;pzVFA%Sb+piA;
+zWf!$L*QG)C0N}6p!l=m#o!WwBF*f8Z24?YG;D$WoW{Qb49updg*AZ}%af3Y&JF7zR
+zORE8|tX+a_+3|>vx*s~7L*(|z7=FLdfL)bmkQ~yBH<sEYRo|Qkmd62ef}|-qkthZ?
+z%PevTftYG-L<-T~WK6`%`}(nEeFk1zw*+dnnz6w+Y6deL;ID`G3}<4LpZXc?btkbc
+zb41|FIsiPA1iYFqyed5`l%feNMIE2x$a6ts_joKBzk#m{HzIk#TuHdKqX);T8(=b9
+z(bG4G>o<oHJvR(5J)H(`|1j(<AH|7!Kuw=?o=Q?%FR<$*U?s;~{s8cuA*o`7R;(?X
+zR6>Q*;5tnTMP}W13y_nYi6@pWbdgYc`SI)}tjXICv&HFt&Zi-#eU$^ONhZZQKI?*w
+z<b`mJP+mpjowt0@d&@E{<1Lr3V&jg(ipH6l<*~qvi(Cx4zxXiQ8j1o|+XXn&?u93(
+z@#XcG{>G}@PcSe%%0(yO`Qa0$CQhi3!J>=8#Q_6DMuY|V@>fON-gOO`8;U#{*H9o-
+zG;7h?qo_hYnXD!cMDdxlNE=SqQY1|RCbI?4y;+PQgJM~iq$-QI;`si2yzqsO=S`4p
+z<^idUWKix}Z};HcqH-80-Q>VhaO;Oh(R!s9ddinjKOlsh6%j1w0=($!QxhWaNK!N^
+z4{k@^_ddAos!A>pprZ0?q8TYpSwQbNsYPiW5Ij>4U%d_{>o{7w1~FzC7lZ@#0E_Y)
+zj<lB)rp7;j>O*g%tm+S{A4`S#x{GZn{jwNE&oeU<z|88v5REXtr1b&{pS93nGwe2X
+zz&mBY-f9Ous1SQ$fj%hzG!ManzOdQsxH)J*NT44Ur6k};c`W|wZ^1mt3fGDuwb;o>
+zGm{bj&^^F_<@92@teN{cM9vPPFMkUWvmNJ=wK4_Asv7t*@-}4S;01+VhPo)`fhHQB
+zGnN?mIU3EtxlTzplH%szr$hM&4WghBAv|=ZOMRFh8IJaTRtk-rh2uu%fg1ki3Cq8j
+z@#*NO^g0zb(^<=na~&(w7jRO*{(gG&vcq<T8V$x#Nfn80O~FS_?yMBx>LBpwJYX4B
+zxyNFF+@pSYP;|SK(?P}2%_)a5vkjC;axk*yRl~Yh%7hYH$(66V(^;w1Q_+w^M1Tpy
+zZs{st=d_h>q^8bW?kQWsY_mE*$&W&MIzwKVocgh1z8UB0TBc;&`*{V{KV*T1j!gu1
+z9W$Hcd;)ea6Dnf#oj@iXbA59MuJunmT&}0|hhI@!dluVQ+xZm3MWRi|280!Aoe4J!
+z^fVt{wEd6PjwAQI!x%BT7Mg2)19-jQV^mgri}FpQ)YM2ySxd%j2_SSt{N-+&(j!e_
+z*nMIQnGZ*S>Jb|M?8ey0FbW>GVf8|;ov^2-l(XG!TRuQ#`D_Q3XgcRKy587b;R4fX
+z%ejEyiF@>8;yf8{ov_fiQ|nCR9vXL?9Wqr+c8}18EBqBPK9?Af2}-2cF&EIpz5O|r
+tb|4Z$^E&nKd6Q7usk*Wv<E}&L{a;r{(Ec3I4%`3$002ovPDHLkV1l@~-_HO5
+
+literal 0
+HcmV?d00001
+
+-- 
+2.43.0
+

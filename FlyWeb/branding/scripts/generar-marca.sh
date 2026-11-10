@@ -47,6 +47,12 @@ for c in "" _beta _dev _development _nightly; do
     done
   done
 done
+# Favicons que la 156 trae con su logo y Brave no sustituye: NTP (IDR_NTP_FAVICON) y flyweb://version
+# (IDR_PRODUCT_FAVICON). Ver rebranding.md §2.3 y FlyWeb/parches/3.1-favicons/.
+for dir sc in default_100_percent 1 default_200_percent 2; do
+  r $SYM $((16*sc)) $((16*sc)) $B/app/theme/$dir/common/favicon_ntp.png
+  r $SYM $((16*sc)) $((16*sc)) $B/components/resources/$dir/brave/favicon_product.png
+done
 
 echo "== Logotipos con nombre (M4): 22 de alto con el pequeño, 48 y blanco con el normal"
 A=$B/app/theme
