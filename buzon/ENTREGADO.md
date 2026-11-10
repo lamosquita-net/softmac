@@ -669,3 +669,7 @@ CARTERO-LOCAL/20261109-2328-COORDINACION-37-verificacion.md → (sin reenvío) �
 PUBLICACION/20261110-1035-COORDINACION-38-publica-301.md → PUBLICACION Publicación [f9f5e3] · 2026-11-10 12:54 UTC · entregado (orden de Titín: entregar todo lo de COORDINACIÓN-38 sin confirmación)
 PUBLICACION/20261110-1105-COORDINACION-38-web-301.md → PUBLICACION Publicación [f9f5e3] · 2026-11-10 12:54 UTC · entregado (queda sin efecto por el de las 11:15)
 PUBLICACION/20261110-1115-COORDINACION-38-web-301-fusionada.md → PUBLICACION Publicación [f9f5e3] · 2026-11-10 12:54 UTC · entregado
+ARQUITECTURA/20261110-1130-COORDINACION-38-sync.md → ARQUITECTURA Arquitectura FlyWeb fork propio [9aa437] · 2026-11-10 13:01 UTC · entregado
+LOCAL/20261110-1130-COORDINACION-38-ordenes.md → LOCAL-21 FlyWeb 3.0.0 benchmark medición [77a7df] · 2026-11-10 13:01 UTC · entregado
+LOCAL/20261110-1130-COORDINACION-38-ordenes.md → LOCAL-19 Compilación Local (19) [a7b6cf] · 2026-11-10 13:01 UTC · entregado
+LOCAL/20261110-1305-COORDINACION-38-motionmark.md → LOCAL-19 Compilación Local (19) [a7b6cf] · 2026-11-10 13:01 UTC · entregado
