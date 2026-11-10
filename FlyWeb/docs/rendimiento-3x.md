@@ -2,8 +2,8 @@
 
 Datos medidos por LOCAL-21 el 09-11-2026 con la **FlyWeb 3.0.0 publicada** (198.63.41, Chrome/156.0.8078.90, PGO),
 por orden de COORDINACIÓN-36. Cumple el hito 0 de [`plan-3x.md`](plan-3x.md) §3 en la 6,1 y el primer hito de la 3.1
-(§4.1), con la receta de [`rendimiento-3.1.md`](rendimiento-3.1.md) §4. La parte de la 7,1 (control y Chrome 156 frente a
-la 3.0.0) queda para cuando termine la compilación de la 3.0.1.
+(§4.1), con la receta de [`rendimiento-3.1.md`](rendimiento-3.1.md) §4. La parte de la 7,1 (3.0.0 frente a Chrome, §1.1)
+se midió la noche del 09 al 10-11-2026, con la 7,1 libre de compilaciones.
 
 ## 1. Hito 0: tabla única
 
@@ -15,19 +15,67 @@ Condiciones en la 6,1:
 
 | Medida | 6,1 (Mojave, D500), 3.0.0 | 5,1 (RX 580, sin AVX), 3.0.0 | 7,1 (Sequoia), 3.0.0 | Antes en la 6,1 (2.7.0, GL) |
 |---|---|---|---|---|
-| MotionMark 1.3.2 | 1381 (medido antes; no repetido por orden de COORDINACIÓN-36) | 864 ±2,8 % | pendiente | 566 |
-| Speedometer 3.1 | **10,3 ±0,44** (1 pasada) | sin medir | pendiente | 5,84 |
-| JetStream 3 (76 pruebas, sin web-ssr) | **107,63** (1 pasada, 0 errores) | sin medir | pendiente | 89,3 |
-| Aquarium 5 000 / 10 000 / 15 000 peces | **60,0 / 55,9 / 39,0 fps** (mediana de 3; ≤1,1 %) | 60 / 40,9 / – | pendiente | 60 / 44 / 30 |
+| MotionMark 1.3.2 | 1381 (medido antes; no repetido por orden de COORDINACIÓN-36) | 864 ±2,8 % | **3183** ±0,8 % (sin ventana) | 566 |
+| Speedometer 3.1 | **10,3 ±0,44** (1 pasada) | sin medir | **18,6** ±1,6 % (sin ventana) | 5,84 |
+| JetStream 3 (76 pruebas, sin web-ssr) | **107,63** (1 pasada, 0 errores) | sin medir | **165,4** ±1,7 % (sin ventana, 0 errores) | 89,3 |
+| Aquarium 5 000 / 10 000 / 15 000 peces | **60,0 / 55,9 / 39,0 fps** (mediana de 3; ≤1,1 %) | 60 / 40,9 / – | **60,0 / 60,0 / 56,8 fps** (sin ventana) | 60 / 44 / 30 |
 
 Notas:
 - **Aquarium:** lienzo de 1024×1024. Las pasadas a 10 000 peces dieron 55,9 · 55,3 · 56,5; a 15 000, 39,1 · 39,0 · 39,0.
   El fps es la media de `g_fpsTimer.averageFPS` durante 30 s, tras 10 s de calentamiento, y coincide con un contador
   de rAF de 5 s.
 - **Speedometer y JetStream:** una pasada de cada uno, por orden de COORDINACIÓN-36 (tres solo si la primera salía rara).
-  Guardan con la 7,1 la misma proporción de siempre (6,1 ≈ ½ de la 7,1).
+  Frente a la 7,1, la 6,1 da el 55 % en Speedometer y el 65 % en JetStream.
+- **7,1:** mediana de 3 pasadas; la dispersión es (máx. − mín.) / mediana. Detalle y condiciones en §1.1.
 - **MotionMark:** la página detectó «Framerate 45fps» justo después de Aquarium, en una pasada que se cortó. Queda
   anotado por si explica cifras antiguas; no se ha investigado.
+
+### 1.1 La 7,1: 3.0.0 frente a Chrome (sin ventana)
+
+Condiciones:
+- MacPro7,1, Sequoia, Radeon PRO W6600X. WebGL por ANGLE Metal en los dos navegadores; Skia Graphite.
+- **Sin ventana** (`--headless=new`), porque en la 7,1 no se abre nada con ventana mientras Titín trabaja en ella.
+  El refresco es el virtual del modo sin ventana (60 Hz; MotionMark detecta «60fps» y «medium screen»). Pantalla
+  virtual de 800×600, ventana de 1920×1119–1200 y DPR 1.
+- Perfil nuevo en `/tmp` y `--disable-brave-update` en FlyWeb. Benchmarks servidos en 127.0.0.1, sin red.
+- La FlyWeb de Titín estaba abierta, en reposo, y no había ninguna compilación en marcha.
+- **Chrome es la 157.0.8103.39**, no la 156: el Chrome instalado se había actualizado solo y no se ha descargado otro.
+- **No es comparable con [`comparativa-71.md`](comparativa-71.md)**, que se midió con ventana en un monitor de 60 Hz
+  (3.0.0 PGO 3576 y Chrome 156 3861 en MotionMark). Aquí solo vale la comparación entre los dos navegadores, en las
+  mismas condiciones.
+
+| Medida | FlyWeb 3.0.0 (Chrome/156.0.8078.90, PGO) | Chrome 157.0.8103.39 | FlyWeb frente a Chrome |
+|---|---|---|---|
+| MotionMark 1.3.2 | **3183** (3183 · 3200 · 3174; 0,8 %) | **3731** (3844 · 3725 · 3731; 3,2 %) | **−14,7 %** |
+| Speedometer 3.1 | **18,6** (18,6 · 18,7 · 18,4; 1,6 %) | **21,4** (21,4 · 21,9 · 21,4; 2,3 %) | **−13,1 %** |
+| JetStream 3 (76 pruebas, sin web-ssr) | **165,4** (165,3 · 168,1 · 165,4; 1,7 %; 0 errores) | **178,7** (175,7 · 181,4 · 178,7; 3,2 %; 0 errores) | **−7,4 %** |
+| Aquarium 5 000 peces | 60,0 fps (60 · 60 · 60) | 60,0 fps (60 · 60 · 60) | = |
+| Aquarium 10 000 peces | 60,0 fps (59,5 · 60 · 60) | 59,9 fps (59,9 · 59,9 · 60) | = |
+| Aquarium 15 000 peces | **56,8 fps** (56,8 · 56,8 · 56,3) | **60,0 fps** (60 · 60 · 59,9) | **−5,3 %** (Chrome topa con los 60) |
+
+MotionMark por pruebas (mediana de las 3 pasadas):
+
+| Prueba | FlyWeb 3.0.0 | Chrome 157 | FlyWeb frente a Chrome |
+|---|---|---|---|
+| Multiply | 1448 | 2776 | **−48 %** |
+| Canvas Arcs | 17690 | 17869 | −1 % |
+| Leaves | 1505 | 1987 | **−24 %** |
+| Paths | 40050 | 41032 | −2 % |
+| Canvas Lines | 36970 | 37935 | −3 % |
+| Images | 309 | 310 | = |
+| Design | 320 | 370 | −13 % |
+| Suits | 1835 | 2365 | **−22 %** |
+
+Lectura:
+- **El hueco con Chrome está en tres pruebas de MotionMark:** Multiply (casi la mitad), Leaves y Suits, y algo en
+  Design. En Canvas Arcs, Paths, Canvas Lines e Images la 3.0.0 iguala a Chrome. Multiply y Leaves mueven muchos
+  elementos con transformaciones CSS; Suits dibuja SVG con degradados y recortes. No se ha perfilado: es la primera
+  pista fuera de la GPU de WebGL.
+- **Aquarium:** en la 7,1 la 3.0.0 solo pierde a 15 000 peces (56,8 frente a 60). Es el mismo cuello de `CrGpuMain`
+  que en la 6,1 (§2), con más margen; se verá con la candidata de la 3.1.
+- **JavaScript y DOM:** Speedometer −13 % y JetStream −7 %, la misma base 156 frente a una 157. Parte puede ser de la
+  versión; hace falta una Chrome 156 para separarlo.
+- **Dispersión:** la de Chrome en MotionMark es mayor (los intervalos de la página llegan a ±13 %). La de FlyWeb, ±3–4 %.
 
 ## 2. Perfil del hilo del proceso de GPU (6,1, Aquarium a 10 000 y 15 000 peces)
 
@@ -132,13 +180,15 @@ Funciones más caras de `CrGpuMain` con 15 000 peces (tiempo propio, % del tiemp
   - El % «activo» descuenta las hojas de espera (`mach_msg_trap`, `__psynch_cvwait`, `kevent*`…).
 - **Spector.js:** si se inyecta al crear el documento, se cae porque busca `document.head`. Se carga al pasar a
   `interactive`, que es antes de que Aquarium cree el contexto en `DOMContentLoaded`.
+- **7,1 (§1.1):** `m71/lanzar.sh` arranca el navegador siempre con `--headless=new` y perfil en `/tmp`; `m71/m71.py` es
+  `l21.py` (`PASO=2`) sobre el puerto 9445; `m71/todo.sh` mide FlyWeb y después Chrome, y aborta si hay una compilación.
 - **Ficheros:** guiones, `sample`, `ps -M`, `spector.json` y análisis JSON están en la carpeta de entregas de LOCAL-21
-  (`entregas/local21/paso2` y `paso3`), fuera del repo.
+  (`entregas/local21/paso2`, `paso3` y `hito0-71`), fuera del repo.
 
 ## 4. Pendiente
 
-- **7,1:** el mismo perfil como control (Sequoia, W6600X) y el hito 0 con Chrome 156 frente a la 3.0.0, con el mismo
-  guion. Va tras la compilación de la 3.0.1 (LOCAL-19).
+- **7,1:** el mismo perfil del hilo de GPU como control (Sequoia, W6600X), y repetir §1.1 con una Chrome 156 (hoy está
+  la 157) para separar la versión de lo que es de FlyWeb. Perfilar Multiply, Leaves y Suits de MotionMark.
 - **Fila 6:** `sample` de una 3.0.0 sin PGO del mismo commit.
 - **`angle_perftests`** (`DrawCallPerfBenchmark.Run/metal*`, `DrawElementsPerf*`, `UniformsPerf*`): no intentado.
 - **Del hito 0, sin hacer:** las dos medidas de claude.ai sin hCaptcha y la fila del A/B de PGO con valores absolutos.
