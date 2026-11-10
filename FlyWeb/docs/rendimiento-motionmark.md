@@ -168,6 +168,115 @@ Ficheros (fuera del repo): `temp/local19/m71/` en la 7,1, con los guiones (`lanz
 `todo3.sh`), los resultados de cada caso en `c*/resultados.json`, `chrome://gpu` en `c0-fw/`, `c0-ch/` y
 `c4-ch-sinft/` (`gpu.txt` y `gpu.png`) y el `sample` en `c6-multiply-sample.txt`.
 
+## Reglas `[style…]`: de dónde salen y arreglo (MOTOR-44, 10-11-2026)
+
+Encargo de COORDINACIÓN-38 tras la medida de LOCAL-19. Lectura de código (brave-core `bf4262a094` y `local/3.0.1`
+`77ae53e`, iguales en todo lo que importa aquí; Chromium 156.0.8078.90 por gitiles) y **medido en Chromium 153 (Playwright,
+contenedor de la nube)**, no en la 7,1.
+
+### 1. Por qué Blink serializa el `style`
+- `RuleSet::FindBestBucketAndAdd` (`css/rule_set.cc`, 707–731) mete cada regla en un cubo según el **compuesto de más a
+  la derecha**: id, si no clase, si no atributo (el último del compuesto), si no etiqueta. Si el atributo es `style`,
+  marca `has_bucket_for_style_attr_`.
+- `RuleSetGroup` (`resolver/match_request.cc`, 19–23) pone `need_style_synchronized_` en cuanto **una** hoja del grupo
+  tiene ese cubo. Las `adoptedStyleSheets` son del grupo de autor; la hoja de usuario de `InjectStylesheet`, del suyo.
+- `ElementRuleCollector::CollectMatchingRulesInternal` (`css/element_rule_collector.cc`, 886–920): con el indicador
+  puesto pide `element.Attributes()` en vez de `AttributesWithoutStyleUpdate()`. Eso sincroniza el atributo `style`:
+  si el estilo en línea está sucio (cualquier `el.style.x = …`), lo vuelve a escribir como texto. Lo hace para **cada
+  elemento en cada recálculo**, aunque ninguna regla llegue a casar. Es la pila que vio LOCAL-19.
+- Una regla con clave de clase cuyo último compuesto es `div[style…]` (`.ad-wrap div[style*=…]`) también crea el cubo.
+  Una con clase en el último compuesto (`div.x[style…]`) no.
+
+### 2. De dónde salen y cuántas son
+- **adblock-rust 0.13.3** (el que lleva la 3.0.x, `third_party/rust/chromium_crates_io/vendor/adblock-v0_13`):
+  `add_generic_filter` (`cosmetic_filter_cache_builder.rs`, 92–131) guarda las genéricas que **no empiezan por `.` ni
+  por `#`** en `misc_generic_selectors`. También van ahí las que solo tienen dominios negados (`~sitio.com##…`, vía
+  `hidden_generic_rule`). `hostname_cosmetic_resources` (`cosmetic_filter_cache.rs`, 338–355) las mete en
+  `hide_selectors` de **todas las páginas**, salvo con `$generichide`.
+- **brave-core**, `cosmetic_filters_js_handler.cc`, `CSSRulesRoutine`: en modo estándar van a
+  `kHideSelectorsInjectScript`, que las añade a `CC.cosmeticStyleSheet` y la adopta en el documento. En modo agresivo,
+  `InjectStylesheet`, como hoja de usuario. Las genéricas con clave de clase o id (`HiddenClassIdSelectors`) siguen el
+  mismo camino, pero solo cuando la página tiene esa clase o ese id.
+- **Recuento** con las listas que empaqueta nuestro servidor (`FlyWeb/servidor/componentes/listas.json`), bajadas el
+  10-11 de `brave/adblock-lists-mirror`. Lo hace `FlyWeb/parches/3.1-cosmetic-style/pruebas/contar-style.py`,
+  que imita los dos repartos de arriba:
+
+| Lista | Genéricas sin clase ni id (en todas las páginas) | Crean el cubo `[style]` |
+|---|---|---|
+| Por defecto (Brave Default Adblock + Privacy: uBO, EasyList, EasyPrivacy, Brave…) | 559 | **23** |
+| Primera parte (`E99CBD02`) | 87 | 7 (6 repetidas de la anterior) |
+| Avisos de cookies (`AC023D22`) | 450 | 1 (repetida) |
+| Promociones de apps, español, español y portugués | 31 | 0 |
+| **Distintas** | | **24** |
+
+  Basta **una** para que Blink pague el coste. Qué son: **14 capas** invisibles o casi, a pantalla completa o encima de
+  un enlace, para secuestrar clics (`z-index: 2147483647`, `opacity: 0.01`, fondo transparente); **6** de
+  `quick-fixes.txt` con dominios negados, casi todas huecos de anuncio de tamaño fijo (300×250, 160×600, 728×90,
+  `ins[id][style*="--gn-ov-ad-height"]`); y **4** sueltas (Criteo `div[id^="crt-"][style]`, `div[id^="st"][style^="z-index…"]`,
+  un `iframe` con `sandbox` y una ventana con `box-shadow`). Lista completa en
+  `pruebas/recuento-10-11.txt`. El número cambia con las listas: hay que volver a contarlo, no fijarlo.
+
+**Medida del mecanismo** (`pruebas/medir.js`: 2000 `div` con `style.transform` nuevo en cada pasada y un
+`offsetHeight` que fuerza el estilo; mediana de 5; ms por pasada):
+
+| Hoja adoptada | ms |
+|---|---|
+| ninguna, o una regla de clase | 3,9 |
+| `[data-fw…]{display:none}` (el marcador del arreglo) | 3,8 |
+| una regla `[style…]` | 12,9 |
+| una regla `.ad-wrap div[style*=…]` | 13,1 |
+| una regla `div.x[style*=…]` (clase en el último compuesto) | 5,9 |
+| las 23 de la lista por defecto | **36,4** |
+
+Con las 23, la pasada de estilo es **9,4 veces** más lenta. Encaja con el 22 % de LOCAL-19 y con que Multiply casi se
+doble sin el filtrado. El caso `div.x[style…]` también cuesta algo sin crear el cubo; no lo he investigado, porque el
+arreglo lo cubre igual.
+
+### 3. Arreglo que conserva el bloqueo
+Parche candidato: `FlyWeb/parches/3.1-cosmetic-style/0001-…patch` (brave-core, sobre `bf4262a094`; aplica también
+sobre `local/3.0.1`). **Sin compilar**; no va a ninguna rama de producción.
+- En C++, los cuatro caminos (`hide_selectors`, `force_hide_selectors`, clase/id y agresivo) **sacan de la hoja** todo
+  selector con `[style` y se lo pasan a `content_cosmetic.ts`. El filtro es más amplio que el reparto de Blink (cubre el
+  caso `.ad-wrap div[style…]`).
+- En JS se casan en los **nodos añadidos** (el `MutationObserver` que ya existe) y en un **barrido cada segundo**, que
+  pilla los `style` cambiados después de insertar y quita la marca a lo que deja de casar. Lo que casa recibe un atributo
+  aleatorio por página (`data-fw` + 16 hex) que oculta **una sola regla** de hoja de usuario. Esa regla no crea el cubo
+  `[style]` (fila «marcador» de la tabla).
+- Modo estándar: los selectores pasan por las mismas colas de primera parte que cualquier genérica
+  (`pumpCosmeticFilterQueues`). Si una casa contenido propio, deja de ocultar, como antes. Los `force` y el modo agresivo
+  se saltan esa comprobación, como antes.
+- `--disable-features=FlyWebDeferStyleAttrSelectors` vuelve al comportamiento de Brave sin recompilar.
+- **Probado** (`pruebas/funcional.js`, Chromium 153, con la hoja de usuario emulada por una hoja adoptada): capa
+  insertada con el `style` ya puesto, oculta al momento; `style` puesto después, oculta en el siguiente barrido; marca
+  quitada cuando el `style` deja de casar; elemento normal, visible; aviso propio con texto (estándar), visible; selector
+  no válido, descartado. La pasada de estilo con 2000 `div` baja a 3,5 ms (3,9 sin hoja), y un barrido cuesta 5–6 ms.
+
+**Lo que se pierde en webs reales:**
+- Una capa cuyo `style` se pone **después** de insertarla queda visible y clicable hasta **1 s** (el barrido). Es el caso
+  típico de los secuestradores de clics, que son 14 de las 24 reglas. Con el `style` puesto
+  antes de insertar se oculta al momento, salvo cuando el script ha pasado a sondeo (más de 1000 «puntos» por segundo):
+  entonces también hasta 1 s.
+- Los elementos ocultados llevan un atributo `data-fw…` **visible para la página**: sale en el DOM y en sus
+  `MutationObserver`, y un detector de bloqueadores lo puede ver. La hoja actual no se ve desde la página.
+- El barrido cuesta un recorrido del documento por segundo (5–6 ms con 2000 elementos en la nube; más en la 5,1). No se
+  hace con la pestaña oculta.
+- No cambia: las reglas `:style()` de sitio (`style_selectors`), que solo van a su sitio, ni el resto de genéricas.
+
+**Alternativas, de menos a más pérdida:** (a) este parche; (b) quitar esas 24 genéricas en nuestro empaquetador
+(`empaquetar.mjs`), sin tocar el navegador, perdiendo esa protección del todo; (c) dejarlo como está: Brave 1.98 sigue el
+mismo camino (MOTOR-43; no lo he medido). **Recomiendo (a), y medirlo antes de decidir:** Multiply y MotionMark con y sin el
+flag en la 7,1, y comprobar que una página con capa de clics (cualquiera de las de la lista) sigue tapándola.
+**Lo decide Titín.**
+
+### 4. Speedometer −12 % y JetStream −8,5 %: Maglev apagado, primero
+La 3.0.x **lleva Maglev apagado**: `patches/v8/src-flags-flag-definitions.h.patch` pone `DEFINE_BOOL(maglev, false…)`
+(HUMANO, 05-10; `bf4262a094` y `local/3.0.1`). Chrome 156 lo trae encendido. JetStream es casi todo JS, donde Brave apenas
+corre código propio, y ahí es donde más pesa el compilador intermedio. El blog de V8 (5-12-2023, «Maglev - V8's Fastest
+Optimizing JIT») solo da las ganancias de JetStream 2 y Speedometer 2 en gráficas, sin cifra en el texto, así que no
+pongo número. **Cómo separarlo:** el mismo binario con `--js-flags=--maglev` frente a sin él (Speedometer 3.1 y
+JetStream 3, tres pasadas). Lo que quede, con el A/B de PGO que ya está en `plan-3x.md`. Maglev ya tiene su puerta de
+seguridad (B6, `DIRECTIVAS.md`), así que esta medida es la (2) de esa puerta.
+
 ## Fuentes leídas
 - brave-core `nube/b2-porte-t11` bf4262a094 (el código de la 3.0.0):
   - `components/cosmetic_filters/resources/data/content_cosmetic.ts` (observador, sondeo, umbrales);
@@ -180,3 +289,7 @@ Ficheros (fuera del repo): `temp/local19/m71/` en la 7,1, con los guiones (`lanz
   apagado.
 - `FlyWeb/scripts/build.sh` (args de gn: nada de raster, compositor ni Skia) y
   `FlyWeb/policies/flyweb-policies.mobileconfig` (solo Safe Browsing, Wallet y Rewards).
+- MOTOR-44: Chromium 156.0.8078.90 (`css/rule_set.cc`, `css/resolver/match_request.cc`,
+  `css/element_rule_collector.cc`); adblock-rust 0.13.3 vendorizado en brave-core; `patches/v8/` de brave-core;
+  `list_catalog.json` de `brave/adblock-resources` y las listas de `brave/adblock-lists-mirror` (10-11-2026);
+  v8.dev/blog/maglev (leído para comprobar que no da cifras en el texto).
