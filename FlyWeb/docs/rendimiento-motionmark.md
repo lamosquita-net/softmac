@@ -301,6 +301,11 @@ La 3.0.1 publicada (`out/Release`, framework `efbe530f…`, build 42), con `--js
   limpio.
 - Release igual que la 3.0.1 (`porte-build.sh`, PGO, build 42 sin cambiar): incremental, 349/349, **0 FAILED**.
   Framework `fd42df36…`. No se publica.
+- **Corrección (LOCAL-19, 10-11 noche):** el árbol de ANGLE estaba en `bc2ebdd` (los cuatro parches de
+  `3.1-angle`, de la candidata t4), y esta build recompiló esos ficheros de Metal. El binario es, por tanto, 3.0.1 +
+  `3.1-angle` 0001–0004 + este parche. El A/B por flag sigue valiendo, porque es el mismo binario. Con el flag apagado da
+  lo mismo que la 3.0.1 publicada (3270 frente a 3332 en MotionMark; Speedometer 18,7 frente a 18,9), así que ANGLE no
+  mueve estas dos pruebas.
 - El mismo binario con el parche y con `--disable-features=FlyWebDeferStyleAttrSelectors`. Como control, la 3.0.1
   publicada (copia de entregas, `efbe530f`) en la misma tanda.
 
