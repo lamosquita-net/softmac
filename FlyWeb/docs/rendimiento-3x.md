@@ -77,6 +77,59 @@ Lectura:
   versión; hace falta una Chrome 156 para separarlo.
 - **Dispersión:** la de Chrome en MotionMark es mayor (los intervalos de la página llegan a ±13 %). La de FlyWeb, ±3–4 %.
 
+#### 1.1 bis. Repetición con Chrome 156 y la 3.0.1 (LOCAL-19, 10-11-2026)
+
+Por orden de COORDINACIÓN-38: lo mismo que arriba, pero con una **Chrome 156** en lugar de la 157 y la **3.0.1** en
+lugar de la 3.0.0. Las condiciones son las mismas que en §1.1: sin ventana, perfil en `/tmp`, la FlyWeb de Titín
+abierta y en reposo, ninguna compilación ni otra medida en marcha, y benchmarks servidos en 127.0.0.1. Se midió de
+13:06 a 15:40 UTC.
+- **FlyWeb 3.0.1:** 198.63.42, Chrome/156.0.8078.98, PGO, brave-core `77ae53e5f64`. Es la build `out/Release` de la
+  entrega FS.42, con el mismo sha del framework que la publicada (`efbe530f…`), aunque esta copia está sin firmar.
+- **Chrome for Testing 156.0.8078.80:** la que ya había en la 7,1 (`temp/cft156`); no se ha descargado otra. Es la 156
+  más cercana a la .98 que había a mano, 18 revisiones de parche por detrás.
+- **Ojo con Chrome for Testing:** aplica `fieldtrial_testing_config` de serie. Según `chrome://gpu`, eso le enciende
+  EnableDrDc («Direct Rendering Display Compositor»), TreesInViz y WebGPU, que FlyWeb tiene apagadas. Por eso se ha
+  medido también con `--disable-field-trial-config`, que deja las tres como en FlyWeb (columna «sin pruebas de campo»).
+  Es la comparación limpia.
+
+| Medida | FlyWeb 3.0.1 | Chrome 156 (CfT, de serie) | Chrome 156 sin pruebas de campo | 3.0.1 frente a Chrome 156 sin pruebas de campo |
+|---|---|---|---|---|
+| MotionMark 1.3.2 | **3202** (3236 · 3202 · 3196; 1,3 %) | 3373 (3373 · 3313 · 3474; 4,8 %) | **3786** (3786 · 3919 · 3712; 5,5 %) | **−15,4 %** |
+| Speedometer 3.1 | **17,9** (17,9 · 18,5 · 17,8; 3,9 %) | 22,0 (21,5 · 22,0 · 22,1; 2,8 %) | **21,7** (21,5 · 21,9 · 21,7; 1,8 %) | **−17,5 %** |
+| JetStream 3 (76 pruebas, sin web-ssr) | **161,1** (161,0 · 163,3 · 161,1; 1,4 %; 0 errores) | **176,1** (177,1 · 176,1 · 174,5; 1,5 %; 0 errores) | sin medir | **−8,5 %** (frente a la de serie) |
+| Aquarium 15 000 peces | **56,4 fps** (56,6 · 55,3 · 56,4) | **56,6 fps** (55,3 · 56,9 · 56,6) | sin medir | **=** |
+
+MotionMark por pruebas (mediana de 3):
+
+| Prueba | FlyWeb 3.0.1 | Chrome 156 (de serie) | Chrome 156 sin pruebas de campo | 3.0.1 frente a Chrome 156 sin pruebas de campo |
+|---|---|---|---|---|
+| Multiply | 1374 | 2599 | 2870 | **−52 %** |
+| Canvas Arcs | 18652 | 14588 | 19438 | −4 % |
+| Leaves | 1442 | 1926 | 2088 | **−31 %** |
+| Paths | 42306 | 32380 | 44796 | −6 % |
+| Canvas Lines | 38562 | 39323 | 40242 | −4 % |
+| Images | 309 | 317 | 322 | −4 % |
+| Design | 323 | 319 | 346 | −7 % |
+| Suits | 1899 | 1822 | 1959 | −3 % |
+
+Lectura:
+- **No es la versión (H3).** Con la misma base 156, el hueco en MotionMark sigue igual o mayor que con la 157:
+  −15 % frente a la 156 sin pruebas de campo y −14,7 % frente a la 157 en §1.1. Multiply −52 % y Leaves −31 %.
+- **Es el filtrado cosmético de Shields (H1 de [`rendimiento-motionmark.md`](rendimiento-motionmark.md)).** Con
+  `--disable-features=BraveAdblockCosmeticFiltering`, la 3.0.1 da 3701 en MotionMark (+15,6 %) y Multiply pasa de
+  1374 a 2723. Con el redondeo de tiempos también apagado da 3787, lo mismo que Chrome 156 sin pruebas de campo (3786).
+  Tabla, `sample` y detalle en ese documento.
+- **Speedometer sigue −12 % aun sin el filtro:** 19,1 frente a 21,7. **JetStream −8,5 %**, y ahí no entra el DOM. Lo
+  que queda apunta a H4 (el PGO de Google sobre nuestro árbol) o a otra cosa de Brave en el renderer; no se ha separado.
+- **Aquarium 15 000 peces:** empate (56,4 frente a 56,6). Esta Chrome 156 no topa con los 60 como la 157 de §1.1.
+- **Pruebas de campo de Chrome for Testing:** sin ellas, Chrome sube en MotionMark de 3373 a 3786. Sobre todo suben
+  Canvas Arcs (de 14588 a 19438) y Paths (de 32380 a 44796). Sin ventana, alguna de esas pruebas de campo le cuesta
+  a Chrome en canvas. En FlyWeb, encender DrDc y TreesInViz no cambia nada: 3227 frente a 3202 (ver
+  `rendimiento-motionmark.md`).
+- La 3.0.1 frente a la 3.0.0 de §1.1, en las mismas condiciones: MotionMark 3202 frente a 3183, Speedometer 17,9 frente
+  a 18,6, JetStream 161,1 frente a 165,4 y Aquarium 56,4 frente a 56,8. Las diferencias quedan dentro del ruido o muy
+  cerca: los parches de seguridad no mueven el rendimiento.
+
 ## 2. Perfil del hilo del proceso de GPU (6,1, Aquarium a 10 000 y 15 000 peces)
 
 ### 2.1 Qué hilo manda
@@ -182,13 +235,15 @@ Funciones más caras de `CrGpuMain` con 15 000 peces (tiempo propio, % del tiemp
   `interactive`, que es antes de que Aquarium cree el contexto en `DOMContentLoaded`.
 - **7,1 (§1.1):** `m71/lanzar.sh` arranca el navegador siempre con `--headless=new` y perfil en `/tmp`; `m71/m71.py` es
   `l21.py` (`PASO=2`) sobre el puerto 9445; `m71/todo.sh` mide FlyWeb y después Chrome, y aborta si hay una compilación.
+- **7,1, §1.1 bis (LOCAL-19):** `temp/local19/m71/` con copias de `lanzar.sh` y `m71.py` en el puerto 9446 y el servidor en 8127. `caso.sh` mide un navegador con sus flags y `todo3.sh` lo pasa todo en serie. Los resultados y `chrome://gpu` (texto y PNG) de cada caso están en `c*/`. Una primera pasada de Chrome se pisó con otro guion lanzado a la vez y se descartó entera (`descartado-1438/`).
 - **Ficheros:** guiones, `sample`, `ps -M`, `spector.json` y análisis JSON están en la carpeta de entregas de LOCAL-21
   (`entregas/local21/paso2`, `paso3` y `hito0-71`), fuera del repo.
 
 ## 4. Pendiente
 
-- **7,1:** el mismo perfil del hilo de GPU como control (Sequoia, W6600X), y repetir §1.1 con una Chrome 156 (hoy está
-  la 157) para separar la versión de lo que es de FlyWeb. Perfilar Multiply, Leaves y Suits de MotionMark.
+- **7,1:** el mismo perfil del hilo de GPU como control (Sequoia, W6600X). La repetición con Chrome 156 y el perfil de
+  Multiply ya están hechos: §1.1 bis y [`rendimiento-motionmark.md`](rendimiento-motionmark.md). Queda separar en
+  Speedometer y JetStream lo que es del PGO de lo que es de Brave.
 - **Fila 6:** `sample` de una 3.0.0 sin PGO del mismo commit.
 - **`angle_perftests`** (`DrawCallPerfBenchmark.Run/metal*`, `DrawElementsPerf*`, `UniformsPerf*`): no intentado.
 - **Del hito 0, sin hacer:** las dos medidas de claude.ai sin hCaptcha y la fila del A/B de PGO con valores absolutos.

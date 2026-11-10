@@ -108,6 +108,66 @@ Ninguna hipótesis está «clara» sin medir. No dejo parche hecho, solo los dos
 - **Si H3 o H4:** nada que hacer en el código. H3 llega con el nivel 157 de la 3.x; H4 es la fila 6 de
   `rendimiento-3.1.md` (PGO propio).
 
+## Medida (LOCAL-19, 7,1, 10-11-2026)
+
+Medido sin ventana, con las mismas condiciones y el mismo guion que el hito 0 de la 7,1 ([`rendimiento-3x.md`](rendimiento-3x.md) §1.1 y §1.1 bis), 3 pasadas por caso, **un cambio cada vez** y siempre con la **FlyWeb 3.0.1** (198.63.42, Chrome/156.0.8078.98, PGO). La referencia es **Chrome for Testing 156.0.8078.80**, la de serie y con `--disable-field-trial-config` (ver la nota de abajo). Mediana de 3; entre paréntesis, la dispersión (máx. − mín.) / mediana.
+
+| Paso | Caso | MotionMark | Multiply | Leaves | Suits | Design | Canvas Arcs | Speedometer 3.1 |
+|---|---|---|---|---|---|---|---|---|
+| 0 | 3.0.1 tal cual | **3202** (1,3 %) | 1374 | 1442 | 1899 | 323 | 18652 | **17,9** (3,9 %) |
+| 1 (H1) | `--disable-features=BraveAdblockCosmeticFiltering` | **3701** (2,5 %) | **2723** | **1886** | 2022 | 348 | 18801 | **18,9** (1,6 %) |
+| 2 (H2) | `--disable-features=BraveRoundTimeStamps` | 3210 (0,2 %) | 1409 | 1416 | 1871 | 296 | 18620 | 18,8 (4,8 %) |
+| 3 | los dos | **3787** (4,2 %) | **2795** | **2012** | 1993 | 334 | 19104 | **19,1** (4,3 %) |
+| 4 | Chrome 156 de serie | 3373 (4,8 %) | 2599 | 1926 | 1822 | 319 | 14588 | 22,0 (2,8 %) |
+| 4 | Chrome 156 sin pruebas de campo | **3786** (5,5 %) | 2870 | 2088 | 1959 | 346 | 19438 | **21,7** (1,8 %) |
+| extra | 3.0.1 con `--enable-features=EnableDrDc,TreesInViz` | 3227 (1,9 %) | 1446 | 1451 | 1850 | 308 | 18661 | sin medir |
+
+Lectura:
+- **H1 confirmada.** Sin el filtrado cosmético, MotionMark sube un 15,6 % y Multiply casi se dobla (de 1374 a 2723).
+  Leaves sube un 31 %. Las pruebas de canvas no cambian, como se esperaba. Speedometer sube un 5,6 % (de 17,9 a 18,9),
+  menos de lo que se esperaba.
+- **H2 no influye en la puntuación:** 3210 frente a 3202, y Speedometer 18,8. Sí se nota en la dispersión de
+  MotionMark: 0,2 % con el redondeo apagado, frente al 1,3 % normal. Junto a H1 añade un poco (3787 frente a 3701,
+  dentro del ruido).
+- **Con H1 y H2 apagadas, la 3.0.1 iguala a Chrome 156 en MotionMark:** 3787 frente a 3786, y todas las pruebas
+  quedan dentro de un ±5 %. **H3 (versión) y H5 (GPU) quedan descartadas en MotionMark.**
+- **Speedometer sigue −12 %** (19,1 frente a 21,7) y JetStream −8,5 % (161,1 frente a 176,1, §1.1 bis), sin DOM
+  dinámico de por medio. Lo que queda es H4 (PGO) u otra cosa de Brave fuera de estas dos features; está sin separar.
+- **Paso 5 (H5), `chrome://gpu` de los dos sin ventana:** igual en lo que importa. Los dos usan Skia Graphite con
+  backend `GraphiteDawnMetal`, «Rasterization: Hardware accelerated», «Multiple Raster Threads: Enabled» y WebGL por
+  ANGLE Metal (W6600X). Las únicas diferencias son tres, y salen de `fieldtrial_testing_config`, que Chrome for
+  Testing aplica de serie: «Direct Rendering Display Compositor» (EnableDrDc), «TreesInViz» y «WebGPU». Las tres
+  están encendidas en Chrome y apagadas en FlyWeb. Con `--disable-field-trial-config` quedan igual que en FlyWeb, y
+  Chrome **sube** de 3373 a 3786, sobre todo en Canvas Arcs y Paths. Encenderlas en FlyWeb no cambia nada (3227). Es
+  decir, sin ventana alguna de esas pruebas de campo le cuesta a Chrome; FlyWeb no pierde nada por no tenerlas.
+
+**`sample` del renderer durante Multiply** (10 s, unos 25 s después de arrancar MotionMark, con la build de la
+candidata 3.1 t4: `symbol_level=1`, el mismo Blink y V8 que la 3.0.1 y solo ANGLE y la NTP cambiados; filtrado
+cosmético encendido). Hilo principal: 6943 muestras, de ellas 5297 activas.
+- `MutationObserver` / `V8MutationCallback`, `querySelectorAll` / `SelectorQuery` y «cosmetic» **no aparecen**: 0 muestras. El
+  mundo aislado de Brave, 1 muestra.
+- El 78 % del hilo activo va a `BeginMainFrame` → `UpdateAllLifecyclePhases`; el estilo (`StyleEngine::RecalcStyle`) se
+  lleva el 51 %. Dentro de él, **1171 muestras (22 % del activo)** van a
+  `ElementRuleCollector::CollectMatchingRules` → `Element::SynchronizeAllAttributes` →
+  `SynchronizeStyleAttributeInternal` → `StylePropertySerializer::AsText` → `CSSValueList::CustomCSSText`.
+  Es decir: **en cada recálculo de estilo se vuelve a escribir como texto el atributo `style` de cada elemento** que
+  MotionMark mueve con `style.transform`.
+- Por qué: `third_party/blink/renderer/core/css/element_rule_collector.cc` (unas 888–920) solo sincroniza el atributo
+  `style` antes de casar reglas **si alguna hoja tiene un selector de atributo `[style…]`**. El comentario del código lo
+  llama «extremely unusual» y «fairly expensive». MotionMark, servido en 127.0.0.1, no tiene ninguno. La candidata
+  natural es la **hoja de ocultación genérica que inyecta el filtrado cosmético**: las listas de filtros traen
+  selectores como `[style*="…"]`. Con una sola regla así en el documento, Blink serializa el `style` de cada elemento en
+  cada fotograma. Encaja con que apagar `BraveAdblockCosmeticFiltering` doble Multiply. **No está comprobado** qué hoja
+  ni qué regla. Lo siguiente sería, durante Multiply, buscar `[style` en `document.styleSheets` y en las hojas
+  inyectadas (`adoptedStyleSheets` o las hojas de usuario del navegador), y repetir el `sample` con el filtro apagado.
+- Así que el coste de H1 en MotionMark **no es el `MutationObserver` ni el sondeo con `querySelectorAll`** que
+  describe la hipótesis (en esta página no salen), sino, muy probablemente, el **CSS inyectado con selectores `[style…]`**.
+  Afecta a las opciones de arreglo (a)–(c) de arriba, que tocan el observador y el sondeo: habría que añadir otra, (d) quitar o reescribir las reglas genéricas `[style…]` de la hoja inyectada (o inyectarlas solo con coincidencias concretas).
+
+Ficheros (fuera del repo): `temp/local19/m71/` en la 7,1, con los guiones (`lanzar.sh`, `m71.py`, `caso.sh` y
+`todo3.sh`), los resultados de cada caso en `c*/resultados.json`, `chrome://gpu` en `c0-fw/`, `c0-ch/` y
+`c4-ch-sinft/` (`gpu.txt` y `gpu.png`) y el `sample` en `c6-multiply-sample.txt`.
+
 ## Fuentes leídas
 - brave-core `nube/b2-porte-t11` bf4262a094 (el código de la 3.0.0):
   - `components/cosmetic_filters/resources/data/content_cosmetic.ts` (observador, sondeo, umbrales);
