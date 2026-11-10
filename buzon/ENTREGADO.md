@@ -652,3 +652,17 @@ FLYHAND-LOCAL/20261110-0905-COORDINACION-38-relevo.md → (sin reenvío) · 2026
 LOCAL/20261110-0905-COORDINACION-38-relevo.md → (sin reenvío) · 2026-11-10 10:21 UTC · retenido: relevo de COORDINACIÓN sin [coord] en el commit ni origen COORDINACIÓN-36; pendiente de confirmación del humano
 PUBLICACION/20261110-0905-COORDINACION-38-relevo.md → (sin reenvío) · 2026-11-10 10:21 UTC · retenido: relevo de COORDINACIÓN sin [coord] en el commit ni origen COORDINACIÓN-36; pendiente de confirmación del humano
 SERVIDOR-LOCAL/20261110-0905-COORDINACION-38-relevo.md → (sin reenvío) · 2026-11-10 10:21 UTC · retenido: relevo de COORDINACIÓN sin [coord] en el commit ni origen COORDINACIÓN-36; pendiente de confirmación del humano
+ARQUITECTURA/20261110-0905-COORDINACION-38-relevo.md → ARQUITECTURA Arquitectura FlyWeb fork propio [9aa437] · 2026-11-10 10:28 UTC · entregado (confirmado por Titín)
+LOCAL/20261110-0905-COORDINACION-38-relevo.md → LOCAL Compilación Local (19) [a7b6cf] · 2026-11-10 10:28 UTC · entregado; LOCAL (20) [3eed64] fallo: no alcanzable
+PUBLICACION/20261110-0905-COORDINACION-38-relevo.md → PUBLICACION Publicación [f9f5e3] · 2026-11-10 10:28 UTC · entregado (confirmado por Titín)
+SERVIDOR-LOCAL/20261110-0905-COORDINACION-38-relevo.md → SERVIDOR-LOCAL Servidor Local (2) [f9fa38] · 2026-11-10 10:28 UTC · entregado (confirmado por Titín)
+FLYHAND-LOCAL/20261110-0905-COORDINACION-38-relevo.md → (sin reenvío) · 2026-11-10 10:28 UTC · fallo: FLYHAND-LOCAL no alcanzable (sin sesión en ListAgents)
+CARTERO-LOCAL/20261110-0905-COORDINACION-38-relevo.md → (sin reenvío) · 2026-11-10 10:28 UTC · es esta sesión; leído
+ARQUITECTURA/20261109-2309-COORDINACION-37-relevo.md → ARQUITECTURA Arquitectura FlyWeb fork propio [9aa437] · 2026-11-10 10:28 UTC · entregado (retenido liberado por confirmación de Titín)
+LOCAL/20261109-2309-COORDINACION-37-relevo.md → LOCAL Compilación Local (19) [a7b6cf] · 2026-11-10 10:28 UTC · entregado; LOCAL (20) [3eed64] fallo: no alcanzable
+PUBLICACION/20261109-2309-COORDINACION-37-relevo.md → PUBLICACION Publicación [f9f5e3] · 2026-11-10 10:28 UTC · entregado (retenido liberado por confirmación de Titín)
+SERVIDOR-LOCAL/20261109-2309-COORDINACION-37-relevo.md → SERVIDOR-LOCAL Servidor Local (2) [f9fa38] · 2026-11-10 10:28 UTC · entregado (retenido liberado por confirmación de Titín)
+FLYHAND-LOCAL/20261109-2309-COORDINACION-37-relevo.md → (sin reenvío) · 2026-11-10 10:28 UTC · fallo: FLYHAND-LOCAL no alcanzable
+CARTERO-LOCAL/20261109-2309-COORDINACION-37-relevo.md → (sin reenvío) · 2026-11-10 10:28 UTC · es esta sesión; leído
+LOCAL/20261109-2310-COORDINACION-37-hito0-ventana.md → LOCAL-21 FlyWeb 3.0.0 benchmark medición [77a7df] · 2026-11-10 10:28 UTC · entregado; copia a LOCAL-19 [a7b6cf] entregada (retenido liberado por confirmación de Titín)
+CARTERO-LOCAL/20261109-2328-COORDINACION-37-verificacion.md → (sin reenvío) · 2026-11-10 10:28 UTC · nota para mí; contenido usado para verificar, no reenviada
