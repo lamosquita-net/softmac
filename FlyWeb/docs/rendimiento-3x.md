@@ -361,6 +361,62 @@ Con la t4 y con la 3.0.1, al cargar `https://claude.ai/` (página de entrada, co
 **No es de los parches de ANGLE:** ya está en la 3.0.1 publicada. Falta mirar en una ventana a la vista si un usuario
 lo nota (pestaña «¡Vaya!» o página congelada) y bisecar 3.0.0 → 3.0.1. Avisado a COORDINACIÓN-38 y MOTOR.
 
+#### 3.5 bis Sospechosos y bisección (MOTOR-44, 10-11, por encargo de COORDINACIÓN-38)
+
+Lectura de los parches de `FlyWeb/seguridad/3.0.1/` y `3.0.2/` y de brave-core `seg/3.0.2` (`6415661d`, `ef5de1bd`,
+`0d6a771f`). Nada probado.
+
+**Lo primero no cuadra.** t1–t3 son la **misma base que la 3.0.1** (b6c544471ec, .98) más parches de ANGLE, y cargaron
+claude.ai. Entonces el diff de la 3.0.0 a la 3.0.1, por sí solo, no basta. Además, el orden de las pruebas cambió: con
+t1–t3, Maps (que tumba la GPU) fue antes que claude.ai; con la 3.0.1 y la t4, claude.ai fue antes. Por eso el paso 0
+va antes que cualquier bisección.
+
+**Sospechosos de la caída del renderer** (más probable arriba):
+1. **0045** (CVE-2026-121044): `CHECK(IsMainThread())` nuevo en `CSSPropertyParser::ParseValueStart`. Su propio
+   comentario dice que el canvas usa el parser de CSS fuera del hilo principal. Los captchas pintan en `OffscreenCanvas`
+   dentro de workers para sacar huella. He comprobado `ParseColor` (no llega ahí) y `ParseFont`, que reescribe el mismo
+   parche. No he comprobado `filter`, `letterSpacing`, `FontFace` en workers ni Typed OM en worklets.
+2. **0051 + 0052** (CVE-2026-121036): más `CHECK(IsMainThread())`, en `CSSUnparsedValue::ToCSSValue`,
+   `CSSVariableParser::ConsumeUnparsedDeclaration` y la caché de `QualifiedName`. Son de la rama principal, no del
+   `[M156]`: en la 156 puede quedar alguna llamada fuera del hilo principal que upstream ya había quitado.
+3. **V8:** `b56fe9b` en `patches/v8` (CVE-2026-121228, cambia el generador de bytecode; brave-core `6415661d`), la subida a
+   15.6.75.51 (3.0.2 0001) y la serie del parser `bee89ad8a6` (21 commits). JS ofuscado como el de hCaptcha es justo lo
+   que las pone a prueba; el mjsunit en verde no lo descarta.
+4. **Foco:** `kBlockingFocusWithoutUserActivation` encendido (brave-core `ef5de1bd`) con sus 3 arreglos (3.0.2 0008–0010).
+   hCaptcha invisible va en un iframe.
+5. Poco probables: 0044 (`CHECK` de desbordamiento de contador en animaciones), 0058/0059 (Long Animation Frames con
+   workers), XSLT y WebHID apagados.
+
+**Ruido de la GPU** («non-existent mailbox»): casi seguro es consecuencia de la caída. Al morir el renderer se pierden sus
+SharedImages y el compositor aún las pide. Si sale sin caída del renderer, los sospechosos son:
+- **0055** (CVE-2026-121140): pierde el contexto si, tras usar el contexto compartido, el del decodificador no vuelve a
+  quedar activo. Con ANGLE Metal en 10.14 es plausible. Deja en el registro de la GPU `failed to restore context after
+  using the shared context`.
+- **0039** (CVE-2026-121074, texturas tras cada dibujo) y **0015** (CVE-2026-79235, consultas al cambiar de contexto
+  virtual).
+- 0032/0033 solo actúan en Mali (`gpu_driver_bug_list`).
+
+**Bisección para LOCAL (6,1), en este orden:**
+0. **¿Se repite? Sin recompilar.** Perfil nuevo en cada lanzamiento y **solo claude.ai** (tres cargas), sin `perf` ni Maps
+   antes. Alternando 3.0.0 → 3.0.1 → t3 → t4, dos vueltas, a la misma hora. Anotar caída sí o no y las líneas de
+   «mailbox».
+   - Si cae también la 3.0.0: el cambio es del lado de claude.ai o hCaptcha, no nuestro.
+   - Si cae la t3: las pasadas buenas de ayer fueron por el orden de las pruebas, y se sigue con el 1.
+   - Si solo caen la 3.0.1 y la t4: comparar `args.gn` y el PGO de las cuatro builds antes de seguir.
+1. **Firma de la caída. Sin recompilar; decide entre CSS, V8 y GPU.**
+   - Minivolcado en `<user-data-dir>/Crashpad/{pending,completed}/*.dmp`; si no está ahí, en el `Crashpad` del perfil por
+     defecto.
+   - Abrirlo con `lldb -c <dmp>` y la t4, que tiene `symbol_level=1`, y sacar `bt` del hilo que cae.
+   - Arriba `ParseValueStart`, `ConsumeUnparsedDeclaration`, `CSSUnparsedValue::ToCSSValue` o `GetQualifiedNameCache` en
+     un hilo de worker: sospechosos 1–2. Arriba `v8::internal::`: sospechoso 3.
+   - Buscar también la frase de 0055 en el registro de la GPU.
+2. **Flags, un lanzamiento cada uno con la 3.0.1, si el 1 no da firma:**
+   `--disable-features=BlockingFocusWithoutUserActivation` (4) · `--disable-gpu` (si sigue cayendo, es del renderer) ·
+   `--disable-accelerated-2d-canvas` · `--disable-webgl` · `--js-flags=--jitless` (si sigue cayendo, no es el JIT).
+3. **Solo si 1–2 apuntan ahí, con recompilación:** quitar 0045 + 0051 + 0052 juntos (son dos CVE; si es esto, el arreglo es
+   portar lo que los hizo seguros en la rama principal, no quitarlos). Después `b56fe9b`, después la serie del parser. En
+   la GPU, 0055 primero.
+
 ### 3.6 Dónde está ahora el límite, y la puerta de §4.3
 
 `ps -M` del hilo principal de cada proceso con 15 000 peces (% de CPU; tres lecturas iguales ±1):
