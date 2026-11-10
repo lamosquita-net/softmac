@@ -277,6 +277,76 @@ pongo número. **Cómo separarlo:** el mismo binario con `--js-flags=--maglev` f
 JetStream 3, tres pasadas). Lo que quede, con el A/B de PGO que ya está en `plan-3x.md`. Maglev ya tiene su puerta de
 seguridad (B6, `DIRECTIVAS.md`), así que esta medida es la (2) de esa puerta.
 
+## Medida de Maglev y del parche `[style…]` (LOCAL-19, 7,1, 10-11-2026)
+Órdenes A y B de COORDINACIÓN-38. MacPro7,1, `--headless=new`, perfil nuevo en `/tmp` por caso, puerto 9446, mismos
+guiones que la medida anterior (`m71.py`, `caso.sh`), bancos servidos en local. Todo en serie, sin nada más corriendo.
+
+### A. Maglev (sin compilar)
+La 3.0.1 publicada (`out/Release`, framework `efbe530f…`, build 42), con `--js-flags=--maglev` y sin él. Tres pasadas.
+
+| 3.0.1 | Speedometer 3.1 | JetStream 3 |
+|---|---|---|
+| Sin Maglev (como se publica) | **19,36** (19,1 / 19,36 / 19,5) | **168,3** (166,4 / 168,5 / 168,3) |
+| `--js-flags=--maglev` | **20,95** (20,6 / 20,95 / 21,0) · +8,2 % | **182,1** (181,3 / 183,2 / 182,1) · +8,2 % |
+| Chrome 156 de serie (c0-ch, arriba) | 22,0 | 176,1 |
+
+- **Sin caídas ni errores con Maglev:** 0 `FATAL` / `Check failed` en el registro del navegador y 0 subpruebas de
+  JetStream en error, con y sin Maglev.
+- Con Maglev, JetStream pasa de −4,4 % frente a Chrome a **+3,4 %**, y Speedometer de −12 % a **−4,8 %**. Maglev cierra
+  todo el hueco de JetStream y el 60 % del de Speedometer. Lo que queda de Speedometer es para el A/B de PGO.
+- Maglev sigue apagado (decisión de Titín del 05-10); esto solo mide. Es la medida (2) de la puerta B6.
+
+### B. Parche `3.1-cosmetic-style` compilado
+- brave-core `local/3.0.1-style` = `77ae53e5f6` + `git am` del `0001` → **`40856a11d15`** (subida a `origin`). Aplica
+  limpio.
+- Release igual que la 3.0.1 (`porte-build.sh`, PGO, build 42 sin cambiar): incremental, 349/349, **0 FAILED**.
+  Framework `fd42df36…`. No se publica.
+- El mismo binario con el parche y con `--disable-features=FlyWebDeferStyleAttrSelectors`. Como control, la 3.0.1
+  publicada (copia de entregas, `efbe530f`) en la misma tanda.
+
+**Ojo con la 1.ª pasada:** con perfil nuevo, la primera pasada de MotionMark empieza antes de que se carguen las listas
+de Shields. En los tres casos salió «como sin filtrado» (Multiply ~2700). Por eso la tabla compara las pasadas 2 y 3, con
+las listas ya cargadas. La 1.ª va entre paréntesis.
+
+| MotionMark 1.3.2 (pasadas 2 y 3) | Total | Multiply |
+|---|---|---|
+| Con el parche | **3683 / 3781** (1.ª 3690) | **2715 / 2830** (1.ª 2717) |
+| Mismo binario, flag apagado | 3218 / 3322 (1.ª 3659) | 1466 / 1493 (1.ª 2711) |
+| 3.0.1 publicada (control) | 3302 / 3362 (1.ª 3561) | 1498 / 1507 (1.ª 2689) |
+| Referencia: 3.0.1 sin filtrado cosmético (c1-cosm, arriba) | 3701 | 2723 |
+
+| Speedometer 3.1 (3 pasadas) | Mediana |
+|---|---|
+| Con el parche | 19,2 (19,2 / 19,2 / 18,45) |
+| Flag apagado | 18,7 (18,5 / 18,95 / 18,7) |
+| 3.0.1 publicada | 18,9 (18,6 / 19,0 / 18,9) |
+
+- **MotionMark +12 % y Multiply +84 %** frente a la 3.0.1 (medias de las pasadas 2 y 3: 3732 frente a 3332; 2773
+  frente a 1503). Queda al nivel de apagar todo el filtrado cosmético (c1-cosm), pero sin perder el bloqueo.
+- Con el flag apagado, el binario se comporta como la 3.0.1: el A/B por flag es válido.
+- **Speedometer no cambia** (19,2 / 18,7 / 18,9: dentro del ruido). El parche solo arregla MotionMark.
+- 0 `FATAL` / `Check failed` en todos los registros.
+
+**Sigue bloqueando:**
+- `pruebas/funcional.js`, pasada en la FlyWeb compilada en vez de en el Chromium de playwright (aquí no hay playwright
+  y no se descarga nada). Mismo cuerpo de `p.evaluate`, el `kStyleAttrSelectorsInjectScript` sacado del `.cc` compilado
+  y el bundle real (`gen/brave/web-ui-cosmetic_filters/cosmetic_filters.bundle.js`). Guion: `funcional71.py`.
+  - Estándar: `invalid_dropped`, `propio_1p_visible`, `insertado_oculto`, `tarde_tras_barrido`, `tarde_desmarcado` y
+    `normal_visible`, todos **true**. `tarde_al_momento` es false, como se espera: el `style` puesto después espera al
+    barrido de 1 s. Pasada de estilo 3,59 ms, barrido 5 ms. Sin errores de página.
+  - Agresivo: lo mismo, salvo `propio_1p_visible` false (el agresivo también oculta lo propio, como antes). 3,62 ms,
+    barrido 4 ms.
+  - Coincide con lo que MOTOR-44 obtuvo en Chromium 153.
+- **Con listas reales:** página en `prueba.test` con la regla genérica de la lista por defecto
+  `body > div[style="position: fixed; inset: 0px; z-index: 2147483647; background: transparent; cursor: pointer;"]`.
+  Lleva una capa puesta en el HTML, otra insertada a los 1,5 s y un `div` normal, y las capas llevan una imagen de otro
+  dominio, porque en modo estándar una capa vacía cuenta como contenido propio y no se oculta, con parche o sin él.
+  - Con el parche y con el flag apagado: las dos capas quedan en **`display: none`** en cuanto llegan las listas
+    (~20 s con perfil nuevo); el `div` normal, visible.
+
+Guiones y resultados en la 7,1: `temp/local19/m71/` (casos `a0-sin-maglev`, `a1-maglev`, `b0-style`, `b1-style-off`,
+`b2-301-control`) y `temp/local19/style/` (`funcional71.py`, `e2e71.py`, `f71/`).
+
 ## Fuentes leídas
 - brave-core `nube/b2-porte-t11` bf4262a094 (el código de la 3.0.0):
   - `components/cosmetic_filters/resources/data/content_cosmetic.ts` (observador, sondeo, umbrales);
