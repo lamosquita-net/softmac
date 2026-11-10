@@ -7,6 +7,46 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 10-11 (noche): COORDINACIÓN-38 → COORDINACIÓN-39 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-38 (`session_01MwmK2hsPeczzmEjVZHW81X`, 10-11 08:50 → ~21:30 UTC; Opus 5.5 medio; abierta por la 37, linaje 5
+de 8; relevo al 33 %). La 39 la abre la 38 (linaje 6 de 8). **Nunca llamar a confirm_repository_trust.**
+
+**Canales:** a las sesiones locales (LOCAL-19, LOCAL-21, PUBLICACIÓN, cartero…) no se les puede escribir por send_message.
+El cartero se paró dos veces hoy (sin anotar desde las ~13:01 UTC salvo tandas sueltas): **lo práctico es darle a Titín el
+texto para pegar**, además del fichero de buzón con `[coord]` en el commit (el cartero retiene relevos sin `[coord]`).
+Las locales sí nos escriben. Borrar ramas remotas: el proxy de git da 403 (no se puede desde la nube); las 171 ramas
+`claude/coord*` (148 con historial anterior a la reescritura de main, ninguna en PR abierto) las borra Titín en GitHub.
+
+**Hitos del día:**
+- **3.0.1 PUBLICADA y cerrada** (build 42, 198.63.42; DMG 5432bb3c…; #910, #913/#915 web, #914/#917 registro). Sparkle
+  3.0.0 → 3.0.1 en la 6,1 bien; claude.ai bien en 7,1 y 6,1 (con y sin sesión). El fallo de §3.5 de `rendimiento-3x.md`
+  (CDP en la 6,1 tras Maps) **no se reproduce a mano**: tratado como de la automatización.
+- **MotionMark explicado:** reglas genéricas `[style…]` de Escudos obligan a Blink a serializar `style` (Brave pierde igual,
+  `comparativa-71.md`). Parche `FlyWeb/parches/3.1-cosmetic-style/` (#921): MotionMark +12 %, Multiply +84 %, bloqueo igual
+  (#929). Maglev: 7,1 +8,2 %, 6,1 +6,8/+6,6 %, sin caídas (#930); AVX: Maglev 0, V8 con despacho (#931).
+- **Candidata 3.1** (LOCAL-21, #916/#922): t4 = Aquarium 10k a 60 fps, 15k +3–10 %, texturas 69/69. El cuello pasa del hilo
+  de GPU (57–65 %) al renderer (100 %): **multihilo/multiGPU no suben Aquarium hoy** (respuesta dada a Titín).
+- Favicons con la mosca (Chrome en NTP, Chromium en version) en `3.1-favicons` (#926).
+- **Contenido 3.1 cerrado** (DIRECTIVAS #928 + #932, Titín «apruebo todo»): ANGLE 0001–0004, NTP privada 0004+0005,
+  favicons, Escudos, **Maglev encendido** (la 5,1 se mide después de publicar, no bloquea). Diseño de privada y pestañas
+  ligeras de Titín → 3.2 (capturas en `entregas/local21/diseno-32/`; la privada no tiene versión clara).
+- **Orden de compilar la 3.1.0** (build 43) dada a LOCAL-19 (~19:15 UTC, buzón `…-1915-…-compilar-31.md` y pegada por
+  Titín): rama `local/3.1`, pruebas por paso, entrega → PUBLICACIÓN; objetivo publicar el 11-11 por la mañana. Y guion de
+  la 5,1 que use la FlyWeb instalada y el perfil de quien la use, en `FlyWeb/tools/prueba-51/`, sin Python 3.
+- MOTOR-43 y MOTOR-44 relevados (notas en `relevo-motor.md`, #920 y #927). **MOTOR-45 sin abrir:** abrirlo con el texto de
+  la nota de MOTOR-44 cuando haya algo (fallo de compilación de la 3.1, `chrome://history`, Speedometer −5 %).
+
+**Abierto (por orden):**
+1. Entrega de la 3.1.0 de LOCAL-19 → ls-remote de los hashes → PUBLICACIÓN → orden de firma en bak a Titín.
+2. `chrome://history`: `getSearchField is not a function` (visto con la t4; LOCAL-19 dice si pasa en la 3.0.1).
+3. Guion de la 5,1 → enlace a Titín → TXT → si pierde con Maglev, estudiar para la 3.2.
+4. Diseño de sync de la 3.2: PR #905 de ARQUITECTURA abierto → revisión de SEGURIDAD → Titín.
+5. 3.0.2 (158 estable, 17-11). 6. FlyHand: Titín lo retoma (la 6,1 libre). 7. Cartero: revisar con Titín por qué se para.
+
+**Lecciones:** no pedir medidas que ya existen (pedí un Brave que estaba en `comparativa-71.md`); antes de dar un fallo por
+real, que Titín lo pruebe a mano; un PR fusionado mientras el agente sube otro commit deja ese commit fuera (#923/#924).
+
 ## 10-11 (mañana): COORDINACIÓN-37 → COORDINACIÓN-38 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-37 (`session_01MwmK2huBYmy6zVGdznUAdg`, 09-11 23:09 → 10-11 ~09:00 UTC; Opus 5.5 medio; abierta por la 36,
