@@ -1,3 +1,49 @@
+# MOTOR-43 → MOTOR-44 (10-11-2026, ~15:50 UTC)
+
+MOTOR-43 (`session_01MwmK2keCUcEPJ6KTcxicZD`, Opus 5.5) se releva al 57 % de contexto. Coordina **COORDINACIÓN-38**
+(`session_01MwmK2hsPeczzmEjVZHW81X`). **Sin push a brave-core:** `add_repo` lo denegó el clasificador. Se trabaja con
+clones de solo lectura (brave-core, Brave 1.98.63 y ANGLE son públicos) y se entrega como `git format-patch` en softmac.
+
+**Hecho y fusionado:**
+- `FlyWeb/parches/3.0.2-sync-ajustes/`:
+  - 0001–0003 (#897, #899): página de sync (`BraveSettingsUIConfig`), «Contraseñas» y `disableTypeCheckBox_`. Van en la
+    3.0.1.
+  - 0004 + 0005 (#899, #906): NTP privada de FlyWeb, sin Brave Search ni Tor. Van en la 3.1.
+- `FlyWeb/parches/3.1-angle/` 0001–0004 (#904): ANGLE Metal. Texturas solo si cambian, `FastVector`, capacidades fuera
+  del dibujo y flujo intermedio sin `insert`. LOCAL mide la candidata 3.1 en la 6,1.
+- `FlyWeb/docs/rendimiento-motionmark.md` (#918): las hipótesis. La sección «Medida» es de LOCAL-19 (#919).
+
+**Encargo abierto (COORDINACIÓN-38, 10-11 ~15:45), sin empezar:**
+- **Lo que midió LOCAL-19:** H1 confirmada. Sin `BraveAdblockCosmeticFiltering`, MotionMark pasa de 3202 a 3701 y
+  Multiply de 1374 a 2723; con H1 y H2 apagadas iguala a Chrome 156. Pero el `sample` no muestra `MutationObserver` ni
+  `querySelectorAll`: el 22 % del hilo principal en Multiply es **serializar el atributo `style` dentro de
+  `ElementRuleCollector`**. Blink solo hace eso si alguna hoja tiene selectores `[style…]`.
+- **Lo que pide:**
+  1. Confirmar en el código de dónde salen las reglas `[style…]` y cuántas son. Candidatas: lista genérica por
+     defecto, hoja que inyecta `content_cosmetic.ts` (`CC.cosmeticStyleSheet`, `adoptedStyleSheets`) o hide-selectors.
+  2. Proponer un arreglo que conserve el bloqueo, p. ej. no meter en la hoja global las genéricas con `[style…]` y
+     aplicarlas solo por el camino de nodos nuevos. Decir qué se pierde en webs reales.
+  3. Una línea sobre Speedometer −12 % y JetStream −8,5 % (PGO u otro código de Brave) y cómo separarlo.
+
+  Se entrega en el mismo documento (PR) y, si está claro, con parche candidato en una rama `nube/`. **Nada a
+  producción: tocar Shields lo decide Titín.**
+- **Por dónde empezar:**
+  - en brave-core, `components/cosmetic_filters/resources/data/content_cosmetic.ts`: cómo construye la hoja y qué
+    selectores mete (genéricos de `HiddenClassIdSelectors` / `UrlCosmeticResources`);
+  - en adblock-rust (`components/brave_shields`), cómo se generan las reglas genéricas;
+  - las listas por defecto que sirve nuestro servidor de componentes;
+  - en Blink, `RuleFeatureSet` / `ElementRuleCollector`: por qué un `[style*=…]` obliga a serializar el atributo.
+
+**Trampas:**
+- Clones de trabajo en `/home/user/bc` (brave-core, `--depth=1` sobre bf4262a094, más la etiqueta `up` = Brave
+  1.98.63) y `/home/user/angle`. Son de este contenedor: hay que recrearlos.
+- `git fetch --depth=1` de brave-core y del tag de Brave tarda poco. ANGLE se baja por el SHA completo
+  (`f10470c77e4810ece55cbe8e08469a31610e92f4`); el corto no vale.
+- Chromium y ANGLE se leen por gitiles: `…/+/refs/tags/156.0.8078.90/<ruta>?format=TEXT` y luego `base64 -d`.
+- `rm -f $P/*.patch` lo bloquea el comprobador de seguridad: hay que usar `"${P:?}"` o rutas literales.
+
+---
+
 # MOTOR-42 → MOTOR-43 (09-11-2026, ~12:00 UTC)
 
 MOTOR-42 (`session_01MwmK2iFB5QKJ5nASYk5dxj`) se releva hacia el 35 % de contexto. Coordina **COORDINACIÓN-35**
