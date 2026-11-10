@@ -7,6 +7,44 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 10-11 (mañana): COORDINACIÓN-37 → COORDINACIÓN-38 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-37 (`session_01MwmK2huBYmy6zVGdznUAdg`, 09-11 23:09 → 10-11 ~09:00 UTC; Opus 5.5 medio; abierta por la 36,
+linaje 4 de 8; relevo al 33 %: cada despertar recarga muchas herramientas). La 38 la abre la 37 (linaje 5 de 8).
+**Nunca llamar a confirm_repository_trust.**
+
+**Bloqueo principal: el cartero retiene todo lo de la 37** (`buzon/ENTREGADO.md`, «retenido … espera confirmación del
+humano»; las pruebas en `main` —#907, #908— no le bastan, y hace bien). Ninguna orden de la 37 llegó a las locales. Titín
+tiene que confirmar el relevo **a la 38** pegando al cartero una línea con el id de la 38 (la 38 se la da). Los 8 ficheros
+retenidos de la 37 (`*-2309-COORDINACION-37-relevo.md`, `LOCAL/*-2310-…-hito0-ventana.md`, `CARTERO-LOCAL/*-2328-…`) ya
+no hace falta entregarlos: la 38 manda los suyos.
+
+**Hechos (todo comprobado):**
+- **3.0.1 sin 0004:** brave-core `local/3.0.1` = **77ae53e5f6** (ls-remote; revert del 0004 hecho por LOCAL-19 a las
+  23:03 UTC sobre 2ebd2e0). **No entregada en FS.42**; no se sabe si está compilada y probada.
+- **Candidata 3.1:** `local/3.1-candidata` = **b6c544471e** (77ae53e + 0004 reaplicado + 0005). LOCAL-19 entregó las cuatro
+  tandas (t1 = ANGLE 0001 … t4 = +0004). LOCAL-21: referencia de la 3.0.0 en la 6,1 hecha (texturas 69/69, Aquarium, NTP,
+  three.js); la t1 bloqueada por LuLu en la 6,1 desde las 05:04 UTC. Titín (~08:00 UTC): en la 6,1 no ve aviso de LuLu; en
+  la 7,1 sí y los aprobó → que LOCAL-21 relance la t1.
+- **Hito 0 en la 7,1** (#909, fusionado): sin ventana (Titín trabaja en la 7,1), Chrome 157 (no 156): MotionMark −14,7 %
+  (Multiply −48 %, Leaves −24 %, Suits −22 %: transformaciones CSS y SVG, no WebGL), Speedometer −13,1 %, JetStream −7,4 %,
+  Aquarium 15k −5,3 %. Pendiente: repetir con una Chrome 156 y perfilar Multiply/Leaves/Suits. Lo gráfico con ventana, en
+  la 6,1 o con la 7,1 libre.
+- MOTOR-43 sin nada abierto (todo fusionado). SEGURIDAD-VIGÍA 10-11: sin KEV nuevos de Chromium.
+
+**Abierto (por orden):**
+1. Titín confirma la 38 al cartero; la 38 reenvía por buzón a LOCAL-19 la orden que la 37 le dio a Titín para pegar:
+   «¿compilada y probada la 3.0.1 77ae53e (sin 0004)? Probar ventana privada = 3.0.0, página de sync, ajustes y los dos
+   README; entregar en FS.42 con el hash; si no está compilada, antes que nada de la 3.1; informe por paso».
+2. Entrega 3.0.1 → ls-remote → PUBLICACIÓN → **avisar a Titín para firmar en bak** (lo pidió) + recordatorio de la sync
+   (7,1: «Ver código»; 6,1: abandonar y unirse; nunca «Eliminar cuenta»).
+3. Candidata 3.1: LOCAL-21 relanza la t1 en la 6,1 (LuLu) y mide; luego decidir contenido de la 3.1.
+4. Diseño de sync de ARQUITECTURA → SEGURIDAD → Titín. 5. 3.0.2 (158 estable, 17-11). 6. FlyHand `.aip`. 7. Limpieza de
+   ramas (`claude/coord3*`, incluidas `claude/coord37` y `claude/coord37-relevo`).
+
+**Lección:** antes de mandar nada por buzón tras un relevo, comprobar que el cartero acepta al nuevo id; si exige a Titín,
+pedírselo en el primer mensaje, no después.
+
 ## 09-11 (noche): COORDINACIÓN-36 → COORDINACIÓN-37 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-36 (`session_01MwmK2gmWuLtoTHjfCXLggq`, 09-11 17:07 → ~23:15 UTC; Opus 5.5 medio; abierta por la 35, linaje 3
