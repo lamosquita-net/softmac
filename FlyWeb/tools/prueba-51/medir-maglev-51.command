@@ -56,7 +56,7 @@ caso() { # caso ETIQUETA [flags]
   local E=$1; shift
   echo; echo "== $(date +%T) $E $*"
   touch "/tmp/fw51-marca-$E"; rm -f "$R-$E.json"
-  open -a "$APP" --args $FW_EXTRA "$@" "http://127.0.0.1:$PUERTO/fw51.html?caso=$E&n=$NP"
+  open -a "$APP" --args $FW_EXTRA "$@" "http://127.0.0.1:$PUERTO/fw51.html?caso=$E&n=$NP&t=$(date +%s)"
   sleep 15
   local L=$(ps -axo command= | grep "^$BIN" | grep -v -- "--type=" | head -1)
   echo "  línea de órdenes: ${L#$BIN}"
