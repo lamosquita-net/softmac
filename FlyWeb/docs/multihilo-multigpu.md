@@ -118,8 +118,9 @@ Lectura:
   proceso de GPU lo consigue. Solo después de eso el hilo de GPU volvería a ir justo (rondaría el 85–100 % a 60 fps
   [R]) y la opción B empezaría a rendir.
 - **MotionMark no depende del hilo de WebGL.** Sus pruebas son DOM, CSS, SVG y lienzo 2D. Qué lo limita en la 6,1
-  (el hilo principal del renderer, el raster en el hilo de GPU o la tarjeta) **no está medido**; en la 7,1 el límite
-  encontrado fue de estilo en el renderer (`rendimiento-motionmark.md`). Es una de las preguntas de M1.
+  (el hilo principal del renderer, el raster en el hilo de GPU o la tarjeta) **no está medido**; en la 7,1 la diferencia
+  con Chrome salió del renderer: las reglas de estilo del filtrado cosmético (`rendimiento-motionmark.md`). Es una de
+  las preguntas de M1.
 - **Páginas reales:** una web con WebGL hace del orden de cientos o pocos miles de dibujos por fotograma, no 15 000
   [I]. El coste por dibujo del proceso de GPU pesa en ellas mucho menos que en Aquarium; pesan el JavaScript y, si el
   sombreador es caro o la pantalla grande, la tarjeta. No hay ninguna medida de esto en la 6,1.
