@@ -338,6 +338,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   después de publicar, con la versión instalada y el perfil de quien la use, y si pierde se estudia para la 3.2). Las dos condiciones son medidas, no preguntas: se comprueban
   antes de la orden de compilar. **Fuera, a la 3.2:** el diseño de Titín de la pantalla privada (parte de la de la 3.1) y
   los cambios ligeros de las pestañas (colores, esquinas, separadores, pestaña activa; no la forma ni el alto).
+- **Multihilo y multiGPU (Titín, 11-11; COORDINACIÓN-39):** estudio de ARQUITECTURA en
+  `FlyWeb/docs/multihilo-multigpu.md` (#941). Reparto de calor (toda la WebGL en la segunda D500) decidido: se entrega si
+  no pierde más del 2 %. La compilación E1 y la medida M1 van **después de la 3.2** (la sync va primero). Apartado nuevo
+  del estudio, tras cerrar la sync: JavaScript y CPU de muchos hilos (límites de hilos de Chromium/V8, estilo en paralelo).
+  Batería de GPU: `pruebas-gpu.md` más Basemark Web 3.0 (#942).
 - **Design Fly Suite (Craft, Titín, 09-11):** el fork de vectorcraft espera a que storytold llegue a beta
   (`docs/investigacion/craft-apps.md`). Mientras, el agente del proyecto hace el módulo de importación de FreeHand.
   La jaula `craft` de la 6,1 lleva, cuando se monte, pf por usuario, `Match User craft`, `sudo -k` y la comprobación de
