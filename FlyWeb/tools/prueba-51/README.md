@@ -20,7 +20,11 @@ y con `--js-flags=--no-maglev`, tres pasadas de cada uno. Es la condición 2 de 
 
 Junto al guion queda `resultado-51-<fecha>.txt`:
 - arriba, la CPU (en la 5,1 debe decir 0 AVX) y la versión de FlyWeb;
-- al final, el RESUMEN con las medianas «serie» y «no-maglev» y si hubo caídas.
+- al final, el RESUMEN con las medianas «serie» y «no-maglev», cuántas pasadas dieron número (p. ej. `3/3`), si hubo
+  reaperturas y si hubo caídas.
+
+El `.txt` no lleva el nombre de la cuenta: las rutas de la carpeta personal salen como `~` y el perfil, como «el de la
+cuenta actual».
 
 Además deja un `.json` por caso, con cada pasada. Basta con pasar el `.txt` a COORDINACIÓN o a LOCAL.
 
@@ -35,8 +39,15 @@ Además deja un `.json` por caso, con cada pasada. Basta con pasar el `.txt` a C
     `fw51.html` reenvía `currentResolve` y `currentReject` al iframe. Sin eso, la primera subprueba no acaba nunca.
 - Comprueba en `ps` que el flag llega a FlyWeb y cuenta los volcados de Crashpad. Una caída del renderer sería, por
   ejemplo, un SIGILL por una instrucción AVX sin despacho (ver `rendimiento-3x.md` §3.8).
-- Mantiene la pantalla encendida con `caffeinate` mientras mide: con la pantalla dormida Chrome deja de pintar y
-  Speedometer se queda parado.
+- Mantiene el equipo despierto con `caffeinate -dims` mientras dure y declara actividad (`caffeinate -u`) cada 20 s, que
+  también aparta el salvapantallas: con la pantalla dormida o tapada, Chrome deja de pintar y Speedometer se para.
+- **Pasada colgada:** la primera de cada benchmark tiene 1 h; las siguientes, 3 veces la mediana de las que acabaron
+  (mínimo 10 min). Si una pasada se queda sin resultado, el guion cierra FlyWeb, la vuelve a abrir y la página sigue en
+  la pasada siguiente con lo ya medido (`/previo`). Como mucho, 3 reaperturas por caso; cada caso tiene 4 h en total.
+- **Pestañas restauradas:** cada apertura lleva un token `t` (la hora). La página avisa a `srv51.py` (`/hola`) y solo
+  sigue la de la apertura más nueva (`/vigente`); `/resultado` rechaza los tokens viejos. Así, la pestaña de un caso
+  anterior que FlyWeb restaure al abrirse ni mide a la vez ni pisa el resultado (pasó en la primera pasada de la 5,1:
+  «serie» salía «SIN ACABAR» y «no-maglev» se colgaba).
 - Si un cortafuegos (LuLu, Little Snitch) no deja a FlyWeb conectar con 127.0.0.1, el guion lo dice a los 3 minutos y
   pasa al caso siguiente.
 - Solo usa lo que trae Mojave: bash, `open`, `osascript`, curl y `/usr/bin/python` 2.7.
@@ -46,5 +57,6 @@ Además deja un `.json` por caso, con cada pasada. Basta con pasar el `.txt` a C
 ## Pruebas
 
 Variables: `FW_APP` (otra app), `FW_EXTRA` (flags extra; en pruebas, `--user-data-dir=/tmp/…` para no usar el perfil de
-nadie), `PASADAS`, `BENCH_DIR`, `PY` y `PUERTO`. Probado en la 6,1 (Mojave, Python 2.7 de serie) con una copia de la app
+nadie), `PASADAS`, `BENCH_DIR`, `PY`, `PUERTO` y `FW_LIMITE` (límite en segundos de la primera pasada, para provocar
+reaperturas). Probado en la 6,1 (Mojave, Python 2.7 de serie) con una copia de la app
 y un perfil de prueba, nunca con el de Titín: ver el PR.

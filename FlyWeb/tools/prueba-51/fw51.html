@@ -14,9 +14,9 @@
 <iframe id="f"></iframe>
 <script>
 const q = new URLSearchParams(location.search);
-const CASO = q.get('caso') || 'x', NP = +(q.get('n') || 3);
+const CASO = q.get('caso') || 'x', NP = +(q.get('n') || 3), T = q.get('t') || '0', SIGUE = q.has('sigue'), LIM0 = +(q.get('lim') || 3600);  // lim: solo para pruebas
 const f = document.getElementById('f'), estado = document.getElementById('estado');
-const res = { caso: CASO, ua: navigator.userAgent, empezado: new Date().toISOString(), pasadas: [], fin: false };
+let res = { caso: CASO, ua: navigator.userAgent, empezado: new Date().toISOString(), pasadas: [], fin: false };
 // JetStream llama a top.currentResolve / top.currentReject, pensando que es la ventana de arriba: aquí top es esta página,
 // así que se reenvían al iframe (sin esto la primera subprueba no acaba nunca).
 for (const k of ['currentResolve', 'currentReject'])
@@ -24,7 +24,17 @@ for (const k of ['currentResolve', 'currentReject'])
 const espera = ms => new Promise(r => setTimeout(r, ms));
 const di = t => { estado.textContent = `${CASO} · ${t} · ${new Date().toLocaleTimeString()}`; };
 async function manda() {
-  try { await fetch('/resultado?caso=' + encodeURIComponent(CASO), { method: 'POST', body: JSON.stringify(res) }); } catch (e) {}
+  try { await fetch('/resultado?caso=' + encodeURIComponent(CASO) + '&t=' + T, { method: 'POST', body: JSON.stringify(res) }); } catch (e) {}
+}
+// Si FlyWeb restaura esta pestaña al abrirse para el caso siguiente, ya no es la vigente: se para y se vacía.
+async function vigente() {
+  try { return (await fetch('/vigente?t=' + T)).status == 200; } catch (e) { return false; }
+}
+async function sigue() {
+  if (await vigente()) return;
+  di('pestaña de una prueba anterior: parada'); f.src = 'about:blank';
+  setTimeout(() => location.replace('about:blank'), 3000);
+  throw 'antigua';
 }
 function carga(url) {
   return new Promise(r => { f.onload = () => r(); f.src = url; });
@@ -38,10 +48,23 @@ async function sondea(fn, limite, cada) {
   }
   return [null, Math.round((Date.now() - t0) / 1000)];
 }
+// Tiempo límite de una pasada: 1 h la primera; después, 3 veces la mediana de las que acabaron (mínimo 10 min). Una
+// pasada colgada no alarga la prueba horas: queda sin resultado y el guion reinicia FlyWeb.
+function limite(prueba) {
+  const x = res.pasadas.filter(p => p.prueba == prueba && p.resultado).map(p => p.seg).sort((a, b) => a - b);
+  return x.length ? Math.max(Math.min(600, LIM0), 3 * x[x.length >> 1]) : LIM0;
+}
+const hechas = prueba => res.pasadas.filter(p => p.prueba == prueba).length;
 async function principal() {
+  await fetch('/hola?t=' + T, { method: 'POST' }).catch(() => {});
+  await espera(5000); await sigue();  // tras 5 s solo sigue la pestaña de la apertura más nueva
+  if (SIGUE) {  // FlyWeb reiniciada por el guion tras una pasada sin resultado: sigue donde iba
+    try { const r = await fetch('/previo?caso=' + encodeURIComponent(CASO)); if (r.ok) res = await r.json(); } catch (e) {}
+    res.reaperturas = (res.reaperturas || 0) + 1; res.fin = false;
+  }
   await manda();  // primer aviso: el guion sabe así que la página ha cargado y llega a srv51.py
-  for (let i = 1; i <= NP; i++) {
-    di(`Speedometer 3.1, pasada ${i} de ${NP}`);
+  for (let i = hechas('Speedometer 3.1') + 1; i <= NP; i++) {
+    await sigue(); di(`Speedometer 3.1, pasada ${i} de ${NP}`);
     await carga('/speedometer3.1/index.html');
     await espera(8000);
     f.contentDocument.querySelector('.start-tests-button').click();
@@ -49,27 +72,29 @@ async function principal() {
       const d = f.contentDocument, w = f.contentWindow;
       const n = d.getElementById('result-number')?.textContent.trim();
       return w.location.hash == '#summary' && n ? n + ' ' + d.getElementById('confidence-number').textContent.trim() : '';
-    }, 3600, 10);
+    }, limite('Speedometer 3.1'), 10);
     res.pasadas.push({ prueba: 'Speedometer 3.1', n: i, resultado: v, seg: s }); await manda();
   }
+  if (hechas('JetStream 3') < NP) {
   di('JetStream 3, lista de pruebas');
   await carga('/jetstream3/index.html');
   await espera(8000);
   // BENCHMARKS es un const de nivel superior de JetStreamDriver.js: no cuelga de window, pero eval lo ve.
   const LISTA = (f.contentWindow.BENCHMARKS || f.contentWindow.eval('BENCHMARKS')).filter(b => b.tags.has('default')).map(b => b.name).filter(n => n != 'web-ssr').join(',');
   res.jetstream_lista = LISTA;
-  for (let i = 1; i <= NP; i++) {
-    di(`JetStream 3, pasada ${i} de ${NP}`);
+  for (let i = hechas('JetStream 3') + 1; i <= NP; i++) {
+    await sigue(); di(`JetStream 3, pasada ${i} de ${NP}`);
     await carga('/jetstream3/index.html?startAutomatically=true&test=' + LISTA);
     const [v, s] = await sondea(() => {
       const d = f.contentDocument;
       return d.getElementById('result-summary')?.classList.contains('done') ? d.querySelector('#result-summary .score')?.textContent : '';
-    }, 3600, 15);
+    }, limite('JetStream 3'), 15);
     const malos = [...f.contentDocument.querySelectorAll('.benchmark-error')].map(e => e.id);
     res.pasadas.push({ prueba: 'JetStream 3', n: i, resultado: v, seg: s, en_error: malos }); await manda();
+  }
   }
   res.fin = true; res.acabado = new Date().toISOString(); await manda();
   f.src = 'about:blank'; di('hecho: se puede cerrar');
 }
-principal().catch(async e => { res.error = String(e && e.stack || e); res.fin = true; await manda(); di('ERROR: ' + e); });
+principal().catch(async e => { if (e === 'antigua') return; res.error = String(e && e.stack || e); res.fin = true; await manda(); di('ERROR: ' + e); });
 </script>
