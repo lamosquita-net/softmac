@@ -5,7 +5,9 @@ y sin medidas nuevas.** Lo único que he ejecutado es un recuento sobre las toma
 (§2.2). Propone; decide Titín.
 
 **Revisado el mismo 11-11 con la respuesta de Titín y sus cinco capturas de la 6,1** (§2.4). Cambian las conclusiones
-1, 3, 4, 5 y 6 y la recomendación (§6). Las capturas no van al repositorio: enseñan su barra de marcadores.
+1, 3, 4, 5 y 6 y la recomendación (§6). Las capturas no van al repositorio: enseñan su barra de marcadores. Segunda
+respuesta de Titín, también del 11-11: las capturas son de FlyWeb 3.1.0, usa además Basemark, y pregunta si hay algún
+puente entre las dos tarjetas (§4.3; ahí sí he leído el registro de hardware de la 6,1, sin ejecutar nada más).
 
 Marcas: **[V]** visto en el código, en las cabeceras del SDK o en medidas ya publicadas; **[R]** reanálisis mío de
 datos existentes; **[I]** inferido; **[S]** suposición sin comprobar.
@@ -44,7 +46,11 @@ para él una mejora por sí sola.
    repartirlo habría que pintar en una tarjeta y componer en la otra (§3, F): es lo más caro y depende de lo que
    cueste cruzar cada fotograma, que E1 mide de paso.
 7. **Un solo lienzo no se reparte entre dos tarjetas** (§4.1). No cambia.
-8. **Orden propuesto** (§6): E1 (calor, con medida) → M1 con números → puertas P2, P3 y P4. Abaratar el renderer sigue
+8. **No hay puente entre las dos D500** [V en la 6,1, §4.3]: cada una cuelga de su propio puerto PCIe del procesador
+   y **todas las salidas de pantalla son de una sola**. La otra es, por diseño, un coprocesador con su propia
+   memoria, como dice Titín. Lo que pasa de una a otra cruza por la memoria del sistema. De ahí la regla para
+   repartir: compensa el trabajo cuyo resultado es pequeño frente a lo que cuesta calcularlo.
+9. **Orden propuesto** (§6): E1 (calor, con medida) → M1 con números → puertas P2, P3 y P4. Abaratar el renderer sigue
    siendo lo que más fotogramas da en Aquarium y no depende de nada de esto.
 
 ## 2. Pregunta 1: ¿«GPU al 100 %» es la D500 o un hilo de CPU?
@@ -114,8 +120,8 @@ si alguno está al 95 % o más.
 
 ### 2.4 Capturas de Titín (11-11) [V: las capturas; no van al repositorio]
 
-Cinco capturas de la 6,1 con el Historial de la GPU del Monitor de Actividad junto al navegador. Navegador y versión
-no constan [S: FlyWeb 3.1.0].
+Cinco capturas de la 6,1 con el Historial de la GPU del Monitor de Actividad junto al navegador, que es
+FlyWeb 3.1.0 (Titín, 11-11).
 
 | Captura | Primera D500 | Segunda D500 |
 |---|---|---|
@@ -231,12 +237,39 @@ mueve el lienzo entero a la otra tarjeta, no lo parte.
   piden alto rendimiento [S].
 - **Coste de cruzar para componer** [S, sin medir aislado]: un lienzo de 1024×1024 son 4 MB por fotograma (0,25 GB/s a
   60 fps); uno de 3840×2160, 33 MB (2 GB/s). El ancho de banda de PCIe da de sobra; lo que puede doler es la
-  sincronización de cada fotograma entre las dos tarjetas. Con el lienzo de 1024 de Aquarium no se notó [V]. A
-  pantalla completa en 4K no se ha probado. Indicio en contra: cuando **todo** se pintaba en la tarjeta sin pantalla,
+  sincronización de cada fotograma entre las dos tarjetas. Con el lienzo de 1024 de Aquarium no consta que llegara a
+  cruzar (punto anterior). A pantalla completa no se ha probado; las cifras con la pantalla de Titín, en §4.3. Indicio en contra: cuando **todo** se pintaba en la tarjeta sin pantalla,
   MotionMark dio 140 frente a los 1381 de después (`coordinacion.md:580`), aunque entre las dos medidas cambiaron
   más cosas y no se puede atribuir solo al cruce [V].
 - **En la 7,1 (10.15 o posterior, hasta cuatro módulos):** la rama no actúa. Extenderla es la misma idea. La 7,1 de
   Titín lleva una W6600X (`rendimiento-3x.md` §5): con una tarjeta no hay nada que repartir.
+
+### 4.3 ¿Hay algún puente entre las dos D500? (pregunta de Titín, 11-11)
+
+Leído en la 6,1 con `ioreg` y `system_profiler`, sin ejecutar nada más [V]:
+
+- **Cada D500 cuelga de su propio puerto raíz PCIe del procesador** (`GFXA@2` → `GFX1`, `GFXB@3` → `GFX2`), cada una
+  con su enlace PCIe 3.0 de 16 carriles (estado de enlace 0x1103 en las dos). No comparten conmutador ni hay ningún
+  dispositivo que las una.
+- **Todas las salidas de pantalla son de una sola tarjeta:** `GFX2` tiene seis salidas (`ATY,KaniS@0` a `@5`) y `GFX1`
+  una sola de relleno (`ATY,Kani@0`). La otra tarjeta no puede llevar un monitor: Apple la montó como coprocesador.
+- **3 GB de memoria cada una**, sin compartir. Una textura vive en una tarjeta; para usarla en la otra hay que copiarla.
+
+Qué significa:
+
+- **No hay puente directo.** Lo que una tarjeta manda a la otra baja por su enlace PCIe a la memoria del sistema y
+  sube por el de la otra. La CPU no copia byte a byte (lo hacen los controladores por DMA), pero sí lo ordena, y cada
+  cruce exige sincronizar las dos tarjetas [I].
+- **macOS no ofrece nada mejor en Mojave.** Los grupos de tarjetas de Metal son de 10.15 y de tarjetas que el sistema
+  declara unidas (§4); en hardware eso es el puente Infinity Fabric Link de algunos módulos de la 7,1 [I]. El CrossFire
+  de estas D500 bajo Windows va también por PCIe, sin puente físico [I].
+- **El enlace no es el límite; la sincronización puede serlo.** Un enlace PCIe 3.0 ×16 mueve unos 15 GB/s teóricos. La
+  pantalla de Titín está a 3008×1692 [V]: un lienzo a pantalla completa son 20 MB por fotograma, 1,2 GB/s a 60 fps. Si
+  ese modo es un escalado con el doble de píxeles por lado [S], son 81 MB y 4,9 GB/s, y ahí el cruce ya pesa. Cuánto
+  cuesta de verdad solo lo dice la medida de E1.
+- **Regla para decidir qué repartir:** compensa mandar a la segunda tarjeta el trabajo cuyo resultado es pequeño
+  frente a lo que cuesta calcularlo. Una WebGL con sombreadores caros en un lienzo mediano compensa. Las teselas de
+  una página o un lienzo 2D a pantalla completa, que se pintan rápido y pesan mucho, compensan mal: es el riesgo de F.
 
 **Cuándo ayuda:** para el calor, siempre que haya WebGL en pantalla y toda vaya a la segunda tarjeta. Para los
 fotogramas, cuando la tarjeta de la pantalla esté saturada y parte del trabajo sea WebGL. No ayuda a una página cuyo
@@ -248,7 +281,7 @@ mientras las dos tarjetas las alimente el mismo hilo.
 | Opción | Ganancia en páginas reales | Riesgo | Tamaño | Qué se rompe en cada actualización de Chromium |
 |---|---|---|---|---|
 | **Abaratar el renderer de WebGL** (no es de este estudio; es lo que manda hoy) | la mayor: todas las páginas con WebGL y Aquarium | bajo-medio | parches pequeños, como los de ANGLE de la 3.1 | poco: parches locales |
-| **Toda la WebGL en la segunda tarjeta** (`flynk-b1d-dosgpu` + forzar alto rendimiento) | reparte el calor en cualquier página con WebGL; fotogramas: sin medir de verdad (§4.2), posible donde mande la tarjeta | medio: el cruce a 4K sin medir; vídeo o lienzo 2D usados como textura WebGL cruzan de tarjeta [I]; cambio de pantalla en caliente sin probar; memoria de texturas repartida en dos tarjetas | **51 líneas ya escritas** más forzar la preferencia (pocas líneas [I]); falta probar y medir | poco. Depende de que upstream conserve `kEGLDualGPURendering`, que tiene un «quitar tras probar» pendiente (`gles2_command_buffer_stub.cc:149` [V]) |
+| **Toda la WebGL en la segunda tarjeta** (`flynk-b1d-dosgpu` + forzar alto rendimiento) | reparte el calor en cualquier página con WebGL; fotogramas: sin medir de verdad (§4.2), posible donde mande la tarjeta | medio: el cruce a pantalla completa sin medir; vídeo o lienzo 2D usados como textura WebGL cruzan de tarjeta [I]; memoria de texturas repartida en dos tarjetas | **51 líneas ya escritas** más forzar la preferencia (pocas líneas [I]); falta probar y medir | poco. Depende de que upstream conserve `kEGLDualGPURendering`, que tiene un «quitar tras probar» pendiente (`gles2_command_buffer_stub.cc:149` [V]) |
 | **B. Codificador de Metal en otro hilo** | cero hoy; hasta ×1,5 del hilo de GPU en páginas con miles de dibujos, cuando el renderer deje de mandar | alto: orden con blits, `present`, consultas de oclusión, vida de los objetos (`rendimiento-3.1.md` §3, cambio 5) | medio: `mtl_command_buffer.mm` y `ContextMtl.mm` | bastante: es el fichero más movido de ANGLE Metal; parche propio que rebasar en cada salto |
 | **C. Un hilo (y una tarjeta) por contexto WebGL** | solo con varios lienzos WebGL pesados visibles a la vez: raro | muy alto: imágenes compartidas entre hilos, contextos de ANGLE con hilo propio, pérdida de contexto | grande: `gpu/ipc/service`, planificador, imágenes compartidas, ANGLE | mucho: toca el corazón del proceso de GPU, que upstream está cambiando hacia Graphite. Iríamos contra la corriente |
 | **C′. Un hilo de envío por tarjeta** | páginas con WebGL pesada y, a la vez, página o lienzo 2D pesados: cada mitad con su hilo y su tarjeta. Poco con un solo lienzo WebGL | alto: orden entre hilos de las imágenes compartidas, pérdida de contexto, `present` | medio-grande: `gpu/ipc/service` (canal y stub de WebGL), planificador; ANGLE casi no, porque el otro `EGLDisplay` ya está aislado [I] | bastante: zona que upstream mueve hacia Graphite, aunque las piezas que se reutilizan son las de DrDC y esas las mantiene upstream |
@@ -269,7 +302,8 @@ ser un encargo, E1, y la medida M1 se hace con él.
    Historial de la GPU con Aquarium. Sin esto no se mide nada.
 3. A/B contra la 3.1.0: Aquarium con 5 000, 10 000 y 15 000 peces; un lienzo WebGL a 4K (el coste del cruce);
    MotionMark entero (no debe cambiar); vídeo; una página que use vídeo o lienzo 2D como textura WebGL; pérdida de
-   contexto; y cambiar el monitor de tarjeta.
+   contexto; Basemark Web y la batería de `pruebas-gpu.md`. Cambiar el monitor de tarjeta no aplica: en la 6,1 todas
+   las salidas son de la misma (§4.3).
 4. **Se entrega si no pierde más del 2 % en ningún caso.** Ganar fotogramas no es condición.
 5. Apagado de emergencia: `FLYWEB_METAL_DISPLAY_GPU=1`, que ya existe.
 
@@ -279,10 +313,11 @@ de lienzo donde se pueda. Casos:
 
 1. Aquarium con 5 000 y 15 000 peces (aclara la captura de §2.4).
 2. MotionMark, **prueba por prueba**: confirma o no que en Paths, Canvas Lines, Design y Suits manda la tarjeta.
-3. Tres páginas reales con WebGL: un ejemplo pesado de three.js, un sombreador caro a pantalla completa (Shadertoy) y
-   Google Earth. Maps, cuando deje de tumbar el proceso de GPU (`rendimiento-3x.md` §3.3).
+3. La batería de Titín (`pruebas-gpu.md`, 12 webs: three.js, Babylon, Google Earth, Photopea, Shadertoy, YouTube 4K…)
+   y **Basemark Web**, que Titín usa y que no está en esa lista. Maps, cuando deje de tumbar el proceso de GPU
+   (`rendimiento-3x.md` §3.3).
 4. Vídeo 4K a 60 con una página WebGL al lado, como caso de dos cargas a la vez.
-5. Las «pruebas de rendimiento de GPU» que Titín nombra, cuando diga cuáles son (§7).
+5. En cada caso se anotan la resolución y `window.devicePixelRatio`: los píxeles que pinta la tarjeta dependen de eso.
 
 Entregable: una tabla con la clasificación de §2.3 por caso, con una tarjeta y con dos.
 
@@ -307,8 +342,8 @@ que mover es el raster, y eso es F, no la WebGL.
 ## 7. Para Titín
 
 1. **Contestado (11-11):** ve el 100 % en el Historial de la GPU del Monitor de Actividad, en MotionMark y en
-   Aquarium (§2.4). **Queda por saber:** con qué navegador y versión son las capturas, y cuáles son las «pruebas de
-   rendimiento de GPU» que nombra aparte de esas dos, para meterlas en M1.
+   Aquarium (§2.4). **Completado el mismo día:** las capturas son de FlyWeb 3.1.0 y usa además Basemark; la lista de
+   webs es `pruebas-gpu.md`. No queda nada pendiente de este punto.
 2. **Reparto de calor: decidido, sí** (11-11). Dos avisos. Tal cual está, la rama casi no repartiría, porque solo mueve
    la WebGL que pide alto rendimiento: E1 la cambia para mover toda. Y aun así, una página sin WebGL (y MotionMark)
    seguirá entera en la primera tarjeta; repartir eso es F, que es otro tamaño de trabajo.
@@ -338,7 +373,8 @@ que mover es el raster, y eso es F, no la WebGL.
   `gpu/ipc/service/gpu_channel_manager.h:212`, `gpu/ipc/service/raster_command_buffer_stub.cc:66`,
   `gpu/command_buffer/service/shared_image/shared_image_manager.h:37-45`; mensajes de los commits `b8a4abda2f` y
   `dc5ef06`; `aquarium.js` y `tdl/webgl.js` de webglsamples.org.
-- **Límites:** no he leído la documentación web de Apple ni he medido nada en ninguna máquina. Son inferencias mías,
+- **Hardware de la 6,1** (11-11, solo lectura): `system_profiler SPDisplaysDataType` e `ioreg -p IODeviceTree`.
+- **Límites:** no he leído la documentación web de Apple ni he medido rendimiento en ninguna máquina. Son inferencias mías,
   marcadas [I] o [S]: qué tarjetas forman grupo, cómo sincroniza el sistema un IOSurface entre dos tarjetas, el coste
   del cruce, el número de dibujos de una web real, qué mide el contador de AMD y que el Historial de la GPU lea ese
   mismo contador. De la utilización de las D500 con la 3.x solo hay las capturas de Titín, a ojo. Cómo arrancó
