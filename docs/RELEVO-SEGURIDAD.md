@@ -8,6 +8,33 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-21 (`session_01MwmK2iSJ4qGU8EyNDJhUH3`, 11-11)
+
+Abierta por COORDINACIÓN-39. `add_repo` de brave-core **denegado por el clasificador del modo auto** (regla 16 lo
+permite en `main`, pero el clasificador decide en cada sesión): brave-core solo en lectura.
+
+**Hecho:**
+- **Sync con cuenta (#905, `sync-cuenta.md` de ARQUITECTURA):** revisión en el
+  [comentario](https://github.com/lamosquita-net/softmac/pull/905#issuecomment-6797345699).
+  - Bloqueantes:
+    - B1: código corto de 30 bits que depende del `id` del servidor; un ns2 comprometido lo falsifica en unos 2^30 hashes.
+    - B2: el cambio de contraseña deja a los Macs legítimos sin token para «No he sido yo».
+    - B3: la «prueba de cadena» es el token de go-sync, que firma solo la hora y vale ±24 h.
+  - A corregir: inyección de semilla, revocación que no corta la sync, «Empezar de cero» sin demora, códigos de email
+    adivinables, correo masivo y registros del MTA (RGPD).
+  - Cuando ARQUITECTURA lo rehaga, volver a revisar contra B1–B3.
+- **CVE-2026-125350 (XML UAF, explotado):** es el UAF de libxslt de `xsltTestCompMatchDirect`.
+  - Única corrección de código entre 157.0.8103.39 y .51: 049750111b (main 61cab3f772, 8078 2ad9b7f5a8).
+  - Ya está en la 3.0.1 publicada (parche `seguridad/3.0.1/chromium/0034`, hunk idéntico) y XSLT va apagado. Nada que portar.
+  - [Comentario en #937](https://github.com/lamosquita-net/softmac/pull/937#issuecomment-6797413928). Falta confirmar
+    CVE → crbug cuando se abra.
+
+**Lecciones:**
+- **«Sin commit público» no suele ser verdad:** el crbug se cierra, pero el cherry-pick a la rama estable sí es público.
+  Basta con comparar las etiquetas de la versión de la nota (`git fetch --filter=tree:0 --shallow-since=…` de dos tags)
+  para encontrarlo el mismo día.
+- El token de go-sync (`auth/auth.go`) firma solo la marca de tiempo: no sirve como prueba de posesión para nada nuevo.
+
 ## SEGURIDAD-PORTES-17 (`session_01MwmK2h23XGknphhFuuhWG7`, 03-11 → 05-11, relevada al 46 %)
 
 **Hecho:**
