@@ -1,0 +1,75 @@
+<!doctype html>
+<!-- Prueba de Maglev en la 5,1 (LOCAL-19). MIT, como la raíz del repo. Se abre como http://127.0.0.1:PUERTO/fw51.html?caso=X&n=3
+     en la FlyWeb instalada, con el perfil de quien la usa. Pasa Speedometer 3.1 y JetStream 3 en un iframe del mismo
+     origen (servidos por srv51.py), lee el resultado del DOM como el conductor de la 6,1 y la 7,1 (rendimiento-3x.md §3.7)
+     y lo manda por POST a /resultado tras cada pasada. -->
+<meta charset="utf-8">
+<title>FlyWeb · prueba de Maglev</title>
+<style>
+  html, body { margin: 0; height: 100%; font: 13px -apple-system, sans-serif; }
+  #estado { position: fixed; top: 0; left: 0; right: 0; height: 22px; padding: 3px 8px; background: #222; color: #eee; z-index: 1; }
+  iframe { position: fixed; top: 28px; left: 0; width: 100%; height: calc(100% - 28px); border: 0; }
+</style>
+<div id="estado">Preparando…</div>
+<iframe id="f"></iframe>
+<script>
+const q = new URLSearchParams(location.search);
+const CASO = q.get('caso') || 'x', NP = +(q.get('n') || 3);
+const f = document.getElementById('f'), estado = document.getElementById('estado');
+const res = { caso: CASO, ua: navigator.userAgent, empezado: new Date().toISOString(), pasadas: [], fin: false };
+// JetStream llama a top.currentResolve / top.currentReject, pensando que es la ventana de arriba: aquí top es esta página,
+// así que se reenvían al iframe (sin esto la primera subprueba no acaba nunca).
+for (const k of ['currentResolve', 'currentReject'])
+  Object.defineProperty(window, k, { get: () => f.contentWindow[k], configurable: true });
+const espera = ms => new Promise(r => setTimeout(r, ms));
+const di = t => { estado.textContent = `${CASO} · ${t} · ${new Date().toLocaleTimeString()}`; };
+async function manda() {
+  try { await fetch('/resultado?caso=' + encodeURIComponent(CASO), { method: 'POST', body: JSON.stringify(res) }); } catch (e) {}
+}
+function carga(url) {
+  return new Promise(r => { f.onload = () => r(); f.src = url; });
+}
+async function sondea(fn, limite, cada) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < limite * 1000) {
+    let v = null; try { v = fn(); } catch (e) {}
+    if (v) return [v, Math.round((Date.now() - t0) / 1000)];
+    await espera(cada * 1000);
+  }
+  return [null, Math.round((Date.now() - t0) / 1000)];
+}
+async function principal() {
+  await manda();  // primer aviso: el guion sabe así que la página ha cargado y llega a srv51.py
+  for (let i = 1; i <= NP; i++) {
+    di(`Speedometer 3.1, pasada ${i} de ${NP}`);
+    await carga('/speedometer3.1/index.html');
+    await espera(8000);
+    f.contentDocument.querySelector('.start-tests-button').click();
+    const [v, s] = await sondea(() => {
+      const d = f.contentDocument, w = f.contentWindow;
+      const n = d.getElementById('result-number')?.textContent.trim();
+      return w.location.hash == '#summary' && n ? n + ' ' + d.getElementById('confidence-number').textContent.trim() : '';
+    }, 3600, 10);
+    res.pasadas.push({ prueba: 'Speedometer 3.1', n: i, resultado: v, seg: s }); await manda();
+  }
+  di('JetStream 3, lista de pruebas');
+  await carga('/jetstream3/index.html');
+  await espera(8000);
+  // BENCHMARKS es un const de nivel superior de JetStreamDriver.js: no cuelga de window, pero eval lo ve.
+  const LISTA = (f.contentWindow.BENCHMARKS || f.contentWindow.eval('BENCHMARKS')).filter(b => b.tags.has('default')).map(b => b.name).filter(n => n != 'web-ssr').join(',');
+  res.jetstream_lista = LISTA;
+  for (let i = 1; i <= NP; i++) {
+    di(`JetStream 3, pasada ${i} de ${NP}`);
+    await carga('/jetstream3/index.html?startAutomatically=true&test=' + LISTA);
+    const [v, s] = await sondea(() => {
+      const d = f.contentDocument;
+      return d.getElementById('result-summary')?.classList.contains('done') ? d.querySelector('#result-summary .score')?.textContent : '';
+    }, 3600, 15);
+    const malos = [...f.contentDocument.querySelectorAll('.benchmark-error')].map(e => e.id);
+    res.pasadas.push({ prueba: 'JetStream 3', n: i, resultado: v, seg: s, en_error: malos }); await manda();
+  }
+  res.fin = true; res.acabado = new Date().toISOString(); await manda();
+  f.src = 'about:blank'; di('hecho: se puede cerrar');
+}
+principal().catch(async e => { res.error = String(e && e.stack || e); res.fin = true; await manda(); di('ERROR: ' + e); });
+</script>
