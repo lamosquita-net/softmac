@@ -2,7 +2,10 @@
 <!-- Prueba de Maglev en la 5,1 (LOCAL-19). MIT, como la raíz del repo. Se abre como http://127.0.0.1:PUERTO/fw51.html?caso=X&n=3
      en la FlyWeb instalada, con el perfil de quien la usa. Pasa Speedometer 3.1 y JetStream 3 en un iframe del mismo
      origen (servidos por srv51.py), lee el resultado del DOM como el conductor de la 6,1 y la 7,1 (rendimiento-3x.md §3.7)
-     y lo manda por POST a /resultado tras cada pasada. -->
+     y lo manda por POST a /resultado tras cada pasada.
+     Cuelgues (COORDINACIÓN-39): cada carga tiene tiempo límite; cada pasada tiene límite proporcional (3× la primera pasada
+     de esa prueba, mínimo 10 min; la primera pasada usa 60 min); al primer cuelgue la página deja de pasar benchmarks,
+     marca «cuelgue» en el resultado y termina, para que medir-maglev-51.command cierre y reabra FlyWeb. -->
 <meta charset="utf-8">
 <title>FlyWeb · prueba de Maglev</title>
 <style>
@@ -26,8 +29,13 @@ const di = t => { estado.textContent = `${CASO} · ${t} · ${new Date().toLocale
 async function manda() {
   try { await fetch('/resultado?caso=' + encodeURIComponent(CASO), { method: 'POST', body: JSON.stringify(res) }); } catch (e) {}
 }
+// Carga con tiempo límite: si el iframe no llega a onload en 120 s, se da por colgado (antes se esperaba sin límite).
 function carga(url) {
-  return new Promise(r => { f.onload = () => r(); f.src = url; });
+  return new Promise(r => {
+    const t = setTimeout(() => r(false), 120000);
+    f.onload = () => { clearTimeout(t); r(true); };
+    f.src = url;
+  });
 }
 async function sondea(fn, limite, cada) {
   const t0 = Date.now();
@@ -38,35 +46,49 @@ async function sondea(fn, limite, cada) {
   }
   return [null, Math.round((Date.now() - t0) / 1000)];
 }
+// Límite de una pasada: 60 min para la primera; después 3× la duración de la primera (mínimo 10 min).
+const limite = (dur1) => dur1 ? Math.max(600, 3 * dur1) : 3600;
+async function cuelgue(prueba, n, motivo) {
+  res.pasadas.push({ prueba, n, resultado: null, seg: null, cuelgue: motivo });
+  res.cuelgue = { prueba, n, motivo };
+  res.fin = true; res.acabado = new Date().toISOString(); await manda();
+  f.src = 'about:blank'; di(`CUELGUE en ${prueba} pasada ${n}: se cierra FlyWeb`);
+}
 async function principal() {
   await manda();  // primer aviso: el guion sabe así que la página ha cargado y llega a srv51.py
+  let dur1 = null;
   for (let i = 1; i <= NP; i++) {
     di(`Speedometer 3.1, pasada ${i} de ${NP}`);
-    await carga('/speedometer3.1/index.html');
+    if (!await carga('/speedometer3.1/index.html')) return cuelgue('Speedometer 3.1', i, 'la página no carga en 120 s');
     await espera(8000);
     f.contentDocument.querySelector('.start-tests-button').click();
     const [v, s] = await sondea(() => {
       const d = f.contentDocument, w = f.contentWindow;
       const n = d.getElementById('result-number')?.textContent.trim();
       return w.location.hash == '#summary' && n ? n + ' ' + d.getElementById('confidence-number').textContent.trim() : '';
-    }, 3600, 10);
+    }, limite(dur1), 10);
+    if (i == 1) dur1 = s;
     res.pasadas.push({ prueba: 'Speedometer 3.1', n: i, resultado: v, seg: s }); await manda();
+    if (!v) return cuelgue('Speedometer 3.1', i, `sin resultado en ${s} s`);
   }
   di('JetStream 3, lista de pruebas');
-  await carga('/jetstream3/index.html');
+  if (!await carga('/jetstream3/index.html')) return cuelgue('JetStream 3', 0, 'la lista no carga en 120 s');
   await espera(8000);
   // BENCHMARKS es un const de nivel superior de JetStreamDriver.js: no cuelga de window, pero eval lo ve.
   const LISTA = (f.contentWindow.BENCHMARKS || f.contentWindow.eval('BENCHMARKS')).filter(b => b.tags.has('default')).map(b => b.name).filter(n => n != 'web-ssr').join(',');
   res.jetstream_lista = LISTA;
+  dur1 = null;
   for (let i = 1; i <= NP; i++) {
     di(`JetStream 3, pasada ${i} de ${NP}`);
-    await carga('/jetstream3/index.html?startAutomatically=true&test=' + LISTA);
+    if (!await carga('/jetstream3/index.html?startAutomatically=true&test=' + LISTA)) return cuelgue('JetStream 3', i, 'la página no carga en 120 s');
     const [v, s] = await sondea(() => {
       const d = f.contentDocument;
       return d.getElementById('result-summary')?.classList.contains('done') ? d.querySelector('#result-summary .score')?.textContent : '';
-    }, 3600, 15);
-    const malos = [...f.contentDocument.querySelectorAll('.benchmark-error')].map(e => e.id);
+    }, limite(dur1), 15);
+    if (i == 1) dur1 = s;
+    const malos = [...(f.contentDocument?.querySelectorAll('.benchmark-error') || [])].map(e => e.id);
     res.pasadas.push({ prueba: 'JetStream 3', n: i, resultado: v, seg: s, en_error: malos }); await manda();
+    if (!v) return cuelgue('JetStream 3', i, `sin resultado en ${s} s`);
   }
   res.fin = true; res.acabado = new Date().toISOString(); await manda();
   f.src = 'about:blank'; di('hecho: se puede cerrar');

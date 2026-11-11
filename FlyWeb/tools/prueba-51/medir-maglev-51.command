@@ -11,7 +11,9 @@
 # Variables para pruebas: FW_APP (otra app), FW_EXTRA (flags extra, p. ej. --user-data-dir=/tmp/… para no usar el
 # perfil de nadie), PASADAS, BENCH_DIR, PY, PUERTO.
 cd "$(dirname "$0")" || exit 1
-R="$PWD/resultado-51-$(date +%Y%m%d-%H%M)"; exec > >(tee "$R.txt") 2>&1
+R="$PWD/resultado-51-$(date +%Y%m%d-%H%M)"
+# La salida (.txt) no lleva el nombre de usuario ni rutas absolutas: $HOME y /Users/<usuario> se sustituyen por ~.
+exec > >(sed -e "s#$HOME#~#g" -e "s#/Users/[^/ ]*#~#g" | tee "$R.txt") 2>&1
 APP=${FW_APP:-/Applications/FlyWeb.app}; BIN="$APP/Contents/MacOS/FlyWeb"; NP=${PASADAS:-3}; PUERTO=${PUERTO:-8127}
 export PYTHONIOENCODING=utf-8
 if [ -z "$PY" ]; then if [ -x /usr/bin/python ]; then PY=/usr/bin/python; else PY=$(command -v python3); fi; fi
@@ -31,7 +33,7 @@ BLD=$(defaults read "$APP/Contents/Info.plist" CFBundleVersion 2>/dev/null)
 echo "== $(date '+%d-%m %H:%M') $(sysctl -n machdep.cpu.brand_string) · macOS $(sw_vers -productVersion) · $(sysctl -n hw.ncpu) hilos"
 echo "CPU: $(sysctl -n machdep.cpu.features | tr ' ' '\n' | grep -cx AVX1.0) AVX (0 = sin AVX) · Python: $PY ($("$PY" -V 2>&1))"
 [ -n "$VER" ] || fin "No encuentro FlyWeb en $APP."
-echo "FlyWeb: $APP · versión $VER ($BLD) · perfil: ${FW_EXTRA:-el de $(id -un)}"
+echo "FlyWeb: $APP · versión $VER ($BLD) · perfil: ${FW_EXTRA:-el de la cuenta actual}"
 case "$VER" in 1.*|2.*|3.0.*) echo "AVISO: en la $VER Maglev va APAGADO de serie; «serie» será sin Maglev.";; esac
 
 BENCH=""
@@ -47,7 +49,7 @@ curl -s -o /dev/null -m 5 "http://127.0.0.1:$PUERTO/fw51.html" || fin "El servid
 
 # Con la pantalla dormida Chrome no pinta (sin requestAnimationFrame) y Speedometer no avanza: se despierta y se mantiene
 # encendida mientras dure el guion.
-caffeinate -u -t 5 >/dev/null 2>&1; caffeinate -d -i -w $$ >/dev/null 2>&1 &
+caffeinate -u -t 5 >/dev/null 2>&1; caffeinate -dims -w $$ >/dev/null 2>&1 &
 echo "Cierro FlyWeb si está abierta (como Cmd-Q)…"
 cerrar || fin "FlyWeb no se ha cerrado (¿una ventana pregunta algo?). Ciérrala y vuelve a empezar."
 CP="$HOME/Library/Application Support/LaMosquita/FlyWeb/Crashpad"
@@ -77,6 +79,7 @@ caso() { # caso ETIQUETA [flags]
     if bloqueada; then [ -z "$avisado" ] && { echo "  OJO: la pantalla está bloqueada; la medida está parada hasta que la desbloquees."; avisado=1; MALAS=$((MALAS+1)); }; fi
     sleep 20; t=$((t+20))
   done
+  grep -q '"cuelgue"' "$R-$E.json" 2>/dev/null && { echo "  CUELGUE: la página se ha parado; FlyWeb se cierra y el siguiente caso la reabre"; MALAS=$((MALAS+1)); }
   cerrar || { echo "  FlyWeb no se cierra: la fuerzo"; pkill -f "^$BIN"; sleep 3; }
   local D=$(find "$CP" -newer "/tmp/fw51-marca-$E" -name '*.dmp' 2>/dev/null | wc -l | tr -d ' ')
   echo "  volcados de caída: $D"; [ "$D" -gt 0 ] && MALAS=$((MALAS+1))
@@ -97,6 +100,8 @@ def m(n):
 e=sum(len(p.get('en_error') or []) for p in d['pasadas'])
 print('%-10s Speedometer 3.1 = %s · JetStream 3 = %s · subpruebas con error: %d%s' % (sys.argv[2], m('Speedometer 3.1'), m('JetStream 3'), e, '' if d.get('fin') else ' · SIN ACABAR'))
 if d.get('error'): print('           error de la página: %s' % d['error'][:300])
+if d.get('cuelgue'): c=d['cuelgue']; print('           CUELGUE en %s, pasada %s: %s' % (c['prueba'], c['n'], c['motivo']))
+print('           resultados crudos: %s' % [(p['prueba'], p['n'], p['resultado']) for p in d['pasadas']])
 " "$R-$E.json" "$E"
 done
 [ $MALAS -eq 0 ] && echo "RESULTADO: sin caídas" || echo "RESULTADO: $MALAS aviso(s) o caída(s): ver arriba"
