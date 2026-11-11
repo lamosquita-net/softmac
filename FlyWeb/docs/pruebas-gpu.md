@@ -19,6 +19,7 @@ ella. Para cada web se apunta la cifra, si va fluido y si algo sale mal dibujado
 | 10 | vsynctester — https://www.vsynctester.com | Dejarlo correr | Regular o con tirones |
 | 11 | MotionMark | Prueba completa | Puntuación frente a la 2.7.0 (incluye animación CSS, canvas y SVG) |
 | 12 | WebGPU | `chrome://gpu` y una demo | Anotar si funciona (en Mojave se espera que no) |
+| 13 | Basemark Web 3.0 — https://web.basemark.com | Prueba completa (añadida por Titín, 11-11) | Puntuación total y por bloque; fallos |
 
 Resultados: tabla por versión y backend en este fichero (sección nueva por prueba), con la fecha y la máquina, sin números de serie.
 
