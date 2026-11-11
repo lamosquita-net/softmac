@@ -7,6 +7,7 @@
 #  - Vigencia: cada apertura de FlyWeb lleva t = segundos de reloj. POST /hola?t=T apunta el t más nuevo; GET /vigente?t=T
 #    responde 200 solo al más nuevo y 410 a los demás, y /resultado rechaza (410) los t viejos. Así una pestaña de un caso
 #    anterior que FlyWeb restaure al abrirse ni mide a la vez ni pisa el resultado.
+#  - GET /previo?caso=X devuelve lo guardado de X: tras reiniciar FlyWeb, la página sigue donde iba.
 import sys, os, json
 try:
     from http.server import SimpleHTTPRequestHandler as H, HTTPServer as S
@@ -37,10 +38,28 @@ class Manejador(H):
         except ValueError:
             return 0
 
+    def caso(self):
+        c = (parse_qs(urlparse(self.path).query).get('caso') or ['x'])[0]
+        return ''.join(x for x in c if x.isalnum() or x in '-_') or 'x'
+
     def do_GET(self):
         if urlparse(self.path).path == '/vigente':
             self.send_response(200 if self.t() == ULTIMO[0] else 410)
             self.end_headers()
+            return
+        if urlparse(self.path).path == '/previo':
+            # lo medido antes de que el guion reiniciara FlyWeb, para seguir donde iba
+            try:
+                with open('%s-%s.json' % (SALIDA, self.caso()), 'rb') as f:
+                    d = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(d)))
+                self.end_headers()
+                self.wfile.write(d)
+            except IOError:
+                self.send_response(404)
+                self.end_headers()
             return
         if urlparse(self.path).path == '/fw51.html':
             with open(os.path.join(GUION, 'fw51.html'), 'rb') as f:
@@ -55,8 +74,7 @@ class Manejador(H):
 
     def do_POST(self):
         u = urlparse(self.path)
-        caso = (parse_qs(u.query).get('caso') or ['x'])[0]
-        caso = ''.join(c for c in caso if c.isalnum() or c in '-_') or 'x'
+        caso = self.caso()
         n = int(self.headers.get('Content-Length') or 0)
         cuerpo = self.rfile.read(n)
         if u.path == '/hola':
