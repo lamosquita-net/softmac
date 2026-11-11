@@ -2,9 +2,10 @@
 
 ARQUITECTURA, 09-11-2026, por orden de Titín (vía COORDINACIÓN-36). **Revisado el 11-11** tras la revisión de
 SEGURIDAD-PORTES-21 (PR #905, comentario 6797345699): resueltos B1–B3 y C1–C6 y adoptados O1–O6; el detalle, en §14.
+**Revisado otra vez el 11-11** tras su segunda pasada (comentario 6807160010): aplicados N1 y N2 y adoptados O7–O10.
 Solo papel: nada compilado ni probado. Desarrolla los puntos 1–6 de `plan-3x.md` §5.1 con el flujo que eligió Titín el
 06-11 (`TAREAS.md:281`) y las condiciones de COORDINACIÓN-30. **Propone; decide Titín** (hito 1 de `plan-3x.md` §5.2).
-Antes de su sí y de la segunda revisión de SEGURIDAD, ni una línea de código.
+Antes de su sí y de la tercera pasada de SEGURIDAD, ni una línea de código.
 
 Marcas: **[V]** visto en el código o en los documentos citados; **[I]** inferido; **[P]** propuesta mía; **[S]**
 propuesta de SEGURIDAD adoptada. Sin datos personales de nadie.
@@ -21,9 +22,13 @@ propuesta de SEGURIDAD adoptada. Sin datos personales de nadie.
   **teclea** dos códigos de 16 caracteres (uno en cada sentido) que ni el servidor ni un intruso pueden falsificar
   (§5) [S]; la **clave de recuperación son las 24 palabras de siempre**. Perder todos los Macs y las palabras = perder
   los datos, como dijo Titín, y la página lo dice con su texto.
-- **El factor fuerte es tener la cadena, no la contraseña.** Todo lo delicado (aprobar, bloquear, desbloquear, borrar
-  al momento, ligar la cadena) exige una **prueba de cadena** de un solo uso, firmada con la clave de la cadena (§3)
-  [S]. Con email + contraseña + buzón se entra en la cuenta, pero no se llega a los datos ni se puede echar al dueño.
+- **El factor fuerte es tener la cadena, no la contraseña.** Todo lo delicado (aprobar, bloquear, borrar al momento,
+  ligar la cadena) exige una **prueba de cadena** de un solo uso, firmada con la clave de la cadena (§3) [S]. Con
+  email + contraseña + buzón se entra en la cuenta, pero no se llega a los datos ni se puede echar al dueño.
+- **Lo que cambia quién controla la cuenta pide además algo que no está guardado en el Mac** [S, N1]: desbloquear,
+  cambiar el email y cambiar la clave de sincronización exigen la prueba de cadena **y** la contraseña actual o un
+  código enviado al email actual. Con solo la cadena, esas tres operaciones esperan 7 días y se pueden cancelar. Así
+  un Mac robado no puede quedarse con la cuenta (§6.7).
 - **Todo lo nuevo es aditivo:** el protocolo de sync y `flyweb-sync` siguen iguales; las cuentas son rutas y tablas
   nuevas en el mismo binario y el mismo SQLite. La 2.7.x y la 3.0.x siguen sincronizando con palabras contra el mismo
   servidor; los 7 usuarios de hoy no tienen que hacer nada hasta que quieran crear su cuenta desde un Mac sincronizado.
@@ -67,8 +72,12 @@ y vale 24 h. La cuenta usa una prueba propia, de un solo uso, firmada con la mis
 
 `prueba = Ed25519(SK_cadena, "flyweb-cuenta-v1" ‖ operación ‖ cuenta_id ‖ nonce_servidor ‖ SHA-256(cuerpo))`
 
-- `nonce_servidor`: 32 bytes aleatorios que el Mac pide antes (`nonce`), **de un solo uso** y con caducidad de 5 min
-  (la caché en memoria del servidor ya da las dos cosas [V]).
+- `nonce_servidor`: lo pide el Mac antes (`nonce`), es **de un solo uso** y caduca a los 5 min. Como `nonce` va sin
+  sesión, el servidor **no guarda los pendientes** [O8, con una variante]: el nonce lleva 16 bytes aleatorios, su
+  caducidad y un HMAC con una clave que el servidor genera al arrancar, y solo se apuntan **los ya usados con una
+  prueba válida**, hasta que caducan (comprobar y apuntar bajo el mismo cerrojo, como hace hoy la caché [V]). Nadie
+  llena la memoria pidiendo nonces, y nadie deja sin nonces a los demás, que es lo que permitiría un tope fijo de
+  pendientes. Si SEGURIDAD prefiere el tope de 1000 que propuso, el cambio es pequeño.
 - `operación` es una etiqueta fija por llamada («aprobar», «bloquear»…): una prueba no vale para otra operación, ni
   para otra cuenta, ni para otro cuerpo. Campos de longitud fija o con prefijo de longitud.
 - El prefijo de dominio no se puede leer como una hora en decimal: una firma de cuenta no sirve como token de sync, ni
@@ -77,20 +86,25 @@ y vale 24 h. La cuenta usa una prueba propia, de un solo uso, firmada con la mis
 
 ### 3.2 Qué abre cada credencial
 
-| Operación | Sin sesión | Token de aparato **sin** cadena | Prueba de cadena |
-|---|---|---|---|
-| Alta, entrar, «he olvidado la contraseña» | sí (con código por email) | — | — |
-| Crear su petición de unión, recogerla, ver **cuántas** hay pendientes | — | sí | sí |
-| Cambiar la contraseña (tecleando la actual) | — | sí | sí |
-| Pedir el borrado de la cuenta o «Empezar de cero»: **con demora de 7 días** | — | sí | — |
-| Ver las peticiones con su clave pública, aprobar, rechazar | — | **no** | sí |
-| Leer eventos; «No he sido yo» (bloquear); **desbloquear** | — | **no** | sí |
-| Ligar la cadena a la cuenta; borrar en todos **al momento**; cancelar un borrado | — | **no** | sí |
-| Cambiar la clave de sincronización; cambiar el email; quitar un aparato de la lista; renovar su token | — | **no** | sí |
+«Segundo factor» es la contraseña actual (`KL`) o un código enviado al email actual: lo que no está guardado en el
+Mac (§6.7) [S, N1].
+
+| Operación | Sin sesión | Token de aparato **sin** cadena | Prueba de cadena sola | Prueba de cadena **y** segundo factor |
+|---|---|---|---|---|
+| Alta, entrar, «he olvidado la contraseña» | sí (con código por email) | — | — | — |
+| Crear su petición de unión, recogerla, ver **cuántas** hay pendientes | — | sí | sí | sí |
+| Cambiar la contraseña (tecleando la actual) | — | sí | sí | sí |
+| Pedir el borrado de la cuenta o «Empezar de cero»: **con demora de 7 días** | — | sí | — | — |
+| Ver las peticiones con su clave pública, aprobar, rechazar; quitar un aparato de la lista; renovar su token | — | **no** | sí | sí |
+| Leer eventos; «No he sido yo» (bloquear); cancelar un borrado; ligar la cadena; borrar en todos **al momento** | — | **no** | sí | sí |
+| **Desbloquear; cambiar el email; cambiar la clave de sincronización** | — | **no** | **solo programado a 7 días**, cancelable | sí, al momento |
+| Cancelar una de esas tres operaciones programadas | — | **no** | **no** | sí |
 
 Conclusión del modelo: **con email + contraseña + buzón no se llega a los datos ni se echa al dueño.** Se entra en la
 cuenta, se puede cambiar la contraseña, crear peticiones (que nadie aprobará) y programar un borrado que cualquier Mac
 del usuario cancela. Un Mac con la cadena no depende de su token: si se lo invalidan, saca otro con la prueba de cadena.
+**Y con un Mac robado se llega a los datos hasta que el dueño cambie la clave, pero no se echa al dueño:** al ladrón
+le falta el segundo factor.
 
 ## 4. Punto 1: derivación de claves sin que el servidor vea la contraseña
 
@@ -146,9 +160,10 @@ Protocolo:
    Después muestra el **código de confirmación**: «Para terminar, teclea este código en el Mac nuevo: …». Queda
    visible en la lista de «aprobadas, pendientes de confirmar» de cualquier Mac sincronizado.
 4. **Mac nuevo:** sondea cada 30 s con la página abierta y cada 15 min en segundo plano, con retroceso exponencial
-   (regla de la casa: nunca en bucle contra ns2). Al recibir la respuesta descifra con su privada, deriva de la
-   semilla recibida la clave pública de la cadena, calcula `CC` y queda en **«Falta confirmar»**: no guarda la
-   semilla ni activa la sincronización hasta que el usuario teclee el código de confirmación y coincida. Si no
+   (regla de la casa: nunca en bucle contra ns2). Al recibir la respuesta queda en **«Falta confirmar»** y guarda
+   **el blob cifrado tal cual, no la semilla** [S, O7]: con dos viajes puede pasar días esperando. Solo cuando el
+   usuario teclea el código de confirmación descifra en memoria con su privada, deriva de la semilla la clave pública
+   de la cadena, calcula `CC` y compara. Hasta que coincida no guarda la semilla ni activa la sincronización. Si no
    coincide: descarta lo recibido y avisa («La clave recibida no viene del Mac que aprobó. No se ha activado nada.»).
    Si coincide: `SetSeed` con las palabras y se une a la cadena exactamente como hoy. Borra el par X25519.
 5. **Sin caducidad:** la petición espera días si hace falta (Titín: «navegadores en casa, usuario fuera»). En ese caso
@@ -188,7 +203,7 @@ una construcción propia que SEGURIDAD tendría que revisar desde cero. Los dos 
 **8 caracteres de base32** cuando el código es el único factor (recuperar la contraseña sin Mac). Caducan a los 10 min.
 **Tope: 10 códigos fallidos cada 24 h por cuenta**; al pasarlo, la recuperación por email se cierra hasta el día
 siguiente y solo queda hacerlo desde un Mac sincronizado o con las 24 palabras. Ningún tope ni bloqueo por fallos se
-aplica a quien presenta prueba de cadena. Sin IP, cualquier tope por cuenta lo puede agotar un tercero que sepa el
+aplica a quien presenta prueba de cadena, salvo el del segundo factor (§6.7). Sin IP, cualquier tope por cuenta lo puede agotar un tercero que sepa el
 email: por eso el dueño siempre tiene dos vías que no pasan por esos topes (un Mac con la cadena, o las 24 palabras).
 
 ### 6.2 «Se ha cambiado la contraseña. ¿Has sido tú?» y el bloqueo [S, B2]
@@ -202,14 +217,18 @@ las peticiones pendientes y los borrados programados, y cierra para las sesiones
 peticiones y «he olvidado la contraseña». El intruso, aunque tenga el buzón, queda fuera y **no puede volver a entrar
 por email**.
 
-**Desbloquear** se hace **solo** desde un Mac con la cadena (prueba de cadena): pone contraseña nueva en ese mismo
-paso y, si el buzón está comprometido, cambia el email (§6.5). Con las 24 palabras cualquier Mac se convierte en un
-Mac con la cadena y puede desbloquear. **Nunca solo por email.** La sincronización entre los Macs ya unidos no se
+**Desbloquear** se hace **solo** desde un Mac con la cadena y con segundo factor (§6.7) [S, N1]: prueba de cadena más
+la contraseña actual o un código enviado al email actual. En ese paso se pone la contraseña nueva. El dueño al que el
+intruso cambió la contraseña usa el código; el intruso también lo lee, pero no le sirve sin la cadena. Si el buzón
+está comprometido, justo después cambia el email (§6.5) con la contraseña que acaba de poner. Con las 24 palabras
+cualquier Mac se convierte en un Mac con la cadena. **Nunca solo por email, y nunca al momento solo con la cadena:**
+sin contraseña ni buzón, el desbloqueo queda programado a 7 días (§6.7). La sincronización entre los Macs ya unidos no se
 interrumpe en ningún momento (tienen la semilla; el protocolo de cadena no pasa por la cuenta).
 
 Si la cuenta está bloqueada y el usuario no tiene ni Macs ni palabras, los datos ya estaban perdidos (§6.1); la
 cuenta bloqueada se puede **borrar por email con la demora de 7 días** (cancelable desde cualquier Mac con la cadena)
-para liberar la dirección y empezar otra [P].
+para liberar la dirección y empezar otra [P]. Si un Mac lo cancela, no se puede volver a programar hasta pasados
+30 días [S, O10]: sin ese tope, quien tenga el buzón lo repetiría sin fin.
 
 ### 6.3 Un Mac perdido o robado: «Cambiar la clave de sincronización» [S, C2]
 
@@ -218,13 +237,18 @@ robado seguiría sincronizando y leyendo lo que se escriba después. La página 
 
 - **«Quitar de la lista».** Texto: «Este Mac deja de aparecer aquí, pero conserva la clave de sincronización. Si lo
   has perdido o te lo han robado, cambia la clave de sincronización.»
-- **«Cambiar la clave de sincronización»** (desde un Mac con la cadena): genera una semilla nueva, vuelve a subir los
+- **«Cambiar la clave de sincronización»** (desde un Mac con la cadena **y con segundo factor**, §6.7 [S, N1]): genera una semilla nueva, vuelve a subir los
   datos cifrados con ella, liga la cuenta a la cadena nueva (prueba con la clave vieja y con la nueva), hace
   `ClearServerData` y desactiva la cadena vieja, y enseña las **24 palabras nuevas** para guardarlas. Los demás Macs
   reciben el evento «La clave de sincronización se ha cambiado desde otro Mac» y piden unirse otra vez (§5); el robado
   también puede pedirlo, pero nadie tecleará su código. El servidor guarda 30 días la marca «cadena sustituida» para
   poder dar ese aviso en vez de un `DISABLED_BY_ADMIN` sin explicación. Casi todo son piezas que ya existen
   (abandonar cadena, crear cadena, borrar datos del servidor).
+
+**Por qué el segundo factor:** el Mac robado también tiene la cadena. Si bastara con ella, el ladrón podría cambiar la
+clave antes que el dueño y quedarse con la cuenta: los Macs del dueño tendrían que pedirle a él la vuelta. Con el
+segundo factor, el ladrón solo puede dejar el cambio programado a 7 días; el dueño lo ve en todos sus Macs y en su
+correo, lo cancela y hace el suyo al momento.
 
 ### 6.4 «Empezar de cero» [S, C3]
 
@@ -235,9 +259,11 @@ vieja, que pueden cancelarlo (y bloquear). Es la misma demora que el borrado de 
 
 ### 6.5 Cambio de email [S, O6]
 
-Como la sal de `KL` sale del email, cambiarlo obliga a teclear la contraseña (el cliente calcula el `KL` viejo para
-autenticarse y el nuevo para el verificador). Exige prueba de cadena y un código enviado **a la dirección nueva**; la
-vieja recibe un aviso y todos los Macs, un evento.
+Como la sal de `KL` sale del email, cambiarlo obliga a teclear la contraseña: el cliente calcula el `KL` viejo, que
+hace de segundo factor, y el nuevo para el verificador. Exige **prueba de cadena, segundo factor (§6.7) [S, N1] y un
+código enviado a la dirección nueva**; la vieja recibe un aviso y todos los Macs, un evento. Quien no recuerda la
+contraseña usa como segundo factor el código al email actual y pone contraseña nueva en el mismo paso. Sin contraseña
+ni buzón actual, el cambio queda programado a 7 días (§6.7).
 
 ### 6.6 Clave de recuperación
 
@@ -246,7 +272,43 @@ criptografía; no sube nada al servidor; la vía «unirse con código» sigue va
 palabras sin fecha: `SyncSetupGetPureSyncCode` ya existe [V]). Se presenta con otro nombre: «Clave de recuperación:
 guárdala impresa o en un gestor de contraseñas. Es la única forma de recuperar tus datos si pierdes todos tus Macs».
 **Opción B:** una clave corta que envuelve la semilla y se guarda, cifrada, en el servidor; más cómoda de apuntar, pero
-añade un secreto en ns2 y código nuevo. Decide Titín (§13).
+añade un secreto en ns2 y código nuevo. SEGURIDAD (segunda pasada): B solo es segura si la clave **la genera la
+máquina** con al menos 100 bits (20 caracteres de base32) y se envuelve con un KDF lento; si la eligiera el usuario,
+quien se lleve `sync.db` podría probar claves sin conexión hasta dar con la semilla. Recomienda A. Decide Titín (§13).
+
+### 6.7 Segundo factor y operaciones programadas [S, N1]
+
+Un Mac sincronizado guarda la semilla, así que **siempre** puede dar prueba de cadena, y las 24 palabras son esa misma
+semilla. Un Mac robado tiene lo mismo que el dueño salvo dos cosas que no están en el Mac: **la contraseña y el
+buzón**. Lo que cambia quién controla la cuenta pide una de las dos.
+
+- **Operaciones de control:** desbloquear (§6.2), cambiar el email (§6.5) y cambiar la clave de sincronización (§6.3).
+- **Segundo factor:** el `KL` de la contraseña actual, o un **código enviado al email actual** (8 caracteres de
+  base32, 10 min) que el Mac pide con prueba de cadena. Va dentro del cuerpo que firma la prueba.
+- **Quién pasa y quién no:** el intruso con contraseña y buzón no tiene la cadena; el ladrón del Mac no tiene ni
+  contraseña ni buzón; el dueño tiene la cadena y al menos uno de los dos.
+- **Sigue bastando la prueba de cadena sola** para lo defensivo: leer eventos, renovar el token, «No he sido yo»,
+  cancelar un borrado, borrar en todos al momento (las copias locales quedan), aprobar y quitar aparatos. Pedir
+  segundo factor para aprobar no protegería nada: quien tiene la semilla puede dársela a quien quiera sin aprobar.
+- **Fallos del segundo factor:** 10 códigos fallidos cada 24 h por cuenta, en un contador **propio** de los intentos
+  con prueba de cadena, y espera creciente para `KL`. Es la única excepción a «ningún tope para quien presenta prueba
+  de cadena»: sin ella, el ladrón probaría códigos sin límite. Un tercero sin la cadena no puede gastar ese contador.
+
+**Con la cadena, pero sin contraseña y sin buzón:** la operación se admite con la prueba de cadena sola y queda
+**programada a 7 días**.
+
+- **Aviso inmediato:** evento en todos los Macs («Se ha pedido desbloquear / cambiar el email / cambiar la clave desde
+  el Mac X. Se hará el día D.») y correo al email actual.
+- **Cancela cualquier Mac con prueba de cadena y segundo factor.** La prueba sola no cancela: si bastara, el ladrón
+  anularía una y otra vez la del dueño.
+- **Qué espera en el servidor:** para desbloquear, el verificador nuevo; para el email, la dirección nueva ya
+  confirmada con su código y el verificador nuevo; para la clave, solo el permiso: el cambio lo hace al vencer el Mac
+  que lo pidió, con prueba de cadena. Una operación programada por cuenta y tipo; el permiso caduca a los 30 días de
+  vencer.
+- **Límite que queda** [I]: si el dueño no tiene ni contraseña ni buzón y el ladrón tiene un Mac, los dos presentan lo
+  mismo y el servidor no puede distinguirlos; se cumple la que se pidió antes. La página lo previene: al crear la
+  cuenta y en el aviso de Mac perdido dice que la contraseña o el buzón son lo que distingue al dueño. Sus datos
+  siguen en sus Macs, y siempre puede abandonar esa cadena y crear otra.
 
 ## 7. Punto 4: RGPD y privacidad
 
@@ -338,7 +400,7 @@ en el siguiente inicio de sesión de cada cuenta: hay que guardar la versión de
 | Claves locales ilegibles = estado propio | `failed_to_decrypt` de la semilla o del token → estado «Este Mac no puede leer sus claves de sincronización (ha cambiado el llavero)» con «Volver a unir este Mac» (§6.1) | P9 |
 | Volver a unir sin duplicar | al unirse con datos locales, elegir: **Combinar** (lo de Chromium: contraseñas por clave natural, marcadores por GUID) o **Sustituir lo de este Mac por lo de la cuenta** (hace antes una copia del perfil con el mecanismo de «antes de 3.0», vacía los tipos sincronizados y se une). Después de combinar, botón «Quitar marcadores duplicados» (misma URL, título y carpeta) con la copia como vuelta atrás [P] | P9 |
 | Cadena borrada desde otro Mac | `DISABLED_BY_ADMIN` → estado «La cuenta se ha borrado desde otro Mac» (o «La clave de sincronización se ha cambiado», §6.3) con sus salidas; nada de lista vacía con botones muertos | P8, P16 |
-| Servidor: contadores anónimos | `flyweb-sync` escribe cada hora, a nivel `warn`, «cuentas borradas: n; DISABLED_BY_ADMIN devueltos: n; peticiones aprobadas: n; correos enviados: n» sin identificar cadenas ni cuentas | P8, P18 |
+| Servidor: contadores anónimos | `flyweb-sync` escribe cada hora, a nivel `warn`, «cuentas borradas: n; DISABLED_BY_ADMIN devueltos: n; peticiones aprobadas: n; correos enviados: altas n, cuentas n, con prueba de cadena y avisos n» sin identificar cadenas ni cuentas | P8, P18 |
 | «Passwords» traducido | ya en la 3.0.1 (FS.43, parche 0002) | — |
 | La 2.7.x no abre un perfil 3.x | §8, último punto (fuera de la 3.2) | — |
 
@@ -348,7 +410,9 @@ en el siguiente inicio de sesión de cada cuenta: hay que guardar la versión de
 (pide el código de confirmación) → `sincronizado` (aparatos, peticiones, cambiar contraseña, cambiar email, cambiar la
 clave de sincronización, salir en este Mac, borrar en todos, ver clave de recuperación) · `claves ilegibles` (volver a
 unir) · `cuenta borrada desde otro Mac` · `clave cambiada desde otro Mac` (pedir unirse) · `contraseña cambiada: ¿has
-sido tú?` (barra) · `cuenta bloqueada` (desbloquear, solo en un Mac con la cadena) · `borrado programado` (cancelar) ·
+sido tú?` (barra) · `cuenta bloqueada` (desbloquear, solo en un Mac con la cadena y con contraseña o código) ·
+`borrado programado` (cancelar) · `cambio programado` (desbloqueo, email o clave a 7 días: cancelar con contraseña o
+código) ·
 `sin red` (lo último que se sabía + Reintentar).
 
 ## 10. Servidor
@@ -358,24 +422,34 @@ sido tú?` (barra) · `cuenta bloqueada` (desbloquear, solo en un Mac con la cad
   solo añade la ruta, y sigue sin pasar la IP.
 - **Tres niveles de autenticación** (§3.2): sin sesión; **token de aparato** (32 bytes aleatorios; el Mac lo guarda
   cifrado con OSCrypt; el servidor, su SHA-256; `Authorization: Bearer`; caduca a los 180 días sin uso y se rota al
-  cambiar la contraseña [S, O2]); y **prueba de cadena** de un solo uso (§3.1), que basta por sí sola.
+  cambiar la contraseña [S, O2]); y **prueba de cadena** de un solo uso (§3.1), que basta por sí sola salvo en las
+  tres operaciones de control, que piden además segundo factor (§6.7) [S, N1].
 - **Llamadas:** `alta` (email → código), `alta/confirmar` (código, `KL`, prueba de cadena opcional → cuenta, token),
-  `entrar` (email, `KL`, código → token), `nonce`, `aparatos/renovar` (prueba → token), `contrasena/cambiar`,
+  `entrar` (email, `KL`, código → token; **un solo error** para `KL` y código, sin decir cuál falla [S, O9]), `nonce`,
+  `segundo-factor/codigo` (prueba de cadena → código al email actual), `programadas` (listar / cancelar), `aparatos/renovar` (prueba → token), `contrasena/cambiar`,
   `contrasena/olvidada` + `/confirmar`, `email/cambiar`, `peticiones` (crear / contar / listar / aprobar / rechazar /
   recoger), `aparatos` (listar / quitar), `eventos` (contraseña cambiada, petición nueva, cuenta bloqueada, borrado
-  programado, cadena ligada, clave cambiada), `cuenta/bloquear`, `cuenta/desbloquear`, `cuenta/borrar` (inmediato con
+  programado, cambio programado, cadena ligada, clave cambiada), `cuenta/bloquear`, `cuenta/desbloquear`, `cuenta/borrar` (inmediato con
   prueba; diferido sin ella), `cuenta/borrar/cancelar`, `cadena/cambiar`, `cuenta/empezar-de-cero` (diferido), `salir`.
 - **Forma de las peticiones** [S, C5]: solo `Content-Type: application/json` (lo demás, 415) y **ninguna cabecera
   CORS**, para que una web no pueda disparar `alta` desde el navegador de quien la visita.
-- **Límites** [S, C4 y C5]: 10 códigos fallidos por cuenta cada 24 h (§6.1); 5 códigos por hora y cuenta; **tope
-  global de 60 correos salientes por hora**, con aviso en el registro al alcanzarlo; 10 peticiones pendientes por
-  cuenta; tope global de entradas por minuto. Los fallos de contraseña ralentizan (espera creciente), no bloquean, y
-  nada de esto se aplica a quien presenta prueba de cadena. Sin IP no hay límite por IP: es deliberado (privacidad).
+- **Límites** [S, C4 y C5]: 10 códigos fallidos por cuenta cada 24 h (§6.1); 5 códigos por hora y cuenta; 10
+  peticiones pendientes por cuenta; tope global de entradas por minuto; un borrado programado sin prueba de cadena
+  cada 30 días por cuenta [S, O10]. Los fallos de contraseña ralentizan (espera creciente), no bloquean, y nada de
+  esto se aplica a quien presenta prueba de cadena, salvo el contador del segundo factor (§6.7). Sin IP no hay límite
+  por IP: es deliberado (privacidad).
+- **Cupos de correo, separados** [S, N2]: (1) `alta` a direcciones **sin cuenta**: 20 por hora en total; (2) correos
+  a **cuentas existentes** sin prueba de cadena (entrar, recuperar la contraseña): 60 por hora en total, y 5 por
+  cuenta; (3) correos pedidos **con prueba de cadena** (segundo factor) y **avisos** (contraseña cambiada, borrado o
+  cambio programado, inactividad): fuera de los dos topes globales, con solo el límite de 5 por hora y cuenta, y en
+  cola si el MTA no responde: no se descartan. Así 60 altas falsas agotan solo el cupo (1), y quien tiene la cadena
+  nunca se queda sin su código. Aviso en el registro al alcanzar cada tope; el contador anónimo de §9 los da por
+  separado.
 - **Correo:** por el MTA local del servidor desde un remitente del dominio de FlyWeb [I: SERVIDOR confirma SPF y DKIM
   y que el MTA acepta de `DynamicUser`], con el registro de correo a 7 días (§7). Si no hay MTA utilizable, un relé en
   ns1; nunca un servicio de correo de terceros.
 - **Configuración:** `FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS=365`, `FLYWEB_SYNC_AVISO_DIAS=30`, `FLYWEB_SYNC_CORREO_DESDE`,
-  `FLYWEB_SYNC_CORREOS_HORA=60`, y dos credenciales de systemd: clave del HMAC y clave AES del email, con versión.
+  `FLYWEB_SYNC_CORREOS_HORA=60`, `FLYWEB_SYNC_CORREOS_ALTA_HORA=20`, y dos credenciales de systemd: clave del HMAC y clave AES del email, con versión.
 - **Pruebas:** `go test -race` con los casos de §12 en HTTP contra SQLite; `pruebas/go-sync.sh` sigue pasando (nada de
   go-sync se toca); y, en ns2, siempre desde el propio servidor con `curl --resolve ...:127.0.0.1` (regla de la casa).
 
@@ -411,7 +485,7 @@ sido tú?` (barra) · `cuenta bloqueada` (desbloquear, solo en un Mac con la cad
 | P3 | En A se teclea el código de B y se aprueba; en B se teclea el de confirmación | B no activa nada hasta confirmar; después recibe contraseñas y marcadores; en `sync.db` solo hay cifrado y claves públicas |
 | P4 | Mac C pide unirse; nadie aprueba en 2 días; luego se aprueba y confirma | C sigue esperando sin error y se une al confirmar |
 | P5 | Petición de un intruso (sesión con la contraseña desde otro perfil) | su sesión no ve las claves de las demás peticiones; al teclear en A el código de B solo se aprueba B; el intruso no recibe nada |
-| P6 | El «intruso» cambia la contraseña | A y C sacan token nuevo con prueba de cadena y muestran «¿Has sido tú?»; «No he sido yo» en A bloquea; el intruso **no puede desbloquear por email**; A desbloquea; la sync A–B–C no se corta |
+| P6 | El «intruso» cambia la contraseña | A y C sacan token nuevo con prueba de cadena y muestran «¿Has sido tú?»; «No he sido yo» en A bloquea; el intruso **no puede desbloquear por email**; A desbloquea con prueba de cadena y el código enviado al email actual; la sync A–B–C no se corta |
 | P7 | «Salir en este Mac» en C | C conserva su perfil; A y B ya no lo listan; el servidor no borra nada |
 | P8 | «Borrar en todos» en A | B y C muestran «cuenta borrada desde otro Mac»; `sync.db` sin filas de la cuenta; el contador anónimo sube |
 | P9 | En B, cambiar el llavero | estado «claves ilegibles» → «volver a unir» → combinar sin duplicados; luego lo mismo con «sustituir» y comprobar la copia previa |
@@ -421,29 +495,32 @@ sido tú?` (barra) · `cuenta bloqueada` (desbloquear, solo en un Mac con la cad
 | P13 | Una 3.0.1 con palabras y una 3.2 con cuenta en la misma cadena | sincronizan entre sí; NetLog solo con `sync.flyweb.lamosquita.net` |
 | P14 | **Reutilización** (B3): usar un token de sync capturado como prueba; repetir una prueba ya usada; usarla en otra operación | las tres dan 401 |
 | P15 | **Servidor malicioso simulado** (B1, C1; instancia de prueba que cambia la clave pública de la petición, o que entrega una semilla propia) | en el primer caso, el código tecleado no coincide con ninguna petición; en el segundo, el código de confirmación no coincide y B no activa nada |
-| P16 | **Cambiar la clave de sincronización** (C2) tras «quitar de la lista» a C | hasta el cambio, C sigue sincronizando (y la página lo avisaba); después, C no lee nada nuevo y ve «clave cambiada»; A enseña palabras nuevas |
+| P16 | **Cambiar la clave de sincronización** (C2) tras «quitar de la lista» a C, desde A con su contraseña | hasta el cambio, C sigue sincronizando (y la página lo avisaba); después, C no lee nada nuevo y ve «clave cambiada»; A enseña palabras nuevas |
 | P17 | **Códigos** (C4): 11 códigos fallidos en 24 h | la recuperación por email se cierra; desde A (prueba de cadena) sigue funcionando |
-| P18 | **Correo** (C5): 61 altas a direcciones distintas en una hora; `alta` con otro `Content-Type` o desde una web | el correo 61 no sale y el registro avisa; 415; sin cabeceras CORS |
+| P18 | **Correo** (C5, N2): 21 altas a direcciones distintas en una hora y, después, entrar en una cuenta real y pedir un segundo factor desde A; `alta` con otro `Content-Type` o desde una web | el correo 21 de alta no sale y el registro avisa; el código de entrada y el del segundo factor **sí** llegan; 415; sin cabeceras CORS |
 | P19 | **«Empezar de cero»** sin Mac (C3) y borrado diferido | nada se borra en 7 días (plazo corto en la instancia de prueba); A lo cancela |
 | P20 | **Rastros del email** (C6) | tras borrar la cuenta, el email no está en `sync.db`; el registro de correo no pasa de 7 días |
+| P21 | **Mac robado** (N1): C, con la cadena pero sin contraseña ni código, intenta desbloquear, cambiar el email y cambiar la clave; después intenta cancelar una operación programada por A | las tres dan 401 o quedan programadas a 7 días (plazo corto en la instancia de prueba) con aviso en A, en B y en el correo; A las cancela con prueba de cadena y contraseña; C no puede cancelar la de A; 11 códigos de segundo factor fallidos desde C cierran el código, y A sigue pudiendo con la contraseña |
 
-**Aceptación de la 3.2** (`plan-3x.md` §5.2): P1–P20 en verde en los tres Macs; datos ilegibles comprobados en ns2;
+**Aceptación de la 3.2** (`plan-3x.md` §5.2): P1–P21 en verde en los tres Macs; datos ilegibles comprobados en ns2;
 texto de privacidad publicado; la 3.1 no retrocede.
 
 ## 13. Para Titín
 
 Decisiones de producto, con mi recomendación. Las de seguridad ya están cerradas con SEGURIDAD (§14).
 
-1. **Clave de recuperación:** A, las 24 palabras de siempre (recomiendo; SEGURIDAD la apoya); o B, clave corta
-   envuelta en el servidor (§6.6).
+1. **Clave de recuperación:** A, las 24 palabras de siempre (recomiendo; SEGURIDAD la recomienda también en su segunda
+   pasada); o B, clave corta envuelta en el servidor, que solo es segura si la genera la máquina con 20 caracteres o
+   más (§6.6).
 2. **Dos códigos de 16 caracteres tecleados por cada Mac nuevo** (§5), y dos viajes si los Macs están en sitios
    distintos. Es el precio de que ni el servidor ni un intruso puedan colarse. Recomiendo aceptarlo: se hace una vez por
    Mac.
 3. **Demora de 7 días** para borrar la cuenta y para «Empezar de cero» cuando se pide sin un Mac sincronizado
    (§6.4, §7). Recomiendo 7 (SEGURIDAD: bastan).
-4. **Cuenta bloqueada:** solo se desbloquea desde un Mac con la cadena o con las 24 palabras, nunca por email (§6.2).
-   Consecuencia: sin Macs y sin palabras, la cuenta bloqueada solo se puede borrar (7 días) y crear otra. Recomiendo
-   aceptarlo: en ese caso los datos ya estaban perdidos.
+4. **Cuenta bloqueada:** solo se desbloquea desde un Mac con la cadena o con las 24 palabras, nunca por email (§6.2),
+   **y además con la contraseña o con un código al email** (punto 13). Consecuencia: sin Macs y sin palabras, la
+   cuenta bloqueada solo se puede borrar (7 días) y crear otra. Recomiendo aceptarlo: en ese caso los datos ya estaban
+   perdidos.
 5. **Textos de «Quitar de la lista»** y la función nueva **«Cambiar la clave de sincronización»** (§6.3). Recomiendo
    los textos propuestos.
 6. **Tope de códigos:** tras 10 códigos fallidos en 24 h, recuperar por email se cierra hasta el día siguiente (§6.1).
@@ -458,6 +535,12 @@ Decisiones de producto, con mi recomendación. Las de seguridad ya están cerrad
     hasta la aprobación.
 11. **Nombre de la página:** «Cuenta y sincronización» (recomiendo) u otro.
 12. **Remitente de los correos** y si ns2 los manda él mismo: lo confirma SERVIDOR; Titín elige la dirección.
+13. **Nuevo (segunda pasada de SEGURIDAD): contraseña o código para tres operaciones.** Desbloquear, cambiar el email
+    y cambiar la clave de sincronización piden, además de estar en un Mac sincronizado, la contraseña actual o un
+    código que llega al email. Quien no tenga ni contraseña ni buzón puede hacerlas igual, pero **esperando 7 días**
+    (§6.7). Es lo que impide que un Mac robado se quede con la cuenta. Recomiendo aceptarlo. Consecuencia práctica:
+    con un Mac robado, lo urgente es cambiar la clave de sincronización, y para hacerlo al momento hay que recordar la
+    contraseña o tener el buzón.
 
 ## 14. Revisión de seguridad
 
@@ -466,12 +549,13 @@ Decisiones de producto, con mi recomendación. Las de seguridad ya están cerrad
 | Atacante | Qué consigue | Qué no consigue | Dónde se apoya |
 |---|---|---|---|
 | Tiene email + contraseña y **no** el buzón | nada: el código por email lo para | — | §6.1 |
-| Tiene email + contraseña **y** el buzón | entra en la cuenta: ve cuántas peticiones hay, crea las suyas, cambia la contraseña, programa un borrado o un «empezar de cero» a 7 días | la semilla y los datos; que se apruebe su petición; ver las de otros; borrar al momento; bloquear o desbloquear; seguir dentro tras «No he sido yo» | §3.2, §5, §6.2 |
-| Solo sabe el email | agotar los topes de códigos de esa cuenta durante un día | impedir nada a un Mac con la cadena ni a quien tenga las 24 palabras | §6.1 |
+| Tiene el buzón, con o sin la contraseña (sin ella, la recupera por email) | entra en la cuenta: ve cuántas peticiones hay, crea las suyas, cambia la contraseña, programa un borrado o un «empezar de cero» a 7 días | la semilla y los datos; que se apruebe su petición; ver las de otros; borrar al momento; bloquear o desbloquear; seguir dentro tras «No he sido yo» | §3.2, §5, §6.2 |
+| Solo sabe el email | agotar los topes de códigos de esa cuenta durante un día; agotar durante una hora el cupo de correos de `alta` | impedir nada a un Mac con la cadena ni a quien tenga las 24 palabras; dejar sin correo a las cuentas existentes | §6.1, §10 |
 | Ve tráfico descifrado (proxy que inspecciona TLS, registro con cabeceras) | tokens de sync reutilizables 24 h, como hoy | usarlos como prueba de cadena: es de un solo uso, con operación, cuenta y cuerpo firmados | §3.1 |
 | Se lleva `sync.db` | datos cifrados, verificadores, HMAC de emails, claves públicas, blobs HPKE | emails en claro; contraseñas; semillas | §4, §7 |
 | Controla ns2 entero | lo anterior más los emails en claro; negar el servicio; ver quién aprueba y cuándo | **la semilla**: no puede cambiar la clave pública de una petición sin que falle el código de aprobación (2^80), ni colar una semilla suya sin que falle el de confirmación | §5 |
-| Roba un Mac sincronizado | la semilla (si abre la sesión): lee y escribe hasta que el usuario **cambie la clave de sincronización** | seguir leyendo después del cambio; que le aprueben la vuelta | §6.3 |
+| Roba un Mac sincronizado (y abre la sesión) | la semilla: lee y escribe hasta que el usuario **cambie la clave de sincronización**. Con la prueba de cadena puede bloquear la cuenta, aprobar y quitar aparatos, borrar en todos (las copias locales quedan) y **dejar programado a 7 días** un desbloqueo, un cambio de email o un cambio de clave | hacer al momento ninguna de esas tres: no tiene contraseña ni buzón; cancelar las operaciones del dueño; quedarse con la cuenta mientras el dueño conserve la contraseña o el buzón; seguir leyendo después del cambio de clave; que le aprueben la vuelta | §6.3, §6.7 |
+| Roba un Mac **y además** tiene la contraseña o el buzón | lo mismo que el dueño | — (dos de los tres factores: fuera de lo que el diseño puede distinguir) | §6.7 |
 | En la red (sin romper TLS) | nada | — | — |
 
 **Cómo queda cada hallazgo de SEGURIDAD-PORTES-21** (comentario 6797345699 del PR #905):
@@ -485,7 +569,7 @@ Decisiones de producto, con mi recomendación. Las de seguridad ya están cerrad
 | **C2** revocar no corta la sincronización | adoptado: texto honesto y «Cambiar la clave de sincronización» | §6.3 |
 | **C3** «Empezar de cero» borraba al momento | adoptado: misma demora de 7 días, cancelable | §6.4 |
 | **C4** códigos adivinables; bloqueo por fallos | adoptado: 10 fallos/24 h, 8 caracteres de base32 cuando el código es el único factor, sin bloqueos para quien da prueba de cadena | §6.1, §10 |
-| **C5** correo masivo; CORS | adoptado: 60 correos/hora globales, solo JSON, sin CORS | §10 |
+| **C5** correo masivo; CORS | adoptado: 60 correos/hora globales, solo JSON, sin CORS (cupos separados después, N2) | §10 |
 | **C6** email fuera de la columna cifrada; art. 30, 28, 33 | adoptado como requisitos (7 días, 30 días) y como obligaciones para Titín | §7, §13 |
 | **O1** respuestas iguales | adoptado | §4.5 |
 | **O2** caducidad del token | adoptado: 180 días renovables; rotación al cambiar la contraseña | §7, §10 |
@@ -493,6 +577,18 @@ Decisiones de producto, con mi recomendación. Las de seguridad ya están cerrad
 | **O4** peticiones con código solo con prueba de cadena | adoptado y reforzado: la lista ya no enseña códigos | §3.2, §5 |
 | **O5** `cuenta_id` en el `info` de HPKE | adoptado | §5 |
 | **O6** cambio de email | adoptado como operación | §6.5 |
+
+**Segunda pasada de SEGURIDAD-PORTES-21** (comentario 6807160010; B1–B3, C1–C6 y O1–O6 dados por resueltos):
+
+| Hallazgo | Resolución | Dónde |
+|---|---|---|
+| **N1** un Mac robado se queda con la cuenta | adoptado: desbloquear, cambiar el email y cambiar la clave piden prueba de cadena **y** contraseña actual o código al email actual; con solo la cadena, 7 días y cancelable con segundo factor; fila del Mac robado corregida; prueba P21 | §3.2, §6.2, §6.3, §6.5, §6.7, §12 |
+| **N2** 60 altas falsas dejan a todos sin códigos | adoptado: cupo de `alta` aparte (20/h), cupo de cuentas existentes (60/h) y correos con prueba de cadena y avisos fuera de los topes globales; contador anónimo por separado | §10, P18 |
+| **O7** guardar el blob, no la semilla | adoptado | §5 |
+| **O8** tope de nonces pendientes | adoptado **con una variante**: nonce sin estado (HMAC del servidor) y solo se apuntan los usados con prueba válida. Motivo: un tope fijo de pendientes dejaría a cualquiera agotar los nonces de todos. Lo señalo para la tercera pasada | §3.1 |
+| **O9** error único en `entrar` | adoptado | §10 |
+| **O10** borrado reprogramado sin fin | adoptado: uno cada 30 días por cuenta | §6.2, §10 |
+| **1B** solo segura si la genera la máquina | recogido en la opción y en «Para Titín» | §6.6, §13 |
 
 **Lo que este documento no cubre:** el texto legal definitivo (W2, revisión legal), la implementación en Go y en
 C++, Android/iOS (cuando existan, la aprobación desde el móvil es la misma petición de §5, tecleando o escaneando los
@@ -505,6 +601,6 @@ Código: `brave-core` rama `flyweb` (`components/brave_sync/crypto/*`, `brave_sy
 `browser/infobars/brave_sync_account_deleted_infobar_delegate.*`); `FlyWeb/servidor/sync/{README.md,main.go,sqlite.go,cache.go,instalar-ns2.md}`;
 BoringSSL del árbol 156 (`evp.h`: `EVP_PBE_scrypt`; `hpke.h`). Documentos: `plan-3x.md` §5, `TAREAS.md:281` (F7.7),
 `coordinacion.md:136,265-269`, `DIRECTIVAS.md:258-264`, `parches/3.0.2-sync-ajustes/README.md`, `web-flyweb.md` §2,
-`docs/SERVIDOR.md:13`; revisión de SEGURIDAD-PORTES-21 (PR #905, comentario 6797345699), de la que salen los datos
+`docs/SERVIDOR.md:13`; revisiones de SEGURIDAD-PORTES-21 (PR #905, comentarios 6797345699 y 6807160010); de la primera salen los datos
 sobre `auth/auth.go` de go-sync, que no he vuelto a comprobar. No se ha medido el coste de scrypt en la 6,1 ni se ha
 probado nada contra ns2.
