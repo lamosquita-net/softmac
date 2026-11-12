@@ -360,6 +360,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     (D) La copia de bak se borra de verdad a los 30 días (excepción a la cuarentena). (E) **No** se añade espera de 3 días
     para el Mac robado con el correo abierto. **Riesgo aceptado:** quien tenga un Mac desbloqueado y el correo del usuario
     tiene su cuenta; un Mac apagado o bloqueado lo protege la contraseña de macOS.
+- **Flink a nuestro ritmo (Titín, 12-11 noche; COORDINACIÓN-40):** Chrome marca hacia dónde va la web y lo seguimos,
+  pero con criterio propio: se trae lo que interese y lo que necesiten webs reales, y no se mete lo que no aporta o
+  rechazan Firefox y Safari (sigue la decisión 8 del plan de la 3.x: se declara 156). Objetivo: **no quedarse nunca atrás**.
+  INVESTIGACIÓN-MOTOR vigila Chrome y, desde el informe 2 (17-11), también Firefox, Safari y otros navegadores que se
+  mantienen con versiones viejas de macOS o del motor, para dar tiempo a traer lo útil de donde sea.
 - **Multihilo y multiGPU (Titín, 11-11; COORDINACIÓN-39):** estudio de ARQUITECTURA en
   `FlyWeb/docs/multihilo-multigpu.md` (#941). Reparto de calor (toda la WebGL en la segunda D500) decidido: se entrega si
   no pierde más del 2 %. La compilación E1 y la medida M1 van **después de la 3.2** (la sync va primero). Apartado nuevo
