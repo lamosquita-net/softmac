@@ -40,6 +40,15 @@ permite en `main`, pero el clasificador decide en cada sesión): brave-core solo
   21:13 UTC (`trig_0111Rpi5tiBPMgw4ehQQyhNj`): nota de la 158 → cerrar el inventario → series `seg/3.1.1` → prueba de
   huella.
 
+- **3.1.1, serie previa (12-11 tarde):** `FlyWeb/seguridad/3.1.1/` (README con base, árbol y pruebas). Método que
+  funciona sin bajar Chromium entero:
+  - `git init` con dos remotos promisor (fork y upstream, `blob:none`); `fetch --depth=1` del fork y
+    `--shallow-since` de las etiquetas de upstream;
+  - cherry-pick con `git merge-tree --write-tree --merge-base=<c>^ <rama> <c>` y `commit-tree`;
+  - **nunca `write-tree` ni `read-tree` con índice**, que piden todos los blobs: para tocar un fichero, `mktree --missing`
+    por la ruta (`replace_path.sh`, en el scratchpad de la sesión).
+  - d8: en la nube falla por `gn` (el de apt es viejo y googlesource y CIPD están bloqueados). La hace D8-LINUX.
+
 **Lecciones:**
 - **«Sin commit público» no suele ser verdad:** el crbug se cierra, pero el cherry-pick a la rama estable sí es público.
   Basta con comparar las etiquetas de la versión de la nota (`git fetch --filter=tree:0 --shallow-since=…` de dos tags)

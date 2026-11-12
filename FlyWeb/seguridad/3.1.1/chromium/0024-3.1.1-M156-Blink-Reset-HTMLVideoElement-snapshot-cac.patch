@@ -1,0 +1,194 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Colin Blundell <blundell@chromium.org>
+Date: Wed, 11 Nov 2026 02:49:31 -0800
+Subject: [PATCH 24/34] [3.1.1] [M156] [Blink] Reset HTMLVideoElement snapshot
+ cache on clearing player
+
+Original change's description:
+> [Blink] Reset HTMLVideoElement snapshot cache on clearing player
+>
+> HTMLVideoElement::CreateStaticBitmapImage() caches a
+> VideoFrameAcceleratedSnapshotPool and CanvasSnapshotInfo across calls
+> for up to 3 seconds (kTemporaryResourceDeletionDelay), reusing the
+> pool's backing SharedImage in place when the new frame's
+> CanvasSnapshotInfo (size, format, color space, alpha type) matches the
+> cached info and the previous snapshot reference has been released. It
+> then sets OriginClean on the returned StaticBitmapImage based on the
+> current player's WouldTaintOrigin() state.
+>
+> Because OnWebMediaPlayerCleared() did not reset this cache, switching
+> an HTMLVideoElement from a cross-origin (tainted) media source to a
+> same-origin (origin-clean) media source with matching frame parameters
+> within the 3-second window would reuse the SharedImage containing the
+> previous cross-origin video frame's pixels. If drawing the new
+> same-origin frame into that SharedImage fails to overwrite it (for
+> example, if the new frame's backing SharedImage fails read access in
+> the GPU process), CreateStaticBitmapImage() returns the untouched
+> cross-origin pixels marked as origin-clean, allowing cross-origin pixel
+> readback via canvas.
+>
+> Reset the snapshot cache (and stop cache_deleting_timer_) in
+> HTMLVideoElement::OnWebMediaPlayerCleared() so that cached snapshot
+> resources are never retained across WebMediaPlayer instances.
+>
+> Bug: 580885895
+> Change-Id: I1b26ac741a4035592e5e48d61bee8e64049f6061
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8714993
+> Reviewed-by: Dale Curtis <dalecurtis@chromium.org>
+> Commit-Queue: Colin Blundell <blundell@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1734884}
+
+(cherry picked from commit 2e9662f18a5c7f0434696c70992ef150c2e5ed90)
+
+Bug: 583977893,580885895
+Change-Id: I1b26ac741a4035592e5e48d61bee8e64049f6061
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8776999
+Reviewed-by: Dale Curtis <dalecurtis@chromium.org>
+Commit-Queue: Colin Blundell <blundell@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2160}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+(cherry picked from commit 1f4b169aaaf44675960826b8629de6d9221cd77e)
+---
+ .../core/html/media/html_video_element.cc     |  2 +
+ .../core/html/media/html_video_element.h      |  2 +-
+ .../html/media/html_video_element_test.cc     | 64 +++++++++++++++++++
+ 3 files changed, 67 insertions(+), 1 deletion(-)
+
+diff --git a/third_party/blink/renderer/core/html/media/html_video_element.cc b/third_party/blink/renderer/core/html/media/html_video_element.cc
+index 07d37b8daae63dd97077da2d2b7c0457ccffb41b..b74aee6f024c67f74f560a387b149272c92536c2 100644
+--- a/third_party/blink/renderer/core/html/media/html_video_element.cc
++++ b/third_party/blink/renderer/core/html/media/html_video_element.cc
+@@ -617,6 +617,7 @@ void HTMLVideoElement::OnVisibilityRatioReport(double ratio) {
+ }
+ 
+ void HTMLVideoElement::ResetCache(TimerBase*) {
++  cache_deleting_timer_.Stop();
+   snapshot_provider_.reset();
+   cached_draw_info_.reset();
+ }
+@@ -1270,6 +1271,7 @@ void HTMLVideoElement::OnWebMediaPlayerCreated() {
+ }
+ 
+ void HTMLVideoElement::OnWebMediaPlayerCleared() {
++  ResetCache();
+   has_received_first_frame_ = false;
+   if (auto* vfc_requester = VideoFrameCallbackRequester::From(*this)) {
+     vfc_requester->OnWebMediaPlayerCleared();
+diff --git a/third_party/blink/renderer/core/html/media/html_video_element.h b/third_party/blink/renderer/core/html/media/html_video_element.h
+index 9f5dd5d53cf2c7c7375630faef37244719c7f44c..afd51e354f20e1e479ba3375bb259ea50412f93b 100644
+--- a/third_party/blink/renderer/core/html/media/html_video_element.h
++++ b/third_party/blink/renderer/core/html/media/html_video_element.h
+@@ -271,7 +271,7 @@ class CORE_EXPORT HTMLVideoElement final
+ 
+   void OnVisibilityRatioReport(double ratio);
+ 
+-  void ResetCache(TimerBase*);
++  void ResetCache(TimerBase* = nullptr);
+ 
+   // Returns the visual size of the video element in DIPs, taking into account
+   // page zoom and CSS transforms.
+diff --git a/third_party/blink/renderer/core/html/media/html_video_element_test.cc b/third_party/blink/renderer/core/html/media/html_video_element_test.cc
+index e982516edbb0ebc20b513eec1aab94f9457f285b..2f8cec2f626108e3bc17924b2aaff329dde1775a 100644
+--- a/third_party/blink/renderer/core/html/media/html_video_element_test.cc
++++ b/third_party/blink/renderer/core/html/media/html_video_element_test.cc
+@@ -6,6 +6,7 @@
+ 
+ #include "base/memory/raw_ptr.h"
+ #include "cc/layers/layer.h"
++#include "components/viz/test/test_context_provider.h"
+ #include "media/base/video_frame.h"
+ #include "media/gfx/paint_canvas_video_renderer.h"
+ #include "testing/gmock/include/gmock/gmock.h"
+@@ -32,11 +33,14 @@
+ #include "third_party/blink/renderer/core/testing/fake_local_frame_host.h"
+ #include "third_party/blink/renderer/core/testing/page_test_base.h"
+ #include "third_party/blink/renderer/platform/blob/testing/fake_blob_url_store.h"
++#include "third_party/blink/renderer/platform/graphics/gpu/shared_gpu_context.h"
++#include "third_party/blink/renderer/platform/graphics/test/gpu_test_utils.h"
+ #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
+ #include "third_party/blink/renderer/platform/loader/fetch/ad_tagging_utils.h"
+ #include "third_party/blink/renderer/platform/testing/empty_web_media_player.h"
+ #include "third_party/blink/renderer/platform/testing/paint_test_configurations.h"
+ #include "third_party/blink/renderer/platform/testing/runtime_enabled_features_test_helpers.h"
++#include "third_party/blink/renderer/platform/testing/testing_platform_support.h"
+ #include "third_party/blink/renderer/platform/testing/unit_test_helpers.h"
+ #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
+ 
+@@ -201,6 +205,28 @@ class SaveVideoFrameLocalFrameHost : public FakeLocalFrameHost {
+   mojo::AssociatedReceiver<mojom::blink::BlobURLStore> blob_url_store_receiver_{
+       &blob_url_store_};
+ };
++
++class AcceleratedCompositingTestPlatform : public TestingPlatformSupport {
++ public:
++  bool IsGpuCompositingDisabled() const override { return false; }
++};
++
++class ScopedFakeGpuContext {
++ public:
++  ScopedFakeGpuContext() {
++    SharedGpuContext::Reset();
++    test_context_provider_ = viz::TestContextProvider::CreateRaster();
++    InitializeSharedGpuContext(test_context_provider_.get());
++  }
++
++  ~ScopedFakeGpuContext() { SharedGpuContext::Reset(); }
++
++ private:
++  scoped_refptr<viz::TestContextProvider> test_context_provider_;
++  ScopedTestingPlatformSupport<AcceleratedCompositingTestPlatform>
++      accelerated_compositing_scope_;
++};
++
+ }  // namespace
+ 
+ class HTMLVideoElementTest : public PaintTestConfigurations,
+@@ -802,6 +828,44 @@ TEST_P(HTMLVideoElementTest, CreateStaticBitmapImage_Rotated_WYSIWYG) {
+   EXPECT_EQ(image->Size(), gfx::Size(270, 480));
+ }
+ 
++TEST_P(HTMLVideoElementTest,
++       CreateStaticBitmapImage_CacheClearedOnMediaPlayerCleared) {
++  ScopedFakeGpuContext fake_gpu_context;
++  ASSERT_TRUE(SharedGpuContext::IsGpuCompositingEnabled());
++
++  video()->SetSrc(AtomicString("http://example.com/foo.mp4"));
++  test::RunPendingTasks();
++
++  gfx::Size size(128, 128);
++  auto frame = media::VideoFrame::CreateZeroInitializedFrame(
++      media::PIXEL_FORMAT_I420, size, gfx::Rect(size), size, base::TimeDelta());
++  MockMediaPlayer()->SetCurrentFrame(frame);
++
++  auto image1 = video()->CreateStaticBitmapImage();
++  ASSERT_TRUE(image1);
++  ASSERT_TRUE(image1->IsTextureBacked());
++  auto si1 = image1->GetSharedImage();
++  ASSERT_TRUE(si1);
++  image1.reset();
++
++  // A subsequent snapshot on the same player reuses the cached pool's
++  // SharedImage once the previous snapshot has been released.
++  auto image2 = video()->CreateStaticBitmapImage();
++  ASSERT_TRUE(image2);
++  ASSERT_TRUE(image2->IsTextureBacked());
++  EXPECT_EQ(image2->GetSharedImage(), si1);
++  image2.reset();
++
++  // Clearing the media player should reset the snapshot cache so a new
++  // SharedImage is allocated on the next snapshot.
++  ClearMediaPlayer();
++
++  auto image3 = video()->CreateStaticBitmapImage();
++  ASSERT_TRUE(image3);
++  ASSERT_TRUE(image3->IsTextureBacked());
++  EXPECT_NE(image3->GetSharedImage(), si1);
++}
++
+ TEST_P(HTMLVideoElementTest, CanvasSubtreeChangeTriggersEvents) {
+   ScopedCanvasDrawElementForTest forced_canvas_draw_element_feature(true);
+ 
+-- 
+2.43.0
+
