@@ -9,13 +9,17 @@
 # - Benchmarks: carpeta bench/ junto a este guion, o la de la carpeta de red (entregas/bench-local).
 # - Resultado: resultado-51-<fecha>.txt (y un .json por caso) junto a este guion. Al acabar, FlyWeb queda cerrada.
 # Variables para pruebas: FW_APP (otra app), FW_EXTRA (flags extra, p. ej. --user-data-dir=/tmp/… para no usar el
-# perfil de nadie), PASADAS, BENCH_DIR, PY, PUERTO.
+# perfil de nadie), PASADAS, BENCH_DIR, PY, PUERTO y FW_LIMITE (límite en s de la primera pasada; para probar el reinicio).
 cd "$(dirname "$0")" || exit 1
-R="$PWD/resultado-51-$(date +%Y%m%d-%H%M)"; exec > >(tee "$R.txt") 2>&1
+# Privacidad: el .txt se manda por correo y puede acabar citado en GitHub, así que no lleva el nombre de la cuenta: las
+# rutas de la carpeta personal salen como ~ (sed -l: línea a línea).
+R="$PWD/resultado-51-$(date +%Y%m%d-%H%M)"
+exec > >(sed -l -e "s#$HOME#~#g" -e 's#/Users/[^/ ]*#~#g' | tee "$R.txt") 2>&1
 APP=${FW_APP:-/Applications/FlyWeb.app}; BIN="$APP/Contents/MacOS/FlyWeb"; NP=${PASADAS:-3}; PUERTO=${PUERTO:-8127}
 export PYTHONIOENCODING=utf-8
 if [ -z "$PY" ]; then if [ -x /usr/bin/python ]; then PY=/usr/bin/python; else PY=$(command -v python3); fi; fi
-fin() { echo "$*"; [ -n "$SRV" ] && kill $SRV 2>/dev/null; echo "Se puede cerrar esta ventana."; read -n1; exit 1; }
+para_srv() { [ -n "$SRV" ] && { kill $SRV && wait $SRV; } 2>/dev/null; SRV=""; }  # sin «Terminated: 15»
+fin() { echo "$*"; para_srv; echo "Se puede cerrar esta ventana."; read -n1; exit 1; }
 abierta() { pgrep -f "^$BIN" >/dev/null; }
 # Con la sesión bloqueada Chrome no pinta y Speedometer se queda parado (visto en la 6,1).
 bloqueada() { "$PY" -c "import Quartz,sys;d=Quartz.CGSessionCopyCurrentDictionary() or {};sys.exit(0 if d.get('CGSSessionScreenIsLocked') else 1)" 2>/dev/null; }
@@ -31,7 +35,7 @@ BLD=$(defaults read "$APP/Contents/Info.plist" CFBundleVersion 2>/dev/null)
 echo "== $(date '+%d-%m %H:%M') $(sysctl -n machdep.cpu.brand_string) · macOS $(sw_vers -productVersion) · $(sysctl -n hw.ncpu) hilos"
 echo "CPU: $(sysctl -n machdep.cpu.features | tr ' ' '\n' | grep -cx AVX1.0) AVX (0 = sin AVX) · Python: $PY ($("$PY" -V 2>&1))"
 [ -n "$VER" ] || fin "No encuentro FlyWeb en $APP."
-echo "FlyWeb: $APP · versión $VER ($BLD) · perfil: ${FW_EXTRA:-el de $(id -un)}"
+echo "FlyWeb: $APP · versión $VER ($BLD) · perfil: ${FW_EXTRA:-el de la cuenta actual}"
 case "$VER" in 1.*|2.*|3.0.*) echo "AVISO: en la $VER Maglev va APAGADO de serie; «serie» será sin Maglev.";; esac
 
 BENCH=""
@@ -47,44 +51,66 @@ curl -s -o /dev/null -m 5 "http://127.0.0.1:$PUERTO/fw51.html" || fin "El servid
 
 # Con la pantalla dormida Chrome no pinta (sin requestAnimationFrame) y Speedometer no avanza: se despierta y se mantiene
 # encendida mientras dure el guion.
-caffeinate -u -t 5 >/dev/null 2>&1; caffeinate -d -i -w $$ >/dev/null 2>&1 &
+# -dims: ni la pantalla, ni el sistema, ni los discos se duermen mientras viva el guion; y en cada vuelta de la espera se
+# declara actividad (-u), que también aparta el salvapantallas (con él, FlyWeb queda tapada y deja de pintar).
+caffeinate -u -t 5 >/dev/null 2>&1; caffeinate -dims -w $$ >/dev/null 2>&1 &
 echo "Cierro FlyWeb si está abierta (como Cmd-Q)…"
 cerrar || fin "FlyWeb no se ha cerrado (¿una ventana pregunta algo?). Ciérrala y vuelve a empezar."
 CP="$HOME/Library/Application Support/LaMosquita/FlyWeb/Crashpad"
 MALAS=0
+# abre ETIQUETA N [flags]: abre FlyWeb en fw51.html para el caso; N > 1 es una reapertura (la página sigue donde iba).
+abre() {
+  local E=$1 N=$2; shift 2
+  open -a "$APP" --args $FW_EXTRA "$@" "http://127.0.0.1:$PUERTO/fw51.html?caso=$E&n=$NP&t=$(date +%s)$([ $N -gt 1 ] && echo '&sigue=1')${FW_LIMITE:+&lim=$FW_LIMITE}"
+  sleep 15
+}
+cerrar_o_forzar() { cerrar || { echo "  FlyWeb no se cierra: la fuerzo"; pkill -f "^$BIN"; sleep 3; }; }
 caso() { # caso ETIQUETA [flags]
   local E=$1; shift
   echo; echo "== $(date +%T) $E $*"
   touch "/tmp/fw51-marca-$E"; rm -f "$R-$E.json"
-  open -a "$APP" --args $FW_EXTRA "$@" "http://127.0.0.1:$PUERTO/fw51.html?caso=$E&n=$NP"
-  sleep 15
+  local ab=1; abre $E $ab "$@"
   local L=$(ps -axo command= | grep "^$BIN" | grep -v -- "--type=" | head -1)
   echo "  línea de órdenes: ${L#$BIN}"
   if [ $# -gt 0 ]; then echo "$L" | grep -q -- "$1" && echo "  $1: sí" || { echo "  OJO: $1 no está en la línea de órdenes (¿FlyWeb ya estaba abierta?)"; MALAS=$((MALAS+1)); }; fi
   local t=0 visto="" avisado=""
-  while [ $t -lt 10800 ]; do
+  while [ $t -lt 14400 ]; do
     if [ ! -f "$R-$E.json" ] && [ $t -ge 180 ]; then
       echo "  OJO: en 3 minutos FlyWeb no ha cargado la página local (http://127.0.0.1:$PUERTO/fw51.html)."
       echo "       ¿Un cortafuegos (LuLu, Little Snitch) la retiene? Permite la conexión de FlyWeb y vuelve a empezar."
       MALAS=$((MALAS+1)); break
     fi
     if [ -f "$R-$E.json" ]; then
-      local ahora=$("$PY" -c "import json,sys;d=json.load(open(sys.argv[1]));print('%d %s' % (len(d['pasadas']), d.get('fin')))" "$R-$E.json" 2>/dev/null)
-      [ "$ahora" != "$visto" ] && { visto=$ahora; "$PY" -c "import json,sys;p=json.load(open(sys.argv[1]))['pasadas'];x=p[-1];print('  %s %s: %s (%s s)%s' % (x['prueba'],x['n'],x['resultado'],x['seg'],(' en error: %s' % x['en_error']) if x.get('en_error') else ''))" "$R-$E.json" 2>/dev/null; }
-      case "$ahora" in *True) break;; esac
+      # «pasadas fin última-sin-resultado»
+      local ahora=$("$PY" -c "import json,sys;d=json.load(open(sys.argv[1]));p=d['pasadas'];print('%d %s %s' % (len(p), d.get('fin'), bool(p) and not p[-1]['resultado']))" "$R-$E.json" 2>/dev/null)
+      if [ -n "$ahora" ] && [ "$ahora" != "$visto" ]; then
+        local antes=${visto%% *}; visto=$ahora
+        [ "${ahora%% *}" != "${antes:-0}" ] && "$PY" -c "import json,sys;p=json.load(open(sys.argv[1]))['pasadas'];x=p[-1];print('  %s %s: %s (%s s)%s' % (x['prueba'],x['n'],x['resultado'],x['seg'],(' en error: %s' % x['en_error']) if x.get('en_error') else ''))" "$R-$E.json" 2>/dev/null
+        case "$ahora" in
+          *" True "*) break;;
+          *" True")  # pasada sin resultado (colgada o fuera de tiempo): FlyWeb puede quedar tocada; se reinicia y sigue
+            if [ $ab -lt 4 ]; then
+              ab=$((ab+1)); MALAS=$((MALAS+1))
+              echo "  pasada sin resultado: reinicio FlyWeb y sigo (apertura $ab)"
+              cerrar_o_forzar; abre $E $ab "$@"; t=$((t+15)); continue
+            fi;;
+        esac
+      fi
     fi
     abierta || { echo "  FlyWeb se ha cerrado sola"; MALAS=$((MALAS+1)); break; }
     if bloqueada; then [ -z "$avisado" ] && { echo "  OJO: la pantalla está bloqueada; la medida está parada hasta que la desbloquees."; avisado=1; MALAS=$((MALAS+1)); }; fi
+    caffeinate -u -t 1 >/dev/null 2>&1
     sleep 20; t=$((t+20))
   done
-  cerrar || { echo "  FlyWeb no se cierra: la fuerzo"; pkill -f "^$BIN"; sleep 3; }
+  [ $t -ge 14400 ] && { echo "  OJO: 4 horas sin acabar: paso al caso siguiente"; MALAS=$((MALAS+1)); }
+  cerrar_o_forzar
   local D=$(find "$CP" -newer "/tmp/fw51-marca-$E" -name '*.dmp' 2>/dev/null | wc -l | tr -d ' ')
   echo "  volcados de caída: $D"; [ "$D" -gt 0 ] && MALAS=$((MALAS+1))
   rm -f "/tmp/fw51-marca-$E"
 }
 caso serie
 caso no-maglev --js-flags=--no-maglev
-kill $SRV 2>/dev/null
+para_srv
 echo; echo "== RESUMEN (FlyWeb $VER, $BLD; medianas de $NP pasadas)"
 for E in serie no-maglev; do
   "$PY" -c "
@@ -95,7 +121,9 @@ def m(n):
     x=sorted(float(p['resultado'].split()[0]) for p in d['pasadas'] if p['prueba']==n and p['resultado'])
     return x[len(x)//2] if x else None
 e=sum(len(p.get('en_error') or []) for p in d['pasadas'])
-print('%-10s Speedometer 3.1 = %s · JetStream 3 = %s · subpruebas con error: %d%s' % (sys.argv[2], m('Speedometer 3.1'), m('JetStream 3'), e, '' if d.get('fin') else ' · SIN ACABAR'))
+v=lambda n:'%d/%d' % (len([p for p in d['pasadas'] if p['prueba']==n and p['resultado']]), len([p for p in d['pasadas'] if p['prueba']==n]))
+r=d.get('reaperturas') or 0
+print('%-10s Speedometer 3.1 = %s (%s) · JetStream 3 = %s (%s) · subpruebas con error: %d%s%s' % (sys.argv[2], m('Speedometer 3.1'), v('Speedometer 3.1'), m('JetStream 3'), v('JetStream 3'), e, (' · reaperturas: %d' % r) if r else '', '' if d.get('fin') else ' · SIN ACABAR'))
 if d.get('error'): print('           error de la página: %s' % d['error'][:300])
 " "$R-$E.json" "$E"
 done

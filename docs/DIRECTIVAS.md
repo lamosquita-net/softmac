@@ -338,6 +338,24 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   después de publicar, con la versión instalada y el perfil de quien la use, y si pierde se estudia para la 3.2). Las dos condiciones son medidas, no preguntas: se comprueban
   antes de la orden de compilar. **Fuera, a la 3.2:** el diseño de Titín de la pantalla privada (parte de la de la 3.1) y
   los cambios ligeros de las pestañas (colores, esquinas, separadores, pestaña activa; no la forma ni el alto).
+- **Seguridad tras la 3.1.0 (Titín, 12-11; COORDINACIÓN-39):** no hay 3.0.2. La línea 3.0.x se cierra y las tandas de
+  seguridad siguen en el tercer dígito de la versión publicada: la de Chrome 158 (estable 17-11) es la **3.1.1**, sin
+  esperar a la 3.2.0 (si coinciden, se juntan). Lo previsto para la «3.0.2» que no entró en la 3.0.1 (p. ej.
+  `flyweb_bundle_version_base`) pasa a la 3.1.1. Se sigue declarando 156 (decisión 8 del plan de la 3.x).
+- **Sync con cuenta de la 3.2 (Titín, 12-11; COORDINACIÓN-39):** diseño en `FlyWeb/docs/sync-cuenta.md` (#905). Añadir
+  un Mac con el **modelo de Firefox Accounts** (clave envuelta con una clave que sale de la contraseña; el servidor no ve
+  contraseña ni semilla): email + contraseña o código visible + código por email, **sin aprobación desde otro Mac**.
+  Riesgo aceptado: con la base de datos robada, las contraseñas débiles se pueden atacar fuera de línea. Las 24 palabras
+  siguen siendo la recuperación. Cuenta bloqueada: solo con cadena o 24 palabras. Sin tope diario de códigos: aviso por
+  email de cada operación (y ritmo contra la fuerza bruta). Demora de borrado: 14 días. Mac
+  identificado por modelo y nombre que elige el usuario. Página «Cuenta y sincronización»; correos desde `noreply@`.
+  RGPD: correo 7 días, `sync.db` 30 días, copia en bak cifrada 30 días; registro de actividades, contrato con OVH y
+  brechas: propuesta nuestra con marcadores, sin datos personales en el repo.
+- **Multihilo y multiGPU (Titín, 11-11; COORDINACIÓN-39):** estudio de ARQUITECTURA en
+  `FlyWeb/docs/multihilo-multigpu.md` (#941). Reparto de calor (toda la WebGL en la segunda D500) decidido: se entrega si
+  no pierde más del 2 %. La compilación E1 y la medida M1 van **después de la 3.2** (la sync va primero). Apartado nuevo
+  del estudio, tras cerrar la sync: JavaScript y CPU de muchos hilos (límites de hilos de Chromium/V8, estilo en paralelo).
+  Batería de GPU: `pruebas-gpu.md` más Basemark Web 3.0 (#942).
 - **Design Fly Suite (Craft, Titín, 09-11):** el fork de vectorcraft espera a que storytold llegue a beta
   (`docs/investigacion/craft-apps.md`). Mientras, el agente del proyecto hace el módulo de importación de FreeHand.
   La jaula `craft` de la 6,1 lleva, cuando se monte, pf por usuario, `Match User craft`, `sudo -k` y la comprobación de

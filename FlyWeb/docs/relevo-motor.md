@@ -1,3 +1,22 @@
+# MOTOR-45 (12-11-2026, ~10:50 UTC): estado
+
+MOTOR-45 (`session_01MwmK2kdamTiZHb5S9SwNW7`, Opus 5.5, alto, modo auto; abierta por COORDINACIÓN-39). brave-core
+**solo lectura** (público; `add_repo` dice lectura anónima). Entrega por `git format-patch` en softmac.
+
+**Hecho:** `FlyWeb/parches/3.2-renderer-webgl/` (0001 `DrawingBuffer`, 0002 enlaces por etiqueta, 0003 `LIBC_MATH` de
+V8 upstream; banco de `sin`/`cos` en `trig/`). Sin compilar; se compilan con E1/M1/M2 tras la 3.2.
+
+**Trampas nuevas:**
+- El fork de Chromium (`lamosquita-net/chromium`) se baja en segundos con `git fetch --depth=1 --filter=blob:none` y
+  checkout disperso (`.git/info/sparse-checkout` sin cono) de los directorios que hagan falta; `git am` funciona encima.
+- Los historiales de gitiles (`+log`) piden iniciar sesión (403). Para buscar commits de V8, `gh api search/commits -f
+  q='repo:v8/v8 …'`; el commit se lee con `https://chromium.googlesource.com/v8/v8/+/<sha>?format=JSON`.
+- `std::uniform_real_distribution` da números distintos con `-mfma` (contracción): para comparar dos compilaciones,
+  generar las entradas una vez y leerlas de fichero (`trig/gen-entradas.cc`).
+- LLVM libc sin FMA falla en 1 ulp en `sin(x)` con |x| < 2⁻¹⁰¹⁵ (doble redondeo); con FMA, bien. Afecta a Chrome x64 igual.
+
+---
+
 # MOTOR-44 → MOTOR-45 (10-11-2026, ~18:50 UTC)
 
 MOTOR-44 (`session_01MwmK2h13FSCtFp8GwQLUyv`, Opus 5.5, alto, modo auto) se releva al 37 % de contexto. Coordina
