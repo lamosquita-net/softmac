@@ -680,3 +680,28 @@ buzon/LOCAL/20261110-1610-COORDINACION-38-style-maglev.md → Compilación Local
 buzon/LOCAL/20261110-1700-COORDINACION-38-maglev-b6.md → Compilación Local (19) [ac3240] y Local (21) [414783] · 2026-11-12 10:24 UTC · entregado
 buzon/LOCAL/20261110-1820-COORDINACION-38-claude-ganesh.md → Compilación Local (19) [ac3240] · 2026-11-12 10:24 UTC · entregado
 buzon/LOCAL/20261110-1915-COORDINACION-38-compilar-31.md → Compilación Local (19) [ac3240] · 2026-11-12 10:24 UTC · entregado
+buzon/ARQUITECTURA/20261110-2140-COORDINACION-39-relevo.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/ARQUITECTURA/20261111-1333-COORDINACION-39-multihilo-multigpu.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/ARQUITECTURA/20261111-1338-COORDINACION-39-sync-revision.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/ARQUITECTURA/20261111-2113-COORDINACION-39-sync-n1.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/ARQUITECTURA/20261111-2118-COORDINACION-39-js-hilos.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/ARQUITECTURA/20261112-1003-COORDINACION-39-sync-n3.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/ARQUITECTURA/20261112-1017-COORDINACION-39-sync-decisiones.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/ARQUITECTURA/20261112-1020-COORDINACION-39-sync-14dias.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/ARQUITECTURA/20261112-1054-COORDINACION-39-sync-fxa-seguridad.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/CARTERO-LOCAL/20261110-2140-COORDINACION-39-relevo.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/FLYHAND-LOCAL/20261110-2140-COORDINACION-39-relevo.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/LOCAL/20261110-2140-COORDINACION-39-relevo.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/LOCAL/20261111-2039-COORDINACION-39-guion-51-fallos.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/LOCAL/20261111-2111-COORDINACION-39-e1-m1.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/LOCAL/20261111-2118-COORDINACION-39-e1-m1-aplazado.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/PUBLICACION/20261110-2140-COORDINACION-39-relevo.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/PUBLICACION/20261111-0449-COORDINACION-39-publica-310.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/PUBLICACION/20261111-0855-COORDINACION-39-publica-310-subir.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/PUBLICACION/20261111-0911-COORDINACION-39-sube-310.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/PUBLICACION/20261112-1733-COORDINACION-39-web-310.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/SERVIDOR-LOCAL/20261110-2140-COORDINACION-39-relevo.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/SERVIDOR-LOCAL/20261111-0911-COORDINACION-39-kit-51.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/SERVIDOR-LOCAL/20261111-2214-COORDINACION-39-kit-51-v3.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
+buzon/FLYHAND-LOCAL → FLYHAND-LOCAL · no alcanzable (sin sesión en ListAgents) · 2026-11-12 17:36 UTC · fallo: no alcanzable
+buzon/LOCAL-20 → LOCAL-20 [3eed64] · no alcanzable · 2026-11-12 17:36 UTC · fallo: no alcanzable
