@@ -706,3 +706,4 @@ buzon/SERVIDOR-LOCAL/20261111-2214-COORDINACION-39-kit-51-v3.md → (sin reenví
 buzon/FLYHAND-LOCAL → FLYHAND-LOCAL · no alcanzable (sin sesión en ListAgents) · 2026-11-12 17:36 UTC · fallo: no alcanzable
 buzon/LOCAL-20 → LOCAL-20 [3eed64] · no alcanzable · 2026-11-12 17:36 UTC · fallo: no alcanzable
 buzon/D8-LINUX/20261112-1750-COORDINACION-39-311-mjsunit.md → D8-LINUX · 2026-11-12 18:45 UTC · fallo: D8-LINUX no alcanzable (sin sesión en ListAgents); avisado a Titín
+buzon/PUBLICACION/20261112-1847-COORDINACION-39-310-cerrada.md → Publicación [4dd99b] · 2026-11-12 18:47 UTC · entregado
