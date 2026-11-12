@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lei Zhang <thestig@chromium.org>
+Date: Wed, 11 Nov 2026 14:13:17 -0800
+Subject: [PATCH 29/34] [3.1.1] [M156] [PDF] Reject re-entrancy in
+ PDFiumPage::Unload()
+
+Original change's description:
+> [PDF] Reject re-entrancy in PDFiumPage::Unload()
+>
+> Trying to unload in the middle of an unload is a bonehead maneuver. Add
+> a new `is_unloading_` bit to check for this and make re-entrant calls
+> into no-ops.
+>
+> Also set `available_` to false for the same duration for good measure.
+> Check `is_unloading_` in MarkAvailable() to avoid unexpected changes to
+> this member variable.
+>
+> Also mark `engine_` as const along the way.
+>
+> Fixed: 583268206
+> Change-Id: Ia4c9c7ddb4c28261a71437c6a86cf119dd15f007
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8778185
+> Reviewed-by: Tom Sepez <tsepez@chromium.org>
+> Commit-Queue: Lei Zhang <thestig@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1740744}
+
+(cherry picked from commit c10e79fc7ed17fbe0e0781f793d9f1a04ffb0da9)
+
+Bug: 584578816,583268206
+Change-Id: Ia4c9c7ddb4c28261a71437c6a86cf119dd15f007
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8792284
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2168}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+(cherry picked from commit 5fe7bc44cf310080948cf2998f6684f860bfcc05)
+---
+ pdf/pdfium/pdfium_page.cc | 14 ++++++++++++++
+ pdf/pdfium/pdfium_page.h  |  3 ++-
+ 2 files changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/pdf/pdfium/pdfium_page.cc b/pdf/pdfium/pdfium_page.cc
+index fd08ec70180e9ed0b618b6ad505eac55da4b3352..8a199d15900c36622d3b3b00eedb7597d932ae3e 100644
+--- a/pdf/pdfium/pdfium_page.cc
++++ b/pdf/pdfium/pdfium_page.cc
+@@ -14,6 +14,7 @@
+ #include <utility>
+ #include <vector>
+ 
++#include "base/auto_reset.h"
+ #include "base/check_op.h"
+ #include "base/containers/extend.h"
+ #include "base/containers/span.h"
+@@ -468,6 +469,15 @@ bool PDFiumPage::Unload() {
+     return false;
+   }
+ 
++  // Also do not unload when already unloading.
++  if (is_unloading_) {
++    return false;
++  }
++
++  base::AutoReset scoped_is_unloading(&is_unloading_, true);
++  // Also mark `this` as unavailable for the duration of Unload().
++  base::AutoReset scoped_unavailable(&available_, false);
++
+   text_page_.reset();
+ 
+   if (page_) {
+@@ -2024,6 +2034,10 @@ void PDFiumPage::GenerateAndSendThumbnail(float device_pixel_ratio,
+ }
+ 
+ void PDFiumPage::MarkAvailable() {
++  if (is_unloading_) {
++    return;
++  }
++
+   available_ = true;
+ 
+   // Fulfill pending thumbnail request.
+diff --git a/pdf/pdfium/pdfium_page.h b/pdf/pdfium/pdfium_page.h
+index 2f384dd6483354157abb50bda78ee2d85626ad1f..5eb02de1f9e5da8a87e0062660156a7f2b6a5065 100644
+--- a/pdf/pdfium/pdfium_page.h
++++ b/pdf/pdfium/pdfium_page.h
+@@ -451,7 +451,7 @@ class PDFiumPage {
+   void GenerateAndSendThumbnail(float device_pixel_ratio,
+                                 SendThumbnailCallback send_callback);
+ 
+-  raw_ptr<PDFiumEngine> engine_;
++  raw_ptr<PDFiumEngine> const engine_;
+   ScopedFPDFPage page_;
+   ScopedFPDFTextPage text_page_;
+   uint32_t index_;
+@@ -480,6 +480,7 @@ class PDFiumPage {
+   std::set<int> page_object_text_run_breaks_;
+   base::OnceClosure thumbnail_callback_;
+   bool available_ = false;
++  bool is_unloading_ = false;
+ 
+ #if BUILDFLAG(ENABLE_SCREEN_AI_SERVICE)
+   // Indicates whether Searchify added text to this page or not. Note that if
+-- 
+2.43.0
+

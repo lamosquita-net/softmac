@@ -31,11 +31,14 @@ Etiquetas: **[V]** comprobado en la fuente; **[I]** inferido. Clases:
 | 58707c0 | 584119868 | [objects] prohibir modificar `JSObject` durante el GC y sus callbacks | A |
 | dfe5a31 | 583947034 | [maglev] `resume_mode_` explícito para saltar `IteratorResult` | A (Maglev encendido) |
 | fceab3a | 583015431 | [regalloc] error de uno en el recorte de la región diferida en `AllocateBlockedReg` | A |
-| 9ba5fcd | 582138459 | [interpreter] solo seguir los `ScopeInfo` de `eval` dentro del ámbito de la clausura | A: **cambia el intérprete; subir `kFlyWebCacheEpoch`** |
+| 9ba5fcd | 582138459 | [interpreter] solo seguir los `ScopeInfo` de `eval` dentro del ámbito de la clausura | A: cambia el bytecode (la época no hace falta: ver abajo) |
 
 **Propuesta:** como en la 3.0.2 (0001), roll de V8 a **15.6.75.58** tal cual llega a la rama 8078. Antes de LOCAL, d8 y
 mjsunit en verde en el Ubuntu, **con Maglev**. Después, el perfil PGO de V8 al día (`download_profiles.py
 --check-v8-revision`).
+**Corregido el 12-11 (serie hecha):** la época de caché **se queda en 31**. El roll sube `V8_PATCH_LEVEL` de 51 a 58 y
+`Hash()` ya incluye `patch_`. Los `patches/v8` de `local/3.1` aplican sobre la .58 (detalle en
+`FlyWeb/seguridad/3.1.1/README.md`).
 
 ## 2. Rama 8078: .98 → .103 [V]
 
@@ -93,6 +96,15 @@ El resto de la ventana tiene gemelo en §2.
   `"198.63"`). Lo confirmó COORDINACIÓN-39 el 12-11. Sale de la 3.1.1.
 - **CVE-2026-125350 / -125346 (libxslt):** **D** (3.0.1, 0034, y XSLT apagado).
 
+## 4 bis. Serie previa hecha (12-11)
+
+Está en `FlyWeb/seguridad/3.1.1/`:
+- 34 parches sobre chromium 502e3c5b85: V8 .58, Skia, 21 `[M156]`, 4 `[M157]` y `chrome/VERSION` .103;
+- `git am` da el árbol `3d9092e4e3`;
+- brave-core sin cambios.
+
+Pendiente: d8 y mjsunit (D8-LINUX) y el delta de la nota de la 158.
+
 ## 5. Qué falta para cerrar (17-11)
 
 1. **Nota de la 158 estable:** cruzar su lista de CVE con §1–§3 y buscar los que falten en `main` y en la 8127.
@@ -101,7 +113,7 @@ El resto de la ventana tiene gemelo en §2.
    - chromium `seg/3.1.1` sobre 502e3c5b85, con `git am` probado;
    - brave-core solo si hace falta;
    - `chrome/VERSION` a la última 156.0.8078.x.
-4. **Para LOCAL:** d8 en verde primero (V8 .58) y época de caché subida (por 9ba5fcd).
+4. **Para LOCAL:** d8 en verde primero (V8 .58). La época de caché se queda en 31 (§1).
 5. **Prueba de huella** (DIRECTIVAS, Titín, 12-11; receta en `motor.md`, principio 13). Con la 3.1.1 compilada, desde la
    app, `https://tls.peet.ws/api/all` tiene que cuadrar con un **Chrome 156 real**:
    - JA4;

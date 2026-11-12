@@ -1,0 +1,99 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eriko Kurimoto <elkurin@chromium.org>
+Date: Mon, 9 Nov 2026 22:01:53 -0800
+Subject: [PATCH 11/34] [3.1.1] [M156] [FSA] Block /run in sensitive path
+ blocklist
+
+Original change's description:
+> [FSA] Block /run in sensitive path blocklist
+>
+> Add /run with kBlockAllChildren to the sensitive-directory blocklist on
+> Linux, ChromeOS, and Android.
+>
+> This prevents sites from obtaining read/write directory access to per-
+> session runtime directories (such as /run/user/<uid>/dbus-1/services).
+>
+> Bug: 577376424
+> Change-Id: I06035274613fb65514af217c92071c66785e446f
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8650678
+> Reviewed-by: Mingyu Lei <leimy@chromium.org>
+> Commit-Queue: Eriko Kurimoto <elkurin@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1727713}
+
+(cherry picked from commit 5c478d556a47f7dc4e95677e5bc8a1335c37255c)
+
+Bug: 578797350,577376424
+Change-Id: I06035274613fb65514af217c92071c66785e446f
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8673063
+Reviewed-by: Mingyu Lei <leimy@chromium.org>
+Commit-Queue: Eriko Kurimoto <elkurin@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2140}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+(cherry picked from commit e0220018ba73e2057f5a98d6738007b5cc0b060e)
+---
+ ...e_file_system_access_permission_context.cc |  5 ++++
+ ...stem_access_permission_context_unittest.cc | 24 +++++++++++++++++++
+ 2 files changed, 29 insertions(+)
+
+diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc b/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc
+index 6c95e025573da8aea8a28f167f99e6326a54cf6d..20784acf0b2787b2e72a13aa6a2f00f17799fade 100644
+--- a/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc
++++ b/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc
+@@ -628,6 +628,11 @@ GenerateBlockPaths(bool should_normalize_file_path) {
+                                 BlockType::kBlockAllChildren),
+       BlockPath::CreateAbsolute(FILE_PATH_LITERAL("/etc"),
+                                 BlockType::kBlockAllChildren),
++      // And runtime data in /run, including per-session runtime directories
++      // (/run/user/<uid>, the default $XDG_RUNTIME_DIR), see
++      // crbug.com/577376424.
++      BlockPath::CreateAbsolute(FILE_PATH_LITERAL("/run"),
++                                BlockType::kBlockAllChildren),
+       // Block ~/.dbus as well, just in case, although there probably isn't much
+       // a website can do with access to that directory and its contents.
+       BlockPath::CreateRelative(base::DIR_HOME, FILE_PATH_LITERAL(".dbus"),
+diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc b/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc
+index 6d1776882129f0555dbe4d02e21ee0b13b5ec56b..09556b599426aaf41a9f26c5331ab319822ad7b5 100644
+--- a/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc
++++ b/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc
+@@ -1020,6 +1020,29 @@ TEST_F(ChromeFileSystemAccessPermissionContextTest,
+                 permission_context(), PathInfo(FILE_PATH_LITERAL("/dev")),
+                 HandleType::kDirectory, AccessTrigger::kProgrammaticWrite),
+             SensitiveDirectoryResult::kAbort);
++#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_ANDROID)
++  // /run and its children should be blocked across access triggers.
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(), PathInfo(FILE_PATH_LITERAL("/run")),
++                HandleType::kDirectory, AccessTrigger::kOpen),
++            SensitiveDirectoryResult::kAbort);
++  EXPECT_EQ(
++      ConfirmSensitiveEntryAccessSync(
++          permission_context(), PathInfo(FILE_PATH_LITERAL("/run/user/1000")),
++          HandleType::kDirectory, AccessTrigger::kOpen),
++      SensitiveDirectoryResult::kAbort);
++  EXPECT_EQ(
++      ConfirmSensitiveEntryAccessSync(
++          permission_context(), PathInfo(FILE_PATH_LITERAL("/run/user/1000")),
++          HandleType::kDirectory, AccessTrigger::kProgrammaticWrite),
++      SensitiveDirectoryResult::kAbort);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(temp_dir_.GetPath().AppendASCII("run")),
++                HandleType::kDirectory, AccessTrigger::kOpen),
++            SensitiveDirectoryResult::kAllowed);
++#endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) ||
++        // BUILDFLAG(IS_ANDROID)
+ #elif BUILDFLAG(IS_WIN)
+   EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
+                 permission_context(),
+@@ -2349,6 +2372,7 @@ TEST_F(ChromeFileSystemAccessPermissionContextTest,
+       {kNoBasePathKey, FILE_PATH_LITERAL("/sys"), true, false},
+       {kNoBasePathKey, FILE_PATH_LITERAL("/boot"), true, false},
+       {kNoBasePathKey, FILE_PATH_LITERAL("/etc"), true, false},
++      {kNoBasePathKey, FILE_PATH_LITERAL("/run"), true, false},
+       {base::DIR_HOME, FILE_PATH_LITERAL(".dbus"), true, false},
+       {base::DIR_HOME, FILE_PATH_LITERAL(".local/share"), true, false},
+       {base::DIR_HOME, FILE_PATH_LITERAL(".fonts.conf"), true, false},
+-- 
+2.43.0
+
