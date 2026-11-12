@@ -7,6 +7,53 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 12-11 (tarde): COORDINACIÓN-39 → COORDINACIÓN-40 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-39 (`session_01MwmK2mJmxGn5H9FT1kg9Bo`, 10-11 21:25 → 12-11 ~18:50 UTC; Opus 5.5 medio; abierta por la 38,
+linaje 6 de 8; relevo al 35 %). La 40 la abre la 39 (linaje 7 de 8: **las sesiones que abra la 40 serán las últimas
+del linaje**; la 41 tendrá que abrirla Titín o una sesión de linaje bajo). **Nunca llamar a confirm_repository_trust.**
+
+**Canales:** las locales (LOCAL-19, LOCAL-21, PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA, cartero) nos escriben por
+bridge, pero no se les puede escribir por send_message: buzón con `[coord]` y, si importa, texto para que Titín lo
+pegue. **Cartero:** Titín lo relevó (12-11) y le pegó la confirmación de la 39 con orden de **no reenviar** los
+ficheros de la 39 hasta `20261112-1733` (pegados a mano o superados) y entregar los nuevos. Comprobar en
+`ENTREGADO.md` que acepta a la 40 (lección de la 37: si exige a Titín, pedírselo en el primer mensaje).
+Nube activa: SEGURIDAD-PORTES-21 `session_01MwmK2iSJ4qGU8EyNDJhUH3` (linaje 7), MOTOR-45 `session_01MwmK2kdamTiZHb5S9SwNW7`
+(linaje 7, sin encargo tras #949), SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS` (Haiku, diaria).
+
+**Hitos (todo comprobado):**
+- **3.1.0 PUBLICADA y cerrada** (198.63.43; brave-core `local/3.1` fc9389773fe; DMG 37a81396…fcb28; #935, #938 web por
+  web-auto, #952 registro). 7,1 y 6,1 en verde. MotionMark 7,1 frente a Brave: 3560 / 3167 (Titín).
+- **Maglev en la 5,1:** +9,4 % en Speedometer y JetStream, 0 caídas (`rendimiento-3x.md` §3 bis, #950). Se queda.
+  Guion `FlyWeb/tools/prueba-51/` arreglado (#945; kit v3 en /pruebas/). Los .txt llevan datos de la cuenta: no al repo.
+- **CVE-2026-125350/-125346 (XML, en la naturaleza):** ya corregidas en la 3.0.1 (parche 0034) (#937).
+- **Versiones (DIRECTIVAS #948):** no hay 3.0.2; la seguridad de Chrome 158 es la **3.1.1**, sin esperar a la 3.2.0. Se
+  sigue declarando 156; prueba de huella de Chrome 156 en la 3.1.1.
+- **3.1.1:** serie previa en main (#951, `FlyWeb/seguridad/3.1.1/`, 34 parches sobre seg/3.0.2 502e3c5b85, árbol
+  3d9092e4e3; V8 .51→.58, Skia, 21 [M156], 4 [M157]). SEGURIDAD-PORTES-21 añade el delta de la 158 y el KEV el 17-11.
+- **Sync de la 3.2 (#905):** tres pasadas de SEGURIDAD (aprobable para H1), pero **Titín cambió el modelo el 12-11**
+  (DIRECTIVAS #947, #948): Firefox Accounts, sin aprobación entre Macs, borrado 14 días, sin tope diario (aviso por
+  email), Mac = modelo + nombre, bak cifrada 30 días, legal con plantillas sin datos personales. ARQUITECTURA (Fable 5.2)
+  lo rehace con `buzon/ARQUITECTURA/20261112-1017-…`, `…-14dias`, `…-1054-…-fxa-seguridad` (pegados por Titín).
+- **Multihilo/multiGPU (#941, #946; DIRECTIVAS #944):** E1/M1/M2 **después de la 3.2**. Parches del renderer de WebGL
+  de MOTOR-45 en `FlyWeb/parches/3.2-renderer-webgl/` (#949; SEGURIDAD: 0002 apto; 0003 con d8 en verde). Basemark en
+  `pruebas-gpu.md` (#942).
+
+**Abierto (por orden):**
+1. **3.1.1:** d8/mjsunit con Maglev en el Ubuntu (`buzon/D8-LINUX/20261112-1750-…`; la sesión del Ubuntu está caída:
+   Titín tiene que abrirla) → 17-11 delta de la 158 (SEGURIDAD-PORTES-21) → orden de compilar a LOCAL-19 (cerrar antes
+   el contenido; pruebas: navegación de 0030/0031 —popups, about:blank/srcdoc, file://, claude.ai—, FSA, huella 156,
+   lo habitual en 7,1 y 6,1) → ls-remote → PUBLICACIÓN → firma en bak.
+2. Sync: diseño nuevo de ARQUITECTURA → SEGURIDAD-PORTES-21 (KDF, separar clave de autenticación y de envoltura,
+   cambio de contraseña, Mac robado) → Titín.
+3. Después de la 3.2: E1/M1/M2 con los parches de #949.
+4. FlyHand (Titín). PR viejos abiertos (#943 superado por #945, #865, #832, #560, #512, #467, #456): proponer a Titín
+   cerrarlos.
+
+**Lecciones:** la web la publica web-auto (no pedir subidas a mano a PUBLICACIÓN); antes de dar un resultado de la 5,1
+por bueno, mirar las líneas por pasada (el resumen del kit v2 fallaba); Titín numera sus respuestas a su manera: casar
+cada una con la pregunta antes de transmitirla.
+
 ## 10-11 (noche): COORDINACIÓN-38 → COORDINACIÓN-39 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-38 (`session_01MwmK2hsPeczzmEjVZHW81X`, 10-11 08:50 → ~21:30 UTC; Opus 5.5 medio; abierta por la 37, linaje 5
