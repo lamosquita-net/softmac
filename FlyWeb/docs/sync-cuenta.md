@@ -9,6 +9,10 @@ pasada de SEGURIDAD-PORTES-21 (PR #905, comentarios 6797345699 y 6807160010). **
 - **Tercera pasada de SEGURIDAD** (comentario 6820589854): aprobable para H1 sobre el diseño anterior, con N3 por
   corregir. N3 está aplicado aquí (§6.7, §10), adaptado al modelo nuevo.
 
+Ampliado el mismo 12-11 con los cuatro puntos que SEGURIDAD avisó que miraría (buzón de las 10:54; tabla en §14):
+coste del estiramiento y puerta de medida (§4, P23), separación de claves (§4.3), cambio de contraseña (§4.6) y Mac
+robado (§6.3).
+
 Solo papel: nada compilado ni probado. **Propone; decide Titín.** El modelo nuevo cambia el análisis de seguridad:
 **hace falta una cuarta pasada de SEGURIDAD antes de H2**, y hasta entonces, ni una línea de código.
 
@@ -134,12 +138,18 @@ un verificador y la semilla envuelta, y no puede abrirla sin adivinar la contras
 1. **Normalizar** el email (minúsculas, sin espacios, NFC) y la contraseña (NFC). Longitud mínima de contraseña: 10.
 2. **Estiramiento en el cliente:** `KE = scrypt(contraseña, sal = SHA-256("flyweb-cuenta-v1" ‖ email), N = 2^17,
    r = 8, p = 1, 32 bytes)`. La sal sale del email para no pedir al servidor una sal por cuenta antes de entrar, que
-   delataría si el email existe (aceptado por SEGURIDAD en la primera pasada). Coste: 128 MiB y del orden de medio
-   segundo en la 6,1 [I, sin medir].
+   delataría si el email existe (aceptado por SEGURIDAD en la primera pasada). Coste: 128 MiB y, por cálculo, entre
+   medio segundo y segundo y medio en la 5,1 [I, sin medir]; el detalle y la puerta de medida están más abajo, en
+   «Coste del estiramiento».
 3. **Dos claves de `KE`, separadas con HKDF-SHA256** (`HKDF` de BoringSSL [V]):
    - `KL = HKDF(KE, info = "flyweb-cuenta-v1/entrar")`: **clave de entrada**. Es lo único que viaja al servidor.
-   - `KU = HKDF(KE, info = "flyweb-cuenta-v1/envolver")`: **clave de envoltura**. No sale del Mac.
-   De `KL` no se saca `KU` sin adivinar la contraseña.
+     Es el `authPW` de onepw.
+   - `KU = HKDF(KE, info = "flyweb-cuenta-v1/envolver")`: **clave de envoltura**. No sale del Mac. Es el
+     `unwrapBKey` de onepw.
+   De `KL` no se saca `KU` ni `KE`: HKDF no se invierte, y las dos salidas son independientes para quien no tiene
+   `KE`. **El servidor no recibe nunca nada que abra la semilla:** ni al crear la cuenta, ni al entrar, ni al cambiar
+   la contraseña o el email, ni con el código visible. Recibe `KL` y la envoltura `E`; para abrir `E` hace falta
+   `KU`, y a `KU` solo se llega adivinando la contraseña y pagando el estiramiento del paso 2.
 4. **Envoltura** (la calcula un Mac que tiene la semilla): `E = AES-256-GCM(KU, nonce aleatorio de 96 bits, semilla,
    dato asociado = "flyweb-envoltura-v1" ‖ SHA-256(email))` (`EVP_aead_aes_256_gcm` [V]). Lleva autenticación: una
    envoltura cambiada, o hecha por quien no sabe la contraseña, **no abre**. Esto sustituye al «código de
@@ -153,6 +163,14 @@ un verificador y la semilla envuelta, y no puede abrirla sin adivinar la contras
    a la vez. **Solo se recifran 32 bytes; los datos sincronizados no se tocan**, así que cambiarla no puede perder
    datos. Se invalidan los tokens de los demás aparatos, que sacan otro con la prueba de cadena y reciben el aviso de
    §6.2 [S, B2]. Cambiar la contraseña **no echa** a quien ya recibió la semilla: para eso está §6.3.
+   Tres seguros para que un cambio a medias no deje la cuenta sin una envoltura válida [P]:
+   - **antes de enviar**, el Mac abre la `E` nueva con la `KU` nueva y comprueba que sale su semilla;
+   - el servidor sustituye `sal_servidor`, `V` y `EE` en **una sola transacción** de SQLite: vale la contraseña
+     vieja o la nueva, nunca ninguna de las dos;
+   - si la respuesta se pierde, el Mac repite la misma llamada, y el servidor contesta lo mismo si ya la aplicó.
+
+   Y aunque todo eso fallara, la semilla sigue en cada Mac sincronizado y en las 24 palabras: lo peor que puede pasar
+   es tener que poner la contraseña otra vez desde un Mac.
 7. **Contraseña olvidada** (detalle en §6.1): **se recupera con un Mac sincronizado o con las 24 palabras**, porque
    con la cadena y el buzón se pone una contraseña nueva y se envuelve de nuevo. Sin Mac y sin palabras no hay nada
    que abra la envoltura: los datos se pierden y solo queda «Empezar de cero». El email por sí solo **no cambia la
@@ -178,10 +196,62 @@ un verificador y la semilla envuelta, y no puede abrirla sin adivinar la contras
 controla ns2 (§14). No los propongo para la 3.2 porque no están en BoringSSL y serían criptografía nueva en el
 cliente y en el servidor; si SEGURIDAD lo considera necesario, es el sitio donde cambiarlo.
 
-**Cuánto aguanta una contraseña** [I, estimación sin medir]: a medio segundo y 128 MiB por intento, una lista del
-millón de contraseñas más usadas se recorre en unos 6 días de un solo núcleo; una contraseña de 30 bits, en unos
-16 años-núcleo, que un atacante con medios reparte en días. Una frase de cuatro palabras al azar o una contraseña de
-gestor quedan fuera de alcance. La página lo dirá al pedir la contraseña, sin obligar: es la decisión de Titín.
+### Coste del estiramiento: en el Mac y para el atacante
+
+**Parámetros** [P]: cliente, scrypt con N = 2^17, r = 8, p = 1 y salida de 32 bytes; servidor, scrypt con N = 2^14,
+r = 8, p = 1. Van ligados a la etiqueta `flyweb-cuenta-v1`.
+
+**Qué cuesta un intento, contado en el código** [V, `third_party/boringssl/src/crypto/evp/scrypt.cc`]:
+
+- **Memoria:** N × 2r × 64 bytes = **128 MiB** (más 2 KiB). `EVP_PBE_scrypt` rechaza por defecto todo lo que pase de
+  65 MiB (`SCRYPT_MAX_MEM`, línea 150): hay que llamarla con `max_mem` de 130 MiB o falla con
+  `EVP_R_MEMORY_LIMIT_EXCEEDED`. Es un fallo que solo se vería al probar; queda escrito en §11.
+- **Cálculo:** 2N mezclas de bloque con 16 Salsa20/8 cada una, unos **4,2 millones de Salsa20/8**, más 131 072
+  lecturas de 1 KiB en posiciones al azar de esos 128 MiB.
+- **La versión de BoringSSL es escalar** (`salsa208_word_specification`, sin SSE ni AVX): que la 5,1 no tenga AVX
+  **no cambia nada**; cuenta la velocidad de un núcleo y la de la memoria.
+
+**Tiempo en la 5,1** (2 × Xeon E5620 Westmere a 2,4 GHz, 48 GB [V, `docs/TAREAS.md` FS.25 y `docs/entorno-mojave.md`]): **no
+está medido, y no lo mido yo** (ARQUITECTURA no mide rendimiento). Por cálculo [I]: a 200–350 ciclos por Salsa20/8
+con su XOR, de 0,35 a 0,6 s, más la reserva de la memoria y los fallos de caché; la cifra clásica del autor de
+scrypt para N = 2^14 en un equipo de 2009 (unos 100 ms, citada de memoria, sin releer) lleva a algo menos de un
+segundo. **Entre medio segundo y segundo y medio en la 5,1**; la 6,1, algo menos. Se paga **una vez por Mac y por
+contraseña tecleada**, nunca al sincronizar.
+
+**Puerta de medida, antes de publicar** [P]: los parámetros no se pueden cambiar después sin una versión `v2` y sin
+que cada usuario vuelva a teclear su contraseña (se envuelve otra vez, como en §4.6). Así que el número se cierra
+con una medida, que es la prueba P23 de §12:
+
+- La primera compilación del cliente cronometra `EVP_PBE_scrypt` con estos parámetros en la 6,1 y en la 5,1.
+- **Hasta 2 s en la 5,1, se queda N = 2^17.** Si pasa de 2 s, **N = 2^16** (64 MiB, la mitad de tiempo): el ataque
+  se abarata a la mitad, un bit.
+- Si la 5,1 no está disponible ese día, vale la 6,1 con el límite en **1 s** [I: la E5620 es más lenta por núcleo
+  que la 6,1, pero no el doble].
+- Sin compilar, quien tenga un Python 3 enlazado con OpenSSL 1.1 o posterior puede adelantar la cifra, porque el
+  scrypt de OpenSSL es el mismo código escalar [I]:
+  `python3 -c "import hashlib,time;t=time.time();hashlib.scrypt(b'x',salt=b'y',n=2**17,r=8,p=1,maxmem=2**28,dklen=32);print(time.time()-t)"`
+
+**Frente al ataque sin conexión con la base robada** (el riesgo que acepta Titín): cada contraseña probada paga
+**los dos estiramientos**, 2^17 y 2^14, y necesita 128 MiB. Supongo **0,3 s por intento y núcleo** en una máquina
+moderna del atacante [I]; el límite real es la memoria, que es lo que frena a las tarjetas gráficas: en una de 24 GB
+caben menos de 190 intentos a la vez.
+
+| Contraseña | Intentos | Coste para el atacante [I] | Veredicto |
+|---|---|---|---|
+| Está en la lista del millón más usadas | 10⁶ | 3,5 días de un núcleo | **Cae.** Horas con cien núcleos |
+| 30 bits (palabra con adornos, fecha y nombre) | 10⁹ | 10 años-núcleo | **Cae** ante quien alquile mil núcleos unos días |
+| 40 bits (dos o tres palabras al azar y una cifra) | 10¹² | 10 000 años-núcleo | Cara: solo un atacante con muchos medios y contra una cuenta concreta |
+| 50 bits o más (cuatro palabras al azar, o de gestor) | 10¹⁵ | 10 millones de años-núcleo | Fuera de alcance |
+
+Tres matices:
+
+- **La sal sale del email**, así que el trabajo no se comparte entre cuentas: hay que repetirlo por cada una.
+- **Con onepw de Mozilla**, el mismo ataque con la base paga 1000 vueltas de PBKDF2 y un scrypt de 2^16: el nuestro
+  cuesta algo más del doble por intento. La diferencia grande está en quien **controla el servidor o ve el
+  tráfico**: en onepw paga solo las 1000 vueltas («fácil», dice su página); aquí sigue pagando el scrypt de 2^17.
+- **Una cuenta sin contraseña** (código visible de 80 bits, §5.2) no tiene este riesgo.
+
+La página lo dirá al pedir la contraseña, con un indicador de fuerza y sin obligar: es la decisión de Titín.
 
 ## 5. Punto 2: añadir un Mac
 
@@ -325,6 +395,38 @@ robado seguiría sincronizando y leyendo lo que se escriba después. La página 
 **Por qué el segundo factor:** el Mac robado también tiene la cadena. Si bastara con ella, el ladrón cambiaría la
 clave antes que el dueño. Con el segundo factor solo puede dejar el cambio programado a 14 días; el dueño lo ve en
 sus Macs y en su correo, lo cancela y hace el suyo al momento.
+
+**Resumen: qué puede hacer quien roba un Mac y cómo lo corta el dueño.** Vale para un Mac con la **sesión de macOS
+abierta**. Con la sesión cerrada no tiene nada: la semilla y el token están cifrados con una clave del llavero
+[V, §2], y el llavero se abre con la contraseña de macOS [I].
+
+| El ladrón, con la cadena sola | ¿Puede? | Cómo lo corta el dueño |
+|---|---|---|
+| Leer lo que ya estaba en ese Mac (contraseñas guardadas, marcadores, historial) | sí; está en el disco | la cuenta no lo remedia: cambiar las contraseñas de las webs guardadas |
+| Seguir sincronizando: leer lo nuevo, escribir y borrar; ver las 24 palabras y unir otros aparatos | sí, **hasta el cambio de clave** | **«Cambiar la clave de sincronización»**, al momento, con su contraseña o con un código a su email |
+| «Borrar en todos» | sí, al momento | no se impide (§6.7); cada Mac conserva su copia local y el dueño vuelve a crear cadena y cuenta |
+| Cambiar la contraseña, el email o la clave | **solo programado a 14 días**, con aviso en los Macs y por correo | lo cancela con dos de tres (§6.7); el aviso lleva su código |
+| Hacer al momento cualquiera de esas tres; cancelar las del dueño; cerrarle el paso a fuerza de fallos; volver a entrar tras el cambio de clave | **no** | — |
+
+**Lo que hace el dueño, por orden:** (1) desde otro Mac, o desde uno nuevo con email, contraseña y código,
+**cambia la clave de sincronización**; el Mac robado deja de leer en ese momento y no puede volver a entrar. (2)
+Guarda las 24 palabras nuevas. (3) Cambia las contraseñas de las webs que estaban guardadas en el Mac robado. No
+necesita cambiar la contraseña de la cuenta: el Mac no la guarda (§11).
+
+**Cómo se entera:** del robo, por sí mismo; de lo que haga el ladrón, por el evento en sus otros Macs y por el
+correo, que no se descartan (§6.2, §6.7).
+
+**Límite: el Mac robado y abierto suele tener también el correo** [I]. Con Mail o el webmail con la sesión iniciada,
+el ladrón tiene el buzón: son dos de tres, y con la regla de §6.7 cambia la contraseña, el email y la clave **al
+momento**. Lo único que ese Mac no tiene es la contraseña de la cuenta. Hoy el diseño trata contraseña y buzón como
+segundos factores iguales, y en este caso no lo son.
+
+**Propuesta, sin adoptar** [P; la decide Titín, §13 E, con el parecer de SEGURIDAD]: en las cuentas **con
+contraseña**, el código por email deja de valer como segundo factor al momento. La operación queda **programada a
+3 días y la contraseña la cancela**. El dueño, que sabe la contraseña, entra desde otro Mac, cancela y cambia la
+clave al momento; el ladrón, con el Mac y el correo, no puede adelantarse. Coste: quien olvida la contraseña espera
+3 días para poner otra, con sus Macs sincronizando mientras tanto. No sirve en las cuentas sin contraseña, ni si el
+ladrón cambia además la contraseña del buzón: ahí el dueño se queda con un solo factor.
 
 ### 6.4 «Empezar de cero» y borrar sin ningún Mac [S, C3; T]
 
@@ -572,6 +674,11 @@ Se van los estados `pendiente de aprobación`, `falta confirmar` y `cuenta bloqu
   `brave_sync_auth_manager`.
 - **Lo que el Mac no guarda nunca:** la contraseña, `KE`, `KL`, `KU`. Se calculan al teclear y se borran de memoria
   al terminar la llamada. De esto depende que la contraseña sirva de segundo factor frente a un Mac robado (§6.7).
+  Tampoco la guarda el **gestor de contraseñas** del navegador: la página es interfaz propia y no un formulario web,
+  así que no debería ofrecerlo [I]; se comprueba en P23.
+- **Llamada a scrypt** [V, `scrypt.cc:150-177`]: `EVP_PBE_scrypt` con `max_mem` de 130 MiB; con el valor por defecto
+  (65 MiB) falla. Reserva 128 MiB y ocupa un núcleo alrededor de un segundo: va **fuera del hilo de la interfaz**,
+  en una tarea del grupo de hilos, y una sola a la vez. La página enseña «Comprobando la contraseña…» mientras dura.
 - **Prefs nuevas** (cifradas con OSCrypt como la semilla): token de aparato, id y email de la cuenta, marca del
   último evento leído, y el código visible mientras esté vivo. Todas con el mismo tratamiento de `failed_to_decrypt`
   que la semilla.
@@ -615,8 +722,9 @@ Se van los estados `pendiente de aprobación`, `falta confirmar` y `cuenta bloqu
 | P20 | **Rastros del email** (C6) | tras borrar la cuenta, el email no está en `sync.db`; el registro de correo no pasa de 7 días; la copia de bak no se abre sin la clave privada y no hay copias de más de 30 días |
 | P21 | **Mac robado** (N1, N3): C, con la cadena sola, intenta cambiar la contraseña, el email y la clave; después intenta cancelar una operación de A; después falla el segundo factor muchas veces | las tres quedan programadas a 14 días (plazo corto) con aviso en A, en B y en el correo; A las cancela con su contraseña, y también con el código del aviso; un Mac nuevo que entra con contraseña y buzón las cancela; C no puede cancelar nada; los fallos de C no cierran nada a A |
 | P22 | **Lo que hay en `sync.db`** (decisión 2) | no están ni `KL` ni la envoltura interior; con la contraseña de prueba y los dos estiramientos la semilla sale (es el riesgo aceptado, y queda medido el tiempo por intento); con el código visible caducado no hay nada que atacar |
+| P23 | **Coste del estiramiento** (§4): cronometrar el scrypt del cliente en la 6,1 y en la 5,1, con la primera compilación y **antes de publicar**; mirar la memoria del proceso; poner la contraseña con el gestor de contraseñas activo | hasta 2 s en la 5,1 (o hasta 1 s en la 6,1 si la 5,1 no está disponible): se queda N = 2^17; si no, N = 2^16 y se corrige §4. La interfaz no se congela; los 128 MiB se devuelven al terminar; el gestor no ofrece guardar la contraseña de la cuenta |
 
-**Aceptación de la 3.2** (`plan-3x.md` §5.2): P1–P22 en verde en los tres Macs; datos ilegibles comprobados en ns2;
+**Aceptación de la 3.2** (`plan-3x.md` §5.2): P1–P23 en verde en los tres Macs; datos ilegibles comprobados en ns2;
 texto de privacidad publicado; la 3.1 no retrocede.
 
 ## 13. Para Titín
@@ -655,6 +763,11 @@ también el cambio de contraseña, porque la contraseña ha pasado a abrir la pu
   decía 7. Recomiendo 14: un número para todo y más margen para cancelar.
 - **D. La copia de bak se borra de verdad a los 30 días** (§7): es una excepción a la regla de cuarentena que solo
   puede aprobar Titín.
+- **E. Mac robado con el correo abierto** (§6.3, añadido el 12-11 con la ampliación). Un Mac robado con la sesión abierta
+  suele tener también el correo, y entonces el ladrón tiene dos de tres y se queda la cuenta al momento. Propuesta:
+  en las cuentas con contraseña, lo que se pida con el código del email espera **3 días** y la contraseña lo
+  cancela. Coste: quien olvide la contraseña espera 3 días para poner otra. Recomiendo adoptarlo si SEGURIDAD no ve
+  pega; no está aplicado.
 
 **Dos consecuencias de lo ya decidido, para tenerlas presentes:**
 
@@ -678,7 +791,7 @@ también el cambio de contraseña, porque la contraseña ha pasado a abrir la pu
 | Se lleva `sync.db` | datos cifrados, HMAC de emails, y verificador y envoltura de las cuentas con contraseña: **prueba contraseñas sin conexión** pagando los dos estiramientos, y las que acierte le abren los datos de esa cuenta | emails y nombres en claro; contraseñas buenas; las cuentas sin contraseña | §4, §7 |
 | Controla ns2 entero | lo anterior más los emails en claro, negar el servicio, y `KL` de quien entre: **ataca las contraseñas pagando solo el estiramiento del cliente**; también puede entregarse a sí mismo la envoltura sin pasar por el buzón | las semillas de quien tenga una contraseña que no se adivine, ni las de las cuentas sin contraseña; colar una semilla suya (la envoltura va autenticada) | §4, §5.3 |
 | Roba un Mac sincronizado (y abre la sesión) | la semilla: lee y escribe hasta que el dueño **cambie la clave de sincronización**. Con la cadena sola puede quitar aparatos, generar un código visible, borrar en todos (las copias locales quedan) y **dejar programado a 14 días** un cambio de contraseña, de email o de clave | hacer al momento ninguna de esas tres; cancelar las del dueño; impedir que el dueño cancele (no hay cierres, el aviso no se descarta y lleva su código); quedarse la cuenta mientras el dueño conserve la contraseña o el buzón; seguir leyendo tras el cambio de clave; volver a entrar | §6.3, §6.7 |
-| Roba un Mac **y además** tiene la contraseña o el buzón | lo mismo que el dueño | — (dos de los tres factores) | §6.7 |
+| Roba un Mac **y además** tiene la contraseña o el buzón | lo mismo que el dueño. **El buzón es el caso probable:** un Mac abierto suele tener el correo abierto | — (dos de los tres factores); con la propuesta E de §13, el buzón dejaría de bastar en las cuentas con contraseña | §6.3, §6.7 |
 | En la red (sin romper TLS) | nada | — | — |
 
 **Tercera pasada de SEGURIDAD-PORTES-21** (comentario 6820589854) **y decisiones de Titín del 12-11:**
@@ -701,6 +814,16 @@ también el cambio de contraseña, porque la contraseña ha pasado a abrir la pu
 4. El código de cancelación dentro del correo de aviso (§6.7): es un secreto de 14 días en un buzón.
 5. Los dos límites que dejo escritos: la espera de `KL` por cuenta (§10) y el borrado por email que un Mac robado
    puede cancelar sin fin (§6.4).
+6. El Mac robado que tiene también el correo abierto (§6.3) y la propuesta E para cortarlo.
+
+**Los cuatro puntos que SEGURIDAD avisó que miraría** (buzón de COORDINACIÓN-39, 12-11, 10:54):
+
+| Punto | Cómo queda | Dónde |
+|---|---|---|
+| 1. KDF de la envoltura y su coste con la base robada; parámetros y tiempo en la 5,1 | scrypt N = 2^17, r = 8, p = 1 en el cliente y N = 2^14 en el servidor; cada intento paga los dos y 128 MiB; tabla de aguante por fuerza de contraseña. **El tiempo en la 5,1 es un cálculo (0,5 a 1,5 s), no una medida:** queda como puerta P23 antes de publicar, con la regla para bajar a 2^16 | §4 «Coste del estiramiento», P23 |
+| 2. Separar la clave de autenticación de la de envoltura | `KL` (= `authPW`) y `KU` (= `unwrapBKey`) salen de `KE` por HKDF con etiquetas distintas; al servidor solo llega `KL`, que no abre nada | §4.3, §5.3 |
+| 3. Cambio de contraseña sin perder datos | se vuelven a envolver 32 bytes; los datos no se tocan; comprobación antes de enviar, transacción única y llamada repetible | §4.6 |
+| 4. Mac robado: qué puede el ladrón y cómo lo corta el dueño | tabla resumen; el corte es «Cambiar la clave de sincronización» con segundo factor; avisos por evento y correo. Queda un límite nuevo a la vista: el correo abierto en el Mac robado | §6.3, §6.7, P16, P21 |
 
 **Hallazgos de la primera pasada** (comentario 6797345699) **y de la segunda** (6807160010). Las letras son las de
 SEGURIDAD; lo que el modelo nuevo deja sin objeto se marca así.
@@ -749,6 +872,12 @@ el email como sal, `authPW` por HKDF, scrypt «64k/8/1» en el servidor, `wrap(w
 con la base robada, «fácil» para quien ve el tráfico o controla el servidor). **No he podido comprobar** qué
 estiramiento usa Mozilla hoy: la página de su versión 2 no está en esa dirección, y no lo cito.
 
-**Límites:** no se ha medido el coste de scrypt en la 6,1 ni en la 5,1 (sin AVX); las cifras de aguante de §4 y las
+**Coste de scrypt:** `third_party/boringssl/src/crypto/evp/scrypt.cc` del árbol 156, leído el 12-11 (versión
+escalar, líneas 46-137; `SCRYPT_MAX_MEM` de 65 MiB, línea 150; comprobación de memoria, 173-177). CPU de la 5,1:
+`docs/TAREAS.md` FS.25 (Xeon E5620, comprobado por Titín el 29-10) y `docs/entorno-mojave.md:9`. Buzón
+`buzon/ARQUITECTURA/20261112-1054-COORDINACION-39-sync-fxa-seguridad.md`.
+
+**Límites:** no se ha medido el coste de scrypt en la 6,1 ni en la 5,1: lo de §4 es un cálculo sobre el código, y la
+cifra de 2009 del autor de scrypt está citada de memoria; las cifras de aguante de §4 y las
 probabilidades de §6.1 son cuentas mías. No se ha probado nada contra ns2. El diseño de §4 a §6 es nuevo y **no lo ha
 revisado SEGURIDAD**.
