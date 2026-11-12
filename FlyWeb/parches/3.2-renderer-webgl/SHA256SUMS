@@ -1,0 +1,9 @@
+e7e3011df032496e9546ca9cf491c7f7d4af12c7d9324f09a29d00747ac44cce  0001-DrawingBuffer-no-base-FeatureList-query-on-every-Web.patch
+bcd5200bd6990e5f268a02fafc1d19e76a5b08dd60dfbd09b3fd8450858c62c5  0002-bindings-type-check-hot-WebGL-arguments-by-wrapper-t.patch
+8d7c6f6d5b449197a0a84af519b9beab3585d6163bd96f3eb68977cf5eafa894  0003-Set-LIBC_MATH-to-make-LLVM-s-libm-faster-on-special-.patch
+7a98d87a1899276edc2f38d2d274605f18b8bdd565bee09694600f30f3e883b7  trig/bench-memo.cc
+71f61ed869c370c4816665ae4afa1e14997d86dcaa57a9de5ed51fe9c0893453  trig/eval-fma.cc
+ed6997012b056644c73dd41d5165dfe3b158ce59a83350ac535fcf859bb69809  trig/gen-entradas.cc
+398d19e56eb0e1c3ab9fe99bad5b8ecbac6f8888b35a3b8b3309661a98e57aaf  trig/libc-math-flags.cc
+b65eb20ac890fe79731a51655c4a36bcc00aa96cbe578533966f32cea4f0eeba  trig/memo.h
+8382fb2ed4af60872f4aeb0bbd899caebbe0481fc19cc3cc568614679d8bd8d4  trig/run.sh
