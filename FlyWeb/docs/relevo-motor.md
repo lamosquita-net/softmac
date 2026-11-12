@@ -6,7 +6,19 @@ MOTOR-45 (`session_01MwmK2kdamTiZHb5S9SwNW7`, Opus 5.5, alto, modo auto; abierta
 **Hecho:** `FlyWeb/parches/3.2-renderer-webgl/` (0001 `DrawingBuffer`, 0002 enlaces por etiqueta, 0003 `LIBC_MATH` de
 V8 upstream; banco de `sin`/`cos` en `trig/`). Sin compilar; se compilan con E1/M1/M2 tras la 3.2.
 
+**Encargo 2 (COORDINACIÓN-40, 12-11 noche), hecho:** `FlyWeb/parches/3.1.1-catalina/` (arranque y GPU en Catalina;
+PR `claude/motor45-catalina`). Abierto: si LOCAL trae la salida de `comprobar-importes-1015.py` o del `grep` de ANGLE,
+leerla según el README.
+
 **Trampas nuevas:**
+- `dawn.googlesource.com` da 403 en el proxy. El espejo `github.com/google/dawn` no tiene las ramas `chromium/NNNN`:
+  usar la etiqueta `vAAAAMMDD` más cercana.
+- SDK de Apple públicos (para `.tbd` y cabeceras), por `raw.githubusercontent.com`:
+  - `phracker/MacOSX-SDKs`, hasta 11.x;
+  - `alexey-lysiuk/macos-sdk`, de 12.3 a 26.5.
+
+  Ojo: algunos `.tbd` son enlaces (`Versions/Current/…`) y otros reexportan bibliotecas (`libnetwork`, subframeworks), que
+  también hay que bajar.
 - El fork de Chromium (`lamosquita-net/chromium`) se baja en segundos con `git fetch --depth=1 --filter=blob:none` y
   checkout disperso (`.git/info/sparse-checkout` sin cono) de los directorios que hagan falta; `git am` funciona encima.
 - Los historiales de gitiles (`+log`) piden iniciar sesión (403). Para buscar commits de V8, `gh api search/commits -f
