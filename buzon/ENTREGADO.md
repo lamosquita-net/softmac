@@ -673,3 +673,10 @@ ARQUITECTURA/20261110-1130-COORDINACION-38-sync.md → ARQUITECTURA Arquitectura
 LOCAL/20261110-1130-COORDINACION-38-ordenes.md → LOCAL-21 FlyWeb 3.0.0 benchmark medición [77a7df] · 2026-11-10 13:01 UTC · entregado
 LOCAL/20261110-1130-COORDINACION-38-ordenes.md → LOCAL-19 Compilación Local (19) [a7b6cf] · 2026-11-10 13:01 UTC · entregado
 LOCAL/20261110-1305-COORDINACION-38-motionmark.md → LOCAL-19 Compilación Local (19) [a7b6cf] · 2026-11-10 13:01 UTC · entregado
+buzon/LOCAL/20261110-1325-COORDINACION-38-puerta-hilos.md → Local (21) [414783] · 2026-11-12 10:24 UTC · entregado
+buzon/LOCAL/20261110-1340-COORDINACION-38-brave-control.md → Compilación Local (19) [ac3240] · 2026-11-12 10:24 UTC · entregado
+buzon/LOCAL/20261110-1350-COORDINACION-38-sin-brave.md → Compilación Local (19) [ac3240] · 2026-11-12 10:24 UTC · entregado
+buzon/LOCAL/20261110-1610-COORDINACION-38-style-maglev.md → Compilación Local (19) [ac3240] · 2026-11-12 10:24 UTC · entregado
+buzon/LOCAL/20261110-1700-COORDINACION-38-maglev-b6.md → Compilación Local (19) [ac3240] y Local (21) [414783] · 2026-11-12 10:24 UTC · entregado
+buzon/LOCAL/20261110-1820-COORDINACION-38-claude-ganesh.md → Compilación Local (19) [ac3240] · 2026-11-12 10:24 UTC · entregado
+buzon/LOCAL/20261110-1915-COORDINACION-38-compilar-31.md → Compilación Local (19) [ac3240] · 2026-11-12 10:24 UTC · entregado
