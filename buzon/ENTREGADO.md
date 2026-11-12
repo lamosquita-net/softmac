@@ -707,3 +707,8 @@ buzon/FLYHAND-LOCAL → FLYHAND-LOCAL · no alcanzable (sin sesión en ListAgent
 buzon/LOCAL-20 → LOCAL-20 [3eed64] · no alcanzable · 2026-11-12 17:36 UTC · fallo: no alcanzable
 buzon/D8-LINUX/20261112-1750-COORDINACION-39-311-mjsunit.md → D8-LINUX · 2026-11-12 18:45 UTC · fallo: D8-LINUX no alcanzable (sin sesión en ListAgents); avisado a Titín
 buzon/PUBLICACION/20261112-1847-COORDINACION-39-310-cerrada.md → Publicación [4dd99b] · 2026-11-12 18:47 UTC · entregado
+buzon/PUBLICACION/20261112-1850-COORDINACION-40-relevo.md → (sin reenvío) · 2026-11-12 18:52 UTC · retenido: relevo de COORDINACIÓN 39→40 (cambia la autoridad de coordinación); pendiente de confirmación de Titín
+buzon/SERVIDOR-LOCAL/20261112-1850-COORDINACION-40-relevo.md → (sin reenvío) · 2026-11-12 18:52 UTC · retenido: relevo de COORDINACIÓN 39→40 (cambia la autoridad de coordinación); pendiente de confirmación de Titín
+buzon/CARTERO-LOCAL/20261112-1850-COORDINACION-40-relevo.md → (sin reenvío) · 2026-11-12 18:52 UTC · retenido: relevo de COORDINACIÓN 39→40 (cambia la autoridad de coordinación); pendiente de confirmación de Titín
+buzon/ARQUITECTURA/20261112-1850-COORDINACION-40-relevo.md → (sin reenvío) · 2026-11-12 18:52 UTC · retenido: relevo de COORDINACIÓN 39→40 (cambia la autoridad de coordinación); pendiente de confirmación de Titín
+buzon/LOCAL/20261112-1850-COORDINACION-40-relevo.md → (sin reenvío) · 2026-11-12 18:52 UTC · retenido: relevo de COORDINACIÓN 39→40 (cambia la autoridad de coordinación); pendiente de confirmación de Titín
