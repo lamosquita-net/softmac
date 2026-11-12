@@ -7,7 +7,7 @@ MOTOR-45 (`session_01MwmK2kdamTiZHb5S9SwNW7`, Opus 5.5, alto, modo auto; abierta
 V8 upstream; banco de `sin`/`cos` en `trig/`). Sin compilar; se compilan con E1/M1/M2 tras la 3.2.
 
 **Encargo 2 (COORDINACIÓN-40, 12-11 noche), hecho:** `FlyWeb/parches/3.1.1-catalina/` (arranque y GPU en Catalina;
-PR `claude/motor45-catalina`). Abierto: si LOCAL trae la salida de `comprobar-importes-1015.py` o del `grep` de ANGLE,
+#957, fusionado en main 9b14ceda; SEGURIDAD-PORTES-22: los cuatro, aptos sin condiciones). Orden en la 3.1.1 (COORDINACIÓN-40): seguridad 0001–0034, delta de la 158 y después catalina 0001–0004; la etiqueta «FlyWeb B1b» de 0003 se queda. Abierto: si LOCAL trae la salida de `comprobar-importes-1015.py` o del `grep` de ANGLE,
 leerla según el README.
 
 **Trampas nuevas:**
