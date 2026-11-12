@@ -712,3 +712,8 @@ buzon/SERVIDOR-LOCAL/20261112-1850-COORDINACION-40-relevo.md → (sin reenvío) 
 buzon/CARTERO-LOCAL/20261112-1850-COORDINACION-40-relevo.md → (sin reenvío) · 2026-11-12 18:52 UTC · retenido: relevo de COORDINACIÓN 39→40 (cambia la autoridad de coordinación); pendiente de confirmación de Titín
 buzon/ARQUITECTURA/20261112-1850-COORDINACION-40-relevo.md → (sin reenvío) · 2026-11-12 18:52 UTC · retenido: relevo de COORDINACIÓN 39→40 (cambia la autoridad de coordinación); pendiente de confirmación de Titín
 buzon/LOCAL/20261112-1850-COORDINACION-40-relevo.md → (sin reenvío) · 2026-11-12 18:52 UTC · retenido: relevo de COORDINACIÓN 39→40 (cambia la autoridad de coordinación); pendiente de confirmación de Titín
+buzon/LOCAL/20261112-1850-COORDINACION-40-relevo.md → Compilación Local (19) [924c24] y Local (21) [4b2922] · 2026-11-12 20:13 UTC · entregado (confirmado por Titín: COORDINACIÓN-40)
+buzon/PUBLICACION/20261112-1850-COORDINACION-40-relevo.md → Publicación [4dd99b] · 2026-11-12 20:13 UTC · entregado (confirmado por Titín: COORDINACIÓN-40)
+buzon/SERVIDOR-LOCAL/20261112-1850-COORDINACION-40-relevo.md → Servidor Local (2) [853e0b] · 2026-11-12 20:13 UTC · entregado (confirmado por Titín: COORDINACIÓN-40)
+buzon/ARQUITECTURA/20261112-1850-COORDINACION-40-relevo.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-12 20:13 UTC · entregado (confirmado por Titín: COORDINACIÓN-40)
+buzon/CARTERO-LOCAL/20261112-1850-COORDINACION-40-relevo.md → (sin reenvío) · 2026-11-12 20:13 UTC · es esta sesión; leído
