@@ -1,0 +1,5 @@
+2eaea561ce02386d222ef63f88318c9565b1b016ca31dcc2181504dfd51aea32  0001-ui-Screen-Recording-access-APIs-only-on-macOS-11-Cat.patch
+8357763f628f6f9bbd80121dc82a504d2c3cc140cef956ce01f12b42dc42bea2  0002-media-CVBufferCopyAttachment-only-on-macOS-12-Catali.patch
+7995b3e4120cd6d385682d20210f4737e618fdeb4e34052e93019709b9e46ffc  0003-gfx-BT.2100-PQ-HLG-color-space-names-only-on-macOS-1.patch
+35bb76e26258d96e0f601571a859c659b67d2717fecf897300af69d00242ddd4  0004-gpu-keep-Graphite-WebGPU-and-Dawn-off-before-macOS-1.patch
+0c245a41749317224646410cb0ffcd9248e5ae7ee77dc38f72b00de54d4c8043  comprobar-importes-1015.py
