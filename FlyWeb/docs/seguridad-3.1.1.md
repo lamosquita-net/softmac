@@ -89,8 +89,8 @@ El resto de la ventana tiene gemelo en §2.
   intentar aquí.
 - **CVE-2026-121112** (Permissions): sin arreglo localizable (`seguridad-3.0.2.md` §3). Se busca otra vez en la nota de
   la 158.
-- **`flyweb_bundle_version_base`**, según DIRECTIVAS del 12-11. **Ojo:** `coordinacion.md` dice que la 3.0.1 unificada
-  ya lo llevaba (brave-core 68ef629). COORDINACIÓN confirma si está en `local/3.1` antes de contarlo.
+- ~~`flyweb_bundle_version_base`~~: **ya está** en brave-core `local/3.1` fc9389773fe (`build/config.gni:37`,
+  `"198.63"`). Lo confirmó COORDINACIÓN-39 el 12-11. Sale de la 3.1.1.
 - **CVE-2026-125350 / -125346 (libxslt):** **D** (3.0.1, 0034, y XSLT apagado).
 
 ## 5. Qué falta para cerrar (17-11)
@@ -102,3 +102,14 @@ El resto de la ventana tiene gemelo en §2.
    - brave-core solo si hace falta;
    - `chrome/VERSION` a la última 156.0.8078.x.
 4. **Para LOCAL:** d8 en verde primero (V8 .58) y época de caché subida (por 9ba5fcd).
+5. **Prueba de huella** (DIRECTIVAS, Titín, 12-11; receta en `motor.md`, principio 13). Con la 3.1.1 compilada, desde la
+   app, `https://tls.peet.ws/api/all` tiene que cuadrar con un **Chrome 156 real**:
+   - JA4;
+   - huella HTTP/2 «akamai»;
+   - orden de cabeceras y `Accept-Encoding`;
+   - Client Hints (`sec-ch-ua*`), coherentes con el User-Agent y con `navigator.userAgentData`.
+
+   La referencia es la publicada para la 156 (ja4db.io), no el Chrome de la 7,1.
+   - **Riesgo [I]: bajo.** Ningún arreglo de §1–§3 toca BoringSSL, `net/http2`, QUIC ni las cabeceras: el HttpCache de
+     d6be5db64 no cambia lo que se envía, y Zstd (223f61223) solo cambia cómo se reserva la memoria.
+   - Si la nota de la 158 trae algo de `net/` o de `third_party/boringssl`, se revisa aquí antes de entregar.

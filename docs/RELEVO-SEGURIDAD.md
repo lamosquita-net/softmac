@@ -29,6 +29,17 @@ permite en `main`, pero el clasificador decide en cada sesión): brave-core solo
   - [Comentario en #937](https://github.com/lamosquita-net/softmac/pull/937#issuecomment-6797413928). Falta confirmar
     CVE → crbug cuando se abra.
 
+**12-11:**
+- **#905:** la segunda pasada encontró N1 (con la prueba de cadena sola, un Mac robado se quedaba con la cuenta) y N2
+  (cupos de correo). La tercera la da por **aprobable para H1**, con N3 a corregir en el texto antes de H2: el ladrón agota
+  los contadores compartidos; avisos que se pueden suprimir; cancelación con dos de tres factores.
+  - **Ojo:** DIRECTIVAS del 12-11 cambia el modelo a Firefox Accounts (sin aprobación entre Macs). Si ARQUITECTURA
+    reescribe, hay que revisar de nuevo: KDF de contraseña y ataque sin conexión con la base robada.
+- **#949** (parches WebGL del renderer, regla 17): 0002 apto sin condiciones; 0003, con la época de caché y d8.
+- **3.1.1:** inventario previo en `FlyWeb/docs/seguridad-3.1.1.md`. Hay un aviso programado para el 17-11 a las
+  21:13 UTC (`trig_0111Rpi5tiBPMgw4ehQQyhNj`): nota de la 158 → cerrar el inventario → series `seg/3.1.1` → prueba de
+  huella.
+
 **Lecciones:**
 - **«Sin commit público» no suele ser verdad:** el crbug se cierra, pero el cherry-pick a la rama estable sí es público.
   Basta con comparar las etiquetas de la versión de la nota (`git fetch --filter=tree:0 --shallow-since=…` de dos tags)
