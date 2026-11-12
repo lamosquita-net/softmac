@@ -705,3 +705,4 @@ buzon/SERVIDOR-LOCAL/20261111-0911-COORDINACION-39-kit-51.md → (sin reenvío) 
 buzon/SERVIDOR-LOCAL/20261111-2214-COORDINACION-39-kit-51-v3.md → (sin reenvío) · 2026-11-12 17:36 UTC · sin reenvío: ya pegados por Titín o superados
 buzon/FLYHAND-LOCAL → FLYHAND-LOCAL · no alcanzable (sin sesión en ListAgents) · 2026-11-12 17:36 UTC · fallo: no alcanzable
 buzon/LOCAL-20 → LOCAL-20 [3eed64] · no alcanzable · 2026-11-12 17:36 UTC · fallo: no alcanzable
+buzon/D8-LINUX/20261112-1750-COORDINACION-39-311-mjsunit.md → D8-LINUX · 2026-11-12 18:45 UTC · fallo: D8-LINUX no alcanzable (sin sesión en ListAgents); avisado a Titín
