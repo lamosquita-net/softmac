@@ -27,7 +27,7 @@ ocasional**, y una cuenta que se usa a diario no lo es (revisión de SEGURIDAD, 
 | b) Fines | Sincronizar los datos del navegador entre los equipos del usuario; verificar que quien entra en la cuenta controla el email; avisar de las operaciones sobre la cuenta y del borrado por inactividad |
 | Base jurídica | Ejecución del servicio que el usuario solicita (art. 6.1.b). Avisos de seguridad: los mismos, como parte del servicio |
 | c) Interesados | Usuarios de FlyWeb que crean una cuenta de sincronización |
-| c) Datos | **Dirección de correo** (cifrada, y su HMAC). **Modelo y nombre de cada equipo**, el nombre elegido por el usuario (cifrado). Identificador seudónimo de la cadena (clave pública). Fechas de alta y de último uso. **Datos sincronizados** (contraseñas, marcadores, historial, ajustes): cifrados en el equipo del usuario; el responsable no puede leerlos. **Semilla envuelta** con una clave derivada de la contraseña, si el usuario pone contraseña. Sin IP, sin nombre de la persona, sin registro de peticiones |
+| c) Datos | **Dirección de correo** (cifrada, y su HMAC). **Modelo y nombre de cada equipo**, el nombre elegido por el usuario (cifrado). Identificador seudónimo de la cadena (clave pública). Fechas de alta y de último uso. **Datos sincronizados** (contraseñas, marcadores, historial, ajustes): cifrados en el equipo del usuario; el responsable no puede leerlos. **Semilla envuelta** con una clave derivada de la contraseña de la cuenta. Sin IP, sin nombre de la persona, sin registro de peticiones |
 | Categorías especiales | Ninguna que el responsable pueda ver. El historial y las contraseñas sincronizadas podrían revelarlas, pero van cifrados de extremo a extremo |
 | d) Destinatarios | Ninguno. No se cede a terceros. Encargado del tratamiento: el proveedor de alojamiento (§2) |
 | e) Transferencias internacionales | Ninguna: servidor en Francia (UE) [V, `docs/SERVIDOR.md:13`]. Comprobar lo mismo para la copia de seguridad (§2) |
@@ -36,8 +36,8 @@ ocasional**, y una cuenta que se usa a diario no lo es (revisión de SEGURIDAD, 
 
 **Riesgo que hay que dejar escrito en el registro** (decisión 2 de Titín): si alguien se lleva la base de datos,
 puede probar contraseñas sin conexión; las débiles darían acceso a los datos sincronizados de esa cuenta. Medidas:
-estiramiento costoso en el cliente y en el servidor, aviso al crear la contraseña, y la opción de cuenta sin
-contraseña. Con esto y la escala (decenas de usuarios), SEGURIDAD no ve necesaria una evaluación de impacto
+estiramiento costoso en el cliente y en el servidor y aviso al crear la contraseña, con indicador de fuerza. Con
+esto y la escala (decenas de usuarios), SEGURIDAD no ve necesaria una evaluación de impacto
 (art. 35); conviene que el registro diga que se valoró.
 
 ## 2. Contrato de encargado (art. 28)
@@ -116,7 +116,7 @@ haya y se completa después (art. 33.4).
 |---|---|---|---|
 | Copia cifrada de bak expuesta, **sin** la clave privada | un fichero que no se puede abrir | ninguno apreciable | documentar; valorar con Asesora Brecha; en principio no hay que avisar a los usuarios (art. 34.3.a: datos ininteligibles) |
 | Registro del servidor de correo expuesto | direcciones de correo de quien recibió algo en 7 días | bajo: que se sepa que usan FlyWeb; correo no deseado | documentar y valorar la notificación |
-| **`sync.db` robada**, sin las credenciales de systemd | datos cifrados; emails y nombres cifrados; **verificador y envoltura de las cuentas con contraseña** | **alto para quien tenga una contraseña débil:** se puede adivinar sin conexión y abre sus contraseñas, marcadores e historial. Ninguno para las cuentas sin contraseña | **notificar a la AEPD y avisar a todos los usuarios con contraseña** |
+| **`sync.db` robada**, sin las credenciales de systemd | datos cifrados; emails y nombres cifrados; **verificador y envoltura de cada cuenta** | **alto para quien tenga una contraseña débil:** se puede adivinar sin conexión y abre sus contraseñas, marcadores e historial | **notificar a la AEPD y avisar a todos los usuarios con cuenta** |
 | `sync.db` robada **con** las credenciales | lo anterior y los emails y nombres en claro | lo anterior, y además se sabe de quién es cada cuenta | lo mismo, y rotar las dos credenciales |
 | ns2 comprometido en marcha | lo anterior y la clave de entrada de quien haya entrado mientras tanto | lo anterior, con el ataque a la contraseña más barato | lo mismo; parar el servicio hasta reinstalar |
 | Fallo nuestro: un aviso llega a otra dirección, o una cuenta ve aparatos de otra | lo que diga el aviso | bajo, pero es una brecha | documentar, corregir y valorar |
@@ -155,4 +155,4 @@ repositorio**.
 | Conseguir y repasar el contrato de OVH (§2) y decir dónde está bak | Titín |
 | Confirmar con SERVIDOR los 7 días del registro de correo y la copia cifrada a 30 días | COORDINACIÓN → SERVIDOR-LOCAL |
 | Revisión legal de estos tres borradores y de W2 | quien lleve lo legal |
-| Decidir si la rotación de las copias a 30 días es un borrado automático (`sync-cuenta.md` §13, D) | Titín |
+| Preparar en bak la rotación de las copias a 30 días como borrado de verdad (decidido por Titín el 12-11 como excepción a la cuarentena; `sync-cuenta.md` §7) | COORDINACIÓN → SERVIDOR-LOCAL |
