@@ -8,6 +8,79 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-21 → 22 (12-11-2026, ~20:15 UTC; leer primero)
+
+Relevo pedido por COORDINACIÓN-40 (`session_01MwmK2iSWxzb4yvKWQc6eJC`). La -21 queda disponible para preguntas hasta
+que la archiven.
+- **Acceso:** el `add_repo` de brave-core lo denegó el clasificador del modo auto. Tampoco hubo push al fork de chromium.
+  Todo se entregó por `format-patch` en softmac.
+
+### Estado de la 3.1.1 (tanda de Chrome 158)
+
+- **Serie previa fusionada (#951):** `FlyWeb/seguridad/3.1.1/`, con README, `SHA256SUMS` y `chromium/` (34 parches).
+- **Base comprobada con `ls-remote` (12-11):**
+  - fork `lamosquita-net/chromium` `seg/3.0.2` = **502e3c5b85f534fa6b8c47135f7236b611b7ce1b** (src de la 3.1.0);
+  - brave-core `local/3.1` = **fc9389773fe0d94338e1cf27e8a2256cbdae676c**.
+- **Resultado:** `git am` de los 34 parches → árbol **3d9092e4e33af893a862d9ad06c553ddf7fc4bbf**. Es una comprobación
+  local, **no hay rama remota**: `seg/3.1.1` no existe en el fork, comprobado con `ls-remote`.
+- **Contenido:**
+  - V8 15.6.75.51 → **.58** (`0064da7c8c`, tag comprobado), los 5 rolls de la 8078 tal cual;
+  - Skia ea1e651d7a → **24e65cdd9b**;
+  - 21 `[M156]` de la 8078 .98 → .103;
+  - 4 `[M157]` sin gemelo en la 156; **`0033` (ImageCapture) resuelto a mano**;
+  - `chrome/VERSION` .103.
+
+  33 de 34 tienen el mismo `patch-id` que upstream. Fuera, con su motivo: 939ad86d5, ea36d0325, f253859e6, 973b2ff1b,
+  7b3fcb8ba, e5876d9c5 y **29980f328** (relaja la política de `chrome.debugger`).
+- **brave-core sin cambios:** los `patches/v8` aplican sobre la .58 (solo `bytecode-generator.cc` se solapa, con
+  desplazamientos). La **época de caché sigue en 31**, porque el roll sube `V8_PATCH_LEVEL` y `Hash()` ya lo incluye.
+- **También entra en la 3.1.1:** el arreglo de Catalina de MOTOR-45 (`CGPreflightScreenCaptureAccess`,
+  `FlyWeb/parches/3.1.1-catalina/`, **en curso**; aún no está en `main` el 12-11). Revisarlo como cualquier parche
+  propio: que solo se llame en 10.15+ (`@available`) y que en Mojave no cambie nada.
+
+### Pendiente, por orden
+
+1. **d8 y mjsunit con Maglev (D8-LINUX, en el Ubuntu):** encargado por buzón. La sesión estaba caída el 12-11 y depende
+   de que Titín la abra. Receta en el README de la serie (§V8). Sin ese verde no se compila. Si algo cae, mirar primero
+   los 7 `[M156]` de V8 (§1 de `seguridad-3.1.1.md`).
+2. **17-11, nota de Chrome 158 estable:** feed Atom de Chrome Releases.
+   - Cruzar sus CVE con `FlyWeb/docs/seguridad-3.1.1.md` §1–§3.
+   - Buscar en `main` y en la 8127 los que falten (el arreglo es público aunque el crbug esté cerrado: se comparan
+     etiquetas).
+   - Pasar `cve-watch.py` (KEV).
+   - Volver a mirar con `ls-remote` las etiquetas 156.0.8078.x y V8 15.6.75.x: la rama 8078 sigue viva.
+   - Añadir el delta como `0035`+ sobre el árbol de arriba y entregar a COORDINACIÓN para la orden de compilar.
+   - **La -21 tenía programado esto para el 17-11 a las 21:13 UTC; lo he borrado al relevarme. Prográmalo tú.**
+3. **Revisión de la sync de la 3.2 rehecha** (DIRECTIVAS del 12-11: modelo de Firefox Accounts, sin aprobación entre
+   Macs). Mis tres pasadas sobre el diseño anterior quedan como contexto (comentarios de #905). Mirar:
+   - el KDF de la clave de envoltura y su coste frente al ataque sin conexión con la base robada (riesgo aceptado por
+     Titín);
+   - que la clave de autenticación y la de envoltura estén separadas, como `authPW`/`unwrapBKey` en FxA, para que el
+     servidor no reciba nada que abra la semilla;
+   - que cambiar la contraseña rehaga el envoltorio sin perder datos;
+   - qué consigue quien robe un Mac;
+   - las partes de N3 que sigan valiendo: topes que pueda agotar un tercero y avisos que se puedan suprimir.
+4. **Pruebas que van en la orden a LOCAL** (las lleva COORDINACIÓN; comprobar que constan):
+   - navegación de `0030`/`0031` (popups que escapan del sandbox, `about:blank` y `srcdoc`, `file://`, claude.ai);
+   - FSA con mayúsculas;
+   - prueba de huella (JA4, HTTP/2, cabeceras y Client Hints frente a un Chrome 156 real).
+
+### Trampas
+
+- **Chromium sin bajarlo entero:**
+  - repositorio con dos remotos promisor (`blob:none`);
+  - cherry-pick con `git merge-tree --write-tree --merge-base=<c>^`;
+  - **nada de `read-tree`/`write-tree`/`mktree` sin `--missing`**: piden todos los blobs y no acaban;
+  - para cambiar un fichero, `mktree --missing` por la ruta.
+- **d8 en la nube, imposible con la 156:** el `gn` de apt (2024) no entiende el `.gn`, y googlesource y CIPD dan 403.
+- **`FlyWeb/v8-revision` no existe en `local/3.1`.** Si se lanza `v8-d8.sh` sin crearlo, compila la 11.6 de la 116.
+- **Los rolls de Skia van mezclados con los de V8** en «Roll commits from side projects»: mirar el `DEPS` de cada uno.
+
+### Preguntas abiertas
+
+- ¿Se crea la rama `seg/3.1.1` en el fork? Hoy no hay push desde la nube. LOCAL puede crearla con `git am`.
+- ¿Los tests de `0033` compilan contra la 156? Solo importa si LOCAL compila los unittests.
+
 ## SEGURIDAD-PORTES-21 (`session_01MwmK2iSJ4qGU8EyNDJhUH3`, 11-11)
 
 Abierta por COORDINACIÓN-39. `add_repo` de brave-core **denegado por el clasificador del modo auto** (regla 16 lo
