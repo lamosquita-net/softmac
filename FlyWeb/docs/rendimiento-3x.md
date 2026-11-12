@@ -535,6 +535,25 @@ Speedometer 3.1 y en JetStream 3, sin caídas (`rendimiento-motionmark.md`, «Me
 - Probado en la 7,1 sin ventana, con una pasada y Python 3: sin Maglev, 18,9 y 165,6; con Maglev, 20,7 y 180,3; sin
   caídas. Con Python 2.7 no se ha podido probar (no hay ninguno en la 7,1).
 
+## 3 bis. Maglev en la MacPro5,1, sin AVX (11-11-2026)
+
+Guion `FlyWeb/tools/prueba-51/` (kit v2), FlyWeb instalada con el perfil de quien la usa; Xeon E5620, 16 hilos, 0 AVX,
+macOS 10.14.6. Tres pasadas por caso; mediana. Los ficheros de resultados no van al repositorio (llevan datos de la cuenta).
+
+| Versión · caso | Speedometer 3.1 | JetStream 3 |
+|---|---|---|
+| 3.0.1 · de serie (Maglev apagado) | 7,32 (7,09 / 7,32 / 7,32) | 74,46 (74,46 / 74,71 / 73,91) |
+| 3.1.0 · `--no-maglev` | 7,27 (7,27 / 7,49 / 7,18) | 74,58 (75,86 / 74,58 / 74,34) |
+| **3.1.0 · de serie (Maglev encendido)** | **7,95** (7,85 / 8,06 / 7,95) | **81,62** (81,36 / 81,62 / 81,93) |
+
+- **Maglev gana en la 5,1: +9,4 % en Speedometer y +9,4 % en JetStream** frente a la misma 3.1.0 sin Maglev; 0 caídas.
+  Se queda encendido; no hay nada que estudiar para la 3.2 (directiva «Contenido de la 3.1», punto 5).
+- La 3.1.0 sin Maglev da lo mismo que la 3.0.1 (±1 %): el resto de la 3.1 no cambia JavaScript, y sirve de control de
+  que la pestaña restaurada del kit v2 no contaminó el caso `--no-maglev`.
+- El resumen del kit v2 marca «serie … SIN ACABAR» por el fallo de la pestaña restaurada (arreglado en #945); los
+  números de arriba salen de las líneas por pasada. La primera pasada de `--no-maglev` coincidió con la pantalla
+  bloqueada (178 s); no cambia la mediana.
+
 ## 4. Método y datos
 
 - **Guion:** `s61-l21.sh` corre en la 6,1 por una sola sesión SSH con túnel CDP. `l21.py` conduce desde la 7,1.

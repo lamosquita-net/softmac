@@ -341,7 +341,8 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Seguridad tras la 3.1.0 (Titín, 12-11; COORDINACIÓN-39):** no hay 3.0.2. La línea 3.0.x se cierra y las tandas de
   seguridad siguen en el tercer dígito de la versión publicada: la de Chrome 158 (estable 17-11) es la **3.1.1**, sin
   esperar a la 3.2.0 (si coinciden, se juntan). Lo previsto para la «3.0.2» que no entró en la 3.0.1 (p. ej.
-  `flyweb_bundle_version_base`) pasa a la 3.1.1. Se sigue declarando 156 (decisión 8 del plan de la 3.x).
+  `flyweb_bundle_version_base`) pasa a la 3.1.1. Se sigue declarando 156 (decisión 8 del plan de la 3.x). **Prueba de huella en la 3.1.1** (Titín, 12-11): con los
+  parches puestos, JA4, HTTP/2, orden de cabeceras y Client Hints tienen que cuadrar con un Chrome 156 real (`motor.md`).
 - **Sync con cuenta de la 3.2 (Titín, 12-11; COORDINACIÓN-39):** diseño en `FlyWeb/docs/sync-cuenta.md` (#905). Añadir
   un Mac con el **modelo de Firefox Accounts** (clave envuelta con una clave que sale de la contraseña; el servidor no ve
   contraseña ni semilla): email + contraseña o código visible + código por email, **sin aprobación desde otro Mac**.
