@@ -13,8 +13,12 @@ Ampliado el mismo 12-11 con los cuatro puntos que SEGURIDAD avisó que miraría 
 coste del estiramiento y puerta de medida (§4, P23), separación de claves (§4.3), cambio de contraseña (§4.6) y Mac
 robado (§6.3).
 
-Solo papel: nada compilado ni probado. **Propone; decide Titín.** El modelo nuevo cambia el análisis de seguridad:
-**hace falta una cuarta pasada de SEGURIDAD antes de H2**, y hasta entonces, ni una línea de código.
+**Cuarta pasada de SEGURIDAD** (SEGURIDAD-PORTES-22, comentario 6834786251, sobre `bb75d529`): **aprobable para H1,
+sin bloqueantes.** Sus correcciones para antes de H2 están aplicadas aquí: N4 (§6.2, §10), N5 (§10) y los opcionales
+O11 y O12 (§4, §14). La propuesta E queda preparada en §6.8 y **no está en vigor** hasta que Titín la confirme.
+
+Solo papel: nada compilado ni probado. **Propone; decide Titín.** Antes de H2 faltan las confirmaciones de §13, y
+hasta entonces, ni una línea de código.
 
 Marcas: **[V]** visto en el código o en los documentos citados; **[I]** inferido; **[P]** propuesta mía; **[S]**
 propuesta de SEGURIDAD adoptada; **[T]** decisión de Titín del 12-11. Sin datos personales de nadie.
@@ -176,7 +180,8 @@ un verificador y la semilla envuelta, y no puede abrirla sin adivinar la contras
    que abra la envoltura: los datos se pierden y solo queda «Empezar de cero». El email por sí solo **no cambia la
    contraseña**.
 8. **Respuestas iguales exista o no la cuenta** [S, O1]: las llamadas sin sesión contestan lo mismo y tardan lo mismo;
-   para un email desconocido el servidor calcula un scrypt de relleno.
+   para un email desconocido el servidor calcula un scrypt de relleno y aplica **la misma espera** por fallos
+   (§10) [S, N4].
 
 **Comparación con «onepw» de Mozilla** (fuente en §15; lo que no dice esa página no lo afirmo):
 
@@ -232,11 +237,15 @@ con una medida, que es la prueba P23 de §12:
   `python3 -c "import hashlib,time;t=time.time();hashlib.scrypt(b'x',salt=b'y',n=2**17,r=8,p=1,maxmem=2**28,dklen=32);print(time.time()-t)"`
 
 **Frente al ataque sin conexión con la base robada** (el riesgo que acepta Titín): cada contraseña probada paga
-**los dos estiramientos**, 2^17 y 2^14, y necesita 128 MiB. Supongo **0,3 s por intento y núcleo** en una máquina
-moderna del atacante [I]; el límite real es la memoria, que es lo que frena a las tarjetas gráficas: en una de 24 GB
-caben menos de 190 intentos a la vez.
+**los dos estiramientos**, 2^17 y 2^14, y necesita 128 MiB. La tabla usa como unidad **0,3 s por intento y núcleo**
+de una máquina moderna: es un **supuesto**, no una medida [I; S, O11]. Un atacante real usará tarjetas gráficas, y
+scrypt deja cambiar memoria por tiempo, así que no hay un número fijo de intentos a la vez por tarjeta. Lo que está
+demostrado es que el producto de memoria por tiempo no baja (Alwen y otros, «Scrypt is Maximally Memory-Hard»,
+EUROCRYPT 2017; lo cita SEGURIDAD y no lo he releído). El coste real por intento **se mide en P22** con
+`hashcat -b -m 8900`, llevado a N = 2^17. **Los veredictos no dependen de la unidad:** con un atacante cien veces
+más rápido, 30 bits siguen cayendo y 50 siguen aguantando; lo que se mueve es la fila de 40.
 
-| Contraseña | Intentos | Coste para el atacante [I] | Veredicto |
+| Contraseña | Intentos | Coste con ese supuesto [I] | Veredicto |
 |---|---|---|---|
 | Está en la lista del millón más usadas | 10⁶ | 3,5 días de un núcleo | **Cae.** Horas con cien núcleos |
 | 30 bits (palabra con adornos, fecha y nombre) | 10⁹ | 10 años-núcleo | **Cae** ante quien alquile mil núcleos unos días |
@@ -262,9 +271,12 @@ Mac. Sustituye entero al §5 anterior (petición, aprobación con HPKE y dos có
 
 1. **Mac nuevo:** el usuario teclea email y contraseña. El Mac calcula `KE`, `KL` y `KU` y llama a `entrar/empezar`
    con el email y `KL`.
-2. **Servidor:** si la cuenta existe y `KL` es correcta, manda un **código al email** (8 caracteres de base32,
-   10 min) y devuelve un identificador de solicitud. Si no, devuelve un identificador falso con la misma forma y el
-   mismo tiempo, y no manda nada: **quien no lee el buzón no sabe si la contraseña era buena**.
+2. **Servidor:** antes de mirar nada aplica la **espera por fallos** de §10, igual exista o no la cuenta [S, N4]. Si
+   la cuenta existe y `KL` es correcta, manda un **código al email** (8 caracteres de base32, 10 min), devuelve un
+   identificador de solicitud y **deja un evento en los Macs de la cuenta** («Alguien ha escrito bien tu contraseña
+   desde un Mac nuevo», §6.2): quien controle el buzón puede borrar el correo, pero no el evento. Si no, devuelve un
+   identificador falso con la misma forma y el mismo tiempo, y no manda nada: **quien no lee el buzón no sabe si la
+   contraseña era buena**.
 3. **Mac nuevo:** el usuario teclea el código y da un **nombre al Mac** [T] (por defecto, el modelo). El Mac llama a
    `entrar/terminar` con la solicitud, `KL`, el código, el modelo y el nombre.
 4. **Servidor:** si todo coincide, devuelve el `cuenta_id`, un token de aparato y la envoltura `E`. **Un solo error**
@@ -301,6 +313,12 @@ Dos límites del código visible:
 - **Hay que estar delante de un Mac sincronizado** para verlo. El caso «navegadores en casa, usuario fuera» lo
   resuelve la contraseña; quien no la ponga tendrá que esperar a volver, o llevar las 24 palabras.
 - **No cuenta como segundo factor** (§6.7): lo puede generar cualquiera que tenga el Mac, también quien lo ha robado.
+
+**El código visible no tiene espera por fallos** [P; S, N4.2 pedía que fuera aparte de la de la contraseña]. Con
+80 bits no hay nada que adivinar en línea, así que no hace falta frenarlo, y sin espera **nadie que sepa el email
+puede cerrar esta vía**. La llamada dice qué credencial presenta (contraseña o código visible) y el servidor la
+compara solo con ese verificador: decir «código visible» no sirve para probar contraseñas por otra puerta. El Mac
+borra el código de sus prefs a las 24 h de generarlo, tenga red o no [S].
 
 ### 5.3 Qué ve el servidor y qué se ha perdido
 
@@ -346,8 +364,20 @@ ahora el código de entrada guarda la semilla.
 **Cada operación avisa** en todos los Macs sincronizados (evento de §10; barra como la de «cuenta borrada» que ya
 existe en brave-core [V]) **y por correo**: Mac añadido, contraseña puesta o cambiada, email cambiado, clave de
 sincronización cambiada, operación programada o cancelada, borrado pedido. Los Macs leen los eventos aunque su token
-esté invalidado, porque la prueba de cadena basta. Otro aviso útil sale solo: quien recibe un **código de entrada que
-no ha pedido** sabe que alguien conoce su contraseña, porque el código solo se manda si es correcta. El correo lo dice.
+esté invalidado, porque la prueba de cadena basta.
+
+**Probar la contraseña en línea también avisa** [S, N4]. Sin cierres, quien tenga el buzón solo, o un Mac robado,
+puede probar contraseñas contra el servidor al ritmo de §10. Si acierta con el buzón en la mano, tiene la cuenta
+entera, y el correo de aviso lo borra él. Por eso los dos avisos van **a los Macs**, donde no los puede borrar:
+
+- **Contraseña acertada desde un Mac nuevo:** al mandar el código de entrada, evento «Alguien ha escrito bien tu
+  contraseña desde un Mac nuevo. Si no has sido tú, cámbiala ya.» El correo del código dice lo mismo: quien recibe
+  un código que no ha pedido sabe que alguien conoce su contraseña.
+- **Contraseña fallada**, al entrar o como segundo factor: evento con el resumen («N intentos fallidos de contraseña
+  desde el día D», y desde qué Mac si venían con prueba de cadena). **El primero, al momento; después, como mucho
+  uno por hora y cuenta**, así que el número de avisos está acotado. Por correo, como mucho uno al día [P].
+
+Quien se equivoca al teclear su propia contraseña verá ese aviso en sus otros Macs; es el precio, y es pequeño.
 
 **«No he sido yo»** (con la cadena sola) hace lo inmediato y lleva al remedio:
 
@@ -421,12 +451,10 @@ el ladrón tiene el buzón: son dos de tres, y con la regla de §6.7 cambia la c
 momento**. Lo único que ese Mac no tiene es la contraseña de la cuenta. Hoy el diseño trata contraseña y buzón como
 segundos factores iguales, y en este caso no lo son.
 
-**Propuesta, sin adoptar** [P; la decide Titín, §13 E, con el parecer de SEGURIDAD]: en las cuentas **con
-contraseña**, el código por email deja de valer como segundo factor al momento. La operación queda **programada a
-3 días y la contraseña la cancela**. El dueño, que sabe la contraseña, entra desde otro Mac, cancela y cambia la
-clave al momento; el ladrón, con el Mac y el correo, no puede adelantarse. Coste: quien olvida la contraseña espera
-3 días para poner otra, con sus Macs sincronizando mientras tanto. No sirve en las cuentas sin contraseña, ni si el
-ladrón cambia además la contraseña del buzón: ahí el dueño se queda con un solo factor.
+**Propuesta E** [P; SEGURIDAD recomienda adoptarla en la cuarta pasada; la decide Titín, §13]: en las cuentas **con
+contraseña**, el código por email deja de valer como segundo factor al momento y la contraseña manda. El dueño, que
+sabe la contraseña, entra desde otro Mac, cancela y cambia la clave al momento; el ladrón, con el Mac y el correo,
+no puede adelantarse. Está escrita entera en **§6.8** y **no está en vigor** hasta que Titín la confirme.
 
 ### 6.4 «Empezar de cero» y borrar sin ningún Mac [S, C3; T]
 
@@ -471,9 +499,10 @@ contraseña y el buzón**. Lo que cambia quién controla la cuenta pide uno de l
   borrado pedido por email, quitar aparatos, generar un código visible y borrar en todos al momento. Borrar no pide
   segundo factor porque quien tiene la cadena puede destruir los datos igualmente, borrándolos por la sincronización
   normal [I].
-- **Sin cierres que se puedan agotar** [S, N3a; T]: los fallos del segundo factor **no cierran nada**. Códigos: un
-  intento cada 10 s por solicitud (§6.1). `KL`: espera creciente **con tope de un minuto**. El ladrón y el dueño
-  presentan la misma prueba de cadena, así que cualquier cierre lo gastaría el ladrón para dejar fuera al dueño.
+- **Sin cierres que se puedan agotar** [S, N3a y N4; T]: los fallos del segundo factor **no cierran nada**. Códigos:
+  un intento cada 10 s por solicitud (§6.1). `KL`: la espera creciente de §10, **con tope de 15 minutos**; es la
+  misma que al entrar, y cada fallo sale en el aviso de §6.2. El ladrón y el dueño presentan la misma prueba de
+  cadena, así que cualquier cierre lo gastaría el ladrón para dejar fuera al dueño.
 
 **Con la cadena sola:** la operación de control se admite y queda **programada a 14 días** [P: el diseño revisado
 decía 7; propongo un solo plazo para todo, el de Titín para el borrado; si se prefiere 7 aquí, es un número].
@@ -483,7 +512,8 @@ decía 7; propongo un solo plazo para todo, el de Titín para el borrado; si se 
   con los códigos** y esperan en cola si el servidor de correo no responde (§10).
 - **El correo del aviso lleva un código de cancelación** [P]: 16 caracteres de base32 (80 bits), válido hasta el día
   D. Así el dueño que tiene el buzón puede cancelar **sin pedir un código nuevo**, que es lo que el ladrón podría
-  estorbar acaparando los 5 códigos por hora.
+  estorbar acaparando los 5 códigos por hora. Va **ligado a esa operación**, se guarda como hash y es de **un solo
+  uso** [S, condiciones de la cuarta pasada].
 - **Cancela quien presente dos de tres** [S, N3c]: la cadena más la contraseña, la cadena más el código de
   cancelación, o contraseña y buzón sin cadena. Este último caso no necesita regla propia: quien tiene contraseña y
   buzón entra desde cualquier Mac (§5), recibe la cadena y cancela. **La cadena sola no cancela:** si bastara, el
@@ -508,6 +538,57 @@ hace menos de 14 días no pueda hacer operaciones de control al momento ni cance
 intruso con contraseña y buzón, pero también al dueño que acaba de perder su único Mac y quiere cambiar la clave ya
 desde uno nuevo. Son dos casos opuestos y el segundo es el que la decisión 2 quiere resolver.
 
+### 6.8 Propuesta E: la contraseña manda sobre el buzón [P; S la recomienda; pendiente de Titín]
+
+**No está en vigor.** Queda escrita entera para que, si Titín la confirma, solo haya que activar lo que dice la lista
+del final. Si no la confirma, este apartado se quita y el resto no cambia.
+
+**Por qué:** un Mac robado y abierto suele tener también el correo (§6.3), y con la regla de §6.7 eso son dos de
+tres. La contraseña es el único de los tres factores que **no está en el Mac**.
+
+**La regla, solo para las cuentas con contraseña.** Cuanto menos se presenta, más se espera; y una operación
+programada solo la cancela quien presenta **más** que quien la programó:
+
+| Quién pide la operación de control | Cuándo se hace | Quién la cancela |
+|---|---|---|
+| Con la contraseña: cadena + contraseña, o contraseña + buzón entrando desde otro Mac | al momento | — |
+| Cadena + código del email, **sin la contraseña** | **a los 3 días** | **solo quien presente la contraseña.** La cadena con un código del email **no** cancela [S]: si cancelara, el ladrón con Mac y correo anularía una y otra vez el cambio del dueño |
+| La cadena sola | a los 14 días | quien presente la contraseña, o la cadena con un código del email (vale el del aviso) |
+
+Lo que no cambia:
+
+- **Cuentas sin contraseña:** todo sigue como en §6.7; el buzón es su único segundo factor. Poner contraseña por
+  primera vez es al momento, con la cadena y un código del email.
+- **Entrar desde un Mac nuevo** (§5): igual.
+- **Una operación programada por cuenta y tipo:** se cumple la que se pidió antes.
+
+Lo que cambia para el usuario:
+
+- **Contraseña olvidada** (§6.1, las dos primeras filas): con un Mac o con las 24 palabras, más el código del email,
+  la contraseña nueva entra **a los 3 días**. Mientras tanto sus Macs siguen sincronizando y todos reciben el aviso.
+- **Cambio de email o de clave sin recordar la contraseña:** también a los 3 días.
+
+**La espera de la contraseña, con E** [P]. Con E la contraseña pasa a ser el único factor que actúa al momento, y
+su espera por fallos es una por cuenta (§10): un ladrón con solo la cadena podría ocupar los turnos de 15 minutos y
+retrasar al dueño. Para que no pueda, la contraseña presentada **junto con un código válido del email** (cadena +
+código + contraseña) se comprueba con una **espera aparte**, que quien no lee el buzón no puede tocar. Quien tenga
+Mac y correo dispone de las dos esperas: unos 192 intentos al día en lugar de 96, con los mismos avisos.
+
+**Límites que quedan con E** [S, I]:
+
+- **El dueño olvidó la contraseña y el ladrón tiene Mac y correo.** Presentan lo mismo y el servidor no los
+  distingue: se cumple lo que se pidió antes y el otro no puede cancelarlo. El dueño conserva los datos de sus Macs
+  y puede abrir una cadena nueva.
+- **El dueño olvidó la contraseña y ha perdido un Mac:** cambiar la clave tarda 3 días, y el Mac perdido sigue
+  leyendo hasta entonces.
+- **El ladrón cambia además la contraseña del buzón:** el dueño se queda con un solo factor.
+- **Las cuentas sin contraseña** no ganan nada con E.
+
+**Qué se toca en este documento si Titín la confirma:** §3.2 (la fila de las operaciones de control), §6.1 (las dos
+primeras filas), §6.3 (el límite pasa a estar cubierto), §6.5, §6.7 (segundo factor y cancelación), §9 (el estado
+`cambio programado` gana el plazo de 3 días), §10 (`FLYWEB_SYNC_DEMORA_BUZON_DIAS=3` y la espera aparte), §12 (P11,
+P21 y P25) y §14 (la fila del Mac robado con buzón).
+
 ## 7. Punto 4: RGPD y privacidad
 
 **Qué guarda ns2 por cuenta:**
@@ -523,6 +604,7 @@ desde uno nuevo. Son dos casos opuestos y el segundo es el que la decisión 2 qu
 | códigos por email: hash, caducidad, último intento | entrar, segundo factor, cancelar | SHA-256; sin contador diario (§6.1) | 10 min; el de cancelación, hasta el día D |
 | operaciones programadas: tipo, fecha, lo que espera | §6.7 | verificador, envoltura y email nuevo cifrado | hasta cumplirse o cancelarse; el permiso, 30 días |
 | `ultimo_uso` | borrado de inactivas | fecha, sin más | — |
+| esperas por fallos de contraseña (§10) | frenar la adivinación en línea | **solo en memoria**, con `email_hmac` como clave; incluye emails **sin cuenta**, porque la espera tiene que ser la misma [S, N4] | 24 h desde el último intento; nunca en disco ni en la copia de bak |
 
 **Dónde más acaba el email** [S, C6; T, decisión 7]:
 
@@ -638,27 +720,56 @@ Se van los estados `pendiente de aprobación`, `falta confirmar` y `cuenta bloqu
   `cuenta/empezar-de-cero` (diferidos), `cuenta/borrar/cancelar`, `salir`.
 - **Forma de las peticiones** [S, C5]: solo `Content-Type: application/json` (lo demás, 415) y **ninguna cabecera
   CORS**, para que una web no pueda disparar `alta` desde el navegador de quien la visita.
-- **Ritmos, sin cierres** [T, decisión 6; S, N3]: un intento cada 10 s por solicitud de código; espera creciente con
-  tope de un minuto para `KL`, por cuenta; 5 códigos por hora y cuenta; tope global de entradas por minuto; un
-  borrado por email cada 30 días por cuenta tras una cancelación [S, O10]. **Ningún contador diario y nada que se
-  cierre por fallos.** Sin IP no hay límite por IP: es deliberado (privacidad).
-- **Límite conocido** [I]: sin IP, la espera de `KL` es por cuenta, así que quien sepa un email puede mantenerla en
-  su tope y hacer que al dueño le cueste hasta un minuto por intento añadir un Mac con contraseña. No se lo impide, y
-  no afecta a quien tiene la cadena ni a las 24 palabras.
+- **Ritmos, sin cierres** [T, decisión 6; S, N3 y N4]: un intento cada 10 s por solicitud de código; 5 códigos por
+  hora y cuenta; un borrado por email cada 30 días por cuenta tras una cancelación [S, O10]. **Ningún contador
+  diario y nada que se cierre por fallos.** Sin IP no hay límite por IP: es deliberado (privacidad).
+- **Espera por fallos de la contraseña** [S, N4]: tras cada `KL` fallada la espera se dobla (10 s, 20 s, 40 s…)
+  **con tope de 15 minutos**; vuelve a cero con un acierto o a las 24 h sin intentos [P]. A tope deja unos 96
+  intentos al día; con el tope anterior, de un minuto, eran 1 440.
+  - **Una por email y por credencial.** La de la contraseña es la misma en `entrar/empezar` y como segundo factor:
+    un intento es un intento, venga por donde venga. El código visible no tiene espera (§5.2).
+  - **Igual exista o no la cuenta** [S, N4.4]: la clave de la tabla es `email_hmac`, y la espera se aplica **antes**
+    de mirar si hay cuenta y antes de calcular ningún scrypt. Si no, la espera delataría qué emails tienen cuenta
+    (O1).
+  - **Solo en memoria** [P]: tabla de tamaño fijo, con caducidad a las 24 h. No va a `sync.db` ni a la copia de
+    bak, para no dejar en disco el HMAC del email de quien no tiene cuenta. Al reiniciar el servicio las esperas
+    vuelven a cero [I: límite menor].
+  - Durante la espera el servidor no comprueba nada y contesta cuándo acaba. La página lo dice («Demasiados
+    intentos. Podrás volver a probar a las HH:MM.»); el Mac no guarda la contraseña para reintentar solo (§11).
+- **Avisos de la contraseña** [S, N4.1]: los dos eventos de §6.2, acierto desde un Mac nuevo y resumen de fallos.
+- **Semáforo de scrypt** [S, N5], en lugar del tope global de entradas por minuto, que cualquiera podía agotar con
+  emails inventados para que nadie pudiera añadir un Mac:
+  - como mucho **tantos scrypt a la vez como núcleos tenga ns2**;
+  - las peticiones de más **esperan en cola** hasta 25 s (SEGURIDAD propone unos 30; lo dejo por debajo del límite
+    de 30 s del cliente, §9) y, si no les llega el turno, reciben «servidor ocupado»;
+  - **tope de memoria explícito:** 16 MiB por scrypt en curso, una cola de longitud fija y `MemoryMax` en la unidad
+    de systemd [I: los valores los pone SERVIDOR con los núcleos y la memoria de ns2 a la vista];
+  - el scrypt de relleno de los emails sin cuenta pasa por el mismo semáforo;
+  - lo que no calcula scrypt (todo lo que va con prueba de cadena y sin contraseña) no pasa por él.
+- **Límites conocidos** [I]:
+  - **La espera de la contraseña se disputa.** Es una por email, así que quien sepa un email puede mantenerla a tope
+    y ocuparle al dueño los turnos de 15 minutos. No cierra nada: al dueño le quedan el código visible, que no tiene
+    espera, y las 24 palabras, y quien ya sincroniza no la necesita.
+  - **Una avalancha de `entrar/empezar` con emails inventados llena la cola.** Añadir un Mac se vuelve lento y puede
+    dar «servidor ocupado» mientras dure; quien ya sincroniza no lo nota. Sin IP, la aplicación no distingue a
+    quien inunda. Si hiciera falta un freno por IP, iría delante, en Apache, y es cosa de SERVIDOR [I, no lo
+    propongo aquí].
 - **Cupos de correo, separados** [S, N2 y N3b]: (1) `alta` a direcciones **sin cuenta**: 20 por hora en total; (2)
   códigos de entrada a **cuentas existentes**: 60 por hora en total y 5 por cuenta, y solo se mandan con `KL`
   correcta, así que quien no sabe la contraseña no gasta este cupo ni llena el buzón de nadie; (3) códigos pedidos
   **con prueba de cadena**: fuera de los topes globales, 5 por hora y cuenta; (4) **avisos**: **sin cupo y nunca se
   descartan**; van a una cola propia y se reintentan si el MTA no responde. Su número queda acotado porque lo que
   se puede pedir con un solo factor está acotado: una operación programada por cuenta y tipo, un borrado por email
-  cada 30 días, 10 renovaciones de token por hora, y «No he sido yo» no repite aviso si no cambia nada. Aviso en el
+  cada 30 días, 10 renovaciones de token por hora, un resumen de fallos de contraseña al día por correo (§6.2), y
+  «No he sido yo» no repite aviso si no cambia nada. Aviso en el
   registro al alcanzar cada tope; el contador anónimo de §9 los da por separado.
 - **Correo:** por el MTA local del servidor, desde `noreply@` del dominio de FlyWeb [T; I: SERVIDOR confirma SPF y
   DKIM y que el MTA acepta de `DynamicUser`], con el registro de correo a 7 días (§7). Si no hay MTA utilizable, un
   relé en ns1; nunca un servicio de correo de terceros.
 - **Configuración:** `FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS=365`, `FLYWEB_SYNC_AVISO_DIAS=30`,
   `FLYWEB_SYNC_DEMORA_DIAS=14`, `FLYWEB_SYNC_CORREO_DESDE`, `FLYWEB_SYNC_CORREOS_HORA=60`,
-  `FLYWEB_SYNC_CORREOS_ALTA_HORA=20`, y dos credenciales de systemd: clave del HMAC y clave AES (email y nombres),
+  `FLYWEB_SYNC_CORREOS_ALTA_HORA=20`, `FLYWEB_SYNC_ESPERA_TOPE_MIN=15`, `FLYWEB_SYNC_SCRYPT_A_LA_VEZ` (por defecto,
+  los núcleos), `FLYWEB_SYNC_SCRYPT_COLA_S=25`, y dos credenciales de systemd: clave del HMAC y clave AES (email y nombres),
   con versión.
 - **Pruebas:** `go test -race` con los casos de §12 en HTTP contra SQLite; `pruebas/go-sync.sh` sigue pasando (nada de
   go-sync se toca); y, en ns2, siempre desde el propio servidor con `curl --resolve ...:127.0.0.1` (regla de la casa).
@@ -673,14 +784,16 @@ Se van los estados `pendiente de aprobación`, `falta confirmar` y `cuenta bloqu
   `third_party`; nada que dependa de macOS (vale en Mojave). **No toca** el motor de sync, Nigori ni
   `brave_sync_auth_manager`.
 - **Lo que el Mac no guarda nunca:** la contraseña, `KE`, `KL`, `KU`. Se calculan al teclear y se borran de memoria
-  al terminar la llamada. De esto depende que la contraseña sirva de segundo factor frente a un Mac robado (§6.7).
+  al terminar la llamada, con `OPENSSL_cleanse`, sin pasar por ninguna pref ni por el registro [S: lo comprobará al
+  revisar el código de H3]. Tampoco se guardan para reintentar tras una espera. De esto depende que la contraseña
+  sirva de segundo factor frente a un Mac robado (§6.7).
   Tampoco la guarda el **gestor de contraseñas** del navegador: la página es interfaz propia y no un formulario web,
   así que no debería ofrecerlo [I]; se comprueba en P23.
 - **Llamada a scrypt** [V, `scrypt.cc:150-177`]: `EVP_PBE_scrypt` con `max_mem` de 130 MiB; con el valor por defecto
   (65 MiB) falla. Reserva 128 MiB y ocupa un núcleo alrededor de un segundo: va **fuera del hilo de la interfaz**,
   en una tarea del grupo de hilos, y una sola a la vez. La página enseña «Comprobando la contraseña…» mientras dura.
 - **Prefs nuevas** (cifradas con OSCrypt como la semilla): token de aparato, id y email de la cuenta, marca del
-  último evento leído, y el código visible mientras esté vivo. Todas con el mismo tratamiento de `failed_to_decrypt`
+  último evento leído, y el código visible mientras esté vivo (se borra a las 24 h, §5.2). Todas con el mismo tratamiento de `failed_to_decrypt`
   que la semilla.
 - **Sondeo de eventos:** cada 15 min con sync activa, y al abrir la página; con token y, si el servidor lo rechaza,
   renovándolo con prueba de cadena. Una petición por vez, retroceso exponencial hasta 1 h si falla (regla de la casa:
@@ -690,7 +803,8 @@ Se van los estados `pendiente de aprobación`, `falta confirmar` y `cuenta bloqu
 
 ## 12. Hitos y pruebas de aceptación
 
-- **H1 (Titín):** este diseño aprobado tras la **cuarta pasada de SEGURIDAD** y las confirmaciones de §13.
+- **H1 (Titín):** este diseño aprobado. La **cuarta pasada de SEGURIDAD** lo da por aprobable (12-11) y sus
+  correcciones están aplicadas; faltan las confirmaciones de §13.
 - **H2 (SERVIDOR-LOCAL / SERVIDOR, NUBE para el código Go):** `flyweb-sync` con `cuenta/`, pruebas en verde, instalado
   en ns2 con el procedimiento de `instalar-ns2.md` y probado desde el propio servidor.
 - **H3 (MOTOR el código, LOCAL compilar y probar; revisión de SEGURIDAD del código antes):** cliente en la 7,1; después
@@ -704,7 +818,7 @@ Se van los estados `pendiente de aprobación`, `falta confirmar` y `cuenta bloqu
 | P2 | Mac B nuevo entra con email + contraseña + código por email | B recibe contraseñas y marcadores; A recibe evento y correo «Se ha añadido el Mac «nombre» (modelo)»; en `sync.db` solo hay cifrado |
 | P3 | Mac C nuevo entra con **código visible** generado en A | C se une; el mismo código no vale una segunda vez, ni pasadas 24 h (plazo corto en la instancia de prueba) |
 | P4 | Contraseña mala; contraseña buena y código malo | con contraseña mala no sale ningún correo y la respuesta es igual que con la buena; el error final es uno solo |
-| P5 | «Intruso» con la contraseña y sin el buzón | no recibe nada; el dueño recibe un código que no ha pedido, con el texto de aviso |
+| P5 | «Intruso» con la contraseña y sin el buzón. Después (N4), **20 contraseñas malas seguidas** contra la cuenta y contra un email sin cuenta | no recibe nada; el dueño recibe un código que no ha pedido, con el texto de aviso, y A y B muestran «contraseña acertada desde un Mac nuevo». Con las malas: aviso de fallos en A y en B, el primero al momento y no más de uno por hora; **el ritmo medido** se dobla hasta 15 min y es el mismo para el email sin cuenta; con la espera a tope, entrar con código visible sigue funcionando |
 | P6 | Cambio de contraseña en A (tecleando la actual) | B y C sacan token nuevo con prueba de cadena y muestran «¿Has sido tú?»; la contraseña vieja ya no entra; un Mac nuevo entra con la nueva; la sync A–B–C no se corta. «No he sido yo» en B invalida tokens y lleva a cambiar contraseña y clave |
 | P7 | «Salir en este Mac» en C | C conserva su perfil; A y B ya no lo listan; el servidor no borra nada |
 | P8 | «Borrar en todos» en A | B y C muestran «cuenta borrada desde otro Mac»; `sync.db` sin filas de la cuenta; el contador anónimo sube |
@@ -720,11 +834,13 @@ Se van los estados `pendiente de aprobación`, `falta confirmar` y `cuenta bloqu
 | P18 | **Correo** (C5, N2, N3b): 21 altas a direcciones distintas en una hora; después, entrar en una cuenta real; después, agotar los 5 códigos de la hora y programar una operación; `alta` con otro `Content-Type` o desde una web | el correo 21 de alta no sale y el registro avisa; el código de entrada **sí** llega; el **aviso** de la operación programada **llega** con los códigos agotados; 415; sin cabeceras CORS |
 | P19 | **«Empezar de cero»** solo con el buzón (C3) y borrado diferido | nada se borra en 14 días (plazo corto en la instancia de prueba); A lo cancela |
 | P20 | **Rastros del email** (C6) | tras borrar la cuenta, el email no está en `sync.db`; el registro de correo no pasa de 7 días; la copia de bak no se abre sin la clave privada y no hay copias de más de 30 días |
-| P21 | **Mac robado** (N1, N3): C, con la cadena sola, intenta cambiar la contraseña, el email y la clave; después intenta cancelar una operación de A; después falla el segundo factor muchas veces | las tres quedan programadas a 14 días (plazo corto) con aviso en A, en B y en el correo; A las cancela con su contraseña, y también con el código del aviso; un Mac nuevo que entra con contraseña y buzón las cancela; C no puede cancelar nada; los fallos de C no cierran nada a A |
-| P22 | **Lo que hay en `sync.db`** (decisión 2) | no están ni `KL` ni la envoltura interior; con la contraseña de prueba y los dos estiramientos la semilla sale (es el riesgo aceptado, y queda medido el tiempo por intento); con el código visible caducado no hay nada que atacar |
+| P21 | **Mac robado** (N1, N3): C, con la cadena sola, intenta cambiar la contraseña, el email y la clave; después intenta cancelar una operación de A; después falla el segundo factor muchas veces, con **20 contraseñas malas seguidas** (N4); por último se usa dos veces un código de cancelación, y en otra operación | las tres quedan programadas a 14 días (plazo corto) con aviso en A, en B y en el correo; A las cancela con su contraseña, y también con el código del aviso; un Mac nuevo que entra con contraseña y buzón las cancela; C no puede cancelar nada; los fallos de C no cierran nada a A, dan aviso de fallos en A y en B (el primero al momento, luego uno por hora) y el ritmo medido llega a 15 min; el código de cancelación vale una sola vez y solo para su operación |
+| P22 | **Lo que hay en `sync.db`** (decisión 2) | no están ni `KL` ni la envoltura interior; con la contraseña de prueba y los dos estiramientos la semilla sale (es el riesgo aceptado, y queda medido el tiempo por intento); el coste por intento del atacante se mide con `hashcat -b -m 8900`, llevado a N = 2^17, y con esa cifra se corrige la tabla de §4 (O11); con el código visible caducado no hay nada que atacar |
 | P23 | **Coste del estiramiento** (§4): cronometrar el scrypt del cliente en la 6,1 y en la 5,1, con la primera compilación y **antes de publicar**; mirar la memoria del proceso; poner la contraseña con el gestor de contraseñas activo | hasta 2 s en la 5,1 (o hasta 1 s en la 6,1 si la 5,1 no está disponible): se queda N = 2^17; si no, N = 2^16 y se corrige §4. La interfaz no se congela; los 128 MiB se devuelven al terminar; el gestor no ofrece guardar la contraseña de la cuenta |
+| P24 | **Avalancha de entradas** (N5): más `entrar/empezar` a la vez que núcleos, con emails inventados, durante varios minutos | nunca hay más scrypt en curso que el máximo; la memoria del servicio no pasa del tope; las peticiones de más esperan y a los 25 s reciben «servidor ocupado»; mientras dura, A y B sincronizan y leen eventos sin retraso |
+| P25 | **Solo si Titín confirma E** (§6.8): C, con la cadena y el buzón pero sin la contraseña, pide cambiar la contraseña, el email y la clave; intenta cancelar con la cadena y un código del email; falla la contraseña muchas veces | las tres quedan a 3 días (plazo corto) con aviso; A las cancela con su contraseña; un Mac nuevo que entra con contraseña y buzón las cancela; C no cancela con cadena y código; los fallos de C no retrasan a A cuando A presenta además un código del email |
 
-**Aceptación de la 3.2** (`plan-3x.md` §5.2): P1–P23 en verde en los tres Macs; datos ilegibles comprobados en ns2;
+**Aceptación de la 3.2** (`plan-3x.md` §5.2): P1–P24 (y P25 si Titín confirma E) en verde en los tres Macs; datos ilegibles comprobados en ns2;
 texto de privacidad publicado; la 3.1 no retrocede.
 
 ## 13. Para Titín
@@ -755,7 +871,8 @@ también el cambio de contraseña, porque la contraseña ha pasado a abrir la pu
 - **A. El bloqueo de la cuenta desaparece** (§6.2). No contradice la decisión 4: es consecuencia de la 2. Con el
   modelo nuevo ya no deja fuera a nadie, y sí permitiría a quien robe el único Mac de un usuario impedirle recuperar
   los datos con email y contraseña. «No he sido yo» sigue existiendo y lleva a cambiar contraseña y clave.
-  Recomiendo quitarlo.
+  Recomiendo quitarlo, y SEGURIDAD está de acuerdo. `docs/DIRECTIVAS.md` dice hoy «Cuenta bloqueada: solo se
+  desbloquea con la cadena o con las 24 palabras»: si Titín confirma, esa directiva la corrige COORDINACIÓN.
 - **B. Qué es el «código visible»** (§5.2). Lo he leído como: la contraseña es opcional, y sin ella un Mac
   sincronizado enseña un código de 16 caracteres, de un solo uso y 24 horas, que se teclea en el nuevo junto al
   código del email. Si quería decir otra cosa, cambia solo ese apartado.
@@ -763,11 +880,16 @@ también el cambio de contraseña, porque la contraseña ha pasado a abrir la pu
   decía 7. Recomiendo 14: un número para todo y más margen para cancelar.
 - **D. La copia de bak se borra de verdad a los 30 días** (§7): es una excepción a la regla de cuarentena que solo
   puede aprobar Titín.
-- **E. Mac robado con el correo abierto** (§6.3, añadido el 12-11 con la ampliación). Un Mac robado con la sesión abierta
+- **E. Mac robado con el correo abierto** (§6.3; la propuesta entera, en §6.8). Un Mac robado con la sesión abierta
   suele tener también el correo, y entonces el ladrón tiene dos de tres y se queda la cuenta al momento. Propuesta:
-  en las cuentas con contraseña, lo que se pida con el código del email espera **3 días** y la contraseña lo
-  cancela. Coste: quien olvide la contraseña espera 3 días para poner otra. Recomiendo adoptarlo si SEGURIDAD no ve
-  pega; no está aplicado.
+  en las cuentas con contraseña, lo que se pida con el código del email y sin la contraseña espera **3 días**, y
+  solo la contraseña lo cancela. Coste: quien olvide la contraseña espera 3 días para poner otra, con sus Macs
+  sincronizando mientras tanto. Límite que queda: si el dueño ha olvidado la contraseña y el ladrón tiene Mac y
+  correo, el servidor no los distingue. **SEGURIDAD recomienda adoptarla; yo también.** Está preparada y no está en
+  vigor.
+
+SEGURIDAD está de acuerdo también con B (la lectura del código visible es segura) y con C. D no es una cuestión de
+seguridad.
 
 **Dos consecuencias de lo ya decidido, para tenerlas presentes:**
 
@@ -784,13 +906,13 @@ también el cambio de contraseña, porque la contraseña ha pasado a abrir la pu
 | Atacante | Qué consigue | Qué no consigue | Dónde se apoya |
 |---|---|---|---|
 | Tiene la contraseña y **no** el buzón | nada, ni saber si es correcta; el dueño recibe un código que no ha pedido y se entera | — | §5.1, §6.2 |
-| Tiene el buzón y **no** la contraseña | pedir un borrado o un «empezar de cero» a 14 días, que cualquier Mac cancela | entrar; la semilla; cambiar la contraseña; nada al momento | §3.2, §6.4 |
+| Tiene el buzón y **no** la contraseña | pedir un borrado o un «empezar de cero» a 14 días, que cualquier Mac cancela; **probar contraseñas en línea, unas 96 al día a tope** [S, N4]. Si acierta, pasa a la fila siguiente | entrar; la semilla; cambiar la contraseña; nada al momento; probar sin que se sepa: los Macs avisan desde el primer fallo y él no puede borrar ese aviso | §3.2, §6.2, §6.4, §10 |
 | **Tiene la contraseña y el buzón** | **todo: es el dueño.** Entra, recibe la semilla y puede cambiar contraseña, email y clave | pasar inadvertido: evento en todos los Macs y correo (que puede borrar del buzón, no de los Macs) | §5.3, §6.2 |
-| Solo sabe el email | agotar durante una hora el cupo de correos de `alta`; alargar hasta un minuto la espera de entrada de esa cuenta | impedir nada a un Mac con la cadena ni a quien tenga las 24 palabras; llenar el buzón del dueño; cerrar nada | §10 |
+| Solo sabe el email | agotar durante una hora el cupo de correos de `alta`; mantener a tope (15 min) la espera de la contraseña de esa cuenta y disputarle los turnos al dueño; con una avalancha de emails inventados, hacer lento añadir Macs | impedir nada a un Mac con la cadena ni a quien tenga las 24 palabras; cerrar la vía del código visible, que no tiene espera; llenar el buzón del dueño; cerrar nada | §5.2, §10 |
 | Ve tráfico descifrado (proxy que inspecciona TLS, registro con cabeceras) | tokens de sync reutilizables 24 h, como hoy; **y `KL`, con la que puede probar contraseñas sin conexión**; con `KL` y el buzón, entrar | usar un token como prueba de cadena | §3.1, §4 |
 | Se lleva `sync.db` | datos cifrados, HMAC de emails, y verificador y envoltura de las cuentas con contraseña: **prueba contraseñas sin conexión** pagando los dos estiramientos, y las que acierte le abren los datos de esa cuenta | emails y nombres en claro; contraseñas buenas; las cuentas sin contraseña | §4, §7 |
 | Controla ns2 entero | lo anterior más los emails en claro, negar el servicio, y `KL` de quien entre: **ataca las contraseñas pagando solo el estiramiento del cliente**; también puede entregarse a sí mismo la envoltura sin pasar por el buzón | las semillas de quien tenga una contraseña que no se adivine, ni las de las cuentas sin contraseña; colar una semilla suya (la envoltura va autenticada) | §4, §5.3 |
-| Roba un Mac sincronizado (y abre la sesión) | la semilla: lee y escribe hasta que el dueño **cambie la clave de sincronización**. Con la cadena sola puede quitar aparatos, generar un código visible, borrar en todos (las copias locales quedan) y **dejar programado a 14 días** un cambio de contraseña, de email o de clave | hacer al momento ninguna de esas tres; cancelar las del dueño; impedir que el dueño cancele (no hay cierres, el aviso no se descarta y lleva su código); quedarse la cuenta mientras el dueño conserve la contraseña o el buzón; seguir leyendo tras el cambio de clave; volver a entrar | §6.3, §6.7 |
+| Roba un Mac sincronizado (y abre la sesión) | la semilla: lee y escribe hasta que el dueño **cambie la clave de sincronización**. Con la cadena sola puede quitar aparatos, generar un código visible, borrar en todos (las copias locales quedan), **dejar programado a 14 días** un cambio de contraseña, de email o de clave, y **probar la contraseña como segundo factor**, unas 96 veces al día y con aviso en los demás Macs [S, N4] | hacer al momento ninguna de esas tres; cancelar las del dueño; impedir que el dueño cancele (no hay cierres, el aviso no se descarta y lleva su código); quedarse la cuenta mientras el dueño conserve la contraseña o el buzón; seguir leyendo tras el cambio de clave; volver a entrar | §6.3, §6.7 |
 | Roba un Mac **y además** tiene la contraseña o el buzón | lo mismo que el dueño. **El buzón es el caso probable:** un Mac abierto suele tener el correo abierto | — (dos de los tres factores); con la propuesta E de §13, el buzón dejaría de bastar en las cuentas con contraseña | §6.3, §6.7 |
 | En la red (sin romper TLS) | nada | — | — |
 
@@ -798,7 +920,7 @@ también el cambio de contraseña, porque la contraseña ha pasado a abrir la pu
 
 | Hallazgo o decisión | Resolución | Dónde |
 |---|---|---|
-| **N3a** topes que el ladrón puede gastar | adoptado, y extendido a todos los códigos por la decisión 6: sin cierre diario; un intento cada 10 s por solicitud; espera de `KL` con tope de un minuto | §6.1, §6.7, §10, P17, P21 |
+| **N3a** topes que el ladrón puede gastar | adoptado, y extendido a todos los códigos por la decisión 6: sin cierre diario; un intento cada 10 s por solicitud; espera de `KL` con tope (era de un minuto; N4 lo sube a 15) | §6.1, §6.7, §10, P17, P21 |
 | **N3b** avisos que se pueden quedar sin enviar | adoptado: los avisos no tienen cupo, no se descartan y van en cola propia. Además, el aviso lleva un código de cancelación para no depender de pedir otro | §6.7, §10, P18 |
 | **N3c** dueño con contraseña y buzón, sin cadena | adoptado como regla de dos de tres. Con el modelo nuevo sale solo: contraseña y buzón dan la cadena | §3.2, §6.7, P21 |
 | N3, salida de emergencia («borrar en todos») | ya no hace falta nombrarla como salida: no queda ningún cierre que obligue a usarla. Sigue existiendo | §6.7 |
@@ -806,7 +928,7 @@ también el cambio de contraseña, porque la contraseña ha pasado a abrir la pu
 | **Decisión 6** (sin tope diario) | códigos de 8 caracteres en todas partes, también al entrar | §6.1 |
 | Bloqueo de la cuenta | propongo retirarlo como estado; lo decide Titín (§13, A) | §6.2 |
 
-**Para la cuarta pasada, lo que más me preocupa** (por si ahorra tiempo):
+**Lo que pregunté a la cuarta pasada** (las respuestas, en la tabla de más abajo):
 
 1. Que el servidor vea `KL` (§4): es lo que abarata el ataque a quien controla ns2. La alternativa es un PAKE.
 2. La lectura del código visible y su vida de 24 h (§5.2).
@@ -815,6 +937,39 @@ también el cambio de contraseña, porque la contraseña ha pasado a abrir la pu
 5. Los dos límites que dejo escritos: la espera de `KL` por cuenta (§10) y el borrado por email que un Mac robado
    puede cancelar sin fin (§6.4).
 6. El Mac robado que tiene también el correo abierto (§6.3) y la propuesta E para cortarlo.
+
+**Cuarta pasada de SEGURIDAD-PORTES-22** (comentario 6834786251, sobre `bb75d529`): **aprobable para H1, sin
+bloqueantes.** Da por buenos la separación de claves, la doble envoltura, la envoltura autenticada, el cambio de
+contraseña, el código visible, el código de cancelación y la tabla del Mac robado.
+
+| Hallazgo o respuesta | Resolución | Dónde |
+|---|---|---|
+| **N4** la contraseña se puede adivinar en línea sin que nadie se entere (tope de un minuto: 1 440 intentos al día con el buzón solo o con un Mac robado) | adoptado en sus cinco partes: evento en los Macs al acertar y resumen de fallos (el primero al momento, luego uno por hora); espera por credencial; tope de 15 min al entrar y como segundo factor; misma espera exista o no la cuenta, con `email_hmac` como clave; casos nuevos en P5 y P21 | §5.1, §6.2, §6.7, §10, P5, P21 |
+| N4.2, **con una diferencia** [P] | SEGURIDAD pedía una espera aparte para el código visible; lo dejo **sin espera**. Con 80 bits no hay nada que adivinar, y una espera, aunque sea aparte, la puede mantener a tope quien sepa el email. Si SEGURIDAD prefiere la espera aparte, es una línea | §5.2, §10 |
+| **N5** el tope global de entradas lo agota cualquiera | adoptado: semáforo de scrypt con cola y tope de memoria. La cola queda en 25 s, por debajo del límite de 30 s del cliente | §10, P24 |
+| **E** (Mac robado con el correo abierto) | preparada con las dos precisiones: la cadena con un código del email no cancela lo pedido a 3 días, y el límite que queda está escrito. Añado una espera aparte para la contraseña presentada con un código del email, para que un ladrón con solo la cadena no retrase al dueño. **No está en vigor: la decide Titín** | §6.8, §13, P25 |
+| Código de cancelación | ligado a la operación, guardado como hash y de un solo uso; lo comprueba P21 | §6.7, P21 |
+| Código visible en las prefs | se borra a las 24 h, con red o sin ella | §5.2, §11 |
+| `KE`, `KL` y `KU` en memoria | `OPENSSL_cleanse`, sin prefs ni registro; SEGURIDAD lo mirará en el código de H3 | §11 |
+| `KL` en el servidor (mi punto 1) | aceptado para la 3.2; un PAKE queda como deuda para una `v2` | §4 |
+| **O11** unidades de la tabla de aguante | adoptado: fuera la cifra de «190 a la vez»; el coste por intento es un supuesto que se mide en P22 | §4, P22 |
+| **O12** sal sacada del email | adoptado, con un matiz (abajo) | aquí |
+| A, B y C de §13 | SEGURIDAD de acuerdo; D no es de seguridad. Las decide Titín | §13 |
+
+**Límites conocidos que quedan escritos** [I]:
+
+- **Semáforo de scrypt** [S, N5]: una avalancha de entradas con emails inventados no niega el servicio a quien ya
+  sincroniza, pero hace lento añadir un Mac y puede dar «servidor ocupado» mientras dure (§10).
+- **La espera de la contraseña se disputa** (§10): quien sepa el email puede ocupar los turnos de 15 minutos. Quedan
+  el código visible y las 24 palabras.
+- **Cálculo por adelantado** [S, O12]: como la sal del estiramiento del cliente sale del email, quien apunte a una
+  dirección concreta puede calcular **antes** de robar la base los `KL` de un diccionario para ese email, y después
+  del robo pagar solo el 2^14 del servidor por candidata. El coste total es el mismo; cambia cuándo se paga, y que
+  el ataque tras el robo sea rápido. **Matiz mío:** SEGURIDAD dice que cambiar la contraseña invalida ese trabajo,
+  y solo es así si la nueva no está en el diccionario, porque la tabla depende del email y no de la contraseña
+  anterior. Lo que la invalida del todo es cambiar el email. En la `v1` no tiene arreglo sin pedir al servidor una
+  sal antes de entrar, que delataría qué emails tienen cuenta; queda, con el PAKE, como deuda para una `v2`.
+- **Con E**, los de §6.8.
 
 **Los cuatro puntos que SEGURIDAD avisó que miraría** (buzón de COORDINACIÓN-39, 12-11, 10:54):
 
@@ -861,7 +1016,8 @@ BoringSSL del árbol 156, comprobado el 12-11 (`evp.h:718` `EVP_PBE_scrypt`; `hk
 Documentos: `plan-3x.md` §5, `TAREAS.md:281` (F7.7), `DIRECTIVAS.md` («Sync con cuenta de la 3.2», 12-11),
 `coordinacion.md:136,265-269`, `parches/3.0.2-sync-ajustes/README.md`, `web-flyweb.md` §2, `docs/SERVIDOR.md:13`;
 buzón `buzon/ARQUITECTURA/20261112-{1003,1017,1020}-COORDINACION-39-*.md`; revisiones de SEGURIDAD-PORTES-21 (PR
-#905, comentarios 6797345699, 6807160010 y 6820589854); de la primera salen los datos sobre `auth/auth.go` de
+#905, comentarios 6797345699, 6807160010 y 6820589854) y cuarta pasada de SEGURIDAD-PORTES-22 (comentario
+6834786251, leído entero el 12-11; el encargo de aplicarla llegó de COORDINACIÓN-40 por el cartero); de la primera salen los datos sobre `auth/auth.go` de
 go-sync, que no he vuelto a comprobar.
 
 **onepw:** «Firefox Accounts: onepw protocol», Mozilla,
@@ -879,5 +1035,7 @@ escalar, líneas 46-137; `SCRYPT_MAX_MEM` de 65 MiB, línea 150; comprobación d
 
 **Límites:** no se ha medido el coste de scrypt en la 6,1 ni en la 5,1: lo de §4 es un cálculo sobre el código, y la
 cifra de 2009 del autor de scrypt está citada de memoria; las cifras de aguante de §4 y las
-probabilidades de §6.1 son cuentas mías. No se ha probado nada contra ns2. El diseño de §4 a §6 es nuevo y **no lo ha
-revisado SEGURIDAD**.
+probabilidades de §6.1 son cuentas mías. No se ha probado nada contra ns2. La unidad de la tabla de aguante (0,3 s por
+intento) es un supuesto hasta P22, y el artículo de Alwen y otros lo cito por SEGURIDAD, sin releerlo. SEGURIDAD
+revisó el diseño en `bb75d529`; **lo añadido después** (N4, N5, §6.8 y las dos diferencias que señalo en §14: el
+código visible sin espera y la espera aparte de E) **no lo ha visto todavía**.
