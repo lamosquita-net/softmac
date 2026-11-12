@@ -345,13 +345,21 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   parches puestos, JA4, HTTP/2, orden de cabeceras y Client Hints tienen que cuadrar con un Chrome 156 real (`motor.md`).
 - **Sync con cuenta de la 3.2 (Titín, 12-11; COORDINACIÓN-39):** diseño en `FlyWeb/docs/sync-cuenta.md` (#905). Añadir
   un Mac con el **modelo de Firefox Accounts** (clave envuelta con una clave que sale de la contraseña; el servidor no ve
-  contraseña ni semilla): email + contraseña o código visible + código por email, **sin aprobación desde otro Mac**.
+  contraseña ni semilla): email + contraseña + código por email, **sin aprobación desde otro Mac**.
   Riesgo aceptado: con la base de datos robada, las contraseñas débiles se pueden atacar fuera de línea. Las 24 palabras
-  siguen siendo la recuperación. Cuenta bloqueada: solo con cadena o 24 palabras. Sin tope diario de códigos: aviso por
+  siguen siendo la recuperación. Sin tope diario de códigos: aviso por
   email de cada operación (y ritmo contra la fuerza bruta). Demora de borrado: 14 días. Mac
   identificado por modelo y nombre que elige el usuario. Página «Cuenta y sincronización»; correos desde `noreply@`.
   RGPD: correo 7 días, `sync.db` 30 días, copia en bak cifrada 30 días; registro de actividades, contrato con OVH y
   brechas: propuesta nuestra con marcadores, sin datos personales en el repo.
+  - **Simplificación (Titín, 12-11 noche; COORDINACIÓN-40): sencillo para el usuario y para el desarrollo, sin diseñar
+    para casos extremos.** (A) **No hay bloqueo de cuenta.** (B) **Contraseña de cuenta obligatoria; no hay «código
+    visible».** Cambiar la contraseña, o ponerla nueva si se olvidó («He olvidado la contraseña»): desde cualquier Mac que
+    ya sincroniza, con un código por email. Mac nuevo: email + contraseña + código por email; si se olvidó, primero se
+    cambia en un Mac que ya sincroniza. Sin ningún Mac y sin contraseña: las 24 palabras. (C) Un solo plazo de 14 días.
+    (D) La copia de bak se borra de verdad a los 30 días (excepción a la cuarentena). (E) **No** se añade espera de 3 días
+    para el Mac robado con el correo abierto. **Riesgo aceptado:** quien tenga un Mac desbloqueado y el correo del usuario
+    tiene su cuenta; un Mac apagado o bloqueado lo protege la contraseña de macOS.
 - **Multihilo y multiGPU (Titín, 11-11; COORDINACIÓN-39):** estudio de ARQUITECTURA en
   `FlyWeb/docs/multihilo-multigpu.md` (#941). Reparto de calor (toda la WebGL en la segunda D500) decidido: se entrega si
   no pierde más del 2 %. La compilación E1 y la medida M1 van **después de la 3.2** (la sync va primero). Apartado nuevo
