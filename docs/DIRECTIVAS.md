@@ -338,6 +338,15 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   después de publicar, con la versión instalada y el perfil de quien la use, y si pierde se estudia para la 3.2). Las dos condiciones son medidas, no preguntas: se comprueban
   antes de la orden de compilar. **Fuera, a la 3.2:** el diseño de Titín de la pantalla privada (parte de la de la 3.1) y
   los cambios ligeros de las pestañas (colores, esquinas, separadores, pestaña activa; no la forma ni el alto).
+- **Sync con cuenta de la 3.2 (Titín, 12-11; COORDINACIÓN-39):** diseño en `FlyWeb/docs/sync-cuenta.md` (#905). Añadir
+  un Mac con el **modelo de Firefox Accounts** (clave envuelta con una clave que sale de la contraseña; el servidor no ve
+  contraseña ni semilla): email + contraseña o código visible + código por email, **sin aprobación desde otro Mac**.
+  Riesgo aceptado: con la base de datos robada, las contraseñas débiles se pueden atacar fuera de línea. Las 24 palabras
+  siguen siendo la recuperación. Cuenta bloqueada: solo con cadena o 24 palabras. Sin tope diario de códigos: aviso por
+  email de cada operación (y ritmo contra la fuerza bruta). Demora de borrado: más de 7 días (cifra pendiente). Mac
+  identificado por modelo y nombre que elige el usuario. Página «Cuenta y sincronización»; correos desde `noreply@`.
+  RGPD: correo 7 días, `sync.db` 30 días, copia en bak cifrada 30 días; registro de actividades, contrato con OVH y
+  brechas: propuesta nuestra con marcadores, sin datos personales en el repo.
 - **Multihilo y multiGPU (Titín, 11-11; COORDINACIÓN-39):** estudio de ARQUITECTURA en
   `FlyWeb/docs/multihilo-multigpu.md` (#941). Reparto de calor (toda la WebGL en la segunda D500) decidido: se entrega si
   no pierde más del 2 %. La compilación E1 y la medida M1 van **después de la 3.2** (la sync va primero). Apartado nuevo
