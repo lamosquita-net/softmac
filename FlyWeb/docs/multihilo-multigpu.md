@@ -9,6 +9,9 @@ y sin medidas nuevas.** Lo único que he ejecutado es un recuento sobre las toma
 respuesta de Titín, también del 11-11: las capturas son de FlyWeb 3.1.0, usa además Basemark, y pregunta si hay algún
 puente entre las dos tarjetas (§4.3; ahí sí he leído el registro de hardware de la 6,1, sin ejecutar nada más).
 
+**Apartado añadido el 11-11 por encargo de COORDINACIÓN-39 (buzón 20261111-2118): §9, JavaScript y CPU de muchos
+hilos.** Es independiente de §1–§8 y tiene su propia conclusión, sus puertas y sus fuentes.
+
 Marcas: **[V]** visto en el código, en las cabeceras del SDK o en medidas ya publicadas; **[R]** reanálisis mío de
 datos existentes; **[I]** inferido; **[S]** suposición sin comprobar.
 
@@ -264,9 +267,9 @@ Qué significa:
   declara unidas (§4); en hardware eso es el puente Infinity Fabric Link de algunos módulos de la 7,1 [I]. El CrossFire
   de estas D500 bajo Windows va también por PCIe, sin puente físico [I].
 - **El enlace no es el límite; la sincronización puede serlo.** Un enlace PCIe 3.0 ×16 mueve unos 15 GB/s teóricos. La
-  pantalla de Titín está a 3008×1692 [V]: un lienzo a pantalla completa son 20 MB por fotograma, 1,2 GB/s a 60 fps. Si
-  ese modo es un escalado con el doble de píxeles por lado [S], son 81 MB y 4,9 GB/s, y ahí el cruce ya pesa. Cuánto
-  cuesta de verdad solo lo dice la medida de E1.
+  pantalla de Titín está a 3008×1692 [V]: un lienzo a pantalla completa son 20 MB por fotograma, 1,2 GB/s a 60 fps.
+  LOCAL-21 midió en esa pantalla `devicePixelRatio` = 1 (`entregas/local21/paso2/resultados-sp-js.json` [V]): no es
+  un modo escalado y valen esos 20 MB. Cuánto cuesta de verdad el cruce solo lo dice la medida de E1.
 - **Regla para decidir qué repartir:** compensa mandar a la segunda tarjeta el trabajo cuyo resultado es pequeño
   frente a lo que cuesta calcularlo. Una WebGL con sombreadores caros en un lienzo mediano compensa. Las teselas de
   una página o un lienzo 2D a pantalla completa, que se pintan rápido y pesan mucho, compensan mal: es el riesgo de F.
@@ -380,3 +383,202 @@ que mover es el raster, y eso es F, no la WebGL.
   mismo contador. De la utilización de las D500 con la 3.x solo hay las capturas de Titín, a ojo. Cómo arrancó
   LOCAL-18 la prueba de dos GPU no consta: que no llegara a la segunda tarjeta es lo que dice el código, no un
   registro de aquella sesión. C′ y F son esbozos: ninguno tiene diseño.
+
+## 9. JavaScript y CPU de muchos hilos (añadido el 11-11)
+
+Pregunta de Titín (vía COORDINACIÓN-39): las máquinas tienen muchos hilos (6,1: 24; 5,1: 16; portátiles: 4 o más).
+¿Cuánto más se puede sacar de JavaScript y de la página usando varios, y qué repercute en lo demás? Solo estudio. He
+ejecutado un recuento nuevo sobre tomas de `sample` que LOCAL-21 ya tenía (`FlyWeb/tools/rendimiento/reparto-renderer.py`)
+y he leído el árbol 156. Mismas marcas que arriba.
+
+### 9.1 Conclusión
+
+1. **El JavaScript de una página corre en un solo hilo y el navegador no puede repartirlo.** Lo impone el lenguaje, no
+   Chromium. Lo que el navegador sí reparte es lo de alrededor: recolector de basura, compilación, raster,
+   decodificación, red, y cada sitio en su proceso.
+2. **Los topes generales ya crecen con los núcleos** [V]: el grupo de hilos de cada renderer admite los hilos lógicos
+   menos uno (23 en la 6,1, 15 en la 5,1, 3 en un portátil de 4), y V8 toma ese mismo número. Se quedan por debajo unos
+   pocos topes fijos: marcado concurrente (7), recolector joven (8), Maglev (2), TurboFan (4) y raster (4) (§9.3).
+3. **En Aquarium subirlos no da nada** [R]: el recolector y la compilación, que es lo que V8 sabe hacer en otros
+   hilos, suman el 0,1 % del hilo principal. De los 22 hilos del renderer solo 4 tienen alguna actividad, y 3 de ellos
+   por debajo del 3 %. El hilo está lleno de JavaScript de la propia página (56–65 %) y del coste de llamar a WebGL
+   (32–40 %) (§9.2).
+4. **De Speedometer no hay ningún perfil.** Es lo único que falta y lo único que pido medir (§9.6, M2). Lo más
+   parecido que existe es el perfil de Multiply en la 7,1: ahí el 78 % del hilo es el ciclo de estilo, layout y
+   pintado, y el estilo solo, el 51 %.
+5. **Estilo en paralelo como Stylo: inabordable en Blink, y no hay nada parcial que aprovechar** [V] (§9.4). Lo que sí
+   rinde en el estilo es abaratarlo: en Multiply ya apareció un 22 % del hilo en una sola causa.
+6. **Recomendación:** no tocar hilos a ciegas. Una medida sin compilar (M2) y cuatro puertas con número (§9.6). Lo
+   que más da por página sigue siendo abaratar el hilo principal; los 24 hilos de la 6,1 rinden con muchas pestañas,
+   no con una.
+
+### 9.2 Punto 1: en qué se va el hilo principal del renderer [R]
+
+**Aquarium con 15 000 peces, 6,1.** Reparto de las muestras activas del hilo principal, con las tomas de
+`entregas/local21` simbolizadas con el dSYM de cada compilación. `sample` congela el renderer en cada toma, así que
+vale el reparto, no el porcentaje de ocupación (`rendimiento-3x.md` §2.1).
+
+| En qué | 3.0.0 (`paso3`) | 3.1 candidata, pasada 1 (`c31/t4`) | 3.1 candidata, serie (`c31/t4-aq`) |
+|---|---|---|---|
+| Código JavaScript compilado (JIT) | 26,3 % | 33,9 % | 36,2 % |
+| `Math.sin` / `Math.cos` (`ieee754`) | 22,4 % | 21,2 % | 23,1 % |
+| V8: accesos a propiedades (IC megamórfico) y resto | 7,0 % | 5,8 % | 5,4 % |
+| **JavaScript de la página, suma** | **55,7 %** | **60,9 %** | **64,7 %** |
+| Enlaces WebGL de Blink, con el paso de V8 a Blink | 28,8 % | 25,7 % | 22,3 % |
+| Cliente del búfer de órdenes (`GLES2Implementation`) | 6,2 % | 5,6 % | 4,5 % |
+| `base::FeatureList` (consulta por dibujo) | 5,3 % | 4,7 % | 5,0 % |
+| **Coste de llamar a WebGL, suma** | **40,3 %** | **36,0 %** | **31,8 %** |
+| Estilo, layout y pintado | 3,4 % | 1,9 % | 2,1 % |
+| Recolector de basura (V8 y Oilpan) | 0,1 % | 0,1 % | 0,0 % |
+| Compilar JavaScript en el hilo principal | 0,0 % | 0,0 % | 0,0 % |
+| Muestras activas | 1014 | 782 | 779 |
+
+Los demás hilos del mismo proceso, en la toma de la serie: 22 hilos, de ellos 11 del grupo de trabajo; con alguna
+muestra activa, 4: el principal, `Compositor` (1,9 %), `Chrome_ChildIOThread` (0,3 %) y un hilo de trabajo (0,3 %).
+
+Lectura:
+
+- **No hay nada que mandar a otro hilo.** Lo que V8 puede sacar del hilo principal (recolector, compilación) aquí no
+  pesa. Más hilos, o topes más altos, darían cero.
+- **Lo que se puede abaratar, y es trabajo de MOTOR, no de hilos:** la consulta de `FeatureList` en cada dibujo (5 %,
+  basta guardarla una vez); la comprobación de tipos al pasar de V8 a Blink (`V8PerIsolateData::HasInstance` y
+  parecidas pesan alrededor de un quinto de los enlaces); y `sin`/`cos`, que V8 calcula con su versión propia de
+  `ieee754` y son un 21–23 % [V en la toma].
+- **Una página sí puede usar otro núcleo si quiere:** un `Worker` con `OffscreenCanvas` saca su WebGL del hilo
+  principal. Es decisión de quien escribe la página; el navegador no puede hacerlo por ella.
+
+**Speedometer 3.1: no hay perfil.** LOCAL-21 midió la nota (10,3 en la 6,1 con la 3.0.0; con la 3.0.1, 10,48 sin Maglev y
+11,19 con él; la 6,1 da el 55 % de la 7,1) pero no tomó `sample`. Lo que se sabe sin perfil: es una prueba de un solo hilo por diseño
+(marcos de JavaScript que tocan el DOM y, tras cada paso, el estilo y el layout) [I], y que la 6,1 saque el 55 % de
+la 7,1 encaja con lo que rinde un núcleo de cada una, no con sus hilos (24 y 32) [I].
+
+**Lo más cercano que existe: Multiply de MotionMark en la 7,1** (`rendimiento-motionmark.md`, candidata 3.1): el 78 %
+del hilo activo en `UpdateAllLifecyclePhases` y el **51 % en recalcular estilo**, con un 22 % en una sola causa (el
+atributo `style` reescrito como texto por una regla `[style…]` del filtrado cosmético). En páginas de DOM el peso
+está en el estilo, no en V8.
+
+### 9.3 Punto 2: topes de hilos en Chromium 156 y V8 [V]
+
+| Tope | En el código | 6,1 (24) | 5,1 (16) | Portátil (4) | ¿Por debajo de los núcleos? |
+|---|---|---|---|---|---|
+| Grupo de hilos del renderer | hilos lógicos − 1, mínimo 3 (`render_process_impl.cc:75-82`, `thread_pool_util.cc:13-17`) | 23 | 15 | 3 | no |
+| Hilos de trabajo de V8 | los del grupo anterior (`gin/v8_platform.cc:271-277`) | 23 | 15 | 3 | no |
+| Grupo de hilos del navegador | 0,6 × lógicos, entre 16 y 32 (`startup_helper.cc:59-63,74-81`) | 16 | 16 | 16 | sí en la 6,1, y no importa: es entrada y salida |
+| Marcado concurrente del recolector | 7 (`flag-definitions.h:2579`; 0 = todos) | 7 | 7 | 3 | **sí** |
+| Recolector joven en paralelo | mínimo de 8 y los núcleos (`scavenger.cc:1582-1594`) | 8 | 8 | 4 | **sí** |
+| Actualización de punteros | 8 (`mark-compact.cc:5406`) | 8 | 8 | 4 | **sí** |
+| Compactación en paralelo | todos los núcleos (`mark-compact.cc:247-262`) | 24 | 16 | 4 | no |
+| Maglev concurrente | 2 (`flag-definitions.h:619`) | 2 | 2 | 2 | **sí** |
+| TurboFan concurrente | 4 (`flag-definitions.h:1289`) | 4 | 4 | 3 | **sí** |
+| Sparkplug concurrente | 1 (`flag-definitions.h:1220`) | 1 | 1 | 1 | **sí** |
+| Compilación de WebAssembly | 128 o los hilos de trabajo (`flag-definitions.h:1984`) | 23 | 15 | 3 | no |
+| Hilos de raster del renderer | lógicos ÷ 2, entre 1 y 4 (`compositor_util.cc:49-50,406-438`) | 4 | 4 | 2 | **sí** |
+
+**Qué daría subirlos:**
+
+- **Recolector (7 y 8).** Solo gana donde el recolector pese en el hilo principal. En Aquarium es el 0,1 %. V8 ya dice
+  lo que consiguió al repartirlo: el marcado concurrente quitó el 60–70 % del marcado del hilo principal, y el
+  recolector joven en paralelo, el 20–50 % de su tiempo (v8.dev). Con más hilos la pausa se divide entre los que
+  participan, «más la sincronización»: de 8 a 16 se gana, como mucho, la mitad de algo ya pequeño. **Esperado: menos
+  del 1 % en lo medido** [I].
+- **Maglev (2) y TurboFan (4).** No aceleran el código: acortan lo que tarda en estar optimizado. Puede notarse en
+  pruebas de arranque en frío y en Speedometer, donde cada caso dura poco [S]. Se prueba **sin compilar**, con
+  `--js-flags`.
+- **Raster (4).** Con el raster en la GPU, estos hilos decodifican imágenes y preparan órdenes de pintado. Solo ganaría
+  una página con muchas imágenes grandes [S]. El interruptor `--num-raster-threads` existe pero el código lo recorta
+  a 4: subirlo es cambiar una constante.
+
+**Coste, y los portátiles de 4 hilos:**
+
+- **Si se suben como techos, a un portátil de 4 hilos no le cambia nada:** su grupo es de 3 hilos y ya está por debajo
+  de todos estos topes. El riesgo de memoria y calor en portátiles es nulo mientras no se fuerce un mínimo.
+- **En la 6,1:** los hilos se crean cuando hay trabajo y se retiran al quedar ociosos; cada uno cuesta su pila y poco
+  más [I]. El calor es el del trabajo, que es el mismo repartido en menos tiempo.
+- **Riesgo real:** son valores que upstream prueba tal cual. Con otros, las carreras raras las encontramos nosotros.
+  Por eso, si se tocan, con interruptores y solo en máquinas de muchos hilos, nunca cambiando constantes de V8.
+
+### 9.4 Punto 3: estilo en paralelo
+
+**Qué hace Stylo** (hacks.mozilla.org, 2017): reparte el cálculo de estilo entre núcleos. Los hijos de cada nodo se
+agrupan en unidades de trabajo y los núcleos ociosos roban trabajo de las colas de los otros. Lo hace seguro Rust, que
+comprueba al compilar que no hay carreras. Lo acompaña con un árbol de reglas y una caché de estilos compartidos. El
+artículo afirma aceleraciones casi lineales con los núcleos, sin dar medidas.
+
+**Por qué no se puede llevar a Blink** [V]:
+
+- El estilo calculado es un objeto del recolector de Blink (`ComputedStyleBase : GarbageCollected`,
+  `computed_style_base.h.tmpl:101`), igual que el DOM. El montón de Oilpan pertenece a un hilo (`cppgc/heap.h:88,107`).
+  Otro hilo no puede crear ni leer esos objetos mientras el principal trabaja.
+- Las cadenas internas (nombres de etiqueta, clases, atributos) viven en una tabla por hilo (`atomic_string_table.cc`).
+- En `core/css`, `core/style`, `core/layout` y `core/paint` no hay ni un solo envío de trabajo a otro hilo fuera de
+  las pruebas: no existe una base parcial que ampliar.
+- Stylo salió de escribir de nuevo el motor de estilo en Rust, con años de trabajo de un equipo. En Blink sería
+  rehacer el estilo, el DOM que lee y su gestión de memoria. **Inabordable para FlyWeb, y sin donante upstream** [I].
+
+**Lo que Blink ya saca del hilo principal** [V, `blink/common/features.cc`]: composición, desplazamiento y animaciones
+de `transform` y `opacity`; raster y decodificación de imágenes; compilación de scripts mientras se descargan
+(`kScriptStreaming`, encendido); la caché de código (`kConsumeCodeCacheOffThread`, encendido); la descarga de recursos
+(`kBackgroundResourceFetch`, encendido). **Apagados de serie:** el escáner de precarga en otro hilo
+(`kThreadedPreloadScanner`), precompilar scripts en línea (`kPrecompileInlineScripts`) y cargar el cuerpo en otro hilo
+(`kThreadedBodyLoader`). Son lo único «parcial» que hay, afectan a la carga de la página y no al estilo, y por qué
+upstream los dejó apagados no lo sé [S].
+
+**Lo que sí rinde en el estilo:** abaratarlo. El 22 % de Multiply en una regla `[style…]` es el ejemplo, y ya tiene
+arreglo propuesto (`rendimiento-motionmark.md`, MOTOR-44).
+
+### 9.5 Dónde rinden hoy muchos hilos, y qué repercute en lo demás
+
+- **Muchas pestañas y sitios a la vez:** cada sitio va en su proceso, con su hilo principal. Es el reparto que de
+  verdad usa los 24 hilos de la 6,1 [I].
+- **Páginas que lo piden:** `Worker`, WebAssembly con hilos, `OffscreenCanvas`.
+- **Alrededor de la página:** decodificación de vídeo e imágenes, red, raster, y el proceso de GPU (§3).
+- **Repercusión con §1–§8:** cuando el hilo de la página se abarate, Aquarium volverá a depender del hilo que envía a
+  la tarjeta (§3) y entonces abren las puertas P2 y P3. Nada de este apartado cambia E1 ni M1.
+
+### 9.6 Punto 4: recomendación y puertas
+
+**M2 (LOCAL, 6,1, 3.1.0 publicada y su dSYM; sin compilar; se hace con E1 y M1, después de la 3.2):**
+
+1. `sample` del renderer durante Speedometer 3.1 y durante JetStream 3, pasado por `reparto-renderer.py`: la tabla de
+   §9.2 para las dos pruebas, más `ps -M` de todos los hilos del renderer para ver cuántos trabajan.
+2. A/B con `--js-flags="--concurrent-maglev-max-threads=6 --concurrent-turbofan-max-threads=8
+   --concurrent-marking-max-worker-num=0"` frente a los valores de serie: Speedometer y JetStream, tres pasadas, y la
+   memoria del renderer al acabar. El tope de Maglev solo cuenta si Maglev está encendido en la versión que se mida
+   (directiva B6): anotarlo de `chrome://version`.
+3. Opcional: A/B con `--enable-features=ThreadedPreloadScanner,PrecompileInlineScripts,ThreadedBodyLoader` en el
+   tiempo de carga de cinco webs de `pruebas-gpu.md`.
+
+| Puerta | Se abre si M2 da… | Entonces |
+|---|---|---|
+| **J1. Más hilos de compilación de V8** | el A/B del punto 2 gana **≥ 3 %** en Speedometer o en JetStream, no pierde más del 1 % en ninguno y la memoria del renderer no sube más del 5 % | esos valores pasan a ser los de serie **solo en máquinas de 12 hilos o más**; en las demás, los de upstream |
+| **J2. Más hilos del recolector** | el recolector es **≥ 10 %** del hilo principal en Speedometer o JetStream | repetir el A/B solo con los topes del recolector |
+| **J3. Estilo** | el estilo es **≥ 30 %** del hilo principal en Speedometer | no paralelizar: perfilar qué reglas pesan, como se hizo con Multiply (MOTOR) |
+| **J4. Raster** | en M1, una página real con los 4 hilos de raster a ≥ 80 % cada uno | subir el tope a 8 en máquinas de 16 hilos o más (una constante) |
+
+Hoy, con lo medido: ninguna abierta. **No hacer:** estilo en paralelo, ni nada que prometa repartir el JavaScript de
+una página.
+
+**Lo que no depende de M2**, y está en la tabla de §9.2: la consulta de `FeatureList` por dibujo, la comprobación de
+tipos en los enlaces WebGL y `sin`/`cos`. Es la lista para abaratar el renderer de WebGL.
+
+### 9.7 Para Titín
+
+- **Respuesta corta:** de una sola página, con más hilos, casi nada. Su JavaScript va en un hilo y lo demás que
+  Chromium reparte ya está repartido. Con muchas pestañas, la 6,1 sí usa sus 24 hilos.
+- **Lo que queda por ganar por página** está en hacer más barato ese hilo, no en añadir otros.
+- No hay ninguna decisión pendiente tuya en este apartado. M2 no compila nada y espera a la 3.2 con E1 y M1.
+
+### 9.8 Fuentes y límites de este apartado
+
+- **Tomas** (LOCAL-21, `entregas/local21`): `paso3/sample-aquarium15k-renderer.txt`, `c31/t4/…-renderer.txt`,
+  `c31/t4-aq/…-serie-renderer.txt`; dSYM en `temp/local21/dsym` y `dsym-t4`; `paso2/resultados-sp-js.json`.
+  Guion: `FlyWeb/tools/rendimiento/reparto-renderer.py`.
+- **Documentos:** `rendimiento-3x.md` §1, §2.1, §3.6, §3.7 y §4; `rendimiento-motionmark.md` (perfil de Multiply).
+- **Código** (árbol `flynk-b1d`, Chromium 156, V8 15.6): los ficheros citados en §9.3 y §9.4;
+  `base/task/thread_pool/initialization_util.cc:15-23`.
+- **Web:** v8.dev/blog/concurrent-marking (2018), v8.dev/blog/trash-talk (2019) y el artículo de Stylo en
+  hacks.mozilla.org (2017). Ninguno da el número de hilos que usa ni el coste en máquinas pequeñas.
+- **Límites:** las tomas son de Aquarium; de Speedometer y JetStream no hay ninguna. El reparto por categorías sale de
+  patrones sobre los nombres de las funciones: una función mal clasificada mueve algún punto, no la conclusión. No he
+  medido nada nuevo. Son suposiciones [S] la ganancia de Maglev y TurboFan con más hilos, la de raster y el motivo de
+  los tres interruptores apagados; e inferencias [I] el coste por hilo y que Speedometer sea de un solo hilo.
