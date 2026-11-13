@@ -17,7 +17,7 @@ git checkout -b nube/sync-cuenta-h3 3e2c12fad5
 git am FlyWeb/parches/3.2-sync-cuenta/000*.patch
 ```
 
-Comprobado: los cuatro entran limpios con `git am` sobre 3e2c12fad5 y dan el árbol **f913d2d9c4**, igual que la rama
+Comprobado: los cinco entran limpios con `git am` sobre 3e2c12fad5 y dan el árbol **f0ace7d3f6**, igual que la rama
 local. El TypeScript de la página pasó `tsc` estricto, con módulos de relleno para los import. El C++ no se ha
 compilado.
 
@@ -33,6 +33,7 @@ compilado.
 | `0002-sync-FlyWeb-3.2-sync-account-client-service-H3.patch` | `browser/sync/account/`: `flyweb_sync::AccountService`, uno por perfil. Las llamadas a `/cuenta/v1`, las prefs cifradas, los estados de §9, el sondeo de eventos y todas las operaciones |
 | `0003-settings-Cuenta-y-sincronizaci-n-page-for-the-FlyWeb.patch` | Página «Cuenta y sincronización»: manejadores en `BraveSyncHandler` (con zxcvbn para la fuerza) y el componente `settings-flyweb-sync-account` con los nueve estados de §9. Cadenas: 118 de la página y 16 de las barras, en inglés con traducción es y es-419; los id son la huella de grit, comprobada con los mensajes que ya había. El título de la sección pasa a «Cuenta y sincronización» |
 | `0004-sync-FlyWeb-3.2-sync-account-warning-bars.patch` | Barras de aviso: «¿Has sido tú?» con «No he sido yo» y «La clave se ha cambiado desde otro Mac» |
+| `0005-sync-account-client-fixes-from-the-security-review-S.patch` | Arreglos de la revisión de SEGURIDAD-PORTES-23 (abajo) |
 
 ## Qué hace el cliente
 
@@ -109,6 +110,34 @@ S1 en 1f40b49, S2 y S3 en cbe0221.
    con email, contraseña y código: la envoltura nueva ya está en el servidor y los datos siguen en el perfil. No
    guardo la semilla nueva antes de la llamada, para no dejarla en una pref si la llamada falla.
 
+## Revisión de SEGURIDAD-PORTES-23 (13-11): APTO con condiciones → 0005
+
+Revisión en #981 (comentario 6865456375), sobre c461080ebe. Arreglos de 0005:
+
+- **K1.** La «línea base» del primer sondeo, que marca la historia como leída sin avisar, solo se aplica después de
+  crear la cuenta o entrar en este Mac.
+  - Un Mac que descubre la cuenta por el sondeo (S1) siempre avisa con «Esta sincronización se ha ligado a la
+    cuenta «email»».
+  - Los botones son «He sido yo» y «No la he ligado yo»; este abre la página, donde está «Borrar la cuenta y los
+    datos en todos».
+  - Solo se saltan los eventos anteriores a cuando este Mac se unió (si lo sabe).
+  - Riesgo que cierra: un Mac robado liga la cadena a la cuenta del ladrón sin aviso en los demás Macs.
+- **K2.** El email guardado es la sal del scrypt.
+  - Con el evento `email-cambiado`, el cliente borra el email guardado y vuelve a sondear con prueba de cadena.
+  - Además, cambiar la contraseña, el email o la clave pide antes el email al día con la prueba.
+- **K3 (preparado).** Secreto por aparato: se genera (32 bytes al azar) y se guarda cifrado. El envío queda en
+  `AddDeviceSecret()`, a la espera del formato de #977-C1.
+- **O-a.** Un reintento de «cambiar la contraseña» manda la misma envoltura, si abre con la misma contraseña, para
+  que el servidor repita su respuesta.
+- **O-b.** Los avisos sin contestar se guardan cifrados (pref `flyweb_sync_account.warnings`) y siguen ahí tras
+  reiniciar.
+- **O-c.** Si este Mac sale de la cadena con los botones de Brave y la cuenta sigue activa, el estado ya no es
+  «cuenta borrada».
+- **Además:** si los eventos venían en varias páginas, se perdían los avisos de la primera; ya no.
+
+Cadenas nuevas, con traducción es y es-419: `IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED_EMAIL` (huella
+1700890504399928133) y `…_NOT_LINKED_BY_ME` (9216077204680478027).
+
 ## Pruebas para LOCAL (al compilar)
 
 **Pruebas unitarias:** `brave_unit_tests --gtest_filter='AccountCryptoTest.*'`. `KeysRealCost` escribe en el
@@ -119,7 +148,7 @@ con `--sync-url`. Cada paso se anota con su resultado:
 
 | # | En el cliente, comprobar |
 |---|---|
-| P1 | Un Mac sincronizado con palabras crea la cuenta: pide email → código → contraseña (10 como mínimo; no sigue sin ella) y nombre; no se resincroniza nada; los demás Macs muestran la barra «Esta sincronización se ha ligado a una cuenta» |
+| P1 | Un Mac sincronizado con palabras crea la cuenta: pide email → código → contraseña (10 como mínimo; no sigue sin ella) y nombre; no se resincroniza nada; los demás Macs (que la descubren por el sondeo) muestran «Esta sincronización se ha ligado a la cuenta «email»» con «No la he ligado yo» (K1) |
 | P2 | B y C entran con email + contraseña + código y reciben los datos; A muestra «Se ha añadido el Mac «nombre»»; B no muestra avisos de la historia anterior |
 | P4 | Contraseña mala y código malo dan un solo mensaje: «La contraseña o el código no son correctos.» |
 | P5 | Con la contraseña buena y sin el buzón, la página del intruso dice lo mismo que con una mala. A y B muestran «Alguien ha escrito bien tu contraseña desde un Mac nuevo». Tras fallos, la barra de fallos y «Demasiados intentos. Podrás volver a probar a las HH:MM.» con la hora del servidor |
@@ -135,7 +164,7 @@ con `--sync-url`. Cada paso se anota con su resultado:
 | P19 | «Empezar de cero» solo con el buzón: el Mac sincroniza ya con una cadena nueva y enseña sus palabras; A muestra «borrado pedido» y lo cancela |
 | P21 | En C, con la cadena sola: «Cambiar la contraseña», «el email» y «la clave» piden código o contraseña y no se hacen sin ellos |
 | **P23** | **Antes de publicar**, en la 6,1 y en la 5,1: cronometrar el scrypt (la prueba unitaria `KeysRealCost`, o el tiempo de «Comprobando la contraseña…»). Mirar en el Monitor de Actividad que el proceso sube unos 128 MiB y los devuelve. Con el gestor de contraseñas activo, comprobar que no ofrece guardar la contraseña de la cuenta. Si la 5,1 pasa de 2 s (o la 6,1 de 1 s), `kScryptN` pasa a `1 << 16` en `account_crypto.h` y se corrige §4 |
-| P26 | Cambio de email con la contraseña y un código a la dirección nueva; un Mac nuevo entra con la nueva |
+| P26 | Cambio de email con la contraseña y un código a la dirección nueva; un Mac nuevo entra con la nueva. Después, en B (que tenía el email viejo), «cambiar la contraseña» funciona y un Mac nuevo entra con el email nuevo y la contraseña nueva (K2) |
 
 P3 y P25 están retiradas. P12, P14, P17, P18, P20, P22 y P24 son del servidor; el cliente solo aporta que siempre
 manda JSON, sin cookies y con una prueba nueva en cada llamada.

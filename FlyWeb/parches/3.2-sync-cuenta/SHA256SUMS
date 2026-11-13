@@ -1,5 +1,6 @@
-69146596b5b56b0f364fbff6651a027097698b52b00d97c9a1683e8b584a9a1a  0001-sync-account-crypto-for-the-FlyWeb-3.2-sync-account-.patch
-d7c73e4ae6eaf96161ac38138899d6b666f9a71617df74b398b2f2ef88a5eec5  0002-sync-FlyWeb-3.2-sync-account-client-service-H3.patch
-fdfbc9f0fa8d281c765c13f605e5553037af3b89f36dbafc2c7c0fee2bd41747  0003-settings-Cuenta-y-sincronizaci-n-page-for-the-FlyWeb.patch
-125fa53f3a1671d2a359841770e390fd4c2b8f52b9272dbfd22eafb9a1828194  0004-sync-FlyWeb-3.2-sync-account-warning-bars.patch
+1845ca331e713370073b8a0048c157a46a0a77c30d94e762fef004a09f0c2732  0001-sync-account-crypto-for-the-FlyWeb-3.2-sync-account-.patch
+b8eaef3eb15cc66c9a3dbe34f8295250e646a169106b05d9cb93cd67c2a84516  0002-sync-FlyWeb-3.2-sync-account-client-service-H3.patch
+aba18f65dfb2aa8b5e4b116ced748fc4fbcf8b10c98bacc6fbe80d2e27b9cb53  0003-settings-Cuenta-y-sincronizaci-n-page-for-the-FlyWeb.patch
+f03f6d13232c6c823281ea3dcefcc98c2bd77714e95cf5da0eff27eef599be0d  0004-sync-FlyWeb-3.2-sync-account-warning-bars.patch
+a42ceeb4b3d1a832380fe54945a13d55f3ad2bffecedaf7d527124383189628d  0005-sync-account-client-fixes-from-the-security-review-S.patch
 0348b3be67b479eaf85757a014f062d2672146daad76c6123e0cded965eb0419  vectores.py

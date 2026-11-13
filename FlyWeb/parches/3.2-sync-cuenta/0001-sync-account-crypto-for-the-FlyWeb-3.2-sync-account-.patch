@@ -1,7 +1,7 @@
 From 467bcac5198df17371aec6c954c88ede77ebf774 Mon Sep 17 00:00:00 2001
 From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
 Date: Fri, 13 Nov 2026 18:49:51 +0000
-Subject: [PATCH 1/4] sync: account crypto for the FlyWeb 3.2 sync account (H3)
+Subject: [PATCH 1/5] sync: account crypto for the FlyWeb 3.2 sync account (H3)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
