@@ -7,6 +7,63 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 14-11 (madrugada): COORDINACIÓN-41 → COORDINACIÓN-42 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-41 (`session_01MwmK2gzdSTH5uLSVSsrNNd`, 13-11 13:45 → 14-11 ~00:00 UTC; Opus 5.5 medio; abierta por Titín,
+linaje 1; relevo al 44 %). La 42 la abre la 41 (linaje 2): puede abrir sesiones y programarse avisos. **Nunca llamar a
+confirm_repository_trust.** Directivas nuevas del 13-11 en `docs/DIRECTIVAS.md`: «Contenido de la 3.2.0 cerrado» (solo
+«Combinar»), «3.1.2 antes de la 3.2.0», «FlyWeb también innova», «Plataformas» (+ iOS antes que Windows, 14-11). Regla 11
+cambiada: **PUBLICACIÓN fusiona su propio PR de la web** tras verificar el appcast.
+
+**Canales.** Las locales SÍ escriben a la nube por bridge (LOCAL-19, PUBLICACIÓN, SERVIDOR-LOCAL y ARQUITECTURA lo hacen);
+a ellas solo por buzón con `[coord]`. ARQUITECTURA antes avisaba solo con comentarios en el PR (su send_message a la nube
+fallaba): ya avisa por mensaje. **Si alguien dice que entregó y no llegó nada, mirar los PR abiertos.** Las locales en
+reposo no procesan el buzón hasta que Titín las despierta; Titín a veces les da órdenes directas: preguntarle una línea.
+
+**Hitos del 13-11.**
+- **3.1.1 publicada del todo** (build 44, 198.63.44; firma en bak, appcast verificado, web #976; registro #979).
+  Catalina: arranca y «funciona mejor» (Titín); falta solo guardar con el selector en ~/LIBRARY.
+- **Sync 3.2:** servidor #977 y cliente #981 **fusionados con APTO** de SEGURIDAD-PORTES-23 (C1 secreto por aparato,
+  C2 contador, C4 FIFO; K1–K3). Binario en la release `flyweb-sync` (f988e2f, SHA-256 1a836217…cc2a).
+  **Instalación en ns2 (H2):** script `instalar-como-root.sh` revisado por la 41 (SHA 7efbfc4a…bd3e23, copia en
+  `buzon/COORDINACION/`). Titín ejecuta en ns2 **una sola vez** `sudo bash /home/servidor/sync-h2/instalar-como-root.sh
+  binario`; luego SERVIDOR-LOCAL edita la unidad (ESPERAS_MAX=400000, SCRYPT_A_LA_VEZ=8, cola 32, MemoryMax=1G; aprobados
+  por SEGURIDAD) y pide a Titín `credenciales`. Pendiente: copia fuera de línea de las credenciales (propuesta de
+  SERVIDOR-LOCAL → Titín) antes de abrir la sync a otros. Cliente: compilar cuando la 3.1 esté medida (**no confirmado**) y
+  capturas para Titín (página nueva y dos textos nuevos).
+- **3.1.2** (PR #985, borrador, SEGURIDAD-PORTES-23): V8 .59 **retirada** (la .60 la revierte; se queda la .58); KEV 0
+  nuevos. Falta el delta de la 158 (17-11). **Candidato: respaldo OpenGL de ANGLE** para Mac 2012–2015 en 10.14/10.15
+  (#982, `FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005; 5,9 fps por software frente a 59,9 con GL en la 2.7.0). SEGURIDAD:
+  **APTO con condiciones** (G-C1 cuatro arreglos de ANGLE en `FlyWeb/seguridad/3.1.2/angle/`, como en la 3.0.1; G-C2
+  pruebas en el MBP9,1, buzón LOCAL 0005; G-C3 avisado a SEGURIDAD-VIGÍA). **Falta lo decisivo:** que la preliminar de
+  LOCAL-19 (`local/311-gl-reserva`) pinte; la compilación conservada de B1c abortaba con GL en la 6,1. Titín: si está en
+  verde a tiempo entra en la 3.1.2; si no, la 3.1.2 sale solo con seguridad y GL va en una 3.1.3. **Titín pidió aviso
+  cuando LOCAL tenga la preliminar.**
+- **«Continuar con Google» / error 11** (no regresión: ya en la 3.0 en la 6,1): sin sesión de Google, la emergente falla y
+  la pestaña muestra «error 11», probablemente caída del renderer (SIGSEGV). LOCAL-19: buzón 2125 y 2135 (informes de
+  caída primero, reproducir sin CDP, comparar con Brave y Chrome 156). Después de lo de GL. No para la 3.2.0.
+- Informe 2 parte A de estándares fusionado (#986). Titín aún no ha marcado la lista §7 (recomendación de la 41: 1, 2 y 5
+  ya; 3 tras la 3.1.2; 4 cuando haya hueco). Entorno de la nube abierto a webkit.org, MDN, mozilla, web.dev, WHATWG,
+  CSSWG, W3C y tc39.es.
+- Plataformas: estudio #989 fusionado. Orden de Titín: 3.2 → fábrica de Mac → Ubuntu → Android → iOS → Windows.
+- BackupDrive: no quitar FreeFileSync aún. Titín abre BACKUPDRIVE-4 (local) con el texto que le dio la 41; tanda de
+  pruebas y veredicto.
+
+**Sesiones.** Nube: SEGURIDAD-PORTES-23 `session_01MwmK2ihLC48xJinz4Li6Jv` (3.1.2, 158 el 17-11), INVESTIGACIÓN-MOTOR-10
+`session_01MwmK2m3DpZgC8k7wAabHHG` (parte B el 17-11; quieta), MOTOR-46 `session_01MwmK2juPkbC58kEi4QFeyU` (quieto),
+SYNC-NUBE-1 `session_01MwmK2kqPRtZ2aYJJ9Tx1kX` (quieta), SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`. Archivadas:
+MOTOR-45, INVESTIGACIÓN-MOTOR-9, SEGURIDAD-PORTES-22. COORDINACIÓN-40 quieta (archivar).
+
+**Avisos programados en la 41 (borrarlos cuando la 42 programe los suyos):** `trig_012R4cSXa52CaFUVLW46shDB` (17-11 21:15:
+mandar a SEGURIDAD-PORTES-23 el delta de la 158) y `trig_01P8hhFP56wmrbLU17WZibji` (17-11 21:30: parte B a
+INVESTIGACIÓN-MOTOR-10).
+
+**Pendiente de Titín:** pegar `binario` en ns2 y después `credenciales` cuando lo pida SERVIDOR-LOCAL; lista §7;
+cerrar PR viejos (#943, #865, #832, #560, #512, #467, #456; no contestado); prueba FSA en ~/LIBRARY; abrir BACKUPDRIVE-4.
+
+**Lecciones.** Mi decisión S3 era falsificable y la cazó SEGURIDAD: las decisiones de seguridad que tome COORDINACIÓN
+pasan siempre por SEGURIDAD-PORTES. No ofrecer a Titín pasos que deberían hacer los agentes (le molestó tener que fusionar).
+
 ## 13-11 (tarde): COORDINACIÓN-40 → COORDINACIÓN-41 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-40 (`session_01MwmK2iSWxzb4yvKWQc6eJC`, 12-11 18:50 → 13-11 ~13:45 UTC; Opus 5.5 medio; linaje 7 de 8;
