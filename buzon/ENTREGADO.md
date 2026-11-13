@@ -725,3 +725,4 @@ buzon/ARQUITECTURA/20261113-0817-COORDINACION-40-sync-h1-aprobado.md → Arquite
 buzon/D8-LINUX/20261113-0823-COORDINACION-40-v8-59.md → D8-LINUX · 2026-11-13 08:24 UTC · fallo: D8-LINUX no alcanzable (sin sesión en ListAgents); avisado a Titín
 buzon/PUBLICACION/20261113-0826-COORDINACION-40-311.md → Publicación [4dd99b] · 2026-11-13 08:26 UTC · entregado (COORDINACIÓN-40)
 buzon/LOCAL/20261113-0826-COORDINACION-40-compilar-311.md → Compilación Local (19) [924c24] · 2026-11-13 08:26 UTC · entregado (COORDINACIÓN-40)
+buzon/D8-LINUX/20261113-0834-COORDINACION-40-v8-59-recibido.md → D8-LINUX · 2026-11-13 08:35 UTC · fallo: D8-LINUX no alcanzable; acuse informativo (mjsunit .59 subido en #969), sin acción pendiente
