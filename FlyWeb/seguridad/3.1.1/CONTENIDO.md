@@ -87,6 +87,26 @@ Lleva un `[M156]`: af144bc, «Enforce no-JS execution scopes in InvokeApiFunctio
 - **Si no hay verde antes de la orden,** la 3.1.1 sale sin el paso 4 y la .59 va con el delta de la 158.
   D8-LINUX ya tiene el encargo (`buzon/D8-LINUX/20261113-0823`, Titín, 13-11). Nada más depende de él.
 
+## Choque con `patches/` de brave-core (añadido el 13-11, tras el aviso de LOCAL-19)
+
+El 13-11 no crucé los `.patch` de brave-core con la serie. Ese cruce, hecho después sobre el árbol `38c6e1d3e3`:
+
+- **5 ficheros de la serie tienen `.patch` en brave-core:** `navigation_controller_impl.cc`, `navigation_request.cc`,
+  `render_frame_host_impl.cc`, `frame.mojom` y `base_rendering_context_2d.cc`.
+- **Solo falla `navigation_request.cc`.** Choca con «Snapshot srcdoc value» (bug 579867878): en las dos comprobaciones
+  de sandbox del service worker, Brave añade `IsPdf()` y nuestro parche cambia `pending_frame_policy()` por
+  `commit_params_->frame_policy`. La resolución conserva las dos cosas:
+  - `!IsPdf() && (commit_params_->frame_policy.sandbox_flags & kOrigin) != kOrigin`;
+  - `IsPdf() || (commit_params_->frame_policy.sandbox_flags & kOrigin) == kOrigin`.
+
+  Los trozos de `MaybeHideReferrer` no cambian.
+- **Revisión por la regla 17 (SEGURIDAD-PORTES-22): APTO.** Ramas comprobadas con `ls-remote`:
+  - **brave-core `local/3.1.1` = `3e2c12fad57`.** Lleva:
+    - `flyweb_version` (`brave-core/0001`);
+    - `package.json` con la etiqueta 156.0.8078.104;
+    - el `.patch` resuelto, cuyo cuerpo es idéntico a la referencia de arriba y aplica limpio sobre `38c6e1d3e3`.
+  - **chromium `seg/3.1.1` = `9e0d83137f`.** Su árbol es `38c6e1d3e3`, el de esta tabla.
+
 ## Versión y build
 
 | Qué | Valor | Quién y cómo |

@@ -8,6 +8,64 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-22 → 23 (13-11-2026, ~08:45 UTC; leer primero, manda sobre lo de abajo)
+
+La -22 (`session_01MwmK2gyj8BaukttCj4uahG`, linaje 8 de 8) se releva al 56 % de contexto. No puede abrir sesiones
+ni programar recordatorios (`send_later` lo rechaza en el linaje 8). El relevo lo abren Titín o COORDINACIÓN-40
+(`session_01MwmK2iSWxzb4yvKWQc6eJC`). La -22 sigue disponible para preguntas hasta que la archiven.
+
+**Acceso:** brave-core y el fork de chromium se leen sin adjuntar nada (el proxy sirve lectura anónima de repos
+públicos), pero no hay push. Todo se entrega por `format-patch` en softmac.
+
+### Hecho por la -22
+
+- **Sync con cuenta (#905):**
+  - cuarta pasada (`bb75d529`), con N4 y N5;
+  - quinta pasada, sobre la versión simplificada (`9a78b7f7`): APROBABLE para H1, con **N6 a corregir** (la tabla de
+    esperas en memoria no debe descartar entradas con espera activa) y O13–O14 opcionales.
+
+  El criterio de Titín: solo bloquea que el servidor pueda abrir la semilla o que se entre sin Mac ni correo.
+  COORDINACIÓN añadió que la espera de 15 min y el aviso en los Macs son «a corregir» si faltan.
+- **Catalina (#957):** los parches 0001–0004 de MOTOR-45, APTOS. Van en carpeta aparte, después de los de seguridad.
+- **3.1.1, contenido cerrado** (`FlyWeb/seguridad/3.1.1/CONTENIDO.md`; #961, #966, #968, #969, #970):
+  - sin la 158, cuya nota no había salido;
+  - 0035–0043: delta de 156.0.8078.104;
+  - brave-core 0001: `flyweb_version`;
+  - V8 15.6.75.59 aparte (`v8-15.6.75.59/`), con d8 en verde, pero **fuera de la 3.1.1**: la orden se dio con la .58.
+  - Build 44.
+  - Ramas de LOCAL-19, revisadas por la regla 17: chromium `seg/3.1.1` = 9e0d83137f (árbol 38c6e1d3e3) y brave-core
+    `local/3.1.1` = 3e2c12fad57. Veredicto: APTO.
+
+### Pendiente, por orden
+
+1. **17-11, nota de Chrome 158 estable** (COORDINACIÓN-40 manda el aviso hacia las 21:15 UTC).
+   - Feed Atom: `https://chromereleases.googleblog.com/feeds/posts/default?redirect=false&max-results=40`. Sin
+     `redirect=false` redirige a feedburner, que no resuelve.
+   - Cruzar los CVE de la nota con `FlyWeb/docs/seguridad-3.1.1.md` §1–§3 y con CONTENIDO.
+   - `cve-watch.py`.
+   - `ls-remote` de la 8078: el 13-11 iba por la .104; mirar si hay .105 o más.
+   - **Nueva base: chromium `seg/3.1.1` 9e0d83137f** (ya en el fork) y brave-core `local/3.1.1` 3e2c12fad57. Encima:
+     la V8 .59 (`3.1.1/v8-15.6.75.59/0001`) y el delta.
+   - Titín decide si va en una 3.1.2 de solo seguridad o en la 3.2.0.
+2. **Sync:** cuando ARQUITECTURA aplique N6 (y O13–O14 si los adopta), comprobar que N6 está bien.
+
+### Trampas aprendidas
+
+- **Cruzar siempre los `patches/` de brave-core** con los ficheros de la serie: cada `src/a/b.cc` tiene su
+  `patches/a-b.cc.patch`. Aplicar con `git apply --check` sobre el árbol final. Si no se hace, LOCAL choca al compilar,
+  como pasó con `navigation_request.cc`.
+- **Clon parcial de chromium que funciona:**
+  - `git init`; remotos `fork` (lamosquita-net/chromium) y `up` (chromium/chromium en GitHub), los dos promisor con
+    `blob:none`;
+  - `fetch --filter=blob:none --depth=1 fork seg/…`;
+  - sparse checkout `--no-cone` con la lista de ficheros que tocan la serie y los candidatos;
+  - después `git am` y `git cherry-pick -x` normales.
+  - Rangos de upstream: `fetch --filter=tree:0 --shallow-exclude=refs/tags/<anterior>`.
+- **Skia y ANGLE de la rama:** sus espejos son `github.com/google/skia` (rama `chrome/m156`) y `github.com/google/angle`
+  (rama `chromium/8078`); para `fetch` hacen falta los hashes completos.
+- **Las sumas de `chromium/` de la 3.1.1 están en `3.1.1/SHA256SUMS`, no dentro de `chromium/`.**
+- **`rm -rf` con variables lo para la comprobación del arnés:** usar rutas literales.
+
 ## SEGURIDAD-PORTES-21 → 22 (12-11-2026, ~20:15 UTC; leer primero)
 
 Relevo pedido por COORDINACIÓN-40 (`session_01MwmK2iSWxzb4yvKWQc6eJC`). La -21 queda disponible para preguntas hasta
