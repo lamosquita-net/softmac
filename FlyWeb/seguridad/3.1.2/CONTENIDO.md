@@ -64,22 +64,66 @@ Así quedan las versiones:
 7. **Cerrar** este fichero: tabla «Orden de aplicación» y tabla «Versión y build». Después, aviso a COORDINACIÓN-41
    para la orden a LOCAL.
 
-## Hueco reservado: respaldo GL de ANGLE en los Mac de 2012–2015 (candidato)
+## Respaldo GL de ANGLE en los Mac de 2012–2015: revisión de la regla 17 (candidato)
 
-Aviso de COORDINACIÓN-41 (13-11, ~23:43 UTC). Titín ha encargado a ARQUITECTURA unos parches para volver a abrir el
-backend GL de ANGLE en los Mac donde ANGLE rechaza Metal. En esos Mac, hoy la GPU va por software a 5,9 fps; con GL,
-en la 2.7.0, iba a 59. LOCAL lo prueba con compilaciones incrementales de la 3.1.1. **Solo entra si el informe sale
-bien**, y es la excepción que la directiva admite: un arreglo pequeño y ya diagnosticado. **Nada hecho aún.**
+Parches de ARQUITECTURA: `FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005 (#982, fusionado). `SHA256SUMS` cuadra. Estudio en
+`FlyWeb/docs/gpu-mac-antiguos.md`. Revisado por SEGURIDAD-PORTES-23 el 14-11 sobre el código de `seg/3.1.1` (9e0d83137f) y
+el ANGLE de su `DEPS` (`f10470c77e`, rama `chromium/8078`). **Veredicto: APTO con condiciones (G-C1 a G-C3).** Solo
+entra si la preliminar de LOCAL sale bien; lo decide Titín.
 
-Cuando lleguen los parches, la revisión de seguridad tiene que mirar:
-- **Superficie que se reabre:** qué entra del backend GL de ANGLE (validación, traductor de shaders, `GLES`/`WebGL2`
-  sobre GL de macOS) y qué se queda cerrado.
-- **Selección limitada** a esos modelos: el resto sigue con Metal y no puede pasarse a GL. Hay que mirar quién decide
-  la selección (lista de GPU o de modelos, o el rechazo de Metal) y si una página o una opción puede forzarla.
-- **CVE conocidos** del backend GL de ANGLE en macOS, desde la base de la vía GL (`flynk-b1b`/B1c) hasta la 158. Esta
-  vía obligaba a portar a mano los 34 CVE (16 críticos) que la de Metal ya trae (DIRECTIVAS, «GPU: Metal (B1d)…», 05-11). Cruzarlos
-  con lo que tenga `flynk-b1d` y decir cuáles quedan abiertos en esos Mac.
-- **Orden:** va después de la serie de seguridad de chromium, en su carpeta aparte, como Catalina en la 3.1.1.
+### Selección: ¿se puede forzar GL donde Metal funciona?
+- **Por defecto, no.** Con el 0001, `GetEGLInitDisplays` prueba METAL primero, y OPENGL y OPENGLES solo si la pantalla de
+  Metal no se inicia. En la 6,1 y la 5,1 nada cambia (la prueba A de LOCAL lo confirma).
+- **Una web, no:**
+  - en la 156, `chrome://flags#use-angle` solo existe en Windows y Android, y brave-core no lo añade;
+  - cuando el proceso de GPU se cae y retrocede de modo (`HARDWARE_GL`, SwiftShader…), no cambia el backend de ANGLE;
+  - la lista de fallos de controladores no tiene ninguna entrada con `disable_metal`.
+- **macOS 11 o posterior: nada cambia** (`MacOSVersion() < 11`).
+- **A mano, sí:** con `--use-angle=gl` en la línea de órdenes, en cualquier Mac con 10.14 o 10.15, Mac Pro incluidos.
+  Lo acepto: es del usuario local, como `--no-sandbox`, y hace falta para la prueba B. Si se quisiera cerrar, se haría
+  en una versión posterior.
+
+### Ficheros nuestros (0002–0005)
+- **Devuelven código que upstream tuvo hasta la 156**: `GetTextureTargetForIOSurfaces`, el campo del mojom, el destino
+  de textura en `ClientSharedImage` y el formato de viz. Solo añaden; no deshacen ningún arreglo de la 156 en esos
+  ficheros.
+- **Con Metal o SwiftShader, `GetTextureTargetForIOSurfaces()` devuelve `GL_TEXTURE_2D`**, el mismo destino que hoy:
+  en los Mac con Metal, el 0005 da el mismo formato que antes.
+- **Mojom (0003):** el campo va del proceso de GPU al cliente. No abre ninguna frontera nueva: un renderer ya puede usar
+  cualquier destino en sus órdenes, y quien valida es el frontal de ANGLE.
+
+### Recuento real de CVE del OpenGL de ANGLE
+- **Los 34 de la 151–156 (`gl-150-156-seg.md`): ya están.** 37 de los 39 commits de ANGLE de esa lista son ancestros
+  de `f10470c77e`. Los otros dos son `8f1c9f81de`, la revert de `ed78400986` (que sí está), y `0855dd00f9`, de abajo.
+  La parte de Chromium que tocaban (decodificador *validating*) B1c no la devuelve. La deuda de esa lista es **cero**.
+- **Desde la 156 hasta la base de la 158**, nuestro ANGLE no tiene estos commits de `src/libANGLE/renderer/gl/`, que se
+  vuelven **aplicables** si GL entra (`git log chromium/8078..chromium/8127 -- src/libANGLE/renderer/gl`):
+
+  | Commit | Qué | Bug |
+  |---|---|---|
+  | `a965a227` | [M158] GL: Recreate 3D texture on depth increase from zero-extent level | 584998888, 577140687 |
+  | `0855dd00` | GL: forcefullyFlush in useTempForNonZeroBaseLevelGenmipmap (la otra mitad de CVE-2026-103628) | 566683383 |
+  | `b40b5946` | GL: Avoid FBO driver hash collisions | 551065275 |
+  | `fb01175` (+ `66b09c8`) | Avoid user memory when querying sync status in the backends | 573982271 |
+
+  Además, tres `[M158] GL` que se revirtieron en la rama el 13-11 (`69b419c`, `7a33c47`, `1f25c8e`): hay que vigilar
+  si vuelven, como la V8 .59.
+- **Capa CGL** (`renderer/gl/cgl/`): desde la 156 solo hay refactorizaciones del cerrojo de pantalla (`deeaa4b`,
+  `e5913a5`, `77be48b`), ninguna de seguridad. Que esté a medio desmontar (sin `prepareForCall`, `testDeviceLost` ni
+  aviso de cambio de GPU) es un riesgo de **estabilidad** (pérdida de contexto, cambio de GPU). No he encontrado
+  ningún fallo de memoria conocido. Se mide en la preliminar.
+
+### Condiciones
+- **G-C1.** Si GL entra en la 3.1.2, entran también los arreglos de la tabla de arriba, como parches a ANGLE, y lo que
+  diga la nota de la 158 del 17-11 sobre ANGLE GL. Falta decidir **por dónde** se parchea ANGLE: hoy `DEPS` apunta al
+  ANGLE de upstream y la serie de seguridad no lleva ningún parche de ANGLE. COORDINACIÓN decide con LOCAL.
+- **G-C2.** Pruebas antes de cerrar el contenido:
+  - la A de LOCAL (Mac Pro con `angle=metal`, sin cambios);
+  - en el MacBookPro9,1, el **cambio automático de GPU** (HD 4000 ↔ GT 650M), dormir y conectar un monitor, sin caídas
+    ni pantalla negra. Si falla, ARQUITECTURA decide entre fijar la GPU dedicada en GL o devolver `prepareForCall`.
+- **G-C3.** Desde la 3.1.2, las tandas de seguridad (y SEGURIDAD-VIGÍA) tratan como **aplicables en Mac**
+  `renderer/gl/` y `renderer/gl/cgl/` de ANGLE. Hasta ahora se descartaban: eran código muerto.
+- **Opcional:** que los *traits* del 0003 acepten solo `0`, `GL_TEXTURE_2D` y `GL_TEXTURE_RECTANGLE_ARB`.
 
 ## Orden de aplicación (provisional)
 
