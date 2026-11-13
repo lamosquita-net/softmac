@@ -1,0 +1,2931 @@
+From 9502adfa1d77184e5442bf41e2e6a078aab4221d Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 18:59:17 +0000
+Subject: [PATCH 2/4] sync: FlyWeb 3.2 sync account client service (H3)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+FlyWeb/docs/sync-cuenta.md §5, §6, §8, §9 and §11, with the decisions of
+§10.1 and the protocol of FlyWeb/servidor/sync/cuenta (softmac PR #977).
+
+flyweb_sync::AccountService, one per regular profile, created with it:
+
+- talks to /cuenta/v1 on the origin of --sync-url (HTTPS, or HTTP on
+  loopback for a test instance), JSON only, no cookies, 30 s per call, the
+  chain proof in the X-FlyWeb-* headers after a one-use nonce, the device
+  token as Authorization: Bearer;
+- the account id, email, device id, token and last event read are prefs
+  encrypted with OSCrypt like the seed; one that does not decrypt gives the
+  «claves ilegibles» state;
+- the password is stretched off the UI thread, one at a time, and wiped;
+  KL/KU only stay in memory between the two steps of «entrar» and «cambiar
+  el email», up to the 10 minutes of the code;
+- create (linking this Mac's chain, or a new one), log in with email +
+  password + code (the wrap must open, P15), join with the 24 words (or 25
+  with a valid date), change the password with a code, change the email,
+  change the sync key (new seed, both proofs, leave and rejoin), devices
+  (list, remove, rename), «No he sido yo», delete everywhere, cancel a
+  scheduled deletion, leave on this Mac, and the mailbox-only deletion and
+  «Empezar de cero»;
+- polls the account events every 15 minutes while sync is on (backing off
+  up to 1 h), renews an invalidated token with the chain proof, registers a
+  Mac that joined with the words (decision 11), skips the account history
+  on the first poll and the events of its own operations, and turns a chain
+  disabled from elsewhere into «cuenta borrada» or «clave cambiada» by
+  asking the server with the old keys, still in memory.
+
+It does not touch the sync engine, Nigori or BraveSyncAuthManager: it joins
+and leaves chains through BraveSyncServiceImpl's public calls.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ browser/brave_profile_prefs.cc                |    2 +
+ ...browser_context_keyed_service_factories.cc |    2 +
+ .../account/flyweb_sync_account_service.cc    | 2318 +++++++++++++++++
+ .../account/flyweb_sync_account_service.h     |  348 +++
+ .../flyweb_sync_account_service_factory.cc    |   67 +
+ .../flyweb_sync_account_service_factory.h     |   49 +
+ browser/sync/sources.gni                      |   13 +-
+ 7 files changed, 2798 insertions(+), 1 deletion(-)
+ create mode 100644 browser/sync/account/flyweb_sync_account_service.cc
+ create mode 100644 browser/sync/account/flyweb_sync_account_service.h
+ create mode 100644 browser/sync/account/flyweb_sync_account_service_factory.cc
+ create mode 100644 browser/sync/account/flyweb_sync_account_service_factory.h
+
+diff --git a/browser/brave_profile_prefs.cc b/browser/brave_profile_prefs.cc
+index aa55490..334ff18 100644
+--- a/browser/brave_profile_prefs.cc
++++ b/browser/brave_profile_prefs.cc
+@@ -19,6 +19,7 @@
+ #include "brave/components/brave_search/common/brave_search_utils.h"
+ #include "brave/components/brave_shields/content/browser/brave_farbling_service.h"
+ #include "brave/components/brave_shields/core/common/pref_names.h"
++#include "brave/browser/sync/account/flyweb_sync_account_service.h"
+ #include "brave/components/brave_sync/brave_sync_prefs.h"
+ #include "brave/components/constants/pref_names.h"
+ #include "brave/components/de_amp/common/pref_names.h"
+@@ -167,6 +168,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+   registry->RegisterBooleanPref(kTabMuteIndicatorNotClickable, false);
+ 
+   brave_sync::Prefs::RegisterProfilePrefs(registry);
++  flyweb_sync::AccountService::RegisterProfilePrefs(registry);
+ 
+   // TODO(shong): Migrate this to local state also and guard in ENABLE_WIDEVINE.
+   // We don't need to display "don't ask widevine prompt option" in settings
+diff --git a/browser/browser_context_keyed_service_factories.cc b/browser/browser_context_keyed_service_factories.cc
+index e696a33..1f45fc9 100644
+--- a/browser/browser_context_keyed_service_factories.cc
++++ b/browser/browser_context_keyed_service_factories.cc
+@@ -13,6 +13,7 @@
+ #include "brave/browser/permissions/permission_lifetime_manager_factory.h"
+ #include "brave/browser/profiles/brave_renderer_updater_factory.h"
+ #include "brave/browser/search_engines/search_engine_provider_service_factory.h"
++#include "brave/browser/sync/account/flyweb_sync_account_service_factory.h"
+ #include "brave/browser/sync/brave_sync_alerts_service_factory.h"
+ #include "brave/browser/url_sanitizer/url_sanitizer_service_factory.h"
+ #include "brave/components/brave_perf_predictor/browser/named_third_party_registry_factory.h"
+@@ -59,6 +60,7 @@ void EnsureBrowserContextKeyedServiceFactoriesBuilt() {
+ #endif
+ 
+   BraveSyncAlertsServiceFactory::GetInstance();
++  flyweb_sync::AccountServiceFactory::GetInstance();
+ 
+ #if !BUILDFLAG(IS_ANDROID)
+   if (base::FeatureList::IsEnabled(tabs::features::kBraveSharedPinnedTabs)) {
+diff --git a/browser/sync/account/flyweb_sync_account_service.cc b/browser/sync/account/flyweb_sync_account_service.cc
+new file mode 100644
+index 0000000..127322d
+--- /dev/null
++++ b/browser/sync/account/flyweb_sync_account_service.cc
+@@ -0,0 +1,2318 @@
++/* Copyright (c) 2026 The FlyWeb Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#include "brave/browser/sync/account/flyweb_sync_account_service.h"
++
++#include <algorithm>
++#include <utility>
++
++#include "base/base64.h"
++#include "base/base64url.h"
++#include "base/check.h"
++#include "base/command_line.h"
++#include "base/functional/bind.h"
++#include "base/functional/callback_helpers.h"
++#include "base/json/json_reader.h"
++#include "base/json/json_writer.h"
++#include "base/logging.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/strings/string_split.h"
++#include "base/strings/string_util.h"
++#include "base/strings/utf_string_conversions.h"
++#include "base/system/sys_info.h"
++#include "base/task/thread_pool.h"
++#include "brave/components/brave_sync/brave_sync_prefs.h"
++#include "brave/components/brave_sync/crypto/crypto.h"
++#include "brave/components/brave_sync/sync_service_impl_helper.h"
++#include "brave/components/brave_sync/time_limited_words.h"
++#include "brave/components/sync/service/brave_sync_service_impl.h"
++#include "chrome/browser/browser_process.h"
++#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/sync/device_info_sync_service_factory.h"
++#include "chrome/browser/sync/sync_service_factory.h"
++#include "components/os_crypt/async/browser/os_crypt_async.h"
++#include "components/os_crypt/async/common/encryptor.h"
++#include "components/prefs/pref_registry_simple.h"
++#include "components/prefs/pref_service.h"
++#include "components/sync/base/command_line_switches.h"
++#include "components/sync/service/sync_user_settings.h"
++#include "content/public/browser/storage_partition.h"
++#include "net/base/load_flags.h"
++#include "net/base/url_util.h"
++#include "net/http/http_response_headers.h"
++#include "net/traffic_annotation/network_traffic_annotation.h"
++#include "services/network/public/cpp/resource_request.h"
++#include "services/network/public/cpp/shared_url_loader_factory.h"
++#include "services/network/public/cpp/simple_url_loader.h"
++#include "services/network/public/mojom/url_response_head.mojom.h"
++
++namespace flyweb_sync {
++
++namespace account = brave_sync::crypto::account;
++
++namespace {
++
++// Prefs. All but the notice are encrypted with OSCrypt, like the seed (§11).
++constexpr char kPrefAccountId[] = "flyweb_sync_account.id";
++constexpr char kPrefEmail[] = "flyweb_sync_account.email";
++constexpr char kPrefDevice[] = "flyweb_sync_account.device";
++constexpr char kPrefToken[] = "flyweb_sync_account.token";
++constexpr char kPrefLastEvent[] = "flyweb_sync_account.last_event";
++constexpr char kPrefNotice[] = "flyweb_sync_account.notice";
++
++constexpr char kPathPrefix[] = "/cuenta/v1/";
++// §9: no call waits more than 30 s. The server gives up a scrypt turn at 25 s.
++constexpr base::TimeDelta kCallTimeout = base::Seconds(30);
++constexpr size_t kMaxResponseSize = 64 * 1024;
++// §11: every 15 min with sync on; back off up to 1 h when it fails.
++constexpr base::TimeDelta kPollInterval = base::Minutes(15);
++constexpr base::TimeDelta kMaxPollBackoff = base::Hours(1);
++// Life of an email code (§6.1): the flow and the keys it keeps go with it.
++constexpr base::TimeDelta kFlowLifetime = base::Minutes(10);
++// Server limits (README of cuenta/).
++constexpr size_t kMaxNameLength = 64;
++constexpr size_t kEventsPage = 100;
++
++// Events that show a bar (§6.2). aparato-renombrado only changes the list.
++constexpr const char* kWarningTypes[] = {
++    "mac-anadido",      "contrasena-acertada", "contrasena-fallos",
++    "contrasena-cambiada", "email-cambiado",   "cadena-cambiada",
++    "cadena-ligada",    "aparato-quitado",     "no-he-sido-yo",
++    "borrado-pedido",   "borrado-cancelado"};
++
++constexpr net::NetworkTrafficAnnotationTag kTrafficAnnotation =
++    net::DefineNetworkTrafficAnnotation("flyweb_sync_account", R"(
++      semantics {
++        sender: "FlyWeb sync account"
++        description:
++          "Account of FlyWeb sync (FlyWeb 3.2): create it, add a Mac with "
++          "email, password and a code by email, change the password, the "
++          "email or the sync key, list devices and read account events. "
++          "Goes to the FlyWeb sync server only. The password never leaves "
++          "the Mac; only a key derived from it with scrypt."
++        trigger:
++          "The user acts on the «Cuenta y sincronización» page, or every 15 "
++          "minutes while sync is on (account events)."
++        data:
++          "Email, a key derived from the password, the sync seed wrapped "
++          "with a key the server does not have, the Mac model and the name "
++          "the user gives it, a signature with the chain key."
++        destination: OTHER
++        destination_other: "The FlyWeb sync server (--sync-url origin)."
++      }
++      policy {
++        cookies_allowed: NO
++        setting: "Settings > Cuenta y sincronización."
++        policy_exception_justification: "Not implemented."
++      })");
++
++bool IsWarningType(const std::string& type) {
++  return std::ranges::find(kWarningTypes, type) != std::end(kWarningTypes);
++}
++
++int64_t GetInt(const base::DictValue& dict, std::string_view key) {
++  const std::optional<double> v = dict.FindDouble(key);
++  return v ? static_cast<int64_t>(*v) : 0;
++}
++
++std::string GetStr(const base::DictValue& dict, std::string_view key) {
++  const std::string* v = dict.FindString(key);
++  return v ? *v : std::string();
++}
++
++std::string B64(base::span<const uint8_t> bytes) {
++  return base::Base64Encode(bytes);
++}
++
++bool IsValidName(const std::string& name) {
++  if (name.empty() || !base::IsStringUTF8(name)) {
++    return false;
++  }
++  const std::u16string u = base::UTF8ToUTF16(name);
++  if (u.size() > kMaxNameLength) {
++    return false;
++  }
++  return std::ranges::none_of(
++      u, [](char16_t c) { return c < 0x20 || c == 0x7f; });
++}
++
++}  // namespace
++
++// --- AccountResult / AccountEvent ---
++
++AccountResult::AccountResult() = default;
++AccountResult::AccountResult(AccountResult&&) = default;
++AccountResult& AccountResult::operator=(AccountResult&&) = default;
++AccountResult::~AccountResult() = default;
++
++// static
++AccountResult AccountResult::Ok() {
++  AccountResult r;
++  r.ok = true;
++  return r;
++}
++
++// static
++AccountResult AccountResult::Error(std::string error, int64_t until) {
++  AccountResult r;
++  r.error = std::move(error);
++  r.until = until;
++  return r;
++}
++
++base::DictValue AccountEvent::ToValue() const {
++  base::DictValue v;
++  v.Set("n", static_cast<double>(n));
++  v.Set("type", type);
++  v.Set("date", static_cast<double>(date));
++  v.Set("mac", mac);
++  v.Set("model", model);
++  v.Set("count", static_cast<double>(count));
++  v.Set("since", static_cast<double>(since));
++  v.Set("when", static_cast<double>(when));
++  return v;
++}
++
++// --- Flow: the operation with an email code in the middle ---
++
++struct AccountService::Flow {
++  enum class Kind {
++    kCreate,
++    kLogin,
++    kPasswordChange,
++    kEmailChange,
++    kMailboxDelete,
++    kStartOver,
++  };
++  Kind kind;
++  std::string email;       // the one the code went to
++  std::string request_id;  // «solicitud»
++  // kLogin: KL and KU of `email`. kEmailChange: those of the new email.
++  std::optional<account::AccountKeys> keys;
++  // kEmailChange: KL of the current email, to send the code again.
++  std::optional<account::SecretKey> current_login_key;
++
++  const char* Name() const {
++    switch (kind) {
++      case Kind::kCreate:
++        return "crear";
++      case Kind::kLogin:
++        return "entrar";
++      case Kind::kPasswordChange:
++        return "contrasena";
++      case Kind::kEmailChange:
++        return "email";
++      case Kind::kMailboxDelete:
++        return "borrar-por-email";
++      case Kind::kStartOver:
++        return "empezar-de-cero";
++    }
++  }
++};
++
++AccountService::CallSpec::CallSpec() = default;
++AccountService::CallSpec::CallSpec(CallSpec&&) = default;
++AccountService::CallSpec& AccountService::CallSpec::operator=(CallSpec&&) =
++    default;
++AccountService::CallSpec::~CallSpec() = default;
++
++// --- setup ---
++
++// static
++void AccountService::RegisterProfilePrefs(PrefRegistrySimple* registry) {
++  registry->RegisterStringPref(kPrefAccountId, std::string());
++  registry->RegisterStringPref(kPrefEmail, std::string());
++  registry->RegisterStringPref(kPrefDevice, std::string());
++  registry->RegisterStringPref(kPrefToken, std::string());
++  registry->RegisterStringPref(kPrefLastEvent, std::string());
++  registry->RegisterStringPref(kPrefNotice, std::string());
++}
++
++AccountService::AccountService(Profile* profile) : profile_(profile) {
++  url_loader_factory_ = profile_->GetDefaultStoragePartition()
++                            ->GetURLLoaderFactoryForBrowserProcess();
++
++  // Same origin as the sync server (--sync-url, which brave_main_delegate
++  // always sets from brave_sync_endpoint); so a test instance only needs
++  // --sync-url (P12, P15, P19). HTTPS only, or plain HTTP on loopback.
++  const GURL sync_url(
++      base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
++          syncer::kSyncServiceURL));
++  if (sync_url.is_valid() &&
++      (sync_url.SchemeIs("https") ||
++       (sync_url.SchemeIs("http") && net::IsLocalhost(sync_url)))) {
++    base_url_ = sync_url.GetWithEmptyPath().Resolve(kPathPrefix);
++  } else {
++    LOG(ERROR) << "FlyWeb sync account: no usable --sync-url";
++  }
++
++  pref_change_registrar_.Init(profile_->GetPrefs());
++  pref_change_registrar_.Add(
++      brave_sync::Prefs::GetSeedPath(),
++      base::BindRepeating(&AccountService::OnSeedPrefChanged,
++                          base::Unretained(this)));
++
++  if (syncer::SyncService* sync = SyncServiceFactory::GetForProfile(profile_)) {
++    sync_observation_.Observe(sync);
++  }
++
++  g_browser_process->os_crypt_async()->GetInstance(base::BindOnce(
++      &AccountService::OnEncryptorReady, weak_ptr_factory_.GetWeakPtr()));
++}
++
++AccountService::~AccountService() = default;
++
++void AccountService::Shutdown() {
++  poll_timer_.Stop();
++  flow_timer_.Stop();
++  flow_.reset();
++  sync_observation_.Reset();
++  pref_change_registrar_.RemoveAll();
++}
++
++void AccountService::AddObserver(Observer* observer) {
++  observers_.AddObserver(observer);
++}
++
++void AccountService::RemoveObserver(Observer* observer) {
++  observers_.RemoveObserver(observer);
++}
++
++void AccountService::SetURLLoaderFactoryForTesting(
++    scoped_refptr<network::SharedURLLoaderFactory> factory) {
++  url_loader_factory_ = std::move(factory);
++}
++
++void AccountService::OnEncryptorReady(
++    scoped_refptr<os_crypt_async::Encryptor> encryptor) {
++  encryptor_ = std::move(encryptor);
++  LoadPrefs();
++  OnSeedPrefChanged();
++  UpdateState();
++  NotifyStatus();
++  if (HasChain()) {
++    Poll(base::DoNothing());
++  }
++}
++
++void AccountService::LoadPrefs() {
++  keys_unreadable_ = false;
++  const auto id = LoadString(kPrefAccountId);
++  const auto email = LoadString(kPrefEmail);
++  const auto device = LoadString(kPrefDevice);
++  const auto token = LoadString(kPrefToken);
++  const auto last = LoadString(kPrefLastEvent);
++  if (!id || !email || !device || !token || !last) {
++    // §9 «claves ilegibles»: the keychain changed. Same treatment as the seed.
++    keys_unreadable_ = true;
++    return;
++  }
++  account_id_ = *id;
++  email_ = *email;
++  device_id_ = *device;
++  token_ = *token;
++  if (!base::StringToInt64(*last, &last_event_)) {
++    last_event_ = 0;
++  }
++  notice_ = profile_->GetPrefs()->GetString(kPrefNotice);
++}
++
++std::optional<std::string> AccountService::LoadString(const char* path) const {
++  const std::string& stored = profile_->GetPrefs()->GetString(path);
++  if (stored.empty()) {
++    return std::string();
++  }
++  std::string encrypted;
++  std::string plain;
++  if (!encryptor_ || !base::Base64Decode(stored, &encrypted) ||
++      !encryptor_->DecryptString(encrypted, &plain)) {
++    return std::nullopt;
++  }
++  return plain;
++}
++
++void AccountService::StoreString(const char* path, const std::string& value) {
++  if (value.empty()) {
++    profile_->GetPrefs()->ClearPref(path);
++    return;
++  }
++  std::string encrypted;
++  if (!encryptor_ || !encryptor_->EncryptString(value, &encrypted)) {
++    LOG(ERROR) << "FlyWeb sync account: cannot encrypt a pref";
++    keys_unreadable_ = true;
++    return;
++  }
++  profile_->GetPrefs()->SetString(path, base::Base64Encode(encrypted));
++}
++
++void AccountService::StoreAccount(const std::string& account_id,
++                                  const std::string& email,
++                                  const std::string& device_id,
++                                  const std::string& token) {
++  account_id_ = account_id;
++  email_ = email;
++  device_id_ = device_id;
++  token_ = token;
++  last_event_ = 0;
++  baseline_pending_ = true;
++  keys_unreadable_ = false;  // every account pref is written again here
++  StoreString(kPrefAccountId, account_id_);
++  StoreString(kPrefEmail, email_);
++  StoreString(kPrefDevice, device_id_);
++  StoreString(kPrefToken, token_);
++  StoreString(kPrefLastEvent, std::string());
++  SetNotice(std::string());
++}
++
++void AccountService::StoreToken(const std::string& device_id,
++                                const std::string& token) {
++  if (!device_id.empty()) {
++    device_id_ = device_id;
++    StoreString(kPrefDevice, device_id_);
++  }
++  token_ = token;
++  StoreString(kPrefToken, token_);
++}
++
++void AccountService::ForgetAccount(bool keep_email) {
++  account_id_.clear();
++  device_id_.clear();
++  token_.clear();
++  last_event_ = 0;
++  server_state_.clear();
++  deletion_date_ = 0;
++  devices_ = base::ListValue();
++  warnings_.clear();
++  for (const char* path :
++       {kPrefAccountId, kPrefDevice, kPrefToken, kPrefLastEvent}) {
++    profile_->GetPrefs()->ClearPref(path);
++  }
++  if (!keep_email) {
++    email_.clear();
++    profile_->GetPrefs()->ClearPref(kPrefEmail);
++  }
++}
++
++void AccountService::SetNotice(const std::string& notice) {
++  notice_ = notice;
++  if (notice.empty()) {
++    profile_->GetPrefs()->ClearPref(kPrefNotice);
++  } else {
++    profile_->GetPrefs()->SetString(kPrefNotice, notice);
++  }
++}
++
++bool AccountService::ReadSeed(
++    std::array<uint8_t, account::kSeedSize>* seed) const {
++  // Decrypted here with the same OSCrypt key, not through
++  // BraveSyncServiceImpl::GetSeed(), which depends on its own encryptor.
++  const std::string& stored = profile_->GetPrefs()->GetString(
++      brave_sync::Prefs::GetSeedPath());
++  if (stored.empty() || !encryptor_) {
++    return false;
++  }
++  std::string encrypted;
++  std::string words;
++  if (!base::Base64Decode(stored, &encrypted) ||
++      !encryptor_->DecryptString(encrypted, &words)) {
++    return false;
++  }
++  std::vector<uint8_t> bytes;
++  const bool ok = brave_sync::crypto::PassphraseToBytes32(words, &bytes) &&
++                  bytes.size() == account::kSeedSize;
++  if (ok) {
++    std::ranges::copy(bytes, seed->begin());
++  }
++  account::WipeString(words);
++  std::ranges::fill(bytes, 0);
++  return ok;
++}
++
++void AccountService::OnSeedPrefChanged() {
++  if (!encryptor_) {
++    return;
++  }
++  std::array<uint8_t, account::kSeedSize> seed;
++  const bool has_seed_pref = !profile_->GetPrefs()
++                                  ->GetString(brave_sync::Prefs::GetSeedPath())
++                                  .empty();
++  if (ReadSeed(&seed)) {
++    if (keys_unreadable_) {
++      LoadPrefs();  // the seed reads again: clear the state if the rest does
++    }
++    account::ChainKeys keys = account::ChainKeys::FromSeed(seed);
++    std::ranges::fill(seed, 0);
++    if (chain_keys_.empty() || chain_keys_.ChainId() != keys.ChainId()) {
++      chain_keys_ = std::move(keys);
++      if (!own_chain_change_) {
++        // Joined through the old way (or another chain): find out from the
++        // server whether this chain has an account (decision 11).
++        SchedulePoll(false);
++        poll_timer_.FireNow();
++      }
++    }
++  } else if (has_seed_pref) {
++    // The seed is there but cannot be read: «claves ilegibles» (§9, P9).
++    keys_unreadable_ = true;
++  } else if (!chain_keys_.empty()) {
++    // The seed was cleared.
++    account::ChainKeys old_keys = std::move(chain_keys_);
++    chain_keys_ = account::ChainKeys();
++    poll_timer_.Stop();
++    if (!own_chain_change_ && !account_id_.empty()) {
++      OnChainDisabled(std::move(old_keys));
++    }
++  }
++  UpdateState();
++  NotifyStatus();
++}
++
++// The chain was disabled by the server (DISABLED_BY_ADMIN) and the sync
++// service has already cleared the seed. With the old keys, still in memory,
++// ask the server why: the key was changed from another Mac (§6.3) or the
++// account was deleted.
++void AccountService::OnChainDisabled(account::ChainKeys old_keys) {
++  auto keys = std::make_unique<account::ChainKeys>(std::move(old_keys));
++  resolving_chain_disabled_ = true;
++  CallSpec spec;
++  spec.route = "eventos";
++  spec.op = "eventos";
++  spec.auth = Auth::kProof;
++  spec.body.Set("desde", static_cast<double>(last_event_));
++  spec.proof_keys = keys.get();
++  Call(std::move(spec),
++       base::BindOnce(
++           [](base::WeakPtr<AccountService> self,
++              std::unique_ptr<account::ChainKeys> keys, AccountResult r) {
++             if (!self) {
++               return;
++             }
++             self->resolving_chain_disabled_ = false;
++             const bool changed =
++                 r.ok && GetStr(r.data, "estado") == "cadena-sustituida";
++             self->ForgetAccount(/*keep_email=*/true);
++             self->SetNotice(changed ? "cadena-cambiada" : "cuenta-borrada");
++             if (changed) {
++               // Brave's «account deleted» bar would say the wrong thing.
++               brave_sync::Prefs(self->profile_->GetPrefs())
++                   .SetSyncAccountDeletedNoticePending(false);
++             }
++             self->UpdateState();
++             self->NotifyStatus();
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(keys)));
++}
++
++void AccountService::UpdateState() {
++  State s;
++  if (!encryptor_) {
++    s = State::kLoading;
++  } else if (keys_unreadable_) {
++    s = State::kKeysUnreadable;
++  } else if (notice_ == "cuenta-borrada") {
++    s = State::kAccountDeleted;
++  } else if (notice_ == "cadena-cambiada") {
++    s = State::kChainChanged;
++  } else if (!account_id_.empty() && HasChain()) {
++    s = server_state_ == "borrado-programado" ? State::kDeletionScheduled
++                                              : State::kSynced;
++  } else {
++    s = State::kNoAccount;
++  }
++  state_ = s;
++}
++
++void AccountService::NotifyStatus() {
++  for (Observer& o : observers_) {
++    o.OnAccountStatusChanged();
++  }
++}
++
++base::DictValue AccountService::GetStatus() const {
++  base::DictValue s;
++  const char* state = "cargando";
++  switch (state_) {
++    case State::kLoading:
++      state = "cargando";
++      break;
++    case State::kNoAccount:
++      state = "sin-cuenta";
++      break;
++    case State::kSynced:
++      state = "sincronizado";
++      break;
++    case State::kDeletionScheduled:
++      state = "borrado-programado";
++      break;
++    case State::kKeysUnreadable:
++      state = "claves-ilegibles";
++      break;
++    case State::kAccountDeleted:
++      state = "cuenta-borrada";
++      break;
++    case State::kChainChanged:
++      state = "clave-cambiada";
++      break;
++  }
++  s.Set("state", state);
++  s.Set("email", email_);
++  s.Set("hasChain", HasChain());
++  s.Set("hasAccount", !account_id_.empty());
++  s.Set("deletionDate", static_cast<double>(deletion_date_));
++  s.Set("offline", offline_);
++  s.Set("lastError", last_error_);
++  s.Set("lastContact",
++        last_contact_.is_null()
++            ? 0.0
++            : last_contact_.InSecondsFSinceUnixEpoch());
++  s.Set("busy", busy_);
++  s.Set("model", DeviceModel());
++  s.Set("minPasswordLength", static_cast<int>(account::kMinPasswordLength));
++  if (flow_) {
++    base::DictValue f;
++    f.Set("kind", flow_->Name());
++    f.Set("email", flow_->email);
++    s.Set("flow", std::move(f));
++  }
++  base::ListValue w;
++  for (const AccountEvent& e : warnings_) {
++    w.Append(e.ToValue());
++  }
++  s.Set("warnings", std::move(w));
++  s.Set("devices", devices_.Clone());
++  return s;
++}
++
++syncer::BraveSyncServiceImpl* AccountService::GetSyncService() const {
++  return SyncServiceFactory::IsSyncAllowed(profile_)
++             ? static_cast<syncer::BraveSyncServiceImpl*>(
++                   SyncServiceFactory::GetForProfile(profile_))
++             : nullptr;
++}
++
++void AccountService::OnStateChanged(syncer::SyncService* sync) {
++  // Sync came up or went down: poll soon if it is on and nothing is planned.
++  if (HasChain() && !poll_timer_.IsRunning() && !polling_) {
++    SchedulePoll(false);
++  }
++}
++
++void AccountService::OnSyncShutdown(syncer::SyncService* sync) {
++  sync_observation_.Reset();
++}
++
++// static
++std::string AccountService::DeviceModel() {
++  std::string model = base::SysInfo::HardwareModelName();
++  std::erase_if(model, [](char c) {
++    return !(base::IsAsciiAlphaNumeric(c) || c == ',' || c == '.' ||
++             c == '_' || c == ' ' || c == '-');
++  });
++  if (model.size() > kMaxNameLength) {
++    model.resize(kMaxNameLength);
++  }
++  return model.empty() ? std::string("Mac") : model;
++}
++
++std::string AccountService::CurrentEmail() const {
++  return email_;
++}
++
++// --- HTTP ---
++
++std::string AccountService::RoutePath(const std::string& route) const {
++  return std::string(kPathPrefix) + route;
++}
++
++GURL AccountService::RouteURL(const std::string& route) const {
++  return base_url_.Resolve(route);
++}
++
++void AccountService::Call(CallSpec spec, AccountCallback callback) {
++  if (!base_url_.is_valid()) {
++    std::move(callback).Run(AccountResult::Error("servidor"));
++    return;
++  }
++  if (spec.auth == Auth::kTokenOrProof) {
++    spec.auth = token_.empty() ? Auth::kProof : Auth::kToken;
++  }
++  if (spec.auth == Auth::kProof) {
++    if (!spec.proof_keys) {
++      if (chain_keys_.empty()) {
++        std::move(callback).Run(AccountResult::Error("sin-cadena"));
++        return;
++      }
++      // A copy: the seed may change while the nonce is on its way.
++      spec.owned_keys =
++          std::make_unique<account::ChainKeys>(chain_keys_.Clone());
++      spec.proof_keys = spec.owned_keys.get();
++    }
++    CallSpec nonce;
++    nonce.route = "nonce";
++    Call(std::move(nonce),
++         base::BindOnce(&AccountService::CallWithNonce,
++                        weak_ptr_factory_.GetWeakPtr(), std::move(spec),
++                        std::move(callback)));
++    return;
++  }
++  std::string body;
++  base::JSONWriter::Write(spec.body, &body);
++  std::vector<std::pair<std::string, std::string>> headers;
++  if ((spec.auth == Auth::kToken || spec.attach_token) && !token_.empty()) {
++    headers.emplace_back("Authorization", "Bearer " + token_);
++  }
++  Send(std::move(spec), std::move(body), std::move(headers),
++       std::move(callback));
++}
++
++void AccountService::CallWithNonce(CallSpec spec,
++                                   AccountCallback callback,
++                                   AccountResult nonce_result) {
++  if (!nonce_result.ok) {
++    std::move(callback).Run(std::move(nonce_result));
++    return;
++  }
++  const std::string nonce_b64 = GetStr(nonce_result.data, "nonce");
++  std::string nonce;
++  if (!base::Base64UrlDecode(nonce_b64,
++                             base::Base64UrlDecodePolicy::IGNORE_PADDING,
++                             &nonce)) {
++    std::move(callback).Run(AccountResult::Error("servidor"));
++    return;
++  }
++  std::string body;
++  base::JSONWriter::Write(spec.body, &body);
++  const std::string path = RoutePath(spec.route);
++  const std::string account_id =
++      spec.empty_account_in_proof
++          ? std::string()
++          : (spec.account_id_for_proof.empty() ? account_id_
++                                               : spec.account_id_for_proof);
++  std::vector<std::pair<std::string, std::string>> headers;
++  headers.emplace_back("X-FlyWeb-Nonce", nonce_b64);
++  // The token goes along so the server can name this Mac as the author of the
++  // event (S3); with both, the proof is what authenticates.
++  if (!token_.empty()) {
++    headers.emplace_back("Authorization", "Bearer " + token_);
++  }
++  headers.emplace_back("X-FlyWeb-Cadena", spec.proof_keys->ChainId());
++  headers.emplace_back(
++      "X-FlyWeb-Prueba",
++      B64(spec.proof_keys->SignProof("POST", path, spec.op, account_id,
++                                     base::as_byte_span(nonce), body)));
++  if (spec.new_chain_keys) {
++    // cadena/cambiar: the new chain signs the same message, same nonce.
++    headers.emplace_back("X-FlyWeb-Cadena-Nueva",
++                         spec.new_chain_keys->ChainId());
++    headers.emplace_back(
++        "X-FlyWeb-Prueba-Nueva",
++        B64(spec.new_chain_keys->SignProof("POST", path, spec.op, account_id,
++                                           base::as_byte_span(nonce), body)));
++  }
++  spec.proof_keys = nullptr;
++  spec.new_chain_keys = nullptr;
++  spec.owned_keys.reset();
++  Send(std::move(spec), std::move(body), std::move(headers),
++       std::move(callback));
++}
++
++void AccountService::Send(
++    CallSpec spec,
++    std::string body,
++    std::vector<std::pair<std::string, std::string>> headers,
++    AccountCallback callback) {
++  auto request = std::make_unique<network::ResourceRequest>();
++  request->url = RouteURL(spec.route);
++  request->method = "POST";
++  request->credentials_mode = network::mojom::CredentialsMode::kOmit;
++  request->load_flags = net::LOAD_DISABLE_CACHE | net::LOAD_BYPASS_CACHE;
++  for (auto& [name, value] : headers) {
++    request->headers.SetHeader(name, value);
++  }
++  auto loader = network::SimpleURLLoader::Create(std::move(request),
++                                                 kTrafficAnnotation);
++  loader->AttachStringForUpload(body, "application/json");
++  loader->SetTimeoutDuration(kCallTimeout);
++  loader->SetAllowHttpErrorResults(true);
++  network::SimpleURLLoader* raw = loader.get();
++  raw->DownloadToString(
++      url_loader_factory_.get(),
++      base::BindOnce(&AccountService::OnResponse,
++                     weak_ptr_factory_.GetWeakPtr(), std::move(loader),
++                     std::move(callback)),
++      kMaxResponseSize);
++}
++
++void AccountService::OnResponse(
++    std::unique_ptr<network::SimpleURLLoader> loader,
++    AccountCallback callback,
++    std::optional<std::string> body) {
++  int code = 0;
++  if (loader->ResponseInfo() && loader->ResponseInfo()->headers) {
++    code = loader->ResponseInfo()->headers->response_code();
++  }
++  if (!body || code == 0) {
++    // No answer, or not in 30 s (§9: «sin red», «servidor no responde»).
++    offline_ = true;
++    NotifyStatus();
++    std::move(callback).Run(AccountResult::Error("red"));
++    return;
++  }
++  offline_ = false;
++  last_contact_ = base::Time::Now();
++  std::optional<base::DictValue> dict =
++      base::JSONReader::ReadDict(*body, base::JSON_PARSE_RFC);
++  if (!dict) {
++    std::move(callback).Run(AccountResult::Error("servidor"));
++    return;
++  }
++  if (code >= 200 && code < 300) {
++    AccountResult r = AccountResult::Ok();
++    r.data = std::move(*dict);
++    std::move(callback).Run(std::move(r));
++    return;
++  }
++  std::string error = GetStr(*dict, "error");
++  if (error.empty() || code == 415) {
++    error = "servidor";
++  }
++  std::move(callback).Run(AccountResult::Error(error, GetInt(*dict, "hasta")));
++}
++
++// --- events (§6.2, §11) ---
++
++void AccountService::Refresh(AccountCallback callback) {
++  if (!HasChain()) {
++    UpdateState();
++    NotifyStatus();
++    std::move(callback).Run(AccountResult::Ok());
++    return;
++  }
++  Poll(std::move(callback));
++}
++
++void AccountService::SchedulePoll(bool failed) {
++  if (!HasChain()) {
++    poll_timer_.Stop();
++    return;
++  }
++  if (failed) {
++    poll_backoff_ = std::min(
++        poll_backoff_.is_zero() ? kPollInterval * 2 : poll_backoff_ * 2,
++        kMaxPollBackoff);
++  } else {
++    poll_backoff_ = base::TimeDelta();
++  }
++  poll_timer_.Start(
++      FROM_HERE, failed ? poll_backoff_ : kPollInterval,
++      base::BindOnce(&AccountService::Poll, weak_ptr_factory_.GetWeakPtr(),
++                     base::DoNothing()));
++}
++
++void AccountService::Poll(AccountCallback callback) {
++  if (polling_ || !HasChain()) {
++    // One request at a time (never in a loop against ns2).
++    std::move(callback).Run(AccountResult::Ok());
++    return;
++  }
++  polling_ = true;
++  poll_timer_.Stop();
++  CallSpec spec;
++  spec.route = "eventos";
++  spec.op = "eventos";
++  // The email comes only with the chain proof (S2 of §10.1): ask with it
++  // until it is known; then the token is enough.
++  const bool used_proof = token_.empty() || email_.empty();
++  spec.auth = used_proof ? Auth::kProof : Auth::kToken;
++  spec.body.Set("desde", static_cast<double>(last_event_));
++  Call(std::move(spec),
++       base::BindOnce(&AccountService::OnEvents, weak_ptr_factory_.GetWeakPtr(),
++                      std::move(callback), used_proof));
++}
++
++void AccountService::OnEvents(AccountCallback callback,
++                              bool used_proof,
++                              AccountResult result) {
++  polling_ = false;
++  if (!result.ok) {
++    if (!used_proof && result.error == "token") {
++      // Token invalidated (password or key changed, «No he sido yo»): the
++      // chain proof still reads events and gets a new token (§6.2).
++      token_.clear();
++      RenewToken(base::BindOnce(
++          [](base::WeakPtr<AccountService> self, AccountCallback callback,
++             AccountResult r) {
++            if (!self) {
++              return;
++            }
++            self->Poll(std::move(callback));
++          },
++          weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
++      return;
++    }
++    last_error_ = result.error;
++    SchedulePoll(true);
++    NotifyStatus();
++    std::move(callback).Run(std::move(result));
++    return;
++  }
++
++  last_error_.clear();
++  const std::string state = GetStr(result.data, "estado");
++  server_state_ = state;
++  deletion_date_ = GetInt(result.data, "borrado");
++
++  if (state == "cadena-sustituida") {
++    // The key was changed from another Mac (§6.3). The sync service will get
++    // DISABLED_BY_ADMIN and clear the seed; this Mac logs in again.
++    ForgetAccount(/*keep_email=*/true);
++    SetNotice("cadena-cambiada");
++    brave_sync::Prefs(profile_->GetPrefs())
++        .SetSyncAccountDeletedNoticePending(false);
++    UpdateState();
++    NotifyStatus();
++    std::move(callback).Run(AccountResult::Ok());
++    return;
++  }
++  if (state == "sin-cuenta") {
++    if (!account_id_.empty()) {
++      // The account went away while this chain lives on.
++      ForgetAccount(/*keep_email=*/true);
++      SetNotice("cuenta-borrada");
++    }
++    UpdateState();
++    SchedulePoll(false);
++    NotifyStatus();
++    std::move(callback).Run(AccountResult::Ok());
++    return;
++  }
++
++  // activa or borrado-programado. A Mac that joined with the words learns the
++  // account here and registers itself (decision 11 of §10.1).
++  const std::string account_id = GetStr(result.data, "cuenta");
++  if (account_id_.empty() && !account_id.empty()) {
++    account_id_ = account_id;
++    StoreString(kPrefAccountId, account_id_);
++    baseline_pending_ = true;
++  }
++  const std::string email = GetStr(result.data, "email");
++  if (!email.empty() && email != email_) {
++    email_ = email;
++    StoreString(kPrefEmail, email_);
++  }
++  if (!account_id_.empty() && token_.empty() && device_id_.empty() &&
++      !registering_) {
++    RegisterThisMac(base::DoNothing());
++  }
++
++  std::vector<AccountEvent> fresh;
++  const base::ListValue* events = result.data.FindList("eventos");
++  const size_t count = events ? events->size() : 0;
++  if (events) {
++    for (const base::Value& v : *events) {
++      if (!v.is_dict()) {
++        continue;
++      }
++      const base::DictValue& d = v.GetDict();
++      AccountEvent e;
++      e.n = GetInt(d, "n");
++      e.type = GetStr(d, "tipo");
++      e.date = GetInt(d, "fecha");
++      if (const base::DictValue* data = d.FindDict("datos")) {
++        e.mac = GetStr(*data, "mac");
++        e.model = GetStr(*data, "modelo");
++        e.count = GetInt(*data, "n");
++        e.since = GetInt(*data, "desde");
++        e.when = GetInt(*data, "fecha");
++        e.device = GetStr(*data, "aparato");
++      }
++      if (e.n <= last_event_) {
++        continue;
++      }
++      last_event_ = e.n;
++      if (baseline_pending_ || !IsWarningType(e.type)) {
++        continue;
++      }
++      if (!e.device.empty() && e.device == device_id_) {
++        // Done by this Mac: the server names the author only when it is
++        // verified (S3 of §10.1); without it, the warning is shown.
++        continue;
++      }
++      fresh.push_back(std::move(e));
++    }
++  }
++  StoreString(kPrefLastEvent, base::NumberToString(last_event_));
++  if (count >= kEventsPage) {
++    // More pages: keep reading now.
++    Poll(std::move(callback));
++    return;
++  }
++  baseline_pending_ = false;
++
++  UpdateState();
++  SchedulePoll(false);
++  if (!fresh.empty()) {
++    warnings_.insert(warnings_.end(), fresh.begin(), fresh.end());
++    for (Observer& o : observers_) {
++      o.OnAccountWarnings(fresh);
++    }
++  }
++  NotifyStatus();
++  std::move(callback).Run(AccountResult::Ok());
++}
++
++void AccountService::RenewToken(AccountCallback callback) {
++  if (device_id_.empty()) {
++    RegisterThisMac(std::move(callback));
++    return;
++  }
++  CallSpec spec;
++  spec.route = "aparatos/renovar";
++  spec.op = "aparatos-renovar";
++  spec.auth = Auth::kProof;
++  spec.body.Set("aparato", device_id_);
++  Call(std::move(spec),
++       base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback callback,
++              AccountResult r) {
++             if (!self) {
++               return;
++             }
++             if (r.ok) {
++               self->StoreToken(GetStr(r.data, "aparato"),
++                                GetStr(r.data, "token"));
++             } else if (r.error == "aparato") {
++               // Removed from the list by another Mac: register again only
++               // if the user asks (the page offers it); events still work
++               // with the chain proof.
++               self->device_id_.clear();
++               self->StoreString(kPrefDevice, std::string());
++             }
++             std::move(callback).Run(std::move(r));
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
++}
++
++void AccountService::RegisterThisMac(AccountCallback callback) {
++  registering_ = true;
++  CallSpec spec;
++  spec.route = "aparatos/renovar";
++  spec.op = "aparatos-renovar";
++  spec.auth = Auth::kProof;
++  spec.body.Set("modelo", DeviceModel());
++  spec.body.Set("nombre", DeviceModel());
++  Call(std::move(spec),
++       base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback callback,
++              AccountResult r) {
++             if (!self) {
++               return;
++             }
++             self->registering_ = false;
++             if (r.ok) {
++               if (self->account_id_.empty()) {
++                 self->account_id_ = GetStr(r.data, "cuenta");
++                 self->StoreString(kPrefAccountId, self->account_id_);
++               }
++               self->StoreToken(GetStr(r.data, "aparato"),
++                                GetStr(r.data, "token"));
++               self->UpdateState();
++               self->NotifyStatus();
++             }
++             std::move(callback).Run(std::move(r));
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
++}
++
++// --- operations: common pieces ---
++
++bool AccountService::BeginOperation(AccountCallback& callback) {
++  if (busy_) {
++    std::move(callback).Run(AccountResult::Error("ocupado-local"));
++    return false;
++  }
++  // With unreadable keys only «volver a unir» makes sense (entrar or the
++  // words), and the page only offers that; both overwrite what is unreadable.
++  if (!encryptor_) {
++    std::move(callback).Run(AccountResult::Error("llavero"));
++    return false;
++  }
++  busy_ = true;
++  NotifyStatus();
++  return true;
++}
++
++AccountCallback AccountService::EndOperation(AccountCallback callback) {
++  return base::BindOnce(
++      [](base::WeakPtr<AccountService> self, AccountCallback callback,
++         AccountResult r) {
++        if (self) {
++          self->busy_ = false;
++          if (!r.ok) {
++            self->last_error_ = r.error;
++          }
++          self->UpdateState();
++          self->NotifyStatus();
++        }
++        std::move(callback).Run(std::move(r));
++      },
++      weak_ptr_factory_.GetWeakPtr(), std::move(callback));
++}
++
++// The ~1 s, 128 MiB step (§11): off the UI thread, one at a time (busy_).
++// The password is moved into the task and wiped there.
++void AccountService::DeriveKeys(
++    std::string password,
++    std::string email,
++    base::OnceCallback<void(std::optional<account::AccountKeys>)> callback) {
++  auto secret = std::make_unique<std::string>(std::move(password));
++  account::WipeString(password);
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_BLOCKING},
++      base::BindOnce(
++          [](std::unique_ptr<std::string> secret, std::string email) {
++            std::string normalized = account::NormalizePassword(*secret);
++            account::WipeString(*secret);
++            auto keys = account::DeriveAccountKeys(normalized, email);
++            account::WipeString(normalized);
++            return keys;
++          },
++          std::move(secret), std::move(email)),
++      std::move(callback));
++}
++
++void AccountService::JoinChain(const account::SecretKey& seed,
++                               AccountCallback callback) {
++  syncer::BraveSyncServiceImpl* sync = GetSyncService();
++  if (!sync) {
++    std::move(callback).Run(AccountResult::Error("llavero"));
++    return;
++  }
++  std::string words = brave_sync::crypto::PassphraseFromBytes32(
++      std::vector<uint8_t>(seed.bytes().begin(), seed.bytes().end()));
++  // The seed pref changes synchronously inside SetSyncCode: that change is
++  // ours, not a chain disabled by the server.
++  own_chain_change_ = true;
++  const bool ok = sync->SetSyncCode(words);
++  own_chain_change_ = false;
++  account::WipeString(words);
++  if (!ok) {
++    std::move(callback).Run(AccountResult::Error("llavero"));
++    return;
++  }
++  // As BraveSyncHandler::HandleSetSyncCode: the result comes when this Mac
++  // shows up in the chain, or false if the chain was deleted.
++  sync->SetJoinChainResultCallback(base::BindOnce(
++      [](base::WeakPtr<AccountService> self, AccountCallback callback,
++         bool joined) {
++        if (self && joined) {
++          self->Poll(base::DoNothing());
++        }
++        std::move(callback).Run(
++            joined ? AccountResult::Ok()
++                   : AccountResult::Error("cadena-borrada"));
++      },
++      weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
++  sync->GetUserSettings()->SetInitialSyncFeatureSetupComplete();
++}
++
++void AccountService::LeaveChainThen(base::OnceClosure then) {
++  syncer::BraveSyncServiceImpl* sync = GetSyncService();
++  if (!sync || !HasChain()) {
++    std::move(then).Run();
++    return;
++  }
++  own_chain_change_ = true;
++  brave_sync::ResetSync(
++      sync, DeviceInfoSyncServiceFactory::GetForProfile(profile_),
++      base::BindOnce(
++          [](base::WeakPtr<AccountService> self, base::OnceClosure then) {
++            if (self) {
++              self->own_chain_change_ = false;
++            }
++            std::move(then).Run();
++          },
++          weak_ptr_factory_.GetWeakPtr(), std::move(then)));
++}
++
++void AccountService::CancelFlow() {
++  flow_timer_.Stop();
++  flow_.reset();  // SecretKey wipes the kept keys.
++  NotifyStatus();
++}
++
++void AccountService::ResendCode(AccountCallback callback) {
++  if (!flow_) {
++    std::move(callback).Run(AccountResult::Error("sin-flujo"));
++    return;
++  }
++  CallSpec spec;
++  switch (flow_->kind) {
++    case Flow::Kind::kCreate:
++      spec.route = "alta";
++      spec.body.Set("email", flow_->email);
++      break;
++    case Flow::Kind::kLogin:
++      spec.route = "entrar/empezar";
++      spec.body.Set("email", flow_->email);
++      spec.body.Set("kl", B64(flow_->keys->login_key.bytes()));
++      break;
++    case Flow::Kind::kPasswordChange:
++      spec.route = "contrasena/codigo";
++      spec.op = "contrasena-codigo";
++      spec.auth = Auth::kProof;
++      break;
++    case Flow::Kind::kEmailChange:
++      spec.route = "email/cambiar/empezar";
++      spec.op = "email-empezar";
++      spec.auth = Auth::kProof;
++      spec.body.Set("email", flow_->email);
++      spec.body.Set("kl", B64(flow_->current_login_key->bytes()));
++      break;
++    case Flow::Kind::kMailboxDelete:
++      spec.route = "cuenta/borrar-por-email";
++      spec.body.Set("email", flow_->email);
++      break;
++    case Flow::Kind::kStartOver:
++      spec.route = "cuenta/empezar-de-cero";
++      spec.body.Set("email", flow_->email);
++      break;
++  }
++  if (!BeginOperation(callback)) {
++    return;
++  }
++  Call(std::move(spec),
++       EndOperation(base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback callback,
++              AccountResult r) {
++             if (self && self->flow_) {
++               if (r.ok) {
++                 self->flow_->request_id = GetStr(r.data, "solicitud");
++                 self->flow_timer_.Start(
++                     FROM_HERE, kFlowLifetime,
++                     base::BindOnce(&AccountService::CancelFlow, self));
++               } else if (self->flow_->request_id.empty()) {
++                 // No code went out: no «falta el código» state.
++                 self->CancelFlow();
++               }
++             }
++             std::move(callback).Run(std::move(r));
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(callback))));
++}
++
++// --- create (§8) ---
++
++void AccountService::CreateAccountStart(const std::string& email,
++                                        AccountCallback callback) {
++  const auto normalized = account::NormalizeEmail(email);
++  if (!normalized) {
++    std::move(callback).Run(AccountResult::Error("email"));
++    return;
++  }
++  CancelFlow();
++  flow_ = std::make_unique<Flow>();
++  flow_->kind = Flow::Kind::kCreate;
++  flow_->email = *normalized;
++  ResendCode(std::move(callback));
++}
++
++void AccountService::CreateAccountFinish(const std::string& code,
++                                         std::string password,
++                                         const std::string& device_name,
++                                         AccountCallback callback) {
++  if (!flow_ || flow_->kind != Flow::Kind::kCreate ||
++      flow_->request_id.empty()) {
++    account::WipeString(password);
++    std::move(callback).Run(AccountResult::Error("sin-flujo"));
++    return;
++  }
++  if (account::CountCodePoints(account::NormalizePassword(password)) <
++      account::kMinPasswordLength) {
++    account::WipeString(password);
++    std::move(callback).Run(AccountResult::Error("contrasena-corta"));
++    return;
++  }
++  const std::string name = device_name.empty() ? DeviceModel() : device_name;
++  if (!IsValidName(name)) {
++    account::WipeString(password);
++    std::move(callback).Run(AccountResult::Error("peticion"));
++    return;
++  }
++  if (!BeginOperation(callback)) {
++    account::WipeString(password);
++    return;
++  }
++  callback = EndOperation(std::move(callback));
++  const std::string email = flow_->email;
++  DeriveKeys(
++      std::move(password), email,
++      base::BindOnce(
++          [](base::WeakPtr<AccountService> self, std::string code,
++             std::string name, std::string email, AccountCallback callback,
++             std::optional<account::AccountKeys> keys) {
++            if (!self) {
++              return;
++            }
++            if (!keys || !self->flow_) {
++              std::move(callback).Run(
++                  AccountResult::Error(keys ? "sin-flujo" : "interno"));
++              return;
++            }
++            // The chain to link: this Mac's, or a new one (§8).
++            std::array<uint8_t, account::kSeedSize> seed_bytes;
++            const bool new_chain = !self->ReadSeed(&seed_bytes);
++            if (new_chain) {
++              const std::vector<uint8_t> fresh =
++                  brave_sync::crypto::GetSeed();
++              std::ranges::copy(fresh, seed_bytes.begin());
++            }
++            auto seed = std::make_unique<account::SecretKey>(seed_bytes);
++            std::ranges::fill(seed_bytes, 0);
++            // §4.6, first safeguard: the new wrap must open before it is sent.
++            std::vector<uint8_t> wrapped =
++                account::WrapSeed(keys->wrap_key, seed->bytes(), email);
++            if (!account::UnwrapSeed(keys->wrap_key, wrapped, email)) {
++              std::move(callback).Run(AccountResult::Error("interno"));
++              return;
++            }
++            auto chain = std::make_unique<account::ChainKeys>(
++                account::ChainKeys::FromSeed(seed->bytes()));
++            CallSpec spec;
++            spec.route = "alta/confirmar";
++            spec.op = "alta";
++            spec.auth = Auth::kProof;
++            spec.empty_account_in_proof = true;
++            spec.proof_keys = chain.get();
++            spec.body.Set("solicitud", self->flow_->request_id);
++            spec.body.Set("codigo", code);
++            spec.body.Set("kl", B64(keys->login_key.bytes()));
++            spec.body.Set("envoltura", B64(wrapped));
++            spec.body.Set("modelo", DeviceModel());
++            spec.body.Set("nombre", name);
++            self->Call(
++                std::move(spec),
++                base::BindOnce(
++                    [](base::WeakPtr<AccountService> self, std::string email,
++                       bool new_chain,
++                       std::unique_ptr<account::SecretKey> seed,
++                       std::unique_ptr<account::ChainKeys> chain,
++                       AccountCallback callback, AccountResult r) {
++                      if (!self) {
++                        return;
++                      }
++                      if (!r.ok) {
++                        std::move(callback).Run(std::move(r));
++                        return;
++                      }
++                      self->CancelFlow();
++                      self->StoreAccount(GetStr(r.data, "cuenta"), email,
++                                         GetStr(r.data, "aparato"),
++                                         GetStr(r.data, "token"));
++                      if (!new_chain) {
++                        self->Poll(base::DoNothing());
++                        std::move(callback).Run(AccountResult::Ok());
++                        return;
++                      }
++                      // A new chain: start syncing it and show the recovery
++                      // key, which the page asks to confirm as saved (§8).
++                      AccountResult ok = AccountResult::Ok();
++                      ok.data.Set("recoveryWords",
++                                  brave_sync::crypto::PassphraseFromBytes32(
++                                      std::vector<uint8_t>(
++                                          seed->bytes().begin(),
++                                          seed->bytes().end())));
++                      self->JoinChain(
++                          *seed, base::BindOnce(
++                                     [](AccountResult ok, AccountResult r) {
++                                       // The account exists already; a join
++                                       // error is shown, the words too.
++                                       if (!r.ok) {
++                                         ok.ok = false;
++                                         ok.error = r.error;
++                                       }
++                                       return ok;
++                                     },
++                                     std::move(ok))
++                                     .Then(std::move(callback)));
++                    },
++                    self, email, new_chain, std::move(seed), std::move(chain),
++                    std::move(callback)));
++          },
++          weak_ptr_factory_.GetWeakPtr(), code, name, email,
++          std::move(callback)));
++}
++
++// --- log in from a new Mac (§5.1) ---
++
++void AccountService::LoginStart(const std::string& email,
++                                std::string password,
++                                AccountCallback callback) {
++  const auto normalized = account::NormalizeEmail(email);
++  if (!normalized) {
++    account::WipeString(password);
++    std::move(callback).Run(AccountResult::Error("email"));
++    return;
++  }
++  if (!BeginOperation(callback)) {
++    account::WipeString(password);
++    return;
++  }
++  callback = EndOperation(std::move(callback));
++  CancelFlow();
++  DeriveKeys(
++      std::move(password), *normalized,
++      base::BindOnce(
++          [](base::WeakPtr<AccountService> self, std::string email,
++             AccountCallback callback,
++             std::optional<account::AccountKeys> keys) {
++            if (!self) {
++              return;
++            }
++            if (!keys) {
++              std::move(callback).Run(AccountResult::Error("interno"));
++              return;
++            }
++            self->flow_ = std::make_unique<Flow>();
++            self->flow_->kind = Flow::Kind::kLogin;
++            self->flow_->email = email;
++            self->flow_->keys = std::move(keys);
++            CallSpec spec;
++            spec.route = "entrar/empezar";
++            spec.body.Set("email", email);
++            spec.body.Set("kl", B64(self->flow_->keys->login_key.bytes()));
++            self->Call(
++                std::move(spec),
++                base::BindOnce(
++                    [](base::WeakPtr<AccountService> self,
++                       AccountCallback callback, AccountResult r) {
++                      if (!self) {
++                        return;
++                      }
++                      if (!r.ok) {
++                        // «espera»: no keys kept to retry by itself (§10).
++                        self->CancelFlow();
++                      } else if (self->flow_) {
++                        self->flow_->request_id = GetStr(r.data, "solicitud");
++                        self->flow_timer_.Start(
++                            FROM_HERE, kFlowLifetime,
++                            base::BindOnce(&AccountService::CancelFlow, self));
++                      }
++                      std::move(callback).Run(std::move(r));
++                    },
++                    self, std::move(callback)));
++          },
++          weak_ptr_factory_.GetWeakPtr(), *normalized, std::move(callback)));
++}
++
++void AccountService::LoginFinish(const std::string& code,
++                                 const std::string& device_name,
++                                 AccountCallback callback) {
++  if (!flow_ || flow_->kind != Flow::Kind::kLogin ||
++      flow_->request_id.empty()) {
++    std::move(callback).Run(AccountResult::Error("sin-flujo"));
++    return;
++  }
++  const std::string name = device_name.empty() ? DeviceModel() : device_name;
++  if (!IsValidName(name)) {
++    std::move(callback).Run(AccountResult::Error("peticion"));
++    return;
++  }
++  if (!BeginOperation(callback)) {
++    return;
++  }
++  callback = EndOperation(std::move(callback));
++  CallSpec spec;
++  spec.route = "entrar/terminar";
++  spec.body.Set("solicitud", flow_->request_id);
++  spec.body.Set("codigo", code);
++  spec.body.Set("kl", B64(flow_->keys->login_key.bytes()));
++  spec.body.Set("modelo", DeviceModel());
++  spec.body.Set("nombre", name);
++  Call(
++      std::move(spec),
++      base::BindOnce(
++          [](base::WeakPtr<AccountService> self, AccountCallback callback,
++             AccountResult r) {
++            if (!self) {
++              return;
++            }
++            if (!r.ok) {
++              // One error for password and code (O9); the flow stays for
++              // another code until it expires.
++              std::move(callback).Run(std::move(r));
++              return;
++            }
++            if (!self->flow_) {
++              std::move(callback).Run(AccountResult::Error("sin-flujo"));
++              return;
++            }
++            std::string wrapped_b64 = GetStr(r.data, "envoltura");
++            std::string wrapped;
++            std::optional<account::SecretKey> seed;
++            if (base::Base64Decode(wrapped_b64, &wrapped)) {
++              seed = account::UnwrapSeed(self->flow_->keys->wrap_key,
++                                         base::as_byte_span(wrapped),
++                                         self->flow_->email);
++            }
++            if (!seed) {
++              // §5.1 step 5 and P15: «La clave recibida no es válida. No se
++              // ha activado nada.»
++              self->CancelFlow();
++              std::move(callback).Run(AccountResult::Error("envoltura"));
++              return;
++            }
++            const std::string email = self->flow_->email;
++            self->CancelFlow();  // KL and KU are wiped here.
++            auto seed_ptr =
++                std::make_unique<account::SecretKey>(std::move(*seed));
++            const std::string account_id = GetStr(r.data, "cuenta");
++            const std::string device_id = GetStr(r.data, "aparato");
++            const std::string token = GetStr(r.data, "token");
++            auto join = base::BindOnce(
++                [](base::WeakPtr<AccountService> self,
++                   std::unique_ptr<account::SecretKey> seed,
++                   std::string account_id, std::string email,
++                   std::string device_id, std::string token,
++                   AccountCallback callback) {
++                  if (!self) {
++                    return;
++                  }
++                  self->StoreAccount(account_id, email, device_id, token);
++                  account::ChainKeys keys =
++                      account::ChainKeys::FromSeed(seed->bytes());
++                  if (!self->chain_keys_.empty() &&
++                      self->chain_keys_.ChainId() == keys.ChainId()) {
++                    // Same chain (keychain changed, «volver a unir»).
++                    std::move(callback).Run(AccountResult::Ok());
++                    return;
++                  }
++                  self->JoinChain(*seed, std::move(callback));
++                },
++                self, std::move(seed_ptr), account_id, email, device_id, token,
++                std::move(callback));
++            // Another chain here: leave it first; its data stays in the
++            // profile and is combined on joining (§9, «Combinar»).
++            std::array<uint8_t, account::kSeedSize> current;
++            if (self->ReadSeed(&current)) {
++              std::ranges::fill(current, 0);
++              self->LeaveChainThen(std::move(join));
++            } else {
++              std::move(join).Run();
++            }
++          },
++          weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
++}
++
++// --- the 24 words (§6.6) ---
++
++void AccountService::JoinWithRecoveryKey(const std::string& words,
++                                         AccountCallback callback) {
++  std::string pure;
++  const std::vector<std::string> list = base::SplitString(
++      words, " \n\t", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
++  if (list.size() == 24) {
++    pure = base::JoinString(list, " ");
++    if (!brave_sync::crypto::IsPassphraseValid(pure)) {
++      pure.clear();
++    }
++  } else if (list.size() == 25) {
++    // The 25 with a date of a 2.7.x or 3.0.x (§6.6), still valid.
++    auto parsed = brave_sync::TimeLimitedWords::Parse(words);
++    if (parsed.has_value()) {
++      pure = parsed.value();
++    }
++  }
++  if (pure.empty()) {
++    std::move(callback).Run(AccountResult::Error("palabras"));
++    return;
++  }
++  std::vector<uint8_t> bytes;
++  brave_sync::crypto::PassphraseToBytes32(pure, &bytes);
++  account::WipeString(pure);
++  std::array<uint8_t, account::kSeedSize> raw;
++  std::ranges::copy(bytes, raw.begin());
++  std::ranges::fill(bytes, 0);
++  auto seed = std::make_unique<account::SecretKey>(raw);
++  std::ranges::fill(raw, 0);
++  if (!BeginOperation(callback)) {
++    return;
++  }
++  callback = EndOperation(std::move(callback));
++  ForgetAccount(/*keep_email=*/!keys_unreadable_);
++  if (keys_unreadable_) {
++    profile_->GetPrefs()->ClearPref(kPrefEmail);
++    keys_unreadable_ = false;  // the seed is replaced by the words now
++  }
++  SetNotice(std::string());
++  auto join = base::BindOnce(
++      [](base::WeakPtr<AccountService> self,
++         std::unique_ptr<account::SecretKey> seed, AccountCallback callback) {
++        if (!self) {
++          return;
++        }
++        // The first poll on the new chain finds the account, if any, and
++        // registers this Mac (decision 11).
++        self->JoinChain(*seed, std::move(callback));
++      },
++      weak_ptr_factory_.GetWeakPtr(), std::move(seed), std::move(callback));
++  if (HasChain()) {
++    LeaveChainThen(std::move(join));
++  } else {
++    std::move(join).Run();
++  }
++}
++
++// --- change the password, or set a new one if forgotten (§4.6, §6.1) ---
++
++void AccountService::PasswordChangeStart(AccountCallback callback) {
++  if (account_id_.empty() || !HasChain()) {
++    std::move(callback).Run(AccountResult::Error("sin-cuenta"));
++    return;
++  }
++  CancelFlow();
++  flow_ = std::make_unique<Flow>();
++  flow_->kind = Flow::Kind::kPasswordChange;
++  flow_->email = email_;
++  ResendCode(std::move(callback));
++}
++
++void AccountService::PasswordChangeFinish(const std::string& code,
++                                          std::string new_password,
++                                          AccountCallback callback) {
++  if (!flow_ || flow_->kind != Flow::Kind::kPasswordChange ||
++      flow_->request_id.empty()) {
++    account::WipeString(new_password);
++    std::move(callback).Run(AccountResult::Error("sin-flujo"));
++    return;
++  }
++  if (account::CountCodePoints(account::NormalizePassword(new_password)) <
++      account::kMinPasswordLength) {
++    account::WipeString(new_password);
++    std::move(callback).Run(AccountResult::Error("contrasena-corta"));
++    return;
++  }
++  if (email_.empty()) {
++    // A Mac that joined with the words and never learnt the email (S2).
++    account::WipeString(new_password);
++    std::move(callback).Run(AccountResult::Error("email"));
++    return;
++  }
++  if (!BeginOperation(callback)) {
++    account::WipeString(new_password);
++    return;
++  }
++  callback = EndOperation(std::move(callback));
++  DeriveKeys(
++      std::move(new_password), email_,
++      base::BindOnce(
++          [](base::WeakPtr<AccountService> self, std::string code,
++             AccountCallback callback,
++             std::optional<account::AccountKeys> keys) {
++            if (!self) {
++              return;
++            }
++            if (!self->flow_) {
++              std::move(callback).Run(AccountResult::Error("sin-flujo"));
++              return;
++            }
++            std::array<uint8_t, account::kSeedSize> seed;
++            if (!keys || !self->ReadSeed(&seed)) {
++              std::move(callback).Run(
++                  AccountResult::Error(keys ? "llavero" : "interno"));
++              return;
++            }
++            std::vector<uint8_t> wrapped =
++                account::WrapSeed(keys->wrap_key, seed, self->email_);
++            const bool opens =
++                account::UnwrapSeed(keys->wrap_key, wrapped, self->email_)
++                    .has_value();
++            std::ranges::fill(seed, 0);
++            if (!opens) {
++              std::move(callback).Run(AccountResult::Error("interno"));
++              return;
++            }
++            CallSpec spec;
++            spec.route = "contrasena/cambiar";
++            spec.op = "contrasena-cambiar";
++            spec.auth = Auth::kProof;
++            spec.body.Set("solicitud", self->flow_->request_id);
++            spec.body.Set("codigo", code);
++            spec.body.Set("kl", B64(keys->login_key.bytes()));
++            spec.body.Set("envoltura", B64(wrapped));
++            if (!self->device_id_.empty()) {
++              spec.body.Set("aparato", self->device_id_);
++            }
++            // §4.6, third safeguard: if the answer is lost, the page offers
++            // Reintentar; the server answers the same to the same kl and
++            // wrap, but this repeats the derivation with a new random nonce
++            // in the wrap, so a retry is a new change, which is harmless.
++            self->Call(
++                std::move(spec),
++                base::BindOnce(
++                    [](base::WeakPtr<AccountService> self,
++                       AccountCallback callback, AccountResult r) {
++                      if (!self) {
++                        return;
++                      }
++                      if (r.ok) {
++                        self->CancelFlow();
++                        const std::string token = GetStr(r.data, "token");
++                        if (!token.empty()) {
++                          self->StoreToken(GetStr(r.data, "aparato"), token);
++                        }
++                        self->Poll(base::DoNothing());
++                      }
++                      std::move(callback).Run(std::move(r));
++                    },
++                    self, std::move(callback)));
++          },
++          weak_ptr_factory_.GetWeakPtr(), code, std::move(callback)));
++}
++
++// --- change the email (§6.5) ---
++
++void AccountService::EmailChangeStart(std::string password,
++                                      const std::string& new_email,
++                                      AccountCallback callback) {
++  const auto normalized = account::NormalizeEmail(new_email);
++  if (!normalized || email_.empty()) {
++    account::WipeString(password);
++    std::move(callback).Run(AccountResult::Error("email"));
++    return;
++  }
++  if (account_id_.empty() || !HasChain()) {
++    account::WipeString(password);
++    std::move(callback).Run(AccountResult::Error("sin-cuenta"));
++    return;
++  }
++  if (!BeginOperation(callback)) {
++    account::WipeString(password);
++    return;
++  }
++  callback = EndOperation(std::move(callback));
++  CancelFlow();
++  // Two stretchings: KL of the current email (it proves the password) and
++  // KL/KU of the new one (the wrap moves to it). Two seconds or so.
++  std::string copy = password;
++  DeriveKeys(
++      std::move(password), email_,
++      base::BindOnce(
++          [](base::WeakPtr<AccountService> self, std::string copy,
++             std::string new_email, AccountCallback callback,
++             std::optional<account::AccountKeys> current) {
++            if (!self) {
++              account::WipeString(copy);
++              return;
++            }
++            if (!current) {
++              account::WipeString(copy);
++              std::move(callback).Run(AccountResult::Error("interno"));
++              return;
++            }
++            self->DeriveKeys(
++                std::move(copy), new_email,
++                base::BindOnce(
++                    [](base::WeakPtr<AccountService> self,
++                       std::string new_email,
++                       std::optional<account::AccountKeys> current,
++                       AccountCallback callback,
++                       std::optional<account::AccountKeys> next) {
++                      if (!self) {
++                        return;
++                      }
++                      if (!next) {
++                        std::move(callback).Run(
++                            AccountResult::Error("interno"));
++                        return;
++                      }
++                      self->flow_ = std::make_unique<Flow>();
++                      self->flow_->kind = Flow::Kind::kEmailChange;
++                      self->flow_->email = new_email;
++                      self->flow_->keys = std::move(next);
++                      self->flow_->current_login_key =
++                          std::move(current->login_key);
++                      CallSpec spec;
++                      spec.route = "email/cambiar/empezar";
++                      spec.op = "email-empezar";
++                      spec.auth = Auth::kProof;
++                      spec.body.Set("email", new_email);
++                      spec.body.Set(
++                          "kl",
++                          B64(self->flow_->current_login_key->bytes()));
++                      self->Call(
++                          std::move(spec),
++                          base::BindOnce(
++                              [](base::WeakPtr<AccountService> self,
++                                 AccountCallback callback, AccountResult r) {
++                                if (!self) {
++                                  return;
++                                }
++                                if (!r.ok) {
++                                  self->CancelFlow();
++                                } else if (self->flow_) {
++                                  self->flow_->request_id =
++                                      GetStr(r.data, "solicitud");
++                                  self->flow_timer_.Start(
++                                      FROM_HERE, kFlowLifetime,
++                                      base::BindOnce(
++                                          &AccountService::CancelFlow, self));
++                                }
++                                std::move(callback).Run(std::move(r));
++                              },
++                              self, std::move(callback)));
++                    },
++                    self, new_email, std::move(current), std::move(callback)));
++          },
++          weak_ptr_factory_.GetWeakPtr(), std::move(copy), *normalized,
++          std::move(callback)));
++}
++
++void AccountService::EmailChangeFinish(const std::string& code,
++                                       AccountCallback callback) {
++  if (!flow_ || flow_->kind != Flow::Kind::kEmailChange ||
++      flow_->request_id.empty()) {
++    std::move(callback).Run(AccountResult::Error("sin-flujo"));
++    return;
++  }
++  std::array<uint8_t, account::kSeedSize> seed;
++  if (!ReadSeed(&seed)) {
++    std::move(callback).Run(AccountResult::Error("llavero"));
++    return;
++  }
++  std::vector<uint8_t> wrapped =
++      account::WrapSeed(flow_->keys->wrap_key, seed, flow_->email);
++  const bool opens =
++      account::UnwrapSeed(flow_->keys->wrap_key, wrapped, flow_->email)
++          .has_value();
++  std::ranges::fill(seed, 0);
++  if (!opens) {
++    std::move(callback).Run(AccountResult::Error("interno"));
++    return;
++  }
++  if (!BeginOperation(callback)) {
++    return;
++  }
++  callback = EndOperation(std::move(callback));
++  CallSpec spec;
++  spec.route = "email/cambiar/terminar";
++  spec.attach_token = true;  // author of «email-cambiado» (S3)
++  spec.body.Set("solicitud", flow_->request_id);
++  spec.body.Set("codigo", code);
++  spec.body.Set("kl", B64(flow_->keys->login_key.bytes()));
++  spec.body.Set("envoltura", B64(wrapped));
++  Call(std::move(spec),
++       base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback callback,
++              AccountResult r) {
++             if (!self) {
++               return;
++             }
++             if (r.ok && self->flow_) {
++               self->email_ = self->flow_->email;
++               self->StoreString(kPrefEmail, self->email_);
++               self->CancelFlow();
++               self->Poll(base::DoNothing());
++             }
++             std::move(callback).Run(std::move(r));
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
++}
++
++// --- change the sync key (§6.3) ---
++
++void AccountService::ChainChange(std::string password,
++                                 AccountCallback callback) {
++  if (account_id_.empty() || !HasChain() || email_.empty()) {
++    account::WipeString(password);
++    std::move(callback).Run(AccountResult::Error("sin-cuenta"));
++    return;
++  }
++  if (!BeginOperation(callback)) {
++    account::WipeString(password);
++    return;
++  }
++  callback = EndOperation(std::move(callback));
++  CancelFlow();
++  DeriveKeys(
++      std::move(password), email_,
++      base::BindOnce(
++          [](base::WeakPtr<AccountService> self, AccountCallback callback,
++             std::optional<account::AccountKeys> keys) {
++            if (!self) {
++              return;
++            }
++            if (!keys) {
++              std::move(callback).Run(AccountResult::Error("interno"));
++              return;
++            }
++            const std::vector<uint8_t> fresh = brave_sync::crypto::GetSeed();
++            std::array<uint8_t, account::kSeedSize> raw;
++            std::ranges::copy(fresh, raw.begin());
++            auto seed = std::make_unique<account::SecretKey>(raw);
++            std::ranges::fill(raw, 0);
++            std::vector<uint8_t> wrapped =
++                account::WrapSeed(keys->wrap_key, seed->bytes(), self->email_);
++            if (!account::UnwrapSeed(keys->wrap_key, wrapped, self->email_)) {
++              std::move(callback).Run(AccountResult::Error("interno"));
++              return;
++            }
++            auto new_keys = std::make_unique<account::ChainKeys>(
++                account::ChainKeys::FromSeed(seed->bytes()));
++            CallSpec spec;
++            spec.route = "cadena/cambiar";
++            spec.op = "cadena-cambiar";
++            spec.auth = Auth::kProof;
++            spec.new_chain_keys = new_keys.get();
++            spec.body.Set("kl", B64(keys->login_key.bytes()));
++            spec.body.Set("envoltura", B64(wrapped));
++            if (!self->device_id_.empty()) {
++              spec.body.Set("aparato", self->device_id_);
++            }
++            // From here this Mac switches chains itself: the old chain's
++            // DISABLED_BY_ADMIN is not «cuenta borrada».
++            self->own_chain_change_ = true;
++            self->Call(
++                std::move(spec),
++                base::BindOnce(
++                    [](base::WeakPtr<AccountService> self,
++                       std::unique_ptr<account::SecretKey> seed,
++                       std::unique_ptr<account::ChainKeys> new_keys,
++                       AccountCallback callback, AccountResult r) {
++                      if (!self) {
++                        return;
++                      }
++                      if (!r.ok) {
++                        self->own_chain_change_ = false;
++                        std::move(callback).Run(std::move(r));
++                        return;
++                      }
++                      // The account is on the new chain and the old one is
++                      // deleted on the server. Leave it here and join the
++                      // new one: the local data goes up again, encrypted
++                      // with the new key. If FlyWeb stops right here, the
++                      // user logs in again with email, password and code:
++                      // the new wrap is on the server.
++                      const std::string token = GetStr(r.data, "token");
++                      if (!token.empty()) {
++                        self->StoreToken(GetStr(r.data, "aparato"), token);
++                      }
++                      self->last_event_ = 0;
++                      self->baseline_pending_ = true;
++                      AccountResult ok = AccountResult::Ok();
++                      ok.data.Set("recoveryWords",
++                                  brave_sync::crypto::PassphraseFromBytes32(
++                                      std::vector<uint8_t>(
++                                          seed->bytes().begin(),
++                                          seed->bytes().end())));
++                      self->LeaveChainThen(base::BindOnce(
++                          [](base::WeakPtr<AccountService> self,
++                             std::unique_ptr<account::SecretKey> seed,
++                             AccountResult ok, AccountCallback callback) {
++                            if (!self) {
++                              return;
++                            }
++                            self->JoinChain(
++                                *seed,
++                                base::BindOnce(
++                                    [](AccountResult ok, AccountResult r) {
++                                      if (!r.ok) {
++                                        ok.ok = false;
++                                        ok.error = r.error;
++                                      }
++                                      return ok;
++                                    },
++                                    std::move(ok))
++                                    .Then(std::move(callback)));
++                          },
++                          self, std::move(seed), std::move(ok),
++                          std::move(callback)));
++                    },
++                    self, std::move(seed), std::move(new_keys),
++                    std::move(callback)));
++          },
++          weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
++}
++
++// --- devices ---
++
++void AccountService::ListDevices(AccountCallback callback) {
++  CallSpec spec;
++  spec.route = "aparatos/listar";
++  spec.op = "aparatos-listar";
++  spec.auth = Auth::kTokenOrProof;
++  Call(std::move(spec),
++       base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback callback,
++              AccountResult r) {
++             if (self && r.ok) {
++               if (const base::ListValue* list = r.data.FindList("aparatos")) {
++                 self->devices_ = list->Clone();
++               }
++               self->NotifyStatus();
++             }
++             std::move(callback).Run(std::move(r));
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
++}
++
++void AccountService::RemoveDevice(const std::string& device_id,
++                                  AccountCallback callback) {
++  if (!BeginOperation(callback)) {
++    return;
++  }
++  CallSpec spec;
++  spec.route = "aparatos/quitar";
++  spec.op = "aparatos-quitar";
++  spec.auth = Auth::kProof;
++  spec.body.Set("aparato", device_id);
++  Call(std::move(spec),
++       EndOperation(base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback callback,
++              AccountResult r) {
++             if (self && r.ok) {
++               self->ListDevices(base::DoNothing());
++             }
++             std::move(callback).Run(std::move(r));
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(callback))));
++}
++
++void AccountService::RenameDevice(const std::string& device_id,
++                                  const std::string& name,
++                                  AccountCallback callback) {
++  if (!IsValidName(name)) {
++    std::move(callback).Run(AccountResult::Error("peticion"));
++    return;
++  }
++  if (!BeginOperation(callback)) {
++    return;
++  }
++  CallSpec spec;
++  spec.route = "aparatos/renombrar";
++  spec.op = "aparatos-renombrar";
++  spec.auth = Auth::kProof;
++  spec.body.Set("aparato", device_id);
++  spec.body.Set("nombre", name);
++  Call(std::move(spec),
++       EndOperation(base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback callback,
++              AccountResult r) {
++             if (self && r.ok) {
++               self->ListDevices(base::DoNothing());
++             }
++             std::move(callback).Run(std::move(r));
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(callback))));
++}
++
++// --- «¿Has sido tú?» (§6.2) ---
++
++void AccountService::NotMe(AccountCallback callback) {
++  if (!BeginOperation(callback)) {
++    return;
++  }
++  CallSpec spec;
++  spec.route = "no-he-sido-yo";
++  spec.op = "no-he-sido-yo";
++  spec.auth = Auth::kProof;
++  Call(std::move(spec),
++       EndOperation(base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback callback,
++              AccountResult r) {
++             if (self && r.ok) {
++               // All tokens are invalid now, this one too: the next poll
++               // renews it with the chain proof. The page then guides to
++               // change the password and the key (§6.2).
++               self->token_.clear();
++               self->StoreString(kPrefToken, std::string());
++               self->warnings_.clear();
++               self->Poll(base::DoNothing());
++             }
++             std::move(callback).Run(std::move(r));
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(callback))));
++}
++
++void AccountService::DismissWarnings() {
++  warnings_.clear();
++  NotifyStatus();
++}
++
++void AccountService::DismissNotice() {
++  SetNotice(std::string());
++  UpdateState();
++  NotifyStatus();
++}
++
++// --- delete and leave (§7, §9) ---
++
++void AccountService::DeleteEverywhere(AccountCallback callback) {
++  if (!BeginOperation(callback)) {
++    return;
++  }
++  CallSpec spec;
++  spec.route = "cuenta/borrar";
++  spec.op = "cuenta-borrar";
++  spec.auth = Auth::kProof;
++  Call(std::move(spec),
++       EndOperation(base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback callback,
++              AccountResult r) {
++             if (!self) {
++               return;
++             }
++             if (r.ok) {
++               // The server cleared the chain and disabled it. Here: stop
++               // and clear, as after PermanentlyDeleteAccount; the profile
++               // keeps its data.
++               self->own_chain_change_ = true;
++               self->ForgetAccount(/*keep_email=*/false);
++               if (syncer::BraveSyncServiceImpl* sync =
++                       self->GetSyncService()) {
++                 sync->StopAndClearWithResetLocalDataReason();
++               }
++               self->own_chain_change_ = false;
++             }
++             std::move(callback).Run(std::move(r));
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(callback))));
++}
++
++void AccountService::CancelDeletion(AccountCallback callback) {
++  if (!BeginOperation(callback)) {
++    return;
++  }
++  CallSpec spec;
++  spec.route = "cuenta/borrar/cancelar";
++  spec.op = "borrado-cancelar";
++  spec.auth = Auth::kProof;
++  Call(std::move(spec),
++       EndOperation(base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback callback,
++              AccountResult r) {
++             if (self && r.ok) {
++               self->server_state_ = "activa";
++               self->deletion_date_ = 0;
++               self->Poll(base::DoNothing());
++             }
++             std::move(callback).Run(std::move(r));
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(callback))));
++}
++
++void AccountService::LeaveOnThisMac(AccountCallback callback) {
++  if (!BeginOperation(callback)) {
++    return;
++  }
++  callback = EndOperation(std::move(callback));
++  auto leave = base::BindOnce(
++      [](base::WeakPtr<AccountService> self, AccountCallback callback,
++         AccountResult r) {
++        if (!self) {
++          return;
++        }
++        if (!r.ok) {
++          std::move(callback).Run(std::move(r));
++          return;
++        }
++        // Leaves the chain, keeps the profile; the server deletes nothing
++        // (P7).
++        self->ForgetAccount(/*keep_email=*/false);
++        self->LeaveChainThen(base::BindOnce(
++            [](AccountCallback callback) {
++              std::move(callback).Run(AccountResult::Ok());
++            },
++            std::move(callback)));
++      },
++      weak_ptr_factory_.GetWeakPtr(), std::move(callback));
++  if (device_id_.empty()) {
++    std::move(leave).Run(AccountResult::Ok());
++    return;
++  }
++  CallSpec spec;
++  spec.route = "salir";
++  spec.op = "salir";
++  spec.auth = Auth::kProof;
++  spec.body.Set("aparato", device_id_);
++  Call(std::move(spec), std::move(leave));
++}
++
++// --- only the mailbox (§6.4) ---
++
++void AccountService::MailboxDeleteStart(const std::string& email,
++                                        AccountCallback callback) {
++  const auto normalized = account::NormalizeEmail(email);
++  if (!normalized) {
++    std::move(callback).Run(AccountResult::Error("email"));
++    return;
++  }
++  CancelFlow();
++  flow_ = std::make_unique<Flow>();
++  flow_->kind = Flow::Kind::kMailboxDelete;
++  flow_->email = *normalized;
++  ResendCode(std::move(callback));
++}
++
++void AccountService::MailboxDeleteFinish(const std::string& code,
++                                         AccountCallback callback) {
++  if (!flow_ || flow_->kind != Flow::Kind::kMailboxDelete ||
++      flow_->request_id.empty()) {
++    std::move(callback).Run(AccountResult::Error("sin-flujo"));
++    return;
++  }
++  if (!BeginOperation(callback)) {
++    return;
++  }
++  CallSpec spec;
++  spec.route = "cuenta/borrar-por-email/confirmar";
++  spec.body.Set("solicitud", flow_->request_id);
++  spec.body.Set("codigo", code);
++  Call(std::move(spec),
++       EndOperation(base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback callback,
++              AccountResult r) {
++             if (self && r.ok) {
++               self->CancelFlow();
++             }
++             std::move(callback).Run(std::move(r));  // data.fecha
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(callback))));
++}
++
++void AccountService::StartOverStart(const std::string& email,
++                                    AccountCallback callback) {
++  const auto normalized = account::NormalizeEmail(email);
++  if (!normalized) {
++    std::move(callback).Run(AccountResult::Error("email"));
++    return;
++  }
++  CancelFlow();
++  flow_ = std::make_unique<Flow>();
++  flow_->kind = Flow::Kind::kStartOver;
++  flow_->email = *normalized;
++  ResendCode(std::move(callback));
++}
++
++void AccountService::StartOverFinish(const std::string& code,
++                                     std::string password,
++                                     AccountCallback callback) {
++  if (!flow_ || flow_->kind != Flow::Kind::kStartOver ||
++      flow_->request_id.empty()) {
++    account::WipeString(password);
++    std::move(callback).Run(AccountResult::Error("sin-flujo"));
++    return;
++  }
++  if (account::CountCodePoints(account::NormalizePassword(password)) <
++      account::kMinPasswordLength) {
++    account::WipeString(password);
++    std::move(callback).Run(AccountResult::Error("contrasena-corta"));
++    return;
++  }
++  if (!BeginOperation(callback)) {
++    account::WipeString(password);
++    return;
++  }
++  callback = EndOperation(std::move(callback));
++  const std::string email = flow_->email;
++  DeriveKeys(
++      std::move(password), email,
++      base::BindOnce(
++          [](base::WeakPtr<AccountService> self, std::string code,
++             std::string email, AccountCallback callback,
++             std::optional<account::AccountKeys> keys) {
++            if (!self) {
++              return;
++            }
++            if (!keys || !self->flow_) {
++              std::move(callback).Run(AccountResult::Error("interno"));
++              return;
++            }
++            const std::vector<uint8_t> fresh = brave_sync::crypto::GetSeed();
++            std::array<uint8_t, account::kSeedSize> raw;
++            std::ranges::copy(fresh, raw.begin());
++            auto seed = std::make_unique<account::SecretKey>(raw);
++            std::ranges::fill(raw, 0);
++            std::vector<uint8_t> wrapped =
++                account::WrapSeed(keys->wrap_key, seed->bytes(), email);
++            if (!account::UnwrapSeed(keys->wrap_key, wrapped, email)) {
++              std::move(callback).Run(AccountResult::Error("interno"));
++              return;
++            }
++            auto chain = std::make_unique<account::ChainKeys>(
++                account::ChainKeys::FromSeed(seed->bytes()));
++            CallSpec spec;
++            spec.route = "cuenta/empezar-de-cero/confirmar";
++            spec.op = "empezar-de-cero";
++            spec.auth = Auth::kProof;
++            spec.empty_account_in_proof = true;
++            spec.proof_keys = chain.get();
++            spec.body.Set("solicitud", self->flow_->request_id);
++            spec.body.Set("codigo", code);
++            spec.body.Set("kl", B64(keys->login_key.bytes()));
++            spec.body.Set("envoltura", B64(wrapped));
++            self->Call(
++                std::move(spec),
++                base::BindOnce(
++                    [](base::WeakPtr<AccountService> self, std::string email,
++                       std::unique_ptr<account::SecretKey> seed,
++                       std::unique_ptr<account::ChainKeys> chain,
++                       AccountCallback callback, AccountResult r) {
++                      if (!self) {
++                        return;
++                      }
++                      if (!r.ok) {
++                        std::move(callback).Run(std::move(r));
++                        return;
++                      }
++                      self->CancelFlow();
++                      // The new chain syncs now, without account; at day 14
++                      // the server links the account to it and the poll
++                      // registers this Mac (§6.4).
++                      self->ForgetAccount(/*keep_email=*/false);
++                      self->email_ = email;
++                      self->StoreString(kPrefEmail, email);
++                      AccountResult ok = AccountResult::Ok();
++                      ok.data.Set("fecha", GetInt(r.data, "fecha"));
++                      ok.data.Set("recoveryWords",
++                                  brave_sync::crypto::PassphraseFromBytes32(
++                                      std::vector<uint8_t>(
++                                          seed->bytes().begin(),
++                                          seed->bytes().end())));
++                      auto join = base::BindOnce(
++                          [](base::WeakPtr<AccountService> self,
++                             std::unique_ptr<account::SecretKey> seed,
++                             AccountResult ok, AccountCallback callback) {
++                            if (!self) {
++                              return;
++                            }
++                            self->JoinChain(
++                                *seed,
++                                base::BindOnce(
++                                    [](AccountResult ok, AccountResult r) {
++                                      if (!r.ok) {
++                                        ok.ok = false;
++                                        ok.error = r.error;
++                                      }
++                                      return ok;
++                                    },
++                                    std::move(ok))
++                                    .Then(std::move(callback)));
++                          },
++                          self, std::move(seed), std::move(ok),
++                          std::move(callback));
++                      if (self->HasChain()) {
++                        self->LeaveChainThen(std::move(join));
++                      } else {
++                        std::move(join).Run();
++                      }
++                    },
++                    self, email, std::move(seed), std::move(chain),
++                    std::move(callback)));
++          },
++          weak_ptr_factory_.GetWeakPtr(), code, email, std::move(callback)));
++}
++
++}  // namespace flyweb_sync
+diff --git a/browser/sync/account/flyweb_sync_account_service.h b/browser/sync/account/flyweb_sync_account_service.h
+new file mode 100644
+index 0000000..1712df2
+--- /dev/null
++++ b/browser/sync/account/flyweb_sync_account_service.h
+@@ -0,0 +1,348 @@
++/* Copyright (c) 2026 The FlyWeb Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#ifndef BRAVE_BROWSER_SYNC_ACCOUNT_FLYWEB_SYNC_ACCOUNT_SERVICE_H_
++#define BRAVE_BROWSER_SYNC_ACCOUNT_FLYWEB_SYNC_ACCOUNT_SERVICE_H_
++
++// FlyWeb 3.2: the client of the sync account (FlyWeb/docs/sync-cuenta.md §11,
++// hito H3). One per regular profile. It talks to /cuenta/v1 on the sync
++// server (same origin as --sync-url), keeps the account prefs encrypted with
++// OSCrypt like the seed, polls the account events and drives the states of
++// the «Cuenta y sincronización» page (§9).
++//
++// What it never keeps: the password, KE, KL, KU (§11). They are computed off
++// the UI thread when the user types the password. In the two flows with an
++// email code in the middle (entrar, cambiar el email) KL and KU stay in
++// memory, in SecretKey, until the second step, the cancel or 10 minutes (the
++// life of the code); never in prefs, on disk or in the logs.
++//
++// It does not touch the sync engine, Nigori or BraveSyncAuthManager: it joins
++// and leaves chains through BraveSyncServiceImpl's public calls, like the
++// settings page does today.
++
++#include <memory>
++#include <optional>
++#include <string>
++#include <vector>
++
++#include "base/functional/callback.h"
++#include "base/memory/raw_ptr.h"
++#include "base/memory/scoped_refptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/observer_list.h"
++#include "base/observer_list_types.h"
++#include "base/scoped_observation.h"
++#include "base/time/time.h"
++#include "base/timer/timer.h"
++#include "base/values.h"
++#include "brave/components/brave_sync/crypto/account_crypto.h"
++#include "components/keyed_service/core/keyed_service.h"
++#include "components/prefs/pref_change_registrar.h"
++#include "components/sync/service/sync_service.h"
++#include "components/sync/service/sync_service_observer.h"
++#include "url/gurl.h"
++
++class PrefRegistrySimple;
++class Profile;
++
++namespace network {
++class SharedURLLoaderFactory;
++class SimpleURLLoader;
++}  // namespace network
++
++namespace os_crypt_async {
++class Encryptor;
++}  // namespace os_crypt_async
++
++namespace syncer {
++class BraveSyncServiceImpl;
++}  // namespace syncer
++
++namespace flyweb_sync {
++
++// Result of an operation, for the page. `error` is one of the server's codes
++// (README of cuenta/: peticion, prueba, token, credenciales, sin-cuenta,
++// aparato, cadena-ligada, cadena-borrada, email-ocupado, programado, espera,
++// cupo, ocupado, interno) or a client one: red (no answer in 30 s or no
++// network), servidor (unexpected answer), envoltura (the wrap did not open:
++// nothing activated, P15), llavero (OSCrypt), email, contrasena-corta,
++// contrasena-distinta, ocupado-local (another operation running), sin-flujo,
++// sin-cadena, palabras.
++struct AccountResult {
++  AccountResult();
++  AccountResult(AccountResult&&);
++  AccountResult& operator=(AccountResult&&);
++  ~AccountResult();
++
++  static AccountResult Ok();
++  static AccountResult Error(std::string error, int64_t until = 0);
++
++  bool ok = false;
++  std::string error;
++  int64_t until = 0;  // with «espera»: Unix time when it can be tried again
++  base::DictValue data;
++};
++using AccountCallback = base::OnceCallback<void(AccountResult)>;
++
++// One account event (§6.2, «eventos» of the server).
++struct AccountEvent {
++  int64_t n = 0;
++  std::string type;  // mac-anadido, contrasena-acertada, ...
++  int64_t date = 0;
++  std::string mac;
++  std::string model;
++  int64_t count = 0;  // contrasena-fallos: n
++  int64_t since = 0;  // contrasena-fallos: desde
++  int64_t when = 0;   // borrado-pedido: fecha
++  std::string device;  // the device that did it, if the server says it
++  base::DictValue ToValue() const;
++};
++
++class AccountService : public KeyedService,
++                       public syncer::SyncServiceObserver {
++ public:
++  // The nine states of §9 are these plus the flags of GetStatus(): «falta el
++  // código del email» is `flow`, «¿has sido tú?» is `warnings`, «sin red» is
++  // `offline`.
++  enum class State {
++    kLoading,
++    kNoAccount,
++    kSynced,
++    kDeletionScheduled,
++    kKeysUnreadable,
++    kAccountDeleted,
++    kChainChanged,
++  };
++
++  class Observer : public base::CheckedObserver {
++   public:
++    // Anything on the page may have changed.
++    virtual void OnAccountStatusChanged() {}
++    // New warnings to show in a bar (§6.2).
++    virtual void OnAccountWarnings(const std::vector<AccountEvent>& events) {}
++  };
++
++  explicit AccountService(Profile* profile);
++  AccountService(const AccountService&) = delete;
++  AccountService& operator=(const AccountService&) = delete;
++  ~AccountService() override;
++
++  void AddObserver(Observer* observer);
++  void RemoveObserver(Observer* observer);
++
++  State state() const { return state_; }
++  // Everything the page shows; see the .cc for the keys.
++  base::DictValue GetStatus() const;
++  const std::vector<AccountEvent>& warnings() const { return warnings_; }
++  // True while asking the server why this chain was disabled (§6.3): the
++  // «account deleted» bar waits for the answer.
++  bool resolving_chain_disabled() const { return resolving_chain_disabled_; }
++
++  // Poll now (the page was opened, or Reintentar).
++  void Refresh(AccountCallback callback);
++
++  // --- Without an account (§5, §6.6, §8) ---
++  // Create: email → code; then code + password + name. Links the chain this
++  // Mac syncs, or a new one (data.recoveryWords then holds the 24 words).
++  void CreateAccountStart(const std::string& email, AccountCallback callback);
++  void CreateAccountFinish(const std::string& code,
++                           std::string password,
++                           const std::string& device_name,
++                           AccountCallback callback);
++  // Enter: email + password → code; then code + name.
++  void LoginStart(const std::string& email,
++                  std::string password,
++                  AccountCallback callback);
++  void LoginFinish(const std::string& code,
++                   const std::string& device_name,
++                   AccountCallback callback);
++  // «Tengo mi clave de recuperación»: 24 words, or 25 with a valid date.
++  void JoinWithRecoveryKey(const std::string& words, AccountCallback callback);
++  // Reenviar: repeats the first step of the flow in progress.
++  void ResendCode(AccountCallback callback);
++  // Cancelar: forgets the flow (and the keys it kept).
++  void CancelFlow();
++
++  // --- Synced (§4.6, §6) ---
++  void PasswordChangeStart(AccountCallback callback);
++  void PasswordChangeFinish(const std::string& code,
++                            std::string new_password,
++                            AccountCallback callback);
++  void EmailChangeStart(std::string password,
++                        const std::string& new_email,
++                        AccountCallback callback);
++  void EmailChangeFinish(const std::string& code, AccountCallback callback);
++  // New seed (data.recoveryWords), every other Mac has to log in again.
++  void ChainChange(std::string password, AccountCallback callback);
++  void ListDevices(AccountCallback callback);
++  void RemoveDevice(const std::string& device_id, AccountCallback callback);
++  void RenameDevice(const std::string& device_id,
++                    const std::string& name,
++                    AccountCallback callback);
++  // «No he sido yo» (§6.2) and «He sido yo» (just hides the warnings).
++  void NotMe(AccountCallback callback);
++  void DismissWarnings();
++  void DeleteEverywhere(AccountCallback callback);
++  void CancelDeletion(AccountCallback callback);
++  void LeaveOnThisMac(AccountCallback callback);
++  // The notice states (deleted / key changed elsewhere): «Entendido».
++  void DismissNotice();
++
++  // --- Only the mailbox (§6.4, decision 1 of §10.1) ---
++  void MailboxDeleteStart(const std::string& email, AccountCallback callback);
++  void MailboxDeleteFinish(const std::string& code, AccountCallback callback);
++  void StartOverStart(const std::string& email, AccountCallback callback);
++  // New chain here (data.recoveryWords); the account follows it at day 14.
++  void StartOverFinish(const std::string& code,
++                       std::string password,
++                       AccountCallback callback);
++
++  // The model sent to the server: hw.model, filtered to [A-Za-z0-9,._ -].
++  static std::string DeviceModel();
++  static void RegisterProfilePrefs(PrefRegistrySimple* registry);
++
++  // syncer::SyncServiceObserver:
++  void OnStateChanged(syncer::SyncService* sync) override;
++  void OnSyncShutdown(syncer::SyncService* sync) override;
++
++  // KeyedService:
++  void Shutdown() override;
++
++  void SetURLLoaderFactoryForTesting(
++      scoped_refptr<network::SharedURLLoaderFactory> factory);
++
++ private:
++  struct Flow;
++  struct Request;
++
++  // --- setup and prefs ---
++  void OnEncryptorReady(scoped_refptr<os_crypt_async::Encryptor> encryptor);
++  void LoadPrefs();
++  void OnSeedPrefChanged();
++  bool ReadSeed(std::array<uint8_t, brave_sync::crypto::account::kSeedSize>*
++                    seed) const;
++  void StoreAccount(const std::string& account_id,
++                    const std::string& email,
++                    const std::string& device_id,
++                    const std::string& token);
++  void StoreToken(const std::string& device_id, const std::string& token);
++  void StoreString(const char* path, const std::string& value);
++  std::optional<std::string> LoadString(const char* path) const;
++  void ForgetAccount(bool keep_email);
++  void SetNotice(const std::string& notice);
++  void UpdateState();
++  void NotifyStatus();
++
++  syncer::BraveSyncServiceImpl* GetSyncService() const;
++  bool HasChain() const { return !chain_keys_.empty(); }
++
++  // --- HTTP ---
++  enum class Auth { kNone, kToken, kProof, kTokenOrProof };
++  struct CallSpec {
++    CallSpec();
++    CallSpec(CallSpec&&);
++    CallSpec& operator=(CallSpec&&);
++    ~CallSpec();
++    std::string route;  // "eventos", "alta/confirmar", ...
++    std::string op;     // proof op, for kProof
++    Auth auth = Auth::kNone;
++    std::string account_id_for_proof;  // default: the stored one
++    bool empty_account_in_proof = false;
++    bool attach_token = false;  // Bearer on a call without other auth
++    base::DictValue body;
++    // cadena/cambiar and empezar-de-cero/confirmar sign with other keys
++    // (owned by the caller's callback). Without them, a copy of this Mac's
++    // chain keys is taken when the call starts.
++    const brave_sync::crypto::account::ChainKeys* proof_keys = nullptr;
++    const brave_sync::crypto::account::ChainKeys* new_chain_keys = nullptr;
++    std::unique_ptr<brave_sync::crypto::account::ChainKeys> owned_keys;
++  };
++  void Call(CallSpec spec, AccountCallback callback);
++  void CallWithNonce(CallSpec spec,
++                     AccountCallback callback,
++                     AccountResult nonce_result);
++  void Send(CallSpec spec,
++            std::string body,
++            std::vector<std::pair<std::string, std::string>> headers,
++            AccountCallback callback);
++  void OnResponse(std::unique_ptr<network::SimpleURLLoader> loader,
++                  AccountCallback callback,
++                  std::optional<std::string> body);
++  GURL RouteURL(const std::string& route) const;
++  std::string RoutePath(const std::string& route) const;
++
++  // --- events ---
++  void Poll(AccountCallback callback);
++  void OnEvents(AccountCallback callback,
++                bool used_proof,
++                AccountResult result);
++  void RenewToken(AccountCallback callback);
++  void RegisterThisMac(AccountCallback callback);
++  void SchedulePoll(bool failed);
++  void OnChainDisabled(brave_sync::crypto::account::ChainKeys old_keys);
++
++  // --- flows ---
++  bool BeginOperation(AccountCallback& callback);
++  AccountCallback EndOperation(AccountCallback callback);
++  void DeriveKeys(std::string password,
++                  std::string email,
++                  base::OnceCallback<void(
++                      std::optional<brave_sync::crypto::account::AccountKeys>)>
++                      callback);
++  void JoinChain(const brave_sync::crypto::account::SecretKey& seed,
++                 AccountCallback callback);
++  void LeaveChainThen(base::OnceClosure then);
++  std::string CurrentEmail() const;
++
++  raw_ptr<Profile> profile_;
++  scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory_;
++  GURL base_url_;
++  scoped_refptr<os_crypt_async::Encryptor> encryptor_;
++  PrefChangeRegistrar pref_change_registrar_;
++  base::ScopedObservation<syncer::SyncService, syncer::SyncServiceObserver>
++      sync_observation_{this};
++  base::ObserverList<Observer> observers_;
++
++  State state_ = State::kLoading;
++  bool keys_unreadable_ = false;
++  bool busy_ = false;
++  bool own_chain_change_ = false;  // this Mac is leaving/switching chains
++  bool resolving_chain_disabled_ = false;
++  bool offline_ = false;
++  std::string last_error_;
++  base::Time last_contact_;
++
++  // Account (decrypted from prefs).
++  std::string account_id_;
++  std::string email_;
++  std::string device_id_;
++  std::string token_;
++  int64_t last_event_ = 0;
++  std::string server_state_;  // activa, borrado-programado, ...
++  int64_t deletion_date_ = 0;
++  std::string notice_;  // cuenta-borrada, cadena-cambiada
++  base::ListValue devices_;
++
++  // The chain this Mac syncs, kept while it does (and a little after, to ask
++  // the server why it was disabled, §6.3).
++  brave_sync::crypto::account::ChainKeys chain_keys_;
++  std::vector<AccountEvent> warnings_;
++  std::unique_ptr<Flow> flow_;
++
++  base::OneShotTimer poll_timer_;
++  base::OneShotTimer flow_timer_;
++  base::TimeDelta poll_backoff_;
++  bool polling_ = false;
++  bool registering_ = false;
++  // After joining an account, the first poll only reads up to the newest
++  // event: the history of the account is not a warning for this Mac.
++  bool baseline_pending_ = false;
++
++  base::WeakPtrFactory<AccountService> weak_ptr_factory_{this};
++};
++
++}  // namespace flyweb_sync
++
++#endif  // BRAVE_BROWSER_SYNC_ACCOUNT_FLYWEB_SYNC_ACCOUNT_SERVICE_H_
+diff --git a/browser/sync/account/flyweb_sync_account_service_factory.cc b/browser/sync/account/flyweb_sync_account_service_factory.cc
+new file mode 100644
+index 0000000..020dad6
+--- /dev/null
++++ b/browser/sync/account/flyweb_sync_account_service_factory.cc
+@@ -0,0 +1,67 @@
++/* Copyright (c) 2026 The FlyWeb Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#include "brave/browser/sync/account/flyweb_sync_account_service_factory.h"
++
++#include <memory>
++
++#include "base/no_destructor.h"
++#include "brave/browser/sync/account/flyweb_sync_account_service.h"
++#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/sync/device_info_sync_service_factory.h"
++#include "chrome/browser/sync/sync_service_factory.h"
++#include "components/keyed_service/content/browser_context_dependency_manager.h"
++
++namespace flyweb_sync {
++
++// static
++AccountService* AccountServiceFactory::GetForBrowserContext(
++    content::BrowserContext* context) {
++  return static_cast<AccountService*>(
++      GetInstance()->GetServiceForBrowserContext(context, true));
++}
++
++// static
++AccountServiceFactory* AccountServiceFactory::GetInstance() {
++  static base::NoDestructor<AccountServiceFactory> instance;
++  return instance.get();
++}
++
++AccountServiceFactory::AccountServiceFactory()
++    : BrowserContextKeyedServiceFactory(
++          "FlyWebSyncAccountService",
++          BrowserContextDependencyManager::GetInstance()) {
++  DependsOn(SyncServiceFactory::GetInstance());
++  DependsOn(DeviceInfoSyncServiceFactory::GetInstance());
++}
++
++AccountServiceFactory::~AccountServiceFactory() = default;
++
++std::unique_ptr<KeyedService>
++AccountServiceFactory::BuildServiceInstanceForBrowserContext(
++    content::BrowserContext* context) const {
++  Profile* profile = Profile::FromBrowserContext(context);
++  if (!SyncServiceFactory::IsSyncAllowed(profile)) {
++    return nullptr;
++  }
++  return std::make_unique<AccountService>(profile);
++}
++
++content::BrowserContext* AccountServiceFactory::GetBrowserContextToUse(
++    content::BrowserContext* context) const {
++  Profile* profile = Profile::FromBrowserContext(context);
++  if (profile->IsOffTheRecord() || profile->IsGuestSession()) {
++    return nullptr;
++  }
++  return context;
++}
++
++// Created with the profile: it polls the account events (§11) and notices a
++// chain disabled from another Mac even with the settings page closed.
++bool AccountServiceFactory::ServiceIsCreatedWithBrowserContext() const {
++  return true;
++}
++
++}  // namespace flyweb_sync
+diff --git a/browser/sync/account/flyweb_sync_account_service_factory.h b/browser/sync/account/flyweb_sync_account_service_factory.h
+new file mode 100644
+index 0000000..22297dc
+--- /dev/null
++++ b/browser/sync/account/flyweb_sync_account_service_factory.h
+@@ -0,0 +1,49 @@
++/* Copyright (c) 2026 The FlyWeb Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#ifndef BRAVE_BROWSER_SYNC_ACCOUNT_FLYWEB_SYNC_ACCOUNT_SERVICE_FACTORY_H_
++#define BRAVE_BROWSER_SYNC_ACCOUNT_FLYWEB_SYNC_ACCOUNT_SERVICE_FACTORY_H_
++
++#include <memory>
++
++#include "components/keyed_service/content/browser_context_keyed_service_factory.h"
++
++namespace base {
++template <typename T>
++class NoDestructor;
++}  // namespace base
++
++namespace flyweb_sync {
++
++class AccountService;
++
++// The sync account client (FlyWeb 3.2). Regular profiles only: incognito and
++// guest have no sync.
++class AccountServiceFactory : public BrowserContextKeyedServiceFactory {
++ public:
++  AccountServiceFactory(const AccountServiceFactory&) = delete;
++  AccountServiceFactory& operator=(const AccountServiceFactory&) = delete;
++
++  static AccountService* GetForBrowserContext(
++      content::BrowserContext* context);
++  static AccountServiceFactory* GetInstance();
++
++ private:
++  friend base::NoDestructor<AccountServiceFactory>;
++
++  AccountServiceFactory();
++  ~AccountServiceFactory() override;
++
++  // BrowserContextKeyedServiceFactory:
++  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
++      content::BrowserContext* context) const override;
++  content::BrowserContext* GetBrowserContextToUse(
++      content::BrowserContext* context) const override;
++  bool ServiceIsCreatedWithBrowserContext() const override;
++};
++
++}  // namespace flyweb_sync
++
++#endif  // BRAVE_BROWSER_SYNC_ACCOUNT_FLYWEB_SYNC_ACCOUNT_SERVICE_FACTORY_H_
+diff --git a/browser/sync/sources.gni b/browser/sync/sources.gni
+index b343059..4663596 100644
+--- a/browser/sync/sources.gni
++++ b/browser/sync/sources.gni
+@@ -4,10 +4,21 @@
+ # You can obtain one at https://mozilla.org/MPL/2.0/.
+ 
+ brave_browser_sync_sources = [
++  "//brave/browser/sync/account/flyweb_sync_account_service.cc",
++  "//brave/browser/sync/account/flyweb_sync_account_service.h",
++  "//brave/browser/sync/account/flyweb_sync_account_service_factory.cc",
++  "//brave/browser/sync/account/flyweb_sync_account_service_factory.h",
+   "//brave/browser/sync/brave_sync_alerts_service.cc",
+   "//brave/browser/sync/brave_sync_alerts_service.h",
+   "//brave/browser/sync/brave_sync_alerts_service_factory.cc",
+   "//brave/browser/sync/brave_sync_alerts_service_factory.h",
+ ]
+ 
+-brave_browser_sync_deps = []
++brave_browser_sync_deps = [
++  "//brave/components/brave_sync:crypto",
++  "//brave/components/brave_sync:sync_service_impl_helper",
++  "//brave/components/brave_sync:time_limited_codes",
++  "//components/os_crypt/async/browser",
++  "//components/os_crypt/async/common",
++  "//services/network/public/cpp",
++]
+-- 
+2.43.0
+

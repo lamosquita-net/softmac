@@ -17,12 +17,22 @@ git checkout -b nube/sync-cuenta-h3 3e2c12fad5
 git am FlyWeb/parches/3.2-sync-cuenta/000*.patch
 ```
 
+Comprobado: los cuatro entran limpios con `git am` sobre 3e2c12fad5 y dan el árbol **f913d2d9c4**, igual que la rama
+local. El TypeScript de la página pasó `tsc` estricto, con módulos de relleno para los import. El C++ no se ha
+compilado.
+
+**Para que Titín los vea antes de publicar** (cambian lo que se ve):
+- el título de la sección;
+- toda la página nueva;
+- dos textos que el diseño no daba y he escrito yo: el de «datos perdidos» de §6.1 (`…FORGOT_NOTHING`) y el aviso
+  de los 14 y 30 días (`…DELAY_WARNING`).
+
 | Parche | Qué hace |
 |---|---|
-| `0001-…account-crypto…` | `components/brave_sync/crypto/account_crypto.{h,cc}`: normalización del email y la contraseña, `KE = scrypt(2^17, 8, 1)` con `max_mem` de 130 MiB, `KL`/`KU` con HKDF-SHA256, la envoltura AES-256-GCM, la clave de cadena (la misma derivación que `BraveSyncAuthManager`, que no se toca) y la prueba de cadena. Pruebas con vectores calculados fuera (`vectores.py`) |
-| `0002-…account-client-service…` | `browser/sync/account/`: `flyweb_sync::AccountService`, uno por perfil. Las llamadas a `/cuenta/v1`, las prefs cifradas, los estados de §9, el sondeo de eventos y todas las operaciones |
-| `0003-…` | Página «Cuenta y sincronización»: manejadores en `BraveSyncHandler`, interfaz y cadenas (inglés, con traducción es y es-419) |
-| `0004-…` | Barras de aviso: «¿Has sido tú?» con «No he sido yo» y «La clave se ha cambiado desde otro Mac» |
+| `0001-sync-account-crypto-for-the-FlyWeb-3.2-sync-account-.patch` | `components/brave_sync/crypto/account_crypto.{h,cc}`: normalización del email y la contraseña, `KE = scrypt(2^17, 8, 1)` con `max_mem` de 130 MiB, `KL`/`KU` con HKDF-SHA256, la envoltura AES-256-GCM, la clave de cadena (la misma derivación que `BraveSyncAuthManager`, que no se toca) y la prueba de cadena. Pruebas con vectores calculados fuera (`vectores.py`) |
+| `0002-sync-FlyWeb-3.2-sync-account-client-service-H3.patch` | `browser/sync/account/`: `flyweb_sync::AccountService`, uno por perfil. Las llamadas a `/cuenta/v1`, las prefs cifradas, los estados de §9, el sondeo de eventos y todas las operaciones |
+| `0003-settings-Cuenta-y-sincronizaci-n-page-for-the-FlyWeb.patch` | Página «Cuenta y sincronización»: manejadores en `BraveSyncHandler` (con zxcvbn para la fuerza) y el componente `settings-flyweb-sync-account` con los nueve estados de §9. Cadenas: 118 de la página y 16 de las barras, en inglés con traducción es y es-419; los id son la huella de grit, comprobada con los mensajes que ya había. El título de la sección pasa a «Cuenta y sincronización» |
+| `0004-sync-FlyWeb-3.2-sync-account-warning-bars.patch` | Barras de aviso: «¿Has sido tú?» con «No he sido yo» y «La clave se ha cambiado desde otro Mac» |
 
 ## Qué hace el cliente
 
@@ -129,6 +139,16 @@ con `--sync-url`. Cada paso se anota con su resultado:
 
 P3 y P25 están retiradas. P12, P14, P17, P18, P20, P22 y P24 son del servidor; el cliente solo aporta que siempre
 manda JSON, sin cookies y con una prueba nueva en cada llamada.
+
+## Cómo se comporta la página en tres casos
+
+- **Sin cuenta pero con cadena** (el caso de los 7 usuarios): ofrece «Crear cuenta», que liga esta cadena, y «Ver la
+  clave de recuperación». No ofrece «Entrar» ni «Tengo mi clave», que cambiarían de cadena a un Mac que ya sincroniza.
+- **Clave de recuperación de una cadena nueva** (crear, cambiar la clave, empezar de cero): la cadena ya sincroniza
+  cuando la página pide marcar «He guardado la clave de recuperación». No se puede seguir sin marcarla, pero eso no
+  para la sincronización.
+- **«Claves ilegibles»:** «Volver a unir» (entrar o las palabras) sobrescribe las prefs que no se leen y limpia el
+  estado.
 
 ## Riesgos al compilar
 

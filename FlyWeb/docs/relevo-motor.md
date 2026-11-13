@@ -1,3 +1,33 @@
+# MOTOR-46 (13-11-2026, ~20:30 UTC): estado
+
+MOTOR-46 (`session_01MwmK2juPkbC58kEi4QFeyU`, Opus 5.5, alto, modo auto; abierta por COORDINACIÓN-41). brave-core
+**solo lectura** (público: lectura anónima por el proxy); entregas por `git format-patch` en softmac.
+
+**Hecho:** H3, el cliente de la sync con cuenta: `FlyWeb/parches/3.2-sync-cuenta/` 0001–0004 sobre `local/3.1.1`
+3e2c12fad5 (árbol f913d2d9c4), sin compilar. Base del servidor: #977 en cbe0221b49 (con S1–S3). El README trae qué
+hace cada parche, los puntos para SEGURIDAD-PORTES y las pruebas P1–P26 del cliente, P23 incluida.
+
+**Abierto:**
+- C1 («Sustituir» y «Quitar marcadores duplicados») lo decide Titín. Si entra, va en un parche 0005: un paso antes
+  de `AccountService::JoinChain` y un estado más en la página.
+- Revisión de SEGURIDAD-PORTES del código. Lo que tiene que mirar está en el README: el camino de la contraseña,
+  KL y KU en memoria entre los dos pasos y el indicador de fuerza.
+- Errores de compilación cuando LOCAL compile (tras medir la 3.1): se arreglan en los parches y se regeneran
+  SHA256SUMS.
+
+**Trampas nuevas:**
+- La huella de grit (id del xtb) = md5 del texto inglés, con cada `<ph>` cambiado por su nombre; de los 16 primeros
+  hex, el `& 0x7fffffffffffffff` con signo. Comprobada con «Passwords» = 7029809446516969842. Scripts en
+  `ui/gritid.py` del scratchpad de MOTOR-46 (no sobrevive; la fórmula es la de arriba).
+- Compilar BoringSSL de fuera lo deniega el clasificador («Code from External»). Los vectores se sacan con Python
+  `cryptography`, y la lista BIP39 se baja como dato.
+- La prueba de cadena firma la **ruta completa** (`/cuenta/v1/…`) y el cuerpo exacto: el JSON se serializa una sola
+  vez y se envía tal cual.
+- Las 24 palabras sueltas las rechaza `TimeLimitedWords::Parse` (kVersionDeprecated): para la clave de recuperación,
+  `IsPassphraseValid` directo.
+
+---
+
 # MOTOR-45 (12-11-2026, ~10:50 UTC): estado
 
 MOTOR-45 (`session_01MwmK2kdamTiZHb5S9SwNW7`, Opus 5.5, alto, modo auto; abierta por COORDINACIÓN-39). brave-core
