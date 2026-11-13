@@ -714,13 +714,15 @@ si una solicitud era verdadera, es decir, si la contraseña era buena. Por eso u
 cumplido sus 10 s, y con la tabla de falsas llena **todas** las comprobaciones de código contestan «ocupado»,
 verdaderas o no (`solicitudes.go`).
 
-Dos más, decididas después [C]:
+Decididas después [C] (11 y 12; S1–S3, pedidas por MOTOR-46 para el cliente):
 
 | # | Hueco | Decisión |
 |---|---|---|
 | 11 | Cómo entra en la lista de aparatos un Mac unido con las 24 palabras | Con `aparatos/renovar` y la prueba de cadena, dando modelo y nombre; **avisa** como «Mac añadido» |
 | 12 | Una cuenta cuya cadena se desactiva por el protocolo de sync (borrado desde una 3.0.x, o la regla de inactivas) | Se borra, pero con el **borrado normal de 14 días** y su aviso por correo y evento, no al momento. Un Mac lo cancela (y con la contraseña puede cambiar a una cadena nueva); tras cancelarlo no se reprograma en 30 días |
 | S1 | Un Mac unido con las 24 palabras, o que ya estaba en la cadena cuando otro creó la cuenta, no conoce el `cuenta_id` (pedido por MOTOR-46 para H3) | Para `eventos` y `aparatos-renovar`, si la firma con la cuenta falla, vale la firma con **cuenta vacía**; la cuenta la fija la cadena (1:1). `eventos` devuelve `cuenta`. Las demás operaciones siguen exigiendo la cuenta |
+| S2 | Esos Macs no saben el email y sin él no pueden estirar la contraseña para cambiarla, ni cambiar el email o la clave (§6.1) | `eventos` devuelve `email`, **solo con prueba de cadena**, nunca con el token: §14 cuenta con que quien ve tráfico descifrado se lleve tokens, y un token solo debe dar eventos y lista de aparatos |
+| S3 | El cliente no debe preguntarse «¿Has sido tú?» por lo que ha hecho él mismo | Cada evento lleva `datos.aparato` con el autor **solo si está verificado**: el aparato del token Bearer que acompaña a la llamada (de esa cuenta), el que recibe token nuevo en `contrasena/cambiar` y `cadena/cambiar` (pasan por código o contraseña), y el nuevo en `mac-anadido` y `cadena-ligada`. **Nunca el `aparato` del cuerpo**: un Mac robado podría dar el id del Mac del dueño, y este callaría el aviso que es la defensa de N1/N4 |
 
 ## 11. Cliente
 

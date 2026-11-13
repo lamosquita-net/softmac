@@ -761,3 +761,90 @@ func TestNormalizarEmail(t *testing.T) {
 		}
 	}
 }
+
+// S2 [C]: «eventos» da el email solo con prueba de cadena, nunca con el token.
+func TestEmailSoloConPrueba(t *testing.T) {
+	b := nuevoBanco(t, nil)
+	a := nuevoMac("A")
+	b.crearCuenta(a, emailA, clave)
+	r := b.conToken(a, "/eventos", map[string]int{})
+	esperar(t, r, 200, "eventos con token")
+	if _, hay := r.cuerpo["email"]; hay {
+		t.Fatal("con el token se ve el email")
+	}
+	r = b.deMac(a, "eventos", "/eventos", map[string]int{})
+	if r.txt("email") != emailA {
+		t.Fatalf("con prueba de cadena no llega el email: %v", r.cuerpo)
+	}
+	palabras := nuevoMac("Con palabras")
+	palabras.ponerSemilla(a.semilla)
+	if r := b.conPrueba(palabras, "eventos", "", "/eventos", map[string]int{}); r.txt("email") != emailA {
+		t.Fatalf("un Mac unido con las palabras no recibe el email: %v", r.cuerpo)
+	}
+}
+
+// datosDe: el «datos» del último evento de ese tipo.
+func datosDe(t *testing.T, es []map[string]any, tipo string) map[string]any {
+	t.Helper()
+	for i := len(es) - 1; i >= 0; i-- {
+		if es[i]["tipo"] == tipo {
+			d, _ := es[i]["datos"].(map[string]any)
+			if d == nil {
+				d = map[string]any{}
+			}
+			return d
+		}
+	}
+	t.Fatalf("no hay evento %s", tipo)
+	return nil
+}
+
+// S3 [C]: datos.aparato solo con autor verificado (token Bearer, token nuevo en contrasena/cambiar y
+// cadena/cambiar, el nuevo de mac-anadido); el «aparato» del cuerpo no se refleja.
+func TestAutorDeLosEventos(t *testing.T) {
+	b := nuevoBanco(t, nil)
+	a, m, ladron := nuevoMac("A"), nuevoMac("B"), nuevoMac("Robado")
+	b.crearCuenta(a, emailA, clave)
+	b.entrar(m, emailA, clave)
+	b.reloj.avanzar(time.Hour)
+	b.entrar(ladron, emailA, clave)
+	es := b.eventos(a)
+	if d := datosDe(t, es, evMacAnadido); d["aparato"] != ladron.aparato {
+		t.Fatalf("mac-anadido sin el aparato nuevo: %v", d)
+	}
+	if d := datosDe(t, es, evCadenaLigada); d["aparato"] != a.aparato {
+		t.Fatalf("cadena-ligada sin el aparato: %v", d)
+	}
+	// Con el token de A: el autor es A.
+	esperar(t, b.deMac(a, "aparatos-renombrar", "/aparatos/renombrar", map[string]string{"aparato": m.aparato,
+		"nombre": "B2"}), 200, "renombrar")
+	if d := datosDe(t, b.eventos(a), evAparatoRenombrado); d["aparato"] != a.aparato {
+		t.Fatalf("renombrar con token: %v", d)
+	}
+	// El ladrón, sin token, pone en el cuerpo el aparato de A: no se refleja.
+	sinToken := *ladron
+	sinToken.token = ""
+	esperar(t, b.deMac(&sinToken, "salir", "/salir", map[string]string{"aparato": a.aparato}), 200, "salir con el aparato de A")
+	if d := datosDe(t, b.eventos(m), evAparatoQuitado); d["aparato"] != nil {
+		t.Fatalf("el «aparato» del cuerpo se refleja como autor: %v", d)
+	}
+	// Con su propio token, el autor es el ladrón, no el aparato del cuerpo.
+	esperar(t, b.deMac(ladron, "aparatos-quitar", "/aparatos/quitar", map[string]string{"aparato": m.aparato}), 200, "quitar")
+	if d := datosDe(t, b.eventos(ladron), evAparatoQuitado); d["aparato"] != ladron.aparato {
+		t.Fatalf("quitar con token: %v", d)
+	}
+	// Un token de otra cuenta no cuenta como autor.
+	otro := nuevoMac("Otra cuenta")
+	b.crearCuenta(otro, "otra@example.com", clave)
+	conTokenAjeno := sinToken
+	conTokenAjeno.token = otro.token
+	esperar(t, b.deMac(&conTokenAjeno, "no-he-sido-yo", "/no-he-sido-yo", map[string]any{}), 200, "no he sido yo")
+	if d := datosDe(t, b.eventos(&sinToken), evNoHeSidoYo); d["aparato"] != nil {
+		t.Fatalf("un token de otra cuenta se toma como autor: %v", d)
+	}
+	// Cambio de contraseña: el aparato que recibe el token nuevo (el ladrón ya quitó a A y a B de la lista).
+	b.cambiarContrasena(ladron, emailA, "nueva 3")
+	if d := datosDe(t, b.eventos(&sinToken), evContrasenaCambiada); d["aparato"] != ladron.aparato {
+		t.Fatalf("contrasena-cambiada: %v", d)
+	}
+}

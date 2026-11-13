@@ -51,7 +51,7 @@ guion, espacios y minúsculas).
 | `aparatos/quitar` | prueba `aparatos-quitar` | `aparato` | `{}` |
 | `aparatos/renovar` | prueba `aparatos-renovar` | `aparato`, o `modelo nombre` para darse de alta (Mac unido con las 24 palabras; avisa) | `cuenta aparato token` |
 | `aparatos/renombrar` | prueba `aparatos-renombrar` | `aparato nombre` | `{}` |
-| `eventos` | token o prueba `eventos` | `desde` (último `n` leído) | `estado [cuenta] [borrado] eventos: [n tipo fecha datos]` |
+| `eventos` | token o prueba `eventos` (si vienen las dos, cuenta la prueba) | `desde` (último `n` leído) | `estado [cuenta] [email, solo con prueba: S2] [borrado] eventos: [n tipo fecha datos]` |
 | `no-he-sido-yo` | prueba `no-he-sido-yo` | `{}` | `{}` |
 | `cuenta/borrar` | prueba `cuenta-borrar` | `{}` | `{}` |
 | `cuenta/borrar/cancelar` | prueba `borrado-cancelar` | `{}` | `cancelado` |
@@ -65,6 +65,8 @@ guion, espacios y minúsculas).
 otro Mac, 30 días) o `sin-cuenta`. Tipos de evento: `mac-anadido`, `contrasena-acertada`, `contrasena-fallos`
 (`datos.n`, `datos.desde`, `datos.mac`), `contrasena-cambiada`, `email-cambiado`, `cadena-cambiada`, `cadena-ligada`,
 `aparato-quitado`, `aparato-renombrado`, `no-he-sido-yo`, `borrado-pedido` (`datos.fecha`), `borrado-cancelado`.
+`datos.aparato` es el autor, solo cuando está verificado (S3): el aparato del token que acompaña a la llamada, el que
+recibe token nuevo al cambiar contraseña o clave, o el nuevo al añadirse; nunca el `aparato` del cuerpo.
 
 **Errores** (`{"error": …}`): 400 `peticion`; 401 `prueba` / `token`; 403 `credenciales` (contraseña o código, sin
 decir cuál, O9); 404 `sin-cuenta` / `aparato`; 409 `cadena-ligada` / `cadena-borrada` / `email-ocupado` /

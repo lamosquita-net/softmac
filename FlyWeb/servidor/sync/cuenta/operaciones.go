@@ -141,7 +141,7 @@ func (s *Servicio) altaConfirmar(p *peticion) (int, any) {
 		if err := insertarAparato(p.ctx, tx, ap, tokenHash); err != nil {
 			return err
 		}
-		return s.evento(p.ctx, tx, cu.id, evCadenaLigada, datosEvento{Mac: q.Nombre, Modelo: q.Modelo})
+		return s.evento(p.ctx, tx, cu.id, evCadenaLigada, datosEvento{Aparato: ap.id, Mac: q.Nombre, Modelo: q.Modelo})
 	})
 	if errors.Is(err, errEmailOcupado) {
 		return http.StatusConflict, fallo("email-ocupado")
@@ -298,7 +298,7 @@ func (s *Servicio) entrarTerminar(p *peticion) (int, any) {
 		if err := insertarAparato(p.ctx, tx, ap, h); err != nil {
 			return err
 		}
-		return s.evento(p.ctx, tx, c.id, evMacAnadido, datosEvento{Mac: q.Nombre, Modelo: q.Modelo})
+		return s.evento(p.ctx, tx, c.id, evMacAnadido, datosEvento{Aparato: ap.id, Mac: q.Nombre, Modelo: q.Modelo})
 	})
 	if err != nil {
 		return interno()
@@ -495,7 +495,11 @@ func (s *Servicio) contrasenaCambiar(p *peticion) (int, any) {
 				return err
 			}
 		}
-		return s.evento(p.ctx, tx, c.id, evContrasenaCambiada, datosEvento{})
+		d := datosEvento{}
+		if conToken {
+			d.Aparato = q.Aparato
+		}
+		return s.evento(p.ctx, tx, c.id, evContrasenaCambiada, d)
 	})
 	if err != nil {
 		return interno()
@@ -591,6 +595,7 @@ func (s *Servicio) emailTerminar(p *peticion) (int, any) {
 		return interno()
 	}
 	sal, verif, ee := s.nuevoSecreto(c.id, kl, e)
+	autor := s.autor(p, c.id)
 	err = s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(p.ctx, `UPDATE cuentas SET email_hmac = ?, hmac_v = ?, email_cifrado = ?,
 		  aes_v = ?, sal = ?, verificador = ?, ee = ? WHERE id = ?`, x.emailHMAC, x.hmacV, x.emailCifrado, x.aesV,
@@ -600,7 +605,7 @@ func (s *Servicio) emailTerminar(p *peticion) (int, any) {
 			}
 			return err
 		}
-		return s.evento(p.ctx, tx, c.id, evEmailCambiado, datosEvento{})
+		return s.evento(p.ctx, tx, c.id, evEmailCambiado, datosEvento{Aparato: autor})
 	})
 	if errors.Is(err, errOcupada) {
 		return http.StatusConflict, fallo("email-ocupado")
@@ -667,7 +672,11 @@ func (s *Servicio) cadenaCambiar(p *peticion) (int, any) {
 				return err
 			}
 		}
-		return s.evento(p.ctx, tx, c.id, evCadenaCambiada, datosEvento{})
+		d := datosEvento{}
+		if conToken {
+			d.Aparato = q.Aparato
+		}
+		return s.evento(p.ctx, tx, c.id, evCadenaCambiada, d)
 	})
 	if errors.Is(err, errOcupada) {
 		return http.StatusConflict, fallo("cadena-ligada")

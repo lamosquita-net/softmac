@@ -103,11 +103,12 @@ func (s *Servicio) quitarAparato(p *peticion, op string) (int, any) {
 		return http.StatusNotFound, fallo("aparato")
 	}
 	nombre := s.nombreDe(ap)
+	autor := s.autor(p, c.id)
 	err = s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(p.ctx, `DELETE FROM cuenta_aparatos WHERE id = ?`, ap.id); err != nil {
 			return err
 		}
-		return s.evento(p.ctx, tx, c.id, evAparatoQuitado, datosEvento{Mac: nombre, Modelo: ap.modelo})
+		return s.evento(p.ctx, tx, c.id, evAparatoQuitado, datosEvento{Aparato: autor, Mac: nombre, Modelo: ap.modelo})
 	})
 	if err != nil {
 		return interno()
@@ -145,7 +146,7 @@ func (s *Servicio) aparatosRenovar(p *peticion) (int, any) {
 			if err := insertarAparato(p.ctx, tx, ap, h); err != nil {
 				return err
 			}
-			return s.evento(p.ctx, tx, c.id, evMacAnadido, datosEvento{Mac: q.Nombre, Modelo: q.Modelo})
+			return s.evento(p.ctx, tx, c.id, evMacAnadido, datosEvento{Aparato: ap.id, Mac: q.Nombre, Modelo: q.Modelo})
 		})
 		if err != nil {
 			return interno()
@@ -180,6 +181,7 @@ func (s *Servicio) aparatosRenombrar(p *peticion) (int, any) {
 		return cod, v
 	}
 	cif, av := s.cfg.AES.sellar(asociadoNombre(q.Aparato), []byte(q.Nombre))
+	autor := s.autor(p, c.id)
 	var n int64
 	err := s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
 		r, err := tx.ExecContext(p.ctx, `UPDATE cuenta_aparatos SET nombre_cifrado = ?, aes_v = ? WHERE cuenta = ? AND id = ?`,
@@ -190,7 +192,7 @@ func (s *Servicio) aparatosRenombrar(p *peticion) (int, any) {
 		if n, err = r.RowsAffected(); err != nil || n == 0 {
 			return err
 		}
-		return s.evento(p.ctx, tx, c.id, evAparatoRenombrado, datosEvento{Mac: q.Nombre})
+		return s.evento(p.ctx, tx, c.id, evAparatoRenombrado, datosEvento{Aparato: autor, Mac: q.Nombre})
 	})
 	if err != nil {
 		return interno()
@@ -214,6 +216,7 @@ type respEventos struct {
 	// activa · borrado-programado · cadena-sustituida (la clave se cambió desde otro Mac) · sin-cuenta
 	Estado  string          `json:"estado"`
 	Cuenta  string          `json:"cuenta,omitempty"`  // el id de la cuenta (S1: el Mac puede no saberlo)
+	Email   string          `json:"email,omitempty"`   // solo con prueba de cadena (S2)
 	Borrado int64           `json:"borrado,omitempty"` // con borrado-programado: cuándo
 	Eventos []eventoListado `json:"eventos"`
 }
@@ -224,7 +227,8 @@ func (s *Servicio) eventos(p *peticion) (int, any) {
 		return malaPeticion()
 	}
 	var c *registro
-	if p.r.Header.Get("Authorization") != "" {
+	conPrueba := p.r.Header.Get("X-FlyWeb-Prueba") != ""
+	if !conPrueba {
 		var cod int
 		var v any
 		if c, _, cod, v = s.cuentaDe(p, "eventos"); cod != 0 {
@@ -247,6 +251,15 @@ func (s *Servicio) eventos(p *peticion) (int, any) {
 		c = cu
 	}
 	r := respEventos{Estado: "activa", Cuenta: c.id, Eventos: []eventoListado{}}
+	// S2: el email, solo con prueba de cadena (nunca con el token, que se puede ver en tráfico descifrado, §14). Lo
+	// necesita para estirar la contraseña el Mac que se unió con las 24 palabras.
+	if conPrueba {
+		email, err := s.emailDe(c)
+		if err != nil {
+			return interno()
+		}
+		r.Email = email
+	}
 	if pg, err := s.alm.programado(p.ctx, c.id); err != nil {
 		return interno()
 	} else if pg != nil {
@@ -279,6 +292,7 @@ func (s *Servicio) noHeSidoYo(p *peticion) (int, any) {
 		return cod, v
 	}
 	cambio := false
+	autor := s.autor(p, c.id)
 	err := s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
 		n, err := invalidarTokens(p.ctx, tx, c.id, "")
 		if err != nil {
@@ -292,7 +306,7 @@ func (s *Servicio) noHeSidoYo(p *peticion) (int, any) {
 		if !cambio {
 			return nil
 		}
-		return s.evento(p.ctx, tx, c.id, evNoHeSidoYo, datosEvento{})
+		return s.evento(p.ctx, tx, c.id, evNoHeSidoYo, datosEvento{Aparato: autor})
 	})
 	if err != nil {
 		return interno()
@@ -359,12 +373,13 @@ func (s *Servicio) borradoCancelar(p *peticion) (int, any) {
 		return cod, v
 	}
 	cancelado := false
+	autor := s.autor(p, c.id)
 	err := s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
 		var err error
 		if cancelado, err = cancelarProgramado(p.ctx, tx, c.id, s.ahora()); err != nil || !cancelado {
 			return err
 		}
-		return s.evento(p.ctx, tx, c.id, evBorradoCancelado, datosEvento{})
+		return s.evento(p.ctx, tx, c.id, evBorradoCancelado, datosEvento{Aparato: autor})
 	})
 	if err != nil {
 		return interno()

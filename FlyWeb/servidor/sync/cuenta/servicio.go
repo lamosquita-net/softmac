@@ -350,11 +350,15 @@ func (s *Servicio) nuevoSecreto(cuentaID string, kl, e []byte) (sal, v, ee []byt
 // --- avisos ---
 
 type datosEvento struct {
-	Mac    string `json:"mac,omitempty"`
-	Modelo string `json:"modelo,omitempty"`
-	N      int64  `json:"n,omitempty"`
-	Desde  int64  `json:"desde,omitempty"`
-	Fecha  int64  `json:"fecha,omitempty"`
+	// Aparato: id del aparato que hizo la operación, solo si está verificado (S3): el del token Bearer que acompaña
+	// a la llamada, el que recibe token nuevo en contrasena/cambiar y cadena/cambiar, o el nuevo de mac-anadido y
+	// cadena-ligada. Nunca el «aparato» del cuerpo sin verificar: un Mac robado podría hacerse pasar por otro.
+	Aparato string `json:"aparato,omitempty"`
+	Mac     string `json:"mac,omitempty"`
+	Modelo  string `json:"modelo,omitempty"`
+	N       int64  `json:"n,omitempty"`
+	Desde   int64  `json:"desde,omitempty"`
+	Fecha   int64  `json:"fecha,omitempty"`
 }
 
 // evento deja un evento para los Macs de la cuenta (dentro de la transacción de la operación).
@@ -464,6 +468,16 @@ func (s *Servicio) porToken(p *peticion) (*aparato, error) {
 		}
 	}
 	return ap, nil
+}
+
+// autor: el aparato del token Bearer que acompaña a la llamada, si vale y es de la cuenta (S3). Se llama fuera
+// de las transacciones (lee y puede escribir en la base, que tiene una sola conexión).
+func (s *Servicio) autor(p *peticion, cuentaID string) string {
+	ap, err := s.porToken(p)
+	if err != nil || ap == nil || ap.cuenta != cuentaID {
+		return ""
+	}
+	return ap.id
 }
 
 // --- tareas periódicas ---
