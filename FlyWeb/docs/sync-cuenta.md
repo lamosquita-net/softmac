@@ -14,8 +14,9 @@ Qué cambia frente a la versión anterior (`ca7e1ac8`):
 - Las correcciones N4 y N5 de la cuarta pasada de SEGURIDAD siguen, en su versión más simple (§6.2, §10).
 - La copia de bak se borra de verdad a los 30 días (§7).
 
-El diseño ha pasado cuatro revisiones de SEGURIDAD-PORTES (21 y 22); la cuarta dio la versión anterior por aprobable
-para H1, sin bloqueantes. **Esta versión no la ha visto SEGURIDAD todavía.** Qué queda de cada hallazgo, en §14.
+El diseño ha pasado cinco revisiones de SEGURIDAD-PORTES (21 y 22). La quinta, del 13-11, dio esta versión
+simplificada (`9a78b7f7`) por **aprobable para H1, sin bloqueantes**, con una corrección, N6, que ya está aplicada
+aquí (§10). Qué queda de cada hallazgo, en §14.
 
 Solo papel: nada compilado ni probado. **Propone; decide Titín.** Hasta que apruebe H1, ni una línea de código.
 
@@ -613,7 +614,8 @@ programado`.
   diario y nada que se cierre por fallos.** Sin IP no hay límite por IP: es deliberado (privacidad).
 - **Espera de la contraseña** [S, N4]: una por email, la misma al entrar y cuando la contraseña acompaña a una
   prueba de cadena (cambio de email o de clave).
-  - **Se dobla** (10 s, 20 s, 40 s…) **con tope de 15 minutos**: tras cada `entrar/empezar`, **acierte o no**, y
+  - **Se dobla** (10 s, 20 s, 40 s…) **con tope de 15 minutos**: tras cada `entrar/empezar` que llega a
+    comprobarse (N6, abajo), **acierte o no**, y
     tras cada contraseña fallada con prueba de cadena. A tope deja unos 96 intentos al día.
   - **Vuelve a cero** cuando la contraseña buena llega con algo más: al terminar una entrada con el código del
     email, con una contraseña correcta junto a una prueba de cadena, o al cambiar la contraseña. También a las 24 h
@@ -628,6 +630,24 @@ programado`.
   - **Solo en memoria** [P]: tabla de tamaño fijo, con caducidad a las 24 h. No va a `sync.db` ni a la copia de
     bak, para no dejar en disco el HMAC del email de quien no tiene cuenta. Al reiniciar el servicio las esperas
     vuelven a cero [I: límite menor].
+  - **La tabla no se puede vaciar a la fuerza** [S, N6]:
+    - una entrada cuya espera no ha terminado **no se descarta nunca**;
+    - si la tabla está llena de entradas en espera, un email nuevo recibe la **espera máxima** y no se comprueba
+      nada;
+    - para hacer sitio se descarta, entre las que ya han cumplido su espera, la de espera más corta, y entre
+      iguales la más antigua [P]. Las de emails inventados, que solo tienen un intento, salen antes que la de una
+      cuenta atacada;
+    - el intento se anota (se crea la entrada y crece la espera) cuando la petición recibe turno en el semáforo de
+      scrypt, y ahí se vuelve a mirar la espera [P]. «Servidor ocupado» no cuenta como intento. Así la tabla se
+      llena al ritmo del semáforo y no al de la red, y dos peticiones a la vez para el mismo email no dan dos
+      intentos;
+    - **tamaño** [I: lo fija SERVIDOR]: con holgura por encima de lo que el semáforo deja calcular en 15 minutos.
+      Con la cifra de SEGURIDAD, sin medir, de unos 100 scrypt por segundo en ns2, son unas 90 000 entradas y
+      pocos MiB.
+    - **Por qué** [S]: si al llenarse se descartara la más antigua, quien tiene solo el buzón la llenaría con emails
+      inventados hasta echar la entrada de la cuenta que ataca, y su espera volvería a 10 s: unas 860 contraseñas
+      al día en lugar de 96. Con el orden de descarte de arriba, echar esa entrada exige subir antes al tope todas
+      las demás, y eso da menos intentos que esperar los 15 minutos [I: cuenta mía, con ese tamaño].
   - Durante la espera el servidor no comprueba nada y contesta cuándo acaba. La página lo dice («Demasiados
     intentos. Podrás volver a probar a las HH:MM.»); el Mac no guarda la contraseña para reintentar solo (§11).
 - **Avisos de la contraseña** [S, N4]: los dos eventos de §6.2, acierto desde un Mac nuevo y resumen de fallos.
@@ -636,7 +656,9 @@ programado`.
   - las peticiones de más **esperan en cola** hasta 25 s (por debajo del límite de 30 s del cliente, §9) y, si no
     les llega el turno, reciben «servidor ocupado»;
   - **tope de memoria explícito:** 16 MiB por scrypt en curso, una cola de longitud fija y `MemoryMax` en la unidad
-    de systemd [I: los valores los pone SERVIDOR con los núcleos y la memoria de ns2 a la vista];
+    de systemd [I: los valores los pone SERVIDOR con los núcleos y la memoria de ns2 a la vista]. `MemoryMax` queda
+    **por encima** de lo que suman el semáforo, la cola y la tabla de esperas [S, O14]: una avalancha tiene que dar
+    «servidor ocupado», no un reinicio por falta de memoria, que pondría las esperas a cero;
   - el scrypt de relleno de los emails sin cuenta pasa por el mismo semáforo;
   - lo que no calcula scrypt (todo lo que va con prueba de cadena y sin contraseña) no pasa por él.
 - **Límites conocidos** [I]:
@@ -647,7 +669,7 @@ programado`.
   - **Una avalancha de `entrar/empezar` con emails inventados llena la cola.** Añadir un Mac se vuelve lento y puede
     dar «servidor ocupado» mientras dure; quien ya sincroniza no lo nota. Sin IP, la aplicación no distingue a
     quien inunda. Si hiciera falta un freno por IP, iría delante, en Apache, y es cosa de SERVIDOR [I, no lo
-    propongo aquí].
+    propongo aquí]. La avalancha no borra la espera de nadie (N6).
 - **Cupos de correo, separados** [S, N2 y N3b]: (1) `alta` a direcciones **sin cuenta**: 20 por hora en total; (2)
   códigos de entrada a **cuentas existentes**: 60 por hora en total y 5 por cuenta, y solo se mandan con `KL`
   correcta, así que quien no sabe la contraseña no gasta este cupo ni llena el buzón de nadie; (3) códigos pedidos
@@ -728,7 +750,7 @@ números no se renumeran, para no romper las referencias de las revisiones: **P3
 | P21 | **Mac robado** (N1): C, con la cadena sola, intenta cambiar la contraseña, el email y la clave; después falla **20 contraseñas seguidas** (N4) y pide los 5 códigos de la hora | ninguna de las tres se hace ni queda pendiente; los fallos de C no cierran nada, dan aviso de fallos en A y en B (el primero al momento, luego uno por hora) y el ritmo medido llega a 15 min; A recibe los correos de los códigos que no ha pedido; A cambia la clave con su contraseña en cuanto le llega el turno, y C deja de leer |
 | P22 | **Lo que hay en `sync.db`** (decisión 2) | no están ni `KL` ni la envoltura interior; con la contraseña de prueba y los dos estiramientos la semilla sale (es el riesgo aceptado, y queda medido el tiempo por intento); el coste por intento del atacante se mide con `hashcat -b -m 8900`, llevado a N = 2^17, y con esa cifra se corrige la tabla de §4 (O11) |
 | P23 | **Coste del estiramiento** (§4): cronometrar el scrypt del cliente en la 6,1 y en la 5,1, con la primera compilación y **antes de publicar**; mirar la memoria del proceso; poner la contraseña con el gestor de contraseñas activo | hasta 2 s en la 5,1 (o hasta 1 s en la 6,1 si la 5,1 no está disponible): se queda N = 2^17; si no, N = 2^16 y se corrige §4. La interfaz no se congela; los 128 MiB se devuelven al terminar; el gestor no ofrece guardar la contraseña de la cuenta |
-| P24 | **Avalancha de entradas** (N5): más `entrar/empezar` a la vez que núcleos, con emails inventados, durante varios minutos | nunca hay más scrypt en curso que el máximo; la memoria del servicio no pasa del tope; las peticiones de más esperan y a los 25 s reciben «servidor ocupado»; mientras dura, A y B sincronizan y leen eventos sin retraso |
+| P24 | **Avalancha de entradas** (N5): más `entrar/empezar` a la vez que núcleos, con emails inventados, durante varios minutos | nunca hay más scrypt en curso que el máximo; la memoria del servicio no pasa del tope; las peticiones de más esperan y a los 25 s reciben «servidor ocupado»; mientras dura, A y B sincronizan y leen eventos sin retraso. **Tabla de esperas** (N6), con un tamaño reducido para la prueba: tras llenarla con emails inventados, la espera de un email que estaba a tope sigue a tope; con la tabla llena de entradas en espera, un email nuevo recibe la espera máxima; el servicio no se reinicia por memoria |
 | P26 | **Cambio de email** (§6.5) en A, con la contraseña y un código a la dirección nueva; después, con la contraseña mal | la dirección vieja recibe el aviso y B el evento; un Mac nuevo entra con la dirección nueva y la misma contraseña, y no con la vieja; con la contraseña mal no cambia nada ni sale ningún código |
 
 **Aceptación de la 3.2** (`plan-3x.md` §5.2): todas las pruebas de la tabla en verde en los tres Macs; datos
@@ -805,7 +827,15 @@ esas palabras:
 | Roba un Mac abierto **con el correo abierto** | **la cuenta**, si llega antes que el dueño: pone contraseña nueva y cambia clave y email. **Riesgo aceptado** [T] | nada con el Mac apagado o bloqueado | §6.3 |
 | En la red (sin romper TLS) | nada | — | — |
 
-**Lo que SEGURIDAD no ha visto y conviene que mire en esta versión:**
+**Quinta pasada** (SEGURIDAD-PORTES-22, comentario 6847684261, sobre `9a78b7f7`): **aprobable para H1, sin
+bloqueantes.** Los dos criterios de Titín se cumplen: el servidor no puede abrir la semilla, y quien no tiene Mac ni
+correo no entra. N4 y N5, completos. Un punto a corregir, **N6** (la tabla de esperas se podía vaciar), ya
+aplicado en §10, y dos opcionales, O13 y O14 (tabla de abajo).
+
+**Lo único que SEGURIDAD no ha visto** es lo que he añadido al corregir N6 (§10): el orden de descarte de la tabla
+y que el intento se anota al recibir turno en el semáforo.
+
+**Lo que cambió en la versión simplificada. SEGURIDAD lo miró en la quinta pasada y está de acuerdo:**
 
 1. **Los cambios programados, fuera** (§6.7). Con la cadena sola ya no se admite ningún cambio de control. Quita
    N3c y el código de cancelación, y cambia la forma de N1.
@@ -818,8 +848,9 @@ esas palabras:
    disputa.
 5. **Sin correo diario de fallos de contraseña**: el aviso va solo a los Macs.
 
-**Qué queda de cada hallazgo de las cuatro pasadas.** Primera (comentario 6797345699), segunda (6807160010) y
-tercera (6820589854), de SEGURIDAD-PORTES-21; cuarta (6834786251), de SEGURIDAD-PORTES-22. Las letras son las suyas.
+**Qué queda de cada hallazgo de las cinco pasadas.** Primera (comentario 6797345699), segunda (6807160010) y
+tercera (6820589854), de SEGURIDAD-PORTES-21; cuarta (6834786251) y quinta (6847684261), de SEGURIDAD-PORTES-22. Las
+letras son las suyas.
 
 | Hallazgo | Cómo queda | Dónde |
 |---|---|---|
@@ -843,6 +874,9 @@ tercera (6820589854), de SEGURIDAD-PORTES-21; cuarta (6834786251), de SEGURIDAD-
 | **N3c** dueño con contraseña y buzón, sin cadena | sin objeto: no hay nada que cancelar; contraseña y buzón dan la cadena | §3 |
 | **N4** la contraseña se puede adivinar en línea sin que nadie se entere | se mantiene: evento en los Macs al acertar y resumen de fallos; tope de 15 min; misma espera exista o no la cuenta, con `email_hmac`. La espera por credencial (N4.2) queda sin objeto: solo hay una credencial | §5.1, §6.2, §10, P5, P21 |
 | **N5** el tope global de entradas lo agota cualquiera | se mantiene: semáforo de scrypt con cola de 25 s y tope de memoria | §10, P24 |
+| **N6** la tabla de esperas se puede vaciar con emails inventados | corregido: una entrada en espera no se descarta nunca; con la tabla llena de esperas, un email nuevo recibe la máxima. Añadido mío: orden de descarte y anotación del intento en el semáforo | §10, P24 |
+| **O13** correo de fallos de contraseña cuando vienen con prueba de cadena | **no adoptada** [P]: es el caso del Mac robado, en el que el dueño ya sabe que se lo han robado (lo dice la propia SEGURIDAD) y su defensa es cambiar la clave; añadiría otro correo a un diseño que Titín quiere sencillo. Si se prefiere, es una línea en §6.2 | — |
+| **O14** `MemoryMax` por encima del semáforo y la tabla | adoptada | §10 |
 | **E** Mac robado con el correo abierto | **descartada por Titín**; riesgo aceptado | §6.3 |
 | Código visible (prefs, vida de 24 h) | sin objeto: no hay código visible | — |
 | `KE`, `KL` y `KU` en memoria | se mantiene: `OPENSSL_cleanse`, sin prefs ni registro; SEGURIDAD lo mirará en el código de H3 | §11 |
@@ -883,8 +917,9 @@ Documentos: `plan-3x.md` §5, `TAREAS.md:281` (F7.7), `DIRECTIVAS.md` («Sync co
 «Simplificación», #962, leída en `main` el 12-11), `coordinacion.md:136,265-269`,
 `parches/3.0.2-sync-ajustes/README.md`, `web-flyweb.md` §2, `docs/SERVIDOR.md:13`; buzón
 `buzon/ARQUITECTURA/20261112-{1003,1017,1020,1054}-COORDINACION-39-*.md` y
-`20261112-{2015,2246}-COORDINACION-40-*.md`; revisiones de SEGURIDAD-PORTES-21 (PR #905, comentarios 6797345699,
-6807160010 y 6820589854) y cuarta pasada de SEGURIDAD-PORTES-22 (comentario 6834786251, leído entero el 12-11); de la
+`20261112-{2015,2246}-COORDINACION-40-*.md` y `20261113-0812-COORDINACION-40-sync-n6.md`; revisiones de
+SEGURIDAD-PORTES-21 (PR #905, comentarios 6797345699, 6807160010 y 6820589854) y cuarta y quinta pasadas de
+SEGURIDAD-PORTES-22 (comentarios 6834786251, leído entero el 12-11, y 6847684261, leído entero el 13-11); de la
 primera salen los datos sobre `auth/auth.go` de go-sync, que no he vuelto a comprobar.
 
 **onepw:** «Firefox Accounts: onepw protocol», Mozilla,
@@ -902,5 +937,6 @@ escalar, líneas 46-137; `SCRYPT_MAX_MEM` de 65 MiB, línea 150; comprobación d
 **Límites:** no se ha medido el coste de scrypt en la 6,1 ni en la 5,1: lo de §4 es un cálculo sobre el código, y la
 cifra de 2009 del autor de scrypt está citada de memoria; las cifras de aguante de §4 y las probabilidades de §6.1
 son cuentas mías. No se ha probado nada contra ns2. La unidad de la tabla de aguante (0,3 s por intento) es un
-supuesto hasta P22, y el artículo de Alwen y otros lo cito por SEGURIDAD, sin releerlo. SEGURIDAD revisó el diseño en
-`bb75d529`; **esta versión simplificada no la ha visto**, y los cinco puntos de §14 son los que más cambian.
+supuesto hasta P22, y el artículo de Alwen y otros lo cito por SEGURIDAD, sin releerlo. SEGURIDAD revisó la versión
+simplificada en `9a78b7f7` (quinta pasada); **no ha visto lo añadido al corregir N6** (§10). El ritmo de 100 scrypt
+por segundo en ns2, del que sale el tamaño de la tabla de esperas, es una cifra de SEGURIDAD sin medir.
