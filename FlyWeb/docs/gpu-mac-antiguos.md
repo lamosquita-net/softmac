@@ -4,6 +4,7 @@ ARQUITECTURA, 13-11-2026. Encargo de COORDINACIÓN-41 (buzón `20261113-2115`), 
 MacBookPro9,1 con Catalina y la 3.1.1. **Solo papel: nada compilado, nada lanzado, nada medido.** Leído: el árbol
 `~/proyectos/chromium-156/src` (rama `flynk-b1d` `33a1745949`, la base de la 3.0.0; ANGLE `e3917d6`), la rama `flynk-b1b`
 (B1c), los parches de la 3.1.x del repositorio y el binario de la 3.1.1 instalada en la 7,1 (`strings` y `nm`).
+**Ampliado el 13-11 por la noche** (buzón `20261113-2220`, medidas de LOCAL-19): conclusión 2 y 5, §2.3 y §5.1.
 
 Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** suposición sin comprobar.
 
@@ -14,15 +15,17 @@ Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** sup
    finales de 2015 [V]. De los Mac que admiten Mojave solo conservan la aceleración los Mac Pro, ese iMac y el iMac Pro.
    **Es casi todo el público natural de FlyWeb que no tiene un Mac Pro.**
 2. **Viene de serie en Chromium 156 y está en todas las 3.x** [V: ningún parche nuestro cambia la lista de modelos]. En la 2.x esos
-   Mac dibujaban con OpenGL [I]. Es una regresión de la 3.0.0 que no se vio porque las pruebas se hicieron en los Mac Pro
-   y porque en Catalina la 3.0.0–3.1.0 ni arrancaba.
+   Mac dibujaban con OpenGL. Es una regresión de la 3.0.0 que no se vio porque las pruebas se hicieron en los Mac Pro
+   y porque en Catalina la 3.0.0–3.1.0 ni arrancaba. **Medido por LOCAL-19 el 13-11 en el MacBook Pro de 2012:**
+   Aquarium con 1 000 peces da 5,9 fps en la 3.1.x y 59 fps en la 2.7.0 (buzón `20261113-2220`).
 3. **De nuestras siete máquinas, las tres Mac Pro están bien y las cuatro de pruebas ocasionales caen** (§3.1).
 4. **El OpenGL de ANGLE ya va compilado dentro de la 3.1.1** [V: en el binario]. Lo cierran dos puertas de Chromium y
    una pieza que la 156 quitó (las texturas rectangulares de IOSurface). La rama B1c lo devolvía con **unas 140 líneas en 15
    ficheros**, pero se paró a medias: en la 6,1 arrancaba en hardware y sin errores, con la pintura y WebGL **sin
    comprobar** [V: `docs/TAREAS.md`, FM.55].
-5. **Recomiendo la opción A:** OpenGL automático solo donde ANGLE no admite Metal, en la 3.2.0, con cuatro
-   comprobaciones baratas antes de compilar (§5). No recomiendo relajar la lista de ANGLE (B).
+5. **Recomiendo la opción A:** OpenGL automático solo donde ANGLE no admite Metal. No recomiendo relajar la lista de
+   ANGLE (B). **Cabe en la 3.1.2 recortada a Mojave y Catalina y con una prueba previa de que pinta** (§5.1, añadido
+   tras las medidas de LOCAL-19); los Mac con macOS 11 o posterior, en la 3.2.0.
 6. **La cifra de «34 CVE que portar a mano» no vale para B1c tal como quedó** [I]: se contó para una capa copiada de la
    150 y B1c no copia nada de la 150. Hay que recontarla (SEGURIDAD) antes de que pese en esta decisión.
 
@@ -55,9 +58,11 @@ MacBookPro11,4» no están soportadas por el backend Metal (anglebug 40096869).
 
 ### 2.3 Lo que no sé
 
-- **En qué punto exacto se queda el 9,1.** Sin indicar nada, Chromium ya prueba ANGLE Metal y después ANGLE OpenGL
-  (`gl_display_initializer.cc:76-79` y `:105-113`), así que puede que la GPU llegue a arrancar con OpenGL y caiga después
-  por las texturas [S]. Lo dice el `flyweb://gpu` y la salida de error del proceso de GPU de esa máquina (§5, paso 1).
+- **En qué punto se queda el 9,1: resuelto leyendo el código** [V: `gl_display_initializer.cc:208-213`].
+  Chromium solo prueba la pantalla de ANGLE OpenGL si OpenGL está en la lista de admitidos, y en Mac no lo está. Con Metal
+  rechazado no queda ninguna pantalla que probar, el proceso de GPU no arranca y todo cae a software. Cuadra con lo
+  medido. Consecuencia: **la misma línea** de `gl_factory_mac.cc` abre el indicador `--use-angle=gl` y el paso
+  automático (Metal primero, OpenGL si Metal falla; `:76-79` y `:105-113`).
 - **Cuál de las tres puertas corta en cada GPU.** El modelo corta siempre antes. La familia de las Intel HD 4000 y 5000,
   de la GT 650M y de la R9 M370X **no está medida** (`metal-mojave.md` lo dejaba en [N]).
 
@@ -167,21 +172,57 @@ Tres líneas de parche y la validación más cara de las tres.
 
 ## 5. Recomendación
 
-**A, en la 3.2.0, y C desde ya como nota mientras tanto.** Decide Titín.
+**A, y C desde ya como nota mientras tanto.** Decide Titín. La fecha la revisé el 13-11 por la noche con las medidas
+de LOCAL-19: ver §5.1.
 
 - **Por qué A:** el código de ANGLE ya está dentro y lo mantiene upstream; lo que falta es poco y está escrito. B gasta
   más en validar y acaba donde nadie más está.
-- **Por qué la 3.2.0 y no la 3.1.2:** es el arreglo de una regresión y cabría en un tercer dígito, pero cambia el camino
-  de dibujo, necesita una compilación oficial, la regla 17 y cuatro máquinas que solo prueba Titín. La 3.1.2 es la tanda
-  de seguridad de Chrome 158 y no debería esperar por esto. Si la 3.2.0 se alarga, una 3.1.x propia.
+- **Fecha (primera versión de este documento, superada por §5.1):** proponía la 3.2.0 entera, porque cambia el camino
+  de dibujo y necesita la regla 17 y máquinas que solo prueba Titín. Sigue valiendo para macOS 11 o posterior.
 - **Qué hay que decidir** (Titín): la directiva del 05-11 y `plan-3x.md:181` dejan B1c parada «salvo que la 5,1 falle
   con Metal». Esto es el mismo caso con otras máquinas: reabrirla para los modelos que ANGLE rechaza, y solo para ellos.
   En los Mac Pro, Metal sigue (×2,4 en MotionMark).
 
+### 5.1 ¿Cabe en la 3.1.2? (añadido el 13-11 por la noche, buzón `20261113-2220`)
+
+**Sí, con un recorte y dos condiciones.** Las medidas de LOCAL-19 cambian mi recomendación de fecha: diez veces más
+lento en un Mac del objetivo no es para esperar a la 3.2.0.
+
+- **El recorte: solo macOS anterior a 11** (Mojave y Catalina). Ahí el modo «GL por hardware» ya existe y es el que
+  usan la 6,1 y la 5,1 [V], así que no hay diseño nuevo. En `gl_factory_mac.cc`, OpenGL se admite solo antes de
+  macOS 11; de macOS 11 en adelante **no cambia nada** y el punto 3 de la opción A queda para la 3.2.0.
+  - Entran: MacBook Pro y Mac mini de 2012 con Catalina, y el Air de 2013 con Mojave.
+  - Se quedan como hoy hasta la 3.2.0: los que lleven Big Sur o Monterey (el 11,5 de pruebas).
+- **Tamaño** [V: los cuatro commits de texturas, leídos enteros]: una línea para admitir OpenGL y las texturas
+  rectangulares (11 ficheros). Con ANGLE en Metal la función devuelve `GL_TEXTURE_2D`, lo mismo que hoy: en los Mac Pro
+  el camino es el de siempre con una comprobación más. Añade un campo al mojom `SharedImageCapabilities`.
+- **Condición 1: que pinte, comprobado antes de cerrar el contenido.** Es lo único que B1c dejó sin hacer.
+  - **Sin compilar:** se conserva `entregas/b1-local16/chromium-156-b1c.zip` (04-11). Si es la compilación con las
+    texturas [S: por la hora], LOCAL puede mirar ya en la 6,1 si pinta y si WebGL crea contexto, y Titín en el Air de
+    2013. En Catalina esa compilación no arranca [I: tiene la misma guarda que la 3.0.0].
+  - **Con la candidata:** en la 6,1 con `--use-angle=gl` (batería de `pruebas-gpu.md`) y en el MacBook Pro de 2012.
+  - El peor caso no es que siga lento: es que la GPU diga que va y la ventana no pinte, que fue el estado intermedio de
+    LOCAL-16. Por eso la prueba va antes y no después.
+- **Condición 2: regla 17** de los 15 ficheros, y que SEGURIDAD pase a tratar como aplicables los arreglos del OpenGL
+  de ANGLE. El destino de textura lo calcula el cliente a partir de lo que anuncia el proceso de GPU: que lo mire.
+- **Si no está en verde cuando la tanda de Chrome 158 esté lista, la tanda sale sola** y esto va en una 3.1.3 propia.
+  La seguridad no espera por esto.
+- **No choca con la puerta de la 3.1** (hilos y varias GPU, `plan-3x.md` §4.3), que es de rendimiento. Con lo que
+  choca es con la directiva del 05-11 que deja B1c parada: la reabre Titín, solo para estos modelos.
+
+**Lo que LOCAL-19 iba a mirar y ya está contestado aquí** (para no hacerlo dos veces):
+
+- *Qué backends lleva nuestra 156:* Metal, OpenGL (CGL) y SwiftShader. `angle_enable_gl` vale verdadero por defecto en
+  Mac (`third_party/angle/gni/angle.gni:230-233`) y `angle_enable_cgl` con él (`:412`); no hay que tocar los argumentos
+  de compilación. Comprobado en el binario de la 3.1.1 (§2.2).
+- *Si Chromium 156 soporta ANGLE GL en macOS:* ANGLE sí; Chromium no lo deja pasar (§2.2).
+
+Le quedan las medidas y los pasos 1 a 3 de abajo.
+
 **Antes de compilar nada, cuatro comprobaciones sin compilar FlyWeb:**
 
 1. **LOCAL-19, en el 9,1:** `flyweb://gpu` entero y la salida de error del proceso de GPU con la 3.1.1 sin indicadores.
-   Dice qué puerta corta y dónde acaba (§2.3).
+   Confirma en la máquina lo leído en §2.3.
 2. **La sonda de Metal** (`FlyWeb/tools/metal-sonda/sonda.m`; se compila en cualquier Mac con `clang` y es un binario de
    línea de órdenes) en los cuatro Mac ocasionales. Da la familia de la HD 4000, la HD 5000, la GT 650M, la R9 M370X y la
    Iris Pro: cierra el [N] de `metal-mojave.md` y dice si B sería siquiera posible en el 11,5.
