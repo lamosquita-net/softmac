@@ -1,7 +1,7 @@
 # FlyWeb 3.1.1: parches de seguridad (serie previa, antes de la nota de Chrome 158)
 
-> **13-11: contenido cerrado en [`CONTENIDO.md`](CONTENIDO.md)** (SEGURIDAD-PORTES-22). La nota de la 158 no entra (pasa a
-> la 3.1.2). Se añaden 0035–0043 (156.0.8078.104), el cambio de versión de brave-core y, opcional, V8 15.6.75.59. Lo de
+> **13-11: contenido cerrado en [`CONTENIDO.md`](CONTENIDO.md)** (SEGURIDAD-PORTES-22). La nota de la 158 no entra (su delta,
+> el 17-11). Se añaden 0035–0043 (156.0.8078.104), el cambio de versión de brave-core y, opcional, V8 15.6.75.59. Lo de
 > abajo describe la serie previa (0001–0034) tal como quedó el 12-11.
 
 SEGURIDAD-PORTES-21, 12-11-2026, por orden de COORDINACIÓN-39. Inventario y criterios:
