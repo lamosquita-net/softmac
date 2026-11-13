@@ -4,8 +4,7 @@ Implementa la parte de servidor de [`FlyWeb/docs/sync-cuenta.md`](../../../docs/
 simplificado A–E y las correcciones N1–N6. Va en el mismo binario `flyweb-sync` y el mismo `sync.db`; go-sync no se
 toca. **Solo se activa si systemd le da las dos credenciales** (abajo): sin ellas, `flyweb-sync` funciona como antes.
 
-Los huecos del diseño están cerrados en «Decisiones de H2» de `sync-cuenta.md` (§10.1, COORDINACIÓN-41, 13-11). Lo que
-aquí sigue marcado **provisional** (11 y 12) está pendiente de su respuesta.
+Los huecos del diseño están cerrados en «Decisiones de H2» de `sync-cuenta.md` (§10.1, COORDINACIÓN-41, 13-11).
 
 ## Protocolo
 
@@ -49,7 +48,7 @@ guion, espacios y minúsculas).
 | `cadena/cambiar` | prueba `cadena-cambiar` con la vieja **y** `X-FlyWeb-Cadena-Nueva`/`X-FlyWeb-Prueba-Nueva` (mismo nonce) + contraseña | `kl envoltura [aparato]` | `[aparato token]` |
 | `aparatos/listar` | token o prueba `aparatos-listar` | `{}` | `aparatos: [id modelo nombre alta ultimo_uso este]` |
 | `aparatos/quitar` | prueba `aparatos-quitar` | `aparato` | `{}` |
-| `aparatos/renovar` | prueba `aparatos-renovar` | `aparato`, o `modelo nombre` para darse de alta (provisional, 11) | `cuenta aparato token` |
+| `aparatos/renovar` | prueba `aparatos-renovar` | `aparato`, o `modelo nombre` para darse de alta (Mac unido con las 24 palabras; avisa) | `cuenta aparato token` |
 | `aparatos/renombrar` | prueba `aparatos-renombrar` | `aparato nombre` | `{}` |
 | `eventos` | token o prueba `eventos` | `desde` (último `n` leído) | `estado [borrado] eventos: [n tipo fecha datos]` |
 | `no-he-sido-yo` | prueba `no-he-sido-yo` | `{}` | `{}` |
@@ -89,7 +88,8 @@ perdió la respuesta (§4.6): con la misma `kl` y `envoltura` contestan lo mismo
   reintentarlo (avisos, 3 días; códigos, hasta que caducan). Avisos sin cupo. Textos en `textos.go`.
   Textos en `textos.go`.
 - **Tareas cada minuto**: aviso de fallos pendientes (como mucho uno por hora), diferidos cumplidos, caducidades,
-  inactivas. **Cada hora**, una línea de contadores anónimos a nivel `warn`.
+  inactivas; una cuenta cuya cadena se desactiva por el protocolo de sync se programa para borrar a 14 días, con
+  aviso. **Cada hora**, una línea de contadores anónimos a nivel `warn`.
 
 ## Configuración (variables de la unidad)
 
@@ -128,8 +128,3 @@ SQLite, con reloj, correo y go-sync falsos y «Macs» que hacen lo que hará el 
 P1, P2, P4–P8, P11 (con un Mac), P12, P14, P17–P22 (sin Macs ni bak), P24 y P26 de §12, más las respuestas iguales
 exista o no la cuenta (O1). Sin cubrir aquí: lo que pide Macs, ns2, el MTA o bak (P9, P10, P13, P15, P16 en el
 cliente, P20 en el MTA y bak, P23).
-
-## Provisional (pendiente de COORDINACIÓN-41)
-
-11. Un Mac unido con las 24 palabras se da de alta en la lista con `aparatos/renovar` (modelo y nombre), con aviso.
-12. Una cuenta cuya cadena se desactiva por el protocolo de sync (o por la regla de inactivas sin cuenta) se borra.

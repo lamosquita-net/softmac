@@ -556,7 +556,9 @@ func (s *Servicio) ejecutarVencidos(ctx context.Context, ahora int64) error {
 // Con FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS > 0: a (días − aviso) sin escrituras de la cadena, un correo; a los días,
 // se borra cuenta, cadena y email. Una cadena en uso renueva su ficha a diario y nunca llega. Una cuenta cuya cadena
 // ya está desactivada (se borró con el protocolo de sync desde un Mac sin cuenta, o la borró la regla de
-// inactivas de hoy) se borra también: «una cadena, una cuenta» (provisional, pregunta 12 a COORDINACIÓN).
+// inactivas de hoy) se borra también, «una cadena, una cuenta», pero con el borrado normal de 14 días y su aviso
+// [C: COORDINACIÓN-41, decisión 12]; un Mac lo puede cancelar (y, con la contraseña, cambiar a una cadena nueva).
+// Tras cancelarlo no se vuelve a programar en 30 días, como el pedido por email.
 func (s *Servicio) inactivas(ctx context.Context, ahora int64) error {
 	rows, err := s.cfg.DB.QueryContext(ctx, `SELECT `+columnas+` FROM cuentas`)
 	if err != nil {
@@ -582,7 +584,7 @@ func (s *Servicio) inactivas(ctx context.Context, ahora int64) error {
 			return err
 		}
 		if des {
-			if err := s.borrarCuenta(ctx, c, false); err != nil {
+			if err := s.programarHuerfana(ctx, c, ahora); err != nil {
 				return err
 			}
 			continue
@@ -622,4 +624,31 @@ func (s *Servicio) inactivas(ctx context.Context, ahora int64) error {
 		}
 	}
 	return nil
+}
+
+// programarHuerfana programa a 14 días el borrado de una cuenta cuya cadena ya está desactivada, con evento y aviso,
+// si no hay ya uno programado ni se canceló hace menos de 30 días.
+func (s *Servicio) programarHuerfana(ctx context.Context, c *registro, ahora int64) error {
+	if c.cancelado != 0 && ahora-c.cancelado < int64(trasCancelacion/time.Second) {
+		return nil
+	}
+	programado := false
+	fecha := ahora + int64(s.cfg.Demora/time.Second)
+	err := s.alm.enTx(ctx, func(tx *sql.Tx) error {
+		r, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO cuenta_programados (cuenta, tipo, pedido, fecha)
+		  VALUES (?, 'borrar', ?, ?)`, c.id, ahora, fecha)
+		if err != nil {
+			return err
+		}
+		n, err := r.RowsAffected()
+		if err != nil || n == 0 {
+			return err
+		}
+		programado = true
+		return s.evento(ctx, tx, c.id, evBorradoPedido, datosEvento{Fecha: fecha})
+	})
+	if err == nil && programado {
+		s.avisar(c, evBorradoPedido, "")
+	}
+	return err
 }

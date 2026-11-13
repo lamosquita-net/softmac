@@ -697,12 +697,54 @@ func TestInactivas(t *testing.T) {
 	if n != 1 || !b.cad.desactivadas[a.cadena] || b.cad.desactivadas[z.cadena] {
 		t.Fatalf("inactivas: %d cuentas; A borrada %v; Z borrada %v", n, b.cad.desactivadas[a.cadena], b.cad.desactivadas[z.cadena])
 	}
-	// La cadena de Z se borra desde un Mac sin cuenta (protocolo de sync): la cuenta se va con ella.
+	// La cadena de Z se borra desde un Mac sin cuenta (protocolo de sync): la cuenta se va con ella, con el borrado
+	// normal de 14 días y su aviso (decisión 12); un Mac lo puede cancelar y no se reprograma en 30 días.
 	b.cad.desactivadas[z.cadena] = true
+	b.s.Tareas(t.Context())
+	b.entregar()
+	if cs := b.buzon.para("zeta@example.com"); !strings.Contains(cs[len(cs)-1].cuerpo, "dentro de 14 días") {
+		t.Fatal("no llega el aviso del borrado programado")
+	}
+	z.token = ""
+	r := b.deMac(z, "eventos", "/eventos", map[string]int{"desde": 0})
+	if r.txt("estado") != "borrado-programado" {
+		t.Fatalf("estado: %v", r.cuerpo)
+	}
+	b.reloj.avanzar(13 * 24 * time.Hour)
+	b.s.Tareas(t.Context())
+	b.s.cfg.DB.QueryRow(`SELECT COUNT(*) FROM cuentas`).Scan(&n)
+	if n != 1 {
+		t.Fatal("la cuenta se ha borrado antes de 14 días")
+	}
+	b.reloj.avanzar(24*time.Hour + time.Minute)
 	b.s.Tareas(t.Context())
 	b.s.cfg.DB.QueryRow(`SELECT COUNT(*) FROM cuentas`).Scan(&n)
 	if n != 0 {
-		t.Fatal("queda una cuenta con la cadena borrada")
+		t.Fatal("a los 14 días queda una cuenta con la cadena borrada")
+	}
+}
+
+// Decisión 12, cancelada: un Mac cancela el borrado de la cuenta huérfana y no se reprograma en 30 días.
+func TestHuerfanaCancelada(t *testing.T) {
+	b := nuevoBanco(t, nil)
+	a := nuevoMac("A")
+	b.crearCuenta(a, emailA, clave)
+	b.cad.desactivadas[a.cadena] = true
+	b.s.Tareas(t.Context())
+	r := b.deMac(a, "borrado-cancelar", "/cuenta/borrar/cancelar", map[string]any{})
+	if r.cuerpo["cancelado"] != true {
+		t.Fatalf("cancelar: %v", r.cuerpo)
+	}
+	b.reloj.avanzar(29 * 24 * time.Hour)
+	b.s.Tareas(t.Context())
+	a.token = ""
+	if r := b.deMac(a, "eventos", "/eventos", map[string]int{}); r.txt("estado") != "activa" {
+		t.Fatalf("se ha reprogramado antes de 30 días: %v", r.cuerpo)
+	}
+	b.reloj.avanzar(2 * 24 * time.Hour)
+	b.s.Tareas(t.Context())
+	if r := b.deMac(a, "eventos", "/eventos", map[string]int{}); r.txt("estado") != "borrado-programado" {
+		t.Fatalf("pasados 30 días no se reprograma: %v", r.cuerpo)
 	}
 }
 

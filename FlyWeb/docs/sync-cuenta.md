@@ -714,9 +714,12 @@ si una solicitud era verdadera, es decir, si la contraseña era buena. Por eso u
 cumplido sus 10 s, y con la tabla de falsas llena **todas** las comprobaciones de código contestan «ocupado»,
 verdaderas o no (`solicitudes.go`).
 
-Pendientes de respuesta de COORDINACIÓN (provisionales en el código): (11) un Mac unido con las 24 palabras entra en la
-lista de aparatos con `aparatos/renovar` (modelo y nombre), con aviso; (12) una cuenta cuya cadena se desactiva por el
-protocolo de sync (borrado desde una 3.0.x) se borra también.
+Dos más, decididas después [C]:
+
+| # | Hueco | Decisión |
+|---|---|---|
+| 11 | Cómo entra en la lista de aparatos un Mac unido con las 24 palabras | Con `aparatos/renovar` y la prueba de cadena, dando modelo y nombre; **avisa** como «Mac añadido» |
+| 12 | Una cuenta cuya cadena se desactiva por el protocolo de sync (borrado desde una 3.0.x, o la regla de inactivas) | Se borra, pero con el **borrado normal de 14 días** y su aviso por correo y evento, no al momento. Un Mac lo cancela (y con la contraseña puede cambiar a una cadena nueva); tras cancelarlo no se reprograma en 30 días |
 
 ## 11. Cliente
 
