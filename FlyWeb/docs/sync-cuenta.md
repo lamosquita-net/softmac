@@ -720,6 +720,7 @@ Dos más, decididas después [C]:
 |---|---|---|
 | 11 | Cómo entra en la lista de aparatos un Mac unido con las 24 palabras | Con `aparatos/renovar` y la prueba de cadena, dando modelo y nombre; **avisa** como «Mac añadido» |
 | 12 | Una cuenta cuya cadena se desactiva por el protocolo de sync (borrado desde una 3.0.x, o la regla de inactivas) | Se borra, pero con el **borrado normal de 14 días** y su aviso por correo y evento, no al momento. Un Mac lo cancela (y con la contraseña puede cambiar a una cadena nueva); tras cancelarlo no se reprograma en 30 días |
+| S1 | Un Mac unido con las 24 palabras, o que ya estaba en la cadena cuando otro creó la cuenta, no conoce el `cuenta_id` (pedido por MOTOR-46 para H3) | Para `eventos` y `aparatos-renovar`, si la firma con la cuenta falla, vale la firma con **cuenta vacía**; la cuenta la fija la cadena (1:1). `eventos` devuelve `cuenta`. Las demás operaciones siguen exigiendo la cuenta |
 
 ## 11. Cliente
 

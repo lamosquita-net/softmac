@@ -24,7 +24,8 @@ lp(x) = u16(len x) ‖ x
 
 `u16` en big endian; `ruta`, la completa que recibe el servicio (`/cuenta/v1/eventos`); `cuerpo`, los bytes exactos
 del cuerpo HTTP; `cuenta`, el id de la cuenta que el Mac conoce
-(vacío en `alta/confirmar` y `empezar-de-cero/confirmar`). Referencia: `FirmarPrueba` en `prueba.go`.
+(vacío en `alta/confirmar` y `empezar-de-cero/confirmar`; en `eventos` y `aparatos/renovar` se acepta vacío
+también, y la cuenta la fija la cadena: S1). Referencia: `FirmarPrueba` en `prueba.go`.
 
 **Token de aparato**: `Authorization: Bearer <token>`; solo sirve para `eventos` y `aparatos/listar`. Caduca a los
 180 días sin uso; se invalida al cambiar la contraseña, la clave o con «No he sido yo» (se saca otro con
@@ -50,7 +51,7 @@ guion, espacios y minúsculas).
 | `aparatos/quitar` | prueba `aparatos-quitar` | `aparato` | `{}` |
 | `aparatos/renovar` | prueba `aparatos-renovar` | `aparato`, o `modelo nombre` para darse de alta (Mac unido con las 24 palabras; avisa) | `cuenta aparato token` |
 | `aparatos/renombrar` | prueba `aparatos-renombrar` | `aparato nombre` | `{}` |
-| `eventos` | token o prueba `eventos` | `desde` (último `n` leído) | `estado [borrado] eventos: [n tipo fecha datos]` |
+| `eventos` | token o prueba `eventos` | `desde` (último `n` leído) | `estado [cuenta] [borrado] eventos: [n tipo fecha datos]` |
 | `no-he-sido-yo` | prueba `no-he-sido-yo` | `{}` | `{}` |
 | `cuenta/borrar` | prueba `cuenta-borrar` | `{}` | `{}` |
 | `cuenta/borrar/cancelar` | prueba `borrado-cancelar` | `{}` | `cancelado` |

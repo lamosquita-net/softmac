@@ -213,6 +213,7 @@ type eventoListado struct {
 type respEventos struct {
 	// activa · borrado-programado · cadena-sustituida (la clave se cambió desde otro Mac) · sin-cuenta
 	Estado  string          `json:"estado"`
+	Cuenta  string          `json:"cuenta,omitempty"`  // el id de la cuenta (S1: el Mac puede no saberlo)
 	Borrado int64           `json:"borrado,omitempty"` // con borrado-programado: cuándo
 	Eventos []eventoListado `json:"eventos"`
 }
@@ -245,7 +246,7 @@ func (s *Servicio) eventos(p *peticion) (int, any) {
 		}
 		c = cu
 	}
-	r := respEventos{Estado: "activa", Eventos: []eventoListado{}}
+	r := respEventos{Estado: "activa", Cuenta: c.id, Eventos: []eventoListado{}}
 	if pg, err := s.alm.programado(p.ctx, c.id); err != nil {
 		return interno()
 	} else if pg != nil {

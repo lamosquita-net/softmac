@@ -412,12 +412,23 @@ func (s *Servicio) conPrueba(p *peticion, op string) (*pruebaLeida, *registro, i
 	if c != nil {
 		id = c.id
 	}
-	if !pr.verificar(op, id, p.cuerpo) || !s.nonces.gastar(pr.nonce, pr.caduca) {
+	ok := pr.verificar(op, id, p.cuerpo)
+	// Un Mac unido con las 24 palabras, o que ya estaba en la cadena cuando otro creó la cuenta, no conoce el
+	// cuenta_id: para estas dos operaciones vale también la firma con cuenta vacía, y la cuenta la fija la cadena
+	// (1:1). [C: COORDINACIÓN-41, S1]
+	if !ok && id != "" && opsSinCuenta[op] {
+		ok = pr.verificar(op, "", p.cuerpo)
+	}
+	if !ok || !s.nonces.gastar(pr.nonce, pr.caduca) {
 		cod, v := malaPrueba()
 		return nil, nil, cod, v
 	}
 	return pr, c, 0, nil
 }
+
+// opsSinCuenta: operaciones cuya prueba se acepta firmada con cuenta vacía (S1): con ellas el Mac aprende el
+// cuenta_id («eventos») o entra en la lista («aparatos-renovar»).
+var opsSinCuenta = map[string]bool{"eventos": true, "aparatos-renovar": true}
 
 // conPruebaYCuenta: como conPrueba, pero la cadena tiene que tener cuenta.
 func (s *Servicio) conPruebaYCuenta(p *peticion, op string) (*pruebaLeida, *registro, int, any) {
