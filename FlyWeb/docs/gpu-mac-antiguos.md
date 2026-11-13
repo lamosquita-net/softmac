@@ -5,7 +5,8 @@ MacBookPro9,1 con Catalina y la 3.1.1. **Solo papel: nada compilado, nada lanzad
 `~/proyectos/chromium-156/src` (rama `flynk-b1d` `33a1745949`, la base de la 3.0.0; ANGLE `e3917d6`), la rama `flynk-b1b`
 (B1c), los parches de la 3.1.x del repositorio y el binario de la 3.1.1 instalada en la 7,1 (`strings` y `nm`).
 **Ampliado el 13-11 por la noche** en dos veces: con las medidas de LOCAL-19 (buzón `20261113-2220`: conclusión 2 y 5,
-§2.3 y §5.1) y con la historia de la retirada que pidió Titín (buzón `20261113-2235`: conclusión 7 y 8, §6).
+§2.3 y §5.1) con la historia de la retirada que pidió Titín (buzón `20261113-2235`: conclusión 7 y 8, §6) y con los datos de
+LOCAL-19 (buzón `20261113-2300`: §6.5, y dos correcciones mías en §6.1 y §6.4).
 
 Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** suposición sin comprobar.
 
@@ -33,7 +34,10 @@ Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** sup
    él, el último hardware que necesitaba OpenGL; entre julio y septiembre de 2026 retiró la puerta, las
    texturas rectangulares y el aviso de cambio de GPU. Ningún mensaje cita un CVE ni un fallo de controlador.
 8. **Respuesta corta a Titín: sí, y en la 3.1.2 si pinta.** No hace falta ningún argumento de GN. El coste real son seis
-   hitos pequeños (§6.3) y un riesgo que hay que mirar en el MacBook Pro de 2012: el cambio automático entre sus dos GPU.
+   hitos pequeños (§6.3).
+9. **A sus dos preocupaciones** (§6.5): el OpenGL de la 156 en Mac **no lo ha probado nadie con ninguna tarjeta**, ni
+   Google desde julio ni nosotros más allá de un arranque en la D500; por eso la prueba va antes que la decisión. En
+   seguridad no abre nada que la 2.7.0 no tuviera abierto en esos mismos Mac.
 
 ## 2. Qué pasa exactamente
 
@@ -69,8 +73,9 @@ MacBookPro11,4» no están soportadas por el backend Metal (anglebug 40096869).
   rechazado no queda ninguna pantalla que probar, el proceso de GPU no arranca y todo cae a software. Cuadra con lo
   medido. Consecuencia: **la misma línea** de `gl_factory_mac.cc` abre el indicador `--use-angle=gl` y el paso
   automático (Metal primero, OpenGL si Metal falla; `:76-79` y `:105-113`).
-- **Cuál de las tres puertas corta en cada GPU.** El modelo corta siempre antes. La familia de las Intel HD 4000 y 5000,
-  de la GT 650M y de la R9 M370X **no está medida** (`metal-mojave.md` lo dejaba en [N]).
+- **Cuál de las tres puertas corta en cada GPU.** El modelo corta siempre antes. **Medido por LOCAL-19 en el 9,1:** la
+  HD 4000 y la GT 650M son las dos «GPUFamily1 v4», así que ahí cortan las tres. Siguen sin medir la HD 5000 y la
+  R9 M370X.
 
 ## 3. Qué máquinas caen
 
@@ -252,13 +257,19 @@ Añadido el 13-11 por la noche por encargo de Titín (buzón `20261113-2235`). M
 |---|---|---|---|
 | 10-07-2026 | [`38acbb5889`](https://chromium.googlesource.com/chromium/src/+/38acbb5889) | Quita de los robots de Mac las pruebas de ANGLE GL y de Ganesh (34 ficheros) | «Since Chrome no longer supports macOS 12, all supported OS versions support ANGLE Metal backend and Graphite» |
 | 13-07-2026 | [`75824eea71`](https://chromium.googlesource.com/chromium/src/+/75824eea71) | **«Disallow Angle/CGL backend on mac»**: una línea menos en `gl_factory_mac.cc` | Sin texto; mismo bug |
-| 13-07-2026 | ANGLE, «GL: Remove testing on Mac» (en el *roll* [`1da84cd657`](https://chromium.googlesource.com/chromium/src/+/1da84cd657)) | ANGLE deja de probar su backend GL en Mac. **No borra el código** | — |
+| 13-07-2026 | ANGLE, «GL: Remove testing on Mac» (en el *roll* [`1da84cd657`](https://chromium.googlesource.com/chromium/src/+/1da84cd657)) | ANGLE deja de probar su backend GL en Mac | — |
 | 23-07-2026 | [`1cb133a3ca`](https://chromium.googlesource.com/chromium/src/+/1cb133a3ca) | Quita `GetTextureTargetForIOSurfaces()` (6 ficheros) | «Mac allows only metal and swiftshader GL implementations now… this function always returns TEXTURE_2D» |
 | 01-09-2026 | [`bed4ec1b17`](https://chromium.googlesource.com/chromium/src/+/bed4ec1b17) | Quita el indicador `DefaultANGLEMetal` | «Angle GL backend is no longer used» |
 | 01-09-2026 | [`25a248a6cb`](https://chromium.googlesource.com/chromium/src/+/25a248a6cb), [`a6e2713267`](https://chromium.googlesource.com/chromium/src/+/a6e2713267), [`ca2f2e0554`](https://chromium.googlesource.com/chromium/src/+/ca2f2e0554) | Quita el aviso de cambio de GPU (`DisplayReconfigCallback`, `OnGpuSwitched`; 30 ficheros) | «Angle/CGL is not allowed anymore… as we stopped supporting hardware where it was needed» |
 | 03-09-2026 | [`8b251c3c35`](https://chromium.googlesource.com/chromium/src/+/8b251c3c35) | Quita `texture_target_for_iosurface` del mojom (10 ficheros) | «It's always TEXTURE_2D now» |
 | 16-09-2026 | [`c8593069ef`](https://chromium.googlesource.com/chromium/src/+/c8593069ef) | Quita el modo Ganesh/GL en Mac con Intel (revertido una vez en agosto por fallos de pruebas) | «All mac devices are using ANGLE/Metal as of M152 and can run Graphite» |
 | 21-09-2026 | [`17a3918979`](https://chromium.googlesource.com/chromium/src/+/17a3918979) | Quita `DidSwitchGpu` (63 líneas de `drawing_buffer.cc`, el búfer de WebGL) | «It always returns false now» |
+
+**Corrección (dato de LOCAL-19, comprobado por mí):** ANGLE no se limitó a dejar de probarlo. Entre la 150 y la 156 su
+capa de Mac cambia en 8 ficheros de `renderer/gl/cgl/` (138 líneas): desaparecen `DisplayCGL::prepareForCall`,
+`testDeviceLost` y el contexto «volátil» (`EGL_PLATFORM_ANGLE_DEVICE_CONTEXT_VOLATILE_CGL_ANGLE`) [V: `diff` de los
+dos árboles]. Uno de esos cambios venía en el *roll* del 09-09 («Remove prepareForCall») y lo pasé por alto. La capa
+sigue compilada y arranca (B1c en la 6,1), pero **está a medio desmontar**.
 
 Bugs: [519633318](https://issues.chromium.org/issues/519633318) (la retirada de CGL) y
 [40063538](https://issues.chromium.org/issues/40063538) (el lanzamiento de Graphite). No he abierto las fichas: solo
@@ -270,8 +281,8 @@ ningún `OnGpuSwitched`].
 - **Fue limpieza tras retirar hardware.** Chrome dejó de soportar macOS 12 y, según el primer mensaje, todos los
   sistemas que quedan admiten ANGLE Metal. Para Google, OpenGL en Mac se quedó sin usuarios. Ningún mensaje habla de un CVE ni de los
   controladores de Apple.
-- **No es un backend abandonado:** el mismo código de OpenGL de ANGLE sigue en uso en Linux, Android y ChromeOS. Lo que
-  ya nadie prueba es su capa de Mac (`renderer/gl/cgl/`).
+- **No es un backend abandonado, pero su capa de Mac sí:** el código común de OpenGL de ANGLE sigue en uso en Linux,
+  Android y ChromeOS. La capa de Mac (`renderer/gl/cgl/`) ya no la prueba nadie y upstream ha empezado a recortarla.
 - **La 150 lo traía todo** [V: árbol `~/proyectos/chromium-150`, 150.0.7871.287]: OpenGL el primero de la lista de
   admitidos, las texturas rectangulares y el aviso de cambio de GPU. Saltar de la 128 a la 156 nos hizo pasar por
   encima de la retirada sin verla.
@@ -286,7 +297,8 @@ Mac). Lo que falta es código de Chromium:
 | Admitir ANGLE OpenGL | 1 línea | Sí | Todo: indicador y paso automático |
 | Modo GL por hardware | 1 línea | Ya está en la 3.1.1 antes de macOS 11 (B1d) | Componer con la GPU |
 | Texturas rectangulares de IOSurface | 16 ficheros en 2 commits | Sí, 11 ficheros | Que pinte |
-| Aviso de cambio de GPU | 36 ficheros en 4 commits | **No** | Portátiles con dos GPU [S] |
+| Aviso de cambio de GPU | 36 ficheros en 4 commits | **No** | Portátiles con dos GPU, salvo los de NVIDIA (§6.4) |
+| Capa de Mac de ANGLE (CGL) | 138 líneas en 8 ficheros | No; se usa la de la 156 | Recuperar un dispositivo perdido [S]. Si G1 o G5 fallan, se devuelve desde la 150 |
 | Lista de apaños de controladores | No se tocó: 14 entradas de macOS, como en la 150 | — | — |
 | Selección automática | No se tocó: Metal primero, OpenGL después | — | — |
 
@@ -311,10 +323,12 @@ prueba nadie más en Mac.
 
 ### 6.4 El riesgo que añade esta lectura
 
-- **Cambio automático de GPU** [S]: el código que quitaron avisaba a WebGL cuando macOS pasaba de la GPU integrada a la
-  dedicada. Sin él, en el MacBook Pro de 2012 un lienzo WebGL puede quedarse en la GPU anterior o dibujar mal tras el
-  cambio. No lo puedo saber leyendo: por eso G5 prueba cada GPU y el cambio. El mini de 2012 y el Air de 2013, con una
-  sola GPU, no tienen este caso.
+- **Cambio automático de GPU. Corrijo lo que escribí antes:** en el MacBook Pro de 2012 el riesgo es menor de lo que
+  dije. Chromium fija la GPU integrada en los portátiles Mac con NVIDIA (entrada 326 de la lista de apaños,
+  `force_low_power_gpu`, que sigue en la 156 y se sigue aplicando: `gpu/config/gpu_switching.cc:100`) y ANGLE apaga ahí
+  su soporte de cambio (`DisplayCGL.mm:177`) [V]. LOCAL-19 lo confirma en la 2.7.0: dibuja con la HD 4000. Queda por
+  probar el caso forzado (cambio automático desmarcado, GT 650M siempre) y, para la 3.2.0, los portátiles con AMD
+  dedicada como el 11,5, donde el cambio sí existe y el código que avisaba ya no está [S].
 - **Cómo se limita a los Mac donde Metal no vale:**
   - el orden es fijo, Metal primero; OpenGL solo se prueba si la pantalla de Metal no arranca [V];
   - solo antes de macOS 11;
@@ -324,10 +338,50 @@ prueba nadie más en Mac.
   la misma exposición que tenía la 2.7.0 en esos Mac. Los arreglos de ANGLE GL de la 151 a la 156 ya están en el árbol
   [I: por construcción; lo confirma el recuento de G3].
 
-### 6.5 Datos de LOCAL-19
+### 6.5 Datos de LOCAL-19 (buzón `20261113-2300`)
 
-Al escribir esto (13-11, noche) no veo en el buzón ni en `main` más datos suyos que la medida de Aquarium (5,9 frente a 59 fps).
-Cuando deje el `flyweb://gpu` y la sonda, se revisan §2.3 y §3.1.
+MacBookPro9,1, macOS 10.15.8, HD 4000 + GT 650M con cambio automático. Los tomo de su mensaje; los `chrome://gpu`
+completos están en su carpeta de entregas y no los he abierto.
+
+| | Dibuja con | WebGL | Aquarium 1 000 / 5 000 / 15 000 (fps) | MotionMark 1.3.2 |
+|---|---|---|---|---|
+| Safari de Catalina | Apple | sí | 59,7 / 43,0 / 16,1 | — |
+| **2.7.0** | ANGLE OpenGL 4.1, HD 4000 | sí | **59,9 / 51,3 / 26,1** | 507 |
+| 2.7.0 con Metal forzado | rechazado, SwiftShader | por software | 5,7 / 3,4 / 2,0 | 434 |
+| **3.1.1** | nada: GPU apagada | **no** | — | **733** |
+| 3.1.1 con SwiftShader | SwiftShader | por software | 5,9 / 3,9 / 2,0 | 742 |
+
+**Lo que cambia en mi lectura:**
+
+- **La ganancia no es «todo diez veces más rápido».** Es WebGL (hoy no existe sin un indicador «unsafe»; con OpenGL,
+  ×10–13 en Aquarium) y el canvas (Arcs y Lines, ×3 a favor de la GPU en la 128). En composición, este Mac va mejor por
+  CPU que por la HD 4000: la 3.1.1 por software (733) ya supera en MotionMark a la 2.7.0 con OpenGL (507).
+- **No sé cuánto dará la 3.1.x con OpenGL en MotionMark.** En la 128, OpenGL ganaba un 17 % al software. Que en la 156
+  también gane es una suposición: hay que medirlo (G5), y si la composición pierde, mirar si conviene componer por
+  software y dejar la GPU para WebGL y canvas. Eso sería trabajo de la 3.2.0.
+- **Con la GPU apagada tampoco hay decodificación de vídeo por hardware** [I: depende del proceso de GPU]. En un
+  portátil de 2012 es batería y calor. No está medido.
+- **El parche que LOCAL-19 dejó preparado** (`temp/local19/gpu-macs-antiguos/src.patch`, que no he leído) devuelve
+  `kOpenGL` a la lista de admitidos. Coincide con la primera pieza, **pero solo con eso no pinta**: fue lo que encontró
+  LOCAL-16 («eglBindTexImage requires 2D», miles de «uninitialized SharedImage»). Hacen falta además las texturas de
+  B1c (`flynk-b1b`, cuatro commits). La parte de Metal de ese parche no la recomiendo, y Titín tampoco la quiere.
+
+**Las dos preocupaciones de Titín:**
+
+1. **¿Está probado el OpenGL de la 156 con alguna tarjeta?** No. Google quitó sus pruebas de Mac el 10-07-2026, antes
+   de la 156. De nuestro lado solo existe el arranque de B1c en la D500 de la 6,1: sin errores, con la pintura y WebGL
+   sin comprobar. Con la HD 4000, la HD 5000 y la GT 650M, nada. Es el motivo de que G1 y G5 vayan antes de cerrar el
+   contenido, y de que el recorte a Mojave y Catalina no se amplíe hasta tenerlas.
+2. **¿Abre agujeros de seguridad?** Menos de lo que parece, y ninguno nuevo respecto a la 2.7.0 en esos Mac:
+   - la validación de WebGL es del frontal de ANGLE, común a todos los backends y con *fuzzing* de Google; no cambia;
+   - lo que se añade es el controlador de OpenGL de Apple, sin parches en 10.14 y 10.15, igual que su Metal;
+   - el proceso de GPU sigue en su sandbox;
+   - lo que es nuestro y hay que revisar: los 11 ficheros de texturas (regla 17);
+   - lo que nadie más vigila: la capa CGL de ANGLE. Un fallo ahí solo lo encontraríamos nosotros.
+   - En los Mac donde Metal funciona no cambia nada: OpenGL solo se prueba si Metal no arranca.
+
+**Coincido con la preferencia de Titín:** OpenGL de reserva y no forzar Metal en la familia 1. Las dos GPU de este Mac
+son de familia 1, así que abrir Metal exigiría quitar las tres puertas a la vez.
 
 ## 7. Fuentes y límites
 
