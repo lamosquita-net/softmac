@@ -32,3 +32,12 @@ a7d032f97fbd7947fcd48f06a1ff1ba07baa4c6ce3e5af289c899577e2079352  0030-3.1.1-M15
 d398e421e222189d7478ab58b40b9d9bfd630b4e1bbf71b612ca5476bd5ee9e9  0032-3.1.1-M157-Fix-CHECK-crash-in-GenerateHostVariantsTo.patch
 f2824ff1b06c7397e401b20ddf56cd2545ac61b4676c93816110957f8dbbad4e  0033-3.1.1-M157-ImageCapture-Scope-device-session-lookups.patch
 5140d7d43c9ee406b05e3e9fc20e5fe2578cff8d053e9919f2f1ff538c207998  0034-3.1.1-chrome-VERSION-156.0.8078.98-156.0.8078.103.patch
+bbdd1d3d3185badb3580429b2810a529fbdad7b676c7afd2c3862496c39fb263  0035-3.1.1-M156-canvas2d-Resolve-context-filter-before-obtainin.patch
+d0ccee6a343536eb7c850017b233cc2336bc7dc81c78e7e5d10d5978a690176e  0036-3.1.1-M156-Canvas2d-Inline-Canvas2DRecorderContext-DrawInt.patch
+77a526b6e4e603033c086f96a2072a402f3682a4ce132ba6d1eb0ca0c3964919  0037-3.1.1-M156-DBSC-Make-session-deletion-re-entrancy-safe.patch
+5b545654ff020c8640e0ae58855b8886aed260357a04fbb62ea2b7666095e435  0038-3.1.1-Roll-commits-from-side-projects-in-M156.patch
+1a74f895cba4e784c07e5fc58d825d595fb8a88db7d006cc64dc7b97c27ec752  0039-3.1.1-Roll-commits-from-side-projects-in-M156.patch
+dc0cafcdb32ed84e3db08dcc4cf5bd8ae2480a6ab9f444b4d9405cbdbc0c5592  0040-3.1.1-M156-Harden-P2PSocketManager-DestroySocket-against-r.patch
+021100e5fdcf33c9c0ca4901d1bd859120ddd9a3b99608fd0443b06d9d92819b  0041-3.1.1-M156-Handle-re-entrancy-in-P2PSocketManager-teardown.patch
+7044075dbee77e31be670d4af6a2426773d9e5c7f7d2598ec6ee115b590a2cb3  0042-3.1.1-M156-FedCM-Return-early-in-ShowVerifyingDialog-if-th.patch
+8754c2c21df2bc34840fca0316133267a859927367947bda58e80f03e945e4ee  0043-3.1.1-chrome-VERSION-156.0.8078.103-156.0.8078.104.patch

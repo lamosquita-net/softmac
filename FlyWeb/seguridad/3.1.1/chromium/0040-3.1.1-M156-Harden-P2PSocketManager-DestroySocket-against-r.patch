@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Danil Chapovalov <danilchap@chromium.org>
+Date: Thu, 12 Nov 2026 10:57:04 -0800
+Subject: [PATCH 40/43] [3.1.1] [M156] Harden P2PSocketManager::DestroySocket against
+ re-entrance
+
+Original change's description:
+> Harden P2PSocketManager::DestroySocket against re-entrance
+>
+> Bug: 579289829
+> Change-Id: I4d71b64257daa5715a4f8c2aaa681a31bf601108
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8692125
+> Reviewed-by: Guido Urdaneta <guidou@chromium.org>
+> Commit-Queue: Danil Chapovalov <danilchap@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1733760}
+
+(cherry picked from commit ec6aef00ac7d62c27a2b02f0d4e86f70d8b8f997)
+
+Bug: 584996641, 575525274, 579289829
+Change-Id: I4d71b64257daa5715a4f8c2aaa681a31bf601108
+No-Try: true
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8803153
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Reviewed-by: Danil Chapovalov <danilchap@chromium.org>
+Auto-Submit: Tomas Gunnarsson <tommi@chromium.org>
+Commit-Queue: Tomas Gunnarsson <tommi@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2187}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+(cherry picked from commit 39b2c4872fd30310f163800eeca4110deb66ed4d)
+---
+ services/network/p2p/socket_manager.cc | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/services/network/p2p/socket_manager.cc b/services/network/p2p/socket_manager.cc
+index 3a814c12d15be84f0424a8eb071d9acf2d0fb7a7..c9fcf9664a75a5b5c3f773d22bff034e9314c5cf 100644
+--- a/services/network/p2p/socket_manager.cc
++++ b/services/network/p2p/socket_manager.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <stddef.h>
+ 
++#include <memory>
+ #include <optional>
+ #include <utility>
+ 
+@@ -235,7 +236,11 @@ void P2PSocketManager::ResumeNetworkChangeNotifications() {
+ void P2PSocketManager::DestroySocket(P2PSocket* socket) {
+   auto iter = sockets_.find(socket);
+   CHECK(iter != sockets_.end());
++  std::unique_ptr<P2PSocket> owned = std::move(iter->second);
+   sockets_.erase(iter);
++  // Delete `owned` after completing .erase() on the `sockets_` container.
++  // `~P2PSocket may trigger callbacks that would re-enter `P2PSocketManager`.
++  // `sockets_` should be in consistenct state if that happens.
+ }
+ 
+ void P2PSocketManager::DumpPacket(base::span<const uint8_t> packet,
+-- 
+2.43.0
+

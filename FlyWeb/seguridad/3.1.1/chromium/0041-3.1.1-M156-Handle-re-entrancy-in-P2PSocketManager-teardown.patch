@@ -1,0 +1,759 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tommi <tommi@chromium.org>
+Date: Thu, 12 Nov 2026 11:04:20 -0800
+Subject: [PATCH 41/43] [3.1.1] [M156] Handle re-entrancy in P2PSocketManager teardown
+
+Original change's description:
+> Handle re-entrancy in P2PSocketManager teardown
+>
+> Destroying a P2P socket or pending DNS request cancels its underlying
+> HostResolver request, which can synchronously fail queued sibling
+> requests (for example when closing the last active DoH stream on a
+> stalled socket pool). In ~P2PSocketManager, those failures re-entered
+> P2PSocketManager::DestroySocket or P2PSocketManager::OnAddressResolved
+> while sockets_ or dns_requests_ was being cleared.
+>
+> - In ~P2PSocketManager, stop sockets and DNS requests from calling back
+>   into the manager before destroying them: invalidate the weak pointers
+>   that DNS request callbacks are bound to, and clear each socket's
+>   delegate (new P2PSocket::ClearDelegate()).
+> - Move owned entries out of their containers before erasing in
+>   P2PSocketManager::OnAddressResolved and
+>   NetworkContext::DestroySocketManager.
+> - Mark P2PSocketManager, P2PSocketUdp, P2PSocketTcp and
+>   P2PSocketStunTcp final.
+> - Add tests for the re-entrant paths, including the DestroySocket() fix
+>   from crrev.com/c/8692125.
+>
+> Bug: 579289829
+> Change-Id: I6cdc33ac4c9b7556776a8218bca5d86ca61ec056
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8688014
+> Reviewed-by: Danil Chapovalov <danilchap@chromium.org>
+> Reviewed-by: Maks Orlovich <morlovich@chromium.org>
+> Commit-Queue: Tomas Gunnarsson <tommi@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1735267}
+
+(cherry picked from commit 7af625cd85d5f891cdfad3e0c87109f5108d13bb)
+
+Bug: 575525274, 579289829
+Fixed: 584996641
+Change-Id: I6cdc33ac4c9b7556776a8218bca5d86ca61ec056
+No-Try: true
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8803173
+Reviewed-by: Maks Orlovich <morlovich@chromium.org>
+Reviewed-by: Danil Chapovalov <danilchap@chromium.org>
+Commit-Queue: Tomas Gunnarsson <tommi@chromium.org>
+Auto-Submit: Tomas Gunnarsson <tommi@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2188}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+(cherry picked from commit 0da3736d61efdc1a40ecd4a6e5ea9df5ca2c7c10)
+---
+ services/network/network_context.cc           |   4 +
+ services/network/p2p/socket.cc                |   6 +-
+ services/network/p2p/socket.h                 |   5 +
+ services/network/p2p/socket_manager.cc        |  24 +-
+ services/network/p2p/socket_manager.h         |   2 +-
+ .../network/p2p/socket_manager_unittest.cc    | 396 +++++++++++++++++-
+ services/network/p2p/socket_tcp.cc            |   8 +-
+ services/network/p2p/socket_tcp.h             |   5 +-
+ services/network/p2p/socket_tcp_unittest.cc   |  18 +
+ services/network/p2p/socket_udp.cc            |   6 +-
+ services/network/p2p/socket_udp.h             |   2 +-
+ 11 files changed, 451 insertions(+), 25 deletions(-)
+
+diff --git a/services/network/network_context.cc b/services/network/network_context.cc
+index 66e2d0450518803f1531470045ffadc1412c497f..1e95112e6790e2301a2baf5ff0428ed648869f81 100644
+--- a/services/network/network_context.cc
++++ b/services/network/network_context.cc
+@@ -3504,6 +3504,10 @@ GURL NetworkContext::GetHSTSRedirectForPreconnect(const GURL& original_url) {
+ void NetworkContext::DestroySocketManager(P2PSocketManager* socket_manager) {
+   auto iter = socket_managers_.find(socket_manager);
+   CHECK(iter != socket_managers_.end());
++  // Move out of `socket_managers_` before erasing so `~P2PSocketManager()`
++  // never runs while `flat_map::erase()` is mutating the container.
++  std::unique_ptr<P2PSocketManager> owned_socket_manager =
++      std::move(iter->second);
+   socket_managers_.erase(iter);
+ }
+ #endif  // BUILDFLAG(IS_P2P_ENABLED)
+diff --git a/services/network/p2p/socket.cc b/services/network/p2p/socket.cc
+index 1c18e756370240e9f864d5ecc80401e22eb862a5..e621b7f88a9b25bd6fb5bc5c4482c8e224807a84 100644
+--- a/services/network/p2p/socket.cc
++++ b/services/network/p2p/socket.cc
+@@ -176,7 +176,11 @@ mojo::PendingReceiver<mojom::P2PSocket> P2PSocket::ReleaseReceiverForTesting() {
+ void P2PSocket::OnError() {
+   receiver_.reset();
+   client_.reset();
+-  delegate_->DestroySocket(this);
++  // Without a delegate, the former delegate is being destroyed and destroys
++  // this socket as part of that.
++  if (delegate_) {
++    delegate_->DestroySocket(this);
++  }
+ }
+ 
+ }  // namespace network
+diff --git a/services/network/p2p/socket.h b/services/network/p2p/socket.h
+index 4c0398c7ebf84694c33361ac2825d3fcb6648839..15fd2d0386243f7f2bbca4dc157d65dd2bcd90e0 100644
+--- a/services/network/p2p/socket.h
++++ b/services/network/p2p/socket.h
+@@ -94,6 +94,11 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) P2PSocket : public mojom::P2PSocket {
+       const P2PHostAndIPEndPoint& remote_address,
+       const net::NetworkAnonymizationKey& network_anonymization_key) = 0;
+ 
++  // Stops all calls to the delegate. The delegate calls this on each of its
++  // sockets before destroying them in its own destructor, because destroying
++  // one socket can synchronously fail other sockets.
++  void ClearDelegate() { delegate_ = nullptr; }
++
+   mojo::PendingRemote<mojom::P2PSocketClient> ReleaseClientForTesting();
+   mojo::PendingReceiver<mojom::P2PSocket> ReleaseReceiverForTesting();
+ 
+diff --git a/services/network/p2p/socket_manager.cc b/services/network/p2p/socket_manager.cc
+index c9fcf9664a75a5b5c3f773d22bff034e9314c5cf..d92d91fa98048469b2e1593aaf8a5535edd0be1c 100644
+--- a/services/network/p2p/socket_manager.cc
++++ b/services/network/p2p/socket_manager.cc
+@@ -194,6 +194,15 @@ P2PSocketManager::~P2PSocketManager() {
+   // Reset the P2PSocketManager receiver before dropping pending dns requests.
+   socket_manager_receiver_.reset();
+ 
++  // Destroying a socket or DNS request can synchronously fail its siblings
++  // (e.g. when closing the last active DoH stream on a stalled pool). Make sure
++  // none of them calls back into `this` while they are being destroyed:
++  // invalidate the weak pointers that DNS request callbacks are bound to, and
++  // clear each socket's delegate.
++  weak_factory_.InvalidateWeakPtrs();
++  for (const auto& [socket_ptr, socket] : sockets_) {
++    socket->ClearDelegate();
++  }
+   sockets_.clear();
+   dns_requests_.clear();
+ 
+@@ -401,10 +410,10 @@ void P2PSocketManager::GetHostAddress(
+       url_request_context_->host_resolver(), enable_mdns);
+   DnsRequest* request_ptr = request.get();
+   dns_requests_.insert(std::move(request));
+-  request_ptr->Resolve(
+-      host_name, address_family, network_anonymization_key_,
+-      base::BindOnce(&P2PSocketManager::OnAddressResolved,
+-                     base::Unretained(this), request_ptr, std::move(callback)));
++  request_ptr->Resolve(host_name, address_family, network_anonymization_key_,
++                       base::BindOnce(&P2PSocketManager::OnAddressResolved,
++                                      weak_factory_.GetWeakPtr(), request_ptr,
++                                      std::move(callback)));
+ }
+ 
+ void P2PSocketManager::CreateSocket(
+@@ -481,9 +490,12 @@ void P2PSocketManager::OnAddressResolved(
+     DnsRequest* request,
+     mojom::P2PSocketManager::GetHostAddressCallback callback,
+     const net::IPAddressList& addresses) {
++  auto iter = dns_requests_.find(request);
++  CHECK(iter != dns_requests_.end());
++  // Unlink before running `callback` or destroying `request` in case teardown
++  // or callback execution re-enters `dns_requests_`.
++  auto owned_request = dns_requests_.extract(iter);
+   std::move(callback).Run(addresses);
+-
+-  dns_requests_.erase(dns_requests_.find(request));
+ }
+ 
+ void P2PSocketManager::OnConnectionError() {
+diff --git a/services/network/p2p/socket_manager.h b/services/network/p2p/socket_manager.h
+index 5505f0bb01340cc78ecae6708a3e16d809234ba8..242f3ed7b1c9fb734a51aec303543fc9ccbff251 100644
+--- a/services/network/p2p/socket_manager.h
++++ b/services/network/p2p/socket_manager.h
+@@ -57,7 +57,7 @@ struct DefaultLocalAddresses {
+ 
+ // Owns all the P2P socket instances and dispatches Mojo calls from the
+ // (untrusted) child and (trusted) browser process.
+-class COMPONENT_EXPORT(NETWORK_SERVICE) P2PSocketManager
++class COMPONENT_EXPORT(NETWORK_SERVICE) P2PSocketManager final
+     : public net::NetworkChangeNotifier::NetworkChangeObserver,
+       public mojom::P2PSocketManager,
+       public mojom::P2PTrustedSocketManager,
+diff --git a/services/network/p2p/socket_manager_unittest.cc b/services/network/p2p/socket_manager_unittest.cc
+index 9153df2eea5abfbdae9a28108d15234b6de9580a..e875432dda59f981bdb1fdae4b3602aacb8e883f 100644
+--- a/services/network/p2p/socket_manager_unittest.cc
++++ b/services/network/p2p/socket_manager_unittest.cc
+@@ -4,21 +4,47 @@
+ 
+ #include "services/network/p2p/socket_manager.h"
+ 
++#include <stddef.h>
++
++#include <memory>
++#include <optional>
++#include <set>
++#include <string>
++#include <utility>
++#include <vector>
++
++#include "base/auto_reset.h"
++#include "base/barrier_closure.h"
++#include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
+ #include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
+ #include "base/run_loop.h"
++#include "base/strings/string_number_conversions.h"
+ #include "base/test/bind.h"
++#include "base/test/run_until.h"
+ #include "base/test/scoped_feature_list.h"
+ #include "base/test/task_environment.h"
+ #include "mojo/public/cpp/bindings/pending_receiver.h"
+ #include "mojo/public/cpp/bindings/pending_remote.h"
+ #include "mojo/public/cpp/bindings/remote.h"
++#include "net/base/address_list.h"
++#include "net/base/completion_once_callback.h"
+ #include "net/base/features.h"
++#include "net/base/host_port_pair.h"
++#include "net/base/ip_address.h"
++#include "net/base/net_errors.h"
++#include "net/base/network_anonymization_key.h"
++#include "net/base/network_handle.h"
++#include "net/dns/host_cache.h"
++#include "net/dns/host_resolver.h"
++#include "net/dns/mock_host_resolver.h"
++#include "net/dns/public/host_resolver_results.h"
++#include "net/dns/public/resolve_error_info.h"
+ #include "net/log/net_log_with_source.h"
+ #include "net/socket/datagram_client_socket.h"
+ #include "net/socket/socket_test_util.h"
+ #include "net/socket/stream_socket.h"
+-#include "net/test/test_with_task_environment.h"
+ #include "net/traffic_annotation/network_traffic_annotation_test_helper.h"
+ #include "net/url_request/url_request_context.h"
+ #include "net/url_request/url_request_context_builder.h"
+@@ -27,42 +53,312 @@
+ #include "services/network/p2p/socket_test_utils.h"
+ #include "testing/gmock/include/gmock/gmock.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+-
+-using ::testing::_;
+-using ::testing::DeleteArg;
+-using ::testing::DoAll;
+-using ::testing::Return;
++#include "url/scheme_host_port.h"
+ 
+ namespace network {
++namespace {
++
++// HostResolver test double that hangs requests until explicitly completed or
++// cancelled. When `fail_siblings_on_cancel` is armed, cancelling one in-flight
++// request synchronously completes all remaining pending requests with
++// `ERR_NAME_NOT_RESOLVED` inside `~ResolveHostRequest()`, matching the
++// production re-entrancy when cancelling the last active DoH stream on a
++// stalled socket pool triggers `SpdySession::StartGoingAway()`.
++class ReentrantFailingHostResolver : public net::HangingHostResolver {
++ public:
++  ReentrantFailingHostResolver() = default;
++  ~ReentrantFailingHostResolver() override = default;
++
++  std::unique_ptr<ResolveHostRequest> CreateRequest(
++      url::SchemeHostPort host,
++      net::NetworkAnonymizationKey network_anonymization_key,
++      net::handles::NetworkHandle target_network,
++      net::NetLogWithSource net_log,
++      std::optional<ResolveHostParameters> optional_parameters) override {
++    return CreateRequest(net::HostPortPair::FromSchemeHostPort(host),
++                         network_anonymization_key, target_network, net_log,
++                         optional_parameters);
++  }
++
++  std::unique_ptr<ResolveHostRequest> CreateRequest(
++      const net::HostPortPair& host,
++      const net::NetworkAnonymizationKey& network_anonymization_key,
++      net::handles::NetworkHandle target_network,
++      const net::NetLogWithSource& net_log,
++      const std::optional<ResolveHostParameters>& optional_parameters)
++      override {
++    return std::make_unique<ResolveRequest>(weak_factory_.GetWeakPtr());
++  }
++
++  std::unique_ptr<ServiceEndpointRequest> CreateServiceEndpointRequest(
++      Host host,
++      net::NetworkAnonymizationKey network_anonymization_key,
++      net::handles::NetworkHandle target_network,
++      net::NetLogWithSource net_log,
++      ResolveHostParameters parameters) override {
++    return std::make_unique<EndpointRequest>(weak_factory_.GetWeakPtr());
++  }
++
++  bool IsHappyEyeballsV3Enabled() const override { return false; }
++
++  void set_fail_siblings_on_cancel(bool value) {
++    fail_siblings_on_cancel_ = value;
++  }
++
++  size_t pending_count() const { return pending_requests_.size(); }
++
++  void WaitForPendingRequests(size_t expected_count) {
++    while (pending_requests_.size() < expected_count) {
++      base::RunLoop run_loop;
++      on_request_started_ = run_loop.QuitClosure();
++      run_loop.Run();
++    }
++  }
++
++ private:
++  class PendingRequest {
++   public:
++    virtual ~PendingRequest() = default;
++    virtual void CompleteSynchronously(int error) = 0;
++  };
++
++  class ResolveRequest : public net::HostResolver::ResolveHostRequest,
++                         public PendingRequest {
++   public:
++    explicit ResolveRequest(
++        base::WeakPtr<ReentrantFailingHostResolver> resolver)
++        : resolver_(std::move(resolver)) {}
++
++    ResolveRequest(const ResolveRequest&) = delete;
++    ResolveRequest& operator=(const ResolveRequest&) = delete;
++
++    ~ResolveRequest() override {
++      if (resolver_) {
++        resolver_->OnRequestCancelled(this);
++      }
++    }
++
++    int Start(net::CompletionOnceCallback callback) override {
++      callback_ = std::move(callback);
++      if (resolver_) {
++        resolver_->OnRequestStarted(this);
++      }
++      return net::ERR_IO_PENDING;
++    }
++
++    void CompleteSynchronously(int error) override {
++      error_ = error;
++      if (callback_) {
++        std::move(callback_).Run(error);
++      }
++    }
++
++    const net::AddressList& GetAddressResults() const override {
++      return empty_addresses_;
++    }
++
++    base::span<const net::HostResolverEndpointResult> GetEndpointResults()
++        const override {
++      return {};
++    }
++
++    base::span<const std::string> GetTextResults() const override { return {}; }
++
++    base::span<const net::HostPortPair> GetHostnameResults() const override {
++      return {};
++    }
++
++    const std::set<std::string>& GetDnsAliasResults() const override {
++      return empty_aliases_;
++    }
++
++    net::ResolveErrorInfo GetResolveErrorInfo() const override {
++      return net::ResolveErrorInfo(error_);
++    }
++
++    const std::optional<net::HostCache::EntryStaleness>& GetStaleInfo()
++        const override {
++      return empty_stale_info_;
++    }
++
++    std::optional<net::ResolutionDetails> GetResolutionDetails()
++        const override {
++      return std::nullopt;
++    }
++
++   private:
++    base::WeakPtr<ReentrantFailingHostResolver> resolver_;
++    net::CompletionOnceCallback callback_;
++    int error_ = net::ERR_NAME_NOT_RESOLVED;
++    net::AddressList empty_addresses_;
++    std::set<std::string> empty_aliases_;
++    std::optional<net::HostCache::EntryStaleness> empty_stale_info_;
++  };
++
++  class EndpointRequest : public net::HostResolver::ServiceEndpointRequest,
++                          public PendingRequest {
++   public:
++    explicit EndpointRequest(
++        base::WeakPtr<ReentrantFailingHostResolver> resolver)
++        : resolver_(std::move(resolver)) {}
++
++    EndpointRequest(const EndpointRequest&) = delete;
++    EndpointRequest& operator=(const EndpointRequest&) = delete;
++
++    ~EndpointRequest() override {
++      if (resolver_) {
++        resolver_->OnRequestCancelled(this);
++      }
++    }
++
++    int Start(Delegate* delegate) override {
++      CHECK(delegate);
++      delegate_ = delegate;
++      if (resolver_) {
++        resolver_->OnRequestStarted(this);
++      }
++      return net::ERR_IO_PENDING;
++    }
++
++    void CompleteSynchronously(int error) override {
++      error_ = error;
++      Delegate* delegate = delegate_;
++      delegate_ = nullptr;
++      if (delegate) {
++        delegate->OnServiceEndpointRequestFinished(error);
++      }
++    }
++
++    base::span<const net::ServiceEndpoint> GetEndpointResults() override {
++      return {};
++    }
++
++    const std::set<std::string>& GetDnsAliasResults() override {
++      return empty_aliases_;
++    }
++
++    bool EndpointsCryptoReady() override { return false; }
++
++    net::ResolveErrorInfo GetResolveErrorInfo() override {
++      return net::ResolveErrorInfo(error_);
++    }
++
++    const net::HostCache::EntryStaleness* GetStaleInfo() const override {
++      return nullptr;
++    }
++
++    bool IsStaleWhileRefreshing() const override { return false; }
++
++    void ChangeRequestPriority(net::RequestPriority priority) override {}
++
++    std::optional<net::ResolutionDetails> GetResolutionDetails()
++        const override {
++      return std::nullopt;
++    }
++
++   private:
++    base::WeakPtr<ReentrantFailingHostResolver> resolver_;
++    raw_ptr<Delegate> delegate_ = nullptr;
++    int error_ = net::ERR_NAME_NOT_RESOLVED;
++    std::set<std::string> empty_aliases_;
++  };
++
++  void OnRequestStarted(PendingRequest* request) {
++    pending_requests_.push_back(request);
++    if (on_request_started_) {
++      std::move(on_request_started_).Run();
++    }
++  }
++
++  void OnRequestCancelled(PendingRequest* request) {
++    size_t erased = std::erase(pending_requests_, request);
++    if (erased > 0 && fail_siblings_on_cancel_ && !failing_siblings_) {
++      base::AutoReset<bool> reset(&failing_siblings_, true);
++      while (!pending_requests_.empty()) {
++        PendingRequest* sibling = pending_requests_.front().get();
++        pending_requests_.erase(pending_requests_.begin());
++        sibling->CompleteSynchronously(net::ERR_NAME_NOT_RESOLVED);
++      }
++    }
++  }
++
++  std::vector<raw_ptr<PendingRequest>> pending_requests_;
++  base::OnceClosure on_request_started_;
++  bool fail_siblings_on_cancel_ = false;
++  bool failing_siblings_ = false;
++  base::WeakPtrFactory<ReentrantFailingHostResolver> weak_factory_{this};
++};
++
++}  // namespace
+ 
+ class P2PSocketManagerTest : public testing::Test {
+  protected:
+   P2PSocketManagerTest() = default;
+ 
+-  void SetUpSocketManager() {
++  void SetUpSocketManager(
++      std::unique_ptr<net::HostResolver> host_resolver = nullptr) {
+     mojo::PendingRemote<mojom::P2PTrustedSocketManagerClient> client;
+     mojo::PendingReceiver<mojom::P2PTrustedSocketManager>
+         trusted_socket_manager;
+-    auto client_receiver = client.InitWithNewPipeAndPassReceiver();
+-    auto trusted_socket_manager_remote =
++    trusted_socket_manager_client_receiver_ =
++        client.InitWithNewPipeAndPassReceiver();
++    trusted_socket_manager_remote_ =
+         trusted_socket_manager.InitWithNewPipeAndPassRemote();
+ 
+     auto context_builder = net::CreateTestURLRequestContextBuilder();
+     context_builder->set_client_socket_factory_for_testing(
+         &mock_socket_factory_);
++    if (host_resolver) {
++      context_builder->set_host_resolver(std::move(host_resolver));
++    }
+     url_request_context_ = context_builder->Build();
+ 
+     socket_manager_ = std::make_unique<P2PSocketManager>(
+         net::NetworkAnonymizationKey(), std::move(client),
+         std::move(trusted_socket_manager),
+         socket_manager_remote_.BindNewPipeAndPassReceiver(),
+-        base::DoNothingAs<void(P2PSocketManager*)>(),
++        base::BindOnce(&P2PSocketManagerTest::OnSocketManagerDestroyed,
++                       base::Unretained(this)),
+         url_request_context_.get());
+   }
+ 
++  mojo::Remote<mojom::P2PSocket> CreateStunTcpSocket(
++      const std::string& hostname) {
++    mojo::Remote<mojom::P2PSocket> socket_remote;
++    mojo::PendingRemote<mojom::P2PSocketClient> client_remote;
++    std::ignore = client_remote.InitWithNewPipeAndPassReceiver();
++
++    P2PPortRange port_range;
++    port_range.min_port = 0;
++    port_range.max_port = 0;
++
++    P2PHostAndIPEndPoint remote_address;
++    remote_address.hostname = hostname;
++    remote_address.ip_address =
++        net::IPEndPoint(net::IPAddress::IPv4Localhost(), 3478);
++
++    socket_manager_remote_->CreateSocket(
++        P2P_SOCKET_STUN_TCP_CLIENT,
++        net::IPEndPoint(net::IPAddress::IPv4Localhost(), 0), port_range,
++        remote_address,
++        net::MutableNetworkTrafficAnnotationTag(TRAFFIC_ANNOTATION_FOR_TESTS),
++        std::nullopt, std::move(client_remote),
++        socket_remote.BindNewPipeAndPassReceiver());
++    return socket_remote;
++  }
++
++  void OnSocketManagerDestroyed(P2PSocketManager* socket_manager) {
++    ASSERT_EQ(socket_manager, socket_manager_.get());
++    socket_manager_.reset();
++  }
++
+   std::unique_ptr<net::URLRequestContext> url_request_context_;
+   std::unique_ptr<P2PSocketManager> socket_manager_;
+   mojo::Remote<mojom::P2PSocketManager> socket_manager_remote_;
++  mojo::PendingReceiver<mojom::P2PTrustedSocketManagerClient>
++      trusted_socket_manager_client_receiver_;
++  mojo::PendingRemote<mojom::P2PTrustedSocketManager>
++      trusted_socket_manager_remote_;
+ 
+   base::test::TaskEnvironment task_environment_;
+   net::MockClientSocketFactory mock_socket_factory_;
+@@ -127,4 +423,84 @@ TEST_F(P2PSocketManagerTest, CreateSocketRestrictedPort) {
+   EXPECT_FALSE(socket_remote.is_connected());
+ }
+ 
++// Regression test for crbug.com/579289829: destroying a P2P TCP socket inside
++// DestroySocket() can synchronously fail sibling sockets and re-enter
++// DestroySocket().
++TEST_F(P2PSocketManagerTest, DestroySocketHandlesReentrantSiblingFailure) {
++  auto resolver = std::make_unique<ReentrantFailingHostResolver>();
++  ReentrantFailingHostResolver* resolver_ptr = resolver.get();
++  SetUpSocketManager(std::move(resolver));
++
++  constexpr size_t kNumSockets = 4;
++  std::vector<mojo::Remote<mojom::P2PSocket>> sockets;
++  sockets.reserve(kNumSockets);
++  for (size_t i = 0; i < kNumSockets; ++i) {
++    sockets.push_back(
++        CreateStunTcpSocket("stun" + base::NumberToString(i) + ".example"));
++  }
++  resolver_ptr->WaitForPendingRequests(kNumSockets);
++
++  base::RunLoop siblings_disconnected_loop;
++  base::RepeatingClosure barrier = base::BarrierClosure(
++      kNumSockets - 1, siblings_disconnected_loop.QuitClosure());
++  for (size_t i = 1; i < kNumSockets; ++i) {
++    sockets[i].set_disconnect_handler(barrier);
++  }
++
++  resolver_ptr->set_fail_siblings_on_cancel(true);
++  // Disconnecting socket 0 triggers DestroySocket(socket0), whose destructor
++  // cancels its ResolveHostRequest and synchronously fails sockets 1..3.
++  sockets[0].reset();
++
++  siblings_disconnected_loop.Run();
++  EXPECT_EQ(resolver_ptr->pending_count(), 0u);
++  for (size_t i = 1; i < kNumSockets; ++i) {
++    EXPECT_FALSE(sockets[i].is_connected());
++  }
++}
++
++// Verifies ~P2PSocketManager() safely handles synchronous sibling socket
++// failures triggered while tearing down `sockets_`.
++TEST_F(P2PSocketManagerTest, DestructorHandlesReentrantSocketFailure) {
++  auto resolver = std::make_unique<ReentrantFailingHostResolver>();
++  ReentrantFailingHostResolver* resolver_ptr = resolver.get();
++  SetUpSocketManager(std::move(resolver));
++
++  constexpr size_t kNumSockets = 4;
++  std::vector<mojo::Remote<mojom::P2PSocket>> sockets;
++  sockets.reserve(kNumSockets);
++  for (size_t i = 0; i < kNumSockets; ++i) {
++    sockets.push_back(
++        CreateStunTcpSocket("stun" + base::NumberToString(i) + ".example"));
++  }
++  resolver_ptr->WaitForPendingRequests(kNumSockets);
++
++  resolver_ptr->set_fail_siblings_on_cancel(true);
++  socket_manager_remote_.reset();
++  ASSERT_TRUE(base::test::RunUntil([&] { return !socket_manager_; }));
++  EXPECT_EQ(resolver_ptr->pending_count(), 0u);
++}
++
++// Verifies ~P2PSocketManager() safely handles synchronous sibling DNS failures
++// triggered while tearing down `dns_requests_`.
++TEST_F(P2PSocketManagerTest, DestructorHandlesReentrantDnsFailure) {
++  auto resolver = std::make_unique<ReentrantFailingHostResolver>();
++  ReentrantFailingHostResolver* resolver_ptr = resolver.get();
++  SetUpSocketManager(std::move(resolver));
++
++  constexpr size_t kNumRequests = 4;
++  for (size_t i = 0; i < kNumRequests; ++i) {
++    socket_manager_remote_->GetHostAddress(
++        "stun" + base::NumberToString(i) + ".example",
++        /*address_family=*/std::nullopt, /*enable_mdns=*/false,
++        base::DoNothing());
++  }
++  resolver_ptr->WaitForPendingRequests(kNumRequests);
++
++  resolver_ptr->set_fail_siblings_on_cancel(true);
++  socket_manager_remote_.reset();
++  ASSERT_TRUE(base::test::RunUntil([&] { return !socket_manager_; }));
++  EXPECT_EQ(resolver_ptr->pending_count(), 0u);
++}
++
+ }  // namespace network
+diff --git a/services/network/p2p/socket_tcp.cc b/services/network/p2p/socket_tcp.cc
+index e9c6035f3ca0997766fcdc6fc635890837465ff9..e88d8aff20e08733de3b3e9a811a28db34b92d27 100644
+--- a/services/network/p2p/socket_tcp.cc
++++ b/services/network/p2p/socket_tcp.cc
+@@ -272,7 +272,9 @@ bool P2PSocketTcpBase::OnPacket(base::span<const uint8_t> data) {
+   // TODO(crbug.com/40243224): Batch multiple packets in the TCP case as well.
+   client_->DataReceived(std::move(received_packets));
+ 
+-  delegate_->DumpPacket(data, true);
++  if (delegate_) {
++    delegate_->DumpPacket(data, true);
++  }
+   return true;
+ }
+ 
+@@ -554,7 +556,9 @@ bool P2PSocketStunTcp::DoSend(const net::IPEndPoint& to,
+           buffer_size));
+ 
+   // WriteOrQueue may free the memory, so dump it first.
+-  delegate_->DumpPacket(send_buffer.buffer->span(), false);
++  if (delegate_) {
++    delegate_->DumpPacket(send_buffer.buffer->span(), false);
++  }
+ 
+   return WriteOrQueue(send_buffer);
+ }
+diff --git a/services/network/p2p/socket_tcp.h b/services/network/p2p/socket_tcp.h
+index 1f4f33d1b32843a22eb43b8c8e9c2be8da04cdb0..c1660506a04b0ab1fb8a87c0d61fff0bb36ab03a 100644
+--- a/services/network/p2p/socket_tcp.h
++++ b/services/network/p2p/socket_tcp.h
+@@ -123,7 +123,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) P2PSocketTcpBase : public P2PSocket {
+   raw_ptr<ProxyResolvingClientSocketFactory> proxy_resolving_socket_factory_;
+ };
+ 
+-class COMPONENT_EXPORT(NETWORK_SERVICE) P2PSocketTcp : public P2PSocketTcpBase {
++class COMPONENT_EXPORT(NETWORK_SERVICE) P2PSocketTcp final
++    : public P2PSocketTcpBase {
+  public:
+   P2PSocketTcp(
+       Delegate* delegate,
+@@ -151,7 +152,7 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) P2PSocketTcp : public P2PSocketTcpBase {
+ // with TURN. These messages will not have length at front of the packet and
+ // are padded to multiple of 4 bytes.
+ // Formatting of messages is defined in RFC5766.
+-class COMPONENT_EXPORT(NETWORK_SERVICE) P2PSocketStunTcp
++class COMPONENT_EXPORT(NETWORK_SERVICE) P2PSocketStunTcp final
+     : public P2PSocketTcpBase {
+  public:
+   P2PSocketStunTcp(
+diff --git a/services/network/p2p/socket_tcp_unittest.cc b/services/network/p2p/socket_tcp_unittest.cc
+index eef56fb853c34356dff71b952ac047232e1fc917..15c859f6ecddbebdda92d2b5ec1f4f0187632540 100644
+--- a/services/network/p2p/socket_tcp_unittest.cc
++++ b/services/network/p2p/socket_tcp_unittest.cc
+@@ -19,6 +19,7 @@
+ #include "base/strings/string_view_util.h"
+ #include "base/strings/stringprintf.h"
+ #include "base/test/bind.h"
++#include "base/test/run_until.h"
+ #include "base/test/scoped_feature_list.h"
+ #include "base/test/task_environment.h"
+ #include "components/webrtc/fake_ssl_client_socket.h"
+@@ -227,6 +228,23 @@ TEST_F(P2PSocketTcpTest, SendDataNoAuth) {
+   EXPECT_TRUE(fake_client_->connection_error());
+ }
+ 
++// Verify that a failing socket doesn't call its delegate after
++// ClearDelegate(). FakeP2PSocketDelegate::DestroySocket() CHECKs that the
++// socket is expected to be destroyed.
++TEST_F(P2PSocketTcpTest, NoDelegateCallAfterClearDelegate) {
++  webrtc::AsyncSocketPacketOptions options;
++  std::vector<uint8_t> packet;
++  CreateRandomPacket(&packet);
++
++  socket_impl_->ClearDelegate();
++  // Sending data before receiving a STUN response fails the socket.
++  socket_impl_->Send(packet, P2PPacketInfo(dest_.ip_address, options, 0));
++
++  EXPECT_EQ(0U, sent_data_.size());
++  EXPECT_TRUE(
++      base::test::RunUntil([&] { return fake_client_->connection_error(); }));
++}
++
+ // Verify that we can send data after we've received STUN response
+ // from the other side.
+ TEST_F(P2PSocketTcpTest, SendAfterStunRequest) {
+diff --git a/services/network/p2p/socket_udp.cc b/services/network/p2p/socket_udp.cc
+index 1eeec59581a5a0a870a74e69f66d10316d8956c9..cfd4e3d74ce421d72b2105ed9eea9e0be00a50a1 100644
+--- a/services/network/p2p/socket_udp.cc
++++ b/services/network/p2p/socket_udp.cc
+@@ -373,7 +373,9 @@ bool P2PSocketUdp::HandleReadResult(int result) {
+       }
+     }
+ 
+-    delegate_->DumpPacket(data, true);
++    if (delegate_) {
++      delegate_->DumpPacket(data, true);
++    }
+     net::DscpAndEcn last_tos =
+         socket_ == nullptr
+             ? net::DscpAndEcn(net::DSCP_DEFAULT, net::ECN_DEFAULT)
+@@ -466,7 +468,7 @@ bool P2PSocketUdp::DoSend(P2PPendingPacket packet) {
+       packet.packet_options.ect_1 ? net::ECN_ECT1 : net::ECN_NOT_ECT);
+ 
+   bool success = DoSendToSocket(packet, send_time_ms);
+-  if (success) {
++  if (success && delegate_) {
+     delegate_->DumpPacket(packet.data->first(packet.size), /*incoming=*/false);
+   }
+   return success;
+diff --git a/services/network/p2p/socket_udp.h b/services/network/p2p/socket_udp.h
+index 6cd46c46937cdb95684f53a240a6859e6f1226e5..c72c9a7116a692307ec9877335f403071ecdf8bd 100644
+--- a/services/network/p2p/socket_udp.h
++++ b/services/network/p2p/socket_udp.h
+@@ -54,7 +54,7 @@ struct P2PPendingPacket {
+   uint64_t id;
+ };
+ 
+-class COMPONENT_EXPORT(NETWORK_SERVICE) P2PSocketUdp : public P2PSocket {
++class COMPONENT_EXPORT(NETWORK_SERVICE) P2PSocketUdp final : public P2PSocket {
+  public:
+   friend class ThrottlingP2PNetworkInterceptor;
+ 
+-- 
+2.43.0
+
