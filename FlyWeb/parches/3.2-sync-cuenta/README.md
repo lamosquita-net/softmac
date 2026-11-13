@@ -2,7 +2,7 @@
 
 MOTOR-46, 13-11-2026, por encargo de COORDINACIÓN-41. Es el hito H3 de [`sync-cuenta.md`](../../docs/sync-cuenta.md) §12:
 el cliente que describe §11, con las decisiones de §10.1 y el protocolo del servidor de #977 (SYNC-NUBE-1, rama
-`claude/sync-cuenta-h2` en **07c086cee0**, ls-remote del 13-11; referencia: `servidor/sync/cuenta/README.md`).
+`claude/sync-cuenta-h2`, ahora en **cbe0221b49**, con S1–S3 (ls-remote del 13-11); referencia: `servidor/sync/cuenta/README.md`).
 
 **Sin compilar.** Se compila cuando la 3.1 esté medida (`plan-3x.md` §5.2) y después de que SEGURIDAD-PORTES revise
 el código. Esta sesión no tiene push a brave-core, así que la entrega va como `git format-patch`.
@@ -10,7 +10,7 @@ el código. Esta sesión no tiene push a brave-core, así que la entrega va como
 ## Base y cómo se aplica
 
 Base: brave-core **`local/3.1.1` = 3e2c12fad5** (ls-remote del 13-11), la 3.1.1 publicada. Rama local
-`nube/sync-cuenta-h3` (no subida).
+`nube/sync-cuenta-h3` (no subida). Servidor de referencia: #977 en cbe0221b49.
 
 ```sh
 git checkout -b nube/sync-cuenta-h3 3e2c12fad5
@@ -42,12 +42,12 @@ git am FlyWeb/parches/3.2-sync-cuenta/000*.patch
 - **Sondeo** (§11): cada 15 min con la sync activa y al abrir la página. Va con el token; si el servidor lo da por
   inválido, lo renueva con la prueba de cadena. Una petición cada vez; si falla, espera 30 min, luego 60, y se queda
   en 60. El primer sondeo tras entrar en una cuenta solo marca como leída la historia (no avisa de ella). Los eventos
-  de una operación propia no avisan (ver S3).
+  de una operación propia no avisan cuando el servidor dice que el autor es este Mac (S3).
 - **Cadena desactivada desde otro Mac:** cuando la sync borra la semilla (`DISABLED_BY_ADMIN`), el servicio pregunta
   `eventos` con la clave vieja, que aún tiene en memoria. Si la respuesta es `cadena-sustituida`, el estado es «clave
   cambiada desde otro Mac» y sale su barra (no la de «cuenta borrada» de Brave). Si no, el estado es «cuenta borrada».
 - **Mac unido con las 24 palabras** (decisión 11): en cuanto el sondeo dice que la cadena tiene cuenta, se da de alta
-  solo, con nombre = modelo (`hw.model`), y el nombre se puede cambiar después. Pendiente de COORDINACIÓN; ver S1.
+  solo, con nombre = modelo (`hw.model`), y el nombre se puede cambiar después (S1).
 - **Operaciones:** crear la cuenta (ligando la cadena de este Mac o una nueva, con la clave de recuperación),
   entrar con email + contraseña + código (la envoltura tiene que abrir, P15), las 24 palabras (o 25 con fecha
   válida), cambiar la contraseña con un código, cambiar el email, cambiar la clave de sincronización (semilla nueva,
@@ -58,21 +58,22 @@ git am FlyWeb/parches/3.2-sync-cuenta/000*.patch
   públicas de `BraveSyncServiceImpl` (`SetSyncCode`, `ResetSync`, `StopAndClearWithResetLocalDataReason`), como la
   página de hoy.
 
-## Pendiente de COORDINACIÓN (preguntas del 13-11)
+## Decisiones de COORDINACIÓN-41 (13-11) y servidor que se usa
 
-El cliente ya está escrito para las dos respuestas posibles. Lo que falte se nota así:
+Respuestas a las preguntas de MOTOR-46. El servidor que corresponde es #977 en **cbe0221b49** (ls-remote del 13-11):
+S1 en 1f40b49, S2 y S3 en cbe0221.
 
-- **S1** (servidor): un Mac que no conoce el `cuenta_id` firma con cuenta vacía y hoy recibe 401. El cliente ya lee
-  `cuenta` de `eventos` si llega. Sin el cambio, un Mac unido con palabras no sabe que su cadena tiene cuenta: no
-  avisa ni se da de alta (sigue sincronizando).
-- **S2** (servidor): `email` en `eventos`. El cliente ya lo lee si llega. Sin él, ese mismo Mac no puede cambiar la
-  contraseña, el email ni la clave (error `email`), porque el email es la sal del scrypt.
-- **S3** (servidor): `datos.aparato` en los eventos. Si llega, el cliente se salta los eventos que ha causado él.
-  Mientras no llegue, se salta solo el primer evento del mismo tipo que llegue en el sondeo justo después de la
-  operación, y solo si no es más antiguo que la operación (con 5 s de margen).
-- **C1:** solo «Combinar»; «Sustituir» y «Quitar marcadores duplicados» no están (P9 a medias).
-- **C2:** cadenas en inglés, con traducción es y es-419.
-- **C3:** zxcvbn para el indicador de fuerza; solo se exige la longitud mínima.
+- **S1:** en `eventos` y `aparatos/renovar` la prueba vale con cuenta vacía, y `eventos` devuelve `cuenta`. Un Mac
+  unido con las palabras descubre así la cuenta y se da de alta solo (decisión 11: nombre = modelo y aviso «Mac
+  añadido»).
+- **S2:** el `email` solo llega en `eventos` con prueba de cadena. Mientras no lo sabe, el cliente sondea con prueba;
+  después lo guarda cifrado y sigue con el token.
+- **S3:** `datos.aparato` es el autor verificado. El cliente manda su token también en las llamadas con prueba y en
+  `email/cambiar/terminar`, y no avisa de los eventos cuyo autor es él. Si el servidor no da el autor, avisa.
+- **C1:** solo «Combinar»; «Sustituir» lo decide Titín. Si entra, va en un parche aparte: es un estado más de la
+  página y un paso antes de `JoinChain`, sin tocar lo de aquí.
+- **C2:** fuente en inglés y traducción es y es-419. **C3:** zxcvbn del árbol, barra de 0 a 4; solo bloquea la
+  longitud mínima.
 
 ## Para SEGURIDAD-PORTES (lo que pide revisar §11)
 
@@ -117,7 +118,7 @@ con `--sync-url`. Cada paso se anota con su resultado:
 | P8 | «Borrar en todos» en A: confirmación con N navegadores; B y C pasan a «La cuenta se ha borrado desde otro Mac» |
 | P9 | Llavero cambiado → «claves ilegibles» → «Volver a unir» → combinar sin duplicados. **«Sustituir», no (C1)** |
 | P10 | Servidor parado a mitad de cada operación: a los 30 s como mucho, mensaje y Reintentar; «sin red» con lo último que se sabía |
-| P11 | «He olvidado la contraseña» con un Mac (código → contraseña nueva, datos intactos); con las palabras (se une; luego lo mismo; necesita S1/S2); sin nada («Empezar de cero»); en un Mac nuevo, las dos salidas de §5.1 |
+| P11 | «He olvidado la contraseña» con un Mac (código → contraseña nueva, datos intactos); con las palabras (se une, se da de alta solo y sabe el email: S1 y S2; luego lo mismo); sin nada («Empezar de cero»); en un Mac nuevo, las dos salidas de §5.1 |
 | P13 | Una 3.0.1 con palabras y una 3.2 con cuenta en la misma cadena sincronizan entre sí; NetLog solo con `sync.flyweb.lamosquita.net` |
 | P15 | Con una instancia que entrega una envoltura cambiada: «La clave recibida no es válida. No se ha activado nada.»; la cadena no cambia |
 | P16 | «Cambiar la clave de sincronización» en A con su contraseña: A enseña 24 palabras nuevas y pide confirmar que están guardadas; C (quitado de la lista) deja de leer y muestra «clave cambiada»; B también, y vuelve a entrar con email, contraseña y código |
