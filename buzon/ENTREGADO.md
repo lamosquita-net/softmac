@@ -761,3 +761,4 @@ buzon/LOCAL/20261113-2135-COORDINACION-41-error11-caida.md → Compilación Loca
 buzon/SERVIDOR-LOCAL/20261113-2150-COORDINACION-41-sync-h2-instalar.md → Servidor Local (2) [853e0b] · 2026-11-13 21:46 UTC · entregado (COORDINACIÓN-41)
 buzon/SERVIDOR-LOCAL/20261113-2155-COORDINACION-41-sync-h2-respuestas.md → Servidor Local (2) [853e0b] · 2026-11-13 21:50 UTC · entregado (COORDINACIÓN-41)
 buzon/ARQUITECTURA/20261113-2200-COORDINACION-41-plataformas.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 21:53 UTC · entregado (COORDINACIÓN-41)
+buzon/SERVIDOR-LOCAL/20261113-2210-COORDINACION-41-sync-h2-valores.md → Servidor Local (2) [853e0b] · 2026-11-13 21:55 UTC · entregado (COORDINACIÓN-41)
