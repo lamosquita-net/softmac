@@ -750,3 +750,4 @@ buzon/SERVIDOR-LOCAL/20261113-1350-COORDINACION-41-relevo.md → Servidor Local 
 buzon/CARTERO-LOCAL/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 2026-11-13 13:52 UTC · es esta sesión; leído
 buzon/ARQUITECTURA/20261113-1355-COORDINACION-41-aquarium-hilos.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 13:54 UTC · entregado (COORDINACIÓN-41)
 buzon/LOCAL/20261113-1355-COORDINACION-41-recibido.md → Compilación Local (19) [924c24] · 2026-11-13 13:54 UTC · entregado (COORDINACIÓN-41)
+buzon/PUBLICACION/20261113-1412-COORDINACION-41-311-firmado.md → Publicación [4dd99b] · 2026-11-13 14:15 UTC · entregado (COORDINACIÓN-41)
