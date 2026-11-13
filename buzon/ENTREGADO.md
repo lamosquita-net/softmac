@@ -755,3 +755,4 @@ buzon/PUBLICACION/20261113-1438-COORDINACION-41-web-fusionada.md → Publicació
 buzon/PUBLICACION/20261113-1450-COORDINACION-41-regla-web.md → Publicación [4dd99b] · 2026-11-13 14:41 UTC · entregado (COORDINACIÓN-41)
 buzon/LOCAL/20261113-1855-COORDINACION-41-catalina-claude.md → Compilación Local (19) [924c24] · 2026-11-13 19:08 UTC · entregado (COORDINACIÓN-41)
 buzon/LOCAL/20261113-1905-COORDINACION-41-google-popup.md → Compilación Local (19) [924c24] · 2026-11-13 19:09 UTC · entregado (COORDINACIÓN-41)
+buzon/ARQUITECTURA/20261113-2115-COORDINACION-41-angle-metal-2012.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 21:12 UTC · entregado (COORDINACIÓN-41)
