@@ -363,6 +363,12 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     (D) La copia de bak se borra de verdad a los 30 días (excepción a la cuarentena). (E) **No** se añade espera de 3 días
     para el Mac robado con el correo abierto. **Riesgo aceptado:** quien tenga un Mac desbloqueado y el correo del usuario
     tiene su cuenta; un Mac apagado o bloqueado lo protege la contraseña de macOS.
+- **Contenido de la 3.2.0 cerrado (Titín, 13-11; COORDINACIÓN-41):** (1) sync con cuenta: servidor (H2, #977, tras la
+  revisión de SEGURIDAD-PORTES) y cliente (H3), que se encarga ya a MOTOR para escribirlo en paralelo; se compila
+  cuando la 3.1 esté medida (`plan-3x.md` §5.2); (2) diseño de Titín de la pantalla privada y cambios ligeros de las
+  pestañas (`entregas/local21/diseno-32/`); (3) parches `FlyWeb/parches/3.2-renderer-webgl/` 0001–0003. Nada más entra
+  sin pasar por Titín. El delta de la 158 y la V8 .59 no son contenido de la 3.2.0 salvo que Titín lo decida el 17-11
+  (recomendación de COORDINACIÓN: 3.1.2 solo de seguridad).
 - **Flink a nuestro ritmo (Titín, 12-11 noche; COORDINACIÓN-40):** Chrome marca hacia dónde va la web y lo seguimos,
   pero con criterio propio: se trae lo que interese y lo que necesiten webs reales, y no se mete lo que no aporta o
   rechazan Firefox y Safari (sigue la decisión 8 del plan de la 3.x: se declara 156). Objetivo: **no quedarse nunca atrás**.
