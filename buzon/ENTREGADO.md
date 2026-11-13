@@ -740,3 +740,4 @@ buzon/LOCAL/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 2026-1
 buzon/PUBLICACION/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 2026-11-13 13:49 UTC · retenido: relevo de COORDINACIÓN 40→41; la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
 buzon/SERVIDOR-LOCAL/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 2026-11-13 13:49 UTC · retenido: relevo de COORDINACIÓN 40→41; la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
 buzon/ARQUITECTURA/20261113-1350-COORDINACION-41-sync-h2.md → (sin reenvío) · 2026-11-13 13:49 UTC · retenido: orden de COORDINACIÓN 41 (no 40); la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
+buzon/PUBLICACION/20261113-1352-COORDINACION-41-311-reintenta.md → (sin reenvío) · 2026-11-13 13:51 UTC · retenido: orden de COORDINACIÓN 41; la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
