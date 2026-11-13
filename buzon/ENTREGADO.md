@@ -757,3 +757,4 @@ buzon/LOCAL/20261113-1855-COORDINACION-41-catalina-claude.md → Compilación Lo
 buzon/LOCAL/20261113-1905-COORDINACION-41-google-popup.md → Compilación Local (19) [924c24] · 2026-11-13 19:09 UTC · entregado (COORDINACIÓN-41)
 buzon/ARQUITECTURA/20261113-2115-COORDINACION-41-angle-metal-2012.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 21:12 UTC · entregado (COORDINACIÓN-41)
 buzon/LOCAL/20261113-2125-COORDINACION-41-google-sin-titin.md → Compilación Local (19) [924c24] · 2026-11-13 21:14 UTC · entregado (COORDINACIÓN-41)
+buzon/LOCAL/20261113-2135-COORDINACION-41-error11-caida.md → Compilación Local (19) [924c24] · 2026-11-13 21:18 UTC · entregado (COORDINACIÓN-41)
