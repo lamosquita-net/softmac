@@ -83,6 +83,10 @@ en las filas viejas del tablero y en los documentos; significan el agente que lo
     versión con el commit de `flyweb`, `FLYWEB_BUILD_NUMBER`, la ruta de la app y las pruebas hechas. PUBLICACIÓN no
     publica nada que no tenga esa entrega. Con la entrega, LOCAL queda libre para la siguiente compilación.
     **La entrega es la orden de publicar** (HUMANO, 13-10): PUBLICACIÓN publica sin preguntar al HUMANO «¿confirmas?». **Excepción (Titín, 27-10):** si la versión cambia algo visible, LOCAL deja el DMG de prueba y capturas para Titín y PUBLICACIÓN espera su sí (`DIRECTIVAS.md`).
+    **PUBLICACIÓN fusiona su propio PR de la web** (Titín, 13-11): en cuanto `verificar-appcast.sh` da OK con la firma
+    de bak, fusiona ella misma el PR que solo toca `FlyWeb/web/`, con `expectedHeadSha` y revisando antes que el diff
+    no lleva datos personales; no espera a COORDINACIÓN ni se lo pide a otra sesión. Si no puede fusionar, avisa a
+    COORDINACIÓN, que lo fusiona. Todo lo demás lo sigue fusionando COORDINACIÓN.
     Al HUMANO solo le pasa las órdenes de firma en bak y, si hace falta, un permiso que tenga que aprobar en su ventana;
     las dudas, a COORDINACIÓN.
 12. **Sección «Para la web» en `FlyWeb/docs/version-1.N.md`:** MOTOR y LOCAL anotan ahí, en lenguaje de usuario, lo que
