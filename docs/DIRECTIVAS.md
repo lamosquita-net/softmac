@@ -366,7 +366,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
 - **Contenido de la 3.2.0 cerrado (Titín, 13-11; COORDINACIÓN-41):** (1) sync con cuenta: servidor (H2, #977, tras la
   revisión de SEGURIDAD-PORTES) y cliente (H3), que se encarga ya a MOTOR para escribirlo en paralelo; se compila
   cuando la 3.1 esté medida (`plan-3x.md` §5.2); (2) diseño de Titín de la pantalla privada y cambios ligeros de las
-  pestañas (`entregas/local21/diseno-32/`); (3) parches `FlyWeb/parches/3.2-renderer-webgl/` 0001–0003. Nada más entra
+  pestañas (`entregas/local21/diseno-32/`); (3) parches `FlyWeb/parches/3.2-renderer-webgl/` 0001–0003. Asistente de unir un Mac
+  a la cuenta: **solo «Combinar»** (Titín, 13-11); «Sustituir» y «Quitar duplicados», si hacen falta, en una 3.2.x
+  (parche 0007 sin rehacer nada). Nada más entra
   sin pasar por Titín. El delta de la 158 y la V8 .59 no son contenido de la 3.2.0 salvo que Titín lo decida el 17-11
   (recomendación de COORDINACIÓN: 3.1.2 solo de seguridad).
 - **3.1.2 antes de la 3.2.0 (Titín, 13-11 noche; COORDINACIÓN-41):** la 3.2.0 está lejos (sync sin revisar ni compilar),
