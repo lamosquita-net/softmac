@@ -754,3 +754,4 @@ buzon/PUBLICACION/20261113-1412-COORDINACION-41-311-firmado.md → Publicación 
 buzon/PUBLICACION/20261113-1438-COORDINACION-41-web-fusionada.md → Publicación [4dd99b] · 2026-11-13 14:38 UTC · entregado (COORDINACIÓN-41)
 buzon/PUBLICACION/20261113-1450-COORDINACION-41-regla-web.md → Publicación [4dd99b] · 2026-11-13 14:41 UTC · entregado (COORDINACIÓN-41)
 buzon/LOCAL/20261113-1855-COORDINACION-41-catalina-claude.md → Compilación Local (19) [924c24] · 2026-11-13 19:08 UTC · entregado (COORDINACIÓN-41)
+buzon/LOCAL/20261113-1905-COORDINACION-41-google-popup.md → Compilación Local (19) [924c24] · 2026-11-13 19:09 UTC · entregado (COORDINACIÓN-41)
