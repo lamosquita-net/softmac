@@ -7,6 +7,56 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 13-11 (tarde): COORDINACIÓN-40 → COORDINACIÓN-41 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-40 (`session_01MwmK2iSWxzb4yvKWQc6eJC`, 12-11 18:50 → 13-11 ~13:45 UTC; Opus 5.5 medio; linaje 7 de 8;
+relevo al 37 %). **La 41 la abre Titín desde claude.ai**: el linaje vuelve a 1 y puede abrir sesiones y programarse avisos
+otra vez. **Nunca llamar a confirm_repository_trust.**
+
+**Canales:** las locales (LOCAL-19, LOCAL-21, PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA, cartero) nos escriben por bridge,
+pero no se les puede escribir por send_message (401/untrusted device): buzón con `[coord]`. **D8-LINUX («motor ubuntu (4)»,
+`session_01MwmK2jroj3oTQj5G1QKnyt`) no lo alcanza el cartero:** sus encargos van en el buzón y Titín se los pega. El cartero
+pide a Titín confirmar cada relevo de COORDINACIÓN: pídeselo en el primer mensaje (texto en la nota de la 39 → 40).
+Nube: SEGURIDAD-PORTES-22 `session_01MwmK2gyj8BaukttCj4uahG` (relevada al 56 %, nota «22 → 23», quieta; archivarla cuando
+la -23 esté activa), MOTOR-45 `session_01MwmK2kdamTiZHb5S9SwNW7` (quieta, nota al día), SEGURIDAD-PORTES-21 (archivar),
+SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS` (Haiku, diaria).
+
+**Hitos (todo comprobado):**
+- **3.1.1 compilada y entregada** (FS.44, #971/#972; build 44, 198.63.44, 156.0.8078.104, V8 .58; brave-core `local/3.1.1`
+  3e2c12fad57, chromium `seg/3.1.1` 9e0d83137f, ls-remote). Contenido en `FlyWeb/seguridad/3.1.1/CONTENIDO.md` (#966–#970):
+  34 + 9 (.104) parches de seguridad, Catalina 0001–0004 (#957), choque con `navigation_request.cc` de Brave resuelto y
+  APTO (SEGURIDAD-22). 7,1 y 6,1 en verde. Sin la 158 y sin la V8 .59 (DIRECTIVAS #965).
+  **Parada en la notarización:** Apple pide aceptar un acuerdo nuevo en la cuenta de desarrollador (MQ3NJ73LC5). Solo
+  Titín. Avisado. Cuando lo acepte, PUBLICACIÓN termina sola (ya tiene orden de publicar sin esperar a Catalina,
+  `buzon/PUBLICACION/…-311-publica.md`) y le manda a Titín la firma en bak.
+- **Catalina:** la 3.0.x/3.1.0 no arrancaba (CGPreflightScreenCaptureAccess). Arreglo de MOTOR-45 (#957). LOCAL vio que esos
+  importes ya eran débiles en la 3.1.0 (el README de MOTOR decía fuertes): el arreglo vale igual (las guardas evitan la
+  llamada), pero **solo la prueba de Titín en el Mac mini y el MBP 2012 lo cierra**, más FSA en `~/LIBRARY` a mano.
+- **V8 .59:** d8/mjsunit en verde (#969); parche listo en `FlyWeb/seguridad/3.1.1/v8-15.6.75.59/`. Va con la 158.
+- **Sync 3.2:** Titín simplificó (DIRECTIVAS #962: sin bloqueo, contraseña obligatoria, sin código visible, 14 días, bak a
+  30 días, sin E) y **aprobó H1** (13-11, #965). Diseño en `arquitectura/sync-cuenta` (#905, abierto). Falta que ARQUITECTURA
+  corrija **N6** (tabla de esperas: no descartar entradas activas) → entonces fusionar #905; sigue H2.
+- **Directiva «Flink a nuestro ritmo»** (#963). **Aquarium 15k en la 6,1 bimodal** (#972: ~41 fps con renderer al 100 % o
+  55–57 con `CrGpuMain` al 90 %); hipótesis de colocación de hilos pasada a ARQUITECTURA (buzón 13-11).
+
+**Abierto (por orden):**
+1. **3.1.1:** acuerdo de Apple (Titín) → PUBLICACIÓN → firma en bak (Titín) → prueba en Catalina (Titín) → registro.
+2. **17-11 (Chrome 158 estable):** abrir **SEGURIDAD-PORTES-23** (Opus 5.5, alto): delta de la 158 + KEV sobre
+   `seg/3.1.1`/`local/3.1.1` + V8 .59 ya preparada + comprobar N6. **Titín decide** si sale como 3.1.2 solo de seguridad o en
+   la 3.2.0. Si la V8 cambia, otra pasada de d8 en el Ubuntu (Titín la pega). Archivar SEGURIDAD-22.
+3. **17-11:** abrir **INVESTIGACIÓN-MOTOR-10**, informe 2 de `novedades-motor.md` con sección nueva de Firefox/Safari y de
+   navegadores que mantienen macOS viejos (aprobado por Titín).
+4. Sync: N6 → fusionar #905 → H2 de ARQUITECTURA. Multihilo: después de la 3.2 (#949 primero; P2 con página real).
+5. PR viejos abiertos (#943, #865, #832, #560, #512, #467, #456): proponer a Titín cerrarlos.
+
+**Avisos programados en la 40 (se borran cuando la 41 programe los suyos):** `trig_01CBYXUz1o8M8DSgWnK9wgPW` (17-11 21:15,
+SEGURIDAD-23) y `trig_01Q8zPxgVM9RE6N8YVJsq6Tw` (17-11 21:30, INVESTIGACIÓN-MOTOR-10). **La 41 programa los suyos y avisa a
+la 40 para que los borre.**
+
+**Lecciones:** Titín quiere menos casos extremos y más sencillez (sync); si algo para la versión sin motivo, se dice y se
+mueve (la 3.1.1 salió sin esperar a la 158). Cruzar siempre los `patches/` de brave-core con una serie de seguridad antes
+de cerrar CONTENIDO. No mandar a Titín avisos de rutina.
+
 ## 12-11 (tarde): COORDINACIÓN-39 → COORDINACIÓN-40 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-39 (`session_01MwmK2mJmxGn5H9FT1kg9Bo`, 10-11 21:25 → 12-11 ~18:50 UTC; Opus 5.5 medio; abierta por la 38,
