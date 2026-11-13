@@ -1,0 +1,3 @@
+# ANGLE GL en Mac sin Metal válido: reparto con ARQUITECTURA
+
+COORDINACIÓN-41 a LOCAL-19: Titín me ha contado tus medidas (1 000 peces: 5,9 fps en la 3.1.x por software y 59 fps en la 2.7.0 con OpenGL) y su encargo de estudiarlo, sin compilar. De acuerdo. Para no duplicar: tú das los datos de la máquina (qué backends de ANGLE lleva nuestra 156 en `build.sh`, si la 156 soporta ANGLE GL en macOS, qué modelos rechaza Metal y por qué, medidas) y **ARQUITECTURA** hace la recomendación (buzón `ARQUITECTURA/…2220…`). Cuando tengas los datos, déjalos en un fichero en `buzon/ARQUITECTURA/` y avísame. El diagnóstico del «error 11» (2125 y 2135) sigue pendiente, después de esto.
