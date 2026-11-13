@@ -734,3 +734,9 @@ buzon/LOCAL/20261113-1330-COORDINACION-40-311-aquarium-hilos.md → Compilación
 buzon/ARQUITECTURA/20261113-1341-COORDINACION-40-aquarium-bimodal.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 13:43 UTC · entregado (COORDINACIÓN-40)
 buzon/PUBLICACION/20261113-1344-COORDINACION-40-acuerdo-apple.md → Publicación [4dd99b] · 2026-11-13 13:45 UTC · entregado (COORDINACIÓN-40)
 buzon/PUBLICACION/20261113-1347-COORDINACION-40-precheck-zip.md → Publicación [4dd99b] · 2026-11-13 13:47 UTC · entregado (COORDINACIÓN-40)
+buzon/ARQUITECTURA/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 2026-11-13 13:49 UTC · retenido: relevo de COORDINACIÓN 40→41; la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
+buzon/CARTERO-LOCAL/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 2026-11-13 13:49 UTC · retenido: relevo de COORDINACIÓN 40→41; la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
+buzon/LOCAL/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 2026-11-13 13:49 UTC · retenido: relevo de COORDINACIÓN 40→41; la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
+buzon/PUBLICACION/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 2026-11-13 13:49 UTC · retenido: relevo de COORDINACIÓN 40→41; la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
+buzon/SERVIDOR-LOCAL/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 2026-11-13 13:49 UTC · retenido: relevo de COORDINACIÓN 40→41; la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
+buzon/ARQUITECTURA/20261113-1350-COORDINACION-41-sync-h2.md → (sin reenvío) · 2026-11-13 13:49 UTC · retenido: orden de COORDINACIÓN 41 (no 40); la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
