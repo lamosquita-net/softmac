@@ -689,6 +689,35 @@ programado`.
 - **Pruebas:** `go test -race` con los casos de §12 en HTTP contra SQLite; `pruebas/go-sync.sh` sigue pasando (nada de
   go-sync se toca); y, en ns2, siempre desde el propio servidor con `curl --resolve ...:127.0.0.1` (regla de la casa).
 
+### 10.1 Decisiones de H2 [C: COORDINACIÓN-41, 13-11]
+
+Huecos que el diseño dejaba abiertos al escribir el código de H2 (SYNC-NUBE-1, PR #977). Los propuso SYNC-NUBE-1 y
+los decidió COORDINACIÓN-41 con el criterio de la «Simplificación»; ninguno era de Titín. **[C]** = decisión de
+COORDINACIÓN. Detalle del protocolo: `servidor/sync/cuenta/README.md`.
+
+| # | Hueco | Decisión |
+|---|---|---|
+| 1 | Cómo se prueba el buzón en `cuenta/borrar-por-email` y `cuenta/empezar-de-cero` (§6.4) | **Dos pasos:** pedir con el email (código al buzón, respuesta igual exista o no la cuenta, cupo (2): 60/h global y 5/h por cuenta) y confirmar con el código. «Empezar de cero» confirma además con la prueba de la cadena **nueva** (cuenta vacía), `KL` y envoltura nuevas, que se guardan hasta el día 14 para religar la cuenta a la cadena nueva |
+| 2 | Plazo de los eventos (§7 no lo daba) | **30 días**, cifrados con la clave AES (llevan nombres de Mac) |
+| 3 | `alta` a un email que ya tiene cuenta | Respuesta falsa idéntica y **sin correo** (un aviso sin cupo serviría para llenar buzones) |
+| 4 | Cómo se entrega el correo | **SMTP al MTA local** (`FLYWEB_SYNC_SMTP`, por defecto `127.0.0.1:25`), detrás de una interfaz. SERVIDOR-LOCAL confirma MTA, SPF y DKIM al instalar. Textos solo en español, en un único fichero (`textos.go`) |
+| 5 | Cambio de email a una dirección que usa otra cuenta | **Error explícito** (`email-ocupado`), después de gastar cupo (3): quien pregunta tiene cadena y contraseña |
+| 6 | Dónde viven códigos, cupos y correo pendiente | **En memoria**, con el límite escrito: un reinicio los pierde. Los avisos se intentan enviar **en el momento**; solo se guarda para reintentar lo que el MTA rechaza |
+| 7 | Valores que §10 deja a SERVIDOR sin nombre | Variables `FLYWEB_SYNC_SCRYPT_COLA` (longitud de la cola) y `FLYWEB_SYNC_ESPERAS_MAX` (tamaño de la tabla, 90 000); credenciales `cuenta-hmac` y `cuenta-aes`, una línea «versión clave_hex» por versión. Ningún valor de ns2 en el repo |
+| 8 | Qué hace el binario sin credenciales | `/cuenta/v1` **no se monta**: `flyweb-sync` se comporta como antes de la 3.2 |
+| 9 | ¿«Salir en este Mac» avisa? | **Sí**, como «aparato quitado» (correo y evento) |
+| 10 | Forma de la prueba de cadena (§3.1) | **En cabeceras**; la firma cubre también el **método y la ruta completa** además de op, cuenta, nonce y cuerpo: `"flyweb-cuenta-v1" ‖ método ‖ ruta ‖ op ‖ cuenta_id ‖ nonce ‖ SHA-256(cuerpo)`, campos con prefijo de longitud. Nonce de un solo uso con caducidad de 5 min y los usados apuntados en memoria hasta caducar. `cuenta_id` vacío en `alta/confirmar` y `empezar-de-cero/confirmar`. `alta/confirmar` lleva modelo y nombre del Mac (hacen falta para su token) |
+
+Añadido de SYNC-NUBE-1 al escribir el código, **para que lo revise SEGURIDAD-PORTES**: las solicitudes de código
+falsas se piden gratis (`alta`, `borrar-por-email`). Si al llenarse la tabla se descartaran, el ritmo de 10 s diría
+si una solicitud era verdadera, es decir, si la contraseña era buena. Por eso una falsa solo se descarta cuando ya ha
+cumplido sus 10 s, y con la tabla de falsas llena **todas** las comprobaciones de código contestan «ocupado»,
+verdaderas o no (`solicitudes.go`).
+
+Pendientes de respuesta de COORDINACIÓN (provisionales en el código): (11) un Mac unido con las 24 palabras entra en la
+lista de aparatos con `aparatos/renovar` (modelo y nombre), con aviso; (12) una cuenta cuya cadena se desactiva por el
+protocolo de sync (borrado desde una 3.0.x) se borra también.
+
 ## 11. Cliente
 
 - **Página:** la de Sincronización de hoy (`flyweb://settings/braveSync`) pasa a llamarse «Cuenta y sincronización» y

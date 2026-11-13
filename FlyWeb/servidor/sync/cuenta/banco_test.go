@@ -30,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	_ "modernc.org/sqlite"
 )
 
@@ -91,6 +92,8 @@ func (b *buzonFalso) para(email string) []correoRecibido {
 	}
 	return r
 }
+
+const prefijo = "/cuenta/v1"
 
 var reCodigo = regexp.MustCompile(`[A-Z2-7]{4}-[A-Z2-7]{4}`)
 
@@ -160,9 +163,11 @@ func nuevoBanco(t *testing.T, ajustar func(*Config)) *banco {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(b.s.Router())
+	r := chi.NewRouter()
+	r.Mount(prefijo, b.s.Router()) // como en main: la ruta firmada es la completa
+	srv := httptest.NewServer(r)
 	t.Cleanup(srv.Close)
-	b.url = srv.URL
+	b.url = srv.URL + prefijo
 	return b
 }
 
@@ -295,7 +300,7 @@ func (b *banco) conPrueba(m *mac, op, cuentaID, ruta string, v any, otros ...fir
 	cab := map[string]string{"X-FlyWeb-Nonce": base64.RawURLEncoding.EncodeToString(n)}
 	for _, f := range append([]firmante{{m, "X-FlyWeb-Cadena", "X-FlyWeb-Prueba"}}, otros...) {
 		cab[f.cabCadena] = f.m.cadena
-		cab[f.cabFirma] = b64e(FirmarPrueba(f.m.sk, op, cuentaID, n, cuerpo))
+		cab[f.cabFirma] = b64e(FirmarPrueba(f.m.sk, "POST", prefijo+ruta, op, cuentaID, n, cuerpo))
 	}
 	if m.token != "" {
 		cab["Authorization"] = "Bearer " + m.token

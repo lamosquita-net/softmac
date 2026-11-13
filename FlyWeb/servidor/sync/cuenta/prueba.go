@@ -20,10 +20,11 @@ import (
 
 // Prueba de cadena (sync-cuenta.md §3.1):
 //
-//	firma = Ed25519(SK_cadena, "flyweb-cuenta-v1" ‖ op ‖ cuenta_id ‖ nonce ‖ SHA-256(cuerpo))
+//	firma = Ed25519(SK_cadena, "flyweb-cuenta-v1" ‖ método ‖ ruta ‖ op ‖ cuenta_id ‖ nonce ‖ SHA-256(cuerpo))
 //
-// op, cuenta_id y nonce van con un prefijo de 2 bytes (big endian) con su longitud; el resumen del cuerpo es fijo.
-// El cuerpo es el de la petición HTTP tal cual llega. La prueba viaja en cabeceras:
+// método, ruta, op, cuenta_id y nonce van con un prefijo de 2 bytes (big endian) con su longitud; el resumen del
+// cuerpo es fijo. La ruta es la completa que recibe el servicio («/cuenta/v1/eventos») y el cuerpo, el de la
+// petición HTTP tal cual llega (COORDINACIÓN-41: la firma cubre método y ruta). La prueba viaja en cabeceras:
 //
 //	X-FlyWeb-Cadena: clave pública Ed25519 en hex (la misma que el client_id de go-sync)
 //	X-FlyWeb-Nonce:  el nonce que dio /nonce
@@ -39,9 +40,9 @@ const (
 	largoNonce  = largoNonceA + 8 + 16
 )
 
-func mensajePrueba(op, cuentaID string, nonce, cuerpo []byte) []byte {
+func mensajePrueba(metodo, ruta, op, cuentaID string, nonce, cuerpo []byte) []byte {
 	m := []byte(dominioPrueba)
-	for _, campo := range [][]byte{[]byte(op), []byte(cuentaID), nonce} {
+	for _, campo := range [][]byte{[]byte(metodo), []byte(ruta), []byte(op), []byte(cuentaID), nonce} {
 		m = binary.BigEndian.AppendUint16(m, uint16(len(campo)))
 		m = append(m, campo...)
 	}
@@ -50,8 +51,8 @@ func mensajePrueba(op, cuentaID string, nonce, cuerpo []byte) []byte {
 }
 
 // FirmarPrueba es lo que hará el Mac (components/brave_sync/crypto, H3); aquí sirve a las pruebas y de referencia.
-func FirmarPrueba(sk ed25519.PrivateKey, op, cuentaID string, nonce, cuerpo []byte) []byte {
-	return ed25519.Sign(sk, mensajePrueba(op, cuentaID, nonce, cuerpo))
+func FirmarPrueba(sk ed25519.PrivateKey, metodo, ruta, op, cuentaID string, nonce, cuerpo []byte) []byte {
+	return ed25519.Sign(sk, mensajePrueba(metodo, ruta, op, cuentaID, nonce, cuerpo))
 }
 
 // nonces sin estado para los pendientes (O8): 16 bytes aleatorios ‖ caducidad ‖ HMAC con una clave de arranque.
@@ -128,6 +129,8 @@ func firmaDe(r *http.Request, cabecera string) ([]byte, bool) {
 
 // pruebaLeida es una prueba de forma correcta cuya firma aún no se ha comprobado (falta saber el cuenta_id).
 type pruebaLeida struct {
+	metodo string
+	ruta   string
 	pk     ed25519.PublicKey
 	cadena string
 	nonce  []byte
@@ -152,9 +155,9 @@ func leerPrueba(r *http.Request, nn *nonces, cabCadena, cabFirma string) (*prueb
 	if !ok {
 		return nil, errPrueba
 	}
-	return &pruebaLeida{pk: pk, cadena: cadena, nonce: nonce, caduca: caduca, firma: firma}, nil
+	return &pruebaLeida{metodo: r.Method, ruta: r.URL.Path, pk: pk, cadena: cadena, nonce: nonce, caduca: caduca, firma: firma}, nil
 }
 
 func (p *pruebaLeida) verificar(op, cuentaID string, cuerpo []byte) bool {
-	return ed25519.Verify(p.pk, mensajePrueba(op, cuentaID, p.nonce, cuerpo), p.firma)
+	return ed25519.Verify(p.pk, mensajePrueba(p.metodo, p.ruta, op, cuentaID, p.nonce, cuerpo), p.firma)
 }

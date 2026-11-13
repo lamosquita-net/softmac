@@ -272,7 +272,7 @@ func TestReutilizacion(t *testing.T) {
 	b.crearCuenta(a, emailA, clave)
 	cuerpo := cuerpoJSON(map[string]int{"desde": 0})
 	n := b.nonce()
-	firma := FirmarPrueba(a.sk, "eventos", a.cuenta, n, cuerpo)
+	firma := FirmarPrueba(a.sk, "POST", prefijo+"/eventos", "eventos", a.cuenta, n, cuerpo)
 	cab := map[string]string{"X-FlyWeb-Cadena": a.cadena, "X-FlyWeb-Nonce": base64.RawURLEncoding.EncodeToString(n),
 		"X-FlyWeb-Prueba": b64e(firma)}
 	esperar(t, b.pedir("/eventos", cuerpo, cab), 200, "prueba válida")
@@ -285,10 +285,14 @@ func TestReutilizacion(t *testing.T) {
 	cab["X-FlyWeb-Prueba"] = b64e(ed25519Sign(a, ts))
 	esperar(t, b.pedir("/eventos", cuerpo, cab), http.StatusUnauthorized, "token de sync como prueba")
 
+	ruta := prefijo + "/eventos"
 	for que, f := range map[string][]byte{
-		"otra operación": FirmarPrueba(a.sk, "cuenta-borrar", a.cuenta, n, cuerpo),
-		"otra cuenta":    FirmarPrueba(a.sk, "eventos", "otra", n, cuerpo),
-		"otro cuerpo":    FirmarPrueba(a.sk, "eventos", a.cuenta, n, []byte(`{"desde":1}`)),
+		"otra operación": FirmarPrueba(a.sk, "POST", ruta, "cuenta-borrar", a.cuenta, n, cuerpo),
+		"otra cuenta":    FirmarPrueba(a.sk, "POST", ruta, "eventos", "otra", n, cuerpo),
+		"otro cuerpo":    FirmarPrueba(a.sk, "POST", ruta, "eventos", a.cuenta, n, []byte(`{"desde":1}`)),
+		"otra ruta":      FirmarPrueba(a.sk, "POST", prefijo+"/aparatos/listar", "eventos", a.cuenta, n, cuerpo),
+		"otro método":    FirmarPrueba(a.sk, "PUT", ruta, "eventos", a.cuenta, n, cuerpo),
+		"sin el prefijo": FirmarPrueba(a.sk, "POST", "/eventos", "eventos", a.cuenta, n, cuerpo),
 	} {
 		cab["X-FlyWeb-Prueba"] = b64e(f)
 		esperar(t, b.pedir("/eventos", cuerpo, cab), http.StatusUnauthorized, que)
@@ -297,7 +301,7 @@ func TestReutilizacion(t *testing.T) {
 	n = b.nonce()
 	b.reloj.avanzar(5 * time.Minute)
 	cab["X-FlyWeb-Nonce"] = base64.RawURLEncoding.EncodeToString(n)
-	cab["X-FlyWeb-Prueba"] = b64e(FirmarPrueba(a.sk, "eventos", a.cuenta, n, cuerpo))
+	cab["X-FlyWeb-Prueba"] = b64e(FirmarPrueba(a.sk, "POST", ruta, "eventos", a.cuenta, n, cuerpo))
 	esperar(t, b.pedir("/eventos", cuerpo, cab), http.StatusUnauthorized, "nonce caducado")
 }
 
