@@ -17,8 +17,8 @@ git checkout -b nube/sync-cuenta-h3 3e2c12fad5
 git am FlyWeb/parches/3.2-sync-cuenta/000*.patch
 ```
 
-Comprobado: los cinco entran limpios con `git am` sobre 3e2c12fad5 y dan el árbol **f0ace7d3f6**, igual que la rama
-local. El TypeScript de la página pasó `tsc` estricto, con módulos de relleno para los import. El C++ no se ha
+Comprobado: los seis entran limpios con `git am` sobre 3e2c12fad5 y dan el árbol **c98438f903**, igual que la rama
+local. Servidor de referencia para K3: #977 en **60cc1d0800** (ls-remote del 13-11). El TypeScript de la página pasó `tsc` estricto, con módulos de relleno para los import. El C++ no se ha
 compilado.
 
 **Para que Titín los vea antes de publicar** (cambian lo que se ve):
@@ -34,6 +34,7 @@ compilado.
 | `0003-settings-Cuenta-y-sincronizaci-n-page-for-the-FlyWeb.patch` | Página «Cuenta y sincronización»: manejadores en `BraveSyncHandler` (con zxcvbn para la fuerza) y el componente `settings-flyweb-sync-account` con los nueve estados de §9. Cadenas: 118 de la página y 16 de las barras, en inglés con traducción es y es-419; los id son la huella de grit, comprobada con los mensajes que ya había. El título de la sección pasa a «Cuenta y sincronización» |
 | `0004-sync-FlyWeb-3.2-sync-account-warning-bars.patch` | Barras de aviso: «¿Has sido tú?» con «No he sido yo» y «La clave se ha cambiado desde otro Mac» |
 | `0005-sync-account-client-fixes-from-the-security-review-S.patch` | Arreglos de la revisión de SEGURIDAD-PORTES-23 (abajo) |
+| `0006-sync-device-secret-of-the-sync-account-K3-977-C1.patch` | K3: el secreto de aparato que da el servidor (#977 en 60cc1d0) |
 
 ## Qué hace el cliente
 
@@ -125,8 +126,14 @@ Revisión en #981 (comentario 6865456375), sobre c461080ebe. Arreglos de 0005:
 - **K2.** El email guardado es la sal del scrypt.
   - Con el evento `email-cambiado`, el cliente borra el email guardado y vuelve a sondear con prueba de cadena.
   - Además, cambiar la contraseña, el email o la clave pide antes el email al día con la prueba.
-- **K3 (preparado).** Secreto por aparato: se genera (32 bytes al azar) y se guarda cifrado. El envío queda en
-  `AddDeviceSecret()`, a la espera del formato de #977-C1.
+- **K3 (0006).** Secreto por aparato.
+  - Lo genera el servidor y lo devuelven `alta/confirmar`, `entrar/terminar` y `aparatos/renovar` cuando da de alta.
+  - El cliente lo guarda cifrado, como el token.
+  - Lo manda junto a `aparato` en `aparatos/renovar`, `contrasena/cambiar` y `cadena/cambiar`.
+  - Si una renovación responde «credenciales», el cliente olvida el aparato y en el siguiente sondeo se da de alta otra
+    vez, con el aviso «Mac añadido» en todos los Macs.
+  - Lo que evita: que quien tenga solo la cadena se quede con el token de este Mac y aparezca como su autor (S3).
+  - 0006 sustituye la generación en el cliente que traía 0005.
 - **O-a.** Un reintento de «cambiar la contraseña» manda la misma envoltura, si abre con la misma contraseña, para
   que el servidor repita su respuesta.
 - **O-b.** Los avisos sin contestar se guardan cifrados (pref `flyweb_sync_account.warnings`) y siguen ahí tras

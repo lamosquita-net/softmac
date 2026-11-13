@@ -1,7 +1,7 @@
 From 9502adfa1d77184e5442bf41e2e6a078aab4221d Mon Sep 17 00:00:00 2001
 From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
 Date: Fri, 13 Nov 2026 18:59:17 +0000
-Subject: [PATCH 2/5] sync: FlyWeb 3.2 sync account client service (H3)
+Subject: [PATCH 2/6] sync: FlyWeb 3.2 sync account client service (H3)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

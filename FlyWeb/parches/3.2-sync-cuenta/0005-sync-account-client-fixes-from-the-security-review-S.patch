@@ -1,7 +1,7 @@
 From 6649c289995c5f6c069295311775eee2ab2edec1 Mon Sep 17 00:00:00 2001
 From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
 Date: Fri, 13 Nov 2026 21:37:32 +0000
-Subject: [PATCH 5/5] sync: account client fixes from the security review
+Subject: [PATCH 5/6] sync: account client fixes from the security review
  (SEGURIDAD-PORTES-23)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8

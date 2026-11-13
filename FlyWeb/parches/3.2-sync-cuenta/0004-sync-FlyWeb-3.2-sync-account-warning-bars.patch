@@ -1,7 +1,7 @@
 From 4eb0bfe2b3903b29982b3a4de540d3c05b57eeeb Mon Sep 17 00:00:00 2001
 From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
 Date: Fri, 13 Nov 2026 19:23:19 +0000
-Subject: [PATCH 4/5] sync: FlyWeb 3.2 sync account warning bars
+Subject: [PATCH 4/6] sync: FlyWeb 3.2 sync account warning bars
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
