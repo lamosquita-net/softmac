@@ -96,27 +96,34 @@ entra si la preliminar de LOCAL sale bien; lo decide Titín.
 - **Los 34 de la 151–156 (`gl-150-156-seg.md`): ya están.** 37 de los 39 commits de ANGLE de esa lista son ancestros
   de `f10470c77e`. Los otros dos son `8f1c9f81de`, la revert de `ed78400986` (que sí está), y `0855dd00f9`, de abajo.
   La parte de Chromium que tocaban (decodificador *validating*) B1c no la devuelve. La deuda de esa lista es **cero**.
-- **Desde la 156 hasta la base de la 158**, nuestro ANGLE no tiene estos commits de `src/libANGLE/renderer/gl/`, que se
-  vuelven **aplicables** si GL entra (`git log chromium/8078..chromium/8127 -- src/libANGLE/renderer/gl`):
+- **Desde la 156 hasta la base de la 158**: 31 commits tocan `src/libANGLE/renderer/gl/`
+  (`git log chromium/8078..chromium/8127 -- src/libANGLE/renderer/gl`). Los revisé uno a uno el 14-11, aplicándolos con
+  `cherry-pick` sobre nuestro ANGLE (`f10470c77e` más `3.0.1/angle` 0001–0012, árbol `d094abc`, reproducido). **Ninguno
+  aplica en Mac:**
 
-  | Commit | Qué | Bug |
-  |---|---|---|
-  | `a965a227` | [M158] GL: Recreate 3D texture on depth increase from zero-extent level | 584998888, 577140687 |
-  | `0855dd00` | GL: forcefullyFlush in useTempForNonZeroBaseLevelGenmipmap (la otra mitad de CVE-2026-103628) | 566683383 |
-  | `b40b5946` | GL: Avoid FBO driver hash collisions | 551065275 |
-  | `fb01175` (+ `66b09c8`) | Avoid user memory when querying sync status in the backends | 573982271 |
+  | Commit | Qué | Bug | Por qué no aplica en Mac |
+  |---|---|---|---|
+  | `a965a227` [M158] | Recreate 3D texture on depth increase from zero-extent level | 584998888, 577140687 | apaño `recreateTextureOnTexImage3dDepthIncrease`: solo Qualcomm en Android |
+  | `0855dd00` | forcefullyFlush in useTempForNonZeroBaseLevelGenmipmap | 566683383 | apaños `flushBeforeGenerateMipmap` y `useTempForNonZeroBaseLevel…`: solo PowerVR |
+  | `b40b5946` | Avoid FBO driver hash collisions | 551065275 | apaño nuevo `recreateFboOnAttachmentRespecification`: solo PowerVR |
+  | `fb01175` (+ `66b09c8`) | Avoid user memory when querying sync status | 573982271 | el doble acceso lo creó `c553b33` (`defer_gl_delete_buffers`, 21-09), que no tenemos: nuestro `SyncGL` y el de Metal escriben una vez y no vuelven a leer |
+  | `5cb273f` [M158] | Fix blend state in ComputeDirtyBitsBetweenStates | 582276340, 566667041 | solo en `syncFromNativeContext`, el contexto externo de WebView |
+  | `69b419c` [M158], revertido | Fix layer-growth check in TextureGL::setStorage() | 584998441, 569165856 | apaño `reattachTextureToFboAfterLayerIncrease`: solo PowerVR en Android |
+  | `1f25c8e` [M158], revertido | Don't skip 3D texture recreation without glCopyImageSubData | 585406922, 568903530 | el mismo apaño que `a965a227`: Qualcomm en Android |
+  | **`7a33c47` [M158], revertido el 13-11** | **Pause transform feedback before forcing program binding** | 584998126, 582926167 | **Es genérico y sí aplicaría.** Upstream lo ha revertido: **se vigila** y se porta si vuelve (a la 8127 o a `main`) o si la nota de la 158 lo cita |
 
-  Además, tres `[M158] GL` que se revirtieron en la rama el 13-11 (`69b419c`, `7a33c47`, `1f25c8e`): hay que vigilar
-  si vuelven, como la V8 .59.
+  El resto son apaños de otros controladores (Mali, Adreno, IMG, PowerVR), refactorizaciones o la parte de EGL de
+  Linux. **`FlyWeb/seguridad/3.1.2/angle/` queda vacío por ahora.** Se repasa el 17-11 con la nota.
 - **Capa CGL** (`renderer/gl/cgl/`): desde la 156 solo hay refactorizaciones del cerrojo de pantalla (`deeaa4b`,
   `e5913a5`, `77be48b`), ninguna de seguridad. Que esté a medio desmontar (sin `prepareForCall`, `testDeviceLost` ni
   aviso de cambio de GPU) es un riesgo de **estabilidad** (pérdida de contexto, cambio de GPU). No he encontrado
   ningún fallo de memoria conocido. Se mide en la preliminar.
 
 ### Condiciones
-- **G-C1.** Si GL entra en la 3.1.2, entran también los arreglos de la tabla de arriba, como parches a ANGLE, y lo que
-  diga la nota de la 158 del 17-11 sobre ANGLE GL. Falta decidir **por dónde** se parchea ANGLE: hoy `DEPS` apunta al
-  ANGLE de upstream y la serie de seguridad no lleva ningún parche de ANGLE. COORDINACIÓN decide con LOCAL.
+- **G-C1.** Si GL entra en la 3.1.2, va con lo que diga la nota de la 158 del 17-11 sobre ANGLE GL y con `7a33c47`
+  si vuelve. Hoy no hace falta ningún parche (tabla de arriba). El camino lo fijó COORDINACIÓN-41 el 14-11: ficheros
+  en `FlyWeb/seguridad/3.1.2/angle/`, que LOCAL aplica sobre el ANGLE de `DEPS` y `3.0.1/angle`, como en la 3.0.1,
+  sin cambiar de remoto.
 - **G-C2.** Pruebas antes de cerrar el contenido:
   - la A de LOCAL (Mac Pro con `angle=metal`, sin cambios);
   - en el MacBookPro9,1, el **cambio automático de GPU** (HD 4000 ↔ GT 650M), dormir y conectar un monitor, sin caídas
