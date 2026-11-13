@@ -391,6 +391,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   la UE (cuenta de Apple ya pagada); (4) **Windows**, al final (exige certificado de firma de pago). Los parches de
   seguridad son comunes; lo que se multiplica es compilar, probar y publicar. ARQUITECTURA hace antes el estudio en
   papel (coste en hitos, máquinas, firma y tiendas, automatización); el orden se revisa con sus datos.
+  **Confirmado por Titín (14-11), pese a la recomendación de ARQUITECTURA (#989) de parar en Android:** iOS va **sí o
+  sí** y **antes que Windows** (los dispositivos de la familia son iOS; Windows apenas se usa). El camino de iOS (motor
+  propio en la UE o primero WebKit con la sync y la privacidad de FlyWeb) se decide con un estudio cuando toque.
 - **Flink a nuestro ritmo (Titín, 12-11 noche; COORDINACIÓN-40):** Chrome marca hacia dónde va la web y lo seguimos,
   pero con criterio propio: se trae lo que interese y lo que necesiten webs reales, y no se mete lo que no aporta o
   rechazan Firefox y Safari (sigue la decisión 8 del plan de la 3.x: se declara 156). Objetivo: **no quedarse nunca atrás**.
