@@ -26,9 +26,10 @@ CREATE TABLE IF NOT EXISTS cuentas (
   aviso_inactiva INTEGER NOT NULL DEFAULT 0,
   fallos_n INTEGER NOT NULL DEFAULT 0, fallos_desde INTEGER NOT NULL DEFAULT 0,
   fallos_aviso INTEGER NOT NULL DEFAULT 0, fallos_mac BLOB, fallos_mac_v INTEGER NOT NULL DEFAULT 0,
-  cancelado INTEGER NOT NULL DEFAULT 0);
+  cancelado INTEGER NOT NULL DEFAULT 0,
+  eventos_n INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS cuenta_aparatos (
-  id TEXT PRIMARY KEY, cuenta TEXT NOT NULL, token_hash BLOB UNIQUE,
+  id TEXT PRIMARY KEY, cuenta TEXT NOT NULL, token_hash BLOB UNIQUE, secreto_hash BLOB NOT NULL,
   modelo TEXT NOT NULL, nombre_cifrado BLOB NOT NULL, aes_v INTEGER NOT NULL,
   alta INTEGER NOT NULL, ultimo_uso INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS cuenta_aparatos_cuenta ON cuenta_aparatos (cuenta);
@@ -136,10 +137,26 @@ type aparato struct {
 	alta, ultimo  int64
 }
 
-func insertarAparato(ctx context.Context, tx *sql.Tx, ap *aparato, tokenHash []byte) error {
-	_, err := tx.ExecContext(ctx, `INSERT INTO cuenta_aparatos (id, cuenta, token_hash, modelo, nombre_cifrado, aes_v,
-	  alta, ultimo_uso) VALUES (?,?,?,?,?,?,?,?)`, ap.id, ap.cuenta, tokenHash, ap.modelo, ap.nombreCifrado, ap.aesV,
-		ap.alta, ap.ultimo)
+func insertarAparato(ctx context.Context, tx *sql.Tx, ap *aparato, tokenHash, secretoHash []byte) error {
+	_, err := tx.ExecContext(ctx, `INSERT INTO cuenta_aparatos (id, cuenta, token_hash, secreto_hash, modelo,
+	  nombre_cifrado, aes_v, alta, ultimo_uso) VALUES (?,?,?,?,?,?,?,?,?)`, ap.id, ap.cuenta, tokenHash, secretoHash,
+		ap.modelo, ap.nombreCifrado, ap.aesV, ap.alta, ap.ultimo)
+	return err
+}
+
+// secretoHash: el hash del secreto del aparato (C1), o nil si no existe.
+func (a *almacen) secretoHash(ctx context.Context, cuenta, id string) ([]byte, error) {
+	var h []byte
+	err := a.db.QueryRowContext(ctx, `SELECT secreto_hash FROM cuenta_aparatos WHERE cuenta = ? AND id = ?`, cuenta, id).Scan(&h)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	return h, err
+}
+
+func ponerSecreto(ctx context.Context, tx *sql.Tx, cuenta, id string, secretoHash []byte) error {
+	_, err := tx.ExecContext(ctx, `UPDATE cuenta_aparatos SET secreto_hash = ? WHERE cuenta = ? AND id = ?`,
+		secretoHash, cuenta, id)
 	return err
 }
 
@@ -210,8 +227,10 @@ func invalidarTokens(ctx context.Context, tx *sql.Tx, cuenta, salvo string) (int
 }
 
 func anadirEvento(ctx context.Context, tx *sql.Tx, cuenta, tipo string, fecha int64, datos []byte, aesV int) (int64, error) {
+	// Contador monótono por cuenta (C2): con MAX(n)+1, al caducar los eventos viejos la numeración volvía a
+	// empezar y los Macs, que piden n > el último que vieron, no veían los nuevos.
 	var n int64
-	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(n), 0) + 1 FROM cuenta_eventos WHERE cuenta = ?`,
+	if err := tx.QueryRowContext(ctx, `UPDATE cuentas SET eventos_n = eventos_n + 1 WHERE id = ? RETURNING eventos_n`,
 		cuenta).Scan(&n); err != nil {
 		return 0, err
 	}

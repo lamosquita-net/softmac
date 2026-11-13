@@ -185,30 +185,31 @@ func TestEstirarScrypt(t *testing.T) {
 	}
 }
 
-// Solicitudes falsas: una en su ventana de 10 s no se descarta (si no, el ritmo diría si era verdadera); con la
-// tabla de falsas llena, todas las comprobaciones de código contestan «ocupado», también las verdaderas.
-func TestSolicitudesFalsasLlenas(t *testing.T) {
-	b := nuevoBanco(t, func(c *Config) { c.SolicitudesMax = 3 })
+// O1 de SEGURIDAD-PORTES-23: el ritmo de los códigos va en una tabla fija, común a verdaderas y falsas. Con una sola
+// casilla todas chocan: una colisión da una espera de más, igual para una solicitud verdadera que para una falsa, y
+// nunca «ocupado». Las falsas no ocupan memoria.
+func TestRitmoEnTablaFija(t *testing.T) {
+	b := nuevoBanco(t, func(c *Config) { c.RitmoCasillas = 1 })
 	a := nuevoMac("A")
 	b.crearCuenta(a, emailA, clave)
-	falsa := func(i int) string {
-		return b.llamar("/cuenta/borrar-por-email", map[string]string{"email": fmt.Sprintf("n%d@example.com", i)}).txt("solicitud")
-	}
-	confirmar := func(sol string) respuesta {
-		return b.llamar("/cuenta/borrar-por-email/confirmar", map[string]string{"solicitud": sol, "codigo": "AAAA-AAAA"})
-	}
-	objetivo := falsa(0)
-	esperar(t, confirmar(objetivo), http.StatusForbidden, "primer intento")
-	esperar(t, confirmar(falsa(1)), http.StatusForbidden, "relleno 1")
-	esperar(t, confirmar(falsa(2)), http.StatusForbidden, "relleno 2")
-	esperar(t, confirmar(falsa(3)), http.StatusServiceUnavailable, "tabla llena")
+	b.reloj.avanzar(time.Minute)
+	falsa := b.llamar("/cuenta/borrar-por-email", map[string]string{"email": "nadie@example.com"}).txt("solicitud")
 	verdadera := b.llamar("/cuenta/borrar-por-email", map[string]string{"email": emailA}).txt("solicitud")
-	esperar(t, b.llamar("/cuenta/borrar-por-email/confirmar", map[string]string{"solicitud": verdadera,
-		"codigo": b.codigo(emailA)}), http.StatusServiceUnavailable, "una verdadera con la tabla llena")
-	b.reloj.avanzar(5 * time.Second)
-	esperar(t, confirmar(objetivo), http.StatusServiceUnavailable, "el objetivo sigue en su ventana")
-	b.reloj.avanzar(5 * time.Second)
-	esperar(t, confirmar(objetivo), http.StatusForbidden, "pasados 10 s, como una verdadera")
-	esperar(t, b.llamar("/cuenta/borrar-por-email/confirmar", map[string]string{"solicitud": verdadera,
-		"codigo": b.codigo(emailA)}), 200, "la verdadera, con sitio")
+	codigo := b.codigo(emailA)
+	confirmar := func(sol, cod string) respuesta {
+		return b.llamar("/cuenta/borrar-por-email/confirmar", map[string]string{"solicitud": sol, "codigo": cod})
+	}
+	esperar(t, confirmar(falsa, "AAAA-AAAA"), http.StatusForbidden, "falsa")
+	r := confirmar(verdadera, codigo)
+	esperar(t, r, http.StatusTooManyRequests, "la verdadera choca con la falsa en la misma casilla")
+	b.reloj.avanzar(ritmoCodigo)
+	esperar(t, confirmar(verdadera, codigo), 200, "la verdadera, pasados 10 s")
+	antes := len(b.s.sol.m) // las verdaderas aplicadas se guardan hasta caducar (llamada repetida, §4.6)
+	for range 1000 {
+		b.reloj.avanzar(ritmoCodigo)
+		confirmar(b.s.sol.falsa(), "AAAA-AAAA")
+	}
+	if len(b.s.sol.m) != antes {
+		t.Fatalf("las falsas ocupan memoria: %d → %d", antes, len(b.s.sol.m))
+	}
 }

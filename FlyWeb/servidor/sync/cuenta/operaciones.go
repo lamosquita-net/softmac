@@ -30,6 +30,7 @@ type respAparato struct {
 	Aparato   string `json:"aparato,omitempty"`
 	Token     string `json:"token,omitempty"`
 	Envoltura string `json:"envoltura,omitempty"`
+	Secreto   string `json:"secreto,omitempty"` // del aparato nuevo: el Mac lo guarda como el token (C1)
 }
 
 // --- alta (§8) ---
@@ -68,6 +69,7 @@ type pedirConClave struct {
 	Modelo    string
 	Nombre    string
 	Aparato   string
+	Secreto   string // del aparato (C1)
 }
 
 func (q *pedirConClave) claves() (kl, e []byte, ok bool) {
@@ -107,15 +109,13 @@ func (s *Servicio) altaConfirmar(p *peticion) (int, any) {
 	switch {
 	case res == codigoEspera:
 		return espera(hasta)
-	case res == codigoOcupado:
-		return ocupado()
 	case res != codigoBien:
 		return credenciales()
 	case x.aplicada != nil:
 		if c, err := s.alm.porCadena(p.ctx, pr.cadena); err != nil || c == nil || c.id != x.cuentaID {
 			return credenciales()
 		}
-		return s.repetida(p.ctx, x, resumen(kl, e))
+		return s.repetida(p.ctx, x, resumen(kl, e), true, "")
 	}
 	if des, err := s.cfg.Cadenas.Desactivada(p.ctx, pr.cadena); err != nil {
 		return interno()
@@ -126,7 +126,7 @@ func (s *Servicio) altaConfirmar(p *peticion) (int, any) {
 	cu := &registro{id: nuevoID(), emailHMAC: x.emailHMAC, hmacV: x.hmacV, emailCifrado: x.emailCifrado,
 		aesV: x.aesV, cadena: pr.cadena, creada: ahora}
 	cu.sal, cu.verif, cu.ee = s.nuevoSecreto(cu.id, kl, e)
-	ap, token, tokenHash := s.nuevoAparato(cu.id, q.Modelo, q.Nombre)
+	ap := s.nuevoAparato(cu.id, q.Modelo, q.Nombre)
 	err := s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
 		if libre, err := cadenaLibre(p.ctx, tx, pr.cadena); err != nil || !libre {
 			return errors.Join(err, errOcupada)
@@ -138,7 +138,7 @@ func (s *Servicio) altaConfirmar(p *peticion) (int, any) {
 		if err := insertarCuenta(p.ctx, tx, cu); err != nil {
 			return err
 		}
-		if err := insertarAparato(p.ctx, tx, ap, tokenHash); err != nil {
+		if err := ap.insertar(p.ctx, tx); err != nil {
 			return err
 		}
 		return s.evento(p.ctx, tx, cu.id, evCadenaLigada, datosEvento{Aparato: ap.id, Mac: q.Nombre, Modelo: q.Modelo})
@@ -155,7 +155,7 @@ func (s *Servicio) altaConfirmar(p *peticion) (int, any) {
 	}
 	s.sol.cerrar(x, resumen(kl, e), cu.id, ap.id)
 	s.avisar(cu, evCadenaLigada, "")
-	return http.StatusOK, respAparato{Cuenta: cu.id, Aparato: ap.id, Token: token}
+	return http.StatusOK, ap.respuesta(cu.id)
 }
 
 var (
@@ -163,34 +163,78 @@ var (
 	errEmailOcupado = errors.New("email ocupado")
 )
 
-func (s *Servicio) nuevoAparato(cuentaID, modelo, nombre string) (*aparato, string, []byte) {
+// aparatoNuevo es lo que se da al crear un aparato: su token y su secreto (C1), en claro para el Mac y con hash
+// para la base.
+type aparatoNuevo struct {
+	*aparato
+	token, secreto         string
+	tokenHash, secretoHash []byte
+}
+
+func (s *Servicio) nuevoAparato(cuentaID, modelo, nombre string) *aparatoNuevo {
 	ahora := s.ahora()
 	ap := &aparato{id: nuevoID(), cuenta: cuentaID, modelo: modelo, alta: ahora, ultimo: ahora}
 	ap.nombreCifrado, ap.aesV = s.cfg.AES.sellar(asociadoNombre(ap.id), []byte(nombre))
-	token, h := nuevoToken()
-	return ap, token, h
+	n := &aparatoNuevo{aparato: ap}
+	n.token, n.tokenHash = nuevoToken()
+	n.secreto, n.secretoHash = nuevoToken()
+	return n
+}
+
+func (n *aparatoNuevo) insertar(ctx context.Context, tx *sql.Tx) error {
+	return insertarAparato(ctx, tx, n.aparato, n.tokenHash, n.secretoHash)
+}
+
+func (n *aparatoNuevo) respuesta(cuentaID string) respAparato {
+	return respAparato{Cuenta: cuentaID, Aparato: n.id, Token: n.token, Secreto: n.secreto}
+}
+
+// aparatoVerificado devuelve el aparato si el secreto es el suyo (C1); si no, "". Solo con él se da token a un
+// aparato que ya existe o se le atribuye una operación: los ids de los aparatos los ve cualquiera con la cadena.
+func (s *Servicio) aparatoVerificado(ctx context.Context, cuentaID, aparatoID, secreto string) string {
+	if aparatoID == "" {
+		return ""
+	}
+	b, err := base64.RawURLEncoding.DecodeString(secreto)
+	if err != nil || len(b) != 32 {
+		return ""
+	}
+	h, err := s.alm.secretoHash(ctx, cuentaID, aparatoID)
+	if err != nil || h == nil || !iguales(h, sha(b)) {
+		return ""
+	}
+	return aparatoID
 }
 
 // repetida contesta a una llamada ya aplicada que el Mac repite porque no le llegó la respuesta (§4.6): si pide
 // lo mismo, la misma respuesta con un token nuevo para su aparato; si pide otra cosa, el error de siempre.
-func (s *Servicio) repetida(ctx context.Context, x *solicitud, r []byte) (int, any) {
+// En el alta, el aparato lo creó esta misma llamada y el Mac no tiene su secreto: se le da uno nuevo. En las demás,
+// el token solo va con el secreto del aparato (C1); sin él, la operación ya está hecha y se contesta sin token.
+func (s *Servicio) repetida(ctx context.Context, x *solicitud, r []byte, alta bool, secreto string) (int, any) {
 	if !bytes.Equal(x.aplicada, r) {
 		return credenciales()
 	}
-	if x.aparato == "" {
+	if x.aparato == "" || (!alta && s.aparatoVerificado(ctx, x.cuentaID, x.aparato, secreto) == "") {
 		return http.StatusOK, respAparato{}
 	}
 	token, h := nuevoToken()
+	var nuevoSecreto string
+	var hs []byte
+	if alta {
+		nuevoSecreto, hs = nuevoToken()
+	}
 	ok := false
 	err := s.alm.enTx(ctx, func(tx *sql.Tx) error {
 		var err error
-		ok, err = ponerToken(ctx, tx, x.cuentaID, x.aparato, h, s.ahora())
-		return err
+		if ok, err = ponerToken(ctx, tx, x.cuentaID, x.aparato, h, s.ahora()); err != nil || !ok || !alta {
+			return err
+		}
+		return ponerSecreto(ctx, tx, x.cuentaID, x.aparato, hs)
 	})
 	if err != nil || !ok {
 		return credenciales()
 	}
-	return http.StatusOK, respAparato{Cuenta: x.cuentaID, Aparato: x.aparato, Token: token}
+	return http.StatusOK, respAparato{Cuenta: x.cuentaID, Aparato: x.aparato, Token: token, Secreto: nuevoSecreto}
 }
 
 // --- entrar (§5.1) ---
@@ -270,9 +314,6 @@ func (s *Servicio) entrarTerminar(p *peticion) (int, any) {
 	if res == codigoEspera {
 		return espera(hasta)
 	}
-	if res == codigoOcupado {
-		return ocupado()
-	}
 	var c *registro
 	if res == codigoBien {
 		var err error
@@ -293,9 +334,9 @@ func (s *Servicio) entrarTerminar(p *peticion) (int, any) {
 		log.Error().Msg("cuenta: EE no abre con un verificador correcto")
 		return interno()
 	}
-	ap, token, h := s.nuevoAparato(c.id, q.Modelo, q.Nombre)
+	ap := s.nuevoAparato(c.id, q.Modelo, q.Nombre)
 	err = s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
-		if err := insertarAparato(p.ctx, tx, ap, h); err != nil {
+		if err := ap.insertar(p.ctx, tx); err != nil {
 			return err
 		}
 		return s.evento(p.ctx, tx, c.id, evMacAnadido, datosEvento{Aparato: ap.id, Mac: q.Nombre, Modelo: q.Modelo})
@@ -307,8 +348,9 @@ func (s *Servicio) entrarTerminar(p *peticion) (int, any) {
 	s.esperas.Reiniciar(x.email)
 	s.anadidos.Add(1)
 	s.avisar(c, evMacAnadido, descMac(q.Nombre, q.Modelo))
-	return http.StatusOK, respAparato{Cuenta: c.id, Aparato: ap.id, Token: token,
-		Envoltura: base64.StdEncoding.EncodeToString(e)}
+	r := ap.respuesta(c.id)
+	r.Envoltura = base64.StdEncoding.EncodeToString(e)
+	return http.StatusOK, r
 }
 
 // --- fallos de contraseña (§6.2): el primero al momento; después, como mucho un aviso por hora y cuenta ---
@@ -472,41 +514,39 @@ func (s *Servicio) contrasenaCambiar(p *peticion) (int, any) {
 	switch {
 	case res == codigoEspera:
 		return espera(hasta)
-	case res == codigoOcupado:
-		return ocupado()
 	case res != codigoBien || x.cuentaID != c.id:
 		return credenciales()
 	case x.aplicada != nil:
-		return s.repetida(p.ctx, x, resumen(kl, e))
+		return s.repetida(p.ctx, x, resumen(kl, e), false, q.Secreto)
 	}
 	sal, verif, ee := s.nuevoSecreto(c.id, kl, e)
 	token, h := nuevoToken()
 	conToken := false
+	apID := s.aparatoVerificado(p.ctx, c.id, q.Aparato, q.Secreto) // C1: sin su secreto, ni token ni autor
 	err := s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
 		if err := cambiarSecreto(p.ctx, tx, c.id, sal, verif, ee); err != nil {
 			return err
 		}
-		if _, err := invalidarTokens(p.ctx, tx, c.id, q.Aparato); err != nil {
+		if _, err := invalidarTokens(p.ctx, tx, c.id, apID); err != nil {
 			return err
 		}
-		if q.Aparato != "" {
+		if apID != "" {
 			var err error
-			if conToken, err = ponerToken(p.ctx, tx, c.id, q.Aparato, h, s.ahora()); err != nil {
+			if conToken, err = ponerToken(p.ctx, tx, c.id, apID, h, s.ahora()); err != nil {
 				return err
 			}
 		}
 		d := datosEvento{}
 		if conToken {
-			d.Aparato = q.Aparato
+			d.Aparato = apID
 		}
 		return s.evento(p.ctx, tx, c.id, evContrasenaCambiada, d)
 	})
 	if err != nil {
 		return interno()
 	}
-	apID := ""
-	if conToken {
-		apID = q.Aparato
+	if !conToken {
+		apID = ""
 	}
 	s.sol.cerrar(x, resumen(kl, e), c.id, apID)
 	if email, err := s.emailDe(c); err == nil {
@@ -579,12 +619,10 @@ func (s *Servicio) emailTerminar(p *peticion) (int, any) {
 	switch {
 	case res == codigoEspera:
 		return espera(hasta)
-	case res == codigoOcupado:
-		return ocupado()
 	case res != codigoBien:
 		return credenciales()
 	case x.aplicada != nil:
-		return s.repetida(p.ctx, x, resumen(kl, e))
+		return s.repetida(p.ctx, x, resumen(kl, e), false, q.Secreto)
 	}
 	c, err := s.alm.porID(p.ctx, x.cuentaID)
 	if err != nil || c == nil {
@@ -651,6 +689,7 @@ func (s *Servicio) cadenaCambiar(p *peticion) (int, any) {
 	token, h := nuevoToken()
 	conToken := false
 	ahora := s.ahora()
+	apID := s.aparatoVerificado(p.ctx, c.id, q.Aparato, q.Secreto) // C1
 	err = s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
 		if libre, err := cadenaLibre(p.ctx, tx, nueva.cadena); err != nil || !libre {
 			return errors.Join(err, errOcupada)
@@ -663,18 +702,18 @@ func (s *Servicio) cadenaCambiar(p *peticion) (int, any) {
 			c.cadena, ahora); err != nil {
 			return err
 		}
-		if _, err := invalidarTokens(p.ctx, tx, c.id, q.Aparato); err != nil {
+		if _, err := invalidarTokens(p.ctx, tx, c.id, apID); err != nil {
 			return err
 		}
-		if q.Aparato != "" {
+		if apID != "" {
 			var err error
-			if conToken, err = ponerToken(p.ctx, tx, c.id, q.Aparato, h, ahora); err != nil {
+			if conToken, err = ponerToken(p.ctx, tx, c.id, apID, h, ahora); err != nil {
 				return err
 			}
 		}
 		d := datosEvento{}
 		if conToken {
-			d.Aparato = q.Aparato
+			d.Aparato = apID
 		}
 		return s.evento(p.ctx, tx, c.id, evCadenaCambiada, d)
 	})
@@ -691,7 +730,7 @@ func (s *Servicio) cadenaCambiar(p *peticion) (int, any) {
 	if !conToken {
 		return http.StatusOK, respAparato{}
 	}
-	return http.StatusOK, respAparato{Aparato: q.Aparato, Token: token}
+	return http.StatusOK, respAparato{Aparato: apID, Token: token}
 }
 
 func leerPruebaNueva(p *peticion, nn *nonces) (*pruebaLeida, error) {

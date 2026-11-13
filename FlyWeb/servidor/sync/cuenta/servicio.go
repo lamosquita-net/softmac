@@ -60,7 +60,7 @@ type Config struct {
 	Demora          time.Duration // FLYWEB_SYNC_DEMORA_DIAS = 14
 	InactivasDias   int           // FLYWEB_SYNC_BORRAR_INACTIVAS_DIAS (0 = no)
 	AvisoDias       int           // FLYWEB_SYNC_AVISO_DIAS = 30
-	SolicitudesMax  int           // tope de intentos de código con solicitud falsa en 10 s
+	RitmoCasillas   int           // tamaño de la tabla de ritmo de los códigos (O1)
 
 	Estirar func(kl, sal []byte) []byte // por defecto EstirarScrypt
 	Ahora   func() time.Time
@@ -87,6 +87,7 @@ type Servicio struct {
 	correo  *colaCorreo
 
 	borradas, anadidos atomic.Int64 // contadores anónimos (§9)
+	ultimaInactivas    int64        // O3: las inactivas se miran una vez por hora, no cada minuto
 }
 
 func Nuevo(ctx context.Context, cfg Config) (*Servicio, error) {
@@ -118,7 +119,7 @@ func Nuevo(ctx context.Context, cfg Config) (*Servicio, error) {
 	por(&cfg.ScryptALaVez, 1)
 	por(&cfg.ScryptCola, 4*cfg.ScryptALaVez)
 	por(&cfg.AvisoDias, 30)
-	por(&cfg.SolicitudesMax, 50000)
+	por(&cfg.RitmoCasillas, 1<<20)
 	porD(&cfg.EsperaBase, 10*time.Second)
 	porD(&cfg.EsperaTope, 15*time.Minute)
 	porD(&cfg.ScryptEspera, 25*time.Second)
@@ -129,7 +130,7 @@ func Nuevo(ctx context.Context, cfg Config) (*Servicio, error) {
 		nonces:  nuevosNonces(cfg.Ahora),
 		esperas: NuevasEsperas(cfg.EsperasMax, cfg.EsperaBase, cfg.EsperaTope, cfg.Ahora),
 		sem:     NuevoSemaforo(cfg.ScryptALaVez, cfg.ScryptCola, cfg.ScryptEspera),
-		sol:     nuevasSolicitudes(cfg.SolicitudesMax, cfg.Ahora),
+		sol:     nuevasSolicitudes(cfg.RitmoCasillas, cfg.Ahora),
 		cupos:   nuevosCupos(cfg.CorreosAltaHora, cfg.CorreosHora, cfg.Ahora),
 		correo:  nuevaColaCorreo(cfg.Correo, cfg.Desde, cfg.Ahora),
 	}
@@ -488,8 +489,12 @@ func (s *Servicio) Tareas(ctx context.Context) {
 	s.sol.Purgar()
 	s.cupos.Purgar()
 	ahora := s.ahora()
-	for _, f := range []func(context.Context, int64) error{s.avisarFallosPendientes, s.ejecutarVencidos,
-		s.caducar, s.inactivas} {
+	tareas := []func(context.Context, int64) error{s.avisarFallosPendientes, s.ejecutarVencidos, s.caducar}
+	if ahora-s.ultimaInactivas >= 3600 {
+		s.ultimaInactivas = ahora
+		tareas = append(tareas, s.inactivas)
+	}
+	for _, f := range tareas {
 		if err := f(ctx, ahora); err != nil {
 			log.Error().Err(err).Msg("cuenta: tarea periódica")
 		}

@@ -80,6 +80,7 @@ func (s *Servicio) aparatosListar(p *peticion) (int, any) {
 
 type pedirAparato struct {
 	Aparato string
+	Secreto string // del aparato, para renovar su token (C1)
 	Modelo  string
 	Nombre  string
 }
@@ -141,9 +142,9 @@ func (s *Servicio) aparatosRenovar(p *peticion) (int, any) {
 		return cod, v
 	}
 	if q.Aparato == "" {
-		ap, token, h := s.nuevoAparato(c.id, q.Modelo, q.Nombre)
+		ap := s.nuevoAparato(c.id, q.Modelo, q.Nombre)
 		err := s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
-			if err := insertarAparato(p.ctx, tx, ap, h); err != nil {
+			if err := ap.insertar(p.ctx, tx); err != nil {
 				return err
 			}
 			return s.evento(p.ctx, tx, c.id, evMacAnadido, datosEvento{Aparato: ap.id, Mac: q.Nombre, Modelo: q.Modelo})
@@ -153,7 +154,11 @@ func (s *Servicio) aparatosRenovar(p *peticion) (int, any) {
 		}
 		s.anadidos.Add(1)
 		s.avisar(c, evMacAnadido, descMac(q.Nombre, q.Modelo))
-		return http.StatusOK, respAparato{Cuenta: c.id, Aparato: ap.id, Token: token}
+		return http.StatusOK, ap.respuesta(c.id)
+	}
+	// C1: el token de un aparato que ya existe, solo con su secreto (los ids los ve cualquiera con la cadena).
+	if s.aparatoVerificado(p.ctx, c.id, q.Aparato, q.Secreto) == "" {
+		return credenciales()
 	}
 	token, h := nuevoToken()
 	ok := false
@@ -474,8 +479,6 @@ func (s *Servicio) borrarPorEmailConfirmar(p *peticion) (int, any) {
 	switch {
 	case res == codigoEspera:
 		return espera(hasta)
-	case res == codigoOcupado:
-		return ocupado()
 	case res != codigoBien || x.aplicada != nil:
 		return credenciales()
 	}
@@ -505,8 +508,6 @@ func (s *Servicio) empezarDeCeroConfirmar(p *peticion) (int, any) {
 	switch {
 	case res == codigoEspera:
 		return espera(hasta)
-	case res == codigoOcupado:
-		return ocupado()
 	case res != codigoBien || x.aplicada != nil:
 		return credenciales()
 	}

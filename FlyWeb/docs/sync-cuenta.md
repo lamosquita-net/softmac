@@ -724,6 +724,19 @@ Decididas después [C] (11 y 12; S1–S3, pedidas por MOTOR-46 para el cliente):
 | S2 | Esos Macs no saben el email y sin él no pueden estirar la contraseña para cambiarla, ni cambiar el email o la clave (§6.1) | `eventos` devuelve `email`, **solo con prueba de cadena**, nunca con el token: §14 cuenta con que quien ve tráfico descifrado se lleve tokens, y un token solo debe dar eventos y lista de aparatos |
 | S3 | El cliente no debe preguntarse «¿Has sido tú?» por lo que ha hecho él mismo | Cada evento lleva `datos.aparato` con el autor **solo si está verificado**: el aparato del token Bearer que acompaña a la llamada (de esa cuenta), el que recibe token nuevo en `contrasena/cambiar` y `cadena/cambiar` (pasan por código o contraseña), y el nuevo en `mac-anadido` y `cadena-ligada`. **Nunca el `aparato` del cuerpo**: un Mac robado podría dar el id del Mac del dueño, y este callaría el aviso que es la defensa de N1/N4 |
 
+**Revisión de SEGURIDAD-PORTES-23** sobre `cbe0221` (#977, comentario 6865447630): apto con condiciones. Cómo
+quedan [C: COORDINACIÓN-41]:
+
+| | Hallazgo | Cómo queda |
+|---|---|---|
+| C1 | S3 se falsificaba: con la cadena, `aparatos/renovar`, `contrasena/cambiar` y `cadena/cambiar` daban token (y autoría) al aparato que llegaba en el cuerpo | **Secreto por aparato** (32 bytes; el servidor guarda su SHA-256). Se da al crear el aparato y se exige para dar token a uno que ya existe o atribuirle la operación; sin él, la operación se hace sin token ni autor. En `alta/confirmar` repetida se da un secreto nuevo. Pruebas `TestSeg23SuplantarAutor`, `…SecretoEnCambios`, `…AltaRepetida` |
+| C2 | Los eventos se numeraban con `MAX(n)+1`: al caducar los viejos la numeración volvía a empezar y los Macs no veían los nuevos | Contador monótono por cuenta (`cuentas.eventos_n`) en la misma transacción. Prueba `TestSeg23NumeracionEventos` |
+| C3 | Tamaño de la tabla de esperas | **Requisito de instalación (SERVIDOR-LOCAL):** `FLYWEB_SYNC_ESPERAS_MAX ≥ 1800 × scrypt/s medidos en ns2`, y sumarlo a `MemoryMax` (~150 B por entrada). Escrito en `servidor/sync/cuenta/README.md` |
+| C4 | `gastar` recorría el mapa de nonces con el cerrojo tomado (DoS barato) | Cola por orden de gasto, purgada por delante. Prueba `TestSeg23NoncesPurga` |
+| O1 | Las solicitudes falsas sin scrypt podían llenar la tabla y dejar todos los códigos en «ocupado» | **Aplicada:** el ritmo va en una tabla fija común (casilla `HMAC(id) mod M`, 1 M de casillas, 8 MiB). Las falsas no se guardan; una colisión da una espera de más, igual para todas; ya no hay «ocupado» por códigos. Prueba `TestRitmoEnTablaFija` |
+| O2 | En `entrar/empezar`, una contraseña mala sobre una cuenta existente escribe en la base y un email sin cuenta no | **Anotada**, sin cambio: las respuestas son iguales; igualar el tiempo pediría escrituras de relleno |
+| O3 | `inactivas()` consultaba go-sync por cuenta cada minuto | **Aplicada:** una vez por hora |
+
 ## 11. Cliente
 
 - **Página:** la de Sincronización de hoy (`flyweb://settings/braveSync`) pasa a llamarse «Cuenta y sincronización» y

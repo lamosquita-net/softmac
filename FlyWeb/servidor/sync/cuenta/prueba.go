@@ -5,6 +5,7 @@
 package cuenta
 
 import (
+	"container/list"
 	"crypto/ed25519"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -56,16 +57,25 @@ func FirmarPrueba(sk ed25519.PrivateKey, metodo, ruta, op, cuentaID string, nonc
 }
 
 // nonces sin estado para los pendientes (O8): 16 bytes aleatorios ‖ caducidad ‖ HMAC con una clave de arranque.
-// Solo se apuntan los usados con una prueba válida, hasta que caducan.
+// Solo se apuntan los usados con una prueba válida, hasta que caducan: en un mapa para buscarlos y en una cola por
+// orden de gasto para purgarlos por delante sin recorrer el mapa con el cerrojo tomado (C4). La vida es fija, así
+// que el orden de gasto sigue casi al de caducidad; uno que se gaste tarde puede retrasar la purga de los de detrás
+// como mucho otros 5 min, y un nonce caducado se rechaza antes de mirar el mapa.
 type nonces struct {
 	clave []byte
 	ahora func() time.Time
 	mu    sync.Mutex
 	usado map[[largoNonceA]byte]time.Time
+	cola  *list.List // de nonceUsado, por orden de gasto
+}
+
+type nonceUsado struct {
+	k      [largoNonceA]byte
+	caduca time.Time
 }
 
 func nuevosNonces(ahora func() time.Time) *nonces {
-	return &nonces{clave: aleatorio(32), ahora: ahora, usado: map[[largoNonceA]byte]time.Time{}}
+	return &nonces{clave: aleatorio(32), ahora: ahora, usado: map[[largoNonceA]byte]time.Time{}, cola: list.New()}
 }
 
 func (n *nonces) mac(b []byte) []byte {
@@ -98,16 +108,27 @@ func (n *nonces) gastar(b []byte, caduca time.Time) bool {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	ahora := n.ahora()
-	for u, c := range n.usado {
-		if !ahora.Before(c) {
-			delete(n.usado, u)
+	for f := n.cola.Front(); f != nil; f = n.cola.Front() {
+		u := f.Value.(nonceUsado)
+		if ahora.Before(u.caduca) {
+			break
 		}
+		n.cola.Remove(f)
+		delete(n.usado, u.k)
 	}
 	if _, ya := n.usado[k]; ya {
 		return false
 	}
 	n.usado[k] = caduca
+	n.cola.PushBack(nonceUsado{k, caduca})
 	return true
+}
+
+// Usados: cuántos nonces hay apuntados (pruebas).
+func (n *nonces) Usados() int {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return len(n.usado)
 }
 
 var errPrueba = errors.New("prueba de cadena no válida")

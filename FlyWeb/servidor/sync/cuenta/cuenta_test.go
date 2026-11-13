@@ -204,7 +204,7 @@ func (b *banco) cambiarContrasena(a *mac, email, nueva string) respuesta {
 	esperar(b.t, r, 200, "contrasena/codigo")
 	kl, ku := claves(nueva, email)
 	r = b.deMac(a, "contrasena-cambiar", "/contrasena/cambiar", map[string]string{"solicitud": r.txt("solicitud"),
-		"codigo": b.codigo(email), "kl": b64e(kl), "envoltura": b64e(envolver(ku, a.semilla, email)), "aparato": a.aparato})
+		"codigo": b.codigo(email), "kl": b64e(kl), "envoltura": b64e(envolver(ku, a.semilla, email)), "aparato": a.aparato, "secreto": a.secreto})
 	esperar(b.t, r, 200, "contrasena/cambiar")
 	a.token = r.txt("token")
 	return r
@@ -225,7 +225,7 @@ func TestCambioDeContrasena(t *testing.T) {
 	codigo := b.codigo(emailA)
 	kl, ku := claves("nueva contraseña", emailA)
 	pedir := map[string]string{"solicitud": sol, "codigo": codigo, "kl": b64e(kl),
-		"envoltura": b64e(envolver(ku, a.semilla, emailA)), "aparato": a.aparato}
+		"envoltura": b64e(envolver(ku, a.semilla, emailA)), "aparato": a.aparato, "secreto": a.secreto}
 	r = b.deMac(a, "contrasena-cambiar", "/contrasena/cambiar", pedir)
 	esperar(t, r, 200, "cambiar")
 	a.token = r.txt("token")
@@ -241,7 +241,7 @@ func TestCambioDeContrasena(t *testing.T) {
 
 	esperar(t, b.conToken(m, "/eventos", map[string]int{}), http.StatusUnauthorized, "token de B tras el cambio")
 	esperar(t, b.conToken(a, "/eventos", map[string]int{}), 200, "token de A tras el cambio")
-	r = b.deMac(m, "aparatos-renovar", "/aparatos/renovar", map[string]string{"aparato": m.aparato})
+	r = b.deMac(m, "aparatos-renovar", "/aparatos/renovar", map[string]string{"aparato": m.aparato, "secreto": m.secreto})
 	esperar(t, r, 200, "B renueva con la prueba de cadena")
 	m.token = r.txt("token")
 	if ts := tipos(b.eventos(m)); cuenta(ts, evContrasenaCambiada) != 1 {
@@ -493,7 +493,7 @@ func TestMacRobado(t *testing.T) {
 	b.reloj.avanzar(20 * time.Second)
 	klA, kuA := claves(clave, emailA)
 	r = b.conPrueba(a, "cadena-cambiar", a.cuenta, "/cadena/cambiar", map[string]string{"kl": b64e(klA),
-		"envoltura": b64e(envolver(kuA, nueva.semilla, emailA)), "aparato": a.aparato},
+		"envoltura": b64e(envolver(kuA, nueva.semilla, emailA)), "aparato": a.aparato, "secreto": a.secreto},
 		firmante{nueva, "X-FlyWeb-Cadena-Nueva", "X-FlyWeb-Prueba-Nueva"})
 	esperar(t, r, 200, "A cambia la clave")
 	if len(b.cad.borradas) != 1 || b.cad.borradas[0] != a.cadena {
@@ -700,6 +700,7 @@ func TestInactivas(t *testing.T) {
 	// La cadena de Z se borra desde un Mac sin cuenta (protocolo de sync): la cuenta se va con ella, con el borrado
 	// normal de 14 días y su aviso (decisión 12); un Mac lo puede cancelar y no se reprograma en 30 días.
 	b.cad.desactivadas[z.cadena] = true
+	b.reloj.avanzar(time.Hour) // las inactivas se miran cada hora (O3)
 	b.s.Tareas(t.Context())
 	b.entregar()
 	if cs := b.buzon.para("zeta@example.com"); !strings.Contains(cs[len(cs)-1].cuerpo, "dentro de 14 días") {

@@ -242,6 +242,7 @@ type mac struct {
 	cadena  string
 	cuenta  string
 	aparato string
+	secreto string
 	token   string
 	nombre  string
 }
@@ -336,7 +337,7 @@ func (b *banco) crearCuenta(m *mac, email, contrasena string) {
 		"codigo": b.codigo(email), "kl": b64e(kl), "envoltura": b64e(envolver(ku, m.semilla, email)),
 		"modelo": "MacPro7,1", "nombre": m.nombre})
 	esperar(b.t, r, 200, "alta/confirmar")
-	m.cuenta, m.aparato, m.token = r.txt("cuenta"), r.txt("aparato"), r.txt("token")
+	m.cuenta, m.aparato, m.token, m.secreto = r.txt("cuenta"), r.txt("aparato"), r.txt("token"), r.txt("secreto")
 }
 
 // empezarEntrada: entrar/empezar; devuelve la respuesta.
@@ -361,7 +362,7 @@ func (b *banco) entrar(m *mac, email, contrasena string) {
 		b.t.Fatalf("la envoltura no abre: %v", err)
 	}
 	m.ponerSemilla(semilla)
-	m.cuenta, m.aparato, m.token = r.txt("cuenta"), r.txt("aparato"), r.txt("token")
+	m.cuenta, m.aparato, m.token, m.secreto = r.txt("cuenta"), r.txt("aparato"), r.txt("token"), r.txt("secreto")
 }
 
 // eventos de la cuenta, con prueba de cadena.
