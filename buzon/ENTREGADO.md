@@ -720,3 +720,4 @@ buzon/CARTERO-LOCAL/20261112-1850-COORDINACION-40-relevo.md → (sin reenvío) �
 buzon/ARQUITECTURA/20261112-2015-COORDINACION-40-sync-n4-n5.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-12 20:15 UTC · entregado (COORDINACIÓN-40)
 buzon/D8-LINUX/20261112-2031-COORDINACION-40-recibido.md → D8-LINUX · 2026-11-12 20:33 UTC · fallo: D8-LINUX no alcanzable; acuse informativo (mjsunit 3.1.1 fusionado en #961), sin acción pendiente
 buzon/ARQUITECTURA/20261112-2246-COORDINACION-40-sync-simplificada.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-12 22:48 UTC · entregado (COORDINACIÓN-40)
+buzon/ARQUITECTURA/20261113-0812-COORDINACION-40-sync-n6.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 08:13 UTC · entregado (COORDINACIÓN-40)
