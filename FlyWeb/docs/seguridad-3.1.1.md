@@ -107,9 +107,9 @@ Pendiente: d8 y mjsunit (D8-LINUX) y el delta de la nota de la 158.
 
 ## 5 bis. Cerrado el 13-11 sin la 158
 
-Titín adelanta la 3.1.1. La nota de la 158 no ha salido, así que pasa a la 3.1.2. Entran el delta de 156.0.8078.104
+Titín adelanta la 3.1.1. La nota de la 158 no ha salido: su delta se prepara el 17-11 y Titín decide si va en una 3.1.2 o en la 3.2.0. Entran el delta de 156.0.8078.104
 (0035–0043) y, opcional con d8 verde, V8 15.6.75.59. Contenido, orden, árboles y pruebas en
-[`../seguridad/3.1.1/CONTENIDO.md`](../seguridad/3.1.1/CONTENIDO.md). Lo de §5 queda para la 3.1.2.
+[`../seguridad/3.1.1/CONTENIDO.md`](../seguridad/3.1.1/CONTENIDO.md). Lo de §5 queda para ese delta.
 
 ## 5. Qué falta para cerrar (17-11)
 

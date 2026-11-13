@@ -4,11 +4,11 @@ SEGURIDAD-PORTES-22, 13-11-2026. Encargo urgente de COORDINACIÓN-40: Titín qui
 al 17-11. **Nada compilado.** Los árboles de abajo salen de aplicar los parches con `git am` en un clon parcial; no hay
 rama remota.
 
-## La nota de Chrome 158 no entra: pasa a la 3.1.2
+## La nota de Chrome 158 no entra
 
 Feed Atom de Chrome Releases, leído el 13-11 a las 08:20 UTC: de la 158 solo hay el «Early Stable» 158.0.8127.36/.37
-del 12-11, para Windows («Mac will be coming shortly»), **sin lista de CVE**. Con la nota y el KEV de ese día se hará
-la 3.1.2.
+del 12-11, para Windows («Mac will be coming shortly»), **sin lista de CVE**. El delta de la 158 se prepara el 17-11, con la
+nota y el KEV de ese día; Titín decide entonces si va en una 3.1.2 de solo seguridad o en la 3.2.0.
 
 - **KEV** (`cve-watch.py --desde 2026-10-15`, catálogo 2026.11.10): 2 de Chromium, los 2 ya triados; 0 nuevos.
 - **Notas del 11-11** (157.0.8103.78/.79 estable y 156.0.8078.100 Extended Stable): son la misma tanda que ya cubren
@@ -78,7 +78,8 @@ Lleva un `[M156]`: af144bc, «Enforce no-JS execution scopes in InvokeApiFunctio
 - **Época de caché:** se queda en 31, por lo mismo que con la .58: `V8_PATCH_LEVEL` sube a 59 y `Hash()` lo incluye.
 - **Condición:** la regla de DIRECTIVAS pide d8 y mjsunit con Maglev en verde antes de LOCAL. Para D8-LINUX es la
   misma receta que `mjsunit.md`, con `FlyWeb/v8-revision` = `15.6.75.59`, más `mjsunit/value-serializer.js`.
-- **Si no hay verde antes de la orden,** la 3.1.1 sale sin el paso 4 y la .59 va a la 3.1.2. Nada más depende de él.
+- **Si no hay verde antes de la orden,** la 3.1.1 sale sin el paso 4 y la .59 va con el delta de la 158.
+  D8-LINUX ya tiene el encargo (`buzon/D8-LINUX/20261113-0823`, Titín, 13-11). Nada más depende de él.
 
 ## Versión y build
 
