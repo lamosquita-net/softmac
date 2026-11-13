@@ -64,11 +64,29 @@ Así quedan las versiones:
 7. **Cerrar** este fichero: tabla «Orden de aplicación» y tabla «Versión y build». Después, aviso a COORDINACIÓN-41
    para la orden a LOCAL.
 
+## Hueco reservado: respaldo GL de ANGLE en los Mac de 2012–2015 (candidato)
+
+Aviso de COORDINACIÓN-41 (13-11, ~23:43 UTC). Titín ha encargado a ARQUITECTURA unos parches para volver a abrir el
+backend GL de ANGLE en los Mac donde ANGLE rechaza Metal. En esos Mac, hoy la GPU va por software a 5,9 fps; con GL,
+en la 2.7.0, iba a 59. LOCAL lo prueba con compilaciones incrementales de la 3.1.1. **Solo entra si el informe sale
+bien**, y es la excepción que la directiva admite: un arreglo pequeño y ya diagnosticado. **Nada hecho aún.**
+
+Cuando lleguen los parches, la revisión de seguridad tiene que mirar:
+- **Superficie que se reabre:** qué entra del backend GL de ANGLE (validación, traductor de shaders, `GLES`/`WebGL2`
+  sobre GL de macOS) y qué se queda cerrado.
+- **Selección limitada** a esos modelos: el resto sigue con Metal y no puede pasarse a GL. Hay que mirar quién decide
+  la selección (lista de GPU o de modelos, o el rechazo de Metal) y si una página o una opción puede forzarla.
+- **CVE conocidos** del backend GL de ANGLE en macOS, desde la base de la vía GL (`flynk-b1b`/B1c) hasta la 158. Esta
+  vía obligaba a portar a mano los 34 CVE (16 críticos) que la de Metal ya trae (DIRECTIVAS, «GPU: Metal (B1d)…», 05-11). Cruzarlos
+  con lo que tenga `flynk-b1d` y decir cuáles quedan abiertos en esos Mac.
+- **Orden:** va después de la serie de seguridad de chromium, en su carpeta aparte, como Catalina en la 3.1.1.
+
 ## Orden de aplicación (provisional)
 
 | Paso | Qué | Árbol tras el paso |
 |---|---|---|
 | chromium 1 | `chromium/` 0001–00NN: delta de la 158, y lo nuevo de la 8078 y la 15.6 si lo hay | (17-11) |
+| chromium 2 | Candidato: respaldo GL de ANGLE (ARQUITECTURA), si el informe sale bien y pasa la revisión | (pendiente) |
 | brave-core 1 | `brave-core/` 0001: `flyweb_version` 3.1.2 | `78684355db` |
 | brave-core 2 | `package.json` con la etiqueta de `chrome/VERSION`, si cambia (como 59680cc en la 3.1.1) | (LOCAL) |
 
