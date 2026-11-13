@@ -30,7 +30,7 @@ nota y el KEV de ese día; Titín decide entonces si va en una 3.1.2 de solo seg
 | 1 | [`chromium/`](chromium/) 0001–0034, la serie previa del 12-11 ([README](README.md)) | `3d9092e4e33af893a862d9ad06c553ddf7fc4bbf` |
 | 2 | [`chromium/`](chromium/) 0035–0043, el delta de 156.0.8078.104 (abajo) | `d9f6c5c67e7353ec331e83c2271a41d137392cb2` |
 | 3 | [`../../parches/3.1.1-catalina/`](../../parches/3.1.1-catalina/) 0001–0004 (MOTOR-45, revisado en #957) | `38c6e1d3e320e606831d633d511f3c80c6fc994f` |
-| 4 | **Opcional:** [`v8-15.6.75.59/`](v8-15.6.75.59/) 0001, **solo con d8 y mjsunit en verde** (abajo) | `ff34d8cbc0276d42a821be972daeff247e8e3a0f` |
+| 4 | ~~Opcional: [`v8-15.6.75.59/`](v8-15.6.75.59/) 0001~~ **No entra** (abajo) | (`ff34d8cbc0276d42a821be972daeff247e8e3a0f`) |
 
 - Catalina no comparte ningún fichero con la serie de seguridad. Aplicada sola sobre 502e3c5b85 da `35d2c99d7b`, el
   árbol que dio MOTOR-45.
@@ -68,6 +68,9 @@ llevan `-x`.
 - Los 14 «🌺 … test»: solo apagan o arreglan pruebas.
 
 ## Paso 4, opcional: V8 15.6.75.58 → .59
+
+**Decidido (COORDINACIÓN-40, 13-11, ~08:26 UTC): la orden de compilar a LOCAL-19 sale sin la .59.** La V8 de la 3.1.1 es
+la .58 ya probada (`mjsunit.md`). La .59 va a la 3.1.2 con el resultado de D8-LINUX; el parche queda aquí para entonces.
 
 Lleva un `[M156]`: af144bc, «Enforce no-JS execution scopes in InvokeApiFunction» (bugs 584997097, 576333024).
 `Builtins::InvokeApiFunction` llamaba a los callbacks de C++ sin las comprobaciones de «no ejecutar JS», y
