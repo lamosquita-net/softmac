@@ -127,3 +127,213 @@ Límites: no leí `developer.chrome.com` (se pinta con JS), no audité commits d
 los costes son estimaciones por tipo de componente.
 
 *Siguiente informe: cuando salga la 158 estable (17-11) o la 159 (08-12); sesión archivada entre informes.*
+
+---
+
+# Informe 2, parte A: tendencias de los estándares web (diseñador)
+
+INVESTIGACIÓN-MOTOR-10, 13-11-2026. Encargo de Titín vía COORDINACIÓN-41. **Enfoque cambiado por Titín el 13-11:** se quitan los
+navegadores para macOS viejos; el foco son las **últimas tendencias de los estándares** (HTML, CSS, TC39, WICG, APIs), aunque
+ningún navegador las tenga o solo uno. Titín decide como diseñador web qué queremos en FlyWeb y la idea es poder traerlo
+**antes que otros**. Gecko y WebKit entran como fuente de qué se está implementando. Solo papel; nada compilado. La parte B
+(Chrome 158 estable) llega el 17-11. Base de FlyWeb: 3.1.x = Chromium 156.0.8078.90, V8 15.6; se declara 156 (decisión 8 del plan de la 3.x).
+
+Etiquetas: **[P]** fuente primaria leída hoy · **[S]** secundaria (buscador, MDN o WebKit vistos solo en el resumen del buscador) ·
+**[I]** inferencia mía · **[N]** no comprobado. **Hito** = una tanda de MOTOR: **S** ≤ 1 día, **M** 2–5 días, **L** semanas o
+GPU/red/sandbox (igual que el informe 1; los costes son [I]).
+
+## 1. Lo que hay que saber primero
+
+1. **Casi todo lo que hoy ilusiona a un diseñador ya está en nuestra 156.** Chrome lo lanzó hasta la 156 (§3).
+   El hueco real frente a Chrome es pequeño: lo de la 157/158/159 (§4) y unas pocas piezas que Firefox o Safari tienen y Chrome no.
+2. **Lo que Titín quiere adelantar** (masonry/grid lanes, `@mixin`/`@apply`, HTML en canvas…) **no son «cuatro
+   cosas que se portan»**: unas ya viven en la 156 tras bandera de Blink y otras están en especificación inestable. El riesgo
+   principal no es el coste de portar, sino **que la sintaxis cambie** después de que un diseñador la use (§4.1 y §7).
+3. **Una palanca barata que no estaba en el informe 1:** un **«modo diseñador» opcional y apagado por defecto** que
+   encienda las banderas experimentales de Blink. Permite probar masonry, mixins o HTML-en-canvas hoy, sin cambiar lo que
+   FlyWeb declara a las webs de todos los usuarios (decisión 8). Hay que comprobar antes si FlyWeb ya expone esa página de
+   banderas (§7, propuesta 2).
+4. **Las tendencias se ven en Interop 2026** (§5): los tres motores se comprometen a igualar 20 áreas. Lo que está ahí es
+   lo que llegará a todos.
+5. **Las propuestas de IA para el navegador** (Prompt API, WebMCP) las rechazan Firefox y Safari (§4.7): encaja con
+   nuestra regla 20 (privacidad); no se portan.
+
+## 2. Método, fuentes y límites
+
+- Lectura primaria (curl): paquete npm `web-features` 3.46.0 (publicado el 13-11; Baseline y versiones de Chrome/Firefox/Safari
+  de MDN BCD); chromestatus (hitos 129–161, con la posición de Firefox y Safari); `runtime_enabled_features.json5` de las ramas
+  8078 (nuestra 156), 8103 y 8127; `feature-flags.h` de V8 15.6 y 15.8; `tc39/proposals` (etapas 2–4 y terminadas);
+  `web-platform-tests/interop` (2026); issues de `mozilla/` y `WebKit/standards-positions` (búsqueda de GitHub).
+- **No pude leer** `webkit.org`, `developer.apple.com`, `developer.mozilla.org`, `mozilla.org`, `web.dev` ni los borradores del
+  CSSWG/WHATWG: el entorno de la nube no los permite (probé; la petición de añadirlos quedó sin respuesta). Lo que cito de
+  esas páginas viene del **resumen del buscador [S]**. Si Titín quiere notas de lanzamiento de Firefox y Safari leídas de
+  primera mano, hay que añadir esos hosts al entorno.
+- `web-features` va con retraso respecto a los lanzamientos y a veces discrepa de chromestatus o de MDN; lo señalo donde pasa.
+- **Uso en webs reales:** chromestatus da contadores globales, no por sitio **[N]**. No puedo decir qué usa claude.ai. Como en
+  el informe 1, lo comprobaría LOCAL con DevTools (una hora). En general, casi nada de esto se nota en claude.ai **[I]**.
+- «Ya en la 156» significa: Chrome ≤ 156 lo trae habilitado por defecto **[P]**. Que **FlyWeb** lo exponga igual **[N]**:
+  Brave u otro parche nuestro podría haberlo apagado. Propuesta 1 (§7): una página de comprobación.
+
+## 3. Ya en la 156 (no cuesta nada portar; comprobar que sigue encendido)
+
+Por temas. Versión de Chrome que lo estrenó; F = Firefox, S = Safari [P: web-features/chromestatus].
+
+| Tema | Lo que ya tenemos | Chrome | F / S |
+|---|---|---|---|
+| Maquetación | anchor positioning (+ transformaciones, animaciones), `stretch`, gap decorations (`column-rule` en flex/grid), `reading-flow`, `scroll-snap-type: pair` y contenedores de un eje, `flex-wrap: balance`, columnas con salto en multicol, `text-wrap` balance/pretty, `scrollbar-gutter` | 94–156 | gap decorations y `stretch`: F/S a favor; `reading-flow`: sin señal |
+| Contenedores | `@container` de estilo (`style()`), de nombre, de estado de scroll (`scroll-state`), de anclaje | 111–148 | F 151 / S 18 los de estilo; `scroll-state`: solo Chrome |
+| Tipografía | `text-box-trim`/`text-box`, `text-fit`, `font-size-adjust`, `hyphenate-limit-chars`, `ruby-overhang`, `text-decoration-skip-ink: all`, `text-decoration-skip-spaces`, `margin-trim` | 109–155 | `text-box`: F 154 [S], S 18.2; `text-fit`: sin señal |
+| Animación | scroll-driven animations, view transitions (mismo doc, entre documentos, tipos, grupos anidados, `match-element`, **ámbito de elemento**), `@starting-style`, `interpolate-size`/`calc-size()`, `sibling-index()`, scroll-triggered animations (`animation-trigger`) | 111–147 | scroll-driven: F 159, S 26; ámbito de elemento y triggers: solo Chrome |
+| Color | `contrast-color()`, `light-dark()` con imágenes, `alpha()` relativo, `relative color`, `color-mix` (2 colores), `oklch`, `@property` | 120–152 | contrast-color: F 146, S 26 |
+| Formas | `shape()`, `corner-shape`/`superellipse`, `border-shape`, `polygon()` con `round` | 135–150 | `shape()`: F 148, S 18.4; `corner-shape`: S a favor; `border-shape`: sin señal |
+| Funciones CSS | `if()`, `@function`, `attr()` tipado, **`random()`**, aritmética tipada | 133–156 | `if()` y `@function`: S a favor, F sin señal; `random()`: S sí, F tras opción [S] |
+| Formularios y componentes | `<select>` personalizable (+ listbox), `popover` (incl. `hint`), `<dialog closedby>`, `:open`, `command`/`commandfor`, `focusgroup`, `interestfor`, `field-sizing`, `<details name>`, `::details-content`, carruseles (`::scroll-button`, `::scroll-marker`, `scroll-target-group`) | 114–150 | `interestfor`: S **en contra**, F neutral; carruseles y `focusgroup`: sin señal (F positivo en focusgroup) |
+| Plataforma | Navigation API (+ precommit), scoped custom element registries, `moveBefore()`, Sanitizer API (`setHTML`), `<template for>` (parches de HTML en streaming), Observable, speculation rules | 102–150 | Observable: F **en contra**, S a favor |
+| JavaScript (V8 15.6) | Temporal, Iterator helpers + `join`/`sequencing`/`includes`/`zip`, `Set` methods, `Promise.try`, `RegExp.escape`, `Math.sumPrecise`, `Uint8Array` base64, `Float16Array`, `getOrInsert`, `using` (ERM), JSON/import attributes y `import text`, JSPI de Wasm | 117–154 | Temporal: F 139, S en desarrollo; ERM: S no |
+| Imagen | **JPEG XL** (`image/jxl`) | 155 | F 158, S 17 |
+
+Notas:
+- **Interest invokers:** web-features dice Chrome 149, chromestatus lo lista en el 142: las fuentes discrepan. Safari está en contra **[P]**.
+- **JPEG XL** (Chrome 155) y los *capability elements* (`<geolocation>` 144, `<camera>`/`<microphone>` 153) son **superficie nueva** en
+  la 156 que el informe 1 no revisó. JPEG XL añade un decodificador de imágenes; los capability elements, interfaz de permisos.
+  Propuestas 1 y 6 (§7).
+- En V8 15.6 hay en *experimental/staged* **[P]**: decoradores, ShadowRealm, `import source` (fase de fuente), `\A \z \Z` de RegExp,
+  ArrayBuffer inmutable, `import bytes` y `import defer`. Faltan **iterator chunking** (etapa 4, 2027) y `Math.clamp` (etapa 2) **[P por ausencia en las banderas]**.
+
+## 4. La frontera: lo que no tenemos o aún nadie ha cerrado
+
+### 4.1 Maquetación
+
+| Novedad y ejemplo | Spec | Chrome / Firefox / Safari | Riesgo · polyfill | En 156 · coste | Propuesta |
+|---|---|---|---|---|---|
+| **Grid lanes** (masonry). `.galeria { display: grid-lanes; grid-template-columns: repeat(auto-fill, minmax(14rem,1fr)); }` Piezas que se colocan en el carril con más hueco | css-grid-3 (borrador) | Chrome **bandera** (`CSSGridLanesLayout`, experimental en 156/157/158) [P]. Safari lo lanzó (26.4 según Apple [S]; web-features marca 27.2 y 27.2 «renombró una propiedad» [S]). Firefox: no lo tiene [N] | **Alto**: la sintaxis cambió (masonry → grid-lanes → propiedad renombrada). Polyfill: librerías JS (masonry) o `columns` | bandera en 156 → **M** (encender, WPT, accesibilidad del orden) si el motor está completo; **L** si no [N] | **Esperar** a que Chrome la encienda; mientras, solo bajo «modo diseñador» |
+| **`:heading` y `revert-rule`** | selectors/cascade (WD) | solo Safari 27 [S] | bajo · ninguno | ausentes · **S** cada una | No ahora |
+| `position-visibility: anchor-valid/visible` + plurales | css-anchor-position | Chrome 157, F 147, S 26.2 [P] | bajo · no | **S** | **Sí** (ya en informe 1) |
+| Propiedades abreviadas de esquina (`corner-*`) | css-borders-4 | Chrome 160 [P chromestatus]; F a favor, S en desarrollo | medio | no en 156 · **S** cuando salga | Esperar a la 160 |
+
+### 4.2 Tipografía
+
+| Novedad y ejemplo | Spec | Quién | Riesgo · polyfill | En 156 · coste | Propuesta |
+|---|---|---|---|---|---|
+| **`text-autospace`** (espacio entre CJK y latín). `text-autospace: normal;` | css-text-4 | F 145, S 27; Chrome **no** [P] | bajo · JS que inserta espacios | no (sin bandera por nombre) · **M–L** (maquetado) | No: afecta sobre todo a CJK |
+| `hanging-punctuation` | css-text-4 | solo Safari 26.5 | bajo · ninguno | **M** | No |
+| `font-width` / `font-variant-position` | css-fonts | S 18.4 / F 34 | bajo | **S** | No |
+| `text-overflow: <string>`, `text-decoration-inset` | css-overflow/text-decor | Chrome 157, F y S | bajo | **S** (flip) | **Sí** (informe 1) |
+| `generic()` (familias genéricas) | css-fonts-5 | propuesta; Mozilla a favor [P] | medio | no · — | Vigilar |
+| `text-size-adjust` sin prefijo | css-size-adjust | propuesta en WebKit (#720) [P] | bajo | **S** | Vigilar |
+
+### 4.3 Animación y transiciones
+
+| Novedad y ejemplo | Spec | Quién | Riesgo · polyfill | En 156 · coste | Propuesta |
+|---|---|---|---|---|---|
+| **Pseudoclases de medios** `video:paused::after{…}` (`:playing :muted :buffering :seeking :stalled :volume-locked`) | selectors-4 (Interop 2026) | Chrome 158, F 150, S 15.4 [P] | bajo · clases con JS | no · **S–M** | **Sí** (informe 1) |
+| **Triggers de animación** (`animation-trigger`, `trigger-scope`) | animation-triggers-1 (borrador) | Chrome 146; F y S sin señal [P] | **alto** (spec joven, un solo motor) | ya · — | Ya lo tenemos; avisar a diseñadores |
+| **Vista transiciones: ámbito de elemento** `el.startViewTransition(…)` | css-view-transitions-2 | Chrome 147; resto sin señal | alto | ya | idem |
+| `::highlight(*)` y extensiones de la Custom Highlight API | css-highlight-api | Chrome 158, S a favor; F a favor; extensiones: propuestas nuevas (#1480) | bajo | bandera en 156 · **S** | **Sí** (informe 1) |
+| `object-fit` en SVG de `<object>/<embed>` | svg | F ya | bajo | **S** | Sí (informe 1) |
+
+### 4.4 Color
+
+| Novedad y ejemplo | Spec | Quién | Riesgo · polyfill | En 156 · coste | Propuesta |
+|---|---|---|---|---|---|
+| **`color-mix()` con 3+ colores**. `color-mix(in oklch, red 20%, blue 30%, green)` | css-color-5 (borrador) | F 150, S 27; Chrome **no** [P] | bajo (ampliación simple) · Sass/JS | no (sin bandera por nombre) · **S–M** (parser, serialización, WPT) | **Sí** |
+| **`<input type=color alpha colorspace="display-p3">`** | HTML | S 18.4; resto no [P] | bajo | no · **M** (panel de color de macOS) | No ahora |
+| HDR: `dynamic-range-limit`, tone mapping de Canvas2D (Chrome 160) | CSS/WHATWG | Chrome 136 y 160; F/S sin señal | medio | `dynamic-range-limit` ya | Vigilar |
+
+### 4.5 Formularios y componentes
+
+| Novedad y ejemplo | Spec | Quién | Riesgo · polyfill | En 156 · coste | Propuesta |
+|---|---|---|---|---|---|
+| **HTML en canvas** `<canvas content="drawable">` (texto y DOM en un canvas, accesible) | WICG | Chrome 157; S a favor; F sin señal | alto · no | bandera en 156 (`HTMLInCanvas`) · **L** (pintado/GPU, ANGLE Metal) | **No ahora** (informe 1) |
+| **Métodos nuevos de insertar HTML** `el.setHTML(html)`, `beforeHTML`, `afterHTML`… (+ `streamAppendHTML`, solo especificación) | WHATWG HTML | Chrome 157; resto sin señal; en streaming, nadie | bajo (ya en el estándar) · polyfill sencillo | ausentes, pero el Sanitizer ya está · **M** | **Sí** los de una vez (seguridad: sustituyen `innerHTML`); streaming: no |
+| `<model>` (3D en HTML) | WebKit | solo Safari 27 [S] | alto | **L** | No |
+| `<geolocation>`, `<camera>`, `<microphone>` | WICG/W3C | Chrome 144/153; `<geolocation>`: F a favor, S sin señal; `<camera>`: Mozilla a favor (#1461) | medio | **ya** | **Comprobar que están apagados o bajo política** (§7, propuesta 6) |
+| `<agecheck>`, `<sealedinput>`, WebMCP declarativo | propuestas nuevas | solo propuestas / experimental | — | WebMCP: bandera experimental en 156 [P] | **No** (regla 20) |
+
+### 4.6 JavaScript (TC39)
+
+| Novedad y ejemplo | Etapa | Quién | Riesgo · polyfill | En 156 · coste | Propuesta |
+|---|---|---|---|---|---|
+| **RegExp `\A \z \Z`** | 3 | F ya; Chrome 159 [P chromestatus]; S sin señal | bajo | V8 15.6 experimental · **S** (encender + mjsunit) | **Sí**, junto al 159 |
+| **`import defer`** (evaluación diferida de módulos) | 3 | F 158 solo Nightly [S]; V8 15.6 *staged*; Chrome: sin señal | medio | staged · **S** | Esperar a que Chrome lo encienda |
+| **Iterator chunking / `windows`** | 4 (2027) | F sin señal [N]; no en V8 15.6 | bajo · polyfill | ausente · **M** (código de V8) | Esperar (V8 lo traerá) |
+| **`import bytes`, ArrayBuffer inmutable** | 2.7 | staged en V8 15.6 | medio | staged · **S** | No (etapa 2.7) |
+| **Decoradores, `import source`, ShadowRealm** | 2.7 / 3 | V8 *experimental*; F y S sin señal | alto | experimental | No |
+| `Await Dictionary`, `Error.stack` accessor, límites de *thenables* | 3 (nuevas) | ninguno | medio | ausentes | Vigilar |
+| `Math.clamp`, `Iterator.range`, pipeline, `SeededPRNG`, `String.dedent` | 2 | ninguno | alto | ausentes | No |
+
+Etapa 4 o anterior ya está en V8 15.6: **Temporal**, Iterator helpers y `join`/`includes`/`sequencing`/`zip`, `Set`, `RegExp.escape`, `Promise.try`,
+`Math.sumPrecise`, base64, `getOrInsert`, ERM (`using`) **[P]**. No hace falta portar nada de JavaScript para
+estar a la par de Chrome ahora mismo. Wasm: JSPI (Chrome 137, Interop 2026), GC, memory64 y *tail calls* ya están en Chrome ≤ 137 **[P web-features]**.
+
+### 4.7 Plataforma, IA y privacidad
+
+- **Prompt API** (`LanguageModel`): Chrome 160 le añade un modo de muestreo; **Firefox negativo y Safari en contra** [P chromestatus M160]. WebMCP
+  y sus atributos de formulario (`toolname`, `tooldescription`): experimentales, sin Firefox ni Safari [P]. **No portar; comprobar
+  apagadas** (los nombres de bandera no aparecen en 8078 con el patrón `AIPromptAPI`: **[N]**, verificar).
+- **Seguridad que sí conviene mirar** (Mozilla y WebKit a favor): Web Crypto con *streaming* de hash e *híbridos KEM*, WebAssembly Component Model.
+  Estados `[P]` en `standards-positions`; coste no estimado [N].
+- **Contra:** radio que se desmarca, *customized built-ins* (S en contra), `interestfor` (S), Observable (F). Chrome los lleva, otros no;
+  riesgo de cambio o de retirada. Ya los tenemos (§3): no apagarlos por eso, pero avisar a los diseñadores.
+
+## 5. Interop 2026: la lista de lo que llegará a todos [P: `web-platform-tests/interop`]
+
+20 áreas de enfoque (representantes de Apple, Google, Microsoft, Mozilla, Igalia y Bocoup; los tres motores): **container style queries, anchor positioning,
+`attr()`, `contrast-color()`, `zoom`, custom highlights, diálogos y popovers (`closedby`, `:open`, `popover=hint`), fetch con *streaming*
+de subida y *Range*, IndexedDB `getAllRecords()`, JSPI de Wasm, seudoclases de medios, Navigation API (`precommitHandler`), scoped custom
+element registries, scroll-driven animations, scroll snap, `shape()`, view transitions (`blocking=render`, `link rel=expect`,
+`:active-view-transition-type()`, entre documentos), web compat (módulos ESM, orden de scroll/animación, `-webkit-user-select`), WebRTC y WebTransport**.
+Cuatro investigaciones: accesibilidad, **JPEG XL**, pruebas móviles, WebVTT.
+- **Lectura [I]:** casi todo tiene ya Chrome ≤ 156. Lo que falta en nuestra 156: las **seudoclases de medios** (Chrome 158); y quedan por comprobar `:active-view-transition-type()`
+  y `rel=expect` **[N]**. Si Titín quiere «la puntuación de Interop como criterio», LOCAL puede correr las WPT de
+  `interop-2026-*` en FlyWeb y compararlas con el Chrome 156 de referencia (el método de `motor-N`).
+
+## 6. Gecko y WebKit: qué implementan ahora
+
+- **Firefox 147–158** [S: MDN vía buscador]: módulos CSS (147), `color-mix` multicolor y `light-dark()` con imágenes (150), `@container style()`
+  (151), `text-box-trim` y `progress()` (154), `attr()` en cualquier propiedad (155), `named-feature()` (156), `overscroll-behavior: chain` (157),
+  aritmética tipada, **JPEG XL por defecto** y `fetch` con ReadableStream (158); tras opción: `random()` y `corner-shape` (158). Firefox 159: scroll-driven
+  animations y scoped registries (por web-features [P]); Nightly: `import defer`.
+- **Safari 26.4 → 27.3** [S: WebKit/Apple vía buscador]: grid lanes (26.4, propiedad renombrada en 27.2), `hanging-punctuation` (26.5), 58 funciones nuevas en
+  Safari 27 (WWDC26): `<select>` personalizable (`appearance: base-select`), `stretch`, `:heading`, `revert-rule`, anclaje con transformaciones,
+  `<model>`, `color-mix` multicolor, `text-autospace`. STP 256 (05-11).
+- **Lectura [I]:** Firefox y Safari van **detrás de Chrome en componentes de interfaz** (carruseles, `interestfor`, scroll-state) y
+  **por delante en maquetación (grid lanes) y tipografía (autospace, hanging-punctuation)**. La tendencia de diseño:
+  componentes nativos personalizables, CSS programable (`if()`, `@function`, mixins), formas y esquinas, y transiciones sin JS.
+
+## 7. Propuestas para Titín (marcar sí/no)
+
+Por prioridad. **Ninguna toca V8 ni la versión declarada** (decisión 8: lo nuevo se enciende solo si una web real lo necesita; las marcadas «S» son ajustes pequeños).
+
+1. **[ ] Página de comprobación `diseno-156.html` (LOCAL, S, 1 h):** sondea las ~60 funciones de §3 en FlyWeb 3.1.x y las compara con un
+   Chrome 156. Confirma que nada de lo que Chrome lanzó en 105–156 está apagado en FlyWeb por Brave o por parches nuestros, y
+   que **JPEG XL, los capability elements, `focusgroup` y `interestfor`** se comportan como se quiere.
+2. **[ ] Modo diseñador (opcional, apagado, S–M):** exponer en FlyWeb la página de banderas experimentales de Blink con un aviso («cambia
+   lo que las webs ven de tu navegador»), no un cambio en lo declarado. Da a Titín grid lanes, mixins (`@mixin/@apply`),
+   HTML-en-canvas y lo que salga **hoy**, sin riesgo para los demás usuarios. Comprobar si ya existe [N].
+3. **[ ] Tanda «CSS y medios de la 157/158/159» (M, un solo porte):** informe 1 §6.2 + `color-mix()` multicolor + `::highlight(*)`. Son paridad
+   con Firefox/Safari, bajo riesgo.
+4. **[ ] Métodos de insertar HTML (`setHTML`, `beforeHTML`…), M:** solo los no *streaming*; refuerzan seguridad.
+5. **[ ] RegExp `\A \z \Z`, S:** al salir en Chrome 159 (08-12), junto a la tanda de seguridad.
+6. **[ ] Revisar superficie nueva de la 156 (SEGURIDAD-VIGÍA/LOCAL):** decodificador JPEG XL, `<geolocation>`/`<camera>`/`<microphone>`,
+   Prompt API y WebMCP: dejar apagado lo que no sirva y anotarlo en `rebranding`/`brave-propio` como decisión de privacidad (regla 20).
+7. **[ ] Dejar para más adelante (vigilar):** grid lanes, mixins, `text-autospace`, `:heading`, `revert-rule`, `<model>`, HTML-en-canvas, *streaming* de HTML,
+   `import defer`, iterator chunking. Reabrir cuando Chrome o dos motores las enciendan.
+8. **[ ] No:** Prompt API, WebMCP, `<agecheck>`, `<sealedinput>`, Web Install, decoradores/ShadowRealm/`import bytes` (etapa 2.7 o inestables).
+
+## 8. Fuentes [P salvo indicación]
+
+- web-features 3.46.0 (npm, 13-11-2026): `https://www.npmjs.com/package/web-features` (datos de MDN BCD).
+- chromestatus, hitos 129–161: `https://chromestatus.com/api/v0/features?milestone=<N>`.
+- Blink, rama 8078/8103/8127: `https://chromium.googlesource.com/chromium/src/+/refs/branch-heads/<rama>/third_party/blink/renderer/platform/runtime_enabled_features.json5`.
+- V8 15.6/15.8: `https://chromium.googlesource.com/v8/v8/+/refs/branch-heads/15.{6,8}/src/flags/feature-flags.h`.
+- TC39: `https://github.com/tc39/proposals` (README y `finished-proposals.md`, 13-11-2026).
+- Interop 2026: `https://github.com/web-platform-tests/interop/blob/main/2026/README.md`.
+- Posiciones: `https://github.com/mozilla/standards-positions/issues`, `https://github.com/WebKit/standards-positions/issues` (búsqueda de GitHub, 13-11-2026).
+- [S] Notas de Firefox 147–158: `https://developer.mozilla.org/en-US/Firefox/Releases/158` (y anteriores); Safari 26.4–27.3: `https://webkit.org/blog/17967/news-from-wwdc26-webkit-in-safari-27-beta/`
+  y `https://developer.apple.com/documentation/safari-release-notes/safari-27_3-release-notes`; CSS Mixins: hilos de `lists.w3.org/Archives/Public/public-css-archive/` (mar–abr 2026) y *Intent to Prototype: CSS mixins* (blink-dev, 07-2026).
+  Vistas solo en el resumen del buscador.
+
+Límites: no medí uso real; no probé nada en un FlyWeb compilado; no leí los borradores del CSSWG ni WHATWG; costes por tipo de componente.
+
+*Siguiente: parte B (Chrome 158 estable) el 17-11, cuando COORDINACIÓN avise.*
