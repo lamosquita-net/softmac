@@ -17,9 +17,11 @@ no cambia de versión ni de número de compilación.
 | `0004` | Destino de textura en `ClientSharedImage` | `flynk-b1b` `8ebf3076c5` |
 | `0005` | Formatos de Ganesh/GL en `viz` | `flynk-b1b` `978889beed` |
 
-`SHA256SUMS` los sella. Los cinco aplican en cadena sobre `flynk-b1d` `33a1745949`, la base de la 3.0.0 (comprobado con
-`git apply --cached --check` en un índice temporal, sin tocar el árbol). **Sobre el src de la 3.1.1 no lo he podido
-comprobar:** el `0004` de Catalina toca `service_utils.cc` en otras líneas, así que espero como mucho un desplazamiento.
+`SHA256SUMS` los sella. **Los cinco aplican limpios y en cadena sobre el src de la 3.1.1** (`seg/3.1.1` `9e0d83137f`,
+rama `local/311` de `~/proyectos/b2-porte-mac/src`): comprobado el 14-11 con `git apply --cached --check` en un índice
+temporal, sin tocar el árbol ni su índice. 12 ficheros, 120 líneas añadidas y 5 quitadas. En ese commit la lista de
+admitidos es Metal y SwiftShader, y el modo GL por hardware ya es `IsMacOSBelow11()`, como supone el `0001`. También
+aplican sobre la base de la 3.0.0 (`flynk-b1d` `33a1745949`), que fue lo primero que miré.
 
 ## Correcciones a tu parche (`temp/local19/gpu-macs-antiguos/`)
 
