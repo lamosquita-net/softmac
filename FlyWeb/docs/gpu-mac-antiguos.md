@@ -4,7 +4,8 @@ ARQUITECTURA, 13-11-2026. Encargo de COORDINACIÓN-41 (buzón `20261113-2115`), 
 MacBookPro9,1 con Catalina y la 3.1.1. **Solo papel: nada compilado, nada lanzado, nada medido.** Leído: el árbol
 `~/proyectos/chromium-156/src` (rama `flynk-b1d` `33a1745949`, la base de la 3.0.0; ANGLE `e3917d6`), la rama `flynk-b1b`
 (B1c), los parches de la 3.1.x del repositorio y el binario de la 3.1.1 instalada en la 7,1 (`strings` y `nm`).
-**Ampliado el 13-11 por la noche** (buzón `20261113-2220`, medidas de LOCAL-19): conclusión 2 y 5, §2.3 y §5.1.
+**Ampliado el 13-11 por la noche** en dos veces: con las medidas de LOCAL-19 (buzón `20261113-2220`: conclusión 2 y 5,
+§2.3 y §5.1) y con la historia de la retirada que pidió Titín (buzón `20261113-2235`: conclusión 7 y 8, §6).
 
 Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** suposición sin comprobar.
 
@@ -28,6 +29,11 @@ Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** sup
    tras las medidas de LOCAL-19); los Mac con macOS 11 o posterior, en la 3.2.0.
 6. **La cifra de «34 CVE que portar a mano» no vale para B1c tal como quedó** [I]: se contó para una capa copiada de la
    150 y B1c no copia nada de la 150. Hay que recontarla (SEGURIDAD) antes de que pese en esta decisión.
+7. **Google lo quitó por limpieza, no por seguridad** [V: mensajes de los commits, §6]. Chrome dejó de soportar macOS 12 y, con
+   él, el último hardware que necesitaba OpenGL; entre julio y septiembre de 2026 retiró la puerta, las
+   texturas rectangulares y el aviso de cambio de GPU. Ningún mensaje cita un CVE ni un fallo de controlador.
+8. **Respuesta corta a Titín: sí, y en la 3.1.2 si pinta.** No hace falta ningún argumento de GN. El coste real son seis
+   hitos pequeños (§6.3) y un riesgo que hay que mirar en el MacBook Pro de 2012: el cambio automático entre sus dos GPU.
 
 ## 2. Qué pasa exactamente
 
@@ -235,13 +241,104 @@ toque.
 **Huella:** en esos Mac la cadena de WebGL diría «OpenGL». No hay Chrome 156 real con el que comparar (no se instala en
 Catalina) y la directiva «WebGL sin falsear» manda no igualarla.
 
-## 6. Fuentes y límites
+## 6. Historia: cuándo y por qué lo quitó Google (150 → 156)
+
+Añadido el 13-11 por la noche por encargo de Titín (buzón `20261113-2235`). Mensajes leídos en el repositorio público
+`chromium/chromium`; los enlaces son `https://chromium.googlesource.com/chromium/src/+/<commit>`.
+
+### 6.1 La secuencia [V]
+
+| Fecha | Commit | Qué hizo | Motivo que da el mensaje |
+|---|---|---|---|
+| 10-07-2026 | [`38acbb5889`](https://chromium.googlesource.com/chromium/src/+/38acbb5889) | Quita de los robots de Mac las pruebas de ANGLE GL y de Ganesh (34 ficheros) | «Since Chrome no longer supports macOS 12, all supported OS versions support ANGLE Metal backend and Graphite» |
+| 13-07-2026 | [`75824eea71`](https://chromium.googlesource.com/chromium/src/+/75824eea71) | **«Disallow Angle/CGL backend on mac»**: una línea menos en `gl_factory_mac.cc` | Sin texto; mismo bug |
+| 13-07-2026 | ANGLE, «GL: Remove testing on Mac» (en el *roll* [`1da84cd657`](https://chromium.googlesource.com/chromium/src/+/1da84cd657)) | ANGLE deja de probar su backend GL en Mac. **No borra el código** | — |
+| 23-07-2026 | [`1cb133a3ca`](https://chromium.googlesource.com/chromium/src/+/1cb133a3ca) | Quita `GetTextureTargetForIOSurfaces()` (6 ficheros) | «Mac allows only metal and swiftshader GL implementations now… this function always returns TEXTURE_2D» |
+| 01-09-2026 | [`bed4ec1b17`](https://chromium.googlesource.com/chromium/src/+/bed4ec1b17) | Quita el indicador `DefaultANGLEMetal` | «Angle GL backend is no longer used» |
+| 01-09-2026 | [`25a248a6cb`](https://chromium.googlesource.com/chromium/src/+/25a248a6cb), [`a6e2713267`](https://chromium.googlesource.com/chromium/src/+/a6e2713267), [`ca2f2e0554`](https://chromium.googlesource.com/chromium/src/+/ca2f2e0554) | Quita el aviso de cambio de GPU (`DisplayReconfigCallback`, `OnGpuSwitched`; 30 ficheros) | «Angle/CGL is not allowed anymore… as we stopped supporting hardware where it was needed» |
+| 03-09-2026 | [`8b251c3c35`](https://chromium.googlesource.com/chromium/src/+/8b251c3c35) | Quita `texture_target_for_iosurface` del mojom (10 ficheros) | «It's always TEXTURE_2D now» |
+| 16-09-2026 | [`c8593069ef`](https://chromium.googlesource.com/chromium/src/+/c8593069ef) | Quita el modo Ganesh/GL en Mac con Intel (revertido una vez en agosto por fallos de pruebas) | «All mac devices are using ANGLE/Metal as of M152 and can run Graphite» |
+| 21-09-2026 | [`17a3918979`](https://chromium.googlesource.com/chromium/src/+/17a3918979) | Quita `DidSwitchGpu` (63 líneas de `drawing_buffer.cc`, el búfer de WebGL) | «It always returns false now» |
+
+Bugs: [519633318](https://issues.chromium.org/issues/519633318) (la retirada de CGL) y
+[40063538](https://issues.chromium.org/issues/40063538) (el lanzamiento de Graphite). No he abierto las fichas: solo
+los commits que las citan. Todos están en la 156 [V: en el árbol, `supports_gpu_mode_hardware_gl_(false)` en Mac y
+ningún `OnGpuSwitched`].
+
+### 6.2 Por qué
+
+- **Fue limpieza tras retirar hardware.** Chrome dejó de soportar macOS 12 y, según el primer mensaje, todos los
+  sistemas que quedan admiten ANGLE Metal. Para Google, OpenGL en Mac se quedó sin usuarios. Ningún mensaje habla de un CVE ni de los
+  controladores de Apple.
+- **No es un backend abandonado:** el mismo código de OpenGL de ANGLE sigue en uso en Linux, Android y ChromeOS. Lo que
+  ya nadie prueba es su capa de Mac (`renderer/gl/cgl/`).
+- **La 150 lo traía todo** [V: árbol `~/proyectos/chromium-150`, 150.0.7871.287]: OpenGL el primero de la lista de
+  admitidos, las texturas rectangulares y el aviso de cambio de GPU. Saltar de la 128 a la 156 nos hizo pasar por
+  encima de la retirada sin verla.
+
+### 6.3 Qué cuesta de verdad
+
+**No basta ni hace falta un argumento de GN:** el backend ya se compila (`angle_enable_gl` es verdadero por defecto en
+Mac). Lo que falta es código de Chromium:
+
+| Pieza | Lo quitó | En B1c | Hace falta para |
+|---|---|---|---|
+| Admitir ANGLE OpenGL | 1 línea | Sí | Todo: indicador y paso automático |
+| Modo GL por hardware | 1 línea | Ya está en la 3.1.1 antes de macOS 11 (B1d) | Componer con la GPU |
+| Texturas rectangulares de IOSurface | 16 ficheros en 2 commits | Sí, 11 ficheros | Que pinte |
+| Aviso de cambio de GPU | 36 ficheros en 4 commits | **No** | Portátiles con dos GPU [S] |
+| Lista de apaños de controladores | No se tocó: 14 entradas de macOS, como en la 150 | — | — |
+| Selección automática | No se tocó: Metal primero, OpenGL después | — | — |
+
+**Hitos:**
+
+| Hito | Qué | Compila |
+|---|---|---|
+| G1 | Comprobar que la B1c conservada pinta y da WebGL, en la 6,1 y en el Air de 2013 | No |
+| G2 | Parche sobre el src de la 3.1.1: admitir OpenGL antes de macOS 11 y las texturas (rebase de B1c; 3 ficheros con retoque a mano) | No |
+| G3 | Regla 17 de esos ficheros y recuento de los CVE del OpenGL de ANGLE | No |
+| G4 | La candidata de la 3.1.2 con el parche; batería en la 6,1 con `--use-angle=gl` | La de la 3.1.2, que se compila igual |
+| G5 | Prueba en el MacBook Pro de 2012 (cada GPU y el cambio automático), el mini de 2012 y el Air de 2013 | No |
+| G6 | En la 3.2.0: macOS 11 o posterior y, si G5 lo pide, devolver el aviso de cambio de GPU | La de la 3.2.0 |
+
+Ninguna compilación propia: G4 y G6 van con versiones que se compilan de todos modos. G1 a G3 son de días, no de
+semanas [I].
+
+**Cuánto se parece a la 2.7.0.** Lo que dibuja es lo mismo: ANGLE sobre el OpenGL 4.1 de Apple, con los mismos
+controladores. Cambia quién lo sostiene. En la 2.7.0 (base 128) todo venía de Google y lo probaban sus robots de Mac;
+en la 3.1.2 el backend sería el de la 156, más nuevo, la pieza de texturas sería nuestra, y desde julio de 2026 no lo
+prueba nadie más en Mac.
+
+### 6.4 El riesgo que añade esta lectura
+
+- **Cambio automático de GPU** [S]: el código que quitaron avisaba a WebGL cuando macOS pasaba de la GPU integrada a la
+  dedicada. Sin él, en el MacBook Pro de 2012 un lienzo WebGL puede quedarse en la GPU anterior o dibujar mal tras el
+  cambio. No lo puedo saber leyendo: por eso G5 prueba cada GPU y el cambio. El mini de 2012 y el Air de 2013, con una
+  sola GPU, no tienen este caso.
+- **Cómo se limita a los Mac donde Metal no vale:**
+  - el orden es fijo, Metal primero; OpenGL solo se prueba si la pantalla de Metal no arranca [V];
+  - solo antes de macOS 11;
+  - una web no puede elegir backend. `--use-angle=gl` queda disponible a mano en Mojave y Catalina, que es lo que
+    permite probarlo en la 6,1; se puede cerrar después si se quiere.
+- **Seguridad:** WebGL vuelve a llegar a los controladores de OpenGL de Apple, congelados desde Mojave y Catalina. Es
+  la misma exposición que tenía la 2.7.0 en esos Mac. Los arreglos de ANGLE GL de la 151 a la 156 ya están en el árbol
+  [I: por construcción; lo confirma el recuento de G3].
+
+### 6.5 Datos de LOCAL-19
+
+Al escribir esto (13-11, noche) no veo en el buzón ni en `main` más datos suyos que la medida de Aquarium (5,9 frente a 59 fps).
+Cuando deje el `flyweb://gpu` y la sonda, se revisan §2.3 y §3.1.
+
+## 7. Fuentes y límites
 
 - **Código** (`flynk-b1d` `33a1745949`, ANGLE `e3917d6`): `third_party/angle/src/common/apple_platform_utils.mm`,
   `…/renderer/metal/DisplayMtl.mm`, `third_party/angle/gni/angle.gni:230-250,412`, `ui/gl/init/gl_factory_mac.cc`,
   `ui/gl/init/gl_display_initializer.cc`, `ui/gl/gl_display.cc:576-650`,
   `content/browser/gpu/gpu_data_manager_impl_private.cc`. Los números de línea son de ese árbol; en el de la 3.1.1 pueden
   moverse.
+- **Historia (§6):** mensajes y listas de ficheros de los commits en el repositorio público `chromium/chromium`
+  (API de GitHub, 13-11-2026) y el árbol `~/proyectos/chromium-150/src` (150.0.7871.287). Los dos árboles locales son
+  superficiales: la historia no sale de ellos.
 - **B1c:** `flynk-b1b`, `95a974072b..d1bd098a89` (8 commits; 15 ficheros, más los punteros de ANGLE y Dawn).
 - **Binario:** `FlyWeb Framework` de la 3.1.1 instalada en la 7,1, con `strings` y `nm -u`.
 - **Repositorio:** `docs/DIRECTIVAS.md` (04-11, 05-11, 09-11), `docs/TAREAS.md` FM.55, `FlyWeb/docs/b1d/README.md`,
