@@ -728,3 +728,4 @@ buzon/LOCAL/20261113-0826-COORDINACION-40-compilar-311.md → Compilación Local
 buzon/D8-LINUX/20261113-0834-COORDINACION-40-v8-59-recibido.md → D8-LINUX · 2026-11-13 08:35 UTC · fallo: D8-LINUX no alcanzable; acuse informativo (mjsunit .59 subido en #969), sin acción pendiente
 buzon/LOCAL/20261113-0833-COORDINACION-40-311-v8-59.md → (sin reenvío) · 2026-11-13 08:35 UTC · retenido: cambia el contenido de la 3.1.1 (añade la V8 .59) frente a la decisión de Titín de 13-11 (DIRECTIVAS #965); pendiente de confirmación de Titín
 buzon/LOCAL/20261113-0836-COORDINACION-40-311-push.md → Compilación Local (19) [924c24] · 2026-11-13 08:37 UTC · entregado (COORDINACIÓN-40)
+buzon/LOCAL/20261113-0839-COORDINACION-40-311-apto.md → Compilación Local (19) [924c24] · 2026-11-13 08:39 UTC · entregado (COORDINACIÓN-40)
