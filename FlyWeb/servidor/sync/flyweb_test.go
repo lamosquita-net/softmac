@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"flyweb-sync/cuenta"
+
 	"github.com/brave/go-sync/cache"
 	"github.com/brave/go-sync/datastore"
 	"github.com/brave/go-sync/schema/protobuf/sync_pb"
@@ -159,7 +161,7 @@ func (c cadena) token() string {
 func iniciar(t *testing.T) string {
 	t.Helper()
 	db := abrir(t)
-	ctx, h := servidor(db, cache.NewCache(NuevaMemoria()))
+	ctx, h := servidor(db, cache.NewCache(NuevaMemoria()), nil)
 	srv := httptest.NewUnstartedServer(h)
 	srv.Config.BaseContext = func(net.Listener) context.Context { return ctx }
 	srv.Start()
@@ -330,5 +332,57 @@ func TestBorrarInactivas(t *testing.T) {
 	}
 	if off, _ := db.IsSyncChainDisabled(ctx, "nueva"); off {
 		t.Fatal("ha desactivado una cadena en uso")
+	}
+}
+
+// La cuenta (3.2) solo se monta si hay credenciales; sin ellas, /cuenta/v1 no existe. Con ellas, convive con /v2
+// en el mismo SQLite, y lo que la cuenta pide a go-sync (Borrar, Desactivada, UltimaEscritura) va contra sus tablas.
+func TestCuentaMontada(t *testing.T) {
+	url := iniciar(t)
+	r, err := http.Post(url+"/cuenta/v1/nonce", "application/json", strings.NewReader("{}"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Body.Close()
+	if r.StatusCode != 404 {
+		t.Fatalf("sin credenciales, /cuenta/v1 = %d", r.StatusCode)
+	}
+
+	db := abrir(t)
+	ctx := context.Background()
+	s, err := cuenta.Nuevo(ctx, cuenta.Config{DB: db.db, Cadenas: db, HMAC: cuenta.NuevaCredencial(make([]byte, 32)),
+		AES: cuenta.NuevaCredencial(make([]byte, 32)), Correo: cuenta.SMTPLocal{}, Desde: "noreply@flyweb.example"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sctx, h := servidor(db, cache.NewCache(NuevaMemoria()), s.Router())
+	srv := httptest.NewUnstartedServer(h)
+	srv.Config.BaseContext = func(net.Listener) context.Context { return sctx }
+	srv.Start()
+	t.Cleanup(srv.Close)
+	r, err = http.Post(srv.URL+"/cuenta/v1/nonce", "application/json", strings.NewReader("{}"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Body.Close()
+	if r.StatusCode != 200 {
+		t.Fatalf("con credenciales, /cuenta/v1/nonce = %d", r.StatusCode)
+	}
+	c := nuevaCadena()
+	if _, n := enviar(t, srv.URL, c.token(), commitPassword("g1", "cifrado"), false); n != 200 {
+		t.Fatalf("/v2 con la cuenta montada = %d", n)
+	}
+	id := strings.ToUpper(hex.EncodeToString(c.pub))
+	if m, hay, err := db.UltimaEscritura(ctx, id); err != nil || !hay || m == 0 {
+		t.Fatalf("UltimaEscritura: %d %v %v", m, hay, err)
+	}
+	if err := db.Borrar(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	if des, _ := db.Desactivada(ctx, id); !des {
+		t.Fatal("Borrar no desactiva la cadena")
+	}
+	if _, hay, _ := db.UltimaEscritura(ctx, id); hay {
+		t.Fatal("Borrar no borra los datos")
 	}
 }
