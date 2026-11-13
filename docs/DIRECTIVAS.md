@@ -376,6 +376,12 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   arreglan en paralelo y **no paran** la 3.2.0. Se adelanta la revisión de SEGURIDAD de la sync (#977, #981) para no
   esperar al 17-11. INVESTIGACIÓN-MOTOR vigila además Gecko, WebKit y los estándares (WHATWG HTML, CSSWG, TC39,
   Interop) para detectar tendencias que convenga traer.
+- **FlyWeb también innova (Titín, 13-11 noche; COORDINACIÓN-41; amplía «Flink a nuestro ritmo»):** además de seguir a
+  Chrome, FlyWeb puede implementar funciones nuevas de los estándares (HTML, CSS, JS, APIs) aunque ningún otro navegador
+  las tenga aún. **Las elige Titín como diseñador web.** INVESTIGACIÓN-MOTOR le presenta las tendencias nuevas, con
+  ejemplo, estado de la especificación, riesgo y coste, para que marque sí o no; MOTOR implementa lo aprobado. Lo de los
+  navegadores para macOS viejos deja de vigilarse. Riesgo aceptado: una función que se implemente antes de tiempo puede
+  cambiar en la especificación; se prefiere lo que tenga consenso o borrador estable, y se avisa cuando no.
 - **Flink a nuestro ritmo (Titín, 12-11 noche; COORDINACIÓN-40):** Chrome marca hacia dónde va la web y lo seguimos,
   pero con criterio propio: se trae lo que interese y lo que necesiten webs reales, y no se mete lo que no aporta o
   rechazan Firefox y Safari (sigue la decisión 8 del plan de la 3.x: se declara 156). Objetivo: **no quedarse nunca atrás**.
