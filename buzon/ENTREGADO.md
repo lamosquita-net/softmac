@@ -766,3 +766,4 @@ buzon/SERVIDOR-LOCAL/20261113-2220-COORDINACION-41-script-revision.md → Servid
 buzon/SERVIDOR-LOCAL/20261113-2250-COORDINACION-41-script-ok.md → Servidor Local (2) [853e0b] · 2026-11-13 21:59 UTC · entregado (COORDINACIÓN-41)
 buzon/ARQUITECTURA/20261113-2220-COORDINACION-41-angle-gl-datos.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 22:51 UTC · entregado (COORDINACIÓN-41)
 buzon/LOCAL/20261113-2220-COORDINACION-41-angle-gl-reparto.md → Compilación Local (19) [924c24] · 2026-11-13 22:51 UTC · entregado (COORDINACIÓN-41)
+buzon/ARQUITECTURA/20261113-2235-COORDINACION-41-angle-gl-encargo.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 22:55 UTC · entregado (COORDINACIÓN-41)
