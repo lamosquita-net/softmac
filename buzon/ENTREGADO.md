@@ -741,3 +741,10 @@ buzon/PUBLICACION/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 
 buzon/SERVIDOR-LOCAL/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 2026-11-13 13:49 UTC · retenido: relevo de COORDINACIÓN 40→41; la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
 buzon/ARQUITECTURA/20261113-1350-COORDINACION-41-sync-h2.md → (sin reenvío) · 2026-11-13 13:49 UTC · retenido: orden de COORDINACIÓN 41 (no 40); la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
 buzon/PUBLICACION/20261113-1352-COORDINACION-41-311-reintenta.md → (sin reenvío) · 2026-11-13 13:51 UTC · retenido: orden de COORDINACIÓN 41; la confirmación de Titín cubría solo la 40; pendiente de confirmación de Titín
+buzon/ARQUITECTURA/20261113-1350-COORDINACION-41-sync-h2.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 13:52 UTC · entregado (confirmado por Titín: COORDINACIÓN-41)
+buzon/ARQUITECTURA/20261113-1350-COORDINACION-41-relevo.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 13:52 UTC · entregado (confirmado por Titín: COORDINACIÓN-41)
+buzon/PUBLICACION/20261113-1352-COORDINACION-41-311-reintenta.md → Publicación [4dd99b] · 2026-11-13 13:52 UTC · entregado (confirmado por Titín: COORDINACIÓN-41)
+buzon/PUBLICACION/20261113-1350-COORDINACION-41-relevo.md → Publicación [4dd99b] · 2026-11-13 13:52 UTC · entregado (confirmado por Titín: COORDINACIÓN-41)
+buzon/LOCAL/20261113-1350-COORDINACION-41-relevo.md → Compilación Local (19) [924c24] y Local (21) [4b2922] · 2026-11-13 13:52 UTC · entregado (confirmado por Titín: COORDINACIÓN-41)
+buzon/SERVIDOR-LOCAL/20261113-1350-COORDINACION-41-relevo.md → Servidor Local (2) [853e0b] · 2026-11-13 13:52 UTC · entregado (confirmado por Titín: COORDINACIÓN-41)
+buzon/CARTERO-LOCAL/20261113-1350-COORDINACION-41-relevo.md → (sin reenvío) · 2026-11-13 13:52 UTC · es esta sesión; leído
