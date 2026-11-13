@@ -722,3 +722,4 @@ buzon/D8-LINUX/20261112-2031-COORDINACION-40-recibido.md → D8-LINUX · 2026-11
 buzon/ARQUITECTURA/20261112-2246-COORDINACION-40-sync-simplificada.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-12 22:48 UTC · entregado (COORDINACIÓN-40)
 buzon/ARQUITECTURA/20261113-0812-COORDINACION-40-sync-n6.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 08:13 UTC · entregado (COORDINACIÓN-40)
 buzon/ARQUITECTURA/20261113-0817-COORDINACION-40-sync-h1-aprobado.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 08:17 UTC · entregado (COORDINACIÓN-40)
+buzon/D8-LINUX/20261113-0823-COORDINACION-40-v8-59.md → D8-LINUX · 2026-11-13 08:24 UTC · fallo: D8-LINUX no alcanzable (sin sesión en ListAgents); avisado a Titín
