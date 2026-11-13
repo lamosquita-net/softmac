@@ -382,6 +382,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   ejemplo, estado de la especificación, riesgo y coste, para que marque sí o no; MOTOR implementa lo aprobado. Lo de los
   navegadores para macOS viejos deja de vigilarse. Riesgo aceptado: una función que se implemente antes de tiempo puede
   cambiar en la especificación; se prefiere lo que tenga consenso o borrador estable, y se avisa cuando no.
+- **Plataformas (Titín, 13-11 noche; COORDINACIÓN-41):** después de la 3.2 y **sin coste nuevo** (nada de comprar
+  RAM ni licencias por ahora). Orden: (0) automatizar la fábrica de Mac (compilar, probar, publicar sin pasos a mano);
+  (1) **Ubuntu**, en la máquina de D8-LINUX (i9 de 13.ª, 32 GB: se compila con menos trabajos en paralelo);
+  (2) **Android**, en la misma máquina, publicado en la cuenta de Google Play de Titín; (3) **iOS**, con motor propio en
+  la UE (cuenta de Apple ya pagada); (4) **Windows**, al final (exige certificado de firma de pago). Los parches de
+  seguridad son comunes; lo que se multiplica es compilar, probar y publicar. ARQUITECTURA hace antes el estudio en
+  papel (coste en hitos, máquinas, firma y tiendas, automatización); el orden se revisa con sus datos.
 - **Flink a nuestro ritmo (Titín, 12-11 noche; COORDINACIÓN-40):** Chrome marca hacia dónde va la web y lo seguimos,
   pero con criterio propio: se trae lo que interese y lo que necesiten webs reales, y no se mete lo que no aporta o
   rechazan Firefox y Safari (sigue la decisión 8 del plan de la 3.x: se declara 156). Objetivo: **no quedarse nunca atrás**.
