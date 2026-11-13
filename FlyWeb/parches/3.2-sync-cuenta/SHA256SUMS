@@ -1,0 +1,7 @@
+5c471552bfc191f831ebc717458f6aa0cc9fb7895bb129f1b3306e42290d952f  0001-sync-account-crypto-for-the-FlyWeb-3.2-sync-account-.patch
+9ba6438873aaeebffc2c6743edab119a8e86ef8b70015906623e00d29c31ffe2  0002-sync-FlyWeb-3.2-sync-account-client-service-H3.patch
+f63f6aa379701b5db3f9928b3cc95267955458eaab1e69a9df0fbd1d31170521  0003-settings-Cuenta-y-sincronizaci-n-page-for-the-FlyWeb.patch
+95276c41f83b616bbd405dff46f73c5eb63929ea3c80ef662b33ea574ac47ca8  0004-sync-FlyWeb-3.2-sync-account-warning-bars.patch
+306ed24a84384bf76a8436bd71e9b6c17e8ad3c2053e82a10c1b03e3694120f8  0005-sync-account-client-fixes-from-the-security-review-S.patch
+151f41acfe1040c47b815c50719692b54d3b4e4c54743dfac9973cbc00b1fed4  0006-sync-device-secret-of-the-sync-account-K3-977-C1.patch
+0348b3be67b479eaf85757a014f062d2672146daad76c6123e0cded965eb0419  vectores.py

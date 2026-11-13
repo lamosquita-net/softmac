@@ -1,0 +1,719 @@
+From 6649c289995c5f6c069295311775eee2ab2edec1 Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 21:37:32 +0000
+Subject: [PATCH 5/6] sync: account client fixes from the security review
+ (SEGURIDAD-PORTES-23)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Review of #981 (comment 6865456375):
+
+- K1: the first-poll baseline is only for a Mac that creates or logs in.
+  A Mac that learns the account from the server (S1) always warns: the
+  «cadena-ligada» bar names the email of the account and offers «No la he
+  ligado yo», which leads to «Borrar la cuenta y los datos en todos».
+  Events older than this Mac's own joining are skipped.
+- K2: «email-cambiado» clears the stored email and polls again with the
+  chain proof; changing the password, the email or the key first asks for
+  the current email with the proof (it is the scrypt salt).
+- O-a: a retried password change sends the same wrap, so the server
+  repeats its answer.
+- O-b: unanswered warnings are kept, encrypted, across restarts.
+- O-c: a chain left by this Mac through Brave's own buttons, with the
+  account still active, is not «cuenta borrada».
+- K3 (with C1 of #977): the per-device secret is generated and kept
+  encrypted; sending it waits for the wire format.
+
+Also: warnings of a page of 100 events are no longer dropped when more
+pages follow.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ app/brave_generated_resources.grd             |   6 +
+ .../brave_generated_resources_es-419.xtb      |   2 +
+ .../brave_generated_resources_es.xtb          |   2 +
+ .../flyweb_sync_account_infobar_delegate.cc   |  34 ++-
+ .../flyweb_sync_account_infobar_delegate.h    |   5 +-
+ .../brave_sync_browser_proxy.ts               |   2 +
+ .../brave_sync_page/flyweb_sync_account.ts    |   5 +-
+ .../account/flyweb_sync_account_service.cc    | 272 ++++++++++++++++--
+ .../account/flyweb_sync_account_service.h     |  16 ++
+ ...ave_settings_localized_strings_provider.cc |   2 +
+ 10 files changed, 313 insertions(+), 33 deletions(-)
+
+diff --git a/app/brave_generated_resources.grd b/app/brave_generated_resources.grd
+index ca9c6cc..8be7dd9 100644
+--- a/app/brave_generated_resources.grd
++++ b/app/brave_generated_resources.grd
+@@ -340,6 +340,12 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>flyweb://settings/ex
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED" desc="Account warning: the chain was linked to an account">
+         This sync was linked to an account.
+       </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED_EMAIL" desc="Account warning: the chain this Mac syncs was linked to the account of that email (K1)">
++        This sync was linked to the account <ph name="EMAIL">$1<ex>nombre@example.com</ex></ph>. If you did not link it, delete the account and its data everywhere.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_LINKED_BY_ME" desc="Button of the account warning bar when this Mac's chain was linked to an account">
++        I didn't link it
++      </message>
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DEVICE_REMOVED" desc="Account warning: a Mac was removed from the list">
+         The Mac "<ph name="NAME">$1<ex>MacBook Air</ex></ph>" was removed from your sync account.
+       </message>
+diff --git a/app/resources/brave_generated_resources_es-419.xtb b/app/resources/brave_generated_resources_es-419.xtb
+index 2e66824..d175193 100644
+--- a/app/resources/brave_generated_resources_es-419.xtb
++++ b/app/resources/brave_generated_resources_es-419.xtb
+@@ -880,4 +880,6 @@ de forma irreversible.</translation>
+ <translation id="5007392906805964215">Revisar</translation>
+ <translation id="3967320264779726993">La clave de sincronización se ha cambiado desde otro Mac. Vuelve a entrar con tu email, tu contraseña y un código.</translation>
+ <translation id="6438922473717127121">Cuenta y sincronización</translation>
++<translation id="1700890504399928133">Esta sincronización se ha ligado a la cuenta «<ph name="EMAIL"/>». Si no la has ligado tú, borra la cuenta y los datos en todos.</translation>
++<translation id="9216077204680478027">No la he ligado yo</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/app/resources/brave_generated_resources_es.xtb b/app/resources/brave_generated_resources_es.xtb
+index 7a63247..e8d4990 100644
+--- a/app/resources/brave_generated_resources_es.xtb
++++ b/app/resources/brave_generated_resources_es.xtb
+@@ -879,4 +879,6 @@ de forma irreversible.</translation>
+ <translation id="5007392906805964215">Revisar</translation>
+ <translation id="3967320264779726993">La clave de sincronización se ha cambiado desde otro Mac. Vuelve a entrar con tu email, tu contraseña y un código.</translation>
+ <translation id="6438922473717127121">Cuenta y sincronización</translation>
++<translation id="1700890504399928133">Esta sincronización se ha ligado a la cuenta «<ph name="EMAIL"/>». Si no la has ligado tú, borra la cuenta y los datos en todos.</translation>
++<translation id="9216077204680478027">No la he ligado yo</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/browser/infobars/flyweb_sync_account_infobar_delegate.cc b/browser/infobars/flyweb_sync_account_infobar_delegate.cc
+index c46a2d5..a3e386f 100644
+--- a/browser/infobars/flyweb_sync_account_infobar_delegate.cc
++++ b/browser/infobars/flyweb_sync_account_infobar_delegate.cc
+@@ -62,6 +62,13 @@ std::u16string FlyWebSyncAccountInfoBarDelegate::WarningText(
+         IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_CHANGED);
+   }
+   if (e.type == "cadena-ligada") {
++    // K1: whoever has the chain can link it to an account with their own
++    // email; the bar says which.
++    if (!e.email.empty()) {
++      return l10n_util::GetStringFUTF16(
++          IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED_EMAIL,
++          base::UTF8ToUTF16(e.email));
++    }
+     return l10n_util::GetStringUTF16(
+         IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED);
+   }
+@@ -126,16 +133,22 @@ void FlyWebSyncAccountInfoBarDelegate::Create(
+     message =
+         l10n_util::GetStringUTF16(IDS_FLYWEB_SYNC_ACCOUNT_KEY_CHANGED_INFOBAR);
+   }
++  const bool linked = kind == Kind::kWarnings &&
++                      warnings.back().type == "cadena-ligada";
+   manager->AddInfoBar(
+       CreateConfirmInfoBar(base::WrapUnique(new FlyWebSyncAccountInfoBarDelegate(
+-          profile, kind, std::move(message)))));
++          profile, kind, std::move(message), linked))));
+ }
+ 
+ FlyWebSyncAccountInfoBarDelegate::FlyWebSyncAccountInfoBarDelegate(
+     Profile* profile,
+     Kind kind,
+-    std::u16string message)
+-    : profile_(profile), kind_(kind), message_(std::move(message)) {}
++    std::u16string message,
++    bool linked)
++    : profile_(profile),
++      kind_(kind),
++      message_(std::move(message)),
++      linked_(linked) {}
+ 
+ FlyWebSyncAccountInfoBarDelegate::~FlyWebSyncAccountInfoBarDelegate() =
+     default;
+@@ -173,9 +186,12 @@ int FlyWebSyncAccountInfoBarDelegate::GetButtons() const {
+ 
+ std::u16string FlyWebSyncAccountInfoBarDelegate::GetButtonLabel(
+     InfoBarButton button) const {
++  if (button == BUTTON_OK) {
++    return l10n_util::GetStringUTF16(IDS_FLYWEB_SYNC_ACCOUNT_WARNING_WAS_ME);
++  }
+   return l10n_util::GetStringUTF16(
+-      button == BUTTON_OK ? IDS_FLYWEB_SYNC_ACCOUNT_WARNING_WAS_ME
+-                          : IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_ME_BUTTON);
++      linked_ ? IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_LINKED_BY_ME
++              : IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_ME_BUTTON);
+ }
+ 
+ std::u16string FlyWebSyncAccountInfoBarDelegate::GetLinkText() const {
+@@ -196,8 +212,12 @@ bool FlyWebSyncAccountInfoBarDelegate::Accept() {
+ 
+ // «No he sido yo»: at once (§6.2), and the page for what comes next.
+ bool FlyWebSyncAccountInfoBarDelegate::Cancel() {
+-  if (auto* account = GetAccountService()) {
+-    account->NotMe(base::DoNothing());
++  // «No la he ligado yo» (K1): the remedy is «Borrar la cuenta y los datos en
++  // todos» on the page, with its confirmation; nothing is done from the bar.
++  if (!linked_) {
++    if (auto* account = GetAccountService()) {
++      account->NotMe(base::DoNothing());
++    }
+   }
+   chrome::ShowSettingsSubPageForProfile(profile_, kBraveSyncSetupPath);
+   return true;
+diff --git a/browser/infobars/flyweb_sync_account_infobar_delegate.h b/browser/infobars/flyweb_sync_account_infobar_delegate.h
+index e737f21..81c2e51 100644
+--- a/browser/infobars/flyweb_sync_account_infobar_delegate.h
++++ b/browser/infobars/flyweb_sync_account_infobar_delegate.h
+@@ -46,7 +46,8 @@ class FlyWebSyncAccountInfoBarDelegate : public ConfirmInfoBarDelegate {
+  private:
+   FlyWebSyncAccountInfoBarDelegate(Profile* profile,
+                                    Kind kind,
+-                                   std::u16string message);
++                                   std::u16string message,
++                                   bool linked);
+ 
+   // ConfirmInfoBarDelegate:
+   infobars::InfoBarDelegate::InfoBarIdentifier GetIdentifier() const override;
+@@ -66,6 +67,8 @@ class FlyWebSyncAccountInfoBarDelegate : public ConfirmInfoBarDelegate {
+   raw_ptr<Profile> profile_;
+   const Kind kind_;
+   const std::u16string message_;
++  // The newest warning is «cadena-ligada» (K1): «No la he ligado yo».
++  const bool linked_;
+ };
+ 
+ #endif  // BRAVE_BROWSER_INFOBARS_FLYWEB_SYNC_ACCOUNT_INFOBAR_DELEGATE_H_
+diff --git a/browser/resources/settings/brave_sync_page/brave_sync_browser_proxy.ts b/browser/resources/settings/brave_sync_page/brave_sync_browser_proxy.ts
+index c76b2e8..252052f 100644
+--- a/browser/resources/settings/brave_sync_page/brave_sync_browser_proxy.ts
++++ b/browser/resources/settings/brave_sync_page/brave_sync_browser_proxy.ts
+@@ -49,6 +49,8 @@ export interface FlyWebAccountWarning {
+   count: number
+   since: number
+   when: number
++  // cadena-ligada: the email of the account the chain was linked to (K1).
++  email?: string
+ }
+ 
+ export interface FlyWebAccountDevice {
+diff --git a/browser/resources/settings/brave_sync_page/flyweb_sync_account.ts b/browser/resources/settings/brave_sync_page/flyweb_sync_account.ts
+index 0f15a8c..eadee47 100644
+--- a/browser/resources/settings/brave_sync_page/flyweb_sync_account.ts
++++ b/browser/resources/settings/brave_sync_page/flyweb_sync_account.ts
+@@ -402,7 +402,10 @@ export class SettingsFlyWebSyncAccountElement
+       case 'cadena-cambiada':
+         return this.i18n('flywebAccountWarningChainChanged')
+       case 'cadena-ligada':
+-        return this.i18n('flywebAccountWarningChainLinked')
++        // K1: say which account, and that the remedy is «Borrar en todos».
++        return w.email ?
++            this.i18n('flywebAccountWarningChainLinkedEmail', w.email) :
++            this.i18n('flywebAccountWarningChainLinked')
+       case 'aparato-quitado':
+         return this.i18n('flywebAccountWarningDeviceRemoved', name)
+       case 'no-he-sido-yo':
+diff --git a/browser/sync/account/flyweb_sync_account_service.cc b/browser/sync/account/flyweb_sync_account_service.cc
+index 127322d..3a19767 100644
+--- a/browser/sync/account/flyweb_sync_account_service.cc
++++ b/browser/sync/account/flyweb_sync_account_service.cc
+@@ -39,6 +39,7 @@
+ #include "components/sync/base/command_line_switches.h"
+ #include "components/sync/service/sync_user_settings.h"
+ #include "content/public/browser/storage_partition.h"
++#include "crypto/random.h"
+ #include "net/base/load_flags.h"
+ #include "net/base/url_util.h"
+ #include "net/http/http_response_headers.h"
+@@ -61,6 +62,11 @@ constexpr char kPrefDevice[] = "flyweb_sync_account.device";
+ constexpr char kPrefToken[] = "flyweb_sync_account.token";
+ constexpr char kPrefLastEvent[] = "flyweb_sync_account.last_event";
+ constexpr char kPrefNotice[] = "flyweb_sync_account.notice";
++constexpr char kPrefWarnings[] = "flyweb_sync_account.warnings";
++// K3 (SEGURIDAD-PORTES-23, with C1 of #977): a secret per device, made here,
++// that proves the author of an operation. The wire format is not fixed yet:
++// it is generated and kept, and AddDeviceSecret() is where it will be sent.
++constexpr char kPrefDeviceSecret[] = "flyweb_sync_account.device_secret";
+ 
+ constexpr char kPathPrefix[] = "/cuenta/v1/";
+ // §9: no call waits more than 30 s. The server gives up a scrypt turn at 25 s.
+@@ -172,6 +178,7 @@ base::DictValue AccountEvent::ToValue() const {
+   v.Set("count", static_cast<double>(count));
+   v.Set("since", static_cast<double>(since));
+   v.Set("when", static_cast<double>(when));
++  v.Set("email", email);
+   return v;
+ }
+ 
+@@ -193,6 +200,8 @@ struct AccountService::Flow {
+   std::optional<account::AccountKeys> keys;
+   // kEmailChange: KL of the current email, to send the code again.
+   std::optional<account::SecretKey> current_login_key;
++  // kPasswordChange: the wrap last sent, for a retry (O-a).
++  std::vector<uint8_t> sent_wrap;
+ 
+   const char* Name() const {
+     switch (kind) {
+@@ -228,6 +237,8 @@ void AccountService::RegisterProfilePrefs(PrefRegistrySimple* registry) {
+   registry->RegisterStringPref(kPrefToken, std::string());
+   registry->RegisterStringPref(kPrefLastEvent, std::string());
+   registry->RegisterStringPref(kPrefNotice, std::string());
++  registry->RegisterStringPref(kPrefWarnings, std::string());
++  registry->RegisterStringPref(kPrefDeviceSecret, std::string());
+ }
+ 
+ AccountService::AccountService(Profile* profile) : profile_(profile) {
+@@ -317,6 +328,29 @@ void AccountService::LoadPrefs() {
+     last_event_ = 0;
+   }
+   notice_ = profile_->GetPrefs()->GetString(kPrefNotice);
++  if (const auto secret = LoadString(kPrefDeviceSecret)) {
++    device_secret_ = *secret;
++  }
++  LoadWarnings();
++}
++
++// K3: one per device, created the first time it is needed, kept encrypted.
++const std::string& AccountService::DeviceSecret() {
++  if (device_secret_.empty()) {
++    std::array<uint8_t, 32> raw;
++    ::crypto::RandBytes(raw);
++    device_secret_ = base::Base64UrlEncode(
++        raw, base::Base64UrlEncodePolicy::OMIT_PADDING);
++    std::ranges::fill(raw, 0);
++    StoreString(kPrefDeviceSecret, device_secret_);
++  }
++  return device_secret_;
++}
++
++void AccountService::AddDeviceSecret(base::DictValue& body) {
++  // Pending the format of #977-C1 (SYNC-NUBE-1 via COORDINACIÓN-41): the field
++  // name and where it goes. Until then nothing is sent.
++  (void)body;
+ }
+ 
+ std::optional<std::string> AccountService::LoadString(const char* path) const {
+@@ -385,8 +419,9 @@ void AccountService::ForgetAccount(bool keep_email) {
+   deletion_date_ = 0;
+   devices_ = base::ListValue();
+   warnings_.clear();
+-  for (const char* path :
+-       {kPrefAccountId, kPrefDevice, kPrefToken, kPrefLastEvent}) {
++  device_secret_.clear();
++  for (const char* path : {kPrefAccountId, kPrefDevice, kPrefToken,
++                           kPrefLastEvent, kPrefWarnings, kPrefDeviceSecret}) {
+     profile_->GetPrefs()->ClearPref(path);
+   }
+   if (!keep_email) {
+@@ -490,9 +525,17 @@ void AccountService::OnChainDisabled(account::ChainKeys old_keys) {
+                return;
+              }
+              self->resolving_chain_disabled_ = false;
+-             const bool changed =
+-                 r.ok && GetStr(r.data, "estado") == "cadena-sustituida";
++             const std::string estado = r.ok ? GetStr(r.data, "estado") : "";
++             const bool changed = estado == "cadena-sustituida";
+              self->ForgetAccount(/*keep_email=*/true);
++             if (estado == "activa" || estado == "borrado-programado") {
++               // O-c: the account and the chain live on; this Mac left by
++               // itself (Brave's «Leave Sync Chain», the old reset). Not
++               // «cuenta borrada».
++               self->UpdateState();
++               self->NotifyStatus();
++               return;
++             }
+              self->SetNotice(changed ? "cadena-cambiada" : "cuenta-borrada");
+              if (changed) {
+                // Brave's «account deleted» bar would say the wrong thing.
+@@ -892,10 +935,15 @@ void AccountService::OnEvents(AccountCallback callback,
+   // activa or borrado-programado. A Mac that joined with the words learns the
+   // account here and registers itself (decision 11 of §10.1).
+   const std::string account_id = GetStr(result.data, "cuenta");
++  bool discovered = false;
+   if (account_id_.empty() && !account_id.empty()) {
++    // K1 (SEGURIDAD-PORTES-23): learning the account here is never silent.
++    // Whoever has the chain can link it to an account with their own email;
++    // the bar names that email. Only events older than this Mac's joining
++    // (when known) are skipped.
+     account_id_ = account_id;
+     StoreString(kPrefAccountId, account_id_);
+-    baseline_pending_ = true;
++    discovered = true;
+   }
+   const std::string email = GetStr(result.data, "email");
+   if (!email.empty() && email != email_) {
+@@ -908,6 +956,8 @@ void AccountService::OnEvents(AccountCallback callback,
+   }
+ 
+   std::vector<AccountEvent> fresh;
++  bool email_changed = false;
++  bool linked_warning = false;
+   const base::ListValue* events = result.data.FindList("eventos");
+   const size_t count = events ? events->size() : 0;
+   if (events) {
+@@ -932,9 +982,24 @@ void AccountService::OnEvents(AccountCallback callback,
+         continue;
+       }
+       last_event_ = e.n;
++      if (e.type == "email-cambiado") {
++        // K2: the stored email (the scrypt salt) is old now; the next poll
++        // goes with the chain proof and brings the new one (S2).
++        email_.clear();
++        profile_->GetPrefs()->ClearPref(kPrefEmail);
++        email_changed = true;
++      }
+       if (baseline_pending_ || !IsWarningType(e.type)) {
+         continue;
+       }
++      if (discovered && !joined_chain_at_.is_null() &&
++          base::Time::FromSecondsSinceUnixEpoch(e.date) < joined_chain_at_) {
++        continue;
++      }
++      if (e.type == "cadena-ligada") {
++        e.email = email_;
++        linked_warning = true;
++      }
+       if (!e.device.empty() && e.device == device_id_) {
+         // Done by this Mac: the server names the author only when it is
+         // verified (S3 of §10.1); without it, the warning is shown.
+@@ -944,23 +1009,82 @@ void AccountService::OnEvents(AccountCallback callback,
+     }
+   }
+   StoreString(kPrefLastEvent, base::NumberToString(last_event_));
++  if (discovered && !linked_warning && !baseline_pending_) {
++    // The «cadena-ligada» event is older than this Mac's joining, or gone
++    // (30 days): say it anyway, with the email of the account.
++    AccountEvent e;
++    e.type = "cadena-ligada";
++    e.date =
++        static_cast<int64_t>(base::Time::Now().InSecondsFSinceUnixEpoch());
++    e.email = email_;
++    fresh.push_back(std::move(e));
++  }
++  if (!fresh.empty()) {
++    warnings_.insert(warnings_.end(), fresh.begin(), fresh.end());
++    SaveWarnings();
++    for (Observer& o : observers_) {
++      o.OnAccountWarnings(fresh);
++    }
++  }
+   if (count >= kEventsPage) {
+     // More pages: keep reading now.
+     Poll(std::move(callback));
+     return;
+   }
+   baseline_pending_ = false;
+-
+   UpdateState();
+   SchedulePoll(false);
+-  if (!fresh.empty()) {
+-    warnings_.insert(warnings_.end(), fresh.begin(), fresh.end());
+-    for (Observer& o : observers_) {
+-      o.OnAccountWarnings(fresh);
+-    }
+-  }
+   NotifyStatus();
+   std::move(callback).Run(AccountResult::Ok());
++  if (email_changed) {
++    poll_timer_.FireNow();  // with the proof: brings the new email (K2)
++  }
++}
++
++// O-b (SEGURIDAD-PORTES-23): the warnings not yet answered survive a restart,
++// encrypted like the other account prefs (they hold Mac names and the email).
++void AccountService::SaveWarnings() {
++  base::ListValue list;
++  for (const AccountEvent& e : warnings_) {
++    base::DictValue v = e.ToValue();
++    v.Set("device", e.device);
++    v.Set("email", e.email);
++    list.Append(std::move(v));
++  }
++  std::string json;
++  base::JSONWriter::Write(list, &json);
++  StoreString(kPrefWarnings, warnings_.empty() ? std::string() : json);
++}
++
++void AccountService::LoadWarnings() {
++  warnings_.clear();
++  const auto json = LoadString(kPrefWarnings);
++  if (!json || json->empty()) {
++    return;
++  }
++  std::optional<base::Value> list =
++      base::JSONReader::Read(*json, base::JSON_PARSE_RFC);
++  if (!list || !list->is_list()) {
++    return;
++  }
++  for (const base::Value& v : list->GetList()) {
++    if (!v.is_dict()) {
++      continue;
++    }
++    const base::DictValue& d = v.GetDict();
++    AccountEvent e;
++    e.n = GetInt(d, "n");
++    e.type = GetStr(d, "type");
++    e.date = GetInt(d, "date");
++    e.mac = GetStr(d, "mac");
++    e.model = GetStr(d, "model");
++    e.count = GetInt(d, "count");
++    e.since = GetInt(d, "since");
++    e.when = GetInt(d, "when");
++    e.device = GetStr(d, "device");
++    e.email = GetStr(d, "email");
++    warnings_.push_back(std::move(e));
++  }
+ }
+ 
+ void AccountService::RenewToken(AccountCallback callback) {
+@@ -1097,6 +1221,7 @@ void AccountService::JoinChain(const account::SecretKey& seed,
+   own_chain_change_ = true;
+   const bool ok = sync->SetSyncCode(words);
+   own_chain_change_ = false;
++  joined_chain_at_ = base::Time::Now() - base::Minutes(1);
+   account::WipeString(words);
+   if (!ok) {
+     std::move(callback).Run(AccountResult::Error("llavero"));
+@@ -1579,8 +1704,8 @@ void AccountService::PasswordChangeStart(AccountCallback callback) {
+   ResendCode(std::move(callback));
+ }
+ 
+-void AccountService::PasswordChangeFinish(const std::string& code,
+-                                          std::string new_password,
++void AccountService::PasswordChangeFinishImpl(const std::string& code,
++                                              std::string new_password,
+                                           AccountCallback callback) {
+   if (!flow_ || flow_->kind != Flow::Kind::kPasswordChange ||
+       flow_->request_id.empty()) {
+@@ -1624,12 +1749,25 @@ void AccountService::PasswordChangeFinish(const std::string& code,
+                   AccountResult::Error(keys ? "llavero" : "interno"));
+               return;
+             }
+-            std::vector<uint8_t> wrapped =
+-                account::WrapSeed(keys->wrap_key, seed, self->email_);
++            // O-a (SEGURIDAD-PORTES-23): a retry after a lost answer sends
++            // the same wrap, so the server repeats its answer (§4.6). Reused
++            // only if it opens with this KU to this seed (same password).
++            std::vector<uint8_t> wrapped;
++            if (const auto& sent = self->flow_->sent_wrap; !sent.empty()) {
++              auto opened =
++                  account::UnwrapSeed(keys->wrap_key, sent, self->email_);
++              if (opened && std::ranges::equal(opened->bytes(), seed)) {
++                wrapped = sent;
++              }
++            }
++            if (wrapped.empty()) {
++              wrapped = account::WrapSeed(keys->wrap_key, seed, self->email_);
++            }
+             const bool opens =
+                 account::UnwrapSeed(keys->wrap_key, wrapped, self->email_)
+                     .has_value();
+             std::ranges::fill(seed, 0);
++            self->flow_->sent_wrap = wrapped;
+             if (!opens) {
+               std::move(callback).Run(AccountResult::Error("interno"));
+               return;
+@@ -1645,10 +1783,7 @@ void AccountService::PasswordChangeFinish(const std::string& code,
+             if (!self->device_id_.empty()) {
+               spec.body.Set("aparato", self->device_id_);
+             }
+-            // §4.6, third safeguard: if the answer is lost, the page offers
+-            // Reintentar; the server answers the same to the same kl and
+-            // wrap, but this repeats the derivation with a new random nonce
+-            // in the wrap, so a retry is a new change, which is harmless.
++            // §4.6, third safeguard: Reintentar repeats the same kl and wrap.
+             self->Call(
+                 std::move(spec),
+                 base::BindOnce(
+@@ -1674,8 +1809,8 @@ void AccountService::PasswordChangeFinish(const std::string& code,
+ 
+ // --- change the email (§6.5) ---
+ 
+-void AccountService::EmailChangeStart(std::string password,
+-                                      const std::string& new_email,
++void AccountService::EmailChangeStartImpl(std::string password,
++                                          const std::string& new_email,
+                                       AccountCallback callback) {
+   const auto normalized = account::NormalizeEmail(new_email);
+   if (!normalized || email_.empty()) {
+@@ -1823,8 +1958,8 @@ void AccountService::EmailChangeFinish(const std::string& code,
+ 
+ // --- change the sync key (§6.3) ---
+ 
+-void AccountService::ChainChange(std::string password,
+-                                 AccountCallback callback) {
++void AccountService::ChainChangeImpl(std::string password,
++                                     AccountCallback callback) {
+   if (account_id_.empty() || !HasChain() || email_.empty()) {
+     account::WipeString(password);
+     std::move(callback).Run(AccountResult::Error("sin-cuenta"));
+@@ -1936,6 +2071,93 @@ void AccountService::ChainChange(std::string password,
+           weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+ }
+ 
++// --- K2 (SEGURIDAD-PORTES-23): the email is the scrypt salt, and another Mac
++// may have changed it. Every operation that derives from the password asks
++// for it first with the chain proof (S2 only gives it with the proof).
++
++void AccountService::RefreshEmail(AccountCallback then) {
++  CallSpec spec;
++  spec.route = "eventos";
++  spec.op = "eventos";
++  spec.auth = Auth::kProof;
++  // Events after last_event_ come back too; they are left for the poll.
++  spec.body.Set("desde", static_cast<double>(last_event_));
++  Call(std::move(spec),
++       base::BindOnce(
++           [](base::WeakPtr<AccountService> self, AccountCallback then,
++              AccountResult r) {
++             if (!self) {
++               return;
++             }
++             if (r.ok) {
++               const std::string email = GetStr(r.data, "email");
++               if (!email.empty() && email != self->email_) {
++                 self->email_ = email;
++                 self->StoreString(kPrefEmail, email);
++               }
++             }
++             std::move(then).Run(std::move(r));
++           },
++           weak_ptr_factory_.GetWeakPtr(), std::move(then)));
++}
++
++void AccountService::PasswordChangeFinish(const std::string& code,
++                                          std::string new_password,
++                                          AccountCallback callback) {
++  auto secret = std::make_unique<std::string>(std::move(new_password));
++  RefreshEmail(base::BindOnce(
++      [](base::WeakPtr<AccountService> self, std::string code,
++         std::unique_ptr<std::string> secret, AccountCallback callback,
++         AccountResult r) {
++        if (!self || !r.ok) {
++          account::WipeString(*secret);
++          std::move(callback).Run(std::move(r));
++          return;
++        }
++        self->PasswordChangeFinishImpl(code, std::move(*secret),
++                                       std::move(callback));
++      },
++      weak_ptr_factory_.GetWeakPtr(), code, std::move(secret),
++      std::move(callback)));
++}
++
++void AccountService::EmailChangeStart(std::string password,
++                                      const std::string& new_email,
++                                      AccountCallback callback) {
++  auto secret = std::make_unique<std::string>(std::move(password));
++  RefreshEmail(base::BindOnce(
++      [](base::WeakPtr<AccountService> self, std::string new_email,
++         std::unique_ptr<std::string> secret, AccountCallback callback,
++         AccountResult r) {
++        if (!self || !r.ok) {
++          account::WipeString(*secret);
++          std::move(callback).Run(std::move(r));
++          return;
++        }
++        self->EmailChangeStartImpl(std::move(*secret), new_email,
++                                   std::move(callback));
++      },
++      weak_ptr_factory_.GetWeakPtr(), new_email, std::move(secret),
++      std::move(callback)));
++}
++
++void AccountService::ChainChange(std::string password,
++                                 AccountCallback callback) {
++  auto secret = std::make_unique<std::string>(std::move(password));
++  RefreshEmail(base::BindOnce(
++      [](base::WeakPtr<AccountService> self,
++         std::unique_ptr<std::string> secret, AccountCallback callback,
++         AccountResult r) {
++        if (!self || !r.ok) {
++          account::WipeString(*secret);
++          std::move(callback).Run(std::move(r));
++          return;
++        }
++        self->ChainChangeImpl(std::move(*secret), std::move(callback));
++      },
++      weak_ptr_factory_.GetWeakPtr(), std::move(secret), std::move(callback)));
++}
++
+ // --- devices ---
+ 
+ void AccountService::ListDevices(AccountCallback callback) {
+@@ -2029,6 +2251,7 @@ void AccountService::NotMe(AccountCallback callback) {
+                self->token_.clear();
+                self->StoreString(kPrefToken, std::string());
+                self->warnings_.clear();
++               self->SaveWarnings();
+                self->Poll(base::DoNothing());
+              }
+              std::move(callback).Run(std::move(r));
+@@ -2038,6 +2261,7 @@ void AccountService::NotMe(AccountCallback callback) {
+ 
+ void AccountService::DismissWarnings() {
+   warnings_.clear();
++  SaveWarnings();
+   NotifyStatus();
+ }
+ 
+diff --git a/browser/sync/account/flyweb_sync_account_service.h b/browser/sync/account/flyweb_sync_account_service.h
+index 1712df2..c527cbb 100644
+--- a/browser/sync/account/flyweb_sync_account_service.h
++++ b/browser/sync/account/flyweb_sync_account_service.h
+@@ -97,6 +97,7 @@ struct AccountEvent {
+   int64_t since = 0;  // contrasena-fallos: desde
+   int64_t when = 0;   // borrado-pedido: fecha
+   std::string device;  // the device that did it, if the server says it
++  std::string email;   // cadena-ligada: the email of the account (K1)
+   base::DictValue ToValue() const;
+ };
+ 
+@@ -294,6 +295,18 @@ class AccountService : public KeyedService,
+   void JoinChain(const brave_sync::crypto::account::SecretKey& seed,
+                  AccountCallback callback);
+   void LeaveChainThen(base::OnceClosure then);
++  void RefreshEmail(AccountCallback then);
++  void SaveWarnings();
++  const std::string& DeviceSecret();
++  void AddDeviceSecret(base::DictValue& body);
++  void LoadWarnings();
++  void PasswordChangeFinishImpl(const std::string& code,
++                                std::string new_password,
++                                AccountCallback callback);
++  void EmailChangeStartImpl(std::string password,
++                            const std::string& new_email,
++                            AccountCallback callback);
++  void ChainChangeImpl(std::string password, AccountCallback callback);
+   std::string CurrentEmail() const;
+ 
+   raw_ptr<Profile> profile_;
+@@ -319,6 +332,7 @@ class AccountService : public KeyedService,
+   std::string email_;
+   std::string device_id_;
+   std::string token_;
++  std::string device_secret_;  // K3, base64url of 32 random bytes
+   int64_t last_event_ = 0;
+   std::string server_state_;  // activa, borrado-programado, ...
+   int64_t deletion_date_ = 0;
+@@ -339,6 +353,8 @@ class AccountService : public KeyedService,
+   // After joining an account, the first poll only reads up to the newest
+   // event: the history of the account is not a warning for this Mac.
+   bool baseline_pending_ = false;
++  // When this Mac joined its chain by itself (null: before this run).
++  base::Time joined_chain_at_;
+ 
+   base::WeakPtrFactory<AccountService> weak_ptr_factory_{this};
+ };
+diff --git a/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc b/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc
+index 57d2769..d6d306a 100644
+--- a/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc
++++ b/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc
+@@ -479,6 +479,8 @@ void BraveAddCommonStrings(content::WebUIDataSource* html_source,
+        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_EMAIL_CHANGED},
+       {"flywebAccountWarningChainChanged",
+        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_CHANGED},
++      {"flywebAccountWarningChainLinkedEmail",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED_EMAIL},
+       {"flywebAccountWarningChainLinked",
+        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED},
+       {"flywebAccountWarningDeviceRemoved",
+-- 
+2.43.0
+
