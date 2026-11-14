@@ -378,6 +378,12 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   arreglan en paralelo y **no paran** la 3.2.0. Se adelanta la revisión de SEGURIDAD de la sync (#977, #981) para no
   esperar al 17-11. INVESTIGACIÓN-MOTOR vigila además Gecko, WebKit y los estándares (WHATWG HTML, CSSWG, TC39,
   Interop) para detectar tendencias que convenga traer.
+- **Copia de seguridad de la sync (Titín, 14-11; COORDINACIÓN-43):** sí a la propuesta v5 de SERVIDOR-LOCAL (APTO de
+  SEGURIDAD-PORTES-23): `sync.db` cifrada con gpg asimétrico (la privada la guarda Titín fuera de línea, con frase y
+  segunda copia), cada noche a las 03:30 con la sync parada unos segundos; **borrado real a los 30 días en ns2 y en bak**
+  (la excepción de la directiva (D)); bak la **trae** con un usuario propio de solo lectura en ns2 y la borra con una
+  **tarea programada**; aviso por correo al alias root de ns2 si falla. Credenciales de la cuenta y DKIM, aparte y con
+  otra frase. La copia no cuenta hasta una restauración de prueba.
 - **Respaldo GL en la 3.1.2 (Titín, 14-11; COORDINACIÓN-42):** el respaldo OpenGL de ANGLE para los Mac de 2012–2015
   (`FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005, #982) **entra en la 3.1.2**. Preliminar de LOCAL-19
   (`local/311-gl-reserva`): en la 6,1 Metal sigue por defecto y va mejor; con GL también funciona; en el MacBookPro9,1
