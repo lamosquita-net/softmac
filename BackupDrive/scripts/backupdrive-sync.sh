@@ -237,6 +237,10 @@ sync_profile() { # local remote días % nº
     --resilient --recover --max-lock 2h --max-delete "$MAX_DELETE" --conflict-resolve none --conflict-suffix conflicto-mac,conflicto-drive \
     --backup-dir1 "$vm" --backup-dir2 "$vr" --suffix "-$stamp" --suffix-keep-extension \
     --drive-skip-gdocs --links --log-level INFO
+  # Listado de Drive por lotes (ListR): en rclone 1.67 bisync solo lo usa con --fast-list (march.go), aunque su
+  # documentación diga lo contrario. Sin él, una petición por carpeta: ~8 min por pasada con 1407 carpetas, horas con
+  # decenas de miles (drive.md: 10600 carpetas, 22 min -> 58 s). BACKUPDRIVE_FAST_LIST=0 vuelve al listado carpeta a carpeta.
+  [ "${BACKUPDRIVE_FAST_LIST:-1}" = 1 ] && set -- "$@" --fast-list
   [ -f "$FILTERS" ] && set -- "$@" --filters-file "$FILTERS"
   # Freno de modificaciones masivas: pasada en seco antes de la real (una más por hora).
   if [ "$RESYNC" = 0 ] && [ "$DRY" = 0 ] && [ "$FORCE" = 0 ] && [ -f "$init" ]; then
