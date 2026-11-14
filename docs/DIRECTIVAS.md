@@ -378,6 +378,12 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   arreglan en paralelo y **no paran** la 3.2.0. Se adelanta la revisión de SEGURIDAD de la sync (#977, #981) para no
   esperar al 17-11. INVESTIGACIÓN-MOTOR vigila además Gecko, WebKit y los estándares (WHATWG HTML, CSSWG, TC39,
   Interop) para detectar tendencias que convenga traer.
+- **Respaldo GL en la 3.1.2 (Titín, 14-11; COORDINACIÓN-42):** el respaldo OpenGL de ANGLE para los Mac de 2012–2015
+  (`FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005, #982) **entra en la 3.1.2**. Preliminar de LOCAL-19
+  (`local/311-gl-reserva`): en la 6,1 Metal sigue por defecto y va mejor; con GL también funciona; en el MacBookPro9,1
+  (Catalina, HD 4000) elige OpenGL por sí solo y va como Safari o mejor (Titín). Sin tocar el sandbox de GPU. Siguen en
+  pie las condiciones de SEGURIDAD-PORTES (G-C2: cambio de GPU, reposo y monitor externo en el 9,1) antes de cerrar el
+  contenido; si alguna falla, se avisa a Titín antes de sacarlo.
 - **FlyWeb también innova (Titín, 13-11 noche; COORDINACIÓN-41; amplía «Flink a nuestro ritmo»):** además de seguir a
   Chrome, FlyWeb puede implementar funciones nuevas de los estándares (HTML, CSS, JS, APIs) aunque ningún otro navegador
   las tenga aún. **Las elige Titín como diseñador web.** INVESTIGACIÓN-MOTOR le presenta las tendencias nuevas, con
