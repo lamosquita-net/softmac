@@ -7,6 +7,9 @@ MacBookPro9,1 con Catalina y la 3.1.1. **Solo papel: nada compilado, nada lanzad
 **Ampliado el 13-11 por la noche** en dos veces: con las medidas de LOCAL-19 (buzón `20261113-2220`: conclusión 2 y 5,
 §2.3 y §5.1) con la historia de la retirada que pidió Titín (buzón `20261113-2235`: conclusión 7 y 8, §6) y con los datos de
 LOCAL-19 (buzón `20261113-2300`: §6.5, y dos correcciones mías en §6.1 y §6.4).
+**Actualizado el 14-11** con el resultado de la compilación preliminar de LOCAL-19 (buzón `20261114-1140`): conclusión
+10 y §7, que incluye la pregunta de SEGURIDAD sobre el cambio de GPU (§7.5). Las medidas son suyas; yo sigo sin
+compilar ni lanzar nada. Lo escrito antes del 14-11 se deja como estaba: donde la medida lo supera, lo dice §7.
 
 Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** suposición sin comprobar.
 
@@ -38,6 +41,14 @@ Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** sup
 9. **A sus dos preocupaciones** (§6.5): el OpenGL de la 156 en Mac **no lo ha probado nadie con ninguna tarjeta**, ni
    Google desde julio ni nosotros más allá de un arranque en la D500; por eso la prueba va antes que la decisión. En
    seguridad no abre nada que la 2.7.0 no tuviera abierto en esos mismos Mac.
+10. **Resultado del 14-11: pinta, y Titín ha decidido que entra en la 3.1.2** (`docs/DIRECTIVAS.md`, #994). La
+    preliminar (3.1.1 más los cinco parches de `3.1.2-gl-reserva`) no necesitó ninguna pieza más ni tocar el sandbox.
+    En la 6,1 Metal sigue por defecto y no cambia. El MacBook Pro de 2012 elige OpenGL solo: WebGL vuelve, Aquarium va
+    como la 2.7.0 o mejor y MotionMark no pierde frente al software (731 frente a 733). SEGURIDAD ha dado apto y ha
+    cerrado sus pruebas (#985). **Mantengo el veredicto y no hace falta una 3.1.3.** Con dos reparos (§7.3 y §7.4):
+    **la prueba de reposo no deja rastro en los registros que he abierto** y pido repetirla antes de cerrar el
+    contenido; y el monitor externo y el Air de 2013 siguen sin probar. Además, con la NVIDIA activa el canvas 2D va
+    por software, por una entrada de la lista de Chromium, no por el parche.
 
 ## 2. Qué pasa exactamente
 
@@ -86,7 +97,7 @@ MacBookPro11,4» no están soportadas por el backend Metal (anglebug 40096869).
 | MacPro7,1 | 580X / W6600X · Sequoia | pasa | **Metal** [V] |
 | MacPro6,1 | 2× FirePro D500 · Mojave | pasa | **Metal**: la sonda dice familia 2 [V: `metal-sonda/MacPro6,1-10.14.6.txt`] |
 | MacPro5,1 | RX 580 · Mojave | pasa | **Metal**, familia 2 [V: `pruebas-gpu.md:139`] |
-| MacBook Pro 15" 2012 (9,1) | GT 650M + HD 4000 · Catalina | **cae** (< 13,1) | Por software y sin WebGL [V: LOCAL-19]. Además, NVIDIA |
+| MacBook Pro 15" 2012 (9,1) | GT 650M + HD 4000 · Catalina | **cae** (< 13,1) | Por software y sin WebGL [V: LOCAL-19]. Además, NVIDIA. Con el respaldo de la 3.1.2, OpenGL (§7) |
 | Mac mini 2012 (6,x) | HD 4000 · Catalina | **cae** (< 8,1) | Igual [I: mismo código] |
 | MacBook Air 2013 (6,x) | HD 5000 · Mojave | **cae** (< 8,1) | Igual, **y desde la 3.0.0** [I]: no depende de Catalina |
 | MacBook Pro Retina 2015 (11,5) | R9 M370X + Iris Pro 5200 · Monterey | **cae** (< 13,1) | Sin WebGL por hardware; el resto, sin determinar [S]: en macOS 11+ compone Graphite, que no pasa por ANGLE |
@@ -383,7 +394,130 @@ completos están en su carpeta de entregas y no los he abierto.
 **Coincido con la preferencia de Titín:** OpenGL de reserva y no forzar Metal en la familia 1. Las dos GPU de este Mac
 son de familia 1, así que abrir Metal exigiría quitar las tres puertas a la vez.
 
-## 7. Fuentes y límites
+## 7. Resultado de la compilación preliminar (14-11)
+
+Añadido el 14-11. Datos de LOCAL-19 (buzón `20261114-1140-LOCAL-19-gl-preliminar-resultados.md`), contrastados por mí
+con los ficheros de su carpeta de entregas (las tandas de la 6,1 y del MacBook Pro que cita su informe): los
+`resultado-*.json`, los `chrome://gpu` guardados, `registro.jsonl`, el muestreo de CPU y las salidas de error. Las
+capturas no las he abierto. **[V]** en este apartado quiere decir «visto en esos ficheros».
+
+**Qué se probó:** la 3.1.1 (`seg/3.1.1` `9e0d83137f`) más los parches `0001`–`0005` de
+`FlyWeb/parches/3.1.2-gl-reserva/`, rama `local/311-gl-reserva` `ee3814625b`, sin firmar y sin cambiar de versión.
+Ninguna pieza más: ni Skia, ni el sandbox de GPU, ni la capa de Mac de ANGLE.
+
+### 7.1 Las medidas [V]
+
+| Mac | Dibuja con | WebGL 1 y 2 | Aquarium (fps) | MotionMark 1.3.2 | Vídeo |
+|---|---|---|---|---|---|
+| MacPro6,1, sin indicadores | **ANGLE Metal**, D500 | sí | 60,0 / 59,9 (1 000 / 10 000) | — | YouTube, 0 de 242 fotogramas perdidos |
+| MacPro6,1, `--use-angle=gl` | ANGLE OpenGL 4.1, D500 | sí | 60,0 / 46,4 | — | YouTube, 0 de 523 |
+| MacBookPro9,1, sin indicadores | **ANGLE OpenGL 4.1, HD 4000** (elegido solo) | sí | 59,8 / 59,6 / 27,4 (1 000 / 5 000 / 15 000) | **731** | YouTube durante G-C2, 3 de 2 436; decodificador sin anotar |
+| MacBookPro9,1, cambio automático desmarcado | ANGLE OpenGL 4.1, GT 650M | sí | 60,0 / 60,0 / 36,6 | 698 | `VideoToolboxVideoDecoder`; YouTube 8 de 2 152; MP4 1080p 23 de 648 |
+
+Referencias en el mismo MacBook Pro (§6.5): 2.7.0 con OpenGL 59,9 / 51,3 / 26,1 y 507; 3.1.1 publicada sin WebGL y
+733; Safari 59,7 / 43,0 / 16,1.
+
+En todas las tandas: Skia por Ganesh sobre GL, «GPU process crash count: 0», ninguna caída y ninguno de los tres
+errores de LOCAL-16 («eglBindTexImage requires 2D», «uninitialized SharedImage», `BeginRasterCHROMIUM`). En la 6,1,
+cero denegaciones del sandbox con Metal y con GL.
+
+### 7.2 Lo que queda contestado
+
+- **Pinta** (condición 1 de §5.1). La línea de `gl_factory_mac.cc` y las texturas rectangulares bastan.
+- **G1 dio negativo por el zip, no por el parche.** El zip conservado de B1c abortaba el proceso de GPU en la 6,1
+  (código 6). La preliminar no lo reproduce. La causa de aquel aborto queda sin determinar y ya no importa [I].
+- **G2 salió más barato de lo que estimé:** los cuatro commits de texturas entraron sin retoque a mano.
+- **Los Mac Pro no cambian** (prueba A): Metal por defecto y las mismas cifras. Con OpenGL forzado la 6,1 pierde un
+  22 % en Aquarium con 10 000 peces: Metal sigue siendo el camino bueno donde funciona.
+- **MotionMark no pierde** (duda de §6.5): 731 con la HD 4000 frente a 733 por software. La composición por GPU ni
+  gana ni pierde en ese Mac; no hace falta el diseño de «componer por software y GPU solo para WebGL».
+- **El vídeo por hardware vuelve** (duda de §4 y §6.5): VideoToolbox con la GT 650M y en la 6,1 por los dos caminos.
+  Con la HD 4000 reproduce bien, pero nadie anotó el decodificador.
+- **El cambio automático** (§6.4): `force_low_power_gpu` figura entre los apaños aplicados en los dos `chrome://gpu`
+  del MacBook Pro y FlyWeb arranca en la Intel.
+- **La capa de Mac de ANGLE recortada** (§6.1): en estas pruebas no hizo falta devolver `prepareForCall` ni
+  `testDeviceLost`. Vale para lo probado, no para lo que falta (§7.4).
+
+### 7.3 Lo que he visto en los ficheros y no está en el informe
+
+1. **Con la GT 650M el canvas 2D va por software.** `chrome://gpu` dice «Canvas: Software only, hardware acceleration
+   unavailable» y da el motivo: «Don't use the OOPR Canvas feature on Macs with NVIDIA GPUs» (crbug 1227033). Es la
+   entrada 183 de `gpu/config/software_rendering_list.json`, de Chromium, y sigue en la 3.1.1 [V: árbol
+   `seg/3.1.1`]. Con la HD 4000 el canvas va por GPU.
+   - Explica que MotionMark baje con la tarjeta más rápida (698 frente a 731): Canvas Arcs 642 frente a 1 381 y Canvas
+     Lines 2 687 frente a 10 141, mientras Paths y Suits suben (2 165 frente a 769; 319 frente a 146) [I: emparejo
+     cifras y nombres por el orden del texto guardado].
+   - **No es un fallo del parche y no recomiendo tocar la entrada:** es una decisión de Chromium sobre los
+     controladores de NVIDIA en Mac. Supongo que la 2.7.0 hacía lo mismo [S: el bug es de 2021; no he mirado la 128].
+   - Alcanza al MacBook Pro solo si el usuario desmarca el cambio automático. Y a las **5,1 de otros usuarios con
+     NVIDIA en Mojave**: con el respaldo pasarán de software a OpenGL, con el canvas por software [I]. Nadie lo ha
+     probado y no tenemos esa tarjeta.
+2. **La prueba de reposo no deja rastro en los registros.** El informe dice «dormir y despertar (11:31, menos de un
+   minuto)». En la tanda de G-C2 (`gc2c`):
+   - `registro.jsonl` (fps, contextos perdidos, GPU activa) termina a las 11:30:42;
+   - el muestreo de CPU, cada 5 s, va de las 11:23:43 a las 11:34:05 con **119 muestras y ningún hueco mayor de 6 s**.
+     Un Mac dormido no muestrea: si hubiera dormido medio minuto dentro de esa ventana, habría un hueco [I].
+   - Caben tres explicaciones y no sé cuál es [S]: que solo se apagara la pantalla, que durmiera unos segundos, o
+     que la prueba se hiciera después de las 11:34 y se comprobara a ojo.
+   - **Lo que sí consta** [V]: el proceso de GPU es el mismo (un solo identificador) en las 119 muestras; no se
+     reinició.
+   - **Pido que se repita antes de cerrar el contenido:** tapa cerrada cinco minutos o más, con el muestreo en
+     marcha, y `pmset -g log` filtrado por «Sleep» y «Wake» como prueba de que durmió. No cuesta compilación. Es la
+     única de las tres pruebas de G-C2 que ejercita lo que ANGLE quitó (`testDeviceLost`), y SEGURIDAD la dio por
+     cerrada con este dato.
+3. **El cambio de GPU en caliente sí consta, a medias.** En las muestras de las 11:29:10 a las 11:30:18, FlyWeb sigue
+   en la Intel a 60 fps y con cero contextos perdidos [V]. Que la pantalla pasara a la NVIDIA lo dice el informe; en
+   los ficheros que he abierto no lo veo.
+
+### 7.4 Lo que falta
+
+| Qué | Estado | Mi lectura |
+|---|---|---|
+| Reposo en el MacBook Pro | Hecho según el informe; sin rastro (§7.3) | Repetir antes de cerrar el contenido |
+| Monitor externo en el MacBook Pro | Sin probar (falta adaptador). SEGURIDAD lo pasa a después de publicar | De acuerdo en que no bloquea. En ese portátil las salidas de vídeo cuelgan de la tarjeta dedicada [S: de memoria], así que conectar un monitor fuerza el mismo cambio ya probado; lo nuevo es la segunda pantalla. Si falla es pantalla en negro, no seguridad |
+| Air de 2013 con Mojave (HD 5000) y mini de 2012 | Sin probar | El mini lleva la misma HD 4000 con el mismo sistema [I]. **El Air es el único caso de Mojave con Intel**, y la HD 5000 no se ha probado con nada. Si no se puede antes de publicar, que la nota de la versión lo diga |
+| Mac Pro 5,1 | Sin probar con la preliminar | No debería cambiar: Metal, como la 6,1 [I]. Entra en la batería de la candidata |
+| Vídeo con la HD 4000 | Reproduce; decodificador sin anotar | Menor. Se mira en la candidata |
+| macOS 11 o posterior (el 11,5 con Monterey) | Fuera de la 3.1.2 | G6, en la 3.2.0 |
+
+**Si el reposo o el monitor fallan,** la salida es la que ya nombró SEGURIDAD: devolver desde la 150 `prepareForCall`
+y `testDeviceLost` (138 líneas en 8 ficheros de ANGLE, §6.1) o fijar una GPU. Eso sí sería una pieza más, con su regla
+17, y entonces mi recomendación vuelve a ser sacar la 3.1.2 sin el respaldo y llevarlo a una 3.1.3.
+
+### 7.5 ¿Merece la pena que el contexto pase a la NVIDIA?
+
+Pregunta de SEGURIDAD por COORDINACIÓN-42 (14-11): tras el cambio en caliente, FlyWeb sigue dibujando en la Intel con
+la pantalla en la NVIDIA. **No lo recomiendo, ni en una 3.1.x ni en la 3.2.x, para los Mac con NVIDIA.**
+
+- **No es por el aviso que quitó la 156: es a propósito, y en la 150 era igual** [V: los dos árboles]. La entrada 326
+  de la lista de apaños dice «Migrating OpenGL contexts between low- and high-power GPUs is unreliable on Mac NVIDIA
+  laptops» y fija la integrada; ANGLE apaga su soporte de cambio si hay una NVIDIA (`DisplayCGL.mm:177`). Devolver el
+  aviso no cambiaría nada en este Mac.
+- **La ganancia es dudosa** [V: §7.1]: con la GT 650M, Aquarium con 15 000 peces sube de 27,4 a 36,6 fps, pero el
+  canvas pasa a software (§7.3) y MotionMark baja de 731 a 698. Y gasta más batería.
+- **Quien quiera la NVIDIA ya la tiene:** desmarcar el cambio automático antes de abrir FlyWeb (probado).
+- **Donde sí importa es en los portátiles con AMD dedicada** (el 11,5): ahí ANGLE admite el cambio y el aviso que
+  falta es el que lo dispara. Eso ya es G6, en la 3.2.0, con macOS 11 o posterior. No abre trabajo nuevo.
+
+### 7.6 Cómo quedan los hitos de §6.3
+
+| Hito | Estado el 14-11 |
+|---|---|
+| G1 | Hecho en la 6,1: el zip no servía. Superado por la preliminar. El Air de 2013, sin hacer |
+| G2 | Hecho: `FlyWeb/parches/3.1.2-gl-reserva/` `0001`–`0005` |
+| G3 | Hecho por SEGURIDAD-PORTES-23 (#985): apto con condiciones G-C1 a G-C3; la deuda de los 34 CVE es cero, como apuntaba la conclusión 6 |
+| G4 | Adelantado con la preliminar en la 6,1. Falta la candidata de la 3.1.2 y su batería |
+| G5 | MacBook Pro de 2012: hecho con las dos GPU y el cambio en caliente; reposo por repetir; monitor sin probar. Mini y Air: sin hacer |
+| G6 | En la 3.2.0, sin cambios |
+
+### 7.7 Veredicto
+
+**Entra en la 3.1.2, como ha decidido Titín.** La condición que puse («si pinta, y sin pieza añadida») se cumple, y lo
+que temía de la composición no ha pasado. Lo que pido antes de cerrar el contenido es barato: repetir el reposo con
+prueba de que durmió. Lo demás (monitor, Air, 5,1 con NVIDIA) no bloquea, pero debe constar en la nota de la versión
+lo que no se ha probado.
+
+## 8. Fuentes y límites
 
 - **Código** (`flynk-b1d` `33a1745949`, ANGLE `e3917d6`): `third_party/angle/src/common/apple_platform_utils.mm`,
   `…/renderer/metal/DisplayMtl.mm`, `third_party/angle/gni/angle.gni:230-250,412`, `ui/gl/init/gl_factory_mac.cc`,
@@ -397,9 +531,14 @@ son de familia 1, así que abrir Metal exigiría quitar las tres puertas a la ve
 - **Binario:** `FlyWeb Framework` de la 3.1.1 instalada en la 7,1, con `strings` y `nm -u`.
 - **Repositorio:** `docs/DIRECTIVAS.md` (04-11, 05-11, 09-11), `docs/TAREAS.md` FM.55, `FlyWeb/docs/b1d/README.md`,
   `gl-150-156-seg.md`, `metal-mojave.md`, `pruebas-gpu.md`, `hardware.md`, `FlyWeb/parches/3.1.1-catalina/`.
+- **Preliminar (§7):** buzón `20261114-1140`, la carpeta de entregas de LOCAL-19, el apartado del respaldo GL en el
+  PR 985 de SEGURIDAD y `gpu/config/software_rendering_list.json` del árbol de la 3.1.1 (`seg/3.1.1` `9e0d83137f`).
 - **Límites:**
-  - No tengo el registro de LOCAL-19: el hallazgo lo conozco por el mensaje de COORDINACIÓN.
-  - No he visto el src de la 3.1.1; lo deduzco de la base de la 3.0.0 más los parches publicados.
+  - Hasta el 13-11 no tenía el registro de LOCAL-19 ni el src de la 3.1.1: §1 a §6 se escribieron sobre la base de la
+    3.0.0. Los parches se comprobaron después sobre el src de la 3.1.1.
   - Los años de los modelos y hasta qué macOS llega cada uno son de memoria.
   - Costes y riesgos son estimaciones mías.
-  - Que el OpenGL pinte bien en la 3.x no lo ha comprobado nadie.
+  - Que el OpenGL pinta en la 3.x está comprobado solo en dos Mac (§7): la 6,1 con la D500 y el MacBook Pro de 2012
+    con sus dos GPU. La HD 5000, las AMD de portátil y cualquier NVIDIA en un Mac Pro siguen sin probar.
+  - De §7 no he abierto las capturas ni he hablado con quien hizo las pruebas: lo que digo del reposo sale de los
+    ficheros, y puede haber una explicación que no esté en ellos.
