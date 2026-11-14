@@ -789,3 +789,5 @@ buzon/SERVIDOR-LOCAL/20261114-1222-COORDINACION-42-h2-ya.md → Servidor Local (
 buzon/LOCAL/20261114-1221-COORDINACION-42-sync-test.md → Compilación Local (19) [924c24] · 2026-11-14 12:23 UTC · entregado (COORDINACIÓN-42)
 buzon/SERVIDOR-LOCAL/20261114-1225-COORDINACION-42-h2-binario-hecho.md → Servidor Local (2) [853e0b] · 2026-11-14 12:25 UTC · entregado (COORDINACIÓN-42)
 buzon/SERVIDOR-LOCAL/20261114-1227-COORDINACION-42-h2-orden.md → Servidor Local (2) [853e0b] · 2026-11-14 12:27 UTC · entregado (COORDINACIÓN-42)
+buzon/SERVIDOR-LOCAL/20261114-1228-COORDINACION-42-h2-seguridad.md → Servidor Local (2) [853e0b] · 2026-11-14 12:30 UTC · entregado (COORDINACIÓN-42)
+buzon/SERVIDOR-LOCAL/20261114-1229-COORDINACION-42-h2-credenciales-hechas.md → Servidor Local (2) [853e0b] · 2026-11-14 12:30 UTC · entregado (COORDINACIÓN-42)
