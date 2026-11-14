@@ -17,7 +17,7 @@ git checkout -b nube/sync-cuenta-h3 3e2c12fad5
 git am FlyWeb/parches/3.2-sync-cuenta/000*.patch
 ```
 
-Comprobado: los siete entran limpios con `git am` sobre 3e2c12fad5 y dan el árbol **753d11c6a9**, igual que la rama
+Comprobado: los ocho entran limpios con `git am` sobre 3e2c12fad5 y dan el árbol **1f10366325**, igual que la rama
 local. Servidor de referencia para K3: #977 en **60cc1d0800** (ls-remote del 13-11). El TypeScript de la página pasó `tsc` estricto, con módulos de relleno para los import. El C++ no se ha
 compilado.
 
@@ -36,6 +36,7 @@ compilado.
 | `0005-sync-account-client-fixes-from-the-security-review-S.patch` | Arreglos de la revisión de SEGURIDAD-PORTES-23 (abajo) |
 | `0006-sync-device-secret-of-the-sync-account-K3-977-C1.patch` | K3: el secreto de aparato que da el servidor (#977 en 60cc1d0) |
 | `0007-sync-build-fixes-for-the-156-tree-first-compile-of-t.patch` | Arreglos de la primera compilación de LOCAL-19 (abajo) |
+| `0008-sync-log-how-long-the-account-key-derivation-takes-P.patch` | Registro del tiempo de la derivación, para medir P23 desde la página (abajo) |
 
 ## Qué hace el cliente
 
@@ -163,6 +164,23 @@ La preliminar compila y arranca con estos cuatro arreglos. 0001–0006 no cambia
 - `flyweb_sync_account_service.cc`: el valor «fecha» va como `double`. Son segundos Unix, que un double guarda
   exactos.
 
+## Medir P23 desde la página → 0008
+
+Primer dato (LOCAL-19, 14-11): en la 7,1, `AccountCryptoTest` pasa entero (9/9). `KeysRealCost` da 348 ms con
+N = 2^17; Python/OpenSSL en la misma máquina da 266–322 ms. `ChainIdIsTheGoSyncClientId` pasa, así que la derivación
+da el mismo id de cadena que la sync de siempre. En la 6,1, `brave_unit_tests` muere al iniciar GL (SIGTRAP) antes de
+llegar a la prueba. No es un fallo del cifrado.
+
+0008 añade una línea de registro con el tiempo de la derivación y si salió bien. No registra el email ni ninguna clave.
+Así se mide en cada Mac con la propia página, contra ns2, sin herramienta aparte:
+
+```sh
+FlyWeb.app/Contents/MacOS/FlyWeb --enable-logging=stderr --vmodule=flyweb_sync_account_service=1
+```
+
+Se entra o se crea la cuenta y se busca `key derivation ok in N ms`. Sale una línea por
+cada derivación: cada vez que la página usa la clave de la cuenta (crearla, entrar, cambiarla, comprobarla).
+
 ## Pruebas para LOCAL (al compilar)
 
 **Pruebas unitarias:** `brave_unit_tests --gtest_filter='AccountCryptoTest.*'`. `KeysRealCost` escribe en el
@@ -188,7 +206,7 @@ con `--sync-url`. Cada paso se anota con su resultado:
 | P16 | «Cambiar la clave de sincronización» en A con su contraseña: A enseña 24 palabras nuevas y pide confirmar que están guardadas; C (quitado de la lista) deja de leer y muestra «clave cambiada»; B también, y vuelve a entrar con email, contraseña y código |
 | P19 | «Empezar de cero» solo con el buzón: el Mac sincroniza ya con una cadena nueva y enseña sus palabras; A muestra «borrado pedido» y lo cancela |
 | P21 | En C, con la cadena sola: «Cambiar la contraseña», «el email» y «la clave» piden código o contraseña y no se hacen sin ellos |
-| **P23** | **Antes de publicar**, en la 6,1 y en la 5,1: cronometrar el scrypt (la prueba unitaria `KeysRealCost`, o el tiempo de «Comprobando la contraseña…»). Mirar en el Monitor de Actividad que el proceso sube unos 128 MiB y los devuelve. Con el gestor de contraseñas activo, comprobar que no ofrece guardar la contraseña de la cuenta. Si la 5,1 pasa de 2 s (o la 6,1 de 1 s), `kScryptN` pasa a `1 << 16` en `account_crypto.h` y se corrige §4 |
+| **P23** | **Antes de publicar**, en la 6,1 y en la 5,1: cronometrar el scrypt (la prueba unitaria `KeysRealCost` o el registro de 0008). Mirar en el Monitor de Actividad que el proceso sube unos 128 MiB y los devuelve. Con el gestor de contraseñas activo, comprobar que no ofrece guardar la contraseña de la cuenta. El tiempo sale en el registro de 0008 (arriba). Si la 5,1 pasa de unos 2 s, se avisa a COORDINACIÓN antes de tocar nada: bajar `kScryptN` cambia la seguridad de la cuenta y lo decide SEGURIDAD-PORTES |
 | P26 | Cambio de email con la contraseña y un código a la dirección nueva; un Mac nuevo entra con la nueva. Después, en B (que tenía el email viejo), «cambiar la contraseña» funciona y un Mac nuevo entra con el email nuevo y la contraseña nueva (K2) |
 
 P3 y P25 están retiradas. P12, P14, P17, P18, P20, P22 y P24 son del servidor; el cliente solo aporta que siempre
