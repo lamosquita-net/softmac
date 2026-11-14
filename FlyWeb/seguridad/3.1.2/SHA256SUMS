@@ -1,0 +1,10 @@
+e4e784906b0501173a70e3ecbd50c3e385cf52b5f7c590a8139bebba6fff1b29  0001-3.1.2-M156-blink-Notify-Oilpan-per-element-in-HeapVector-b.patch
+d01b0d4508249e44273f8fa9dfda8e6df149b38de668f63e055b96cf8893b8a9  0002-3.1.2-M156-Improve-state-validation-during-scroll-timeline.patch
+2cd67f36cab3e38a31426c409fdf2036a871b55c886b20e1ba5848531b0cbe95  0003-3.1.2-M156-FedCM-Close-the-dialog-in-a-separate-task-for-t.patch
+7a257eed4c438acc848bc6013abab1a5a86f53e811f8d7754f2002cd8031fa1a  0004-3.1.2-M156-Avoid-use-after-free-in-WidgetInputHandlerImpl-.patch
+189c5345499047f408aa92d0d65ffbc1b1ff5f4d3b0456797268d0cea6a64274  0005-3.1.2-M156-Handle-RenderProcessHost-destruction-in-ChromeP.patch
+1326fa0594265d8be64f69b6a9271267c28ac8bc6bb78b41ac51e81e8fcf6954  0006-3.1.2-M156-FedCM-Return-early-in-RedirectTo-if-the-navigat.patch
+20a444ac1e1304017392a30a49632d7f96cf6f56a831ef72d0fae07b1f854c00  0007-3.1.2-Roll-commits-from-side-projects-in-M156.patch
+1ba0982fcf059ec19b141b1573c420438f630040cb658c89d0aa192dcfdb14fd  0008-3.1.2-M156-Ensure-XR-framebuffers-are-not-bound-before-del.patch
+26a8b45c775886fd817fac18ea56aa1cad86972e58fb88adb95174037400e2f1  0009-3.1.2-Roll-commits-from-side-projects-in-M156.patch
+71d134a07a47dd02475b6b796a815d11b2144220b998dad2c92a9076bd4eb409  0010-3.1.2-chrome-VERSION-156.0.8078.104-156.0.8078.105.patch

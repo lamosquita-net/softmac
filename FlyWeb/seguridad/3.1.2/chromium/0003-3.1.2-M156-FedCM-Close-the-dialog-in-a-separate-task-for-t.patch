@@ -1,0 +1,297 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ryan Qin <ryqin@google.com>
+Date: Fri, 13 Nov 2026 15:33:42 +0000
+Subject: [PATCH 03/10] [3.1.2] [M156] [FedCM] Close the dialog in a separate task for
+ the close button
+
+Original change's description:
+> [FedCM] Close the dialog in a separate task for the close button
+>
+> The close and cancel buttons of the FedCM dialog can be pressed while a
+> dialog view is still running.
+> FedCmAccountSelectionView::OnCloseButtonClicked() then destroyed the
+> dialog widget, and the views that were still running, synchronously.
+> Keep the input check and the metrics in OnCloseButtonClicked(), but post
+> closing the dialog to a separate task, which does nothing if the dialog
+> was closed or replaced in the meantime.
+>
+> Fixed: 580867132, 579266681
+> Change-Id: I6615f99275a38e31528d6955156cbe6e3c3263c7
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8756772
+> Reviewed-by: Yi Gu <yigu@chromium.org>
+> Commit-Queue: Ryan Qin <ryqin@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1739606}
+
+(cherry picked from commit daf66dd7afd56178e8a9283da06b1a4b50321e0e)
+
+Bug: 584119460,580867132,579266681
+Change-Id: I6615f99275a38e31528d6955156cbe6e3c3263c7
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8776000
+Reviewed-by: Mohamed Amir Yosef <mamir@chromium.org>
+Commit-Queue: Ryan Qin <ryqin@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2205}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+(cherry picked from commit 87c42a60d46a9dde06938e9b9aa5e8d8bcbb1e52)
+---
+ .../fedcm_account_selection_view_desktop.cc   |  23 ++++
+ .../fedcm_account_selection_view_desktop.h    |  13 ++-
+ ...account_selection_view_desktop_unittest.cc | 104 ++++++++++++++++++
+ 3 files changed, 136 insertions(+), 4 deletions(-)
+
+diff --git a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
+index 7e0fb256dc..b33158817b 100644
+--- a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
++++ b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
+@@ -10,9 +10,11 @@
+ #include "base/functional/bind.h"
+ #include "base/logging.h"
+ #include "base/memory/ptr_util.h"
++#include "base/memory/weak_ptr.h"
+ #include "base/metrics/histogram_functions.h"
+ #include "base/metrics/histogram_macros.h"
+ #include "base/strings/utf_string_conversions.h"
++#include "base/task/sequenced_task_runner.h"
+ #include "chrome/browser/actor/actor_util.h"
+ #include "chrome/browser/net/system_network_context_manager.h"
+ #include "chrome/browser/ui/actions/chrome_action_id.h"
+@@ -819,6 +821,27 @@ void FedCmAccountSelectionView::OnCloseButtonClicked(const ui::Event& event) {
+     modal_loading_dialog_state_ = webid::LoadingDialogResult::kCancel;
+   }
+ 
++  views::Widget* widget = GetDialogWidget();
++  if (!widget) {
++    OnUserClosedDialog(views::Widget::ClosedReason::kCloseButtonClicked);
++    return;
++  }
++
++  // Close the dialog in a separate task. The button can be pressed while a
++  // dialog view is still running, and closing synchronously would destroy
++  // that view while it runs.
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++      FROM_HERE,
++      base::BindOnce(&FedCmAccountSelectionView::CloseDialogForCloseButton,
++                     weak_ptr_factory_.GetWeakPtr(), widget->GetWeakPtr()));
++}
++
++void FedCmAccountSelectionView::CloseDialogForCloseButton(
++    base::WeakPtr<views::Widget> closing_widget) {
++  // Do nothing if the dialog was closed or replaced since the click.
++  if (!closing_widget || closing_widget.get() != GetDialogWidget()) {
++    return;
++  }
+   OnUserClosedDialog(views::Widget::ClosedReason::kCloseButtonClicked);
+ }
+ 
+diff --git a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.h b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.h
+index 8d65b6cd8c..c6fc40e9b7 100644
+--- a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.h
++++ b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.h
+@@ -458,12 +458,17 @@ class FedCmAccountSelectionView : public AccountSelectionView,
+                    views::Widget::ClosedReason reason,
+                    bool hide_widget);
+ 
+-  // Called when the user closes the dialog. This is called by
+-  // OnCloseButtonClicked() if the user clicks the close button, and directly
+-  // called by views toolkit if the user dismisses with another mechanism such
+-  // as pressing "esc".
++  // Called when the user closes the dialog. This is called (in a separate task)
++  // by `OnCloseButtonClicked()` if the user clicks the close button, and
++  // directly called by views toolkit if the user dismisses with another
++  // mechanism such as pressing "esc".
+   void OnUserClosedDialog(views::Widget::ClosedReason reason);
+ 
++  // Closes the dialog for a click on the close button, unless `closing_widget`
++  // was destroyed or replaced since the click. Posted by
++  // `OnCloseButtonClicked()`.
++  void CloseDialogForCloseButton(base::WeakPtr<views::Widget> closing_widget);
++
+   // This method calculates whether the dialog should be visible. This method
+   // always updates the dialog position if the dialog should be visible. If the
+   // dialog should be visible, and it is not, this method makes the dialog
+diff --git a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc
+index ff2ec7b21c..3ed722a66f 100644
+--- a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc
++++ b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc
+@@ -11,6 +11,9 @@
+ #include "base/callback_list.h"
+ #include "base/functional/bind.h"
+ #include "base/memory/ptr_util.h"
++#include "base/run_loop.h"
++#include "base/task/sequenced_task_runner.h"
++#include "base/test/bind.h"
+ #include "base/test/metrics/histogram_tester.h"
+ #include "chrome/browser/ui/views/chrome_constrained_window_views_client.h"
+ #include "chrome/browser/ui/views/webid/account_selection_bubble_view.h"
+@@ -125,11 +128,21 @@ class TestAccountSelectionView : public AccountSelectionViewBase,
+     account_ids_ = {account->id};
+   }
+ 
++  void UpdateTitleAndSubtitle(
++      const content::RelyingPartyData& rp_data) override {
++    AccountSelectionViewBase::UpdateTitleAndSubtitle(rp_data);
++    if (on_update_title_and_subtitle_) {
++      std::move(on_update_title_and_subtitle_).Run();
++    }
++  }
++
+   std::string GetDialogTitle() const override { return std::string(); }
+   std::optional<std::string> GetDialogSubtitle() const override {
+     return std::nullopt;
+   }
+ 
++  // Run once while the title and subtitle are being updated.
++  base::OnceClosure on_update_title_and_subtitle_;
+   bool show_back_button_{false};
+   std::optional<SheetType> sheet_type_{SheetType::kLoading};
+   std::vector<std::string> account_ids_;
+@@ -491,6 +504,16 @@ class FedCmAccountSelectionViewDesktopTest : public ChromeViewsTestBase {
+     return accounts;
+   }
+ 
++  // Runs the tasks that have already been posted to the current sequence, such
++  // as the task that handles an ambient bubble decision, or the task that
++  // closes the dialog after `OnCloseButtonClicked()`.
++  void RunPostedTasks() {
++    base::RunLoop run_loop;
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++        FROM_HERE, run_loop.QuitClosure());
++    run_loop.Run();
++  }
++
+   std::unique_ptr<TestFedCmAccountSelectionView> CreateAndShow(
+       const std::vector<IdentityRequestAccountPtr>& accounts,
+       blink::mojom::RpMode rp_mode = blink::mojom::RpMode::kPassive) {
+@@ -949,6 +972,7 @@ TEST_F(FedCmAccountSelectionViewDesktopTest, CloseAutoReauthnSheetMetric) {
+   histogram_tester_->ExpectTotalCount("Blink.FedCm.ClosedSheetType.Desktop", 0);
+ 
+   controller->OnCloseButtonClicked(CreateMouseEvent());
++  RunPostedTasks();
+   histogram_tester_->ExpectUniqueSample(
+       "Blink.FedCm.ClosedSheetType.Desktop",
+       static_cast<int>(webid::SheetType::kAutoReauthn), 1);
+@@ -1652,6 +1676,7 @@ TEST_F(FedCmAccountSelectionViewDesktopTest, UseAnotherAccountThenCancel) {
+ 
+   // Emulate the user clicking "cancel" button. This should close the widget.
+   controller->OnCloseButtonClicked(CreateMouseEvent());
++  RunPostedTasks();
+   EXPECT_FALSE(controller->GetDialogWidget());
+ }
+ 
+@@ -1801,6 +1826,7 @@ TEST_F(FedCmAccountSelectionViewDesktopTest,
+ 
+   // Simulate the dialog being closed.
+   controller->OnCloseButtonClicked(CreateMouseEvent());
++  RunPostedTasks();
+ }
+ 
+ // Tests that if a pop-up window is opened in active mode, closing the
+@@ -2141,6 +2167,81 @@ TEST_F(FedCmAccountSelectionViewDesktopTest, DismissLoadingModal) {
+   std::unique_ptr<TestFedCmAccountSelectionView> controller =
+       CreateAndShowLoadingDialog();
+   controller->OnCloseButtonClicked(CreateMouseEvent());
++  RunPostedTasks();
++}
++
++// Tests that clicking the close button closes the dialog in a separate task,
++// so that the dialog is not destroyed while a dialog view may still be running.
++TEST_F(FedCmAccountSelectionViewDesktopTest, CloseButtonClosesDialogAsync) {
++  std::unique_ptr<TestFedCmAccountSelectionView> controller =
++      CreateAndShow(accounts_, blink::mojom::RpMode::kActive);
++  ASSERT_TRUE(controller->GetDialogWidget());
++
++  controller->OnCloseButtonClicked(CreateMouseEvent());
++  EXPECT_TRUE(controller->GetDialogWidget());
++  EXPECT_FALSE(delegate_->GetDismissReason());
++
++  RunPostedTasks();
++  EXPECT_FALSE(controller->GetDialogWidget());
++  EXPECT_EQ(delegate_->GetDismissReason(), DismissReason::kCloseButton);
++}
++
++// Tests that clicking the close button while a dialog view is still running
++// does not destroy the dialog or `this` until that view returns.
++TEST_F(FedCmAccountSelectionViewDesktopTest,
++       CloseButtonClickedWhileDialogViewRunning) {
++  std::unique_ptr<TestFedCmAccountSelectionView> controller =
++      CreateAndShowLoadingDialog();
++  TestFedCmAccountSelectionView* controller_ptr = controller.get();
++
++  // Destroy the controller on dismissal, as RequestService does.
++  delegate_->SetOnDismissClosure(
++      base::BindLambdaForTesting([&controller]() { controller.reset(); }));
++
++  // Showing the accounts updates the title of the existing dialog view, which
++  // clicks the close button while it is running.
++  controller->GetTestView()->on_update_title_and_subtitle_ =
++      base::BindLambdaForTesting([this, controller_ptr]() {
++        controller_ptr->OnCloseButtonClicked(CreateMouseEvent());
++      });
++  Show(*controller, accounts_, blink::mojom::RpMode::kActive);
++  ASSERT_TRUE(controller);
++  EXPECT_TRUE(controller->GetDialogWidget());
++  EXPECT_FALSE(delegate_->GetDismissReason());
++
++  RunPostedTasks();
++  EXPECT_FALSE(controller);
++  EXPECT_EQ(delegate_->GetDismissReason(), DismissReason::kCloseButton);
++}
++
++// Tests that clicking the close button does nothing more if the dialog is
++// closed in another way before the posted close runs.
++TEST_F(FedCmAccountSelectionViewDesktopTest,
++       CloseButtonClickedThenDialogClosedOtherwise) {
++  std::unique_ptr<TestFedCmAccountSelectionView> controller =
++      CreateAndShow(accounts_, blink::mojom::RpMode::kActive);
++
++  controller->OnCloseButtonClicked(CreateMouseEvent());
++  controller->GetDialogWidget()->CloseWithReason(
++      views::Widget::ClosedReason::kEscKeyPressed);
++  EXPECT_FALSE(controller->GetDialogWidget());
++  EXPECT_EQ(delegate_->GetDismissReason(), DismissReason::kOther);
++
++  RunPostedTasks();
++  EXPECT_EQ(delegate_->GetDismissReason(), DismissReason::kOther);
++}
++
++// Tests that the posted close does nothing if the view is destroyed before it
++// runs.
++TEST_F(FedCmAccountSelectionViewDesktopTest,
++       CloseButtonClickedThenViewDestroyed) {
++  std::unique_ptr<TestFedCmAccountSelectionView> controller =
++      CreateAndShow(accounts_, blink::mojom::RpMode::kActive);
++
++  controller->OnCloseButtonClicked(CreateMouseEvent());
++  controller.reset();
++  RunPostedTasks();
++  EXPECT_FALSE(delegate_->GetDismissReason());
+ }
+ 
+ // Tests that the loading modal is not hidden when a pop-up window is displayed.
+@@ -2304,6 +2405,7 @@ TEST_F(FedCmAccountSelectionViewDesktopTest, AccountChooserResultMetric) {
+     std::unique_ptr<TestFedCmAccountSelectionView> controller =
+         CreateAndShow(accounts_, blink::mojom::RpMode::kActive);
+     controller->OnCloseButtonClicked(CreateMouseEvent());
++    RunPostedTasks();
+   }
+   CheckForSampleAndReset(webid::AccountChooserResult::kCancelButton);
+ 
+@@ -2694,6 +2796,7 @@ TEST_F(FedCmAccountSelectionViewDesktopTest, LoadingDialogResultMetric) {
+     std::unique_ptr<TestFedCmAccountSelectionView> controller =
+         CreateAndShowLoadingDialog();
+     controller->OnCloseButtonClicked(CreateMouseEvent());
++    RunPostedTasks();
+   }
+   CheckForSampleAndReset(webid::LoadingDialogResult::kCancel);
+ 
+@@ -2731,6 +2834,7 @@ TEST_F(FedCmAccountSelectionViewDesktopTest, DisclosureDialogResultMetric) {
+     EXPECT_TRUE(
+         controller->OnAccountSelected(accounts_[0], CreateMouseEvent()));
+     controller->OnCloseButtonClicked(CreateMouseEvent());
++    RunPostedTasks();
+   }
+   CheckForSampleAndReset(webid::DisclosureDialogResult::kCancel);
+ 
+-- 
+2.43.0
+
