@@ -1,4 +1,4 @@
-# FlyWeb 3.1.2: contenido (borrador, faltan la 158 y repetir el reposo de G-C2)
+# FlyWeb 3.1.2: contenido (borrador, falta la 158)
 
 SEGURIDAD-PORTES-23, 13-11-2026. Es la directiva «3.1.2 antes de la 3.2.0» (Titín, 13-11 noche; COORDINACIÓN-41): una
 versión **solo de seguridad** con la V8 de la rama, el delta de la 158 (estable el 17-11) y el KEV. Fuera queda todo lo
@@ -136,27 +136,41 @@ no hace falta otra regla 17. Queda G-C2 en el 9,1: cambio de GPU, reposo y monit
   - la A de LOCAL (Mac Pro con `angle=metal`, sin cambios);
   - en el MacBookPro9,1, el **cambio automático de GPU** (HD 4000 ↔ GT 650M), dormir y conectar un monitor, sin caídas
     ni pantalla negra. Si falla, ARQUITECTURA decide entre fijar la GPU dedicada en GL o devolver `prepareForCall`.
-  - **Resultado (14-11, LOCAL-19, `buzon/ARQUITECTURA/20261114-1140-LOCAL-19-gl-preliminar-resultados.md`): G-C2
-    PENDIENTE solo de repetir el reposo.** La di por cerrada y la reabro por el reparo de ARQUITECTURA (COORDINACIÓN-42,
-    14-11), que comparto:
-    - el informe sitúa el reposo a las 11:31, pero `registro.jsonl` acaba a las 11:30:42;
-    - el muestreo de CPU cada 5 s (11:23:43 → 11:34:05) no tiene ningún hueco de más de 6 s, y un Mac dormido no
-      muestrea;
-    - así que no hay pruebas de que el Mac llegara a dormir. Es la única prueba que ejercita lo que ANGLE quitó
-      (`testDeviceLost`).
+  - **Resultado (14-11, LOCAL-19, `buzon/ARQUITECTURA/20261114-1140-LOCAL-19-gl-preliminar-resultados.md`, buzon
+    aa048d7): G-C2 CERRADA (SEGURIDAD-PORTES-23).** Dos pasos:
+    1. **Reabierta** por el reparo de ARQUITECTURA (COORDINACIÓN-42). El primer reposo de las 11:31 no dejó rastro:
+       `registro.jsonl` acaba a las 11:30:42 y el muestreo de CPU no tiene huecos. `pmset -g log` confirmó después que
+       solo duró 2 s. Error mío: no crucé las horas con los registros.
+    2. **Repetida** con muestreo que sobrevive al reposo, y **cruzada** la hora de `pmset` con el muestreo:
+       - **HD 4000** (la prueba fuerte):
+         - `pmset`: Idle Sleep 12:38:30 → Wake 12:47:37, 547 s.
+         - Hueco en el muestreo: 12:38:33 → 12:47:40, también 547 s, con el mismo desfase de 3 s en los dos extremos.
+           Casa.
+       - **GT 650M**:
+         - `pmset`: Clamshell Sleep 11:49:36 → Wake 11:54:43, con dos DarkWake de mantenimiento a las 11:49:50 y a
+           las 11:51:44.
+         - Huecos en el muestreo: 76 s y 135 s. Encajan con dormir entre DarkWake, porque en un DarkWake los procesos
+           corren, pero el cruce no es exacto sin la duración de cada DarkWake.
+       - **En las dos:**
+         - 0 contextos WebGL perdidos o restaurados, 60 fps al despertar y `angle=opengl` en la misma GPU;
+         - 0 en «GPU process crash count» y 0 informes en DiagnosticReports.
+       - **Vídeo:** se reanuda con la GT 650M. Con la HD 4000 no se pudo evaluar (estaba en pausa por un anuncio).
+         Queda en la medida pendiente de «vídeo con la HD 4000» del informe. No bloquea: la decodificación va por
+         VideoToolbox, no por la ruta de pérdida de dispositivo de ANGLE.
+       - Nota: el hueco de `requestAnimationFrame` (481 s y 108 s) es menor que el reposo. Lo atribuyo a que el reloj
+         monótono de Chromium en Mac (`mach_absolute_time`) no avanza mientras el Mac duerme. Es una explicación
+         probable, no comprobada, y no afecta al resultado.
+       - Los ficheros en bruto (`pmset-sleep-wake.txt` y el muestreo) están en el Mac de pruebas, no en el repo. Mi
+         cruce se basa en las cifras del informe.
 
-    Error mío: no crucé las horas con los registros.
-    - **Para cerrarla, repetir:** tapa cerrada 5 min o más; adjuntar `pmset -g log` con las líneas `Sleep` y `Wake` y
-      sus horas, que han de casar con un hueco en el muestreo; y la misma comprobación de antes (contexto WebGL, vídeo,
-      «GPU process crash count», DiagnosticReports).
-    - **Si falla** (contexto perdido sin recuperar, pantalla negra, caída del proceso de GPU): aviso a COORDINACIÓN y
-      decide Titín. Es un riesgo de estabilidad, no de seguridad.
+    Así queda ejercitado lo que ANGLE quitó (`testDeviceLost`) con un reposo real de 5 a 9 min y WebGL activo, sin
+    perder el contexto ni tirar el proceso de GPU.
 
     Lo demás sí lo doy por bueno:
     - Cambio de GPU en caliente, de la Intel a la NVIDIA: sin pérdida de contexto, 60 fps y el vídeo sigue. FlyWeb se
       queda en la Intel, con la pantalla en la NVIDIA: sin el aviso de cambio de GPU, el contexto no migra, pero
       funciona.
-    - ~~Dormir y despertar: sin pérdida de contexto.~~ Sin pruebas en los registros; se repite (arriba).
+    - Dormir y despertar: el reposo repetido (arriba).
     - 0 caídas, 0 minidumps y 0 denegaciones del sandbox. Ninguno de los errores de GL buscados.
     - **El monitor externo no se probó** (faltaba el adaptador). Pasa a **prueba después de publicar**: en el 9,1,
       conectar un monitor fuerza la NVIDIA, que es el mismo tipo de evento que el cambio de GPU que ya ha pasado. Si
@@ -171,7 +185,7 @@ no hace falta otra regla 17. Queda G-C2 en el 9,1: cambio de GPU, reposo y monit
 | Paso | Qué | Árbol tras el paso |
 |---|---|---|
 | chromium 1 | `chromium/` 0001–00NN: delta de la 158, y lo nuevo de la 8078 y la 15.6 si lo hay | (17-11) |
-| chromium 2 | [`../../parches/3.1.2-gl-reserva/`](../../parches/3.1.2-gl-reserva/) 0001–0005, sobre el paso 1 (entra; G-C2 antes de cerrar) | (17-11) |
+| chromium 2 | [`../../parches/3.1.2-gl-reserva/`](../../parches/3.1.2-gl-reserva/) 0001–0005, sobre el paso 1 (entra; G-C2 cerrada el 14-11, monitor externo después de publicar) | (17-11) |
 | brave-core 1 | `brave-core/` 0001: `flyweb_version` 3.1.2 | `78684355db` |
 | brave-core 2 | `package.json` con la etiqueta de `chrome/VERSION`, si cambia (como 59680cc en la 3.1.1) | (LOCAL) |
 
