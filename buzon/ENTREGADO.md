@@ -816,3 +816,4 @@ buzon/SERVIDOR-LOCAL/20261114-2000-COORDINACION-43-copia-v4.md → Servidor Loca
 buzon/SERVIDOR-LOCAL/20261114-2052-COORDINACION-43-copia-v5.md → Servidor Local (2) [853e0b] · 2026-11-14 19:52 UTC · entregado (COORDINACIÓN-43)
 buzon/SERVIDOR-LOCAL/20261114-2105-COORDINACION-43-copia-si.md → Servidor Local (2) [853e0b] · 2026-11-14 19:57 UTC · entregado (COORDINACIÓN-43)
 buzon/SERVIDOR-LOCAL/20261114-2100-COORDINACION-43-bak-condiciones.md → Servidor Local (2) [853e0b] · 2026-11-14 19:59 UTC · entregado (COORDINACIÓN-43)
+buzon/SERVIDOR-LOCAL/20261114-2110-COORDINACION-43-bak-linux.md → Servidor Local (2) [853e0b] · 2026-11-14 20:01 UTC · entregado (COORDINACIÓN-43)
