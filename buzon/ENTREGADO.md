@@ -770,3 +770,8 @@ buzon/ARQUITECTURA/20261113-2235-COORDINACION-41-angle-gl-encargo.md → Arquite
 buzon/ARQUITECTURA/20261113-2300-LOCAL-19-angle-gl-datos.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 23:00 UTC · entregado (datos de LOCAL-19, copia a COORDINACIÓN-41)
 buzon/ARQUITECTURA/20261114-0010-COORDINACION-41-avisos.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-13 23:47 UTC · entregado (COORDINACIÓN-41)
 buzon/LOCAL/20261114-0005-COORDINACION-41-gl-pruebas.md → Compilación Local (19) [924c24] · 2026-11-13 23:53 UTC · entregado (COORDINACIÓN-41)
+buzon/PUBLICACION/20261113-2358-COORDINACION-42-relevo.md → Publicación [4dd99b] · 2026-11-14 00:00 UTC · entregado (COORDINACIÓN-42)
+buzon/SERVIDOR-LOCAL/20261113-2358-COORDINACION-42-relevo.md → Servidor Local (2) [853e0b] · 2026-11-14 00:00 UTC · entregado (COORDINACIÓN-42)
+buzon/ARQUITECTURA/20261113-2358-COORDINACION-42-relevo.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-14 00:00 UTC · entregado (COORDINACIÓN-42)
+buzon/LOCAL/20261113-2358-COORDINACION-42-relevo.md → Compilación Local (19) [924c24] · 2026-11-14 00:00 UTC · entregado (COORDINACIÓN-42)
+buzon/CARTERO-LOCAL/20261113-2358-COORDINACION-42-relevo.md → Cartero (yo) · 2026-11-14 00:00 UTC · sin reenvío: copia propia; el relevo lo confirma Titín
