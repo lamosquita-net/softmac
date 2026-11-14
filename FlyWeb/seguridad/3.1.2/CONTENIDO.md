@@ -1,4 +1,4 @@
-# FlyWeb 3.1.2: contenido (borrador, falta la 158)
+# FlyWeb 3.1.2: contenido (borrador, faltan la 158 y repetir el reposo de G-C2)
 
 SEGURIDAD-PORTES-23, 13-11-2026. Es la directiva «3.1.2 antes de la 3.2.0» (Titín, 13-11 noche; COORDINACIÓN-41): una
 versión **solo de seguridad** con la V8 de la rama, el delta de la 158 (estable el 17-11) y el KEV. Fuera queda todo lo
@@ -137,11 +137,26 @@ no hace falta otra regla 17. Queda G-C2 en el 9,1: cambio de GPU, reposo y monit
   - en el MacBookPro9,1, el **cambio automático de GPU** (HD 4000 ↔ GT 650M), dormir y conectar un monitor, sin caídas
     ni pantalla negra. Si falla, ARQUITECTURA decide entre fijar la GPU dedicada en GL o devolver `prepareForCall`.
   - **Resultado (14-11, LOCAL-19, `buzon/ARQUITECTURA/20261114-1140-LOCAL-19-gl-preliminar-resultados.md`): G-C2
-    CERRADA (SEGURIDAD-PORTES-23).**
+    PENDIENTE solo de repetir el reposo.** La di por cerrada y la reabro por el reparo de ARQUITECTURA (COORDINACIÓN-42,
+    14-11), que comparto:
+    - el informe sitúa el reposo a las 11:31, pero `registro.jsonl` acaba a las 11:30:42;
+    - el muestreo de CPU cada 5 s (11:23:43 → 11:34:05) no tiene ningún hueco de más de 6 s, y un Mac dormido no
+      muestrea;
+    - así que no hay pruebas de que el Mac llegara a dormir. Es la única prueba que ejercita lo que ANGLE quitó
+      (`testDeviceLost`).
+
+    Error mío: no crucé las horas con los registros.
+    - **Para cerrarla, repetir:** tapa cerrada 5 min o más; adjuntar `pmset -g log` con las líneas `Sleep` y `Wake` y
+      sus horas, que han de casar con un hueco en el muestreo; y la misma comprobación de antes (contexto WebGL, vídeo,
+      «GPU process crash count», DiagnosticReports).
+    - **Si falla** (contexto perdido sin recuperar, pantalla negra, caída del proceso de GPU): aviso a COORDINACIÓN y
+      decide Titín. Es un riesgo de estabilidad, no de seguridad.
+
+    Lo demás sí lo doy por bueno:
     - Cambio de GPU en caliente, de la Intel a la NVIDIA: sin pérdida de contexto, 60 fps y el vídeo sigue. FlyWeb se
       queda en la Intel, con la pantalla en la NVIDIA: sin el aviso de cambio de GPU, el contexto no migra, pero
       funciona.
-    - Dormir y despertar: sin pérdida de contexto.
+    - ~~Dormir y despertar: sin pérdida de contexto.~~ Sin pruebas en los registros; se repite (arriba).
     - 0 caídas, 0 minidumps y 0 denegaciones del sandbox. Ninguno de los errores de GL buscados.
     - **El monitor externo no se probó** (faltaba el adaptador). Pasa a **prueba después de publicar**: en el 9,1,
       conectar un monitor fuerza la NVIDIA, que es el mismo tipo de evento que el cambio de GPU que ya ha pasado. Si
