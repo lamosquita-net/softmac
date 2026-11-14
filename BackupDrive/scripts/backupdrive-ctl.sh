@@ -22,8 +22,8 @@
 #                  copia la versión a su sitio en el Mac; si allí hay un fichero, va antes a versiones. La versión se
 #                  queda donde estaba. La siguiente pasada sube lo restaurado a Drive (y lo de Drive va a versiones).
 #   conflicts list <carpeta>        copias en conflicto (fichero cambiado en los dos lados; bisync conserva las dos como
-#                  «nombre.conflictN.ext»), en JSON: ruta, original, lado (conflict1 = Mac, conflict2 = Drive; si el mismo
-#                  fichero choca otra vez la numeración sigue y el lado es «?»), tamaño y fecha
+#                  «nombre.conflicto-macN.ext» y «.conflicto-driveN»), en JSON: ruta, original, lado (por el nombre;
+#                  «?» en las copias antiguas «nombre.conflictN»), tamaño y fecha
 #   conflicts keep <carpeta> <ruta de la copia elegida>
 #                  la copia elegida vuelve a su nombre; las demás copias de ese fichero (y lo que hubiera con su nombre)
 #                  van a versiones del Mac. La siguiente pasada lo lleva a Drive (allí las copias van a versiones de Drive)
@@ -270,7 +270,8 @@ cmd_profile_list() {
         res=$(sed -n 's/.*"result":"\([a-z-]*\)".*/\1/p' "$st"); fin=$(sed -n 's/.*"finished":"\([^"]*\)".*/\1/p' "$st")
       fi
       init=false; [ -f "$STATE_DIR/$(profile_id "$l" "$r").init" ] && init=true
-      nconf=0; [ -d "$l" ] && nconf=$(find "$l" -type f -name '*.conflict[0-9]*' 2>/dev/null | wc -l | tr -d ' ')
+      nconf=0; [ -d "$l" ] && nconf=$(find "$l" -type f \( -name '*.conflict[0-9]*' -o -name '*.conflicto-mac[0-9]*' \
+        -o -name '*.conflicto-drive[0-9]*' \) 2>/dev/null | wc -l | tr -d ' ')
       printf '%s{"local":%s,"remote":%s,"days":%s,"pct":%s,"count":%s,"result":%s,"finished":%s,"initialized":%s,"conflicts":%s,"versions_mac":%s,"versions_drive":%s}' \
         "$sep" "$(json_str "$l")" "$(json_str "$r")" "$d" "$p" "$n" "$(json_str "${res:-never}")" "$(json_str "$fin")" "$init" "${nconf:-0}" \
         "$(json_str "$(versions_mac "$l" "$r")")" "$(json_str "$(versions_drive "$l" "$r")")"
@@ -376,11 +377,22 @@ cmd_versions_restore() {
   echo "Restaurado $orig. Se subirá a Drive en la próxima sincronización."
 }
 
-# Copias en conflicto: «nombre.conflictN[.ext]» (bisync 1.67, --conflict-resolve none, sufijo «conflict» numerado).
-conflict_original() { printf '%s\n' "$1" | sed -E 's/\.conflict[0-9]+//'; }
+# Copias en conflicto (bisync 1.67, --conflict-resolve none): «nombre.conflicto-macN[.ext]» (la del Mac) y
+# «nombre.conflicto-driveN[.ext]» (la de Drive), con --conflict-suffix. El lado va en el nombre: el número no sirve,
+# porque bisync lo desplaza si queda una copia anterior (fallo 10 de la 6,1: «conflict2» era la del Mac).
+# Las de antes, «nombre.conflictN[.ext]», se siguen reconociendo, pero sin lado.
+conflict_original() { printf '%s\n' "$1" | sed -E 's/\.(conflict|conflicto-mac|conflicto-drive)[0-9]+//'; }
+conflict_side() {
+  case "${1##*/}" in
+    *.conflicto-mac[0-9]*) echo mac ;;
+    *.conflicto-drive[0-9]*) echo drive ;;
+    *) echo '?' ;;
+  esac
+}
 
 conflict_rows() { # carpeta -> «ruta<TAB>tamaño<TAB>fecha» de cada copia en conflicto
-  rc_ lsjson -R --files-only --no-mimetype --include '*.conflict[0-9]*' "$1" 2>/dev/null \
+  rc_ lsjson -R --files-only --no-mimetype --include '*.conflict[0-9]*' --include '*.conflicto-mac[0-9]*' \
+    --include '*.conflicto-drive[0-9]*' "$1" 2>/dev/null \
     | sed -nE 's/.*"Path":"(([^"\\]|\\.)*)".*"Size":([0-9-]*).*"ModTime":"([^"]*)".*/\1	\3	\4/p'
 }
 
@@ -389,8 +401,7 @@ cmd_conflicts_list() {
   get_profile "$1"; need_bin
   conflict_rows "$PL" | while IFS='	' read -r path size mtime; do
     orig=$(conflict_original "$path")
-    side='?'
-    case "${path##*/}" in *.conflict1|*.conflict1.*) side=mac ;; *.conflict2|*.conflict2.*) side=drive ;; esac
+    side=$(conflict_side "$path")
     printf '%s\t{"path":%s,"original":%s,"side":"%s","size":%s,"date":%s}\n' \
       "$orig" "$(json_str "$path")" "$(json_str "$orig")" "$side" "${size:-0}" "$(json_str "$mtime")"
   done | sort | cut -f2- | awk 'BEGIN { printf "[" } { printf "%s%s", (NR > 1 ? "," : ""), $0 } END { print "]" }'
@@ -400,7 +411,7 @@ cmd_conflicts_keep() {
   [ $# -eq 2 ] || usage
   get_profile "$1"; keep=$2; need_bin
   case "$keep" in /*|*../*|..*) die 6 "Ruta no válida." ;; esac
-  case "${keep##*/}" in *.conflict[0-9]*) ;; *) die 6 "Eso no es una copia en conflicto: $keep" ;; esac
+  case "${keep##*/}" in *.conflict[0-9]*|*.conflicto-mac[0-9]*|*.conflicto-drive[0-9]*) ;; *) die 6 "Eso no es una copia en conflicto: $keep" ;; esac
   [ -f "${PL%/}/$keep" ] || die 6 "Ya no existe $keep (¿se resolvió ya?)."
   orig=$(conflict_original "$keep")
   vm=$(versions_mac "$PL" "$PR")
