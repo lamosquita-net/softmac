@@ -775,3 +775,5 @@ buzon/SERVIDOR-LOCAL/20261113-2358-COORDINACION-42-relevo.md → Servidor Local 
 buzon/ARQUITECTURA/20261113-2358-COORDINACION-42-relevo.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-14 00:00 UTC · entregado (COORDINACIÓN-42)
 buzon/LOCAL/20261113-2358-COORDINACION-42-relevo.md → Compilación Local (19) [924c24] · 2026-11-14 00:00 UTC · entregado (COORDINACIÓN-42)
 buzon/CARTERO-LOCAL/20261113-2358-COORDINACION-42-relevo.md → Cartero (yo) · 2026-11-14 00:00 UTC · sin reenvío: copia propia; el relevo lo confirma Titín
+buzon/SERVIDOR-LOCAL/20261114-0001-COORDINACION-42-h2.md → Servidor Local (2) [853e0b] · 2026-11-14 00:03 UTC · entregado (COORDINACIÓN-42)
+buzon/LOCAL/20261114-0002-COORDINACION-42-gl-sandbox.md → Compilación Local (19) [924c24] · 2026-11-14 00:03 UTC · entregado (COORDINACIÓN-42)
