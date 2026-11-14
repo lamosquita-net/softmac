@@ -783,3 +783,4 @@ buzon/ARQUITECTURA/20261114-1140-LOCAL-19-gl-preliminar-resultados.md → Arquit
 buzon/ARQUITECTURA/20261114-1036-COORDINACION-42-gc2-cerrada.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-14 10:38 UTC · entregado (COORDINACIÓN-42)
 buzon/LOCAL/20261114-1040-COORDINACION-42-reposo.md → Compilación Local (19) [924c24] · 2026-11-14 10:42 UTC · entregado (COORDINACIÓN-42)
 buzon/LOCAL/20261114-1047-COORDINACION-42-reposo-ya.md → Compilación Local (19) [924c24] · 2026-11-14 10:48 UTC · entregado (COORDINACIÓN-42)
+buzon/LOCAL/20261114-1215-COORDINACION-42-error11-entra.md → Compilación Local (19) [924c24] · 2026-11-14 12:16 UTC · entregado (COORDINACIÓN-42)
