@@ -7,7 +7,59 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
-## 14-11 (madrugada): COORDINACIÓN-41 → COORDINACIÓN-42 (leer primero; manda sobre lo de abajo)
+## 14-11 (tarde): COORDINACIÓN-42 → COORDINACIÓN-43 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-42 (`session_01MwmK2iRNzVTcBF92tmevxX`, 14-11 00:00 → ~13:40 UTC; Opus 5.5 medio; abierta por la 41,
+linaje 2; relevo al 51 %). La 43 la abre la 42. **Nunca llamar a confirm_repository_trust.** `update_trigger` sobre la rutina
+de SEGURIDAD-VIGÍA lo deniega el clasificador; sobre los avisos propios funciona.
+
+**Decisiones de Titín de hoy (en `docs/DIRECTIVAS.md`):** respaldo GL en la 3.1.2 (#994); «error 11» en la 3.1.2 (#998);
+**3.1.2 ya, la 158 en una 3.1.3** solo de seguridad, salvo que la 3.2.0 llegue antes (#1000). Remitente de la cuenta:
+`noreplyflyweb@lamosquita.net` (alias de Titín en Google, con un filtro a una carpeta). La sync de la 3.2 avanza en paralelo.
+
+**3.1.2 (build 45 = 198.63.45, chromium 156.0.8078.105).** CONTENIDO cerrado por SEGURIDAD-PORTES-23 (#985, #1006, #1007):
+seguridad .105 (chromium 0001–0010, PDFium 8b21800ddb, Skia 4c5f57e4fa) + GL 0001–0005 + brave-core 0001–0003 (versión,
+error 11, package.json). Árboles: chromium 8abc877c10, brave-core da680a3270. LOCAL-19 **compila desde ~13:25 UTC**
+(~3,5 h; `out/Release`, rama local/312 y local/3.1.2) y tiene el **visto bueno para entregar** por la regla 11 tras las
+pruebas (6,1 con ventana real: Metal, Google/error 11; MBP9,1: GL; otool). ANGLE (bc2ebdd211 = árbol 099b621f10) y
+FFmpeg (a15fcf87d2) quedan como en la 3.1.1 publicada (los gitlinks de seg/3.1.1 no lo reflejaban); SEGURIDAD confirmó
+su APTO GL con el ANGLE real. Después: PUBLICACIÓN firma (orden a Titín en bak), sube y fusiona su PR de la web.
+G-C2 cerrada (reposo repetido con pmset; monitor externo, prueba posterior). Pendiente sin bloquear: Air 2013, mini 2012,
+5,1 NVIDIA (si no, que lo diga la nota de la versión).
+
+**3.1.3:** la 158 (aviso propio `trig_01SuLRxh9MAaZKqCTYbea2B6`, 17-11 21:15 UTC, ya dice 3.1.3); primer parche fija gitlinks
+y DEPS de ANGLE bc2ebdd211, FFmpeg a15fcf87d2 y Dawn (+68b5c1f3f y 8bc8ddaf2, cherry-pick -x sobre 31316d1c); antes, subir
+esos commits a un remoto que gclient baje. Si 576333024 vuelve a la V8 15.6. Aviso `trig_01JJuex23HgpYZFRABHcySBs` 17-11
+21:30 UTC: parte B del informe 2 a INVESTIGACIÓN-MOTOR-10.
+
+**Sync 3.2.** Servidor H2 **instalado y expuesto** en ns2 (CAMBIOS #1001, #1002; vhost `/cuenta/v1` #999 con QSD, 64 KiB,
+sin freno por IP por decisión de SEGURIDAD: si salta «cuenta: tope de correos alcanzado» a menudo, mod_qos solo en /alta).
+Credenciales 67 B (correcto). Falta: **prueba de envío** (Titín da la dirección a SERVIDOR-LOCAL en su chat; mirar SPF,
+DKIM y DMARC en pass) y **copia de seguridad** (propuesta de SERVIDOR-LOCAL en entregas, rehecha con las condiciones de
+SEGURIDAD: `sync.db` con age/gpg asimétrico, privada con Titín; credenciales y DKIM aparte con --symmetric; restauración
+de prueba; nota RGPD de 30 días para CONTENIDOS-WEB). Pásala por SEGURIDAD-PORTES y luego a Titín. Recomendado a Titín:
+que la rotación borre sola (no `viejas/`). Titín no ha dicho aún cómo recoge bak las copias de ns2.
+Cliente: parches 0001–0008 en main (#1003 0007 arreglos de compilación, APTO; #1005 0008 VLOG del tiempo de derivación).
+Preliminar compila y arranca; capturas a Titín (pendiente su opinión). AccountCryptoTest 9/9 en la 7,1 (scrypt 2^17 =
+348 ms); en la 6,1 brave_unit_tests no arranca por GL. **Después de la 3.1.2:** LOCAL-19 recompila con 0001–0008 limpio y
+prueba contra ns2 (cuenta de prueba, medir «key derivation ok in N ms» en 7,1/6,1/5,1). Si la 5,1 pasa de ~2 s, a
+SEGURIDAD-PORTES antes de tocar kScryptN. **Titín entrega el lunes 17-11 su diseño** (pantalla privada, pestañas, páginas
+que faltaban): repartir a MOTOR para la 3.2.0.
+
+**Sesiones.** Nube: SEGURIDAD-PORTES-23 `session_01MwmK2ihLC48xJinz4Li6Jv`, MOTOR-46 `session_01MwmK2juPkbC58kEi4QFeyU`
+(quieto hasta la prueba contra ns2 o el diseño), INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG`,
+SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS` (le mandé la base 3.1.1 porque su rutina habla de la 2.0.x; con la
+3.1.2 publicada, mándale 156.0.8078.105). COORDINACIÓN-41 quieta (archivar). Locales por bridge hacia la nube y por buzón
+hacia ellas: LOCAL-19, SERVIDOR-LOCAL-3, ARQUITECTURA (veredicto GL firme; estudio #995–#997).
+
+**Pendiente de Titín:** dirección de prueba a SERVIDOR-LOCAL; cómo recoge bak; borrar o `viejas/`; opinión de las capturas
+de la sync; diseño del lunes; firma en bak de la 3.1.2; posible «MacJulia»/«julia» en la rama buzon (le pregunté si es
+nombre de persona; sin respuesta).
+
+**Lecciones.** Una prueba «pasada» sin rastro en los registros no vale (reposo de 2 s): cruzar horas con pmset. Revisar
+que los gitlinks reflejen lo publicado.
+
+## 14-11 (madrugada): COORDINACIÓN-41 → COORDINACIÓN-42
 
 COORDINACIÓN-41 (`session_01MwmK2gzdSTH5uLSVSsrNNd`, 13-11 13:45 → 14-11 ~00:00 UTC; Opus 5.5 medio; abierta por Titín,
 linaje 1; relevo al 44 %). La 42 la abre la 41 (linaje 2): puede abrir sesiones y programarse avisos. **Nunca llamar a
