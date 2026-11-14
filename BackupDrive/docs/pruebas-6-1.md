@@ -8,6 +8,7 @@ Artefactos `BackupDrive-mojave` probados:
 - `37d0e785` (#719, ejecución 41683761099): pruebas 0, 1, h (primera parte) y 7.
 - `9b86d0b9` (#851, ejecución 42410434552: secreto por entorno y selftest con 5 columnas): pruebas 3, 4 y 5 (primera vez).
 - `b0fba3a9` (#852, #855, #863; ejecución 42427915415): repetición de 0, 5 y 7, y prueba 6 (14-11).
+- `18af363c` (#1004, ejecución 43598828849: sufijos de conflicto por lado): repetición de 0, 4b (pequeña), 5 y 7 (14-11).
 
 ## Resumen
 
@@ -18,10 +19,10 @@ Artefactos `BackupDrive-mojave` probados:
 | h. Sincronización y LaunchAgent | Sí | Pasada a mano 8 s (31 ficheros); pasadas de launchd al cargar y cada hora (`StartInterval` 3600), `status.json` ok |
 | 3. Carpeta grande | Sí, lenta | 7 233 ficheros / 734,5 MiB: primera sincronización 1 h 45 min; sin cambios: en seco 263 s, real 462 s |
 | 4a. Freno de borrados | Sí | 14 % a la Papelera → `blocked`; devueltos → ok |
-| 4b. Freno de modificaciones | Sí, lento | 25,7 % cambiados → `blocked` a los 36 min; Drive intacto |
-| 5. Conflictos, versiones, ajustes | **No** | Con b0fba3a `conflicts list` ya ve las copias, pero si quedan copias viejas en Drive bisync numera `conflict2/3` o `conflict3/4`: el lado sale mal o «?» y `keep` se queda con la del Mac cuando se pidió la de Drive (fallo 10) |
+| 4b. Freno de modificaciones | Sí | 25,7 % cambiados → `blocked` a los 36 min (9b86d0b); con 18af363, 100 de 300 → `blocked` en 36 s y `plan` con los 100 cambios |
+| 5. Conflictos, versiones, ajustes | Sí | Con 18af363 las copias se llaman `conflicto-mac1`/`conflicto-drive1`; `keep` de la de Drive deja la de Drive en los dos lados y la otra va a versiones. Con b0fba3a fallaba (fallo 10) |
 | 6. App | Sí, parcial | Menú, submenú de la carpeta, «Versiones…» (31 de 31) y diálogo de conflicto bien; sin AppTranslocation. No hay captura de «Ajustes de esta carpeta…» ni de «Ver qué cambia…» |
-| 7. `test-ctl.sh` / `test-sync-safe.sh` con BSD | Sí | b0fba3a: `test-ctl` 111/111 y `test-sync-safe` 58/58, con `/bin/sh` y bash (33 s y 55 s). Con 37d0e785, 98/104 |
+| 7. `test-ctl.sh` / `test-sync-safe.sh` con BSD | Sí | 18af363: `test-ctl` 113/113 y `test-sync-safe` 58/58, con `/bin/sh` y bash. b0fba3a: 111 y 58. 37d0e785: 98/104 |
 
 ## Fallos y observaciones (enviados a BACKUPDRIVE-3)
 
@@ -42,14 +43,15 @@ Artefactos `BackupDrive-mojave` probados:
    LaunchAgent y launchd lanza una pasada al cargarlo.
 8. Una pasada de launchd que coincide con otra sale sin escribir nada en el registro (correcto, pero no queda rastro).
 9. *(Arreglado en b0fba3a: `xattr` sin `quarantine` y la app corre desde `/Applications`.)* La app se abría desde `AppTranslocation` (cuarentena de la descarga, firma ad hoc).
-10. **El lado de una copia en conflicto se deduce del número y bisync no lo garantiza.** rclone numera los sufijos saltándose los
+10. *(Arreglado en #1004, comprobado con 18af363.)* **El lado de una copia en conflicto se deduce del número y bisync no lo garantiza.** rclone numera los sufijos saltándose los
     nombres que ya existen en cualquiera de los dos lados. Si en Drive quedan copias viejas (`f18.conflict1.txt` aún sin
     borrar tras un `keep` y antes de la pasada siguiente), la copia del Mac sale como `conflict2` y la de Drive como
     `conflict3` (registro: «Renaming Path1 copy … f18.conflict2.txt», «Renaming Path2 copy … f18.conflict3.txt»).
     `conflicts list` dice `"side":"drive"` para la del Mac y `"?"` para `conflict3`/`conflict4`; `conflicts keep …
     f18.conflict2.txt` («la de Drive») deja la del Mac. No se pierde nada (lo demás va a versiones), pero se elige mal. Ideas:
     sacar el lado del registro o del plan de esa pasada, o `--conflict-suffix` con nombres por lado.
-11. Los arreglos de los fallos 3, 4 y 8 (31205f06, 8090326b) son anteriores a b0fba3a, pero no se repitieron aquí.
+11. Fallos 3 y 4: comprobados con 18af363 en la 4b pequeña (plan correcto tras el bloqueo; freno en 36 s). El 8 no se repitió.
+12. «Ver qué cambia…» solo aparece en carpetas detenidas (previsto, #710).
 
 
 ## Detalle
@@ -103,3 +105,12 @@ resolver (`conflict3` = Mac, `conflict4` = Drive) para reproducirlo.
 El diálogo de conflicto solo ofrece «Quedarme con la del Mac» porque la copia de Drive ya no estaba (1 de 1). «Versiones…»
 enseña «Cargando…» un momento y luego «31 de 31 versiones». En el submenú de una carpeta al día no aparece «Ver qué
 cambia…». La app lleva abierta desde el 12-11 sin informes de cuelgue.
+
+**5 (18af363, 14-11).** Las copias viejas `f4.conflict3/4` se listan con lado «?»; `keep f4.conflict3.txt` (la del Mac)
+bien. Conflicto nuevo en `f18`: `f18.conflicto-drive1.txt` (`drive`, 13 B) y `f18.conflicto-mac1.txt` (`mac`, 23 B);
+`keep` de la de Drive → `f18.txt` con el contenido de Drive en el Mac y en Drive, sin copias en conflicto, y las otras en
+versiones.
+
+**4b pequeña (18af363, 14-11).** 300 ficheros de texto (`--resync` 158 s); 100 modificados → rc 1 en 36 s, «Modificaciones
+masivas en Path1: 100 de 300 ficheros cambian de contenido (umbral 20 % y 50)»; Drive sin el cambio; `plan`: 100 cambiados
+en el Mac. Perfil quitado y copia local apartada; la carpeta `BackupDrive4b` sigue en Drive.
