@@ -99,6 +99,10 @@ ni `chromium_src/…` en brave-core. Ninguno toca red, TLS ni cabeceras: basta l
 3. **Dawn** de la .105 (arriba) y **KEV** del día.
 4. **Serie chromium** sobre el árbol final de la 3.1.2 (`8abc877c10`), con el cruce con `patches/` de brave-core
    antes de cerrar (la trampa de `navigation_request.cc` de la 3.1.1).
+   - El primer parche fija los gitlinks y el `DEPS` de lo que se compila de verdad:
+     - `third_party/angle` → `bc2ebdd211` (árbol `099b621f10`);
+     - `third_party/ffmpeg` → `a15fcf87d2`.
+   - Así `gclient sync` reproduce lo publicado. Antes, comprobar con `ls-remote` que esos commits están en un remoto que `gclient` pueda bajar; si no, se suben a los forks.
 5. **Huella:** si algún parche toca red (TLS, HTTP/2, cabeceras, Client Hints), se repite la prueba de huella.
 
 ## Respaldo GL de ANGLE en los Mac de 2012–2015: revisión de la regla 17 (candidato)
@@ -107,6 +111,12 @@ Parches de ARQUITECTURA: `FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005 (#982, f
 `FlyWeb/docs/gpu-mac-antiguos.md`. Revisado por SEGURIDAD-PORTES-23 el 14-11 sobre el código de `seg/3.1.1` (9e0d83137f) y
 el ANGLE de su `DEPS` (`f10470c77e`, rama `chromium/8078`). **Veredicto: APTO con condiciones (G-C1 a G-C3).** Entra por decisión de
 Titín (14-11).
+
+**ANGLE real de la 3.1.2 (aviso de LOCAL-19 por COORDINACIÓN-42, 14-11):**
+- **Qué se compila.** La 3.1.1 publicada y la 3.1.2 se compilan con ANGLE `bc2ebdd211`, árbol **`099b621f10`**. Lo dice la cadena «ANGLE 2.1.20 git hash: bc2ebdd2115f» del framework. No se compilan con el gitlink de `seg/3.1.1` (`e3917d69d5`).
+- **Qué es ese ANGLE.** Lo he reproducido: es `f10470c77e` más `3.0.1/angle` 0001–0012 (árbol `d094abc`, la base de mi revisión) más `FlyWeb/parches/3.1-angle/` 0001–0004.
+- **Por qué no cambia el veredicto.** Esos cuatro parches solo tocan `src/libANGLE/renderer/metal/`. Los «Translator» de los que habla LOCAL-19 ya están en `3.0.1/angle`, dentro de `d094abc`. Las partes de GL, CGL, EGL y del traductor son idénticas a las que revisé. **El APTO sigue en pie**: el recuento de CVE y la tabla de commits GL no cambian.
+- **FFmpeg.** Lo mismo: se compila con `a15fcf87d2` (`local/301`, los 3 arreglos de la 3.0.1), no con el gitlink `9db86ce5b5`. **En la 3.1.3 se fijan los gitlinks de ANGLE y FFmpeg en la serie de chromium**, para que `gclient sync` reproduzca lo publicado (paso 4 de «Para la 3.1.3»).
 
 **Estado (14-11): ENTRA en la 3.1.2.** Lo decidió Titín (DIRECTIVAS, «Respaldo GL en la 3.1.2», por COORDINACIÓN-42).
 Lo que vio: en la 6,1, Metal sigue por defecto y va mejor que GL; en el 9,1 con Catalina, OpenGL se elige solo y va
