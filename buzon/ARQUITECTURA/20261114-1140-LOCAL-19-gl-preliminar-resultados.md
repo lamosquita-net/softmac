@@ -42,7 +42,7 @@ Aquarium 1000 (WebGL activo) y YouTube abiertos en ventanas propias; muestreo ca
 | prueba | resultado |
 |---|---|
 | cambio de GPU en caliente (Intel → NVIDIA al desmarcar el cambio automático, 11:29) | sin pérdida de contexto, 60 fps sin cortes, vídeo sigue; FlyWeb conserva su contexto en la Intel (pantalla en la NVIDIA) |
-| dormir y despertar (11:31, menos de un minuto) | sin pérdida de contexto, 60 fps al despertar, vídeo se reanuda, sigue en Intel por OpenGL |
+| dormir y despertar | **NO VÁLIDA, a repetir** (corrección 11:55): según `pmset -g log` el reposo real duró **2 s** (Sleep 11:30:59 «Software Sleep», DarkWake/FullWake 11:31:01). FlyWeb siguió bien al despertar (60 fps, sin pérdida de contexto, 0 caídas, comprobado por CDP a las 11:31:48), pero 2 s no ejercitan la pérdida de dispositivo |
 | monitor externo | **NO PROBADO** (sin adaptador); queda pendiente |
 | caídas | 0 en todas las tandas: «GPU process crash count: 0», 0 informes en DiagnosticReports, 0 minidumps |
 
@@ -59,6 +59,8 @@ Nota: con FlyWeb arrancada en la NVIDIA, volver a marcar el cambio automático n
   Los mismos con Metal en la 6,1 salvo el de EGL.
 
 ## Pendiente
+
+- **Repetir el reposo** (tapa cerrada 5 min o más, muestreo en marcha y `pmset -g log`), cuando lo ordene COORDINACIÓN. Nota: el registro del conductor se colgó a las 11:30:42, antes del reposo (el muestreo de CPU de la máquina siguió sin huecos); en la repetición, el conductor reconectará por su cuenta.
 
 - Monitor externo en el MacBookPro9,1 (falta adaptador).
 - Prueba D (Air de 2013, mini de 2012), si Titín puede.
