@@ -1,0 +1,163 @@
+From 4863364d747ac01ce11970d67ab5b50749f85b7b Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Sat, 14 Nov 2026 12:55:54 +0000
+Subject: [PATCH] sync: build fixes for the 156 tree (first compile of the sync
+ account)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+From LOCAL-19's first compile of 0001-0006 on local/3.1.1:
+
+- account_crypto.cc: BoringSSL of the 156 has no ED25519_SEED_LEN; a local
+  kEd25519SeedLen = 32, checked against ED25519_PRIVATE_KEY_LEN / 2 and
+  ED25519_PUBLIC_KEY_LEN.
+- flyweb_sync_account_infobar_delegate.cc: base::LocalizedTimeFormatWithPattern
+  is not in the 156. The date of «borrado pedido» uses the ICU pattern for
+  the skeleton "dMMMM" in the UI locale («14 de noviembre», «November 14»),
+  falling back to TimeFormatShortDate; //base:i18n and //third_party/icu
+  added to the infobar deps.
+- brave_sync_handler.cc: missing include of utf_string_conversions.h.
+- flyweb_sync_account_service.cc: «fecha» set as a double (seconds since
+  1970, exact in a double), as everywhere else in the file.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../flyweb_sync_account_infobar_delegate.cc   | 28 +++++++++++++++++--
+ browser/infobars/sources.gni                  |  2 ++
+ .../account/flyweb_sync_account_service.cc    |  4 ++-
+ .../ui/webui/settings/brave_sync_handler.cc   |  1 +
+ .../brave_sync/crypto/account_crypto.cc       |  7 ++++-
+ 5 files changed, 38 insertions(+), 4 deletions(-)
+
+diff --git a/browser/infobars/flyweb_sync_account_infobar_delegate.cc b/browser/infobars/flyweb_sync_account_infobar_delegate.cc
+index a3e386f..8d0b4e9 100644
+--- a/browser/infobars/flyweb_sync_account_infobar_delegate.cc
++++ b/browser/infobars/flyweb_sync_account_infobar_delegate.cc
+@@ -10,6 +10,7 @@
+ 
+ #include "base/functional/callback_helpers.h"
+ #include "base/i18n/time_formatting.h"
++#include "base/i18n/unicodestring.h"
+ #include "base/strings/string_number_conversions.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/time/time.h"
+@@ -24,9 +25,33 @@
+ #include "content/public/browser/web_contents.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/views/vector_icons.h"
++#include "third_party/icu/source/i18n/unicode/dtptngen.h"
++#include "third_party/icu/source/i18n/unicode/smpdtfmt.h"
+ 
+ namespace {
+ 
++// «14 de noviembre» in Spanish, «November 14» in English: the ICU pattern
++// for the skeleton "dMMMM" in the UI locale (no fixed pattern, so every
++// language gets its own order and words). base::LocalizedTimeFormatWithPattern
++// is not in the 156.
++std::u16string FormatDayAndMonth(base::Time time) {
++  UErrorCode status = U_ZERO_ERROR;
++  std::unique_ptr<icu::DateTimePatternGenerator> generator(
++      icu::DateTimePatternGenerator::createInstance(status));
++  if (U_FAILURE(status) || !generator) {
++    return base::TimeFormatShortDate(time);
++  }
++  const icu::UnicodeString pattern =
++      generator->getBestPattern(icu::UnicodeString("dMMMM"), status);
++  icu::SimpleDateFormat format(pattern, status);
++  if (U_FAILURE(status)) {
++    return base::TimeFormatShortDate(time);
++  }
++  icu::UnicodeString out;
++  format.format(static_cast<UDate>(time.InMillisecondsFSinceUnixEpoch()), out);
++  return base::i18n::UnicodeStringToString16(out);
++}
++
+ std::u16string Name(const flyweb_sync::AccountEvent& e) {
+   return base::UTF8ToUTF16(e.mac.empty() ? e.model : e.mac);
+ }
+@@ -82,8 +107,7 @@ std::u16string FlyWebSyncAccountInfoBarDelegate::WarningText(
+   if (e.type == "borrado-pedido") {
+     return l10n_util::GetStringFUTF16(
+         IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DELETION_REQUESTED,
+-        base::LocalizedTimeFormatWithPattern(
+-            base::Time::FromSecondsSinceUnixEpoch(e.when), "d MMMM"));
++        FormatDayAndMonth(base::Time::FromSecondsSinceUnixEpoch(e.when)));
+   }
+   return l10n_util::GetStringUTF16(
+       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DELETION_CANCELLED);
+diff --git a/browser/infobars/sources.gni b/browser/infobars/sources.gni
+index 72df8ec..1a0be38 100644
+--- a/browser/infobars/sources.gni
++++ b/browser/infobars/sources.gni
+@@ -23,6 +23,7 @@ if (!is_android) {
+ 
+   brave_browser_infobar_deps += [
+     "//base",
++    "//base:i18n",
+     "//brave/app:brave_generated_resources_grit",
+     "//brave/common:common",
+     "//brave/components/brave_sync:features",
+@@ -35,6 +36,7 @@ if (!is_android) {
+     "//components/infobars/core",
+     "//components/prefs",
+     "//components/strings",
++    "//third_party/icu",
+     "//ui/base",
+     "//ui/views",
+     "//url",
+diff --git a/browser/sync/account/flyweb_sync_account_service.cc b/browser/sync/account/flyweb_sync_account_service.cc
+index dc162da..0c439bf 100644
+--- a/browser/sync/account/flyweb_sync_account_service.cc
++++ b/browser/sync/account/flyweb_sync_account_service.cc
+@@ -2503,7 +2503,9 @@ void AccountService::StartOverFinish(const std::string& code,
+                       self->email_ = email;
+                       self->StoreString(kPrefEmail, email);
+                       AccountResult ok = AccountResult::Ok();
+-                      ok.data.Set("fecha", GetInt(r.data, "fecha"));
++                      // Seconds since 1970: exact in a double (53-bit mantissa).
++                      ok.data.Set("fecha",
++                                  static_cast<double>(GetInt(r.data, "fecha")));
+                       ok.data.Set("recoveryWords",
+                                   brave_sync::crypto::PassphraseFromBytes32(
+                                       std::vector<uint8_t>(
+diff --git a/browser/ui/webui/settings/brave_sync_handler.cc b/browser/ui/webui/settings/brave_sync_handler.cc
+index 8bc2209..33788f0 100644
+--- a/browser/ui/webui/settings/brave_sync_handler.cc
++++ b/browser/ui/webui/settings/brave_sync_handler.cc
+@@ -16,6 +16,7 @@
+ #include "base/logging.h"
+ #include "base/notreached.h"
+ #include "base/strings/string_number_conversions.h"
++#include "base/strings/utf_string_conversions.h"
+ #include "brave/browser/sync/account/flyweb_sync_account_service_factory.h"
+ #include "brave/components/brave_sync/brave_sync_prefs.h"
+ #include "brave/components/brave_sync/crypto/account_crypto.h"
+diff --git a/components/brave_sync/crypto/account_crypto.cc b/components/brave_sync/crypto/account_crypto.cc
+index 1f71162..a80e1cb 100644
+--- a/components/brave_sync/crypto/account_crypto.cc
++++ b/components/brave_sync/crypto/account_crypto.cc
+@@ -47,6 +47,11 @@ constexpr uint8_t kChainHkdfSalt[] = {
+     234, 28,  135, 54,  42,  9,   243, 39,  30,  179, 147, 194, 211,
+     212, 239, 225, 52,  192, 219, 145, 40,  95,  19,  142, 98};
+ constexpr char kChainHkdfInfo[] = "sync-auth-key";
++// The Ed25519 seed. BoringSSL of the 156 has no ED25519_SEED_LEN; the private
++// key is seed || public key.
++constexpr size_t kEd25519SeedLen = 32;
++static_assert(kEd25519SeedLen * 2 == ED25519_PRIVATE_KEY_LEN);
++static_assert(kEd25519SeedLen == ED25519_PUBLIC_KEY_LEN);
+ 
+ std::array<uint8_t, SHA256_DIGEST_LENGTH> Sha256(base::span<const uint8_t> in) {
+   std::array<uint8_t, SHA256_DIGEST_LENGTH> out;
+@@ -202,7 +207,7 @@ ChainKeys ChainKeys::FromSeed(base::span<const uint8_t, kSeedSize> seed) {
+   const std::vector<uint8_t> info(std::begin(kChainHkdfInfo),
+                                   std::end(kChainHkdfInfo) - 1);
+   std::vector<uint8_t> ed_seed =
+-      HKDFSha512(seed_v, &salt, &info, ED25519_SEED_LEN);
++      HKDFSha512(seed_v, &salt, &info, kEd25519SeedLen);
+   ChainKeys keys;
+   ED25519_keypair_from_seed(keys.public_key_.data(), keys.private_key_.data(),
+                             ed_seed.data());
+-- 
+2.43.0
+

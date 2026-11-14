@@ -17,7 +17,7 @@ git checkout -b nube/sync-cuenta-h3 3e2c12fad5
 git am FlyWeb/parches/3.2-sync-cuenta/000*.patch
 ```
 
-Comprobado: los seis entran limpios con `git am` sobre 3e2c12fad5 y dan el árbol **c98438f903**, igual que la rama
+Comprobado: los siete entran limpios con `git am` sobre 3e2c12fad5 y dan el árbol **753d11c6a9**, igual que la rama
 local. Servidor de referencia para K3: #977 en **60cc1d0800** (ls-remote del 13-11). El TypeScript de la página pasó `tsc` estricto, con módulos de relleno para los import. El C++ no se ha
 compilado.
 
@@ -35,6 +35,7 @@ compilado.
 | `0004-sync-FlyWeb-3.2-sync-account-warning-bars.patch` | Barras de aviso: «¿Has sido tú?» con «No he sido yo» y «La clave se ha cambiado desde otro Mac» |
 | `0005-sync-account-client-fixes-from-the-security-review-S.patch` | Arreglos de la revisión de SEGURIDAD-PORTES-23 (abajo) |
 | `0006-sync-device-secret-of-the-sync-account-K3-977-C1.patch` | K3: el secreto de aparato que da el servidor (#977 en 60cc1d0) |
+| `0007-sync-build-fixes-for-the-156-tree-first-compile-of-t.patch` | Arreglos de la primera compilación de LOCAL-19 (abajo) |
 
 ## Qué hace el cliente
 
@@ -144,6 +145,23 @@ Revisión en #981 (comentario 6865456375), sobre c461080ebe. Arreglos de 0005:
 
 Cadenas nuevas, con traducción es y es-419: `IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED_EMAIL` (huella
 1700890504399928133) y `…_NOT_LINKED_BY_ME` (9216077204680478027).
+
+## Primera compilación (LOCAL-19, 14-11) → 0007
+
+La preliminar compila y arranca con estos cuatro arreglos. 0001–0006 no cambian; sus SHA256 siguen siendo los mismos.
+
+- `account_crypto.cc`: la BoringSSL de la 156 no define `ED25519_SEED_LEN`. Se usa una constante propia
+  `kEd25519SeedLen = 32`, con `static_assert` contra `ED25519_PRIVATE_KEY_LEN / 2` y `ED25519_PUBLIC_KEY_LEN`.
+  Revisados contra boringssl 2ea3200c3a, la revisión que fija la 156, los demás símbolos que usa 0001:
+  `EVP_PBE_scrypt`, `HKDF`, `EVP_aead_aes_256_gcm`, `ScopedEVP_AEAD_CTX`, Ed25519, `OPENSSL_cleanse` y `SHA256`. Todos
+  existen con esas firmas.
+- Barra de «borrado pedido»: `base::LocalizedTimeFormatWithPattern` no existe en la 156.
+  - La fecha usa ICU con el esqueleto «dMMMM» en el idioma de la interfaz («14 de noviembre», «November 14»).
+  - Si ICU falla, se usa `TimeFormatShortDate`.
+  - Hacían falta las dependencias `//base:i18n` y `//third_party/icu` en `browser/infobars`.
+- `brave_sync_handler.cc`: faltaba el include de `utf_string_conversions.h`.
+- `flyweb_sync_account_service.cc`: el valor «fecha» va como `double`. Son segundos Unix, que un double guarda
+  exactos.
 
 ## Pruebas para LOCAL (al compilar)
 
