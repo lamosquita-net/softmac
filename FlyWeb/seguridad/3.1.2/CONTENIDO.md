@@ -20,6 +20,7 @@ Es la 3.1.1 publicada (198.63.44).
 |---|---|---|
 | **KEV** | `cve-watch.py --desde 2026-10-15`, catálogo **2026.11.13**: 2 de Chromium, los 2 ya triados, **0 nuevos**. Se repite el 17-11 | — |
 | **brave-core 0001** | `flyweb_version` 3.1.1 → **3.1.2**, en un commit aparte (`docs/SEGURIDAD.md`). `git apply --check` limpio sobre 3e2c12fad57; árbol tras el commit: `78684355db` | [`brave-core/`](brave-core/) (sumas dentro) |
+| **brave-core 0002** | Arreglo del «error 11»: los dos plugins falsos del farbling pasan de 1 a 2 tipos MIME, igual que en Brave upstream. Sin él, el renderer cae (desreferencia de nulo, no OOB ni UAF) cuando una página enumera `navigator.mimeTypes`. Origen: brave-core `local/311-error11` 6bc695443675 (LOCAL-19). Entra por el sí de Titín (14-11, COORDINACIÓN-42). Revisión: APTO, en #985 (comentario 6877066617). patch-id `d65f0669…`. Aplica limpio tras 0001; árbol `64b632d5ed` | [`brave-core/`](brave-core/) (sumas dentro) |
 | **V8** | **se queda en 15.6.75.58**, la de la 3.1.1, ya probada (`3.1.1/mjsunit.md`). La .59 se retira: ver abajo | — |
 | **Rama 8078** | sin tags nuevos: la última sigue siendo 156.0.8078.104, que ya está en la 3.1.1 (0035–0043). Tampoco hay ninguno nuevo en la 8103 (157.0.8103.81) | — |
 | **Chrome Releases** | feed leído el 13-11 a las 21:50 UTC: nada nuevo desde la nota del 11-11; de la 158 solo el Early Stable 158.0.8127.36/.37, **sin CVE** | — |
@@ -187,7 +188,8 @@ no hace falta otra regla 17. Queda G-C2 en el 9,1: cambio de GPU, reposo y monit
 | chromium 1 | `chromium/` 0001–00NN: delta de la 158, y lo nuevo de la 8078 y la 15.6 si lo hay | (17-11) |
 | chromium 2 | [`../../parches/3.1.2-gl-reserva/`](../../parches/3.1.2-gl-reserva/) 0001–0005, sobre el paso 1 (entra; G-C2 cerrada el 14-11, monitor externo después de publicar) | (17-11) |
 | brave-core 1 | `brave-core/` 0001: `flyweb_version` 3.1.2 | `78684355db` |
-| brave-core 2 | `package.json` con la etiqueta de `chrome/VERSION`, si cambia (como 59680cc en la 3.1.1) | (LOCAL) |
+| brave-core 2 | `brave-core/` 0002: «error 11» (plugins falsos con 2 tipos MIME) | `64b632d5ed` |
+| brave-core 3 | `package.json` con la etiqueta de `chrome/VERSION`, si cambia (como 59680cc en la 3.1.1) | (LOCAL) |
 
 ## Versión y build (provisional)
 

@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: lamosquita <developer@lamosquita.com>
+Date: Sat, 14 Nov 2026 12:54:45 +0100
+Subject: [PATCH] [local] Give the fake farbled plugins two MIME types (error
+ 11)
+
+DOMPluginArray::GetFixedMimeTypeArray() in 156 takes item(0) and item(1)
+of the first plugin. After shuffling, a fake plugin with a single MIME
+type can come first; item(1) is then null and the renderer crashes with
+SIGSEGV in DOMMimeTypeArray::NamedPropertyEnumerator (seen on Google
+sign-in pages as "error 11"). Upstream Brave gives both fake plugins two
+MIME types; do the same.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../blink/renderer/modules/plugins/dom_plugin_array.cc        | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/chromium_src/third_party/blink/renderer/modules/plugins/dom_plugin_array.cc b/chromium_src/third_party/blink/renderer/modules/plugins/dom_plugin_array.cc
+index 28b71717..d04d2c8a 100644
+--- a/chromium_src/third_party/blink/renderer/modules/plugins/dom_plugin_array.cc
++++ b/chromium_src/third_party/blink/renderer/modules/plugins/dom_plugin_array.cc
+@@ -121,7 +121,7 @@ void FarblePlugins(blink::LocalDOMWindow* window,
+               "PLUGIN_1_FILENAME", 16),
+           BraveSessionCache::From(*window).GenerateRandomString(
+               "PLUGIN_1_DESCRIPTION", 32),
+-          std::vector<const char*>{""},
++          std::vector<const char*>{"", ""},
+           BraveSessionCache::From(*window).GenerateRandomString(
+               "MIME_1_DESCRIPTION", 32),
+           BraveSessionCache::From(*window)
+@@ -137,7 +137,7 @@ void FarblePlugins(blink::LocalDOMWindow* window,
+               "PLUGIN_2_FILENAME", 15),
+           BraveSessionCache::From(*window).GenerateRandomString(
+               "PLUGIN_2_DESCRIPTION", 31),
+-          std::vector<const char*>{""},
++          std::vector<const char*>{"", ""},
+           BraveSessionCache::From(*window).GenerateRandomString(
+               "MIME_2_DESCRIPTION", 32),
+           BraveSessionCache::From(*window)
+-- 
+2.43.0
+
