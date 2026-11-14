@@ -129,6 +129,13 @@ copia de `sync.db`. Las genera e instala SERVIDOR-LOCAL; ni claves ni hosts en e
 (scrypt por segundo medidos en ns2)`, el doble de lo que deja calcular el semáforo en 15 min. Con menos, quien tiene
 el buzón podría echar de la tabla la entrada de la cuenta que ataca. Se fija con la medida de P22/P24 en ns2.
 
+**Medida en ns2 y valores aprobados (SERVIDOR-LOCAL, 13-11-2026; COORDINACIÓN-41):** scrypt N=2^14, r=8, p=1, con una
+prueba estática y el servidor casi en reposo: **31,2 scrypt/s con 1 hilo y 199,8 scrypt/s con los 12 núcleos**.
+Valores de la unidad: `FLYWEB_SYNC_ESPERAS_MAX=400000` (≥ 1800 × 200 = 360 000, con un 11 % de margen),
+`FLYWEB_SYNC_SCRYPT_A_LA_VEZ=8` (deja 4 núcleos a Apache y al correo; 128 MiB), cola por defecto (4 × 8 = 32) y
+`MemoryMax=1G` (128 MiB de scrypt + unos 60 MiB de esperas + 8 MiB de ritmo + hasta ~150 MiB de nonces con avalancha
++ base de go-sync y SQLite).
+
 **Memoria, para `MemoryMax`** (O14): 16 MiB por scrypt a la vez; tabla de esperas, unos 150 bytes por entrada
 (90 000 → ~14 MiB; con 200 scrypt/s, 360 000 → ~54 MiB); tabla de ritmo de los códigos, 8 MiB fijos; nonces usados,
 unos 100 bytes por petición con prueba en 5 min; la cola no reserva nada.
