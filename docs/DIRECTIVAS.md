@@ -388,6 +388,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   (brave-core `local/311-error11` 6bc695443675: los plugins falsos del farbling con dos tipos MIME, como Brave) **entra en
   la 3.1.2** como brave-core 0002. SEGURIDAD-PORTES-23: APTO (estabilidad, no seguridad; sin huella nueva; igual que
   upstream por contenido; #985). La 3.1.2 lleva así seguridad + respaldo GL + error 11.
+- **3.1.2 ya; la 158 en la 3.1.3 (Titín, 14-11; COORDINACIÓN-42; cambia «3.1.2 antes de la 3.2.0»):** la 3.1.2 sale
+  **ahora** con el respaldo GL y el «error 11» (más lo de seguridad ya cerrado: V8 .58, KEV sin nuevos), sin esperar a la
+  158. El delta de la 158 (17-11) va en una **3.1.3** solo de seguridad, que sale en cuanto esté; si para entonces la
+  3.2.0 ya estuviera lista, va en ella. La seguridad no espera a la sync.
 - **FlyWeb también innova (Titín, 13-11 noche; COORDINACIÓN-41; amplía «Flink a nuestro ritmo»):** además de seguir a
   Chrome, FlyWeb puede implementar funciones nuevas de los estándares (HTML, CSS, JS, APIs) aunque ningún otro navegador
   las tenga aún. **Las elige Titín como diseñador web.** INVESTIGACIÓN-MOTOR le presenta las tendencias nuevas, con
