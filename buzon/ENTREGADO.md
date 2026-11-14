@@ -800,3 +800,8 @@ buzon/LOCAL/20261114-1321-COORDINACION-42-sync-0008.md → Compilación Local (1
 buzon/LOCAL/20261114-1324-COORDINACION-42-312-serie.md → Compilación Local (19) [924c24] · 2026-11-14 13:26 UTC · entregado (COORDINACIÓN-42)
 buzon/LOCAL/20261114-1332-COORDINACION-42-312-gitlinks.md → Compilación Local (19) [924c24] · 2026-11-14 13:33 UTC · entregado (COORDINACIÓN-42)
 buzon/LOCAL/20261114-1333-COORDINACION-42-312-entrega-ok.md → Compilación Local (19) [924c24] · 2026-11-14 13:35 UTC · entregado (COORDINACIÓN-42)
+buzon/PUBLICACION/20261114-1340-COORDINACION-43-relevo.md → Publicación [4dd99b] · 2026-11-14 13:39 UTC · entregado (COORDINACIÓN-43)
+buzon/SERVIDOR-LOCAL/20261114-1340-COORDINACION-43-relevo.md → Servidor Local (2) [853e0b] · 2026-11-14 13:39 UTC · entregado (COORDINACIÓN-43)
+buzon/ARQUITECTURA/20261114-1340-COORDINACION-43-relevo.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-14 13:39 UTC · entregado (COORDINACIÓN-43)
+buzon/LOCAL/20261114-1340-COORDINACION-43-relevo.md → Compilación Local (19) [924c24] · 2026-11-14 13:39 UTC · entregado (COORDINACIÓN-43)
+buzon/CARTERO-LOCAL/20261114-1340-COORDINACION-43-relevo.md → Cartero (yo) · 2026-11-14 13:39 UTC · sin reenvío: copia propia; el relevo lo marca COORDINACIÓN, Titín no quiere que se le pregunte
