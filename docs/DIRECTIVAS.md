@@ -384,6 +384,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   (Catalina, HD 4000) elige OpenGL por sí solo y va como Safari o mejor (Titín). Sin tocar el sandbox de GPU. Siguen en
   pie las condiciones de SEGURIDAD-PORTES (G-C2: cambio de GPU, reposo y monitor externo en el 9,1) antes de cerrar el
   contenido; si alguna falla, se avisa a Titín antes de sacarlo.
+- **«Error 11» en la 3.1.2 (Titín, 14-11; COORDINACIÓN-42):** el arreglo de la caída de «Continuar con Google»
+  (brave-core `local/311-error11` 6bc695443675: los plugins falsos del farbling con dos tipos MIME, como Brave) **entra en
+  la 3.1.2** como brave-core 0002. SEGURIDAD-PORTES-23: APTO (estabilidad, no seguridad; sin huella nueva; igual que
+  upstream por contenido; #985). La 3.1.2 lleva así seguridad + respaldo GL + error 11.
 - **FlyWeb también innova (Titín, 13-11 noche; COORDINACIÓN-41; amplía «Flink a nuestro ritmo»):** además de seguir a
   Chrome, FlyWeb puede implementar funciones nuevas de los estándares (HTML, CSS, JS, APIs) aunque ningún otro navegador
   las tenga aún. **Las elige Titín como diseñador web.** INVESTIGACIÓN-MOTOR le presenta las tendencias nuevas, con
