@@ -5,4 +5,5 @@ f63f6aa379701b5db3f9928b3cc95267955458eaab1e69a9df0fbd1d31170521  0003-settings-
 306ed24a84384bf76a8436bd71e9b6c17e8ad3c2053e82a10c1b03e3694120f8  0005-sync-account-client-fixes-from-the-security-review-S.patch
 151f41acfe1040c47b815c50719692b54d3b4e4c54743dfac9973cbc00b1fed4  0006-sync-device-secret-of-the-sync-account-K3-977-C1.patch
 7be13c9e84ff2953a43ef44ec9792eb04b264c432040916522e738339996eef7  0007-sync-build-fixes-for-the-156-tree-first-compile-of-t.patch
+798d386988a6d2c025df3662b31567c3380db2a8e428997fbdf4ff3f6de7395c  0008-sync-log-how-long-the-account-key-derivation-takes-P.patch
 0348b3be67b479eaf85757a014f062d2672146daad76c6123e0cded965eb0419  vectores.py
