@@ -1,0 +1,941 @@
+From 467bcac5198df17371aec6c954c88ede77ebf774 Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 18:49:51 +0000
+Subject: [PATCH 1/6] sync: account crypto for the FlyWeb 3.2 sync account (H3)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+FlyWeb/docs/sync-cuenta.md §3.1, §4 and §11; protocol of the server in
+FlyWeb/servidor/sync/cuenta/README.md (softmac PR #977).
+
+New components/brave_sync/crypto/account_crypto.{h,cc}, all BoringSSL from
+the tree, nothing macOS-specific and nothing new in third_party:
+
+- email and password normalisation (trim, simple lower case, NFC; the
+  password only NFC), as the server does it;
+- KE = scrypt(password, SHA-256("flyweb-cuenta-v1" || email), 2^17, 8, 1)
+  with max_mem 130 MiB (the default 65 MiB fails), and KL/KU split from KE
+  with HKDF-SHA256;
+- the seed wrap E = nonce || AES-256-GCM(KU, seed, ad = "flyweb-envoltura-v1"
+  || SHA-256(email)) and its open, which refuses any changed wrap (P15);
+- the chain keys derived from the seed exactly like
+  BraveSyncAuthManager::DeriveSigningKeys (not touched), and the one-use
+  chain proof: Ed25519 over "flyweb-cuenta-v1" || lp(method) || lp(path) ||
+  lp(op) || lp(account) || lp(nonce) || SHA-256(body).
+
+KE, KL, KU and seeds live in SecretKey, wiped with OPENSSL_cleanse; ASCII
+passwords never go through ICU.
+
+Known-answer tests computed outside Chromium (Python), including the go-sync
+client_id of brave_sync_auth_manager_unittest.cc for the same words and the
+real-cost scrypt (logs the time: input for P23).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ components/brave_sync/BUILD.gn                |   3 +
+ components/brave_sync/crypto/DEPS             |   1 +
+ .../brave_sync/crypto/account_crypto.cc       | 391 ++++++++++++++++++
+ components/brave_sync/crypto/account_crypto.h | 191 +++++++++
+ .../crypto/account_crypto_unittest.cc         | 249 +++++++++++
+ test/BUILD.gn                                 |   1 +
+ 6 files changed, 836 insertions(+)
+ create mode 100644 components/brave_sync/crypto/account_crypto.cc
+ create mode 100644 components/brave_sync/crypto/account_crypto.h
+ create mode 100644 components/brave_sync/crypto/account_crypto_unittest.cc
+
+diff --git a/components/brave_sync/BUILD.gn b/components/brave_sync/BUILD.gn
+index 9793974..c7206e6 100644
+--- a/components/brave_sync/BUILD.gn
++++ b/components/brave_sync/BUILD.gn
+@@ -24,6 +24,8 @@ buildflag_header("buildflags") {
+ 
+ static_library("crypto") {
+   sources = [
++    "crypto/account_crypto.cc",
++    "crypto/account_crypto.h",
+     "crypto/crypto.cc",
+     "crypto/crypto.h",
+   ]
+@@ -34,6 +36,7 @@ static_library("crypto") {
+     "//brave/vendor/bat-native-tweetnacl:tweetnacl",
+     "//crypto",
+     "//third_party/boringssl",
++    "//third_party/icu",
+   ]
+ 
+   if (is_android) {
+diff --git a/components/brave_sync/crypto/DEPS b/components/brave_sync/crypto/DEPS
+index 5102fb8..6d8c4c4 100644
+--- a/components/brave_sync/crypto/DEPS
++++ b/components/brave_sync/crypto/DEPS
+@@ -1,4 +1,5 @@
+ include_rules = [
+   "+brave/vendor/bat-native-tweetnacl",
+   "+crypto",
++  "+third_party/icu/source/common/unicode",
+ ]
+diff --git a/components/brave_sync/crypto/account_crypto.cc b/components/brave_sync/crypto/account_crypto.cc
+new file mode 100644
+index 0000000..1f71162
+--- /dev/null
++++ b/components/brave_sync/crypto/account_crypto.cc
+@@ -0,0 +1,391 @@
++/* Copyright (c) 2026 The FlyWeb Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#include "brave/components/brave_sync/crypto/account_crypto.h"
++
++#include <algorithm>
++#include <utility>
++
++#include "base/check.h"
++#include "base/check_op.h"
++#include "base/containers/span.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/strings/string_util.h"
++#include "brave/components/brave_sync/crypto/crypto.h"
++#include "crypto/random.h"
++#include "third_party/boringssl/src/include/openssl/aead.h"
++#include "third_party/boringssl/src/include/openssl/curve25519.h"
++#include "third_party/boringssl/src/include/openssl/digest.h"
++#include "third_party/boringssl/src/include/openssl/evp.h"
++#include "third_party/boringssl/src/include/openssl/hkdf.h"
++#include "third_party/boringssl/src/include/openssl/mem.h"
++#include "third_party/boringssl/src/include/openssl/sha.h"
++#include "third_party/icu/source/common/unicode/normalizer2.h"
++#include "third_party/icu/source/common/unicode/uchar.h"
++#include "third_party/icu/source/common/unicode/unistr.h"
++#include "third_party/icu/source/common/unicode/utf8.h"
++
++namespace brave_sync::crypto::account {
++
++namespace {
++
++constexpr char kDomain[] = "flyweb-cuenta-v1";
++constexpr char kLoginInfo[] = "flyweb-cuenta-v1/entrar";
++constexpr char kWrapInfo[] = "flyweb-cuenta-v1/envolver";
++constexpr char kWrapAdPrefix[] = "flyweb-envoltura-v1";
++
++// Same constants as BraveSyncAuthManager::DeriveSigningKeys: the account proof
++// has to be signed with the key whose public half is the go-sync client_id.
++// BraveSyncAuthManager is not touched (§11); the unit test checks both give
++// the same client_id for the same words.
++constexpr uint8_t kChainHkdfSalt[] = {
++    72,  203, 156, 43,  64,  229, 225, 127, 214, 158, 50,  29,  130,
++    186, 182, 207, 6,   108, 47,  254, 245, 71,  198, 109, 44,  108,
++    32,  193, 221, 126, 119, 143, 112, 113, 87,  184, 239, 231, 230,
++    234, 28,  135, 54,  42,  9,   243, 39,  30,  179, 147, 194, 211,
++    212, 239, 225, 52,  192, 219, 145, 40,  95,  19,  142, 98};
++constexpr char kChainHkdfInfo[] = "sync-auth-key";
++
++std::array<uint8_t, SHA256_DIGEST_LENGTH> Sha256(base::span<const uint8_t> in) {
++  std::array<uint8_t, SHA256_DIGEST_LENGTH> out;
++  SHA256(in.data(), in.size(), out.data());
++  return out;
++}
++
++void AppendWithLength(std::vector<uint8_t>& out, base::span<const uint8_t> in) {
++  CHECK_LE(in.size(), 0xffffu);
++  out.push_back(static_cast<uint8_t>(in.size() >> 8));
++  out.push_back(static_cast<uint8_t>(in.size() & 0xff));
++  out.insert(out.end(), in.begin(), in.end());
++}
++
++std::vector<uint8_t> WrapAssociatedData(std::string_view email) {
++  std::vector<uint8_t> ad(std::begin(kWrapAdPrefix),
++                          std::end(kWrapAdPrefix) - 1);  // no '\0'
++  const auto email_hash = Sha256(base::as_byte_span(email));
++  ad.insert(ad.end(), email_hash.begin(), email_hash.end());
++  return ad;
++}
++
++bool IsAscii(std::string_view s) {
++  return std::all_of(s.begin(), s.end(), [](char c) {
++    return static_cast<unsigned char>(c) < 0x80;
++  });
++}
++
++// NFC through ICU. ICU keeps its own buffers, which this cannot wipe; ASCII
++// (most passwords) is already NFC and never goes through it.
++std::string ToNfc(std::string_view utf8) {
++  if (IsAscii(utf8)) {
++    return std::string(utf8);
++  }
++  UErrorCode status = U_ZERO_ERROR;
++  const icu::Normalizer2* nfc = icu::Normalizer2::getNFCInstance(status);
++  CHECK(U_SUCCESS(status));
++  icu::UnicodeString in = icu::UnicodeString::fromUTF8(
++      icu::StringPiece(utf8.data(), static_cast<int32_t>(utf8.size())));
++  icu::UnicodeString out = nfc->normalize(in, status);
++  CHECK(U_SUCCESS(status));
++  std::string result;
++  out.toUTF8String(result);
++  // Overwrite what we can reach of ICU's copies.
++  in.setTo(static_cast<UChar>(0), in.length());
++  out.setTo(static_cast<UChar>(0), out.length());
++  return result;
++}
++
++std::optional<AccountKeys> DeriveWithCost(std::string_view password,
++                                          std::string_view email,
++                                          uint64_t scrypt_n) {
++  // salt = SHA-256("flyweb-cuenta-v1" || email): no per-account salt to ask
++  // the server for before logging in, which would tell whether the email has
++  // an account (§4.2).
++  std::vector<uint8_t> salt_input(std::begin(kDomain), std::end(kDomain) - 1);
++  salt_input.insert(salt_input.end(), email.begin(), email.end());
++  const auto salt = Sha256(salt_input);
++
++  SecretKey ke;
++  if (!EVP_PBE_scrypt(password.data(), password.size(), salt.data(),
++                      salt.size(), scrypt_n, kScryptR, kScryptP, kScryptMaxMem,
++                      ke.mutable_bytes().data(), kKeySize)) {
++    return std::nullopt;
++  }
++
++  AccountKeys keys;
++  CHECK(HKDF(keys.login_key.mutable_bytes().data(), kKeySize, EVP_sha256(),
++             ke.bytes().data(), kKeySize, /*salt=*/nullptr, 0,
++             reinterpret_cast<const uint8_t*>(kLoginInfo),
++             sizeof(kLoginInfo) - 1));
++  CHECK(HKDF(keys.wrap_key.mutable_bytes().data(), kKeySize, EVP_sha256(),
++             ke.bytes().data(), kKeySize, /*salt=*/nullptr, 0,
++             reinterpret_cast<const uint8_t*>(kWrapInfo),
++             sizeof(kWrapInfo) - 1));
++  return keys;  // `ke` is wiped here.
++}
++
++std::vector<uint8_t> Seal(const SecretKey& key,
++                          base::span<const uint8_t, kSeedSize> seed,
++                          std::string_view email,
++                          base::span<const uint8_t, kGcmNonceSize> nonce) {
++  bssl::ScopedEVP_AEAD_CTX ctx;
++  CHECK(EVP_AEAD_CTX_init(ctx.get(), EVP_aead_aes_256_gcm(),
++                          key.bytes().data(), kKeySize, kGcmTagSize,
++                          /*engine=*/nullptr));
++  const std::vector<uint8_t> ad = WrapAssociatedData(email);
++  std::vector<uint8_t> out(kWrappedSeedSize);
++  std::ranges::copy(nonce, out.begin());
++  size_t sealed_len = 0;
++  CHECK(EVP_AEAD_CTX_seal(ctx.get(), out.data() + kGcmNonceSize, &sealed_len,
++                          out.size() - kGcmNonceSize, nonce.data(),
++                          nonce.size(), seed.data(), seed.size(), ad.data(),
++                          ad.size()));
++  CHECK_EQ(sealed_len, kSeedSize + kGcmTagSize);
++  return out;
++}
++
++}  // namespace
++
++SecretKey::SecretKey() {
++  bytes_.fill(0);
++}
++
++SecretKey::SecretKey(base::span<const uint8_t, kKeySize> bytes) {
++  std::ranges::copy(bytes, bytes_.begin());
++}
++
++SecretKey::SecretKey(SecretKey&& other) {
++  bytes_ = other.bytes_;
++  OPENSSL_cleanse(other.bytes_.data(), other.bytes_.size());
++}
++
++SecretKey& SecretKey::operator=(SecretKey&& other) {
++  if (this != &other) {
++    bytes_ = other.bytes_;
++    OPENSSL_cleanse(other.bytes_.data(), other.bytes_.size());
++  }
++  return *this;
++}
++
++SecretKey::~SecretKey() {
++  OPENSSL_cleanse(bytes_.data(), bytes_.size());
++}
++
++ChainKeys::ChainKeys() = default;
++
++ChainKeys::ChainKeys(ChainKeys&& other) {
++  *this = std::move(other);
++}
++
++ChainKeys& ChainKeys::operator=(ChainKeys&& other) {
++  if (this != &other) {
++    empty_ = other.empty_;
++    public_key_ = other.public_key_;
++    private_key_ = other.private_key_;
++    other.empty_ = true;
++    other.public_key_.fill(0);
++    OPENSSL_cleanse(other.private_key_.data(), other.private_key_.size());
++  }
++  return *this;
++}
++
++ChainKeys::~ChainKeys() {
++  OPENSSL_cleanse(private_key_.data(), private_key_.size());
++}
++
++// static
++ChainKeys ChainKeys::FromSeed(base::span<const uint8_t, kSeedSize> seed) {
++  std::vector<uint8_t> seed_v(seed.begin(), seed.end());
++  const std::vector<uint8_t> salt(std::begin(kChainHkdfSalt),
++                                  std::end(kChainHkdfSalt));
++  const std::vector<uint8_t> info(std::begin(kChainHkdfInfo),
++                                  std::end(kChainHkdfInfo) - 1);
++  std::vector<uint8_t> ed_seed =
++      HKDFSha512(seed_v, &salt, &info, ED25519_SEED_LEN);
++  ChainKeys keys;
++  ED25519_keypair_from_seed(keys.public_key_.data(), keys.private_key_.data(),
++                            ed_seed.data());
++  keys.empty_ = false;
++  OPENSSL_cleanse(ed_seed.data(), ed_seed.size());
++  // seed_v is a copy of the seed: wipe it too.
++  OPENSSL_cleanse(seed_v.data(), seed_v.size());
++  return keys;
++}
++
++ChainKeys ChainKeys::Clone() const {
++  ChainKeys copy;
++  copy.empty_ = empty_;
++  copy.public_key_ = public_key_;
++  copy.private_key_ = private_key_;
++  return copy;
++}
++
++std::string ChainKeys::ChainId() const {
++  CHECK(!empty_);
++  return base::HexEncode(public_key_);
++}
++
++std::array<uint8_t, kProofSignatureSize> ChainKeys::SignProof(
++    std::string_view method,
++    std::string_view path,
++    std::string_view op,
++    std::string_view account_id,
++    base::span<const uint8_t> nonce,
++    std::string_view body) const {
++  CHECK(!empty_);
++  const std::vector<uint8_t> message =
++      BuildProofMessage(method, path, op, account_id, nonce, body);
++  std::array<uint8_t, kProofSignatureSize> signature;
++  CHECK(ED25519_sign(signature.data(), message.data(), message.size(),
++                     private_key_.data()));
++  return signature;
++}
++
++std::vector<uint8_t> BuildProofMessage(std::string_view method,
++                                       std::string_view path,
++                                       std::string_view op,
++                                       std::string_view account_id,
++                                       base::span<const uint8_t> nonce,
++                                       std::string_view body) {
++  std::vector<uint8_t> m(std::begin(kDomain), std::end(kDomain) - 1);
++  AppendWithLength(m, base::as_byte_span(method));
++  AppendWithLength(m, base::as_byte_span(path));
++  AppendWithLength(m, base::as_byte_span(op));
++  AppendWithLength(m, base::as_byte_span(account_id));
++  AppendWithLength(m, nonce);
++  const auto body_hash = Sha256(base::as_byte_span(body));
++  m.insert(m.end(), body_hash.begin(), body_hash.end());
++  return m;
++}
++
++AccountKeys::AccountKeys() = default;
++AccountKeys::AccountKeys(AccountKeys&&) = default;
++AccountKeys& AccountKeys::operator=(AccountKeys&&) = default;
++AccountKeys::~AccountKeys() = default;
++
++std::optional<std::string> NormalizeEmail(std::string_view email) {
++  if (!base::IsStringUTF8(email)) {
++    return std::nullopt;
++  }
++  // Trim (White_Space, like Go's unicode.IsSpace) and lower-case code point by
++  // code point (simple mapping, like Go's strings.ToLower).
++  std::vector<UChar32> cps;
++  for (int32_t i = 0; i < static_cast<int32_t>(email.size());) {
++    UChar32 c;
++    U8_NEXT(email.data(), i, static_cast<int32_t>(email.size()), c);
++    if (c < 0) {
++      return std::nullopt;
++    }
++    cps.push_back(c);
++  }
++  const auto is_space = [](UChar32 c) { return !!u_isUWhiteSpace(c); };
++  auto first = std::ranges::find_if_not(cps, is_space);
++  auto last = std::find_if_not(cps.rbegin(), std::make_reverse_iterator(first),
++                               is_space)
++                  .base();
++  std::string lowered;
++  for (auto it = first; it != last; ++it) {
++    const UChar32 c = u_tolower(*it);
++    if (u_isUWhiteSpace(c) || u_charType(c) == U_CONTROL_CHAR || c == '<' ||
++        c == '>' || c == '"' || c == ',' || c == ';') {
++      return std::nullopt;
++    }
++    char buf[U8_MAX_LENGTH];
++    int32_t len = 0;
++    UBool error = false;
++    U8_APPEND(buf, len, U8_MAX_LENGTH, c, error);
++    if (error) {
++      return std::nullopt;
++    }
++    lowered.append(buf, static_cast<size_t>(len));
++  }
++  std::string normalized = ToNfc(lowered);
++  if (normalized.size() < 3 || normalized.size() > 254 ||
++      std::ranges::count(normalized, '@') != 1) {
++    return std::nullopt;
++  }
++  const size_t at = normalized.find('@');
++  if (at == 0 || at == normalized.size() - 1 ||
++      normalized.find('.', at + 1) == std::string::npos) {
++    return std::nullopt;
++  }
++  return normalized;
++}
++
++std::string NormalizePassword(std::string_view password) {
++  return ToNfc(password);
++}
++
++size_t CountCodePoints(std::string_view utf8) {
++  size_t n = 0;
++  for (int32_t i = 0; i < static_cast<int32_t>(utf8.size());) {
++    UChar32 c;
++    U8_NEXT(utf8.data(), i, static_cast<int32_t>(utf8.size()), c);
++    ++n;
++  }
++  return n;
++}
++
++std::optional<AccountKeys> DeriveAccountKeys(std::string_view password,
++                                             std::string_view email) {
++  return DeriveWithCost(password, email, kScryptN);
++}
++
++std::optional<AccountKeys> DeriveAccountKeysWithCostForTesting(
++    std::string_view password,
++    std::string_view email,
++    uint64_t scrypt_n) {
++  return DeriveWithCost(password, email, scrypt_n);
++}
++
++std::vector<uint8_t> WrapSeed(const SecretKey& wrap_key,
++                              base::span<const uint8_t, kSeedSize> seed,
++                              std::string_view email) {
++  std::array<uint8_t, kGcmNonceSize> nonce;
++  ::crypto::RandBytes(nonce);
++  return Seal(wrap_key, seed, email, nonce);
++}
++
++std::vector<uint8_t> WrapSeedWithNonceForTesting(
++    const SecretKey& wrap_key,
++    base::span<const uint8_t, kSeedSize> seed,
++    std::string_view email,
++    base::span<const uint8_t, kGcmNonceSize> nonce) {
++  return Seal(wrap_key, seed, email, nonce);
++}
++
++std::optional<SecretKey> UnwrapSeed(const SecretKey& wrap_key,
++                                    base::span<const uint8_t> wrapped,
++                                    std::string_view email) {
++  if (wrapped.size() != kWrappedSeedSize) {
++    return std::nullopt;
++  }
++  bssl::ScopedEVP_AEAD_CTX ctx;
++  if (!EVP_AEAD_CTX_init(ctx.get(), EVP_aead_aes_256_gcm(),
++                         wrap_key.bytes().data(), kKeySize, kGcmTagSize,
++                         /*engine=*/nullptr)) {
++    return std::nullopt;
++  }
++  const std::vector<uint8_t> ad = WrapAssociatedData(email);
++  SecretKey seed;
++  size_t out_len = 0;
++  if (!EVP_AEAD_CTX_open(ctx.get(), seed.mutable_bytes().data(), &out_len,
++                         kSeedSize, wrapped.data(), kGcmNonceSize,
++                         wrapped.data() + kGcmNonceSize,
++                         wrapped.size() - kGcmNonceSize, ad.data(),
++                         ad.size()) ||
++      out_len != kSeedSize) {
++    return std::nullopt;
++  }
++  return seed;
++}
++
++void WipeString(std::string& s) {
++  if (!s.empty()) {
++    OPENSSL_cleanse(s.data(), s.size());
++  }
++  s.clear();
++}
++
++}  // namespace brave_sync::crypto::account
+diff --git a/components/brave_sync/crypto/account_crypto.h b/components/brave_sync/crypto/account_crypto.h
+new file mode 100644
+index 0000000..37ddf0d
+--- /dev/null
++++ b/components/brave_sync/crypto/account_crypto.h
+@@ -0,0 +1,191 @@
++/* Copyright (c) 2026 The FlyWeb Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#ifndef BRAVE_COMPONENTS_BRAVE_SYNC_CRYPTO_ACCOUNT_CRYPTO_H_
++#define BRAVE_COMPONENTS_BRAVE_SYNC_CRYPTO_ACCOUNT_CRYPTO_H_
++
++// FlyWeb 3.2: cryptography of the sync account (FlyWeb/docs/sync-cuenta.md
++// §3.1, §4 and §11; protocol in FlyWeb/servidor/sync/cuenta/README.md).
++//
++// The account wraps the chain: the 32-byte seed travels to a new Mac wrapped
++// with a key that only the password opens. From the password and the email:
++//
++//   KE = scrypt(password, salt = SHA-256("flyweb-cuenta-v1" || email),
++//               N = 2^17, r = 8, p = 1, 32 bytes)
++//   KL = HKDF-SHA256(KE, info = "flyweb-cuenta-v1/entrar")    -> to the server
++//   KU = HKDF-SHA256(KE, info = "flyweb-cuenta-v1/envolver")  -> never leaves
++//   E  = nonce(12) || AES-256-GCM(KU, nonce, seed,
++//                       ad = "flyweb-envoltura-v1" || SHA-256(email))
++//
++// and the one-use chain proof, signed with the chain's Ed25519 key:
++//
++//   M = "flyweb-cuenta-v1" || lp(method) || lp(path) || lp(op) ||
++//       lp(account_id) || lp(nonce) || SHA-256(body),  lp(x) = u16be(|x|) || x
++//
++// Everything is BoringSSL from the tree; nothing depends on macOS.
++// The password, KE, KL and KU are never stored: they live in SecretKey
++// objects that wipe themselves with OPENSSL_cleanse.
++
++#include <stddef.h>
++#include <stdint.h>
++
++#include <array>
++#include <optional>
++#include <string>
++#include <string_view>
++#include <vector>
++
++#include "base/containers/span.h"
++
++namespace brave_sync::crypto::account {
++
++inline constexpr size_t kKeySize = 32;
++inline constexpr size_t kSeedSize = 32;
++inline constexpr size_t kGcmNonceSize = 12;
++inline constexpr size_t kGcmTagSize = 16;
++// nonce || encrypted seed || tag (§4.4); the server checks this size.
++inline constexpr size_t kWrappedSeedSize =
++    kGcmNonceSize + kSeedSize + kGcmTagSize;
++inline constexpr size_t kProofSignatureSize = 64;
++inline constexpr size_t kChainPublicKeySize = 32;
++inline constexpr size_t kChainPrivateKeySize = 64;
++
++// Client stretching (§4, «Coste del estiramiento»). Tied to the
++// "flyweb-cuenta-v1" label: changing them needs a v2 and every user typing
++// the password again. P23 decides between 2^17 and 2^16 before publishing.
++inline constexpr uint64_t kScryptN = uint64_t{1} << 17;
++inline constexpr uint64_t kScryptR = 8;
++inline constexpr uint64_t kScryptP = 1;
++// EVP_PBE_scrypt refuses more than 65 MiB by default; 2^17 needs 128 MiB.
++inline constexpr size_t kScryptMaxMem = size_t{130} * 1024 * 1024;
++
++// Minimum password length, in code points after NFC (§4.1).
++inline constexpr size_t kMinPasswordLength = 10;
++
++// A 32-byte secret (KE, KL, KU, a seed) wiped on destruction. Move-only.
++class SecretKey {
++ public:
++  SecretKey();
++  explicit SecretKey(base::span<const uint8_t, kKeySize> bytes);
++  SecretKey(SecretKey&& other);
++  SecretKey& operator=(SecretKey&& other);
++  SecretKey(const SecretKey&) = delete;
++  SecretKey& operator=(const SecretKey&) = delete;
++  ~SecretKey();
++
++  base::span<const uint8_t, kKeySize> bytes() const { return bytes_; }
++  base::span<uint8_t, kKeySize> mutable_bytes() { return bytes_; }
++
++ private:
++  std::array<uint8_t, kKeySize> bytes_;
++};
++
++// The chain's Ed25519 key pair, derived from the seed exactly as
++// BraveSyncAuthManager::DeriveSigningKeys does (HKDF-SHA512 with Brave's salt
++// and "sync-auth-key"), so the public key is the go-sync client_id. The
++// private half is wiped on destruction.
++class ChainKeys {
++ public:
++  ChainKeys();
++  ChainKeys(ChainKeys&& other);
++  ChainKeys& operator=(ChainKeys&& other);
++  ChainKeys(const ChainKeys&) = delete;
++  ChainKeys& operator=(const ChainKeys&) = delete;
++  ~ChainKeys();
++
++  static ChainKeys FromSeed(base::span<const uint8_t, kSeedSize> seed);
++  ChainKeys Clone() const;
++
++  // Upper-case hex of the public key: the X-FlyWeb-Cadena header and the
++  // go-sync client_id.
++  std::string ChainId() const;
++  base::span<const uint8_t, kChainPublicKeySize> public_key() const {
++    return public_key_;
++  }
++  bool empty() const { return empty_; }
++
++  // Signs the chain proof (§3.1, decision 10 of §10.1). `path` is the full
++  // path the server sees ("/cuenta/v1/eventos"); `account_id` is empty in
++  // alta/confirmar and empezar-de-cero/confirmar; `body` is the exact HTTP
++  // body.
++  std::array<uint8_t, kProofSignatureSize> SignProof(
++      std::string_view method,
++      std::string_view path,
++      std::string_view op,
++      std::string_view account_id,
++      base::span<const uint8_t> nonce,
++      std::string_view body) const;
++
++ private:
++  bool empty_ = true;
++  std::array<uint8_t, kChainPublicKeySize> public_key_{};
++  std::array<uint8_t, kChainPrivateKeySize> private_key_{};
++};
++
++// The proof message M; exposed for the tests.
++std::vector<uint8_t> BuildProofMessage(std::string_view method,
++                                       std::string_view path,
++                                       std::string_view op,
++                                       std::string_view account_id,
++                                       base::span<const uint8_t> nonce,
++                                       std::string_view body);
++
++// KL and KU from one stretching. KE is wiped before returning.
++struct AccountKeys {
++  AccountKeys();
++  AccountKeys(AccountKeys&&);
++  AccountKeys& operator=(AccountKeys&&);
++  ~AccountKeys();
++
++  SecretKey login_key;  // KL
++  SecretKey wrap_key;   // KU
++};
++
++// Email as the server normalises it (§4.1; cuenta/cripto.go NormalizarEmail):
++// trimmed, lower case (simple case mapping, like Go's strings.ToLower), NFC.
++// std::nullopt if it is not a plain address (one '@', a dot in the domain,
++// no spaces or controls, 3–254 bytes). The server does the full check.
++std::optional<std::string> NormalizeEmail(std::string_view email);
++
++// Password in NFC (§4.1). Not trimmed: spaces are part of it.
++std::string NormalizePassword(std::string_view password);
++
++// Number of code points, for kMinPasswordLength.
++size_t CountCodePoints(std::string_view utf8);
++
++// The slow step: ~128 MiB and around a second of one core. Never on the UI
++// thread. Both inputs must already be normalised. std::nullopt only if
++// scrypt fails (out of memory).
++std::optional<AccountKeys> DeriveAccountKeys(std::string_view password,
++                                             std::string_view email);
++
++// Same with another N, for the tests and the P23 timing only.
++std::optional<AccountKeys> DeriveAccountKeysWithCostForTesting(
++    std::string_view password,
++    std::string_view email,
++    uint64_t scrypt_n);
++
++// E for `seed` (§4.4) with a random nonce. `email` normalised.
++std::vector<uint8_t> WrapSeed(const SecretKey& wrap_key,
++                              base::span<const uint8_t, kSeedSize> seed,
++                              std::string_view email);
++std::vector<uint8_t> WrapSeedWithNonceForTesting(
++    const SecretKey& wrap_key,
++    base::span<const uint8_t, kSeedSize> seed,
++    std::string_view email,
++    base::span<const uint8_t, kGcmNonceSize> nonce);
++
++// Opens E. std::nullopt if it does not authenticate: changed by the server,
++// made with another password or for another email (§4.4, P15).
++std::optional<SecretKey> UnwrapSeed(const SecretKey& wrap_key,
++                                    base::span<const uint8_t> wrapped,
++                                    std::string_view email);
++
++// Wipes a string that held a password (std::string has no wipe of its own).
++void WipeString(std::string& s);
++
++}  // namespace brave_sync::crypto::account
++
++#endif  // BRAVE_COMPONENTS_BRAVE_SYNC_CRYPTO_ACCOUNT_CRYPTO_H_
+diff --git a/components/brave_sync/crypto/account_crypto_unittest.cc b/components/brave_sync/crypto/account_crypto_unittest.cc
+new file mode 100644
+index 0000000..e04d97b
+--- /dev/null
++++ b/components/brave_sync/crypto/account_crypto_unittest.cc
+@@ -0,0 +1,249 @@
++/* Copyright (c) 2026 The FlyWeb Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#include "brave/components/brave_sync/crypto/account_crypto.h"
++
++#include <string>
++#include <vector>
++
++#include "base/check.h"
++#include "base/logging.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/strings/string_util.h"
++#include "base/time/time.h"
++#include "brave/components/brave_sync/crypto/crypto.h"
++#include "testing/gtest/include/gtest/gtest.h"
++
++// Vectors computed outside Chromium (Python hashlib.scrypt, HMAC-based HKDF,
++// `cryptography` AES-GCM and Ed25519; script in FlyWeb/parches/3.2-sync-cuenta/
++// vectores.py). The chain id is the one of brave_sync_auth_manager_unittest.cc
++// for the same words, so the proof is signed with the go-sync key.
++
++namespace brave_sync::crypto::account {
++
++namespace {
++
++constexpr char kSyncCode[] =
++    "badge unique kiwi orient spring venue piano "
++    "lake admit ill roof brother grant hour better "
++    "proud cabbage fee slow economy wage final fox cancel";
++constexpr char kSeedHex[] =
++    "117db1edce4d33e4e903e503ae1eee8e765adc8565661faa9330a31f62ad1711";
++constexpr char kChainId[] =
++    "502042270C8145247ED70A18F87022A39886900AB36F2FFF655635DBE516765E";
++
++// "  Prueba.Cuenta@Example.COM " and "café con léche 2026" written in NFD.
++constexpr char kRawEmail[] = "  Prueba.Cuenta@Example.COM ";
++constexpr char kEmail[] = "prueba.cuenta@example.com";
++constexpr char kRawPassword[] = "cafe\xcc\x81 con le\xcc\x81" "che 2026";
++constexpr char kPasswordNfcHex[] = "636166C3A920636F6E206CC3A96368652032303236";
++
++constexpr char kKl1024[] =
++    "899259831d277608bd76f88b26f2785aeb796fb538c695e35f7e0a51dbc72809";
++constexpr char kKu1024[] =
++    "ebc1929357ce7ef5d90ae98b7d4360a958b2a33a7cdebb978e7bdef3f9fb6ac6";
++constexpr char kKl[] =
++    "1b4d93a09eabe0c53c82616537838f45fcff669aa5e0679b4ded48537ac7f664";
++constexpr char kKu[] =
++    "e45fc1039d0f09178bb6df64782a03ad111d4cc6f7fe6eee3d8bc5812e9dbad4";
++constexpr char kWrapped[] =
++    "000102030405060708090a0b9f4e3b4b73fc02ec2d4ac6246bb6d250fde38d2df28eeb85"
++    "5b532881f2f2ec7d97a815f6323e87132de80f9e1ca7f270";
++
++constexpr char kProofMessage[] =
++    "666c797765622d6375656e74612d76310004504f535400122f6375656e74612f76312f65"
++    "76656e746f7300076576656e746f730020303132333435363738396162636465663031"
++    "32333435363738396162636465660028000102030405060708090a0b0c0d0e0f1011121314"
++    "15161718191a1b1c1d1e1f20212223242526278b5194d06d1404cd75cfb875f75cf9b9a3"
++    "364a42827e23de580b47a50be7f0c2";
++constexpr char kProofSignature[] =
++    "8b7adea8e62404414a26d68c92ed472fcc07d0a8f9d9fa9fa71fa82b867e373a9002f776"
++    "e4d38aea6bb878030738b2e8c919f0f8f04768a2ff9aa857cc18240a";
++constexpr char kProofSignatureEmptyAccount[] =
++    "c3b89a0f37c1bf2757cadca68c96aae99313635ba739d7f4610ec80b87653670d6df6f88"
++    "939413f0f1a030d88abc511919bcfe32259d8ee262cd94510852fb05";
++
++std::vector<uint8_t> FromHex(std::string_view hex) {
++  std::vector<uint8_t> out;
++  CHECK(base::HexStringToBytes(hex, &out));
++  return out;
++}
++
++std::vector<uint8_t> Nonce40() {
++  std::vector<uint8_t> n(40);
++  for (size_t i = 0; i < n.size(); ++i) {
++    n[i] = static_cast<uint8_t>(i);
++  }
++  return n;
++}
++
++std::array<uint8_t, kSeedSize> Seed() {
++  std::vector<uint8_t> words_seed;
++  CHECK(PassphraseToBytes32(kSyncCode, &words_seed));
++  std::array<uint8_t, kSeedSize> seed;
++  std::ranges::copy(words_seed, seed.begin());
++  return seed;
++}
++
++}  // namespace
++
++TEST(AccountCryptoTest, SeedFromWords) {
++  EXPECT_EQ(base::HexEncode(Seed()), base::ToUpperASCII(kSeedHex));
++}
++
++TEST(AccountCryptoTest, ChainIdIsTheGoSyncClientId) {
++  const ChainKeys keys = ChainKeys::FromSeed(Seed());
++  EXPECT_EQ(keys.ChainId(), kChainId);
++
++  // Same as the derivation of BraveSyncAuthManager::DeriveSigningKeys.
++  const std::vector<uint8_t> salt = {
++      72,  203, 156, 43,  64,  229, 225, 127, 214, 158, 50,  29,  130,
++      186, 182, 207, 6,   108, 47,  254, 245, 71,  198, 109, 44,  108,
++      32,  193, 221, 126, 119, 143, 112, 113, 87,  184, 239, 231, 230,
++      234, 28,  135, 54,  42,  9,   243, 39,  30,  179, 147, 194, 211,
++      212, 239, 225, 52,  192, 219, 145, 40,  95,  19,  142, 98};
++  const std::string info_str = "sync-auth-key";
++  const std::vector<uint8_t> info(info_str.begin(), info_str.end());
++  const auto seed = Seed();
++  std::vector<uint8_t> pub, priv;
++  DeriveSigningKeysFromSeed(std::vector<uint8_t>(seed.begin(), seed.end()),
++                            &salt, &info, &pub, &priv);
++  EXPECT_EQ(base::HexEncode(pub), kChainId);
++}
++
++TEST(AccountCryptoTest, ProofMessageAndSignature) {
++  const ChainKeys keys = ChainKeys::FromSeed(Seed());
++  const auto nonce = Nonce40();
++  EXPECT_EQ(base::HexEncode(BuildProofMessage(
++                "POST", "/cuenta/v1/eventos", "eventos",
++                "0123456789abcdef0123456789abcdef", nonce, "{\"desde\":0}")),
++            base::ToUpperASCII(kProofMessage));
++  const auto sig =
++      keys.SignProof("POST", "/cuenta/v1/eventos", "eventos",
++                     "0123456789abcdef0123456789abcdef", nonce,
++                     "{\"desde\":0}");
++  EXPECT_EQ(base::HexEncode(sig), base::ToUpperASCII(kProofSignature));
++  const auto sig0 = keys.SignProof("POST", "/cuenta/v1/alta/confirmar", "alta",
++                                   "", nonce, "{}");
++  EXPECT_EQ(base::HexEncode(sig0),
++            base::ToUpperASCII(kProofSignatureEmptyAccount));
++  EXPECT_TRUE(Verify(BuildProofMessage("POST", "/cuenta/v1/eventos", "eventos",
++                                       "0123456789abcdef0123456789abcdef",
++                                       nonce, "{\"desde\":0}"),
++                     std::vector<uint8_t>(sig.begin(), sig.end()),
++                     std::vector<uint8_t>(keys.public_key().begin(),
++                                          keys.public_key().end())));
++}
++
++TEST(AccountCryptoTest, ProofDependsOnEveryField) {
++  const ChainKeys keys = ChainKeys::FromSeed(Seed());
++  const auto nonce = Nonce40();
++  const auto base_sig =
++      keys.SignProof("POST", "/cuenta/v1/salir", "salir", "id", nonce, "{}");
++  EXPECT_NE(base_sig,
++            keys.SignProof("PUT", "/cuenta/v1/salir", "salir", "id", nonce,
++                           "{}"));
++  EXPECT_NE(base_sig, keys.SignProof("POST", "/cuenta/v1/salir/", "salir",
++                                     "id", nonce, "{}"));
++  EXPECT_NE(base_sig, keys.SignProof("POST", "/cuenta/v1/salir", "salir2",
++                                     "id", nonce, "{}"));
++  EXPECT_NE(base_sig, keys.SignProof("POST", "/cuenta/v1/salir", "salir",
++                                     "id2", nonce, "{}"));
++  EXPECT_NE(base_sig, keys.SignProof("POST", "/cuenta/v1/salir", "salir", "id",
++                                     nonce, "{} "));
++  // Length prefixes: moving a byte from one field to the next changes M.
++  EXPECT_NE(BuildProofMessage("POST", "/a", "bc", "", nonce, ""),
++            BuildProofMessage("POST", "/ab", "c", "", nonce, ""));
++}
++
++TEST(AccountCryptoTest, Normalization) {
++  EXPECT_EQ(NormalizeEmail(kRawEmail), kEmail);
++  EXPECT_EQ(NormalizeEmail("\xc2\xa0" "A@B.ES\t"), "a@b.es");
++  EXPECT_FALSE(NormalizeEmail("a b@c.es").has_value());
++  EXPECT_FALSE(NormalizeEmail("ab.es").has_value());
++  EXPECT_FALSE(NormalizeEmail("a@@b.es").has_value());
++  EXPECT_FALSE(NormalizeEmail("a@bes").has_value());
++  EXPECT_FALSE(NormalizeEmail("@b.es").has_value());
++  EXPECT_FALSE(NormalizeEmail("a@b.es,c@d.es").has_value());
++  EXPECT_FALSE(NormalizeEmail("a\x01@b.es").has_value());
++  EXPECT_FALSE(NormalizeEmail("\xff@b.es").has_value());
++
++  const std::string password = NormalizePassword(kRawPassword);
++  EXPECT_EQ(base::HexEncode(base::as_byte_span(password)), kPasswordNfcHex);
++  EXPECT_EQ(CountCodePoints(password), 19u);
++  EXPECT_EQ(NormalizePassword("  ascii stays  "), "  ascii stays  ");
++}
++
++TEST(AccountCryptoTest, KeysLowCost) {
++  const auto keys = DeriveAccountKeysWithCostForTesting(
++      NormalizePassword(kRawPassword), kEmail, 1 << 10);
++  ASSERT_TRUE(keys.has_value());
++  EXPECT_EQ(base::HexEncode(keys->login_key.bytes()),
++            base::ToUpperASCII(kKl1024));
++  EXPECT_EQ(base::HexEncode(keys->wrap_key.bytes()),
++            base::ToUpperASCII(kKu1024));
++}
++
++// The real cost: 128 MiB. Also checks that max_mem is enough (§4: with the
++// default 65 MiB EVP_PBE_scrypt fails with EVP_R_MEMORY_LIMIT_EXCEEDED).
++TEST(AccountCryptoTest, KeysRealCost) {
++  const base::TimeTicks start = base::TimeTicks::Now();
++  const auto keys = DeriveAccountKeys(NormalizePassword(kRawPassword), kEmail);
++  LOG(INFO) << "FlyWeb scrypt N=2^17: "
++            << (base::TimeTicks::Now() - start).InMilliseconds() << " ms";
++  ASSERT_TRUE(keys.has_value());
++  EXPECT_EQ(base::HexEncode(keys->login_key.bytes()), base::ToUpperASCII(kKl));
++  EXPECT_EQ(base::HexEncode(keys->wrap_key.bytes()), base::ToUpperASCII(kKu));
++}
++
++TEST(AccountCryptoTest, WrapAndUnwrap) {
++  const std::vector<uint8_t> ku_bytes = FromHex(kKu);
++  const SecretKey ku{base::span<const uint8_t, kKeySize>(ku_bytes)};
++  std::array<uint8_t, kGcmNonceSize> nonce;
++  for (size_t i = 0; i < nonce.size(); ++i) {
++    nonce[i] = static_cast<uint8_t>(i);
++  }
++  const auto seed = Seed();
++  const auto wrapped = WrapSeedWithNonceForTesting(ku, seed, kEmail, nonce);
++  EXPECT_EQ(base::HexEncode(wrapped), base::ToUpperASCII(kWrapped));
++  ASSERT_EQ(wrapped.size(), kWrappedSeedSize);
++
++  auto opened = UnwrapSeed(ku, wrapped, kEmail);
++  ASSERT_TRUE(opened.has_value());
++  EXPECT_TRUE(std::ranges::equal(opened->bytes(), seed));
++
++  // Random nonce: two wraps differ and both open.
++  const auto w1 = WrapSeed(ku, seed, kEmail);
++  const auto w2 = WrapSeed(ku, seed, kEmail);
++  EXPECT_NE(w1, w2);
++  EXPECT_TRUE(UnwrapSeed(ku, w1, kEmail).has_value());
++
++  // P15: a changed wrap, another email, another key or another size: nothing.
++  auto bad = wrapped;
++  bad[20] ^= 1;
++  EXPECT_FALSE(UnwrapSeed(ku, bad, kEmail).has_value());
++  EXPECT_FALSE(UnwrapSeed(ku, wrapped, "otra@example.com").has_value());
++  const std::vector<uint8_t> kl_bytes = FromHex(kKl);
++  const SecretKey kl{base::span<const uint8_t, kKeySize>(kl_bytes)};
++  EXPECT_FALSE(UnwrapSeed(kl, wrapped, kEmail).has_value());
++  EXPECT_FALSE(
++      UnwrapSeed(ku, base::span(wrapped).first(kWrappedSeedSize - 1), kEmail)
++          .has_value());
++}
++
++TEST(AccountCryptoTest, SecretKeyWipesOnMove) {
++  std::array<uint8_t, kKeySize> raw;
++  raw.fill(0xab);
++  SecretKey a(raw);
++  SecretKey b(std::move(a));
++  EXPECT_TRUE(std::ranges::all_of(a.bytes(), [](uint8_t c) { return c == 0; }));
++  EXPECT_TRUE(
++      std::ranges::all_of(b.bytes(), [](uint8_t c) { return c == 0xab; }));
++  std::string s = "secreto";
++  WipeString(s);
++  EXPECT_TRUE(s.empty());
++}
++
++}  // namespace brave_sync::crypto::account
+diff --git a/test/BUILD.gn b/test/BUILD.gn
+index 3fcc352..b5d25a0 100644
+--- a/test/BUILD.gn
++++ b/test/BUILD.gn
+@@ -100,6 +100,7 @@ test("brave_unit_tests") {
+     "//brave/components/brave_perf_predictor/browser/named_third_party_registry_unittest.cc",
+     "//brave/components/brave_search/browser/brave_search_default_host_unittest.cc",
+     "//brave/components/brave_search/browser/brave_search_fallback_host_unittest.cc",
++    "//brave/components/brave_sync/crypto/account_crypto_unittest.cc",
+     "//brave/components/brave_sync/crypto/crypto_unittest.cc",
+     "//brave/components/content_settings/core/browser/brave_content_settings_pref_provider_unittest.cc",
+     "//brave/components/content_settings/core/browser/brave_content_settings_utils_unittest.cc",
+-- 
+2.43.0
+

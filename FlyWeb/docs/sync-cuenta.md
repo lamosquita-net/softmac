@@ -689,6 +689,54 @@ programado`.
 - **Pruebas:** `go test -race` con los casos de §12 en HTTP contra SQLite; `pruebas/go-sync.sh` sigue pasando (nada de
   go-sync se toca); y, en ns2, siempre desde el propio servidor con `curl --resolve ...:127.0.0.1` (regla de la casa).
 
+### 10.1 Decisiones de H2 [C: COORDINACIÓN-41, 13-11]
+
+Huecos que el diseño dejaba abiertos al escribir el código de H2 (SYNC-NUBE-1, PR #977). Los propuso SYNC-NUBE-1 y
+los decidió COORDINACIÓN-41 con el criterio de la «Simplificación»; ninguno era de Titín. **[C]** = decisión de
+COORDINACIÓN. Detalle del protocolo: `servidor/sync/cuenta/README.md`.
+
+| # | Hueco | Decisión |
+|---|---|---|
+| 1 | Cómo se prueba el buzón en `cuenta/borrar-por-email` y `cuenta/empezar-de-cero` (§6.4) | **Dos pasos:** pedir con el email (código al buzón, respuesta igual exista o no la cuenta, cupo (2): 60/h global y 5/h por cuenta) y confirmar con el código. «Empezar de cero» confirma además con la prueba de la cadena **nueva** (cuenta vacía), `KL` y envoltura nuevas, que se guardan hasta el día 14 para religar la cuenta a la cadena nueva |
+| 2 | Plazo de los eventos (§7 no lo daba) | **30 días**, cifrados con la clave AES (llevan nombres de Mac) |
+| 3 | `alta` a un email que ya tiene cuenta | Respuesta falsa idéntica y **sin correo** (un aviso sin cupo serviría para llenar buzones) |
+| 4 | Cómo se entrega el correo | **SMTP al MTA local** (`FLYWEB_SYNC_SMTP`, por defecto `127.0.0.1:25`), detrás de una interfaz. SERVIDOR-LOCAL confirma MTA, SPF y DKIM al instalar. Textos solo en español, en un único fichero (`textos.go`) |
+| 5 | Cambio de email a una dirección que usa otra cuenta | **Error explícito** (`email-ocupado`), después de gastar cupo (3): quien pregunta tiene cadena y contraseña |
+| 6 | Dónde viven códigos, cupos y correo pendiente | **En memoria**, con el límite escrito: un reinicio los pierde. Los avisos se intentan enviar **en el momento**; solo se guarda para reintentar lo que el MTA rechaza |
+| 7 | Valores que §10 deja a SERVIDOR sin nombre | Variables `FLYWEB_SYNC_SCRYPT_COLA` (longitud de la cola) y `FLYWEB_SYNC_ESPERAS_MAX` (tamaño de la tabla, 90 000); credenciales `cuenta-hmac` y `cuenta-aes`, una línea «versión clave_hex» por versión. Ningún valor de ns2 en el repo |
+| 8 | Qué hace el binario sin credenciales | `/cuenta/v1` **no se monta**: `flyweb-sync` se comporta como antes de la 3.2 |
+| 9 | ¿«Salir en este Mac» avisa? | **Sí**, como «aparato quitado» (correo y evento) |
+| 10 | Forma de la prueba de cadena (§3.1) | **En cabeceras**; la firma cubre también el **método y la ruta completa** además de op, cuenta, nonce y cuerpo: `"flyweb-cuenta-v1" ‖ método ‖ ruta ‖ op ‖ cuenta_id ‖ nonce ‖ SHA-256(cuerpo)`, campos con prefijo de longitud. Nonce de un solo uso con caducidad de 5 min y los usados apuntados en memoria hasta caducar. `cuenta_id` vacío en `alta/confirmar` y `empezar-de-cero/confirmar`. `alta/confirmar` lleva modelo y nombre del Mac (hacen falta para su token) |
+
+Añadido de SYNC-NUBE-1 al escribir el código, **para que lo revise SEGURIDAD-PORTES**: las solicitudes de código
+falsas se piden gratis (`alta`, `borrar-por-email`). Si al llenarse la tabla se descartaran, el ritmo de 10 s diría
+si una solicitud era verdadera, es decir, si la contraseña era buena. Por eso una falsa solo se descarta cuando ya ha
+cumplido sus 10 s, y con la tabla de falsas llena **todas** las comprobaciones de código contestan «ocupado»,
+verdaderas o no (`solicitudes.go`).
+
+Decididas después [C] (11 y 12; S1–S3, pedidas por MOTOR-46 para el cliente):
+
+| # | Hueco | Decisión |
+|---|---|---|
+| 11 | Cómo entra en la lista de aparatos un Mac unido con las 24 palabras | Con `aparatos/renovar` y la prueba de cadena, dando modelo y nombre; **avisa** como «Mac añadido» |
+| 12 | Una cuenta cuya cadena se desactiva por el protocolo de sync (borrado desde una 3.0.x, o la regla de inactivas) | Se borra, pero con el **borrado normal de 14 días** y su aviso por correo y evento, no al momento. Un Mac lo cancela (y con la contraseña puede cambiar a una cadena nueva); tras cancelarlo no se reprograma en 30 días |
+| S1 | Un Mac unido con las 24 palabras, o que ya estaba en la cadena cuando otro creó la cuenta, no conoce el `cuenta_id` (pedido por MOTOR-46 para H3) | Para `eventos` y `aparatos-renovar`, si la firma con la cuenta falla, vale la firma con **cuenta vacía**; la cuenta la fija la cadena (1:1). `eventos` devuelve `cuenta`. Las demás operaciones siguen exigiendo la cuenta |
+| S2 | Esos Macs no saben el email y sin él no pueden estirar la contraseña para cambiarla, ni cambiar el email o la clave (§6.1) | `eventos` devuelve `email`, **solo con prueba de cadena**, nunca con el token: §14 cuenta con que quien ve tráfico descifrado se lleve tokens, y un token solo debe dar eventos y lista de aparatos |
+| S3 | El cliente no debe preguntarse «¿Has sido tú?» por lo que ha hecho él mismo | Cada evento lleva `datos.aparato` con el autor **solo si está verificado**: el aparato del token Bearer que acompaña a la llamada (de esa cuenta), el que recibe token nuevo en `contrasena/cambiar` y `cadena/cambiar` (pasan por código o contraseña), y el nuevo en `mac-anadido` y `cadena-ligada`. **Nunca el `aparato` del cuerpo**: un Mac robado podría dar el id del Mac del dueño, y este callaría el aviso que es la defensa de N1/N4 |
+
+**Revisión de SEGURIDAD-PORTES-23** sobre `cbe0221` (#977, comentario 6865447630): apto con condiciones. Cómo
+quedan [C: COORDINACIÓN-41]:
+
+| | Hallazgo | Cómo queda |
+|---|---|---|
+| C1 | S3 se falsificaba: con la cadena, `aparatos/renovar`, `contrasena/cambiar` y `cadena/cambiar` daban token (y autoría) al aparato que llegaba en el cuerpo | **Secreto por aparato** (32 bytes; el servidor guarda su SHA-256). Se da al crear el aparato y se exige para dar token a uno que ya existe o atribuirle la operación; sin él, la operación se hace sin token ni autor. En `alta/confirmar` repetida se da un secreto nuevo. Pruebas `TestSeg23SuplantarAutor`, `…SecretoEnCambios`, `…AltaRepetida` |
+| C2 | Los eventos se numeraban con `MAX(n)+1`: al caducar los viejos la numeración volvía a empezar y los Macs no veían los nuevos | Contador monótono por cuenta (`cuentas.eventos_n`) en la misma transacción. Prueba `TestSeg23NumeracionEventos` |
+| C3 | Tamaño de la tabla de esperas | **Requisito de instalación (SERVIDOR-LOCAL):** `FLYWEB_SYNC_ESPERAS_MAX ≥ 1800 × scrypt/s medidos en ns2`, y sumarlo a `MemoryMax` (~150 B por entrada). Escrito en `servidor/sync/cuenta/README.md` |
+| C4 | `gastar` recorría el mapa de nonces con el cerrojo tomado (DoS barato) | Cola por orden de gasto, purgada por delante. Prueba `TestSeg23NoncesPurga` |
+| O1 | Las solicitudes falsas sin scrypt podían llenar la tabla y dejar todos los códigos en «ocupado» | **Aplicada:** el ritmo va en una tabla fija común (casilla `HMAC(id) mod M`, 1 M de casillas, 8 MiB). Las falsas no se guardan; una colisión da una espera de más, igual para todas; ya no hay «ocupado» por códigos. Prueba `TestRitmoEnTablaFija` |
+| O2 | En `entrar/empezar`, una contraseña mala sobre una cuenta existente escribe en la base y un email sin cuenta no | **Anotada**, sin cambio: las respuestas son iguales; igualar el tiempo pediría escrituras de relleno |
+| O3 | `inactivas()` consultaba go-sync por cuenta cada minuto | **Aplicada:** una vez por hora |
+
 ## 11. Cliente
 
 - **Página:** la de Sincronización de hoy (`flyweb://settings/braveSync`) pasa a llamarse «Cuenta y sincronización» y
