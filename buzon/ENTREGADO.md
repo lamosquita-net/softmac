@@ -807,3 +807,4 @@ buzon/LOCAL/20261114-1340-COORDINACION-43-relevo.md → Compilación Local (19) 
 buzon/CARTERO-LOCAL/20261114-1340-COORDINACION-43-relevo.md → Cartero (yo) · 2026-11-14 13:39 UTC · sin reenvío: copia propia; el relevo lo marca COORDINACIÓN, Titín no quiere que se le pregunte
 buzon/LOCAL/20261114-1722-COORDINACION-43-312-estado.md → Compilación Local (19) [924c24] · 2026-11-14 17:22 UTC · entregado (COORDINACIÓN-43)
 buzon/PUBLICACION/20261114-1950-COORDINACION-43-publicar-312.md → Publicación [4dd99b] · 2026-11-14 18:56 UTC · entregado (COORDINACIÓN-43)
+buzon/PUBLICACION/20261114-1958-COORDINACION-43-nota-312.md → Publicación [4dd99b] · 2026-11-14 18:58 UTC · entregado (COORDINACIÓN-43)
