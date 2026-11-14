@@ -96,7 +96,17 @@ ni `chromium_src/…` en brave-core. Ninguno toca red, TLS ni cabeceras: basta l
    - Por cada CVE que afecte a la 156, buscar el `[M158]` en la rama 8127 y el commit original en `main`.
 2. **Rama 8078 y V8 15.6.** `ls-remote` de los tags `156.0.8078.*` (¿hay .106 o más?) y `15.6.75.*` (¿vuelve
    576333024?). Lo nuevo entra con `cherry-pick -x` y el mismo `patch-id`.
-3. **Dawn** de la .105 (arriba) y **KEV** del día.
+3. **Dawn** de la .105 y **KEV** del día. Dawn, revisado por LOCAL-19 en `chromium/8078` el 14-11 (COORDINACIÓN-42).
+   Nuestro fork `31316d1c` no tiene los tres commits posteriores a `8ce9806ee`. Decisión (SEGURIDAD-PORTES-23):
+   - **Entra 68b5c1f3f**, «[wgsl] Fix minBindingSize propagations» (584579013; cherry-pick de 98912a81). Es Tint y vale
+     para todas las plataformas. En 10.14 y 10.15 WebGPU está apagado, pero en Monterey («debería funcionar») no. Aplica
+     limpio.
+   - **Entra 8bc8ddaf2**, «[vulkan] Reset the recording context in Queue::DestroyImpl» (un UAF). En Mac no se usa Vulkan:
+     va por fidelidad con la rama, porque aplica limpio y no cambia nada de lo que se ejecuta.
+   - **Fuera f5ba7dc9e** (sube DXC, que es de D3D12/Windows).
+   - Se aplican sobre `31316d1c` con `cherry-pick -x` y el mismo `patch-id`, y el gitlink y el `DEPS` de Dawn van al
+     commit resultante en el mismo parche que fija ANGLE y FFmpeg (paso 4). Antes hay que subirlo a un remoto que
+     `gclient` pueda bajar.
 4. **Serie chromium** sobre el árbol final de la 3.1.2 (`8abc877c10`), con el cruce con `patches/` de brave-core
    antes de cerrar (la trampa de `navigation_request.cc` de la 3.1.1).
    - El primer parche fija los gitlinks y el `DEPS` de lo que se compila de verdad:
