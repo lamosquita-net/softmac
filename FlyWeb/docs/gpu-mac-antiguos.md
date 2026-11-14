@@ -10,6 +10,7 @@ LOCAL-19 (buzón `20261113-2300`: §6.5, y dos correcciones mías en §6.1 y §6
 **Actualizado el 14-11** con el resultado de la compilación preliminar de LOCAL-19 (buzón `20261114-1140`): conclusión
 10 y §7, que incluye la pregunta de SEGURIDAD sobre el cambio de GPU (§7.5). Las medidas son suyas; yo sigo sin
 compilar ni lanzar nada. Lo escrito antes del 14-11 se deja como estaba: donde la medida lo supera, lo dice §7.
+El mismo 14-11, segunda pasada: LOCAL-19 aclara que la prueba de reposo no vale (§7.3).
 
 Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** suposición sin comprobar.
 
@@ -46,8 +47,8 @@ Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** sup
     En la 6,1 Metal sigue por defecto y no cambia. El MacBook Pro de 2012 elige OpenGL solo: WebGL vuelve, Aquarium va
     como la 2.7.0 o mejor y MotionMark no pierde frente al software (731 frente a 733). SEGURIDAD ha dado apto y ha
     cerrado sus pruebas (#985). **Mantengo el veredicto y no hace falta una 3.1.3.** Con dos reparos (§7.3 y §7.4):
-    **la prueba de reposo no deja rastro en los registros que he abierto** y pido repetirla antes de cerrar el
-    contenido; y el monitor externo y el Air de 2013 siguen sin probar. Además, con la NVIDIA activa el canvas 2D va
+    **la prueba de reposo no vale** (el Mac durmió 2 segundos; LOCAL-19 lo ha confirmado y ha corregido su informe)
+    y hay que repetirla antes de cerrar el contenido; y el monitor externo y el Air de 2013 siguen sin probar. Además, con la NVIDIA activa el canvas 2D va
     por software, por una entrada de la lista de Chromium, no por el parche.
 
 ## 2. Qué pasa exactamente
@@ -457,14 +458,20 @@ cero denegaciones del sandbox con Metal y con GL.
    - `registro.jsonl` (fps, contextos perdidos, GPU activa) termina a las 11:30:42;
    - el muestreo de CPU, cada 5 s, va de las 11:23:43 a las 11:34:05 con **119 muestras y ningún hueco mayor de 6 s**.
      Un Mac dormido no muestrea: si hubiera dormido medio minuto dentro de esa ventana, habría un hueco [I].
-   - Caben tres explicaciones y no sé cuál es [S]: que solo se apagara la pantalla, que durmiera unos segundos, o
-     que la prueba se hiciera después de las 11:34 y se comprobara a ojo.
+   - **Aclarado por LOCAL-19 el mismo 14-11** (mensaje directo y corrección de las 11:55 en su informe del buzón):
+     según `pmset -g log` del portátil, el reposo fue real pero duró **2 segundos** («Software Sleep» a las 11:30:59,
+     despierto a las 11:31:01 por actividad del teclado o el ratón). Por eso no hay hueco en un muestreo de 5 s. El
+     registro se había colgado antes, a las 11:30:42. FlyWeb seguía bien a las 11:31:48 (60 fps, cero contextos
+     perdidos, cero caídas, por CDP). **La prueba queda como «no válida, a repetir»:** 2 segundos no apagan la GPU ni
+     ejercitan la pérdida de dispositivo. El mismo registro anota «NVDA driver is slow (SetState) 1701 ms»: la
+     NVIDIA estaba encendida, lo que cuadra con el punto 3 [I].
    - **Lo que sí consta** [V]: el proceso de GPU es el mismo (un solo identificador) en las 119 muestras; no se
      reinició.
-   - **Pido que se repita antes de cerrar el contenido:** tapa cerrada cinco minutos o más, con el muestreo en
+   - **Hay que repetirla antes de cerrar el contenido:** tapa cerrada cinco minutos o más, con el muestreo en
      marcha, y `pmset -g log` filtrado por «Sleep» y «Wake» como prueba de que durmió. No cuesta compilación. Es la
      única de las tres pruebas de G-C2 que ejercita lo que ANGLE quitó (`testDeviceLost`), y SEGURIDAD la dio por
-     cerrada con este dato.
+     cerrada con el dato anterior: **G-C2 no está cerrada en lo que toca al reposo.** LOCAL-19 espera la orden de
+     COORDINACIÓN.
 3. **El cambio de GPU en caliente sí consta, a medias.** En las muestras de las 11:29:10 a las 11:30:18, FlyWeb sigue
    en la Intel a 60 fps y con cero contextos perdidos [V]. Que la pantalla pasara a la NVIDIA lo dice el informe; en
    los ficheros que he abierto no lo veo.
@@ -473,7 +480,7 @@ cero denegaciones del sandbox con Metal y con GL.
 
 | Qué | Estado | Mi lectura |
 |---|---|---|
-| Reposo en el MacBook Pro | Hecho según el informe; sin rastro (§7.3) | Repetir antes de cerrar el contenido |
+| Reposo en el MacBook Pro | **No válida:** durmió 2 segundos (§7.3) | Repetir antes de cerrar el contenido |
 | Monitor externo en el MacBook Pro | Sin probar (falta adaptador). SEGURIDAD lo pasa a después de publicar | De acuerdo en que no bloquea. En ese portátil las salidas de vídeo cuelgan de la tarjeta dedicada [S: de memoria], así que conectar un monitor fuerza el mismo cambio ya probado; lo nuevo es la segunda pantalla. Si falla es pantalla en negro, no seguridad |
 | Air de 2013 con Mojave (HD 5000) y mini de 2012 | Sin probar | El mini lleva la misma HD 4000 con el mismo sistema [I]. **El Air es el único caso de Mojave con Intel**, y la HD 5000 no se ha probado con nada. Si no se puede antes de publicar, que la nota de la versión lo diga |
 | Mac Pro 5,1 | Sin probar con la preliminar | No debería cambiar: Metal, como la 6,1 [I]. Entra en la batería de la candidata |
