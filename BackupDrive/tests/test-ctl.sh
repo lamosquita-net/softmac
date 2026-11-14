@@ -199,13 +199,18 @@ found=""; for f in "$vmac"sub/a-*.tar.gz; do [ "$(cat "$f" 2>/dev/null)" = s2 ] 
 
 # --- Conflictos: f4.txt cambió en los dos lados (sección del plan) y bisync dejó las dos copias ---
 expect 0 "lista de conflictos" conflicts list "$MAC"
-out_has '"path":"f4.conflict1.txt","original":"f4.txt","side":"mac"' "conflicto: copia del Mac"
-out_has '"path":"f4.conflict2.txt","original":"f4.txt","side":"drive"' "conflicto: copia de Drive"
+out_has '"path":"f4.conflicto-mac1.txt","original":"f4.txt","side":"mac"' "conflicto: copia del Mac"
+out_has '"path":"f4.conflicto-drive1.txt","original":"f4.txt","side":"drive"' "conflicto: copia de Drive"
 ctl profile list
 out_has '"conflicts":2' "profile list cuenta las copias en conflicto"
+# Copias antiguas («nombre.conflictN»): se reconocen, sin adivinar el lado por el número (bisync lo desplaza).
+echo viejo > "$MAC/g.conflict2.txt"
+ctl conflicts list "$MAC"
+out_has '"path":"g.conflict2.txt","original":"g.txt","side":"?"' "copia antigua: sin lado"
+rm -f "$MAC/g.conflict2.txt"
 expect 6 "keep de algo que no es una copia en conflicto" conflicts keep "$MAC" f2.txt
 expect 6 "keep de una copia que no existe" conflicts keep "$MAC" nada.conflict1.txt
-expect 0 "quedarse con la copia de Drive" conflicts keep "$MAC" f4.conflict2.txt
+expect 0 "quedarse con la copia de Drive" conflicts keep "$MAC" f4.conflicto-drive1.txt
 [ "$(cat "$MAC/f4.txt")" = f4-drive ] && ok "f4.txt es la copia de Drive" || fail "f4.txt: $(cat "$MAC/f4.txt" 2>/dev/null)"
 ls "$MAC"/f4.conflict* >/dev/null 2>&1 && fail "quedan copias en conflicto en el Mac" || ok "sin copias en conflicto en el Mac"
 found=""; for f in "$vmac"f4-*.txt; do [ "$(cat "$f" 2>/dev/null)" = f4-mac ] && found=1; done
@@ -216,13 +221,25 @@ sync_
 [ "$(sed -n 's/.*"result":"\([a-z-]*\)","exit".*/\1/p' "$APP/status.json" | head -1)" = blocked ] \
   && ok "en una carpeta pequeña, resolver un conflicto activa el freno" || fail "sin freno: $(cat "$APP/status.json")"
 expect 0 "plan de una pasada frenada (sin simular aparte)" plan "$MAC"
-out_has '"deleted":["f4.conflict1.txt"' "el plan de la pasada frenada enseña los borrados"
+out_has '"deleted":["f4.conflicto-drive1.txt","f4.conflicto-mac1.txt"]' "el plan de la pasada frenada enseña los borrados"
 sync_ --force
 [ "$(cat "$D/f4.txt" 2>/dev/null)" = f4-drive ] && ok "Drive queda con f4.txt elegido" || fail "Drive f4.txt: $(cat "$D/f4.txt" 2>/dev/null)"
 ls "$D"/f4.conflict* >/dev/null 2>&1 && fail "quedan copias en conflicto en Drive" || ok "Drive sin copias en conflicto"
 ls "$D (versiones)"/f4.conflict* >/dev/null 2>&1 && ok "las copias de Drive van a versiones de Drive" || fail "copias de Drive perdidas"
 ctl conflicts list "$MAC"
 [ "$(cat "$T/out")" = "[]" ] && ok "lista de conflictos vacía" || fail "conflictos: $(cat "$T/out")"
+# Fallo 10 de la 6,1: con una copia anterior aún presente, bisync desplaza el número; el lado sale del nombre.
+echo viejo > "$D/f5.conflicto-drive1.txt"
+sync_ --force
+echo f5-mac > "$MAC/f5.txt"; echo f5-drive-nuevo > "$D/f5.txt"
+sync_ --force
+ctl conflicts list "$MAC"
+bad=0
+for pair in $(tr '{' '\n' < "$T/out" | sed -n 's/.*"path":"\(f5[^"]*\)".*"side":"\([a-z?]*\)".*/\1:\2/p'); do
+  f=${pair%%:*}; sd=${pair##*:}; c=$(cat "$MAC/$f" 2>/dev/null)
+  case "$sd:$c" in mac:f5-mac|drive:f5-drive-nuevo|drive:viejo) ;; *) bad=1; echo "  $f lado $sd contiene «$c»" ;; esac
+done
+[ "$bad" = 0 ] && grep -q '"side":"mac"' "$T/out" && ok "con una copia anterior, cada copia lleva su lado" || fail "lados de f5: $(cat "$T/out")"
 
 echo "$((n - fails))/$n correctas"
 [ "$fails" -eq 0 ]

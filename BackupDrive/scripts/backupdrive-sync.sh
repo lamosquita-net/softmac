@@ -234,7 +234,7 @@ sync_profile() { # local remote días % nº
   # Mismos ajustes en todas las pasadas; la carpeta de versiones de Drive nunca está dentro de la sincronizada.
   set -- --config "$CONF" bisync "$ldir" "$rem" --workdir "$BISYNC_DIR" \
     --compare size,modtime,checksum --slow-hash-sync-only --create-empty-src-dirs \
-    --resilient --recover --max-lock 2h --max-delete "$MAX_DELETE" --conflict-resolve none \
+    --resilient --recover --max-lock 2h --max-delete "$MAX_DELETE" --conflict-resolve none --conflict-suffix conflicto-mac,conflicto-drive \
     --backup-dir1 "$vm" --backup-dir2 "$vr" --suffix "-$stamp" --suffix-keep-extension \
     --drive-skip-gdocs --links --log-level INFO
   [ -f "$FILTERS" ] && set -- "$@" --filters-file "$FILTERS"
