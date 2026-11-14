@@ -809,3 +809,5 @@ buzon/LOCAL/20261114-1722-COORDINACION-43-312-estado.md → Compilación Local (
 buzon/PUBLICACION/20261114-1950-COORDINACION-43-publicar-312.md → Publicación [4dd99b] · 2026-11-14 18:56 UTC · entregado (COORDINACIÓN-43)
 buzon/PUBLICACION/20261114-1958-COORDINACION-43-nota-312.md → Publicación [4dd99b] · 2026-11-14 18:58 UTC · entregado (COORDINACIÓN-43)
 buzon/LOCAL/20261114-1940-COORDINACION-43-sync-ya.md → Compilación Local (19) [924c24] · 2026-11-14 19:31 UTC · entregado (COORDINACIÓN-43)
+buzon/SERVIDOR-LOCAL/20261114-1950-COORDINACION-43-correo-spam.md → Servidor Local (2) [853e0b] · 2026-11-14 19:42 UTC · entregado (COORDINACIÓN-43)
+buzon/SERVIDOR-LOCAL/20261114-1955-COORDINACION-43-copia-texto.md → Servidor Local (2) [853e0b] · 2026-11-14 19:42 UTC · entregado (COORDINACIÓN-43)
