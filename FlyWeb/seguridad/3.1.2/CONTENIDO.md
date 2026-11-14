@@ -1,4 +1,4 @@
-# FlyWeb 3.1.2: contenido (borrador, faltan la 158 y G-C2)
+# FlyWeb 3.1.2: contenido (borrador, falta la 158)
 
 SEGURIDAD-PORTES-23, 13-11-2026. Es la directiva «3.1.2 antes de la 3.2.0» (Titín, 13-11 noche; COORDINACIÓN-41): una
 versión **solo de seguridad** con la V8 de la rama, el delta de la 158 (estable el 17-11) y el KEV. Fuera queda todo lo
@@ -136,6 +136,17 @@ no hace falta otra regla 17. Queda G-C2 en el 9,1: cambio de GPU, reposo y monit
   - la A de LOCAL (Mac Pro con `angle=metal`, sin cambios);
   - en el MacBookPro9,1, el **cambio automático de GPU** (HD 4000 ↔ GT 650M), dormir y conectar un monitor, sin caídas
     ni pantalla negra. Si falla, ARQUITECTURA decide entre fijar la GPU dedicada en GL o devolver `prepareForCall`.
+  - **Resultado (14-11, LOCAL-19, `buzon/ARQUITECTURA/20261114-1140-LOCAL-19-gl-preliminar-resultados.md`): G-C2
+    CERRADA (SEGURIDAD-PORTES-23).**
+    - Cambio de GPU en caliente, de la Intel a la NVIDIA: sin pérdida de contexto, 60 fps y el vídeo sigue. FlyWeb se
+      queda en la Intel, con la pantalla en la NVIDIA: sin el aviso de cambio de GPU, el contexto no migra, pero
+      funciona.
+    - Dormir y despertar: sin pérdida de contexto.
+    - 0 caídas, 0 minidumps y 0 denegaciones del sandbox. Ninguno de los errores de GL buscados.
+    - **El monitor externo no se probó** (faltaba el adaptador). Pasa a **prueba después de publicar**: en el 9,1,
+      conectar un monitor fuerza la NVIDIA, que es el mismo tipo de evento que el cambio de GPU que ya ha pasado. Si
+      falla, el riesgo es de estabilidad (pantalla en negro o caída del proceso de GPU, que se reinicia), no de
+      seguridad, y el arreglo va en una 3.1.x. No bloquea.
 - **G-C3.** Desde la 3.1.2, las tandas de seguridad (y SEGURIDAD-VIGÍA) tratan como **aplicables en Mac**
   `renderer/gl/` y `renderer/gl/cgl/` de ANGLE. Hasta ahora se descartaban: eran código muerto.
 - **Opcional:** que los *traits* del 0003 acepten solo `0`, `GL_TEXTURE_2D` y `GL_TEXTURE_RECTANGLE_ARB`.
