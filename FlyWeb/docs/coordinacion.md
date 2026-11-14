@@ -53,8 +53,8 @@ SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS` (le mandé la base 3.1.1 por
 hacia ellas: LOCAL-19, SERVIDOR-LOCAL-3, ARQUITECTURA (veredicto GL firme; estudio #995–#997).
 
 **Pendiente de Titín:** dirección de prueba a SERVIDOR-LOCAL; cómo recoge bak; borrar o `viejas/`; opinión de las capturas
-de la sync; diseño del lunes; firma en bak de la 3.1.2; posible «MacJulia»/«julia» en la rama buzon (le pregunté si es
-nombre de persona; sin respuesta).
+de la sync; diseño del lunes; firma en bak de la 3.1.2; si un nombre de máquina que usa LOCAL-19 en la rama buzon es de
+una persona (le pregunté; sin respuesta; no repetirlo en el repo).
 
 **Lecciones.** Una prueba «pasada» sin rastro en los registros no vale (reposo de 2 s): cruzar horas con pmset. Revisar
 que los gitlinks reflejen lo publicado.
