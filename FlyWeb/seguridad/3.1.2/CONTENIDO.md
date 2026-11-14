@@ -71,6 +71,11 @@ Parches de ARQUITECTURA: `FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005 (#982, f
 el ANGLE de su `DEPS` (`f10470c77e`, rama `chromium/8078`). **Veredicto: APTO con condiciones (G-C1 a G-C3).** Solo
 entra si la preliminar de LOCAL sale bien; lo decide Titín.
 
+**Estado (14-11, COORDINACIÓN-42): candidato, con dos condiciones**: G-C2 y el veredicto de ARQUITECTURA. La preliminar
+de LOCAL-19 (`local/311-gl-reserva`) pinta: en la 6,1 con `--use-angle=gl` y en el MacBookPro9,1, que elige
+`angle=opengl` por sí solo, hay 0 caídas, 0 minidumps y 0 denegaciones del sandbox. **No se toca el sandbox**, así que
+no hace falta otra regla 17. Queda G-C2 en el 9,1: cambio de GPU, reposo y monitor externo (en medida).
+
 ### Selección: ¿se puede forzar GL donde Metal funciona?
 - **Por defecto, no.** Con el 0001, `GetEGLInitDisplays` prueba METAL primero, y OPENGL y OPENGLES solo si la pantalla de
   Metal no se inicia. En la 6,1 y la 5,1 nada cambia (la prueba A de LOCAL lo confirma).
@@ -137,7 +142,7 @@ entra si la preliminar de LOCAL sale bien; lo decide Titín.
 | Paso | Qué | Árbol tras el paso |
 |---|---|---|
 | chromium 1 | `chromium/` 0001–00NN: delta de la 158, y lo nuevo de la 8078 y la 15.6 si lo hay | (17-11) |
-| chromium 2 | Candidato: respaldo GL de ANGLE (ARQUITECTURA), si el informe sale bien y pasa la revisión | (pendiente) |
+| chromium 2 | Candidato: [`../../parches/3.1.2-gl-reserva/`](../../parches/3.1.2-gl-reserva/) 0001–0005, sobre el paso 1 (si G-C2 sale bien y ARQUITECTURA da su veredicto) | (pendiente) |
 | brave-core 1 | `brave-core/` 0001: `flyweb_version` 3.1.2 | `78684355db` |
 | brave-core 2 | `package.json` con la etiqueta de `chrome/VERSION`, si cambia (como 59680cc en la 3.1.1) | (LOCAL) |
 
