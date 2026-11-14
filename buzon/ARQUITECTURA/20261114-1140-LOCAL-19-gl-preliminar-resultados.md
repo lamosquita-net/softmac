@@ -49,6 +49,26 @@ Aquarium 1000 (WebGL activo) y YouTube abiertos en ventanas propias; muestreo ca
 Nota: con FlyWeb arrancada en la NVIDIA, volver a marcar el cambio automático no devuelve el sistema a la Intel
 (macOS no quita la discreta a una app que la usa; igual que con la 2.7.0). No es un fallo.
 
+## Reposo repetido (orden de COORDINACIÓN-42, 14-11), con muestreo que sobrevive al reposo
+
+FlyWeb y el muestreo de procesos (cada 5 s, con hora Unix) lanzados con nohup en el propio MacBookPro9,1; conductor CDP en la
+7,1 con túnel que se reconecta y se vuelve a enganchar a las pestañas. En Aquarium, contador de `webglcontextlost/restored`
+y del hueco máximo entre `requestAnimationFrame`. Carpetas `julia/gc2r-gt650m` y `julia/gc2r-hd4000` (con `pmset-sleep-wake.txt`).
+
+| | GT 650M | **HD 4000** (cambio automático activo) |
+|---|---|---|
+| reposo (`pmset -g log`) | Clamshell Sleep 11:49:36 → Wake (LidOpen) 11:54:43 = **5 min 7 s**, con dos DarkWake de mantenimiento (11:49:50, 11:51:44) | Idle Sleep 12:38:30 → Wake (HID) 12:47:37 = **9 min 7 s seguidos** |
+| hueco en el muestreo de la máquina | 76 s y 135 s (entre los DarkWake) | **547 s** (12:38:33 → 12:47:40) |
+| hueco máximo de rAF en Aquarium | 108 s | 481 s |
+| contexto WebGL perdido / restaurado | 0 / 0 | 0 / 0 |
+| fps al despertar | 60 | 60 |
+| GPU tras despertar | GT 650M, angle=opengl | HD 4000, angle=opengl |
+| «GPU process crash count» / DiagnosticReports | 0 / 0 | 0 / 0 |
+| vídeo | se reanuda (49 s reproducidos tras despertar, 2 perdidos) | en pausa desde antes del reposo (anuncio de YouTube); no evaluable |
+
+Conclusión (datos): con la cola CGL de la 156 (sin `testDeviceLost`), un reposo real de 5–9 min con WebGL activo no pierde el
+contexto ni tira el proceso de GPU en ninguna de las dos gráficas. La prueba de 11:31 (2 s) queda sustituida por esta.
+
 ## Salida de error (todas las tandas, 6,1 y MacBookPro9,1)
 
 - **0** «eglBindTexImage requires 2D», **0** «uninitialized SharedImage», **0** BeginRasterCHROMIUM fallido.
@@ -60,7 +80,7 @@ Nota: con FlyWeb arrancada en la NVIDIA, volver a marcar el cambio automático n
 
 ## Pendiente
 
-- **Repetir el reposo** (tapa cerrada 5 min o más, muestreo en marcha y `pmset -g log`), cuando lo ordene COORDINACIÓN. Nota: el registro del conductor se colgó a las 11:30:42, antes del reposo (el muestreo de CPU de la máquina siguió sin huecos); en la repetición, el conductor reconectará por su cuenta.
+- ~~Repetir el reposo~~: hecho (ver «Reposo repetido»). Nota: el registro del conductor se colgó a las 11:30:42, antes del reposo (el muestreo de CPU de la máquina siguió sin huecos); en la repetición, el conductor reconectará por su cuenta.
 
 - Monitor externo en el MacBookPro9,1 (falta adaptador).
 - Prueba D (Air de 2013, mini de 2012), si Titín puede.
