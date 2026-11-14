@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: "SEGURIDAD-PORTES-23 (Claude)" <noreply@anthropic.com>
+Date: Sat, 14 Nov 2026 13:22:28 +0000
+Subject: [PATCH] [3.1.2] build: chrome project tag 156.0.8078.105
+
+---
+ package.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/package.json b/package.json
+index 22a0fb0e..aad660bf 100644
+--- a/package.json
++++ b/package.json
+@@ -67,7 +67,7 @@
+     "projects": {
+       "chrome": {
+         "dir": "src",
+-        "tag": "156.0.8078.104",
++        "tag": "156.0.8078.105",
+         "repository": {
+           "url": "https://github.com/brave/chromium"
+         }
+-- 
+2.43.0
+

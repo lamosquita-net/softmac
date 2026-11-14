@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: "SEGURIDAD-PORTES-23 (Claude)" <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 21:35:05 +0000
+Subject: [PATCH] [3.1.2] flyweb_version 3.1.1 -> 3.1.2
+
+Security release on the 3.1.1 base (Chromium 158 security fixes
+backported to 156 and the KEV of the day). Version bump only, in its
+own commit as SEGURIDAD.md asks.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ build/config.gni | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/build/config.gni b/build/config.gni
+index de12372acbadd350617f5599368c91abe44f9d48..8df61287400ce9230f045ebad6eea591b04b1b6e 100644
+--- a/build/config.gni
++++ b/build/config.gni
+@@ -96,7 +96,7 @@ brave_version = "$brave_version_major.$brave_version_minor.$brave_version_build"
+ # 131; 2.N = level 131+N up to 2.7 = level 138). 3.0.0 is the Chromium 156
+ # base, with the native 156 engine; later fixes are 3.0.x. Every release also
+ # raises flyweb_build_number (CFBundleVersion, what Sparkle compares).
+-flyweb_version = "3.1.1"
++flyweb_version = "3.1.2"
+ 
+ # FlyWeb: engine level, the Chrome version whose web platform features are all
+ # in this build (softmac FlyWeb/docs/motor.md). It is the major version
+-- 
+2.43.0
+

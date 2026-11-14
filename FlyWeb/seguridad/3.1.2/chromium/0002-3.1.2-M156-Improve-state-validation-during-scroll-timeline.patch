@@ -1,0 +1,429 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Kevin Ellis <kevers@google.com>
+Date: Fri, 13 Nov 2026 15:08:46 +0000
+Subject: [PATCH 02/10] [3.1.2] [M156] Improve state validation during scroll timeline
+ snapshot updates
+
+Original change's description:
+> Improve state validation during scroll timeline snapshot updates
+>
+> Resolving style-dependent timeline range offsets during snapshot
+> validation constructs an ElementResolveContext, which can synchronously
+> recalculate slot assignments and run callbacks that modify animations,
+> triggers, or layout tree state.
+>
+> Update ScrollSnapshotTimeline::UpdateSnapshotInternal to snapshot
+> triggers and animations into local HeapVectors before iterating and
+> re-verify membership on each step. Update Animation::OnValidateSnapshot
+> to compute range offset updates on local copies and re-check timeline,
+> effect, and range state before applying them, and re-check
+> GetComputedStyle() in TimelineOffset::ResolveLength after constructing
+> ElementResolveContext.
+>
+> Bug: 580851141
+> Change-Id: I0f48cdc590b118912c6fc222ac2abab821c36381
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8756574
+> Commit-Queue: Kevin Ellis <kevers@chromium.org>
+> Reviewed-by: David A <awogbemila@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1739435}
+
+(cherry picked from commit c234bbf5549d11fe9ecdb183e629f795d34ffdc3)
+
+Bug: 584579940,580851141
+Change-Id: I0f48cdc590b118912c6fc222ac2abab821c36381
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8806611
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: Kevin Ellis <kevers@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2204}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+(cherry picked from commit 6eee876a749cdcde02e74fc295ea7bdca1f9e08c)
+---
+ .../renderer/core/animation/animation.cc      |  35 ++-
+ .../animation/scroll_snapshot_timeline.cc     |  19 +-
+ .../core/animation/scroll_timeline_test.cc    | 211 ++++++++++++++++++
+ .../core/animation/timeline_offset.cc         |   5 +
+ 4 files changed, 259 insertions(+), 11 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/animation/animation.cc b/third_party/blink/renderer/core/animation/animation.cc
+index 52eba4f731..62eaaec2e8 100644
+--- a/third_party/blink/renderer/core/animation/animation.cc
++++ b/third_party/blink/renderer/core/animation/animation.cc
+@@ -2961,6 +2961,10 @@ void Animation::UpdateAutoAlignedStartTime() {
+ }
+ 
+ bool Animation::OnValidateSnapshot(bool snapshot_changed) {
++  if (!timeline_) {
++    return true;
++  }
++  AnimationTimeline* initial_timeline = timeline_;
+   bool needs_update = snapshot_changed;
+ 
+   // Track a change in duration and update hold time if required.
+@@ -2990,16 +2994,37 @@ bool Animation::OnValidateSnapshot(bool snapshot_changed) {
+     if (keyframe_effect->target()) {
+       if (style_dependent_range_start_) {
+         DCHECK(range_start_);
+-        range_changed |= range_start_->UpdateOffset(
+-            keyframe_effect->target(), style_dependent_range_start_);
++        TimelineOffset range_start = *range_start_;
++        CSSValue* range_start_css = style_dependent_range_start_;
++        bool updated = range_start.UpdateOffset(keyframe_effect->target(),
++                                                range_start_css);
++        if (timeline_ == initial_timeline && range_start_ &&
++            style_dependent_range_start_ == range_start_css) {
++          range_start_ = range_start;
++          range_changed |= updated;
++        }
+       }
+-      if (style_dependent_range_end_) {
++      // Updating a style-dependent offset may synchronously recalculate slot
++      // assignments and run script that detaches the animation or modifies its
++      // effect or range offsets.
++      if (style_dependent_range_end_ && timeline_ == initial_timeline &&
++          effect() == keyframe_effect && keyframe_effect->target()) {
+         DCHECK(range_end_);
+-        range_changed |= range_end_->UpdateOffset(keyframe_effect->target(),
+-                                                  style_dependent_range_end_);
++        TimelineOffset range_end = *range_end_;
++        CSSValue* range_end_css = style_dependent_range_end_;
++        bool updated =
++            range_end.UpdateOffset(keyframe_effect->target(), range_end_css);
++        if (timeline_ == initial_timeline && range_end_ &&
++            style_dependent_range_end_ == range_end_css) {
++          range_end_ = range_end;
++          range_changed |= updated;
++        }
+       }
+     }
+   }
++  if (timeline_ != initial_timeline) {
++    return true;
++  }
+ 
+   bool needs_new_start_time = false;
+   switch (CalculateAnimationPlayState()) {
+diff --git a/third_party/blink/renderer/core/animation/scroll_snapshot_timeline.cc b/third_party/blink/renderer/core/animation/scroll_snapshot_timeline.cc
+index 98aaedba9d..e56eccd573 100644
+--- a/third_party/blink/renderer/core/animation/scroll_snapshot_timeline.cc
++++ b/third_party/blink/renderer/core/animation/scroll_snapshot_timeline.cc
+@@ -237,9 +237,10 @@ bool ScrollSnapshotTimeline::UpdateSnapshotInternal(bool service_animations) {
+     SetHasPendingCompositorUpdate(true);
+   }
+ 
+-  const HeapHashSet<WeakMember<Animation>>& animations = GetAnimations();
+-
+   auto should_skip_validation = [service_animations](Animation* animation) {
++    if (!animation->TimelineInternal()) {
++      return true;
++    }
+     // For scroll-driven aimations, we should avoid setting a deferred start
+     // time during the update snapshot phase. Instead wait for the validation
+     // phase post layout. Skipping OnValidateSnapshot here is necessary for not
+@@ -261,7 +262,7 @@ bool ScrollSnapshotTimeline::UpdateSnapshotInternal(bool service_animations) {
+     HeapVector<Member<TimelineTrigger>> triggers(GetTriggers());
+     HeapVector<Member<Animation>> animations_to_validate;
+     for (TimelineTrigger* trigger : triggers) {
+-      if (trigger->Update()) {
++      if (!GetTriggers().Contains(trigger) || trigger->Update()) {
+         continue;
+       }
+       snapshot_changed = true;
+@@ -277,7 +278,7 @@ bool ScrollSnapshotTimeline::UpdateSnapshotInternal(bool service_animations) {
+         }
+         // Avoid superfluous snapshot validation, by skipping the call if it
+         // will be invoked in the loop below.
+-        if (animations.Contains(animation) ||
++        if (GetAnimations().Contains(animation) ||
+             should_skip_validation(animation)) {
+           continue;
+         }
+@@ -287,7 +288,8 @@ bool ScrollSnapshotTimeline::UpdateSnapshotInternal(bool service_animations) {
+     for (Animation* animation : animations_to_validate) {
+       // A later TimelineTrigger::Update or earlier OnValidateSnapshot call may
+       // have cancelled `animation` and disassociated it from its trigger.
+-      if (animation->GetTriggers().empty()) {
++      if (animation->GetTriggers().empty() ||
++          should_skip_validation(animation)) {
+         continue;
+       }
+       animation->OnValidateSnapshot(true);
+@@ -295,8 +297,13 @@ bool ScrollSnapshotTimeline::UpdateSnapshotInternal(bool service_animations) {
+     update_triggers_ = false;
+   }
+ 
++  // Validating snapshots may update style-dependent range offsets and
++  // recalculate slot assignments, which can modify the timeline's animation
++  // set.
++  HeapVector<Member<Animation>> animations(GetAnimations());
+   for (Animation* animation : animations) {
+-    if (should_skip_validation(animation)) {
++    if (animation->TimelineInternal() != this ||
++        should_skip_validation(animation)) {
+       continue;
+     }
+     // Compute deferred start times and update animation timing if required.
+diff --git a/third_party/blink/renderer/core/animation/scroll_timeline_test.cc b/third_party/blink/renderer/core/animation/scroll_timeline_test.cc
+index 4b3ea2f3d7..e73a16ca70 100644
+--- a/third_party/blink/renderer/core/animation/scroll_timeline_test.cc
++++ b/third_party/blink/renderer/core/animation/scroll_timeline_test.cc
+@@ -10,6 +10,7 @@
+ #include "third_party/blink/renderer/core/animation/animation_clock.h"
+ #include "third_party/blink/renderer/core/animation/animation_test_helpers.h"
+ #include "third_party/blink/renderer/core/animation/document_animations.h"
++#include "third_party/blink/renderer/core/animation/document_timeline.h"
+ #include "third_party/blink/renderer/core/animation/element_animations.h"
+ #include "third_party/blink/renderer/core/animation/keyframe_effect.h"
+ #include "third_party/blink/renderer/core/animation/keyframe_effect_model.h"
+@@ -20,9 +21,13 @@
+ #include "third_party/blink/renderer/core/css/resolver/style_resolver.h"
+ #include "third_party/blink/renderer/core/dom/dom_token_list.h"
+ #include "third_party/blink/renderer/core/dom/events/native_event_listener.h"
++#include "third_party/blink/renderer/core/dom/node_traversal.h"
+ #include "third_party/blink/renderer/core/dom/pseudo_element.h"
++#include "third_party/blink/renderer/core/dom/shadow_root.h"
+ #include "third_party/blink/renderer/core/html/forms/html_select_element.h"
+ #include "third_party/blink/renderer/core/html/forms/html_text_area_element.h"
++#include "third_party/blink/renderer/core/html/html_div_element.h"
++#include "third_party/blink/renderer/core/html/html_slot_element.h"
+ #include "third_party/blink/renderer/core/page/page_animator.h"
+ #include "third_party/blink/renderer/core/paint/paint_layer.h"
+ #include "third_party/blink/renderer/core/paint/paint_layer_scrollable_area.h"
+@@ -67,6 +72,92 @@ Animation* CreateCompositableTestAnimation(Element* target,
+       timeline->GetDocument()->GetExecutionContext(), timeline, effect);
+ }
+ 
++class ManualSlottingHostElement final : public HTMLDivElement {
++ public:
++  explicit ManualSlottingHostElement(Document& document)
++      : HTMLDivElement(document) {
++    ShadowRoot& root = EnsureUserAgentShadowRoot(SlotAssignmentMode::kManual);
++    slot_ = MakeGarbageCollected<HTMLSlotElement>(document);
++    root.AppendChild(slot_);
++  }
++
++  void DetachAnimationsOnNextAssign(
++      const HeapVector<Member<Animation>>& animations,
++      Animation* animation_to_move_to_doc_timeline = nullptr,
++      KeyframeEffect* effect_to_clear = nullptr,
++      AnimationTimeline* timeline_for_rehash = nullptr) {
++    animations_to_detach_ = animations;
++    animation_to_move_to_doc_timeline_ = animation_to_move_to_doc_timeline;
++    effect_to_clear_ = effect_to_clear;
++    timeline_for_rehash_ = timeline_for_rehash;
++    did_assign_slots_ = false;
++  }
++
++  bool DidAssignSlots() const { return did_assign_slots_; }
++
++  void ManuallyAssignSlots() override {
++    HeapVector<Member<Node>> nodes;
++    for (Node& child : NodeTraversal::ChildrenOf(*this)) {
++      if (child.IsSlotable()) {
++        nodes.push_back(&child);
++      }
++    }
++    if (!effect_to_clear_) {
++      slot_->Assign(nodes);
++    } else {
++      slot_->Assign({});
++      for (Node* node : nodes) {
++        node->remove();
++      }
++    }
++    did_assign_slots_ = true;
++    HeapVector<Member<Animation>> to_detach = std::move(animations_to_detach_);
++    for (Animation* animation : to_detach) {
++      if (effect_to_clear_) {
++        animation->SetRangeStartInternal(std::nullopt);
++        animation->SetRangeEndInternal(std::nullopt);
++      }
++      animation->setTimeline(nullptr);
++    }
++    if (animation_to_move_to_doc_timeline_) {
++      animation_to_move_to_doc_timeline_->setTimeline(
++          &GetDocument().Timeline());
++      animation_to_move_to_doc_timeline_ = nullptr;
++    }
++    if (effect_to_clear_) {
++      effect_to_clear_->setTarget(nullptr);
++      effect_to_clear_ = nullptr;
++    }
++    if (timeline_for_rehash_) {
++      AnimationTimeline* timeline = timeline_for_rehash_.Release();
++      HeapVector<Member<Animation>> extra_animations;
++      for (int i = 0; i < 64; ++i) {
++        extra_animations.push_back(CreateTestAnimation(timeline));
++      }
++      for (Animation* extra : extra_animations) {
++        extra->setTimeline(nullptr);
++      }
++    }
++  }
++
++  void Trace(Visitor* visitor) const override {
++    visitor->Trace(slot_);
++    visitor->Trace(animations_to_detach_);
++    visitor->Trace(animation_to_move_to_doc_timeline_);
++    visitor->Trace(effect_to_clear_);
++    visitor->Trace(timeline_for_rehash_);
++    HTMLDivElement::Trace(visitor);
++  }
++
++ private:
++  Member<HTMLSlotElement> slot_;
++  HeapVector<Member<Animation>> animations_to_detach_;
++  Member<Animation> animation_to_move_to_doc_timeline_;
++  Member<KeyframeEffect> effect_to_clear_;
++  Member<AnimationTimeline> timeline_for_rehash_;
++  bool did_assign_slots_ = false;
++};
++
+ }  // namespace
+ 
+ class ScrollTimelineTest : public RenderingTest {
+@@ -1275,4 +1366,124 @@ TEST_F(ScrollTimelineTest, AutofillPreviewBlocksPseudoElementScroller) {
+   EXPECT_FALSE(timeline->IsActive());
+ }
+ 
++TEST_F(ScrollTimelineTest, UpdateSnapshotHandlesReentrantAnimationDetach) {
++  SetBodyInnerHTML(R"HTML(
++    <style>
++      #scroller { overflow: scroll; width: 100px; height: 100px; }
++      #spacer { width: 200px; height: 400px; }
++      #target { font-size: 20px; width: 50px; height: 50px; }
++    </style>
++    <div id='scroller'>
++      <div id='spacer'></div>
++    </div>
++  )HTML");
++
++  auto* host = MakeGarbageCollected<ManualSlottingHostElement>(GetDocument());
++  auto* target = MakeGarbageCollected<HTMLDivElement>(GetDocument());
++  target->SetIdAttribute(AtomicString("target"));
++  host->AppendChild(target);
++  GetDocument().body()->AppendChild(host);
++  UpdateAllLifecyclePhasesForTest();
++
++  auto* scroller =
++      To<LayoutBoxModelObject>(GetLayoutObjectByElementId("scroller"));
++  ASSERT_TRUE(scroller);
++  PaintLayerScrollableArea* scrollable_area = scroller->GetScrollableArea();
++  ASSERT_TRUE(scrollable_area);
++
++  auto* scroll_timeline = MakeGarbageCollected<TestScrollTimeline>(
++      &GetDocument(), GetElementById("scroller"));
++
++  HeapVector<Member<Animation>> siblings;
++  for (int i = 0; i < 11; ++i) {
++    Animation* sibling = CreateTestAnimation(scroll_timeline);
++    sibling->play();
++    siblings.push_back(sibling);
++  }
++
++  Timing timing;
++  timing.iteration_duration = ANIMATION_TIME_DELTA_FROM_SECONDS(0.1);
++  auto* range_effect = MakeGarbageCollected<KeyframeEffect>(
++      target,
++      MakeGarbageCollected<StringKeyframeEffectModel>(StringKeyframeVector()),
++      timing);
++  Animation* range_animation =
++      Animation::Create(range_effect, scroll_timeline, ASSERT_NO_EXCEPTION);
++  range_animation->SetRangeStartInternal(TimelineOffset(
++      TimelineOffset::NamedRange::kNone, Length::Fixed(10), "1em"));
++  range_animation->play();
++  ASSERT_EQ(12u, scroll_timeline->GetAnimations().size());
++
++  // Dirty slot assignment so resolving the style-dependent range offset during
++  // UpdateSnapshot recalculates slots, detaches 7 sibling animations, and
++  // moves 1 sibling animation to the document timeline, shrinking the
++  // timeline's animations set while it is being iterated.
++  HeapVector<Member<Animation>> to_detach;
++  for (wtf_size_t i = 0; i < 7; ++i) {
++    to_detach.push_back(siblings[i]);
++  }
++  host->DetachAnimationsOnNextAssign(to_detach, siblings[7]);
++  host->UserAgentShadowRoot()->SetNeedsAssignmentRecalc();
++
++  scroll_timeline->UpdateSnapshotForTesting();
++  EXPECT_TRUE(host->DidAssignSlots());
++  EXPECT_EQ(4u, scroll_timeline->GetAnimations().size());
++
++  // Detached animations must not remain on the timeline or have a deferred
++  // start time initialized by the scroll timeline snapshot.
++  for (wtf_size_t i = 0; i < 7; ++i) {
++    EXPECT_EQ(nullptr, siblings[i]->timeline());
++    EXPECT_FALSE(siblings[i]->StartTimeInternal().has_value());
++  }
++  EXPECT_EQ(&GetDocument().Timeline(), siblings[7]->TimelineInternal());
++  // Remaining animations must still be attached and validated, and the
++  // style-dependent rangeStart (1em at 20px font-size) must be updated.
++  for (wtf_size_t i = 8; i < siblings.size(); ++i) {
++    EXPECT_EQ(scroll_timeline, siblings[i]->timeline());
++    EXPECT_TRUE(siblings[i]->StartTimeInternal().has_value());
++  }
++  EXPECT_EQ(scroll_timeline, range_animation->timeline());
++  ASSERT_TRUE(range_animation->GetRangeStartInternal().has_value());
++  EXPECT_EQ(Length::Fixed(20),
++            range_animation->GetRangeStartInternal()->offset);
++  EXPECT_TRUE(range_animation->StartTimeInternal().has_value());
++
++  // Also verify that detaching the currently validating animation itself,
++  // resetting its range offsets, clearing its effect target, detaching the
++  // target element's layout tree, and rehashing the timeline's animation set
++  // during range_start_ resolution (with a style-dependent range_end_ also
++  // present) is handled safely.
++  range_animation->SetRangeStartInternal(TimelineOffset(
++      TimelineOffset::NamedRange::kNone, Length::Fixed(10), "calc(10% + 1em)"));
++  range_animation->SetRangeEndInternal(TimelineOffset(
++      TimelineOffset::NamedRange::kNone, Length::Fixed(50), "2em"));
++  // Resolve calc(10% + 1em) once so range_start_->offset holds a kCalculated
++  // Length when the next UpdateSnapshot runs.
++  scroll_timeline->UpdateSnapshotForTesting();
++  ASSERT_TRUE(range_animation->GetRangeStartInternal().has_value());
++  ASSERT_TRUE(range_animation->GetRangeStartInternal()->offset.IsCalculated());
++
++  host->DetachAnimationsOnNextAssign({range_animation}, nullptr, range_effect,
++                                     scroll_timeline);
++  host->UserAgentShadowRoot()->SetNeedsAssignmentRecalc();
++
++  scroll_timeline->UpdateSnapshotForTesting();
++  EXPECT_TRUE(host->DidAssignSlots());
++  EXPECT_EQ(nullptr, range_animation->timeline());
++  EXPECT_FALSE(range_animation->GetRangeStartInternal().has_value());
++  EXPECT_FALSE(range_animation->GetRangeEndInternal().has_value());
++  EXPECT_EQ(nullptr, target->GetComputedStyle());
++  EXPECT_EQ(3u, scroll_timeline->GetAnimations().size());
++
++  // Verify remaining attached animations continue to update on scroll.
++  scrollable_area->SetScrollOffset(ScrollOffset(0, 150),
++                                   mojom::blink::ScrollType::kProgrammatic,
++                                   cc::ScrollSourceType::kNone);
++  SimulateFrame();
++  for (wtf_size_t i = 8; i < siblings.size(); ++i) {
++    EXPECT_EQ(V8AnimationPlayState::Enum::kRunning, siblings[i]->playState());
++    EXPECT_CURRENT_TIME_AS_PERCENT_NEAR(50.0, siblings[i]);
++  }
++}
++
+ }  //  namespace blink
+diff --git a/third_party/blink/renderer/core/animation/timeline_offset.cc b/third_party/blink/renderer/core/animation/timeline_offset.cc
+index dbde977314..73d5e86c30 100644
+--- a/third_party/blink/renderer/core/animation/timeline_offset.cc
++++ b/third_party/blink/renderer/core/animation/timeline_offset.cc
+@@ -296,6 +296,11 @@ Length TimelineOffset::ResolveLength(Element* element, const CSSValue* value) {
+     return Length::Fixed();
+   }
+   ElementResolveContext element_resolve_context(*element);
++  // Constructing ElementResolveContext walks the flat tree and may trigger slot
++  // assignment recalc, which can detach `element`'s layout tree.
++  if (!element->GetComputedStyle()) {
++    return Length::Fixed();
++  }
+   Document& document = element->GetDocument();
+   CSSToLengthConversionData::Flags ignored_flags = 0;
+ 
+-- 
+2.43.0
+

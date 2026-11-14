@@ -1,0 +1,114 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lei Zhang <thestig@chromium.org>
+Date: Fri, 13 Nov 2026 19:02:18 +0000
+Subject: [PATCH 05/10] [3.1.2] [M156] Handle RenderProcessHost destruction in
+ ChromePluginServiceFilter
+
+Original change's description:
+> Handle RenderProcessHost destruction in ChromePluginServiceFilter
+>
+> ChromePluginServiceFilter observes RenderProcessHost instances to clear
+> authorized plugin state and observations when processes terminate.
+> It only implemented RenderProcessHostObserver::RenderProcessExited(), so
+> if a renderer process exits before ObserveRenderProcessHost executes on
+> the UI thread, RenderProcessExited() gets skipped during subsequent host
+> cleanup, which only dispatches RenderProcessHostDestroyed().
+>
+> Address this gap by overriding RenderProcessHostDestroyed() to ensure
+> observations and process details are cleared whenever an observed host
+> is deleted.
+>
+> This CL is AI generated.
+>
+> Bug: 582279122
+> Change-Id: I4da11300e3be3be82f0a4fd952f1d474b6633b39
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8789561
+> Reviewed-by: Avi Drissman <avi@chromium.org>
+> Commit-Queue: Lei Zhang <thestig@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1741986}
+
+(cherry picked from commit 30b77dfaba3523c9cf27ca1d246ebfe684701f4c)
+
+Bug: 584998072,582279122
+Change-Id: I4da11300e3be3be82f0a4fd952f1d474b6633b39
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8811675
+Reviewed-by: Avi Drissman <avi@chromium.org>
+Commit-Queue: Lei Zhang <thestig@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2210}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+(cherry picked from commit 5e7cdaef027617153258ebf7120b442ca074f3a2)
+---
+ .../plugins/chrome_plugin_service_filter.cc   |  6 ++++
+ .../plugins/chrome_plugin_service_filter.h    |  1 +
+ .../chrome_plugin_service_filter_unittest.cc  | 28 +++++++++++++++++++
+ 3 files changed, 35 insertions(+)
+
+diff --git a/chrome/browser/plugins/chrome_plugin_service_filter.cc b/chrome/browser/plugins/chrome_plugin_service_filter.cc
+index 2928fd32a6..1cb236da18 100644
+--- a/chrome/browser/plugins/chrome_plugin_service_filter.cc
++++ b/chrome/browser/plugins/chrome_plugin_service_filter.cc
+@@ -159,6 +159,12 @@ void ChromePluginServiceFilter::RenderProcessExited(
+     content::RenderProcessHost* host,
+     const content::ChildProcessTerminationInfo& info) {
+   DCHECK_CURRENTLY_ON(BrowserThread::UI);
++  RenderProcessHostDestroyed(host);
++}
++
++void ChromePluginServiceFilter::RenderProcessHostDestroyed(
++    content::RenderProcessHost* host) {
++  DCHECK_CURRENTLY_ON(BrowserThread::UI);
+   base::AutoLock auto_lock(lock_);
+   plugin_details_.erase(host->GetDeprecatedID());
+   host_observation_.RemoveObservation(host);
+diff --git a/chrome/browser/plugins/chrome_plugin_service_filter.h b/chrome/browser/plugins/chrome_plugin_service_filter.h
+index 88b386434a..5d81f69a38 100644
+--- a/chrome/browser/plugins/chrome_plugin_service_filter.h
++++ b/chrome/browser/plugins/chrome_plugin_service_filter.h
+@@ -62,6 +62,7 @@ class ChromePluginServiceFilter : public content::PluginServiceFilter,
+   void RenderProcessExited(
+       content::RenderProcessHost* host,
+       const content::ChildProcessTerminationInfo& info) override;
++  void RenderProcessHostDestroyed(content::RenderProcessHost* host) override;
+ 
+   // Sets a callback to be called when `this` adds itself as an observer to a
+   // RenderProcessHost.
+diff --git a/chrome/browser/plugins/chrome_plugin_service_filter_unittest.cc b/chrome/browser/plugins/chrome_plugin_service_filter_unittest.cc
+index fe1105b2ed..445294523d 100644
+--- a/chrome/browser/plugins/chrome_plugin_service_filter_unittest.cc
++++ b/chrome/browser/plugins/chrome_plugin_service_filter_unittest.cc
+@@ -98,3 +98,31 @@ TEST_F(ChromePluginServiceFilterTest, AuthorizePlugin) {
+       /*exit_code=*/0);
+   EXPECT_FALSE(filter_->CanLoadPlugin(render_process_id, path));
+ }
++
++TEST_F(ChromePluginServiceFilterTest, AuthorizePluginHostDestroyed) {
++  const int render_process_id = process()->GetDeprecatedID();
++  const base::FilePath path(ChromeContentClient::kPDFExtensionPluginPath);
++  RenderProcessHostObserverAddedWaiter waiter(filter_);
++
++  // Initially the plugin shouldn't be authorized.
++  EXPECT_FALSE(filter_->CanLoadPlugin(render_process_id, path));
++
++  filter_->AuthorizePlugin(render_process_id, path);
++  EXPECT_TRUE(filter_->CanLoadPlugin(render_process_id, path));
++
++  // Simulate the process exiting before `filter_` adds itself as an observer
++  // on the UI thread.
++  process()->SimulateRenderProcessExit(
++      base::TerminationStatus::TERMINATION_STATUS_NORMAL_TERMINATION,
++      /*exit_code=*/0);
++
++  // Wait for `filter_` to add itself as an observer to the RenderProcessHost
++  // on the UI thread.
++  waiter.Wait();
++
++  // Destroying the WebContents cleans up the already-exited RenderProcessHost,
++  // which dispatches `RenderProcessHostDestroyed` without a second
++  // `RenderProcessExited`.
++  DeleteContents();
++  EXPECT_FALSE(filter_->CanLoadPlugin(render_process_id, path));
++}
+-- 
+2.43.0
+

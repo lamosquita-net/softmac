@@ -75,6 +75,10 @@ la .58 ya probada (`mjsunit.md`). La .59 va a la 3.1.2 con el resultado de D8-LI
 **13-11, ~08:33 UTC: D8-LINUX, verde con la .59** ([`v8-15.6.75.59/mjsunit.md`](v8-15.6.75.59/mjsunit.md)): 9185/9187 con y
 sin Maglev, igual que la .58, y `mjsunit/value-serializer` 1/1. El parche queda listo para la siguiente versión.
 
+**13-11, ~21:50 UTC: retirada (SEGURIDAD-PORTES-23).** La 15.6.75.60 revierte af144bc, que «depends on
+issues.chromium.org/issues/566156384»: la .60 es la .58 con otro número. La .59 no entra en la 3.1.2. Detalle en
+[`../3.1.2/CONTENIDO.md`](../3.1.2/CONTENIDO.md).
+
 Lleva un `[M156]`: af144bc, «Enforce no-JS execution scopes in InvokeApiFunction» (bugs 584997097, 576333024).
 `Builtins::InvokeApiFunction` llamaba a los callbacks de C++ sin las comprobaciones de «no ejecutar JS», y
 `ValueDeserializer` deja de necesitarlas.
