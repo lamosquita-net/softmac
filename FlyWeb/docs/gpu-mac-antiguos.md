@@ -10,7 +10,7 @@ LOCAL-19 (buzón `20261113-2300`: §6.5, y dos correcciones mías en §6.1 y §6
 **Actualizado el 14-11** con el resultado de la compilación preliminar de LOCAL-19 (buzón `20261114-1140`): conclusión
 10 y §7, que incluye la pregunta de SEGURIDAD sobre el cambio de GPU (§7.5). Las medidas son suyas; yo sigo sin
 compilar ni lanzar nada. Lo escrito antes del 14-11 se deja como estaba: donde la medida lo supera, lo dice §7.
-El mismo 14-11, segunda pasada: LOCAL-19 aclara que la prueba de reposo no vale (§7.3).
+El mismo 14-11, segunda y tercera pasada: la prueba de reposo no valía y LOCAL-19 la repitió bien (§7.3).
 
 Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** suposición sin comprobar.
 
@@ -46,10 +46,11 @@ Marcas: **[V]** leído en la fuente citada; **[I]** inferencia mía; **[S]** sup
     preliminar (3.1.1 más los cinco parches de `3.1.2-gl-reserva`) no necesitó ninguna pieza más ni tocar el sandbox.
     En la 6,1 Metal sigue por defecto y no cambia. El MacBook Pro de 2012 elige OpenGL solo: WebGL vuelve, Aquarium va
     como la 2.7.0 o mejor y MotionMark no pierde frente al software (731 frente a 733). SEGURIDAD ha dado apto y ha
-    cerrado sus pruebas (#985). **Mantengo el veredicto y no hace falta una 3.1.3.** Con dos reparos (§7.3 y §7.4):
-    **la prueba de reposo no vale** (el Mac durmió 2 segundos; LOCAL-19 lo ha confirmado y ha corregido su informe)
-    y hay que repetirla antes de cerrar el contenido; y el monitor externo y el Air de 2013 siguen sin probar. Además, con la NVIDIA activa el canvas 2D va
-    por software, por una entrada de la lista de Chromium, no por el parche.
+    cerrado sus pruebas (#985). **Mantengo el veredicto y no hace falta una 3.1.3.** La prueba de reposo no valía (el
+    Mac había dormido 2 segundos); **repetida el mismo día con 5 y 9 minutos de reposo real, pasa con las dos GPU**
+    (§7.3). Por mi parte no queda nada que bloquee. Siguen sin probar el monitor externo y el Air de 2013 (§7.4).
+    Además, con la NVIDIA activa el canvas 2D va por software, por una entrada de la lista de Chromium, no por el
+    parche.
 
 ## 2. Qué pasa exactamente
 
@@ -467,11 +468,21 @@ cero denegaciones del sandbox con Metal y con GL.
      NVIDIA estaba encendida, lo que cuadra con el punto 3 [I].
    - **Lo que sí consta** [V]: el proceso de GPU es el mismo (un solo identificador) en las 119 muestras; no se
      reinició.
-   - **Hay que repetirla antes de cerrar el contenido:** tapa cerrada cinco minutos o más, con el muestreo en
-     marcha, y `pmset -g log` filtrado por «Sleep» y «Wake» como prueba de que durmió. No cuesta compilación. Es la
-     única de las tres pruebas de G-C2 que ejercita lo que ANGLE quitó (`testDeviceLost`), y SEGURIDAD la dio por
-     cerrada con el dato anterior: **G-C2 no está cerrada en lo que toca al reposo.** LOCAL-19 espera la orden de
-     COORDINACIÓN.
+   - Pedí repetirla con tapa cerrada cinco minutos o más, muestreo en marcha y `pmset -g log` como prueba: es la
+     única de las tres pruebas de G-C2 que ejercita lo que ANGLE quitó (`testDeviceLost`), y SEGURIDAD la había dado
+     por cerrada con el dato anterior.
+   - **Repetida por LOCAL-19 el 14-11 a mediodía, y pasa** [V: `pmset-sleep-wake.txt`, `registro.jsonl` y `cpu.txt`
+     de las dos tandas `gc2r-*`], con Aquarium y YouTube abiertos:
+
+     | GPU | Reposo según `pmset` | Hueco en el muestreo | Al despertar |
+     |---|---|---|---|
+     | GT 650M | Tapa cerrada, 11:49:36 a 11:54:43 (5 min 7 s); el sistema se despertó solo dos veces, tramo dormido más largo 134 s | 76 s y 135 s | 60 fps, 0 contextos perdidos o restaurados, misma GPU, mismo proceso de GPU, «crash count» 0, el vídeo sigue |
+     | HD 4000 | Por inactividad, 12:38:30 a 12:47:37 (9 min 7 s seguidos) | 547 s | Lo mismo; el vídeo no se puede valorar (estaba en pausa por un anuncio) |
+
+     Ningún informe de caída en ninguna de las dos. **El reposo queda probado en este Mac** y no hizo falta devolver
+     `prepareForCall` ni `testDeviceLost`. Es reposo normal de minutos; el reposo profundo de horas, con volcado a
+     disco, no se ha probado, y para la aplicación debería ser lo mismo [I]. El cierre formal de G-C2 es de
+     SEGURIDAD.
 3. **El cambio de GPU en caliente sí consta, a medias.** En las muestras de las 11:29:10 a las 11:30:18, FlyWeb sigue
    en la Intel a 60 fps y con cero contextos perdidos [V]. Que la pantalla pasara a la NVIDIA lo dice el informe; en
    los ficheros que he abierto no lo veo.
@@ -480,14 +491,14 @@ cero denegaciones del sandbox con Metal y con GL.
 
 | Qué | Estado | Mi lectura |
 |---|---|---|
-| Reposo en el MacBook Pro | **No válida:** durmió 2 segundos (§7.3) | Repetir antes de cerrar el contenido |
+| Reposo en el MacBook Pro | **Probado** con las dos GPU, 5 y 9 minutos (§7.3) | Nada pendiente |
 | Monitor externo en el MacBook Pro | Sin probar (falta adaptador). SEGURIDAD lo pasa a después de publicar | De acuerdo en que no bloquea. En ese portátil las salidas de vídeo cuelgan de la tarjeta dedicada [S: de memoria], así que conectar un monitor fuerza el mismo cambio ya probado; lo nuevo es la segunda pantalla. Si falla es pantalla en negro, no seguridad |
 | Air de 2013 con Mojave (HD 5000) y mini de 2012 | Sin probar | El mini lleva la misma HD 4000 con el mismo sistema [I]. **El Air es el único caso de Mojave con Intel**, y la HD 5000 no se ha probado con nada. Si no se puede antes de publicar, que la nota de la versión lo diga |
 | Mac Pro 5,1 | Sin probar con la preliminar | No debería cambiar: Metal, como la 6,1 [I]. Entra en la batería de la candidata |
 | Vídeo con la HD 4000 | Reproduce; decodificador sin anotar | Menor. Se mira en la candidata |
 | macOS 11 o posterior (el 11,5 con Monterey) | Fuera de la 3.1.2 | G6, en la 3.2.0 |
 
-**Si el reposo o el monitor fallan,** la salida es la que ya nombró SEGURIDAD: devolver desde la 150 `prepareForCall`
+**Si el monitor fallara,** la salida es la que ya nombró SEGURIDAD: devolver desde la 150 `prepareForCall`
 y `testDeviceLost` (138 líneas en 8 ficheros de ANGLE, §6.1) o fijar una GPU. Eso sí sería una pieza más, con su regla
 17, y entonces mi recomendación vuelve a ser sacar la 3.1.2 sin el respaldo y llevarlo a una 3.1.3.
 
@@ -514,15 +525,15 @@ la pantalla en la NVIDIA. **No lo recomiendo, ni en una 3.1.x ni en la 3.2.x, pa
 | G2 | Hecho: `FlyWeb/parches/3.1.2-gl-reserva/` `0001`–`0005` |
 | G3 | Hecho por SEGURIDAD-PORTES-23 (#985): apto con condiciones G-C1 a G-C3; la deuda de los 34 CVE es cero, como apuntaba la conclusión 6 |
 | G4 | Adelantado con la preliminar en la 6,1. Falta la candidata de la 3.1.2 y su batería |
-| G5 | MacBook Pro de 2012: hecho con las dos GPU y el cambio en caliente; reposo por repetir; monitor sin probar. Mini y Air: sin hacer |
+| G5 | MacBook Pro de 2012: hecho con las dos GPU y el cambio en caliente y el reposo; monitor sin probar. Mini y Air: sin hacer |
 | G6 | En la 3.2.0, sin cambios |
 
 ### 7.7 Veredicto
 
 **Entra en la 3.1.2, como ha decidido Titín.** La condición que puse («si pinta, y sin pieza añadida») se cumple, y lo
-que temía de la composición no ha pasado. Lo que pido antes de cerrar el contenido es barato: repetir el reposo con
-prueba de que durmió. Lo demás (monitor, Air, 5,1 con NVIDIA) no bloquea, pero debe constar en la nota de la versión
-lo que no se ha probado.
+que temía de la composición no ha pasado. Lo único que pedí antes de cerrar el contenido, repetir el reposo con
+prueba de que durmió, está hecho y pasa. Lo demás (monitor, Air, 5,1 con NVIDIA) no bloquea, pero debe constar en la
+nota de la versión lo que no se ha probado.
 
 ## 8. Fuentes y límites
 
