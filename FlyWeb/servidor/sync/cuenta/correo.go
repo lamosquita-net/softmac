@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"mime"
 	"mime/quotedprintable"
+	"net"
 	"net/smtp"
 	"strings"
 	"sync"
@@ -33,7 +34,49 @@ type SMTPLocal struct {
 }
 
 func (s SMTPLocal) Enviar(_ context.Context, para string, mensaje []byte) error {
-	return smtp.SendMail(s.Direccion, nil, s.Desde, []string{para}, mensaje)
+	if !esLoopback(s.Direccion) {
+		return smtp.SendMail(s.Direccion, nil, s.Desde, []string{para}, mensaje)
+	}
+	// MTA de la propia máquina: el tráfico no sale del equipo, así que no se negocia STARTTLS. smtp.SendMail lo
+	// intentaría y fallaría al verificar el certificado del MTA, que no lleva 127.0.0.1 entre sus nombres.
+	c, err := smtp.Dial(s.Direccion)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	if err := c.Hello("localhost"); err != nil {
+		return err
+	}
+	if err := c.Mail(s.Desde); err != nil {
+		return err
+	}
+	if err := c.Rcpt(para); err != nil {
+		return err
+	}
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(mensaje); err != nil {
+		return err
+	}
+	if err := w.Close(); err != nil {
+		return err
+	}
+	return c.Quit()
+}
+
+// esLoopback dice si host:puerto apunta a la propia máquina (127.0.0.0/8, ::1 o localhost).
+func esLoopback(direccion string) bool {
+	host, _, err := net.SplitHostPort(direccion)
+	if err != nil {
+		return false
+	}
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 // componer arma el mensaje: texto plano UTF-8 en quoted-printable, asunto codificado. Las direcciones ya vienen
