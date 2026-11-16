@@ -823,3 +823,4 @@ buzon/SERVIDOR-LOCAL/20261115-1147-COORDINACION-43-latido.md → Servidor Local 
 buzon/SERVIDOR-LOCAL/20261115-1155-COORDINACION-43-purga.md → Servidor Local (2) [853e0b] · 2026-11-15 11:49 UTC · entregado (COORDINACIÓN-43)
 buzon/SERVIDOR-LOCAL/20261116-0900-COORDINACION-43-decision-copias.md → Servidor Local (2) [853e0b] · 2026-11-16 18:19 UTC · entregado (COORDINACIÓN-43)
 buzon/SERVIDOR-LOCAL/20261116-1825-COORDINACION-43-cifrar-etc.md → Servidor Local (2) [853e0b] · 2026-11-16 18:19 UTC · entregado (COORDINACIÓN-43)
+buzon/SERVIDOR-LOCAL/20261116-1835-COORDINACION-43-cifrar-etc-anulado.md → Servidor Local (2) [853e0b] · 2026-11-16 18:21 UTC · entregado (COORDINACIÓN-43)
