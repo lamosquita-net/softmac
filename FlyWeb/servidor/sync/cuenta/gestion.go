@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"math"
 	"net/http"
 	"time"
 
@@ -227,10 +228,13 @@ type respEventos struct {
 }
 
 func (s *Servicio) eventos(p *peticion) (int, any) {
-	var q struct{ Desde int64 }
-	if !p.leer(&q) {
+	// El cliente (base::Value de Chromium) manda «desde» como double y JSONWriter lo escribe «0.0» o «1763322111.0»:
+	// se acepta cualquier número entero no negativo, con o sin «.0».
+	var crudo struct{ Desde float64 }
+	if !p.leer(&crudo) || crudo.Desde < 0 || crudo.Desde != math.Trunc(crudo.Desde) || crudo.Desde > 1<<53 {
 		return malaPeticion()
 	}
+	q := struct{ Desde int64 }{int64(crudo.Desde)}
 	var c *registro
 	conPrueba := p.r.Header.Get("X-FlyWeb-Prueba") != ""
 	if !conPrueba {
