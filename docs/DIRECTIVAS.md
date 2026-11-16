@@ -388,6 +388,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     automático** ni en ns2 ni en bak: lo hace Titín con `flyweb-copia-purgar.sh`, que lista las copias de 30 días o más y
     solo borra si se escribe BORRAR en una terminal. `check-server.sh` avisa en su correo diario si hay copias de más de
     30 días pendientes de purga, para que no dependa de la memoria (la nota RGPD promete 30 días).
+  - **Credenciales y claves root (Titín, 16-11; COORDINACIÓN-43):** sí a sacar `/etc/credstore` y DKIM del backup general
+    de /etc, borrar en bak las copias que los llevaban y rotar cuenta-hmac/aes después; sí a la v6 y al latido (usuario
+    `baklatido`). **Riesgo aceptado por Titín:** los backups generales entre sus máquinas siguen con su clave root tal como
+    están, en los dos sentidos. Consecuencia que consta: las copias de la sync en bak no sobreviven a un ns2 comprometido.
+    No se vuelve a proponer.
 - **Respaldo GL en la 3.1.2 (Titín, 14-11; COORDINACIÓN-42):** el respaldo OpenGL de ANGLE para los Mac de 2012–2015
   (`FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005, #982) **entra en la 3.1.2**. Preliminar de LOCAL-19
   (`local/311-gl-reserva`): en la 6,1 Metal sigue por defecto y va mejor; con GL también funciona; en el MacBookPro9,1
