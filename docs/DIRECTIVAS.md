@@ -388,10 +388,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     automático** ni en ns2 ni en bak: lo hace Titín con `flyweb-copia-purgar.sh`, que lista las copias de 30 días o más y
     solo borra si se escribe BORRAR en una terminal. `check-server.sh` avisa en su correo diario si hay copias de más de
     30 días pendientes de purga, para que no dependa de la memoria (la nota RGPD promete 30 días).
-  - **Cierre (Titín con la Auditoría, 16-11; COORDINACIÓN-43):** se descarta todo lo demás: la v6, el latido, sacar
-    credstore/DKIM del backup general, rotar credenciales y cifrar /etc. El backup general de Titín no se toca (sus claves
-    root, riesgo aceptado). La copia de la sync queda como se aplicó el 15-11. Criterio: no compensa el coste ni los daños
-    colaterales frente a la función de los backups; la Auditoría tiene la visión de conjunto en estas decisiones.
+  - **Cierre (Titín con la Auditoría, 16-11; COORDINACIÓN-43):** la Auditoría aplicó la **v6 sin latido** (16-11, con el OK
+    de Titín): avisos de fallo por correo, límites de tiempo, sin sobrescribir copias traídas y **purga manual** con
+    `flyweb-copia-purgar.sh` (no hay borrado automático); el estado de bak lo comprueba su check-server.sh. Descartado:
+    latido, sacar credstore/DKIM del backup general, rotar credenciales y cifrar /etc. El backup general de Titín no se
+    toca (sus claves root, riesgo aceptado). En servidores y backups manda el criterio de conjunto de la Auditoría.
 - **Respaldo GL en la 3.1.2 (Titín, 14-11; COORDINACIÓN-42):** el respaldo OpenGL de ANGLE para los Mac de 2012–2015
   (`FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005, #982) **entra en la 3.1.2**. Preliminar de LOCAL-19
   (`local/311-gl-reserva`): en la 6,1 Metal sigue por defecto y va mejor; con GL también funciona; en el MacBookPro9,1
