@@ -827,3 +827,4 @@ buzon/SERVIDOR-LOCAL/20261116-1835-COORDINACION-43-cifrar-etc-anulado.md → Ser
 buzon/SERVIDOR-LOCAL/20261116-1850-COORDINACION-43-pausa-1-3.md → Servidor Local (2) [853e0b] · 2026-11-16 18:23 UTC · entregado (COORDINACIÓN-43)
 buzon/SERVIDOR-LOCAL/20261116-1840-COORDINACION-43-sin-borrado-auto.md → Servidor Local (2) [853e0b] · 2026-11-16 18:35 UTC · entregado (COORDINACIÓN-43)
 buzon/SERVIDOR-LOCAL/20261116-1850-COORDINACION-43-anula-1840.md → Servidor Local (2) [853e0b] · 2026-11-16 18:35 UTC · entregado (COORDINACIÓN-43)
+buzon/SERVIDOR-LOCAL/20261116-1950-COORDINACION-43-smtp-loopback.md → Servidor Local (2) [853e0b] · 2026-11-16 18:48 UTC · entregado (COORDINACIÓN-43)
