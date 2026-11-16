@@ -1,0 +1,123 @@
+From c5d8a59433a0b99e3f5eb67eb6fc80c06afb6979 Mon Sep 17 00:00:00 2001
+From: "MOTOR-43 (Claude)" <noreply@anthropic.com>
+Date: Mon, 9 Nov 2026 20:07:36 +0000
+Subject: [PATCH 3/4] Metal: take device capability queries off the per-draw
+ path
+
+isDrawNoOp() called GetMaxNumberOfRenderTargetsForDevice() on every
+draw, an Objective-C message to the driver (supportsFeatureSet: on
+macOS 10.14 through FlyWeb's family fallback, supportsFamily: on 10.15+)
+plus its autorelease: 3-4% of the GPU main thread in Aquarium on a Mac
+Pro 6,1. The answer is fixed for the device, so compute it once when the
+context is initialized.
+
+Also: AtomicCommandBufferError::pop() (run by checkCommandBufferError()
+on every draw) now loads before doing the atomic exchange, and the two
+render target size helpers in mtl_utils.mm ask the device once instead
+of in every loop iteration.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2keCUcEPJ6KTcxicZD
+---
+ src/libANGLE/renderer/metal/ContextMtl.h         | 4 ++++
+ src/libANGLE/renderer/metal/ContextMtl.mm        | 6 +++---
+ src/libANGLE/renderer/metal/mtl_command_buffer.h | 6 ++++++
+ src/libANGLE/renderer/metal/mtl_utils.mm         | 8 ++++++--
+ 4 files changed, 19 insertions(+), 5 deletions(-)
+
+diff --git a/src/libANGLE/renderer/metal/ContextMtl.h b/src/libANGLE/renderer/metal/ContextMtl.h
+index 9d0f561..318f5ce 100644
+--- a/src/libANGLE/renderer/metal/ContextMtl.h
++++ b/src/libANGLE/renderer/metal/ContextMtl.h
+@@ -640,6 +640,10 @@ class ContextMtl : public ContextImpl, public mtl::Context
+     ProvokingVertexHelper mProvokingVertexHelper;
+ 
+     mtl::ContextDevice mContextDevice;
++    // FlyWeb 3.1: GetMaxNumberOfRenderTargetsForDevice(mContextDevice), computed once. It asks
++    // the driver (supportsFeatureSet: on 10.14, supportsFamily: on 10.15+) and isDrawNoOp() used
++    // to call it on every draw (3-4% of the GPU main thread in Aquarium on the 6,1).
++    NSUInteger mMaxColorRenderTargets = 0;
+ 
+     bool mContextLost = false;
+ };
+diff --git a/src/libANGLE/renderer/metal/ContextMtl.mm b/src/libANGLE/renderer/metal/ContextMtl.mm
+index 58edc6b..ed8169c 100644
+--- a/src/libANGLE/renderer/metal/ContextMtl.mm
++++ b/src/libANGLE/renderer/metal/ContextMtl.mm
+@@ -223,6 +223,7 @@ angle::Result ContextMtl::initialize(const angle::ImageLoadContext &imageLoadCon
+                                                kMaxTriFanLineLoopBuffersPerFrame);
+ 
+     mContextDevice.set(mDisplay->getMetalDevice());
++    mMaxColorRenderTargets = GetMaxNumberOfRenderTargetsForDevice(mContextDevice);
+ 
+     mImageLoadContext = imageLoadContext;
+ 
+@@ -2372,12 +2373,11 @@ angle::Result ContextMtl::updateDefaultAttribute(size_t attribIndex)
+ 
+ static bool isDrawNoOp(const mtl::RenderPipelineDesc &descriptor,
+                        ContextMtl *context,
+-                       const mtl::ContextDevice &device)
++                       NSUInteger maxColorRenderTargets)
+ {
+     // Ensure there is at least one valid render target.
+     bool hasValidRenderTarget = false;
+ 
+-    const NSUInteger maxColorRenderTargets = GetMaxNumberOfRenderTargetsForDevice(device);
+     for (NSUInteger i = 0; i < maxColorRenderTargets; ++i)
+     {
+         const auto &colorAttachment = descriptor.outputDescriptor.colorAttachments[i];
+@@ -2606,7 +2606,7 @@ angle::Result ContextMtl::setupDrawImpl(const gl::Context *context,
+     mDirtyBits.reset();
+     // Check to see if our state would lead to a no-op draw.
+     // If so, skip program setup until we end up with a state that requires a program.
+-    if (isDrawNoOp(mRenderPipelineDesc, this, mContextDevice))
++    if (isDrawNoOp(mRenderPipelineDesc, this, mMaxColorRenderTargets))
+     {
+         *isNoOp = true;
+         // FlyWeb 3.1: the program's setupDraw did not run, so the textures were not bound.
+diff --git a/src/libANGLE/renderer/metal/mtl_command_buffer.h b/src/libANGLE/renderer/metal/mtl_command_buffer.h
+index 9da3d60..fb31cf0 100644
+--- a/src/libANGLE/renderer/metal/mtl_command_buffer.h
++++ b/src/libANGLE/renderer/metal/mtl_command_buffer.h
+@@ -62,6 +62,12 @@ class AtomicCommandBufferError : angle::NonCopyable
+     void store(MTLCommandBufferError value);
+     MTLCommandBufferError pop()
+     {
++        // FlyWeb 3.1: called on every draw. Read first and only do the atomic exchange (a locked
++        // instruction) when an error is actually pending.
++        if (mValue.load(std::memory_order_acquire) == MTLCommandBufferErrorNone)
++        {
++            return MTLCommandBufferErrorNone;
++        }
+         return mValue.exchange(MTLCommandBufferErrorNone, std::memory_order_acq_rel);
+     }
+ 
+diff --git a/src/libANGLE/renderer/metal/mtl_utils.mm b/src/libANGLE/renderer/metal/mtl_utils.mm
+index 3afa403..eb52cc4 100644
+--- a/src/libANGLE/renderer/metal/mtl_utils.mm
++++ b/src/libANGLE/renderer/metal/mtl_utils.mm
+@@ -1505,7 +1505,9 @@ NSUInteger ComputeTotalSizeUsedForMTLRenderPassDescriptor(const mtl::RenderPassD
+ {
+     NSUInteger currentRenderTargetSize = 0;
+ 
+-    for (NSUInteger i = 0; i < GetMaxNumberOfRenderTargetsForDevice(device); i++)
++    // FlyWeb 3.1: ask the driver once, not on every iteration.
++    const NSUInteger maxColorRenderTargets = GetMaxNumberOfRenderTargetsForDevice(device);
++    for (NSUInteger i = 0; i < maxColorRenderTargets; i++)
+     {
+         currentRenderTargetSize = getNextLocationForAttachment(descriptor.colorAttachments[i],
+                                                                context, currentRenderTargetSize);
+@@ -1533,7 +1535,9 @@ NSUInteger ComputeTotalSizeUsedForMTLRenderPipelineDescriptor(
+ {
+     NSUInteger currentRenderTargetSize = 0;
+     bool isMsaa                        = descriptor.rasterSampleCount > 1;
+-    for (NSUInteger i = 0; i < GetMaxNumberOfRenderTargetsForDevice(device); i++)
++    // FlyWeb 3.1: ask the driver once, not on every iteration.
++    const NSUInteger maxColorRenderTargets = GetMaxNumberOfRenderTargetsForDevice(device);
++    for (NSUInteger i = 0; i < maxColorRenderTargets; i++)
+     {
+         MTLRenderPipelineColorAttachmentDescriptor *color = descriptor.colorAttachments[i];
+         if (color.pixelFormat != MTLPixelFormatInvalid)
+-- 
+2.43.0
+

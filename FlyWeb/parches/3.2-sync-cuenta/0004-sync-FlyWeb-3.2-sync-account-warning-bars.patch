@@ -1,0 +1,523 @@
+From 4eb0bfe2b3903b29982b3a4de540d3c05b57eeeb Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 19:23:19 +0000
+Subject: [PATCH 4/6] sync: FlyWeb 3.2 sync account warning bars
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+FlyWeb/docs/sync-cuenta.md §6.2, §6.3 and §11.
+
+FlyWebSyncAccountInfoBarDelegate, on the pattern of the «account
+deleted» bar:
+- «¿Has sido tú?» with the newest account event, how many more there
+  are, «He sido yo» and «No he sido yo» (invalidates every token at once
+  and opens the page);
+- «The sync key was changed from another Mac», instead of Brave's
+  «account deleted» bar, which waits while the account service asks the
+  server why the chain was disabled.
+
+BraveSyncAlertsService observes the account service to show them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../flyweb_sync_account_infobar_delegate.cc   | 207 ++++++++++++++++++
+ .../flyweb_sync_account_infobar_delegate.h    |  71 ++++++
+ browser/infobars/sources.gni                  |   2 +
+ browser/sync/brave_sync_alerts_service.cc     |  66 +++++-
+ browser/sync/brave_sync_alerts_service.h      |  18 +-
+ .../sync/brave_sync_alerts_service_factory.cc |   2 +
+ .../infobars/core/infobar_delegate.h          |   4 +-
+ 7 files changed, 367 insertions(+), 3 deletions(-)
+ create mode 100644 browser/infobars/flyweb_sync_account_infobar_delegate.cc
+ create mode 100644 browser/infobars/flyweb_sync_account_infobar_delegate.h
+
+diff --git a/browser/infobars/flyweb_sync_account_infobar_delegate.cc b/browser/infobars/flyweb_sync_account_infobar_delegate.cc
+new file mode 100644
+index 0000000..c46a2d5
+--- /dev/null
++++ b/browser/infobars/flyweb_sync_account_infobar_delegate.cc
+@@ -0,0 +1,207 @@
++/* Copyright (c) 2026 The FlyWeb Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#include "brave/browser/infobars/flyweb_sync_account_infobar_delegate.h"
++
++#include <memory>
++#include <utility>
++
++#include "base/functional/callback_helpers.h"
++#include "base/i18n/time_formatting.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/strings/utf_string_conversions.h"
++#include "base/time/time.h"
++#include "brave/browser/sync/account/flyweb_sync_account_service_factory.h"
++#include "brave/components/constants/webui_url_constants.h"
++#include "brave/grit/brave_generated_resources.h"
++#include "chrome/browser/infobars/confirm_infobar_creator.h"
++#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/ui/chrome_pages.h"
++#include "components/infobars/content/content_infobar_manager.h"
++#include "components/infobars/core/infobar.h"
++#include "content/public/browser/web_contents.h"
++#include "ui/base/l10n/l10n_util.h"
++#include "ui/views/vector_icons.h"
++
++namespace {
++
++std::u16string Name(const flyweb_sync::AccountEvent& e) {
++  return base::UTF8ToUTF16(e.mac.empty() ? e.model : e.mac);
++}
++
++}  // namespace
++
++// static
++std::u16string FlyWebSyncAccountInfoBarDelegate::WarningText(
++    const flyweb_sync::AccountEvent& e) {
++  if (e.type == "mac-anadido") {
++    return l10n_util::GetStringFUTF16(IDS_FLYWEB_SYNC_ACCOUNT_WARNING_MAC_ADDED,
++                                      Name(e));
++  }
++  if (e.type == "contrasena-acertada") {
++    return l10n_util::GetStringUTF16(
++        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_GUESSED);
++  }
++  if (e.type == "contrasena-fallos") {
++    return l10n_util::GetStringFUTF16(
++        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_FAILURES,
++        base::NumberToString16(e.count));
++  }
++  if (e.type == "contrasena-cambiada") {
++    return l10n_util::GetStringUTF16(
++        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_CHANGED);
++  }
++  if (e.type == "email-cambiado") {
++    return l10n_util::GetStringUTF16(
++        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_EMAIL_CHANGED);
++  }
++  if (e.type == "cadena-cambiada") {
++    return l10n_util::GetStringUTF16(
++        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_CHANGED);
++  }
++  if (e.type == "cadena-ligada") {
++    return l10n_util::GetStringUTF16(
++        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED);
++  }
++  if (e.type == "aparato-quitado") {
++    return l10n_util::GetStringFUTF16(
++        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DEVICE_REMOVED, Name(e));
++  }
++  if (e.type == "no-he-sido-yo") {
++    return l10n_util::GetStringUTF16(IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_ME);
++  }
++  if (e.type == "borrado-pedido") {
++    return l10n_util::GetStringFUTF16(
++        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DELETION_REQUESTED,
++        base::LocalizedTimeFormatWithPattern(
++            base::Time::FromSecondsSinceUnixEpoch(e.when), "d MMMM"));
++  }
++  return l10n_util::GetStringUTF16(
++      IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DELETION_CANCELLED);
++}
++
++// static
++void FlyWebSyncAccountInfoBarDelegate::Create(
++    content::WebContents* web_contents,
++    Profile* profile,
++    Kind kind,
++    const std::vector<flyweb_sync::AccountEvent>& warnings) {
++  if (!web_contents) {
++    return;
++  }
++  // On the page itself the warnings are already shown.
++  if (web_contents->GetURL() == chrome::GetSettingsUrl(kBraveSyncSetupPath)) {
++    return;
++  }
++  auto* manager =
++      infobars::ContentInfoBarManager::FromWebContents(web_contents);
++  if (!manager) {
++    return;
++  }
++  // One bar of each kind: replace an older one.
++  for (size_t i = 0; i < manager->infobars().size(); ++i) {
++    infobars::InfoBar* bar = manager->infobars()[i];
++    if (bar->delegate()->GetIdentifier() ==
++        (kind == Kind::kWarnings ? FLYWEB_SYNC_ACCOUNT_WARNING_INFOBAR
++                                 : FLYWEB_SYNC_ACCOUNT_NOTICE_INFOBAR)) {
++      manager->RemoveInfoBar(bar);
++      break;
++    }
++  }
++  std::u16string message;
++  if (kind == Kind::kWarnings) {
++    if (warnings.empty()) {
++      return;
++    }
++    message = WarningText(warnings.back());
++    if (warnings.size() > 1) {
++      message += u" ";
++      message += l10n_util::GetStringFUTF16(
++          IDS_FLYWEB_SYNC_ACCOUNT_WARNING_MORE,
++          base::NumberToString16(warnings.size() - 1));
++    }
++  } else {
++    message =
++        l10n_util::GetStringUTF16(IDS_FLYWEB_SYNC_ACCOUNT_KEY_CHANGED_INFOBAR);
++  }
++  manager->AddInfoBar(
++      CreateConfirmInfoBar(base::WrapUnique(new FlyWebSyncAccountInfoBarDelegate(
++          profile, kind, std::move(message)))));
++}
++
++FlyWebSyncAccountInfoBarDelegate::FlyWebSyncAccountInfoBarDelegate(
++    Profile* profile,
++    Kind kind,
++    std::u16string message)
++    : profile_(profile), kind_(kind), message_(std::move(message)) {}
++
++FlyWebSyncAccountInfoBarDelegate::~FlyWebSyncAccountInfoBarDelegate() =
++    default;
++
++flyweb_sync::AccountService*
++FlyWebSyncAccountInfoBarDelegate::GetAccountService() const {
++  return flyweb_sync::AccountServiceFactory::GetForBrowserContext(profile_);
++}
++
++infobars::InfoBarDelegate::InfoBarIdentifier
++FlyWebSyncAccountInfoBarDelegate::GetIdentifier() const {
++  return kind_ == Kind::kWarnings ? FLYWEB_SYNC_ACCOUNT_WARNING_INFOBAR
++                                  : FLYWEB_SYNC_ACCOUNT_NOTICE_INFOBAR;
++}
++
++const gfx::VectorIcon& FlyWebSyncAccountInfoBarDelegate::GetVectorIcon()
++    const {
++  return views::kInfoIcon;
++}
++
++// It stays until the user answers: a warning that goes away with a click on a
++// link would be easy to miss (§6.2).
++bool FlyWebSyncAccountInfoBarDelegate::ShouldExpire(
++    const NavigationDetails& details) const {
++  return false;
++}
++
++std::u16string FlyWebSyncAccountInfoBarDelegate::GetMessageText() const {
++  return message_;
++}
++
++int FlyWebSyncAccountInfoBarDelegate::GetButtons() const {
++  return kind_ == Kind::kWarnings ? (BUTTON_OK | BUTTON_CANCEL) : BUTTON_NONE;
++}
++
++std::u16string FlyWebSyncAccountInfoBarDelegate::GetButtonLabel(
++    InfoBarButton button) const {
++  return l10n_util::GetStringUTF16(
++      button == BUTTON_OK ? IDS_FLYWEB_SYNC_ACCOUNT_WARNING_WAS_ME
++                          : IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_ME_BUTTON);
++}
++
++std::u16string FlyWebSyncAccountInfoBarDelegate::GetLinkText() const {
++  return l10n_util::GetStringUTF16(IDS_FLYWEB_SYNC_ACCOUNT_WARNING_OPEN);
++}
++
++GURL FlyWebSyncAccountInfoBarDelegate::GetLinkURL() const {
++  return chrome::GetSettingsUrl(kBraveSyncSetupPath);
++}
++
++// «He sido yo».
++bool FlyWebSyncAccountInfoBarDelegate::Accept() {
++  if (auto* account = GetAccountService()) {
++    account->DismissWarnings();
++  }
++  return true;
++}
++
++// «No he sido yo»: at once (§6.2), and the page for what comes next.
++bool FlyWebSyncAccountInfoBarDelegate::Cancel() {
++  if (auto* account = GetAccountService()) {
++    account->NotMe(base::DoNothing());
++  }
++  chrome::ShowSettingsSubPageForProfile(profile_, kBraveSyncSetupPath);
++  return true;
++}
++
++// Closing the bar is not «He sido yo»: the warnings stay on the page.
++void FlyWebSyncAccountInfoBarDelegate::InfoBarDismissed() {}
+diff --git a/browser/infobars/flyweb_sync_account_infobar_delegate.h b/browser/infobars/flyweb_sync_account_infobar_delegate.h
+new file mode 100644
+index 0000000..e737f21
+--- /dev/null
++++ b/browser/infobars/flyweb_sync_account_infobar_delegate.h
+@@ -0,0 +1,71 @@
++/* Copyright (c) 2026 The FlyWeb Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#ifndef BRAVE_BROWSER_INFOBARS_FLYWEB_SYNC_ACCOUNT_INFOBAR_DELEGATE_H_
++#define BRAVE_BROWSER_INFOBARS_FLYWEB_SYNC_ACCOUNT_INFOBAR_DELEGATE_H_
++
++#include <string>
++#include <vector>
++
++#include "base/memory/raw_ptr.h"
++#include "brave/browser/sync/account/flyweb_sync_account_service.h"
++#include "components/infobars/core/confirm_infobar_delegate.h"
++
++class Profile;
++
++namespace content {
++class WebContents;
++}  // namespace content
++
++// FlyWeb 3.2 (sync-cuenta.md §6.2, §6.3, §11): the bars of the sync account,
++// on the pattern of BraveSyncAccountDeletedInfoBarDelegate.
++// - kWarnings: «¿Has sido tú?» with the newest event, «He sido yo» (hides the
++//   warnings) and «No he sido yo» (invalidates every token and opens the page,
++//   which guides to change the password and the key).
++// - kKeyChanged: the sync key was changed from another Mac; log in again.
++class FlyWebSyncAccountInfoBarDelegate : public ConfirmInfoBarDelegate {
++ public:
++  enum class Kind { kWarnings, kKeyChanged };
++
++  FlyWebSyncAccountInfoBarDelegate(const FlyWebSyncAccountInfoBarDelegate&) =
++      delete;
++  FlyWebSyncAccountInfoBarDelegate& operator=(
++      const FlyWebSyncAccountInfoBarDelegate&) = delete;
++  ~FlyWebSyncAccountInfoBarDelegate() override;
++
++  static void Create(content::WebContents* web_contents,
++                     Profile* profile,
++                     Kind kind,
++                     const std::vector<flyweb_sync::AccountEvent>& warnings);
++
++  // Text of one warning, also for the page's list.
++  static std::u16string WarningText(const flyweb_sync::AccountEvent& event);
++
++ private:
++  FlyWebSyncAccountInfoBarDelegate(Profile* profile,
++                                   Kind kind,
++                                   std::u16string message);
++
++  // ConfirmInfoBarDelegate:
++  infobars::InfoBarDelegate::InfoBarIdentifier GetIdentifier() const override;
++  const gfx::VectorIcon& GetVectorIcon() const override;
++  bool ShouldExpire(const NavigationDetails& details) const override;
++  std::u16string GetMessageText() const override;
++  int GetButtons() const override;
++  std::u16string GetButtonLabel(InfoBarButton button) const override;
++  std::u16string GetLinkText() const override;
++  GURL GetLinkURL() const override;
++  bool Accept() override;
++  bool Cancel() override;
++  void InfoBarDismissed() override;
++
++  flyweb_sync::AccountService* GetAccountService() const;
++
++  raw_ptr<Profile> profile_;
++  const Kind kind_;
++  const std::u16string message_;
++};
++
++#endif  // BRAVE_BROWSER_INFOBARS_FLYWEB_SYNC_ACCOUNT_INFOBAR_DELEGATE_H_
+diff --git a/browser/infobars/sources.gni b/browser/infobars/sources.gni
+index 5489fe5..72df8ec 100644
+--- a/browser/infobars/sources.gni
++++ b/browser/infobars/sources.gni
+@@ -13,6 +13,8 @@ if (!is_android) {
+     "//brave/browser/infobars/brave_confirm_infobar_creator.h",
+     "//brave/browser/infobars/brave_sync_account_deleted_infobar_delegate.cc",
+     "//brave/browser/infobars/brave_sync_account_deleted_infobar_delegate.h",
++    "//brave/browser/infobars/flyweb_sync_account_infobar_delegate.cc",
++    "//brave/browser/infobars/flyweb_sync_account_infobar_delegate.h",
+     "//brave/browser/infobars/request_otr_infobar_delegate.cc",
+     "//brave/browser/infobars/request_otr_infobar_delegate.h",
+     "//brave/browser/infobars/sync_cannot_run_infobar_delegate.cc",
+diff --git a/browser/sync/brave_sync_alerts_service.cc b/browser/sync/brave_sync_alerts_service.cc
+index 0654aed..6cd042f 100644
+--- a/browser/sync/brave_sync_alerts_service.cc
++++ b/browser/sync/brave_sync_alerts_service.cc
+@@ -7,6 +7,8 @@
+ 
+ #include "base/check.h"
+ #include "brave/browser/infobars/brave_sync_account_deleted_infobar_delegate.h"
++#include "brave/browser/infobars/flyweb_sync_account_infobar_delegate.h"
++#include "brave/browser/sync/account/flyweb_sync_account_service_factory.h"
+ #include "brave/components/brave_sync/brave_sync_prefs.h"
+ #include "brave/components/sync/service/brave_sync_service_impl.h"
+ #include "build/build_config.h"
+@@ -37,6 +39,10 @@ BraveSyncAlertsService::BraveSyncAlertsService(Profile* profile)
+       sync_service_observer_.AddObservation(service);
+     }
+   }
++  if (auto* account =
++          flyweb_sync::AccountServiceFactory::GetForBrowserContext(profile)) {
++    account_observation_.Observe(account);
++  }
+ }
+ 
+ BraveSyncAlertsService::~BraveSyncAlertsService() {}
+@@ -48,7 +54,15 @@ void BraveSyncAlertsService::OnStateChanged(SyncService* service) {
+   brave_sync::Prefs prefs(profile_->GetPrefs());
+ 
+   if (prefs.IsSyncAccountDeletedNoticePending()) {
+-    ShowInfobar();
++    // FlyWeb: while the account service asks the server whether the key was
++    // changed from another Mac, «account deleted» may be the wrong message.
++    auto* account =
++        flyweb_sync::AccountServiceFactory::GetForBrowserContext(profile_);
++    if (account && account->resolving_chain_disabled()) {
++      account_deleted_deferred_ = true;
++    } else {
++      ShowInfobar();
++    }
+   }
+ 
+ #if !BUILDFLAG(IS_ANDROID)
+@@ -68,6 +82,56 @@ void BraveSyncAlertsService::OnStateChanged(SyncService* service) {
+ #endif
+ }
+ 
++void BraveSyncAlertsService::OnAccountStatusChanged() {
++  auto* account =
++      flyweb_sync::AccountServiceFactory::GetForBrowserContext(profile_);
++  if (!account || account->resolving_chain_disabled()) {
++    return;
++  }
++  if (account_deleted_deferred_) {
++    account_deleted_deferred_ = false;
++    // Still pending unless the key-changed answer cleared it.
++    if (brave_sync::Prefs(profile_->GetPrefs())
++            .IsSyncAccountDeletedNoticePending()) {
++      ShowInfobar();
++    }
++  }
++  if (account->state() == flyweb_sync::AccountService::State::kChainChanged) {
++    if (!key_changed_notice_shown_) {
++      key_changed_notice_shown_ = true;
++      ShowAccountInfobar(/*key_changed=*/true, {});
++    }
++  } else {
++    key_changed_notice_shown_ = false;
++  }
++}
++
++void BraveSyncAlertsService::OnAccountWarnings(
++    const std::vector<flyweb_sync::AccountEvent>& events) {
++  auto* account =
++      flyweb_sync::AccountServiceFactory::GetForBrowserContext(profile_);
++  // All the pending ones, not only the new: the bar says how many.
++  ShowAccountInfobar(/*key_changed=*/false,
++                     account ? account->warnings() : events);
++}
++
++void BraveSyncAlertsService::ShowAccountInfobar(
++    bool key_changed,
++    const std::vector<flyweb_sync::AccountEvent>& warnings) {
++#if !BUILDFLAG(IS_ANDROID)
++  BrowserWindowInterface* browser =
++      GetLastActiveBrowserWindowInterfaceWithAnyProfile();
++  if (!browser || browser->GetProfile() != profile_) {
++    return;
++  }
++  FlyWebSyncAccountInfoBarDelegate::Create(
++      browser->GetTabStripModel()->GetActiveWebContents(), profile_,
++      key_changed ? FlyWebSyncAccountInfoBarDelegate::Kind::kKeyChanged
++                  : FlyWebSyncAccountInfoBarDelegate::Kind::kWarnings,
++      warnings);
++#endif
++}
++
+ void BraveSyncAlertsService::OnSyncShutdown(SyncService* sync_service) {
+   if (sync_service_observer_.IsObservingSource(sync_service)) {
+     sync_service_observer_.RemoveObservation(sync_service);
+diff --git a/browser/sync/brave_sync_alerts_service.h b/browser/sync/brave_sync_alerts_service.h
+index fbe2938..7f08ee2 100644
+--- a/browser/sync/brave_sync_alerts_service.h
++++ b/browser/sync/brave_sync_alerts_service.h
+@@ -8,6 +8,8 @@
+ 
+ #include "base/memory/raw_ptr.h"
+ #include "base/scoped_multi_source_observation.h"
++#include "base/scoped_observation.h"
++#include "brave/browser/sync/account/flyweb_sync_account_service.h"
+ #include "components/keyed_service/core/keyed_service.h"
+ #include "components/sync/service/sync_service.h"
+ #include "components/sync/service/sync_service_observer.h"
+@@ -20,7 +22,8 @@ class SyncServiceObserver;
+ }  // namespace syncer
+ 
+ class BraveSyncAlertsService : public KeyedService,
+-                               public syncer::SyncServiceObserver {
++                               public syncer::SyncServiceObserver,
++                               public flyweb_sync::AccountService::Observer {
+  public:
+   explicit BraveSyncAlertsService(Profile* profile);
+   BraveSyncAlertsService(const BraveSyncAlertsService&) = delete;
+@@ -32,6 +35,14 @@ class BraveSyncAlertsService : public KeyedService,
+   void OnStateChanged(syncer::SyncService* service) override;
+   void OnSyncShutdown(syncer::SyncService* sync) override;
+ 
++  // flyweb_sync::AccountService::Observer (FlyWeb 3.2, sync-cuenta.md §6.2):
++  void OnAccountStatusChanged() override;
++  void OnAccountWarnings(
++      const std::vector<flyweb_sync::AccountEvent>& events) override;
++  void ShowAccountInfobar(
++      bool key_changed,
++      const std::vector<flyweb_sync::AccountEvent>& warnings);
++
+   void ShowInfobar();
+   void ShowSyncCannotRunInfobar();
+ 
+@@ -39,6 +50,11 @@ class BraveSyncAlertsService : public KeyedService,
+   base::ScopedMultiSourceObservation<syncer::SyncService,
+                                      syncer::SyncServiceObserver>
+       sync_service_observer_{this};
++  base::ScopedObservation<flyweb_sync::AccountService,
++                          flyweb_sync::AccountService::Observer>
++      account_observation_{this};
++  bool key_changed_notice_shown_ = false;
++  bool account_deleted_deferred_ = false;
+   base::WeakPtrFactory<BraveSyncAlertsService> weak_ptr_factory_{this};
+ };
+ 
+diff --git a/browser/sync/brave_sync_alerts_service_factory.cc b/browser/sync/brave_sync_alerts_service_factory.cc
+index 6c54307..6b9888a 100644
+--- a/browser/sync/brave_sync_alerts_service_factory.cc
++++ b/browser/sync/brave_sync_alerts_service_factory.cc
+@@ -8,6 +8,7 @@
+ #include <memory>
+ 
+ #include "base/no_destructor.h"
++#include "brave/browser/sync/account/flyweb_sync_account_service_factory.h"
+ #include "brave/browser/sync/brave_sync_alerts_service.h"
+ #include "chrome/browser/profiles/incognito_helpers.h"
+ #include "chrome/browser/profiles/profile.h"
+@@ -33,6 +34,7 @@ BraveSyncAlertsServiceFactory::BraveSyncAlertsServiceFactory()
+           "BraveSyncAlertsService",
+           BrowserContextDependencyManager::GetInstance()) {
+   DependsOn(SyncServiceFactory::GetInstance());
++  DependsOn(flyweb_sync::AccountServiceFactory::GetInstance());
+ }
+ 
+ BraveSyncAlertsServiceFactory::~BraveSyncAlertsServiceFactory() {}
+diff --git a/chromium_src/components/infobars/core/infobar_delegate.h b/chromium_src/components/infobars/core/infobar_delegate.h
+index 7dac3e5..0593c07 100644
+--- a/chromium_src/components/infobars/core/infobar_delegate.h
++++ b/chromium_src/components/infobars/core/infobar_delegate.h
+@@ -15,7 +15,9 @@
+ #define BRAVE_INFOBAR_DELEGATE_IDENTIFIERS                                 \
+   BRAVE_CONFIRM_P3A_INFOBAR_DELEGATE = 500, SYNC_CANNOT_RUN_INFOBAR = 505, \
+   BRAVE_SYNC_ACCOUNT_DELETED_INFOBAR = 507,                                \
+-  BRAVE_REQUEST_OTR_INFOBAR_DELEGATE = 508,
++  BRAVE_REQUEST_OTR_INFOBAR_DELEGATE = 508,                                \
++  FLYWEB_SYNC_ACCOUNT_WARNING_INFOBAR = 520,                               \
++  FLYWEB_SYNC_ACCOUNT_NOTICE_INFOBAR = 521,
+ 
+ // Deprecated:
+ // WEB_DISCOVERY_INFOBAR_DELEGATE = 506
+-- 
+2.43.0
+

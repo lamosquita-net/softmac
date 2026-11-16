@@ -1,0 +1,56 @@
+From 086dd640e56937bcc9e23d85201d8e4f5dc8472f Mon Sep 17 00:00:00 2001
+From: "MOTOR-43 (Claude)" <noreply@anthropic.com>
+Date: Mon, 9 Nov 2026 18:18:34 +0000
+Subject: [PATCH 3/4] settings: let sync type toggles follow "Sync everything"
+
+Port Brave 1.98's disableTypeCheckBox_ change to our sync_controls.ts
+patch: a managed type stays disabled, and without a sync status or sync
+prefs the toggles follow "Sync everything" instead of all staying
+disabled. The patch is regenerated against Chromium 156.0.8078.90.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2keCUcEPJ6KTcxicZD
+---
+ ...ettings-people_page-sync_controls.ts.patch | 24 ++++++++++++++++++-
+ 1 file changed, 23 insertions(+), 1 deletion(-)
+
+diff --git a/patches/chrome-browser-resources-settings-people_page-sync_controls.ts.patch b/patches/chrome-browser-resources-settings-people_page-sync_controls.ts.patch
+index e699d9323..1236f7d57 100644
+--- a/patches/chrome-browser-resources-settings-people_page-sync_controls.ts.patch
++++ b/patches/chrome-browser-resources-settings-people_page-sync_controls.ts.patch
+@@ -1,5 +1,5 @@
+ diff --git a/chrome/browser/resources/settings/people_page/sync_controls.ts b/chrome/browser/resources/settings/people_page/sync_controls.ts
+-index 328752afd1152ab3640a99896b571ef0f6a4f103..eaf2f1bd9cfb28a037e08c53a0ae39f350399f78 100644
++index 328752afd1152ab3640a99896b571ef0f6a4f103..98184063bcc78459d7672d9f63c6ebdca2302ba5 100644
+ --- a/chrome/browser/resources/settings/people_page/sync_controls.ts
+ +++ b/chrome/browser/resources/settings/people_page/sync_controls.ts
+ @@ -147,7 +147,7 @@ export class SettingsSyncControlsElement extends
+@@ -11,3 +11,25 @@ index 328752afd1152ab3640a99896b571ef0f6a4f103..eaf2f1bd9cfb28a037e08c53a0ae39f3
+        this.syncBrowserProxy_.didNavigateToSyncPage();
+      }
+      if (currentRoute === routes.ACCOUNT) {
++@@ -361,6 +361,12 @@ export class SettingsSyncControlsElement extends
++ 
++   protected disableTypeCheckBox_(dataTypeManaged: boolean|undefined|null):
++       boolean {
+++    if (dataTypeManaged) {
+++      return true;
+++    }
+++    if (!this.syncStatus || !this.syncPrefs) {
+++      return !!this.syncPrefs?.syncAllDataTypes;
+++    }
++     if (!this.syncStatus) {
++       return true;
++     }
++@@ -370,7 +376,7 @@ export class SettingsSyncControlsElement extends
++     }
++ 
++     if (this.syncStatus.signedInState === SignedInState.SYNCING) {
++-      return !!this.syncPrefs?.syncAllDataTypes;
+++      return this.syncPrefs?.syncAllDataTypes;
++     }
++ 
++     // Toggles should be disabled on the account settings page if sync is
+-- 
+2.43.0
+

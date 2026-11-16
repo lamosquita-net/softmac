@@ -1,0 +1,211 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mikel Astiz <mastiz@chromium.org>
+Date: Wed, 11 Nov 2026 08:13:31 -0800
+Subject: [PATCH 26/34] [3.1.1] [M156] [sync] Validate preference source for
+ kLocalSyncBackendDir
+
+Original change's description:
+> [sync] Validate preference source for kLocalSyncBackendDir
+>
+> Local sync backend directory preference (kLocalSyncBackendDir) is
+> intended to be configured exclusively via enterprise policy or
+> command-line flags. Previously,
+> ChromeSyncClient::GetLocalSyncBackendFolder() read this preference
+> directly from PrefService without verifying the backing preference
+> store.
+>
+> Update ChromeSyncClient::GetLocalSyncBackendFolder() to only honor
+> kLocalSyncBackendDir when set via mandatory policy or command-line
+> switches, ignoring values from user-modifiable, extension, or custodian
+> preference stores.
+>
+> TAG=agy
+> CONV=90dcbc59-cee7-4582-a176-3e1d258afe5a
+>
+> Fixed: 580868423
+> Change-Id: I57ac99156a9923eecf590750494fd9e08ded405d
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8717888
+> Reviewed-by: Marc Treib <treib@chromium.org>
+> Commit-Queue: Mikel Astiz <mastiz@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1736216}
+
+(cherry picked from commit d5c4c5c1240ce09fffb056cf8ff5140895012123)
+
+Bug: 582593800,580868423
+Change-Id: I57ac99156a9923eecf590750494fd9e08ded405d
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8792058
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2164}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+(cherry picked from commit e08f4d5a4e72ea866d6d3abdbf8ca6fefe15f1b4)
+---
+ chrome/browser/sync/BUILD.gn                  |  1 +
+ chrome/browser/sync/chrome_sync_client.cc     | 16 +++-
+ .../sync/chrome_sync_client_unittest.cc       | 77 ++++++++++++++++++-
+ 3 files changed, 89 insertions(+), 5 deletions(-)
+
+diff --git a/chrome/browser/sync/BUILD.gn b/chrome/browser/sync/BUILD.gn
+index 28605d54c3cd85ef6d725ae17808915067ddcf0a..e8ffc83bdb9f47a698609331501c6134e2cfdc9e 100644
+--- a/chrome/browser/sync/BUILD.gn
++++ b/chrome/browser/sync/BUILD.gn
+@@ -334,6 +334,7 @@ source_set("unit_tests") {
+     "//chrome/test/base:scoped_metrics_service",
+     "//components/commerce/core:feature_list",
+     "//components/metrics",
++    "//components/prefs:test_support",
+     "//components/signin/public/base",
+     "//components/skills:features",
+     "//components/spellcheck:buildflags",
+diff --git a/chrome/browser/sync/chrome_sync_client.cc b/chrome/browser/sync/chrome_sync_client.cc
+index 974c62f9ddf4df6d19b9119daff9388ab97da69c..98b55c23a2fb8bc7ce986a0fd84d0e9fbd5f5b42 100644
+--- a/chrome/browser/sync/chrome_sync_client.cc
++++ b/chrome/browser/sync/chrome_sync_client.cc
+@@ -105,8 +105,20 @@ network_time::NetworkTimeTracker* ChromeSyncClient::GetNetworkTimeTracker() {
+ }
+ 
+ base::FilePath ChromeSyncClient::GetLocalSyncBackendFolder() {
+-  base::FilePath local_sync_backend_folder =
+-      GetPrefService()->GetFilePath(syncer::prefs::kLocalSyncBackendDir);
++  base::FilePath local_sync_backend_folder;
++  const PrefService::Preference* local_sync_backend_dir_pref =
++      GetPrefService()->FindPreference(syncer::prefs::kLocalSyncBackendDir);
++  // Only honor `kLocalSyncBackendDir` when configured via mandatory policy or
++  // command-line switch, ignoring user-modifiable, extension, or custodian
++  // preference stores.
++  if (local_sync_backend_dir_pref &&
++      (local_sync_backend_dir_pref->IsManaged() ||
++       (!local_sync_backend_dir_pref->IsUserModifiable() &&
++        !local_sync_backend_dir_pref->IsExtensionControlled() &&
++        !local_sync_backend_dir_pref->IsManagedByCustodian()))) {
++    local_sync_backend_folder =
++        GetPrefService()->GetFilePath(syncer::prefs::kLocalSyncBackendDir);
++  }
+ 
+ #if BUILDFLAG(IS_WIN)
+   if (local_sync_backend_folder.empty()) {
+diff --git a/chrome/browser/sync/chrome_sync_client_unittest.cc b/chrome/browser/sync/chrome_sync_client_unittest.cc
+index b770379c5c5a710771e41752a0bd94da24a41e67..308400463a9f6ec980955cc49d367e608ad5754f 100644
+--- a/chrome/browser/sync/chrome_sync_client_unittest.cc
++++ b/chrome/browser/sync/chrome_sync_client_unittest.cc
+@@ -5,11 +5,17 @@
+ #include "chrome/browser/sync/chrome_sync_client.h"
+ 
+ #include "base/files/file_path.h"
++#include "base/json/values_util.h"
++#include "build/build_config.h"
+ #include "chrome/browser/sync/glue/extensions_activity_monitor.h"
+ #include "chrome/test/base/scoped_metrics_service_for_synthetic_trials.h"
+ #include "chrome/test/base/testing_browser_process.h"
+ #include "components/metrics/metrics_service.h"
++#include "components/prefs/testing_pref_service.h"
++#include "components/prefs/testing_pref_store.h"
++#include "components/sync/base/pref_names.h"
+ #include "components/sync/protocol/nigori_specifics.pb.h"
++#include "components/sync/service/sync_prefs.h"
+ #include "components/sync/service/trusted_vault_synthetic_field_trial.h"
+ #include "components/sync/test/test_data_type_store_service.h"
+ #include "components/sync_device_info/fake_device_info_sync_service.h"
+@@ -36,14 +42,15 @@ syncer::TrustedVaultAutoUpgradeSyntheticFieldTrialGroup BuildExperimentGroup(
+ 
+ class ChromeSyncClientTest : public testing::Test {
+  protected:
+-  ChromeSyncClientTest() = default;
++  ChromeSyncClientTest() {
++    syncer::SyncPrefs::RegisterProfilePrefs(pref_service_.registry());
++  }
+   ~ChromeSyncClientTest() override = default;
+ 
+   std::unique_ptr<ChromeSyncClient> BuildClient(
+       const base::FilePath& profile_base_name) {
+     return std::make_unique<ChromeSyncClient>(
+-        profile_base_name,
+-        /*pref_service=*/nullptr,
++        profile_base_name, &pref_service_,
+         /*identity_manager=*/nullptr,
+         /*trusted_vault_service=*/nullptr,
+         /*sync_invalidations_service=*/nullptr, &device_info_sync_service_,
+@@ -58,8 +65,11 @@ class ChromeSyncClientTest : public testing::Test {
+         ->GetCurrentSyntheticFieldTrialsForTest();
+   }
+ 
++  TestingPrefServiceSimple& pref_service() { return pref_service_; }
++
+  private:
+   content::BrowserTaskEnvironment task_environment_;
++  TestingPrefServiceSimple pref_service_;
+   ScopedMetricsServiceForSyntheticTrials metrics_service_{
+       TestingBrowserProcess::GetGlobal()};
+   syncer::FakeDeviceInfoSyncService device_info_sync_service_;
+@@ -178,5 +188,66 @@ TEST_F(ChromeSyncClientTest,
+       "MultiProfileConflict"));
+ }
+ 
++TEST_F(ChromeSyncClientTest,
++       GetLocalSyncBackendFolderOnlyHonorsPolicyAndCommandLine) {
++  const base::FilePath profile_base_name(FILE_PATH_LITERAL("Default"));
++  const base::FilePath configured_dir(FILE_PATH_LITERAL("/tmp/local_sync_dir"));
++#if BUILDFLAG(IS_WIN)
++  const base::FilePath expected_configured_path =
++      configured_dir.Append(profile_base_name)
++          .Append(FILE_PATH_LITERAL("profile.pb"));
++#else
++  const base::FilePath expected_configured_path = configured_dir;
++#endif  // BUILDFLAG(IS_WIN)
++
++  std::unique_ptr<ChromeSyncClient> client = BuildClient(profile_base_name);
++  // On Windows, `GetLocalSyncBackendFolder()` falls back to
++  // `DIR_ROAMING_USER_DATA` when `kLocalSyncBackendDir` is unconfigured rather
++  // than returning an empty path.
++  const base::FilePath default_folder = client->GetLocalSyncBackendFolder();
++  ASSERT_NE(default_folder, expected_configured_path);
++#if !BUILDFLAG(IS_WIN)
++  ASSERT_TRUE(default_folder.empty());
++#endif  // !BUILDFLAG(IS_WIN)
++
++  // Values in user, recommended, extension, or supervised user stores should
++  // be ignored.
++  pref_service().SetUserPref(syncer::prefs::kLocalSyncBackendDir,
++                             base::FilePathToValue(configured_dir));
++  EXPECT_EQ(default_folder, client->GetLocalSyncBackendFolder());
++  pref_service().RemoveUserPref(syncer::prefs::kLocalSyncBackendDir);
++
++  pref_service().SetRecommendedPref(syncer::prefs::kLocalSyncBackendDir,
++                                    base::FilePathToValue(configured_dir));
++  EXPECT_EQ(default_folder, client->GetLocalSyncBackendFolder());
++  pref_service().RemoveRecommendedPref(syncer::prefs::kLocalSyncBackendDir);
++
++  pref_service().SetExtensionPref(syncer::prefs::kLocalSyncBackendDir,
++                                  base::FilePathToValue(configured_dir));
++  EXPECT_EQ(default_folder, client->GetLocalSyncBackendFolder());
++  pref_service().RemoveExtensionPref(syncer::prefs::kLocalSyncBackendDir);
++
++  pref_service().SetSupervisedUserPref(syncer::prefs::kLocalSyncBackendDir,
++                                       base::FilePathToValue(configured_dir));
++  EXPECT_EQ(default_folder, client->GetLocalSyncBackendFolder());
++  pref_service().RemoveSupervisedUserPref(syncer::prefs::kLocalSyncBackendDir);
++
++  // Command-line store should be honored.
++  auto command_line_store = base::MakeRefCounted<TestingPrefStore>();
++  command_line_store->SetInitializationCompleted();
++  command_line_store->SetValue(syncer::prefs::kLocalSyncBackendDir,
++                               base::FilePathToValue(configured_dir),
++                               WriteablePrefStore::DEFAULT_PREF_WRITE_FLAGS);
++  pref_service().UpdateCommandLinePrefStore(command_line_store);
++  EXPECT_EQ(expected_configured_path, client->GetLocalSyncBackendFolder());
++  pref_service().UpdateCommandLinePrefStore(
++      base::MakeRefCounted<TestingPrefStore>());
++
++  // Managed policy store should be honored.
++  pref_service().SetManagedPref(syncer::prefs::kLocalSyncBackendDir,
++                                base::FilePathToValue(configured_dir));
++  EXPECT_EQ(expected_configured_path, client->GetLocalSyncBackendFolder());
++}
++
+ }  // namespace
+ }  // namespace browser_sync
+-- 
+2.43.0
+

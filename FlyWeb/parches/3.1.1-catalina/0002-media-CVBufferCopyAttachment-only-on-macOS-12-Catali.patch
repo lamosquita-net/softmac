@@ -1,0 +1,43 @@
+From aa215bded2e8eb4911b5f2991602c916553cb09f Mon Sep 17 00:00:00 2001
+From: "MOTOR-45 (Claude)" <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 20:09:53 +0000
+Subject: [PATCH 2/4] media: CVBufferCopyAttachment only on macOS 12 (Catalina
+ video crash)
+
+CVBufferCopyAttachment() is API_AVAILABLE(macos(12.0)) and is not
+exported by CoreVideo on macOS 10.15 or 11. The B1d fallback in
+FlyWebCopyAttachment() guarded it with @available(macOS 10.15, *), so on
+Catalina (and Big Sur) GetImageBufferColorSpace() called a missing
+function on every hardware-decoded video frame and every camera frame.
+
+Guard it with macOS 12, as the B1d audit proposed and as
+CvPixelBufferHasColorSpace() already does for CVBufferHasAttachment().
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ media/base/mac/color_space_util_mac.mm | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/media/base/mac/color_space_util_mac.mm b/media/base/mac/color_space_util_mac.mm
+index 586c07a4..269f8841 100644
+--- a/media/base/mac/color_space_util_mac.mm
++++ b/media/base/mac/color_space_util_mac.mm
+@@ -35,10 +35,12 @@ GetImageBufferPixelFormatDescription(CVImageBufferRef image_buffer) {
+           nullptr, CVPixelBufferGetPixelFormatType(image_buffer)));
+ }
+ 
+-// FlyWeb B1d: CVBufferCopyAttachment is macOS 10.15+; use the Get variant
+-// (retained) on macOS 10.14.
++// FlyWeb B1d: CVBufferCopyAttachment is macOS 12+ (API_AVAILABLE(macos(12.0));
++// not in the 10.15 or 11 CoreVideo). Use the Get variant (retained) before
++// that. FlyWeb 3.1.1: the guard said 10.15, which crashed Catalina on the
++// first hardware-decoded video frame or camera frame.
+ CFTypeRef FlyWebCopyAttachment(CVImageBufferRef image_buffer, CFStringRef key) {
+-  if (@available(macOS 10.15, *)) {
++  if (@available(macOS 12.0, *)) {
+     return CVBufferCopyAttachment(image_buffer, key, /*attachmentMode=*/nullptr);
+   }
+ #pragma clang diagnostic push
+-- 
+2.43.0
+

@@ -1,0 +1,4 @@
+4684237d3fb7a92e7874a4e364bfd615b4342e6da7cd2d96b164f4a94b7b700e  0001-Metal-only-re-bind-textures-and-samplers-when-they-c.patch
+c771538d0dbcf67a77ee24340268cc297c913d4409e491041d37b4a076f37558  0002-Metal-no-heap-allocation-for-draw-command-ranges-per.patch
+b449ddcba28f54089130e84c2dfc5164ecc76e74bfd177b8e4d0a9e4d480dd92  0003-Metal-take-device-capability-queries-off-the-per-dra.patch
+1f7b98a1a2ec76368f9d3efd041ab41d7ff0b3f065ea5643cb1d5991e208375d  0004-Metal-append-to-the-intermediate-command-stream-with.patch

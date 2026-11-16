@@ -483,3 +483,24 @@ func (s *SQLite) UpdateClientItemCount(ctx context.Context, c *datastore.ClientI
 	}
 	return nil
 }
+
+// Lo que necesita la cuenta (paquete cuenta, interfaz Cadenas).
+
+func (s *SQLite) Desactivada(ctx context.Context, cadena string) (bool, error) {
+	return s.IsSyncChainDisabled(ctx, cadena)
+}
+
+// Borrar hace lo mismo que «Borrar datos de sincronización»: marca la cadena como desactivada y borra sus datos.
+func (s *SQLite) Borrar(ctx context.Context, cadena string) error {
+	if err := s.DisableSyncChain(ctx, cadena); err != nil {
+		return err
+	}
+	_, err := s.ClearServerData(ctx, cadena)
+	return err
+}
+
+func (s *SQLite) UltimaEscritura(ctx context.Context, cadena string) (int64, bool, error) {
+	var m sql.NullInt64
+	err := s.db.QueryRowContext(ctx, `SELECT MAX(mtime) FROM entities WHERE client_id = ?`, cadena).Scan(&m)
+	return m.Int64, m.Valid, err
+}

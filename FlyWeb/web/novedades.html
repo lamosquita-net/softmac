@@ -22,6 +22,67 @@ llamamos <em>nivel de motor</em>: la 1.1 tiene el de Chrome 117, la 1.2 el de Ch
 nivel. Las versiones con un tercer número (por ejemplo la 1.7.1 o la 1.8.1) añaden correcciones o mejoras sobre el nivel
 anterior. El nivel de tu versión aparece en <code>flyweb://settings/help</code>.</p>
 </div></section>
+<section class="banda naranja"><div class="columna" id="v3-1-2">
+<h2>FlyWeb 3.1.2 · seguridad y gráficos en Mac antiguos</h2>
+<ul>
+  <li><strong>Seguridad:</strong> arreglos de seguridad de Chromium 156. FlyWeb pasa a Chromium 156.0.8078.105.</li>
+  <li><strong>Gráficos en Mac antiguos:</strong> si tu Mac no puede usar Metal, FlyWeb pasa a OpenGL como respaldo para
+  seguir dibujando con la tarjeta gráfica. Está probado en Mojave y en Catalina; <strong>aún no lo hemos probado</strong> en el
+  MacBook Air de 2013, en el Mac mini de 2012, en un Mac Pro de 2010 o 2012 con tarjeta NVIDIA (donde el canvas 2D va por
+  software) ni con monitor externo.</li>
+  <li><strong>Pestañas que se cerraban solas («error 11»):</strong> arreglado un cierre de pestaña que ocurría en algunas webs
+  al consultar los complementos del navegador.</li>
+</ul>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v3-1-1">
+<h2>FlyWeb 3.1.1 · seguridad y Catalina</h2>
+<ul>
+  <li><strong>Seguridad:</strong> arreglos de seguridad de Chromium 156 (motor web, motor de JavaScript y gráficos). FlyWeb
+  pasa a Chromium 156.0.8078.104.</li>
+  <li><strong>Arranque en macOS 10.15 Catalina (en prueba):</strong> las versiones 3.0.x y 3.1.0 no arrancaban en Catalina. Esta
+  trae el arreglo; todavía lo estamos probando en ese sistema, así que no lo damos por garantizado. Mojave sigue siendo el
+  sistema garantizado.</li>
+</ul>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v3-1-0">
+<h2>FlyWeb 3.1.0 · más rápida</h2>
+<ul>
+  <li><strong>Gráficos más rápidos:</strong> la aceleración gráfica con Metal (ANGLE) rinde mejor en WebGL y en las páginas con
+  mucho dibujo.</li>
+  <li><strong>JavaScript más ágil:</strong> se activa Maglev, el compilador intermedio del motor de JavaScript.</li>
+  <li><strong>Escudos más rápidos:</strong> el bloqueo de anuncios y rastreadores trabaja más deprisa.</li>
+  <li><strong>Pestaña nueva privada de FlyWeb:</strong> la página de las ventanas privadas es la propia de FlyWeb.</li>
+  <li><strong>Favicons con la mosca:</strong> las páginas internas de FlyWeb (por ejemplo <code>flyweb://version</code>) llevan la mosca de FlyWeb.</li>
+</ul>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v3-0-1">
+<h2>FlyWeb 3.0.1 · seguridad y sincronización</h2>
+<ul>
+  <li><strong>Seguridad:</strong> arreglos de seguridad de Chromium 156 posteriores a la 3.0.0 (motor web, motor de
+  JavaScript, gráficos, lector de PDF y descodificación de vídeo y audio). FlyWeb pasa a Chromium 156.0.8078.98.</li>
+  <li><strong>Sincronización arreglada:</strong> la página de sincronización vuelve a funcionar entera (lista de dispositivos,
+  código de sincronización, abandonar la cadena y borrar la cuenta), y los ajustes propios de FlyWeb (Escudos, filtros, Aspecto)
+  vuelven a responder.</li>
+  <li><strong>Ajustes de sincronización:</strong> «Contraseñas» ya sale traducido entre los tipos de datos, y los
+  interruptores de cada tipo siguen a «Sincronizar todo».</li>
+  <li><strong>Funciones retiradas por seguridad:</strong> XSLT (las páginas XML con hoja de estilo XSL ya no se
+  transforman) y WebHID.</li>
+  <li><strong>Icono:</strong> vuelve a ser el de la 2.7.0.</li>
+</ul>
+</div></section>
+<section class="banda naranja"><div class="columna" id="v3-0-0">
+<h2>FlyWeb 3.0.0 · base nueva: Chromium 156</h2>
+<ul>
+  <li><strong>Base nueva: Chromium 156.</strong> Es un salto de base, no un nivel más: FlyWeb pasa de la base 128 a la 156 de
+  golpe. Las webs ven FlyWeb como Chrome 156.</li>
+  <li><strong>Gráficos con Metal.</strong> La aceleración gráfica usa Metal, la tecnología gráfica de Apple.</li>
+  <li><strong>Seguridad:</strong> entran de una vez las correcciones de seguridad de Chromium hasta la versión 156.</li>
+  <li><strong>Tu perfil se conserva.</strong> La primera vez que abras la 3.0.0, FlyWeb hace una copia de tu perfil de la 2.x
+  llamada «antes de 3.0» y trabaja con un perfil nuevo («FlyWeb 3 Profile») migrado desde ella. Si algo no te convence, la
+  copia se abre con la 2.7.0.</li>
+  <li><strong>Requisitos:</strong> macOS 10.14 Mojave o superior y Mac Intel (x86_64), como hasta ahora.</li>
+</ul>
+</div></section>
 <section class="banda naranja"><div class="columna" id="v2-7-0">
 <h2>FlyWeb 2.7.0 · motor al nivel de Chrome 138</h2>
 <ul>

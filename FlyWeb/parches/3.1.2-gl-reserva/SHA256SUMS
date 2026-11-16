@@ -1,0 +1,5 @@
+13526c3a115dc06984122469f264be41a1072cf895240e67c8148acb48f0e57d  0001-FlyWeb-ui-gl-allow-ANGLE-OpenGL-as-fallback-before-macOS-11.patch
+e534278c16bd767c629c9aa3e2a8abf7662a53154c64e0a923c602229523f755  0002-FlyWeb-B1c-gpu-service-restore-GetTextureTargetForIO.patch
+0812a143051555b74561e787e73a9f064c7169d8aa746cf0fc25bbd56ba574ce  0003-FlyWeb-B1c-mojom-restore-SharedImageCapabilities.tex.patch
+9fe52ad1532af66756a140d59992f9ec0c7ba505170b16bd0ab944726bb9ab43  0004-FlyWeb-B1c-gpu-client-IOSurface-texture-target-in-Cl.patch
+c5aad4ef5f7f5ea5a0d8759753aedaa282d6822bed62bac9bee480d889b2118f  0005-FlyWeb-B1c-viz-IOSurface-texture-target-for-Ganesh-G.patch

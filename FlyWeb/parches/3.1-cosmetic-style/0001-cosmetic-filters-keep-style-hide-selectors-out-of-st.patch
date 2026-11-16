@@ -1,0 +1,467 @@
+From ae854481439d86349132d902bc39318c9ab9c2c8 Mon Sep 17 00:00:00 2001
+From: "MOTOR-44 (Claude)" <noreply@anthropic.com>
+Date: Tue, 10 Nov 2026 15:59:35 +0000
+Subject: [PATCH] cosmetic filters: keep [style] hide selectors out of
+ stylesheets
+
+A hide selector that tests the style attribute (div[style^="..."]) in any
+stylesheet makes Blink serialize the inline style of every element it
+matches, on every style recalc (ElementRuleCollector, RuleSet::
+HasBucketForStyleAttribute). The default lists bring 23 such generic rules
+to every page; in MotionMark Multiply that is 22 % of the renderer main
+thread.
+
+Take those selectors out of the hide stylesheets (all four paths: generic,
+force, class/id, aggressive) and hand them to content_cosmetic.ts, which
+matches them on added nodes and in a sweep every second, and marks the
+matches with a random attribute hidden by one user stylesheet rule.
+Standard mode keeps the first-party check of the queues; force and
+aggressive selectors skip it, as before.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2h13FSCtFp8GwQLUyv
+---
+ .../brave_shields/core/common/features.cc     |   4 +
+ .../brave_shields/core/common/features.h      |   3 +
+ .../renderer/cosmetic_filters_js_handler.cc   | 142 +++++++++++++++++-
+ .../renderer/cosmetic_filters_js_handler.h    |   9 ++
+ .../resources/data/content_cosmetic.ts        | 122 ++++++++++++++-
+ components/definitions/global.d.ts            |   4 +
+ 6 files changed, 280 insertions(+), 4 deletions(-)
+
+diff --git a/components/brave_shields/core/common/features.cc b/components/brave_shields/core/common/features.cc
+index 6da791b..5814574 100644
+--- a/components/brave_shields/core/common/features.cc
++++ b/components/brave_shields/core/common/features.cc
+@@ -96,6 +96,10 @@ BASE_FEATURE(kCosmeticFilteringSyncLoad,
+              "CosmeticFilterSyncLoad",
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
++BASE_FEATURE(kFlyWebDeferStyleAttrSelectors,
++             "FlyWebDeferStyleAttrSelectors",
++             base::FEATURE_ENABLED_BY_DEFAULT);
++
+ // Enables extra TRACE_EVENTs in content filter js. The feature is
+ // primary designed for local debugging.
+ BASE_FEATURE(kCosmeticFilteringExtraPerfMetrics,
+diff --git a/components/brave_shields/core/common/features.h b/components/brave_shields/core/common/features.h
+index 75cef59..310d9d1 100644
+--- a/components/brave_shields/core/common/features.h
++++ b/components/brave_shields/core/common/features.h
+@@ -33,6 +33,9 @@ BASE_DECLARE_FEATURE(kBraveShowStrictFingerprintingMode);
+ BASE_DECLARE_FEATURE(kCosmeticFilteringExtraPerfMetrics);
+ BASE_DECLARE_FEATURE(kCosmeticFilteringJsPerformance);
+ BASE_DECLARE_FEATURE(kCosmeticFilteringSyncLoad);
++// FlyWeb: hide selectors on the style attribute are matched by
++// content_cosmetic.ts instead of a stylesheet (cosmetic_filters_js_handler.cc).
++BASE_DECLARE_FEATURE(kFlyWebDeferStyleAttrSelectors);
+ extern const base::FeatureParam<int> kComponentUpdateCheckIntervalMins;
+ extern const base::FeatureParam<std::string>
+     kCosmeticFilteringSubFrameFirstSelectorsPollingDelayMs;
+diff --git a/components/cosmetic_filters/renderer/cosmetic_filters_js_handler.cc b/components/cosmetic_filters/renderer/cosmetic_filters_js_handler.cc
+index 4b603bc..e1ce541 100644
+--- a/components/cosmetic_filters/renderer/cosmetic_filters_js_handler.cc
++++ b/components/cosmetic_filters/renderer/cosmetic_filters_js_handler.cc
+@@ -5,6 +5,7 @@
+ 
+ #include "brave/components/cosmetic_filters/renderer/cosmetic_filters_js_handler.h"
+ 
++#include <cinttypes>
+ #include <optional>
+ #include <string_view>
+ #include <utility>
+@@ -14,6 +15,8 @@
+ #include "base/json/json_writer.h"
+ #include "base/metrics/histogram_macros.h"
+ #include "base/no_destructor.h"
++#include "base/rand_util.h"
++#include "base/strings/string_util.h"
+ #include "base/strings/stringprintf.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/trace_event/trace_event.h"
+@@ -45,6 +48,100 @@ static base::NoDestructor<std::vector<std::string>> g_vetted_search_engines(
+ const char kObservingScriptletEntryPoint[] =
+     "window.content_cosmetic.tryScheduleQueuePump()";
+ 
++// FlyWeb: hide selectors that test the style attribute (`div[style^="..."]`)
++// never go into a stylesheet. With one of them in any stylesheet of the
++// document, Blink serializes the inline style of every element it matches,
++// on every style recalc (ElementRuleCollector::CollectMatchingRulesInternal,
++// RuleSet::HasBucketForStyleAttribute): 22 % of the main thread in MotionMark
++// Multiply, and the same on any page that animates with element.style. The
++// generic lists bring about two dozen such rules to every page.
++// content_cosmetic.ts matches them on added nodes and in a slow sweep instead,
++// and marks each match with an attribute that one user stylesheet rule hides.
++// Invalid selectors are dropped here, as insertRule() would have rejected them.
++constexpr char kStyleAttrSelectorsInjectScript[] =
++    R"((function() {
++          const CC = window.content_cosmetic;
++          CC.styleAttrMarker = '%s';
++          CC.styleAttrSelectors = CC.styleAttrSelectors || new Set();
++          CC.styleAttrForceSelectors = CC.styleAttrForceSelectors || new Set();
++          CC.firstRunQueue = CC.firstRunQueue || new Set();
++          const force = %s;
++          const target = force ? CC.styleAttrForceSelectors : CC.styleAttrSelectors;
++          const probe = document.createDocumentFragment();
++          for (const selector of %s) {
++            if (typeof selector !== 'string') {
++              continue;
++            }
++            try {
++              probe.querySelector(selector);
++              target.add(selector);
++              // As in kHideSelectorsInjectScript: the queues decide whether
++              // the selector matches first-party content and gets unhidden.
++              if (!force && !CC.hide1pContent) {
++                CC.firstRunQueue.add(selector);
++              }
++            } catch (e) {
++              /* Not a valid selector */
++            }
++          }
++          CC.applyStyleAttrSelectors?.();
++        })();)";
++
++// True if |selector| has an attribute selector on `style` anywhere. Wider than
++// Blink's rule (only the rightmost compound without an id or class creates the
++// [style] bucket), but a complex selector keyed by class or id can still end in
++// such a compound, and deferring a few more selectors is harmless.
++bool HasStyleAttributeSelector(std::string_view selector) {
++  constexpr std::string_view kStyle = "style";
++  for (size_t i = 0; i < selector.size(); ++i) {
++    if (selector[i] != '[') {
++      continue;
++    }
++    size_t j = i + 1;
++    while (j < selector.size() && base::IsAsciiWhitespace(selector[j])) {
++      ++j;
++    }
++    if (selector.size() - j < kStyle.size() ||
++        !base::EqualsCaseInsensitiveASCII(selector.substr(j, kStyle.size()),
++                                          kStyle)) {
++      continue;
++    }
++    j += kStyle.size();
++    if (j == selector.size()) {
++      return true;
++    }
++    const char c = selector[j];
++    if (c == ']' || c == '=' || c == '~' || c == '|' || c == '^' || c == '$' ||
++        c == '*' || base::IsAsciiWhitespace(c)) {
++      return true;
++    }
++  }
++  return false;
++}
++
++bool IsStyleAttributeSelector(const base::Value& selector) {
++  return selector.is_string() && HasStyleAttributeSelector(selector.GetString());
++}
++
++// Moves the selectors of |selectors| that test the style attribute to the
++// returned list (nothing with --disable-features=FlyWebDeferStyleAttrSelectors).
++base::ListValue TakeStyleAttributeSelectors(base::ListValue& selectors) {
++  base::ListValue taken;
++  if (!base::FeatureList::IsEnabled(
++          brave_shields::features::kFlyWebDeferStyleAttrSelectors)) {
++    return taken;
++  }
++  for (const auto& selector : selectors) {
++    if (IsStyleAttributeSelector(selector)) {
++      taken.Append(selector.Clone());
++    }
++  }
++  if (!taken.empty()) {
++    selectors.EraseIf(IsStyleAttributeSelector);
++  }
++  return taken;
++}
++
+ constexpr char kScriptletInitScript[] =
+     R"((function() {
+           let text = '(function() {\nconst scriptletGlobals = (() => {\nconst forwardedMapMethods = ["has", "get", "set"];\nconst handler = {\nget(target, prop) { if (forwardedMapMethods.includes(prop)) { return Map.prototype[prop].bind(target) } return target.get(prop); },\nset(target, prop, value) { if (!forwardedMapMethods.includes(prop)) { target.set(prop, value); } }\n};\nreturn new Proxy(new Map(%s), handler);\n})();\nlet deAmpEnabled = %s;\n' + %s + '})()';
+@@ -258,6 +355,7 @@ void CosmeticFiltersJSHandler::AddJavaScriptObjectToFrame(
+ 
+   CreateWorkerObject(isolate, context);
+   bundle_injected_ = false;
++  style_attr_sheet_injected_ = false;
+ }
+ 
+ // Stylesheets injected this way will be able to override `!important` styles
+@@ -274,6 +372,34 @@ void CosmeticFiltersJSHandler::InjectStylesheet(const std::string& stylesheet) {
+       stylesheet_webstring, style_sheet_key, blink::WebCssOrigin::kUser);
+ }
+ 
++void CosmeticFiltersJSHandler::DeferStyleAttrSelectors(base::ListValue selectors,
++                                                       bool force) {
++  if (selectors.empty()) {
++    return;
++  }
++  if (style_attr_marker_.empty()) {
++    style_attr_marker_ =
++        base::StringPrintf("data-fw%016" PRIx64, base::RandUint64());
++  }
++  if (!style_attr_sheet_injected_) {
++    // A user stylesheet, like the hide rules of aggressive mode: it beats
++    // `!important` in page styles.
++    InjectStylesheet("[" + style_attr_marker_ + "]{display:none !important}");
++    style_attr_sheet_injected_ = true;
++  }
++  std::string json_selectors;
++  if (!base::JSONWriter::Write(selectors, &json_selectors)) {
++    return;
++  }
++  std::string script = base::StringPrintf(
++      kStyleAttrSelectorsInjectScript, style_attr_marker_.c_str(),
++      force ? "true" : "false", json_selectors.c_str());
++  render_frame_->GetWebFrame()->ExecuteScriptInIsolatedWorld(
++      isolated_world_id_,
++      blink::WebScriptSource(blink::WebString::FromUtf8(script)),
++      blink::BackForwardCacheAware::kAllow);
++}
++
+ void CosmeticFiltersJSHandler::CreateWorkerObject(
+     v8::Isolate* isolate,
+     v8::Local<v8::Context> context) {
+@@ -539,16 +665,19 @@ void CosmeticFiltersJSHandler::CSSRulesRoutine(
+   std::string stylesheet = "";
+ 
+   if (hide_selectors_list && !hide_selectors_list->empty()) {
++    base::ListValue hide_selectors = hide_selectors_list->Clone();
++    DeferStyleAttrSelectors(TakeStyleAttributeSelectors(hide_selectors),
++                            /*force=*/enabled_1st_party_cf_);
+     // treat `hide_selectors` the same as `force_hide_selectors` if aggressive
+     // mode is enabled.
+     if (enabled_1st_party_cf_) {
+-      for (auto& selector : *hide_selectors_list) {
++      for (auto& selector : hide_selectors) {
+         DCHECK(selector.is_string());
+         stylesheet += selector.GetString() + "{display:none !important}";
+       }
+     } else {
+       std::string json_selectors;
+-      base::JSONWriter::Write(*hide_selectors_list, &json_selectors);
++      base::JSONWriter::Write(hide_selectors, &json_selectors);
+       if (json_selectors.empty()) {
+         json_selectors = "[]";
+       }
+@@ -566,7 +695,10 @@ void CosmeticFiltersJSHandler::CSSRulesRoutine(
+   const auto* force_hide_selectors_list =
+       resources_dict.FindList("force_hide_selectors");
+   if (force_hide_selectors_list) {
+-    for (auto& selector : *force_hide_selectors_list) {
++    base::ListValue force_hide_selectors = force_hide_selectors_list->Clone();
++    DeferStyleAttrSelectors(TakeStyleAttributeSelectors(force_hide_selectors),
++                            /*force=*/true);
++    for (auto& selector : force_hide_selectors) {
+       DCHECK(selector.is_string());
+       stylesheet += selector.GetString() + "{display:none !important}";
+     }
+@@ -613,6 +745,8 @@ void CosmeticFiltersJSHandler::OnHiddenClassIdSelectors(
+       result.FindList("force_hide_selectors");
+   DCHECK(force_hide_selectors);
+ 
++  DeferStyleAttrSelectors(TakeStyleAttributeSelectors(*force_hide_selectors),
++                          /*force=*/true);
+   if (force_hide_selectors->size() != 0) {
+     std::string stylesheet = "";
+     for (auto& selector : *force_hide_selectors) {
+@@ -627,6 +761,8 @@ void CosmeticFiltersJSHandler::OnHiddenClassIdSelectors(
+   if (!enabled_1st_party_cf_ && IsVettedSearchEngine(url_))
+     return;
+ 
++  DeferStyleAttrSelectors(TakeStyleAttributeSelectors(*hide_selectors),
++                          /*force=*/enabled_1st_party_cf_);
+   if (enabled_1st_party_cf_) {
+     std::string stylesheet = "";
+     for (auto& selector : *hide_selectors) {
+diff --git a/components/cosmetic_filters/renderer/cosmetic_filters_js_handler.h b/components/cosmetic_filters/renderer/cosmetic_filters_js_handler.h
+index ea7ec57..39703fe 100644
+--- a/components/cosmetic_filters/renderer/cosmetic_filters_js_handler.h
++++ b/components/cosmetic_filters/renderer/cosmetic_filters_js_handler.h
+@@ -71,6 +71,9 @@ class CosmeticFiltersJSHandler {
+   void OnEventEnd(const std::string& event_name, int);
+ 
+   void InjectStylesheet(const std::string& stylesheet);
++  // FlyWeb: hands the selectors that test the style attribute to
++  // content_cosmetic.ts instead of a stylesheet (see the .cc).
++  void DeferStyleAttrSelectors(base::ListValue selectors, bool force);
+ 
+   bool generichide_ = false;
+ 
+@@ -86,6 +89,12 @@ class CosmeticFiltersJSHandler {
+   // True if the content_cosmetic.bundle.js has injected in the current frame.
+   bool bundle_injected_ = false;
+ 
++  // FlyWeb: attribute that content_cosmetic.ts sets on the elements matched by
++  // a deferred [style] selector, and whether the user stylesheet rule that
++  // hides it is in the current document.
++  std::string style_attr_marker_;
++  bool style_attr_sheet_injected_ = false;
++
+   std::unique_ptr<class CosmeticFilterPerfTracker> perf_tracker_;
+ 
+   base::WeakPtrFactory<CosmeticFiltersJSHandler> weak_ptr_factory_{this};
+diff --git a/components/cosmetic_filters/resources/data/content_cosmetic.ts b/components/cosmetic_filters/resources/data/content_cosmetic.ts
+index bcfe59b..2f83b5f 100644
+--- a/components/cosmetic_filters/resources/data/content_cosmetic.ts
++++ b/components/cosmetic_filters/resources/data/content_cosmetic.ts
+@@ -78,6 +78,26 @@ CC.fetchNewClassIdRulesThrottlingMs =
+ 
+ CC.hasRemovals = CC.hasRemovals || false
+ 
++// FlyWeb: hide selectors that test the style attribute (`div[style^="..."]`).
++// cosmetic_filters_js_handler.cc keeps them out of every stylesheet, because
++// with one of them in the document Blink serializes the inline style of every
++// element on each style recalc. They are matched here instead: on added nodes,
++// and in a sweep every |styleAttrSweepIntervalMs| for style changes made after
++// insertion. A match gets the |CC.styleAttrMarker| attribute, which a user
++// stylesheet rule hides. |CC.styleAttrSelectors| also go through the queues,
++// like any generic rule: once pumpCosmeticFilterQueues() finds one matching
++// first-party content (CC.alreadyUnhiddenSelectors) it stops hiding.
++// |CC.styleAttrForceSelectors| skip that check, like `force_hide_selectors`
++// and the rules of aggressive mode.
++CC.styleAttrSelectors = CC.styleAttrSelectors || new Set<string>()
++CC.styleAttrForceSelectors = CC.styleAttrForceSelectors || new Set<string>()
++const styleAttrSweepIntervalMs = 1000
++let styleAttrCombo = ''
++let styleAttrForceCombo = ''
++// CC.alreadyUnhiddenSelectors.size when |styleAttrCombo| was built.
++let styleAttrUnhiddenCount = -1
++let styleAttrSweepTimeoutId: number | undefined
++
+ /**
+  * Provides a new function which can only be scheduled once at a time.
+  *
+@@ -285,6 +305,17 @@ const onMutations = (mutations: MutationRecord[], observer: MutationObserver) =>
+     fetchNewClassIdRules()
+   }
+ 
++  if (currentStyleAttrCombo() !== '' || styleAttrForceCombo !== '') {
++    for (const aMutation of mutations) {
++      for (const node of aMutation.addedNodes) {
++        const element = asElement(node)
++        if (element) {
++          markStyleAttrMatches(element)
++        }
++      }
++    }
++  }
++
+   if (CC.hasRemovals) {
+     const addedElements : Element[] = [];
+     mutations.forEach(mutation =>
+@@ -742,4 +773,93 @@ const executeRemovals = (added?: Element[]) => {
+   }
+ };
+ 
+-if (CC.hasRemovals) executeRemovals();
+\ No newline at end of file
++if (CC.hasRemovals) executeRemovals();
++
++// The non-forced [style] selectors that the queues have not unhidden.
++const currentStyleAttrCombo = (): string => {
++  if (CC.alreadyUnhiddenSelectors.size !== styleAttrUnhiddenCount) {
++    styleAttrUnhiddenCount = CC.alreadyUnhiddenSelectors.size
++    styleAttrCombo = Array.from(CC.styleAttrSelectors)
++      .filter(selector => !CC.alreadyUnhiddenSelectors.has(selector))
++      .join(',')
++  }
++  return styleAttrCombo
++}
++
++const findStyleAttrMatches = (combo: string, root?: Element): Element[] => {
++  if (combo === '') {
++    return []
++  }
++  if (root === undefined) {
++    return Array.from(document.querySelectorAll(combo))
++  }
++  const found: Element[] = []
++  if (root.matches(combo)) {
++    found.push(root)
++  }
++  if (root.firstElementChild !== null) {
++    found.push(...root.querySelectorAll(combo))
++  }
++  return found
++}
++
++// Marks the elements in |root| (or in the whole document) that match a
++// deferred [style] selector.
++const markStyleAttrMatches = (root?: Element) => {
++  const marker = CC.styleAttrMarker
++  if (marker === undefined) {
++    return
++  }
++  for (const combo of [styleAttrForceCombo, currentStyleAttrCombo()]) {
++    for (const elm of findStyleAttrMatches(combo, root)) {
++      if (!elm.hasAttribute(marker)) {
++        elm.setAttribute(marker, '')
++      }
++    }
++  }
++}
++
++// A stylesheet rule stops hiding an element when its style no longer matches;
++// do the same for the marker.
++const unmarkStaleStyleAttrMatches = () => {
++  const marker = CC.styleAttrMarker
++  if (marker === undefined) {
++    return
++  }
++  const combo = currentStyleAttrCombo()
++  for (const elm of document.querySelectorAll(`[${marker}]`)) {
++    if (!(styleAttrForceCombo !== '' && elm.matches(styleAttrForceCombo)) &&
++        !(combo !== '' && elm.matches(combo))) {
++      elm.removeAttribute(marker)
++    }
++  }
++}
++
++const scheduleStyleAttrSweep = () => {
++  if (styleAttrSweepTimeoutId !== undefined ||
++      (CC.styleAttrSelectors.size === 0 && styleAttrForceCombo === '')) {
++    return
++  }
++  styleAttrSweepTimeoutId = window.setTimeout(() => {
++    styleAttrSweepTimeoutId = undefined
++    if (!document.hidden) {
++      unmarkStaleStyleAttrMatches()
++      markStyleAttrMatches()
++    }
++    scheduleStyleAttrSweep()
++  }, styleAttrSweepIntervalMs)
++}
++
++const applyStyleAttrSelectors = () => {
++  styleAttrUnhiddenCount = -1
++  styleAttrForceCombo = Array.from(CC.styleAttrForceSelectors).join(',')
++  markStyleAttrMatches()
++  scheduleStyleAttrSweep()
++}
++
++CC.applyStyleAttrSelectors = applyStyleAttrSelectors
++
++// The selectors may have arrived before this script.
++if (CC.styleAttrSelectors.size !== 0 || CC.styleAttrForceSelectors.size !== 0) {
++  applyStyleAttrSelectors()
++}
+diff --git a/components/definitions/global.d.ts b/components/definitions/global.d.ts
+index 993b33d..2323dc0 100644
+--- a/components/definitions/global.d.ts
++++ b/components/definitions/global.d.ts
+@@ -48,6 +48,10 @@ declare global {
+       classesToRemoveBySelector: Map<string, string[]> | undefined
+       attributesToRemoveBySelector: Map<string, string[]> | undefined
+       hasRemovals: boolean
++      styleAttrMarker: string | undefined
++      styleAttrSelectors: Set<string>
++      styleAttrForceSelectors: Set<string>
++      applyStyleAttrSelectors: (() => void) | undefined
+     }
+   }
+ }
+-- 
+2.43.0
+

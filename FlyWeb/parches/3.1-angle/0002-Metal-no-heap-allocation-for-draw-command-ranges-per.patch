@@ -1,0 +1,201 @@
+From f99879e0aee5ec522830d5b6a75d19d8f6962f32 Mon Sep 17 00:00:00 2001
+From: "MOTOR-43 (Claude)" <noreply@anthropic.com>
+Date: Mon, 9 Nov 2026 20:06:58 +0000
+Subject: [PATCH 2/4] Metal: no heap allocation for draw command ranges per
+ drawElements
+
+ContextMtl::drawElementsImpl and VertexArrayMtl::resolveDrawElementsDraw
+built a std::vector<DrawCommandRange> (plus a temporary moved into it)
+and a std::vector<DrawIndexRange> with one element for every
+drawElements, two heap allocations and frees per draw to hold a single
+command in the usual case (5-7% of the GPU main thread in Aquarium on a
+Mac Pro 6,1).
+
+Use angle::FastVector<DrawCommandRange, 4> written in place by
+resolveDrawElementsDraw, and only build the single index range when the
+provoking vertex rewrite needs it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2keCUcEPJ6KTcxicZD
+---
+ src/libANGLE/renderer/metal/BufferMtl.h        | 12 ++++++++++--
+ src/libANGLE/renderer/metal/ContextMtl.mm      |  2 +-
+ src/libANGLE/renderer/metal/VertexArrayMtl.h   |  4 ++--
+ src/libANGLE/renderer/metal/VertexArrayMtl.mm  | 18 ++++++++++--------
+ .../renderer/metal/VertexArrayMtl_unittest.mm  |  4 ++--
+ 5 files changed, 25 insertions(+), 15 deletions(-)
+
+diff --git a/src/libANGLE/renderer/metal/BufferMtl.h b/src/libANGLE/renderer/metal/BufferMtl.h
+index 99cd8f0..55eb152 100644
+--- a/src/libANGLE/renderer/metal/BufferMtl.h
++++ b/src/libANGLE/renderer/metal/BufferMtl.h
+@@ -16,6 +16,7 @@
+ #include <optional>
+ #include <utility>
+ 
++#include "common/FastVector.h"
+ #include "common/span.h"
+ #include "libANGLE/Buffer.h"
+ #include "libANGLE/Observer.h"
+@@ -30,12 +31,19 @@ namespace rx
+ 
+ struct DrawCommandRange
+ {
++    // FlyWeb 3.1: default-constructible so it can live in a FastVector (std::array storage).
++    DrawCommandRange() = default;
+     DrawCommandRange(uint32_t count, size_t offset) : count(count), offset(offset) {}
+ 
+-    uint32_t count;
+-    size_t offset;
++    uint32_t count = 0;
++    size_t offset  = 0;
+ };
+ 
++// FlyWeb 3.1: a drawElements call almost always yields a single command (several only with
++// primitive restart or more than ~100M indices). Inline storage avoids a heap allocation and
++// free per draw (std::vector here was 5-7% of the GPU main thread in Aquarium on the 6,1).
++using DrawCommandRanges = angle::FastVector<DrawCommandRange, 4>;
++
+ // Inclusive range of consecutive draw indexes.
+ // 1, 2, 3, 0xff, 1, 2, 3 produces DrawIndexRange(0, 2), DrawIndexRange(4, 6).
+ struct DrawIndexRange
+diff --git a/src/libANGLE/renderer/metal/ContextMtl.mm b/src/libANGLE/renderer/metal/ContextMtl.mm
+index f3d0f20..58edc6b 100644
+--- a/src/libANGLE/renderer/metal/ContextMtl.mm
++++ b/src/libANGLE/renderer/metal/ContextMtl.mm
+@@ -778,7 +778,7 @@ angle::Result ContextMtl::drawElementsImpl(const gl::Context *context,
+     mtl::BufferSlice idxBuffer;
+     gl::PrimitiveMode newMode          = mode;
+     gl::DrawElementsType idxBufferType = type;
+-    std::vector<DrawCommandRange> drawCommands;
++    DrawCommandRanges drawCommands;
+ 
+     ANGLE_TRY(mVertexArray->resolveDrawElementsDraw(
+         context, mode, type, count, indices, requiresIndexRewrite(context->getState(), mode),
+diff --git a/src/libANGLE/renderer/metal/VertexArrayMtl.h b/src/libANGLE/renderer/metal/VertexArrayMtl.h
+index 6115160..3cce6a7 100644
+--- a/src/libANGLE/renderer/metal/VertexArrayMtl.h
++++ b/src/libANGLE/renderer/metal/VertexArrayMtl.h
+@@ -62,7 +62,7 @@ class VertexArrayMtl : public VertexArrayImpl
+                                           bool rewriteProvokingVertex,
+                                           bool isPrimitiveRestartEnabled,
+                                           gl::PrimitiveMode *outNewMode,
+-                                          std::vector<DrawCommandRange> *outDrawCommands,
++                                          DrawCommandRanges *outDrawCommands,
+                                           mtl::BufferSlice *outIndexBuffer,
+                                           gl::DrawElementsType *outIndexBufferType);
+ 
+@@ -140,7 +140,7 @@ class VertexArrayMtl : public VertexArrayImpl
+ };
+ // Free function for computing draw command ranges from draw index ranges.
+ // Exposed for unit testing.
+-void AppendSimpleDrawCommandRanges(std::vector<DrawCommandRange> &drawCommands,
++void AppendSimpleDrawCommandRanges(DrawCommandRanges &drawCommands,
+                                    gl::PrimitiveMode mode,
+                                    uint32_t count,
+                                    size_t firstIndex,
+diff --git a/src/libANGLE/renderer/metal/VertexArrayMtl.mm b/src/libANGLE/renderer/metal/VertexArrayMtl.mm
+index 7dcc534..03af4c8 100644
+--- a/src/libANGLE/renderer/metal/VertexArrayMtl.mm
++++ b/src/libANGLE/renderer/metal/VertexArrayMtl.mm
+@@ -646,7 +646,7 @@ angle::Result VertexArrayMtl::syncDirtyAttrib(const gl::Context *glContext,
+ }
+ 
+ template <size_t indexRewind>
+-static void AppendDrawCommandsTemplate(std::vector<DrawCommandRange> &drawCommands,
++static void AppendDrawCommandsTemplate(DrawCommandRanges &drawCommands,
+                                        size_t count,
+                                        size_t firstIndex,
+                                        size_t indexSize)
+@@ -665,7 +665,7 @@ static void AppendDrawCommandsTemplate(std::vector<DrawCommandRange> &drawComman
+     }
+ }
+ 
+-static void AppendDrawCommands(std::vector<DrawCommandRange> &drawCommands,
++static void AppendDrawCommands(DrawCommandRanges &drawCommands,
+                                gl::PrimitiveMode mode,
+                                size_t count,
+                                size_t firstIndex,
+@@ -734,7 +734,7 @@ static void AppendDrawCommands(std::vector<DrawCommandRange> &drawCommands,
+ // mode: source primitive mode, may be strip.
+ // drawMode: output primitive mode. Always a simple type: Points, Lines, Triangles.
+ // indexBufferType: type of the output buffer elements.
+-void AppendSimpleDrawCommandRanges(std::vector<DrawCommandRange> &drawCommands,
++void AppendSimpleDrawCommandRanges(DrawCommandRanges &drawCommands,
+                                    gl::PrimitiveMode mode,
+                                    uint32_t count,
+                                    size_t firstIndex,
+@@ -811,7 +811,7 @@ angle::Result VertexArrayMtl::resolveDrawElementsDraw(
+     bool rewriteProvokingVertex,
+     bool isPrimitiveRestartEnabled,
+     gl::PrimitiveMode *outNewMode,
+-    std::vector<DrawCommandRange> *outDrawCommands,
++    DrawCommandRanges *outDrawCommands,
+     mtl::BufferSlice *outIndexBuffer,
+     gl::DrawElementsType *outIndexBufferType)
+ {
+@@ -871,7 +871,7 @@ angle::Result VertexArrayMtl::resolveDrawElementsDraw(
+     // Step 2: GL draw range is firstIndex, count. In case Metal primitive topology for
+     // `newMode` does not support primitive restart, compute the list of draw ranges
+     // containing the primitives.
+-    const std::vector<DrawIndexRange> *indexRanges;
++    const std::vector<DrawIndexRange> *indexRanges = nullptr;
+     std::vector<DrawIndexRange> indexRangesStorage;
+ 
+     bool isSimpleType = newMode == gl::PrimitiveMode::Points ||
+@@ -891,9 +891,11 @@ angle::Result VertexArrayMtl::resolveDrawElementsDraw(
+             indexRanges        = &indexRangesStorage;
+         }
+     }
+-    else
++    else if (rewriteProvokingVertex)
+     {
+         // No primitive restart splitting. Inject a single full range.
++        // FlyWeb 3.1: only the provoking vertex rewrite (step 3) reads it in this case, so the
++        // common draw no longer allocates it.
+         indexRangesStorage.emplace_back(firstIndex, firstIndex + count - 1);
+         indexRanges = &indexRangesStorage;
+     }
+@@ -910,7 +912,8 @@ angle::Result VertexArrayMtl::resolveDrawElementsDraw(
+ 
+     // Step 4: Compute draw command ranges (handles primitive restart splitting and large draw
+     // chunking).  Reuses the same index ranges computed in Step 2.
+-    std::vector<DrawCommandRange> drawCommands;
++    DrawCommandRanges &drawCommands = *outDrawCommands;
++    drawCommands.clear();
+ 
+     if (isPrimitiveRestartEnabled && isSimpleType)
+     {
+@@ -924,7 +927,6 @@ angle::Result VertexArrayMtl::resolveDrawElementsDraw(
+     }
+ 
+     *outNewMode         = newMode;
+-    *outDrawCommands    = std::move(drawCommands);
+     *outIndexBuffer     = std::move(indexBuffer);
+     *outIndexBufferType = indexBufferType;
+ 
+diff --git a/src/libANGLE/renderer/metal/VertexArrayMtl_unittest.mm b/src/libANGLE/renderer/metal/VertexArrayMtl_unittest.mm
+index 290c321..8d9be2f 100644
+--- a/src/libANGLE/renderer/metal/VertexArrayMtl_unittest.mm
++++ b/src/libANGLE/renderer/metal/VertexArrayMtl_unittest.mm
+@@ -27,7 +27,7 @@ using rx::BufferMtl;
+ using rx::DrawCommandRange;
+ using rx::DrawIndexRange;
+ 
+-inline std::vector<DrawCommandRange> ComputeDrawCommandRanges(
++inline rx::DrawCommandRanges ComputeDrawCommandRanges(
+     gl::PrimitiveMode mode,
+     uint32_t count,
+     size_t firstIndex,
+@@ -35,7 +35,7 @@ inline std::vector<DrawCommandRange> ComputeDrawCommandRanges(
+     gl::PrimitiveMode drawMode,
+     gl::DrawElementsType indexBufferType)
+ {
+-    std::vector<DrawCommandRange> drawCommands;
++    rx::DrawCommandRanges drawCommands;
+     rx::AppendSimpleDrawCommandRanges(drawCommands, mode, count, firstIndex, drawIndexRanges,
+                                       drawMode, indexBufferType);
+     return drawCommands;
+-- 
+2.43.0
+

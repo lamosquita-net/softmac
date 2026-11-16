@@ -1,0 +1,183 @@
+From 3277cc65d2ce59188791ddb40eebcec1a4fa830d Mon Sep 17 00:00:00 2001
+From: "MOTOR-45 (Claude)" <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 20:10:49 +0000
+Subject: [PATCH 4/4] gpu: keep Graphite, WebGPU and Dawn off before macOS 11
+ (Catalina)
+
+B1d turned Graphite, WebGPU, Dawn adapter enumeration and the GPU
+persistent cache off on macOS 10.14 with IsMacOSBelow10_15(). On 10.15
+they all came back, but the Dawn in this tree no longer guards its
+macOS 11 Metal calls: PhysicalDeviceMTL.mm sends
+-supportsBCTextureCompression to every macOS device, UtilsMetal.mm sends
+-supportsCounterSampling:, and CommandBufferMTL.mm creates
+MTLComputePassDescriptor and MTLBlitPassDescriptor, all macOS 11. On
+Catalina the GPU process would hit unrecognized selectors as soon as Dawn
+enumerated adapters.
+
+Rename the gate to IsMacOSBelow11() and move the threshold to 11, so
+Catalina takes the configuration already tested on Mojave: Ganesh over
+ANGLE Metal, hardware GL mode, no Graphite, no WebGPU, no Dawn, and the
+legacy shader disk cache.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ chrome/browser/chrome_browser_field_trials.cc  |  2 +-
+ content/browser/gpu/compositor_util.cc         |  2 +-
+ .../gpu/gpu_data_manager_impl_private.cc       |  4 ++--
+ gpu/command_buffer/service/service_utils.cc    |  4 ++--
+ gpu/config/gpu_finch_features.cc               | 18 ++++++++++++------
+ gpu/config/gpu_finch_features.h                |  5 +++--
+ gpu/config/gpu_info_collector.cc               |  5 +++--
+ 7 files changed, 24 insertions(+), 16 deletions(-)
+
+diff --git a/chrome/browser/chrome_browser_field_trials.cc b/chrome/browser/chrome_browser_field_trials.cc
+index 513f0145..8ca37e37 100644
+--- a/chrome/browser/chrome_browser_field_trials.cc
++++ b/chrome/browser/chrome_browser_field_trials.cc
+@@ -411,7 +411,7 @@ void ChromeBrowserFieldTrials::RegisterFeatureOverrides(
+   // process on every start, so Chromium quits with "GPU process isn't usable".
+   // Fall back to the legacy shader disk cache. FLYWEB_GPU_PERSISTENT_CACHE=1
+   // keeps it on (diagnostics).
+-  if (features::IsMacOSBelow10_15() &&
++  if (features::IsMacOSBelow11() &&
+       !base::Environment::Create()->HasVar("FLYWEB_GPU_PERSISTENT_CACHE")) {
+     feature_overrides.DisableFeature(features::kGpuPersistentCache);
+   }
+diff --git a/content/browser/gpu/compositor_util.cc b/content/browser/gpu/compositor_util.cc
+index 057739b8..b6113a2b 100644
+--- a/content/browser/gpu/compositor_util.cc
++++ b/content/browser/gpu/compositor_util.cc
+@@ -203,7 +203,7 @@ std::vector<GpuFeatureData> GetGpuFeatureData(
+           gpu_feature_info, gpu::GPU_FEATURE_TYPE_ACCELERATED_WEBGPU,
+           (!command_line.HasSwitch(switches::kEnableUnsafeWebGPU) &&
+            !base::FeatureList::IsEnabled(::features::kWebGPUService)) ||
+-              ::features::IsMacOSBelow10_15()),  // FlyWeb B1d
++              ::features::IsMacOSBelow11()),  // FlyWeb B1d
+       DisableInfo::Problem(
+           "WebGPU has been disabled via blocklist or the command line."),
+       false);
+diff --git a/content/browser/gpu/gpu_data_manager_impl_private.cc b/content/browser/gpu/gpu_data_manager_impl_private.cc
+index 952b1904..3346bfe4 100644
+--- a/content/browser/gpu/gpu_data_manager_impl_private.cc
++++ b/content/browser/gpu/gpu_data_manager_impl_private.cc
+@@ -439,7 +439,7 @@ GpuDataManagerImplPrivate::GpuDataManagerImplPrivate(GpuDataManagerImpl* owner)
+     : owner_(owner),
+ #if BUILDFLAG(IS_MAC)
+       // FlyWeb B1d: Ganesh/GL over ANGLE Metal on macOS 10.14 (no Graphite).
+-      supports_gpu_mode_hardware_gl_(features::IsMacOSBelow10_15()),
++      supports_gpu_mode_hardware_gl_(features::IsMacOSBelow11()),
+ #elif BUILDFLAG(IS_ANDROID)
+       supports_gpu_mode_hardware_gl_(
+           !base::android::device_info::is_desktop() ||
+@@ -525,7 +525,7 @@ void GpuDataManagerImplPrivate::InitializeGpuModes() {
+       // FlyWeb B1d: never offer a Graphite mode on macOS < 10.15, not even
+       // with --enable-skia-graphite or the late feature check.
+       const bool can_use_graphite =
+-          !features::IsMacOSBelow10_15() &&
++          !features::IsMacOSBelow11() &&
+           (early_feature_check
+                ? features::IsSkiaGraphiteEnabled(command_line)
+                : !command_line->HasSwitch(switches::kDisableSkiaGraphite));
+diff --git a/gpu/command_buffer/service/service_utils.cc b/gpu/command_buffer/service/service_utils.cc
+index 79a812b7..b42d0578 100644
+--- a/gpu/command_buffer/service/service_utils.cc
++++ b/gpu/command_buffer/service/service_utils.cc
+@@ -270,7 +270,7 @@ GpuPreferences ParseGpuPreferences(const base::CommandLine* command_line) {
+     }
+   }
+   gpu_preferences.enable_webgpu =
+-      !features::IsMacOSBelow10_15() &&  // FlyWeb B1d: no WebGPU on 10.14.
++      !features::IsMacOSBelow11() &&  // FlyWeb B1d: no WebGPU on 10.14.
+       (command_line->HasSwitch(switches::kEnableUnsafeWebGPU) ||
+        base::FeatureList::IsEnabled(features::kWebGPUService));
+   gpu_preferences.enable_unsafe_webgpu =
+@@ -333,7 +333,7 @@ GpuPreferences ParseGpuPreferences(const base::CommandLine* command_line) {
+ GrContextType ParseDefaultGrContextType(const base::CommandLine* command_line) {
+ #if BUILDFLAG(SKIA_USE_DAWN)
+   // FlyWeb B1d: no Graphite on macOS 10.14.
+-  if (features::IsMacOSBelow10_15()) {
++  if (features::IsMacOSBelow11()) {
+   } else if (base::FeatureList::IsEnabled(features::kLateGraphiteFeatureCheck)) {
+     // With late check, only the disable flag gates Graphite; the full
+     // feature/device check is deferred to the GPU process post-blocklist.
+diff --git a/gpu/config/gpu_finch_features.cc b/gpu/config/gpu_finch_features.cc
+index 2c271278..eb5b3fde 100644
+--- a/gpu/config/gpu_finch_features.cc
++++ b/gpu/config/gpu_finch_features.cc
+@@ -587,8 +587,8 @@ bool NeedThreadSafeAndroidMedia() {
+ namespace {
+ bool IsSkiaGraphiteSupportedByDevice() {
+ #if BUILDFLAG(IS_APPLE)
+-  // FlyWeb B1d: Graphite (Skia Metal and Dawn) needs macOS 10.15+.
+-  if (IsMacOSBelow10_15()) {
++  // FlyWeb B1d: Graphite (Skia Metal and Dawn) needs macOS 11+ here.
++  if (IsMacOSBelow11()) {
+     return false;
+   }
+   return UsePassthroughCommandDecoder();
+@@ -627,9 +627,15 @@ bool IsSkiaGraphiteSupportedByDevice() {
+ }  // namespace
+ 
+ // FlyWeb B1d: Graphite and WebGPU are off on macOS 10.14 (Metal 2.1).
+-bool IsMacOSBelow10_15() {
++// FlyWeb 3.1.1: also on macOS 10.15. Dawn no longer guards its macOS 11 Metal
++// calls (-[MTLDevice supportsBCTextureCompression], -supportsCounterSampling:,
++// MTLComputePassDescriptor, MTLBlitPassDescriptor), so with the old 10.15
++// threshold Catalina enumerated Dawn adapters and hit unrecognized selectors.
++// Catalina now takes the configuration tested on Mojave: Ganesh over ANGLE
++// Metal, no Graphite, no WebGPU, no Dawn, no GPU persistent cache.
++bool IsMacOSBelow11() {
+ #if BUILDFLAG(IS_MAC)
+-  return base::mac::MacOSVersion() < 10'15'00;
++  return base::mac::MacOSVersion() < 11'00'00;
+ #else
+   return false;
+ #endif
+@@ -643,10 +649,10 @@ bool IsSkiaGraphiteEnabled(const base::CommandLine* command_line) {
+ 
+   // FlyWeb B1d: Graphite needs Metal 3 features absent on macOS 10.14, so it
+   // stays off there even with --enable-skia-graphite (security rule 17).
+-  if (IsMacOSBelow10_15()) {
++  if (IsMacOSBelow11()) {
+     if (command_line->HasSwitch(switches::kEnableSkiaGraphite)) {
+       LOG(WARNING) << "FlyWeb B1d: --enable-skia-graphite ignored on macOS "
+-                      "< 10.15";
++                      "< 11";
+     }
+     return false;
+   }
+diff --git a/gpu/config/gpu_finch_features.h b/gpu/config/gpu_finch_features.h
+index 64883c1a..2333fd2d 100644
+--- a/gpu/config/gpu_finch_features.h
++++ b/gpu/config/gpu_finch_features.h
+@@ -245,8 +245,9 @@ GPU_CONFIG_EXPORT bool IsDrDcEnabled(
+     const gpu::GpuFeatureInfo& gpu_feature_info);
+ GPU_CONFIG_EXPORT bool ShouldEnableDrDc();
+ GPU_CONFIG_EXPORT bool NeedThreadSafeAndroidMedia();
+-// FlyWeb B1d: true on macOS 10.14 (no Graphite, no WebGPU).
+-GPU_CONFIG_EXPORT bool IsMacOSBelow10_15();
++// FlyWeb B1d: true before macOS 11, i.e. 10.14 and 10.15 (no Graphite, no
++// WebGPU, no Dawn).
++GPU_CONFIG_EXPORT bool IsMacOSBelow11();
+ 
+ GPU_CONFIG_EXPORT bool IsSkiaGraphiteEnabled(
+     const base::CommandLine* command_line);
+diff --git a/gpu/config/gpu_info_collector.cc b/gpu/config/gpu_info_collector.cc
+index 53845e0c..0067f906 100644
+--- a/gpu/config/gpu_info_collector.cc
++++ b/gpu/config/gpu_info_collector.cc
+@@ -833,8 +833,9 @@ void CollectDawnInfo(const gpu::GpuPreferences& gpu_preferences,
+                      std::vector<std::string>* dawn_info_list) {
+   TRACE_EVENT("gpu,startup", "gpu_info_collector::CollectDawnInfo");
+ #if BUILDFLAG(USE_DAWN)
+-  // FlyWeb B1d: Dawn Metal calls macOS 10.15+ selectors; WebGPU is off on 10.14.
+-  if (features::IsMacOSBelow10_15()) {
++  // FlyWeb B1d: Dawn Metal calls macOS 11+ selectors unguarded; WebGPU is off
++  // before macOS 11.
++  if (features::IsMacOSBelow11()) {
+     return;
+   }
+   DawnProcTable procs = dawn::native::GetProcs();
+-- 
+2.43.0
+

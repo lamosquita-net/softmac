@@ -1,0 +1,11 @@
+37051a62f546c25904e3f353b42bf8b3f4624b64d27bdc6a5612a8f3115fa903  chromium/0001-3.0.2-V8-15.6.75.51-Roll-commits-from-side-projects-.patch
+f5a41d93b9063a46bbc3d9fee84fe6daa86215c39a283bd09b9a309808ef14af  chromium/0002-3.0.2-sin-CVE-M157-CSS-Run-the-marking-barrier-when-.patch
+d0b0a8895bf83ef8147f8c2aab0b847d27827563f6df972105f7306c8950693b  chromium/0003-3.0.2-sin-CVE-M157-Copy-timelines-before-servicing-a.patch
+62a5e0018fb5f9314d58de828319696533198bce7c61821aebc6bc6f530befd7  chromium/0004-3.0.2-sin-CVE-M157-Swap-pending-snap-sets-before-ite.patch
+56084dc843e349d1bedd4208cab8a2984f8a9a5202df707e7d0dc154d5cefd7e  chromium/0005-3.0.2-sin-CVE-m157-views-ax-Do-not-create-AXAuraObjC.patch
+7bd9c4df92986a242f56321a9776ec06c1fd9db941bac95dd6c06da5d040755a  chromium/0006-3.0.2-sin-CVE-M157-navigation-Match-MHTML-MIME-types.patch
+62c73a7f907dc4c7f1cf83f4aa5b154f107b7b0208d7e90707fff07cea854917  chromium/0007-3.0.2-sin-CVE-Fix-null-dereference-in-validation-ove.patch
+27581d0176960427089853f764aec6088b067f5cfc08af289e8b1fc22028b13d  chromium/0008-3.0.2-foco-focus-without-user-activation-Fix-label-f.patch
+6f9c70f60f0ace28ac4630731d339595528a9e59d58ed8574020972900927a02  chromium/0009-3.0.2-foco-focus-without-user-activation-Report-perm.patch
+62101ff1e71d22fd1e9819959e9606bc5bf8242273d005e05af8dba0d9962364  chromium/0010-3.0.2-foco-focus-without-user-activation-Remove-the-.patch
+96878b741b6252642658c6a6fe3308e1642425dfc0b9f5f9b557c2009f737090  chromium/0011-3.0.2-chrome-VERSION-156.0.8078.96-156.0.8078.98.patch

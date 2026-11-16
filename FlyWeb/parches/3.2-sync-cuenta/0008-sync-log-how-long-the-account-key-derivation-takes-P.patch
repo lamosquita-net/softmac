@@ -1,0 +1,47 @@
+From 2f2ecce8643af0cd217950a857e781bbed9a076e Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Sat, 14 Nov 2026 13:19:36 +0000
+Subject: [PATCH] sync: log how long the account key derivation takes (P23)
+
+VLOG(1) with the elapsed time and the outcome of DeriveAccountKeys,
+so the real scrypt cost can be measured on each Mac from the sync page
+itself (--enable-logging=stderr
+--vmodule=flyweb_sync_account_service=1). Nothing else is logged: no
+email, no key material.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ browser/sync/account/flyweb_sync_account_service.cc | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/browser/sync/account/flyweb_sync_account_service.cc b/browser/sync/account/flyweb_sync_account_service.cc
+index 0c439bf..8ebef94 100644
+--- a/browser/sync/account/flyweb_sync_account_service.cc
++++ b/browser/sync/account/flyweb_sync_account_service.cc
+@@ -23,6 +23,7 @@
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/system/sys_info.h"
+ #include "base/task/thread_pool.h"
++#include "base/timer/elapsed_timer.h"
+ #include "brave/components/brave_sync/brave_sync_prefs.h"
+ #include "brave/components/brave_sync/crypto/crypto.h"
+ #include "brave/components/brave_sync/sync_service_impl_helper.h"
+@@ -1198,7 +1199,14 @@ void AccountService::DeriveKeys(
+           [](std::unique_ptr<std::string> secret, std::string email) {
+             std::string normalized = account::NormalizePassword(*secret);
+             account::WipeString(*secret);
++            // P23: the real cost on each Mac, without a separate tool.
++            // Only the time and the outcome: no email, no key material.
++            // --enable-logging=stderr --vmodule=flyweb_sync_account_service=1
++            const base::ElapsedTimer timer;
+             auto keys = account::DeriveAccountKeys(normalized, email);
++            VLOG(1) << "FlyWeb sync account: key derivation "
++                    << (keys ? "ok" : "failed") << " in "
++                    << timer.Elapsed().InMilliseconds() << " ms";
+             account::WipeString(normalized);
+             return keys;
+           },
+-- 
+2.43.0
+

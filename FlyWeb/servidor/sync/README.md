@@ -44,12 +44,21 @@ del usuario. Decisión del HUMANO (03/10): sistema propio, en ns2, con el menor 
   DynamoDB. Para go-sync se comporta igual (`ClearServerData` devuelve lo mismo).
 - **Límite de gzip:** go-sync descomprime sin límite. Aquí se comprueba el token **antes** de leer el cuerpo, y se
   descomprime con tope (8 MB comprimido, 32 MB descomprimido).
-- **Sin `/metrics`, pprof ni `/health-check`**: solo `POST /v2/command/`.
+- **Sin `/metrics`, pprof ni `/health-check`**: solo `POST /v2/command/` y, si está configurada, la cuenta.
+
+## Cuenta (3.2)
+
+Paquete [`cuenta/`](cuenta/README.md): añadir un Mac con email + contraseña + código por email
+([`sync-cuenta.md`](../../docs/sync-cuenta.md)). Rutas `POST /cuenta/v1/...` en este mismo binario y este mismo
+`sync.db`, con tablas propias; go-sync no cambia. **Solo se activa si systemd le pasa las credenciales `cuenta-hmac` y
+`cuenta-aes`**; sin ellas, `flyweb-sync` se comporta como antes. Instalación en ns2: SERVIDOR-LOCAL, cuando la ordene
+COORDINACIÓN y tras la revisión de SEGURIDAD-PORTES.
 
 ## Pruebas
 
 ```sh
-go test -race ./...     # propias: reloj, caducidad, caché, y de punta a punta por HTTP con el token de Brave 1.57
+go test -race ./...     # propias: reloj, caducidad, caché, de punta a punta por HTTP con el token de Brave 1.57,
+                        # y las de la cuenta (cuenta/README.md)
 pruebas/go-sync.sh      # las de go-sync (command/ y datastore/) contra SQLite y la caché en memoria
 ```
 

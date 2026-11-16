@@ -1,0 +1,3663 @@
+From 896492d22bf1abaf05d1178d9d426cb23df0efda Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 19:23:19 +0000
+Subject: [PATCH 3/6] =?UTF-8?q?settings:=20=C2=ABCuenta=20y=20sincronizaci?=
+ =?UTF-8?q?=C3=B3n=C2=BB=20page=20for=20the=20FlyWeb=203.2=20sync=20accoun?=
+ =?UTF-8?q?t?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+FlyWeb/docs/sync-cuenta.md §9 and §11.
+
+- BraveSyncHandler: FlyWebAccount* messages over flyweb_sync::
+  AccountService, always resolved with {ok, error, until, data}, the
+  status pushed as "flyweb-account-status-changed", and the password
+  strength from zxcvbn (as the password manager's weak check; only the
+  minimum length is enforced).
+- settings-flyweb-sync-account: the nine states of §9, none without a way
+  out; create, log in, recovery key, the email-code step with resend and
+  cancel, devices, password/email/key changes, leave, delete everywhere,
+  scheduled deletion, the mailbox-only flows, «¿Has sido tú?» and the
+  offline state. Passwords in plain inputs outside any <form>, cleared as
+  soon as they are sent. Only «Combinar» on joining (C1, pending).
+- Strings: English source, es and es-419 translations with the grit
+  fingerprint ids; the section title becomes «Account and sync».
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ app/brave_generated_resources.grd             |   49 +
+ app/brave_settings_strings.grdp               |  360 ++++-
+ .../brave_generated_resources_es-419.xtb      |  134 ++
+ .../brave_generated_resources_es.xtb          |  134 ++
+ browser/DEPS                                  |    1 +
+ .../brave_sync_browser_proxy.ts               |   94 ++
+ .../brave_sync_page/brave_sync_configure.html |   10 +
+ .../brave_sync_page/brave_sync_configure.ts   |   20 +
+ .../brave_sync_page/brave_sync_subpage.html   |   33 +-
+ .../brave_sync_page/brave_sync_subpage.ts     |   55 +-
+ .../brave_sync_page/flyweb_sync_account.html  |  760 +++++++++++
+ .../brave_sync_page/flyweb_sync_account.ts    | 1196 +++++++++++++++++
+ browser/resources/settings/sources.gni        |    1 +
+ browser/ui/BUILD.gn                           |    1 +
+ ...ave_settings_localized_strings_provider.cc |  204 +++
+ .../ui/webui/settings/brave_sync_handler.cc   |  194 +++
+ .../ui/webui/settings/brave_sync_handler.h    |   22 +-
+ 17 files changed, 3260 insertions(+), 8 deletions(-)
+ create mode 100644 browser/resources/settings/brave_sync_page/flyweb_sync_account.html
+ create mode 100644 browser/resources/settings/brave_sync_page/flyweb_sync_account.ts
+
+diff --git a/app/brave_generated_resources.grd b/app/brave_generated_resources.grd
+index 6714b36..ca9c6cc 100644
+--- a/app/brave_generated_resources.grd
++++ b/app/brave_generated_resources.grd
+@@ -318,6 +318,55 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>flyweb://settings/ex
+       <message name="IDS_BRAVE_SYNC_ACCOUNT_DELETED_INFOBAR_BUTTON" desc="Button text shown to users who's Sync account was disabled. This button prevents further show of the infobar.">
+         OK
+       </message>
++      <!-- FlyWeb 3.2: sync account warnings (FlyWeb/docs/sync-cuenta.md §6.2, §6.3) -->
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_MAC_ADDED" desc="Account warning: a Mac was added">
++        The Mac "<ph name="NAME">$1<ex>MacBook Air</ex></ph>" was added to your sync account.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_GUESSED" desc="Account warning: the password was typed right on a new Mac">
++        Someone typed your account password correctly on a new Mac. If it wasn't you, change it now.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_FAILURES" desc="Account warning: failed password attempts">
++        <ph name="COUNT">$1<ex>3</ex></ph> failed password attempts on your sync account.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_CHANGED" desc="Account warning: password changed">
++        The password of your sync account was changed.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_EMAIL_CHANGED" desc="Account warning: email changed">
++        The email of your sync account was changed.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_CHANGED" desc="Account warning: sync key changed">
++        The sync key was changed from another Mac.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED" desc="Account warning: the chain was linked to an account">
++        This sync was linked to an account.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DEVICE_REMOVED" desc="Account warning: a Mac was removed from the list">
++        The Mac "<ph name="NAME">$1<ex>MacBook Air</ex></ph>" was removed from your sync account.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_ME" desc="Account warning: «It wasn't me» on another Mac">
++        Someone pressed "It wasn't me" on another Mac.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DELETION_REQUESTED" desc="Account warning: deletion asked by email">
++        Someone asked to delete your sync account; it will be deleted on <ph name="DATE">$1<ex>14 de diciembre</ex></ph>.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DELETION_CANCELLED" desc="Account warning: deletion cancelled">
++        The deletion of your sync account was cancelled.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_MORE" desc="Appended when there are more warnings">
++        and <ph name="COUNT">$1<ex>3</ex></ph> more warnings
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_WAS_ME" desc="Button: the warned operation was done by the user">
++        It was me
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_ME_BUTTON" desc="Button: the warned operation was not done by the user">
++        It wasn't me
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_OPEN" desc="Link that opens «Cuenta y sincronización»">
++        Review
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_KEY_CHANGED_INFOBAR" desc="Notice when the sync key was changed from another Mac">
++        The sync key was changed from another Mac. Log in again with your email, your password and a code.
++      </message>
+       <message name="IDS_BRAVE_SYNC_CANNOT_RUN_INFOBAR_MESSAGE" desc="Message text shown to users when Sync service cannot run and additional attention is required">
+         Sync service could not be started, FlyWeb Sync is not running
+       </message>
+diff --git a/app/brave_settings_strings.grdp b/app/brave_settings_strings.grdp
+index f1a1e72..7cceca2 100644
+--- a/app/brave_settings_strings.grdp
++++ b/app/brave_settings_strings.grdp
+@@ -577,8 +577,8 @@
+   </message>
+ 
+   <!-- Settings / Sync -->
+-  <message name="IDS_SETTINGS_BRAVE_SYNC_TITLE" desc="The title for FlyWeb Sync in settings">
+-    Sync
++  <message name="IDS_SETTINGS_BRAVE_SYNC_TITLE" desc="The title for FlyWeb Sync in settings (FlyWeb 3.2: the page also holds the sync account)">
++    Account and sync
+   </message>
+   <message name="IDS_SETTINGS_BRAVE_SYNC_SETUP_ACTION_LABEL" desc="FlyWeb Sync setup action label">
+     Start using sync
+@@ -781,6 +781,362 @@
+     Passwords
+   </message>
+ 
++  <!-- Settings / FlyWeb 3.2 «Cuenta y sincronización» (FlyWeb/docs/sync-cuenta.md §9) -->
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LOADING" desc="Shown while the account state loads">
++    Loading…
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_RETRY" desc="Button to repeat a call that failed">
++    Retry
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_BACK" desc="Button to go back to the previous step">
++    Go back
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CONTINUE" desc="Button to go on to the next step">
++    Continue
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CLOSE" desc="Button to close a panel">
++    Close
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_SAVE" desc="Button to save a new device name">
++    Save the name
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DONE" desc="Shown after an operation succeeded">
++    Done.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_WORKING" desc="Shown while a call to the sync server is in progress">
++    One moment…
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CHECKING_PASSWORD" desc="Shown while the password is stretched (scrypt, a second or more)">
++    Checking the password…
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_OFFLINE" desc="Shown when the sync server does not answer, above the last known state">
++    No connection to the server. This is the last that was known (<ph name="DATE">$1<ex>14 de diciembre, 10:30</ex></ph>).
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LAST_ERROR" desc="Shown when the last background check failed">
++    The last check with the server failed: <ph name="ERROR">$1<ex>El servidor está ocupado.</ex></ph>
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_NO_ACCOUNT_TITLE" desc="Title of the page without an account">
++    Sync your Macs with an account
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_NO_ACCOUNT_DESC" desc="Explanation of the sync account">
++    With an account, you add a Mac with your email, your password and a code we send to your email. Your data travels encrypted with a key the server does not have.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LINK_DESC" desc="Shown to a Mac that syncs with the 24 words and has no account">
++    This Mac already syncs with a recovery key (24 words). Create an account to link this sync to it: nothing is synced again, and you can add other Macs with your email and your password.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CREATE" desc="Button to create a sync account">
++    Create account
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LOGIN" desc="Button to log in to the sync account from this Mac">
++    Log in
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_HAVE_RECOVERY_KEY" desc="Button to join with the 24 words of the recovery key">
++    I have my recovery key
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_PASSWORD" desc="Button for a forgotten account password">
++    I forgot the password
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_EMAIL_LABEL" desc="Label of the email field">
++    Email
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_PASSWORD_LABEL" desc="Label of the account password field">
++    Password
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_NEW_PASSWORD_LABEL" desc="Label of the new password field">
++    New password
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_NEW_EMAIL_LABEL" desc="Label of the new email field">
++    New email
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CODE_LABEL" desc="Label of the field for the code sent by email">
++    Code from the email
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_NAME_LABEL" desc="Label of the device name field">
++    Name of this Mac
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_NAME_HINT" desc="Hint under the device name field">
++    This is how this Mac appears in the list and in the warnings. Only you see it.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_EMAIL_CODE_DESC" desc="Step that asks for the email">
++    Write the email of the account. We will send you a code to check it.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LOGIN_DESC" desc="Log in step">
++    Write the email and the password of your account. If they are right, we will send you a code by email.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_SEND_CODE" desc="Button that asks the server for a code by email">
++    Send the code
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_PASSWORD_HINT" desc="Hint under a new password field">
++    At least <ph name="COUNT">$1<ex>10</ex></ph> characters. Use one you do not use anywhere else: it protects the key of your data.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_STRENGTH_0" desc="Password strength, 0 of 4">
++    Password strength: very weak
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_STRENGTH_1" desc="Password strength, 1 of 4">
++    Password strength: weak
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_STRENGTH_2" desc="Password strength, 2 of 4">
++    Password strength: fair
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_STRENGTH_3" desc="Password strength, 3 of 4">
++    Password strength: good
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_STRENGTH_4" desc="Password strength, 4 of 4">
++    Password strength: very good
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CODE_SENT" desc="Step that waits for the code sent by email">
++    We sent a code to <ph name="EMAIL">$1<ex>usuario@example.com</ex></ph>. It expires in 10 minutes.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CODE_NOT_ARRIVED" desc="Hint under the code field">
++    If it does not arrive, look in the spam folder or ask for another one.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_RESEND" desc="Button to send the code again">
++    Send another code
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_CREATE_DESC" desc="Last step of creating an account">
++    Write the code, choose the password of the account and a name for this Mac.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_LOGIN_DESC" desc="Last step of logging in">
++    Write the code and a name for this Mac.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_PASSWORD_DESC" desc="Last step of changing the password">
++    Write the code and the new password. The old one is not needed, and your synced data is not touched.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_EMAIL_DESC" desc="Last step of changing the email">
++    Write the code we sent to the new address.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_MAILBOX_DELETE_DESC" desc="Last step of deleting the account with the email only">
++    Write the code. The account and its data will be deleted in 14 days; until then, any Mac that still syncs can cancel it.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_START_OVER_DESC" desc="Last step of starting over with the email only">
++    Write the code and choose the password of the account. This Mac starts a new sync now; the account moves to it in 14 days, and the old sync is deleted then. Any Mac that still syncs the old one can cancel it.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_RECOVERY_TITLE" desc="Title of the 24 words">
++    Recovery key
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_RECOVERY_DESC" desc="Explanation of the recovery key">
++    Keep it printed or in a password manager. It is the only way to recover your data if you lose all your Macs and forget the password.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_RECOVERY_NEW" desc="Shown with a new recovery key">
++    This is a new recovery key: the old one no longer works.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_RECOVERY_SAVED_CHECK" desc="Checkbox the user ticks before going on">
++    I have saved the recovery key
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_VIEW_RECOVERY" desc="Button to show the 24 words">
++    View the recovery key
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_OLD_VERSION_CODE" desc="Button to show the 25 words with a date that older versions use to join">
++    Code for FlyWeb 2.7 or 3.0
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_OLD_VERSION_CODE_DESC" desc="Hint next to the old version code button">
++    Those versions join with 25 words that expire.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_WORDS_DESC" desc="Step to join with the recovery key">
++    Write the 24 words of your recovery key. The 25 words shown by FlyWeb 2.7 or 3.0 also work while they have not expired.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_JOIN" desc="Button to join with the recovery key">
++    Join this Mac
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_WITH_MAC" desc="First way out for a forgotten password">
++    Change it on a Mac that already syncs (Account and sync → I forgot the password) and come back here.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_NO_MAC" desc="Second way out for a forgotten password">
++    If you have none, use your recovery key: this Mac joins with it, and then you can set a new password here.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_NOTHING" desc="Shown when nothing is left but the mailbox">
++    Without any Mac, the password or the recovery key, your synced data cannot be recovered: nobody, not even us, has the key that opens it. With your email you can start over or delete the account.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DELAY_WARNING" desc="Warning of the 14 days delay">
++    It does not happen at once: it takes 14 days, and any Mac that still syncs can cancel it. If it is cancelled, it cannot be asked again for 30 days.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_START_OVER" desc="Button to start over with the email only">
++    Start over
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_MAILBOX_DELETE" desc="Button to delete the account with the email only">
++    Delete the account by email
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_MAILBOX_DELETE_DONE" desc="Shown after asking to delete the account by email">
++    The account will be deleted on <ph name="DATE">$1<ex>14 de diciembre</ex></ph>.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_START_OVER_DONE" desc="Shown after starting over">
++    This Mac now syncs a new chain. The account moves to it on <ph name="DATE">$1<ex>14 de diciembre</ex></ph>.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ACCOUNT_EMAIL" desc="Email of the account">
++    Account: <ph name="EMAIL">$1<ex>usuario@example.com</ex></ph>
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_EMAIL_NOT_KNOWN" desc="Shown when this Mac does not know the email of the account">
++    Linked account (this Mac does not know its email yet)
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICES_TITLE" desc="Title of the device list">
++    Macs in the account
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICES_EMPTY" desc="Empty device list">
++    The list has not loaded yet.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_THIS" desc="Marks this Mac in the device list">
++    This Mac
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_ADDED" desc="Date a device was added">
++    Added: <ph name="DATE">$1<ex>14 de diciembre</ex></ph>
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_LAST_USED" desc="Date a device was last used">
++    Last used: <ph name="DATE">$1<ex>14 de diciembre</ex></ph>
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_RENAME" desc="Button to rename a device">
++    Change the name
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_REMOVE_FROM_LIST" desc="Button to remove a device">
++    Remove from the list
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_REMOVE_CONFIRM" desc="Confirmation of removing a device from the list">
++    This Mac stops appearing here, but it keeps the sync key. If you lost it or it was stolen, change the sync key.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_PASSWORD" desc="Button to change the password">
++    Change the password
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_EMAIL" desc="Button to change the email">
++    Change the email
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_EMAIL_DESC" desc="Change email step">
++    Write your password and the new email. We will send a code to the new address.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_FIRST" desc="Hint for steps that ask for the password">
++    If you do not remember the password, change it first with “I forgot the password”.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_KEY" desc="Button to change the sync key">
++    Change the sync key
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_KEY_DESC" desc="Explanation of changing the sync key">
++    If you lost a Mac or it was stolen: this Mac creates a new key, uploads the data again encrypted with it and shows you the new recovery key. The other Macs have to log in again with your email, your password and a code; the lost one cannot, because it does not know the password.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LEAVE" desc="Button to leave sync on this Mac">
++    Stop syncing on this Mac
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LEAVE_CONFIRM" desc="Confirmation of leaving sync on this Mac">
++    This Mac stops syncing and leaves the list of the account. Its data stays in the profile, and nothing is deleted on the server or on the other Macs.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DELETE_EVERYWHERE" desc="Button to delete the account and the synced data">
++    Delete the account and the data everywhere
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DELETE_CONFIRM" desc="Confirmation of deleting everywhere; COUNT is the number of devices">
++    <ph name="COUNT">$1<ex>3</ex></ph> browsers will be disconnected. The data each one has in its profile is not deleted.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DELETE_CONFIRM_SERVER" desc="Second line of the confirmation of deleting everywhere">
++    The account and all the synced data are deleted from the server. It cannot be undone.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DELETION_SCHEDULED" desc="Shown while a deletion asked by email is pending">
++    Someone asked to delete this account from its email. It will be deleted on <ph name="DATE">$1<ex>14 de diciembre</ex></ph>, with all the synced data, unless you cancel it.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DELETION_NOT_YOU" desc="Hint under a pending deletion">
++    If it was not you, someone can read your email: cancel it and change the password of your email.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CANCEL_DELETION" desc="Button to cancel a pending deletion">
++    Cancel the deletion
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_KEYS_UNREADABLE" desc="Shown when the keychain cannot decrypt the sync keys">
++    This Mac cannot read its sync keys (the keychain has changed).
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_KEYS_UNREADABLE_DESC" desc="What to do when the sync keys cannot be read">
++    Its data is still in the profile. To sync again, log in with your email and your password, or use your recovery key.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_REJOIN" desc="Button to join this Mac again">
++    Join this Mac again
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ACCOUNT_DELETED" desc="Shown when the account was deleted from another Mac">
++    The account was deleted from another Mac.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DATA_KEPT" desc="Shown after the account was deleted or the key changed">
++    This Mac has stopped syncing; its data is still in the profile.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LOGIN_AGAIN" desc="Button to log in again">
++    Log in again
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_UNDERSTOOD" desc="Button that hides a notice">
++    Understood
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_WARNINGS_TITLE" desc="Title of the account warnings">
++    Was it you?
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_NOT_ME_DONE" desc="Guide after «It wasn't me»">
++    Done: no Mac session is valid now (yours renew it by themselves) and any deletion asked by email is cancelled. Now change the password. If someone may have logged in already, change the sync key too. And if your email is not safe, change the email.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_RED" desc="Error: no network">
++    No connection to the server. Retry.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_SERVIDOR" desc="Error: unexpected answer">
++    The server gave an unexpected answer. Retry in a while.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_CREDENCIALES" desc="Error: wrong password or code (one message for both)">
++    The password or the code is not correct.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_ESPERA" desc="Error: wait before trying again">
++    Too many attempts. You can try again at <ph name="TIME">$1<ex>10:30</ex></ph>.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_CUPO" desc="Error: code quota">
++    Too many codes were asked in the last hour. Try again later.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_OCUPADO" desc="Error: server busy">
++    The server is busy. Retry in a few seconds.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_ENVOLTURA" desc="Error: the wrapped key did not open">
++    The key received is not valid. Nothing has been activated.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_CONTRASENA_CORTA" desc="Error: password too short">
++    The password must have at least <ph name="COUNT">$1<ex>10</ex></ph> characters.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_EMAIL" desc="Error: invalid email">
++    Check the email address: it is not valid.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_EMAIL_UNKNOWN" desc="Error: the email of the account is not known here">
++    This Mac does not know the email of the account yet. Retry in a moment.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_PALABRAS" desc="Error: invalid recovery words">
++    The recovery key is not valid. Check the words.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_SIN_CUENTA" desc="Error: no account">
++    This sync has no account.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_CADENA_LIGADA" desc="Error: chain already linked">
++    This sync is already linked to another account. To link it to a new one, the other one has to be deleted first.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_CADENA_BORRADA" desc="Error: chain deleted">
++    This sync has been deleted.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_EMAIL_OCUPADO" desc="Error: email in use">
++    There is already an account with that email.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_PROGRAMADO" desc="Error: deletion already asked">
++    A deletion is already pending for this account, or one was cancelled less than 30 days ago.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_APARATO" desc="Error: unknown device">
++    That Mac is no longer in the list of the account.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_PRUEBA" desc="Error: chain proof rejected">
++    The server did not accept the signature of this Mac. Retry.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_TOKEN" desc="Error: device token rejected">
++    The session of this Mac is no longer valid. Retry: it renews by itself.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_LLAVERO" desc="Error: keychain">
++    The macOS keychain could not be used for the sync keys.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_INTERNO" desc="Error: internal">
++    Something failed inside FlyWeb. Retry.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_OCUPADO_LOCAL" desc="Error: another operation running">
++    Another operation is in progress on this Mac. Wait until it ends.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_SIN_FLUJO" desc="Error: no flow in progress">
++    The code has expired or the operation was cancelled. Start again.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_SIN_CADENA" desc="Error: no chain">
++    This Mac is not syncing.
++  </message>
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_PETICION" desc="Error: bad request">
++    The server did not understand the request. Check the data (the name of the Mac, 64 characters at most).
++  </message>
++
+   <!-- Settings / Search engine -->
+   <message name="IDS_SETTINGS_BRAVE_OTHER_SEARCH_ENGINES_LABEL" desc="The label for the settings switch controlling the addition of custom search engines">
+     Index other search engines
+diff --git a/app/resources/brave_generated_resources_es-419.xtb b/app/resources/brave_generated_resources_es-419.xtb
+index 2a117f2..2e66824 100644
+--- a/app/resources/brave_generated_resources_es-419.xtb
++++ b/app/resources/brave_generated_resources_es-419.xtb
+@@ -746,4 +746,138 @@ de forma irreversible.</translation>
+ <translation id="1959966725083452288">Avatar Caramelo real</translation>
+ <translation id="2039034364578911089">Avatar Caramelo ninja</translation>
+ <translation id="7029809446516969842">Claves</translation>
++<translation id="6846298663435243399">Cargando…</translation>
++<translation id="7144878232160441200">Reintentar</translation>
++<translation id="2501278716633472235">Volver</translation>
++<translation id="2359808026110333948">Continuar</translation>
++<translation id="4907912188284488365">Guardar el nombre</translation>
++<translation id="8472402446973817571">Hecho.</translation>
++<translation id="8359455123152735783">Un momento…</translation>
++<translation id="6158789680688491759">Comprobando la contraseña…</translation>
++<translation id="8286347109540980254">No hay conexión con el servidor. Esto es lo último que se sabía (<ph name="DATE"/>).</translation>
++<translation id="1259556708021850952">La última comprobación con el servidor ha fallado: <ph name="ERROR"/></translation>
++<translation id="9204601462589487462">Sincroniza tus Macs con una cuenta</translation>
++<translation id="947914014881985381">Con una cuenta, añades un Mac con tu email, tu contraseña y un código que te mandamos por email. Tus datos viajan cifrados con una clave que el servidor no tiene.</translation>
++<translation id="3057943379076520498">Este Mac ya sincroniza con la clave de recuperación (24 palabras). Crea una cuenta para ligar esta sincronización: no se vuelve a sincronizar nada, y podrás añadir otros Macs con tu email y tu contraseña.</translation>
++<translation id="4771176409524282426">Crear cuenta</translation>
++<translation id="4611292653554630842">Entrar</translation>
++<translation id="2907990096795616260">Tengo mi clave de recuperación</translation>
++<translation id="8115079159183761574">He olvidado la contraseña</translation>
++<translation id="5659593005791499971">Email</translation>
++<translation id="6657585470893396449">Contraseña</translation>
++<translation id="3838338534323494292">Contraseña nueva</translation>
++<translation id="5706128975787418512">Email nuevo</translation>
++<translation id="2152300309341997262">Código del email</translation>
++<translation id="5311405160685974375">Nombre de este Mac</translation>
++<translation id="4647109959892177045">Es como aparece este Mac en la lista y en los avisos. Solo lo ves tú.</translation>
++<translation id="3083216309726842735">Escribe el email de la cuenta. Te mandaremos un código para comprobarlo.</translation>
++<translation id="2910518395572324988">Escribe el email y la contraseña de tu cuenta. Si son correctos, te mandaremos un código por email.</translation>
++<translation id="9056205625135800990">Mandar el código</translation>
++<translation id="5899685196870696417">Al menos <ph name="COUNT"/> caracteres. Usa una que no uses en ningún otro sitio: protege la clave de tus datos.</translation>
++<translation id="73744887314298346">Fuerza de la contraseña: muy débil</translation>
++<translation id="4943573540014683876">Fuerza de la contraseña: débil</translation>
++<translation id="5473340705751951502">Fuerza de la contraseña: aceptable</translation>
++<translation id="8802558878175228645">Fuerza de la contraseña: buena</translation>
++<translation id="7153673427968432694">Fuerza de la contraseña: muy buena</translation>
++<translation id="2013649896082402637">Te hemos mandado un código a <ph name="EMAIL"/>. Caduca en 10 minutos.</translation>
++<translation id="4106988230903033600">Si no llega, mira en la carpeta de correo no deseado o pide otro.</translation>
++<translation id="7280277229616724707">Reenviar el código</translation>
++<translation id="2637097480266447339">Escribe el código, elige la contraseña de la cuenta y un nombre para este Mac.</translation>
++<translation id="5423944663313833380">Escribe el código y un nombre para este Mac.</translation>
++<translation id="3472559064635209201">Escribe el código y la contraseña nueva. No hace falta la anterior, y los datos sincronizados no se tocan.</translation>
++<translation id="1615209795680961966">Escribe el código que te hemos mandado a la dirección nueva.</translation>
++<translation id="1306550004604845913">Escribe el código. La cuenta y sus datos se borrarán dentro de 14 días; hasta entonces, cualquier Mac que aún sincronice puede cancelarlo.</translation>
++<translation id="6846493817244639171">Escribe el código y elige la contraseña de la cuenta. Este Mac empieza ahora una sincronización nueva; la cuenta pasa a ella dentro de 14 días, y entonces se borra la anterior. Cualquier Mac que aún sincronice la anterior puede cancelarlo.</translation>
++<translation id="7525299293162423735">Clave de recuperación</translation>
++<translation id="5621574819398488345">Guárdala impresa o en un gestor de contraseñas. Es la única forma de recuperar tus datos si pierdes todos tus Macs y olvidas la contraseña.</translation>
++<translation id="4864719835827800802">Es una clave de recuperación nueva: la anterior ya no sirve.</translation>
++<translation id="6114699089920458440">He guardado la clave de recuperación</translation>
++<translation id="8227304606758279867">Ver la clave de recuperación</translation>
++<translation id="5356500308268974980">Código para FlyWeb 2.7 o 3.0</translation>
++<translation id="6692365517211457168">Esas versiones se unen con 25 palabras que caducan.</translation>
++<translation id="4743224872163733183">Escribe las 24 palabras de tu clave de recuperación. También valen las 25 que enseña FlyWeb 2.7 o 3.0, mientras no caduquen.</translation>
++<translation id="4610899538506456775">Unir este Mac</translation>
++<translation id="5159346822234679463">Cámbiala en un Mac que ya sincroniza (Cuenta y sincronización → He olvidado la contraseña) y vuelve aquí.</translation>
++<translation id="5348000236942781449">Si no tienes ninguno, usa tu clave de recuperación: este Mac se une con ella y después puedes poner aquí una contraseña nueva.</translation>
++<translation id="2280381798243065719">Sin ningún Mac, sin la contraseña y sin la clave de recuperación, tus datos sincronizados no se pueden recuperar: nadie, tampoco nosotros, tiene la clave que los abre. Con tu email puedes empezar de cero o borrar la cuenta.</translation>
++<translation id="9124340454989175225">No se hace al momento: tarda 14 días, y cualquier Mac que aún sincronice puede cancelarlo. Si se cancela, no se puede volver a pedir hasta pasados 30 días.</translation>
++<translation id="1340795582009113055">Empezar de cero</translation>
++<translation id="8646438659330449482">Borrar la cuenta por email</translation>
++<translation id="9150721074226528700">La cuenta se borrará el <ph name="DATE"/>.</translation>
++<translation id="8037632438542596661">Este Mac ya sincroniza con una cadena nueva. La cuenta pasará a ella el <ph name="DATE"/>.</translation>
++<translation id="6494625331495422251">Cuenta: <ph name="EMAIL"/></translation>
++<translation id="909279971589746579">Cuenta ligada (este Mac aún no sabe su email)</translation>
++<translation id="3653383526177624235">Macs de la cuenta</translation>
++<translation id="3064823351336547844">La lista aún no se ha cargado.</translation>
++<translation id="7554602297231944253">Este Mac</translation>
++<translation id="7958915027729126629">Alta: <ph name="DATE"/></translation>
++<translation id="2941076175389896864">Último uso: <ph name="DATE"/></translation>
++<translation id="1728528027996012685">Cambiar el nombre</translation>
++<translation id="4032130989822692459">Quitar de la lista</translation>
++<translation id="1657520380446683702">Este Mac deja de aparecer aquí, pero conserva la clave de sincronización. Si lo has perdido o te lo han robado, cambia la clave de sincronización.</translation>
++<translation id="547790733882788713">Cambiar la contraseña</translation>
++<translation id="5540994555954419987">Cambiar el email</translation>
++<translation id="6259373429321115014">Escribe tu contraseña y el email nuevo. Te mandaremos un código a la dirección nueva.</translation>
++<translation id="3152948229289210818">Si no recuerdas la contraseña, cámbiala primero con «He olvidado la contraseña».</translation>
++<translation id="8926988140899630996">Cambiar la clave de sincronización</translation>
++<translation id="4436977679292640120">Si has perdido un Mac o te lo han robado: este Mac crea una clave nueva, vuelve a subir los datos cifrados con ella y te enseña la clave de recuperación nueva. Los demás Macs tendrán que volver a entrar con tu email, tu contraseña y un código; el que has perdido no puede, porque no sabe la contraseña.</translation>
++<translation id="1591805346806979201">Salir de la sincronización en este Mac</translation>
++<translation id="269715764595743305">Este Mac deja de sincronizar y sale de la lista de la cuenta. Sus datos se quedan en el perfil, y en el servidor y en los demás Macs no se borra nada.</translation>
++<translation id="7675067068518838480">Borrar la cuenta y los datos en todos</translation>
++<translation id="119216655508960223">Se desconectarán <ph name="COUNT"/> navegadores. Los datos que cada uno tiene en su perfil no se borran.</translation>
++<translation id="52721605723208513">Se borran del servidor la cuenta y todos los datos sincronizados. No se puede deshacer.</translation>
++<translation id="8646746061005263397">Se ha pedido borrar esta cuenta desde su email. Se borrará el <ph name="DATE"/>, con todos los datos sincronizados, salvo que lo canceles.</translation>
++<translation id="8859005822487383647">Si no has sido tú, alguien puede leer tu correo: cancélalo y cambia la contraseña de tu correo.</translation>
++<translation id="8178938205013945907">Cancelar el borrado</translation>
++<translation id="3149784601598434793">Este Mac no puede leer sus claves de sincronización (ha cambiado el llavero).</translation>
++<translation id="6825855582963981408">Sus datos siguen en el perfil. Para volver a sincronizar, entra con tu email y tu contraseña o usa tu clave de recuperación.</translation>
++<translation id="4627565296128889764">Volver a unir este Mac</translation>
++<translation id="5577892827586215907">La cuenta se ha borrado desde otro Mac.</translation>
++<translation id="324738368055125401">Este Mac ha dejado de sincronizar; sus datos siguen en el perfil.</translation>
++<translation id="9029009481113741943">Volver a entrar</translation>
++<translation id="1370154438562828128">Entendido</translation>
++<translation id="7368712327025288113">¿Has sido tú?</translation>
++<translation id="4185824096188893138">Hecho: ya no vale ninguna sesión de Mac (los tuyos la renuevan solos) y se ha cancelado cualquier borrado pedido por email. Ahora cambia la contraseña. Si alguien ha podido entrar ya, cambia también la clave de sincronización. Y si tu correo no es de fiar, cambia el email.</translation>
++<translation id="5255560688868634216">No hay conexión con el servidor. Reintenta.</translation>
++<translation id="4083040397226149368">El servidor ha dado una respuesta inesperada. Reintenta dentro de un rato.</translation>
++<translation id="494335610571298639">La contraseña o el código no son correctos.</translation>
++<translation id="8825595721021387868">Demasiados intentos. Podrás volver a probar a las <ph name="TIME"/>.</translation>
++<translation id="4938339519734364582">Se han pedido demasiados códigos en la última hora. Prueba más tarde.</translation>
++<translation id="7480134349441286716">El servidor está ocupado. Reintenta en unos segundos.</translation>
++<translation id="8950521034619494642">La clave recibida no es válida. No se ha activado nada.</translation>
++<translation id="2897456354195677124">La contraseña tiene que tener al menos <ph name="COUNT"/> caracteres.</translation>
++<translation id="2432459461004812437">Revisa la dirección de email: no es válida.</translation>
++<translation id="2831291422931051600">Este Mac aún no sabe el email de la cuenta. Reintenta dentro de un momento.</translation>
++<translation id="5002310192669102178">La clave de recuperación no es válida. Revisa las palabras.</translation>
++<translation id="1589859907068492005">Esta sincronización no tiene cuenta.</translation>
++<translation id="3450749155750273509">Esta sincronización ya está ligada a otra cuenta. Para ligarla a una nueva, antes hay que borrar la otra.</translation>
++<translation id="6055847412456217491">Esta sincronización se ha borrado.</translation>
++<translation id="1830756791543734245">Ya hay una cuenta con ese email.</translation>
++<translation id="2967773406799837301">Ya hay un borrado pedido para esta cuenta, o se canceló uno hace menos de 30 días.</translation>
++<translation id="226184421103633857">Ese Mac ya no está en la lista de la cuenta.</translation>
++<translation id="8054358701882692803">El servidor no ha aceptado la firma de este Mac. Reintenta.</translation>
++<translation id="5350666654331436288">La sesión de este Mac ya no vale. Reintenta: se renueva sola.</translation>
++<translation id="6585795369085257938">No se ha podido usar el llavero de macOS para las claves de sincronización.</translation>
++<translation id="4781238951071624842">Ha fallado algo dentro de FlyWeb. Reintenta.</translation>
++<translation id="5517822688508377287">Hay otra operación en curso en este Mac. Espera a que termine.</translation>
++<translation id="6114621909096897611">El código ha caducado o la operación se ha cancelado. Vuelve a empezar.</translation>
++<translation id="4268554389381029185">Este Mac no está sincronizando.</translation>
++<translation id="1408806848678725106">El servidor no ha entendido la petición. Revisa los datos (el nombre del Mac, como mucho 64 caracteres).</translation>
++<translation id="8313988273970006626">Se ha añadido el Mac «<ph name="NAME"/>» a tu cuenta de sincronización.</translation>
++<translation id="6568948226058905693">Alguien ha escrito bien tu contraseña desde un Mac nuevo. Si no has sido tú, cámbiala ya.</translation>
++<translation id="5538594588774012143"><ph name="COUNT"/> intentos fallidos de contraseña en tu cuenta de sincronización.</translation>
++<translation id="3818291896622357075">Se ha cambiado la contraseña de tu cuenta de sincronización.</translation>
++<translation id="4173358789701010590">Se ha cambiado el email de tu cuenta de sincronización.</translation>
++<translation id="6318214281161647734">La clave de sincronización se ha cambiado desde otro Mac.</translation>
++<translation id="5799058820993400354">Esta sincronización se ha ligado a una cuenta.</translation>
++<translation id="7008726867349951301">Se ha quitado el Mac «<ph name="NAME"/>» de tu cuenta de sincronización.</translation>
++<translation id="1554792256814134143">Desde otro Mac se ha pulsado «No he sido yo».</translation>
++<translation id="5764456135109043317">Se ha pedido borrar tu cuenta de sincronización; se borrará el <ph name="DATE"/>.</translation>
++<translation id="4892015564872566991">Se ha cancelado el borrado de tu cuenta de sincronización.</translation>
++<translation id="8526251264674164601">y <ph name="COUNT"/> avisos más</translation>
++<translation id="1346966540667866732">He sido yo</translation>
++<translation id="3294704000777487397">No he sido yo</translation>
++<translation id="5007392906805964215">Revisar</translation>
++<translation id="3967320264779726993">La clave de sincronización se ha cambiado desde otro Mac. Vuelve a entrar con tu email, tu contraseña y un código.</translation>
++<translation id="6438922473717127121">Cuenta y sincronización</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/app/resources/brave_generated_resources_es.xtb b/app/resources/brave_generated_resources_es.xtb
+index 62a8722..7a63247 100644
+--- a/app/resources/brave_generated_resources_es.xtb
++++ b/app/resources/brave_generated_resources_es.xtb
+@@ -745,4 +745,138 @@ de forma irreversible.</translation>
+ <translation id="1959966725083452288">Avatar Bombón Real</translation>
+ <translation id="2039034364578911089">Avatar Ninja</translation>
+ <translation id="7029809446516969842">Contraseñas</translation>
++<translation id="6846298663435243399">Cargando…</translation>
++<translation id="7144878232160441200">Reintentar</translation>
++<translation id="2501278716633472235">Volver</translation>
++<translation id="2359808026110333948">Continuar</translation>
++<translation id="4907912188284488365">Guardar el nombre</translation>
++<translation id="8472402446973817571">Hecho.</translation>
++<translation id="8359455123152735783">Un momento…</translation>
++<translation id="6158789680688491759">Comprobando la contraseña…</translation>
++<translation id="8286347109540980254">No hay conexión con el servidor. Esto es lo último que se sabía (<ph name="DATE"/>).</translation>
++<translation id="1259556708021850952">La última comprobación con el servidor ha fallado: <ph name="ERROR"/></translation>
++<translation id="9204601462589487462">Sincroniza tus Macs con una cuenta</translation>
++<translation id="947914014881985381">Con una cuenta, añades un Mac con tu email, tu contraseña y un código que te mandamos por email. Tus datos viajan cifrados con una clave que el servidor no tiene.</translation>
++<translation id="3057943379076520498">Este Mac ya sincroniza con la clave de recuperación (24 palabras). Crea una cuenta para ligar esta sincronización: no se vuelve a sincronizar nada, y podrás añadir otros Macs con tu email y tu contraseña.</translation>
++<translation id="4771176409524282426">Crear cuenta</translation>
++<translation id="4611292653554630842">Entrar</translation>
++<translation id="2907990096795616260">Tengo mi clave de recuperación</translation>
++<translation id="8115079159183761574">He olvidado la contraseña</translation>
++<translation id="5659593005791499971">Email</translation>
++<translation id="6657585470893396449">Contraseña</translation>
++<translation id="3838338534323494292">Contraseña nueva</translation>
++<translation id="5706128975787418512">Email nuevo</translation>
++<translation id="2152300309341997262">Código del email</translation>
++<translation id="5311405160685974375">Nombre de este Mac</translation>
++<translation id="4647109959892177045">Es como aparece este Mac en la lista y en los avisos. Solo lo ves tú.</translation>
++<translation id="3083216309726842735">Escribe el email de la cuenta. Te mandaremos un código para comprobarlo.</translation>
++<translation id="2910518395572324988">Escribe el email y la contraseña de tu cuenta. Si son correctos, te mandaremos un código por email.</translation>
++<translation id="9056205625135800990">Mandar el código</translation>
++<translation id="5899685196870696417">Al menos <ph name="COUNT"/> caracteres. Usa una que no uses en ningún otro sitio: protege la clave de tus datos.</translation>
++<translation id="73744887314298346">Fuerza de la contraseña: muy débil</translation>
++<translation id="4943573540014683876">Fuerza de la contraseña: débil</translation>
++<translation id="5473340705751951502">Fuerza de la contraseña: aceptable</translation>
++<translation id="8802558878175228645">Fuerza de la contraseña: buena</translation>
++<translation id="7153673427968432694">Fuerza de la contraseña: muy buena</translation>
++<translation id="2013649896082402637">Te hemos mandado un código a <ph name="EMAIL"/>. Caduca en 10 minutos.</translation>
++<translation id="4106988230903033600">Si no llega, mira en la carpeta de correo no deseado o pide otro.</translation>
++<translation id="7280277229616724707">Reenviar el código</translation>
++<translation id="2637097480266447339">Escribe el código, elige la contraseña de la cuenta y un nombre para este Mac.</translation>
++<translation id="5423944663313833380">Escribe el código y un nombre para este Mac.</translation>
++<translation id="3472559064635209201">Escribe el código y la contraseña nueva. No hace falta la anterior, y los datos sincronizados no se tocan.</translation>
++<translation id="1615209795680961966">Escribe el código que te hemos mandado a la dirección nueva.</translation>
++<translation id="1306550004604845913">Escribe el código. La cuenta y sus datos se borrarán dentro de 14 días; hasta entonces, cualquier Mac que aún sincronice puede cancelarlo.</translation>
++<translation id="6846493817244639171">Escribe el código y elige la contraseña de la cuenta. Este Mac empieza ahora una sincronización nueva; la cuenta pasa a ella dentro de 14 días, y entonces se borra la anterior. Cualquier Mac que aún sincronice la anterior puede cancelarlo.</translation>
++<translation id="7525299293162423735">Clave de recuperación</translation>
++<translation id="5621574819398488345">Guárdala impresa o en un gestor de contraseñas. Es la única forma de recuperar tus datos si pierdes todos tus Macs y olvidas la contraseña.</translation>
++<translation id="4864719835827800802">Es una clave de recuperación nueva: la anterior ya no sirve.</translation>
++<translation id="6114699089920458440">He guardado la clave de recuperación</translation>
++<translation id="8227304606758279867">Ver la clave de recuperación</translation>
++<translation id="5356500308268974980">Código para FlyWeb 2.7 o 3.0</translation>
++<translation id="6692365517211457168">Esas versiones se unen con 25 palabras que caducan.</translation>
++<translation id="4743224872163733183">Escribe las 24 palabras de tu clave de recuperación. También valen las 25 que enseña FlyWeb 2.7 o 3.0, mientras no caduquen.</translation>
++<translation id="4610899538506456775">Unir este Mac</translation>
++<translation id="5159346822234679463">Cámbiala en un Mac que ya sincroniza (Cuenta y sincronización → He olvidado la contraseña) y vuelve aquí.</translation>
++<translation id="5348000236942781449">Si no tienes ninguno, usa tu clave de recuperación: este Mac se une con ella y después puedes poner aquí una contraseña nueva.</translation>
++<translation id="2280381798243065719">Sin ningún Mac, sin la contraseña y sin la clave de recuperación, tus datos sincronizados no se pueden recuperar: nadie, tampoco nosotros, tiene la clave que los abre. Con tu email puedes empezar de cero o borrar la cuenta.</translation>
++<translation id="9124340454989175225">No se hace al momento: tarda 14 días, y cualquier Mac que aún sincronice puede cancelarlo. Si se cancela, no se puede volver a pedir hasta pasados 30 días.</translation>
++<translation id="1340795582009113055">Empezar de cero</translation>
++<translation id="8646438659330449482">Borrar la cuenta por email</translation>
++<translation id="9150721074226528700">La cuenta se borrará el <ph name="DATE"/>.</translation>
++<translation id="8037632438542596661">Este Mac ya sincroniza con una cadena nueva. La cuenta pasará a ella el <ph name="DATE"/>.</translation>
++<translation id="6494625331495422251">Cuenta: <ph name="EMAIL"/></translation>
++<translation id="909279971589746579">Cuenta ligada (este Mac aún no sabe su email)</translation>
++<translation id="3653383526177624235">Macs de la cuenta</translation>
++<translation id="3064823351336547844">La lista aún no se ha cargado.</translation>
++<translation id="7554602297231944253">Este Mac</translation>
++<translation id="7958915027729126629">Alta: <ph name="DATE"/></translation>
++<translation id="2941076175389896864">Último uso: <ph name="DATE"/></translation>
++<translation id="1728528027996012685">Cambiar el nombre</translation>
++<translation id="4032130989822692459">Quitar de la lista</translation>
++<translation id="1657520380446683702">Este Mac deja de aparecer aquí, pero conserva la clave de sincronización. Si lo has perdido o te lo han robado, cambia la clave de sincronización.</translation>
++<translation id="547790733882788713">Cambiar la contraseña</translation>
++<translation id="5540994555954419987">Cambiar el email</translation>
++<translation id="6259373429321115014">Escribe tu contraseña y el email nuevo. Te mandaremos un código a la dirección nueva.</translation>
++<translation id="3152948229289210818">Si no recuerdas la contraseña, cámbiala primero con «He olvidado la contraseña».</translation>
++<translation id="8926988140899630996">Cambiar la clave de sincronización</translation>
++<translation id="4436977679292640120">Si has perdido un Mac o te lo han robado: este Mac crea una clave nueva, vuelve a subir los datos cifrados con ella y te enseña la clave de recuperación nueva. Los demás Macs tendrán que volver a entrar con tu email, tu contraseña y un código; el que has perdido no puede, porque no sabe la contraseña.</translation>
++<translation id="1591805346806979201">Salir de la sincronización en este Mac</translation>
++<translation id="269715764595743305">Este Mac deja de sincronizar y sale de la lista de la cuenta. Sus datos se quedan en el perfil, y en el servidor y en los demás Macs no se borra nada.</translation>
++<translation id="7675067068518838480">Borrar la cuenta y los datos en todos</translation>
++<translation id="119216655508960223">Se desconectarán <ph name="COUNT"/> navegadores. Los datos que cada uno tiene en su perfil no se borran.</translation>
++<translation id="52721605723208513">Se borran del servidor la cuenta y todos los datos sincronizados. No se puede deshacer.</translation>
++<translation id="8646746061005263397">Se ha pedido borrar esta cuenta desde su email. Se borrará el <ph name="DATE"/>, con todos los datos sincronizados, salvo que lo canceles.</translation>
++<translation id="8859005822487383647">Si no has sido tú, alguien puede leer tu correo: cancélalo y cambia la contraseña de tu correo.</translation>
++<translation id="8178938205013945907">Cancelar el borrado</translation>
++<translation id="3149784601598434793">Este Mac no puede leer sus claves de sincronización (ha cambiado el llavero).</translation>
++<translation id="6825855582963981408">Sus datos siguen en el perfil. Para volver a sincronizar, entra con tu email y tu contraseña o usa tu clave de recuperación.</translation>
++<translation id="4627565296128889764">Volver a unir este Mac</translation>
++<translation id="5577892827586215907">La cuenta se ha borrado desde otro Mac.</translation>
++<translation id="324738368055125401">Este Mac ha dejado de sincronizar; sus datos siguen en el perfil.</translation>
++<translation id="9029009481113741943">Volver a entrar</translation>
++<translation id="1370154438562828128">Entendido</translation>
++<translation id="7368712327025288113">¿Has sido tú?</translation>
++<translation id="4185824096188893138">Hecho: ya no vale ninguna sesión de Mac (los tuyos la renuevan solos) y se ha cancelado cualquier borrado pedido por email. Ahora cambia la contraseña. Si alguien ha podido entrar ya, cambia también la clave de sincronización. Y si tu correo no es de fiar, cambia el email.</translation>
++<translation id="5255560688868634216">No hay conexión con el servidor. Reintenta.</translation>
++<translation id="4083040397226149368">El servidor ha dado una respuesta inesperada. Reintenta dentro de un rato.</translation>
++<translation id="494335610571298639">La contraseña o el código no son correctos.</translation>
++<translation id="8825595721021387868">Demasiados intentos. Podrás volver a probar a las <ph name="TIME"/>.</translation>
++<translation id="4938339519734364582">Se han pedido demasiados códigos en la última hora. Prueba más tarde.</translation>
++<translation id="7480134349441286716">El servidor está ocupado. Reintenta en unos segundos.</translation>
++<translation id="8950521034619494642">La clave recibida no es válida. No se ha activado nada.</translation>
++<translation id="2897456354195677124">La contraseña tiene que tener al menos <ph name="COUNT"/> caracteres.</translation>
++<translation id="2432459461004812437">Revisa la dirección de email: no es válida.</translation>
++<translation id="2831291422931051600">Este Mac aún no sabe el email de la cuenta. Reintenta dentro de un momento.</translation>
++<translation id="5002310192669102178">La clave de recuperación no es válida. Revisa las palabras.</translation>
++<translation id="1589859907068492005">Esta sincronización no tiene cuenta.</translation>
++<translation id="3450749155750273509">Esta sincronización ya está ligada a otra cuenta. Para ligarla a una nueva, antes hay que borrar la otra.</translation>
++<translation id="6055847412456217491">Esta sincronización se ha borrado.</translation>
++<translation id="1830756791543734245">Ya hay una cuenta con ese email.</translation>
++<translation id="2967773406799837301">Ya hay un borrado pedido para esta cuenta, o se canceló uno hace menos de 30 días.</translation>
++<translation id="226184421103633857">Ese Mac ya no está en la lista de la cuenta.</translation>
++<translation id="8054358701882692803">El servidor no ha aceptado la firma de este Mac. Reintenta.</translation>
++<translation id="5350666654331436288">La sesión de este Mac ya no vale. Reintenta: se renueva sola.</translation>
++<translation id="6585795369085257938">No se ha podido usar el llavero de macOS para las claves de sincronización.</translation>
++<translation id="4781238951071624842">Ha fallado algo dentro de FlyWeb. Reintenta.</translation>
++<translation id="5517822688508377287">Hay otra operación en curso en este Mac. Espera a que termine.</translation>
++<translation id="6114621909096897611">El código ha caducado o la operación se ha cancelado. Vuelve a empezar.</translation>
++<translation id="4268554389381029185">Este Mac no está sincronizando.</translation>
++<translation id="1408806848678725106">El servidor no ha entendido la petición. Revisa los datos (el nombre del Mac, como mucho 64 caracteres).</translation>
++<translation id="8313988273970006626">Se ha añadido el Mac «<ph name="NAME"/>» a tu cuenta de sincronización.</translation>
++<translation id="6568948226058905693">Alguien ha escrito bien tu contraseña desde un Mac nuevo. Si no has sido tú, cámbiala ya.</translation>
++<translation id="5538594588774012143"><ph name="COUNT"/> intentos fallidos de contraseña en tu cuenta de sincronización.</translation>
++<translation id="3818291896622357075">Se ha cambiado la contraseña de tu cuenta de sincronización.</translation>
++<translation id="4173358789701010590">Se ha cambiado el email de tu cuenta de sincronización.</translation>
++<translation id="6318214281161647734">La clave de sincronización se ha cambiado desde otro Mac.</translation>
++<translation id="5799058820993400354">Esta sincronización se ha ligado a una cuenta.</translation>
++<translation id="7008726867349951301">Se ha quitado el Mac «<ph name="NAME"/>» de tu cuenta de sincronización.</translation>
++<translation id="1554792256814134143">Desde otro Mac se ha pulsado «No he sido yo».</translation>
++<translation id="5764456135109043317">Se ha pedido borrar tu cuenta de sincronización; se borrará el <ph name="DATE"/>.</translation>
++<translation id="4892015564872566991">Se ha cancelado el borrado de tu cuenta de sincronización.</translation>
++<translation id="8526251264674164601">y <ph name="COUNT"/> avisos más</translation>
++<translation id="1346966540667866732">He sido yo</translation>
++<translation id="3294704000777487397">No he sido yo</translation>
++<translation id="5007392906805964215">Revisar</translation>
++<translation id="3967320264779726993">La clave de sincronización se ha cambiado desde otro Mac. Vuelve a entrar con tu email, tu contraseña y un código.</translation>
++<translation id="6438922473717127121">Cuenta y sincronización</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/browser/DEPS b/browser/DEPS
+index 89bcd0b..e8da95c 100644
+--- a/browser/DEPS
++++ b/browser/DEPS
+@@ -120,6 +120,7 @@ include_rules = [
+   "+third_party/blink/public/common",
+   "+third_party/blink/public/mojom",
+   "+third_party/blink/public/public_buildflags.h",
++  "+third_party/zxcvbn-cpp/native-src/zxcvbn",
+ ]
+ 
+ specific_include_rules = {
+diff --git a/browser/resources/settings/brave_sync_page/brave_sync_browser_proxy.ts b/browser/resources/settings/brave_sync_page/brave_sync_browser_proxy.ts
+index 9fce3a8..c76b2e8 100644
+--- a/browser/resources/settings/brave_sync_page/brave_sync_browser_proxy.ts
++++ b/browser/resources/settings/brave_sync_page/brave_sync_browser_proxy.ts
+@@ -25,6 +25,87 @@ export interface BraveSyncStatus extends SyncStatus {
+   isOsEncryptionAvailable: boolean
+ }
+ 
++// FlyWeb 3.2: «Cuenta y sincronización». The contract with
++// BraveSyncHandler (FlyWebAccount* messages) and
++// flyweb_sync::AccountService::GetStatus().
++export type FlyWebAccountState = 'cargando' | 'sin-cuenta' | 'sincronizado' |
++    'borrado-programado' | 'claves-ilegibles' | 'cuenta-borrada' |
++    'clave-cambiada'
++
++export type FlyWebAccountFlowKind = 'crear' | 'entrar' | 'contrasena' |
++    'email' | 'borrar-por-email' | 'empezar-de-cero'
++
++export interface FlyWebAccountFlow {
++  kind: FlyWebAccountFlowKind
++  email: string
++}
++
++export interface FlyWebAccountWarning {
++  n: number
++  type: string
++  date: number
++  mac: string
++  model: string
++  count: number
++  since: number
++  when: number
++}
++
++export interface FlyWebAccountDevice {
++  id: string
++  modelo: string
++  nombre: string
++  alta: number
++  ultimo_uso: number
++  este: boolean
++}
++
++export interface FlyWebAccountStatus {
++  state: FlyWebAccountState
++  email: string
++  hasChain: boolean
++  hasAccount: boolean
++  deletionDate: number
++  offline: boolean
++  lastError: string
++  lastContact: number
++  busy: boolean
++  model: string
++  minPasswordLength: number
++  flow?: FlyWebAccountFlow
++  warnings: FlyWebAccountWarning[]
++  devices: FlyWebAccountDevice[]
++}
++
++export interface FlyWebAccountResultData {
++  recoveryWords?: string
++  fecha?: number
++  aparatos?: FlyWebAccountDevice[]
++}
++
++// Every FlyWebAccount* call resolves (never rejects) with this.
++export interface FlyWebAccountResult {
++  ok: boolean
++  error: string
++  until: number
++  data: FlyWebAccountResultData
++}
++
++export type FlyWebAccountMessage = 'FlyWebAccountRefresh' |
++    'FlyWebAccountCreateStart' | 'FlyWebAccountCreateFinish' |
++    'FlyWebAccountLoginStart' | 'FlyWebAccountLoginFinish' |
++    'FlyWebAccountJoinWithWords' | 'FlyWebAccountResendCode' |
++    'FlyWebAccountCancelFlow' | 'FlyWebAccountPasswordStart' |
++    'FlyWebAccountPasswordFinish' | 'FlyWebAccountEmailStart' |
++    'FlyWebAccountEmailFinish' | 'FlyWebAccountChainChange' |
++    'FlyWebAccountListDevices' | 'FlyWebAccountRemoveDevice' |
++    'FlyWebAccountRenameDevice' | 'FlyWebAccountNotMe' |
++    'FlyWebAccountDismissWarnings' | 'FlyWebAccountDismissNotice' |
++    'FlyWebAccountDeleteEverywhere' | 'FlyWebAccountCancelDeletion' |
++    'FlyWebAccountLeave' | 'FlyWebAccountMailboxDeleteStart' |
++    'FlyWebAccountMailboxDeleteFinish' | 'FlyWebAccountStartOverStart' |
++    'FlyWebAccountStartOverFinish'
++
+ export class BraveSyncBrowserProxy {
+   getSyncCode(): Promise<string> {
+     return sendWithPromise('SyncSetupGetSyncCode');
+@@ -53,6 +134,19 @@ export class BraveSyncBrowserProxy {
+   permanentlyDeleteSyncAccount(): Promise<boolean>  {
+     return sendWithPromise('SyncPermanentlyDeleteAccount');
+   }
++  // FlyWeb 3.2: null when the profile has no account service.
++  getFlyWebAccountStatus(): Promise<FlyWebAccountStatus|null> {
++    return sendWithPromise('FlyWebAccountGetStatus');
++  }
++  // 0–4 (zxcvbn). Only an indicator: nothing but the length is enforced.
++  getFlyWebPasswordStrength(password: string): Promise<number> {
++    return sendWithPromise('FlyWebAccountPasswordStrength', password);
++  }
++  // All the arguments are strings, in the order of the contract.
++  flywebAccountCall(message: FlyWebAccountMessage, ...args: string[]):
++      Promise<FlyWebAccountResult> {
++    return sendWithPromise(message, ...args);
++  }
+   static getInstance() {
+     return instance || (instance = new BraveSyncBrowserProxy())
+   }
+diff --git a/browser/resources/settings/brave_sync_page/brave_sync_configure.html b/browser/resources/settings/brave_sync_page/brave_sync_configure.html
+index 3c55a38..fa6963f 100644
+--- a/browser/resources/settings/brave_sync_page/brave_sync_configure.html
++++ b/browser/resources/settings/brave_sync_page/brave_sync_configure.html
+@@ -86,6 +86,8 @@
+ </style>
+ 
+ <!-- Device list goes here -->
++<!-- FlyWeb 3.2: with an account, the account's list replaces this one. -->
++<template is="dom-if" if="[[!hasFlywebAccount]]">
+ <section class="devices">
+   <h1>$i18n{braveSyncDeviceListTitle}</h1>
+   <p class="subtitle" id="DeviceListCaption">$i18n{braveSyncDeviceListSubtitle}</p>
+@@ -126,6 +128,8 @@
+     </tbody>
+   </table>
+ 
++  <!-- FlyWeb 3.2: the account part shows the recovery key instead. -->
++  <template is="dom-if" if="[[!flywebAccountAvailable]]">
+   <div class="device-actions">
+     <cr-button on-click="onViewSyncCode_">
+       $i18n{braveSyncViewCodeButton}
+@@ -135,7 +139,9 @@
+       $i18n{braveSyncAddDevice}
+     </cr-button>
+   </div>
++  </template>
+ </section>
++</template>
+ 
+ <!-- Sync Settings -->
+ <section class="settings">
+@@ -145,6 +151,9 @@
+   </settings-sync-controls>
+ </section>
+ 
++<!-- FlyWeb 3.2: with an account, «Salir de la sincronización en este Mac» and
++     «Borrar la cuenta y los datos en todos» replace these two. -->
++<template is="dom-if" if="[[!hasFlywebAccount]]">
+ <div class="chain-actions" >
+   <section class="cancel">
+     <cr-button class="action-button"
+@@ -160,6 +169,7 @@
+     </cr-button>
+   </section>
+ </div>
++</template>
+ 
+ <template is="dom-if" if="[[syncCodeDialogType_]]" restamp>
+   <settings-brave-sync-code-dialog
+diff --git a/browser/resources/settings/brave_sync_page/brave_sync_configure.ts b/browser/resources/settings/brave_sync_page/brave_sync_configure.ts
+index 5fdb39e..927a150 100644
+--- a/browser/resources/settings/brave_sync_page/brave_sync_configure.ts
++++ b/browser/resources/settings/brave_sync_page/brave_sync_configure.ts
+@@ -72,6 +72,24 @@ export class SettingsBraveSyncConfigureElement extends SettingsBraveSyncConfigur
+         type: Boolean,
+         value: false
+       },
++      /**
++       * FlyWeb 3.2: the page has the account part (flyweb_sync_account.ts),
++       * which shows the recovery key; «Añadir aparato» is gone with
++       * «Unirse con un código» (decision 9 of sync-cuenta.md).
++       */
++      flywebAccountAvailable: {
++        type: Boolean,
++        value: false
++      },
++      /**
++       * FlyWeb 3.2: this chain has an account. Its device list, «Salir» and
++       * «Borrar en todos» are the account's: leaving or deleting the chain
++       * from here would not tell the account (§9).
++       */
++      hasFlywebAccount: {
++        type: Boolean,
++        value: false
++      },
+     };
+   }
+ 
+@@ -80,6 +98,8 @@ export class SettingsBraveSyncConfigureElement extends SettingsBraveSyncConfigur
+   private declare deviceList_: BraveDeviceInfo[];
+   private declare syncCodeDialogType_: string | null;
+   private declare syncDoingDeleteAccount_: Boolean | false;
++  private declare flywebAccountAvailable: boolean;
++  private declare hasFlywebAccount: boolean;
+ 
+   browserProxy_: BraveSyncBrowserProxy = BraveSyncBrowserProxy.getInstance();
+ 
+diff --git a/browser/resources/settings/brave_sync_page/brave_sync_subpage.html b/browser/resources/settings/brave_sync_page/brave_sync_subpage.html
+index 81efe73..b7909a3 100644
+--- a/browser/resources/settings/brave_sync_page/brave_sync_subpage.html
++++ b/browser/resources/settings/brave_sync_page/brave_sync_subpage.html
+@@ -1,4 +1,9 @@
+ <style include="cr-shared-style settings-shared iron-flex">
++  #flyweb-account-section
++  {
++    padding-inline-end: var(--cr-section-padding);
++    padding-inline-start: var(--cr-section-indent-padding);
++  }
+   #sync-separator
+   {
+     border-bottom: var(--cr-separator-line);
+@@ -35,6 +40,16 @@
+   </div>
+ </div>
+ 
++<!-- FlyWeb 3.2: the account (FlyWeb/docs/sync-cuenta.md §9). Without an
++     account service in this profile it shows nothing and the old setup
++     below stays. -->
++<div id="flyweb-account-section" hidden="[[syncDisabledByAdmin_]]">
++  <settings-flyweb-sync-account id="flywebAccount"
++      account-status="{{flywebAccountStatus_}}"
++      on-setup-success="onSetupSuccess_">
++  </settings-flyweb-sync-account>
++</div>
++
+ <!-- Sync words decryption error, safe storage locked-->
+ <div class="cr-row first" hidden="[[!hasLockedSafeStorage_]]">
+   <div class="flex cr-padded-text">
+@@ -43,7 +58,10 @@
+ </div>
+ 
+ <!-- Sync words decryption error, safe storage unlocked-->
+-<div class="cr-row first" hidden="[[!hasUnlockedSafeStorageCannotDecryptSeed_]]">
++<!-- FlyWeb 3.2: with the account, «claves ilegibles» and «Volver a unir este
++     Mac» are the account's (§9). -->
++<div class="cr-row first"
++    hidden="[[!showOldRejoin_(hasUnlockedSafeStorageCannotDecryptSeed_, flywebAccountStatus_)]]">
+   <div class="flex cr-padded-text">
+     <p>$i18nRaw{braveSyncPassphraseDecryptionErrorUnlockedSsMessage}</p>
+     <div class="actions">
+@@ -67,12 +85,19 @@
+       $i18n{syncLoading}
+     </div>
+ 
+-    <template is="dom-if" if="[[isStatus_('configure', pageStatus_)]]">
+-      <settings-brave-sync-configure syncStatus="[[syncStatus]]">
++    <!-- FlyWeb 3.2: the sync types stay as they were, under the account,
++         while this Mac syncs a chain. -->
++    <template is="dom-if"
++        if="[[showConfigure_(pageStatus_, flywebAccountStatus_)]]">
++      <settings-brave-sync-configure syncStatus="[[syncStatus]]"
++          flyweb-account-available="[[isFlyWebAccountAvailable_(flywebAccountStatus_)]]"
++          has-flyweb-account="[[hasFlyWebAccount_(flywebAccountStatus_)]]">
+       </settings-brave-sync-configure>
+     </template>
+ 
+-    <template is="dom-if" if="[[isStatus_('setup', pageStatus_)]]">
++    <!-- FlyWeb 3.2: «Empezar una cadena» and «Tengo un código» give way to
++         the account (decision 9); they stay for a profile without it. -->
++    <template is="dom-if" if="[[showOldSetup_(pageStatus_, flywebAccountStatus_)]]">
+       <settings-brave-sync-setup on-setup-success="onSetupSuccess_"
+        sync-code-dialog-type="{{syncCodeDialogType}}">
+       </settings-brave-sync-setup>
+diff --git a/browser/resources/settings/brave_sync_page/brave_sync_subpage.ts b/browser/resources/settings/brave_sync_page/brave_sync_subpage.ts
+index 820945a..6157662 100644
+--- a/browser/resources/settings/brave_sync_page/brave_sync_subpage.ts
++++ b/browser/resources/settings/brave_sync_page/brave_sync_subpage.ts
+@@ -16,6 +16,7 @@ import '../settings_vars.css.js';
+ import '../people_page/sync_controls.js';
+ import './brave_sync_configure.js';
+ import './brave_sync_setup.js';
++import './flyweb_sync_account.js';
+ 
+ import {StatusAction, SyncBrowserProxyImpl} from '/shared/settings/people_page/sync_browser_proxy.js';
+ import type {SyncPrefs} from '/shared/settings/people_page/sync_browser_proxy.js';
+@@ -26,7 +27,7 @@ import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bu
+ import {Route, RouteObserverMixin, Router} from '../router.js';
+ 
+ import {BraveSyncBrowserProxy} from './brave_sync_browser_proxy.js';
+-import type {BraveSyncStatus} from './brave_sync_browser_proxy.js';
++import type {BraveSyncStatus, FlyWebAccountStatus} from './brave_sync_browser_proxy.js';
+ import {getTemplate} from './brave_sync_subpage.html.js'
+ 
+ type PageStatus = 'configure' | 'setup' | 'spinner'
+@@ -72,6 +73,16 @@ class SettingBraveSyncSubpage extends SettingBraveSyncSubpageBase {
+         notify: true,
+       },
+ 
++      /**
++       * FlyWeb 3.2: the account status, from settings-flyweb-sync-account
++       * (null without an account service in this profile).
++       * @private
++       */
++      flywebAccountStatus_: {
++        type: Object,
++        value: null,
++      },
++
+       /** @private */
+       syncDisabledByAdmin_: {
+         type: Boolean,
+@@ -113,6 +124,7 @@ class SettingBraveSyncSubpage extends SettingBraveSyncSubpageBase {
+   private declare hasLockedSafeStorage_: boolean
+   private declare hasUnlockedSafeStorageCannotDecryptSeed_: boolean
+   private declare syncSectionDisabled_: boolean
++  private declare flywebAccountStatus_: FlyWebAccountStatus | null
+ 
+   static get observers() {
+     return [
+@@ -233,6 +245,7 @@ class SettingBraveSyncSubpage extends SettingBraveSyncSubpageBase {
+     const router = Router.getInstance();
+     if (router.getCurrentRoute() == router.getRoutes().BRAVE_SYNC_SETUP) {
+       this.onNavigateToPage_()
++      this.refreshFlyWebAccount_()
+       return
+     }
+ 
+@@ -243,6 +256,34 @@ class SettingBraveSyncSubpage extends SettingBraveSyncSubpageBase {
+     this.onNavigateAwayFromPage_()
+   }
+ 
++  /** FlyWeb 3.2 */
++  isFlyWebAccountAvailable_(status) {
++    return !!status
++  }
++
++  /** FlyWeb 3.2 */
++  hasFlyWebAccount_(status) {
++    return !!status && status.hasAccount
++  }
++
++  /**
++  * FlyWeb 3.2: the sync types under the account while this Mac syncs a
++  * chain; without an account service, as before.
++  */
++  showConfigure_(pageStatus, status) {
++    return pageStatus === 'configure' && (!status || status.hasChain)
++  }
++
++  /** FlyWeb 3.2: the old setup only without an account service. */
++  showOldSetup_(pageStatus, status) {
++    return pageStatus === 'setup' && !status
++  }
++
++  /** FlyWeb 3.2: the account has its own «Volver a unir este Mac». */
++  showOldRejoin_(hasUnlockedSafeStorageCannotDecryptSeed, status) {
++    return hasUnlockedSafeStorageCannotDecryptSeed && !status
++  }
++
+   /**
+   * @param {!PageStatus} expectedPageStatus
+   * @return {boolean}
+@@ -280,6 +321,18 @@ class SettingBraveSyncSubpage extends SettingBraveSyncSubpageBase {
+     window.addEventListener('unload', this.unloadCallback_)
+   }
+ 
++  /**
++  * FlyWeb 3.2: §11 reads the account events «al abrir la página».
++  * @private
++  */
++  refreshFlyWebAccount_() {
++    const account = this.shadowRoot &&
++      this.shadowRoot.querySelector('settings-flyweb-sync-account')
++    if (account) {
++      account.refresh()
++    }
++  }
++
+   /** @private */
+   onNavigateAwayFromPage_() {
+     if (!this.beforeunloadCallback_) {
+diff --git a/browser/resources/settings/brave_sync_page/flyweb_sync_account.html b/browser/resources/settings/brave_sync_page/flyweb_sync_account.html
+new file mode 100644
+index 0000000..3a0167a
+--- /dev/null
++++ b/browser/resources/settings/brave_sync_page/flyweb_sync_account.html
+@@ -0,0 +1,760 @@
++<style include="cr-shared-style settings-shared">
++  :host
++  {
++    display: block;
++  }
++  h2
++  {
++    font-size: 15px;
++    font-weight: 600;
++    margin: 0 0 8px 0;
++  }
++  p
++  {
++    margin: 8px 0;
++  }
++  .fw-screen
++  {
++    padding: 12px 0;
++  }
++  .fw-actions
++  {
++    display: flex;
++    flex-direction: row;
++    flex-wrap: wrap;
++    gap: 8px;
++    margin: 12px 0;
++  }
++  .fw-field
++  {
++    display: flex;
++    flex-direction: column;
++    gap: 4px;
++    margin: 12px 0;
++    max-width: 420px;
++  }
++  .fw-field label
++  {
++    font-weight: 500;
++  }
++  .fw-input
++  {
++    background: var(--cr-input-background-color, transparent);
++    border: 1px solid var(--cr-separator-color);
++    border-radius: 4px;
++    box-sizing: border-box;
++    color: var(--cr-primary-text-color);
++    font: inherit;
++    padding: 6px 8px;
++  }
++  .fw-words
++  {
++    background: var(--cr-input-background-color, transparent);
++    border: 1px solid var(--cr-separator-color);
++    border-radius: 6px;
++    box-sizing: border-box;
++    color: var(--cr-primary-text-color);
++    font-family: inherit;
++    font-size: 15px;
++    line-height: 24px;
++    min-height: 110px;
++    padding: 10px 14px;
++    resize: vertical;
++    width: 100%;
++  }
++  .fw-hint
++  {
++    color: var(--cr-secondary-text-color);
++    font-size: 12px;
++  }
++  .fw-error
++  {
++    color: var(--cr-input-error-color, rgb(217, 48, 37));
++  }
++  .fw-info
++  {
++    color: var(--cr-secondary-text-color);
++  }
++  .fw-banner
++  {
++    border: 1px solid var(--cr-separator-color);
++    border-radius: 6px;
++    margin: 12px 0;
++    padding: 12px 16px;
++  }
++  .fw-banner.fw-alert
++  {
++    border-color: var(--cr-input-error-color, rgb(217, 48, 37));
++  }
++  .fw-device
++  {
++    align-items: center;
++    border-bottom: var(--cr-separator-line);
++    display: flex;
++    flex-wrap: wrap;
++    gap: 12px;
++    justify-content: space-between;
++    padding: 10px 0;
++  }
++  .fw-device .fw-actions
++  {
++    margin: 0;
++  }
++  .fw-device-name
++  {
++    font-weight: 600;
++  }
++  .fw-badge
++  {
++    border: 1px solid var(--cr-separator-color);
++    border-radius: 10px;
++    font-size: 11px;
++    font-weight: 500;
++    margin-inline-start: 6px;
++    padding: 1px 8px;
++  }
++  .strength-0,
++  .strength-1
++  {
++    color: var(--cr-input-error-color, rgb(217, 48, 37));
++  }
++  .strength-2
++  {
++    color: var(--cr-secondary-text-color);
++  }
++  .strength-3,
++  .strength-4
++  {
++    color: var(--cr-checked-color, rgb(26, 115, 232));
++  }
++</style>
++
++<template is="dom-if" if="[[!is_(screen_, 'none')]]">
++
++  <!-- «Sin red»: what was known last, and Reintentar (§9). -->
++  <template is="dom-if" if="[[showOffline_(accountStatus)]]">
++    <div class="fw-banner" role="status">
++      <div>[[offlineText_(accountStatus)]]</div>
++      <div class="fw-actions">
++        <cr-button on-click="onRefresh_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountRetry}
++        </cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- «¿Has sido tú?» (§6.2) -->
++  <template is="dom-if" if="[[showWarnings_(accountStatus, screen_)]]">
++    <div class="fw-banner fw-alert" role="alert">
++      <h2>$i18n{flywebAccountWarningsTitle}</h2>
++      <template is="dom-repeat" items="[[accountStatus.warnings]]">
++        <p>
++          [[warningText_(item)]]
++          <span class="fw-hint">[[warningDate_(item)]]</span>
++        </p>
++      </template>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onNotMe_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountWarningNotMeButton}
++        </cr-button>
++        <cr-button on-click="onWasMe_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountWarningWasMe}
++        </cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- After «No he sido yo»: what comes next (§6.2). -->
++  <template is="dom-if" if="[[notMeDone_]]">
++    <div class="fw-banner" role="status">
++      <p>$i18n{flywebAccountNotMeDone}</p>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onChangePassword_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountChangePassword}
++        </cr-button>
++        <cr-button on-click="onChangeKey_">
++          $i18n{flywebAccountChangeKey}
++        </cr-button>
++        <cr-button on-click="onChangeEmail_">
++          $i18n{flywebAccountChangeEmail}
++        </cr-button>
++        <cr-button on-click="onNotMeClose_">
++          $i18n{flywebAccountClose}
++        </cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- cargando -->
++  <template is="dom-if" if="[[is_(screen_, 'loading')]]">
++    <div class="fw-screen">
++      <p>$i18n{flywebAccountLoading}</p>
++      <div class="fw-actions">
++        <cr-button on-click="onRefresh_">$i18n{flywebAccountRetry}</cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- sin cuenta (§5.1, §8) -->
++  <template is="dom-if" if="[[is_(screen_, 'no-account')]]">
++    <div class="fw-screen">
++      <h2>$i18n{flywebAccountNoAccountTitle}</h2>
++      <template is="dom-if" if="[[hasChain_(accountStatus)]]">
++        <p>$i18n{flywebAccountLinkDesc}</p>
++        <div class="fw-actions">
++          <cr-button class="action-button" on-click="onCreate_"
++              disabled="[[busy_(accountStatus, pending_)]]">
++            $i18n{flywebAccountCreate}
++          </cr-button>
++          <cr-button on-click="onViewRecovery_">
++            $i18n{flywebAccountViewRecovery}
++          </cr-button>
++        </div>
++      </template>
++      <template is="dom-if" if="[[!hasChain_(accountStatus)]]">
++        <p>$i18n{flywebAccountNoAccountDesc}</p>
++        <div class="fw-actions">
++          <cr-button class="action-button" on-click="onCreate_"
++              disabled="[[busy_(accountStatus, pending_)]]">
++            $i18n{flywebAccountCreate}
++          </cr-button>
++          <cr-button on-click="onLogin_"
++              disabled="[[busy_(accountStatus, pending_)]]">
++            $i18n{flywebAccountLogin}
++          </cr-button>
++          <cr-button on-click="onHaveRecoveryKey_"
++              disabled="[[busy_(accountStatus, pending_)]]">
++            $i18n{flywebAccountHaveRecoveryKey}
++          </cr-button>
++        </div>
++        <div class="fw-actions">
++          <cr-button on-click="onForgot_">
++            $i18n{flywebAccountForgotPassword}
++          </cr-button>
++        </div>
++      </template>
++    </div>
++  </template>
++
++  <!-- Crear cuenta: the email -->
++  <template is="dom-if" if="[[is_(screen_, 'create')]]">
++    <div class="fw-screen">
++      <h2>$i18n{flywebAccountCreate}</h2>
++      <template is="dom-if" if="[[hasChain_(accountStatus)]]">
++        <p>$i18n{flywebAccountLinkDesc}</p>
++      </template>
++      <p>$i18n{flywebAccountEmailCodeDesc}</p>
++      <div class="fw-field">
++        <label for="createEmail">$i18n{flywebAccountEmailLabel}</label>
++        <input id="createEmail" class="fw-input" type="email"
++            autocomplete="email" spellcheck="false"
++            value="{{email_::input}}">
++      </div>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onCreateStart_"
++            disabled="[[!canSendEmail_(email_, pending_, accountStatus)]]">
++          $i18n{flywebAccountSendCode}
++        </cr-button>
++        <cr-button on-click="onBack_">$i18n{flywebAccountBack}</cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- Entrar: email and password (§5.1) -->
++  <template is="dom-if" if="[[is_(screen_, 'login')]]">
++    <div class="fw-screen">
++      <h2>$i18n{flywebAccountLogin}</h2>
++      <p>$i18n{flywebAccountLoginDesc}</p>
++      <div class="fw-field">
++        <label for="loginEmail">$i18n{flywebAccountEmailLabel}</label>
++        <input id="loginEmail" class="fw-input" type="email"
++            autocomplete="username" spellcheck="false"
++            value="{{email_::input}}">
++      </div>
++      <div class="fw-field">
++        <label for="loginPassword">$i18n{flywebAccountPasswordLabel}</label>
++        <input id="loginPassword" class="fw-input" type="password"
++            autocomplete="current-password" value="{{password_::input}}">
++      </div>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onLoginStart_"
++            disabled="[[!canLogin_(email_, password_, pending_, accountStatus)]]">
++          $i18n{flywebAccountSendCode}
++        </cr-button>
++        <cr-button on-click="onForgot_">
++          $i18n{flywebAccountForgotPassword}
++        </cr-button>
++        <cr-button on-click="onBack_">$i18n{flywebAccountBack}</cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- Tengo mi clave de recuperación (§6.6) -->
++  <template is="dom-if" if="[[is_(screen_, 'words')]]">
++    <div class="fw-screen">
++      <h2>$i18n{flywebAccountHaveRecoveryKey}</h2>
++      <p>$i18n{flywebAccountWordsDesc}</p>
++      <textarea class="fw-words" spellcheck="false" autocomplete="off"
++          aria-label="$i18n{flywebAccountRecoveryTitle}"
++          value="{{words_::input}}"></textarea>
++      <div class="fw-hint">[[wordCountText_(words_)]]</div>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onJoinWithWords_"
++            disabled="[[!canJoin_(words_, pending_, accountStatus)]]">
++          $i18n{flywebAccountJoin}
++        </cr-button>
++        <cr-button on-click="onBack_">$i18n{flywebAccountBack}</cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- He olvidado la contraseña, on a Mac without sync (§5.1, §6.1, §6.4) -->
++  <template is="dom-if" if="[[is_(screen_, 'forgot')]]">
++    <div class="fw-screen">
++      <h2>$i18n{flywebAccountForgotPassword}</h2>
++      <p>$i18n{flywebAccountForgotWithMac}</p>
++      <p>$i18n{flywebAccountForgotNoMac}</p>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onHaveRecoveryKey_">
++          $i18n{flywebAccountHaveRecoveryKey}
++        </cr-button>
++      </div>
++      <p>$i18n{flywebAccountForgotNothing}</p>
++      <p class="fw-hint">$i18n{flywebAccountDelayWarning}</p>
++      <div class="fw-actions">
++        <cr-button on-click="onStartOver_">
++          $i18n{flywebAccountStartOver}
++        </cr-button>
++        <cr-button on-click="onMailboxDelete_">
++          $i18n{flywebAccountMailboxDelete}
++        </cr-button>
++        <cr-button on-click="onBack_">$i18n{flywebAccountBack}</cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- Empezar de cero: the email (§6.4) -->
++  <template is="dom-if" if="[[is_(screen_, 'start-over')]]">
++    <div class="fw-screen">
++      <h2>$i18n{flywebAccountStartOver}</h2>
++      <p>$i18n{flywebAccountDelayWarning}</p>
++      <p>$i18n{flywebAccountEmailCodeDesc}</p>
++      <div class="fw-field">
++        <label for="startOverEmail">$i18n{flywebAccountEmailLabel}</label>
++        <input id="startOverEmail" class="fw-input" type="email"
++            autocomplete="email" spellcheck="false"
++            value="{{email_::input}}">
++      </div>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onStartOverStart_"
++            disabled="[[!canSendEmail_(email_, pending_, accountStatus)]]">
++          $i18n{flywebAccountSendCode}
++        </cr-button>
++        <cr-button on-click="onBack_">$i18n{flywebAccountBack}</cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- Borrar la cuenta por email (§6.4, §7) -->
++  <template is="dom-if" if="[[is_(screen_, 'mailbox-delete')]]">
++    <div class="fw-screen">
++      <h2>$i18n{flywebAccountMailboxDelete}</h2>
++      <p>$i18n{flywebAccountDelayWarning}</p>
++      <p>$i18n{flywebAccountEmailCodeDesc}</p>
++      <div class="fw-field">
++        <label for="mailboxDeleteEmail">$i18n{flywebAccountEmailLabel}</label>
++        <input id="mailboxDeleteEmail" class="fw-input" type="email"
++            autocomplete="email" spellcheck="false"
++            value="{{email_::input}}">
++      </div>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onMailboxDeleteStart_"
++            disabled="[[!canSendEmail_(email_, pending_, accountStatus)]]">
++          $i18n{flywebAccountSendCode}
++        </cr-button>
++        <cr-button on-click="onBack_">$i18n{flywebAccountBack}</cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- «Falta el código del email» (§9), for every flow -->
++  <template is="dom-if" if="[[is_(screen_, 'flow')]]">
++    <div class="fw-screen">
++      <h2>[[flowTitle_(accountStatus)]]</h2>
++      <p>[[codeSentText_(accountStatus)]]</p>
++      <p>[[flowDesc_(accountStatus)]]</p>
++      <div class="fw-field">
++        <label for="flowCode">$i18n{flywebAccountCodeLabel}</label>
++        <input id="flowCode" class="fw-input" type="text"
++            autocomplete="one-time-code" spellcheck="false" maxlength="16"
++            value="{{code_::input}}">
++        <span class="fw-hint">$i18n{flywebAccountCodeNotArrived}</span>
++      </div>
++      <template is="dom-if" if="[[flowNeedsPassword_(accountStatus)]]">
++        <div class="fw-field">
++          <label for="flowPassword">
++            $i18n{flywebAccountNewPasswordLabel}
++          </label>
++          <input id="flowPassword" class="fw-input" type="password"
++              autocomplete="new-password" value="{{password_::input}}">
++          <span class="fw-hint">[[passwordHint_(accountStatus)]]</span>
++          <template is="dom-if" if="[[showStrength_(strength_)]]">
++            <span class$="[[strengthClass_(strength_)]]" role="status">
++              [[strengthText_(strength_)]]
++            </span>
++          </template>
++        </div>
++      </template>
++      <template is="dom-if" if="[[flowNeedsName_(accountStatus)]]">
++        <div class="fw-field">
++          <label for="flowDeviceName">$i18n{flywebAccountDeviceNameLabel}</label>
++          <input id="flowDeviceName" class="fw-input" type="text"
++              autocomplete="off" maxlength="64"
++              value="{{deviceName_::input}}">
++          <span class="fw-hint">$i18n{flywebAccountDeviceNameHint}</span>
++        </div>
++      </template>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onFlowConfirm_"
++            disabled="[[!canConfirmFlow_(accountStatus, code_, password_, pending_)]]">
++          $i18n{confirm}
++        </cr-button>
++        <cr-button on-click="onResend_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountResend}
++        </cr-button>
++        <cr-button on-click="onFlowCancel_">$i18n{cancel}</cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- Clave de recuperación (§6.6, §8): confirm it is saved before going on -->
++  <template is="dom-if" if="[[is_(screen_, 'recovery')]]">
++    <div class="fw-screen">
++      <h2>$i18n{flywebAccountRecoveryTitle}</h2>
++      <p>$i18n{flywebAccountRecoveryDesc}</p>
++      <template is="dom-if" if="[[recoveryIsNew_]]">
++        <p><b>$i18n{flywebAccountRecoveryNew}</b></p>
++      </template>
++      <template is="dom-if" if="[[recoveryInfo_]]">
++        <p>[[recoveryInfo_]]</p>
++      </template>
++      <textarea class="fw-words" readonly spellcheck="false"
++          aria-label="$i18n{flywebAccountRecoveryTitle}"
++          value="[[recoveryWords_]]"></textarea>
++      <div class="fw-hint">[[wordCountText_(recoveryWords_)]]</div>
++      <template is="dom-if" if="[[recoveryMustConfirm_]]">
++        <cr-checkbox checked="{{recoverySaved_}}">
++          $i18n{flywebAccountRecoverySavedCheck}
++        </cr-checkbox>
++        <div class="fw-actions">
++          <cr-button class="action-button" on-click="onRecoveryDone_"
++              disabled="[[!canCloseRecovery_(recoveryMustConfirm_, recoverySaved_)]]">
++            $i18n{flywebAccountContinue}
++          </cr-button>
++        </div>
++      </template>
++      <template is="dom-if" if="[[!recoveryMustConfirm_]]">
++        <div class="fw-actions">
++          <cr-button class="action-button" on-click="onRecoveryDone_">
++            $i18n{flywebAccountClose}
++          </cr-button>
++          <cr-button on-click="onOldVersionCode_">
++            $i18n{flywebAccountOldVersionCode}
++          </cr-button>
++        </div>
++        <p class="fw-hint">$i18n{flywebAccountOldVersionCodeDesc}</p>
++      </template>
++    </div>
++  </template>
++
++  <!-- sincronizado, and borrado programado (§6, §7, §9) -->
++  <template is="dom-if" if="[[is_(screen_, 'synced')]]">
++    <div class="fw-screen">
++      <template is="dom-if"
++          if="[[isState_(accountStatus, 'borrado-programado')]]">
++        <div class="fw-banner fw-alert" role="alert">
++          <p>[[deletionText_(accountStatus)]]</p>
++          <p class="fw-hint">$i18n{flywebAccountDeletionNotYou}</p>
++          <div class="fw-actions">
++            <cr-button class="action-button" on-click="onCancelDeletion_"
++                disabled="[[busy_(accountStatus, pending_)]]">
++              $i18n{flywebAccountCancelDeletion}
++            </cr-button>
++          </div>
++        </div>
++      </template>
++
++      <p><b>[[accountEmailText_(accountStatus)]]</b></p>
++      <template is="dom-if"
++          if="[[showLastError_(accountStatus, error_, pending_)]]">
++        <p class="fw-error">[[lastErrorText_(accountStatus)]]</p>
++        <div class="fw-actions">
++          <cr-button on-click="onRefresh_"
++              disabled="[[busy_(accountStatus, pending_)]]">
++            $i18n{flywebAccountRetry}
++          </cr-button>
++        </div>
++      </template>
++
++      <h2>$i18n{flywebAccountDevicesTitle}</h2>
++      <template is="dom-if" if="[[!hasDevices_(accountStatus)]]">
++        <p class="fw-hint">$i18n{flywebAccountDevicesEmpty}</p>
++        <div class="fw-actions">
++          <cr-button on-click="onReloadDevices_"
++              disabled="[[busy_(accountStatus, pending_)]]">
++            $i18n{flywebAccountRetry}
++          </cr-button>
++        </div>
++      </template>
++      <template is="dom-repeat" items="[[devices_(accountStatus)]]">
++        <div class="fw-device">
++          <div>
++            <template is="dom-if" if="[[!isRenaming_(item, renamingId_)]]">
++              <div>
++                <span class="fw-device-name">[[item.nombre]]</span>
++                <template is="dom-if" if="[[item.este]]">
++                  <span class="fw-badge">$i18n{flywebAccountDeviceThis}</span>
++                </template>
++              </div>
++            </template>
++            <template is="dom-if" if="[[isRenaming_(item, renamingId_)]]">
++              <input class="fw-input" type="text" autocomplete="off"
++                  maxlength="64"
++                  aria-label="$i18n{flywebAccountDeviceNameLabel}"
++                  value="{{renameValue_::input}}">
++            </template>
++            <div class="fw-hint">[[item.modelo]]</div>
++            <div class="fw-hint">
++              [[deviceAddedText_(item)]] · [[deviceLastUsedText_(item)]]
++            </div>
++          </div>
++          <div class="fw-actions">
++            <template is="dom-if" if="[[isRenaming_(item, renamingId_)]]">
++              <cr-button class="action-button" on-click="onRenameSave_"
++                  disabled="[[!canSaveName_(renameValue_, pending_)]]">
++                $i18n{flywebAccountSave}
++              </cr-button>
++              <cr-button on-click="onRenameCancel_">$i18n{cancel}</cr-button>
++            </template>
++            <template is="dom-if" if="[[!isRenaming_(item, renamingId_)]]">
++              <cr-button on-click="onRenameDevice_" data-id$="[[item.id]]"
++                  disabled="[[busy_(accountStatus, pending_)]]">
++                $i18n{flywebAccountRename}
++              </cr-button>
++              <template is="dom-if" if="[[!item.este]]">
++                <cr-button on-click="onRemoveDevice_" data-id$="[[item.id]]"
++                    disabled="[[busy_(accountStatus, pending_)]]">
++                  $i18n{flywebAccountRemoveFromList}
++                </cr-button>
++              </template>
++            </template>
++          </div>
++        </div>
++      </template>
++
++      <div class="fw-actions">
++        <cr-button on-click="onChangePassword_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountChangePassword}
++        </cr-button>
++        <cr-button on-click="onChangePassword_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountForgotPassword}
++        </cr-button>
++        <cr-button on-click="onChangeEmail_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountChangeEmail}
++        </cr-button>
++        <cr-button on-click="onChangeKey_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountChangeKey}
++        </cr-button>
++        <cr-button on-click="onViewRecovery_">
++          $i18n{flywebAccountViewRecovery}
++        </cr-button>
++      </div>
++      <div class="fw-actions">
++        <cr-button on-click="onLeave_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountLeave}
++        </cr-button>
++        <cr-button on-click="onDeleteEverywhere_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountDeleteEverywhere}
++        </cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- Cambiar el email (§6.5) -->
++  <template is="dom-if" if="[[is_(screen_, 'change-email')]]">
++    <div class="fw-screen">
++      <h2>$i18n{flywebAccountChangeEmail}</h2>
++      <p>$i18n{flywebAccountChangeEmailDesc}</p>
++      <div class="fw-field">
++        <label for="changeEmailPassword">$i18n{flywebAccountPasswordLabel}</label>
++        <input id="changeEmailPassword" class="fw-input" type="password"
++            autocomplete="current-password" value="{{password_::input}}">
++      </div>
++      <div class="fw-field">
++        <label for="changeEmailNew">$i18n{flywebAccountNewEmailLabel}</label>
++        <input id="changeEmailNew" class="fw-input" type="email"
++            autocomplete="email" spellcheck="false"
++            value="{{newEmail_::input}}">
++      </div>
++      <p class="fw-hint">$i18n{flywebAccountForgotFirst}</p>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onChangeEmailStart_"
++            disabled="[[!canChangeEmail_(newEmail_, password_, pending_, accountStatus)]]">
++          $i18n{flywebAccountSendCode}
++        </cr-button>
++        <cr-button on-click="onBack_">$i18n{flywebAccountBack}</cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- Cambiar la clave de sincronización (§6.3) -->
++  <template is="dom-if" if="[[is_(screen_, 'change-key')]]">
++    <div class="fw-screen">
++      <h2>$i18n{flywebAccountChangeKey}</h2>
++      <p>$i18n{flywebAccountChangeKeyDesc}</p>
++      <div class="fw-field">
++        <label for="changeKeyPassword">$i18n{flywebAccountPasswordLabel}</label>
++        <input id="changeKeyPassword" class="fw-input" type="password"
++            autocomplete="current-password" value="{{password_::input}}">
++      </div>
++      <p class="fw-hint">$i18n{flywebAccountForgotFirst}</p>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onChangeKeyConfirm_"
++            disabled="[[!canChangeKey_(password_, pending_, accountStatus)]]">
++          $i18n{flywebAccountChangeKey}
++        </cr-button>
++        <cr-button on-click="onBack_">$i18n{flywebAccountBack}</cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- Claves ilegibles (§6.1, §9) -->
++  <template is="dom-if" if="[[is_(screen_, 'keys')]]">
++    <div class="fw-screen">
++      <p><b>$i18n{flywebAccountKeysUnreadable}</b></p>
++      <p>$i18n{flywebAccountKeysUnreadableDesc}</p>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onRejoin_">
++          $i18n{flywebAccountRejoin}
++        </cr-button>
++      </div>
++    </div>
++  </template>
++
++  <template is="dom-if" if="[[is_(screen_, 'rejoin')]]">
++    <div class="fw-screen">
++      <h2>$i18n{flywebAccountRejoin}</h2>
++      <p>$i18n{flywebAccountKeysUnreadableDesc}</p>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onLogin_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountLogin}
++        </cr-button>
++        <cr-button on-click="onHaveRecoveryKey_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountHaveRecoveryKey}
++        </cr-button>
++        <cr-button on-click="onBack_">$i18n{flywebAccountBack}</cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- Cuenta borrada desde otro Mac (§9) -->
++  <template is="dom-if" if="[[is_(screen_, 'deleted')]]">
++    <div class="fw-screen">
++      <p><b>$i18n{flywebAccountAccountDeleted}</b></p>
++      <p>$i18n{flywebAccountDataKept}</p>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onLoginAgain_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountLoginAgain}
++        </cr-button>
++        <cr-button on-click="onUnderstood_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountUnderstood}
++        </cr-button>
++        <!-- The account went away while this chain lives on (§9). -->
++        <template is="dom-if" if="[[hasChain_(accountStatus)]]">
++          <cr-button on-click="onViewRecovery_">
++            $i18n{flywebAccountViewRecovery}
++          </cr-button>
++        </template>
++      </div>
++    </div>
++  </template>
++
++  <!-- Clave cambiada desde otro Mac (§6.3) -->
++  <template is="dom-if" if="[[is_(screen_, 'key-changed')]]">
++    <div class="fw-screen">
++      <p><b>$i18n{flywebAccountKeyChangedInfobar}</b></p>
++      <p>$i18n{flywebAccountDataKept}</p>
++      <div class="fw-actions">
++        <cr-button class="action-button" on-click="onLoginAgain_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountLoginAgain}
++        </cr-button>
++        <cr-button on-click="onUnderstood_"
++            disabled="[[busy_(accountStatus, pending_)]]">
++          $i18n{flywebAccountUnderstood}
++        </cr-button>
++      </div>
++    </div>
++  </template>
++
++  <!-- The call in progress, its error and its way out (§9, P10) -->
++  <div aria-live="polite">
++    <template is="dom-if" if="[[pending_]]">
++      <p class="fw-info">[[pendingText_(pendingPassword_)]]</p>
++    </template>
++    <template is="dom-if" if="[[error_]]">
++      <p class="fw-error" role="alert">[[error_]]</p>
++      <template is="dom-if" if="[[canRetry_]]">
++        <div class="fw-actions">
++          <cr-button on-click="onRetry_">$i18n{flywebAccountRetry}</cr-button>
++        </div>
++      </template>
++    </template>
++    <template is="dom-if" if="[[info_]]">
++      <p class="fw-info">[[info_]]</p>
++    </template>
++  </div>
++</template>
++
++<template is="dom-if" if="[[confirm_]]" restamp>
++  <cr-dialog show-on-attach on-close="onConfirmCancel_">
++    <div slot="title">[[confirm_.title]]</div>
++    <div slot="body">
++      <p>[[confirm_.body]]</p>
++      <template is="dom-if" if="[[confirm_.body2]]">
++        <p>[[confirm_.body2]]</p>
++      </template>
++    </div>
++    <div slot="button-container">
++      <cr-button class="cancel-button" on-click="onConfirmCancel_">
++        $i18n{cancel}
++      </cr-button>
++      <cr-button class="action-button" on-click="onConfirmAccept_">
++        [[confirm_.button]]
++      </cr-button>
++    </div>
++  </cr-dialog>
++</template>
++
++<template is="dom-if" if="[[oldVersionCodeDialogType_]]" restamp>
++  <settings-brave-sync-code-dialog
++    sync-code="[[oldVersionCode_]]"
++    code-type="{{oldVersionCodeDialogType_}}"
++    on-done="onOldVersionCodeDone_">
++  </settings-brave-sync-code-dialog>
++</template>
+diff --git a/browser/resources/settings/brave_sync_page/flyweb_sync_account.ts b/browser/resources/settings/brave_sync_page/flyweb_sync_account.ts
+new file mode 100644
+index 0000000..0f15a8c
+--- /dev/null
++++ b/browser/resources/settings/brave_sync_page/flyweb_sync_account.ts
+@@ -0,0 +1,1196 @@
++/* Copyright (c) 2026 The FlyWeb Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++// FlyWeb 3.2: the account part of «Cuenta y sincronización»
++// (FlyWeb/docs/sync-cuenta.md §5.1, §6, §8, §9, §11). It paints the nine
++// states of §9 from flyweb_sync::AccountService::GetStatus(), each with its
++// text and its buttons, and none without a way out: every call has a time
++// limit here too, and its error comes with «Reintentar» or a way back.
++//
++// Passwords: plain <input type="password"> outside any <form> (the password
++// manager must not offer to save the account password, P23), cleared as soon
++// as they are sent; only the minimum length blocks the button.
++
++import 'chrome://resources/cr_elements/cr_button/cr_button.js';
++import 'chrome://resources/cr_elements/cr_checkbox/cr_checkbox.js';
++import 'chrome://resources/cr_elements/cr_dialog/cr_dialog.js';
++import 'chrome://resources/cr_elements/cr_shared_style.css.js';
++import '../settings_shared.css.js';
++import './brave_sync_code_dialog.js';
++
++import {I18nMixin, I18nMixinInterface} from 'chrome://resources/cr_elements/i18n_mixin.js'
++import {WebUiListenerMixin, WebUiListenerMixinInterface} from 'chrome://resources/cr_elements/web_ui_listener_mixin.js';
++import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++
++import {BaseMixin} from '../base_mixin.js'
++
++import {BraveSyncBrowserProxy} from './brave_sync_browser_proxy.js';
++import type {FlyWebAccountDevice, FlyWebAccountFlowKind, FlyWebAccountMessage, FlyWebAccountResult, FlyWebAccountStatus, FlyWebAccountWarning} from './brave_sync_browser_proxy.js';
++import {getTemplate} from './flyweb_sync_account.html.js'
++
++// The service gives up at 30 s per request; a call with a chain proof makes
++// two requests and may stretch the password twice first. Past this, the page
++// stops waiting and offers a way out (§9, P10).
++const kCallTimeoutMs = 90 * 1000
++
++// §11: the strength indicator waits for the typing to stop.
++const kStrengthDelayMs = 300
++
++// What the page shows, from the status and the local step.
++type Screen = 'none' | 'loading' | 'recovery' | 'flow' | 'no-account' |
++    'create' | 'login' | 'words' | 'forgot' | 'start-over' |
++    'mailbox-delete' | 'synced' | 'change-email' | 'change-key' | 'keys' |
++    'rejoin' | 'deleted' | 'key-changed'
++
++// The steps the user opens with a button; the rest come from the status.
++type LocalView = '' | 'create' | 'login' | 'words' | 'forgot' |
++    'start-over' | 'mailbox-delete' | 'change-email' | 'change-key' | 'rejoin'
++
++type ConfirmAction = 'remove' | 'leave' | 'delete'
++
++interface ConfirmDialog {
++  action: ConfirmAction
++  title: string
++  body: string
++  body2: string
++  button: string
++  deviceId: string
++}
++
++// Flows whose last step sets a new password.
++const kNewPasswordFlows: FlyWebAccountFlowKind[] =
++    ['crear', 'contrasena', 'empezar-de-cero']
++// Flows whose last step names this Mac.
++const kDeviceNameFlows: FlyWebAccountFlowKind[] = ['crear', 'entrar']
++
++function countCodePoints(s: string): number {
++  return [...s.normalize('NFC')].length
++}
++
++// Device list and «último contacto»: a full date.
++function formatDate(unixSeconds: number): string {
++  if (!unixSeconds) {
++    return ''
++  }
++  return new Date(unixSeconds * 1000).toLocaleDateString(
++      undefined, {day: 'numeric', month: 'long', year: 'numeric'})
++}
++
++// Dates a few days ahead (deletion, start over): day and month.
++function formatShortDate(unixSeconds: number): string {
++  if (!unixSeconds) {
++    return ''
++  }
++  return new Date(unixSeconds * 1000).toLocaleDateString(
++      undefined, {day: 'numeric', month: 'long'})
++}
++
++function formatDateTime(unixSeconds: number): string {
++  if (!unixSeconds) {
++    return ''
++  }
++  return new Date(unixSeconds * 1000).toLocaleString(undefined, {
++    day: 'numeric',
++    month: 'long',
++    hour: '2-digit',
++    minute: '2-digit',
++  })
++}
++
++function formatTime(unixSeconds: number): string {
++  return new Date(unixSeconds * 1000).toLocaleTimeString(
++      undefined, {hour: '2-digit', minute: '2-digit'})
++}
++
++function failure(error: string): FlyWebAccountResult {
++  return {ok: false, error, until: 0, data: {}}
++}
++
++const SettingsFlyWebSyncAccountElementBase =
++  I18nMixin(WebUiListenerMixin(BaseMixin(PolymerElement))) as {
++    new(): PolymerElement & WebUiListenerMixinInterface & I18nMixinInterface
++  }
++
++export class SettingsFlyWebSyncAccountElement
++    extends SettingsFlyWebSyncAccountElementBase {
++  static get is() {
++    return 'settings-flyweb-sync-account'
++  }
++
++  static get template() {
++    return getTemplate()
++  }
++
++  static get properties() {
++    return {
++      /**
++       * The account status, for the subpage (null: no account service in
++       * this profile, the page then shows the old setup).
++       */
++      accountStatus: {
++        type: Object,
++        value: null,
++        notify: true,
++      },
++      view_: {
++        type: String,
++        value: '',
++      },
++      screen_: {
++        type: String,
++        computed: 'computeScreen_(accountStatus, view_, recoveryWords_)',
++      },
++      email_: {type: String, value: ''},
++      password_: {type: String, value: ''},
++      newEmail_: {type: String, value: ''},
++      code_: {type: String, value: ''},
++      deviceName_: {type: String, value: ''},
++      words_: {type: String, value: ''},
++      strength_: {type: Number, value: -1},
++      pending_: {type: Boolean, value: false},
++      pendingPassword_: {type: Boolean, value: false},
++      error_: {type: String, value: ''},
++      canRetry_: {type: Boolean, value: false},
++      info_: {type: String, value: ''},
++      recoveryWords_: {type: String, value: ''},
++      recoveryMustConfirm_: {type: Boolean, value: false},
++      recoveryIsNew_: {type: Boolean, value: false},
++      recoveryInfo_: {type: String, value: ''},
++      recoverySaved_: {type: Boolean, value: false},
++      notMeDone_: {type: Boolean, value: false},
++      renamingId_: {type: String, value: ''},
++      renameValue_: {type: String, value: ''},
++      confirm_: {type: Object, value: null},
++      oldVersionCode_: {type: String, value: ''},
++      oldVersionCodeDialogType_: {type: String, value: null},
++    }
++  }
++
++  static get observers() {
++    return [
++      'onPasswordChanged_(password_)',
++    ]
++  }
++
++  declare accountStatus: FlyWebAccountStatus | null
++  private declare view_: LocalView
++  private declare screen_: Screen
++  private declare email_: string
++  private declare password_: string
++  private declare newEmail_: string
++  private declare code_: string
++  private declare deviceName_: string
++  private declare words_: string
++  private declare strength_: number
++  private declare pending_: boolean
++  private declare pendingPassword_: boolean
++  private declare error_: string
++  private declare canRetry_: boolean
++  private declare info_: string
++  private declare recoveryWords_: string
++  private declare recoveryMustConfirm_: boolean
++  private declare recoveryIsNew_: boolean
++  private declare recoveryInfo_: string
++  private declare recoverySaved_: boolean
++  private declare notMeDone_: boolean
++  private declare renamingId_: string
++  private declare renameValue_: string
++  private declare confirm_: ConfirmDialog | null
++  private declare oldVersionCode_: string
++  private declare oldVersionCodeDialogType_: string | null
++
++  private browserProxy_: BraveSyncBrowserProxy =
++      BraveSyncBrowserProxy.getInstance()
++  private retry_: (() => void) | null = null
++  // After the recovery key is confirmed, end the setup as the old page did
++  // (the subpage marks it successful and goes back to the section).
++  private finishAfterWords_ = false
++  private strengthTimer_ = 0
++  private strengthSeq_ = 0
++
++  override connectedCallback() {
++    super.connectedCallback()
++    this.addWebUiListener(
++        'flyweb-account-status-changed',
++        (status: FlyWebAccountStatus) => this.onStatus_(status))
++    this.loadStatus_()
++  }
++
++  // The subpage was opened: §11 polls the account events «al abrir la
++  // página», and the device list is loaded again.
++  refresh() {
++    this.loadStatus_().then(() => {
++      if (!this.accountStatus) {
++        return
++      }
++      this.browserProxy_.flywebAccountCall('FlyWebAccountRefresh')
++      if (this.accountStatus.hasAccount && this.accountStatus.hasChain) {
++        this.browserProxy_.flywebAccountCall('FlyWebAccountListDevices')
++      }
++    })
++  }
++
++  private async loadStatus_() {
++    let status: FlyWebAccountStatus | null = null
++    try {
++      status = await this.browserProxy_.getFlyWebAccountStatus()
++    } catch (e) {
++      status = null
++    }
++    this.onStatus_(status)
++  }
++
++  private onStatus_(status: FlyWebAccountStatus | null) {
++    if (!status || typeof status !== 'object' || !status.state) {
++      this.accountStatus = null
++      return
++    }
++    const old = this.accountStatus
++    this.accountStatus = status
++    if (!this.deviceName_ && status.model) {
++      this.deviceName_ = status.model
++    }
++    // A step opened for a state that is gone (another Mac deleted the
++    // account, the keychain changed...) is closed.
++    if (old && old.state !== status.state && !this.pending_) {
++      this.view_ = ''
++    }
++  }
++
++  // --- what is shown ---
++
++  protected computeScreen_(
++      status: FlyWebAccountStatus | null, view: LocalView,
++      recoveryWords: string): Screen {
++    if (!status) {
++      return 'none'
++    }
++    if (recoveryWords) {
++      return 'recovery'
++    }
++    if (status.flow) {
++      return 'flow'
++    }
++    if (view) {
++      return view
++    }
++    switch (status.state) {
++      case 'sin-cuenta':
++        return 'no-account'
++      case 'sincronizado':
++      case 'borrado-programado':
++        return 'synced'
++      case 'claves-ilegibles':
++        return 'keys'
++      case 'cuenta-borrada':
++        return 'deleted'
++      case 'clave-cambiada':
++        return 'key-changed'
++      default:
++        return 'loading'
++    }
++  }
++
++  protected is_(screen: Screen, expected: string): boolean {
++    return screen === expected
++  }
++
++  protected isState_(status: FlyWebAccountStatus | null, state: string):
++      boolean {
++    return !!status && status.state === state
++  }
++
++  protected hasChain_(status: FlyWebAccountStatus | null): boolean {
++    return !!status && status.hasChain
++  }
++
++  protected showWarnings_(
++      status: FlyWebAccountStatus | null, screen: Screen): boolean {
++    return !!status && !!status.warnings && status.warnings.length > 0 &&
++        screen !== 'recovery'
++  }
++
++  protected showOffline_(status: FlyWebAccountStatus | null): boolean {
++    return !!status && status.offline
++  }
++
++  protected offlineText_(status: FlyWebAccountStatus | null): string {
++    if (!status || !status.lastContact) {
++      return this.i18n('flywebAccountErrorRed')
++    }
++    return this.i18n(
++        'flywebAccountOffline', formatDateTime(status.lastContact))
++  }
++
++  protected showLastError_(
++      status: FlyWebAccountStatus | null, error: string,
++      pending: boolean): boolean {
++    return !!status && !!status.lastError && !status.offline && !error &&
++        !pending
++  }
++
++  protected lastErrorText_(status: FlyWebAccountStatus | null): string {
++    if (!status || !status.lastError) {
++      return ''
++    }
++    return this.i18n(
++        'flywebAccountLastError', this.errorText_(failure(status.lastError)))
++  }
++
++  protected busy_(status: FlyWebAccountStatus | null, pending: boolean):
++      boolean {
++    return pending || (!!status && status.busy)
++  }
++
++  protected pendingText_(pendingPassword: boolean): string {
++    return this.i18n(pendingPassword ? 'flywebAccountCheckingPassword' :
++                                       'flywebAccountWorking')
++  }
++
++  protected accountEmailText_(status: FlyWebAccountStatus | null): string {
++    if (!status || !status.email) {
++      return this.i18n('flywebAccountEmailNotKnown')
++    }
++    return this.i18n('flywebAccountAccountEmail', status.email)
++  }
++
++  protected deletionText_(status: FlyWebAccountStatus | null): string {
++    return this.i18n(
++        'flywebAccountDeletionScheduled',
++        formatShortDate(status ? status.deletionDate : 0))
++  }
++
++  protected devices_(status: FlyWebAccountStatus | null):
++      FlyWebAccountDevice[] {
++    return status && status.devices ? status.devices : []
++  }
++
++  protected hasDevices_(status: FlyWebAccountStatus | null): boolean {
++    return this.devices_(status).length > 0
++  }
++
++  protected deviceAddedText_(device: FlyWebAccountDevice): string {
++    return this.i18n('flywebAccountDeviceAdded', formatDate(device.alta))
++  }
++
++  protected deviceLastUsedText_(device: FlyWebAccountDevice): string {
++    return this.i18n(
++        'flywebAccountDeviceLastUsed', formatDate(device.ultimo_uso))
++  }
++
++  protected isRenaming_(device: FlyWebAccountDevice, renamingId: string):
++      boolean {
++    return !!renamingId && device.id === renamingId
++  }
++
++  protected warningText_(w: FlyWebAccountWarning): string {
++    const name = w.mac || w.model
++    switch (w.type) {
++      case 'mac-anadido':
++        return this.i18n('flywebAccountWarningMacAdded', name)
++      case 'contrasena-acertada':
++        return this.i18n('flywebAccountWarningPasswordGuessed')
++      case 'contrasena-fallos':
++        return this.i18n(
++            'flywebAccountWarningPasswordFailures', String(w.count))
++      case 'contrasena-cambiada':
++        return this.i18n('flywebAccountWarningPasswordChanged')
++      case 'email-cambiado':
++        return this.i18n('flywebAccountWarningEmailChanged')
++      case 'cadena-cambiada':
++        return this.i18n('flywebAccountWarningChainChanged')
++      case 'cadena-ligada':
++        return this.i18n('flywebAccountWarningChainLinked')
++      case 'aparato-quitado':
++        return this.i18n('flywebAccountWarningDeviceRemoved', name)
++      case 'no-he-sido-yo':
++        return this.i18n('flywebAccountWarningNotMe')
++      case 'borrado-pedido':
++        return this.i18n(
++            'flywebAccountWarningDeletionRequested', formatShortDate(w.when))
++      default:
++        return this.i18n('flywebAccountWarningDeletionCancelled')
++    }
++  }
++
++  protected warningDate_(w: FlyWebAccountWarning): string {
++    return formatDateTime(w.date)
++  }
++
++  // --- the email code step (§9 «falta el código del email») ---
++
++  protected flowTitle_(status: FlyWebAccountStatus | null): string {
++    switch (status && status.flow ? status.flow.kind : '') {
++      case 'crear':
++        return this.i18n('flywebAccountCreate')
++      case 'entrar':
++        return this.i18n('flywebAccountLogin')
++      case 'contrasena':
++        return this.i18n('flywebAccountChangePassword')
++      case 'email':
++        return this.i18n('flywebAccountChangeEmail')
++      case 'borrar-por-email':
++        return this.i18n('flywebAccountMailboxDelete')
++      case 'empezar-de-cero':
++        return this.i18n('flywebAccountStartOver')
++    }
++    return ''
++  }
++
++  protected flowDesc_(status: FlyWebAccountStatus | null): string {
++    switch (status && status.flow ? status.flow.kind : '') {
++      case 'crear':
++        return this.i18n('flywebAccountFlowCreateDesc')
++      case 'entrar':
++        return this.i18n('flywebAccountFlowLoginDesc')
++      case 'contrasena':
++        return this.i18n('flywebAccountFlowPasswordDesc')
++      case 'email':
++        return this.i18n('flywebAccountFlowEmailDesc')
++      case 'borrar-por-email':
++        return this.i18n('flywebAccountFlowMailboxDeleteDesc')
++      case 'empezar-de-cero':
++        return this.i18n('flywebAccountFlowStartOverDesc')
++    }
++    return ''
++  }
++
++  protected codeSentText_(status: FlyWebAccountStatus | null): string {
++    return this.i18n(
++        'flywebAccountCodeSent', status && status.flow ? status.flow.email : '')
++  }
++
++  protected flowNeedsPassword_(status: FlyWebAccountStatus | null): boolean {
++    return !!status && !!status.flow &&
++        kNewPasswordFlows.includes(status.flow.kind)
++  }
++
++  protected flowNeedsName_(status: FlyWebAccountStatus | null): boolean {
++    return !!status && !!status.flow &&
++        kDeviceNameFlows.includes(status.flow.kind)
++  }
++
++  protected passwordHint_(status: FlyWebAccountStatus | null): string {
++    return this.i18n(
++        'flywebAccountPasswordHint', String(this.minLength_(status)))
++  }
++
++  protected showStrength_(strength: number): boolean {
++    return strength >= 0
++  }
++
++  protected strengthText_(strength: number): string {
++    const score = Math.max(0, Math.min(4, Math.floor(strength)))
++    return this.i18n('flywebAccountStrength' + score)
++  }
++
++  protected strengthClass_(strength: number): string {
++    return 'strength strength-' + Math.max(0, Math.min(4, strength))
++  }
++
++  protected canConfirmFlow_(
++      status: FlyWebAccountStatus | null, code: string, password: string,
++      pending: boolean): boolean {
++    if (!status || !status.flow || pending || status.busy || !code.trim()) {
++      return false
++    }
++    if (this.flowNeedsPassword_(status)) {
++      return this.longEnough_(password, status)
++    }
++    return true
++  }
++
++  // --- forms ---
++
++  protected canSendEmail_(
++      email: string, pending: boolean, status: FlyWebAccountStatus | null):
++      boolean {
++    return !!email.trim() && !this.busy_(status, pending)
++  }
++
++  protected canLogin_(
++      email: string, password: string, pending: boolean,
++      status: FlyWebAccountStatus | null): boolean {
++    return !!email.trim() && !!password && !this.busy_(status, pending)
++  }
++
++  protected canChangeEmail_(
++      newEmail: string, password: string, pending: boolean,
++      status: FlyWebAccountStatus | null): boolean {
++    return !!newEmail.trim() && !!password && !this.busy_(status, pending)
++  }
++
++  protected canChangeKey_(
++      password: string, pending: boolean,
++      status: FlyWebAccountStatus | null): boolean {
++    return !!password && !this.busy_(status, pending)
++  }
++
++  protected canJoin_(
++      words: string, pending: boolean, status: FlyWebAccountStatus | null):
++      boolean {
++    return this.wordCount_(words) >= 24 && !this.busy_(status, pending)
++  }
++
++  protected wordCount_(words: string): number {
++    const trimmed = words.trim()
++    return trimmed ? trimmed.split(/\s+/).length : 0
++  }
++
++  protected wordCountText_(words: string): string {
++    return this.i18n('braveSyncWordCount', String(this.wordCount_(words)))
++  }
++
++  private minLength_(status: FlyWebAccountStatus | null): number {
++    return status && status.minPasswordLength ? status.minPasswordLength : 10
++  }
++
++  private longEnough_(password: string, status: FlyWebAccountStatus | null):
++      boolean {
++    return countCodePoints(password) >= this.minLength_(status)
++  }
++
++  // Strength of a new password (§4: an indicator; only the length blocks).
++  protected onPasswordChanged_(password: string) {
++    window.clearTimeout(this.strengthTimer_)
++    this.strengthSeq_++
++    this.strength_ = -1
++    if (!password || !this.flowNeedsPassword_(this.accountStatus)) {
++      return
++    }
++    const seq = this.strengthSeq_
++    this.strengthTimer_ = window.setTimeout(async () => {
++      let score = -1
++      try {
++        score = await this.browserProxy_.getFlyWebPasswordStrength(password)
++      } catch (e) {
++        score = -1
++      }
++      if (seq === this.strengthSeq_ && typeof score === 'number') {
++        this.strength_ = score
++      }
++    }, kStrengthDelayMs)
++  }
++
++  // --- errors (all translatable; §9: the reason and a way out) ---
++
++  private errorText_(result: FlyWebAccountResult): string {
++    switch (result.error) {
++      case 'red':
++        return this.i18n('flywebAccountErrorRed')
++      case 'servidor':
++        return this.i18n('flywebAccountErrorServidor')
++      case 'credenciales':
++        return this.i18n('flywebAccountErrorCredenciales')
++      case 'espera':
++        return this.i18n(
++            'flywebAccountErrorEspera',
++            formatTime(result.until || Date.now() / 1000))
++      case 'cupo':
++        return this.i18n('flywebAccountErrorCupo')
++      case 'ocupado':
++        return this.i18n('flywebAccountErrorOcupado')
++      case 'envoltura':
++        return this.i18n('flywebAccountErrorEnvoltura')
++      case 'contrasena-corta':
++        return this.i18n(
++            'flywebAccountErrorContrasenaCorta',
++            String(this.minLength_(this.accountStatus)))
++      case 'email':
++        // The address typed, or (changing the password on a Mac that
++        // joined with the words) the account email this Mac does not know.
++        return this.accountStatus && this.accountStatus.hasAccount &&
++                !this.accountStatus.email ?
++            this.i18n('flywebAccountErrorEmailUnknown') :
++            this.i18n('flywebAccountErrorEmail')
++      case 'palabras':
++        return this.i18n('flywebAccountErrorPalabras')
++      case 'sin-cuenta':
++        return this.i18n('flywebAccountErrorSinCuenta')
++      case 'cadena-ligada':
++        return this.i18n('flywebAccountErrorCadenaLigada')
++      case 'cadena-borrada':
++        return this.i18n('flywebAccountErrorCadenaBorrada')
++      case 'email-ocupado':
++        return this.i18n('flywebAccountErrorEmailOcupado')
++      case 'programado':
++        return this.i18n('flywebAccountErrorProgramado')
++      case 'aparato':
++        return this.i18n('flywebAccountErrorAparato')
++      case 'prueba':
++        return this.i18n('flywebAccountErrorPrueba')
++      case 'token':
++        return this.i18n('flywebAccountErrorToken')
++      case 'llavero':
++        return this.i18n('flywebAccountErrorLlavero')
++      case 'ocupado-local':
++        return this.i18n('flywebAccountErrorOcupadoLocal')
++      case 'sin-flujo':
++        return this.i18n('flywebAccountErrorSinFlujo')
++      case 'sin-cadena':
++        return this.i18n('flywebAccountErrorSinCadena')
++      case 'peticion':
++        return this.i18n('flywebAccountErrorPeticion')
++      default:
++        return this.i18n('flywebAccountErrorInterno')
++    }
++  }
++
++  // One call at a time, with a time limit; its error goes to the page.
++  // `retry` is what «Reintentar» does: null for calls that carry a password
++  // or the words, which are not kept (the form is the way to try again).
++  private async call_(
++      message: FlyWebAccountMessage, args: string[], checksPassword: boolean,
++      retry: (() => void) | null): Promise<FlyWebAccountResult> {
++    this.error_ = ''
++    this.info_ = ''
++    this.canRetry_ = false
++    this.retry_ = null
++    this.pending_ = true
++    this.pendingPassword_ = checksPassword
++    let timer = 0
++    const timeout = new Promise<FlyWebAccountResult>(resolve => {
++      timer = window.setTimeout(() => resolve(failure('red')), kCallTimeoutMs)
++    })
++    let result: FlyWebAccountResult
++    try {
++      result = await Promise.race(
++          [this.browserProxy_.flywebAccountCall(message, ...args), timeout])
++    } catch (e) {
++      result = failure('interno')
++    }
++    window.clearTimeout(timer)
++    this.pending_ = false
++    this.pendingPassword_ = false
++    if (!result || typeof result !== 'object') {
++      result = failure('interno')
++    }
++    if (!result.data) {
++      result.data = {}
++    }
++    if (!result.ok) {
++      this.error_ = this.errorText_(result)
++      this.retry_ = retry
++      this.canRetry_ = !!retry
++    }
++    return result
++  }
++
++  protected onRetry_() {
++    const retry = this.retry_
++    this.retry_ = null
++    this.canRetry_ = false
++    if (retry) {
++      retry()
++    }
++  }
++
++  private clearForm_() {
++    this.password_ = ''
++    this.newEmail_ = ''
++    this.code_ = ''
++    this.words_ = ''
++    this.error_ = ''
++    this.canRetry_ = false
++    this.retry_ = null
++  }
++
++  private openView_(view: LocalView) {
++    this.clearForm_()
++    this.info_ = ''
++    this.view_ = view
++  }
++
++  protected onBack_() {
++    this.openView_('')
++  }
++
++  // Ends a join as the old setup did (see brave_sync_subpage.ts).
++  private finishSetup_() {
++    this.dispatchEvent(new CustomEvent('setup-success'))
++  }
++
++  private showRecoveryWords_(
++      words: string, mustConfirm: boolean, isNew: boolean, info: string,
++      finishAfter: boolean) {
++    this.recoverySaved_ = false
++    this.recoveryMustConfirm_ = mustConfirm
++    this.recoveryIsNew_ = isNew
++    this.recoveryInfo_ = info
++    this.finishAfterWords_ = finishAfter
++    this.recoveryWords_ = words
++  }
++
++  // --- without an account (§5.1, §6.4, §6.6, §8) ---
++
++  protected onCreate_() {
++    this.openView_('create')
++    this.email_ = this.accountStatus ? this.accountStatus.email : ''
++  }
++
++  protected onLogin_() {
++    this.openView_('login')
++    this.email_ = this.accountStatus ? this.accountStatus.email : ''
++  }
++
++  protected onHaveRecoveryKey_() {
++    this.openView_('words')
++  }
++
++  protected onForgot_() {
++    this.openView_('forgot')
++  }
++
++  protected onStartOver_() {
++    this.openView_('start-over')
++    this.email_ = this.accountStatus ? this.accountStatus.email : ''
++  }
++
++  protected onMailboxDelete_() {
++    this.openView_('mailbox-delete')
++    this.email_ = this.accountStatus ? this.accountStatus.email : ''
++  }
++
++  protected onRejoin_() {
++    this.openView_('rejoin')
++  }
++
++  protected async onCreateStart_() {
++    await this.call_(
++        'FlyWebAccountCreateStart', [this.email_.trim()], false,
++        () => this.onCreateStart_())
++  }
++
++  protected async onLoginStart_() {
++    const password = this.password_
++    this.password_ = ''
++    await this.call_(
++        'FlyWebAccountLoginStart', [this.email_.trim(), password], true, null)
++  }
++
++  protected async onJoinWithWords_() {
++    const words = this.words_.trim().split(/\s+/).join(' ')
++    this.words_ = ''
++    const r = await this.call_('FlyWebAccountJoinWithWords', [words], false,
++                               null)
++    if (r.ok) {
++      this.view_ = ''
++      this.info_ = this.i18n('flywebAccountDone')
++      this.finishSetup_()
++    }
++  }
++
++  protected async onStartOverStart_() {
++    await this.call_(
++        'FlyWebAccountStartOverStart', [this.email_.trim()], false,
++        () => this.onStartOverStart_())
++  }
++
++  protected async onMailboxDeleteStart_() {
++    await this.call_(
++        'FlyWebAccountMailboxDeleteStart', [this.email_.trim()], false,
++        () => this.onMailboxDeleteStart_())
++  }
++
++  // --- the code from the email ---
++
++  private normalizedCode_(): string {
++    return this.code_.replace(/\s+/g, '').toUpperCase()
++  }
++
++  protected async onFlowConfirm_() {
++    const status = this.accountStatus
++    if (!status || !status.flow) {
++      return
++    }
++    const code = this.normalizedCode_()
++    const name = (this.deviceName_ || status.model || '').trim()
++    const password = this.password_
++    this.password_ = ''
++    switch (status.flow.kind) {
++      case 'crear': {
++        const r = await this.call_(
++            'FlyWebAccountCreateFinish', [code, password, name], true, null)
++        // A new chain (§8): the words come even if joining it failed
++        // afterwards; the account exists already.
++        if (r.data.recoveryWords) {
++          this.code_ = ''
++          this.view_ = ''
++          this.showRecoveryWords_(
++              r.data.recoveryWords, true, false, '', true)
++        } else if (r.ok) {
++          this.code_ = ''
++          this.view_ = ''
++          this.info_ = this.i18n('flywebAccountDone')
++        }
++        return
++      }
++      case 'entrar': {
++        const r = await this.call_(
++            'FlyWebAccountLoginFinish', [code, name], false, null)
++        if (r.ok) {
++          this.code_ = ''
++          this.view_ = ''
++          this.info_ = this.i18n('flywebAccountDone')
++          this.finishSetup_()
++        }
++        return
++      }
++      case 'contrasena': {
++        const r = await this.call_(
++            'FlyWebAccountPasswordFinish', [code, password], true, null)
++        if (r.ok) {
++          this.code_ = ''
++          this.view_ = ''
++          this.info_ = this.i18n('flywebAccountDone')
++        }
++        return
++      }
++      case 'email': {
++        const r = await this.call_(
++            'FlyWebAccountEmailFinish', [code], false, null)
++        if (r.ok) {
++          this.code_ = ''
++          this.view_ = ''
++          this.info_ = this.i18n('flywebAccountDone')
++        }
++        return
++      }
++      case 'borrar-por-email': {
++        const r = await this.call_(
++            'FlyWebAccountMailboxDeleteFinish', [code], false, null)
++        if (r.ok) {
++          this.code_ = ''
++          this.view_ = ''
++          this.info_ = this.i18n(
++              'flywebAccountMailboxDeleteDone',
++              formatShortDate(r.data.fecha || 0))
++        }
++        return
++      }
++      case 'empezar-de-cero': {
++        const r = await this.call_(
++            'FlyWebAccountStartOverFinish', [code, password], true, null)
++        if (r.data.recoveryWords) {
++          this.code_ = ''
++          this.view_ = ''
++          this.showRecoveryWords_(
++              r.data.recoveryWords, true, false,
++              this.i18n(
++                  'flywebAccountStartOverDone',
++                  formatShortDate(r.data.fecha || 0)),
++              true)
++        }
++        return
++      }
++    }
++  }
++
++  protected async onResend_() {
++    const r = await this.call_(
++        'FlyWebAccountResendCode', [], false, () => this.onResend_())
++    if (r.ok) {
++      this.info_ = this.i18n('flywebAccountDone')
++    }
++  }
++
++  protected async onFlowCancel_() {
++    this.password_ = ''
++    this.code_ = ''
++    // Cancelling only forgets local state: it does not fail.
++    await this.call_('FlyWebAccountCancelFlow', [], false, null)
++    this.error_ = ''
++  }
++
++  // --- the recovery key (§6.6, §8) ---
++
++  protected async onViewRecovery_() {
++    this.error_ = ''
++    let words = ''
++    try {
++      words = await this.browserProxy_.getPureSyncCode()
++    } catch (e) {
++      words = ''
++    }
++    if (!words) {
++      this.error_ = this.i18n('flywebAccountErrorInterno')
++      this.retry_ = () => this.onViewRecovery_()
++      this.canRetry_ = true
++      return
++    }
++    this.showRecoveryWords_(words, false, false, '', false)
++  }
++
++  protected canCloseRecovery_(mustConfirm: boolean, saved: boolean): boolean {
++    return !mustConfirm || saved
++  }
++
++  protected onRecoveryDone_() {
++    if (this.recoveryMustConfirm_ && !this.recoverySaved_) {
++      return
++    }
++    const finish = this.finishAfterWords_
++    this.finishAfterWords_ = false
++    this.recoveryWords_ = ''
++    this.recoverySaved_ = false
++    this.recoveryInfo_ = ''
++    if (finish) {
++      this.finishSetup_()
++    }
++  }
++
++  // The 25 words with a date that FlyWeb 2.7 and 3.0 join with, in the old
++  // dialog: out of the main view (decision 9), not gone.
++  protected async onOldVersionCode_() {
++    let code = ''
++    try {
++      code = await this.browserProxy_.getSyncCode()
++    } catch (e) {
++      code = ''
++    }
++    if (!code) {
++      this.error_ = this.i18n('flywebAccountErrorInterno')
++      return
++    }
++    this.oldVersionCode_ = code
++    this.oldVersionCodeDialogType_ = 'words'
++  }
++
++  protected onOldVersionCodeDone_() {
++    this.oldVersionCodeDialogType_ = null
++    this.oldVersionCode_ = ''
++  }
++
++  // --- synced (§6) ---
++
++  protected async onChangePassword_() {
++    this.notMeDone_ = false
++    this.openView_('')
++    await this.call_(
++        'FlyWebAccountPasswordStart', [], false,
++        () => this.onChangePassword_())
++  }
++
++  protected onChangeEmail_() {
++    this.notMeDone_ = false
++    this.openView_('change-email')
++  }
++
++  protected onChangeKey_() {
++    this.notMeDone_ = false
++    this.openView_('change-key')
++  }
++
++  protected async onChangeEmailStart_() {
++    const password = this.password_
++    this.password_ = ''
++    await this.call_(
++        'FlyWebAccountEmailStart', [password, this.newEmail_.trim()], true,
++        null)
++  }
++
++  protected async onChangeKeyConfirm_() {
++    const password = this.password_
++    this.password_ = ''
++    const r =
++        await this.call_('FlyWebAccountChainChange', [password], true, null)
++    if (r.data.recoveryWords) {
++      this.view_ = ''
++      this.showRecoveryWords_(r.data.recoveryWords, true, true, '', true)
++    }
++  }
++
++  protected async onReloadDevices_() {
++    await this.call_(
++        'FlyWebAccountListDevices', [], false, () => this.onReloadDevices_())
++  }
++
++  // The device buttons sit in a dom-if inside the dom-repeat: they carry
++  // the device in data attributes instead of relying on e.model.
++  private deviceOf_(e: Event): FlyWebAccountDevice | undefined {
++    const id = (e.currentTarget as HTMLElement).dataset['id'] || ''
++    return this.devices_(this.accountStatus).find(d => d.id === id)
++  }
++
++  protected onRenameDevice_(e: Event) {
++    const device = this.deviceOf_(e)
++    if (!device) {
++      return
++    }
++    this.renamingId_ = device.id
++    this.renameValue_ = device.nombre
++  }
++
++  protected onRenameCancel_() {
++    this.renamingId_ = ''
++    this.renameValue_ = ''
++  }
++
++  protected canSaveName_(name: string, pending: boolean): boolean {
++    return !!name.trim() && !pending
++  }
++
++  protected async onRenameSave_() {
++    const id = this.renamingId_
++    const name = this.renameValue_.trim()
++    const r = await this.call_(
++        'FlyWebAccountRenameDevice', [id, name], false,
++        () => this.onRenameSave_())
++    if (r.ok) {
++      this.onRenameCancel_()
++      this.info_ = this.i18n('flywebAccountDone')
++    }
++  }
++
++  protected onRemoveDevice_(e: Event) {
++    const device = this.deviceOf_(e)
++    if (!device) {
++      return
++    }
++    this.confirm_ = {
++      action: 'remove',
++      title: this.i18n('flywebAccountRemoveFromList'),
++      body: this.i18n('flywebAccountRemoveConfirm'),
++      body2: '',
++      button: this.i18n('flywebAccountRemoveFromList'),
++      deviceId: device.id,
++    }
++  }
++
++  protected onLeave_() {
++    this.confirm_ = {
++      action: 'leave',
++      title: this.i18n('flywebAccountLeave'),
++      body: this.i18n('flywebAccountLeaveConfirm'),
++      body2: '',
++      button: this.i18n('flywebAccountLeave'),
++      deviceId: '',
++    }
++  }
++
++  protected onDeleteEverywhere_() {
++    // N = the devices of the account (§9, P8); at least this one.
++    const count = Math.max(1, this.devices_(this.accountStatus).length)
++    this.confirm_ = {
++      action: 'delete',
++      title: this.i18n('flywebAccountDeleteEverywhere'),
++      body: this.i18n('flywebAccountDeleteConfirm', String(count)),
++      body2: this.i18n('flywebAccountDeleteConfirmServer'),
++      button: this.i18n('flywebAccountDeleteEverywhere'),
++      deviceId: '',
++    }
++  }
++
++  protected onConfirmCancel_() {
++    this.confirm_ = null
++  }
++
++  protected async onConfirmAccept_() {
++    const confirm = this.confirm_
++    this.confirm_ = null
++    if (!confirm) {
++      return
++    }
++    switch (confirm.action) {
++      case 'remove': {
++        const id = confirm.deviceId
++        const remove = async () => {
++          const r = await this.call_(
++              'FlyWebAccountRemoveDevice', [id], false, () => remove())
++          if (r.ok) {
++            this.info_ = this.i18n('flywebAccountDone')
++          }
++        }
++        await remove()
++        return
++      }
++      case 'leave':
++        await this.leave_()
++        return
++      case 'delete':
++        await this.deleteEverywhere_()
++        return
++    }
++  }
++
++  private async leave_() {
++    const r = await this.call_(
++        'FlyWebAccountLeave', [], false, () => this.leave_())
++    if (r.ok) {
++      this.openView_('')
++      this.info_ = this.i18n('flywebAccountDone')
++    }
++  }
++
++  private async deleteEverywhere_() {
++    const r = await this.call_(
++        'FlyWebAccountDeleteEverywhere', [], false,
++        () => this.deleteEverywhere_())
++    if (r.ok) {
++      this.openView_('')
++      this.info_ = this.i18n('flywebAccountDone')
++    }
++  }
++
++  protected async onCancelDeletion_() {
++    const r = await this.call_(
++        'FlyWebAccountCancelDeletion', [], false,
++        () => this.onCancelDeletion_())
++    if (r.ok) {
++      this.info_ = this.i18n('flywebAccountDone')
++    }
++  }
++
++  // --- «¿Has sido tú?» (§6.2) ---
++
++  protected async onWasMe_() {
++    await this.call_('FlyWebAccountDismissWarnings', [], false, null)
++  }
++
++  protected async onNotMe_() {
++    const r = await this.call_(
++        'FlyWebAccountNotMe', [], false, () => this.onNotMe_())
++    if (r.ok) {
++      this.notMeDone_ = true
++    }
++  }
++
++  protected onNotMeClose_() {
++    this.notMeDone_ = false
++  }
++
++  // --- notices (§6.3, §9) ---
++
++  protected onLoginAgain_() {
++    this.onLogin_()
++  }
++
++  protected async onUnderstood_() {
++    await this.call_('FlyWebAccountDismissNotice', [], false, null)
++  }
++
++  // «Sin red» and «cargando»: ask again.
++  protected async onRefresh_() {
++    await this.loadStatus_()
++    if (!this.accountStatus) {
++      return
++    }
++    await this.call_(
++        'FlyWebAccountRefresh', [], false, () => this.onRefresh_())
++    if (this.accountStatus && this.accountStatus.hasAccount &&
++        this.accountStatus.hasChain) {
++      this.browserProxy_.flywebAccountCall('FlyWebAccountListDevices')
++    }
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    'settings-flyweb-sync-account': SettingsFlyWebSyncAccountElement;
++  }
++}
++
++customElements.define(
++  SettingsFlyWebSyncAccountElement.is, SettingsFlyWebSyncAccountElement)
+diff --git a/browser/resources/settings/sources.gni b/browser/resources/settings/sources.gni
+index 7e7bf22..c99fc7c 100644
+--- a/browser/resources/settings/sources.gni
++++ b/browser/resources/settings/sources.gni
+@@ -34,6 +34,7 @@ brave_settings_web_component_files = [
+   "brave_sync_page/brave_sync_page_index.ts",
+   "brave_sync_page/brave_sync_setup.ts",
+   "brave_sync_page/brave_sync_subpage.ts",
++  "brave_sync_page/flyweb_sync_account.ts",
+   "brave_system_page/brave_system_extras.ts",
+   "brave_system_page/brave_system_page_index.ts",
+   "default_brave_shields_page/brave_adblock_subpage.ts",
+diff --git a/browser/ui/BUILD.gn b/browser/ui/BUILD.gn
+index f4d5c39..3a857c2 100644
+--- a/browser/ui/BUILD.gn
++++ b/browser/ui/BUILD.gn
+@@ -181,6 +181,7 @@ source_set("ui") {
+       "//extensions/buildflags",
+       "//skia",
+       "//third_party/abseil-cpp:absl",
++      "//third_party/zxcvbn-cpp",
+       "//ui/actions:actions_headers",
+       "//ui/color:color_headers",
+       "//ui/color:mixers",
+diff --git a/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc b/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc
+index 7b28c78..57d2769 100644
+--- a/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc
++++ b/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc
+@@ -289,6 +289,210 @@ void BraveAddCommonStrings(content::WebUIDataSource* html_source,
+        IDS_BRAVE_SYNC_PASSPHRASE_DECRYPTION_SS_UNLOCKED_ERROR_MESSAGE},
+       {"braveSyncLeaveAndRejoinTheChainButton",
+        IDS_BRAVE_SYNC_LEAVE_AND_REJOIN_THE_CHAIN_BUTTON},
++      // FlyWeb 3.2: «Cuenta y sincronización» (flyweb_sync_account.ts).
++      {"flywebAccountLoading", IDS_SETTINGS_FLYWEB_ACCOUNT_LOADING},
++      {"flywebAccountRetry", IDS_SETTINGS_FLYWEB_ACCOUNT_RETRY},
++      {"flywebAccountBack", IDS_SETTINGS_FLYWEB_ACCOUNT_BACK},
++      {"flywebAccountContinue", IDS_SETTINGS_FLYWEB_ACCOUNT_CONTINUE},
++      {"flywebAccountClose", IDS_SETTINGS_FLYWEB_ACCOUNT_CLOSE},
++      {"flywebAccountSave", IDS_SETTINGS_FLYWEB_ACCOUNT_SAVE},
++      {"flywebAccountDone", IDS_SETTINGS_FLYWEB_ACCOUNT_DONE},
++      {"flywebAccountWorking", IDS_SETTINGS_FLYWEB_ACCOUNT_WORKING},
++      {"flywebAccountCheckingPassword",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_CHECKING_PASSWORD},
++      {"flywebAccountOffline", IDS_SETTINGS_FLYWEB_ACCOUNT_OFFLINE},
++      {"flywebAccountLastError", IDS_SETTINGS_FLYWEB_ACCOUNT_LAST_ERROR},
++      {"flywebAccountNoAccountTitle",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_NO_ACCOUNT_TITLE},
++      {"flywebAccountNoAccountDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_NO_ACCOUNT_DESC},
++      {"flywebAccountLinkDesc", IDS_SETTINGS_FLYWEB_ACCOUNT_LINK_DESC},
++      {"flywebAccountCreate", IDS_SETTINGS_FLYWEB_ACCOUNT_CREATE},
++      {"flywebAccountLogin", IDS_SETTINGS_FLYWEB_ACCOUNT_LOGIN},
++      {"flywebAccountHaveRecoveryKey",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_HAVE_RECOVERY_KEY},
++      {"flywebAccountForgotPassword",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_PASSWORD},
++      {"flywebAccountEmailLabel", IDS_SETTINGS_FLYWEB_ACCOUNT_EMAIL_LABEL},
++      {"flywebAccountPasswordLabel",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_PASSWORD_LABEL},
++      {"flywebAccountNewPasswordLabel",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_NEW_PASSWORD_LABEL},
++      {"flywebAccountNewEmailLabel",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_NEW_EMAIL_LABEL},
++      {"flywebAccountCodeLabel", IDS_SETTINGS_FLYWEB_ACCOUNT_CODE_LABEL},
++      {"flywebAccountDeviceNameLabel",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_NAME_LABEL},
++      {"flywebAccountDeviceNameHint",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_NAME_HINT},
++      {"flywebAccountEmailCodeDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_EMAIL_CODE_DESC},
++      {"flywebAccountLoginDesc", IDS_SETTINGS_FLYWEB_ACCOUNT_LOGIN_DESC},
++      {"flywebAccountSendCode", IDS_SETTINGS_FLYWEB_ACCOUNT_SEND_CODE},
++      {"flywebAccountPasswordHint", IDS_SETTINGS_FLYWEB_ACCOUNT_PASSWORD_HINT},
++      {"flywebAccountStrength0", IDS_SETTINGS_FLYWEB_ACCOUNT_STRENGTH_0},
++      {"flywebAccountStrength1", IDS_SETTINGS_FLYWEB_ACCOUNT_STRENGTH_1},
++      {"flywebAccountStrength2", IDS_SETTINGS_FLYWEB_ACCOUNT_STRENGTH_2},
++      {"flywebAccountStrength3", IDS_SETTINGS_FLYWEB_ACCOUNT_STRENGTH_3},
++      {"flywebAccountStrength4", IDS_SETTINGS_FLYWEB_ACCOUNT_STRENGTH_4},
++      {"flywebAccountCodeSent", IDS_SETTINGS_FLYWEB_ACCOUNT_CODE_SENT},
++      {"flywebAccountCodeNotArrived",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_CODE_NOT_ARRIVED},
++      {"flywebAccountResend", IDS_SETTINGS_FLYWEB_ACCOUNT_RESEND},
++      {"flywebAccountFlowCreateDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_CREATE_DESC},
++      {"flywebAccountFlowLoginDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_LOGIN_DESC},
++      {"flywebAccountFlowPasswordDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_PASSWORD_DESC},
++      {"flywebAccountFlowEmailDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_EMAIL_DESC},
++      {"flywebAccountFlowMailboxDeleteDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_MAILBOX_DELETE_DESC},
++      {"flywebAccountFlowStartOverDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_START_OVER_DESC},
++      {"flywebAccountRecoveryTitle",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_RECOVERY_TITLE},
++      {"flywebAccountRecoveryDesc", IDS_SETTINGS_FLYWEB_ACCOUNT_RECOVERY_DESC},
++      {"flywebAccountRecoveryNew", IDS_SETTINGS_FLYWEB_ACCOUNT_RECOVERY_NEW},
++      {"flywebAccountRecoverySavedCheck",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_RECOVERY_SAVED_CHECK},
++      {"flywebAccountViewRecovery", IDS_SETTINGS_FLYWEB_ACCOUNT_VIEW_RECOVERY},
++      {"flywebAccountOldVersionCode",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_OLD_VERSION_CODE},
++      {"flywebAccountOldVersionCodeDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_OLD_VERSION_CODE_DESC},
++      {"flywebAccountWordsDesc", IDS_SETTINGS_FLYWEB_ACCOUNT_WORDS_DESC},
++      {"flywebAccountJoin", IDS_SETTINGS_FLYWEB_ACCOUNT_JOIN},
++      {"flywebAccountForgotWithMac",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_WITH_MAC},
++      {"flywebAccountForgotNoMac", IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_NO_MAC},
++      {"flywebAccountForgotNothing",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_NOTHING},
++      {"flywebAccountDelayWarning", IDS_SETTINGS_FLYWEB_ACCOUNT_DELAY_WARNING},
++      {"flywebAccountStartOver", IDS_SETTINGS_FLYWEB_ACCOUNT_START_OVER},
++      {"flywebAccountMailboxDelete",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_MAILBOX_DELETE},
++      {"flywebAccountMailboxDeleteDone",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_MAILBOX_DELETE_DONE},
++      {"flywebAccountStartOverDone",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_START_OVER_DONE},
++      {"flywebAccountAccountEmail", IDS_SETTINGS_FLYWEB_ACCOUNT_ACCOUNT_EMAIL},
++      {"flywebAccountEmailNotKnown",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_EMAIL_NOT_KNOWN},
++      {"flywebAccountDevicesTitle", IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICES_TITLE},
++      {"flywebAccountDevicesEmpty", IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICES_EMPTY},
++      {"flywebAccountDeviceThis", IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_THIS},
++      {"flywebAccountDeviceAdded", IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_ADDED},
++      {"flywebAccountDeviceLastUsed",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_LAST_USED},
++      {"flywebAccountRename", IDS_SETTINGS_FLYWEB_ACCOUNT_RENAME},
++      {"flywebAccountRemoveFromList",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_REMOVE_FROM_LIST},
++      {"flywebAccountRemoveConfirm",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_REMOVE_CONFIRM},
++      {"flywebAccountChangePassword",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_PASSWORD},
++      {"flywebAccountChangeEmail", IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_EMAIL},
++      {"flywebAccountChangeEmailDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_EMAIL_DESC},
++      {"flywebAccountForgotFirst", IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_FIRST},
++      {"flywebAccountChangeKey", IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_KEY},
++      {"flywebAccountChangeKeyDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_KEY_DESC},
++      {"flywebAccountLeave", IDS_SETTINGS_FLYWEB_ACCOUNT_LEAVE},
++      {"flywebAccountLeaveConfirm", IDS_SETTINGS_FLYWEB_ACCOUNT_LEAVE_CONFIRM},
++      {"flywebAccountDeleteEverywhere",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_DELETE_EVERYWHERE},
++      {"flywebAccountDeleteConfirm",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_DELETE_CONFIRM},
++      {"flywebAccountDeleteConfirmServer",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_DELETE_CONFIRM_SERVER},
++      {"flywebAccountDeletionScheduled",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_DELETION_SCHEDULED},
++      {"flywebAccountDeletionNotYou",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_DELETION_NOT_YOU},
++      {"flywebAccountCancelDeletion",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_CANCEL_DELETION},
++      {"flywebAccountKeysUnreadable",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_KEYS_UNREADABLE},
++      {"flywebAccountKeysUnreadableDesc",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_KEYS_UNREADABLE_DESC},
++      {"flywebAccountRejoin", IDS_SETTINGS_FLYWEB_ACCOUNT_REJOIN},
++      {"flywebAccountAccountDeleted",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ACCOUNT_DELETED},
++      {"flywebAccountDataKept", IDS_SETTINGS_FLYWEB_ACCOUNT_DATA_KEPT},
++      {"flywebAccountLoginAgain", IDS_SETTINGS_FLYWEB_ACCOUNT_LOGIN_AGAIN},
++      {"flywebAccountUnderstood", IDS_SETTINGS_FLYWEB_ACCOUNT_UNDERSTOOD},
++      {"flywebAccountWarningsTitle",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_WARNINGS_TITLE},
++      {"flywebAccountNotMeDone", IDS_SETTINGS_FLYWEB_ACCOUNT_NOT_ME_DONE},
++      {"flywebAccountErrorRed", IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_RED},
++      {"flywebAccountErrorServidor",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_SERVIDOR},
++      {"flywebAccountErrorCredenciales",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_CREDENCIALES},
++      {"flywebAccountErrorEspera", IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_ESPERA},
++      {"flywebAccountErrorCupo", IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_CUPO},
++      {"flywebAccountErrorOcupado", IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_OCUPADO},
++      {"flywebAccountErrorEnvoltura",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_ENVOLTURA},
++      {"flywebAccountErrorContrasenaCorta",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_CONTRASENA_CORTA},
++      {"flywebAccountErrorEmail", IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_EMAIL},
++      {"flywebAccountErrorEmailUnknown",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_EMAIL_UNKNOWN},
++      {"flywebAccountErrorPalabras",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_PALABRAS},
++      {"flywebAccountErrorSinCuenta",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_SIN_CUENTA},
++      {"flywebAccountErrorCadenaLigada",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_CADENA_LIGADA},
++      {"flywebAccountErrorCadenaBorrada",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_CADENA_BORRADA},
++      {"flywebAccountErrorEmailOcupado",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_EMAIL_OCUPADO},
++      {"flywebAccountErrorProgramado",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_PROGRAMADO},
++      {"flywebAccountErrorAparato", IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_APARATO},
++      {"flywebAccountErrorPrueba", IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_PRUEBA},
++      {"flywebAccountErrorToken", IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_TOKEN},
++      {"flywebAccountErrorLlavero", IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_LLAVERO},
++      {"flywebAccountErrorInterno", IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_INTERNO},
++      {"flywebAccountErrorOcupadoLocal",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_OCUPADO_LOCAL},
++      {"flywebAccountErrorSinFlujo",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_SIN_FLUJO},
++      {"flywebAccountErrorSinCadena",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_SIN_CADENA},
++      {"flywebAccountErrorPeticion",
++       IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_PETICION},
++      {"flywebAccountWarningMacAdded",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_MAC_ADDED},
++      {"flywebAccountWarningPasswordGuessed",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_GUESSED},
++      {"flywebAccountWarningPasswordFailures",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_FAILURES},
++      {"flywebAccountWarningPasswordChanged",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_CHANGED},
++      {"flywebAccountWarningEmailChanged",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_EMAIL_CHANGED},
++      {"flywebAccountWarningChainChanged",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_CHANGED},
++      {"flywebAccountWarningChainLinked",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED},
++      {"flywebAccountWarningDeviceRemoved",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DEVICE_REMOVED},
++      {"flywebAccountWarningNotMe", IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_ME},
++      {"flywebAccountWarningDeletionRequested",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DELETION_REQUESTED},
++      {"flywebAccountWarningDeletionCancelled",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DELETION_CANCELLED},
++      {"flywebAccountWarningWasMe", IDS_FLYWEB_SYNC_ACCOUNT_WARNING_WAS_ME},
++      {"flywebAccountWarningNotMeButton",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_ME_BUTTON},
++      {"flywebAccountKeyChangedInfobar",
++       IDS_FLYWEB_SYNC_ACCOUNT_KEY_CHANGED_INFOBAR},
+       {"braveDataCollection", IDS_BRAVE_DATA_COLLECTION_SETTINGS_SECTION},
+       {"braveWeb3", IDS_BRAVE_WEB3_SETTINGS_SECTION},
+       {"braveWeb3Domains", IDS_BRAVE_WEB3_DOMAINS_SETTINGS_SECTION},
+diff --git a/browser/ui/webui/settings/brave_sync_handler.cc b/browser/ui/webui/settings/brave_sync_handler.cc
+index 529dd28..8bc2209 100644
+--- a/browser/ui/webui/settings/brave_sync_handler.cc
++++ b/browser/ui/webui/settings/brave_sync_handler.cc
+@@ -16,7 +16,9 @@
+ #include "base/logging.h"
+ #include "base/notreached.h"
+ #include "base/strings/string_number_conversions.h"
++#include "brave/browser/sync/account/flyweb_sync_account_service_factory.h"
+ #include "brave/components/brave_sync/brave_sync_prefs.h"
++#include "brave/components/brave_sync/crypto/account_crypto.h"
+ #include "brave/components/brave_sync/crypto/crypto.h"
+ #include "brave/components/brave_sync/qr_code_data.h"
+ #include "brave/components/brave_sync/sync_service_impl_helper.h"
+@@ -36,6 +38,10 @@
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/webui/web_ui_util.h"
+ 
++#include "third_party/zxcvbn-cpp/native-src/zxcvbn/matching.hpp"
++#include "third_party/zxcvbn-cpp/native-src/zxcvbn/scoring.hpp"
++#include "third_party/zxcvbn-cpp/native-src/zxcvbn/time_estimates.hpp"
++
+ using brave_sync::TimeLimitedWords;
+ 
+ namespace {
+@@ -101,6 +107,8 @@ void BraveSyncHandler::RegisterMessages() {
+       "SyncPermanentlyDeleteAccount",
+       base::BindRepeating(&BraveSyncHandler::HandlePermanentlyDeleteAccount,
+                           base::Unretained(this)));
++
++  RegisterAccountMessages();
+ }
+ 
+ void BraveSyncHandler::OnJavascriptAllowed() {
+@@ -110,10 +118,196 @@ void BraveSyncHandler::OnJavascriptAllowed() {
+     device_info_tracker_observer_.Reset();
+     device_info_tracker_observer_.Observe(tracker);
+   }
++  account_observation_.Reset();
++  if (auto* account = GetAccountService()) {
++    account_observation_.Observe(account);
++  }
+ }
+ 
+ void BraveSyncHandler::OnJavascriptDisallowed() {
+   device_info_tracker_observer_.Reset();
++  account_observation_.Reset();
++}
++
++void BraveSyncHandler::OnAccountStatusChanged() {
++  if (IsJavascriptAllowed()) {
++    if (auto* account = GetAccountService()) {
++      FireWebUIListener("flyweb-account-status-changed", account->GetStatus());
++    }
++  }
++}
++
++// --- FlyWeb 3.2: «Cuenta y sincronización» ---
++
++namespace {
++
++// Messages with only string arguments, all resolved with an AccountResult.
++constexpr const char* kAccountMessages[] = {
++    "FlyWebAccountRefresh",          "FlyWebAccountCreateStart",
++    "FlyWebAccountCreateFinish",     "FlyWebAccountLoginStart",
++    "FlyWebAccountLoginFinish",      "FlyWebAccountJoinWithWords",
++    "FlyWebAccountResendCode",       "FlyWebAccountCancelFlow",
++    "FlyWebAccountPasswordStart",    "FlyWebAccountPasswordFinish",
++    "FlyWebAccountEmailStart",       "FlyWebAccountEmailFinish",
++    "FlyWebAccountChainChange",      "FlyWebAccountListDevices",
++    "FlyWebAccountRemoveDevice",     "FlyWebAccountRenameDevice",
++    "FlyWebAccountNotMe",            "FlyWebAccountDismissWarnings",
++    "FlyWebAccountDismissNotice",    "FlyWebAccountDeleteEverywhere",
++    "FlyWebAccountCancelDeletion",   "FlyWebAccountLeave",
++    "FlyWebAccountMailboxDeleteStart", "FlyWebAccountMailboxDeleteFinish",
++    "FlyWebAccountStartOverStart",   "FlyWebAccountStartOverFinish",
++};
++
++// args[0] is the callback id; the rest are strings.
++std::string Arg(const base::ListValue& args, size_t i) {
++  if (i < args.size() && args[i].is_string()) {
++    return args[i].GetString();
++  }
++  return std::string();
++}
++
++}  // namespace
++
++void BraveSyncHandler::RegisterAccountMessages() {
++  web_ui()->RegisterMessageCallback(
++      "FlyWebAccountGetStatus",
++      base::BindRepeating(&BraveSyncHandler::HandleAccountGetStatus,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "FlyWebAccountPasswordStrength",
++      base::BindRepeating(&BraveSyncHandler::HandleAccountPasswordStrength,
++                          base::Unretained(this)));
++  for (const char* message : kAccountMessages) {
++    web_ui()->RegisterMessageCallback(
++        message, base::BindRepeating(&BraveSyncHandler::HandleAccountCall,
++                                     base::Unretained(this),
++                                     std::string(message)));
++  }
++}
++
++flyweb_sync::AccountService* BraveSyncHandler::GetAccountService() const {
++  return flyweb_sync::AccountServiceFactory::GetForBrowserContext(profile_);
++}
++
++void BraveSyncHandler::HandleAccountGetStatus(const base::ListValue& args) {
++  AllowJavascript();
++  CHECK_GE(args.size(), 1U);
++  auto* account = GetAccountService();
++  ResolveJavascriptCallback(args[0], account ? base::Value(account->GetStatus())
++                                             : base::Value());
++}
++
++// §4: an indicator, nothing enforced but the length. zxcvbn, as the password
++// manager's weak check (capped at 40 code points: its cost explodes above).
++void BraveSyncHandler::HandleAccountPasswordStrength(
++    const base::ListValue& args) {
++  AllowJavascript();
++  CHECK_GE(args.size(), 1U);
++  std::string password = Arg(args, 1);
++  std::u16string capped = base::UTF8ToUTF16(password);
++  brave_sync::crypto::account::WipeString(password);
++  if (capped.size() > 40) {
++    capped.resize(40);
++  }
++  std::string capped8 = base::UTF16ToUTF8(capped);
++  std::fill(capped.begin(), capped.end(), u'\0');
++  int score = 0;
++  if (!capped8.empty()) {
++    std::vector<zxcvbn::Match> matches = zxcvbn::omnimatch(capped8);
++    zxcvbn::ScoringResult result =
++        zxcvbn::most_guessable_match_sequence(capped8, matches);
++    score = zxcvbn::estimate_attack_times(result.guesses).score;
++  }
++  brave_sync::crypto::account::WipeString(capped8);
++  ResolveJavascriptCallback(args[0], base::Value(score));
++}
++
++void BraveSyncHandler::ResolveAccountResult(
++    base::Value callback_id,
++    flyweb_sync::AccountResult result) {
++  if (!IsJavascriptAllowed()) {
++    return;
++  }
++  base::DictValue r;
++  r.Set("ok", result.ok);
++  r.Set("error", result.error);
++  r.Set("until", static_cast<double>(result.until));
++  r.Set("data", std::move(result.data));
++  ResolveJavascriptCallback(callback_id, r);
++}
++
++void BraveSyncHandler::HandleAccountCall(const std::string& message,
++                                         const base::ListValue& args) {
++  AllowJavascript();
++  CHECK_GE(args.size(), 1U);
++  auto* account = GetAccountService();
++  if (!account) {
++    ResolveAccountResult(args[0].Clone(),
++                         flyweb_sync::AccountResult::Error("llavero"));
++    return;
++  }
++  auto done = base::BindOnce(&BraveSyncHandler::ResolveAccountResult,
++                             weak_ptr_factory_.GetWeakPtr(), args[0].Clone());
++  // Passwords go by value into the service, which wipes them; the copies in
++  // `args` belong to the WebUI and cannot be wiped from here.
++  if (message == "FlyWebAccountRefresh") {
++    account->Refresh(std::move(done));
++  } else if (message == "FlyWebAccountCreateStart") {
++    account->CreateAccountStart(Arg(args, 1), std::move(done));
++  } else if (message == "FlyWebAccountCreateFinish") {
++    account->CreateAccountFinish(Arg(args, 1), Arg(args, 2), Arg(args, 3), std::move(done));
++  } else if (message == "FlyWebAccountLoginStart") {
++    account->LoginStart(Arg(args, 1), Arg(args, 2), std::move(done));
++  } else if (message == "FlyWebAccountLoginFinish") {
++    account->LoginFinish(Arg(args, 1), Arg(args, 2), std::move(done));
++  } else if (message == "FlyWebAccountJoinWithWords") {
++    account->JoinWithRecoveryKey(Arg(args, 1), std::move(done));
++  } else if (message == "FlyWebAccountResendCode") {
++    account->ResendCode(std::move(done));
++  } else if (message == "FlyWebAccountCancelFlow") {
++    account->CancelFlow();
++    std::move(done).Run(flyweb_sync::AccountResult::Ok());
++  } else if (message == "FlyWebAccountPasswordStart") {
++    account->PasswordChangeStart(std::move(done));
++  } else if (message == "FlyWebAccountPasswordFinish") {
++    account->PasswordChangeFinish(Arg(args, 1), Arg(args, 2), std::move(done));
++  } else if (message == "FlyWebAccountEmailStart") {
++    account->EmailChangeStart(Arg(args, 1), Arg(args, 2), std::move(done));
++  } else if (message == "FlyWebAccountEmailFinish") {
++    account->EmailChangeFinish(Arg(args, 1), std::move(done));
++  } else if (message == "FlyWebAccountChainChange") {
++    account->ChainChange(Arg(args, 1), std::move(done));
++  } else if (message == "FlyWebAccountListDevices") {
++    account->ListDevices(std::move(done));
++  } else if (message == "FlyWebAccountRemoveDevice") {
++    account->RemoveDevice(Arg(args, 1), std::move(done));
++  } else if (message == "FlyWebAccountRenameDevice") {
++    account->RenameDevice(Arg(args, 1), Arg(args, 2), std::move(done));
++  } else if (message == "FlyWebAccountNotMe") {
++    account->NotMe(std::move(done));
++  } else if (message == "FlyWebAccountDismissWarnings") {
++    account->DismissWarnings();
++    std::move(done).Run(flyweb_sync::AccountResult::Ok());
++  } else if (message == "FlyWebAccountDismissNotice") {
++    account->DismissNotice();
++    std::move(done).Run(flyweb_sync::AccountResult::Ok());
++  } else if (message == "FlyWebAccountDeleteEverywhere") {
++    account->DeleteEverywhere(std::move(done));
++  } else if (message == "FlyWebAccountCancelDeletion") {
++    account->CancelDeletion(std::move(done));
++  } else if (message == "FlyWebAccountLeave") {
++    account->LeaveOnThisMac(std::move(done));
++  } else if (message == "FlyWebAccountMailboxDeleteStart") {
++    account->MailboxDeleteStart(Arg(args, 1), std::move(done));
++  } else if (message == "FlyWebAccountMailboxDeleteFinish") {
++    account->MailboxDeleteFinish(Arg(args, 1), std::move(done));
++  } else if (message == "FlyWebAccountStartOverStart") {
++    account->StartOverStart(Arg(args, 1), std::move(done));
++  } else if (message == "FlyWebAccountStartOverFinish") {
++    account->StartOverFinish(Arg(args, 1), Arg(args, 2), std::move(done));
++  } else {
++    NOTREACHED() << message;
++  }
+ }
+ 
+ void BraveSyncHandler::OnDeviceInfoChange() {
+diff --git a/browser/ui/webui/settings/brave_sync_handler.h b/browser/ui/webui/settings/brave_sync_handler.h
+index aa67ae1..efc9b95 100644
+--- a/browser/ui/webui/settings/brave_sync_handler.h
++++ b/browser/ui/webui/settings/brave_sync_handler.h
+@@ -10,6 +10,7 @@
+ #include "base/memory/weak_ptr.h"
+ #include "base/scoped_observation.h"
+ #include "base/values.h"
++#include "brave/browser/sync/account/flyweb_sync_account_service.h"
+ #include "chrome/browser/ui/webui/settings/settings_page_ui_handler.h"
+ #include "components/sync/engine/sync_protocol_error.h"
+ #include "components/sync_device_info/device_info_tracker.h"
+@@ -22,7 +23,8 @@ class BraveSyncServiceImpl;
+ class Profile;
+ 
+ class BraveSyncHandler : public settings::SettingsPageUIHandler,
+-                         public syncer::DeviceInfoTracker::Observer {
++                         public syncer::DeviceInfoTracker::Observer,
++                         public flyweb_sync::AccountService::Observer {
+  public:
+   BraveSyncHandler();
+   BraveSyncHandler(const BraveSyncHandler&) = delete;
+@@ -32,6 +34,9 @@ class BraveSyncHandler : public settings::SettingsPageUIHandler,
+   // syncer::DeviceInfoTracker::Observer
+   void OnDeviceInfoChange() override;
+ 
++  // flyweb_sync::AccountService::Observer
++  void OnAccountStatusChanged() override;
++
+  private:
+   // SettingsPageUIHandler overrides:
+   void RegisterMessages() override;
+@@ -48,6 +53,17 @@ class BraveSyncHandler : public settings::SettingsPageUIHandler,
+   void HandleDeleteDevice(const base::ListValue& args);
+   void HandlePermanentlyDeleteAccount(const base::ListValue& args);
+ 
++  // FlyWeb 3.2: «Cuenta y sincronización» (sync-cuenta.md §9, §11). Every
++  // message resolves (never rejects) with {ok, error, until, data}.
++  void RegisterAccountMessages();
++  void HandleAccountGetStatus(const base::ListValue& args);
++  void HandleAccountPasswordStrength(const base::ListValue& args);
++  void HandleAccountCall(const std::string& message,
++                         const base::ListValue& args);
++  void ResolveAccountResult(base::Value callback_id,
++                            flyweb_sync::AccountResult result);
++  flyweb_sync::AccountService* GetAccountService() const;
++
+   void OnResetDone(base::Value callback_id);
+   void OnAccountPermanentlyDeleted(base::Value callback_id,
+                                    const syncer::SyncProtocolError& spe);
+@@ -66,6 +82,10 @@ class BraveSyncHandler : public settings::SettingsPageUIHandler,
+                           syncer::DeviceInfoTracker::Observer>
+       device_info_tracker_observer_{this};
+ 
++  base::ScopedObservation<flyweb_sync::AccountService,
++                          flyweb_sync::AccountService::Observer>
++      account_observation_{this};
++
+   base::WeakPtrFactory<BraveSyncHandler> weak_ptr_factory_;
+ };
+ 
+-- 
+2.43.0
+

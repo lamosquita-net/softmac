@@ -1,0 +1,214 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Rakina Zata Amni <rakina@chromium.org>
+Date: Mon, 9 Nov 2026 06:11:39 -0800
+Subject: [PATCH 30/34] [3.1.1] [M157] Make escaping popups' initial origin
+ opaque in the browser too
+
+Original change's description:
+> Make escaping popups' initial origin opaque in the browser too
+>
+> Problem: a popup opened from a CSP-sandboxed document with
+> allow-popups-to-escape-sandbox has a non-sandboxed browsing context,
+> but its initial empty document still inherits the opener's CSP
+> sandbox (crrev.com/c/3643878). So the browser and the renderer
+> disagree on the initial empty document's origin.
+>
+> Currently:
+> - The renderer gives the initial empty document an opaque origin,
+>   because the document is sandboxed.
+> - The browser gives it the opener's origin, because
+>   SetOriginDependentStateOfNewFrame() only checks the browsing
+>   context's sandbox flags.
+> - To make the renderer side work, CreateNewWindow() always sends a
+>   sandbox origin token, generating a fallback one when the browser
+>   didn't generate one.
+>
+> This CL:
+> - Makes SetOriginDependentStateOfNewFrame() check the initial empty
+>   document's sandbox flags instead. These are the browsing context's
+>   sandbox flags plus the CSP sandbox inherited from the creator, which
+>   is what the renderer uses. So the browser now also gives these
+>   popups an opaque origin, derived from the same sandbox origin token
+>   as the renderer's, so they match exactly.
+> - Removes the fallback token: a token is only sent when the popup's
+>   initial empty document is sandboxed.
+>
+> As a result, for these popups, the browser-side origin, IsolationInfo
+> and StorageKey of the initial empty document are now opaque. Nothing
+> changes in other cases, where the browsing context's sandbox flags
+> already include the creator document's sandbox flags.
+>
+> TAG=agy
+> CONV=59af5a80-ec88-4c69-8bed-b903325efcfe
+>
+> Bug: 486082219, 573236782
+> Change-Id: I9a97445c4977f31580120e8e306bcfba00d56da4
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/7596676
+> Reviewed-by: Arthur Sonzogni <arthursonzogni@chromium.org>
+> Commit-Queue: Rakina Zata Amni <rakina@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1731480}
+
+(cherry picked from commit 00b6d8833106696e00c07f80ba68d42894538718)
+
+Bug: 583015746,486082219,573236782
+Change-Id: I9a97445c4977f31580120e8e306bcfba00d56da4
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8776287
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8103@{#1469}
+Cr-Branched-From: e7baefea94b4a90087e3043e4a8effec33c2025f-refs/heads/main@{#1717349}
+
+(cherry picked from commit 7ea140bbf91ae1fd8163ab4bc70a4af923436cad)
+---
+ .../renderer_host/render_frame_host_impl.cc   | 34 ++++++++++---------
+ .../browser/site_per_process_browsertest.cc   | 30 ++++++++++++++++
+ content/common/frame.mojom                    |  9 ++---
+ content/test/test_render_frame_host.cc        |  7 +++-
+ 4 files changed, 59 insertions(+), 21 deletions(-)
+
+diff --git a/content/browser/renderer_host/render_frame_host_impl.cc b/content/browser/renderer_host/render_frame_host_impl.cc
+index 87e6adba76bfea46dfbe131ea35f3c43d0635a08..39c83ad9a38c3d3baf82fffc1b41ce0da233a77a 100644
+--- a/content/browser/renderer_host/render_frame_host_impl.cc
++++ b/content/browser/renderer_host/render_frame_host_impl.cc
+@@ -5850,11 +5850,18 @@ void RenderFrameHostImpl::SetOriginDependentStateOfNewFrame(
+   url::Origin creator_origin =
+       creator_frame ? creator_frame->GetLastCommittedOrigin() : url::Origin();
+ 
+-  // Calculate and set |new_frame_origin|.
++  // Calculate and set |new_frame_origin|, based on the initial empty
++  // document's sandbox flags (`active_sandbox_flags()`). These include both
++  // the browsing context's sandbox flags
++  // (`browsing_context_state_->active_sandbox_flags()`, e.g. from an iframe's
++  // sandbox attribute) and the CSP sandbox inherited from the creator. The
++  // latter matters for popups opened from CSP-sandboxed documents with
++  // allow-popups-to-escape-sandbox: the popup's browsing context isn't
++  // sandboxed, but its initial empty document is, and the renderer gives it an
++  // opaque origin (crbug.com/486082219).
+   bool new_frame_should_be_sandboxed =
+       network::mojom::WebSandboxFlags::kOrigin ==
+-      (browsing_context_state_->active_sandbox_flags() &
+-       network::mojom::WebSandboxFlags::kOrigin);
++      (active_sandbox_flags() & network::mojom::WebSandboxFlags::kOrigin);
+ 
+   url::Origin new_frame_origin;
+   if (base::FeatureList::IsEnabled(
+@@ -10819,21 +10826,16 @@ void RenderFrameHostImpl::CreateNewWindow(
+   // initiating frame, which is what new_rwh is constructed with.
+   visual_properties.screen_infos = new_rwh->GetScreenInfos();
+ 
+-  // Sandbox origin token handling for popups:
+-  // Normally sandboxed popups token is generated by
+-  // `SetOriginDependentStateOfNewFrame()`. Popups that escape sandbox (CSP
+-  // "sandbox" + "allow-popups-to-escape-sandbox"):
+-  //   - Browser sees no sandbox flags, so
+-  //     `GetPage().TakeSandboxOriginTokenForPopup()` is null
+-  //   - Renderer still inherits CSP sandbox flags and will create opaque origin
+-  //   - So generate a new token here as fallback
+-  //
+-  // TODO(crbug.com/486082219): Remove this fallback logic and only set
+-  // sandbox_origin_token when the window is actually sandboxed.
++  // Sandbox origin token handling for popups: if the popup's initial empty
++  // document is sandboxed, `SetOriginDependentStateOfNewFrame()` generates a
++  // token and derives the browser-side origin from it. Send it to the renderer
++  // so it derives the same opaque origin. This includes popups that escape the
++  // sandbox (CSP "sandbox" + "allow-popups-to-escape-sandbox"), whose browsing
++  // context isn't sandboxed but whose initial empty document still inherits
++  // the opener's CSP sandbox. Otherwise, there's no token.
+   auto token = new_main_rfh->GetPage().TakeSandboxOriginTokenForPopup();
+   std::optional<base::UnguessableToken> sandbox_origin_token =
+-      token ? std::make_optional(*token)
+-            : std::make_optional(base::UnguessableToken::Create());
++      base::OptionalFromPtr(token.get());
+ 
+   mojom::CreateNewWindowReplyPtr reply = mojom::CreateNewWindowReply::New(
+       new_main_rfh->GetFrameToken(), new_main_rfh->GetRoutingID(),
+diff --git a/content/browser/site_per_process_browsertest.cc b/content/browser/site_per_process_browsertest.cc
+index f23d4138cde3a7baf3fbb2c2344cf37c1e7b6a73..39086ba917be55f03d4b96ea244237837b6dfd3c 100644
+--- a/content/browser/site_per_process_browsertest.cc
++++ b/content/browser/site_per_process_browsertest.cc
+@@ -5168,6 +5168,17 @@ IN_PROC_BROWSER_TEST_P(
+   // browser process. They should not have been inherited (for about:blank).
+   EXPECT_EQ(network::mojom::WebSandboxFlags::kNone,
+             foo_root->current_frame_host()->active_sandbox_flags());
++
++  // The opener's sandbox comes from the iframe's sandbox attribute, not CSP,
++  // so with allow-popups-to-escape-sandbox, neither the popup's browsing
++  // context nor its initial empty document is sandboxed. So the popup should
++  // get the opener's origin as is (opaque, since the opener is sandboxed), and
++  // no sandbox origin token. See https://crbug.com/486082219.
++  EXPECT_EQ(root->child_at(0)->current_frame_host()->GetLastCommittedOrigin(),
++            foo_root->current_frame_host()->GetLastCommittedOrigin());
++  EXPECT_FALSE(foo_root->current_frame_host()
++                   ->last_sandbox_origin_token_for_testing()
++                   .has_value());
+ }
+ 
+ // Verify that popup frames opened from sandboxed documents with the
+@@ -5220,6 +5231,25 @@ IN_PROC_BROWSER_TEST_P(
+   // browser process. They should have been inherited.
+   EXPECT_EQ(expected_flags,
+             foo_root->current_frame_host()->active_sandbox_flags());
++
++  // The popup's browsing context isn't sandboxed, but its initial empty
++  // document inherits the opener's CSP sandbox (checked above), so the
++  // renderer gives it an opaque origin with the opener as the precursor. The
++  // browser should too, derived from the same sandbox origin token, so that
++  // the nonces match as well. See https://crbug.com/486082219.
++  url::Origin popup_origin =
++      foo_root->current_frame_host()->GetLastCommittedOrigin();
++  EXPECT_TRUE(popup_origin.opaque());
++  EXPECT_EQ(url::SchemeHostPort(main_url),
++            popup_origin.GetTupleOrPrecursorTupleIfOpaque());
++  if (base::FeatureList::IsEnabled(
++          blink::features::kUseSandboxTokenForOriginDerivation)) {
++    const std::optional<base::UnguessableToken> token =
++        foo_root->current_frame_host()->last_sandbox_origin_token_for_testing();
++    ASSERT_TRUE(token.has_value());
++    ASSERT_TRUE(popup_origin.GetNonceForTesting());
++    EXPECT_EQ(*token, *popup_origin.GetNonceForTesting());
++  }
+ }
+ 
+ // Test that subresources with certificate errors get reported to the
+diff --git a/content/common/frame.mojom b/content/common/frame.mojom
+index 572c5763b9995dde20a0a7a2ddaa077934939b1d..b094ba8027dcd80d347d67fe7a13709716f25c86 100644
+--- a/content/common/frame.mojom
++++ b/content/common/frame.mojom
+@@ -677,10 +677,11 @@ struct CreateNewWindowReply {
+ 
+   // Token used to deterministically generate the opaque origin for the initial
+   // empty document of a sandboxed popup (e.g., `window.open()` with sandbox
+-  // flags). Generated in the browser by `SetOriginDependentStateOfNewFrame()`
+-  // and sent here so both browser and renderer derive the same origin.
+-  // TODO(crbug.com/486082219): Once the fallback logic for popups escaping
+-  // sandbox is removed, this will only be set for truly sandboxed cases.
++  // flags, or a popup opened from a CSP-sandboxed document with
++  // allow-popups-to-escape-sandbox). Generated in the browser by
++  // `SetOriginDependentStateOfNewFrame()` and sent here so both browser and
++  // renderer derive the same origin. Only set when the popup's initial empty
++  // document is sandboxed.
+   mojo_base.mojom.UnguessableToken? sandbox_origin_token;
+ 
+   // Token used to retrieve the InitiatorNavigationState for navigations
+diff --git a/content/test/test_render_frame_host.cc b/content/test/test_render_frame_host.cc
+index ae805f527300abffaf79ce966d8b21e15195888d..0a2802e1b9e799a15c4b26a1b7dbf7c1ca86a6a3 100644
+--- a/content/test/test_render_frame_host.cc
++++ b/content/test/test_render_frame_host.cc
+@@ -213,7 +213,12 @@ TestRenderFrameHost* TestRenderFrameHost::AppendChildWithPolicy(
+                           {},
+                           blink::mojom::DeferredFetchPolicy::kDisabled}),
+       blink::mojom::FrameOwnerProperties(),
+-      blink::FrameOwnerElementType::kIframe, ukm::kInvalidSourceId);
++      blink::FrameOwnerElementType::kIframe, ukm::kInvalidSourceId,
++      // The renderer always sends a sandbox origin token for new child frames
++      // (see FrameRoutingInfo), which the browser uses if the child's initial
++      // empty document is sandboxed. Do the same here.
++      std::make_unique<base::UnguessableToken>(
++          base::UnguessableToken::Create()));
+   return static_cast<TestRenderFrameHost*>(
+       child_creation_observer_.last_created_frame());
+ }
+-- 
+2.43.0
+

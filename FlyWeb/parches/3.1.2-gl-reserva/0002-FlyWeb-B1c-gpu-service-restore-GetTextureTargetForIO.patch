@@ -1,0 +1,118 @@
+From 24117207f8759316cfcea0d4fe20a091a8ca5282 Mon Sep 17 00:00:00 2001
+From: lamosquita <developer@lamosquita.com>
+Date: Wed, 4 Nov 2026 18:26:21 +0100
+Subject: [PATCH] FlyWeb B1c gpu/service: restore GetTextureTargetForIOSurfaces
+ and the IOSurface factory target
+
+From Chromium 150: same paths. Measurement only (FM.55).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ gpu/command_buffer/service/service_utils.cc      | 16 ++++++++++++++++
+ gpu/command_buffer/service/service_utils.h       |  5 +++++
+ .../service/shared_image/shared_image_factory.cc | 15 +++++++++++++++
+ .../service/shared_image/shared_image_factory.h  |  4 ++++
+ 4 files changed, 40 insertions(+)
+
+diff --git a/gpu/command_buffer/service/service_utils.cc b/gpu/command_buffer/service/service_utils.cc
+index 75376d1c52..737658e875 100644
+--- a/gpu/command_buffer/service/service_utils.cc
++++ b/gpu/command_buffer/service/service_utils.cc
+@@ -384,6 +384,22 @@ bool MSAAIsSlow(const GpuDriverBugWorkarounds& workarounds) {
+ 
+ }  // namespace gles2
+ 
++// FlyWeb B1c: IOSurface texture target (rectangle on ANGLE GL), from 150.
++#if BUILDFLAG(IS_MAC)
++uint32_t GetTextureTargetForIOSurfaces() {
++  // On MacOS, the default texture target for native GpuMemoryBuffers is
++  // GL_TEXTURE_RECTANGLE_ARB. This is due to CGL's requirements for creating
++  // a GL surface. However, when ANGLE is used on top of SwiftShader or Metal,
++  // it's necessary to use GL_TEXTURE_2D instead.
++  if (gl::GetGLImplementation() == gl::kGLImplementationEGLANGLE &&
++      (gl::GetANGLEImplementation() == gl::ANGLEImplementation::kSwiftShader ||
++       gl::GetANGLEImplementation() == gl::ANGLEImplementation::kMetal)) {
++    return GL_TEXTURE_2D;
++  }
++  return GL_TEXTURE_RECTANGLE_ANGLE;
++}
++#endif  // BUILDFLAG(IS_MAC)
++
+ namespace {
+ 
+ // Multiplier policy for kAggressiveShaderCacheLimits enabled.
+diff --git a/gpu/command_buffer/service/service_utils.h b/gpu/command_buffer/service/service_utils.h
+index d30a7ec427..b83a5a679c 100644
+--- a/gpu/command_buffer/service/service_utils.h
++++ b/gpu/command_buffer/service/service_utils.h
+@@ -41,6 +41,11 @@ bool MSAAIsSlow(const GpuDriverBugWorkarounds& workarounds);
+ 
+ }  // namespace gles2
+ 
++// FlyWeb B1c: IOSurface texture target (rectangle on ANGLE GL), from 150.
++#if BUILDFLAG(IS_MAC)
++GPU_GLES2_EXPORT uint32_t GetTextureTargetForIOSurfaces();
++#endif  // BUILDFLAG(IS_MAC)
++
+ GPU_GLES2_EXPORT size_t UpdateShaderCacheSizeOnMemoryPressure(
+     size_t max_cache_size,
+     base::MemoryPressureLevel memory_pressure_level);
+diff --git a/gpu/command_buffer/service/shared_image/shared_image_factory.cc b/gpu/command_buffer/service/shared_image/shared_image_factory.cc
+index 39c5e6b1fb..6bbb66e31b 100644
+--- a/gpu/command_buffer/service/shared_image/shared_image_factory.cc
++++ b/gpu/command_buffer/service/shared_image/shared_image_factory.cc
+@@ -253,6 +253,10 @@ SharedImageFactory::SharedImageFactory(
+       gr_context_type_(context_state_ ? context_state_->gr_context_type()
+                                       : GrContextType::kNone),
+       gpu_preferences_(gpu_preferences),
++      // FlyWeb B1c: IOSurface texture target (rectangle on ANGLE GL), from 150.
++#if BUILDFLAG(IS_MAC)
++      texture_target_for_io_surfaces_(GetTextureTargetForIOSurfaces()),
++#endif
+       workarounds_(workarounds) {
+ 
+   factory_ref_ = base::MakeRefCounted<SharedImageFactoryRef>(this);
+@@ -423,7 +427,12 @@ SharedImageFactory::SharedImageFactory(
+         std::make_unique<IOSurfaceImageBackingFactory>(
+             gr_context_type_, context_state_->GetMaxTextureSize(),
+             feature_info.get(), context_state_->progress_reporter(),
++            // FlyWeb B1c
++#if BUILDFLAG(IS_MAC)
++            texture_target_for_io_surfaces_
++#else
+             GL_TEXTURE_2D
++#endif
+         );
+     factories_.push_back(std::move(iosurface_backing_factory));
+   }
+@@ -980,6 +989,12 @@ gpu::SharedImageCapabilities SharedImageFactory::MakeCapabilities() {
+           gpu_preferences_, context_state_->dawn_context_provider());
+ #endif  // BUILDFLAG(IS_WIN)
+ 
++  // FlyWeb B1c: IOSurface texture target (rectangle on ANGLE GL), from 150.
++#if BUILDFLAG(IS_MAC)
++  shared_image_caps.texture_target_for_io_surfaces =
++      texture_target_for_io_surfaces_;
++#endif
++
+   return shared_image_caps;
+ }
+ 
+diff --git a/gpu/command_buffer/service/shared_image/shared_image_factory.h b/gpu/command_buffer/service/shared_image/shared_image_factory.h
+index 36f21810dd..4b40282ab0 100644
+--- a/gpu/command_buffer/service/shared_image/shared_image_factory.h
++++ b/gpu/command_buffer/service/shared_image/shared_image_factory.h
+@@ -254,6 +254,10 @@ class GPU_GLES2_EXPORT SharedImageFactory {
+ 
+   gfx::GpuExtraInfo gpu_extra_info_;
+   gpu::GpuPreferences gpu_preferences_;
++  // FlyWeb B1c: IOSurface texture target (rectangle on ANGLE GL), from 150.
++#if BUILDFLAG(IS_MAC)
++  uint32_t texture_target_for_io_surfaces_;
++#endif
+   gpu::GpuDriverBugWorkarounds workarounds_;
+ 
+ #if BUILDFLAG(IS_ANDROID)
+-- 
+2.55.0
+

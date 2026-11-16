@@ -19,7 +19,7 @@ cuando caduca (90 días).
 |---|---|
 | **Borro un fichero en el Mac** | En Drive, su copia **se mueve a la carpeta de versiones** (no se borra de verdad) y no vuelve al Mac. Igual al revés. |
 | **Edito un fichero en un sitio** | El cambio se copia al otro lado y la versión anterior de ese lado queda en versiones (`informe-20261026-103000.docx`). |
-| **Edito el mismo fichero en los dos sitios** antes de la siguiente pasada | **Se conservan los dos**, con sufijo `conflict` en el nombre, en los dos lados. Tú decides con cuál te quedas. **No manda la fecha**: la fecha de Drive puede ser la de subida, y los relojes de los Mac no coinciden. |
+| **Edito el mismo fichero en los dos sitios** antes de la siguiente pasada | **Se conservan los dos**, en los dos lados, con el lado en el nombre: `informe.conflicto-mac1.docx` y `informe.conflicto-drive1.docx`. Tú decides con cuál te quedas. **No manda la fecha**: la fecha de Drive puede ser la de subida, y los relojes de los Mac no coinciden. |
 | **Un Mac sube una copia vieja con fecha nueva** | Si el otro lado no había cambiado, la copia vieja se copia, pero la versión buena queda en versiones (recuperable 90 días). Si había cambiado, es un conflicto y se conservan las dos. |
 | **La carpeta aparece vacía o desmontada** (disco externo) | BackupDrive se niega a sincronizar con un lado vacío y no toca nada. |
 | **Borro muchos ficheros de golpe** (más del 10 %) | **Se detiene** sin tocar nada; el perfil sale con ⚠ y un aviso. Si es lo que quieres: `backupdrive-sync.sh --profile "/ruta" --dry-run` para ver qué pasaría y luego `--force`. |
@@ -178,7 +178,7 @@ que todo lo que hace la app se puede hacer también desde el terminal (decisión
 | `profile set <carpeta> [--days N] [--pct P] [--count N]` / `profile remove <carpeta>` | Cambiar / quitar (no borra nada en ningún lado) |
 | `versions list <carpeta>` | Versiones de los dos lados, la más reciente primero (JSON) |
 | `versions restore <carpeta> mac\|drive <ruta de la versión>` | Vuelve a poner la versión en su sitio en el Mac; lo que hubiera va antes a versiones; la siguiente pasada la sube a Drive |
-| `conflicts list <carpeta>` / `conflicts keep <carpeta> <copia>` | Ficheros cambiados en los dos lados (bisync deja `nombre.conflict1.ext`, la del Mac, y `.conflict2`, la de Drive) / quedarse con una: vuelve a su nombre y las demás van a versiones |
+| `conflicts list <carpeta>` / `conflicts keep <carpeta> <copia>` | Ficheros cambiados en los dos lados (bisync deja `nombre.conflicto-mac1.ext` y `nombre.conflicto-drive1.ext`; las copias antiguas `nombre.conflictN.ext` salen sin lado) / quedarse con una: vuelve a su nombre y las demás van a versiones |
 | `plan <carpeta>` | Resumen de la última simulación (`backupdrive-sync.sh --dry-run`): nuevo, cambiado y borrado en cada lado y conflictos (JSON) |
 
 Las órdenes que escriben toman el mismo bloqueo que la sincronización (código 5 si hay una en curso); los errores de

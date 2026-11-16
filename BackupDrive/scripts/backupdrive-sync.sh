@@ -18,6 +18,7 @@
 #
 # Configuración en ~/Library/Application Support/BackupDrive/:
 #   backupdrive.conf   remotos (se crea con: backupdrive --config <esa ruta> config)
+#   sin-enlaces        (opcional, vacío) si existe, los enlaces simbólicos se saltan en vez de subirse como .rclonelink
 #   profiles           una línea por perfil:  <carpeta local>|<remoto:ruta>[|<días de versiones>[|<% de cambios>[|<nº de cambios>]]]
 #                      (# = comentario; días 0 = las versiones no caducan; el remoto debe llevar una carpeta, no la raíz;
 #                      % y nº: umbral del freno de modificaciones masivas, 20 y 50 por defecto)
@@ -93,6 +94,8 @@ if ! mkdir "$LOCK" 2>/dev/null; then
   pid=$(cat "$LOCK/pid" 2>/dev/null || true)
   if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
     echo "BackupDrive ya se está ejecutando (pid $pid); no hago nada."
+    # También en el registro: si no, una pasada de launchd que coincide con otra larga no deja rastro.
+    echo "== $(date '+%Y-%m-%d %H:%M:%S') pasada saltada: ya hay otra en curso (pid $pid)" >> "$LOG" 2>/dev/null || true
     exit 0
   fi
   rm -rf "$LOCK"
@@ -197,6 +200,24 @@ mod_count() {
   sed -n "s/.*$1: *[0-9]* changes: *[0-9]* new, *\([0-9]*\) modified.*/\1/p" "$2" | tail -1
 }
 
+# Pasada en seco del freno ($1 = registro, resto = orden de bisync). Solo hacen falta los recuentos de cambios, que
+# bisync escribe antes de «Applying changes»; después, en seco, recorre una a una las copias que haría (con Drive,
+# ~1 fichero/s: 36 min con 1858 cambios en la 6,1), así que se corta ahí. Devuelve 0 si llegó a contar los cambios.
+pre_dry_run() {
+  plog=$1; shift
+  "$BIN" "$@" --dry-run --log-file "$plog" </dev/null &
+  ppid_=$!
+  while kill -0 "$ppid_" 2>/dev/null; do
+    if grep -q 'Applying changes' "$plog" 2>/dev/null; then
+      kill -INT "$ppid_" 2>/dev/null || true
+      wait "$ppid_" 2>/dev/null || true
+      return 0
+    fi
+    sleep 1
+  done
+  wait "$ppid_"
+}
+
 # bisync de un perfil. Devuelve 0 bien, 1 error, 3 falta la primera sincronización, 4 frenado (borrados o modificaciones masivas).
 sync_profile() { # local remote días % nº
   ldir=$1; rem=$2; days=$3; mpct=$4; mn=$5
@@ -214,14 +235,21 @@ sync_profile() { # local remote días % nº
   # Mismos ajustes en todas las pasadas; la carpeta de versiones de Drive nunca está dentro de la sincronizada.
   set -- --config "$CONF" bisync "$ldir" "$rem" --workdir "$BISYNC_DIR" \
     --compare size,modtime,checksum --slow-hash-sync-only --create-empty-src-dirs \
-    --resilient --recover --max-lock 2h --max-delete "$MAX_DELETE" --conflict-resolve none \
+    --resilient --recover --max-lock 2h --max-delete "$MAX_DELETE" --conflict-resolve none --conflict-suffix conflicto-mac,conflicto-drive \
     --backup-dir1 "$vm" --backup-dir2 "$vr" --suffix "-$stamp" --suffix-keep-extension \
-    --drive-skip-gdocs --links --log-level INFO
+    --drive-skip-gdocs --log-level INFO
+  # Enlaces simbólicos: por defecto viajan como «.rclonelink». Con el fichero «$APP_DIR/sin-enlaces» se saltan sin aviso,
+  # como FreeFileSync: mientras los dos convivan, FFS bajaría los .rclonelink como ficheros normales (H9).
+  if [ -f "$APP_DIR/sin-enlaces" ]; then set -- "$@" --skip-links; else set -- "$@" --links; fi
+  # Listado de Drive por lotes (ListR): en rclone 1.67 bisync solo lo usa con --fast-list (march.go), aunque su
+  # documentación diga lo contrario. Sin él, una petición por carpeta: ~8 min por pasada con 1407 carpetas, horas con
+  # decenas de miles (drive.md: 10600 carpetas, 22 min -> 58 s). BACKUPDRIVE_FAST_LIST=0 vuelve al listado carpeta a carpeta.
+  [ "${BACKUPDRIVE_FAST_LIST:-1}" = 1 ] && set -- "$@" --fast-list
   [ -f "$FILTERS" ] && set -- "$@" --filters-file "$FILTERS"
   # Freno de modificaciones masivas: pasada en seco antes de la real (una más por hora).
   if [ "$RESYNC" = 0 ] && [ "$DRY" = 0 ] && [ "$FORCE" = 0 ] && [ -f "$init" ]; then
     pre="$WORK/pre.log"; : > "$pre"
-    if "$BIN" "$@" --dry-run --log-file "$pre" </dev/null; then
+    if pre_dry_run "$pre" "$@"; then
       for side in Path1 Path2; do
         mods=$(mod_count "$side" "$pre"); mods=${mods:-0}
         [ "$mods" -gt "$mn" ] || continue
@@ -302,8 +330,9 @@ while IFS='|' read -r local_dir remote days mod_pct mod_n; do
   : > "$RUN_LOG"
   rc=0; sync_profile "$local_dir" "$remote" "$days" "$mod_pct" "$mod_n" || rc=$?
   cat "$RUN_LOG" >> "$LOG"
-  # Plan de la simulación, para «Ver qué cambia» (backupdrive-ctl.sh plan).
-  if [ "$DRY" = 1 ]; then
+  # Plan de la simulación, para «Ver qué cambia» (backupdrive-ctl.sh plan). También cuando una pasada real se frena:
+  # bisync ya ha listado lo que cambia antes de detenerse, y un plan viejo enseñaría otra cosa.
+  if [ "$DRY" = 1 ] || [ "$rc" = 4 ]; then
     # Si la simulación falló (no por el freno), la cabecera lo dice: «plan» no debe enseñar una lista vacía.
     perr=""; case "$rc" in 0|4) ;; *) perr=" error=$rc" ;; esac
     { [ "$RESYNC" = 1 ] && echo "BACKUPDRIVE-PLAN resync$perr" || echo "BACKUPDRIVE-PLAN$perr"; cat "$RUN_LOG"; } \

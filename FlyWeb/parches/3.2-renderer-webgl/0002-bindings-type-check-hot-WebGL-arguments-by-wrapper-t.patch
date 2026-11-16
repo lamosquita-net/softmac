@@ -1,0 +1,173 @@
+From 270ce97622c14b855bbd14e0f58c5db46dfbb65a Mon Sep 17 00:00:00 2001
+From: "MOTOR-45 (Claude)" <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 10:23:22 +0000
+Subject: [PATCH 2/2] bindings: type-check hot WebGL arguments by wrapper tag
+
+Every uniform*() call converts its WebGLUniformLocation? argument with
+NativeValueTraits<IDLNullable<T>>::ArgumentValue(), which calls
+V8PerIsolateData::HasInstance(): a hash map lookup of the
+WrapperTypeInfo (two when the value is not an instance) plus
+v8::FunctionTemplate::HasInstance(). With the [NoAllocDirectCall] fast
+path the rest of the call is cheap, so in Aquarium (4 uniform calls and
+1 draw per fish) the type checks are about a fifth of the WebGL binding
+cost, 4-6% of the renderer main thread on a Mac Pro 6,1.
+
+For a JS API wrapper object, ToScriptWrappable<T>() already checks the
+tag stored in the C++ heap pointer table by Wrap() against T's tag range
+(which covers T's subclasses), and returns nullptr on any mismatch. Add
+an opt-in fast path that uses it when the value is an API wrapper, and
+falls back to the original HasInstance() path whenever it returns
+nullptr, so non-objects, null, undefined, foreign objects and errors
+behave exactly as before.
+
+It is limited to:
+- builds with pointer compression, where Unwrap() enforces the tag
+  range (without it the slot is read as a raw pointer);
+- types that opt in with kWrapperTagTypeCheck: WebGLObject and its
+  subclasses, and WebGLUniformLocation. None of them is a global
+  object, the one case where HasInstance() looks behind a proxy.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../core/v8/native_value_traits_impl.h        | 65 +++++++++++++++++++
+ .../renderer/modules/webgl/webgl_object.h     |  4 ++
+ .../modules/webgl/webgl_uniform_location.h    |  4 ++
+ 3 files changed, 73 insertions(+)
+
+diff --git a/third_party/blink/renderer/bindings/core/v8/native_value_traits_impl.h b/third_party/blink/renderer/bindings/core/v8/native_value_traits_impl.h
+index f644a658..442e7159 100644
+--- a/third_party/blink/renderer/bindings/core/v8/native_value_traits_impl.h
++++ b/third_party/blink/renderer/bindings/core/v8/native_value_traits_impl.h
+@@ -1393,6 +1393,51 @@ struct NativeValueTraits<T> : public NativeValueTraitsBase<T> {
+   }
+ };
+ 
++namespace bindings::internal {
++
++// Opt-in fast path for the type check of interface arguments, for types that
++// are passed on hot paths (the WebGL object types, through [NoAllocDirectCall]
++// operations such as uniform*()). A class opts in with
++//   static constexpr bool kWrapperTagTypeCheck = true;
++//
++// V8PerIsolateData::HasInstance() looks the WrapperTypeInfo up in a hash map
++// (twice when the value is not an instance) and then calls
++// v8::FunctionTemplate::HasInstance(). For a JS API wrapper object the C++
++// heap pointer slot carries the tag that Blink stored with Wrap(), and
++// ToScriptWrappable<T>() already checks it against T's tag range (which also
++// covers T's subclasses). A non-null result therefore names a wrapper created
++// for T or a subclass, which is what HasInstance() answers. Any other case
++// (not an object, not an API wrapper, never wrapped, other type) returns
++// nullptr here and the caller takes the original path, so errors, null and
++// undefined are handled exactly as before.
++//
++// Only with pointer compression: without it, Unwrap() reads the raw pointer
++// and does not check the tag. Opt-in types must not be global objects (whose
++// proxies HasInstance() treats specially).
++template <typename T>
++concept HasWrapperTagTypeCheck = requires {
++  requires T::kWrapperTagTypeCheck;
++};
++
++template <typename T>
++  requires std::derived_from<T, ScriptWrappable>
++inline T* ToScriptWrappableByWrapperTag(v8::Isolate* isolate,
++                                        v8::Local<v8::Value> value) {
++#if defined(V8_COMPRESS_POINTERS)
++  if constexpr (HasWrapperTagTypeCheck<T>) {
++    if (value->IsObject()) [[likely]] {
++      v8::Local<v8::Object> object = value.As<v8::Object>();
++      if (object->IsApiWrapper()) [[likely]] {
++        return ToScriptWrappable<T>(isolate, object);
++      }
++    }
++  }
++#endif  // defined(V8_COMPRESS_POINTERS)
++  return nullptr;
++}
++
++}  // namespace bindings::internal
++
+ // Interface types
+ template <typename T>
+   requires std::derived_from<T, ScriptWrappable>
+@@ -1407,6 +1452,11 @@ struct NativeValueTraits<T> : public NativeValueTraitsBase<T*> {
+   static inline T* NativeValue(v8::Isolate* isolate,
+                                v8::Local<v8::Value> value,
+                                ExceptionState& exception_state) {
++    if (T* wrappable =
++            bindings::internal::ToScriptWrappableByWrapperTag<T>(isolate,
++                                                                 value)) {
++      return wrappable;
++    }
+     const WrapperTypeInfo* wrapper_type_info = T::GetStaticWrapperTypeInfo();
+     if (V8PerIsolateData::From(isolate)->HasInstance(wrapper_type_info,
+                                                      value)) {
+@@ -1422,6 +1472,11 @@ struct NativeValueTraits<T> : public NativeValueTraitsBase<T*> {
+                                  int argument_index,
+                                  v8::Local<v8::Value> value,
+                                  ExceptionState& exception_state) {
++    if (T* wrappable =
++            bindings::internal::ToScriptWrappableByWrapperTag<T>(isolate,
++                                                                 value)) {
++      return wrappable;
++    }
+     const WrapperTypeInfo* wrapper_type_info = T::GetStaticWrapperTypeInfo();
+     if (V8PerIsolateData::From(isolate)->HasInstance(wrapper_type_info,
+                                                      value)) {
+@@ -1441,6 +1496,11 @@ struct NativeValueTraits<IDLNullable<T>>
+   static inline T* NativeValue(v8::Isolate* isolate,
+                                v8::Local<v8::Value> value,
+                                ExceptionState& exception_state) {
++    if (T* wrappable =
++            bindings::internal::ToScriptWrappableByWrapperTag<T>(isolate,
++                                                                 value)) {
++      return wrappable;
++    }
+     const WrapperTypeInfo* wrapper_type_info = T::GetStaticWrapperTypeInfo();
+     if (V8PerIsolateData::From(isolate)->HasInstance(wrapper_type_info,
+                                                      value)) {
+@@ -1459,6 +1519,11 @@ struct NativeValueTraits<IDLNullable<T>>
+                                  int argument_index,
+                                  v8::Local<v8::Value> value,
+                                  ExceptionState& exception_state) {
++    if (T* wrappable =
++            bindings::internal::ToScriptWrappableByWrapperTag<T>(isolate,
++                                                                 value)) {
++      return wrappable;
++    }
+     const WrapperTypeInfo* wrapper_type_info = T::GetStaticWrapperTypeInfo();
+     if (V8PerIsolateData::From(isolate)->HasInstance(wrapper_type_info,
+                                                      value)) {
+diff --git a/third_party/blink/renderer/modules/webgl/webgl_object.h b/third_party/blink/renderer/modules/webgl/webgl_object.h
+index 97caa90e..fd9c5fe5 100644
+--- a/third_party/blink/renderer/modules/webgl/webgl_object.h
++++ b/third_party/blink/renderer/modules/webgl/webgl_object.h
+@@ -61,6 +61,10 @@ class WebGLObject : public ScriptWrappable {
+   USING_PRE_FINALIZER(WebGLObject, Dispose);
+ 
+  public:
++  // Hot argument of WebGL calls: use the wrapper tag for the bindings type
++  // check (see ToScriptWrappableByWrapperTag in native_value_traits_impl.h).
++  static constexpr bool kWrapperTagTypeCheck = true;
++
+   WebGLObject(const WebGLObject&) = delete;
+   WebGLObject& operator=(const WebGLObject&) = delete;
+ 
+diff --git a/third_party/blink/renderer/modules/webgl/webgl_uniform_location.h b/third_party/blink/renderer/modules/webgl/webgl_uniform_location.h
+index 3e016dc5..69701771 100644
+--- a/third_party/blink/renderer/modules/webgl/webgl_uniform_location.h
++++ b/third_party/blink/renderer/modules/webgl/webgl_uniform_location.h
+@@ -36,6 +36,10 @@ class WebGLUniformLocation final : public ScriptWrappable {
+   DEFINE_WRAPPERTYPEINFO();
+ 
+  public:
++  // Hot argument of WebGL calls: use the wrapper tag for the bindings type
++  // check (see ToScriptWrappableByWrapperTag in native_value_traits_impl.h).
++  static constexpr bool kWrapperTagTypeCheck = true;
++
+   WebGLUniformLocation(WebGLProgram*, GLint location);
+ 
+   WebGLProgram* Program() const;
+-- 
+2.43.0
+

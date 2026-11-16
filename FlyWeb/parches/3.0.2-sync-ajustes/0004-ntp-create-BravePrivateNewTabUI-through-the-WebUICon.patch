@@ -1,0 +1,140 @@
+From 9aed42e01004abafbf5a7c53b869900b4fdcc08a Mon Sep 17 00:00:00 2001
+From: "MOTOR-43 (Claude)" <noreply@anthropic.com>
+Date: Mon, 9 Nov 2026 18:18:55 +0000
+Subject: [PATCH 4/4] ntp: create BravePrivateNewTabUI through the
+ WebUIConfigMap
+
+Chromium 156 registers NewTabUIConfig (the incognito/guest New Tab page)
+in the WebUIConfigMap, which is asked before BraveWebUIControllerFactory,
+so private and guest windows got Chromium's page. As in Brave 1.98, add
+BravePrivateNewTabUIConfig (incognito, guest and enterprise isolated
+profiles; no Tor in FlyWeb), remove NewTabUIConfig and register ours.
+Regular profiles still go through BraveWebUIControllerFactory.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2keCUcEPJ6KTcxicZD
+---
+ .../webui/brave_web_ui_controller_factory.cc  |  3 +-
+ .../brave_private_new_tab_ui.cc               | 14 ++++++++--
+ .../brave_private_new_tab_ui.h                | 28 ++++++++++++++++++-
+ .../browser/ui/webui/chrome_web_ui_configs.cc |  7 +++++
+ 4 files changed, 47 insertions(+), 5 deletions(-)
+
+diff --git a/browser/ui/webui/brave_web_ui_controller_factory.cc b/browser/ui/webui/brave_web_ui_controller_factory.cc
+index 3089344d6..122b3aa30 100644
+--- a/browser/ui/webui/brave_web_ui_controller_factory.cc
++++ b/browser/ui/webui/brave_web_ui_controller_factory.cc
+@@ -60,7 +60,8 @@ WebUIController* NewWebUI(WebUI* web_ui, const GURL& url) {
+     return new BraveSettingsUI(web_ui);
+   } else if (host == chrome::kChromeUINewTabHost) {
+     if (profile->IsIncognitoProfile() || profile->IsGuestSession()) {
+-      return new BravePrivateNewTabUI(web_ui, url.GetHost());
++      // FlyWeb: normally created through BravePrivateNewTabUIConfig.
++      return new BravePrivateNewTabUI(web_ui);
+     }
+     return new BraveNewTabUI(web_ui, url.GetHost());
+ #endif  // !BUILDFLAG(IS_ANDROID)
+diff --git a/browser/ui/webui/private_new_tab_page/brave_private_new_tab_ui.cc b/browser/ui/webui/private_new_tab_page/brave_private_new_tab_ui.cc
+index f2e575405..df9b62c65 100644
+--- a/browser/ui/webui/private_new_tab_page/brave_private_new_tab_ui.cc
++++ b/browser/ui/webui/private_new_tab_page/brave_private_new_tab_ui.cc
+@@ -19,14 +19,22 @@
+ #include "components/strings/grit/components_strings.h"
+ #include "content/public/browser/web_ui_data_source.h"
+ 
+-BravePrivateNewTabUI::BravePrivateNewTabUI(content::WebUI* web_ui,
+-                                           const std::string& name)
++bool BravePrivateNewTabUIConfig::IsWebUIEnabled(
++    content::BrowserContext* browser_context) {
++  Profile* profile = Profile::FromBrowserContext(browser_context);
++  // Same profiles as Brave 1.98, minus Tor (not in FlyWeb).
++  return profile->IsIncognitoProfile() || profile->IsGuestSession() ||
++         profile->IsEnterpriseIsolatedModeProfile();
++}
++
++BravePrivateNewTabUI::BravePrivateNewTabUI(content::WebUI* web_ui)
+     : ui::MojoWebUIController(web_ui, false) {
+   web_ui->OverrideTitle(
+       brave_l10n::GetLocalizedResourceUTF16String(IDS_NEW_INCOGNITO_TAB_TITLE));
+ 
+   content::WebUIDataSource* source =
+-      CreateAndAddWebUIDataSource(web_ui, name, kBravePrivateNewTabGenerated,
++      CreateAndAddWebUIDataSource(web_ui, chrome::kChromeUINewTabHost,
++                                  kBravePrivateNewTabGenerated,
+                                   IDR_BRAVE_PRIVATE_NEW_TAB_HTML);
+ 
+   for (const auto& str : brave_private_new_tab::kLocalizedStrings) {
+diff --git a/browser/ui/webui/private_new_tab_page/brave_private_new_tab_ui.h b/browser/ui/webui/private_new_tab_page/brave_private_new_tab_ui.h
+index 39bbc1c33..3daa43e1a 100644
+--- a/browser/ui/webui/private_new_tab_page/brave_private_new_tab_ui.h
++++ b/browser/ui/webui/private_new_tab_page/brave_private_new_tab_ui.h
+@@ -10,13 +10,39 @@
+ #include <string>
+ 
+ #include "brave/components/brave_private_new_tab_ui/common/brave_private_new_tab.mojom-forward.h"
++#include "chrome/common/webui_url_constants.h"
+ #include "content/public/browser/web_ui_controller.h"
++#include "content/public/browser/webui_config.h"
++#include "content/public/common/url_constants.h"
+ #include "mojo/public/cpp/bindings/pending_receiver.h"
+ #include "ui/webui/mojo_web_ui_controller.h"
+ 
++class BravePrivateNewTabUI;
++
++namespace content {
++class BrowserContext;
++}
++
++// FlyWeb: Chromium 156 registers NewTabUIConfig (its incognito/guest New Tab
++// page) in the WebUIConfigMap, which is asked before
++// BraveWebUIControllerFactory, so private windows got Chromium's page. As in
++// Brave 1.98, chrome_web_ui_configs.cc swaps it for this config; regular
++// profiles still go through BraveWebUIControllerFactory (IsWebUIEnabled is
++// false for them).
++class BravePrivateNewTabUIConfig
++    : public content::DefaultWebUIConfig<BravePrivateNewTabUI> {
++ public:
++  BravePrivateNewTabUIConfig()
++      : DefaultWebUIConfig(content::kChromeUIScheme,
++                           chrome::kChromeUINewTabHost) {}
++
++  // content::WebUIConfig:
++  bool IsWebUIEnabled(content::BrowserContext* browser_context) override;
++};
++
+ class BravePrivateNewTabUI : public ui::MojoWebUIController {
+  public:
+-  BravePrivateNewTabUI(content::WebUI* web_ui, const std::string& name);
++  explicit BravePrivateNewTabUI(content::WebUI* web_ui);
+   ~BravePrivateNewTabUI() override;
+   BravePrivateNewTabUI(const BravePrivateNewTabUI&) = delete;
+   BravePrivateNewTabUI& operator=(const BravePrivateNewTabUI&) = delete;
+diff --git a/chromium_src/chrome/browser/ui/webui/chrome_web_ui_configs.cc b/chromium_src/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+index 0aacdd6a3..b0a674c00 100644
+--- a/chromium_src/chrome/browser/ui/webui/chrome_web_ui_configs.cc
++++ b/chromium_src/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+@@ -16,6 +16,7 @@
+ #include "base/strings/strcat.h"
+ #include "brave/browser/ui/webui/brave_settings_ui.h"
+ #include "brave/browser/ui/webui/brave_shields/shields_panel_ui.h"
++#include "brave/browser/ui/webui/private_new_tab_page/brave_private_new_tab_ui.h"
+ #include "chrome/common/webui_url_constants.h"
+ #include "content/public/common/url_constants.h"
+ #include "url/gurl.h"
+@@ -34,7 +35,13 @@ void RegisterChromeWebUIConfigs() {
+   map.RemoveConfig(GURL(base::StrCat({content::kChromeUIScheme,
+                                       url::kStandardSchemeSeparator,
+                                       chrome::kChromeUISettingsHost})));
++  // Same for Chromium's NewTabUIConfig (incognito/guest New Tab page):
++  // private windows got Chromium's page instead of BravePrivateNewTabUI.
++  map.RemoveConfig(GURL(base::StrCat({content::kChromeUIScheme,
++                                      url::kStandardSchemeSeparator,
++                                      chrome::kChromeUINewTabHost})));
+   map.AddWebUIConfig(std::make_unique<BraveSettingsUIConfig>());
++  map.AddWebUIConfig(std::make_unique<BravePrivateNewTabUIConfig>());
+   map.AddWebUIConfig(std::make_unique<ShieldsPanelUIConfig>());
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ }
+-- 
+2.43.0
+

@@ -8,6 +8,184 @@ La vigilancia diaria de CVE (FS.2) es de **SEGURIDAD-VIGÍA**; este papel porta 
 **Idioma:** a Titín (el HUMANO), **siempre en castellano**, también justo después de leer commits o notas en inglés.
 Commits en inglés.
 
+## SEGURIDAD-PORTES-22 → 23 (13-11-2026, ~08:45 UTC; leer primero, manda sobre lo de abajo)
+
+La -22 (`session_01MwmK2gyj8BaukttCj4uahG`, linaje 8 de 8) se releva al 56 % de contexto. No puede abrir sesiones
+ni programar recordatorios (`send_later` lo rechaza en el linaje 8). El relevo lo abren Titín o COORDINACIÓN-40
+(`session_01MwmK2iSWxzb4yvKWQc6eJC`). La -22 sigue disponible para preguntas hasta que la archiven.
+
+**Acceso:** brave-core y el fork de chromium se leen sin adjuntar nada (el proxy sirve lectura anónima de repos
+públicos), pero no hay push. Todo se entrega por `format-patch` en softmac.
+
+### Hecho por la -22
+
+- **Sync con cuenta (#905):**
+  - cuarta pasada (`bb75d529`), con N4 y N5;
+  - quinta pasada, sobre la versión simplificada (`9a78b7f7`): APROBABLE para H1, con **N6 a corregir** (la tabla de
+    esperas en memoria no debe descartar entradas con espera activa) y O13–O14 opcionales.
+
+  El criterio de Titín: solo bloquea que el servidor pueda abrir la semilla o que se entre sin Mac ni correo.
+  COORDINACIÓN añadió que la espera de 15 min y el aviso en los Macs son «a corregir» si faltan.
+- **Catalina (#957):** los parches 0001–0004 de MOTOR-45, APTOS. Van en carpeta aparte, después de los de seguridad.
+- **3.1.1, contenido cerrado** (`FlyWeb/seguridad/3.1.1/CONTENIDO.md`; #961, #966, #968, #969, #970):
+  - sin la 158, cuya nota no había salido;
+  - 0035–0043: delta de 156.0.8078.104;
+  - brave-core 0001: `flyweb_version`;
+  - V8 15.6.75.59 aparte (`v8-15.6.75.59/`), con d8 en verde, pero **fuera de la 3.1.1**: la orden se dio con la .58.
+  - Build 44.
+  - Ramas de LOCAL-19, revisadas por la regla 17: chromium `seg/3.1.1` = 9e0d83137f (árbol 38c6e1d3e3) y brave-core
+    `local/3.1.1` = 3e2c12fad57. Veredicto: APTO.
+
+### Pendiente, por orden
+
+1. **17-11, nota de Chrome 158 estable** (COORDINACIÓN-40 manda el aviso hacia las 21:15 UTC).
+   - Feed Atom: `https://chromereleases.googleblog.com/feeds/posts/default?redirect=false&max-results=40`. Sin
+     `redirect=false` redirige a feedburner, que no resuelve.
+   - Cruzar los CVE de la nota con `FlyWeb/docs/seguridad-3.1.1.md` §1–§3 y con CONTENIDO.
+   - `cve-watch.py`.
+   - `ls-remote` de la 8078: el 13-11 iba por la .104; mirar si hay .105 o más.
+   - **Nueva base: chromium `seg/3.1.1` 9e0d83137f** (ya en el fork) y brave-core `local/3.1.1` 3e2c12fad57. Encima:
+     la V8 .59 (`3.1.1/v8-15.6.75.59/0001`) y el delta.
+   - Titín decide si va en una 3.1.2 de solo seguridad o en la 3.2.0.
+2. **Sync:** cuando ARQUITECTURA aplique N6 (y O13–O14 si los adopta), comprobar que N6 está bien.
+
+### Trampas aprendidas
+
+- **Cruzar siempre los `patches/` de brave-core** con los ficheros de la serie: cada `src/a/b.cc` tiene su
+  `patches/a-b.cc.patch`. Aplicar con `git apply --check` sobre el árbol final. Si no se hace, LOCAL choca al compilar,
+  como pasó con `navigation_request.cc`.
+- **Clon parcial de chromium que funciona:**
+  - `git init`; remotos `fork` (lamosquita-net/chromium) y `up` (chromium/chromium en GitHub), los dos promisor con
+    `blob:none`;
+  - `fetch --filter=blob:none --depth=1 fork seg/…`;
+  - sparse checkout `--no-cone` con la lista de ficheros que tocan la serie y los candidatos;
+  - después `git am` y `git cherry-pick -x` normales.
+  - Rangos de upstream: `fetch --filter=tree:0 --shallow-exclude=refs/tags/<anterior>`.
+- **Skia y ANGLE de la rama:** sus espejos son `github.com/google/skia` (rama `chrome/m156`) y `github.com/google/angle`
+  (rama `chromium/8078`); para `fetch` hacen falta los hashes completos.
+- **Las sumas de `chromium/` de la 3.1.1 están en `3.1.1/SHA256SUMS`, no dentro de `chromium/`.**
+- **`rm -rf` con variables lo para la comprobación del arnés:** usar rutas literales.
+
+## SEGURIDAD-PORTES-21 → 22 (12-11-2026, ~20:15 UTC; leer primero)
+
+Relevo pedido por COORDINACIÓN-40 (`session_01MwmK2iSWxzb4yvKWQc6eJC`). La -21 queda disponible para preguntas hasta
+que la archiven.
+- **Acceso:** el `add_repo` de brave-core lo denegó el clasificador del modo auto. Tampoco hubo push al fork de chromium.
+  Todo se entregó por `format-patch` en softmac.
+
+### Estado de la 3.1.1 (tanda de Chrome 158)
+
+- **Serie previa fusionada (#951):** `FlyWeb/seguridad/3.1.1/`, con README, `SHA256SUMS` y `chromium/` (34 parches).
+- **Base comprobada con `ls-remote` (12-11):**
+  - fork `lamosquita-net/chromium` `seg/3.0.2` = **502e3c5b85f534fa6b8c47135f7236b611b7ce1b** (src de la 3.1.0);
+  - brave-core `local/3.1` = **fc9389773fe0d94338e1cf27e8a2256cbdae676c**.
+- **Resultado:** `git am` de los 34 parches → árbol **3d9092e4e33af893a862d9ad06c553ddf7fc4bbf**. Es una comprobación
+  local, **no hay rama remota**: `seg/3.1.1` no existe en el fork, comprobado con `ls-remote`.
+- **Contenido:**
+  - V8 15.6.75.51 → **.58** (`0064da7c8c`, tag comprobado), los 5 rolls de la 8078 tal cual;
+  - Skia ea1e651d7a → **24e65cdd9b**;
+  - 21 `[M156]` de la 8078 .98 → .103;
+  - 4 `[M157]` sin gemelo en la 156; **`0033` (ImageCapture) resuelto a mano**;
+  - `chrome/VERSION` .103.
+
+  33 de 34 tienen el mismo `patch-id` que upstream. Fuera, con su motivo: 939ad86d5, ea36d0325, f253859e6, 973b2ff1b,
+  7b3fcb8ba, e5876d9c5 y **29980f328** (relaja la política de `chrome.debugger`).
+- **brave-core sin cambios:** los `patches/v8` aplican sobre la .58 (solo `bytecode-generator.cc` se solapa, con
+  desplazamientos). La **época de caché sigue en 31**, porque el roll sube `V8_PATCH_LEVEL` y `Hash()` ya lo incluye.
+- **También entra en la 3.1.1:** el arreglo de Catalina de MOTOR-45 (`CGPreflightScreenCaptureAccess`,
+  `FlyWeb/parches/3.1.1-catalina/`, **en curso**; aún no está en `main` el 12-11). Revisarlo como cualquier parche
+  propio: que solo se llame en 10.15+ (`@available`) y que en Mojave no cambie nada.
+
+### Pendiente, por orden
+
+1. **d8 y mjsunit con Maglev (D8-LINUX, en el Ubuntu):** encargado por buzón. La sesión estaba caída el 12-11 y depende
+   de que Titín la abra. Receta en el README de la serie (§V8). Sin ese verde no se compila. Si algo cae, mirar primero
+   los 7 `[M156]` de V8 (§1 de `seguridad-3.1.1.md`).
+2. **17-11, nota de Chrome 158 estable:** feed Atom de Chrome Releases.
+   - Cruzar sus CVE con `FlyWeb/docs/seguridad-3.1.1.md` §1–§3.
+   - Buscar en `main` y en la 8127 los que falten (el arreglo es público aunque el crbug esté cerrado: se comparan
+     etiquetas).
+   - Pasar `cve-watch.py` (KEV).
+   - Volver a mirar con `ls-remote` las etiquetas 156.0.8078.x y V8 15.6.75.x: la rama 8078 sigue viva.
+   - Añadir el delta como `0035`+ sobre el árbol de arriba y entregar a COORDINACIÓN para la orden de compilar.
+   - **La -21 tenía programado esto para el 17-11 a las 21:13 UTC; lo he borrado al relevarme. Prográmalo tú.**
+3. **Revisión de la sync de la 3.2 rehecha** (DIRECTIVAS del 12-11: modelo de Firefox Accounts, sin aprobación entre
+   Macs). Mis tres pasadas sobre el diseño anterior quedan como contexto (comentarios de #905). Mirar:
+   - el KDF de la clave de envoltura y su coste frente al ataque sin conexión con la base robada (riesgo aceptado por
+     Titín);
+   - que la clave de autenticación y la de envoltura estén separadas, como `authPW`/`unwrapBKey` en FxA, para que el
+     servidor no reciba nada que abra la semilla;
+   - que cambiar la contraseña rehaga el envoltorio sin perder datos;
+   - qué consigue quien robe un Mac;
+   - las partes de N3 que sigan valiendo: topes que pueda agotar un tercero y avisos que se puedan suprimir.
+4. **Pruebas que van en la orden a LOCAL** (las lleva COORDINACIÓN; comprobar que constan):
+   - navegación de `0030`/`0031` (popups que escapan del sandbox, `about:blank` y `srcdoc`, `file://`, claude.ai);
+   - FSA con mayúsculas;
+   - prueba de huella (JA4, HTTP/2, cabeceras y Client Hints frente a un Chrome 156 real).
+
+### Trampas
+
+- **Chromium sin bajarlo entero:**
+  - repositorio con dos remotos promisor (`blob:none`);
+  - cherry-pick con `git merge-tree --write-tree --merge-base=<c>^`;
+  - **nada de `read-tree`/`write-tree`/`mktree` sin `--missing`**: piden todos los blobs y no acaban;
+  - para cambiar un fichero, `mktree --missing` por la ruta.
+- **d8 en la nube, imposible con la 156:** el `gn` de apt (2024) no entiende el `.gn`, y googlesource y CIPD dan 403.
+- **`FlyWeb/v8-revision` no existe en `local/3.1`.** Si se lanza `v8-d8.sh` sin crearlo, compila la 11.6 de la 116.
+- **Los rolls de Skia van mezclados con los de V8** en «Roll commits from side projects»: mirar el `DEPS` de cada uno.
+
+### Preguntas abiertas
+
+- ¿Se crea la rama `seg/3.1.1` en el fork? Hoy no hay push desde la nube. LOCAL puede crearla con `git am`.
+- ¿Los tests de `0033` compilan contra la 156? Solo importa si LOCAL compila los unittests.
+
+## SEGURIDAD-PORTES-21 (`session_01MwmK2iSJ4qGU8EyNDJhUH3`, 11-11)
+
+Abierta por COORDINACIÓN-39. `add_repo` de brave-core **denegado por el clasificador del modo auto** (regla 16 lo
+permite en `main`, pero el clasificador decide en cada sesión): brave-core solo en lectura.
+
+**Hecho:**
+- **Sync con cuenta (#905, `sync-cuenta.md` de ARQUITECTURA):** revisión en el
+  [comentario](https://github.com/lamosquita-net/softmac/pull/905#issuecomment-6797345699).
+  - Bloqueantes:
+    - B1: código corto de 30 bits que depende del `id` del servidor; un ns2 comprometido lo falsifica en unos 2^30 hashes.
+    - B2: el cambio de contraseña deja a los Macs legítimos sin token para «No he sido yo».
+    - B3: la «prueba de cadena» es el token de go-sync, que firma solo la hora y vale ±24 h.
+  - A corregir: inyección de semilla, revocación que no corta la sync, «Empezar de cero» sin demora, códigos de email
+    adivinables, correo masivo y registros del MTA (RGPD).
+  - Cuando ARQUITECTURA lo rehaga, volver a revisar contra B1–B3.
+- **CVE-2026-125350 (XML UAF, explotado):** es el UAF de libxslt de `xsltTestCompMatchDirect`.
+  - Única corrección de código entre 157.0.8103.39 y .51: 049750111b (main 61cab3f772, 8078 2ad9b7f5a8).
+  - Ya está en la 3.0.1 publicada (parche `seguridad/3.0.1/chromium/0034`, hunk idéntico) y XSLT va apagado. Nada que portar.
+  - [Comentario en #937](https://github.com/lamosquita-net/softmac/pull/937#issuecomment-6797413928). Falta confirmar
+    CVE → crbug cuando se abra.
+
+**12-11:**
+- **#905:** la segunda pasada encontró N1 (con la prueba de cadena sola, un Mac robado se quedaba con la cuenta) y N2
+  (cupos de correo). La tercera la da por **aprobable para H1**, con N3 a corregir en el texto antes de H2: el ladrón agota
+  los contadores compartidos; avisos que se pueden suprimir; cancelación con dos de tres factores.
+  - **Ojo:** DIRECTIVAS del 12-11 cambia el modelo a Firefox Accounts (sin aprobación entre Macs). Si ARQUITECTURA
+    reescribe, hay que revisar de nuevo: KDF de contraseña y ataque sin conexión con la base robada.
+- **#949** (parches WebGL del renderer, regla 17): 0002 apto sin condiciones; 0003, con la época de caché y d8.
+- **3.1.1:** inventario previo en `FlyWeb/docs/seguridad-3.1.1.md`. Hay un aviso programado para el 17-11 a las
+  21:13 UTC (`trig_0111Rpi5tiBPMgw4ehQQyhNj`): nota de la 158 → cerrar el inventario → series `seg/3.1.1` → prueba de
+  huella.
+
+- **3.1.1, serie previa (12-11 tarde):** `FlyWeb/seguridad/3.1.1/` (README con base, árbol y pruebas). Método que
+  funciona sin bajar Chromium entero:
+  - `git init` con dos remotos promisor (fork y upstream, `blob:none`); `fetch --depth=1` del fork y
+    `--shallow-since` de las etiquetas de upstream;
+  - cherry-pick con `git merge-tree --write-tree --merge-base=<c>^ <rama> <c>` y `commit-tree`;
+  - **nunca `write-tree` ni `read-tree` con índice**, que piden todos los blobs: para tocar un fichero, `mktree --missing`
+    por la ruta (`replace_path.sh`, en el scratchpad de la sesión).
+  - d8: en la nube falla por `gn` (el de apt es viejo y googlesource y CIPD están bloqueados). La hace D8-LINUX.
+
+**Lecciones:**
+- **«Sin commit público» no suele ser verdad:** el crbug se cierra, pero el cherry-pick a la rama estable sí es público.
+  Basta con comparar las etiquetas de la versión de la nota (`git fetch --filter=tree:0 --shallow-since=…` de dos tags)
+  para encontrarlo el mismo día.
+- El token de go-sync (`auth/auth.go`) firma solo la marca de tiempo: no sirve como prueba de posesión para nada nuevo.
+
 ## SEGURIDAD-PORTES-17 (`session_01MwmK2h23XGknphhFuuhWG7`, 03-11 → 05-11, relevada al 46 %)
 
 **Hecho:**
@@ -552,10 +730,64 @@ Trampas:
 - Un `[M156]` que «choca» en el primero de la lista puede ser el borde del clon.
 - `git log -- <ruta>` sobre un clon `tree:0` es lentísimo: buscar por mensaje.
 
-Pendiente:
-- **CVE-2026-121082** (parser de V8: 1aae39c, 7f9cb9e, 87fabc8). 1aae39c necesita de main el `else_found` de ConditionalChain y quitar `ValidateAsExpression` en `ParsePossibleDestructuringSubPattern`.
-- PDFium ×3, que comprueba LOCAL.
-- CVE-2026-121112, sin localizar.
-- **HiC:** si upstream lo pasa a `stable`, regla 19, y entonces hay que portar c8449108a0, bf298c5fc5, db4fe6fb90 y 63d3b40075.
-- Para la 3.0.2: volver a revisar la rama 8078 después de la .96 y las notas de la 157 siguientes.
+**Estado al relevo (09-11, ~32 % de contexto):** todo lo de la 3.0.1 está entregado y en main (#861, #862, #864, #871, #880).
+
+| Pieza | Dónde | Punta (ls-remote) |
+|---|---|---|
+| Chromium, 61 commits | fork `lamosquita-net/chromium` **`seg/3.0.1`** sobre `flynk-b1d` 33a1745949 (sin tocar); copia en `FlyWeb/seguridad/3.0.1/chromium/` | **c4b1caf806e2**, árbol 2723e1b371c |
+| ANGLE 12, ffmpeg 3, PDFium 3 | `.patch` en `FlyWeb/seguridad/3.0.1/` (no tienen fork accesible) | árboles d094abc / fd96f28 / 98a993d818 |
+| brave-core | `seg/3.0.1` (V8 b56fe9b, época 31, `kCanvasDrawElement` apagada) | **6415661d24** |
+| brave-core, parser | `seg/3.0.1-parser`, encima de la anterior (21 commits para CVE-2026-121082) | **bee89ad8a6** |
+
+- **Acceso:** Titín aprobó el 09-11 el `add_repo` de `lamosquita-net/chromium` (push) en esta sesión. La rama se sube desde un clon parcial (`--filter=blob:none`) con el remoto del fork, sin clonarlo entero.
+- **Medida de noviembre:** 79/93 = 85 % limpios (`seguridad-3.0.1.md` §7).
+
+Pendiente para la siguiente:
+- **mjsunit de MOTOR-30** con tres V8: 3.0.0, `seg/3.0.1` y `seg/3.0.1-parser`.
+  - Si la de parser no tiene caídas propias, la 3.0.1 sale de `seg/3.0.1-parser`.
+  - Si las tiene, CVE-2026-121082 pasa a la 3.0.2 y LOCAL usa `seg/3.0.1`.
+  - Lo decide COORDINACIÓN, ahora COORDINACIÓN-35 (`session_01MwmK2h9VVd6d8t4mGrtmzp`).
+- **3.0.2:**
+  - CVE-2026-121112 (Permissions, crbug 40063728): ningún commit de main lo cita;
+  - volver a revisar la rama 8078 después de la .96, las notas de la 157 siguientes y KEV;
+  - la medida de diciembre.
+- **HiC:** si upstream lo pasa a `stable`, se aplica la regla 19 y hay que portar c8449108a0, bf298c5fc5, db4fe6fb90 y 63d3b40075.
+- **Tras compilar LOCAL, comprobar en ejecución:**
+  - que `drawElementImage` no existe, tampoco con experimental web platform features;
+  - que la UA da 156.0.8078.96;
+  - el formulario de contraseñas: 31e05381bd se portó a mano.
+
+## 10. SEGURIDAD-PORTES-19 → 20 (09-11-2026, relevada al 43 %): encargo de la 3.0.2, sin empezar
+
+COORDINACIÓN-35 (`session_01MwmK2h9VVd6d8t4mGrtmzp`) lo encargó el 09-11. Lo fijó Titín en DIRECTIVAS (#888, puntos 4 y 9 de la lista de la 3.x). Hay que preparar la **propuesta de tanda en `FlyWeb/docs/seguridad-3.0.2.md`**; no se porta nada que dependa del mjsunit. Contenido:
+1. **Serie del parser** (`seg/3.0.1-parser` bee89ad8a6, §9 y `seguridad-3.0.1.md` §6). Depende del mjsunit de MOTOR-30 (tres V8). Con caídas propias hay que analizarlas; sin ellas, entra tal cual.
+2. **CVE-2026-121112** (Permissions, crbug 40063728): ningún commit de main cita el número. Buscar en las notas de la 157 siguientes y en `git log --grep` por palabras de Permissions; el bug puede ser antiguo, con otro id interno.
+3. **Apagar XSLT.** Antes hay que contar los CVE de libxslt y de `XSLTProcessor` de los últimos 24 meses (Chrome Releases, NVD y `third_party/libxslt` del fork).
+   - En la 3.0.1 ya entró un UAF de libxslt (2ad9b7f5a8, sin CVE publicado).
+   - Mecanismo: upstream lo está quitando (`XSLTProcessor` y XSLT del navegador detrás de una feature). Buscar el `base::Feature`/json5 de la 156 y apagarlo con `OVERRIDE_FEATURE_DEFAULT_STATES`, como `kCanvasDrawElement`, o con la política que tenga.
+4. **CORS en Background Fetch: ya está en la 3.0.1.** ed790a1a8e («Enforce CORS in Background Fetch») y 4519f82a82 son los parches `0041` y `0042` de la serie de Chromium (CVE-2026-121107 y -121174). Comprobar con `FlyWeb/docs/novedades-motor.md` §6.3 si se pide algo más que eso; si no, hay que decírselo a COORDINACIÓN.
+5. **BlockingFocusWithoutUserActivation** (§6.3 de `novedades-motor.md`): mirar si en la 156 es una feature de Blink y en qué estado está; encenderla, comprobando la compatibilidad con claude.ai.
+6. **`flyweb_bundle_version_base = "198.63"`** (brave-core `build/config.gni`). Es de versión, no de seguridad, pero va en la misma 3.0.2.
+7. Medida de diciembre: rama 8078 después de la .96, notas de la 157 siguientes y KEV.
+
+Entorno útil (todo se pierde con el contenedor; se rehace en minutos con §9):
+- un clon parcial de `chromium/chromium` con tags y main desde el 20-09;
+- el remoto del fork `lamosquita-net/chromium` (`add_repo` con push ya aprobado por Titín en la -19; la -20 tendrá que pedirlo de nuevo);
+- los espejos de V8, ANGLE, Dawn, CrabbyAvif y ffmpeg.
+
+## 11. SEGURIDAD-PORTES-20 (`session_01MwmK2kRbhaWsL8yMfFgtD8`, 09-11-2026): FS.43, la 3.0.2
+
+Entregada para compilar (`FlyWeb/docs/seguridad-3.0.2.md`): chromium `seg/3.0.2` 502e3c5b85 y brave-core `seg/3.0.2`
+0d6a771f23. Titín aprobó en esta sesión el `add_repo` de brave-core y chromium (push).
+
+Método nuevo, sin worktree ni checkout: `git merge-tree --write-tree --merge-base=C^ <base> C` + `commit-tree` (git 2.43)
+hace el cherry-pick de 3 vías y solo baja los blobs necesarios. `git grep` y `read-tree` en un clon `blob:none` son lentísimos
+(minutos): leer ficheros concretos con `git show`.
+
+Pendiente para la siguiente:
+- mjsunit del parser, ahora con la V8 15.6.75.51; si sale limpio, rebasar `seg/3.0.2` sobre `seg/3.0.1-parser`.
+- 460ab884005 (GC, `length.cc`, X) y la nota de la **158 estable (17-11)**: 3.0.3 y medida de diciembre.
+- CVE-2026-121112: revisar cuando se abra el crbug 40063728.
+- Propuesta a Titín: WebUSB y Web Serial, como WebHID.
+- Comprobaciones en ejecución de LOCAL: README de `FlyWeb/seguridad/3.0.2/` y las de §9 (UA ahora .98 en `chrome/VERSION`).
 

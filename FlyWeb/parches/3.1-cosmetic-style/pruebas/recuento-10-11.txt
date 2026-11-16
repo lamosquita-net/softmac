@@ -1,0 +1,39 @@
+default: misc_generic=559 with [style] bucket=23
+E99CBD02-FFD1-4651-9BDD-6A9ED7B87819: misc_generic=87 with [style] bucket=7
+AC023D22-AE88-4060-A978-4FEEEC4221693: misc_generic=450 with [style] bucket=1
+2F3DCE16-A19A-493C-A88F-2E110FBD37D6: misc_generic=6 with [style] bucket=0
+AE657374-1851-4DC4-892B-9212B13B15A7: misc_generic=20 with [style] bucket=0
+1FEAF960-F377-11E8-8EB2-F2801F1B9FD1: misc_generic=5 with [style] bucket=0
+TOTAL distinct [style]-bucket generic selectors: 24
+
+default	filters-2022.txt	gen	[style^="position: fixed; inset: 0px; z-index: 2147483647; background-color: transparent; pointer-events: auto; cursor: auto; margin: 0px; padding: 0px; display: block;"]
+default	filters-2021.txt	gen	a[dontfo=""][style$="position: absolute; z-index: 2147483647;"]
+default	easylist.txt	gen	a[style="width:100%;height:100%;z-index:10000000000000000;position:absolute;top:0;left:0;"]
+default	filters-general.txt	gen	body > div[style$="z-index: 2147483647; top: 0px; left: 0px; position: fixed; display: block;"]
+default	filters-general.txt	gen	body > div[style="position: fixed; inset: 0px; z-index: 2147483647; background: transparent; cursor: pointer;"]
+default	badware.txt	gen	div.grid[aria-hidden="true"]:not([id]):not([style]) + main:not([class]):not([id]):not([style]) ~ div[style="position: fixed; inset: 0px; z-index: 2147483647;"]:not([class]):not([id])
+default	quick-fixes.txt	neg	div[id][class][style^="display"][style*="hidden"][style*="width:   "]
+default	filters-2020.txt	gen	div[id][style^="position: fixed; inset: 0px; z-index: 2147483647; background: black"][style*="opacity: 0.01"]
+default	easylist.txt	gen	div[id^="crt-"][style]
+default	easylist.txt	gen	div[id^="st"][style^="z-index: 999999999;"]
+default	brave-unbreak.txt	gen	div[style*="box-shadow: rgb(136, 136, 136) 0px 0px 12px; color: "]
+default	filters-2022.txt	gen	div[style="position: fixed; display: block; width: 100%; height: 100%; inset: 0px; background-color: rgba(0, 0, 0, 0); z-index: 300000;"]
+default	filters-general.txt	gen	div[style="position: fixed; inset: 0px; z-index: 2147483647; pointer-events: auto;"]
+default	filters-general.txt	gen	div[style="top: 0px; left: 0px; width: 1287px; height: 500px; position: fixed; z-index: 2147483647;"]
+default	quick-fixes.txt	neg	div[style^="height:    250px; width:    300px;"]
+default	filters-2023.txt	gen	div[style^="position: fixed; inset: 0px; z-index: 2147483647; background: black; opacity: 0.01"]
+default	filters-2023.txt	gen	div[style^="position:fixed;inset:0px;z-index:2147483647;background:black;opacity:0.01"]
+default	quick-fixes.txt	neg	div[style^="width:    160px; height:    600px; margin: 0px auto; min-width: 160px; min-height: 600px;"]
+default	quick-fixes.txt	neg	div[style^="width:    300px; height:    250px;"]
+default	filters-2024.txt	gen	figure.movie-detail-banner div[style="position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; z-index: 999; cursor: pointer;"]
+default	easylist.txt	gen	iframe[scrolling="no"][sandbox*="allow-popups allow-modals"][style^="width: 100%; height: 100%; border: none;"]
+default	quick-fixes.txt	neg	ins[id][style*="--gn-ov-ad-height"]
+default	quick-fixes.txt	neg	ins[style$="height:    90px; width:    728px;"]
+E99CBD02	brave-firstparty.txt	gen	div[style*="box-shadow: rgb(136, 136, 136) 0px 0px 12px; color: "]
+E99CBD02	brave-firstparty.txt	gen	div[style="position: fixed; display: block; width: 100%; height: 100%; inset: 0px; background-color: rgba(0, 0, 0, 0); z-index: 300000;"]
+E99CBD02	brave-firstparty.txt	gen	div[style="position: fixed; inset: 0px; z-index: 2147483647; pointer-events: auto;"]
+E99CBD02	brave-firstparty.txt	gen	div[style="top: 0px; left: 0px; width: 1287px; height: 500px; position: fixed; z-index: 2147483647;"]
+E99CBD02	brave-firstparty.txt	gen	div[style^="position: fixed; inset: 0px; z-index: 2147483647; background: black; opacity: 0.01"]
+E99CBD02	brave-firstparty.txt	gen	div[style^="position:fixed;inset:0;z-index:2147483647;background:black;opacity:0.01"]
+E99CBD02	brave-firstparty.txt	gen	div[style^="position:fixed;inset:0px;z-index:2147483647;background:black;opacity:0.01"]
+AC023D22	fanboy-cookiemonster_ubo.txt	gen	div[style*="box-shadow: rgb(136, 136, 136) 0px 0px 12px; color: "]

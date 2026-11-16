@@ -7,6 +7,444 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 14-11 (tarde): COORDINACIÓN-42 → COORDINACIÓN-43 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-42 (`session_01MwmK2iRNzVTcBF92tmevxX`, 14-11 00:00 → ~13:40 UTC; Opus 5.5 medio; abierta por la 41,
+linaje 2; relevo al 51 %). La 43 la abre la 42. **Nunca llamar a confirm_repository_trust.** `update_trigger` sobre la rutina
+de SEGURIDAD-VIGÍA lo deniega el clasificador; sobre los avisos propios funciona.
+
+**Decisiones de Titín de hoy (en `docs/DIRECTIVAS.md`):** respaldo GL en la 3.1.2 (#994); «error 11» en la 3.1.2 (#998);
+**3.1.2 ya, la 158 en una 3.1.3** solo de seguridad, salvo que la 3.2.0 llegue antes (#1000). Remitente de la cuenta:
+`noreplyflyweb@lamosquita.net` (alias de Titín en Google, con un filtro a una carpeta). La sync de la 3.2 avanza en paralelo.
+
+**3.1.2 (build 45 = 198.63.45, chromium 156.0.8078.105).** CONTENIDO cerrado por SEGURIDAD-PORTES-23 (#985, #1006, #1007):
+seguridad .105 (chromium 0001–0010, PDFium 8b21800ddb, Skia 4c5f57e4fa) + GL 0001–0005 + brave-core 0001–0003 (versión,
+error 11, package.json). Árboles: chromium 8abc877c10, brave-core da680a3270. LOCAL-19 **compila desde ~13:25 UTC**
+(~3,5 h; `out/Release`, rama local/312 y local/3.1.2) y tiene el **visto bueno para entregar** por la regla 11 tras las
+pruebas (6,1 con ventana real: Metal, Google/error 11; MBP9,1: GL; otool). ANGLE (bc2ebdd211 = árbol 099b621f10) y
+FFmpeg (a15fcf87d2) quedan como en la 3.1.1 publicada (los gitlinks de seg/3.1.1 no lo reflejaban); SEGURIDAD confirmó
+su APTO GL con el ANGLE real. Después: PUBLICACIÓN firma (orden a Titín en bak), sube y fusiona su PR de la web.
+G-C2 cerrada (reposo repetido con pmset; monitor externo, prueba posterior). Pendiente sin bloquear: Air 2013, mini 2012,
+5,1 NVIDIA (si no, que lo diga la nota de la versión).
+
+**3.1.3:** la 158 (aviso propio `trig_01SuLRxh9MAaZKqCTYbea2B6`, 17-11 21:15 UTC, ya dice 3.1.3); primer parche fija gitlinks
+y DEPS de ANGLE bc2ebdd211, FFmpeg a15fcf87d2 y Dawn (+68b5c1f3f y 8bc8ddaf2, cherry-pick -x sobre 31316d1c); antes, subir
+esos commits a un remoto que gclient baje. Si 576333024 vuelve a la V8 15.6. Aviso `trig_01JJuex23HgpYZFRABHcySBs` 17-11
+21:30 UTC: parte B del informe 2 a INVESTIGACIÓN-MOTOR-10.
+
+**Sync 3.2.** Servidor H2 **instalado y expuesto** en ns2 (CAMBIOS #1001, #1002; vhost `/cuenta/v1` #999 con QSD, 64 KiB,
+sin freno por IP por decisión de SEGURIDAD: si salta «cuenta: tope de correos alcanzado» a menudo, mod_qos solo en /alta).
+Credenciales 67 B (correcto). Falta: **prueba de envío** (Titín da la dirección a SERVIDOR-LOCAL en su chat; mirar SPF,
+DKIM y DMARC en pass) y **copia de seguridad** (propuesta de SERVIDOR-LOCAL en entregas, rehecha con las condiciones de
+SEGURIDAD: `sync.db` con age/gpg asimétrico, privada con Titín; credenciales y DKIM aparte con --symmetric; restauración
+de prueba; nota RGPD de 30 días para CONTENIDOS-WEB). Pásala por SEGURIDAD-PORTES y luego a Titín. Recomendado a Titín:
+que la rotación borre sola (no `viejas/`). Titín no ha dicho aún cómo recoge bak las copias de ns2.
+Cliente: parches 0001–0008 en main (#1003 0007 arreglos de compilación, APTO; #1005 0008 VLOG del tiempo de derivación).
+Preliminar compila y arranca; capturas a Titín (pendiente su opinión). AccountCryptoTest 9/9 en la 7,1 (scrypt 2^17 =
+348 ms); en la 6,1 brave_unit_tests no arranca por GL. **Después de la 3.1.2:** LOCAL-19 recompila con 0001–0008 limpio y
+prueba contra ns2 (cuenta de prueba, medir «key derivation ok in N ms» en 7,1/6,1/5,1). Si la 5,1 pasa de ~2 s, a
+SEGURIDAD-PORTES antes de tocar kScryptN. **Titín entrega el lunes 17-11 su diseño** (pantalla privada, pestañas, páginas
+que faltaban): repartir a MOTOR para la 3.2.0.
+
+**Sesiones.** Nube: SEGURIDAD-PORTES-23 `session_01MwmK2ihLC48xJinz4Li6Jv`, MOTOR-46 `session_01MwmK2juPkbC58kEi4QFeyU`
+(quieto hasta la prueba contra ns2 o el diseño), INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG`,
+SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS` (le mandé la base 3.1.1 porque su rutina habla de la 2.0.x; con la
+3.1.2 publicada, mándale 156.0.8078.105). COORDINACIÓN-41 quieta (archivar). Locales por bridge hacia la nube y por buzón
+hacia ellas: LOCAL-19, SERVIDOR-LOCAL-3, ARQUITECTURA (veredicto GL firme; estudio #995–#997).
+
+**Pendiente de Titín:** dirección de prueba a SERVIDOR-LOCAL; cómo recoge bak; borrar o `viejas/`; opinión de las capturas
+de la sync; diseño del lunes; firma en bak de la 3.1.2; si un nombre de máquina que usa LOCAL-19 en la rama buzon es de
+una persona (le pregunté; sin respuesta; no repetirlo en el repo).
+
+**Lecciones.** Una prueba «pasada» sin rastro en los registros no vale (reposo de 2 s): cruzar horas con pmset. Revisar
+que los gitlinks reflejen lo publicado.
+
+## 14-11 (madrugada): COORDINACIÓN-41 → COORDINACIÓN-42
+
+COORDINACIÓN-41 (`session_01MwmK2gzdSTH5uLSVSsrNNd`, 13-11 13:45 → 14-11 ~00:00 UTC; Opus 5.5 medio; abierta por Titín,
+linaje 1; relevo al 44 %). La 42 la abre la 41 (linaje 2): puede abrir sesiones y programarse avisos. **Nunca llamar a
+confirm_repository_trust.** Directivas nuevas del 13-11 en `docs/DIRECTIVAS.md`: «Contenido de la 3.2.0 cerrado» (solo
+«Combinar»), «3.1.2 antes de la 3.2.0», «FlyWeb también innova», «Plataformas» (+ iOS antes que Windows, 14-11). Regla 11
+cambiada: **PUBLICACIÓN fusiona su propio PR de la web** tras verificar el appcast.
+
+**Canales.** Las locales SÍ escriben a la nube por bridge (LOCAL-19, PUBLICACIÓN, SERVIDOR-LOCAL y ARQUITECTURA lo hacen);
+a ellas solo por buzón con `[coord]`. ARQUITECTURA antes avisaba solo con comentarios en el PR (su send_message a la nube
+fallaba): ya avisa por mensaje. **Si alguien dice que entregó y no llegó nada, mirar los PR abiertos.** Las locales en
+reposo no procesan el buzón hasta que Titín las despierta; Titín a veces les da órdenes directas: preguntarle una línea.
+
+**Hitos del 13-11.**
+- **3.1.1 publicada del todo** (build 44, 198.63.44; firma en bak, appcast verificado, web #976; registro #979).
+  Catalina: arranca y «funciona mejor» (Titín); falta solo guardar con el selector en ~/LIBRARY.
+- **Sync 3.2:** servidor #977 y cliente #981 **fusionados con APTO** de SEGURIDAD-PORTES-23 (C1 secreto por aparato,
+  C2 contador, C4 FIFO; K1–K3). Binario en la release `flyweb-sync` (f988e2f, SHA-256 1a836217…cc2a).
+  **Instalación en ns2 (H2):** script `instalar-como-root.sh` revisado por la 41 (SHA 7efbfc4a…bd3e23, copia en
+  `buzon/COORDINACION/`). Titín ejecuta en ns2 **una sola vez** `sudo bash /home/servidor/sync-h2/instalar-como-root.sh
+  binario`; luego SERVIDOR-LOCAL edita la unidad (ESPERAS_MAX=400000, SCRYPT_A_LA_VEZ=8, cola 32, MemoryMax=1G; aprobados
+  por SEGURIDAD) y pide a Titín `credenciales`. Pendiente: copia fuera de línea de las credenciales (propuesta de
+  SERVIDOR-LOCAL → Titín) antes de abrir la sync a otros. Cliente: compilar cuando la 3.1 esté medida (**no confirmado**) y
+  capturas para Titín (página nueva y dos textos nuevos).
+- **3.1.2** (PR #985, borrador, SEGURIDAD-PORTES-23): V8 .59 **retirada** (la .60 la revierte; se queda la .58); KEV 0
+  nuevos. Falta el delta de la 158 (17-11). **Candidato: respaldo OpenGL de ANGLE** para Mac 2012–2015 en 10.14/10.15
+  (#982, `FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005; 5,9 fps por software frente a 59,9 con GL en la 2.7.0). SEGURIDAD:
+  **APTO con condiciones** (G-C1 cuatro arreglos de ANGLE en `FlyWeb/seguridad/3.1.2/angle/`, como en la 3.0.1; G-C2
+  pruebas en el MBP9,1, buzón LOCAL 0005; G-C3 avisado a SEGURIDAD-VIGÍA). **Falta lo decisivo:** que la preliminar de
+  LOCAL-19 (`local/311-gl-reserva`) pinte; la compilación conservada de B1c abortaba con GL en la 6,1. Titín: si está en
+  verde a tiempo entra en la 3.1.2; si no, la 3.1.2 sale solo con seguridad y GL va en una 3.1.3. **Titín pidió aviso
+  cuando LOCAL tenga la preliminar.**
+- **«Continuar con Google» / error 11** (no regresión: ya en la 3.0 en la 6,1): sin sesión de Google, la emergente falla y
+  la pestaña muestra «error 11», probablemente caída del renderer (SIGSEGV). LOCAL-19: buzón 2125 y 2135 (informes de
+  caída primero, reproducir sin CDP, comparar con Brave y Chrome 156). Después de lo de GL. No para la 3.2.0.
+- Informe 2 parte A de estándares fusionado (#986). Titín aún no ha marcado la lista §7 (recomendación de la 41: 1, 2 y 5
+  ya; 3 tras la 3.1.2; 4 cuando haya hueco). Entorno de la nube abierto a webkit.org, MDN, mozilla, web.dev, WHATWG,
+  CSSWG, W3C y tc39.es.
+- Plataformas: estudio #989 fusionado. Orden de Titín: 3.2 → fábrica de Mac → Ubuntu → Android → iOS → Windows.
+- BackupDrive: no quitar FreeFileSync aún. Titín abre BACKUPDRIVE-4 (local) con el texto que le dio la 41; tanda de
+  pruebas y veredicto.
+
+**Sesiones.** Nube: SEGURIDAD-PORTES-23 `session_01MwmK2ihLC48xJinz4Li6Jv` (3.1.2, 158 el 17-11), INVESTIGACIÓN-MOTOR-10
+`session_01MwmK2m3DpZgC8k7wAabHHG` (parte B el 17-11; quieta), MOTOR-46 `session_01MwmK2juPkbC58kEi4QFeyU` (quieto),
+SYNC-NUBE-1 `session_01MwmK2kqPRtZ2aYJJ9Tx1kX` (quieta), SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`. Archivadas:
+MOTOR-45, INVESTIGACIÓN-MOTOR-9, SEGURIDAD-PORTES-22. COORDINACIÓN-40 quieta (archivar).
+
+**Avisos programados en la 41 (borrarlos cuando la 42 programe los suyos):** `trig_012R4cSXa52CaFUVLW46shDB` (17-11 21:15:
+mandar a SEGURIDAD-PORTES-23 el delta de la 158) y `trig_01P8hhFP56wmrbLU17WZibji` (17-11 21:30: parte B a
+INVESTIGACIÓN-MOTOR-10).
+
+**Pendiente de Titín:** pegar `binario` en ns2 y después `credenciales` cuando lo pida SERVIDOR-LOCAL; lista §7;
+cerrar PR viejos (#943, #865, #832, #560, #512, #467, #456; no contestado); prueba FSA en ~/LIBRARY; abrir BACKUPDRIVE-4.
+
+**Lecciones.** Mi decisión S3 era falsificable y la cazó SEGURIDAD: las decisiones de seguridad que tome COORDINACIÓN
+pasan siempre por SEGURIDAD-PORTES. No ofrecer a Titín pasos que deberían hacer los agentes (le molestó tener que fusionar).
+
+## 13-11 (tarde): COORDINACIÓN-40 → COORDINACIÓN-41 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-40 (`session_01MwmK2iSWxzb4yvKWQc6eJC`, 12-11 18:50 → 13-11 ~13:45 UTC; Opus 5.5 medio; linaje 7 de 8;
+relevo al 37 %). **La 41 la abre Titín desde claude.ai**: el linaje vuelve a 1 y puede abrir sesiones y programarse avisos
+otra vez. **Nunca llamar a confirm_repository_trust.**
+
+**Canales:** las locales (LOCAL-19, LOCAL-21, PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA, cartero) nos escriben por bridge,
+pero no se les puede escribir por send_message (401/untrusted device): buzón con `[coord]`. **D8-LINUX («motor ubuntu (4)»,
+`session_01MwmK2jroj3oTQj5G1QKnyt`) no lo alcanza el cartero:** sus encargos van en el buzón y Titín se los pega. El cartero
+pide a Titín confirmar cada relevo de COORDINACIÓN: pídeselo en el primer mensaje (texto en la nota de la 39 → 40).
+Nube: SEGURIDAD-PORTES-22 `session_01MwmK2gyj8BaukttCj4uahG` (relevada al 56 %, nota «22 → 23», quieta; archivarla cuando
+la -23 esté activa), MOTOR-45 `session_01MwmK2kdamTiZHb5S9SwNW7` (quieta, nota al día), SEGURIDAD-PORTES-21 (archivar),
+SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS` (Haiku, diaria).
+
+**Hitos (todo comprobado):**
+- **3.1.1 compilada y entregada** (FS.44, #971/#972; build 44, 198.63.44, 156.0.8078.104, V8 .58; brave-core `local/3.1.1`
+  3e2c12fad57, chromium `seg/3.1.1` 9e0d83137f, ls-remote). Contenido en `FlyWeb/seguridad/3.1.1/CONTENIDO.md` (#966–#970):
+  34 + 9 (.104) parches de seguridad, Catalina 0001–0004 (#957), choque con `navigation_request.cc` de Brave resuelto y
+  APTO (SEGURIDAD-22). 7,1 y 6,1 en verde. Sin la 158 y sin la V8 .59 (DIRECTIVAS #965).
+  **Parada en la notarización:** Apple pide aceptar un acuerdo nuevo en la cuenta de desarrollador (MQ3NJ73LC5). Solo
+  Titín. Avisado. Cuando lo acepte, PUBLICACIÓN termina sola (ya tiene orden de publicar sin esperar a Catalina,
+  `buzon/PUBLICACION/…-311-publica.md`) y le manda a Titín la firma en bak.
+- **Catalina:** la 3.0.x/3.1.0 no arrancaba (CGPreflightScreenCaptureAccess). Arreglo de MOTOR-45 (#957). LOCAL vio que esos
+  importes ya eran débiles en la 3.1.0 (el README de MOTOR decía fuertes): el arreglo vale igual (las guardas evitan la
+  llamada), pero **solo la prueba de Titín en el Mac mini y el MBP 2012 lo cierra**, más FSA en `~/LIBRARY` a mano.
+- **V8 .59:** d8/mjsunit en verde (#969); parche listo en `FlyWeb/seguridad/3.1.1/v8-15.6.75.59/`. Va con la 158.
+- **Sync 3.2:** Titín simplificó (DIRECTIVAS #962: sin bloqueo, contraseña obligatoria, sin código visible, 14 días, bak a
+  30 días, sin E) y **aprobó H1** (13-11, #965). Diseño en `arquitectura/sync-cuenta` (#905, abierto). Falta que ARQUITECTURA
+  corrija **N6** (tabla de esperas: no descartar entradas activas) → entonces fusionar #905; sigue H2.
+- **Directiva «Flink a nuestro ritmo»** (#963). **Aquarium 15k en la 6,1 bimodal** (#972: ~41 fps con renderer al 100 % o
+  55–57 con `CrGpuMain` al 90 %); hipótesis de colocación de hilos pasada a ARQUITECTURA (buzón 13-11).
+
+**Abierto (por orden):**
+1. **3.1.1:** acuerdo de Apple (Titín) → PUBLICACIÓN → firma en bak (Titín) → prueba en Catalina (Titín) → registro.
+2. **17-11 (Chrome 158 estable):** abrir **SEGURIDAD-PORTES-23** (Opus 5.5, alto): delta de la 158 + KEV sobre
+   `seg/3.1.1`/`local/3.1.1` + V8 .59 ya preparada + comprobar N6. **Titín decide** si sale como 3.1.2 solo de seguridad o en
+   la 3.2.0. Si la V8 cambia, otra pasada de d8 en el Ubuntu (Titín la pega). Archivar SEGURIDAD-22.
+3. **17-11:** abrir **INVESTIGACIÓN-MOTOR-10**, informe 2 de `novedades-motor.md` con sección nueva de Firefox/Safari y de
+   navegadores que mantienen macOS viejos (aprobado por Titín).
+4. Sync: N6 → fusionar #905 → H2 de ARQUITECTURA. Multihilo: después de la 3.2 (#949 primero; P2 con página real).
+5. PR viejos abiertos (#943, #865, #832, #560, #512, #467, #456): proponer a Titín cerrarlos.
+
+**Avisos programados en la 40 (se borran cuando la 41 programe los suyos):** `trig_01CBYXUz1o8M8DSgWnK9wgPW` (17-11 21:15,
+SEGURIDAD-23) y `trig_01Q8zPxgVM9RE6N8YVJsq6Tw` (17-11 21:30, INVESTIGACIÓN-MOTOR-10). **La 41 programa los suyos y avisa a
+la 40 para que los borre.**
+
+**Lecciones:** Titín quiere menos casos extremos y más sencillez (sync); si algo para la versión sin motivo, se dice y se
+mueve (la 3.1.1 salió sin esperar a la 158). Cruzar siempre los `patches/` de brave-core con una serie de seguridad antes
+de cerrar CONTENIDO. No mandar a Titín avisos de rutina.
+
+## 12-11 (tarde): COORDINACIÓN-39 → COORDINACIÓN-40 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-39 (`session_01MwmK2mJmxGn5H9FT1kg9Bo`, 10-11 21:25 → 12-11 ~18:50 UTC; Opus 5.5 medio; abierta por la 38,
+linaje 6 de 8; relevo al 35 %). La 40 la abre la 39 (linaje 7 de 8: **las sesiones que abra la 40 serán las últimas
+del linaje**; la 41 tendrá que abrirla Titín o una sesión de linaje bajo). **Nunca llamar a confirm_repository_trust.**
+
+**Canales:** las locales (LOCAL-19, LOCAL-21, PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA, cartero) nos escriben por
+bridge, pero no se les puede escribir por send_message: buzón con `[coord]` y, si importa, texto para que Titín lo
+pegue. **Cartero:** Titín lo relevó (12-11) y le pegó la confirmación de la 39 con orden de **no reenviar** los
+ficheros de la 39 hasta `20261112-1733` (pegados a mano o superados) y entregar los nuevos. Comprobar en
+`ENTREGADO.md` que acepta a la 40 (lección de la 37: si exige a Titín, pedírselo en el primer mensaje).
+Nube activa: SEGURIDAD-PORTES-21 `session_01MwmK2iSJ4qGU8EyNDJhUH3` (linaje 7), MOTOR-45 `session_01MwmK2kdamTiZHb5S9SwNW7`
+(linaje 7, sin encargo tras #949), SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS` (Haiku, diaria).
+
+**Hitos (todo comprobado):**
+- **3.1.0 PUBLICADA y cerrada** (198.63.43; brave-core `local/3.1` fc9389773fe; DMG 37a81396…fcb28; #935, #938 web por
+  web-auto, #952 registro). 7,1 y 6,1 en verde. MotionMark 7,1 frente a Brave: 3560 / 3167 (Titín).
+- **Maglev en la 5,1:** +9,4 % en Speedometer y JetStream, 0 caídas (`rendimiento-3x.md` §3 bis, #950). Se queda.
+  Guion `FlyWeb/tools/prueba-51/` arreglado (#945; kit v3 en /pruebas/). Los .txt llevan datos de la cuenta: no al repo.
+- **CVE-2026-125350/-125346 (XML, en la naturaleza):** ya corregidas en la 3.0.1 (parche 0034) (#937).
+- **Versiones (DIRECTIVAS #948):** no hay 3.0.2; la seguridad de Chrome 158 es la **3.1.1**, sin esperar a la 3.2.0. Se
+  sigue declarando 156; prueba de huella de Chrome 156 en la 3.1.1.
+- **3.1.1:** serie previa en main (#951, `FlyWeb/seguridad/3.1.1/`, 34 parches sobre seg/3.0.2 502e3c5b85, árbol
+  3d9092e4e3; V8 .51→.58, Skia, 21 [M156], 4 [M157]). SEGURIDAD-PORTES-21 añade el delta de la 158 y el KEV el 17-11.
+- **Sync de la 3.2 (#905):** tres pasadas de SEGURIDAD (aprobable para H1), pero **Titín cambió el modelo el 12-11**
+  (DIRECTIVAS #947, #948): Firefox Accounts, sin aprobación entre Macs, borrado 14 días, sin tope diario (aviso por
+  email), Mac = modelo + nombre, bak cifrada 30 días, legal con plantillas sin datos personales. ARQUITECTURA (Fable 5.2)
+  lo rehace con `buzon/ARQUITECTURA/20261112-1017-…`, `…-14dias`, `…-1054-…-fxa-seguridad` (pegados por Titín).
+- **Multihilo/multiGPU (#941, #946; DIRECTIVAS #944):** E1/M1/M2 **después de la 3.2**. Parches del renderer de WebGL
+  de MOTOR-45 en `FlyWeb/parches/3.2-renderer-webgl/` (#949; SEGURIDAD: 0002 apto; 0003 con d8 en verde). Basemark en
+  `pruebas-gpu.md` (#942).
+
+**Abierto (por orden):**
+1. **3.1.1:** d8/mjsunit con Maglev en el Ubuntu (`buzon/D8-LINUX/20261112-1750-…`; la sesión del Ubuntu está caída:
+   Titín tiene que abrirla) → 17-11 delta de la 158 (SEGURIDAD-PORTES-21) → orden de compilar a LOCAL-19 (cerrar antes
+   el contenido; pruebas: navegación de 0030/0031 —popups, about:blank/srcdoc, file://, claude.ai—, FSA, huella 156,
+   lo habitual en 7,1 y 6,1) → ls-remote → PUBLICACIÓN → firma en bak.
+2. Sync: diseño nuevo de ARQUITECTURA → SEGURIDAD-PORTES-21 (KDF, separar clave de autenticación y de envoltura,
+   cambio de contraseña, Mac robado) → Titín.
+3. Después de la 3.2: E1/M1/M2 con los parches de #949.
+4. FlyHand (Titín). PR viejos abiertos (#943 superado por #945, #865, #832, #560, #512, #467, #456): proponer a Titín
+   cerrarlos.
+
+**Lecciones:** la web la publica web-auto (no pedir subidas a mano a PUBLICACIÓN); antes de dar un resultado de la 5,1
+por bueno, mirar las líneas por pasada (el resumen del kit v2 fallaba); Titín numera sus respuestas a su manera: casar
+cada una con la pregunta antes de transmitirla.
+
+## 10-11 (noche): COORDINACIÓN-38 → COORDINACIÓN-39 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-38 (`session_01MwmK2hsPeczzmEjVZHW81X`, 10-11 08:50 → ~21:30 UTC; Opus 5.5 medio; abierta por la 37, linaje 5
+de 8; relevo al 33 %). La 39 la abre la 38 (linaje 6 de 8). **Nunca llamar a confirm_repository_trust.**
+
+**Canales:** a las sesiones locales (LOCAL-19, LOCAL-21, PUBLICACIÓN, cartero…) no se les puede escribir por send_message.
+El cartero se paró dos veces hoy (sin anotar desde las ~13:01 UTC salvo tandas sueltas): **lo práctico es darle a Titín el
+texto para pegar**, además del fichero de buzón con `[coord]` en el commit (el cartero retiene relevos sin `[coord]`).
+Las locales sí nos escriben. Borrar ramas remotas: el proxy de git da 403 (no se puede desde la nube); las 171 ramas
+`claude/coord*` (148 con historial anterior a la reescritura de main, ninguna en PR abierto) las borra Titín en GitHub.
+
+**Hitos del día:**
+- **3.0.1 PUBLICADA y cerrada** (build 42, 198.63.42; DMG 5432bb3c…; #910, #913/#915 web, #914/#917 registro). Sparkle
+  3.0.0 → 3.0.1 en la 6,1 bien; claude.ai bien en 7,1 y 6,1 (con y sin sesión). El fallo de §3.5 de `rendimiento-3x.md`
+  (CDP en la 6,1 tras Maps) **no se reproduce a mano**: tratado como de la automatización.
+- **MotionMark explicado:** reglas genéricas `[style…]` de Escudos obligan a Blink a serializar `style` (Brave pierde igual,
+  `comparativa-71.md`). Parche `FlyWeb/parches/3.1-cosmetic-style/` (#921): MotionMark +12 %, Multiply +84 %, bloqueo igual
+  (#929). Maglev: 7,1 +8,2 %, 6,1 +6,8/+6,6 %, sin caídas (#930); AVX: Maglev 0, V8 con despacho (#931).
+- **Candidata 3.1** (LOCAL-21, #916/#922): t4 = Aquarium 10k a 60 fps, 15k +3–10 %, texturas 69/69. El cuello pasa del hilo
+  de GPU (57–65 %) al renderer (100 %): **multihilo/multiGPU no suben Aquarium hoy** (respuesta dada a Titín).
+- Favicons con la mosca (Chrome en NTP, Chromium en version) en `3.1-favicons` (#926).
+- **Contenido 3.1 cerrado** (DIRECTIVAS #928 + #932, Titín «apruebo todo»): ANGLE 0001–0004, NTP privada 0004+0005,
+  favicons, Escudos, **Maglev encendido** (la 5,1 se mide después de publicar, no bloquea). Diseño de privada y pestañas
+  ligeras de Titín → 3.2 (capturas en `entregas/local21/diseno-32/`; la privada no tiene versión clara).
+- **Orden de compilar la 3.1.0** (build 43) dada a LOCAL-19 (~19:15 UTC, buzón `…-1915-…-compilar-31.md` y pegada por
+  Titín): rama `local/3.1`, pruebas por paso, entrega → PUBLICACIÓN; objetivo publicar el 11-11 por la mañana. Y guion de
+  la 5,1 que use la FlyWeb instalada y el perfil de quien la use, en `FlyWeb/tools/prueba-51/`, sin Python 3.
+- MOTOR-43 y MOTOR-44 relevados (notas en `relevo-motor.md`, #920 y #927). **MOTOR-45 sin abrir:** abrirlo con el texto de
+  la nota de MOTOR-44 cuando haya algo (fallo de compilación de la 3.1, `chrome://history`, Speedometer −5 %).
+
+**Abierto (por orden):**
+1. Entrega de la 3.1.0 de LOCAL-19 → ls-remote de los hashes → PUBLICACIÓN → orden de firma en bak a Titín.
+2. `chrome://history`: `getSearchField is not a function` (visto con la t4; LOCAL-19 dice si pasa en la 3.0.1).
+3. Guion de la 5,1 → enlace a Titín → TXT → si pierde con Maglev, estudiar para la 3.2.
+4. Diseño de sync de la 3.2: PR #905 de ARQUITECTURA abierto → revisión de SEGURIDAD → Titín.
+5. 3.0.2 (158 estable, 17-11). 6. FlyHand: Titín lo retoma (la 6,1 libre). 7. Cartero: revisar con Titín por qué se para.
+
+**Lecciones:** no pedir medidas que ya existen (pedí un Brave que estaba en `comparativa-71.md`); antes de dar un fallo por
+real, que Titín lo pruebe a mano; un PR fusionado mientras el agente sube otro commit deja ese commit fuera (#923/#924).
+
+## 10-11 (mañana): COORDINACIÓN-37 → COORDINACIÓN-38 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-37 (`session_01MwmK2huBYmy6zVGdznUAdg`, 09-11 23:09 → 10-11 ~09:00 UTC; Opus 5.5 medio; abierta por la 36,
+linaje 4 de 8; relevo al 33 %: cada despertar recarga muchas herramientas). La 38 la abre la 37 (linaje 5 de 8).
+**Nunca llamar a confirm_repository_trust.**
+
+**Bloqueo principal: el cartero retiene todo lo de la 37** (`buzon/ENTREGADO.md`, «retenido … espera confirmación del
+humano»; las pruebas en `main` —#907, #908— no le bastan, y hace bien). Ninguna orden de la 37 llegó a las locales. Titín
+tiene que confirmar el relevo **a la 38** pegando al cartero una línea con el id de la 38 (la 38 se la da). Los 8 ficheros
+retenidos de la 37 (`*-2309-COORDINACION-37-relevo.md`, `LOCAL/*-2310-…-hito0-ventana.md`, `CARTERO-LOCAL/*-2328-…`) ya
+no hace falta entregarlos: la 38 manda los suyos.
+
+**Hechos (todo comprobado):**
+- **3.0.1 sin 0004:** brave-core `local/3.0.1` = **77ae53e5f6** (ls-remote; revert del 0004 hecho por LOCAL-19 a las
+  23:03 UTC sobre 2ebd2e0). **No entregada en FS.42**; no se sabe si está compilada y probada.
+- **Candidata 3.1:** `local/3.1-candidata` = **b6c544471e** (77ae53e + 0004 reaplicado + 0005). LOCAL-19 entregó las cuatro
+  tandas (t1 = ANGLE 0001 … t4 = +0004). LOCAL-21: referencia de la 3.0.0 en la 6,1 hecha (texturas 69/69, Aquarium, NTP,
+  three.js); la t1 bloqueada por LuLu en la 6,1 desde las 05:04 UTC. Titín (~08:00 UTC): en la 6,1 no ve aviso de LuLu; en
+  la 7,1 sí y los aprobó → que LOCAL-21 relance la t1.
+- **Hito 0 en la 7,1** (#909, fusionado): sin ventana (Titín trabaja en la 7,1), Chrome 157 (no 156): MotionMark −14,7 %
+  (Multiply −48 %, Leaves −24 %, Suits −22 %: transformaciones CSS y SVG, no WebGL), Speedometer −13,1 %, JetStream −7,4 %,
+  Aquarium 15k −5,3 %. Pendiente: repetir con una Chrome 156 y perfilar Multiply/Leaves/Suits. Lo gráfico con ventana, en
+  la 6,1 o con la 7,1 libre.
+- MOTOR-43 sin nada abierto (todo fusionado). SEGURIDAD-VIGÍA 10-11: sin KEV nuevos de Chromium.
+
+**Abierto (por orden):**
+1. Titín confirma la 38 al cartero; la 38 reenvía por buzón a LOCAL-19 la orden que la 37 le dio a Titín para pegar:
+   «¿compilada y probada la 3.0.1 77ae53e (sin 0004)? Probar ventana privada = 3.0.0, página de sync, ajustes y los dos
+   README; entregar en FS.42 con el hash; si no está compilada, antes que nada de la 3.1; informe por paso».
+2. Entrega 3.0.1 → ls-remote → PUBLICACIÓN → **avisar a Titín para firmar en bak** (lo pidió) + recordatorio de la sync
+   (7,1: «Ver código»; 6,1: abandonar y unirse; nunca «Eliminar cuenta»).
+3. Candidata 3.1: LOCAL-21 relanza la t1 en la 6,1 (LuLu) y mide; luego decidir contenido de la 3.1.
+4. Diseño de sync de ARQUITECTURA → SEGURIDAD → Titín. 5. 3.0.2 (158 estable, 17-11). 6. FlyHand `.aip`. 7. Limpieza de
+   ramas (`claude/coord3*`, incluidas `claude/coord37` y `claude/coord37-relevo`).
+
+**Lección:** antes de mandar nada por buzón tras un relevo, comprobar que el cartero acepta al nuevo id; si exige a Titín,
+pedírselo en el primer mensaje, no después.
+
+## 09-11 (noche): COORDINACIÓN-36 → COORDINACIÓN-37 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-36 (`session_01MwmK2gmWuLtoTHjfCXLggq`, 09-11 17:07 → ~23:15 UTC; Opus 5.5 medio; abierta por la 35, linaje 3
+de 8; relevo al 35 %). La 37 la abre la 36 (linaje 4 de 8). **Nunca llamar a confirm_repository_trust.**
+
+**Canales (importante):** desde la nube **no se puede escribir a ninguna sesión local** (bridges: LOCAL-19, LOCAL-21,
+cartero, ARQUITECTURA, SERVIDOR-LOCAL, PUBLICACIÓN, FLYHAND-LOCAL, «ubuntu motor (3)»): `send_message` da
+`elevated_session_untrusted_device`. Todo va por el buzón (el cartero entrega en 1–2 min) o Titín pega el texto. Ellas sí
+nos escriben por SendMessage. A la nube (MOTOR-43) sí se le escribe.
+
+**Hitos del día (tarde-noche):**
+- **mjsunit** (D8-LINUX, «ubuntu motor (3)» = `session_01MwmK2kVVMhxRUscaawz4rP`): A/B/C sin caídas; el parser entra (#896).
+- **3.0.1 UNIFICADA (decisión de Titín):** 79 de la 3.0.1 + todo lo de la 3.0.2 (V8 .51, [M157], parser, XSLT/WebHID fuera,
+  foco, `flyweb_bundle_version_base`) + parches 0001–0003 de `FlyWeb/parches/3.0.2-sync-ajustes/` + icono de la 2.7.0
+  (#898). Build 42. LOCAL-19: compilada, 0 FAILED, brave-core `local/3.0.1` 2ebd2e08731 (sin comprobar con ls-remote aún),
+  todo en verde. **Orden de las ~23:05 (buzón):** quitar 0004 (NTP privada con marca de Brave), incremental tras la
+  medición de LOCAL-21 en la 7,1, comprobar ventana privada = la de la 3.0.0, entregar en FS.42 → PUBLICACIÓN.
+- **Causa de la sync rota de la 3.0.0** (MOTOR-43, #897/#899): Chromium 156 crea chrome://settings con su
+  SettingsUIConfig y no la de Brave: sin ningún manejador de Brave (sync, Shields por defecto, filtros, Apariencia). El
+  servidor y la cadena de Titín están bien (comprobado en ns2: ningún borrado hoy).
+- **Perfil de Titín en la 6,1** roto por 3.0.0 → 2.7.0 → 3.0.0 (llavero): sin sesiones ni contraseñas. **Titín se queda en
+  la 3.0.0** y espera la 3.0.1 para volver a unirse a la cadena (7,1: «Ver código»; 6,1: abandonar y unirse; nunca
+  «Eliminar cuenta»). Las cookies de la 6,1 no vuelven. Requisitos de la 3.2 en `plan-3x.md` §5.1 punto 6 (#895).
+- **3.1:** LOCAL-21 (`session_01MwmK2kS4ykodCqtwk7ypLU`, «FlyWeb 3.0.0 benchmark medición», bridge) midió la 6,1:
+  Speedometer 10,3 (2.7.0: 5,84), JetStream 107,6 (89,3); perfil del hilo de GPU en `rendimiento-3x.md` (#903): puerta de
+  hilos NO se abre (15,1 % < 25 %). MOTOR-43 (`session_01MwmK2keCUcEPJ6KTcxicZD`, nube, alto) entregó
+  `FlyWeb/parches/3.1-angle/` 0001–0004 (#904; 0001 = texturas re-enlazadas en cada dibujo, 18,6 %, bug de ANGLE desde
+  2020) y la NTP privada con marca FlyWeb (0004 + 0005 de 3.0.2-sync-ajustes, #906). **Orden en cola a LOCAL-19:** tras la
+  3.0.1, candidata 3.1 = 3.0.1 + 4 de ANGLE + 0004/0005 (no se publica); LOCAL-21 la mide en la 6,1 (Titín aprueba LuLu).
+- LOCAL-20 retirada (perdió el día; provocó el incidente del perfil). FlyHand fase 1 fusionada (#890, #901); la 6,1 se
+  turna entre LOCAL-21 (medidas) y FLYHAND-LOCAL. ARQUITECTURA tiene el encargo del diseño `sync-cuenta.md` (3.2).
+
+**Abierto (por orden):**
+1. **Entrega de la 3.0.1** de LOCAL-19 en FS.42: hash de `local/3.0.1` con ls-remote; PUBLICACIÓN; **avisar a Titín
+   para firmar en bak** (lo pidió expresamente) y recordarle cómo volver a unir la sync.
+2. Candidata de la 3.1 (LOCAL-19 compila, LOCAL-21 mide) → si hay mejora y texturas bien, decidir contenido de la 3.1.
+3. Parte de la 7,1 del hito 0 (LOCAL-21, empezó ~23:55 hora local).
+4. Diseño de sync de ARQUITECTURA → revisión de SEGURIDAD → Titín aprueba.
+5. 3.0.2 (nueva): con la 158 estable (17-11), SEGURIDAD-PORTES-21; INVESTIGACIÓN-MOTOR-10.
+6. FlyHand: Titín prueba el `.aip` en Illustrator 25.1.
+7. Limpieza: ramas `claude/coord3*`, `nube/motor43-sync-ajustes` (e8c20faf1c huérfana), `nube/b2-iconos`.
+
+**Lecciones:** antes de dar una versión por probada, abrir la página de sync y las de ajustes; no pedir medidas que ya
+existen (Titín, con razón); al ordenar a LOCAL, pasos con informe por paso; un cambio de contenido tras ordenar compilar
+solo si Titín lo decide.
+
+## 09-11 (tarde): COORDINACIÓN-35 → COORDINACIÓN-36 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-35 (`session_01MwmK2h9VVd6d8t4mGrtmzp`, 09-11 08:00 → ~17:15 UTC; Opus 5.5 medio; abierta por la 34, linaje 2
+de 8; relevo al 37 %). La 36 la abre la 35 (linaje 3 de 8). **Nunca llamar a confirm_repository_trust.** Lo decidido hoy
+está en DIRECTIVAS («Plan de la 3.x aprobado», sus decisiones, «Contenido cerrado antes de compilar», «Design Fly Suite»).
+
+**Hitos del día:**
+- **3.0.0 CERRADA:** firmada en bak, appcast verificado, web publicada y comprobada (#875, #876, #878).
+- **Plan de la 3.x aprobado por Titín** (#883, #888; `plan-3x.md` #872): 3.0.x de seguridad siempre en marcha → 3.1 de GPU e
+  hilos (FM.56) ya → 3.2 de sync con el diseño en paralelo. Los siete puntos de §7 de `plan-3x.md` aprobados. Versión
+  declarada: 156; una función nueva solo si una web real la necesita.
+- **3.0.1 compilándose** (LOCAL-19, 7,1, build 42): chromium fork `seg/3.0.1` c4b1caf806 + ANGLE, ffmpeg y PDFium (.patch) +
+  brave-core `seg/3.0.1` 6415661d24 + marca d3fae32d5b + b2-tests 148a5939c8 + b2-depfile bbfb565048, **sin parser**.
+  Arreglos de LOCAL-19 en `flyweb`: aee46c5da15 (gn `data +=`), f4f92db833e (include de `content_switches.h` en
+  `sparkle_glue.mm`) y perfil PGO de V8 al día (`download_profiles.py --check-v8-revision`; **hay que correrlo en cada
+  cambio de V8**). En la entrega: sí o no de `navigator.hid`, `navigator.install` y `TCPSocket`.
+- **3.0.2 preparada** (SEGURIDAD-PORTES-20, #892, archivada): chromium `seg/3.0.2` 502e3c5b85 (V8 15.6.75.51, .98, 6 de la
+  157, foco), brave-core `seg/3.0.2` 0d6a771f23 (XSLT y WebHID apagados, foco, `flyweb_bundle_version_base` 198.63).
+  **No se puede ordenar compilarla** sin el mjsunit (cambia V8; d8 verde en el Ubuntu antes de LOCAL).
+- **3.1:** MOTOR-42 entregó la lectura de ANGLE Metal (`rendimiento-3.1.md`, #885) y está archivado; nota en
+  `relevo-motor.md` (MOTOR-43 implementa 3 y 4 primero, cuando llegue el perfil de LOCAL).
+- INVESTIGACIÓN-MOTOR-9: primer informe (`novedades-motor.md`, #884), archivada; el siguiente, con la 158 (17-11).
+- Cartero: se quedó mudo al 50 % (08:13 → 13:17 UTC); relevo al 35 % aprobado (#886). El nuevo es
+  `session_01MwmK2i8TWjiAS24Km8Rb1Z` y entrega en 1–2 min.
+- SEGURIDAD-VIGÍA pasa a **diaria** (08:58 Madrid). Su texto de pasada sigue hablando de la 128 y no se puede cambiar desde
+  COORDINACIÓN; se le corrigió por send_message. Titín puede cambiarlo en su conversación.
+- Craft (#869) fusionado: espera a la beta de storytold. Titín puso a FLYHAND-LOCAL (`session_01MwmK2imxzm1dF7p4BdPeUv`) a
+  hacer el módulo de Illustrator que abre FreeHand en la 6,1, con la cuenta `craft` (creada por Titín el 09-11 por la
+  tarde; la clave `dfs_craft` estaba en ello). FlyHand no es código de storytold y no necesita la jaula.
+
+**Abierto (por orden):**
+1. **mjsunit (decisión de Titín, sin respuesta):** A) reabrir «Motor ubuntu» (recomendada; una pasada valida la V8 .51 y el
+   parser), o B) LOCAL con d8 en la 7,1 (rompe la directiva). Bloquea la orden de compilar la 3.0.2.
+2. **Entrega de la 3.0.1** de LOCAL-19 en FS.42 → PUBLICACIÓN (regla 11). Comprobar los hashes con ls-remote antes.
+3. **LOCAL-20 sin señales desde las 08:07 UTC:** pruebas de Sparkle de la 3.0.0, luego el hito 0 y el perfil de la 3.1 en la
+   6,1. Se le preguntó por el buzón (16:15) cuándo deja libre la 6,1. **FlyHand no compila en la 6,1 mientras haya
+   medidas.** Si no contesta, decírselo a Titín.
+4. Duda de FlyHand: el SDK de Illustrator reciente puede no compilar con Xcode 11.3.1 (6,1); quizá deba ir a la 7,1.
+5. Cuando llegue el perfil de LOCAL: abrir MOTOR-43 (arreglos 3 y 4 de `rendimiento-3.1.md`).
+6. 3.0.3 y medida de diciembre: con la 158 estable (17-11), abrir SEGURIDAD-PORTES-21; también INVESTIGACIÓN-MOTOR-10.
+7. Limpieza sin prisa: ramas `nube/b2-iconos` (brave-core) y las `claude/coord3*` (softmac).
+
+**Lecciones:** comprueba `buzon/ENTREGADO.md` en cada turno en que mandes algo al buzón, con un `send_later` a los 15–20
+min; más de 45 min sin anotar = aviso a Titín. Cierra el contenido antes de ordenar compilar. Los PR de softmac los
+fusiona COORDINACIÓN (MOTOR-42 se fusionaba los suyos; corregido).
+
+**Equipo vivo:** LOCAL-19 y LOCAL-20 (bridges, solo buzón), PUBLICACIÓN, SERVIDOR-LOCAL, CARTERO-LOCAL, ARQUITECTURA
+(local), FLYHAND-LOCAL, SEGURIDAD-VIGÍA (rutina). Archivadas hoy: MOTOR-42, SEGURIDAD-PORTES-19 y -20, INVESTIGACIÓN-MOTOR-9.
+
+## 09-11: COORDINACIÓN-34 → COORDINACIÓN-35
+
+COORDINACIÓN-34 (`session_01MwmK2m1QvhRzNFCDSWtvkf`, 07-11 15:05 → 09-11 ~08:00 UTC; Opus 5.5 medio; abierta por la 33,
+linaje 1 de 8; relevo al 64 %, tarde: el umbral era el 35 %). La 35 la abre la 34 (linaje 2 de 8). **Nunca llamar a
+confirm_repository_trust.**
+
+**Hitos:**
+- **FlyWeb 3.0.0 publicada en lo nuestro, salvo la firma en bak.** Build limpia de LOCAL-19 sobre brave-core
+  `nube/b2-porte-t11` = **bf4262a094**, FLYWEB_BUILD_NUMBER 41, CFBundleVersion 198.63.41. Pruebas A–E en verde
+  (FM.55, #856), incluidas la migración del perfil 2.x sobre copias y los browsertests de b2-privacidad en la 6,1. PUBLICACIÓN
+  firmó la copia `software/entregas/FlyWeb-3.0.0-release/FlyWeb.app` (sha del framework ccabdcd9…2e98) y subió el DMG (sha
+  143d58ae…8a25). **Falta: Titín firma en bak; después, appcast y web (PUBLICACIÓN avisa).**
+- Arreglos de última hora en la 3.0.0: b2-privacidad dentro; la copia «antes de 3.0» tolera los temporales y solo pone la
+  marca si sale bien («… sin copia» si no); la semilla de sync ya no se borra sin llavero; CHECK de
+  GetLocalPersonalContextInfo por kPersonalContext apagado (bf4262a09).
+- **5,1:** el kit de la 3.0.0 da verde (MotionMark 864 a 60 fps, sin AVX, Metal en la RX 580; `pruebas-gpu.md`, #868). El kit
+  ya está borrado de ns2; Titín borra el directorio vacío `kit-51`.
+- **Versiones desde la 3.0.0** (Titín, DIRECTIVAS, #859): el segundo dígito son avances; el tercero, seguridad y arreglos.
+- **3.0.1 (FS.42, SEGURIDAD-PORTES-19 `session_01MwmK2hrcXTzbQgJfQ2PL5U`):** seguridad cerrada en main (#861, #862, #864,
+  #870, #871): 79 parches, 85 % limpios. Chromium (61 format-patch sobre flynk-b1d 33a1745949, árbol 2723e1b371c), ANGLE,
+  ffmpeg y PDFium en `FlyWeb/seguridad/3.0.1/`. brave-core `seg/3.0.1` = 6415661d24 y `seg/3.0.1-parser` = bee89ad8a6 (los 21
+  commits del parser de V8, CVE-2026-121082). CanvasDrawElement apagado. CVE-2026-121112 pasa a la 3.0.2.
+- **Marca para la 3.0.1 (MOTOR-42 `session_01MwmK2iFB5QKJ5nASYk5dxj`):** `nube/b2-icono-restaurar` = d3fae32d5b: barra de
+  restaurar, browser_logo, SVG de Sync y bienvenida, pedales. También para la 3.0.x: `nube/b2-tests` 148a5939c8 (desde
+  d662 toca producción: la guarda de Sparkle), `nube/b2-depfile` bbfb565048 y `nube/b2-redirect-cc`, más lo no portado
+  (Shields, WebGPU, Containers, UpdateTargetURL).
+- **MotionMark de la 7,1** (LOCAL-19): la nota baja de Titín viene de la pantalla de 144 Hz y de su sesión cargada. A 60 Hz,
+  FlyWeb da 3400–3700, al nivel de Brave 1.99 y entre un 8 y un 15 % por debajo de Chrome 157. No hay guarda nuestra
+  culpable.
+
+**Abierto (por orden):**
+1. **Firma en bak de la 3.0.0** (Titín) → PUBLICACIÓN: appcast y web → URL y appcast comprobados.
+2. **mjsunit de la 3.0.1** con tres V8 (3.0.0, `seg/3.0.1`, `seg/3.0.1-parser`): el encargo está en `buzon/MOTOR/` y sin
+   entregar, porque la Ubuntu (MOTOR-30) está desconectada. Pregunté a Titín: A) reabrir «Motor ubuntu», o B) que lo haga
+   LOCAL-20 en la 7,1 con d8. Sin respuesta. Si el parser no tiene caídas propias, la 3.0.1 sale de `seg/3.0.1-parser`.
+3. **add_repo de lamosquita-net/chromium** para SEGURIDAD-PORTES-19: lo autorizó Titín, pero el modo auto lo denegó.
+   Espera a que Titín lo apruebe en esa sesión. Si no, LOCAL aplica los 61 parches con `git am`.
+4. **Orden de compilar la 3.0.1** a LOCAL-19 cuando estén 2 y 3: brave-core = `seg/3.0.1(-parser)` + marca + lo que se
+   decida de la 3.0.x; `flyweb_version` 3.0.1, FLYWEB_BUILD_NUMBER 42; las pruebas de la marca, en la fila de MOTOR-42.
+5. **LOCAL-20:** pruebas de la 3.0.0 publicada en la 6,1 (actualización por Sparkle sobre una copia del perfil y la lista
+   manual). Esperan al appcast.
+6. **ARQUITECTURA:** el estudio de la 3.x (`FlyWeb/docs/plan-3x.md`) le llegó el 08-11 a las 12:56, offline. Titín habla
+   con ella directamente. Mi recomendación: la 3.1 sea la línea de GPU e hilos (FM.56); el sync con email (F7.7) va como
+   diseño en paralelo.
+7. **Design Fly Suite** (proyecto aparte de Titín, en Rust; apps Craft de storytold): análisis en la nube primero; la jaula
+   `craft` de la 6,1 la hace LOCAL-19 solo tras el informe. #869 revisado: sin datos del entorno, pero **no fusionar** hasta
+   que su Fase 1 pase a «partir del informe de la nube» y la jaula sume pf por usuario, `Match User craft`, `sudo -k` y la
+   comprobación de /Volumes y /Users/Shared. Titín no ha dicho si ese proyecto fusiona sus propios PR.
+8. Limpieza sin prisa (Titín): las ramas `nube/b2-iconos`, `nube/b2-mac-flynk` y `nube/m34-probe` (brave-core), y
+   `nube/pgo-mojave`, `nube/coord33-arranque` y las `claude/coord34-*` (softmac).
+
+**Lección:** el cartero se cayó el 07-11 a las 20:46 UTC y nadie lo vio en 13 h; la orden de publicar la 3.0.0 no llegó.
+Compara a mano `buzon/ENTREGADO.md` con `buzon/*/` en **cada** turno en que mandes algo al buzón; la vigilancia
+de CronCreate no sirvió. El CARTERO-LOCAL nuevo (relevo del 08-11) está bien. Los mensajes a MOTOR fallan mientras la
+Ubuntu esté apagada.
+
+**Equipo vivo:** MOTOR-42, SEGURIDAD-PORTES-19, LOCAL-19 y LOCAL-20 (bridges, solo buzón), PUBLICACIÓN, SERVIDOR-LOCAL,
+CARTERO-LOCAL (relevo del 08-11), ARQUITECTURA (offline). MOTOR-41 y SEGURIDAD-PORTES-18, archivadas.
+
 ## 07-11 (tarde): COORDINACIÓN-33 → COORDINACIÓN-34 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-33 (`session_01MwmK2kDoYYca7UqZKpt6gH`, 07-11 09:42 → ~15:15 UTC; Opus 5.5 medio; abierta por Titín, linaje

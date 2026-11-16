@@ -1,9 +1,49 @@
 # Relevo de BACKUPDRIVE
 
-Para el siguiente relevo de BACKUPDRIVE. Historia: **BACKUPDRIVE-1 (`session_01MMur1TxacRpN7gNor98eYm`, 26-10) → 2 (`session_01MwmK2iDUP7F9s2StJNRgCj`, 03-11) → 3**.
+Para el siguiente relevo de BACKUPDRIVE. Historia: **BACKUPDRIVE-1 (`session_01MMur1TxacRpN7gNor98eYm`, 26-10) → 2 (`session_01MwmK2iDUP7F9s2StJNRgCj`, 03-11) → 3 (`session_01MwmK2kYatKMK9H5fWRxtSY`, 03-11) → 4**.
 Leer antes: `CLAUDE.md` (sección BackupDrive), `docs/DIRECTIVAS.md`, en `docs/TAREAS.md` las reglas y las filas B.2–B.7, `docs/plan-b6-b7.md`,
 `BackupDrive/README.md` (sección «Cómo funciona») y las cabeceras de `scripts/backupdrive-sync.sh` y `scripts/backupdrive-ctl.sh`.
 No tocar `BackupDrive/rclone/` (subtree). A Titín, siempre en castellano; commits en inglés.
+
+## BACKUPDRIVE-3 → 4 (14-11-2026)
+
+**Con quién:** directamente con Titín (DIRECTIVAS, 03-11; COORDINACIÓN ya no interviene). Tú fusionas tus PR de
+`BackupDrive/` con la CI en verde y `expectedHeadSha`. Relevo hacia el 35–40 %, lo abres tú con `create_session`.
+**Pruebas en Mac:** BACKUPDRIVE-LOCAL-1 en la 7,1 (`session_01MwmK2hfZzbBtp48Y2qfSX1`, Remote Control) maneja la 6,1
+(MacTrash) por ssh. Se le escribe con `send_message` a ese id (Titín aprobó el canal; si te lo rechaza con un
+`content_digest`, pide a Titín permiso explícito antes de lanzar la tarjeta). Te contesta por el mismo canal.
+**Clave de Google:** la propia de Titín, en `~/.config/backupdrive/client_secret.json` (600) de la 7,1 y la 6,1 y en
+`backupdrive.conf` de la 6,1; el original en una carpeta suya de la 7,1, fuera de git. Nunca en chat, logs, mensajes ni repo.
+
+**Hecho (todo en main):** #851 secreto fuera de `ps` (entorno + awk) y selftest con perfiles de 5 columnas; #852 `sed -E`
+en los conflictos (BSD), `connect` espera hasta 2 min a una pasada en curso, trabajo de CI **`test-bsd`** (tests en macOS);
+#855 mensaje de `profile add`, carpeta de Drive creada antes del `--resync`, plan de simulación fallida, `--links`
+(enlaces como `.rclonelink`); #863 la pasada frenada guarda su plan, línea en el log al saltar por bloqueo, **la pasada
+previa del freno se corta en «Applying changes»** (antes 36 min con 1858 cambios); #1004 `--conflict-suffix
+conflicto-mac,conflicto-drive` (el lado va en el nombre; las copias antiguas `.conflictN` salen con lado `?`).
+Tests: `test-ctl.sh` 113, `test-sync-safe.sh` 58.
+
+**Resultados en la 6,1 (Drive real, informe en la rama `local/backupdrive-pruebas`, `BackupDrive/docs/pruebas-6-1.md`):**
+instalación, clave, launchd cada hora, carpeta de 7233 ficheros (1 h 45 min la primera; **~8 min cada pasada sin
+cambios, domina el listado de Drive con 1407 carpetas**), los dos frenos (Drive intacto), versiones, restaurar, ajustes y
+la app con ventana (Titín delante): bien, salvo «Ajustes de esta carpeta…», sin captura. La 5 falló por el lado de los conflictos (fallo 10), ya arreglado.
+
+**Pendiente:**
+- BACKUPDRIVE-LOCAL-1 repite con main 18af363: la 7 (113 + 58), la 5 con un conflicto nuevo y una 4b corta para medir
+  el freno nuevo.
+- **#865** (informe de pruebas) lo cerró la cuenta lamosquita-net el 14-11 sin fusionar ni comentar: preguntado a Titín
+  quién y por qué; no reabrir sin su respuesta.
+- **H9 (apagar FreeFileSync):** falta que Titín diga cuántos ficheros y carpetas tienen las carpetas reales de MacTrash.
+  Con el coste medido (~8 min por pasada con 1407 carpetas), decidir si «cada hora» aguanta o conviene otro intervalo;
+  luego pasar carpetas de una en una (simulación → primera sincronización → unos días en paralelo con FreeFileSync) y
+  apagar FreeFileSync al final.
+- **H8 (Actividad):** Titín la quiere («si», 03-11). Sin empezar.
+- Titín pidió que los mensajes a la 6,1 no le pidan confirmación uno a uno: hace falta que él añada en `/permissions`
+  la regla `mcp__claude-code-remote__send_message` (el modo auto no deja que el agente la añada).
+
+**Trampas nuevas:** `rewrite_profiles` y otras funciones comparten variables (`sh` sin locales): no reutilizar `l`, `r`.
+`--local-links` no existe en bisync: es `--links`. Interrumpir bisync en seco con SIGINT no deja bloqueo. En la CI los
+tests de Linux no ven los fallos de BSD: mira siempre `test-bsd`.
 
 ## BACKUPDRIVE-2 → 3 (03-11-2026, ~17:10)
 

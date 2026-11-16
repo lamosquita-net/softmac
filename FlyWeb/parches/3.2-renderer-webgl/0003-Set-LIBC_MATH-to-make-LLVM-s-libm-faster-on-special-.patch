@@ -1,0 +1,155 @@
+From cff28913baa94f28d04942b1eb63ca03b806f626 Mon Sep 17 00:00:00 2001
+From: Nico Weber <thakis@chromium.org>
+Date: Mon, 2 Nov 2026 14:45:00 -0500
+Subject: [PATCH] Set LIBC_MATH to make LLVM's libm faster on special inputs
+
+V8 never looks at errno or the floating-point exception flags after
+calling a math function, and always runs in round-to-nearest mode. So
+tell LLVM's libm that it doesn't have to set errno, raise exceptions, or
+handle other rounding modes.
+
+This makes inputs with special results much faster: inf, nan, 0,
+out-of-domain inputs, and inputs where the result saturates to an
+inexact constant (tanh(x) = +/-1 for |x| >= 20, expm1(x) = -1 for x <=
+-38). Accuracy is unaffected.
+
+These are likely hit rarely in the real world! But there's no downside
+to setting this.
+
+Normal inputs are mostly unaffected, but log, log1p, log2, and log10 get
+about 4-7% faster: their error paths called out-of-line helpers to set
+errno and raise exceptions, so they weren't leaf functions and set up a
+stack frame on every call. Now they are, and log and log2 also get
+inlined into base::ieee754.
+
+Measured with weird-cli.js from js-math-bench [1], median of 7 runs.
+acosh, asinh, atanh, cbrt, hypot, pow, and sqrt don't change.
+
+The following table uses Ops/sec for columns "Before", "After":
+
+Inputs                                   Result  Before  After  Speedup
+-----------------------------------------------------------------------
+Math.acos  normal [-1,1]                 finite    139M  unchanged
+  |x| > 1                                   NaN    180M   472M    2.62x
+  x = +/-Inf                                NaN    179M   472M    2.63x
+  x = NaN                                   NaN    478M  unchanged
+Math.asin  normal [-1,1]                 finite    163M  unchanged
+  |x| > 1                                   NaN    170M   467M    2.74x
+  x = +/-Inf                                NaN    175M   472M    2.70x
+  x = NaN                                   NaN    472M  unchanged
+Math.atan  normal [-10,10]               finite    251M  unchanged
+  |x| in 2^[56, 1000]                   +/-pi/2    549M   637M    1.16x
+  x = +/-Inf                            +/-pi/2    546M   637M    1.17x
+  x = NaN                                   NaN    637M   763M    1.20x
+Math.atan2  normal [-10,10]x[-10,10]     finite    200M  unchanged
+  |y| in 2^[600,1000], x in [-10,10]    +/-pi/2    233M  unchanged
+  |y| in [0.5,10], x in -2^[600,1000]     +/-pi    251M  unchanged
+  y in [-10,10], x = +Inf                     0     89M   483M    5.40x
+  y in [-10,10], x = -Inf                 +/-pi    465M  unchanged
+  y = +/-Inf, x in [-10,10]             +/-pi/2    455M  unchanged
+  y = +/-Inf, x = +Inf                  +/-pi/4    448M  unchanged
+  y = NaN                                   NaN    575M   730M    1.27x
+Math.cos  normal [-10,10]                finite    225M  unchanged
+  x = +/-Inf                                NaN    180M   498M    2.76x
+  x = NaN                                   NaN    495M  unchanged
+Math.cosh  normal [-10,10]               finite    270M  unchanged
+  |x| in [711, 1e4]                        +Inf    328M   725M    2.21x
+  x = +/-Inf                               +Inf    559M   725M    1.30x
+  x = NaN                                   NaN    641M   719M    1.12x
+Math.exp  normal [-10,10]                finite    318M  unchanged
+  x in [710, 1e4]                          +Inf    358M   556M    1.55x
+  x in [-1e4, -746]                           0    329M   549M    1.67x
+  x in [-744, -709]                    denormal    162M   189M    1.17x
+  x = +Inf                                 +Inf    552M  unchanged
+  x = -Inf                                    0    535M  unchanged
+  x = NaN                                   NaN    552M  unchanged
+Math.expm1  normal [-10,10]              finite    243M  unchanged
+  x in [710, 1e4]                          +Inf    177M   457M    2.58x
+  x in [-1e4, -38]                           -1    251M   452M    1.80x
+  x = +Inf                                 +Inf    255M   455M    1.78x
+  x = -Inf                                   -1    256M   450M    1.76x
+  x = NaN                                   NaN    256M   457M    1.78x
+Math.log  normal [1,100]                 finite    330M   353M    1.07x
+  x < 0                                     NaN    180M   763M    4.25x
+  x = +/-0                                 -Inf    194M   943M    4.86x
+  x = +Inf                                 +Inf    503M   575M    1.14x
+  x = -Inf                                  NaN    192M   769M    4.02x
+  x = NaN                                   NaN    505M   592M    1.17x
+Math.log1p  normal [0,100]               finite    263M   272M    1.04x
+  x < -1                                    NaN    177M   649M    3.67x
+  x = -1                                   -Inf    189M   649M    3.44x
+  x = +Inf                                 +Inf    641M  unchanged
+  x = -Inf                                  NaN    179M   649M    3.63x
+  x = NaN                                   NaN    498M   649M    1.31x
+Math.log2  normal [1,100]                finite    312M   333M    1.07x
+  x < 0                                     NaN    192M   769M    4.01x
+  x = +/-0                                 -Inf    199M   943M    4.74x
+  x = +Inf                                 +Inf    571M  unchanged
+  x = -Inf                                  NaN    190M   769M    4.04x
+  x = NaN                                   NaN    575M  unchanged
+Math.log10  normal [1,100]               finite    291M   305M    1.05x
+  x < 0                                     NaN    180M   763M    4.24x
+  x = +/-0                                 -Inf    198M   794M    4.00x
+  x = +Inf                                 +Inf    568M  unchanged
+  x = -Inf                                  NaN    195M   763M    3.91x
+  x = NaN                                   NaN    645M  unchanged
+Math.sin  normal [-10,10]                finite    227M  unchanged
+  x = +/-Inf                                NaN    188M   493M    2.63x
+  x = NaN                                   NaN    493M  unchanged
+Math.sinh  normal [-10,10]               finite    243M  unchanged
+  |x| in [711, 1e4]                      +/-Inf    169M   565M    3.33x
+  x = +/-Inf                             +/-Inf    488M   562M    1.15x
+  x = NaN                                   NaN    637M   562M    0.88x
+Math.tan  normal [-10,10]                finite    193M  unchanged
+  x = +/-Inf                                NaN    167M   439M    2.63x
+  x = NaN                                   NaN    441M  unchanged
+Math.tanh  normal [-10,10]               finite    241M  unchanged
+  |x| in [20, 1e4]                         +/-1    173M   641M    3.71x
+  x = +/-Inf                               +/-1    474M   641M    1.35x
+  x = NaN                                   NaN    476M   645M    1.35x
+-----------------------------------------------------------------------
+
+Special-result speed vs normal (geometric mean): 1.53x before, 2.15x
+after
+
+(The geometric mean includes all functions in the benchmark. "unchanged"
+means the medians differ by less than 10%.)
+
+The denormal exp case only gets a bit faster, consistent with what
+https://github.com/llvm/llvm-project/issues/198276 measured for that
+case.
+
+1: https://github.com/nico/js-math-bench/commit/d11954a
+
+No behavior change.
+
+Bug: 510499297
+Change-Id: Ifabc7f1ccb7c775194615c61c58b243ac6c1f88e
+Reviewed-on: https://chromium-review.googlesource.com/c/v8/v8/+/8705136
+Reviewed-by: Leszek Swirski <leszeks@chromium.org>
+Auto-Submit: Nico Weber <thakis@chromium.org>
+Commit-Queue: Leszek Swirski <leszeks@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#111535}
+(cherry picked from commit fe6631925621f15b98bc8158d3324978cf7ad666)
+---
+ src/base/ieee754.cc | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/base/ieee754.cc b/src/base/ieee754.cc
+index bedffe0..f515917 100644
+--- a/src/base/ieee754.cc
++++ b/src/base/ieee754.cc
+@@ -13,6 +13,10 @@
+ // modified significantly by Google Inc.
+ // Copyright 2016 the V8 project authors. All rights reserved.
+ 
++#define LIBC_MATH                             \
++  (LIBC_MATH_NO_ERRNO | LIBC_MATH_NO_EXCEPT | \
++   LIBC_MATH_ASSUME_ROUND_NEAREST_ONLY)
++
+ #include "src/base/ieee754.h"
+ 
+ #include <cmath>
+-- 
+2.43.0
+

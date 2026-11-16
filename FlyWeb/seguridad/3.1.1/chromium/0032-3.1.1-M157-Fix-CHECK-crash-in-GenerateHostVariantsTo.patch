@@ -1,0 +1,107 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: thefrog <thefrog@chromium.org>
+Date: Tue, 10 Nov 2026 13:56:29 -0800
+Subject: [PATCH 32/34] [3.1.1] [M157] Fix CHECK crash in
+ GenerateHostVariantsToCheckV5 for escaped host chars
+
+Original change's description:
+> Fix CHECK crash in GenerateHostVariantsToCheckV5 for escaped host chars
+>
+> SBProtocolManagerUtil::CanonicalizeUrl() runs Unescape() followed by
+> Escape() on the host, which leaves printable ASCII characters like '*'
+> unescaped while escaping characters like spaces, '#', and '%'. When
+> GenerateHostVariantsToCheckV5() passes `host` to
+> net::registry_controlled_domains::GetDomainAndRegistry(), it internally
+> re-runs net::CanonicalizeHost(), which applies standard GURL host
+> escaping and re-escapes characters like '*' back to "%2A". This causes
+> `CHECK(base::EndsWith(host, etld_plus_one))` to crash (e.g., when
+> `host` is "a.b*c.co.uk" and `etld_plus_one` is "b%2Ac.co.uk").
+>
+> Fix this by passing the result of GetDomainAndRegistry() through
+> Escape(Unescape(...)) so `etld_plus_one` uses the same Safe Browsing
+> escaping as `host`.
+>
+> Fixed: 579049933
+> Change-Id: I5d43e417f0ffc621622589f428a0aa5eb8ce6a38
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8725231
+> Commit-Queue: thefrog <thefrog@chromium.org>
+> Auto-Submit: thefrog <thefrog@chromium.org>
+> Commit-Queue: Anunoy Ghosh <anunoy@chromium.org>
+> Reviewed-by: Anunoy Ghosh <anunoy@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1735326}
+
+(cherry picked from commit 614df550ced928817bca211c228086235049d9a2)
+
+Validate-Test-Flakiness: skip
+Bug: 581926056,579049933
+Change-Id: I5d43e417f0ffc621622589f428a0aa5eb8ce6a38
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8784040
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Reviewed-by: Xinghui Lu <xinghuilu@chromium.org>
+Commit-Queue: Xinghui Lu <xinghuilu@chromium.org>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8103@{#1568}
+Cr-Branched-From: e7baefea94b4a90087e3043e4a8effec33c2025f-refs/heads/main@{#1717349}
+
+(cherry picked from commit d9fefd7f3474e5bddb15b2f4a8e52937a8a26c9f)
+---
+ .../core/browser/db/sb_protocol_manager_util.cc  | 12 ++++++++++--
+ .../db/sb_protocol_manager_util_unittest.cc      | 16 ++++++++++++++++
+ 2 files changed, 26 insertions(+), 2 deletions(-)
+
+diff --git a/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc b/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
+index d40f18125f768d5793d37477be4bb930165edce2..86b8837c46ce3506ec3614fabf5612af7af35445 100644
+--- a/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
++++ b/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
+@@ -97,11 +97,19 @@ void GenerateHostVariantsToCheckV5(const std::string& host,
+   // wasted on the eTLD).
+   // Note: This will automatically fall back to TLD+1 for unknown registries.
+   const size_t kMaxHostsToCheck = 4;
++  // `host` was canonicalized by SBProtocolManagerUtil::CanonicalizeUrl(), whose
++  // final steps run Unescape() followed by Escape() (which leaves printable
++  // ASCII characters like '*' unescaped, while escaping characters like spaces,
++  // '#', and '%'). GetDomainAndRegistry() internally runs
++  // net::CanonicalizeHost(), which applies standard GURL host escaping and
++  // re-escapes characters like '*' to "%2A". Re-apply Unescape() and Escape()
++  // to the returned eTLD+1 so it uses the same Safe Browsing escaping as
++  // `host`.
+   std::string etld_plus_one =
+-      net::registry_controlled_domains::GetDomainAndRegistry(
++      Escape(Unescape(net::registry_controlled_domains::GetDomainAndRegistry(
+           host,
+           /*filter=*/
+-          net::registry_controlled_domains::EXCLUDE_PRIVATE_REGISTRIES);
++          net::registry_controlled_domains::EXCLUDE_PRIVATE_REGISTRIES)));
+ 
+   if (etld_plus_one.empty()) {
+     // eTLD+1 is only empty when a TLD+1 does not exist (e.g., single-label
+diff --git a/components/safe_browsing/core/browser/db/sb_protocol_manager_util_unittest.cc b/components/safe_browsing/core/browser/db/sb_protocol_manager_util_unittest.cc
+index 2d2650fe2389c54baddffcd9004a584b045e68df..6e711e0844deb80898cc311d003e52bb5d63a7de 100644
+--- a/components/safe_browsing/core/browser/db/sb_protocol_manager_util_unittest.cc
++++ b/components/safe_browsing/core/browser/db/sb_protocol_manager_util_unittest.cc
+@@ -266,6 +266,22 @@ TEST_P(SBProtocolManagerUtilUrlParsingTest, UrlParsing) {
+     EXPECT_EQ(hosts[0], "co.uk");
+     EXPECT_EQ(hosts[1], "a.co.uk");
+   }
++
++  // Host containing '*' (which GURL escapes to "%2A", while Safe Browsing
++  // canonicalization unescapes it back to '*') and '%20' (which Safe Browsing
++  // canonicalization keeps escaped as "%20").
++  url = GURL("http://a.%20b*c.co.uk/1");
++  SBProtocolManagerUtil::GenerateHostsToCheck(url, &hosts);
++  if (GetParam()) {
++    EXPECT_EQ(hosts.size(), 2u);
++    EXPECT_EQ(hosts[0], "%20b*c.co.uk");
++    EXPECT_EQ(hosts[1], "a.%20b*c.co.uk");
++  } else {
++    EXPECT_EQ(hosts.size(), 3u);
++    EXPECT_EQ(hosts[0], "co.uk");
++    EXPECT_EQ(hosts[1], "%20b*c.co.uk");
++    EXPECT_EQ(hosts[2], "a.%20b*c.co.uk");
++  }
+ }
+ 
+ // Tests the url canonicalization according to the Safe Browsing spec.
+-- 
+2.43.0
+

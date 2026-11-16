@@ -1,0 +1,105 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ryan Qin <ryqin@google.com>
+Date: Thu, 12 Nov 2026 14:55:04 -0800
+Subject: [PATCH 42/43] [3.1.1] [M156] [FedCM] Return early in ShowVerifyingDialog() if
+ the view destroys it
+
+Original change's description:
+> [FedCM] Return early in ShowVerifyingDialog() if the view destroys it
+>
+> IdentityDialogController::ShowVerifyingDialog() calls into the account
+> selection view, which can dismiss the dialog synchronously. That can
+> complete the request and destroy the controller, but the view can still
+> report that the dialog was shown, and the controller then used its
+> members. Check that the controller is still alive before using them.
+>
+> Fixed: 574609353
+> Change-Id: Iec835fd4d2a6065c35a47f4a7bad34a52fc2f3ad
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8756152
+> Reviewed-by: Yi Gu <yigu@chromium.org>
+> Commit-Queue: Ryan Qin <ryqin@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1738057}
+
+(cherry picked from commit 8dfc7dce720f57a13f7f171e1e963ec6ac4b7b8a)
+
+Bug: 583014916,574609353
+Change-Id: Iec835fd4d2a6065c35a47f4a7bad34a52fc2f3ad
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8778139
+Reviewed-by: Mohamed Amir Yosef <mamir@chromium.org>
+Commit-Queue: Ryan Qin <ryqin@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2196}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+(cherry picked from commit 0424b8343acdf9f5aed7c9b68461661422e61363)
+---
+ .../ui/webid/identity_dialog_controller.cc    |  9 ++++--
+ .../identity_dialog_controller_unittest.cc    | 29 +++++++++++++++++++
+ 2 files changed, 36 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/browser/ui/webid/identity_dialog_controller.cc b/chrome/browser/ui/webid/identity_dialog_controller.cc
+index 65d90863c0a8e999677f3b3413866aefae75edaa..00fce89f64fe3da5dac9467945a2aec4d0983ad7 100644
+--- a/chrome/browser/ui/webid/identity_dialog_controller.cc
++++ b/chrome/browser/ui/webid/identity_dialog_controller.cc
+@@ -8,6 +8,7 @@
+ #include <utility>
+ 
+ #include "base/functional/bind.h"
++#include "base/memory/weak_ptr.h"
+ #include "base/metrics/histogram_functions.h"
+ #include "build/build_config.h"
+ #include "chrome/browser/actor/actor_keyed_service.h"
+@@ -412,9 +413,13 @@ bool IdentityDialogController::ShowVerifyingDialog(
+     return false;
+   }
+   // Do not modify any member variables if the verifying dialog is not shown
+-  // because the caller may have destroyed this object.
++  // or if showing it destroyed this object, e.g. because the dialog was
++  // dismissed right away.
++  base::WeakPtr<IdentityDialogController> weak_this =
++      weak_ptr_factory_.GetWeakPtr();
+   if (account_view_->ShowVerifyingDialog(rp_data, idp_data, account,
+-                                         sign_in_mode, rp_mode)) {
++                                         sign_in_mode, rp_mode) &&
++      weak_this) {
+     DidInvokeShowUi();
+     return true;
+   }
+diff --git a/chrome/browser/ui/webid/identity_dialog_controller_unittest.cc b/chrome/browser/ui/webid/identity_dialog_controller_unittest.cc
+index fbbf2a9f7c4ff981b3c7d44f1a0ab85711c68516..75481b9452515f0fb7ca12baf5d1599cf44794ec 100644
+--- a/chrome/browser/ui/webid/identity_dialog_controller_unittest.cc
++++ b/chrome/browser/ui/webid/identity_dialog_controller_unittest.cc
+@@ -1282,3 +1282,32 @@ TEST_F(IdentityDialogControllerTest, ShowNativeAppUiDismissed) {
+   EXPECT_CALL(native_result_callback, Run).Times(0);
+   controller->OnDismiss(IdentityDialogController::DismissReason::kOther);
+ }
++
++// Tests that the controller does not access its members when it gets destroyed
++// while showing the verifying dialog, e.g. because the view dismissed the
++// dialog synchronously and the request completed.
++TEST_F(IdentityDialogControllerTest,
++       ControllerDestroyedDuringShowVerifyingDialog) {
++  auto controller = std::make_unique<IdentityDialogController>(web_contents());
++  IdentityDialogController* controller_ptr = controller.get();
++  auto mock_view = std::make_unique<MockAccountSelectionView>();
++  MockAccountSelectionView* mock_view_ptr = mock_view.get();
++  controller->SetAccountSelectionViewForTesting(std::move(mock_view));
++
++  accounts_ = CreateAccount();
++  IdentityProviderDataPtr idp_data = CreateIdentityProviderData(accounts_);
++
++  // The view reports that the dialog was shown even though the controller was
++  // destroyed. The controller should report that the dialog was not shown.
++  EXPECT_CALL(*mock_view_ptr, ShowVerifyingDialog).WillOnce([&controller]() {
++    controller.reset();
++    return true;
++  });
++  EXPECT_FALSE(controller_ptr->ShowVerifyingDialog(
++      content::RelyingPartyData(kTopFrameEtldPlusOne,
++                                /*iframe_for_display=*/u""),
++      idp_data, accounts_[0],
++      content::IdentityRequestAccount::SignInMode::kAuto,
++      blink::mojom::RpMode::kPassive, base::DoNothing()));
++  EXPECT_FALSE(controller);
++}
+-- 
+2.43.0
+

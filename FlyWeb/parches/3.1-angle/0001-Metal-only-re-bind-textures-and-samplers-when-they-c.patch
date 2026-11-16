@@ -1,0 +1,66 @@
+From 5526c6662c0d8d8ed9ab3d398ce3548d42de64ba Mon Sep 17 00:00:00 2001
+From: "MOTOR-43 (Claude)" <noreply@anthropic.com>
+Date: Mon, 9 Nov 2026 20:05:22 +0000
+Subject: [PATCH 1/4] Metal: only re-bind textures and samplers when they
+ change
+
+ProgramExecutableMtl::mSamplerBindingsDirty was set on every pipeline
+change and sampler uniform change but never reset, so after the first
+draw every draw re-bound every texture and sampler of the program
+(TextureMtl::bindToShader, RenderCommandEncoder::setTexture with its
+command buffer read dependency and mutex, setSamplerState). In Aquarium
+on a Mac Pro 6,1 this was 18.6% of the GPU main thread.
+
+Reset the bit for each stage once its bindings are in the encoder.
+Changes still re-bind: texture and sampler bindings, texture storage and
+parameters, sampler objects, sampler uniforms and program changes set
+ContextMtl's DIRTY_BIT_TEXTURES (forceUpdate); a new pipeline or render
+encoder sets the bit again. Keep DIRTY_BIT_TEXTURES pending across a
+no-op draw, which skips the program setup.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2keCUcEPJ6KTcxicZD
+---
+ src/libANGLE/renderer/metal/ContextMtl.mm           | 6 ++++++
+ src/libANGLE/renderer/metal/ProgramExecutableMtl.mm | 8 ++++++++
+ 2 files changed, 14 insertions(+)
+
+diff --git a/src/libANGLE/renderer/metal/ContextMtl.mm b/src/libANGLE/renderer/metal/ContextMtl.mm
+index ffa1162..f3d0f20 100644
+--- a/src/libANGLE/renderer/metal/ContextMtl.mm
++++ b/src/libANGLE/renderer/metal/ContextMtl.mm
+@@ -2609,6 +2609,12 @@ angle::Result ContextMtl::setupDrawImpl(const gl::Context *context,
+     if (isDrawNoOp(mRenderPipelineDesc, this, mContextDevice))
+     {
+         *isNoOp = true;
++        // FlyWeb 3.1: the program's setupDraw did not run, so the textures were not bound.
++        // Keep the request for the next draw, now that bindings are only re-applied on change.
++        if (textureChanged)
++        {
++            mDirtyBits.set(DIRTY_BIT_TEXTURES);
++        }
+     }
+     else
+     {
+diff --git a/src/libANGLE/renderer/metal/ProgramExecutableMtl.mm b/src/libANGLE/renderer/metal/ProgramExecutableMtl.mm
+index 786e257..b6b9956 100644
+--- a/src/libANGLE/renderer/metal/ProgramExecutableMtl.mm
++++ b/src/libANGLE/renderer/metal/ProgramExecutableMtl.mm
+@@ -1256,6 +1256,14 @@ angle::Result ProgramExecutableMtl::updateTextures(const gl::Context *glContext,
+                 glContext, cmdEncoder, shaderType, static_cast<uint32_t>(mtlRWTextureBinding),
+                 imageUnit.level, imageUnit.layer, imageUnit.format));
+         }
++
++        // FlyWeb 3.1: this stage's bindings are now in the encoder. Without this reset the bit,
++        // once set by the first pipeline change, stayed set for good and every draw re-bound
++        // every texture and sampler (18.6% of CrGpuMain in Aquarium on the 6,1). Later changes
++        // still re-bind: texture/sampler bindings, texture storage and parameters, sampler
++        // uniforms and program changes set ContextMtl's DIRTY_BIT_TEXTURES (forceUpdate), and a
++        // new pipeline or a new render encoder sets this bit again in setupDraw.
++        mSamplerBindingsDirty.reset(shaderType);
+     }  // for shader types
+ 
+     return angle::Result::Continue;
+-- 
+2.43.0
+

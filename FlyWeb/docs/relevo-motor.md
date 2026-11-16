@@ -1,3 +1,175 @@
+# MOTOR-46 (13-11-2026, ~20:30 UTC): estado
+
+MOTOR-46 (`session_01MwmK2juPkbC58kEi4QFeyU`, Opus 5.5, alto, modo auto; abierta por COORDINACIÓN-41). brave-core
+**solo lectura** (público: lectura anónima por el proxy); entregas por `git format-patch` en softmac.
+
+**Hecho:** H3, el cliente de la sync con cuenta: `FlyWeb/parches/3.2-sync-cuenta/` 0001–0004 sobre `local/3.1.1`
+3e2c12fad5 (árbol f913d2d9c4), sin compilar. Base del servidor: #977 en cbe0221b49 (con S1–S3). El README trae qué
+hace cada parche, los puntos para SEGURIDAD-PORTES y las pruebas P1–P26 del cliente, P23 incluida.
+
+**Abierto:**
+- C1 («Sustituir» y «Quitar marcadores duplicados») lo decide Titín. Si entra, va en un parche 0005: un paso antes
+  de `AccountService::JoinChain` y un estado más en la página.
+- Revisión de SEGURIDAD-PORTES del código. Lo que tiene que mirar está en el README: el camino de la contraseña,
+  KL y KU en memoria entre los dos pasos y el indicador de fuerza.
+- Errores de compilación cuando LOCAL compile (tras medir la 3.1): se arreglan en los parches y se regeneran
+  SHA256SUMS.
+
+**Trampas nuevas:**
+- La huella de grit (id del xtb) = md5 del texto inglés, con cada `<ph>` cambiado por su nombre; de los 16 primeros
+  hex, el `& 0x7fffffffffffffff` con signo. Comprobada con «Passwords» = 7029809446516969842. Scripts en
+  `ui/gritid.py` del scratchpad de MOTOR-46 (no sobrevive; la fórmula es la de arriba).
+- Compilar BoringSSL de fuera lo deniega el clasificador («Code from External»). Los vectores se sacan con Python
+  `cryptography`, y la lista BIP39 se baja como dato.
+- La prueba de cadena firma la **ruta completa** (`/cuenta/v1/…`) y el cuerpo exacto: el JSON se serializa una sola
+  vez y se envía tal cual.
+- Las 24 palabras sueltas las rechaza `TimeLimitedWords::Parse` (kVersionDeprecated): para la clave de recuperación,
+  `IsPassphraseValid` directo.
+
+---
+
+# MOTOR-45 (12-11-2026, ~10:50 UTC): estado
+
+MOTOR-45 (`session_01MwmK2kdamTiZHb5S9SwNW7`, Opus 5.5, alto, modo auto; abierta por COORDINACIÓN-39). brave-core
+**solo lectura** (público; `add_repo` dice lectura anónima). Entrega por `git format-patch` en softmac.
+
+**Hecho:** `FlyWeb/parches/3.2-renderer-webgl/` (0001 `DrawingBuffer`, 0002 enlaces por etiqueta, 0003 `LIBC_MATH` de
+V8 upstream; banco de `sin`/`cos` en `trig/`). Sin compilar; se compilan con E1/M1/M2 tras la 3.2.
+
+**Encargo 2 (COORDINACIÓN-40, 12-11 noche), hecho:** `FlyWeb/parches/3.1.1-catalina/` (arranque y GPU en Catalina;
+#957, fusionado en main 9b14ceda; SEGURIDAD-PORTES-22: los cuatro, aptos sin condiciones). Orden en la 3.1.1 (COORDINACIÓN-40): seguridad 0001–0034, delta de la 158 y después catalina 0001–0004; la etiqueta «FlyWeb B1b» de 0003 se queda. Abierto: si LOCAL trae la salida de `comprobar-importes-1015.py` o del `grep` de ANGLE,
+leerla según el README.
+
+**Trampas nuevas:**
+- `dawn.googlesource.com` da 403 en el proxy. El espejo `github.com/google/dawn` no tiene las ramas `chromium/NNNN`:
+  usar la etiqueta `vAAAAMMDD` más cercana.
+- SDK de Apple públicos (para `.tbd` y cabeceras), por `raw.githubusercontent.com`:
+  - `phracker/MacOSX-SDKs`, hasta 11.x;
+  - `alexey-lysiuk/macos-sdk`, de 12.3 a 26.5.
+
+  Ojo: algunos `.tbd` son enlaces (`Versions/Current/…`) y otros reexportan bibliotecas (`libnetwork`, subframeworks), que
+  también hay que bajar.
+- El fork de Chromium (`lamosquita-net/chromium`) se baja en segundos con `git fetch --depth=1 --filter=blob:none` y
+  checkout disperso (`.git/info/sparse-checkout` sin cono) de los directorios que hagan falta; `git am` funciona encima.
+- Los historiales de gitiles (`+log`) piden iniciar sesión (403). Para buscar commits de V8, `gh api search/commits -f
+  q='repo:v8/v8 …'`; el commit se lee con `https://chromium.googlesource.com/v8/v8/+/<sha>?format=JSON`.
+- `std::uniform_real_distribution` da números distintos con `-mfma` (contracción): para comparar dos compilaciones,
+  generar las entradas una vez y leerlas de fichero (`trig/gen-entradas.cc`).
+- LLVM libc sin FMA falla en 1 ulp en `sin(x)` con |x| < 2⁻¹⁰¹⁵ (doble redondeo); con FMA, bien. Afecta a Chrome x64 igual.
+
+---
+
+# MOTOR-44 → MOTOR-45 (10-11-2026, ~18:50 UTC)
+
+MOTOR-44 (`session_01MwmK2h13FSCtFp8GwQLUyv`, Opus 5.5, alto, modo auto) se releva al 37 % de contexto. Coordina
+**COORDINACIÓN-38** (`session_01MwmK2hsPeczzmEjVZHW81X`). brave-core **solo lectura** (público: el proxy sirve
+`git fetch` anónimo; `add_repo` no da push). Los parches se entregan con `git format-patch` en softmac.
+
+**Hecho:**
+- **[style] de Shields** (#921, fusionado): `rendimiento-motionmark.md` §«Reglas `[style…]`». Son 24 genéricas de
+  adblock-rust 0.13.3 (`misc_generic_selectors`, en todas las páginas); con las 23 de la lista por defecto, la pasada de
+  estilo es 9,4 veces más lenta. Parche candidato `FlyWeb/parches/3.1-cosmetic-style/` (sin compilar; TS con `tsc
+  --strict` y JS probado en Chromium; flag `FlyWebDeferStyleAttrSelectors`). **Lo decide Titín.** Speedometer y
+  JetStream: la 3.0.x lleva **Maglev apagado** (`patches/v8/src-flags-flag-definitions.h.patch`); A/B con
+  `--js-flags=--maglev`.
+- **claude.ai en la 6,1** (#923 y #924, fusionados): `rendimiento-3x.md` §3.5 bis, con sospechosos y bisección.
+  Primero en Mojave: la 0055 (CVE-2026-121140, contexto compartido de Ganesh GL). **COORDINACIÓN-38, 18:38:** Titín no
+  lo reproduce a mano (carga con sesión y en privada con hCaptcha). Se trata como propio de la automatización hasta que
+  LOCAL-19 repita (paso 0). **No preparar arreglo.**
+- **Favicon de Chrome en la NTP** (#926, fusionado): `FlyWeb/parches/3.1-favicons/`. Pone la mosca en `IDR_NTP_FAVICON` y
+  en `IDR_PRODUCT_FAVICON` (`flyweb://version` llevaba el logo de Chromium) y saca la NTP del tematizado. Sin
+  compilar. `generar-marca.sh` y `rebranding.md` §2.3, al día.
+
+**Abierto:**
+- Favicons: pendiente de que LOCAL compile `3.1-favicons` y pruebe la NTP (tema claro y oscuro, privada) y
+  `flyweb://version`.
+- [style]: solo si LOCAL-19 informa de errores al compilar el parche o de que deja de bloquear algo (orden de
+  COORDINACIÓN-38).
+- claude.ai: si LOCAL-19 trae un `bt` del minivolcado, leerlo según §3.5 bis.
+
+**Trampas:**
+- Clon de trabajo: `/home/user/bc` (brave-core con `--depth=1` sobre `bf4262a094`; `local/3.0.1` = `77ae53e` se trae
+  igual). Es de este contenedor: hay que recrearlo.
+- Chromium se lee por gitiles (`…/+/refs/tags/156.0.8078.90/<ruta>?format=TEXT`, luego `base64 -d`); los directorios
+  con `?format=JSON`. `gh api search/code` con `repo:chromium/chromium` sirve para encontrar dónde se define un IDR.
+- Las sustituciones de recursos de marca las hace `updateBranding` (brave-core `build/commands/lib/util.js` 336–347):
+  `app/theme/default_*/{common,brave}` y `components/resources/default_*/brave` se copian encima de Chromium.
+- Un PR puede fusionarse mientras se le sube otro commit: comprobar `origin/main` después de cada push.
+- `git cherry-pick` no admite `-q`.
+
+---
+
+# MOTOR-43 → MOTOR-44 (10-11-2026, ~15:50 UTC)
+
+MOTOR-43 (`session_01MwmK2keCUcEPJ6KTcxicZD`, Opus 5.5) se releva al 57 % de contexto. Coordina **COORDINACIÓN-38**
+(`session_01MwmK2hsPeczzmEjVZHW81X`). **Sin push a brave-core:** `add_repo` lo denegó el clasificador. Se trabaja con
+clones de solo lectura (brave-core, Brave 1.98.63 y ANGLE son públicos) y se entrega como `git format-patch` en softmac.
+
+**Hecho y fusionado:**
+- `FlyWeb/parches/3.0.2-sync-ajustes/`:
+  - 0001–0003 (#897, #899): página de sync (`BraveSettingsUIConfig`), «Contraseñas» y `disableTypeCheckBox_`. Van en la
+    3.0.1.
+  - 0004 + 0005 (#899, #906): NTP privada de FlyWeb, sin Brave Search ni Tor. Van en la 3.1.
+- `FlyWeb/parches/3.1-angle/` 0001–0004 (#904): ANGLE Metal. Texturas solo si cambian, `FastVector`, capacidades fuera
+  del dibujo y flujo intermedio sin `insert`. LOCAL mide la candidata 3.1 en la 6,1.
+- `FlyWeb/docs/rendimiento-motionmark.md` (#918): las hipótesis. La sección «Medida» es de LOCAL-19 (#919).
+
+**Encargo abierto (COORDINACIÓN-38, 10-11 ~15:45), sin empezar:**
+- **Lo que midió LOCAL-19:** H1 confirmada. Sin `BraveAdblockCosmeticFiltering`, MotionMark pasa de 3202 a 3701 y
+  Multiply de 1374 a 2723; con H1 y H2 apagadas iguala a Chrome 156. Pero el `sample` no muestra `MutationObserver` ni
+  `querySelectorAll`: el 22 % del hilo principal en Multiply es **serializar el atributo `style` dentro de
+  `ElementRuleCollector`**. Blink solo hace eso si alguna hoja tiene selectores `[style…]`.
+- **Lo que pide:**
+  1. Confirmar en el código de dónde salen las reglas `[style…]` y cuántas son. Candidatas: lista genérica por
+     defecto, hoja que inyecta `content_cosmetic.ts` (`CC.cosmeticStyleSheet`, `adoptedStyleSheets`) o hide-selectors.
+  2. Proponer un arreglo que conserve el bloqueo, p. ej. no meter en la hoja global las genéricas con `[style…]` y
+     aplicarlas solo por el camino de nodos nuevos. Decir qué se pierde en webs reales.
+  3. Una línea sobre Speedometer −12 % y JetStream −8,5 % (PGO u otro código de Brave) y cómo separarlo.
+
+  Se entrega en el mismo documento (PR) y, si está claro, con parche candidato en una rama `nube/`. **Nada a
+  producción: tocar Shields lo decide Titín.**
+- **Por dónde empezar:**
+  - en brave-core, `components/cosmetic_filters/resources/data/content_cosmetic.ts`: cómo construye la hoja y qué
+    selectores mete (genéricos de `HiddenClassIdSelectors` / `UrlCosmeticResources`);
+  - en adblock-rust (`components/brave_shields`), cómo se generan las reglas genéricas;
+  - las listas por defecto que sirve nuestro servidor de componentes;
+  - en Blink, `RuleFeatureSet` / `ElementRuleCollector`: por qué un `[style*=…]` obliga a serializar el atributo.
+
+**Trampas:**
+- Clones de trabajo en `/home/user/bc` (brave-core, `--depth=1` sobre bf4262a094, más la etiqueta `up` = Brave
+  1.98.63) y `/home/user/angle`. Son de este contenedor: hay que recrearlos.
+- `git fetch --depth=1` de brave-core y del tag de Brave tarda poco. ANGLE se baja por el SHA completo
+  (`f10470c77e4810ece55cbe8e08469a31610e92f4`); el corto no vale.
+- Chromium y ANGLE se leen por gitiles: `…/+/refs/tags/156.0.8078.90/<ruta>?format=TEXT` y luego `base64 -d`.
+- `rm -f $P/*.patch` lo bloquea el comprobador de seguridad: hay que usar `"${P:?}"` o rutas literales.
+
+---
+
+# MOTOR-42 → MOTOR-43 (09-11-2026, ~12:00 UTC)
+
+MOTOR-42 (`session_01MwmK2iFB5QKJ5nASYk5dxj`) se releva hacia el 35 % de contexto. Coordina **COORDINACIÓN-35**
+(`session_01MwmK2h9VVd6d8t4mGrtmzp`, abierta por la 34 el 09-11 ~08:00; comprobado con `get_session`). brave-core con
+push (add_repo en la sesión; el nuevo MOTOR lo necesita en la suya).
+
+**3.0.1 (en compilación, LOCAL-19):** seg/3.0.1 + `nube/b2-icono-restaurar` d3fae32d5b + `nube/b2-tests` 148a5939c8 +
+`nube/b2-depfile` bbfb565048 (todas sobre bf4262a094; `nube/b2-redirect-cc` no entra). Pruebas pedidas: barra de
+restaurar en claro y oscuro, Ajustes → Sync, bienvenida (Shields), un pedal del omnibox («borrar historial»); enlace de
+brave_unit_tests y brave_browser_tests; BraveWindowNameBrowserTest.* sin `--disable-brave-update` en la 6,1; `ninja -d
+explain` sin `preprocess_static_files.d` «missing» en la segunda incremental. Tarea: atender las dudas de LOCAL-19.
+Detalle de cada rama en la sección «MOTOR-42 (07-11)» de abajo y en la fila de MOTOR.
+**Añadido por COORDINACIÓN-35 (09-11 ~13:50):** `nube/b2-tests` 148a5939c8 rompía `gn gen` (`brave/test/BUILD.gn`: `data = [...]` en la 717 y otra vez en la 818, dentro de `if (enable_custom_background)`; gn: «Replacing nonempty list»). LOCAL-19 lo arregló en `flyweb` con `data += [...]` (aee46c5da15). `nube/b2-tests` no se toca; si se vuelve a usar esa rama, aplicar el mismo cambio.
+
+**Pendiente de Titín:** borrar `nube/b2-iconos` (3f5d9c293e, ya en t11 como f5133ee5); el modo auto lo denegó.
+
+**3.1 (FM.56, GPU e hilos), primer hito, parte de MOTOR:** lectura de ANGLE Metal (src `flynk-b1d` 33a1745949 en
+lamosquita-net/chromium; ANGLE a66226b1d3 + parches de `FlyWeb/docs/b1d/angle/`; varias GPU: `flynk-b1d-dosgpu`
+b8a4abda2f / ANGLE dc5ef06): qué cuesta CPU en el hilo del proceso de GPU por llamada de dibujo (vector
+DrawCommandRange, subida de uniformes, validación de estado, barreras). Entrega: lista priorizada con ganancia y riesgo
+en `FlyWeb/docs/rendimiento-3.1.md`, por PR [motor]. LOCAL perfila el hilo en la 6,1 y la 7,1; se cruzan datos.
+Estado al relevar: **borrador entregado** en `FlyWeb/docs/rendimiento-3.1.md` (lectura de código, sin medir; 8 cambios; la variante de dos GPU dc5ef06 sin leer). Siguiente: cruzar con el perfil de LOCAL y empezar por los de riesgo bajo (3 y 4).
+
+**PR de softmac (COORDINACIÓN-35, 09-11):** sin borrador y **no los fusiona MOTOR** (regla 8): se abre, se pasa el número a COORDINACIÓN y lo fusiona ella. El «PR [motor] y fusión» de MOTOR-41 queda sustituido.
+
 # MOTOR-42 (07-11-2026, ~20:50 UTC): estado
 
 MOTOR-42 (`session_01MwmK2iFB5QKJ5nASYk5dxj`, Opus 5.5, modo auto; brave-core con push). La 3.0.0 está entregada

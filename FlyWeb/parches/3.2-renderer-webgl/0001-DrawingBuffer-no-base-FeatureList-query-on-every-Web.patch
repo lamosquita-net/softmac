@@ -1,0 +1,75 @@
+From d4d982581d82534702cd099f827527b221f93d85 Mon Sep 17 00:00:00 2001
+From: "MOTOR-45 (Claude)" <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 10:16:09 +0000
+Subject: [PATCH 1/2] DrawingBuffer: no base::FeatureList query on every WebGL
+ draw
+
+ClearIfComposited() calls DrawingBuffer::EnsureBuffers() on every draw
+to the default framebuffer. EnsureBackColorBuffer() and
+EnsureMSAADepthStencilBuffers() each queried base::FeatureList before
+looking at their members, so every drawArrays/drawElements paid two
+FeatureList::IsEnabled() calls (out of line, with an atomic
+access-logging read and the cached override state unpacked each
+time): about 5% of the renderer main thread in Aquarium with 15000
+fish on a Mac Pro 6,1.
+
+Test the members first. back_buffer_discarded_ is only set by
+DiscardBackBuffer(), and the multisample and depth/stencil buffers only
+go missing when they were discarded in the background, so in the
+steady state neither feature is queried. The result of each condition
+is unchanged: it is the same conjunction of side-effect-free terms,
+evaluated in a different order.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../platform/graphics/gpu/drawing_buffer.cc   | 22 ++++++++++++-------
+ 1 file changed, 14 insertions(+), 8 deletions(-)
+
+diff --git a/third_party/blink/renderer/platform/graphics/gpu/drawing_buffer.cc b/third_party/blink/renderer/platform/graphics/gpu/drawing_buffer.cc
+index fc6e8d9c..e01d23f0 100644
+--- a/third_party/blink/renderer/platform/graphics/gpu/drawing_buffer.cc
++++ b/third_party/blink/renderer/platform/graphics/gpu/drawing_buffer.cc
+@@ -2265,10 +2265,13 @@ void DrawingBuffer::EnsureBuffers() {
+ }
+ 
+ void DrawingBuffer::EnsureBackColorBuffer() {
+-  const bool may_discard_back_buffer =
+-      base::FeatureList::IsEnabled(blink::features::kWebGLDiscardBackBuffer);
+-  if (may_discard_back_buffer && back_buffer_discarded_ &&
+-      !back_color_buffer_) {
++  // EnsureBuffers() runs on every WebGL draw call (through
++  // ClearIfComposited()). Test the cheap members first so that the common case
++  // (back buffer present) does not query base::FeatureList on each draw.
++  // back_buffer_discarded_ is only set by DiscardBackBuffer(), so the result is
++  // the same as checking the feature first.
++  if (back_buffer_discarded_ && !back_color_buffer_ &&
++      base::FeatureList::IsEnabled(blink::features::kWebGLDiscardBackBuffer)) {
+     ScopedStateRestorer scoped_state_restorer(this);
+     back_color_buffer_ = CreateOrRecycleColorBuffer();
+     // We had a back buffer before, we can't allocate one now. We can't
+@@ -2283,15 +2286,18 @@ void DrawingBuffer::EnsureBackColorBuffer() {
+ }
+ 
+ void DrawingBuffer::EnsureMSAADepthStencilBuffers() {
+-  if (!base::FeatureList::IsEnabled(
+-          ::features::kWebGLDeleteBuffersInBackground)) {
+-    return;
+-  }
++  // Called on every WebGL draw call: look at the members (plain loads, no side
++  // effects) before querying base::FeatureList, which is only needed when a
++  // buffer is actually missing.
+   bool need_multisample = WantExplicitResolve() && !multisample_renderbuffer_;
+   bool need_depth_stencil = WantDepthOrStencil() && !depth_stencil_buffer_;
+   if (!need_multisample && !need_depth_stencil) {
+     return;
+   }
++  if (!base::FeatureList::IsEnabled(
++          ::features::kWebGLDeleteBuffersInBackground)) {
++    return;
++  }
+ 
+   ScopedStateRestorer scoped_state_restorer(this);
+   scoped_state_restorer.SetFramebufferBindingDirty();
+-- 
+2.43.0
+

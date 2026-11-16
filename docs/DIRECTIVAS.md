@@ -304,6 +304,140 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   avances lo hace ARQUITECTURA con datos de SEGURIDAD-PORTES y MOTOR; decide Titín. FLYWEB_BUILD_NUMBER sigue subiendo en
   cada versión (CFBundleVersion 198.63.N; si se deja de partir de Brave, debe seguir creciendo o Sparkle no la ofrecerá).
   La 3.0.0 se publicó sin esperar a la 5,1 (Titín, 07-11): si falla allí, 3.0.1 o vuelta manual a la 2.7.0 con la copia «antes de 3.0».
+- **Plan de la 3.x aprobado (Titín, 09-11; detalle en `FlyWeb/docs/plan-3x.md`):** la línea 3.0.x de seguridad, siempre
+  en marcha → **3.1, GPU e hilos (FM.56), adelante ya** → 3.2, sync con cuenta (F7.7), con su diseño en paralelo a la 3.1.
+  - **La 3.0.1 va en paralelo con la 3.1**, con los parches ya preparados, sin competir por la 7,1: la compilación de la 3.0.1
+    va primero, y el perfilado de la 3.1 puede ir en la 6,1.
+  - **Seguridad continua con SEGURIDAD-PORTES, siempre en marcha:** tandas cada 2–4 semanas, KEV y críticos al momento,
+    y la medida mensual de cuántos arreglos entran limpios.
+  - **Novedades de los motores (Chrome 157+, Blink, V8):** INVESTIGACIÓN-MOTOR vigila y propone, con un informe periódico
+    de qué trae cada Chrome, qué se puede portar a la 156 y qué interesa. MOTOR implementa solo lo que Titín apruebe, dentro
+    de una 3.x, para no distraerse de la 3.1.
+  - **Primer hito de la 3.1:** perfil del hilo del proceso de GPU en la 6,1 y la 7,1 (LOCAL) y lectura de ANGLE Metal (MOTOR).
+  - **Decisiones de `plan-3x.md` §7 y de `novedades-motor.md` (Titín, 09-11, todas sí):**
+    1. El criterio de la 3.1 en la 7,1 (hueco con Chrome) se fija con el hito 0, con el mismo guion para los dos navegadores.
+    2. Puerta de los hilos: hilo del proceso de GPU ≥ 90 % y driver > 25 %.
+    3. Base nueva: umbrales S1 50/35 % y S2 5/10 críticos (§6.3); se revisan con la medida de diciembre.
+    4. `flyweb_bundle_version_base = "198.63"`: entra en la 3.0.2 (la 3.0.1 ya compilaba).
+    5. Sparkle 2: se valora durante la 3.1 y se migra en la 3.3.
+    6. Containers no; WebGPU apagado y fuera de la 3.x.
+    7. Vigilancia diaria de KEV entre tandas (rutina de SEGURIDAD-VIGÍA en Haiku, pasada diaria).
+    8. **Versión declarada:** FlyWeb sigue declarando 156 en toda la 3.x. Una función de un Chrome posterior se enciende
+       solo si una web real la necesita (claude.ai, el primero), nunca por paridad.
+    9. 3.0.2: apagar XSLT (antes, SEGURIDAD cuenta los CVE de libxslt), CORS en Background Fetch y bloqueo del foco sin
+       interacción del usuario; LOCAL comprueba si la 3.0.x expone WebHID, Web Install y Direct Sockets, y si sí, se apagan.
+- **Contenido cerrado antes de compilar (Titín, 09-11):** antes de cada orden de compilar una versión, COORDINACIÓN cierra
+  la lista de contenido. Cada decisión pendiente que la toque se pregunta antes o se pasa por escrito a la versión siguiente.
+  Nunca se compila con una pregunta abierta sobre lo que va dentro.
+- **Contenido de la 3.1 (Titín, 10-11, «apruebo todo»; COORDINACIÓN-38):** sobre la 3.0.1 (brave-core `local/3.0.1`
+  77ae53e5f6, chromium `seg/3.0.2` 502e3c5b85): (1) ANGLE Metal `FlyWeb/parches/3.1-angle/` 0001–0004 (t4: Aquarium 10k a
+  60 fps, 15k +3–10 %, texturas 69/69); (2) NTP privada de FlyWeb, 0004 + 0005 de `3.0.2-sync-ajustes`; (3) favicons con la
+  mosca, `3.1-favicons` (#926); (4) Escudos, `3.1-cosmetic-style` (#921), si la build de medida de LOCAL-19 confirma la
+  mejora en MotionMark y pasa la prueba funcional de bloqueo; si no, a la 3.2; (5) **Maglev encendido** (Titín, 10-11 noche: con
+  7,1 +8,2 %, 6,1 +6,8/+6,6 %, AVX sin despacho 0 en Maglev y mjsunit en verde, la 5,1 no bloquea; su medida va
+  después de publicar, con la versión instalada y el perfil de quien la use, y si pierde se estudia para la 3.2). Las dos condiciones son medidas, no preguntas: se comprueban
+  antes de la orden de compilar. **Fuera, a la 3.2:** el diseño de Titín de la pantalla privada (parte de la de la 3.1) y
+  los cambios ligeros de las pestañas (colores, esquinas, separadores, pestaña activa; no la forma ni el alto).
+- **Seguridad tras la 3.1.0 (Titín, 12-11; COORDINACIÓN-39):** no hay 3.0.2. La línea 3.0.x se cierra y las tandas de
+  seguridad siguen en el tercer dígito de la versión publicada: la de Chrome 158 (estable 17-11) es la **3.1.1**, sin
+  esperar a la 3.2.0 (si coinciden, se juntan). Lo previsto para la «3.0.2» que no entró en la 3.0.1 (p. ej.
+  `flyweb_bundle_version_base`) pasa a la 3.1.1. Se sigue declarando 156 (decisión 8 del plan de la 3.x). **Prueba de huella en la 3.1.1** (Titín, 12-11): con los
+  parches puestos, JA4, HTTP/2, orden de cabeceras y Client Hints tienen que cuadrar con un Chrome 156 real (`motor.md`).
+  **Cambio (Titín, 13-11; COORDINACIÓN-40): la 3.1.1 sale ya, sin la 158**: seguridad 0001–0034 (V8 .58, Skia, M156/M157),
+  arreglo de Catalina (`FlyWeb/parches/3.1.1-catalina/`) y lo heredado de la «3.0.2». El delta de la 158 se prepara el
+  17-11 y Titín decide entonces si va en una 3.1.2 solo de seguridad o en la 3.2.0. Sync de la 3.2: **H1 aprobado** (13-11).
+- **Sync con cuenta de la 3.2 (Titín, 12-11; COORDINACIÓN-39):** diseño en `FlyWeb/docs/sync-cuenta.md` (#905). Añadir
+  un Mac con el **modelo de Firefox Accounts** (clave envuelta con una clave que sale de la contraseña; el servidor no ve
+  contraseña ni semilla): email + contraseña + código por email, **sin aprobación desde otro Mac**.
+  Riesgo aceptado: con la base de datos robada, las contraseñas débiles se pueden atacar fuera de línea. Las 24 palabras
+  siguen siendo la recuperación. Sin tope diario de códigos: aviso por
+  email de cada operación (y ritmo contra la fuerza bruta). Demora de borrado: 14 días. Mac
+  identificado por modelo y nombre que elige el usuario. Página «Cuenta y sincronización»; correos desde `noreply@`.
+  RGPD: correo 7 días, `sync.db` 30 días, copia en bak cifrada 30 días; registro de actividades, contrato con OVH y
+  brechas: propuesta nuestra con marcadores, sin datos personales en el repo.
+  - **Simplificación (Titín, 12-11 noche; COORDINACIÓN-40): sencillo para el usuario y para el desarrollo, sin diseñar
+    para casos extremos.** (A) **No hay bloqueo de cuenta.** (B) **Contraseña de cuenta obligatoria; no hay «código
+    visible».** Cambiar la contraseña, o ponerla nueva si se olvidó («He olvidado la contraseña»): desde cualquier Mac que
+    ya sincroniza, con un código por email. Mac nuevo: email + contraseña + código por email; si se olvidó, primero se
+    cambia en un Mac que ya sincroniza. Sin ningún Mac y sin contraseña: las 24 palabras. (C) Un solo plazo de 14 días.
+    (D) La copia de bak se borra de verdad a los 30 días (excepción a la cuarentena). (E) **No** se añade espera de 3 días
+    para el Mac robado con el correo abierto. **Riesgo aceptado:** quien tenga un Mac desbloqueado y el correo del usuario
+    tiene su cuenta; un Mac apagado o bloqueado lo protege la contraseña de macOS.
+- **Contenido de la 3.2.0 cerrado (Titín, 13-11; COORDINACIÓN-41):** (1) sync con cuenta: servidor (H2, #977, tras la
+  revisión de SEGURIDAD-PORTES) y cliente (H3), que se encarga ya a MOTOR para escribirlo en paralelo; se compila
+  cuando la 3.1 esté medida (`plan-3x.md` §5.2); (2) diseño de Titín de la pantalla privada y cambios ligeros de las
+  pestañas (`entregas/local21/diseno-32/`); (3) parches `FlyWeb/parches/3.2-renderer-webgl/` 0001–0003. Asistente de unir un Mac
+  a la cuenta: **solo «Combinar»** (Titín, 13-11); «Sustituir» y «Quitar duplicados», si hacen falta, en una 3.2.x
+  (parche 0007 sin rehacer nada). Nada más entra
+  sin pasar por Titín. El delta de la 158 y la V8 .59 no son contenido de la 3.2.0 salvo que Titín lo decida el 17-11
+  (recomendación de COORDINACIÓN: 3.1.2 solo de seguridad).
+- **3.1.2 antes de la 3.2.0 (Titín, 13-11 noche; COORDINACIÓN-41):** la 3.2.0 está lejos (sync sin revisar ni compilar),
+  así que sale antes una **3.1.2 de seguridad**: V8 .59, delta de la 158 (estable el 17-11) y KEV; nada que no sea
+  seguridad salvo un arreglo pequeño y ya diagnosticado (p. ej. la caída de «Continuar con Google» o el respaldo GL de
+  ANGLE en los Mac de 2012, si ARQUITECTURA lo da por seguro). Contenido cerrado antes de compilar. Los fallos se
+  arreglan en paralelo y **no paran** la 3.2.0. Se adelanta la revisión de SEGURIDAD de la sync (#977, #981) para no
+  esperar al 17-11. INVESTIGACIÓN-MOTOR vigila además Gecko, WebKit y los estándares (WHATWG HTML, CSSWG, TC39,
+  Interop) para detectar tendencias que convenga traer.
+- **Copia de seguridad de la sync (Titín, 14-11; COORDINACIÓN-43):** sí a la propuesta v5 de SERVIDOR-LOCAL (APTO de
+  SEGURIDAD-PORTES-23): `sync.db` cifrada con gpg asimétrico (la privada la guarda Titín fuera de línea, con frase y
+  segunda copia), cada noche a las 03:30 con la sync parada unos segundos; **borrado real a los 30 días en ns2 y en bak**
+  (la excepción de la directiva (D)); bak la **trae** con un usuario propio de solo lectura en ns2 y la borra con una
+  **tarea programada**; aviso por correo al alias root de ns2 si falla. Credenciales de la cuenta y DKIM, aparte y con
+  otra frase. La copia no cuenta hasta una restauración de prueba.
+  - **Borrado manual (Titín, 15-11; COORDINACIÓN-43; cambia «tarea programada»):** el borrado a los 30 días **no es
+    automático** ni en ns2 ni en bak: lo hace Titín con `flyweb-copia-purgar.sh`, que lista las copias de 30 días o más y
+    solo borra si se escribe BORRAR en una terminal. `check-server.sh` avisa en su correo diario si hay copias de más de
+    30 días pendientes de purga, para que no dependa de la memoria (la nota RGPD promete 30 días).
+  - **Cierre (Titín con la Auditoría, 16-11; COORDINACIÓN-43):** la Auditoría aplicó la **v6 sin latido** (16-11, con el OK
+    de Titín): avisos de fallo por correo, límites de tiempo, sin sobrescribir copias traídas y **purga manual** con
+    `flyweb-copia-purgar.sh` (no hay borrado automático); el estado de bak lo comprueba su check-server.sh. Descartado:
+    latido, sacar credstore/DKIM del backup general, rotar credenciales y cifrar /etc. El backup general de Titín no se
+    toca (sus claves root, riesgo aceptado). En servidores y backups manda el criterio de conjunto de la Auditoría.
+- **Respaldo GL en la 3.1.2 (Titín, 14-11; COORDINACIÓN-42):** el respaldo OpenGL de ANGLE para los Mac de 2012–2015
+  (`FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005, #982) **entra en la 3.1.2**. Preliminar de LOCAL-19
+  (`local/311-gl-reserva`): en la 6,1 Metal sigue por defecto y va mejor; con GL también funciona; en el MacBookPro9,1
+  (Catalina, HD 4000) elige OpenGL por sí solo y va como Safari o mejor (Titín). Sin tocar el sandbox de GPU. Siguen en
+  pie las condiciones de SEGURIDAD-PORTES (G-C2: cambio de GPU, reposo y monitor externo en el 9,1) antes de cerrar el
+  contenido; si alguna falla, se avisa a Titín antes de sacarlo.
+- **«Error 11» en la 3.1.2 (Titín, 14-11; COORDINACIÓN-42):** el arreglo de la caída de «Continuar con Google»
+  (brave-core `local/311-error11` 6bc695443675: los plugins falsos del farbling con dos tipos MIME, como Brave) **entra en
+  la 3.1.2** como brave-core 0002. SEGURIDAD-PORTES-23: APTO (estabilidad, no seguridad; sin huella nueva; igual que
+  upstream por contenido; #985). La 3.1.2 lleva así seguridad + respaldo GL + error 11.
+- **3.1.2 ya; la 158 en la 3.1.3 (Titín, 14-11; COORDINACIÓN-42; cambia «3.1.2 antes de la 3.2.0»):** la 3.1.2 sale
+  **ahora** con el respaldo GL y el «error 11» (más lo de seguridad ya cerrado: V8 .58, KEV sin nuevos), sin esperar a la
+  158. El delta de la 158 (17-11) va en una **3.1.3** solo de seguridad, que sale en cuanto esté; si para entonces la
+  3.2.0 ya estuviera lista, va en ella. La seguridad no espera a la sync.
+- **FlyWeb también innova (Titín, 13-11 noche; COORDINACIÓN-41; amplía «Flink a nuestro ritmo»):** además de seguir a
+  Chrome, FlyWeb puede implementar funciones nuevas de los estándares (HTML, CSS, JS, APIs) aunque ningún otro navegador
+  las tenga aún. **Las elige Titín como diseñador web.** INVESTIGACIÓN-MOTOR le presenta las tendencias nuevas, con
+  ejemplo, estado de la especificación, riesgo y coste, para que marque sí o no; MOTOR implementa lo aprobado. Lo de los
+  navegadores para macOS viejos deja de vigilarse. Riesgo aceptado: una función que se implemente antes de tiempo puede
+  cambiar en la especificación; se prefiere lo que tenga consenso o borrador estable, y se avisa cuando no.
+- **Plataformas (Titín, 13-11 noche; COORDINACIÓN-41):** después de la 3.2 y **sin coste nuevo** (nada de comprar
+  RAM ni licencias por ahora). Orden: (0) automatizar la fábrica de Mac (compilar, probar, publicar sin pasos a mano);
+  (1) **Ubuntu**, en la máquina de D8-LINUX (i9 de 13.ª, 32 GB: se compila con menos trabajos en paralelo);
+  (2) **Android**, en la misma máquina, publicado en la cuenta de Google Play de Titín; (3) **iOS**, con motor propio en
+  la UE (cuenta de Apple ya pagada); (4) **Windows**, al final (exige certificado de firma de pago). Los parches de
+  seguridad son comunes; lo que se multiplica es compilar, probar y publicar. ARQUITECTURA hace antes el estudio en
+  papel (coste en hitos, máquinas, firma y tiendas, automatización); el orden se revisa con sus datos.
+  **Confirmado por Titín (14-11), pese a la recomendación de ARQUITECTURA (#989) de parar en Android:** iOS va **sí o
+  sí** y **antes que Windows** (los dispositivos de la familia son iOS; Windows apenas se usa). El camino de iOS (motor
+  propio en la UE o primero WebKit con la sync y la privacidad de FlyWeb) se decide con un estudio cuando toque.
+- **Flink a nuestro ritmo (Titín, 12-11 noche; COORDINACIÓN-40):** Chrome marca hacia dónde va la web y lo seguimos,
+  pero con criterio propio: se trae lo que interese y lo que necesiten webs reales, y no se mete lo que no aporta o
+  rechazan Firefox y Safari (sigue la decisión 8 del plan de la 3.x: se declara 156). Objetivo: **no quedarse nunca atrás**.
+  INVESTIGACIÓN-MOTOR vigila Chrome y, desde el informe 2 (17-11), también Firefox, Safari y otros navegadores que se
+  mantienen con versiones viejas de macOS o del motor, para dar tiempo a traer lo útil de donde sea.
+- **Multihilo y multiGPU (Titín, 11-11; COORDINACIÓN-39):** estudio de ARQUITECTURA en
+  `FlyWeb/docs/multihilo-multigpu.md` (#941). Reparto de calor (toda la WebGL en la segunda D500) decidido: se entrega si
+  no pierde más del 2 %. La compilación E1 y la medida M1 van **después de la 3.2** (la sync va primero). Apartado nuevo
+  del estudio, tras cerrar la sync: JavaScript y CPU de muchos hilos (límites de hilos de Chromium/V8, estilo en paralelo).
+  Batería de GPU: `pruebas-gpu.md` más Basemark Web 3.0 (#942).
+- **Design Fly Suite (Craft, Titín, 09-11):** el fork de vectorcraft espera a que storytold llegue a beta
+  (`docs/investigacion/craft-apps.md`). Mientras, el agente del proyecto hace el módulo de importación de FreeHand.
+  La jaula `craft` de la 6,1 lleva, cuando se monte, pf por usuario, `Match User craft`, `sudo -k` y la comprobación de
+  `/Volumes` y `/Users/Shared`. `craft-update` se quita antes de la primera ejecución fuera de la jaula. COORDINACIÓN
+  fusiona sus PR.
 - **La base 156 se publica como FlyWeb 3.0.0 (Titín, 05-11; `base-siguiente.md` §7):** es un salto de base, no un nivel.
   Excepción escrita a la regla 18: los niveles 139–155 no llevan versión propia; `flyweb_engine_level` = 156 y
   `flyweb_version` = 3.0.0. Después, 3.0.x para backports de seguridad y arreglos (B8).
