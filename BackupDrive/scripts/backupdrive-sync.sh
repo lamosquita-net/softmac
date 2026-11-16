@@ -18,6 +18,7 @@
 #
 # Configuración en ~/Library/Application Support/BackupDrive/:
 #   backupdrive.conf   remotos (se crea con: backupdrive --config <esa ruta> config)
+#   sin-enlaces        (opcional, vacío) si existe, los enlaces simbólicos se saltan en vez de subirse como .rclonelink
 #   profiles           una línea por perfil:  <carpeta local>|<remoto:ruta>[|<días de versiones>[|<% de cambios>[|<nº de cambios>]]]
 #                      (# = comentario; días 0 = las versiones no caducan; el remoto debe llevar una carpeta, no la raíz;
 #                      % y nº: umbral del freno de modificaciones masivas, 20 y 50 por defecto)
@@ -236,7 +237,10 @@ sync_profile() { # local remote días % nº
     --compare size,modtime,checksum --slow-hash-sync-only --create-empty-src-dirs \
     --resilient --recover --max-lock 2h --max-delete "$MAX_DELETE" --conflict-resolve none --conflict-suffix conflicto-mac,conflicto-drive \
     --backup-dir1 "$vm" --backup-dir2 "$vr" --suffix "-$stamp" --suffix-keep-extension \
-    --drive-skip-gdocs --links --log-level INFO
+    --drive-skip-gdocs --log-level INFO
+  # Enlaces simbólicos: por defecto viajan como «.rclonelink». Con el fichero «$APP_DIR/sin-enlaces» se saltan sin aviso,
+  # como FreeFileSync: mientras los dos convivan, FFS bajaría los .rclonelink como ficheros normales (H9).
+  if [ -f "$APP_DIR/sin-enlaces" ]; then set -- "$@" --skip-links; else set -- "$@" --links; fi
   # Listado de Drive por lotes (ListR): en rclone 1.67 bisync solo lo usa con --fast-list (march.go), aunque su
   # documentación diga lo contrario. Sin él, una petición por carpeta: ~8 min por pasada con 1407 carpetas, horas con
   # decenas de miles (drive.md: 10600 carpetas, 22 min -> 58 s). BACKUPDRIVE_FAST_LIST=0 vuelve al listado carpeta a carpeta.

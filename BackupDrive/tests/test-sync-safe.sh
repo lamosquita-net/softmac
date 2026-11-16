@@ -179,6 +179,18 @@ grep -q "Bisync critical error" "$T/out" && fail "la simulación falla sin la ca
 run --profile "$MAC2" --resync
 has "$DRIVE2/n.txt" "primera sincronización en una carpeta de Drive nueva"
 
+# --- 13. Con «sin-enlaces» los enlaces simbólicos se saltan sin aviso (convivencia con FreeFileSync) ---
+MAC3="$T/mac3"; DRIVE3="$T/drive3"; mkdir -p "$MAC3"; echo e > "$MAC3/e.txt"; ln -s e.txt "$MAC3/enlace-e"
+printf '%s\n' "$MAC3|fake:$DRIVE3|90|20|5" >> "$BACKUPDRIVE_DIR/profiles"
+touch "$BACKUPDRIVE_DIR/sin-enlaces"
+run --profile "$MAC3" --resync
+has "$DRIVE3/e.txt" "con sin-enlaces, los ficheros normales suben"
+[ ! -e "$DRIVE3/enlace-e" ] && [ ! -L "$DRIVE3/enlace-e" ] && ok "con sin-enlaces, el enlace no sube" || fail "con sin-enlaces, el enlace sube"
+run --profile "$MAC3"
+[ "$(result)" = ok ] && ok "con sin-enlaces, la pasada siguiente: ok" || fail "con sin-enlaces, pasada siguiente ($(result))"
+[ -L "$MAC3/enlace-e" ] && ok "con sin-enlaces, el enlace sigue en el Mac" || fail "con sin-enlaces, el enlace desaparece del Mac"
+rm -f "$BACKUPDRIVE_DIR/sin-enlaces"
+
 [ -n "${KEEP_LOG:-}" ] && cp "$BACKUPDRIVE_LOG_DIR/backupdrive.log" "$KEEP_LOG"
 echo "$((n - fails))/$n correctas"
 [ "$fails" -eq 0 ]
