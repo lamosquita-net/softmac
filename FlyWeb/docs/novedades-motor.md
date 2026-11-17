@@ -132,6 +132,9 @@ los costes son estimaciones por tipo de componente.
 
 # Informe 2, parte A: tendencias de los estándares web (diseñador)
 
+> **Fe de erratas (17-11):** tras leer de primera mano MDN, las notas de Apple y las especificaciones, he corregido en este texto lo que venía del buscador
+> [S] y era inexacto. La lista completa está en la **parte B, §6**.
+
 INVESTIGACIÓN-MOTOR-10, 13-11-2026. Encargo de Titín vía COORDINACIÓN-41. **Enfoque cambiado por Titín el 13-11:** se quitan los
 navegadores para macOS viejos; el foco son las **últimas tendencias de los estándares** (HTML, CSS, TC39, WICG, APIs), aunque
 ningún navegador las tenga o solo uno. Titín decide como diseñador web qué queremos en FlyWeb y la idea es poder traerlo
@@ -186,7 +189,7 @@ Por temas. Versión de Chrome que lo estrenó; F = Firefox, S = Safari [P: web-f
 | Animación | scroll-driven animations, view transitions (mismo doc, entre documentos, tipos, grupos anidados, `match-element`, **ámbito de elemento**), `@starting-style`, `interpolate-size`/`calc-size()`, `sibling-index()`, scroll-triggered animations (`animation-trigger`) | 111–147 | scroll-driven: F 159, S 26; ámbito de elemento y triggers: solo Chrome |
 | Color | `contrast-color()`, `light-dark()` con imágenes, `alpha()` relativo, `relative color`, `color-mix` (2 colores), `oklch`, `@property` | 120–152 | contrast-color: F 146, S 26 |
 | Formas | `shape()`, `corner-shape`/`superellipse`, `border-shape`, `polygon()` con `round` | 135–150 | `shape()`: F 148, S 18.4; `corner-shape`: S a favor; `border-shape`: sin señal |
-| Funciones CSS | `if()`, `@function`, `attr()` tipado, **`random()`**, aritmética tipada | 133–156 | `if()` y `@function`: S a favor, F sin señal; `random()`: S sí, F tras opción [S] |
+| Funciones CSS | `if()`, `@function`, `attr()` tipado, **`random()`**, aritmética tipada | 133–156 | `if()` y `@function`: F sin señal; **Safari 27.3 beta los implementa** (parte B §6); `random()`: S sí, F solo Nightly (MDN, ver parte B §6) |
 | Formularios y componentes | `<select>` personalizable (+ listbox), `popover` (incl. `hint`), `<dialog closedby>`, `:open`, `command`/`commandfor`, `focusgroup`, `interestfor`, `field-sizing`, `<details name>`, `::details-content`, carruseles (`::scroll-button`, `::scroll-marker`, `scroll-target-group`) | 114–150 | `interestfor`: S **en contra**, F neutral; carruseles y `focusgroup`: sin señal (F positivo en focusgroup) |
 | Plataforma | Navigation API (+ precommit), scoped custom element registries, `moveBefore()`, Sanitizer API (`setHTML`), `<template for>` (parches de HTML en streaming), Observable, speculation rules | 102–150 | Observable: F **en contra**, S a favor |
 | JavaScript (V8 15.6) | Temporal, Iterator helpers + `join`/`sequencing`/`includes`/`zip`, `Set` methods, `Promise.try`, `RegExp.escape`, `Math.sumPrecise`, `Uint8Array` base64, `Float16Array`, `getOrInsert`, `using` (ERM), JSON/import attributes y `import text`, JSPI de Wasm | 117–154 | Temporal: F 139, S en desarrollo; ERM: S no |
@@ -207,7 +210,7 @@ Notas:
 | Novedad y ejemplo | Spec | Chrome / Firefox / Safari | Riesgo · polyfill | En 156 · coste | Propuesta |
 |---|---|---|---|---|---|
 | **Grid lanes** (masonry). `.galeria { display: grid-lanes; grid-template-columns: repeat(auto-fill, minmax(14rem,1fr)); }` Piezas que se colocan en el carril con más hueco | css-grid-3 (borrador) | Chrome **bandera** (`CSSGridLanesLayout`, experimental en 156/157/158) [P]. Safari lo lanzó (26.4 según Apple [S]; web-features marca 27.2 y 27.2 «renombró una propiedad» [S]). Firefox: no lo tiene [N] | **Alto**: la sintaxis cambió (masonry → grid-lanes → propiedad renombrada). Polyfill: librerías JS (masonry) o `columns` | bandera en 156 → **M** (encender, WPT, accesibilidad del orden) si el motor está completo; **L** si no [N] | **Esperar** a que Chrome la encienda; mientras, solo bajo «modo diseñador» |
-| **`:heading` y `revert-rule`** | selectors/cascade (WD) | solo Safari 27 [S] | bajo · ninguno | ausentes · **S** cada una | No ahora |
+| **`:heading` y `revert-rule`** | selectors/cascade (WD) | `:heading`: solo Safari 27. `revert-rule`: **Firefox 150 y Safari 27** [P MDN, Apple] | bajo · ninguno | ausentes · **S** cada una | No ahora |
 | `position-visibility: anchor-valid/visible` + plurales | css-anchor-position | Chrome 157, F 147, S 26.2 [P] | bajo · no | **S** | **Sí** (ya en informe 1) |
 | Propiedades abreviadas de esquina (`corner-*`) | css-borders-4 | Chrome 160 [P chromestatus]; F a favor, S en desarrollo | medio | no en 156 · **S** cuando salga | Esperar a la 160 |
 
@@ -215,8 +218,8 @@ Notas:
 
 | Novedad y ejemplo | Spec | Quién | Riesgo · polyfill | En 156 · coste | Propuesta |
 |---|---|---|---|---|---|
-| **`text-autospace`** (espacio entre CJK y latín). `text-autospace: normal;` | css-text-4 | F 145, S 27; Chrome **no** [P] | bajo · JS que inserta espacios | no (sin bandera por nombre) · **M–L** (maquetado) | No: afecta sobre todo a CJK |
-| `hanging-punctuation` | css-text-4 | solo Safari 26.5 | bajo · ninguno | **M** | No |
+| **`text-autospace`** (espacio entre CJK y latín). `text-autospace: normal;` | css-text-4 | F 145, S 27. **Chrome sí la tiene** (propiedad sin bandera en 156: corregido en la parte B §6) | bajo · JS que inserta espacios | ya en 156 | **No es hueco** |
+| `hanging-punctuation` | css-text-4 | solo Safari (desde hace años; la 26.5 solo la arregla). Chrome: bandera `test` | bajo · ninguno | **M** | No |
 | `font-width` / `font-variant-position` | css-fonts | S 18.4 / F 34 | bajo | **S** | No |
 | `text-overflow: <string>`, `text-decoration-inset` | css-overflow/text-decor | Chrome 157, F y S | bajo | **S** (flip) | **Sí** (informe 1) |
 | `generic()` (familias genéricas) | css-fonts-5 | propuesta; Mozilla a favor [P] | medio | no · — | Vigilar |
@@ -256,10 +259,10 @@ Notas:
 |---|---|---|---|---|---|
 | **RegExp `\A \z \Z`** | 3 | F ya; Chrome 159 [P chromestatus]; S sin señal | bajo | V8 15.6 experimental · **S** (encender + mjsunit) | **Sí**, junto al 159 |
 | **`import defer`** (evaluación diferida de módulos) | 3 | F 158 solo Nightly [S]; V8 15.6 *staged*; Chrome: sin señal | medio | staged · **S** | Esperar a que Chrome lo encienda |
-| **Iterator chunking / `windows`** | 4 (2027) | F sin señal [N]; no en V8 15.6 | bajo · polyfill | ausente · **M** (código de V8) | Esperar (V8 lo traerá) |
+| **Iterator chunking / `windows`** | 4 (2027) | **F 154 ya lo trae** [P MDN]; S 27.3 beta; no en V8 15.6 | bajo · polyfill | ausente · **M** (código de V8) | Esperar (V8 lo traerá) |
 | **`import bytes`, ArrayBuffer inmutable** | 2.7 | staged en V8 15.6 | medio | staged · **S** | No (etapa 2.7) |
 | **Decoradores, `import source`, ShadowRealm** | 2.7 / 3 | V8 *experimental*; F y S sin señal | alto | experimental | No |
-| `Await Dictionary`, `Error.stack` accessor, límites de *thenables* | 3 (nuevas) | ninguno | medio | ausentes | Vigilar |
+| `Await Dictionary` (`Promise.allKeyed`), `Error.stack` accessor, límites de *thenables* | 3 (nuevas) | **Await Dictionary: F 155** [P MDN]; el resto, ninguno | medio | ausentes | Vigilar |
 | `Math.clamp`, `Iterator.range`, pipeline, `SeededPRNG`, `String.dedent` | 2 | ninguno | alto | ausentes | No |
 
 Etapa 4 o anterior ya está en V8 15.6: **Temporal**, Iterator helpers y `join`/`includes`/`sequencing`/`zip`, `Set`, `RegExp.escape`, `Promise.try`,
@@ -291,10 +294,10 @@ Cuatro investigaciones: accesibilidad, **JPEG XL**, pruebas móviles, WebVTT.
 ## 6. Gecko y WebKit: qué implementan ahora
 
 - **Firefox 147–158** [S: MDN vía buscador]: módulos CSS (147), `color-mix` multicolor y `light-dark()` con imágenes (150), `@container style()`
-  (151), `text-box-trim` y `progress()` (154), `attr()` en cualquier propiedad (155), `named-feature()` (156), `overscroll-behavior: chain` (157),
-  aritmética tipada, **JPEG XL por defecto** y `fetch` con ReadableStream (158); tras opción: `random()` y `corner-shape` (158). Firefox 159: scroll-driven
+  (151), `text-box-trim` y `progress()` (154), `attr()` en cualquier propiedad (155), `named-feature()` (156, **solo tras preferencia**), `overscroll-behavior: chain` (157),
+  aritmética tipada, **JPEG XL por defecto** (158); **solo Nightly** en la 158: `random()`, `corner-shape`, `import defer` y `fetch` con ReadableStream como cuerpo. Firefox 159: scroll-driven
   animations y scoped registries (por web-features [P]); Nightly: `import defer`.
-- **Safari 26.4 → 27.3** [S: WebKit/Apple vía buscador]: grid lanes (26.4, propiedad renombrada en 27.2), `hanging-punctuation` (26.5), 58 funciones nuevas en
+- **Safari 26.4 → 27.3** [S: WebKit/Apple vía buscador]: grid lanes (26.4, propiedad renombrada en 27.2), 58 funciones nuevas en
   Safari 27 (WWDC26): `<select>` personalizable (`appearance: base-select`), `stretch`, `:heading`, `revert-rule`, anclaje con transformaciones,
   `<model>`, `color-mix` multicolor, `text-autospace`. STP 256 (05-11).
 - **Lectura [I]:** Firefox y Safari van **detrás de Chrome en componentes de interfaz** (carruseles, `interestfor`, scroll-state) y
@@ -337,3 +340,170 @@ Por prioridad. **Ninguna toca V8 ni la versión declarada** (decisión 8: lo nue
 Límites: no medí uso real; no probé nada en un FlyWeb compilado; no leí los borradores del CSSWG ni WHATWG; costes por tipo de componente.
 
 *Siguiente: parte B (Chrome 158 estable) el 17-11, cuando COORDINACIÓN avise.*
+
+---
+
+# Informe 2, parte B: Chrome 158 estable frente a nuestra 156
+
+INVESTIGACIÓN-MOTOR-10, 17-11-2026. Encargo de COORDINACIÓN-45. Solo papel. **Chrome 158 estable:** 158.0.8127.36/.37 en Mac (chromiumdash:
+la .37 es del 12-11; calendario: estable temprana 04-11, completa 18-11), rama 8127, V8 15.8 **[P]**. Nuestra base: 3.1.x = 156.0.8078.105,
+V8 15.6; se declara 156 (decisión 8 del plan de la 3.x). «Respecto a la 156» incluye **lo de la 157 y lo de la 158**. En DIRECTIVAS, «FlyWeb también innova»
+(13-11) amplía «Flink a nuestro ritmo» (12-11) y es la que manda (aclarado por COORDINACIÓN-45): los navegadores de macOS viejos ya no se vigilan; sí
+Chrome 158, Gecko, WebKit y los estándares, como en la parte A. Etiquetas [P]/[S]/[I]/[N] como en la parte A; **coste en hitos de MOTOR**:
+**S** = un cambio (encender la bandera o un parche pequeño, con sus WPT) · **M** = una tanda (varios cambios de Blink y retoques) ·
+**L** = toca pintado, GPU, red, sandbox o interfaz del navegador (varias tandas). Los costes son [I].
+
+## 1. Lo esencial
+
+1. **No hay ninguna función de JavaScript nueva en la 158.** V8 15.6 → 15.7 → 15.8 no pasa nada a «enviado»; solo `\A \z \Z` de RegExp sube de
+   experimental a *staged* en la 15.8 y saldrá de serie en la 159 **[P: `feature-flags.h`; chromestatus 159]**.
+2. **Nuevo de verdad para un Mac: unas 20 funciones**, casi todas pequeñas (CSS, SVG, DOM, red). Las grandes son **HTML en canvas** (157, activo por
+   defecto), los **métodos nuevos de insertar HTML** (157), el **`<install>` y la Web Install API** (158) y la **retirada de XSLT** (158).
+3. **La mayoría ya está en nuestra 156 tras bandera `experimental`** (flip = encender y portar los arreglos de 157–158): **20 banderas pasan de
+   `experimental` a `stable` entre 8078 y 8127** (10 en la 157 y 10 en la 158) **[P: diferencia de `runtime_enabled_features.json5`]**. Eso baja el coste a S en casi todo.
+4. **Firefox y Safari convergen deprisa.** Safari 27.3 beta (16-11) añade de golpe `if()`, `@function`, `attr()`, `corner-shape`, `::highlight(*)`,
+   `text-decoration-inset`, `text-overflow: <string>`, `popover=hint`, `closedby`, `Temporal`, `using`, `import defer` e *iterator helpers*
+   completos **[P: notas de Apple]**. Lo que era «solo Chrome» pasa a tener dos motores: menos riesgo de que cambie.
+5. **Lo que sí conviene vigilar de la 158 es privacidad, no diseño:** `<install>`/Web Install (Safari en contra), WebHID (ya estable en escritorio
+   en nuestra 156), las APIs de IA (en la 156 de Mac ya están **estables** `LanguageDetector` y `Translator`, sin que el informe 1 lo dijera).
+6. **Corrijo once afirmaciones de la parte A** que venían del buscador y ahora he leído en MDN, Apple y las especificaciones (§6).
+
+## 2. Chrome 157 y 158: funciones de serie nuevas respecto a la 156
+
+Columnas: función con ejemplo · estado de la especificación · Firefox / Safari · riesgo y polyfill · coste · propuesta. Fuentes: chromestatus 157/158,
+banderas de Blink 8078→8103→8127, MDN y notas de Apple (§8).
+
+### 2.1 HTML, DOM y seguridad
+
+| Función y ejemplo | Especificación | Firefox · Safari | Riesgo · polyfill | Coste | Propuesta |
+|---|---|---|---|---|---|
+| **Métodos nuevos de insertar HTML** (157; `NewHTMLSettingMethods`). `lista.appendHTML('<li>Nuevo</li>')`; `el.setHTML(texto)` limpia con el Sanitizer; las variantes `*Unsafe` exigen Trusted Types. Sustituyen a `innerHTML` e `insertAdjacentHTML` | **HTML Living Standard**, ya fusionada (`setHTML/appendHTML/prependHTML/beforeHTML/afterHTML/replaceWithHTML`, y `stream*HTML`) [P] | F: positivo; el Sanitizer `setHTML` ya lo tiene desde la 148 [P MDN], la familia posicional no. S: sin señal | Bajo; mejora la seguridad. Polyfill sencillo. Si `stream*HTML` va con el mismo flag: [N] | **M** (bandera en 156; el Sanitizer ya está) | **Sí** |
+| **CORS en Background Fetch** (157). Sin sintaxis: las peticiones de `BackgroundFetchManager.fetch()` pasan a respetar CORS | WICG (incubación) [P] | F, S: sin señal | Seguridad: cierra un salto de CORS/LNA. Compat. baja | **S** | **Ya decidido** (decisión 9 del plan de la 3.x) |
+| `ProgressEvent` en service workers (157). `self.dispatchEvent(new ProgressEvent('progress',{lengthComputable:true,loaded:5,total:10}))` | Estándar publicado (XHR) | F, S: ya lo tienen | Ninguno; trivial | **S** | Sí |
+| **LoAF: `styleDuration` y `forcedStyleDuration`** (158 en la bandera; chromestatus 157). `new PerformanceObserver(l=>l.getEntries().forEach(e=>console.log(e.styleDuration))).observe({type:'long-animation-frame',buffered:true})` | Incubación (WebPerf) | F, S: sin señal | Bajo (medida de tiempos) | **S** | Opcional |
+| **Permissions-Policy `focus-without-user-activation`** (158). `Permissions-Policy: focus-without-user-activation=()` impide que un iframe robe el foco | Borrador (HTML) | F: sin señal. S: a favor | Endurece embebidos; puede romper webs que enfocan solas | **S** | **Ya decidido** (decisión 9 del plan de la 3.x) |
+| **Retirada de XSLT** (158, en despliegue escalonado; la bandera `XSLT` deja de ser estable). `<?xml-stylesheet type="text/xsl" href="feed.xsl"?>` deja de aplicar el estilo | n/a | F: positivo. S: positivo | Quita superficie de ataque (libxslt); rompe feeds RSS con hoja XSLT | **S** (apagar) | **Ya decidido** (decisión 9) |
+
+### 2.2 CSS, SVG y selectores
+
+| Función y ejemplo | Especificación | Firefox · Safari | Riesgo · polyfill | Coste | Propuesta |
+|---|---|---|---|---|---|
+| **`position-visibility: anchor-valid / anchor-visible`** (157; los plurales pasan a alias). `.tip{position-anchor:--btn;position-visibility:anchor-visible}` | CSS Anchor Positioning 1, **borrador** (ED 6-09-2026) [P] | F: plural desde la 147. S: 27 añade los singulares [P Apple] | Bajo. Sin polyfill | **S** | Sí |
+| **`text-decoration-inset`** (157). `a{text-decoration:underline;text-decoration-inset:.2em 0}` | CSS Text Decoration 4, **ED** (17-08-2026) [P] | F: ya lo trae (MDN 154 añade los porcentajes) [P]. S: 27.3 beta [P] | Bajo | **S** | Sí |
+| **`text-overflow: <string>`** (157). `.t{overflow:hidden;white-space:nowrap;text-overflow:"[…]"}` | CSS Overflow 4, **ED** (15-11-2026) [P] | F: desde la 9 [P BCD]. S: 27.3 beta [P] | Bajo | **S** | Sí |
+| **`::highlight(*)`** (158; `CSSCustomHighlightUniversalSelector`). `::highlight(*){text-decoration:underline wavy}` estiliza todos los resaltados a la vez | CSS Pseudo-Elements 4, **ED** (15-10-2026): `<highlight-name-selector> = '*' \| <custom-ident>` [P] | F: a favor. S: 27.3 beta [P Apple] | Bajo. Polyfill: no | **S** | Sí (Interop 2026) |
+| **`flow-start` / `flow-end`** (158). Alias de `flex-start/end` para alineación con orden invertido; útil con grid lanes. `.fila{align-items:flow-start}` | CSS Box Alignment 3, **ED** (21-10-2026) [P]; ya figura en el ED (PR 14539 del CSSWG) | F: a favor. S: n/d | Bajo; sintaxis reciente | **S** | Sí, con grid lanes |
+| **Seudoclases de medios** (158; `CSSMediaElementPseudos`): `:playing :paused :seeking :buffering :stalled :muted :volume-locked`. `video:paused .icono-play{display:block}` | Selectors 4 y **HTML Living Standard** [P] (Interop 2026) | F: 150 [P MDN]. S: 15.4 [P BCD] | Bajo. Polyfill: clases con JS | **S** (bandera en 156) | **Sí** |
+| **SVG `<textPath side>`** (158). `<textPath href="#c" side="right">Texto</textPath>` | SVG 2 (borrador) | F: 152 (propiedad DOM) [P MDN]. S: en desarrollo | Bajo | **S** | Sí |
+| **`object-fit` / `object-position` en SVG de `<object>` y `<embed>`** (158). `object{width:300px;height:200px;object-fit:cover}` | HTML Living Standard | F: ya. S: sin señal | Bajo; no hay bandera en la diferencia: [N] | **M** [N] | Sí |
+| **Esquinas abreviadas y de borde** (`corner`, `corner-top`, … junto con `border-radius`): **no están de serie en la 158** (bandera `CSSCornersShorthand` experimental en 8127). web.dev las cita en la beta 157; chromestatus las planea para la 160 | CSS Borders 4, **WD** (ED 16-11-2026) [P] | F: a favor; `corner-shape` solo Nightly. S: 27.3 beta tiene `corner-shape` | Medio (sintaxis aún en movimiento) | **S** cuando salga | Esperar a la 160 (§4) |
+
+### 2.3 Gráficos, canvas y audio
+
+| Función y ejemplo | Especificación | Firefox · Safari | Riesgo · polyfill | Coste | Propuesta |
+|---|---|---|---|---|---|
+| **HTML en canvas** (157, de serie en escritorio; `CanvasDrawElement`, OT «HTMLInCanvas»). `<canvas content="drawable"><div id="card" drawable>Texto</div></canvas>`; `c.addEventListener('paint',()=>ctx.drawElementImage(card,20,20)); c.requestPaint()` (según el README de WICG; el nombre cambió a `drawElementImage`) | **Explicador WICG** y PR 11588 de HTML; la spec de canvas aún no lo recoge [P], así que el PR sigue abierto [I] | F: sin señal. S: a favor | **Alto**: la API ha cambiado de nombre; los *snapshots* del DOM en canvas piden revisar privacidad (qué se exporta) [I]. Sin polyfill real | **L**: pasa por Skia/ANGLE (Metal en Mojave) y por WebGL (`texElementSubImage2D`) | **No de serie**; solo en modo diseñador |
+| **Espacios de color lineales** `srgb-linear` y `display-p3-linear` (157; `ColorSpacePredefinedLinearSpaces`). `canvas.getContext('2d',{colorSpace:'srgb-linear'})` | **HTML Living Standard**, fusionado [P] | F: sin señal. S: 27 [P Apple] | Bajo; afecta a la gestión de color de canvas y WebGL | **M** (bandera en 156) | Sí, si Titín trabaja color en canvas |
+| **OfflineAudioContext incremental** (158). Procesa el audio por trozos sin reservar todo el búfer (API exacta en la spec de Web Audio: [N]) | **Estándar publicado** (Web Audio) | F, S: sin señal | Bajo | **S** (bandera en 156) | Baja prioridad |
+
+### 2.4 Red, plataforma y APIs de dispositivos
+
+| Función | Especificación | Firefox · Safari | Riesgo | Coste | Propuesta |
+|---|---|---|---|---|---|
+| **WebTransport**: cabeceras en el CONNECT (157), `reliability` (157), `draining` y flujos entrantes anticipados (158). `wt.draining.then(reconectar)` | Estándar publicado (W3C) | F: 158 (`getStats`). S: 26.4 [P Apple] | Huella de red QUIC (FM.46); poco uso real | **S** cada una | **No ahora** |
+| **`<install>` y Web Install API** (158; en la 156 la bandera es `test`). `<install installurl="https://app.ejemplo/" manifestid="/app"></install>` | **Incubación WICG** (README, autores de Microsoft y Google) [P] | F: sin señal. **S: en contra** | Superficie y UI de instalación; huella | **L** (UI de navegador) | **No** (regla 20) |
+| **WebHID** (158: la bandera pasa a estable en todas las plataformas; en 156 escritorio ya era `stable`) | Estándar publicado (WHATWG) | **F: negativo. S: en contra** | Huella y acceso a dispositivos | **S** (apagar) | **Comprobar apagada** (decisión 9) |
+| Direct Sockets: multicast con fuente (solo IWA); Web Bluetooth `EventTarget` (157); WebGPU `atomic-vec2u-min-max` (157); Language Detector en Android (157) | n/a | Mayormente sin señal; Web Bluetooth: F y S en contra | WebGPU apagado (CVE-2026-5281); Web Bluetooth cerrado por Brave | — | **No aplica** |
+
+### 2.5 Arreglos y correcciones nuevos (banderas `stable` sin entrada propia en chromestatus)
+
+Son parches de interoperabilidad y de pintado que Chrome activa en 157/158 **[P: diferencia de banderas]**. Costes: **S** cada uno, **M** el conjunto si se portan juntos.
+En 157: `AppearanceDisplayAdjustmentForWidgetsOnly`, `EmojiZWJVerticalOrientation`, `FontVariableItalicAxis`, `FirstLineAndLetterExcludeInputTextarea`,
+`InputClientRectWithoutInlinePadding`, `MacFontWeightFromOS2` (**Mac**), `RubyTextDecorationSpacing`, `WavyDecorationContinuousPhase`, `HTMLParserIgnoreHeadInNoscript`.
+En 158: `SelectLabelClickOpensPicker`, `SelectedcontentSpec2`, `SelectPopupBackground` (`<select>` personalizable), `InitialLetterBlockPositioning`
+(`initial-letter`), `MulticolColumnWidthMaxContentClamp`, `NeutralKeyframeEasingCompliance`, `NastaliqScript`, `LineBreakerHanKerningEnd`,
+`SvgTextPositioningGraphemeClusters`, `ResponsiveIframesShrink`/`ResponsiveIframesSingleAxisIcb`, `TrackAnimatedSources`, `ImageSrcsetReselectionForSrcCandidate`.
+Propuesta: **una tanda M «arreglos 157/158»** solo si Titín nota alguno (p. ej. `MacFontWeightFromOS2` afecta a tipografía en Mac).
+
+## 3. Lista aparte: solo origin trial o tras bandera (no de serie en la 158)
+
+| Qué | Estado en 8127 | Quién | Comentario |
+|---|---|---|---|
+| **Grid lanes** (`display:grid-lanes`) | `CSSGridLanesLayout` experimental | S: 26.4; `flow-tolerance` → `fit-tolerance` en la 27.2 [P Apple]. F: quitó su sintaxis `masonry` en la 159 [P MDN] | Sintaxis aún en movimiento |
+| **`@mixin` / `@apply`** | `CSSMixins` experimental | S, F: sin señal. Spec: ED 4-11-2026 [P] | Riesgo alto de cambio; Safari 27.3 beta sí implementa `@function` e `if()` |
+| **Esquinas abreviadas** `corner`, lados de `border-radius`; `closest-corner` / `farthest-corner` en `circle()` y `ellipse()` | `CSSCornersShorthand`, `CSSBorderRadiusSideShorthands` (nuevo en 158), `BasicShapeCornerRadius`: experimentales | F: `closest-corner` tras opción; a favor de las esquinas | web.dev los cita en la beta, pero **no están de serie** [P] |
+| **Origin trials:** Overscroll Areas, Connection Allowlists, Popup Capability Delegation, Decisions API, Web Authentication Conditional UI (modo pasivo), «abrir enlaces en pestaña dividida» (OT en la 160) | OT o bandera | F: Connection Allowlists a favor; resto sin señal | Experimentos de Google |
+| **Banderas experimentales nuevas en 157/158:** `FocusResetEvent`, `GlobalPrivacyControlApi`, `SvgCss3dTransforms`, `SvgHyperlinkElementUtils`, `SrcsetTwoDimensionalSizes`, `CSSProgressNotationNoClamp` (S 27 ya lo trae), `PaintTimingContentImagePseudoElements`, `TrackAnimatedSourcesForInheritedProperties`, `CustomizableSelectNewUAStyles`, `CSSPseudoElementScrollButton`, `PermissionsPolicyForSharedWorkers`, `DeviceBoundSessionJsApi`, `WebTransportExportKeyingMaterial` | experimentales | Mixto | `GlobalPrivacyControlApi` (F lo trae desde la 120) cuadra con nuestra regla 20; el resto, vigilar |
+| **IA y agentes:** `AIDecisionModelAPI` (nuevo en 157), `DeclarativeWebMCP` y `WebMCPContinuations` | experimentales | F y S: en contra / sin señal | **No** (regla 20) |
+| **`XMLParsingRust`** (158) | experimental | n/a | Parser XML en Rust (sin XSLT): vigilar para SEGURIDAD |
+
+## 4. Cruce con lo que dejó la parte A
+
+| Lo que dejó la parte A | En la 158 estable | Efecto |
+|---|---|---|
+| Tanda «CSS y medios» (informe 1 §6.2): `text-overflow:<string>`, `text-decoration-inset`, `anchor-visible/valid`, `::highlight(*)`, seudoclases de medios, `textPath side`, `object-fit` en SVG, `ProgressEvent` en SW | **Todo de serie** (157 o 158) | La tanda queda **cerrada y estable**: M, un solo porte |
+| Métodos de insertar HTML | De serie en 157 (los posicionales; `stream*HTML` [N]) | Pasa de «esperar» a **Sí, M** |
+| HTML en canvas | De serie en 157 | Sigue **L**; la parte A decía «bandera en 156» y es cierto |
+| `flow-start/flow-end` (origen en grid lanes) | De serie en 158 | **S**, junto a la tanda |
+| Interop 2026: seudoclases de medios, `::highlight(*)` | De serie en 158 | Dos áreas más cerradas en Chrome |
+| Grid lanes, `@mixin`, esquinas abreviadas | **No** de serie | Siguen en «vigilar» / modo diseñador |
+| `color-mix()` con 3+ colores | Chrome 158: sin bandera ni entrada [N] | Sigue siendo hueco frente a Firefox (150) y Safari (27) |
+| `text-autospace` | **Ya está en Chrome** (propiedad definida sin bandera en 156; el valor `insert` de Safari 27: [N]) [P `css_properties.json5`] | **Corrige la parte A**: no es hueco |
+| `hanging-punctuation` | `CSSHangingPunctuation` en `test` | Hueco real: solo Safari |
+| RegExp `\A \z \Z`, `import defer`, *iterator chunking*, `Promise.allKeyed` | Ninguno de serie; el primero, en la 159 | Chrome va por detrás de Firefox/Safari 27.3 en los tres últimos (§5) |
+| APIs de IA y capability elements | `LanguageDetector` y `Translator`: **estables en Mac desde la 156** [P]; `<geolocation>`, `<camera>`, `<microphone>` ya estables | Nueva comprobación de privacidad (propuesta 6) |
+
+## 5. JavaScript: dónde está cada motor
+
+- **Chrome 158 (V8 15.8):** ninguna novedad. V8 15.6 ya lleva Temporal, *iterator helpers* (`join`, `includes`, `sequencing`, `zip`), `Set`, `Promise.try`,
+  `Math.sumPrecise`, base64 y `using` **[P]**. `\A \z \Z`: *staged* en 15.8, de serie en la 159 (chromestatus).
+- **Firefox:** `Iterator.prototype.chunks/windows` en la 154, `Promise.allKeyed/allSettledKeyed` en la 155, `import source` (solo sintaxis) en la 153; `import defer`
+  y `fetch` con `ReadableStream` como cuerpo, **solo Nightly** [P MDN].
+- **Safari 27.3 beta (16-11):** Temporal, `using`, `import defer`, *iterator chunking*, `join`, `zip`, text modules, `QuotaExceededError` [P Apple].
+- **Lectura [I]:** Chrome se queda sin `chunks/windows`, `allKeyed` e `import defer` frente a Firefox y Safari. Si Titín los quiere antes, es un porte de V8 (M cada uno)
+  con riesgo bajo: están en la etapa 3 o 4 de TC39 y los trae un segundo motor.
+
+## 6. Correcciones a la parte A (lo que ahora he leído de primera mano)
+
+| Parte A decía | Es | Fuente |
+|---|---|---|
+| `text-autospace`: Chrome no | **Chrome la tiene** (propiedad sin bandera en 156) | `css_properties.json5` 8078 |
+| `hanging-punctuation`: «solo Safari 26.5» | Safari la tiene desde hace años; la 26.5 solo la **arregla**. Chrome: bandera `test` | Notas de Apple 26.5; Blink |
+| *Iterator chunking*: Firefox sin señal | **Firefox 154** ya trae `chunks()` y `windows()` | MDN 154 |
+| *Await Dictionary*: ningún motor | **Firefox 155** trae `Promise.allKeyed` y `allSettledKeyed` | MDN 155 |
+| `revert-rule`: solo Safari 27 | También **Firefox 150** | MDN 150 |
+| `random()`, `corner-shape`, `fetch` con `ReadableStream` en Firefox 158: «tras opción» / «158» | **Solo Nightly** (`import defer` igual) | MDN 158 |
+| `named-feature()`: Firefox 156 de serie | **Experimental** (preferencia), no de serie | MDN 156 |
+| `if()` y `@function`: Safari «a favor» | **Safari 27.3 beta los implementa** (más `attr()`, `corner-shape`, `random-item()`, `calc-mix()`) | Notas de Apple 27.3 |
+| Grid lanes: Safari 26.4 según Apple [S]; web-features: 27.2 | **26.4 confirmado**; la 27.2 solo renombra `flow-tolerance` a `fit-tolerance` | Apple 26.4 y 27.2; web.dev |
+| Esquinas abreviadas: «Chrome 160» | Sigue sin estar de serie en la 158; web.dev dice «beta 157»; chromestatus, 160. **No es hecho** | Banderas 8127; web.dev |
+| Hilos de CSS Mixins [S] | Solo he leído la especificación (ED 4-11-2026); los hilos del CSSWG siguen sin leer [N] | Spec |
+
+## 7. Propuestas para Titín: marcar sí o no
+
+Ya decididos y fuera de la tabla (decisión 9 del plan de la 3.x): **apagar XSLT, CORS en Background Fetch y bloqueo del foco sin interacción**. Aquí, lo nuevo.
+
+| # | Qué | Coste | Riesgo | Recomendación | Sí / No |
+|---|---|---|---|---|---|
+| 1 | **Tanda «CSS y medios 157/158»**: `position-visibility`, `text-decoration-inset`, `text-overflow:<string>`, `::highlight(*)`, `flow-start/end`, seudoclases de medios, `textPath side`, `object-fit` en SVG, `ProgressEvent` en SW | **M** | Bajo | **Sí** (paridad con F/S) | ☐ / ☐ |
+| 2 | **Métodos de insertar HTML** (`setHTML`, `appendHTML`…) | **M** | Bajo | **Sí** (seguridad y comodidad) | ☐ / ☐ |
+| 3 | **Espacios de color lineales** en canvas y WebGL | **M** | Bajo | Sí, si hay uso de color en canvas | ☐ / ☐ |
+| 4 | **Modo diseñador** (banderas experimentales de Blink, opcional y apagado): grid lanes, `@mixin`, esquinas abreviadas, HTML en canvas | **M** | Medio (cambia lo que ven las webs, solo si se activa) | **Sí**, si no existe ya la página de banderas [N] | ☐ / ☐ |
+| 5 | **HTML en canvas de serie** | **L** | Alto | **No** (esperar a la spec y al segundo motor) | ☐ / ☐ |
+| 6 | **Comprobar superficie nueva de la 156**: `LanguageDetector`/`Translator` (estables en Mac), `<geolocation>`/`<camera>`/`<microphone>`, WebHID, `<install>` | **S** (LOCAL, una página de prueba) | Privacidad | **Sí**; apagar lo que no sirva (regla 20) | ☐ / ☐ |
+| 7 | Portar de V8 `chunks/windows`, `Promise.allKeyed`, `import defer` | **M** cada uno | Bajo | Esperar a que Chrome los traiga | ☐ / ☐ |
+| 8 | WebTransport (cabeceras, `draining`, `reliability`) | **S** cada una | Huella QUIC | **No ahora** | ☐ / ☐ |
+| 9 | `<install>` y Web Install API | **L** | Alto (Safari en contra) | **No** | ☐ / ☐ |
+| 10 | Tanda «arreglos 157/158» (§2.5) | **M** | Bajo | Solo si Titín nota alguno | ☐ / ☐ |
+
+## 8. Fuentes
+
+- **[P]** chromestatus (hitos 157–161): `https://chromestatus.com/api/v0/features?milestone=<N>`; calendario y versión: `https://chromiumdash.appspot.com/fetch_milestone_schedule?mstone=158` y `fetch_releases?channel=Stable&platform=Mac`.
+- **[P]** Blink (8078, 8103, 8127): `https://chromium.googlesource.com/chromium/src/+/refs/branch-heads/<rama>/third_party/blink/renderer/platform/runtime_enabled_features.json5` y `…/core/css/css_properties.json5`. V8: `…/v8/v8/+/refs/branch-heads/15.{6,7,8,9}/src/flags/feature-flags.h`. El historial de commits sigue pidiendo inicio de sesión: los costes son por estado de bandera.
+- **[P]** Firefox 147–160: `https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Releases/<N>`. Safari 26.4–27.3: `https://developer.apple.com/documentation/safari-release-notes/safari-<versión>-release-notes`; blog: `https://webkit.org/blog/`.
+- **[P]** Resumen mensual: `https://web.dev/blog/web-platform-10-2026`. Especificaciones leídas: `drafts.csswg.org` (css-anchor-position-1, css-text-decor-4, css-overflow-4, css-pseudo-4, css-align-3, selectors-4, css-borders-4, css-mixins-1), `html.spec.whatwg.org` (dynamic-markup-insertion, canvas, semantics-other, rendering), README de WICG `html-in-canvas` e `install-element`.
+- **[S]** Hilos del CSSWG y la *Intent to Prototype* de mixins (parte A): sin releer. No pude leer `wicg.github.io`, `w3c.github.io`, `webaudio.github.io` ni `svgwg.org` (el entorno no los permite): el estado de esas especificaciones viene de chromestatus.
+
+Límites: no medí uso en webs reales ni compilé nada; los ejemplos de HTML en canvas, `<install>` y OfflineAudioContext siguen los explicadores y pueden cambiar; los costes son por estado de la bandera y tipo de componente.
+
+*Siguiente informe: cuando salga la 159 estable (08-12).*
