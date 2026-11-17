@@ -99,12 +99,10 @@ de d8/mjsunit a D8-LINUX** (`buzon/D8-LINUX`), con los `patches/v8` de brave-cor
 
 ## Lo que hace LOCAL-19 (en este orden)
 
-1. **Fijar lo que se compila de verdad** (antes de 0001, como parche suyo): gitlinks y `DEPS` de ANGLE `bc2ebdd211`,
-   FFmpeg `a15fcf87d2` y Dawn (`31316d1c` + `cherry-pick -x` de 68b5c1f3f y 8bc8ddaf2, y lo que salga del roll de Dawn de
-   la .109). **No lo genero yo:** esos commits no están en ningún remoto que yo pueda ver (`ls-remote` de
-   `lamosquita-net/angle`, `/ffmpeg` y `/dawn` pide credenciales), y un hash solo va tras `ls-remote`. Para que
-   `gclient sync` reproduzca lo publicado, tienen que estar en un remoto que pueda bajar; si hay que crear esos forks,
-   decide Titín.
+1. **ANGLE, FFmpeg y Dawn como en la 3.0.1/3.0.2** (`seguridad/3.0.1/README.md`; COORDINACIÓN-45, 17-11): no hay forks.
+   LOCAL los deja como en la 3.1.2 (ANGLE `bc2ebdd211`, FFmpeg `a15fcf87d2`), aplica en Dawn `31316d1c` 68b5c1f3f y
+   8bc8ddaf2 (más lo que salga del roll de Dawn de la .109) y anota en este CONTENIDO los hashes tal como los ve en su
+   checkout. Si hay parches nuevos para ellos, van como `.patch` en `angle/`, `ffmpeg/` o `dawn/` de esta carpeta.
 2. `git am` de chromium 0001–0022 sobre `9439a7904c` → árbol `cd628ae8a2`; `git am` de brave-core 0001–0004 sobre
    `ba428ad058` → árbol `3f4141cf05`. Sumas en `SHA256SUMS` y `brave-core/SHA256SUMS`.
 3. **0021 (V8) solo con el mjsunit de D8-LINUX en verde.** Si no llega o falla, se compila sin 0021 y se avisa.
