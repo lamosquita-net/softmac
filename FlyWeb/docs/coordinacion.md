@@ -7,6 +7,38 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 17-11 (noche): COORDINACIÓN-44 → COORDINACIÓN-45 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-44 (`session_01MwmK2gz1EsL95kgTpxdSwU`, 17-11 10:10 → 21:15 UTC; relevo al 38 %). La 45
+(`session_01MwmK2mRayo5wBbWFqBKkyv`) la abre la 44, linaje 4. **Nunca llamar a confirm_repository_trust.**
+
+**Hecho hoy:**
+- **Cierre de las fijadas compartidas en la 3.x.** Falta `ThumbnailTabHelper` y `SharedPinnedTabDummyView` lee un puntero nulo.
+  Arreglo de MOTOR-46 (#1029), con APTO de SEGURIDAD-PORTES-23. **Titín decidió (17-11) que vaya en la 3.1.3** (DIRECTIVAS #1030;
+  CONTENIDO #1031: 0004 de brave-core). LOCAL-19 lo reproduce en la 7,1 y desaparece con el 0001. LOCAL-21 hace lo mismo en la 6,1, con ventana.
+  Tests: 6/7. `CloseTabShortCutShouldBeDisabled` falla por el aviso de confirmación al cerrar una fijada de Chrome 156: el test está mal,
+  se arregla en la 3.2.0 (#1033). `ThumbnailHelperIsAlwaysAttached` es un fallo conocido. El aviso de confirmación se queda como en Chrome, salvo que Titín diga otra cosa.
+- **Lección:** a Titín le pasé el apaño `--disable-features=BraveSharedPinnedTabs` sin probar y le costó fijadas. Los rellenos no se guardan en la sesión
+  y cada cierre al arrancar se comía una fijada. **No pasarle apaños sin probar.** Titín ya ha vuelto a fijar las suyas a mano. Hasta la 3.1.3, una sola ventana.
+- **Sync 3.2 contra ns2 (LOCAL-19):** eventos 200, el correo del código llega, derivación de clave 307 ms (7,1) y 364 ms (6,1). La 5,1 está pendiente
+  (`medir-sync-51.command`, cuando Titín esté en el estudio; si pasa de ~2 s, a SEGURIDAD-PORTES antes de tocar kScryptN).
+  0009–0011 del cliente (`desde` como entero, hw.model en macOS < 11, primer sondeo persistente): APTO y fusionados (#1032).
+  El modelo del Mac va **además** del nombre que elige el usuario (DIRECTIVAS l.355).
+- **Cartero:** estuvo caído del 16-11 20:48 al 17-11 15:30 UTC (clon de buzon roto). Titín lo relevó y ya entrega. Las entregas a «LOCAL» van a LOCAL-21 (6,1);
+  lo de la 3.1.3 y la sync es de LOCAL-19 (7,1), así que escribe su nombre en el mensaje.
+
+**Abierto, por orden:**
+1. **3.1.3:** SEGURIDAD-PORTES-23 tiene la orden del delta de la 158 desde las 21:15 UTC. Primer parche: ANGLE/FFmpeg/Dawn. Que lo cuadre con la entrada oficial
+   de la 158 estable; CVE-2026-125350, si se confirma, va primero. Luego LOCAL-19 compila (delta + 0004 fijadas) → PUBLICACIÓN publica → a Titín solo la firma en bak.
+2. **21:30 UTC:** aviso a INVESTIGACIÓN-MOTOR-10 de la parte B del informe 2. Lo recrea la 45; la 44 borra el suyo (`trig_01HMndeKL6b2FksvFX3r7nKu`).
+3. **Diseño de Titín del 17-11** (pantalla privada, pestañas, páginas que faltaban): aún no ha llegado. Cuando llegue, a MOTOR-46 para la 3.2.0.
+4. **La 5,1 de la sync:** depende de que Titín esté en el estudio.
+
+**Sesiones:** SEGURIDAD-PORTES-23 `session_01MwmK2ihLC48xJinz4Li6Jv`, MOTOR-46 `session_01MwmK2juPkbC58kEi4QFeyU`,
+INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG`, SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`.
+Locales (por el buzón): LOCAL-19 (7,1, compila), LOCAL-21 (6,1), PUBLICACIÓN, SERVIDOR-LOCAL-3, ARQUITECTURA (a demanda, nada abierto), CARTERO-LOCAL (relevado hoy).
+COORDINACIÓN-43 está quieta (archivar). La 44 se queda quieta tras la prueba.
+
 ## 17-11 (mañana): COORDINACIÓN-43 → COORDINACIÓN-44 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-43 (`session_01MwmK2hZ9HcbmRFFueDh8dE`, 14-11 13:40 → 17-11 ~10:10 UTC; Opus 5.5 medio; abierta por la 42,
