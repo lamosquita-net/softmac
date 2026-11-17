@@ -67,7 +67,7 @@ es el mismo (mismo patch-id).
 - cc9a2672c3 [regalloc] límites en `LiveRange::SplitAt` (585801890).
 
 La .59 (576333024) **no vuelve**: se revirtió en la .60 y no hay commit nuevo para ese bug. **La V8 cambia: hay encargo
-de d8/mjsunit a D8-LINUX** (`buzon/D8-LINUX`), con los `patches/v8` de brave-core. Sin mjsunit en verde, 0021 no entra.
+de d8/mjsunit a D8-LINUX** (`buzon/D8-LINUX`), con los `patches/v8` de brave-core. **mjsunit en verde (18-11, D8-LINUX-5): 9188/9190 con y sin Maglev, sin fallos nuevos → 0021 entra** ([`v8-15.6.75.66/mjsunit.md`](v8-15.6.75.66/mjsunit.md)).
 
 **Fuera:**
 - **ANGLE** (e098dfff55: 2080bf27e5 → 44d1e22b80). Los dos commits de upstream después de nuestra base `f10470c77e`
@@ -105,7 +105,7 @@ de d8/mjsunit a D8-LINUX** (`buzon/D8-LINUX`), con los `patches/v8` de brave-cor
    checkout. Si hay parches nuevos para ellos, van como `.patch` en `angle/`, `ffmpeg/` o `dawn/` de esta carpeta.
 2. `git am` de chromium 0001–0023 sobre `9439a7904c` → árbol `690e96b867` (sin 0023: `cd628ae8a2`); `git am ffmpeg/0001` sobre su FFmpeg (parte 2); `git am` de brave-core 0001–0004 sobre
    `ba428ad058` → árbol `3f4141cf05`. Sumas en `SHA256SUMS` y `brave-core/SHA256SUMS`.
-3. **0021 (V8) solo con el mjsunit de D8-LINUX en verde.** Si no llega o falla, se compila sin 0021 y se avisa.
+3. **0021 (V8): mjsunit en verde** (`v8-15.6.75.66/mjsunit.md`, 18-11): entra.
 4. Fijadas: reproducir en la 3.1.2 y comprobar con la 3.1.3 (pasos 4 y 5 del README de `3.2-fijadas-miniatura`);
    `SharedPinnedTabServiceBrowserTest.*` en verde; `BraveTabHoverTest.ThumbnailHelperIsAlwaysAttached` falla, como era de
    esperar: se anota como conocido, sin desactivarlo.
