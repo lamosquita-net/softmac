@@ -1,0 +1,58 @@
+From 89e6287bf5854548eb1821aa78061ae8a70c9cab Mon Sep 17 00:00:00 2001
+From: Lokbondo Kung <lokokung@google.com>
+Date: Thu, 5 Nov 2026 15:48:17 -0800
+Subject: [PATCH 1/4] [M156] [vulkan] Reset the recording context in
+ Queue::DestroyImpl.
+
+Original change's description:
+> [vulkan] Reset the recording context in Queue::DestroyImpl.
+>
+> - Prior to this change, Queue::DestroyImpl freed the current recording
+>   context's command pool and buffer, but left the dangling handles in
+>   mRecordingContext. If the recording context was used after the
+>   device was destroyed (e.g. by SharedTextureMemory::EndAccess
+>   performing an export transition submit), commands would be recorded
+>   into a freed VkCommandBuffer, causing a heap use-after-free in the
+>   driver.
+> - This change resets mRecordingContext after freeing its resources so
+>   that no dangling handles survive destruction. Any later use of the
+>   recording context sees null handles instead of freed objects.
+>
+> Bug: 577377985
+> Change-Id: I5440510d199218309d2da4ef9fcdf50529610fe9
+> Reviewed-on: https://dawn-review.googlesource.com/c/dawn/+/354676
+> Commit-Queue: Loko Kung <lokokung@google.com>
+> Reviewed-by: Corentin Wallez <cwallez@chromium.org>
+
+(cherry picked from commit e8595cc5ee53c5105fed064909d42d543660a4eb)
+
+Bug: 582138611,577377985
+Change-Id: I5440510d199218309d2da4ef9fcdf50529610fe9
+Reviewed-on: https://dawn-review.googlesource.com/c/dawn/+/356355
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: Chrome Cherry Picker <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+(cherry picked from commit 8bc8ddaf2862f417b8b4e3ffc016adcc8f37ac04)
+---
+ src/dawn/native/vulkan/QueueVk.cpp | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/dawn/native/vulkan/QueueVk.cpp b/src/dawn/native/vulkan/QueueVk.cpp
+index 86ff4782d..049ea6e14 100644
+--- a/src/dawn/native/vulkan/QueueVk.cpp
++++ b/src/dawn/native/vulkan/QueueVk.cpp
+@@ -452,8 +452,10 @@ void Queue::DestroyImpl(DestroyReason reason) {
+     for (VkSemaphore semaphore : mRecordingContext.waitSemaphores) {
+         device->fn.DestroySemaphore(vkDevice, semaphore, nullptr);
+     }
+-    mRecordingContext.waitSemaphores.clear();
+-    mRecordingContext.signalSemaphores.clear();
++    // Reset the recording context so that no dangling handles to the freed command pool/buffer
++    // survive destruction. Any later attempt to use the recording context then sees null handles
++    // instead of using freed objects.
++    mRecordingContext = CommandRecordingContext();
+ 
+     // Free any recycled command pools.
+     mUnusedCommands.Use([&](auto unusedCommands) {
+-- 
+2.55.0
+

@@ -1,0 +1,333 @@
+From f8fcf06890078e762fade688223a92ac2d3d7630 Mon Sep 17 00:00:00 2001
+From: Alan Baker <alanbaker@google.com>
+Date: Fri, 13 Nov 2026 12:12:03 -0800
+Subject: [PATCH 3/4] [M156] [wgsl] Fix minBindingSize propagations
+
+Original change's description:
+> [wgsl] Fix minBindingSize propagations
+>
+> Buffer view and subgroup matrix both failed to use references for
+> Hashmap::GetOrAddEntry results. This led to copies being made instead of
+> actual updates. Correctly propagates to inspector now.
+>
+> Fix: 582845589
+> Change-Id: I5c83d7346c2f8b263492ace4a6db119d70ffc5dd
+> Reviewed-on: https://dawn-review.googlesource.com/c/dawn/+/357295
+> Reviewed-by: James Price <jrprice@google.com>
+> Commit-Queue: Alan Baker <alanbaker@google.com>
+
+(cherry picked from commit 98912a81156cc1916375b0db632e657691cc597f)
+
+Bug: 584579013
+Change-Id: I5c83d7346c2f8b263492ace4a6db119d70ffc5dd
+Reviewed-on: https://dawn-review.googlesource.com/c/dawn/+/359455
+Auto-Submit: Chrome Cherry Picker <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+(cherry picked from commit 68b5c1f3f2fc6ccacf7a9cc0cbea0d2b6805ebfa)
+---
+ .../lang/wgsl/inspector/inspector_test.cc     | 180 ++++++++++++++++++
+ src/tint/lang/wgsl/resolver/buffer_test.cc    |  48 +++++
+ src/tint/lang/wgsl/resolver/resolver.cc       |   9 +-
+ 3 files changed, 233 insertions(+), 4 deletions(-)
+
+diff --git a/src/tint/lang/wgsl/inspector/inspector_test.cc b/src/tint/lang/wgsl/inspector/inspector_test.cc
+index 773ff0a98..90e5a4415 100644
+--- a/src/tint/lang/wgsl/inspector/inspector_test.cc
++++ b/src/tint/lang/wgsl/inspector/inspector_test.cc
+@@ -2880,6 +2880,88 @@ fn foo(p : ptr<storage, buffer, read_write>) {
+     EXPECT_EQ(16u, result[0].size);
+ }
+ 
++TEST_F(InspectorGetResourceBindingsTest, UnsizedBuffer_Direct_SmallAndLarge) {
++    auto* src = R"(
++@group(0) @binding(0) var<storage, read_write> buf : buffer;
++@compute @workgroup_size(1)
++fn ep() {
++  let small = bufferView<u32>(&buf, 0u);
++  let large = bufferView<array<u32, 128>>(&buf, 0u);
++}
++)";
++
++    Inspector& inspector = Initialize(src);
++    auto result = inspector.GetResourceBindings("ep");
++    ASSERT_FALSE(inspector.has_error()) << inspector.error();
++
++    ASSERT_EQ(1u, result.size());
++    EXPECT_EQ(ResourceBinding::ResourceType::kStorageBuffer, result[0].resource_type);
++    EXPECT_EQ(512u, result[0].size);
++}
++
++TEST_F(InspectorGetResourceBindingsTest, UnsizedBuffer_Direct_LargeAndSmall) {
++    auto* src = R"(
++@group(0) @binding(0) var<storage, read_write> buf : buffer;
++@compute @workgroup_size(1)
++fn ep() {
++  let large = bufferView<array<u32, 128>>(&buf, 0u);
++  let small = bufferView<u32>(&buf, 0u);
++}
++)";
++
++    Inspector& inspector = Initialize(src);
++    auto result = inspector.GetResourceBindings("ep");
++    ASSERT_FALSE(inspector.has_error()) << inspector.error();
++
++    ASSERT_EQ(1u, result.size());
++    EXPECT_EQ(ResourceBinding::ResourceType::kStorageBuffer, result[0].resource_type);
++    EXPECT_EQ(512u, result[0].size);
++}
++
++TEST_F(InspectorGetResourceBindingsTest, UnsizedBuffer_Indirect_SmallAndLarge) {
++    auto* src = R"(
++@group(0) @binding(0) var<storage, read_write> buf : buffer;
++fn indirect(p : ptr<storage, buffer, read_write>) {
++  let small = bufferView<u32>(p, 0u);
++  let large = bufferView<array<u32, 128>>(p, 0u);
++}
++@compute @workgroup_size(1)
++fn ep() {
++  indirect(&buf);
++}
++)";
++
++    Inspector& inspector = Initialize(src);
++    auto result = inspector.GetResourceBindings("ep");
++    ASSERT_FALSE(inspector.has_error()) << inspector.error();
++
++    ASSERT_EQ(1u, result.size());
++    EXPECT_EQ(ResourceBinding::ResourceType::kStorageBuffer, result[0].resource_type);
++    EXPECT_EQ(512u, result[0].size);
++}
++
++TEST_F(InspectorGetResourceBindingsTest, UnsizedBuffer_Indirect_LargeAndSmall) {
++    auto* src = R"(
++@group(0) @binding(0) var<storage, read_write> buf : buffer;
++fn indirect(p : ptr<storage, buffer, read_write>) {
++  let large = bufferView<array<u32, 128>>(p, 0u);
++  let small = bufferView<u32>(p, 0u);
++}
++@compute @workgroup_size(1)
++fn ep() {
++  indirect(&buf);
++}
++)";
++
++    Inspector& inspector = Initialize(src);
++    auto result = inspector.GetResourceBindings("ep");
++    ASSERT_FALSE(inspector.has_error()) << inspector.error();
++
++    ASSERT_EQ(1u, result.size());
++    EXPECT_EQ(ResourceBinding::ResourceType::kStorageBuffer, result[0].resource_type);
++    EXPECT_EQ(512u, result[0].size);
++}
++
+ TEST_F(InspectorGetResourceBindingsTest, SubgroupMatrix_Direct) {
+     auto* src = R"(
+ enable chromium_experimental_subgroup_matrix;
+@@ -3193,6 +3275,104 @@ enable chromium_experimental_subgroup_matrix;
+     EXPECT_EQ(1024u, result[0].size);
+ }
+ 
++TEST_F(InspectorGetResourceBindingsTest, SubgroupMatrix_Indirect_SmallAndLarge) {
++    auto* src = R"(
++enable chromium_experimental_subgroup_matrix;
++@group(0) @binding(0) var<storage> v : array<f32>;
++fn indirect(p : ptr<storage, array<f32>, read>) {
++  let small = subgroupMatrixLoad<subgroup_matrix_left<f32, 8, 8>, col_major>(p, 0u, 8u);
++  let large = subgroupMatrixLoad<subgroup_matrix_left<f32, 16, 16>, row_major>(p, 0u, 16u);
++}
++@compute @workgroup_size(1)
++fn ep() {
++  indirect(&v);
++}
++)";
++
++    Inspector& inspector = Initialize(src);
++    auto result = inspector.GetResourceBindings("ep");
++    ASSERT_FALSE(inspector.has_error()) << inspector.error();
++
++    ASSERT_EQ(1u, result.size());
++    EXPECT_EQ(ResourceBinding::ResourceType::kReadOnlyStorageBuffer, result[0].resource_type);
++    EXPECT_EQ(1024u, result[0].size);
++}
++
++TEST_F(InspectorGetResourceBindingsTest, SubgroupMatrix_Indirect_LargeAndSmall) {
++    auto* src = R"(
++enable chromium_experimental_subgroup_matrix;
++@group(0) @binding(0) var<storage> v : array<f32>;
++fn indirect(p : ptr<storage, array<f32>, read>) {
++  let large = subgroupMatrixLoad<subgroup_matrix_left<f32, 16, 16>, row_major>(p, 0u, 16u);
++  let small = subgroupMatrixLoad<subgroup_matrix_left<f32, 8, 8>, col_major>(p, 0u, 8u);
++}
++@compute @workgroup_size(1)
++fn ep() {
++  indirect(&v);
++}
++)";
++
++    Inspector& inspector = Initialize(src);
++    auto result = inspector.GetResourceBindings("ep");
++    ASSERT_FALSE(inspector.has_error()) << inspector.error();
++
++    ASSERT_EQ(1u, result.size());
++    EXPECT_EQ(ResourceBinding::ResourceType::kReadOnlyStorageBuffer, result[0].resource_type);
++    EXPECT_EQ(1024u, result[0].size);
++}
++
++TEST_F(InspectorGetResourceBindingsTest, SubgroupMatrix_Indirect_SmallAndLargeFuncs) {
++    auto* src = R"(
++enable chromium_experimental_subgroup_matrix;
++@group(0) @binding(0) var<storage> v : array<f32>;
++fn small(p : ptr<storage, array<f32>, read>) {
++  let s = subgroupMatrixLoad<subgroup_matrix_left<f32, 8, 8>, col_major>(p, 0u, 8u);
++}
++fn large(p : ptr<storage, array<f32>, read>) {
++  let l = subgroupMatrixLoad<subgroup_matrix_left<f32, 16, 16>, row_major>(p, 0u, 16u);
++}
++@compute @workgroup_size(1)
++fn ep() {
++  small(&v);
++  large(&v);
++}
++)";
++
++    Inspector& inspector = Initialize(src);
++    auto result = inspector.GetResourceBindings("ep");
++    ASSERT_FALSE(inspector.has_error()) << inspector.error();
++
++    ASSERT_EQ(1u, result.size());
++    EXPECT_EQ(ResourceBinding::ResourceType::kReadOnlyStorageBuffer, result[0].resource_type);
++    EXPECT_EQ(1024u, result[0].size);
++}
++
++TEST_F(InspectorGetResourceBindingsTest, SubgroupMatrix_Indirect_LargeAndSmallFuncs) {
++    auto* src = R"(
++enable chromium_experimental_subgroup_matrix;
++@group(0) @binding(0) var<storage> v : array<f32>;
++fn large(p : ptr<storage, array<f32>, read>) {
++  let l = subgroupMatrixLoad<subgroup_matrix_left<f32, 16, 16>, row_major>(p, 0u, 16u);
++}
++fn small(p : ptr<storage, array<f32>, read>) {
++  let s = subgroupMatrixLoad<subgroup_matrix_left<f32, 8, 8>, col_major>(p, 0u, 8u);
++}
++@compute @workgroup_size(1)
++fn ep() {
++  large(&v);
++  small(&v);
++}
++)";
++
++    Inspector& inspector = Initialize(src);
++    auto result = inspector.GetResourceBindings("ep");
++    ASSERT_FALSE(inspector.has_error()) << inspector.error();
++
++    ASSERT_EQ(1u, result.size());
++    EXPECT_EQ(ResourceBinding::ResourceType::kReadOnlyStorageBuffer, result[0].resource_type);
++    EXPECT_EQ(1024u, result[0].size);
++}
++
+ std::string CoordsType(core::type::TextureDimension dim, std::string_view name) {
+     switch (dim) {
+         case core::type::TextureDimension::k1d:
+diff --git a/src/tint/lang/wgsl/resolver/buffer_test.cc b/src/tint/lang/wgsl/resolver/buffer_test.cc
+index 865e9cc78..174ad0cff 100644
+--- a/src/tint/lang/wgsl/resolver/buffer_test.cc
++++ b/src/tint/lang/wgsl/resolver/buffer_test.cc
+@@ -587,6 +587,54 @@ input.wgsl:7:24 error: the offset argument of bufferView plus the minimum size o
+ )");
+ }
+ 
++TEST_F(ResolverBufferViewTest, MinSizeViolation_Indirect_SmallAndLarge) {
++    EXPECT_ERROR(
++        R"(
++@group(0) @binding(0) var<storage, read_write> b : buffer<256>;
++fn indirect(p : ptr<storage, buffer, read_write>) {
++  let small = bufferView<u32>(p, 0u);
++  let large = bufferView<array<u32, 128>>(p, 0u);
++}
++@compute @workgroup_size(1)
++fn main() {
++  indirect(&b);
++}
++)",
++        R"(
++input.wgsl:2:23 error: buffer size (256 bytes) is smaller than the minimum view size (512 bytes)
++@group(0) @binding(0) var<storage, read_write> b : buffer<256>;
++                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++
++input.wgsl:4:15 note: due to call here
++  let small = bufferView<u32>(p, 0u);
++              ^^^^^^^^^^^^^^^^^^^^^^
++)");
++}
++
++TEST_F(ResolverBufferViewTest, MinSizeViolation_Indirect_LargeAndSmall) {
++    EXPECT_ERROR(
++        R"(
++@group(0) @binding(0) var<storage, read_write> b : buffer<256>;
++fn indirect(p : ptr<storage, buffer, read_write>) {
++  let large = bufferView<array<u32, 128>>(p, 0u);
++  let small = bufferView<u32>(p, 0u);
++}
++@compute @workgroup_size(1)
++fn main() {
++  indirect(&b);
++}
++)",
++        R"(
++input.wgsl:2:23 error: buffer size (256 bytes) is smaller than the minimum view size (512 bytes)
++@group(0) @binding(0) var<storage, read_write> b : buffer<256>;
++                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++
++input.wgsl:4:15 note: due to call here
++  let large = bufferView<array<u32, 128>>(p, 0u);
++              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++)");
++}
++
+ using ResolverBufferArrayViewTest = ResolverTest;
+ 
+ TEST_F(ResolverBufferArrayViewTest, Storage_Unsized) {
+diff --git a/src/tint/lang/wgsl/resolver/resolver.cc b/src/tint/lang/wgsl/resolver/resolver.cc
+index 0232ca774..1d1499497 100644
+--- a/src/tint/lang/wgsl/resolver/resolver.cc
++++ b/src/tint/lang/wgsl/resolver/resolver.cc
+@@ -1478,7 +1478,7 @@ void Resolver::RegisterBufferView(const sem::Call* call, wgsl::BuiltinFn fn) {
+     }
+ 
+     if (const auto* param = call->RootIdentifier()->As<sem::Parameter>()) {
+-        auto where = buffer_view_sizes_.GetOrAddEntry(param, [min_type_size, total_size, call]() {
++        auto& where = buffer_view_sizes_.GetOrAddEntry(param, [min_type_size, total_size, call]() {
+             BufferViewInfo info;
+             info.min_type_size = min_type_size;
+             info.total_size = total_size;
+@@ -1583,7 +1583,8 @@ void Resolver::RegisterSubgroupMatrixAccess(const sem::Call* call, wgsl::Builtin
+     mat_required_size += FindSubgroupMatrixStructOffset(pointer);
+ 
+     if (const auto* param = root->As<sem::Parameter>()) {
+-        auto where = subgroup_matrix_sizes_.GetOrAddEntry(param, [&] { return mat_required_size; });
++        auto& where =
++            subgroup_matrix_sizes_.GetOrAddEntry(param, [&] { return mat_required_size; });
+         where.value = std::max(where.value, mat_required_size);
+     }
+ 
+@@ -1626,7 +1627,7 @@ void Resolver::PropagateSubgroupMatrixAccesses(const sem::Call* call) {
+                 }
+             },
+             [&](const sem::Parameter* param) {
+-                auto param_where = subgroup_matrix_sizes_.GetOrAddEntry(
++                auto& param_where = subgroup_matrix_sizes_.GetOrAddEntry(
+                     param, [mat_required_size]() { return mat_required_size; });
+                 param_where.value = std::max(param_where.value, mat_required_size);
+             });
+@@ -1687,7 +1688,7 @@ bool Resolver::CheckBufferViews(const sem::Call* call) {
+                         return false;
+                     }
+                 }
+-                auto param_where =
++                auto& param_where =
+                     buffer_view_sizes_.GetOrAddEntry(param, [where]() { return *where; });
+                 param_where.value = {
+                     std::max(param_where.value.min_type_size, where->min_type_size),
+-- 
+2.55.0
+

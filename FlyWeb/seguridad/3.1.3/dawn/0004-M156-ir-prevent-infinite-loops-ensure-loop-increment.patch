@@ -1,0 +1,824 @@
+From 5ee7543174adf616dfa6d22d8d0d0d8eeea72b69 Mon Sep 17 00:00:00 2001
+From: dneto <dneto@google.com>
+Date: Mon, 16 Nov 2026 14:34:00 -0800
+Subject: [PATCH 4/4] [M156] [ir] prevent infinite loops: ensure loop increment
+ survives backends
+
+Original change's description:
+> [ir] prevent infinite loops: ensure loop increment survives backends
+>
+> Ensure the loop counter increment always survives through
+> to the backend.
+>
+> If the loop body ends in unreachable, replace it with
+> "continue".
+>
+> This fixes a bug where DXC can deduce a loop has no break,
+> and then errors out.
+>
+> FXC fails on one graphicsfuzz test case.
+>
+> Fixed: 582926979
+> Change-Id: Ia37e6c1fe3d1b0cf08950b7371bf5ee66a6a6964
+> Reviewed-on: https://dawn-review.googlesource.com/c/dawn/+/358675
+> Commit-Queue: David Neto <dneto@google.com>
+> Commit-Queue: James Price <jrprice@google.com>
+> Auto-Submit: David Neto <dneto@google.com>
+> Reviewed-by: James Price <jrprice@google.com>
+
+(cherry picked from commit ea26d07b810eb66db475fa09e65944aef7ab4447)
+
+Bug: 585801970,582926979
+Change-Id: Ia37e6c1fe3d1b0cf08950b7371bf5ee66a6a6964
+Reviewed-on: https://dawn-review.googlesource.com/c/dawn/+/360095
+Auto-Submit: Chrome Cherry Picker <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+(cherry picked from commit d2c1eac2db6cc83aa0a38c99239af77a14abf7e7)
+---
+ .../ir/transform/prevent_infinite_loops.cc    |  7 ++
+ .../transform/prevent_infinite_loops_test.cc  | 88 +++++++++++++++++++
+ .../tint/bug/tint/2201.wgsl.expected.dxc.hlsl |  7 +-
+ .../tint/bug/tint/2201.wgsl.expected.fxc.hlsl |  7 +-
+ test/tint/bug/tint/2201.wgsl.expected.glsl    |  7 +-
+ test/tint/bug/tint/2201.wgsl.expected.msl     |  7 +-
+ test/tint/bug/tint/2201.wgsl.expected.spvasm  |  2 +-
+ .../tint/bug/tint/2202.wgsl.expected.dxc.hlsl |  7 +-
+ .../tint/bug/tint/2202.wgsl.expected.fxc.hlsl |  7 +-
+ test/tint/bug/tint/2202.wgsl.expected.glsl    |  7 +-
+ test/tint/bug/tint/2202.wgsl.expected.msl     |  7 +-
+ test/tint/bug/tint/2202.wgsl.expected.spvasm  |  2 +-
+ .../bug/tint/354627692.wgsl.expected.dxc.hlsl |  7 +-
+ .../bug/tint/354627692.wgsl.expected.fxc.hlsl |  7 +-
+ .../bug/tint/354627692.wgsl.expected.glsl     |  7 +-
+ .../tint/bug/tint/354627692.wgsl.expected.msl |  7 +-
+ .../bug/tint/354627692.wgsl.expected.spvasm   |  2 +-
+ .../loops/nested_loops.wgsl.expected.dxc.hlsl |  8 +-
+ .../loops/nested_loops.wgsl.expected.fxc.hlsl |  8 +-
+ .../loops/nested_loops.wgsl.expected.glsl     |  8 +-
+ .../tint/loops/nested_loops.wgsl.expected.msl |  8 +-
+ .../loops/nested_loops.wgsl.expected.spvasm   |  2 +-
+ ...ed_loops_robustness.wgsl.expected.dxc.hlsl |  8 +-
+ ...ed_loops_robustness.wgsl.expected.fxc.hlsl |  8 +-
+ ...nested_loops_robustness.wgsl.expected.glsl |  8 +-
+ .../nested_loops_robustness.wgsl.expected.msl |  8 +-
+ ...sted_loops_robustness.wgsl.expected.spvasm |  2 +-
+ ...ops_with_continuing.wgsl.expected.dxc.hlsl |  8 +-
+ ...ops_with_continuing.wgsl.expected.fxc.hlsl |  8 +-
+ ...d_loops_with_continuing.wgsl.expected.glsl |  8 +-
+ ...ed_loops_with_continuing.wgsl.expected.msl |  8 +-
+ ...loops_with_continuing.wgsl.expected.spvasm |  2 +-
+ ...ntinuing_robustness.wgsl.expected.dxc.hlsl |  8 +-
+ ...ntinuing_robustness.wgsl.expected.fxc.hlsl |  8 +-
+ ...h_continuing_robustness.wgsl.expected.glsl |  8 +-
+ ...th_continuing_robustness.wgsl.expected.msl |  8 +-
+ ...continuing_robustness.wgsl.expected.spvasm |  2 +-
+ .../0-opt.wgsl.expected.fxc.hlsl              | 10 +++
+ 38 files changed, 280 insertions(+), 51 deletions(-)
+ create mode 100644 test/tint/vk-gl-cts/graphicsfuzz/disc-and-add-in-func-in-loop/0-opt.wgsl.expected.fxc.hlsl
+
+diff --git a/src/tint/lang/core/ir/transform/prevent_infinite_loops.cc b/src/tint/lang/core/ir/transform/prevent_infinite_loops.cc
+index 1c554493f..2a03943e2 100644
+--- a/src/tint/lang/core/ir/transform/prevent_infinite_loops.cc
++++ b/src/tint/lang/core/ir/transform/prevent_infinite_loops.cc
+@@ -97,6 +97,13 @@ struct State {
+             });
+         });
+ 
++        // Ensure the continuing block survives to the backend. Backend
++        // compilers must see the loop counter increment.
++        if (auto* unreachable = loop->Body()->Terminator()->As<Unreachable>()) {
++            b.InsertBefore(unreachable, [&] { b.Continue(loop); });
++            unreachable->Destroy();
++        }
++
+         // Increment the index variable at the top of the continuing block.
+         if (loop->Continuing()->IsEmpty()) {
+             loop->Continuing()->Append(b.NextIteration(loop));
+diff --git a/src/tint/lang/core/ir/transform/prevent_infinite_loops_test.cc b/src/tint/lang/core/ir/transform/prevent_infinite_loops_test.cc
+index e265d432a..d1bf3be54 100644
+--- a/src/tint/lang/core/ir/transform/prevent_infinite_loops_test.cc
++++ b/src/tint/lang/core/ir/transform/prevent_infinite_loops_test.cc
+@@ -846,5 +846,93 @@ TEST_F(IR_PreventInfiniteLoopsTest, LoopResults) {
+     EXPECT_EQ(expect, str());
+ }
+ 
++TEST_F(IR_PreventInfiniteLoopsTest, InfiniteLoop_BodyEndIsUnreachable) {
++    auto* func = b.Function("func", ty.void_());
++    b.Append(func->Block(), [&] {  //
++        auto* loop = b.Loop();
++        b.Append(loop->Initializer(), [&] {
++            b.NextIteration(loop);
++
++            b.Append(loop->Body(), [&] {
++                // This actual case from the bug is more complex.
++                auto* ifelse = b.If(true);
++                b.Append(ifelse->True(), [&] {  //
++                    b.Return(func);
++                });
++                // This is the key property.
++                b.Unreachable();
++            });
++        });
++        b.Return(func);
++    });
++
++    auto* src = R"(
++%func = func():void {
++  $B1: {
++    loop [i: $B2, b: $B3] {  # loop_1
++      $B2: {  # initializer
++        next_iteration  # -> $B3
++      }
++      $B3: {  # body
++        if true [t: $B4] {  # if_1
++          $B4: {  # true
++            ret
++          }
++        }
++        unreachable
++      }
++    }
++    ret
++  }
++}
++)";
++    EXPECT_EQ(src, str());
++
++    auto* expect = R"(
++%func = func():void {
++  $B1: {
++    loop [i: $B2, b: $B3, c: $B4] {  # loop_1
++      $B2: {  # initializer
++        %tint_loop_idx:ptr<function, vec2<u32>, read_write> = var vec2<u32>(4294967295u)
++        next_iteration  # -> $B3
++      }
++      $B3: {  # body
++        %3:vec2<u32> = load %tint_loop_idx
++        %4:vec2<bool> = eq %3, vec2<u32>(0u)
++        %5:bool = all %4
++        if %5 [t: $B5] {  # if_1
++          $B5: {  # true
++            exit_loop  # loop_1
++          }
++        }
++        if true [t: $B6] {  # if_2
++          $B6: {  # true
++            ret
++          }
++        }
++        continue  # -> $B4
++      }
++      $B4: {  # continuing
++        %6:u32 = load_vector_element %tint_loop_idx, 0u
++        %tint_low_inc:u32 = sub %6, 1u
++        store_vector_element %tint_loop_idx, 0u, %tint_low_inc
++        %8:bool = eq %tint_low_inc, 4294967295u
++        %tint_carry:u32 = convert %8
++        %10:u32 = load_vector_element %tint_loop_idx, 1u
++        %11:u32 = sub %10, %tint_carry
++        store_vector_element %tint_loop_idx, 1u, %11
++        next_iteration  # -> $B3
++      }
++    }
++    ret
++  }
++}
++)";
++
++    Run(PreventInfiniteLoops);
++
++    EXPECT_EQ(expect, str());
++}
++
+ }  // namespace
+ }  // namespace tint::core::ir::transform
+diff --git a/test/tint/bug/tint/2201.wgsl.expected.dxc.hlsl b/test/tint/bug/tint/2201.wgsl.expected.dxc.hlsl
+index 42d96efbb..aaf3305d7 100644
+--- a/test/tint/bug/tint/2201.wgsl.expected.dxc.hlsl
++++ b/test/tint/bug/tint/2201.wgsl.expected.dxc.hlsl
+@@ -16,7 +16,12 @@ void main() {
+       } else {
+         break;
+       }
+-      /* unreachable */
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+ }
+diff --git a/test/tint/bug/tint/2201.wgsl.expected.fxc.hlsl b/test/tint/bug/tint/2201.wgsl.expected.fxc.hlsl
+index 42d96efbb..aaf3305d7 100644
+--- a/test/tint/bug/tint/2201.wgsl.expected.fxc.hlsl
++++ b/test/tint/bug/tint/2201.wgsl.expected.fxc.hlsl
+@@ -16,7 +16,12 @@ void main() {
+       } else {
+         break;
+       }
+-      /* unreachable */
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+ }
+diff --git a/test/tint/bug/tint/2201.wgsl.expected.glsl b/test/tint/bug/tint/2201.wgsl.expected.glsl
+index 265b21a8d..936235713 100644
+--- a/test/tint/bug/tint/2201.wgsl.expected.glsl
++++ b/test/tint/bug/tint/2201.wgsl.expected.glsl
+@@ -17,7 +17,12 @@ void main() {
+       } else {
+         break;
+       }
+-      /* unreachable */
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+ }
+diff --git a/test/tint/bug/tint/2201.wgsl.expected.msl b/test/tint/bug/tint/2201.wgsl.expected.msl
+index 6646dd85d..b844d640a 100644
+--- a/test/tint/bug/tint/2201.wgsl.expected.msl
++++ b/test/tint/bug/tint/2201.wgsl.expected.msl
+@@ -18,7 +18,12 @@ kernel void v() {
+       } else {
+         break;
+       }
+-      /* unreachable */
++      {
++        uint const tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint const tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+ }
+diff --git a/test/tint/bug/tint/2201.wgsl.expected.spvasm b/test/tint/bug/tint/2201.wgsl.expected.spvasm
+index 208442d7f..e6a35db63 100644
+--- a/test/tint/bug/tint/2201.wgsl.expected.spvasm
++++ b/test/tint/bug/tint/2201.wgsl.expected.spvasm
+@@ -55,7 +55,7 @@
+          %26 = OpLabel
+                OpBranch %9
+          %24 = OpLabel
+-               OpUnreachable
++               OpBranch %7
+           %7 = OpLabel
+          %28 = OpAccessChain %_ptr_Function_uint %tint_loop_idx %uint_0
+          %31 = OpLoad %uint %28 None
+diff --git a/test/tint/bug/tint/2202.wgsl.expected.dxc.hlsl b/test/tint/bug/tint/2202.wgsl.expected.dxc.hlsl
+index c4c5a1af4..42472c2dc 100644
+--- a/test/tint/bug/tint/2202.wgsl.expected.dxc.hlsl
++++ b/test/tint/bug/tint/2202.wgsl.expected.dxc.hlsl
+@@ -20,7 +20,12 @@ void main() {
+           return;
+         }
+       }
+-      /* unreachable */
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/bug/tint/2202.wgsl.expected.fxc.hlsl b/test/tint/bug/tint/2202.wgsl.expected.fxc.hlsl
+index c4c5a1af4..42472c2dc 100644
+--- a/test/tint/bug/tint/2202.wgsl.expected.fxc.hlsl
++++ b/test/tint/bug/tint/2202.wgsl.expected.fxc.hlsl
+@@ -20,7 +20,12 @@ void main() {
+           return;
+         }
+       }
+-      /* unreachable */
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/bug/tint/2202.wgsl.expected.glsl b/test/tint/bug/tint/2202.wgsl.expected.glsl
+index 2d9d3556b..578f1acc3 100644
+--- a/test/tint/bug/tint/2202.wgsl.expected.glsl
++++ b/test/tint/bug/tint/2202.wgsl.expected.glsl
+@@ -21,7 +21,12 @@ void main() {
+           return;
+         }
+       }
+-      /* unreachable */
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/bug/tint/2202.wgsl.expected.msl b/test/tint/bug/tint/2202.wgsl.expected.msl
+index 771f1f1e3..560fc08d5 100644
+--- a/test/tint/bug/tint/2202.wgsl.expected.msl
++++ b/test/tint/bug/tint/2202.wgsl.expected.msl
+@@ -22,7 +22,12 @@ kernel void v() {
+           return;
+         }
+       }
+-      /* unreachable */
++      {
++        uint const tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint const tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/bug/tint/2202.wgsl.expected.spvasm b/test/tint/bug/tint/2202.wgsl.expected.spvasm
+index eb18ab226..34fc1cf3c 100644
+--- a/test/tint/bug/tint/2202.wgsl.expected.spvasm
++++ b/test/tint/bug/tint/2202.wgsl.expected.spvasm
+@@ -83,7 +83,7 @@
+                OpStore %57 %56 None
+                OpBranch %27
+          %28 = OpLabel
+-               OpUnreachable
++               OpBranch %7
+           %7 = OpLabel
+          %29 = OpAccessChain %_ptr_Function_uint %tint_loop_idx %uint_0
+          %32 = OpLoad %uint %29 None
+diff --git a/test/tint/bug/tint/354627692.wgsl.expected.dxc.hlsl b/test/tint/bug/tint/354627692.wgsl.expected.dxc.hlsl
+index fb0f88b8a..fc1878277 100644
+--- a/test/tint/bug/tint/354627692.wgsl.expected.dxc.hlsl
++++ b/test/tint/bug/tint/354627692.wgsl.expected.dxc.hlsl
+@@ -27,7 +27,12 @@ void main() {
+               i = asint((asuint(i) * 2u));
+               break;
+             }
+-            /* unreachable */
++            {
++              uint tint_low_inc_1 = (tint_loop_idx_1.x - 1u);
++              tint_loop_idx_1.x = tint_low_inc_1;
++              uint tint_carry_1 = uint((tint_low_inc_1 == 4294967295u));
++              tint_loop_idx_1.y = (tint_loop_idx_1.y - tint_carry_1);
++            }
+           }
+         }
+         if ((i > int(10))) { break; }
+diff --git a/test/tint/bug/tint/354627692.wgsl.expected.fxc.hlsl b/test/tint/bug/tint/354627692.wgsl.expected.fxc.hlsl
+index fb0f88b8a..fc1878277 100644
+--- a/test/tint/bug/tint/354627692.wgsl.expected.fxc.hlsl
++++ b/test/tint/bug/tint/354627692.wgsl.expected.fxc.hlsl
+@@ -27,7 +27,12 @@ void main() {
+               i = asint((asuint(i) * 2u));
+               break;
+             }
+-            /* unreachable */
++            {
++              uint tint_low_inc_1 = (tint_loop_idx_1.x - 1u);
++              tint_loop_idx_1.x = tint_low_inc_1;
++              uint tint_carry_1 = uint((tint_low_inc_1 == 4294967295u));
++              tint_loop_idx_1.y = (tint_loop_idx_1.y - tint_carry_1);
++            }
+           }
+         }
+         if ((i > int(10))) { break; }
+diff --git a/test/tint/bug/tint/354627692.wgsl.expected.glsl b/test/tint/bug/tint/354627692.wgsl.expected.glsl
+index 1825089fe..fd87334b0 100644
+--- a/test/tint/bug/tint/354627692.wgsl.expected.glsl
++++ b/test/tint/bug/tint/354627692.wgsl.expected.glsl
+@@ -31,7 +31,12 @@ void main() {
+               i = int((uint(i) * 2u));
+               break;
+             }
+-            /* unreachable */
++            {
++              uint tint_low_inc_1 = (tint_loop_idx_1.x - 1u);
++              tint_loop_idx_1.x = tint_low_inc_1;
++              uint tint_carry_1 = uint((tint_low_inc_1 == 4294967295u));
++              tint_loop_idx_1.y = (tint_loop_idx_1.y - tint_carry_1);
++            }
+           }
+         }
+         if ((i > 10)) { break; }
+diff --git a/test/tint/bug/tint/354627692.wgsl.expected.msl b/test/tint/bug/tint/354627692.wgsl.expected.msl
+index ebfa5d33c..1464d8b90 100644
+--- a/test/tint/bug/tint/354627692.wgsl.expected.msl
++++ b/test/tint/bug/tint/354627692.wgsl.expected.msl
+@@ -33,7 +33,12 @@ kernel void v(device int* v_1 [[buffer(0)]]) {
+               i = as_type<int>((as_type<uint>(i) * 2u));
+               break;
+             }
+-            /* unreachable */
++            {
++              uint const tint_low_inc_1 = (tint_loop_idx_1.x - 1u);
++              tint_loop_idx_1.x = tint_low_inc_1;
++              uint const tint_carry_1 = uint((tint_low_inc_1 == 4294967295u));
++              tint_loop_idx_1.y = (tint_loop_idx_1.y - tint_carry_1);
++            }
+           }
+         }
+         if ((i > 10)) { break; }
+diff --git a/test/tint/bug/tint/354627692.wgsl.expected.spvasm b/test/tint/bug/tint/354627692.wgsl.expected.spvasm
+index fc36a25bc..77b4a818b 100644
+--- a/test/tint/bug/tint/354627692.wgsl.expected.spvasm
++++ b/test/tint/bug/tint/354627692.wgsl.expected.spvasm
+@@ -117,7 +117,7 @@
+                OpStore %i %86 None
+                OpBranch %52
+          %65 = OpLabel
+-               OpBranch %52
++               OpBranch %50
+          %50 = OpLabel
+          %68 = OpAccessChain %_ptr_Function_uint %tint_loop_idx_0 %uint_0
+          %69 = OpLoad %uint %68 None
+diff --git a/test/tint/loops/nested_loops.wgsl.expected.dxc.hlsl b/test/tint/loops/nested_loops.wgsl.expected.dxc.hlsl
+index 3385df065..2bb810a49 100644
+--- a/test/tint/loops/nested_loops.wgsl.expected.dxc.hlsl
++++ b/test/tint/loops/nested_loops.wgsl.expected.dxc.hlsl
+@@ -30,8 +30,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return int(0);
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops.wgsl.expected.fxc.hlsl b/test/tint/loops/nested_loops.wgsl.expected.fxc.hlsl
+index 3385df065..2bb810a49 100644
+--- a/test/tint/loops/nested_loops.wgsl.expected.fxc.hlsl
++++ b/test/tint/loops/nested_loops.wgsl.expected.fxc.hlsl
+@@ -30,8 +30,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return int(0);
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops.wgsl.expected.glsl b/test/tint/loops/nested_loops.wgsl.expected.glsl
+index 0f2a2b65e..7af30098f 100644
+--- a/test/tint/loops/nested_loops.wgsl.expected.glsl
++++ b/test/tint/loops/nested_loops.wgsl.expected.glsl
+@@ -31,8 +31,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return 0;
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops.wgsl.expected.msl b/test/tint/loops/nested_loops.wgsl.expected.msl
+index 974a7aced..9de0fab98 100644
+--- a/test/tint/loops/nested_loops.wgsl.expected.msl
++++ b/test/tint/loops/nested_loops.wgsl.expected.msl
+@@ -32,8 +32,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return 0;
++      {
++        uint const tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint const tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops.wgsl.expected.spvasm b/test/tint/loops/nested_loops.wgsl.expected.spvasm
+index 1886070db..de73141f8 100644
+--- a/test/tint/loops/nested_loops.wgsl.expected.spvasm
++++ b/test/tint/loops/nested_loops.wgsl.expected.spvasm
+@@ -148,7 +148,7 @@
+          %55 = OpLabel
+                OpBranch %18
+          %54 = OpLabel
+-               OpUnreachable
++               OpBranch %16
+          %16 = OpLabel
+          %56 = OpAccessChain %_ptr_Function_uint %tint_loop_idx %uint_0
+          %59 = OpLoad %uint %56 None
+diff --git a/test/tint/loops/nested_loops_robustness.wgsl.expected.dxc.hlsl b/test/tint/loops/nested_loops_robustness.wgsl.expected.dxc.hlsl
+index 3385df065..2bb810a49 100644
+--- a/test/tint/loops/nested_loops_robustness.wgsl.expected.dxc.hlsl
++++ b/test/tint/loops/nested_loops_robustness.wgsl.expected.dxc.hlsl
+@@ -30,8 +30,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return int(0);
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_robustness.wgsl.expected.fxc.hlsl b/test/tint/loops/nested_loops_robustness.wgsl.expected.fxc.hlsl
+index 3385df065..2bb810a49 100644
+--- a/test/tint/loops/nested_loops_robustness.wgsl.expected.fxc.hlsl
++++ b/test/tint/loops/nested_loops_robustness.wgsl.expected.fxc.hlsl
+@@ -30,8 +30,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return int(0);
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_robustness.wgsl.expected.glsl b/test/tint/loops/nested_loops_robustness.wgsl.expected.glsl
+index 0f2a2b65e..7af30098f 100644
+--- a/test/tint/loops/nested_loops_robustness.wgsl.expected.glsl
++++ b/test/tint/loops/nested_loops_robustness.wgsl.expected.glsl
+@@ -31,8 +31,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return 0;
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_robustness.wgsl.expected.msl b/test/tint/loops/nested_loops_robustness.wgsl.expected.msl
+index 974a7aced..9de0fab98 100644
+--- a/test/tint/loops/nested_loops_robustness.wgsl.expected.msl
++++ b/test/tint/loops/nested_loops_robustness.wgsl.expected.msl
+@@ -32,8 +32,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return 0;
++      {
++        uint const tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint const tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_robustness.wgsl.expected.spvasm b/test/tint/loops/nested_loops_robustness.wgsl.expected.spvasm
+index 1886070db..de73141f8 100644
+--- a/test/tint/loops/nested_loops_robustness.wgsl.expected.spvasm
++++ b/test/tint/loops/nested_loops_robustness.wgsl.expected.spvasm
+@@ -148,7 +148,7 @@
+          %55 = OpLabel
+                OpBranch %18
+          %54 = OpLabel
+-               OpUnreachable
++               OpBranch %16
+          %16 = OpLabel
+          %56 = OpAccessChain %_ptr_Function_uint %tint_loop_idx %uint_0
+          %59 = OpLoad %uint %56 None
+diff --git a/test/tint/loops/nested_loops_with_continuing.wgsl.expected.dxc.hlsl b/test/tint/loops/nested_loops_with_continuing.wgsl.expected.dxc.hlsl
+index 22d28ef89..592737eff 100644
+--- a/test/tint/loops/nested_loops_with_continuing.wgsl.expected.dxc.hlsl
++++ b/test/tint/loops/nested_loops_with_continuing.wgsl.expected.dxc.hlsl
+@@ -29,8 +29,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return int(0);
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_with_continuing.wgsl.expected.fxc.hlsl b/test/tint/loops/nested_loops_with_continuing.wgsl.expected.fxc.hlsl
+index 22d28ef89..592737eff 100644
+--- a/test/tint/loops/nested_loops_with_continuing.wgsl.expected.fxc.hlsl
++++ b/test/tint/loops/nested_loops_with_continuing.wgsl.expected.fxc.hlsl
+@@ -29,8 +29,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return int(0);
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_with_continuing.wgsl.expected.glsl b/test/tint/loops/nested_loops_with_continuing.wgsl.expected.glsl
+index ffa2182ea..8932c6431 100644
+--- a/test/tint/loops/nested_loops_with_continuing.wgsl.expected.glsl
++++ b/test/tint/loops/nested_loops_with_continuing.wgsl.expected.glsl
+@@ -30,8 +30,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return 0;
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_with_continuing.wgsl.expected.msl b/test/tint/loops/nested_loops_with_continuing.wgsl.expected.msl
+index e7e6d2f51..fb4eee4f5 100644
+--- a/test/tint/loops/nested_loops_with_continuing.wgsl.expected.msl
++++ b/test/tint/loops/nested_loops_with_continuing.wgsl.expected.msl
+@@ -31,8 +31,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return 0;
++      {
++        uint const tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint const tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_with_continuing.wgsl.expected.spvasm b/test/tint/loops/nested_loops_with_continuing.wgsl.expected.spvasm
+index 75de6ea77..4eedf738d 100644
+--- a/test/tint/loops/nested_loops_with_continuing.wgsl.expected.spvasm
++++ b/test/tint/loops/nested_loops_with_continuing.wgsl.expected.spvasm
+@@ -143,7 +143,7 @@
+          %50 = OpLabel
+                OpBranch %18
+          %49 = OpLabel
+-               OpUnreachable
++               OpBranch %16
+          %16 = OpLabel
+          %51 = OpAccessChain %_ptr_Function_uint %tint_loop_idx %uint_0
+          %54 = OpLoad %uint %51 None
+diff --git a/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.dxc.hlsl b/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.dxc.hlsl
+index 22d28ef89..592737eff 100644
+--- a/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.dxc.hlsl
++++ b/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.dxc.hlsl
+@@ -29,8 +29,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return int(0);
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.fxc.hlsl b/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.fxc.hlsl
+index 22d28ef89..592737eff 100644
+--- a/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.fxc.hlsl
++++ b/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.fxc.hlsl
+@@ -29,8 +29,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return int(0);
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.glsl b/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.glsl
+index ffa2182ea..8932c6431 100644
+--- a/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.glsl
++++ b/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.glsl
+@@ -30,8 +30,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return 0;
++      {
++        uint tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.msl b/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.msl
+index e7e6d2f51..fb4eee4f5 100644
+--- a/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.msl
++++ b/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.msl
+@@ -31,8 +31,12 @@ int f() {
+           }
+         }
+       }
+-      /* unreachable */
+-      return 0;
++      {
++        uint const tint_low_inc = (tint_loop_idx.x - 1u);
++        tint_loop_idx.x = tint_low_inc;
++        uint const tint_carry = uint((tint_low_inc == 4294967295u));
++        tint_loop_idx.y = (tint_loop_idx.y - tint_carry);
++      }
+     }
+   }
+   /* unreachable */
+diff --git a/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.spvasm b/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.spvasm
+index 75de6ea77..4eedf738d 100644
+--- a/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.spvasm
++++ b/test/tint/loops/nested_loops_with_continuing_robustness.wgsl.expected.spvasm
+@@ -143,7 +143,7 @@
+          %50 = OpLabel
+                OpBranch %18
+          %49 = OpLabel
+-               OpUnreachable
++               OpBranch %16
+          %16 = OpLabel
+          %51 = OpAccessChain %_ptr_Function_uint %tint_loop_idx %uint_0
+          %54 = OpLoad %uint %51 None
+diff --git a/test/tint/vk-gl-cts/graphicsfuzz/disc-and-add-in-func-in-loop/0-opt.wgsl.expected.fxc.hlsl b/test/tint/vk-gl-cts/graphicsfuzz/disc-and-add-in-func-in-loop/0-opt.wgsl.expected.fxc.hlsl
+new file mode 100644
+index 000000000..43c2f1958
+--- /dev/null
++++ b/test/tint/vk-gl-cts/graphicsfuzz/disc-and-add-in-func-in-loop/0-opt.wgsl.expected.fxc.hlsl
+@@ -0,0 +1,10 @@
++SKIP: FAIL
++
++    <scrubbed_path>(22,5-15): warning X3557: loop only executes for 0 iteration(s), forcing loop to unroll
++    <scrubbed_path>(39,13-23): warning X3557: loop only executes for 0 iteration(s), forcing loop to unroll
++    <scrubbed_path>(54,17-27): warning X3557: loop only executes for 0 iteration(s), forcing loop to unroll
++    <scrubbed_path>(54,17-27): warning X3557: loop only executes for 0 iteration(s), forcing loop to unroll
++    <scrubbed_path>(39,13-23): warning X3557: loop only executes for 0 iteration(s), forcing loop to unroll
++    <scrubbed_path>(54,17-27): warning X3557: loop only executes for 0 iteration(s), forcing loop to unroll
++    <scrubbed_path>(54,17-27): warning X3557: loop only executes for 0 iteration(s), forcing loop to unroll
++    error X8000: Validation Error: source component 3 in temp r2 not initialized. Opcode #42 (count is 1-based)
+-- 
+2.55.0
+
