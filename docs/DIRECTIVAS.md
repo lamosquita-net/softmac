@@ -407,6 +407,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   **ahora** con el respaldo GL y el «error 11» (más lo de seguridad ya cerrado: V8 .58, KEV sin nuevos), sin esperar a la
   158. El delta de la 158 (17-11) va en una **3.1.3** solo de seguridad, que sale en cuanto esté; si para entonces la
   3.2.0 ya estuviera lista, va en ella. La seguridad no espera a la sync.
+  - **Excepción: el arreglo de las fijadas compartidas va en la 3.1.3 (Titín, 17-11; COORDINACIÓN-44).** Corrige el cierre
+    que se da siempre en la 3.x al mover una fijada compartida a otra ventana (falta `ThumbnailTabHelper`; PR #1029 de
+    MOTOR-46). Entra con el APTO de SEGURIDAD-PORTES y con la reproducción de LOCAL. Fuera de eso, la 3.1.3 sigue siendo solo de seguridad.
 - **FlyWeb también innova (Titín, 13-11 noche; COORDINACIÓN-41; amplía «Flink a nuestro ritmo»):** además de seguir a
   Chrome, FlyWeb puede implementar funciones nuevas de los estándares (HTML, CSS, JS, APIs) aunque ningún otro navegador
   las tenga aún. **Las elige Titín como diseñador web.** INVESTIGACIÓN-MOTOR le presenta las tendencias nuevas, con
