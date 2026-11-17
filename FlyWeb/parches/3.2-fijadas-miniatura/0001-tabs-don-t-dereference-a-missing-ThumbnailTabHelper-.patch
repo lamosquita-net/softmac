@@ -1,0 +1,88 @@
+From 800a37c265250638cd24b2d1a551aa2a0a5f9cc0 Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Tue, 17 Nov 2026 10:42:10 +0000
+Subject: [PATCH] tabs: don't dereference a missing ThumbnailTabHelper in the
+ shared pinned tab dummy view
+
+The 156 tree has no BraveTabFeatures, so with kTabHoverCardImages off
+(Brave's default) TabFeatures never creates a ThumbnailTabHelper.
+SharedPinnedTabDummyViewViews read ThumbnailTabHelper::From(tab)->
+thumbnail() unconditionally, so moving a shared pinned tab out of a
+window where it was the active tab crashed (SIGSEGV at 0x68 in
+SharedPinnedTabDummyView::CreateAndInstall, FlyWeb 3.1.2).
+
+Without a helper, the dummy view is shown without the preview box.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ .../shared_pinned_tab_dummy_view_views.cc     | 22 ++++++++++++++-----
+ .../tabs/shared_pinned_tab_dummy_view_views.h |  2 ++
+ 2 files changed, 19 insertions(+), 5 deletions(-)
+
+diff --git a/browser/ui/views/tabs/shared_pinned_tab_dummy_view_views.cc b/browser/ui/views/tabs/shared_pinned_tab_dummy_view_views.cc
+index c812865..b0be7f5 100644
+--- a/browser/ui/views/tabs/shared_pinned_tab_dummy_view_views.cc
++++ b/browser/ui/views/tabs/shared_pinned_tab_dummy_view_views.cc
+@@ -61,11 +61,17 @@ void SharedPinnedTabDummyView::CreateAndInstall(
+ SharedPinnedTabDummyViewViews::SharedPinnedTabDummyViewViews(
+     content::WebContents* shared_contents,
+     content::WebContents* dummy_contents)
+-    : SharedPinnedTabDummyView(shared_contents, dummy_contents),
+-      thumbnail_(ThumbnailTabHelper::From(
+-                     tabs::TabInterface::GetFromContents(dummy_contents))
+-                     ->thumbnail()),
+-      subscription_(thumbnail_->Subscribe()) {
++    : SharedPinnedTabDummyView(shared_contents, dummy_contents) {
++  // FlyWeb: the 156 tree has no BraveTabFeatures, so with
++  // kTabHoverCardImages off (Brave's default) no tab has a ThumbnailTabHelper.
++  // Without one, show the dummy view without the preview instead of
++  // dereferencing null.
++  if (auto* thumbnail_helper = ThumbnailTabHelper::From(
++          tabs::TabInterface::GetFromContents(dummy_contents))) {
++    thumbnail_ = thumbnail_helper->thumbnail();
++    subscription_ = thumbnail_->Subscribe();
++  }
++
+   SetPaintToLayer();
+   SetLayoutManager(std::make_unique<views::FlexLayout>())
+       ->SetOrientation(views::LayoutOrientation::kVertical)
+@@ -85,6 +91,7 @@ SharedPinnedTabDummyViewViews::SharedPinnedTabDummyViewViews(
+ 
+   views::Builder<SharedPinnedTabDummyViewViews>(this)
+       .AddChild(views::Builder<views::View>()
++                    .CopyAddressTo(&thumbnail_box_)
+                     .SetBorder(views::CreateRoundedRectBorder(
+                         kThumbnailBorderThickness, kThumbnailRadius,
+                         kColorBraveSharedPinnedTabDummyViewThumbnailBorder))
+@@ -115,6 +122,11 @@ SharedPinnedTabDummyViewViews::SharedPinnedTabDummyViewViews(
+               .SetProperty(views::kMarginsKey, gfx::Insets().set_top(8)))
+       .BuildChildren();
+ 
++  if (!subscription_) {
++    thumbnail_box_->SetVisible(false);
++    return;
++  }
++
+   thumbnail_view_->SetClipPath(SkPath::RRect(
+       SkRect::MakeWH(kThumbnailImageSize.width(), kThumbnailImageSize.height()),
+       kThumbnailRadius - kThumbnailBorderThickness,
+diff --git a/browser/ui/views/tabs/shared_pinned_tab_dummy_view_views.h b/browser/ui/views/tabs/shared_pinned_tab_dummy_view_views.h
+index 37fa566..9491a80 100644
+--- a/browser/ui/views/tabs/shared_pinned_tab_dummy_view_views.h
++++ b/browser/ui/views/tabs/shared_pinned_tab_dummy_view_views.h
+@@ -35,9 +35,11 @@ class SharedPinnedTabDummyViewViews : public SharedPinnedTabDummyView,
+   SharedPinnedTabDummyViewViews(content::WebContents* shared_contents,
+                                 content::WebContents* dummy_contents);
+ 
++  // Null when the tab has no ThumbnailTabHelper; the box is then hidden.
+   scoped_refptr<ThumbnailImage> thumbnail_;
+   std::unique_ptr<ThumbnailImage::Subscription> subscription_;
+ 
++  raw_ptr<views::View> thumbnail_box_;
+   raw_ptr<views::ImageView> thumbnail_view_;
+ 
+   raw_ptr<views::Label> title_label_;
+-- 
+2.43.0
+
