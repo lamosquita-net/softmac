@@ -1,0 +1,49 @@
+From a2c25a3645f82999fcd0917ed3e1529ffb6cb6c5 Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Tue, 17 Nov 2026 15:45:16 +0000
+Subject: [PATCH 09/11] sync: send whole numbers as integers in the account
+ calls
+
+base::JSONWriter writes a double such as last_event_ as 0.0, and the
+server read `desde` as a float (LOCAL-19 against ns2). The server
+accepts it since #1024; the client now writes integral doubles without
+the fraction (OPTIONS_OMIT_DOUBLE_TYPE_PRESERVATION). The body is
+serialized once and that same string is hashed for the chain proof.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ browser/sync/account/flyweb_sync_account_service.cc | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/browser/sync/account/flyweb_sync_account_service.cc b/browser/sync/account/flyweb_sync_account_service.cc
+index 8ebef9405f..4c4c69c480 100644
+--- a/browser/sync/account/flyweb_sync_account_service.cc
++++ b/browser/sync/account/flyweb_sync_account_service.cc
+@@ -694,7 +694,10 @@ void AccountService::Call(CallSpec spec, AccountCallback callback) {
+     return;
+   }
+   std::string body;
+-  base::JSONWriter::Write(spec.body, &body);
++  // Whole numbers as integers: `desde` went out as 0.0 (LOCAL-19, ns2).
++  base::JSONWriter::WriteWithOptions(
++      spec.body, base::JSONWriter::OPTIONS_OMIT_DOUBLE_TYPE_PRESERVATION,
++      &body);
+   std::vector<std::pair<std::string, std::string>> headers;
+   if ((spec.auth == Auth::kToken || spec.attach_token) && !token_.empty()) {
+     headers.emplace_back("Authorization", "Bearer " + token_);
+@@ -719,7 +722,10 @@ void AccountService::CallWithNonce(CallSpec spec,
+     return;
+   }
+   std::string body;
+-  base::JSONWriter::Write(spec.body, &body);
++  // Whole numbers as integers: `desde` went out as 0.0 (LOCAL-19, ns2).
++  base::JSONWriter::WriteWithOptions(
++      spec.body, base::JSONWriter::OPTIONS_OMIT_DOUBLE_TYPE_PRESERVATION,
++      &body);
+   const std::string path = RoutePath(spec.route);
+   const std::string account_id =
+       spec.empty_account_in_proof
+-- 
+2.43.0
+

@@ -17,7 +17,7 @@ git checkout -b nube/sync-cuenta-h3 3e2c12fad5
 git am FlyWeb/parches/3.2-sync-cuenta/000*.patch
 ```
 
-Comprobado: los ocho entran limpios con `git am` sobre 3e2c12fad5 y dan el árbol **1f10366325**, igual que la rama
+Comprobado: los once entran limpios con `git am` sobre 3e2c12fad5 y dan el árbol **b95c0a1ee8**, igual que la rama
 local. Servidor de referencia para K3: #977 en **60cc1d0800** (ls-remote del 13-11). El TypeScript de la página pasó `tsc` estricto, con módulos de relleno para los import. El C++ no se ha
 compilado.
 
@@ -37,6 +37,9 @@ compilado.
 | `0006-sync-device-secret-of-the-sync-account-K3-977-C1.patch` | K3: el secreto de aparato que da el servidor (#977 en 60cc1d0) |
 | `0007-sync-build-fixes-for-the-156-tree-first-compile-of-t.patch` | Arreglos de la primera compilación de LOCAL-19 (abajo) |
 | `0008-sync-log-how-long-the-account-key-derivation-takes-P.patch` | Registro del tiempo de la derivación, para medir P23 desde la página (abajo) |
+| `0009-sync-send-whole-numbers-as-integers-in-the-account-c.patch` | `desde` y los demás números enteros salen sin `.0` (abajo) |
+| `0010-sync-device-model-from-hw.model-on-macOS-10.14-and-1.patch` | Modelo del Mac en 10.14 y 10.15 desde `hw.model` (abajo) |
+| `0011-sync-the-first-read-of-a-joined-account-lasts-until-.patch` | La primera lectura de la cuenta sobrevive a un reinicio y no tapa avisos posteriores (abajo; **pasa por SEGURIDAD-PORTES**) |
 
 ## Qué hace el cliente
 
@@ -180,6 +183,31 @@ FlyWeb.app/Contents/MacOS/FlyWeb --enable-logging=stderr --vmodule=flyweb_sync_a
 
 Se entra o se crea la cuenta y se busca `key derivation ok in N ms`. Sale una línea por
 cada derivación: cada vez que la página usa la clave de la cuenta (crearla, entrar, cambiarla, comprobarla).
+
+## Prueba contra ns2 (LOCAL-19, 17-11) → 0009–0011
+
+Resultados: los eventos dan 200 desde #1024; el correo con el código llega; la derivación tarda 307 ms en la 7,1 y 364 ms en
+la 6,1; falta la 5,1.
+
+- **0009.** `base::JSONWriter` escribe un `double` entero como `0.0`, así que `desde` salía como `0.0`. El servidor lo acepta
+  desde #1024. Ahora el cliente lo envía sin fracción (`OPTIONS_OMIT_DOUBLE_TYPE_PRESERVATION`), en las dos rutas de
+  `Call`. El cuerpo se serializa una sola vez y la prueba de cadena firma ese mismo texto.
+- **0010.** `SysInfo::HardwareModelName()` lee `hw.product`, que solo existe desde macOS 11; en 10.14 y 10.15 sale vacío y
+  el aparato se llamaba «Mac». Si está vacío, se lee `hw.model` con `base::StringSysctlByName`, que en esos sistemas tiene el
+  mismo identificador (p. ej. `MacPro6,1`).
+- **0011 (toca los avisos de seguridad: SEGURIDAD-PORTES antes de aplicarse).**
+  - **Causa.** Al entrar en una cuenta, `baseline_pending_` solo vivía en memoria. Si FlyWeb se reiniciaba antes del primer
+    sondeo con éxito, el siguiente sondeo leía toda la historia de la cuenta como avisos nuevos. En ns2 fallaron todos hasta
+    #1024. Por eso la 6,1 mostró «cadena-ligada» (n=1) y «contrasena-acertada» (n=2) de su propia entrada.
+  - **Cambio.** La primera lectura pendiente se guarda en la pref `flyweb_sync_account.baseline_until` y dura hasta el
+    primer sondeo con éxito, aunque haya reinicios o fallos de red.
+  - **Alcance.** Solo se tratan como historia los eventos con fecha anterior a la entrada más 10 minutos. Ese margen cubre
+    los eventos de la propia entrada (la contraseña acertada y el registro de este Mac) y un reloj desviado unos minutos.
+    Cualquier evento posterior sigue siendo un aviso, aunque el primer sondeo con éxito llegue días después.
+  - **Riesgo que queda, para que SEGURIDAD-PORTES lo valore.** Un evento ajeno dentro de esos 10 minutos tras la entrada
+    no avisa en este Mac. Los otros Mac de la cuenta sí lo ven. Si el reloj del Mac va más de 10 minutos atrasado, los
+    eventos de la propia entrada salen como aviso: es una falsa alarma, no un aviso perdido.
+  - Lo mismo vale al cambiar la clave de la cadena (`ChainChangeImpl`), que también empezaba una primera lectura nueva.
 
 ## Pruebas para LOCAL (al compilar)
 

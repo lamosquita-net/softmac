@@ -1,0 +1,58 @@
+From 53a16820f92a96888ccf31a08845756ad033d104 Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Tue, 17 Nov 2026 15:45:25 +0000
+Subject: [PATCH 10/11] sync: device model from hw.model on macOS 10.14 and
+ 10.15
+
+base::SysInfo::HardwareModelName() reads hw.product, which only exists
+from macOS 11, so on Mojave and Catalina the device was named "Mac"
+(LOCAL-19, MacPro6,1). Fall back to sysctl hw.model, which has the same
+identifier there.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ browser/sync/account/flyweb_sync_account_service.cc | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/browser/sync/account/flyweb_sync_account_service.cc b/browser/sync/account/flyweb_sync_account_service.cc
+index 4c4c69c480..4bdc227162 100644
+--- a/browser/sync/account/flyweb_sync_account_service.cc
++++ b/browser/sync/account/flyweb_sync_account_service.cc
+@@ -29,6 +29,7 @@
+ #include "brave/components/brave_sync/sync_service_impl_helper.h"
+ #include "brave/components/brave_sync/time_limited_words.h"
+ #include "brave/components/sync/service/brave_sync_service_impl.h"
++#include "build/build_config.h"
+ #include "chrome/browser/browser_process.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/sync/device_info_sync_service_factory.h"
+@@ -49,6 +50,10 @@
+ #include "services/network/public/cpp/simple_url_loader.h"
+ #include "services/network/public/mojom/url_response_head.mojom.h"
+ 
++#if BUILDFLAG(IS_MAC)
++#include "base/posix/sysctl.h"
++#endif
++
+ namespace flyweb_sync {
+ 
+ namespace account = brave_sync::crypto::account;
+@@ -642,6 +647,14 @@ void AccountService::OnSyncShutdown(syncer::SyncService* sync) {
+ // static
+ std::string AccountService::DeviceModel() {
+   std::string model = base::SysInfo::HardwareModelName();
++#if BUILDFLAG(IS_MAC)
++  if (model.empty()) {
++    // HardwareModelName() reads hw.product, which macOS has only from 11 on;
++    // on 10.14 and 10.15 it is empty. hw.model has the same identifier
++    // (e.g. MacPro6,1) there.
++    model = base::StringSysctlByName("hw.model").value_or(std::string());
++  }
++#endif
+   std::erase_if(model, [](char c) {
+     return !(base::IsAsciiAlphaNumeric(c) || c == ',' || c == '.' ||
+              c == '_' || c == ' ' || c == '-');
+-- 
+2.43.0
+
