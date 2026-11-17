@@ -17,7 +17,7 @@ con una excepción: el arreglo de las fijadas compartidas (#1029; Titín, 17-11)
 
 | Repositorio | Base (3.1.2) | Resultado de la serie |
 |---|---|---|
-| chromium | commit `9439a7904c`, árbol `8abc877c10` (cierre de la 3.1.2) | 0001–0022 → árbol **`cd628ae8a2`** |
+| chromium | commit `9439a7904c`, árbol `8abc877c10` (cierre de la 3.1.2) | 0001–0022 → árbol **`cd628ae8a2`**; con 0023 (parte 2) → **`690e96b867`** |
 | brave-core | `local/3.1.2` **`ba428ad058`** (`ls-remote` del 17-11) | 0001–0004 → árbol **`3f4141cf05`** (0001–0003 → `adbf62d528`) |
 
 `ls-remote` del 17-11 (21:20 UTC): rama 8078 hasta **156.0.8078.109**; V8 15.6.75 hasta **.66**
@@ -99,13 +99,11 @@ de d8/mjsunit a D8-LINUX** (`buzon/D8-LINUX`), con los `patches/v8` de brave-cor
 
 ## Lo que hace LOCAL-19 (en este orden)
 
-1. **Fijar lo que se compila de verdad** (antes de 0001, como parche suyo): gitlinks y `DEPS` de ANGLE `bc2ebdd211`,
-   FFmpeg `a15fcf87d2` y Dawn (`31316d1c` + `cherry-pick -x` de 68b5c1f3f y 8bc8ddaf2, y lo que salga del roll de Dawn de
-   la .109). **No lo genero yo:** esos commits no están en ningún remoto que yo pueda ver (`ls-remote` de
-   `lamosquita-net/angle`, `/ffmpeg` y `/dawn` pide credenciales), y un hash solo va tras `ls-remote`. Para que
-   `gclient sync` reproduzca lo publicado, tienen que estar en un remoto que pueda bajar; si hay que crear esos forks,
-   decide Titín.
-2. `git am` de chromium 0001–0022 sobre `9439a7904c` → árbol `cd628ae8a2`; `git am` de brave-core 0001–0004 sobre
+1. **ANGLE, FFmpeg y Dawn como en la 3.0.1/3.0.2** (`seguridad/3.0.1/README.md`; COORDINACIÓN-45, 17-11): no hay forks.
+   LOCAL los deja como en la 3.1.2 (ANGLE `bc2ebdd211`, FFmpeg `a15fcf87d2`), aplica en Dawn `31316d1c` 68b5c1f3f y
+   8bc8ddaf2 (más lo que salga del roll de Dawn de la .109) y anota en este CONTENIDO los hashes tal como los ve en su
+   checkout. Si hay parches nuevos para ellos, van como `.patch` en `angle/`, `ffmpeg/` o `dawn/` de esta carpeta.
+2. `git am` de chromium 0001–0023 sobre `9439a7904c` → árbol `690e96b867` (sin 0023: `cd628ae8a2`); `git am ffmpeg/0001` sobre su FFmpeg (parte 2); `git am` de brave-core 0001–0004 sobre
    `ba428ad058` → árbol `3f4141cf05`. Sumas en `SHA256SUMS` y `brave-core/SHA256SUMS`.
 3. **0021 (V8) solo con el mjsunit de D8-LINUX en verde.** Si no llega o falla, se compila sin 0021 y se avisa.
 4. Fijadas: reproducir en la 3.1.2 y comprobar con la 3.1.3 (pasos 4 y 5 del README de `3.2-fijadas-miniatura`);
@@ -113,18 +111,32 @@ de d8/mjsunit a D8-LINUX** (`buzon/D8-LINUX`), con los `patches/v8` de brave-cor
    esperar: se anota como conocido, sin desactivarlo.
 5. `FLYWEB_BUILD_NUMBER` = **46** (CFBundleVersion 198.63.46); `kFlyWebCacheEpoch` no cambia (no hay cambio de motor).
 
-## Parte 2 (pendiente): lo de la 158 que Google no ha portado a la 156
+## Parte 2: lo de la 158 que Google no ha portado a la 156 (17-11)
 
-La nota de la 158 trae 6 críticos que **no** están en la Extended Stable .109. Hay que ver si el código vulnerable está en
-la 156. Commits en `main` (búsqueda en el espejo `chromium/chromium`):
+La nota de la 158 trae 6 críticos que **no** están en la Extended Stable .109. Commits localizados en `main` (búsqueda en
+el espejo `chromium/chromium`) y comprobados contra el árbol de la 3.1.3:
 
-| CVE | Bug | Qué | Commit en main | Sobre el árbol de la 3.1.3 (`git apply --check`, 17-11) |
-|---|---|---|---|---|
-| CVE-2026-131031 | 571153713 | OOB write en GPU | 0960c42b6c (13-10) | **El código de producción entra limpio** (`raster_decoder.cc`, `service_transfer_cache.{h,cc}`, `shared_context_state.cc`); solo fallan pruebas y `filelist`. Candidato a 0023 sin las pruebas |
-| CVE-2026-131060 | 573128234 | Desbordamiento en Media (`mov_read_trun`, FFmpeg) | 60bb54f340 (solo la prueba; el arreglo está en FFmpeg) | Buscar el arreglo de `mov_read_trun` en `chromium/third_party/ffmpeg` y ver si está en nuestro fork `a15fcf87d2` (LOCAL) |
-| CVE-2026-131008 | 574686297 | UAF en el GC (`CalculationValue`) | 218a524b0e (26-10, reaplicado) | No entra (`length.{h,cc}`): ver si la 156 tiene el contador de `CalculationValue` en `~Length()`. Cruzar con 460ab884005 (§11 de `RELEVO-SEGURIDAD.md`) |
-| CVE-2026-131054 | 576812570 | OOB write en ANGLE | b37ab74fc3 (roll de ANGLE 192af4dd12 → 48e22c0ca5) | Buscar el commit de ANGLE del bug y ver si toca Metal o GL (nuestro fork `bc2ebdd211`) |
-| CVE-2026-130975 | 577366760 | UAF en WebAudio | f4de8340fb (27-10) | Entra `offline_audio_destination_handler.cc`; no entra `offline_audio_context.cc`: hay que portarlo a mano o ver que la 156 no tiene el renderizado por trozos |
-| CVE-2026-130963 | 562000561 | UAF en WebView | — (Android; no aplica) | — |
+| CVE | Bug | Qué | Arreglo | ¿Afecta a FlyWeb? | Qué se hace |
+|---|---|---|---|---|---|
+| CVE-2026-131031 | 571153713 | OOB write en GPU (transfer cache) | 0960c42b6c | **Sí**: el código está y el arreglo entra limpio | **chromium 0023** |
+| CVE-2026-131060 | 573128234 | Desbordamiento en Media (`mov_read_trun`) | FFmpeg 42a2a7a2b2 (`chromium/third_party/ffmpeg`, 13-10) | **Sí**: nuestro `mov_read_trun` tiene el mismo `memmove` | **ffmpeg 0001** |
+| CVE-2026-131008 | 574686297 | UAF en el GC (`CalculationValue`, `~Length()`) | 218a524b0e (reaplicado) | **No: ya está.** El árbol tiene `DeferredDecrementCount` y el bucle `while` del «Reapply» (es el 460ab884005 que la 3.0.2 dejó como X) | — |
+| CVE-2026-131054 | 576812570 | OOB write en ANGLE (traductor) | ANGLE fb5dacfe0f (`WrapStructConstructors`) | **No en Mac.** El código está en `f10470c77e`, pero esa pasada solo corre con `avoidComplexExpressionsInStructConstructor`, que ANGLE activa solo con `IsPowerVR(vendor)` (`renderergl_utils.cpp:2780`) | — |
+| CVE-2026-130975 | 577366760 | UAF en WebAudio | f4de8340fb | **No.** La 156 no tiene el renderizado por trozos de `OfflineAudioContext` (no hay `pending_render_targets_` ni `OnChunkRendered`; solo `complete_resolver_`) | — |
+| CVE-2026-130963 | 562000561 | UAF en WebView | — | No (Android) | — |
 
-Después, los Altos de la 158 que tampoco están en la .109.
+**chromium 0023** (0960c42b6c, «Make Skia's shared context current before pruning transfer cache»):
+- entra limpio sobre 0022 → árbol **`690e96b867`**;
+- van el código y las pruebas unitarias (`service_transfer_cache_unittest.cc`, `transfer_cache_unittest.cc`); queda fuera
+  la prueba de integración de GPU de `content/test`, que no aplica a la 156;
+- sin `patches/` ni `chromium_src/` en brave-core.
+
+**ffmpeg 0001** (42a2a7a2b2, «avformat/mov: clamp tts_count to index entry count in mov_read_trun»):
+- va sobre nuestro FFmpeg de la 3.1.2 (`a15fcf87d2` = `9db86ce5b5` + `3.0.1/ffmpeg` 0001–0003);
+- el primer hunk entra con fuzz 2, porque nuestra base no tiene la comprobación de tamaño cero de e9dc8fd4. El sitio es el
+  correcto: antes de la comprobación de `UINT_MAX`, con `sti` ya asignado;
+- LOCAL: `git am ffmpeg/0001-*.patch` sobre su FFmpeg y gitlink a ese commit, como en la 3.0.1;
+- prueba: `media_unittests --gtest_filter=FFmpegDemuxerTest.*` (la regresión `TrunBufferOverflow_Crbug573128234` es de
+  60bb54f340 y necesita `trun_overflow.mp4`, binario; no va en la serie).
+
+**Pendiente (para la 3.1.4 o el relevo):** los Altos de la 158 que no están en la .109.

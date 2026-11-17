@@ -805,11 +805,11 @@ Pendiente para la siguiente:
 - CVE-2026-125350: ya estaba desde la 3.0.1 (0034).
 
 **Pendiente:**
-- **3.1.3, parte 2:** los 6 críticos de la 158 que Google no portó a la 156.
+- **3.1.3, parte 2: hecha** (chromium 0023 GPU, ffmpeg 0001 mov_read_trun; GC ya estaba; ANGLE solo PowerVR; WebAudio no existe en la 156). Quedan los Altos de la 158 que no están en la .109.
   - La tabla, con los commits de `main`, está en `3.1.3/CONTENIDO.md`. Ver si el código está en la 156 y portar.
   - ANGLE y FFmpeg van en sus forks.
   - Después, los Altos de la 158 que no están en la .109.
-- Forks de ANGLE, FFmpeg y Dawn visibles para `gclient`: sin ellos, LOCAL fija los gitlinks a mano. Si hay que crearlos, decide Titín.
+- ANGLE, FFmpeg y Dawn: sin forks; van como `.patch` en la carpeta de la versión y LOCAL anota los hashes de su checkout (COORDINACIÓN-45, 17-11).
 - Resultado del mjsunit de D8-LINUX: sin él, 0021 no entra.
 
 **Herramientas:**
