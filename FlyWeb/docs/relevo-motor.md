@@ -1,30 +1,41 @@
-# MOTOR-46 (13-11-2026, ~20:30 UTC): estado
+# MOTOR-46 (17-11-2026, ~16:00 UTC): estado
 
-MOTOR-46 (`session_01MwmK2juPkbC58kEi4QFeyU`, Opus 5.5, alto, modo auto; abierta por COORDINACIÓN-41). brave-core
-**solo lectura** (público: lectura anónima por el proxy); entregas por `git format-patch` en softmac.
+MOTOR-46 (`session_01MwmK2juPkbC58kEi4QFeyU`, Opus 5.5, alto, modo auto; abierta por COORDINACIÓN-41; hoy responde a
+COORDINACIÓN-44 `session_01MwmK2gz1EsL95kgTpxdSwU`). brave-core **solo lectura** (público: lectura anónima por el
+proxy); entregas por `git format-patch` en softmac. La rama local de trabajo era `nube/sync-cuenta-h3` (no se sube).
 
-**Hecho:** H3, el cliente de la sync con cuenta: `FlyWeb/parches/3.2-sync-cuenta/` 0001–0004 sobre `local/3.1.1`
-3e2c12fad5 (árbol f913d2d9c4), sin compilar. Base del servidor: #977 en cbe0221b49 (con S1–S3). El README trae qué
-hace cada parche, los puntos para SEGURIDAD-PORTES y las pruebas P1–P26 del cliente, P23 incluida.
+**Hecho (todo fusionado en main, sin compilar salvo lo que compiló LOCAL-19):**
+- Sync 3.2, `FlyWeb/parches/3.2-sync-cuenta/` 0001–0011 sobre `local/3.1.1` 3e2c12fad5 → árbol **b95c0a1ee8**.
+  - 0005/0006: revisión de SEGURIDAD-PORTES-23 (K1–K3, O-a…O-c).
+  - 0007: arreglos de la primera compilación (APTO de SEGURIDAD-PORTES-23).
+  - 0008: registro del tiempo de la derivación (P23).
+  - 0009–0011 (#1032), de la prueba de LOCAL-19 contra ns2: `desde` sin `.0`; modelo con `hw.model` en 10.14/10.15;
+    la primera lectura de la cuenta persiste hasta el primer éxito y solo cubre la entrada + 10 min. **0011 espera a
+    SEGURIDAD-PORTES** (toca avisos).
+  - P23: 307–348 ms en la 7,1 y 364 ms en la 6,1; la 5,1 está pendiente. Si pasa de ~2 s, se avisa a COORDINACIÓN:
+    bajar `kScryptN` lo decide SEGURIDAD-PORTES.
+- Cierre de las fijadas compartidas de la 3.1.2: `FlyWeb/parches/3.2-fijadas-miniatura/` 0001 sobre `local/3.1.2`
+  ba428ad (#1029). Va en la **3.1.3** (Titín), con el APTO de SEGURIDAD-PORTES-23 y la reproducción de LOCAL.
+  - Causa: en la 156 no hay `BraveTabFeatures`, así que no hay `ThumbnailTabHelper` y la vista de relleno lee nulo.
 
-**Abierto:**
-- C1 («Sustituir» y «Quitar marcadores duplicados») lo decide Titín. Si entra, va en un parche 0005: un paso antes
-  de `AccountService::JoinChain` y un estado más en la página.
-- Revisión de SEGURIDAD-PORTES del código. Lo que tiene que mirar está en el README: el camino de la contraseña,
-  KL y KU en memoria entre los dos pasos y el indicador de fuerza.
-- Errores de compilación cuando LOCAL compile (tras medir la 3.1): se arreglan en los parches y se regeneran
-  SHA256SUMS.
+**Abierto:** el diseño de Titín del 17-11 para la 3.2.0, que llegará por COORDINACIÓN. Resultados de LOCAL de las
+fijadas y de la sync en la 5,1.
 
 **Trampas nuevas:**
-- La huella de grit (id del xtb) = md5 del texto inglés, con cada `<ph>` cambiado por su nombre; de los 16 primeros
-  hex, el `& 0x7fffffffffffffff` con signo. Comprobada con «Passwords» = 7029809446516969842. Scripts en
-  `ui/gritid.py` del scratchpad de MOTOR-46 (no sobrevive; la fórmula es la de arriba).
-- Compilar BoringSSL de fuera lo deniega el clasificador («Code from External»). Los vectores se sacan con Python
-  `cryptography`, y la lista BIP39 se baja como dato.
-- La prueba de cadena firma la **ruta completa** (`/cuenta/v1/…`) y el cuerpo exacto: el JSON se serializa una sola
-  vez y se envía tal cual.
-- Las 24 palabras sueltas las rechaza `TimeLimitedWords::Parse` (kVersionDeprecated): para la clave de recuperación,
-  `IsPassphraseValid` directo.
+- La sesión de Chromium **no guarda las pestañas que solo tienen la entrada inicial**
+  (`session_service_base.cc`, `IsInitialEntry`). Los rellenos de las fijadas compartidas no se guardan: cada fijada
+  vive en el fichero solo en la ventana donde era real.
+  - No proponer «restaurar con el servicio apagado» como forma de recuperar fijadas: con Titín volvieron 2 de 7. Para
+    recuperar, sacar las URL de `Preferences` (`pinned_tabs`) o de `Sessions/*` con `strings`, y fijarlas a mano en una
+    sola ventana.
+- `base::JSONWriter` escribe `0.0` para un `double` entero: con el servidor de Go, `WriteWithOptions` con
+  `OPTIONS_OMIT_DOUBLE_TYPE_PRESERVATION`.
+- `SysInfo::HardwareModelName()` sale vacío antes de macOS 11 (`hw.product`); usar `hw.model`.
+- El estado que debe sobrevivir a un reinicio (como la primera lectura de la cuenta) va en una pref, no en un miembro.
+- La huella de grit = md5 del texto inglés con cada `<ph>` cambiado por su nombre; de los 16 primeros hex, el
+  `& 0x7fffffffffffffff` con signo («Passwords» = 7029809446516969842).
+- BoringSSL de la 156 = 2ea3200c3a. Se lee por raw.githubusercontent.com/google/boringssl; googlesource da 403.
+- La prueba de cadena firma la ruta completa y el cuerpo exacto: el JSON se serializa una vez y se envía tal cual.
 
 ---
 
