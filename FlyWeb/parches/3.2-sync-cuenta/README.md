@@ -208,6 +208,10 @@ la 6,1; falta la 5,1.
     no avisa en este Mac. Los otros Mac de la cuenta sí lo ven. Si el reloj del Mac va más de 10 minutos atrasado, los
     eventos de la propia entrada salen como aviso: es una falsa alarma, no un aviso perdido.
   - Lo mismo vale al cambiar la clave de la cadena (`ChainChangeImpl`), que también empezaba una primera lectura nueva.
+  - **APTO de SEGURIDAD-PORTES-23 (17-11).** Mejoras posibles que propuso como opcionales y que no entran ahora:
+    - tomar `baseline_until` de la hora del servidor (la del primer evento o la de la respuesta de entrar), no del reloj
+      del Mac;
+    - acotar en `LoadPrefs` un `baseline_until` leído, para que no quede en el futuro lejano si el reloj iba mal.
 
 ## Pruebas para LOCAL (al compilar)
 
