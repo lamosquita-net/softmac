@@ -2,7 +2,7 @@
 
 SEGURIDAD-PORTES-23, 13-11-2026; **cerrado el 14-11**. Es la directiva «3.1.2 antes de la 3.2.0» (Titín, 13-11 noche;
 COORDINACIÓN-41). **Titín decidió el 14-11 sacarla ya, sin la 158** (COORDINACIÓN-42): el delta de la 158 va en una
-**3.1.3 solo de seguridad** (pasos en «Para la 3.1.3», abajo).
+**3.1.3 solo de seguridad**, con una excepción: el arreglo de las fijadas compartidas (#1029; Titín, 17-11). Los pasos están en «Para la 3.1.3», abajo.
 
 Lleva:
 - seguridad: el delta **156.0.8078.104 → .105** de la rama 8078 (salió el 13-11 por la noche; entra con el acuerdo de
@@ -114,6 +114,18 @@ ni `chromium_src/…` en brave-core. Ninguno toca red, TLS ni cabeceras: basta l
      - `third_party/ffmpeg` → `a15fcf87d2`.
    - Así `gclient sync` reproduce lo publicado. Antes, comprobar con `ls-remote` que esos commits están en un remoto que `gclient` pueda bajar; si no, se suben a los forks.
 5. **Huella:** si algún parche toca red (TLS, HTTP/2, cabeceras, Client Hints), se repite la prueba de huella.
+6. **brave-core, aparte del delta de la 158.** Va sobre `local/3.1.2` (`ba428ad058`, mismo árbol que la 3.1.2), con
+   un commit por parche:
+   - `flyweb_version` 3.1.2 → 3.1.3. Si hay una 156.0.8078.* nueva, además, la etiqueta de `package.json` (como la 0003 de la 3.1.2).
+   - **Arreglo de las fijadas compartidas:** `FlyWeb/parches/3.2-fijadas-miniatura/0001` (#1029, MOTOR-46, 3b073f6d0b;
+     suma `0bdb7a3c…`).
+     - Es un cierre al mover una fijada compartida entre ventanas: en la 156 no hay `ThumbnailTabHelper`.
+     - **Excepción a «solo de seguridad»:** Titín lo decidió el 17-11, por COORDINACIÓN-44, y queda anotado en DIRECTIVAS.
+     - Revisión: **APTO** (comentario 6946076002 en #1029). Entra limpio sobre `ba428ad058`. No es explotable: el nulo
+       con desplazamiento 0x68 cae dentro de `__PAGEZERO`.
+     - Condición: LOCAL lo reproduce en la compilación de la 3.1.3, con los pasos 4 y 5 del README de esa carpeta y
+       `SharedPinnedTabServiceBrowserTest.*` en verde. `BraveTabHoverTest.ThumbnailHelperIsAlwaysAttached` falla, como
+       era de esperar: se anota como conocido, sin desactivarlo.
 
 ## Respaldo GL de ANGLE en los Mac de 2012–2015: revisión de la regla 17 (candidato)
 
