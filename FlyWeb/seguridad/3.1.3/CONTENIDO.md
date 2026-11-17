@@ -18,7 +18,7 @@ con una excepción: el arreglo de las fijadas compartidas (#1029; Titín, 17-11)
 | Repositorio | Base (3.1.2) | Resultado de la serie |
 |---|---|---|
 | chromium | commit `9439a7904c`, árbol `8abc877c10` (cierre de la 3.1.2) | 0001–0022 → árbol **`cd628ae8a2`** |
-| brave-core | `local/3.1.2` **`ba428ad058`** (`ls-remote` del 17-11) | 0001–0003 → árbol **`adbf62d528`** |
+| brave-core | `local/3.1.2` **`ba428ad058`** (`ls-remote` del 17-11) | 0001–0004 → árbol **`3f4141cf05`** (0001–0003 → `adbf62d528`) |
 
 `ls-remote` del 17-11 (21:20 UTC): rama 8078 hasta **156.0.8078.109**; V8 15.6.75 hasta **.66**
 (`917584bd9326d5e6ae81008cddec50cdd7f1631e`); 157 hasta .81; 158 hasta 158.0.8127.65.
@@ -77,7 +77,7 @@ de d8/mjsunit a D8-LINUX** (`buzon/D8-LINUX`), con los `patches/v8` de brave-cor
 - `chrome/VERSION` intermedios (.106–.108), pruebas (🌺 ×5), perfiles AFDO de ChromeOS (×3), XTB (traducciones, 82
   ficheros, sin seguridad), `testing/buildbot`, `internal` e `ios_internal`.
 
-**Cruce con brave-core** (`local/3.1.2` más 0001–0003):
+**Cruce con brave-core** (`local/3.1.2` más 0001–0004):
 - `patches/third_party-blink-renderer-platform-runtime_enabled_features.json5.patch`: 0002 y 0011 añaden una entrada
   cada uno; el parche de Brave sigue aplicando (`git apply --check`, con desplazamientos de 16 líneas).
 - `chromium_src/.../events/pointer_event.h` redefine `screen_x_` y `screen_y_` (farbling). 0011 solo añade accesores y
@@ -86,13 +86,14 @@ de d8/mjsunit a D8-LINUX** (`buzon/D8-LINUX`), con los `patches/v8` de brave-cor
 - **Huella:** 0004 (mDNS) y 0018 (navegación) no tocan TLS, HTTP/2, cabeceras ni Client Hints: basta la prueba de
   huella de la 3.1.1.
 
-## brave-core 0001–0003
+## brave-core 0001–0004
 
 | Parche | Qué |
 |---|---|
 | 0001 | `flyweb_version` 3.1.2 → **3.1.3** |
 | 0002 | `package.json`: etiqueta del proyecto chrome 156.0.8078.105 → **.109** |
 | 0003 | **Fijadas compartidas** (#1029, MOTOR-46): `FlyWeb/parches/3.2-fijadas-miniatura/0001` tal cual (suma `0bdb7a3c…`, mismo patch-id `e11cb4794b`). APTO en #1029. Excepción a «solo de seguridad» (Titín, 17-11) |
+| 0004 | Prueba de Mac de las fijadas: confirma el aviso de cerrar una fijada de la 156 (`FlyWeb/parches/3.2-fijadas-test`, #1033, tal cual). Solo prueba; hace falta para el `SharedPinnedTabServiceBrowserTest.*` en verde |
 
 `flyweb_engine_full_version` se queda en 156.0.8078.82: la última estable de la 156 para Mac en versionhistory.
 
@@ -104,8 +105,8 @@ de d8/mjsunit a D8-LINUX** (`buzon/D8-LINUX`), con los `patches/v8` de brave-cor
    `lamosquita-net/angle`, `/ffmpeg` y `/dawn` pide credenciales), y un hash solo va tras `ls-remote`. Para que
    `gclient sync` reproduzca lo publicado, tienen que estar en un remoto que pueda bajar; si hay que crear esos forks,
    decide Titín.
-2. `git am` de chromium 0001–0022 sobre `9439a7904c` → árbol `cd628ae8a2`; `git am` de brave-core 0001–0003 sobre
-   `ba428ad058` → árbol `adbf62d528`. Sumas en `SHA256SUMS` y `brave-core/SHA256SUMS`.
+2. `git am` de chromium 0001–0022 sobre `9439a7904c` → árbol `cd628ae8a2`; `git am` de brave-core 0001–0004 sobre
+   `ba428ad058` → árbol `3f4141cf05`. Sumas en `SHA256SUMS` y `brave-core/SHA256SUMS`.
 3. **0021 (V8) solo con el mjsunit de D8-LINUX en verde.** Si no llega o falla, se compila sin 0021 y se avisa.
 4. Fijadas: reproducir en la 3.1.2 y comprobar con la 3.1.3 (pasos 4 y 5 del README de `3.2-fijadas-miniatura`);
    `SharedPinnedTabServiceBrowserTest.*` en verde; `BraveTabHoverTest.ThumbnailHelperIsAlwaysAttached` falla, como era de

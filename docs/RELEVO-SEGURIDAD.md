@@ -800,7 +800,7 @@ Pendiente para la siguiente:
   - #1032 (0009–0011): APTO, con dos opcionales para el 0011: anclar `baseline_until` a la hora del servidor y acotarlo en `LoadPrefs`.
 - **3.1.2 cerrada** (14-11): `FlyWeb/seguridad/3.1.2/CONTENIDO.md` (chromium 8abc877c10, brave-core da680a3270, build 45).
 - **3.1.3, parte 1** (17-11): delta 156.0.8078.105 → .109, V8 → 15.6.75.66 y fijadas.
-  - Detalle en `FlyWeb/seguridad/3.1.3/CONTENIDO.md`: chromium 0001–0022 → árbol cd628ae8a2; brave-core 0001–0003 → árbol adbf62d528.
+  - Detalle en `FlyWeb/seguridad/3.1.3/CONTENIDO.md`: chromium 0001–0022 → árbol cd628ae8a2; brave-core 0001–0004 → árbol 3f4141cf05.
   - Encargos en la rama `buzon`: LOCAL (compilar) y D8-LINUX (mjsunit de la V8 .66).
 - CVE-2026-125350: ya estaba desde la 3.0.1 (0034).
 
