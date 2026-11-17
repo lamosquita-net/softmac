@@ -118,13 +118,13 @@ de d8/mjsunit a D8-LINUX** (`buzon/D8-LINUX`), con los `patches/v8` de brave-cor
 La nota de la 158 trae 6 críticos que **no** están en la Extended Stable .109. Hay que ver si el código vulnerable está en
 la 156. Commits en `main` (búsqueda en el espejo `chromium/chromium`):
 
-| CVE | Bug | Qué | Commit en main |
-|---|---|---|---|
-| CVE-2026-131031 | 571153713 | OOB write en GPU | 0960c42b6c (13-10) |
-| CVE-2026-131060 | 573128234 | Desbordamiento en Media (`mov_read_trun`, FFmpeg) | 60bb54f340 (solo la prueba; el arreglo está en FFmpeg) |
-| CVE-2026-131008 | 574686297 | UAF en el GC (`CalculationValue`) | 218a524b0e (26-10, reaplicado) |
-| CVE-2026-131054 | 576812570 | OOB write en ANGLE | b37ab74fc3 (roll de ANGLE 192af4dd12 → 48e22c0ca5) |
-| CVE-2026-130975 | 577366760 | UAF en WebAudio | f4de8340fb (27-10) |
-| CVE-2026-130963 | 562000561 | UAF en WebView | — (Android; no aplica) |
+| CVE | Bug | Qué | Commit en main | Sobre el árbol de la 3.1.3 (`git apply --check`, 17-11) |
+|---|---|---|---|---|
+| CVE-2026-131031 | 571153713 | OOB write en GPU | 0960c42b6c (13-10) | **El código de producción entra limpio** (`raster_decoder.cc`, `service_transfer_cache.{h,cc}`, `shared_context_state.cc`); solo fallan pruebas y `filelist`. Candidato a 0023 sin las pruebas |
+| CVE-2026-131060 | 573128234 | Desbordamiento en Media (`mov_read_trun`, FFmpeg) | 60bb54f340 (solo la prueba; el arreglo está en FFmpeg) | Buscar el arreglo de `mov_read_trun` en `chromium/third_party/ffmpeg` y ver si está en nuestro fork `a15fcf87d2` (LOCAL) |
+| CVE-2026-131008 | 574686297 | UAF en el GC (`CalculationValue`) | 218a524b0e (26-10, reaplicado) | No entra (`length.{h,cc}`): ver si la 156 tiene el contador de `CalculationValue` en `~Length()`. Cruzar con 460ab884005 (§11 de `RELEVO-SEGURIDAD.md`) |
+| CVE-2026-131054 | 576812570 | OOB write en ANGLE | b37ab74fc3 (roll de ANGLE 192af4dd12 → 48e22c0ca5) | Buscar el commit de ANGLE del bug y ver si toca Metal o GL (nuestro fork `bc2ebdd211`) |
+| CVE-2026-130975 | 577366760 | UAF en WebAudio | f4de8340fb (27-10) | Entra `offline_audio_destination_handler.cc`; no entra `offline_audio_context.cc`: hay que portarlo a mano o ver que la 156 no tiene el renderizado por trozos |
+| CVE-2026-130963 | 562000561 | UAF en WebView | — (Android; no aplica) | — |
 
 Después, los Altos de la 158 que tampoco están en la .109.
