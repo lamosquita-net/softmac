@@ -1,0 +1,344 @@
+From 14026dd050947d895a94e8a9dfc631e357e1aaed Mon Sep 17 00:00:00 2001
+From: Philip Rogers <pdr@chromium.org>
+Date: Sat, 14 Nov 2026 04:01:57 +0000
+Subject: [PATCH 02/22] [M156] Defer IsolatedSVGDocumentHost::Shutdown() in
+ ~SVGImage()
+
+Original change's description:
+> Defer IsolatedSVGDocumentHost::Shutdown() in ~SVGImage()
+>
+> This patch avoids synchronously running
+> IsolatedSVGDocumentHost::Shutdown() from ~SVGImage() (such as during
+> Oilpan sweeping of ~ImageResourceContent() or inside ClearImage()).
+> Synchronous teardown detaches the inner SVG page's frame and cancels
+> active loads on its ResourceFetcher, which can re-enter
+> ImageResourceContent::UpdateImage() or allocate on the Oilpan heap
+> mid-sweep while an inner image's SetData() is still on the stack.
+>
+> SVGImage::~SVGImage() now immediately detaches SVGImageChromeClient,
+> clearing its raw SVGImage back-pointer and stopping its animation
+> timer, and posts IsolatedSVGDocumentHost::Shutdown() to the thread's
+> cleanup task runner with a synchronous fallback if posting fails.
+> Additional defense-in-depth measures are to hold a local reference to
+> the image across SetData in ImageResourceContent::UpdateImage(), and to
+> upgrade the re-entrancy DCHECK to a CHECK.
+>
+> TaskEnvironment::~TaskEnvironment() is also updated to drain tasks,
+> evict MemoryCache resources, and collect garbage in a loop until the
+> main thread stays idle before invalidating FontCache and tearing down
+> the isolate, ensuring deferred Shutdown() tasks (including nested SVG
+> images) complete cleanly in unit tests.
+>
+> Fixed: 580343312
+> Change-Id: Ide779f1ecb6f15e0c31a0b9b486d16bae325f8dd
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8797585
+> Commit-Queue: Scott Haseley <shaseley@chromium.org>
+> Reviewed-by: Scott Haseley <shaseley@chromium.org>
+> Auto-Submit: Philip Rogers <pdr@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1742432}
+
+(cherry picked from commit 8c690b5c3f35b994ab496b4883ffd61a07a377fe)
+
+Bug: 585406052,580343312
+Change-Id: Ide779f1ecb6f15e0c31a0b9b486d16bae325f8dd
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8819505
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: Philip Rogers <pdr@chromium.org>
+Reviewed-by: Philip Rogers <pdr@chromium.org>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2218}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../loader/resource/image_resource_content.cc |  9 ++---
+ .../loader/resource/image_resource_content.h  |  3 --
+ .../renderer/core/svg/graphics/svg_image.cc   | 21 +++++++++---
+ .../svg/graphics/svg_image_chrome_client.cc   | 25 ++++++++++++--
+ .../svg/graphics/svg_image_chrome_client.h    |  3 +-
+ .../core/svg/graphics/svg_image_test.cc       | 24 ++++++++++++++
+ .../platform/runtime_enabled_features.json5   |  4 +++
+ .../platform/testing/task_environment.cc      | 33 +++++++++++--------
+ 8 files changed, 94 insertions(+), 28 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/loader/resource/image_resource_content.cc b/third_party/blink/renderer/core/loader/resource/image_resource_content.cc
+index ef774496dd..3ceb97c231 100644
+--- a/third_party/blink/renderer/core/loader/resource/image_resource_content.cc
++++ b/third_party/blink/renderer/core/loader/resource/image_resource_content.cc
+@@ -491,10 +491,8 @@ ImageResourceContent::UpdateImageResult ImageResourceContent::UpdateImage(
+     bool is_multipart) {
+   TRACE_EVENT0("blink", "ImageResourceContent::updateImage");
+ 
+-#if DCHECK_IS_ON()
+-  DCHECK(!is_update_image_being_called_);
++  CHECK(!is_update_image_being_called_);
+   base::AutoReset<bool> scope(&is_update_image_being_called_, true);
+-#endif
+ 
+   // Clears the existing image, if instructed by |updateImageOption|.
+   switch (update_image_option) {
+@@ -521,7 +519,10 @@ ImageResourceContent::UpdateImageResult ImageResourceContent::UpdateImage(
+         if (!image_)
+           image_ = CreateImage(is_multipart);
+         DCHECK(image_);
+-        size_available_ = image_->SetData(std::move(data), all_data_received);
++        // Hold a local reference across `SetData()` as defense-in-depth in
++        // case `image_` is cleared before `SetData()` returns.
++        scoped_refptr<Image> image = image_;
++        size_available_ = image->SetData(std::move(data), all_data_received);
+         DCHECK(all_data_received ||
+                size_available_ !=
+                    Image::kSizeAvailableAndLoadingAsynchronously);
+diff --git a/third_party/blink/renderer/core/loader/resource/image_resource_content.h b/third_party/blink/renderer/core/loader/resource/image_resource_content.h
+index 714db22a9c..fce3ec75a5 100644
+--- a/third_party/blink/renderer/core/loader/resource/image_resource_content.h
++++ b/third_party/blink/renderer/core/loader/resource/image_resource_content.h
+@@ -8,7 +8,6 @@
+ #include <cstddef>
+ 
+ #include "base/auto_reset.h"
+-#include "base/dcheck_is_on.h"
+ #include "base/memory/scoped_refptr.h"
+ #include "third_party/blink/renderer/core/core_export.h"
+ #include "third_party/blink/renderer/core/loader/resource/image_resource_observer.h"
+@@ -300,9 +299,7 @@ class CORE_EXPORT ImageResourceContent final
+ 
+   bool is_broken_ = false;
+ 
+-#if DCHECK_IS_ON()
+   bool is_update_image_being_called_ = false;
+-#endif
+ };
+ 
+ template <>
+diff --git a/third_party/blink/renderer/core/svg/graphics/svg_image.cc b/third_party/blink/renderer/core/svg/graphics/svg_image.cc
+index cae6788446..10ee6f4dca 100644
+--- a/third_party/blink/renderer/core/svg/graphics/svg_image.cc
++++ b/third_party/blink/renderer/core/svg/graphics/svg_image.cc
+@@ -61,8 +61,10 @@
+ #include "third_party/blink/renderer/platform/graphics/paint/paint_record_builder.h"
+ #include "third_party/blink/renderer/platform/graphics/paint/paint_shader.h"
+ #include "third_party/blink/renderer/platform/instrumentation/tracing/trace_event.h"
++#include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+ #include "third_party/blink/renderer/platform/scheduler/public/main_thread.h"
+ #include "third_party/blink/renderer/platform/scheduler/public/main_thread_scheduler.h"
++#include "third_party/blink/renderer/platform/scheduler/public/thread_scheduler.h"
+ #include "third_party/blink/renderer/platform/wtf/functional.h"
+ #include "ui/gfx/geometry/rect.h"
+ #include "ui/gfx/geometry/rect_conversions.h"
+@@ -104,14 +106,25 @@ SVGImage::SVGImage(ImageObserver* observer, bool is_multipart)
+       has_pending_timeline_rewind_(false) {}
+ 
+ SVGImage::~SVGImage() {
++  if (chrome_client_) {
++    chrome_client_->DetachImage();
++  }
+   if (document_host_) {
+-    // Store `document_host_` in a local variable and clear it so that
+-    // SVGImageChromeClient knows we're destructed.
++    // Clear `document_host_` before shutdown so re-entrant queries observe
++    // that teardown has started.
+     auto* document_host = document_host_.Release();
+-    document_host->Shutdown();
++    // Avoid synchronous page/frame teardown in ~SVGImage(), as cancelling
++    // inner loads or detaching frames can re-enter image/resource code or
++    // allocate on the Oilpan heap mid-sweep.
++    if (!RuntimeEnabledFeatures::SvgImageDeferShutdownEnabled() ||
++        !ThreadScheduler::Current()->CleanupTaskRunner()->PostTask(
++            FROM_HERE, BindOnce(&IsolatedSVGDocumentHost::Shutdown,
++                                WrapPersistent(document_host)))) {
++      document_host->Shutdown();
++    }
+   }
+ 
+-  // Verify that page teardown destroyed the Chrome
++  // Verify that `chrome_client_` does not retain a dangling pointer to `this`.
+   DCHECK(!chrome_client_ || !chrome_client_->GetImage());
+ }
+ 
+diff --git a/third_party/blink/renderer/core/svg/graphics/svg_image_chrome_client.cc b/third_party/blink/renderer/core/svg/graphics/svg_image_chrome_client.cc
+index ecb747cc10..02d82f1618 100644
+--- a/third_party/blink/renderer/core/svg/graphics/svg_image_chrome_client.cc
++++ b/third_party/blink/renderer/core/svg/graphics/svg_image_chrome_client.cc
+@@ -55,8 +55,15 @@ void SVGImageChromeClient::InitAnimationTimer(
+       &SVGImageChromeClient::AnimationTimerFired);
+ }
+ 
+-void SVGImageChromeClient::ChromeDestroyed() {
++void SVGImageChromeClient::DetachImage() {
+   image_ = nullptr;
++  if (animation_timer_) {
++    animation_timer_->Value().Stop();
++  }
++}
++
++void SVGImageChromeClient::ChromeDestroyed() {
++  DetachImage();
+ }
+ 
+ void SVGImageChromeClient::InvalidateContainer() {
+@@ -68,6 +75,9 @@ void SVGImageChromeClient::InvalidateContainer() {
+ }
+ 
+ void SVGImageChromeClient::SuspendAnimation() {
++  if (!image_) {
++    return;
++  }
+   if (image_->MaybeAnimated()) {
+     timeline_state_ = kSuspendedWithAnimationPending;
+   } else {
+@@ -77,6 +87,9 @@ void SVGImageChromeClient::SuspendAnimation() {
+ }
+ 
+ void SVGImageChromeClient::ResumeAnimation() {
++  if (!image_) {
++    return;
++  }
+   bool have_pending_animation =
+       timeline_state_ == kSuspendedWithAnimationPending;
+   timeline_state_ = kRunning;
+@@ -90,19 +103,25 @@ void SVGImageChromeClient::ResumeAnimation() {
+ 
+ void SVGImageChromeClient::RestoreAnimationIfNeeded() {
+   // If the timeline is not suspended we needn't attempt to restore.
+-  if (!IsSuspended())
++  if (!image_ || !IsSuspended()) {
+     return;
++  }
+   image_->RestoreAnimation();
+ }
+ 
+ void SVGImageChromeClient::SetDidEncounterXSL() {
+-  image_->SetDidEncounterXSL();
++  if (image_) {
++    image_->SetDidEncounterXSL();
++  }
+ }
+ 
+ void SVGImageChromeClient::ScheduleAnimation(const LocalFrameView*,
+                                              cc::BeginMainFrameReason,
+                                              base::TimeDelta fire_time,
+                                              bool urgent) {
++  if (!image_) {
++    return;
++  }
+   DCHECK(animation_timer_);
+   // Because a single SVGImage can be shared by multiple pages, we can't key
+   // our svg image layout on the page's real animation frame. Therefore, we
+diff --git a/third_party/blink/renderer/core/svg/graphics/svg_image_chrome_client.h b/third_party/blink/renderer/core/svg/graphics/svg_image_chrome_client.h
+index 0c9ccecb47..bd4dead1da 100644
+--- a/third_party/blink/renderer/core/svg/graphics/svg_image_chrome_client.h
++++ b/third_party/blink/renderer/core/svg/graphics/svg_image_chrome_client.h
+@@ -63,6 +63,7 @@ class CORE_EXPORT SVGImageChromeClient final : public IsolatedSVGChromeClient {
+       scoped_refptr<base::SingleThreadTaskRunner> compositor_task_runner);
+ 
+   SVGImage* GetImage() const { return image_; }
++  void DetachImage();
+ 
+   void SuspendAnimation();
+   void ResumeAnimation();
+@@ -87,7 +88,7 @@ class CORE_EXPORT SVGImageChromeClient final : public IsolatedSVGChromeClient {
+   TimerBase& GetTimerForTesting() const { return animation_timer_->Value(); }
+   void AnimationTimerFired(TimerBase*);
+ 
+-  raw_ptr<SVGImage, UnprotectedInRelease | DanglingUntriaged> image_;
++  raw_ptr<SVGImage, UnprotectedInRelease> image_;
+   Member<DisallowNewWrapper<HeapTaskRunnerTimer<SVGImageChromeClient>>>
+       animation_timer_;
+   enum {
+diff --git a/third_party/blink/renderer/core/svg/graphics/svg_image_test.cc b/third_party/blink/renderer/core/svg/graphics/svg_image_test.cc
+index 3def78443d..8d2ffed91a 100644
+--- a/third_party/blink/renderer/core/svg/graphics/svg_image_test.cc
++++ b/third_party/blink/renderer/core/svg/graphics/svg_image_test.cc
+@@ -1302,4 +1302,28 @@ TEST_F(SVGImageSimTest, ElementSizeAndDefaultDestinationSizeWithViewSpec) {
+                                           kRespectImageOrientation));
+ }
+ 
++TEST_F(SVGImageTest, DeferredShutdownDetachesChromeClientImmediately) {
++  const bool kShouldPause = true;
++  Load(base::span_from_cstring(kAnimatedDocument), kShouldPause);
++  Persistent<SVGImageChromeClient> chrome_client =
++      &GetImage().ChromeClientForTesting();
++
++  PumpFrame();
++  EXPECT_EQ(&GetImage(), chrome_client->GetImage());
++
++  // Destroying SVGImage should synchronously detach SVGImageChromeClient
++  // before the deferred IsolatedSVGDocumentHost::Shutdown() task runs.
++  ResetImage();
++  EXPECT_EQ(nullptr, chrome_client->GetImage());
++
++  // Invoking SVGImageChromeClient entry points while Shutdown() is still
++  // pending on CleanupTaskRunner must safely no-op.
++  chrome_client->SuspendAnimation();
++  chrome_client->ResumeAnimation();
++  chrome_client->RestoreAnimationIfNeeded();
++  chrome_client->SetDidEncounterXSL();
++
++  test::RunPendingTasks();
++}
++
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+index d05d6737ac..17294b0fa8 100644
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -6249,6 +6249,10 @@
+       name: "SvgImageAnimationReset",
+       status: "stable",
+     },
++    {
++      name: "SvgImageDeferShutdown",
++      status: "stable",
++    },
+     {
+       name: "SvgImageNonUniformScalingFix",
+       status: "stable",
+diff --git a/third_party/blink/renderer/platform/testing/task_environment.cc b/third_party/blink/renderer/platform/testing/task_environment.cc
+index fdb99db8cd..470f75c8ab 100644
+--- a/third_party/blink/renderer/platform/testing/task_environment.cc
++++ b/third_party/blink/renderer/platform/testing/task_environment.cc
+@@ -16,21 +16,28 @@
+ namespace blink::test {
+ 
+ TaskEnvironment::~TaskEnvironment() {
+-  // Since `SimpleFontData` is associated with `v8::isolate`, it must be
+-  // destroyed before `main_thread_isolate_.reset()`.
+-  FontCache::Get().Invalidate();
+-
+-  // Evict MemoryCache resources before GC. Strong references in the cache
+-  // (e.g., data URI resources) can keep objects like IsolatedSVGDocuments and
+-  // their PerformanceMonitors alive, preventing cleanup before the main thread
+-  // overrider is reset below.
++  // Evict MemoryCache resources (e.g., cached data URIs keeping
++  // `IsolatedSVGDocumentHost`s alive) and run a full GC before `RunUntilIdle()`
++  // so unreachable objects from the test run their prefinalizers/destructors
++  // (e.g., cancelling Mojo watchers) before pending tasks are drained.
++  // Sweeping an `SVGImage` posts a deferred
++  // `IsolatedSVGDocumentHost::Shutdown()` task (which may in turn release
++  // nested `SVGImage`s), so keep draining tasks, evicting cached resources, and
++  // collecting garbage in a loop until the main thread stays idle before
++  // resetting `main_thread_overrider_` and `main_thread_isolate_`.
+   MemoryCache::Get()->EvictResources();
+-
+-  // Run a full GC before resetting the main thread overrider. This ensures that
+-  // we can properly clean up objects like PerformanceMonitor that need to call
+-  // MainThreadImpl::RemoveTaskTimeObserver().
+   ThreadState::Current()->CollectAllGarbageForTesting();
+-  RunUntilIdle();
++  do {
++    RunUntilIdle();
++    MemoryCache::Get()->EvictResources();
++    ThreadState::Current()->CollectAllGarbageForTesting();
++  } while (!MainThreadIsIdle());
++
++  // Since `SimpleFontData` is associated with `v8::isolate`, invalidate
++  // `FontCache` after draining cleanup tasks (such as deferred
++  // `IsolatedSVGDocumentHost::Shutdown()`) so `main_thread_isolate_.reset()`'s
++  // GC destroys any `SimpleFontData` before the isolate is torn down.
++  FontCache::Get().Invalidate();
+ 
+   main_thread_overrider_.reset();
+   main_thread_isolate_.reset();
+-- 
+2.43.0
+

@@ -1,0 +1,385 @@
+From ba3fee6015610502d19794a37867f556f1c82e29 Mon Sep 17 00:00:00 2001
+From: Abhishek Madan <abhmadan@chromium.org>
+Date: Mon, 16 Nov 2026 19:29:33 +0000
+Subject: [PATCH 13/22] [M156] [FedCM] Return early if closing the pop-up
+ destroys the view or handler
+
+Original change's description:
+> [FedCM] Return early if closing the pop-up destroys the view or handler
+>
+> Previously, if closing the IdP pop-up window destroyed the view or the
+> RequestHandler, the caller kept using it. Now
+> FedCmAccountSelectionView::CloseModalDialog() closes the pop-up through
+> NotifyDelegate(), and RequestHandler's OnClose(), OnResolve() and
+> OnNativeAppLoginFinished() close it through ShowDialog(), which is now
+> [[nodiscard]]. They return early if the view or the RequestHandler was
+> destroyed, and OnResolve() returns false.
+>
+> OnNativeAppLoginFinished() is guarded only for consistency:
+> kLoginFinished comes only from Android, where CloseModalDialog() closes
+> the Custom Tab asynchronously.
+>
+> Add unit tests for the view, FedCmModalDialogView and the three
+> RequestHandler methods.
+>
+> Fixed: 574762567
+> Change-Id: I89c48b66fc258cbdee61f66044b51a1b37992974
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8667960
+> Commit-Queue: Abhishek Madan <abhmadan@chromium.org>
+> Reviewed-by: Yi Gu <yigu@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1735402}
+
+(cherry picked from commit 4f5d44b459bca0cd334d3f6304bdd98ee10234bf)
+
+Bug: 584579228,574762567
+Change-Id: I89c48b66fc258cbdee61f66044b51a1b37992974
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8807974
+Reviewed-by: Abhishek Madan <abhmadan@chromium.org>
+Commit-Queue: Abhishek Madan <abhmadan@chromium.org>
+Reviewed-by: Yi Gu <yigu@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2238}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../fedcm_account_selection_view_desktop.cc   |  7 +-
+ .../fedcm_account_selection_view_desktop.h    |  6 +-
+ ...account_selection_view_desktop_unittest.cc | 14 +++
+ .../ui/views/webid/fedcm_modal_dialog_view.cc |  3 +
+ .../webid/fedcm_modal_dialog_view_unittest.cc | 34 +++++++
+ .../webid/identity_registry_delegate.h        |  3 +
+ content/browser/webid/request.cc              | 21 +++-
+ content/browser/webid/request.h               | 12 ++-
+ content/browser/webid/request_unittest.cc     | 95 +++++++++++++++++++
+ 9 files changed, 184 insertions(+), 11 deletions(-)
+
+diff --git a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
+index b33158817b..1711b9ac99 100644
+--- a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
++++ b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
+@@ -982,7 +982,12 @@ void FedCmAccountSelectionView::CloseModalDialog() {
+     // This ensures that OnPopupWindowDestroyed is only called when the user
+     // closes the popup.
+     popup_window_->ResetObserver();
+-    popup_window_->ClosePopupWindow();
++
++    // Closing the pop-up can synchronously destroy `this`, e.g. if it activates
++    // another tab.
++    if (!NotifyDelegate([&]() { popup_window_->ClosePopupWindow(); })) {
++      return;
++    }
+     popup_window_.reset();
+ 
+     UpdateDialogVisibilityAndPosition();
+diff --git a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.h b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.h
+index c6fc40e9b7..6f940ae084 100644
+--- a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.h
++++ b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.h
+@@ -401,9 +401,9 @@ class FedCmAccountSelectionView : public AccountSelectionView,
+   // the background, becomes foregrounded.
+   void BackgroundTaskTabForegrounded(tabs::TabInterface* tab);
+ 
+-  // Calls a delegate method while guarding against `this` being deleted.
+-  // Returns false if `this` got deleted. In that case, the caller must early
+-  // return.
++  // Runs `notify_callback` while guarding against `this` being deleted, e.g. by
++  // a delegate method or by closing the pop-up window. Returns false if `this`
++  // got deleted. In that case, the caller must early return.
+   [[nodiscard]] bool NotifyDelegate(base::FunctionRef<void()> notify_callback);
+ 
+   // Shows the verifying sheet.
+diff --git a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc
+index 3ed722a66f..55135777f0 100644
+--- a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc
++++ b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc
+@@ -2276,6 +2276,20 @@ TEST_F(FedCmAccountSelectionViewDesktopTest,
+   controller->CloseModalDialog();
+ }
+ 
++// Tests that closing the pop-up window does not use the view if that destroys
++// it, e.g. if closing the pop-up activates another tab. Regression test for
++// crbug.com/574762567.
++TEST_F(FedCmAccountSelectionViewDesktopTest, ClosePopupWindowDestroysView) {
++  std::unique_ptr<TestFedCmAccountSelectionView> controller =
++      CreateAndShow(accounts_);
++  CreateAndShowPopupWindow(*controller);
++  EXPECT_CALL(*controller->GetPopupWindow(), ClosePopupWindow)
++      .WillOnce([&controller]() { controller.reset(); });
++
++  // This should not crash.
++  controller->CloseModalDialog();
++}
++
+ // Tests that opening a popup after a verifying sheet, then closing the popup,
+ // notifies the observer.
+ TEST_F(FedCmAccountSelectionViewDesktopTest,
+diff --git a/chrome/browser/ui/views/webid/fedcm_modal_dialog_view.cc b/chrome/browser/ui/views/webid/fedcm_modal_dialog_view.cc
+index 25e18ed095..8749df85f7 100644
+--- a/chrome/browser/ui/views/webid/fedcm_modal_dialog_view.cc
++++ b/chrome/browser/ui/views/webid/fedcm_modal_dialog_view.cc
+@@ -129,6 +129,9 @@ void FedCmModalDialogView::ClosePopupWindow() {
+   content::WebContents* popup = popup_window_;
+   popup_window_ = nullptr;
+   popup->Close();
++  // `this` may be deleted now: closing the pop-up can destroy the
++  // `FedCmAccountSelectionView` that owns this object. Do not access members
++  // after this point.
+ 
+   UMA_HISTOGRAM_ENUMERATION(
+       "Blink.FedCm.IdpSigninStatus.ClosePopupWindowReason",
+diff --git a/chrome/browser/ui/views/webid/fedcm_modal_dialog_view_unittest.cc b/chrome/browser/ui/views/webid/fedcm_modal_dialog_view_unittest.cc
+index 92073c2ab9..b3bded95cc 100644
+--- a/chrome/browser/ui/views/webid/fedcm_modal_dialog_view_unittest.cc
++++ b/chrome/browser/ui/views/webid/fedcm_modal_dialog_view_unittest.cc
+@@ -77,6 +77,12 @@ class TestDelegate : public content::WebContentsDelegate {
+     }
+   }
+ 
++  void CloseContents(content::WebContents* source) override {
++    if (on_close_contents_) {
++      std::move(on_close_contents_).Run();
++    }
++  }
++
+   blink::mojom::DisplayMode GetDisplayMode(
+       const content::WebContents* web_contents) override {
+     return is_fullscreen_ ? blink::mojom::DisplayMode::kFullscreen
+@@ -97,6 +103,10 @@ class TestDelegate : public content::WebContentsDelegate {
+     on_activate_contents_ = std::move(on_activate_contents);
+   }
+ 
++  void SetOnCloseContents(base::OnceClosure on_close_contents) {
++    on_close_contents_ = std::move(on_close_contents);
++  }
++
+   int opened() const { return opened_; }
+   gfx::Rect bounds() const { return bounds_; }
+   WindowOpenDisposition disposition() const { return disposition_; }
+@@ -107,6 +117,7 @@ class TestDelegate : public content::WebContentsDelegate {
+   bool is_fullscreen_{false};
+   base::OnceClosure on_open_url_from_tab_;
+   base::OnceClosure on_activate_contents_;
++  base::OnceClosure on_close_contents_;
+   gfx::Rect bounds_;
+   WindowOpenDisposition disposition_{WindowOpenDisposition::UNKNOWN};
+ };
+@@ -232,6 +243,29 @@ TEST_F(FedCmModalDialogViewTest, IdpInitiatedCloseMetric) {
+       1);
+ }
+ 
++// Tests that `ClosePopupWindow()` doesn't use `this` if closing the pop-up
++// deletes it, e.g. by destroying the `FedCmAccountSelectionView` that owns it.
++TEST_F(FedCmModalDialogViewTest, ClosePopupWindowDeletesView) {
++  TestDelegate delegate(web_contents());
++
++  auto popup_window_view = std::make_unique<FedCmModalDialogView>(
++      web_contents(), /*observer=*/nullptr);
++  ASSERT_TRUE(popup_window_view->ShowPopupWindow(
++      GURL(u"https://example.com"), /*user_close_cancels_flow=*/true));
++
++  delegate.SetOnCloseContents(base::BindLambdaForTesting(
++      [&popup_window_view]() { popup_window_view.reset(); }));
++  // This should not crash.
++  popup_window_view->ClosePopupWindow();
++
++  EXPECT_FALSE(popup_window_view);
++  histogram_tester_->ExpectUniqueSample(
++      "Blink.FedCm.IdpSigninStatus.ClosePopupWindowReason",
++      static_cast<int>(
++          FedCmModalDialogView::ClosePopupWindowReason::kIdpInitiatedClose),
++      1);
++}
++
+ TEST_F(FedCmModalDialogViewTest, PopupWindowDestroyedMetric) {
+   // Override the delegate to test that OpenURLFromTab gets called.
+   TestDelegate delegate(web_contents());
+diff --git a/content/browser/webid/identity_registry_delegate.h b/content/browser/webid/identity_registry_delegate.h
+index 502fa640ab..48e867a113 100644
+--- a/content/browser/webid/identity_registry_delegate.h
++++ b/content/browser/webid/identity_registry_delegate.h
+@@ -34,6 +34,9 @@ class IdentityRegistryDelegate {
+   // associated WebContents).
+   // If `account_id` is nullopt, uses the account that was selected in the
+   // account chooser.
++  // Returns false if the token was not accepted, e.g. because the request is
++  // not waiting for one or because closing the modal dialog destroyed `this`.
++  // The IdP's `resolve()` promise is then rejected with a `NotAllowedError`.
+   virtual bool OnResolve(GURL idp_config_url,
+                          const std::optional<std::string>& account_id,
+                          blink::mojom::ResolveTokenParamsPtr params) = 0;
+diff --git a/content/browser/webid/request.cc b/content/browser/webid/request.cc
+index 07b1849acd..206c6032a7 100644
+--- a/content/browser/webid/request.cc
++++ b/content/browser/webid/request.cc
+@@ -2057,7 +2057,12 @@ base::WeakPtr<Request> Request::GetWeakPtr() {
+ 
+ void Request::OnClose() {
+   CHECK(request_service_->GetDialogController());
+-  request_service_->GetDialogController()->CloseModalDialog();
++  if (!ShowDialog([&]() {
++        request_service_->GetDialogController()->CloseModalDialog();
++        return true;
++      })) {
++    return;
++  }
+ 
+   // If we have not gotten a signin status change, abort the flow.
+   // The same goes if we did get a status change but the accounts fetch
+@@ -2100,7 +2105,12 @@ bool Request::OnResolve(GURL idp_config_url,
+     return false;
+   }
+ 
+-  controller->CloseModalDialog();
++  if (!ShowDialog([&]() {
++        controller->CloseModalDialog();
++        return true;
++      })) {
++    return false;
++  }
+ 
+   MarkUserAsSignedIn(idp_config_url, account_id.value_or(account_id_));
+ 
+@@ -2262,7 +2272,12 @@ void Request::OnNativeAppResult(
+ }
+ 
+ void Request::OnNativeAppLoginFinished(const GURL& idp_config_url) {
+-  GetDialogController()->CloseModalDialog();
++  if (!ShowDialog([&]() {
++        GetDialogController()->CloseModalDialog();
++        return true;
++      })) {
++    return;
++  }
+   permission_delegate()->RemoveIdpSigninStatusObserver(this);
+   permission_delegate()->SetIdpSigninStatus(
+       url::Origin::Create(idp_config_url), /*is_signed_in=*/true, std::nullopt);
+diff --git a/content/browser/webid/request.h b/content/browser/webid/request.h
+index 0fdfe430b7..6c20822ae9 100644
+--- a/content/browser/webid/request.h
++++ b/content/browser/webid/request.h
+@@ -443,10 +443,14 @@ class CONTENT_EXPORT Request
+ 
+   blink::mojom::RpMode GetRpMode() const { return spec_->rp_mode(); }
+ 
+-  // Shows a FedCM UI and returns true if it succeeded and the Request was not
+-  // destroyed. Showing a FedCM UI may cause the tab to drop fullscreen or lose
+-  // focus, during which the frame may be detached and this Request destroyed.
+-  bool ShowDialog(base::FunctionRef<bool()> show_dialog_callback);
++  // Runs `show_dialog_callback`, a call to the dialog controller. Returns true
++  // if it returned true, the `Request` was not destroyed, and its request did
++  // not complete. Dialog calls may destroy this `Request`: showing a FedCM UI
++  // may cause the tab to drop fullscreen or lose focus, during which the frame
++  // may be detached, and closing the pop-up may activate another tab, which can
++  // close a window that hosts the RP's frame. If this returns false, the caller
++  // must return early.
++  [[nodiscard]] bool ShowDialog(base::FunctionRef<bool()> show_dialog_callback);
+ 
+   // If the client metadata has not been received yet the UI may not be able to
+   // show a correct title, so we need to indicate that in the RelyingPartyData.
+diff --git a/content/browser/webid/request_unittest.cc b/content/browser/webid/request_unittest.cc
+index c7f995e1c8..ecaf9c15d0 100644
+--- a/content/browser/webid/request_unittest.cc
++++ b/content/browser/webid/request_unittest.cc
+@@ -6749,6 +6749,101 @@ TEST_F(RequestTest, FrameDetachDuringShowAccountsDialog) {
+   EXPECT_FALSE(request_);
+ }
+ 
++// Tests that the `Request` isn't used after closing the popup destroys it,
++// e.g. if closing the popup activates another tab. Regression tests for
++// crbug.com/574762567.
++class RequestDestroyedDuringCloseModalDialogTest : public RequestTest {
++ protected:
++  // Sets a dialog controller whose `CloseModalDialog()` synchronously destroys
++  // the active `Request`. Returns the dialog controller so that tests can set
++  // more expectations on it.
++  base::WeakPtr<TestDialogController> SetDialogControllerThatDestroysRequest(
++      const MockConfiguration& config) {
++    auto dialog_controller = std::make_unique<TestDialogController>(config);
++    base::WeakPtr<TestDialogController> weak_dialog_controller =
++        dialog_controller->AsWeakPtr();
++    SetDialogController(std::move(dialog_controller));
++    EXPECT_CALL(*weak_dialog_controller, CloseModalDialog).WillOnce([this]() {
++      RequestService::GetOrCreateForCurrentDocument(main_test_rfh())
++          ->DestroyActiveRequestForTesting();
++    });
++    return weak_dialog_controller;
++  }
++};
++
++// Tests the continuation popup calling `close()`.
++TEST_F(RequestDestroyedDuringCloseModalDialogTest, OnClose) {
++  MockConfiguration config = kConfigurationValid;
++  config.continue_on = GURL(kProviderUrlFull).Resolve("/more-permissions.php");
++  base::WeakPtr<TestDialogController> dialog_controller =
++      SetDialogControllerThatDestroysRequest(config);
++  std::unique_ptr<WebContents> modal(CreateTestWebContents());
++  EXPECT_CALL(*dialog_controller, ShowModalDialog)
++      .WillOnce(Return(modal.get()));
++
++  RunDontWaitForCallback(kDefaultRequestParameters, config);
++  ASSERT_TRUE(request_);
++  request_->OnClose();
++  EXPECT_FALSE(request_);
++  // `OnClose()` returned early, before recording the pop-up result.
++  histogram_tester_.ExpectTotalCount("Blink.FedCm.ContinueOn.PopupWindowResult",
++                                     0);
++}
++
++// Tests the continuation popup calling `resolve()`.
++TEST_F(RequestDestroyedDuringCloseModalDialogTest, OnResolve) {
++  MockConfiguration config = kConfigurationValid;
++  config.continue_on = GURL(kProviderUrlFull).Resolve("/more-permissions.php");
++  base::WeakPtr<TestDialogController> dialog_controller =
++      SetDialogControllerThatDestroysRequest(config);
++  std::unique_ptr<WebContents> modal(CreateTestWebContents());
++  EXPECT_CALL(*dialog_controller, ShowModalDialog)
++      .WillOnce(Return(modal.get()));
++
++  RunDontWaitForCallback(kDefaultRequestParameters, config);
++  ASSERT_TRUE(request_);
++  EXPECT_FALSE(request_->OnResolve(GURL(kProviderUrlFull),
++                                   /*account_id=*/std::nullopt,
++                                   blink::mojom::ResolveTokenParams::NewToken(
++                                       base::Value("an-access-token"))));
++  EXPECT_FALSE(request_);
++  // `OnResolve()` returned early, before recording the pop-up result.
++  histogram_tester_.ExpectTotalCount("Blink.FedCm.ContinueOn.PopupWindowResult",
++                                     0);
++}
++
++// Tests the login popup being completed by a native app login response.
++TEST_F(RequestDestroyedDuringCloseModalDialogTest, NativeAppLoginFinished) {
++  MockConfiguration config = kConfigurationValid;
++  config.accounts_dialog_action = AccountsDialogAction::kAddAccount;
++  base::WeakPtr<TestDialogController> dialog_controller =
++      SetDialogControllerThatDestroysRequest(config);
++  std::unique_ptr<WebContents> modal(CreateTestWebContents());
++  IdentityRequestDialogController::NativeAppResultCallback
++      native_result_callback;
++  EXPECT_CALL(*dialog_controller, ShowModalDialog)
++      .WillOnce(::testing::WithArg<4>(
++          [&native_result_callback,
++           &modal](IdentityRequestDialogController::NativeAppResultCallback
++                       callback) {
++            native_result_callback = std::move(callback);
++            return modal.get();
++          }));
++
++  RunDontWaitForCallback(kDefaultRequestParameters, config);
++  ASSERT_TRUE(request_);
++  ASSERT_TRUE(native_result_callback);
++  // `OnNativeAppLoginFinished()` should return early, before setting the IdP
++  // sign-in status.
++  EXPECT_CALL(*test_permission_delegate_, SetIdpSigninStatus).Times(0);
++  std::move(native_result_callback)
++      .Run(IdentityRequestDialogController::NativeAppResult{
++          IdentityRequestDialogController::NativeAppResult::Type::
++              kLoginFinished,
++          ""});
++  EXPECT_FALSE(request_);
++}
++
+ // Test the continuation popup calling close().
+ TEST_F(RequestTest, ContinuationPopupCallingClose) {
+   RequestParameters parameters = kDefaultRequestParameters;
+-- 
+2.43.0
+

@@ -1,0 +1,139 @@
+From 1b4b38193301059c0954ec351992e0408e4a1aed Mon Sep 17 00:00:00 2001
+From: Rakina Zata Amni <rakina@chromium.org>
+Date: Mon, 16 Nov 2026 01:33:05 +0000
+Subject: [PATCH 05/22] [M156] Use one directory database per first-party
+ default bucket
+
+Original change's description:
+> Use one directory database per first-party default bucket
+>
+> The directory of a first-party default bucket only depends on its
+> StorageKey, but ObfuscatedFileUtil's DatabaseKey also included the
+> bucket ID. When the default bucket is deleted and recreated (e.g. by
+> Clear-Site-Data), a URL with the old ID (from a stale FileSystemAccess
+> handle, or a legacy FileSystem operation that re-cached the old default
+> bucket mid-deletion) and a URL with the new ID got different keys for
+> the same directory, so two SandboxDirectoryDatabases were opened on it.
+> In off-the-record profiles the in-memory LevelDB Env doesn't enforce
+> locks, so both instances ran and overwrote each other's files.
+>
+> Make DatabaseKey ignore the bucket ID for first-party default buckets,
+> matching how their directory is chosen, so there's only ever one
+> database per directory. Third-party and non-default buckets already
+> have a separate directory per bucket ID and are unaffected.
+>
+> Fixed: 574852697, 581367285
+> Change-Id: I601c4805244a7ece80768ae5db1ecc99466e943a
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8773893
+> Reviewed-by: Mingyu Lei <leimy@chromium.org>
+> Commit-Queue: Rakina Zata Amni <rakina@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1741717}
+
+(cherry picked from commit d5ac96d27d8859671405ba42a47466165a2e4791)
+
+Bug: 584997810,574852697,581367285
+Change-Id: I601c4805244a7ece80768ae5db1ecc99466e943a
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8813854
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: Rakina Zata Amni <rakina@chromium.org>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2227}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../file_system/obfuscated_file_util.cc       | 10 +++-
+ .../obfuscated_file_util_unittest.cc          | 51 +++++++++++++++++++
+ 2 files changed, 60 insertions(+), 1 deletion(-)
+
+diff --git a/storage/browser/file_system/obfuscated_file_util.cc b/storage/browser/file_system/obfuscated_file_util.cc
+index 29b7a2300a..1bc9829e64 100644
+--- a/storage/browser/file_system/obfuscated_file_util.cc
++++ b/storage/browser/file_system/obfuscated_file_util.cc
+@@ -127,7 +127,15 @@ DatabaseKey::DatabaseKey(const blink::StorageKey& storage_key,
+                          const std::optional<BucketLocator>& bucket,
+                          const std::string& type) {
+   storage_key_ = storage_key;
+-  bucket_ = bucket;
++  // The directory of a first-party default bucket only depends on the
++  // StorageKey (see GetDirectoryForBucketAndType()), so don't include the
++  // bucket ID in the key either. Otherwise, different IDs for the same default
++  // bucket (e.g. from before and after it was deleted and recreated) would
++  // result in multiple SandboxDirectoryDatabases for the same directory.
++  bucket_ = (bucket.has_value() && bucket->is_default &&
++             storage_key.IsFirstPartyContext())
++                ? BucketLocator::ForDefaultBucket(storage_key)
++                : bucket;
+   type_ = type;
+ }
+ 
+diff --git a/storage/browser/file_system/obfuscated_file_util_unittest.cc b/storage/browser/file_system/obfuscated_file_util_unittest.cc
+index 9a6143b588..a2b8c2d96f 100644
+--- a/storage/browser/file_system/obfuscated_file_util_unittest.cc
++++ b/storage/browser/file_system/obfuscated_file_util_unittest.cc
+@@ -908,6 +908,52 @@ class ObfuscatedFileUtilTest : public testing::Test,
+     ASSERT_EQ(db, db2);
+   }
+ 
++  void GetDirectoryDatabase_DefaultBucketWithDifferentIdsTestBody() {
++    // Simulate the default bucket being deleted and recreated with a new ID,
++    // while URLs with the old ID (e.g. from a FileSystemAccess handle obtained
++    // before the deletion) or a stale cached default bucket are still in use.
++    BucketLocator recreated_default_bucket = default_bucket_;
++    recreated_default_bucket.id =
++        BucketId::FromUnsafeValue(default_bucket_.id.value() + 1000);
++    ASSERT_TRUE(recreated_default_bucket.is_default);
++
++    FileSystemURL old_bucket_url = FileSystemURL::CreateForTest(
++        storage_key(), kFileSystemTypeTemporary, base::FilePath());
++    old_bucket_url.SetBucket(default_bucket_);
++    FileSystemURL new_bucket_url = FileSystemURL::CreateForTest(
++        storage_key(), kFileSystemTypeTemporary, base::FilePath());
++    new_bucket_url.SetBucket(recreated_default_bucket);
++    // URLs from the legacy FileSystem API don't have a bucket, and use the
++    // cached default bucket instead.
++    FileSystemURL no_bucket_url = FileSystemURL::CreateForTest(
++        storage_key(), kFileSystemTypeTemporary, base::FilePath());
++
++    SandboxDirectoryDatabase* old_bucket_db =
++        ofu()->GetDirectoryDatabase(old_bucket_url, /*create=*/true);
++    ASSERT_TRUE(old_bucket_db);
++    SandboxDirectoryDatabase* new_bucket_db =
++        ofu()->GetDirectoryDatabase(new_bucket_url, /*create=*/true);
++    ASSERT_TRUE(new_bucket_db);
++    SandboxDirectoryDatabase* no_bucket_db =
++        ofu()->GetDirectoryDatabase(no_bucket_url, /*create=*/true);
++    ASSERT_TRUE(no_bucket_db);
++
++    // The cached default bucket is the original one.
++    EXPECT_EQ(old_bucket_db, no_bucket_db);
++
++    if (is_third_party_context()) {
++      // Third-party default buckets use a different directory per bucket ID,
++      // so they should get separate databases.
++      EXPECT_NE(old_bucket_db, new_bucket_db);
++      EXPECT_EQ(2U, ofu()->directories_.size());
++    } else {
++      // First-party default buckets use the same directory regardless of the
++      // bucket ID, so there must only be one database for it.
++      EXPECT_EQ(old_bucket_db, new_bucket_db);
++      EXPECT_EQ(1U, ofu()->directories_.size());
++    }
++  }
++
+   int64_t ComputeCurrentUsage() {
+     return sandbox_file_system_.ComputeCurrentStorageKeyUsage() -
+            sandbox_file_system_.ComputeCurrentDirectoryDatabaseUsage();
+@@ -2522,6 +2568,11 @@ TEST_P(ObfuscatedFileUtilTest, GetDirectoryDatabase_Isolated) {
+   GetDirectoryDatabase_IsolatedTestBody();
+ }
+ 
++TEST_P(ObfuscatedFileUtilTest,
++       GetDirectoryDatabase_DefaultBucketWithDifferentIds) {
++  GetDirectoryDatabase_DefaultBucketWithDifferentIdsTestBody();
++}
++
+ TEST_P(ObfuscatedFileUtilTest, OpenPathInNonDirectory) {
+   FileSystemURL url(CreateURLFromUTF8("file"));
+   FileSystemURL path_in_file(CreateURLFromUTF8("file/file"));
+-- 
+2.43.0
+

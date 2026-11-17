@@ -1,0 +1,47 @@
+From 95d8399a9da3d10e6e19978b3e153f11cff78470 Mon Sep 17 00:00:00 2001
+From: "SEGURIDAD-PORTES-23 (Claude)" <noreply@anthropic.com>
+Date: Tue, 17 Nov 2026 21:33:23 +0000
+Subject: [PATCH 21/22] [3.1.3] Roll src/v8 15.6.75.58 -> 15.6.75.66 (M156
+ security merges)
+
+0064da7c8c (15.6.75.58) -> 917584bd9326d5e6ae81008cddec50cdd7f1631e (15.6.75.66).
+Brings the six M156 merges after .58 (.59 was reverted in .60):
+  95b829dd78 [ic] Fix cross-context Object.create(..) and prototype access checks
+  fc84cf914b [parser] Fix heritage scope handling when reparsing class initializers
+  7fd7b396c0 [objects] Clear cached ObjectCreateMap on JSGlobalProxy map migration
+  3d65217807 [compiler] Fix mixed-width FP move cycle resolution
+  b1b4519404 [runtime] Fix TOCTOU with FastKeyAccumulator::may_have_elements_ and GSABs
+  cc9a2672c3 [regalloc] Check split bounds in LiveRange::SplitAt
+Upstream 156.0.8078.109 stops at 15.6.75.63 (39900c1a01, 155cc52e68).
+Needs d8/mjsunit (D8-LINUX) before shipping.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2ihLC48xJinz4Li6Jv
+---
+ DEPS | 2 +-
+ v8   | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/DEPS b/DEPS
+index 8425ce2682..00393dc813 100644
+--- a/DEPS
++++ b/DEPS
+@@ -341,7 +341,7 @@ vars = {
+   # Three lines of non-changing comments so that
+   # the commit queue can handle CLs rolling V8
+   # and whatever else without interference from each other.
+-  'v8_revision': '0064da7c8c75a77a78811aa70c28d2d7e23d5814',
++  'v8_revision': '917584bd9326d5e6ae81008cddec50cdd7f1631e',
+   # Three lines of non-changing comments so that
+   # the commit queue can handle CLs rolling ANGLE
+   # and whatever else without interference from each other.
+diff --git a/v8 b/v8
+index 0064da7c8c..917584bd93 160000
+--- a/v8
++++ b/v8
+@@ -1 +1 @@
+-Subproject commit 0064da7c8c75a77a78811aa70c28d2d7e23d5814
++Subproject commit 917584bd9326d5e6ae81008cddec50cdd7f1631e
+-- 
+2.43.0
+

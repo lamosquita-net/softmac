@@ -1,0 +1,604 @@
+From d09eed645c9d64ef295dc3c4e75af6cb0833c94a Mon Sep 17 00:00:00 2001
+From: Le Hoang Quyen <lehoangquyen@chromium.org>
+Date: Mon, 16 Nov 2026 19:40:14 +0000
+Subject: [PATCH 15/22] [M156] gpu: Use kVaapi stream for
+ CompoundImageBacking::ProduceVideo
+
+Original change's description:
+> gpu: Use kVaapi stream for CompoundImageBacking::ProduceVideo
+>
+> Previously, CompoundImageBacking::ProduceVideo used kGL backing which
+> created GLTextureImageBacking. However, GLTextureImageBacking doesn't
+> really support video. Its ProduceVideo (via
+> D3D11VideoImageCopyRepresentation::CreateFromGL) is incorrect because
+> it copies the GL texture into a separate D3D11 texture eagerly during
+> ProduceVideo() and does not synchronize with the BeginAccess/EndAccess
+> path. Any content synced by CompoundImageBacking::NotifyBeginAccess
+> or written to the SharedImage after ProduceVideo() is missed.
+>
+> Remove GLTextureImageBacking::ProduceVideo and CreateFromGL, disallow
+> SharedImageAccessStream::kVaapi in GLTextureImageBacking and
+> WrappedGraphiteTextureBacking, and update
+> CompoundImageBacking::ProduceVideo to request kVaapi (with both
+> VIDEO_DECODE and VIDEO_ENCODE_ACCELERATOR usages) instead of kGL so a
+> video-capable backing (such as D3DImageBacking on Windows) is
+> allocated and synchronized on BeginAccess/EndAccess.
+>
+> Bug: 574606731
+> Change-Id: I47ddb23eb2d046d2cf0888a3d659719b97de5f64
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8658161
+> Commit-Queue: Quyen Le <lehoangquyen@google.com>
+> Reviewed-by: vikas soni <vikassoni@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1728025}
+
+(cherry picked from commit 84e43a1eb785cb6a86467cfe5446d006f8a24794)
+
+Bug: 579236521,574606731
+Change-Id: I47ddb23eb2d046d2cf0888a3d659719b97de5f64
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8813750
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Reviewed-by: vikas soni <vikassoni@chromium.org>
+Commit-Queue: vikas soni <vikassoni@chromium.org>
+Reviewed-by: Colin Blundell <blundell@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2241}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../shared_image/compound_image_backing.cc    |   5 +-
+ .../shared_image/d3d_image_representation.cc  | 111 +----------
+ .../shared_image/d3d_image_representation.h   |   9 -
+ .../shared_image/gl_texture_image_backing.cc  |  29 +--
+ .../shared_image/gl_texture_image_backing.h   |   4 -
+ ..._texture_image_backing_factory_unittest.cc |  58 ------
+ .../wrapped_graphite_texture_backing.cc       |   3 +
+ ...apped_sk_image_backing_factory_unittest.cc | 186 ++++++++++++++++++
+ 8 files changed, 202 insertions(+), 203 deletions(-)
+
+diff --git a/gpu/command_buffer/service/shared_image/compound_image_backing.cc b/gpu/command_buffer/service/shared_image/compound_image_backing.cc
+index b161a65f5f..5ea9a9cec6 100644
+--- a/gpu/command_buffer/service/shared_image/compound_image_backing.cc
++++ b/gpu/command_buffer/service/shared_image/compound_image_backing.cc
+@@ -105,7 +105,8 @@ SharedImageUsageSet GetUsageFromAccessStream(SharedImageAccessStream stream) {
+     case SharedImageAccessStream::kOverlay:
+       return SHARED_IMAGE_USAGE_SCANOUT;
+     case SharedImageAccessStream::kVaapi:
+-      return SHARED_IMAGE_USAGE_VIDEO_DECODE;
++      return SHARED_IMAGE_USAGE_VIDEO_DECODE |
++             SHARED_IMAGE_USAGE_VIDEO_ENCODE_ACCELERATOR;
+     case SharedImageAccessStream::kWebNNTensor:
+       // Note that SHARED_IMAGE_USAGE_WEBNN_SHARED_TENSOR is the main usage, we
+       // always need it for WebNN, the two other(*_TENSOR_READ/WRITE) are for
+@@ -1831,7 +1832,7 @@ std::unique_ptr<VideoImageRepresentation> CompoundImageBacking::ProduceVideo(
+     MemoryTypeTracker* tracker,
+     VideoDevice device) {
+   std::unique_ptr<SharedImageBacking> transient_backing;
+-  auto* backing = GetOrAllocateBacking(SharedImageAccessStream::kGL,
++  auto* backing = GetOrAllocateBacking(SharedImageAccessStream::kVaapi,
+                                        AccessParams(), transient_backing);
+   if (!backing) {
+     return nullptr;
+diff --git a/gpu/command_buffer/service/shared_image/d3d_image_representation.cc b/gpu/command_buffer/service/shared_image/d3d_image_representation.cc
+index be3e04b70f..2385f9b09b 100644
+--- a/gpu/command_buffer/service/shared_image/d3d_image_representation.cc
++++ b/gpu/command_buffer/service/shared_image/d3d_image_representation.cc
+@@ -9,12 +9,7 @@
+ #include "gpu/command_buffer/common/shared_image_usage.h"
+ #include "gpu/command_buffer/service/shared_image/d3d11_image_same_adapter_copy_strategy.h"
+ #include "gpu/command_buffer/service/shared_image/d3d_image_backing.h"
+-#include "gpu/ipc/common/dxgi_helpers.h"
+ #include "third_party/abseil-cpp/absl/cleanup/cleanup.h"
+-#include "third_party/angle/include/EGL/eglext_angle.h"
+-#include "ui/gl/gl_angle_util_win.h"
+-#include "ui/gl/gl_surface_egl.h"
+-#include "ui/gl/scoped_restore_texture.h"
+ 
+ namespace {
+ 
+@@ -294,107 +289,11 @@ D3D11TextureAndArrayIndex D3DVideoImageRepresentation::GetD3D11Texture() const {
+   return d3d11_texture_;
+ }
+ 
+-std::unique_ptr<D3D11VideoImageCopyRepresentation>
+-D3D11VideoImageCopyRepresentation::CreateFromGL(GLuint gl_texture_id,
+-                                                std::string_view debug_label,
+-                                                ID3D11Device* d3d_device,
+-                                                SharedImageManager* manager,
+-                                                SharedImageBacking* backing,
+-                                                MemoryTypeTracker* tracker) {
+-  gl::GLApi* const api = gl::g_current_gl_context;
+-  D3D11_TEXTURE2D_DESC desc = InitVideoCopyTextureDesc(
+-      backing->size().width(), backing->size().height(),
+-      DXGI_FORMAT_R8G8B8A8_UNORM);
+-
+-  Microsoft::WRL::ComPtr<ID3D11Texture2D> d3d_dest_texture;
+-  HRESULT hr = d3d_device->CreateTexture2D(&desc, nullptr, &d3d_dest_texture);
+-  if (FAILED(hr)) {
+-    LOG(ERROR) << "Failed to create destination texture for video: "
+-               << logging::SystemErrorCodeToString(hr);
+-    return nullptr;
+-  }
+-  std::string updated_debug_label = base::StrCat(
+-      {"D3D11VideoImageCopyRepresentation_", std::string(debug_label)});
+-  d3d_dest_texture->SetPrivateData(WKPDID_D3DDebugObjectName,
+-                                   updated_debug_label.length(),
+-                                   updated_debug_label.c_str());
+-
+-  Microsoft::WRL::ComPtr<IDXGIResource1> dxgi_resource;
+-  hr = d3d_dest_texture.As(&dxgi_resource);
+-  CHECK_EQ(hr, S_OK);
+-  HANDLE dest_texture_handle;
+-  hr = dxgi_resource->CreateSharedHandle(
+-      nullptr, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr,
+-      &dest_texture_handle);
+-  CHECK_EQ(hr, S_OK);
+-  base::win::ScopedHandle scoped_shared_handle(dest_texture_handle);
+-
+-  Microsoft::WRL::ComPtr<ID3D11Device> angle_device =
+-      gl::QueryD3D11DeviceObjectFromANGLE();
+-  Microsoft::WRL::ComPtr<ID3D11Device1> angle_device1;
+-  hr = angle_device->QueryInterface(IID_PPV_ARGS(&angle_device1));
+-  CHECK_EQ(hr, S_OK);
+-  Microsoft::WRL::ComPtr<ID3D11Texture2D> remote_texture;
+-  hr = angle_device1->OpenSharedResource1(dest_texture_handle,
+-                                          IID_PPV_ARGS(&remote_texture));
+-  CHECK_EQ(hr, S_OK);
+-
+-  GLuint gl_texture_dest;
+-  api->glGenTexturesFn(1, &gl_texture_dest);
+-  gl::ScopedRestoreTexture scoped_restore(gl::g_current_gl_context,
+-                                          GL_TEXTURE_2D, gl_texture_dest);
+-  api->glTexParameteriFn(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+-  api->glTexParameteriFn(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+-
+-  const EGLint egl_attrib_list[] = {EGL_TEXTURE_INTERNAL_FORMAT_ANGLE, GL_RGBA,
+-                                    EGL_NONE};
+-  auto egl_image = gl::MakeScopedEGLImage(
+-      EGL_NO_CONTEXT, EGL_D3D11_TEXTURE_ANGLE,
+-      static_cast<EGLClientBuffer>(remote_texture.Get()), egl_attrib_list);
+-  if (!egl_image.get()) {
+-    LOG(ERROR) << "Failed to create an EGL image";
+-    api->glDeleteTexturesFn(1, &gl_texture_dest);
+-    return nullptr;
+-  }
+-
+-  api->glEGLImageTargetTexture2DOESFn(GL_TEXTURE_2D, egl_image.get());
+-  if (eglGetError() != static_cast<EGLint>(EGL_SUCCESS)) {
+-    LOG(ERROR) << "Failed to bind EGL image to texture for video";
+-    api->glDeleteTexturesFn(1, &gl_texture_dest);
+-    return nullptr;
+-  }
+-
+-  Microsoft::WRL::ComPtr<IDXGIKeyedMutex> keyed_mutex;
+-  hr = remote_texture->QueryInterface(IID_PPV_ARGS(&keyed_mutex));
+-  CHECK_EQ(hr, S_OK);
+-  // Using the keyed mutex here is not required for synchronization with another
+-  // thread; the texture is only written here and only consumed by the decoder
+-  // using this representation.  However, a side effect of
+-  // AcquireSync/ReleaseSync is that  modifications to the texture made here are
+-  // "visible" to other D3D devices.
+-  hr = keyed_mutex->AcquireSync(0, INFINITE);
+-  CHECK_EQ(hr, S_OK);
+-  {
+-    DXGIScopedReleaseKeyedMutex scoped_keyed_mutex(keyed_mutex, 0);
+-
+-    // Using glCopySubTextureCHROMIUM may look odd here since the entire texture
+-    // is being copied.  However, glCopyTextureCHROMIUM for some reason releases
+-    // the backing texture before copying, which is not helpful since the goal
+-    // here is to copy to the shared texture and not some random texture that
+-    // ANGLE creates.
+-    api->glCopySubTextureCHROMIUMFn(
+-        gl_texture_id, 0, GL_TEXTURE_2D, gl_texture_dest, 0, 0, 0, 0, 0,
+-        backing->size().width(), backing->size().height(), GL_FALSE, GL_FALSE,
+-        GL_FALSE);
+-    CHECK_EQ(glGetError(), static_cast<unsigned int>(GL_NO_ERROR));
+-  }
+-
+-  api->glDeleteTexturesFn(1, &gl_texture_dest);
+-
+-  return std::make_unique<D3D11VideoImageCopyRepresentation>(
+-      manager, backing, tracker, d3d_dest_texture.Get());
+-}
+-
++// TODO(crbug.com/578060455): Copying the source texture eagerly during
++// ProduceVideo() instead of BeginReadAccess() returns stale or uninitialized
++// pixels if the backing is modified after ProduceVideo() is called or if the
++// representation is reused across multiple read accesses. Move the copy into
++// BeginReadAccess().
+ std::unique_ptr<D3D11VideoImageCopyRepresentation>
+ D3D11VideoImageCopyRepresentation::CreateFromD3D(
+     SharedImageManager* manager,
+diff --git a/gpu/command_buffer/service/shared_image/d3d_image_representation.h b/gpu/command_buffer/service/shared_image/d3d_image_representation.h
+index bbaaccf44b..60528da965 100644
+--- a/gpu/command_buffer/service/shared_image/d3d_image_representation.h
++++ b/gpu/command_buffer/service/shared_image/d3d_image_representation.h
+@@ -150,15 +150,6 @@ class D3DVideoImageRepresentation : public VideoImageRepresentation {
+ 
+ class D3D11VideoImageCopyRepresentation : public VideoImageRepresentation {
+  public:
+-  // Creates a copy of a (D3D-backed) GL texture for use in video encode.
+-  // This avoids expensive readback.
+-  static std::unique_ptr<D3D11VideoImageCopyRepresentation> CreateFromGL(
+-      GLuint gl_texture_id,
+-      std::string_view debug_label,
+-      ID3D11Device* d3d_device,
+-      SharedImageManager* manager,
+-      SharedImageBacking* backing,
+-      MemoryTypeTracker* tracker);
+   static std::unique_ptr<D3D11VideoImageCopyRepresentation> CreateFromD3D(
+       SharedImageManager* manager,
+       SharedImageBacking* backing,
+diff --git a/gpu/command_buffer/service/shared_image/gl_texture_image_backing.cc b/gpu/command_buffer/service/shared_image/gl_texture_image_backing.cc
+index 3ff097abae..782a5182e0 100644
+--- a/gpu/command_buffer/service/shared_image/gl_texture_image_backing.cc
++++ b/gpu/command_buffer/service/shared_image/gl_texture_image_backing.cc
+@@ -20,6 +20,7 @@
+ #include "gpu/command_buffer/service/gl_utils.h"
+ #include "gpu/command_buffer/service/gles2_cmd_decoder.h"
+ #include "gpu/command_buffer/service/shared_context_state.h"
++#include "gpu/command_buffer/service/shared_image/compound_image_backing.h"
+ #include "gpu/command_buffer/service/shared_image/shared_image_factory.h"
+ #include "gpu/command_buffer/service/shared_image/shared_image_format_service_utils.h"
+ #include "gpu/command_buffer/service/shared_image/shared_image_representation.h"
+@@ -46,10 +47,6 @@
+ #include "gpu/command_buffer/service/shared_image/skia_graphite_dawn_image_representation.h"
+ #endif
+ 
+-#if BUILDFLAG(IS_WIN)
+-#include "gpu/command_buffer/service/shared_image/d3d_image_representation.h"
+-#endif
+-
+ namespace gpu {
+ 
+ namespace {
+@@ -288,6 +285,10 @@ GLTextureImageBacking::~GLTextureImageBacking() {
+ bool GLTextureImageBacking::CheckSupportForAccessStream(
+     SharedImageAccessStream stream,
+     const AccessParams& params) {
++  if (stream == SharedImageAccessStream::kVaapi) {
++    return false;
++  }
++
+   // `params.context_state` is not always available for all access streams. In
+   // such cases, we default to allowing access, assuming the context is
+   // compatible. When a context is provided, we explicitly check if it's a GL
+@@ -479,26 +480,6 @@ GLTextureImageBacking::ProduceSkiaGraphite(
+ #endif
+ }
+ 
+-std::unique_ptr<VideoImageRepresentation> GLTextureImageBacking::ProduceVideo(
+-    SharedImageManager* manager,
+-    MemoryTypeTracker* tracker,
+-    VideoDevice device) {
+-#if BUILDFLAG(IS_WIN)
+-  DCHECK_EQ(textures_.size(), 1u);
+-  // The GL copy path requires a D3D11 device; a D3D12 command queue cannot use
+-  // it.
+-  const auto* d3d11_device =
+-      std::get_if<Microsoft::WRL::ComPtr<ID3D11Device>>(&device);
+-  CHECK(d3d11_device);
+-
+-  return D3D11VideoImageCopyRepresentation::CreateFromGL(
+-      textures_[0]->GetServiceId(), debug_label(), d3d11_device->Get(), manager,
+-      this, tracker);
+-#else
+-  return nullptr;
+-#endif
+-}
+-
+ void GLTextureImageBacking::InitializeGLTexture(
+     const std::vector<GLCommonImageBackingFactory::FormatInfo>& format_info,
+     base::span<const uint8_t> pixel_data,
+diff --git a/gpu/command_buffer/service/shared_image/gl_texture_image_backing.h b/gpu/command_buffer/service/shared_image/gl_texture_image_backing.h
+index 9d92add1ec..84b9fb0de7 100644
+--- a/gpu/command_buffer/service/shared_image/gl_texture_image_backing.h
++++ b/gpu/command_buffer/service/shared_image/gl_texture_image_backing.h
+@@ -65,10 +65,6 @@ class GLTextureImageBacking : public ClearTrackingSharedImageBacking {
+       SharedImageManager* manager,
+       MemoryTypeTracker* tracker,
+       scoped_refptr<SharedContextState> context_state) override;
+-  std::unique_ptr<VideoImageRepresentation> ProduceVideo(
+-      SharedImageManager* manager,
+-      MemoryTypeTracker* tracker,
+-      VideoDevice device) override;
+   void Update(gfx::GpuFenceHandle in_fence) override;
+   bool UploadFromMemory(const std::vector<SkPixmap>& pixmaps) override;
+   bool ReadbackToMemory(const std::vector<SkPixmap>& pixmaps) override;
+diff --git a/gpu/command_buffer/service/shared_image/gl_texture_image_backing_factory_unittest.cc b/gpu/command_buffer/service/shared_image/gl_texture_image_backing_factory_unittest.cc
+index 6907ac3b72..b73770b040 100644
+--- a/gpu/command_buffer/service/shared_image/gl_texture_image_backing_factory_unittest.cc
++++ b/gpu/command_buffer/service/shared_image/gl_texture_image_backing_factory_unittest.cc
+@@ -319,64 +319,6 @@ TEST_F(GLTextureImageBackingFactoryTest, TexImageTexStorageEquivalence) {
+   }
+ }
+ 
+-#if BUILDFLAG(IS_WIN)
+-TEST_F(GLTextureImageBackingFactoryTest, ProduceVideo) {
+-  auto format = viz::SinglePlaneFormat::kRGBA_8888;
+-  auto mailbox = Mailbox::Generate();
+-  gfx::Size size(256, 256);
+-  auto color_space = gfx::ColorSpace::CreateSRGB();
+-  GrSurfaceOrigin surface_origin = kTopLeft_GrSurfaceOrigin;
+-  SkAlphaType alpha_type = kPremul_SkAlphaType;
+-  gpu::SurfaceHandle surface_handle = gpu::kNullSurfaceHandle;
+-  // Note: The specific usage doesn't matter here as long as it's supported by
+-  // GLTextureImageBacking.
+-  gpu::SharedImageUsageSet usage = SHARED_IMAGE_USAGE_GLES2_READ;
+-
+-  bool supported = backing_factory_->CanCreateSharedImage(
+-      usage, format, size, /*thread_safe=*/false, gfx::EMPTY_BUFFER,
+-      GrContextType::kGL, {});
+-  ASSERT_TRUE(supported);
+-
+-  auto backing = backing_factory_->CreateSharedImage(
+-      mailbox,
+-      {format, size, color_space, surface_origin, alpha_type, usage,
+-       "TestLabel"},
+-      surface_handle, /*is_thread_safe=*/false);
+-  ASSERT_TRUE(backing);
+-  std::unique_ptr<SharedImageRepresentationFactoryRef> shared_image =
+-      shared_image_manager_.Register(std::move(backing), &memory_type_tracker_);
+-  shared_image->SetCleared();
+-
+-  Microsoft::WRL::ComPtr<ID3D11Device> d3d11_device;
+-  UINT creation_flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+-  static const D3D_FEATURE_LEVEL feature_levels[] = {
+-      D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1,
+-      D3D_FEATURE_LEVEL_10_0, D3D_FEATURE_LEVEL_9_3,  D3D_FEATURE_LEVEL_9_2,
+-      D3D_FEATURE_LEVEL_9_1};
+-  HRESULT hr =
+-      D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, creation_flags,
+-                        feature_levels, std::size(feature_levels),
+-                        D3D11_SDK_VERSION, &d3d11_device, nullptr, nullptr);
+-  if (FAILED(hr)) {
+-    hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_WARP, 0, creation_flags,
+-                           feature_levels, std::size(feature_levels),
+-                           D3D11_SDK_VERSION, &d3d11_device, nullptr, nullptr);
+-  }
+-  if (FAILED(hr)) {
+-    GTEST_SKIP()
+-        << " cannot produce a d3d video representation on this platform";
+-  }
+-
+-  auto representation = shared_image_manager_.ProduceVideo(
+-      d3d11_device, mailbox, &memory_type_tracker_);
+-  EXPECT_NE(representation, nullptr);
+-  auto read_access = representation->BeginScopedReadAccess();
+-  D3D11TextureAndArrayIndex input_texture = read_access->GetD3D11Texture();
+-  EXPECT_NE(input_texture.texture, nullptr);
+-  EXPECT_EQ(input_texture.array_index, 0u);
+-}
+-#endif
+-
+ TEST_P(GLTextureImageBackingFactoryWithFormatTest, IsSupported) {
+   auto format = get_format();
+   gfx::Size size(256, 256);
+diff --git a/gpu/command_buffer/service/shared_image/wrapped_graphite_texture_backing.cc b/gpu/command_buffer/service/shared_image/wrapped_graphite_texture_backing.cc
+index 4377518746..f42ffdd344 100644
+--- a/gpu/command_buffer/service/shared_image/wrapped_graphite_texture_backing.cc
++++ b/gpu/command_buffer/service/shared_image/wrapped_graphite_texture_backing.cc
+@@ -367,6 +367,9 @@ bool WrappedGraphiteTextureBacking::CheckSupportForAccessStream(
+     if (stream == SharedImageAccessStream::kDawn) {
+       return false;
+     }
++    if (stream == SharedImageAccessStream::kVaapi) {
++      return false;
++    }
+   }
+   return true;
+ }
+diff --git a/gpu/command_buffer/service/shared_image/wrapped_sk_image_backing_factory_unittest.cc b/gpu/command_buffer/service/shared_image/wrapped_sk_image_backing_factory_unittest.cc
+index d6838c844d..e2ed167aac 100644
+--- a/gpu/command_buffer/service/shared_image/wrapped_sk_image_backing_factory_unittest.cc
++++ b/gpu/command_buffer/service/shared_image/wrapped_sk_image_backing_factory_unittest.cc
+@@ -4,7 +4,12 @@
+ 
+ #include "gpu/command_buffer/service/shared_image/wrapped_sk_image_backing_factory.h"
+ 
++#include <array>
++
++#include "base/compiler_specific.h"
++#include "base/containers/span.h"
+ #include "base/functional/callback_helpers.h"
++#include "base/test/scoped_feature_list.h"
+ #include "build/build_config.h"
+ #include "cc/test/pixel_comparator.h"
+ #include "cc/test/pixel_test_utils.h"
+@@ -20,9 +25,11 @@
+ #include "gpu/command_buffer/service/shared_image/shared_image_representation.h"
+ #include "gpu/command_buffer/service/shared_image/shared_image_test_base.h"
+ #include "gpu/config/gpu_feature_info.h"
++#include "gpu/config/gpu_finch_features.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+ #include "third_party/skia/include/core/SkAlphaType.h"
+ #include "third_party/skia/include/core/SkBitmap.h"
++#include "third_party/skia/include/core/SkCanvas.h"
+ #include "third_party/skia/include/core/SkColor.h"
+ #include "third_party/skia/include/core/SkColorType.h"
+ #include "third_party/skia/include/core/SkImage.h"
+@@ -319,5 +326,184 @@ INSTANTIATE_TEST_SUITE_P(
+                                      GrContextType::kGraphiteDawn)),
+     TestParamToString);
+ 
++#if BUILDFLAG(IS_WIN)
++// ProduceVideo() with a D3D11 device is only supported on Windows. These tests
++// verify the interaction between D3D video textures and
++// WrappedGraphiteTextureBacking inside CompoundImageBacking.
++class CompoundImageBackingWithWrappedSkImageTest
++    : public WrappedSkImageBackingFactoryTest {
++ public:
++  void SetUp() override {
++    WrappedSkImageBackingFactoryTest::SetUp();
++    if (IsSkipped()) {
++      return;
++    }
++    if (!context_state_->graphite_shared_context()) {
++      // TODO(crbug.com/577947820): WrappedSkImageBacking does not implement
++      // SupportsAccess() for kUseDynamicBackingAllocations.
++      GTEST_SKIP()
++          << "Requires WrappedSkImageBacking::SupportsAccess() on Ganesh";
++    }
++    scoped_feature_list_.InitAndEnableFeature(
++        features::kUseDynamicBackingAllocations);
++    factory_ = std::make_unique<SharedImageFactory>(
++        gpu_preferences_, gpu_workarounds_, GpuFeatureInfo(),
++        context_state_.get(), &shared_image_manager_, nullptr,
++        /*is_for_display_compositor=*/false);
++  }
++
++  void TearDown() override {
++    if (factory_) {
++      factory_->DestroyAllSharedImages(true);
++      factory_.reset();
++    }
++    WrappedSkImageBackingFactoryTest::TearDown();
++  }
++
++ protected:
++  void VerifyD3D11VideoPixel(ID3D11Device* d3d11_device,
++                             VideoImageRepresentation* representation,
++                             base::span<const uint8_t, 4> expected_pixel) {
++    auto read_access = representation->BeginScopedReadAccess();
++    ASSERT_NE(read_access, nullptr);
++    D3D11TextureAndArrayIndex video_texture = read_access->GetD3D11Texture();
++    ASSERT_NE(video_texture.texture, nullptr);
++
++    D3D11_TEXTURE2D_DESC desc = {};
++    video_texture.texture->GetDesc(&desc);
++    desc.Usage = D3D11_USAGE_STAGING;
++    desc.BindFlags = 0;
++    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
++    desc.MiscFlags = 0;
++
++    Microsoft::WRL::ComPtr<ID3D11Texture2D> staging_texture;
++    ASSERT_HRESULT_SUCCEEDED(
++        d3d11_device->CreateTexture2D(&desc, nullptr, &staging_texture));
++
++    Microsoft::WRL::ComPtr<ID3D11DeviceContext> device_context;
++    d3d11_device->GetImmediateContext(&device_context);
++    device_context->CopySubresourceRegion(staging_texture.Get(), 0, 0, 0, 0,
++                                          video_texture.texture.Get(),
++                                          video_texture.array_index, nullptr);
++
++    D3D11_MAPPED_SUBRESOURCE mapped = {};
++    ASSERT_HRESULT_SUCCEEDED(device_context->Map(staging_texture.Get(), 0,
++                                                 D3D11_MAP_READ, 0, &mapped));
++    // SAFETY: `staging_texture` is a 64x64 RGBA8 texture, so `mapped.pData` has
++    // at least 4 bytes for the first pixel.
++    auto first_pixel = UNSAFE_BUFFERS(
++        base::span(static_cast<const uint8_t*>(mapped.pData), 4u));
++    EXPECT_EQ(first_pixel, expected_pixel);
++    device_context->Unmap(staging_texture.Get(), 0);
++  }
++
++  base::test::ScopedFeatureList scoped_feature_list_;
++  std::unique_ptr<SharedImageFactory> factory_;
++};
++
++// Verifies that calling ProduceVideo() on a SharedImage with dynamic backing
++// allocation enabled reads the initialized pixels from the initial backing
++// rather than uninitialized memory from the dynamically allocated backing.
++TEST_P(CompoundImageBackingWithWrappedSkImageTest,
++       ProduceVideoDynamicBackingAllocationReadsInitializedPixels) {
++  constexpr gfx::Size size(64, 64);
++  const auto format = GetFormat();
++  constexpr gpu::SharedImageUsageSet usage =
++      gpu::SHARED_IMAGE_USAGE_RASTER_READ |
++      gpu::SHARED_IMAGE_USAGE_RASTER_WRITE |
++      gpu::SHARED_IMAGE_USAGE_DISPLAY_READ;
++  const gpu::Mailbox mailbox = gpu::Mailbox::Generate();
++
++  constexpr std::array<uint8_t, 4> kGreen = {0, 255, 0, 255};
++  std::vector<uint8_t> pixel_data(size.width() * size.height() * 4);
++  for (size_t i = 0; i < pixel_data.size(); i += 4) {
++    pixel_data[i + 0] = kGreen[0];
++    pixel_data[i + 1] = kGreen[1];
++    pixel_data[i + 2] = kGreen[2];
++    pixel_data[i + 3] = kGreen[3];
++  }
++
++  SharedImageInfo si_info(format, size, kColorSpace, kSurfaceOrigin,
++                          kPremul_SkAlphaType, usage,
++                          "ProduceVideoDynamicTest");
++  ASSERT_TRUE(factory_->CreateSharedImage(mailbox, si_info, pixel_data));
++
++  auto d3d11_device = context_state_->GetD3D11Device();
++  ASSERT_TRUE(d3d11_device);
++
++  auto representation = shared_image_manager_.ProduceVideo(
++      d3d11_device, mailbox, &memory_type_tracker_);
++  ASSERT_NE(representation, nullptr);
++
++  VerifyD3D11VideoPixel(d3d11_device.Get(), representation.get(), kGreen);
++
++  representation.reset();
++  EXPECT_TRUE(factory_->DestroySharedImage(mailbox));
++}
++
++// Verifies that calling ProduceVideo() on an initially uncleared SharedImage
++// and then clearing it before BeginScopedReadAccess() reads the cleared pixels
++// rather than uninitialized memory snapshotted during ProduceVideo().
++TEST_P(CompoundImageBackingWithWrappedSkImageTest,
++       ProduceVideoOnUnclearedSharedImageReadsLaterClearedPixels) {
++  constexpr gfx::Size size(64, 64);
++  const auto format = GetFormat();
++  constexpr gpu::SharedImageUsageSet usage =
++      gpu::SHARED_IMAGE_USAGE_RASTER_READ |
++      gpu::SHARED_IMAGE_USAGE_RASTER_WRITE |
++      gpu::SHARED_IMAGE_USAGE_DISPLAY_READ;
++  const gpu::Mailbox mailbox = gpu::Mailbox::Generate();
++
++  SharedImageInfo si_info(format, size, kColorSpace, kSurfaceOrigin,
++                          kPremul_SkAlphaType, usage,
++                          "ProduceVideoUnclearedDynamicTest");
++  ASSERT_TRUE(
++      factory_->CreateSharedImage(mailbox, si_info, kNullSurfaceHandle));
++
++  auto d3d11_device = context_state_->GetD3D11Device();
++  ASSERT_TRUE(d3d11_device);
++
++  // Call ProduceVideo() while the SharedImage is still uncleared.
++  auto representation = shared_image_manager_.ProduceVideo(
++      d3d11_device, mailbox, &memory_type_tracker_);
++  ASSERT_NE(representation, nullptr);
++  EXPECT_FALSE(representation->IsCleared());
++
++  // Clear the SharedImage to solid green via Skia before reading video.
++  auto skia_rep = shared_image_representation_factory_.ProduceSkia(
++      mailbox, context_state_.get());
++  ASSERT_NE(skia_rep, nullptr);
++  {
++    std::vector<GrBackendSemaphore> begin_semaphores;
++    std::vector<GrBackendSemaphore> end_semaphores;
++    auto skia_write = skia_rep->BeginScopedWriteAccess(
++        &begin_semaphores, &end_semaphores,
++        SharedImageRepresentation::AllowUnclearedAccess::kYes);
++    ASSERT_NE(skia_write, nullptr);
++    skia_write->surface()->getCanvas()->clear(SkColors::kGreen);
++    context_state_->FlushWriteAccess(skia_write.get());
++    context_state_->SubmitIfNecessary(std::move(end_semaphores),
++                                      skia_write->NeedGraphiteContextSubmit());
++    skia_rep->SetCleared();
++  }
++  skia_rep.reset();
++  EXPECT_TRUE(representation->IsCleared());
++
++  constexpr std::array<uint8_t, 4> kGreen = {0, 255, 0, 255};
++  VerifyD3D11VideoPixel(d3d11_device.Get(), representation.get(), kGreen);
++
++  representation.reset();
++  EXPECT_TRUE(factory_->DestroySharedImage(mailbox));
++}
++
++INSTANTIATE_TEST_SUITE_P(
++    ,
++    CompoundImageBackingWithWrappedSkImageTest,
++    testing::Combine(testing::Values(viz::SinglePlaneFormat::kRGBA_8888),
++                     testing::Values(GrContextType::kGL,
++                                     GrContextType::kGraphiteDawn)),
++    TestParamToString);
++#endif  // BUILDFLAG(IS_WIN)
++
+ }  // namespace
+ }  // namespace gpu
+-- 
+2.43.0
+

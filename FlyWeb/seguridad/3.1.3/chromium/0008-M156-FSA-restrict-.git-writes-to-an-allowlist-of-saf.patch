@@ -1,0 +1,936 @@
+From 885b67df322b619573c65f88e70cdcab3864ffa3 Mon Sep 17 00:00:00 2001
+From: Mingyu Lei <leimy@chromium.org>
+Date: Mon, 16 Nov 2026 06:27:41 +0000
+Subject: [PATCH 08/22] [M156] FSA: restrict */.git writes to an allowlist of
+ safe repository paths
+
+Original change's description:
+> FSA: restrict */.git writes to an allowlist of safe repository paths
+>
+> GenerateBlockPaths() previously registered separate kBlockWrite suffix
+> rules for .git/hooks, .git/config, and .git/modules, which did not cover
+> creating a .git directory or gitfile pointer directly or writing other
+> configuration/indirection metadata such as .git/commondir or
+> .git/worktrees/*/commondir.
+>
+> Replace those three suffix rules with a single */.git kBlockWrite rule
+> and delegate write checks under */.git to ShouldBlockAccessToGitPath().
+> That helper blocks .git creation and sensitive metadata by default
+> (including config*, hooks, modules, commondir, worktrees, info, and
+> objects/info), while allowlisting repository data, ref, and index paths
+> under an existing .git directory so web-based Git clients continue to
+> work without weakening stricter ancestor or nested suffix rules.
+>
+> Fixed: 577352729, 576861549, 577139798, 577455555, 576632066
+> Fixed: 577409591, 577457401, 578055395, 553115714, 561604705
+> Fixed: 574832429, 573246916
+> Change-Id: I4c72a918e3b65d04f19a8273b6c5d4e9f0123456
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8672999
+> Commit-Queue: Mingyu Lei <leimy@chromium.org>
+> Reviewed-by: Eriko Kurimoto <elkurin@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1737410}
+
+(cherry picked from commit f8e7fd914c95fc1075209f85b7e7799fb23ae355)
+
+Bug: 583960618,577352729,576861549,577139798,577455555,576632066,577409591,577457401,578055395,553115714,561604705,574832429,573246916
+Change-Id: I4c72a918e3b65d04f19a8273b6c5d4e9f0123456
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8776553
+Reviewed-by: Mingyu Lei <leimy@chromium.org>
+Reviewed-by: Eriko Kurimoto <elkurin@chromium.org>
+Commit-Queue: Mingyu Lei <leimy@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2231}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ ...e_file_system_access_permission_context.cc | 127 +++++-
+ ...m_access_permission_context_browsertest.cc | 229 ++++++++++-
+ ...stem_access_permission_context_unittest.cc | 378 +++++++++++++++++-
+ 3 files changed, 687 insertions(+), 47 deletions(-)
+
+diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc b/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc
+index 20784acf0b..0199df039d 100644
+--- a/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc
++++ b/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc
+@@ -528,16 +528,14 @@ GenerateBlockPaths(bool should_normalize_file_path) {
+                                 BlockType::kBlockAllChildren),
+       BlockPath::CreateRelative(base::DIR_HOME, FILE_PATH_LITERAL(".zlogin"),
+                                 BlockType::kBlockAllChildren),
+-      // Block write access to */.git/hooks, see crbug.com/465668234 and
+-      // crbug.com/553115714.
+-      BlockPath::CreateSuffix(FILE_PATH_LITERAL(".git/hooks"),
+-                              BlockType::kBlockWrite),
+-      // Block write access to the repository config and to submodule git
+-      // directories, which have their own hooks and config, see
+-      // crbug.com/572269631 and crbug.com/571913154.
+-      BlockPath::CreateSuffix(FILE_PATH_LITERAL(".git/config"),
+-                              BlockType::kBlockWrite),
+-      BlockPath::CreateSuffix(FILE_PATH_LITERAL(".git/modules"),
++      // Block write access to */.git by default (covering .git directory and
++      // gitfile creation, config, hooks, modules, commondir, worktrees, info,
++      // and arbitrary subdirectories); `ShouldBlockAccessToGitPath()` carves
++      // out safe repository data, ref, and index paths under an existing .git
++      // directory so web-based Git clients (e.g. isomorphic-git) continue to
++      // work. See crbug.com/465668234, crbug.com/553115714,
++      // crbug.com/571913154, crbug.com/572269631, and crbug.com/577352729.
++      BlockPath::CreateSuffix(FILE_PATH_LITERAL(".git"),
+                               BlockType::kBlockWrite),
+       // Block write access to */.mvn, which holds Maven project and JVM
+       // configuration (such as jvm.config, maven.config, and extensions.xml),
+@@ -757,6 +755,109 @@ bool IsParentIgnoreCase(
+          IsPathOrDescendantIgnoreCase(parent_components, child_components);
+ }
+ 
++// Checks if write access (`kSave` or `kProgrammaticWrite`) to `path` should be
++// blocked by a `*/.git` rule rooted at `git_dir`.
++//
++// Creating or overwriting the `.git` entry itself (directory or gitfile
++// pointer) is always blocked, as are configuration, hook, submodule, worktree,
++// `commondir`, and `objects/info` paths that control what Git executes. A
++// narrow allowlist of repository data, ref, and index paths under an existing
++// `.git` directory remains writable so web-based Git clients (e.g.
++// isomorphic-git) continue to work.
++bool ShouldBlockAccessToGitPath(const base::FilePath& git_dir,
++                                const base::FilePath& path,
++                                HandleType handle_type) {
++  base::FilePath relative_path;
++  if (!git_dir.AppendRelativePath(path, &relative_path) ||
++      relative_path.ReferencesParent()) {
++    return true;
++  }
++
++  const std::vector<base::FilePath::StringType> rel_components =
++      relative_path.GetComponents();
++  // `FilePath(".").GetComponents()` is empty when `path` is `<repo>/.git/.`.
++  if (rel_components.empty()) {
++    return true;
++  }
++
++  for (const auto& component : rel_components) {
++    if (component == base::FilePath::kCurrentDirectory ||
++        base::FilePath::CompareEqualIgnoreCase(component,
++                                               FILE_PATH_LITERAL(".git"))) {
++      return true;
++    }
++  }
++
++  // Subtrees under `.git` whose contents hold repository data, refs, or
++  // reflogs rather than executable hooks or configuration.
++  static constexpr base::FilePath::StringViewType kAllowedGitDirectories[] = {
++      FILE_PATH_LITERAL("objects"),
++      FILE_PATH_LITERAL("refs"),
++      FILE_PATH_LITERAL("reftable"),
++      FILE_PATH_LITERAL("logs"),
++  };
++  for (const auto& allowed_dir : kAllowedGitDirectories) {
++    if (base::FilePath::CompareEqualIgnoreCase(rel_components[0],
++                                               allowed_dir)) {
++      if (rel_components.size() == 1) {
++        return handle_type != HandleType::kDirectory;
++      }
++      // Block `.git/objects/info` (such as `alternates` and `http-alternates`),
++      // which can redirect object lookups outside the repository.
++      if (allowed_dir == FILE_PATH_LITERAL("objects") &&
++          base::FilePath::CompareEqualIgnoreCase(rel_components[1],
++                                                 FILE_PATH_LITERAL("info"))) {
++        return true;
++      }
++      return false;
++    }
++  }
++
++  // Top-level files (and atomic lock/staging files) directly under `.git` that
++  // web-based Git clients (e.g. isomorphic-git) update during normal staging,
++  // commit, checkout, branch, fetch, and merge workflows. These files are safe
++  // to allow because Git parses them strictly as binary index entries, hex
++  // object IDs, `ref:` targets, or plain-text commit messages; unlike `config`,
++  // `hooks/*`, `commondir`, `gitdir`, or `objects/info/alternates`, they cannot
++  // configure external commands or redirect Git's repository/object lookup.
++  if (rel_components.size() == 1 && handle_type == HandleType::kFile) {
++    static constexpr base::FilePath::StringViewType kAllowedGitFiles[] = {
++        // Staging area updated by `add`, `checkout`, and `reset`.
++        FILE_PATH_LITERAL("index"),
++        FILE_PATH_LITERAL("index.lock"),
++        // Compacted ref table (`<oid> <refname>`) updated by `fetch` / `gc`.
++        FILE_PATH_LITERAL("packed-refs"),
++        FILE_PATH_LITERAL("packed-refs.lock"),
++        FILE_PATH_LITERAL("packed-refs.new"),
++        // Shallow-clone commit boundary OIDs updated by shallow `fetch`.
++        FILE_PATH_LITERAL("shallow"),
++        FILE_PATH_LITERAL("shallow.lock"),
++        // Current branch symref / commit OID and pseudorefs updated by
++        // `commit`, `checkout`, `fetch`, `merge`, `cherry-pick`, and `revert`.
++        FILE_PATH_LITERAL("HEAD"),
++        FILE_PATH_LITERAL("HEAD.lock"),
++        FILE_PATH_LITERAL("ORIG_HEAD"),
++        FILE_PATH_LITERAL("ORIG_HEAD.lock"),
++        FILE_PATH_LITERAL("FETCH_HEAD"),
++        FILE_PATH_LITERAL("MERGE_HEAD"),
++        FILE_PATH_LITERAL("CHERRY_PICK_HEAD"),
++        FILE_PATH_LITERAL("REVERT_HEAD"),
++        // Plain-text commit/merge message and mode state (`no-ff`).
++        FILE_PATH_LITERAL("MERGE_MSG"),
++        FILE_PATH_LITERAL("MERGE_MODE"),
++        FILE_PATH_LITERAL("COMMIT_EDITMSG"),
++    };
++    for (const auto& allowed_file : kAllowedGitFiles) {
++      if (base::FilePath::CompareEqualIgnoreCase(rel_components[0],
++                                                 allowed_file)) {
++        return false;
++      }
++    }
++  }
++
++  return true;
++}
++
+ // Checks if `path` should be blocked by the `rules`.
+ // The BlockType of the nearest ancestor of a path to check is what
+ // ultimately determines if a path is blocked or not. If a blocked path is a
+@@ -805,6 +906,12 @@ bool ShouldBlockAccessToPath(
+       return false;
+     }
+ 
++    if (block_type == BlockType::kBlockWrite &&
++        base::FilePath::CompareEqualIgnoreCase(block_path.BaseName().value(),
++                                               FILE_PATH_LITERAL(".git"))) {
++      return ShouldBlockAccessToGitPath(block_path, path, handle_type);
++    }
++
+     std::vector<base::FilePath::StringType> block_components =
+         block_path.GetComponents();
+     if (IsPathOrDescendantIgnoreCase(path_components, block_components)) {
+diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permission_context_browsertest.cc b/chrome/browser/file_system_access/chrome_file_system_access_permission_context_browsertest.cc
+index c22ba4da50..869c936551 100644
+--- a/chrome/browser/file_system_access/chrome_file_system_access_permission_context_browsertest.cc
++++ b/chrome/browser/file_system_access/chrome_file_system_access_permission_context_browsertest.cc
+@@ -419,9 +419,10 @@ IN_PROC_BROWSER_TEST_F(ChromeFileSystemAccessPermissionContextBrowserTest,
+   ui::SelectFileDialog::SetFactory(nullptr);
+ }
+ 
+-// Verifies that every way of writing into `.git/hooks` (and case variations
+-// of it) is rejected, while reads and writes elsewhere are unaffected. See
+-// crbug.com/545006893.
++// Verifies that creating `.git` or writing into non-allowlisted paths under
++// `.git` (such as `hooks` and `commondir`, including case variations) is
++// rejected, while reads and writes elsewhere are unaffected. See
++// crbug.com/545006893 and crbug.com/577352729.
+ //
+ // This test deliberately runs against the real
+ // ChromeFileSystemAccessPermissionContext installed by SetUpOnMainThread(),
+@@ -445,7 +446,8 @@ IN_PROC_BROWSER_TEST_F(ChromeFileSystemAccessPermissionContextBrowserTest,
+     ASSERT_TRUE(
+         base::WriteFile(hooks.AppendASCII("pre-commit"), kHookContents));
+   }
+-  ASSERT_TRUE(base::CreateDirectory(test_dir.AppendASCII("src")));
++  const base::FilePath src_dir = test_dir.AppendASCII("src");
++  ASSERT_TRUE(base::CreateDirectory(src_dir));
+ 
+   const GURL url = embedded_test_server()->GetURL("/empty.html");
+   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
+@@ -456,16 +458,79 @@ IN_PROC_BROWSER_TEST_F(ChromeFileSystemAccessPermissionContextBrowserTest,
+ 
+   for (const char* git_dir : {".git", ".Git"}) {
+     SCOPED_TRACE(git_dir);
+-    const base::FilePath hooks =
+-        test_dir.AppendASCII(git_dir).AppendASCII("hooks");
++    const base::FilePath git_path = test_dir.AppendASCII(git_dir);
++    const base::FilePath hooks = git_path.AppendASCII("hooks");
+ 
+-    // Reading an existing hook is still allowed: `.git/hooks` is blocked for
+-    // write only. This also establishes that the rejections below come from
+-    // the write operation rather than from resolving the handle.
++    // Reading an existing hook is still allowed: `.git` is blocked for write
++    // only. This also establishes that the rejections below come from the
++    // write operation rather than from resolving the handle.
+     EXPECT_EQ(
+         RunInGitHooks(git_dir, "await hooks.getFileHandle('pre-commit');"),
+         "ALLOWED");
+ 
++    // Calling getDirectoryHandle('.git', {create: true}) or writing entries
++    // directly under `.git` (such as `commondir`) is blocked.
++    EXPECT_EQ(content::EvalJs(GetWebContents(), content::JsReplace(
++                                                    R"((async () => {
++                        try {
++                          await self.dirHandle.getDirectoryHandle(
++                              $1, {create: true});
++                          return 'ALLOWED';
++                        } catch (e) {
++                          return 'BLOCKED: ' + e.name;
++                        }
++                      })())",
++                                                    git_dir))
++                  .ExtractString(),
++              "BLOCKED: SecurityError");
++    EXPECT_EQ(content::EvalJs(GetWebContents(), content::JsReplace(
++                                                    R"((async () => {
++                        try {
++                          const git =
++                              await self.dirHandle.getDirectoryHandle($1);
++                          await git.getFileHandle('commondir', {create: true});
++                          return 'ALLOWED';
++                        } catch (e) {
++                          return 'BLOCKED: ' + e.name;
++                        }
++                      })())",
++                                                    git_dir))
++                  .ExtractString(),
++              "BLOCKED: SecurityError");
++    EXPECT_FALSE(base::PathExists(git_path.AppendASCII("commondir")));
++
++    // Creating a new `.git` file or `.git` directory inside an unblocked
++    // directory (`src`) is also blocked.
++    EXPECT_EQ(content::EvalJs(GetWebContents(), content::JsReplace(
++                                                    R"((async () => {
++                        try {
++                          const src =
++                              await self.dirHandle.getDirectoryHandle('src');
++                          await src.getFileHandle($1, {create: true});
++                          return 'ALLOWED';
++                        } catch (e) {
++                          return 'BLOCKED: ' + e.name;
++                        }
++                      })())",
++                                                    git_dir))
++                  .ExtractString(),
++              "BLOCKED: SecurityError");
++    EXPECT_EQ(content::EvalJs(GetWebContents(), content::JsReplace(
++                                                    R"((async () => {
++                        try {
++                          const src =
++                              await self.dirHandle.getDirectoryHandle('src');
++                          await src.getDirectoryHandle($1, {create: true});
++                          return 'ALLOWED';
++                        } catch (e) {
++                          return 'BLOCKED: ' + e.name;
++                        }
++                      })())",
++                                                    git_dir))
++                  .ExtractString(),
++              "BLOCKED: SecurityError");
++    EXPECT_FALSE(base::PathExists(src_dir.AppendASCII(git_dir)));
++
+     // FileSystemAccessDirectoryHandleImpl::GetFileResolved(): creating a new
+     // hook file is blocked.
+     EXPECT_EQ(RunInGitHooks(
+@@ -497,14 +562,17 @@ IN_PROC_BROWSER_TEST_F(ChromeFileSystemAccessPermissionContextBrowserTest,
+   }
+ 
+   // Negative control: the same operations succeed in a sibling directory that
+-  // is not on the blocklist, so the rejections above are specific to
+-  // `.git/hooks` rather than a blanket denial. `abort()` is used instead of
+-  // `close()` to keep after-write (Safe Browsing) checks out of this test.
++  // is not on the blocklist (including dotfiles like `.gitignore`), so the
++  // rejections above are specific to `.git` rather than a blanket denial.
++  // `abort()` is used instead of `close()` to keep after-write (Safe Browsing)
++  // checks out of this test.
+   EXPECT_EQ(content::EvalJs(GetWebContents(), R"((async () => {
+         try {
+           const src = await self.dirHandle.getDirectoryHandle('src');
+           const f = await src.getFileHandle('post-commit', {create: true});
+           await (await f.createWritable()).abort();
++          const ignore = await src.getFileHandle('.gitignore', {create: true});
++          await (await ignore.createWritable()).abort();
+           await src.getDirectoryHandle('sub', {create: true});
+           return 'ALLOWED';
+         } catch (e) {
+@@ -513,10 +581,139 @@ IN_PROC_BROWSER_TEST_F(ChromeFileSystemAccessPermissionContextBrowserTest,
+       })())")
+                 .ExtractString(),
+             "ALLOWED");
+-  EXPECT_TRUE(
+-      base::PathExists(test_dir.AppendASCII("src").AppendASCII("post-commit")));
+-  EXPECT_TRUE(
+-      base::DirectoryExists(test_dir.AppendASCII("src").AppendASCII("sub")));
++  EXPECT_TRUE(base::PathExists(src_dir.AppendASCII("post-commit")));
++  EXPECT_TRUE(base::PathExists(src_dir.AppendASCII(".gitignore")));
++  EXPECT_TRUE(base::DirectoryExists(src_dir.AppendASCII("sub")));
++}
++
++// Verifies end-to-end that web-based Git clients holding a readwrite directory
++// grant on an existing repository can update allowlisted data, ref, and index
++// paths under `.git` (including lockfile rename to `index`), while
++// `.git/config` and `.git/objects/info` remain blocked with `SecurityError`.
++IN_PROC_BROWSER_TEST_F(ChromeFileSystemAccessPermissionContextBrowserTest,
++                       GitSafeDataPathsWriteAllowed) {
++  base::ScopedAllowBlockingForTesting allow_blocking;
++
++  // Each case variant of `.git` lives in its own repository directory so that
++  // the variants do not alias each other on case-insensitive file systems (the
++  // default on macOS and Windows).
++  static constexpr struct {
++    const char* repo;
++    const char* git_dir;
++  } kRepos[] = {{"repo1", ".git"}, {"repo2", ".Git"}};
++
++  const base::FilePath test_dir = temp_dir().GetPath().AppendASCII("test");
++  for (const auto& [repo, git_dir] : kRepos) {
++    ASSERT_TRUE(base::CreateDirectory(
++        test_dir.AppendASCII(repo).AppendASCII(git_dir).AppendASCII(
++            "objects")));
++  }
++
++  const GURL url = embedded_test_server()->GetURL("/empty.html");
++  ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
++
++  base::ScopedClosureRunner reset_dialog_factory(
++      base::BindOnce([]() { ui::SelectFileDialog::SetFactory(nullptr); }));
++  ASSERT_NO_FATAL_FAILURE(PickDirectoryAsDirHandle(test_dir));
++
++  for (const auto& [repo, git_dir] : kRepos) {
++    SCOPED_TRACE(git_dir);
++    const base::FilePath git_path =
++        test_dir.AppendASCII(repo).AppendASCII(git_dir);
++
++    // Allowlisted repository data, ref, and index writes (including atomic
++    // `index.lock` -> `index` rename) succeed on an existing `.git` directory.
++    // `abort()` is used instead of `close()` to keep after-write (Safe
++    // Browsing) checks out of this test. No writable is opened on `index.lock`
++    // before it is moved: `abort()` resolves in the renderer before the browser
++    // releases the writer's lock, so the move could fail with
++    // `NoModificationAllowedError`.
++    EXPECT_EQ(content::EvalJs(GetWebContents(), content::JsReplace(
++                                                    R"((async () => {
++                        try {
++                          const repo =
++                              await self.dirHandle.getDirectoryHandle($1);
++                          const git = await repo.getDirectoryHandle($2);
++                          const head =
++                              await git.getFileHandle('HEAD', {create: true});
++                          await (await head.createWritable()).abort();
++
++                          const lock = await git.getFileHandle(
++                              'index.lock', {create: true});
++                          await lock.move('index');
++
++                          const refs = await git.getDirectoryHandle(
++                              'refs', {create: true});
++                          const heads = await refs.getDirectoryHandle(
++                              'heads', {create: true});
++                          const mainRef =
++                              await heads.getFileHandle('main', {create: true});
++                          await (await mainRef.createWritable()).abort();
++
++                          const objects =
++                              await git.getDirectoryHandle('objects');
++                          const looseDir = await objects.getDirectoryHandle(
++                              'aa', {create: true});
++                          const looseObj = await looseDir.getFileHandle(
++                              'bbccdd', {create: true});
++                          await (await looseObj.createWritable()).abort();
++                          return 'ALLOWED';
++                        } catch (e) {
++                          return 'BLOCKED: ' + e.name;
++                        }
++                      })())",
++                                                    repo, git_dir))
++                  .ExtractString(),
++              "ALLOWED");
++    EXPECT_TRUE(base::PathExists(git_path.AppendASCII("HEAD")));
++    EXPECT_TRUE(base::PathExists(git_path.AppendASCII("index")));
++    EXPECT_FALSE(base::PathExists(git_path.AppendASCII("index.lock")));
++    EXPECT_TRUE(base::PathExists(
++        git_path.AppendASCII("refs").AppendASCII("heads").AppendASCII("main")));
++    EXPECT_TRUE(base::PathExists(
++        git_path.AppendASCII("objects").AppendASCII("aa").AppendASCII(
++            "bbccdd")));
++
++    // `.git/objects/info` and `.git/config` remain blocked for write even
++    // though `.git/objects` is allowlisted.
++    EXPECT_EQ(content::EvalJs(GetWebContents(), content::JsReplace(
++                                                    R"((async () => {
++                        try {
++                          const repo =
++                              await self.dirHandle.getDirectoryHandle($1);
++                          const git = await repo.getDirectoryHandle($2);
++                          const objects =
++                              await git.getDirectoryHandle('objects');
++                          await objects.getDirectoryHandle(
++                              'info', {create: true});
++                          return 'ALLOWED';
++                        } catch (e) {
++                          return 'BLOCKED: ' + e.name;
++                        }
++                      })())",
++                                                    repo, git_dir))
++                  .ExtractString(),
++              "BLOCKED: SecurityError");
++    EXPECT_FALSE(
++        base::PathExists(git_path.AppendASCII("objects").AppendASCII("info")));
++
++    EXPECT_EQ(content::EvalJs(GetWebContents(), content::JsReplace(
++                                                    R"((async () => {
++                        try {
++                          const repo =
++                              await self.dirHandle.getDirectoryHandle($1);
++                          const git = await repo.getDirectoryHandle($2);
++                          await git.getFileHandle('config', {create: true});
++                          return 'ALLOWED';
++                        } catch (e) {
++                          return 'BLOCKED: ' + e.name;
++                        }
++                      })())",
++                                                    repo, git_dir))
++                  .ExtractString(),
++              "BLOCKED: SecurityError");
++    EXPECT_FALSE(base::PathExists(git_path.AppendASCII("config")));
++  }
+ }
+ 
+ // Verifies that moving a file into `.git/hooks` consults
+diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc b/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc
+index 09556b5994..a87428f7c0 100644
+--- a/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc
++++ b/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc
+@@ -1678,7 +1678,8 @@ TEST_F(ChromeFileSystemAccessPermissionContextNoSymbolicLinkCheckTest,
+ 
+ #endif  // BUILDFLAG(IS_WIN)
+ 
+-// Testing that the */.git/hooks are all blocked.
++// Testing that writes to */.git and non-allowlisted descendants are blocked,
++// while reads stay allowed.
+ TEST_F(ChromeFileSystemAccessPermissionContextTest,
+        ConfirmSensitiveEntryAccess_SuffixWriteBlock) {
+ #if defined(FILE_PATH_USES_DRIVE_LETTERS)
+@@ -1687,11 +1688,40 @@ TEST_F(ChromeFileSystemAccessPermissionContextTest,
+   base::FilePath root(FILE_PATH_LITERAL("/"));
+ #endif
+   // Parent folder is not blocked.
+-  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
+-                permission_context(),
+-                PathInfo(root.Append(FILE_PATH_LITERAL(".git"))),
+-                HandleType::kDirectory, AccessTrigger::kSave),
+-            SensitiveDirectoryResult::kAllowed);
++  EXPECT_EQ(
++      ConfirmSensitiveEntryAccessSync(
++          permission_context(), PathInfo(root.Append(FILE_PATH_LITERAL("a"))),
++          HandleType::kDirectory, AccessTrigger::kSave),
++      SensitiveDirectoryResult::kAllowed);
++  EXPECT_EQ(
++      ConfirmSensitiveEntryAccessSync(
++          permission_context(), PathInfo(root.Append(FILE_PATH_LITERAL("a"))),
++          HandleType::kDirectory, AccessTrigger::kProgrammaticWrite),
++      SensitiveDirectoryResult::kAllowed);
++  // .git itself (as a directory or file) is blocked for save and programmatic
++  // write, and allowed for open and programmatic read.
++  for (HandleType handle_type : {HandleType::kDirectory, HandleType::kFile}) {
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(),
++                  PathInfo(root.Append(FILE_PATH_LITERAL(".git"))), handle_type,
++                  AccessTrigger::kSave),
++              SensitiveDirectoryResult::kAbort);
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(),
++                  PathInfo(root.Append(FILE_PATH_LITERAL(".git"))), handle_type,
++                  AccessTrigger::kProgrammaticWrite),
++              SensitiveDirectoryResult::kAbort);
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(),
++                  PathInfo(root.Append(FILE_PATH_LITERAL(".git"))), handle_type,
++                  AccessTrigger::kOpen),
++              SensitiveDirectoryResult::kAllowed);
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(),
++                  PathInfo(root.Append(FILE_PATH_LITERAL(".git"))), handle_type,
++                  AccessTrigger::kProgrammaticRead),
++              SensitiveDirectoryResult::kAllowed);
++  }
+   // .git/hooks is blocked for save.
+   EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
+                 permission_context(),
+@@ -1785,7 +1815,20 @@ TEST_F(ChromeFileSystemAccessPermissionContextTest,
+                              .Append(FILE_PATH_LITERAL("b"))),
+                 HandleType::kDirectory, AccessTrigger::kProgrammaticRead),
+             SensitiveDirectoryResult::kAllowed);
+-  // Case variations of .git/hooks are blocked for save and programmatic write.
++  // Case variations of .git and .git/hooks are blocked for save and
++  // programmatic write.
++  for (HandleType handle_type : {HandleType::kDirectory, HandleType::kFile}) {
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(),
++                  PathInfo(root.Append(FILE_PATH_LITERAL(".GIT"))), handle_type,
++                  AccessTrigger::kSave),
++              SensitiveDirectoryResult::kAbort);
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(),
++                  PathInfo(root.Append(FILE_PATH_LITERAL(".Git"))), handle_type,
++                  AccessTrigger::kProgrammaticWrite),
++              SensitiveDirectoryResult::kAbort);
++  }
+   EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
+                 permission_context(),
+                 PathInfo(root.Append(FILE_PATH_LITERAL(".GIT"))
+@@ -1826,23 +1869,52 @@ TEST_F(ChromeFileSystemAccessPermissionContextTest,
+                              .Append(FILE_PATH_LITERAL("b"))),
+                 HandleType::kDirectory, AccessTrigger::kProgrammaticWrite),
+             SensitiveDirectoryResult::kAbort);
+-  // Other suffix is allowed.
++  // Arbitrary children under .git are also blocked for write.
+   EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
+                 permission_context(),
+                 PathInfo(root.Append(FILE_PATH_LITERAL(".git"))
+                              .Append(FILE_PATH_LITERAL("hook"))),
+                 HandleType::kDirectory, AccessTrigger::kSave),
+-            SensitiveDirectoryResult::kAllowed);
++            SensitiveDirectoryResult::kAbort);
+   EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
+                 permission_context(),
+                 PathInfo(root.Append(FILE_PATH_LITERAL(".git"))
+                              .Append(FILE_PATH_LITERAL("hook"))),
+                 HandleType::kDirectory, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
++  // Other suffixes outside .git are allowed.
++  EXPECT_EQ(
++      ConfirmSensitiveEntryAccessSync(
++          permission_context(), PathInfo(root.Append(FILE_PATH_LITERAL(".gi"))),
++          HandleType::kDirectory, AccessTrigger::kSave),
++      SensitiveDirectoryResult::kAllowed);
++  EXPECT_EQ(
++      ConfirmSensitiveEntryAccessSync(
++          permission_context(), PathInfo(root.Append(FILE_PATH_LITERAL(".gi"))),
++          HandleType::kDirectory, AccessTrigger::kProgrammaticWrite),
++      SensitiveDirectoryResult::kAllowed);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(root.Append(FILE_PATH_LITERAL(".github"))),
++                HandleType::kDirectory, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAllowed);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(root.Append(FILE_PATH_LITERAL("a"))
++                             .Append(FILE_PATH_LITERAL(".gitignore"))),
++                HandleType::kFile, AccessTrigger::kSave),
++            SensitiveDirectoryResult::kAllowed);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(root.Append(FILE_PATH_LITERAL("a"))
++                             .Append(FILE_PATH_LITERAL(".gitignore"))),
++                HandleType::kFile, AccessTrigger::kProgrammaticWrite),
+             SensitiveDirectoryResult::kAllowed);
+ }
+ 
+-// Testing that writes to */.git/config and */.git/modules are blocked, while
+-// reads stay allowed.
++// Testing that writes to */.git itself and sensitive/indirection paths under
++// .git (such as config, modules, commondir, worktrees, info, and objects/info)
++// are blocked, while reads and non-.git files stay allowed.
+ TEST_F(ChromeFileSystemAccessPermissionContextTest,
+        ConfirmSensitiveEntryAccess_GitConfigAndModulesWriteBlock) {
+ #if defined(FILE_PATH_USES_DRIVE_LETTERS)
+@@ -1884,13 +1956,74 @@ TEST_F(ChromeFileSystemAccessPermissionContextTest,
+                              .Append(FILE_PATH_LITERAL("CONFIG"))),
+                 HandleType::kFile, AccessTrigger::kProgrammaticWrite),
+             SensitiveDirectoryResult::kAbort);
+-  // Other files under .git, and files named config outside of .git, are
+-  // allowed.
++  // Other configuration, indirection, and filter metadata under .git (such as
++  // config.bak, config.worktree, commondir, worktrees, info/attributes,
++  // objects/info/alternates, and remotes), as well as other non-allowlisted
++  // repository state (such as description, info/exclude, lfs, and rebase and
++  // sequencer state), are blocked for write and allowed for read, while files
++  // named config outside of .git remain allowed for write.
++  for (const base::FilePath& blocked_file : {
++           git_dir.Append(FILE_PATH_LITERAL("config.bak")),
++           git_dir.Append(FILE_PATH_LITERAL("config.lock")),
++           git_dir.Append(FILE_PATH_LITERAL("config.worktree")),
++           git_dir.Append(FILE_PATH_LITERAL("commondir")),
++           git_dir.Append(FILE_PATH_LITERAL("gitdir")),
++           git_dir.Append(FILE_PATH_LITERAL("worktrees"))
++               .Append(FILE_PATH_LITERAL("wt"))
++               .Append(FILE_PATH_LITERAL("commondir")),
++           git_dir.Append(FILE_PATH_LITERAL("info"))
++               .Append(FILE_PATH_LITERAL("attributes")),
++           git_dir.Append(FILE_PATH_LITERAL("objects"))
++               .Append(FILE_PATH_LITERAL("info"))
++               .Append(FILE_PATH_LITERAL("alternates")),
++           git_dir.Append(FILE_PATH_LITERAL("objects"))
++               .Append(FILE_PATH_LITERAL("."))
++               .Append(FILE_PATH_LITERAL("info"))
++               .Append(FILE_PATH_LITERAL("alternates")),
++           git_dir.Append(FILE_PATH_LITERAL("remotes"))
++               .Append(FILE_PATH_LITERAL("origin")),
++           git_dir.Append(FILE_PATH_LITERAL("description")),
++           git_dir.Append(FILE_PATH_LITERAL("info"))
++               .Append(FILE_PATH_LITERAL("exclude")),
++           git_dir.Append(FILE_PATH_LITERAL("lfs"))
++               .Append(FILE_PATH_LITERAL("objects"))
++               .Append(FILE_PATH_LITERAL("ab"))
++               .Append(FILE_PATH_LITERAL("cd"))
++               .Append(FILE_PATH_LITERAL("abcd1234")),
++           git_dir.Append(FILE_PATH_LITERAL("rebase-merge"))
++               .Append(FILE_PATH_LITERAL("git-rebase-todo")),
++           git_dir.Append(FILE_PATH_LITERAL("sequencer"))
++               .Append(FILE_PATH_LITERAL("todo")),
++       }) {
++    SCOPED_TRACE(blocked_file.value());
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(), PathInfo(blocked_file),
++                  HandleType::kFile, AccessTrigger::kSave),
++              SensitiveDirectoryResult::kAbort);
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(), PathInfo(blocked_file),
++                  HandleType::kFile, AccessTrigger::kProgrammaticWrite),
++              SensitiveDirectoryResult::kAbort);
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(), PathInfo(blocked_file),
++                  HandleType::kFile, AccessTrigger::kProgrammaticRead),
++              SensitiveDirectoryResult::kAllowed);
++  }
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(git_dir.Append(FILE_PATH_LITERAL("objects"))
++                             .Append(FILE_PATH_LITERAL("info"))),
++                HandleType::kDirectory, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
+   EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
+                 permission_context(),
+-                PathInfo(git_dir.Append(FILE_PATH_LITERAL("config.bak"))),
++                PathInfo(root.Append(FILE_PATH_LITERAL("a"))
++                             .Append(FILE_PATH_LITERAL(".GIT"))
++                             .Append(FILE_PATH_LITERAL("OBJECTS"))
++                             .Append(FILE_PATH_LITERAL("INFO"))
++                             .Append(FILE_PATH_LITERAL("alternates"))),
+                 HandleType::kFile, AccessTrigger::kProgrammaticWrite),
+-            SensitiveDirectoryResult::kAllowed);
++            SensitiveDirectoryResult::kAbort);
+   EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
+                 permission_context(),
+                 PathInfo(root.Append(FILE_PATH_LITERAL("a"))
+@@ -1898,8 +2031,8 @@ TEST_F(ChromeFileSystemAccessPermissionContextTest,
+                 HandleType::kFile, AccessTrigger::kProgrammaticWrite),
+             SensitiveDirectoryResult::kAllowed);
+ 
+-  // .git/modules and everything inside it is blocked for save and programmatic
+-  // write.
++  // .git/modules and everything inside it (including HEAD/refs/objects of a
++  // submodule gitdir) is blocked for save and programmatic write.
+   EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
+                 permission_context(), PathInfo(git_modules),
+                 HandleType::kDirectory, AccessTrigger::kSave),
+@@ -1919,6 +2052,11 @@ TEST_F(ChromeFileSystemAccessPermissionContextTest,
+                 PathInfo(submodule_dir.Append(FILE_PATH_LITERAL("config"))),
+                 HandleType::kFile, AccessTrigger::kProgrammaticWrite),
+             SensitiveDirectoryResult::kAbort);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(submodule_dir.Append(FILE_PATH_LITERAL("HEAD"))),
++                HandleType::kFile, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
+   // .git/modules is not blocked for read.
+   EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
+                 permission_context(), PathInfo(git_modules),
+@@ -1929,11 +2067,209 @@ TEST_F(ChromeFileSystemAccessPermissionContextTest,
+                 PathInfo(submodule_dir.Append(FILE_PATH_LITERAL("config"))),
+                 HandleType::kFile, AccessTrigger::kProgrammaticRead),
+             SensitiveDirectoryResult::kAllowed);
+-  // The .git directory itself is still allowed for save.
++  // The .git entry itself (as a directory or gitfile pointer, including an
++  // un-normalized trailing `.` component) is blocked for save and programmatic
++  // write, and allowed for open and programmatic read.
++  for (const base::FilePath& target :
++       {git_dir, git_dir.Append(FILE_PATH_LITERAL("."))}) {
++    SCOPED_TRACE(target.value());
++    for (HandleType handle_type : {HandleType::kDirectory, HandleType::kFile}) {
++      EXPECT_EQ(ConfirmSensitiveEntryAccessSync(permission_context(),
++                                                PathInfo(target), handle_type,
++                                                AccessTrigger::kSave),
++                SensitiveDirectoryResult::kAbort);
++      EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                    permission_context(), PathInfo(target), handle_type,
++                    AccessTrigger::kProgrammaticWrite),
++                SensitiveDirectoryResult::kAbort);
++      EXPECT_EQ(ConfirmSensitiveEntryAccessSync(permission_context(),
++                                                PathInfo(target), handle_type,
++                                                AccessTrigger::kOpen),
++                SensitiveDirectoryResult::kAllowed);
++      EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                    permission_context(), PathInfo(target), handle_type,
++                    AccessTrigger::kProgrammaticRead),
++                SensitiveDirectoryResult::kAllowed);
++    }
++  }
++}
++
++// Testing that allowlisted repository data, ref, and index paths under an
++// existing */.git directory remain writable for web-based Git clients, without
++// weakening stricter ancestor rules or nested .git/.mvn blocks.
++TEST_F(ChromeFileSystemAccessPermissionContextTest,
++       ConfirmSensitiveEntryAccess_GitSafeDataPathsWriteAllowed) {
++#if defined(FILE_PATH_USES_DRIVE_LETTERS)
++  base::FilePath root(FILE_PATH_LITERAL("c:\\"));
++#else
++  base::FilePath root(FILE_PATH_LITERAL("/"));
++#endif
++  const base::FilePath git_dir =
++      root.Append(FILE_PATH_LITERAL("a")).Append(FILE_PATH_LITERAL(".git"));
++
++  const base::FilePath kAllowedDirs[] = {
++      git_dir.Append(FILE_PATH_LITERAL("objects")),
++      git_dir.Append(FILE_PATH_LITERAL("objects"))
++          .Append(FILE_PATH_LITERAL("ab")),
++      git_dir.Append(FILE_PATH_LITERAL("objects"))
++          .Append(FILE_PATH_LITERAL("pack")),
++      git_dir.Append(FILE_PATH_LITERAL("refs")),
++      git_dir.Append(FILE_PATH_LITERAL("refs"))
++          .Append(FILE_PATH_LITERAL("heads")),
++      git_dir.Append(FILE_PATH_LITERAL("reftable")),
++      git_dir.Append(FILE_PATH_LITERAL("logs")),
++  };
++  for (const base::FilePath& dir : kAllowedDirs) {
++    SCOPED_TRACE(dir.value());
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(), PathInfo(dir), HandleType::kDirectory,
++                  AccessTrigger::kSave),
++              SensitiveDirectoryResult::kAllowed);
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(), PathInfo(dir), HandleType::kDirectory,
++                  AccessTrigger::kProgrammaticWrite),
++              SensitiveDirectoryResult::kAllowed);
++  }
++
++  const base::FilePath kAllowedFiles[] = {
++      git_dir.Append(FILE_PATH_LITERAL("objects"))
++          .Append(FILE_PATH_LITERAL("ab"))
++          .Append(FILE_PATH_LITERAL("cd1234")),
++      git_dir.Append(FILE_PATH_LITERAL("objects"))
++          .Append(FILE_PATH_LITERAL("pack"))
++          .Append(FILE_PATH_LITERAL("pack-1234.pack")),
++      git_dir.Append(FILE_PATH_LITERAL("refs"))
++          .Append(FILE_PATH_LITERAL("heads"))
++          .Append(FILE_PATH_LITERAL("main")),
++      git_dir.Append(FILE_PATH_LITERAL("refs"))
++          .Append(FILE_PATH_LITERAL("heads"))
++          .Append(FILE_PATH_LITERAL("main.lock")),
++      git_dir.Append(FILE_PATH_LITERAL("reftable"))
++          .Append(FILE_PATH_LITERAL("tables.list")),
++      git_dir.Append(FILE_PATH_LITERAL("logs"))
++          .Append(FILE_PATH_LITERAL("HEAD")),
++      git_dir.Append(FILE_PATH_LITERAL("index")),
++      git_dir.Append(FILE_PATH_LITERAL("index.lock")),
++      git_dir.Append(FILE_PATH_LITERAL("packed-refs")),
++      git_dir.Append(FILE_PATH_LITERAL("packed-refs.lock")),
++      git_dir.Append(FILE_PATH_LITERAL("packed-refs.new")),
++      git_dir.Append(FILE_PATH_LITERAL("shallow")),
++      git_dir.Append(FILE_PATH_LITERAL("shallow.lock")),
++      git_dir.Append(FILE_PATH_LITERAL("HEAD")),
++      git_dir.Append(FILE_PATH_LITERAL("HEAD.lock")),
++      git_dir.Append(FILE_PATH_LITERAL("ORIG_HEAD")),
++      git_dir.Append(FILE_PATH_LITERAL("ORIG_HEAD.lock")),
++      git_dir.Append(FILE_PATH_LITERAL("FETCH_HEAD")),
++      git_dir.Append(FILE_PATH_LITERAL("MERGE_HEAD")),
++      git_dir.Append(FILE_PATH_LITERAL("MERGE_MSG")),
++      git_dir.Append(FILE_PATH_LITERAL("MERGE_MODE")),
++      git_dir.Append(FILE_PATH_LITERAL("CHERRY_PICK_HEAD")),
++      git_dir.Append(FILE_PATH_LITERAL("REVERT_HEAD")),
++      git_dir.Append(FILE_PATH_LITERAL("COMMIT_EDITMSG")),
++      // Case-insensitive suffix matching applies to allowlisted paths too.
++      root.Append(FILE_PATH_LITERAL("a"))
++          .Append(FILE_PATH_LITERAL(".Git"))
++          .Append(FILE_PATH_LITERAL("Refs"))
++          .Append(FILE_PATH_LITERAL("heads"))
++          .Append(FILE_PATH_LITERAL("main")),
++      root.Append(FILE_PATH_LITERAL("a"))
++          .Append(FILE_PATH_LITERAL(".GIT"))
++          .Append(FILE_PATH_LITERAL("HEAD")),
++  };
++  for (const base::FilePath& file : kAllowedFiles) {
++    SCOPED_TRACE(file.value());
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(permission_context(),
++                                              PathInfo(file), HandleType::kFile,
++                                              AccessTrigger::kSave),
++              SensitiveDirectoryResult::kAllowed);
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(), PathInfo(file), HandleType::kFile,
++                  AccessTrigger::kProgrammaticWrite),
++              SensitiveDirectoryResult::kAllowed);
++  }
++
++  // Type mismatches on allowlisted paths (e.g., creating `HEAD` as a directory
++  // or `objects`/`refs` as a regular file) stay blocked for write.
+   EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
+-                permission_context(), PathInfo(git_dir), HandleType::kDirectory,
+-                AccessTrigger::kSave),
+-            SensitiveDirectoryResult::kAllowed);
++                permission_context(),
++                PathInfo(git_dir.Append(FILE_PATH_LITERAL("HEAD"))),
++                HandleType::kDirectory, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(git_dir.Append(FILE_PATH_LITERAL("HEAD"))
++                             .Append(FILE_PATH_LITERAL("config"))),
++                HandleType::kFile, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(git_dir.Append(FILE_PATH_LITERAL("objects"))),
++                HandleType::kFile, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(git_dir.Append(FILE_PATH_LITERAL("refs"))),
++                HandleType::kFile, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
++
++  // Nested .git or .mvn entries inside `.git` (including under `.git/modules`
++  // or `.git/refs`) stay blocked for write.
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(git_dir.Append(FILE_PATH_LITERAL("modules"))
++                             .Append(FILE_PATH_LITERAL("sub"))
++                             .Append(FILE_PATH_LITERAL(".git"))
++                             .Append(FILE_PATH_LITERAL("HEAD"))),
++                HandleType::kFile, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(git_dir.Append(FILE_PATH_LITERAL("refs"))
++                             .Append(FILE_PATH_LITERAL("evil"))
++                             .Append(FILE_PATH_LITERAL(".git"))),
++                HandleType::kFile, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(git_dir.Append(FILE_PATH_LITERAL("refs"))
++                             .Append(FILE_PATH_LITERAL("evil"))
++                             .Append(FILE_PATH_LITERAL(".git"))
++                             .Append(FILE_PATH_LITERAL("HEAD"))),
++                HandleType::kFile, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(git_dir.Append(FILE_PATH_LITERAL("refs"))
++                             .Append(FILE_PATH_LITERAL("evil"))
++                             .Append(FILE_PATH_LITERAL(".git"))
++                             .Append(FILE_PATH_LITERAL("config"))),
++                HandleType::kFile, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
++  EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                permission_context(),
++                PathInfo(git_dir.Append(FILE_PATH_LITERAL("refs"))
++                             .Append(FILE_PATH_LITERAL("evil"))
++                             .Append(FILE_PATH_LITERAL(".mvn"))
++                             .Append(FILE_PATH_LITERAL("jvm.config"))),
++                HandleType::kFile, AccessTrigger::kProgrammaticWrite),
++            SensitiveDirectoryResult::kAbort);
++
++  // `ShouldBlockAccessToGitPath()` must never unblock paths inside a
++  // `kBlockAllChildren` ancestor (such as `~/.ssh` or `DIR_EXE`).
++  base::FilePath home_dir = temp_dir_.GetPath().AppendASCII("home");
++  ScopedHomeDirOverride home_override = OverrideHomeDir(home_dir);
++  ResetBlockPath();
++
++  const base::FilePath ssh_git_head =
++      home_dir.AppendASCII(".ssh").AppendASCII(".git").AppendASCII("HEAD");
++  for (AccessTrigger trigger :
++       {AccessTrigger::kOpen, AccessTrigger::kSave,
++        AccessTrigger::kProgrammaticRead, AccessTrigger::kProgrammaticWrite}) {
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(permission_context(),
++                                              PathInfo(ssh_git_head),
++                                              HandleType::kFile, trigger),
++              SensitiveDirectoryResult::kAbort);
++  }
+ }
+ 
+ // Testing that writes to */.mvn and its descendants (such as .mvn/jvm.config)
+-- 
+2.43.0
+

@@ -1,0 +1,205 @@
+From 394c01c6bb73c2eb4ca9699377e9db6aae3744de Mon Sep 17 00:00:00 2001
+From: Nate Chapin <japhet@chromium.org>
+Date: Mon, 16 Nov 2026 23:16:12 +0000
+Subject: [PATCH 18/22] [M156] Block re-entrant navigations during
+ CommitNavigation document abort
+
+Original change's description:
+> Block re-entrant navigations during CommitNavigation document abort
+>
+> FrameLoader::CommitNavigation() calls
+> CancelProvisionalLoaderForNewNavigation(), which triggers
+> Document::Abort() and can synchronously dispatch a readystatechange
+> event. Previously, a listener (or nested run loop such as
+> window.print()) could start or commit another navigation
+> mid-CommitNavigation(), causing CommitNavigation() to later clone
+> ExtraData or overwrite state from an interleaved cross-origin
+> DocumentLoader.
+>
+> Scope a FrameNavigationDisabler around
+> CancelProvisionalLoaderForNewNavigation() in CommitNavigation(),
+> matching DetachDocument(). Also guard
+> ScriptController::ExecuteJavaScriptURL() against running script or
+> overwriting the Document if a new Document is committed during the
+> Trusted Types pre-navigation check or script execution, even when the
+> initial empty LocalDOMWindow is reused.
+>
+> Fixed: 580879655, 584307204
+> Change-Id: Ia47d16f95ff6876f6ba2c836de0deaebfffffa79
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8803658
+> Reviewed-by: Andrey Kosyakov <caseq@chromium.org>
+> Commit-Queue: Nate Chapin <japhet@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1743610}
+
+(cherry picked from commit ddd51c00dce41d5c732fda860b2a760b9f839433)
+
+Bug: 585800841,580879655,584307204
+Change-Id: Ia47d16f95ff6876f6ba2c836de0deaebfffffa79
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8823111
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2250}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../bindings/core/v8/script_controller.cc     | 16 +++-
+ .../renderer/core/loader/frame_loader.cc      | 12 ++-
+ .../javascript-url-reentrant-navigation.html  | 81 +++++++++++++++++++
+ 3 files changed, 104 insertions(+), 5 deletions(-)
+ create mode 100644 third_party/blink/web_tests/external/wpt/html/browsers/browsing-the-web/navigating-across-documents/javascript-url-reentrant-navigation.html
+
+diff --git a/third_party/blink/renderer/bindings/core/v8/script_controller.cc b/third_party/blink/renderer/bindings/core/v8/script_controller.cc
+index 2893df5c47..6ceefd81a4 100644
+--- a/third_party/blink/renderer/bindings/core/v8/script_controller.cc
++++ b/third_party/blink/renderer/bindings/core/v8/script_controller.cc
+@@ -228,6 +228,7 @@ void ScriptController::ExecuteJavaScriptURL(
+ 
+   bool had_navigation_before =
+       window_->GetFrame()->Loader().HasProvisionalNavigation();
++  Document* previous_document = window_->document();
+ 
+   // https://html.spec.whatwg.org/multipage/browsing-the-web.html#javascript-protocol
+   // Step 6. "Let baseURL be settings's API base URL." [spec text]
+@@ -236,6 +237,13 @@ void ScriptController::ExecuteJavaScriptURL(
+   String script_source = window_->CheckAndGetJavascriptUrl(
+       world_for_csp, url, nullptr /* element */, csp_disposition);
+ 
++  // Executing a Trusted Types default policy in CheckAndGetJavascriptUrl() may
++  // have detached this frame or committed a new document (even if the initial
++  // empty DOMWindow was reused).
++  if (!window_->GetFrame() || window_->document() != previous_document) {
++    return;
++  }
++
+   // Step 7. "Let script be the result of creating a classic script given
+   // scriptSource, settings, baseURL, and the default classic script fetch
+   // options." [spec text]
+@@ -265,10 +273,12 @@ void ScriptController::ExecuteJavaScriptURL(
+     }
+   }
+ 
+-  // If executing script caused this frame to be removed from the page, we
+-  // don't want to try to replace its document!
+-  if (!window_->GetFrame())
++  // If executing script caused this frame to be removed from the page or
++  // committed a new document (even if the initial empty DOMWindow was reused),
++  // we don't want to replace its document!
++  if (!window_->GetFrame() || window_->document() != previous_document) {
+     return;
++  }
+   // If a navigation begins during the javascript: url's execution, ignore
+   // the return value of the script. Otherwise, replacing the document with a
+   // string result would cancel the navigation.
+diff --git a/third_party/blink/renderer/core/loader/frame_loader.cc b/third_party/blink/renderer/core/loader/frame_loader.cc
+index 8960ca2f30..c9cf7dcf0a 100644
+--- a/third_party/blink/renderer/core/loader/frame_loader.cc
++++ b/third_party/blink/renderer/core/loader/frame_loader.cc
+@@ -1203,8 +1203,16 @@ void FrameLoader::CommitNavigation(
+   //   with regards to the last commit.
+   // In this rare case, we intentionally proceed as cross-document.
+ 
+-  if (!CancelProvisionalLoaderForNewNavigation())
+-    return;
++  {
++    // CancelProvisionalLoaderForNewNavigation() calls Document::Abort(), which
++    // can synchronously fire readystatechange. Disable navigations and
++    // re-entrant commits while aborting the previous document, matching
++    // DetachDocument() below.
++    FrameNavigationDisabler navigation_disabler(*frame_);
++    if (!CancelProvisionalLoaderForNewNavigation()) {
++      return;
++    }
++  }
+ 
+   FillStaticResponseIfNeeded(navigation_params.get(), frame_);
+   AssertCanNavigate(navigation_params.get(), frame_);
+diff --git a/third_party/blink/web_tests/external/wpt/html/browsers/browsing-the-web/navigating-across-documents/javascript-url-reentrant-navigation.html b/third_party/blink/web_tests/external/wpt/html/browsers/browsing-the-web/navigating-across-documents/javascript-url-reentrant-navigation.html
+new file mode 100644
+index 0000000000..a2711a30eb
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/html/browsers/browsing-the-web/navigating-across-documents/javascript-url-reentrant-navigation.html
+@@ -0,0 +1,81 @@
++<!doctype html>
++<meta charset="utf-8">
++<title>Re-entrant navigations during javascript: URL execution</title>
++<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate-to-a-javascript:-url">
++<script src="/resources/testharness.js"></script>
++<script src="/resources/testharnessreport.js"></script>
++<body>
++<script>
++promise_test(async t => {
++  const iframe = document.createElement("iframe");
++  t.add_cleanup(() => iframe.remove());
++
++  const initialLoad = new Promise(resolve =>
++    iframe.addEventListener("load", resolve, { once: true }));
++  iframe.src = "/common/blank.html?initial";
++  document.body.appendChild(iframe);
++  await initialLoad;
++
++  let loadCount = 0;
++  iframe.addEventListener("load", () => {
++    loadCount++;
++  });
++
++  const doc = iframe.contentDocument;
++  doc.open();
++  doc.addEventListener("readystatechange", () => {
++    iframe.contentWindow.location.href = "/common/blank.html?from-readystatechange";
++  }, { once: true });
++
++  const jsUrlLoad = new Promise(resolve =>
++    iframe.addEventListener("load", resolve, { once: true }));
++  iframe.contentWindow.location.href = "javascript:'<p>replaced</p>'";
++  await jsUrlLoad;
++  await new Promise(resolve => t.step_timeout(resolve, 100));
++
++  assert_equals(
++    loadCount, 1,
++    "re-entrant navigation during readystatechange should be ignored");
++  assert_equals(
++    iframe.contentWindow.location.href, location.href,
++    "document URL should remain at the opener URL from document.open()");
++  assert_equals(
++    iframe.contentDocument.body.textContent, "replaced",
++    "body should reflect the javascript: URL string result");
++}, "Navigation started in readystatechange during javascript: URL document abort is ignored");
++
++promise_test(async t => {
++  const iframe = document.createElement("iframe");
++  t.add_cleanup(() => {
++    delete window.navigateDuringJsUrl;
++    iframe.remove();
++  });
++
++  let loadCount = 0;
++  iframe.addEventListener("load", () => {
++    loadCount++;
++  });
++
++  window.navigateDuringJsUrl = () => {
++    iframe.contentWindow.location.href = "about:blank?committed";
++  };
++
++  const loaded = new Promise(resolve =>
++    iframe.addEventListener("load", resolve, { once: true }));
++  iframe.src = "javascript:(parent.navigateDuringJsUrl(), '<p>overwritten</p>')";
++  document.body.appendChild(iframe);
++  await loaded;
++  await new Promise(resolve => t.step_timeout(resolve, 100));
++
++  assert_equals(
++    loadCount, 1,
++    "javascript: string result should not trigger a second document load");
++  assert_equals(
++    iframe.contentWindow.location.href, "about:blank?committed",
++    "re-entrant about:blank navigation should remain committed");
++  assert_equals(
++    iframe.contentDocument.body.textContent, "",
++    "javascript: URL string result should be ignored after document changed");
++}, "Navigation to about:blank during initial javascript: URL src evaluation prevents string replacement");
++</script>
++</body>
+-- 
+2.43.0
+

@@ -791,3 +791,28 @@ Pendiente para la siguiente:
 - Propuesta a Titín: WebUSB y Web Serial, como WebHID.
 - Comprobaciones en ejecución de LOCAL: README de `FlyWeb/seguridad/3.0.2/` y las de §9 (UA ahora .98 en `chrome/VERSION`).
 
+
+## 12. SEGURIDAD-PORTES-23 (`session_01MwmK2ihLC48xJinz4Li6Jv`, 13-11 → 17-11-2026): 3.1.2 y 3.1.3
+
+**Hecho:**
+- Revisiones de la sync 3.2 (APTO por PR, comentarios en cada uno). Las últimas, del 17-11:
+  - #1029 (fijadas compartidas): APTO;
+  - #1032 (0009–0011): APTO, con dos opcionales para el 0011: anclar `baseline_until` a la hora del servidor y acotarlo en `LoadPrefs`.
+- **3.1.2 cerrada** (14-11): `FlyWeb/seguridad/3.1.2/CONTENIDO.md` (chromium 8abc877c10, brave-core da680a3270, build 45).
+- **3.1.3, parte 1** (17-11): delta 156.0.8078.105 → .109, V8 → 15.6.75.66 y fijadas.
+  - Detalle en `FlyWeb/seguridad/3.1.3/CONTENIDO.md`: chromium 0001–0022 → árbol cd628ae8a2; brave-core 0001–0004 → árbol 3f4141cf05.
+  - Encargos en la rama `buzon`: LOCAL (compilar) y D8-LINUX (mjsunit de la V8 .66).
+- CVE-2026-125350: ya estaba desde la 3.0.1 (0034).
+
+**Pendiente:**
+- **3.1.3, parte 2:** los 6 críticos de la 158 que Google no portó a la 156.
+  - La tabla, con los commits de `main`, está en `3.1.3/CONTENIDO.md`. Ver si el código está en la 156 y portar.
+  - ANGLE y FFmpeg van en sus forks.
+  - Después, los Altos de la 158 que no están en la .109.
+- Forks de ANGLE, FFmpeg y Dawn visibles para `gclient`: sin ellos, LOCAL fija los gitlinks a mano. Si hay que crearlos, decide Titín.
+- Resultado del mjsunit de D8-LINUX: sin él, 0021 no entra.
+
+**Herramientas:**
+- gitiles JSON (`+log/A..B?format=JSON`, `+/<sha>?format=JSON`, `+/<sha>%5E%21/?format=TEXT` en base64): para montar mbox y aplicar en un worktree *sparse* del clon parcial.
+- `gh api search/commits` en `chromium/chromium` para buscar commits por número de bug.
+- Feed de Chrome Releases con `redirect=false`.

@@ -1,0 +1,38 @@
+From ba26b02b0e258dc4c11067b8c655f5abb91dfb9b Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Tue, 17 Nov 2026 16:39:32 +0000
+Subject: [PATCH] tabs: shared pinned tab Mac test confirms the pinned close
+ toast
+
+Since Chromium 156, chrome::CloseTab() on a pinned tab first shows the
+kClosePinnedTab toast and closes only on the second command, so
+CloseTabShortCutShouldBeDisabled saw 2 tabs after one IDC_CLOSE_TAB
+(LOCAL-19, 3.1.2). Issue the command twice; the Cmd+W part of the test
+is unchanged.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ .../tabs/test/shared_pinned_tab_service_browsertest_mac.mm  | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/browser/ui/tabs/test/shared_pinned_tab_service_browsertest_mac.mm b/browser/ui/tabs/test/shared_pinned_tab_service_browsertest_mac.mm
+index c1046d3c..8ea7d50c 100644
+--- a/browser/ui/tabs/test/shared_pinned_tab_service_browsertest_mac.mm
++++ b/browser/ui/tabs/test/shared_pinned_tab_service_browsertest_mac.mm
+@@ -52,7 +52,11 @@ IN_PROC_BROWSER_TEST_F(SharedPinnedTabServiceBrowserTest,
+   // Then the tab should not be closed.
+   EXPECT_EQ(browser->tab_strip_model()->count(), 2);
+ 
+-  // When other ways to close the tab are tried
++  // When other ways to close the tab are tried. Since Chromium 156, closing a
++  // pinned tab with IDC_CLOSE_TAB first shows a confirmation toast
++  // (ToastId::kClosePinnedTab) and only the second command closes it.
++  chrome::ExecuteCommand(browser, IDC_CLOSE_TAB);
++  EXPECT_EQ(browser->tab_strip_model()->count(), 2);
+   chrome::ExecuteCommand(browser, IDC_CLOSE_TAB);
+ 
+   // Then tab should be closed
+-- 
+2.43.0
+

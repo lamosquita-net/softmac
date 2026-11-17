@@ -1,0 +1,27 @@
+From 521af0a15b00394adf2656290248dfaea6808231 Mon Sep 17 00:00:00 2001
+From: "SEGURIDAD-PORTES-23 (Claude)" <noreply@anthropic.com>
+Date: Tue, 17 Nov 2026 21:35:03 +0000
+Subject: [PATCH 2/3] [3.1.3] build: chrome project tag 156.0.8078.109
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2ihLC48xJinz4Li6Jv
+---
+ package.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/package.json b/package.json
+index aad660bf..bb5f1b70 100644
+--- a/package.json
++++ b/package.json
+@@ -67,7 +67,7 @@
+     "projects": {
+       "chrome": {
+         "dir": "src",
+-        "tag": "156.0.8078.105",
++        "tag": "156.0.8078.109",
+         "repository": {
+           "url": "https://github.com/brave/chromium"
+         }
+-- 
+2.43.0
+
