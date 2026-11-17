@@ -140,3 +140,22 @@ el espejo `chromium/chromium`) y comprobados contra el árbol de la 3.1.3:
   60bb54f340 y necesita `trun_overflow.mp4`, binario; no va en la serie).
 
 **Pendiente (para la 3.1.4 o el relevo):** los Altos de la 158 que no están en la .109.
+
+## Lo que compila LOCAL-19 (build 46, 17-11, desde las 22:49 en la MacPro7,1)
+
+Hashes tal como están en el checkout compilado (`rev-parse` en cada repositorio). Sin forks: ANGLE, FFmpeg y Dawn se
+reproducen con la base de la 3.1.2 más los `.patch` de esta carpeta.
+
+| Repositorio | Base | Parches | Resultado (commit, árbol) |
+|---|---|---|---|
+| ANGLE | `bc2ebdd211` (el de la 3.1.1 y la 3.1.2) | ninguno | **`bc2ebdd211`**, sin cambios |
+| FFmpeg | `a15fcf87d2` (3.1.2) | `ffmpeg/0001` (`git am` limpio; el primer bloque queda antes de la comprobación de `UINT_MAX`, con `sti` ya asignado) | **`d62d9c00d7`**, árbol `fa85535fd7` |
+| Dawn | `31316d1c29` (3.1.2) | `dawn/0001`–`0004` = `cherry-pick -x` de 8bc8ddaf2, f5ba7dc9e (582593917), 68b5c1f3f (584579013) y d2c1eac2d (585801970, 582926979): los M156 de la rama 8078 hasta el roll de la .109 (`d2c1eac2db`); queda fuera 86d91e781 (LiteRT, posterior y sin efecto aquí) | **`5ee7543174`**, árbol `6ba8cf702f`. Comprobado: `diff d2c1eac2d..5ee7543174` = `diff 8ce9806ee..31316d1c29` (upstream de la .109 + nuestro commit de la 10.14) |
+| V8 | `0064da7c8c` (15.6.75.58) | chromium 0021 (gitlink) | `917584bd93` (15.6.75.66); perfiles PGO de builtins de la .66 bajados (`meta.json` con esa revisión) |
+| Skia / ICU | `4c5f57e4fa` / `c670d124c9` | chromium 0009–0010 / 0007 (gitlinks) | `27c31ca415` / `c66ba5d8cd` |
+| PDFium | `8b21800ddb` | — | sin cambios |
+| chromium | `local/312` `7d1e3e05fa` (árbol `8abc877c10`, el mismo que `9439a7904c`) | 0001–0023 (árboles `cd628ae8a2` tras 0022 y `690e96b867` tras 0023, como arriba) + commit de fijación | **`local/313` `7ccbc27cf7`**, árbol `be76a94fbf`. El último commit («3.1.3: pin ANGLE, FFmpeg and Dawn…») solo cambia los gitlinks y `angle_revision`, `ffmpeg_revision` y `dawn_revision` de `DEPS` a los tres resultados de arriba |
+| brave-core | `local/3.1.2` `ba428ad058` | 0001–0004 | **`local/3.1.3` `2d55dce9a96`**, árbol `3f4141cf05` |
+
+- 0021 (V8) va en la compilación, pero la build 46 **no se entrega sin el mjsunit de D8-LINUX en verde**. Si sale en rojo, se recompila sin 0021.
+- `chrome/build/mac.pgo.txt` sin cambios (perfil `chrome-mac-8078-1793642157-…`, el de la 3.1.2). `apply_patches`: 0 fallos.

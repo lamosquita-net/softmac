@@ -1,0 +1,4 @@
+24a8ff105893c0e510b9d61d758832aba5395860535ed8909546d7f7cbad19b7  0001-M156-vulkan-Reset-the-recording-context-in-Queue-Des.patch
+07f0cf9a0d31a9d445c1bda86473e229e71e5b548491652342bee538308091f7  0002-M156-Backport-PR27137-Fix-matchSelectPattern-for-bit.patch
+d1a52efccd9a9ca0a093a047824432e0eef22a4171857c1eb34f6b135d36ef24  0003-M156-wgsl-Fix-minBindingSize-propagations.patch
+16d13eabb83176cf585ee57e380e7cacca7cfd23e7ec10f92e455f24e599f591  0004-M156-ir-prevent-infinite-loops-ensure-loop-increment.patch
