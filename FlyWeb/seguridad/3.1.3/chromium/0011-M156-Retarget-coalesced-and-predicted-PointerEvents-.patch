@@ -1,0 +1,714 @@
+From 3af6c2c7735efca1f65f42ac193783ed41bd816d Mon Sep 17 00:00:00 2001
+From: Mustaq Ahmed <mustaq@google.com>
+Date: Mon, 16 Nov 2026 18:14:19 +0000
+Subject: [PATCH 11/22] [M156] Retarget coalesced and predicted PointerEvents
+ across shadow boundaries
+
+Original change's description:
+> Retarget coalesced and predicted PointerEvents across shadow boundaries
+>
+> PointerEvent::DispatchEvent previously set the unadjusted target node on
+> all coalesced and predicted events, leaking shadow DOM nodes.
+>
+> This CL retargets coalesced and predicted sublists across shadow
+> boundaries via EventPath, storing them in a new PointerEventContext and
+> swapping them in during dispatch (cloning sub-events for outer trees).
+>
+> Fixed: 515272369, 583179913
+> Bug: 584078810
+> Change-Id: I4c4c35170c0bf576a8c6f4e034b1857681c6a629
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8806795
+> Reviewed-by: Joey Arhar <jarhar@chromium.org>
+> Commit-Queue: Mustaq Ahmed <mustaq@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1744767}
+
+(cherry picked from commit 751a34ba0c295f6e84fa9e4e935a4457da77fc2b)
+
+Bug: 586067048,515272369,583179913,584078810
+Change-Id: I4c4c35170c0bf576a8c6f4e034b1857681c6a629
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8812308
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2236}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../core/dom/events/event_dispatcher.cc       | 10 +++
+ .../renderer/core/dom/events/event_path.cc    | 48 ++++++++++++
+ .../renderer/core/dom/events/event_path.h     | 14 ++++
+ .../core/dom/events/node_event_context.cc     | 15 +++-
+ .../core/dom/events/node_event_context.h      |  4 +
+ .../dom/events/tree_scope_event_context.cc    | 11 +++
+ .../dom/events/tree_scope_event_context.h     |  7 ++
+ .../core/dom/events/window_event_context.cc   |  9 +++
+ .../core/dom/events/window_event_context.h    |  7 ++
+ .../blink/renderer/core/events/build.gni      |  2 +
+ .../renderer/core/events/pointer_event.cc     | 55 ++++++++++++--
+ .../renderer/core/events/pointer_event.h      | 20 +++++
+ .../core/events/pointer_event_context.cc      | 26 +++++++
+ .../core/events/pointer_event_context.h       | 40 ++++++++++
+ .../platform/runtime_enabled_features.json5   |  7 ++
+ .../pointer-event-retargeting-leak.https.html | 74 +++++++++++++++++++
+ 16 files changed, 342 insertions(+), 7 deletions(-)
+ create mode 100644 third_party/blink/renderer/core/events/pointer_event_context.cc
+ create mode 100644 third_party/blink/renderer/core/events/pointer_event_context.h
+ create mode 100644 third_party/blink/web_tests/external/wpt/shadow-dom/pointer-event-retargeting-leak.https.html
+
+diff --git a/third_party/blink/renderer/core/dom/events/event_dispatcher.cc b/third_party/blink/renderer/core/dom/events/event_dispatcher.cc
+index 6ca9e82f00..4a5a0c1372 100644
+--- a/third_party/blink/renderer/core/dom/events/event_dispatcher.cc
++++ b/third_party/blink/renderer/core/dom/events/event_dispatcher.cc
+@@ -49,6 +49,7 @@
+ #include "third_party/blink/renderer/core/event_type_names.h"
+ #include "third_party/blink/renderer/core/events/keyboard_event.h"
+ #include "third_party/blink/renderer/core/events/mouse_event.h"
++#include "third_party/blink/renderer/core/events/pointer_event_context.h"
+ #include "third_party/blink/renderer/core/events/simulated_event_util.h"
+ #include "third_party/blink/renderer/core/events/text_event.h"
+ #include "third_party/blink/renderer/core/execution_context/agent.h"
+@@ -66,6 +67,7 @@
+ #include "third_party/blink/renderer/platform/instrumentation/tracing/trace_event.h"
+ #include "third_party/blink/renderer/platform/instrumentation/use_counter.h"
+ #include "third_party/blink/renderer/platform/keyboard_codes.h"
++#include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+ #include "ui/events/keycodes/dom/keycode_converter.h"
+ namespace blink {
+ 
+@@ -514,6 +516,14 @@ inline void EventDispatcher::DispatchEventPostProcess(
+   // 16. If target's root is a shadow root, then set event's target attribute
+   // and event's relatedTarget to null.
+   event_->SetTarget(event_->GetEventPath().GetWindowEventContext().Target());
++  if (RuntimeEnabledFeatures::RetargetEventsInPointerEventListsEnabled()) {
++    if (PointerEventContext* pointer_event_context =
++            event_->GetEventPath()
++                .GetWindowEventContext()
++                .GetPointerEventContext()) {
++      pointer_event_context->HandleLocalEvents(*event_);
++    }
++  }
+   if (!event_->RawTarget()) {
+     event_->SetRelatedTarget(nullptr);
+   }
+diff --git a/third_party/blink/renderer/core/dom/events/event_path.cc b/third_party/blink/renderer/core/dom/events/event_path.cc
+index 8e8aebfa99..aa5f42befe 100644
+--- a/third_party/blink/renderer/core/dom/events/event_path.cc
++++ b/third_party/blink/renderer/core/dom/events/event_path.cc
+@@ -30,12 +30,15 @@
+ #include "third_party/blink/renderer/core/dom/events/window_event_context.h"
+ #include "third_party/blink/renderer/core/dom/pseudo_element.h"
+ #include "third_party/blink/renderer/core/dom/shadow_root.h"
++#include "third_party/blink/renderer/core/events/pointer_event.h"
++#include "third_party/blink/renderer/core/events/pointer_event_context.h"
+ #include "third_party/blink/renderer/core/events/touch_event.h"
+ #include "third_party/blink/renderer/core/events/touch_event_context.h"
+ #include "third_party/blink/renderer/core/execution_context/execution_context.h"
+ #include "third_party/blink/renderer/core/html/html_slot_element.h"
+ #include "third_party/blink/renderer/core/input/touch.h"
+ #include "third_party/blink/renderer/core/input/touch_list.h"
++#include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+ 
+ namespace blink {
+ 
+@@ -421,6 +424,51 @@ void EventPath::AdjustTouchList(
+   }
+ }
+ 
++void EventPath::AdjustForPointerEvent(const PointerEvent& pointer_event) {
++  CHECK(RuntimeEnabledFeatures::RetargetEventsInPointerEventListsEnabled());
++  const HeapVector<Member<PointerEvent>>& coalesced_events =
++      pointer_event.CoalescedEvents();
++  const HeapVector<Member<PointerEvent>>& predicted_events =
++      pointer_event.PredictedEvents();
++  if (coalesced_events.empty() && predicted_events.empty()) {
++    return;
++  }
++
++  // Unlike TouchEvent (where each Touch can have a distinct target node that
++  // must be retargeted independently via RelatedTargetMap), coalesced and
++  // predicted events always share the parent PointerEvent's target. Therefore
++  // `tree_scope_event_context->Target()` already holds the retargeted target,
++  // and cloning is needed only across shadow boundaries (`i > 0`).
++  for (wtf_size_t i = 0; i < tree_scope_event_contexts_.size(); ++i) {
++    TreeScopeEventContext* tree_scope_event_context =
++        tree_scope_event_contexts_[i].Get();
++    PointerEventContext& pointer_event_context =
++        tree_scope_event_context->EnsurePointerEventContext();
++    EventTarget* adjusted_target = tree_scope_event_context->Target();
++    bool clone = i > 0;
++    AdjustPointerEventList(coalesced_events, clone, adjusted_target,
++                           pointer_event_context.CoalescedEvents());
++    AdjustPointerEventList(predicted_events, clone, adjusted_target,
++                           pointer_event_context.PredictedEvents());
++  }
++}
++
++void EventPath::AdjustPointerEventList(
++    const HeapVector<Member<PointerEvent>>& pointer_event_list,
++    bool clone,
++    EventTarget* adjusted_target,
++    HeapVector<Member<PointerEvent>>& adjusted_pointer_event_list) {
++  CHECK(RuntimeEnabledFeatures::RetargetEventsInPointerEventListsEnabled());
++  adjusted_pointer_event_list.reserve(pointer_event_list.size());
++  for (PointerEvent* pointer_event : pointer_event_list) {
++    if (clone) {
++      pointer_event = pointer_event->CloneCoalescedOrPredictedEvent();
++    }
++    pointer_event->SetTarget(adjusted_target);
++    adjusted_pointer_event_list.push_back(pointer_event);
++  }
++}
++
+ void EventPath::AdjustForDisabledFormControl() {
+   for (unsigned i = 0; i < node_event_contexts_.size(); i++) {
+     if (IsDisabledFormControl(&node_event_contexts_[i].GetNode())) {
+diff --git a/third_party/blink/renderer/core/dom/events/event_path.h b/third_party/blink/renderer/core/dom/events/event_path.h
+index cd437728f6..a56021ceb5 100644
+--- a/third_party/blink/renderer/core/dom/events/event_path.h
++++ b/third_party/blink/renderer/core/dom/events/event_path.h
+@@ -39,6 +39,7 @@ namespace blink {
+ class Event;
+ class EventTarget;
+ class Node;
++class PointerEvent;
+ class TouchEvent;
+ class TouchList;
+ class TreeScope;
+@@ -102,7 +103,15 @@ class CORE_EXPORT EventPath final : public GarbageCollected<EventPath> {
+ 
+   void AdjustForRelatedTarget(Node&, EventTarget* related_target);
+   void AdjustForReferenceTarget(Node&, EventTarget* source);
++
++  // Retargets Touch targets in `touches`, `targetTouches`, and
++  // `changedTouches` across shadow boundaries.
+   void AdjustForTouchEvent(const TouchEvent&);
++
++  // Retargets coalesced and predicted PointerEvent targets across shadow
++  // boundaries.
++  void AdjustForPointerEvent(const PointerEvent&);
++
+   // AdjustForDisabledFormControl will shrink this event path if there is a
+   // disabled form control in it so that the disabled form control and its
+   // parents are not included.
+@@ -142,6 +151,11 @@ class CORE_EXPORT EventPath final : public GarbageCollected<EventPath> {
+   void AdjustTouchList(const TouchList*,
+                        HeapVector<Member<TouchList>> adjusted_touch_list,
+                        const HeapVector<Member<TreeScope>>& tree_scopes);
++  void AdjustPointerEventList(
++      const HeapVector<Member<PointerEvent>>& pointer_event_list,
++      bool clone,
++      EventTarget* adjusted_target,
++      HeapVector<Member<PointerEvent>>& adjusted_pointer_event_list);
+ 
+   TreeScopeEventContext* GetTreeScopeEventContext(TreeScope&);
+   TreeScopeEventContext* EnsureTreeScopeEventContext(Node* current_target,
+diff --git a/third_party/blink/renderer/core/dom/events/node_event_context.cc b/third_party/blink/renderer/core/dom/events/node_event_context.cc
+index 0c06bfea42..dbdaa5b815 100644
+--- a/third_party/blink/renderer/core/dom/events/node_event_context.cc
++++ b/third_party/blink/renderer/core/dom/events/node_event_context.cc
+@@ -30,8 +30,10 @@
+ #include "third_party/blink/renderer/core/events/focus_event.h"
+ #include "third_party/blink/renderer/core/events/mouse_event.h"
+ #include "third_party/blink/renderer/core/events/pointer_event.h"
++#include "third_party/blink/renderer/core/events/pointer_event_context.h"
+ #include "third_party/blink/renderer/core/events/touch_event_context.h"
+ #include "third_party/blink/renderer/core/input/touch_list.h"
++#include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+ 
+ namespace blink {
+ 
+@@ -53,8 +55,17 @@ void NodeEventContext::Trace(Visitor* visitor) const {
+ void NodeEventContext::HandleLocalEvents(Event& event) const {
+   if (TouchEventContext* touch_context = GetTouchEventContext()) {
+     touch_context->HandleLocalEvents(event);
+-  } else if (RelatedTarget()) {
+-    event.SetRelatedTarget(RelatedTarget());
++  } else {
++    if (RuntimeEnabledFeatures::RetargetEventsInPointerEventListsEnabled()) {
++      if (PointerEventContext* pointer_context = GetPointerEventContext()) {
++        pointer_context->HandleLocalEvents(event);
++      }
++    }
++    // TODO(mustaq@chromium.org): Investigate why TouchEvents skip retargeting
++    // of relatedTarget.
++    if (RelatedTarget()) {
++      event.SetRelatedTarget(RelatedTarget());
++    }
+   }
+   event.SetTarget(Target());
+   event.SetCurrentTarget(current_target_.Get());
+diff --git a/third_party/blink/renderer/core/dom/events/node_event_context.h b/third_party/blink/renderer/core/dom/events/node_event_context.h
+index 20d23ae7bd..5e5c2b609e 100644
+--- a/third_party/blink/renderer/core/dom/events/node_event_context.h
++++ b/third_party/blink/renderer/core/dom/events/node_event_context.h
+@@ -34,6 +34,7 @@ namespace blink {
+ 
+ class EventTarget;
+ class Node;
++class PointerEventContext;
+ class TouchEventContext;
+ 
+ class CORE_EXPORT NodeEventContext {
+@@ -62,6 +63,9 @@ class CORE_EXPORT NodeEventContext {
+   TouchEventContext* GetTouchEventContext() const {
+     return tree_scope_event_context_->GetTouchEventContext();
+   }
++  PointerEventContext* GetPointerEventContext() const {
++    return tree_scope_event_context_->GetPointerEventContext();
++  }
+ 
+   bool CurrentTargetSameAsTarget() const {
+     return current_target_.Get() == Target();
+diff --git a/third_party/blink/renderer/core/dom/events/tree_scope_event_context.cc b/third_party/blink/renderer/core/dom/events/tree_scope_event_context.cc
+index 102122bfb5..44fc9e22c5 100644
+--- a/third_party/blink/renderer/core/dom/events/tree_scope_event_context.cc
++++ b/third_party/blink/renderer/core/dom/events/tree_scope_event_context.cc
+@@ -30,9 +30,11 @@
+ #include "third_party/blink/renderer/core/dom/events/window_event_context.h"
+ #include "third_party/blink/renderer/core/dom/shadow_root.h"
+ #include "third_party/blink/renderer/core/dom/static_node_list.h"
++#include "third_party/blink/renderer/core/events/pointer_event_context.h"
+ #include "third_party/blink/renderer/core/events/touch_event_context.h"
+ #include "third_party/blink/renderer/core/frame/local_dom_window.h"
+ #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
++#include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+ 
+ namespace blink {
+ 
+@@ -87,6 +89,14 @@ TouchEventContext& TreeScopeEventContext::EnsureTouchEventContext() {
+   return *touch_event_context_;
+ }
+ 
++PointerEventContext& TreeScopeEventContext::EnsurePointerEventContext() {
++  CHECK(RuntimeEnabledFeatures::RetargetEventsInPointerEventListsEnabled());
++  if (!pointer_event_context_) {
++    pointer_event_context_ = MakeGarbageCollected<PointerEventContext>();
++  }
++  return *pointer_event_context_;
++}
++
+ TreeScopeEventContext::TreeScopeEventContext(TreeScope& tree_scope)
+     : tree_scope_(tree_scope),
+       containing_closed_shadow_tree_(nullptr),
+@@ -99,6 +109,7 @@ void TreeScopeEventContext::Trace(Visitor* visitor) const {
+   visitor->Trace(related_target_);
+   visitor->Trace(event_path_);
+   visitor->Trace(touch_event_context_);
++  visitor->Trace(pointer_event_context_);
+   visitor->Trace(containing_closed_shadow_tree_);
+   visitor->Trace(children_);
+ }
+diff --git a/third_party/blink/renderer/core/dom/events/tree_scope_event_context.h b/third_party/blink/renderer/core/dom/events/tree_scope_event_context.h
+index 186f1602c1..69691bc240 100644
+--- a/third_party/blink/renderer/core/dom/events/tree_scope_event_context.h
++++ b/third_party/blink/renderer/core/dom/events/tree_scope_event_context.h
+@@ -40,6 +40,7 @@ namespace blink {
+ class ContainerNode;
+ class EventPath;
+ class EventTarget;
++class PointerEventContext;
+ template <typename NodeType>
+ class StaticNodeTypeList;
+ using StaticNodeList = StaticNodeTypeList<Node>;
+@@ -66,6 +67,11 @@ class CORE_EXPORT TreeScopeEventContext final
+   }
+   TouchEventContext& EnsureTouchEventContext();
+ 
++  PointerEventContext* GetPointerEventContext() const {
++    return pointer_event_context_.Get();
++  }
++  PointerEventContext& EnsurePointerEventContext();
++
+   GCedHeapVector<Member<EventTarget>>& EnsureEventPath(EventPath&);
+ 
+   bool IsInclusiveAncestorOf(const TreeScopeEventContext&) const;
+@@ -95,6 +101,7 @@ class CORE_EXPORT TreeScopeEventContext final
+   Member<EventTarget> related_target_;
+   Member<GCedHeapVector<Member<EventTarget>>> event_path_;
+   Member<TouchEventContext> touch_event_context_;
++  Member<PointerEventContext> pointer_event_context_;
+   Member<TreeScopeEventContext> containing_closed_shadow_tree_;
+ 
+   HeapVector<Member<TreeScopeEventContext>> children_;
+diff --git a/third_party/blink/renderer/core/dom/events/window_event_context.cc b/third_party/blink/renderer/core/dom/events/window_event_context.cc
+index 0c61a30bba..24ae85c460 100644
+--- a/third_party/blink/renderer/core/dom/events/window_event_context.cc
++++ b/third_party/blink/renderer/core/dom/events/window_event_context.cc
+@@ -30,6 +30,7 @@
+ #include "third_party/blink/renderer/core/dom/events/event.h"
+ #include "third_party/blink/renderer/core/dom/events/node_event_context.h"
+ #include "third_party/blink/renderer/core/dom/node.h"
++#include "third_party/blink/renderer/core/events/pointer_event_context.h"
+ #include "third_party/blink/renderer/core/events/touch_event_context.h"
+ #include "third_party/blink/renderer/core/frame/local_dom_window.h"
+ #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+@@ -55,6 +56,9 @@ WindowEventContext::WindowEventContext(
+   target_ = top_node_event_context.Target();
+   related_target_ = top_node_event_context.RelatedTarget();
+   touch_event_context_ = top_node_event_context.GetTouchEventContext();
++  if (RuntimeEnabledFeatures::RetargetEventsInPointerEventListsEnabled()) {
++    pointer_event_context_ = top_node_event_context.GetPointerEventContext();
++  }
+ }
+ 
+ bool WindowEventContext::HandleLocalEvents(Event& event) {
+@@ -63,6 +67,10 @@ bool WindowEventContext::HandleLocalEvents(Event& event) {
+ 
+   if (touch_event_context_) {
+     touch_event_context_->HandleLocalEvents(event);
++  } else if (RuntimeEnabledFeatures::
++                 RetargetEventsInPointerEventListsEnabled() &&
++             pointer_event_context_) {
++    pointer_event_context_->HandleLocalEvents(event);
+   }
+   event.SetTarget(Target());
+   event.SetCurrentTarget(Window());
+@@ -77,6 +85,7 @@ void WindowEventContext::Trace(Visitor* visitor) const {
+   visitor->Trace(target_);
+   visitor->Trace(related_target_);
+   visitor->Trace(touch_event_context_);
++  visitor->Trace(pointer_event_context_);
+ }
+ 
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/dom/events/window_event_context.h b/third_party/blink/renderer/core/dom/events/window_event_context.h
+index 17fd901184..c44396d7e1 100644
+--- a/third_party/blink/renderer/core/dom/events/window_event_context.h
++++ b/third_party/blink/renderer/core/dom/events/window_event_context.h
+@@ -36,6 +36,7 @@ class EventTarget;
+ class Event;
+ class LocalDOMWindow;
+ class NodeEventContext;
++class PointerEventContext;
+ class TouchEventContext;
+ 
+ class WindowEventContext : public GarbageCollected<WindowEventContext> {
+@@ -47,6 +48,7 @@ class WindowEventContext : public GarbageCollected<WindowEventContext> {
+   LocalDOMWindow* Window() const;
+   EventTarget* Target() const;
+   EventTarget* RelatedTarget() const;
++  PointerEventContext* GetPointerEventContext() const;
+   bool HandleLocalEvents(Event&);
+ 
+   void Trace(Visitor*) const;
+@@ -56,6 +58,7 @@ class WindowEventContext : public GarbageCollected<WindowEventContext> {
+   Member<EventTarget> target_;
+   Member<EventTarget> related_target_;
+   Member<TouchEventContext> touch_event_context_;
++  Member<PointerEventContext> pointer_event_context_;
+ };
+ 
+ inline LocalDOMWindow* WindowEventContext::Window() const {
+@@ -70,6 +73,10 @@ inline EventTarget* WindowEventContext::RelatedTarget() const {
+   return related_target_.Get();
+ }
+ 
++inline PointerEventContext* WindowEventContext::GetPointerEventContext() const {
++  return pointer_event_context_.Get();
++}
++
+ }  // namespace blink
+ 
+ #endif  // THIRD_PARTY_BLINK_RENDERER_CORE_DOM_EVENTS_WINDOW_EVENT_CONTEXT_H_
+diff --git a/third_party/blink/renderer/core/events/build.gni b/third_party/blink/renderer/core/events/build.gni
+index b64ac9448a..d5e59863d9 100644
+--- a/third_party/blink/renderer/core/events/build.gni
++++ b/third_party/blink/renderer/core/events/build.gni
+@@ -49,6 +49,8 @@ blink_core_sources_events = [
+   "page_transition_event.h",
+   "pointer_event.cc",
+   "pointer_event.h",
++  "pointer_event_context.cc",
++  "pointer_event_context.h",
+   "pointer_event_factory.cc",
+   "pointer_event_factory.h",
+   "pointer_event_util.cc",
+diff --git a/third_party/blink/renderer/core/events/pointer_event.cc b/third_party/blink/renderer/core/events/pointer_event.cc
+index abad60c916..ea24f1f81f 100644
+--- a/third_party/blink/renderer/core/events/pointer_event.cc
++++ b/third_party/blink/renderer/core/events/pointer_event.cc
+@@ -12,6 +12,7 @@
+ #include "third_party/blink/renderer/core/events/pointer_event_util.h"
+ #include "third_party/blink/renderer/core/frame/local_dom_window.h"
+ #include "third_party/blink/renderer/platform/instrumentation/use_counter.h"
++#include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+ #include "third_party/blink/renderer/platform/wtf/math_extras.h"
+ 
+ namespace blink {
+@@ -160,6 +161,46 @@ HeapVector<Member<PointerEvent>> PointerEvent::getPredictedEvents() {
+   return predicted_events_;
+ }
+ 
++PointerEvent* PointerEvent::CloneCoalescedOrPredictedEvent() const {
++  CHECK(RuntimeEnabledFeatures::RetargetEventsInPointerEventListsEnabled());
++  PointerEventInit* initializer = PointerEventInit::Create();
++
++  if (AbstractView* abstract_view = view()) {
++    initializer->setView(abstract_view);
++  }
++  UIEventWithKeyState::SetFromWebInputEventModifiers(initializer,
++                                                     GetModifiers());
++
++  initializer->setScreenX(screen_x_);
++  initializer->setScreenY(screen_y_);
++  initializer->setClientX(client_x_);
++  initializer->setClientY(client_y_);
++  initializer->setButton(RawButton());
++  initializer->setButtons(buttons());
++  initializer->setMovementX(movementX());
++  initializer->setMovementY(movementY());
++
++  initializer->setPointerId(pointer_id_);
++  initializer->setWidth(width_);
++  initializer->setHeight(height_);
++  initializer->setPressure(pressure_);
++  initializer->setTiltX(tilt_x_);
++  initializer->setTiltY(tilt_y_);
++  initializer->setAzimuthAngle(azimuth_angle_);
++  initializer->setAltitudeAngle(altitude_angle_);
++  initializer->setTangentialPressure(tangential_pressure_);
++  initializer->setTwist(twist_);
++  initializer->setPointerType(pointer_type_);
++  initializer->setIsPrimary(is_primary_);
++  initializer->setPersistentDeviceId(persistent_device_id_);
++
++  PointerEvent* clone =
++      PointerEvent::Create(type(), initializer, PlatformTimeStamp());
++  clone->SetTrusted(isTrusted());
++
++  return clone;
++}
++
+ base::TimeTicks PointerEvent::OldestPlatformTimeStamp() const {
+   if (coalesced_events_.size() > 0) {
+     // Assume that time stamps of coalesced events are in ascending order.
+@@ -179,11 +220,15 @@ DispatchEventResult PointerEvent::DispatchEvent(EventDispatcher& dispatcher) {
+     return DispatchEventResult::kNotCanceled;  // Shouldn't happen.
+ 
+   if (isTrusted()) {
+-    for (const auto& coalesced_event : coalesced_events_) {
+-      coalesced_event->SetTarget(&dispatcher.GetNode());
+-    }
+-    for (const auto& predicted_event : predicted_events_) {
+-      predicted_event->SetTarget(&dispatcher.GetNode());
++    if (RuntimeEnabledFeatures::RetargetEventsInPointerEventListsEnabled()) {
++      GetEventPath().AdjustForPointerEvent(*this);
++    } else {
++      for (const auto& coalesced_event : coalesced_events_) {
++        coalesced_event->SetTarget(&dispatcher.GetNode());
++      }
++      for (const auto& predicted_event : predicted_events_) {
++        predicted_event->SetTarget(&dispatcher.GetNode());
++      }
+     }
+   }
+ 
+diff --git a/third_party/blink/renderer/core/events/pointer_event.h b/third_party/blink/renderer/core/events/pointer_event.h
+index 14392bf6b4..297a0540f3 100644
+--- a/third_party/blink/renderer/core/events/pointer_event.h
++++ b/third_party/blink/renderer/core/events/pointer_event.h
+@@ -102,6 +102,26 @@ class CORE_EXPORT PointerEvent : public MouseEvent {
+ 
+   HeapVector<Member<PointerEvent>> getCoalescedEvents();
+   HeapVector<Member<PointerEvent>> getPredictedEvents();
++  const HeapVector<Member<PointerEvent>>& CoalescedEvents() const {
++    return coalesced_events_;
++  }
++  const HeapVector<Member<PointerEvent>>& PredictedEvents() const {
++    return predicted_events_;
++  }
++  void SetCoalescedEvents(
++      const HeapVector<Member<PointerEvent>>& coalesced_events) {
++    coalesced_events_ = coalesced_events;
++  }
++  void SetPredictedEvents(
++      const HeapVector<Member<PointerEvent>>& predicted_events) {
++    predicted_events_ = predicted_events;
++  }
++
++  // Clones a coalesced or predicted PointerEvent, leaving dispatch-only and
++  // nested-list attributes at their defaults per
++  // https://w3c.github.io/pointerevents/#populating-and-maintaining-the-coalesced-and-predicted-events-lists
++  PointerEvent* CloneCoalescedOrPredictedEvent() const;
++
+   base::TimeTicks OldestPlatformTimeStamp() const;
+ 
+   DispatchEventResult DispatchEvent(EventDispatcher&) override;
+diff --git a/third_party/blink/renderer/core/events/pointer_event_context.cc b/third_party/blink/renderer/core/events/pointer_event_context.cc
+new file mode 100644
+index 0000000000..1dd2329d6d
+--- /dev/null
++++ b/third_party/blink/renderer/core/events/pointer_event_context.cc
+@@ -0,0 +1,26 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "third_party/blink/renderer/core/events/pointer_event_context.h"
++
++#include "third_party/blink/renderer/core/dom/events/event.h"
++#include "third_party/blink/renderer/core/events/pointer_event.h"
++#include "third_party/blink/renderer/platform/runtime_enabled_features.h"
++
++namespace blink {
++
++void PointerEventContext::HandleLocalEvents(Event& event) const {
++  CHECK(RuntimeEnabledFeatures::RetargetEventsInPointerEventListsEnabled());
++  CHECK(IsA<PointerEvent>(event));
++  auto& pointer_event = To<PointerEvent>(event);
++  pointer_event.SetCoalescedEvents(coalesced_events_);
++  pointer_event.SetPredictedEvents(predicted_events_);
++}
++
++void PointerEventContext::Trace(Visitor* visitor) const {
++  visitor->Trace(coalesced_events_);
++  visitor->Trace(predicted_events_);
++}
++
++}  // namespace blink
+diff --git a/third_party/blink/renderer/core/events/pointer_event_context.h b/third_party/blink/renderer/core/events/pointer_event_context.h
+new file mode 100644
+index 0000000000..d57edf244d
+--- /dev/null
++++ b/third_party/blink/renderer/core/events/pointer_event_context.h
+@@ -0,0 +1,40 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef THIRD_PARTY_BLINK_RENDERER_CORE_EVENTS_POINTER_EVENT_CONTEXT_H_
++#define THIRD_PARTY_BLINK_RENDERER_CORE_EVENTS_POINTER_EVENT_CONTEXT_H_
++
++#include "third_party/blink/renderer/core/core_export.h"
++#include "third_party/blink/renderer/platform/heap/collection_support/heap_vector.h"
++#include "third_party/blink/renderer/platform/heap/garbage_collected.h"
++#include "third_party/blink/renderer/platform/heap/member.h"
++
++namespace blink {
++
++class Event;
++class PointerEvent;
++
++class CORE_EXPORT PointerEventContext
++    : public GarbageCollected<PointerEventContext> {
++ public:
++  PointerEventContext() = default;
++
++  void HandleLocalEvents(Event&) const;
++  HeapVector<Member<PointerEvent>>& CoalescedEvents() {
++    return coalesced_events_;
++  }
++  HeapVector<Member<PointerEvent>>& PredictedEvents() {
++    return predicted_events_;
++  }
++
++  void Trace(Visitor*) const;
++
++ private:
++  HeapVector<Member<PointerEvent>> coalesced_events_;
++  HeapVector<Member<PointerEvent>> predicted_events_;
++};
++
++}  // namespace blink
++
++#endif  // THIRD_PARTY_BLINK_RENDERER_CORE_EVENTS_POINTER_EVENT_CONTEXT_H_
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+index 17294b0fa8..7edbaa34ed 100644
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -5348,6 +5348,13 @@
+       name: "RestrictOwnAudio",
+       status: "stable",
+     },
++    {
++      // Retarget coalesced and predicted events in PointerEvent across shadow
++      // boundaries.
++      // crbug.com/515272369
++      name: "RetargetEventsInPointerEventLists",
++      status: "stable",
++    },
+     {
+       // If enabled, makes the root scrollbars' foreground elements follow the
+       // browser
+diff --git a/third_party/blink/web_tests/external/wpt/shadow-dom/pointer-event-retargeting-leak.https.html b/third_party/blink/web_tests/external/wpt/shadow-dom/pointer-event-retargeting-leak.https.html
+new file mode 100644
+index 0000000000..a651aa5903
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/shadow-dom/pointer-event-retargeting-leak.https.html
+@@ -0,0 +1,74 @@
++<!DOCTYPE html>
++<link rel=author href="mailto:mustaq@chromium.org">
++<link rel=help href="https://w3c.github.io/pointerevents/#coalesced-and-predicted-events">
++<title>PointerEvent retargeting does not leak closed shadow root nodes to host</title>
++<script src="/resources/testharness.js"></script>
++<script src="/resources/testharnessreport.js"></script>
++<script src="/resources/testdriver.js"></script>
++<script src="/resources/testdriver-actions.js"></script>
++<script src="/resources/testdriver-vendor.js"></script>
++<style>
++  #host {
++    width: 100px;
++    height: 100px;
++    background: red;
++  }
++</style>
++
++<div id="host">
++  <template shadowrootmode="closed">
++    <div id="closed-inner" style="width: 100%; height: 100%; background: blue;"></div>
++  </template>
++</div>
++
++<script>
++"use strict";
++
++const host = document.getElementById('host');
++
++for (const event_name of ['pointermove', 'pointerrawupdate']) {
++  for (const event_phase of ['capturing', 'bubbling']) {
++    for (const api of ['getCoalescedEvents', 'getPredictedEvents']) {
++      promise_test(async (t) => {
++        const eventTargets = [];
++        const subEventTargets = [];
++
++        const listener = (e) => {
++          eventTargets.push(e.target);
++          for (const subEvent of e[api]()) {
++            subEventTargets.push(subEvent.target);
++          }
++        };
++
++        const listener_options = { capture: event_phase === "capturing" };
++        window.addEventListener(event_name, listener, listener_options);
++        t.add_cleanup(() => {
++          window.removeEventListener(event_name, listener, listener_options);
++        });
++
++        await new test_driver.Actions()
++          .addPointer("mouse_pointer", "mouse")
++          .pointerMove(-20, -20, {origin: host})
++          .pointerDown()
++          .pointerMove(20, 20, {origin: host})
++          .pointerUp()
++          .send();
++
++        assert_greater_than(eventTargets.length, 0,
++              `sanity check: ${event_name} should be fired`);
++        if (api === 'getCoalescedEvents') {
++          assert_greater_than(subEventTargets.length, 0,
++              `sanity check: ${event_name} should have at least one coalesced event`);
++        }
++
++        for (const target of eventTargets) {
++          assert_equals(target, host, `${event_name} target should be retargeted to host`);
++        }
++        for (const target of subEventTargets) {
++          assert_equals(target, host, `${api}() target should be retargeted to host`);
++        }
++      }, `${event_name}.${api}() does not leak closed shadow-dom nodes to host during ${event_phase}`);
++    }
++  }
++}
++</script>
+-- 
+2.43.0
+

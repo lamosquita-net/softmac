@@ -1,0 +1,239 @@
+From 4382065c583a2a1b817156383e62bcaa33587e53 Mon Sep 17 00:00:00 2001
+From: Kenichi Ishibashi <bashi@chromium.org>
+Date: Sun, 15 Nov 2026 20:05:19 +0000
+Subject: [PATCH 04/22] [M156] Bound mDNS response parsing by received datagram
+ length
+
+Original change's description:
+> Bound mDNS response parsing by received datagram length
+>
+> `MdnsResponderManager::SocketHandler::HandlePacket()` bounded incoming
+> query parsing by `result` (the number of bytes read from the socket),
+> but passed `io_buffer_->size()` (`kMaxMulticastSize + 1`) when
+> constructing and parsing `net::DnsResponse`. If a received packet was
+> shorter than the full receive buffer, `DnsResponse` and
+> `DnsRecordParser` could read uninitialized or stale trailing bytes past
+> the end of the received UDP datagram.
+>
+> Pass `base::checked_cast<size_t>(result)` to `net::DnsResponse` and
+> `InitParseWithoutQuery()` so response parsing is bounded to the received
+> datagram, and stop iterating over answers when
+> `RecordParsed::CreateFrom()` fails without advancing the parser offset.
+>
+> Test: services_unittests --gtest_filter=MdnsResponderTest.*
+> Change-Id: I78e43d4f76ac0e8055792408a5045932516d1158
+> Fixed: 567129575
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8812354
+> Reviewed-by: Nidhi Jaju <nidhijaju@chromium.org>
+> Commit-Queue: Kenichi Ishibashi <bashi@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1744931}
+
+(cherry picked from commit c29a19399b6baf4308d901b6eb852c9321a22fc0)
+
+Bug: 586066716,567129575
+Change-Id: I78e43d4f76ac0e8055792408a5045932516d1158
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8811049
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Reviewed-by: Kenichi Ishibashi <bashi@chromium.org>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: Kenichi Ishibashi <bashi@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2226}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ services/network/mdns_responder.cc          |  21 +++-
+ services/network/mdns_responder_unittest.cc | 109 ++++++++++++++++++++
+ 2 files changed, 125 insertions(+), 5 deletions(-)
+
+diff --git a/services/network/mdns_responder.cc b/services/network/mdns_responder.cc
+index 327e0bb19d..ad5867f5e0 100644
+--- a/services/network/mdns_responder.cc
++++ b/services/network/mdns_responder.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <cstddef>
+ #include <numeric>
+ #include <optional>
+ #include <queue>
+@@ -1105,17 +1106,19 @@ int MdnsResponderManager::SocketHandler::HandlePacket(int result) {
+   if (result < 0)
+     return responder_manager_->IsFatalError(result) ? result : net::OK;
+ 
++  const size_t bytes_read = base::checked_cast<size_t>(result);
+   net::DnsQuery query(io_buffer_.get());
+-  bool parsed_as_query = query.Parse(result);
++  bool parsed_as_query = query.Parse(bytes_read);
+   if (parsed_as_query) {
+     responder_manager_->OnMdnsQueryReceived(query, id_);
+     return result;
+   }
+ 
+-  net::DnsResponse response(io_buffer_.get(), io_buffer_->size());
+-  if (!response.InitParseWithoutQuery(io_buffer_->size()) ||
+-      response.answer_count() == 0)
++  net::DnsResponse response(io_buffer_.get(), bytes_read);
++  if (!response.InitParseWithoutQuery(bytes_read) ||
++      response.answer_count() == 0) {
+     return result;
++  }
+ 
+   // There could be multiple records for the same name in the response.
+   std::map<std::string, std::set<net::IPAddress>> external_address_maps;
+@@ -1123,10 +1126,18 @@ int MdnsResponderManager::SocketHandler::HandlePacket(int result) {
+   auto parser = response.Parser();
+   DCHECK_GT(response.answer_count(), 0u);
+   for (size_t i = 0; i < response.answer_count(); ++i) {
++    const size_t offset = parser.GetOffset();
+     auto parsed_record =
+         net::RecordParsed::CreateFrom(&parser, base::Time::Now());
+-    if (!parsed_record || !parsed_record->ttl())
++    if (!parsed_record) {
++      if (offset == parser.GetOffset()) {
++        break;
++      }
+       continue;
++    }
++    if (!parsed_record->ttl()) {
++      continue;
++    }
+ 
+     switch (parsed_record->type()) {
+       case net::ARecordRdata::kType:
+diff --git a/services/network/mdns_responder_unittest.cc b/services/network/mdns_responder_unittest.cc
+index 0ea2d1d525..ab7740b786 100644
+--- a/services/network/mdns_responder_unittest.cc
++++ b/services/network/mdns_responder_unittest.cc
+@@ -5,6 +5,7 @@
+ #include "services/network/mdns_responder.h"
+ 
+ #include <array>
++#include <cstddef>
+ #include <cstdint>
+ #include <map>
+ #include <memory>
+@@ -32,6 +33,7 @@
+ #include "net/dns/dns_names_util.h"
+ #include "net/dns/dns_query.h"
+ #include "net/dns/dns_response.h"
++#include "net/dns/dns_util.h"
+ #include "net/dns/mock_mdns_socket_factory.h"
+ #include "net/dns/public/dns_protocol.h"
+ #include "services/network/public/cpp/features.h"
+@@ -750,6 +752,113 @@ TEST_F(MdnsResponderTest,
+   RunUntilNoTasksRemain();
+ }
+ 
++// Test that truncated mDNS responses do not parse stale trailing bytes left in
++// the socket receive buffer from a previous packet.
++TEST_F(MdnsResponderTest, TruncatedResponseDoesNotReadTrailingBufferBytes) {
++  const auto& addr1 = kPublicAddrs[0];
++  const auto& addr2 = kPublicAddrs[1];
++  const std::string name1 = CreateNameForAddress(0, addr1);
++  ASSERT_TRUE(client_[0].is_bound());
++
++  const std::string conflicting_response =
++      CreateResolutionResponse(kDefaultTtl, {{name1, addr2}});
++  net::DnsRecordParser parser(base::as_byte_span(conflicting_response),
++                              sizeof(net::dns_protocol::Header),
++                              /*num_records=*/1);
++  net::DnsResourceRecord answer_record;
++  ASSERT_TRUE(parser.ReadRecord(&answer_record));
++  const size_t answer_end_offset = parser.GetOffset();
++  ASSERT_GT(answer_end_offset, sizeof(net::dns_protocol::Header));
++
++  // Prime the socket receive buffer with the bytes of `packet`, clearing the
++  // response flag bit in the header so the priming packet itself is ignored as
++  // neither a valid query (qdcount == 0) nor a valid response.
++  auto prime_stale_buffer = [&](const std::string& packet) {
++    std::string stale_packet = packet;
++    stale_packet[2] &= ~(net::dns_protocol::kFlagResponse >> 8);
++    socket_factory_.SimulateReceive(base::as_byte_span(stale_packet));
++    RunUntilNoTasksRemain();
++    ASSERT_TRUE(client_[0].is_bound());
++  };
++
++  EXPECT_CALL(socket_factory_, OnSendTo(_)).Times(0);
++
++  // Packet shorter than the DNS header.
++  prime_stale_buffer(conflicting_response);
++  socket_factory_.SimulateReceive(
++      base::as_byte_span(conflicting_response)
++          .first(sizeof(net::dns_protocol::Header) - 1));
++  RunUntilNoTasksRemain();
++  ASSERT_TRUE(client_[0].is_bound());
++
++  // Response truncated immediately after the DNS header (including with a
++  // large answer count).
++  prime_stale_buffer(conflicting_response);
++  socket_factory_.SimulateReceive(
++      base::as_byte_span(conflicting_response)
++          .first(sizeof(net::dns_protocol::Header)));
++  RunUntilNoTasksRemain();
++  ASSERT_TRUE(client_[0].is_bound());
++
++  std::string large_ancount_header =
++      conflicting_response.substr(0, sizeof(net::dns_protocol::Header));
++  large_ancount_header[6] = '\xff';
++  large_ancount_header[7] = '\xff';
++  prime_stale_buffer(conflicting_response);
++  socket_factory_.SimulateReceive(base::as_byte_span(large_ancount_header));
++  RunUntilNoTasksRemain();
++  ASSERT_TRUE(client_[0].is_bound());
++
++  // Response truncated 1 byte before the end of the answer record.
++  prime_stale_buffer(conflicting_response);
++  socket_factory_.SimulateReceive(
++      base::as_byte_span(conflicting_response).first(answer_end_offset - 1));
++  RunUntilNoTasksRemain();
++  ASSERT_TRUE(client_[0].is_bound());
++
++  // Response truncated right after the first byte (0xc0) of a 2-byte DNS name
++  // compression pointer in a second answer record.
++  const std::string non_conflicting_response =
++      CreateResolutionResponse(kDefaultTtl, {{name1, addr1}});
++  const std::array<uint8_t, 2> name_pointer =
++      net::CreateNamePointer(sizeof(net::dns_protocol::Header));
++  constexpr size_t kRecordTailSize =
++      net::dns_protocol::kResourceRecordSizeInBytesWithoutNameAndRData +
++      net::IPAddress::kIPv4AddressSize;
++  ASSERT_GT(answer_end_offset,
++            sizeof(net::dns_protocol::Header) + kRecordTailSize);
++  std::string two_answer_response =
++      non_conflicting_response.substr(0, answer_end_offset);
++  two_answer_response.append(base::as_string_view(name_pointer));
++  two_answer_response.append(conflicting_response.substr(
++      answer_end_offset - kRecordTailSize, kRecordTailSize));
++  two_answer_response[7] = 2;   // answer count = 2
++  two_answer_response[11] = 0;  // additional count = 0
++
++  prime_stale_buffer(two_answer_response);
++  socket_factory_.SimulateReceive(
++      base::as_byte_span(two_answer_response).first(answer_end_offset + 1));
++  RunUntilNoTasksRemain();
++  ASSERT_TRUE(client_[0].is_bound());
++
++  // Verify the responder still resolves queries for the owned name.
++  const std::string query1 = CreateMdnsQuery(0, name1);
++  const std::string expected_response1 =
++      CreateResolutionResponse(kDefaultTtl, {{name1, addr1}});
++  EXPECT_CALL(socket_factory_, OnSendTo(expected_response1)).Times(1);
++  socket_factory_.SimulateReceive(base::as_byte_span(query1));
++  RunUntilNoTasksRemain();
++
++  // Positive control: the full untruncated `two_answer_response` triggers
++  // conflict resolution.
++  const std::string expected_goodbye =
++      CreateResolutionResponse(base::TimeDelta(), {{name1, addr1}});
++  EXPECT_CALL(socket_factory_, OnSendTo(expected_goodbye)).Times(2);
++  socket_factory_.SimulateReceive(base::as_byte_span(two_answer_response));
++  RunUntilNoTasksRemain();
++  EXPECT_FALSE(client_[0].is_bound());
++}
++
+ // Test that we stop sending response to the mDNS name generator service queries
+ // when there is an external response carrying a TXT record with the same
+ // service instance name and the cache-flush bit set.
+-- 
+2.43.0
+

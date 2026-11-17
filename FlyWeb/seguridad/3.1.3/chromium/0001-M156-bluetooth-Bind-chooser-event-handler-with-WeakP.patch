@@ -1,0 +1,146 @@
+From 9efbc717f91a316ecbb01280a9598ce3d2fb5eb4 Mon Sep 17 00:00:00 2001
+From: Rob Pitkin <robpitkin@google.com>
+Date: Sat, 14 Nov 2026 03:35:18 +0000
+Subject: [PATCH 01/22] [M156] bluetooth: Bind chooser event handler with
+ WeakPtr in GetDevice
+
+Original change's description:
+> bluetooth: Bind chooser event handler with WeakPtr in GetDevice
+>
+> In BluetoothDeviceChooserController::GetDevice(), chooser_event_handler
+> was bound with base::Unretained(this) before calling
+> BluetoothDelegate::RunBluetoothChooser(). If the requesting frame is
+> detached while RunBluetoothChooser() drops fullscreen (before
+> RunBluetoothChooser() returns and assigns chooser_),
+> BluetoothDeviceChooserController is destroyed while chooser_ is still
+> null, so ~BluetoothChooserDesktop() never resets the event handler. When
+> ShowDeviceChooserDialog() subsequently bails out and destroys
+> BluetoothChooserController, its destructor invokes event_handler_ on the
+> freed BluetoothDeviceChooserController.
+>
+> Bind OnBluetoothChooserEvent with weak_ptr_factory_.GetWeakPtr() instead
+> of base::Unretained(this), and check that callback_ has not already been
+> consumed synchronously during RunBluetoothChooser() before assigning
+> chooser_ and starting device discovery.
+>
+> Bug: 572448485
+> Change-Id: I9cab8525fed7c9c0fd971d3e9da0b745b3f92e79
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8562877
+> Reviewed-by: Matt Reynolds <mattreynolds@chromium.org>
+> Commit-Queue: Rob Pitkin <robpitkin@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1742182}
+
+(cherry picked from commit e0516e2b5f2285ed43f1a76b53f7f012650a7c65)
+
+Bug: 584996906,572448485
+Change-Id: I9cab8525fed7c9c0fd971d3e9da0b745b3f92e79
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8805680
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: Rob Pitkin <robpitkin@chromium.org>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2217}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../bluetooth_device_chooser_controller.cc    |  9 ++--
+ .../web_bluetooth_service_impl_unittest.cc    | 48 +++++++++++++++++++
+ 2 files changed, 53 insertions(+), 4 deletions(-)
+
+diff --git a/content/browser/bluetooth/bluetooth_device_chooser_controller.cc b/content/browser/bluetooth/bluetooth_device_chooser_controller.cc
+index 7097da8e22..df5b0b3ffd 100644
+--- a/content/browser/bluetooth/bluetooth_device_chooser_controller.cc
++++ b/content/browser/bluetooth/bluetooth_device_chooser_controller.cc
+@@ -312,12 +312,13 @@ void BluetoothDeviceChooserController::GetDevice(
+ 
+   BluetoothChooser::EventHandler chooser_event_handler = base::BindRepeating(
+       &BluetoothDeviceChooserController::OnBluetoothChooserEvent,
+-      base::Unretained(this));
++      weak_ptr_factory_.GetWeakPtr());
+ 
+   // The delegate's chooser implementation may spin a nested message loop (e.g.
+   // to drop fullscreen), during which the frame may be detached and the
+-  // controller destroyed. Check that the controller is still alive before
+-  // accessing member variables.
++  // controller destroyed. In addition, the chooser event handler could be
++  // invoked synchronously. Check that the controller is still alive and that
++  // the request hasn't already completed before assigning `chooser_`.
+   base::WeakPtr<BluetoothDeviceChooserController> weak_this =
+       weak_ptr_factory_.GetWeakPtr();
+   std::unique_ptr<BluetoothChooser> chooser;
+@@ -326,7 +327,7 @@ void BluetoothDeviceChooserController::GetDevice(
+                                             std::move(chooser_event_handler));
+   }
+ 
+-  if (!weak_this) {
++  if (!weak_this || !callback_) {
+     return;
+   }
+ 
+diff --git a/content/browser/bluetooth/web_bluetooth_service_impl_unittest.cc b/content/browser/bluetooth/web_bluetooth_service_impl_unittest.cc
+index 9a3acab0dd..4845945a0f 100644
+--- a/content/browser/bluetooth/web_bluetooth_service_impl_unittest.cc
++++ b/content/browser/bluetooth/web_bluetooth_service_impl_unittest.cc
+@@ -931,6 +931,12 @@ class WebBluetoothServiceImplTest : public RenderViewHostImplTestHarness,
+         &service_ptr_.ExtractAsDangling()->render_frame_host());
+   }
+ 
++  void RequestDevice(
++      blink::mojom::WebBluetoothRequestDeviceOptionsPtr options,
++      blink::mojom::WebBluetoothService::RequestDeviceCallback callback) {
++    service_ptr_->RequestDevice(std::move(options), std::move(callback));
++  }
++
+   void ForgetDevice(
+       const blink::WebBluetoothDeviceId& device_id,
+       blink::mojom::WebBluetoothService::ForgetDeviceCallback callback) {
+@@ -1106,6 +1112,48 @@ TEST_F(WebBluetoothServiceImplTest, DestroyedDuringRequestDeviceReset) {
+   EXPECT_FALSE(future2.IsReady());
+ }
+ 
++TEST_F(WebBluetoothServiceImplTest, DestroyedDuringRunBluetoothChooserBailOut) {
++  contents()->GetPrimaryMainFrame()->SimulateUserActivation();
++  browser_client_.bluetooth_delegate()->set_run_bluetooth_chooser_callback(
++      base::BindLambdaForTesting(
++          [this](RenderFrameHost* frame,
++                 const BluetoothChooser::EventHandler& event_handler)
++              -> std::unique_ptr<BluetoothChooser> {
++            DeleteService();
++            event_handler.Run(BluetoothChooserEvent::CANCELLED, std::string());
++            return nullptr;
++          }));
++
++  auto options = blink::mojom::WebBluetoothRequestDeviceOptions::New();
++  options->accept_all_devices = true;
++  base::MockCallback<WebBluetoothServiceImpl::RequestDeviceCallback> callback;
++  EXPECT_CALL(callback, Run).Times(0);
++  RequestDevice(std::move(options), callback.Get());
++
++  task_environment()->RunUntilIdle();
++}
++
++TEST_F(WebBluetoothServiceImplTest,
++       CancelledSynchronouslyDuringRunBluetoothChooser) {
++  contents()->GetPrimaryMainFrame()->SimulateUserActivation();
++  EXPECT_CALL(*adapter_, IsPowered()).Times(0);
++  browser_client_.bluetooth_delegate()->set_run_bluetooth_chooser_callback(
++      base::BindLambdaForTesting(
++          [](RenderFrameHost* frame,
++             const BluetoothChooser::EventHandler& event_handler) {
++            event_handler.Run(BluetoothChooserEvent::CANCELLED, std::string());
++            return std::make_unique<BluetoothChooser>();
++          }));
++
++  auto options = blink::mojom::WebBluetoothRequestDeviceOptions::New();
++  options->accept_all_devices = true;
++  TestFuture<WebBluetoothResult, blink::mojom::WebBluetoothDevicePtr> future;
++  RequestDevice(std::move(options), future.GetCallback());
++
++  EXPECT_EQ(future.Get<0>(), WebBluetoothResult::CHOOSER_CANCELLED);
++  EXPECT_FALSE(future.Get<1>());
++}
++
+ TEST_F(WebBluetoothServiceImplTest, RequestDeviceWithoutUserActivation) {
+   auto options = blink::mojom::WebBluetoothRequestDeviceOptions::New();
+   options->accept_all_devices = true;
+-- 
+2.43.0
+

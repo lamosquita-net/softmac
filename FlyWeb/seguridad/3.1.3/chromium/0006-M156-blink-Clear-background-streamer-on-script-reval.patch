@@ -1,0 +1,189 @@
+From 6fd2c8161dba80cb80e65d3f6a3a8bfffcee7ec9 Mon Sep 17 00:00:00 2001
+From: Tsuyoshi Horo <horo@chromium.org>
+Date: Mon, 16 Nov 2026 03:39:56 +0000
+Subject: [PATCH 06/22] [M156] [blink] Clear background streamer on script
+ revalidation
+
+Original change's description:
+> [blink] Clear background streamer on script revalidation
+>
+> When a ScriptResource that previously used
+> BackgroundResourceScriptStreamer is revalidated,
+> SetRevalidatingRequest() cleared streamer_ and cache_consumer_, but did
+> not clear background_streamer_.
+>
+> If the revalidation response subsequently failed (non-304),
+> DestroyDecodedDataForFailedRevalidation() cleared source_text_, but
+> ResponseReceived() immediately re-installed the stale decoded text from
+> the surviving background_streamer_. This caused the resource to execute
+> the previous response's text while creating a
+> ScriptCachedMetadataHandler bound to the new response, leading to a
+> mismatched code cache in V8.
+>
+> This CL resolves the issue by:
+> 1. Clearing background_streamer_ in SetRevalidatingRequest(), matching
+>    the existing handling of streamer_ and cache_consumer_.
+> 2. Adding a DCHECK(!background_streamer_) in
+>    DestroyDecodedDataForFailedRevalidation().
+> 3. Adding unit tests for both successful (304) and failed (200)
+>    revalidations with background streaming.
+>
+> Fixed: 574605993
+> Change-Id: Iba6e97f41ea9251ac0664142644ffa3ce1bab225
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8790637
+> Commit-Queue: Tsuyoshi Horo <horo@chromium.org>
+> Reviewed-by: Kouhei Ueno <kouhei@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1741429}
+
+(cherry picked from commit 577caa435192dd4674a2366dc6323339e3c1aefe)
+
+Bug: 584997057,574605993
+Change-Id: Iba6e97f41ea9251ac0664142644ffa3ce1bab225
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8815508
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2229}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../bindings/core/v8/script_streamer_test.cc  | 103 ++++++++++++++++++
+ .../core/loader/resource/script_resource.cc   |   2 +
+ 2 files changed, 105 insertions(+)
+
+diff --git a/third_party/blink/renderer/bindings/core/v8/script_streamer_test.cc b/third_party/blink/renderer/bindings/core/v8/script_streamer_test.cc
+index d79043d070..47406cff17 100644
+--- a/third_party/blink/renderer/bindings/core/v8/script_streamer_test.cc
++++ b/third_party/blink/renderer/bindings/core/v8/script_streamer_test.cc
+@@ -2274,6 +2274,109 @@ TEST_P(BackgroundResourceScriptStreamerTest,
+   task_environment_.RunUntilIdle();
+ }
+ 
++TEST_P(BackgroundResourceScriptStreamerTest, ResourceSetRevalidatingRequest) {
++  V8TestingScope scope;
++  Init(scope.GetIsolate());
++  RunInBackgroundThread(base::BindLambdaForTesting([&]() {
++    network::mojom::URLResponseHeadPtr head = CreateURLResponseHead();
++    std::optional<mojo_base::BigBuffer> cached_metadata;
++    EXPECT_TRUE(background_response_processor_->MaybeStartProcessingResponse(
++        head, consumer_handle_, cached_metadata,
++        background_resource_fetch_task_runner_,
++        &background_response_processor_client_));
++  }));
++  AppendData(kLargeEnoughScript);
++  producer_handle_.reset();
++  background_response_processor_client_.WaitUntilFinished();
++  EXPECT_TRUE(resource_->HasBackgroundStreamerWithDecodedData());
++
++  Finish();
++  RunUntilResourceLoaded();
++  EXPECT_TRUE(resource_->HasBackgroundStreamerWithDecodedData());
++
++  while (resource_->HasClientsOrObservers()) {
++    resource_->RemoveClient(resource_client_);
++  }
++  ResourceRequest request(resource_->Url());
++  resource_->SetRevalidatingRequest(request);
++  EXPECT_FALSE(resource_->HasBackgroundStreamerWithDecodedData());
++
++  EXPECT_EQ(resource_->NoStreamerReason(),
++            ScriptStreamer::NotStreamingReason::
++                kBackgroundResponseProcessorWillBeUsed);
++
++  ResourceResponse revalidation_response(resource_->Url());
++  revalidation_response.SetHttpStatusCode(304);
++  resource_->ResponseReceived(revalidation_response);
++  resource_->FinishForTest();
++
++  EXPECT_EQ(resource_->GetSourceText().ToString(), kLargeEnoughScript);
++  CheckNotStreamingReason(ScriptStreamer::NotStreamingReason::
++                              kBackgroundResponseProcessorWillBeUsed);
++}
++
++TEST_P(BackgroundResourceScriptStreamerTest,
++       FailedRevalidationUpdatesSourceText) {
++  V8TestingScope scope;
++  Init(scope.GetIsolate());
++  RunInBackgroundThread(base::BindLambdaForTesting([&]() {
++    network::mojom::URLResponseHeadPtr head = CreateURLResponseHead();
++    std::optional<mojo_base::BigBuffer> cached_metadata;
++    EXPECT_TRUE(background_response_processor_->MaybeStartProcessingResponse(
++        head, consumer_handle_, cached_metadata,
++        background_resource_fetch_task_runner_,
++        &background_response_processor_client_));
++  }));
++  AppendData(kLargeEnoughScript);
++  producer_handle_.reset();
++  background_response_processor_client_.WaitUntilFinished();
++  Finish();
++  RunUntilResourceLoaded();
++  EXPECT_EQ(resource_->GetSourceText().ToString(), kLargeEnoughScript);
++
++  // Simulate revalidation when the initial load did not consume the streamer.
++  while (resource_->HasClientsOrObservers()) {
++    resource_->RemoveClient(resource_client_);
++  }
++  resource_->SetRevalidatingRequest(ResourceRequestHead(url_));
++
++  ResourceResponse revalidation_response(url_);
++  revalidation_response.SetHttpStatusCode(200);
++  resource_->ResponseReceived(revalidation_response);
++
++  constexpr std::string_view kUpdatedScript =
++      "function bar() { return 42; } bar();";
++  resource_->AppendData(kUpdatedScript);
++  resource_->FinishForTest();
++
++  EXPECT_EQ(resource_->GetSourceText().ToString(), String(kUpdatedScript));
++
++  ClassicScript* classic_script = CreateClassicScript();
++  EXPECT_FALSE(classic_script->Streamer());
++  EXPECT_EQ(classic_script->NotStreamingReason(),
++            ScriptStreamer::NotStreamingReason::
++                kBackgroundResponseProcessorWillBeUsed);
++
++  v8::TryCatch try_catch(scope.GetIsolate());
++  v8::Local<v8::Script> script;
++  v8::ScriptCompiler::CompileOptions compile_options;
++  V8CodeCache::ProduceCacheOptions produce_cache_options;
++  v8::ScriptCompiler::NoCacheReason no_cache_reason;
++  std::tie(compile_options, produce_cache_options, no_cache_reason) =
++      V8CodeCache::GetCompileOptions(mojom::blink::V8CacheOptions::kDefault,
++                                     *classic_script);
++  ASSERT_TRUE(V8ScriptRunner::CompileScript(
++                  scope.GetScriptState(), *classic_script,
++                  classic_script->CreateScriptOrigin(scope.GetIsolate()),
++                  compile_options, no_cache_reason)
++                  .ToLocal(&script));
++  EXPECT_FALSE(try_catch.HasCaught());
++
++  v8::Local<v8::Value> result;
++  ASSERT_TRUE(script->Run(scope.GetContext()).ToLocal(&result));
++  EXPECT_EQ(result.As<v8::Int32>()->Value(), 42);
++}
++
+ class WasmStreamingDummyModulator : public DummyModulator {
+  public:
+   explicit WasmStreamingDummyModulator(ScriptState* script_state)
+diff --git a/third_party/blink/renderer/core/loader/resource/script_resource.cc b/third_party/blink/renderer/core/loader/resource/script_resource.cc
+index c1f294eb6d..6de50529aa 100644
+--- a/third_party/blink/renderer/core/loader/resource/script_resource.cc
++++ b/third_party/blink/renderer/core/loader/resource/script_resource.cc
+@@ -360,6 +360,7 @@ void ScriptResource::DestroyDecodedDataForFailedRevalidation() {
+   source_text_ = ParkableString();
+   // Make sure there's no streaming.
+   DCHECK(!streamer_);
++  DCHECK(!background_streamer_);
+   DCHECK_EQ(streaming_state_, StreamingState::kStreamingDisabled);
+   SetDecodedSize(0);
+   DCHECK(!cache_consumer_);
+@@ -374,6 +375,7 @@ void ScriptResource::SetRevalidatingRequest(
+     CHECK(streamer_->IsFinished());
+     streamer_ = nullptr;
+   }
++  background_streamer_ = nullptr;
+   // Revalidation requests don't actually load the current Resource, so disable
+   // streaming.
+   DisableStreaming(ScriptStreamer::NotStreamingReason::kRevalidate);
+-- 
+2.43.0
+

@@ -1,0 +1,354 @@
+From b140d34bcc08fb7d7bbfb2ef9969911510b6589d Mon Sep 17 00:00:00 2001
+From: Robert Flack <flackr@chromium.org>
+Date: Mon, 16 Nov 2026 22:55:45 +0000
+Subject: [PATCH 17/22] [M156] Forbid CSSAnimations::Cancel during animated
+ style and update passes
+
+Original change's description:
+> Forbid CSSAnimations::Cancel during animated style and update passes
+>
+> Flat-tree traversals while computing animated styles
+> (StyleResolver::ApplyAnimatedStyle) or applying pending animation and
+> timeline updates (PostStyleUpdateScope::ApplyAnimations) must operate on
+> clean slot assignments and a stable flat tree. If a shadow root's slot
+> assignment is unexpectedly left dirty entering those passes, lazy slot
+> recalculation in Node::AssignedSlot() can detach unslotted subtrees and
+> call CSSAnimations::Cancel() mid-iteration, clearing timeline and
+> animation maps while they are being traversed.
+>
+> Track StyleEngine::InApplyAnimatedStyleScope alongside
+> InApplyAnimationUpdateScope (including on child documents whose pending
+> updates are drained by an outer PostStyleUpdateScope) and CHECK in
+> CSSAnimations::Cancel() that neither pass is active.
+>
+> Bug: 584687200
+> Change-Id: If5b4ea53471ba89aa016a72fa36ef8b4972cafe0
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8814622
+> Reviewed-by: Vladimir Levin <vmpstr@chromium.org>
+> Commit-Queue: Robert Flack <flackr@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1744462}
+
+(cherry picked from commit 35f4c4eaf5f2efda93f72f531fc7d003f22e6eb3)
+
+Bug: 586066564,584687200
+Change-Id: If5b4ea53471ba89aa016a72fa36ef8b4972cafe0
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8819032
+Commit-Queue: Robert Flack <flackr@chromium.org>
+Reviewed-by: Vladimir Levin <vmpstr@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2248}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../core/animation/css/css_animations.cc      |   7 +-
+ .../core/animation/css/css_animations.h       |   2 +-
+ .../core/animation/css/css_animations_test.cc | 151 ++++++++++++++++++
+ .../core/css/post_style_update_scope.cc       |   2 +
+ .../core/css/resolver/style_resolver.cc       |   3 +
+ .../blink/renderer/core/css/style_engine.h    |  14 ++
+ .../blink/renderer/core/dom/element.cc        |   6 +-
+ 7 files changed, 180 insertions(+), 5 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/animation/css/css_animations.cc b/third_party/blink/renderer/core/animation/css/css_animations.cc
+index 0bfac656c1..0190688046 100644
+--- a/third_party/blink/renderer/core/animation/css/css_animations.cc
++++ b/third_party/blink/renderer/core/animation/css/css_animations.cc
+@@ -3302,6 +3302,7 @@ HeapVector<Member<Element>> CollectAncestorsToEnsure(Element& element,
+   Element* ancestor = &element;
+   do {
+     ancestor = LayoutTreeBuilderTraversal::ParentElement(*ancestor);
++    CHECK(ancestor);
+     ancestors.push_back(ancestor);
+   } while (ancestor != root);
+   return ancestors;
+@@ -3433,7 +3434,11 @@ const ComputedStyle& CSSAnimations::CalculateAfterChangeStyle(
+   return state.base_style;
+ }
+ 
+-void CSSAnimations::Cancel() {
++void CSSAnimations::Cancel(const Document& document) {
++  const StyleEngine& style_engine = document.GetStyleEngine();
++  CHECK(!style_engine.InApplyAnimatedStyle());
++  CHECK(!style_engine.InApplyAnimationUpdate());
++
+   for (const auto& running_animation : running_animations_) {
+     running_animation->animation->cancel();
+     running_animation->animation->Update(kTimingUpdateOnDemand);
+diff --git a/third_party/blink/renderer/core/animation/css/css_animations.h b/third_party/blink/renderer/core/animation/css/css_animations.h
+index 766ccb0cc6..2fcd31784f 100644
+--- a/third_party/blink/renderer/core/animation/css/css_animations.h
++++ b/third_party/blink/renderer/core/animation/css/css_animations.h
+@@ -155,7 +155,7 @@ class CORE_EXPORT CSSAnimations final {
+            pending_update_.IsEmpty();
+   }
+   bool HasTimelines() const { return !timeline_data_.IsEmpty(); }
+-  void Cancel();
++  void Cancel(const Document&);
+ 
+   void Trace(Visitor*) const;
+ 
+diff --git a/third_party/blink/renderer/core/animation/css/css_animations_test.cc b/third_party/blink/renderer/core/animation/css/css_animations_test.cc
+index d52c1ed72a..bc56cc299a 100644
+--- a/third_party/blink/renderer/core/animation/css/css_animations_test.cc
++++ b/third_party/blink/renderer/core/animation/css/css_animations_test.cc
+@@ -8,6 +8,7 @@
+ #include <string>
+ #include <vector>
+ 
++#include "base/test/gtest_util.h"
+ #include "cc/animation/animation.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_timeline_range_offset.h"
+@@ -29,6 +30,9 @@
+ #include "third_party/blink/renderer/core/css/cssom/css_numeric_value.h"
+ #include "third_party/blink/renderer/core/css/post_style_update_scope.h"
+ #include "third_party/blink/renderer/core/css/properties/computed_style_utils.h"
++#include "third_party/blink/renderer/core/css/properties/longhands.h"
++#include "third_party/blink/renderer/core/css/resolver/style_resolver.h"
++#include "third_party/blink/renderer/core/css/style_recalc_context.h"
+ #include "third_party/blink/renderer/core/dom/dom_token_list.h"
+ #include "third_party/blink/renderer/core/dom/pseudo_element.h"
+ #include "third_party/blink/renderer/core/dom/shadow_root.h"
+@@ -4103,4 +4107,151 @@ TEST_P(CSSAnimationsTest, AttrTaintedStyleQueryUrlBlocking) {
+   }
+ }
+ 
++class CSSAnimationsDeathTest : public RenderingTest {
++ public:
++  CSSAnimationsDeathTest()
++      : RenderingTest(MakeGarbageCollected<SingleChildLocalFrameClient>()) {}
++};
++
++TEST_F(CSSAnimationsDeathTest, CancelForbiddenDuringApplyAnimatedStyle) {
++  SetBodyInnerHTML(R"HTML(
++    <style>
++      @keyframes anim {
++        from { opacity: 0; }
++        to { opacity: 1; }
++      }
++      #target {
++        scroll-timeline-name: --t1, --t2;
++        animation: anim 1s linear;
++      }
++    </style>
++    <div id="host">
++      <div id="slotted" slot="s">
++        <div id="target"></div>
++      </div>
++    </div>
++  )HTML");
++
++  Element* host = GetElementById("host");
++  ShadowRoot& shadow_root =
++      host->AttachShadowRootForTesting(ShadowRootMode::kOpen);
++  shadow_root.SetInnerHTMLWithoutTrustedTypes(
++      R"HTML(<slot name="s"></slot>)HTML");
++  UpdateAllLifecyclePhasesForTest();
++
++  Element* slotted = GetElementById("slotted");
++  Element* target = GetElementById("target");
++  ASSERT_TRUE(target->GetElementAnimations());
++  ASSERT_TRUE(target->GetElementAnimations()->CssAnimations().HasTimelines());
++
++  // Dirtying slot assignment before resolving animated style causes flat-tree
++  // timeline lookup in ForEachTimeline to trigger
++  // SlotAssignment::RecalcAssignment and detach #slotted/#target, calling
++  // CSSAnimations::Cancel() mid-iteration.
++  EXPECT_CHECK_DEATH_WITH(
++      {
++        slotted->setAttribute(html_names::kSlotAttr, AtomicString("other"));
++        GetDocument().GetStyleResolver().ResolveStyle(target,
++                                                      StyleRecalcContext());
++      },
++      "InApplyAnimatedStyle");
++}
++
++TEST_F(CSSAnimationsDeathTest, CancelForbiddenDuringApplyAnimationUpdate) {
++  SetBodyInnerHTML(R"HTML(
++    <style>
++      #scope {
++        timeline-scope: --t;
++      }
++      #first {
++        scroll-timeline-name: --t;
++      }
++    </style>
++    <div id="scope">
++      <div id="host">
++        <div id="first" slot="s"></div>
++        <div id="second" slot="s"></div>
++      </div>
++    </div>
++  )HTML");
++
++  Element* host = GetElementById("host");
++  ShadowRoot& shadow_root =
++      host->AttachShadowRootForTesting(ShadowRootMode::kOpen);
++  shadow_root.SetInnerHTMLWithoutTrustedTypes(
++      R"HTML(<slot name="s"></slot>)HTML");
++  UpdateAllLifecyclePhasesForTest();
++
++  Element* first = GetElementById("first");
++  Element* second = GetElementById("second");
++  ASSERT_TRUE(first->GetElementAnimations());
++  ASSERT_TRUE(first->GetElementAnimations()->CssAnimations().HasTimelines());
++
++  // Applying a pending timeline attachment compares flat-tree positions in
++  // DeferredTimeline::AttachTimeline; if a dirty slot assignment detaches
++  // slotted elements there, CSSAnimations::Cancel() must CHECK rather than
++  // clearing pending updates and attached timelines mid-application.
++  EXPECT_CHECK_DEATH_WITH(
++      {
++        PostStyleUpdateScope post_style_update_scope(GetDocument());
++        second->setAttribute(html_names::kStyleAttr,
++                             AtomicString("scroll-timeline-name: --t"));
++        GetDocument().GetStyleResolver().ResolveStyle(second,
++                                                      StyleRecalcContext());
++        first->setAttribute(html_names::kSlotAttr, AtomicString("other"));
++        second->setAttribute(html_names::kSlotAttr, AtomicString("other"));
++        post_style_update_scope.Apply();
++      },
++      "InApplyAnimationUpdate");
++}
++
++TEST_F(CSSAnimationsDeathTest,
++       CancelForbiddenDuringCrossDocumentApplyAnimationUpdate) {
++  SetBodyInnerHTML(R"HTML(<iframe></iframe>)HTML");
++  SetChildFrameHTML(R"HTML(
++    <style>
++      #scope {
++        timeline-scope: --t;
++      }
++      #first {
++        scroll-timeline-name: --t;
++      }
++    </style>
++    <div id="scope">
++      <div id="host">
++        <div id="first" slot="s"></div>
++        <div id="second" slot="s"></div>
++      </div>
++    </div>
++  )HTML");
++
++  Element* host = ChildDocument().getElementById(AtomicString("host"));
++  ShadowRoot& shadow_root =
++      host->AttachShadowRootForTesting(ShadowRootMode::kOpen);
++  shadow_root.SetInnerHTMLWithoutTrustedTypes(
++      R"HTML(<slot name="s"></slot>)HTML");
++  UpdateAllLifecyclePhasesForTest();
++
++  Element* first = ChildDocument().getElementById(AtomicString("first"));
++  Element* second = ChildDocument().getElementById(AtomicString("second"));
++  ASSERT_TRUE(first->GetElementAnimations());
++  ASSERT_TRUE(first->GetElementAnimations()->CssAnimations().HasTimelines());
++
++  // PostStyleUpdateScope::current_ is process-wide, so an outer document's
++  // PostStyleUpdateScope can apply pending updates belonging to a child
++  // document. Verify the child document's StyleEngine also forbids Cancel().
++  EXPECT_CHECK_DEATH_WITH(
++      {
++        PostStyleUpdateScope outer_scope(GetDocument());
++        second->setAttribute(html_names::kStyleAttr,
++                             AtomicString("scroll-timeline-name: --t"));
++        ChildDocument().GetStyleResolver().ResolveStyle(second,
++                                                        StyleRecalcContext());
++        first->setAttribute(html_names::kSlotAttr, AtomicString("other"));
++        second->setAttribute(html_names::kSlotAttr, AtomicString("other"));
++        outer_scope.Apply();
++      },
++      "InApplyAnimationUpdate");
++}
++
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/css/post_style_update_scope.cc b/third_party/blink/renderer/core/css/post_style_update_scope.cc
+index 45092d010c..8633818670 100644
+--- a/third_party/blink/renderer/core/css/post_style_update_scope.cc
++++ b/third_party/blink/renderer/core/css/post_style_update_scope.cc
+@@ -84,6 +84,8 @@ void PostStyleUpdateScope::ApplyAnimations() {
+     if (!element_animations) {
+       continue;
+     }
++    StyleEngine::InApplyAnimationUpdateScope element_apply_scope(
++        element->GetDocument().GetStyleEngine());
+     element_animations->CssAnimations().MaybeApplyPendingUpdate(element.Get());
+   }
+ 
+diff --git a/third_party/blink/renderer/core/css/resolver/style_resolver.cc b/third_party/blink/renderer/core/css/resolver/style_resolver.cc
+index 630f5c962a..ea5ab2f3a9 100644
+--- a/third_party/blink/renderer/core/css/resolver/style_resolver.cc
++++ b/third_party/blink/renderer/core/css/resolver/style_resolver.cc
+@@ -2597,6 +2597,9 @@ bool StyleResolver::ApplyAnimatedStyle(
+     return false;
+   }
+ 
++  StyleEngine::InApplyAnimatedStyleScope in_apply_animated_style_scope(
++      GetDocument().GetStyleEngine());
++
+   if (HasTimelines(state)) {
+     CSSAnimations::CalculateTimelineUpdate(
+         state.AnimationUpdate(), *animating_element, state.StyleBuilder());
+diff --git a/third_party/blink/renderer/core/css/style_engine.h b/third_party/blink/renderer/core/css/style_engine.h
+index e46a3aa9ac..09f3d63575 100644
+--- a/third_party/blink/renderer/core/css/style_engine.h
++++ b/third_party/blink/renderer/core/css/style_engine.h
+@@ -453,6 +453,19 @@ class CORE_EXPORT StyleEngine final : public GarbageCollected<StyleEngine>,
+   bool MayHaveViewportDependentMediaQueries();
+   bool HasViewportDependentPropertyRegistrations();
+ 
++  class InApplyAnimatedStyleScope {
++    STACK_ALLOCATED();
++
++   public:
++    explicit InApplyAnimatedStyleScope(StyleEngine& engine)
++        : auto_reset_(&engine.in_apply_animated_style_, true) {}
++
++   private:
++    base::AutoReset<bool> auto_reset_;
++  };
++
++  bool InApplyAnimatedStyle() const { return in_apply_animated_style_; }
++
+   class InApplyAnimationUpdateScope {
+     STACK_ALLOCATED();
+ 
+@@ -1097,6 +1110,7 @@ class CORE_EXPORT StyleEngine final : public GarbageCollected<StyleEngine>,
+   bool in_scroll_markers_attachment_{false};
+   bool in_dom_removal_{false};
+   bool in_detach_scope_{false};
++  bool in_apply_animated_style_{false};
+   bool in_apply_animation_update_{false};
+   bool in_ensure_computed_style_{false};
+   bool viewport_style_dirty_{false};
+diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/renderer/core/dom/element.cc
+index fd286b20e8..1a5a99c443 100644
+--- a/third_party/blink/renderer/core/dom/element.cc
++++ b/third_party/blink/renderer/core/dom/element.cc
+@@ -4713,7 +4713,7 @@ void Element::RemovedFrom(ContainerNode& insertion_point) {
+     if (!GetDocument().StatePreservingAtomicMoveInProgress()) {
+       if (ElementAnimations* element_animations =
+               data->GetElementAnimations()) {
+-        element_animations->CssAnimations().Cancel();
++        element_animations->CssAnimations().Cancel(document);
+         element_animations->CssImageAnimations().Clear();
+       }
+     }
+@@ -4962,7 +4962,7 @@ void Element::DetachLayoutTree(bool performing_reattach) {
+     if (ElementAnimations* element_animations = data->GetElementAnimations()) {
+       if (!performing_reattach) {
+         DocumentLifecycle::DetachScope will_detach(GetDocument().Lifecycle());
+-        element_animations->CssAnimations().Cancel();
++        element_animations->CssAnimations().Cancel(GetDocument());
+         element_animations->CssImageAnimations().Clear();
+         element_animations->SetAnimationStyleChange(false);
+       }
+@@ -5822,7 +5822,7 @@ StyleRecalcChange Element::RecalcOwnStyle(
+         // means an animation set display:none, and an animation shouldn't
+         // cancel itself in this case.
+         if (base_is_display_none) {
+-          element_animations->CssAnimations().Cancel();
++          element_animations->CssAnimations().Cancel(GetDocument());
+           element_animations->CssImageAnimations().Clear();
+         }
+       }
+-- 
+2.43.0
+

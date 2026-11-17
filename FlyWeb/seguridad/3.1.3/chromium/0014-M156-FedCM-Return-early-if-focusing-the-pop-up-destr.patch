@@ -1,0 +1,87 @@
+From 0046a4ca607f55a761a57ee22bafdd0908cb3c4d Mon Sep 17 00:00:00 2001
+From: Abhishek Madan <abhmadan@chromium.org>
+Date: Mon, 16 Nov 2026 19:29:47 +0000
+Subject: [PATCH 14/22] [M156] [FedCM] Return early if focusing the pop-up
+ destroys the view
+
+Original change's description:
+> [FedCM] Return early if focusing the pop-up destroys the view
+>
+> Previously, FedCmAccountSelectionView::ShowModalDialog() kept using the
+> view after resizing and focusing an IdP pop-up window that was already
+> open, even if that destroyed the view. Now it does that through
+> NotifyDelegate() and returns nullptr if the view was destroyed.
+>
+> Add a unit test.
+>
+> Bug: 574762567
+> Change-Id: If8ca68a86b5b05e25a67b8c1df34701e0e534ace
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8705513
+> Commit-Queue: Abhishek Madan <abhmadan@chromium.org>
+> Reviewed-by: Yi Gu <yigu@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1735414}
+
+(cherry picked from commit b2772d08f9b84adb27e7c6abf03d45789431f28d)
+
+Bug: 584579228,574762567
+Change-Id: If8ca68a86b5b05e25a67b8c1df34701e0e534ace
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8807875
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: Abhishek Madan <abhmadan@chromium.org>
+Reviewed-by: Yi Gu <yigu@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2239}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../fedcm_account_selection_view_desktop.cc     |  7 ++++++-
+ ...m_account_selection_view_desktop_unittest.cc | 17 +++++++++++++++++
+ 2 files changed, 23 insertions(+), 1 deletion(-)
+
+diff --git a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
+index 1711b9ac99..9d87964f08 100644
+--- a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
++++ b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
+@@ -912,7 +912,12 @@ content::WebContents* FedCmAccountSelectionView::ShowModalDialog(
+     // TODO(crbug.com/324052630): Support add account with multi IDP API. An add
+     // account pop-up of a different IDP might be open, so this might need to
+     // load the new IDP's login URL.
+-    popup_window_->ResizeAndFocusPopupWindow();
++    //
++    // Resizing and focusing the pop-up can synchronously destroy `this`.
++    if (!NotifyDelegate(
++            [&]() { popup_window_->ResizeAndFocusPopupWindow(); })) {
++      return nullptr;
++    }
+   } else {
+     popup_window_ = CreatePopupWindow();
+   }
+diff --git a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc
+index 55135777f0..5312ca5710 100644
+--- a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc
++++ b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop_unittest.cc
+@@ -2290,6 +2290,23 @@ TEST_F(FedCmAccountSelectionViewDesktopTest, ClosePopupWindowDestroysView) {
+   controller->CloseModalDialog();
+ }
+ 
++// Tests that showing a pop-up window while one is open does not use the view if
++// resizing and focusing the open pop-up window destroys it.
++TEST_F(FedCmAccountSelectionViewDesktopTest,
++       ResizeAndFocusPopupWindowDestroysView) {
++  std::unique_ptr<TestFedCmAccountSelectionView> controller =
++      CreateAndShow(accounts_);
++  CreateAndShowPopupWindow(*controller);
++  EXPECT_CALL(*controller->GetPopupWindow(), ResizeAndFocusPopupWindow)
++      .WillOnce([&controller]() { controller.reset(); });
++
++  // This should not crash.
++  EXPECT_FALSE(controller->ShowModalDialog(GURL(u"https://example.com"),
++                                           blink::mojom::RpMode::kActive,
++                                           base::DoNothing()));
++  EXPECT_FALSE(controller);
++}
++
+ // Tests that opening a popup after a verifying sheet, then closing the popup,
+ // notifies the observer.
+ TEST_F(FedCmAccountSelectionViewDesktopTest,
+-- 
+2.43.0
+

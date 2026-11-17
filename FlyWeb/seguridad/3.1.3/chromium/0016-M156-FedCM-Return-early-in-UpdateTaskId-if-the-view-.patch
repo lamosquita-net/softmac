@@ -1,0 +1,104 @@
+From 4c581a693426420c94ddc75a29d3c44d58c29849 Mon Sep 17 00:00:00 2001
+From: Ryan Qin <ryqin@google.com>
+Date: Mon, 16 Nov 2026 21:04:40 +0000
+Subject: [PATCH 16/22] [M156] [FedCM] Return early in UpdateTaskId() if the
+ view destroys it
+
+Original change's description:
+> [FedCM] Return early in UpdateTaskId() if the view destroys it
+>
+> IdentityDialogController::UpdateTaskId() lets the account selection view
+> show its UI again when an actor task stops acting. The view can dismiss
+> the UI synchronously, which can complete the request and destroy the
+> controller, which then kept using its members. Return early if that
+> happens.
+>
+> Fixed: 573931934
+> Change-Id: Ie6bf46fd100629ae0ac53bd6139f5357cf50e1b5
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8757111
+> Reviewed-by: Yi Gu <yigu@chromium.org>
+> Commit-Queue: Ryan Qin <ryqin@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1739307}
+
+(cherry picked from commit e9b88a342e9c5cb2280044e2dd1e87a4ee6f01f7)
+
+Bug: 584119715,573931934
+Change-Id: Ie6bf46fd100629ae0ac53bd6139f5357cf50e1b5
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8773703
+Reviewed-by: Mohamed Amir Yosef <mamir@chromium.org>
+Commit-Queue: Yi Gu <yigu@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2244}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../ui/webid/identity_dialog_controller.cc    |  7 ++++
+ .../identity_dialog_controller_unittest.cc    | 35 +++++++++++++++++++
+ 2 files changed, 42 insertions(+)
+
+diff --git a/chrome/browser/ui/webid/identity_dialog_controller.cc b/chrome/browser/ui/webid/identity_dialog_controller.cc
+index 00fce89f64..327c413e5c 100644
+--- a/chrome/browser/ui/webid/identity_dialog_controller.cc
++++ b/chrome/browser/ui/webid/identity_dialog_controller.cc
+@@ -132,7 +132,14 @@ void IdentityDialogController::OnActorTaskStateChanged(actor::ActorTask& task) {
+ void IdentityDialogController::UpdateTaskId(actor::TaskId task_id) {
+   acting_task_id_ = task_id;
+   if (account_view_) {
++    // Showing the UI again may dismiss it synchronously, which may destroy
++    // this object.
++    base::WeakPtr<IdentityDialogController> weak_this =
++        weak_ptr_factory_.GetWeakPtr();
+     account_view_->SetCanShowUi(acting_task_id_.is_null());
++    if (!weak_this) {
++      return;
++    }
+     if (acting_task_id_.is_null() && did_invoke_show_ui_) {
+       did_show_ui_ = true;
+     }
+diff --git a/chrome/browser/ui/webid/identity_dialog_controller_unittest.cc b/chrome/browser/ui/webid/identity_dialog_controller_unittest.cc
+index 75481b9452..d02714231d 100644
+--- a/chrome/browser/ui/webid/identity_dialog_controller_unittest.cc
++++ b/chrome/browser/ui/webid/identity_dialog_controller_unittest.cc
+@@ -1178,6 +1178,41 @@ TEST_F(IdentityDialogControllerTest, ActiveModeDismissedWhenActorStopsActing) {
+   controller->SetActingTaskIdForTesting(actor::TaskId());
+ }
+ 
++// Tests that the controller does not access its members when it gets destroyed
++// while letting the view show UI again after an actor task stops acting.
++TEST_F(IdentityDialogControllerTest, ControllerDestroyedDuringSetCanShowUi) {
++  auto controller = std::make_unique<IdentityDialogController>(web_contents());
++  IdentityDialogController* controller_ptr = controller.get();
++  auto mock_view = std::make_unique<MockAccountSelectionView>();
++  MockAccountSelectionView* mock_view_ptr = mock_view.get();
++
++  // Simulate an active actor task.
++  EXPECT_CALL(*mock_view_ptr, SetCanShowUi(false));
++  controller->SetAccountSelectionViewForTesting(std::move(mock_view));
++  controller->SetActingTaskIdForTesting(actor::TaskId::FromUnsafeValue(1));
++
++  accounts_ = CreateAccount();
++  IdentityProviderDataPtr idp_data = CreateIdentityProviderData(accounts_);
++
++  // Store a dismiss callback for an active mode request while the UI is
++  // suppressed.
++  base::MockCallback<DismissCallback> dismiss_callback;
++  EXPECT_CALL(*mock_view_ptr, Show).Times(0);
++  EXPECT_FALSE(controller->ShowAccountsDialog(
++      content::RelyingPartyData(kTopFrameEtldPlusOne, u""), {idp_data},
++      accounts_, {}, blink::mojom::RpMode::kActive, base::DoNothing(),
++      base::DoNothing(), dismiss_callback.Get(), base::DoNothing()));
++
++  // The actor task stops acting. Letting the view show UI again destroys the
++  // controller, so the controller must not run the dismiss callback afterwards.
++  EXPECT_CALL(*mock_view_ptr, SetCanShowUi(true)).WillOnce([&controller]() {
++    controller.reset();
++  });
++  EXPECT_CALL(dismiss_callback, Run).Times(0);
++  controller_ptr->SetActingTaskIdForTesting(actor::TaskId());
++  EXPECT_FALSE(controller);
++}
++
+ TEST_F(IdentityDialogControllerTest, ShowNativeAppUiSuccess) {
+   std::unique_ptr<IdentityDialogController> controller =
+       std::make_unique<IdentityDialogController>(web_contents());
+-- 
+2.43.0
+

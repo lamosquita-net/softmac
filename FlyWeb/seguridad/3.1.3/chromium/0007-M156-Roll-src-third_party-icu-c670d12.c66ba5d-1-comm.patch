@@ -1,0 +1,61 @@
+From b81fd380d05a77f3da908cb9c31ba9611cb8b553 Mon Sep 17 00:00:00 2001
+From: Koji Ishii <kojii@chromium.org>
+Date: Mon, 16 Nov 2026 06:20:41 +0000
+Subject: [PATCH 07/22] [M156] Roll src/third_party/icu/ c670d12..c66ba5d (1
+ commit)
+
+https://chromium.googlesource.com/chromium/deps/icu.git/+log/c670d12..c66ba5d
+
+$ git log c670d12..c66ba5d --date=short --no-merges --format='%ad %ae %s'
+2026-11-12 kojii [m156][m157][m158][icu] Check memory allocation failures in DecNum and Scale
+
+Created with:
+  roll-dep src/third_party/icu
+
+(cherry picked from commit c806f09c1037b3d47bf4c38461131c3083452089)
+
+(cherry picked from commit 820f8b2f146260ba009818abe8f4956f8c3616dc)
+
+Bug: 573288374
+Fixed: 585406709
+Change-Id: I5b1e94f6e64416ef84a40fb725a92dadc33612bd
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8796730
+Reviewed-by: Kent Tamura <tkent@chromium.org>
+Commit-Queue: Koji Ishii <kojii@chromium.org>
+Cr-Original-Original-Commit-Position: refs/heads/main@{#1742509}
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8816515
+Auto-Submit: Koji Ishii <kojii@chromium.org>
+Commit-Queue: Kent Tamura <tkent@chromium.org>
+Cr-Original-Commit-Position: refs/branch-heads/8154@{#511}
+Cr-Original-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8821067
+Cr-Commit-Position: refs/branch-heads/8078@{#2230}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ DEPS            | 2 +-
+ third_party/icu | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/DEPS b/DEPS
+index cc15e10b3d..20622cae88 100644
+--- a/DEPS
++++ b/DEPS
+@@ -2447,7 +2447,7 @@ deps = {
+     Var('chromium_git') + '/chromium/deps/hunspell_dictionaries.git' + '@' + 'cee14e319bb7603a1157bb4d1e216be64ee82b77',
+ 
+   'src/third_party/icu':
+-    Var('chromium_git') + '/chromium/deps/icu.git' + '@' + 'c670d124c9b6aa92c0b492cf543808300e0e6103',
++    Var('chromium_git') + '/chromium/deps/icu.git' + '@' + 'c66ba5d8cda8b645d16778c92c902a871c0fd45c',
+ 
+   'src/third_party/icu4j/cipd': {
+       'packages': [
+diff --git a/third_party/icu b/third_party/icu
+index c670d124c9..c66ba5d8cd 160000
+--- a/third_party/icu
++++ b/third_party/icu
+@@ -1 +1 @@
+-Subproject commit c670d124c9b6aa92c0b492cf543808300e0e6103
++Subproject commit c66ba5d8cda8b645d16778c92c902a871c0fd45c
+-- 
+2.43.0
+

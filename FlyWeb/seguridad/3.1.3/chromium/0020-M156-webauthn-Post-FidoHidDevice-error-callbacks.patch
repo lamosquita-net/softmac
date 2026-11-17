@@ -1,0 +1,184 @@
+From 8e72dd78054472dce1bc44b264f751e80c2a4f88 Mon Sep 17 00:00:00 2001
+From: Martin Kreichgauer <martinkr@google.com>
+Date: Tue, 17 Nov 2026 01:38:52 +0000
+Subject: [PATCH 20/22] [M156] [webauthn] Post FidoHidDevice error callbacks
+
+Original change's description:
+> [webauthn] Post FidoHidDevice error callbacks
+>
+> Because FidoDevice::DeviceTransact forbids implementations from invoking
+> the response callback synchronously (i.e., hairpinning), FidoHidDevice
+> violated this contract when in State::kMsgError or State::kDeviceError
+> by running pending callbacks inline inside Transition(). Callers such as
+> Ctap2DeviceOperation::Start() assign to `this->token_` after
+> DeviceTransact() returns, which caused a use-after-free write when a
+> hairpinned error callback destroyed the owning FidoTask and operation.
+>
+> Post error callbacks asynchronously in FidoHidDevice::Transition() so
+> DeviceTransact() never hairpins.
+>
+> Fixed: 567370135
+> Change-Id: Ibd13065af4e25f4c5f263d97937c20a0315edf39
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8808434
+> Commit-Queue: Martin Kreichgauer <martinkr@google.com>
+> Reviewed-by: Ken Buchanan <kenrb@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1743602}
+
+(cherry picked from commit 517732d351edfb06ed66ef11c249a5818634720c)
+
+Bug: 585800918,567370135
+Change-Id: Ibd13065af4e25f4c5f263d97937c20a0315edf39
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8826813
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2254}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ device/fido/hid/fido_hid_device.cc          | 11 ++--
+ device/fido/hid/fido_hid_device_unittest.cc | 72 +++++++++++++++++++++
+ 2 files changed, 78 insertions(+), 5 deletions(-)
+
+diff --git a/device/fido/hid/fido_hid_device.cc b/device/fido/hid/fido_hid_device.cc
+index 30b01f0b62..8e11673c86 100644
+--- a/device/fido/hid/fido_hid_device.cc
++++ b/device/fido/hid/fido_hid_device.cc
+@@ -14,6 +14,7 @@
+ #include "base/containers/fixed_flat_set.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
++#include "base/location.h"
+ #include "base/logging.h"
+ #include "base/strings/string_number_conversions.h"
+ #include "base/strings/string_util.h"
+@@ -153,14 +154,14 @@ void FidoHidDevice::Transition(std::optional<State> next_state) {
+       break;
+     case State::kDeviceError:
+     case State::kMsgError:
+-      base::WeakPtr<FidoHidDevice> self = weak_factory_.GetWeakPtr();
+-      // Executing callbacks may free |this|. Check |self| first.
+-      while (self && !pending_transactions_.empty()) {
+-        // Respond to any pending requests.
++      while (!pending_transactions_.empty()) {
++        // Respond to any pending requests asynchronously so `DeviceTransact`
++        // never hairpins its callback.
+         DeviceCallback pending_cb =
+             std::move(pending_transactions_.front().callback);
+         pending_transactions_.pop_front();
+-        std::move(pending_cb).Run(std::nullopt);
++        base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++            FROM_HERE, base::BindOnce(std::move(pending_cb), std::nullopt));
+       }
+       break;
+   }
+diff --git a/device/fido/hid/fido_hid_device_unittest.cc b/device/fido/hid/fido_hid_device_unittest.cc
+index 8fa5f75ad6..fd4cfd3a0a 100644
+--- a/device/fido/hid/fido_hid_device_unittest.cc
++++ b/device/fido/hid/fido_hid_device_unittest.cc
+@@ -10,6 +10,7 @@
+ #include <cstring>
+ #include <memory>
+ #include <optional>
++#include <tuple>
+ #include <utility>
+ #include <vector>
+ 
+@@ -27,12 +28,16 @@
+ #include "base/test/task_environment.h"
+ #include "base/test/test_future.h"
+ #include "base/time/time.h"
++#include "device/fido/authenticator_get_assertion_response.h"
++#include "device/fido/ctap_get_assertion_request.h"
+ #include "device/fido/fido_device.h"
++#include "device/fido/fido_device_authenticator.h"
+ #include "device/fido/fido_test_data.h"
+ #include "device/fido/hid/fake_hid_impl_for_testing.h"
+ #include "device/fido/hid/fido_hid_message.h"
+ #include "device/fido/public/fido_constants.h"
+ #include "device/fido/public/fido_types.h"
++#include "device/fido/public/public_key_credential_descriptor.h"
+ #include "mojo/public/cpp/bindings/pending_remote.h"
+ #include "mojo/public/cpp/bindings/remote.h"
+ #include "services/device/public/cpp/hid/hid_device_filter.h"
+@@ -310,6 +315,11 @@ TEST_F(FidoHidDeviceTest, TestDeviceError) {
+   device->DeviceTransact(GetMockDeviceRequest(), future_3.GetCallback());
+   FakeFidoHidConnection::mock_connection_error_ = false;
+ 
++  // `DeviceTransact` must not hairpin callbacks when already in an error state.
++  EXPECT_FALSE(future_1.IsReady());
++  EXPECT_FALSE(future_2.IsReady());
++  EXPECT_FALSE(future_3.IsReady());
++
+   EXPECT_EQ(FidoDevice::State::kDeviceError, device->state_);
+   EXPECT_FALSE(future_1.Get());
+   EXPECT_FALSE(future_2.Get());
+@@ -1143,4 +1153,66 @@ TEST_F(FidoHidDeviceTest, RetryAfterU2fChannelBusy) {
+   EXPECT_THAT(*value, testing::ElementsAreArray(kU2fMockResponseData));
+ }
+ 
++// Regression test for https://crbug.com/567370135 (heap-use-after-free under
++// ASAN). Tests that when a CTAP2 HID device returns ERR_INVALID_LEN during
++// multi-batch silent credential probing, it transitions to `State::kMsgError`
++// and fails remaining batches cleanly.
++TEST_F(FidoHidDeviceTest, GetAssertionMultiBatchMessageError) {
++  // CTAPHID_ERROR(0xBF), payload length 1, ERR_INVALID_LEN(0x03).
++  constexpr uint8_t kHidInvalidLengthError[] = {0xBF, 0x00, 0x01, 0x03};
++
++  testing::Sequence sequence;
++  std::unique_ptr<MockFidoHidConnection> mock_connection =
++      CreateHidConnectionWithHidInitExpectations(
++          kChannelId, fake_hid_manager_.get(), sequence);
++
++  // AuthenticatorGetInfo request and response.
++  mock_connection->ExpectHidWriteWithCommand(sequence,
++                                             FidoHidDeviceCommand::kCbor);
++  SetupReadExpectation(mock_connection.get(), FidoHidDeviceCommand::kCbor,
++                       test_data::kTestAuthenticatorGetInfoResponse, sequence);
++
++  // First silent GetAssertion probe (spans two HID packets) receives
++  // ERR_INVALID_LEN, transitioning the device to `State::kMsgError`.
++  EXPECT_CALL(*mock_connection, WritePtr(_, _, _))
++      .Times(testing::AtLeast(1))
++      .InSequence(sequence)
++      .WillRepeatedly([](auto&&, const std::vector<uint8_t>&,
++                         device::mojom::HidConnection::WriteCallback* cb) {
++        std::move(*cb).Run(true);
++      });
++  mock_connection->ExpectReadAndReplyWith(
++      sequence,
++      CreateMockResponseWithChannelId(mock_connection->connection_channel_id(),
++                                      kHidInvalidLengthError));
++
++  FidoDeviceEnumerateFuture enumerate_future(hid_manager_.get());
++  hid_manager_->GetDevices(enumerate_future.GetCallback());
++  EXPECT_TRUE(enumerate_future.Wait());
++  std::unique_ptr<FidoHidDevice> device = enumerate_future.TakeSingleDevice();
++
++  FidoDeviceAuthenticator authenticator(std::move(device));
++  base::test::TestFuture<void> init_future;
++  authenticator.InitializeAuthenticator(init_future.GetCallback());
++  ASSERT_TRUE(init_future.Wait());
++
++  CtapGetAssertionRequest request(test_data::kRelyingPartyId,
++                                  test_data::kClientDataJson);
++  request.allow_list.emplace_back(CredentialType::kPublicKey,
++                                  std::vector<uint8_t>{1, 2, 3, 4});
++  request.allow_list.emplace_back(CredentialType::kPublicKey,
++                                  std::vector<uint8_t>{5, 6, 7, 8});
++
++  base::test::TestFuture<GetAssertionStatus,
++                         std::vector<AuthenticatorGetAssertionResponse>>
++      assertion_future;
++  authenticator.GetAssertion(std::move(request), CtapGetAssertionOptions(),
++                             assertion_future.GetCallback());
++  ASSERT_TRUE(assertion_future.Wait());
++  EXPECT_EQ(FidoDevice::State::kMsgError,
++            authenticator.device()->state_for_testing());
++  EXPECT_EQ(GetAssertionStatus::kUserConsentButCredentialNotRecognized,
++            std::get<0>(assertion_future.Get()));
++}
++
+ }  // namespace device
+-- 
+2.43.0
+
