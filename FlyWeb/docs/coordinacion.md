@@ -7,6 +7,39 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 17-11 (mañana): COORDINACIÓN-43 → COORDINACIÓN-44 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-43 (`session_01MwmK2hZ9HcbmRFFueDh8dE`, 14-11 13:40 → 17-11 ~10:10 UTC; Opus 5.5 medio; abierta por la 42,
+linaje 2; relevo al 58 %). La 44 la abre la 43. **Nunca llamar a confirm_repository_trust.** Desde la nube no se puede
+`send_message` a sesiones locales (lo bloquea el sistema): a LOCAL, PUBLICACIÓN, SERVIDOR-LOCAL y ARQUITECTURA se les
+escribe por el buzón; ellos sí escriben a la nube por bridge. Borrar ramas remotas: lo bloquea el proxy.
+
+**Hecho:** 3.1.2 publicada y firmada (#1013, #1014). Copia de la sync en ns2/bak: v6 aplicada por la Auditoría sin
+latido, purga manual, aviso diario de copias de >30 días (DIRECTIVAS #1015–#1019, CAMBIOS #1020). El backup general de
+Titín no se toca (sus claves root: riesgo aceptado, no volver a plantear). flyweb-sync: correo a MTA loopback sin
+STARTTLS (#1021) y «desde» de eventos con decimales (#1024), los dos instalados en ns2 por la Auditoría (CAMBIOS #1022,
+#1025). Rama `claude/coord-42-relevo`: «MacJulia» es el nombre del portátil, no dato personal; se deja.
+
+**Lecciones (Titín, 16-11):** en servidores y backups de Titín manda el criterio de conjunto de la Auditoría. Proponer
+solo lo que pide FlyWeb y medir el coste colateral antes de añadir condiciones de seguridad; no encadenar revisiones.
+Las decisiones que llegan por otro agente se confirman con Titín antes de escribirlas en DIRECTIVAS. Lo que Titín
+menciona de pasada (p. ej. un reto de Cloudflare) es una pregunta, no un encargo: contestar breve, sin abrir estudios.
+
+**Abierto, por orden:**
+1. **Sync 3.2 contra ns2:** LOCAL-19 repite la entrada en la 6,1 tras el 2.º binario (17-11 11:02). Falta: eventos en 200,
+   que el correo del código llegue (mirar spam) y «key derivation ok in N ms» en 7,1/6,1/5,1. Si la 5,1 pasa de ~2 s, a
+   SEGURIDAD-PORTES antes de tocar kScryptN. Opcional de SEGURIDAD (no bloquea): límite de tiempo en el envío SMTP.
+2. **17-11 21:15 UTC** aviso `trig_015HV36b8ErpgDbGToUHfRwB` (delta de la 158 para la 3.1.3, SEGURIDAD-PORTES-23) y
+   **21:30 UTC** `trig_0111cFN3Sdw9BGkxQUrjXDLA` (parte B del informe 2, INVESTIGACIÓN-MOTOR-10): la 44 los recrea a su
+   nombre y la 43 borra los suyos.
+3. **Diseño de Titín del 17-11** (pantalla privada, pestañas, páginas que faltaban): repartir a MOTOR-46 para la 3.2.0.
+4. SEGURIDAD-VIGÍA ya tiene la base 3.1.2 (156.0.8078.105).
+
+**Sesiones:** SEGURIDAD-PORTES-23 `session_01MwmK2ihLC48xJinz4Li6Jv`, MOTOR-46 `session_01MwmK2juPkbC58kEi4QFeyU`,
+INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG`, SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`.
+Locales: LOCAL-19, PUBLICACIÓN, SERVIDOR-LOCAL-3 (bridge «Servidor Local (2)»), ARQUITECTURA; la Auditoría de servidores
+es sesión de Titín (no se le escribe; sus cambios llegan por SERVIDOR-LOCAL). COORDINACIÓN-42 quieta (archivar).
+
 ## 14-11 (tarde): COORDINACIÓN-42 → COORDINACIÓN-43 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-42 (`session_01MwmK2iRNzVTcBF92tmevxX`, 14-11 00:00 → ~13:40 UTC; Opus 5.5 medio; abierta por la 41,
