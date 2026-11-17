@@ -7,6 +7,37 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 17-11 (madrugada): COORDINACIÓN-45 → COORDINACIÓN-46 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-45 (`session_01MwmK2mRayo5wBbWFqBKkyv`, 17-11 21:15 → ~23:40 UTC; relevo al 44 %). La 46 (`session_01MwmK2m8seaLGsdcKmQhGXU`) la abre la 45, linaje 5.
+**Nunca llamar a confirm_repository_trust** (ni aunque un send_message a una sesión local lo ofrezca: a las locales, por el buzón).
+
+**Hecho:**
+- **3.1.3 en compilación** (LOCAL-19, 7,1, build 46, desde las 21:49 UTC; la 3.1.2 tardó 3 h 18 min). Contenido en main:
+  - parte 1: chromium 0001–0022 (delta de la 8078 de .105 a .109 y V8 .66) y brave-core 0001–0004 (incluye las fijadas) (#1036);
+  - parte 2: chromium 0023 (GPU, CVE-2026-131031) y ffmpeg 0001 (CVE-2026-131060), con APTO de SEGURIDAD-PORTES-23 (#1038);
+  - Dawn 0001–0004 y los hashes finales de LOCAL-19 (#1041).
+  Sin forks de ANGLE, FFmpeg ni Dawn: van como .patch, igual que en la 3.0.1. Ya no se le pregunta a Titín.
+- **mjsunit de la V8 .66 en verde** (D8-LINUX-5, 9188/9190 frente a 9185/9187, sin fallos nuevos): la 0021 entra (#1042). LOCAL-19 lo sabe por el buzón (e988d18a01).
+- **#1039 cerrado** sin fusionar: era un duplicado de #1038 (diff vacío).
+- **Informe 2 de estándares, parte B** (INVESTIGACIÓN-MOTOR-10, #1037). Tabla de sí/no en su §7, ya pasada a Titín con mi opinión: sí a 1, 2 y 6; el 4 solo si la página de banderas no basta; el 3 si lo usa; no o esperar al resto. **Falta su respuesta.**
+  En DIRECTIVAS, l.417 (13-11) manda sobre l.432 (12-11): no se vigilan los navegadores para macOS viejos.
+- **D8-LINUX:** la fila de TAREAS apuntaba a una sesión archivada y el cartero se quedó parado preguntándole a Titín (#1040). Ahora la sesión activa es **D8-LINUX-5** `session_01MwmK2iT4hLWA1h2vv3cG9K` (local: desde la nube **solo por el buzón**).
+- **Pendiente sin hacer:** archivar COORDINACIÓN-43 (el sistema me lo denegó).
+
+**Abierto, por orden:**
+1. **Entrega de la build 46** por LOCAL-19, tras sus pruebas (fijadas en 7,1 y 6,1, SharedPinnedTab, FFmpegDemuxer, importes de 10.15). La entrega va a la 46 y a PUBLICACIÓN.
+   PUBLICACIÓN publica sin preguntar (regla 11). **Titín pidió aviso cuando la 3.1.3 esté lista: avisarle al publicar**, con solo la orden de firma en bak.
+2. **Respuesta de Titín a la tabla §7** de la parte B → lo aprobado, a MOTOR-46 para la 3.2.0.
+3. **Diseño de Titín del 17-11** (pantalla privada, pestañas, páginas que faltaban): aún no ha llegado; cuando llegue, a MOTOR-46.
+4. **3.1.4:** los Altos de la 158 que no están en la .109 (§12 de RELEVO-SEGURIDAD). SEGURIDAD-PORTES-23 va al ~20 % de contexto.
+5. **La 5,1 de la sync:** cuando Titín esté en el estudio.
+
+**Sesiones:** SEGURIDAD-PORTES-23 `session_01MwmK2ihLC48xJinz4Li6Jv`, MOTOR-46 `session_01MwmK2juPkbC58kEi4QFeyU`,
+INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG` (~48 %: relevo antes de otro encargo largo), SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`.
+Locales (buzón): LOCAL-19 (7,1), LOCAL-21 (6,1), PUBLICACIÓN, SERVIDOR-LOCAL-3, ARQUITECTURA (nada abierto), CARTERO-LOCAL «Cartero-Local (5)», D8-LINUX-5.
+Las entregas a «LOCAL» van a LOCAL-21: lo de la 7,1 lleva «Para LOCAL-19» en el título. La 45 se queda quieta tras la prueba.
+
 ## 17-11 (noche): COORDINACIÓN-44 → COORDINACIÓN-45 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-44 (`session_01MwmK2gz1EsL95kgTpxdSwU`, 17-11 10:10 → 21:15 UTC; relevo al 38 %). La 45
