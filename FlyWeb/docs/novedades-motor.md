@@ -347,9 +347,9 @@ Límites: no medí uso real; no probé nada en un FlyWeb compilado; no leí los 
 
 INVESTIGACIÓN-MOTOR-10, 17-11-2026. Encargo de COORDINACIÓN-45. Solo papel. **Chrome 158 estable:** 158.0.8127.36/.37 en Mac (chromiumdash:
 la .37 es del 12-11; calendario: estable temprana 04-11, completa 18-11), rama 8127, V8 15.8 **[P]**. Nuestra base: 3.1.x = 156.0.8078.105,
-V8 15.6; se declara 156 (decisión 8 del plan de la 3.x). «Respecto a la 156» incluye **lo de la 157 y lo de la 158**. En DIRECTIVAS, la l.417
-(«FlyWeb también innova») deja de vigilar los navegadores de macOS viejos y la l.432 (anterior, «Flink a nuestro ritmo») los incluía: sigo el
-enfoque de la parte A (estándares + Gecko/WebKit). Etiquetas [P]/[S]/[I]/[N] como en la parte A; **coste en hitos de MOTOR**:
+V8 15.6; se declara 156 (decisión 8 del plan de la 3.x). «Respecto a la 156» incluye **lo de la 157 y lo de la 158**. En DIRECTIVAS, «FlyWeb también innova»
+(13-11) amplía «Flink a nuestro ritmo» (12-11) y es la que manda (aclarado por COORDINACIÓN-45): los navegadores de macOS viejos ya no se vigilan; sí
+Chrome 158, Gecko, WebKit y los estándares, como en la parte A. Etiquetas [P]/[S]/[I]/[N] como en la parte A; **coste en hitos de MOTOR**:
 **S** = un cambio (encender la bandera o un parche pequeño, con sus WPT) · **M** = una tanda (varios cambios de Blink y retoques) ·
 **L** = toca pintado, GPU, red, sandbox o interfaz del navegador (varias tandas). Los costes son [I].
 
