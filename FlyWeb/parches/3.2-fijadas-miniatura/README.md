@@ -62,6 +62,17 @@ reproduzca.
 por la misma causa. El controlador de las tarjetas admite que no haya miniatura, así que ahí no hay cierre: solo falta la
 vista previa.
 
+**Al restaurar la sesión (lo que le pasa a Titín, 17-11):** con dos ventanas que tienen fijadas, abrir restaurando
+la sesión hace lo siguiente:
+1. `OnBrowserCreated` deja las ventanas en `restored_browsers_`.
+2. `SynchronizeRestoredBrowser` pone las copias de relleno.
+3. Al activarse una ventana, `OnActiveTabChanged` encola `MoveSharedWebContentsToActiveBrowser`. Si la fijada era la
+   activa en la ventana que la tiene, `MoveSharedWebContentsToBrowser` llama a `ShowDummyView` y se produce el mismo
+   cierre.
+
+No hay otra causa en ese camino: el helper falta siempre, no solo en el WebContents restaurado. 0001 lo arregla también.
+Es el único sitio que instala la vista de relleno.
+
 ## Arreglo mínimo (0001)
 
 - El constructor pide el helper. Si existe, se suscribe a la miniatura como antes.
@@ -95,4 +106,12 @@ Si Titín quiere las vistas previas, irá aparte.
 - `BraveTabHoverTest.ThumbnailHelperIsAlwaysAttached` falla en la 3.x por la misma causa. Es lo esperado con el arreglo
   mínimo: solo pasaría con la alternativa amplia.
 
-**Mientras tanto:** desactivar la opción de compartir las pestañas fijadas entre ventanas evita el cierre.
+**Mientras tanto (3.1.2):**
+- Sin pasar por Ajustes: con FlyWeb cerrado del todo, `open -a FlyWeb --args --disable-features=BraveSharedPinnedTabs`.
+  - Con la función apagada, el servicio no se crea (`browser_context_keyed_service_factories.cc`), así que ninguna
+    ventana mueve fijadas y no hay cierre.
+  - La sesión se restaura tal como se guardó: cada fijada en la ventana que la tenía. Esto es una suposición: LOCAL debe
+    comprobar si los rellenos vuelven en blanco o desaparecen.
+- La pref `brave.tabs.shared_pinned_tab` a false también lo evita, pero hay que llegar a Ajustes antes de restaurar.
+- **Antes de nada, copiar la carpeta del perfil con FlyWeb cerrado.** Cada arranque sin restaurar puede sustituir los
+  ficheros de sesión, y con ellos las fijadas.
