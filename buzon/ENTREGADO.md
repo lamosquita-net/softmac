@@ -906,3 +906,4 @@ buzon/LOCAL/20261118-2125-COORDINACION-49-avx-vpbroadcastw-LOCAL-19.md → Compi
 buzon/LOCAL/20261118-2120-COORDINACION-49-ultimo-8078-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 21:19 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261118-2125-COORDINACION-49-anula-2120-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 21:19 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261118-2130-COORDINACION-49-8078-sigue-entrando-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 21:19 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261118-2135-COORDINACION-49-integracion-0002-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 21:21 UTC · entregado (CARTERO-LOCAL)
