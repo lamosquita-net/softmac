@@ -1,0 +1,69 @@
+From 45fc936ede3b56ba1e4e108c2c81933388317222 Mon Sep 17 00:00:00 2001
+From: Saifuddin Hitawala <hitawala@chromium.org>
+Date: Tue, 3 Nov 2026 06:37:29 -0800
+Subject: [PATCH 08/17] [M158] [gl] CHECK glGenTextures does not return 0
+
+Original change's description:
+> [gl] CHECK glGenTextures does not return 0
+>
+> If glGenTextures fails, it can be due to exhaustion of resources.
+> CHECK such failures as GPU process is in stalemate regardless as
+> texture creation does not work anymore.
+>
+> Bug: 568891853
+> Change-Id: Ibb9e0f61064beca6f203a32a8f4e7e30114539d5
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8664215
+> Reviewed-by: Vasiliy Telezhnikov <vasilyt@chromium.org>
+> Commit-Queue: Saifuddin Hitawala <hitawala@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1729233}
+
+(cherry picked from commit 042b1cede3d436ca8262e1b0233ba5e9951b1274)
+
+Bug: 579236758,568891853
+Change-Id: Ibb9e0f61064beca6f203a32a8f4e7e30114539d5
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8706432
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: Saifuddin Hitawala <hitawala@chromium.org>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8127@{#741}
+Cr-Branched-From: df5c5abe6527926adf7ebf8540a8e6a0f9df7945-refs/heads/main@{#1727472}
+(cherry picked from commit f182e1b65ff6bbfbc15fdfa90daee05b4216f7a3)
+---
+ ui/gl/gl_gl_api_implementation.cc | 7 +++++++
+ ui/gl/gl_gl_api_implementation.h  | 2 ++
+ 2 files changed, 9 insertions(+)
+
+diff --git a/ui/gl/gl_gl_api_implementation.cc b/ui/gl/gl_gl_api_implementation.cc
+index 70f06e47ec..7f0c401f80 100644
+--- a/ui/gl/gl_gl_api_implementation.cc
++++ b/ui/gl/gl_gl_api_implementation.cc
+@@ -266,6 +266,13 @@ const GLubyte* RealGLApi::glGetStringiFn(GLenum name, GLuint index) {
+   return GLApiBase::glGetStringiFn(name, index);
+ }
+ 
++void RealGLApi::glGenTexturesFn(GLsizei n, GLuint* textures) {
++  GLApiBase::glGenTexturesFn(n, textures);
++  if (GetGLImplementation() != kGLImplementationMockGL && n > 0) {
++    CHECK_NE(UNSAFE_TODO(textures[0]), 0u);
++  }
++}
++
+ void RealGLApi::glTexImage2DFn(GLenum target,
+                                GLint level,
+                                GLint internalformat,
+diff --git a/ui/gl/gl_gl_api_implementation.h b/ui/gl/gl_gl_api_implementation.h
+index 1df38a4f87..a7d84ed719 100644
+--- a/ui/gl/gl_gl_api_implementation.h
++++ b/ui/gl/gl_gl_api_implementation.h
+@@ -58,6 +58,8 @@ class GL_EXPORT RealGLApi : public GLApiBase {
+   const GLubyte* glGetStringFn(GLenum name) override;
+   const GLubyte* glGetStringiFn(GLenum name, GLuint index) override;
+ 
++  void glGenTexturesFn(GLsizei n, GLuint* textures) override;
++
+   void glTexImage2DFn(GLenum target,
+                       GLint level,
+                       GLint internalformat,
+-- 
+2.43.0
+

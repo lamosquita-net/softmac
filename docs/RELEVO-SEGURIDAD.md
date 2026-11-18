@@ -816,3 +816,31 @@ Pendiente para la siguiente:
 - gitiles JSON (`+log/A..B?format=JSON`, `+/<sha>?format=JSON`, `+/<sha>%5E%21/?format=TEXT` en base64): para montar mbox y aplicar en un worktree *sparse* del clon parcial.
 - `gh api search/commits` en `chromium/chromium` para buscar commits por número de bug.
 - Feed de Chrome Releases con `redirect=false`.
+
+## 13. SEGURIDAD-PORTES-24 (`session_01MwmK2hXs9xn6KN4sT9iVtr`, 18-11-2026): la 3.1.4, parte 1
+
+**Acceso:** `add_repo` de brave-core **con push concedido** (rama `seg/3.1.4`). El fork de chromium, solo lectura: la
+serie va por `format-patch` en softmac (regla 16: otro repo, preguntar a COORDINACIÓN).
+
+**Hecho:**
+- Inventario (`FlyWeb/seguridad/3.1.4/INVENTARIO.md`, #1049). Decisión de COORDINACIÓN-46: A + B + E (y D si se
+  confirma); medios a la 3.1.5 solo como propuesta, tras A + B.
+- Parte 1 (`3.1.4/CONTENIDO.md`): chromium 0001–0017 → árbol `6a2cac161c`; ANGLE 0001–0003 → `db885a866b`;
+  brave-core `seg/3.1.4` `d91632790084` (versión 3.1.4, V8 659b8bf, época 32). d8/mjsunit pedido a D8-LINUX por buzón.
+
+**Pendiente, por orden:** B5 (Media, porte propio), B6 (Event Timing), D (ANGLE 569191970, Omnibox Everywhere), E
+(12 [M156] tras la .109, VERSION, `package.json`, Dawn), resultado de D8-LINUX. Luego el triaje de medios para la 3.1.5.
+Detalle en «Pendiente» de `3.1.4/CONTENIDO.md`.
+
+**Trampas nuevas:**
+- **`git apply --check` limpio no basta:** b38c99803d usaba `views::ViewGuard`, que no existe en la 156 (d9fcba36b9 va
+  antes). Comprobar los `#include` nuevos de la serie contra el árbol (`git cat-file -e HEAD:<ruta>`).
+- **Clon parcial (`tree:0`/`blob:none`):** nada de `git log -- <ruta>` ni de `git grep` sobre el commit, porque bajan
+  objetos uno a uno y tardan minutos; mejor grep sobre el texto de `git log`. Con `GIT_INDEX_FILE` puesto, la descarga
+  perezosa de blobs falla (`unable to read`): generar el diff con `diff -u` y la línea `index` a mano.
+- Para los conflictos de prueba, nada de «unir los dos lados» automáticamente: intercala líneas. Se rehace a mano o la
+  prueba se queda fuera (anotarlo).
+- Espejos de GitHub que funcionan: `chromium/chromium`, `v8/v8`, `google/angle`, `google/dawn`, `google/skia`. La rama
+  8078 pasada la .109 solo está en gitiles (`+log/156.0.8078.109..refs/branch-heads/8078?format=JSON`).
+- Nuestro ANGLE `bc2ebdd211` se reproduce con `f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004
+  (árbol `099b621f10`).

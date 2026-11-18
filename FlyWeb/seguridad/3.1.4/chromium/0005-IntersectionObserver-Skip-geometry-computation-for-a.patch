@@ -1,0 +1,176 @@
+From 22e1de2e2ef0c190beabf59c142aa55d94c1baea Mon Sep 17 00:00:00 2001
+From: Stefan Zager <szager@chromium.org>
+Date: Fri, 16 Oct 2026 11:32:00 -0700
+Subject: [PATCH 05/17] [IntersectionObserver] Skip geometry computation for a
+ throttled frame
+
+Previously, we would check `NeedsLayout()` to determine whether it
+would be safe to compute geometry. That condition is not sufficient:
+a throttled frame could have dirty style or dirty slot assignments
+without invalidating layout. Ultimately, we cannot make any
+assumptions about a frame that skipped a lifecycle update due to
+being throttled, so the only sane thing to do is to issue "not
+intersecting" notifications for targets inside a throttled frame.
+
+The new behavior is behind a flag, in case of breakage.
+
+Fixed: 570703733
+Change-Id: I8331a274b50df46ac4bd98356537c38551f8f798
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8578239
+Commit-Queue: Stefan Zager <szager@chromium.org>
+Reviewed-by: Xianzhu Wang <wangxianzhu@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1720918}
+(cherry picked from commit bc7f159f95480aae1179914066db9451d4f14599)
+---
+ .../blink/renderer/core/frame/local_frame_view.cc  | 14 +++++++++++++-
+ .../intersection_observer/intersection_geometry.cc |  3 +++
+ .../intersection_observer/intersection_geometry.h  |  3 ++-
+ .../intersection_observation.cc                    |  3 +++
+ .../intersection_observation.h                     |  5 ++++-
+ .../frame_throttling_test.cc                       | 10 +++++++---
+ .../platform/runtime_enabled_features.json5        | 14 ++++++++++++++
+ 7 files changed, 46 insertions(+), 6 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/frame/local_frame_view.cc b/third_party/blink/renderer/core/frame/local_frame_view.cc
+index dd84ddca8a..894691e35a 100644
+--- a/third_party/blink/renderer/core/frame/local_frame_view.cc
++++ b/third_party/blink/renderer/core/frame/local_frame_view.cc
+@@ -4937,6 +4937,7 @@ void LocalFrameView::RenderThrottlingStatusChanged() {
+     }
+   }
+ 
++  SetIntersectionObservationState(kDesired);
+   if (!CanThrottleRendering()) {
+     // Start ticking animation frames again if necessary.
+     if (GetPage())
+@@ -5024,8 +5025,19 @@ LocalFrameView::GetIntersectionObservationFlags(
+     flags.Put(IntersectionObservation::kReportImplicitRootBounds);
+   }
+ 
+-  if (!target_frame.IsLocalRoot() && !target_frame.OwnerLayoutObject())
++  if (!target_frame.IsLocalRoot() && !target_frame.OwnerLayoutObject()) {
+     flags.Put(IntersectionObservation::kAncestorFrameIsDetachedFromLayout);
++  }
++
++  // If this is true, then we skipped lifecycle update work and we should not
++  // try to do any geometry computation, but should still queue degenerate
++  // "not intersecting" notifications for any observations that were previously
++  // intersecting.
++  if (RuntimeEnabledFeatures::
++          StaleIntersectionGeometryForThrottledFramesEnabled() &&
++      intersection_observation_state_ != kRequired && CanThrottleRendering()) {
++    flags.Put(IntersectionObservation::kStaleGeometry);
++  }
+ 
+   // Observers with explicit roots only need to be checked on the same frame,
+   // since in this case target and root must be in the same document.
+diff --git a/third_party/blink/renderer/core/intersection_observer/intersection_geometry.cc b/third_party/blink/renderer/core/intersection_observer/intersection_geometry.cc
+index c0a10f6e2a..68d1b314b0 100644
+--- a/third_party/blink/renderer/core/intersection_observer/intersection_geometry.cc
++++ b/third_party/blink/renderer/core/intersection_observer/intersection_geometry.cc
+@@ -269,6 +269,9 @@ IntersectionGeometry::IntersectionGeometry(
+     CachedRects* cached_rects,
+     std::optional<HitNodeCb> hit_node_cb)
+     : flags_(flags), hit_node_cb_(std::move(hit_node_cb)) {
++  if (flags_.Has(kStaleGeometry)) {
++    return;
++  }
+   flags_.RetainAll(
+       Flags::FromRange(kConstructorFlagFirst, kConstructorFlagLast));
+   // Only one of root_margin or target_margin can be specified.
+diff --git a/third_party/blink/renderer/core/intersection_observer/intersection_geometry.h b/third_party/blink/renderer/core/intersection_observer/intersection_geometry.h
+index 2252155d56..b228ec246a 100644
+--- a/third_party/blink/renderer/core/intersection_observer/intersection_geometry.h
++++ b/third_party/blink/renderer/core/intersection_observer/intersection_geometry.h
+@@ -73,7 +73,8 @@ class CORE_EXPORT IntersectionGeometry {
+     kScrollAndVisibilityOnly,
+     // This flag is to expose extra information of occluded state.
+     kShouldExposeOccluderNodeId,
+-    kConstructorFlagLast = kShouldExposeOccluderNodeId,
++    kStaleGeometry,
++    kConstructorFlagLast = kStaleGeometry,
+ 
+     // These flags will be computed
+     kShouldUseCachedRects,
+diff --git a/third_party/blink/renderer/core/intersection_observer/intersection_observation.cc b/third_party/blink/renderer/core/intersection_observer/intersection_observation.cc
+index 86d28faed2..ae8401c674 100644
+--- a/third_party/blink/renderer/core/intersection_observer/intersection_observation.cc
++++ b/third_party/blink/renderer/core/intersection_observer/intersection_observation.cc
+@@ -197,6 +197,9 @@ IntersectionObservation::GetIntersectionGeometryFlags(
+   if (compute_flags.Has(kScrollAndVisibilityOnly)) {
+     geometry_flags.Put(IntersectionGeometry::kScrollAndVisibilityOnly);
+   }
++  if (compute_flags.Has(kStaleGeometry)) {
++    geometry_flags.Put(IntersectionGeometry::kStaleGeometry);
++  }
+   return geometry_flags;
+ }
+ 
+diff --git a/third_party/blink/renderer/core/intersection_observer/intersection_observation.h b/third_party/blink/renderer/core/intersection_observer/intersection_observation.h
+index fb9d1c3a86..3c1733b951 100644
+--- a/third_party/blink/renderer/core/intersection_observer/intersection_observation.h
++++ b/third_party/blink/renderer/core/intersection_observer/intersection_observation.h
+@@ -63,7 +63,10 @@ class CORE_EXPORT IntersectionObservation final
+     kScrollAndVisibilityOnly,
+     // Remove outdated entries from IntersectionObserverController.
+     kUpdateTracking,
+-    kMaxValue = kUpdateTracking,
++    // Document geometry is stale due to throttling and we should issue a "not
++    // intersecting" notification if we were previously intersecting.
++    kStaleGeometry,
++    kMaxValue = kStaleGeometry
+   };
+   // Allow using the enum values under IntersectionObservation::.
+   using enum ComputeFlag;
+diff --git a/third_party/blink/renderer/core/scheduler_integration_tests/frame_throttling_test.cc b/third_party/blink/renderer/core/scheduler_integration_tests/frame_throttling_test.cc
+index bbdb6abf7b..835183192a 100644
+--- a/third_party/blink/renderer/core/scheduler_integration_tests/frame_throttling_test.cc
++++ b/third_party/blink/renderer/core/scheduler_integration_tests/frame_throttling_test.cc
+@@ -324,12 +324,16 @@ TEST_P(FrameThrottlingTest,
+   // Force |child_frame_view| to do an intersection observation.
+   child_frame_view->SetIntersectionObservationState(LocalFrameView::kRequired);
+ 
+-  // Though |root_frame_view| is throttled, the descendant (|child_frame_view|)
+-  // should still be updated which resets the intersection observation state.
++  // The child frame will process intersection observations at the end of
++  // CompositeFrame(), which will reset its state to kNotNeeded. The child
++  // frame will then inherit the parent frame's throttled state, and when a
++  // frame first becomes throttled its state is advanced to kDesired, so
++  // that it has a chance to generate "not intersecting" notifications for
++  // its content.
+   CompositeFrame();
+   EXPECT_EQ(LocalFrameView::kNotNeeded,
+             root_frame_view->GetIntersectionObservationStateForTesting());
+-  EXPECT_EQ(LocalFrameView::kNotNeeded,
++  EXPECT_EQ(LocalFrameView::kDesired,
+             child_frame_view->GetIntersectionObservationStateForTesting());
+ }
+ 
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+index 7edbaa34ed..3467f2cd33 100644
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -6120,6 +6120,20 @@
+       name: "StaleImageNaturalSizeDuringRevalidation",
+       status: "stable",
+     },
++    {
++      // Without this flag, an IntersectionObserver target inside a
++      // render-throttled iframe will continue to compute its intersection state
++      // as long as `NeedsLayout()` is `false` for its containing document. This
++      // is a faulty mechanism, as `NeedsLayout()` does not reliably indicate
++      // whether a document's rendering is out of date. When the flag is enabled
++      // all IntersectionObserver targets inside an iframe that becomes
++      // throttled will promptly generate a "not intersecting" notification.
++      // This is a web-visible change in behavior (though it does not reveal any
++      // new information), so it's hidden behind a flag to provide a kill switch
++      // in the event of breakage.
++      name: "StaleIntersectionGeometryForThrottledFrames",
++      status: "stable",
++    },
+     {
+       // See https://github.com/w3c/csswg-drafts/issues/9398
+       name: "StandardizedBrowserZoom",
+-- 
+2.43.0
+

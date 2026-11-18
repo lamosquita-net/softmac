@@ -1,0 +1,119 @@
+From 9ffe3172bdd8bde5c6c8eae31ec433da562e499e Mon Sep 17 00:00:00 2001
+From: Saifuddin Hitawala <hitawala@chromium.org>
+Date: Mon, 9 Nov 2026 10:27:16 -0800
+Subject: [PATCH 16/17] [M158] [gpu] Check SubmitIfNecessary before clear in
+ RasterDecoder/CopySIHelper
+
+Original change's description:
+> [gpu] Check SubmitIfNecessary before clear in RasterDecoder/CopySIHelper
+>
+> Check return value of SubmitIfNecessary before calling SetCleared in
+> places where clear happens in RasterDecoder and CopySharedImageHelper.
+> This translates to updating success bool in all these places as it
+> already stores result of FlushWriteAccess.
+>
+> Bug: 568937157
+> Cq-Exclude-Trybots: luci.chromium.try:dawn-win10-x86-deps-rel
+> Change-Id: Ie1039ab31d68d28c47bbb58b557ecb51edf3730e
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8704260
+> Reviewed-by: Kyle Charbonneau <kylechar@chromium.org>
+> Commit-Queue: Saifuddin Hitawala <hitawala@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1734357}
+
+(cherry picked from commit 25a7e6c752822d0459e8565ab4984dd97d9bf314)
+
+Bug: 582139709,568937157
+Change-Id: Ie1039ab31d68d28c47bbb58b557ecb51edf3730e
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8745394
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8127@{#1470}
+Cr-Branched-From: df5c5abe6527926adf7ebf8540a8e6a0f9df7945-refs/heads/main@{#1727472}
+(cherry picked from commit d0e07566a956aea3b48162ad99c3f5be7bbef45a)
+---
+ .../service/copy_shared_image_helper.cc            | 14 +++++++-------
+ gpu/command_buffer/service/raster_decoder.cc       |  8 ++++----
+ 2 files changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/gpu/command_buffer/service/copy_shared_image_helper.cc b/gpu/command_buffer/service/copy_shared_image_helper.cc
+index 1c83cb4a63..48f63f1981 100644
+--- a/gpu/command_buffer/service/copy_shared_image_helper.cc
++++ b/gpu/command_buffer/service/copy_shared_image_helper.cc
+@@ -190,7 +190,7 @@ bool CopyPixelsToTexture(
+   dest_scoped_access->surface()->writePixels(subset, xoffset, yoffset);
+ 
+   bool success = shared_context_state->FlushWriteAccess(dest_scoped_access);
+-  shared_context_state->SubmitIfNecessary(
++  success &= shared_context_state->SubmitIfNecessary(
+       std::move(end_semaphores),
+       dest_scoped_access->NeedGraphiteContextSubmit());
+ 
+@@ -299,8 +299,8 @@ base::expected<void, GLError> CopySharedImageHelper::CopySharedImage(
+   absl::Cleanup cleanup = [&]() {
+     bool success =
+         shared_context_state_->FlushWriteAccess(dest_scoped_access.get());
+-    shared_context_state_->SubmitIfNecessary(std::move(end_semaphores),
+-                                             need_graphite_submit);
++    success &= shared_context_state_->SubmitIfNecessary(
++        std::move(end_semaphores), need_graphite_submit);
+     if (success && update_cleared_rect) {
+       dest_shared_image->SetClearedRect(new_cleared_rect);
+     }
+@@ -475,8 +475,8 @@ base::expected<void, GLError> CopySharedImageHelper::CopySharedImage(
+   bool success =
+       shared_context_state_->FlushWriteAccess(dest_scoped_access.get());
+   source_scoped_access->ApplyBackendSurfaceEndState();
+-  shared_context_state_->SubmitIfNecessary(std::move(end_semaphores),
+-                                           need_graphite_submit);
++  success &= shared_context_state_->SubmitIfNecessary(std::move(end_semaphores),
++                                                      need_graphite_submit);
+ 
+   if (success && update_cleared_rect) {
+     dest_shared_image->SetClearedRect(new_cleared_rect);
+@@ -793,8 +793,8 @@ base::expected<void, GLError> CopySharedImageHelper::WritePixelsYUV(
+ 
+   bool success =
+       shared_context_state_->FlushWriteAccess(dest_scoped_access.get());
+-  shared_context_state_->SubmitIfNecessary(std::move(end_semaphores),
+-                                           need_graphite_submit);
++  success &= shared_context_state_->SubmitIfNecessary(std::move(end_semaphores),
++                                                      need_graphite_submit);
+ 
+   if (success && !dest_shared_image->IsCleared()) {
+     if (gl_api) {
+diff --git a/gpu/command_buffer/service/raster_decoder.cc b/gpu/command_buffer/service/raster_decoder.cc
+index f6a25685a8..b3c2a6d5a9 100644
+--- a/gpu/command_buffer/service/raster_decoder.cc
++++ b/gpu/command_buffer/service/raster_decoder.cc
+@@ -2063,7 +2063,7 @@ void RasterDecoderImpl::DoWritePixelsINTERNAL(GLint x_offset,
+ 
+   bool success =
+       shared_context_state_->FlushWriteAccess(dest_scoped_access.get());
+-  shared_context_state_->SubmitIfNecessary(
++  success &= shared_context_state_->SubmitIfNecessary(
+       std::move(end_semaphores),
+       dest_scoped_access->NeedGraphiteContextSubmit());
+ 
+@@ -2327,7 +2327,7 @@ bool RasterDecoderImpl::DoWritePixelsINTERNALDirectTextureUpload(
+ 
+   bool success =
+       shared_context_state_->FlushWriteAccess(dest_scoped_access.get());
+-  shared_context_state_->SubmitIfNecessary(
++  success &= shared_context_state_->SubmitIfNecessary(
+       std::move(end_semaphores),
+       dest_scoped_access->NeedGraphiteContextSubmit());
+ 
+@@ -3155,8 +3155,8 @@ void RasterDecoderImpl::DoEndRasterCHROMIUM() {
+       bool need_graphite_submit =
+           paint_op_shared_image_provider_->NeedGraphiteContextSubmit() ||
+           scoped_shared_image_write_->NeedGraphiteContextSubmit();
+-      shared_context_state_->SubmitIfNecessary(std::move(end_semaphores_),
+-                                               need_graphite_submit);
++      success &= shared_context_state_->SubmitIfNecessary(
++          std::move(end_semaphores_), need_graphite_submit);
+       if (success && should_clear_shared_image_) {
+         shared_image_->SetCleared();
+       }
+-- 
+2.43.0
+

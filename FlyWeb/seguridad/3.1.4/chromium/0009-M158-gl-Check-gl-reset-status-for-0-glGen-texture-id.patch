@@ -1,0 +1,58 @@
+From 69cfeb4bd69c2f4d50c84e6c907c1a07e4092b28 Mon Sep 17 00:00:00 2001
+From: Saifuddin Hitawala <hitawala@chromium.org>
+Date: Tue, 3 Nov 2026 06:42:23 -0800
+Subject: [PATCH 09/17] [M158] [gl] Check gl reset status for 0 glGen texture
+ ids
+
+Original change's description:
+> [gl] Check gl reset status for 0 glGen texture ids
+>
+> Update glGenTextures to CHECK that the glGetGraphicsResetStatus
+> does not have GL_NO_ERROR. This ensures that when glGenTextures fails
+> and returns 0u, there is some error associated such as OOM, context
+> lost, etc.
+>
+> Bug: 568891853
+> Change-Id: I581a4fbace2b4d465131ca0666a9323f34334638
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8684465
+> Reviewed-by: Vasiliy Telezhnikov <vasilyt@chromium.org>
+> Commit-Queue: Saifuddin Hitawala <hitawala@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1731975}
+
+(cherry picked from commit 4846afa9027d32108853a96bd17e6da7cb617c01)
+
+Bug: 579236758,568891853
+Change-Id: I581a4fbace2b4d465131ca0666a9323f34334638
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8706313
+Commit-Queue: Saifuddin Hitawala <hitawala@chromium.org>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8127@{#742}
+Cr-Branched-From: df5c5abe6527926adf7ebf8540a8e6a0f9df7945-refs/heads/main@{#1727472}
+(cherry picked from commit 17d399e9af74796cf8544f16cdb8d308d4b9147c)
+---
+ ui/gl/gl_gl_api_implementation.cc | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/ui/gl/gl_gl_api_implementation.cc b/ui/gl/gl_gl_api_implementation.cc
+index 7f0c401f80..0101b3e40a 100644
+--- a/ui/gl/gl_gl_api_implementation.cc
++++ b/ui/gl/gl_gl_api_implementation.cc
+@@ -268,8 +268,12 @@ const GLubyte* RealGLApi::glGetStringiFn(GLenum name, GLuint index) {
+ 
+ void RealGLApi::glGenTexturesFn(GLsizei n, GLuint* textures) {
+   GLApiBase::glGenTexturesFn(n, textures);
+-  if (GetGLImplementation() != kGLImplementationMockGL && n > 0) {
+-    CHECK_NE(UNSAFE_TODO(textures[0]), 0u);
++  if (GetGLImplementation() != kGLImplementationMockGL && n > 0 &&
++      UNSAFE_TODO(textures[0]) == 0u) {
++    // On texture generation failure (id = 0), check the reset status. This
++    // should not be GL_NO_ERROR.
++    CHECK(driver_->fn.glGetGraphicsResetStatusARBFn);
++    CHECK_NE(glGetGraphicsResetStatusARBFn(), /*GL_NO_ERROR*/ 0u);
+   }
+ }
+ 
+-- 
+2.43.0
+
