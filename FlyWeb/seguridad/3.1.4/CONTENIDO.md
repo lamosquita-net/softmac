@@ -22,7 +22,16 @@ SEGURIDAD-PORTES-30, 18-11-2026 (encargo de COORDINACIÓN-49; relevo de la -29, 
 |---|---|---|---|
 | chromium | `local/314` **`607ec34912`** (`ls-remote`, 18-11; árbol `bcbbb25fbb` = `986d591616` + la fijación de ANGLE y WebRTC) | `integracion/chromium/0001` (las tres pruebas arregladas, igual que en #1081) → `parte4/chromium/` 0001–0018 → `parte5/chromium/` 0001–0048 → `parte6/chromium/` 0001–0032 **con `parte5/integracion/chromium/0001` en lugar de `parte6/chromium/0007`** | **`ddf5f555b2`** (99 commits; comprobado con `git am` de los ficheros de `main`). Luego, el commit de fijación de los repos aparte (abajo) |
 | brave-core | `local/3.1.4` **`9932552867`** (`ls-remote`, 18-11; árbol `15c050d35a`) | `parte4/brave-core/0001` → `parte5/brave-core/0001` → **`integracion/brave-core/0001`** (es `parte6/brave-core/0001` con el choque de `FLYWEB-SECURITY.md` resuelto: **no apliques el de `parte6/`**) → `integracion/brave-core/0002` (V8 fdbb7b1 y época 37) | **`2ab25d6a23`** = rama **`seg/3.1.4-integracion`** **`6441095f59`** (`ls-remote`, 18-11). `flyweb_version` 3.1.4, `kFlyWebCacheEpoch` **37**; V8 .66 con todos los `patches/v8`: **`17b5af44cd`** |
-TERCEROS_LOCAL
+| Skia | `27c31ca415` (gitlink de `local/314`) | `parte4/skia/0001` → `parte5/skia/0001` | **`a934afed14`** |
+| devtools-frontend | `904b77f9fc` (gitlink de `local/314`) | `parte4/devtools-frontend/0001` → `parte5/devtools-frontend/` 0001–0005 → `parte6/devtools-frontend/0001` → **`parte5/integracion/devtools-frontend/0001` en lugar de `parte6/devtools-frontend/0002`** | **`dc4e4cd416`** |
+| WebRTC | el de LOCAL con `3.1.5/webrtc` 0001–0005 (gitlink `1dc9ab4e8c` de `local/314`; árbol esperado `8ee111cf22`) | `parte6/webrtc/0001` | **`9b251c7cc7`** |
+| libaom | `016144ea8b` | `parte6/libaom/0001` | **`26cdf2fc0d`** |
+| libvpx | `de61454cf8` | `parte6/libvpx/0001` | **`fe13a1c827`** |
+| ANGLE | el de LOCAL (gitlink `271bafce16` de `local/314`, = `bc2ebdd211` + `3.1.4/angle` 0001–0003) | nada nuevo | `db885a866b` |
+
+Después, como en la 3.1.3, un commit de fijación en chromium con los gitlinks y las revisiones de `DEPS` de Skia,
+devtools-frontend, WebRTC, libaom y libvpx. No he podido leer `1dc9ab4e8c` ni `271bafce16`, que solo existen en la 7,1:
+si su árbol no es `8ee111cf22` y `db885a866b`, avisa antes de seguir.
 
 `chrome/VERSION` sigue en .110 (sin tag .111). V8 sigue en 15.6.75.66 (gitlink sin cambiar; todo va en `patches/v8`).
 Dawn, FFmpeg, PDFium e ICU: sin cambios.
@@ -37,7 +46,13 @@ Dawn, FFmpeg, PDFium e ICU: sin cambios.
 | chromium | + parte 6 (0001–0032, con `parte5/integracion/chromium/0001` por 0007) | **`0df59307de`** (sin arreglar: `ab06a2ae15`, el de la -27). Frente a `ddf5f555b2` solo cambian los gitlinks de ANGLE y WebRTC y `DEPS` (la fijación de LOCAL) |
 | brave-core | `local/3.1.4` + parte 4 / + parte 5 / + parte 6 resuelta / + integración | `d328e2f909` / `f4ae16e77c` / `4d2b7bad70` / **`2ab25d6a23`** |
 | V8 (.66 + `patches/v8`) | lo mismo | `a2d562e4b8` / `9785de2624` / `758b3cb956` / **`17b5af44cd`** |
-TERCEROS_LIMPIA
+| Skia | `27c31ca415` + parte 4 / + parte 5 | `c4c611066c` / **`a934afed14`** |
+| devtools-frontend | `904b77f9fc` + parte 4 / + parte 5 / + parte 6 con la sustitución | `c70d811144` / `e365b6b8a8` / **`dc4e4cd416`** |
+| WebRTC | `19576e3787` + `3.1.5/webrtc` 0001–0005 / + `parte6/webrtc/0001` | `8ee111cf22` / **`9b251c7cc7`** |
+| libaom, libvpx | `016144ea8b` / `de61454cf8` + `parte6` 0001 | **`26cdf2fc0d`** / **`fe13a1c827`** |
+| ANGLE | `f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 (= `099b621f10`, el árbol de `bc2ebdd211`) + `3.1.4/angle` 0001–0003 | **`db885a866b`** |
+
+Todos con `git apply --cached` sobre la base indicada, sin `-3`.
 
 ### Lo que añade la integración
 
