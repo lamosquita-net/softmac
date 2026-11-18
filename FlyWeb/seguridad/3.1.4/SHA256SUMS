@@ -18,3 +18,12 @@ e9353dc8624e90640a677eac33e57ecd794a8b950ecf12e6dc1da15599c49e94  chromium/0017-
 8fb5b6caceaf867f8deedc376e5f7de3389f72adad182bbcbb4eb93d195b82fa  angle/0001-Translator-Rename-variables-that-are-extracted-from-.patch
 72989e542cbc7095bced9f7c170e7d6c91837ed5456514cc060710e547c9bbfb  angle/0002-Translator-Fix-constant-switch-folding-vs-length.patch
 99eb9e40f721014d94d3340a734af2254ddef998b54f3d990f58937d05d6fbd9  angle/0003-M156-GL-Reset-base-level-for-ASTC-robust-init.patch
+a1ac34d365f8fdbfd8836dc0a0540ad69d0e48058bfbe3a4f7691993d6c98508  chromium/0018-FlyWeb-Media-validate-data-origin-before-mutating-Ur.patch
+491a8e48571d3bbf45a64d147e38f229c22da1905d713267cb8630d92e6b4ca9  chromium/0019-event-timing-Fix-target-frame-attribution-and-verify.patch
+1da89cb8de78bfa7873b34273253d7c683fd3eb54664867c164238ed4bed49af  chromium/0020-M156-Prerender-Delete-pending-deletion-subframe-RFHs.patch
+63c004b50ba5f431ad0e91f234764c97b74f07dcebd47283254aca1e0cbc561e  chromium/0021-M156-Autofill-Validate-selected_option_text-and-sele.patch
+1cb006961469336cafc1b1868b065be9f5cf6d180ed78821e09429c5a0d9ae2c  chromium/0022-M156-ServiceWorker-Check-NavigationPreloadRequest-li.patch
+49062496cb8f1d3870351aeda08d91d49270d46079a3f3f43bb84305084b5ee4  chromium/0023-M156-Defer-HTMLPlugInElement-image-loads-from-style-.patch
+a440f33a86907e9cffc0a67a2e21756c445597a9dee0d52c6a82df2afcaf88ca  chromium/0024-M156-Handle-DOM-mutations-during-text-replace-in-edi.patch
+811eb6859c02de9ab03f1121439eb12259d67f6f434d5d605e122eece180b4fd  chromium/0025-M156-MemoryCache-Forbid-reuses-if-GetSkipServiceWork.patch
+946447413a0646248dc64328b18d8ef8e48d6e2bc634ec02a1bcf996649f75ea  chromium/0026-3.1.4-chrome-VERSION-156.0.8078.109-156.0.8078.110.patch

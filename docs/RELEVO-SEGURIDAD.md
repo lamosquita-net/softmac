@@ -844,3 +844,19 @@ Detalle en «Pendiente» de `3.1.4/CONTENIDO.md`.
   8078 pasada la .109 solo está en gitiles (`+log/156.0.8078.109..refs/branch-heads/8078?format=JSON`).
 - Nuestro ANGLE `bc2ebdd211` se reproduce con `f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004
   (árbol `099b621f10`).
+
+## 14. SEGURIDAD-PORTES-25 (`session_01MwmK2kzDkFd6KCGzWTjn23`, 18-11-2026): la 3.1.4, parte 2
+
+**Acceso:** `add_repo` de brave-core **denegado por el clasificador** (a la -24 se lo concedió): brave-core en lectura;
+su 0003 va como `.patch`. Chromium, por `format-patch` como siempre.
+
+**Hecho:** B5, B6, D y E (`3.1.4/CONTENIDO.md` «Parte 2»): chromium 0018–0026 → árbol `4e87f2898a`; brave-core 0003.
+E congelado en el tag **.110** (`04545e38be`); lo posterior (6 [M156] y la .111), a la 3.1.5.
+
+**Trampas nuevas:**
+- **Mirar lo que upstream arregló *después* del commit que se porta:** fb2af07952 metía `CHECK` que saltaban
+  (61b6e5652b, crbug 579225207). Buscar en `search/commits` por el nombre de la clase con `committer-date:>` la fecha
+  del arreglo.
+- gitiles da 302 a `google.com/sorry` con `+log/<sha>/<ruta>`; los `+/<sha>?format=JSON` sueltos y `+log/A..B` sin ruta
+  sí funcionan, con pausas.
+- dawn.googlesource.com: 403 (proxy) y el espejo de GitHub no tiene `chromium/8078`. Lo de Dawn de la rama, a LOCAL.

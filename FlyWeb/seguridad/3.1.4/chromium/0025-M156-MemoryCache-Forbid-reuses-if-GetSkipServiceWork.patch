@@ -1,0 +1,164 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Hiroshige Hayashizaki <hiroshige@chromium.org>
+Date: Tue, 17 Nov 2026 15:26:04 -0800
+Subject: [PATCH 25/26] [M156] MemoryCache: Forbid reuses if
+ GetSkipServiceWorker() mismatches
+
+Original change's description:
+> MemoryCache: Forbid reuses if GetSkipServiceWorker() mismatches
+>
+> This is probably helpful for preventing potential bugs due to this
+> inconsistency in MemoryCache.
+>
+> This CL fixes crbug.com/552870313, crbug.com/553096549, and
+> crbug.com/551254456, while we'll also have more fundamental fixes
+> https://crrev.com/c/8433306 https://crrev.com/c/8391784.
+>
+> Bug: 563000235, 552870313, 553096549, 551254456
+> Change-Id: Ia307337a1ea26f33e1c0f14fc34b4b840f0ce12a
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8434241
+> Reviewed-by: Justin Lulejian <jlulejian@chromium.org>
+> Reviewed-by: Yoshisato Yanagisawa <yyanagisawa@chromium.org>
+> Commit-Queue: Hiroshige Hayashizaki <hiroshige@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1706576}
+
+(cherry picked from commit ee604b039425ca81b3cca7d9af51592e60cb289e)
+
+Bug: 585407318,563000235,552870313,553096549,551254456
+Change-Id: Ia307337a1ea26f33e1c0f14fc34b4b840f0ce12a
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8825594
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: Justin Lulejian <jlulejian@chromium.org>
+Reviewed-by: Justin Lulejian <jlulejian@chromium.org>
+Reviewed-by: Hiroshige Hayashizaki <hiroshige@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2277}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+(cherry picked from commit 2dc582d28088e562f4f8a835036b983b7133678d)
+---
+ .../platform/loader/fetch/resource.cc         | 12 +++++++
+ .../renderer/platform/loader/fetch/resource.h |  5 +++
+ .../platform/loader/fetch/resource_fetcher.cc |  3 ++
+ .../platform/loader/fetch/resource_test.cc    | 31 +++++++++++++++++++
+ .../preload/warning/sync-request-expected.txt |  2 +-
+ 5 files changed, 52 insertions(+), 1 deletion(-)
+
+diff --git a/third_party/blink/renderer/platform/loader/fetch/resource.cc b/third_party/blink/renderer/platform/loader/fetch/resource.cc
+index 7dbfc5858..48276b151 100644
+--- a/third_party/blink/renderer/platform/loader/fetch/resource.cc
++++ b/third_party/blink/renderer/platform/loader/fetch/resource.cc
+@@ -86,6 +86,11 @@ BASE_FEATURE(kPreventExtensionResourceFetchAcrossIsolatedWorlds,
+ BASE_FEATURE(kPreventCrossWorldServiceWorkerResourceReuse,
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
++// Feature that prevents resources from being reused if the Service Worker skip
++// policy differs between the existing and new requests.
++BASE_FEATURE(kPreventDifferentSkipServiceWorkerResourceReuse,
++             base::FEATURE_ENABLED_BY_DEFAULT);
++
+ String GetAsAttributeFromResourceType(ResourceType type) {
+   switch (type) {
+     case ResourceType::kImage:
+@@ -921,6 +926,13 @@ Resource::MatchStatus Resource::CanReuse(const FetchParameters& params) const {
+     return MatchStatus::kCrossWorldServiceWorkerResourceMismatch;
+   }
+ 
++  if (base::FeatureList::IsEnabled(
++          kPreventDifferentSkipServiceWorkerResourceReuse) &&
++      current_request.GetSkipServiceWorker() !=
++          new_request.GetSkipServiceWorker()) {
++    return MatchStatus::kSkipServiceWorkerDoesNotMatch;
++  }
++
+   // If credentials mode is different from the the previous request, re-fetch
+   // the resource.
+   //
+diff --git a/third_party/blink/renderer/platform/loader/fetch/resource.h b/third_party/blink/renderer/platform/loader/fetch/resource.h
+index d3c4ee9cb..f4d92f4a2 100644
+--- a/third_party/blink/renderer/platform/loader/fetch/resource.h
++++ b/third_party/blink/renderer/platform/loader/fetch/resource.h
+@@ -77,6 +77,8 @@ PLATFORM_EXPORT BASE_DECLARE_FEATURE(
+     kPreventExtensionResourceFetchAcrossIsolatedWorlds);
+ PLATFORM_EXPORT BASE_DECLARE_FEATURE(
+     kPreventCrossWorldServiceWorkerResourceReuse);
++PLATFORM_EXPORT BASE_DECLARE_FEATURE(
++    kPreventDifferentSkipServiceWorkerResourceReuse);
+ 
+ class BackgroundResponseProcessorFactory;
+ class BlobDataHandle;
+@@ -175,6 +177,9 @@ class PLATFORM_EXPORT Resource : public GarbageCollected<Resource>,
+     // Match fails because the response status code is 304 (Not Modified)
+     // without a body, but all other request parameters matched.
+     k304NotModified,
++
++    // Match fails due to different ServiceWorker policies (SkipServiceWorker).
++    kSkipServiceWorkerDoesNotMatch,
+   };
+ 
+   Resource(const Resource&) = delete;
+diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
+index eb403c197..5af3878e4 100644
+--- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
++++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
+@@ -1990,6 +1990,9 @@ void ResourceFetcher::PrintPreloadMismatch(Resource* resource,
+       builder.Append(
+           "because it is a cross-world service worker resource mismatch.");
+       break;
++    case Resource::MatchStatus::kSkipServiceWorkerDoesNotMatch:
++      builder.Append("because the Service Worker skip policy does not match.");
++      break;
+   }
+   console_logger_->AddConsoleMessage(mojom::ConsoleMessageSource::kOther,
+                                      mojom::ConsoleMessageLevel::kWarning,
+diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_test.cc b/third_party/blink/renderer/platform/loader/fetch/resource_test.cc
+index d7a75004d..1e62377c3 100644
+--- a/third_party/blink/renderer/platform/loader/fetch/resource_test.cc
++++ b/third_party/blink/renderer/platform/loader/fetch/resource_test.cc
+@@ -606,4 +606,35 @@ TEST_F(ResourceTest, CanReuseServiceWorkerResource) {
+   }
+ }
+ 
++TEST_F(ResourceTest, CanReuseSkipServiceWorker) {
++  const KURL url("https://localhost/test.js");
++  scoped_refptr<const SecurityOrigin> origin = SecurityOrigin::Create(url);
++
++  ResourceRequest cache_request(url);
++  cache_request.SetRequestorOrigin(origin);
++  cache_request.SetSkipServiceWorker(false);
++
++  auto* resource = MakeGarbageCollected<MockResource>(cache_request);
++  resource->FinishForTest();
++
++  // Same skip_service_worker should match.
++  {
++    ResourceRequest request(url);
++    request.SetRequestorOrigin(origin);
++    request.SetSkipServiceWorker(false);
++    FetchParameters params = FetchParameters::CreateForTest(std::move(request));
++    EXPECT_EQ(Resource::MatchStatus::kOk, resource->CanReuse(params));
++  }
++
++  // Different skip_service_worker should not match.
++  {
++    ResourceRequest request(url);
++    request.SetRequestorOrigin(origin);
++    request.SetSkipServiceWorker(true);
++    FetchParameters params = FetchParameters::CreateForTest(std::move(request));
++    EXPECT_EQ(Resource::MatchStatus::kSkipServiceWorkerDoesNotMatch,
++              resource->CanReuse(params));
++  }
++}
++
+ }  // namespace blink
+diff --git a/third_party/blink/web_tests/http/tests/preload/warning/sync-request-expected.txt b/third_party/blink/web_tests/http/tests/preload/warning/sync-request-expected.txt
+index 9decbb325..8087d4a59 100644
+--- a/third_party/blink/web_tests/http/tests/preload/warning/sync-request-expected.txt
++++ b/third_party/blink/web_tests/http/tests/preload/warning/sync-request-expected.txt
+@@ -1,4 +1,4 @@
+-CONSOLE WARNING: A preload for 'http://127.0.0.1:8000/preload/warning/resources/hello.txt' is found, but is not used because the new request is synchronous.
++CONSOLE WARNING: A preload for 'http://127.0.0.1:8000/preload/warning/resources/hello.txt' is found, but is not used because the Service Worker skip policy does not match.
+ This is a testharness.js-based test.
+ Harness: the test ran to completion.
+ 
+-- 
+2.43.0
+

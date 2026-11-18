@@ -1,0 +1,776 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ted Janeczko <tjaneczko@google.com>
+Date: Tue, 17 Nov 2026 10:49:19 -0800
+Subject: [PATCH 22/26] [M156] [ServiceWorker] Check NavigationPreloadRequest
+ lifetime in callbacks
+
+Original change's description:
+> [ServiceWorker] Check NavigationPreloadRequest lifetime in callbacks
+>
+> In NavigationPreloadRequest::OnReceiveRedirect() and OnComplete(),
+> OnNavigationPreloadResponse() is invoked prior to
+> OnNavigationPreloadComplete(). Resolving the preload response promise
+> can synchronously execute script, which may trigger worker context
+> destruction and delete the request object while it is still on the call
+> stack.
+>
+> Introduce a WeakPtr check to ensure the NavigationPreloadRequest
+> instance is still valid before calling OnNavigationPreloadComplete(). In
+> addition, verify that context_ is non-null in ServiceWorkerContextClient
+> prior to removing preload requests in OnNavigationPreloadError() and
+> OnNavigationPreloadComplete().
+>
+> Bug: 578676178
+> Fixed: 578676178
+> Change-Id: I1230fe6ffd2ab99f7edc99fdfc449fdd25f931cf
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8790298
+> Reviewed-by: Shunya Shishido <sisidovski@chromium.org>
+> Commit-Queue: Ted Janeczko <tjaneczko@google.com>
+> Reviewed-by: Yoshisato Yanagisawa <yyanagisawa@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1745182}
+
+(cherry picked from commit c6cefaec9eb730ff6b74251e36d56f35cd7e3c10)
+
+Bug: 586354921,578676178,578676178
+Change-Id: I1230fe6ffd2ab99f7edc99fdfc449fdd25f931cf
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8827947
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: Srinivas Sista <srinivassista@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2267}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+(cherry picked from commit 17c24f828fb8a502342728583095ffcac3ca6a10)
+---
+ .../embedded_worker_instance_client_impl.h    |   3 +-
+ .../service_worker_context_client.cc          |  12 +-
+ .../service_worker_context_client.h           |   3 +-
+ .../service_worker_context_client_unittest.cc | 260 ++++++++++++++++++
+ content/test/BUILD.gn                         |   1 +
+ .../renderer/modules/service_worker/DEPS      |   2 +
+ .../navigation_preload_request.cc             |  49 ++--
+ .../navigation_preload_request.h              |   7 +
+ .../web_embedded_worker_impl_test.cc          | 189 ++++++++++++-
+ 9 files changed, 502 insertions(+), 24 deletions(-)
+ create mode 100644 content/renderer/service_worker/service_worker_context_client_unittest.cc
+
+diff --git a/content/renderer/service_worker/embedded_worker_instance_client_impl.h b/content/renderer/service_worker/embedded_worker_instance_client_impl.h
+index ac8fe1d6a..4c721066a 100644
+--- a/content/renderer/service_worker/embedded_worker_instance_client_impl.h
++++ b/content/renderer/service_worker/embedded_worker_instance_client_impl.h
+@@ -9,6 +9,7 @@
+ 
+ #include "base/task/single_thread_task_runner.h"
+ #include "content/child/child_thread_impl.h"
++#include "content/common/content_export.h"
+ #include "mojo/public/cpp/bindings/pending_receiver.h"
+ #include "mojo/public/cpp/bindings/receiver.h"
+ #include "third_party/blink/public/mojom/service_worker/embedded_worker.mojom.h"
+@@ -27,7 +28,7 @@ class ServiceWorkerContextClient;
+ // service worker to stop and then deletes itself.
+ //
+ // Created and lives on a ThreadPool background thread.
+-class EmbeddedWorkerInstanceClientImpl
++class CONTENT_EXPORT EmbeddedWorkerInstanceClientImpl
+     : public blink::mojom::EmbeddedWorkerInstanceClient {
+  public:
+   // Creates a new EmbeddedWorkerInstanceClientImpl instance bound to
+diff --git a/content/renderer/service_worker/service_worker_context_client.cc b/content/renderer/service_worker/service_worker_context_client.cc
+index d65f227d8..9a742175b 100644
+--- a/content/renderer/service_worker/service_worker_context_client.cc
++++ b/content/renderer/service_worker/service_worker_context_client.cc
+@@ -489,7 +489,11 @@ void ServiceWorkerContextClient::OnNavigationPreloadError(
+               perfetto::Flow::ProcessScoped(fetch_event_id,
+                                             kServiceWorkerContextClientScope));
+   proxy_->OnNavigationPreloadError(fetch_event_id, std::move(error));
+-  context_->preload_requests.Remove(fetch_event_id);
++  // |context_| may be reset if the worker context is destroyed while paused
++  // during OnNavigationPreloadError().
++  if (context_) {
++    context_->preload_requests.Remove(fetch_event_id);
++  }
+ }
+ 
+ void ServiceWorkerContextClient::OnNavigationPreloadComplete(
+@@ -508,7 +512,11 @@ void ServiceWorkerContextClient::OnNavigationPreloadComplete(
+   proxy_->OnNavigationPreloadComplete(fetch_event_id, completion_time,
+                                       encoded_data_length, encoded_body_length,
+                                       decoded_body_length);
+-  context_->preload_requests.Remove(fetch_event_id);
++  // |context_| may be reset if the worker context is destroyed while paused
++  // during OnNavigationPreloadComplete().
++  if (context_) {
++    context_->preload_requests.Remove(fetch_event_id);
++  }
+ }
+ 
+ void ServiceWorkerContextClient::SendWorkerStarted(
+diff --git a/content/renderer/service_worker/service_worker_context_client.h b/content/renderer/service_worker/service_worker_context_client.h
+index c698d80d5..829e4d408 100644
+--- a/content/renderer/service_worker/service_worker_context_client.h
++++ b/content/renderer/service_worker/service_worker_context_client.h
+@@ -17,6 +17,7 @@
+ #include "base/memory/raw_ptr.h"
+ #include "base/memory/scoped_refptr.h"
+ #include "base/time/time.h"
++#include "content/common/content_export.h"
+ #include "mojo/public/cpp/bindings/pending_associated_remote.h"
+ #include "mojo/public/cpp/bindings/pending_receiver.h"
+ #include "mojo/public/cpp/bindings/receiver.h"
+@@ -74,7 +75,7 @@ class EmbeddedWorkerInstanceClientImpl;
+ //
+ // Unless otherwise noted (here or in base class documentation), all methods
+ // are called on the worker thread.
+-class ServiceWorkerContextClient
++class CONTENT_EXPORT ServiceWorkerContextClient
+     : public blink::WebServiceWorkerContextClient,
+       public service_manager::mojom::InterfaceProvider {
+  public:
+diff --git a/content/renderer/service_worker/service_worker_context_client_unittest.cc b/content/renderer/service_worker/service_worker_context_client_unittest.cc
+new file mode 100644
+index 000000000..3b7eb7308
+--- /dev/null
++++ b/content/renderer/service_worker/service_worker_context_client_unittest.cc
+@@ -0,0 +1,260 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "content/renderer/service_worker/service_worker_context_client.h"
++
++#include <memory>
++#include <utility>
++#include <vector>
++
++#include "base/functional/callback.h"
++#include "base/run_loop.h"
++#include "base/task/sequenced_task_runner.h"
++#include "base/task/single_thread_task_runner.h"
++#include "base/task/thread_pool.h"
++#include "base/test/bind.h"
++#include "base/test/task_environment.h"
++#include "base/time/time.h"
++#include "content/public/common/content_client.h"
++#include "content/public/renderer/content_renderer_client.h"
++#include "content/renderer/service_worker/embedded_worker_instance_client_impl.h"
++#include "mojo/public/cpp/bindings/pending_associated_receiver.h"
++#include "mojo/public/cpp/bindings/pending_associated_remote.h"
++#include "mojo/public/cpp/bindings/pending_receiver.h"
++#include "mojo/public/cpp/bindings/remote.h"
++#include "services/network/public/mojom/url_loader.mojom.h"
++#include "services/network/public/mojom/url_loader_factory.mojom.h"
++#include "services/service_manager/public/mojom/interface_provider.mojom.h"
++#include "testing/gtest/include/gtest/gtest.h"
++#include "third_party/blink/public/common/associated_interfaces/associated_interface_registry.h"
++#include "third_party/blink/public/common/renderer_preferences/renderer_preferences.h"
++#include "third_party/blink/public/common/storage_key/storage_key.h"
++#include "third_party/blink/public/common/tokens/tokens.h"
++#include "third_party/blink/public/mojom/service_worker/controller_service_worker.mojom.h"
++#include "third_party/blink/public/mojom/service_worker/embedded_worker.mojom.h"
++#include "third_party/blink/public/mojom/service_worker/service_worker.mojom.h"
++#include "third_party/blink/public/mojom/service_worker/service_worker_error_type.mojom.h"
++#include "third_party/blink/public/mojom/service_worker/service_worker_fetch_handler_type.mojom.h"
++#include "third_party/blink/public/mojom/service_worker/service_worker_provider.mojom.h"
++#include "third_party/blink/public/platform/child_url_loader_factory_bundle.h"
++#include "third_party/blink/public/platform/modules/service_worker/web_service_worker_error.h"
++#include "third_party/blink/public/platform/scheduler/test/renderer_scheduler_test_support.h"
++#include "third_party/blink/public/platform/web_string.h"
++#include "third_party/blink/public/platform/web_url.h"
++#include "third_party/blink/public/platform/web_url_response.h"
++#include "third_party/blink/public/web/modules/service_worker/web_service_worker_context_proxy.h"
++#include "url/gurl.h"
++#include "v8/include/v8-local-handle.h"
++
++namespace content {
++
++namespace {
++
++class FakeWebServiceWorkerContextProxy
++    : public blink::WebServiceWorkerContextProxy {
++ public:
++  FakeWebServiceWorkerContextProxy() = default;
++  ~FakeWebServiceWorkerContextProxy() override = default;
++
++  void SetOnCompleteCallback(base::OnceClosure callback) {
++    on_complete_callback_ = std::move(callback);
++  }
++  void SetOnErrorCallback(base::OnceClosure callback) {
++    on_error_callback_ = std::move(callback);
++  }
++
++  int complete_count() const { return complete_count_; }
++  int error_count() const { return error_count_; }
++
++  // blink::WebServiceWorkerContextProxy:
++  void BindServiceWorker(
++      blink::CrossVariantMojoReceiver<blink::mojom::ServiceWorkerInterfaceBase>
++          receiver) override {}
++  void BindControllerServiceWorker(
++      blink::CrossVariantMojoReceiver<
++          blink::mojom::ControllerServiceWorkerInterfaceBase> receiver)
++      override {}
++  void OnNavigationPreloadResponse(
++      int fetch_event_id,
++      std::unique_ptr<blink::WebURLResponse> response,
++      mojo::ScopedDataPipeConsumerHandle data_pipe) override {}
++  void OnNavigationPreloadError(
++      int fetch_event_id,
++      std::unique_ptr<blink::WebServiceWorkerError> error) override {
++    ++error_count_;
++    if (on_error_callback_) {
++      std::move(on_error_callback_).Run();
++    }
++  }
++  void OnNavigationPreloadComplete(int fetch_event_id,
++                                   base::TimeTicks completion_time,
++                                   int64_t encoded_data_length,
++                                   int64_t encoded_body_length,
++                                   int64_t decoded_body_length) override {
++    ++complete_count_;
++    if (on_complete_callback_) {
++      std::move(on_complete_callback_).Run();
++    }
++  }
++  bool IsWindowInteractionAllowed() override { return false; }
++  void PauseEvaluation() override {}
++  void ResumeEvaluation() override {}
++  void DeferPrepareForEvaluation() override {}
++  void RunDeferredPrepareForEvaluation() override {}
++  blink::mojom::ServiceWorkerFetchHandlerType FetchHandlerType() override {
++    return blink::mojom::ServiceWorkerFetchHandlerType::kNoHandler;
++  }
++  bool HasHidEventHandlers() override { return false; }
++  bool HasUsbEventHandlers() override { return false; }
++  void GetRemoteAssociatedInterface(
++      const blink::WebString& name,
++      mojo::ScopedInterfaceEndpointHandle handle) override {}
++  blink::AssociatedInterfaceRegistry& GetAssociatedInterfaceRegistry()
++      override {
++    return associated_interface_registry_;
++  }
++
++ private:
++  blink::AssociatedInterfaceRegistry associated_interface_registry_;
++  base::OnceClosure on_complete_callback_;
++  base::OnceClosure on_error_callback_;
++  int complete_count_ = 0;
++  int error_count_ = 0;
++};
++
++}  // namespace
++
++class ServiceWorkerContextClientTest : public testing::Test {
++ protected:
++  void SetUp() override {
++    old_renderer_client_ = SetRendererClientForTesting(&renderer_client_);
++    worker_task_runner_ = base::ThreadPool::CreateSequencedTaskRunner({});
++
++    owner_ = base::WrapUnique(new EmbeddedWorkerInstanceClientImpl(
++        instance_client_remote_.BindNewPipeAndPassReceiver(),
++        blink::scheduler::GetSingleThreadTaskRunnerForTesting(),
++        /*cors_exempt_header_list=*/{}));
++
++    auto subresource_loaders =
++        std::make_unique<blink::PendingURLLoaderFactoryBundle>();
++    default_loader_factory_receiver_ =
++        subresource_loaders->pending_default_factory()
++            .InitWithNewPipeAndPassReceiver();
++
++    auto start_timing = blink::mojom::EmbeddedWorkerStartTiming::New();
++    const GURL kScope("https://example.com/");
++    const GURL kScript("https://example.com/sw.js");
++    mojo::PendingAssociatedRemote<blink::mojom::EmbeddedWorkerInstanceHost>
++        instance_host_remote;
++    instance_host_receiver_ =
++        instance_host_remote.InitWithNewEndpointAndPassReceiver();
++
++    context_client_ = std::make_unique<ServiceWorkerContextClient>(
++        /*service_worker_version_id=*/1, kScope, kScript,
++        /*is_starting_installed_worker=*/false, blink::RendererPreferences(),
++        service_worker_remote_.BindNewPipeAndPassReceiver(),
++        controller_remote_.BindNewPipeAndPassReceiver(),
++        std::move(instance_host_remote),
++        interface_provider_remote_.BindNewPipeAndPassReceiver(),
++        blink::mojom::ServiceWorkerProviderInfoForStartWorker::New(),
++        owner_.get(), std::move(start_timing),
++        /*preference_watcher_receiver=*/mojo::NullReceiver(),
++        std::move(subresource_loaders),
++        /*subresource_loader_updater=*/mojo::NullReceiver(),
++        /*script_url_to_skip_throttling=*/GURL(),
++        blink::scheduler::GetSingleThreadTaskRunnerForTesting(),
++        /*service_worker_route_id=*/1,
++        /*cors_exempt_header_list=*/std::vector<std::string>(),
++        blink::StorageKey(), blink::ServiceWorkerToken());
++  }
++
++  void TearDown() override {
++    context_client_.reset();
++    owner_.reset();
++    SetRendererClientForTesting(old_renderer_client_);
++  }
++
++  void RunOnWorkerThread(base::OnceClosure closure) {
++    base::RunLoop run_loop;
++    worker_task_runner_->PostTask(FROM_HERE, std::move(closure));
++    worker_task_runner_->PostTask(FROM_HERE, run_loop.QuitClosure());
++    run_loop.Run();
++  }
++
++  bool HasContext() const { return context_client_->context_ != nullptr; }
++
++  base::test::TaskEnvironment task_environment_;
++  ContentRendererClient renderer_client_;
++  raw_ptr<ContentRendererClient> old_renderer_client_ = nullptr;
++  scoped_refptr<base::SequencedTaskRunner> worker_task_runner_;
++
++  mojo::Remote<blink::mojom::EmbeddedWorkerInstanceClient>
++      instance_client_remote_;
++  mojo::PendingReceiver<network::mojom::URLLoaderFactory>
++      default_loader_factory_receiver_;
++  mojo::Remote<blink::mojom::ServiceWorker> service_worker_remote_;
++  mojo::Remote<blink::mojom::ControllerServiceWorker> controller_remote_;
++  mojo::PendingAssociatedReceiver<blink::mojom::EmbeddedWorkerInstanceHost>
++      instance_host_receiver_;
++  mojo::Remote<service_manager::mojom::InterfaceProvider>
++      interface_provider_remote_;
++
++  std::unique_ptr<EmbeddedWorkerInstanceClientImpl> owner_;
++  std::unique_ptr<ServiceWorkerContextClient> context_client_;
++  FakeWebServiceWorkerContextProxy proxy_;
++};
++
++TEST_F(ServiceWorkerContextClientTest,
++       OnNavigationPreloadCompleteDestroysWorkerContext) {
++  RunOnWorkerThread(base::BindLambdaForTesting([&]() {
++    context_client_->WorkerContextStarted(&proxy_, worker_task_runner_);
++    ASSERT_TRUE(HasContext());
++
++    mojo::Remote<network::mojom::URLLoaderClient> preload_loader_client;
++    context_client_->SetupNavigationPreload(
++        /*fetch_event_id=*/1, blink::WebURL(GURL("https://example.com/")),
++        preload_loader_client.BindNewPipeAndPassReceiver());
++
++    proxy_.SetOnCompleteCallback(base::BindLambdaForTesting([&]() {
++      context_client_->WillDestroyWorkerContext(v8::Local<v8::Context>());
++    }));
++
++    context_client_->OnNavigationPreloadComplete(
++        /*fetch_event_id=*/1, base::TimeTicks::Now(),
++        /*encoded_data_length=*/0, /*encoded_body_length=*/0,
++        /*decoded_body_length=*/0);
++
++    EXPECT_EQ(1, proxy_.complete_count());
++    EXPECT_FALSE(HasContext());
++  }));
++}
++
++TEST_F(ServiceWorkerContextClientTest,
++       OnNavigationPreloadErrorDestroysWorkerContext) {
++  RunOnWorkerThread(base::BindLambdaForTesting([&]() {
++    context_client_->WorkerContextStarted(&proxy_, worker_task_runner_);
++    ASSERT_TRUE(HasContext());
++
++    mojo::Remote<network::mojom::URLLoaderClient> preload_loader_client;
++    context_client_->SetupNavigationPreload(
++        /*fetch_event_id=*/1, blink::WebURL(GURL("https://example.com/")),
++        preload_loader_client.BindNewPipeAndPassReceiver());
++
++    proxy_.SetOnErrorCallback(base::BindLambdaForTesting([&]() {
++      context_client_->WillDestroyWorkerContext(v8::Local<v8::Context>());
++    }));
++
++    context_client_->OnNavigationPreloadError(
++        /*fetch_event_id=*/1,
++        std::make_unique<blink::WebServiceWorkerError>(
++            blink::mojom::ServiceWorkerErrorType::kNetwork,
++            blink::WebString::FromAscii("error"),
++            blink::WebServiceWorkerError::Mode::kNone));
++
++    EXPECT_EQ(1, proxy_.error_count());
++    EXPECT_FALSE(HasContext());
++  }));
++}
++
++}  // namespace content
+diff --git a/content/test/BUILD.gn b/content/test/BUILD.gn
+index 05c706156..b070c37e6 100644
+--- a/content/test/BUILD.gn
++++ b/content/test/BUILD.gn
+@@ -3078,6 +3078,7 @@ test("content_unittests") {
+     "../renderer/media/renderer_webaudiodevice_impl_unittest.cc",
+     "../renderer/memory_coordinator/last_resort_gc_policy_unittest.cc",
+     "../renderer/render_thread_impl_unittest.cc",
++    "../renderer/service_worker/service_worker_context_client_unittest.cc",
+     "../renderer/service_worker/service_worker_provider_context_unittest.cc",
+     "../renderer/service_worker/service_worker_subresource_loader_unittest.cc",
+     "../renderer/skia_benchmarking_extension_unittest.cc",
+diff --git a/third_party/blink/renderer/modules/service_worker/DEPS b/third_party/blink/renderer/modules/service_worker/DEPS
+index 136049f06..25229a5b2 100644
+--- a/third_party/blink/renderer/modules/service_worker/DEPS
++++ b/third_party/blink/renderer/modules/service_worker/DEPS
+@@ -35,6 +35,8 @@ specific_include_rules = {
+         "+base/test/test_mock_time_task_runner.h",
+     ],
+     "web_embedded_worker_impl_test\\.cc": [
++        "+net/http/http_response_headers.h",
++        "+net/url_request/redirect_info.h",
+         "+third_party/blink/renderer/modules/exported",
+     ],
+ }
+diff --git a/third_party/blink/renderer/modules/service_worker/navigation_preload_request.cc b/third_party/blink/renderer/modules/service_worker/navigation_preload_request.cc
+index 6a1cab678..5eb8a3bfe 100644
+--- a/third_party/blink/renderer/modules/service_worker/navigation_preload_request.cc
++++ b/third_party/blink/renderer/modules/service_worker/navigation_preload_request.cc
+@@ -98,13 +98,10 @@ void NavigationPreloadRequest::OnReceiveRedirect(
+   *response_ = WebURLResponse::Create(url_, *response_head,
+                                       false /* report_security_info */,
+                                       -1 /* request_id */);
+-  owner_->OnNavigationPreloadResponse(fetch_event_id_, std::move(response_),
+-                                      mojo::ScopedDataPipeConsumerHandle());
+   // This will delete |this|.
+-  owner_->OnNavigationPreloadComplete(
+-      fetch_event_id_, response_head->response_start,
+-      response_head->encoded_data_length, 0 /* encoded_body_length */,
+-      0 /* decoded_body_length */);
++  ReportResponseAndCompleteToOwner(
++      response_head->response_start, response_head->encoded_data_length,
++      0 /* encoded_body_length */, 0 /* decoded_body_length */);
+ }
+ 
+ void NavigationPreloadRequest::OnUploadProgress(
+@@ -146,18 +143,11 @@ void NavigationPreloadRequest::OnComplete(
+     return;
+   }
+ 
+-  if (response_) {
+-    // When the response body from the server is empty, OnComplete() is called
+-    // without OnStartLoadingResponseBody().
+-    DCHECK(!body_.is_valid());
+-    owner_->OnNavigationPreloadResponse(fetch_event_id_, std::move(response_),
+-                                        mojo::ScopedDataPipeConsumerHandle());
+-  }
+   // This will delete |this|.
+-  owner_->OnNavigationPreloadComplete(fetch_event_id_, status.completion_time,
+-                                      status.encoded_data_length.InBytes(),
+-                                      status.encoded_body_length.InBytes(),
+-                                      status.decoded_body_length.InBytes());
++  ReportResponseAndCompleteToOwner(
++      status.completion_time, status.encoded_data_length.InBytes(),
++      status.encoded_body_length.InBytes(),
++      status.decoded_body_length.InBytes());
+ }
+ 
+ void NavigationPreloadRequest::MaybeReportResponseToOwner() {
+@@ -167,6 +157,31 @@ void NavigationPreloadRequest::MaybeReportResponseToOwner() {
+                                       std::move(body_));
+ }
+ 
++void NavigationPreloadRequest::ReportResponseAndCompleteToOwner(
++    base::TimeTicks completion_time,
++    int64_t encoded_data_length,
++    int64_t encoded_body_length,
++    int64_t decoded_body_length) {
++  if (response_) {
++    // For a redirect, or when the response body from the server is empty,
++    // OnNavigationPreloadResponse() was not called in OnReceiveResponse().
++    DCHECK(!body_.is_valid());
++    base::WeakPtr<NavigationPreloadRequest> weak_this =
++        weak_factory_.GetWeakPtr();
++    // OnNavigationPreloadResponse() resolves a promise, which may synchronously
++    // run script and destroy |this|.
++    owner_->OnNavigationPreloadResponse(fetch_event_id_, std::move(response_),
++                                        mojo::ScopedDataPipeConsumerHandle());
++    if (!weak_this) {
++      return;
++    }
++  }
++  // This will delete |this|.
++  owner_->OnNavigationPreloadComplete(fetch_event_id_, completion_time,
++                                      encoded_data_length, encoded_body_length,
++                                      decoded_body_length);
++}
++
+ void NavigationPreloadRequest::ReportErrorToOwner(
+     const WebString& message,
+     WebServiceWorkerError::Mode error_mode) {
+diff --git a/third_party/blink/renderer/modules/service_worker/navigation_preload_request.h b/third_party/blink/renderer/modules/service_worker/navigation_preload_request.h
+index 98d5e7d1d..ed4e73775 100644
+--- a/third_party/blink/renderer/modules/service_worker/navigation_preload_request.h
++++ b/third_party/blink/renderer/modules/service_worker/navigation_preload_request.h
+@@ -8,6 +8,7 @@
+ #include <memory>
+ 
+ #include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
+ #include "mojo/public/cpp/bindings/receiver.h"
+ #include "mojo/public/cpp/system/data_pipe.h"
+ #include "services/network/public/mojom/url_loader.mojom.h"
+@@ -56,6 +57,10 @@ class NavigationPreloadRequest final : public WebNavigationPreloadRequest,
+ 
+  private:
+   void MaybeReportResponseToOwner();
++  void ReportResponseAndCompleteToOwner(base::TimeTicks completion_time,
++                                        int64_t encoded_data_length,
++                                        int64_t encoded_body_length,
++                                        int64_t decoded_body_length);
+   void ReportErrorToOwner(const WebString& message,
+                           WebServiceWorkerError::Mode error_mode);
+ 
+@@ -69,6 +74,8 @@ class NavigationPreloadRequest final : public WebNavigationPreloadRequest,
+ 
+   std::unique_ptr<WebURLResponse> response_;
+   mojo::ScopedDataPipeConsumerHandle body_;
++
++  base::WeakPtrFactory<NavigationPreloadRequest> weak_factory_{this};
+ };
+ 
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/modules/service_worker/web_embedded_worker_impl_test.cc b/third_party/blink/renderer/modules/service_worker/web_embedded_worker_impl_test.cc
+index d821b3b13..f6e7e842e 100644
+--- a/third_party/blink/renderer/modules/service_worker/web_embedded_worker_impl_test.cc
++++ b/third_party/blink/renderer/modules/service_worker/web_embedded_worker_impl_test.cc
+@@ -17,9 +17,14 @@
+ #include "mojo/public/cpp/bindings/pending_receiver.h"
+ #include "mojo/public/cpp/bindings/receiver.h"
+ #include "mojo/public/cpp/bindings/remote.h"
++#include "net/http/http_response_headers.h"
++#include "net/url_request/redirect_info.h"
+ #include "services/network/public/cpp/cross_origin_embedder_policy.h"
+ #include "services/network/public/cpp/resource_request.h"
++#include "services/network/public/cpp/url_loader_completion_status.h"
+ #include "services/network/public/mojom/chunked_data_pipe_getter.mojom-blink.h"
++#include "services/network/public/mojom/url_loader.mojom.h"
++#include "services/network/public/mojom/url_response_head.mojom.h"
+ #include "testing/gmock/include/gmock/gmock.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+ #include "third_party/blink/public/common/features.h"
+@@ -42,6 +47,7 @@
+ #include "third_party/blink/public/platform/web_policy_container.h"
+ #include "third_party/blink/public/platform/web_url_request_extra_data.h"
+ #include "third_party/blink/public/platform/web_url_response.h"
++#include "third_party/blink/public/web/modules/service_worker/web_navigation_preload_request.h"
+ #include "third_party/blink/public/web/modules/service_worker/web_service_worker_context_client.h"
+ #include "third_party/blink/public/web/modules/service_worker/web_service_worker_context_proxy.h"
+ #include "third_party/blink/public/web/web_embedded_worker_start_data.h"
+@@ -488,20 +494,55 @@ class MockServiceWorkerContextClient final
+     return base::MakeRefCounted<FakeWebServiceWorkerFetchContext>();
+   }
+ 
++  void SetupNavigationPreload(
++      int fetch_event_id,
++      const WebURL& url,
++      CrossVariantMojoReceiver<network::mojom::URLLoaderClientInterfaceBase>
++          preload_url_loader_client_receiver) override {
++    preload_request_ = WebNavigationPreloadRequest::Create(
++        this, fetch_event_id, url,
++        std::move(preload_url_loader_client_receiver));
++  }
++
+   void OnNavigationPreloadResponse(
+       int fetch_event_id,
+       std::unique_ptr<WebURLResponse> response,
+-      mojo::ScopedDataPipeConsumerHandle data_pipe) override {}
++      mojo::ScopedDataPipeConsumerHandle data_pipe) override {
++    ++navigation_preload_response_count_;
++    if (destroy_preload_request_on_response_) {
++      preload_request_.reset();
++    }
++  }
+ 
+   void OnNavigationPreloadComplete(int fetch_event_id,
+                                    base::TimeTicks completion_time,
+                                    int64_t encoded_data_length,
+                                    int64_t encoded_body_length,
+-                                   int64_t decoded_body_length) override {}
++                                   int64_t decoded_body_length) override {
++    ++navigation_preload_complete_count_;
++    preload_request_.reset();
++  }
+ 
+   void OnNavigationPreloadError(
+       int fetch_event_id,
+-      std::unique_ptr<WebServiceWorkerError> error) override {}
++      std::unique_ptr<WebServiceWorkerError> error) override {
++    ++navigation_preload_error_count_;
++    preload_request_.reset();
++  }
++
++  void SetDestroyPreloadRequestOnResponse(bool destroy) {
++    destroy_preload_request_on_response_ = destroy;
++  }
++  bool HasPreloadRequest() const { return preload_request_ != nullptr; }
++  int navigation_preload_response_count() const {
++    return navigation_preload_response_count_;
++  }
++  int navigation_preload_complete_count() const {
++    return navigation_preload_complete_count_;
++  }
++  int navigation_preload_error_count() const {
++    return navigation_preload_error_count_;
++  }
+ 
+   TestDataPipeReader DispatchFetchEventForSubresourceAndCreateReader(
+       const std::string& upload_contents,
+@@ -574,6 +615,7 @@ class MockServiceWorkerContextClient final
+   void WorkerContextDestroyed() override {
+     test_data_uploader_.reset();
+     controller_service_worker_.reset();
++    preload_request_.reset();
+     termination_event_.Signal();
+   }
+ 
+@@ -594,6 +636,11 @@ class MockServiceWorkerContextClient final
+   mojo::Remote<mojom::blink::ControllerServiceWorker>
+       controller_service_worker_;
+   std::unique_ptr<TestDataUploader> test_data_uploader_;
++  std::unique_ptr<WebNavigationPreloadRequest> preload_request_;
++  bool destroy_preload_request_on_response_ = false;
++  int navigation_preload_response_count_ = 0;
++  int navigation_preload_complete_count_ = 0;
++  int navigation_preload_error_count_ = 0;
+   raw_ptr<WebPolicyContainer> web_policy_container_;
+ };
+ 
+@@ -876,4 +923,140 @@ TEST_F(WebEmbeddedWorkerImplTest,
+   RunRaceNetworkRequestFallbackOnDisconnectTest(/*feature_enabled=*/false);
+ }
+ 
++class NavigationPreloadRequestTest : public testing::Test {
++ protected:
++  void SetUp() override {
++    mock_client_ = std::make_unique<MockServiceWorkerContextClient>();
++    mock_client_->SetupNavigationPreload(
++        /*fetch_event_id=*/1, url_test_helpers::ToKURL(kServer),
++        preload_loader_client_.BindNewPipeAndPassReceiver());
++    ASSERT_TRUE(mock_client_->HasPreloadRequest());
++  }
++
++  network::mojom::URLResponseHeadPtr CreateResponseHead(
++      std::string_view raw_headers) {
++    auto response_head = network::mojom::URLResponseHead::New();
++    response_head->headers = net::HttpResponseHeaders::TryToCreate(raw_headers);
++    CHECK(response_head->headers);
++    return response_head;
++  }
++
++  net::RedirectInfo CreateRedirectInfo() {
++    net::RedirectInfo redirect_info;
++    redirect_info.status_code = 302;
++    redirect_info.new_url = GURL(kServer + "/redirected");
++    return redirect_info;
++  }
++
++  test::TaskEnvironment task_environment_;
++  std::unique_ptr<MockServiceWorkerContextClient> mock_client_;
++  mojo::Remote<network::mojom::URLLoaderClient> preload_loader_client_;
++};
++
++TEST_F(NavigationPreloadRequestTest,
++       NavigationPreloadRedirectDestroysRequestDuringResponse) {
++  mock_client_->SetDestroyPreloadRequestOnResponse(true);
++
++  preload_loader_client_->OnReceiveRedirect(
++      CreateRedirectInfo(),
++      CreateResponseHead(
++          "HTTP/1.1 302 Found\r\nLocation: https://a.test/redirected\r\n\r\n"));
++  preload_loader_client_.FlushForTesting();
++
++  EXPECT_FALSE(mock_client_->HasPreloadRequest());
++  EXPECT_EQ(1, mock_client_->navigation_preload_response_count());
++  EXPECT_EQ(0, mock_client_->navigation_preload_complete_count());
++  EXPECT_EQ(0, mock_client_->navigation_preload_error_count());
++}
++
++TEST_F(NavigationPreloadRequestTest,
++       NavigationPreloadRedirectCompletesNormally) {
++  mock_client_->SetDestroyPreloadRequestOnResponse(false);
++
++  preload_loader_client_->OnReceiveRedirect(
++      CreateRedirectInfo(),
++      CreateResponseHead(
++          "HTTP/1.1 302 Found\r\nLocation: https://a.test/redirected\r\n\r\n"));
++  preload_loader_client_.FlushForTesting();
++
++  EXPECT_FALSE(mock_client_->HasPreloadRequest());
++  EXPECT_EQ(1, mock_client_->navigation_preload_response_count());
++  EXPECT_EQ(1, mock_client_->navigation_preload_complete_count());
++  EXPECT_EQ(0, mock_client_->navigation_preload_error_count());
++}
++
++TEST_F(NavigationPreloadRequestTest,
++       NavigationPreloadEmptyBodyDestroysRequestDuringResponse) {
++  mock_client_->SetDestroyPreloadRequestOnResponse(true);
++
++  preload_loader_client_->OnReceiveResponse(
++      CreateResponseHead("HTTP/1.1 200 OK\r\n\r\n"),
++      mojo::ScopedDataPipeConsumerHandle(),
++      /*cached_metadata=*/std::nullopt);
++  preload_loader_client_->OnComplete(
++      network::URLLoaderCompletionStatus(net::OK));
++  preload_loader_client_.FlushForTesting();
++
++  EXPECT_FALSE(mock_client_->HasPreloadRequest());
++  EXPECT_EQ(1, mock_client_->navigation_preload_response_count());
++  EXPECT_EQ(0, mock_client_->navigation_preload_complete_count());
++  EXPECT_EQ(0, mock_client_->navigation_preload_error_count());
++}
++
++TEST_F(NavigationPreloadRequestTest,
++       NavigationPreloadEmptyBodyCompletesNormally) {
++  mock_client_->SetDestroyPreloadRequestOnResponse(false);
++
++  preload_loader_client_->OnReceiveResponse(
++      CreateResponseHead("HTTP/1.1 200 OK\r\n\r\n"),
++      mojo::ScopedDataPipeConsumerHandle(),
++      /*cached_metadata=*/std::nullopt);
++  preload_loader_client_->OnComplete(
++      network::URLLoaderCompletionStatus(net::OK));
++  preload_loader_client_.FlushForTesting();
++
++  EXPECT_FALSE(mock_client_->HasPreloadRequest());
++  EXPECT_EQ(1, mock_client_->navigation_preload_response_count());
++  EXPECT_EQ(1, mock_client_->navigation_preload_complete_count());
++  EXPECT_EQ(0, mock_client_->navigation_preload_error_count());
++}
++
++TEST_F(NavigationPreloadRequestTest,
++       NavigationPreloadWithBodyDestroysRequestDuringResponse) {
++  mock_client_->SetDestroyPreloadRequestOnResponse(true);
++
++  mojo::ScopedDataPipeProducerHandle producer;
++  mojo::ScopedDataPipeConsumerHandle consumer;
++  ASSERT_EQ(MOJO_RESULT_OK, mojo::CreateDataPipe(16u, producer, consumer));
++
++  preload_loader_client_->OnReceiveResponse(
++      CreateResponseHead("HTTP/1.1 200 OK\r\n\r\n"), std::move(consumer),
++      /*cached_metadata=*/std::nullopt);
++  preload_loader_client_->OnComplete(
++      network::URLLoaderCompletionStatus(net::OK));
++  preload_loader_client_.FlushForTesting();
++
++  EXPECT_FALSE(mock_client_->HasPreloadRequest());
++  EXPECT_EQ(1, mock_client_->navigation_preload_response_count());
++  EXPECT_EQ(0, mock_client_->navigation_preload_complete_count());
++  EXPECT_EQ(0, mock_client_->navigation_preload_error_count());
++}
++
++TEST_F(NavigationPreloadRequestTest, NavigationPreloadErrorDestroysRequest) {
++  mock_client_->SetDestroyPreloadRequestOnResponse(false);
++
++  preload_loader_client_->OnReceiveResponse(
++      CreateResponseHead("HTTP/1.1 200 OK\r\n\r\n"),
++      mojo::ScopedDataPipeConsumerHandle(),
++      /*cached_metadata=*/std::nullopt);
++  preload_loader_client_->OnComplete(
++      network::URLLoaderCompletionStatus(net::ERR_ABORTED));
++  preload_loader_client_.FlushForTesting();
++
++  EXPECT_FALSE(mock_client_->HasPreloadRequest());
++  EXPECT_EQ(0, mock_client_->navigation_preload_response_count());
++  EXPECT_EQ(0, mock_client_->navigation_preload_complete_count());
++  EXPECT_EQ(1, mock_client_->navigation_preload_error_count());
++}
++
+ }  // namespace blink
+-- 
+2.43.0
+

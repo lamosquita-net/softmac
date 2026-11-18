@@ -1,0 +1,241 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mason Freed <masonf@chromium.org>
+Date: Tue, 17 Nov 2026 13:04:23 -0800
+Subject: [PATCH 23/26] [M156] Defer HTMLPlugInElement image loads from style
+ recalc to a task
+
+Original change's description:
+> Defer HTMLPlugInElement image loads from style recalc to a task
+>
+> Previously, HTMLPlugInElement::CustomStyleForLayoutObject() invoked
+> ImageLoader::UpdateFromElement(kUpdateNormal) directly during style
+> recalculation. When an <object> or <embed> transitioned to an image
+> type with a cached broken or immediate image resource, ImageLoader took
+> the synchronous load path inside style recalc, synchronously firing
+> error events or triggering HTMLObjectElement::RenderFallbackContent()
+> and DetachLayoutTree() while the style engine was in the middle of
+> recalculating style.
+>
+> Add ImageLoader::kUpdateFromTask (guarded by
+> HTMLPlugInDeferStyleRecalcImageLoad) to post the image load update as a
+> DOM manipulation task while keeping the document load event delayed
+> until the task runs, and update
+> Document::InitiateStyleOrLayoutDependentLoadForPrint() to also wait on
+> IsDelayingLoadEvent().
+>
+> Fixed: 575053155
+> Bug: 575053155
+> Change-Id: I55acfa7c5a7331248fd396776f51679064f2bf85
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8639987
+> Reviewed-by: Christoph Schwering <schwering@google.com>
+> Reviewed-by: Noam Rosenthal <nrosenthal@google.com>
+> Commit-Queue: Noam Rosenthal <nrosenthal@google.com>
+> Auto-Submit: Mason Freed <masonf@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1727790}
+
+(cherry picked from commit b4d4a094ef7c4b144b12987e4f3466843eed9cf6)
+
+Bug: 585407142,575053155,575053155
+Change-Id: I55acfa7c5a7331248fd396776f51679064f2bf85
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8815474
+Commit-Queue: Daniel Cheng <dcheng@chromium.org>
+Reviewed-by: Mason Freed <masonf@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2268}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+(cherry picked from commit c676849a259093a1f5451d10d152abce0762cc55)
+---
+ .../blink/renderer/core/dom/document.cc       |  3 ++
+ .../core/html/html_object_element_test.cc     | 26 ++++++++++++++
+ .../renderer/core/html/html_plugin_element.cc |  7 ++--
+ .../renderer/core/loader/image_loader.cc      | 13 +++++--
+ .../blink/renderer/core/loader/image_loader.h |  4 +++
+ .../platform/runtime_enabled_features.json5   |  8 +++++
+ .../object-image-style-recalc-fallback.html   | 36 +++++++++++++++++++
+ 7 files changed, 92 insertions(+), 5 deletions(-)
+ create mode 100644 third_party/blink/web_tests/external/wpt/html/semantics/embedded-content/the-object-element/object-image-style-recalc-fallback.html
+
+diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink/renderer/core/dom/document.cc
+index 511ff0fcb..207f4278b 100644
+--- a/third_party/blink/renderer/core/dom/document.cc
++++ b/third_party/blink/renderer/core/dom/document.cc
+@@ -3779,6 +3779,9 @@ bool Document::InitiateStyleOrLayoutDependentLoadForPrint() {
+     GetStyleEngine().UpdateViewportSize();
+     UpdateStyleAndLayout(DocumentUpdateReason::kPrinting);
+ 
++    if (RuntimeEnabledFeatures::HTMLPlugInDeferStyleRecalcImageLoadEnabled()) {
++      return fetcher_->BlockingRequestCount() > 0 || IsDelayingLoadEvent();
++    }
+     return fetcher_->BlockingRequestCount() > 0;
+   }
+ 
+diff --git a/third_party/blink/renderer/core/html/html_object_element_test.cc b/third_party/blink/renderer/core/html/html_object_element_test.cc
+index adb34ca15..9fd906b68 100644
+--- a/third_party/blink/renderer/core/html/html_object_element_test.cc
++++ b/third_party/blink/renderer/core/html/html_object_element_test.cc
+@@ -13,7 +13,9 @@
+ #include "third_party/blink/renderer/core/testing/dummy_page_holder.h"
+ #include "third_party/blink/renderer/core/testing/sim/sim_request.h"
+ #include "third_party/blink/renderer/core/testing/sim/sim_test.h"
++#include "third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h"
+ #include "third_party/blink/renderer/platform/testing/task_environment.h"
++#include "third_party/blink/renderer/platform/testing/unit_test_helpers.h"
+ 
+ namespace blink {
+ 
+@@ -73,4 +75,28 @@ TEST_F(HTMLObjectElementSimTest, NoLoadOnEnsureComputedStyle) {
+   // performed for 'file.png'.
+ }
+ 
++TEST_F(HTMLObjectElementSimTest, NoSyncLoadInCustomStyleForLayoutObject) {
++  SimRequest request("https://example.com/test.html", "text/html");
++  SimSubresourceRequest image_request("https://example.com/file.png",
++                                      "image/png");
++  LoadURL("https://example.com/test.html");
++  request.Complete(R"HTML(
++     <!doctype html>
++     <div id='container' style='display: none'>
++       <object id='obj' data='file.png' type='image/png'></object>
++     </div>
++  )HTML");
++
++  Element* container = GetDocument().getElementById(AtomicString("container"));
++  ASSERT_TRUE(container);
++  container->removeAttribute(html_names::kStyleAttr);
++  GetDocument().UpdateStyleAndLayoutTree();
++
++  EXPECT_EQ(0, GetDocument().Fetcher()->BlockingRequestCount());
++
++  test::RunPendingTasks();
++  EXPECT_EQ(1, GetDocument().Fetcher()->BlockingRequestCount());
++  image_request.Complete("");
++}
++
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/html/html_plugin_element.cc b/third_party/blink/renderer/core/html/html_plugin_element.cc
+index bb5a853d8..2ea6ad6e5 100644
+--- a/third_party/blink/renderer/core/html/html_plugin_element.cc
++++ b/third_party/blink/renderer/core/html/html_plugin_element.cc
+@@ -943,8 +943,11 @@ const ComputedStyle* HTMLPlugInElement::CustomStyleForLayoutObject(
+     if (!image_loader_) {
+       image_loader_ = MakeGarbageCollected<HTMLImageLoader>(this);
+     }
+-    image_loader_->UpdateFromElement(ImageLoader::kUpdateNormal,
+-                                     /* force_blocking */ true);
++    image_loader_->UpdateFromElement(
++        RuntimeEnabledFeatures::HTMLPlugInDeferStyleRecalcImageLoadEnabled()
++            ? ImageLoader::kUpdateFromTask
++            : ImageLoader::kUpdateNormal,
++        /* force_blocking */ true);
+   }
+   return style;
+ }
+diff --git a/third_party/blink/renderer/core/loader/image_loader.cc b/third_party/blink/renderer/core/loader/image_loader.cc
+index 88fdb728f..e578aa4fa 100644
+--- a/third_party/blink/renderer/core/loader/image_loader.cc
++++ b/third_party/blink/renderer/core/loader/image_loader.cc
+@@ -391,8 +391,14 @@ inline void ImageLoader::EnqueueImageLoadingMicroTask(
+     UpdateFromElementBehavior update_behavior) {
+   auto task = std::make_unique<Task>(this, update_behavior);
+   pending_task_ = task->GetWeakPtr();
+-  element_->GetDocument().GetAgent().event_loop()->EnqueueMicrotask(
+-      BindOnce(&Task::Run, std::move(task)));
++  if (update_behavior == kUpdateFromTask) {
++    element_->GetDocument()
++        .GetTaskRunner(TaskType::kDOMManipulation)
++        ->PostTask(FROM_HERE, BindOnce(&Task::Run, std::move(task)));
++  } else {
++    element_->GetDocument().GetAgent().event_loop()->EnqueueMicrotask(
++        BindOnce(&Task::Run, std::move(task)));
++  }
+   delay_until_do_update_from_element_ =
+       std::make_unique<IncrementLoadEventDelayCount>(element_->GetDocument());
+ }
+@@ -660,7 +666,8 @@ void ImageLoader::UpdateFromElement(UpdateFromElementBehavior update_behavior,
+ 
+   const KURL image_source_kurl = ImageSourceToKURL(image_source_url);
+   if (ShouldLoadImmediately(image_source_kurl) &&
+-      update_behavior != kUpdateFromMicrotask) {
++      update_behavior != kUpdateFromMicrotask &&
++      update_behavior != kUpdateFromTask) {
+     DoUpdateFromElement(element_->GetExecutionContext()->GetCurrentWorld(),
+                         update_behavior, &image_source_kurl, UpdateType::kSync,
+                         force_blocking);
+diff --git a/third_party/blink/renderer/core/loader/image_loader.h b/third_party/blink/renderer/core/loader/image_loader.h
+index 41365db13..9bf4a5cb8 100644
+--- a/third_party/blink/renderer/core/loader/image_loader.h
++++ b/third_party/blink/renderer/core/loader/image_loader.h
+@@ -64,6 +64,10 @@ class CORE_EXPORT ImageLoader : public GarbageCollected<ImageLoader>,
+     // mechanism. We can't update synchronously, because doing so may invalidate
+     // style, which is forbidden from lazy load callbacks.
+     kUpdateFromMicrotask,
++    // This is the behavior when the update is triggered during style recalc
++    // (HTMLPlugInElement::CustomStyleForLayoutObject). Queue a task rather than
++    // updating synchronously during style recalc.
++    kUpdateFromTask,
+     // This should be the update behavior when the resource was changed (via
+     // 'src', 'srcset' or 'sizes'). Starts a new load even if a previous load of
+     // the same resource have failed, to match Firefox's behavior.
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+index 3467f2cd3..da51b19ea 100644
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -3664,6 +3664,14 @@
+       name: "HTMLParserYieldByUserTiming",
+       status: "test",
+     },
++    {
++      // Defers image loads triggered from
++      // HTMLPlugInElement::CustomStyleForLayoutObject to a DOM manipulation
++      // task instead of loading synchronously during style recalc.
++      // https://crbug.com/575053155
++      name: "HTMLPlugInDeferStyleRecalcImageLoad",
++      status: "stable",
++    },
+     {
+       // When enabled, specifies visual affordances for printing such as headers,
+       // footers and page numbers, to be PDF annotations.
+diff --git a/third_party/blink/web_tests/external/wpt/html/semantics/embedded-content/the-object-element/object-image-style-recalc-fallback.html b/third_party/blink/web_tests/external/wpt/html/semantics/embedded-content/the-object-element/object-image-style-recalc-fallback.html
+new file mode 100644
+index 000000000..f8f5aca19
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/html/semantics/embedded-content/the-object-element/object-image-style-recalc-fallback.html
+@@ -0,0 +1,36 @@
++<!DOCTYPE html>
++<meta charset="utf-8">
++<link rel="author" href="mailto:masonf@chromium.org">
++<link rel="help" href="https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-object-element">
++<script src="/resources/testharness.js"></script>
++<script src="/resources/testharnessreport.js"></script>
++
++<object id="obj" data="/common/blank.html"><span id="fallback">Fallback</span></object>
++
++<script>
++async_test(t => {
++  const obj = document.getElementById("obj");
++  const fallback = document.getElementById("fallback");
++  obj.addEventListener("load", t.step_func(() => {
++    let pagehideFired = false;
++    obj.contentWindow.addEventListener("pagehide", () => {
++      pagehideFired = true;
++    });
++
++    obj.style.display = "none";
++    obj.offsetTop;
++    assert_false(pagehideFired, "pagehide should not fire when display becomes none");
++
++    obj.addEventListener("error", t.step_func_done(() => {
++      assert_true(pagehideFired, "pagehide should have fired when switching to fallback");
++      assert_greater_than(fallback.offsetWidth, 0, "fallback content should be rendered");
++    }), { once: true });
++
++    obj.data = "data:image/png,invalid";
++    obj.type = "image/png";
++    obj.style.display = "inline";
++    getComputedStyle(obj).display;
++    assert_false(pagehideFired, "pagehide should not fire synchronously before the queued DOM manipulation task runs");
++  }), { once: true });
++}, "Redetermining what <object> represents when data and rendering change must be queued on the DOM manipulation task source");
++</script>
+-- 
+2.43.0
+
