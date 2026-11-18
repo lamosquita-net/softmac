@@ -418,6 +418,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   **Ampliación (Titín, 18-11 tarde; COORDINACIÓN-48):** «todo en la 3.1.4, y luego la 3.2.0»: también entra en la 3.1.4 la
   seguridad que Chrome lleva de serie desde la 157 aunque Google no la anunciara (0031 = 625dedb4a0, OPFS y StorageKey).
   **Regla general: no se inventan versiones intermedias ni se reparte contenido entre versiones sin consultarle.**
+  **Segunda ampliación (Titín, 18-11 ~15:15 UTC; COORDINACIÓN-49): en la 3.1.4 entra toda la seguridad que aplica a Mac.**
+  La build 47 (Altos y críticos de la 158, medios de la 158 alcanzables sin interacción, rama 8078 hasta la .110, 0030 y 0031)
+  dejaba fuera, sin consultarle, los medios que piden un gesto del usuario o instalar algo, 7b99dd29ba, DBSC, los medios
+  de la 157 y los bajos de la 158. **Entran todos** (parte 4: SEGURIDAD-PORTES-26; parte 5, medios de la 157:
+  SEGURIDAD-PORTES-27; parte 6, bajos de la 158: SEGURIDAD-PORTES-28; la -26 integra 4 → 5 → 6 y da el APTO del conjunto).
+  **Solo queda fuera lo que no se compila en Mac o toca código apagado o quitado en FlyWeb**, con el motivo y la comprobación
+  anotados. La entrega de la build 47 se para; LOCAL-19 compila una sola vez al final (sigue siendo la build 47). Luego, la 3.2.0.
 - **FlyWeb también innova (Titín, 13-11 noche; COORDINACIÓN-41; amplía «Flink a nuestro ritmo»):** además de seguir a
   Chrome, FlyWeb puede implementar funciones nuevas de los estándares (HTML, CSS, JS, APIs) aunque ningún otro navegador
   las tenga aún. **Las elige Titín como diseñador web.** INVESTIGACIÓN-MOTOR le presenta las tendencias nuevas, con
