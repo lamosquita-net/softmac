@@ -425,6 +425,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   SEGURIDAD-PORTES-27; parte 6, bajos de la 158: SEGURIDAD-PORTES-28; la -26 integra 4 → 5 → 6 y da el APTO del conjunto).
   **Solo queda fuera lo que no se compila en Mac o toca código apagado o quitado en FlyWeb**, con el motivo y la comprobación
   anotados. La entrega de la build 47 se para; LOCAL-19 compila una sola vez al final (sigue siendo la build 47). Luego, la 3.2.0.
+  **Cierre del contenido (Titín, 18-11 ~20:00 UTC; COORDINACIÓN-49):** los **bajos de la 157 no entran** en la 3.1.4; van a
+  la 3.2.0 («hemos dicho todo lo necesario; la siguiente es la 3.2.0»). Lo que entre en la rama 8078 antes de compilar sí
+  entra (seguridad publicada por Chrome). El aviso de permiso «Read and display PDF files» (adapt/brave-core/0002) sale
+  en inglés hasta la actualización de traducciones (COORDINACIÓN-49, con el APTO de SEGURIDAD-PORTES-30).
 - **FlyWeb también innova (Titín, 13-11 noche; COORDINACIÓN-41; amplía «Flink a nuestro ritmo»):** además de seguir a
   Chrome, FlyWeb puede implementar funciones nuevas de los estándares (HTML, CSS, JS, APIs) aunque ningún otro navegador
   las tenga aún. **Las elige Titín como diseñador web.** INVESTIGACIÓN-MOTOR le presenta las tendencias nuevas, con
