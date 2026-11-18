@@ -27,3 +27,6 @@ a1ac34d365f8fdbfd8836dc0a0540ad69d0e48058bfbe3a4f7691993d6c98508  chromium/0018-
 a440f33a86907e9cffc0a67a2e21756c445597a9dee0d52c6a82df2afcaf88ca  chromium/0024-M156-Handle-DOM-mutations-during-text-replace-in-edi.patch
 811eb6859c02de9ab03f1121439eb12259d67f6f434d5d605e122eece180b4fd  chromium/0025-M156-MemoryCache-Forbid-reuses-if-GetSkipServiceWork.patch
 946447413a0646248dc64328b18d8ef8e48d6e2bc634ec02a1bcf996649f75ea  chromium/0026-3.1.4-chrome-VERSION-156.0.8078.109-156.0.8078.110.patch
+582eb435586adf4c63a0f3d8fedccfde9d303f50c5d4a4e835f318bb3f708acf  integracion/chromium/0001-3.1.4-fix-three-tests-that-do-not-build-on-8078.patch
+6bec17b88146774d0721912e8d0ad868e1995514a62a3f8fa8e33d450de3ae6a  integracion/brave-core/0001-v8-four-Chrome-158-Low-fixes-0b3bd2b-336a6b3-fb3bcc3.patch
+7615e2575f81876a7a3e95f89513006692e0f72934dba990b7c349f003c5da70  integracion/brave-core/0002-v8-3.1.4-integration-fdbb7b1-15.6.75.70-crbug-577314.patch

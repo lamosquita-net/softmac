@@ -1,0 +1,76 @@
+From 4b47d6d92d2b64e64c399279fb48b8dd24cd94e1 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-30 <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 17:28:10 +0000
+Subject: [PATCH] 3.1.4: fix three tests that do not build on 8078
+
+Same changes as the fixed 3.1.4/chromium 0006 and 3.1.5/chromium 0016
+and 0019 (softmac 131afac), for a tree that already has the old ones:
+- intersection_observer_test.cc includes shadow_root.h.
+- editing_utilities_test.cc uses GetDocument().getElementById() in the
+  SimTest fixture.
+- video_capture_controller_unittest.cc: the three new AddClient() calls
+  pass std::nullopt as the 6th argument.
+---
+ .../media/video_capture_controller_unittest.cc              | 6 +++---
+ .../blink/renderer/core/editing/editing_utilities_test.cc   | 6 ++++--
+ .../intersection_observer/intersection_observer_test.cc     | 1 +
+ 3 files changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/content/browser/renderer_host/media/video_capture_controller_unittest.cc b/content/browser/renderer_host/media/video_capture_controller_unittest.cc
+index e1f7d1f5..d78e0e0c 100644
+--- a/content/browser/renderer_host/media/video_capture_controller_unittest.cc
++++ b/content/browser/renderer_host/media/video_capture_controller_unittest.cc
+@@ -1145,11 +1145,11 @@ TEST_F(VideoCaptureControllerTest, StopSessionStopsAllClientsForSession) {
+       base::UnguessableToken::Create();
+ 
+   controller_->AddClient(client_a_route_1, {}, client_a_.get(), session_id_1,
+-                         session_params);
++                         session_params, std::nullopt);
+   controller_->AddClient(client_a_route_2, {}, client_a_.get(), session_id_1,
+-                         session_params);
++                         session_params, std::nullopt);
+   controller_->AddClient(client_b_route_1, {}, client_b_.get(), session_id_2,
+-                         session_params);
++                         session_params, std::nullopt);
+   ASSERT_EQ(3u, controller_->GetClientCount());
+ 
+   // Stopping session_id_1 must notify all clients sharing that session.
+diff --git a/third_party/blink/renderer/core/editing/editing_utilities_test.cc b/third_party/blink/renderer/core/editing/editing_utilities_test.cc
+index 92296bed..1ae0e0ed 100644
+--- a/third_party/blink/renderer/core/editing/editing_utilities_test.cc
++++ b/third_party/blink/renderer/core/editing/editing_utilities_test.cc
+@@ -72,7 +72,8 @@ class CanvasClipboardTest : public SimTest {
+         "overflow:hidden'><canvas id=canvas width=600 "
+         "height=600></canvas></div>"
+         "<img id=source>");
+-    auto* source = To<HTMLImageElement>(GetElementById("source"));
++    auto* source = To<HTMLImageElement>(
++        GetDocument().getElementById(AtomicString("source")));
+     if (cors_enabled) {
+       source->setAttribute(html_names::kCrossoriginAttr,
+                            AtomicString("anonymous"));
+@@ -101,7 +102,8 @@ class CanvasClipboardTest : public SimTest {
+   }
+ 
+   HTMLCanvasElement& Canvas() {
+-    return *To<HTMLCanvasElement>(GetElementById("canvas"));
++    return *To<HTMLCanvasElement>(
++        GetDocument().getElementById(AtomicString("canvas")));
+   }
+ 
+   void ExpectCopy(bool should_copy, const HitTestResult* hit_result = nullptr) {
+diff --git a/third_party/blink/renderer/core/intersection_observer/intersection_observer_test.cc b/third_party/blink/renderer/core/intersection_observer/intersection_observer_test.cc
+index ec0c1bc3..ca5dbc24 100644
+--- a/third_party/blink/renderer/core/intersection_observer/intersection_observer_test.cc
++++ b/third_party/blink/renderer/core/intersection_observer/intersection_observer_test.cc
+@@ -12,6 +12,7 @@
+ #include "third_party/blink/renderer/bindings/core/v8/v8_union_document_element.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_union_double_doublesequence.h"
+ #include "third_party/blink/renderer/core/dom/element.h"
++#include "third_party/blink/renderer/core/dom/shadow_root.h"
+ #include "third_party/blink/renderer/core/exported/web_view_impl.h"
+ #include "third_party/blink/renderer/core/frame/local_dom_window.h"
+ #include "third_party/blink/renderer/core/frame/local_frame_view.h"
+-- 
+2.43.0
+

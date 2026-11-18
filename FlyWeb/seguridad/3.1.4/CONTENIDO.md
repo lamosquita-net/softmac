@@ -9,7 +9,81 @@ A + B + E (y D si se confirma); los 82 medios no entran (triaje aparte para la 3
 > **La 3.1.4 lleva también los medios** (Titín, 18-11; DIRECTIVAS, #1061): la carpeta [`../3.1.5/`](../3.1.5/CONTENIDO.md)
 > es su **parte 3**; no hay versión 3.1.5. Rutas y nombres de parche sin cambios.
 
-## Orden de aplicación completo (3.1.4 = partes 1, 2 y 3)
+## Orden de aplicación completo (3.1.4 final = partes 1–6 + integración)
+
+SEGURIDAD-PORTES-30, 18-11-2026 (encargo de COORDINACIÓN-49; relevo de la -29, `docs/RELEVO-SEGURIDAD.md` §19).
+**Esto sustituye a la tabla de las partes 1–3 de abajo**, que queda como historia. Partes: [4](parte4/CONTENIDO.md),
+[5](parte5/CONTENIDO.md) (con sus [choques resueltos](parte5/integracion/)), [6](parte6/CONTENIDO.md) e
+[`integracion/`](integracion/) (esta sección). Nada compilado: compila LOCAL-19 una sola vez (sigue siendo la build 47).
+
+### Para LOCAL-19: encima de lo que ya tiene (`local/314` y `local/3.1.4`)
+
+| Repositorio | Base | Se aplica, en este orden (`git am`) | Árbol final |
+|---|---|---|---|
+| chromium | `local/314` **`607ec34912`** (`ls-remote`, 18-11; árbol `bcbbb25fbb` = `986d591616` + la fijación de ANGLE y WebRTC) | `integracion/chromium/0001` (las tres pruebas arregladas, igual que en #1081) → `parte4/chromium/` 0001–0018 → `parte5/chromium/` 0001–0048 → `parte6/chromium/` 0001–0032 **con `parte5/integracion/chromium/0001` en lugar de `parte6/chromium/0007`** | **`ddf5f555b2`** (99 commits; comprobado con `git am` de los ficheros de `main`). Luego, el commit de fijación de los repos aparte (abajo) |
+| brave-core | `local/3.1.4` **`9932552867`** (`ls-remote`, 18-11; árbol `15c050d35a`) | `parte4/brave-core/0001` → `parte5/brave-core/0001` → **`integracion/brave-core/0001`** (es `parte6/brave-core/0001` con el choque de `FLYWEB-SECURITY.md` resuelto: **no apliques el de `parte6/`**) → `integracion/brave-core/0002` (V8 fdbb7b1 y época 37) | **`2ab25d6a23`** = rama **`seg/3.1.4-integracion`** **`6441095f59`** (`ls-remote`, 18-11). `flyweb_version` 3.1.4, `kFlyWebCacheEpoch` **37**; V8 .66 con todos los `patches/v8`: **`17b5af44cd`** |
+TERCEROS_LOCAL
+
+`chrome/VERSION` sigue en .110 (sin tag .111). V8 sigue en 15.6.75.66 (gitlink sin cambiar; todo va en `patches/v8`).
+Dawn, FFmpeg, PDFium e ICU: sin cambios.
+
+### Comprobación desde la serie limpia (`local/313`)
+
+| Repositorio | Serie sobre la anterior | Árbol (comprobado) |
+|---|---|---|
+| chromium | `local/313` `7ccbc27cf7` + `3.1.4/chromium` 0001–0026 + `3.1.5/chromium` 0001–0031 (con las pruebas arregladas de #1081) | **`ec4c4ee188`** (sin arreglar: `986d591616`, reproducido) |
+| chromium | + parte 4 (0001–0018) | **`cf683d4404`** (sin arreglar: `ef5cec7033`) |
+| chromium | + parte 5 (0001–0048) | **`e768d15fb3`** (sin arreglar: `4bfd3a5707`, el de la -27) |
+| chromium | + parte 6 (0001–0032, con `parte5/integracion/chromium/0001` por 0007) | **`0df59307de`** (sin arreglar: `ab06a2ae15`, el de la -27). Frente a `ddf5f555b2` solo cambian los gitlinks de ANGLE y WebRTC y `DEPS` (la fijación de LOCAL) |
+| brave-core | `local/3.1.4` + parte 4 / + parte 5 / + parte 6 resuelta / + integración | `d328e2f909` / `f4ae16e77c` / `4d2b7bad70` / **`2ab25d6a23`** |
+| V8 (.66 + `patches/v8`) | lo mismo | `a2d562e4b8` / `9785de2624` / `758b3cb956` / **`17b5af44cd`** |
+TERCEROS_LIMPIA
+
+### Lo que añade la integración
+
+- **`integracion/chromium/0001`** (solo para `local/314`): las tres pruebas que no compilaban en la 8078
+  (`intersection_observer_test.cc`, `editing_utilities_test.cc`, `video_capture_controller_unittest.cc`). Es la
+  diferencia `986d591616` → `ec4c4ee188`: los parches 0006 de la 3.1.4 y 0016 y 0019 de la 3.1.5 ya van corregidos en
+  `main` (#1081), pero `local/314` se hizo con los de antes. Solo pruebas.
+- **`integracion/brave-core/0001`**: `parte6/brave-core/0001` rehecho encima de la parte 5. Único choque:
+  `patches/v8/FLYWEB-SECURITY.md` (las dos partes ponen su sección arriba); se quedan las dos. Los `.patch` de V8 no
+  chocan: cada parte toca ficheros de V8 distintos.
+- **`integracion/brave-core/0002`**: **V8 fdbb7b1** (577314726; la 15.6.75.70 de la rama 8078, de 740f16ea23): los
+  literales cuyo *boilerplate* pasó a `NameDictionary` se recorren en orden de enumeración, para no desincronizar la
+  lista de `AllocationSite` de `DeepWalk`. `src/runtime/runtime-literals.cc` es igual en la .66 y en la .69:
+  *cherry-pick* limpio; `NameDictionary::IterationIndices` y `FixedArray::ulength()` existen en la .66. Prueba
+  `regress/regress-577314726.js`. Y **`kFlyWebCacheEpoch` 36 → 37**, la única época definitiva de la 3.1.4 (la parte 5
+  no la tocaba; la 6 la dejó en 36).
+- **Rama 8078 hasta hoy:** V8 15.6 está en la **.71** (`a97fec97ff`): solo añade **229a53b** (574749469),
+  `v8::Object::TryGetWithNoSideEffects()`, una API nueva para un cambio de Blink (rastreador de anuncios) que no está
+  en la 8078. Por sí sola no cambia nada: **no entra**; si el cambio de Blink llega a la 8078, entran los dos juntos.
+  `branch-heads/8078` sigue en `0ae400b547`, sin tag .111. 605619b342 (mixed content) sigue revertido, sin *reland*.
+
+### Encargo de D8-LINUX
+
+`buzon/D8-LINUX/20261118-1740-SEGURIDAD-PORTES-30-v8-3.1.4.md` (rama `buzon`): un solo encargo con los 9 commits de V8
+nuevos (46c1404, c9afe36, 42d78d0f3d, b1457bd47a, 0b3bd2b, 336a6b3, fb3bcc3, 0ac2b27, fdbb7b1) y la época 37, sobre
+`seg/3.1.4-integracion`. **Si sale rojo, se quita el parche de V8 que falle y se recompila** (FS.47).
+
+## Veredicto (regla 17): **APTO**, 3.1.4 final (partes 1–6 + integración)
+
+Las partes 1–6 tienen cada una su APTO; aquí se revisa lo que solo aparece al juntarlas. Riesgos y pruebas para LOCAL:
+- **Cruces entre partes** (ficheros que tocan dos): parte 4 y 5 solo comparten `enums.xml` (enums distintos); 4 y 6,
+  `extension_features.{h,cc}` (tres `BASE_FEATURE` distintos). 5 y 6 se cruzan en **DevTools**
+  (`devtools_ui_bindings`, `devtools_embedder_message_dispatcher`, `devtools_availability_checker`, `devtools_window`:
+  ocho commits de upstream, que pasan las comprobaciones de `is_local_frontend_` al *dispatcher* y añaden la política
+  de URL), en `content_browser_client` (resuelto en `parte5/integracion/chromium/0001`: quedan
+  `IsExemptFromWindowSizeCheck()` e `IsNoStatePrefetch()`) y en `html_capability_element_base` (dos arreglos
+  distintos). Todo aplica limpio en orden. Probar: `unit_tests --gtest_filter='DevToolsUIBindings*'`,
+  `browser_tests --gtest_filter='DevToolsTest.*:DevToolsPolicyTest.*:DevToolsPopupOpenerTest.*:*OpenInNewTabAttributionTest.*'` y, a mano, abrir DevTools, recargar y abrir un
+  enlace de la consola en otra pestaña.
+- **V8, época 37:** al arrancar se descarta la caché de código de la 3.1.3 (época 34 en la build 46). Es lo esperado.
+- **fdbb7b1:** cambia el orden en que se recorren las propiedades de literales normalizados; el *feedback* de
+  `ElementsKind` queda en su sitio. Sin efecto visible; lo cubre D8-LINUX.
+- **Lo pendiente de cada parte sigue igual:** el verde de D8-LINUX de este encargo, el pidinfo del 0024 en la 6,1 y
+  las pruebas de riesgo de los CONTENIDO de las partes 4, 5 y 6.
+
+## Orden de aplicación de las partes 1, 2 y 3 (historia; ya no vale para compilar)
 
 | Repositorio | Base | Se aplica, en este orden | Árbol final |
 |---|---|---|---|
