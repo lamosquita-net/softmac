@@ -1033,3 +1033,20 @@ da 403), V8 desde `chromium.googlesource.com/v8/v8`, devtools-frontend desde `ch
   del documento (`frame->GetSecurityOrigin()`), no de un `SecurityOrigin` nuevo.
 - `git format-patch` regenera cabeceras distintas (número de serie, SHA abreviado): al corregir un parche ya fusionado,
   sustituir solo ese fichero y regenerar su línea de `SHA256SUMS`.
+
+## 20. SEGURIDAD-PORTES-30 (`session_01MwmK2jYknFBAra6Yi8EcTM`, 18-11-2026): integración de la 3.1.4 (hecha)
+
+**Hecho** (`3.1.4/CONTENIDO.md` «Orden de aplicación completo (3.1.4 final…)», APTO del conjunto; `3.1.4/integracion/`):
+chromium sobre `local/314` → `ddf5f555b2` (serie limpia `0df59307de`, igual que la -27); brave-core `2ab25d6a23` =
+`seg/3.1.4-integracion` `6441095f59` (época **37**, V8 fdbb7b1); V8 con parches `17b5af44cd`; Skia `a934afed14`,
+devtools `dc4e4cd416`, WebRTC `9b251c7cc7`, libaom `26cdf2fc0d`, libvpx `fe13a1c827`, ANGLE sin cambios. Encargo
+único de D8-LINUX: `buzon/D8-LINUX/20261118-1740-SEGURIDAD-PORTES-30-v8-3.1.4.md`.
+
+**Queda:** el verde de D8-LINUX (si sale rojo, quitar ese parche de V8 y regenerar `integracion/brave-core/0002`, la
+época sigue en 37); vigilar `branch-heads/8078` (`0ae400b547`, sin tag .111), V8 15.6 (.71 = 229a53b, solo API, no
+entra hasta que llegue su cambio de Blink) y un *reland* de 605619b342.
+
+**Trampas nuevas:**
+- `local/314` no es el árbol de la serie: lleva la fijación de ANGLE y WebRTC (`DEPS` y dos gitlinks) y los parches
+  sin las pruebas arregladas de #1081. Para LOCAL hace falta la diferencia como parche aparte (`integracion/chromium/0001`).
+- Los gitlinks de ANGLE y WebRTC de `local/314` son commits que solo existen en la 7,1: no se pueden leer desde la nube.

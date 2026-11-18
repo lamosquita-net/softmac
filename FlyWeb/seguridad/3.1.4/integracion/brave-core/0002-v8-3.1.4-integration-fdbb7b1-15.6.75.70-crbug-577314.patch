@@ -1,0 +1,163 @@
+From 1ce77dd4eedd7a5cf59a85b0367920dfe96e5483 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-30 <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 17:35:33 +0000
+Subject: [PATCH 2/2] v8: 3.1.4 integration: fdbb7b1 (15.6.75.70, crbug
+ 577314726); cache epoch 37
+
+Parts 4, 5 and 6 of FlyWeb 3.1.4 applied in that order; this adds the
+8078 branch V8 15.6.75.70 fix fdbb7b1 (walk literal NameDictionary
+properties in enum order) and sets the single final kFlyWebCacheEpoch
+for 3.1.4, 37. The V8 gitlink stays at 15.6.75.66.
+---
+ patches/v8/FLYWEB-SECURITY.md                 | 16 +++++++
+ .../v8/src-runtime-runtime-literals.cc.patch  | 31 +++++++++++++
+ patches/v8/src-utils-version.cc.patch         | 10 ++--
+ ...mjsunit-regress-regress-577314726.js.patch | 46 +++++++++++++++++++
+ 4 files changed, 99 insertions(+), 4 deletions(-)
+ create mode 100644 patches/v8/src-runtime-runtime-literals.cc.patch
+ create mode 100644 patches/v8/test-mjsunit-regress-regress-577314726.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index f0dcb371c..b68651f07 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,19 @@
++# FlyWeb: 3.1.4 integration (parts 4 -> 5 -> 6), V8 15.6.75.70 fix and final cache epoch
++
++SEGURIDAD-PORTES-30, 18-11-2026 (softmac `FlyWeb/seguridad/3.1.4/integracion/brave-core/0001`). On top of parts 4,
++5 and 6 in that order (V8 15.6.75.66 with all the patches below; gitlink unchanged):
++
++- **fdbb7b1** (577314726; V8 15.6.75.70 on the 8078 branch, from 740f16ea23): object literal boilerplates that were
++  normalized to a `NameDictionary` are walked in enumeration order, so the nested `AllocationSite` list stays in
++  sync with `DeepWalk` (ElementsKind feedback was attributed to the wrong site). `src/runtime/runtime-literals.cc`
++  is identical in .66 and .69: clean cherry-pick. Test `regress/regress-577314726.js`.
++- **`kFlyWebCacheEpoch` -> 37**, the single final value for 3.1.4 (part 5 left it alone; part 6 set 36).
++
++Not taken: 229a53b (15.6.75.71, bug 574749469) only adds the `v8::Object::TryGetWithNoSideEffects()` API for a
++Blink change that is not on the 8078 branch yet; it changes nothing on its own.
++
++To check (D8-LINUX): `d8` and mjsunit with and without Maglev, especially `regress/regress-577314726.js`.
++
+ # FlyWeb: 3.1.4 part 6, V8 15.6.75.66 + four Chrome 158 Lows
+ 
+ SEGURIDAD-PORTES-28, 18-11-2026 (softmac `FlyWeb/seguridad/3.1.4/parte6/brave-core/0001`, on top of part 4). None is merged to 15.6;
+diff --git a/patches/v8/src-runtime-runtime-literals.cc.patch b/patches/v8/src-runtime-runtime-literals.cc.patch
+new file mode 100644
+index 000000000..ab99ac750
+--- /dev/null
++++ b/patches/v8/src-runtime-runtime-literals.cc.patch
+@@ -0,0 +1,31 @@
++diff --git a/src/runtime/runtime-literals.cc b/src/runtime/runtime-literals.cc
++index 4a3cfca512defade70e15bdc8f7501eff0348573..95b114201dc856230ae4d00e4e55f6286e22880e 100644
++--- a/src/runtime/runtime-literals.cc
+++++ b/src/runtime/runtime-literals.cc
++@@ -151,15 +151,22 @@ MaybeHandle<JSObject> JSObjectWalkVisitor<ContextObject>::StructureWalk(
++           if (copying) dict->ValueAtPut(i, *value);
++         }
++       } else {
+++        // Iterate in enumeration order so traversal stays in sync with the
+++        // nested AllocationSite list built by DeepWalk if a fast boilerplate is
+++        // later normalized to a NameDictionary by JSObject::MigrateInstance.
++         DirectHandle<NameDictionary> dict(copy->property_dictionary(), isolate);
++-        for (InternalIndex i : dict->IterateEntries()) {
++-          Tagged<Object> raw = dict->ValueAt(i);
+++        DirectHandle<FixedArray> key_indices =
+++            NameDictionary::IterationIndices(isolate, dict);
+++        uint32_t key_indices_len = key_indices->ulength().value();
+++        for (uint32_t i = 0; i < key_indices_len; i++) {
+++          InternalIndex key_index(Smi::ToInt(key_indices->get(i)));
+++          Tagged<Object> raw = dict->ValueAt(key_index);
++           if (!IsJSObject(raw)) continue;
++-          DCHECK(IsName(dict->KeyAt(i)));
+++          DCHECK(IsName(dict->KeyAt(key_index)));
++           Handle<JSObject> value(Cast<JSObject>(raw), isolate);
++           ASSIGN_RETURN_ON_EXCEPTION(isolate, value,
++                                      VisitElementOrProperty(copy, value));
++-          if (copying) dict->ValueAtPut(i, *value);
+++          if (copying) dict->ValueAtPut(key_index, *value);
++         }
++       }
++     }
+diff --git a/patches/v8/src-utils-version.cc.patch b/patches/v8/src-utils-version.cc.patch
+index a4d48301d..c4f76ad9f 100644
+--- a/patches/v8/src-utils-version.cc.patch
++++ b/patches/v8/src-utils-version.cc.patch
+@@ -1,8 +1,8 @@
+ diff --git a/src/utils/version.cc b/src/utils/version.cc
+-index 550db661144947dbc31b5eb62c0da7ea2e6e1139..7fc1501985e2024a5fbc67ad8255fc7ac1acc3e2 100644
++index 550db661144947dbc31b5eb62c0da7ea2e6e1139..d8e88e5ace213928873fe24b96638d91d51a3405 100644
+ --- a/src/utils/version.cc
+ +++ b/src/utils/version.cc
+-@@ -27,9 +27,52 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
++@@ -27,9 +27,54 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
+  const char* Version::soname_ = SONAME;
+  const char* Version::version_string_ = V8_VERSION_STRING;
+  
+@@ -46,8 +46,10 @@ index 550db661144947dbc31b5eb62c0da7ea2e6e1139..7fc1501985e2024a5fbc67ad8255fc7a
+ +// transitions, which changes optimized code) and c9afe36 (regexp replace).
+ +// 36 = FlyWeb 3.1.4 with the Chrome 158 Lows 0b3bd2b, 336a6b3, fb3bcc3
+ +// (inspector) and 0ac2b27 (Maglev StringLengthStaticLowerBound, which changes
+-+// optimized code).
+-+constexpr int kFlyWebCacheEpoch = 36;
+++// optimized code). 37 = the final FlyWeb 3.1.4 (parts 4-6 integrated: also the
+++// Chrome 157 Mediums 42d78d0f3d and b1457bd47a, and the 8078 branch V8
+++// 15.6.75.70 fix fdbb7b1, NameDictionary literal walk order).
+++constexpr int kFlyWebCacheEpoch = 37;
+ +
+  uint32_t Version::Hash() {
+    base::Hasher hasher;
+diff --git a/patches/v8/test-mjsunit-regress-regress-577314726.js.patch b/patches/v8/test-mjsunit-regress-regress-577314726.js.patch
+new file mode 100644
+index 000000000..476dcb4b4
+--- /dev/null
++++ b/patches/v8/test-mjsunit-regress-regress-577314726.js.patch
+@@ -0,0 +1,46 @@
++diff --git a/test/mjsunit/regress/regress-577314726.js b/test/mjsunit/regress/regress-577314726.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..692ba16ad52fbd0ab981b7041641e2b2063abccb
++--- /dev/null
+++++ b/test/mjsunit/regress/regress-577314726.js
++@@ -0,0 +1,40 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax
+++
+++function make() {
+++  return {x: 1, a: [[1]], b: [2], c: [3], d: [4], e: [5],
+++          f: [6], g: [7], h: [8], i: [9], j: [10]};
+++}
+++
+++// Allocates the feedback vector and disables heuristic tier-up.
+++%PrepareFunctionForOptimization(make);
+++make();
+++assertTrue(%HasFastProperties(make()));
+++
+++// Deprecate make's boilerplate map (x: Smi -> Double) and fill the new map's
+++// transition array (> kMaxNumberOfTransitions = 1536) so migrating the
+++// boilerplate normalizes it. Transitions are weak: keep `o` alive so a GC
+++// under gc_stress cannot clear them mid-loop.
+++const keep = [];
+++for (let n = 0; n < 1600; n++) {
+++  const o = {x: 1.5, ['p' + n]: 1, b: 1, c: 1, d: 1, e: 1,
+++             f: 1, g: 1, h: 1, i: 1, j: 1};
+++  keep.push(o);
+++}
+++
+++const o1 = make();  // Migrates and normalizes the boilerplate.
+++assertFalse(%HasFastProperties(o1));
+++assertEquals(1, o1.a[0][0]);
+++assertEquals(10, o1.j[0]);
+++
+++// Elements-kind feedback must not reach a sibling's AllocationSite.
+++o1.b[0] = 1.5;
+++o1.c[0] = {};
+++const o2 = make();
+++assertTrue(%HasSmiElements(o2.a[0]));
+++assertFalse(%HasObjectElements(o2.b));
+++assertFalse(%HasDoubleElements(o2.c));
+++for (const k of 'defghij') assertTrue(%HasSmiElements(o2[k]));
+-- 
+2.43.0
+
