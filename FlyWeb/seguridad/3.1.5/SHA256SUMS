@@ -1,0 +1,13 @@
+e5b9ccf2bd164b141b4f8533af3368a14511dca2169b8c48d9ed94f4d37b8ccf  chromium/0001-Treat-ORB-blocked-media-responses-as-CORS-cross-orig.patch
+a5c62f8191fa72ddab7901517c621a2926ba0f3d8210e4ba5a66daada35b29f8  chromium/0002-Don-t-retry-ORB-blocked-media-range-requests.patch
+c5eec4f5f916a6cebea4dc7929197ffd749bde935f05032958ebbb1cda20e5e6  chromium/0003-Reland-Media-Don-t-retry-network-failures-which-are-.patch
+73e31cb65ab618acc851ebc2054f48575ec01977cb54355a38d8d089703192c1  chromium/0004-FlyWeb-Media-UrlData-CrossOriginFail-rest-of-fb2af07.patch
+c9686112015cab39c26fe44049878af1d32cbea1c5e6cfa949a87d15831c475d  chromium/0005-Media-Require-consistent-resource-length-and-don-t-r.patch
+33ba068d2ed5001a02cdf6180d7ad176066ecfeb056db9303218613da96d2adf  chromium/0006-Fix-uninitialized-pixel-reads-in-ConvertVideoFrameTo.patch
+6bf250af45c199d8656276c645ea85e9c0f907f927e5afbca34139981c04bdf0  chromium/0007-Use-std-ranges-fill-and-base-span-in-PartitionRoot.patch
+dc6ccc828d95b8747ff4431476c0b012a323fbee4f9943b4fa7c0a54c31c50da  chromium/0008-M156-webcodecs-Route-callbacks-to-execution-context-.patch
+db7ecdfde48ffd21717a7e617eb4c70a6e019b867ba8866ce7cd7b47321427a9  chromium/0009-M156-Defer-SyncLoadContext-completion-while-handling.patch
+3cd8ea1017dda53c6ea62b5cb16d8f0c44798c39f22f43ff51b7cfff6c83bbca  chromium/0010-M156-Fix-caching-for-built-in-strategy-size-function.patch
+8aa8e01171046e0624bcdaa129cf7336cbbbcd327e82f3c7c70eafa287903bb1  chromium/0011-M156-Validate-sparse-entries-before-serving-any-requ.patch
+7fdb0d8ebe7d0dc9ae482606069a120672f8c1b2eed7a3ff023c7492c880011c  chromium/0012-M156-FSA-block-remote-desktop-client-drive-UNC-paths.patch
+af7fa7fd48935e262c8b3598e660beaae7f1729cb56f173f57cd4fb4fd932af7  chromium/0013-M156-FSA-disallow-platform-path-resolution-in-incogn.patch

@@ -1,0 +1,151 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mingyu Lei <leimy@chromium.org>
+Date: Wed, 18 Nov 2026 08:25:56 +0000
+Subject: [PATCH 12/13] [M156] FSA: block remote desktop client-drive UNC paths
+ on Windows
+
+Original change's description:
+> FSA: block remote desktop client-drive UNC paths on Windows
+>
+> Inside Windows Remote Desktop Services (RDP, Azure Virtual Desktop,
+> Windows 365, Hyper-V Enhanced Session, and Horizon TSDR) and Citrix HDX
+> Client Drive Mapping sessions, the client machine's drives and shared
+> folders are exposed via the \\tsclient and \\Client UNC redirectors.
+> Because "tsclient" and "Client" are valid DNS names and drive-letter
+> blocklist rules only match the session host's local drives, non-admin
+> redirected paths such as \\tsclient\C\Users\<user>\.ssh or
+> \\Client\C\Users\<user>\.bashrc were not caught by MaybeIsLocalUNCPath()
+> or ShouldBlockAccessToPath().
+>
+> Add "tsclient" and "client" to IsLocalUNCServer() so sensitive-entry
+> checks reject remote-session client-drive UNC paths (including case
+> variants, forward-slash UNC syntax, and trailing-dot FQDN forms).
+>
+> Fixed: 569370393
+> Change-Id: Iba30ac533d632f4432298dc3c190e4f958c87b49
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8774907
+> Reviewed-by: Fergal Daly <fergal@chromium.org>
+> Commit-Queue: Mingyu Lei <leimy@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1740232}
+
+(cherry picked from commit d036c0a1290b911cdafb00fed39ffc5fd6a1cfba)
+
+Bug: 584579130,569370393
+Change-Id: Iba30ac533d632f4432298dc3c190e4f958c87b49
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8829764
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2294}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+(cherry picked from commit d83ec3c16eabae3a2f056fce6a55101b7925ccf9)
+---
+ ...e_file_system_access_permission_context.cc |  7 +-
+ ...stem_access_permission_context_unittest.cc | 65 +++++++++++++++++++
+ 2 files changed, 70 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc b/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc
+index 0199df039..5b12b8554 100644
+--- a/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc
++++ b/chrome/browser/file_system_access/chrome_file_system_access_permission_context.cc
+@@ -293,6 +293,9 @@ bool IsLocalUNCServer(base::FilePath::StringViewType server) {
+       FILE_PATH_LITERAL(".host"),
+       FILE_PATH_LITERAL("vboxsvr"),
+       FILE_PATH_LITERAL("vboxsrv"),
++      // Remote desktop client-drive redirectors (RDP/Horizon, Citrix HDX).
++      FILE_PATH_LITERAL("tsclient"),
++      FILE_PATH_LITERAL("client"),
+   };
+   for (const auto& candidate : kLocalServers) {
+     if (base::FilePath::CompareEqualIgnoreCase(server, candidate)) {
+@@ -303,8 +306,8 @@ bool IsLocalUNCServer(base::FilePath::StringViewType server) {
+ }
+ 
+ // Returns true if the path is a Universal Naming Convention (UNC) path pointing
+-// to a local system path, device namespace, WSL loopback redirector, or
+-// hypervisor host-share namespace.
++// to a local system path, device namespace, WSL loopback redirector,
++// hypervisor host-share namespace, or remote-session client drive redirector.
+ bool MaybeIsLocalUNCPath(const base::FilePath& path) {
+   if (!path.IsNetwork()) {
+     return false;
+diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc b/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc
+index a87428f7c..35b43eaca 100644
+--- a/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc
++++ b/chrome/browser/file_system_access/chrome_file_system_access_permission_context_unittest.cc
+@@ -1676,6 +1676,71 @@ TEST_F(ChromeFileSystemAccessPermissionContextNoSymbolicLinkCheckTest,
+   }
+ }
+ 
++// Verifies that remote-desktop client-drive UNC paths (RDP/Horizon `\\tsclient`
++// and Citrix HDX `\\Client`) are blocked across handle types and triggers,
++// while multi-label remote FQDNs remain allowed.
++TEST_F(ChromeFileSystemAccessPermissionContextNoSymbolicLinkCheckTest,
++       ConfirmSensitiveEntryAccess_RemoteDesktopClientUNC) {
++  static constexpr const base::FilePath::CharType* kBlockedDirPaths[] = {
++      FILE_PATH_LITERAL("\\\\tsclient"),
++      FILE_PATH_LITERAL("\\\\tsclient\\C\\Users\\user"),
++      FILE_PATH_LITERAL("\\\\TSCLIENT\\C\\Users\\user"),
++      FILE_PATH_LITERAL("\\\\TsClient\\home\\user"),
++      FILE_PATH_LITERAL("\\\\tsclient.\\C\\Users\\user"),
++      FILE_PATH_LITERAL("//tsclient/home/user/.ssh"),
++      FILE_PATH_LITERAL("\\\\Client"),
++      FILE_PATH_LITERAL("\\\\Client\\C\\Users\\user"),
++      FILE_PATH_LITERAL("\\\\client\\home\\user"),
++      FILE_PATH_LITERAL("\\\\CLIENT\\C\\Users\\user"),
++      FILE_PATH_LITERAL("\\\\Client.\\C\\Users\\user"),
++      FILE_PATH_LITERAL("\\\\client.\\home\\user"),
++      FILE_PATH_LITERAL("//Client/C/Users/user/.ssh"),
++  };
++  for (const auto* path : kBlockedDirPaths) {
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(), PathInfo(path), HandleType::kDirectory,
++                  AccessTrigger::kOpen),
++              SensitiveDirectoryResult::kAbort)
++        << "Expected blocked directory path: " << path;
++  }
++
++  static constexpr const base::FilePath::CharType* kBlockedFilePaths[] = {
++      FILE_PATH_LITERAL("\\\\tsclient\\C\\Users\\user\\.ssh\\id_rsa"),
++      FILE_PATH_LITERAL("\\\\tsclient\\home\\user\\.bashrc"),
++      FILE_PATH_LITERAL("\\\\TSCLIENT.\\home\\user\\.bashrc"),
++      FILE_PATH_LITERAL("//tsclient/home/user/.bashrc"),
++      FILE_PATH_LITERAL("\\\\Client\\C\\Users\\user\\.ssh\\id_rsa"),
++      FILE_PATH_LITERAL("\\\\client\\home\\user\\.bashrc"),
++      FILE_PATH_LITERAL("\\\\Client.\\home\\user\\.bashrc"),
++  };
++  for (const auto* path : kBlockedFilePaths) {
++    for (AccessTrigger trigger : {AccessTrigger::kOpen, AccessTrigger::kSave,
++                                  AccessTrigger::kProgrammaticRead,
++                                  AccessTrigger::kProgrammaticWrite}) {
++      EXPECT_EQ(
++          ConfirmSensitiveEntryAccessSync(permission_context(), PathInfo(path),
++                                          HandleType::kFile, trigger),
++          SensitiveDirectoryResult::kAbort)
++          << "Expected blocked file path: " << path;
++    }
++  }
++
++  // Multi-label FQDNs and distinct server names must remain allowed.
++  static constexpr const base::FilePath::CharType* kAllowedPaths[] = {
++      FILE_PATH_LITERAL("\\\\client.corp.domain.com\\share\\foo"),
++      FILE_PATH_LITERAL("\\\\tsclient.corp.domain.com\\share\\foo"),
++      FILE_PATH_LITERAL("\\\\tsclient-prod\\share\\foo"),
++      FILE_PATH_LITERAL("\\\\myclient\\share\\foo"),
++  };
++  for (const auto* path : kAllowedPaths) {
++    EXPECT_EQ(ConfirmSensitiveEntryAccessSync(
++                  permission_context(), PathInfo(path), HandleType::kDirectory,
++                  AccessTrigger::kOpen),
++              SensitiveDirectoryResult::kAllowed)
++        << "Expected allowed remote UNC path: " << path;
++  }
++}
++
+ #endif  // BUILDFLAG(IS_WIN)
+ 
+ // Testing that writes to */.git and non-allowlisted descendants are blocked,
+-- 
+2.43.0
+

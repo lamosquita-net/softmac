@@ -860,3 +860,33 @@ E congelado en el tag **.110** (`04545e38be`); lo posterior (6 [M156] y la .111)
 - gitiles da 302 a `google.com/sorry` con `+log/<sha>/<ruta>`; los `+/<sha>?format=JSON` sueltos y `+log/A..B` sin ruta
   sí funcionan, con pausas.
 - dawn.googlesource.com: 403 (proxy) y el espejo de GitHub no tiene `chromium/8078`. Lo de Dawn de la rama, a LOCAL.
+
+## 15. SEGURIDAD-PORTES-25 → 26 (18-11-2026): la 3.1.5, parte 2 (G3b y G4)
+
+La -25 se releva tras entregar la parte 1 de la 3.1.5 (`3.1.5/CONTENIDO.md`). Reporta a COORDINACIÓN-47
+(`session_01MwmK2kK9WDgdvBd7f3rxQb`). Orden de la 47 (en la fila de SEGURIDAD-PORTES de TAREAS).
+
+**Base para la parte 2:** chromium árbol `2248183916` = `local/313` `7ccbc27cf7` + `3.1.4/chromium` 0001–0026 +
+`3.1.5/chromium` 0001–0013. brave-core = `seg/3.1.4` `d91632790084` + `3.1.4/brave-core` 0003 + `3.1.5/brave-core`
+0001–0002 (árbol `e95338d8c9`; sin push: `git am`). V8 .66 con todos los `patches/v8`: árbol `ecf31d79a4`.
+
+**Qué toca:**
+1. **G3b** (23, `3.1.5/PROPUESTA-MEDIOS.md`): commit de cada bug con `gh api -X GET search/commits -f q="repo:<repo> <bug>"`
+   (`chromium/chromium`, `v8/v8`, `google/angle`; un `sleep 2` entre búsquedas), `git apply --check` sobre el árbol
+   de arriba, leer el código y portar. Mismo formato: `3.1.5/chromium/0014`+.
+2. **G4** (31): solo lo alcanzable sin interacción del usuario.
+3. Medios de la 157 (`3.1.5/MEDIOS-157.md`): buscar los commits; portar solo si COORDINACIÓN lo pide.
+4. Pendiente de otros: verde de D8-LINUX (buzón `0e19e772`, 3.1.4 0002 y 3.1.5 brave-core 0001); decisión sobre
+   7b99dd29ba; `VERSION` .111 cuando exista el tag (cruzar con 0008–0013); la 159 y `kDisallowMixedOpaqueMediaResponses`.
+
+**Trampas nuevas:**
+- La 8078 **sin tag** no está en el espejo de GitHub: montar mbox desde gitiles (`+/<sha>?format=JSON` para autor y
+  mensaje, `+/<sha>%5E%21/?format=TEXT` en base64 para el diff; añadir ` +0000` a la fecha) y `git am -3 --keep-non-patch`
+  (sin `--keep-non-patch`, `git am` quita «[M156]» del asunto).
+- Con 3 vías, el `patch-id` puede salir distinto con el mismo resultado: comparar el fichero final con
+  `+/<sha>/<ruta>?format=TEXT`.
+- Una búsqueda de commits que no encuentra un arreglo (p. ej. el bloque de `DidFail()` de Media) se resuelve acotando
+  por fechas: `committer-date:A..B` y palabras del componente.
+- Las notas de Extended Stable de la 156 solo citan lo que Google fusiona (casi siempre altos): un medio que no sale ahí
+  no está en la 8078.
+

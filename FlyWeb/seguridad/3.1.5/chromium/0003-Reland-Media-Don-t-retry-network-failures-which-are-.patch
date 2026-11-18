@@ -1,0 +1,148 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dale Curtis <dalecurtis@chromium.org>
+Date: Thu, 15 Oct 2026 12:22:49 -0700
+Subject: [PATCH 03/13] Reland "[Media] Don't retry network failures which are
+ deterministic"
+
+This is a reland of commit 3ea93124568e116f89d7493360b8e7257c78e186, there are no changes since it wasn't the culprit for failures.
+
+Original change's description:
+> [Media] Don't retry network failures which are deterministic
+>
+> These will never succeed so retrying just allows information
+> exposure.
+>
+> R=tmathmeyer
+>
+> Fixed: 573253732
+> Change-Id: I7a4e50e14d467d2b44f17d551cd583e576175a52
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8572668
+> Commit-Queue: Ted (Chromium) Meyer <tmathmeyer@chromium.org>
+> Reviewed-by: Ted (Chromium) Meyer <tmathmeyer@chromium.org>
+> Auto-Submit: Dale Curtis <dalecurtis@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1718565}
+
+Change-Id: Ic0f23c0e367046b9b957795d5ae35c4fd5c6a1fd
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8581526
+Reviewed-by: Ted (Chromium) Meyer <tmathmeyer@chromium.org>
+Commit-Queue: Dale Curtis <dalecurtis@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1719935}
+(cherry picked from commit dbd22daebd04947d562b497aeb440b70a2924da9)
+---
+ .../resource_multi_buffer_data_provider.cc    | 24 +++++++---
+ ...rce_multi_buffer_data_provider_unittest.cc | 45 ++++++++++++++++++-
+ 2 files changed, 62 insertions(+), 7 deletions(-)
+
+diff --git a/third_party/blink/renderer/platform/media/resource_multi_buffer_data_provider.cc b/third_party/blink/renderer/platform/media/resource_multi_buffer_data_provider.cc
+index 1cebd9b49..72eb7ad6f 100644
+--- a/third_party/blink/renderer/platform/media/resource_multi_buffer_data_provider.cc
++++ b/third_party/blink/renderer/platform/media/resource_multi_buffer_data_provider.cc
+@@ -530,16 +530,30 @@ void ResourceMultiBufferDataProvider::DidFail(const WebURLError& error) {
+   DCHECK(active_loader_.get());
+   active_loader_.reset();
+ 
+-  // ORB only blocks cross-origin no-cors responses, which are opaque. Record
+-  // this so that the failure is not distinguishable from other opaque
+-  // failures (e.g. via error messages exposed by the media element). An ORB
+-  // block is also deterministic, so fail immediately rather than retrying.
+-  if (error.reason() == net::ERR_BLOCKED_BY_ORB) {
++  // ORB, Cross-Origin-Resource-Policy / COEP / DIP enforcement
++  // (ERR_BLOCKED_BY_RESPONSE), and web security violations (CORS, LNA, CSP,
++  // etc.) block cross-origin responses. Record this so that the failure is not
++  // distinguishable from other opaque failures (e.g. via error messages exposed
++  // by the media element). These blocks (as well as request-blocked and
++  // certificate errors) are deterministic for a given request, so fail
++  // immediately rather than retrying: a retry can never succeed, and the retry
++  // cadence is observable (e.g. by a service worker counting fetch events),
++  // which would leak whether the cross-origin server answered 206 or 416.
++  if (error.reason() == net::ERR_BLOCKED_BY_ORB ||
++      error.reason() == net::ERR_BLOCKED_BY_RESPONSE ||
++      error.is_web_security_violation()) {
+     url_data_->set_is_cors_cross_origin(true);
+     url_data_->Fail();
+     return;  // "this" may be deleted now.
+   }
+ 
++  if (net::IsRequestBlockedError(error.reason()) ||
++      net::IsCertificateError(error.reason()) ||
++      net::IsClientCertificateError(error.reason())) {
++    url_data_->Fail();
++    return;  // "this" may be deleted now.
++  }
++
+   if (url_data_->url_index() && retries_ < kMaxRetries && pos_ != 0) {
+     retries_++;
+     task_runner_->PostDelayedTask(
+diff --git a/third_party/blink/renderer/platform/media/resource_multi_buffer_data_provider_unittest.cc b/third_party/blink/renderer/platform/media/resource_multi_buffer_data_provider_unittest.cc
+index daa73ae8c..1085f916b 100644
+--- a/third_party/blink/renderer/platform/media/resource_multi_buffer_data_provider_unittest.cc
++++ b/third_party/blink/renderer/platform/media/resource_multi_buffer_data_provider_unittest.cc
+@@ -311,6 +311,15 @@ TEST_F(ResourceMultiBufferDataProviderTest, DidFailBlockedByOrbIsCrossOrigin) {
+   EXPECT_TRUE(url_data->is_cors_cross_origin());
+ }
+ 
++TEST_F(ResourceMultiBufferDataProviderTest, DidFailBlockedByResponse) {
++  Initialize(kHttpUrl, 0);
++  Start();
++  scoped_refptr<UrlData> url_data = url_data_;
++  EXPECT_CALL(*this, RedirectCallback(testing::IsNull()));
++  loader_->DidFail(WebURLError(net::ERR_BLOCKED_BY_RESPONSE, url_));
++  EXPECT_TRUE(url_data->is_cors_cross_origin());
++}
++
+ TEST_F(ResourceMultiBufferDataProviderTest, DidFailOtherErrorNotCrossOrigin) {
+   Initialize(kHttpUrl, 0);
+   Start();
+@@ -320,8 +329,9 @@ TEST_F(ResourceMultiBufferDataProviderTest, DidFailOtherErrorNotCrossOrigin) {
+   EXPECT_FALSE(url_data->is_cors_cross_origin());
+ }
+ 
+-// An ORB block is deterministic, so it must fail immediately rather than being
+-// retried, even at a non-zero position where transient failures are retried.
++// Deterministic security, policy, and certificate errors must fail immediately
++// rather than being retried, even at a non-zero position where transient
++// failures are retried.
+ TEST_F(ResourceMultiBufferDataProviderTest, DidFailBlockedByOrbDoesNotRetry) {
+   Initialize(kHttpUrl, 100);
+   // Exactly one loader must be created: the initial one. A retry would create
+@@ -335,6 +345,37 @@ TEST_F(ResourceMultiBufferDataProviderTest, DidFailBlockedByOrbDoesNotRetry) {
+   task_environment_.FastForwardUntilNoTasksRemain();
+ }
+ 
++TEST_F(ResourceMultiBufferDataProviderTest,
++       DidFailWebSecurityViolationDoesNotRetry) {
++  Initialize(kHttpUrl, 100);
++  EXPECT_CALL(fetch_context_, CreateUrlLoader(_)).Times(1);
++  Start();
++  scoped_refptr<UrlData> url_data = url_data_;
++  EXPECT_CALL(*this, RedirectCallback(testing::IsNull()));
++  loader_->DidFail(
++      WebURLError(network::CorsErrorStatus(
++                      network::mojom::CorsError::kWildcardOriginNotAllowed),
++                  WebURLError::HasCopyInCache::kFalse, url_));
++  EXPECT_TRUE(url_data->is_cors_cross_origin());
++  task_environment_.FastForwardUntilNoTasksRemain();
++}
++
++TEST_F(ResourceMultiBufferDataProviderTest,
++       DidFailDeterministicNetErrorDoesNotRetry) {
++  for (int err :
++       {net::ERR_BLOCKED_BY_CLIENT, net::ERR_BLOCKED_BY_CSP,
++        net::ERR_CERT_COMMON_NAME_INVALID, net::ERR_BAD_SSL_CLIENT_AUTH_CERT}) {
++    Initialize(kHttpUrl, 100);
++    EXPECT_CALL(fetch_context_, CreateUrlLoader(_)).Times(1);
++    Start();
++    scoped_refptr<UrlData> url_data = url_data_;
++    EXPECT_CALL(*this, RedirectCallback(testing::IsNull()));
++    loader_.ExtractAsDangling()->DidFail(WebURLError(err, url_));
++    EXPECT_FALSE(url_data->is_cors_cross_origin());
++    task_environment_.FastForwardUntilNoTasksRemain();
++  }
++}
++
+ // Transient errors at a non-zero position are still retried.
+ TEST_F(ResourceMultiBufferDataProviderTest, DidFailOtherErrorRetries) {
+   Initialize(kHttpUrl, 100);
+-- 
+2.43.0
+

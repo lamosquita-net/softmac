@@ -1,0 +1,486 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Adam Rice <ricea@chromium.org>
+Date: Wed, 18 Nov 2026 06:57:57 +0000
+Subject: [PATCH 10/13] [M156] Fix caching for built-in strategy size functions
+
+Original change's description:
+> Fix caching for built-in strategy size functions
+>
+> The Streams standard associates cached strategy size functions with the
+> realm's `globalObject` (the inner `Window`), whereas
+> `GetCachedSizeFunction` was caching them on `v8::Context::Global()`,
+> which in V8 returns the `WindowProxy`. Cache them in `V8PerContextData`
+> instead. This matches the semantics required by the standard, except for
+> an intentional minor deviation when contexts are detached (to avoid
+> retaining V8 objects from detached realms), and matches how other
+> per-context caches work in Blink.
+>
+> Bug: 582927496
+> Change-Id: I9b7eb5f9d4a4e7323a2b30a6c9f5d36aa5672705
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8774508
+> Reviewed-by: Nidhi Jaju <nidhijaju@chromium.org>
+> Commit-Queue: Adam Rice <ricea@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1741489}
+
+(cherry picked from commit 9f26d5d7fd341be52ed1758d015a392938ef043b)
+
+Bug: 585406853,582927496
+Change-Id: I9b7eb5f9d4a4e7323a2b30a6c9f5d36aa5672705
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8828606
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2292}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+(cherry picked from commit 7f43e5217433f4210284f60b3958afe1a549c2b3)
+---
+ .../streams/byte_length_queuing_strategy.cc   |   5 +-
+ .../core/streams/count_queuing_strategy.cc    |   4 +-
+ .../core/streams/queuing_strategy_common.cc   |  79 +++++--
+ .../core/streams/queuing_strategy_common.h    |  17 +-
+ ...ategies-size-function-navigation.window.js | 200 ++++++++++++++++++
+ .../queuing-strategy-size-frame.html          |  44 ++++
+ 6 files changed, 325 insertions(+), 24 deletions(-)
+ create mode 100644 third_party/blink/web_tests/external/wpt/streams/queuing-strategies-size-function-navigation.window.js
+ create mode 100644 third_party/blink/web_tests/external/wpt/streams/resources/queuing-strategy-size-frame.html
+
+diff --git a/third_party/blink/renderer/core/streams/byte_length_queuing_strategy.cc b/third_party/blink/renderer/core/streams/byte_length_queuing_strategy.cc
+index 9775efc56..0ff7a6096 100644
+--- a/third_party/blink/renderer/core/streams/byte_length_queuing_strategy.cc
++++ b/third_party/blink/renderer/core/streams/byte_length_queuing_strategy.cc
+@@ -16,9 +16,6 @@ namespace blink {
+ 
+ namespace {
+ 
+-static const V8PrivateProperty::SymbolKey
+-    kByteLengthQueuingStrategySizeFunction;
+-
+ class ByteLengthQueuingStrategySizeFunction final : public ScriptFunction {
+  public:
+   static v8::Local<v8::Function> CreateFunction(ScriptState* script_state) {
+@@ -99,7 +96,7 @@ ScriptValue ByteLengthQueuingStrategy::size(ScriptState* script_state) const {
+   //    Function that represents a reference to F, with callback context equal
+   //    to globalObject’s relevant settings object.
+   return GetCachedSizeFunction(
+-      script_state, kByteLengthQueuingStrategySizeFunction,
++      script_state, QueuingStrategySizeFunctionType::kByteLength,
+       &ByteLengthQueuingStrategySizeFunction::CreateFunction);
+ }
+ 
+diff --git a/third_party/blink/renderer/core/streams/count_queuing_strategy.cc b/third_party/blink/renderer/core/streams/count_queuing_strategy.cc
+index 7e2eea1c5..c96c0900f 100644
+--- a/third_party/blink/renderer/core/streams/count_queuing_strategy.cc
++++ b/third_party/blink/renderer/core/streams/count_queuing_strategy.cc
+@@ -16,8 +16,6 @@ namespace blink {
+ 
+ namespace {
+ 
+-static const V8PrivateProperty::SymbolKey kCountQueuingStrategySizeFunction;
+-
+ class CountQueuingStrategySizeFunction final : public ScriptFunction {
+  public:
+   static v8::Local<v8::Function> CreateFunction(ScriptState* script_state) {
+@@ -66,7 +64,7 @@ ScriptValue CountQueuingStrategy::size(ScriptState* script_state) const {
+   //    that represents a reference to F, with callback context equal to
+   //    globalObject’s relevant settings object.
+   return GetCachedSizeFunction(
+-      script_state, kCountQueuingStrategySizeFunction,
++      script_state, QueuingStrategySizeFunctionType::kCount,
+       &CountQueuingStrategySizeFunction::CreateFunction);
+ }
+ 
+diff --git a/third_party/blink/renderer/core/streams/queuing_strategy_common.cc b/third_party/blink/renderer/core/streams/queuing_strategy_common.cc
+index 76a82d81c..00c971d9a 100644
+--- a/third_party/blink/renderer/core/streams/queuing_strategy_common.cc
++++ b/third_party/blink/renderer/core/streams/queuing_strategy_common.cc
+@@ -4,26 +4,81 @@
+ 
+ #include "third_party/blink/renderer/core/streams/queuing_strategy_common.h"
+ 
++#include "base/notreached.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_value.h"
+-#include "third_party/blink/renderer/bindings/core/v8/v8_queuing_strategy_init.h"
+ #include "third_party/blink/renderer/platform/bindings/script_state.h"
++#include "third_party/blink/renderer/platform/bindings/trace_wrapper_v8_reference.h"
++#include "third_party/blink/renderer/platform/bindings/v8_per_context_data.h"
++#include "third_party/blink/renderer/platform/heap/garbage_collected.h"
++#include "third_party/blink/renderer/platform/heap/visitor.h"
+ 
+ namespace blink {
+ 
++namespace {
++
++class QueuingStrategySizeFunctionPerContextData final
++    : public GarbageCollected<QueuingStrategySizeFunctionPerContextData>,
++      public V8PerContextData::Data {
++ public:
++  v8::Local<v8::Function> GetOrCreate(ScriptState* script_state,
++                                      QueuingStrategySizeFunctionType type,
++                                      SizeFunctionFactory factory) {
++    TraceWrapperV8Reference<v8::Function>& slot = SlotForType(type);
++    v8::Isolate* const isolate = script_state->GetIsolate();
++    if (slot.IsEmpty()) {
++      const v8::Local<v8::Function> function = factory(script_state);
++      slot.Reset(isolate, function);
++      return function;
++    }
++    return slot.Get(isolate);
++  }
++
++  void Trace(Visitor* visitor) const override {
++    visitor->Trace(byte_length_size_function_);
++    visitor->Trace(count_size_function_);
++    V8PerContextData::Data::Trace(visitor);
++  }
++
++ private:
++  TraceWrapperV8Reference<v8::Function>& SlotForType(
++      QueuingStrategySizeFunctionType type) {
++    switch (type) {
++      case QueuingStrategySizeFunctionType::kByteLength:
++        return byte_length_size_function_;
++      case QueuingStrategySizeFunctionType::kCount:
++        return count_size_function_;
++    }
++    NOTREACHED();
++  }
++
++  TraceWrapperV8Reference<v8::Function> byte_length_size_function_;
++  TraceWrapperV8Reference<v8::Function> count_size_function_;
++};
++
++}  // namespace
++
+ ScriptValue GetCachedSizeFunction(ScriptState* script_state,
+-                                  const V8PrivateProperty::SymbolKey& key,
++                                  QueuingStrategySizeFunctionType type,
+                                   SizeFunctionFactory factory) {
+-  auto* isolate = script_state->GetIsolate();
+-  auto function_cache = V8PrivateProperty::GetSymbol(isolate, key);
+-  v8::Local<v8::Object> global_proxy = script_state->GetContext()->Global();
+-  v8::Local<v8::Value> function;
+-  if (!function_cache.GetOrUndefined(global_proxy).ToLocal(&function) ||
+-      function->IsUndefined()) {
+-    function = factory(script_state);
+-    bool is_set = function_cache.Set(global_proxy, function);
+-    DCHECK(is_set || isolate->IsExecutionTerminating());
++  v8::Isolate* const isolate = script_state->GetIsolate();
++  V8PerContextData* const per_context_data = script_state->PerContextData();
++  if (!per_context_data) {
++    // When a context is detached, `ScriptState::DisposePerContextData()` clears
++    // `PerContextData()` so per-context references do not keep detached realms
++    // alive. Intentionally deviate slightly from the standard here by returning
++    // a fresh function rather than caching on the detached context (matching
++    // `V8DOMWrapper::CreateWrapper`).
++    return ScriptValue(isolate, factory(script_state));
++  }
++
++  static constexpr char kPerContextDataKey[] = "QueuingStrategySizeFunction";
++  auto* cache = static_cast<QueuingStrategySizeFunctionPerContextData*>(
++      per_context_data->GetData(kPerContextDataKey));
++  if (!cache) {
++    cache = MakeGarbageCollected<QueuingStrategySizeFunctionPerContextData>();
++    per_context_data->AddData(kPerContextDataKey, cache);
+   }
+-  return ScriptValue(isolate, function);
++  return ScriptValue(isolate, cache->GetOrCreate(script_state, type, factory));
+ }
+ 
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/streams/queuing_strategy_common.h b/third_party/blink/renderer/core/streams/queuing_strategy_common.h
+index e55a4495c..5a0769f9e 100644
+--- a/third_party/blink/renderer/core/streams/queuing_strategy_common.h
++++ b/third_party/blink/renderer/core/streams/queuing_strategy_common.h
+@@ -5,7 +5,6 @@
+ #ifndef THIRD_PARTY_BLINK_RENDERER_CORE_STREAMS_QUEUING_STRATEGY_COMMON_H_
+ #define THIRD_PARTY_BLINK_RENDERER_CORE_STREAMS_QUEUING_STRATEGY_COMMON_H_
+ 
+-#include "third_party/blink/renderer/platform/bindings/v8_private_property.h"
+ #include "v8/include/v8.h"
+ 
+ namespace blink {
+@@ -13,12 +12,20 @@ namespace blink {
+ class ScriptState;
+ class ScriptValue;
+ 
++enum class QueuingStrategySizeFunctionType {
++  kByteLength,
++  kCount,
++};
++
+ using SizeFunctionFactory = v8::Local<v8::Function> (*)(ScriptState*);
+ 
+-// Returns the value cached on the global proxy object under |key|, or, if that
+-// is not set, caches and returns the result of calling |factory|.
+-ScriptValue GetCachedSizeFunction(ScriptState*,
+-                                  const V8PrivateProperty::SymbolKey& key,
++// Returns the size function cached on `script_state`'s per-context data for
++// `type`, or creates and caches it via `factory`. If `script_state`'s context
++// is detached (`PerContextData()` is null), returns a newly created function
++// without caching it; this is a minor intentional deviation from the standard
++// to avoid retaining V8 objects in detached contexts.
++ScriptValue GetCachedSizeFunction(ScriptState* script_state,
++                                  QueuingStrategySizeFunctionType type,
+                                   SizeFunctionFactory factory);
+ 
+ }  // namespace blink
+diff --git a/third_party/blink/web_tests/external/wpt/streams/queuing-strategies-size-function-navigation.window.js b/third_party/blink/web_tests/external/wpt/streams/queuing-strategies-size-function-navigation.window.js
+new file mode 100644
+index 000000000..677e5cc13
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/streams/queuing-strategies-size-function-navigation.window.js
+@@ -0,0 +1,200 @@
++// META: script=/common/get-host-info.sub.js
++// META: timeout=long
++
++'use strict';
++
++const {
++  ORIGIN,
++  ORIGINAL_HOST,
++  PORT2,
++  REMOTE_ORIGIN,
++  HTTP_NOTSAMESITE_ORIGIN,
++  HTTPS_NOTSAMESITE_ORIGIN,
++} = get_host_info();
++
++const SAME_HOST_DIFFERENT_PORT_ORIGIN =
++    `${location.protocol}//${ORIGINAL_HOST}:${PORT2}`;
++const NOTSAMESITE_ORIGIN = location.protocol === 'https:' ?
++    HTTPS_NOTSAMESITE_ORIGIN :
++    HTTP_NOTSAMESITE_ORIGIN;
++
++const FRAME_PATH = '/streams/resources/queuing-strategy-size-frame.html';
++
++const NAVIGATION_TARGETS = [
++  {id: 'same-origin', label: 'same-origin', origin: ORIGIN},
++  {
++    id: 'same-host-port',
++    label: 'same-host different-port',
++    origin: SAME_HOST_DIFFERENT_PORT_ORIGIN,
++  },
++  {id: 'subdomain', label: 'subdomain', origin: REMOTE_ORIGIN},
++  {id: 'cross-site', label: 'cross-site', origin: NOTSAMESITE_ORIGIN},
++];
++
++function waitForTokenMessage(t, token, expectedStatus) {
++  return new Promise(resolve => {
++    function listener(event) {
++      if (event.data && event.data.token === token &&
++          event.data.status === expectedStatus) {
++        window.removeEventListener('message', listener);
++        resolve(event.data);
++      }
++    }
++    window.addEventListener('message', listener);
++    t.add_cleanup(() => window.removeEventListener('message', listener));
++  });
++}
++
++async function createInitialFrame(t, tokenPrefix) {
++  const iframe = document.createElement('iframe');
++  document.body.appendChild(iframe);
++  t.add_cleanup(() => iframe.remove());
++
++  const initToken = `${tokenPrefix}-init`;
++  const loaded = waitForTokenMessage(t, initToken, 'loaded');
++  iframe.src = `${ORIGIN}${FRAME_PATH}?mode=idle&token=${initToken}`;
++  await loaded;
++  return iframe;
++}
++
++for (const type of ['ByteLengthQueuingStrategy', 'CountQueuingStrategy']) {
++  const expectedSize = chunk =>
++      type === 'ByteLengthQueuingStrategy' ? chunk.byteLength : 1;
++
++  for (const target of NAVIGATION_TARGETS) {
++    promise_test(async t => {
++      const tokenBase = `${type}-${target.id}-cached`;
++      const iframe = await createInitialFrame(t, tokenBase);
++
++      const initialFunctionPrototype = iframe.contentWindow.Function.prototype;
++      const initialFunctionConstructor = iframe.contentWindow.Function;
++      const firstQs = new iframe.contentWindow[type]({highWaterMark: 1});
++      const secondQs = new iframe.contentWindow[type]({highWaterMark: 1});
++
++      const preNavSize = firstQs.size;
++      assert_equals(
++          firstQs.size, preNavSize,
++          'repeated size reads in an attached realm should return the same function');
++      assert_equals(
++          secondQs.size, preNavSize,
++          'instances in the same realm should share the cached size function');
++      assert_equals(
++          Object.getPrototypeOf(preNavSize), initialFunctionPrototype,
++          'pre-navigation size function prototype must match its creation realm');
++      assert_equals(
++          preNavSize.constructor, initialFunctionConstructor,
++          'pre-navigation size function constructor must match its creation realm');
++
++      const navToken = `${tokenBase}-nav`;
++      const cached = waitForTokenMessage(t, navToken, 'cached');
++      iframe.src = `${target.origin}${FRAME_PATH}?type=${
++          type}&mode=cache&token=${navToken}`;
++      const navInfo = await cached;
++      assert_true(
++          navInfo.sameFunctionIdentity,
++          'navigated realm should cache its own size function across instances');
++      assert_true(
++          navInfo.hasRealmFunctionPrototype,
++          'navigated realm size function must use its own Function.prototype');
++      assert_true(
++          navInfo.hasRealmFunctionConstructor,
++          'navigated realm size function must use its own Function constructor');
++
++      // Do not assert `postNavSize === preNavSize` or repeated identity on
++      // the detached realm: implementations may drop per-context caches on
++      // detachment to avoid retaining JS objects from detached realms, as
++      // long as the returned function belongs to the strategy's relevant
++      // realm.
++      const postNavSize = firstQs.size;
++      assert_equals(typeof postNavSize, 'function');
++      assert_equals(postNavSize.name, 'size');
++      assert_equals(
++          Object.getPrototypeOf(postNavSize), initialFunctionPrototype,
++          'size function prototype must match the strategy relevant realm');
++      assert_equals(
++          postNavSize.constructor, initialFunctionConstructor,
++          'size function constructor must match the strategy relevant realm');
++      assert_equals(postNavSize({byteLength: 17}),
++                    expectedSize({byteLength: 17}));
++    }, `${type} size getter preserves relevant realm across ${target.label} navigation after caching`);
++
++    promise_test(
++        async t => {
++          const tokenBase = `${type}-${target.id}-lazy`;
++          const iframe = await createInitialFrame(t, tokenBase);
++
++          const initialFunctionPrototype =
++              iframe.contentWindow.Function.prototype;
++          const initialFunctionConstructor = iframe.contentWindow.Function;
++          const firstQs = new iframe.contentWindow[type]({highWaterMark: 1});
++
++          const navToken = `${tokenBase}-nav`;
++          const cached = waitForTokenMessage(t, navToken, 'cached');
++          iframe.src = `${target.origin}${FRAME_PATH}?type=${
++              type}&mode=cache&token=${navToken}`;
++          const navInfo = await cached;
++          assert_true(
++              navInfo.sameFunctionIdentity,
++              'navigated realm should cache its own size function across instances');
++          assert_true(
++              navInfo.hasRealmFunctionPrototype,
++              'navigated realm size function must use its own Function.prototype');
++          assert_true(
++              navInfo.hasRealmFunctionConstructor,
++              'navigated realm size function must use its own Function constructor');
++
++          const sizeFn = firstQs.size;
++          assert_equals(typeof sizeFn, 'function');
++          assert_equals(sizeFn.name, 'size');
++          assert_equals(
++              Object.getPrototypeOf(sizeFn), initialFunctionPrototype,
++              'size function prototype must match the strategy relevant realm');
++          assert_equals(
++              sizeFn.constructor, initialFunctionConstructor,
++              'size function constructor must match the strategy relevant realm');
++          assert_equals(sizeFn({byteLength: 17}),
++                        expectedSize({byteLength: 17}));
++        },
++        `${type} size getter uses relevant realm when first accessed after ${
++            target.label} navigation`);
++
++    promise_test(
++        async t => {
++          const tokenBase = `${type}-${target.id}-order`;
++          const iframe = await createInitialFrame(t, tokenBase);
++
++          const initialFunctionPrototype =
++              iframe.contentWindow.Function.prototype;
++          const firstQs = new iframe.contentWindow[type]({highWaterMark: 1});
++
++          const navToken = `${tokenBase}-nav`;
++          const ready = waitForTokenMessage(t, navToken, 'ready');
++          iframe.src = `${target.origin}${FRAME_PATH}?type=${
++              type}&mode=defer&token=${navToken}`;
++          await ready;
++
++          const preNavRealmSize = firstQs.size;
++          assert_equals(
++              Object.getPrototypeOf(preNavRealmSize), initialFunctionPrototype,
++              'size function prototype must match the strategy relevant realm');
++
++          const evaluated = waitForTokenMessage(t, navToken, 'evaluated');
++          iframe.contentWindow.postMessage(
++              {token: navToken, command: 'evaluate'}, '*');
++          const reply = await evaluated;
++
++          assert_true(
++              reply.sameFunctionIdentity,
++              'navigated realm should cache a single size function across instances');
++          assert_true(
++              reply.hasRealmFunctionPrototype,
++              'navigated realm size function must use its own Function.prototype');
++          assert_true(
++              reply.hasRealmFunctionConstructor,
++              'navigated realm size function must use its own Function constructor');
++          assert_equals(reply.result, expectedSize({byteLength: 42}));
++        },
++        `${type} size getter in navigated realm is independent of pre-navigation instance (${
++            target.label})`);
++  }
++}
+diff --git a/third_party/blink/web_tests/external/wpt/streams/resources/queuing-strategy-size-frame.html b/third_party/blink/web_tests/external/wpt/streams/resources/queuing-strategy-size-frame.html
+new file mode 100644
+index 000000000..5d41e1b16
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/streams/resources/queuing-strategy-size-frame.html
+@@ -0,0 +1,44 @@
++<!DOCTYPE html>
++<meta charset="utf-8">
++<script>
++'use strict';
++
++const params = new URLSearchParams(location.search);
++const type = params.get('type');
++const mode = params.get('mode');
++const token = params.get('token');
++
++if (mode === 'idle') {
++  parent.postMessage({ token, status: 'loaded' }, '*');
++} else if (mode === 'cache') {
++  const first = new window[type]({ highWaterMark: 1 });
++  const second = new window[type]({ highWaterMark: 1 });
++  const size = first.size;
++  parent.postMessage({
++    token,
++    status: 'cached',
++    sameFunctionIdentity: size === second.size,
++    hasRealmFunctionPrototype: Object.getPrototypeOf(size) === Function.prototype,
++    hasRealmFunctionConstructor: size.constructor === Function,
++  }, '*');
++} else if (mode === 'defer') {
++  window.addEventListener('message', event => {
++    if (!event.data || event.data.token !== token ||
++        event.data.command !== 'evaluate') {
++      return;
++    }
++    const first = new window[type]({ highWaterMark: 1 });
++    const second = new window[type]({ highWaterMark: 1 });
++    const size = first.size;
++    parent.postMessage({
++      token,
++      status: 'evaluated',
++      sameFunctionIdentity: size === second.size,
++      hasRealmFunctionPrototype: Object.getPrototypeOf(size) === Function.prototype,
++      hasRealmFunctionConstructor: size.constructor === Function,
++      result: size({ byteLength: 42 }),
++    }, '*');
++  });
++  parent.postMessage({ token, status: 'ready' }, '*');
++}
++</script>
+-- 
+2.43.0
+
