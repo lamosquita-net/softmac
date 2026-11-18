@@ -3,13 +3,16 @@
 SEGURIDAD-PORTES-26, 18-11-2026, por orden de COORDINACIÓN-49 (decisión de Titín, ~15:15 UTC: en la 3.1.4 entra toda la
 seguridad que aplica a Mac). Lista de partida: G4 de `../../3.1.5/CONTENIDO.md` (con interacción, instalar algo, Nigori,
 DBSC) más 7b99dd29ba (571058818). 0001–0014, SEGURIDAD-PORTES-26; 0015, 0016 y devtools-frontend 0001,
-SEGURIDAD-PORTES-29 (18-11). **Nada compilado: compila LOCAL-19 una vez al final (build 47).**
+SEGURIDAD-PORTES-29 (18-11). **Ampliación** (COORDINACIÓN-49, 18-11, ~15:30 UTC): 0017–0018 (DNR, vistos al portar
+0016) y lo que la rama 8078 llevó tras `3bd3db9df2`, antes del tag .111: V8 .68/.69 (brave-core 0001) y Skia (skia 0001). **Nada compilado: compila LOCAL-19 una vez al final (build 47).**
 
 ## Base y resultado (comprobados)
 
 | Repositorio | Base | Serie | Resultado |
 |---|---|---|---|
-| chromium | árbol `986d591616` (3.1.4 0001–0026 + 3.1.5 0001–0031 sobre `local/313`) | `chromium/` 0001–0016 | árbol **`ff1325f5c1`** (comprobado con `git am` de los 16; 0001–0014 solos: `031ab4cda4`) |
+| chromium | árbol `986d591616` (3.1.4 0001–0026 + 3.1.5 0001–0031 sobre `local/313`) | `chromium/` 0001–0018 | árbol **`ef5cec7033`** (comprobado con `git am` de los 18; hasta 0014: `031ab4cda4`; hasta 0016: `ff1325f5c1`) |
+| brave-core | `15c050d35a` (orden de la 3.1.4 en `../CONTENIDO.md`) | `brave-core/` 0001 | árbol **`d328e2f909`** (`git am`); V8 .66 con todos los `patches/v8`: **`a2d562e4b8`** (antes `fe1194813a`) |
+| Skia | gitlink `third_party/skia` `27c31ca415` (el de `local/313`) | `skia/` 0001 | árbol **`c4c611066c`** (`git apply --cached`) |
 | devtools-frontend | gitlink `third_party/devtools-frontend/src` `904b77f9fc` (el de `local/313`, sin cambios en las series) | `devtools-frontend/` 0001 | árbol **`c70d811144`** (comprobado con `git apply --cached` sobre el gitlink) |
 
 ## Hecho
@@ -38,6 +41,23 @@ solo abre esquemas web salvo `allowPrivileged`; los `href` de `<a>` del árbol D
 (`devtools:`, `chrome:`, `file:`…) dejan de ser enlaces. Limpio; el cambio de `DOMTreeElementWidget.ts` cae en
 `ElementsTreeElement.ts` (nombre de la 156). El resto del *roll* (4 de compilación de cadenas, 576211357) no es seguridad.
 Se aplica en `src/third_party/devtools-frontend/src` como ANGLE: `git am` sobre el gitlink.
+
+### Ampliación: DNR, V8 y Skia (SEGURIDAD-PORTES-29)
+
+| Parche | Original | Bug | Qué | Cómo entra |
+|---|---|---|---|---|
+| chromium 0017 | b878de30c0 | 573367660 | DNR: las cabeceras que `ShouldHideResponseHeader()` oculta a las extensiones cuentan como ausentes al casar condiciones de respuesta | encima de 0016 (upstream va al revés): `url` detrás de `has_host_access`; `request_params.cc` queda idéntico al de upstream tras los dos |
+| chromium 0018 | c06e1d94a2 | 519999855 | DNR: un documento de error no gana `allowAllRequests` por la URL fallida; se limpia la entrada vieja y se conserva la heredada del marco padre | `OnDidFinishNavigation()` entero de upstream tras 22a2af917b (`ruleset_matcher_base.cc` queda idéntico al de upstream); la prueba nueva pasa `has_host_access_for_navigation` |
+| brave-core 0001 | V8 46c1404 ([M156] de 14a5145e4f) | 581561827 | V8: `JumpThreading` no reenvía saltos a través de la construcción o destrucción del marco (desbordamiento de pila) | `patches/v8` nuevos; prueba `regress/wasm/regress-simd-581561827.js` (la de cctest, fuera) |
+| brave-core 0001 | V8 c9afe36 ([M156] de f4563ea807) | 576957750 | V8: `replace` de regexp limpia el relleno tras recortar | se rehace `src-runtime-runtime-regexp.cc.patch`; prueba `regress/regress-576957750.js` |
+| brave-core 0001 | — | — | `kFlyWebCacheEpoch` 34 → **35** | `src-utils-version.cc.patch` |
+| skia 0001 | 79f9ad4 ([M156] de 985c59c538) | 574217654 | Ganesh: el filtrado de imágenes no cae en *mipmaps* que mezclan restos de texturas temporales | limpio; b236589 (solo quita avisos en `tests/ImageFilterTest.cpp`, que Chromium no compila) **no hace falta** |
+
+Origen: la rama 8078 pasó de `3bd3db9df2` a `115e3c17b5` (ls-remote, 18-11 ~16:00 UTC) con dos *rolls*: V8
+15.6.75.67 → .69 (`bd0e1ecfa`; b18f156 es 659b8bf, ya dentro) y Skia `27c31ca415` → `b236589b3e` (`115e3c17b`).
+**`chrome/VERSION` sigue en .110** (orden de COORDINACIÓN-49): si sale el tag .111 antes de compilar, decide ella.
+Los cuatro de V8 y Skia caen en ficheros sin parches de brave-core; los de V8 son *cherry-picks* de la misma rama 15.6,
+con la misma base que la .66 + los nuestros (`git cherry-pick` limpio).
 
 **No aplican en Mac:** 553151406 (39597dfb3d, a9ee282a53, f2e3cb42e0): son de Aura y de Linux (`web_contents_view_aura`,
 `desktop_window_tree_host_linux`); en Mac el arrastre del contenido va por `WebContentsViewMac`.
@@ -68,8 +88,13 @@ Revisado el código de 0015, 0016 y devtools-frontend 0001 contra la 156; 0001�
 - 0016: reindexado de las reglas DNR de las extensiones al primer arranque (cambia `kIndexedRulesetFormatVersion`).
   uBlock Origin Lite y similares deben seguir bloqueando. `indexed_ruleset_format_version_unittest` lleva la suma nueva.
 - devtools-frontend: los enlaces `chrome://` de la barra de precarga siguen abriéndose (`allow-privileged`).
+- 0017: las reglas DNR sobre cabeceras que el navegador oculta a las extensiones dejan de casar (como ya pasaba en webRequest).
+- 0018: un documento de error no queda en la lista de `allowAllRequests`; el padre se busca con
+  `GetParentOrOuterDocument()` (existe en la 156, igual que `IsErrorDocument()` e `IsErrorPage()`).
+- V8 (brave-core 0001): d8/mjsunit en el encargo único de D8-LINUX; época 35.
+- Skia 0001: cambia el camino de dibujo de `SkSpecialImage` en Ganesh (filtros CSS/canvas con escalado).
 
-**Posibles huecos vistos al portar 0016 (no son de G4; consultados a COORDINACIÓN, sin decidir aquí):** b878de30c0
+**Huecos vistos al portar 0016 (entran como 0017 y 0018 por orden de COORDINACIÓN-49):** b878de30c0
 (573367660, DNR ignora cabeceras ocultas al casar condiciones de respuesta), c06e1d94a2 (519999855, DNR: un documento
 de error no puede quedar en la lista de `allowAllRequests`) y ca8d989763 (502040109, cabeceras ocultas en
 `modifyHeaders`). Ninguno está en `3.1.4/` ni en `3.1.5/`.

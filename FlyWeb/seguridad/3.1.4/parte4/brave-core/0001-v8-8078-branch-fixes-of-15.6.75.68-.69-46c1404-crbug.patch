@@ -1,0 +1,372 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-29 <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 15:37:16 +0000
+Subject: [PATCH] v8: 8078 branch fixes of 15.6.75.68/.69 (46c1404 crbug
+ 581561827, c9afe36 crbug 576957750); cache epoch 35
+
+[M156] merges that the 8078 branch rolled after 3bd3db9df2, ahead of the .111
+tag. The V8 gitlink stays at .66; the fixes go in as patches/v8. Notes in
+patches/v8/FLYWEB-SECURITY.md.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2h9y29gKXzQFjqi44F
+---
+ patches/v8/FLYWEB-SECURITY.md                 |  17 +++
+ ...c-compiler-backend-jump-threading.cc.patch |  48 ++++++++
+ ...rc-compiler-backend-jump-threading.h.patch |  13 +++
+ .../src-compiler-turboshaft-pipelines.h.patch |  18 +++
+ ...rboshaft-register-allocation-phase.h.patch |  18 +++
+ .../v8/src-runtime-runtime-regexp.cc.patch    |  14 ++-
+ patches/v8/src-utils-version.cc.patch         |  10 +-
+ ...mjsunit-regress-regress-576957750.js.patch |  17 +++
+ ...gress-wasm-regress-simd-581561827.js.patch | 104 ++++++++++++++++++
+ 9 files changed, 252 insertions(+), 7 deletions(-)
+ create mode 100644 patches/v8/src-compiler-backend-jump-threading.cc.patch
+ create mode 100644 patches/v8/src-compiler-backend-jump-threading.h.patch
+ create mode 100644 patches/v8/src-compiler-turboshaft-pipelines.h.patch
+ create mode 100644 patches/v8/src-compiler-turboshaft-register-allocation-phase.h.patch
+ create mode 100644 patches/v8/test-mjsunit-regress-regress-576957750.js.patch
+ create mode 100644 patches/v8/test-mjsunit-regress-wasm-regress-simd-581561827.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 98c8f9131..cad84b3f5 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,20 @@
++# FlyWeb: 3.1.4, V8 15.6.75.66 + the 8078 branch fixes of 15.6.75.68 and .69
++
++SEGURIDAD-PORTES-29, 18-11-2026 (softmac `FlyWeb/seguridad/3.1.4/parte4/brave-core/0001`). After 3bd3db9df2 the
++8078 branch rolled V8 from 15.6.75.67 to .69 (bd0e1ecfa, ahead of the .111 tag). Of its three merges, b18f156 is
++659b8bf (already here); the other two go in as patches, like the rest. The V8 gitlink stays at .66:
++
++- **46c1404** (581561827, [M156] merge of 14a5145e4f): `JumpThreading::ComputeForwarding` no longer forwards jumps
++  across frame construction or deconstruction (a loop back edge forwarded into a block that builds the frame
++  re-ran the prologue until stack overflow). Touches the Turboshaft register allocation phase too. Test
++  `regress/wasm/regress-simd-581561827.js` (the cctest change stays out).
++- **c9afe36** (576957750, [M156] merge of f4563ea807): regexp `replace` clears the padding after trimming the
++  result string. Test `regress/regress-576957750.js`.
++- `kFlyWebCacheEpoch` 34 -> **35** (optimized code changes).
++
++To check (D8-LINUX): `d8` and mjsunit with and without Maglev, especially the two new tests, `compiler/*`,
++`regexp*` and `wasm/*simd*`.
++
+ # FlyWeb: 3.1.4, V8 15.6.75.66 + 5787048 (branch fix of 15.6.75.67)
+ 
+ SEGURIDAD-PORTES-26, 18-11-2026 (softmac `FlyWeb/seguridad/3.1.5/brave-core/0003`; the `3.1.5/` folder is part 3
+diff --git a/patches/v8/src-compiler-backend-jump-threading.cc.patch b/patches/v8/src-compiler-backend-jump-threading.cc.patch
+new file mode 100644
+index 000000000..00abc6890
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-jump-threading.cc.patch
+@@ -0,0 +1,48 @@
++diff --git a/src/compiler/backend/jump-threading.cc b/src/compiler/backend/jump-threading.cc
++index efd6328c6db82912af1f1cbc8a90787e54cc462e..394b77b551629c1a1b6e3362a487e794847cee1e 100644
++--- a/src/compiler/backend/jump-threading.cc
+++++ b/src/compiler/backend/jump-threading.cc
++@@ -125,8 +125,7 @@ struct GapJumpRecord {
++ 
++ bool JumpThreading::ComputeForwarding(Zone* local_zone,
++                                       ZoneVector<RpoNumber>* result,
++-                                      InstructionSequence* code,
++-                                      bool frame_at_start) {
+++                                      InstructionSequence* code) {
++   ZoneStack<RpoNumber> stack(local_zone);
++   JumpThreadingState state = {false, *result, stack};
++   state.Clear(code->InstructionBlockCount());
++@@ -156,9 +155,13 @@ bool JumpThreading::ComputeForwarding(Zone* local_zone,
++           // can forward to a block with identical gap-moves.
++           if (instr->arch_opcode() == kArchJmp) {
++             TRACE(" jmp");
+++            // Never record or forward a block that constructs or deconstructs a
+++            // frame: skipping it drops the frame transition, and forwarding
+++            // another block into it (e.g. a loop backedge into B0) re-executes
+++            // frame construction.
++             RpoNumber forward_to;
++-            if ((frame_at_start || !(block->must_deconstruct_frame() ||
++-                                     block->must_construct_frame())) &&
+++            if (!(block->must_deconstruct_frame() ||
+++                  block->must_construct_frame()) &&
++                 record.CanForwardGapJump(instr, block->rpo_number(),
++                                          code->InputRpo(instr, 0),
++                                          &forward_to)) {
++@@ -179,13 +182,10 @@ bool JumpThreading::ComputeForwarding(Zone* local_zone,
++         } else if (instr->arch_opcode() == kArchJmp) {
++           // try to forward the jump instruction.
++           TRACE("  jmp\n");
++-          // if this block deconstructs the frame, we can't forward it.
++-          // TODO(mtrofin): we can still forward if we end up building
++-          // the frame at start. So we should move the decision of whether
++-          // to build a frame or not in the register allocator, and trickle it
++-          // here and to the code generator.
++-          if (frame_at_start || !(block->must_deconstruct_frame() ||
++-                                  block->must_construct_frame())) {
+++          // If this block constructs or deconstructs the frame, we can't
+++          // forward it.
+++          if (!(block->must_deconstruct_frame() ||
+++                block->must_construct_frame())) {
++             fw = code->InputRpo(instr, 0);
++           }
++         } else if (instr->IsRet()) {
+diff --git a/patches/v8/src-compiler-backend-jump-threading.h.patch b/patches/v8/src-compiler-backend-jump-threading.h.patch
+new file mode 100644
+index 000000000..ab623bc8f
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-jump-threading.h.patch
+@@ -0,0 +1,13 @@
++diff --git a/src/compiler/backend/jump-threading.h b/src/compiler/backend/jump-threading.h
++index ce9e3949249e74ceceadfa2b73ab96e2f64d1367..755990cafc2421753e5dfe87c0f9e71b1032bac1 100644
++--- a/src/compiler/backend/jump-threading.h
+++++ b/src/compiler/backend/jump-threading.h
++@@ -18,7 +18,7 @@ class V8_EXPORT_PRIVATE JumpThreading {
++   // Compute the forwarding map of basic blocks to their ultimate destination.
++   // Returns {true} if there is at least one block that is forwarded.
++   static bool ComputeForwarding(Zone* local_zone, ZoneVector<RpoNumber>* result,
++-                                InstructionSequence* code, bool frame_at_start);
+++                                InstructionSequence* code);
++ 
++   // Rewrite the instructions to forward jumps and branches.
++   // May also negate some branches.
+diff --git a/patches/v8/src-compiler-turboshaft-pipelines.h.patch b/patches/v8/src-compiler-turboshaft-pipelines.h.patch
+new file mode 100644
+index 000000000..3b58ed252
+--- /dev/null
++++ b/patches/v8/src-compiler-turboshaft-pipelines.h.patch
+@@ -0,0 +1,18 @@
++diff --git a/src/compiler/turboshaft/pipelines.h b/src/compiler/turboshaft/pipelines.h
++index c20139a58fe5fbb84354d2e6280e2bf4c6857c42..c244268b477d63fc685c828f0d859701258f644d 100644
++--- a/src/compiler/turboshaft/pipelines.h
+++++ b/src/compiler/turboshaft/pipelines.h
++@@ -406,12 +406,9 @@ class V8_EXPORT_PRIVATE Pipeline {
++ 
++     RUN_MAYBE_ABORT(FrameElisionPhase);
++ 
++-    // TODO(mtrofin): move this off to the register allocator.
++-    bool generate_frame_at_start =
++-        data_->sequence()->instruction_blocks().front()->must_construct_frame();
++     // Optimimize jumps.
++     if (v8_flags.turbo_jt) {
++-      RUN_MAYBE_ABORT(JumpThreadingPhase, generate_frame_at_start);
+++      RUN_MAYBE_ABORT(JumpThreadingPhase);
++     }
++ 
++     EndPhaseKind();
+diff --git a/patches/v8/src-compiler-turboshaft-register-allocation-phase.h.patch b/patches/v8/src-compiler-turboshaft-register-allocation-phase.h.patch
+new file mode 100644
+index 000000000..b58ec1eb0
+--- /dev/null
++++ b/patches/v8/src-compiler-turboshaft-register-allocation-phase.h.patch
+@@ -0,0 +1,18 @@
++diff --git a/src/compiler/turboshaft/register-allocation-phase.h b/src/compiler/turboshaft/register-allocation-phase.h
++index d81b7d563dee94057007412d8fd33758ae01e0a7..2e37f79e15a0474fe7c3ecfaed1d0a60d4f6363c 100644
++--- a/src/compiler/turboshaft/register-allocation-phase.h
+++++ b/src/compiler/turboshaft/register-allocation-phase.h
++@@ -200,10 +200,10 @@ struct JumpThreadingPhase {
++   DECL_TURBOSHAFT_PHASE_CONSTANTS_WITH_LEGACY_NAME(JumpThreading)
++   static constexpr bool kOutputIsTraceableGraph = false;
++ 
++-  void Run(PipelineData* data, Zone* temp_zone, bool frame_at_start) {
+++  void Run(PipelineData* data, Zone* temp_zone) {
++     ZoneVector<RpoNumber> result(temp_zone);
++-    if (JumpThreading::ComputeForwarding(temp_zone, &result, data->sequence(),
++-                                         frame_at_start)) {
+++    if (JumpThreading::ComputeForwarding(temp_zone, &result,
+++                                         data->sequence())) {
++       JumpThreading::ApplyForwarding(temp_zone, result, data->sequence());
++     }
++   }
+diff --git a/patches/v8/src-runtime-runtime-regexp.cc.patch b/patches/v8/src-runtime-runtime-regexp.cc.patch
+index 097fa1828..8d43b08e7 100644
+--- a/patches/v8/src-runtime-runtime-regexp.cc.patch
++++ b/patches/v8/src-runtime-runtime-regexp.cc.patch
+@@ -1,8 +1,16 @@
+ diff --git a/src/runtime/runtime-regexp.cc b/src/runtime/runtime-regexp.cc
+-index 2a1ba0758cba214b408468a5159871fb98df3ca6..ec17453cda41a35da6e906bed89630c201bcf5f6 100644
++index 2a1ba0758cba214b408468a5159871fb98df3ca6..41060a34fa9aed3c4bba4c2c253bdf5fb8bf1ba5 100644
+ --- a/src/runtime/runtime-regexp.cc
+ +++ b/src/runtime/runtime-regexp.cc
+-@@ -1308,6 +1308,21 @@ DirectHandle<FixedArray> CopyMatches(Isolate* isolate,
++@@ -832,6 +832,7 @@ StringReplaceGlobalRegExpWithEmptyString(
++   int delta = allocated_string_size - string_size;
++ 
++   answer->set_length(position);
+++  answer->ClearPadding();
++   if (delta == 0) return *answer;
++ 
++   Address end_of_string = answer->address() + string_size;
++@@ -1308,6 +1309,21 @@ DirectHandle<FixedArray> CopyMatches(Isolate* isolate,
+    return copy;
+  }
+  
+@@ -24,7 +32,7 @@ index 2a1ba0758cba214b408468a5159871fb98df3ca6..ec17453cda41a35da6e906bed89630c2
+  // Only called from Runtime_RegExpExecMultiple so it doesn't need to maintain
+  // separate last match info.  See comment on that function.
+  template <bool has_capture>
+-@@ -1349,23 +1364,30 @@ static Tagged<UnionOf<ExceptionHole, Null, FixedArray>> SearchRegExpMultiple(
++@@ -1349,23 +1365,30 @@ static Tagged<UnionOf<ExceptionHole, Null, FixedArray>> SearchRegExpMultiple(
+          isolate->heap(), *subject, regexp_data->wrapper(), &last_match_cache,
+          regexp::ResultsCache::REGEXP_MULTIPLE_INDICES);
+      if (IsFixedArray(cached_answer)) {
+diff --git a/patches/v8/src-utils-version.cc.patch b/patches/v8/src-utils-version.cc.patch
+index 4ece0e06a..40b7e154b 100644
+--- a/patches/v8/src-utils-version.cc.patch
++++ b/patches/v8/src-utils-version.cc.patch
+@@ -1,8 +1,8 @@
+ diff --git a/src/utils/version.cc b/src/utils/version.cc
+-index 550db661144947dbc31b5eb62c0da7ea2e6e1139..e30a478472b5d6b6bf440a5b18b3a17f538dbd05 100644
++index 550db661144947dbc31b5eb62c0da7ea2e6e1139..bfd8b38cef2406277aa422e1c4cb0dce9896de83 100644
+ --- a/src/utils/version.cc
+ +++ b/src/utils/version.cc
+-@@ -27,9 +27,47 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
++@@ -27,9 +27,49 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
+  const char* Version::soname_ = SONAME;
+  const char* Version::version_string_ = V8_VERSION_STRING;
+  
+@@ -41,8 +41,10 @@ index 550db661144947dbc31b5eb62c0da7ea2e6e1139..e30a478472b5d6b6bf440a5b18b3a17f
+ +// FlyWeb 3.1.4 (seg/3.1.4: V8 15.6.75.66 + 659b8bf, regexp code generation
+ +// errors). 33 = three Chrome 158 Mediums (19048d3, 33ab43a, 65afc9f). 34 =
+ +// FlyWeb 3.1.4 with 5787048 (JSCallReducer::Finalize revisits in-place
+-+// reductions, which changes optimized code).
+-+constexpr int kFlyWebCacheEpoch = 34;
+++// reductions, which changes optimized code). 35 = FlyWeb 3.1.4 with the
+++// 8078 branch V8 15.6.75.68/.69 fixes 46c1404 (no jump threading across frame
+++// transitions, which changes optimized code) and c9afe36 (regexp replace).
+++constexpr int kFlyWebCacheEpoch = 35;
+ +
+  uint32_t Version::Hash() {
+    base::Hasher hasher;
+diff --git a/patches/v8/test-mjsunit-regress-regress-576957750.js.patch b/patches/v8/test-mjsunit-regress-regress-576957750.js.patch
+new file mode 100644
+index 000000000..e0971a3e1
+--- /dev/null
++++ b/patches/v8/test-mjsunit-regress-regress-576957750.js.patch
+@@ -0,0 +1,17 @@
++diff --git a/test/mjsunit/regress/regress-576957750.js b/test/mjsunit/regress/regress-576957750.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..178c066aa7adfe0f254d7209db2890e4664e53f3
++--- /dev/null
+++++ b/test/mjsunit/regress/regress-576957750.js
++@@ -0,0 +1,11 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++let re = /\d/g;
+++const replacer = { toString() { re.lastIndex = 0; return ""; } };
+++function foo(subject) {
+++  re.lastIndex = -1;
+++  return subject.replace(re, replacer);
+++}
+++assertEquals('abcdefg', foo('abcdefg1234567'));
+diff --git a/patches/v8/test-mjsunit-regress-wasm-regress-simd-581561827.js.patch b/patches/v8/test-mjsunit-regress-wasm-regress-simd-581561827.js.patch
+new file mode 100644
+index 000000000..5b39816da
+--- /dev/null
++++ b/patches/v8/test-mjsunit-regress-wasm-regress-simd-581561827.js.patch
+@@ -0,0 +1,104 @@
++diff --git a/test/mjsunit/regress/wasm/regress-simd-581561827.js b/test/mjsunit/regress/wasm/regress-simd-581561827.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..8ab2b26eb9587dd2bea2ee1b570af656972d6a95
++--- /dev/null
+++++ b/test/mjsunit/regress/wasm/regress-simd-581561827.js
++@@ -0,0 +1,98 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax --no-debug-code
+++
+++// Regression test for b/581561827: JumpThreading must not forward a
+++// gap-jump block to the function entry block (B0) when B0 constructs a frame,
+++// as branching back to B0 re-executes AssembleConstructFrame() and corrupts
+++// the stack frame.
+++
+++d8.file.execute('test/mjsunit/wasm/wasm-module-builder.js');
+++
+++const builder = new WasmModuleBuilder();
+++const id_mask = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+++
+++const g = builder.addGlobal(kWasmI32, true, false);
+++const sig_index = builder.addType(makeSig([kWasmS128, kWasmS128], [kWasmI32]));
+++
+++const leaf = builder.addFunction('leaf', sig_index)
+++  .addLocals(kWasmS128, 2)  // local 2 = x, local 3 = tmp
+++  .addBody([
+++    // Entry block B0: leaf elides kFunctionEntry stack check, so B0 contains
+++    // only a ParallelMove (vmovapd xmm0, xmm2) + kArchJmp to the loop header,
+++    // while FrameElider sets B0->must_construct_frame() due to kLoop check.
+++    kExprLocalGet, 1,
+++    kExprLocalGet, 0,
+++    ...SimdInstr(kExprI8x16Shuffle), ...id_mask,
+++    kExprLocalSet, 2,
+++
+++    kExprBlock, kWasmI32,
+++      kExprLoop, kWasmVoid,
+++        kExprGlobalGet, g.index,
+++        kExprI32Const, 0,
+++        kExprI32LeS,
+++        kExprIf, kWasmVoid,
+++          kExprLocalGet, 2,
+++          ...SimdInstr(kExprI32x4ExtractLane), 0,
+++          kExprBr, 2,
+++        kExprEnd,
+++
+++        // Ensure param 1 (b) interferes with loop phi x.
+++        kExprLocalGet, 2,
+++        kExprLocalGet, 1,
+++        ...SimdInstr(kExprI32x4Add),
+++        kExprLocalSet, 3,
+++
+++        kExprGlobalGet, g.index,
+++        kExprI32Const, 1,
+++        kExprI32Sub,
+++        kExprGlobalSet, g.index,
+++
+++        // Two backedges converging at the loop-merge block allow
+++        // MoveOptimizer::OptimizeMerge to bail out at the loop header and then
+++        // hoist the shared gap move into the merge block, leaving B0 and the
+++        // loop backedge with identical gap moves targeting the loop header.
+++        kExprGlobalGet, g.index,
+++        kExprI32Const, 1,
+++        kExprI32And,
+++        kExprIf, kWasmVoid,
+++          kExprLocalGet, 1,
+++          kExprLocalGet, 3,
+++          ...SimdInstr(kExprI8x16Shuffle), ...id_mask,
+++          kExprLocalSet, 2,
+++          kExprBr, 1,
+++        kExprElse,
+++          kExprLocalGet, 1,
+++          kExprLocalGet, 3,
+++          kExprLocalGet, 0,
+++          ...SimdInstr(kExprI32x4Add),
+++          ...SimdInstr(kExprI8x16Shuffle), ...id_mask,
+++          kExprLocalSet, 2,
+++          kExprBr, 1,
+++        kExprEnd,
+++        kExprUnreachable,
+++      kExprEnd,
+++      kExprI32Const, 0,
+++    kExprEnd,
+++  ])
+++  .exportFunc();
+++
+++const table = builder.addTable(kWasmAnyFunc, 1, 1);
+++builder.addActiveElementSegment(table.index, wasmI32Const(0), [leaf.index]);
+++
+++builder.addFunction('main', makeSig([kWasmI32, kWasmI32], [kWasmI32]))
+++  .addBody([
+++    kExprLocalGet, 0,
+++    kExprGlobalSet, g.index,
+++    kExprI32Const, 7, ...SimdInstr(kExprI32x4Splat),
+++    kExprI32Const, 11, ...SimdInstr(kExprI32x4Splat),
+++    kExprLocalGet, 1,
+++    kExprCallIndirect, sig_index, table.index,
+++  ])
+++  .exportFunc();
+++
+++const instance = builder.instantiate();
+++%WasmTierUpFunction(instance.exports.leaf);
+++assertEquals(11, instance.exports.main(100, 0));
+-- 
+2.43.0
+
