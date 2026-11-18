@@ -1,3 +1,4 @@
+c4bfab49f312c5885de1d739e6f74b9a4868671a3dc2e4d8127e822d035b2076  brave-core/0001-v8-8078-branch-fixes-of-15.6.75.68-.69-46c1404-crbug.patch
 fc3add95ecddae0b25ddf583ee0995091e8e00e3a67ea0fb31238120731a58b7  chromium/0001-Autofill-Clamp-coordinates-to-all-ancestor-RenderWid.patch
 f3cdf61b0546da72685539a66c6c5cc0a3db75373a2693befb9029626392b70a  chromium/0002-Hide-stale-datalist-popup-when-active-field-or-sessi.patch
 d3b3c70f9352dd44b3bfd566901e1f3b9d5f100e8229603a76674e23ba545213  chromium/0003-Refresh-suggestions-directly-in-BatchDataListOptionC.patch
@@ -14,4 +15,7 @@ d3b3c70f9352dd44b3bfd566901e1f3b9d5f100e8229603a76674e23ba545213  chromium/0003-
 5a486d8c17c142a8fa996bbadae1a008853f09a58356b526d258809d0e823c02  chromium/0014-PWA-Prevent-cross-app-LaunchParams-leak-and-app_id-d.patch
 e64d0d7c18de3076d9849dc18b14bafbe14ece0d76eed58d5c2af013c41f3d67  chromium/0015-Key-media-UrlIndex-by-requesting-SecurityOrigin.patch
 025c860c3828a3881c4524274e0853b0e08e4975b74679053b6e5a91a9165464  chromium/0016-DNR-Require-host-permissions-for-response-header-val.patch
+c60a3628cd66a197e544ca09119f6163af424832d3eac57d0e851fc54ea0ff8a  chromium/0017-DNR-Ignore-hidden-headers-when-matching-response-hea.patch
+bac2520fe7bfd6b579ea44b17d73e4eb2bb0cc1ae9baed8345143e06eab51a14  chromium/0018-Extensions-Disallow-error-pages-from-allowlisting-DN.patch
 f226b59a5159b80e167f2ed1eded1f3babd422df0a3a9581cdac77649be44d8c  devtools-frontend/0001-ui-Only-open-privileged-URLs-in-new-tabs-when-explic.patch
+17772327b65e1cf534f1261a2ee113c65970b98c7d77b5115911fb0296fca3f4  skia/0001-M156-ganesh-Fix-image-filtering-mipmap-bug.patch
