@@ -1,5 +1,11 @@
 # FlyWeb 3.1.5: contenido (partes 1 y 2)
 
+> **Esta carpeta es la parte 3 de la 3.1.4: no hay versión 3.1.5** (Titín, 18-11; DIRECTIVAS, #1061; COORDINACIÓN-47).
+> Los parches se quedan con estas rutas y nombres (LOCAL-19 ya compila con ellas). **`brave-core/0002`
+> (`flyweb_version` 3.1.4 → 3.1.5) NO se aplica**: la versión sigue en 3.1.4. Sí se aplican `chromium/` 0001–0027,
+> `webrtc/` 0001–0005 y `brave-core/0001` (V8, época 33). Orden completo y árboles finales, en
+> [`../3.1.4/CONTENIDO.md`](../3.1.4/CONTENIDO.md), «Orden de aplicación completo».
+
 SEGURIDAD-PORTES-25, 18-11-2026, por orden de COORDINACIÓN-47 (18-11 ~10:06): primero G3a de
 [`PROPUESTA-MEDIOS.md`](PROPUESTA-MEDIOS.md), los [M156] de la 8078 posteriores a la .110, los dos medios de Media de
 la 157 y el arreglo de Media de la 158 encima de fb2af07952; luego G3b; G4 al final (solo lo alcanzable sin

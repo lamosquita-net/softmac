@@ -1,10 +1,25 @@
-# FlyWeb 3.1.4: contenido (partes 1 y 2)
+# FlyWeb 3.1.4: contenido (partes 1, 2 y 3)
 
 SEGURIDAD-PORTES-24, 18-11-2026. Versión **solo de seguridad**: los Altos de Chrome 158 que no están en la 3.1.3.
 Inventario y criterios en [`INVENTARIO.md`](INVENTARIO.md). Decisión de COORDINACIÓN-46 (18-11): la 3.1.4 lleva
 A + B + E (y D si se confirma); los 82 medios no entran (triaje aparte para la 3.1.5 cuando A + B estén entregados).
 **Nada compilado por mí.** **Parte 1 = A completo + B1–B4, B7 y B8** (SEGURIDAD-PORTES-24). **Parte 2 = B5, B6, D y E**
 (SEGURIDAD-PORTES-25, 18-11; abajo, desde «Parte 2»). Con las dos, A + B + E completos; D no aplica.
+
+> **La 3.1.4 lleva también los medios** (Titín, 18-11; DIRECTIVAS, #1061): la carpeta [`../3.1.5/`](../3.1.5/CONTENIDO.md)
+> es su **parte 3**; no hay versión 3.1.5. Rutas y nombres de parche sin cambios.
+
+## Orden de aplicación completo (3.1.4 = partes 1, 2 y 3)
+
+| Repositorio | Base | Se aplica, en este orden | Árbol final |
+|---|---|---|---|
+| chromium | `local/313` `7ccbc27cf7` | `3.1.4/chromium/` 0001–0026 → `3.1.5/chromium/` 0001–0027 | **`2aa2917c76`** (comprobado con `git am` de las 53) |
+| WebRTC | gitlink `third_party/webrtc` `19576e3787` | `3.1.5/webrtc/` 0001–0005 | **`8ee111cf22`** |
+| ANGLE | `bc2ebdd211` | `3.1.4/angle/` 0001–0003 | `db885a866b` |
+| brave-core | `seg/3.1.4` `d91632790084` (= `3.1.4/brave-core` 0001–0002) | `3.1.4/brave-core/` 0003 → `3.1.5/brave-core/` **0001** (V8 19048d3, 33ab43a, 65afc9f; época 33). **`3.1.5/brave-core/0002` no** | **`5d7362f7a4`** (comprobado con `git am`; `flyweb_version` 3.1.4, `kFlyWebCacheEpoch` 33) |
+
+V8 (15.6.75.66 con los `patches/v8`), Dawn, FFmpeg, Skia y PDFium: sin más cambios que los de cada parte. Los d8/mjsunit
+de brave-core `3.1.4/0002` y `3.1.5/0001` siguen pendientes de D8-LINUX.
 
 ## Base y resultado (comprobados)
 
