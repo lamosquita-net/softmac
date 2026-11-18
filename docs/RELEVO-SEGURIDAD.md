@@ -1050,3 +1050,32 @@ entra hasta que llegue su cambio de Blink) y un *reland* de 605619b342.
 - `local/314` no es el árbol de la serie: lleva la fijación de ANGLE y WebRTC (`DEPS` y dos gitlinks) y los parches
   sin las pruebas arregladas de #1081. Para LOCAL hace falta la diferencia como parche aparte (`integracion/chromium/0001`).
 - Los gitlinks de ANGLE y WebRTC de `local/314` son commits que solo existen en la 7,1: no se pueden leer desde la nube.
+
+**Después (18-11, hasta las 22:55 UTC; relevo al 47 % de contexto):**
+- #1083 (integración), #1084 (APTO de `adapt/` 0001–0002 de LOCAL-19: `local/314-adapt` `aaa7d7508d`, `local/3.1.4-adapt`
+  `e660929ac9`), #1086 (D8-LINUX en **verde**, `3.1.4/mjsunit-final.md`), #1088 (`integracion/chromium/0002` =
+  5028a2f6a3) y **#1089** (0003 = 5328af27d7, 0004 = aa4c9495f7; árbol final sobre `local/314-adapt`: **`e7162cd585`**;
+  pendiente de fusionar al escribir esto).
+- **Decisión de Titín (~21:25 UTC):** entra en la 3.1.4 todo lo que llegue a la rama 8078 antes de publicar, aunque haya
+  que recompilar. Cada arreglo de seguridad que aplique a Mac va como `integracion/chromium/000N` (sigue el 0005), con
+  APTO, PR [seguridad] y aviso a COORDINACIÓN-49 con número y árbol. **El tag .111 se avisa enseguida**: el cambio de
+  `chrome/VERSION` lo deciden COORDINACIÓN y Titín.
+
+**Para el relevo (vigilancia hasta que PUBLICACIÓN publique):**
+- `branch-heads/8078` vista por última vez en **`6023ff5932`** (22:47 UTC), sin tag .111. V8 15.6 en la .71
+  (`a97fec97ff`; 229a53b no entra hasta que llegue su cambio de Blink, bug 574749469). 605619b342 sin *reland*.
+- Cómo mirar sin bajar nada grande: `git ls-remote` de chromium y V8; el log con
+  `curl -sS ".../chromium/src/+log/<viejo>..<nuevo>?format=JSON&n=100" | sed 1d`; cada commit con `+/<sha>?format=JSON`
+  (autor, mensaje, ficheros) y `+/<sha>%5E%21/?format=TEXT` (diff en base64). Casi todo lo que entra son pruebas
+  (🌺 *Disable/Mark flaky*): solo cuentan los arreglos de código.
+- Para montar el 0005: clon parcial como en §17/§19, rama `fork/local/314-adapt` + `integracion/chromium/0002–0004`
+  con `git am`; añadir las rutas del parche a `.git/info/sparse-checkout` y `git sparse-checkout reapply`; `git apply`
+  y commit con autor y mensaje de upstream (sacados del JSON).
+
+**Trampas nuevas:**
+- **En el clon de chromium, nunca `GIT_INDEX_FILE=… git read-tree` + `git write-tree`**: `write-tree` comprueba todos los
+  objetos y se pone a bajar todos los blobs de Chromium. Para comprobar árboles, `git am` en el *checkout* parcial.
+  (En V8 sí sirve: es pequeño.) Lo mismo con `git grep` sobre una rama: baja blobs; mejor `git show <rama>:<fichero>`.
+- La serie lleva más endurecimiento que la 8078 en algunos ficheros (p. ej. `web_page_popup_impl.cc`): un arreglo
+  nuevo de la rama puede chocar solo en el contexto o en los `#include` de las pruebas. `git apply --reject` y fundir.
+- `gitiles +log …?format=JSON` empieza con `)]}'` en su propia línea: quitarla con `sed 1d`, no con `tail -c`.
