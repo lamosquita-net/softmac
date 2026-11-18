@@ -110,6 +110,10 @@ Todos con `git apply --cached` sobre la base indicada, sin `-3`.
 nuevos (46c1404, c9afe36, 42d78d0f3d, b1457bd47a, 0b3bd2b, 336a6b3, fb3bcc3, 0ac2b27, fdbb7b1) y la época 37, sobre
 `seg/3.1.4-integracion`. **Si sale rojo, se quita el parche de V8 que falle y se recompila** (FS.47).
 
+**Resultado: VERDE** (D8-LINUX-5, 18-11; [`mjsunit-final.md`](mjsunit-final.md)): mjsunit 9198/9200 con y sin Maglev
+(las 2 de siempre), las 5 nuevas 5/5, los grupos del encargo 2814/2814 y la suite `inspector` 454/454; sin fallos
+nuevos. No se quita ningún parche.
+
 ## Veredicto (regla 17): **APTO**, adaptaciones `adapt/` 0001–0002 (LOCAL-19)
 
 Revisadas contra la 156 (mojom `Directory` de `local/313`; reglas de mensajes y `.grd` de brave-core). Ninguna quita
@@ -134,7 +138,7 @@ Las partes 1–6 tienen cada una su APTO; aquí se revisa lo que solo aparece al
 - **V8, época 37:** al arrancar se descarta la caché de código de la 3.1.3 (época 34 en la build 46). Es lo esperado.
 - **fdbb7b1:** cambia el orden en que se recorren las propiedades de literales normalizados; el *feedback* de
   `ElementsKind` queda en su sitio. Sin efecto visible; lo cubre D8-LINUX.
-- **Lo pendiente de cada parte sigue igual:** el verde de D8-LINUX de este encargo, el pidinfo del 0024 en la 6,1 y
+- **Lo pendiente de cada parte sigue igual:** el pidinfo del 0024 en la 6,1 y
   las pruebas de riesgo de los CONTENIDO de las partes 4, 5 y 6.
 
 ## Orden de aplicación de las partes 1, 2 y 3 (historia; ya no vale para compilar)
