@@ -1,0 +1,276 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Maksim Sisov <msisov@igalia.com>
+Date: Tue, 6 Oct 2026 22:37:24 -0700
+Subject: [PATCH 31/48] Reland "extensions: Absorb the mime_types_handler
+ warning into all hosts"
+
+This is a reland of commit 704e0e99130ff84afaa01ea493a6371e5322a2d1
+
+Original change's description:
+> extensions: Absorb the mime_types_handler warning into all hosts
+>
+> An extension that already has host permissions for every site updates
+> to a version that adds the mime_types_handler manifest key. Chrome
+> disables it until the user re-approves, and the install prompt and
+> chrome://management each show a separate "Read and display PDF files"
+> line beside the all-sites warning. The all-hosts warning rule does not
+> cover the MIME handler permission.
+>
+> Fix by adding the permission to that rule.
+>
+> Test: unit_tests --gtest_filter='PermissionMessageCombinationsUnittest.MimeTypesHandler*:PermissionsTest.IsPrivilegeIncrease:ExtensionServiceTest.MimeTypesHandler*'
+> Bug: 553138801
+> Change-Id: Id31070f1a762639ddae5b4bdf7f9cd38aa26f822
+>
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8399134
+> Reviewed-by: Devlin Cronin <rdevlin.cronin@chromium.org>
+> Commit-Queue: Maksim Sisov <msisov@igalia.com>
+> Cr-Commit-Position: refs/heads/main@{#1712058}
+
+Bug: 553138801
+Change-Id: Ided0743ab105c5c849999cd7b333abe48bb52865
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8525586
+Commit-Queue: Tsuyoshi Horo <horo@chromium.org>
+Reviewed-by: Norge Vizcay <vizcay@google.com>
+Reviewed-by: Thomas Lukaszewicz <tluk@chromium.org>
+Reviewed-by: Tsuyoshi Horo <horo@chromium.org>
+Commit-Queue: Maksim Sisov <msisov@igalia.com>
+Owners-Override: Tsuyoshi Horo <horo@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1713085}
+(cherry picked from commit ba106c4d3b01e96edf3d5db151a12ff324d670a2)
+---
+ .../extensions/extension_service_unittest.cc  | 66 ++++++++++++++-----
+ ...ermission_message_combinations_unittest.cc | 13 +++-
+ .../chrome_permission_message_rules.cc        |  5 +-
+ .../permissions/permission_set_unittest.cc    |  1 +
+ .../mimehandler2_new.json                     |  9 +++
+ .../mimehandler2_old.json                     |  6 ++
+ .../manifest.json                             | 11 ++++
+ .../mime_types_handler_one_host/manifest.json | 11 ++++
+ 8 files changed, 102 insertions(+), 20 deletions(-)
+ create mode 100644 chrome/test/data/extensions/allow_silent_upgrade/mimehandler2_new.json
+ create mode 100644 chrome/test/data/extensions/allow_silent_upgrade/mimehandler2_old.json
+ create mode 100644 chrome/test/data/extensions/permissions/mime_types_handler_all_hosts/manifest.json
+ create mode 100644 chrome/test/data/extensions/permissions/mime_types_handler_one_host/manifest.json
+
+diff --git a/chrome/browser/extensions/extension_service_unittest.cc b/chrome/browser/extensions/extension_service_unittest.cc
+index 8137ad0f0f..3a4272114e 100644
+--- a/chrome/browser/extensions/extension_service_unittest.cc
++++ b/chrome/browser/extensions/extension_service_unittest.cc
+@@ -1892,34 +1892,64 @@ TEST_F(ExtensionServiceTest, ReenableWithAllPermissionsGrantedOnStartup) {
+ 
+ // An extension installed with the mime_types_handler warning should stay
+ // enabled after a restart. An extension installed before the warning existed
+-// should be disabled at startup until the user approves the permission.
++// should be disabled at startup until the user approves the permission. One
++// already allowed on all sites is not expected to be disabled, because that
++// approval covers the MIME handler.
+ TEST_F(ExtensionServiceTest,
+        MimeTypesHandlerInstalledBeforeWarningRepromptsOnStartup) {
+   InitializeEmptyExtensionService();
+-  const base::FilePath path =
+-      data_dir().AppendASCII("permissions").AppendASCII("mime_types_handler");
+ 
+-  const Extension* extension = PackAndInstallCRX(path, INSTALL_NEW);
+-  const std::string id = extension->id();
++  struct TestCase {
++    const char* extension_dir;
++    bool expect_reprompt;
++    std::string id;
++  };
++  auto test_cases = std::to_array<TestCase>({
++      {"mime_types_handler", true},
++      {"mime_types_handler_one_host", true},
++      {"mime_types_handler_all_hosts", false},
++  });
+ 
+-  EXPECT_EQ(0u, GetErrors().size());
+-  ASSERT_TRUE(registry()->enabled_extensions().Contains(id));
++  for (TestCase& test_case : test_cases) {
++    SCOPED_TRACE(test_case.extension_dir);
++    const Extension* extension =
++        PackAndInstallCRX(data_dir()
++                              .AppendASCII("permissions")
++                              .AppendASCII(test_case.extension_dir),
++                          INSTALL_NEW);
++    ASSERT_TRUE(extension);
++    test_case.id = extension->id();
++  }
+ 
+-  // The permission granted at install should still be granted after a restart.
+   service()->ReloadExtensionsForTest();
+-  ASSERT_TRUE(registry()->enabled_extensions().Contains(id));
+ 
+-  // Make the extension look as if it was installed before the permission
+-  // existed. The manifest requests only the MIME handler permission, so
+-  // clearing all granted permissions clears just that one.
+-  std::unique_ptr<PermissionSet> granted = prefs()->GetGrantedPermissions(id);
+-  ASSERT_FALSE(granted->manifest_permissions().empty());
+-  prefs()->RemoveGrantedPermissions(id, *granted);
++  for (const TestCase& test_case : test_cases) {
++    SCOPED_TRACE(test_case.extension_dir);
++    ASSERT_TRUE(registry()->enabled_extensions().Contains(test_case.id));
++
++    // Revoke the MIME handler permission but keep the approved hosts, as for
++    // an extension installed before the permission existed. Without the hosts,
++    // the <all_urls> case would ask again for them too.
++    std::unique_ptr<PermissionSet> granted =
++        prefs()->GetGrantedPermissions(test_case.id);
++    ASSERT_FALSE(granted->manifest_permissions().empty());
++    PermissionSet mime_handler_permission_only(
++        APIPermissionSet(), granted->manifest_permissions().Clone(),
++        URLPatternSet(), URLPatternSet());
++    prefs()->RemoveGrantedPermissions(test_case.id,
++                                      mime_handler_permission_only);
++  }
+ 
+   service()->ReloadExtensionsForTest();
+-  EXPECT_TRUE(registry()->disabled_extensions().Contains(id));
+-  EXPECT_TRUE(prefs()->HasDisableReason(
+-      id, disable_reason::DISABLE_PERMISSIONS_INCREASE));
++
++  for (const TestCase& test_case : test_cases) {
++    SCOPED_TRACE(test_case.extension_dir);
++    EXPECT_EQ(test_case.expect_reprompt,
++              registry()->disabled_extensions().Contains(test_case.id));
++    EXPECT_EQ(test_case.expect_reprompt,
++              prefs()->HasDisableReason(
++                  test_case.id, disable_reason::DISABLE_PERMISSIONS_INCREASE));
++  }
+ }
+ 
+ TEST_F(ExtensionServiceTest,
+diff --git a/chrome/browser/extensions/permission_message_combinations_unittest.cc b/chrome/browser/extensions/permission_message_combinations_unittest.cc
+index af807a2afd..1490054ce3 100644
+--- a/chrome/browser/extensions/permission_message_combinations_unittest.cc
++++ b/chrome/browser/extensions/permission_message_combinations_unittest.cc
+@@ -1294,9 +1294,11 @@ TEST_F(PermissionMessageCombinationsUnittest, NewTabPagePermissionMessages) {
+       "Replace the page you see when opening a new tab"));
+ }
+ 
++// Only access to all sites hides the MIME handler warning.
+ TEST_F(PermissionMessageCombinationsUnittest,
+        MimeTypesHandlerPermissionMessages) {
+   static constexpr char kManifest[] = R"({
++    "permissions": [%s],
+     "mime_types_handler": {
+       "application/pdf": {
+         "handler_url": "viewer.html"
+@@ -1304,8 +1306,17 @@ TEST_F(PermissionMessageCombinationsUnittest,
+     }
+   })";
+ 
+-  CreateAndInstall(kManifest);
++  CreateAndInstall(base::StringPrintf(kManifest, ""));
+   ASSERT_TRUE(CheckManifestProducesPermissions("Read and display PDF files"));
++
++  CreateAndInstall(base::StringPrintf(kManifest, "\"<all_urls>\""));
++  ASSERT_TRUE(CheckManifestProducesPermissions(
++      "Read and change all your data on all websites"));
++
++  CreateAndInstall(base::StringPrintf(kManifest, "\"https://example.com/*\""));
++  ASSERT_TRUE(CheckManifestProducesPermissions(
++      "Read and change your data on example.com",
++      "Read and display PDF files"));
+ }
+ 
+ TEST_F(PermissionMessageCombinationsUnittest,
+diff --git a/chrome/common/extensions/permissions/chrome_permission_message_rules.cc b/chrome/common/extensions/permissions/chrome_permission_message_rules.cc
+index d7e68dd2c0..41f5a9a934 100644
+--- a/chrome/common/extensions/permissions/chrome_permission_message_rules.cc
++++ b/chrome/common/extensions/permissions/chrome_permission_message_rules.cc
+@@ -384,6 +384,8 @@ ChromePermissionMessageRule::GetAllRules() {
+       // blocking parts of pages, which is a subset of what the "<all_urls>"
+       // access allows. Therefore we display only the "<all_urls>" warning
+       // message if both permissions are required.
++      // Hiding the MIME handler warning behind the "<all_urls>" warning is an
++      // intentional compromise to avoid showing too many warnings.
+       {IDS_EXTENSION_PROMPT_WARNING_ALL_HOSTS,
+        {APIPermissionID::kHostsAll},
+        {APIPermissionID::kDeclarativeWebRequest,
+@@ -393,7 +395,8 @@ ChromePermissionMessageRule::GetAllRules() {
+         APIPermissionID::kProcesses, APIPermissionID::kTab,
+         APIPermissionID::kTopSites, APIPermissionID::kWebNavigation,
+         APIPermissionID::kDeclarativeNetRequest,
+-        APIPermissionID::kWebAuthenticationProxy}},
++        APIPermissionID::kWebAuthenticationProxy,
++        APIPermissionID::kMimeTypesHandlerPdf}},
+       {IDS_EXTENSION_PROMPT_WARNING_ALL_HOSTS,
+        {APIPermissionID::kWebAuthenticationProxy},
+        {APIPermissionID::kDeclarativeWebRequest,
+diff --git a/chrome/common/extensions/permissions/permission_set_unittest.cc b/chrome/common/extensions/permissions/permission_set_unittest.cc
+index 4b97dd0b60..504f853ee2 100644
+--- a/chrome/common/extensions/permissions/permission_set_unittest.cc
++++ b/chrome/common/extensions/permissions/permission_set_unittest.cc
+@@ -691,6 +691,7 @@ TEST(PermissionsTest, IsPrivilegeIncrease) {
+       {"storage", false},       // none -> storage
+       {"notifications", true},  // none -> notifications
+       {"mimehandler1", true},   // none -> mime_types_handler
++      {"mimehandler2", false},  // all hosts -> all hosts + mime_types_handler
+ #if BUILDFLAG(ENABLE_PLATFORM_APPS)
+       // All of the below are platform app permissions.
+       {"platformapp1", false},  // host permissions for platform apps
+diff --git a/chrome/test/data/extensions/allow_silent_upgrade/mimehandler2_new.json b/chrome/test/data/extensions/allow_silent_upgrade/mimehandler2_new.json
+new file mode 100644
+index 0000000000..ea699c53bc
+--- /dev/null
++++ b/chrome/test/data/extensions/allow_silent_upgrade/mimehandler2_new.json
+@@ -0,0 +1,9 @@
++{
++  "name": "mimehandler2",
++  "version": "1.1",
++  "manifest_version": 3,
++  "host_permissions": ["<all_urls>"],
++  "mime_types_handler": {
++    "application/pdf": { "handler_url": "viewer.html" }
++  }
++}
+diff --git a/chrome/test/data/extensions/allow_silent_upgrade/mimehandler2_old.json b/chrome/test/data/extensions/allow_silent_upgrade/mimehandler2_old.json
+new file mode 100644
+index 0000000000..21daa79749
+--- /dev/null
++++ b/chrome/test/data/extensions/allow_silent_upgrade/mimehandler2_old.json
+@@ -0,0 +1,6 @@
++{
++  "name": "mimehandler2",
++  "version": "1.0",
++  "manifest_version": 3,
++  "host_permissions": ["<all_urls>"]
++}
+diff --git a/chrome/test/data/extensions/permissions/mime_types_handler_all_hosts/manifest.json b/chrome/test/data/extensions/permissions/mime_types_handler_all_hosts/manifest.json
+new file mode 100644
+index 0000000000..c407239945
+--- /dev/null
++++ b/chrome/test/data/extensions/permissions/mime_types_handler_all_hosts/manifest.json
+@@ -0,0 +1,11 @@
++{
++  "name": "MIME types handler with all hosts",
++  "version": "1",
++  "manifest_version": 3,
++  "host_permissions": ["<all_urls>"],
++  "mime_types_handler": {
++    "application/pdf": {
++      "handler_url": "viewer.html"
++    }
++  }
++}
+diff --git a/chrome/test/data/extensions/permissions/mime_types_handler_one_host/manifest.json b/chrome/test/data/extensions/permissions/mime_types_handler_one_host/manifest.json
+new file mode 100644
+index 0000000000..64d757d685
+--- /dev/null
++++ b/chrome/test/data/extensions/permissions/mime_types_handler_one_host/manifest.json
+@@ -0,0 +1,11 @@
++{
++  "name": "MIME types handler with one host",
++  "version": "1",
++  "manifest_version": 3,
++  "host_permissions": ["https://example.com/*"],
++  "mime_types_handler": {
++    "application/pdf": {
++      "handler_url": "viewer.html"
++    }
++  }
++}
+-- 
+2.43.0
+

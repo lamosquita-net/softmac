@@ -1,0 +1,789 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Danil Somsikov <dsv@chromium.org>
+Date: Mon, 12 Oct 2026 01:15:46 -0700
+Subject: [PATCH 43/48] [DevTools] Enforce local-frontend embedder checks in
+ dispatcher
+
+Remote frontends (devtools://devtools/remote/) should not access
+profile DevTools settings or account info. Enforce local-frontend
+restrictions in DevToolsEmbedderMessageDispatcher (requiring an
+explicit AllowedFrontend argument) and restrict the preference and
+sync-info handlers accordingly. Remote frontends now get empty
+settings and will not persist them across sessions.
+
+Bug: 553145250
+Change-Id: Ic6813a080e06e3b86203e0141800a40a2c78ae3c
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8540814
+Reviewed-by: Antonio Sartori <antoniosartori@chromium.org>
+Reviewed-by: Andrey Kosyakov <caseq@chromium.org>
+Commit-Queue: Danil Somsikov <dsv@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1716597}
+(cherry picked from commit 200411e47458b88230a287b800d7b176fed79eef)
+---
+ .../devtools_embedder_message_dispatcher.cc   | 279 +++++++++++-------
+ .../devtools_embedder_message_dispatcher.h    |   1 +
+ .../browser/devtools/devtools_ui_bindings.cc  |  52 +---
+ .../browser/devtools/devtools_ui_bindings.h   |   1 +
+ .../devtools/devtools_ui_bindings_unittest.cc | 190 +++++++++++-
+ 5 files changed, 369 insertions(+), 154 deletions(-)
+
+diff --git a/chrome/browser/devtools/devtools_embedder_message_dispatcher.cc b/chrome/browser/devtools/devtools_embedder_message_dispatcher.cc
+index 8acb506428..54066d377b 100644
+--- a/chrome/browser/devtools/devtools_embedder_message_dispatcher.cc
++++ b/chrome/browser/devtools/devtools_embedder_message_dispatcher.cc
+@@ -8,6 +8,7 @@
+ 
+ #include "base/functional/bind.h"
+ #include "base/logging.h"
++#include "base/memory/raw_ref.h"
+ #include "base/types/optional_util.h"
+ #include "base/values.h"
+ #include "chrome/browser/devtools/devtools_dispatch_http_request_params.h"
+@@ -272,6 +273,7 @@ bool ParseAndHandle(const base::RepeatingCallback<void(As...)>& handler,
+     return false;
+   }
+   tuple.Apply(handler);
++  std::move(callback).Run(nullptr);
+   return true;
+ }
+ 
+@@ -303,38 +305,63 @@ bool ParseAndHandleWithCallback(
+  */
+ class DispatcherImpl : public DevToolsEmbedderMessageDispatcher {
+  public:
++  enum class AllowedFrontend {
++    kLocalOnly,
++    kAny,
++  };
++
++  explicit DispatcherImpl(Delegate& delegate) : delegate_(delegate) {}
+   ~DispatcherImpl() override = default;
+ 
+   bool Dispatch(DispatchCallback callback,
+                 const std::string& method,
+                 const base::ListValue& params) override {
+     auto it = handlers_.find(method);
+-    return it != handlers_.end() && it->second.Run(std::move(callback), params);
++    if (it == handlers_.end()) {
++      return false;
++    }
++    if (it->second.allowed_frontend == AllowedFrontend::kLocalOnly &&
++        !delegate_->IsLocalFrontend()) {
++      std::move(callback).Run(&it->second.blocked_response);
++      return true;
++    }
++    return it->second.handler.Run(std::move(callback), params);
+   }
+ 
+-  template<typename... As>
++  template <typename... As>
+   void RegisterHandler(const std::string& method,
+                        void (Delegate::*handler)(As...),
+-                       Delegate* delegate) {
+-    handlers_[method] = base::BindRepeating(
+-        &ParseAndHandle<As...>,
+-        base::BindRepeating(handler, base::Unretained(delegate)), method);
++                       AllowedFrontend allowed_frontend) {
++    handlers_[method] = {
++        base::BindRepeating(
++            &ParseAndHandle<As...>,
++            base::BindRepeating(handler, base::Unretained(delegate_)), method),
++        allowed_frontend};
+   }
+ 
+   template <typename... As>
+-  void RegisterHandlerWithCallback(const std::string& method,
+-                                   void (Delegate::*handler)(DispatchCallback,
+-                                                             As...),
+-                                   Delegate* delegate) {
+-    handlers_[method] = base::BindRepeating(
+-        &ParseAndHandleWithCallback<As...>,
+-        base::BindRepeating(handler, base::Unretained(delegate)), method);
++  void RegisterHandlerWithCallback(
++      const std::string& method,
++      void (Delegate::*handler)(DispatchCallback, As...),
++      AllowedFrontend allowed_frontend,
++      base::Value blocked_response = base::Value()) {
++    handlers_[method] = {
++        base::BindRepeating(
++            &ParseAndHandleWithCallback<As...>,
++            base::BindRepeating(handler, base::Unretained(delegate_)), method),
++        allowed_frontend, std::move(blocked_response)};
+   }
+ 
+  private:
+   using Handler =
+       base::RepeatingCallback<bool(DispatchCallback, const base::ListValue&)>;
+-  using HandlerMap = std::map<std::string, Handler>;
++  struct HandlerEntry {
++    Handler handler;
++    AllowedFrontend allowed_frontend = AllowedFrontend::kLocalOnly;
++    base::Value blocked_response;
++  };
++  using HandlerMap = std::map<std::string, HandlerEntry>;
++  raw_ref<Delegate> delegate_;
+   HandlerMap handlers_;
+ };
+ 
+@@ -342,120 +369,166 @@ class DispatcherImpl : public DevToolsEmbedderMessageDispatcher {
+ std::unique_ptr<DevToolsEmbedderMessageDispatcher>
+ DevToolsEmbedderMessageDispatcher::CreateForDevToolsFrontend(
+     Delegate* delegate) {
+-  auto d = std::make_unique<DispatcherImpl>();
+-
+-  d->RegisterHandler("bringToFront", &Delegate::ActivateWindow, delegate);
+-  d->RegisterHandler("closeWindow", &Delegate::CloseWindow, delegate);
+-  d->RegisterHandler("loadCompleted", &Delegate::LoadCompleted, delegate);
++  using AllowedFrontend = DispatcherImpl::AllowedFrontend;
++  auto d = std::make_unique<DispatcherImpl>(*delegate);
++
++  d->RegisterHandler("bringToFront", &Delegate::ActivateWindow,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("closeWindow", &Delegate::CloseWindow,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("loadCompleted", &Delegate::LoadCompleted,
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("setInspectedPageBounds",
+-                     &Delegate::SetInspectedPageBounds, delegate);
++                     &Delegate::SetInspectedPageBounds, AllowedFrontend::kAny);
+   d->RegisterHandler("inspectElementCompleted",
+-                     &Delegate::InspectElementCompleted, delegate);
+-  d->RegisterHandler("inspectedURLChanged",
+-                     &Delegate::InspectedURLChanged, delegate);
+-  d->RegisterHandlerWithCallback("setIsDocked",
+-                                 &Delegate::SetIsDocked, delegate);
+-  d->RegisterHandler("openInNewTab", &Delegate::OpenInNewTab, delegate);
++                     &Delegate::InspectElementCompleted, AllowedFrontend::kAny);
++  d->RegisterHandler("inspectedURLChanged", &Delegate::InspectedURLChanged,
++                     AllowedFrontend::kAny);
++  d->RegisterHandlerWithCallback("setIsDocked", &Delegate::SetIsDocked,
++                                 AllowedFrontend::kAny);
++  d->RegisterHandler("openInNewTab", &Delegate::OpenInNewTab,
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("openSearchResultsInNewTab",
+-                     &Delegate::OpenSearchResultsInNewTab, delegate);
+-  d->RegisterHandler("showItemInFolder", &Delegate::ShowItemInFolder, delegate);
+-  d->RegisterHandler("save", &Delegate::SaveToFile, delegate);
+-  d->RegisterHandler("append", &Delegate::AppendToFile, delegate);
+-  d->RegisterHandler("requestFileSystems",
+-                     &Delegate::RequestFileSystems, delegate);
+-  d->RegisterHandler("addFileSystem", &Delegate::AddFileSystem, delegate);
+-  d->RegisterHandler("removeFileSystem", &Delegate::RemoveFileSystem, delegate);
++                     &Delegate::OpenSearchResultsInNewTab,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("showItemInFolder", &Delegate::ShowItemInFolder,
++                     AllowedFrontend::kLocalOnly);
++  d->RegisterHandler("save", &Delegate::SaveToFile, AllowedFrontend::kAny);
++  d->RegisterHandler("append", &Delegate::AppendToFile,
++                     AllowedFrontend::kLocalOnly);
++  d->RegisterHandler("requestFileSystems", &Delegate::RequestFileSystems,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("addFileSystem", &Delegate::AddFileSystem,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("removeFileSystem", &Delegate::RemoveFileSystem,
++                     AllowedFrontend::kLocalOnly);
+   d->RegisterHandler("upgradeDraggedFileSystemPermissions",
+-                     &Delegate::UpgradeDraggedFileSystemPermissions, delegate);
+-  d->RegisterHandlerWithCallback("connectAutomaticFileSystem",
+-                                 &Delegate::ConnectAutomaticFileSystem,
+-                                 delegate);
++                     &Delegate::UpgradeDraggedFileSystemPermissions,
++                     AllowedFrontend::kLocalOnly);
++  d->RegisterHandlerWithCallback(
++      "connectAutomaticFileSystem", &Delegate::ConnectAutomaticFileSystem,
++      AllowedFrontend::kLocalOnly,
++      base::Value(base::DictValue().Set("success", false)));
+   d->RegisterHandler("disconnectAutomaticFileSystem",
+-                     &Delegate::DisconnectAutomaticFileSystem, delegate);
+-  d->RegisterHandler("indexPath", &Delegate::IndexPath, delegate);
++                     &Delegate::DisconnectAutomaticFileSystem,
++                     AllowedFrontend::kLocalOnly);
++  d->RegisterHandler("indexPath", &Delegate::IndexPath, AllowedFrontend::kAny);
+   d->RegisterHandlerWithCallback("loadNetworkResource",
+-                                 &Delegate::LoadNetworkResource, delegate);
+-  d->RegisterHandler("stopIndexing", &Delegate::StopIndexing, delegate);
+-  d->RegisterHandler("searchInPath", &Delegate::SearchInPath, delegate);
++                                 &Delegate::LoadNetworkResource,
++                                 AllowedFrontend::kAny);
++  d->RegisterHandler("stopIndexing", &Delegate::StopIndexing,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("searchInPath", &Delegate::SearchInPath,
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("setWhitelistedShortcuts",
+-                     &Delegate::SetWhitelistedShortcuts, delegate);
++                     &Delegate::SetWhitelistedShortcuts, AllowedFrontend::kAny);
+   d->RegisterHandler("setEyeDropperActive", &Delegate::SetEyeDropperActive,
+-                     delegate);
+-  d->RegisterHandler("showCertificateViewer",
+-                     &Delegate::ShowCertificateViewer, delegate);
+-  d->RegisterHandler("zoomIn", &Delegate::ZoomIn, delegate);
+-  d->RegisterHandler("zoomOut", &Delegate::ZoomOut, delegate);
+-  d->RegisterHandler("resetZoom", &Delegate::ResetZoom, delegate);
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("showCertificateViewer", &Delegate::ShowCertificateViewer,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("zoomIn", &Delegate::ZoomIn, AllowedFrontend::kAny);
++  d->RegisterHandler("zoomOut", &Delegate::ZoomOut, AllowedFrontend::kAny);
++  d->RegisterHandler("resetZoom", &Delegate::ResetZoom, AllowedFrontend::kAny);
+   d->RegisterHandler("setDevicesDiscoveryConfig",
+-                     &Delegate::SetDevicesDiscoveryConfig, delegate);
++                     &Delegate::SetDevicesDiscoveryConfig,
++                     AllowedFrontend::kLocalOnly);
+   d->RegisterHandler("setDevicesUpdatesEnabled",
+-                     &Delegate::SetDevicesUpdatesEnabled, delegate);
+-  d->RegisterHandler("openRemotePage", &Delegate::OpenRemotePage, delegate);
+-  d->RegisterHandler("openNodeFrontend", &Delegate::OpenNodeFrontend, delegate);
++                     &Delegate::SetDevicesUpdatesEnabled,
++                     AllowedFrontend::kLocalOnly);
++  d->RegisterHandler("openRemotePage", &Delegate::OpenRemotePage,
++                     AllowedFrontend::kLocalOnly);
++  d->RegisterHandler("openNodeFrontend", &Delegate::OpenNodeFrontend,
++                     AllowedFrontend::kLocalOnly);
+   d->RegisterHandler("dispatchProtocolMessage",
+                      &Delegate::DispatchProtocolMessageFromDevToolsFrontend,
+-                     delegate);
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("recordCountHistogram", &Delegate::RecordCountHistogram,
+-                     delegate);
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("recordEnumeratedHistogram",
+-                     &Delegate::RecordEnumeratedHistogram, delegate);
++                     &Delegate::RecordEnumeratedHistogram,
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("recordPerformanceHistogram",
+-                     &Delegate::RecordPerformanceHistogram, delegate);
++                     &Delegate::RecordPerformanceHistogram,
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("recordPerformanceHistogramMedium",
+-                     &Delegate::RecordPerformanceHistogramMedium, delegate);
++                     &Delegate::RecordPerformanceHistogramMedium,
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("recordUserMetricsAction",
+-                     &Delegate::RecordUserMetricsAction, delegate);
++                     &Delegate::RecordUserMetricsAction, AllowedFrontend::kAny);
+   d->RegisterHandler("recordNewBadgeUsage", &Delegate::RecordNewBadgeUsage,
+-                     delegate);
+-  d->RegisterHandler("setChromeFlag", &Delegate::SetChromeFlag, delegate);
+-  d->RegisterHandler("recordImpression", &Delegate::RecordImpression, delegate);
+-  d->RegisterHandler("recordResize", &Delegate::RecordResize, delegate);
+-  d->RegisterHandler("recordClick", &Delegate::RecordClick, delegate);
+-  d->RegisterHandler("recordHover", &Delegate::RecordHover, delegate);
+-  d->RegisterHandler("recordDrag", &Delegate::RecordDrag, delegate);
+-  d->RegisterHandler("recordChange", &Delegate::RecordChange, delegate);
+-  d->RegisterHandler("recordKeyDown", &Delegate::RecordKeyDown, delegate);
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("setChromeFlag", &Delegate::SetChromeFlag,
++                     AllowedFrontend::kLocalOnly);
++  d->RegisterHandler("recordImpression", &Delegate::RecordImpression,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("recordResize", &Delegate::RecordResize,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("recordClick", &Delegate::RecordClick,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("recordHover", &Delegate::RecordHover,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("recordDrag", &Delegate::RecordDrag,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("recordChange", &Delegate::RecordChange,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("recordKeyDown", &Delegate::RecordKeyDown,
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("recordSettingAccess", &Delegate::RecordSettingAccess,
+-                     delegate);
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("recordFunctionCall", &Delegate::RecordFunctionCall,
+-                     delegate);
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("registerPreference", &Delegate::RegisterPreference,
+-                     delegate);
+-  d->RegisterHandlerWithCallback("getPreferences",
+-                                 &Delegate::GetPreferences, delegate);
++                     AllowedFrontend::kLocalOnly);
++  d->RegisterHandlerWithCallback("getPreferences", &Delegate::GetPreferences,
++                                 AllowedFrontend::kLocalOnly,
++                                 base::Value(base::Value::Type::DICT));
+   d->RegisterHandlerWithCallback("getPreference", &Delegate::GetPreference,
+-                                 delegate);
+-  d->RegisterHandler("setPreference",
+-                     &Delegate::SetPreference, delegate);
+-  d->RegisterHandler("removePreference",
+-                     &Delegate::RemovePreference, delegate);
+-  d->RegisterHandler("clearPreferences",
+-                     &Delegate::ClearPreferences, delegate);
+-  d->RegisterHandlerWithCallback("getSyncInformation",
+-                                 &Delegate::GetSyncInformation, delegate);
++                                 AllowedFrontend::kLocalOnly);
++  d->RegisterHandler("setPreference", &Delegate::SetPreference,
++                     AllowedFrontend::kLocalOnly);
++  d->RegisterHandler("removePreference", &Delegate::RemovePreference,
++                     AllowedFrontend::kLocalOnly);
++  d->RegisterHandler("clearPreferences", &Delegate::ClearPreferences,
++                     AllowedFrontend::kLocalOnly);
++  d->RegisterHandlerWithCallback(
++      "getSyncInformation", &Delegate::GetSyncInformation,
++      AllowedFrontend::kLocalOnly,
++      base::Value(base::DictValue().Set("isSyncActive", false)));
+   d->RegisterHandlerWithCallback("getHostConfig", &Delegate::GetHostConfig,
+-                                 delegate);
+-  d->RegisterHandlerWithCallback("reattach",
+-                                 &Delegate::Reattach, delegate);
+-  d->RegisterHandler("readyForTest",
+-                     &Delegate::ReadyForTest, delegate);
+-  d->RegisterHandler("connectionReady", &Delegate::ConnectionReady, delegate);
++                                 AllowedFrontend::kAny);
++  d->RegisterHandlerWithCallback("reattach", &Delegate::Reattach,
++                                 AllowedFrontend::kAny);
++  d->RegisterHandler("readyForTest", &Delegate::ReadyForTest,
++                     AllowedFrontend::kAny);
++  d->RegisterHandler("connectionReady", &Delegate::ConnectionReady,
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("setOpenNewWindowForPopups",
+-                     &Delegate::SetOpenNewWindowForPopups, delegate);
++                     &Delegate::SetOpenNewWindowForPopups,
++                     AllowedFrontend::kAny);
+   d->RegisterHandler("registerExtensionsAPI", &Delegate::RegisterExtensionsAPI,
+-                     delegate);
+-  d->RegisterHandlerWithCallback("showSurvey", &Delegate::ShowSurvey, delegate);
++                     AllowedFrontend::kAny);
++  d->RegisterHandlerWithCallback("showSurvey", &Delegate::ShowSurvey,
++                                 AllowedFrontend::kAny);
+   d->RegisterHandlerWithCallback("canShowSurvey", &Delegate::CanShowSurvey,
+-                                 delegate);
+-
+-  d->RegisterHandlerWithCallback("doAidaConversation",
+-                                 &Delegate::DoAidaConversation, delegate);
+-  d->RegisterHandlerWithCallback("aidaCodeComplete",
+-                                 &Delegate::AidaCodeComplete, delegate);
+-  d->RegisterHandlerWithCallback("registerAidaClientEvent",
+-                                 &Delegate::RegisterAidaClientEvent, delegate);
+-  d->RegisterHandlerWithCallback("dispatchHttpRequest",
+-                                 &Delegate::DispatchHttpRequest, delegate);
+-  d->RegisterHandler("requestRestart", &Delegate::RequestRestart, delegate);
++                                 AllowedFrontend::kAny);
++
++  d->RegisterHandlerWithCallback(
++      "doAidaConversation", &Delegate::DoAidaConversation,
++      AllowedFrontend::kLocalOnly,
++      base::Value(base::DictValue().Set("error", "AIDA request was blocked")));
++  d->RegisterHandlerWithCallback(
++      "aidaCodeComplete", &Delegate::AidaCodeComplete,
++      AllowedFrontend::kLocalOnly,
++      base::Value(base::DictValue().Set("error", "AIDA request was blocked")));
++  d->RegisterHandlerWithCallback(
++      "registerAidaClientEvent", &Delegate::RegisterAidaClientEvent,
++      AllowedFrontend::kLocalOnly,
++      base::Value(base::DictValue().Set("error", "AIDA request was blocked")));
++  d->RegisterHandlerWithCallback(
++      "dispatchHttpRequest", &Delegate::DispatchHttpRequest,
++      AllowedFrontend::kLocalOnly,
++      base::Value(base::DictValue().Set("error", "Request validation failed")));
++  d->RegisterHandler("requestRestart", &Delegate::RequestRestart,
++                     AllowedFrontend::kLocalOnly);
+   return d;
+ }
+diff --git a/chrome/browser/devtools/devtools_embedder_message_dispatcher.h b/chrome/browser/devtools/devtools_embedder_message_dispatcher.h
+index 150805a193..78e1f4fe37 100644
+--- a/chrome/browser/devtools/devtools_embedder_message_dispatcher.h
++++ b/chrome/browser/devtools/devtools_embedder_message_dispatcher.h
+@@ -40,6 +40,7 @@ class DevToolsEmbedderMessageDispatcher {
+ 
+     virtual ~Delegate() = default;
+ 
++    virtual bool IsLocalFrontend() const = 0;
+     virtual void ActivateWindow() = 0;
+     virtual void CloseWindow() = 0;
+     virtual void LoadCompleted() = 0;
+diff --git a/chrome/browser/devtools/devtools_ui_bindings.cc b/chrome/browser/devtools/devtools_ui_bindings.cc
+index ab1253aa23..191ff1bea9 100644
+--- a/chrome/browser/devtools/devtools_ui_bindings.cc
++++ b/chrome/browser/devtools/devtools_ui_bindings.cc
+@@ -1019,6 +1019,10 @@ void DevToolsUIBindings::InnerAttach() {
+ 
+ // DevToolsEmbedderMessageDispatcher::Delegate implementation -----------------
+ 
++bool DevToolsUIBindings::IsLocalFrontend() const {
++  return is_local_frontend_;
++}
++
+ void DevToolsUIBindings::ActivateWindow() {
+   delegate_->ActivateWindow();
+ }
+@@ -1183,14 +1187,6 @@ void DevToolsUIBindings::OnAidaResponse(
+ void DevToolsUIBindings::DispatchHttpRequest(
+     DispatchCallback callback,
+     const DevToolsDispatchHttpRequestParams& params) {
+-  if (!is_local_frontend_) {
+-    base::DictValue response_dict;
+-    response_dict.Set("error", "Request validation failed");
+-    base::Value response = base::Value(std::move(response_dict));
+-    std::move(callback).Run(&response);
+-    return;
+-  }
+-
+   if (params.stream_id.has_value()) {
+     int stream_id = *params.stream_id;
+     auto stream_writer = base::BindRepeating(
+@@ -1452,9 +1448,6 @@ void DevToolsUIBindings::OpenSearchResultsInNewTab(const std::string& query) {
+ void DevToolsUIBindings::ShowItemInFolder(const std::string& file_system_path) {
+   CHECK(IsValidFrontendURL(web_contents_->GetLastCommittedURL()) &&
+         frontend_host_);
+-  if (!is_local_frontend_) {
+-    return;
+-  }
+   if (!file_helper_.IsFileInFileSystem(file_system_path)) {
+     return;
+   }
+@@ -1481,9 +1474,6 @@ void DevToolsUIBindings::SaveToFile(const std::string& url,
+ 
+ void DevToolsUIBindings::AppendToFile(const std::string& url,
+                                       const std::string& content) {
+-  if (!is_local_frontend_) {
+-    return;
+-  }
+   file_helper_.Append(url, content,
+                       base::BindOnce(&DevToolsUIBindings::AppendedTo,
+                                      weak_factory_.GetWeakPtr(), url));
+@@ -1524,9 +1514,6 @@ void DevToolsUIBindings::AddFileSystem(const std::string& type) {
+ void DevToolsUIBindings::RemoveFileSystem(const std::string& file_system_path) {
+   CHECK(IsValidFrontendURL(web_contents_->GetLastCommittedURL()) &&
+         frontend_host_);
+-  if (!is_local_frontend_) {
+-    return;
+-  }
+   file_helper_.RemoveFileSystem(file_system_path);
+ }
+ 
+@@ -1534,9 +1521,6 @@ void DevToolsUIBindings::UpgradeDraggedFileSystemPermissions(
+     const std::string& file_system_url) {
+   CHECK(IsValidFrontendURL(web_contents_->GetLastCommittedURL()) &&
+         frontend_host_);
+-  if (!is_local_frontend_) {
+-    return;
+-  }
+   file_helper_.UpgradeDraggedFileSystemPermissions(
+       file_system_url,
+       base::BindRepeating(&DevToolsUIBindings::HandleDirectoryPermissions,
+@@ -1551,10 +1535,6 @@ void DevToolsUIBindings::ConnectAutomaticFileSystem(
+   DCHECK_CURRENTLY_ON(BrowserThread::UI);
+   CHECK(IsValidFrontendURL(web_contents_->GetLastCommittedURL()) &&
+         frontend_host_);
+-  if (!is_local_frontend_) {
+-    ConnectAutomaticFileSystemDone(std::move(callback), false);
+-    return;
+-  }
+   // Ensure that the |file_system_uuid| is indeed a valid UUID.
+   base::Uuid uuid = base::Uuid::ParseCaseInsensitive(file_system_uuid);
+   if (!uuid.is_valid()) {
+@@ -1586,9 +1566,6 @@ void DevToolsUIBindings::DisconnectAutomaticFileSystem(
+   DCHECK_CURRENTLY_ON(BrowserThread::UI);
+   CHECK(IsValidFrontendURL(web_contents_->GetLastCommittedURL()) &&
+         frontend_host_);
+-  if (!is_local_frontend_) {
+-    return;
+-  }
+   file_helper_.DisconnectAutomaticFileSystem(file_system_path);
+ }
+ 
+@@ -1698,9 +1675,6 @@ void DevToolsUIBindings::SetDevicesDiscoveryConfig(
+     const std::string& port_forwarding_config,
+     bool network_discovery_enabled,
+     const std::string& network_discovery_config) {
+-  if (!is_local_frontend_) {
+-    return;
+-  }
+   std::optional<base::DictValue> parsed_port_forwarding =
+       base::JSONReader::ReadDict(port_forwarding_config,
+                                  base::JSON_PARSE_CHROMIUM_EXTENSIONS);
+@@ -1761,9 +1735,6 @@ void DevToolsUIBindings::SendPortForwardingStatus(base::Value status) {
+ }
+ 
+ void DevToolsUIBindings::SetDevicesUpdatesEnabled(bool enabled) {
+-  if (!is_local_frontend_ && enabled) {
+-    return;
+-  }
+ #if BUILDFLAG(IS_ANDROID)
+   NOTIMPLEMENTED();
+ #else
+@@ -1813,9 +1784,6 @@ void DevToolsUIBindings::SetDevicesUpdatesEnabled(bool enabled) {
+ 
+ void DevToolsUIBindings::OpenRemotePage(const std::string& browser_id,
+                                         const std::string& url) {
+-  if (!is_local_frontend_) {
+-    return;
+-  }
+   if (!remote_targets_handler_) {
+     return;
+   }
+@@ -1823,9 +1791,6 @@ void DevToolsUIBindings::OpenRemotePage(const std::string& browser_id,
+ }
+ 
+ void DevToolsUIBindings::OpenNodeFrontend() {
+-  if (!is_local_frontend_) {
+-    return;
+-  }
+   delegate_->OpenNodeFrontend();
+ }
+ 
+@@ -2565,16 +2530,10 @@ void DevToolsUIBindings::SetChromeFlagInternal(Profile* profile,
+ 
+ void DevToolsUIBindings::SetChromeFlag(const std::string& flag_name,
+                                        bool value) {
+-  if (!is_local_frontend_) {
+-    return;
+-  }
+   SetChromeFlagInternal(profile_, flag_name, value);
+ }
+ 
+ void DevToolsUIBindings::RequestRestart() {
+-  if (!is_local_frontend_) {
+-    return;
+-  }
+   chrome::AttemptRestart();
+ }
+ 
+@@ -3097,9 +3056,6 @@ void DevToolsUIBindings::CanShowSurvey(DispatchCallback callback,
+ }
+ 
+ bool DevToolsUIBindings::EnsureAidaClientAvailable() {
+-  if (!is_local_frontend_) {
+-    return false;
+-  }
+   if (!can_access_aida_ || AidaClient::CanUseAida(profile_).blocked) {
+     return false;
+   }
+diff --git a/chrome/browser/devtools/devtools_ui_bindings.h b/chrome/browser/devtools/devtools_ui_bindings.h
+index 2825b35aa6..ce62cad112 100644
+--- a/chrome/browser/devtools/devtools_ui_bindings.h
++++ b/chrome/browser/devtools/devtools_ui_bindings.h
+@@ -206,6 +206,7 @@ class DevToolsUIBindings : public DevToolsEmbedderMessageDispatcher::Delegate,
+   bool MayWriteLocalFiles() override;
+ 
+   // DevToolsEmbedderMessageDispatcher::Delegate implementation.
++  bool IsLocalFrontend() const override;
+   void ActivateWindow() override;
+   void CloseWindow() override;
+   void LoadCompleted() override;
+diff --git a/chrome/browser/devtools/devtools_ui_bindings_unittest.cc b/chrome/browser/devtools/devtools_ui_bindings_unittest.cc
+index 0176590539..d5840a5880 100644
+--- a/chrome/browser/devtools/devtools_ui_bindings_unittest.cc
++++ b/chrome/browser/devtools/devtools_ui_bindings_unittest.cc
+@@ -18,8 +18,10 @@
+ #include "chrome/browser/signin/identity_test_environment_profile_adaptor.h"
+ #include "chrome/browser/sync/sync_service_factory.h"
+ #include "chrome/common/chrome_switches.h"
++#include "chrome/common/pref_names.h"
+ #include "chrome/test/base/testing_browser_process.h"
+ #include "chrome/test/base/testing_profile.h"
++#include "components/prefs/scoped_user_pref_update.h"
+ #include "components/signin/public/base/signin_switches.h"
+ #include "components/signin/public/identity_manager/identity_test_environment.h"
+ #include "components/sync/test/test_sync_service.h"
+@@ -72,6 +74,22 @@ class DevToolsUIBindingsLoadNetworkResourceTest : public testing::Test {
+                                    stream_id);
+   }
+ 
++  base::Value DispatchMessage(const std::string& method,
++                              base::ListValue params = {}) {
++    base::RunLoop run_loop;
++    base::Value result;
++    EXPECT_TRUE(bindings_->embedder_message_dispatcher_->Dispatch(
++        base::BindLambdaForTesting([&](const base::Value* value) {
++          if (value) {
++            result = value->Clone();
++          }
++          run_loop.Quit();
++        }),
++        method, params));
++    run_loop.Run();
++    return result;
++  }
++
+  protected:
+   content::BrowserTaskEnvironment task_environment_;
+   std::unique_ptr<TestingProfile> profile_;
+@@ -124,13 +142,179 @@ TEST_F(DevToolsUIBindingsLoadNetworkResourceTest,
+       web_contents(),
+       GURL("devtools://devtools/remote/serve_file/inspector.html"));
+ 
+-  // Should return early without enabling device updates.
+-  static_cast<DevToolsEmbedderMessageDispatcher::Delegate*>(bindings())
+-      ->SetDevicesUpdatesEnabled(true);
++  // Should be blocked by dispatcher without enabling device updates.
++  DispatchMessage("setDevicesUpdatesEnabled", base::ListValue().Append(true));
+ 
+   EXPECT_FALSE(GetDevicesUpdatesEnabled());
+ }
+ 
++TEST_F(DevToolsUIBindingsLoadNetworkResourceTest,
++       RemoteFrontendCannotReadPreferences) {
++  {
++    ScopedDictPrefUpdate update(profile_->GetPrefs(),
++                                prefs::kDevToolsPreferences);
++    update->Set("script-snippets", "secret");
++  }
++
++  content::NavigationSimulator::NavigateAndCommitFromBrowser(
++      web_contents(),
++      GURL("devtools://devtools/remote/serve_rev/@12345/inspector.html"));
++
++  base::Value prefs_result = DispatchMessage("getPreferences");
++  ASSERT_TRUE(prefs_result.is_dict());
++  EXPECT_TRUE(prefs_result.GetDict().empty());
++
++  base::Value pref_result = DispatchMessage(
++      "getPreference", base::ListValue().Append("script-snippets"));
++  EXPECT_TRUE(pref_result.is_none());
++}
++
++TEST_F(DevToolsUIBindingsLoadNetworkResourceTest,
++       RemoteFrontendCannotWritePreferences) {
++  {
++    ScopedDictPrefUpdate update(profile_->GetPrefs(),
++                                prefs::kDevToolsPreferences);
++    update->Set("script-snippets", "secret");
++  }
++
++  content::NavigationSimulator::NavigateAndCommitFromBrowser(
++      web_contents(),
++      GURL("devtools://devtools/remote/serve_rev/@12345/inspector.html"));
++
++  DispatchMessage(
++      "setPreference",
++      base::ListValue().Append("script-snippets").Append("overwritten"));
++  DispatchMessage("setPreference",
++                  base::ListValue().Append("new-pref").Append("value"));
++  DispatchMessage("removePreference",
++                  base::ListValue().Append("script-snippets"));
++  DispatchMessage("clearPreferences");
++
++  const base::DictValue& dict =
++      profile_->GetPrefs()->GetDict(prefs::kDevToolsPreferences);
++  EXPECT_EQ(dict.size(), 1u);
++  ASSERT_NE(dict.FindString("script-snippets"), nullptr);
++  EXPECT_EQ(*dict.FindString("script-snippets"), "secret");
++}
++
++TEST_F(DevToolsUIBindingsLoadNetworkResourceTest,
++       RemoteFrontendCannotEnableSync) {
++  content::NavigationSimulator::NavigateAndCommitFromBrowser(
++      web_contents(),
++      GURL("devtools://devtools/remote/serve_rev/@12345/inspector.html"));
++
++  DispatchMessage("setPreference",
++                  base::ListValue().Append("sync-preferences").Append("true"));
++  EXPECT_FALSE(
++      profile_->GetPrefs()->GetBoolean(prefs::kDevToolsSyncPreferences));
++
++  DispatchMessage("registerPreference",
++                  base::ListValue()
++                      .Append("synced-pref")
++                      .Append(base::DictValue().Set("synced", true)));
++  DispatchMessage("setPreference",
++                  base::ListValue().Append("synced-pref").Append("value"));
++
++  EXPECT_TRUE(profile_->GetPrefs()
++                  ->GetDict(prefs::kDevToolsSyncedPreferencesSyncEnabled)
++                  .empty());
++  EXPECT_TRUE(profile_->GetPrefs()
++                  ->GetDict(prefs::kDevToolsSyncedPreferencesSyncDisabled)
++                  .empty());
++  EXPECT_TRUE(
++      profile_->GetPrefs()->GetDict(prefs::kDevToolsPreferences).empty());
++}
++
++TEST_F(DevToolsUIBindingsLoadNetworkResourceTest,
++       RemoteFrontendGetSyncInformationIsRedacted) {
++  signin::IdentityTestEnvironment identity_test_env;
++  SyncServiceFactory::GetInstance()->SetTestingFactory(
++      profile_.get(), base::BindRepeating([](content::BrowserContext*) {
++        return static_cast<std::unique_ptr<KeyedService>>(
++            std::make_unique<syncer::TestSyncService>());
++      }));
++  auto* sync_service = static_cast<syncer::TestSyncService*>(
++      SyncServiceFactory::GetForProfile(profile_.get()));
++  AccountInfo account_info = identity_test_env.MakePrimaryAccountAvailable(
++      "sync@devtools.dev", signin::ConsentLevel::kSignin);
++  sync_service->SetSignedIn(signin::ConsentLevel::kSignin,
++                            account_info.GetCoreAccountInfo());
++
++  content::NavigationSimulator::NavigateAndCommitFromBrowser(
++      web_contents(),
++      GURL("devtools://devtools/remote/serve_rev/@12345/inspector.html"));
++
++  base::Value result_val = DispatchMessage("getSyncInformation");
++  ASSERT_TRUE(result_val.is_dict());
++  const base::DictValue& result = result_val.GetDict();
++
++  EXPECT_EQ(result.FindBool("isSyncActive"), false);
++  EXPECT_EQ(result.Find("accountEmail"), nullptr);
++}
++
++TEST_F(DevToolsUIBindingsLoadNetworkResourceTest,
++       LocalFrontendPreferencesStillWork) {
++  {
++    ScopedDictPrefUpdate update(profile_->GetPrefs(),
++                                prefs::kDevToolsPreferences);
++    update->Set("script-snippets", "secret");
++  }
++
++  content::NavigationSimulator::NavigateAndCommitFromBrowser(
++      web_contents(), GURL("devtools://devtools/bundled/inspector.html"));
++
++  base::Value prefs_val = DispatchMessage("getPreferences");
++  ASSERT_TRUE(prefs_val.is_dict());
++  const base::DictValue& prefs_result = prefs_val.GetDict();
++
++  ASSERT_NE(prefs_result.FindString("script-snippets"), nullptr);
++  EXPECT_EQ(*prefs_result.FindString("script-snippets"), "secret");
++
++  DispatchMessage(
++      "setPreference",
++      base::ListValue().Append("new-pref").Append("persisted-value"));
++  const base::DictValue& dict =
++      profile_->GetPrefs()->GetDict(prefs::kDevToolsPreferences);
++  ASSERT_NE(dict.FindString("new-pref"), nullptr);
++  EXPECT_EQ(*dict.FindString("new-pref"), "persisted-value");
++}
++
++TEST_F(DevToolsUIBindingsLoadNetworkResourceTest,
++       LocalToRemoteNavigationRevokesAccess) {
++  {
++    ScopedDictPrefUpdate update(profile_->GetPrefs(),
++                                prefs::kDevToolsPreferences);
++    update->Set("script-snippets", "secret");
++  }
++
++  content::NavigationSimulator::NavigateAndCommitFromBrowser(
++      web_contents(), GURL("devtools://devtools/bundled/inspector.html"));
++
++  {
++    base::Value prefs_val = DispatchMessage("getPreferences");
++    ASSERT_TRUE(prefs_val.is_dict());
++    const base::DictValue& prefs_result = prefs_val.GetDict();
++    ASSERT_NE(prefs_result.FindString("script-snippets"), nullptr);
++    EXPECT_EQ(*prefs_result.FindString("script-snippets"), "secret");
++  }
++
++  content::NavigationSimulator::NavigateAndCommitFromBrowser(
++      web_contents(),
++      GURL("devtools://devtools/remote/serve_rev/@12345/inspector.html"));
++
++  {
++    base::Value prefs_result = DispatchMessage("getPreferences");
++    ASSERT_TRUE(prefs_result.is_dict());
++    EXPECT_TRUE(prefs_result.GetDict().empty());
++  }
++
++  {
++    base::Value pref_result = DispatchMessage(
++        "getPreference", base::ListValue().Append("script-snippets"));
++    EXPECT_TRUE(pref_result.is_none());
++  }
++}
++
+ TEST_F(DevToolsUIBindingsLoadNetworkResourceTest,
+        AllowsFileSchemeFromRemoteFrontendWithFlag) {
+   base::test::ScopedCommandLine scoped_command_line;
+-- 
+2.43.0
+

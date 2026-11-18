@@ -1,0 +1,801 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Kelvin Jiang <kelvinjiang@chromium.org>
+Date: Mon, 5 Oct 2026 21:55:34 -0700
+Subject: [PATCH 25/48] [Extensions] Respect runtime host permissions in
+ ScriptInjectionTracker
+
+ScriptInjectionTracker::DoesScriptMatch() previously checked URL pattern
+matching for static manifest content scripts without checking whether
+host access was withheld (e.g. "On click" site access) or blocked by
+policy/user settings. Additionally, DoesScriptMatch() returned true
+early whenever the tab had activeTab for the frame's origin
+(HasTabPermissionsForSecurityOrigin()), skipping policy host
+restrictions. Since activeTab can be granted on a policy-blocked host,
+this marked the process even though no script could inject there.
+
+This CL updates DoesScriptMatch() to:
+1. Check PermissionsData::GetContentScriptAccessForSecurityOrigin() for
+   static content scripts, matching scriptable_hosts and tab-specific
+   permissions at security-origin granularity while respecting withheld
+   permissions and policy/user host blocks.
+2. Check PermissionsData::GetPageAccess() for dynamic scripts instead of
+   the separate HasTabPermissionsForSecurityOrigin() early return +
+   HasHostPermission() check, ensuring both static and dynamic scripts
+   enforce policy restrictions and still match against
+   `script.url_patterns()`.
+
+Since the tracker now respects policy and user host restrictions, this
+CL also notifies it when those restrictions change (per-extension
+policy, default policy, and user restricted sites), so that unblocking
+a host doesn't cause false negatives for already-committed documents.
+
+Fixed: 550245671
+
+TAG=agy
+
+Change-Id: I0a81a294d52bd271e8aa9aefd685e828c11fb1b5
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8421908
+Reviewed-by: Devlin Cronin <rdevlin.cronin@chromium.org>
+Commit-Queue: Kelvin Jiang <kelvinjiang@chromium.org>
+Reviewed-by: Tim <tjudkins@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1711958}
+(cherry picked from commit 8becb88e1c75e5842b138dfe95d93b4d10320aa4)
+---
+ .../script_injection_tracker_browsertest.cc   | 268 ++++++++++++++++++
+ .../permissions/permissions_data_unittest.cc  |  98 +++++++
+ .../permissions/permissions_updater.cc        |  15 +-
+ extensions/browser/permissions_manager.cc     |  19 +-
+ .../browser/script_injection_tracker.cc       |  52 +++-
+ extensions/browser/script_injection_tracker.h |  11 +-
+ .../common/permissions/permissions_data.cc    |  49 +++-
+ .../common/permissions/permissions_data.h     |  17 ++
+ 8 files changed, 503 insertions(+), 26 deletions(-)
+
+diff --git a/chrome/browser/extensions/script_injection_tracker_browsertest.cc b/chrome/browser/extensions/script_injection_tracker_browsertest.cc
+index 3fc6de655a..fa09d02004 100644
+--- a/chrome/browser/extensions/script_injection_tracker_browsertest.cc
++++ b/chrome/browser/extensions/script_injection_tracker_browsertest.cc
+@@ -13,6 +13,8 @@
+ #include "base/run_loop.h"
+ #include "base/strings/stringprintf.h"
+ #include "base/test/bind.h"
++#include "base/test/run_until.h"
++#include "base/test/scoped_feature_list.h"
+ #include "base/trace_event/trace_log.h"
+ #include "build/buildflag.h"
+ #include "chrome/browser/apps/platform_apps/app_browsertest_util.h"
+@@ -50,12 +52,16 @@
+ #include "extensions/browser/extension_system.h"
+ #include "extensions/browser/permissions/active_tab_permission_granter.h"
+ #include "extensions/browser/permissions/permissions_test_util.h"
++#include "extensions/browser/permissions/permissions_updater.h"
+ #include "extensions/browser/permissions/scripting_permissions_modifier.h"
++#include "extensions/browser/permissions_manager.h"
+ #include "extensions/browser/process_manager.h"
+ #include "extensions/browser/user_script_manager.h"
+ #include "extensions/common/extension_features.h"
+ #include "extensions/common/features/feature_channel.h"
+ #include "extensions/common/manifest_handlers/permissions_parser.h"
++#include "extensions/common/url_pattern.h"
++#include "extensions/common/url_pattern_set.h"
+ #include "extensions/test/extension_test_message_listener.h"
+ #include "extensions/test/permissions_manager_waiter.h"
+ #include "extensions/test/result_catcher.h"
+@@ -68,6 +74,7 @@
+ #include "testing/gtest/include/gtest/gtest.h"
+ #include "ui/base/window_open_disposition.h"
+ #include "url/gurl.h"
++#include "url/origin.h"
+ 
+ namespace extensions {
+ 
+@@ -804,6 +811,267 @@ IN_PROC_BROWSER_TEST_F(ScriptInjectionTrackerBrowserTest,
+       *first_tab->GetPrimaryMainFrame()->GetProcess(), extension->id()));
+ }
+ 
++// Tests that a static content script is not considered as injectable when the
++// user has withheld the extension's host permissions (i.e. configured the
++// extension to only run on click) and that granting the withheld permission
++// back makes the script considered as injectable again.
++IN_PROC_BROWSER_TEST_F(ScriptInjectionTrackerBrowserTest,
++                       ContentScriptWithWithheldHostPermissions) {
++  ASSERT_TRUE(embedded_test_server()->Start());
++
++  // Install a test extension with a static content script and withhold its
++  // host permissions.
++  TestExtensionDir dir;
++  const char kManifest[] = R"(
++      {
++        "name": "ScriptInjectionTrackerBrowserTest - Withheld",
++        "version": "1.0",
++        "manifest_version": 3,
++        "content_scripts": [{
++          "all_frames": true,
++          "matches": ["*://a.com/*", "*://b.com/*"],
++          "js": ["content_script.js"],
++          "run_at": "document_end"
++        }]
++      } )";
++  dir.WriteManifest(kManifest);
++  dir.WriteFile(FILE_PATH_LITERAL("content_script.js"),
++                "document.body.title = 'Content script has run';");
++  const Extension* extension = LoadExtension(dir.UnpackedPath());
++  ASSERT_TRUE(extension);
++
++  {
++    PermissionsManagerWaiter waiter(PermissionsManager::Get(profile()));
++    ScriptingPermissionsModifier(profile(), extension)
++        .SetWithholdHostPermissions(true);
++    waiter.WaitForExtensionPermissionsUpdate();
++  }
++
++  // Navigate to a page covered by `content_scripts.matches`. The extension's
++  // access to the page is withheld, so the content script should not run and
++  // the process should not be reported as having run a content script.
++  GURL url = embedded_test_server()->GetURL("a.com", "/title1.html");
++  content::WebContents* web_contents = GetActiveWebContents();
++  ASSERT_TRUE(NavigateToURL(web_contents, url));
++  EXPECT_EQ("", content::EvalJs(web_contents, "document.body.title"));
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *web_contents->GetPrimaryMainFrame()->GetProcess(), extension->id()));
++
++  // Grant the extension access to a.com and verify the tracker notices the
++  // now-injectable content script.
++  {
++    PermissionsManagerWaiter waiter(PermissionsManager::Get(profile()));
++    ScriptingPermissionsModifier(profile(), extension).GrantHostPermission(url);
++    waiter.WaitForExtensionPermissionsUpdate();
++  }
++  // No script has run in the loaded document, but the tracker conservatively
++  // records the process on permission changes (see
++  // ScriptInjectionTrackerRestrictedHostBrowserTest).
++  EXPECT_TRUE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *web_contents->GetPrimaryMainFrame()->GetProcess(), extension->id()));
++
++  // After a navigation the content script should actually inject.
++  ASSERT_TRUE(NavigateToURL(web_contents, url));
++  EXPECT_EQ("Content script has run",
++            content::EvalJs(web_contents, "document.body.title"));
++  EXPECT_TRUE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *web_contents->GetPrimaryMainFrame()->GetProcess(), extension->id()));
++
++  // b.com is covered by `content_scripts.matches`, but the user only granted
++  // access to a.com - a process hosting b.com should not be reported as
++  // having run a content script.
++  ASSERT_TRUE(NavigateToURLInNewProcess("b.com", "/title1.html"));
++  web_contents = GetActiveWebContents();
++  EXPECT_EQ("", content::EvalJs(web_contents, "document.body.title"));
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *web_contents->GetPrimaryMainFrame()->GetProcess(), extension->id()));
++}
++
++// Test suite covering static content scripts whose access to a host is
++// restricted (withheld, or blocked by policy or by the user).
++//
++// When host access is restored, ScriptInjectionTracker conservatively records
++// any process with a matching frame, since it can't tell whether a document
++// has yet to reach the script's run location (a false negative would kill the
++// renderer).
++class ScriptInjectionTrackerRestrictedHostBrowserTest
++    : public ScriptInjectionTrackerBrowserTest {
++ public:
++  void SetUpOnMainThread() override {
++    ScriptInjectionTrackerBrowserTest::SetUpOnMainThread();
++    ASSERT_TRUE(embedded_test_server()->Start());
++  }
++
++ protected:
++  // Loads an extension with `activeTab` and a static content script matching
++  // a.com.
++  const Extension* LoadExtensionWithAComContentScript() {
++    static constexpr char kManifest[] = R"(
++        {
++          "name": "ScriptInjectionTrackerBrowserTest - Restricted host",
++          "version": "1.0",
++          "manifest_version": 3,
++          "permissions": ["activeTab"],
++          "content_scripts": [{
++            "matches": ["*://a.com/*"],
++            "js": ["content_script.js"],
++            "run_at": "document_end"
++          }]
++        } )";
++    extension_dir_.WriteManifest(kManifest);
++    extension_dir_.WriteFile(FILE_PATH_LITERAL("content_script.js"),
++                             "document.body.title = 'Content script has run';");
++    return LoadExtension(extension_dir_.UnpackedPath());
++  }
++
++  // Grants `extension` activeTab on the active tab.
++  void GrantActiveTab(const Extension& extension) {
++    PermissionsManagerWaiter waiter(PermissionsManager::Get(profile()));
++    ActiveTabPermissionGranter::FromWebContents(GetActiveWebContents())
++        ->GrantIfRequested(&extension);
++    waiter.WaitForActiveTabPermissionGranted(extension.id());
++  }
++
++  // Sets the policy blocked hosts of `extension` to `blocked_hosts`.
++  void SetPolicyBlockedHosts(const Extension& extension,
++                             const URLPatternSet& blocked_hosts) {
++    PermissionsManagerWaiter waiter(PermissionsManager::Get(profile()));
++    PermissionsUpdater(profile()).SetPolicyHostRestrictions(
++        &extension, blocked_hosts, URLPatternSet());
++    waiter.WaitForExtensionPermissionsUpdate();
++  }
++
++  // Returns whether ScriptInjectionTracker reports that the process of the
++  // active tab ran a content script from `extension`.
++  bool DidActiveTabProcessRunContentScript(const Extension& extension) {
++    return ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++        *GetActiveWebContents()->GetPrimaryMainFrame()->GetProcess(),
++        extension.id());
++  }
++
++  // Returns host patterns matching a.com.
++  static URLPatternSet GetAComPatterns() {
++    URLPatternSet patterns;
++    patterns.AddPattern(
++        URLPattern(Extension::kValidHostPermissionSchemes, "*://a.com/*"));
++    return patterns;
++  }
++
++ private:
++  TestExtensionDir extension_dir_;
++};
++
++// Tests that a static content script with withheld host permissions is
++// considered as injectable once the user grants the extension activeTab, but
++// only if the page matches the script's URL patterns.
++IN_PROC_BROWSER_TEST_F(ScriptInjectionTrackerRestrictedHostBrowserTest,
++                       ContentScriptWithWithheldHostPermissionsActiveTab) {
++  const Extension* extension = LoadExtensionWithAComContentScript();
++  ASSERT_TRUE(extension);
++  {
++    PermissionsManagerWaiter waiter(PermissionsManager::Get(profile()));
++    ScriptingPermissionsModifier(profile(), extension)
++        .SetWithholdHostPermissions(true);
++    waiter.WaitForExtensionPermissionsUpdate();
++  }
++
++  // Grant activeTab on b.com. The content script only matches a.com, so
++  // b.com's process must not be recorded as having run a content script.
++  ASSERT_TRUE(
++      NavigateToURL(GetActiveWebContents(),
++                    embedded_test_server()->GetURL("b.com", "/title1.html")));
++  GrantActiveTab(*extension);
++  EXPECT_FALSE(DidActiveTabProcessRunContentScript(*extension));
++
++  // Navigate to a.com in a new tab, where the extension's access is withheld.
++  ASSERT_TRUE(NavigateToURLInNewProcess("a.com", "/title1.html"));
++  content::WebContents* web_contents = GetActiveWebContents();
++  EXPECT_EQ("", content::EvalJs(web_contents, "document.body.title"));
++  EXPECT_FALSE(DidActiveTabProcessRunContentScript(*extension));
++
++  // Granting activeTab makes the content script injectable.
++  GrantActiveTab(*extension);
++  EXPECT_TRUE(DidActiveTabProcessRunContentScript(*extension));
++  ASSERT_TRUE(NavigateToURL(
++      web_contents, embedded_test_server()->GetURL("a.com", "/title1.html")));
++  EXPECT_EQ("Content script has run",
++            content::EvalJs(web_contents, "document.body.title"));
++  EXPECT_TRUE(DidActiveTabProcessRunContentScript(*extension));
++}
++
++// Tests that a static content script is not considered as injectable on a host
++// blocked by the extension's policy (even with activeTab), and that unblocking
++// the host makes it injectable without needing a new navigation.
++IN_PROC_BROWSER_TEST_F(ScriptInjectionTrackerRestrictedHostBrowserTest,
++                       ContentScriptOnPolicyUnblockedHost) {
++  const Extension* extension = LoadExtensionWithAComContentScript();
++  ASSERT_TRUE(extension);
++  SetPolicyBlockedHosts(*extension, GetAComPatterns());
++
++  ASSERT_TRUE(NavigateToURLInNewProcess("a.com", "/title1.html"));
++  EXPECT_EQ("", content::EvalJs(GetActiveWebContents(), "document.body.title"));
++  EXPECT_FALSE(DidActiveTabProcessRunContentScript(*extension));
++  GrantActiveTab(*extension);
++  EXPECT_FALSE(DidActiveTabProcessRunContentScript(*extension));
++
++  SetPolicyBlockedHosts(*extension, URLPatternSet());
++  EXPECT_TRUE(DidActiveTabProcessRunContentScript(*extension));
++}
++
++// Same as above, but for the default policy host restrictions.
++IN_PROC_BROWSER_TEST_F(ScriptInjectionTrackerRestrictedHostBrowserTest,
++                       ContentScriptOnDefaultPolicyUnblockedHost) {
++  const Extension* extension = LoadExtensionWithAComContentScript();
++  ASSERT_TRUE(extension);
++  PermissionsUpdater(profile()).SetDefaultPolicyHostRestrictions(
++      GetAComPatterns(), URLPatternSet());
++
++  ASSERT_TRUE(NavigateToURLInNewProcess("a.com", "/title1.html"));
++  EXPECT_EQ("", content::EvalJs(GetActiveWebContents(), "document.body.title"));
++  EXPECT_FALSE(DidActiveTabProcessRunContentScript(*extension));
++
++  // There is no observer for default policy updates, so wait for the tracker.
++  PermissionsUpdater(profile()).SetDefaultPolicyHostRestrictions(
++      URLPatternSet(), URLPatternSet());
++  EXPECT_TRUE(base::test::RunUntil(
++      [&] { return DidActiveTabProcessRunContentScript(*extension); }));
++}
++
++class ScriptInjectionTrackerUserRestrictedHostBrowserTest
++    : public ScriptInjectionTrackerRestrictedHostBrowserTest {
++ private:
++  base::test::ScopedFeatureList scoped_feature_list_{
++      extensions_features::kExtensionsMenuAccessControl};
++};
++
++// Tests that a static content script is not considered as injectable on a site
++// restricted by the user, and that unrestricting the site makes it injectable
++// without needing a new navigation.
++IN_PROC_BROWSER_TEST_F(ScriptInjectionTrackerUserRestrictedHostBrowserTest,
++                       ContentScriptOnUserUnrestrictedSite) {
++  const Extension* extension = LoadExtensionWithAComContentScript();
++  ASSERT_TRUE(extension);
++  PermissionsManager* permissions_manager = PermissionsManager::Get(profile());
++  const url::Origin origin = url::Origin::Create(
++      embedded_test_server()->GetURL("a.com", "/title1.html"));
++  {
++    PermissionsManagerWaiter waiter(permissions_manager);
++    permissions_manager->AddUserRestrictedSite(origin);
++    waiter.WaitForUserPermissionsSettingsChange();
++  }
++
++  ASSERT_TRUE(NavigateToURLInNewProcess("a.com", "/title1.html"));
++  EXPECT_EQ("", content::EvalJs(GetActiveWebContents(), "document.body.title"));
++  EXPECT_FALSE(DidActiveTabProcessRunContentScript(*extension));
++
++  {
++    PermissionsManagerWaiter waiter(permissions_manager);
++    permissions_manager->RemoveUserRestrictedSite(origin);
++    waiter.WaitForUserPermissionsSettingsChange();
++  }
++  EXPECT_TRUE(DidActiveTabProcessRunContentScript(*extension));
++}
++
+ // Ensure ScriptInjectionTracker correctly tracks script injections in frames
+ // which undergo non-network (i.e. no ReadyToCommitNavigation notification)
+ // navigations after an extension is loaded.  For more details about the
+diff --git a/chrome/common/extensions/permissions/permissions_data_unittest.cc b/chrome/common/extensions/permissions/permissions_data_unittest.cc
+index 0a3aa7462c..be3c6ec278 100644
+--- a/chrome/common/extensions/permissions/permissions_data_unittest.cc
++++ b/chrome/common/extensions/permissions/permissions_data_unittest.cc
+@@ -1052,6 +1052,104 @@ TEST(PermissionsDataTest, ChromeWebstoreUrl) {
+   }
+ }
+ 
++// Tests for PermissionsData::GetContentScriptAccessForSecurityOrigin(), using
++// an extension with a static content script on a single path of example.com.
++class GetContentScriptAccessForSecurityOriginTest : public testing::Test {
++ protected:
++  static constexpr int kNoTabId = -1;
++  static constexpr int kTabId = 42;
++
++  // Grants tab-specific permissions (e.g. activeTab) for the origin of
++  // `in_path_url_` to `kTabId`.
++  void GrantTabPermissions() {
++    URLPatternSet tab_hosts;
++    tab_hosts.AddOrigin(UserScript::ValidUserScriptSchemes(),
++                        in_path_url_.DeprecatedGetOriginAsURL());
++    permissions_data()->UpdateTabSpecificPermissions(
++        kTabId, PermissionSet(APIPermissionSet(), ManifestPermissionSet(),
++                              tab_hosts.Clone(), tab_hosts.Clone()));
++  }
++
++  const PermissionsData* permissions_data() const {
++    return extension_->permissions_data();
++  }
++
++  const GURL in_path_url_{"http://www.example.com/path/page.html"};
++  const GURL other_path_url_{"http://www.example.com/other/page.html"};
++  const GURL other_origin_url_{"http://www.other.com/path/page.html"};
++
++ private:
++  scoped_refptr<const Extension> extension_ =
++      ExtensionBuilder("content script matcher")
++          .AddContentScript("script.js", {"http://www.example.com/path/*"})
++          .Build();
++};
++
++// Tests that the content script patterns are matched against only the security
++// origin of the document URL, whereas GetContentScriptAccess() also considers
++// their paths.
++TEST_F(GetContentScriptAccessForSecurityOriginTest, IgnoresPath) {
++  EXPECT_EQ(PermissionsData::PageAccess::kAllowed,
++            permissions_data()->GetContentScriptAccess(in_path_url_, kNoTabId,
++                                                       nullptr));
++  EXPECT_EQ(PermissionsData::PageAccess::kDenied,
++            permissions_data()->GetContentScriptAccess(other_path_url_,
++                                                       kNoTabId, nullptr));
++  EXPECT_EQ(PermissionsData::PageAccess::kAllowed,
++            permissions_data()->GetContentScriptAccessForSecurityOrigin(
++                in_path_url_, kNoTabId));
++  EXPECT_EQ(PermissionsData::PageAccess::kAllowed,
++            permissions_data()->GetContentScriptAccessForSecurityOrigin(
++                other_path_url_, kNoTabId));
++  EXPECT_EQ(PermissionsData::PageAccess::kDenied,
++            permissions_data()->GetContentScriptAccessForSecurityOrigin(
++                other_origin_url_, kNoTabId));
++}
++
++// Tests that access is reported as withheld when the extension's host
++// permissions are withheld (i.e. the user configured the extension to run on
++// click), and that tab-specific permissions grant access only for their tab.
++TEST_F(GetContentScriptAccessForSecurityOriginTest, Withheld) {
++  permissions_data()->SetPermissions(
++      std::make_unique<PermissionSet>(),
++      std::make_unique<PermissionSet>(
++          APIPermissionSet(), ManifestPermissionSet(), URLPatternSet(),
++          permissions_data()->active_permissions().scriptable_hosts().Clone()));
++  EXPECT_EQ(PermissionsData::PageAccess::kWithheld,
++            permissions_data()->GetContentScriptAccessForSecurityOrigin(
++                in_path_url_, kNoTabId));
++  EXPECT_EQ(PermissionsData::PageAccess::kWithheld,
++            permissions_data()->GetContentScriptAccessForSecurityOrigin(
++                other_path_url_, kNoTabId));
++  EXPECT_EQ(PermissionsData::PageAccess::kDenied,
++            permissions_data()->GetContentScriptAccessForSecurityOrigin(
++                other_origin_url_, kNoTabId));
++
++  GrantTabPermissions();
++  EXPECT_EQ(PermissionsData::PageAccess::kAllowed,
++            permissions_data()->GetContentScriptAccessForSecurityOrigin(
++                other_path_url_, kTabId));
++  EXPECT_EQ(PermissionsData::PageAccess::kWithheld,
++            permissions_data()->GetContentScriptAccessForSecurityOrigin(
++                other_path_url_, kNoTabId));
++}
++
++// Tests that policy host restrictions take precedence over both the content
++// script access and tab-specific permissions.
++TEST_F(GetContentScriptAccessForSecurityOriginTest, PolicyBlocked) {
++  GrantTabPermissions();
++  URLPatternSet blocked_hosts;
++  blocked_hosts.AddPattern(
++      URLPattern(URLPattern::SCHEME_ALL, "*://www.example.com/*"));
++  permissions_data()->SetPolicyHostRestrictions(blocked_hosts, URLPatternSet());
++  EXPECT_EQ(PermissionsData::PageAccess::kDenied,
++            permissions_data()->GetContentScriptAccessForSecurityOrigin(
++                in_path_url_, kNoTabId));
++  EXPECT_EQ(PermissionsData::PageAccess::kDenied,
++            permissions_data()->GetContentScriptAccessForSecurityOrigin(
++                other_path_url_, kTabId));
++}
++
+ TEST_F(ExtensionScriptAndCaptureVisibleTest, PolicyHostRestrictionsSwap) {
+   // Makes sure when an extension gets an individual policy for host
+   // restrictions it overrides the default policy. Also tests transitioning back
+diff --git a/extensions/browser/permissions/permissions_updater.cc b/extensions/browser/permissions/permissions_updater.cc
+index b64b285cd3..c4ed746d73 100644
+--- a/extensions/browser/permissions/permissions_updater.cc
++++ b/extensions/browser/permissions/permissions_updater.cc
+@@ -723,8 +723,11 @@ void PermissionsUpdater::NotifyPermissionsUpdated(
+           permissions_data->policy_allowed_hosts(),
+           permissions_data->UsesDefaultPolicyHostRestrictions());
+ 
+-      // Notify ScriptInjectionTracker when host permissions change.
+-      if (!changed->effective_hosts().is_empty()) {
++      // Notify ScriptInjectionTracker when host permissions or policy host
++      // restrictions change. For policy updates `changed` is empty, but
++      // unblocking a host may allow scripts to inject into it.
++      if (event_type == EventType::kPolicy ||
++          !changed->effective_hosts().is_empty()) {
+         ScriptInjectionTracker::DidUpdatePermissionsInRenderer(
+             base::PassKey<PermissionsUpdater>(), *extension, *host);
+       }
+@@ -744,6 +747,8 @@ void PermissionsUpdater::NotifyDefaultPolicyHostRestrictionsUpdated(
+     const URLPatternSet default_runtime_blocked_hosts,
+     const URLPatternSet default_runtime_allowed_hosts) {
+   // Send the new policy to the renderers.
++  const ExtensionSet& enabled_extensions =
++      ExtensionRegistry::Get(browser_context)->enabled_extensions();
+   for (RenderProcessHost::iterator host_iterator(
+            RenderProcessHost::AllHostsIterator());
+        !host_iterator.IsAtEnd(); host_iterator.Advance()) {
+@@ -759,6 +764,12 @@ void PermissionsUpdater::NotifyDefaultPolicyHostRestrictionsUpdated(
+         renderer->UpdateDefaultPolicyHostRestrictions(
+             default_runtime_blocked_hosts.Clone(),
+             default_runtime_allowed_hosts.Clone());
++
++        // Unblocking a host may allow scripts to inject into it.
++        for (const auto& extension : enabled_extensions) {
++          ScriptInjectionTracker::DidUpdatePermissionsInRenderer(
++              base::PassKey<PermissionsUpdater>(), *extension, *host);
++        }
+       }
+     }
+   }
+diff --git a/extensions/browser/permissions_manager.cc b/extensions/browser/permissions_manager.cc
+index db6d0b6a17..1a871341ab 100644
+--- a/extensions/browser/permissions_manager.cc
++++ b/extensions/browser/permissions_manager.cc
+@@ -31,6 +31,7 @@
+ #include "extensions/browser/pref_names.h"
+ #include "extensions/browser/pref_types.h"
+ #include "extensions/browser/renderer_startup_helper.h"
++#include "extensions/browser/script_injection_tracker.h"
+ #include "extensions/common/extension.h"
+ #include "extensions/common/extension_features.h"
+ #include "extensions/common/extension_id.h"
+@@ -1043,6 +1044,12 @@ void PermissionsManager::OnUserPermissionsSettingsChanged() {
+     UpdatePermissionsWithUserSettings(*extension, user_allowed_set);
+   }
+ 
++  // Update the browser-side user host restrictions before notifying
++  // ScriptInjectionTracker below, which reads them.
++  PermissionsData::SetUserHostRestrictions(
++      util::GetBrowserContextId(browser_context_), user_blocked_sites.Clone(),
++      user_allowed_sites.Clone());
++
+   // Send the new permissions states to the renderers, including both the
+   // updated user host settings and the updated permissions for each extension.
+   // Unlike above, we only care about enabled extensions here, since disabled
+@@ -1075,14 +1082,18 @@ void PermissionsManager::OnUserPermissionsSettingsChanged() {
+                 permissions_data->UsesDefaultPolicyHostRestrictions());
+           }
+         }
++
++        // Unrestricting a site may allow scripts to inject into it. This runs
++        // in the same task as the renderer updates above, so it precedes any
++        // IPC the renderer sends in response.
++        for (const auto& extension : registry->enabled_extensions()) {
++          ScriptInjectionTracker::DidUpdatePermissionsInRenderer(
++              base::PassKey<PermissionsManager>(), *extension, *host);
++        }
+       }
+     }
+   }
+ 
+-  PermissionsData::SetUserHostRestrictions(
+-      util::GetBrowserContextId(browser_context_),
+-      std::move(user_blocked_sites), std::move(user_allowed_sites));
+-
+   // Notify observers of a permissions change once the changes have taken
+   // effect in the network layer.
+   NetworkPermissionsUpdater::UpdateAllExtensions(
+diff --git a/extensions/browser/script_injection_tracker.cc b/extensions/browser/script_injection_tracker.cc
+index 0fa5fbaa74..ce5232db85 100644
+--- a/extensions/browser/script_injection_tracker.cc
++++ b/extensions/browser/script_injection_tracker.cc
+@@ -230,11 +230,14 @@ bool CanExtensionScriptsAffectFrame(content::RenderFrameHost& frame,
+ // scripts. This function approximates a subset of checks from
+ // UserScriptSet::GetInjectionForScript (which runs in the renderer process).
+ // Unlike the renderer version, the code below doesn't consider ability to
+-// create an injection host, nor the results of
+-// ScriptInjector::CanExecuteOnFrame, nor the path of `url_patterns`.
+-// Additionally the `effective_url` calculations are also only an approximation.
+-// This is okay, because the top-level doc comment for ScriptInjectionTracker
+-// documents that false positives are expected and why they are okay.
++// create an injection host, only approximates the host permission checks of
++// ScriptInjector::CanExecuteOnFrame (e.g. it ignores the PDF and extension
++// page restrictions), and ignores the paths of both `url_patterns` and the
++// extension's host permissions. Additionally the `effective_url` calculations
++// are also only an approximation. This is okay because false positives are
++// expected (see the top-level doc comment for ScriptInjectionTracker), but
++// every check here must be at least as permissive as the renderer's, since a
++// false negative results in a renderer kill.
+ bool DoesScriptMatch(const Extension& extension,
+                      const UserScript& script,
+                      content::RenderFrameHost& frame,
+@@ -250,18 +253,29 @@ bool DoesScriptMatch(const Extension& extension,
+   auto* web_contents = content::WebContents::FromRenderFrameHost(&frame);
+   int tab_id = sessions::SessionTabHelper::IdForTab(web_contents).id();
+ 
+-  // Script can inject if the extension has tab permissions for the url.
+-  if (extension.permissions_data()->HasTabPermissionsForSecurityOrigin(
+-          tab_id, effective_url)) {
+-    return true;
+-  }
+-
+-  // Dynamic scripts can only inject when the extension has host permissions for
+-  // the url.
++  // The host permission checks below match at origin granularity because the
++  // renderer evaluates injection against the document URL at each run
++  // location, which may differ in path from `url` (e.g. after
++  // history.pushState()). Matching paths here could cause false negatives.
++  //
++  // Dynamic scripts share the host permission requirements of programmatic
++  // scripts and can only inject when the extension's page access (explicit
++  // hosts or tab permissions, not withheld or blocked by policy/user) is
++  // allowed for the url.
+   auto script_source = script.GetSource();
+   if ((script_source == UserScript::Source::kDynamicContentScript ||
+        script_source == UserScript::Source::kDynamicUserScript) &&
+-      !extension.permissions_data()->HasHostPermission(effective_url)) {
++      extension.permissions_data()->GetPageAccessForSecurityOrigin(
++          effective_url, tab_id) != PermissionsData::PageAccess::kAllowed) {
++    return false;
++  }
++
++  // Static content scripts can only inject when the extension's content script
++  // access (scriptable hosts or tab permissions, not withheld or blocked by
++  // policy/user) is allowed for the url.
++  if (script_source == UserScript::Source::kStaticContentScript &&
++      extension.permissions_data()->GetContentScriptAccessForSecurityOrigin(
++          effective_url, tab_id) != PermissionsData::PageAccess::kAllowed) {
+     return false;
+   }
+ 
+@@ -897,6 +911,16 @@ void ScriptInjectionTracker::DidUpdatePermissionsInRenderer(
+   AddMatchingScriptsToProcess(extension, process);
+ }
+ 
++// static
++void ScriptInjectionTracker::DidUpdatePermissionsInRenderer(
++    base::PassKey<PermissionsManager> pass_key,
++    const Extension& extension,
++    content::RenderProcessHost& process) {
++  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
++
++  AddMatchingScriptsToProcess(extension, process);
++}
++
+ // static
+ bool ScriptInjectionTracker::DoStaticContentScriptsMatchForTesting(
+     const Extension& extension,
+diff --git a/extensions/browser/script_injection_tracker.h b/extensions/browser/script_injection_tracker.h
+index 8f0ba4cf6c..ae3bfcd367 100644
+--- a/extensions/browser/script_injection_tracker.h
++++ b/extensions/browser/script_injection_tracker.h
+@@ -29,6 +29,7 @@ class Extension;
+ class ExtensionActionRunner;
+ class ExtensionWebContentsObserver;
+ class UserScriptLoader;
++class PermissionsManager;
+ class PermissionsUpdater;
+ class RequestContentScript;
+ class ScriptExecutor;
+@@ -157,12 +158,20 @@ class ScriptInjectionTracker {
+       content::RenderProcessHost& process);
+ 
+   // Called right after the given renderer `process` is notified about
+-  // permission updates.
++  // permission updates, including policy host restriction updates.
+   static void DidUpdatePermissionsInRenderer(
+       base::PassKey<PermissionsUpdater> pass_key,
+       const Extension& extension,
+       content::RenderProcessHost& process);
+ 
++  // Called right after the given renderer `process` is notified about user
++  // host restriction updates (e.g. the user unrestricting a site), once the
++  // browser-side restrictions have been updated.
++  static void DidUpdatePermissionsInRenderer(
++      base::PassKey<PermissionsManager> pass_key,
++      const Extension& extension,
++      content::RenderProcessHost& process);
++
+  private:
+   using PassKey = base::PassKey<ScriptInjectionTracker>;
+ 
+diff --git a/extensions/common/permissions/permissions_data.cc b/extensions/common/permissions/permissions_data.cc
+index 94b43b68ae..51826bf5d3 100644
+--- a/extensions/common/permissions/permissions_data.cc
++++ b/extensions/common/permissions/permissions_data.cc
+@@ -434,7 +434,8 @@ PermissionsData::PageAccess PermissionsData::GetPageAccess(
+   return CanRunOnPage(
+       document_url, active_permissions_unsafe_->explicit_hosts(),
+       withheld_permissions_unsafe_->explicit_hosts(),
+-      tab_permissions ? &tab_permissions->explicit_hosts() : nullptr, error);
++      tab_permissions ? &tab_permissions->explicit_hosts() : nullptr,
++      PatternMatchMode::kMatchUrl, error);
+ }
+ 
+ bool PermissionsData::CanRunContentScriptOnPage(const GURL& document_url,
+@@ -457,7 +458,35 @@ PermissionsData::PageAccess PermissionsData::GetContentScriptAccess(
+   return CanRunOnPage(
+       document_url, active_permissions_unsafe_->scriptable_hosts(),
+       withheld_permissions_unsafe_->scriptable_hosts(),
+-      tab_permissions ? &tab_permissions->scriptable_hosts() : nullptr, error);
++      tab_permissions ? &tab_permissions->scriptable_hosts() : nullptr,
++      PatternMatchMode::kMatchUrl, error);
++}
++
++PermissionsData::PageAccess PermissionsData::GetPageAccessForSecurityOrigin(
++    const GURL& document_url,
++    int tab_id) const {
++  base::AutoLock auto_lock(runtime_lock_);
++
++  const PermissionSet* tab_permissions = GetTabSpecificPermissions(tab_id);
++  return CanRunOnPage(
++      document_url, active_permissions_unsafe_->explicit_hosts(),
++      withheld_permissions_unsafe_->explicit_hosts(),
++      tab_permissions ? &tab_permissions->explicit_hosts() : nullptr,
++      PatternMatchMode::kMatchSecurityOrigin, /*error=*/nullptr);
++}
++
++PermissionsData::PageAccess
++PermissionsData::GetContentScriptAccessForSecurityOrigin(
++    const GURL& document_url,
++    int tab_id) const {
++  base::AutoLock auto_lock(runtime_lock_);
++
++  const PermissionSet* tab_permissions = GetTabSpecificPermissions(tab_id);
++  return CanRunOnPage(
++      document_url, active_permissions_unsafe_->scriptable_hosts(),
++      withheld_permissions_unsafe_->scriptable_hosts(),
++      tab_permissions ? &tab_permissions->scriptable_hosts() : nullptr,
++      PatternMatchMode::kMatchSecurityOrigin, /*error=*/nullptr);
+ }
+ 
+ bool PermissionsData::CanCaptureVisiblePage(
+@@ -657,6 +686,7 @@ PermissionsData::PageAccess PermissionsData::CanRunOnPage(
+     const URLPatternSet& permitted_url_patterns,
+     const URLPatternSet& withheld_url_patterns,
+     const URLPatternSet* tab_url_patterns,
++    PatternMatchMode match_mode,
+     std::string* error) const {
+   runtime_lock_.AssertAcquired();
+   if (location_ != mojom::ManifestLocation::kComponent &&
+@@ -679,14 +709,23 @@ PermissionsData::PageAccess PermissionsData::CanRunOnPage(
+     return PageAccess::kDenied;
+   }
+ 
+-  if (tab_url_patterns && tab_url_patterns->MatchesURL(document_url))
++  auto matches_patterns = [&](const URLPatternSet& patterns) {
++    return match_mode == PatternMatchMode::kMatchSecurityOrigin
++               ? patterns.MatchesSecurityOrigin(document_url)
++               : patterns.MatchesURL(document_url);
++  };
++
++  if (tab_url_patterns && matches_patterns(*tab_url_patterns)) {
+     return PageAccess::kAllowed;
++  }
+ 
+-  if (permitted_url_patterns.MatchesURL(document_url))
++  if (matches_patterns(permitted_url_patterns)) {
+     return PageAccess::kAllowed;
++  }
+ 
+-  if (withheld_url_patterns.MatchesURL(document_url))
++  if (matches_patterns(withheld_url_patterns)) {
+     return PageAccess::kWithheld;
++  }
+ 
+   if (error) {
+     if (active_permissions_unsafe_->HasAPIPermission(APIPermissionID::kTab)) {
+diff --git a/extensions/common/permissions/permissions_data.h b/extensions/common/permissions/permissions_data.h
+index 8c3d5d0bb0..e94605cbcc 100644
+--- a/extensions/common/permissions/permissions_data.h
++++ b/extensions/common/permissions/permissions_data.h
+@@ -228,6 +228,15 @@ class PermissionsData {
+                                     int tab_id,
+                                     std::string* error) const;
+ 
++  // Like GetPageAccess() and GetContentScriptAccess(), but match the
++  // extension's explicit or scriptable host patterns (respectively) against
++  // only the security origin of `document_url` (i.e. ignore the paths of both
++  // `document_url` and the patterns).
++  PageAccess GetPageAccessForSecurityOrigin(const GURL& document_url,
++                                            int tab_id) const;
++  PageAccess GetContentScriptAccessForSecurityOrigin(const GURL& document_url,
++                                                     int tab_id) const;
++
+   // Returns true if the associated extension is allowed to obtain the contents
+   // of a page as an image. Pages may contain multiple sources (e.g.,
+   // example.com may embed google.com), so simply checking the top-frame's URL
+@@ -306,6 +315,13 @@ class PermissionsData {
+   // Must be called with `runtime_lock_` acquired.
+   const PermissionSet* GetTabSpecificPermissions(int tab_id) const;
+ 
++  // Whether CanRunOnPage() matches URL patterns against the full document URL
++  // or against only its security origin (i.e. ignoring URL paths).
++  enum class PatternMatchMode {
++    kMatchUrl,
++    kMatchSecurityOrigin,
++  };
++
+   // Returns whether or not the extension is permitted to run on the given page,
+   // checking against `permitted_url_patterns` and `tab_url_patterns` in
+   // addition to blocking special sites (like the webstore or chrome:// urls).
+@@ -314,6 +330,7 @@ class PermissionsData {
+                           const URLPatternSet& permitted_url_patterns,
+                           const URLPatternSet& withheld_url_patterns,
+                           const URLPatternSet* tab_url_patterns,
++                          PatternMatchMode match_mode,
+                           std::string* error) const;
+ 
+   // Check if a specific URL is blocked by policy from extension use at runtime.
+-- 
+2.43.0
+

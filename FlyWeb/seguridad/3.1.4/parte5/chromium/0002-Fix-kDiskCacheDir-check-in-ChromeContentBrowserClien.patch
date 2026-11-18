@@ -1,0 +1,589 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Takashi Toyoshima <toyoshim@chromium.org>
+Date: Mon, 28 Sep 2026 21:26:13 -0700
+Subject: [PATCH 02/48] Fix kDiskCacheDir check in ChromeContentBrowserClient
+
+`InitOnUIThread()` checked `user_data_dir.IsParent(cache_dir)` instead
+of `pref_cache_dir` when populating
+`network_contexts_parent_directory_`. Introduce
+`chrome_browser_net::GetDiskCacheDir()` to ignore user-controlled or
+invalid `prefs::kDiskCacheDir` values consistently across
+`InitOnUIThread()`, `GetGeneratedCodeCacheSettings()`, and
+`ProfileNetworkContextService`.
+
+TAG=agy
+CONV=ad5e5ad9-7bec-4ac8-b110-b95f20678701
+
+Bug: 556221528
+Change-Id: I2a93c9ee423217774b051d9b4450102dfb044054
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8443856
+Reviewed-by: Matthew Denton <mpdenton@chromium.org>
+Reviewed-by: Adam Rice <ricea@chromium.org>
+Commit-Queue: Takashi Toyoshima <toyoshim@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1706728}
+(cherry picked from commit 2a556d9b9819010c890cc19189fd4919d09441fb)
+---
+ .../browser/chrome_content_browser_client.cc  |  23 +-
+ .../browser/chrome_content_browser_client.h   |   2 +
+ .../chrome_content_browser_client_unittest.cc | 211 +++++++++++++++++-
+ chrome/browser/net/BUILD.gn                   |   3 +
+ chrome/browser/net/disk_cache_dir_util.cc     |  33 +++
+ chrome/browser/net/disk_cache_dir_util.h      |  24 ++
+ .../net/disk_cache_dir_util_unittest.cc       |  66 ++++++
+ .../net/profile_network_context_service.cc    |   5 +-
+ 8 files changed, 348 insertions(+), 19 deletions(-)
+ create mode 100644 chrome/browser/net/disk_cache_dir_util.cc
+ create mode 100644 chrome/browser/net/disk_cache_dir_util.h
+ create mode 100644 chrome/browser/net/disk_cache_dir_util_unittest.cc
+
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+index aa8b16f467..e378f8381d 100644
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -128,6 +128,7 @@
+ #include "chrome/browser/metrics/chrome_feature_list_creator.h"
+ #include "chrome/browser/navigation_predictor/anchor_element_preloader.h"
+ #include "chrome/browser/net/chrome_network_delegate.h"
++#include "chrome/browser/net/disk_cache_dir_util.h"
+ #include "chrome/browser/net/profile_network_context_service.h"
+ #include "chrome/browser/net/profile_network_context_service_factory.h"
+ #include "chrome/browser/net/system_network_context_manager.h"
+@@ -3899,8 +3900,8 @@ ChromeContentBrowserClient::GetGeneratedCodeCacheSettings(
+   PrefService* local_state = g_browser_process->local_state();
+   if (local_state) {
+     size_in_bytes = local_state->GetInteger(prefs::kDiskCacheSize);
+-    base::FilePath disk_cache_dir =
+-        local_state->GetFilePath(prefs::kDiskCacheDir);
++    const base::FilePath disk_cache_dir =
++        chrome_browser_net::GetDiskCacheDir(local_state);
+     if (!disk_cache_dir.empty()) {
+       cache_path = disk_cache_dir.Append(cache_path.BaseName());
+     }
+@@ -5855,18 +5856,18 @@ void ChromeContentBrowserClient::InitOnUIThread() {
+   DCHECK(!cache_dir.empty());
+   // On some platforms, the cache is a child of the user_data_dir so only
+   // return the one path.
+-  if (!user_data_dir.IsParent(cache_dir)) {
++  if (cache_dir != user_data_dir && !user_data_dir.IsParent(cache_dir)) {
+     network_contexts_parent_directory_.push_back(cache_dir);
+   }
+ 
+-  // If the cache location has been overridden by a switch or preference,
+-  // include that as well.
+-  if (auto* local_state = g_browser_process->local_state()) {
+-    base::FilePath pref_cache_dir =
+-        local_state->GetFilePath(prefs::kDiskCacheDir);
+-    if (!pref_cache_dir.empty() && !user_data_dir.IsParent(cache_dir)) {
+-      network_contexts_parent_directory_.push_back(pref_cache_dir);
+-    }
++  // If the cache location has been overridden by a switch or policy to a
++  // directory outside `user_data_dir` and `cache_dir`, include that as well.
++  const base::FilePath pref_cache_dir =
++      chrome_browser_net::GetDiskCacheDir(g_browser_process->local_state());
++  if (!pref_cache_dir.empty() && pref_cache_dir != user_data_dir &&
++      !user_data_dir.IsParent(pref_cache_dir) && pref_cache_dir != cache_dir &&
++      !cache_dir.IsParent(pref_cache_dir)) {
++    network_contexts_parent_directory_.push_back(pref_cache_dir);
+   }
+ }
+ 
+diff --git a/chrome/browser/chrome_content_browser_client.h b/chrome/browser/chrome_content_browser_client.h
+index 1c972e4e27..eb89441d3d 100644
+--- a/chrome/browser/chrome_content_browser_client.h
++++ b/chrome/browser/chrome_content_browser_client.h
+@@ -15,6 +15,7 @@
+ #include <vector>
+ 
+ #include "base/containers/flat_map.h"
++#include "base/files/file_path.h"
+ #include "base/functional/callback.h"
+ #include "base/gtest_prod_util.h"
+ #include "base/memory/scoped_refptr.h"
+@@ -1271,6 +1272,7 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
+   virtual std::unique_ptr<HttpAuthCoordinator> CreateHttpAuthCoordinator();
+ 
+  private:
++  friend class ChromeContentBrowserClientDiskCacheDirTest;
+   friend class DisableWebRtcEncryptionFlagTest;
+   friend class InProcessBrowserTest;
+ 
+diff --git a/chrome/browser/chrome_content_browser_client_unittest.cc b/chrome/browser/chrome_content_browser_client_unittest.cc
+index f41a15a3cf..3265f5a919 100644
+--- a/chrome/browser/chrome_content_browser_client_unittest.cc
++++ b/chrome/browser/chrome_content_browser_client_unittest.cc
+@@ -13,15 +13,20 @@
+ #include <vector>
+ 
+ #include "ash/webui/camera_app_ui/url_constants.h"
++#include "base/base_paths.h"
+ #include "base/command_line.h"
+ #include "base/files/file_path.h"
+ #include "base/files/scoped_file.h"
++#include "base/files/scoped_temp_dir.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
++#include "base/json/values_util.h"
+ #include "base/memory/raw_ptr.h"
+ #include "base/metrics/field_trial.h"
+ #include "base/metrics/field_trial_params.h"
++#include "base/path_service.h"
+ #include "base/run_loop.h"
++#include "base/scoped_environment_variable_override.h"
+ #include "base/strings/strcat.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/test/gmock_callback_support.h"
+@@ -30,6 +35,7 @@
+ #include "base/test/mock_callback.h"
+ #include "base/test/scoped_command_line.h"
+ #include "base/test/scoped_feature_list.h"
++#include "base/test/scoped_path_override.h"
+ #include "base/test/test_future.h"
+ #include "base/time/time.h"
+ #include "base/values.h"
+@@ -41,7 +47,6 @@
+ #include "chrome/browser/devtools/features.h"
+ #include "chrome/browser/enterprise/net/enterprise_proxy_error_service_factory.h"
+ #include "chrome/browser/enterprise/net/enterprise_proxy_service_factory.h"
+-#include "components/enterprise/browser/reporting/prefs.h"
+ #include "chrome/browser/global_features.h"
+ #include "chrome/browser/media/prefs/capture_device_ranking.h"
+ #include "chrome/browser/search/search.h"
+@@ -52,6 +57,8 @@
+ #include "chrome/browser/webauthn/webauthn_pref_names.h"
+ #include "chrome/common/buildflags.h"
+ #include "chrome/common/chrome_features.h"
++#include "chrome/common/chrome_paths.h"
++#include "chrome/common/chrome_paths_internal.h"
+ #include "chrome/common/chrome_switches.h"
+ #include "chrome/common/pref_names.h"
+ #include "chrome/common/webui_url_constants.h"
+@@ -64,6 +71,7 @@
+ #include "components/content_settings/core/browser/cookie_settings.h"
+ #include "components/content_settings/core/browser/host_content_settings_map.h"
+ #include "components/content_settings/core/common/pref_names.h"
++#include "components/enterprise/browser/reporting/prefs.h"
+ #include "components/enterprise/net/core/enterprise_proxy_error_data.h"
+ #include "components/enterprise/net/core/enterprise_proxy_error_service.h"
+ #include "components/enterprise/net/core/enterprise_proxy_service.h"
+@@ -77,6 +85,7 @@
+ #include "components/guest_view/buildflags/buildflags.h"
+ #include "components/network_session_configurator/common/network_switches.h"
+ #include "components/policy/core/common/policy_pref_names.h"
++#include "components/prefs/pref_service.h"
+ #include "components/prefs/testing_pref_service.h"
+ #include "components/privacy_sandbox/privacy_sandbox_features.h"
+ #include "components/search/ntp_features.h"
+@@ -140,10 +149,7 @@
+ #include "url/origin.h"
+ 
+ #if !BUILDFLAG(IS_ANDROID)
+-#include "base/base_paths.h"
+ #include "base/files/file_util.h"
+-#include "base/path_service.h"
+-#include "base/test/scoped_path_override.h"
+ #include "base/version.h"
+ #include "chrome/browser/child_module/child_module_manager.h"
+ #include "chrome/browser/child_module/features.h"
+@@ -156,8 +162,6 @@
+ #include "chrome/browser/web_applications/web_app_utils.h"
+ #include "chrome/common/child_module/child_module_helper.h"
+ #include "chrome/common/chrome_constants.h"
+-#include "chrome/common/chrome_paths.h"
+-#include "chrome/common/pref_names.h"
+ #include "components/password_manager/core/common/password_manager_features.h"
+ #include "content/public/browser/child_process_host.h"
+ #include "media/base/picture_in_picture_events_info.h"
+@@ -3213,3 +3217,198 @@ TEST_F(ChromeContentBrowserClientDynamicPatchTest,
+ #endif
+ }
+ #endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
++
++class ChromeContentBrowserClientDiskCacheDirTest
++    : public ChromeContentBrowserClientTest {
++ protected:
++  void SetUp() override {
++    ChromeContentBrowserClientTest::SetUp();
++
++    ASSERT_TRUE(dedicated_temp_dir_.CreateUniqueTempDir());
++    home_override_ = std::make_unique<base::ScopedPathOverride>(base::DIR_HOME);
++    ASSERT_TRUE(base::PathService::Get(base::DIR_HOME, &home_dir_));
++
++    const base::FilePath config_dir = home_dir_.AppendASCII(".config");
++#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
++    xdg_config_override_ =
++        std::make_unique<base::ScopedEnvironmentVariableOverride>(
++            "XDG_CONFIG_HOME", config_dir.value());
++#elif BUILDFLAG(IS_MAC)
++    app_data_override_ = std::make_unique<base::ScopedPathOverride>(
++        base::DIR_APP_DATA, config_dir, /*is_absolute=*/true, /*create=*/true);
++#endif
++    user_data_dir_ = config_dir.AppendASCII("google-chrome");
++    user_data_override_ = std::make_unique<base::ScopedPathOverride>(
++        chrome::DIR_USER_DATA, user_data_dir_, /*is_absolute=*/true,
++        /*create=*/true);
++
++#if BUILDFLAG(IS_POSIX)
++    cache_override_ = std::make_unique<base::ScopedPathOverride>(
++        base::DIR_CACHE, home_dir_.AppendASCII(".cache").AppendASCII("sub"),
++        /*is_absolute=*/true, /*create=*/true);
++#endif
++
++    chrome::GetUserCacheDirectory(user_data_dir_, &cache_dir_);
++    ASSERT_NE(cache_dir_, base::FilePath());
++
++    testing_local_state()->RemoveManagedPref(prefs::kDiskCacheDir);
++    testing_local_state()->ClearPref(prefs::kDiskCacheDir);
++
++    default_dirs_ =
++        GetNetworkContextsParentDirsForManagedPref(base::FilePath());
++    ChromeContentBrowserClient client;
++    default_code_cache_path_ =
++        client.GetGeneratedCodeCacheSettings(&profile_).path();
++  }
++
++  void TearDown() override {
++    testing_local_state()->RemoveManagedPref(prefs::kDiskCacheDir);
++    testing_local_state()->ClearPref(prefs::kDiskCacheDir);
++    ChromeContentBrowserClientTest::TearDown();
++  }
++
++  TestingPrefServiceSimple* testing_local_state() {
++    return TestingBrowserProcess::GetGlobal()->GetTestingLocalState();
++  }
++
++  // Configures `prefs::kDiskCacheDir` as a managed preference (or removes it
++  // when `pref_cache_dir` is empty), initializes a `ChromeContentBrowserClient`
++  // on the UI thread, and returns its `GetNetworkContextsParentDirectory()`.
++  std::vector<base::FilePath> GetNetworkContextsParentDirsForManagedPref(
++      const base::FilePath& pref_cache_dir) {
++    testing_local_state()->ClearPref(prefs::kDiskCacheDir);
++    if (pref_cache_dir.empty()) {
++      testing_local_state()->RemoveManagedPref(prefs::kDiskCacheDir);
++    } else {
++      testing_local_state()->SetManagedPref(
++          prefs::kDiskCacheDir, base::FilePathToValue(pref_cache_dir));
++    }
++    ChromeContentBrowserClient client;
++    client.InitOnUIThread();
++    return client.GetNetworkContextsParentDirectory();
++  }
++
++  // Initializes a `ChromeContentBrowserClient` on the UI thread and returns its
++  // `GetNetworkContextsParentDirectory()` using the current `local_state`.
++  std::vector<base::FilePath> GetNetworkContextsParentDirs() {
++    ChromeContentBrowserClient client;
++    client.InitOnUIThread();
++    return client.GetNetworkContextsParentDirectory();
++  }
++
++  base::ScopedTempDir dedicated_temp_dir_;
++  std::unique_ptr<base::ScopedPathOverride> home_override_;
++  base::FilePath home_dir_;
++#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
++  std::unique_ptr<base::ScopedEnvironmentVariableOverride> xdg_config_override_;
++#elif BUILDFLAG(IS_MAC)
++  std::unique_ptr<base::ScopedPathOverride> app_data_override_;
++#endif
++  base::FilePath user_data_dir_;
++  std::unique_ptr<base::ScopedPathOverride> user_data_override_;
++#if BUILDFLAG(IS_POSIX)
++  std::unique_ptr<base::ScopedPathOverride> cache_override_;
++#endif
++  base::FilePath cache_dir_;
++  std::vector<base::FilePath> default_dirs_;
++  base::FilePath default_code_cache_path_;
++};
++
++TEST_F(ChromeContentBrowserClientDiskCacheDirTest,
++       GetNetworkContextsParentDirectoryRejectsRelativePath) {
++  const base::FilePath relative_dir(FILE_PATH_LITERAL("relative/cache"));
++  EXPECT_EQ(GetNetworkContextsParentDirsForManagedPref(relative_dir),
++            default_dirs_);
++}
++
++TEST_F(ChromeContentBrowserClientDiskCacheDirTest,
++       GetNetworkContextsParentDirectoryRejectsParentReferencingPath) {
++  const base::FilePath parent_ref_dir =
++      home_dir_.AppendASCII("cache")
++          .Append(base::FilePath::kParentDirectory)
++          .Append(base::FilePath::kParentDirectory);
++  EXPECT_EQ(GetNetworkContextsParentDirsForManagedPref(parent_ref_dir),
++            default_dirs_);
++}
++
++TEST_F(ChromeContentBrowserClientDiskCacheDirTest,
++       GetNetworkContextsParentDirectorySkipsUserDataDirAndSubdir) {
++  EXPECT_EQ(GetNetworkContextsParentDirsForManagedPref(user_data_dir_),
++            default_dirs_);
++  EXPECT_EQ(GetNetworkContextsParentDirsForManagedPref(
++                user_data_dir_.AppendASCII("SubCache")),
++            default_dirs_);
++}
++
++TEST_F(ChromeContentBrowserClientDiskCacheDirTest,
++       GetNetworkContextsParentDirectorySkipsDefaultCacheDirAndSubdir) {
++  EXPECT_EQ(GetNetworkContextsParentDirsForManagedPref(cache_dir_),
++            default_dirs_);
++  EXPECT_EQ(GetNetworkContextsParentDirsForManagedPref(
++                cache_dir_.AppendASCII("SubCache")),
++            default_dirs_);
++}
++
++TEST_F(ChromeContentBrowserClientDiskCacheDirTest,
++       GetNetworkContextsParentDirectoryAcceptsManagedDedicatedDir) {
++  using ::testing::Contains;
++  const base::FilePath dedicated_cache_dir =
++      home_dir_.AppendASCII("my_chrome_cache");
++  EXPECT_THAT(GetNetworkContextsParentDirsForManagedPref(
++                  dedicated_cache_dir.AsEndingWithSeparator()),
++              Contains(dedicated_cache_dir));
++  EXPECT_THAT(
++      GetNetworkContextsParentDirsForManagedPref(dedicated_temp_dir_.GetPath()),
++      Contains(dedicated_temp_dir_.GetPath()));
++}
++
++TEST_F(ChromeContentBrowserClientDiskCacheDirTest,
++       GetNetworkContextsParentDirectoryRejectsUserControlledPref) {
++  const base::FilePath dedicated_cache_dir =
++      home_dir_.AppendASCII("my_chrome_cache");
++  testing_local_state()->SetFilePath(prefs::kDiskCacheDir, dedicated_cache_dir);
++  EXPECT_EQ(GetNetworkContextsParentDirs(), default_dirs_);
++}
++
++TEST_F(ChromeContentBrowserClientDiskCacheDirTest,
++       GetGeneratedCodeCacheSettingsAcceptsManagedDedicatedDir) {
++  const base::FilePath custom_cache_dir =
++      home_dir_.AppendASCII("custom_code_cache");
++  testing_local_state()->SetManagedPref(
++      prefs::kDiskCacheDir, base::FilePathToValue(custom_cache_dir));
++  ChromeContentBrowserClient client;
++  EXPECT_EQ(client.GetGeneratedCodeCacheSettings(&profile_).path(),
++            custom_cache_dir.Append(default_code_cache_path_.BaseName()));
++}
++
++TEST_F(ChromeContentBrowserClientDiskCacheDirTest,
++       GetGeneratedCodeCacheSettingsRejectsRelativePath) {
++  testing_local_state()->SetManagedPref(
++      prefs::kDiskCacheDir,
++      base::FilePathToValue(base::FilePath(FILE_PATH_LITERAL("relative/dir"))));
++  ChromeContentBrowserClient client;
++  EXPECT_EQ(client.GetGeneratedCodeCacheSettings(&profile_).path(),
++            default_code_cache_path_);
++}
++
++TEST_F(ChromeContentBrowserClientDiskCacheDirTest,
++       GetGeneratedCodeCacheSettingsRejectsParentReferencingPath) {
++  const base::FilePath custom_cache_dir =
++      home_dir_.AppendASCII("custom_code_cache");
++  testing_local_state()->SetManagedPref(
++      prefs::kDiskCacheDir, base::FilePathToValue(custom_cache_dir.Append(
++                                base::FilePath::kParentDirectory)));
++  ChromeContentBrowserClient client;
++  EXPECT_EQ(client.GetGeneratedCodeCacheSettings(&profile_).path(),
++            default_code_cache_path_);
++}
++
++TEST_F(ChromeContentBrowserClientDiskCacheDirTest,
++       GetGeneratedCodeCacheSettingsRejectsUserControlledPref) {
++  const base::FilePath custom_cache_dir =
++      home_dir_.AppendASCII("custom_code_cache");
++  testing_local_state()->SetFilePath(prefs::kDiskCacheDir, custom_cache_dir);
++  ChromeContentBrowserClient client;
++  EXPECT_EQ(client.GetGeneratedCodeCacheSettings(&profile_).path(),
++            default_code_cache_path_);
++}
+diff --git a/chrome/browser/net/BUILD.gn b/chrome/browser/net/BUILD.gn
+index ad8bf42b63..02fce92919 100644
+--- a/chrome/browser/net/BUILD.gn
++++ b/chrome/browser/net/BUILD.gn
+@@ -34,6 +34,7 @@ source_set("net") {
+     "chrome_report_sender.h",
+     "convert_explicitly_allowed_network_ports_pref.h",
+     "default_dns_over_https_config_source.h",
++    "disk_cache_dir_util.h",
+     "dns_over_https_config_source.h",
+     "dns_probe_runner.h",
+     "dns_probe_service.h",
+@@ -136,6 +137,7 @@ source_set("impl") {
+     "chrome_report_sender.cc",
+     "convert_explicitly_allowed_network_ports_pref.cc",
+     "default_dns_over_https_config_source.cc",
++    "disk_cache_dir_util.cc",
+     "dns_probe_runner.cc",
+     "dns_probe_service_factory.cc",
+     "explicitly_allowed_network_ports_policy_handler.cc",
+@@ -411,6 +413,7 @@ source_set("unit_tests") {
+     "chrome_network_delegate_unittest.cc",
+     "chrome_report_sender_unittest.cc",
+     "convert_explicitly_allowed_network_ports_pref_unittest.cc",
++    "disk_cache_dir_util_unittest.cc",
+     "dns_probe_runner_unittest.cc",
+     "dns_probe_service_factory_unittest.cc",
+     "explicitly_allowed_network_ports_policy_handler_unittest.cc",
+diff --git a/chrome/browser/net/disk_cache_dir_util.cc b/chrome/browser/net/disk_cache_dir_util.cc
+new file mode 100644
+index 0000000000..cc73850004
+--- /dev/null
++++ b/chrome/browser/net/disk_cache_dir_util.cc
+@@ -0,0 +1,33 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/net/disk_cache_dir_util.h"
++
++#include "base/files/file_path.h"
++#include "chrome/common/pref_names.h"
++#include "components/prefs/pref_service.h"
++
++namespace chrome_browser_net {
++
++base::FilePath GetDiskCacheDir(const PrefService* local_state) {
++  if (!local_state) {
++    return base::FilePath();
++  }
++  const PrefService::Preference* pref =
++      local_state->FindPreference(prefs::kDiskCacheDir);
++  if (!pref || pref->IsUserControlled()) {
++    return base::FilePath();
++  }
++
++  const base::FilePath pref_cache_dir =
++      local_state->GetFilePath(prefs::kDiskCacheDir);
++  if (pref_cache_dir.empty() || !pref_cache_dir.IsAbsolute() ||
++      pref_cache_dir.ReferencesParent()) {
++    return base::FilePath();
++  }
++
++  return pref_cache_dir.StripTrailingSeparators();
++}
++
++}  // namespace chrome_browser_net
+diff --git a/chrome/browser/net/disk_cache_dir_util.h b/chrome/browser/net/disk_cache_dir_util.h
+new file mode 100644
+index 0000000000..c2d9e16742
+--- /dev/null
++++ b/chrome/browser/net/disk_cache_dir_util.h
+@@ -0,0 +1,24 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_NET_DISK_CACHE_DIR_UTIL_H_
++#define CHROME_BROWSER_NET_DISK_CACHE_DIR_UTIL_H_
++
++namespace base {
++class FilePath;
++}  // namespace base
++
++class PrefService;
++
++namespace chrome_browser_net {
++
++// Returns the disk cache directory configured via `prefs::kDiskCacheDir` in
++// `local_state` (with trailing separators stripped) if it is set by policy or
++// command-line switch (not user-controlled) and is an absolute path without
++// parent references. Returns an empty path otherwise.
++base::FilePath GetDiskCacheDir(const PrefService* local_state);
++
++}  // namespace chrome_browser_net
++
++#endif  // CHROME_BROWSER_NET_DISK_CACHE_DIR_UTIL_H_
+diff --git a/chrome/browser/net/disk_cache_dir_util_unittest.cc b/chrome/browser/net/disk_cache_dir_util_unittest.cc
+new file mode 100644
+index 0000000000..31aeb1ec89
+--- /dev/null
++++ b/chrome/browser/net/disk_cache_dir_util_unittest.cc
+@@ -0,0 +1,66 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/net/disk_cache_dir_util.h"
++
++#include "base/files/file_path.h"
++#include "base/files/scoped_temp_dir.h"
++#include "base/json/values_util.h"
++#include "chrome/common/pref_names.h"
++#include "components/prefs/pref_registry_simple.h"
++#include "components/prefs/testing_pref_service.h"
++#include "testing/gtest/include/gtest/gtest.h"
++
++namespace chrome_browser_net {
++
++class DiskCacheDirUtilTest : public testing::Test {
++ protected:
++  void SetUp() override {
++    prefs_.registry()->RegisterFilePathPref(prefs::kDiskCacheDir,
++                                            base::FilePath());
++    ASSERT_TRUE(temp_dir_.CreateUniqueTempDir());
++    valid_dir_ = temp_dir_.GetPath().AppendASCII("valid_cache");
++  }
++
++  TestingPrefServiceSimple prefs_;
++  base::ScopedTempDir temp_dir_;
++  base::FilePath valid_dir_;
++};
++
++TEST_F(DiskCacheDirUtilTest, NullLocalState) {
++  EXPECT_EQ(GetDiskCacheDir(nullptr), base::FilePath());
++}
++
++TEST_F(DiskCacheDirUtilTest, UnsetPreference) {
++  EXPECT_EQ(GetDiskCacheDir(&prefs_), base::FilePath());
++}
++
++TEST_F(DiskCacheDirUtilTest, UserControlledPreferenceRejected) {
++  prefs_.SetFilePath(prefs::kDiskCacheDir, valid_dir_);
++  EXPECT_EQ(GetDiskCacheDir(&prefs_), base::FilePath());
++}
++
++TEST_F(DiskCacheDirUtilTest, ManagedValidPreferenceStripsTrailingSeparator) {
++  prefs_.SetManagedPref(
++      prefs::kDiskCacheDir,
++      base::FilePathToValue(valid_dir_.AsEndingWithSeparator()));
++  EXPECT_EQ(GetDiskCacheDir(&prefs_), valid_dir_);
++}
++
++TEST_F(DiskCacheDirUtilTest, RelativePathRejected) {
++  const base::FilePath relative_dir(FILE_PATH_LITERAL("relative/cache"));
++  prefs_.SetManagedPref(prefs::kDiskCacheDir,
++                        base::FilePathToValue(relative_dir));
++  EXPECT_EQ(GetDiskCacheDir(&prefs_), base::FilePath());
++}
++
++TEST_F(DiskCacheDirUtilTest, ParentReferencingPathRejected) {
++  const base::FilePath parent_ref_dir =
++      valid_dir_.Append(base::FilePath::kParentDirectory);
++  prefs_.SetManagedPref(prefs::kDiskCacheDir,
++                        base::FilePathToValue(parent_ref_dir));
++  EXPECT_EQ(GetDiskCacheDir(&prefs_), base::FilePath());
++}
++
++}  // namespace chrome_browser_net
+diff --git a/chrome/browser/net/profile_network_context_service.cc b/chrome/browser/net/profile_network_context_service.cc
+index 028fe9924c..9abe7b8500 100644
+--- a/chrome/browser/net/profile_network_context_service.cc
++++ b/chrome/browser/net/profile_network_context_service.cc
+@@ -37,6 +37,7 @@
+ #include "chrome/browser/content_settings/cookie_settings_factory.h"
+ #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
+ #include "chrome/browser/domain_reliability/service_factory.h"
++#include "chrome/browser/net/disk_cache_dir_util.h"
+ #include "chrome/browser/net/system_network_context_manager.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/signin/signin_util.h"
+@@ -1379,8 +1380,8 @@ void ProfileNetworkContextService::ConfigureNetworkContextParamsInternal(
+     // Configure the HTTP cache path and size.
+     base::FilePath base_cache_path;
+     chrome::GetUserCacheDirectory(path, &base_cache_path);
+-    base::FilePath disk_cache_dir =
+-        local_state->GetFilePath(prefs::kDiskCacheDir);
++    const base::FilePath disk_cache_dir =
++        chrome_browser_net::GetDiskCacheDir(local_state);
+     if (!disk_cache_dir.empty()) {
+       base_cache_path = disk_cache_dir.Append(base_cache_path.BaseName());
+     }
+-- 
+2.43.0
+

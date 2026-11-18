@@ -1,0 +1,71 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Sergei Rudenkov <sergeirudenkov@google.com>
+Date: Tue, 13 Oct 2026 09:08:12 +0000
+Subject: [PATCH] Do not attribute worker loads without a parent frame to the
+ main frame
+
+PageResourceLoader.#resolveFrameTarget walks from a non-frame initiator
+target up to the owning frame target and, if the worker's TargetInfo
+carries no parentFrameId, falls back to the page's main frame id.
+Service workers and shared workers are parented by the page target but
+are not owned by any single frame, so their TargetInfo never has a
+parentFrameId. As a result, their source map loads were dispatched on
+the page session as Network.loadNetworkResource(frameId=<main frame>),
+which makes the browser issue the request with the main frame's origin,
+site-for-cookies and credentials. A service worker registered by a
+cross-origin iframe could thereby turn opening DevTools into an
+authenticated, first-party GET against the embedding site.
+
+Fail closed instead: when the initiator is a non-frame target and
+neither the initiator nor any target on the way up reports a frame id,
+keep the load on the initiator's own target with no frameId. The
+browser then attributes the request to the worker's own origin, which
+is how these loads were attributed before 510dd0d17f. Page scripts
+without a frameId keep the main frame default, and dedicated workers
+keep using parentFrameId.
+
+This supersedes the walkedUpFromWorker carve-out from c0fe7533df, which
+treated the main frame attribution of such worker loads as the regular
+worker path and exempted it from the same-origin check, together with
+the test that pinned that behavior.
+
+Bug: 569017013
+Change-Id: I31153cf080506960dfc38ede3dd76b10a9cd404c
+Reviewed-on: https://chromium-review.googlesource.com/c/devtools/devtools-frontend/+/8559240
+Reviewed-by: Danil Somsikov <dsv@chromium.org>
+Commit-Queue: Sergei Rudenkov <sergeirudenkov@chromium.org>
+Reviewed-by: Philip Pfaffe <pfaffe@chromium.org>
+
+(cherry picked from commit 852dcde1bd45121a00b975a13927e78a4f852593)
+
+FlyWeb: ported to the 156 branch by hand. 156 has no #resolveFrameTarget (no
+parentFrameId walk for dedicated workers): the load resolves the frame target
+inline in loadResource(). The fix keeps the same rule there: a non-frame
+initiator without a frameId loads through its own target, never under the
+main frame id. The test rewrite of PageResourceLoader.test.ts is left out (it
+pins the 157+ #resolveFrameTarget behavior).
+---
+ front_end/core/sdk/PageResourceLoader.ts | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/front_end/core/sdk/PageResourceLoader.ts b/front_end/core/sdk/PageResourceLoader.ts
+index fe5d3e4..22aac8b 100644
+--- a/front_end/core/sdk/PageResourceLoader.ts
++++ b/front_end/core/sdk/PageResourceLoader.ts
+@@ -327,6 +327,13 @@ export class PageResourceLoader extends Common.ObjectWrapper.ObjectWrapper<Event
+       parentFrameId = parentFrameId ?? frameTarget.targetInfo()?.parentFrameId ?? null;
+       frameTarget = frameTarget.parentTarget();
+     }
++    if (frameTarget && frameTarget !== initiator.target && !(initiator.frameId ?? parentFrameId)) {
++      // The initiator is a non-frame target (e.g. a service worker or a shared worker) that is not
++      // owned by any single frame. Don't attribute the load to the page's main frame, as the browser
++      // would then issue the request with the main frame's origin and credentials. Load through the
++      // initiator's own target instead, where the browser attributes the request to the worker's origin.
++      return {frameTarget: initiator.target, frameId: null};
++    }
+     const frameId = initiator.frameId ?? parentFrameId ?? frameTarget?.model(ResourceTreeModel)?.mainFrame?.id ?? null;
+     return {frameTarget, frameId};
+   }
+-- 
+2.43.0
+

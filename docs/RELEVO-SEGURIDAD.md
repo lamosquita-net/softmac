@@ -965,6 +965,27 @@ quedan fuera con su comprobación (`parte6/INVENTARIO.md`). Montada **encima de 
 - Para los repos de terceros: libaom no se lee por aomedia.googlesource (403); el espejo `m-ab-s/aom` tiene los commits
   de Chromium. libvpx y devtools-frontend, en sus espejos de GitHub (`webmproject/libvpx`, `ChromeDevTools/devtools-frontend`).
 
+## 17. SEGURIDAD-PORTES-27 (`session_01MwmK2hfdiqBBbfVwYqbmQZ`, 18-11-2026): la 3.1.4, parte 5 (medios de la 157)
+
+**Hecho** (`3.1.4/parte5/CONTENIDO.md`, APTO): de 76 medios, entran 46 (chromium 0001–0048 sobre la parte 4, árbol
+`4bfd3a5707`; Skia 1; devtools-frontend 5; V8 2 como `patches/v8`, sin tocar la época), 8 ya estaban, 1 en la parte 4,
+18 fuera y 3 sin arreglo (2 revertidos por upstream, 1 no localizado). Choques con la parte 6, resueltos en
+`parte5/integracion/`. Integra la -29.
+
+**Trampas nuevas:**
+- **`git am -3` en el clon parcial falla con «sha1 information is lacking»**: no baja los blobs del 3-way. Hay que bajar
+  el commit de upstream (`git fetch --filter=blob:none --depth=2 up <sha completo>…`, varios a la vez) y usar
+  `cherry-pick`, que sí los baja. Los sha completos salen de gitiles (`+/<sha corto>?format=JSON` admite el corto).
+- **`gh api repos/chromium/chromium/commits/...` está vetado** (solo `search/commits`). Los parches de Chromium y V8,
+  desde gitiles (`+/<sha>%5E%21/?format=TEXT`); los de Skia y devtools-frontend, con `git fetch` del espejo de GitHub.
+- **`cherry-pick` vacío = ya está:** así aparecieron medios de la 157 ya portados en la 3.0.1 (Background Fetch, MSE,
+  FFmpeg) o en `local/313`, aunque no salieran en las notas de la Extended de la 156. Comprobarlo antes de dar nada por
+  pendiente; un `grep` del número de bug en `FlyWeb/seguridad` también los encuentra.
+- **Pruebas de la 156 que el padre de upstream no tenía:** un cambio de firma (p. ej. `flush(ScriptState*, …)`) deja
+  rotas pruebas que upstream no tuvo que tocar. Los revisores de firmas deben mirar también los llamadores en pruebas.
+- **Los rolls (DevTools, FFmpeg, minigbm):** el commit del bug en Chromium es un roll; el arreglo de verdad se busca por el
+  número de bug sin `repo:` (o con `repo:ChromeDevTools/devtools-frontend`).
+
 ## 19. SEGURIDAD-PORTES-29 (`session_01MwmK2h9y29gKXzQFjqi44F`, 18-11-2026) → relevo (~17:20 UTC, al 40 %): integración de la 3.1.4
 
 **Hecho:** parte 4 completa (#1076, #1077; `3.1.4/parte4/CONTENIDO.md`, APTO): chromium 0001–0018, devtools-frontend

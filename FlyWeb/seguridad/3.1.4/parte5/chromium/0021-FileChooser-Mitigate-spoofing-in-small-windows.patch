@@ -1,0 +1,1978 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eriko Kurimoto <elkurin@google.com>
+Date: Mon, 5 Oct 2026 08:37:32 -0700
+Subject: [PATCH 21/48] [FileChooser]: Mitigate spoofing in small windows
+
+File pickers and directory enumerations could previously be triggered or
+kept open inside very small or hidden windows where browser UI context
+is obscured, enabling UI spoofing attacks.
+
+Require a minimum top-level window size (400x300) and visible
+WebContents state before showing file pickers or directory enumerations,
+and cancel active file chooser dialogs if the top-level window shrinks
+below the minimum threshold. Checking top-level window bounds instead of
+WebContents bounds avoids false positives when a tab's content area is
+narrowed by side panels, DevTools, or split view panes.
+
+Consolidate the size check and resize cancellation logic into
+content::WebContentsBasedCanceller in content/public/browser/ so both
+chrome/ and content/ share the same predicate, constants, and observer
+logic. Add a base::Feature killswitch (FileChooserMinWindowSize), UMA
+histograms (Content.FileChooser.SuppressedByWindowSize,
+SuppressedWindowWidth, SuppressedWindowHeight), and a DevTools console
+warning when a file chooser is suppressed.
+
+Bug: 479258455
+Change-Id: I148c60a25b10494929f5874c3c4e781598adbe0d
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8425979
+Reviewed-by: Rakina Zata Amni <rakina@chromium.org>
+Commit-Queue: Eriko Kurimoto <elkurin@chromium.org>
+Auto-Submit: Eriko Kurimoto <elkurin@chromium.org>
+Reviewed-by: Siddhartha S <ssid@chromium.org>
+Reviewed-by: Christian Dullweber <dullweber@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1711318}
+(cherry picked from commit 05fcbe537a915b7940238c6c52c79b76e853b874)
+---
+ .../browser/chrome_content_browser_client.cc  |  11 +
+ .../browser/chrome_content_browser_client.h   |   2 +
+ .../contextual_tasks_web_view.cc              |   8 +
+ .../contextual_tasks_web_view.h               |   1 +
+ .../contextual_tasks_web_view_unittest.cc     |   3 +
+ chrome/browser/file_select_helper.cc          | 115 ++++++++-
+ chrome/browser/file_select_helper.h           |   7 +
+ chrome/browser/file_select_helper_unittest.cc | 237 +++++++++++++++++-
+ .../file_system_access_browsertest.cc         |  40 +++
+ content/browser/BUILD.gn                      |   1 -
+ .../file_system_access_manager_impl.cc        |   2 +-
+ .../file_system_access/file_system_chooser.cc |  79 +++++-
+ .../file_system_access/file_system_chooser.h  |   4 +-
+ .../file_system_chooser_browsertest.cc        | 125 +++++++++
+ .../file_system_chooser_unittest.cc           |   2 +
+ .../browser/web_contents/web_contents_impl.cc |   8 +-
+ .../browser/web_contents_based_canceller.cc   | 144 ++++++++++-
+ .../browser/web_contents_based_canceller.h    |  84 -------
+ .../web_contents_based_canceller_unittest.cc  | 171 ++++++++++++-
+ content/public/browser/BUILD.gn               |   1 +
+ .../public/browser/content_browser_client.cc  |   5 +
+ .../public/browser/content_browser_client.h   |   5 +
+ .../browser/web_contents_based_canceller.h    | 112 +++++++++
+ content/public/common/content_features.cc     |   4 +
+ content/public/common/content_features.h      |   1 +
+ .../metadata/content/histograms.xml           |  44 ++++
+ 26 files changed, 1098 insertions(+), 118 deletions(-)
+ delete mode 100644 content/browser/web_contents_based_canceller.h
+ create mode 100644 content/public/browser/web_contents_based_canceller.h
+
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+index e378f8381d..a07d0141df 100644
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -9856,3 +9856,14 @@ bool ChromeContentBrowserClient::ShouldAllowSystemUiPopups(
+   return !(tab_interface && actor_service->IsActiveOnTab(*tab_interface));
+ }
+ #endif
++
++bool ChromeContentBrowserClient::IsExemptFromWindowSizeCheck(const GURL& url) {
++  if (ContentBrowserClient::IsExemptFromWindowSizeCheck(url)) {
++    return true;
++  }
++#if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
++  return url.SchemeIs(extensions::kExtensionScheme);
++#else
++  return false;
++#endif
++}
+diff --git a/chrome/browser/chrome_content_browser_client.h b/chrome/browser/chrome_content_browser_client.h
+index eb89441d3d..ebba50e43f 100644
+--- a/chrome/browser/chrome_content_browser_client.h
++++ b/chrome/browser/chrome_content_browser_client.h
+@@ -1252,6 +1252,8 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
+       const GURL& url,
+       const std::string& embedder_histogram_suffix) override;
+ 
++  bool IsExemptFromWindowSizeCheck(const GURL& url) override;
++
+  protected:
+   static bool HandleWebUI(GURL* url, content::BrowserContext* browser_context);
+   static bool HandleWebUIReverse(GURL* url,
+diff --git a/chrome/browser/contextual_tasks/contextual_tasks_web_view.cc b/chrome/browser/contextual_tasks/contextual_tasks_web_view.cc
+index 71c74561d8..1a44afb11a 100644
+--- a/chrome/browser/contextual_tasks/contextual_tasks_web_view.cc
++++ b/chrome/browser/contextual_tasks/contextual_tasks_web_view.cc
+@@ -40,6 +40,7 @@
+ #include "net/base/url_util.h"
+ #include "third_party/blink/public/common/web_preferences/web_preferences.h"
+ #include "third_party/skia/include/core/SkColor.h"
++#include "ui/base/base_window.h"
+ #include "ui/base/metadata/metadata_impl_macros.h"
+ #include "ui/base/window_open_disposition.h"
+ #include "ui/gfx/geometry/size.h"
+@@ -533,6 +534,13 @@ void ContextualTasksWebView::RunFileChooser(
+                                    params);
+ }
+ 
++std::optional<gfx::Rect> ContextualTasksWebView::GetWindowBoundsInScreen() {
++  if (browser_window_ && browser_window_->GetWindow()) {
++    return browser_window_->GetWindow()->GetBounds();
++  }
++  return std::nullopt;
++}
++
+ web_modal::WebContentsModalDialogHost*
+ ContextualTasksWebView::GetWebContentsModalDialogHost(
+     content::WebContents* web_contents) {
+diff --git a/chrome/browser/contextual_tasks/contextual_tasks_web_view.h b/chrome/browser/contextual_tasks/contextual_tasks_web_view.h
+index 7feb27d042..7d692dae0f 100644
+--- a/chrome/browser/contextual_tasks/contextual_tasks_web_view.h
++++ b/chrome/browser/contextual_tasks/contextual_tasks_web_view.h
+@@ -90,6 +90,7 @@ class ContextualTasksWebView
+   void RunFileChooser(content::RenderFrameHost* render_frame_host,
+                       scoped_refptr<content::FileSelectListener> listener,
+                       const blink::mojom::FileChooserParams& params) override;
++  std::optional<gfx::Rect> GetWindowBoundsInScreen() override;
+ 
+   // content::WebContentsObserver:
+   void DidStartNavigation(
+diff --git a/chrome/browser/contextual_tasks/contextual_tasks_web_view_unittest.cc b/chrome/browser/contextual_tasks/contextual_tasks_web_view_unittest.cc
+index 2d0af26593..cb6bfe5f77 100644
+--- a/chrome/browser/contextual_tasks/contextual_tasks_web_view_unittest.cc
++++ b/chrome/browser/contextual_tasks/contextual_tasks_web_view_unittest.cc
+@@ -37,6 +37,7 @@
+ #include "components/variations/scoped_variations_ids_provider.h"
+ #include "content/public/browser/file_select_listener.h"
+ #include "content/public/browser/render_process_host.h"
++#include "content/public/browser/render_widget_host_view.h"
+ #include "content/public/browser/web_contents_delegate.h"
+ #include "content/public/test/browser_task_environment.h"
+ #include "content/public/test/navigation_simulator.h"
+@@ -427,6 +428,8 @@ TEST_F(ContextualTasksWebViewTest, RunFileChooserOpensFileDialog) {
+   web_view_ = std::make_unique<ContextualTasksWebView>(browser_window_.get());
+   std::unique_ptr<content::WebContents> web_contents =
+       content::WebContentsTester::CreateTestWebContents(profile_, nullptr);
++  web_contents->GetPrimaryMainFrame()->GetView()->SetBounds(
++      gfx::Rect(0, 0, 800, 600));
+   web_view_->SetWebContents(web_contents.get());
+   content::NavigationSimulator::NavigateAndCommitFromBrowser(
+       web_contents.get(), GURL("https://www.google.com/search?q=test"));
+diff --git a/chrome/browser/file_select_helper.cc b/chrome/browser/file_select_helper.cc
+index 227ace4086..f2bda9fe32 100644
+--- a/chrome/browser/file_select_helper.cc
++++ b/chrome/browser/file_select_helper.cc
+@@ -11,10 +11,12 @@
+ #include <string>
+ #include <utility>
+ 
++#include "base/feature_list.h"
+ #include "base/files/file_path.h"
+ #include "base/files/file_util.h"
+ #include "base/functional/bind.h"
+ #include "base/memory/ptr_util.h"
++#include "base/metrics/histogram_functions.h"
+ #include "base/strings/string_split.h"
+ #include "base/strings/string_util.h"
+ #include "base/strings/utf_string_conversions.h"
+@@ -40,8 +42,11 @@
+ #include "content/public/browser/render_process_host.h"
+ #include "content/public/browser/storage_partition.h"
+ #include "content/public/browser/web_contents.h"
++#include "content/public/common/content_features.h"
++#include "content/public/common/url_constants.h"
+ #include "net/base/filename_util.h"
+ #include "net/base/mime_util.h"
++#include "third_party/blink/public/mojom/devtools/console_message.mojom.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/models/dialog_model.h"
+ #include "ui/shell_dialogs/selected_file_info.h"
+@@ -72,6 +77,54 @@ DEFINE_LOCAL_ELEMENT_IDENTIFIER_VALUE(kCancelButtonId);
+ 
+ namespace {
+ 
++#if !BUILDFLAG(IS_ANDROID)
++// The minimum size of the top-level window to safely show a file chooser
++// dialog without occlusion risk (See crbug.com/479258455).
++constexpr gfx::Size kMinFileChooserWindowSize(400, 300);
++
++gfx::Size GetMinFileChooserWindowSize() {
++  if (!base::FeatureList::IsEnabled(features::kFileChooserMinWindowSize)) {
++    return gfx::Size();
++  }
++  return kMinFileChooserWindowSize;
++}
++
++void LogFileChooserWindowTooSmallDetails(content::WebContents* web_contents) {
++  if (!web_contents) {
++    return;
++  }
++  const gfx::Size size =
++      content::WebContentsBasedCanceller::GetTopLevelWindowSize(web_contents);
++  if (!size.IsEmpty()) {
++    base::UmaHistogramCounts10000("Content.FileChooser.SuppressedWindowWidth",
++                                  size.width());
++    base::UmaHistogramCounts10000("Content.FileChooser.SuppressedWindowHeight",
++                                  size.height());
++  }
++  if (content::RenderFrameHost* rfh = web_contents->GetPrimaryMainFrame()) {
++    rfh->AddMessageToConsole(
++        blink::mojom::ConsoleMessageLevel::kWarning,
++        "File chooser dialog was suppressed because the top-level window "
++        "size is smaller than the minimum required size (400x300).");
++  }
++}
++
++void LogFileChooserSuppressedByWindowSize(content::WebContents* web_contents,
++                                          bool suppressed) {
++  base::UmaHistogramBoolean("Content.FileChooser.SuppressedByWindowSize",
++                            suppressed);
++  if (suppressed) {
++    LogFileChooserWindowTooSmallDetails(web_contents);
++  }
++}
++
++void LogFileChooserCancelledByWindowResize(content::WebContents* web_contents) {
++  base::UmaHistogramBoolean("Content.FileChooser.CancelledByWindowResize",
++                            true);
++  LogFileChooserWindowTooSmallDetails(web_contents);
++}
++#endif  // !BUILDFLAG(IS_ANDROID)
++
+ void DeleteFiles(std::vector<base::FilePath> paths) {
+   for (auto& file_path : paths)
+     base::DeleteFile(file_path);
+@@ -83,8 +136,9 @@ bool IsValidProfile(Profile* profile) {
+     return false;
+   }
+   // No profile manager in unit tests.
+-  if (!g_browser_process->profile_manager())
++  if (!g_browser_process->profile_manager()) {
+     return true;
++  }
+   return g_browser_process->profile_manager()->IsValidProfile(profile);
+ }
+ 
+@@ -253,6 +307,7 @@ void FileSelectHelper::OnListDone(int error) {
+   std::unique_ptr<ActiveDirectoryEnumeration> entry =
+       std::move(directory_enumeration_);
+   if (error) {
++    entry.reset();
+     FileSelectionCanceled();
+     return;
+   }
+@@ -270,6 +325,7 @@ void FileSelectHelper::OnListDone(int error) {
+                        this));
+     chrome::ShowTabModal(std::move(model), web_contents_);
+   } else {
++    entry.reset();
+     listener_->FileSelected(std::move(chooser_files), base_dir_,
+                             FileChooserParams::Mode::kUploadFolder);
+     listener_.reset();
+@@ -703,6 +759,24 @@ void FileSelectHelper::RunFileChooserOnUIThread(
+     RunFileChooserEnd();
+     return;
+   }
++  if (web_contents_->GetVisibility() != content::Visibility::VISIBLE) {
++    RunFileChooserEnd();
++    return;
++  }
++  content::RenderFrameHost* rfh = render_frame_host_
++                                      ? render_frame_host_.get()
++                                      : web_contents_->GetPrimaryMainFrame();
++  web_contents_based_canceller_ = content::WebContentsBasedCanceller::Create(
++      rfh, content::WebContentsBasedCanceller::CancelCondition::kWindowSize,
++      GetMinFileChooserWindowSize());
++  LogFileChooserSuppressedByWindowSize(
++      web_contents_, /*suppressed=*/!web_contents_based_canceller_);
++  if (!web_contents_based_canceller_) {
++    RunFileChooserEnd();
++    return;
++  }
++  web_contents_based_canceller_->SetCancelCallback(base::BindOnce(
++      &FileSelectHelper::OnCancelledByWindowSize, base::Unretained(this)));
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ 
+   select_file_dialog_ = ui::SelectFileDialog::Create(
+@@ -769,6 +843,7 @@ void FileSelectHelper::RunFileChooserEnd() {
+   scoped_tuck_picture_in_picture_.reset();
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ 
++  web_contents_based_canceller_.reset();
+   tab_deactivated_subscription_ = {};
+   directory_enumeration_.reset();
+ 
+@@ -810,6 +885,20 @@ void FileSelectHelper::EnumerateDirectoryImpl(
+   // we return to the caller, until the last callback is received from the
+   // enumeration code. At that point, we must call EnumerateDirectoryEnd().
+   self_ptr_ = this;
++#if !BUILDFLAG(IS_ANDROID)
++  web_contents_based_canceller_ = content::WebContentsBasedCanceller::Create(
++      web_contents_->GetPrimaryMainFrame(),
++      content::WebContentsBasedCanceller::CancelCondition::kWindowSize,
++      GetMinFileChooserWindowSize());
++  LogFileChooserSuppressedByWindowSize(
++      web_contents_, /*suppressed=*/!web_contents_based_canceller_);
++  if (!web_contents_based_canceller_) {
++    EnumerateDirectoryEnd();
++    return;
++  }
++  web_contents_based_canceller_->SetCancelCallback(base::BindOnce(
++      &FileSelectHelper::OnCancelledByWindowSize, base::Unretained(this)));
++#endif
+ #if BUILDFLAG(IS_ANDROID)
+   if (path.IsContentUri()) {
+     base::ThreadPool::PostTaskAndReplyWithResult(
+@@ -855,6 +944,23 @@ void FileSelectHelper::WebContentsDestroyed() {
+   CleanUp();
+ }
+ 
++void FileSelectHelper::OnVisibilityChanged(content::Visibility visibility) {
++#if !BUILDFLAG(IS_ANDROID)
++  if (!web_contents_) {
++    return;
++  }
++  // `SELECT_NONE` indicates a non-chooser directory enumeration (started via
++  // `EnumerateDirectory()`). Cancel the enumeration if the WebContents becomes
++  // hidden or occluded. Active file chooser dialogs (`dialog_type_ !=
++  // SELECT_NONE`) are intentionally not dismissed here because opening the
++  // native OS file chooser window itself can occlude the browser window.
++  if (visibility != content::Visibility::VISIBLE &&
++      dialog_type_ == ui::SelectFileDialog::SELECT_NONE) {
++    EnumerateDirectoryEnd();
++  }
++#endif
++}
++
+ void FileSelectHelper::InitLifecycleObserver(
+     content::WebContents* web_contents) {
+   DCHECK(web_contents);
+@@ -873,6 +979,13 @@ void FileSelectHelper::OnTabDeactivated(tabs::TabInterface* tab) {
+   RunFileChooserEnd();
+ }
+ 
++void FileSelectHelper::OnCancelledByWindowSize() {
++#if !BUILDFLAG(IS_ANDROID)
++  LogFileChooserCancelledByWindowResize(web_contents_);
++#endif
++  RunFileChooserEnd();
++}
++
+ // static
+ bool FileSelectHelper::IsAcceptTypeValid(const std::string& accept_type) {
+   // TODO(raymes): This only does some basic checks, extend to test more cases.
+diff --git a/chrome/browser/file_select_helper.h b/chrome/browser/file_select_helper.h
+index a2acc4f5af..d61db71bcf 100644
+--- a/chrome/browser/file_select_helper.h
++++ b/chrome/browser/file_select_helper.h
+@@ -9,6 +9,7 @@
+ #include <vector>
+ 
+ #include "base/callback_list.h"
++#include "base/feature_list.h"
+ #include "base/gtest_prod_util.h"
+ #include "base/memory/raw_ptr.h"
+ #include "base/memory/ref_counted.h"
+@@ -17,6 +18,7 @@
+ #include "components/enterprise/buildflags/buildflags.h"
+ #include "components/enterprise/common/files_scan_data.h"
+ #include "content/public/browser/browser_thread.h"
++#include "content/public/browser/web_contents_based_canceller.h"
+ #include "content/public/browser/web_contents_observer.h"
+ #include "net/base/directory_lister.h"
+ #include "third_party/blink/public/mojom/choosers/file_chooser.mojom.h"
+@@ -153,9 +155,11 @@ class FileSelectHelper : public base::RefCountedThreadSafe<
+                               content::RenderFrameHost* new_host) override;
+   void RenderFrameDeleted(content::RenderFrameHost* render_frame_host) override;
+   void WebContentsDestroyed() override;
++  void OnVisibilityChanged(content::Visibility visibility) override;
+ 
+   void InitLifecycleObserver(content::WebContents* web_contents);
+   void OnTabDeactivated(tabs::TabInterface* tab);
++  void OnCancelledByWindowSize();
+ 
+   void EnumerateDirectoryImpl(
+       content::WebContents* tab,
+@@ -345,6 +349,9 @@ class FileSelectHelper : public base::RefCountedThreadSafe<
+ 
+   base::CallbackListSubscription tab_deactivated_subscription_;
+ 
++  std::unique_ptr<content::WebContentsBasedCanceller>
++      web_contents_based_canceller_;
++
+ #if !BUILDFLAG(IS_ANDROID)
+   // When not null, this prevents picture-in-picture windows from opening.
+   std::unique_ptr<ScopedDisallowPictureInPicture>
+diff --git a/chrome/browser/file_select_helper_unittest.cc b/chrome/browser/file_select_helper_unittest.cc
+index cb616dc1c0..ad4116a0a9 100644
+--- a/chrome/browser/file_select_helper_unittest.cc
++++ b/chrome/browser/file_select_helper_unittest.cc
+@@ -21,6 +21,7 @@
+ #include "base/path_service.h"
+ #include "base/process/launch.h"
+ #include "base/test/bind.h"
++#include "base/test/run_until.h"
+ #include "build/build_config.h"
+ #include "chrome/common/chrome_paths.h"
+ #include "chrome/test/base/chrome_render_view_host_test_harness.h"
+@@ -47,7 +48,12 @@ using blink::mojom::FileChooserParams;
+ #include "storage/browser/file_system/external_mount_points.h"
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+ 
+-#if BUILDFLAG(ENTERPRISE_CLOUD_CONTENT_ANALYSIS)
++#include "base/test/metrics/histogram_tester.h"
++#include "base/test/scoped_feature_list.h"
++#include "content/public/browser/web_contents_delegate.h"
++#include "content/public/common/content_features.h"
++#include "content/public/test/web_contents_tester.h"
++
+ namespace {
+ 
+ // A listener that remembers the list of files chosen.  The |files| argument
+@@ -76,6 +82,28 @@ class TestFileSelectListener : public content::FileSelectListener {
+   bool canceled_ = false;
+ };
+ 
++class TestWindowBoundsDelegate : public content::WebContentsDelegate {
++ public:
++  explicit TestWindowBoundsDelegate(const gfx::Rect& window_bounds)
++      : window_bounds_(window_bounds) {}
++
++  void set_window_bounds(const gfx::Rect& window_bounds) {
++    window_bounds_ = window_bounds;
++  }
++
++  std::optional<gfx::Rect> GetWindowBoundsInScreen() override {
++    return window_bounds_;
++  }
++
++ private:
++  gfx::Rect window_bounds_;
++};
++
++}  // namespace
++
++#if BUILDFLAG(ENTERPRISE_CLOUD_CONTENT_ANALYSIS)
++namespace {
++
+ // Fill in the arguments to be passed to the ContentAnalysisCompletionCallback()
+ // method based on a list of paths and the desired result for each path.
+ // This function simulates a path either passing the deep scan (status of true)
+@@ -637,6 +665,7 @@ TEST_F(FileSelectHelperTest, WebContentsDestroyedDuringAsyncFileProcessing) {
+   task_environment.RunUntilIdle();
+   EXPECT_FALSE(weak_ptr);
+ }
++#endif  // BUILDFLAG(ENTERPRISE_CLOUD_CONTENT_ANALYSIS)
+ 
+ TEST_F(FileSelectHelperTest, EnumerateDirectory_TabDeactivated) {
+   content::BrowserTaskEnvironment task_environment;
+@@ -644,6 +673,8 @@ TEST_F(FileSelectHelperTest, EnumerateDirectory_TabDeactivated) {
+   content::TestWebContentsFactory web_contents_factory;
+   content::WebContents* web_contents =
+       web_contents_factory.CreateWebContents(&profile);
++  TestWindowBoundsDelegate delegate(gfx::Rect(0, 0, 800, 600));
++  web_contents->SetDelegate(&delegate);
+ 
+   tabs::MockTabInterface mock_tab;
+   EXPECT_CALL(mock_tab, GetContents())
+@@ -660,15 +691,204 @@ TEST_F(FileSelectHelperTest, EnumerateDirectory_TabDeactivated) {
+   std::vector<blink::mojom::FileChooserFileInfoPtr> files;
+   auto listener = base::MakeRefCounted<TestFileSelectListener>(&files);
+ 
+-  FileSelectHelper::EnumerateDirectory(web_contents, listener,
+-                                       base::FilePath(FILE_PATH_LITERAL("/")));
++  FileSelectHelper::EnumerateDirectory(web_contents, listener, data_dir_);
++  EXPECT_FALSE(listener->canceled());
+ 
+   ASSERT_FALSE(deactivation_callback.is_null());
+   deactivation_callback.Run(&mock_tab);
+ 
+   EXPECT_TRUE(listener->canceled());
++  web_contents->SetDelegate(nullptr);
+ }
+-#endif  // BUILDFLAG(ENTERPRISE_CLOUD_CONTENT_ANALYSIS)
++
++TEST_F(FileSelectHelperTest, EnumerateDirectory_VisibilityChanged) {
++  content::BrowserTaskEnvironment task_environment;
++  TestingProfile profile;
++  content::TestWebContentsFactory web_contents_factory;
++  content::WebContents* web_contents =
++      web_contents_factory.CreateWebContents(&profile);
++  TestWindowBoundsDelegate delegate(gfx::Rect(0, 0, 800, 600));
++  web_contents->SetDelegate(&delegate);
++  web_contents->WasShown();
++
++  std::vector<blink::mojom::FileChooserFileInfoPtr> files;
++  auto listener = base::MakeRefCounted<TestFileSelectListener>(&files);
++
++  FileSelectHelper::EnumerateDirectory(web_contents, listener, data_dir_);
++  EXPECT_FALSE(listener->canceled());
++
++#if !BUILDFLAG(IS_ANDROID)
++  web_contents->WasHidden();
++  EXPECT_TRUE(listener->canceled());
++#endif
++  web_contents->SetDelegate(nullptr);
++}
++
++#if !BUILDFLAG(IS_ANDROID)
++TEST_F(FileSelectHelperTest, RunFileChooser_HeightOnlyViolation) {
++  content::BrowserTaskEnvironment task_environment;
++  TestingProfile profile;
++  content::TestWebContentsFactory web_contents_factory;
++  content::WebContents* web_contents =
++      web_contents_factory.CreateWebContents(&profile);
++  web_contents->WasShown();
++
++  // Width (500) >= kMinWindowWidth (400), but height (200) < kMinWindowHeight
++  // (300).
++  TestWindowBoundsDelegate delegate(gfx::Rect(0, 0, 500, 200));
++  web_contents->SetDelegate(&delegate);
++
++  base::HistogramTester histograms;
++  std::vector<blink::mojom::FileChooserFileInfoPtr> files;
++  auto listener = base::MakeRefCounted<TestFileSelectListener>(&files);
++
++  FileChooserParams params;
++  params.mode = FileChooserParams::Mode::kOpen;
++  FileSelectHelper::RunFileChooser(web_contents->GetPrimaryMainFrame(),
++                                   listener, params);
++  ASSERT_TRUE(base::test::RunUntil([&]() { return listener->canceled(); }));
++
++  EXPECT_TRUE(listener->canceled());
++  histograms.ExpectUniqueSample("Content.FileChooser.SuppressedByWindowSize",
++                                true, 1);
++  histograms.ExpectTotalCount("Content.FileChooser.CancelledByWindowResize", 0);
++  histograms.ExpectUniqueSample("Content.FileChooser.SuppressedWindowWidth",
++                                500, 1);
++  histograms.ExpectUniqueSample("Content.FileChooser.SuppressedWindowHeight",
++                                200, 1);
++  web_contents->SetDelegate(nullptr);
++}
++
++TEST_F(FileSelectHelperTest,
++       EnumerateDirectory_WindowResizedSmallerLogsCancelledByWindowResize) {
++  content::BrowserTaskEnvironment task_environment;
++  TestingProfile profile;
++  content::TestWebContentsFactory web_contents_factory;
++  content::WebContents* web_contents =
++      web_contents_factory.CreateWebContents(&profile);
++  web_contents->WasShown();
++
++  TestWindowBoundsDelegate delegate(gfx::Rect(0, 0, 800, 600));
++  web_contents->SetDelegate(&delegate);
++
++  base::HistogramTester histograms;
++  std::vector<blink::mojom::FileChooserFileInfoPtr> files;
++  auto listener = base::MakeRefCounted<TestFileSelectListener>(&files);
++
++  FileSelectHelper::EnumerateDirectory(web_contents, listener, data_dir_);
++  EXPECT_FALSE(listener->canceled());
++  histograms.ExpectUniqueSample("Content.FileChooser.SuppressedByWindowSize",
++                                false, 1);
++  histograms.ExpectTotalCount("Content.FileChooser.CancelledByWindowResize", 0);
++
++  delegate.set_window_bounds(gfx::Rect(0, 0, 200, 150));
++  content::WebContentsTester::For(web_contents)
++      ->SetMainFrameSize(gfx::Size(200, 150));
++
++  EXPECT_TRUE(listener->canceled());
++  histograms.ExpectUniqueSample("Content.FileChooser.SuppressedByWindowSize",
++                                false, 1);
++  histograms.ExpectUniqueSample("Content.FileChooser.CancelledByWindowResize",
++                                true, 1);
++  histograms.ExpectUniqueSample("Content.FileChooser.SuppressedWindowWidth",
++                                200, 1);
++  histograms.ExpectUniqueSample("Content.FileChooser.SuppressedWindowHeight",
++                                150, 1);
++  web_contents->SetDelegate(nullptr);
++}
++
++TEST_F(FileSelectHelperTest, EnumerateDirectory_WebUIExemptFromSizeCheck) {
++  content::BrowserTaskEnvironment task_environment;
++  TestingProfile profile;
++  content::TestWebContentsFactory web_contents_factory;
++  content::WebContents* web_contents =
++      web_contents_factory.CreateWebContents(&profile);
++  web_contents->WasShown();
++
++  content::WebContentsTester::For(web_contents)
++      ->NavigateAndCommit(GURL("chrome://version"));
++
++  TestWindowBoundsDelegate delegate(gfx::Rect(0, 0, 100, 100));
++  web_contents->SetDelegate(&delegate);
++
++  std::vector<blink::mojom::FileChooserFileInfoPtr> files;
++  auto listener = base::MakeRefCounted<TestFileSelectListener>(&files);
++
++  FileSelectHelper::EnumerateDirectory(web_contents, listener, data_dir_);
++  EXPECT_FALSE(listener->canceled());
++  ASSERT_TRUE(base::test::RunUntil([&]() { return !files.empty(); }));
++  web_contents->SetDelegate(nullptr);
++}
++
++TEST_F(FileSelectHelperTest,
++       EnumerateDirectory_NarrowedTabBySidePanelOrSplitViewAllowed) {
++  content::BrowserTaskEnvironment task_environment;
++  TestingProfile profile;
++  content::TestWebContentsFactory web_contents_factory;
++  content::WebContents* web_contents =
++      web_contents_factory.CreateWebContents(&profile);
++  web_contents->WasShown();
++
++  // Top-level browser window is 800x600, while the tab's WebContents is
++  // narrowed to 200x600 (e.g., by a side panel or split view).
++  TestWindowBoundsDelegate delegate(gfx::Rect(0, 0, 800, 600));
++  web_contents->SetDelegate(&delegate);
++  web_contents->Resize(gfx::Rect(0, 0, 200, 600));
++
++  std::vector<blink::mojom::FileChooserFileInfoPtr> files;
++  auto listener = base::MakeRefCounted<TestFileSelectListener>(&files);
++
++  FileSelectHelper::EnumerateDirectory(web_contents, listener, data_dir_);
++  EXPECT_FALSE(listener->canceled());
++  ASSERT_TRUE(base::test::RunUntil([&]() { return !files.empty(); }));
++  web_contents->SetDelegate(nullptr);
++}
++
++TEST_F(FileSelectHelperTest,
++       EnumerateDirectory_KillswitchDisabledAllowsSmallWindow) {
++  base::test::ScopedFeatureList feature_list;
++  feature_list.InitAndDisableFeature(features::kFileChooserMinWindowSize);
++
++  content::BrowserTaskEnvironment task_environment;
++  TestingProfile profile;
++  content::TestWebContentsFactory web_contents_factory;
++  content::WebContents* web_contents =
++      web_contents_factory.CreateWebContents(&profile);
++  web_contents->WasShown();
++
++  TestWindowBoundsDelegate delegate(gfx::Rect(0, 0, 100, 100));
++  web_contents->SetDelegate(&delegate);
++
++  std::vector<blink::mojom::FileChooserFileInfoPtr> files;
++  auto listener = base::MakeRefCounted<TestFileSelectListener>(&files);
++
++  FileSelectHelper::EnumerateDirectory(web_contents, listener, data_dir_);
++  EXPECT_FALSE(listener->canceled());
++  ASSERT_TRUE(base::test::RunUntil([&]() { return !files.empty(); }));
++  web_contents->SetDelegate(nullptr);
++}
++
++TEST_F(FileSelectHelperTest, RunFileChooser_HiddenNonTabCancelled) {
++  content::BrowserTaskEnvironment task_environment;
++  TestingProfile profile;
++  content::TestWebContentsFactory web_contents_factory;
++  content::WebContents* web_contents =
++      web_contents_factory.CreateWebContents(&profile);
++  // Simulate a non-tab WebContents (no TabInterface attached) becoming hidden
++  // before RunFileChooserOnUIThread runs.
++  web_contents->WasHidden();
++
++  std::vector<blink::mojom::FileChooserFileInfoPtr> files;
++  auto listener = base::MakeRefCounted<TestFileSelectListener>(&files);
++
++  FileChooserParams params;
++  params.mode = FileChooserParams::Mode::kOpen;
++  FileSelectHelper::RunFileChooser(web_contents->GetPrimaryMainFrame(),
++                                   listener, params);
++  ASSERT_TRUE(base::test::RunUntil([&]() { return listener->canceled(); }));
++  EXPECT_TRUE(listener->canceled());
++}
++#endif  // !BUILDFLAG(IS_ANDROID)
+ 
+ TEST_F(FileSelectHelperTest, GetFileTypesFromAcceptType) {
+   content::BrowserTaskEnvironment task_environment;
+@@ -715,14 +935,13 @@ TEST_F(FileSelectHelperTest, MultipleFileExtensionsForMime) {
+   std::unique_ptr<ui::SelectFileDialog::FileTypeInfo> file_type_info =
+       file_select_helper->GetFileTypesFromAcceptType(accept_types);
+ 
+-  std::vector<base::FilePath::StringType> expected_extensions {
++  std::vector<base::FilePath::StringType> expected_extensions = {
+ #if BUILDFLAG(IS_WIN)
+-    L"ppt", L"pot", L"pps"
+-  };
++      L"ppt", L"pot", L"pps"
+ #else
+-    "ppt", "pot", "pps"
+-  };
++      "ppt", "pot", "pps"
+ #endif
++  };
+   std::sort(expected_extensions.begin(), expected_extensions.end());
+ 
+   ASSERT_EQ(file_type_info->extensions.size(), 1u);
+diff --git a/chrome/browser/ui/views/file_system_access/file_system_access_browsertest.cc b/chrome/browser/ui/views/file_system_access/file_system_access_browsertest.cc
+index f33eb77caf..75b9c2b6ef 100644
+--- a/chrome/browser/ui/views/file_system_access/file_system_access_browsertest.cc
++++ b/chrome/browser/ui/views/file_system_access/file_system_access_browsertest.cc
+@@ -1563,6 +1563,46 @@ IN_PROC_BROWSER_TEST_F(FileSystemAccessBrowserTest,
+   ASSERT_EQ("AbortError", content::EvalJs(first_tab, "window.p"));
+ }
+ 
++// Test that resizing a window below minimum dimensions while the dialog is
++// showing closes the dialog.
++IN_PROC_BROWSER_TEST_F(FileSystemAccessBrowserTest,
++                       ShowOpenFileThenResizeSmall) {
++  EXPECT_TRUE(ui_test_utils::NavigateToURL(
++      browser(), embedded_test_server()->GetURL("/title1.html")));
++  content::WebContents* first_tab =
++      browser()->GetTabStripModel()->GetActiveWebContents();
++
++  // Open the dialog and wait until it's created.
++  content::SelectFileDialogRecorder recorder;
++  ui::SelectFileDialog::SetFactory(
++      std::make_unique<content::ObservableSelectFileDialogFactory>(
++          recorder.GetWeakPtr()));
++  EXPECT_EQ(42,
++            content::EvalJs(
++                first_tab,
++                "window.p = self.showOpenFilePicker().catch(e => e.name); 42"));
++  EXPECT_TRUE(base::test::RunUntil([&recorder]() {
++    return recorder.state != content::SelectFileDialogRecorder::kNotCreated;
++  }));
++
++  // Narrowing only the WebContents (e.g. when opening a side panel or split
++  // view) while the top-level browser window remains large should NOT cancel
++  // the dialog.
++  first_tab->Resize(gfx::Rect(0, 0, 200, 600));
++  EXPECT_NE(recorder.state, content::SelectFileDialogRecorder::kDestroyed);
++
++  // Resize the top-level window below the minimum dimension threshold.
++  BrowserView::GetBrowserViewForBrowser(browser())->SetBounds(
++      gfx::Rect(0, 0, 100, 100));
++  first_tab->Resize(gfx::Rect(0, 0, 100, 100));
++  EXPECT_TRUE(base::test::RunUntil([&recorder]() {
++    return recorder.state == content::SelectFileDialogRecorder::kDestroyed;
++  }));
++
++  // Check that the dialog was closed.
++  EXPECT_EQ("AbortError", content::EvalJs(first_tab, "window.p"));
++}
++
+ class FileSystemAccessBrowserTestForWebUI : public InProcessBrowserTest {
+  public:
+   FileSystemAccessBrowserTestForWebUI() {
+diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
+index 3162721b67..7661a5f371 100644
+--- a/content/browser/BUILD.gn
++++ b/content/browser/BUILD.gn
+@@ -1211,7 +1211,6 @@ source_set("browser") {
+     "renderer_preferences_util.cc",
+     "renderer_preferences_util.h",
+     "web_contents_based_canceller.cc",
+-    "web_contents_based_canceller.h",
+ 
+     # TODO(crbug.com/202736352): This is built even if enable_screen_capture is
+     # false. Consider better separation of the screen capture and the other
+diff --git a/content/browser/file_system_access/file_system_access_manager_impl.cc b/content/browser/file_system_access/file_system_access_manager_impl.cc
+index 0daedcf4df..5ac5832b1d 100644
+--- a/content/browser/file_system_access/file_system_access_manager_impl.cc
++++ b/content/browser/file_system_access/file_system_access_manager_impl.cc
+@@ -230,7 +230,7 @@ void ShowFilePickerOnUIThread(
+ 
+   if (!web_contents ||
+       (base::FeatureList::IsEnabled(features::kFileSystemAccessCheckHidden) &&
+-       web_contents->GetVisibility() == Visibility::HIDDEN) ||
++       web_contents->GetVisibility() != Visibility::VISIBLE) ||
+       !outermost_rfh || !outermost_rfh->IsActive()) {
+     std::move(callback).Run(file_system_access_error::FromStatus(
+                                 FileSystemAccessStatus::kOperationAborted),
+diff --git a/content/browser/file_system_access/file_system_chooser.cc b/content/browser/file_system_access/file_system_chooser.cc
+index 8ba26b04bf..cbc14aaa61 100644
+--- a/content/browser/file_system_access/file_system_chooser.cc
++++ b/content/browser/file_system_access/file_system_chooser.cc
+@@ -9,11 +9,13 @@
+ #include <vector>
+ 
+ #include "base/check.h"
++#include "base/feature_list.h"
+ #include "base/files/file_path.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
+ #include "base/i18n/file_util_icu.h"
+ #include "base/i18n/rtl.h"
++#include "base/metrics/histogram_functions.h"
+ #include "base/strings/string_util.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/trace_event/trace_event.h"
+@@ -21,10 +23,13 @@
+ #include "content/browser/file_system_access/file_system_access_error.h"
+ #include "content/public/browser/browser_thread.h"
+ #include "content/public/browser/content_browser_client.h"
++#include "content/public/browser/render_frame_host.h"
+ #include "content/public/browser/visibility.h"
+ #include "content/public/browser/web_contents.h"
+ #include "content/public/common/content_client.h"
++#include "content/public/common/content_features.h"
+ #include "net/base/mime_util.h"
++#include "third_party/blink/public/mojom/devtools/console_message.mojom.h"
+ #include "ui/gfx/native_ui_types.h"
+ #include "ui/gfx/text_elider.h"
+ #include "ui/shell_dialogs/select_file_policy.h"
+@@ -48,6 +53,53 @@ constexpr int kMaxDescriptionLength = 64;
+ // allowed to be. Any longer extensions will be stripped. This value should be
+ // kept in sync with the extension length checks in the renderer.
+ constexpr int kMaxExtensionLength = 16;
++// The minimum size of the top-level window to safely show a file chooser
++// dialog without occlusion risk (See crbug.com/479258455).
++constexpr gfx::Size kMinWindowSize(400, 300);
++
++gfx::Size GetMinFileChooserWindowSize() {
++  if (!base::FeatureList::IsEnabled(features::kFileChooserMinWindowSize)) {
++    return gfx::Size();
++  }
++  return kMinWindowSize;
++}
++
++#if !BUILDFLAG(IS_ANDROID)
++void LogFileChooserWindowTooSmallDetails(WebContents* web_contents) {
++  if (!web_contents) {
++    return;
++  }
++  const gfx::Size size =
++      WebContentsBasedCanceller::GetTopLevelWindowSize(web_contents);
++  if (!size.IsEmpty()) {
++    base::UmaHistogramCounts10000("Content.FileChooser.SuppressedWindowWidth",
++                                  size.width());
++    base::UmaHistogramCounts10000("Content.FileChooser.SuppressedWindowHeight",
++                                  size.height());
++  }
++  if (RenderFrameHost* rfh = web_contents->GetPrimaryMainFrame()) {
++    rfh->AddMessageToConsole(
++        blink::mojom::ConsoleMessageLevel::kWarning,
++        "File chooser dialog was suppressed because the top-level window "
++        "size is smaller than the minimum required size (400x300).");
++  }
++}
++
++void LogFileChooserSuppressedByWindowSize(WebContents* web_contents,
++                                          bool suppressed) {
++  base::UmaHistogramBoolean("Content.FileChooser.SuppressedByWindowSize",
++                            suppressed);
++  if (suppressed) {
++    LogFileChooserWindowTooSmallDetails(web_contents);
++  }
++}
++
++void LogFileChooserCancelledByWindowResize(WebContents* web_contents) {
++  base::UmaHistogramBoolean("Content.FileChooser.CancelledByWindowResize",
++                            true);
++  LogFileChooserWindowTooSmallDetails(web_contents);
++}
++#endif  // !BUILDFLAG(IS_ANDROID)
+ 
+ // Similar to base::FilePath::FinalExtension, but operates with the
+ // understanding that the StringType passed in is an extension, not a path.
+@@ -330,15 +382,26 @@ void FileSystemChooser::CreateAndShow(
+       WebContents::FromRenderFrameHost(render_frame_host);
+   VLOG(1) << "Requested chooser with visibility: "
+           << static_cast<int>(web_contents->GetVisibility());
++  const gfx::Size min_window_size = GetMinFileChooserWindowSize();
+   std::unique_ptr<WebContentsBasedCanceller> canceller =
+       WebContentsBasedCanceller::Create(
+           render_frame_host,
+-          WebContentsBasedCanceller::CancelCondition::kVisibility);
++          WebContentsBasedCanceller::CancelCondition::kVisibility,
++          min_window_size);
+   if (!canceller) {
++#if !BUILDFLAG(IS_ANDROID)
++    if (WebContentsBasedCanceller::IsWindowTooSmall(web_contents,
++                                                    min_window_size)) {
++      LogFileChooserSuppressedByWindowSize(web_contents, /*suppressed=*/true);
++    }
++#endif
+     VLOG(1) << "Not showing chooser";
+     AbortedCallback(std::move(callback));
+     return;
+   }
++#if !BUILDFLAG(IS_ANDROID)
++  LogFileChooserSuppressedByWindowSize(web_contents, /*suppressed=*/false);
++#endif
+   // `listener` deletes itself.
+   auto* listener =
+       new FileSystemChooser(options.type(), std::move(callback),
+@@ -421,7 +484,7 @@ FileSystemChooser::FileSystemChooser(
+   // `this` owns `canceller_` which owns the callback, so `Unretained` is OK
+   // here.
+   canceller_->SetCancelCallback(base::BindOnce(
+-      &FileSystemChooser::FileSelectionCanceled, base::Unretained(this)));
++      &FileSystemChooser::OnCancelledByWebContents, base::Unretained(this)));
+ }
+ 
+ FileSystemChooser::~FileSystemChooser() {
+@@ -458,4 +521,16 @@ void FileSystemChooser::FileSelectionCanceled() {
+   delete this;
+ }
+ 
++void FileSystemChooser::OnCancelledByWebContents() {
++  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
++#if !BUILDFLAG(IS_ANDROID)
++  if (canceller_ &&
++      WebContentsBasedCanceller::IsWindowTooSmall(
++          canceller_->web_contents(), GetMinFileChooserWindowSize())) {
++    LogFileChooserCancelledByWindowResize(canceller_->web_contents());
++  }
++#endif
++  FileSelectionCanceled();
++}
++
+ }  // namespace content
+diff --git a/content/browser/file_system_access/file_system_chooser.h b/content/browser/file_system_access/file_system_chooser.h
+index f37be464eb..9d04d54d44 100644
+--- a/content/browser/file_system_access/file_system_chooser.h
++++ b/content/browser/file_system_access/file_system_chooser.h
+@@ -14,9 +14,9 @@
+ #include "base/task/task_runner.h"
+ #include "base/thread_annotations.h"
+ #include "build/build_config.h"
+-#include "content/browser/web_contents_based_canceller.h"
+ #include "content/common/content_export.h"
+ #include "content/public/browser/file_system_access_permission_context.h"
++#include "content/public/browser/web_contents_based_canceller.h"
+ #include "third_party/blink/public/mojom/file_system_access/file_system_access_manager.mojom.h"
+ #include "ui/shell_dialogs/select_file_dialog.h"
+ 
+@@ -117,6 +117,8 @@ class CONTENT_EXPORT FileSystemChooser : public ui::SelectFileDialog::Listener {
+       const std::vector<ui::SelectedFileInfo>& files) override;
+   void FileSelectionCanceled() override;
+ 
++  void OnCancelledByWebContents();
++
+   SEQUENCE_CHECKER(sequence_checker_);
+ 
+   const ui::SelectFileDialog::Type type_;
+diff --git a/content/browser/file_system_access/file_system_chooser_browsertest.cc b/content/browser/file_system_access/file_system_chooser_browsertest.cc
+index 7f65ed5d7d..55a8936611 100644
+--- a/content/browser/file_system_access/file_system_chooser_browsertest.cc
++++ b/content/browser/file_system_access/file_system_chooser_browsertest.cc
+@@ -13,6 +13,7 @@
+ #include "base/files/scoped_temp_dir.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/test/gmock_callback_support.h"
++#include "base/test/metrics/histogram_tester.h"
+ #include "base/test/run_until.h"
+ #include "base/test/scoped_feature_list.h"
+ #include "base/test/scoped_logging_settings.h"
+@@ -113,6 +114,7 @@ class FileSystemChooserBrowserTest : public ContentBrowserTest {
+ 
+     ASSERT_TRUE(embedded_test_server()->Start());
+ 
++    RenderWidgetHostImpl::DisableResizeAckCheckForTesting();
+     ContentBrowserTest::SetUp();
+   }
+ 
+@@ -2502,6 +2504,129 @@ IN_PROC_BROWSER_TEST_F(FileSystemChooserBrowserTest, MAYBE_ShowThenHide) {
+   EXPECT_EQ("AbortError", content::EvalJs(wc, "p"));
+ }
+ 
++#if BUILDFLAG(IS_ANDROID)
++#define MAYBE_DontShowInSmallWindow DISABLED_DontShowInSmallWindow
++#define MAYBE_ShowThenResizeSmall DISABLED_ShowThenResizeSmall
++#else
++#define MAYBE_DontShowInSmallWindow DontShowInSmallWindow
++#define MAYBE_ShowThenResizeSmall ShowThenResizeSmall
++#endif
++
++class WindowBoundsWebContentsDelegate : public content::WebContentsDelegate {
++ public:
++  WindowBoundsWebContentsDelegate(WebContents* web_contents,
++                                  const gfx::Rect& bounds)
++      : web_contents_(web_contents),
++        previous_delegate_(web_contents->GetDelegate()),
++        bounds_(bounds) {
++    web_contents_->SetDelegate(this);
++  }
++
++  ~WindowBoundsWebContentsDelegate() override {
++    web_contents_->SetDelegate(previous_delegate_);
++  }
++
++  void set_bounds(const gfx::Rect& bounds) { bounds_ = bounds; }
++
++  std::optional<gfx::Rect> GetWindowBoundsInScreen() override {
++    return bounds_;
++  }
++
++ private:
++  raw_ptr<WebContents> web_contents_;
++  raw_ptr<WebContentsDelegate> previous_delegate_;
++  gfx::Rect bounds_;
++};
++
++// Ensure dialog is not shown if window size is smaller than the minimum
++// dimensions.
++IN_PROC_BROWSER_TEST_F(FileSystemChooserBrowserTest,
++                       MAYBE_DontShowInSmallWindow) {
++  FakeFileSystemAccessPermissionContext permission_context;
++  static_cast<FileSystemAccessManagerImpl*>(
++      shell()
++          ->web_contents()
++          ->GetBrowserContext()
++          ->GetStoragePartition(shell()->web_contents()->GetSiteInstance())
++          ->GetFileSystemAccessEntryFactory())
++      ->SetPermissionContextForTesting(&permission_context);
++
++  GURL url = embedded_test_server()->GetURL("/title1.html");
++  EXPECT_TRUE(NavigateToURL(shell(), url));
++
++  // Record the state of the dialog.
++  SelectFileDialogRecorder recorder;
++  ui::SelectFileDialog::SetFactory(
++      std::make_unique<ObservableSelectFileDialogFactory>(
++          recorder.GetWeakPtr()));
++
++  // Resize the window and WebContents to a small dimension.
++  WebContents* wc = shell()->web_contents();
++  WindowBoundsWebContentsDelegate delegate(wc, gfx::Rect(100, 100));
++  shell()->ResizeWebContentForTests(gfx::Size(100, 100));
++
++  base::HistogramTester histograms;
++
++  // JS should see the dialog as aborted.
++  EXPECT_EQ(
++      "AbortError",
++      content::EvalJs(wc, "window.showOpenFilePicker().catch(e => e.name)"));
++  // The dialog should not have been created.
++  EXPECT_EQ(recorder.state, SelectFileDialogRecorder::kNotCreated);
++  histograms.ExpectUniqueSample("Content.FileChooser.SuppressedByWindowSize",
++                                true, 1);
++  histograms.ExpectTotalCount("Content.FileChooser.CancelledByWindowResize", 0);
++  histograms.ExpectTotalCount("Content.FileChooser.SuppressedWindowWidth", 1);
++  histograms.ExpectTotalCount("Content.FileChooser.SuppressedWindowHeight", 1);
++}
++
++// Show the dialog then resize the window below minimum dimensions and ensure
++// the dialog is dismissed.
++IN_PROC_BROWSER_TEST_F(FileSystemChooserBrowserTest,
++                       MAYBE_ShowThenResizeSmall) {
++  GURL url = embedded_test_server()->GetURL("/title1.html");
++  EXPECT_TRUE(NavigateToURL(shell(), url));
++
++  WebContents* wc = shell()->web_contents();
++  WindowBoundsWebContentsDelegate delegate(wc, gfx::Rect(800, 600));
++
++  // Record the state of the dialog.
++  SelectFileDialogRecorder recorder;
++  ui::SelectFileDialog::SetFactory(
++      std::make_unique<ObservableSelectFileDialogFactory>(
++          recorder.GetWeakPtr()));
++
++  base::HistogramTester histograms;
++
++  // Open the dialog and wait until it's created.
++  EXPECT_EQ(
++      42,
++      content::EvalJs(
++          wc, "window.p = self.showOpenFilePicker().catch(e => e.name); 42"));
++  EXPECT_TRUE(base::test::RunUntil([&recorder]() {
++    return recorder.state != SelectFileDialogRecorder::kNotCreated;
++  }));
++  histograms.ExpectUniqueSample("Content.FileChooser.SuppressedByWindowSize",
++                                false, 1);
++  histograms.ExpectTotalCount("Content.FileChooser.CancelledByWindowResize", 0);
++
++  // Resize the window below minimum dimensions.
++  delegate.set_bounds(gfx::Rect(100, 100));
++  shell()->ResizeWebContentForTests(gfx::Size(100, 100));
++  EXPECT_TRUE(base::test::RunUntil([&recorder]() {
++    return recorder.state == SelectFileDialogRecorder::kDestroyed;
++  }));
++
++  // JS should see the dialog as aborted.
++  EXPECT_EQ("AbortError", content::EvalJs(wc, "p"));
++  histograms.ExpectUniqueSample("Content.FileChooser.SuppressedByWindowSize",
++                                false, 1);
++  histograms.ExpectUniqueSample("Content.FileChooser.CancelledByWindowResize",
++                                true, 1);
++  histograms.ExpectTotalCount("Content.FileChooser.SuppressedWindowWidth", 1);
++  histograms.ExpectTotalCount("Content.FileChooser.SuppressedWindowHeight", 1);
++}
++
+ // Ensure that the dialog is not dismissed on irrelevant navigations.
+ IN_PROC_BROWSER_TEST_F(FileSystemChooserBrowserTest,
+                        DoNotDismissOnSubframeNavigation) {
+diff --git a/content/browser/file_system_access/file_system_chooser_unittest.cc b/content/browser/file_system_access/file_system_chooser_unittest.cc
+index 81fd0728ce..5b07e3d43e 100644
+--- a/content/browser/file_system_access/file_system_chooser_unittest.cc
++++ b/content/browser/file_system_access/file_system_chooser_unittest.cc
+@@ -32,6 +32,8 @@ class FileSystemChooserTest : public RenderViewHostImplTestHarness {
+   void SetUp() override {
+     RenderViewHostImplTestHarness::SetUp();
+     web_contents_ = CreateTestWebContents(GetBrowserContext());
++    web_contents_->GetPrimaryMainFrame()->GetView()->SetBounds(
++        gfx::Rect(0, 0, 800, 600));
+   }
+ 
+   void TearDown() override {
+diff --git a/content/browser/web_contents/web_contents_impl.cc b/content/browser/web_contents/web_contents_impl.cc
+index 223c3492d1..c0186c3759 100644
+--- a/content/browser/web_contents/web_contents_impl.cc
++++ b/content/browser/web_contents/web_contents_impl.cc
+@@ -9148,8 +9148,8 @@ void WebContentsImpl::EnumerateDirectory(
+   absl::Cleanup cancel_chooser = [&listener] {
+     listener->FileSelectionCanceled();
+   };
+-  if (visibility_ == Visibility::HIDDEN) {
+-    // Do not allow background tab to open file chooser.
++  if (visibility_ != Visibility::VISIBLE) {
++    // Do not allow background or occluded tab to open file chooser.
+     return;
+   }
+   if (!delegate_->IsContentsActive(this)) {
+@@ -9980,8 +9980,8 @@ void WebContentsImpl::RunFileChooser(
+   absl::Cleanup cancel_chooser = [&listener] {
+     listener->FileSelectionCanceled();
+   };
+-  if (visibility_ == Visibility::HIDDEN) {
+-    // Do not allow background tab to open file chooser.
++  if (visibility_ != Visibility::VISIBLE) {
++    // Do not allow background or occluded tab to open file chooser.
+     return;
+   }
+   if (delegate_ && !delegate_->IsContentsActive(this)) {
+diff --git a/content/browser/web_contents_based_canceller.cc b/content/browser/web_contents_based_canceller.cc
+index 51d9d86594..00f3856776 100644
+--- a/content/browser/web_contents_based_canceller.cc
++++ b/content/browser/web_contents_based_canceller.cc
+@@ -2,25 +2,101 @@
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
+ 
+-#include "content/browser/web_contents_based_canceller.h"
++#include "content/public/browser/web_contents_based_canceller.h"
++
++#include <optional>
+ 
+-#include "base/feature_list.h"
+ #include "base/logging.h"
+ #include "base/memory/ptr_util.h"
+-#include "content/common/features.h"
++#include "content/public/browser/content_browser_client.h"
+ #include "content/public/browser/render_frame_host.h"
++#include "content/public/browser/render_widget_host_view.h"
+ #include "content/public/browser/web_contents.h"
+ #include "content/public/browser/web_contents_delegate.h"
++#include "content/public/common/content_client.h"
++#include "url/gurl.h"
+ 
+ namespace content {
+ 
++#if !BUILDFLAG(IS_ANDROID)
++namespace {
++
++bool IsExemptFromSizeCheck(WebContents* outermost) {
++  if (!outermost) {
++    return true;
++  }
++  RenderFrameHost* rfh = outermost->GetPrimaryMainFrame();
++  if (!rfh) {
++    return true;
++  }
++  return GetContentClient()->browser()->IsExemptFromWindowSizeCheck(
++      rfh->GetLastCommittedURL());
++}
++
++}  // namespace
++#endif
++
++// static
++gfx::Size WebContentsBasedCanceller::GetTopLevelWindowSize(
++    WebContents* web_contents) {
++  if (!web_contents) {
++    return gfx::Size();
++  }
++  WebContents* outermost = web_contents->GetOutermostWebContents();
++  if (!outermost) {
++    return gfx::Size();
++  }
++  if (WebContentsDelegate* delegate = outermost->GetDelegate()) {
++    if (std::optional<gfx::Rect> bounds = delegate->GetWindowBoundsInScreen()) {
++      return bounds->size();
++    }
++  }
++  const gfx::Size contents_size = outermost->GetSize();
++  if (!contents_size.IsEmpty()) {
++    return contents_size;
++  }
++  if (RenderFrameHost* rfh = outermost->GetPrimaryMainFrame()) {
++    if (RenderWidgetHostView* view = rfh->GetView()) {
++      return view->GetViewBounds().size();
++    }
++  }
++  return gfx::Size();
++}
++
++// static
++bool WebContentsBasedCanceller::IsWindowTooSmall(
++    WebContents* web_contents,
++    const gfx::Size& min_window_size) {
++#if BUILDFLAG(IS_ANDROID)
++  return false;
++#else
++  if (!web_contents || min_window_size.IsEmpty()) {
++    return false;
++  }
++  WebContents* outermost = web_contents->GetOutermostWebContents();
++  if (IsExemptFromSizeCheck(outermost)) {
++    return false;
++  }
++  const gfx::Size size = GetTopLevelWindowSize(outermost);
++  if (size.IsEmpty()) {
++    return true;
++  }
++  return size.width() < min_window_size.width() ||
++         size.height() < min_window_size.height();
++#endif
++}
++
+ // static
+ std::unique_ptr<WebContentsBasedCanceller> WebContentsBasedCanceller::Create(
+     RenderFrameHost* rfh,
+-    CancelCondition condition) {
++    CancelCondition condition,
++    gfx::Size min_window_size) {
++  if (!rfh) {
++    return nullptr;
++  }
+   // `make_unique` would force the constructor to be public.
+-  auto canceller =
+-      base::WrapUnique(new WebContentsBasedCanceller(rfh, condition));
++  auto canceller = base::WrapUnique(
++      new WebContentsBasedCanceller(rfh, condition, min_window_size));
+   if (canceller->CanShow()) {
+     return canceller;
+   }
+@@ -29,20 +105,28 @@ std::unique_ptr<WebContentsBasedCanceller> WebContentsBasedCanceller::Create(
+ 
+ WebContentsBasedCanceller::WebContentsBasedCanceller(
+     RenderFrameHost* render_frame_host,
+-    CancelCondition condition)
++    CancelCondition condition,
++    gfx::Size min_window_size)
+     : WebContentsObserver(WebContents::FromRenderFrameHost(render_frame_host)),
+       condition_(condition),
++      min_window_size_(min_window_size),
+       document_(render_frame_host->GetWeakDocumentPtr()) {}
+ 
+ WebContentsBasedCanceller::~WebContentsBasedCanceller() = default;
+ 
+ bool WebContentsBasedCanceller::CanShow() {
++  if (!web_contents()) {
++    return false;
++  }
++  if (condition_ == CancelCondition::kWindowSize) {
++    return CanShowForSize();
++  }
+   RenderFrameHost* render_frame_host = document_.AsRenderFrameHostIfValid();
+   if (!render_frame_host) {
+     return false;
+   }
+   return CanShowForVisibility(web_contents()->GetVisibility()) &&
+-         CanShowForRFHActiveState() && CanShowForTabState();
++         CanShowForRFHActiveState() && CanShowForTabState() && CanShowForSize();
+ }
+ 
+ bool WebContentsBasedCanceller::CanShowForVisibility(Visibility visibility) {
+@@ -51,6 +135,9 @@ bool WebContentsBasedCanceller::CanShowForVisibility(Visibility visibility) {
+ }
+ 
+ bool WebContentsBasedCanceller::CanShowForRFHActiveState() {
++  if (condition_ == CancelCondition::kWindowSize) {
++    return true;
++  }
+   RenderFrameHost* render_frame_host = document_.AsRenderFrameHostIfValid();
+   return render_frame_host && render_frame_host->IsActive();
+ }
+@@ -66,6 +153,14 @@ bool WebContentsBasedCanceller::CanShowForTabState() {
+          web_contents_delegate->IsContentsActive(web_contents());
+ }
+ 
++bool WebContentsBasedCanceller::CanShowForSize() {
++  if (condition_ != CancelCondition::kVisibility &&
++      condition_ != CancelCondition::kWindowSize) {
++    return true;
++  }
++  return !IsWindowTooSmall(web_contents(), min_window_size_);
++}
++
+ void WebContentsBasedCanceller::SetCancelCallback(
+     CancelCallback cancel_callback) {
+   CHECK(cancel_callback_.is_null());
+@@ -106,7 +201,8 @@ void WebContentsBasedCanceller::RenderFrameHostStateChanged(
+     RenderFrameHost::LifecycleState new_state) {
+   // TODO(https://crbug.com/446032849): Remove this.
+   VLOG(1) << "State changed: " << static_cast<int>(new_state);
+-  if (cancel_callback_.is_null()) {
++  if (cancel_callback_.is_null() ||
++      condition_ == CancelCondition::kWindowSize) {
+     return;
+   }
+ 
+@@ -120,6 +216,10 @@ void WebContentsBasedCanceller::RenderFrameHostStateChanged(
+ void WebContentsBasedCanceller::DidFinishNavigation(
+     NavigationHandle* navigation_handle) {
+   VLOG(1) << "Finished navigation";
++  if (cancel_callback_.is_null() ||
++      condition_ == CancelCondition::kWindowSize) {
++    return;
++  }
+   if (!document_.AsRenderFrameHostIfValid()) {
+     // TODO(https://crbug.com/446032849): Remove this.
+     VLOG(1) << "Cancelling";
+@@ -127,4 +227,30 @@ void WebContentsBasedCanceller::DidFinishNavigation(
+   }
+ }
+ 
++void WebContentsBasedCanceller::PrimaryMainFrameWasResized(bool width_changed) {
++  VLOG(1) << "Primary main frame was resized";
++  if (cancel_callback_.is_null()) {
++    return;
++  }
++  if (!CanShow()) {
++    VLOG(1) << "Cancelling due to size change";
++    std::move(cancel_callback_).Run();
++  }
++}
++
++void WebContentsBasedCanceller::FrameSizeChanged(
++    RenderFrameHost* render_frame_host,
++    const gfx::Size& new_size) {
++  VLOG(1) << "Frame size changed: " << new_size.ToString();
++  if (cancel_callback_.is_null()) {
++    return;
++  }
++  if ((condition_ == CancelCondition::kWindowSize ||
++       render_frame_host == document_.AsRenderFrameHostIfValid()) &&
++      !CanShow()) {
++    VLOG(1) << "Cancelling due to frame size change";
++    std::move(cancel_callback_).Run();
++  }
++}
++
+ }  // namespace content
+diff --git a/content/browser/web_contents_based_canceller.h b/content/browser/web_contents_based_canceller.h
+deleted file mode 100644
+index 27372c875b..0000000000
+--- a/content/browser/web_contents_based_canceller.h
++++ /dev/null
+@@ -1,84 +0,0 @@
+-// Copyright 2025 The Chromium Authors
+-// Use of this source code is governed by a BSD-style license that can be
+-// found in the LICENSE file.
+-
+-#ifndef CONTENT_BROWSER_WEB_CONTENTS_BASED_CANCELLER_H_
+-#define CONTENT_BROWSER_WEB_CONTENTS_BASED_CANCELLER_H_
+-
+-#include "base/functional/callback.h"
+-#include "content/public/browser/weak_document_ptr.h"
+-#include "content/public/browser/web_contents_observer.h"
+-
+-namespace content {
+-
+-class RenderFrameHost;
+-
+-// A helper class to make it easy to react to RenderFrameHosts being or becoming
+-// inactive and WebContents becoming invisible. Typical usage is for dealing
+-// with the navigation/tab races that occur when opening a dialog. These can
+-// lead to dialogs remaining open on top of the wrong tab or while their content
+-// is inactive.
+-//
+-// To use this, first attempt to create it with `Create` if this returns
+-// `nullptr` then the cancel condition is already true and you should not
+-// proceed. After that, ensure that the returned object lasts for the lifetime
+-// of the dialog and call `SetCancelCallback` to correctly react to events.
+-//
+-// Exported for testing.
+-class CONTENT_EXPORT WebContentsBasedCanceller : public WebContentsObserver {
+-  using CancelCallback = base::OnceCallback<void()>;
+-
+- public:
+-  // Specifies what conditions to pay attention to when deciding whether we
+-  // should proceed or cancel.
+-  enum class CancelCondition {
+-    // Cancel if `RenderFrameHost::IsActive` returns false. Use this for
+-    // something that is incompatible with back/forward-cache, e.g. screen
+-    // capture should not occur while in back/forward-cache.
+-    kActiveState = 0,
+-    // Cancel if `WebContents::GetVisibility` is `HIDDEN` or the WebContents is
+-    // not the active tab in the browser. Use this for something that is
+-    // incompatible with switching tabs, e.g. a modal system dialog like a
+-    // file-chooser that displays on top of everything should be dismissed if
+-    // the tab is no longer the visible tab. This also implies `kActiveState`
+-    // because an inactive RFH won't be visible.
+-    kVisibility = 1,
+-  };
+-  // If the cancel condition is already true, this returns `nullptr`. Otherwise
+-  // it returns an instance of `WebContentsBasedCanceller`.
+-  static std::unique_ptr<WebContentsBasedCanceller> Create(
+-      RenderFrameHost* rfh,
+-      CancelCondition condition);
+-  ~WebContentsBasedCanceller() override;
+-
+-  // Set the callback to run when the condition becomes true. This is set after
+-  // construction because typically it references to something that doesn't
+-  // exist until after the `WebContentsBasedCanceller` is constructed.
+-  //
+-  // It is OK to call this later, in a different task. It will recheck the
+-  // conditions and possibly execute the callback immediately.
+-  void SetCancelCallback(CancelCallback cancel_callback);
+-
+- private:
+-  WebContentsBasedCanceller(RenderFrameHost* render_frame_host,
+-                            CancelCondition condition);
+-  bool CanShow();
+-  bool CanShowForVisibility(Visibility visibility);
+-  bool CanShowForRFHActiveState();
+-  bool CanShowForTabState();
+-
+-  // WebContentsObserver
+-  void OnVisibilityChanged(Visibility visibility) override;
+-  void RenderFrameHostStateChanged(
+-      RenderFrameHost* render_frame_host,
+-      RenderFrameHost::LifecycleState old_state,
+-      RenderFrameHost::LifecycleState new_state) override;
+-  void DidFinishNavigation(NavigationHandle* navigation_handle) override;
+-
+-  CancelCondition condition_;
+-  WeakDocumentPtr document_;
+-  CancelCallback cancel_callback_;
+-};
+-
+-}  // namespace content
+-#endif  // CONTENT_BROWSER_WEB_CONTENTS_BASED_CANCELLER_H_
+diff --git a/content/browser/web_contents_based_canceller_unittest.cc b/content/browser/web_contents_based_canceller_unittest.cc
+index 9f33721ed7..ac524528a6 100644
+--- a/content/browser/web_contents_based_canceller_unittest.cc
++++ b/content/browser/web_contents_based_canceller_unittest.cc
+@@ -2,11 +2,14 @@
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
+ 
+-#include "content/browser/web_contents_based_canceller.h"
++#include "content/public/browser/web_contents_based_canceller.h"
++
++#include <optional>
+ 
+ #include "base/test/test_future.h"
+ #include "content/browser/renderer_host/render_frame_host_impl.h"
+ #include "content/public/browser/render_frame_host.h"
++#include "content/public/browser/web_contents_delegate.h"
+ #include "content/public/test/web_contents_tester.h"
+ #include "content/test/test_render_view_host.h"
+ #include "testing/gmock/include/gmock/gmock-matchers.h"
+@@ -14,18 +17,43 @@
+ 
+ namespace content {
+ 
++namespace {
++
++constexpr gfx::Size kTestMinWindowSize(400, 300);
++
++class TestWindowBoundsDelegate : public WebContentsDelegate {
++ public:
++  explicit TestWindowBoundsDelegate(const gfx::Rect& window_bounds)
++      : window_bounds_(window_bounds) {}
++
++  std::optional<gfx::Rect> GetWindowBoundsInScreen() override {
++    return window_bounds_;
++  }
++
++ private:
++  gfx::Rect window_bounds_;
++};
++
++}  // namespace
++
+ class WebContentsBasedCancellerTest
+     : public RenderViewHostImplTestHarness,
+       public testing::WithParamInterface<
+           WebContentsBasedCanceller::CancelCondition> {
+  public:
++  void SetUp() override {
++    RenderViewHostImplTestHarness::SetUp();
++    main_rfh_impl()->GetView()->SetBounds(gfx::Rect(0, 0, 800, 600));
++  }
++
+   RenderFrameHostImpl* main_rfh_impl() {
+     return static_cast<RenderFrameHostImpl*>(main_rfh());
+   }
+ 
+  protected:
+   std::unique_ptr<WebContentsBasedCanceller> CreateWebContentsBasedCanceller() {
+-    return WebContentsBasedCanceller::Create(main_rfh_impl(), GetParam());
++    return WebContentsBasedCanceller::Create(main_rfh_impl(), GetParam(),
++                                             kTestMinWindowSize);
+   }
+ };
+ 
+@@ -33,7 +61,8 @@ INSTANTIATE_TEST_SUITE_P(
+     All,
+     WebContentsBasedCancellerTest,
+     testing::Values(WebContentsBasedCanceller::CancelCondition::kActiveState,
+-                    WebContentsBasedCanceller::CancelCondition::kVisibility),
++                    WebContentsBasedCanceller::CancelCondition::kVisibility,
++                    WebContentsBasedCanceller::CancelCondition::kWindowSize),
+     [](const testing::TestParamInfo<WebContentsBasedCancellerTest::ParamType>&
+            info) {
+       switch (info.param) {
+@@ -41,6 +70,8 @@ INSTANTIATE_TEST_SUITE_P(
+           return "ActiveState";
+         case WebContentsBasedCanceller::CancelCondition::kVisibility:
+           return "Visibility";
++        case WebContentsBasedCanceller::CancelCondition::kWindowSize:
++          return "WindowSize";
+       }
+     });
+ 
+@@ -51,13 +82,22 @@ TEST_P(WebContentsBasedCancellerTest, CreateActiveVisible) {
+ TEST_P(WebContentsBasedCancellerTest, CreateInactive) {
+   main_rfh_impl()->SetLifecycleState(
+       RenderFrameHostLifecycleStateImpl::kInBackForwardCache);
+-  EXPECT_EQ(nullptr, CreateWebContentsBasedCanceller());
++  switch (GetParam()) {
++    case WebContentsBasedCanceller::CancelCondition::kActiveState:
++    case WebContentsBasedCanceller::CancelCondition::kVisibility:
++      EXPECT_EQ(nullptr, CreateWebContentsBasedCanceller());
++      break;
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
++      EXPECT_NE(nullptr, CreateWebContentsBasedCanceller());
++      break;
++  }
+ }
+ 
+ TEST_P(WebContentsBasedCancellerTest, CreateHidden) {
+   web_contents()->WasHidden();
+   switch (GetParam()) {
+     case WebContentsBasedCanceller::CancelCondition::kActiveState:
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
+       EXPECT_NE(nullptr, CreateWebContentsBasedCanceller());
+       break;
+     case WebContentsBasedCanceller::CancelCondition::kVisibility:
+@@ -70,6 +110,7 @@ TEST_P(WebContentsBasedCancellerTest, CreateOccluded) {
+   web_contents()->WasOccluded();
+   switch (GetParam()) {
+     case WebContentsBasedCanceller::CancelCondition::kActiveState:
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
+       EXPECT_NE(nullptr, CreateWebContentsBasedCanceller());
+       break;
+     case WebContentsBasedCanceller::CancelCondition::kVisibility:
+@@ -85,7 +126,15 @@ TEST_P(WebContentsBasedCancellerTest, BecomeInactive) {
+   ac->SetCancelCallback(future.GetCallback());
+   main_rfh_impl()->SetLifecycleState(
+       RenderFrameHostLifecycleStateImpl::kInBackForwardCache);
+-  EXPECT_TRUE(future.Wait());
++  switch (GetParam()) {
++    case WebContentsBasedCanceller::CancelCondition::kActiveState:
++    case WebContentsBasedCanceller::CancelCondition::kVisibility:
++      EXPECT_TRUE(future.Wait());
++      break;
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
++      EXPECT_FALSE(future.IsReady());
++      break;
++  }
+ }
+ 
+ TEST_P(WebContentsBasedCancellerTest, BecomeHidden) {
+@@ -95,6 +144,7 @@ TEST_P(WebContentsBasedCancellerTest, BecomeHidden) {
+   web_contents()->WasHidden();
+   switch (GetParam()) {
+     case WebContentsBasedCanceller::CancelCondition::kActiveState:
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
+       EXPECT_FALSE(future.IsReady());
+       break;
+     case WebContentsBasedCanceller::CancelCondition::kVisibility:
+@@ -118,6 +168,7 @@ TEST_P(WebContentsBasedCancellerTest, BecomeOccluded) {
+   web_contents()->WasOccluded();
+   switch (GetParam()) {
+     case WebContentsBasedCanceller::CancelCondition::kActiveState:
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
+       EXPECT_FALSE(future.IsReady());
+       break;
+     case WebContentsBasedCanceller::CancelCondition::kVisibility:
+@@ -142,7 +193,15 @@ TEST_P(WebContentsBasedCancellerTest, InactiveBeforeSettingCallback) {
+       RenderFrameHostLifecycleStateImpl::kInBackForwardCache);
+   base::test::TestFuture<void> future;
+   ac->SetCancelCallback(future.GetCallback());
+-  EXPECT_TRUE(future.IsReady());
++  switch (GetParam()) {
++    case WebContentsBasedCanceller::CancelCondition::kActiveState:
++    case WebContentsBasedCanceller::CancelCondition::kVisibility:
++      EXPECT_TRUE(future.IsReady());
++      break;
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
++      EXPECT_FALSE(future.IsReady());
++      break;
++  }
+ }
+ 
+ TEST_P(WebContentsBasedCancellerTest, HiddenBeforeSettingCallback) {
+@@ -152,6 +211,7 @@ TEST_P(WebContentsBasedCancellerTest, HiddenBeforeSettingCallback) {
+   ac->SetCancelCallback(future.GetCallback());
+   switch (GetParam()) {
+     case WebContentsBasedCanceller::CancelCondition::kActiveState:
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
+       EXPECT_FALSE(future.IsReady());
+       break;
+     case WebContentsBasedCanceller::CancelCondition::kVisibility:
+@@ -168,6 +228,7 @@ TEST_P(WebContentsBasedCancellerTest, OccludedBeforeSettingCallback) {
+   ac->SetCancelCallback(future.GetCallback());
+   switch (GetParam()) {
+     case WebContentsBasedCanceller::CancelCondition::kActiveState:
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
+       EXPECT_FALSE(future.IsReady());
+       break;
+     case WebContentsBasedCanceller::CancelCondition::kVisibility:
+@@ -176,6 +237,104 @@ TEST_P(WebContentsBasedCancellerTest, OccludedBeforeSettingCallback) {
+   }
+ }
+ 
++TEST_P(WebContentsBasedCancellerTest, CreateSmall) {
++  main_rfh_impl()->GetView()->SetBounds(gfx::Rect(0, 0, 100, 100));
++  switch (GetParam()) {
++    case WebContentsBasedCanceller::CancelCondition::kActiveState:
++      EXPECT_NE(nullptr, CreateWebContentsBasedCanceller());
++      break;
++    case WebContentsBasedCanceller::CancelCondition::kVisibility:
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
++#if BUILDFLAG(IS_ANDROID)
++      EXPECT_NE(nullptr, CreateWebContentsBasedCanceller());
++#else
++      EXPECT_EQ(nullptr, CreateWebContentsBasedCanceller());
++#endif
++      break;
++  }
++}
++
++TEST_P(WebContentsBasedCancellerTest, BecomeSmall) {
++  auto ac = CreateWebContentsBasedCanceller();
++  ASSERT_NE(nullptr, ac);
++  base::test::TestFuture<void> future;
++  ac->SetCancelCallback(future.GetCallback());
++  main_rfh_impl()->GetView()->SetBounds(gfx::Rect(0, 0, 100, 100));
++  static_cast<WebContentsObserver*>(ac.get())->PrimaryMainFrameWasResized(true);
++  switch (GetParam()) {
++    case WebContentsBasedCanceller::CancelCondition::kActiveState:
++      EXPECT_FALSE(future.IsReady());
++      break;
++    case WebContentsBasedCanceller::CancelCondition::kVisibility:
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
++#if BUILDFLAG(IS_ANDROID)
++      EXPECT_FALSE(future.IsReady());
++#else
++      EXPECT_TRUE(future.IsReady());
++#endif
++      break;
++  }
++}
++
++TEST_P(WebContentsBasedCancellerTest, SmallBeforeSettingCallback) {
++  auto ac = CreateWebContentsBasedCanceller();
++  ASSERT_NE(nullptr, ac);
++  main_rfh_impl()->GetView()->SetBounds(gfx::Rect(0, 0, 100, 100));
++  base::test::TestFuture<void> future;
++  ac->SetCancelCallback(future.GetCallback());
++  switch (GetParam()) {
++    case WebContentsBasedCanceller::CancelCondition::kActiveState:
++      EXPECT_FALSE(future.IsReady());
++      break;
++    case WebContentsBasedCanceller::CancelCondition::kVisibility:
++    case WebContentsBasedCanceller::CancelCondition::kWindowSize:
++#if BUILDFLAG(IS_ANDROID)
++      EXPECT_FALSE(future.IsReady());
++#else
++      EXPECT_TRUE(future.IsReady());
++#endif
++      break;
++  }
++}
++
++#if !BUILDFLAG(IS_ANDROID)
++TEST_F(WebContentsBasedCancellerTest, HeightOnlyViolation) {
++  main_rfh_impl()->GetView()->SetBounds(gfx::Rect(0, 0, 500, 200));
++  EXPECT_TRUE(WebContentsBasedCanceller::IsWindowTooSmall(web_contents(),
++                                                          kTestMinWindowSize));
++}
++
++TEST_F(WebContentsBasedCancellerTest, WebUIExemptFromSizeCheck) {
++  WebContentsTester::For(web_contents())
++      ->NavigateAndCommit(GURL("chrome://test"));
++  main_rfh_impl()->GetView()->SetBounds(gfx::Rect(0, 0, 100, 100));
++  EXPECT_FALSE(WebContentsBasedCanceller::IsWindowTooSmall(web_contents(),
++                                                           kTestMinWindowSize));
++}
++
++TEST_F(WebContentsBasedCancellerTest,
++       NarrowedWebContentsInNormalTopLevelWindowAllowed) {
++  TestWindowBoundsDelegate delegate(gfx::Rect(0, 0, 800, 600));
++  web_contents()->SetDelegate(&delegate);
++  main_rfh_impl()->GetView()->SetBounds(gfx::Rect(0, 0, 200, 600));
++  EXPECT_FALSE(WebContentsBasedCanceller::IsWindowTooSmall(web_contents(),
++                                                           kTestMinWindowSize));
++  web_contents()->SetDelegate(nullptr);
++}
++
++TEST_F(WebContentsBasedCancellerTest, EmptyMinWindowSizeAllowsSmallWindow) {
++  main_rfh_impl()->GetView()->SetBounds(gfx::Rect(0, 0, 100, 100));
++  EXPECT_FALSE(
++      WebContentsBasedCanceller::IsWindowTooSmall(web_contents(), gfx::Size()));
++}
++
++TEST_F(WebContentsBasedCancellerTest, ZeroSizeWindowIsTooSmall) {
++  main_rfh_impl()->GetView()->SetBounds(gfx::Rect());
++  EXPECT_TRUE(WebContentsBasedCanceller::IsWindowTooSmall(web_contents(),
++                                                          kTestMinWindowSize));
++}
++#endif  // !BUILDFLAG(IS_ANDROID)
++
+ // Tests that destroying does not call the callback.
+ TEST_P(WebContentsBasedCancellerTest, Destroy) {
+   auto ac = CreateWebContentsBasedCanceller();
+diff --git a/content/public/browser/BUILD.gn b/content/public/browser/BUILD.gn
+index 790d665707..fea577cee1 100644
+--- a/content/public/browser/BUILD.gn
++++ b/content/public/browser/BUILD.gn
+@@ -497,6 +497,7 @@ source_set("browser_sources") {
+     "web_authentication_request_proxy.h",
+     "web_contents.cc",
+     "web_contents.h",
++    "web_contents_based_canceller.h",
+     "web_contents_capability_type.h",
+     "web_contents_delegate.cc",
+     "web_contents_delegate.h",
+diff --git a/content/public/browser/content_browser_client.cc b/content/public/browser/content_browser_client.cc
+index 9fdb8a4b7b..fb6eb6ccc1 100644
+--- a/content/public/browser/content_browser_client.cc
++++ b/content/public/browser/content_browser_client.cc
+@@ -62,6 +62,7 @@
+ #include "content/public/browser/webid/native_idp_fetcher.h"
+ #include "content/public/common/alternative_error_page_override_info.mojom.h"
+ #include "content/public/common/content_features.h"
++#include "content/public/common/url_constants.h"
+ #include "content/public/common/url_utils.h"
+ #include "media/audio/audio_manager.h"
+ #include "media/capture/content/screen_enumerator.h"
+@@ -2071,4 +2072,8 @@ bool ContentBrowserClient::ShouldAllowSystemUiPopups(
+ }
+ #endif
+ 
++bool ContentBrowserClient::IsExemptFromWindowSizeCheck(const GURL& url) {
++  return url.SchemeIs(kChromeUIScheme) || url.SchemeIs(kChromeDevToolsScheme);
++}
++
+ }  // namespace content
+diff --git a/content/public/browser/content_browser_client.h b/content/public/browser/content_browser_client.h
+index 6e730455c6..6694c1ce90 100644
+--- a/content/public/browser/content_browser_client.h
++++ b/content/public/browser/content_browser_client.h
+@@ -3382,6 +3382,11 @@ class CONTENT_EXPORT ContentBrowserClient {
+   virtual bool OriginSupportsConcreteCrossOriginIsolation(
+       content::BrowserContext* browser_context,
+       const url::Origin& origin);
++
++  // Returns true if `url` belongs to a privileged or trusted scheme (such as
++  // WebUI, DevTools, or an embedder-specific extension scheme) that should be
++  // exempt from top-level window size checks in `WebContentsBasedCanceller`.
++  virtual bool IsExemptFromWindowSizeCheck(const GURL& url);
+ };
+ 
+ }  // namespace content
+diff --git a/content/public/browser/web_contents_based_canceller.h b/content/public/browser/web_contents_based_canceller.h
+new file mode 100644
+index 0000000000..b2ac45c915
+--- /dev/null
++++ b/content/public/browser/web_contents_based_canceller.h
+@@ -0,0 +1,112 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CONTENT_PUBLIC_BROWSER_WEB_CONTENTS_BASED_CANCELLER_H_
++#define CONTENT_PUBLIC_BROWSER_WEB_CONTENTS_BASED_CANCELLER_H_
++
++#include <memory>
++
++#include "base/functional/callback.h"
++#include "content/common/content_export.h"
++#include "content/public/browser/weak_document_ptr.h"
++#include "content/public/browser/web_contents_observer.h"
++#include "ui/gfx/geometry/size.h"
++
++namespace content {
++
++// This class is used to cancel an operation (such as showing a dialog) when
++// the WebContents becomes unsuitable for showing the UI.
++//
++// Example usage:
++//   auto canceller = WebContentsBasedCanceller::Create(rfh, condition);
++//   if (!canceller) {
++//     // Already unsuitable, abort immediately.
++//     return;
++//   }
++//   canceller->SetCancelCallback(base::BindOnce(&MyDialog::Cancel, ...));
++class CONTENT_EXPORT WebContentsBasedCanceller : public WebContentsObserver {
++  using CancelCallback = base::OnceCallback<void()>;
++
++ public:
++  // Returns the size of the top-level window containing `web_contents`.
++  static gfx::Size GetTopLevelWindowSize(WebContents* web_contents);
++
++  // Returns true if the top-level window containing `web_contents` is smaller
++  // than `min_window_size` in either dimension, unless `web_contents` is on an
++  // exempt scheme.
++  static bool IsWindowTooSmall(WebContents* web_contents,
++                               const gfx::Size& min_window_size);
++
++  // Specifies what conditions to pay attention to when deciding whether we
++  // should proceed or cancel.
++  enum class CancelCondition {
++    // Only require the RFH to be active.
++    kActiveState,
++    // In addition to the above, require the WebContents to be visible (not
++    // hidden or occluded), in an active tab, and the top-level window not
++    // smaller than `min_window_size`.
++    kVisibility,
++    // Only require the top-level window not to be smaller than
++    // `min_window_size`.
++    kWindowSize,
++  };
++
++  // Checks if `rfh` currently satisfies `condition`. If not, returns nullptr.
++  // Otherwise, starts observing the WebContents and when `condition` is no
++  // longer satisfied, calls the callback provided to `SetCancelCallback`. If
++  // `SetCancelCallback` has not been called yet, it will be called as soon as
++  // `SetCancelCallback` is called.
++  //
++  // We split `Create` and `SetCancelCallback` so that `Create` can be called
++  // before the object that will be cancelled is constructed. If `Create`
++  // returns nullptr, we can avoid constructing the object at all. If it
++  // returns an instance of `WebContentsBasedCanceller`, we can pass that
++  // instance to the object's constructor and the object can call
++  // `SetCancelCallback`.
++  static std::unique_ptr<WebContentsBasedCanceller> Create(
++      RenderFrameHost* rfh,
++      CancelCondition condition,
++      gfx::Size min_window_size = gfx::Size());
++
++  ~WebContentsBasedCanceller() override;
++
++  // Sets the callback to be called when the condition is no longer satisfied.
++  // This can only be called once. It is separate from `Create` because the
++  // object to be cancelled may not exist until after the
++  // `WebContentsBasedCanceller` is constructed.
++  void SetCancelCallback(CancelCallback cancel_callback);
++
++  // Returns true if all required conditions currently hold.
++  bool CanShow();
++
++ private:
++  WebContentsBasedCanceller(RenderFrameHost* render_frame_host,
++                            CancelCondition condition,
++                            gfx::Size min_window_size);
++
++  bool CanShowForVisibility(Visibility visibility);
++  bool CanShowForRFHActiveState();
++  bool CanShowForTabState();
++  bool CanShowForSize();
++
++  // WebContentsObserver
++  void OnVisibilityChanged(Visibility visibility) override;
++  void RenderFrameHostStateChanged(
++      RenderFrameHost* changed_render_frame_host,
++      RenderFrameHost::LifecycleState old_state,
++      RenderFrameHost::LifecycleState new_state) override;
++  void DidFinishNavigation(NavigationHandle* navigation_handle) override;
++  void PrimaryMainFrameWasResized(bool width_changed) override;
++  void FrameSizeChanged(RenderFrameHost* render_frame_host,
++                        const gfx::Size& new_size) override;
++
++  CancelCondition condition_;
++  gfx::Size min_window_size_;
++  WeakDocumentPtr document_;
++  CancelCallback cancel_callback_;
++};
++
++}  // namespace content
++
++#endif  // CONTENT_PUBLIC_BROWSER_WEB_CONTENTS_BASED_CANCELLER_H_
+diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
+index 499ba9f14a..772f10257a 100644
+--- a/content/public/common/content_features.cc
++++ b/content/public/common/content_features.cc
+@@ -495,6 +495,10 @@ BASE_FEATURE(kFedCmNativeIdPs, base::FEATURE_DISABLED_BY_DEFAULT);
+ // Enables browser-side focus verification when crossing fenced boundaries.
+ BASE_FEATURE(kFencedFramesEnforceFocus, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
++// Enforces a minimum top-level window size for file chooser dialogs to mitigate
++// UI occlusion spoofing (see crbug.com/479258455).
++BASE_FEATURE(kFileChooserMinWindowSize, base::FEATURE_ENABLED_BY_DEFAULT);
++
+ // This is a kill switch for focusing the RenderWidgetHostViewAndroid on
+ // ActionDown on every touch sequence if not focused already, please see
+ // crbug.com/381820236. The root view, RWHVA, is always focused in Chrome,
+diff --git a/content/public/common/content_features.h b/content/public/common/content_features.h
+index dbf055eaae..c70bc3f4ca 100644
+--- a/content/public/common/content_features.h
++++ b/content/public/common/content_features.h
+@@ -161,6 +161,7 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kFedCmWithoutWellKnownEnforcement);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kFencedFramesEnforceFocus);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kFedCmNavigationInterception);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kFedCmNativeIdPs);
++CONTENT_EXPORT BASE_DECLARE_FEATURE(kFileChooserMinWindowSize);
+ #if BUILDFLAG(IS_ANDROID)
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kFluidResize);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(
+diff --git a/tools/metrics/histograms/metadata/content/histograms.xml b/tools/metrics/histograms/metadata/content/histograms.xml
+index c4cd697984..be8fe25232 100644
+--- a/tools/metrics/histograms/metadata/content/histograms.xml
++++ b/tools/metrics/histograms/metadata/content/histograms.xml
+@@ -60,6 +60,50 @@ chromium-metrics-reviews@google.com.
+   </summary>
+ </histogram>
+ 
++<histogram name="Content.FileChooser.CancelledByWindowResize" enum="Boolean"
++    expires_after="2026-12-25">
++  <owner>elkurin@chromium.org</owner>
++  <owner>content-owners@chromium.org</owner>
++  <summary>
++    Records true when an active file chooser dialog or directory enumeration is
++    cancelled because the top-level window was dynamically resized smaller than
++    the minimum required size (400x300).
++  </summary>
++</histogram>
++
++<histogram name="Content.FileChooser.SuppressedByWindowSize" enum="Boolean"
++    expires_after="2026-12-25">
++  <owner>elkurin@chromium.org</owner>
++  <owner>content-owners@chromium.org</owner>
++  <summary>
++    Records whether an initial file chooser dialog or directory enumeration
++    request was suppressed at open because the top-level window dimensions were
++    smaller than the minimum required size (400x300).
++  </summary>
++</histogram>
++
++<histogram name="Content.FileChooser.SuppressedWindowHeight" units="px"
++    expires_after="2026-12-25">
++  <owner>elkurin@chromium.org</owner>
++  <owner>content-owners@chromium.org</owner>
++  <summary>
++    Records the height in DIPs of the top-level window when a file chooser
++    dialog is suppressed or cancelled due to the window size being smaller than
++    the minimum required threshold.
++  </summary>
++</histogram>
++
++<histogram name="Content.FileChooser.SuppressedWindowWidth" units="px"
++    expires_after="2026-12-25">
++  <owner>elkurin@chromium.org</owner>
++  <owner>content-owners@chromium.org</owner>
++  <summary>
++    Records the width in DIPs of the top-level window when a file chooser dialog
++    is suppressed or cancelled due to the window size being smaller than the
++    minimum required threshold.
++  </summary>
++</histogram>
++
+ <histogram name="Content.SharedWorker.CreationContextTypeMismatch"
+     enum="SharedWorkerCreationContextTypeMismatch" expires_after="2027-02-28">
+   <owner>yyanagisawa@chromium.org</owner>
+-- 
+2.43.0
+
