@@ -7,6 +7,41 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 18-11 (tarde): COORDINACIÓN-47 → COORDINACIÓN-48 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-47 (`session_01MwmK2kK9WDgdvBd7f3rxQb`, 18-11 09:45 → ~13:15 UTC; relevo al 36 %). La 48 la abre la 47, linaje 7.
+**Nunca llamar a confirm_repository_trust.**
+
+**Lección (Titín, 18-11, enfadado con razón):** la 3.1.3 salió sin los 46 Altos de la 158 que Google no había portado a la .109, y no se le dijo.
+Luego la 46 y la 47 abrieron una 3.1.4 y una 3.1.5 **sin preguntarle**. **Ningún número de versión ni ningún reparto de contenido
+entre versiones sin decisión de Titín**, y si algo queda fuera de lo que él esperaba, se le dice antes de compilar. La regla general no
+está aún en DIRECTIVAS: Titín no la ha confirmado (proponérsela solo si sale el tema).
+
+**Hecho:**
+- **3.1.3 publicada** (build 46, 198.63.46; firmada en bak; web #1048; registro #1058, que restauró la fila FS.46 que #1050 había borrado).
+- **Decisión de Titín (DIRECTIVAS #1061): una 3.1.4 con TODA la seguridad de la 158 (Altos y medios); no hay 3.1.5; el resto a la 3.2.0.**
+  Contenido en main: `FlyWeb/seguridad/3.1.4/` + `3.1.5/` (= parte 3 de la 3.1.4; **sin** `3.1.5/brave-core/0002`), más 2 [M156] de
+  ServiceWorker y V8 5787048 posteriores a la .110 (#1063). Árboles: chromium `880f9f156d`, brave-core `15c050d35a` (época 34), V8 con
+  parches `fe1194813a`, WebRTC `8ee111cf22`, ANGLE `db885a866b`. Órdenes de aplicación en `3.1.4/CONTENIDO.md` (#1062, #1063).
+- **LOCAL-19 compila la 3.1.4, build 47** (incremental desde ~14:07 hora de la 7,1; ramas locales `local/314` f032f35a1b y `local/3.1.4`
+  9932552867, aún sin subir: hashes por ls-remote cuando las suba). Probará también el 0024 (pidinfo del sandbox) en la 6,1 y avisa antes de decidir.
+- 7b99dd29ba (CVE-2026-121105) fuera, con el sí de SEGURIDAD-PORTES-26; reabrir si sale en KEV o en una Extended. DBSC 576306917 fuera.
+- SEGURIDAD-PORTES-26 `session_01MwmK2kcWn812GmYVA1oi3u` abierta por la 47 (brave-core con push); la 24 y la 25 quietas.
+- Archivar la 23 y la 43: denegado por el clasificador (Titín lo sabe).
+
+**Abierto, por orden:**
+1. **d8/mjsunit de D8-LINUX**: encargo `buzon/D8-LINUX/20261118-1310-SEGURIDAD-PORTES-26-v8-3.1.4.md` (sustituye al de las 10:30; lo pega Titín).
+   Con el verde → decir a LOCAL-19 que escriba la entrega en la fila FS (orden de publicar, regla 11). Si sale rojo, se quita el parche de V8 que falle y se recompila.
+2. **Entrega de LOCAL-19** (hashes por ls-remote, pruebas, pidinfo en la 6,1) → PUBLICACIÓN publica → a Titín solo la orden de firma en bak (si PUBLICACIÓN no se la pasa ya).
+3. **3.2.0:** Titín pasará sus diseños y decisiones (pantalla privada, pestañas; tabla §7 de #1037, que **no** bloquea la 3.2.0). Repartir a MOTOR-46.
+   Falta además la medida de la sync en la 5,1 (estudio). La .111 (cuando tenga tag) y la 159 estable: SEGURIDAD-PORTES-26 vigila → 3.2.0.
+4. ARQUITECTURA sin nada abierto (pruebas GL pendientes del estudio).
+
+**Sesiones:** SEGURIDAD-PORTES-26 (arriba, vigilando .111/159/D8), MOTOR-46 `session_01MwmK2juPkbC58kEi4QFeyU`, INVESTIGACIÓN-MOTOR-10
+`session_01MwmK2m3DpZgC8k7wAabHHG`, SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`; quietas: SEGURIDAD-PORTES-23/24/25, COORDINACIÓN-46.
+Locales (buzón): LOCAL-19 (7,1, compila), LOCAL-21 (6,1), PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA, CARTERO-LOCAL (entrega bien), D8-LINUX-5 (vía Titín).
+La 47 se queda quieta tras la prueba.
+
 ## 18-11 (mañana): COORDINACIÓN-46 → COORDINACIÓN-47 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-46 (`session_01MwmK2m8seaLGsdcKmQhGXU`, 17-11 23:33 → 18-11 ~09:50 UTC; relevo al 47 %). La 47 la abre la 46, linaje 6.
