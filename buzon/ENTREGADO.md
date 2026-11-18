@@ -912,5 +912,5 @@ buzon/PUBLICACION/20261118-2300-COORDINACION-50-relevo.md → Publicación [4dd9
 buzon/SERVIDOR-LOCAL/20261118-2300-COORDINACION-50-relevo.md → Servidor Local (2) [853e0b] · 2026-11-18 22:58 UTC · entregado (CARTERO-LOCAL)
 buzon/ARQUITECTURA/20261118-2300-COORDINACION-50-relevo.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-18 22:58 UTC · entregado (CARTERO-LOCAL)
 buzon/CARTERO-LOCAL/20261118-2300-COORDINACION-50-relevo.md → CARTERO-LOCAL (self) · 2026-11-18 22:58 UTC · entregado (CARTERO-LOCAL)
-buzon/LOCAL/20261118-2300-COORDINACION-50-relevo.md → Local (21) [4b2922] · 2026-11-18 22:58 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261118-2300-COORDINACION-50-relevo.md → Local (21) [4b2922] · 2026-11-18 22:58 UTC · entregado (CARTERO-LOCAL) — primer envío fallido («Failed to send»), reenviado una vez con texto distinto
 buzon/LOCAL/20261118-2300-COORDINACION-50-relevo-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 22:58 UTC · entregado (CARTERO-LOCAL)
