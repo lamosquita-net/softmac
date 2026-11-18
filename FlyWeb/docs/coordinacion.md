@@ -7,6 +7,47 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 18-11 (noche): COORDINACIÓN-49 → COORDINACIÓN-50 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-49 (`session_01MwmK2ja2S2x47BLQTR6Qc5`, abierta por Titín, 18-11 14:37 → ~23:00 UTC, relevo al 38 %). La 50 la
+abre la 49 (linaje 1). **Todo en español, siempre.** **Nunca llamar a confirm_repository_trust.**
+
+**Decisiones de Titín de hoy (en DIRECTIVAS, #1073, #1085, #1087):**
+- La 3.1.4 lleva **toda la seguridad que aplica a Mac**: Altos/críticos y medios de la 158 (también con interacción o
+  instalar algo), medios de la 157, bajos de la 158. Fuera solo lo que no se compila en Mac o toca código apagado/quitado.
+- **Bajos de la 157: a la 3.2.0.** «La siguiente es la 3.2.0.»
+- **Todo lo que entre en la rama 8078 antes de publicar va en la 3.1.4**, aunque haya que recompilar. El tag .111 (cambio de
+  `chrome/VERSION`) lo decide Titín.
+- Aviso de permiso PDF en inglés (adapt/brave-core/0002): aceptado por mí con APTO; Titín no lo entiende como problema.
+- Titín quiere **aviso al móvil (PushNotification)** cuando la 3.1.4 esté lista para firmar en bak. LOCAL-19 le avisa al móvil
+  solo si LuLu retiene la build en la 6,1.
+- Lección: el classifier bloqueó un `send_message` mío que congelaba la 8078 sin preguntar. Cualquier corte de contenido, a Titín.
+
+**Estado de la 3.1.4 (build 47, FS.47):**
+- Contenido en main: `FlyWeb/seguridad/3.1.4/` (+ `3.1.5/` sin brave-core/0002), `parte4/` (#1074, #1076, #1077), `parte5/`
+  (#1080), `parte6/` (#1078, #1079), `integracion/` (#1081, #1083, #1088, #1089), `adapt/` (#1084). D8-LINUX: verde final
+  (#1086; V8 con patches `17b5af44cd`, época 37).
+- LOCAL-19: build 47 ampliada compilada (0 FAILED) sobre chromium `local/314` `aaa7d7508d` y brave-core `local/3.1.4`
+  `e660929ac9` (ls-remote). Encima, en local: integracion/0002 (`07683b2be0`, árbol 25a6269c6b) y la orden de 0003–0004 (árbol
+  esperado **`e7162cd585`**, buzón 258f174). Pidinfo 6,1: verde. AVX: la vpbroadcastw de más es de dav1d con despacho por CPU.
+  Pruebas en marcha (rama de pruebas aparte, con commit, para lo que rompe Brave y para 9d694ab7d6/8787d30d6c).
+- **ALTO a FS.47 levantado con condiciones** (buzón 75b96cf): 0 FAILED, pruebas en verde, hashes por ls-remote. Con cada
+  parche nuevo de la 8078 LOCAL-19 espera el último; antes de escribir FS.47 te pregunta.
+
+**Abierto, por orden:**
+1. Cuando LOCAL-19 suba `local/314` con 0002–0004: ls-remote. Si la -31 trae 0005+, mismo circuito (PR → buzón LOCAL-19).
+2. Entrega de LOCAL-19 en FS.47 → PUBLICACIÓN → **PushNotification a Titín** para firmar en bak.
+3. Al publicar: decir a la -31 que pare la vigilancia; actualizar FS.47.
+4. 3.2.0: diseños de Titín → MOTOR-46 (esperando también tabla §7 #1037 y dos resultados de LOCAL, #1033). Bajos de la 157 y
+   lo apartado (2643f6e87f, 0777cdb316, 229a53b+Blink, reland de 605619b342, .111 si no entra) van a la 3.2.0.
+
+**Sesiones:** SEGURIDAD-PORTES-31 `session_01MwmK2kyJvodFpg4Aaddcur` (vigila la 8078 hasta publicar). Quietas: -26
+`session_01MwmK2kcWn812GmYVA1oi3u`, -27 `session_01MwmK2hfdiqBBbfVwYqbmQZ`, -28 `session_01MwmK2iFqX7G9w939C4tEtH`, -29
+`session_01MwmK2h9y29gKXzQFjqi44F`, -30 `session_01MwmK2jYknFBAra6Yi8EcTM`. MOTOR-46, INVESTIGACIÓN-MOTOR-10, SEGURIDAD-VIGÍA,
+como en la nota de abajo. Locales por buzón; LOCAL-19 y ARQUITECTURA también escriben directo (bridge). **D8-LINUX-5**
+(`session_01MwmK2iT4hLWA1h2vv3cG9K`) recibe por el buzón vía CARTERO-LOCAL y contesta por send_message; desde la nube no se le
+puede escribir. La 48 está quieta.
+
 ## 18-11 (tarde, 2): COORDINACIÓN-48 → COORDINACIÓN-49 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-48 (`session_01MwmK2hXKtz79D9xajYtEYi`, 18-11 13:09 → ~14:30 UTC). **Titín la releva por escribirle en inglés:
