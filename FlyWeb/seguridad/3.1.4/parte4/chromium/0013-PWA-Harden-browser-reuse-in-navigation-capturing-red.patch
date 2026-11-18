@@ -1,0 +1,701 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nate Chapin <japhet@chromium.org>
+Date: Thu, 22 Oct 2026 12:02:24 -0700
+Subject: [PATCH 13/14] [PWA] Harden browser reuse in navigation capturing
+ redirects
+
+- Store `navigation_params_browser_` as a
+  `base::WeakPtr<BrowserWindowInterface>` in
+  `NavigationCapturingProcess` and verify liveness via
+  `!IsBrowserClosing()` before reusing it for `kNavigateExisting` /
+  `kFocusExisting` tab lookups or redirect reparenting.
+- Verify `!IsBrowserClosing(browser)` and
+  `browser->GetType() == (for_app_browser ? TYPE_APP : TYPE_NORMAL)` in
+  `AppBrowserController::FindTopLevelBrowsingContextForWebApp()` and
+  `FindForWebApp()`, and require `browser->GetType() == TYPE_APP` for
+  `has_tab_strip` in `CreateWebAppBrowserController()`.
+- Add `IsBrowserClosing()` and `CanReparentWebContentsIntoBrowser()` in
+  `web_app_launch_utils` to verify that a target browser is live
+  (`!IsDeleteScheduled()` and `!is_attempting_to_close_browser()`) and
+  either a `TYPE_NORMAL` browser or a `TYPE_APP` web app window capable
+  of accepting the tab (empty, tabbed via `has_tab_strip()`, or
+  replacing a pinned home tab).
+- Reuse `CanReparentWebContentsIntoBrowser()` across
+  `ReparentToAppBrowser`, `ReparentWebContentsToTabbedBrowser` (via
+  `FindNormalBrowser`), `GetInitialNavigationParamsOverride`, the
+  `kNavigateNew` branches of `GetEffectiveClientModeAndBrowser`, and
+  `ReparentWebContentsIntoAppBrowser`.
+- Add `CHECK(CanReparentWebContentsIntoBrowser(...))` invariants in
+  `NavigationCapturingProcess`, `ReparentWebContentsIntoAppBrowser`, and
+  `ReparentWebContentsIntoBrowserImpl`.
+
+Fixed: 573285920, 574907939
+Test: NavigationCapturingControllableRedirectionBrowserNavigatorTest.*
+Test: NavigationCapturingWithRedirectionBrowserNavigatorTest.*
+Test: NavigationCapturingBrowserNavigatorBrowserTest.MiddleClickBrowserAppFromDocumentPictureInPicture
+Change-Id: I858e1ff9b7efd50e5b8e69f2f4e973dfd8e88c8f
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8615747
+Reviewed-by: Daniel Murphy <dmurph@chromium.org>
+Commit-Queue: Nate Chapin <japhet@chromium.org>
+Reviewed-by: Luke Deng <lukedeng@google.com>
+Cr-Commit-Position: refs/heads/main@{#1725023}
+(cherry picked from commit fe08d535517c8e288cde11390c0a816aa00af305)
+---
+ .../app_browser_controller.cc                 |  10 +-
+ .../navigation_capturing_process.cc           | 134 +++++++------
+ .../navigation_capturing_process.h            |   2 +-
+ .../web_applications/web_app_launch_utils.cc  |  41 +++-
+ .../web_applications/web_app_launch_utils.h   |   9 +
+ ...capturing_browser_navigator_browsertest.cc | 182 ++++++++++++++++++
+ 6 files changed, 314 insertions(+), 64 deletions(-)
+
+diff --git a/chrome/browser/ui/web_applications/app_browser_controller.cc b/chrome/browser/ui/web_applications/app_browser_controller.cc
+index 7775f6011..54bddcc29 100644
+--- a/chrome/browser/ui/web_applications/app_browser_controller.cc
++++ b/chrome/browser/ui/web_applications/app_browser_controller.cc
+@@ -35,6 +35,7 @@
+ #include "chrome/browser/ui/tabs/tab_strip_model.h"
+ #include "chrome/browser/ui/ui_features.h"
+ #include "chrome/browser/ui/unload_controller.h"
++#include "chrome/browser/ui/web_applications/web_app_launch_utils.h"
+ #include "chrome/browser/ui/window_feature_controller/window_feature_controller.h"
+ #include "chrome/browser/ui/window_metadata/window_metadata_controller.h"
+ #include "chrome/browser/web_applications/web_app_provider.h"
+@@ -168,7 +169,7 @@ BrowserWindowInterface* AppBrowserController::FindForWebApp(
+   BrowserWindowInterface* browser_for_web_app = nullptr;
+   ForEachCurrentBrowserWindowInterfaceOrderedByActivation(
+       [&](BrowserWindowInterface* browser) {
+-        if (UnloadController::From(browser)->is_attempting_to_close_browser()) {
++        if (IsBrowserClosing(browser)) {
+           return true;  // continue iterating
+         }
+         if (browser->GetType() != BrowserWindowInterface::TYPE_APP) {
+@@ -234,7 +235,12 @@ AppBrowserController::FindTopLevelBrowsingContextForWebApp(
+       browser_and_tab_index = std::nullopt;
+   ForEachCurrentBrowserWindowInterfaceOrderedByActivation(
+       [&](BrowserWindowInterface* browser) {
+-        if (UnloadController::From(browser)->is_attempting_to_close_browser()) {
++        if (IsBrowserClosing(browser)) {
++          return true;  // continue iterating
++        }
++        if (browser->GetType() != (for_app_browser
++                                       ? BrowserWindowInterface::TYPE_APP
++                                       : BrowserWindowInterface::TYPE_NORMAL)) {
+           return true;  // continue iterating
+         }
+         if (IsWebApp(browser) != for_app_browser) {
+diff --git a/chrome/browser/ui/web_applications/navigation_capturing_process.cc b/chrome/browser/ui/web_applications/navigation_capturing_process.cc
+index 431653a57..9367b59ad 100644
+--- a/chrome/browser/ui/web_applications/navigation_capturing_process.cc
++++ b/chrome/browser/ui/web_applications/navigation_capturing_process.cc
+@@ -158,10 +158,12 @@ void ReparentToAppBrowser(content::WebContents* old_web_contents,
+     target_browser =
+         AppBrowserController::FindForWebApp(*main_browser->GetProfile(), app_id);
+     // If somehow we found a browser that doesn't have a tab strip (which
+-    // might be possible if the manifest updated while a window is open),
+-    // don't return it to use for new tabs.
+-    if (target_browser &&
+-        !AppBrowserController::From(target_browser)->has_tab_strip()) {
++    // might be possible if the manifest updated while a window is open) or is
++    // in the process of closing, don't return it to use for new tabs.
++    if (!CanReparentWebContentsIntoBrowser(
++            target_browser,
++            target_browser && AppBrowserController::From(target_browser)
++                                  ->IsUrlInHomeTabScope(target_url))) {
+       target_browser = nullptr;
+     }
+   }
+@@ -179,6 +181,21 @@ void ReparentToAppBrowser(content::WebContents* old_web_contents,
+                                          ->IsUrlInHomeTabScope(target_url));
+ }
+ 
++BrowserWindowInterface* FindNormalBrowser(const Profile& profile) {
++  BrowserWindowInterface* normal_browser = nullptr;
++  ForEachCurrentBrowserWindowInterfaceOrderedByActivation(
++      [&](BrowserWindowInterface* browser) {
++        if (CanReparentWebContentsIntoBrowser(browser) &&
++            browser->GetType() == BrowserWindowInterface::TYPE_NORMAL &&
++            browser->GetProfile() == &profile) {
++          normal_browser = browser;
++          return false;  // stop iterating
++        }
++        return true;  // continue iterating
++      });
++  return normal_browser;
++}
++
+ void ReparentWebContentsToTabbedBrowser(
+     content::WebContents* old_web_contents,
+     WindowOpenDisposition disposition,
+@@ -196,12 +213,10 @@ void ReparentWebContentsToTabbedBrowser(
+         !AppBrowserController::From(source_browser)->IsIsolatedWebApp());
+ 
+   BrowserWindowInterface* existing_browser_window =
+-      navigate_params_browser &&
++      CanReparentWebContentsIntoBrowser(navigate_params_browser) &&
+               !AppBrowserController::IsWebApp(navigate_params_browser)
+           ? navigate_params_browser
+-          : ProfileBrowserCollection::GetForProfile(
+-                source_browser->GetProfile())
+-                ->FindTabbedBrowser();
++          : FindNormalBrowser(*source_browser->GetProfile());
+ 
+   // Create a new browser window if the navigation was triggered via a
+   // shift-click, or if there are no open tabbed browser windows at the moment.
+@@ -216,20 +231,6 @@ void ReparentWebContentsToTabbedBrowser(
+       source_browser, old_web_contents, target_browser_window);
+ }
+ 
+-BrowserWindowInterface* FindNormalBrowser(const Profile& profile) {
+-  BrowserWindowInterface* normal_browser = nullptr;
+-  ForEachCurrentBrowserWindowInterfaceOrderedByActivation(
+-      [&](BrowserWindowInterface* browser) {
+-        if (browser->GetType() == BrowserWindowInterface::TYPE_NORMAL &&
+-            browser->GetProfile() == &profile) {
+-          normal_browser = browser;
+-          return false;  // stop iterating
+-        }
+-        return true;  // continue iterating
+-      });
+-  return normal_browser;
+-}
+-
+ // Record the result of navigation capturing before redirection happens or a
+ // network request has been made.
+ void RecordInitialNavigationCapturingResult(
+@@ -432,7 +433,8 @@ NavigationCapturingProcess::NavigationCapturingProcess(
+                              : std::nullopt),
+       navigation_params_url_(params.url),
+       disposition_(params.disposition),
+-      navigation_params_browser_(params.browser.get()) {
++      navigation_params_browser_(params.browser ? params.browser->GetWeakPtr()
++                                                : nullptr) {
+   CHECK(AreWebAppsUserInstallable(&*profile_));
+   CHECK(params.url.is_valid());
+ 
+@@ -781,25 +783,32 @@ NavigationCapturingProcess::GetInitialNavigationParamsOverride(
+         (app_display_mode == DisplayMode::kBrowser ||
+          (app_id == source_browser_app_id_ &&
+           is_in_source_app_with_url_in_scope))) {
+-      if (params.browser && source_browser_app_id_.has_value()) {
+-        auto* const app_controller =
+-            web_app::AppBrowserController::From(params.browser);
+-        if (!app_controller->ShouldHideNewTabButton()) {
+-          // Apps that support tabbed mode can open a new tab in the current app
+-          // browser itself.
+-          return ForcedNewAppContext(app_display_mode, params.browser);
+-        }
++      if (source_browser_app_id_.has_value() &&
++          CanReparentWebContentsIntoBrowser(params.browser) &&
++          !web_app::AppBrowserController::From(params.browser)
++               ->ShouldHideNewTabButton()) {
++        // Apps that support tabbed mode can open a new tab in the current app
++        // browser itself.
++        return ForcedNewAppContext(app_display_mode, params.browser);
+       }
+       BrowserWindowInterface* app_host_window;
+       if (app_display_mode == DisplayMode::kBrowser) {
+         // For a 'new tab' with the 'browser' requested display mode, use
+         // the originating browser to ensure the new tab pops under in the
+         // typical place.
+-        if (navigation_params_browser_ &&
+-            !web_app::AppBrowserController::From(navigation_params_browser_)) {
++        if (CanReparentWebContentsIntoBrowser(
++                navigation_params_browser_.get()) &&
++            !web_app::AppBrowserController::From(
++                navigation_params_browser_.get())) {
+           app_host_window = navigation_params_browser_.get();
+-        } else if (client_mode_and_browser->browser) {
++        } else if (CanReparentWebContentsIntoBrowser(
++                       client_mode_and_browser->browser.get()) &&
++                   !web_app::AppBrowserController::From(
++                       client_mode_and_browser->browser.get())) {
+           app_host_window = client_mode_and_browser->browser.get();
++        } else if (BrowserWindowInterface* normal_browser =
++                       FindNormalBrowser(*profile_)) {
++          app_host_window = normal_browser;
+         } else {
+           app_host_window = CreateBrowserWindow(
+               BrowserWindowCreateParams(&*profile_, params.user_gesture));
+@@ -1226,7 +1235,7 @@ NavigationCapturingProcess::HandleRedirectImpl() {
+           NavigationCapturingRedirectionResult::kReparentBrowserTabToBrowserTab;
+       ReparentWebContentsToTabbedBrowser(web_contents_for_navigation,
+                                          disposition_,
+-                                         navigation_params_browser_);
++                                         navigation_params_browser_.get());
+     } else {
+       debug_data_.Set("!redirection_result", "Noop1");
+       redirection_result_ = NavigationCapturingRedirectionResult::kSameContext;
+@@ -1259,7 +1268,7 @@ NavigationCapturingProcess::HandleRedirectImpl() {
+           NavigationCapturingRedirectionResult::kReparentAppToBrowserTab;
+       ReparentWebContentsToTabbedBrowser(web_contents_for_navigation,
+                                          disposition_,
+-                                         navigation_params_browser_);
++                                         navigation_params_browser_.get());
+       return {content::NavigationThrottle::PROCEED, *target_app_id};
+     }
+     debug_data_.Set("!redirection_result", "app to app");
+@@ -1383,7 +1392,7 @@ NavigationCapturingProcess::HandleRedirectImpl() {
+           NavigationCapturingRedirectionResult::kAppBrowserTabOpened;
+       ReparentWebContentsToTabbedBrowser(web_contents_for_navigation,
+                                          disposition_,
+-                                         navigation_params_browser_);
++                                         navigation_params_browser_.get());
+     }
+     return {content::NavigationThrottle::PROCEED, *target_app_id};
+   }
+@@ -1631,12 +1640,19 @@ NavigationCapturingProcess::GetEffectiveClientModeAndBrowser(
+         // existing browser. Note: This could mean that the provided browser is
+         // not a 'normal' and could be an app browser. It seems fine to
+         // respect this.
+-        if (navigation_params_browser_) {
++        if (navigation_params_browser_ &&
++            !IsBrowserClosing(navigation_params_browser_.get()) &&
++            (navigation_params_browser_->GetType() ==
++                 BrowserWindowInterface::Type::TYPE_NORMAL ||
++             (navigation_params_browser_->GetType() ==
++                  BrowserWindowInterface::Type::TYPE_APP &&
++              WebAppBrowserController::IsForWebApp(
++                  navigation_params_browser_.get(), app_id)))) {
+           std::optional<int> tab_index =
+               AppBrowserController::FindTabIndexForApp(
+-                  navigation_params_browser_, app_id, for_focus_existing);
++                  navigation_params_browser_.get(), app_id, for_focus_existing);
+           if (tab_index.has_value()) {
+-            existing_app_host = {.browser = navigation_params_browser_,
++            existing_app_host = {.browser = navigation_params_browser_.get(),
+                                  .tab_index = *tab_index};
+             break;
+           }
+@@ -1655,13 +1671,16 @@ NavigationCapturingProcess::GetEffectiveClientModeAndBrowser(
+         // params.browser is populated and belongs to the same `app_id`.
+         // If that is not found, start looking into all active app browsers.
+         if (navigation_params_browser_ &&
+-            WebAppBrowserController::IsForWebApp(navigation_params_browser_,
+-                                                 app_id)) {
++            !IsBrowserClosing(navigation_params_browser_.get()) &&
++            navigation_params_browser_->GetType() ==
++                BrowserWindowInterface::Type::TYPE_APP &&
++            WebAppBrowserController::IsForWebApp(
++                navigation_params_browser_.get(), app_id)) {
+           std::optional<int> tab_index =
+               AppBrowserController::FindTabIndexForApp(
+-                  navigation_params_browser_, app_id, for_focus_existing);
++                  navigation_params_browser_.get(), app_id, for_focus_existing);
+           if (tab_index.has_value()) {
+-            existing_app_host = {.browser = navigation_params_browser_,
++            existing_app_host = {.browser = navigation_params_browser_.get(),
+                                  .tab_index = *tab_index};
+             break;
+           }
+@@ -1715,10 +1734,10 @@ NavigationCapturingProcess::GetEffectiveClientModeAndBrowser(
+     case blink::mojom::DisplayMode::kBrowser:
+       // For kBrowser apps, an explicitly specific browser to navigate in
+       // should override what browser we might otherwise use for the profile.
+-      if (navigation_params_browser_ &&
++      if (CanReparentWebContentsIntoBrowser(navigation_params_browser_.get()) &&
+           navigation_params_browser_->GetType() ==
+               BrowserWindowInterface::Type::TYPE_NORMAL) {
+-        result.browser = navigation_params_browser_;
++        result.browser = navigation_params_browser_.get();
+       } else {
+         result.browser = FindNormalBrowser(*profile_);
+       }
+@@ -1734,23 +1753,16 @@ NavigationCapturingProcess::GetEffectiveClientModeAndBrowser(
+       // TODO(crbug.com/403587716): Add tests for this case. Test should mimic
+       // opening two app windows and prioritizing the one that gets passed in
+       // NavigateParams.
+-      if (navigation_params_browser_ &&
+-          WebAppBrowserController::IsForWebApp(navigation_params_browser_,
+-                                               app_id) &&
+-          web_app::AppBrowserController::From(navigation_params_browser_)
+-              ->has_tab_strip()) {
+-        result.browser = navigation_params_browser_;
++      if (CanReparentWebContentsIntoBrowser(navigation_params_browser_.get()) &&
++          WebAppBrowserController::IsForWebApp(navigation_params_browser_.get(),
++                                               app_id)) {
++        result.browser = navigation_params_browser_.get();
+         break;
+       }
+       BrowserWindowInterface* browser_for_web_app =
+           AppBrowserController::FindForWebApp(*profile_, app_id);
+-      result.browser = browser_for_web_app;
+-      // If somehow we found a browser that doesn't have a tab strip (which
+-      // might be possible if the manifest updated while a window is open),
+-      // don't return it to use for new tabs.
+-      if (result.browser && !web_app::AppBrowserController::From(result.browser)
+-                                 ->has_tab_strip()) {
+-        result.browser = nullptr;
++      if (CanReparentWebContentsIntoBrowser(browser_for_web_app)) {
++        result.browser = browser_for_web_app;
+       }
+       break;
+     }
+@@ -1791,6 +1803,7 @@ NavigationCapturingProcess::CancelInitialNavigation(
+ NavigationCapturingProcess::MaybeNavigationCapturingOverride
+ NavigationCapturingProcess::NoCapturingOverrideBrowser(
+     BrowserWindowInterface* browser) {
++  CHECK(CanReparentWebContentsIntoBrowser(browser));
+   debug_data_.Set("!result", "no capturing, override browser");
+   CHECK_EQ(state_, PipelineState::kCreated);
+   state_ = PipelineState::kInitialOverrideCalculated;
+@@ -1819,6 +1832,7 @@ NavigationCapturingProcess::AuxiliaryContext() {
+ NavigationCapturingProcess::MaybeNavigationCapturingOverride
+ NavigationCapturingProcess::AuxiliaryContextInAppWindow(
+     BrowserWindowInterface* app_browser) {
++  CHECK(CanReparentWebContentsIntoBrowser(app_browser));
+   CHECK(web_app::AppBrowserController::From(app_browser));
+   initial_nav_handling_result_ =
+       NavigationCapturingInitialResult::kAuxiliaryContextAppWindow;
+@@ -1852,6 +1866,7 @@ NavigationCapturingProcess::MaybeNavigationCapturingOverride
+ NavigationCapturingProcess::ForcedNewAppContext(
+     blink::mojom::DisplayMode app_display_mode,
+     BrowserWindowInterface* host_browser) {
++  CHECK(CanReparentWebContentsIntoBrowser(host_browser));
+   CHECK(first_navigation_app_id_.has_value());
+   CHECK(WebAppRegistrar::IsSupportedDisplayModeForNavigationCapture(
+       app_display_mode));
+@@ -1906,6 +1921,7 @@ NavigationCapturingProcess::MaybeNavigationCapturingOverride
+ NavigationCapturingProcess::CapturedNewClient(
+     blink::mojom::DisplayMode app_display_mode,
+     BrowserWindowInterface* host_browser) {
++  CHECK(CanReparentWebContentsIntoBrowser(host_browser));
+   SCOPED_CRASH_KEY_STRING1024("crbug396028223", "app_display_mode",
+                               base::ToString((app_display_mode)));
+   SCOPED_CRASH_KEY_STRING1024(
+diff --git a/chrome/browser/ui/web_applications/navigation_capturing_process.h b/chrome/browser/ui/web_applications/navigation_capturing_process.h
+index 808a2fee3..775775e04 100644
+--- a/chrome/browser/ui/web_applications/navigation_capturing_process.h
++++ b/chrome/browser/ui/web_applications/navigation_capturing_process.h
+@@ -284,7 +284,7 @@ class NavigationCapturingProcess
+   const std::optional<webapps::AppId> source_tab_app_id_;
+   const GURL navigation_params_url_;
+   const WindowOpenDisposition disposition_;
+-  const raw_ptr<BrowserWindowInterface> navigation_params_browser_;
++  const base::WeakPtr<BrowserWindowInterface> navigation_params_browser_;
+   std::optional<webapps::AppId> first_navigation_app_id_;
+   std::optional<blink::mojom::DisplayMode> first_navigation_app_display_mode_;
+ 
+diff --git a/chrome/browser/ui/web_applications/web_app_launch_utils.cc b/chrome/browser/ui/web_applications/web_app_launch_utils.cc
+index 6d4d4daeb..2fcbbdcbf 100644
+--- a/chrome/browser/ui/web_applications/web_app_launch_utils.cc
++++ b/chrome/browser/ui/web_applications/web_app_launch_utils.cc
+@@ -22,7 +22,6 @@
+ #include "base/memory/weak_ptr.h"
+ #include "base/metrics/histogram_functions.h"
+ #include "base/not_fatal_until.h"
+-#include "base/notreached.h"
+ #include "base/numerics/safe_conversions.h"
+ #include "base/one_shot_event.h"
+ #include "base/strings/string_split.h"
+@@ -56,6 +55,7 @@
+ #include "chrome/browser/ui/tabs/tab_enums.h"
+ #include "chrome/browser/ui/tabs/tab_model.h"
+ #include "chrome/browser/ui/tabs/tab_strip_model.h"
++#include "chrome/browser/ui/unload_controller.h"
+ #include "chrome/browser/ui/views/frame/browser_view.h"
+ #include "chrome/browser/ui/web_applications/app_browser_controller.h"
+ #include "chrome/browser/ui/web_applications/web_app_browser_controller.h"
+@@ -131,6 +131,8 @@ BrowserWindowInterface* ReparentWebContentsIntoAppBrowser(
+     const webapps::AppId& app_id,
+     bool insert_as_pinned_home_tab) {
+   DCHECK(target_browser->GetType() == BrowserWindowInterface::TYPE_APP);
++  CHECK(CanReparentWebContentsIntoBrowser(target_browser,
++                                          insert_as_pinned_home_tab));
+   BrowserWindowInterface* source_browser =
+       GlobalBrowserCollection::GetInstance()->FindBrowserWithTab(contents);
+   CHECK(contents);
+@@ -189,7 +191,7 @@ std::unique_ptr<AppBrowserController> CreateWebAppBrowserController(
+       system_app && system_app->ShouldHaveTabStrip();
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+   const bool has_tab_strip =
+-      browser->GetType() != BrowserWindowInterface::Type::TYPE_APP_POPUP &&
++      browser->GetType() == BrowserWindowInterface::Type::TYPE_APP &&
+       (should_have_tab_strip_for_swa ||
+        provider->registrar_unsafe().IsTabbedWindowModeEnabled(app_id));
+   return std::make_unique<WebAppBrowserController>(*provider, browser, app_id,
+@@ -297,6 +299,33 @@ void RecordDiyOrCraftedAppLaunch(const WebApp& web_app) {
+ 
+ }  // namespace
+ 
++bool IsBrowserClosing(BrowserWindowInterface* browser) {
++  return !browser || browser->IsDeleteScheduled() ||
++         (UnloadController::From(browser) &&
++          UnloadController::From(browser)->is_attempting_to_close_browser());
++}
++
++bool CanReparentWebContentsIntoBrowser(BrowserWindowInterface* target_browser,
++                                       bool insert_as_pinned_home_tab) {
++  if (IsBrowserClosing(target_browser) ||
++      (target_browser->GetType() != BrowserWindowInterface::TYPE_NORMAL &&
++       target_browser->GetType() != BrowserWindowInterface::TYPE_APP)) {
++    return false;
++  }
++  if (target_browser->GetType() == BrowserWindowInterface::TYPE_APP) {
++    if (!AppBrowserController::IsWebApp(target_browser)) {
++      return false;
++    }
++    if (!target_browser->GetTabStripModel()->empty() &&
++        !AppBrowserController::From(target_browser)->has_tab_strip() &&
++        !(insert_as_pinned_home_tab &&
++          HasPinnedHomeTab(target_browser->GetTabStripModel()))) {
++      return false;
++    }
++  }
++  return true;
++}
++
+ void ReparentWebContentsIntoBrowserImpl(BrowserWindowInterface* source_browser,
+                                         content::WebContents* web_contents,
+                                         BrowserWindowInterface* target_browser,
+@@ -307,6 +336,8 @@ void ReparentWebContentsIntoBrowserImpl(BrowserWindowInterface* source_browser,
+   CHECK(AreWebAppsEnabled(target_browser->GetProfile()));
+   CHECK(AreWebAppsEnabled(source_browser->GetProfile()));
+   CHECK_EQ(source_browser->GetProfile(), target_browser->GetProfile());
++  CHECK(CanReparentWebContentsIntoBrowser(target_browser,
++                                          insert_as_pinned_home_tab));
+ 
+   // In a reparent, the owning session service needs to be told it's tab
+   // has been removed, otherwise it will reopen the tab on restoration.
+@@ -629,6 +660,12 @@ BrowserWindowInterface* ReparentWebContentsIntoAppBrowser(
+ 
+   if (registrar.IsTabbedWindowModeEnabled(app_id)) {
+     browser = AppBrowserController::FindForWebApp(*profile, app_id);
++    if (!CanReparentWebContentsIntoBrowser(
++            browser,
++            browser && AppBrowserController::From(browser)->IsUrlInHomeTabScope(
++                           launch_url))) {
++      browser = nullptr;
++    }
+   }
+ 
+   if (!browser) {
+diff --git a/chrome/browser/ui/web_applications/web_app_launch_utils.h b/chrome/browser/ui/web_applications/web_app_launch_utils.h
+index 13cf89a68..328511065 100644
+--- a/chrome/browser/ui/web_applications/web_app_launch_utils.h
++++ b/chrome/browser/ui/web_applications/web_app_launch_utils.h
+@@ -35,6 +35,15 @@ class WebContents;
+ }
+ 
+ namespace web_app {
++// Returns true if `browser` is null, has deletion scheduled, or is currently
++// attempting to close.
++bool IsBrowserClosing(BrowserWindowInterface* browser);
++
++// Returns true if `target_browser` is a live normal tabbed browser or an app
++// browser that can accept a newly added or reparented WebContents.
++bool CanReparentWebContentsIntoBrowser(BrowserWindowInterface* target_browser,
++                                       bool insert_as_pinned_home_tab = false);
++
+ // This function moves `contents` from the `source_browser` to the
+ // `target_browser`. In doing so, it attempts to ensure that any logic that
+ // needs to occur when transitioning between 'app' and 'browser' windows occurs,
+diff --git a/chrome/browser/web_applications/navigation_capturing_browser_navigator_browsertest.cc b/chrome/browser/web_applications/navigation_capturing_browser_navigator_browsertest.cc
+index 1a5d3bce4..2eb65e292 100644
+--- a/chrome/browser/web_applications/navigation_capturing_browser_navigator_browsertest.cc
++++ b/chrome/browser/web_applications/navigation_capturing_browser_navigator_browsertest.cc
+@@ -14,6 +14,8 @@
+ #include "chrome/browser/ui/browser_commands.h"
+ #include "chrome/browser/ui/browser_tabstrip.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
++#include "chrome/browser/ui/browser_window/public/create_browser_window.h"
++#include "chrome/browser/ui/browser_window/public/desktop_browser_window_capabilities.h"
+ #include "chrome/browser/ui/navigator/browser_navigator.h"
+ #include "chrome/browser/ui/navigator/browser_navigator_params.h"
+ #include "chrome/browser/ui/navigator/browser_navigator_params_utils.h"
+@@ -38,6 +40,7 @@
+ #include "content/public/browser/web_contents.h"
+ #include "content/public/test/browser_test.h"
+ #include "content/public/test/browser_test_utils.h"
++#include "net/test/embedded_test_server/controllable_http_response.h"
+ #include "third_party/blink/public/common/features_generated.h"
+ #include "third_party/blink/public/mojom/manifest/manifest_launch_handler.mojom-shared.h"
+ #include "ui/base/page_transition_types.h"
+@@ -1153,5 +1156,184 @@ IN_PROC_BROWSER_TEST_F(NavigationCapturingWithRedirectionBrowserNavigatorTest,
+   EXPECT_TRUE(browser());
+ }
+ 
++class NavigationCapturingControllableRedirectionBrowserNavigatorTest
++    : public NavigationCapturingWithRedirectionBrowserNavigatorTest {
++ public:
++  void SetUpOnMainThread() override {
++    controllable_redirect_response_ =
++        std::make_unique<net::test_server::ControllableHttpResponse>(
++            embedded_test_server(), kControllableRedirectPath);
++    NavigationCapturingWithRedirectionBrowserNavigatorTest::SetUpOnMainThread();
++  }
++
++  GURL GetControllableRedirectUrl() const {
++    return embedded_test_server()->GetURL(kControllableRedirectPath);
++  }
++
++ protected:
++  static constexpr char kControllableRedirectPath[] =
++      "/web_apps/simple2/controllable_redirect.html";
++  std::unique_ptr<net::test_server::ControllableHttpResponse>
++      controllable_redirect_response_;
++};
++
++IN_PROC_BROWSER_TEST_F(
++    NavigationCapturingControllableRedirectionBrowserNavigatorTest,
++    RedirectOutOfScopeInitiatingBrowserClosed) {
++  // Regression test for https://crbug.com/573285920: if the browser specified
++  // in NavigateParams::browser is destroyed while an initially captured
++  // navigation is held mid-request before redirecting out-of-scope,
++  // HandleRedirect must not dereference a dangling pointer and should fall back
++  // to an existing tabbed browser.
++  InstallTestWebApp(GetRedirectFromPage(), mojom::UserDisplayMode::kStandalone);
++
++  BrowserWindowInterface* source_browser =
++      ui_test_utils::OpenNewEmptyWindowAndWaitUntilActivated(profile());
++  chrome::NewTab(source_browser, NewTabTypes::kNoUserAction);
++  base::WeakPtr<BrowserWindowInterface> source_browser_weak =
++      source_browser->GetWeakPtr();
++
++  ui_test_utils::AllBrowserTabAddedWaiter new_tab_observer;
++  NavigateParams params(source_browser, GetControllableRedirectUrl(),
++                        ui::PAGE_TRANSITION_LINK);
++  params.source_contents =
++      source_browser->GetTabStripModel()->GetActiveWebContents();
++  params.disposition = WindowOpenDisposition::kNewForegroundTab;
++  Navigate(&params);
++  content::WebContents* new_tab = new_tab_observer.Wait();
++  ASSERT_TRUE(new_tab);
++
++  controllable_redirect_response_->WaitForRequest();
++  CloseBrowserSynchronously(source_browser);
++  ASSERT_FALSE(source_browser_weak);
++
++  controllable_redirect_response_->Send(
++      base::StrCat({"HTTP/1.1 302 Found\r\nLocation: ", GetLandingPage().spec(),
++                    "\r\nContent-Type: text/html\r\n\r\n"}));
++  controllable_redirect_response_->Done();
++
++  content::WaitForLoadStop(new_tab);
++  apps::test::FlushLaunchQueuesForAllBrowserTabs();
++
++  EXPECT_NE(browser()->GetTabStripModel()->GetIndexOfWebContents(new_tab),
++            TabStripModel::kNoTab);
++}
++
++IN_PROC_BROWSER_TEST_F(NavigationCapturingWithRedirectionBrowserNavigatorTest,
++                       RedirectOutOfScopeFromDocumentPictureInPictureBrowser) {
++  // Regression test for https://crbug.com/574907939: when
++  // NavigateParams::browser is a Document Picture-in-Picture window, an
++  // out-of-scope redirect that reparents back to a tabbed browser must not
++  // reparent into the PiP window.
++  InstallTestWebApp(GetRedirectFromPage(), mojom::UserDisplayMode::kStandalone);
++
++  BrowserWindowCreateParams pip_params =
++      BrowserWindowCreateParams::CreateForPictureInPicture(
++          /*app_name=*/"", /*trusted_source=*/true, profile(),
++          /*user_gesture=*/true);
++  BrowserWindowInterface* pip_browser =
++      CreateBrowserWindow(std::move(pip_params));
++  ASSERT_TRUE(pip_browser);
++  ASSERT_TRUE(DesktopBrowserWindowCapabilities::IsDocumentPictureInPicture(
++      pip_browser));
++  chrome::AddTabAt(pip_browser, GURL(url::kAboutBlankURL), -1, true);
++
++  ui_test_utils::AllBrowserTabAddedWaiter new_tab_observer;
++  NavigateParams params(pip_browser, GetRedirectFromPage(),
++                        ui::PAGE_TRANSITION_LINK);
++  params.source_contents =
++      pip_browser->GetTabStripModel()->GetActiveWebContents();
++  params.disposition = WindowOpenDisposition::kNewForegroundTab;
++  Navigate(&params);
++  content::WebContents* new_tab = new_tab_observer.Wait();
++  ASSERT_TRUE(new_tab);
++
++  content::WaitForLoadStop(new_tab);
++  apps::test::FlushLaunchQueuesForAllBrowserTabs();
++
++  EXPECT_NE(browser()->GetTabStripModel()->GetIndexOfWebContents(new_tab),
++            TabStripModel::kNoTab);
++  EXPECT_EQ(pip_browser->GetTabStripModel()->GetIndexOfWebContents(new_tab),
++            TabStripModel::kNoTab);
++}
++
++IN_PROC_BROWSER_TEST_F(NavigationCapturingWithRedirectionBrowserNavigatorTest,
++                       RedirectOutOfScopeFromPopupBrowser) {
++  // Regression test for https://crbug.com/574907939 (popup variant): when
++  // NavigateParams::browser is a TYPE_POPUP window, an out-of-scope redirect
++  // that reparents back to a tabbed browser must reparent into a TYPE_NORMAL
++  // browser rather than the popup window.
++  InstallTestWebApp(GetRedirectFromPage(), mojom::UserDisplayMode::kStandalone);
++
++  BrowserWindowCreateParams popup_params(BrowserWindowInterface::TYPE_POPUP,
++                                         *profile(),
++                                         /*from_user_gesture=*/true);
++  BrowserWindowInterface* popup_browser =
++      CreateBrowserWindow(std::move(popup_params));
++  ASSERT_TRUE(popup_browser);
++  ASSERT_EQ(popup_browser->GetType(), BrowserWindowInterface::TYPE_POPUP);
++  chrome::AddTabAt(popup_browser, GURL(url::kAboutBlankURL), -1, true);
++
++  ui_test_utils::AllBrowserTabAddedWaiter new_tab_observer;
++  NavigateParams params(popup_browser, GetRedirectFromPage(),
++                        ui::PAGE_TRANSITION_LINK);
++  params.source_contents =
++      popup_browser->GetTabStripModel()->GetActiveWebContents();
++  params.disposition = WindowOpenDisposition::kNewForegroundTab;
++  Navigate(&params);
++  content::WebContents* new_tab = new_tab_observer.Wait();
++  ASSERT_TRUE(new_tab);
++
++  content::WaitForLoadStop(new_tab);
++  apps::test::FlushLaunchQueuesForAllBrowserTabs();
++
++  EXPECT_NE(browser()->GetTabStripModel()->GetIndexOfWebContents(new_tab),
++            TabStripModel::kNoTab);
++  EXPECT_EQ(popup_browser->GetTabStripModel()->GetIndexOfWebContents(new_tab),
++            TabStripModel::kNoTab);
++}
++
++IN_PROC_BROWSER_TEST_F(NavigationCapturingBrowserNavigatorBrowserTest,
++                       MiddleClickBrowserAppFromDocumentPictureInPicture) {
++  // Regression test for https://crbug.com/574907939: middle-clicking a kBrowser
++  // web app link when NavigateParams::browser is a Document Picture-in-Picture
++  // window must open the background tab in a normal tabbed browser rather than
++  // the PiP window.
++  const webapps::AppId& app_id = InstallTestWebApp(
++      GetDisplayBrowserUrl(), mojom::UserDisplayMode::kBrowser,
++      blink::mojom::ManifestLaunchHandler_ClientMode::kNavigateExisting);
++  EXPECT_EQ(apps::test::EnableLinkCapturingByUser(profile(), app_id),
++            base::ok());
++
++  BrowserWindowCreateParams pip_params =
++      BrowserWindowCreateParams::CreateForPictureInPicture(
++          /*app_name=*/"", /*trusted_source=*/true, profile(),
++          /*user_gesture=*/true);
++  BrowserWindowInterface* pip_browser =
++      CreateBrowserWindow(std::move(pip_params));
++  ASSERT_TRUE(pip_browser);
++  ASSERT_TRUE(DesktopBrowserWindowCapabilities::IsDocumentPictureInPicture(
++      pip_browser));
++  chrome::AddTabAt(pip_browser, GURL(url::kAboutBlankURL), -1, true);
++
++  ui_test_utils::AllBrowserTabAddedWaiter new_tab_observer;
++  NavigateParams params(pip_browser, GetDisplayBrowserUrl(),
++                        ui::PAGE_TRANSITION_LINK);
++  params.source_contents =
++      pip_browser->GetTabStripModel()->GetActiveWebContents();
++  params.disposition = WindowOpenDisposition::kNewBackgroundTab;
++  Navigate(&params);
++  content::WebContents* new_tab = new_tab_observer.Wait();
++  ASSERT_TRUE(new_tab);
++
++  content::WaitForLoadStop(new_tab);
++  apps::test::FlushLaunchQueuesForAllBrowserTabs();
++
++  EXPECT_NE(browser()->GetTabStripModel()->GetIndexOfWebContents(new_tab),
++            TabStripModel::kNoTab);
++  EXPECT_EQ(pip_browser->GetTabStripModel()->GetIndexOfWebContents(new_tab),
++            TabStripModel::kNoTab);
++}
++
+ }  // namespace
+ }  // namespace web_app
+-- 
+2.43.0
+

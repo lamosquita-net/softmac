@@ -1,0 +1,14 @@
+fc3add95ecddae0b25ddf583ee0995091e8e00e3a67ea0fb31238120731a58b7  chromium/0001-Autofill-Clamp-coordinates-to-all-ancestor-RenderWid.patch
+f3cdf61b0546da72685539a66c6c5cc0a3db75373a2693befb9029626392b70a  chromium/0002-Hide-stale-datalist-popup-when-active-field-or-sessi.patch
+d3b3c70f9352dd44b3bfd566901e1f3b9d5f100e8229603a76674e23ba545213  chromium/0003-Refresh-suggestions-directly-in-BatchDataListOptionC.patch
+3a5ea6244d55eaa6a536b3e1f467bb8e39c5502389ffbc48ab13ce6f9a219874  chromium/0004-Download-Ignore-late-FrameHTMLSerializerHandler-mess.patch
+327a23520b68a3a61f75e8b75ba7768f67be234f11a0fe35c5a4b844776b8f1a  chromium/0005-Reading-mode-Add-more-IsErrorDocument-checks.patch
+12f13e9721ad654bfe606d7b2f3acc3749a0c5a68843e9a0a2d11035b2751763  chromium/0006-Fix-UAF-when-AppWindow-is-destroyed-during-Show.patch
+46233f6c0aca600554dcd55d10d70b69412ba9a38c90b5ad61c52b06aee2b8ad  chromium/0007-WebApp-Require-committed-nav-for-WebAppUrlLoader-Did.patch
+1ce4d5b8db74494d4e47548faa19b0d8a0a069ead351180508c1a833f102154e  chromium/0008-dbsc-Return-early-if-AIK-generation-deletes-the-fetc.patch
+8ef8050904da5ace34a1940775cef88e27a234cf553d822cc9f49e2d6efb1fca  chromium/0009-Fullscreen-Assert-WebContents-alive-across-tab-fulls.patch
+6cad5e99a55e3fc61f88ed9310633ebca7ce174ea120bebbd5163f2a8f71a21b  chromium/0010-sync-Enforce-Nigori-key-continuity-for-inline-keybag.patch
+5f31e82521ee16e39ca55c032361b0c3160f5d5594fdf4ddffdbd247db96d16f  chromium/0011-User-Education-Restructure-ShowPromoInPage-for-memor.patch
+9511dd615dc8c177b1eb0b7d5cbabc69efb1d6ad6a126eafcd32bb62d735d9a6  chromium/0012-Revoke-Directory-capability-after-unzip-and-harden-e.patch
+378fd1e0eefeecf8627dcfe70aa4b3998e76f9fc1e4cea6fbbc6bde5d29f8866  chromium/0013-PWA-Harden-browser-reuse-in-navigation-capturing-red.patch
+5a486d8c17c142a8fa996bbadae1a008853f09a58356b526d258809d0e823c02  chromium/0014-PWA-Prevent-cross-app-LaunchParams-leak-and-app_id-d.patch

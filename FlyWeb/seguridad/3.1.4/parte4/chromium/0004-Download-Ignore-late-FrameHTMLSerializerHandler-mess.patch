@@ -1,0 +1,170 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Min Qin <qinmin@chromium.org>
+Date: Fri, 16 Oct 2026 13:20:22 -0700
+Subject: [PATCH 04/14] [Download] Ignore late FrameHTMLSerializerHandler
+ messages
+
+SavePackageSerializationHandler forwarded DidReceiveData() and
+Done() unconditionally. A renderer that keeps the
+FrameHTMLSerializerHandler pipe open and sends DidReceiveData()
+after Done() would have its data appended to the file while the
+asynchronous quarantine for that file was already in flight, and a
+second Done() would attempt to run a consumed OnceCallback.
+
+Use the consumed done_callback_ as a sentinel: once Done() has been
+delivered, drop further DidReceiveData()/Done() calls.
+
+Changes:
+- Early return in SavePackageSerializationHandler::DidReceiveData()
+  and Done() if done_callback_ is null.
+- Add SavePackageSerializationHandlerTest unit tests covering normal
+  and post-Done message ordering.
+
+Bug: 497617812
+Change-Id: If0369778862d8e50e70b2d515e5f4ea837051d3b
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8413733
+Reviewed-by: David Trainor <dtrainor@chromium.org>
+Commit-Queue: Min Qin <qinmin@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1721003}
+(cherry picked from commit 947c1f25f518a799956302ec0ac2fca173eb5d4f)
+---
+ .../save_package_serialization_handler.cc     |  9 ++-
+ .../save_package_serialization_handler.h      |  3 +-
+ ..._package_serialization_handler_unittest.cc | 66 +++++++++++++++++++
+ content/test/BUILD.gn                         |  1 +
+ 4 files changed, 77 insertions(+), 2 deletions(-)
+ create mode 100644 content/browser/download/save_package_serialization_handler_unittest.cc
+
+diff --git a/content/browser/download/save_package_serialization_handler.cc b/content/browser/download/save_package_serialization_handler.cc
+index e0a8f01c3..a372e2000 100644
+--- a/content/browser/download/save_package_serialization_handler.cc
++++ b/content/browser/download/save_package_serialization_handler.cc
+@@ -20,12 +20,19 @@ void SavePackageSerializationHandler::DidReceiveData(
+     const std::string& data_buffer) {
+   // This callback should always have been set.
+   CHECK(did_serialize_data_callback_, base::NotFatalUntil::M159);
++  // Ignore data that arrives after the renderer reported that serialization is
++  // finished.
++  if (!done_callback_) {
++    return;
++  }
+   did_serialize_data_callback_.Run(data_buffer);
+ }
+ 
+ void SavePackageSerializationHandler::Done() {
+   // This callback should always have been set and only called once.
+-  CHECK(done_callback_, base::NotFatalUntil::M159);
++  if (!done_callback_) {
++    return;
++  }
+   std::move(done_callback_).Run();
+ }
+ 
+diff --git a/content/browser/download/save_package_serialization_handler.h b/content/browser/download/save_package_serialization_handler.h
+index 8914eb483..5f5fd59c6 100644
+--- a/content/browser/download/save_package_serialization_handler.h
++++ b/content/browser/download/save_package_serialization_handler.h
+@@ -8,6 +8,7 @@
+ #include <string>
+ 
+ #include "base/functional/callback.h"
++#include "content/common/content_export.h"
+ #include "content/common/frame.mojom.h"
+ 
+ namespace content {
+@@ -17,7 +18,7 @@ namespace content {
+ // renderer: |did_serialize_data_callback| will report each chunk of data that's
+ // being serialized, while |done_callback| will simply notify when the
+ // serialization process is finished.
+-class SavePackageSerializationHandler
++class CONTENT_EXPORT SavePackageSerializationHandler
+     : public mojom::FrameHTMLSerializerHandler {
+  public:
+   using DidReceiveDataCallback =
+diff --git a/content/browser/download/save_package_serialization_handler_unittest.cc b/content/browser/download/save_package_serialization_handler_unittest.cc
+new file mode 100644
+index 000000000..504f2b26f
+--- /dev/null
++++ b/content/browser/download/save_package_serialization_handler_unittest.cc
+@@ -0,0 +1,66 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "content/browser/download/save_package_serialization_handler.h"
++
++#include <string>
++#include <vector>
++
++#include "base/functional/bind.h"
++#include "testing/gtest/include/gtest/gtest.h"
++
++namespace content {
++
++namespace {
++
++class SavePackageSerializationHandlerTest : public testing::Test {
++ protected:
++  SavePackageSerializationHandlerTest()
++      : handler_(base::BindRepeating(
++                     &SavePackageSerializationHandlerTest::OnDidReceiveData,
++                     base::Unretained(this)),
++                 base::BindOnce(&SavePackageSerializationHandlerTest::OnDone,
++                                base::Unretained(this))) {}
++
++  void OnDidReceiveData(const std::string& data) {
++    received_data_.push_back(data);
++  }
++
++  void OnDone() { ++done_count_; }
++
++  SavePackageSerializationHandler handler_;
++  std::vector<std::string> received_data_;
++  int done_count_ = 0;
++};
++
++TEST_F(SavePackageSerializationHandlerTest, ForwardsDataAndDone) {
++  handler_.DidReceiveData("first");
++  handler_.DidReceiveData("second");
++  EXPECT_EQ(received_data_, std::vector<std::string>({"first", "second"}));
++  EXPECT_EQ(done_count_, 0);
++
++  handler_.Done();
++  EXPECT_EQ(done_count_, 1);
++}
++
++TEST_F(SavePackageSerializationHandlerTest, IgnoresDataAfterDone) {
++  handler_.DidReceiveData("before");
++  handler_.Done();
++  handler_.DidReceiveData("after");
++
++  EXPECT_EQ(received_data_, std::vector<std::string>({"before"}));
++  EXPECT_EQ(done_count_, 1);
++}
++
++TEST_F(SavePackageSerializationHandlerTest, IgnoresExtraDone) {
++  handler_.Done();
++  handler_.Done();
++
++  EXPECT_TRUE(received_data_.empty());
++  EXPECT_EQ(done_count_, 1);
++}
++
++}  // namespace
++
++}  // namespace content
+diff --git a/content/test/BUILD.gn b/content/test/BUILD.gn
+index b070c37e6..752b2234c 100644
+--- a/content/test/BUILD.gn
++++ b/content/test/BUILD.gn
+@@ -2649,6 +2649,7 @@ test("content_unittests") {
+     "../browser/digital_credentials/virtual_wallet_unittest.cc",
+     "../browser/dom_storage/dom_storage_context_wrapper_unittest.cc",
+     "../browser/download/download_manager_impl_unittest.cc",
++    "../browser/download/save_package_serialization_handler_unittest.cc",
+     "../browser/download/save_package_unittest.cc",
+     "../browser/embedder_isolation_info_unittest.cc",
+     "../browser/eye_dropper_chooser_impl_unittest.cc",
+-- 
+2.43.0
+

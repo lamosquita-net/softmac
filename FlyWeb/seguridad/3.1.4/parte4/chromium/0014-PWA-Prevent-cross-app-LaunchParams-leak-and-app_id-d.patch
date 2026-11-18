@@ -1,0 +1,457 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nate Chapin <japhet@chromium.org>
+Date: Wed, 21 Oct 2026 09:44:35 -0700
+Subject: [PATCH 14/14] [PWA] Prevent cross-app LaunchParams leak and app_id
+ desync
+
+This CL addresses two security bugs in Web App launch parameter delivery
+and tab app association tracking:
+
+1. Cross-app `LaunchParams::paths_` / `dir_` leak across server redirect
+   (https://crbug.com/574232164):
+   - Enforce a structural invariant in
+     `webapps::LaunchParams::set_app_id`: when `app_id_` is already
+     populated (`!app_id_.empty()`) and is relabeled to a different
+     `app_id` (such as when `SetLaunchParamsMetadata` updates an
+     existing `LaunchParams` across a redirect to another app),
+     automatically call `clear_paths()` (clearing both `paths_` and
+     `can_write_`) and `clear_dir()`.
+
+2. `WebAppTabHelper::app_id_` desynchronization and out-of-scope
+   `LaunchQueue` delivery (https://crbug.com/574231826):
+   - In `WebAppTabHelper::DidFinishNavigation`, for non-same-document
+     primary main-frame navigations
+     (`!navigation_handle->IsSameDocument()`), reconcile `app_id_` with
+     `FindAppIdForUrl(registrar, web_contents()->GetLastCommittedURL())`
+     whenever `app_id_ != committed_app_id`. This preserves pre-commit
+     `app_id_` visibility for `ReadyToCommitNavigation` /
+     `PrimaryPageChanged` observers and avoids redundant `SetAppId` /
+     `ScheduleManifestAppliedUseCounter()` calls when the IDs already
+     match, while ensuring aborted navigations cannot leave `app_id_`
+     stuck on the uncommitted target app.
+   - In `WebAppTabHelper::CanBeUsedForFocusExisting`, verify that
+     `app_id_.has_value()` and `web_contents()->GetLastCommittedURL()`
+     is within `app_id_`'s extended scope via
+     `IsUrlInAppExtendedScope(GetLastCommittedURL(), *app_id_)`.
+   - In `webapps::LaunchQueue::SendLaunchParams`, replace
+     `DCHECK(delegate_->IsInScope(launch_params, current_url))` with a
+     graceful early return when `!delegate_->IsInScope(launch_params,
+     current_url)`. Launches that previously tripped this `DCHECK` in
+     debug builds (or proceeded to mint file handles and invoke
+     `EnqueueLaunchParams` on an out-of-scope document in release
+     builds) are now dropped silently.
+
+Fixed: 574232164, 574231826
+Test: unit_tests --gtest_filter=WebAppTabHelperTest.*
+Test: components_unittests --gtest_filter=LaunchQueueTest.*
+Change-Id: I50eccf68a39cd5026a86736e65d2a4fc12135009
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8620600
+Reviewed-by: Daniel Murphy <dmurph@chromium.org>
+Commit-Queue: Nate Chapin <japhet@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1723900}
+(cherry picked from commit e41efb6d0ea6956b4018155afcd5c181cbe11b48)
+---
+ chrome/browser/web_applications/BUILD.gn      |   2 +
+ .../web_applications/web_app_tab_helper.cc    |  44 ++++
+ .../web_applications/web_app_tab_helper.h     |  30 ++-
+ .../web_app_tab_helper_unittest.cc            | 202 ++++++++++++++++++
+ .../browser/launch_queue/launch_params.h      |  12 +-
+ .../browser/launch_queue/launch_queue.cc      |  13 +-
+ 6 files changed, 289 insertions(+), 14 deletions(-)
+ create mode 100644 chrome/browser/web_applications/web_app_tab_helper_unittest.cc
+
+diff --git a/chrome/browser/web_applications/BUILD.gn b/chrome/browser/web_applications/BUILD.gn
+index 467440fac..12ebac190 100644
+--- a/chrome/browser/web_applications/BUILD.gn
++++ b/chrome/browser/web_applications/BUILD.gn
+@@ -1071,6 +1071,7 @@ source_set("web_applications_unit_tests") {
+     "web_app_scope_extensions_unittest.cc",
+     "web_app_scope_unittest.cc",
+     "web_app_sync_bridge_unittest.cc",
++    "web_app_tab_helper_unittest.cc",
+     "web_app_translation_manager_unittest.cc",
+     "web_app_ui_manager_unittest.cc",
+     "web_app_unittest.cc",
+@@ -1152,6 +1153,7 @@ source_set("web_applications_unit_tests") {
+     "//chrome/browser/profiles:profile",
+     "//chrome/browser/profiles/keep_alive",
+     "//chrome/browser/shortcuts",
++    "//chrome/browser/ui/browser_window/test:test_support",
+     "//chrome/browser/ui/web_applications",
+     "//chrome/browser/web_applications/isolated_web_apps/test:test_support",
+     "//chrome/browser/web_applications/locks:partitioned_lock_manager_unit_tests",
+diff --git a/chrome/browser/web_applications/web_app_tab_helper.cc b/chrome/browser/web_applications/web_app_tab_helper.cc
+index 003c708da..8d468cb0f 100644
+--- a/chrome/browser/web_applications/web_app_tab_helper.cc
++++ b/chrome/browser/web_applications/web_app_tab_helper.cc
+@@ -250,6 +250,24 @@ void WebAppTabHelper::DidFinishNavigation(
+     return;
+   }
+ 
++  // `ReadyToCommitNavigation` provisionally updates `app_id_` before a
++  // cross-document navigation commits. If that navigation subsequently fails or
++  // is aborted without committing (or if overlapping navigations complete out
++  // of order), reconcile `app_id_` with the last committed URL so `app_id_`
++  // cannot remain stuck on an uncommitted navigation's app.
++  // Same-document navigations are excluded to preserve existing semantics
++  // (renderer-initiated ones never run `ReadyToCommitNavigation`). Only call
++  // `SetAppId` when `app_id_` actually differs from `committed_app_id` to avoid
++  // re-triggering `ScheduleManifestAppliedUseCounter()` on matching IDs.
++  if (!navigation_handle->IsSameDocument()) {
++    std::optional<webapps::AppId> committed_app_id =
++        WebAppTabHelper::FindAppIdForUrl(provider_->registrar_unsafe(),
++                                         web_contents()->GetLastCommittedURL());
++    if (app_id_ != committed_app_id) {
++      SetAppId(std::move(committed_app_id));
++    }
++  }
++
+   provider_->ui_manager().NotifyDidFinishNavigation(navigation_handle);
+ }
+ 
+@@ -298,6 +316,32 @@ WebAppTabHelper::WebAppTabHelper(tabs::TabInterface* tab,
+ }
+ 
+ bool WebAppTabHelper::CanBeUsedForFocusExisting() const {
++  if (!app_id_.has_value() ||
++      !provider_->registrar_unsafe().IsUrlInAppExtendedScope(
++          web_contents()->GetLastCommittedURL(), *app_id_)) {
++    return false;
++  }
++
++  // Origins, not URL scopes, are the Web's security boundary. A document served
++  // with `Content-Security-Policy: sandbox` (without `allow-same-origin`)
++  // commits an opaque origin, which is cross-origin to the app that served it,
++  // even though its URL is still inside the app's scope.
++  //
++  // Reusing such a document in place would hand launch params -- the target
++  // URL, and any file handles minted for them -- to a context the app has
++  // explicitly declared untrusted, leaking URLs that may carry tokens or query
++  // parameters. It also breaks the user's intent: the navigation they asked for
++  // is cancelled and swallowed by a document that cannot act on it.
++  //
++  // Disqualify the document so callers fall back to navigating to the real,
++  // same-origin target URL, where the launch can actually be handled.
++  if (web_contents()
++          ->GetPrimaryMainFrame()
++          ->GetLastCommittedOrigin()
++          .opaque()) {
++    return false;
++  }
++
+   constexpr std::array<std::string_view, 3>
+       kMimeTypesWithExpectedLaunchConsumer = {
+           "text/html",
+diff --git a/chrome/browser/web_applications/web_app_tab_helper.h b/chrome/browser/web_applications/web_app_tab_helper.h
+index 822d0be55..3dc8ca823 100644
+--- a/chrome/browser/web_applications/web_app_tab_helper.h
++++ b/chrome/browser/web_applications/web_app_tab_helper.h
+@@ -83,9 +83,10 @@ class WebAppTabHelper : public content::WebContentsUserData<WebAppTabHelper>,
+ 
+   // Sets the app id for this web contents. Ideally the app id would always be
+   // equal to the id of whatever app the last committed primary main frame URL
+-  // is in scope for (and WebAppTabHelper resets it to that any time a
+-  // navigation commits), but for legacy reasons sometimes the app id is set
+-  // explicitly from elsewhere.
++  // is in scope for (`ReadyToCommitNavigation` provisionally sets it for the
++  // target URL, and `DidFinishNavigation` reconciles it to
++  // `GetLastCommittedURL()` for non-same-document navigations), but for legacy
++  // reasons sometimes the app id is set explicitly from elsewhere.
+   void SetAppId(std::optional<webapps::AppId> app_id);
+ 
+   // Called by `WebAppBrowserController` and `KioskWebAppBrowserController`'s
+@@ -137,7 +138,10 @@ class WebAppTabHelper : public content::WebContentsUserData<WebAppTabHelper>,
+   //   InstallState::SUGGESTED_FROM_ANOTHER_DEVICE state.
+   //
+   // Note: This is populated on construction from the current tab's
+-  // `GetLastCommittedURL()`, and afterwards only after navigation is committed.
++  // `GetLastCommittedURL()`, provisionally updated at
++  // `ReadyToCommitNavigation()` for primary main-frame navigations, and
++  // reconciled to `GetLastCommittedURL()` at `DidFinishNavigation()` for
++  // non-same-document primary main-frame navigations.
+   //
+   // Note: If we are in an app window, this is not guaranteed to match
+   // `window_app_id()` - for example, if the web contents of an app navigates
+@@ -195,11 +199,19 @@ class WebAppTabHelper : public content::WebContentsUserData<WebAppTabHelper>,
+   // Returns if the current web contents can be used for the 'focus-existing'
+   // behavior of navigation capturing, where the tab is focused and a
+   // 'LaunchParams' is given to a javascript 'launch consumer' on the page. This
+-  // returns if the current page can feasibly run javascript to actually set
+-  // this launch consumer, as without that, any captured links would simply do
+-  // nothing.
+-  // Specifically, this turns `true` if the current page's mime-type is html or
+-  // xhtml.
++  // is the single eligibility rule for in-place reuse, consulted by both
++  // navigation capturing and direct app launches (`WebAppLaunchProcess`).
++  //
++  // Returns `true` only if all of the following hold:
++  //  - The tab is associated with an `app_id_` and its last committed URL is in
++  //    that app's extended scope.
++  //  - The committed origin is not opaque. A document that committed an opaque
++  //    origin (e.g. one served with `Content-Security-Policy: sandbox`, or an
++  //    error page) is cross-origin to the app even when its URL is in scope,
++  //    and must not receive the app's launch params.
++  //  - The current page's mime-type is html or xhtml, so it can feasibly run
++  //    javascript to set a launch consumer. Without one, a launch would simply
++  //    do nothing.
+   bool CanBeUsedForFocusExisting() const;
+ 
+  private:
+diff --git a/chrome/browser/web_applications/web_app_tab_helper_unittest.cc b/chrome/browser/web_applications/web_app_tab_helper_unittest.cc
+new file mode 100644
+index 000000000..641063d57
+--- /dev/null
++++ b/chrome/browser/web_applications/web_app_tab_helper_unittest.cc
+@@ -0,0 +1,202 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/web_applications/web_app_tab_helper.h"
++
++#include "base/files/file_path.h"
++#include "base/time/time.h"
++#include "chrome/browser/ui/browser_window/test/mock_browser_window_interface.h"
++#include "chrome/browser/ui/web_applications/web_app_launch_navigation_handle_user_data.h"
++#include "chrome/browser/web_applications/test/web_app_install_test_utils.h"
++#include "chrome/browser/web_applications/test/web_app_test.h"
++#include "components/tabs/public/mock_tab_interface.h"
++#include "components/webapps/browser/launch_queue/launch_params.h"
++#include "components/webapps/common/web_app_id.h"
++#include "content/public/test/mock_navigation_handle.h"
++#include "content/public/test/navigation_simulator.h"
++#include "testing/gmock/include/gmock/gmock.h"
++#include "testing/gtest/include/gtest/gtest.h"
++#include "url/gurl.h"
++
++namespace web_app {
++namespace {
++
++class WebAppTabHelperTest : public WebAppTest {
++ public:
++  void SetUp() override {
++    WebAppTest::SetUp();
++    test::AwaitStartWebAppProviderAndSubsystems(profile());
++
++    ON_CALL(browser_window_interface_, GetProfile())
++        .WillByDefault(testing::Return(profile()));
++    ON_CALL(tab_interface_, GetBrowserWindowInterface())
++        .WillByDefault(testing::Return(&browser_window_interface_));
++    ON_CALL(tab_interface_, GetContents())
++        .WillByDefault(testing::Return(web_contents()));
++
++    WebAppTabHelper::Create(&tab_interface_, web_contents());
++  }
++
++  WebAppTabHelper* tab_helper() {
++    return WebAppTabHelper::FromWebContents(web_contents());
++  }
++
++ private:
++  testing::NiceMock<MockBrowserWindowInterface> browser_window_interface_;
++  tabs::MockTabInterface tab_interface_;
++};
++
++// Regression test for https://crbug.com/574231826: if a navigation reaches
++// `ReadyToCommitNavigation` (updating `app_id_` to the target app) and then
++// finishes without committing, `DidFinishNavigation` must restore `app_id_` to
++// match the tab's last committed URL, and `CanBeUsedForFocusExisting()` must
++// never return true while the committed URL is outside the app's extended
++// scope.
++TEST_F(WebAppTabHelperTest, AbortedNavigationRestoresCommittedAppId) {
++  const webapps::AppId app_id = test::InstallDummyWebApp(
++      profile(), "Target App", GURL("https://app.example/scope/"));
++
++  const GURL unrelated_url("https://unrelated.example/page.html");
++  auto initial_nav = content::NavigationSimulator::CreateBrowserInitiated(
++      unrelated_url, web_contents());
++  initial_nav->SetContentsMimeType("text/html");
++  initial_nav->Commit();
++
++  EXPECT_EQ(nullptr, WebAppTabHelper::GetAppId(web_contents()));
++  EXPECT_FALSE(tab_helper()->CanBeUsedForFocusExisting());
++
++  // Simulate a primary main-frame navigation to the target app that reaches
++  // `ReadyToCommitNavigation` and then aborts before committing.
++  content::MockNavigationHandle mock_nav_handle(
++      GURL("https://app.example/scope/launch"), main_rfh());
++  mock_nav_handle.set_is_in_primary_main_frame(true);
++  mock_nav_handle.set_is_same_document(false);
++  mock_nav_handle.set_has_committed(false);
++
++  tab_helper()->ReadyToCommitNavigation(&mock_nav_handle);
++  ASSERT_NE(nullptr, WebAppTabHelper::GetAppId(web_contents()));
++  EXPECT_EQ(app_id, *WebAppTabHelper::GetAppId(web_contents()));
++  // Even while `app_id_` is provisionally set before commit, the committed URL
++  // (`unrelated_url`) is not in scope of `app_id`, so in-place focus-existing
++  // reuse must be rejected.
++  EXPECT_FALSE(tab_helper()->CanBeUsedForFocusExisting());
++
++  // When the navigation finishes without committing, `app_id_` is reconciled
++  // back to the committed URL (`std::nullopt`).
++  tab_helper()->DidFinishNavigation(&mock_nav_handle);
++  EXPECT_EQ(nullptr, WebAppTabHelper::GetAppId(web_contents()));
++  EXPECT_FALSE(tab_helper()->CanBeUsedForFocusExisting());
++}
++
++// Verifies that normal cross-document committed navigations within an app's
++// scope keep `app_id_` set to that app, and that same-document navigations
++// (`IsSameDocument()`) do not flip `app_id_` in `DidFinishNavigation` while
++// `CanBeUsedForFocusExisting()` still enforces `GetLastCommittedURL()` scope.
++TEST_F(WebAppTabHelperTest,
++       CommittedAndSameDocumentNavigationsPreserveExpectedAppId) {
++  const webapps::AppId app_id = test::InstallDummyWebApp(
++      profile(), "App", GURL("https://app.example/scope/"));
++
++  auto nav1 = content::NavigationSimulator::CreateBrowserInitiated(
++      GURL("https://app.example/scope/page1.html"), web_contents());
++  nav1->SetContentsMimeType("text/html");
++  nav1->Commit();
++  ASSERT_NE(nullptr, WebAppTabHelper::GetAppId(web_contents()));
++  EXPECT_EQ(app_id, *WebAppTabHelper::GetAppId(web_contents()));
++  EXPECT_TRUE(tab_helper()->CanBeUsedForFocusExisting());
++
++  // A second cross-document navigation within the same app's scope keeps
++  // `app_id_` unchanged.
++  auto nav2 = content::NavigationSimulator::CreateBrowserInitiated(
++      GURL("https://app.example/scope/page2.html"), web_contents());
++  nav2->SetContentsMimeType("text/html");
++  nav2->Commit();
++  ASSERT_NE(nullptr, WebAppTabHelper::GetAppId(web_contents()));
++  EXPECT_EQ(app_id, *WebAppTabHelper::GetAppId(web_contents()));
++  EXPECT_TRUE(tab_helper()->CanBeUsedForFocusExisting());
++
++  // A same-document navigation (`pushState`) to an out-of-scope path on the
++  // same origin does not flip `app_id_` in `DidFinishNavigation`, but
++  // `CanBeUsedForFocusExisting()` rejects it because `GetLastCommittedURL()`
++  // is no longer in extended scope of `app_id_`.
++  auto same_doc_nav = content::NavigationSimulator::CreateRendererInitiated(
++      GURL("https://app.example/out-of-scope/page.html"), main_rfh());
++  same_doc_nav->CommitSameDocument();
++  ASSERT_NE(nullptr, WebAppTabHelper::GetAppId(web_contents()));
++  EXPECT_EQ(app_id, *WebAppTabHelper::GetAppId(web_contents()));
++  EXPECT_FALSE(tab_helper()->CanBeUsedForFocusExisting());
++}
++
++// Regression test for https://crbug.com/574231826:
++// `CanBeUsedForFocusExisting()` must verify that `GetLastCommittedURL()` is in
++// the extended scope of `app_id_`.
++TEST_F(WebAppTabHelperTest,
++       CanBeUsedForFocusExistingRequiresCommittedUrlInAppScope) {
++  const webapps::AppId app_a = test::InstallDummyWebApp(
++      profile(), "App A", GURL("https://app-a.example/app/"));
++  const webapps::AppId app_b = test::InstallDummyWebApp(
++      profile(), "App B", GURL("https://app-b.example/app/"));
++
++  auto nav = content::NavigationSimulator::CreateBrowserInitiated(
++      GURL("https://app-a.example/app/index.html"), web_contents());
++  nav->SetContentsMimeType("text/html");
++  nav->Commit();
++
++  ASSERT_NE(nullptr, WebAppTabHelper::GetAppId(web_contents()));
++  EXPECT_EQ(app_a, *WebAppTabHelper::GetAppId(web_contents()));
++  EXPECT_TRUE(tab_helper()->CanBeUsedForFocusExisting());
++
++  // If `app_id_` does not match the committed URL's scope (e.g. set to `app_b`
++  // while `app_a`'s URL is committed), `CanBeUsedForFocusExisting()` must
++  // return false.
++  tab_helper()->SetAppId(app_b);
++  EXPECT_FALSE(tab_helper()->CanBeUsedForFocusExisting());
++}
++
++// Regression test for https://crbug.com/574232164: `SetLaunchParamsMetadata`
++// must preserve `paths()` and `dir()` across same-app redirects, and clear both
++// when a redirect changes the target `app_id`.
++TEST_F(WebAppTabHelperTest,
++       SetLaunchParamsMetadataClearsFilesAndDirOnCrossAppRedirect) {
++  content::MockNavigationHandle mock_nav_handle(
++      GURL("https://app-a.example/start"), main_rfh());
++  mock_nav_handle.set_is_in_primary_main_frame(true);
++
++  auto* user_data =
++      WebAppLaunchNavigationHandleUserData::GetOrCreateForNavigationHandle(
++          mock_nav_handle);
++
++  webapps::LaunchParams initial_params;
++  initial_params.set_app_id("app_a");
++  initial_params.set_target_url(GURL("https://app-a.example/start"));
++  initial_params.set_paths_with_permissions(
++      {base::FilePath(FILE_PATH_LITERAL("user_doc.txt"))}, {true});
++  initial_params.set_dir(base::FilePath(FILE_PATH_LITERAL("user_dir")));
++  user_data->SetLaunchParams(std::move(initial_params));
++
++  // Same-app redirect updates `target_url` while keeping file/directory
++  // capabilities intact.
++  user_data->SetLaunchParamsMetadata("app_a",
++                                     GURL("https://app-a.example/redirected"),
++                                     base::TimeTicks::Now());
++  EXPECT_EQ("app_a", user_data->GetLaunchParams().app_id());
++  EXPECT_EQ(GURL("https://app-a.example/redirected"),
++            user_data->GetLaunchParams().target_url());
++  EXPECT_EQ(1u, user_data->GetLaunchParams().paths().size());
++  EXPECT_EQ(1u, user_data->GetLaunchParams().can_write().size());
++  EXPECT_FALSE(user_data->GetLaunchParams().dir().empty());
++
++  // Cross-app redirect to `app_b` strips `paths`, `can_write`, and `dir`.
++  user_data->SetLaunchParamsMetadata(
++      "app_b", GURL("https://app-b.example/landing"), base::TimeTicks::Now());
++  EXPECT_EQ("app_b", user_data->GetLaunchParams().app_id());
++  EXPECT_EQ(GURL("https://app-b.example/landing"),
++            user_data->GetLaunchParams().target_url());
++  EXPECT_TRUE(user_data->GetLaunchParams().paths().empty());
++  EXPECT_TRUE(user_data->GetLaunchParams().can_write().empty());
++  EXPECT_TRUE(user_data->GetLaunchParams().dir().empty());
++}
++
++}  // namespace
++}  // namespace web_app
+diff --git a/components/webapps/browser/launch_queue/launch_params.h b/components/webapps/browser/launch_queue/launch_params.h
+index bd05e4a0f..288df65a2 100644
+--- a/components/webapps/browser/launch_queue/launch_params.h
++++ b/components/webapps/browser/launch_queue/launch_params.h
+@@ -43,7 +43,17 @@ class LaunchParams {
+   void set_started_new_navigation(bool started_new_navigation) {
+     started_new_navigation_ = started_new_navigation;
+   }
+-  void set_app_id(webapps::AppId app_id) { app_id_ = std::move(app_id); }
++  // Setting a different `app_id` after one was already populated clears any
++  // file or directory handles (`paths_`, `can_write_`, `dir_`), which are
++  // capabilities scoped to the original app. (`scope_` is Android-only scope
++  // validation metadata, not a capability.)
++  void set_app_id(webapps::AppId app_id) {
++    if (!app_id_.empty() && app_id_ != app_id) {
++      clear_paths();
++      clear_dir();
++    }
++    app_id_ = std::move(app_id);
++  }
+   void set_target_url(GURL target_url) { target_url_ = std::move(target_url); }
+   void set_dir(base::FilePath dir) { dir_ = std::move(dir); }
+   void set_paths(std::vector<base::FilePath> paths) {
+diff --git a/components/webapps/browser/launch_queue/launch_queue.cc b/components/webapps/browser/launch_queue/launch_queue.cc
+index c45171a65..64c780ac9 100644
+--- a/components/webapps/browser/launch_queue/launch_queue.cc
++++ b/components/webapps/browser/launch_queue/launch_queue.cc
+@@ -116,10 +116,15 @@ void LaunchQueue::FlushForTesting() const {
+ 
+ void LaunchQueue::SendLaunchParams(LaunchParams launch_params,
+                                    const GURL& current_url) {
+-  // TODO(dmurph): Figure out why this is failing.
+-  // https://crbug.com/2546057
+-  DCHECK(delegate_->IsInScope(launch_params, current_url))
+-      << current_url.spec();
++  // Verify at dispatch time that the currently committed document is still in
++  // scope of the target app (https://crbug.com/574231826). This is a runtime
++  // conditional rather than a DCHECK because a tab's committed URL can diverge
++  // from a pending launch or uncommitted navigation, and an out-of-scope
++  // document must not have file handles minted for its origin or receive
++  // `EnqueueLaunchParams`.
++  if (!delegate_->IsInScope(launch_params, current_url)) {
++    return;
++  }
+   CHECK(launch_params.target_url().is_valid());
+   mojo::AssociatedRemote<blink::mojom::WebLaunchService> launch_service;
+   web_contents_->GetPrimaryMainFrame()
+-- 
+2.43.0
+

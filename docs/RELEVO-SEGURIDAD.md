@@ -914,3 +914,32 @@ con la clave de atestación apagada). Visto bueno a COORDINACIÓN-47: 7b99dd29ba
   `IsValidTransferToken(…, StorageKey, …)`, que en la 156 recibe un `url::Origin` (la sobrecarga es de 625dedb4a0, posterior
   a la rama). LOCAL-19 lo encontró al compilar (0030). Para cada función que una línea añadida llama, comparar su firma en la
   156 y en el padre del commit.
+
+## 17. SEGURIDAD-PORTES-26 → relevo (18-11-2026, ~15:45 UTC): la 3.1.4 entera (partes 4, integración y V8)
+
+**Contexto:** Titín decidió (18-11, ~15:15) que **en la 3.1.4 entra toda la seguridad que aplica a Mac**. Reparto de
+COORDINACIÓN-49 (`session_01MwmK2ja2S2x47BLQTR6Qc5`), todo sobre chromium `986d591616` y brave-core `15c050d35a`:
+parte 4 (G4 + 7b99dd29ba) para la -26 y su relevo; parte 5 (medios de la 157) para SEGURIDAD-PORTES-27; parte 6
+(bajos de la 158) para SEGURIDAD-PORTES-28; **integración 4 → 5 → 6** con `git am` y un solo encargo de V8 para
+D8-LINUX, también para la -26 y su relevo. La build 47 de LOCAL-19 está parada hasta entonces.
+
+**Estado de la parte 4** (`FlyWeb/seguridad/3.1.4/parte4/CONTENIDO.md`): 14 de 17 portados (chromium 0001–0014 → árbol
+`031ab4cda4`); 553151406 no aplica (Aura/Linux). **Faltan:** 7b99dd29ba (porte propio, plan en el CONTENIDO), 22a2af917b
+(DNR, 7 choques) y 543907563 (devtools-frontend). Luego el APTO de la parte y la integración.
+
+**Cómo rehacer el entorno (unos 10 min):**
+- Clon parcial: `git init`; remotos `fork` (lamosquita-net/chromium) y `up` (chromium/chromium), los dos promisor con
+  `blob:none`; `git fetch --filter=blob:none --depth=1 fork refs/heads/local/313`; *sparse checkout* `--no-cone` con los
+  ficheros de las series; `git am -3 --keep-non-patch` de `3.1.4/chromium/*`, `3.1.5/chromium/*` y `3.1.4/parte4/chromium/*`.
+- Commits de upstream: `git fetch --filter=blob:none --depth=2 up <sha completo>`; comprobar con
+  `git merge-tree --write-tree --name-only --merge-base=C^ HEAD C`.
+- `git config gc.auto 0` (si no, el `gc` automático mete ruido) y **evitar `cherry-pick --abort`** con el *sparse*: reescribe
+  las banderas de 500 000 entradas del índice (tarda). Mejor resolver o `git reset --hard` al commit anterior.
+
+**Trampas nuevas:**
+- Un `cherry-pick` limpio no garantiza que compile: **mirar la firma de cada función que llama una línea añadida** (0018 de
+  la 3.1.5; LOCAL-19 lo cazó al compilar).
+- Varios arreglos de upstream llegan sobre código ya refactorizado (constructor de `WebMediaPlayerImpl`, `Lift()` del
+  autorrelleno): comparar el fichero de la 156 con el padre del commit (`diff <(git show HEAD:f) <(git show C^:f)`); si
+  solo difieren en `DCHECK`/`CHECK`, se puede tomar el fichero entero de upstream.
+- `BASE_FEATURE` de la 156 acepta los dos formatos (con y sin nombre en texto).
