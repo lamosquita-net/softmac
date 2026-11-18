@@ -1,0 +1,195 @@
+From aa50378e8490bf648c562dc20b929ac616e7dc5b Mon Sep 17 00:00:00 2001
+From: Gaston Rodriguez <gastonr@microsoft.com>
+Date: Tue, 20 Oct 2026 11:07:38 -0700
+Subject: [PATCH 23/32] Strip unrendered head tags from sanitized clipboard
+ markup
+
+CreateStrictlyProcessedMarkupWithContext can preserve <base>, <link>,
+and <meta> in its fast serialization path because the parser's scripting
+and plugin restrictions do not remove them. If an application inserts
+the sanitized output into a document, these elements can change URL
+resolution, load resources, or trigger navigation.
+
+This CL explicitly removes these three HTML element types from the
+parsed fragment on each sanitization iteration before choosing a
+serialization path or attaching the fragment to the staging document.
+
+Added parameterized coverage for each tag: adjacent and nested removal
+with exact preservation of other markup, inline display overrides, and
+stylesheet display overrides with legitimate style conversion preserved.
+
+Bug: 502048148
+Change-Id: I791e07d7d1bc35ed988c6edede6fbbeca884c9d2
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8503982
+Reviewed-by: Dan Clark <daniec@microsoft.com>
+Commit-Queue: Gaston Rodriguez <gastonr@microsoft.com>
+Cr-Commit-Position: refs/heads/main@{#1723059}
+---
+ .../core/editing/serializers/serialization.cc | 34 +++++++++
+ .../editing/serializers/serialization_test.cc | 70 +++++++++++++++++++
+ 2 files changed, 104 insertions(+)
+
+diff --git a/third_party/blink/renderer/core/editing/serializers/serialization.cc b/third_party/blink/renderer/core/editing/serializers/serialization.cc
+index 5ed6dc665e..9e7a367861 100644
+--- a/third_party/blink/renderer/core/editing/serializers/serialization.cc
++++ b/third_party/blink/renderer/core/editing/serializers/serialization.cc
+@@ -66,6 +66,7 @@
+ #include "third_party/blink/renderer/core/frame/local_frame.h"
+ #include "third_party/blink/renderer/core/frame/settings.h"
+ #include "third_party/blink/renderer/core/html/html_anchor_element.h"
++#include "third_party/blink/renderer/core/html/html_base_element.h"
+ #include "third_party/blink/renderer/core/html/html_body_element.h"
+ #include "third_party/blink/renderer/core/html/html_br_element.h"
+ #include "third_party/blink/renderer/core/html/html_div_element.h"
+@@ -73,6 +74,8 @@
+ #include "third_party/blink/renderer/core/html/html_element.h"
+ #include "third_party/blink/renderer/core/html/html_head_element.h"
+ #include "third_party/blink/renderer/core/html/html_html_element.h"
++#include "third_party/blink/renderer/core/html/html_link_element.h"
++#include "third_party/blink/renderer/core/html/html_meta_element.h"
+ #include "third_party/blink/renderer/core/html/html_quote_element.h"
+ #include "third_party/blink/renderer/core/html/html_span_element.h"
+ #include "third_party/blink/renderer/core/html/html_style_element.h"
+@@ -94,6 +97,7 @@
+ #include "third_party/blink/renderer/platform/bindings/exception_context.h"
+ #include "third_party/blink/renderer/platform/bindings/exception_state.h"
+ #include "third_party/blink/renderer/platform/bindings/runtime_call_stats.h"
++#include "third_party/blink/renderer/platform/heap/collection_support/heap_vector.h"
+ #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
+ #include "third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader_client.h"
+ #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+@@ -883,6 +887,34 @@ static bool ContainsStyleElements(const DocumentFragment& fragment) {
+   return false;
+ }
+ 
++// Remove <base>, <link>, and <meta>, which can change URL resolution, load
++// resources, or navigate when inserted into a document. Do not rely on
++// unrendered-element filtering: author CSS can make these elements rendered.
++static void StripBaseLinkAndMetaElements(DocumentFragment& fragment) {
++  HeapVector<Member<DocumentFragment>> fragments;
++  fragments.push_back(&fragment);
++  while (!fragments.empty()) {
++    DocumentFragment* current_fragment = fragments.back();
++    fragments.pop_back();
++    Node* next = nullptr;
++    for (Node* node = current_fragment->firstChild(); node; node = next) {
++      if (IsA<HTMLBaseElement>(*node) || IsA<HTMLLinkElement>(*node) ||
++          IsA<HTMLMetaElement>(*node)) {
++        next = NodeTraversal::NextSkippingChildren(*node, current_fragment);
++        node->remove();
++      } else {
++        // Template contents are separate fragments, not ordinary DOM children.
++        if (auto* template_element = DynamicTo<HTMLTemplateElement>(*node)) {
++          if (DocumentFragment* content = template_element->getContent()) {
++            fragments.push_back(content);
++          }
++        }
++        next = NodeTraversal::Next(*node, current_fragment);
++      }
++    }
++  }
++}
++
+ // Returns true if any svg <use> element is removed.
+ static bool StripSvgUseNonLocalHrefs(Node& node) {
+   if (auto* use = DynamicTo<SVGUseElement>(node)) {
+@@ -941,6 +973,8 @@ String CreateStrictlyProcessedMarkupWithContext(
+       return String();
+     }
+ 
++    StripBaseLinkAndMetaElements(*fragment);
++
+     bool needs_sanitization = false;
+     if (ContainsStyleElements(*fragment))
+       needs_sanitization = true;
+diff --git a/third_party/blink/renderer/core/editing/serializers/serialization_test.cc b/third_party/blink/renderer/core/editing/serializers/serialization_test.cc
+index 8ed9b5866f..55b1dc59a2 100644
+--- a/third_party/blink/renderer/core/editing/serializers/serialization_test.cc
++++ b/third_party/blink/renderer/core/editing/serializers/serialization_test.cc
+@@ -4,6 +4,8 @@
+ 
+ #include "third_party/blink/renderer/core/editing/serializers/serialization.h"
+ 
++#include <string>
++
+ #include "testing/gmock/include/gmock/gmock-matchers.h"
+ #include "third_party/blink/renderer/core/css/properties/longhands.h"
+ #include "third_party/blink/renderer/core/dom/document_fragment.h"
+@@ -214,6 +216,74 @@ TEST_F(SerializationTest, StrictlyProcessedMarkupDropsScriptsAndPlugins) {
+             StrictlyProcessedMarkup(markup));
+ }
+ 
++class SerializationUnsafeHeadTagTest
++    : public SerializationTest,
++      public testing::WithParamInterface<std::string> {};
++
++// Without stylesheets, remove unsafe tags in ordinary DOM and template contents
++// while preserving other markup, including hidden content and relative URLs.
++TEST_P(SerializationUnsafeHeadTagTest,
++       StrictlyProcessedMarkupDropsUnsafeHeadTagsAndPreservesOtherMarkup) {
++  const String tag_markup = String(GetParam());
++  const String safe_markup =
++      "<span style=\"display: none\">hidden</span>"
++      "<a href=\"relative\">safe</a>";
++  // Repeat the same tag to check that removal doesn't skip adjacent siblings,
++  // nested tags, or tags after preserved content and after the container.
++  const String markup = tag_markup + tag_markup + "<div>" + tag_markup +
++                        safe_markup + tag_markup + "</div>" + tag_markup;
++
++  EXPECT_EQ("<div>" + safe_markup + "</div>", StrictlyProcessedMarkup(markup));
++
++  const String template_markup = "<template>" + tag_markup + "<template>" +
++                                 tag_markup + safe_markup + "</template>" +
++                                 tag_markup + safe_markup + "</template>";
++  const String expected_template_markup = "<template><template>" + safe_markup +
++                                          "</template>" + safe_markup +
++                                          "</template>";
++  EXPECT_EQ(expected_template_markup + "<div>safe</div>",
++            StrictlyProcessedMarkup(template_markup + tag_markup +
++                                    "<div>safe</div>"));
++}
++
++// Inline display overrides must not allow an unsafe tag to survive or force
++// heavyweight serialization of the remaining content.
++TEST_P(SerializationUnsafeHeadTagTest,
++       StrictlyProcessedMarkupDropsUnsafeHeadTagWithInlineStyle) {
++  const String tag_markup = String(GetParam());
++  const String markup = tag_markup.substr(0, tag_markup.length() - 1) +
++                        " style='display: block'><div>safe</div>";
++
++  EXPECT_EQ("<div>safe</div>", StrictlyProcessedMarkup(markup));
++}
++
++// With a stylesheet forcing heavyweight serialization, remove the unsafe tag
++// despite its display override while still converting legitimate styles inline.
++TEST_P(SerializationUnsafeHeadTagTest,
++       StrictlyProcessedMarkupDropsUnsafeHeadTagWithStylesheet) {
++  const String style =
++      "<style>base, link, meta { display: block; }"
++      "div { color: rgb(1, 2, 3); }</style>";
++  const String tag_markup = String(GetParam());
++  const String safe_markup = "<div>safe</div>";
++  const String sanitized_markup =
++      StrictlyProcessedMarkup(style + tag_markup + safe_markup);
++
++  EXPECT_EQ(StrictlyProcessedMarkup(style + safe_markup), sanitized_markup);
++  EXPECT_NE(kNotFound, sanitized_markup.find("safe")) << sanitized_markup;
++  EXPECT_NE(kNotFound, sanitized_markup.find("color: rgb(1, 2, 3)"))
++      << sanitized_markup;
++}
++
++INSTANTIATE_TEST_SUITE_P(
++    UnsafeHeadTags,
++    SerializationUnsafeHeadTagTest,
++    testing::Values(
++        "<base href='https://attacker.example/'>",
++        "<link rel='stylesheet' href='https://attacker.example/style.css'>",
++        "<meta http-equiv='refresh' "
++        "content='0; url=https://attacker.example/'>"));
++
+ TEST_F(SerializationTest, StrictlyProcessedMarkupStripsScriptingAttributes) {
+   const String markup =
+       "<a href='javascript:alert(1)' onclick='alert(2)' title='safe'>link</a>"
+-- 
+2.43.0
+

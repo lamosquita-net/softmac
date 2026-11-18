@@ -1,0 +1,43 @@
+From caceade7273e50bfa65bf69fcf32b1792771108e Mon Sep 17 00:00:00 2001
+From: Tommi <tommi@webrtc.org>
+Date: Thu, 22 Oct 2026 12:27:31 +0200
+Subject: [PATCH] Keep SRTP sessions when activating RTCP mux
+
+JsepTransport::ActivateRtcpMux() cleared the RTCP DTLS transport before
+RTCP mux was enabled on the RtpTransport. DtlsSrtpTransport then didn't
+recognize the removal as part of activating RTCP mux, reset the active
+SRTP sessions and set them up again from the RTP DTLS transport,
+discarding their state.
+
+Enable RTCP mux on the RtpTransport before clearing the RTCP transport,
+so that DtlsSrtpTransport keeps the sessions.
+
+Fixed: chromium:513198336
+Change-Id: I85d81d572ffe38770650d07531ce3af4d0e83647
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/510781
+Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+Commit-Queue: Tomas Gunnarsson <tommi@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#49019}
+---
+ pc/jsep_transport.cc | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/pc/jsep_transport.cc b/pc/jsep_transport.cc
+index 18899b2..5e1d7b0 100644
+--- a/pc/jsep_transport.cc
++++ b/pc/jsep_transport.cc
+@@ -399,7 +399,10 @@ bool JsepTransport::SetRtcpMux(bool enable,
+ void JsepTransport::ActivateRtcpMux() {
+   RTC_DCHECK_RUN_ON(&transport_sequence_);
+   // If the transport is a DtlsSrtpTransport, it needs to know that RTCP mux
+-  // is active to clear its RTCP transport.
++  // is active to clear its RTCP transport. This must happen before the RTCP
++  // transport is cleared, otherwise the active SRTP sessions would be reset
++  // and set up again with the same keys.
++  rtp_transport_->SetRtcpMuxEnabled(true);
+   if (auto* dtls_srtp_transport = rtp_transport_->AsDtlsSrtpTransport()) {
+     dtls_srtp_transport->SetDtlsTransports(rtp_dtls_transport(),
+                                            /*rtcp_dtls_transport=*/nullptr);
+-- 
+2.43.0
+

@@ -1,0 +1,38 @@
+From 39cb67de860c24e5c63809617719f6ae253825ca Mon Sep 17 00:00:00 2001
+From: Solomon Kinard <solomonkinard@chromium.org>
+Date: Wed, 14 Oct 2026 13:49:15 -0700
+Subject: [PATCH 08/32] Extensions: WAR: Enable generated path restrictions by
+ default
+
+Enable the kRestrictGeneratedPathsInWebAccessibleResources feature
+flag by default. Generated paths such as _favicon and the generated
+background page are no longer matched by blanket wildcard
+web_accessible_resources entries.
+
+Existing tests cover the enabled and disabled states.
+
+Bug: 506142100
+Change-Id: I7b5c1ac89521cef3e9872fb524d4598d8337a5cf
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8575661
+Commit-Queue: Solomon Kinard <solomonkinard@chromium.org>
+Reviewed-by: Tim <tjudkins@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1718993}
+---
+ extensions/common/extension_features.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/extensions/common/extension_features.cc b/extensions/common/extension_features.cc
+index 96beed4973..fd06b1f99c 100644
+--- a/extensions/common/extension_features.cc
++++ b/extensions/common/extension_features.cc
+@@ -281,6 +281,6 @@ BASE_FEATURE(kOptimizeWebRequestProxy, base::FEATURE_ENABLED_BY_DEFAULT);
+ BASE_FEATURE(kUseSha256ForExtensionHashes, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kRestrictGeneratedPathsInWebAccessibleResources,
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ }  // namespace extensions_features
+-- 
+2.43.0
+

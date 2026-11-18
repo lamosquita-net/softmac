@@ -1,0 +1,98 @@
+From 752eb88ce2d34cc1093ea33335b043623308d26f Mon Sep 17 00:00:00 2001
+From: Alex Rudenko <alexrudenko@chromium.org>
+Date: Tue, 13 Oct 2026 05:17:27 -0700
+Subject: [PATCH 04/32] Clear DevTools reload script when navigation encounters
+ an error
+
+When initiating a page reload via DevTools `Page.reload` with
+`scriptToEvaluateOnLoad`, the pending script was previously cleared only
+when a server redirect resulted in an origin mismatch. If the navigation
+encountered a network or certificate error, the resulting error page
+commit was not treated as a server redirect, causing the script to be
+retained and evaluated on the error document.
+
+This CL updates `PageHandler::ReadyToCommitNavigation` to check
+`navigation_request->DidEncounterError()` in addition to server redirect
+origin checks, ensuring the pending script is discarded when a reload
+fails to commit normally.
+
+TAG=agy
+
+Bug: 553136985
+Change-Id: Icf42d948da5021a0ded14f6383dc1e3921d2f5ef
+Fixed: 553136985
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8563821
+Commit-Queue: Philip Pfaffe <pfaffe@chromium.org>
+Commit-Queue: Alex Rudenko <alexrudenko@chromium.org>
+Auto-Submit: Alex Rudenko <alexrudenko@chromium.org>
+Reviewed-by: Philip Pfaffe <pfaffe@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1717514}
+---
+ .../browser/devtools/protocol/page_handler.cc  | 10 +++++++---
+ .../page/reload-redirect-script-expected.txt   |  3 +++
+ .../page/reload-redirect-script.js             | 18 ++++++++++++++++++
+ 3 files changed, 28 insertions(+), 3 deletions(-)
+
+diff --git a/content/browser/devtools/protocol/page_handler.cc b/content/browser/devtools/protocol/page_handler.cc
+index c750e9a4e2..10cf25e732 100644
+--- a/content/browser/devtools/protocol/page_handler.cc
++++ b/content/browser/devtools/protocol/page_handler.cc
+@@ -2784,9 +2784,13 @@ void PageHandler::ReadyToCommitNavigation(
+     have_pending_reload_ = false;
+     pending_script_to_evaluate_on_load_.clear();
+   } else if (have_pending_reload_) {
+-    if (navigation_request->WasServerRedirect() &&
+-        !initiating_origin_.IsSameOriginWith(
+-            navigation_request->GetOriginToCommit().value_or(url::Origin()))) {
++    // Drop the pending script if the reload encountered an error or if the
++    // navigation was redirected to a different origin.
++    if (navigation_request->DidEncounterError() ||
++        (navigation_request->WasServerRedirect() &&
++         !initiating_origin_.IsSameOriginWith(
++             navigation_request->GetOriginToCommit().value_or(
++                 url::Origin())))) {
+       pending_script_to_evaluate_on_load_.clear();
+     }
+     prepare_for_reload_callback_.Run(
+diff --git a/third_party/blink/web_tests/http/tests/inspector-protocol/page/reload-redirect-script-expected.txt b/third_party/blink/web_tests/http/tests/inspector-protocol/page/reload-redirect-script-expected.txt
+index 2f7a70d1f5..b9d24fd254 100644
+--- a/third_party/blink/web_tests/http/tests/inspector-protocol/page/reload-redirect-script-expected.txt
++++ b/third_party/blink/web_tests/http/tests/inspector-protocol/page/reload-redirect-script-expected.txt
+@@ -9,3 +9,6 @@ window.__injected: same-origin
+ --- Cross-origin redirect ---
+ window.__injected: undefined
+ 
++--- Failed reload (network error) ---
++window.__injected: undefined
++
+diff --git a/third_party/blink/web_tests/http/tests/inspector-protocol/page/reload-redirect-script.js b/third_party/blink/web_tests/http/tests/inspector-protocol/page/reload-redirect-script.js
+index 8977a98d6b..fe26b9f895 100644
+--- a/third_party/blink/web_tests/http/tests/inspector-protocol/page/reload-redirect-script.js
++++ b/third_party/blink/web_tests/http/tests/inspector-protocol/page/reload-redirect-script.js
+@@ -78,5 +78,23 @@
+   const crossOriginInjected = await session.evaluate('window.__injected');
+   testRunner.log(`window.__injected: ${crossOriginInjected}`);
+ 
++  // 4. Failed reload (network error)
++  testRunner.log('\n--- Failed reload (network error) ---');
++  helper.onceRequest(/a.test\/failed-start/).fulfill({
++    responseCode: 200,
++    body: btoa('<html><head></head><body>Failed Start</body></html>'),
++  });
++  await dp.Page.navigate({url: 'http://a.test/failed-start'});
++  await dp.Page.onceLoadEventFired();
++
++  helper.onceRequest(/a.test\/failed-start/).fail({
++    errorReason: 'ConnectionReset',
++  });
++  dp.Page.reload(
++      {scriptToEvaluateOnLoad: 'window.__injected = "failed-reload";'});
++  await dp.Page.onceFrameNavigated();
++  const failedInjected = await session.evaluate('window.__injected');
++  testRunner.log(`window.__injected: ${failedInjected}`);
++
+   testRunner.completeTest();
+ })
+-- 
+2.43.0
+

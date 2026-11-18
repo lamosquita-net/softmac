@@ -1,0 +1,326 @@
+From efdcded3183e7e373219463fba33f9ba62255195 Mon Sep 17 00:00:00 2001
+From: Maksim Sadym <sadym@chromium.org>
+Date: Thu, 15 Oct 2026 08:10:22 -0700
+Subject: [PATCH 14/32] [DevTools] Enforce URL policy on frame and Android
+ navigations
+
+- Enforce DeveloperToolsAvailabilityBlocklist and Allowlist policies on
+  frame targets across same-document navigations, on OOPIFs by their own
+  URL, and on Android across all committed navigations.
+- Previously, committed same-document navigations (such as
+  history.pushState) only re-validated tab targets on desktop, subframe
+  policy checks evaluated the owning WebContents rather than the frame
+  URL, and Android did not enforce frame-level policy checks.
+- Re-validate frame-target sessions on committed same-document
+  navigations, evaluate each frame's committed URL under target-level
+  policy evaluation before falling back to WebContents, and override
+  AllowInspectingRenderFrameHost on Android.
+
+Fixed: 502803648
+Include-Ci-Only-Tests: chromium.linux:Linux Tests|webdriver_wpt_tests
+Cq-Include-Trybots: luci.chromium.try:android-15-chrome-blink-rel
+Change-Id: I5268790930ca7c634e725566a8f97e1e1d72dfdf
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8537528
+Reviewed-by: Danil Somsikov <dsv@chromium.org>
+Commit-Queue: Maksim Sadym <sadym@chromium.org>
+Reviewed-by: Peter Kvitek <kvitekp@chromium.org>
+Auto-Submit: Maksim Sadym <sadym@chromium.org>
+Reviewed-by: Boris Sazonov <bsazonov@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1719684}
+
+(cherry picked from commit b2f731736aedc614bc6669d31a66aeb55c8a17d3)
+
+FlyWeb: ported to 156 by hand. 156 has no DevToolsBlockReason/GetDevToolsBlockReason, so the new RenderFrameHost overload is written as IsInspectionAllowed(Profile*, RenderFrameHost*) with the same logic (frame URL first under kDevToolsTargetLevelEvaluation, then the owning WebContents). devtools_availability_checker_unittest.cc changes left out (they use GetDevToolsBlockReason).
+---
+ .../devtools_manager_delegate_android.cc      | 13 +++++
+ .../devtools_manager_delegate_android.h       |  2 +
+ .../chrome_devtools_manager_delegate.cc       |  8 ++-
+ .../devtools/devtools_availability_checker.cc | 22 ++++++++
+ .../devtools/devtools_availability_checker.h  |  5 ++
+ .../headless_mode_protocol_browsertest.cc     | 50 +++++++++++++++++++
+ .../render_frame_devtools_agent_host.cc       | 34 +++++++++----
+ .../render_frame_devtools_agent_host.h        |  4 ++
+ 8 files changed, 125 insertions(+), 13 deletions(-)
+
+diff --git a/chrome/browser/android/devtools_manager_delegate_android.cc b/chrome/browser/android/devtools_manager_delegate_android.cc
+index a512eb5825..bb5b25a483 100644
+--- a/chrome/browser/android/devtools_manager_delegate_android.cc
++++ b/chrome/browser/android/devtools_manager_delegate_android.cc
+@@ -18,6 +18,7 @@
+ #include "chrome/browser/devtools/devtools_availability_checker.h"
+ #include "chrome/browser/devtools/devtools_browser_context_manager.h"
+ #include "chrome/browser/devtools/devtools_window.h"
++#include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/ui/android/tab_model/tab_model.h"
+ #include "chrome/browser/ui/android/tab_model/tab_model_list.h"
+ #include "chrome/grit/browser_resources.h"
+@@ -25,6 +26,7 @@
+ #include "content/public/browser/devtools_agent_host_client.h"
+ #include "content/public/browser/devtools_external_agent_proxy.h"
+ #include "content/public/browser/devtools_external_agent_proxy_delegate.h"
++#include "content/public/browser/render_frame_host.h"
+ #include "content/public/browser/web_contents.h"
+ #include "content/public/browser/web_contents_delegate.h"
+ #include "extensions/buildflags/buildflags.h"
+@@ -328,6 +330,17 @@ bool DevToolsManagerDelegateAndroid::IsBrowserTargetDiscoverable() {
+   return true;
+ }
+ 
++bool DevToolsManagerDelegateAndroid::AllowInspectingRenderFrameHost(
++    content::RenderFrameHost* rfh) {
++  // Resolve the profile owning the RenderFrameHost to evaluate DevTools
++  // availability policies on Android identically to desktop platforms.
++  Profile* profile = Profile::FromBrowserContext(rfh->GetBrowserContext());
++  if (!profile) {
++    return true;
++  }
++  return IsInspectionAllowed(profile, rfh);
++}
++
+ bool DevToolsManagerDelegateAndroid::AllowInspectingTarget(
+     content::DevToolsAgentHost* agent_host) {
+   // For non-Android desktop platforms, we have the same implementation
+diff --git a/chrome/browser/android/devtools_manager_delegate_android.h b/chrome/browser/android/devtools_manager_delegate_android.h
+index d1050b5db0..76450967ad 100644
+--- a/chrome/browser/android/devtools_manager_delegate_android.h
++++ b/chrome/browser/android/devtools_manager_delegate_android.h
+@@ -43,6 +43,8 @@ class DevToolsManagerDelegateAndroid : public content::DevToolsManagerDelegate {
+   content::DevToolsAgentHost::List RemoteDebuggingTargets(
+       TargetType target_type) override;
+   bool IsBrowserTargetDiscoverable() override;
++  // Evaluates whether DevTools is permitted to inspect the given frame.
++  bool AllowInspectingRenderFrameHost(content::RenderFrameHost* rfh) override;
+   bool AllowInspectingTarget(content::DevToolsAgentHost* agent_host) override;
+   void Activate(content::DevToolsAgentHost* agent_host) override;
+ 
+diff --git a/chrome/browser/devtools/chrome_devtools_manager_delegate.cc b/chrome/browser/devtools/chrome_devtools_manager_delegate.cc
+index 37a83372ce..5648b4044e 100644
+--- a/chrome/browser/devtools/chrome_devtools_manager_delegate.cc
++++ b/chrome/browser/devtools/chrome_devtools_manager_delegate.cc
+@@ -405,8 +405,12 @@ bool ChromeDevToolsManagerDelegate::AllowInspectingRenderFrameHost(
+     content::RenderFrameHost* rfh) {
+   Profile* profile =
+       Profile::FromBrowserContext(rfh->GetProcess()->GetBrowserContext());
+-  return IsInspectionAllowed(profile,
+-                             content::WebContents::FromRenderFrameHost(rfh));
++  if (!profile) {
++    return true;
++  }
++  // Evaluate policy for the specific RenderFrameHost so target-level URL
++  // restrictions apply to both main frames and subframes.
++  return IsInspectionAllowed(profile, rfh);
+ }
+ 
+ bool ChromeDevToolsManagerDelegate::AllowInspectingTarget(
+diff --git a/chrome/browser/devtools/devtools_availability_checker.cc b/chrome/browser/devtools/devtools_availability_checker.cc
+index 19a9f4d762..412d9c0b44 100644
+--- a/chrome/browser/devtools/devtools_availability_checker.cc
++++ b/chrome/browser/devtools/devtools_availability_checker.cc
+@@ -125,6 +125,28 @@ bool IsInspectionAllowed(Profile* profile,
+   return IsInspectionAllowed(profile, agent_host->GetURL());
+ }
+ 
++bool IsInspectionAllowed(Profile* profile, content::RenderFrameHost* rfh) {
++  if (!rfh) {
++    // When no frame is provided, fall back to the general profile-level policy.
++    return IsInspectionAllowed(profile,
++                               static_cast<content::WebContents*>(nullptr));
++  }
++
++  // Under target-level evaluation, inspect a non-primary-main frame's own last
++  // committed URL first so restricted subframes are blocked even when the main
++  // frame is allowed.
++  if (!rfh->IsInPrimaryMainFrame() &&
++      base::FeatureList::IsEnabled(features::kDevToolsTargetLevelEvaluation) &&
++      !IsInspectionAllowed(profile, rfh->GetLastCommittedURL())) {
++    return false;
++  }
++
++  // Also ensure the owning WebContents (and primary main frame) permits
++  // inspection.
++  return IsInspectionAllowed(profile,
++                             content::WebContents::FromRenderFrameHost(rfh));
++}
++
+ bool IsInspectionAllowed(Profile* profile, content::WebContents* web_contents) {
+   if (!web_contents) {
+     // For contexts without web_contents, we can only check the general policy.
+diff --git a/chrome/browser/devtools/devtools_availability_checker.h b/chrome/browser/devtools/devtools_availability_checker.h
+index 5cc4b50d35..9fb7f0cc60 100644
+--- a/chrome/browser/devtools/devtools_availability_checker.h
++++ b/chrome/browser/devtools/devtools_availability_checker.h
+@@ -10,6 +10,7 @@ class Profile;
+ 
+ namespace content {
+ class DevToolsAgentHost;
++class RenderFrameHost;
+ class WebContents;
+ }
+ 
+@@ -24,6 +25,10 @@ class WebApp;
+ // |web_contents| may be null, in which case this function just checks
+ // the settings for |profile|.
+ bool IsInspectionAllowed(Profile* profile, content::WebContents* web_contents);
++// |rfh| may be null, in which case this function just checks the settings for
++// |profile|. When target-level evaluation is enabled, this checks the frame's
++// own last committed URL before falling back to its owning WebContents.
++bool IsInspectionAllowed(Profile* profile, content::RenderFrameHost* rfh);
+ 
+ // |extension| may be null, in which case this function just checks
+ // the settings for |profile|.
+diff --git a/chrome/browser/headless/test/headless_mode_protocol_browsertest.cc b/chrome/browser/headless/test/headless_mode_protocol_browsertest.cc
+index 44803fcb85..f5e4794b9a 100644
+--- a/chrome/browser/headless/test/headless_mode_protocol_browsertest.cc
++++ b/chrome/browser/headless/test/headless_mode_protocol_browsertest.cc
+@@ -17,9 +17,13 @@
+ #include "base/threading/thread_restrictions.h"
+ #include "build/build_config.h"
+ #include "chrome/browser/headless/test/headless_browser_test_utils.h"
++#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+ #include "chrome/browser/ui/omnibox/omnibox_next_features.h"
++#include "chrome/common/pref_names.h"
+ #include "components/headless/select_file_dialog/headless_select_file_dialog.h"
+ #include "components/headless/test/shared_test_util.h"
++#include "components/prefs/pref_service.h"
+ #include "content/public/common/content_switches.h"
+ #include "net/test/embedded_test_server/embedded_test_server.h"
+ #include "services/network/public/cpp/network_switches.h"
+@@ -545,4 +549,50 @@ HEADLESS_MODE_PROTOCOL_TEST_F(HeadlessModeProtocolBrowserTestWithDownload,
+                               FileDownloadSecondTab,
+                               "shared/file-download-second-tab.js")
+ 
++// Configure DeveloperToolsAvailabilityBlocklist before DevTools sessions attach
++// so URLBlocklistManager enforces the policy synchronously.
++class HeadlessModeDevToolsPolicyBlocklistProtocolTest
++    : public HeadlessModeProtocolBrowserTest {
++ public:
++  void SetUpOnMainThread() override {
++    HeadlessModeProtocolBrowserTest::SetUpOnMainThread();
++    base::ListValue blocklist;
++    blocklist.Append("a.test/protocol/blocked_route");
++    blocklist.Append("b.test/protocol/blocked_route");
++    browser()->GetProfile()->GetPrefs()->SetList(
++        prefs::kDeveloperToolsAvailabilityBlocklist, std::move(blocklist));
++  }
++};
++
++HEADLESS_MODE_PROTOCOL_TEST_F(HeadlessModeDevToolsPolicyBlocklistProtocolTest,
++                              SameDocumentNavigationBlocklist,
++                              "target/same-document-navigation-blocklist.js")
++
++HEADLESS_MODE_PROTOCOL_TEST_F(
++    HeadlessModeDevToolsPolicyBlocklistProtocolTest,
++    OopifSameDocumentNavigationBlocklist,
++    "target/oopif-same-document-navigation-blocklist.js")
++
++class HeadlessModeDevToolsPolicyAllowlistProtocolTest
++    : public HeadlessModeProtocolBrowserTest {
++ public:
++  void SetUpOnMainThread() override {
++    HeadlessModeProtocolBrowserTest::SetUpOnMainThread();
++    // Block a.test so non-allowlisted paths on a.test are disallowed while the
++    // test harness on harness.test remains unaffected.
++    base::ListValue blocklist;
++    blocklist.Append("a.test");
++    browser()->GetProfile()->GetPrefs()->SetList(
++        prefs::kDeveloperToolsAvailabilityBlocklist, std::move(blocklist));
++    base::ListValue allowlist;
++    allowlist.Append("a.test/protocol/inspector-protocol-page.html");
++    browser()->GetProfile()->GetPrefs()->SetList(
++        prefs::kDeveloperToolsAvailabilityAllowlist, std::move(allowlist));
++  }
++};
++
++HEADLESS_MODE_PROTOCOL_TEST_F(HeadlessModeDevToolsPolicyAllowlistProtocolTest,
++                              SameDocumentNavigationAllowlist,
++                              "target/same-document-navigation-allowlist.js")
++
+ }  // namespace headless
+diff --git a/content/browser/devtools/render_frame_devtools_agent_host.cc b/content/browser/devtools/render_frame_devtools_agent_host.cc
+index a8d97438a4..31f111e5b7 100644
+--- a/content/browser/devtools/render_frame_devtools_agent_host.cc
++++ b/content/browser/devtools/render_frame_devtools_agent_host.cc
+@@ -577,8 +577,8 @@ void RenderFrameDevToolsAgentHost::DidFinishNavigation(
+       UpdateRawHeadersAccess(frame_tree_node_->current_frame_host(), nullptr);
+     }
+ 
+-    // Same-document navigations don't get a new RFH, so there isn't really
+-    // anything to update here. Eagerly updating the tracked RFH is harmful,
++    // Same-document navigations don't get a new RFH, so |frame_host_| doesn't
++    // need to be updated here. Eagerly updating the tracked RFH is harmful,
+     // since the same-document navigation may interleave with cross-document
+     // navigations, e.g. if triggered from an unload handler.
+     // Another navigation may still be waiting to commit in the selected RFH.
+@@ -594,6 +594,11 @@ void RenderFrameDevToolsAgentHost::DidFinishNavigation(
+       // UpdateFrameHost may destruct |this|.
+       protect = this;
+       UpdateFrameHost(frame_tree_node_->current_frame_host());
++    } else if (request->IsSameDocument() && request->HasCommitted() &&
++               request->GetRenderFrameHost() == frame_host_) {
++      // Re-evaluate session access against the newly committed URL without
++      // switching the tracked RenderFrameHost.
++      protect = RevalidateSessionAccess(frame_host_);
+     }
+ 
+     if (navigation_requests_.empty()) {
+@@ -605,25 +610,32 @@ void RenderFrameDevToolsAgentHost::DidFinishNavigation(
+       NavigationRequest::From(navigation_handle));
+ }
+ 
+-void RenderFrameDevToolsAgentHost::UpdateFrameHost(
++scoped_refptr<RenderFrameDevToolsAgentHost>
++RenderFrameDevToolsAgentHost::RevalidateSessionAccess(
+     RenderFrameHostImpl* frame_host) {
+-  if (frame_host && !ShouldCreateDevToolsForHost(frame_host)) {
+-    DestroyOnRenderFrameGone();
+-    // |this| may be deleted at this point.
+-    return;
+-  }
+-
++  scoped_refptr<RenderFrameDevToolsAgentHost> retain_this(this);
+   std::vector<DevToolsSession*> restricted_sessions;
+   for (DevToolsSession* session : sessions()) {
+     if (!ShouldAllowSession(frame_host, session)) {
+       restricted_sessions.push_back(session);
+     }
+   }
+-  scoped_refptr<RenderFrameDevToolsAgentHost> protect;
+   if (!restricted_sessions.empty()) {
+-    protect = this;
+     ForceDetachRestrictedSessions(restricted_sessions);
+   }
++  return retain_this;
++}
++
++void RenderFrameDevToolsAgentHost::UpdateFrameHost(
++    RenderFrameHostImpl* frame_host) {
++  if (frame_host && !ShouldCreateDevToolsForHost(frame_host)) {
++    DestroyOnRenderFrameGone();
++    // |this| may be deleted at this point.
++    return;
++  }
++
++  scoped_refptr<RenderFrameDevToolsAgentHost> protect =
++      RevalidateSessionAccess(frame_host);
+ 
+   if (frame_host == frame_host_) {
+     if (frame_host && !render_frame_alive_)
+diff --git a/content/browser/devtools/render_frame_devtools_agent_host.h b/content/browser/devtools/render_frame_devtools_agent_host.h
+index 56c3e752a5..97045456b3 100644
+--- a/content/browser/devtools/render_frame_devtools_agent_host.h
++++ b/content/browser/devtools/render_frame_devtools_agent_host.h
+@@ -170,6 +170,10 @@ class CONTENT_EXPORT RenderFrameDevToolsAgentHost
+ 
+   void DestroyOnRenderFrameGone();
+   void UpdateFrameHost(RenderFrameHostImpl* frame_host);
++  // The method returns a pointer retaining this. Once the pointer goes
++  // out of scope, this may be destroyed.
++  [[nodiscard]] scoped_refptr<RenderFrameDevToolsAgentHost>
++  RevalidateSessionAccess(RenderFrameHostImpl* frame_host);
+   void ChangeFrameHostAndObservedProcess(RenderFrameHostImpl* frame_host);
+   void UpdateFrameAlive();
+ 
+-- 
+2.43.0
+

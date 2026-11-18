@@ -1,0 +1,1091 @@
+From 27fe00e18c4183f574f7c3a35fb62675bc9d1fed Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-28 <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 15:58:27 +0000
+Subject: [PATCH] v8: four Chrome 158 Low fixes (0b3bd2b, 336a6b3, fb3bcc3,
+ 0ac2b27)
+
+FlyWeb 3.1.4 part 6 (Chrome 158 Lows). New patches/v8 for:
+- 0b3bd2b [inspector] Restrict Runtime.getHeapUsage and
+  Runtime.getIsolateId to fully trusted clients (crbug 553263303).
+- 336a6b3 [inspector] Don't store raw pointers in the deep serialization
+  dedup map (crbug 568986689).
+- fb3bcc3 [inspector] Avoid v8::Array for V8Console data (crbug 572312093).
+- 0ac2b27 [maglev] Use static constant in StringLengthStaticLowerBound
+  (crbug 574412712).
+
+kFlyWebCacheEpoch 35 -> 36 (0ac2b27 changes optimized code). Details in
+patches/v8/FLYWEB-SECURITY.md.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2iFqX7G9w939C4tEtH
+---
+ patches/v8/FLYWEB-SECURITY.md                 |  21 +++
+ patches/v8/src-inspector-v8-console.cc.patch  | 116 ++++++++++++
+ patches/v8/src-inspector-v8-console.h.patch   | 141 +++++++++++++++
+ ...c-inspector-v8-runtime-agent-impl.cc.patch |  26 +++
+ ...8-serialization-duplicate-tracker.cc.patch |  52 ++++++
+ ...v8-serialization-duplicate-tracker.h.patch |  31 ++++
+ .../v8/src-maglev-maglev-compiler.cc.patch    |  13 ++
+ .../src-maglev-maglev-graph-builder.cc.patch  |  67 +++++++
+ .../src-maglev-maglev-graph-builder.h.patch   |  15 ++
+ .../src-maglev-maglev-graph-verifier.h.patch  |  47 +++++
+ patches/v8/src-maglev-maglev-ir.h.patch       |  17 ++
+ .../src-sandbox-cppheap-pointer-tag.h.patch   |  23 +++
+ patches/v8/src-utils-version.cc.patch         |   9 +-
+ .../v8/test-inspector-inspector.status.patch  |  14 ++
+ ...regress-crbug-568986689-expected.txt.patch |   8 +
+ ...r-regress-regress-crbug-568986689.js.patch | 170 ++++++++++++++++++
+ ...-runtime-get-heap-usage-expected.txt.patch |  14 ++
+ ...-inspector-runtime-get-heap-usage.js.patch |  17 ++
+ ...-runtime-get-isolate-id-expected.txt.patch |  14 ++
+ ...-inspector-runtime-get-isolate-id.js.patch |  17 ++
+ ...-mjsunit-maglev-regress-574412712.js.patch |  53 ++++++
+ 21 files changed, 882 insertions(+), 3 deletions(-)
+ create mode 100644 patches/v8/src-inspector-v8-console.cc.patch
+ create mode 100644 patches/v8/src-inspector-v8-console.h.patch
+ create mode 100644 patches/v8/src-inspector-v8-runtime-agent-impl.cc.patch
+ create mode 100644 patches/v8/src-inspector-v8-serialization-duplicate-tracker.cc.patch
+ create mode 100644 patches/v8/src-inspector-v8-serialization-duplicate-tracker.h.patch
+ create mode 100644 patches/v8/src-maglev-maglev-compiler.cc.patch
+ create mode 100644 patches/v8/src-maglev-maglev-graph-builder.cc.patch
+ create mode 100644 patches/v8/src-maglev-maglev-graph-builder.h.patch
+ create mode 100644 patches/v8/src-maglev-maglev-graph-verifier.h.patch
+ create mode 100644 patches/v8/src-maglev-maglev-ir.h.patch
+ create mode 100644 patches/v8/src-sandbox-cppheap-pointer-tag.h.patch
+ create mode 100644 patches/v8/test-inspector-inspector.status.patch
+ create mode 100644 patches/v8/test-inspector-regress-regress-crbug-568986689-expected.txt.patch
+ create mode 100644 patches/v8/test-inspector-regress-regress-crbug-568986689.js.patch
+ create mode 100644 patches/v8/test-inspector-runtime-get-heap-usage-expected.txt.patch
+ create mode 100644 patches/v8/test-inspector-runtime-get-heap-usage.js.patch
+ create mode 100644 patches/v8/test-inspector-runtime-get-isolate-id-expected.txt.patch
+ create mode 100644 patches/v8/test-inspector-runtime-get-isolate-id.js.patch
+ create mode 100644 patches/v8/test-mjsunit-maglev-regress-574412712.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index cad84b3..9b9501e 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,24 @@
++# FlyWeb: 3.1.4 part 6, V8 15.6.75.66 + four Chrome 158 Lows
++
++SEGURIDAD-PORTES-28, 18-11-2026 (softmac `FlyWeb/seguridad/3.1.4/parte6/brave-core/0001`, on top of part 4). None is merged to 15.6;
++all four apply cleanly on the .66 with the earlier patches. The V8 gitlink stays at .66:
++
++- **0b3bd2b** (553263303, CVE-2026-130916): `Runtime.getHeapUsage` and `Runtime.getIsolateId` only for fully
++  trusted inspector clients (not `chrome.debugger` extensions). Tests `inspector/runtime/get-heap-usage.js` and
++  `get-isolate-id.js`.
++- **336a6b3** (568986689, CVE-2026-131005): the deep serialization dedup map keeps indices, bounds-checked on
++  lookup, instead of raw pointers in sandbox memory. Test `inspector/regress/regress-crbug-568986689.js`.
++- **fb3bcc3** (572312093, CVE-2026-130950): `V8Console` data in a `CppHeapExternal` instead of a `v8::Array`; the
++  inspector tags move to the non-wrappable list of `cppheap-pointer-tag.h` (V8-internal).
++- **0ac2b27** (574412712, CVE-2026-131098): Maglev `StringLengthStaticLowerBound` only trusts static constants (the
++  bound is cached on `StringConcat` across merges); the graph verifier checks the cached bound in debug builds.
++  Test `maglev/regress-574412712.js`.
++- `kFlyWebCacheEpoch` 35 -> **36** (0ac2b27 changes optimized code).
++
++To check (D8-LINUX): `d8` and mjsunit with and without Maglev, especially `maglev/regress-574412712.js` and
++`maglev/*`; if the inspector suite runs, `inspector/runtime/get-heap-usage.js`, `get-isolate-id.js` and
++`regress/regress-crbug-568986689.js`.
++
+ # FlyWeb: 3.1.4, V8 15.6.75.66 + the 8078 branch fixes of 15.6.75.68 and .69
+ 
+ SEGURIDAD-PORTES-29, 18-11-2026 (softmac `FlyWeb/seguridad/3.1.4/parte4/brave-core/0001`). After 3bd3db9df2 the
+diff --git a/patches/v8/src-inspector-v8-console.cc.patch b/patches/v8/src-inspector-v8-console.cc.patch
+new file mode 100644
+index 0000000..0a97130
+--- /dev/null
++++ b/patches/v8/src-inspector-v8-console.cc.patch
+@@ -0,0 +1,116 @@
++diff --git a/src/inspector/v8-console.cc b/src/inspector/v8-console.cc
++index 4679f5fe420fb4600a3103966bb9f631bb0684b8..71d510b2787ee32785642a2a566466b3d5da2d90 100644
++--- a/src/inspector/v8-console.cc
+++++ b/src/inspector/v8-console.cc
++@@ -214,7 +214,7 @@ class ConsoleHelper {
++ 
++ void createBoundFunctionProperty(
++     v8::Local<v8::Context> context, v8::Local<v8::Object> console,
++-    v8::Local<v8::Value> data, const char* name, v8::FunctionCallback callback,
+++    v8::Local<v8::Data> data, const char* name, v8::FunctionCallback callback,
++     v8::SideEffectType side_effect_type = v8::SideEffectType::kHasSideEffect) {
++   v8::Local<v8::String> funcName =
++       toV8StringInternalized(v8::Isolate::GetCurrent(), name);
++@@ -532,26 +532,6 @@ void V8Console::createTask(const v8::FunctionCallbackInfo<v8::Value>& info) {
++   info.GetReturnValue().Set(task);
++ }
++ 
++-v8::Local<v8::Object> V8Console::wrapConsole(v8::Local<v8::Context> context) {
++-  v8::Isolate* isolate = m_inspector->isolate();
++-  if (!m_consoleWrapper.IsEmpty() && context == m_consoleContext) {
++-    return m_consoleWrapper.Get(isolate);
++-  }
++-  if (m_consoleTemplate.IsEmpty()) {
++-    v8::Local<v8::FunctionTemplate> consTemplate =
++-        v8::FunctionTemplate::New(isolate);
++-    m_consoleTemplate.Reset(isolate, consTemplate->InstanceTemplate());
++-  }
++-  v8::Local<v8::Object> consoleWrapper =
++-      m_consoleTemplate.Get(isolate)->NewInstance(context).ToLocalChecked();
++-  v8::Object::Wrap<kPointerTag>(isolate, consoleWrapper, this);
++-  m_consoleWrapper.Reset(isolate, consoleWrapper);
++-  m_consoleWrapper.SetWeak();
++-  m_consoleContext.Reset(isolate, context);
++-  m_consoleContext.SetWeak();
++-  return consoleWrapper;
++-}
++-
++ v8::Local<v8::ObjectTemplate> V8Console::taskTemplate() {
++   v8::Isolate* isolate = m_inspector->isolate();
++   if (!m_taskTemplate.IsEmpty()) {
++@@ -633,11 +613,13 @@ void TaskInfo::runTask(const v8::FunctionCallbackInfo<v8::Value>& info) {
++   console->m_inspector->asyncTaskFinished(taskInfo->Id());
++ }
++ 
+++void V8Console::CommandLineAPIData::Trace(cppgc::Visitor* visitor) const {
+++  visitor->Trace(m_console);
+++}
+++
++ void V8Console::Trace(cppgc::Visitor* visitor) const {
++   visitor->Trace(m_taskTemplate);
++-  visitor->Trace(m_consoleTemplate);
++   v8::debug::ConsoleDelegate::Trace(visitor);
++-  v8::Object::Wrappable::Trace(visitor);
++ }
++ 
++ void V8Console::keysCallback(const v8::FunctionCallbackInfo<v8::Value>& info,
++@@ -868,7 +850,8 @@ void V8Console::inspectedObject(const v8::FunctionCallbackInfo<v8::Value>& info,
++ void V8Console::installMemoryGetter(v8::Local<v8::Context> context,
++                                     v8::Local<v8::Object> console) {
++   v8::Isolate* isolate = v8::Isolate::GetCurrent();
++-  v8::Local<v8::Object> data = wrapConsole(context);
+++  v8::Local<v8::Data> data =
+++      v8::CppHeapExternal::New<V8Console>(isolate, this, kPointerTag);
++   console->SetAccessorProperty(
++       toV8StringInternalized(isolate, "memory"),
++       v8::Function::New(
++@@ -884,7 +867,9 @@ void V8Console::installMemoryGetter(v8::Local<v8::Context> context,
++ 
++ void V8Console::installAsyncStackTaggingAPI(v8::Local<v8::Context> context,
++                                             v8::Local<v8::Object> console) {
++-  v8::Local<v8::Object> data = wrapConsole(context);
+++  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+++  v8::Local<v8::Data> data =
+++      v8::CppHeapExternal::New<V8Console>(isolate, this, kPointerTag);
++ 
++   v8::MicrotasksScope microtasksScope(context,
++                                       v8::MicrotasksScope::kDoNotRunMicrotasks);
++@@ -905,24 +890,28 @@ v8::Local<v8::Object> V8Console::createCommandLineAPI(
++   DCHECK(success);
++   USE(success);
++ 
++-  v8::Local<v8::Array> data = v8::Array::New(isolate, 2);
++-  data->CreateDataProperty(context, 0, wrapConsole(context)).Check();
++-  data->CreateDataProperty(context, 1, v8::Integer::New(isolate, sessionId))
++-      .Check();
+++  v8::Local<v8::Data> consoleData =
+++      v8::CppHeapExternal::New<V8Console>(isolate, this, kPointerTag);
++ 
++-  createBoundFunctionProperty(context, commandLineAPI, data, "dir",
+++  createBoundFunctionProperty(context, commandLineAPI, consoleData, "dir",
++                               &V8Console::call<&V8Console::Dir>);
++-  createBoundFunctionProperty(context, commandLineAPI, data, "dirxml",
+++  createBoundFunctionProperty(context, commandLineAPI, consoleData, "dirxml",
++                               &V8Console::call<&V8Console::DirXml>);
++-  createBoundFunctionProperty(context, commandLineAPI, data, "profile",
+++  createBoundFunctionProperty(context, commandLineAPI, consoleData, "profile",
++                               &V8Console::call<&V8Console::Profile>);
++-  createBoundFunctionProperty(context, commandLineAPI, data, "profileEnd",
+++  createBoundFunctionProperty(context, commandLineAPI, consoleData,
+++                              "profileEnd",
++                               &V8Console::call<&V8Console::ProfileEnd>);
++-  createBoundFunctionProperty(context, commandLineAPI, data, "clear",
+++  createBoundFunctionProperty(context, commandLineAPI, consoleData, "clear",
++                               &V8Console::call<&V8Console::Clear>);
++-  createBoundFunctionProperty(context, commandLineAPI, data, "table",
+++  createBoundFunctionProperty(context, commandLineAPI, consoleData, "table",
++                               &V8Console::call<&V8Console::Table>);
++ 
+++  auto* sessionData = cppgc::MakeGarbageCollected<CommandLineAPIData>(
+++      isolate->GetCppHeap()->GetAllocationHandle(), this, sessionId);
+++  v8::Local<v8::Data> data = v8::CppHeapExternal::New<CommandLineAPIData>(
+++      isolate, sessionData, CommandLineAPIData::kPointerTag);
+++
++   createBoundFunctionProperty(context, commandLineAPI, data, "keys",
++                               &V8Console::call<&V8Console::keysCallback>,
++                               v8::SideEffectType::kHasNoSideEffect);
+diff --git a/patches/v8/src-inspector-v8-console.h.patch b/patches/v8/src-inspector-v8-console.h.patch
+new file mode 100644
+index 0000000..8fe3eea
+--- /dev/null
++++ b/patches/v8/src-inspector-v8-console.h.patch
+@@ -0,0 +1,141 @@
++diff --git a/src/inspector/v8-console.h b/src/inspector/v8-console.h
++index f6df378d2b9c7fbcf2866202be55cb03658f5a2a..210a6dd8189dc854e4666a7834b3917704b4aad6 100644
++--- a/src/inspector/v8-console.h
+++++ b/src/inspector/v8-console.h
++@@ -9,6 +9,7 @@
++ #include "include/cppgc/member.h"
++ #include "include/v8-array-buffer.h"
++ #include "include/v8-container.h"
+++#include "include/v8-cpp-heap-external.h"
++ #include "include/v8-external.h"
++ #include "include/v8-local-handle.h"
++ #include "include/v8-object.h"
++@@ -31,13 +32,12 @@ class V8InspectorImpl;
++ 
++ // Console API
++ // https://console.spec.whatwg.org/#console-namespace
++-class V8Console final : public v8::Object::Wrappable,
+++class V8Console final : public cppgc::GarbageCollected<V8Console>,
++                         public v8::debug::ConsoleDelegate {
++  public:
++   static constexpr v8::CppHeapPointerTag kPointerTag =
++       v8::internal::kInspectorV8ConsoleTag;
++ 
++-  v8::Local<v8::Object> wrapConsole(v8::Local<v8::Context> context);
++   void Trace(cppgc::Visitor* visitor) const override;
++ 
++   v8::Local<v8::Object> createCommandLineAPI(v8::Local<v8::Context> context,
++@@ -82,14 +82,30 @@ class V8Console final : public v8::Object::Wrappable,
++   void clearInspector() {
++     m_inspector = nullptr;
++     m_taskTemplate.Reset();
++-    m_consoleTemplate.Reset();
++-    m_consoleWrapper.Reset();
++-    m_consoleContext.Reset();
++   }
++ 
++  private:
++   friend class TaskInfo;
++ 
+++  class CommandLineAPIData
+++      : public cppgc::GarbageCollected<CommandLineAPIData> {
+++   public:
+++    static constexpr v8::CppHeapPointerTag kPointerTag =
+++        v8::internal::kInspectorCommandLineAPIDataTag;
+++
+++    CommandLineAPIData(V8Console* console, int sessionId)
+++        : m_console(console), m_sessionId(sessionId) {}
+++
+++    void Trace(cppgc::Visitor* visitor) const;
+++
+++    V8Console* console() const { return m_console.Get(); }
+++    int sessionId() const { return m_sessionId; }
+++
+++   private:
+++    cppgc::Member<V8Console> m_console;
+++    int m_sessionId;
+++  };
+++
++   void Debug(const v8::debug::ConsoleCallArguments&,
++              const v8::debug::ConsoleContext& consoleContext) override;
++   void Error(const v8::debug::ConsoleCallArguments&,
++@@ -137,8 +153,9 @@ class V8Console final : public v8::Object::Wrappable,
++ 
++   template <void (V8Console::*func)(const v8::FunctionCallbackInfo<v8::Value>&)>
++   static void call(const v8::FunctionCallbackInfo<v8::Value>& info) {
++-    V8Console* console = v8::Object::Unwrap<kPointerTag, V8Console>(
++-        info.GetIsolate(), info.DataV2().As<v8::Value>().As<v8::Object>());
+++    V8Console* console =
+++        info.DataV2().As<v8::CppHeapExternal>()->Value<V8Console>(
+++            info.GetIsolate(), {kPointerTag, kPointerTag});
++     CHECK_NOT_NULL(console);
++     CHECK_NOT_NULL(console->m_inspector);
++     (console->*func)(info);
++@@ -146,38 +163,24 @@ class V8Console final : public v8::Object::Wrappable,
++   template <void (V8Console::*func)(const v8::FunctionCallbackInfo<v8::Value>&,
++                                     int)>
++   static void call(const v8::FunctionCallbackInfo<v8::Value>& info) {
++-    v8::Local<v8::Array> data = info.DataV2().As<v8::Value>().As<v8::Array>();
++-    v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
++-    v8::Local<v8::Value> console_value;
++-    if (!data->Get(context, 0).ToLocal(&console_value) ||
++-        !console_value->IsObject()) {
++-      return;
++-    }
++-    V8Console* console = v8::Object::Unwrap<kPointerTag, V8Console>(
++-        info.GetIsolate(), console_value.As<v8::Object>());
+++    CommandLineAPIData* data =
+++        info.DataV2().As<v8::CppHeapExternal>()->Value<CommandLineAPIData>(
+++            info.GetIsolate(),
+++            {CommandLineAPIData::kPointerTag, CommandLineAPIData::kPointerTag});
+++    CHECK_NOT_NULL(data);
+++    V8Console* console = data->console();
++     CHECK_NOT_NULL(console);
++-    v8::Local<v8::Value> session_value;
++-    if (!data->Get(context, 1).ToLocal(&session_value) ||
++-        !session_value->IsInt32()) {
++-      return;
++-    }
++-    int sessionId = session_value.As<v8::Int32>()->Value();
++-    (console->*func)(info, sessionId);
+++    CHECK_NOT_NULL(console->m_inspector);
+++    (console->*func)(info, data->sessionId());
++   }
++-
++   template <void (V8Console::*func)(const v8::debug::ConsoleCallArguments&,
++                                     const v8::debug::ConsoleContext&)>
++   static void call(const v8::FunctionCallbackInfo<v8::Value>& info) {
++-    v8::Local<v8::Array> data = info.DataV2().As<v8::Value>().As<v8::Array>();
++-    v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
++-    v8::Local<v8::Value> console_value;
++-    if (!data->Get(context, 0).ToLocal(&console_value) ||
++-        !console_value->IsObject()) {
++-      return;
++-    }
++-    V8Console* console = v8::Object::Unwrap<kPointerTag, V8Console>(
++-        info.GetIsolate(), console_value.As<v8::Object>());
+++    V8Console* console =
+++        info.DataV2().As<v8::CppHeapExternal>()->Value<V8Console>(
+++            info.GetIsolate(), {kPointerTag, kPointerTag});
++     CHECK_NOT_NULL(console);
+++    CHECK_NOT_NULL(console->m_inspector);
++     v8::debug::ConsoleCallArguments args(info);
++     (console->*func)(args, v8::debug::ConsoleContext());
++   }
++@@ -242,16 +245,6 @@ class V8Console final : public v8::Object::Wrappable,
++   // instantiation. Use `taskTemplate()` to retrieve the lazily created
++   // template.
++   v8::TracedReference<v8::ObjectTemplate> m_taskTemplate;
++-  v8::TracedReference<v8::ObjectTemplate> m_consoleTemplate;
++-
++-  // Weak references:
++-  //
++-  // We cache the V8Console wrapper object for the current context in
++-  // `m_consoleWrapper`. `m_consoleContext` holds a weak reference to the
++-  // context for which `m_consoleWrapper` was created, ensuring we only reuse
++-  // the cached wrapper if the context remains the same.
++-  v8::Global<v8::Object> m_consoleWrapper;
++-  v8::Global<v8::Context> m_consoleContext;
++ };
++ 
++ /**
+diff --git a/patches/v8/src-inspector-v8-runtime-agent-impl.cc.patch b/patches/v8/src-inspector-v8-runtime-agent-impl.cc.patch
+new file mode 100644
+index 0000000..06465dd
+--- /dev/null
++++ b/patches/v8/src-inspector-v8-runtime-agent-impl.cc.patch
+@@ -0,0 +1,26 @@
++diff --git a/src/inspector/v8-runtime-agent-impl.cc b/src/inspector/v8-runtime-agent-impl.cc
++index 0120bbd5cf4d6806c6da06b53d911d418841f10d..ac4cd7f119bb39135f42cc59579ce5c1134ff3d3 100644
++--- a/src/inspector/v8-runtime-agent-impl.cc
+++++ b/src/inspector/v8-runtime-agent-impl.cc
++@@ -856,6 +856,10 @@ Response V8RuntimeAgentImpl::globalLexicalScopeNames(
++ }
++ 
++ Response V8RuntimeAgentImpl::getIsolateId(String16* outIsolateId) {
+++  if (m_session->clientTrustLevel() != V8Inspector::kFullyTrusted) {
+++    return Response::ServerError(
+++        "Runtime.getIsolateId is not allowed for untrusted clients");
+++  }
++   char buf[40];
++   std::snprintf(buf, sizeof(buf), "%" PRIx64, m_inspector->isolateId());
++   *outIsolateId = buf;
++@@ -866,6 +870,10 @@ Response V8RuntimeAgentImpl::getHeapUsage(double* out_usedSize,
++                                           double* out_totalSize,
++                                           double* out_embedderHeapUsedSize,
++                                           double* out_backingStorageSize) {
+++  if (m_session->clientTrustLevel() != V8Inspector::kFullyTrusted) {
+++    return Response::ServerError(
+++        "Runtime.getHeapUsage is not allowed for untrusted clients");
+++  }
++   v8::HeapStatistics stats;
++   m_inspector->isolate()->GetHeapStatistics(&stats);
++   *out_usedSize = stats.used_heap_size();
+diff --git a/patches/v8/src-inspector-v8-serialization-duplicate-tracker.cc.patch b/patches/v8/src-inspector-v8-serialization-duplicate-tracker.cc.patch
+new file mode 100644
+index 0000000..e68a00f
+--- /dev/null
++++ b/patches/v8/src-inspector-v8-serialization-duplicate-tracker.cc.patch
+@@ -0,0 +1,52 @@
++diff --git a/src/inspector/v8-serialization-duplicate-tracker.cc b/src/inspector/v8-serialization-duplicate-tracker.cc
++index f32af95d4daf534332df17c1bba7d29f168f5f32..6ec8ed9713fe3bdd0cab9c80f3b57a62adb3a00a 100644
++--- a/src/inspector/v8-serialization-duplicate-tracker.cc
+++++ b/src/inspector/v8-serialization-duplicate-tracker.cc
++@@ -5,7 +5,8 @@
++ #include "src/inspector/v8-serialization-duplicate-tracker.h"
++ 
++ #include "include/v8-context.h"
++-#include "include/v8-external.h"
+++#include "include/v8-isolate.h"
+++#include "include/v8-primitive.h"
++ #include "src/base/logging.h"
++ 
++ namespace v8_inspector {
++@@ -48,11 +49,14 @@ V8SerializationDuplicateTracker::LinkExistingOrCreate(
++ 
++ void V8SerializationDuplicateTracker::SetKnownSerializedValue(
++     v8::Local<v8::Value> v8Value, protocol::DictionaryValue* serializedValue) {
+++  // Don't store the raw `serializedValue` pointer in the (in-sandbox) map,
+++  // but only its index into `m_serializedValues`.
+++  int32_t index = static_cast<int32_t>(m_serializedValues.size());
+++  m_serializedValues.push_back(serializedValue);
++   m_v8ObjectToSerializedDictionary =
++       m_v8ObjectToSerializedDictionary
++           ->Set(m_context, v8Value,
++-                v8::External::New(v8::Isolate::GetCurrent(), serializedValue,
++-                                  v8::kDictionaryValueTag))
+++                v8::Integer::New(v8::Isolate::GetCurrent(), index))
++           .ToLocalChecked();
++ }
++ 
++@@ -62,12 +66,17 @@ V8SerializationDuplicateTracker::FindKnownSerializedValue(
++   v8::Local<v8::Value> knownValue;
++   if (!m_v8ObjectToSerializedDictionary->Get(m_context, v8Value)
++            .ToLocal(&knownValue) ||
++-      knownValue->IsUndefined()) {
+++      !knownValue->IsInt32()) {
++     return nullptr;
++   }
++ 
++-  return static_cast<protocol::DictionaryValue*>(
++-      knownValue.As<v8::External>()->Value(v8::kDictionaryValueTag));
+++  // The map lives in the sandbox and might have been corrupted, so the index
+++  // must be treated as untrusted and bounds-checked.
+++  int32_t index = knownValue.As<v8::Int32>()->Value();
+++  if (index < 0 || static_cast<size_t>(index) >= m_serializedValues.size()) {
+++    return nullptr;
+++  }
+++  return m_serializedValues[index];
++ }
++ 
++ V8SerializationDuplicateTracker::V8SerializationDuplicateTracker(
+diff --git a/patches/v8/src-inspector-v8-serialization-duplicate-tracker.h.patch b/patches/v8/src-inspector-v8-serialization-duplicate-tracker.h.patch
+new file mode 100644
+index 0000000..1dcbf97
+--- /dev/null
++++ b/patches/v8/src-inspector-v8-serialization-duplicate-tracker.h.patch
+@@ -0,0 +1,31 @@
++diff --git a/src/inspector/v8-serialization-duplicate-tracker.h b/src/inspector/v8-serialization-duplicate-tracker.h
++index b6036e3ac45ef22293163e4d47e4e3a5ffbd4d40..426f5aac3308b653f147078e3868f54d2cd488ae 100644
++--- a/src/inspector/v8-serialization-duplicate-tracker.h
+++++ b/src/inspector/v8-serialization-duplicate-tracker.h
++@@ -5,6 +5,8 @@
++ #ifndef V8_INSPECTOR_V8_SERIALIZATION_DUPLICATE_TRACKER_H_
++ #define V8_INSPECTOR_V8_SERIALIZATION_DUPLICATE_TRACKER_H_
++ 
+++#include <vector>
+++
++ #include "include/v8-container.h"
++ #include "src/base/vector.h"
++ #include "src/debug/debug-interface.h"
++@@ -26,8 +28,16 @@ class V8SerializationDuplicateTracker {
++  private:
++   v8::Local<v8::Context> m_context;
++   int m_counter;
++-  // Maps v8 value to corresponding serialized value.
+++  // Maps v8 value to the index of the corresponding serialized value in
+++  // `m_serializedValues`. The map lives in sandbox-corruptible memory, so it
+++  // must never hold raw (out-of-sandbox) pointers. Instead it holds indices
+++  // that are range-checked on lookup, so that a corrupted or replayed map
+++  // value can at worst alias another serialized value of the same
+++  // serialization, but never produce a dangling pointer.
++   v8::Local<v8::Map> m_v8ObjectToSerializedDictionary;
+++  // Serialized values registered during this serialization. The values are
+++  // owned by the resulting protocol tree, which outlives this tracker.
+++  std::vector<protocol::DictionaryValue*> m_serializedValues;
++ 
++   V8_EXPORT protocol::DictionaryValue* FindKnownSerializedValue(
++       v8::Local<v8::Value> v8Value);
+diff --git a/patches/v8/src-maglev-maglev-compiler.cc.patch b/patches/v8/src-maglev-maglev-compiler.cc.patch
+new file mode 100644
+index 0000000..efb7907
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-compiler.cc.patch
+@@ -0,0 +1,13 @@
++diff --git a/src/maglev/maglev-compiler.cc b/src/maglev/maglev-compiler.cc
++index 74236225fc0a8078322e81f3661ad772661c37cf..a6b0ec1cad58d207429a85c25eafdbeef3face22 100644
++--- a/src/maglev/maglev-compiler.cc
+++++ b/src/maglev/maglev-compiler.cc
++@@ -72,6 +72,8 @@ void PrintGraph(Graph* graph, bool condition, MaglevPhase phase) {
++ 
++ void VerifyGraph(Graph* graph, MaglevPhase phase) {
++ #ifdef DEBUG
+++  compiler::UnparkedScopeIfNeeded unparked_scope(
+++      graph->broker()->local_isolate());
++   GraphProcessor<MaglevGraphVerifier> verifier(graph->compilation_info(),
++                                                phase);
++   verifier.ProcessGraph(graph);
+diff --git a/patches/v8/src-maglev-maglev-graph-builder.cc.patch b/patches/v8/src-maglev-maglev-graph-builder.cc.patch
+new file mode 100644
+index 0000000..c4356e5
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-graph-builder.cc.patch
+@@ -0,0 +1,67 @@
++diff --git a/src/maglev/maglev-graph-builder.cc b/src/maglev/maglev-graph-builder.cc
++index 69fe4b26b5ef19e168e9dbde6525739d5623d34d..d1f32c917ea339c7657a7ef2fe1992c8e296fb0d 100644
++--- a/src/maglev/maglev-graph-builder.cc
+++++ b/src/maglev/maglev-graph-builder.cc
++@@ -1807,9 +1807,13 @@ bool IsConsString(ValueNode* string) {
++ }
++ }  // namespace
++ 
++-uint32_t MaglevGraphBuilder::StringLengthStaticLowerBound(ValueNode* string,
++-                                                          int max_depth) {
++-  if (auto maybe_constant = TryGetConstant<String>(string)) {
+++uint32_t MaglevGraphBuilder::StringLengthStaticLowerBound(
+++    compiler::JSHeapBroker* broker, ValueNode* string, int max_depth) {
+++  string = string->UnwrapIdentities();
+++  // Only use static constant nodes, not path-sensitive KnownNodeAspects
+++  // `checked_value` alternatives (`TryGetConstant<String>`), as the bound is
+++  // cached on `StringConcat` nodes across control-flow merges.
+++  if (auto maybe_constant = string->TryGetConstant(broker)) {
++     if (maybe_constant->IsString()) {
++       return maybe_constant->AsString().length();
++     }
++@@ -1819,13 +1823,16 @@ uint32_t MaglevGraphBuilder::StringLengthStaticLowerBound(ValueNode* string,
++   }
++   switch (string->opcode()) {
++     case Opcode::kNumberToString:
+++    case Opcode::kInt32ToString:
+++    case Opcode::kFloat64ToString:
+++    case Opcode::kSmiToString:
++       return 1;
++     case Opcode::kStringConcat:
++       if (max_depth == 0) return 0;
++       return string->Cast<StringConcat>()->MinLength([&]() {
++-        return StringLengthStaticLowerBound(string->input(0).node(),
+++        return StringLengthStaticLowerBound(broker, string->input(0).node(),
++                                             max_depth - 1) +
++-               StringLengthStaticLowerBound(string->input(1).node(),
+++               StringLengthStaticLowerBound(broker, string->input(1).node(),
++                                             max_depth - 1);
++       });
++     case Opcode::kPhi: {
++@@ -1839,11 +1846,11 @@ uint32_t MaglevGraphBuilder::StringLengthStaticLowerBound(ValueNode* string,
++           (phi->is_loop_phi() && phi->is_unmerged_loop_phi())) {
++         return 0;
++       }
++-      auto overall_min_length =
++-          StringLengthStaticLowerBound(phi->input(0).node(), max_depth - 1);
+++      auto overall_min_length = StringLengthStaticLowerBound(
+++          broker, phi->input(0).node(), max_depth - 1);
++       for (int i = 1; i < phi->input_count(); ++i) {
++-        auto min =
++-            StringLengthStaticLowerBound(phi->input(i).node(), max_depth - 1);
+++        auto min = StringLengthStaticLowerBound(broker, phi->input(i).node(),
+++                                                max_depth - 1);
++         if (min < overall_min_length) {
++           overall_min_length = min;
++         }
++@@ -1865,8 +1872,8 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildNewConsString(
++   DCHECK(NodeTypeIs(GetType(left), NodeType::kString));
++   DCHECK(NodeTypeIs(GetType(right), NodeType::kString));
++ 
++-  size_t left_min_length = StringLengthStaticLowerBound(left);
++-  size_t right_min_length = StringLengthStaticLowerBound(right);
+++  size_t left_min_length = StringLengthStaticLowerBound(broker(), left);
+++  size_t right_min_length = StringLengthStaticLowerBound(broker(), right);
++ 
++   // If the right hand side is a ConsString, then we can create a ConsString.
++   // This doesn't work with the left hand side, since the right hand side of a
+diff --git a/patches/v8/src-maglev-maglev-graph-builder.h.patch b/patches/v8/src-maglev-maglev-graph-builder.h.patch
+new file mode 100644
+index 0000000..6e6008d
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-graph-builder.h.patch
+@@ -0,0 +1,15 @@
++diff --git a/src/maglev/maglev-graph-builder.h b/src/maglev/maglev-graph-builder.h
++index f3d9c57f1895ef2369d7e286e94815f6eec9718b..39ac8bb6b71a5476d60dd06eb51bde9dbd3eab81 100644
++--- a/src/maglev/maglev-graph-builder.h
+++++ b/src/maglev/maglev-graph-builder.h
++@@ -1620,7 +1620,9 @@ class MaglevGraphBuilder {
++   MaybeReduceResult TryBuildStringConcat(ValueNode* left, ValueNode* right);
++   ReduceResult BuildStringConcat(ValueNode* left, ValueNode* right);
++   ReduceResult BuildNewConsStringMap(ValueNode* left, ValueNode* right);
++-  uint32_t StringLengthStaticLowerBound(ValueNode* string, int max_depth = 2);
+++  static uint32_t StringLengthStaticLowerBound(compiler::JSHeapBroker* broker,
+++                                               ValueNode* string,
+++                                               int max_depth = 2);
++   MaybeReduceResult TryBuildNewConsString(
++       ValueNode* left, ValueNode* right,
++       AllocationType allocation_type = AllocationType::kYoung);
+diff --git a/patches/v8/src-maglev-maglev-graph-verifier.h.patch b/patches/v8/src-maglev-maglev-graph-verifier.h.patch
+new file mode 100644
+index 0000000..7cf4462
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-graph-verifier.h.patch
+@@ -0,0 +1,47 @@
++diff --git a/src/maglev/maglev-graph-verifier.h b/src/maglev/maglev-graph-verifier.h
++index e1ae0dcb3be4bd41741e5479c6363e9d42a7e972..09b72293aabfe1c7f62123ecfdd7e3bb0e063a39 100644
++--- a/src/maglev/maglev-graph-verifier.h
+++++ b/src/maglev/maglev-graph-verifier.h
++@@ -6,6 +6,7 @@
++ #define V8_MAGLEV_MAGLEV_GRAPH_VERIFIER_H_
++ 
++ #include "src/maglev/maglev-compilation-info.h"
+++#include "src/maglev/maglev-graph-builder.h"
++ #include "src/maglev/maglev-graph-labeller.h"
++ #include "src/maglev/maglev-graph-processor.h"
++ #include "src/maglev/maglev-ir.h"
++@@ -23,7 +24,8 @@ class MaglevGraphVerifier {
++  public:
++   explicit MaglevGraphVerifier(MaglevCompilationInfo* compilation_info,
++                                MaglevPhase phase)
++-      : seen_(compilation_info->zone()),
+++      : compilation_info_(compilation_info),
+++        seen_(compilation_info->zone()),
++         defined_(compilation_info->zone()),
++         def_block_(compilation_info->zone()),
++         idom_(compilation_info->zone()),
++@@ -76,6 +78,16 @@ class MaglevGraphVerifier {
++       CHECK_LE(op, kLastOpcode);
++     }
++     node->VerifyInputs();
+++    if constexpr (std::is_same_v<NodeT, StringConcat>) {
+++      if (std::optional<uint32_t> cached = node->cached_min_length()) {
+++        uint32_t expected =
+++            MaglevGraphBuilder::StringLengthStaticLowerBound(
+++                compilation_info_->broker(), node->input(0).node(), 1) +
+++            MaglevGraphBuilder::StringLengthStaticLowerBound(
+++                compilation_info_->broker(), node->input(1).node(), 1);
+++        CHECK_LE(*cached, std::min(expected, StringConcat::kNoMinLength - 1));
+++      }
+++    }
++     if (v8_flags.maglev_verify_dominance) {
++       VerifyInputDominance(node);
++       VerifyEagerDeoptFrameDominance(node);
++@@ -257,6 +269,7 @@ class MaglevGraphVerifier {
++     }
++   }
++ 
+++  MaglevCompilationInfo* compilation_info_ = nullptr;
++   MaglevGraphLabeller* graph_labeller_ = nullptr;
++   ZoneVector<bool> seen_;
++   ZoneUnorderedSet<ValueNode*> defined_;
+diff --git a/patches/v8/src-maglev-maglev-ir.h.patch b/patches/v8/src-maglev-maglev-ir.h.patch
+new file mode 100644
+index 0000000..25c5a99
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-ir.h.patch
+@@ -0,0 +1,17 @@
++diff --git a/src/maglev/maglev-ir.h b/src/maglev/maglev-ir.h
++index c1b16a843499f102d8d724ba9a3ef9c560e1f1d4..853a1a02b49c5f437f785330cafc4325127aa0dd 100644
++--- a/src/maglev/maglev-ir.h
+++++ b/src/maglev/maglev-ir.h
++@@ -9930,6 +9930,12 @@ class StringConcat : public FixedInputValueNodeT<2, StringConcat> {
++     }
++     return cur;
++   }
+++
+++  std::optional<uint32_t> cached_min_length() const {
+++    uint32_t cur = MinLengthField::decode(bitfield());
+++    if (cur == kNoMinLength) return {};
+++    return cur;
+++  }
++ };
++ 
++ /*
+diff --git a/patches/v8/src-sandbox-cppheap-pointer-tag.h.patch b/patches/v8/src-sandbox-cppheap-pointer-tag.h.patch
+new file mode 100644
+index 0000000..3318bed
+--- /dev/null
++++ b/patches/v8/src-sandbox-cppheap-pointer-tag.h.patch
+@@ -0,0 +1,23 @@
++diff --git a/src/sandbox/cppheap-pointer-tag.h b/src/sandbox/cppheap-pointer-tag.h
++index e24e1b6c6b6a8044176691fa280539646095a0ae..f54b2dbf6a2937391cfa0803bffdfe3dff89f190 100644
++--- a/src/sandbox/cppheap-pointer-tag.h
+++++ b/src/sandbox/cppheap-pointer-tag.h
++@@ -12,7 +12,6 @@ namespace v8::internal {
++ // Tags for V8-internal CppHeap objects that inherit from v8::Object::Wrappable.
++ #define V8_WRAPPABLE_CPP_HEAP_POINTER_TAGS_LIST(V) \
++   V(kTagForTesting)                                \
++-  V(kInspectorV8ConsoleTag)                        \
++   V(kInspectorTaskInfoTag)                         \
++   V(kWasmMemoryMapDescriptorTag)
++ 
++@@ -21,7 +20,9 @@ namespace v8::internal {
++ #define V8_NON_WRAPPABLE_CPP_HEAP_POINTER_TAGS_LIST(V) \
++   V(kMicrotaskQueueTag)                                \
++   V(kCppGCManagedTag)                                  \
++-  V(kEmbedderDataSlotTag)
+++  V(kEmbedderDataSlotTag)                              \
+++  V(kInspectorV8ConsoleTag)                            \
+++  V(kInspectorCommandLineAPIDataTag)
++ 
++ enum class WrappableCppHeapPointerTag : uint16_t {
++   kFirst =
+diff --git a/patches/v8/src-utils-version.cc.patch b/patches/v8/src-utils-version.cc.patch
+index 40b7e15..a4d4830 100644
+--- a/patches/v8/src-utils-version.cc.patch
++++ b/patches/v8/src-utils-version.cc.patch
+@@ -1,8 +1,8 @@
+ diff --git a/src/utils/version.cc b/src/utils/version.cc
+-index 550db661144947dbc31b5eb62c0da7ea2e6e1139..bfd8b38cef2406277aa422e1c4cb0dce9896de83 100644
++index 550db661144947dbc31b5eb62c0da7ea2e6e1139..7fc1501985e2024a5fbc67ad8255fc7ac1acc3e2 100644
+ --- a/src/utils/version.cc
+ +++ b/src/utils/version.cc
+-@@ -27,9 +27,49 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
++@@ -27,9 +27,52 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
+  const char* Version::soname_ = SONAME;
+  const char* Version::version_string_ = V8_VERSION_STRING;
+  
+@@ -44,7 +44,10 @@ index 550db661144947dbc31b5eb62c0da7ea2e6e1139..bfd8b38cef2406277aa422e1c4cb0dce
+ +// reductions, which changes optimized code). 35 = FlyWeb 3.1.4 with the
+ +// 8078 branch V8 15.6.75.68/.69 fixes 46c1404 (no jump threading across frame
+ +// transitions, which changes optimized code) and c9afe36 (regexp replace).
+-+constexpr int kFlyWebCacheEpoch = 35;
+++// 36 = FlyWeb 3.1.4 with the Chrome 158 Lows 0b3bd2b, 336a6b3, fb3bcc3
+++// (inspector) and 0ac2b27 (Maglev StringLengthStaticLowerBound, which changes
+++// optimized code).
+++constexpr int kFlyWebCacheEpoch = 36;
+ +
+  uint32_t Version::Hash() {
+    base::Hasher hasher;
+diff --git a/patches/v8/test-inspector-inspector.status.patch b/patches/v8/test-inspector-inspector.status.patch
+new file mode 100644
+index 0000000..8880e0e
+--- /dev/null
++++ b/patches/v8/test-inspector-inspector.status.patch
+@@ -0,0 +1,14 @@
++diff --git a/test/inspector/inspector.status b/test/inspector/inspector.status
++index 2a5bbb71c845d7bbc9fde375c8994160516576d9..24e298e815779c609c309fa9b749f56de08ebe38 100644
++--- a/test/inspector/inspector.status
+++++ b/test/inspector/inspector.status
++@@ -31,6 +31,9 @@
++   'runtime/regress-520052954': [PASS, ['not asan', SKIP]],
++   'runtime/regress-520052954-2': [PASS, ['not asan', SKIP]],
++   'runtime/regress-520052954-3': [PASS, ['not asan', SKIP]],
+++
+++  # Sandbox regression test requiring the memory corruption API.
+++  'regress/regress-crbug-568986689': [PASS, ['not memory_corruption_api', SKIP]],
++ }],  # ALWAYS
++ 
++ ##############################################################################
+diff --git a/patches/v8/test-inspector-regress-regress-crbug-568986689-expected.txt.patch b/patches/v8/test-inspector-regress-regress-crbug-568986689-expected.txt.patch
+new file mode 100644
+index 0000000..63d2dee
+--- /dev/null
++++ b/patches/v8/test-inspector-regress-regress-crbug-568986689-expected.txt.patch
+@@ -0,0 +1,8 @@
++diff --git a/test/inspector/regress/regress-crbug-568986689-expected.txt b/test/inspector/regress/regress-crbug-568986689-expected.txt
++new file mode 100644
++index 0000000000000000000000000000000000000000..7d475b2f18bec8a9c6ea2acce873e9ecb46d6c43
++--- /dev/null
+++++ b/test/inspector/regress/regress-crbug-568986689-expected.txt
++@@ -0,0 +1,2 @@
+++Regression test for crbug.com/568986689.
+++done
+diff --git a/patches/v8/test-inspector-regress-regress-crbug-568986689.js.patch b/patches/v8/test-inspector-regress-regress-crbug-568986689.js.patch
+new file mode 100644
+index 0000000..c90f512
+--- /dev/null
++++ b/patches/v8/test-inspector-regress-regress-crbug-568986689.js.patch
+@@ -0,0 +1,170 @@
++diff --git a/test/inspector/regress/regress-crbug-568986689.js b/test/inspector/regress/regress-crbug-568986689.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..95a1f5a379a01e9c1b53d216a8462532f8411dea
++--- /dev/null
+++++ b/test/inspector/regress/regress-crbug-568986689.js
++@@ -0,0 +1,164 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --expose-memory-corruption-api
+++
+++const {session, contextGroup, Protocol} =
+++    InspectorTest.start('Regression test for crbug.com/568986689.');
+++const PAGE_SRC = `
+++var __status = 'init';     // phase-1 status, read by the client
+++var __status2 = 'init';    // phase-2 status, read by the client
+++var __hits1 = 0, __hits2 = 0;
+++var __stash = null;        // strong JS ref to the stale JSExternalObject
+++var __stashMapWord = -1;   // JSExternalObject map word, for verification
+++var K1, K2, g1, objB, graph2;
+++var __aG1 = 0, __aK1 = 0, __aK2 = 0, __aG2 = 0, __aObjB = 0, __stashTagged = 0;
+++
+++var SB = (typeof Sandbox !== 'undefined') ? Sandbox : null;
+++var PAGE = 0x40000;  // V8 heap page size (256 KiB)
+++
+++function __tagged(o) { return (SB.getAddressOf(o) | 1) >>> 0; }
+++
+++function preparePhase1() {
+++  if (!SB) { __status = 'NO_SANDBOX_API'; return __status; }
+++  K1 = {}; K2 = {};
+++  g1 = {m1: K1, m2: K2};
+++  Object.defineProperty(g1, 'g',
+++      {enumerable: true, configurable: true, get: __g1getter});
+++  __stash = null;
+++  __status = 'prepared1';
+++  return __status;
+++}
+++
+++function snapshotAddrs1() {
+++  __aG1 = __tagged(g1); __aK1 = __tagged(K1); __aK2 = __tagged(K2);
+++  __status = 'snap1 g1=0x' + __aG1.toString(16) + ' K1=0x' +
+++      __aK1.toString(16) + ' K2=0x' + __aK2.toString(16);
+++  return __status;
+++}
+++
+++function __g1getter() {
+++  try {
+++    var probe = {};
+++    var probeAddr = SB.getAddressOf(probe);
+++    var base = probeAddr - (probeAddr % PAGE);
+++    var len = (probeAddr - base) & ~3;
+++    if (len < 64) { __status = 'G1 window-too-small'; return 1; }
+++    var ab = new SB.MemoryView(base, len);
+++    var u16 = new Uint16Array(ab);
+++    var u32 = new Uint32Array(ab);
+++    var g1lo = __aG1 & 0xFFFF, g1hi = __aG1 >>> 16;
+++    var k1lo = __aK1 & 0xFFFF, k1hi = __aK1 >>> 16;
+++    var k2lo = __aK2 & 0xFFFF, k2hi = __aK2 >>> 16;
+++    var hit = -1, hits = 0, n = u16.length - 14;
+++    for (var i = 0; i <= n; i += 2) {
+++      if (u16[i] === g1lo && u16[i + 1] === g1hi &&
+++          u16[i + 6] === k1lo && u16[i + 7] === k1hi &&
+++          u16[i + 12] === k2lo && u16[i + 13] === k2hi) { hit = i; hits++; }
+++    }
+++    __hits1 = hits;
+++    if (hit < 0) { __status = 'G1 scan-miss len=0x' + len.toString(16); return 1; }
+++    var extTagged = u32[(hit * 2 + 16) >> 2];
+++    if ((extTagged & 3) !== 1) { __status = 'G1 value-not-tagged'; return 1; }
+++    __stash = SB.getObjectAt(extTagged);
+++    var t = SB.getInstanceTypeOf(__stash);
+++    if (t !== 'JS_EXTERNAL_OBJECT_TYPE') {
+++      __status = 'G1 wrong-type: ' + t; __stash = null; return 1;
+++    }
+++    var sAddr = SB.getAddressOf(__stash);
+++    __stashMapWord = new Uint32Array(new SB.MemoryView(sAddr, 8))[0];
+++    __status = 'stash-ok hits=' + hits + ' ext=0x' + extTagged.toString(16);
+++  } catch (e) {
+++    __status = 'G1-error: ' + String(e && e.message || e);
+++  }
+++  return 1;
+++}
+++
+++function preparePhase2() {
+++  objB = {};
+++  graph2 = {a: objB};                        // objB registered at 'a'
+++  Object.defineProperty(graph2, 'b',         // getter fires between 'a' and 'c'
+++      {enumerable: true, configurable: true, get: __g2getter});
+++  graph2.c = objB;                           // objB re-encountered at 'c'
+++  __status2 = 'prepared2';
+++  return __status2;
+++}
+++
+++function snapshotAddrs2() {
+++  if (!__stash) { __status2 = 'no-stash'; return __status2; }
+++  __aG2 = __tagged(graph2); __aObjB = __tagged(objB);
+++  __stashTagged = __tagged(__stash);
+++  __status2 = 'snap2 stash=0x' + __stashTagged.toString(16);
+++  return __status2;
+++}
+++
+++function __g2getter() {
+++  try {
+++    if (!__stashTagged) { __status2 = 'G2 not-armed'; return 2; }
+++    var probe = {};
+++    var probeAddr = SB.getAddressOf(probe);
+++    var base = probeAddr - (probeAddr % PAGE);
+++    var len = (probeAddr - base) & ~3;
+++    if (len < 64) { __status2 = 'G2 window-too-small'; return 2; }
+++    var ab = new SB.MemoryView(base, len);
+++    var u16 = new Uint16Array(ab);
+++    var u32 = new Uint32Array(ab);
+++    var g2lo = __aG2 & 0xFFFF, g2hi = __aG2 >>> 16;
+++    var bLo = __aObjB & 0xFFFF, bHi = __aObjB >>> 16;
+++    var hit = -1, hits = 0, n = u16.length - 8;
+++    for (var i = 0; i <= n; i += 2) {
+++      if (u16[i] === g2lo && u16[i + 1] === g2hi &&
+++          u16[i + 6] === bLo && u16[i + 7] === bHi) { hit = i; hits++; }
+++    }
+++    __hits2 = hits;
+++    if (hit < 0) { __status2 = 'G2 scan-miss len=0x' + len.toString(16); return 2; }
+++    var vIdx = (hit * 2 + 16) >> 2;        // objB entry's value slot
+++    var cur = u32[vIdx];
+++    if ((cur & 3) !== 1) { __status2 = 'G2 cur-not-tagged'; return 2; }
+++    var curOff = ((cur & ~3) >>> 0) - base;
+++    if (curOff >= 0 && curOff + 4 <= len && u32[curOff >> 2] !== __stashMapWord) {
+++      __status2 = 'G2 mapword-mismatch'; return 2;
+++    }
+++    u32[vIdx] = __stashTagged;
+++    __status2 = 'swap-ok hits=' + hits;
+++  } catch (e) {
+++    __status2 = 'G2-error: ' + String(e && e.message || e);
+++  }
+++  return 2;
+++}
+++'page-script-loaded';
+++`;
+++const MAX_ATTEMPTS = 8;
+++
+++async function ev(expr) {
+++  const r =
+++      await Protocol.Runtime.evaluate({expression: expr, returnByValue: true});
+++  return r.result.result.value;
+++}
+++
+++async function fullGC() {
+++  await Protocol.HeapProfiler.collectGarbage();
+++  await Protocol.HeapProfiler.collectGarbage();
+++}
+++
+++(async function main() {
+++  await ev(PAGE_SRC);
+++  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+++    await ev('preparePhase1()');
+++    await fullGC();
+++    await ev('snapshotAddrs1()');
+++    await Protocol.Runtime.evaluate(
+++        {expression: 'g1', serializationOptions: {serialization: 'deep'}});
+++    const st1 = await ev('__status');
+++    if (!/^stash-ok/.test(st1)) continue;
+++    await ev('preparePhase2()');
+++    await fullGC();
+++    await ev('snapshotAddrs2()');
+++    await Protocol.Runtime.evaluate(
+++        {expression: 'graph2', serializationOptions: {serialization: 'deep'}});
+++    break;
+++  }
+++  InspectorTest.log('done');
+++  InspectorTest.completeTest();
+++})();
+diff --git a/patches/v8/test-inspector-runtime-get-heap-usage-expected.txt.patch b/patches/v8/test-inspector-runtime-get-heap-usage-expected.txt.patch
+new file mode 100644
+index 0000000..0ad130b
+--- /dev/null
++++ b/patches/v8/test-inspector-runtime-get-heap-usage-expected.txt.patch
+@@ -0,0 +1,14 @@
++diff --git a/test/inspector/runtime/get-heap-usage-expected.txt b/test/inspector/runtime/get-heap-usage-expected.txt
++index 4bd9699e574a4531fd2b3b47591f5bd39913cdc2..bb6d3e0e77f58940ec2a16ec88c9359452cceace 100644
++--- a/test/inspector/runtime/get-heap-usage-expected.txt
+++++ b/test/inspector/runtime/get-heap-usage-expected.txt
++@@ -1 +1,9 @@
++ Checks that Runtime.getHeapUsage works
+++getHeapUsage is not allowed for untrusted clients
+++{
+++    error : {
+++        code : -32000
+++        message : Runtime.getHeapUsage is not allowed for untrusted clients
+++    }
+++    id : <messageId>
+++}
+diff --git a/patches/v8/test-inspector-runtime-get-heap-usage.js.patch b/patches/v8/test-inspector-runtime-get-heap-usage.js.patch
+new file mode 100644
+index 0000000..79d5936
+--- /dev/null
++++ b/patches/v8/test-inspector-runtime-get-heap-usage.js.patch
+@@ -0,0 +1,17 @@
++diff --git a/test/inspector/runtime/get-heap-usage.js b/test/inspector/runtime/get-heap-usage.js
++index 8330001315b62e2fdd20f61c64c0cf23d47db188..dd06bdbdfe20d3796da30ff1682ae7113fc8fbc3 100644
++--- a/test/inspector/runtime/get-heap-usage.js
+++++ b/test/inspector/runtime/get-heap-usage.js
++@@ -11,5 +11,12 @@ const {session, contextGroup, Protocol} = InspectorTest.start('Checks that Runti
++   console.assert(usedSize > 0);
++   console.assert(totalSize > 0);
++   console.assert(totalSize >= usedSize);
+++
+++  InspectorTest.log('getHeapUsage is not allowed for untrusted clients');
+++  const untrustedSession = contextGroup.connect(/* isFullyTrusted */ false);
+++  InspectorTest.logMessage(
+++      await untrustedSession.Protocol.Runtime.getHeapUsage());
+++  untrustedSession.disconnect();
+++
++   InspectorTest.completeTest();
++ })();
+diff --git a/patches/v8/test-inspector-runtime-get-isolate-id-expected.txt.patch b/patches/v8/test-inspector-runtime-get-isolate-id-expected.txt.patch
+new file mode 100644
+index 0000000..25270bd
+--- /dev/null
++++ b/patches/v8/test-inspector-runtime-get-isolate-id-expected.txt.patch
+@@ -0,0 +1,14 @@
++diff --git a/test/inspector/runtime/get-isolate-id-expected.txt b/test/inspector/runtime/get-isolate-id-expected.txt
++index 7b3dcfc500d0b2d9540e14a0873c8aa1743bab33..e235ac803d210e8aa31beeb14712d76d2db0de02 100644
++--- a/test/inspector/runtime/get-isolate-id-expected.txt
+++++ b/test/inspector/runtime/get-isolate-id-expected.txt
++@@ -1 +1,9 @@
++ Checks that Runtime.getIsolateId works
+++getIsolateId is not allowed for untrusted clients
+++{
+++    error : {
+++        code : -32000
+++        message : Runtime.getIsolateId is not allowed for untrusted clients
+++    }
+++    id : <messageId>
+++}
+diff --git a/patches/v8/test-inspector-runtime-get-isolate-id.js.patch b/patches/v8/test-inspector-runtime-get-isolate-id.js.patch
+new file mode 100644
+index 0000000..0635980
+--- /dev/null
++++ b/patches/v8/test-inspector-runtime-get-isolate-id.js.patch
+@@ -0,0 +1,17 @@
++diff --git a/test/inspector/runtime/get-isolate-id.js b/test/inspector/runtime/get-isolate-id.js
++index 59bfc626391129b9322c9df051538cd63ffbce15..4a4bc2ba047541bc03f38b72af5d5a18b37dec5c 100644
++--- a/test/inspector/runtime/get-isolate-id.js
+++++ b/test/inspector/runtime/get-isolate-id.js
++@@ -8,5 +8,12 @@ const {session, contextGroup, Protocol} = InspectorTest.start('Checks that Runti
++   const id = await Protocol.Runtime.getIsolateId();
++   console.assert(typeof id === 'string');
++   console.assert(id.length > 0);
+++
+++  InspectorTest.log('getIsolateId is not allowed for untrusted clients');
+++  const untrustedSession = contextGroup.connect(/* isFullyTrusted */ false);
+++  InspectorTest.logMessage(
+++      await untrustedSession.Protocol.Runtime.getIsolateId());
+++  untrustedSession.disconnect();
+++
++   InspectorTest.completeTest();
++ })();
+diff --git a/patches/v8/test-mjsunit-maglev-regress-574412712.js.patch b/patches/v8/test-mjsunit-maglev-regress-574412712.js.patch
+new file mode 100644
+index 0000000..76dd1e3
+--- /dev/null
++++ b/patches/v8/test-mjsunit-maglev-regress-574412712.js.patch
+@@ -0,0 +1,53 @@
++diff --git a/test/mjsunit/maglev/regress-574412712.js b/test/mjsunit/maglev/regress-574412712.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..9d11669009688fac2a6ddc8b757b624c08f9d072
++--- /dev/null
+++++ b/test/mjsunit/maglev/regress-574412712.js
++@@ -0,0 +1,47 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax --maglev
+++
+++const o = {abc: 1};
+++
+++function f1(s) {
+++  let c = s + s;
+++  if (s) {
+++    o[s];
+++    c + "x";
+++  }
+++  return c + "abcdefg";
+++}
+++
+++%PrepareFunctionForOptimization(f1);
+++f1("abc");
+++%OptimizeMaglevOnNextCall(f1);
+++// If `f1("")` returns an invalid `ConsString("", "abcdefg")` with length 7
+++// (< ConsString::kMinLength), concatenating `"12345"` (total length 12 < 13)
+++// enters the short-string fast path in `NewConsString` that assumes direct
+++// string inputs.
+++assertEquals("abcdefg12345", f1("") + "12345");
+++assertMaglevved(f1);
+++
+++const re = /(?=(a))$/;
+++re.test("a");
+++
+++function f2(s, b) {
+++  let c = s + s;
+++  if (s) {
+++    o[s];
+++    c + "x";
+++  }
+++  return "0123456789abc" + (b + "x") + (b + "x") + c;
+++}
+++
+++%PrepareFunctionForOptimization(f2);
+++f2("abc", "x");
+++%OptimizeMaglevOnNextCall(f2);
+++// Verify that `f2("", "x")` does not produce a `ConsString` with an empty
+++// `second` and an unflattened `ConsString` `first`, which `String::Flatten`
+++// would treat as already flat when passing the subject to RegExp execution.
+++assertEquals("0123456789abcxxxx", f2("", "x").replace(re, () => ""));
+++assertMaglevved(f2);
+-- 
+2.43.0
+

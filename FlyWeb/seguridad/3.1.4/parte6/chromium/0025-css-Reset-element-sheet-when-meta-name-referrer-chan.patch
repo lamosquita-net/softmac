@@ -1,0 +1,172 @@
+From cabe54eb82941893b9b5188b1628c3a27884351f Mon Sep 17 00:00:00 2001
+From: Mike Taylor <miketaylr@chromium.org>
+Date: Wed, 21 Oct 2026 07:40:17 -0700
+Subject: [PATCH 25/32] [css] Reset element sheet when <meta name="referrer">
+ changes policy
+
+Follow-up to https://crrev.com/c/8602043, which made inline CSS snapshot
+the owner document's referrer policy at parse time.
+
+`Document::ElementSheet()` is created lazily and cached, and its parser
+context is used for every inline `style` attribute and presentation
+attribute. If it was created before `<meta name="referrer">` was
+processed (for example by `<meta name="color-scheme">`, which parses
+its content with the element sheet's context), later inline styles kept
+the stale pre-meta policy and could send a referrer under
+`no-referrer`.
+
+When `<meta name="referrer">` changes the document's policy, drop
+`elem_sheet_` (as `Document::UpdateBaseURL()` already does for base URL
+changes) and clear `StyleEngine`'s cached `fill`/`clip-path`
+`CSSURIValue`s, which were parsed with the old element sheet context.
+
+A policy from the `Referrer-Policy` header is applied before the
+document is created, so it does not need this invalidation.
+
+Bug: 392139161
+Change-Id: Ib688e41c7c78cbc201993af85b513652198233d6
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8603655
+Reviewed-by: Rune Lillesveen <futhark@chromium.org>
+Commit-Queue: Mike Taylor <miketaylr@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1723792}
+---
+ .../blink/renderer/core/css/style_engine.cc   |  6 +++
+ .../blink/renderer/core/css/style_engine.h    |  2 +
+ .../blink/renderer/core/dom/document.cc       | 12 ++++++
+ .../blink/renderer/core/dom/document.h        |  3 ++
+ .../renderer/core/html/html_meta_element.cc   |  1 +
+ ...e-style-with-color-scheme-no-referrer.html | 43 +++++++++++++++++++
+ 6 files changed, 67 insertions(+)
+ create mode 100644 third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/image/inline-style-with-color-scheme-no-referrer.html
+
+diff --git a/third_party/blink/renderer/core/css/style_engine.cc b/third_party/blink/renderer/core/css/style_engine.cc
+index e838a11c8c..9ca3cdbf2c 100644
+--- a/third_party/blink/renderer/core/css/style_engine.cc
++++ b/third_party/blink/renderer/core/css/style_engine.cc
+@@ -4957,6 +4957,12 @@ void StyleEngine::BaseURLChanged() {
+   fill_or_clip_path_uri_value_cache_.clear();
+ }
+ 
++void StyleEngine::ReferrerPolicyChanged() {
++  // Cached CSSURIValues carry the referrer policy of the element sheet they
++  // were parsed with.
++  fill_or_clip_path_uri_value_cache_.clear();
++}
++
+ void StyleEngine::UpdateViewportSize() {
+   viewport_size_ =
+       CSSToLengthConversionData::ViewportSize(GetDocument().GetLayoutView());
+diff --git a/third_party/blink/renderer/core/css/style_engine.h b/third_party/blink/renderer/core/css/style_engine.h
+index 09f3d63575..730d8849a4 100644
+--- a/third_party/blink/renderer/core/css/style_engine.h
++++ b/third_party/blink/renderer/core/css/style_engine.h
+@@ -611,6 +611,8 @@ class CORE_EXPORT StyleEngine final : public GarbageCollected<StyleEngine>,
+ 
+   // Invalidate caches that depends on the base url.
+   void BaseURLChanged();
++  // Invalidate caches that depend on the document's referrer policy.
++  void ReferrerPolicyChanged();
+ 
+   unsigned StyleForElementCount() const { return style_for_element_count_; }
+   void IncStyleForElementCount() { style_for_element_count_++; }
+diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink/renderer/core/dom/document.cc
+index 207f4278b2..4f2f35b46a 100644
+--- a/third_party/blink/renderer/core/dom/document.cc
++++ b/third_party/blink/renderer/core/dom/document.cc
+@@ -5353,6 +5353,18 @@ CSSStyleSheet& Document::ElementSheet() {
+   return *elem_sheet_;
+ }
+ 
++void Document::ReferrerPolicyChanged() {
++  // The element sheet holds no rules; it only carries the CSSParserContext
++  // used for inline style and presentation attributes. That context
++  // snapshots the referrer policy, so drop the sheet and let ElementSheet()
++  // recreate it with the new policy.
++  if (elem_sheet_) {
++    DCHECK(!elem_sheet_->Contents()->RuleCount());
++    elem_sheet_ = nullptr;
++  }
++  GetStyleEngine().ReferrerPolicyChanged();
++}
++
+ bool Document::InvalidationDisallowed() const {
+   return View() && View()->InvalidationDisallowed();
+ }
+diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/renderer/core/dom/document.h
+index 166962ca18..10a7b4eb59 100644
+--- a/third_party/blink/renderer/core/dom/document.h
++++ b/third_party/blink/renderer/core/dom/document.h
+@@ -1058,6 +1058,9 @@ class CORE_EXPORT Document : public ContainerNode,
+   static bool ShouldInheritSecurityOriginFromOwner(const KURL&);
+ 
+   CSSStyleSheet& ElementSheet();
++  // Called when the document's referrer policy changes (e.g. via
++  // <meta name="referrer">) to drop cached parser state that snapshots it.
++  void ReferrerPolicyChanged();
+ 
+   virtual DocumentParser* CreateParser();
+   DocumentParser* Parser() const { return parser_.Get(); }
+diff --git a/third_party/blink/renderer/core/html/html_meta_element.cc b/third_party/blink/renderer/core/html/html_meta_element.cc
+index 21aa571783..ef4a80935b 100644
+--- a/third_party/blink/renderer/core/html/html_meta_element.cc
++++ b/third_party/blink/renderer/core/html/html_meta_element.cc
+@@ -741,6 +741,7 @@ void HTMLMetaElement::ProcessContent() {
+     network::mojom::ReferrerPolicy new_referrer_policy =
+         GetExecutionContext()->GetReferrerPolicy();
+     if (old_referrer_policy != new_referrer_policy) {
++      GetDocument().ReferrerPolicyChanged();
+       if (auto* document_rules =
+               DocumentSpeculationRules::FromIfExists(GetDocument())) {
+         document_rules->DocumentReferrerPolicyChanged();
+diff --git a/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/image/inline-style-with-color-scheme-no-referrer.html b/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/image/inline-style-with-color-scheme-no-referrer.html
+new file mode 100644
+index 0000000000..2cfa8f6e75
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/image/inline-style-with-color-scheme-no-referrer.html
+@@ -0,0 +1,43 @@
++<!DOCTYPE html>
++<html>
++  <head>
++    <title>CSS integration - Image from inline style after color-scheme meta - no referrer</title>
++    <script src="/resources/testharness.js"></script>
++    <script src="/resources/testharnessreport.js"></script>
++    <script src="/common/utils.js"></script>
++    <!-- Common global functions for referrer-policy tests. -->
++    <script src="/common/security-features/resources/common.sub.js"></script>
++    <meta name="color-scheme" content="light">
++    <meta name="referrer" content="no-referrer">
++  </head>
++  <body>
++    <p>Check that resources from inline styles are loaded with the document's
++    referrer policy even when the element sheet was initialized before the
++    referrer meta element.</p>
++
++    <div class="styled"></div>
++
++    <script>
++      promise_test(function(css_test) {
++        let id = token();
++        let css_url = location.protocol + "//www1." + location.hostname + ":" +
++                      location.port +
++                      "/common/security-features/subresource/image.py" + "?id=" +
++                      id;
++        let img_url = css_url + "&report-headers";
++
++        let div = document.querySelector("div.styled");
++        div.setAttribute("style", "background-image: url(" + css_url + ")");
++        return timeoutPromise(css_test, 1000)
++          .then(() => requestViaXhr(img_url))
++          .then(function(message) {
++              assert_own_property(message, "headers");
++              assert_own_property(message, "referrer");
++              assert_equals(message.referrer, undefined);
++            });
++      }, "Image from inline style after color-scheme meta.");
++    </script>
++
++    <div id="log"></div>
++  </body>
++</html>
+-- 
+2.43.0
+

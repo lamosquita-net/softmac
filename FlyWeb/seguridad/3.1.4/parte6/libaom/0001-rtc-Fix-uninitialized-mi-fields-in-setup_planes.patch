@@ -1,0 +1,68 @@
+From d310252de91cec2e9f514665cfe38aee89b1a611 Mon Sep 17 00:00:00 2001
+From: Marco Paniconi <marpan@google.com>
+Date: Fri, 9 Oct 2026 15:15:11 +0000
+Subject: [PATCH] rtc: Fix uninitialized mi fields in setup_planes
+
+In setup_planes(), mi->ref_frame, mi->bsize, mi->mv[0].as_int, and
+mi->interp_filters were only initialized inside if (use_last_ref). When
+LAST_FRAME is not used as a reference (use_last_ref == 0) after a
+resolution change, mi->mv[0].as_int could retain INVALID_MV from
+alloc_mi(). In addition, in set_ref_frame_for_partition(), if
+GOLDEN_FRAME and ALTREF_FRAME had equal SADs (*y_sad_g == *y_sad_alt),
+neither branch was taken, leaving mi->mv[0].as_int as INVALID_MV and
+triggering an out-of-bounds read in av1_enc_build_inter_predictor().
+
+Initialize the MB_MODE_INFO fields unconditionally in setup_planes(),
+and use <= when comparing *y_sad_g and *y_sad_alt in
+set_ref_frame_for_partition().
+
+Unittest added.
+
+Bug: 567944558
+Change-Id: Ibe6873bd9646fd778930b73ab78d35735b64f242
+---
+ av1/encoder/var_based_part.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/av1/encoder/var_based_part.c b/av1/encoder/var_based_part.c
+index ea2053f..2a30a13 100644
+--- a/av1/encoder/var_based_part.c
++++ b/av1/encoder/var_based_part.c
+@@ -1227,7 +1227,7 @@ static inline void set_ref_frame_for_partition(
+       (cpi->svc.spatial_layer_id > 0 && cpi->svc.has_lower_quality_layer) ? 1.0
+                                                                           : 0.9;
+   const bool is_set_golden_ref_frame =
+-      *y_sad_g < fac * *y_sad && *y_sad_g < *y_sad_alt;
++      *y_sad_g < fac * *y_sad && *y_sad_g <= *y_sad_alt;
+   const bool is_set_altref_ref_frame =
+       *y_sad_alt < fac * *y_sad && *y_sad_alt < *y_sad_g;
+ 
+@@ -1463,18 +1463,20 @@ static void setup_planes(AV1_COMP *cpi, MACROBLOCK *x, unsigned int *y_sad,
+     }
+   }
+ 
++  mi->ref_frame[0] = NONE_FRAME;
++  mi->ref_frame[1] = NONE_FRAME;
++  mi->bsize = cm->seq_params->sb_size;
++  mi->mv[0].as_int = 0;
++  mi->interp_filters = av1_broadcast_interp_filter(BILINEAR);
++
+   if (use_last_ref) {
+-    const int source_sad_nonrd = x->content_state_sb.source_sad_nonrd;
+     av1_setup_pre_planes(
+         xd, 0, yv12, mi_row, mi_col,
+         scaled_ref_last ? NULL : get_ref_scale_factors(cm, LAST_FRAME),
+         num_planes);
+     mi->ref_frame[0] = LAST_FRAME;
+-    mi->ref_frame[1] = NONE_FRAME;
+-    mi->bsize = cm->seq_params->sb_size;
+-    mi->mv[0].as_int = 0;
+-    mi->interp_filters = av1_broadcast_interp_filter(BILINEAR);
+ 
++    const int source_sad_nonrd = x->content_state_sb.source_sad_nonrd;
+     int est_motion = cpi->sf.rt_sf.estimate_motion_for_var_based_partition;
+     // TODO(b/290596301): Look into adjusting this condition.
+     // There is regression on color content when
+-- 
+2.43.0
+

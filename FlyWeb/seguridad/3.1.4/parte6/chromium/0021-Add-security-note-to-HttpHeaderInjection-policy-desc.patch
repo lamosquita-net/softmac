@@ -1,0 +1,42 @@
+From c0978577d8c1ad829479a29caf92a5bbcfe392ff Mon Sep 17 00:00:00 2001
+From: Simon Kurek <szymonkurek@google.com>
+Date: Mon, 19 Oct 2026 10:05:27 -0700
+Subject: [PATCH 21/32] Add security note to HttpHeaderInjection policy
+ description
+
+Documents the risk of headers being transmitted in plain text when URL patterns match unencrypted schemes (such as http:// or ws://), and advises restricting patterns to encrypted schemes (https:// or wss://) to protect sensitive values.
+
+Bug: 562910021
+Change-Id: Ifc1203d17600fcfcafdbedd1fd244782794cbc97
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8584536
+Commit-Queue: Simon Kurek <szymonkurek@google.com>
+Auto-Submit: Simon Kurek <szymonkurek@google.com>
+Reviewed-by: Anatoli Hancharou <antoli@google.com>
+Reviewed-by: Artem Sumaneev <asumaneev@google.com>
+Cr-Commit-Position: refs/heads/main@{#1722059}
+---
+ .../policy_definitions/Network/HttpHeaderInjection.yaml     | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/components/policy/resources/templates/policy_definitions/Network/HttpHeaderInjection.yaml b/components/policy/resources/templates/policy_definitions/Network/HttpHeaderInjection.yaml
+index 1821919a69..aa0948889c 100644
+--- a/components/policy/resources/templates/policy_definitions/Network/HttpHeaderInjection.yaml
++++ b/components/policy/resources/templates/policy_definitions/Network/HttpHeaderInjection.yaml
+@@ -19,10 +19,12 @@ desc: |-
+   Header names must be compliant with RFC 2616 ( https://www.rfc-editor.org/rfc/rfc2616 ). Header values must not contain NUL, CR or LF symbols. Individual headers must not exceed 8KB in size. Invalid headers and URL patterns will be ignored.
+ 
+   This policy is limited to a total of 500 URL patterns across all rules. Each rule can contain at most 20 headers. Patterns and headers beyond these thresholds will be ignored.
++
++  Note: If a URL pattern matches unencrypted schemes (http://, ws://, or when the scheme is omitted), the configured headers might be transmitted in plain text over an unencrypted channel and may be exposed to network observers. To protect sensitive or identifying header values, restrict URL patterns to encrypted schemes (https:// or wss://).
+ example_value:
+ - patterns:
+-  - example.com
+-  - .example.org
++  - https://example.com
++  - https://.example.org
+   headers:
+   - name: X-Tenant-ID
+     value: '123456'
+-- 
+2.43.0
+

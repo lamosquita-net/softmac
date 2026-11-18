@@ -1,0 +1,711 @@
+From 9eb04b84d3cabafc0a71380b677643c81551a7f9 Mon Sep 17 00:00:00 2001
+From: Yulun Zeng <yulunz@chromium.org>
+Date: Mon, 19 Oct 2026 02:32:56 -0700
+Subject: [PATCH 20/32] [DevTools] Gate emulation network overrides on
+ MayAttachToURL
+
+Emulation overrides (User-Agent, Accept-Language, and client hints) were
+applied to requests without checking whether the session's client may
+attach to the request URL. Gate them on MayAttachToURL, including for
+downloads, and when a navigation redirects to a URL such a client may
+not attach to, revert them to the overrides of sessions that may, or to
+the original values.
+
+Bug: 553259600
+Change-Id: Ic1d0a7d703f5884b310c405a270a850edc75ae53
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8531006
+Reviewed-by: Danil Somsikov <dsv@chromium.org>
+Reviewed-by: Rakina Zata Amni <rakina@chromium.org>
+Commit-Queue: Yulun Zeng <yulunz@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1721725}
+---
+ content/browser/client_hints/client_hints.cc  |   3 +-
+ .../devtools/devtools_instrumentation.cc      | 131 ++++++++--
+ .../devtools/devtools_instrumentation.h       |  18 +-
+ .../protocol/devtools_protocol_browsertest.cc | 243 +++++++++++++++++-
+ .../devtools/protocol/emulation_handler.cc    |  11 +-
+ .../devtools/protocol/emulation_handler.h     |   6 +-
+ .../render_frame_devtools_agent_host.cc       |   3 +-
+ .../prefetch_resource_request_utils.cc        |  10 +-
+ .../renderer_host/navigation_request.cc       |   3 +-
+ 9 files changed, 385 insertions(+), 43 deletions(-)
+
+diff --git a/content/browser/client_hints/client_hints.cc b/content/browser/client_hints/client_hints.cc
+index 1eae0a9aa9..73ed90c580 100644
+--- a/content/browser/client_hints/client_hints.cc
++++ b/content/browser/client_hints/client_hints.cc
+@@ -702,7 +702,8 @@ void UpdateNavigationRequestClientUaHeadersImpl(
+ 
+   if (ftn_for_devtools_override &&
+       devtools_instrumentation::ApplyUserAgentMetadataOverrides(
+-          ftn_for_devtools_override, &ua_metadata)) {
++          ftn_for_devtools_override, &ua_metadata,
++          data.resource_origin.GetURL())) {
+     // Likewise, if devtools says to override client hints but provides no
+     // value, disable them. This overwrites previous decision from UI.
+     disable_due_to_custom_ua = !ua_metadata.has_value();
+diff --git a/content/browser/devtools/devtools_instrumentation.cc b/content/browser/devtools/devtools_instrumentation.cc
+index f8944fac56..15c9cf764b 100644
+--- a/content/browser/devtools/devtools_instrumentation.cc
++++ b/content/browser/devtools/devtools_instrumentation.cc
+@@ -1660,9 +1660,13 @@ bool ShouldWaitForDebuggerInWindowOpen() {
+ 
+ DevtoolsOverriddenOutputParams ApplyEmulationOverrides(
+     DevToolsAgentHostImpl* agent_host,
+-    net::HttpRequestHeaders* headers) {
++    net::HttpRequestHeaders* headers,
++    const GURL& url) {
+   DevtoolsOverriddenOutputParams output_params;
+   for (auto* emulation : protocol::EmulationHandler::ForAgentHost(agent_host)) {
++    if (!emulation->MayApplyOverridesTo(url)) {
++      continue;
++    }
+     bool ua_overridden = false;
+     bool accept_language_overridden = false;
+     emulation->ApplyOverrides(headers, &ua_overridden,
+@@ -1719,7 +1723,7 @@ void ApplyNetworkRequestOverrides(DevToolsAgentHostImpl* agent_host,
+   }
+ 
+   DevtoolsOverriddenOutputParams output_params =
+-      ApplyEmulationOverrides(agent_host, headers);
++      ApplyEmulationOverrides(agent_host, headers, request_url);
+   if (devtools_user_agent_overridden) {
+     *devtools_user_agent_overridden = output_params.user_agent_overridden;
+   }
+@@ -1729,6 +1733,75 @@ void ApplyNetworkRequestOverrides(DevToolsAgentHostImpl* agent_host,
+   }
+ }
+ 
++// Returns the value of `name` without the overrides of sessions whose client
++// may not attach to `url`: the value set by the last session that may, since
++// sessions apply overrides in order, or else its value in `original_headers`.
++std::optional<std::string> GetRevertedHeaderValue(
++    const std::vector<protocol::NetworkHandler*>& networks,
++    const GURL& url,
++    const net::HttpRequestHeaders& original_headers,
++    std::string_view name) {
++  std::optional<std::string> value = original_headers.GetHeader(name);
++  for (auto* network : networks) {
++    if (!network->enabled() || !network->MayApplyOverridesTo(url)) {
++      continue;
++    }
++    for (const auto& [header_name, header_value] : network->extra_headers()) {
++      if (base::EqualsCaseInsensitiveASCII(header_name, name)) {
++        value = header_value;
++      }
++    }
++  }
++  return value;
++}
++
++// Sets `name` to `value` in `headers`, or removes it if `value` is
++// std::nullopt, and records the change in `headers_update_params`.
++void SetHeaderOrRemoveIfAbsent(
++    std::string_view name,
++    const std::optional<std::string>& value,
++    net::HttpRequestHeaders* headers,
++    network::HttpRequestHeadersUpdateParams* headers_update_params) {
++  if (value) {
++    headers->SetHeader(name, *value);
++    headers_update_params->modified_headers.SetHeader(name, *value);
++    return;
++  }
++  headers->RemoveHeader(name);
++  headers_update_params->removed_headers.emplace_back(name);
++}
++
++// If `name` was overridden by emulation, sets it to its value in
++// `allowed_emulation_headers` if a session that may still apply emulation
++// overrides overrides it, and otherwise reverts it to `reverted_value` and
++// clears `overridden_by_emulation`. Returns whether `headers` changed.
++bool RevertEmulationOverride(
++    std::string_view name,
++    bool overridden_by_allowed_session,
++    const net::HttpRequestHeaders& allowed_emulation_headers,
++    const std::optional<std::string>& reverted_value,
++    bool* overridden_by_emulation,
++    net::HttpRequestHeaders* headers,
++    network::HttpRequestHeadersUpdateParams* headers_update_params) {
++  if (!*overridden_by_emulation) {
++    return false;
++  }
++  if (overridden_by_allowed_session) {
++    // The request may carry a restricted session's value, since the last
++    // session to apply its overrides wins.
++    std::string value = *allowed_emulation_headers.GetHeader(name);
++    headers->SetHeader(name, value);
++    headers_update_params->modified_headers.SetHeader(name, value);
++    return true;
++  }
++  // Only restricted sessions overrode it, so let the navigation compute it
++  // again, and remove it if it had no value before the overrides.
++  *overridden_by_emulation = false;
++  SetHeaderOrRemoveIfAbsent(name, reverted_value, headers,
++                            headers_update_params);
++  return true;
++}
++
+ }  // namespace
+ 
+ void ApplyExtraHeadersForWebSocket(
+@@ -1815,6 +1888,8 @@ bool RevertDisallowedNetworkOverridesOnRedirect(
+     const net::HttpRequestHeaders& original_headers,
+     net::HttpRequestHeaders* headers,
+     network::HttpRequestHeadersUpdateParams* headers_update_params,
++    bool* devtools_user_agent_override,
++    bool* devtools_accept_language_override,
+     bool* headers_reverted) {
+   *headers_reverted = false;
+   DevToolsAgentHostImpl* agent_host =
+@@ -1841,37 +1916,40 @@ bool RevertDisallowedNetworkOverridesOnRedirect(
+                                            net::HttpRequestHeaders::kAccept)) {
+         continue;
+       }
+-      // Sessions apply overrides in order, so the last one that may still
+-      // apply them wins.
+-      std::optional<std::string> reverted_value =
+-          original_headers.GetHeader(name);
+-      for (auto* other : networks) {
+-        if (!other->enabled() || !other->MayApplyOverridesTo(redirect_url)) {
+-          continue;
+-        }
+-        for (const auto& [other_name, other_value] : other->extra_headers()) {
+-          if (base::EqualsCaseInsensitiveASCII(other_name, name)) {
+-            reverted_value = other_value;
+-          }
+-        }
+-      }
+-      if (reverted_value) {
+-        headers->SetHeader(name, *reverted_value);
+-        headers_update_params->modified_headers.SetHeader(name,
+-                                                          *reverted_value);
+-      } else {
+-        headers->RemoveHeader(name);
+-        headers_update_params->removed_headers.push_back(name);
+-      }
++      SetHeaderOrRemoveIfAbsent(name,
++                                GetRevertedHeaderValue(networks, redirect_url,
++                                                       original_headers, name),
++                                headers, headers_update_params);
+       *headers_reverted = true;
+     }
+   }
++  // Emulation overrides of sessions that may still apply them win over the
++  // network overrides and the original headers, like at navigation start.
++  net::HttpRequestHeaders allowed_emulation_headers;
++  DevtoolsOverriddenOutputParams allowed_emulation_overrides =
++      ApplyEmulationOverrides(agent_host, &allowed_emulation_headers,
++                              redirect_url);
++  *headers_reverted |= RevertEmulationOverride(
++      net::HttpRequestHeaders::kUserAgent,
++      allowed_emulation_overrides.user_agent_overridden,
++      allowed_emulation_headers,
++      GetRevertedHeaderValue(networks, redirect_url, original_headers,
++                             net::HttpRequestHeaders::kUserAgent),
++      devtools_user_agent_override, headers, headers_update_params);
++  *headers_reverted |= RevertEmulationOverride(
++      net::HttpRequestHeaders::kAcceptLanguage,
++      allowed_emulation_overrides.accept_language_overridden,
++      allowed_emulation_headers,
++      GetRevertedHeaderValue(networks, redirect_url, original_headers,
++                             net::HttpRequestHeaders::kAcceptLanguage),
++      devtools_accept_language_override, headers, headers_update_params);
+   return true;
+ }
+ 
+ bool ApplyUserAgentMetadataOverrides(
+     FrameTreeNode* frame_tree_node,
+-    std::optional<blink::UserAgentMetadata>* override_out) {
++    std::optional<blink::UserAgentMetadata>* override_out,
++    const GURL& url) {
+   DevToolsAgentHostImpl* agent_host =
+       GetDevToolsAgentHostForNetworkOverrides(frame_tree_node);
+   if (!agent_host) {
+@@ -1880,6 +1958,9 @@ bool ApplyUserAgentMetadataOverrides(
+ 
+   bool result = false;
+   for (auto* emulation : protocol::EmulationHandler::ForAgentHost(agent_host)) {
++    if (!emulation->MayApplyOverridesTo(url)) {
++      continue;
++    }
+     result = emulation->ApplyUserAgentMetadataOverrides(override_out) || result;
+   }
+ 
+diff --git a/content/browser/devtools/devtools_instrumentation.h b/content/browser/devtools/devtools_instrumentation.h
+index 7456fcdc97..2d540b7ada 100644
+--- a/content/browser/devtools/devtools_instrumentation.h
++++ b/content/browser/devtools/devtools_instrumentation.h
+@@ -133,16 +133,20 @@ void ApplyNetworkRequestOverrides(
+ // Called on a navigation redirect to `redirect_url`. In `headers`, reverts the
+ // extra headers set by sessions whose client may not attach to `redirect_url`
+ // to the value set by a session that may, or else to `original_headers`, and
+-// records the changes in `headers_update_params`. Sets `headers_reverted` to
+-// whether `headers` changed. Returns false if the navigation must be blocked
+-// because such a session overrode the `Referer`, which can't be reverted on
+-// redirect.
++// records the changes in `headers_update_params`. Likewise reverts emulation
++// overrides, clearing `devtools_user_agent_override` and
++// `devtools_accept_language_override` if no remaining session overrides them.
++// Sets `headers_reverted` to whether `headers` changed. Returns false if the
++// navigation must be blocked because such a session overrode the `Referer`,
++// which can't be reverted on redirect.
+ bool RevertDisallowedNetworkOverridesOnRedirect(
+     FrameTreeNode* frame_tree_node,
+     const GURL& redirect_url,
+     const net::HttpRequestHeaders& original_headers,
+     net::HttpRequestHeaders* headers,
+     network::HttpRequestHeadersUpdateParams* headers_update_params,
++    bool* devtools_user_agent_override,
++    bool* devtools_accept_language_override,
+     bool* headers_reverted);
+ 
+ // If this function overrides the `User-Agent` header, it sets the returned
+@@ -151,7 +155,8 @@ bool RevertDisallowedNetworkOverridesOnRedirect(
+ // `accept_language_overridden` to true; otherwise, false.
+ DevtoolsOverriddenOutputParams ApplyEmulationOverrides(
+     DevToolsAgentHostImpl* agent_host,
+-    net::HttpRequestHeaders* headers);
++    net::HttpRequestHeaders* headers,
++    const GURL& url);
+ 
+ // Applies extra headers set via Network.setExtraHTTPHeaders to a WebSocket
+ // handshake request. This is needed because WebSocket connections bypass the
+@@ -169,7 +174,8 @@ void ApplyExtraHeadersForWebSocket(
+ //  the behavior).
+ bool ApplyUserAgentMetadataOverrides(
+     FrameTreeNode* frame_tree_node,
+-    std::optional<blink::UserAgentMetadata>* override_out);
++    std::optional<blink::UserAgentMetadata>* override_out,
++    const GURL& url);
+ 
+ class WillCreateURLLoaderFactoryParams final {
+   STACK_ALLOCATED();
+diff --git a/content/browser/devtools/protocol/devtools_protocol_browsertest.cc b/content/browser/devtools/protocol/devtools_protocol_browsertest.cc
+index 5f74dde3fb..609f25872a 100644
+--- a/content/browser/devtools/protocol/devtools_protocol_browsertest.cc
++++ b/content/browser/devtools/protocol/devtools_protocol_browsertest.cc
+@@ -2266,12 +2266,17 @@ class DevToolsNetworkOverridesPolicyTest : public DevToolsProtocolTest {
+     AttachRestrictedSessionWithExtraHeaders(std::move(headers));
+   }
+ 
+-  // Attaches a session that may not attach to disallowed.test and makes it
+-  // inject `headers` into requests.
+-  void AttachRestrictedSessionWithExtraHeaders(base::DictValue headers) {
++  // Attaches a session that may not attach to disallowed.test.
++  void AttachRestrictedSession() {
+     set_agent_host_can_close();
+     SetNotAttachableHosts({"disallowed.test"});
+     Attach();
++  }
++
++  // Attaches a session that may not attach to disallowed.test and makes it
++  // inject `headers` into requests.
++  void AttachRestrictedSessionWithExtraHeaders(base::DictValue headers) {
++    AttachRestrictedSession();
+     SendCommandSync("Network.enable");
+     ASSERT_FALSE(error());
+     base::DictValue params;
+@@ -2741,6 +2746,238 @@ IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
+   EXPECT_EQ("allowed", *reported_header);
+ }
+ 
++IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
++                       UntrustedClientEmulationOverridesKeptOnAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL allowed_url = embedded_test_server()->GetURL("b.test", "/echoall");
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  AttachRestrictedSession();
++
++  base::DictValue params;
++  params.Set("userAgent", "TestUA");
++  params.Set("acceptLanguage", "xx");
++  SendCommandSync("Emulation.setUserAgentOverride", std::move(params));
++
++  EXPECT_TRUE(NavigateToURL(shell(), allowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders("/echoall");
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("User-Agent"));
++  EXPECT_EQ("TestUA", headers->at("User-Agent"));
++  ASSERT_TRUE(headers->contains("Accept-Language"));
++  EXPECT_EQ("xx", headers->at("Accept-Language"));
++}
++
++IN_PROC_BROWSER_TEST_F(
++    DevToolsNetworkOverridesPolicyTest,
++    UntrustedClientEmulationOverridesRemovedOnNotAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL disallowed_url =
++      embedded_test_server()->GetURL("disallowed.test", "/echoall");
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  AttachRestrictedSession();
++
++  base::DictValue params;
++  params.Set("userAgent", "TestUA");
++  params.Set("acceptLanguage", "xx");
++  SendCommandSync("Emulation.setUserAgentOverride", std::move(params));
++
++  EXPECT_TRUE(NavigateToURL(shell(), disallowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders("/echoall");
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("User-Agent"));
++  EXPECT_NE("TestUA", headers->at("User-Agent"));
++  if (headers->contains("Accept-Language")) {
++    EXPECT_NE("xx", headers->at("Accept-Language"));
++  }
++}
++
++IN_PROC_BROWSER_TEST_F(
++    DevToolsNetworkOverridesPolicyTest,
++    UntrustedClientEmulationOverridesRemovedOnRedirectToNotAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL disallowed_url =
++      embedded_test_server()->GetURL("disallowed.test", "/echoall?redirected");
++  const std::string redirect_path =
++      "/server-redirect-307?" + disallowed_url.spec();
++  const GURL redirect_url =
++      embedded_test_server()->GetURL("a.test", redirect_path);
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  AttachRestrictedSession();
++
++  base::DictValue params;
++  params.Set("userAgent", "TestUA");
++  params.Set("acceptLanguage", "xx");
++  SendCommandSync("Emulation.setUserAgentOverride", std::move(params));
++
++  EXPECT_TRUE(NavigateToURL(shell(), redirect_url, disallowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders(redirect_path);
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("User-Agent"));
++  EXPECT_EQ("TestUA", headers->at("User-Agent"));
++  ASSERT_TRUE(headers->contains("Accept-Language"));
++  EXPECT_EQ("xx", headers->at("Accept-Language"));
++
++  headers = GetRequestHeaders("/echoall?redirected");
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("User-Agent"));
++  EXPECT_NE("TestUA", headers->at("User-Agent"));
++  if (headers->contains("Accept-Language")) {
++    EXPECT_NE("xx", headers->at("Accept-Language"));
++  }
++}
++
++IN_PROC_BROWSER_TEST_F(
++    DevToolsNetworkOverridesPolicyTest,
++    OtherSessionEmulationOverridesKeptOnRedirectToNotAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL disallowed_url = embedded_test_server()->GetURL(
++      "disallowed.test", "/echoall?emulation-sessions");
++  const std::string redirect_path =
++      "/server-redirect-307?" + disallowed_url.spec();
++  const GURL redirect_url =
++      embedded_test_server()->GetURL("a.test", redirect_path);
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  TestDevToolsProtocolClient allowed_client;
++  allowed_client.AttachToWebContents(shell()->web_contents());
++  base::ScopedClosureRunner detach_allowed_client(base::BindLambdaForTesting(
++      [&allowed_client] { allowed_client.DetachProtocolClient(); }));
++  base::DictValue allowed_params;
++  allowed_params.Set("userAgent", "AllowedUA");
++  allowed_client.SendCommandSync("Emulation.setUserAgentOverride",
++                                 std::move(allowed_params));
++  AttachRestrictedSession();
++  base::DictValue params;
++  params.Set("userAgent", "RestrictedUA");
++  SendCommandSync("Emulation.setUserAgentOverride", std::move(params));
++
++  EXPECT_TRUE(NavigateToURL(shell(), redirect_url, disallowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders(redirect_path);
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("User-Agent"));
++  EXPECT_EQ("RestrictedUA", headers->at("User-Agent"));
++  headers = GetRequestHeaders("/echoall?emulation-sessions");
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("User-Agent"));
++  EXPECT_EQ("AllowedUA", headers->at("User-Agent"));
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
++                       EmulationOverridesRevertedToOtherSessionHeaders) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL disallowed_url = embedded_test_server()->GetURL(
++      "disallowed.test", "/echoall?emulation-reverted");
++  const std::string redirect_path =
++      "/server-redirect-307?" + disallowed_url.spec();
++  const GURL redirect_url =
++      embedded_test_server()->GetURL("a.test", redirect_path);
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  TestDevToolsProtocolClient allowed_client;
++  allowed_client.AttachToWebContents(shell()->web_contents());
++  base::ScopedClosureRunner detach_allowed_client(base::BindLambdaForTesting(
++      [&allowed_client] { allowed_client.DetachProtocolClient(); }));
++  allowed_client.SendCommandSync("Network.enable");
++  base::DictValue allowed_params;
++  allowed_params.SetByDottedPath("headers.Accept-Language", "fr");
++  allowed_client.SendCommandSync("Network.setExtraHTTPHeaders",
++                                 std::move(allowed_params));
++  AttachRestrictedSession();
++  base::DictValue params;
++  params.Set("userAgent", "RestrictedUA");
++  params.Set("acceptLanguage", "xx");
++  SendCommandSync("Emulation.setUserAgentOverride", std::move(params));
++
++  EXPECT_TRUE(NavigateToURL(shell(), redirect_url, disallowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders(redirect_path);
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("Accept-Language"));
++  EXPECT_EQ("xx", headers->at("Accept-Language"));
++  headers = GetRequestHeaders("/echoall?emulation-reverted");
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("User-Agent"));
++  EXPECT_NE("RestrictedUA", headers->at("User-Agent"));
++  ASSERT_TRUE(headers->contains("Accept-Language"));
++  EXPECT_EQ("fr", headers->at("Accept-Language"));
++
++  base::DictValue request_will_be_sent =
++      allowed_client.WaitForMatchingNotification(
++          "Network.requestWillBeSent",
++          base::BindRepeating(
++              [](const GURL& url, const base::DictValue& params) {
++                const std::string* request_url =
++                    params.FindStringByDottedPath("request.url");
++                return request_url && *request_url == url.spec();
++              },
++              disallowed_url));
++  const std::string* user_agent =
++      request_will_be_sent.FindStringByDottedPath("request.headers.User-Agent");
++  ASSERT_TRUE(user_agent);
++  EXPECT_NE("RestrictedUA", *user_agent);
++  const std::string* accept_language =
++      request_will_be_sent.FindStringByDottedPath(
++          "request.headers.Accept-Language");
++  ASSERT_TRUE(accept_language);
++  EXPECT_EQ("fr", *accept_language);
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
++                       EmulationOverrideRemovedWithoutOriginalHeader) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL disallowed_url = embedded_test_server()->GetURL(
++      "disallowed.test", "/echoall?emulation-removed");
++  const std::string redirect_path =
++      "/server-redirect-307?" + disallowed_url.spec();
++  const GURL redirect_url =
++      embedded_test_server()->GetURL("a.test", redirect_path);
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  TestDevToolsProtocolClient allowed_client;
++  allowed_client.AttachToWebContents(shell()->web_contents());
++  base::ScopedClosureRunner detach_allowed_client(base::BindLambdaForTesting(
++      [&allowed_client] { allowed_client.DetachProtocolClient(); }));
++  allowed_client.SendCommandSync("Network.enable");
++  AttachRestrictedSession();
++  base::DictValue params;
++  params.Set("userAgent", "RestrictedUA");
++  params.Set("acceptLanguage", "xx");
++  SendCommandSync("Emulation.setUserAgentOverride", std::move(params));
++
++  EXPECT_TRUE(NavigateToURL(shell(), redirect_url, disallowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders(redirect_path);
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("Accept-Language"));
++  EXPECT_EQ("xx", headers->at("Accept-Language"));
++  headers = GetRequestHeaders("/echoall?emulation-removed");
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("Accept-Language"));
++  EXPECT_NE("xx", headers->at("Accept-Language"));
++
++  // The navigation had no Accept-Language before the override, so it is
++  // removed and the network stack adds its default.
++  base::DictValue request_will_be_sent =
++      allowed_client.WaitForMatchingNotification(
++          "Network.requestWillBeSent",
++          base::BindRepeating(
++              [](const GURL& url, const base::DictValue& params) {
++                const std::string* request_url =
++                    params.FindStringByDottedPath("request.url");
++                return request_url && *request_url == url.spec();
++              },
++              disallowed_url));
++  EXPECT_FALSE(request_will_be_sent.FindStringByDottedPath(
++      "request.headers.Accept-Language"));
++}
++
+ IN_PROC_BROWSER_TEST_F(DevToolsProtocolTest,
+                        NavigateToHistoryEntryWithFileUrlRequiresFileAccess) {
+   ASSERT_TRUE(embedded_test_server()->Start());
+diff --git a/content/browser/devtools/protocol/emulation_handler.cc b/content/browser/devtools/protocol/emulation_handler.cc
+index 460a755851..c75b52ab3d 100644
+--- a/content/browser/devtools/protocol/emulation_handler.cc
++++ b/content/browser/devtools/protocol/emulation_handler.cc
+@@ -30,6 +30,7 @@
+ #include "content/browser/renderer_host/render_widget_host_impl.h"
+ #include "content/browser/screen_orientation/screen_orientation_provider.h"
+ #include "content/browser/web_contents/web_contents_impl.h"
++#include "content/public/browser/devtools_agent_host_client.h"
+ #include "content/public/common/content_client.h"
+ #include "content/public/common/url_constants.h"
+ #include "net/http/http_util.h"
+@@ -125,11 +126,12 @@ bool ValidateClientHintString(const std::string& s) {
+ 
+ }  // namespace
+ 
+-EmulationHandler::EmulationHandler()
++EmulationHandler::EmulationHandler(DevToolsAgentHostClient* client)
+     : DevToolsDomainHandler(Emulation::Metainfo::domainName),
+       touch_emulation_enabled_(false),
+       device_emulation_enabled_(false),
+       focus_emulation_enabled_(false),
++      client_(client),
+       host_(nullptr) {}
+ 
+ EmulationHandler::~EmulationHandler() = default;
+@@ -179,6 +181,10 @@ void EmulationHandler::SetRenderer(int process_host_id,
+         blink::mojom::DeviceEmulationCacheBehavior::kKeepCache);
+ }
+ 
++bool EmulationHandler::MayApplyOverridesTo(const GURL& url) const {
++  return client_ && client_->MayAttachToURL(url, host_ && host_->web_ui());
++}
++
+ void EmulationHandler::Wire(UberDispatcher* dispatcher) {
+   frontend_ = std::make_unique<Emulation::Frontend>(dispatcher->channel());
+   Emulation::Dispatcher::wire(dispatcher, this);
+@@ -1316,6 +1322,9 @@ bool EmulationHandler::ApplyUserAgentMetadataOverrides(
+ 
+ void EmulationHandler::ApplyNetworkOverridesForDownload(
+     download::DownloadUrlParameters* parameters) {
++  if (!MayApplyOverridesTo(parameters->url())) {
++    return;
++  }
+   net::HttpRequestHeaders headers;
+   bool user_agent_overridden;
+   bool accept_language_overridden;
+diff --git a/content/browser/devtools/protocol/emulation_handler.h b/content/browser/devtools/protocol/emulation_handler.h
+index c60fb4ecb8..6d24f2b6c3 100644
+--- a/content/browser/devtools/protocol/emulation_handler.h
++++ b/content/browser/devtools/protocol/emulation_handler.h
+@@ -22,6 +22,7 @@
+ #include "third_party/blink/public/common/user_agent/user_agent_metadata.h"
+ #include "third_party/blink/public/common/widget/device_emulation_params.h"
+ #include "third_party/blink/public/mojom/page/widget.mojom-shared.h"
++#include "url/gurl.h"
+ 
+ namespace net {
+ class HttpRequestHeaders;
+@@ -34,6 +35,7 @@ class DownloadUrlParameters;
+ namespace content {
+ 
+ class DevToolsAgentHostImpl;
++class DevToolsAgentHostClient;
+ class RenderFrameHostImpl;
+ class RenderWidgetHostImpl;
+ class ScopedVirtualSensorForDevTools;
+@@ -45,7 +47,7 @@ namespace protocol {
+ class EmulationHandler : public DevToolsDomainHandler,
+                          public Emulation::Backend {
+  public:
+-  EmulationHandler();
++  explicit EmulationHandler(DevToolsAgentHostClient* client);
+ 
+   EmulationHandler(const EmulationHandler&) = delete;
+   EmulationHandler& operator=(const EmulationHandler&) = delete;
+@@ -55,6 +57,7 @@ class EmulationHandler : public DevToolsDomainHandler,
+   static std::vector<EmulationHandler*> ForAgentHost(
+       DevToolsAgentHostImpl* host);
+ 
++  bool MayApplyOverridesTo(const GURL& url) const;
+   void Wire(UberDispatcher* dispatcher) override;
+   void SetRenderer(int process_host_id,
+                    RenderFrameHostImpl* frame_host) override;
+@@ -225,6 +228,7 @@ class EmulationHandler : public DevToolsDomainHandler,
+   // True when SetGeolocationOverride() has been called.
+   bool geolocation_overridden_ = false;
+ 
++  raw_ptr<DevToolsAgentHostClient> client_;
+   raw_ptr<RenderFrameHostImpl> host_;
+ 
+   std::unique_ptr<Emulation::Frontend> frontend_;
+diff --git a/content/browser/devtools/render_frame_devtools_agent_host.cc b/content/browser/devtools/render_frame_devtools_agent_host.cc
+index 31f111e5b7..163372cc73 100644
+--- a/content/browser/devtools/render_frame_devtools_agent_host.cc
++++ b/content/browser/devtools/render_frame_devtools_agent_host.cc
+@@ -415,7 +415,8 @@ bool RenderFrameDevToolsAgentHost::AttachSession(DevToolsSession* session) {
+   session->CreateAndAddHandler<protocol::DOMHandler>(
+       session->GetClient()->MayReadLocalFiles());
+   auto* emulation_handler =
+-      session->CreateAndAddHandler<protocol::EmulationHandler>();
++      session->CreateAndAddHandler<protocol::EmulationHandler>(
++          session->GetClient());
+   session->CreateAndAddHandler<protocol::InputHandler>(
+       session->GetClient()->MayReadLocalFiles(),
+       session->GetClient()->IsTrusted());
+diff --git a/content/browser/preloading/prefetch/prefetch_resource_request_utils.cc b/content/browser/preloading/prefetch/prefetch_resource_request_utils.cc
+index 879a7fa78e..b253198a5c 100644
+--- a/content/browser/preloading/prefetch/prefetch_resource_request_utils.cc
++++ b/content/browser/preloading/prefetch/prefetch_resource_request_utils.cc
+@@ -355,7 +355,8 @@ void AddClientHintsHeaders(net::HttpRequestHeaders& request_headers,
+ // Hints):
+ void MaybeApplyOverrideForDevtoolsUserAgentHeader(
+     net::HttpRequestHeaders& request_headers,
+-    const PrefetchRequest& prefetch_request) {
++    const PrefetchRequest& prefetch_request,
++    const GURL& request_url) {
+   if (!base::FeatureList::IsEnabled(
+           features::kPrefetchDevtoolsUserAgentOverride) ||
+       !prefetch_request.referring_web_contents()) {
+@@ -384,7 +385,8 @@ void MaybeApplyOverrideForDevtoolsUserAgentHeader(
+     // mode UA override. There are other types of UA overrides, which are at
+     // WebContents level.
+     devtools_instrumentation::ApplyEmulationOverrides(
+-        RenderFrameDevToolsAgentHost::GetFor(referring_ftn), &request_headers);
++        RenderFrameDevToolsAgentHost::GetFor(referring_ftn), &request_headers,
++        request_url);
+   }
+ }
+ 
+@@ -504,7 +506,7 @@ network::HttpRequestHeadersUpdateParams PrepareInitialHeadersForPrefetchPhase2(
+   // WebContents override. See also the comment in
+   // `PrefetchContainer::MakeResourceRequest()` for the overriding order.
+   MaybeApplyOverrideForDevtoolsUserAgentHeader(
+-      headers_update_params.modified_headers, prefetch_request);
++      headers_update_params.modified_headers, prefetch_request, request_url);
+ 
+   return headers_update_params;
+ }
+@@ -580,7 +582,7 @@ network::HttpRequestHeadersUpdateParams PrepareRedirectHeadersForPrefetch(
+   // TODO(crbug.com/422193319): Reconsider the appropriate place to set DevTools
+   // override of non-UA Client Hints.
+   MaybeApplyOverrideForDevtoolsUserAgentHeader(
+-      headers_update_params.modified_headers, prefetch_request);
++      headers_update_params.modified_headers, prefetch_request, request_url);
+ 
+   return headers_update_params;
+ }
+diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
+index b3d6719bfd..2914a58364 100644
+--- a/content/browser/renderer_host/navigation_request.cc
++++ b/content/browser/renderer_host/navigation_request.cc
+@@ -6439,7 +6439,8 @@ void NavigationRequest::OnRedirectChecksComplete(
+   if (!devtools_instrumentation::RevertDisallowedNetworkOverridesOnRedirect(
+           frame_tree_node_, common_params_->url,
+           headers_before_devtools_overrides, &current_headers,
+-          &headers_update_params_, &headers_reverted)) {
++          &headers_update_params_, &devtools_user_agent_override_,
++          &devtools_accept_language_override_, &headers_reverted)) {
+     // Requests with an overridden Referer are canceled on redirect.
+     OnRequestFailedInternal(
+         network::URLLoaderCompletionStatus(net::ERR_BLOCKED_BY_CLIENT),
+-- 
+2.43.0
+

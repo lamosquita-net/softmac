@@ -1,0 +1,114 @@
+From 9aacb1059d76a138456359168e0d27e3da037532 Mon Sep 17 00:00:00 2001
+From: Anh Mac <anhmac@chromium.org>
+Date: Wed, 14 Oct 2026 15:13:44 -0700
+Subject: [PATCH 09/32] [Extensions] Reject blob/filesystem URL in extension
+ popups
+
+Currently, extension popups are vulnerable to remote code execution if a
+"blob" or "filesystem" URL is supplied to the extension popup.
+
+This change enforces that popup URLs strictly match kExtensionScheme and
+adds tests to verify that blob: and filesystem: URLs are rejected. It
+now maintains this requirements both in the extension action popup URLs
+either specified in the manifest (default_popup) or set dynamically via
+the extension action API.
+
+Fixed: 566504721
+Change-Id: I0d4d9496c96457bd23698fcef56aef438e408c5b
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8542094
+Commit-Queue: Anh Mac <anhmac@chromium.org>
+Reviewed-by: Oliver Dunk <oliverdunk@chromium.org>
+Reviewed-by: Devlin Cronin <rdevlin.cronin@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1719060}
+---
+ .../extension_action/extension_action_api.cc   |  2 +-
+ .../extension_action_apitest.cc                | 16 ++++++++++++++++
+ .../common/api/extension_action/action_info.cc |  2 +-
+ .../extension_action_handler_unittest.cc       | 18 ++++++++++++++++++
+ 4 files changed, 36 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/browser/extensions/api/extension_action/extension_action_api.cc b/chrome/browser/extensions/api/extension_action/extension_action_api.cc
+index 35e0c913d6..b05eac1b61 100644
+--- a/chrome/browser/extensions/api/extension_action/extension_action_api.cc
++++ b/chrome/browser/extensions/api/extension_action/extension_action_api.cc
+@@ -363,7 +363,7 @@ ExtensionActionSetPopupFunction::RunExtensionAction() {
+   // one is specified in the manifest).
+   if (!popup_string->empty()) {
+     popup_url = extension()->ResolveExtensionURL(*popup_string);
+-    if (!popup_url.is_valid()) {
++    if (!popup_url.is_valid() || !popup_url.SchemeIs(kExtensionScheme)) {
+       return RespondNow(Error(manifest_errors::kInvalidExtensionPopupPath));
+     }
+   }
+diff --git a/chrome/browser/extensions/api/extension_action/extension_action_apitest.cc b/chrome/browser/extensions/api/extension_action/extension_action_apitest.cc
+index 618d1cd458..f104477e0f 100644
+--- a/chrome/browser/extensions/api/extension_action/extension_action_apitest.cc
++++ b/chrome/browser/extensions/api/extension_action/extension_action_apitest.cc
+@@ -1356,6 +1356,22 @@ IN_PROC_BROWSER_TEST_P(MultiActionAPITest, SetPopupWithInvalidPath) {
+         web_contents,
+         get_script(tab_id, different_extension_popup_url.c_str()));
+   }
++
++  // Set the popup to a same-origin blob URL and expect an error.
++  {
++    const std::string blob_popup_url =
++        base::StrCat({"blob:", extension->GetResourceURL("popup.html").spec()});
++    RunTestAndWaitForSuccess(web_contents,
++                             get_script(tab_id, blob_popup_url.c_str()));
++  }
++
++  // Set the popup to a filesystem URL and expect an error.
++  {
++    const std::string filesystem_popup_url = base::StrCat(
++        {"filesystem:", extension->url().spec(), "temporary/popup.html"});
++    RunTestAndWaitForSuccess(web_contents,
++                             get_script(tab_id, filesystem_popup_url.c_str()));
++  }
+ }
+ 
+ // Tests various getter and setter methods.
+diff --git a/extensions/common/api/extension_action/action_info.cc b/extensions/common/api/extension_action/action_info.cc
+index a13f5a9021..c85ceed318 100644
+--- a/extensions/common/api/extension_action/action_info.cc
++++ b/extensions/common/api/extension_action/action_info.cc
+@@ -186,7 +186,7 @@ std::unique_ptr<ActionInfo> ActionInfo::Load(
+       DCHECK(result->default_popup_url.is_empty());
+     } else if (!url_str->empty()) {
+       GURL popup_url = extension->GetResourceURL(*url_str);
+-      if (!popup_url.is_valid()) {
++      if (!popup_url.is_valid() || !popup_url.SchemeIs(kExtensionScheme)) {
+         *error = errors::kInvalidActionDefaultPopup;
+         return nullptr;
+       }
+diff --git a/extensions/common/manifest_handlers/extension_action_handler_unittest.cc b/extensions/common/manifest_handlers/extension_action_handler_unittest.cc
+index 196cb98e3f..3d11468a4c 100644
+--- a/extensions/common/manifest_handlers/extension_action_handler_unittest.cc
++++ b/extensions/common/manifest_handlers/extension_action_handler_unittest.cc
+@@ -328,6 +328,24 @@ TEST_P(ExtensionActionManifestTest, Invalid) {
+   constexpr char kInvalidIcon[] = R"({ "default_icon": [] })";
+   LoadAndExpectError(GetManifestData(kInvalidIcon, manifest_version),
+                      manifest_errors::kInvalidActionDefaultIcon);
++
++  // Same-origin blob: and filesystem: URLs should be rejected as default_popup
++  // values.
++  scoped_refptr<const Extension> valid_extension =
++      LoadAndExpectSuccess(GetManifestData("{}", manifest_version));
++  ASSERT_TRUE(valid_extension);
++  const std::string kInvalidPopupUrlBlob =
++      base::StringPrintf(R"({ "default_popup": "blob:%spopup.html" })",
++                         valid_extension->url().spec().c_str());
++  LoadAndExpectError(
++      GetManifestData(kInvalidPopupUrlBlob.c_str(), manifest_version),
++      manifest_errors::kInvalidActionDefaultPopup);
++  const std::string kInvalidPopupUrlFilesystem = base::StringPrintf(
++      R"({ "default_popup": "filesystem:%stemporary/popup.html" })",
++      valid_extension->url().spec().c_str());
++  LoadAndExpectError(
++      GetManifestData(kInvalidPopupUrlFilesystem.c_str(), manifest_version),
++      manifest_errors::kInvalidActionDefaultPopup);
+ }
+ 
+ // Tests success when default_popup is valid.
+-- 
+2.43.0
+
