@@ -71,5 +71,5 @@ Revisado el código de 0015, 0016 y devtools-frontend 0001 contra la 156; 0001�
 
 **Posibles huecos vistos al portar 0016 (no son de G4; consultados a COORDINACIÓN, sin decidir aquí):** b878de30c0
 (573367660, DNR ignora cabeceras ocultas al casar condiciones de respuesta), c06e1d94a2 (519999855, DNR: un documento
-de error no puede quedar en la lista de `allowAllRequests`) y ca8d989763 (502040109, cabeceras ocultas en
-`modifyHeaders`). Ninguno está en `3.1.4/` ni en `3.1.5/`.
+de error no puede quedar en la lista de `allowAllRequests`). Ninguno está en `3.1.4/` ni en `3.1.5/`. (ca8d989763,
+502040109, es del main #1698510, anterior al punto de rama de la 156, #1706539: ya está.)
