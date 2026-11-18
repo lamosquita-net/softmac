@@ -1,0 +1,102 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Kunal Daftari <kunaldaftari@google.com>
+Date: Mon, 12 Oct 2026 13:05:58 -0700
+Subject: [PATCH 45/48] [Focus] Fix Crash when Ungrouping Focused Ephemeral Tab
+ Group
+
+Ungrouping tabs in a focused ephemeral tab group causes ExitFocusMode to
+recursively ungroup and delete the ephemeral group while
+RemoveFromGroupImpl is still executing.
+
+To solve this, checks are added within RemoveFromGroupImpl to verify the
+group still exists before continuing. Additionally,
+MaybeUpdateFocusModeForMovedTab is deferred until after the initial
+notification loop in MoveTabsWithNotifications to ensure the group tab
+count is updated first.
+
+Test: *.UngroupingFocusedEphemeralGroupDissolvesIt
+Bug: 567672825
+Change-Id: Idf24f59b8e9bd0f2b7b63b7bd02ece4695bb0cb0
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8561557
+Commit-Queue: Kunal Daftari <kunaldaftari@google.com>
+Reviewed-by: Alison Gale <agale@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1717047}
+(cherry picked from commit 58be3f2baf6f17bb25acd7d1efa9757bab06e8f3)
+---
+ chrome/browser/ui/tabs/tab_strip_model.cc         | 15 +++++++++++++--
+ .../tabs/tab_strip_model_context_menu_unittest.cc | 14 ++++++++++++++
+ 2 files changed, 27 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/browser/ui/tabs/tab_strip_model.cc b/chrome/browser/ui/tabs/tab_strip_model.cc
+index e03b98f928..dedfdb70e3 100644
+--- a/chrome/browser/ui/tabs/tab_strip_model.cc
++++ b/chrome/browser/ui/tabs/tab_strip_model.cc
+@@ -2124,6 +2124,9 @@ void TabStripModel::RemoveFromGroupImpl(const std::vector<int>& indices) {
+ 
+   for (const auto& [immutable_group_id, immutable_group_indices] :
+        indices_per_tab_group) {
++    if (!group_model_->ContainsTabGroup(immutable_group_id)) {
++      continue;
++    }
+     auto group_indices = immutable_group_indices;
+     const TabGroup* group = group_model_->GetTabGroup(immutable_group_id);
+     CHECK(group);
+@@ -2135,6 +2138,9 @@ void TabStripModel::RemoveFromGroupImpl(const std::vector<int>& indices) {
+         static_cast<int>(immutable_group_indices.size()) ==
+             group->tab_count()) {
+       ExitFocusMode(TabGroupFocusExitReason::kGroupUngrouped);
++      if (!group_model_->ContainsTabGroup(immutable_group_id)) {
++        continue;
++      }
+     }
+ 
+     tabs::TabInterface* last_tab_in_group = group->GetLastTab();
+@@ -2157,8 +2163,10 @@ void TabStripModel::RemoveFromGroupImpl(const std::vector<int>& indices) {
+ 
+     MoveTabsAndSetPropertiesImpl(left_of_group, first_tab_index, std::nullopt,
+                                  false);
+-    MoveTabsAndSetPropertiesImpl(right_of_group, last_tab_index + 1,
+-                                 std::nullopt, false);
++    if (group_model_->ContainsTabGroup(immutable_group_id)) {
++      MoveTabsAndSetPropertiesImpl(right_of_group, last_tab_index + 1,
++                                   std::nullopt, false);
++    }
+   }
+ }
+ 
+@@ -5562,7 +5570,10 @@ void TabStripModel::MoveTabsWithNotifications(
+         observer.OnTabPinnedStateChanged(tab, final_index);
+       }
+     }
++  }
+ 
++  for (const auto& notification : notifications) {
++    tabs::TabInterface* tab = GetTabAtIndex(GetIndexOfTab(notification.tab));
+     MaybeUpdateFocusModeForMovedTab(tab, notification.initial_pinned,
+                                     initial_focused_group);
+   }
+diff --git a/chrome/browser/ui/tabs/tab_strip_model_context_menu_unittest.cc b/chrome/browser/ui/tabs/tab_strip_model_context_menu_unittest.cc
+index c6769b53af..f0e9c3aeb3 100644
+--- a/chrome/browser/ui/tabs/tab_strip_model_context_menu_unittest.cc
++++ b/chrome/browser/ui/tabs/tab_strip_model_context_menu_unittest.cc
+@@ -539,3 +539,17 @@ TEST_F(NonGroupFocusDissolutionTest,
+   EXPECT_EQ(tab_strip_model()->GetTabGroupForTab(1), std::nullopt);
+   EXPECT_EQ(tab_strip_model()->GetTabGroupForTab(2), std::nullopt);
+ }
++
++TEST_F(NonGroupFocusDissolutionTest,
++       UngroupingFocusedEphemeralGroupDissolvesIt) {
++  const tab_groups::TabGroupId ephemeral_group =
++      StartNonGroupFocus(/*tab_count=*/2, /*focused_tab_count=*/2);
++
++  tab_strip_model()->RemoveFromGroup({0, 1});
++
++  EXPECT_EQ(tab_strip_model()->GetFocusedGroup(), std::nullopt);
++  EXPECT_FALSE(
++      tab_strip_model()->group_model()->ContainsTabGroup(ephemeral_group));
++  EXPECT_EQ(tab_strip_model()->GetTabGroupForTab(0), std::nullopt);
++  EXPECT_EQ(tab_strip_model()->GetTabGroupForTab(1), std::nullopt);
++}
+-- 
+2.43.0
+

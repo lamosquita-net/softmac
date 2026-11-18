@@ -1,0 +1,349 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Antonio Sartori <antoniosartori@chromium.org>
+Date: Mon, 5 Oct 2026 06:16:40 -0700
+Subject: [PATCH 20/48] [approx-geo] Fix PermissionRequest duplicate check
+
+Ensure that geolocation permission requests for different accuracy
+modes are not treated as duplicated.
+
+Bug: 569012366
+Fixed: 569012366
+Change-Id: I5ebaf2c7c17335c52caaee1c148431cfec63127d
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8501066
+Commit-Queue: Antonio Sartori <antoniosartori@chromium.org>
+Reviewed-by: Tom Van Goethem <tov@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1711217}
+(cherry picked from commit fa52619e51af4a7cc6532a913b1fc18e2ebeb810)
+---
+ components/permissions/BUILD.gn               |   1 +
+ components/permissions/permission_request.cc  |   4 +-
+ .../permission_request_manager_unittest.cc    |  90 ++++++++++++++
+ .../permission_request_queue_unittest.cc      |  29 ++++-
+ .../permission_request_unittest.cc            | 117 ++++++++++++++++++
+ .../test/mock_permission_request.cc           |   3 +-
+ 6 files changed, 241 insertions(+), 3 deletions(-)
+ create mode 100644 components/permissions/permission_request_unittest.cc
+
+diff --git a/components/permissions/BUILD.gn b/components/permissions/BUILD.gn
+index a2e6c6b98e..f22ce3eb43 100644
+--- a/components/permissions/BUILD.gn
++++ b/components/permissions/BUILD.gn
+@@ -347,6 +347,7 @@ source_set("unit_tests") {
+     "permission_indicators_tab_data_unittest.cc",
+     "permission_request_data_unittest.cc",
+     "permission_request_queue_unittest.cc",
++    "permission_request_unittest.cc",
+     "resolvers/geolocation_permission_resolver_unittest.cc",
+   ]
+   if (!is_ios) {
+diff --git a/components/permissions/permission_request.cc b/components/permissions/permission_request.cc
+index 4e358a94a2..4cd16d3755 100644
+--- a/components/permissions/permission_request.cc
++++ b/components/permissions/permission_request.cc
+@@ -60,7 +60,9 @@ RequestType PermissionRequest::request_type() const {
+ 
+ bool PermissionRequest::IsDuplicateOf(PermissionRequest* other_request) const {
+   return request_type() == other_request->request_type() &&
+-         requesting_origin() == other_request->requesting_origin();
++         requesting_origin() == other_request->requesting_origin() &&
++         GetGeolocationPromptType() ==
++             other_request->GetGeolocationPromptType();
+ }
+ 
+ base::SafeRef<PermissionRequest> PermissionRequest::GetSafeRef() {
+diff --git a/components/permissions/permission_request_manager_unittest.cc b/components/permissions/permission_request_manager_unittest.cc
+index 3324140975..ed2a024727 100644
+--- a/components/permissions/permission_request_manager_unittest.cc
++++ b/components/permissions/permission_request_manager_unittest.cc
+@@ -834,6 +834,96 @@ TEST_F(PermissionRequestManagerTest, DuplicateRequest) {
+   }
+ }
+ 
++TEST_F(PermissionRequestManagerTest,
++       GeolocationDifferentPromptTypeNotCoalesced) {
++  base::test::ScopedFeatureList scoped_feature_list;
++  scoped_feature_list.InitAndEnableFeature(
++      content_settings::features::kApproximateGeolocationPermission);
++
++  MockPermissionRequest::MockPermissionRequestState request_approximate_state;
++  MockPermissionRequest::MockPermissionRequestState request_upgrade_state;
++
++  auto request_approximate = std::make_unique<MockPermissionRequest>(
++      GURL(MockPermissionRequest::kDefaultOrigin), RequestType::kGeolocation,
++      PermissionRequestGestureType::GESTURE,
++      GeolocationPromptType::kApproximateOnly,
++      request_approximate_state.GetWeakPtr());
++  auto request_upgrade = std::make_unique<MockPermissionRequest>(
++      GURL(MockPermissionRequest::kDefaultOrigin), RequestType::kGeolocation,
++      PermissionRequestGestureType::GESTURE,
++      GeolocationPromptType::kUpgradeToPrecise,
++      request_upgrade_state.GetWeakPtr());
++
++  manager_->AddRequest(web_contents()->GetPrimaryMainFrame(),
++                       std::move(request_approximate));
++  WaitForBubbleToBeShown();
++  EXPECT_TRUE(prompt_factory_->is_visible());
++  EXPECT_EQ(prompt_factory_->request_count(), 1);
++
++  // A precise/upgrade request must not be coalesced into duplicate_requests_
++  // of an approximate-only request
++  // (https://issues.chromium.org/issues/569012366).
++  manager_->AddRequest(web_contents()->GetPrimaryMainFrame(),
++                       std::move(request_upgrade));
++  EXPECT_FALSE(request_approximate_state.finished);
++  EXPECT_FALSE(request_upgrade_state.finished);
++
++  // Accept the approximate prompt. Only the approximate request should finish.
++  Accept();
++  EXPECT_TRUE(request_approximate_state.finished);
++  EXPECT_TRUE(request_approximate_state.granted);
++  EXPECT_FALSE(request_upgrade_state.finished);
++
++  // The upgrade request must be shown as its own separate prompt.
++  WaitForBubbleToBeShown();
++  EXPECT_TRUE(prompt_factory_->is_visible());
++  EXPECT_EQ(prompt_factory_->request_count(), 1);
++
++  // Accept the upgrade prompt.
++  Accept();
++  EXPECT_TRUE(request_upgrade_state.finished);
++  EXPECT_TRUE(request_upgrade_state.granted);
++  EXPECT_FALSE(prompt_factory_->is_visible());
++}
++
++TEST_F(PermissionRequestManagerTest, GeolocationSamePromptTypeCoalesced) {
++  base::test::ScopedFeatureList scoped_feature_list;
++  scoped_feature_list.InitAndEnableFeature(
++      content_settings::features::kApproximateGeolocationPermission);
++
++  MockPermissionRequest::MockPermissionRequestState request1_state;
++  MockPermissionRequest::MockPermissionRequestState request2_state;
++
++  auto request1 = std::make_unique<MockPermissionRequest>(
++      GURL(MockPermissionRequest::kDefaultOrigin), RequestType::kGeolocation,
++      PermissionRequestGestureType::GESTURE,
++      GeolocationPromptType::kApproximateOnly, request1_state.GetWeakPtr());
++  auto request2 = std::make_unique<MockPermissionRequest>(
++      GURL(MockPermissionRequest::kDefaultOrigin), RequestType::kGeolocation,
++      PermissionRequestGestureType::GESTURE,
++      GeolocationPromptType::kApproximateOnly, request2_state.GetWeakPtr());
++
++  manager_->AddRequest(web_contents()->GetPrimaryMainFrame(),
++                       std::move(request1));
++  WaitForBubbleToBeShown();
++  EXPECT_TRUE(prompt_factory_->is_visible());
++  EXPECT_EQ(prompt_factory_->request_count(), 1);
++
++  // A request with the same prompt type should be coalesced as a duplicate.
++  manager_->AddRequest(web_contents()->GetPrimaryMainFrame(),
++                       std::move(request2));
++  EXPECT_FALSE(request1_state.finished);
++  EXPECT_FALSE(request2_state.finished);
++
++  // Accepting the visible prompt resolves both requests simultaneously.
++  Accept();
++  EXPECT_TRUE(request1_state.finished);
++  EXPECT_TRUE(request1_state.granted);
++  EXPECT_TRUE(request2_state.finished);
++  EXPECT_TRUE(request2_state.granted);
++  EXPECT_FALSE(prompt_factory_->is_visible());
++}
++
+ ////////////////////////////////////////////////////////////////////////////////
+ // Requests from iframes
+ ////////////////////////////////////////////////////////////////////////////////
+diff --git a/components/permissions/permission_request_queue_unittest.cc b/components/permissions/permission_request_queue_unittest.cc
+index 7981e902ce..fe558b31b8 100644
+--- a/components/permissions/permission_request_queue_unittest.cc
++++ b/components/permissions/permission_request_queue_unittest.cc
+@@ -2,7 +2,10 @@
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
+ 
++#include "components/permissions/permission_request_queue.h"
++
+ #include <stddef.h>
++
+ #include <memory>
+ #include <string>
+ 
+@@ -12,7 +15,7 @@
+ #include "build/build_config.h"
+ #include "components/permissions/features.h"
+ #include "components/permissions/permission_request.h"
+-#include "components/permissions/permission_request_queue.h"
++#include "components/permissions/permission_request_data.h"
+ #include "components/permissions/permission_util.h"
+ #include "components/permissions/request_type.h"
+ #include "components/permissions/test/mock_permission_prompt_factory.h"
+@@ -145,6 +148,30 @@ TEST_F(PermissionRequestQueueTest, ShouldNotFindDuplicateIfNotPresent) {
+                          CreateRequest(request_normal2_).get()));
+ }
+ 
++TEST_F(PermissionRequestQueueTest,
++       ShouldNotFindDuplicateWithDifferentGeolocationPromptType) {
++  auto request_approximate = std::make_unique<MockPermissionRequest>(
++      GURL(MockPermissionRequest::kDefaultOrigin), RequestType::kGeolocation,
++      PermissionRequestGestureType::GESTURE,
++      GeolocationPromptType::kApproximateOnly);
++  auto request_upgrade = std::make_unique<MockPermissionRequest>(
++      GURL(MockPermissionRequest::kDefaultOrigin), RequestType::kGeolocation,
++      PermissionRequestGestureType::GESTURE,
++      GeolocationPromptType::kUpgradeToPrecise);
++  auto request_approximate_dupe = std::make_unique<MockPermissionRequest>(
++      GURL(MockPermissionRequest::kDefaultOrigin), RequestType::kGeolocation,
++      PermissionRequestGestureType::GESTURE,
++      GeolocationPromptType::kApproximateOnly);
++
++  auto* request_approximate_ptr = request_approximate.get();
++  permission_request_queue_.Push(std::move(request_approximate));
++
++  EXPECT_EQ(nullptr,
++            permission_request_queue_.FindDuplicate(request_upgrade.get()));
++  EXPECT_EQ(request_approximate_ptr, permission_request_queue_.FindDuplicate(
++                                         request_approximate_dupe.get()));
++}
++
+ TEST_F(PermissionRequestQueueTest, PeekedElementIsNextPoppedElement) {
+   permission_request_queue_.Push(CreateRequest(request_normal1_));
+   permission_request_queue_.Push(CreateRequest(request_normal2_));
+diff --git a/components/permissions/permission_request_unittest.cc b/components/permissions/permission_request_unittest.cc
+new file mode 100644
+index 0000000000..fe1cbbf944
+--- /dev/null
++++ b/components/permissions/permission_request_unittest.cc
+@@ -0,0 +1,117 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "components/permissions/permission_request.h"
++
++#include <memory>
++#include <optional>
++
++#include "base/functional/callback_helpers.h"
++#include "components/permissions/permission_request_data.h"
++#include "components/permissions/request_type.h"
++#include "testing/gtest/include/gtest/gtest.h"
++#include "url/gurl.h"
++
++namespace permissions {
++
++namespace {
++
++std::unique_ptr<PermissionRequest> CreateRequest(
++    RequestType request_type,
++    const GURL& requesting_origin,
++    std::optional<GeolocationPromptType> prompt_type = std::nullopt) {
++  auto data = std::make_unique<PermissionRequestData>(
++      request_type, /*user_gesture=*/true, requesting_origin);
++  if (prompt_type.has_value()) {
++    data->WithGeolocationPromptType(*prompt_type);
++  }
++  return std::make_unique<PermissionRequest>(std::move(data),
++                                             base::DoNothing());
++}
++
++}  // namespace
++
++class PermissionRequestTest : public testing::Test {};
++
++TEST_F(PermissionRequestTest, IsDuplicateOf_SameOriginAndType) {
++  const GURL origin("https://example.com");
++  auto request1 = CreateRequest(RequestType::kNotifications, origin);
++  auto request2 = CreateRequest(RequestType::kNotifications, origin);
++
++  EXPECT_TRUE(request1->IsDuplicateOf(request2.get()));
++  EXPECT_TRUE(request2->IsDuplicateOf(request1.get()));
++}
++
++TEST_F(PermissionRequestTest, IsDuplicateOf_DifferentOrigin) {
++  auto request1 =
++      CreateRequest(RequestType::kGeolocation, GURL("https://example.com"),
++                    GeolocationPromptType::kApproximateOnly);
++  auto request2 =
++      CreateRequest(RequestType::kGeolocation, GURL("https://other.com"),
++                    GeolocationPromptType::kApproximateOnly);
++
++  EXPECT_FALSE(request1->IsDuplicateOf(request2.get()));
++  EXPECT_FALSE(request2->IsDuplicateOf(request1.get()));
++}
++
++TEST_F(PermissionRequestTest, IsDuplicateOf_DifferentRequestType) {
++  const GURL origin("https://example.com");
++  auto request1 = CreateRequest(RequestType::kGeolocation, origin);
++  auto request2 = CreateRequest(RequestType::kNotifications, origin);
++
++  EXPECT_FALSE(request1->IsDuplicateOf(request2.get()));
++  EXPECT_FALSE(request2->IsDuplicateOf(request1.get()));
++}
++
++TEST_F(PermissionRequestTest, IsDuplicateOf_GeolocationSamePromptType) {
++  const GURL origin("https://example.com");
++
++  for (const auto geolocation_prompt_type :
++       std::initializer_list<std::optional<GeolocationPromptType>>{
++           GeolocationPromptType::kApproximateOnly,
++           GeolocationPromptType::kUpgradeToPrecise,
++           GeolocationPromptType::kApproximateOrPrecise, std::nullopt}) {
++    auto request1 = CreateRequest(RequestType::kGeolocation, origin,
++                                  geolocation_prompt_type);
++    auto request2 = CreateRequest(RequestType::kGeolocation, origin,
++                                  geolocation_prompt_type);
++    EXPECT_TRUE(request1->IsDuplicateOf(request2.get()));
++    EXPECT_TRUE(request2->IsDuplicateOf(request1.get()));
++  }
++}
++
++TEST_F(PermissionRequestTest, IsDuplicateOf_GeolocationDifferentPromptType) {
++  const GURL origin("https://example.com");
++
++  auto req_approx = CreateRequest(RequestType::kGeolocation, origin,
++                                  GeolocationPromptType::kApproximateOnly);
++  auto req_upgrade = CreateRequest(RequestType::kGeolocation, origin,
++                                   GeolocationPromptType::kUpgradeToPrecise);
++  auto req_both = CreateRequest(RequestType::kGeolocation, origin,
++                                GeolocationPromptType::kApproximateOrPrecise);
++  auto req_none =
++      CreateRequest(RequestType::kGeolocation, origin, std::nullopt);
++
++  // A precise/upgrade request must not be coalesced with an approximate-only
++  // request (https://issues.chromium.org/issues/569012366).
++  EXPECT_FALSE(req_approx->IsDuplicateOf(req_upgrade.get()));
++  EXPECT_FALSE(req_upgrade->IsDuplicateOf(req_approx.get()));
++
++  EXPECT_FALSE(req_approx->IsDuplicateOf(req_both.get()));
++  EXPECT_FALSE(req_both->IsDuplicateOf(req_approx.get()));
++
++  EXPECT_FALSE(req_upgrade->IsDuplicateOf(req_both.get()));
++  EXPECT_FALSE(req_both->IsDuplicateOf(req_upgrade.get()));
++
++  EXPECT_FALSE(req_approx->IsDuplicateOf(req_none.get()));
++  EXPECT_FALSE(req_none->IsDuplicateOf(req_approx.get()));
++
++  EXPECT_FALSE(req_upgrade->IsDuplicateOf(req_none.get()));
++  EXPECT_FALSE(req_none->IsDuplicateOf(req_upgrade.get()));
++
++  EXPECT_FALSE(req_both->IsDuplicateOf(req_none.get()));
++  EXPECT_FALSE(req_none->IsDuplicateOf(req_both.get()));
++}
++
++}  // namespace permissions
+diff --git a/components/permissions/test/mock_permission_request.cc b/components/permissions/test/mock_permission_request.cc
+index 157b69485b..8b84c14d91 100644
+--- a/components/permissions/test/mock_permission_request.cc
++++ b/components/permissions/test/mock_permission_request.cc
+@@ -187,7 +187,8 @@ std::unique_ptr<MockPermissionRequest>
+ MockPermissionRequest::CreateDuplicateRequest(
+     base::WeakPtr<MockPermissionRequestState> request_state) const {
+   return std::make_unique<MockPermissionRequest>(
+-      requesting_origin(), request_type(), GetGestureType(), request_state);
++      requesting_origin(), request_type(), GetGestureType(),
++      GetGeolocationPromptType(), request_state);
+ }
+ 
+ }  // namespace permissions
+-- 
+2.43.0
+

@@ -1,0 +1,96 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eriko Kurimoto <elkurin@chromium.org>
+Date: Sun, 18 Oct 2026 18:58:26 -0700
+Subject: [PATCH 48/48] [FileChooser]: Fix and re-enable
+ ShowOpenFileThenResizeSmall on Mac
+
+FileSystemAccessBrowserTest.ShowOpenFileThenResizeSmall previously tried
+to shrink the normal tabbed browser window to 100x100 via
+BrowserView::SetBounds(). On macOS, normal tabbed browser windows
+enforce a minimum client size of 500x375 (kMainBrowserContentsMinimumWidth
+with a 4:3 minimum height ratio in BrowserFrameViewMac::GetMinimumSize),
+and NativeWidgetNSWindowBridge::SetBounds() clamps programmatic SetBounds()
+calls to that minimum size, keeping the window above the 400x300
+threshold.
+
+Run the test in a popup browser window (which uses
+BrowserViewPopupLayoutImpl and does not enforce the 500x375 tabbed
+browser minimum size) and re-enable ShowOpenFileThenResizeSmall on
+macOS.
+
+Bug: 570038473, 479258455
+Change-Id: If4fd591f201074fe9bf853a71ba05569c77a9fce
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8594882
+Reviewed-by: Ming-Ying Chung <mych@chromium.org>
+Commit-Queue: Ming-Ying Chung <mych@chromium.org>
+Auto-Submit: Eriko Kurimoto <elkurin@chromium.org>
+Commit-Queue: Eriko Kurimoto <elkurin@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1721571}
+(cherry picked from commit f028e1234f6400b2d977d36fd59763264ea26b6a)
+---
+ .../file_system_access_browsertest.cc         | 26 ++++++++++++-------
+ 1 file changed, 17 insertions(+), 9 deletions(-)
+
+diff --git a/chrome/browser/ui/views/file_system_access/file_system_access_browsertest.cc b/chrome/browser/ui/views/file_system_access/file_system_access_browsertest.cc
+index 75b9c2b6ef..9343099978 100644
+--- a/chrome/browser/ui/views/file_system_access/file_system_access_browsertest.cc
++++ b/chrome/browser/ui/views/file_system_access/file_system_access_browsertest.cc
+@@ -1567,10 +1567,18 @@ IN_PROC_BROWSER_TEST_F(FileSystemAccessBrowserTest,
+ // showing closes the dialog.
+ IN_PROC_BROWSER_TEST_F(FileSystemAccessBrowserTest,
+                        ShowOpenFileThenResizeSmall) {
++  // Use a popup browser because normal tabbed browser windows on macOS enforce
++  // a minimum client size of 500x375 (via kMainBrowserContentsMinimumWidth and
++  // the 4:3 aspect ratio in BrowserFrameViewMac::GetMinimumSize), which clamps
++  // programmatic SetBounds() calls above the 400x300 threshold.
++  BrowserWindowInterface* popup_browser =
++      CreateBrowserForPopup(browser()->GetProfile());
++  BrowserView::GetBrowserViewForBrowser(popup_browser)
++      ->SetBounds(gfx::Rect(0, 0, 800, 600));
+   EXPECT_TRUE(ui_test_utils::NavigateToURL(
+-      browser(), embedded_test_server()->GetURL("/title1.html")));
+-  content::WebContents* first_tab =
+-      browser()->GetTabStripModel()->GetActiveWebContents();
++      popup_browser, embedded_test_server()->GetURL("/title1.html")));
++  content::WebContents* popup_tab =
++      popup_browser->GetTabStripModel()->GetActiveWebContents();
+ 
+   // Open the dialog and wait until it's created.
+   content::SelectFileDialogRecorder recorder;
+@@ -1579,7 +1587,7 @@ IN_PROC_BROWSER_TEST_F(FileSystemAccessBrowserTest,
+           recorder.GetWeakPtr()));
+   EXPECT_EQ(42,
+             content::EvalJs(
+-                first_tab,
++                popup_tab,
+                 "window.p = self.showOpenFilePicker().catch(e => e.name); 42"));
+   EXPECT_TRUE(base::test::RunUntil([&recorder]() {
+     return recorder.state != content::SelectFileDialogRecorder::kNotCreated;
+@@ -1588,19 +1596,19 @@ IN_PROC_BROWSER_TEST_F(FileSystemAccessBrowserTest,
+   // Narrowing only the WebContents (e.g. when opening a side panel or split
+   // view) while the top-level browser window remains large should NOT cancel
+   // the dialog.
+-  first_tab->Resize(gfx::Rect(0, 0, 200, 600));
++  popup_tab->Resize(gfx::Rect(0, 0, 200, 600));
+   EXPECT_NE(recorder.state, content::SelectFileDialogRecorder::kDestroyed);
+ 
+   // Resize the top-level window below the minimum dimension threshold.
+-  BrowserView::GetBrowserViewForBrowser(browser())->SetBounds(
+-      gfx::Rect(0, 0, 100, 100));
+-  first_tab->Resize(gfx::Rect(0, 0, 100, 100));
++  BrowserView::GetBrowserViewForBrowser(popup_browser)
++      ->SetBounds(gfx::Rect(0, 0, 100, 100));
++  popup_tab->Resize(gfx::Rect(0, 0, 100, 100));
+   EXPECT_TRUE(base::test::RunUntil([&recorder]() {
+     return recorder.state == content::SelectFileDialogRecorder::kDestroyed;
+   }));
+ 
+   // Check that the dialog was closed.
+-  EXPECT_EQ("AbortError", content::EvalJs(first_tab, "window.p"));
++  EXPECT_EQ("AbortError", content::EvalJs(popup_tab, "window.p"));
+ }
+ 
+ class FileSystemAccessBrowserTestForWebUI : public InProcessBrowserTest {
+-- 
+2.43.0
+

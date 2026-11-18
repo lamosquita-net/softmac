@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Yann Dago <ydago@chromium.org>
+Date: Mon, 5 Oct 2026 09:50:35 -0700
+Subject: [PATCH 22/48] Add TODO to remove proxy auth scheme version check for
+ AllHttpAuthSchemesAllowedForOrigins in M161
+
+Bug: 533454968
+Change-Id: Iaeb389f44f005b9da8e1314ab9c102a82d5eb0dc
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8496621
+Commit-Queue: mmenke <mmenke@chromium.org>
+Auto-Submit: Yann Dago <ydago@chromium.org>
+Reviewed-by: mmenke <mmenke@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1711406}
+(cherry picked from commit d06dbff79ba64825f1917e6de237d6b315cf1aad)
+---
+ chrome/browser/net/system_network_context_manager.cc | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
+index 5137f4386d..e3d98a0c19 100644
+--- a/chrome/browser/net/system_network_context_manager.cc
++++ b/chrome/browser/net/system_network_context_manager.cc
+@@ -191,6 +191,7 @@ network::mojom::HttpAuthDynamicParamsPtr CreateHttpAuthDynamicParams(
+       auth_dynamic_params->patterns_allowed_to_use_all_schemes_for_proxies
+           .push_back(item.GetString());
+     }
++  // TODO(crbug.com/568728957): Remove once all users are on M161+.
+   } else if (CHROME_VERSION_MAJOR < 161) {
+     auth_dynamic_params->patterns_allowed_to_use_all_schemes_for_proxies =
+         auth_dynamic_params->patterns_allowed_to_use_all_schemes;
+-- 
+2.43.0
+

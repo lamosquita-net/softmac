@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Leese <leese@chromium.org>
+Date: Mon, 12 Oct 2026 09:05:40 -0700
+Subject: [PATCH 5/5] Support general IPv6 hosts in ParsedURL.urlRegex()
+
+Previously, hostRegex in ParsedURL.urlRegex() only matched `[::]` and
+`[::\d]` IPv6 literals. Because NetworkPersistenceManager.isForbiddenNetworkUrl
+fails closed when ParsedURL.fromString returns null, valid URLs with
+other IPv6 host literals (such as `http://[2001:db8::1]/`) were treated
+as forbidden for Local Overrides.
+
+Update hostRegex in ParsedURL.urlRegex() to match general bracketed IPv6
+literals (`\[[0-9a-fA-F:.]*:[0-9a-fA-F:.]*\]`) and add unit tests.
+
+Bug: 562233597, 568226161
+Change-Id: I791730c1d2391a9da044837ef6aac2d5c80b58ef
+Reviewed-on: https://chromium-review.googlesource.com/c/devtools/devtools-frontend/+/8557919
+Reviewed-by: Philip Pfaffe <pfaffe@chromium.org>
+Commit-Queue: Eric Leese <leese@chromium.org>
+Auto-Submit: Eric Leese <leese@chromium.org>
+
+(cherry picked from commit 6ddb961d96cec9d5a8bc45e33ebf6639b3b3ebc5; unit tests (*.test.ts) left out: not built into FlyWeb)
+---
+ front_end/core/common/ParsedURL.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/front_end/core/common/ParsedURL.ts b/front_end/core/common/ParsedURL.ts
+index 973b745..d11e63c 100644
+--- a/front_end/core/common/ParsedURL.ts
++++ b/front_end/core/common/ParsedURL.ts
+@@ -333,7 +333,7 @@ export class ParsedURL {
+     // 8 - ?fragment
+     const schemeRegex = /([A-Za-z][A-Za-z0-9+.-]*):\/\//;
+     const userRegex = /(?:([A-Za-z0-9\-._~%!$&'()*+,;=:]*)@)?/;
+-    const hostRegex = /((?:\[::\d?\])|(?:[^\s\/:]*))/;
++    const hostRegex = /((?:\[[0-9a-fA-F:.]*:[0-9a-fA-F:.]*\])|(?:[^\s\/:]*))/;
+     const portRegex = /(?::([\d]+))?/;
+     const pathRegex = /(\/[^#?]*)?/;
+     const queryRegex = /(?:\?([^#]*))?/;
+-- 
+2.43.0
+

@@ -1,0 +1,466 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Danil Somsikov <dsv@chromium.org>
+Date: Fri, 9 Oct 2026 03:52:54 -0700
+Subject: [PATCH 39/48] DevTools: only inherit frontend host from local
+ frontend openers
+
+When a DevTools window is opened by another window, require every live
+opener in the original opener chain to be a local DevTools frontend
+before creating a DevToolsFrontendHost for the new window. Also keep
+is_local_frontend_ sticky-false once a WebContents has loaded a
+non-local frontend, and reject renderer-initiated navigations without a
+live opener chain unless the window already had a frontend host.
+
+Bug: 553152519
+Change-Id: I403a9a3520db747f392020f3055ae0385eb9765e
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8538408
+Commit-Queue: Danil Somsikov <dsv@chromium.org>
+Reviewed-by: Benedikt Meurer <bmeurer@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1715425}
+(cherry picked from commit ba0938fa1dcf8aef8dd6f67bf0451992c8615d7b)
+---
+ .../browser/devtools/devtools_browsertest.cc  | 161 ++++++++++++++++++
+ .../browser/devtools/devtools_ui_bindings.cc  |  70 ++++++--
+ .../browser/devtools/devtools_ui_bindings.h   |   2 +
+ .../devtools/devtools_ui_bindings_unittest.cc | 127 ++++++++++++++
+ 4 files changed, 349 insertions(+), 11 deletions(-)
+
+diff --git a/chrome/browser/devtools/devtools_browsertest.cc b/chrome/browser/devtools/devtools_browsertest.cc
+index f4bdbcce66..9febba1dd6 100644
+--- a/chrome/browser/devtools/devtools_browsertest.cc
++++ b/chrome/browser/devtools/devtools_browsertest.cc
+@@ -5988,3 +5988,164 @@ INSTANTIATE_TEST_SUITE_P(,
+                          [](const testing::TestParamInfo<bool>& info) {
+                            return info.param ? "Enabled" : "Disabled";
+                          });
++
++class DevToolsPopupOpenerTest : public PlatformBrowserTest {
++ public:
++  void SetUpOnMainThread() override {
++    PlatformBrowserTest::SetUpOnMainThread();
++    ASSERT_TRUE(embedded_test_server()->Start());
++    base::CommandLine::ForCurrentProcess()->AppendSwitchASCII(
++        switches::kCustomDevtoolsFrontend,
++        embedded_test_server()->GetURL("/devtools/").spec());
++  }
++
++ protected:
++  void VerifyRemoteOpenerHasRestrictedBindings(WebContents* opener) {
++    ASSERT_EQ("object", content::EvalJs(opener, "typeof DevToolsHost"));
++    auto* opener_bindings = DevToolsUIBindings::ForWebContents(opener);
++    ASSERT_TRUE(opener_bindings);
++    ASSERT_TRUE(opener_bindings->has_frontend_host_for_testing());
++
++    // Confirm the opener is classified as a remote frontend by checking that
++    // loading a file:// resource is rejected with 403.
++    EXPECT_EQ(403, content::EvalJs(opener, R"(
++      new Promise(resolve => {
++        window.DevToolsAPI = {
++          embedderMessageAck(id, res) {
++            resolve(res ? res.statusCode : -1);
++          },
++          streamWrite() {},
++        };
++        DevToolsHost.sendMessageToEmbedder(JSON.stringify({
++          id: 1,
++          method: 'loadNetworkResource',
++          params: ['file:///etc/passwd', '', 0],
++        }));
++      })
++    )"));
++  }
++
++  WebContents* OpenPopupFrom(WebContents* opener,
++                             const std::string& url,
++                             bool noopener = false) {
++    content::WebContentsAddedObserver popup_observer;
++    std::string script =
++        noopener ? content::JsReplace("window.open($1, '_blank', 'noopener');",
++                                      url)
++                 : content::JsReplace("window.open($1);", url);
++    EXPECT_TRUE(content::ExecJs(opener, script));
++    WebContents* popup = popup_observer.GetWebContents();
++    EXPECT_TRUE(content::WaitForLoadStop(popup));
++    return popup;
++  }
++};
++
++IN_PROC_BROWSER_TEST_F(DevToolsPopupOpenerTest,
++                       LocalFrontendPopupInheritsFrontendHost) {
++  WebContents* opener = chrome_test_utils::GetActiveWebContents(this);
++  ASSERT_TRUE(chrome_test_utils::NavigateToURL(
++      opener, GURL("devtools://devtools/bundled/empty.html")));
++  ASSERT_EQ("object", content::EvalJs(opener, "typeof DevToolsHost"));
++
++  WebContents* popup = OpenPopupFrom(opener, "devtools://devtools/blank");
++  ASSERT_TRUE(popup);
++  EXPECT_EQ("object", content::EvalJs(popup, "typeof DevToolsHost"));
++  auto* popup_bindings = DevToolsUIBindings::ForWebContents(popup);
++  ASSERT_TRUE(popup_bindings);
++  EXPECT_TRUE(popup_bindings->has_frontend_host_for_testing());
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsPopupOpenerTest,
++                       RemoteFrontendPopupDoesNotGetFrontendHost) {
++  WebContents* opener = chrome_test_utils::GetActiveWebContents(this);
++  ASSERT_TRUE(chrome_test_utils::NavigateToURL(
++      opener,
++      GURL("devtools://devtools/remote/serve_rev/@12345/empty.html")));
++  VerifyRemoteOpenerHasRestrictedBindings(opener);
++
++  WebContents* popup = OpenPopupFrom(opener, "devtools://devtools/blank");
++  ASSERT_TRUE(popup);
++  EXPECT_EQ("undefined", content::EvalJs(popup, "typeof DevToolsHost"));
++  auto* popup_bindings = DevToolsUIBindings::ForWebContents(popup);
++  ASSERT_TRUE(popup_bindings);
++  EXPECT_FALSE(popup_bindings->has_frontend_host_for_testing());
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsPopupOpenerTest,
++                       RemoteFrontendNoopenerPopupDoesNotGetFrontendHost) {
++  WebContents* opener = chrome_test_utils::GetActiveWebContents(this);
++  ASSERT_TRUE(chrome_test_utils::NavigateToURL(
++      opener,
++      GURL("devtools://devtools/remote/serve_rev/@12345/empty.html")));
++  VerifyRemoteOpenerHasRestrictedBindings(opener);
++
++  WebContents* popup =
++      OpenPopupFrom(opener, "devtools://devtools/blank", /*noopener=*/true);
++  ASSERT_TRUE(popup);
++  EXPECT_EQ("undefined", content::EvalJs(popup, "typeof DevToolsHost"));
++  auto* popup_bindings = DevToolsUIBindings::ForWebContents(popup);
++  ASSERT_TRUE(popup_bindings);
++  EXPECT_FALSE(popup_bindings->has_frontend_host_for_testing());
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsPopupOpenerTest,
++                       RemoteFrontendBundledPopupDoesNotGetFrontendHost) {
++  WebContents* opener = chrome_test_utils::GetActiveWebContents(this);
++  ASSERT_TRUE(chrome_test_utils::NavigateToURL(
++      opener,
++      GURL("devtools://devtools/remote/serve_rev/@12345/empty.html")));
++  VerifyRemoteOpenerHasRestrictedBindings(opener);
++
++  WebContents* popup =
++      OpenPopupFrom(opener, "devtools://devtools/bundled/devtools_app.html");
++  ASSERT_TRUE(popup);
++  EXPECT_EQ("undefined", content::EvalJs(popup, "typeof DevToolsHost"));
++  auto* popup_bindings = DevToolsUIBindings::ForWebContents(popup);
++  ASSERT_TRUE(popup_bindings);
++  EXPECT_FALSE(popup_bindings->has_frontend_host_for_testing());
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsPopupOpenerTest,
++                       RemoteFrontendSelfNavigationDoesNotGrantLocalBindings) {
++  WebContents* opener = chrome_test_utils::GetActiveWebContents(this);
++  ASSERT_TRUE(chrome_test_utils::NavigateToURL(
++      opener,
++      GURL("devtools://devtools/remote/serve_rev/@12345/empty.html")));
++  VerifyRemoteOpenerHasRestrictedBindings(opener);
++
++  content::TestNavigationObserver nav_observer(opener);
++  ASSERT_TRUE(
++      content::ExecJs(opener, "location.href = 'devtools://devtools/blank';"));
++  nav_observer.Wait();
++
++  VerifyRemoteOpenerHasRestrictedBindings(opener);
++}
++
++IN_PROC_BROWSER_TEST_F(
++    DevToolsPopupOpenerTest,
++    RemoteFrontendPopupWithClosedOpenerDoesNotGetFrontendHost) {
++  WebContents* opener = chrome_test_utils::GetActiveWebContents(this);
++  ASSERT_TRUE(chrome_test_utils::NavigateToURL(
++      opener,
++      GURL("devtools://devtools/remote/serve_rev/@12345/empty.html")));
++  VerifyRemoteOpenerHasRestrictedBindings(opener);
++
++  WebContents* popup = OpenPopupFrom(opener, "about:blank");
++  ASSERT_TRUE(popup);
++
++  content::WebContentsDestroyedWatcher destroyed_watcher(opener);
++  opener->Close();
++  destroyed_watcher.Wait();
++  EXPECT_FALSE(popup->HasLiveOriginalOpenerChain());
++
++  content::TestNavigationObserver nav_observer(popup);
++  ASSERT_TRUE(
++      content::ExecJs(popup, "location.href = 'devtools://devtools/blank';"));
++  nav_observer.Wait();
++
++  EXPECT_EQ("undefined", content::EvalJs(popup, "typeof DevToolsHost"));
++  auto* popup_bindings = DevToolsUIBindings::ForWebContents(popup);
++  ASSERT_TRUE(popup_bindings);
++  EXPECT_FALSE(popup_bindings->has_frontend_host_for_testing());
++}
++
+diff --git a/chrome/browser/devtools/devtools_ui_bindings.cc b/chrome/browser/devtools/devtools_ui_bindings.cc
+index d9bd5e43ca..ab1253aa23 100644
+--- a/chrome/browser/devtools/devtools_ui_bindings.cc
++++ b/chrome/browser/devtools/devtools_ui_bindings.cc
+@@ -860,6 +860,8 @@ DevToolsUIBindings::DevToolsUIBindings(content::WebContents* web_contents)
+       frontend_loaded_(false),
+       settings_(profile_),
+       http_service_registry_(std::make_unique<DevToolsHttpServiceRegistry>()) {
++  DevToolsUIBindings* previous_bindings =
++      DevToolsUIBindings::ForWebContents(web_contents_);
+   DevToolsUIBindings::GetDevToolsUIBindings().push_back(this);
+   frontend_contents_observer_ =
+       std::make_unique<FrontendWebContentsObserver>(this);
+@@ -880,7 +882,14 @@ DevToolsUIBindings::DevToolsUIBindings(content::WebContents* web_contents)
+ #endif
+   can_access_aida_ = IsAnyAidaPoweredFeatureEnabled();
+   is_local_frontend_ =
+-      IsLocalDevToolsFrontendURL(web_contents_->GetLastCommittedURL());
++      previous_bindings
++          ? previous_bindings->is_local_frontend_
++          : IsLocalDevToolsFrontendURL(web_contents_->GetLastCommittedURL());
++  has_committed_non_local_frontend_ =
++      previous_bindings && previous_bindings->has_committed_non_local_frontend_;
++  has_previous_frontend_host_ =
++      previous_bindings && (previous_bindings->frontend_host_ ||
++                            previous_bindings->has_previous_frontend_host_);
+ }
+ 
+ DevToolsUIBindings::~DevToolsUIBindings() {
+@@ -3256,22 +3265,57 @@ void DevToolsUIBindings::ReadyToCommitNavigation(
+       extensions_api_.clear();
+       return;
+     }
++    // Under RenderDocument, a new WebUI (and `DevToolsUIBindings`) is created
++    // before the previous `RenderFrameHost`'s `DevToolsUIBindings` is
++    // destroyed, so both instances observe `ReadyToCommitNavigation`. Only the
++    // latest bindings for `web_contents_` should handle the navigation.
++    if (DevToolsUIBindings::ForWebContents(web_contents_) != this) {
++      return;
++    }
+     if (frontend_host_) {
++      if (!IsLocalDevToolsFrontendURL(navigation_handle->GetURL())) {
++        has_committed_non_local_frontend_ = true;
++      }
++      is_local_frontend_ =
++          !has_committed_non_local_frontend_ &&
++          IsLocalDevToolsFrontendURL(navigation_handle->GetURL());
+       return;
+     }
+-    // If the window was opened by another window, ensure the root opener in
+-    // the live opener chain is a DevTools WebContents with active DevTools
+-    // frontend bindings. This also covers cases where `window.opener` was
+-    // severed (e.g. via `window.opener = null` or `rel="noopener"`).
++    // If the window was opened by another window, ensure every live opener in
++    // the original opener chain is a *local* (trusted) DevTools frontend with
++    // active frontend bindings. A remote frontend must not be able to obtain
++    // a frontend host for a popup that would be classified as local (e.g.
++    // devtools://devtools/blank), because the opener can script the popup
++    // (same origin). This also covers cases where `window.opener` was severed
++    // (e.g. via `window.opener = null` or `rel="noopener"`).
++    // If there is no live opener chain (e.g. the root opener was closed before
++    // the popup navigated), only allow renderer-initiated navigations when the
++    // window already had active DevTools frontend bindings before a
++    // RenderDocument swap, and never upgrade `is_local_frontend_` once the
++    // WebContents has loaded a non-local frontend.
+     if (web_contents_->HasLiveOriginalOpenerChain()) {
+-      content::WebContents* opener_wc =
+-          web_contents_->GetFirstWebContentsInLiveOriginalOpenerChain();
+-      DevToolsUIBindings* opener_bindings =
+-          opener_wc ? DevToolsUIBindings::ForWebContents(opener_wc) : nullptr;
+-      if (!opener_bindings || !opener_bindings->frontend_host_) {
+-        return;
++      for (content::WebContents* opener_wc =
++               web_contents_->GetFirstWebContentsInLiveOriginalOpenerChain();
++           opener_wc;
++           opener_wc =
++               opener_wc->GetFirstWebContentsInLiveOriginalOpenerChain()) {
++        DevToolsUIBindings* opener_bindings =
++            DevToolsUIBindings::ForWebContents(opener_wc);
++        if (!opener_bindings || !opener_bindings->frontend_host_ ||
++            !opener_bindings->is_local_frontend_) {
++          return;
++        }
+       }
++    } else if (navigation_handle->IsRendererInitiated() &&
++               !has_previous_frontend_host_) {
++      return;
+     }
++    if (!IsLocalDevToolsFrontendURL(navigation_handle->GetURL())) {
++      has_committed_non_local_frontend_ = true;
++    }
++    is_local_frontend_ =
++        !has_committed_non_local_frontend_ &&
++        IsLocalDevToolsFrontendURL(navigation_handle->GetURL());
+     frontend_host_ = content::DevToolsFrontendHost::Create(
+         navigation_handle->GetRenderFrameHost(),
+         base::BindRepeating(
+@@ -3303,7 +3347,11 @@ void DevToolsUIBindings::DocumentOnLoadCompletedInPrimaryMainFrame() {
+ 
+ void DevToolsUIBindings::PrimaryPageChanged() {
+   frontend_loaded_ = false;
++  if (!IsLocalDevToolsFrontendURL(web_contents_->GetLastCommittedURL())) {
++    has_committed_non_local_frontend_ = true;
++  }
+   is_local_frontend_ =
++      !has_committed_non_local_frontend_ &&
+       IsLocalDevToolsFrontendURL(web_contents_->GetLastCommittedURL());
+   if (!is_local_frontend_) {
+     extensions_api_.clear();
+diff --git a/chrome/browser/devtools/devtools_ui_bindings.h b/chrome/browser/devtools/devtools_ui_bindings.h
+index 0b6b6d3642..2825b35aa6 100644
+--- a/chrome/browser/devtools/devtools_ui_bindings.h
++++ b/chrome/browser/devtools/devtools_ui_bindings.h
+@@ -518,6 +518,8 @@ class DevToolsUIBindings : public DevToolsEmbedderMessageDispatcher::Delegate,
+ 
+   base::UnguessableToken session_id_for_logging_;
+   bool is_local_frontend_ = false;
++  bool has_committed_non_local_frontend_ = false;
++  bool has_previous_frontend_host_ = false;
+   base::WeakPtrFactory<DevToolsUIBindings> weak_factory_{this};
+ };
+ 
+diff --git a/chrome/browser/devtools/devtools_ui_bindings_unittest.cc b/chrome/browser/devtools/devtools_ui_bindings_unittest.cc
+index 546ac001b5..0176590539 100644
+--- a/chrome/browser/devtools/devtools_ui_bindings_unittest.cc
++++ b/chrome/browser/devtools/devtools_ui_bindings_unittest.cc
+@@ -495,6 +495,9 @@ TEST_F(DevToolsUIBindingsNavigationTest,
+ TEST_F(DevToolsUIBindingsNavigationTest,
+        OpenerWithValidDevToolsBindingsAccepted) {
+   content::WebContents* opener_contents = CreateWebContents();
++  content::WebContentsTester::For(opener_contents)
++      ->NavigateAndCommit(
++          GURL("devtools://devtools/bundled/devtools_app.html"));
+   auto opener_bindings = std::make_unique<DevToolsUIBindings>(opener_contents);
+   content::MockNavigationHandle opener_handle(
+       GURL("devtools://devtools/bundled/devtools_app.html"),
+@@ -522,6 +525,130 @@ TEST_F(DevToolsUIBindingsNavigationTest,
+   EXPECT_TRUE(bindings->has_frontend_host_for_testing());
+ }
+ 
++TEST_F(DevToolsUIBindingsNavigationTest,
++       RemoteOpenerWithDevToolsBindingsRejected) {
++  content::WebContents* opener_contents = CreateWebContents();
++  const GURL kRemoteUrl(
++      "devtools://devtools/remote/serve_rev/@12345/inspector.html");
++  content::WebContentsTester::For(opener_contents)
++      ->NavigateAndCommit(kRemoteUrl);
++  auto opener_bindings = std::make_unique<DevToolsUIBindings>(opener_contents);
++  content::MockNavigationHandle opener_handle(
++      kRemoteUrl, opener_contents->GetPrimaryMainFrame());
++  opener_handle.set_is_in_primary_main_frame(true);
++  opener_handle.set_is_renderer_initiated(false);
++  opener_bindings->ReadyToCommitNavigationForTesting(&opener_handle);
++  ASSERT_TRUE(opener_bindings->has_frontend_host_for_testing());
++
++  content::WebContents* web_contents = CreateWebContents();
++  content::WebContentsTester::For(web_contents)->SetOpener(opener_contents);
++  content::WebContentsTester::For(web_contents)
++      ->SetOriginalOpener(opener_contents);
++
++  auto bindings = std::make_unique<DevToolsUIBindings>(web_contents);
++
++  content::MockNavigationHandle handle(GURL("devtools://devtools/blank"),
++                                       web_contents->GetPrimaryMainFrame());
++  handle.set_is_in_primary_main_frame(true);
++  handle.set_is_renderer_initiated(true);
++
++  bindings->ReadyToCommitNavigationForTesting(&handle);
++
++  EXPECT_FALSE(bindings->has_frontend_host_for_testing());
++}
++
++TEST_F(DevToolsUIBindingsNavigationTest,
++       RemoteOriginalOpenerRejectedEvenIfOpenerSevered) {
++  content::WebContents* original_opener_contents = CreateWebContents();
++  const GURL kRemoteUrl(
++      "devtools://devtools/remote/serve_rev/@12345/inspector.html");
++  content::WebContentsTester::For(original_opener_contents)
++      ->NavigateAndCommit(kRemoteUrl);
++  auto opener_bindings =
++      std::make_unique<DevToolsUIBindings>(original_opener_contents);
++  content::MockNavigationHandle opener_handle(
++      kRemoteUrl, original_opener_contents->GetPrimaryMainFrame());
++  opener_handle.set_is_in_primary_main_frame(true);
++  opener_handle.set_is_renderer_initiated(false);
++  opener_bindings->ReadyToCommitNavigationForTesting(&opener_handle);
++  ASSERT_TRUE(opener_bindings->has_frontend_host_for_testing());
++
++  content::WebContents* web_contents = CreateWebContents();
++  content::WebContentsTester::For(web_contents)
++      ->SetOriginalOpener(original_opener_contents);
++  EXPECT_EQ(nullptr, web_contents->GetOpener());
++  EXPECT_TRUE(web_contents->HasLiveOriginalOpenerChain());
++
++  auto bindings = std::make_unique<DevToolsUIBindings>(web_contents);
++
++  content::MockNavigationHandle handle(GURL("devtools://devtools/blank"),
++                                       web_contents->GetPrimaryMainFrame());
++  handle.set_is_in_primary_main_frame(true);
++  handle.set_is_renderer_initiated(true);
++
++  bindings->ReadyToCommitNavigationForTesting(&handle);
++
++  EXPECT_FALSE(bindings->has_frontend_host_for_testing());
++}
++
++TEST_F(DevToolsUIBindingsNavigationTest,
++       RendererInitiatedNavigationWithoutOpenerRejected) {
++  content::WebContents* web_contents = CreateWebContents();
++  EXPECT_FALSE(web_contents->HasLiveOriginalOpenerChain());
++
++  auto bindings = std::make_unique<DevToolsUIBindings>(web_contents);
++
++  content::MockNavigationHandle handle(GURL("devtools://devtools/blank"),
++                                       web_contents->GetPrimaryMainFrame());
++  handle.set_is_in_primary_main_frame(true);
++  handle.set_is_renderer_initiated(true);
++
++  bindings->ReadyToCommitNavigationForTesting(&handle);
++
++  EXPECT_FALSE(bindings->has_frontend_host_for_testing());
++}
++
++TEST_F(DevToolsUIBindingsNavigationTest,
++       RemoteFrontendRendererNavigationDoesNotBecomeLocal) {
++  content::WebContents* opener_contents = CreateWebContents();
++  const GURL kRemoteUrl(
++      "devtools://devtools/remote/serve_rev/@12345/inspector.html");
++  content::WebContentsTester::For(opener_contents)
++      ->NavigateAndCommit(kRemoteUrl);
++  auto opener_bindings = std::make_unique<DevToolsUIBindings>(opener_contents);
++  content::MockNavigationHandle opener_handle(
++      kRemoteUrl, opener_contents->GetPrimaryMainFrame());
++  opener_handle.set_is_in_primary_main_frame(true);
++  opener_handle.set_is_renderer_initiated(false);
++  opener_bindings->ReadyToCommitNavigationForTesting(&opener_handle);
++  ASSERT_TRUE(opener_bindings->has_frontend_host_for_testing());
++
++  // Renderer-initiated navigation of the remote opener to a local URL
++  // (devtools://devtools/blank) must not upgrade the opener to local.
++  const GURL kBlankUrl("devtools://devtools/blank");
++  content::MockNavigationHandle self_nav_handle(
++      kBlankUrl, opener_contents->GetPrimaryMainFrame());
++  self_nav_handle.set_is_in_primary_main_frame(true);
++  self_nav_handle.set_is_renderer_initiated(true);
++  opener_bindings->ReadyToCommitNavigationForTesting(&self_nav_handle);
++  content::WebContentsTester::For(opener_contents)
++      ->NavigateAndCommit(kBlankUrl);
++
++  content::WebContents* popup_contents = CreateWebContents();
++  content::WebContentsTester::For(popup_contents)->SetOpener(opener_contents);
++  content::WebContentsTester::For(popup_contents)
++      ->SetOriginalOpener(opener_contents);
++
++  auto popup_bindings = std::make_unique<DevToolsUIBindings>(popup_contents);
++  content::MockNavigationHandle popup_handle(
++      kBlankUrl, popup_contents->GetPrimaryMainFrame());
++  popup_handle.set_is_in_primary_main_frame(true);
++  popup_handle.set_is_renderer_initiated(true);
++  popup_bindings->ReadyToCommitNavigationForTesting(&popup_handle);
++
++  EXPECT_FALSE(popup_bindings->has_frontend_host_for_testing());
++}
++
+ class DevToolsUIBindingsSyncInfoTest : public testing::Test {
+  public:
+   void SetUp() override {
+-- 
+2.43.0
+

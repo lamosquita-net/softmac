@@ -1,0 +1,288 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jan Keitel <jkeitel@google.com>
+Date: Tue, 29 Sep 2026 01:36:41 -0700
+Subject: [PATCH 03/48] Use base::WeakPtr for callbacks in address save/update
+ views
+
+Since the view owns the controller and destroys the controller on
+hide, there is a brief period in which the callbacks bound to the
+view come dangling. In practice, this does not matter since the
+view disappears synchronously (even if the widget is destroyed
+async) and base::Unretained uses raw_ptr, but this seems cleaner.
+
+The CL also removes an unnecessary GetTitle method since the title
+is already set in the constructor.
+
+Bug: 566935544
+Change-Id: Ie1ea7daca629d6d7ab560a6232ebfd6e317fbdc9
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8467990
+Reviewed-by: Bruno Braga <brunobraga@google.com>
+Commit-Queue: Jan Keitel <jkeitel@google.com>
+Cr-Commit-Position: refs/heads/main@{#1706861}
+(cherry picked from commit db2e7db91c469b9a9073be105dd4f5919c1ed1f5)
+---
+ .../autofill/save_address_bubble_controller.h |  6 +++
+ .../update_address_bubble_controller.h        |  7 ++++
+ .../autofill/save_address_profile_view.cc     | 19 +++++----
+ .../save_address_profile_view_unittest.cc     |  9 +++++
+ .../autofill/update_address_profile_view.cc   | 39 ++++++++-----------
+ .../autofill/update_address_profile_view.h    |  5 ---
+ .../update_address_profile_view_unittest.cc   | 10 +++++
+ 7 files changed, 57 insertions(+), 38 deletions(-)
+
+diff --git a/chrome/browser/ui/autofill/save_address_bubble_controller.h b/chrome/browser/ui/autofill/save_address_bubble_controller.h
+index 7ea4bd7481..1c97621286 100644
+--- a/chrome/browser/ui/autofill/save_address_bubble_controller.h
++++ b/chrome/browser/ui/autofill/save_address_bubble_controller.h
+@@ -71,6 +71,10 @@ class SaveAddressBubbleController : public content::WebContentsObserver {
+   // itself is about to be deleted.
+   virtual void OnBubbleClosed();
+ 
++  base::WeakPtr<SaveAddressBubbleController> GetWeakPtr() {
++    return weak_ptr_factory_.GetWeakPtr();
++  }
++
+  private:
+   bool IsMigrationToAccount() const;
+ 
+@@ -84,6 +88,8 @@ class SaveAddressBubbleController : public content::WebContentsObserver {
+ 
+   // Whether the bubble prompts to save (migrate) the profile into account.
+   const AutofillClient::SaveAddressBubbleType save_address_bubble_type_;
++
++  base::WeakPtrFactory<SaveAddressBubbleController> weak_ptr_factory_{this};
+ };
+ 
+ }  // namespace autofill
+diff --git a/chrome/browser/ui/autofill/update_address_bubble_controller.h b/chrome/browser/ui/autofill/update_address_bubble_controller.h
+index f90756a0ee..aee920d6d2 100644
+--- a/chrome/browser/ui/autofill/update_address_bubble_controller.h
++++ b/chrome/browser/ui/autofill/update_address_bubble_controller.h
+@@ -8,6 +8,7 @@
+ #include <string>
+ 
+ #include "base/functional/callback_forward.h"
++#include "base/memory/weak_ptr.h"
+ #include "components/autofill/core/browser/data_model/addresses/autofill_profile.h"
+ #include "components/autofill/core/browser/foundations/autofill_client.h"
+ #include "content/public/browser/web_contents_observer.h"
+@@ -57,6 +58,10 @@ class UpdateAddressBubbleController : public content::WebContentsObserver {
+   // itself is about to be deleted.
+   virtual void OnBubbleClosed();
+ 
++  base::WeakPtr<UpdateAddressBubbleController> GetWeakPtr() {
++    return weak_ptr_factory_.GetWeakPtr();
++  }
++
+  private:
+   base::WeakPtr<AddressBubbleControllerDelegate> delegate_;
+ 
+@@ -67,6 +72,8 @@ class UpdateAddressBubbleController : public content::WebContentsObserver {
+   // Contains the details of the address profile that will be updated if the
+   // user accepts the prompt.
+   const AutofillProfile original_profile_;
++
++  base::WeakPtrFactory<UpdateAddressBubbleController> weak_ptr_factory_{this};
+ };
+ 
+ }  // namespace autofill
+diff --git a/chrome/browser/ui/views/autofill/save_address_profile_view.cc b/chrome/browser/ui/views/autofill/save_address_profile_view.cc
+index 472e53f76e..a3e2a4dda2 100644
+--- a/chrome/browser/ui/views/autofill/save_address_profile_view.cc
++++ b/chrome/browser/ui/views/autofill/save_address_profile_view.cc
+@@ -7,6 +7,7 @@
+ #include <memory>
+ #include <string>
+ 
++#include "base/functional/bind.h"
+ #include "chrome/app/vector_icons/vector_icons.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/ui/hats/hats_service.h"
+@@ -110,15 +111,13 @@ SaveAddressProfileView::SaveAddressProfileView(
+       controller_(std::move(controller)) {
+   // TODO(crbug.com/40164487): Accept action should consider the selected
+   // nickname when saving the address.
+-  SetAcceptCallback(
+-      base::BindOnce(&SaveAddressBubbleController::OnUserDecision,
+-                     base::Unretained(controller_.get()),
+-                     AutofillClient::AddressPromptUserDecision::kAccepted,
+-                     controller_->GetAutofillProfile()));
+-  SetCancelCallback(base::BindOnce(&SaveAddressBubbleController::OnUserDecision,
+-                                   base::Unretained(controller_.get()),
+-                                   controller_->GetCancelCallbackValue(),
+-                                   std::nullopt));
++  SetAcceptCallback(base::BindOnce(
++      &SaveAddressBubbleController::OnUserDecision, controller_->GetWeakPtr(),
++      AutofillClient::AddressPromptUserDecision::kAccepted,
++      controller_->GetAutofillProfile()));
++  SetCancelCallback(base::BindOnce(
++      &SaveAddressBubbleController::OnUserDecision, controller_->GetWeakPtr(),
++      controller_->GetCancelCallbackValue(), std::nullopt));
+ 
+   SetProperty(views::kElementIdentifierKey, kTopViewId);
+   SetTitle(controller_->GetWindowTitle());
+@@ -177,7 +176,7 @@ SaveAddressProfileView::SaveAddressProfileView(
+ 
+   edit_button_ = details_section->AddChildView(CreateEditButton(
+       base::BindRepeating(&SaveAddressBubbleController::OnEditButtonClicked,
+-                          base::Unretained(controller_.get()))));
++                          controller_->GetWeakPtr())));
+   edit_button_->SetProperty(views::kElementIdentifierKey, kEditButtonViewId);
+ 
+   std::u16string address = controller_->GetAddressSummary();
+diff --git a/chrome/browser/ui/views/autofill/save_address_profile_view_unittest.cc b/chrome/browser/ui/views/autofill/save_address_profile_view_unittest.cc
+index 320e31f24b..7b70a49b90 100644
+--- a/chrome/browser/ui/views/autofill/save_address_profile_view_unittest.cc
++++ b/chrome/browser/ui/views/autofill/save_address_profile_view_unittest.cc
+@@ -164,4 +164,13 @@ TEST_F(SaveAddressProfileViewTest, CancelInvokesTheController) {
+   view()->CancelDialog();
+ }
+ 
++TEST_F(SaveAddressProfileViewTest, AcceptAfterHideDoesNotCrash) {
++  std::unique_ptr<MockSaveAddressBubbleController> controller =
++      CreateViewController();
++  EXPECT_CALL(*controller, OnUserDecision).Times(0);
++  CreateViewAndShow(std::move(controller));
++  view()->Hide();
++  view()->AcceptDialog();
++}
++
+ }  // namespace autofill
+diff --git a/chrome/browser/ui/views/autofill/update_address_profile_view.cc b/chrome/browser/ui/views/autofill/update_address_profile_view.cc
+index 6013d4e9fc..5ad9e1d0fe 100644
+--- a/chrome/browser/ui/views/autofill/update_address_profile_view.cc
++++ b/chrome/browser/ui/views/autofill/update_address_profile_view.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <algorithm>
+ 
++#include "base/functional/bind.h"
+ #include "chrome/app/vector_icons/vector_icons.h"
+ #include "chrome/browser/browser_process.h"
+ #include "chrome/browser/ui/views/autofill/autofill_bubble_utils.h"
+@@ -187,26 +188,22 @@ UpdateAddressProfileView::UpdateAddressProfileView(
+   // Based of hypothesis in crbug.com/477044258, `GetProfileDifferenceForUi` is
+   // returning empty.
+   DUMP_WILL_BE_CHECK(!profile_diff.empty());
+-  has_empty_original_values_ = !HasNonEmptySecondValues(profile_diff);
++  const bool has_empty_original_values = !HasNonEmptySecondValues(profile_diff);
+ 
+-  SetAcceptCallback(
+-      base::BindOnce(&UpdateAddressBubbleController::OnUserDecision,
+-                     base::Unretained(controller_.get()),
+-                     AutofillClient::AddressPromptUserDecision::kAccepted,
+-                     controller_->GetProfileToSave()));
++  SetAcceptCallback(base::BindOnce(
++      &UpdateAddressBubbleController::OnUserDecision, controller_->GetWeakPtr(),
++      AutofillClient::AddressPromptUserDecision::kAccepted,
++      controller_->GetProfileToSave()));
+   SetCancelCallback(base::BindOnce(
+-      &UpdateAddressBubbleController::OnUserDecision,
+-      base::Unretained(controller_.get()),
++      &UpdateAddressBubbleController::OnUserDecision, controller_->GetWeakPtr(),
+       AutofillClient::AddressPromptUserDecision::kDeclined, std::nullopt));
+ 
+   SetProperty(views::kElementIdentifierKey, kTopViewId);
+-  SetTitle(controller_->GetWindowTitle(has_empty_original_values_));
+-  SetButtonLabel(
+-      ui::mojom::DialogButton::kOk,
+-      controller_->GetPositiveButtonText(has_empty_original_values_));
+-  SetButtonLabel(
+-      ui::mojom::DialogButton::kCancel,
+-      controller_->GetNegativeButtonText(has_empty_original_values_));
++  SetTitle(controller_->GetWindowTitle(has_empty_original_values));
++  SetButtonLabel(ui::mojom::DialogButton::kOk,
++                 controller_->GetPositiveButtonText(has_empty_original_values));
++  SetButtonLabel(ui::mojom::DialogButton::kCancel,
++                 controller_->GetNegativeButtonText(has_empty_original_values));
+ 
+   SetLayoutManager(std::make_unique<views::FlexLayout>())
+       ->SetOrientation(views::LayoutOrientation::kVertical)
+@@ -235,7 +232,7 @@ UpdateAddressProfileView::UpdateAddressProfileView(
+   // Build the TableLayoutView columns.
+   const int column_divider = layout_provider->GetDistanceMetric(
+       views::DISTANCE_RELATED_CONTROL_HORIZONTAL);
+-  if (!has_empty_original_values_) {
++  if (!has_empty_original_values) {
+     // Label column exists only if there is a section for original values.
+     main_content_view
+         ->AddColumn(
+@@ -262,12 +259,12 @@ UpdateAddressProfileView::UpdateAddressProfileView(
+ 
+   AddValuesRow(
+       main_content_view, profile_diff,
+-      /*show_row_label=*/!has_empty_original_values_,
++      /*show_row_label=*/!has_empty_original_values,
+       /*edit_button_callback=*/
+       base::BindRepeating(&UpdateAddressBubbleController::OnEditButtonClicked,
+-                          base::Unretained(controller_.get())));
++                          controller_->GetWeakPtr()));
+ 
+-  if (!has_empty_original_values_) {
++  if (!has_empty_original_values) {
+     main_content_view->AddPaddingRow(
+         views::TableLayout::kFixedSize,
+         layout_provider->GetDistanceMetric(
+@@ -300,10 +297,6 @@ bool UpdateAddressProfileView::ShouldShowCloseButton() const {
+   return true;
+ }
+ 
+-std::u16string UpdateAddressProfileView::GetWindowTitle() const {
+-  return controller_->GetWindowTitle(has_empty_original_values_);
+-}
+-
+ void UpdateAddressProfileView::WindowClosing() {
+   if (controller_) {
+     controller_->OnBubbleClosed();
+diff --git a/chrome/browser/ui/views/autofill/update_address_profile_view.h b/chrome/browser/ui/views/autofill/update_address_profile_view.h
+index c5278a5c91..97210d6929 100644
+--- a/chrome/browser/ui/views/autofill/update_address_profile_view.h
++++ b/chrome/browser/ui/views/autofill/update_address_profile_view.h
+@@ -40,7 +40,6 @@ class UpdateAddressProfileView : public AddressBubbleBaseView {
+ 
+   // views::WidgetDelegate:
+   bool ShouldShowCloseButton() const override;
+-  std::u16string GetWindowTitle() const override;
+   void WindowClosing() override;
+ 
+   void Show(DisplayReason reason);
+@@ -50,10 +49,6 @@ class UpdateAddressProfileView : public AddressBubbleBaseView {
+ 
+  private:
+   std::unique_ptr<UpdateAddressBubbleController> controller_;
+-
+-  // Indicates whether the profile has empty original values meaning the prompt
+-  // is shown to add info to the profile.
+-  bool has_empty_original_values_ = false;
+ };
+ 
+ }  // namespace autofill
+diff --git a/chrome/browser/ui/views/autofill/update_address_profile_view_unittest.cc b/chrome/browser/ui/views/autofill/update_address_profile_view_unittest.cc
+index c39ea0d700..432b33bbb4 100644
+--- a/chrome/browser/ui/views/autofill/update_address_profile_view_unittest.cc
++++ b/chrome/browser/ui/views/autofill/update_address_profile_view_unittest.cc
+@@ -89,6 +89,7 @@ class UpdateAddressProfileViewTest : public ChromeViewsTestBase {
+   MockUpdateAddressBubbleController* mock_controller() {
+     return mock_controller_;
+   }
++  void ClearMockController() { mock_controller_ = nullptr; }
+ 
+  private:
+   base::test::ScopedFeatureList feature_list_;
+@@ -156,4 +157,13 @@ TEST_F(UpdateAddressProfileViewTest, CancelInvokesTheController) {
+   view()->CancelDialog();
+ }
+ 
++TEST_F(UpdateAddressProfileViewTest, AcceptAfterHideDoesNotCrash) {
++  CreateViewAndShow();
++  EXPECT_CALL(*mock_controller(), OnUserDecision).Times(0);
++  ClearMockController();
++  view()->Hide();
++  EXPECT_EQ(view()->GetWindowTitle(), std::u16string());
++  view()->AcceptDialog();
++}
++
+ }  // namespace autofill
+-- 
+2.43.0
+
