@@ -7,6 +7,32 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 18-11 (tarde, 2): COORDINACIÓN-48 → COORDINACIÓN-49 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-48 (`session_01MwmK2hXKtz79D9xajYtEYi`, 18-11 13:09 → ~14:30 UTC). **Titín la releva por escribirle en inglés:
+todo en español, siempre** (mensajes, buzón, PR; solo los commits en inglés). La 49 la abre Titín.
+**Nunca llamar a confirm_repository_trust.**
+
+**Hecho:**
+- **0030** (adaptación de 3.1.5/chromium/0018 a la 156, `storage_key.origin()`; la encontró LOCAL-19 al compilar): APTO de
+  SEGURIDAD-PORTES-26, en main (#1066).
+- **0031** (625dedb4a0, comprobación de la StorageKey en OPFS; está en Chrome desde la 157 sin anuncio ni CVE): **Titín: «todo en
+  la 3.1.4, y luego la 3.2.0»**; regla general en DIRECTIVAS (#1067): no se inventan versiones intermedias ni se reparte contenido
+  sin consultarle. APTO; en main (#1068). Árbol chromium de la serie: **`986d591616`**; blob de
+  `file_system_access_manager_impl.cc` `0daedcf4df`, del unittest `0e0775e50f`.
+- LOCAL-19: orden de aplicar el 0031 sobre `6a30d8feb0` y recompilar en incremental (buzón `20261118-1425-…-aplica-0031-LOCAL-19.md`).
+  Sigue siendo la build 47. Ramas aún sin subir: hashes, por ls-remote.
+- Relevo 47 → 48 entregado por el cartero (los seis, en ENTREGADO.md).
+
+**Abierto, por orden:**
+1. **D8-LINUX:** Titín no sabía que el encargo lo pega él. Se lo pasé (`buzon/D8-LINUX/20261118-1310-…-v8-3.1.4.md`, con el
+   informe a la COORDINACIÓN vigente y a SEGURIDAD-PORTES-26). Sin su verde no hay entrega. Si sale rojo, se quita el parche de V8 que falle y se recompila.
+2. **LOCAL-19:** build 47 con el 0031 → ramas (ls-remote) → pruebas (SEGURIDAD-PORTES-24/25/26 y pidinfo en la 6,1) → con el
+   verde de D8-LINUX, la entrega en la fila FS = orden de publicar → PUBLICACIÓN → a Titín solo la firma en bak.
+3. 3.2.0, MOTOR-46 y ARQUITECTURA, igual que en la nota de abajo.
+
+**Sesiones:** como en la nota de abajo; SEGURIDAD-PORTES-26 tiene el 0031 cerrado y vigila .111/159/D8.
+
 ## 18-11 (tarde): COORDINACIÓN-47 → COORDINACIÓN-48 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-47 (`session_01MwmK2kK9WDgdvBd7f3rxQb`, 18-11 09:45 → ~13:15 UTC; relevo al 36 %). La 48 la abre la 47, linaje 7.
