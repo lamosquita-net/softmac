@@ -1,0 +1,356 @@
+From eebce8b6d274185d66bce261fdef67f914e369aa Mon Sep 17 00:00:00 2001
+From: Mason Freed <masonf@chromium.org>
+Date: Fri, 23 Oct 2026 14:19:38 -0700
+Subject: [PATCH 12/17] Set XMLParsingRust to experimental and fix
+ XMLDocumentParserRs bugs
+
+This CL enables XMLParsingRust as an experimental runtime feature and
+fixes several bugs in XMLDocumentParserRs uncovered by the test suite:
+
+- In XMLDocumentParserRs::StartElementNs, check IsStopped() after
+CreateElement and set attributes individually when a custom element
+constructor has run, matching XMLDocumentParser::StartElementNs. This
+copies https://crrev.com/c/8501725 for the non-rust parser.
+
+- Guard XMLDocumentParserRs::ProcessEvents against re-entrant Append()
+and Finish() calls during synchronous inline script execution by
+buffering incoming chunks in pending_src_ and deferring Finish(). This
+copies https://crrev.com/c/8419603 for the non-rust parser.
+
+- Ignore ImmutableEntitiesError::StandaloneDocument in
+add_xhtml_entities instead of panicking when an XHTML doctype is used
+with standalone="yes".
+
+- Use XMLDocumentParserRs in DOMPatchSupport::PatchDocument when Rust
+XML parsing is enabled, and include saw_error_ in
+XMLDocumentParserRs::WellFormed().
+
+- Avoid setting saw_xsl_transform_ or entering XML viewer mode on
+documents that have already been transformed by XSLT.
+
+- Record script_start_position_ at the token following the opening
+
+Bug: 435623334
+Fixed: 569659189
+Change-Id: Id8fcad269a4b0e0a3fa91930570ca1c9eacbe311
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8602619
+Auto-Submit: Mason Freed <masonf@chromium.org>
+Reviewed-by: David Baron <dbaron@chromium.org>
+Commit-Queue: Mason Freed <masonf@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1726224}
+(cherry picked from commit e8174b45ce619551ffc1006b4b7f7b96d7caf97f)
+
+[FlyWeb 3.1.4] Ported by hand onto 156 (SEGURIDAD-PORTES-24): only the
+XMLDocumentParserRs fixes (IsStopped() after CreateElement and per-attribute
+setting after a custom element constructor; re-entrant Append()/Finish()
+buffered in pending_src_ and deferred to EndInternal(); script start position;
+saw_error_ in WellFormed(); no panic on standalone XHTML entities). Left out:
+the XSLT-in-Rust parts 156 does not have (saw_xsl_transform_, CAP alerts,
+IsXSLTAllowed), the XMLParsingRust status change (already off in 156),
+DOMPatchSupport (DevTools) and the web test expectations. In 156 the Rust
+parser is used for frameless documents and for SVG documents in frames.
+---
+ .../core/xml/parser/xml_document_parser_rs.cc | 130 +++++++++++++-----
+ .../core/xml/parser/xml_document_parser_rs.h  |   4 +
+ .../blink/renderer/core/xml/parser/xml_ffi.rs |  10 +-
+ 3 files changed, 107 insertions(+), 37 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/xml/parser/xml_document_parser_rs.cc b/third_party/blink/renderer/core/xml/parser/xml_document_parser_rs.cc
+index 4908682486..e639187b5e 100644
+--- a/third_party/blink/renderer/core/xml/parser/xml_document_parser_rs.cc
++++ b/third_party/blink/renderer/core/xml/parser/xml_document_parser_rs.cc
+@@ -27,6 +27,7 @@
+ 
+ #include "third_party/blink/renderer/core/xml/parser/xml_document_parser_rs.h"
+ 
++#include "base/auto_reset.h"
+ #include "base/notimplemented.h"
+ #include "base/strings/string_view_rust.h"
+ #include "third_party/blink/renderer/core/dom/cdata_section.h"
+@@ -251,6 +252,15 @@ void XMLDocumentParserRs::HandleError(XMLErrors::ErrorType type,
+ }
+ 
+ void XMLDocumentParserRs::Append(const String& xml_string) {
++  if (IsStopped()) {
++    return;
++  }
++
++  if (parser_paused_ || in_process_events_) {
++    pending_src_.Append(xml_string);
++    return;
++  }
++
+   if (!xml_string.empty()) {
+     // Resume parsing, recover from unbalanced root error at previous chunk
+     // boundary.
+@@ -270,28 +280,49 @@ void XMLDocumentParserRs::Append(const String& xml_string) {
+ }
+ 
+ void XMLDocumentParserRs::ProcessEvents() {
+-  while (!parser_paused_ && !IsStopped() && !saw_end_document_ &&
+-         !xml_ffi::saw_error(*read_state_)) {
+-    xml_ffi::process_next_event(*read_state_);
+-  }
+-  if (xml_ffi::saw_error(*read_state_)) {
+-    rust::String error_message = "";
+-    TextPosition position = TextPosition::BelowRangePosition();
+-    uint64_t row = 0, column = 0;
+-    if (xml_ffi::try_get_error_details(*read_state_, error_message, row,
+-                                       column)) {
+-      position = TextPosition(
+-          OrdinalNumber::FromZeroBasedInt(static_cast<int>(row)),
+-          OrdinalNumber::FromZeroBasedInt(static_cast<int>(column)));
++  {
++    CHECK(!in_process_events_);
++    base::AutoReset<bool> reentrancy_guard(&in_process_events_, true);
++    while (!parser_paused_ && !IsStopped() && !saw_end_document_ &&
++           !xml_ffi::saw_error(*read_state_)) {
++      xml_ffi::process_next_event(*read_state_);
+     }
+-    if (xml_ffi::is_error_resumable(*read_state_) && !finish_called_) {
+-      carry_unbalanced_root_error_ = {String::FromUtf8(error_message.c_str()),
+-                                      position};
+-      xml_ffi::reset_error(*read_state_);
+-    } else {
+-      HandleError(XMLErrors::kErrorTypeFatal, error_message.c_str(), position);
++    if (xml_ffi::saw_error(*read_state_)) {
++      rust::String error_message = "";
++      TextPosition position = TextPosition::BelowRangePosition();
++      uint64_t row = 0, column = 0;
++      if (xml_ffi::try_get_error_details(*read_state_, error_message, row,
++                                         column)) {
++        position = TextPosition(
++            OrdinalNumber::FromZeroBasedInt(static_cast<int>(row)),
++            OrdinalNumber::FromZeroBasedInt(static_cast<int>(column)));
++      }
++      if (xml_ffi::is_error_resumable(*read_state_)) {
++        carry_unbalanced_root_error_ = {String::FromUtf8(error_message.c_str()),
++                                        position};
++        xml_ffi::reset_error(*read_state_);
++      } else {
++        HandleError(XMLErrors::kErrorTypeFatal, error_message.c_str(),
++                    position);
++      }
++    }
++  }
++
++  if (IsDetached() || parser_paused_) {
++    return;
++  }
++
++  if (!pending_src_.empty()) {
++    String rest = pending_src_.ReleaseString();
++    Append(rest);
++    if (IsDetached() || parser_paused_) {
++      return;
+     }
+   }
++
++  if (finish_called_) {
++    EndInternal();
++  }
+ }
+ 
+ void XMLDocumentParserRs::ClearCurrentNodeStack() {
+@@ -353,8 +384,16 @@ void XMLDocumentParserRs::StartDocument(
+   GetDocument()->SetHasXMLDeclaration(true);
+ }
+ 
++void XMLDocumentParserRs::UpdateScriptStartPositionIfNeeded() {
++  if (set_script_start_position_on_next_event_) {
++    script_start_position_ = GetTextPosition();
++    set_script_start_position_on_next_event_ = false;
++  }
++}
++
+ void XMLDocumentParserRs::ProcessingInstruction(rust::Str target,
+                                                 rust::Str data) {
++  UpdateScriptStartPositionIfNeeded();
+   if (!UpdateLeafTextNode()) {
+     return;
+   }
+@@ -394,6 +433,7 @@ void XMLDocumentParserRs::StartElementNs(
+     rust::Str ns,
+     xml_ffi::AttributesIterator& attributes,
+     xml_ffi::NamespacesIterator& namespaces) {
++  UpdateScriptStartPositionIfNeeded();
+   if (IsStopped()) {
+     return;
+   }
+@@ -512,13 +552,30 @@ void XMLDocumentParserRs::StartElementNs(
+ 
+   Element* new_element =
+       current_node_->GetDocument().CreateElement(q_name, flags, is, registry);
+-
++  // Check IsStopped() because custom element constructors may synchronously
++  // trigger removal of the document and cancellation of this parser.
++  if (IsStopped()) {
++    return;
++  }
+   if (!new_element) {
+     StopParsing();
+     return;
+   }
+ 
+-  SetAttributes(new_element, prefixed_attributes, GetParserContentPolicy());
++  if (reactions.has_value()) {
++    // A synchronous custom element constructor ran and may have manipulated
++    // the element (set attributes, appended children, or inserted it into the
++    // tree), so the batched ParserSetAttributes() path is no longer safe. Set
++    // the attributes one by one, as HTMLConstructionSite::CreateElement does.
++    if (!ScriptingContentIsAllowed(GetParserContentPolicy())) {
++      new_element->StripScriptingAttributes(prefixed_attributes);
++    }
++    for (const auto& attribute : prefixed_attributes) {
++      new_element->setAttribute(attribute.GetName(), attribute.Value());
++    }
++  } else {
++    SetAttributes(new_element, prefixed_attributes, GetParserContentPolicy());
++  }
+ 
+   if (parsing_fragment_ && encountered_namespace_reset &&
+       !ancestor_resetting_namespace_) {
+@@ -529,6 +586,7 @@ void XMLDocumentParserRs::StartElementNs(
+ 
+   if (new_element->IsScriptElement()) {
+     script_start_position_ = GetTextPosition();
++    set_script_start_position_on_next_event_ = true;
+   }
+ 
+   current_node_->ParserAppendChild(new_element);
+@@ -561,6 +619,7 @@ void XMLDocumentParserRs::StartElementNs(
+ void XMLDocumentParserRs::EndElementNs(rust::Str local_name,
+                                        rust::Str prefix,
+                                        rust::Str ns) {
++  UpdateScriptStartPositionIfNeeded();
+   if (!UpdateLeafTextNode()) {
+     return;
+   }
+@@ -629,11 +688,13 @@ void XMLDocumentParserRs::EndElementNs(rust::Str local_name,
+ }
+ 
+ void XMLDocumentParserRs::Characters(rust::Str characters) {
++  UpdateScriptStartPositionIfNeeded();
+   CreateLeafTextNodeIfNeeded();
+   buffered_text_.Append(RustStrToWtfString(characters));
+ }
+ 
+ void XMLDocumentParserRs::CData(rust::Str data) {
++  UpdateScriptStartPositionIfNeeded();
+   if (!UpdateLeafTextNode()) {
+     return;
+   }
+@@ -643,6 +704,7 @@ void XMLDocumentParserRs::CData(rust::Str data) {
+ }
+ 
+ void XMLDocumentParserRs::Comment(rust::Str comment) {
++  UpdateScriptStartPositionIfNeeded();
+   if (!UpdateLeafTextNode()) {
+     return;
+   }
+@@ -716,12 +778,21 @@ void XMLDocumentParserRs::PopCurrentNode() {
+ void XMLDocumentParserRs::EndInternal() {
+   DCHECK(!parsing_fragment_);
+ 
+-  if (IsDetached()) {
++  if (IsDetached() || parser_paused_) {
+     return;
+   }
+ 
+-  if (parser_paused_) {
+-    return;
++  finish_called_ = false;
++
++  if (carry_unbalanced_root_error_) {
++    CarryUnbalancedRootElementError error =
++        std::move(*carry_unbalanced_root_error_);
++    carry_unbalanced_root_error_ = std::nullopt;
++    HandleError(XMLErrors::kErrorTypeFatal, error.error_message.Utf8().c_str(),
++                error.position);
++    if (IsDetached()) {
++      return;
++    }
+   }
+ 
+   // StopParsing() calls InsertErrorMessageBlock() if there was a parsing
+@@ -761,13 +832,7 @@ void XMLDocumentParserRs::Finish() {
+     return;
+   }
+ 
+-  if (carry_unbalanced_root_error_) {
+-    HandleError(XMLErrors::kErrorTypeFatal,
+-                carry_unbalanced_root_error_->error_message.Utf8().c_str(),
+-                carry_unbalanced_root_error_->position);
+-  }
+-
+-  if (parser_paused_) {
++  if (parser_paused_ || in_process_events_) {
+     finish_called_ = true;
+   } else {
+     EndInternal();
+@@ -816,7 +881,8 @@ void XMLDocumentParserRs::Detach() {
+ }
+ 
+ bool XMLDocumentParserRs::WellFormed() const {
+-  return !xml_ffi::saw_error(*read_state_) && !carry_unbalanced_root_error_;
++  return !saw_error_ && !xml_ffi::saw_error(*read_state_) &&
++         !carry_unbalanced_root_error_;
+ }
+ 
+ void XMLDocumentParserRs::InsertErrorMessageBlock() {
+diff --git a/third_party/blink/renderer/core/xml/parser/xml_document_parser_rs.h b/third_party/blink/renderer/core/xml/parser/xml_document_parser_rs.h
+index b57e355d57..cee85674ad 100644
+--- a/third_party/blink/renderer/core/xml/parser/xml_document_parser_rs.h
++++ b/third_party/blink/renderer/core/xml/parser/xml_document_parser_rs.h
+@@ -111,9 +111,11 @@ class CORE_EXPORT XMLDocumentParserRs final : public ScriptableDocumentParser,
+   void CheckIfBlockingStyleSheetAdded();
+ 
+   bool ShouldMarkScriptAlreadyStarted() const;
++  void UpdateScriptStartPositionIfNeeded();
+ 
+   Member<XMLParserScriptRunner> script_runner_;
+   TextPosition script_start_position_;
++  bool set_script_start_position_on_next_event_ = false;
+   bool saw_error_ = false;
+   bool saw_css_ = false;
+ 
+@@ -137,6 +139,8 @@ class CORE_EXPORT XMLDocumentParserRs final : public ScriptableDocumentParser,
+   bool saw_end_document_ = false;
+ 
+   bool parser_paused_ = false;
++  bool in_process_events_ = false;
++  StringBuilder pending_src_;
+   bool requesting_script_ = false;
+   bool waiting_for_stylesheets_ = false;
+   bool added_pending_parser_blocking_stylesheet_ = false;
+diff --git a/third_party/blink/renderer/core/xml/parser/xml_ffi.rs b/third_party/blink/renderer/core/xml/parser/xml_ffi.rs
+index 775743b887..a9b61123d0 100644
+--- a/third_party/blink/renderer/core/xml/parser/xml_ffi.rs
++++ b/third_party/blink/renderer/core/xml/parser/xml_ffi.rs
+@@ -9,7 +9,7 @@ use xml::{
+     attribute::OwnedAttribute,
+     common::{Position, TextPosition},
+     reader::{
+-        ErrorKind, EventReader as XmlEventReader,
++        ErrorKind, EventReader as XmlEventReader, ImmutableEntitiesError,
+         XmlEvent::{
+             CData, Characters, Comment, Doctype, EndDocument, EndElement, ProcessingInstruction,
+             StartDocument, StartElement, Whitespace,
+@@ -209,10 +209,10 @@ fn try_get_last_event_position(read_state: &XmlReadState, row: &mut u64, col: &m
+ 
+ fn add_xhtml_entities(read_state: &mut XmlReadState) {
+     for map in [LAT1_MAP, SYMBOL_MAP, SPECIAL_MAP, HTML5_MAP].iter() {
+-        read_state
+-            .event_reader
+-            .add_entities(map.iter().copied())
+-            .expect("Adding built-in entities should not cause an error.");
++        match read_state.event_reader.add_entities(map.iter().copied()) {
++            Ok(()) | Err(ImmutableEntitiesError::StandaloneDocument) => {}
++            Err(e) => panic!("Adding built-in entities should not cause an error: {e}"),
++        }
+     }
+ }
+ 
+-- 
+2.43.0
+

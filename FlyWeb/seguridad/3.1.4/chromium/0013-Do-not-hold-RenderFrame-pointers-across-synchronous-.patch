@@ -1,0 +1,383 @@
+From 4559c68d6132541b436a6f9f60138adb64bb40a6 Mon Sep 17 00:00:00 2001
+From: Jihad Hanna <jihadghanna@google.com>
+Date: Thu, 22 Oct 2026 05:33:57 -0700
+Subject: [PATCH 13/17] Do not hold RenderFrame pointers across synchronous
+ layout updates
+
+Calls that force style and layout updates (such as
+WebElement::BoundsInWidget() and
+WebFrameWidget::CalculateSelectionBounds()) can synchronously trigger
+fallback content rendering on an embedding <object> element, which
+detaches the child frame and destroys its content::RenderFrameImpl.
+
+To prevent use-after-free of content::RenderFrame across layout updates:
+- Compute BoundsInWidget() before resolving and null-checking the
+  content::RenderFrame in WebFormControlElementToFormField(),
+  FindFormForContentEditable(), PasswordAutofillAgent, and
+  PasswordGenerationAgent.
+- Change WebFormControlElementToFormField() to return
+  std::optional<FormFieldData> and return std::nullopt when the frame is
+  detached during layout.
+- Update AutofillAgent::GetCaretBounds() to resolve
+  unsafe_render_frame() after CalculateSelectionBounds().
+- Do not cache unsafe_render_frame() across FormCache::UpdateFormCache()
+  in AutofillAgent::ExtractFormsUnthrottled().
+
+Fixed: 565839464
+Change-Id: Ia32ef415bef9fdb879fe4c6a9e6ffd40a236e38d
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8458650
+Commit-Queue: Christoph Schwering <schwering@google.com>
+Auto-Submit: Jihad Hanna <jihadghanna@google.com>
+Reviewed-by: Christoph Schwering <schwering@google.com>
+Cr-Commit-Position: refs/heads/main@{#1724661}
+(cherry picked from commit 01c2ce852fd2ce169b777887324aef3c79a91870)
+---
+ .../content/renderer/autofill_agent.cc        | 59 ++++++++++---------
+ .../content/renderer/autofill_agent.h         |  2 +
+ .../content/renderer/form_autofill_util.cc    | 28 ++++++---
+ .../form_autofill_util_browsertest.cc         | 40 +++++++++++++
+ .../renderer/password_autofill_agent.cc       |  8 ++-
+ .../renderer/password_generation_agent.cc     | 34 +++++++----
+ 6 files changed, 120 insertions(+), 51 deletions(-)
+
+diff --git a/components/autofill/content/renderer/autofill_agent.cc b/components/autofill/content/renderer/autofill_agent.cc
+index 94fc3fd25c..bbfc02795f 100644
+--- a/components/autofill/content/renderer/autofill_agent.cc
++++ b/components/autofill/content/renderer/autofill_agent.cc
+@@ -303,16 +303,6 @@ bool ShowPredictions(const WebDocument& document,
+   return true;
+ }
+ 
+-gfx::Rect GetCaretBounds(content::RenderFrame& frame) {
+-  if (auto* frame_widget = frame.GetWebFrame()->LocalRoot()->FrameWidget()) {
+-    gfx::Rect anchor;
+-    gfx::Rect focus;
+-    frame_widget->CalculateSelectionBounds(anchor, focus);
+-    return frame.ConvertViewportToWindow(focus);
+-  }
+-  return gfx::Rect();
+-}
+-
+ AutofillAgent::Config CreateConfig(bool uses_platform_autofill) {
+   if (uses_platform_autofill) {
+     return {
+@@ -772,7 +762,7 @@ void AutofillAgent::HandleCaretMovedInFormField(WebElement element,
+         !element.ContainsFrameSelection()) {
+       return;
+     }
+-    gfx::Rect caret_bounds = GetCaretBounds(*self.unsafe_render_frame());
++    gfx::Rect caret_bounds = self.GetCaretBounds();
+     if (WebFormControlElement control =
+             element.DynamicTo<WebFormControlElement>()) {
+       if (std::optional<form_util::FormAndField> form_and_field =
+@@ -1700,12 +1690,10 @@ void AutofillAgent::ShowSuggestions(
+ 
+   is_popup_possibly_visible_ = true;
+   if (auto* autofill_driver = unsafe_autofill_driver()) {
+-    if (auto* render_frame = unsafe_render_frame()) {
+-      autofill_driver->AskForValuesToFill(form, field.renderer_id(),
+-                                          GetCaretBounds(*render_frame),
+-                                          trigger_source, password_request);
+-      at_memory_handler_.MaybeUpdateAskForValuesToFill(element, trigger_source);
+-    }
++    autofill_driver->AskForValuesToFill(form, field.renderer_id(),
++                                        GetCaretBounds(), trigger_source,
++                                        password_request);
++    at_memory_handler_.MaybeUpdateAskForValuesToFill(element, trigger_source);
+   }
+ }
+ 
+@@ -1726,12 +1714,10 @@ void AutofillAgent::ShowSuggestionsForContentEditable(
+ 
+   if (auto* autofill_driver = unsafe_autofill_driver()) {
+     is_popup_possibly_visible_ = true;
+-    if (auto* render_frame = unsafe_render_frame()) {
+-      autofill_driver->AskForValuesToFill(*form, field.renderer_id(),
+-                                          GetCaretBounds(*render_frame),
+-                                          trigger_source, std::nullopt);
+-      at_memory_handler_.MaybeUpdateAskForValuesToFill(element, trigger_source);
+-    }
++    autofill_driver->AskForValuesToFill(*form, field.renderer_id(),
++                                        GetCaretBounds(), trigger_source,
++                                        std::nullopt);
++    at_memory_handler_.MaybeUpdateAskForValuesToFill(element, trigger_source);
+   }
+ }
+ 
+@@ -1972,8 +1958,7 @@ void AutofillAgent::ExtractFormsAndNotifyPasswordAutofillAgent(
+ void AutofillAgent::ExtractFormsUnthrottled(
+     base::OnceCallback<void(bool)> callback,
+     const CallTimerState& timer_state) {
+-  content::RenderFrame* render_frame = unsafe_render_frame();
+-  if (!render_frame) {
++  if (!unsafe_render_frame()) {
+     if (!callback.is_null()) {
+       std::move(callback).Run(/*success=*/false);
+     }
+@@ -1992,11 +1977,27 @@ void AutofillAgent::ExtractFormsUnthrottled(
+     std::move(callback).Run(/*success=*/true);
+   }
+ 
+-  if (WebLocalFrame& frame = *render_frame->GetWebFrame();
+-      frame.IsInspectorConnected()) {
+-    form_issues::EmitFormIssues(frame.GetDocument(), cache.updated_forms,
+-                                &form_issues::EmitToDevTools);
++  if (auto* render_frame = unsafe_render_frame()) {
++    if (WebLocalFrame& frame = *render_frame->GetWebFrame();
++        frame.IsInspectorConnected()) {
++      form_issues::EmitFormIssues(frame.GetDocument(), cache.updated_forms,
++                                  &form_issues::EmitToDevTools);
++    }
++  }
++}
++
++gfx::Rect AutofillAgent::GetCaretBounds() const {
++  if (WebDocument doc = GetDocument()) {
++    if (auto* frame_widget = doc.GetFrame()->LocalRoot()->FrameWidget()) {
++      gfx::Rect anchor;
++      gfx::Rect focus;
++      frame_widget->CalculateSelectionBounds(anchor, focus);
++      if (auto* render_frame = unsafe_render_frame()) {
++        return render_frame->ConvertViewportToWindow(focus);
++      }
++    }
+   }
++  return gfx::Rect();
+ }
+ 
+ void AutofillAgent::HidePopup() {
+diff --git a/components/autofill/content/renderer/autofill_agent.h b/components/autofill/content/renderer/autofill_agent.h
+index 410a76e060..00640b23e0 100644
+--- a/components/autofill/content/renderer/autofill_agent.h
++++ b/components/autofill/content/renderer/autofill_agent.h
+@@ -440,6 +440,8 @@ class AutofillAgent : public content::RenderFrameObserver,
+   // Hides any currently showing Autofill popup.
+   void HidePopup();
+ 
++  gfx::Rect GetCaretBounds() const;
++
+   // Helpers for SelectFieldOptionsChanged() and
+   // DataListOptionsChanged(), which get called after a timer that is restarted
+   // when another event of the same type started.
+diff --git a/components/autofill/content/renderer/form_autofill_util.cc b/components/autofill/content/renderer/form_autofill_util.cc
+index 5d9ec51a0e..97bb968a35 100644
+--- a/components/autofill/content/renderer/form_autofill_util.cc
++++ b/components/autofill/content/renderer/form_autofill_util.cc
+@@ -1849,7 +1849,7 @@ bool HasFormAncestor(WebNode node) {
+   return false;
+ }
+ 
+-// Populates out a FormFieldData object from a given autofillable
++// Populates a FormFieldData object from a given autofillable
+ // WebFormControlElement. Field properties are copied from |field_data_manager|,
+ // if the argument is not null and has entry for |element| (see properties in
+ // FieldPropertiesFlags).
+@@ -1860,7 +1860,6 @@ void WebFormControlElementToFormField(
+     FormFieldData* field) {
+   DCHECK(field);
+   DCHECK(element);
+-  DCHECK(element.GetDocument().GetFrame());
+   DCHECK(IsAccessible(element));
+   DCHECK(IsAutofillableElement(element));
+ 
+@@ -2006,10 +2005,14 @@ void WebFormControlElementToFormField(
+     }
+   }
+ 
++  // `BoundsInWidget()` triggers style and layout updates, which may
++  // synchronously detach the frame and destroy the `content::RenderFrame`.
++  // Evaluate it before retrieving the frame.
++  gfx::Rect bounds = element.BoundsInWidget();
+   if (auto* local_frame = element.GetDocument().GetFrame()) {
+     if (auto* render_frame = content::RenderFrame::FromWebFrame(local_frame)) {
+-      field->set_bounds(gfx::RectF(
+-          render_frame->ConvertViewportToWindow(element.BoundsInWidget())));
++      field->set_bounds(
++          gfx::RectF(render_frame->ConvertViewportToWindow(bounds)));
+     }
+   }
+ 
+@@ -2142,10 +2145,15 @@ std::optional<FormData> ExtractFormDataWithFieldsAndFrames(
+     } else if (iframe && iframe->IsWebRemoteFrame()) {
+       child_frame.token = RemoteFrameToken(
+           iframe->ToWebRemoteFrame()->GetRemoteFrameToken().value());
+-    } else {
+-      NOTREACHED();
+     }
+   }
++  // `WebFormControlElementToFormField()` triggers layout via
++  // `BoundsInWidget()`, which may synchronously detach frames that were alive
++  // when `iframe_elements` was filtered above.
++  std::erase_if(child_frames, [](const FrameTokenWithPredecessor& child_frame) {
++    return std::visit([](const auto& token) { return token.is_empty(); },
++                      child_frame.token);
++  });
+ 
+   FormData form;
+   if (!form_element) {
+@@ -2532,10 +2540,14 @@ std::optional<FormData> FindFormForContentEditable(
+   field.set_autocomplete_attribute(GetAutocompleteAttribute(content_editable));
+   field.set_parsed_autocomplete(
+       ParseAutocompleteAttribute(field.autocomplete_attribute()));
++  // `BoundsInWidget()` triggers style and layout updates, which may
++  // synchronously detach the frame and destroy the `content::RenderFrame`.
++  // Evaluate it before retrieving the frame.
++  gfx::Rect bounds = content_editable.BoundsInWidget();
+   if (auto* local_frame = document.GetFrame()) {
+     if (auto* render_frame = content::RenderFrame::FromWebFrame(local_frame)) {
+-      field.set_bounds(gfx::RectF(render_frame->ConvertViewportToWindow(
+-          content_editable.BoundsInWidget())));
++      field.set_bounds(
++          gfx::RectF(render_frame->ConvertViewportToWindow(bounds)));
+     }
+   }
+   if (base::EqualsCaseInsensitiveASCII(
+diff --git a/components/autofill/content/renderer/form_autofill_util_browsertest.cc b/components/autofill/content/renderer/form_autofill_util_browsertest.cc
+index ad0992b58a..5f0846014a 100644
+--- a/components/autofill/content/renderer/form_autofill_util_browsertest.cc
++++ b/components/autofill/content/renderer/form_autofill_util_browsertest.cc
+@@ -1284,6 +1284,46 @@ TEST_F(FormAutofillUtilsTest,
+   EXPECT_EQ(FindFormAndFieldForFormControlElement(form_control), std::nullopt);
+ }
+ 
++// Regression test for crbug.com/565839464: Ensure that if forcing layout during
++// form/field extraction causes an ancestor <object> to render fallback content
++// and detach the frame, extraction does not UAF the destroyed RenderFrame.
++TEST_F(FormAutofillUtilsTest,
++       FindFormAndFieldForFormControlElement_FrameDetachedDuringLayout) {
++  LoadHTML(R"(<object id="obj" data="about:blank">fallback</object>)");
++  WebElement obj = GetElementById(GetDocument(), "obj");
++  ASSERT_TRUE(obj);
++  blink::WebFrame* child_frame = blink::WebFrame::FromFrameOwnerElement(obj);
++  ASSERT_TRUE(child_frame && child_frame->IsWebLocalFrame());
++  WebDocument child_doc = child_frame->ToWebLocalFrame()->GetDocument();
++
++  ExecuteJavaScriptForTests(R"(
++    const obj = document.getElementById('obj');
++    const doc = obj.contentDocument;
++    doc.body.innerHTML =
++        '<div style="content-visibility: hidden">' +
++        '<input id="i1"><input id="i2"><iframe></iframe></div>';
++    // Flush layout so the content-visibility DisplayLockContext is active, and
++    // detach `obj`'s LayoutObject (without detaching its ContentFrame) via
++    // display:none.
++    doc.body.offsetTop;
++    obj.style.display = 'none';
++    obj.offsetTop;
++    // Switch `obj` to an invalid image data URL while it has no LayoutObject,
++    // then mark it display:block without forcing layout. The next layout
++    // (triggered by BoundsInWidget()) will invoke CustomStyleForLayoutObject ->
++    // HTMLImageLoader -> RenderFallbackContent -> DisconnectContentFrame.
++    obj.data = 'data:image/png;base64,invalid';
++    obj.style.display = 'block';
++  )");
++
++  WebFormControlElement input = GetFormControlElementById(child_doc, "i1");
++  ASSERT_TRUE(input);
++  ASSERT_NE(child_doc.GetFrame(), nullptr);
++
++  EXPECT_NE(FindFormAndFieldForFormControlElement(input), std::nullopt);
++  EXPECT_EQ(child_doc.GetFrame(), nullptr);
++}
++
+ // Tests that Autofill form ownership follows Blink form's association, which,
+ // in compliance with the HTML standard, associates forms with an unclosed
+ // <form> element.
+diff --git a/components/autofill/content/renderer/password_autofill_agent.cc b/components/autofill/content/renderer/password_autofill_agent.cc
+index fe94644435..463dbec5dd 100644
+--- a/components/autofill/content/renderer/password_autofill_agent.cc
++++ b/components/autofill/content/renderer/password_autofill_agent.cc
+@@ -1204,10 +1204,14 @@ PasswordAutofillAgent::CreateSuggestionRequest(
+                              &username_element, &password_element,
+                              &password_info);
+ 
++  gfx::Rect bounds = user_input.BoundsInWidget();
++  if (content::RenderFrame* render_frame = unsafe_render_frame()) {
++    bounds = render_frame->ConvertViewportToWindow(bounds);
++  }
++
+   return PasswordSuggestionRequest(
+       TriggeringField(form_and_field->field, trigger_source, typed_username,
+-                      gfx::RectF(unsafe_render_frame()->ConvertViewportToWindow(
+-                          user_input.BoundsInWidget()))),
++                      gfx::RectF(bounds)),
+       std::move(form_and_field->form),
+       {.frame_token = {},
+        .renderer_id = username_element ? GetFieldRendererId(username_element)
+diff --git a/components/autofill/content/renderer/password_generation_agent.cc b/components/autofill/content/renderer/password_generation_agent.cc
+index 75debbb242..80eb005f84 100644
+--- a/components/autofill/content/renderer/password_generation_agent.cc
++++ b/components/autofill/content/renderer/password_generation_agent.cc
+@@ -476,8 +476,7 @@ void PasswordGenerationAgent::FoundFormEligibleForGeneration(
+ 
+ void PasswordGenerationAgent::TriggeredGeneratePassword(
+     TriggeredGeneratePasswordCallback callback) {
+-  if (auto* frame = unsafe_render_frame();
+-      frame && SetUpTriggeredGeneration()) {
++  if (unsafe_render_frame() && SetUpTriggeredGeneration()) {
+     LogMessage(Logger::STRING_GENERATION_RENDERER_SHOW_GENERATION_POPUP);
+     auto [current_generation_item, auto_protect] =
+         current_generation_item_.GetAndProtect();
+@@ -489,9 +488,13 @@ void PasswordGenerationAgent::TriggeredGeneratePassword(
+         current_generation_item->generation_element
+             .FormControlType()  // nocheck
+         == kInputPassword;
++    gfx::Rect bounds =
++        current_generation_item->generation_element.BoundsInWidget();
++    if (content::RenderFrame* render_frame = unsafe_render_frame()) {
++      bounds = render_frame->ConvertViewportToWindow(bounds);
++    }
+     password_generation::PasswordGenerationUIData password_generation_ui_data(
+-        gfx::RectF(frame->ConvertViewportToWindow(
+-            current_generation_item->generation_element.BoundsInWidget())),
++        gfx::RectF(bounds),
+         current_generation_item->generation_element.MaxLength(),
+         current_generation_item->generation_element.NameForAutofill().Utf16(),
+         form_util::GetFieldRendererId(
+@@ -765,12 +768,16 @@ void PasswordGenerationAgent::AutomaticGenerationAvailable() {
+   bool is_generation_element_password_type =
+       current_generation_item->generation_element.FormControlType()  // nocheck
+       == kInputPassword;
+-  if (!unsafe_render_frame() || !unsafe_driver()) {
++  gfx::Rect bounds =
++      current_generation_item->generation_element.BoundsInWidget();
++  if (content::RenderFrame* render_frame = unsafe_render_frame()) {
++    bounds = render_frame->ConvertViewportToWindow(bounds);
++  }
++  if (!unsafe_driver()) {
+     return;
+   }
+   password_generation::PasswordGenerationUIData password_generation_ui_data(
+-      gfx::RectF(unsafe_render_frame()->ConvertViewportToWindow(
+-          current_generation_item->generation_element.BoundsInWidget())),
++      gfx::RectF(bounds),
+       current_generation_item->generation_element.MaxLength(),
+       current_generation_item->generation_element.NameForAutofill().Utf16(),
+       form_util::GetFieldRendererId(
+@@ -789,15 +796,18 @@ void PasswordGenerationAgent::ShowEditingPopup(
+   auto [current_generation_item, auto_protect] =
+       current_generation_item_.GetAndProtect();
+ 
+-  if (!unsafe_render_frame()) {
+-    return;
++  gfx::Rect bounds =
++      current_generation_item->generation_element.BoundsInWidget();
++  if (content::RenderFrame* render_frame = unsafe_render_frame()) {
++    bounds = render_frame->ConvertViewportToWindow(bounds);
+   }
+-  gfx::RectF bounding_box(unsafe_render_frame()->ConvertViewportToWindow(
+-      current_generation_item->generation_element.BoundsInWidget()));
++  gfx::RectF bounding_box(bounds);
+ 
+   std::optional<FormData> form_data = CreateFormDataToPresave(
+       current_generation_item->generation_element, form_cache);
+-  DCHECK(form_data);
++  if (!form_data) {
++    return;
++  }
+ 
+   FieldRendererId generation_element_renderer_id =
+       form_util::GetFieldRendererId(
+-- 
+2.43.0
+

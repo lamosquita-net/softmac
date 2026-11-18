@@ -1,0 +1,219 @@
+From d91632790084e5b377be13ed1691118278b072fe Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 09:21:07 +0000
+Subject: [PATCH 2/2] v8: regexp code generation errors (659b8bf, crbug
+ 573263262); cache epoch 32
+
+Backport of V8 659b8bf "[regexp] Propagate Trace::Flush errors" (Chrome 158,
+CVE-2026-131042), clean on 15.6.75.66, with its regression test.
+kFlyWebCacheEpoch 31 -> 32.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hXs9xn6KN4sT9iVtr
+---
+ patches/v8/FLYWEB-SECURITY.md                 | 15 ++++
+ .../v8/src-regexp-regexp-compiler.cc.patch    | 79 +++++++++++++++++++
+ patches/v8/src-regexp-regexp-nodes.h.patch    | 22 ++++++
+ patches/v8/src-utils-version.cc.patch         | 10 ++-
+ ...mjsunit-regress-regress-573263262.js.patch | 23 ++++++
+ 5 files changed, 145 insertions(+), 4 deletions(-)
+ create mode 100644 patches/v8/src-regexp-regexp-compiler.cc.patch
+ create mode 100644 patches/v8/src-regexp-regexp-nodes.h.patch
+ create mode 100644 patches/v8/test-mjsunit-regress-regress-573263262.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 839b1b37c..aa88f5421 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,18 @@
++# FlyWeb: 3.1.4, V8 15.6.75.66 + 659b8bf
++
++SEGURIDAD-PORTES-24, 18-11-2026 (brave-core `seg/3.1.4`). Inventory in softmac `FlyWeb/seguridad/3.1.4/INVENTARIO.md`.
++
++- **659b8bf** (573263262, CVE-2026-131042, High, Chrome 158; not merged to 15.6): regexp code generation errors from
++  `Trace::Flush` are no longer ignored. `Node::LimitVersions` returns the new `FAILED`, the four `Emit` callers return
++  `EmitResult::Error()`, `ActionNode::Emit` returns the `Flush` result, `EmitResult` is `V8_NODISCARD` and
++  `Compiler::Assemble` CHECKs instead of reporting "too big". Clean on 15.6.75.66; every `Emit`/`Flush` caller in
++  15.6's `regexp-compiler.cc` already uses the result, so `V8_NODISCARD` adds no warning. With
++  `regress/regress-573263262.js`.
++- `kFlyWebCacheEpoch` 31 -> **32**.
++
++To check (D8-LINUX): `d8` and mjsunit with and without Maglev, especially `regress/regress-573263262.js` and
++`regexp*`, `harmony/regexp*`, `es6/unicode-regexp*`.
++
+ # FlyWeb: 3.0.2, V8 15.6.75.51
+ 
+ SEGURIDAD-PORTES-20, 09-11-2026 (brave-core `seg/3.0.2`). The roll 6500240d22 -> 182f13107b (15.6.75.51, the
+diff --git a/patches/v8/src-regexp-regexp-compiler.cc.patch b/patches/v8/src-regexp-regexp-compiler.cc.patch
+new file mode 100644
+index 000000000..2a48a0de6
+--- /dev/null
++++ b/patches/v8/src-regexp-regexp-compiler.cc.patch
+@@ -0,0 +1,79 @@
++diff --git a/src/regexp/regexp-compiler.cc b/src/regexp/regexp-compiler.cc
++index 8d2c947bd1862c6c8085d61b5979a897834afac6..1637c8ee8a5797ee0753b961212d5128bc5d5115 100644
++--- a/src/regexp/regexp-compiler.cc
+++++ b/src/regexp/regexp-compiler.cc
++@@ -389,10 +389,8 @@ Compiler::CompilationResult Compiler::Assemble(
++       }
++     }
++   }
++-  if (IsRegExpTooBig()) {
++-    work_list_ = nullptr;
++-    return ReportError();
++-  }
+++  // Emit must report every code generation error.
+++  CHECK(!IsRegExpTooBig());
++ 
++   DirectHandle<HeapObject> code = macro_assembler_->GetCode(re_data, flags_);
++   work_list_ = nullptr;
++@@ -1725,9 +1723,9 @@ Node::LimitResult Node::LimitVersions(Compiler* compiler, Trace* trace) {
++   TRACE("* Limit Versions: Switch to generic version");
++   bool was_limiting = compiler->limiting_recursion();
++   compiler->set_limiting_recursion(true);
++-  trace->Flush(compiler, this);
+++  EmitResult result = trace->Flush(compiler, this);
++   compiler->set_limiting_recursion(was_limiting);
++-  return DONE;
+++  return result.IsError() ? FAILED : DONE;
++ }
++ 
++ bool Node::KeepRecursing(Compiler* compiler) {
++@@ -2773,6 +2771,7 @@ EmitResult TextNode::Emit(Compiler* compiler, Trace* trace) {
++   TRACE_EMIT("TextNode");
++   LimitResult limit_result = LimitVersions(compiler, trace);
++   if (limit_result == DONE) return EmitResult::Success();
+++  if (limit_result == FAILED) return EmitResult::Error();
++   DCHECK(limit_result == CONTINUE);
++ 
++   const int max_offset = read_backward() ? trace->cp_offset() - Length()
++@@ -4201,6 +4200,7 @@ EmitResult ChoiceNode::Emit(Compiler* compiler, Trace* trace) {
++ 
++   LimitResult limit_result = LimitVersions(compiler, trace);
++   if (limit_result == DONE) return EmitResult::Success();
+++  if (limit_result == FAILED) return EmitResult::Error();
++   DCHECK(limit_result == CONTINUE);
++ 
++   // For loop nodes we already flushed (see LoopChoiceNode::Emit), but for
++@@ -5850,6 +5850,7 @@ EmitResult ActionNode::Emit(Compiler* compiler, Trace* trace) {
++   RegExpMacroAssembler* assembler = compiler->macro_assembler();
++   LimitResult limit_result = LimitVersions(compiler, trace);
++   if (limit_result == DONE) return EmitResult::Success();
+++  if (limit_result == FAILED) return EmitResult::Error();
++   DCHECK(limit_result == CONTINUE);
++ 
++   RecursionCheck rc(compiler);
++@@ -5878,7 +5879,7 @@ EmitResult ActionNode::Emit(Compiler* compiler, Trace* trace) {
++         // Complex situation: Flush the trace state to the assembler and
++         // generate a generic version of this action.  This call will
++         // recurse back to the else clause here.
++-        trace->Flush(compiler, this);
+++        return trace->Flush(compiler, this);
++       } else {
++         assembler->WriteCurrentPositionToRegister(
++             data_.u_submatch.current_position_register, 0);
++@@ -5902,7 +5903,7 @@ EmitResult ActionNode::Emit(Compiler* compiler, Trace* trace) {
++         // immediately.
++         RETURN_IF_ERROR(on_success()->Emit(compiler, trace));
++       } else if (!trace->is_trivial()) {
++-        trace->Flush(compiler, this);
+++        return trace->Flush(compiler, this);
++       } else {
++         Label skip_empty_check;
++         // If we have a minimum number of repetitions we check the current
++@@ -5991,6 +5992,7 @@ EmitResult BackReferenceNode::Emit(Compiler* compiler, Trace* trace) {
++ 
++   LimitResult limit_result = LimitVersions(compiler, trace);
++   if (limit_result == DONE) return EmitResult::Success();
+++  if (limit_result == FAILED) return EmitResult::Error();
++   DCHECK(limit_result == CONTINUE);
++ 
++   RecursionCheck rc(compiler);
+diff --git a/patches/v8/src-regexp-regexp-nodes.h.patch b/patches/v8/src-regexp-regexp-nodes.h.patch
+new file mode 100644
+index 000000000..225b3c918
+--- /dev/null
++++ b/patches/v8/src-regexp-regexp-nodes.h.patch
+@@ -0,0 +1,22 @@
++diff --git a/src/regexp/regexp-nodes.h b/src/regexp/regexp-nodes.h
++index 82d79366d4f00f445b8ee9ec50a76b363822eb0c..bd2483b87b85aab76f683a364afb86fe37732bd6 100644
++--- a/src/regexp/regexp-nodes.h
+++++ b/src/regexp/regexp-nodes.h
++@@ -137,7 +137,7 @@ struct EatsAtLeastInfo final {
++   uint8_t from_not_start;
++ };
++ 
++-class EmitResult final {
+++class V8_NODISCARD EmitResult final {
++  public:
++   static EmitResult Success() { return EmitResult(kSuccess); }
++   static EmitResult Error() { return EmitResult(kError); }
++@@ -402,7 +402,7 @@ class V8_EXPORT_PRIVATE Node : public ZoneObject {
++   virtual bool IsBacktrack() const { return false; }
++ 
++  protected:
++-  enum LimitResult { DONE, CONTINUE };
+++  enum LimitResult { DONE, CONTINUE, FAILED };
++   Node* replacement_;
++ 
++   LimitResult LimitVersions(Compiler* compiler, Trace* trace);
+diff --git a/patches/v8/src-utils-version.cc.patch b/patches/v8/src-utils-version.cc.patch
+index 69c02d145..ffab0274f 100644
+--- a/patches/v8/src-utils-version.cc.patch
++++ b/patches/v8/src-utils-version.cc.patch
+@@ -1,8 +1,8 @@
+ diff --git a/src/utils/version.cc b/src/utils/version.cc
+-index 550db661144947dbc31b5eb62c0da7ea2e6e1139..7ff6fa91a66eb73390c4caeaa51abbe9ec2eb99e 100644
++index 550db661144947dbc31b5eb62c0da7ea2e6e1139..37def1b6fd93a0e0f848dc20e1bb5bdb9703b0c2 100644
+ --- a/src/utils/version.cc
+ +++ b/src/utils/version.cc
+-@@ -27,9 +27,43 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
++@@ -27,9 +27,45 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
+  const char* Version::soname_ = SONAME;
+  const char* Version::version_string_ = V8_VERSION_STRING;
+  
+@@ -37,8 +37,10 @@ index 550db661144947dbc31b5eb62c0da7ea2e6e1139..7ff6fa91a66eb73390c4caeaa51abbe9
+ +// no bytecode change, but new Promise.any builtin code, the code cache FPU
+ +// state and the redone 13.7 patches). From V8 15.6 (engine level 156) Hash()
+ +// lives in version.cc, not version.h. 31 = FlyWeb 3.0.1 (seg/3.0.1: V8
+-+// 15.6.75.50 + b56fe9b, which changes the bytecode of dead switches).
+-+constexpr int kFlyWebCacheEpoch = 31;
+++// 15.6.75.50 + b56fe9b, which changes the bytecode of dead switches). 32 =
+++// FlyWeb 3.1.4 (seg/3.1.4: V8 15.6.75.66 + 659b8bf, regexp code generation
+++// errors).
+++constexpr int kFlyWebCacheEpoch = 32;
+ +
+  uint32_t Version::Hash() {
+    base::Hasher hasher;
+diff --git a/patches/v8/test-mjsunit-regress-regress-573263262.js.patch b/patches/v8/test-mjsunit-regress-regress-573263262.js.patch
+new file mode 100644
+index 000000000..8b5a20ba6
+--- /dev/null
++++ b/patches/v8/test-mjsunit-regress-regress-573263262.js.patch
+@@ -0,0 +1,23 @@
++diff --git a/test/mjsunit/regress/regress-573263262.js b/test/mjsunit/regress/regress-573263262.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..1c2d9a1d5f1011f20d2ff7cc32beda8ebffcab82
++--- /dev/null
+++++ b/test/mjsunit/regress/regress-573263262.js
++@@ -0,0 +1,17 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Unrolls to six copies of the literal, which exceeds the maximum character
+++// offset while keeping the pattern short enough to be optimized.
+++const kTooBig = '(?:(?:' + 'a'.repeat(5462) + '){3}){2}';
+++const subject = 'b'.repeat(1000);
+++
+++function assertTooLarge(source) {
+++  assertThrows(() => new RegExp(source).exec(subject), SyntaxError,
+++               /Regular expression too large/);
+++}
+++
+++// BEGIN_POSITIVE_SUBMATCH / BEGIN_NEGATIVE_SUBMATCH with a non-trivial trace.
+++assertTooLarge('x(?=' + kTooBig + ')|y');
+++assertTooLarge('x(?!' + kTooBig + ')|y');
+-- 
+2.43.0
+

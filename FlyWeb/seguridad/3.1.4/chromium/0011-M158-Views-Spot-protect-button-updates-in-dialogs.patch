@@ -1,0 +1,66 @@
+From aaa182492f2fcc63c73ac96e72549cd942505f7a Mon Sep 17 00:00:00 2001
+From: Dana Fried <dfried@chromium.org>
+Date: Tue, 10 Nov 2026 07:09:02 -0800
+Subject: [PATCH 11/17] [M158] [Views] Spot-protect button updates in dialogs.
+
+Original change's description:
+> [Views] Spot-protect button updates in dialogs.
+>
+> This prevents a case where badly-configured or malicious accessibility
+> handlers modify a dialog in the middle of the dialog buttons being
+> modified.
+>
+> Fixed: 583617538
+> Change-Id: I97caee769d7cdf09ddaa031b8c409b9a3f414ed6
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8772989
+> Reviewed-by: Caroline Rising <corising@chromium.org>
+> Auto-Submit: Dana Fried <dfried@chromium.org>
+> Commit-Queue: Dana Fried <dfried@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1739349}
+
+(cherry picked from commit 1b92865510f10805cb446a08be1ac31d8f3055c4)
+
+Bug: 584120112,583617538
+Change-Id: I97caee769d7cdf09ddaa031b8c409b9a3f414ed6
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8775054
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: Dana Fried <dfried@chromium.org>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8127@{#1582}
+Cr-Branched-From: df5c5abe6527926adf7ebf8540a8e6a0f9df7945-refs/heads/main@{#1727472}
+(cherry picked from commit b38c99803ddc7f9231c3f725165c2c9bef5e35ab)
+---
+ ui/views/window/dialog_client_view.cc | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/ui/views/window/dialog_client_view.cc b/ui/views/window/dialog_client_view.cc
+index 350e3b3624..403df78552 100644
+--- a/ui/views/window/dialog_client_view.cc
++++ b/ui/views/window/dialog_client_view.cc
+@@ -35,6 +35,7 @@
+ #include "ui/views/metadata/view_factory.h"
+ #include "ui/views/style/platform_style.h"
+ #include "ui/views/view_class_properties.h"
++#include "ui/views/view_guard.h"
+ #include "ui/views/view_observer.h"
+ #include "ui/views/view_tracker.h"
+ #include "ui/views/view_utils.h"
+@@ -381,6 +382,15 @@ void DialogClientView::UpdateDialogButton(raw_ptr<MdTextButton>* member,
+   const ui::ButtonStyle style = delegate->GetDialogButtonStyle(type);
+ 
+   if (*member) {
++    // Accessibility events sent while updating buttons could theoretically
++    // result in synchronous destruction of the dialog or re-entrancy into this
++    // method via malicious or badly-configured software that hooks
++    // accessibility callbacks.
++    //
++    // Since these errors are difficult to fully protect against, guard the
++    // dialog during these updates instead.
++    ViewGuard guard(*member->get());
++
+     MdTextButton* button = *member;
+     button->SetEnabled(delegate->IsDialogButtonEnabled(type));
+     button->SetIsDefault(is_default);
+-- 
+2.43.0
+
