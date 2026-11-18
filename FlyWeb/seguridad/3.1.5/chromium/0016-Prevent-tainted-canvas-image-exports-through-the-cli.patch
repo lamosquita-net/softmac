@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: mjackson <mjackson@microsoft.com>
 Date: Thu, 22 Oct 2026 16:11:34 -0700
-Subject: [PATCH 16/27] Prevent tainted canvas image exports through the
+Subject: [PATCH 16/31] Prevent tainted canvas image exports through the
  clipboard
 
 Require an origin-clean canvas before exporting a clipboard snapshot or
@@ -26,13 +26,13 @@ Cr-Commit-Position: refs/heads/main@{#1725289}
 (cherry picked from commit 6778fee6226c73bc272657588053c1a85c4001ff)
 ---
  .../core/editing/editing_utilities.cc         |   7 +-
- .../core/editing/editing_utilities_test.cc    | 151 ++++++++++++++++++
+ .../core/editing/editing_utilities_test.cc    | 153 ++++++++++++++++++
  .../renderer/core/frame/web_frame_test.cc     |  74 +++++++++
  .../core/html/canvas/html_canvas_element.cc   |   3 +
  .../core/page/context_menu_controller.cc      |   7 +-
  .../core/page/context_menu_controller_test.cc |  19 +++
  .../core/testing/fake_local_frame_host.h      |   1 +
- 7 files changed, 256 insertions(+), 6 deletions(-)
+ 7 files changed, 258 insertions(+), 6 deletions(-)
 
 diff --git a/third_party/blink/renderer/core/editing/editing_utilities.cc b/third_party/blink/renderer/core/editing/editing_utilities.cc
 index fdc264b11..eb65ac64a 100644
@@ -53,7 +53,7 @@ index fdc264b11..eb65ac64a 100644
  
    if (!layout_object->IsImage())
 diff --git a/third_party/blink/renderer/core/editing/editing_utilities_test.cc b/third_party/blink/renderer/core/editing/editing_utilities_test.cc
-index 06b30b842..92296bedf 100644
+index 06b30b842..1ae0e0ed0 100644
 --- a/third_party/blink/renderer/core/editing/editing_utilities_test.cc
 +++ b/third_party/blink/renderer/core/editing/editing_utilities_test.cc
 @@ -5,17 +5,33 @@
@@ -90,7 +90,7 @@ index 06b30b842..92296bedf 100644
  
  namespace blink {
  
-@@ -27,6 +43,141 @@ class EditingUtilitiesTest : public EditingTestBase {
+@@ -27,6 +43,143 @@ class EditingUtilitiesTest : public EditingTestBase {
    }
  };
  
@@ -123,7 +123,8 @@ index 06b30b842..92296bedf 100644
 +        "overflow:hidden'><canvas id=canvas width=600 "
 +        "height=600></canvas></div>"
 +        "<img id=source>");
-+    auto* source = To<HTMLImageElement>(GetElementById("source"));
++    auto* source = To<HTMLImageElement>(
++        GetDocument().getElementById(AtomicString("source")));
 +    if (cors_enabled) {
 +      source->setAttribute(html_names::kCrossoriginAttr,
 +                           AtomicString("anonymous"));
@@ -152,7 +153,8 @@ index 06b30b842..92296bedf 100644
 +  }
 +
 +  HTMLCanvasElement& Canvas() {
-+    return *To<HTMLCanvasElement>(GetElementById("canvas"));
++    return *To<HTMLCanvasElement>(
++        GetDocument().getElementById(AtomicString("canvas")));
 +  }
 +
 +  void ExpectCopy(bool should_copy, const HitTestResult* hit_result = nullptr) {

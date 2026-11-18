@@ -13,10 +13,10 @@ db7ecdfde48ffd21717a7e617eb4c70a6e019b867ba8866ce7cd7b47321427a9  chromium/0009-
 af7fa7fd48935e262c8b3598e660beaae7f1729cb56f173f57cd4fb4fd932af7  chromium/0013-M156-FSA-disallow-platform-path-resolution-in-incogn.patch
 07d34d7c87656d91644afb5ba4c6d909dce72a2c48d822e2df3fca62d491d776  chromium/0014-DomStorage-Validate-namespace-IDs-from-the-renderer.patch
 2656dd5a6a5e730b88939241fd6e74886b2e6e6756ae4e587876a77c01b47f5f  chromium/0015-Prevent-cross-origin-pixels-in-ImageDocument-copy-co.patch
-d7d315b995e85231fce256f5fb70bc91e7d51ccd0b7ef581907be23802e6bcc3  chromium/0016-Prevent-tainted-canvas-image-exports-through-the-cli.patch
+12f5ba7e4ee58b79eafe4cb19fdbcc8adf2492390131e8fa764a9645d77d401d  chromium/0016-Prevent-tainted-canvas-image-exports-through-the-cli.patch
 cf53d1b74ccaa07e52d0660bcf892ae7e8fd90fccc6a1a64bdd16d07666b20e4  chromium/0017-Exclude-select-autofill-preview-text-from-copy-and-d.patch
 5a5dbb27a763f1c4486ddce9e80b2a2cf7ed7c0529c2007e763c349258ff958b  chromium/0018-FSA-Validate-StorageKey-and-origin-when-serializing-.patch
-0636c163b19350aee2e2e28bf547e4202e80d0edb2cd1f9cfcbc6f02cb5d55e0  chromium/0019-Stop-all-matching-clients-in-VideoCaptureController-.patch
+07accbc352c43b7211cb02f578453a3010f7d8ed02eff0081bc0408bcb7d4f7e  chromium/0019-Stop-all-matching-clients-in-VideoCaptureController-.patch
 bef2cc3f07e4fd2701512f689aaaa34ac30938aa616fc3427392953a03f6258d  chromium/0020-VT-Don-t-paint-view-transition-content-under-SVG-ref.patch
 929933651993d02ad8703496773f6bae239042f9659a52c24a3a9781bf520573  chromium/0021-Do-not-create-ServiceWorkerMainResourceHandle-for-PD.patch
 d6fc514f425dae3ca33959d40eeddbe7e5b7703fcb9c7e4b36c1f2a6628f28c2  chromium/0022-Add-some-hardening-around-PAC-related-C-strings-pass.patch

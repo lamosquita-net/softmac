@@ -3,7 +3,7 @@
 4191dcecb472b1501346a41ca2b0aad77a67d13b3a04012fea0fcd8dc6bfd614  chromium/0003-Make-singleton-Persistents-in-css-thread-local.patch
 60cff71ca5c93faeedf86dee5cf9cb30ed5826ea36281095f7453dfc9adccf82  chromium/0004-PagePopup-Fix-dangling-WebPagePopupImpl-opener_web_v.patch
 5d6e0752b7bfa43ac7cdd237ddd44df3fcd94471ce8c4556dbb52c03cd74bdba  chromium/0005-IntersectionObserver-Skip-geometry-computation-for-a.patch
-6d5ce3c73ada16093af012f653fc221b014da1dc93224f49ae74317d1d62f914  chromium/0006-M158-Avoid-stale-lifecycle-state-when-computing-inte.patch
+3756ae38f46a3477b1ef4beaf002d68b3ede8bf8faa1c1fd7a798523d5c00487  chromium/0006-M158-Avoid-stale-lifecycle-state-when-computing-inte.patch
 a610c9a815940b5009682b54f17220fa50aca4fc82cb97b3d2fda397a2f61a49  chromium/0007-Extensions-Prevent-accessor-execution-during-global-.patch
 3e0947b545b3193aa8faa5d17f55c3743d3a8504fb1a2ccf5c12fa73daeb6133  chromium/0008-M158-gl-CHECK-glGenTextures-does-not-return-0.patch
 660b739644d6dd5ca690c84a2b5170699377f669431239e08c5770a09932d373  chromium/0009-M158-gl-Check-gl-reset-status-for-0-glGen-texture-id.patch

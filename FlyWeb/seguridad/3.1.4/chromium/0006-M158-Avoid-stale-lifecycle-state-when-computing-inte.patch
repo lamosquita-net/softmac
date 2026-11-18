@@ -1,7 +1,7 @@
-From debb05b92437223307fbc2f3a096dbbf7988da27 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Vladimir Levin <vmpstr@chromium.org>
 Date: Tue, 10 Nov 2026 08:36:12 -0800
-Subject: [PATCH 06/17] [M158] Avoid stale-lifecycle state when computing
+Subject: [PATCH 06/26] [M158] Avoid stale-lifecycle state when computing
  intersections
 
 Original change's description:
@@ -44,14 +44,14 @@ Cr-Branched-From: df5c5abe6527926adf7ebf8540a8e6a0f9df7945-refs/heads/main@{#172
 (cherry picked from commit 2fc814f07769caad6decbbf53cf4a2bd0660dd5d)
 ---
  .../blink/renderer/core/frame/frame_view.cc   |  9 ++
- .../intersection_observer_test.cc             | 91 +++++++++++++++++++
+ .../intersection_observer_test.cc             | 92 +++++++++++++++++++
  .../view_transition_supplement.cc             | 46 ++++++++--
  .../view_transition_supplement.h              |  7 ++
  .../view_transition/view_transition_test.cc   | 78 ++++++++++++++++
- 5 files changed, 225 insertions(+), 6 deletions(-)
+ 5 files changed, 226 insertions(+), 6 deletions(-)
 
 diff --git a/third_party/blink/renderer/core/frame/frame_view.cc b/third_party/blink/renderer/core/frame/frame_view.cc
-index a66f9c57c1..52be68e936 100644
+index a66f9c57c..52be68e93 100644
 --- a/third_party/blink/renderer/core/frame/frame_view.cc
 +++ b/third_party/blink/renderer/core/frame/frame_view.cc
 @@ -46,6 +46,15 @@ bool FrameView::CanThrottleRenderingForPropagation() const {
@@ -71,10 +71,18 @@ index a66f9c57c1..52be68e936 100644
    if (!owner)
      return false;
 diff --git a/third_party/blink/renderer/core/intersection_observer/intersection_observer_test.cc b/third_party/blink/renderer/core/intersection_observer/intersection_observer_test.cc
-index a2ea9bd36e..ec0c1bc3bf 100644
+index a2ea9bd36..ca5dbc242 100644
 --- a/third_party/blink/renderer/core/intersection_observer/intersection_observer_test.cc
 +++ b/third_party/blink/renderer/core/intersection_observer/intersection_observer_test.cc
-@@ -3005,6 +3005,97 @@ TEST_F(IntersectionObserverTest,
+@@ -12,6 +12,7 @@
+ #include "third_party/blink/renderer/bindings/core/v8/v8_union_document_element.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_union_double_doublesequence.h"
+ #include "third_party/blink/renderer/core/dom/element.h"
++#include "third_party/blink/renderer/core/dom/shadow_root.h"
+ #include "third_party/blink/renderer/core/exported/web_view_impl.h"
+ #include "third_party/blink/renderer/core/frame/local_dom_window.h"
+ #include "third_party/blink/renderer/core/frame/local_frame_view.h"
+@@ -3005,6 +3006,97 @@ TEST_F(IntersectionObserverTest,
    EXPECT_FALSE(root_frame_view->NeedsUpdateDelayedIntersectionForTesting());
  }
  
@@ -173,7 +181,7 @@ index a2ea9bd36e..ec0c1bc3bf 100644
    IntersectionObserverInit* observer_init = IntersectionObserverInit::Create();
    observer_init->setRootMargin("3e9%");
 diff --git a/third_party/blink/renderer/core/view_transition/view_transition_supplement.cc b/third_party/blink/renderer/core/view_transition/view_transition_supplement.cc
-index f15b8d8324..690ab84592 100644
+index f15b8d832..690ab8459 100644
 --- a/third_party/blink/renderer/core/view_transition/view_transition_supplement.cc
 +++ b/third_party/blink/renderer/core/view_transition/view_transition_supplement.cc
 @@ -29,6 +29,7 @@
@@ -251,7 +259,7 @@ index f15b8d8324..690ab84592 100644
  
  void ViewTransitionSupplement::OnTransitionCaptured(
 diff --git a/third_party/blink/renderer/core/view_transition/view_transition_supplement.h b/third_party/blink/renderer/core/view_transition/view_transition_supplement.h
-index 6f0492ff71..5797662e2a 100644
+index 6f0492ff7..5797662e2 100644
 --- a/third_party/blink/renderer/core/view_transition/view_transition_supplement.h
 +++ b/third_party/blink/renderer/core/view_transition/view_transition_supplement.h
 @@ -149,6 +149,11 @@ class CORE_EXPORT ViewTransitionSupplement
@@ -276,7 +284,7 @@ index 6f0492ff71..5797662e2a 100644
    // This allow deferring starting a navigation transition until some conditions
    // are met, such as existing transitions are finished.
 diff --git a/third_party/blink/renderer/core/view_transition/view_transition_test.cc b/third_party/blink/renderer/core/view_transition/view_transition_test.cc
-index 09779e536e..0af4f37d29 100644
+index 09779e536..0af4f37d2 100644
 --- a/third_party/blink/renderer/core/view_transition/view_transition_test.cc
 +++ b/third_party/blink/renderer/core/view_transition/view_transition_test.cc
 @@ -48,6 +48,7 @@
