@@ -2,7 +2,7 @@
 
 > **Esta carpeta es la parte 3 de la 3.1.4: no hay versión 3.1.5** (Titín, 18-11; DIRECTIVAS, #1061; COORDINACIÓN-47).
 > Los parches se quedan con estas rutas y nombres (LOCAL-19 ya compila con ellas). **`brave-core/0002`
-> (`flyweb_version` 3.1.4 → 3.1.5) NO se aplica**: la versión sigue en 3.1.4. Sí se aplican `chromium/` 0001–0030,
+> (`flyweb_version` 3.1.4 → 3.1.5) NO se aplica**: la versión sigue en 3.1.4. Sí se aplican `chromium/` 0001–0031,
 > `webrtc/` 0001–0005 y `brave-core/` 0001 y 0003 (V8; época de caché 34). Orden completo y árboles finales, en
 > [`../3.1.4/CONTENIDO.md`](../3.1.4/CONTENIDO.md), «Orden de aplicación completo».
 
@@ -255,9 +255,9 @@ IndexedDB, y el origen se guarda y se comprueba al deserializar los *handles* lo
 la 156 tuviera; lo que falta, la comprobación de la `StorageKey` completa para los *handles* de OPFS (partición de
 terceros), falta en la 156 en todas las llamadas y es justo lo que añade 625dedb4a0.
 
-**Propuesta, pendiente de COORDINACIÓN:** 0031 = 625dedb4a0 (limpio) más volver a pasar la `StorageKey` completa en
+**0031, aprobado (Titín, 18-11, por COORDINACIÓN-48: «todo en la 3.1.4»):** 0031 = 625dedb4a0 (limpio) más volver a pasar la `StorageKey` completa en
 la llamada de 0030; con él, `IsValidTransferToken()` y `DidResolveForSerializeHandle()` quedan idénticas a upstream.
-Árbol chromium con 0030: **`132b42d1c9`** (comprobado con `git am` de los 56); con 0031 sería `986d591616`.
+Árbol chromium con 0030: `132b42d1c9`; con 0031, **`986d591616`** (comprobado con `git am` de los 57). 625dedb4a0 está en Chrome desde la 157 como código base (entró en `main` antes de la rama 8103), sin anuncio en las notas ni CVE. En el fichero, el blob de `file_system_access_manager_impl.cc` pasa de `5eb8b68dd8` a **`0daedcf4df`**.
 
 ## Pendiente (relevo)
 
