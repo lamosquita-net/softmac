@@ -104,6 +104,29 @@ Todos con `git apply --cached` sobre la base indicada, sin `-3`.
   en la 8078. Por sí sola no cambia nada: **no entra**; si el cambio de Blink llega a la 8078, entran los dos juntos.
   `branch-heads/8078` sigue en `0ae400b547`, sin tag .111. 605619b342 (mixed content) sigue revertido, sin *reland*.
 
+### Lo que llega a la rama 8078 después de la integración
+
+Decisión de Titín (18-11, ~21:25 UTC; vía COORDINACIÓN-49): **entra en la 3.1.4 todo lo de la rama 8078 que llegue antes
+de publicar**, aunque haya que recompilar. Cada arreglo va en `integracion/chromium/` con número correlativo y se
+aplica **al final**, después de `adapt/chromium/0001`. La vigilancia sigue hasta que PUBLICACIÓN publique.
+
+| Parche | Commit de la 8078 | Bug | Árbol (sobre `local/314-adapt` `aaa7d7508d`) |
+|---|---|---|---|
+| `integracion/chromium/0002` | **5028a2f6a3** (de 7c903bac42) | 584069904 (merge 587226645) | **`25a6269c6b`** (sin el commit de fijación, sobre `ddf5f555b2` + `adapt/0001`: `3a5c1663cf`) |
+
+- **0002, miniaturas de pestañas** (`chrome/browser/ui/thumbnails/thumbnail_scheduler_impl.{cc,h}`; escritorio, se
+  compila en Mac): `ThumbnailSchedulerImpl` podía volver a entrar en la función que reparte las capturas antes de
+  terminar de actualizar su estado, y dejar las listas de pestañas corruptas. El arreglo marca `is_capturing` antes de
+  tocar el capturador, detiene antes de arrancar y añade una guarda de re-entrada (`CHECK` no fatal hasta la M165). El
+  *cherry-pick* de upstream aplica limpio; los `#include` (`base/auto_reset.h`, `base/check.h`, `base/check_op.h`) y
+  `base::NotFatalUntil::M165` existen en la 156.
+
+## Veredicto (regla 17): **APTO**, `integracion/chromium/0002`
+
+Es el *cherry-pick* de upstream sin cambios, sobre un fichero idéntico al de la 8078. El `CHECK` es no fatal: si
+hubiera una re-entrada que hoy no se ve, deja un informe y sigue. Prueba para LOCAL: `unit_tests
+--gtest_filter='ThumbnailScheduler*'`; a mano, pasar el ratón por varias pestañas con las vistas previas activadas.
+
 ### Encargo de D8-LINUX
 
 `buzon/D8-LINUX/20261118-1740-SEGURIDAD-PORTES-30-v8-3.1.4.md` (rama `buzon`): un solo encargo con los 9 commits de V8
