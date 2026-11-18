@@ -1,0 +1,177 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-26 <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 12:58:03 +0000
+Subject: [PATCH] v8: JSCallReducer::Finalize revisits in-place reductions
+ (5787048, crbug 577323082); cache epoch 34
+
+[M156] fix that the 8078 branch shipped as V8 15.6.75.67 after the .110 tag.
+The V8 gitlink stays at .66; the fix goes in as patches/v8. Notes in
+patches/v8/FLYWEB-SECURITY.md.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kcWn812GmYVA1oi3u
+---
+ patches/v8/FLYWEB-SECURITY.md                 | 14 ++++
+ .../v8/src-compiler-js-call-reducer.cc.patch  | 15 ++++
+ patches/v8/src-utils-version.cc.patch         | 10 ++-
+ ...jsunit-compiler-regress-577323082.js.patch | 76 +++++++++++++++++++
+ 4 files changed, 111 insertions(+), 4 deletions(-)
+ create mode 100644 patches/v8/src-compiler-js-call-reducer.cc.patch
+ create mode 100644 patches/v8/test-mjsunit-compiler-regress-577323082.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 15e133756..98c8f9131 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,17 @@
++# FlyWeb: 3.1.4, V8 15.6.75.66 + 5787048 (branch fix of 15.6.75.67)
++
++SEGURIDAD-PORTES-26, 18-11-2026 (softmac `FlyWeb/seguridad/3.1.5/brave-core/0003`; the `3.1.5/` folder is part 3
++of 3.1.4). The 8078 branch rolled V8 to 15.6.75.67 after the .110 tag; its only change is this one. The V8 gitlink
++stays at .66 and the fix goes in as a patch, like the others:
++
++- **5787048** (577323082, [M156] merge of d4f0bef5aa): `JSCallReducer::Finalize` calls `Revisit(node)` for
++  in-place reductions, so new inputs are visited and the other reducers (dead code elimination, inlining
++  heuristic) run on the updated node. Test `compiler/regress-577323082.js`.
++- `kFlyWebCacheEpoch` 33 -> **34** (optimized code changes).
++
++To check (D8-LINUX): `d8` and mjsunit with and without Maglev, especially `compiler/regress-577323082.js` and
++`compiler/*`.
++
+ # FlyWeb: 3.1.5, V8 15.6.75.66 + 659b8bf + three Chrome 158 Mediums
+ 
+ SEGURIDAD-PORTES-25, 18-11-2026 (softmac `FlyWeb/seguridad/3.1.5/`). None is merged to 15.6; all three apply
+diff --git a/patches/v8/src-compiler-js-call-reducer.cc.patch b/patches/v8/src-compiler-js-call-reducer.cc.patch
+new file mode 100644
+index 000000000..0365536f2
+--- /dev/null
++++ b/patches/v8/src-compiler-js-call-reducer.cc.patch
+@@ -0,0 +1,15 @@
++diff --git a/src/compiler/js-call-reducer.cc b/src/compiler/js-call-reducer.cc
++index ef2524264c242df6c4ba88c291fd4f0d895f0050..6df633eaf213550fac3523e0006ea1e370f6b531 100644
++--- a/src/compiler/js-call-reducer.cc
+++++ b/src/compiler/js-call-reducer.cc
++@@ -3137,7 +3137,9 @@ void JSCallReducer::Finalize() {
++       Reduction const reduction = Reduce(node);
++       if (reduction.Changed()) {
++         Node* replacement = reduction.replacement();
++-        if (replacement != node) {
+++        if (replacement == node) {
+++          Revisit(node);
+++        } else {
++           Replace(node, replacement, max_id);
++         }
++       }
+diff --git a/patches/v8/src-utils-version.cc.patch b/patches/v8/src-utils-version.cc.patch
+index c72b6c910..4ece0e06a 100644
+--- a/patches/v8/src-utils-version.cc.patch
++++ b/patches/v8/src-utils-version.cc.patch
+@@ -1,8 +1,8 @@
+ diff --git a/src/utils/version.cc b/src/utils/version.cc
+-index 550db661144947dbc31b5eb62c0da7ea2e6e1139..4565ea34f26c3e527da705a52cc7d8bbf8e8eab0 100644
++index 550db661144947dbc31b5eb62c0da7ea2e6e1139..e30a478472b5d6b6bf440a5b18b3a17f538dbd05 100644
+ --- a/src/utils/version.cc
+ +++ b/src/utils/version.cc
+-@@ -27,9 +27,45 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
++@@ -27,9 +27,47 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
+  const char* Version::soname_ = SONAME;
+  const char* Version::version_string_ = V8_VERSION_STRING;
+  
+@@ -39,8 +39,10 @@ index 550db661144947dbc31b5eb62c0da7ea2e6e1139..4565ea34f26c3e527da705a52cc7d8bb
+ +// lives in version.cc, not version.h. 31 = FlyWeb 3.0.1 (seg/3.0.1: V8
+ +// 15.6.75.50 + b56fe9b, which changes the bytecode of dead switches). 32 =
+ +// FlyWeb 3.1.4 (seg/3.1.4: V8 15.6.75.66 + 659b8bf, regexp code generation
+-+// errors).
+-+constexpr int kFlyWebCacheEpoch = 33;
+++// errors). 33 = three Chrome 158 Mediums (19048d3, 33ab43a, 65afc9f). 34 =
+++// FlyWeb 3.1.4 with 5787048 (JSCallReducer::Finalize revisits in-place
+++// reductions, which changes optimized code).
+++constexpr int kFlyWebCacheEpoch = 34;
+ +
+  uint32_t Version::Hash() {
+    base::Hasher hasher;
+diff --git a/patches/v8/test-mjsunit-compiler-regress-577323082.js.patch b/patches/v8/test-mjsunit-compiler-regress-577323082.js.patch
+new file mode 100644
+index 000000000..2b0abf70f
+--- /dev/null
++++ b/patches/v8/test-mjsunit-compiler-regress-577323082.js.patch
+@@ -0,0 +1,76 @@
++diff --git a/test/mjsunit/compiler/regress-577323082.js b/test/mjsunit/compiler/regress-577323082.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..d2a3c61d820030c80eabc646129c02c0798db1a5
++--- /dev/null
+++++ b/test/mjsunit/compiler/regress-577323082.js
++@@ -0,0 +1,70 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax --turbofan
+++// Flags: --no-optimize-on-next-call-optimizes-to-maglev --no-turbolev
+++
+++"use strict";
+++
+++function C() {}
+++function nop() {}
+++
+++function alwaysThrows(x) {
+++  if (x) throw 1;
+++  throw x.a + x.b + x.c + x.d + x.e + x.f + x.g + x.h;
+++}
+++
+++function inner(ctor, fn) {
+++  fn(1);
+++  while (ctor) {
+++    new ctor(...arguments);
+++    Reflect.construct(0, arguments);
+++  }
+++}
+++
+++function outer(ctor) {
+++  inner(ctor, alwaysThrows);
+++}
+++
+++%PrepareFunctionForOptimization(C);
+++%PrepareFunctionForOptimization(nop);
+++%PrepareFunctionForOptimization(alwaysThrows);
+++%PrepareFunctionForOptimization(inner);
+++%PrepareFunctionForOptimization(outer);
+++
+++assertThrows(() => inner(C, nop), TypeError);
+++assertThrows(() => outer(C));
+++
+++%OptimizeFunctionOnNextCall(outer);
+++assertThrows(() => outer(C));
+++
+++function ext() {}
+++%NeverOptimizeFunction(ext);
+++
+++function cand1(a, b, c, d, e, f, o) {
+++  if (a && b && c && d && e && f) return delete o[a];
+++  return delete o[b];
+++}
+++
+++function cand2() {
+++  ext(); ext(); ext(); ext(); ext();
+++  return %IsBeingInterpreted();
+++}
+++
+++function caller(a, b, c, d, e, f, o) {
+++  ext();
+++  const r2 = cand2();
+++  ext();
+++  const r1 = cand1(a, b, c, d, e, f, o);
+++  return r1 ? r2 : true;
+++}
+++
+++const obj = {};
+++%PrepareFunctionForOptimization(cand1);
+++%PrepareFunctionForOptimization(cand2);
+++%PrepareFunctionForOptimization(caller);
+++assertTrue(caller(1, 2, true, true, true, true, obj));
+++assertTrue(caller(0, 2, true, true, true, true, obj));
+++%OptimizeFunctionOnNextCall(caller);
+++assertFalse(caller(1, 2, true, true, true, true, obj));
+-- 
+2.43.0
+
