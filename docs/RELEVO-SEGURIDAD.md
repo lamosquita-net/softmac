@@ -1008,7 +1008,7 @@ da 403), V8 desde `chromium.googlesource.com/v8/v8`, devtools-frontend desde `ch
 **Trampas nuevas:**
 - Un porte de upstream puede llegar **en orden inverso** al de upstream (0016 antes que 0017/0018): al final, comparar el
   fichero con el de upstream tras los dos commits (`diff <(git show HEAD:f) <(git show C:f)`); si queda idéntico, mejor.
-- En DNR, la clave de `UrlIndex` y otras con `scoped_refptr` se comparan por puntero: el origen tiene que salir del objeto
+- La clave de `UrlIndex` (medios, 0015) y otras con `scoped_refptr` se comparan por puntero: el origen tiene que salir del objeto
   del documento (`frame->GetSecurityOrigin()`), no de un `SecurityOrigin` nuevo.
 - `git format-patch` regenera cabeceras distintas (número de serie, SHA abreviado): al corregir un parche ya fusionado,
   sustituir solo ese fichero y regenerar su línea de `SHA256SUMS`.
