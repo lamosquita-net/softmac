@@ -137,12 +137,20 @@ pruebas para LOCAL:
   `content_unittests --gtest_filter='*LocalNetworkAccess*:*SensorProvider*:*HttpNetworkTransaction*'`,
   `views_unittests --gtest_filter='MenuControllerTest.*'`, `extensions_unittests --gtest_filter='*WebAccessible*'`.
 
-## Preguntas para COORDINACIÓN (no decidido)
+## Decisiones de COORDINACIÓN-49 (18-11, tras fusionar #1078)
 
-1. **564769937 (image_annotation):** la 158 solo lleva c50c2dd3 (hace privado `AnnotateImage`). El arreglo de fondo,
-   **0777cdb316** («Partition image annotation cache and requests by parent origin», 09-11, 12 ficheros con un cambio de
-   `mojom`), entró en `main` después de la rama 8127 y no está en la 158. Solo se alcanza con las descripciones de
-   imágenes de Google activadas (lector de pantalla y consentimiento), que dependen de un servicio de Google. ¿Se porta como defensa o se queda
-   fuera?
-2. **554558674 (DevTools «Abrir en pestaña nueva»):** sigue **2643f6e87f** (27-10, «Attribute "Open in new tab" to the
-   originating frame/worker») y un *roll* de devtools-frontend, también posteriores a la 158. Mismo caso.
+1. **564769937 (image_annotation): 0777cdb316 fuera, porque la función está apagada en FlyWeb.** c50c2dd3, que es lo que
+   lleva la 158, no cierra el fallo: la caché de anotaciones sigue sin partición por origen. Pero en FlyWeb no hay ninguna
+   forma de activar las descripciones de imágenes de Google (pref `settings.a11y.enable_accessibility_image_labels`):
+   - brave-core vacía `RenderViewContextMenu::AddAccessibilityLabelsServiceItem()`
+     (`chromium_src/chrome/browser/renderer_context_menu/render_view_context_menu.cc`), así que el menú contextual no
+     ofrece la opción;
+   - la página de Accesibilidad de los ajustes no existe: `pageVisibility.a11y` = false en
+     `browser/resources/settings/brave_overrides/page_visibility.ts`, y sin ella `route.ts` no crea `/accessibility`,
+     que es donde está el otro interruptor;
+   - brave-core no la enciende por ninguna otra vía; solo podría hacerlo un administrador con la política
+     `AccessibilityImageLabelsEnabled`.
+   Si algún día se enciende, 0777cdb316 entra con la 159.
+2. **554558674 (DevTools «Abrir en pestaña nueva»): d59f8fb6 cierra el fallo reportado** (la navegación ya no parece
+   tecleada). **2643f6e87f** y su *roll* de devtools-frontend arreglan otro bug, el 576204004 (la atribución a un iframe
+   de otro sitio), que no está en la nota de la 158: **van a la tanda de la 159.**
