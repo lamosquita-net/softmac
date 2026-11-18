@@ -1,0 +1,170 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Christoph Schwering <schwering@google.com>
+Date: Tue, 17 Nov 2026 05:37:51 -0800
+Subject: [PATCH 21/26] [M156] [Autofill] Validate selected_option_text and
+ selected_text lengths
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Original change's description:
+> [Autofill] Validate selected_option_text and selected_text lengths
+>
+> This CL adds the missing string length check for Autofill's
+> FormFieldData::selected_text() and
+> FormFieldData::selected_option_text().
+>
+> TAG=agy
+> CONV=58320372-4c63-4beb-9b1a-c8492478a80c
+>
+> Bug: 578657256
+> Change-Id: Ic197254b5c237df840ec7013ce2dcb376a6a6964
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8815143
+> Reviewed-by: Dominic Battré <battre@chromium.org>
+> Commit-Queue: Christoph Schwering <schwering@google.com>
+> Cr-Commit-Position: refs/heads/main@{#1745705}
+
+(cherry picked from commit 8a6c1c939138a8e5360770c5f6566de5de40cba0)
+
+TAG=agy
+CONV=384fb684-fc9b-492f-a71e-8adb169e9446
+
+Bug: 586791190,578657256
+Change-Id: Ic197254b5c237df840ec7013ce2dcb376a6a6964
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8828490
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: Christoph Schwering <schwering@google.com>
+Reviewed-by: Jan Keitel <jkeitel@google.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2260}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+(cherry picked from commit 777fb18c05703a19ecad75ba5e94bfb5a782bf0d)
+---
+ .../browser/geo/country_names_for_locale.cc   | 11 ++++---
+ .../geo/country_names_for_locale_unittest.cc  |  8 +++++
+ .../core/common/autofill_data_validation.cc   |  3 ++
+ .../autofill_data_validation_unittest.cc      | 30 +++++++++++++++++++
+ 4 files changed, 48 insertions(+), 4 deletions(-)
+
+diff --git a/components/autofill/core/browser/geo/country_names_for_locale.cc b/components/autofill/core/browser/geo/country_names_for_locale.cc
+index e25fea9bb..9810fd525 100644
+--- a/components/autofill/core/browser/geo/country_names_for_locale.cc
++++ b/components/autofill/core/browser/geo/country_names_for_locale.cc
+@@ -20,6 +20,7 @@
+ #include "base/strings/string_util.h"
+ #include "base/strings/string_view_util.h"
+ #include "components/autofill/core/browser/geo/country_data.h"
++#include "components/autofill/core/common/autofill_constants.h"
+ #include "components/autofill/core/common/autofill_l10n_util.h"
+ #include "third_party/icu/source/common/unicode/locid.h"
+ #include "third_party/icu/source/common/unicode/utypes.h"
+@@ -102,13 +103,15 @@ CountryNamesForLocale::~CountryNamesForLocale() = default;
+ 
+ const std::string& CountryNamesForLocale::GetCountryCode(
+     std::u16string_view country_name) const {
+-  // As recommended[1] by ICU, initialize the buffer size to four times the
+-  // source string length.
+-  // [1] http://userguide.icu-project.org/collation/api#TOC-Examples
+-  if (!collator_) {
++  // Reject oversized inputs before allocating or calling ICU `getSortKey()`,
++  // which can overflow its internal 32-bit byte counter on huge strings.
++  if (!collator_ || country_name.size() > kMaxStringLength) {
+     return base::EmptyString();
+   }
+ 
++  // As recommended[1] by ICU, initialize the buffer size to four times the
++  // source string length.
++  // [1] http://userguide.icu-project.org/collation/api#TOC-Examples
+   auto buffer = base::HeapArray<uint8_t>::WithSize(country_name.size() * 4);
+   const std::string sort_key = GetSortKey(*collator_, country_name, buffer);
+   if (auto it = localized_names_.find(sort_key); it != localized_names_.end()) {
+diff --git a/components/autofill/core/browser/geo/country_names_for_locale_unittest.cc b/components/autofill/core/browser/geo/country_names_for_locale_unittest.cc
+index 27637e21e..a8f24b6d6 100644
+--- a/components/autofill/core/browser/geo/country_names_for_locale_unittest.cc
++++ b/components/autofill/core/browser/geo/country_names_for_locale_unittest.cc
+@@ -9,6 +9,7 @@
+ 
+ #include "base/strings/utf_string_conversions.h"
+ #include "build/build_config.h"
++#include "components/autofill/core/common/autofill_constants.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+ 
+ namespace autofill {
+@@ -68,6 +69,13 @@ TEST(CountryNamesForLocaleTest, EmptyCountryCodeForInvalidCountryName) {
+   EXPECT_EQ("", de_names.GetCountryCode(u"ThisISNotACountry"));
+ }
+ 
++// Test that an empty string is returned for an oversized country name.
++TEST(CountryNamesForLocaleTest, EmptyCountryCodeForOversizedCountryName) {
++  CountryNamesForLocale en_us_names("en_US");
++  EXPECT_EQ("", en_us_names.GetCountryCode(
++                    std::u16string(kMaxStringLength + 1, u'\uFDFA')));
++}
++
+ // Test that an instance is correctly constructed using the move semantics.
+ TEST(CountryNamesForLocaleTest, MoveConstructior) {
+   // Construct a working `CountryNamesForLocale` instance.
+diff --git a/components/autofill/core/common/autofill_data_validation.cc b/components/autofill/core/common/autofill_data_validation.cc
+index c804da8be..9aab13e4b 100644
+--- a/components/autofill/core/common/autofill_data_validation.cc
++++ b/components/autofill/core/common/autofill_data_validation.cc
+@@ -37,6 +37,9 @@ bool IsValidOption(const SelectOption& option) {
+ bool IsValidFormFieldData(const FormFieldData& field) {
+   return IsValidString16(field.label()) && IsValidString16(field.name()) &&
+          IsValidString16(field.value()) &&
++         field.selected_text().size() <= kMaxSelectedTextLength &&
++         (!field.selected_option_text().has_value() ||
++          IsValidString16(*field.selected_option_text())) &&
+          mojom::IsKnownEnumValue(field.form_control_type()) &&
+          (!field.IsSelectElement() || field.max_length() == 0) &&
+          IsValidString(field.autocomplete_attribute()) &&
+diff --git a/components/autofill/core/common/autofill_data_validation_unittest.cc b/components/autofill/core/common/autofill_data_validation_unittest.cc
+index ff72c906c..f97fa1ffc 100644
+--- a/components/autofill/core/common/autofill_data_validation_unittest.cc
++++ b/components/autofill/core/common/autofill_data_validation_unittest.cc
+@@ -5,6 +5,7 @@
+ #include "components/autofill/core/common/autofill_data_validation.h"
+ 
+ #include "base/test/metrics/histogram_tester.h"
++#include "components/autofill/core/common/autofill_constants.h"
+ #include "components/autofill/core/common/autofill_test_util.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+ 
+@@ -70,6 +71,35 @@ TEST(AutofillDataValidationTest,
+   EXPECT_FALSE(IsValidFormData(form_data));
+ }
+ 
++// Tests that `IsValidFormFieldData` enforces `kMaxStringLength` on
++// `selected_option_text`.
++TEST(AutofillDataValidationTest, SelectedOptionTextValidation) {
++  FormFieldData field;
++  field.set_form_control_type(FormControlType::kSelectOne);
++  field.set_max_length(0);
++
++  EXPECT_TRUE(IsValidFormFieldData(field));
++
++  field.set_selected_option_text(std::u16string(kMaxStringLength, u'a'));
++  EXPECT_TRUE(IsValidFormFieldData(field));
++
++  field.set_selected_option_text(std::u16string(kMaxStringLength + 1, u'a'));
++  EXPECT_FALSE(IsValidFormFieldData(field));
++}
++
++// Tests that `IsValidFormFieldData` enforces `kMaxSelectedTextLength` on
++// `selected_text`.
++TEST(AutofillDataValidationTest, SelectedTextValidation) {
++  FormFieldData field;
++  EXPECT_TRUE(IsValidFormFieldData(field));
++
++  field.set_selected_text(std::u16string(kMaxSelectedTextLength, u'a'));
++  EXPECT_TRUE(IsValidFormFieldData(field));
++
++  field.set_selected_text(std::u16string(kMaxSelectedTextLength + 1, u'a'));
++  EXPECT_FALSE(IsValidFormFieldData(field));
++}
++
+ }  // namespace
+ 
+ }  // namespace autofill
+-- 
+2.43.0
+

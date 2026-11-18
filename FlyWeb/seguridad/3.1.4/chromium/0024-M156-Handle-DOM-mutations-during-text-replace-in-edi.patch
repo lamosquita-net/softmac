@@ -1,0 +1,498 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Daniel Clark <daniec@microsoft.com>
+Date: Tue, 17 Nov 2026 14:16:32 -0800
+Subject: [PATCH 24/26] [M156] Handle DOM mutations during text replace in
+ editing commands
+
+Original change's description:
+> Handle DOM mutations during text replace in editing commands
+>
+> Synchronous event listeners can run while replacing text in a node and
+> mutate or disconnect the involved text and selection endpoints. Copy the
+> replacement string before mutating the DOM, clamp updated offsets, and
+> abort the editing command if selection endpoints become invalid.
+>
+> Fixed: 576742430
+> Change-Id: I17394763e733f7bd9e330e2dc1d6ae132e0c8e22
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8812058
+> Reviewed-by: Kent Tamura <tkent@chromium.org>
+> Commit-Queue: Dan Clark <daniec@microsoft.com>
+> Cr-Commit-Position: refs/heads/main@{#1745213}
+
+(cherry picked from commit fa67974bfd1ac902f428fd279915ad485016b2a0)
+
+Bug: 586791584,576742430
+Change-Id: I17394763e733f7bd9e330e2dc1d6ae132e0c8e22
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8823113
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2272}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+(cherry picked from commit 062407e542c0ed131432a217aab03d56de40f0b8)
+---
+ .../commands/composite_edit_command.cc        |   7 +-
+ .../editing/commands/insert_text_command.cc   |  21 ++-
+ .../editing/commands/insert_text_command.h    |   2 +-
+ .../commands/insert_text_command_test.cc      | 113 ++++++++++++
+ .../commands/replace_selection_command.cc     |  11 +-
+ .../replace_selection_command_test.cc         | 165 ++++++++++++++++++
+ 6 files changed, 311 insertions(+), 8 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc b/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
+index 0fde934f0..45cca29de 100644
+--- a/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
++++ b/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
+@@ -656,11 +656,14 @@ Position CompositeEditCommand::ReplaceSelectedTextInNode(
+     return Position();
+   }
+ 
++  const String replacement_text = text;
+   ReplaceTextInNode(text_node, start.OffsetInContainerNode(),
+                     end.OffsetInContainerNode() - start.OffsetInContainerNode(),
+-                    text, password_echo_behavior);
++                    replacement_text, password_echo_behavior);
+ 
+-  return Position(text_node, start.OffsetInContainerNode() + text.length());
++  return Position(text_node, std::min(start.OffsetInContainerNode() +
++                                          replacement_text.length(),
++                                      text_node->length()));
+ }
+ 
+ Position CompositeEditCommand::PositionOutsideTabSpan(const Position& pos) {
+diff --git a/third_party/blink/renderer/core/editing/commands/insert_text_command.cc b/third_party/blink/renderer/core/editing/commands/insert_text_command.cc
+index 86e9ec181..1dea18efc 100644
+--- a/third_party/blink/renderer/core/editing/commands/insert_text_command.cc
++++ b/third_party/blink/renderer/core/editing/commands/insert_text_command.cc
+@@ -161,7 +161,8 @@ void InsertTextCommand::SetEndingSelectionWithoutValidation(
+ 
+ // This avoids the expense of a full fledged delete operation, and avoids a
+ // layout that typically results from text removal.
+-bool InsertTextCommand::PerformTrivialReplace(const String& text) {
++bool InsertTextCommand::PerformTrivialReplace(const String& text,
++                                              EditingState* editing_state) {
+   // We may need to manipulate neighboring whitespace if we're deleting text.
+   // This case is tested in
+   // InsertTextCommandTest_InsertEmptyTextAfterWhitespaceThatNeedsFixup.
+@@ -206,8 +207,18 @@ bool InsertTextCommand::PerformTrivialReplace(const String& text) {
+   if (end_position.IsNull())
+     return false;
+ 
+-  SetEndingSelectionWithoutValidation(relocatable_start->GetPosition(),
+-                                      end_position);
++  Position start_position = relocatable_start->GetPosition();
++  if (start_position.IsNull() || !start_position.IsValidFor(GetDocument()) ||
++      !end_position.IsValidFor(GetDocument()) ||
++      start_position > end_position) {
++    editing_state->Abort();
++    return false;
++  }
++  SetEndingSelectionWithoutValidation(start_position, end_position);
++  if (EndingVisibleSelection().IsNone()) {
++    editing_state->Abort();
++    return false;
++  }
+   SetEndingSelection(SelectionForUndoStep::From(
+       SelectionInDomTree::Builder()
+           .Collapse(RuntimeEnabledFeatures::EditingUseDomPositionApiEnabled()
+@@ -246,8 +257,10 @@ void InsertTextCommand::DoApply(EditingState* editing_state) {
+   if (RuntimeEnabledFeatures::EditingUseDomPositionApiEnabled()
+           ? EndingDomSelection().IsRange()
+           : EndingSelection().IsRange()) {
+-    if (PerformTrivialReplace(text_))
++    if (PerformTrivialReplace(text_, editing_state) ||
++        editing_state->IsAborted()) {
+       return;
++    }
+     GetDocument().UpdateStyleAndLayout(DocumentUpdateReason::kEditing);
+     bool end_of_selection_was_at_start_of_block;
+     if (RuntimeEnabledFeatures::EditingUseDomPositionApiEnabled()) {
+diff --git a/third_party/blink/renderer/core/editing/commands/insert_text_command.h b/third_party/blink/renderer/core/editing/commands/insert_text_command.h
+index 36fb392e4..bebb8a2d7 100644
+--- a/third_party/blink/renderer/core/editing/commands/insert_text_command.h
++++ b/third_party/blink/renderer/core/editing/commands/insert_text_command.h
+@@ -51,7 +51,7 @@ class CORE_EXPORT InsertTextCommand : public CompositeEditCommand {
+   Position PositionInsideTextNode(const Position&, EditingState*);
+   Position InsertTab(const Position&, EditingState*);
+ 
+-  bool PerformTrivialReplace(const String&);
++  bool PerformTrivialReplace(const String&, EditingState*);
+   void SetEndingSelectionWithoutValidation(const Position& start_position,
+                                            const Position& end_position);
+ 
+diff --git a/third_party/blink/renderer/core/editing/commands/insert_text_command_test.cc b/third_party/blink/renderer/core/editing/commands/insert_text_command_test.cc
+index 685bc9745..a73731737 100644
+--- a/third_party/blink/renderer/core/editing/commands/insert_text_command_test.cc
++++ b/third_party/blink/renderer/core/editing/commands/insert_text_command_test.cc
+@@ -5,14 +5,55 @@
+ #include "third_party/blink/renderer/core/editing/commands/insert_text_command.h"
+ 
+ #include "build/buildflag.h"
++#include "third_party/blink/renderer/core/dom/events/native_event_listener.h"
++#include "third_party/blink/renderer/core/dom/text.h"
+ #include "third_party/blink/renderer/core/editing/frame_selection.h"
+ #include "third_party/blink/renderer/core/editing/selection_template.h"
+ #include "third_party/blink/renderer/core/editing/testing/editing_test_base.h"
+ #include "third_party/blink/renderer/core/editing/testing/selection_sample.h"
++#include "third_party/blink/renderer/core/event_type_names.h"
++#include "third_party/blink/renderer/core/page/focus_controller.h"
+ #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+ 
+ namespace blink {
+ 
++namespace {
++
++class MutateTextOnBlurListener final : public NativeEventListener {
++ public:
++  MutateTextOnBlurListener(Text* text_node,
++                           const String& new_data,
++                           bool remove_node = false)
++      : text_node_(text_node), new_data_(new_data), remove_node_(remove_node) {}
++
++  void Invoke(ExecutionContext*, Event*) override {
++    if (invoked_ || !text_node_) {
++      return;
++    }
++    invoked_ = true;
++    if (remove_node_) {
++      text_node_->remove();
++    } else {
++      text_node_->setData(new_data_);
++    }
++  }
++
++  bool invoked() const { return invoked_; }
++
++  void Trace(Visitor* visitor) const override {
++    visitor->Trace(text_node_);
++    NativeEventListener::Trace(visitor);
++  }
++
++ private:
++  Member<Text> text_node_;
++  String new_data_;
++  bool remove_node_ = false;
++  bool invoked_ = false;
++};
++
++}  // namespace
++
+ class InsertTextCommandTest : public EditingTestBase {};
+ 
+ // http://crbug.com/714311
+@@ -328,4 +369,76 @@ TEST_F(InsertTextCommandTest, MultilineSelectionCrash) {
+   EXPECT_EQ("A<span>x|</span>", GetSelectionTextFromBody());
+ }
+ 
++TEST_F(InsertTextCommandTest, TrivialReplaceWithTargetTextShortenedDuringBlur) {
++  GetPage().GetFocusController().SetActive(true);
++  GetPage().GetFocusController().SetFocused(true);
++  SetBodyContent(
++      "<fieldset id='fs' contenteditable>"
++      "<legend><button id='btn'></button></legend>hello</fieldset>");
++  Element* fieldset = GetElementById("fs");
++  Element* button = GetElementById("btn");
++  ASSERT_TRUE(fieldset);
++  ASSERT_TRUE(button);
++  auto* target_text = To<Text>(fieldset->lastChild());
++
++  Selection().SetSelection(SelectionInDomTree::Builder()
++                               .Collapse(Position(target_text, 3))
++                               .Extend(Position(target_text, 5))
++                               .Build(),
++                           SetSelectionOptions());
++
++  button->Focus();
++  button->SetBooleanAttribute(html_names::kDisabledAttr, true);
++  ASSERT_EQ(button, GetDocument().FocusedElement());
++
++  auto* listener =
++      MakeGarbageCollected<MutateTextOnBlurListener>(target_text, "a");
++  button->addEventListener(event_type_names::kBlur, listener, false);
++
++  auto& command = *MakeGarbageCollected<InsertTextCommand>(
++      GetDocument(), "replacement",
++      EditCommand::PasswordEchoBehavior::kDoNotEcho);
++
++  EXPECT_TRUE(command.Apply());
++  EXPECT_TRUE(listener->invoked());
++  EXPECT_EQ("a", target_text->data());
++  EXPECT_EQ(Position(target_text, 1),
++            Selection().GetSelectionInDomTree().Focus());
++}
++
++TEST_F(InsertTextCommandTest, TrivialReplaceWithTargetTextRemovedDuringBlur) {
++  GetPage().GetFocusController().SetActive(true);
++  GetPage().GetFocusController().SetFocused(true);
++  SetBodyContent(
++      "<fieldset id='fs' contenteditable>"
++      "<legend><button id='btn'></button></legend>hello</fieldset>");
++  Element* fieldset = GetElementById("fs");
++  Element* button = GetElementById("btn");
++  ASSERT_TRUE(fieldset);
++  ASSERT_TRUE(button);
++  auto* target_text = To<Text>(fieldset->lastChild());
++
++  Selection().SetSelection(SelectionInDomTree::Builder()
++                               .Collapse(Position(target_text, 0))
++                               .Extend(Position(target_text, 5))
++                               .Build(),
++                           SetSelectionOptions());
++
++  button->Focus();
++  button->SetBooleanAttribute(html_names::kDisabledAttr, true);
++  ASSERT_EQ(button, GetDocument().FocusedElement());
++
++  auto* listener = MakeGarbageCollected<MutateTextOnBlurListener>(
++      target_text, g_empty_string, /*remove_node=*/true);
++  button->addEventListener(event_type_names::kBlur, listener, false);
++
++  auto& command = *MakeGarbageCollected<InsertTextCommand>(
++      GetDocument(), "replacement",
++      EditCommand::PasswordEchoBehavior::kDoNotEcho);
++
++  EXPECT_FALSE(command.Apply());
++  EXPECT_TRUE(listener->invoked());
++  EXPECT_FALSE(target_text->isConnected());
++}
++
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/editing/commands/replace_selection_command.cc b/third_party/blink/renderer/core/editing/commands/replace_selection_command.cc
+index 6ef8631fe..624d94fef 100644
+--- a/third_party/blink/renderer/core/editing/commands/replace_selection_command.cc
++++ b/third_party/blink/renderer/core/editing/commands/replace_selection_command.cc
+@@ -1540,6 +1540,8 @@ void ReplaceSelectionCommand::DoApply(EditingState* editing_state) {
+ 
+   ReplacementFragment fragment(&GetDocument(), document_fragment_.Get(),
+                                selection);
++  ABORT_EDITING_COMMAND_IF(!selection.IsValidFor(GetDocument()) ||
++                           !EndingSelection().IsValidFor(GetDocument()));
+ 
+   bool trivial_replace_result =
+       PerformTrivialReplace(fragment, editing_state, password_echo_behavior_);
+@@ -2643,7 +2645,8 @@ bool ReplaceSelectionCommand::PerformTrivialReplace(
+ 
+   GetDocument().UpdateStyleAndLayout(DocumentUpdateReason::kEditing);
+ 
+-  if (node_after_insertion_pos && node_after_insertion_pos->parentNode() &&
++  if (node_after_insertion_pos && node_after_insertion_pos->isConnected() &&
++      node_after_insertion_pos->GetDocument() == GetDocument() &&
+       IsA<HTMLBRElement>(*node_after_insertion_pos) &&
+       ShouldRemoveEndBR(
+           To<HTMLBRElement>(node_after_insertion_pos),
+@@ -2663,6 +2666,12 @@ bool ReplaceSelectionCommand::PerformTrivialReplace(
+     }
+   }
+ 
++  if (!start.IsValidFor(GetDocument()) || !end.IsValidFor(GetDocument()) ||
++      (start.IsNotNull() && start > end)) {
++    editing_state->Abort();
++    return false;
++  }
++
+   SetEndingSelection(SelectionForUndoStep::From(
+       SelectionInDomTree::Builder()
+           .SetBaseAndExtentDeprecated(select_replacement_ ? start : end, end)
+diff --git a/third_party/blink/renderer/core/editing/commands/replace_selection_command_test.cc b/third_party/blink/renderer/core/editing/commands/replace_selection_command_test.cc
+index 3c9d51f3a..896735f98 100644
+--- a/third_party/blink/renderer/core/editing/commands/replace_selection_command_test.cc
++++ b/third_party/blink/renderer/core/editing/commands/replace_selection_command_test.cc
+@@ -9,6 +9,7 @@
+ #include "testing/gtest/include/gtest/gtest.h"
+ #include "third_party/blink/renderer/core/dom/document.h"
+ #include "third_party/blink/renderer/core/dom/document_fragment.h"
++#include "third_party/blink/renderer/core/dom/events/native_event_listener.h"
+ #include "third_party/blink/renderer/core/dom/parser_content_policy.h"
+ #include "third_party/blink/renderer/core/dom/text.h"
+ #include "third_party/blink/renderer/core/editing/frame_selection.h"
+@@ -16,18 +17,57 @@
+ #include "third_party/blink/renderer/core/editing/selection_template.h"
+ #include "third_party/blink/renderer/core/editing/testing/editing_test_base.h"
+ #include "third_party/blink/renderer/core/editing/visible_selection.h"
++#include "third_party/blink/renderer/core/event_type_names.h"
+ #include "third_party/blink/renderer/core/frame/local_frame.h"
+ #include "third_party/blink/renderer/core/frame/local_frame_view.h"
+ #include "third_party/blink/renderer/core/frame/settings.h"
+ #include "third_party/blink/renderer/core/html/forms/text_control_element.h"
+ #include "third_party/blink/renderer/core/html_names.h"
+ #include "third_party/blink/renderer/core/layout/layout_view.h"
++#include "third_party/blink/renderer/core/page/focus_controller.h"
+ #include "third_party/blink/renderer/core/testing/dummy_page_holder.h"
+ #include "third_party/blink/renderer/core/testing/page_test_base.h"
+ #include "third_party/blink/renderer/platform/bindings/exception_state.h"
+ 
+ namespace blink {
+ 
++namespace {
++
++class MutateTextOnBlurListener final : public NativeEventListener {
++ public:
++  MutateTextOnBlurListener(Text* text_node,
++                           const String& new_data,
++                           bool remove_node = false)
++      : text_node_(text_node), new_data_(new_data), remove_node_(remove_node) {}
++
++  void Invoke(ExecutionContext*, Event*) override {
++    if (invoked_ || !text_node_) {
++      return;
++    }
++    invoked_ = true;
++    if (remove_node_) {
++      text_node_->remove();
++    } else {
++      text_node_->setData(new_data_);
++    }
++  }
++
++  bool invoked() const { return invoked_; }
++
++  void Trace(Visitor* visitor) const override {
++    visitor->Trace(text_node_);
++    NativeEventListener::Trace(visitor);
++  }
++
++ private:
++  Member<Text> text_node_;
++  String new_data_;
++  bool remove_node_ = false;
++  bool invoked_ = false;
++};
++
++}  // namespace
++
+ class ReplaceSelectionCommandTest : public EditingTestBase {};
+ 
+ // This is a regression test for https://crbug.com/619131
+@@ -680,4 +720,129 @@ TEST_F(ReplaceSelectionCommandTest, NormalizeNbspSkippedForTextarea) {
+   EXPECT_EQ(String(u"Hello\u00A0World"), textarea->InnerEditorValue());
+ }
+ 
++TEST_F(ReplaceSelectionCommandTest,
++       TrivialReplaceWithParkableTextMutatedDuringBlur) {
++  GetPage().GetFocusController().SetActive(true);
++  GetPage().GetFocusController().SetFocused(true);
++  SetBodyContent(
++      "<fieldset id='fs' contenteditable>"
++      "<legend><button id='btn'></button></legend>hello</fieldset>");
++  Element* fieldset = GetElementById("fs");
++  Element* button = GetElementById("btn");
++  ASSERT_TRUE(fieldset);
++  ASSERT_TRUE(button);
++  auto* target_text = To<Text>(fieldset->lastChild());
++
++  Selection().SetSelection(SelectionInDomTree::Builder()
++                               .Collapse(Position(target_text, 0))
++                               .Extend(Position(target_text, 5))
++                               .Build(),
++                           SetSelectionOptions());
++
++  button->Focus();
++  button->SetBooleanAttribute(html_names::kDisabledAttr, true);
++  ASSERT_EQ(button, GetDocument().FocusedElement());
++
++  DocumentFragment& fragment = *GetDocument().createDocumentFragment();
++  Text* replacement_text = Text::Create(GetDocument(), "replacement text");
++  replacement_text->MakeParkable();
++  fragment.appendChild(replacement_text);
++
++  auto* listener = MakeGarbageCollected<MutateTextOnBlurListener>(
++      replacement_text, "modified data");
++  button->addEventListener(event_type_names::kBlur, listener, false);
++
++  auto& command = *MakeGarbageCollected<ReplaceSelectionCommand>(
++      GetDocument(), &fragment, /*options=*/0,
++      EditCommand::PasswordEchoBehavior::kDoNotEcho);
++
++  EXPECT_TRUE(command.Apply());
++  EXPECT_TRUE(listener->invoked());
++  EXPECT_EQ("replacement text", target_text->data());
++  EXPECT_EQ(Position(target_text, 16),
++            Selection().GetSelectionInDomTree().Focus());
++}
++
++TEST_F(ReplaceSelectionCommandTest,
++       TrivialReplaceWithTargetTextShortenedDuringBlur) {
++  GetPage().GetFocusController().SetActive(true);
++  GetPage().GetFocusController().SetFocused(true);
++  SetBodyContent(
++      "<fieldset id='fs' contenteditable>"
++      "<legend><button id='btn'></button></legend>hello</fieldset>");
++  Element* fieldset = GetElementById("fs");
++  Element* button = GetElementById("btn");
++  ASSERT_TRUE(fieldset);
++  ASSERT_TRUE(button);
++  auto* target_text = To<Text>(fieldset->lastChild());
++
++  Selection().SetSelection(SelectionInDomTree::Builder()
++                               .Collapse(Position(target_text, 3))
++                               .Extend(Position(target_text, 5))
++                               .Build(),
++                           SetSelectionOptions());
++
++  button->Focus();
++  button->SetBooleanAttribute(html_names::kDisabledAttr, true);
++  ASSERT_EQ(button, GetDocument().FocusedElement());
++
++  DocumentFragment& fragment = *GetDocument().createDocumentFragment();
++  fragment.appendChild(Text::Create(GetDocument(), "replacement text"));
++
++  auto* listener =
++      MakeGarbageCollected<MutateTextOnBlurListener>(target_text, "ab");
++  button->addEventListener(event_type_names::kBlur, listener, false);
++
++  auto& command = *MakeGarbageCollected<ReplaceSelectionCommand>(
++      GetDocument(), &fragment, ReplaceSelectionCommand::kSelectReplacement,
++      EditCommand::PasswordEchoBehavior::kDoNotEcho);
++
++  EXPECT_FALSE(command.Apply());
++  EXPECT_TRUE(listener->invoked());
++  EXPECT_EQ("ab", target_text->data());
++  EXPECT_EQ(Position(target_text, 0),
++            Selection().GetSelectionInDomTree().Anchor());
++  EXPECT_EQ(Position(target_text, 0),
++            Selection().GetSelectionInDomTree().Focus());
++}
++
++TEST_F(ReplaceSelectionCommandTest,
++       TrivialReplaceWithTargetTextRemovedDuringBlur) {
++  GetPage().GetFocusController().SetActive(true);
++  GetPage().GetFocusController().SetFocused(true);
++  SetBodyContent(
++      "<fieldset id='fs' contenteditable>"
++      "<legend><button id='btn'></button></legend>hello</fieldset>");
++  Element* fieldset = GetElementById("fs");
++  Element* button = GetElementById("btn");
++  ASSERT_TRUE(fieldset);
++  ASSERT_TRUE(button);
++  auto* target_text = To<Text>(fieldset->lastChild());
++
++  Selection().SetSelection(SelectionInDomTree::Builder()
++                               .Collapse(Position(target_text, 0))
++                               .Extend(Position(target_text, 5))
++                               .Build(),
++                           SetSelectionOptions());
++
++  button->Focus();
++  button->SetBooleanAttribute(html_names::kDisabledAttr, true);
++  ASSERT_EQ(button, GetDocument().FocusedElement());
++
++  DocumentFragment& fragment = *GetDocument().createDocumentFragment();
++  fragment.appendChild(Text::Create(GetDocument(), "replacement text"));
++
++  auto* listener = MakeGarbageCollected<MutateTextOnBlurListener>(
++      target_text, g_empty_string, /*remove_node=*/true);
++  button->addEventListener(event_type_names::kBlur, listener, false);
++
++  auto& command = *MakeGarbageCollected<ReplaceSelectionCommand>(
++      GetDocument(), &fragment, /*options=*/0,
++      EditCommand::PasswordEchoBehavior::kDoNotEcho);
++
++  EXPECT_FALSE(command.Apply());
++  EXPECT_TRUE(listener->invoked());
++  EXPECT_FALSE(target_text->isConnected());
++}
++
+ }  // namespace blink
+-- 
+2.43.0
+

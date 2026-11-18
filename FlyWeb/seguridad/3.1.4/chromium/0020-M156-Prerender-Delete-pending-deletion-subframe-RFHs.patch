@@ -1,0 +1,237 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Hiroki Nakagawa <nhiroki@chromium.org>
+Date: Mon, 16 Nov 2026 21:32:46 -0800
+Subject: [PATCH 20/26] [M156] Prerender: Delete pending deletion subframe RFHs
+ before activation
+
+Differences from the pure cherry-pick:
+- Explicitly enable `blink::features::kPrerender2CrossOriginIframes`
+  via `ScopedFeatureList` in
+  `PrerenderPendingDeletionSubframeBrowserTest`. This feature was
+  enabled by default in M159 (https://crrev.com/c/8673922) and is
+  disabled by default prior to M159, causing cross-origin subframe
+  navigations during prerendering in the new test to be deferred and
+  time out.
+- Production code (`prerender_host.cc`) is unchanged.
+
+Original change's description:
+> Prerender: Delete pending deletion subframe RFHs before activation
+>
+> On prerender activation, PrerenderHost::Activate() moves the subframe
+> FrameTreeNodes of the prerendered page to the primary FrameTree, and
+> updates the FrameTree of their current and speculative
+> RenderFrameHosts. However, the RenderFrameHosts in the subframes'
+> pending deletion lists (i.e., the ones swapped out on navigation and
+> still waiting for unload completion) were moved along with the
+> FrameTreeNodes without having their FrameTree updated. They kept
+> pointing to the prerendering FrameTree, which is destroyed during
+> activation, while they could still receive messages from the renderer
+> until the unload ACK or timeout, resulting in a use-after-free.
+>
+> This CL deletes the RenderFrameHosts in the subframes' pending
+> deletion lists before activation, as if their unload timeout expired.
+> This is consistent with those in the main frame's pending deletion
+> list, which are deleted when the prerendering FrameTree is shut down.
+>
+> Fixed: 583734992
+> Change-Id: Ib14f355dee4bb6d5340705faf937b21d32823954
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8794707
+> Commit-Queue: Hiroki Nakagawa <nhiroki@chromium.org>
+> Reviewed-by: Rakina Zata Amni <rakina@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1743053}
+
+(cherry picked from commit 0496e208d897f1bb33fa89b418459e276f5d2602)
+
+Bug: 585802106,583734992
+Change-Id: Ib14f355dee4bb6d5340705faf937b21d32823954
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8814188
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: Rakina Zata Amni <rakina@chromium.org>
+Reviewed-by: Rakina Zata Amni <rakina@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2256}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+(cherry picked from commit 385ec45c60a9c7d828f38679ab5d08b4a5067510)
+---
+ .../prerender/prerender_browsertest.cc        | 115 ++++++++++++++++++
+ .../preloading/prerender/prerender_host.cc    |  32 +++--
+ 2 files changed, 139 insertions(+), 8 deletions(-)
+
+diff --git a/content/browser/preloading/prerender/prerender_browsertest.cc b/content/browser/preloading/prerender/prerender_browsertest.cc
+index 0e1de500d..b53e5b61d 100644
+--- a/content/browser/preloading/prerender/prerender_browsertest.cc
++++ b/content/browser/preloading/prerender/prerender_browsertest.cc
+@@ -16165,6 +16165,121 @@ IN_PROC_BROWSER_TEST_F(
+   ASSERT_EQ(current_frame_host()->GetRenderWidgetHost(), render_widget_host);
+ }
+ 
++class PrerenderPendingDeletionSubframeBrowserTest
++    : public PrerenderBrowserTest,
++      public ::testing::WithParamInterface<bool> {
++ public:
++  PrerenderPendingDeletionSubframeBrowserTest() {
++    // Explicitly enable `kPrerender2CrossOriginIframes`, which is disabled by
++    // default prior to M159 (https://crbug.com/440387014).
++    feature_list_.InitAndEnableFeature(
++        blink::features::kPrerender2CrossOriginIframes);
++  }
++
++  bool IsInitialIframeCrossSite() const { return GetParam(); }
++
++ private:
++  base::test::ScopedFeatureList feature_list_;
++};
++
++INSTANTIATE_TEST_SUITE_P(All,
++                         PrerenderPendingDeletionSubframeBrowserTest,
++                         testing::Bool(),
++                         [](const testing::TestParamInfo<bool>& info) {
++                           return info.param ? "CrossSiteIframe"
++                                             : "SameSiteIframe";
++                         });
++
++// Tests that a RenderFrameHost in a subframe's pending deletion list in a
++// prerendered page doesn't outlive the prerendering FrameTree on activation.
++// The subframe's FrameTreeNode, whose RenderFrameHostManager owns the pending
++// deletion list, is moved to the primary FrameTree on activation, but the
++// FrameTree pointer of those RenderFrameHosts is not updated. Covers both:
++// - `SameSiteIframe`: the old RenderFrameHost shares its SiteInstanceGroup and
++//   RenderViewHost with the main frame.
++// - `CrossSiteIframe`: the old RenderFrameHost is a local root and the last
++//   active frame in its SiteInstanceGroup, so deleting it during activation
++//   also tears down that group's proxies, its RenderViewHost, and its own
++//   RenderWidgetHost before TakePrerenderedPage().
++// Regression test for crbug.com/583734992.
++IN_PROC_BROWSER_TEST_P(PrerenderPendingDeletionSubframeBrowserTest,
++                       PendingDeletionSubframeRFHDeletedOnActivation) {
++  // Make sure that the cross-site subframe navigation below is cross-process,
++  // so that the old RenderFrameHost stays pending deletion waiting for the
++  // unload ACK.
++  IsolateAllSitesForTesting(base::CommandLine::ForCurrentProcess());
++
++  // Navigate to an initial page.
++  const GURL initial_url = GetUrl("/empty.html");
++  ASSERT_TRUE(NavigateToURL(shell(), initial_url));
++
++  // Start a prerender. The prerendered page opts in to cross-origin iframes so
++  // that cross-site subframe navigations below are not deferred until
++  // activation.
++  const GURL prerendering_url = GetUrl(
++      "/set-header?Supports-Loading-Mode: prerender-cross-origin-frames");
++  PrerenderHostId host_id = AddPrerender(prerendering_url);
++  RenderFrameHostImpl* prerender_rfh = GetPrerenderedMainFrameHost(host_id);
++
++  // Add an iframe to the prerendered page.
++  const GURL initial_iframe_url = IsInitialIframeCrossSite()
++                                      ? GetCrossSiteUrl("/title1.html")
++                                      : GetUrl("/title1.html");
++  EXPECT_TRUE(AddTestUtilJS(prerender_rfh));
++  ASSERT_EQ("LOADED", EvalJs(prerender_rfh,
++                             JsReplace("add_iframe($1)", initial_iframe_url)));
++  ASSERT_EQ(prerender_rfh->child_count(), 1u);
++  FrameTreeNode* iframe = prerender_rfh->child_at(0);
++  RenderFrameHostImplWrapper old_iframe_rfh(iframe->current_frame_host());
++  if (IsInitialIframeCrossSite()) {
++    ASSERT_NE(old_iframe_rfh->GetProcess(), prerender_rfh->GetProcess());
++  } else {
++    ASSERT_EQ(old_iframe_rfh->GetProcess(), prerender_rfh->GetProcess());
++  }
++
++  // Keep the iframe's current RenderFrameHost in the pending deletion state
++  // after the cross-site navigation below, as if the renderer hasn't
++  // acknowledged the unload yet.
++  old_iframe_rfh->DoNotDeleteForTesting();
++
++  // Navigate the iframe to another site during prerendering. Initiate the
++  // navigation from the iframe itself so that the cross-site case doesn't go
++  // through RenderFrameProxyHost::OpenURL(), which cancels prerendering.
++  const GURL next_iframe_url =
++      IsInitialIframeCrossSite() ? ssl_server().GetURL("c.test", "/title2.html")
++                                 : GetCrossSiteUrl("/title2.html");
++  TestNavigationManager iframe_navigation(web_contents(), next_iframe_url);
++  ASSERT_TRUE(ExecJs(old_iframe_rfh.get(),
++                     JsReplace("location.href = $1;", next_iframe_url)));
++  ASSERT_TRUE(iframe_navigation.WaitForNavigationFinished());
++  ASSERT_TRUE(iframe_navigation.was_committed());
++  ASSERT_NE(iframe->current_frame_host(), old_iframe_rfh.get());
++  ASSERT_NE(iframe->current_frame_host()->GetProcess(),
++            old_iframe_rfh->GetProcess());
++  ASSERT_FALSE(old_iframe_rfh.IsDestroyed());
++  ASSERT_EQ(old_iframe_rfh->lifecycle_state(),
++            RenderFrameHostLifecycleStateImpl::kRunningUnloadHandlers);
++
++  // Activate.
++  test::PrerenderHostObserver host_observer(*web_contents(), host_id);
++  NavigatePrimaryPage(prerendering_url);
++  ASSERT_TRUE(host_observer.was_activated());
++  ASSERT_EQ(web_contents()->GetLastCommittedURL(), prerendering_url);
++  ASSERT_EQ(current_frame_host(), prerender_rfh);
++
++  // The pending deletion RenderFrameHost should be deleted on activation
++  // instead of being left with a dangling pointer to the destroyed prerendering
++  // FrameTree.
++  EXPECT_TRUE(old_iframe_rfh.IsDestroyed());
++
++  // The iframe should be in the primary FrameTree.
++  FrameTree& primary_frame_tree = web_contents_impl()->GetPrimaryFrameTree();
++  EXPECT_EQ(&iframe->frame_tree(), &primary_frame_tree);
++  EXPECT_EQ(iframe->current_frame_host()->frame_tree(), &primary_frame_tree);
++  EXPECT_EQ(iframe->current_frame_host()->GetLastCommittedURL(),
++            next_iframe_url);
++}
++
+ // Tests that window.close() can cancel speculation rules.
+ IN_PROC_BROWSER_TEST_F(PrerenderBrowserTest, WindowClosedSpeculationRules) {
+   ASSERT_TRUE(embedded_test_server()->Start());
+diff --git a/content/browser/preloading/prerender/prerender_host.cc b/content/browser/preloading/prerender/prerender_host.cc
+index f877c9aca..dacffef3e 100644
+--- a/content/browser/preloading/prerender/prerender_host.cc
++++ b/content/browser/preloading/prerender/prerender_host.cc
+@@ -850,6 +850,27 @@ std::unique_ptr<StoredPage> PrerenderHost::Activate(
+   std::vector<FrameTreeNode*> subframe_nodes(std::next(node_range.begin()),
+                                              node_range.end());
+ 
++  // Delete the RenderFrameHosts in the subframes' pending deletion lists (i.e.,
++  // the ones swapped out on navigation and still waiting for unload
++  // completion), as if their unload timeout expired. They are owned by the
++  // RenderFrameHostManagers of `subframe_nodes`, so they would be moved to
++  // `target_frame_tree` along with the subframes. However,
++  // FrameTreeNode::SetFrameTree() below doesn't update their FrameTree (nor
++  // the ones of their descendants), which would dangle once the prerendering
++  // FrameTree is destroyed, while they can still receive messages from the
++  // renderer (see https://crbug.com/583734992). The RenderFrameHosts in the
++  // root's pending deletion list are not moved, and are deleted when the
++  // prerendering FrameTree is shut down.
++  //
++  // This needs to happen before TakePrerenderedPage() below, as deleting a
++  // RenderFrameHost notifies observers.
++  //
++  // TODO(crbug.com/40177949): Consider moving these RenderFrameHosts to
++  // `target_frame_tree` instead, so that their unload handlers can complete.
++  for (FrameTreeNode* subframe_node : subframe_nodes) {
++    subframe_node->render_manager()->ClearRFHsPendingShutdown();
++  }
++
+   // Before the root's current_frame_host is cleared, collect the replication
+   // state so that it can be used for post-activation validation.
+   blink::mojom::FrameReplicationState prior_replication_state =
+@@ -919,14 +940,9 @@ std::unique_ptr<StoredPage> PrerenderHost::Activate(
+   // associated frame tree. Note that subframe proxies don't need their
+   // FrameTrees independently updated, since their FrameTreeNodes don't
+   // change, and FrameTree references in those FrameTreeNodes will be updated
+-  // through RenderFrameHosts.
+-  //
+-  // TODO(crbug.com/40177949): Need to investigate if and how
+-  // pending delete RenderFrameHost objects should be handled if prerendering
+-  // runs all of the unload handlers; they are not currently handled here.
+-  // This is because pending delete RenderFrameHosts can still receive and
+-  // process some messages while the RenderFrameHost FrameTree and
+-  // FrameTreeNode are stale.
++  // through RenderFrameHosts. The RenderFrameHosts in the subframes' pending
++  // deletion lists don't need to be updated either, as they were deleted
++  // above.
+   for (FrameTreeNode* subframe_node : subframe_nodes) {
+     subframe_node->SetFrameTree(target_frame_tree);
+   }
+-- 
+2.43.0
+
