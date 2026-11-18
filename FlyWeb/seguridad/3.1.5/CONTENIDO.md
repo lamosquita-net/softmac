@@ -2,7 +2,7 @@
 
 > **Esta carpeta es la parte 3 de la 3.1.4: no hay versión 3.1.5** (Titín, 18-11; DIRECTIVAS, #1061; COORDINACIÓN-47).
 > Los parches se quedan con estas rutas y nombres (LOCAL-19 ya compila con ellas). **`brave-core/0002`
-> (`flyweb_version` 3.1.4 → 3.1.5) NO se aplica**: la versión sigue en 3.1.4. Sí se aplican `chromium/` 0001–0029,
+> (`flyweb_version` 3.1.4 → 3.1.5) NO se aplica**: la versión sigue en 3.1.4. Sí se aplican `chromium/` 0001–0030,
 > `webrtc/` 0001–0005 y `brave-core/` 0001 y 0003 (V8; época de caché 34). Orden completo y árboles finales, en
 > [`../3.1.4/CONTENIDO.md`](../3.1.4/CONTENIDO.md), «Orden de aplicación completo».
 
@@ -241,6 +241,23 @@ Entran sus tres cambios. `chrome/VERSION` y el gitlink de V8 **no** cambian.
 - d8/mjsunit: el encargo a D8-LINUX se ha rehecho para cubrir también 5787048 (buzón, 18-11).
 - **Veredicto (regla 17): APTO.** Son arreglos de la propia rama 8078, sin tocar. El de V8 cambia el código optimizado
   (de ahí la época) y necesita el verde de D8-LINUX, como los demás.
+
+## 0030: adaptación de 0018 a la 156 (LOCAL-19, build 47; revisada por SEGURIDAD-PORTES-26)
+
+0018 (71ea1e9367) no compila sobre la 156: llama a `IsValidTransferToken(token, StorageKey, type)`, pero en la 156 esa
+función recibe un `url::Origin`. La versión con `StorageKey` la introdujo antes 625dedb4a0 («FSA: Validate OPFS
+transfer tokens by StorageKey», bug 508285208, `main` #1707872, posterior a la rama 8078), que no está en la 156. Se me
+pasó: `git merge-tree` no ve una llamada nueva que no casa con la firma (anotado en `RELEVO-SEGURIDAD.md`).
+
+**0030** = el arreglo de LOCAL-19 (`local/314` 6a30d8feb0): pasar `storage_key.origin()`, como las otras dos llamadas
+del fichero. **APTO:** se conserva lo que protege 0018 (el token tiene que ser del mismo origen que el *bucket* de
+IndexedDB, y el origen se guarda y se comprueba al deserializar los *handles* locales y externos). No se pierde nada que
+la 156 tuviera; lo que falta, la comprobación de la `StorageKey` completa para los *handles* de OPFS (partición de
+terceros), falta en la 156 en todas las llamadas y es justo lo que añade 625dedb4a0.
+
+**Propuesta, pendiente de COORDINACIÓN:** 0031 = 625dedb4a0 (limpio) más volver a pasar la `StorageKey` completa en
+la llamada de 0030; con él, `IsValidTransferToken()` y `DidResolveForSerializeHandle()` quedan idénticas a upstream.
+Árbol chromium con 0030: **`132b42d1c9`** (comprobado con `git am` de los 56); con 0031 sería `986d591616`.
 
 ## Pendiente (relevo)
 

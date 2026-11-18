@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-26 <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 13:54:02 +0000
+Subject: [PATCH] [FlyWeb] 3.1.4: adapt 3.1.5/chromium/0018 to M156
+ IsValidTransferToken(origin)
+
+In 156 IsValidTransferToken() takes the expected url::Origin; the
+StorageKey overload (625dedb4a0, crbug 508285208) is not in the 156.
+Pass storage_key.origin(), as the two other callers in this file do.
+Same change LOCAL-19 made on local/314 (6a30d8feb0) to compile build 47.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kcWn812GmYVA1oi3u
+---
+ .../file_system_access/file_system_access_manager_impl.cc       | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/content/browser/file_system_access/file_system_access_manager_impl.cc b/content/browser/file_system_access/file_system_access_manager_impl.cc
+index 8730a97f8..5eb8b68dd 100644
+--- a/content/browser/file_system_access/file_system_access_manager_impl.cc
++++ b/content/browser/file_system_access/file_system_access_manager_impl.cc
+@@ -1322,7 +1322,7 @@ void FileSystemAccessManagerImpl::DidResolveForSerializeHandle(
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+ 
+   if (!resolved_token || resolved_token->origin().opaque() ||
+-      !IsValidTransferToken(resolved_token, storage_key,
++      !IsValidTransferToken(resolved_token, storage_key.origin(),
+                             resolved_token->type())) {
+     std::move(callback).Run({});
+     return;
+-- 
+2.43.0
+

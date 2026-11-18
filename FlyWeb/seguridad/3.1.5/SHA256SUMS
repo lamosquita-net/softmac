@@ -32,3 +32,4 @@ cab67dfcb47939dde7752fa29111ac45ecc794387fe9d52e6e2dde6641cc0702  webrtc/0004-Ch
 4c053607f99b54f5395c4d1cafb744c44a8f89f699fb2ceee198d07666106746  webrtc/0005-Zero-initialize-10-bit-buffers-in-VideoFrameBufferPo.patch
 0ad1348f356826fc6ffac7a2ea8a03e0e0415f92a32851055dbfdbd4cf3df940  chromium/0028-M156-ServiceWorker-Invoke-fetch-response-callbacks-d.patch
 78c52d8f9fcf73fc29925d74753b879452d437612df4b395d3e0828ea920587e  chromium/0029-M156-ServiceWorker-Queue-startup-during-network-rest.patch
+ae948f72fe82c0289915291ed3d7fcaf8d7e1087a6105acea2049e99bbc2f399  chromium/0030-FlyWeb-3.1.4-adapt-3.1.5-chromium-0018-to-M156-IsVal.patch
