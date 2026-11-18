@@ -163,7 +163,7 @@ histogramas nuevos (`…MaxEventDuration.MainFrame` y dos más) son UMA local, q
 | `chrome/VERSION` | 0026 (.110) |
 | V8: `0c5649e53a` → `aab02c4400` → **`917584bd93`** | **nada que hacer:** la 3.1.3 ya compila la .66 (`917584bd93`) |
 | ANGLE: `44d1e22b80` → **`f4f8357341`** | rango `f10470c77e..f4f8357341` = 4 commits: 2080bf27e5 y 44d1e22b80 son de Vulkan (no se compilan en Mac), c1ef6d4f97 ya estaba (`3.0.1/angle` 0009) y f4f8357341 es `angle/0003` de la parte 1. **Nada más** |
-| Dawn: `d2c1eac2db` → `86d91e7812` → **`6d772bc9e5`** | 86d91e78 = LiteRT, sin efecto (LOCAL, 3.1.3). **86d91e78..6d772bc9 no lo he podido leer**: dawn.googlesource.com da 403 desde la nube y el espejo de GitHub no tiene la rama 8078. WebGPU y Graphite están apagados, así que nada de Dawn es alcanzable desde una web; **LOCAL lo mira en su checkout** y, si hay algún [M156] de seguridad, lo aplica con `cherry-pick -x` como `dawn/0005`+ de la 3.1.3 y lo anota aquí |
+| Dawn: `d2c1eac2db` → `86d91e7812` → **`6d772bc9e5`** | 86d91e78 = LiteRT, sin efecto (LOCAL, 3.1.3). 86d91e78..6d772bc9 (leído por LOCAL-19, 18-11, vía COORDINACIÓN-47) = **un solo commit, 6d772bc9e5 «[M156] DEPS: Update DXC to patched branch»**. DXC solo se compila en Windows (`dawn_use_built_dxc = is_win`): **no entra**; Dawn se queda como en la 3.1.3 (`5ee7543174`) |
 | `src_internal` | no se usa |
 
 **Después de la .110 (fuera de la 3.1.4; a la 3.1.5):** 859c5bc938 FSA en incógnito, d83ec3c16e FSA UNC (Windows),
@@ -202,5 +202,5 @@ Revisado el código de cada parche contra la 156. Riesgos para LOCAL:
 ### Pendiente
 
 1. **D8-LINUX:** sin el verde de 659b8bf, brave-core 0002 no entra (parte 1).
-2. **Dawn** 86d91e78..6d772bc9: lo mira LOCAL (arriba).
+2. ~~**Dawn** 86d91e78..6d772bc9~~: cerrado (solo DXC, Windows; arriba).
 3. Propuesta de triaje corto de los medios para la 3.1.5, sin portar (aparte, a COORDINACIÓN).
