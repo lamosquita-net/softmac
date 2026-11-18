@@ -30,3 +30,5 @@ a440f33a86907e9cffc0a67a2e21756c445597a9dee0d52c6a82df2afcaf88ca  chromium/0024-
 582eb435586adf4c63a0f3d8fedccfde9d303f50c5d4a4e835f318bb3f708acf  integracion/chromium/0001-3.1.4-fix-three-tests-that-do-not-build-on-8078.patch
 6bec17b88146774d0721912e8d0ad868e1995514a62a3f8fa8e33d450de3ae6a  integracion/brave-core/0001-v8-four-Chrome-158-Low-fixes-0b3bd2b-336a6b3-fb3bcc3.patch
 7615e2575f81876a7a3e95f89513006692e0f72934dba990b7c349f003c5da70  integracion/brave-core/0002-v8-3.1.4-integration-fdbb7b1-15.6.75.70-crbug-577314.patch
+95373d7489290ab65ea13055023e5d99328e2dd0d70dafa9b223d2547678ee5d  adapt/chromium/0001-3.1.4-adapt-the-unzip-Directory-wrapper-to-the-156-m.patch
+a0078344fe70455331b2b229b37294da9c26f372fb74f74b11896c7e74bb4b00  adapt/brave-core/0002-3.1.4-add-the-mime_types_handler-PDF-warning-string-.patch

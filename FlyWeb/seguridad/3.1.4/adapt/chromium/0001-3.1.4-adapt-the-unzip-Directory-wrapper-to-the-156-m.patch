@@ -1,0 +1,41 @@
+From aaa7d7508dd4684b077f44989fb017741ee29f68 Mon Sep 17 00:00:00 2001
+From: LOCAL-19 <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 20:30:15 +0100
+Subject: [PATCH] 3.1.4: adapt the unzip Directory wrapper to the 156 mojom
+
+parte4/chromium/0012 (Revoke Directory capability after unzip) overrides
+GetDiskSpaceInfo and ComputeDirectorySize, which storage::mojom::Directory
+does not have on 156. Drop both overrides; every method the 156 mojom has
+is still covered.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ components/services/unzip/public/cpp/unzip.cc | 12 ------------
+ 1 file changed, 12 deletions(-)
+
+diff --git a/components/services/unzip/public/cpp/unzip.cc b/components/services/unzip/public/cpp/unzip.cc
+index eba86a78e..394ef38d0 100644
+--- a/components/services/unzip/public/cpp/unzip.cc
++++ b/components/services/unzip/public/cpp/unzip.cc
+@@ -227,18 +227,6 @@ class UnzipFilesystemImpl : public storage::mojom::Directory {
+         "Unexpected Directory::GetFileInfo from unzipper");
+   }
+ 
+-  void GetDiskSpaceInfo(const base::FilePath& path,
+-                        GetDiskSpaceInfoCallback callback) override {
+-    receiver_.ReportBadMessage(
+-        "Unexpected Directory::GetDiskSpaceInfo from unzipper");
+-  }
+-
+-  void ComputeDirectorySize(const base::FilePath& path,
+-                            ComputeDirectorySizeCallback callback) override {
+-    receiver_.ReportBadMessage(
+-        "Unexpected Directory::ComputeDirectorySize from unzipper");
+-  }
+-
+   void GetPathAccess(const base::FilePath& path,
+                      GetPathAccessCallback callback) override {
+     receiver_.ReportBadMessage(
+-- 
+2.43.0
+
