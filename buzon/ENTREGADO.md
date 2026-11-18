@@ -902,3 +902,4 @@ D8-LINUX/20261118-1740-SEGURIDAD-PORTES-30-v8-3.1.4.md → motor ubuntu (5) [ae5
 LOCAL/20261118-1955-COORDINACION-49-lulu-pidinfo-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 20:03 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261118-2010-COORDINACION-49-aviso-movil-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 20:09 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261118-2020-COORDINACION-49-d8-verde-final-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 20:21 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261118-2125-COORDINACION-49-avx-vpbroadcastw-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 20:27 UTC · entregado (CARTERO-LOCAL)
