@@ -7,6 +7,28 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 18-11 (mañana): COORDINACIÓN-46 → COORDINACIÓN-47 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-46 (`session_01MwmK2m8seaLGsdcKmQhGXU`, 17-11 23:33 → 18-11 ~09:50 UTC; relevo al 47 %). La 47 la abre la 46, linaje 6.
+**Nunca llamar a confirm_repository_trust.**
+
+**Hecho:**
+- **3.1.3 (build 46) entregada a PUBLICACIÓN** por LOCAL-19: sin cierres en 7,1 ni 6,1 (LuLu aprobado por Titín). Ramas por ls-remote: brave-core `local/3.1.3` 2d55dce9a9, chromium `local/313` 7ccbc27cf7. Fila **FS.46** en main (#1045 → #1047 con el texto de LOCAL-19; #1046 cerrado por duplicado). Orden de publicar a PUBLICACIÓN por buzón (968a735, 02c7d24). «La 158» = delta de seguridad de la 158 portado a la 156 (Chrome/156.0.8078.109).
+- **3.1.4 en marcha.** SEGURIDAD-PORTES-24 `session_01MwmK2hXs9xn6KN4sT9iVtr`: inventario en main (#1049, `FlyWeb/seguridad/3.1.4/INVENTARIO.md`). Decisión de la 46: **A+B+E (+D si se confirma)**; los 82 medios **no** entran (triaje corto como propuesta para la 3.1.5, sin portar). Parte 1 (A, B1–B4, B7, B8, ANGLE, V8 659b8bf; brave-core `seg/3.1.4` d91632790084) en **#1050**, con APTO: tenía conflicto con main, la 24 debe hacer merge de main y pasar el hash; fusionarlo entonces. **SEGURIDAD-PORTES-25** `session_01MwmK2kzDkFd6KCGzWTjn23` abierta para B5, B6, D y E.
+- **D8-LINUX:** el cartero no llega al Ubuntu (encargos en `buzon/D8-LINUX/` que Titín pega a mano en «motor ubuntu (4)», D8-LINUX-5). El d8/mjsunit del V8 659b8bf está en `buzon/D8-LINUX/20261118-0950-SEGURIDAD-PORTES-24-v8-659b8bf.md`; **ya se le pidió a Titín que lo pegue**. Mis avisos rutinarios a D8-LINUX quedan sin anotar en ENTREGADO: es normal, no es caída del cartero.
+- Relevo avisado por buzón (7dd7858) y send_message. ARQUITECTURA sin nada abierto (respaldo GL de la 3.1.2 sin probar en monitor externo del MacBookPro9,1, Air 2013, mini 2012 y 5,1 con NVIDIA: cuando Titín esté en el estudio).
+
+**Abierto, por orden:**
+1. **Publicación de la 3.1.3** por PUBLICACIÓN → **avisar a Titín en una línea con la orden de firma en bak** (lo pidió).
+2. **#1050** (merge de main por la 24) → fusionar con expectedHeadSha. Luego, partes de la 25 → fusionar; d8/mjsunit de D8-LINUX → a la 24/25.
+3. **Tabla §7 de la parte B** (#1037): falta la respuesta de Titín → lo aprobado, a MOTOR-46 para la 3.2.0.
+4. **Diseño de Titín del 17-11** (pantalla privada, pestañas, páginas que faltaban): sin llegar; cuando llegue, a MOTOR-46.
+5. **La 5,1 de la sync** y las pruebas GL pendientes: cuando Titín esté en el estudio.
+6. Pendiente sin hacer: archivar COORDINACIÓN-43 (denegado a la 45) y, cuando la 25 esté activa y #1050 fusionado, SEGURIDAD-PORTES-23.
+
+**Sesiones:** SEGURIDAD-PORTES-24/25 (arriba), SEGURIDAD-PORTES-23 `session_01MwmK2ihLC48xJinz4Li6Jv` (quieta), MOTOR-46 `session_01MwmK2juPkbC58kEi4QFeyU`, INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG` (~48 %), SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`.
+Locales (buzón): LOCAL-19 (7,1), LOCAL-21 (6,1), PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA, CARTERO-LOCAL, D8-LINUX-5 (vía Titín). La 46 se queda quieta tras la prueba.
+
 ## 17-11 (madrugada): COORDINACIÓN-45 → COORDINACIÓN-46 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-45 (`session_01MwmK2mRayo5wBbWFqBKkyv`, 17-11 21:15 → ~23:40 UTC; relevo al 44 %). La 46 (`session_01MwmK2m8seaLGsdcKmQhGXU`) la abre la 45, linaje 5.
