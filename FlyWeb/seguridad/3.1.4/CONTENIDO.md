@@ -18,8 +18,8 @@ A + B + E (y D si se confirma); los 82 medios no entran (triaje aparte para la 3
 | ANGLE | `bc2ebdd211` | `3.1.4/angle/` 0001–0003 | `db885a866b` |
 | brave-core | `seg/3.1.4` `d91632790084` (= `3.1.4/brave-core` 0001–0002) | `3.1.4/brave-core/` 0003 → `3.1.5/brave-core/` **0001** (V8 19048d3, 33ab43a, 65afc9f) → `3.1.5/brave-core/` **0003** (V8 5787048; época 34). **`3.1.5/brave-core/0002` no** | **`15c050d35a`** (comprobado con `git am`; `flyweb_version` 3.1.4, `kFlyWebCacheEpoch` 34; árbol de V8 con todos los `patches/v8`: `fe1194813a`) |
 
-V8 (15.6.75.66, gitlink sin cambiar, con los `patches/v8`), Dawn, FFmpeg, Skia y PDFium: sin más cambios que los de cada parte. Los d8/mjsunit
-de brave-core `3.1.4/0002`, `3.1.5/0001` y `3.1.5/0003` siguen pendientes de D8-LINUX. `chrome/VERSION` sigue en .110 (la .111 no tiene tag).
+V8 (15.6.75.66, gitlink sin cambiar, con los `patches/v8`), Dawn, FFmpeg, Skia y PDFium: sin más cambios que los de cada parte. d8/mjsunit de
+brave-core `3.1.4/0002`, `3.1.5/0001` y `3.1.5/0003`: **verde** (D8-LINUX-5, 18-11; 9193/9195 con y sin Maglev, sin fallos nuevos; [`mjsunit.md`](mjsunit.md)). `chrome/VERSION` sigue en .110 (la .111 no tiene tag).
 
 ## Base y resultado (comprobados)
 
