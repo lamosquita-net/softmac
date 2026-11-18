@@ -113,6 +113,8 @@ aplica **al final**, después de `adapt/chromium/0001`. La vigilancia sigue hast
 | Parche | Commit de la 8078 | Bug | Árbol (sobre `local/314-adapt` `aaa7d7508d`) |
 |---|---|---|---|
 | `integracion/chromium/0002` | **5028a2f6a3** (de 7c903bac42) | 584069904 (merge 587226645) | **`25a6269c6b`** (sin el commit de fijación, sobre `ddf5f555b2` + `adapt/0001`: `3a5c1663cf`) |
+| `integracion/chromium/0003` | **5328af27d7** | b:585726394 (merge 586791921) | **`32203fc124`** |
+| `integracion/chromium/0004` | **aa4c9495f7** | 574640360, 575087049 (merge 580174924) | **`e7162cd585`** (árbol final; sin la fijación: `32391b8a33`) |
 
 - **0002, miniaturas de pestañas** (`chrome/browser/ui/thumbnails/thumbnail_scheduler_impl.{cc,h}`; escritorio, se
   compila en Mac): `ThumbnailSchedulerImpl` podía volver a entrar en la función que reparte las capturas antes de
@@ -120,6 +122,31 @@ aplica **al final**, después de `adapt/chromium/0001`. La vigilancia sigue hast
   tocar el capturador, detiene antes de arrancar y añade una guarda de re-entrada (`CHECK` no fatal hasta la M165). El
   *cherry-pick* de upstream aplica limpio; los `#include` (`base/auto_reset.h`, `base/check.h`, `base/check_op.h`) y
   `base::NotFatalUntil::M165` existen en la 156.
+
+- **0003, popups de Blink** (`web_page_popup_impl.cc` y su prueba): las llamadas a `NotifyUserActivation` desde los
+  manejadores de entrada de `WebPagePopupImpl` pueden disparar observadores (autorrelleno) que cierran el popup o
+  desconectan el widget en el acto; el arreglo comprueba el cierre justo después y retiene el popup con un
+  `scoped_refptr` mientras despacha el evento (evita un uso después de liberar). `web_page_popup_impl.cc` aplica sin
+  cambios; queda igual que el de upstream más el endurecimiento que ya traía la serie (`opener_web_view_` nulo). En
+  `internal_popup_menu_test.cc` solo hubo que fundir a mano el bloque de `#include` (el de la 156 ya tenía más por
+  otros portes); las pruebas nuevas entran tal cual, y las API que usan existen en la 156
+  (`WidgetHostDisconnectedForTesting`, `ProcessInputEventSynchronouslyForTesting`, `DidShowPopup`,
+  `UserGestureObserved`, `UserActivationNotificationType::kTest`).
+- **0004, `RulesRegistry` de extensiones** (`declarativeContent` y `declarativeWebRequest`): rechaza los
+  identificadores de regla que no son UTF-8 válido y comprueba los duplicados dentro de un mismo lote antes de tocar
+  `used_rule_identifiers_`, también al restaurar las reglas guardadas al arrancar (dos identificadores distintos
+  podían colapsar en el mismo `U+FFFD` y llegar duplicados a `AddRulesImpl`). Ficheros nuevos `constants.h` y
+  `declarative_utils.{h,cc}` y su entrada en `extensions/browser/BUILD.gn`. Aplica limpio; brave-core no tiene
+  `chromium_src` para estos ficheros; `base::IsStringUTF8AllowingNoncharacters` existe en la 156.
+
+## Veredicto (regla 17): **APTO**, `integracion/chromium/0003` y `0004`
+
+0004 es el *cherry-pick* de upstream sin cambios. 0003 cambia el código igual que upstream; solo se adaptaron los
+`#include` de la prueba. Riesgo para LOCAL: 0003 hace que un popup (selector de fecha, `<select>`) deje de procesar el
+evento si un observador lo cierra a la vez; 0004 hace que una extensión con identificadores de regla no UTF-8 o
+repetidos reciba un error al registrarlas. Pruebas: `blink_unittests --gtest_filter='*InternalPopupMenu*'`,
+`unit_tests --gtest_filter='*RulesRegistry*:*ContentRulesRegistry*'` y `extensions_unittests
+--gtest_filter='*RulesRegistry*'`; a mano, abrir un `<select>` y un `<input type=date>` y elegir con ratón y teclado.
 
 ## Veredicto (regla 17): **APTO**, `integracion/chromium/0002`
 

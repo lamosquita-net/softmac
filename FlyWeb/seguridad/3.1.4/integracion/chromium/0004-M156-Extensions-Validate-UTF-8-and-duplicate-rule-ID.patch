@@ -1,0 +1,994 @@
+From 8d1b9bbe0ebad3d4ebdd3801d190d64acf60d20b Mon Sep 17 00:00:00 2001
+From: Kelvin Jiang <kelvinjiang@chromium.org>
+Date: Wed, 18 Nov 2026 22:26:07 +0000
+Subject: [PATCH 4/4] [M156] [Extensions] Validate UTF-8 and duplicate rule IDs
+ in RulesRegistry
+
+Original change's description:
+> [Extensions] Validate UTF-8 and duplicate rule IDs in RulesRegistry
+>
+> Rule IDs containing invalid UTF-8 (such as lone UTF-16 surrogates
+> encoded as WTF-8) can collapse to identical U+FFFD replacement sequences
+> when serialized to JSON in StateStore. On startup replay,
+> RulesRegistry::DeserializeAndAddRules() called AddRulesNoFill() without
+> checking for intra-batch duplicate IDs, allowing duplicate rule IDs to
+> reach subclass AddRulesImpl() implementations.
+>
+> Harden declarative rule registration across RulesRegistry and its
+> subclasses:
+> 1. Reject non-UTF-8 rule IDs (via
+>    base::IsStringUTF8AllowingNoncharacters) and validate intra-batch
+>    uniqueness before mutating used_rule_identifiers_ in
+>    CheckAndFillInOptionalRules() and in AddRulesNoFill().
+> 2. Convert error strings in RulesRegistry::ReportInternalError() with
+>    base::UTF8ToUTF16() instead of base::ASCIIToUTF16() so non-ASCII
+>    duplicate rule IDs do not trip ASCII DCHECKs.
+> 3. Enforce UTF-8 validity, intra-batch uniqueness, and ownership commit
+>    before predicate/trigger indexing in ChromeContentRulesRegistry and
+>    WebRequestRulesRegistry, and upgrade WebRequestRulesRegistry's
+>    RuleTriggers to raw_ptr declared after webrequest_rules_.
+>
+> TAG=agy
+> CONV=6b7416be-0034-4ec8-836b-f0458ffcae19
+>
+> Fixed: 574640360, 575087049
+> Change-Id: Iaaf2397f7770036ab362d5fe9f22f43622845457
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8680079
+> Commit-Queue: Andrea Orru <andreaorru@chromium.org>
+> Auto-Submit: Kelvin Jiang <kelvinjiang@chromium.org>
+> Reviewed-by: Andrea Orru <andreaorru@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1731692}
+
+(cherry picked from commit d86f80b979951b66cab643523a4db540076030d5)
+
+Bug: 580174924,574640360,575087049
+Change-Id: Iaaf2397f7770036ab362d5fe9f22f43622845457
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8829900
+Commit-Queue: Kelvin Jiang <kelvinjiang@chromium.org>
+Reviewed-by: Tim <tjudkins@chromium.org>
+Reviewed-by: Eva Su <evasu@chromium.org>
+Reviewed-by: Kelvin Jiang <kelvinjiang@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2325}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../rules_registry_with_cache_unittest.cc     |  32 ++++
+ .../chrome_content_rules_registry.cc          |  44 +++++-
+ .../chrome_content_rules_registry_unittest.cc |  54 +++++++
+ .../declarative_content_apitest.cc            | 139 ++++++++++++++++++
+ .../webrequest_rules_registry_unittest.cc     |  56 +++++++
+ extensions/browser/BUILD.gn                   |   3 +
+ .../browser/api/declarative/constants.h       |  18 +++
+ .../api/declarative/declarative_utils.cc      |  16 ++
+ .../api/declarative/declarative_utils.h       |  19 +++
+ .../browser/api/declarative/rules_registry.cc |  71 +++++----
+ .../browser/api/declarative/rules_registry.h  |   9 +-
+ .../declarative/rules_registry_unittest.cc    |  52 +++++++
+ .../webrequest_rules_registry.cc              |  80 +++++++---
+ .../webrequest_rules_registry.h               |   7 +-
+ 14 files changed, 535 insertions(+), 65 deletions(-)
+ create mode 100644 extensions/browser/api/declarative/constants.h
+ create mode 100644 extensions/browser/api/declarative/declarative_utils.cc
+ create mode 100644 extensions/browser/api/declarative/declarative_utils.h
+
+diff --git a/chrome/browser/extensions/api/declarative/rules_registry_with_cache_unittest.cc b/chrome/browser/extensions/api/declarative/rules_registry_with_cache_unittest.cc
+index f5d6aabf5..886efcf64 100644
+--- a/chrome/browser/extensions/api/declarative/rules_registry_with_cache_unittest.cc
++++ b/chrome/browser/extensions/api/declarative/rules_registry_with_cache_unittest.cc
+@@ -11,6 +11,7 @@
+ #include <memory>
+ 
+ #include "base/command_line.h"
++#include "base/test/values_test_util.h"
+ #include "chrome/browser/extensions/test_extension_environment.h"
+ #include "chrome/browser/extensions/test_extension_system.h"
+ #include "chrome/common/extensions/extension_test_util.h"
+@@ -26,6 +27,7 @@
+ #include "extensions/browser/extension_registrar.h"
+ #include "extensions/browser/extension_registry.h"
+ #include "extensions/browser/rules_registry_ids.h"
++#include "extensions/browser/state_store.h"
+ #include "extensions/buildflags/buildflags.h"
+ #include "extensions/common/extension.h"
+ #include "extensions/common/features/feature_channel.h"
+@@ -420,4 +422,34 @@ TEST_F(RulesRegistryWithCacheTest, ConcurrentStoringOfRules) {
+   EXPECT_EQ(write_count + 2, system->value_store()->write_count());
+ }
+ 
++// Regression test for crbug.com/574640360: if persisted storage contains two
++// rules with the same (non-ASCII) rule ID, startup replay must reject the
++// batch without crashing in `AddRulesNoFill` or `ReportInternalError`.
++TEST_F(RulesRegistryWithCacheTest, RejectsDuplicatePersistedRuleIdsOnStartup) {
++  const Extension* extension = env_.MakeExtension(
++      base::test::ParseJsonDict(R"({"permissions": ["declarativeContent"]})"));
++  ASSERT_TRUE(extension);
++
++  StateStore* rules_store = env_.GetExtensionSystem()->rules_store();
++  ASSERT_TRUE(rules_store);
++  rules_store->SetExtensionValue(
++      extension->id(), "declarative_rules.declarativeContent.onPageChanged",
++      base::test::ParseJson(R"([
++        {"id": "\uFFFD\uFFFD\uFFFD", "priority": 100},
++        {"id": "\uFFFD\uFFFD\uFFFD", "priority": 100}
++      ])"));
++
++  env_.GetExtensionSystem()->SetReady();
++
++  auto cache_delegate = std::make_unique<RulesCacheDelegate>(
++      RulesCacheDelegate::Type::kPersistent);
++  scoped_refptr<TestRulesRegistry> registry(
++      new TestRulesRegistry(profile(), "declarativeContent.onPageChanged",
++                            cache_delegate.get(), kRulesRegistryID));
++
++  content::RunAllTasksUntilIdle();
++  EXPECT_TRUE(registry->ready().is_signaled());
++  EXPECT_EQ(0, GetNumberOfRules(extension->id(), registry.get()));
++}
++
+ }  //  namespace extensions
+diff --git a/chrome/browser/extensions/api/declarative_content/chrome_content_rules_registry.cc b/chrome/browser/extensions/api/declarative_content/chrome_content_rules_registry.cc
+index bf9e03f0e..9e701f3e8 100644
+--- a/chrome/browser/extensions/api/declarative_content/chrome_content_rules_registry.cc
++++ b/chrome/browser/extensions/api/declarative_content/chrome_content_rules_registry.cc
+@@ -4,13 +4,19 @@
+ 
+ #include "chrome/browser/extensions/api/declarative_content/chrome_content_rules_registry.h"
+ 
++#include <set>
++
++#include "base/check.h"
+ #include "base/functional/bind.h"
+ #include "base/memory/raw_ptr.h"
++#include "base/strings/stringprintf.h"
+ #include "chrome/browser/extensions/extension_util.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "content/public/browser/browser_thread.h"
+ #include "content/public/browser/navigation_details.h"
+ #include "content/public/browser/web_contents.h"
++#include "extensions/browser/api/declarative/constants.h"
++#include "extensions/browser/api/declarative/declarative_utils.h"
+ #include "extensions/browser/api/declarative/rules_registry_service.h"
+ #include "extensions/browser/extension_registry.h"
+ #include "extensions/browser/extension_system.h"
+@@ -261,9 +267,27 @@ std::string ChromeContentRulesRegistry::AddRulesImpl(
+         evaluator.get();
+   }
+ 
++  // Validate all rule IDs before `CreateRule()` allocates any rules or
++  // predicates.
++  std::set<std::string> seen_rule_ids;
++  for (const api::events::Rule* api_rule : api_rules) {
++    // Return an error if the rule ID is missing or not valid UTF-8.
++    if (!declarative::IsValidRuleId(api_rule->id)) {
++      return declarative::kInvalidRuleIdError;
++    }
++
++    // Reject rule IDs that are already registered for this extension in
++    // `content_rules_` or duplicated within this `api_rules` batch.
++    ExtensionIdRuleIdPair rule_id(extension_id, *api_rule->id);
++    auto [_, inserted] = seen_rule_ids.insert(*api_rule->id);
++    if (content_rules_.contains(rule_id) || !inserted) {
++      return base::StringPrintf(declarative::kDuplicateRuleIdError,
++                                api_rule->id->c_str());
++    }
++  }
++
+   for (auto* api_rule : api_rules) {
+     ExtensionIdRuleIdPair rule_id(extension_id, *api_rule->id);
+-    DCHECK(content_rules_.find(rule_id) == content_rules_.end());
+ 
+     std::unique_ptr<const ContentRule> rule(
+         CreateRule(extension, predicate_factories, *api_rule, &error));
+@@ -295,17 +319,23 @@ std::string ChromeContentRulesRegistry::AddRulesImpl(
+       }
+     }
+ 
+-    new_rules[rule_id] = std::move(rule);
++    auto [_, inserted] = new_rules.emplace(rule_id, std::move(rule));
++    CHECK(inserted);
++  }
++
++  // Move the new rules into `content_rules_` (which owns each `ContentRule` and
++  // its `ContentPredicate`s) before passing unowned `ContentPredicate*`
++  // pointers to `evaluators_`.
++  for (auto& [rule_id, rule] : new_rules) {
++    auto [_, inserted] = content_rules_.emplace(rule_id, std::move(rule));
++    CHECK(inserted);
+   }
+ 
+   // Notify the evaluators about their new predicates.
+   for (const std::unique_ptr<ContentPredicateEvaluator>& evaluator :
+-       evaluators_)
++       evaluators_) {
+     evaluator->TrackPredicates(new_predicates[evaluator.get()]);
+-
+-  // Wohoo, everything worked fine.
+-  content_rules_.insert(std::make_move_iterator(new_rules.begin()),
+-                        std::make_move_iterator(new_rules.end()));
++  }
+ 
+   // Request evaluation for all WebContents, under the assumption that a
+   // non-empty condition has been added.
+diff --git a/chrome/browser/extensions/api/declarative_content/chrome_content_rules_registry_unittest.cc b/chrome/browser/extensions/api/declarative_content/chrome_content_rules_registry_unittest.cc
+index 9c486bab5..c26c10af6 100644
+--- a/chrome/browser/extensions/api/declarative_content/chrome_content_rules_registry_unittest.cc
++++ b/chrome/browser/extensions/api/declarative_content/chrome_content_rules_registry_unittest.cc
+@@ -9,6 +9,7 @@
+ #include "base/test/values_test_util.h"
+ #include "chrome/browser/extensions/api/declarative_content/content_predicate.h"
+ #include "chrome/browser/extensions/api/declarative_content/content_predicate_evaluator.h"
++#include "chrome/browser/extensions/api/declarative_content/default_content_predicate_evaluators.h"
+ #include "chrome/browser/extensions/test_extension_environment.h"
+ #include "chrome/test/base/testing_profile.h"
+ #include "content/public/browser/web_contents.h"
+@@ -253,4 +254,57 @@ TEST_F(DeclarativeChromeContentRulesRegistryTest, RemoveDuplicateRules) {
+   registry->RemoveRulesImpl(extension->id(), remove_rules_dup);
+ }
+ 
++// Regression test for crbug.com/574640360: adding duplicate or non-UTF-8 rule
++// IDs directly through `AddRulesImpl` must be rejected before handing bare
++// predicate pointers to `DeclarativeContentPageUrlConditionTracker`.
++TEST_F(DeclarativeChromeContentRulesRegistryTest, AddDuplicateRuleIdsRejected) {
++  scoped_refptr<ChromeContentRulesRegistry> registry(
++      new ChromeContentRulesRegistry(
++          env()->profile(), nullptr,
++          base::BindOnce(&CreateDefaultContentPredicateEvaluators,
++                         env()->profile())));
++
++  const Extension* extension =
++      env()->MakeExtension(base::test::ParseJsonDict(R"({"page_action": {}})"));
++
++  constexpr char kCollapsedRuleJson[] = R"({
++    "id": "\uFFFD\uFFFD\uFFFD",
++    "priority": 100,
++    "conditions": [{
++      "instanceType": "declarativeContent.PageStateMatcher",
++      "pageUrl": {}
++    }],
++    "actions": [
++      {"instanceType": "declarativeContent.ShowAction"}
++    ]
++  })";
++  auto rule1 = api::events::Rule::FromValue(
++      base::test::ParseJsonDict(kCollapsedRuleJson));
++  auto rule2 = api::events::Rule::FromValue(
++      base::test::ParseJsonDict(kCollapsedRuleJson));
++  ASSERT_TRUE(rule1.has_value());
++  ASSERT_TRUE(rule2.has_value());
++
++  // Intra-batch duplicate IDs must fail without tracking dangling predicates.
++  std::vector<const api::events::Rule*> dup_batch = {&rule1.value(),
++                                                     &rule2.value()};
++  EXPECT_FALSE(registry->AddRulesImpl(extension->id(), dup_batch).empty());
++
++  // Non-UTF-8 rule IDs (lone surrogate in WTF-8) must also be rejected.
++  auto invalid_utf8_rule = api::events::Rule::FromValue(
++      base::test::ParseJsonDict(kCollapsedRuleJson));
++  ASSERT_TRUE(invalid_utf8_rule.has_value());
++  invalid_utf8_rule->id = "\xED\xA0\x80";
++  EXPECT_FALSE(
++      registry->AddRulesImpl(extension->id(), {&invalid_utf8_rule.value()})
++          .empty());
++
++  // Adding a single rule with the valid UTF-8 replacement-char ID succeeds, and
++  // a second `AddRulesImpl` with the same ID is rejected.
++  EXPECT_TRUE(
++      registry->AddRulesImpl(extension->id(), {&rule1.value()}).empty());
++  EXPECT_FALSE(
++      registry->AddRulesImpl(extension->id(), {&rule2.value()}).empty());
++}
++
+ }  // namespace extensions
+diff --git a/chrome/browser/extensions/api/declarative_content/declarative_content_apitest.cc b/chrome/browser/extensions/api/declarative_content/declarative_content_apitest.cc
+index fff6b699d..dd2f285a4 100644
+--- a/chrome/browser/extensions/api/declarative_content/declarative_content_apitest.cc
++++ b/chrome/browser/extensions/api/declarative_content/declarative_content_apitest.cc
+@@ -4,9 +4,11 @@
+ 
+ #include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
++#include "base/run_loop.h"
+ #include "base/strings/stringprintf.h"
+ #include "base/strings/to_string.h"
+ #include "base/strings/utf_string_conversions.h"
++#include "base/test/values_test_util.h"
+ #include "build/android_buildflags.h"
+ #include "build/build_config.h"
+ #include "build/chromeos_buildflags.h"
+@@ -34,8 +36,10 @@
+ #include "extensions/browser/extension_registry.h"
+ #include "extensions/browser/extension_system.h"
+ #include "extensions/browser/rules_registry_ids.h"
++#include "extensions/browser/state_store.h"
+ #include "extensions/browser/test_extension_registry_observer.h"
+ #include "extensions/buildflags/buildflags.h"
++#include "extensions/common/api/declarative/declarative_constants.h"
+ #include "extensions/common/api/extension_action/action_info.h"
+ #include "extensions/common/api/extension_action/action_info_test_util.h"
+ #include "extensions/test/extension_test_message_listener.h"
+@@ -1154,6 +1158,141 @@ IN_PROC_BROWSER_TEST_P(DeclarativeContentApiTestWithContextType,
+   EXPECT_EQ(1u, rules.size());
+ }
+ 
++// Regression test for crbug.com/574640360, modelled on the two-launch
++// reproduction steps:
++// 1. Install a persistent MV3 extension holding only `declarativeContent` and
++//    seed the Extension Rules StateStore with the collapsed duplicate-ID
++//    (`"\uFFFD\uFFFD\uFFFD"`) rule batch produced when lone-surrogate rule IDs
++//    were serialized by `JSONWriter`.
++// 2. Restart the browser so `RulesCacheDelegate` replays the persisted rules
++//    through `DeserializeAndAddRules` -> `AddRulesNoFill` ->
++//    `ChromeContentRulesRegistry::AddRulesImpl`, verifying the duplicate batch
++//    is rejected cleanly on startup.
++IN_PROC_BROWSER_TEST_F(DeclarativeContentApiTest,
++                       PRE_DuplicatePersistedRuleIdsOnStartup) {
++  static constexpr char kManifest[] = R"({
++    "name": "Duplicate rule ID repro",
++    "version": "1.0",
++    "manifest_version": 3,
++    "permissions": ["declarativeContent"],
++    "action": {},
++    "background": {"service_worker": "bg.js"}
++  })";
++  static constexpr char kBackgroundJs[] = R"(
++    chrome.runtime.onInstalled.addListener(() => {
++      const makeRule = (id) => ({
++        ...(id !== undefined ? {id} : {}),
++        conditions: [
++          new chrome.declarativeContent.PageStateMatcher({pageUrl: {}}),
++        ],
++        actions: [new chrome.declarativeContent.ShowAction()],
++      });
++      const dupId = '\uFFFD\uFFFD\uFFFD';
++      chrome.declarativeContent.onPageChanged.addRules(
++          [makeRule(dupId), makeRule(dupId)], () => {
++            chrome.test.assertLastError(
++                `Id ${dupId} was used multiple times.`);
++            chrome.declarativeContent.onPageChanged.addRules(
++                [makeRule()], () => {
++                  chrome.test.assertNoLastError();
++                  chrome.test.sendMessage('installed');
++                });
++          });
++    });
++  )";
++
++  ext_dir_.WriteManifest(kManifest);
++  ext_dir_.WriteFile(FILE_PATH_LITERAL("bg.js"), kBackgroundJs);
++
++  ExtensionTestMessageListener installed_listener("installed");
++  ChromeTestExtensionLoader loader(profile());
++  // `ext_dir_` is a temporary directory deleted after the `PRE_` step, so pack
++  // and install the extension into the profile directory for `InstalledLoader`
++  // to load after the restart.
++  loader.set_pack_extension(true);
++  scoped_refptr<const Extension> extension =
++      loader.LoadExtension(ext_dir_.UnpackedPath());
++  ASSERT_TRUE(extension);
++  ASSERT_TRUE(installed_listener.WaitUntilSatisfied());
++
++  scoped_refptr<RulesRegistry> rules_registry =
++      RulesRegistryService::Get(profile())->GetRulesRegistry(
++          rules_registry_ids::kDefaultRulesRegistryID,
++          declarative_content_constants::kOnPageChanged);
++  ASSERT_TRUE(rules_registry);
++
++  base::RunLoop registry_ready_loop;
++  rules_registry->ready().Post(FROM_HERE, registry_ready_loop.QuitClosure());
++  registry_ready_loop.Run();
++
++  StateStore* rules_store = ExtensionSystem::Get(profile())->rules_store();
++  ASSERT_TRUE(rules_store);
++  // Flush the `ProcessChangedRules` -> `UpdateRules` write queued by the
++  // initial `addRules` call before overwriting the stored rule list.
++  {
++    base::RunLoop drain_store_loop;
++    rules_store->FlushForTesting(drain_store_loop.QuitClosure());
++    drain_store_loop.Run();
++  }
++  rules_store->SetExtensionValue(
++      extension->id(), "declarative_rules.declarativeContent.onPageChanged",
++      base::test::ParseJson(R"([
++        {
++          "actions": [{"instanceType": "declarativeContent.ShowAction"}],
++          "conditions": [{
++            "instanceType": "declarativeContent.PageStateMatcher",
++            "pageUrl": {}
++          }],
++          "id": "\uFFFD\uFFFD\uFFFD",
++          "priority": 100
++        },
++        {
++          "actions": [{"instanceType": "declarativeContent.ShowAction"}],
++          "conditions": [{
++            "instanceType": "declarativeContent.PageStateMatcher",
++            "pageUrl": {}
++          }],
++          "id": "\uFFFD\uFFFD\uFFFD",
++          "priority": 100
++        }
++      ])"));
++
++  base::RunLoop flush_loop;
++  rules_store->FlushForTesting(flush_loop.QuitClosure());
++  flush_loop.Run();
++}
++
++IN_PROC_BROWSER_TEST_F(DeclarativeContentApiTest,
++                       DuplicatePersistedRuleIdsOnStartup) {
++  base::RunLoop system_ready_loop;
++  ExtensionSystem::Get(profile())->ready().Post(
++      FROM_HERE, system_ready_loop.QuitClosure());
++  system_ready_loop.Run();
++
++  const Extension* extension = GetSingleLoadedExtension();
++  ASSERT_TRUE(extension) << message_;
++  ASSERT_EQ("Duplicate rule ID repro", extension->name());
++
++  scoped_refptr<RulesRegistry> rules_registry =
++      RulesRegistryService::Get(profile())->GetRulesRegistry(
++          rules_registry_ids::kDefaultRulesRegistryID,
++          declarative_content_constants::kOnPageChanged);
++  ASSERT_TRUE(rules_registry);
++
++  base::RunLoop registry_ready_loop;
++  rules_registry->ready().Post(FROM_HERE, registry_ready_loop.QuitClosure());
++  registry_ready_loop.Run();
++
++  std::vector<const api::events::Rule*> rules;
++  rules_registry->GetAllRules(extension->id(), &rules);
++  EXPECT_TRUE(rules.empty());
++
++  // Trigger navigation rule evaluation to confirm no dangling predicates exist.
++  content::WebContents* const tab = GetActiveWebContents();
++  EXPECT_FALSE(NavigateInRenderer(tab, GURL("http://test1/")));
++  EXPECT_FALSE(tab->IsCrashed());
++}
++
+ // TODO(wittman): Once ChromeContentRulesRegistry operates on condition and
+ // action interfaces, add a test that checks that a navigation always evaluates
+ // consistent URL state for all conditions. i.e.: if condition1 evaluates to
+diff --git a/chrome/browser/extensions/api/declarative_webrequest/webrequest_rules_registry_unittest.cc b/chrome/browser/extensions/api/declarative_webrequest/webrequest_rules_registry_unittest.cc
+index 00bd19d4f..9135d8e8b 100644
+--- a/chrome/browser/extensions/api/declarative_webrequest/webrequest_rules_registry_unittest.cc
++++ b/chrome/browser/extensions/api/declarative_webrequest/webrequest_rules_registry_unittest.cc
+@@ -805,4 +805,60 @@ TEST_F(WebRequestRulesRegistryTest, CheckOriginAndPathRegEx) {
+   EXPECT_EQ(1u, deltas.size());
+ }
+ 
++// Regression test for crbug.com/575087049: duplicate or non-UTF-8 rule IDs
++// passed to `WebRequestRulesRegistry::AddRulesImpl` must be rejected before
++// indexing pointers in `rule_triggers_`.
++TEST_F(WebRequestRulesRegistryTest, AddDuplicateRuleIdsRejected) {
++  constexpr char kCollapsedRuleJson[] = R"({
++    "id": "\uFFFD\uFFFD\uFFFD",
++    "priority": 100,
++    "conditions": [{
++      "instanceType": "declarativeWebRequest.RequestMatcher",
++      "url": {}
++    }],
++    "actions": [{
++      "instanceType": "declarativeWebRequest.CancelRequest"
++    }]
++  })";
++
++  auto rule1 = api::events::Rule::FromValue(
++      base::test::ParseJsonDict(kCollapsedRuleJson));
++  auto rule2 = api::events::Rule::FromValue(
++      base::test::ParseJsonDict(kCollapsedRuleJson));
++  ASSERT_TRUE(rule1.has_value());
++  ASSERT_TRUE(rule2.has_value());
++
++  scoped_refptr<TestWebRequestRulesRegistry> registry =
++      base::MakeRefCounted<TestWebRequestRulesRegistry>(&profile_);
++
++  // Intra-batch duplicate IDs must fail and leave no dangling trigger entries.
++  std::vector<const api::events::Rule*> dup_batch = {&rule1.value(),
++                                                     &rule2.value()};
++  EXPECT_FALSE(registry->AddRulesImpl(kExtensionId, dup_batch).empty());
++  EXPECT_TRUE(registry->IsEmpty());
++
++  GURL trigger_url("http://localhost:8080/trigger");
++  WebRequestInfo request_info(CreateRequestParams(trigger_url));
++  WebRequestData request_data(&request_info, ON_BEFORE_REQUEST);
++  EXPECT_TRUE(registry->GetMatches(request_data).empty());
++  EXPECT_TRUE(registry
++                  ->CreateDeltas(PermissionHelper::Get(&profile_), request_data,
++                                 /*crosses_incognito=*/false)
++                  .empty());
++
++  // Non-UTF-8 rule IDs (lone surrogate in WTF-8) must also be rejected.
++  auto invalid_utf8_rule = api::events::Rule::FromValue(
++      base::test::ParseJsonDict(kCollapsedRuleJson));
++  ASSERT_TRUE(invalid_utf8_rule.has_value());
++  invalid_utf8_rule->id = "\xED\xA0\x80";
++  EXPECT_FALSE(
++      registry->AddRulesImpl(kExtensionId, {&invalid_utf8_rule.value()})
++          .empty());
++  EXPECT_TRUE(registry->IsEmpty());
++
++  // Adding a single rule succeeds, and re-adding the same ID is rejected.
++  EXPECT_TRUE(registry->AddRulesImpl(kExtensionId, {&rule1.value()}).empty());
++  EXPECT_FALSE(registry->AddRulesImpl(kExtensionId, {&rule2.value()}).empty());
++}
++
+ }  // namespace extensions
+diff --git a/extensions/browser/BUILD.gn b/extensions/browser/BUILD.gn
+index a5a433988..18b1d2c2b 100644
+--- a/extensions/browser/BUILD.gn
++++ b/extensions/browser/BUILD.gn
+@@ -109,9 +109,12 @@ source_set("browser_sources") {
+     "api/api_resource.h",
+     "api/api_resource_manager.h",
+     "api/constants.h",
++    "api/declarative/constants.h",
+     "api/declarative/declarative_api.cc",
+     "api/declarative/declarative_api.h",
+     "api/declarative/declarative_rule.h",
++    "api/declarative/declarative_utils.cc",
++    "api/declarative/declarative_utils.h",
+     "api/declarative/deduping_factory.h",
+     "api/declarative/rules_cache_delegate.cc",
+     "api/declarative/rules_cache_delegate.h",
+diff --git a/extensions/browser/api/declarative/constants.h b/extensions/browser/api/declarative/constants.h
+new file mode 100644
+index 000000000..0ec2fcddb
+--- /dev/null
++++ b/extensions/browser/api/declarative/constants.h
+@@ -0,0 +1,18 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef EXTENSIONS_BROWSER_API_DECLARATIVE_CONSTANTS_H_
++#define EXTENSIONS_BROWSER_API_DECLARATIVE_CONSTANTS_H_
++
++namespace extensions::declarative {
++
++inline constexpr char kDuplicateRuleIdError[] = "Duplicate rule ID: %s";
++inline constexpr char kInvalidRuleIdError[] =
++    "Invalid rule ID: must be present and valid UTF-8";
++inline constexpr char kErrorCannotRemoveManifestRules[] =
++    "Rules declared in the 'event_rules' manifest field cannot be removed";
++
++}  // namespace extensions::declarative
++
++#endif  // EXTENSIONS_BROWSER_API_DECLARATIVE_CONSTANTS_H_
+diff --git a/extensions/browser/api/declarative/declarative_utils.cc b/extensions/browser/api/declarative/declarative_utils.cc
+new file mode 100644
+index 000000000..9bf7c7416
+--- /dev/null
++++ b/extensions/browser/api/declarative/declarative_utils.cc
+@@ -0,0 +1,16 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "extensions/browser/api/declarative/declarative_utils.h"
++
++#include "base/strings/string_util.h"
++
++namespace extensions::declarative {
++
++bool IsValidRuleId(const std::optional<std::string>& rule_id) {
++  return rule_id.has_value() &&
++         base::IsStringUTF8AllowingNoncharacters(*rule_id);
++}
++
++}  // namespace extensions::declarative
+diff --git a/extensions/browser/api/declarative/declarative_utils.h b/extensions/browser/api/declarative/declarative_utils.h
+new file mode 100644
+index 000000000..6dadf0195
+--- /dev/null
++++ b/extensions/browser/api/declarative/declarative_utils.h
+@@ -0,0 +1,19 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef EXTENSIONS_BROWSER_API_DECLARATIVE_DECLARATIVE_UTILS_H_
++#define EXTENSIONS_BROWSER_API_DECLARATIVE_DECLARATIVE_UTILS_H_
++
++#include <optional>
++#include <string>
++
++namespace extensions::declarative {
++
++// Returns true if `rule_id` is present and valid UTF-8 (lone surrogates would
++// be replaced with U+FFFD when serialized to JSON in `StateStore`).
++bool IsValidRuleId(const std::optional<std::string>& rule_id);
++
++}  // namespace extensions::declarative
++
++#endif  // EXTENSIONS_BROWSER_API_DECLARATIVE_DECLARATIVE_UTILS_H_
+diff --git a/extensions/browser/api/declarative/rules_registry.cc b/extensions/browser/api/declarative/rules_registry.cc
+index 376867d32..98dc7d19d 100644
+--- a/extensions/browser/api/declarative/rules_registry.cc
++++ b/extensions/browser/api/declarative/rules_registry.cc
+@@ -6,8 +6,10 @@
+ 
+ #include <algorithm>
+ #include <memory>
++#include <set>
+ #include <utility>
+ 
++#include "base/check.h"
+ #include "base/functional/bind.h"
+ #include "base/logging.h"
+ #include "base/strings/stringprintf.h"
+@@ -16,6 +18,8 @@
+ #include "base/values.h"
+ #include "content/public/browser/browser_task_traits.h"
+ #include "content/public/browser/browser_thread.h"
++#include "extensions/browser/api/declarative/constants.h"
++#include "extensions/browser/api/declarative/declarative_utils.h"
+ #include "extensions/browser/api/declarative/rules_cache_delegate.h"
+ #include "extensions/browser/extension_error.h"
+ #include "extensions/browser/extension_registry.h"
+@@ -31,10 +35,7 @@ namespace extensions {
+ 
+ namespace {
+ 
+-const char kSuccess[] = "";
+-const char kDuplicateRuleId[] = "Duplicate rule ID: %s";
+-const char kErrorCannotRemoveManifestRules[] =
+-    "Rules declared in the 'event_rules' manifest field cannot be removed";
++constexpr char kSuccess[] = "";
+ 
+ base::ListValue RulesToValue(
+     const std::vector<const api::events::Rule*>& rules) {
+@@ -96,15 +97,22 @@ std::string RulesRegistry::AddRulesNoFill(
+     std::vector<const api::events::Rule*>* rules_out) {
+   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+ 
+-  // Verify that all rule IDs are new.
++  // Verify that all rule IDs are valid UTF-8 and new (including within this
++  // batch, since deserialized rules bypass `CheckAndFillInOptionalRules`).
++  std::set<RuleId> new_rule_ids;
+   for (const auto& rule : rules_in) {
++    if (!declarative::IsValidRuleId(rule.id)) {
++      return declarative::kInvalidRuleIdError;
++    }
+     const RuleId& rule_id = *(rule.id);
+     // Every rule should have a priority assigned.
+     DCHECK(rule.priority);
+     RulesDictionaryKey key(extension_id, rule_id);
+-    if (rules_.find(key) != rules_.end() ||
+-        manifest_rules_.find(key) != manifest_rules_.end())
+-      return base::StringPrintf(kDuplicateRuleId, rule_id.c_str());
++    auto [_, inserted] = new_rule_ids.insert(rule_id);
++    if (rules_.contains(key) || manifest_rules_.contains(key) || !inserted) {
++      return base::StringPrintf(declarative::kDuplicateRuleIdError,
++                                rule_id.c_str());
++    }
+   }
+ 
+   std::vector<const api::events::Rule*> rule_ptrs;
+@@ -124,7 +132,7 @@ std::string RulesRegistry::AddRulesNoFill(
+ 
+     auto insert_result = destination->emplace(key, std::move(rule));
+     // All rule IDs are new so insert had better not have failed.
+-    DCHECK(insert_result.second);
++    CHECK(insert_result.second);
+ 
+     if (rules_out)
+       rule_ptrs.push_back(&(insert_result.first->second));
+@@ -156,6 +164,9 @@ std::string RulesRegistry::AddRulesInternal(
+     return error;
+   FillInOptionalPriorities(&rules_in);
+ 
++  // TODO(crbug.com/40605870): `used_rule_identifiers_` is not rolled back if
++  // `AddRulesNoFill()` fails, and is not populated when stored rules are
++  // replayed in `DeserializeAndAddRules()`.
+   return AddRulesNoFill(extension_id, std::move(rules_in), destination,
+                         rules_out);
+ }
+@@ -180,7 +191,7 @@ std::string RulesRegistry::RemoveRules(
+     RulesDictionaryKey lookup_key(extension_id, rule_id);
+     auto itr = manifest_rules_.find(lookup_key);
+     if (itr != manifest_rules_.end())
+-      return kErrorCannotRemoveManifestRules;
++      return declarative::kErrorCannotRemoveManifestRules;
+   }
+ 
+   std::string error =
+@@ -340,7 +351,7 @@ void RulesRegistry::DeserializeAndAddRules(const ExtensionId& extension_id,
+ void RulesRegistry::ReportInternalError(const ExtensionId& extension_id,
+                                         const std::string& error) {
+   auto error_instance = std::make_unique<InternalError>(
+-      extension_id, base::ASCIIToUTF16(error), logging::LOGGING_ERROR);
++      extension_id, base::UTF8ToUTF16(error), logging::LOGGING_ERROR);
+   ExtensionsBrowserClient::Get()->ReportError(browser_context_,
+                                               std::move(error_instance));
+ }
+@@ -398,25 +409,31 @@ std::string RulesRegistry::GenerateUniqueId(const ExtensionId& extension_id) {
+ std::string RulesRegistry::CheckAndFillInOptionalRules(
+     const ExtensionId& extension_id,
+     std::vector<api::events::Rule>* rules) {
+-  // IDs we have inserted, in case we need to rollback this operation.
+-  // TODO(rdevlin.cronin, avi): Um, this variable is never inserted into; is
+-  // this a bug? https://crbug.com/40605870
+-  std::vector<std::string> rollback_log;
+-
+-  // First we insert all rules with existing identifier, so that generated
+-  // identifiers cannot collide with identifiers passed by the caller.
++  // First verify that all explicit rule IDs are valid UTF-8 and unique (both
++  // against already-used IDs and within this batch) before mutating
++  // `used_rule_identifiers_`.
++  std::set<RuleIdentifier> seen_ids;
+   for (const auto& rule : *rules) {
+-    if (rule.id) {
+-      std::string id = *(rule.id);
+-      if (!IsUniqueId(extension_id, id)) {
+-        RemoveUsedRuleIdentifiers(extension_id, rollback_log);
+-        return "Id " + id + " was used multiple times.";
+-      }
+-      used_rule_identifiers_[extension_id].insert(id);
++    if (!rule.id) {
++      continue;
+     }
++    if (!declarative::IsValidRuleId(rule.id)) {
++      return declarative::kInvalidRuleIdError;
++    }
++    const std::string& id = *rule.id;
++    auto [_, inserted] = seen_ids.insert(id);
++    if (!IsUniqueId(extension_id, id) || !inserted) {
++      return "Id " + id + " was used multiple times.";
++    }
++  }
++
++  // Insert all rules with explicit identifiers first, so that generated
++  // identifiers cannot collide with identifiers passed by the caller.
++  for (const auto& id : seen_ids) {
++    used_rule_identifiers_[extension_id].insert(id);
+   }
+-  // Now we generate IDs in case they were not specified in the rules. This
+-  // cannot fail so we do not need to keep track of a rollback log.
++
++  // Now we generate IDs in case they were not specified in the rules.
+   for (auto& rule : *rules) {
+     if (!rule.id) {
+       rule.id = GenerateUniqueId(extension_id);
+diff --git a/extensions/browser/api/declarative/rules_registry.h b/extensions/browser/api/declarative/rules_registry.h
+index 88e287b99..58b355cc3 100644
+--- a/extensions/browser/api/declarative/rules_registry.h
++++ b/extensions/browser/api/declarative/rules_registry.h
+@@ -188,10 +188,11 @@ class RulesRegistry : public base::RefCountedThreadSafe<RulesRegistry> {
+       RulesDictionary* destination,
+       std::vector<const api::events::Rule*>* rules_out);
+ 
+-  // The precondition for calling this method is that all rules have unique IDs.
+-  // AddRules establishes this precondition and calls into this method.
+-  // Stored rules already meet this precondition and so they avoid calling
+-  // CheckAndFillInOptionalRules for improved performance.
++  // Adds `rules_in` to `destination` without filling in optional `id` or
++  // `priority` fields (`priority` must already be set). Validates that all
++  // rule IDs are present, valid UTF-8, and unique. `AddRulesInternal()` fills
++  // optional fields before calling this, whereas stored rules already have
++  // them populated and call this directly.
+   //
+   // Returns an empty string if the function is successful or an error
+   // message otherwise. If the function is successful, and if the
+diff --git a/extensions/browser/api/declarative/rules_registry_unittest.cc b/extensions/browser/api/declarative/rules_registry_unittest.cc
+index 6cf3fbcb9..2885d7d62 100644
+--- a/extensions/browser/api/declarative/rules_registry_unittest.cc
++++ b/extensions/browser/api/declarative/rules_registry_unittest.cc
+@@ -349,4 +349,56 @@ TEST(RulesRegistryTest, DeleteRuleInManifest) {
+   EXPECT_EQ("manifest_rule_0", *(get_rules[0]->id));
+ }
+ 
++// Regression test for crbug.com/574640360: rule IDs containing invalid UTF-8
++// (such as lone UTF-16 surrogates encoded as WTF-8) or intra-batch duplicate
++// IDs must be rejected without leaking entries in `used_rule_identifiers_`.
++TEST(RulesRegistryTest, RejectsInvalidUtf8AndDuplicateRuleIds) {
++  content::BrowserTaskEnvironment task_environment;
++
++  scoped_refptr<RulesRegistry> registry =
++      new TestRulesRegistry(/*event_name=*/"", key);
++
++  // Distinct lone surrogates U+D800 (\xED\xA0\x80) and U+DC00 (\xED\xB0\x80)
++  // in WTF-8 would both collapse to U+FFFD x3 when persisted to JSON.
++  {
++    std::vector<api::events::Rule> add_rules(3);
++    add_rules[0].id = "valid_before_invalid";
++    add_rules[1].id = "\xED\xA0\x80";
++    add_rules[2].id = "\xED\xB0\x80";
++    std::string error = registry->AddRules(kExtensionId, std::move(add_rules));
++    EXPECT_FALSE(error.empty());
++  }
++
++  std::vector<const api::events::Rule*> get_rules;
++  registry->GetAllRules(kExtensionId, &get_rules);
++  EXPECT_TRUE(get_rules.empty());
++  EXPECT_EQ(0u, registry->GetNumberOfUsedRuleIdentifiersForTesting());
++
++  // Intra-batch duplicate explicit IDs must also fail atomically without
++  // polluting `used_rule_identifiers_`.
++  {
++    std::vector<api::events::Rule> add_rules(2);
++    add_rules[0].id = "dup_id";
++    add_rules[1].id = "dup_id";
++    std::string error = registry->AddRules(kExtensionId, std::move(add_rules));
++    EXPECT_FALSE(error.empty());
++  }
++  EXPECT_EQ(0u, registry->GetNumberOfUsedRuleIdentifiersForTesting());
++
++  // Valid non-ASCII UTF-8 IDs (including U+FFFD and Unicode noncharacters)
++  // and the rolled-back IDs above remain usable.
++  {
++    std::vector<api::events::Rule> add_rules(4);
++    add_rules[0].id = "valid_before_invalid";
++    add_rules[1].id = "dup_id";
++    add_rules[2].id = "\xEF\xBF\xBD";
++    add_rules[3].id = "\xEF\xBF\xBE";
++    std::string error = registry->AddRules(kExtensionId, std::move(add_rules));
++    EXPECT_TRUE(error.empty()) << error;
++  }
++
++  registry->GetAllRules(kExtensionId, &get_rules);
++  EXPECT_EQ(4u, get_rules.size());
++}
++
+ }  // namespace extensions
+diff --git a/extensions/browser/api/declarative_webrequest/webrequest_rules_registry.cc b/extensions/browser/api/declarative_webrequest/webrequest_rules_registry.cc
+index 082c8e4f5..d670da11a 100644
+--- a/extensions/browser/api/declarative_webrequest/webrequest_rules_registry.cc
++++ b/extensions/browser/api/declarative_webrequest/webrequest_rules_registry.cc
+@@ -7,10 +7,15 @@
+ #include <algorithm>
+ #include <iterator>
+ #include <limits>
++#include <set>
+ #include <utility>
+ 
++#include "base/check.h"
+ #include "base/functional/bind.h"
++#include "base/strings/stringprintf.h"
+ #include "content/public/browser/browser_thread.h"
++#include "extensions/browser/api/declarative/constants.h"
++#include "extensions/browser/api/declarative/declarative_utils.h"
+ #include "extensions/browser/api/declarative_webrequest/webrequest_condition.h"
+ #include "extensions/browser/api/declarative_webrequest/webrequest_constants.h"
+ #include "extensions/browser/api/web_request/web_request_api_helpers.h"
+@@ -156,11 +161,31 @@ std::string WebRequestRulesRegistry::AddRulesImpl(
+   const Extension* extension = ExtensionRegistry::Get(browser_context())
+                                    ->enabled_extensions()
+                                    .GetByID(extension_id);
+-  RulesMap& registered_rules = webrequest_rules_[extension_id];
++  // Validate all rule IDs before `WebRequestRule::Create()` allocates rules or
++  // temporary `url_matcher_` condition sets.
++  const auto existing_rules_it = webrequest_rules_.find(extension_id);
++  std::set<WebRequestRule::RuleId> seen_rule_ids;
++  for (const api::events::Rule* rule : rules) {
++    // Return an error if the rule ID is missing or not valid UTF-8.
++    if (!declarative::IsValidRuleId(rule->id)) {
++      return declarative::kInvalidRuleIdError;
++    }
++
++    // Reject rule IDs that are already registered for this extension in
++    // `webrequest_rules_` or duplicated within this `rules` batch.
++    const WebRequestRule::RuleId& rule_id(*rule->id);
++    const bool already_registered =
++        existing_rules_it != webrequest_rules_.end() &&
++        existing_rules_it->second.contains(rule_id);
++    auto [_, inserted] = seen_rule_ids.insert(rule_id);
++    if (already_registered || !inserted) {
++      return base::StringPrintf(declarative::kDuplicateRuleIdError,
++                                rule_id.c_str());
++    }
++  }
+ 
+   for (auto* rule : rules) {
+     const WebRequestRule::RuleId& rule_id(*rule->id);
+-    DCHECK(registered_rules.find(rule_id) == registered_rules.end());
+ 
+     std::unique_ptr<WebRequestRule> webrequest_rule = WebRequestRule::Create(
+         url_matcher_.condition_factory(), browser_context(), extension,
+@@ -181,32 +206,37 @@ std::string WebRequestRulesRegistry::AddRulesImpl(
+     return error;
+   }
+ 
+-  // Woohoo, everything worked fine.
++  // All rules were validated and constructed without errors. Move them into
++  // `registered_rules` (which owns each `WebRequestRule`) first so that
++  // `rule_triggers_` and `rules_with_untriggered_conditions_` only store
++  // unowned `WebRequestRule*` pointers to rules owned by `webrequest_rules_`.
++  RulesMap& registered_rules = webrequest_rules_[extension_id];
++  URLMatcherConditionSet::Vector all_new_condition_sets;
++  for (auto& [rule_id, rule] : new_webrequest_rules) {
++    auto [it, inserted] = registered_rules.emplace(rule_id, std::move(rule));
++    CHECK(inserted);
++    const WebRequestRule* registered_rule = it->second.get();
+ 
+-  // Create the triggers.
+-  for (const auto& id_rule_pair : new_webrequest_rules) {
++    // Map each rule's URL condition sets to `registered_rule` in
++    // `rule_triggers_`, and collect them to register in `url_matcher_`.
+     URLMatcherConditionSet::Vector url_condition_sets;
+-    const std::unique_ptr<const WebRequestRule>& rule = id_rule_pair.second;
+-    rule->conditions().GetURLMatcherConditionSets(&url_condition_sets);
++    registered_rule->conditions().GetURLMatcherConditionSets(
++        &url_condition_sets);
+     for (const auto& condition_set : url_condition_sets) {
+-      rule_triggers_[condition_set->id()] = rule.get();
++      rule_triggers_[condition_set->id()] = registered_rule;
++    }
++    all_new_condition_sets.insert(all_new_condition_sets.end(),
++                                  url_condition_sets.begin(),
++                                  url_condition_sets.end());
++
++    // Rules with conditions that don't filter on URLs must be evaluated on
++    // every request regardless of `url_matcher_` matches.
++    if (registered_rule->conditions().HasConditionsWithoutUrls()) {
++      rules_with_untriggered_conditions_.insert(registered_rule);
+     }
+-  }
+-
+-  // Register url patterns in |url_matcher_| and
+-  // |rules_with_untriggered_conditions_|.
+-  URLMatcherConditionSet::Vector all_new_condition_sets;
+-  for (const auto& id_rule_pair : new_webrequest_rules) {
+-    const std::unique_ptr<const WebRequestRule>& rule = id_rule_pair.second;
+-    rule->conditions().GetURLMatcherConditionSets(&all_new_condition_sets);
+-    if (rule->conditions().HasConditionsWithoutUrls())
+-      rules_with_untriggered_conditions_.insert(rule.get());
+   }
+   url_matcher_.AddConditionSets(all_new_condition_sets);
+ 
+-  registered_rules.insert(std::make_move_iterator(new_webrequest_rules.begin()),
+-                          std::make_move_iterator(new_webrequest_rules.end()));
+-
+   ClearCacheOnNavigation();
+ 
+   return std::string();
+@@ -365,9 +395,11 @@ void WebRequestRulesRegistry::AddTriggeredRules(
+   for (const auto& url_match : url_matches) {
+     auto rule_trigger = rule_triggers_.find(url_match);
+     CHECK(rule_trigger != rule_triggers_.end());
+-    if (!result->contains(rule_trigger->second) &&
+-        rule_trigger->second->conditions().IsFulfilled(url_match, request_data))
+-      result->insert(rule_trigger->second);
++    const WebRequestRule* rule = rule_trigger->second.get();
++    if (!result->contains(rule) &&
++        rule->conditions().IsFulfilled(url_match, request_data)) {
++      result->insert(rule);
++    }
+   }
+ }
+ 
+diff --git a/extensions/browser/api/declarative_webrequest/webrequest_rules_registry.h b/extensions/browser/api/declarative_webrequest/webrequest_rules_registry.h
+index 10dff7630..98148dcbb 100644
+--- a/extensions/browser/api/declarative_webrequest/webrequest_rules_registry.h
++++ b/extensions/browser/api/declarative_webrequest/webrequest_rules_registry.h
+@@ -118,7 +118,7 @@ class WebRequestRulesRegistry : public RulesRegistry {
+                            HostPermissionsChecker);
+ 
+   using RuleTriggers =
+-      std::map<base::MatcherStringPattern::ID, const WebRequestRule*>;
++      std::map<base::MatcherStringPattern::ID, raw_ptr<const WebRequestRule>>;
+   using RulesMap =
+       std::map<WebRequestRule::RuleId, std::unique_ptr<const WebRequestRule>>;
+   using URLMatches = std::set<base::MatcherStringPattern::ID>;
+@@ -160,8 +160,11 @@ class WebRequestRulesRegistry : public RulesRegistry {
+                          const WebRequestCondition::MatchData& request_data,
+                          RuleSet* result) const;
+ 
++  std::map<ExtensionId, RulesMap> webrequest_rules_;
++
+   // Map that tells us which WebRequestRule may match under the condition that
+   // the base::MatcherStringPattern::ID was returned by the `url_matcher_`.
++  // Declared after `webrequest_rules_` so owning pointers outlive `raw_ptr`s.
+   RuleTriggers rule_triggers_;
+ 
+   // These rules contain condition sets with conditions without URL attributes.
+@@ -170,8 +173,6 @@ class WebRequestRulesRegistry : public RulesRegistry {
+   std::set<raw_ptr<const WebRequestRule, SetExperimental>>
+       rules_with_untriggered_conditions_;
+ 
+-  std::map<ExtensionId, RulesMap> webrequest_rules_;
+-
+   url_matcher::URLMatcher url_matcher_;
+ };
+ 
+-- 
+2.43.0
+
