@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Henrik=20Bostr=C3=B6m?= <hbos@google.com>
 Date: Fri, 16 Oct 2026 01:17:57 -0700
-Subject: [PATCH 19/27] Stop all matching clients in
+Subject: [PATCH 19/31] Stop all matching clients in
  `VideoCaptureController::StopSession`.
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -85,7 +85,7 @@ index 4f320afa9..4a94ee5ef 100644
        int buffer_context_id);
    std::vector<BufferContext>::iterator FindUnretiredBufferContextFromBufferId(
 diff --git a/content/browser/renderer_host/media/video_capture_controller_unittest.cc b/content/browser/renderer_host/media/video_capture_controller_unittest.cc
-index 055b90e31..e1f7d1f59 100644
+index 055b90e31..d78e0e0ce 100644
 --- a/content/browser/renderer_host/media/video_capture_controller_unittest.cc
 +++ b/content/browser/renderer_host/media/video_capture_controller_unittest.cc
 @@ -1128,5 +1128,54 @@ TEST_F(VideoCaptureControllerTest, ReturnBufferTwiceFails) {
@@ -109,11 +109,11 @@ index 055b90e31..e1f7d1f59 100644
 +      base::UnguessableToken::Create();
 +
 +  controller_->AddClient(client_a_route_1, {}, client_a_.get(), session_id_1,
-+                         session_params);
++                         session_params, std::nullopt);
 +  controller_->AddClient(client_a_route_2, {}, client_a_.get(), session_id_1,
-+                         session_params);
++                         session_params, std::nullopt);
 +  controller_->AddClient(client_b_route_1, {}, client_b_.get(), session_id_2,
-+                         session_params);
++                         session_params, std::nullopt);
 +  ASSERT_EQ(3u, controller_->GetClientCount());
 +
 +  // Stopping session_id_1 must notify all clients sharing that session.
