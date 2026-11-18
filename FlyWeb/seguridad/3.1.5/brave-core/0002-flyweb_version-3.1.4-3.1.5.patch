@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-25 <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 10:17:41 +0000
+Subject: [PATCH 2/2] flyweb_version 3.1.4 -> 3.1.5
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kzDkFd6KCGzWTjn23
+---
+ build/config.gni | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/build/config.gni b/build/config.gni
+index 5aeac1d..46426e7 100644
+--- a/build/config.gni
++++ b/build/config.gni
+@@ -96,7 +96,7 @@ brave_version = "$brave_version_major.$brave_version_minor.$brave_version_build"
+ # 131; 2.N = level 131+N up to 2.7 = level 138). 3.0.0 is the Chromium 156
+ # base, with the native 156 engine; later fixes are 3.0.x. Every release also
+ # raises flyweb_build_number (CFBundleVersion, what Sparkle compares).
+-flyweb_version = "3.1.4"
++flyweb_version = "3.1.5"
+ 
+ # FlyWeb: engine level, the Chrome version whose web platform features are all
+ # in this build (softmac FlyWeb/docs/motor.md). It is the major version
+-- 
+2.43.0
+

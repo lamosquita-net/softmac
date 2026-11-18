@@ -1,0 +1,493 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-25 <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 10:17:27 +0000
+Subject: [PATCH 1/2] v8: three Chrome 158 Medium fixes (19048d3, 33ab43a,
+ 65afc9f); cache epoch 33
+
+CVE-2026-131087 (571348848), CVE-2026-131097 (576225189) and
+CVE-2026-130988 (577305505). Clean on 15.6.75.66 with the existing
+patches/v8. Notes in patches/v8/FLYWEB-SECURITY.md.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kzDkFd6KCGzWTjn23
+---
+ patches/v8/FLYWEB-SECURITY.md                 |  20 +++
+ patches/v8/src-compiler-access-info.cc.patch  |  46 +++++++
+ ...src-compiler-turboshaft-operations.h.patch |  14 ++
+ .../v8/src-runtime-runtime-regexp.cc.patch    |  73 ++++++++++
+ patches/v8/src-utils-version.cc.patch         |   4 +-
+ ...c-wasm-turboshaft-graph-interface.cc.patch |  15 +++
+ ...mjsunit-regress-regress-576225189.js.patch |  43 ++++++
+ ...it-regress-wasm-regress-571348848.js.patch |  52 ++++++++
+ ...it-regress-wasm-regress-577305505.js.patch | 126 ++++++++++++++++++
+ 9 files changed, 391 insertions(+), 2 deletions(-)
+ create mode 100644 patches/v8/src-compiler-access-info.cc.patch
+ create mode 100644 patches/v8/src-compiler-turboshaft-operations.h.patch
+ create mode 100644 patches/v8/src-runtime-runtime-regexp.cc.patch
+ create mode 100644 patches/v8/src-wasm-turboshaft-graph-interface.cc.patch
+ create mode 100644 patches/v8/test-mjsunit-regress-regress-576225189.js.patch
+ create mode 100644 patches/v8/test-mjsunit-regress-wasm-regress-571348848.js.patch
+ create mode 100644 patches/v8/test-mjsunit-regress-wasm-regress-577305505.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index aa88f54..15e1337 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,23 @@
++# FlyWeb: 3.1.5, V8 15.6.75.66 + 659b8bf + three Chrome 158 Mediums
++
++SEGURIDAD-PORTES-25, 18-11-2026 (softmac `FlyWeb/seguridad/3.1.5/`). None is merged to 15.6; all three apply
++clean on 15.6.75.66 with the patches above:
++
++- **19048d3** (571348848, CVE-2026-131087, type confusion): Turboshaft wasm `AssertNotNullTypecheck` keeps the
++  `AssertNotNull` result and `WasmTypeCheckOp` gets `CanDependOnChecks()`, so a type check cannot be scheduled
++  above its null check. Test `regress/wasm/regress-571348848.js`.
++- **33ab43a** (576225189, CVE-2026-131097): the regexp results cache no longer hands groups objects of one native
++  context to a replace callback in another (cache hit only if created in the current native context). Test
++  `regress/regress-576225189.js`.
++- **65afc9f** (577305505, CVE-2026-130988, OOB read): wasm Proxy-on-Prototype trap inlining reads the trap from
++  the actual holder, requires a stable handler map and records the dependencies. Test
++  `regress/wasm/regress-577305505.js`.
++- Not ported: 1942561 (568908052, CVE-2026-130923), Android stack size only.
++- `kFlyWebCacheEpoch` 32 -> **33** (compiler and runtime changes; one epoch for the whole release).
++
++To check (D8-LINUX): `d8` and mjsunit with and without Maglev, especially the three new tests, `wasm/gc*`,
++`wasm/*proxy*`, `regexp*` and `es6/string-replace*`.
++
+ # FlyWeb: 3.1.4, V8 15.6.75.66 + 659b8bf
+ 
+ SEGURIDAD-PORTES-24, 18-11-2026 (brave-core `seg/3.1.4`). Inventory in softmac `FlyWeb/seguridad/3.1.4/INVENTARIO.md`.
+diff --git a/patches/v8/src-compiler-access-info.cc.patch b/patches/v8/src-compiler-access-info.cc.patch
+new file mode 100644
+index 0000000..ee5d970
+--- /dev/null
++++ b/patches/v8/src-compiler-access-info.cc.patch
+@@ -0,0 +1,46 @@
++diff --git a/src/compiler/access-info.cc b/src/compiler/access-info.cc
++index bf0d88e5bf805a534c59104a601e2ef5cff88dc9..50b16b526d325ceed6de42f5b88f48e97db6d71a 100644
++--- a/src/compiler/access-info.cc
+++++ b/src/compiler/access-info.cc
++@@ -555,9 +555,11 @@ std::optional<ElementAccessInfo> AccessInfoFactory::ComputeElementAccessInfo(
++         if (!maybe_handler->IsJSObject()) return {};
++         JSObjectRef handler = maybe_handler.value().AsJSObject();
++         MapRef handler_map = handler.map(broker());
++-        // We could implement support for dictionary-mode handlers, but it's
++-        // probably not worth it.
++-        if (handler_map.is_dictionary_map()) return {};
+++        // We could implement support for dictionary-mode or unstable handlers,
+++        // but it's probably not worth it.
+++        if (handler_map.is_dictionary_map() || !handler_map.is_stable()) {
+++          return {};
+++        }
++         NameRef trap_name = access_mode == AccessMode::kLoad
++                                 ? broker()->get_string()
++                                 : broker()->set_string();
++@@ -566,7 +568,10 @@ std::optional<ElementAccessInfo> AccessInfoFactory::ComputeElementAccessInfo(
++         if (!trap_info.IsFastDataConstant()) return {};
++         Representation repr = trap_info.field_representation();
++         if (!repr.IsHeapObject() && !repr.IsTagged()) return {};
++-        OptionalObjectRef trap = handler.GetOwnFastConstantDataProperty(
+++        OptionalJSObjectRef trap_holder = trap_info.holder();
+++        JSObjectRef trap_holder_ref =
+++            trap_holder.has_value() ? trap_holder.value() : handler;
+++        OptionalObjectRef trap = trap_holder_ref.GetOwnFastConstantDataProperty(
++             broker(), repr, trap_info.field_index(), dependencies());
++         if (!trap.has_value()) return {};
++         ObjectRef trap_value = trap.value();
++@@ -606,6 +611,14 @@ std::optional<ElementAccessInfo> AccessInfoFactory::ComputeElementAccessInfo(
++         }
++ 
++         // Finally: all good!
+++        trap_info.RecordDependencies(dependencies());
+++        if (trap_holder.has_value()) {
+++          dependencies()->DependOnStablePrototypeChains(
+++              trap_info.lookup_start_object_maps(), kStartAtReceiver,
+++              trap_holder.value());
+++        } else {
+++          dependencies()->DependOnStableMap(handler_map);
+++        }
++         bool string_keys = key_type == wasm::kWasmExternRef;
++         return ElementAccessInfo(map, trap_value, target, string_keys, zone());
++       }
+diff --git a/patches/v8/src-compiler-turboshaft-operations.h.patch b/patches/v8/src-compiler-turboshaft-operations.h.patch
+new file mode 100644
+index 0000000..f374fff
+--- /dev/null
++++ b/patches/v8/src-compiler-turboshaft-operations.h.patch
+@@ -0,0 +1,14 @@
++diff --git a/src/compiler/turboshaft/operations.h b/src/compiler/turboshaft/operations.h
++index 6e87f793f6a09003160c73a2c405a6199e39f277..c39f612643704726df238f0318d5a755a2b6f6ed 100644
++--- a/src/compiler/turboshaft/operations.h
+++++ b/src/compiler/turboshaft/operations.h
++@@ -7814,7 +7814,8 @@ struct RttCanonOp : FixedArityOperationT<1, RttCanonOp> {
++ struct WasmTypeCheckOp : OperationT<WasmTypeCheckOp> {
++   WasmTypeCheckConfig config;
++ 
++-  static constexpr OpEffects effects = OpEffects().AssumesConsistentHeap();
+++  static constexpr OpEffects effects =
+++      OpEffects().AssumesConsistentHeap().CanDependOnChecks();
++ 
++   WasmTypeCheckOp(V<Object> object, OptionalV<Map> rtt,
++                   WasmTypeCheckConfig config)
+diff --git a/patches/v8/src-runtime-runtime-regexp.cc.patch b/patches/v8/src-runtime-runtime-regexp.cc.patch
+new file mode 100644
+index 0000000..097fa18
+--- /dev/null
++++ b/patches/v8/src-runtime-runtime-regexp.cc.patch
+@@ -0,0 +1,73 @@
++diff --git a/src/runtime/runtime-regexp.cc b/src/runtime/runtime-regexp.cc
++index 2a1ba0758cba214b408468a5159871fb98df3ca6..ec17453cda41a35da6e906bed89630c201bcf5f6 100644
++--- a/src/runtime/runtime-regexp.cc
+++++ b/src/runtime/runtime-regexp.cc
++@@ -1308,6 +1308,21 @@ DirectHandle<FixedArray> CopyMatches(Isolate* isolate,
++   return copy;
++ }
++ 
+++// Returns whether the argument arrays in the cached {matches} were created in
+++// {native_context}.
+++bool CachedMatchesBelongTo(Tagged<FixedArray> matches,
+++                           Tagged<NativeContext> native_context) {
+++  DisallowGarbageCollection no_gc;
+++  const uint32_t length = matches->ulength().value();
+++  for (uint32_t i = 0; i < length; i++) {
+++    Tagged<Object> match = matches->get(i);
+++    if (!IsJSArray(match)) continue;
+++    return Cast<JSArray>(match)->GetCreationContext() == native_context;
+++  }
+++  // Entries are only created when there is at least one match.
+++  UNREACHABLE();
+++}
+++
++ // Only called from Runtime_RegExpExecMultiple so it doesn't need to maintain
++ // separate last match info.  See comment on that function.
++ template <bool has_capture>
++@@ -1349,23 +1364,30 @@ static Tagged<UnionOf<ExceptionHole, Null, FixedArray>> SearchRegExpMultiple(
++         isolate->heap(), *subject, regexp_data->wrapper(), &last_match_cache,
++         regexp::ResultsCache::REGEXP_MULTIPLE_INDICES);
++     if (IsFixedArray(cached_answer)) {
++-      int capture_registers = JSRegExp::RegistersForCaptureCount(capture_count);
++-      std::unique_ptr<int32_t[]> last_match(new int32_t[capture_registers]);
++-      int32_t* raw_last_match = last_match.get();
++-      for (int i = 0; i < capture_registers; i++) {
++-        raw_last_match[i] = Smi::ToInt(last_match_cache->get(i));
+++      Tagged<FixedArray> cached_answer_array = Cast<FixedArray>(cached_answer);
+++      // An entry from another native context is a miss.
+++      if (!has_capture ||
+++          CachedMatchesBelongTo(cached_answer_array,
+++                                isolate->raw_native_context())) {
+++        int capture_registers =
+++            JSRegExp::RegistersForCaptureCount(capture_count);
+++        std::unique_ptr<int32_t[]> last_match(new int32_t[capture_registers]);
+++        int32_t* raw_last_match = last_match.get();
+++        for (int i = 0; i < capture_registers; i++) {
+++          raw_last_match[i] = Smi::ToInt(last_match_cache->get(i));
+++        }
+++        DirectHandle<FixedArray> cached_fixed_array(cached_answer_array,
+++                                                    isolate);
+++        // The cache FixedArray is a COW-array and we need to return a copy. A
+++        // cache hit implies an earlier run compiled the pattern, so the capture
+++        // name map is populated.
+++        DirectHandle<FixedArray> copied_fixed_array = CopyMatches(
+++            isolate, cached_fixed_array,
+++            has_capture && re_data->has_capture_name_map(), capture_count);
+++        RegExp::SetLastMatchInfo(isolate, last_match_array, subject,
+++                                 capture_count, raw_last_match);
+++        return *copied_fixed_array;
++       }
++-      DirectHandle<FixedArray> cached_fixed_array(
++-          Cast<FixedArray>(cached_answer), isolate);
++-      // The cache FixedArray is a COW-array and we need to return a copy. A
++-      // cache hit implies an earlier run compiled the pattern, so the capture
++-      // name map is populated.
++-      DirectHandle<FixedArray> copied_fixed_array = CopyMatches(
++-          isolate, cached_fixed_array,
++-          has_capture && re_data->has_capture_name_map(), capture_count);
++-      RegExp::SetLastMatchInfo(isolate, last_match_array, subject,
++-                               capture_count, raw_last_match);
++-      return *copied_fixed_array;
++     }
++   }
++ 
+diff --git a/patches/v8/src-utils-version.cc.patch b/patches/v8/src-utils-version.cc.patch
+index ffab027..c72b6c9 100644
+--- a/patches/v8/src-utils-version.cc.patch
++++ b/patches/v8/src-utils-version.cc.patch
+@@ -1,5 +1,5 @@
+ diff --git a/src/utils/version.cc b/src/utils/version.cc
+-index 550db661144947dbc31b5eb62c0da7ea2e6e1139..37def1b6fd93a0e0f848dc20e1bb5bdb9703b0c2 100644
++index 550db661144947dbc31b5eb62c0da7ea2e6e1139..4565ea34f26c3e527da705a52cc7d8bbf8e8eab0 100644
+ --- a/src/utils/version.cc
+ +++ b/src/utils/version.cc
+ @@ -27,9 +27,45 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
+@@ -40,7 +40,7 @@ index 550db661144947dbc31b5eb62c0da7ea2e6e1139..37def1b6fd93a0e0f848dc20e1bb5bdb
+ +// 15.6.75.50 + b56fe9b, which changes the bytecode of dead switches). 32 =
+ +// FlyWeb 3.1.4 (seg/3.1.4: V8 15.6.75.66 + 659b8bf, regexp code generation
+ +// errors).
+-+constexpr int kFlyWebCacheEpoch = 32;
+++constexpr int kFlyWebCacheEpoch = 33;
+ +
+  uint32_t Version::Hash() {
+    base::Hasher hasher;
+diff --git a/patches/v8/src-wasm-turboshaft-graph-interface.cc.patch b/patches/v8/src-wasm-turboshaft-graph-interface.cc.patch
+new file mode 100644
+index 0000000..4fa1940
+--- /dev/null
++++ b/patches/v8/src-wasm-turboshaft-graph-interface.cc.patch
+@@ -0,0 +1,15 @@
++diff --git a/src/wasm/turboshaft-graph-interface.cc b/src/wasm/turboshaft-graph-interface.cc
++index 1fef1399ee8de556aa2d1027795c90e9282604a4..5f86da2aaac04172fb1178cc5fa889f52587cf93 100644
++--- a/src/wasm/turboshaft-graph-interface.cc
+++++ b/src/wasm/turboshaft-graph-interface.cc
++@@ -1089,8 +1089,8 @@ class TurboshaftGraphBuildingInterface
++ 
++   void AssertNotNullTypecheck(FullDecoder* decoder, const Value& obj,
++                               Value* result) {
++-    __ AssertNotNull(obj.get<Object>(), obj.type, TrapId::kTrapIllegalCast);
++-    Forward(decoder, obj, result);
+++    result->op =
+++        __ AssertNotNull(obj.get<Object>(), obj.type, TrapId::kTrapIllegalCast);
++   }
++ 
++   void NopForTestingUnsupportedInLiftoff(FullDecoder* decoder) {
+diff --git a/patches/v8/test-mjsunit-regress-regress-576225189.js.patch b/patches/v8/test-mjsunit-regress-regress-576225189.js.patch
+new file mode 100644
+index 0000000..c9c5464
+--- /dev/null
++++ b/patches/v8/test-mjsunit-regress-regress-576225189.js.patch
+@@ -0,0 +1,43 @@
++diff --git a/test/mjsunit/regress/regress-576225189.js b/test/mjsunit/regress/regress-576225189.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..dd73bf63ae90673e8e2c0c01cdb89a680fb7388f
++--- /dev/null
+++++ b/test/mjsunit/regress/regress-576225189.js
++@@ -0,0 +1,37 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// A groups object returned from the regexp results cache must be created in
+++// the calling realm, not in the realm that filled the entry.
+++
+++// The subject is longer than kMinLengthToCache and, as a string literal,
+++// internalized, so all realms evaluating this source use the same subject.
+++// The regexp data is shared through the compilation cache.
+++const kReplace = `(function() {
+++  let groups;
+++  "${'xy'.repeat(0x900)}".replace(/(?<n>x)y/g, function(...args) {
+++    if (groups === undefined) groups = args[args.length - 1];
+++    return '';
+++  });
+++  return groups;
+++})()`;
+++
+++// Whether the groups object was created in the evaluating realm.
+++// Error.captureStackTrace installs an accessor whose getter is instantiated in
+++// the holder's creation realm.
+++const kCheck = `(function(groups) {
+++  if (groups.n !== 'x') return false;
+++  if (Object.getPrototypeOf(groups) !== null) return false;
+++  Error.captureStackTrace(groups);
+++  const getter = Object.getOwnPropertyDescriptor(groups, 'stack').get;
+++  return Object.getPrototypeOf(getter) === Function.prototype;
+++})(${kReplace})`;
+++
+++const other = Realm.create();
+++
+++// Repeated calls per realm also exercise same-realm cache hits.
+++assertTrue(Realm.eval(other, kCheck));
+++for (let i = 0; i < 3; i++) assertTrue(eval(kCheck));
+++for (let i = 0; i < 3; i++) assertTrue(Realm.eval(other, kCheck));
+++assertTrue(eval(kCheck));
+diff --git a/patches/v8/test-mjsunit-regress-wasm-regress-571348848.js.patch b/patches/v8/test-mjsunit-regress-wasm-regress-571348848.js.patch
+new file mode 100644
+index 0000000..5d8a90f
+--- /dev/null
++++ b/patches/v8/test-mjsunit-regress-wasm-regress-571348848.js.patch
+@@ -0,0 +1,52 @@
++diff --git a/test/mjsunit/regress/wasm/regress-571348848.js b/test/mjsunit/regress/wasm/regress-571348848.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..0d91111994dd7d1df117fee2cb58e0f14298b6a6
++--- /dev/null
+++++ b/test/mjsunit/regress/wasm/regress-571348848.js
++@@ -0,0 +1,46 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --wasm-random-rescheduling --no-liftoff
+++
+++d8.file.execute('test/mjsunit/wasm/wasm-module-builder.js');
+++
+++const builder = new WasmModuleBuilder();
+++let $sig0 = builder.addType(kSig_v_v);
+++
+++builder.addFunction('test_abstract', makeSig([kWasmNullRef], [kWasmI32]))
+++  .addLocals(wasmRefType(kWasmAnyRef), 1)
+++  .addBody([
+++    kExprLocalGet, 0,
+++    kGCPrefix, kExprRefCast, kAnyRefCode,
+++    kExprLocalTee, 1,
+++    kGCPrefix, kExprRefTest, kEqRefCode,
+++    kExprLocalGet, 1,
+++    kGCPrefix, kExprRefTest, kStructRefCode,
+++    kExprLocalGet, 1,
+++    kGCPrefix, kExprRefTest, kArrayRefCode,
+++    kExprLocalGet, 1,
+++    kGCPrefix, kExprRefTest, kI31RefCode,
+++    kExprI32Add,
+++    kExprI32Add,
+++    kExprI32Add,
+++  ])
+++  .exportFunc();
+++
+++builder.addFunction('test_indexed', makeSig([kWasmNullFuncRef], [kWasmI32]))
+++  .addLocals(wasmRefType(kWasmFuncRef), 1)
+++  .addBody([
+++    kExprLocalGet, 0,
+++    kGCPrefix, kExprRefCast, kFuncRefCode,
+++    kExprLocalTee, 1,
+++    kGCPrefix, kExprRefTest, $sig0,
+++    kExprLocalGet, 1,
+++    kGCPrefix, kExprRefTest, $sig0,
+++    kExprI32Add,
+++  ])
+++  .exportFunc();
+++
+++const instance = builder.instantiate();
+++assertTraps(kTrapIllegalCast, () => instance.exports.test_abstract(null));
+++assertTraps(kTrapIllegalCast, () => instance.exports.test_indexed(null));
+diff --git a/patches/v8/test-mjsunit-regress-wasm-regress-577305505.js.patch b/patches/v8/test-mjsunit-regress-wasm-regress-577305505.js.patch
+new file mode 100644
+index 0000000..07ed264
+--- /dev/null
++++ b/patches/v8/test-mjsunit-regress-wasm-regress-577305505.js.patch
+@@ -0,0 +1,126 @@
++diff --git a/test/mjsunit/regress/wasm/regress-577305505.js b/test/mjsunit/regress/wasm/regress-577305505.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..251f1a440a900df4b10dfeef5860c95c1301e612
++--- /dev/null
+++++ b/test/mjsunit/regress/wasm/regress-577305505.js
++@@ -0,0 +1,120 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax --wasm-js-interop
+++
+++d8.file.execute('test/mjsunit/wasm/wasm-module-builder.js');
+++
+++const builder = new WasmModuleBuilder();
+++builder.startRecGroup();
+++const $obj0 = builder.addStruct({fields: [], descriptor: 1});
+++const $desc0 = builder.addStruct(
+++    {fields: [makeField(kWasmExternRef, false)], describes: $obj0});
+++builder.endRecGroup();
+++
+++const $p0 = builder.addImportedGlobal('p', 'p0', kWasmExternRef);
+++const $p1 = builder.addImportedGlobal('p', 'p1', kWasmExternRef);
+++const $g_desc0 = builder.addGlobal(
+++    wasmRefType($desc0).exact(), false, false,
+++    [kExprGlobalGet, $p0, kGCPrefix, kExprStructNew, $desc0]);
+++const $g_desc1 = builder.addGlobal(
+++    wasmRefType($desc0).exact(), false, false,
+++    [kExprGlobalGet, $p1, kGCPrefix, kExprStructNew, $desc0]);
+++
+++builder.addFunction('make0', makeSig([], [kWasmAnyRef])).exportFunc().addBody([
+++  kExprGlobalGet, $g_desc0.index,
+++  kGCPrefix, kExprStructNewDesc, $obj0,
+++]);
+++builder.addFunction('make1', makeSig([], [kWasmAnyRef])).exportFunc().addBody([
+++  kExprGlobalGet, $g_desc1.index,
+++  kGCPrefix, kExprStructNewDesc, $obj0,
+++]);
+++
+++const kTrapSig = makeSig([kWasmExternRef, kWasmI32, kWasmExternRef], [kWasmI32]);
+++builder.addFunction('geti', kTrapSig).exportFunc().addBody([
+++  kExprI32Const, 11,
+++]);
+++builder.addFunction('geti2', kTrapSig).exportFunc().addBody([
+++  kExprI32Const, 22,
+++]);
+++
+++const proto0 = {};
+++const proto1 = {};
+++const instance = builder.instantiate({p: {p0: proto0, p1: proto1}});
+++const wasm = instance.exports;
+++
+++// Case 1: Proxy handler inherits the "get" trap from its prototype at an
+++// in-object offset beyond the handler's own instance size.
+++function HandlerProto() {
+++  this.a = 1;
+++  this.get = wasm.geti;
+++}
+++const handler_proto = new HandlerProto();
+++function EmptyHandler() {}
+++EmptyHandler.prototype = handler_proto;
+++
+++// Finish slack tracking on EmptyHandler and make handler_proto fast.
+++function warmupProto(h) {
+++  return h.get;
+++}
+++for (let i = 0; i < 20; i++) {
+++  warmupProto(new EmptyHandler());
+++}
+++
+++function allocHandlerAndAdjacentHeapNumber(v, zero) {
+++  const h = new EmptyHandler();
+++  const hn = v + zero;
+++  return [h, hn];
+++}
+++const [handler] = allocHandlerAndAdjacentHeapNumber(1.2, 0.0);
+++
+++Object.setPrototypeOf(
+++    proto0, new Proxy(Object.freeze(Object.create(null)), handler));
+++Object.freeze(proto0);
+++const w0 = wasm.make0();
+++
+++function readElem0(o) {
+++  return o[0];
+++}
+++%PrepareFunctionForOptimization(readElem0);
+++for (let i = 0; i < 5; i++) {
+++  assertEquals(11, readElem0(w0));
+++}
+++%OptimizeFunctionOnNextCall(readElem0);
+++assertEquals(11, readElem0(w0));
+++
+++// Mutating the prototype trap or shadowing it on the handler must deoptimize.
+++handler_proto.get = wasm.geti2;
+++assertEquals(22, readElem0(w0));
+++
+++%PrepareFunctionForOptimization(readElem0);
+++for (let i = 0; i < 5; i++) {
+++  assertEquals(22, readElem0(w0));
+++}
+++%OptimizeFunctionOnNextCall(readElem0);
+++assertEquals(22, readElem0(w0));
+++
+++handler.get = () => 33;
+++assertEquals(33, readElem0(w0));
+++
+++// Case 2: Proxy handler has an own constant "get" trap that is later mutated
+++// in-place.
+++const own_handler = {get: wasm.geti};
+++Object.setPrototypeOf(
+++    proto1, new Proxy(Object.freeze(Object.create(null)), own_handler));
+++Object.freeze(proto1);
+++const w1 = wasm.make1();
+++
+++function readElem1(o) {
+++  return o[0];
+++}
+++%PrepareFunctionForOptimization(readElem1);
+++for (let i = 0; i < 5; i++) {
+++  assertEquals(11, readElem1(w1));
+++}
+++%OptimizeFunctionOnNextCall(readElem1);
+++assertEquals(11, readElem1(w1));
+++
+++own_handler.get = wasm.geti2;
+++assertEquals(22, readElem1(w1));
+-- 
+2.43.0
+

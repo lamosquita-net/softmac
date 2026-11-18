@@ -1,0 +1,400 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mingyu Lei <leimy@chromium.org>
+Date: Wed, 18 Nov 2026 08:50:02 +0000
+Subject: [PATCH 13/13] [M156] FSA: disallow platform path resolution in
+ incognito
+
+Original change's description:
+> FSA: disallow platform path resolution in incognito
+>
+> Off-the-record FileSystemContext instances store sandboxed files in
+> memory via `ObfuscatedFileUtilMemoryDelegate`, but still construct
+> synthetic paths rooted under the parent profile directory. Resolving a
+> platform path for an incognito entry therefore does not correspond to an
+> in-memory backing file and can collide with an on-disk file in the
+> regular profile, causing DoGetPlatformPath to grant
+> `ChildProcessSecurityPolicy` read access to that physical path.
+>
+> Make `FileSystemOperationImpl::SyncGetPlatformPath()` reject incognito
+> contexts with `FILE_ERROR_INVALID_OPERATION` and propagate
+> GetLocalFilePath errors instead of unconditionally returning `FILE_OK`.
+> Also check both `context->is_incognito()` and the `SyncGetPlatformPath`
+> result in `GetPlatformPathOnFileThread` before granting read access on
+> the UI thread.
+>
+> In the follow up CL, we are proposing to remove the API, but the current
+> one will be landed first and ideally cherry picked into previous
+> milestones to fix the vulnerability.
+>
+> Bug: 571250973
+> Change-Id: I9c4d72a1e8f34b605c291847a6e03f12d8b57491
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8773148
+> Reviewed-by: Eriko Kurimoto <elkurin@chromium.org>
+> Commit-Queue: Mingyu Lei <leimy@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1740087}
+
+(cherry picked from commit 066fc3e8df46de61ce0bfbf71ef262d679afa794)
+
+Bug: 584579089,571250973
+Change-Id: I9c4d72a1e8f34b605c291847a6e03f12d8b57491
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8832496
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2295}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+(cherry picked from commit 859c5bc938e4b443be4e6c029b6a21d8a00bfbbb)
+---
+ .../file_system/browser_file_system_helper.cc |  10 +-
+ .../browser_file_system_helper_unittest.cc    | 160 ++++++++++++++++++
+ .../file_system/file_system_operation.h       |   8 +-
+ .../file_system/file_system_operation_impl.cc |  10 +-
+ .../file_system_operation_impl_unittest.cc    |  54 ++++++
+ 5 files changed, 233 insertions(+), 9 deletions(-)
+
+diff --git a/content/browser/file_system/browser_file_system_helper.cc b/content/browser/file_system/browser_file_system_helper.cc
+index 06a386d63..4520c0c8a 100644
+--- a/content/browser/file_system/browser_file_system_helper.cc
++++ b/content/browser/file_system/browser_file_system_helper.cc
+@@ -79,6 +79,7 @@ void GrantReadAccessOnUIThread(
+         security_policy_handle,
+     const base::FilePath& platform_path) {
+   CHECK_CURRENTLY_ON(BrowserThread::UI, base::NotFatalUntil::M159);
++  CHECK(!platform_path.empty());
+ 
+   // It is only possible to grant new permissions if the RenderProcessHost still
+   // exists by the time this task runs. If it does exist and doesn't yet have
+@@ -104,13 +105,18 @@ void GetPlatformPathOnFileThread(
+   CHECK(context->default_file_task_runner()->RunsTasksInCurrentSequence(),
+         base::NotFatalUntil::M159);
+ 
+-  if (!can_read_filesystem_file) {
++  if (!can_read_filesystem_file || context->is_incognito()) {
+     std::move(callback).Run(base::FilePath());
+     return;
+   }
+ 
+   base::FilePath platform_path;
+-  context->operation_runner()->SyncGetPlatformPath(url, &platform_path);
++  if (context->operation_runner()->SyncGetPlatformPath(url, &platform_path) !=
++          base::File::FILE_OK ||
++      platform_path.empty()) {
++    std::move(callback).Run(base::FilePath());
++    return;
++  }
+ 
+   GetUIThreadTaskRunner({})->PostTaskAndReply(
+       FROM_HERE,
+diff --git a/content/browser/file_system/browser_file_system_helper_unittest.cc b/content/browser/file_system/browser_file_system_helper_unittest.cc
+index ccfa5e252..978d02475 100644
+--- a/content/browser/file_system/browser_file_system_helper_unittest.cc
++++ b/content/browser/file_system/browser_file_system_helper_unittest.cc
+@@ -9,25 +9,34 @@
+ #include <vector>
+ 
+ #include "base/files/file_path.h"
++#include "base/files/file_util.h"
+ #include "base/files/scoped_temp_dir.h"
+ #include "base/memory/scoped_refptr.h"
+ #include "base/task/single_thread_task_runner.h"
+ #include "base/test/null_task_runner.h"
++#include "base/test/test_future.h"
+ #include "content/browser/security/cpsp/child_process_security_policy_impl.h"
++#include "content/browser/site_instance_impl.h"
++#include "content/public/browser/browser_task_traits.h"
++#include "content/public/browser/browser_thread.h"
+ #include "content/public/common/child_process_id.h"
+ #include "content/public/common/content_client.h"
+ #include "content/public/common/drop_data.h"
+ #include "content/public/common/url_constants.h"
+ #include "content/public/test/browser_task_environment.h"
++#include "content/public/test/mock_render_process_host.h"
+ #include "content/public/test/test_browser_context.h"
+ #include "content/public/test/test_utils.h"
+ #include "net/base/filename_util.h"
+ #include "storage/browser/file_system/external_mount_points.h"
+ #include "storage/browser/file_system/file_system_backend.h"
++#include "storage/browser/file_system/file_system_operation_runner.h"
+ #include "storage/browser/file_system/file_system_options.h"
+ #include "storage/browser/file_system/file_system_url.h"
+ #include "storage/browser/file_system/isolated_context.h"
+ #include "storage/browser/quota/quota_manager_proxy.h"
++#include "storage/browser/test/mock_quota_manager.h"
++#include "storage/browser/test/mock_quota_manager_proxy.h"
+ #include "storage/common/file_system/file_system_types.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+ #include "third_party/blink/public/common/storage_key/storage_key.h"
+@@ -279,5 +288,156 @@ TEST(BrowserFileSystemHelperTest, PrepareDropDataForChildProcess_ExternalFile) {
+ }
+ #endif
+ 
++TEST(BrowserFileSystemHelperTest, DoGetPlatformPath_RegularAndIncognito) {
++  base::ScopedTempDir temp_dir;
++  ASSERT_TRUE(temp_dir.CreateUniqueTempDir());
++
++  BrowserTaskEnvironment task_environment{
++      content::BrowserTaskEnvironment::REAL_IO_THREAD};
++  TestBrowserContext regular_browser_context;
++  TestBrowserContext incognito_browser_context;
++  incognito_browser_context.set_is_off_the_record(true);
++  MockRenderProcessHost regular_process_host(&regular_browser_context);
++  MockRenderProcessHost incognito_process_host(&incognito_browser_context);
++  ChildProcessSecurityPolicyImpl* p =
++      ChildProcessSecurityPolicyImpl::GetInstance();
++
++  const url::Origin kOrigin = url::Origin::Create(GURL("https://example.com"));
++  const blink::StorageKey kStorageKey =
++      blink::StorageKey::CreateFirstParty(kOrigin);
++  scoped_refptr<SiteInstanceImpl> regular_site_instance =
++      SiteInstanceImpl::CreateForTesting(&regular_browser_context,
++                                         kOrigin.GetURL());
++  scoped_refptr<SiteInstanceImpl> incognito_site_instance =
++      SiteInstanceImpl::CreateForTesting(&incognito_browser_context,
++                                         kOrigin.GetURL());
++  p->LockProcessForTesting(regular_site_instance->GetIsolationContext(),
++                           regular_process_host.GetID(), kOrigin.GetURL());
++  p->LockProcessForTesting(incognito_site_instance->GetIsolationContext(),
++                           incognito_process_host.GetID(), kOrigin.GetURL());
++  p->AddCommittedOrigin(regular_process_host.GetDeprecatedID(), kOrigin);
++  p->AddCommittedOrigin(incognito_process_host.GetDeprecatedID(), kOrigin);
++
++  auto quota_manager = base::MakeRefCounted<storage::MockQuotaManager>(
++      /*is_incognito=*/false, temp_dir.GetPath(), GetIOThreadTaskRunner({}),
++      /*special_storage_policy=*/nullptr);
++  auto quota_manager_proxy =
++      base::MakeRefCounted<storage::MockQuotaManagerProxy>(
++          quota_manager.get(), GetIOThreadTaskRunner({}));
++
++  scoped_refptr<storage::FileSystemContext> regular_context =
++      CreateFileSystemContext(&regular_browser_context, temp_dir.GetPath(),
++                              /*is_incognito=*/false, quota_manager_proxy);
++
++  storage::FileSystemURL regular_url =
++      regular_context->CreateCrackedFileSystemURL(
++          kStorageKey, storage::kFileSystemTypeTemporary,
++          base::FilePath::FromUTF8Unsafe("test.txt"));
++  ASSERT_TRUE(regular_url.is_valid());
++
++  base::test::TestFuture<base::File::Error> create_regular_future;
++  GetIOThreadTaskRunner({})->PostTask(
++      FROM_HERE,
++      base::BindOnce(
++          [](scoped_refptr<storage::FileSystemContext> context,
++             const storage::FileSystemURL& url,
++             storage::FileSystemOperationRunner::StatusCallback callback) {
++            context->operation_runner()->CreateFile(url, /*exclusive=*/false,
++                                                    std::move(callback));
++          },
++          regular_context, regular_url,
++          create_regular_future.GetSequenceBoundCallback()));
++  ASSERT_EQ(base::File::FILE_OK, create_regular_future.Get());
++
++  base::test::TestFuture<const base::FilePath&> regular_path_future;
++  regular_context->default_file_task_runner()->PostTask(
++      FROM_HERE,
++      base::BindOnce(&DoGetPlatformPath, regular_context,
++                     std::make_unique<ChildProcessSecurityPolicyImpl::Handle>(
++                         p->CreateHandle(regular_process_host.GetID())),
++                     regular_url.ToGURL(), kStorageKey,
++                     regular_path_future.GetSequenceBoundCallback()));
++  base::FilePath regular_platform_path = regular_path_future.Get();
++  ASSERT_FALSE(regular_platform_path.empty());
++  EXPECT_TRUE(base::PathExists(regular_platform_path));
++  EXPECT_TRUE(
++      p->CanReadFile(regular_process_host.GetID(), regular_platform_path));
++
++  // A nonexistent file in the regular context should return an empty path.
++  storage::FileSystemURL missing_url =
++      regular_context->CreateCrackedFileSystemURL(
++          kStorageKey, storage::kFileSystemTypeTemporary,
++          base::FilePath::FromUTF8Unsafe("missing.txt"));
++  base::test::TestFuture<const base::FilePath&> missing_path_future;
++  regular_context->default_file_task_runner()->PostTask(
++      FROM_HERE,
++      base::BindOnce(&DoGetPlatformPath, regular_context,
++                     std::make_unique<ChildProcessSecurityPolicyImpl::Handle>(
++                         p->CreateHandle(regular_process_host.GetID())),
++                     missing_url.ToGURL(), kStorageKey,
++                     missing_path_future.GetSequenceBoundCallback()));
++  EXPECT_TRUE(missing_path_future.Get().empty());
++
++  // An incognito FileSystemContext initialized with the same profile directory
++  // should not resolve a platform path or grant read access to the on-disk
++  // file path from the regular context.
++  EXPECT_FALSE(
++      p->CanReadFile(incognito_process_host.GetID(), regular_platform_path));
++
++  auto incognito_quota_manager =
++      base::MakeRefCounted<storage::MockQuotaManager>(
++          /*is_incognito=*/true, temp_dir.GetPath(), GetIOThreadTaskRunner({}),
++          /*special_storage_policy=*/nullptr);
++  auto incognito_quota_manager_proxy =
++      base::MakeRefCounted<storage::MockQuotaManagerProxy>(
++          incognito_quota_manager.get(), GetIOThreadTaskRunner({}));
++
++  scoped_refptr<storage::FileSystemContext> incognito_context =
++      CreateFileSystemContext(&incognito_browser_context, temp_dir.GetPath(),
++                              /*is_incognito=*/true,
++                              incognito_quota_manager_proxy);
++
++  storage::FileSystemURL incognito_url =
++      incognito_context->CreateCrackedFileSystemURL(
++          kStorageKey, storage::kFileSystemTypeTemporary,
++          base::FilePath::FromUTF8Unsafe("test.txt"));
++  ASSERT_TRUE(incognito_url.is_valid());
++
++  base::test::TestFuture<base::File::Error> create_incognito_future;
++  GetIOThreadTaskRunner({})->PostTask(
++      FROM_HERE,
++      base::BindOnce(
++          [](scoped_refptr<storage::FileSystemContext> context,
++             const storage::FileSystemURL& url,
++             storage::FileSystemOperationRunner::StatusCallback callback) {
++            context->operation_runner()->CreateFile(url, /*exclusive=*/false,
++                                                    std::move(callback));
++          },
++          incognito_context, incognito_url,
++          create_incognito_future.GetSequenceBoundCallback()));
++  ASSERT_EQ(base::File::FILE_OK, create_incognito_future.Get());
++
++  base::test::TestFuture<const base::FilePath&> incognito_path_future;
++  incognito_context->default_file_task_runner()->PostTask(
++      FROM_HERE,
++      base::BindOnce(&DoGetPlatformPath, incognito_context,
++                     std::make_unique<ChildProcessSecurityPolicyImpl::Handle>(
++                         p->CreateHandle(incognito_process_host.GetID())),
++                     incognito_url.ToGURL(), kStorageKey,
++                     incognito_path_future.GetSequenceBoundCallback()));
++  base::FilePath incognito_platform_path = incognito_path_future.Get();
++  EXPECT_TRUE(incognito_platform_path.empty());
++  EXPECT_FALSE(
++      p->CanReadFile(incognito_process_host.GetID(), regular_platform_path));
++
++  regular_context.reset();
++  incognito_context.reset();
++  quota_manager_proxy.reset();
++  quota_manager.reset();
++  incognito_quota_manager_proxy.reset();
++  incognito_quota_manager.reset();
++  task_environment.RunUntilIdle();
++}
++
+ }  // namespace browser_file_system_helper_unittest
+ }  // namespace content
+diff --git a/storage/browser/file_system/file_system_operation.h b/storage/browser/file_system/file_system_operation.h
+index 8e355e84e..653b96799 100644
+--- a/storage/browser/file_system/file_system_operation.h
++++ b/storage/browser/file_system/file_system_operation.h
+@@ -468,10 +468,10 @@ class FileSystemOperation {
+                              CopyOrMoveOptionSet options,
+                              StatusCallback callback) = 0;
+ 
+-  // Synchronously gets the platform path for the given |url|.
+-  // This may fail if the given |url|'s filesystem type is neither
+-  // temporary nor persistent.
+-  // In such a case, base::File::FILE_ERROR_INVALID_OPERATION will be
++  // Synchronously gets the platform path for the given `url`.
++  // This may fail if the given `url`'s filesystem type is neither
++  // temporary nor persistent, or if the context is in incognito mode.
++  // In such a case, `base::File::FILE_ERROR_INVALID_OPERATION` will be
+   // returned.
+   virtual base::File::Error SyncGetPlatformPath(
+       const FileSystemURL& url,
+diff --git a/storage/browser/file_system/file_system_operation_impl.cc b/storage/browser/file_system/file_system_operation_impl.cc
+index 2c7aa7f71..596114149 100644
+--- a/storage/browser/file_system/file_system_operation_impl.cc
++++ b/storage/browser/file_system/file_system_operation_impl.cc
+@@ -381,12 +381,16 @@ base::File::Error FileSystemOperationImpl::SyncGetPlatformPath(
+     const FileSystemURL& url,
+     base::FilePath* platform_path) {
+   CheckOperationType(OperationType::kGetLocalPath);
+-  if (!file_system_context()->IsSandboxFileSystem(url.type()))
++  CHECK(platform_path);
++  *platform_path = base::FilePath();
++  if (!file_system_context()->IsSandboxFileSystem(url.type()) ||
++      file_system_context()->is_incognito()) {
+     return base::File::FILE_ERROR_INVALID_OPERATION;
++  }
+   FileSystemFileUtil* file_util =
+       file_system_context()->sandbox_delegate()->sync_file_util();
+-  file_util->GetLocalFilePath(operation_context_.get(), url, platform_path);
+-  return base::File::FILE_OK;
++  return file_util->GetLocalFilePath(operation_context_.get(), url,
++                                     platform_path);
+ }
+ 
+ FileSystemOperationImpl::FileSystemOperationImpl(
+diff --git a/storage/browser/file_system/file_system_operation_impl_unittest.cc b/storage/browser/file_system/file_system_operation_impl_unittest.cc
+index 6bb747799..ee455da00 100644
+--- a/storage/browser/file_system/file_system_operation_impl_unittest.cc
++++ b/storage/browser/file_system/file_system_operation_impl_unittest.cc
+@@ -44,6 +44,7 @@
+ #include "storage/browser/test/mock_quota_manager_proxy.h"
+ #include "storage/browser/test/mock_special_storage_policy.h"
+ #include "storage/browser/test/sandbox_file_system_test_helper.h"
++#include "storage/browser/test/test_file_system_context.h"
+ #include "storage/common/file_system/file_system_util.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+ #include "third_party/blink/public/common/storage_key/storage_key.h"
+@@ -1305,4 +1306,57 @@ TEST_F(FileSystemOperationImplTest,
+   EXPECT_EQ(0, GetFileSize("dest"));
+ }
+ 
++TEST_F(FileSystemOperationImplTest, TestSyncGetPlatformPath) {
++  FileSystemURL dir(CreateDirectory("dir"));
++  FileSystemURL file(CreateFile("dir/file"));
++  FileSystemURL nonexistent = URLForPath("dir/nonexistent");
++
++  base::FilePath platform_path;
++  EXPECT_EQ(base::File::FILE_OK,
++            operation_runner()->SyncGetPlatformPath(file, &platform_path));
++  EXPECT_EQ(PlatformPath("dir/file"), platform_path);
++
++  base::FilePath dir_platform_path(FILE_PATH_LITERAL("stale"));
++  EXPECT_EQ(base::File::FILE_ERROR_NOT_FOUND,
++            operation_runner()->SyncGetPlatformPath(dir, &dir_platform_path));
++  EXPECT_TRUE(dir_platform_path.empty());
++
++  base::FilePath nonexistent_platform_path(FILE_PATH_LITERAL("stale"));
++  EXPECT_EQ(base::File::FILE_ERROR_NOT_FOUND,
++            operation_runner()->SyncGetPlatformPath(
++                nonexistent, &nonexistent_platform_path));
++  EXPECT_TRUE(nonexistent_platform_path.empty());
++}
++
++TEST_F(FileSystemOperationImplTest, TestSyncGetPlatformPathIncognito) {
++  // Share the same base directory as the regular test fixture so an on-disk
++  // file exists at the matching numbered slot.
++  FileSystemURL regular_file(CreateFile("file"));
++  ASSERT_TRUE(base::PathExists(PlatformPath("file")));
++
++  scoped_refptr<FileSystemContext> incognito_context =
++      CreateIncognitoFileSystemContextForTesting(
++          base::SingleThreadTaskRunner::GetCurrentDefault(),
++          base::SingleThreadTaskRunner::GetCurrentDefault(),
++          quota_manager_proxy(), base_.GetPath().AppendASCII("filesystem"));
++  SandboxFileSystemTestHelper incognito_file_system;
++  incognito_file_system.SetUp(incognito_context);
++
++  FileSystemURL incognito_file =
++      incognito_file_system.CreateURLFromUTF8("file");
++  EXPECT_EQ(base::File::FILE_OK, AsyncFileTestHelper::CreateFile(
++                                     incognito_context.get(), incognito_file));
++  EXPECT_TRUE(
++      AsyncFileTestHelper::FileExists(incognito_context.get(), incognito_file,
++                                      AsyncFileTestHelper::kDontCheckSize));
++
++  base::FilePath platform_path(FILE_PATH_LITERAL("stale"));
++  EXPECT_EQ(base::File::FILE_ERROR_INVALID_OPERATION,
++            incognito_file_system.operation_runner()->SyncGetPlatformPath(
++                incognito_file, &platform_path));
++  EXPECT_TRUE(platform_path.empty());
++
++  incognito_file_system.TearDown();
++}
++
+ }  // namespace storage
+-- 
+2.43.0
+

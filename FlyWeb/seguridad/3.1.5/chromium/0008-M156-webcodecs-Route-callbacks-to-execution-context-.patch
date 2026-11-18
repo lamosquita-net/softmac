@@ -1,0 +1,1198 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Thomas Guilbert <tguilbert@chromium.org>
+Date: Wed, 18 Nov 2026 05:07:12 +0000
+Subject: [PATCH 08/13] [M156] [webcodecs] Route callbacks to execution context
+ task runners
+
+Original change's description:
+> [webcodecs] Route callbacks to execution context task runners
+>
+> Route WebCodecs encoder, readback, GPU factory retrieval, and
+> ImageDecoderExternal callbacks through execution-context task runners
+> instead of SequencedTaskRunner::GetCurrentDefault(), so tasks are
+> deferred when a page or worker is paused or frozen.
+>
+> Bug: 576082223, 580866733, 578659916
+> Change-Id: Id471895d1c152fd476c98a9595c1a917047f5bfb
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8709312
+> Reviewed-by: Dale Curtis <dalecurtis@chromium.org>
+> Commit-Queue: Eugene Zemtsov <eugene@chromium.org>
+> Reviewed-by: Eugene Zemtsov <eugene@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1743484}
+
+(cherry picked from commit bd724a5bc5a82b247f6b3ec086f039e4325e08e9)
+
+Bug: 585800740,576082223,580866733,578659916
+Change-Id: Id471895d1c152fd476c98a9595c1a917047f5bfb
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8828589
+Reviewed-by: Eugene Zemtsov <eugene@chromium.org>
+Commit-Queue: Thomas Guilbert <tguilbert@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2290}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+(cherry picked from commit ba15fb1f7a91a3d131eda269dd319856c161383e)
+---
+ media/base/offloading_audio_encoder.cc        |   5 +-
+ media/base/offloading_audio_encoder.h         |  13 +--
+ media/mojo/clients/mojo_audio_encoder.cc      |  15 ++-
+ media/mojo/clients/mojo_audio_encoder.h       |   6 +-
+ .../clients/mojo_audio_encoder_unittest.cc    |  98 ++++++++++++++++
+ media/video/offloading_video_encoder.cc       |   5 +-
+ media/video/offloading_video_encoder.h        |  13 +--
+ .../modules/webcodecs/audio_encoder.cc        |  16 ++-
+ .../modules/webcodecs/audio_encoder_test.cc   |  89 ++++++++++++++
+ .../modules/webcodecs/background_readback.h   |   4 +
+ .../modules/webcodecs/decoder_template.cc     |  16 ++-
+ .../webcodecs/gpu_factories_retriever.h       |   4 +
+ .../webcodecs/image_decoder_external.cc       |  46 ++++++--
+ .../webcodecs/image_decoder_external.h        |   1 +
+ .../webcodecs/image_decoder_external_test.cc  |  53 +++++++++
+ .../modules/webcodecs/video_decoder.cc        |  18 ++-
+ .../modules/webcodecs/video_encoder.cc        | 110 ++++++++++--------
+ .../modules/webcodecs/video_encoder_test.cc   | 103 +++++++++++++++-
+ .../renderer/modules/webcodecs/video_frame.cc |  13 ++-
+ 19 files changed, 523 insertions(+), 105 deletions(-)
+
+diff --git a/media/base/offloading_audio_encoder.cc b/media/base/offloading_audio_encoder.cc
+index 9667ab237..09eb320af 100644
+--- a/media/base/offloading_audio_encoder.cc
++++ b/media/base/offloading_audio_encoder.cc
+@@ -29,11 +29,12 @@ OffloadingAudioEncoder::OffloadingAudioEncoder(
+ }
+ 
+ OffloadingAudioEncoder::OffloadingAudioEncoder(
+-    std::unique_ptr<AudioEncoder> wrapped_encoder)
++    std::unique_ptr<AudioEncoder> wrapped_encoder,
++    scoped_refptr<base::SequencedTaskRunner> callback_runner)
+     : OffloadingAudioEncoder(std::move(wrapped_encoder),
+                              base::ThreadPool::CreateSequencedTaskRunner(
+                                  {base::TaskPriority::USER_BLOCKING}),
+-                             base::SequencedTaskRunner::GetCurrentDefault()) {}
++                             std::move(callback_runner)) {}
+ 
+ void OffloadingAudioEncoder::Initialize(const Options& options,
+                                         OutputCB output_cb,
+diff --git a/media/base/offloading_audio_encoder.h b/media/base/offloading_audio_encoder.h
+index 4c82cd473..c22120193 100644
+--- a/media/base/offloading_audio_encoder.h
++++ b/media/base/offloading_audio_encoder.h
+@@ -9,12 +9,9 @@
+ #include <type_traits>
+ 
+ #include "base/sequence_checker.h"
++#include "base/task/sequenced_task_runner.h"
+ #include "media/base/audio_encoder.h"
+ 
+-namespace base {
+-class SequencedTaskRunner;
+-}
+-
+ namespace media {
+ 
+ // A wrapper around audio encoder that offloads all the calls to a dedicated
+@@ -30,10 +27,12 @@ class MEDIA_EXPORT OffloadingAudioEncoder final : public AudioEncoder {
+       scoped_refptr<base::SequencedTaskRunner> work_runner,
+       scoped_refptr<base::SequencedTaskRunner> callback_runner);
+ 
+-  // Uses current task runner for callbacks and asks thread pool for a new task
+-  // runner to do actual encoding work.
++  // Uses `callback_runner` (defaulting to current task runner) for callbacks
++  // and asks thread pool for a new task runner to do actual encoding work.
+   explicit OffloadingAudioEncoder(
+-      std::unique_ptr<AudioEncoder> wrapped_encoder);
++      std::unique_ptr<AudioEncoder> wrapped_encoder,
++      scoped_refptr<base::SequencedTaskRunner> callback_runner =
++          base::SequencedTaskRunner::GetCurrentDefault());
+ 
+   ~OffloadingAudioEncoder() override;
+ 
+diff --git a/media/mojo/clients/mojo_audio_encoder.cc b/media/mojo/clients/mojo_audio_encoder.cc
+index bd5b2f840..09ab92f87 100644
+--- a/media/mojo/clients/mojo_audio_encoder.cc
++++ b/media/mojo/clients/mojo_audio_encoder.cc
+@@ -42,10 +42,13 @@ bool MojoAudioEncoder::IsSupported(AudioCodec codec) {
+ }
+ 
+ MojoAudioEncoder::MojoAudioEncoder(
+-    mojo::PendingRemote<mojom::AudioEncoder> remote_encoder)
++    mojo::PendingRemote<mojom::AudioEncoder> remote_encoder,
++    scoped_refptr<base::SequencedTaskRunner> runner)
+     : pending_remote_encoder_(std::move(remote_encoder)),
+       buffer_pool_(base::MakeRefCounted<AudioBufferMemoryPool>()),
+-      runner_(base::SequencedTaskRunner::GetCurrentDefault()) {
++      runner_(std::move(runner)) {
++  DCHECK(runner_);
++  DCHECK(runner_->RunsTasksInCurrentSequence());
+   weak_this_ = weak_factory_.GetWeakPtr();
+ }
+ 
+@@ -73,9 +76,9 @@ void MojoAudioEncoder::Initialize(const Options& options,
+ 
+   output_cb_ = std::move(output_cb);
+   options_ = options;
+-  remote_encoder_->Initialize(client_receiver_.BindNewEndpointAndPassRemote(),
+-                              options,
+-                              WrapCallbackAsPending(std::move(done_cb)));
++  remote_encoder_->Initialize(
++      client_receiver_.BindNewEndpointAndPassRemote(runner_), options,
++      WrapCallbackAsPending(std::move(done_cb)));
+ }
+ 
+ void MojoAudioEncoder::Encode(std::unique_ptr<AudioBus> audio_bus,
+@@ -147,7 +150,7 @@ void MojoAudioEncoder::CallAndReleaseAllPendingCallbacks(EncoderStatus status) {
+ 
+ void MojoAudioEncoder::BindRemote() {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-  remote_encoder_.Bind(std::move(pending_remote_encoder_));
++  remote_encoder_.Bind(std::move(pending_remote_encoder_), runner_);
+   remote_encoder_.set_disconnect_handler(
+       base::BindOnce(&MojoAudioEncoder::OnConnectionError, weak_this_));
+ }
+diff --git a/media/mojo/clients/mojo_audio_encoder.h b/media/mojo/clients/mojo_audio_encoder.h
+index 99368a7b0..673f03288 100644
+--- a/media/mojo/clients/mojo_audio_encoder.h
++++ b/media/mojo/clients/mojo_audio_encoder.h
+@@ -23,8 +23,12 @@ namespace media {
+ class MojoAudioEncoder final : public AudioEncoder,
+                                public mojom::AudioEncoderClient {
+  public:
++  // `runner` must run tasks on the calling/owning sequence, as Mojo endpoints
++  // and client callbacks are bound directly to it.
+   explicit MojoAudioEncoder(
+-      mojo::PendingRemote<mojom::AudioEncoder> remote_encoder);
++      mojo::PendingRemote<mojom::AudioEncoder> remote_encoder,
++      scoped_refptr<base::SequencedTaskRunner> runner =
++          base::SequencedTaskRunner::GetCurrentDefault());
+ 
+   static bool IsSupported(AudioCodec codec);
+ 
+diff --git a/media/mojo/clients/mojo_audio_encoder_unittest.cc b/media/mojo/clients/mojo_audio_encoder_unittest.cc
+index 1f0b2d384..b223cb9e9 100644
+--- a/media/mojo/clients/mojo_audio_encoder_unittest.cc
++++ b/media/mojo/clients/mojo_audio_encoder_unittest.cc
+@@ -16,6 +16,7 @@
+ #include "base/test/bind.h"
+ #include "base/test/gmock_callback_support.h"
+ #include "base/test/task_environment.h"
++#include "base/test/test_simple_task_runner.h"
+ #include "base/threading/thread.h"
+ #include "base/time/time.h"
+ #include "media/base/audio_bus.h"
+@@ -480,6 +481,103 @@ TEST_F(MojoAudioEncoderTest, MojoErrorCallsAllDoneCallbacks) {
+   EXPECT_EQ(error_count, input_count);
+ }
+ 
++TEST_F(MojoAudioEncoderTest, CustomRunnerDefersCallbacksUntilRun) {
++  mojo_audio_encoder_.reset();
++  service_task_runner_->DeleteSoon(FROM_HERE, std::move(receiver_));
++
++  mojo::PendingRemote<mojom::AudioEncoder> remote_audio_encoder;
++  service_task_runner_->PostTask(
++      FROM_HERE,
++      base::BindOnce(&MojoAudioEncoderTest::SetupMojoService,
++                     base::Unretained(this),
++                     remote_audio_encoder.InitWithNewPipeAndPassReceiver()));
++  auto custom_runner = base::MakeRefCounted<base::TestSimpleTaskRunner>();
++  mojo_audio_encoder_ = std::make_unique<MojoAudioEncoder>(
++      std::move(remote_audio_encoder), custom_runner);
++
++  AudioEncoder::Options options = MakeOptions();
++  AudioEncoder::OutputCB service_output_cb;
++  base::RunLoop service_init_loop;
++  base::OnceClosure quit_service_init = service_init_loop.QuitClosure();
++  base::RunLoop service_flush_loop;
++  base::OnceClosure quit_service_flush = service_flush_loop.QuitClosure();
++
++  EXPECT_CALL(*mock_audio_encoder_, Initialize(_, _, _))
++      .WillOnce([&](const AudioEncoder::Options&,
++                    AudioEncoder::OutputCB output_cb,
++                    AudioEncoder::EncoderStatusCB done_cb) {
++        service_output_cb = std::move(output_cb);
++        std::move(done_cb).Run(EncoderStatus::Codes::kOk);
++        std::move(quit_service_init).Run();
++      });
++  EXPECT_CALL(*mock_audio_encoder_, Encode(_, _, _))
++      .WillOnce([&](std::unique_ptr<AudioBus> audio_bus,
++                    base::TimeTicks capture_time,
++                    AudioEncoder::EncoderStatusCB done_cb) {
++        AudioParameters params(AudioParameters::AUDIO_PCM_LOW_LATENCY,
++                               {CHANNEL_LAYOUT_DISCRETE, audio_bus->channels()},
++                               options.sample_rate, audio_bus->frames());
++        EncodedAudioBuffer output(params, base::HeapArray<uint8_t>::WithSize(4),
++                                  capture_time);
++        service_output_cb.Run(std::move(output), std::nullopt);
++        std::move(done_cb).Run(EncoderStatus::Codes::kOk);
++      });
++  EXPECT_CALL(*mock_audio_encoder_, Flush(_))
++      .WillOnce([&](AudioEncoder::EncoderStatusCB done_cb) {
++        std::move(done_cb).Run(EncoderStatus::Codes::kOk);
++        std::move(quit_service_flush).Run();
++      });
++
++  bool init_done = false;
++  int output_count = 0;
++  bool encode_done = false;
++  bool flush_done = false;
++
++  mojo_audio_encoder_->Initialize(
++      options,
++      base::BindLambdaForTesting(
++          [&](EncodedAudioBuffer,
++              std::optional<AudioEncoder::CodecDescription>) {
++            ++output_count;
++          }),
++      base::BindLambdaForTesting([&](EncoderStatus s) {
++        EXPECT_TRUE(s.is_ok());
++        init_done = true;
++      }));
++
++  service_init_loop.Run();
++  task_environment_.RunUntilIdle();
++  EXPECT_FALSE(init_done);
++
++  custom_runner->RunUntilIdle();
++  EXPECT_TRUE(init_done);
++
++  mojo_audio_encoder_->Encode(MakeInput(0.5f, options.channels, 1024),
++                              FromMilliseconds(0),
++                              base::BindLambdaForTesting([&](EncoderStatus s) {
++                                EXPECT_TRUE(s.is_ok());
++                                encode_done = true;
++                              }));
++  mojo_audio_encoder_->Flush(base::BindLambdaForTesting([&](EncoderStatus s) {
++    EXPECT_TRUE(s.is_ok());
++    flush_done = true;
++  }));
++
++  service_flush_loop.Run();
++  task_environment_.RunUntilIdle();
++  EXPECT_EQ(0, output_count);
++  EXPECT_FALSE(encode_done);
++  EXPECT_FALSE(flush_done);
++
++  custom_runner->RunUntilIdle();
++  EXPECT_EQ(1, output_count);
++  EXPECT_TRUE(encode_done);
++  EXPECT_TRUE(flush_done);
++
++  mojo_audio_encoder_.reset();
++  custom_runner->RunUntilIdle();
++}
++
+ TEST(MojoAudioEncoderServiceTest, ServiceRejectsInvalidInputs) {
+   base::test::SingleThreadTaskEnvironment task_environment;
+ 
+diff --git a/media/video/offloading_video_encoder.cc b/media/video/offloading_video_encoder.cc
+index d2fecca1f..96e436779 100644
+--- a/media/video/offloading_video_encoder.cc
++++ b/media/video/offloading_video_encoder.cc
+@@ -32,13 +32,14 @@ OffloadingVideoEncoder::OffloadingVideoEncoder(
+ }
+ 
+ OffloadingVideoEncoder::OffloadingVideoEncoder(
+-    std::unique_ptr<VideoEncoder> wrapped_encoder)
++    std::unique_ptr<VideoEncoder> wrapped_encoder,
++    scoped_refptr<base::SequencedTaskRunner> callback_runner)
+     : OffloadingVideoEncoder(
+           std::move(wrapped_encoder),
+           base::ThreadPool::CreateSequencedTaskRunner(
+               {base::TaskPriority::USER_BLOCKING,
+                base::WithBaseSyncPrimitives(), base::MayBlock()}),
+-          base::SequencedTaskRunner::GetCurrentDefault()) {}
++          std::move(callback_runner)) {}
+ 
+ void OffloadingVideoEncoder::Initialize(VideoCodecProfile profile,
+                                         const Options& options,
+diff --git a/media/video/offloading_video_encoder.h b/media/video/offloading_video_encoder.h
+index 20a0e237c..4ec5c9279 100644
+--- a/media/video/offloading_video_encoder.h
++++ b/media/video/offloading_video_encoder.h
+@@ -9,12 +9,9 @@
+ #include <type_traits>
+ 
+ #include "base/sequence_checker.h"
++#include "base/task/sequenced_task_runner.h"
+ #include "media/base/video_encoder.h"
+ 
+-namespace base {
+-class SequencedTaskRunner;
+-}
+-
+ namespace media {
+ 
+ // A wrapper around video encoder that offloads all the calls to a dedicated
+@@ -30,10 +27,12 @@ class MEDIA_EXPORT OffloadingVideoEncoder final : public VideoEncoder {
+       const scoped_refptr<base::SequencedTaskRunner> work_runner,
+       const scoped_refptr<base::SequencedTaskRunner> callback_runner);
+ 
+-  // Uses current task runner for callbacks and asks thread pool for a new task
+-  // runner to do actual encoding work.
++  // Uses `callback_runner` (defaulting to current task runner) for callbacks
++  // and asks thread pool for a new task runner to do actual encoding work.
+   explicit OffloadingVideoEncoder(
+-      std::unique_ptr<VideoEncoder> wrapped_encoder);
++      std::unique_ptr<VideoEncoder> wrapped_encoder,
++      scoped_refptr<base::SequencedTaskRunner> callback_runner =
++          base::SequencedTaskRunner::GetCurrentDefault());
+ 
+   ~OffloadingVideoEncoder() override;
+ 
+diff --git a/third_party/blink/renderer/modules/webcodecs/audio_encoder.cc b/third_party/blink/renderer/modules/webcodecs/audio_encoder.cc
+index 93468e644..c3be8679f 100644
+--- a/third_party/blink/renderer/modules/webcodecs/audio_encoder.cc
++++ b/third_party/blink/renderer/modules/webcodecs/audio_encoder.cc
+@@ -399,16 +399,18 @@ AudioEncoderConfig* CopyConfig(const AudioEncoderConfig& config) {
+ }
+ 
+ std::unique_ptr<media::AudioEncoder> CreateSoftwareAudioEncoder(
+-    media::AudioCodec codec) {
++    media::AudioCodec codec,
++    scoped_refptr<base::SequencedTaskRunner> callback_runner) {
+   if (codec != media::AudioCodec::kOpus)
+     return nullptr;
+   auto software_encoder = std::make_unique<media::AudioOpusEncoder>();
+   return std::make_unique<media::OffloadingAudioEncoder>(
+-      std::move(software_encoder));
++      std::move(software_encoder), std::move(callback_runner));
+ }
+ 
+ std::unique_ptr<media::AudioEncoder> CreatePlatformAudioEncoder(
+-    media::AudioCodec codec) {
++    media::AudioCodec codec,
++    scoped_refptr<base::SequencedTaskRunner> callback_runner) {
+   if (codec != media::AudioCodec::kAAC)
+     return nullptr;
+ 
+@@ -421,7 +423,8 @@ std::unique_ptr<media::AudioEncoder> CreatePlatformAudioEncoder(
+   mojo::PendingRemote<media::mojom::AudioEncoder> encoder_remote;
+   interface_factory->CreateAudioEncoder(
+       encoder_remote.InitWithNewPipeAndPassReceiver());
+-  return std::make_unique<media::MojoAudioEncoder>(std::move(encoder_remote));
++  return std::make_unique<media::MojoAudioEncoder>(std::move(encoder_remote),
++                                                   std::move(callback_runner));
+ }
+ 
+ }  // namespace
+@@ -451,12 +454,13 @@ AudioEncoder::~AudioEncoder() = default;
+ 
+ std::unique_ptr<media::AudioEncoder> AudioEncoder::CreateMediaAudioEncoder(
+     const ParsedConfig& config) {
+-  if (auto result = CreatePlatformAudioEncoder(config.options.codec)) {
++  if (auto result =
++          CreatePlatformAudioEncoder(config.options.codec, callback_runner_)) {
+     is_platform_encoder_ = true;
+     return result;
+   }
+   is_platform_encoder_ = false;
+-  return CreateSoftwareAudioEncoder(config.options.codec);
++  return CreateSoftwareAudioEncoder(config.options.codec, callback_runner_);
+ }
+ 
+ void AudioEncoder::ProcessConfigure(Request* request) {
+diff --git a/third_party/blink/renderer/modules/webcodecs/audio_encoder_test.cc b/third_party/blink/renderer/modules/webcodecs/audio_encoder_test.cc
+index 1315a1d59..20f3204ff 100644
+--- a/third_party/blink/renderer/modules/webcodecs/audio_encoder_test.cc
++++ b/third_party/blink/renderer/modules/webcodecs/audio_encoder_test.cc
+@@ -8,6 +8,7 @@
+ #include "media/base/mock_filters.h"
+ #include "testing/gmock/include/gmock/gmock.h"
+ #include "testing/gtest/include/gtest/gtest.h"
++#include "third_party/blink/renderer/bindings/core/v8/script_function.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_tester.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_testing.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_audio_data_init.h"
+@@ -15,10 +16,12 @@
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_audio_encoder_init.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_encoded_audio_chunk_output_callback.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_webcodecs_error_callback.h"
++#include "third_party/blink/renderer/core/page/page.h"
+ #include "third_party/blink/renderer/core/testing/mock_function_scope.h"
+ #include "third_party/blink/renderer/core/typed_arrays/dom_array_buffer.h"
+ #include "third_party/blink/renderer/modules/webcodecs/audio_data.h"
+ #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
++#include "third_party/blink/renderer/platform/scheduler/public/page_scheduler.h"
+ #include "third_party/blink/renderer/platform/testing/task_environment.h"
+ #include "third_party/blink/renderer/platform/testing/unit_test_helpers.h"
+ 
+@@ -162,4 +165,90 @@ TEST_F(AudioEncoderTest, EncodeQueueSize) {
+   encoder->close(es);
+ }
+ 
++namespace {
++
++class AudioChunkCollector : public ScriptFunction {
++ public:
++  AudioChunkCollector() = default;
++
++  ScriptValue Call(ScriptState*, ScriptValue) override {
++    ++count_;
++    return ScriptValue();
++  }
++
++  int count() const { return count_; }
++
++ private:
++  int count_ = 0;
++};
++
++}  // namespace
++
++TEST_F(AudioEncoderTest, SoftwareEncoderCallbacksDeferredWhileFrozenOrPaused) {
++  constexpr int kSampleRate = 48000;
++  constexpr int kChannels = 2;
++
++  for (bool freeze : {true, false}) {
++    SCOPED_TRACE(freeze ? "Frozen" : "Paused");
++    V8TestingScope v8_scope;
++    auto& es = v8_scope.GetExceptionState();
++    auto* script_state = v8_scope.GetScriptState();
++
++    MockFunctionScope mock_function(script_state);
++    auto* collector = MakeGarbageCollected<AudioChunkCollector>();
++    auto* init = AudioEncoderInit::Create();
++    init->setOutput(V8EncodedAudioChunkOutputCallback::Create(
++        collector->ToV8Function(script_state)));
++    init->setError(V8WebCodecsErrorCallback::Create(
++        mock_function.ExpectNoCall()->ToV8Function(script_state)));
++    auto* encoder = AudioEncoder::Create(script_state, init, es);
++    ASSERT_FALSE(es.HadException());
++
++    auto* config = AudioEncoderConfig::Create();
++    config->setCodec("opus");
++    config->setSampleRate(kSampleRate);
++    config->setNumberOfChannels(kChannels);
++    encoder->configure(config, es);
++    ASSERT_FALSE(es.HadException());
++
++    {
++      auto promise = encoder->flush(es);
++      ScriptPromiseTester tester(script_state, promise);
++      tester.WaitUntilSettled();
++      ASSERT_TRUE(tester.IsFulfilled());
++    }
++
++    if (freeze) {
++      v8_scope.GetPage().GetPageScheduler()->SetPageVisible(false);
++      v8_scope.GetPage().GetPageScheduler()->SetPageFrozen(true);
++    } else {
++      v8_scope.GetPage().SetPaused(true);
++    }
++
++    auto* audio_data =
++        CreateAudioData(script_state, kChannels, 960, kSampleRate, 0);
++    encoder->encode(audio_data, es);
++    ASSERT_FALSE(es.HadException());
++    auto flush_promise = encoder->flush(es);
++    ASSERT_FALSE(es.HadException());
++
++    task_environment_.RunUntilIdle();
++    v8_scope.PerformMicrotaskCheckpoint();
++
++    EXPECT_EQ(0, collector->count());
++    EXPECT_EQ(v8::Promise::kPending, flush_promise.V8Promise()->State());
++
++    if (freeze) {
++      v8_scope.GetPage().GetPageScheduler()->SetPageFrozen(false);
++      v8_scope.GetPage().GetPageScheduler()->SetPageVisible(true);
++    } else {
++      v8_scope.GetPage().SetPaused(false);
++    }
++
++    ScriptPromiseTester tester(script_state, flush_promise);
++    tester.WaitUntilSettled();
++    EXPECT_TRUE(tester.IsFulfilled());
++    EXPECT_GT(collector->count(), 0);
++  }
++}
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/modules/webcodecs/background_readback.h b/third_party/blink/renderer/modules/webcodecs/background_readback.h
+index f9b389b74..81cb34ac6 100644
+--- a/third_party/blink/renderer/modules/webcodecs/background_readback.h
++++ b/third_party/blink/renderer/modules/webcodecs/background_readback.h
+@@ -47,6 +47,10 @@ class MODULES_EXPORT BackgroundReadback
+   static bool CopyMappablePlanes(const media::VideoFrame& src_frame,
+                                  media::VideoFrame& dest_frame);
+ 
++  // Note: `result_cb` and `done_cb` may run on a background worker thread or on
++  // the calling thread's default (unpausable) task runner. Callers that touch
++  // ExecutionContext/V8 state must pre-bind callbacks to an ExecutionContext
++  // task runner via `base::BindPostTask()`.
+   void ReadbackTextureBackedFrameToMemoryFrame(
+       scoped_refptr<media::VideoFrame> txt_frame,
+       ReadbackToFrameDoneCallback result_cb);
+diff --git a/third_party/blink/renderer/modules/webcodecs/decoder_template.cc b/third_party/blink/renderer/modules/webcodecs/decoder_template.cc
+index 5402d9111..8340bf654 100644
+--- a/third_party/blink/renderer/modules/webcodecs/decoder_template.cc
++++ b/third_party/blink/renderer/modules/webcodecs/decoder_template.cc
+@@ -12,6 +12,7 @@
+ #include "base/logging.h"
+ #include "base/memory/scoped_refptr.h"
+ #include "base/metrics/histogram_functions.h"
++#include "base/task/bind_post_task.h"
+ #include "base/trace_event/trace_event.h"
+ #include "media/base/decoder_status.h"
+ #include "media/base/media_util.h"
+@@ -327,10 +328,17 @@ bool DecoderTemplate<Traits>::ProcessConfigureRequest(Request* request) {
+   if (gpu_factories_.has_value()) {
+     ContinueConfigureWithGpuFactories(request, gpu_factories_.value());
+   } else if (Traits::kNeedsGpuFactories) {
+-    RetrieveGpuFactoriesWithKnownDecoderSupport(CrossThreadBindOnce(
+-        &DecoderTemplate<Traits>::ContinueConfigureWithGpuFactories,
+-        MakeUnwrappingCrossThreadHandle(this),
+-        MakeUnwrappingCrossThreadHandle(request)));
++    // `RetrieveGpuFactoriesWithKnownDecoderSupport()` may reply via
++    // `SequencedTaskRunner::GetCurrentDefault()` or on the media thread, which
++    // are not paused or frozen with the ExecutionContext. Bind explicitly to
++    // `main_thread_task_runner_`.
++    RetrieveGpuFactoriesWithKnownDecoderSupport(
++        blink::OutputCB(base::BindPostTask(
++            main_thread_task_runner_,
++            ConvertToBaseOnceCallback(CrossThreadBindOnce(
++                &DecoderTemplate<Traits>::ContinueConfigureWithGpuFactories,
++                MakeUnwrappingCrossThreadHandle(this),
++                MakeUnwrappingCrossThreadHandle(request))))));
+   } else {
+     ContinueConfigureWithGpuFactories(request, nullptr);
+   }
+diff --git a/third_party/blink/renderer/modules/webcodecs/gpu_factories_retriever.h b/third_party/blink/renderer/modules/webcodecs/gpu_factories_retriever.h
+index 720e2c529..d404dedab 100644
+--- a/third_party/blink/renderer/modules/webcodecs/gpu_factories_retriever.h
++++ b/third_party/blink/renderer/modules/webcodecs/gpu_factories_retriever.h
+@@ -13,6 +13,10 @@ class GpuVideoAcceleratorFactories;
+ 
+ namespace blink {
+ 
++// Note: `callback` may be invoked synchronously, on a worker's default
++// (unpausable) task runner, or on the media thread. Callers that touch
++// ExecutionContext/V8 state must pre-bind `callback` to an ExecutionContext
++// task runner via `base::BindPostTask()`.
+ using OutputCB = CrossThreadOnceFunction<void(
+     media::GpuVideoAcceleratorFactories* factories)>;
+ 
+diff --git a/third_party/blink/renderer/modules/webcodecs/image_decoder_external.cc b/third_party/blink/renderer/modules/webcodecs/image_decoder_external.cc
+index 9717e7d55..3f7616883 100644
+--- a/third_party/blink/renderer/modules/webcodecs/image_decoder_external.cc
++++ b/third_party/blink/renderer/modules/webcodecs/image_decoder_external.cc
+@@ -6,9 +6,11 @@
+ 
+ #include "base/logging.h"
+ #include "base/metrics/histogram_functions.h"
++#include "base/task/bind_post_task.h"
+ #include "base/task/thread_pool.h"
+ #include "third_party/blink/public/common/mime_util/mime_util.h"
+ #include "third_party/blink/public/mojom/use_counter/metrics/web_feature.mojom-blink.h"
++#include "third_party/blink/public/platform/task_type.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_union_arraybufferallowshared_arraybufferviewallowshared_readablestream.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_image_decode_options.h"
+@@ -193,6 +195,8 @@ ImageDecoderExternal::ImageDecoderExternal(ScriptState* script_state,
+   decode_task_runner_ = base::ThreadPool::CreateSequencedTaskRunner(
+       {base::TaskPriority::USER_VISIBLE,
+        base::TaskShutdownBehavior::SKIP_ON_SHUTDOWN});
++  main_task_runner_ =
++      GetExecutionContext()->GetTaskRunner(TaskType::kInternalMedia);
+ 
+   if (init->data()->IsReadableStream()) {
+     if (init->data()->GetAsReadableStream()->IsLocked() ||
+@@ -519,12 +523,26 @@ void ImageDecoderExternal::MaybeSatisfyPendingDecodes() {
+     request->bytes_read_index = bytes_read_;
+ 
+     ++num_submitted_decodes_;
+-    decoder_->AsyncCall(&ImageDecoderCore::Decode)
+-        .WithArgs(request->frame_index, request->complete_frames_only,
+-                  CrossThreadUnretained(request->abort_flag.get()))
+-        .Then(CrossThreadBindOnce(&ImageDecoderExternal::OnDecodeReady,
+-                                  MakeUnwrappingCrossThreadHandle(
+-                                      decode_weak_factory_.GetWeakCell())));
++    // We'd like to use `AsyncCall()` here, but `AsyncCall().Then()` replies via
++    // `SequencedTaskRunner::GetCurrentDefault()`, which is not paused or frozen
++    // with the ExecutionContext (and wrapping `Then()` with `BindPostTask()`
++    // would add an extra task hop).
++    decoder_->PostTaskWithThisObject(CrossThreadBindOnce(
++        [](uint32_t frame_index, bool complete_frames_only,
++           const base::AtomicFlag* abort_flag,
++           base::OnceCallback<void(
++               std::unique_ptr<ImageDecoderCore::ImageDecodeResult>)> done_cb,
++           ImageDecoderCore* core) {
++          std::move(done_cb).Run(
++              core->Decode(frame_index, complete_frames_only, abort_flag));
++        },
++        request->frame_index, request->complete_frames_only,
++        CrossThreadUnretained(request->abort_flag.get()),
++        base::BindPostTask(main_task_runner_,
++                           ConvertToBaseOnceCallback(CrossThreadBindOnce(
++                               &ImageDecoderExternal::OnDecodeReady,
++                               MakeUnwrappingCrossThreadHandle(
++                                   decode_weak_factory_.GetWeakCell()))))));
+   }
+ 
+   auto new_end = std::stable_partition(
+@@ -622,10 +640,18 @@ void ImageDecoderExternal::DecodeMetadata() {
+   ++pending_metadata_requests_;
+   DCHECK_GE(pending_metadata_requests_, 1);
+ 
+-  decoder_->AsyncCall(&ImageDecoderCore::DecodeMetadata)
+-      .Then(CrossThreadBindOnce(
+-          &ImageDecoderExternal::OnMetadata,
+-          MakeUnwrappingCrossThreadHandle(weak_factory_.GetWeakCell())));
++  // See comment in `MaybeSatisfyPendingDecodes()` for why we avoid
++  // `AsyncCall().Then()` here.
++  decoder_->PostTaskWithThisObject(CrossThreadBindOnce(
++      [](base::OnceCallback<void(ImageDecoderCore::ImageMetadata)> done_cb,
++         ImageDecoderCore* core) {
++        std::move(done_cb).Run(core->DecodeMetadata());
++      },
++      base::BindPostTask(
++          main_task_runner_,
++          ConvertToBaseOnceCallback(CrossThreadBindOnce(
++              &ImageDecoderExternal::OnMetadata,
++              MakeUnwrappingCrossThreadHandle(weak_factory_.GetWeakCell()))))));
+ }
+ 
+ void ImageDecoderExternal::OnMetadata(
+diff --git a/third_party/blink/renderer/modules/webcodecs/image_decoder_external.h b/third_party/blink/renderer/modules/webcodecs/image_decoder_external.h
+index 226be05a9..d21650b26 100644
+--- a/third_party/blink/renderer/modules/webcodecs/image_decoder_external.h
++++ b/third_party/blink/renderer/modules/webcodecs/image_decoder_external.h
+@@ -129,6 +129,7 @@ class MODULES_EXPORT ImageDecoderExternal final
+ 
+   // The workhorse which actually does the decoding. Bound to another sequence.
+   scoped_refptr<base::SequencedTaskRunner> decode_task_runner_;
++  scoped_refptr<base::SequencedTaskRunner> main_task_runner_;
+   std::unique_ptr<SequenceBound<ImageDecoderCore>> decoder_;
+ 
+   // List of tracks in this image. Filled in during OnMetadata().
+diff --git a/third_party/blink/renderer/modules/webcodecs/image_decoder_external_test.cc b/third_party/blink/renderer/modules/webcodecs/image_decoder_external_test.cc
+index ee2083cd2..b7502f4fd 100644
+--- a/third_party/blink/renderer/modules/webcodecs/image_decoder_external_test.cc
++++ b/third_party/blink/renderer/modules/webcodecs/image_decoder_external_test.cc
+@@ -15,6 +15,7 @@
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_image_decoder_init.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_image_track.h"
+ #include "third_party/blink/renderer/core/imagebitmap/image_bitmap.h"
++#include "third_party/blink/renderer/core/page/page.h"
+ #include "third_party/blink/renderer/core/streams/readable_stream.h"
+ #include "third_party/blink/renderer/core/streams/test_underlying_source.h"
+ #include "third_party/blink/renderer/core/typed_arrays/dom_array_buffer.h"
+@@ -22,6 +23,7 @@
+ #include "third_party/blink/renderer/modules/webcodecs/image_track_list.h"
+ #include "third_party/blink/renderer/modules/webcodecs/video_frame.h"
+ #include "third_party/blink/renderer/platform/heap/persistent.h"
++#include "third_party/blink/renderer/platform/scheduler/public/page_scheduler.h"
+ #include "third_party/blink/renderer/platform/testing/task_environment.h"
+ #include "third_party/blink/renderer/platform/testing/unit_test_helpers.h"
+ #include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
+@@ -1202,6 +1204,57 @@ TEST_F(ImageDecoderTest, DecodeRotatedJpeg) {
+   EXPECT_EQ(image->SizeAsFloat(kRespectImageOrientation), gfx::SizeF(1281, 82));
+ }
+ 
++TEST_F(ImageDecoderTest, CallbacksDeferredWhileFrozenOrPaused) {
++  for (bool freeze : {true, false}) {
++    SCOPED_TRACE(freeze ? "Frozen" : "Paused");
++    V8TestingScope v8_scope;
++    auto* script_state = v8_scope.GetScriptState();
++
++    auto set_suspended = [&](bool suspended) {
++      if (freeze) {
++        if (suspended) {
++          v8_scope.GetPage().GetPageScheduler()->SetPageVisible(false);
++          v8_scope.GetPage().GetPageScheduler()->SetPageFrozen(true);
++        } else {
++          v8_scope.GetPage().GetPageScheduler()->SetPageFrozen(false);
++          v8_scope.GetPage().GetPageScheduler()->SetPageVisible(true);
++        }
++      } else {
++        v8_scope.GetPage().SetPaused(suspended);
++      }
++    };
++
++    // 1. Verify DecodeMetadata() -> OnMetadata() is deferred while suspended.
++    set_suspended(true);
++    auto* decoder = CreateDecoder(&v8_scope, "images/resources/png-simple.png",
++                                  "image/png");
++    ASSERT_TRUE(decoder);
++    ASSERT_FALSE(v8_scope.GetExceptionState().HadException());
++
++    auto ready_promise = decoder->tracks().ready(script_state);
++    task_environment_.RunUntilIdle();
++    v8_scope.PerformMicrotaskCheckpoint();
++    EXPECT_EQ(v8::Promise::kPending, ready_promise.V8Promise()->State());
++
++    set_suspended(false);
++    ScriptPromiseTester ready_tester(script_state, ready_promise);
++    ready_tester.WaitUntilSettled();
++    ASSERT_TRUE(ready_tester.IsFulfilled());
++
++    // 2. Verify Decode() -> OnDecodeReady() is deferred while suspended.
++    set_suspended(true);
++    auto decode_promise = decoder->decode(MakeOptions(0, true));
++    task_environment_.RunUntilIdle();
++    v8_scope.PerformMicrotaskCheckpoint();
++    EXPECT_EQ(v8::Promise::kPending, decode_promise.V8Promise()->State());
++
++    set_suspended(false);
++    ScriptPromiseTester decode_tester(script_state, decode_promise);
++    decode_tester.WaitUntilSettled();
++    EXPECT_TRUE(decode_tester.IsFulfilled());
++  }
++}
++
+ }  // namespace
+ 
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/modules/webcodecs/video_decoder.cc b/third_party/blink/renderer/modules/webcodecs/video_decoder.cc
+index b5e721916..dbacdcf98 100644
+--- a/third_party/blink/renderer/modules/webcodecs/video_decoder.cc
++++ b/third_party/blink/renderer/modules/webcodecs/video_decoder.cc
+@@ -9,6 +9,7 @@
+ 
+ #include "base/containers/span.h"
+ #include "base/metrics/histogram_functions.h"
++#include "base/task/bind_post_task.h"
+ #include "base/time/time.h"
+ #include "media/base/decoder_buffer.h"
+ #include "media/base/limits.h"
+@@ -22,6 +23,7 @@
+ #include "media/media_buildflags.h"
+ #include "third_party/blink/public/mojom/use_counter/metrics/web_feature.mojom-blink.h"
+ #include "third_party/blink/public/platform/platform.h"
++#include "third_party/blink/public/platform/task_type.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
+ #include "third_party/blink/renderer/bindings/core/v8/to_v8_traits.h"
+@@ -324,10 +326,18 @@ ScriptPromise<VideoDecoderSupport> VideoDecoder::isConfigSupported(
+         MakeGarbageCollected<ScriptPromiseResolver<VideoDecoderSupport>>(
+             script_state, exception_state.GetContext());
+     auto promise = resolver->Promise();
+-    RetrieveGpuFactoriesWithKnownDecoderSupport(CrossThreadBindOnce(
+-        &DecoderSupport_OnKnown, MakeUnwrappingCrossThreadHandle(support),
+-        std::make_unique<MediaConfigType>(*media_config),
+-        MakeUnwrappingCrossThreadHandle(resolver)));
++    // `RetrieveGpuFactoriesWithKnownDecoderSupport()` may reply via
++    // `SequencedTaskRunner::GetCurrentDefault()` or on the media thread, which
++    // are not paused or frozen with the ExecutionContext. Bind explicitly to an
++    // ExecutionContext task runner.
++    RetrieveGpuFactoriesWithKnownDecoderSupport(blink::OutputCB(
++        base::BindPostTask(ExecutionContext::From(script_state)
++                               ->GetTaskRunner(TaskType::kInternalDefault),
++                           ConvertToBaseOnceCallback(CrossThreadBindOnce(
++                               &DecoderSupport_OnKnown,
++                               MakeUnwrappingCrossThreadHandle(support),
++                               std::make_unique<MediaConfigType>(*media_config),
++                               MakeUnwrappingCrossThreadHandle(resolver))))));
+     return promise;
+   }
+ 
+diff --git a/third_party/blink/renderer/modules/webcodecs/video_encoder.cc b/third_party/blink/renderer/modules/webcodecs/video_encoder.cc
+index 4b2c52499..1e42a2998 100644
+--- a/third_party/blink/renderer/modules/webcodecs/video_encoder.cc
++++ b/third_party/blink/renderer/modules/webcodecs/video_encoder.cc
+@@ -5,6 +5,7 @@
+ #include "third_party/blink/renderer/modules/webcodecs/video_encoder.h"
+ 
+ #include <algorithm>
++#include <optional>
+ #include <string>
+ 
+ #include "base/format_macros.h"
+@@ -15,6 +16,7 @@
+ #include "base/metrics/histogram_functions.h"
+ #include "base/notimplemented.h"
+ #include "base/numerics/clamped_math.h"
++#include "base/task/bind_post_task.h"
+ #include "base/task/single_thread_task_runner.h"
+ #include "base/time/time.h"
+ #include "base/trace_event/common/trace_event_common.h"
+@@ -795,9 +797,9 @@ media::EncoderStatus::Or<std::unique_ptr<media::VideoEncoder>>
+ VideoEncoder::CreateSoftwareVideoEncoder(VideoEncoder* self,
+                                          bool fallback,
+                                          media::VideoCodec codec) {
+-  DCHECK_CALLED_ON_VALID_SEQUENCE(self->sequence_checker_);
+   if (!self)
+     return media::EncoderStatus::Codes::kEncoderIllegalState;
++  DCHECK_CALLED_ON_VALID_SEQUENCE(self->sequence_checker_);
+   std::unique_ptr<media::VideoEncoder> result;
+   switch (codec) {
+     case media::VideoCodec::kAV1:
+@@ -825,7 +827,8 @@ VideoEncoder::CreateSoftwareVideoEncoder(VideoEncoder* self,
+             media::SVCScalabilityMode::kL1T1));
+   }
+   return std::unique_ptr<media::VideoEncoder>(
+-      std::make_unique<media::OffloadingVideoEncoder>(std::move(result)));
++      std::make_unique<media::OffloadingVideoEncoder>(std::move(result),
++                                                      self->callback_runner_));
+ }
+ 
+ media::EncoderStatus::Or<std::unique_ptr<media::VideoEncoder>>
+@@ -864,18 +867,28 @@ void VideoEncoder::ContinueConfigureAfterFlush(Request* request) {
+     return;
+   }
+ 
+-  RetrieveGpuFactoriesWithKnownEncoderSupport(
+-      CrossThreadBindOnce(&VideoEncoder::ContinueConfigureWithGpuFactories,
+-                          MakeUnwrappingCrossThreadWeakHandle(this),
+-                          MakeUnwrappingCrossThreadHandle(request)));
++  // `RetrieveGpuFactoriesWithKnownEncoderSupport()` may reply via
++  // `SequencedTaskRunner::GetCurrentDefault()` or on the media thread, which
++  // are not paused or frozen with the ExecutionContext. Bind explicitly to
++  // `callback_runner_`.
++  RetrieveGpuFactoriesWithKnownEncoderSupport(blink::OutputCB(
++      base::BindPostTask(callback_runner_,
++                         ConvertToBaseOnceCallback(CrossThreadBindOnce(
++                             &VideoEncoder::ContinueConfigureWithGpuFactories,
++                             MakeUnwrappingCrossThreadWeakHandle(this),
++                             MakeUnwrappingCrossThreadHandle(request))))));
+ }
+ 
+ void VideoEncoder::ContinueConfigureWithGpuFactories(
+     Request* request,
+     media::GpuVideoAcceleratorFactories* gpu_factories) {
++  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
++  if (reset_count_ != request->reset_count) {
++    request->EndTracing(/*aborted=*/true);
++    return;
++  }
+   DCHECK(active_config_);
+   DCHECK_EQ(request->type, Request::Type::kConfigure);
+-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+   bool is_platform_encoder = false;
+   media_encoder_.reset();
+   auto encoder_or_error = CreateMediaVideoEncoder(
+@@ -1091,6 +1104,10 @@ bool VideoEncoder::StartReadback(scoped_refptr<media::VideoFrame> frame,
+     }
+   }
+ 
++  // Frame pool and `BackgroundReadback` callbacks may run on background threads
++  // or via `SequencedTaskRunner::GetCurrentDefault()`; bind explicitly to
++  // `callback_runner_` so completion is deferred while paused or frozen.
++  result_cb = base::BindPostTask(callback_runner_, std::move(result_cb));
+   auto [pool_result_cb, background_result_cb] =
+       base::SplitOnceCallback(std::move(result_cb));
+   if (can_use_gmb && accelerated_frame_pool_) {
+@@ -1243,16 +1260,13 @@ void VideoEncoder::ProcessEncode(Request* request) {
+     // Stall request processing while we wait for the copy to complete. It'd
+     // be nice to not have to do this, but currently the request processing
+     // loop must execute synchronously or flush() will miss frames.
+-    //
+-    // Note: Set this before calling StartReadback() since callbacks could
+-    // resolve synchronously.
+     blocking_request_in_progress_ = request;
+ 
+-    auto readback_done_callback =
+-        blink::BindOnce(&VideoEncoder::OnReadbackDone,
+-                        MakeUnwrappingCrossThreadWeakHandle(this),
+-                        MakeUnwrappingCrossThreadHandle(request), frame,
+-                        std::move(encode_done_callback));
++    auto readback_done_callback = ConvertToBaseOnceCallback(
++        CrossThreadBindOnce(&VideoEncoder::OnReadbackDone,
++                            MakeUnwrappingCrossThreadWeakHandle(this),
++                            MakeUnwrappingCrossThreadHandle(request), frame,
++                            std::move(encode_done_callback)));
+ 
+     if (StartReadback(std::move(frame), std::move(readback_done_callback))) {
+       request->input->close();
+@@ -1484,9 +1498,9 @@ void VideoEncoder::ProcessConfigure(Request* request) {
+     self->ContinueConfigureAfterFlush(req);
+   };
+ 
+-  media_encoder_->Flush(BindOnce(flush_done_callback,
+-                                 MakeUnwrappingCrossThreadWeakHandle(this),
+-                                 MakeUnwrappingCrossThreadHandle(request)));
++  media_encoder_->Flush(ConvertToBaseOnceCallback(CrossThreadBindOnce(
++      flush_done_callback, MakeUnwrappingCrossThreadWeakHandle(this),
++      MakeUnwrappingCrossThreadHandle(request))));
+ }
+ 
+ void VideoEncoder::ProcessReconfigure(Request* request) {
+@@ -1574,10 +1588,10 @@ void VideoEncoder::ProcessReconfigure(Request* request) {
+   };
+ 
+   blocking_request_in_progress_ = request;
+-  media_encoder_->Flush(
+-      BindOnce(flush_done_callback, MakeUnwrappingCrossThreadWeakHandle(this),
+-               MakeUnwrappingCrossThreadHandle(request),
+-               std::move(reconf_done_callback), is_platform_encoder_));
++  media_encoder_->Flush(ConvertToBaseOnceCallback(CrossThreadBindOnce(
++      flush_done_callback, MakeUnwrappingCrossThreadWeakHandle(this),
++      MakeUnwrappingCrossThreadHandle(request), std::move(reconf_done_callback),
++      is_platform_encoder_)));
+ }
+ 
+ void VideoEncoder::OnMediaEncoderInfoChanged(
+@@ -1795,7 +1809,6 @@ void FindAnySupported(
+ }
+ 
+ static void isConfigSupportedWithSoftwareOnly(
+-    ScriptState* script_state,
+     base::OnceCallback<void(VideoEncoderSupport*)> callback,
+     VideoEncoderSupport* support,
+     VideoEncoderTraits::ParsedConfig* config) {
+@@ -1820,26 +1833,19 @@ static void isConfigSupportedWithSoftwareOnly(
+     return;
+   }
+ 
+-  auto done_callback =
+-      [](std::unique_ptr<media::VideoEncoder> encoder,
+-         CrossThreadOnceFunction<void(blink::VideoEncoderSupport*)> callback,
+-         scoped_refptr<base::SingleThreadTaskRunner> runner,
+-         VideoEncoderSupport* support, media::EncoderStatus status) {
+-        support->setSupported(status.is_ok());
+-        std::move(callback).Run(support);
+-        runner->DeleteSoon(FROM_HERE, std::move(encoder));
+-      };
+-
+-  auto* context = ExecutionContext::From(script_state);
+-  auto runner = context->GetTaskRunner(TaskType::kInternalDefault);
+-  auto* software_encoder_raw = software_encoder.get();
+-  software_encoder_raw->Initialize(
++  std::optional<media::EncoderStatus> status;
++  software_encoder->DisablePostedCallbacks();
++  software_encoder->Initialize(
+       config->profile, config->options, /*info_cb=*/base::DoNothing(),
+       /*output_cb=*/base::DoNothing(),
+-      ConvertToBaseOnceCallback(CrossThreadBindOnce(
+-          done_callback, std::move(software_encoder),
+-          CrossThreadBindOnce(std::move(callback)), std::move(runner),
+-          MakeUnwrappingCrossThreadHandle(support))));
++      blink::BindOnce([](std::optional<media::EncoderStatus>* out,
++                         media::EncoderStatus s) { *out = std::move(s); },
++                      blink::Unretained(&status)));
++  CHECK(status.has_value());
++  software_encoder.reset();
++
++  support->setSupported(status->is_ok());
++  std::move(callback).Run(support);
+ }
+ 
+ static void isConfigSupportedWithHardwareOnly(
+@@ -1894,18 +1900,26 @@ ScriptPromise<VideoEncoderSupport> VideoEncoder::isConfigSupported(
+   auto promise = resolver->Promise();
+   auto find_any_callback = HeapBarrierCallback<VideoEncoderSupport>(
+       num_callbacks,
+-      BindOnce(&FindAnySupported, MakeUnwrappingCrossThreadHandle(resolver)));
++      ConvertToBaseOnceCallback(CrossThreadBindOnce(
++          &FindAnySupported, MakeUnwrappingCrossThreadHandle(resolver))));
+ 
+   if (parsed_config->hw_pref != HardwarePreference::kPreferSoftware ||
+       media::MayHaveAndAllowSelectOSSoftwareEncoder(parsed_config->codec)) {
+     // Hardware support not denied, detect support by hardware encoders.
+     auto* support = VideoEncoderSupport::Create();
+     support->setConfig(config_copy);
+-    auto gpu_retrieved_callback =
+-        CrossThreadBindOnce(isConfigSupportedWithHardwareOnly,
+-                            CrossThreadBindOnce(find_any_callback),
+-                            MakeUnwrappingCrossThreadHandle(support),
+-                            MakeUnwrappingCrossThreadHandle(parsed_config));
++    // `RetrieveGpuFactoriesWithKnownEncoderSupport()` may reply via
++    // `SequencedTaskRunner::GetCurrentDefault()` or on the media thread, which
++    // are not paused or frozen with the ExecutionContext. Bind explicitly to an
++    // ExecutionContext task runner.
++    auto gpu_retrieved_callback = blink::OutputCB(base::BindPostTask(
++        ExecutionContext::From(script_state)
++            ->GetTaskRunner(TaskType::kInternalDefault),
++        ConvertToBaseOnceCallback(CrossThreadBindOnce(
++            isConfigSupportedWithHardwareOnly,
++            CrossThreadBindOnce(find_any_callback),
++            MakeUnwrappingCrossThreadHandle(support),
++            MakeUnwrappingCrossThreadHandle(parsed_config)))));
+     RetrieveGpuFactoriesWithKnownEncoderSupport(
+         std::move(gpu_retrieved_callback));
+   }
+@@ -1914,7 +1928,7 @@ ScriptPromise<VideoEncoderSupport> VideoEncoder::isConfigSupported(
+     // Hardware support not required, detect support by software encoders.
+     auto* support = VideoEncoderSupport::Create();
+     support->setConfig(config_copy);
+-    isConfigSupportedWithSoftwareOnly(script_state, find_any_callback, support,
++    isConfigSupportedWithSoftwareOnly(find_any_callback, support,
+                                       parsed_config);
+   }
+ 
+diff --git a/third_party/blink/renderer/modules/webcodecs/video_encoder_test.cc b/third_party/blink/renderer/modules/webcodecs/video_encoder_test.cc
+index 6a023e5a7..15014986b 100644
+--- a/third_party/blink/renderer/modules/webcodecs/video_encoder_test.cc
++++ b/third_party/blink/renderer/modules/webcodecs/video_encoder_test.cc
+@@ -14,19 +14,24 @@
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_tester.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_testing.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_dom_rect_init.h"
++#include "third_party/blink/renderer/bindings/modules/v8/v8_encoded_video_chunk.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_union_cssimagevalue_htmlcanvaselement_htmlimageelement_htmlvideoelement_imagebitmap_offscreencanvas_svgimageelement_videoframe.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_video_encoder_config.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_video_encoder_encode_options.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_video_encoder_init.h"
++#include "third_party/blink/renderer/bindings/modules/v8/v8_video_encoder_support.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_video_frame_init.h"
+ #include "third_party/blink/renderer/core/html/canvas/image_data.h"
+ #include "third_party/blink/renderer/core/imagebitmap/image_bitmap.h"
++#include "third_party/blink/renderer/core/page/page.h"
+ #include "third_party/blink/renderer/core/testing/mock_function_scope.h"
+ #include "third_party/blink/renderer/core/typed_arrays/dom_array_buffer.h"
+ #include "third_party/blink/renderer/modules/webcodecs/codec_pressure_manager.h"
+ #include "third_party/blink/renderer/modules/webcodecs/codec_pressure_manager_provider.h"
++#include "third_party/blink/renderer/modules/webcodecs/encoded_video_chunk.h"
+ #include "third_party/blink/renderer/modules/webcodecs/video_encoder.h"
+ #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
++#include "third_party/blink/renderer/platform/scheduler/public/page_scheduler.h"
+ #include "third_party/blink/renderer/platform/testing/task_environment.h"
+ #include "third_party/blink/renderer/platform/testing/unit_test_helpers.h"
+ 
+@@ -494,7 +499,8 @@ TEST_F(VideoEncoderTest,
+   EXPECT_CALL(
+       *mock_encoder_metrics_provider,
+       MockInitialize(media::VideoCodecProfile::VP8PROFILE_ANY, kEncodeSize,
+-                     false, media::SVCScalabilityMode::kL1T1));
++                     false, media::SVCScalabilityMode::kL1T1))
++      .Times(2);
+   EXPECT_CALL(*mock_media_encoder, Initialize(_, _, _, _, _))
+       .WillOnce(DoAll(
+           SaveArg<3>(&output_cb),
+@@ -510,10 +516,6 @@ TEST_F(VideoEncoderTest,
+             FROM_HERE, blink::BindOnce(std::move(done_cb),
+                                        media::EncoderStatus::Codes::kOk));
+       });
+-  EXPECT_CALL(
+-      *mock_encoder_metrics_provider,
+-      MockInitialize(media::VideoCodecProfile::VP8PROFILE_ANY, kEncodeSize,
+-                     false, media::SVCScalabilityMode::kL1T1));
+   EXPECT_CALL(*mock_media_encoder, ChangeOptions(_, _, _))
+       .WillOnce(WithArgs<2>([quit_closure = run_loop.QuitWhenIdleClosure()](
+                                 media::VideoEncoder::EncoderStatusCB done_cb) {
+@@ -596,6 +598,7 @@ TEST_F(VideoEncoderTest, NoAvailableMediaVideoEncoder) {
+       .WillOnce(Return(media::EncoderStatus(
+           media::EncoderStatus::Codes::kEncoderUnsupportedProfile)));
+   encoder->configure(config, es);
++  test::RunPendingTasks();
+ }
+ 
+ TEST_F(VideoEncoderTest, EncodePreservesVisibleRect) {
+@@ -675,6 +678,96 @@ TEST_F(VideoEncoderTest, EncodePreservesVisibleRect) {
+   tester.WaitUntilSettled();
+   EXPECT_TRUE(tester.IsFulfilled());
+ }
++
++class ChunkCollector : public ScriptFunction {
++ public:
++  explicit ChunkCollector(v8::Isolate* isolate) : isolate_(isolate) {}
++
++  ScriptValue Call(ScriptState* script_state, ScriptValue args) override {
++    auto* chunk = V8EncodedVideoChunk::ToWrappable(isolate_, args.V8Value());
++    EXPECT_TRUE(chunk);
++    if (chunk) {
++      chunks_.emplace_back(chunk->timestamp(), chunk->duration());
++    }
++    return ScriptValue();
++  }
++
++  const Vector<std::pair<int64_t, std::optional<uint64_t>>>& chunks() const {
++    return chunks_;
++  }
++
++ private:
++  raw_ptr<v8::Isolate> const isolate_;
++  Vector<std::pair<int64_t, std::optional<uint64_t>>> chunks_;
++};
++
++TEST_F(VideoEncoderTest, SoftwareEncoderCallbacksDeferredWhileFrozenOrPaused) {
++  for (bool freeze : {true, false}) {
++    SCOPED_TRACE(freeze ? "Frozen" : "Paused");
++    V8TestingScope v8_scope;
++    auto& es = v8_scope.GetExceptionState();
++    auto* script_state = v8_scope.GetScriptState();
++
++    MockFunctionScope mock_function(script_state);
++    auto* collector =
++        MakeGarbageCollected<ChunkCollector>(script_state->GetIsolate());
++    auto* init =
++        CreateInit(script_state, collector, mock_function.ExpectNoCall());
++    auto* encoder = CreateEncoder(script_state, init, es);
++    ASSERT_FALSE(es.HadException());
++
++    auto* config = CreateConfig();
++    encoder->configure(config, es);
++    ASSERT_FALSE(es.HadException());
++
++    {
++      auto promise = encoder->flush(es);
++      ScriptPromiseTester tester(script_state, promise);
++      tester.WaitUntilSettled();
++      ASSERT_TRUE(tester.IsFulfilled());
++    }
++
++    if (freeze) {
++      v8_scope.GetPage().GetPageScheduler()->SetPageVisible(false);
++      v8_scope.GetPage().GetPageScheduler()->SetPageFrozen(true);
++    } else {
++      v8_scope.GetPage().SetPaused(true);
++    }
++
++    encoder->encode(
++        MakeVideoFrame(script_state, config->width(), config->height(), 100),
++        MakeGarbageCollected<VideoEncoderEncodeOptions>(), es);
++    ASSERT_FALSE(es.HadException());
++    auto flush_promise = encoder->flush(es);
++    ASSERT_FALSE(es.HadException());
++    auto support_promise =
++        VideoEncoder::isConfigSupported(script_state, config, es);
++    ASSERT_FALSE(es.HadException());
++
++    task_environment_.RunUntilIdle();
++    v8_scope.PerformMicrotaskCheckpoint();
++
++    EXPECT_TRUE(collector->chunks().empty());
++    EXPECT_EQ(v8::Promise::kPending, flush_promise.V8Promise()->State());
++    EXPECT_EQ(v8::Promise::kPending, support_promise.V8Promise()->State());
++
++    if (freeze) {
++      v8_scope.GetPage().GetPageScheduler()->SetPageFrozen(false);
++      v8_scope.GetPage().GetPageScheduler()->SetPageVisible(true);
++    } else {
++      v8_scope.GetPage().SetPaused(false);
++    }
++
++    ScriptPromiseTester flush_tester(script_state, flush_promise);
++    flush_tester.WaitUntilSettled();
++    EXPECT_TRUE(flush_tester.IsFulfilled());
++    EXPECT_EQ(1u, collector->chunks().size());
++
++    ScriptPromiseTester support_tester(script_state, support_promise);
++    support_tester.WaitUntilSettled();
++    EXPECT_TRUE(support_tester.IsFulfilled());
++  }
++}
+ }  // namespace
+ 
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/modules/webcodecs/video_frame.cc b/third_party/blink/renderer/modules/webcodecs/video_frame.cc
+index 7d262d9b1..0ec33aaea 100644
+--- a/third_party/blink/renderer/modules/webcodecs/video_frame.cc
++++ b/third_party/blink/renderer/modules/webcodecs/video_frame.cc
+@@ -31,6 +31,7 @@
+ #include "third_party/blink/public/mojom/frame/lifecycle.mojom-blink.h"
+ #include "third_party/blink/public/mojom/use_counter/metrics/web_feature.mojom-blink.h"
+ #include "third_party/blink/public/platform/platform.h"
++#include "third_party/blink/public/platform/task_type.h"
+ #include "third_party/blink/public/platform/web_graphics_context_3d_provider.h"
+ #include "third_party/blink/renderer/bindings/core/v8/to_v8_traits.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_background_blur.h"
+@@ -1389,9 +1390,15 @@ VideoFrame::CopyToPromise VideoFrame::CopyToAsync(
+                                            "Failed to read VideoFrame data.");
+         }
+       };
+-  auto done_cb =
+-      BindOnce(readback_done_handler, std::move(contents),
+-               MakeUnwrappingCrossThreadHandle(resolver), dest_layout);
++  // `BackgroundReadback` may invoke `done_cb` on a background worker thread or
++  // via `SequencedTaskRunner::GetCurrentDefault()`, neither of which is paused
++  // or frozen with the ExecutionContext. Bind explicitly to an ExecutionContext
++  // task runner.
++  auto done_cb = base::BindPostTask(
++      context->GetTaskRunner(TaskType::kInternalMedia),
++      ConvertToBaseOnceCallback(CrossThreadBindOnce(
++          readback_done_handler, std::move(contents),
++          MakeUnwrappingCrossThreadHandle(resolver), dest_layout)));
+ 
+   background_readback->ReadbackTextureBackedFrame(
+       std::move(frame), std::move(dest_frame), std::move(done_cb));
+-- 
+2.43.0
+
