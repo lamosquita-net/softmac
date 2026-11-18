@@ -429,6 +429,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   la 3.2.0 («hemos dicho todo lo necesario; la siguiente es la 3.2.0»). Lo que entre en la rama 8078 antes de compilar sí
   entra (seguridad publicada por Chrome). El aviso de permiso «Read and display PDF files» (adapt/brave-core/0002) sale
   en inglés hasta la actualización de traducciones (COORDINACIÓN-49, con el APTO de SEGURIDAD-PORTES-30).
+  **Rama 8078 hasta publicar (Titín, 18-11 ~21:25 UTC; COORDINACIÓN-49):** todo lo que entre en la rama 8078 antes de
+  publicar la 3.1.4 va en ella, aunque haya que recompilar varias veces (primero: 5028a2f6a3, miniaturas). SEGURIDAD-PORTES
+  lo prepara en `3.1.4/integracion/` con APTO; el cambio de `chrome/VERSION` (tag .111) lo decide Titín.
 - **FlyWeb también innova (Titín, 13-11 noche; COORDINACIÓN-41; amplía «Flink a nuestro ritmo»):** además de seguir a
   Chrome, FlyWeb puede implementar funciones nuevas de los estándares (HTML, CSS, JS, APIs) aunque ningún otro navegador
   las tenga aún. **Las elige Titín como diseñador web.** INVESTIGACIÓN-MOTOR le presenta las tendencias nuevas, con
