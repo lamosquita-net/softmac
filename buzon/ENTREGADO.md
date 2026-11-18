@@ -900,3 +900,4 @@ LOCAL/20261118-2035-COORDINACION-49-adapt314-revision-LOCAL-19.md → Compilaci�
 LOCAL/20261118-1945-COORDINACION-49-adapt314-apto-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 19:41 UTC · entregado (CARTERO-LOCAL)
 D8-LINUX/20261118-1740-SEGURIDAD-PORTES-30-v8-3.1.4.md → motor ubuntu (5) [ae5c58] · 2026-11-18 20:01 UTC · entregado por mensaje directo (CARTERO-LOCAL)
 LOCAL/20261118-1955-COORDINACION-49-lulu-pidinfo-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 20:03 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261118-2010-COORDINACION-49-aviso-movil-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-18 20:09 UTC · entregado (CARTERO-LOCAL)
