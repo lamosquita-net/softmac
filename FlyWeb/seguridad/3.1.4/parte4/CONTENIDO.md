@@ -1,14 +1,16 @@
-# FlyWeb 3.1.4, parte 4: los medios de G4 que aplican a Mac (EN CURSO)
+# FlyWeb 3.1.4, parte 4: los medios de G4 que aplican a Mac
 
 SEGURIDAD-PORTES-26, 18-11-2026, por orden de COORDINACIÓN-49 (decisión de Titín, ~15:15 UTC: en la 3.1.4 entra toda la
 seguridad que aplica a Mac). Lista de partida: G4 de `../../3.1.5/CONTENIDO.md` (con interacción, instalar algo, Nigori,
-DBSC) más 7b99dd29ba (571058818). **Nada compilado por mí. Parte sin terminar: faltan 3 piezas (abajo, «Pendiente»).**
+DBSC) más 7b99dd29ba (571058818). 0001–0014, SEGURIDAD-PORTES-26; 0015, 0016 y devtools-frontend 0001,
+SEGURIDAD-PORTES-29 (18-11). **Nada compilado: compila LOCAL-19 una vez al final (build 47).**
 
 ## Base y resultado (comprobados)
 
 | Repositorio | Base | Serie | Resultado |
 |---|---|---|---|
-| chromium | árbol `986d591616` (3.1.4 0001–0026 + 3.1.5 0001–0031 sobre `local/313`) | `chromium/` 0001–0014 | árbol **`031ab4cda4`** (comprobado con `git am`) |
+| chromium | árbol `986d591616` (3.1.4 0001–0026 + 3.1.5 0001–0031 sobre `local/313`) | `chromium/` 0001–0016 | árbol **`ff1325f5c1`** (comprobado con `git am` de los 16; 0001–0014 solos: `031ab4cda4`) |
+| devtools-frontend | gitlink `third_party/devtools-frontend/src` `904b77f9fc` (el de `local/313`, sin cambios en las series) | `devtools-frontend/` 0001 | árbol **`c70d811144`** (comprobado con `git apply --cached` sobre el gitlink) |
 
 ## Hecho
 
@@ -28,6 +30,14 @@ DBSC) más 7b99dd29ba (571058818). **Nada compilado por mí. Parte sin terminar:
 | 0012 | 7a0c3eee10 | 574299586 | Extensiones: revocar la capacidad de directorio tras descomprimir y verificar el manifiesto recargado | a mano solo `extension_features.cc` (sin la *feature* de DNR) y `enums.xml` |
 | 0013 | fe08d53551 | 573285920, 574907939 | PWA: reutilizar una ventana de app en redirecciones capturadas solo si se puede | a mano el `CHECK` (la 156 tiene `DCHECK` en vez de `CHECK(NotFatalUntil)`) |
 | 0014 | e41efb6d0e | 574231826, 574232164 | PWA: no entregar `LaunchParams` a un documento de origen opaco ni a otra app | prueba de `launch_queue` fuera |
+| 0015 | 7b99dd29ba | 571058818 (CVE-2026-121105) | Medios: la clave de `UrlIndex` lleva el `SecurityOrigin` del documento que pide; `MergeFrom()` exige el mismo origen; las redirecciones conservan origen y `encoding_mode` | a mano: el constructor de `WebMediaPlayerImpl` sigue con `WebLocalFrame*` (upstream: `FrameScheduler*` + origen) y el miembro nuevo `security_origin_` sale de `frame->GetSecurityOrigin()` (el objeto del documento: la clave por puntero se mantiene entre reproductores del mismo documento); el `CHECK` de origen va delante de las comprobaciones de nuestro 0018 y de 61b6e5652b; en la prueba nueva de `url_index`, `SetDataOrigin()` en vez de `set_is_cors_cross_origin()` (privado en la 156) |
+| 0016 | 22a2af917b | 497744349, 549603220 | DNR: las reglas que miran el valor de cabeceras de respuesta (salvo las *CORS-safelisted* y `Content-Encoding`) exigen permiso de host; sin él se saltan al casar. *Feature* `kDeclarativeNetRequestRestrictResponseHeaderValueMatching` (activa; la que se dejó fuera de 0012). Sube `kIndexedRulesetFormatVersion` (se reindexan las reglas) | a mano: `DoEmbedderConditionsMatch()` de la 156 no recibe la URL (llegó con b878de30c0), así que solo se añade `has_host_access`; `OnDidFinishNavigation()` de la 156 no tiene la rama de documentos de error (c06e1d94a2): `has_host_access` se pone en sus dos `RequestParams`. Fuera las 2 pruebas que chocaban en `ruleset_matcher_unittest.cc` (junto a las de esos dos commits) |
+
+**devtools-frontend 0001** = fb515cf1b1 (543907563, CVE-2026-131075; llega a Chromium en el *roll* 404327b549): `openInNewTab`
+solo abre esquemas web salvo `allowPrivileged`; los `href` de `<a>` del árbol DOM con esquema privilegiado
+(`devtools:`, `chrome:`, `file:`…) dejan de ser enlaces. Limpio; el cambio de `DOMTreeElementWidget.ts` cae en
+`ElementsTreeElement.ts` (nombre de la 156). El resto del *roll* (4 de compilación de cadenas, 576211357) no es seguridad.
+Se aplica en `src/third_party/devtools-frontend/src` como ANGLE: `git am` sobre el gitlink.
 
 **No aplican en Mac:** 553151406 (39597dfb3d, a9ee282a53, f2e3cb42e0): son de Aura y de Linux (`web_contents_view_aura`,
 `desktop_window_tree_host_linux`); en Mac el arrastre del contenido va por `WebContentsViewMac`.
@@ -36,15 +46,30 @@ Cruce con brave-core: `patches/components-sync-protocol-proto_visitors.h.patch` 
 `chromium_src` de `proto_visitors.h` y `extension_features.cc` no redefinen lo que cambia. Los `#include` nuevos existen
 (salvo el generado `directory.mojom.h`, cuyo `.mojom` sí está).
 
-## Pendiente (para el relevo; ver `docs/RELEVO-SEGURIDAD.md` §17)
+Cruce con brave-core (`seg/3.1.4`, `ls-remote` `d916327900`; nada de la 3.1.4 0003 ni de la 3.1.5 toca estas rutas):
+ni `patches/` ni `chromium_src/` tocan `platform/media`, `declarative_net_request` ni los ficheros de devtools-frontend
+de 0001 (el único parche de devtools-frontend es `ApplicationPanelSidebar.ts`). `chromium_src/.../extension_features.cc`
+solo sobrescribe `kApiDesktopAndroidNativeMessaging` y `kApiGlicPrivate`.
 
-1. **7b99dd29ba** (571058818, clave de `UrlIndex` por origen): choca en `url_index.cc` (`MergeFrom`, con nuestro 0018 de la
-   3.1.4 y 61b6e5652b) y en el constructor de `WebMediaPlayerImpl` (la 156 recibe `WebLocalFrame*`; upstream, ya
-   refactorizado, `FrameScheduler*` + origen). Porte propio: miembro `security_origin_` sacado de
-   `frame->GetSecurityOrigin()` y pasarlo a `UrlIndex::GetByUrl()` y `UrlData`.
-2. **22a2af917b** (497744349, DNR: permisos de host para reglas por valor de cabeceras de respuesta): 22 ficheros, 7 choques
-   (`request_params.cc` ×4, `ruleset_matcher_base.cc`, prueba). Incluye la *feature*
-   `kDeclarativeNetRequestRestrictResponseHeaderValueMatching` que se dejó fuera de 0012.
-3. **543907563** (DevTools): es el *roll* 404327b549 de devtools-frontend; hay que buscar el commit del *frontend* y
-   llevarlo como `devtools-frontend/` 000x sobre el gitlink de la 156.
-4. Veredicto de la regla 17 de la parte entera, cuando estén 1–3.
+Firmas comprobadas (trampa de §16): `WebRequestPermissions::CanExtensionAccessURL` (0016, `ruleset_manager.cc`) igual en la
+156 y en el padre del commit salvo un comentario; el `.fbs`, `ruleset_manager.cc`, `composite_matcher.*`, los *matchers*,
+`utils.*` y `request_params.h` de la 156 son idénticos a los del padre; `wtf/hash_traits.h` y `hash_functions.h` (clave
+con `scoped_refptr` en 0015) también; `WebSecurityOrigin` → `scoped_refptr<const SecurityOrigin>` existe con
+`INSIDE_BLINK`, que `platform` define. En devtools-frontend, `hasWebSafeScheme`, `Link.allowPrivileged` y el segundo
+parámetro de `openInNewTab` ya están en el gitlink de la 156.
+
+## Veredicto (regla 17): **APTO**, parte 4
+
+Revisado el código de 0015, 0016 y devtools-frontend 0001 contra la 156; 0001–0014, revisados por SEGURIDAD-PORTES-26
+(tabla de arriba). Riesgos que LOCAL debe mirar al compilar:
+- 0015: el `CHECK(security_origin_)` del constructor de `UrlData` y el de mismo origen en `MergeFrom()` son de upstream
+  (cierre controlado en lugar de mezclar datos de dos orígenes). Si compilan las pruebas: `url_index_unittest`,
+  `multi_buffer_data_source_unittest` y `resource_multi_buffer_data_provider_unittest` cambian de firma.
+- 0016: reindexado de las reglas DNR de las extensiones al primer arranque (cambia `kIndexedRulesetFormatVersion`).
+  uBlock Origin Lite y similares deben seguir bloqueando. `indexed_ruleset_format_version_unittest` lleva la suma nueva.
+- devtools-frontend: los enlaces `chrome://` de la barra de precarga siguen abriéndose (`allow-privileged`).
+
+**Posibles huecos vistos al portar 0016 (no son de G4; consultados a COORDINACIÓN, sin decidir aquí):** b878de30c0
+(573367660, DNR ignora cabeceras ocultas al casar condiciones de respuesta), c06e1d94a2 (519999855, DNR: un documento
+de error no puede quedar en la lista de `allowAllRequests`) y ca8d989763 (502040109, cabeceras ocultas en
+`modifyHeaders`). Ninguno está en `3.1.4/` ni en `3.1.5/`.
