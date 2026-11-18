@@ -964,3 +964,51 @@ quedan fuera con su comprobación (`parte6/INVENTARIO.md`). Montada **encima de 
   `chromium_src/` antes de dar un arreglo por bueno.
 - Para los repos de terceros: libaom no se lee por aomedia.googlesource (403); el espejo `m-ab-s/aom` tiene los commits
   de Chromium. libvpx y devtools-frontend, en sus espejos de GitHub (`webmproject/libvpx`, `ChromeDevTools/devtools-frontend`).
+
+## 19. SEGURIDAD-PORTES-29 (`session_01MwmK2h9y29gKXzQFjqi44F`, 18-11-2026) → relevo (~17:20 UTC, al 40 %): integración de la 3.1.4
+
+**Hecho:** parte 4 completa (#1076, #1077; `3.1.4/parte4/CONTENIDO.md`, APTO): chromium 0001–0018, devtools-frontend
+0001, brave-core 0001 (V8 46c1404 y c9afe36, época 35) y skia 0001. Parte 6 (#1078) comprobada entera (chromium,
+brave-core/V8 `d2c624130c`, devtools `721e590a41`, WebRTC `9b251c7cc7`, libaom `26cdf2fc0d`, libvpx `fe13a1c827`).
+**Tres pruebas de la serie arregladas dentro de sus parches** (encargo de LOCAL-19 vía COORDINACIÓN-49; commit
+`[seguridad] 3.1.4: fix three tests…` de esta rama): 3.1.4/chromium 0006 (`#include` de `shadow_root.h`), 3.1.5/chromium
+0016 (`GetDocument().getElementById()` en la *fixture* de `SimTest`) y 0019 (`std::nullopt` como 6.º argumento de
+`AddClient`). Solo cambian pruebas, pero cambian los árboles: 3.1.4+3.1.5 `986d591616` → **`ec4c4ee188`**; + parte 4
+`ef5cec7033` → **`cf683d4404`**; + parte 6 `e926f928cf` → **`290b189452`**. Falta la nota en el CONTENIDO de la integración.
+
+**Falta (todo en el CONTENIDO de la integración, `3.1.4/CONTENIDO.md` «Orden de aplicación completo», con el APTO del conjunto):**
+1. **Integrar 4 → 5 → 6** sobre `ec4c4ee188`. La parte 5 es el #1080 (SEGURIDAD-PORTES-27, rama
+   `claude/seguridad-portes-27-3.1.4-parte5`): chromium 0001–0048 (sobre `ef5cec7033` da `4bfd3a5707`), brave-core 0001
+   (sobre `d328e2f909` → `f4ae16e77c`; V8 `9785de2624`; **sin época**), skia 0001 (sobre `c4c611066c` → `a934afed14`),
+   devtools 0001–0005 (sobre `c70d811144` → `e365b6b8a8`). Choques con la 6 ya resueltos en `parte5/integracion/`:
+   chromium/0001 sustituye a `parte6/chromium/0007` (resultado `ab06a2ae15` sobre el árbol sin las pruebas
+   arregladas) y devtools-frontend/0001 a `parte6/devtools-frontend/0002` (`dc4e4cd416`). Los árboles de chromium
+   cambiarán por las pruebas arregladas: recalcularlos.
+2. **brave-core / V8:** parte 4 (época 35) → parte 5 (patches/v8 de 42d78d0f3d y b1457bd47a, sin tocar
+   `src-utils-version.cc.patch`) → parte 6 (época 36). **Fijar la época definitiva por encima de 36** (37) en un parche
+   de integración, y añadir **V8 fdbb7b18** (rama 8078, 15.6.75.70; bug 577314726, de 740f16ea23; solo
+   `src/runtime/runtime-literals.cc` + `test/mjsunit/regress/regress-577314726.js`; ese fichero es idéntico en la .66:
+   entra limpio). Visto bueno de COORDINACIÓN-49: entra, y **lo que siga entrando en la 8078 antes de compilar entra
+   sin preguntar** (contarlo en el resumen). Formato de los `.patch`: `git diff --full-index 917584bd93 HEAD -- <fichero>`
+   sobre V8 .66 con todos los parches (ver `parte4/brave-core/0001`).
+3. **Encargo único para D8-LINUX** en la rama `buzon` (`buzon/D8-LINUX/<AAAAMMDD-HHMM>-SEGURIDAD-PORTES-N-v8-3.1.4.md`,
+   formato del de las 13:10 de la -26): V8 .66 + todos los `patches/v8` de la integración; lo nuevo frente a la última
+   verde (#1072, `fe1194813a`): 46c1404, c9afe36 (parte 4), 42d78d0f3d, b1457bd47a (parte 5), 0b3bd2b, 336a6b3, fb3bcc3,
+   0ac2b27 (parte 6), fdbb7b18 y la época final. Pruebas a mirar: las regress nuevas, `compiler/*`, `regexp*`,
+   `wasm/*simd*`, `maglev/*`, `turbolev/regress-568010379.js`. Sin hosts ni datos personales; lo pega Titín.
+4. **Vigilancia:** `branch-heads/8078` en **`0ae400b547`** (16:40 UTC; V8 .70); la .111 sin tag (si sale, avisar ya a
+   COORDINACIÓN). La 159 estable no ha salido (beta 159.0.8154.9). Vigilar un *reland* de 605619b342 (mixed content,
+   553652456/563355450), que COORDINACIÓN dejó a SEGURIDAD-PORTES.
+
+**Entorno (unos 15 min):** el de §17; además `skia` desde `github.com/google/skia` (rama `chrome/m156`; skia.googlesource
+da 403), V8 desde `chromium.googlesource.com/v8/v8`, devtools-frontend desde `chromium.googlesource.com/devtools/devtools-frontend`
+(SHA completo; el corto no se puede pedir), WebRTC `GetStream/webrtc`, libaom `m-ab-s/aom`. Para comprobar un parche sin
+*checkout*: `GIT_INDEX_FILE=… git read-tree <base>; git apply --cached …; git write-tree`.
+
+**Trampas nuevas:**
+- Un porte de upstream puede llegar **en orden inverso** al de upstream (0016 antes que 0017/0018): al final, comparar el
+  fichero con el de upstream tras los dos commits (`diff <(git show HEAD:f) <(git show C:f)`); si queda idéntico, mejor.
+- En DNR, la clave de `UrlIndex` y otras con `scoped_refptr` se comparan por puntero: el origen tiene que salir del objeto
+  del documento (`frame->GetSecurityOrigin()`), no de un `SecurityOrigin` nuevo.
+- `git format-patch` regenera cabeceras distintas (número de serie, SHA abreviado): al corregir un parche ya fusionado,
+  sustituir solo ese fichero y regenerar su línea de `SHA256SUMS`.
