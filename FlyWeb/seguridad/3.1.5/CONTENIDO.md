@@ -2,8 +2,8 @@
 
 > **Esta carpeta es la parte 3 de la 3.1.4: no hay versión 3.1.5** (Titín, 18-11; DIRECTIVAS, #1061; COORDINACIÓN-47).
 > Los parches se quedan con estas rutas y nombres (LOCAL-19 ya compila con ellas). **`brave-core/0002`
-> (`flyweb_version` 3.1.4 → 3.1.5) NO se aplica**: la versión sigue en 3.1.4. Sí se aplican `chromium/` 0001–0027,
-> `webrtc/` 0001–0005 y `brave-core/0001` (V8, época 33). Orden completo y árboles finales, en
+> (`flyweb_version` 3.1.4 → 3.1.5) NO se aplica**: la versión sigue en 3.1.4. Sí se aplican `chromium/` 0001–0029,
+> `webrtc/` 0001–0005 y `brave-core/` 0001 y 0003 (V8; época de caché 34). Orden completo y árboles finales, en
 > [`../3.1.4/CONTENIDO.md`](../3.1.4/CONTENIDO.md), «Orden de aplicación completo».
 
 SEGURIDAD-PORTES-25, 18-11-2026, por orden de COORDINACIÓN-47 (18-11 ~10:06): primero G3a de
@@ -220,6 +220,27 @@ Revisado el código de cada parche contra la 156. Riesgos para LOCAL:
 - **WebRTC:** videollamada con VP9 y AV1 (p. ej. Jitsi Meet), incluida una con resolución alta.
 - Pruebas: `blink_unit_tests --gtest_filter='ViewTransitionTest.*:*ErrorEvent*:DedicatedWorkerTest.*'`,
   `content_unittests --gtest_filter='VideoCaptureControllerTest.*:FileSystemAccessManagerImplTest.*'`.
+
+## Añadido el 18-11 por la tarde: la 8078 después de la .110 (orden de COORDINACIÓN-47)
+
+La rama 8078 avanzó después de congelarla en `859c5bc938` (punta a las 12:55 UTC: `3bd3db9df2`; sigue sin el tag .111).
+Entran sus tres cambios. `chrome/VERSION` y el gitlink de V8 **no** cambian.
+
+| Parche | Original | Bug | Qué |
+|---|---|---|---|
+| chromium 0028 | 6cc402428b [M156] | 565681452 | ServiceWorker: las *callbacks* de la respuesta de `fetch` se llaman directamente desde `Take()` (se apunta el evento antes de quitar la *callback*) |
+| chromium 0029 | 3bd3db9df2 [M156] | 562219084 | ServiceWorker: un segundo `StartWorker()` espera a que se registren las restricciones de red; antes podía liberar el `ServiceWorkerVersion` mientras arrancaba (navegador) |
+| brave-core 0003 | V8 5787048 [M156] (la V8 15.6.75.67 de la rama) | 577323082 | `JSCallReducer::Finalize` vuelve a visitar los nodos reducidos en el sitio; `patches/v8` nuevos `src-compiler-js-call-reducer.cc.patch` y su prueba; `kFlyWebCacheEpoch` 33 → **34** |
+
+- chromium 0028–0029: montados desde gitiles (mbox con `git am -3 --keep-non-patch`). `service_worker_version.{cc,h}` quedan
+  **idénticos** a los de upstream; `service_worker_global_scope.cc`, igual salvo las líneas de 0026. Sin `.patch` ni
+  `chromium_src` en brave-core para esos ficheros.
+- brave-core 0003: 5787048 va directamente sobre la .66 (su padre es la .66). Todos los `patches/v8` se aplican sobre la
+  .66; árbol de V8 resultante **`fe1194813a`** (antes `ecf31d79a4`).
+- Árboles finales: chromium **`880f9f156d`**, brave-core **`15c050d35a`** (sin `brave-core/0002`). Comprobados con `git am`.
+- d8/mjsunit: el encargo a D8-LINUX se ha rehecho para cubrir también 5787048 (buzón, 18-11).
+- **Veredicto (regla 17): APTO.** Son arreglos de la propia rama 8078, sin tocar. El de V8 cambia el código optimizado
+  (de ahí la época) y necesita el verde de D8-LINUX, como los demás.
 
 ## Pendiente (relevo)
 

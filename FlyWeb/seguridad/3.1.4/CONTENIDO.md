@@ -13,13 +13,13 @@ A + B + E (y D si se confirma); los 82 medios no entran (triaje aparte para la 3
 
 | Repositorio | Base | Se aplica, en este orden | Árbol final |
 |---|---|---|---|
-| chromium | `local/313` `7ccbc27cf7` | `3.1.4/chromium/` 0001–0026 → `3.1.5/chromium/` 0001–0027 | **`2aa2917c76`** (comprobado con `git am` de las 53) |
+| chromium | `local/313` `7ccbc27cf7` | `3.1.4/chromium/` 0001–0026 → `3.1.5/chromium/` 0001–0029 | **`880f9f156d`** (comprobado con `git am` de los 55; antes de 0028–0029, `2aa2917c76`) |
 | WebRTC | gitlink `third_party/webrtc` `19576e3787` | `3.1.5/webrtc/` 0001–0005 | **`8ee111cf22`** |
 | ANGLE | `bc2ebdd211` | `3.1.4/angle/` 0001–0003 | `db885a866b` |
-| brave-core | `seg/3.1.4` `d91632790084` (= `3.1.4/brave-core` 0001–0002) | `3.1.4/brave-core/` 0003 → `3.1.5/brave-core/` **0001** (V8 19048d3, 33ab43a, 65afc9f; época 33). **`3.1.5/brave-core/0002` no** | **`5d7362f7a4`** (comprobado con `git am`; `flyweb_version` 3.1.4, `kFlyWebCacheEpoch` 33) |
+| brave-core | `seg/3.1.4` `d91632790084` (= `3.1.4/brave-core` 0001–0002) | `3.1.4/brave-core/` 0003 → `3.1.5/brave-core/` **0001** (V8 19048d3, 33ab43a, 65afc9f) → `3.1.5/brave-core/` **0003** (V8 5787048; época 34). **`3.1.5/brave-core/0002` no** | **`15c050d35a`** (comprobado con `git am`; `flyweb_version` 3.1.4, `kFlyWebCacheEpoch` 34; árbol de V8 con todos los `patches/v8`: `fe1194813a`) |
 
-V8 (15.6.75.66 con los `patches/v8`), Dawn, FFmpeg, Skia y PDFium: sin más cambios que los de cada parte. Los d8/mjsunit
-de brave-core `3.1.4/0002` y `3.1.5/0001` siguen pendientes de D8-LINUX.
+V8 (15.6.75.66, gitlink sin cambiar, con los `patches/v8`), Dawn, FFmpeg, Skia y PDFium: sin más cambios que los de cada parte. Los d8/mjsunit
+de brave-core `3.1.4/0002`, `3.1.5/0001` y `3.1.5/0003` siguen pendientes de D8-LINUX. `chrome/VERSION` sigue en .110 (la .111 no tiene tag).
 
 ## Base y resultado (comprobados)
 
