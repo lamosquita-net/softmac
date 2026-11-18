@@ -910,3 +910,7 @@ con la clave de atestación apagada). Visto bueno a COORDINACIÓN-47: 7b99dd29ba
   pasar siempre `A..B` de commits.
 - Para leer o buscar en Blink sin `git grep`: añadir `/third_party/blink/renderer/` al *sparse checkout* (189 MB, 12 s) y
   usar `grep -r` normal.
+- **Una llamada nueva puede no casar con la firma de la 156 aunque `merge-tree` salga limpio:** 71ea1e9367 (0018) llamaba a
+  `IsValidTransferToken(…, StorageKey, …)`, que en la 156 recibe un `url::Origin` (la sobrecarga es de 625dedb4a0, posterior
+  a la rama). LOCAL-19 lo encontró al compilar (0030). Para cada función que una línea añadida llama, comparar su firma en la
+  156 y en el padre del commit.
