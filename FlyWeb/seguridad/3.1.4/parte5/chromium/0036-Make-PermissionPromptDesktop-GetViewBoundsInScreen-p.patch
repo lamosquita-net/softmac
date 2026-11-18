@@ -1,0 +1,170 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Antonio Sartori <antoniosartori@chromium.org>
+Date: Thu, 8 Oct 2026 05:06:09 -0700
+Subject: [PATCH 36/48] Make PermissionPromptDesktop::GetViewBoundsInScreen()
+ pure virtual
+
+PermissionPromptDesktop provided a default GetViewBoundsInScreen()
+that returned std::nullopt. ExclusiveAccessPermissionPrompt relied on
+it, so PermissionManager::GetExclusionAreaBoundsInScreen() did not
+report any bounds for the modal keyboard/pointer lock prompt.
+
+Remove the default implementation so that every subclass has to
+provide one:
+- ExclusiveAccessPermissionPrompt returns the web contents' container
+  bounds while the prompt is showing, like EmbeddedPermissionPrompt.
+- PermissionPromptQuietIcon explicitly returns std::nullopt, since it
+  only shows an icon in the location bar.
+
+Fixed: 536163128
+Change-Id: Ic749eebe75e7d48523d3e2c5d044cea5c7b58e80
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8538367
+Commit-Queue: Antonio Sartori <antoniosartori@chromium.org>
+Reviewed-by: Judith Hemp <hempjudith@google.com>
+Cr-Commit-Position: refs/heads/main@{#1714368}
+(cherry picked from commit 9d3a2a8f567c55a559ad0cab514d5a0c76e0c1fd)
+---
+ .../exclusive_access_permission_prompt.cc     | 10 +++++++++
+ .../exclusive_access_permission_prompt.h      |  1 +
+ ...ve_access_permission_prompt_browsertest.cc | 21 +++++++++++++++++++
+ .../permissions/permission_prompt_desktop.cc  |  5 -----
+ .../permissions/permission_prompt_desktop.h   |  2 +-
+ .../permission_prompt_quiet_icon.cc           |  7 +++++++
+ .../permission_prompt_quiet_icon.h            |  1 +
+ 7 files changed, 41 insertions(+), 6 deletions(-)
+
+diff --git a/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt.cc b/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt.cc
+index c7b8006adf..c85275986b 100644
+--- a/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt.cc
++++ b/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt.cc
+@@ -36,6 +36,16 @@ ExclusiveAccessPermissionPrompt::GetPromptDisposition() const {
+   return permissions::PermissionPromptDisposition::CUSTOM_MODAL_DIALOG;
+ }
+ 
++std::optional<gfx::Rect>
++ExclusiveAccessPermissionPrompt::GetViewBoundsInScreen() const {
++  if (prompt_view_tracker_.view()) {
++    // This is a modal prompt, the view bounds will cover the whole content
++    // view.
++    return web_contents()->GetContainerBounds();
++  }
++  return std::nullopt;
++}
++
+ void ExclusiveAccessPermissionPrompt::DismissScrim() {
+   delegate_->Dismiss(/*prompt_options=*/std::monostate());
+ }
+diff --git a/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt.h b/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt.h
+index af863bd319..e6f7944268 100644
+--- a/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt.h
++++ b/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt.h
+@@ -42,6 +42,7 @@ class ExclusiveAccessPermissionPrompt
+   // PermissionPromptDesktop:
+   permissions::PermissionPromptDisposition GetPromptDisposition()
+       const override;
++  std::optional<gfx::Rect> GetViewBoundsInScreen() const override;
+ 
+   // EmbeddedPermissionPromptContentScrimView::Delegate:
+   void DismissScrim() override;
+diff --git a/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_browsertest.cc b/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_browsertest.cc
+index b5153a79a3..84b1c4706c 100644
+--- a/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_browsertest.cc
++++ b/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_browsertest.cc
+@@ -5,6 +5,7 @@
+ #include "chrome/browser/ui/views/permissions/exclusive_access_permission_prompt.h"
+ 
+ #include <memory>
++#include <optional>
+ #include <variant>
+ #include <vector>
+ 
+@@ -22,6 +23,7 @@
+ #include "components/permissions/resolvers/content_setting_permission_resolver.h"
+ #include "content/public/browser/web_contents.h"
+ #include "content/public/test/browser_test.h"
++#include "ui/gfx/geometry/rect.h"
+ 
+ using testing::_;
+ 
+@@ -222,3 +224,22 @@ IN_PROC_BROWSER_TEST_F(ExclusiveAccessPermissionPromptInteractiveTest,
+                   _));
+   PressDenyButton(prompt.get());
+ }
++
++// The exclusive access prompt is modal and covers the whole web contents, so
++// it should report the web contents' bounds as its view bounds. These are used
++// e.g. by `PermissionManager::GetExclusionAreaBoundsInScreen()`.
++IN_PROC_BROWSER_TEST_F(ExclusiveAccessPermissionPromptInteractiveTest,
++                       GetViewBoundsInScreen) {
++  std::vector<std::unique_ptr<permissions::PermissionRequest>> requests;
++  requests.emplace_back(CreateKeyboardRequest());
++  std::unique_ptr<ExclusiveAccessPermissionPrompt> prompt =
++      CreatePrompt(std::move(requests));
++  ASSERT_TRUE(prompt->GetViewForTesting());
++
++  content::WebContents* web_contents =
++      browser()->GetTabStripModel()->GetActiveWebContents();
++  std::optional<gfx::Rect> bounds = prompt->GetViewBoundsInScreen();
++  ASSERT_TRUE(bounds.has_value());
++  EXPECT_FALSE(bounds->IsEmpty());
++  EXPECT_EQ(web_contents->GetContainerBounds(), *bounds);
++}
+diff --git a/chrome/browser/ui/views/permissions/permission_prompt_desktop.cc b/chrome/browser/ui/views/permissions/permission_prompt_desktop.cc
+index 289df4b2da..18cb9e809b 100644
+--- a/chrome/browser/ui/views/permissions/permission_prompt_desktop.cc
++++ b/chrome/browser/ui/views/permissions/permission_prompt_desktop.cc
+@@ -54,11 +54,6 @@ PermissionPromptDesktop::GetTabSwitchingBehavior() {
+       kDestroyPromptButKeepRequestPending;
+ }
+ 
+-std::optional<gfx::Rect> PermissionPromptDesktop::GetViewBoundsInScreen()
+-    const {
+-  return std::nullopt;
+-}
+-
+ views::Widget* PermissionPromptDesktop::GetPromptBubbleWidgetForTesting() {
+   return nullptr;
+ }
+diff --git a/chrome/browser/ui/views/permissions/permission_prompt_desktop.h b/chrome/browser/ui/views/permissions/permission_prompt_desktop.h
+index 91b77c3c4c..4713a7a981 100644
+--- a/chrome/browser/ui/views/permissions/permission_prompt_desktop.h
++++ b/chrome/browser/ui/views/permissions/permission_prompt_desktop.h
+@@ -37,7 +37,7 @@ class PermissionPromptDesktop : public permissions::PermissionPrompt {
+   permissions::PermissionPromptDisposition GetPromptDisposition()
+       const override = 0;
+   bool IsAskPrompt() const override;
+-  std::optional<gfx::Rect> GetViewBoundsInScreen() const override;
++  std::optional<gfx::Rect> GetViewBoundsInScreen() const override = 0;
+   std::vector<permissions::ElementAnchoredBubbleVariant> GetPromptVariants()
+       const override;
+   std::optional<permissions::feature_params::PermissionElementPromptPosition>
+diff --git a/chrome/browser/ui/views/permissions/permission_prompt_quiet_icon.cc b/chrome/browser/ui/views/permissions/permission_prompt_quiet_icon.cc
+index 0ed2552964..7ef739c053 100644
+--- a/chrome/browser/ui/views/permissions/permission_prompt_quiet_icon.cc
++++ b/chrome/browser/ui/views/permissions/permission_prompt_quiet_icon.cc
+@@ -28,3 +28,10 @@ PermissionPromptQuietIcon::GetPromptDisposition() const {
+              : permissions::PermissionPromptDisposition::
+                    LOCATION_BAR_RIGHT_ANIMATED_ICON;
+ }
++
++std::optional<gfx::Rect> PermissionPromptQuietIcon::GetViewBoundsInScreen()
++    const {
++  // The quiet prompt is only an icon in the location bar and does not own a
++  // view that overlays the web contents.
++  return std::nullopt;
++}
+diff --git a/chrome/browser/ui/views/permissions/permission_prompt_quiet_icon.h b/chrome/browser/ui/views/permissions/permission_prompt_quiet_icon.h
+index e2a8e49e9a..235ec8a644 100644
+--- a/chrome/browser/ui/views/permissions/permission_prompt_quiet_icon.h
++++ b/chrome/browser/ui/views/permissions/permission_prompt_quiet_icon.h
+@@ -23,6 +23,7 @@ class PermissionPromptQuietIcon : public PermissionPromptDesktop {
+   // permissions::PermissionPrompt:
+   permissions::PermissionPromptDisposition GetPromptDisposition()
+       const override;
++  std::optional<gfx::Rect> GetViewBoundsInScreen() const override;
+ };
+ 
+ #endif  // CHROME_BROWSER_UI_VIEWS_PERMISSIONS_PERMISSION_PROMPT_QUIET_ICON_H_
+-- 
+2.43.0
+

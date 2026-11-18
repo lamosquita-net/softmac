@@ -1,0 +1,79 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Leese <leese@chromium.org>
+Date: Thu, 1 Oct 2026 00:26:45 -0700
+Subject: [PATCH 1/5] [DevTools] Fix Local Overrides origin spoofing via CSS
+ sourceURL
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Fixes two issues that allowed a page to spoof local override paths in
+DevTools via a crafted /*# sourceURL=... */ comment in a <style> tag:
+
+1. StylesSourceMapping did not call NetworkProject.setSourceURLSynthesized
+   on UISourceCodes created from stylesheet headers with hasSourceURL,
+   allowing "Override content" to remain enabled in the context menu for
+   synthetic CSS sourceURLs.
+
+2. NetworkPersistenceManager.isForbiddenNetworkUrl returned false when
+   ParsedURL.fromString failed to parse an un-normalized URL (such as
+   "http://example.com /evil.css"), failing open instead of closed while
+   encodedPathFromUrl still extracted a host/path from the string.
+
+Also updates unit tests that passed schemeless URLs to
+encodedPathFromUrl, and updates OverridesHelpers.createWorkspaceProject
+to construct local file:/// override URLs directly from the file
+relative override path rather than passing schemeless/forbidden paths
+through fileUrlFromNetworkUrl.
+
+Bug: 562233597
+Change-Id: Icc115f33c5b2a3295a32c3b223940f26492d044b
+Reviewed-on: https://chromium-review.googlesource.com/c/devtools/devtools-frontend/+/8481965
+Reviewed-by: Simon Zünd <szuend@chromium.org>
+Commit-Queue: Eric Leese <leese@chromium.org>
+
+(cherry picked from commit 82b871b8ea9c48e2bc88ddee99830887821889a0; unit tests (*.test.ts) left out: not built into FlyWeb)
+---
+ front_end/models/bindings/StylesSourceMapping.ts          | 3 +++
+ front_end/models/persistence/NetworkPersistenceManager.ts | 7 ++++---
+ 2 files changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/front_end/models/bindings/StylesSourceMapping.ts b/front_end/models/bindings/StylesSourceMapping.ts
+index b377e8e..d4de7c5 100644
+--- a/front_end/models/bindings/StylesSourceMapping.ts
++++ b/front_end/models/bindings/StylesSourceMapping.ts
+@@ -176,6 +176,9 @@ export class StyleFile implements TextUtils.ContentProvider.ContentProvider {
+     this.uiSourceCode = this.#project.createUISourceCode(url, header.contentType());
+     uiSourceCodeToStyleMap.set(this.uiSourceCode, this);
+     NetworkProject.setInitialFrameAttribution(this.uiSourceCode, header.frameId);
++    if (header.hasSourceURL) {
++      NetworkProject.setSourceURLSynthesized(this.uiSourceCode);
++    }
+     this.#project.addUISourceCodeWithProvider(this.uiSourceCode, this, metadata, 'text/css');
+ 
+     this.#eventListeners = [
+diff --git a/front_end/models/persistence/NetworkPersistenceManager.ts b/front_end/models/persistence/NetworkPersistenceManager.ts
+index 1022dc3..7e4f1bc 100644
+--- a/front_end/models/persistence/NetworkPersistenceManager.ts
++++ b/front_end/models/persistence/NetworkPersistenceManager.ts
+@@ -579,13 +579,14 @@ export class NetworkPersistenceManager extends Common.ObjectWrapper.ObjectWrappe
+ 
+   static isForbiddenNetworkUrl(urlString: Platform.DevToolsPath.UrlString): boolean {
+     const trimmedUrl = urlString.trim().toLowerCase();
+-    if (trimmedUrl.startsWith('data:') || trimmedUrl.startsWith('blob:') || trimmedUrl.startsWith('javascript:') ||
+-        trimmedUrl.startsWith('about:') || trimmedUrl.startsWith('mailto:') || trimmedUrl.startsWith('vbscript:')) {
++    if (trimmedUrl.startsWith('chrome:') || trimmedUrl.startsWith('data:') || trimmedUrl.startsWith('blob:') ||
++        trimmedUrl.startsWith('javascript:') || trimmedUrl.startsWith('about:') || trimmedUrl.startsWith('mailto:') ||
++        trimmedUrl.startsWith('vbscript:')) {
+       return true;
+     }
+     const url = Common.ParsedURL.ParsedURL.fromString(urlString);
+     if (!url) {
+-      return false;
++      return true;
+     }
+     if ((url.scheme === 'http' || url.scheme === 'https') && (!url.host || url.host === '.' || url.host === '..')) {
+       return true;
+-- 
+2.43.0
+

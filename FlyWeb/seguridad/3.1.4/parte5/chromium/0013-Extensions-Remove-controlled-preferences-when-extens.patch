@@ -1,0 +1,453 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Anh Mac <anhmac@chromium.org>
+Date: Thu, 1 Oct 2026 15:46:28 -0700
+Subject: [PATCH 13/48] [Extensions] Remove controlled preferences when
+ extension is blocklisted
+
+Previously, ExtensionPrefValueMap gated extension-controlled preferences
+(such as proxy, privacy, etc.) solely on whether the extension had any
+disable reasons (!IsExtensionDisabled(id)). Because extensions
+blocklisted for malware (BLOCKLISTED_MALWARE) are unloaded without
+adding a disable reason, their controlled preferences remained active
+both in-session and across browser restarts.
+
+This change ensures extension-controlled (via ExtensionPrefValueMap)
+preferences are removed whenever an extension is blocklisted:
+- Make `ExtensionPrefValueMap` observe `ExtensionRegistry` and override
+  `OnExtensionLoaded()` and `OnExtensionUnloaded()`. When an extension
+  is blocklisted or unblocklisted at runtime, `ExtensionRegistrar`
+  triggers `ExtensionRegistry::TriggerOnUnloaded` / `TriggerOnLoaded`
+  to update `ExtensionPrefValueMap`.
+- Update `InitExtensionControlledPrefs`, `FinishExtensionInfoPrefs`,
+  and `OnDisableReasonsChanged`) to check
+  `!blocklist_prefs::IsExtensionBlocklisted(extension_id, this)` so
+  that extensions already blocklisted on startup are registered with
+  `is_enabled = false`, and clearing disable reasons on a blocklisted
+  extension does not re-enable its controlled preferences.
+- Add unit tests in preference_api_prefs_unittest.cc and a apitest
+  in proxy_apitest.cc verifying immediate preference removal on
+  blocklist, restoration on unblocklist, and persistence across
+  restarts.
+
+This CL does not handle non-ExtensionPrefValueMap-controlled preferences
+like contentSettings, which will be handled in a future CL.
+
+Bug: 507351304
+Change-Id: Id4fb9d40b463e713aa6cf090739d39c8da83153c
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8425426
+Reviewed-by: Devlin Cronin <rdevlin.cronin@chromium.org>
+Commit-Queue: Anh Mac <anhmac@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1709482}
+(cherry picked from commit 03f071e53856854399bf9b8beea76eeb582d3253)
+---
+ .../preference_api_prefs_unittest.cc          | 87 ++++++++++++++++++-
+ .../extensions/api/proxy/proxy_apitest.cc     | 21 +++++
+ .../browser/blocklist_check_unittest.cc       |  1 +
+ .../browser/extension_pref_value_map.cc       | 31 ++++++-
+ extensions/browser/extension_pref_value_map.h | 20 ++++-
+ .../extension_pref_value_map_factory.cc       |  6 +-
+ extensions/browser/extension_prefs.cc         | 14 ++-
+ extensions/browser/test_extension_prefs.cc    |  6 +-
+ 8 files changed, 177 insertions(+), 9 deletions(-)
+
+diff --git a/chrome/browser/extensions/api/preference/preference_api_prefs_unittest.cc b/chrome/browser/extensions/api/preference/preference_api_prefs_unittest.cc
+index 42fb4f8b24..fef6649dd7 100644
+--- a/chrome/browser/extensions/api/preference/preference_api_prefs_unittest.cc
++++ b/chrome/browser/extensions/api/preference/preference_api_prefs_unittest.cc
+@@ -16,8 +16,12 @@
+ #include "components/pref_registry/pref_registry_syncable.h"
+ #include "components/prefs/mock_pref_change_callback.h"
+ #include "extensions/browser/api/content_settings/content_settings_service.h"
++#include "extensions/browser/blocklist_extension_prefs.h"
++#include "extensions/browser/blocklist_state.h"
+ #include "extensions/browser/extension_prefs.h"
+ #include "extensions/browser/extension_prefs_helper.h"
++#include "extensions/browser/extension_registry.h"
++#include "extensions/browser/unloaded_extension_reason.h"
+ #include "extensions/buildflags/buildflags.h"
+ #include "extensions/common/api/types.h"
+ #include "extensions/common/extension.h"
+@@ -64,6 +68,8 @@ class ExtensionControlledPrefsTest : public PrefsPrepopulatedTestBase {
+       base::Value value);
+   void InstallExtension(Extension* extension);
+   void UninstallExtension(const ExtensionId& extension_id);
++  void BlocklistExtension(Extension* extension);
++  void UnblocklistExtension(Extension* extension);
+ 
+   scoped_refptr<ContentSettingsStore> content_settings_store() {
+     return content_settings_->content_settings_store();
+@@ -132,6 +138,22 @@ void ExtensionControlledPrefsTest::UninstallExtension(
+   EnsureExtensionUninstalled(extension_id);
+ }
+ 
++void ExtensionControlledPrefsTest::BlocklistExtension(Extension* extension) {
++  blocklist_prefs::SetSafeBrowsingExtensionBlocklistState(
++      extension->id(), BitMapBlocklistState::BLOCKLISTED_MALWARE, prefs());
++  auto* registry = ExtensionRegistry::Get(prefs_.browser_context());
++  registry->RemoveEnabled(extension->id());
++  registry->TriggerOnUnloaded(extension, UnloadedExtensionReason::BLOCKLIST);
++}
++
++void ExtensionControlledPrefsTest::UnblocklistExtension(Extension* extension) {
++  blocklist_prefs::SetSafeBrowsingExtensionBlocklistState(
++      extension->id(), BitMapBlocklistState::NOT_BLOCKLISTED, prefs());
++  auto* registry = ExtensionRegistry::Get(prefs_.browser_context());
++  registry->AddEnabled(extension);
++  registry->TriggerOnLoaded(extension);
++}
++
+ void ExtensionControlledPrefsTest::EnsureExtensionInstalled(
+     Extension* extension) {
+   // Install extension the first time a preference is set for it.
+@@ -398,7 +420,7 @@ class ControlledPrefsSetExtensionControlledPref
+   void Verify() override {}
+ };
+ TEST_F(ControlledPrefsSetExtensionControlledPref,
+-       ControlledPrefsSetExtensionControlledPref) { }
++       ControlledPrefsSetExtensionControlledPref) {}
+ 
+ // Tests that the switches::kDisableExtensions command-line flag prevents
+ // extension controlled preferences from being enacted.
+@@ -439,6 +461,67 @@ class ControlledPrefsDisableExtensions : public ExtensionControlledPrefsTest {
+  private:
+   int iteration_ = 0;
+ };
+-TEST_F(ControlledPrefsDisableExtensions, ControlledPrefsDisableExtensions) { }
++TEST_F(ControlledPrefsDisableExtensions, ControlledPrefsDisableExtensions) {}
++
++// Tests that blocklisting an extension removes its controlled preferences.
++class ControlledPrefsBlocklistExtension : public ExtensionControlledPrefsTest {
++  void Initialize() override {
++    InstallExtensionControlledPref(extension1(), kPref1, base::Value("val1"));
++    EXPECT_EQ("val1", prefs()->pref_service()->GetString(kPref1));
++    BlocklistExtension(extension1());
++    // Verify that the preference is removed at runtime.
++    EXPECT_EQ(kDefaultPref1, prefs()->pref_service()->GetString(kPref1));
++  }
++  void Verify() override {
++    // Verify that the preference is still removed after a reload.
++    EXPECT_EQ(kDefaultPref1, prefs()->pref_service()->GetString(kPref1));
++  }
++};
++TEST_F(ControlledPrefsBlocklistExtension, ControlledPrefsBlocklistExtension) {}
++
++// Tests blocklisting and unblocklisting an extension restores its controlled
++// preference.
++class ControlledPrefsUnblocklistExtension
++    : public ExtensionControlledPrefsTest {
++  void Initialize() override {
++    InstallExtensionControlledPref(extension1(), kPref1, base::Value("val1"));
++    // Blocklist the extension, verify pref is removed, then unblock it.
++    BlocklistExtension(extension1());
++    EXPECT_EQ(kDefaultPref1, prefs()->pref_service()->GetString(kPref1));
++
++    UnblocklistExtension(extension1());
++    // Verify that the preference is restored at runtime.
++    EXPECT_EQ("val1", prefs()->pref_service()->GetString(kPref1));
++  }
++  void Verify() override {
++    // Verify that the preference is restored after a reload.
++    EXPECT_EQ("val1", prefs()->pref_service()->GetString(kPref1));
++  }
++};
++TEST_F(ControlledPrefsUnblocklistExtension,
++       ControlledPrefsUnblocklistExtension) {}
++
++// Tests that clearing disable reasons does not re-apply controlled prefs from
++// a blocklisted extension.
++class ControlledPrefsClearDisableReasonOnBlocklistedExtension
++    : public ExtensionControlledPrefsTest {
++  void Initialize() override {
++    InstallExtensionControlledPref(extension1(), kPref1, base::Value("val1"));
++    prefs()->AddDisableReason(extension1()->id(),
++                              disable_reason::DISABLE_USER_ACTION);
++    BlocklistExtension(extension1());
++    EXPECT_EQ(kDefaultPref1, prefs()->pref_service()->GetString(kPref1));
++
++    prefs()->ClearDisableReasons(extension1()->id());
++    // Verify that the preference is not reapplied at runtime.
++    EXPECT_EQ(kDefaultPref1, prefs()->pref_service()->GetString(kPref1));
++  }
++  void Verify() override {
++    // Verify that the preference is not reapplied after a reload.
++    EXPECT_EQ(kDefaultPref1, prefs()->pref_service()->GetString(kPref1));
++  }
++};
++TEST_F(ControlledPrefsClearDisableReasonOnBlocklistedExtension,
++       ControlledPrefsClearDisableReasonOnBlocklistedExtension) {}
+ 
+ }  // namespace extensions
+diff --git a/chrome/browser/extensions/api/proxy/proxy_apitest.cc b/chrome/browser/extensions/api/proxy/proxy_apitest.cc
+index 958c720af2..58915cb971 100644
+--- a/chrome/browser/extensions/api/proxy/proxy_apitest.cc
++++ b/chrome/browser/extensions/api/proxy/proxy_apitest.cc
+@@ -12,6 +12,7 @@
+ #include "components/proxy_config/proxy_config_dictionary.h"
+ #include "components/proxy_config/proxy_config_pref_names.h"
+ #include "content/public/test/browser_test.h"
++#include "extensions/browser/extension_registrar.h"
+ #include "extensions/browser/extension_system.h"
+ #include "extensions/browser/test_management_policy.h"
+ #include "extensions/buildflags/buildflags.h"
+@@ -203,6 +204,26 @@ IN_PROC_BROWSER_TEST_F(ProxySettingsApiTest, SettingsRemovedOnPolicyBlocklist) {
+                    pref_service);
+ }
+ 
++// Tests that proxy settings controlled by an extension are removed when
++// the extension is blocklisted.
++IN_PROC_BROWSER_TEST_F(ProxySettingsApiTest, SettingsRemovedOnBlocklist) {
++  ASSERT_TRUE(
++      RunExtensionTest("proxy/direct", {}, {.allow_in_incognito = true}))
++      << message_;
++  const Extension* extension = GetSingleLoadedExtension();
++  ASSERT_TRUE(extension);
++
++  PrefService* pref_service = profile()->GetPrefs();
++  ValidateSettings(ProxyPrefs::MODE_DIRECT, kNoServer, kNoBypass, kNoPac,
++                   pref_service);
++
++  // Blocklist the extension.
++  extension_registrar()->BlocklistExtensionForTest(extension->id());
++
++  // Proxy settings should be removed while the extension is blocklisted.
++  ExpectNoSettings(pref_service);
++}
++
+ // Tests auto-detect settings.
+ IN_PROC_BROWSER_TEST_F(ProxySettingsApiTest, ProxyAutoSettings) {
+   ASSERT_TRUE(RunExtensionTest("proxy/auto", {}, {.allow_in_incognito = true}))
+diff --git a/extensions/browser/blocklist_check_unittest.cc b/extensions/browser/blocklist_check_unittest.cc
+index 50a2a5089d..41804a5c07 100644
+--- a/extensions/browser/blocklist_check_unittest.cc
++++ b/extensions/browser/blocklist_check_unittest.cc
+@@ -44,6 +44,7 @@ class BlocklistCheckTest : public testing::Test {
+     blocklist_.reset();
+     BrowserContextDependencyManager::GetInstance()
+         ->DestroyBrowserContextServices(test_prefs_.browser_context());
++    ExtensionsBrowserClient::Set(nullptr);
+ 
+     testing::Test::TearDown();
+   }
+diff --git a/extensions/browser/extension_pref_value_map.cc b/extensions/browser/extension_pref_value_map.cc
+index 86895e8ac3..5df9521398 100644
+--- a/extensions/browser/extension_pref_value_map.cc
++++ b/extensions/browser/extension_pref_value_map.cc
+@@ -16,6 +16,7 @@
+ #include "base/values.h"
+ #include "components/prefs/pref_value_map.h"
+ #include "extensions/common/api/types.h"
++#include "extensions/common/extension.h"
+ #include "extensions/common/extension_id.h"
+ 
+ struct ExtensionPrefValueMap::ExtensionEntry {
+@@ -38,9 +39,18 @@ struct ExtensionPrefValueMap::ExtensionEntry {
+   PrefValueMap incognito_profile_preferences_session_only;
+ };
+ 
+-ExtensionPrefValueMap::ExtensionPrefValueMap() : destroyed_(false) {
++ExtensionPrefValueMap::ExtensionPrefValueMap(
++    extensions::ExtensionRegistry* registry)
++    : destroyed_(false) {
++  // The registry can be null in unit tests.
++  if (registry) {
++    registry_observation_.Observe(registry);
++  }
+ }
+ 
++ExtensionPrefValueMap::ExtensionPrefValueMap()
++    : ExtensionPrefValueMap(nullptr) {}
++
+ ExtensionPrefValueMap::~ExtensionPrefValueMap() {
+   if (!destroyed_) {
+     NotifyOfDestruction();
+@@ -49,10 +59,29 @@ ExtensionPrefValueMap::~ExtensionPrefValueMap() {
+ }
+ 
+ void ExtensionPrefValueMap::Shutdown() {
++  registry_observation_.Reset();
+   NotifyOfDestruction();
+   destroyed_ = true;
+ }
+ 
++void ExtensionPrefValueMap::OnExtensionLoaded(
++    content::BrowserContext* browser_context,
++    const extensions::Extension* extension) {
++  SetExtensionState(extension->id(), true);
++}
++
++void ExtensionPrefValueMap::OnExtensionUnloaded(
++    content::BrowserContext* browser_context,
++    const extensions::Extension* extension,
++    extensions::UnloadedExtensionReason reason) {
++  SetExtensionState(extension->id(), false);
++}
++
++void ExtensionPrefValueMap::OnShutdown(
++    extensions::ExtensionRegistry* registry) {
++  registry_observation_.Reset();
++}
++
+ void ExtensionPrefValueMap::SetExtensionPref(const std::string& ext_id,
+                                              const std::string& key,
+                                              ChromeSettingScope scope,
+diff --git a/extensions/browser/extension_pref_value_map.h b/extensions/browser/extension_pref_value_map.h
+index bf3671ae31..9a41aed139 100644
+--- a/extensions/browser/extension_pref_value_map.h
++++ b/extensions/browser/extension_pref_value_map.h
+@@ -12,7 +12,10 @@
+ 
+ #include "base/observer_list.h"
+ #include "base/observer_list_types.h"
++#include "base/scoped_observation.h"
+ #include "components/keyed_service/core/keyed_service.h"
++#include "extensions/browser/extension_registry.h"
++#include "extensions/browser/extension_registry_observer.h"
+ #include "extensions/common/api/types.h"
+ #include "extensions/common/extension_id.h"
+ 
+@@ -60,7 +63,8 @@ class Value;
+ // .reg_only = regular-only value
+ // .inc = incognito value
+ // Extension B has higher precedence than A.
+-class ExtensionPrefValueMap : public KeyedService {
++class ExtensionPrefValueMap : public KeyedService,
++                              public extensions::ExtensionRegistryObserver {
+  public:
+   using ChromeSettingScope = extensions::api::types::ChromeSettingScope;
+ 
+@@ -81,6 +85,7 @@ class ExtensionPrefValueMap : public KeyedService {
+     ~Observer() override = default;
+   };
+ 
++  explicit ExtensionPrefValueMap(extensions::ExtensionRegistry* registry);
+   ExtensionPrefValueMap();
+ 
+   ExtensionPrefValueMap(const ExtensionPrefValueMap&) = delete;
+@@ -91,6 +96,15 @@ class ExtensionPrefValueMap : public KeyedService {
+   // KeyedService implementation.
+   void Shutdown() override;
+ 
++  // extensions::ExtensionRegistryObserver implementation.
++  void OnExtensionLoaded(content::BrowserContext* browser_context,
++                         const extensions::Extension* extension) override;
++  void OnExtensionUnloaded(
++      content::BrowserContext* browser_context,
++      const extensions::Extension* extension,
++      extensions::UnloadedExtensionReason reason) override;
++  void OnShutdown(extensions::ExtensionRegistry* registry) override;
++
+   // Set an extension preference `value` for `key` of extension `ext_id`.
+   // Note that regular extension pref values need to be reported to
+   // incognito and to regular ExtensionPrefStores.
+@@ -224,6 +238,10 @@ class ExtensionPrefValueMap : public KeyedService {
+   bool destroyed_;
+ 
+   base::ObserverList<Observer, true> observers_;
++
++  base::ScopedObservation<extensions::ExtensionRegistry,
++                          extensions::ExtensionRegistryObserver>
++      registry_observation_{this};
+ };
+ 
+ #endif  // EXTENSIONS_BROWSER_EXTENSION_PREF_VALUE_MAP_H_
+diff --git a/extensions/browser/extension_pref_value_map_factory.cc b/extensions/browser/extension_pref_value_map_factory.cc
+index 1f1de1e8e5..181be8e72d 100644
+--- a/extensions/browser/extension_pref_value_map_factory.cc
++++ b/extensions/browser/extension_pref_value_map_factory.cc
+@@ -6,12 +6,15 @@
+ 
+ #include "components/keyed_service/content/browser_context_dependency_manager.h"
+ #include "extensions/browser/extension_pref_value_map.h"
++#include "extensions/browser/extension_registry.h"
++#include "extensions/browser/extension_registry_factory.h"
+ #include "extensions/browser/extensions_browser_client.h"
+ 
+ ExtensionPrefValueMapFactory::ExtensionPrefValueMapFactory()
+     : BrowserContextKeyedServiceFactory(
+         "ExtensionPrefValueMap",
+         BrowserContextDependencyManager::GetInstance()) {
++  DependsOn(extensions::ExtensionRegistryFactory::GetInstance());
+ }
+ 
+ ExtensionPrefValueMapFactory::~ExtensionPrefValueMapFactory() = default;
+@@ -32,7 +35,8 @@ ExtensionPrefValueMapFactory* ExtensionPrefValueMapFactory::GetInstance() {
+ std::unique_ptr<KeyedService>
+ ExtensionPrefValueMapFactory::BuildServiceInstanceForBrowserContext(
+     content::BrowserContext* context) const {
+-  return std::make_unique<ExtensionPrefValueMap>();
++  return std::make_unique<ExtensionPrefValueMap>(
++      extensions::ExtensionRegistry::Get(context));
+ }
+ 
+ content::BrowserContext* ExtensionPrefValueMapFactory::GetBrowserContextToUse(
+diff --git a/extensions/browser/extension_prefs.cc b/extensions/browser/extension_prefs.cc
+index f1760c5b03..3d2750be64 100644
+--- a/extensions/browser/extension_prefs.cc
++++ b/extensions/browser/extension_prefs.cc
+@@ -2012,6 +2012,11 @@ void ExtensionPrefs::OnDisableReasonsChanged(
+         extension_id, CollapseUnknownDisableReasons(new_reasons));
+   }
+ 
++  if (blocklist_prefs::IsExtensionBlocklisted(extension_id, this)) {
++    // If the extension is blocklisted, return early since we should not change
++    // the enabled state based on the disable reasons.
++    return;
++  }
+   const bool new_enabled = new_reasons.empty();
+   const bool old_enabled = old_reasons.empty();
+ 
+@@ -2424,7 +2429,9 @@ void ExtensionPrefs::InitExtensionControlledPrefs(
+     const ExtensionId& extension_id = info.extension_id;
+ 
+     base::Time install_time = GetLastUpdateTime(this, extension_id);
+-    bool is_enabled = !IsExtensionDisabled(extension_id);
++    bool is_enabled =
++        !IsExtensionDisabled(extension_id) &&
++        !blocklist_prefs::IsExtensionBlocklisted(extension_id, this);
+     bool is_incognito_enabled = IsIncognitoEnabled(extension_id);
+     extension_pref_value_map_->RegisterExtension(
+         extension_id, install_time, is_enabled, is_incognito_enabled);
+@@ -2522,12 +2529,13 @@ void ExtensionPrefs::FinishExtensionInfoPrefs(
+     app_sorting()->EnsureValidOrdinals(extension_id, suggested_page_ordinal);
+   }
+ 
+-  bool is_enabled = true;
++  bool is_enabled =
++      !blocklist_prefs::IsExtensionBlocklisted(extension_id, this);
+   base::ListValue* disable_reasons = nullptr;
+   extension_dict->GetListWithoutPathExpansion(kPrefDisableReasons,
+                                               &disable_reasons);
+   if (disable_reasons) {
+-    is_enabled = disable_reasons->empty();
++    is_enabled = is_enabled && disable_reasons->empty();
+   }
+ 
+   bool is_incognito_enabled = IsIncognitoEnabled(extension_id);
+diff --git a/extensions/browser/test_extension_prefs.cc b/extensions/browser/test_extension_prefs.cc
+index d5334419a7..0619aa0b15 100644
+--- a/extensions/browser/test_extension_prefs.cc
++++ b/extensions/browser/test_extension_prefs.cc
+@@ -31,7 +31,9 @@
+ #include "extensions/browser/extension_pref_value_map.h"
+ #include "extensions/browser/extension_prefs.h"
+ #include "extensions/browser/extension_prefs_factory.h"
++#include "extensions/browser/extension_registry.h"
+ #include "extensions/browser/extension_system.h"
++#include "extensions/browser/extensions_browser_client.h"
+ #include "extensions/browser/permissions_manager.h"
+ #include "extensions/buildflags/buildflags.h"
+ #include "extensions/common/extension.h"
+@@ -126,7 +128,9 @@ void TestExtensionPrefs::RecreateExtensionPrefs() {
+     run_loop.Run();
+   }
+ 
+-  extension_pref_value_map_ = std::make_unique<ExtensionPrefValueMap>();
++  extension_pref_value_map_ = std::make_unique<ExtensionPrefValueMap>(
++      ExtensionsBrowserClient::Get() ? ExtensionRegistry::Get(browser_context())
++                                     : nullptr);
+   sync_preferences::PrefServiceMockFactory factory;
+   factory.SetUserPrefsFile(preferences_file_, task_runner_.get());
+   factory.set_extension_prefs(
+-- 
+2.43.0
+

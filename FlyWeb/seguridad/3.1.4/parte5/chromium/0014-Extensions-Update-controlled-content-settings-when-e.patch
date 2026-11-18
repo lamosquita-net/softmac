@@ -1,0 +1,207 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Anh Mac <anhmac@chromium.org>
+Date: Thu, 1 Oct 2026 15:47:54 -0700
+Subject: [PATCH 14/48] [Extensions] Update controlled content settings when
+ extension state change
+
+Previously, ContentSettingsService only updated extension-controlled
+content settings in ContentSettingsStore via
+ExtensionPrefsObserver::OnExtensionStateChanged(), which is triggered
+solely by changes to extension disable reasons [1]. Because extensions
+blocklisted for malware (BLOCKLISTED_MALWARE) are unloaded without
+adding a disable reason, their controlled content settings remained
+active when blocklisted at runtime.
+
+This change ensures extension-controlled content settings are removed
+when an extension is loaded/unloaded for any reason (blocklisted,
+disabled, etc.):
+- Make `ContentSettingsService` observe `ExtensionRegistry` and override
+  `OnExtensionLoaded()` and `OnExtensionUnloaded()` to update the
+  extension's state in `ContentSettingsStore`. When an extension's active
+  state changes at runtime, `ExtensionRegistrar` triggers
+  `ExtensionRegistry::TriggerOnUnloaded` / `TriggerOnLoaded`, updating
+  `ContentSettingsStore` accordingly.
+- Add a browser test in `content_settings_apitest.cc`
+  (`ExtensionContentSettingsApiTest.SettingsRemovedOnBlocklist`)
+  verifying that extension-controlled content settings are reset to
+  default when the extension is blocklisted.
+
+[1]
+https://source.corp.google.com/h/chromium/chromium/src/+/main:extensions/browser/extension_prefs.cc;l=2027;drc=7a77a41779ef2069a6eba534616eb61be0939d6b
+
+Fixed: 507351304
+Change-Id: If4b32300e30958f074c63758fac0835182db556b
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8479531
+Commit-Queue: Anh Mac <anhmac@chromium.org>
+Reviewed-by: Devlin Cronin <rdevlin.cronin@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1709484}
+(cherry picked from commit 1d223691920ff8c8dad833e84a6adcbc988c02a7)
+---
+ .../content_settings_apitest.cc               | 20 +++++++++++
+ .../content_settings_service.cc               | 33 ++++++++++++++++---
+ .../content_settings_service.h                | 15 ++++++++-
+ 3 files changed, 62 insertions(+), 6 deletions(-)
+
+diff --git a/chrome/browser/extensions/api/content_settings/content_settings_apitest.cc b/chrome/browser/extensions/api/content_settings/content_settings_apitest.cc
+index 03a77b7c09..4f0c5d81d9 100644
+--- a/chrome/browser/extensions/api/content_settings/content_settings_apitest.cc
++++ b/chrome/browser/extensions/api/content_settings/content_settings_apitest.cc
+@@ -38,6 +38,7 @@
+ #include "content/public/test/browser_test_utils.h"
+ #include "content/public/test/test_utils.h"
+ #include "extensions/browser/extension_host.h"
++#include "extensions/browser/extension_registrar.h"
+ #include "extensions/browser/extension_registry.h"
+ #include "extensions/browser/process_manager.h"
+ #include "extensions/browser/test_extension_registry_observer.h"
+@@ -336,6 +337,25 @@ IN_PROC_BROWSER_TEST_P(ExtensionContentSettingsApiTestWithClipboard, Standard) {
+   CheckContentSettingsDefault();
+ }
+ 
++// Tests that content settings controlled by an extension are removed when
++// the extension is blocklisted.
++IN_PROC_BROWSER_TEST_F(ExtensionContentSettingsApiTest,
++                       SettingsRemovedOnBlocklist) {
++  CheckContentSettingsDefault();
++
++  static constexpr char kExtensionPath[] = "content_settings/standard";
++  ASSERT_TRUE(RunExtensionTest(kExtensionPath, {.extension_url = "test.html"}))
++      << message_;
++  CheckContentSettingsSet();
++
++  // Blocklist the extension.
++  extension_registrar()->BlocklistExtensionForTest(last_loaded_extension_id());
++
++  // Content settings should be reset to default while the extension is
++  // blocklisted.
++  CheckContentSettingsDefault();
++}
++
+ IN_PROC_BROWSER_TEST_F(ExtensionContentSettingsApiTest,
+                        UnsupportedDefaultSettings) {
+   const char kExtensionPath[] = "content_settings/unsupporteddefaultsettings";
+diff --git a/extensions/browser/api/content_settings/content_settings_service.cc b/extensions/browser/api/content_settings/content_settings_service.cc
+index c26bbe5f5d..51bbdc888b 100644
+--- a/extensions/browser/api/content_settings/content_settings_service.cc
++++ b/extensions/browser/api/content_settings/content_settings_service.cc
+@@ -8,6 +8,7 @@
+ #include "base/memory/scoped_refptr.h"
+ #include "extensions/browser/pref_names.h"
+ #include "extensions/common/api/types.h"
++#include "extensions/common/extension.h"
+ #include "extensions/common/extension_id.h"
+ 
+ using extensions::api::types::ChromeSettingScope;
+@@ -15,7 +16,9 @@ using extensions::api::types::ChromeSettingScope;
+ namespace extensions {
+ 
+ ContentSettingsService::ContentSettingsService(content::BrowserContext* context)
+-    : content_settings_store_(base::MakeRefCounted<ContentSettingsStore>()) {}
++    : content_settings_store_(base::MakeRefCounted<ContentSettingsStore>()) {
++  extension_registry_observation_.Observe(ExtensionRegistry::Get(context));
++}
+ 
+ ContentSettingsService::~ContentSettingsService() = default;
+ 
+@@ -34,6 +37,24 @@ ContentSettingsService::GetFactoryInstance() {
+   return factory.Pointer();
+ }
+ 
++// ExtensionRegistry::Observer implementation.
++void ContentSettingsService::OnExtensionLoaded(
++    content::BrowserContext* browser_context,
++    const Extension* extension) {
++  content_settings_store_->SetExtensionState(extension->id(), true);
++}
++
++void ContentSettingsService::OnExtensionUnloaded(
++    content::BrowserContext* browser_context,
++    const Extension* extension,
++    UnloadedExtensionReason reason) {
++  content_settings_store_->SetExtensionState(extension->id(), false);
++}
++
++void ContentSettingsService::OnShutdown(ExtensionRegistry* registry) {
++  extension_registry_observation_.Reset();
++}
++
+ void ContentSettingsService::OnExtensionRegistered(
+     const ExtensionId& extension_id,
+     const base::Time& install_time,
+@@ -64,7 +85,9 @@ void ContentSettingsService::OnExtensionPrefsDeleted(
+     const ExtensionId& extension_id) {
+   content_settings_store_->UnregisterExtension(extension_id);
+ }
+-
++// TODO(crbug/507351304): This method could possibly be removed in favor of
++// OnExtensionLoaded / OnExtensionUnloaded for more targeted updates on
++// extension state change.
+ void ContentSettingsService::OnExtensionStateChanged(
+     const ExtensionId& extension_id,
+     bool state) {
+@@ -73,12 +96,12 @@ void ContentSettingsService::OnExtensionStateChanged(
+ 
+ void ContentSettingsService::OnExtensionPrefsWillBeDestroyed(
+     ExtensionPrefs* prefs) {
+-  DCHECK(scoped_observation_.IsObservingSource(prefs));
+-  scoped_observation_.Reset();
++  DCHECK(extension_prefs_observation_.IsObservingSource(prefs));
++  extension_prefs_observation_.Reset();
+ }
+ 
+ void ContentSettingsService::OnExtensionPrefsAvailable(ExtensionPrefs* prefs) {
+-  scoped_observation_.Observe(prefs);
++  extension_prefs_observation_.Observe(prefs);
+ }
+ 
+ }  // namespace extensions
+diff --git a/extensions/browser/api/content_settings/content_settings_service.h b/extensions/browser/api/content_settings/content_settings_service.h
+index d23f508382..5e09a12844 100644
+--- a/extensions/browser/api/content_settings/content_settings_service.h
++++ b/extensions/browser/api/content_settings/content_settings_service.h
+@@ -11,6 +11,8 @@
+ #include "extensions/browser/browser_context_keyed_api_factory.h"
+ #include "extensions/browser/extension_prefs.h"
+ #include "extensions/browser/extension_prefs_observer.h"
++#include "extensions/browser/extension_registry.h"
++#include "extensions/browser/extension_registry_observer.h"
+ #include "extensions/buildflags/buildflags.h"
+ #include "extensions/common/extension_id.h"
+ 
+@@ -23,6 +25,7 @@ class ContentSettingsStore;
+ // This service hosts a single ContentSettingsStore for the
+ // chrome.contentSettings API.
+ class ContentSettingsService : public BrowserContextKeyedAPI,
++                               public ExtensionRegistryObserver,
+                                public ExtensionPrefsObserver,
+                                public EarlyExtensionPrefsObserver {
+  public:
+@@ -44,6 +47,14 @@ class ContentSettingsService : public BrowserContextKeyedAPI,
+   static BrowserContextKeyedAPIFactory<ContentSettingsService>*
+       GetFactoryInstance();
+ 
++  // ExtensionRegistryObserver implementation.
++  void OnExtensionLoaded(content::BrowserContext* browser_context,
++                         const Extension* extension) override;
++  void OnExtensionUnloaded(content::BrowserContext* browser_context,
++                           const Extension* extension,
++                           UnloadedExtensionReason reason) override;
++  void OnShutdown(ExtensionRegistry* registry) override;
++
+   // ExtensionPrefsObserver implementation.
+   void OnExtensionRegistered(const ExtensionId& extension_id,
+                              const base::Time& install_time,
+@@ -67,7 +78,9 @@ class ContentSettingsService : public BrowserContextKeyedAPI,
+ 
+   scoped_refptr<ContentSettingsStore> content_settings_store_;
+   base::ScopedObservation<ExtensionPrefs, ExtensionPrefsObserver>
+-      scoped_observation_{this};
++      extension_prefs_observation_{this};
++  base::ScopedObservation<ExtensionRegistry, ExtensionRegistryObserver>
++      extension_registry_observation_{this};
+ };
+ 
+ }  // namespace extensions
+-- 
+2.43.0
+

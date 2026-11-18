@@ -1,0 +1,194 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Yann Dago <ydago@chromium.org>
+Date: Thu, 1 Oct 2026 10:50:08 -0700
+Subject: [PATCH 10/48] [net][policy] Add AllHttpAuthSchemesAllowedForProxies
+ policy
+
+Adds the AllHttpAuthSchemesAllowedForProxies enterprise policy, allowing
+administrators to explicitly configure proxy servers that may use all
+HTTP authentication schemes regardless of AuthSchemes.
+
+This CL:
+- Defines and registers the AllHttpAuthSchemesAllowedForProxies policy
+  and auth.http_auth_allowed_for_proxies pref.
+- Binds patterns_allowed_to_use_all_schemes_for_proxies to the new
+  policy when set in SystemNetworkContextManager, falling back to
+  AllHttpAuthSchemesAllowedForOrigins when under M161.
+- Adds policy pref mapping tests.
+
+Bug: 533454968
+Change-Id: I4eb7c4287ad7af8afa565bfc0e9e26ef471e2ea4
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8456427
+Reviewed-by: Sebastien Lalancette <seblalancette@chromium.org>
+Reviewed-by: mmenke <mmenke@chromium.org>
+Commit-Queue: Yann Dago <ydago@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1709200}
+(cherry picked from commit 411664f61d9c5fa46b21919432e9e362deea437a)
+---
+ .../net/system_network_context_manager.cc     | 11 ++++++-
+ ...nfiguration_policy_handler_list_factory.cc |  3 ++
+ chrome/common/pref_names.h                    |  2 ++
+ .../policy/resources/templates/policies.yaml  |  2 ++
+ .../AllHttpAuthSchemesAllowedForProxies.yaml  | 30 +++++++++++++++++++
+ .../AllHttpAuthSchemesAllowedForProxies.json  | 23 ++++++++++++++
+ .../histograms/metadata/enterprise/enums.xml  |  1 +
+ 7 files changed, 71 insertions(+), 1 deletion(-)
+ create mode 100644 components/policy/resources/templates/policy_definitions/HTTPAuthentication/AllHttpAuthSchemesAllowedForProxies.yaml
+ create mode 100644 components/policy/test/data/pref_mapping/AllHttpAuthSchemesAllowedForProxies.json
+
+diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
+index cda9aa4f3a..5137f4386d 100644
+--- a/chrome/browser/net/system_network_context_manager.cc
++++ b/chrome/browser/net/system_network_context_manager.cc
+@@ -185,7 +185,13 @@ network::mojom::HttpAuthDynamicParamsPtr CreateHttpAuthDynamicParams(
+     auth_dynamic_params->patterns_allowed_to_use_all_schemes.push_back(
+         item.GetString());
+   }
+-  if (CHROME_VERSION_MAJOR < 161) {
++  if (local_state->HasPrefPath(prefs::kAllHttpAuthSchemesAllowedForProxies)) {
++    for (const base::Value& item :
++         local_state->GetList(prefs::kAllHttpAuthSchemesAllowedForProxies)) {
++      auth_dynamic_params->patterns_allowed_to_use_all_schemes_for_proxies
++          .push_back(item.GetString());
++    }
++  } else if (CHROME_VERSION_MAJOR < 161) {
+     auth_dynamic_params->patterns_allowed_to_use_all_schemes_for_proxies =
+         auth_dynamic_params->patterns_allowed_to_use_all_schemes;
+   }
+@@ -654,6 +660,8 @@ SystemNetworkContextManager::SystemNetworkContextManager(
+                              auth_pref_callback);
+   pref_change_registrar_.Add(prefs::kAllHttpAuthSchemesAllowedForOrigins,
+                              auth_pref_callback);
++  pref_change_registrar_.Add(prefs::kAllHttpAuthSchemesAllowedForProxies,
++                             auth_pref_callback);
+ 
+ #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_CHROMEOS)
+   pref_change_registrar_.Add(prefs::kAuthNegotiateDelegateByKdcPolicy,
+@@ -734,6 +742,7 @@ void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
+ 
+   // Dynamic auth params.
+   registry->RegisterListPref(prefs::kAllHttpAuthSchemesAllowedForOrigins);
++  registry->RegisterListPref(prefs::kAllHttpAuthSchemesAllowedForProxies);
+   registry->RegisterBooleanPref(prefs::kDisableAuthNegotiateCnameLookup, false);
+   registry->RegisterBooleanPref(prefs::kEnableAuthNegotiatePort, false);
+   registry->RegisterBooleanPref(prefs::kBasicAuthOverHttpEnabled, true);
+diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
+index e1258a0cf0..5d91623762 100644
+--- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
++++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
+@@ -3547,6 +3547,9 @@ std::unique_ptr<ConfigurationPolicyHandlerList> BuildHandlerList(
+   handlers->AddHandler(std::make_unique<URLSchemeListPolicyHandler>(
+       key::kAllHttpAuthSchemesAllowedForOrigins,
+       prefs::kAllHttpAuthSchemesAllowedForOrigins));
++  handlers->AddHandler(std::make_unique<URLSchemeListPolicyHandler>(
++      key::kAllHttpAuthSchemesAllowedForProxies,
++      prefs::kAllHttpAuthSchemesAllowedForProxies));
+ 
+   handlers->AddHandler(std::make_unique<PrivacySandboxPolicyHandler>());
+ 
+diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
+index dd94399247..735a4b65ab 100644
+--- a/chrome/common/pref_names.h
++++ b/chrome/common/pref_names.h
+@@ -2016,6 +2016,8 @@ inline constexpr char kAuthSchemes[] = "auth.schemes";
+ // from "auth.schemes".
+ inline constexpr char kAllHttpAuthSchemesAllowedForOrigins[] =
+     "auth.http_auth_allowed_for_origins";
++inline constexpr char kAllHttpAuthSchemesAllowedForProxies[] =
++    "auth.http_auth_allowed_for_proxies";
+ 
+ // Boolean that specifies whether to disable CNAME lookups when generating
+ // Kerberos SPN.
+diff --git a/components/policy/resources/templates/policies.yaml b/components/policy/resources/templates/policies.yaml
+index 26e7301627..8eea011674 100644
+--- a/components/policy/resources/templates/policies.yaml
++++ b/components/policy/resources/templates/policies.yaml
+@@ -1488,6 +1488,8 @@ policies:
+   1487: DeviceMaxUserProfiles
+   1488: ""
+   1489: LaunchOnStartupEnabled
++  1490: ""
++  1491: AllHttpAuthSchemesAllowedForProxies
+ 
+ atomic_groups:
+   1: Homepage
+diff --git a/components/policy/resources/templates/policy_definitions/HTTPAuthentication/AllHttpAuthSchemesAllowedForProxies.yaml b/components/policy/resources/templates/policy_definitions/HTTPAuthentication/AllHttpAuthSchemesAllowedForProxies.yaml
+new file mode 100644
+index 0000000000..267e3515c9
+--- /dev/null
++++ b/components/policy/resources/templates/policy_definitions/HTTPAuthentication/AllHttpAuthSchemesAllowedForProxies.yaml
+@@ -0,0 +1,30 @@
++caption: List of proxy servers allowing all HTTP authentication schemes
++desc: |-
++  Setting the policy specifies for which proxy servers to allow all the HTTP authentication schemes <ph name="PRODUCT_NAME">$1<ex>Google Chrome</ex></ph> supports, regardless of the <ph name="AUTH_SCHEMES_POLICY_NAME">AuthSchemes</ph> policy.
++
++  Format the proxy server pattern according to the URL blocklist filter format (<ph name="URL_SCHEME_FORMAT_LINK">https://support.google.com/chrome/a?p=url_blocklist_filter_format</ph>). Up to 1,000 exceptions can be defined.
++  Wildcards are allowed for the host component (e.g., '*:8080' matches all proxies on port 8080). A hostname (e.g., 'proxy.example.com') also matches its subdomains. To match a host exactly and exclude its subdomains, prepend it with a dot (e.g., '.proxy.example.com').
++
++  If this policy is not set, only the HTTP authentication schemes specified in <ph name="AUTH_SCHEMES_POLICY_NAME">AuthSchemes</ph> (or the default schemes if unset) are supported for proxy authentication.
++example_value:
++- 'https://proxy.example.com:8443'
++- 'proxy.example.com:8080'
++- '*.corp.example.com:8080'
++features:
++  dynamic_refresh: true
++  per_profile: false
++future_on:
++- fuchsia
++owners:
++- file://components/policy/OWNERS
++- ydago@chromium.org
++schema:
++  items:
++    type: string
++  type: array
++supported_on:
++- chrome.*:156-
++- android:156-
++- chrome_os:156-
++tags: []
++type: list
+diff --git a/components/policy/test/data/pref_mapping/AllHttpAuthSchemesAllowedForProxies.json b/components/policy/test/data/pref_mapping/AllHttpAuthSchemesAllowedForProxies.json
+new file mode 100644
+index 0000000000..334cdaf352
+--- /dev/null
++++ b/components/policy/test/data/pref_mapping/AllHttpAuthSchemesAllowedForProxies.json
+@@ -0,0 +1,23 @@
++[
++  {
++    "os": [
++      "win",
++      "linux",
++      "mac",
++      "chromeos",
++      "android",
++      "fuchsia"
++    ],
++    "simple_policy_pref_mapping_test": {
++      "pref_name": "auth.http_auth_allowed_for_proxies",
++      "pref_location": "local_state",
++      "default_value": [],
++      "values_to_test": [
++        [
++          "*.example.com",
++          "proxy.example.com:8080"
++        ]
++      ]
++    }
++  }
++]
+diff --git a/tools/metrics/histograms/metadata/enterprise/enums.xml b/tools/metrics/histograms/metadata/enterprise/enums.xml
+index d68f268c4d..52786b24bd 100644
+--- a/tools/metrics/histograms/metadata/enterprise/enums.xml
++++ b/tools/metrics/histograms/metadata/enterprise/enums.xml
+@@ -2588,6 +2588,7 @@ chromium-metrics-reviews@google.com.
+   <int value="1486" label="AdminInstalledChromeAppsForceAllowed"/>
+   <int value="1487" label="DeviceMaxUserProfiles"/>
+   <int value="1489" label="LaunchOnStartupEnabled"/>
++  <int value="1491" label="AllHttpAuthSchemesAllowedForProxies"/>
+ </enum>
+ 
+ <enum name="EnterprisePoliciesSources">
+-- 
+2.43.0
+

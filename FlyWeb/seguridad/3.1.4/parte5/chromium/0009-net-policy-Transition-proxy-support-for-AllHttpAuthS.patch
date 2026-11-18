@@ -1,0 +1,584 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Yann Dago <ydago@chromium.org>
+Date: Thu, 1 Oct 2026 09:31:56 -0700
+Subject: [PATCH 09/48] [net][policy] Transition proxy support for
+ AllHttpAuthSchemesAllowedForOrigins to M161
+
+AllHttpAuthSchemesAllowedForOrigins previously bypassed AuthSchemes for
+both servers and proxies because target was ignored. Proxy support for
+this policy is deprecated and will be removed in M161.
+
+This CL:
+- Plumbs patterns_allowed_to_use_all_schemes_for_proxies through
+  mojom::HttpAuthDynamicParams to NetworkContext.
+- In SystemNetworkContextManager, copies origins patterns to proxy
+  patterns when CHROME_VERSION_MAJOR < 161.
+- Plumbs HttpAuth::Target through HttpAuthPreferences so NetworkContext
+  evaluates proxy challenges using proxy_url_matcher_.
+- Updates AllHttpAuthSchemesAllowedForOrigins.yaml documentation.
+
+Bug: 533454968
+Change-Id: I507015fdf9b84f18256abcaa97973a59d3fbc4f9
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8463844
+Auto-Submit: Yann Dago <ydago@chromium.org>
+Reviewed-by: Sebastien Lalancette <seblalancette@chromium.org>
+Reviewed-by: Giovanni Ortuno Urquidi <ortuno@chromium.org>
+Commit-Queue: Yann Dago <ydago@chromium.org>
+Reviewed-by: mmenke <mmenke@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1709108}
+(cherry picked from commit a72f49dd63114c1b4a89301a5ef370e086ab9326)
+---
+ .../net/system_network_context_manager.cc     |   4 +
+ .../AllHttpAuthSchemesAllowedForOrigins.yaml  |   2 +
+ net/http/http_auth_handler_factory.cc         |  12 +-
+ .../http_auth_handler_factory_unittest.cc     | 164 +++++++++++++++---
+ net/http/http_auth_preferences.cc             |   5 +-
+ net/http/http_auth_preferences.h              |  14 +-
+ net/http/http_auth_preferences_unittest.cc    |  16 +-
+ services/network/network_context.cc           |  14 +-
+ services/network/network_context.h            |  10 +-
+ services/network/network_context_unittest.cc  |  65 ++++++-
+ .../public/mojom/network_service.mojom        |   5 +
+ 11 files changed, 265 insertions(+), 46 deletions(-)
+
+diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
+index 7694946470..cda9aa4f3a 100644
+--- a/chrome/browser/net/system_network_context_manager.cc
++++ b/chrome/browser/net/system_network_context_manager.cc
+@@ -185,6 +185,10 @@ network::mojom::HttpAuthDynamicParamsPtr CreateHttpAuthDynamicParams(
+     auth_dynamic_params->patterns_allowed_to_use_all_schemes.push_back(
+         item.GetString());
+   }
++  if (CHROME_VERSION_MAJOR < 161) {
++    auth_dynamic_params->patterns_allowed_to_use_all_schemes_for_proxies =
++        auth_dynamic_params->patterns_allowed_to_use_all_schemes;
++  }
+   auth_dynamic_params->server_allowlist =
+       local_state->GetString(prefs::kAuthServerAllowlist);
+   auth_dynamic_params->delegate_allowlist =
+diff --git a/components/policy/resources/templates/policy_definitions/HTTPAuthentication/AllHttpAuthSchemesAllowedForOrigins.yaml b/components/policy/resources/templates/policy_definitions/HTTPAuthentication/AllHttpAuthSchemesAllowedForOrigins.yaml
+index 662a5a15b1..39f2524c66 100644
+--- a/components/policy/resources/templates/policy_definitions/HTTPAuthentication/AllHttpAuthSchemesAllowedForOrigins.yaml
++++ b/components/policy/resources/templates/policy_definitions/HTTPAuthentication/AllHttpAuthSchemesAllowedForOrigins.yaml
+@@ -2,6 +2,8 @@ caption: List of origins allowing all HTTP authentication
+ desc: |-
+   Setting the policy specifies for which origins to allow all the HTTP authentication schemes <ph name="PRODUCT_NAME">$1<ex>Google Chrome</ex></ph> supports regardless of the <ph name="AUTH_SCHEMES_POLICY_NAME">AuthSchemes</ph> policy.
+ 
++  Starting in <ph name="PRODUCT_NAME">$1<ex>Google Chrome</ex></ph> version 161, this policy applies only to destination server origins and does not apply to proxy server authentication challenges. To allow all HTTP authentication schemes for proxy servers, use the <ph name="ALL_HTTP_AUTH_SCHEMES_ALLOWED_FOR_PROXIES_POLICY_NAME">AllHttpAuthSchemesAllowedForProxies</ph> policy instead. Prior to version 161, proxy servers matching this policy are also allowed to use all HTTP authentication schemes unless <ph name="ALL_HTTP_AUTH_SCHEMES_ALLOWED_FOR_PROXIES_POLICY_NAME">AllHttpAuthSchemesAllowedForProxies</ph> is set.
++
+         Format the origin pattern according to this format (<ph name="URL_SCHEME_FORMAT_LINK">https://support.google.com/chrome/a?p=url_blocklist_filter_format</ph>). Up to 1,000 exceptions can be defined in <ph name="ALL_HTTP_AUTH_ALLOWED_FOR_ORIGINS_POLICY_NAME">AllHttpAuthSchemesAllowedForOrigins</ph>.
+         Wildcards are allowed for the host component (e.g., '*:8000' matches all hosts on port 8000). To match all schemes or all ports, omit the component entirely (e.g., 'example.com' matches any scheme and any port). A hostname (e.g., 'example.com') also matches its subdomains. To match a host exactly and exclude its subdomains, prepend it with a dot (e.g., '.example.com'). To match all origins, use a single asterisk ('*').
+ example_value:
+diff --git a/net/http/http_auth_handler_factory.cc b/net/http/http_auth_handler_factory.cc
+index 6728f65d2f..b322895e88 100644
+--- a/net/http/http_auth_handler_factory.cc
++++ b/net/http/http_auth_handler_factory.cc
+@@ -222,21 +222,21 @@ int HttpAuthHandlerRegistryFactory::CreateAuthHandler(
+     handler->reset();
+     net_error = ERR_INVALID_RESPONSE;
+   } else {
+-    bool all_schemes_allowed_for_origin =
++    const bool all_schemes_allowed =
+         http_auth_preferences() &&
+         http_auth_preferences()->IsAllowedToUseAllHttpAuthSchemes(
+-            scheme_host_port);
++            scheme_host_port, target);
+     bool is_scheme_allowed = IsSchemeAllowed(scheme);
+-    auto* factory = all_schemes_allowed_for_origin || is_scheme_allowed
++    auto* factory = all_schemes_allowed || is_scheme_allowed
+                         ? GetSchemeFactory(scheme)
+                         : nullptr;
+     if (!factory) {
+       handler->reset();
+       net_error = ERR_UNSUPPORTED_AUTH_SCHEME;
+     } else {
+-      if (all_schemes_allowed_for_origin && !is_scheme_allowed) {
+-        base::UmaHistogramEnumeration(
+-            "Net.HttpAuth.SchemeAllowedByAllSchemesPolicy", target);
++      if (all_schemes_allowed && !is_scheme_allowed) {
++        base::UmaHistogramEnumeration("Net.HttpAuth.SchemeAllowedByAllSchemesPolicy",
++                                      target);
+       }
+       net_error = factory->CreateAuthHandler(
+           challenge, target, ssl_info, network_anonymization_key,
+diff --git a/net/http/http_auth_handler_factory_unittest.cc b/net/http/http_auth_handler_factory_unittest.cc
+index 035b74406f..22c5aebd13 100644
+--- a/net/http/http_auth_handler_factory_unittest.cc
++++ b/net/http/http_auth_handler_factory_unittest.cc
+@@ -5,7 +5,9 @@
+ #include "net/http/http_auth_handler_factory.h"
+ 
+ #include <memory>
++#include <string>
+ 
++#include "base/containers/flat_set.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback.h"
+ #include "base/test/metrics/histogram_tester.h"
+@@ -38,8 +40,8 @@ namespace {
+ 
+ class MockHttpAuthHandlerFactory : public HttpAuthHandlerFactory {
+  public:
+-  explicit MockHttpAuthHandlerFactory(int return_code) :
+-      return_code_(return_code) {}
++  explicit MockHttpAuthHandlerFactory(int return_code)
++      : return_code_(return_code) {}
+   ~MockHttpAuthHandlerFactory() override = default;
+ 
+   int CreateAuthHandler(
+@@ -233,8 +235,8 @@ TEST(HttpAuthHandlerFactoryTest, HttpAuthUrlFilter) {
+   http_auth_preferences.set_basic_over_http_enabled(false);
+   // Set the preference that only allows "https://www.example.com" to use HTTP
+   // auth.
+-  http_auth_preferences.set_http_auth_scheme_filter(
+-      base::BindRepeating([](const url::SchemeHostPort& scheme_host_port) {
++  http_auth_preferences.set_http_auth_scheme_filter(base::BindRepeating(
++      [](const url::SchemeHostPort& scheme_host_port, HttpAuth::Target target) {
+         return scheme_host_port ==
+                url::SchemeHostPort(GURL("https://www.example.com"));
+       }));
+@@ -277,6 +279,126 @@ TEST(HttpAuthHandlerFactoryTest, HttpAuthUrlFilter) {
+   }
+ }
+ 
++TEST(HttpAuthHandlerFactoryTest, HttpAuthUrlFilterDoesNotApplyToProxy) {
++  MockHostResolver host_resolver;
++
++  MockAllowHttpAuthPreferences http_auth_preferences;
++  http_auth_preferences.SetAllowedSchemes(
++      base::flat_set<std::string>{kBasicAuthScheme, kNegotiateAuthScheme});
++
++  const url::SchemeHostPort kAllowedOrigin(GURL("https://www.example.com"));
++  const url::SchemeHostPort kNonAllowedOrigin(
++      GURL("https://other.example.com"));
++
++  http_auth_preferences.set_http_auth_scheme_filter(base::BindRepeating(
++      [](const url::SchemeHostPort& allowed_origin,
++         const url::SchemeHostPort& scheme_host_port, HttpAuth::Target target) {
++        return target == HttpAuth::AUTH_SERVER &&
++               scheme_host_port == allowed_origin;
++      },
++      kAllowedOrigin));
++
++  std::unique_ptr<HttpAuthHandlerRegistryFactory> http_auth_handler_factory(
++      HttpAuthHandlerFactory::CreateDefault(&http_auth_preferences));
++
++  SSLInfo null_ssl_info;
++
++  struct TestCase {
++    HttpAuth::Target target;
++    url::SchemeHostPort origin;
++    const char* challenge;
++    int expected_net_error;
++  } const kTestCases[] = {
++      // {AUTH_SERVER, kAllowedOrigin, Basic} -> OK
++      {HttpAuth::AUTH_SERVER, kAllowedOrigin, "Basic realm=\"FooBar\"", OK},
++
++      // {AUTH_SERVER, kAllowedOrigin, Ntlm} -> OK (allowed by origin filter)
++      {HttpAuth::AUTH_SERVER, kAllowedOrigin, "Ntlm", OK},
++
++      // {AUTH_SERVER, kNonAllowedOrigin, Basic} -> OK
++      // (allowed by AuthSchemes policy)
++      {HttpAuth::AUTH_SERVER, kNonAllowedOrigin, "Basic realm=\"FooBar\"", OK},
++
++      // {AUTH_SERVER, kNonAllowedOrigin, Ntlm} -> ERR_UNSUPPORTED_AUTH_SCHEME
++      // (disallowed by AuthSchemes policy and origin filter)
++      {HttpAuth::AUTH_SERVER, kNonAllowedOrigin, "Ntlm",
++       ERR_UNSUPPORTED_AUTH_SCHEME},
++
++
++      // {AUTH_PROXY, kAllowedOrigin, Basic} -> OK (allowed by AuthSchemes policy)
++      {HttpAuth::AUTH_PROXY, kAllowedOrigin, "Basic realm=\"FooBar\"", OK},
++
++      // {AUTH_PROXY, kAllowedOrigin, Ntlm} -> ERR_UNSUPPORTED_AUTH_SCHEME
++      // (the filter rejects proxies, even for the allowed origin)
++      {HttpAuth::AUTH_PROXY, kAllowedOrigin, "Ntlm",
++       ERR_UNSUPPORTED_AUTH_SCHEME},
++
++      // {AUTH_PROXY, kNonAllowedOrigin, Basic} -> OK
++      // (allowed by AuthSchemes policy)
++      {HttpAuth::AUTH_PROXY, kNonAllowedOrigin, "Basic realm=\"FooBar\"", OK},
++
++      // {AUTH_PROXY, kNonAllowedOrigin, Ntlm} -> ERR_UNSUPPORTED_AUTH_SCHEME
++      // (disallowed by AuthSchemes policy)
++      {HttpAuth::AUTH_PROXY, kNonAllowedOrigin, "Ntlm",
++       ERR_UNSUPPORTED_AUTH_SCHEME},
++  };
++
++  for (const auto& test_case : kTestCases) {
++    std::unique_ptr<HttpAuthHandler> handler;
++    int rv = http_auth_handler_factory->CreateAuthHandlerFromString(
++        test_case.challenge, test_case.target, null_ssl_info,
++        NetworkAnonymizationKey(), test_case.origin, NetLogWithSource(),
++        &host_resolver, &handler);
++    EXPECT_THAT(rv, IsError(test_case.expected_net_error));
++    if (test_case.expected_net_error == OK) {
++      EXPECT_TRUE(handler);
++    } else {
++      EXPECT_FALSE(handler);
++    }
++  }
++}
++
++TEST(HttpAuthHandlerFactoryTest, HttpAuthUrlFilterAppliesToProxy) {
++  MockHostResolver host_resolver;
++
++  MockAllowHttpAuthPreferences http_auth_preferences;
++  http_auth_preferences.SetAllowedSchemes(
++      base::flat_set<std::string>{kBasicAuthScheme});
++
++  const url::SchemeHostPort kAllowedProxy(
++      GURL("https://proxy.example.com:8080"));
++  const url::SchemeHostPort kNonAllowedProxy(
++      GURL("https://other-proxy.example.com:8080"));
++
++  http_auth_preferences.set_http_auth_scheme_filter(base::BindRepeating(
++      [](const url::SchemeHostPort& allowed_origin,
++         const url::SchemeHostPort& scheme_host_port, HttpAuth::Target target) {
++        return target == HttpAuth::AUTH_PROXY &&
++               scheme_host_port == allowed_origin;
++      },
++      kAllowedProxy));
++
++  std::unique_ptr<HttpAuthHandlerRegistryFactory> http_auth_handler_factory(
++      HttpAuthHandlerFactory::CreateDefault(&http_auth_preferences));
++
++  SSLInfo null_ssl_info;
++  std::unique_ptr<HttpAuthHandler> handler;
++
++  // When the filter allows proxy targets, matching proxies can use all schemes.
++  int rv = http_auth_handler_factory->CreateAuthHandlerFromString(
++      "Ntlm", HttpAuth::AUTH_PROXY, null_ssl_info, NetworkAnonymizationKey(),
++      kAllowedProxy, NetLogWithSource(), &host_resolver, &handler);
++  EXPECT_THAT(rv, IsOk());
++  EXPECT_TRUE(handler);
++
++  // Non-matching proxies are still rejected for disallowed schemes.
++  rv = http_auth_handler_factory->CreateAuthHandlerFromString(
++      "Ntlm", HttpAuth::AUTH_PROXY, null_ssl_info, NetworkAnonymizationKey(),
++      kNonAllowedProxy, NetLogWithSource(), &host_resolver, &handler);
++  EXPECT_THAT(rv, IsError(ERR_UNSUPPORTED_AUTH_SCHEME));
++  EXPECT_FALSE(handler);
++}
++
+ TEST(HttpAuthHandlerFactoryTest, SchemeAllowedByAllSchemesPolicyHistogram) {
+   MockHostResolver host_resolver;
+   base::HistogramTester histogram_tester;
+@@ -286,14 +408,21 @@ TEST(HttpAuthHandlerFactoryTest, SchemeAllowedByAllSchemesPolicyHistogram) {
+       base::flat_set<std::string>{kBasicAuthScheme});
+ 
+   const url::SchemeHostPort kAllowedOrigin(GURL("https://www.example.com"));
+-  const url::SchemeHostPort kNonAllowedHost(GURL("https://other.example.com"));
++  const url::SchemeHostPort kAllowedProxy(
++      GURL("https://proxy.example.com:8080"));
++  const url::SchemeHostPort kNonAllowedHost(
++      GURL("https://other.example.com"));
+ 
+   http_auth_preferences.set_http_auth_scheme_filter(base::BindRepeating(
+       [](const url::SchemeHostPort& allowed_origin,
+-         const url::SchemeHostPort& scheme_host_port) {
++         const url::SchemeHostPort& allowed_proxy,
++         const url::SchemeHostPort& scheme_host_port, HttpAuth::Target target) {
++        if (target == HttpAuth::AUTH_PROXY) {
++          return scheme_host_port == allowed_proxy;
++        }
+         return scheme_host_port == allowed_origin;
+       },
+-      kAllowedOrigin));
++      kAllowedOrigin, kAllowedProxy));
+ 
+   std::unique_ptr<HttpAuthHandlerRegistryFactory> http_auth_handler_factory(
+       HttpAuthHandlerFactory::CreateDefault(&http_auth_preferences));
+@@ -311,25 +440,18 @@ TEST(HttpAuthHandlerFactoryTest, SchemeAllowedByAllSchemesPolicyHistogram) {
+       // histogram
+       {HttpAuth::AUTH_SERVER, kAllowedOrigin, "Basic realm=\"FooBar\"", OK,
+        std::nullopt},
+-
+-      // {AUTH_SERVER, kAllowedOrigin, Ntlm} -> OK, records AUTH_SERVER
++      // AUTH_SERVER x kAllowedOrigin x disallowed scheme (Ntlm) -> OK, records AUTH_SERVER
+       {HttpAuth::AUTH_SERVER, kAllowedOrigin, "Ntlm", OK,
+        HttpAuth::AUTH_SERVER},
+-
+-      // {AUTH_PROXY, kAllowedOrigin, Basic} -> OK, no policy override histogram
+-      {HttpAuth::AUTH_PROXY, kAllowedOrigin, "Basic realm=\"FooBar\"", OK,
++      // AUTH_PROXY x kAllowedProxy x allowed scheme (Basic) -> OK, no policy override histogram
++      {HttpAuth::AUTH_PROXY, kAllowedProxy, "Basic realm=\"FooBar\"", OK,
+        std::nullopt},
+-
+-      // {AUTH_PROXY, kAllowedOrigin, Ntlm} -> OK, records AUTH_PROXY
+-      {HttpAuth::AUTH_PROXY, kAllowedOrigin, "Ntlm", OK, HttpAuth::AUTH_PROXY},
+-
+-      // {AUTH_SERVER, kNonAllowedHost, Ntlm} -> ERR_UNSUPPORTED_AUTH_SCHEME, no
+-      // histogram
++      // AUTH_PROXY x kAllowedProxy x disallowed scheme (Ntlm) -> OK, records AUTH_PROXY
++      {HttpAuth::AUTH_PROXY, kAllowedProxy, "Ntlm", OK,
++       HttpAuth::AUTH_PROXY},
++      // Disallowed scheme on non-allowed host -> rejected, no histogram
+       {HttpAuth::AUTH_SERVER, kNonAllowedHost, "Ntlm",
+        ERR_UNSUPPORTED_AUTH_SCHEME, std::nullopt},
+-
+-      // {AUTH_PROXY, kNonAllowedHost, Ntlm} -> ERR_UNSUPPORTED_AUTH_SCHEME, no
+-      // histogram
+       {HttpAuth::AUTH_PROXY, kNonAllowedHost, "Ntlm",
+        ERR_UNSUPPORTED_AUTH_SCHEME, std::nullopt},
+   };
+diff --git a/net/http/http_auth_preferences.cc b/net/http/http_auth_preferences.cc
+index 3bb39bbbe0..3d9c54ff70 100644
+--- a/net/http/http_auth_preferences.cc
++++ b/net/http/http_auth_preferences.cc
+@@ -82,9 +82,10 @@ void HttpAuthPreferences::SetAllowedSchemes(
+ }
+ 
+ bool HttpAuthPreferences::IsAllowedToUseAllHttpAuthSchemes(
+-    const url::SchemeHostPort& scheme_host_port) const {
++    const url::SchemeHostPort& scheme_host_port,
++    HttpAuth::Target target) const {
+   return !http_auth_scheme_filter_ ||
+-         http_auth_scheme_filter_.Run(scheme_host_port);
++         http_auth_scheme_filter_.Run(scheme_host_port, target);
+ }
+ 
+ void HttpAuthPreferences::SetServerAllowlist(
+diff --git a/net/http/http_auth_preferences.h b/net/http/http_auth_preferences.h
+index 94b0bb1404..e74d00318f 100644
+--- a/net/http/http_auth_preferences.h
++++ b/net/http/http_auth_preferences.h
+@@ -99,11 +99,16 @@ class NET_EXPORT HttpAuthPreferences {
+       const std::optional<base::flat_set<std::string>>& allowed_schemes);
+ 
+   void set_http_auth_scheme_filter(
+-      base::RepeatingCallback<bool(const url::SchemeHostPort&)>&& filter) {
++      base::RepeatingCallback<bool(const url::SchemeHostPort&,
++                                   HttpAuth::Target)>&& filter) {
+     http_auth_scheme_filter_ = std::move(filter);
+   }
+ 
+-  bool IsAllowedToUseAllHttpAuthSchemes(const url::SchemeHostPort& url) const;
++  // An auth scheme is allowed if either the scheme is in the allowed schemes
++  // (e.g. via AuthSchemes policy or default schemes), or this method returns
++  // true. It is not required for both to be true.
++  bool IsAllowedToUseAllHttpAuthSchemes(const url::SchemeHostPort& url,
++                                        HttpAuth::Target target) const;
+ 
+   void SetServerAllowlist(const std::string& server_allowlist);
+ 
+@@ -140,9 +145,8 @@ class NET_EXPORT HttpAuthPreferences {
+ 
+   std::optional<base::flat_set<std::string>> allowed_schemes_;
+   std::unique_ptr<URLSecurityManager> security_manager_;
+-  base::RepeatingCallback<bool(const url::SchemeHostPort&)>
+-      http_auth_scheme_filter_ =
+-          base::RepeatingCallback<bool(const url::SchemeHostPort&)>();
++  base::RepeatingCallback<bool(const url::SchemeHostPort&, HttpAuth::Target)>
++      http_auth_scheme_filter_;
+ };
+ 
+ }  // namespace net
+diff --git a/net/http/http_auth_preferences_unittest.cc b/net/http/http_auth_preferences_unittest.cc
+index d977806856..ea4c2f0591 100644
+--- a/net/http/http_auth_preferences_unittest.cc
++++ b/net/http/http_auth_preferences_unittest.cc
+@@ -96,14 +96,20 @@ TEST(HttpAuthPreferencesTest, DelegationType) {
+ 
+ TEST(HttpAuthPreferencesTest, HttpAuthSchemesFilter) {
+   HttpAuthPreferences http_auth_preferences;
+-  http_auth_preferences.set_http_auth_scheme_filter(
+-      base::BindRepeating([](const url::SchemeHostPort& scheme_host_port) {
+-        return scheme_host_port.GetURL() == GURL("https://www.google.com");
++  http_auth_preferences.set_http_auth_scheme_filter(base::BindRepeating(
++      [](const url::SchemeHostPort& scheme_host_port, HttpAuth::Target target) {
++        return scheme_host_port.GetURL() == GURL("https://www.google.com") &&
++               target == HttpAuth::AUTH_SERVER;
+       }));
+   EXPECT_TRUE(http_auth_preferences.IsAllowedToUseAllHttpAuthSchemes(
+-      url::SchemeHostPort(GURL("https://www.google.com"))));
++      url::SchemeHostPort(GURL("https://www.google.com")),
++      HttpAuth::AUTH_SERVER));
+   EXPECT_FALSE(http_auth_preferences.IsAllowedToUseAllHttpAuthSchemes(
+-      url::SchemeHostPort(GURL("https://www.example.com"))));
++      url::SchemeHostPort(GURL("https://www.google.com")),
++      HttpAuth::AUTH_PROXY));
++  EXPECT_FALSE(http_auth_preferences.IsAllowedToUseAllHttpAuthSchemes(
++      url::SchemeHostPort(GURL("https://www.example.com")),
++      HttpAuth::AUTH_SERVER));
+ }
+ 
+ TEST(HttpAuthPreferencesTest, SetAllowedSchemes) {
+diff --git a/services/network/network_context.cc b/services/network/network_context.cc
+index 1e95112e67..7711c34957 100644
+--- a/services/network/network_context.cc
++++ b/services/network/network_context.cc
+@@ -2852,6 +2852,11 @@ void NetworkContext::OnHttpAuthDynamicParamsChanged(
+   url_matcher::util::AddAllowFiltersWithLimit(
+       url_matcher_.get(), http_auth_dynamic_network_service_params
+                               ->patterns_allowed_to_use_all_schemes);
++  proxy_url_matcher_ = std::make_unique<url_matcher::URLMatcher>();
++  url_matcher::util::AddAllowFiltersWithLimit(
++      proxy_url_matcher_.get(),
++      http_auth_dynamic_network_service_params
++          ->patterns_allowed_to_use_all_schemes_for_proxies);
+   http_auth_merged_preferences_.set_http_auth_scheme_filter(
+       base::BindRepeating(&NetworkContext::IsAllowedToUseAllHttpAuthSchemes,
+                           base::Unretained(this)));
+@@ -3604,8 +3609,13 @@ void NetworkContext::FinishConstructingTrustTokenStore(
+ }
+ 
+ bool NetworkContext::IsAllowedToUseAllHttpAuthSchemes(
+-    const url::SchemeHostPort& scheme_host_port) {
+-  DCHECK(url_matcher_);
++    const url::SchemeHostPort& scheme_host_port,
++    net::HttpAuth::Target target) {
++  if (target == net::HttpAuth::AUTH_PROXY) {
++    CHECK(proxy_url_matcher_);
++    return !proxy_url_matcher_->MatchURL(scheme_host_port.GetURL()).empty();
++  }
++  CHECK(url_matcher_);
+   return !url_matcher_->MatchURL(scheme_host_port.GetURL()).empty();
+ }
+ 
+diff --git a/services/network/network_context.h b/services/network/network_context.h
+index ff3c2a037b..c2525a0ded 100644
+--- a/services/network/network_context.h
++++ b/services/network/network_context.h
+@@ -933,8 +933,15 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
+   void FinishConstructingTrustTokenStore(
+       std::unique_ptr<SQLiteTrustTokenPersister> persister);
+ 
++  // Returns whether `scheme_host_port` is allowed to use all HTTP auth
++  // schemes regardless of the AuthSchemes policy.
++  // `scheme_host_port` is the challenging server origin or proxy address.
++  // `target` determines whether to match against destination server patterns
++  // (AUTH_SERVER via `url_matcher_`) or proxy patterns (AUTH_PROXY via
++  // `proxy_url_matcher_`).
+   bool IsAllowedToUseAllHttpAuthSchemes(
+-      const url::SchemeHostPort& scheme_host_port);
++      const url::SchemeHostPort& scheme_host_port,
++      net::HttpAuth::Target target);
+ 
+   void InitializePrefetchURLLoaderFactory();
+ 
+@@ -1181,6 +1188,7 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
+       connection_change_observers_;
+ 
+   std::unique_ptr<url_matcher::URLMatcher> url_matcher_;
++  std::unique_ptr<url_matcher::URLMatcher> proxy_url_matcher_;
+ 
+   scoped_refptr<MojoBackendFileOperationsFactory>
+       http_cache_file_operations_factory_;
+diff --git a/services/network/network_context_unittest.cc b/services/network/network_context_unittest.cc
+index 39cbbb8b63..068e14efcc 100644
+--- a/services/network/network_context_unittest.cc
++++ b/services/network/network_context_unittest.cc
+@@ -10875,9 +10875,11 @@ TEST_F(NetworkContextTest, HttpAuthUrlFilter) {
+   const GURL kGoogleSubdomain("https://subdomain.google.com");
+   const GURL kBlocked("https://www.blocked.com");
+   auto is_url_allowed_to_use_auth_schemes =
+-      [&network_context](const GURL& url) {
++      [&network_context](const GURL& url, net::HttpAuth::Target target =
++                                              net::HttpAuth::AUTH_SERVER) {
+         return network_context->GetHttpAuthPreferences()
+-            ->IsAllowedToUseAllHttpAuthSchemes(url::SchemeHostPort(url));
++            ->IsAllowedToUseAllHttpAuthSchemes(url::SchemeHostPort(url),
++                                               target);
+       };
+ 
+   network::mojom::HttpAuthDynamicParamsPtr auth_dynamic_params =
+@@ -10921,15 +10923,22 @@ TEST_F(NetworkContextTest, HttpAuthUrlFilter) {
+   EXPECT_TRUE(is_url_allowed_to_use_auth_schemes(kGoogle));
+   EXPECT_TRUE(is_url_allowed_to_use_auth_schemes(kGoogleSubdomain));
+   EXPECT_TRUE(is_url_allowed_to_use_auth_schemes(kBlocked));
++
++  // Target HttpAuth::AUTH_PROXY is not matched by
++  // patterns_allowed_to_use_all_schemes.
++  EXPECT_FALSE(
++      is_url_allowed_to_use_auth_schemes(kGoogle, net::HttpAuth::AUTH_PROXY));
+ }
+ 
+ TEST_F(NetworkContextTest, HttpAuthUrlFilterWithPort) {
+   std::unique_ptr<NetworkContext> network_context =
+       CreateContextWithParams(CreateNetworkContextParamsForTesting());
+   auto is_url_allowed_to_use_auth_schemes =
+-      [&network_context](const GURL& url) {
++      [&network_context](const GURL& url, net::HttpAuth::Target target =
++                                              net::HttpAuth::AUTH_SERVER) {
+         return network_context->GetHttpAuthPreferences()
+-            ->IsAllowedToUseAllHttpAuthSchemes(url::SchemeHostPort(url));
++            ->IsAllowedToUseAllHttpAuthSchemes(url::SchemeHostPort(url),
++                                               target);
+       };
+ 
+   network::mojom::HttpAuthDynamicParamsPtr auth_dynamic_params =
+@@ -10971,6 +10980,54 @@ TEST_F(NetworkContextTest, HttpAuthUrlFilterWithPort) {
+   EXPECT_TRUE(is_url_allowed_to_use_auth_schemes(kGoogle8000));
+ }
+ 
++TEST_F(NetworkContextTest, HttpAuthProxyUrlFilter) {
++  std::unique_ptr<NetworkContext> network_context =
++      CreateContextWithParams(CreateNetworkContextParamsForTesting());
++  const GURL kProxy("https://proxy.example.com:8080");
++  const GURL kProxySubdomain("https://sub.proxy.example.com:8080");
++  const GURL kOtherProxy("https://other.example.com:8080");
++  auto is_proxy_allowed_to_use_auth_schemes =
++      [&network_context](const GURL& url) {
++        return network_context->GetHttpAuthPreferences()
++            ->IsAllowedToUseAllHttpAuthSchemes(url::SchemeHostPort(url),
++                                               net::HttpAuth::AUTH_PROXY);
++      };
++
++  network::mojom::HttpAuthDynamicParamsPtr auth_dynamic_params =
++      network::mojom::HttpAuthDynamicParams::New();
++  // Before any dynamic params are set, no filter is installed.
++  EXPECT_TRUE(is_proxy_allowed_to_use_auth_schemes(kProxy));
++  EXPECT_TRUE(is_proxy_allowed_to_use_auth_schemes(kProxySubdomain));
++  EXPECT_TRUE(is_proxy_allowed_to_use_auth_schemes(kOtherProxy));
++
++  // Once empty params are configured, the filter is active and rejects proxies.
++  network_context->OnHttpAuthDynamicParamsChanged(auth_dynamic_params.get());
++  EXPECT_FALSE(is_proxy_allowed_to_use_auth_schemes(kProxy));
++  EXPECT_FALSE(is_proxy_allowed_to_use_auth_schemes(kProxySubdomain));
++  EXPECT_FALSE(is_proxy_allowed_to_use_auth_schemes(kOtherProxy));
++
++  auth_dynamic_params->patterns_allowed_to_use_all_schemes_for_proxies =
++      std::vector<std::string>{"proxy.example.com:8080"};
++  network_context->OnHttpAuthDynamicParamsChanged(auth_dynamic_params.get());
++  EXPECT_TRUE(is_proxy_allowed_to_use_auth_schemes(kProxy));
++  EXPECT_TRUE(is_proxy_allowed_to_use_auth_schemes(kProxySubdomain));
++  EXPECT_FALSE(is_proxy_allowed_to_use_auth_schemes(kOtherProxy));
++
++  auth_dynamic_params->patterns_allowed_to_use_all_schemes_for_proxies =
++      std::vector<std::string>{".proxy.example.com:8080"};
++  network_context->OnHttpAuthDynamicParamsChanged(auth_dynamic_params.get());
++  EXPECT_TRUE(is_proxy_allowed_to_use_auth_schemes(kProxy));
++  EXPECT_FALSE(is_proxy_allowed_to_use_auth_schemes(kProxySubdomain));
++  EXPECT_FALSE(is_proxy_allowed_to_use_auth_schemes(kOtherProxy));
++
++  auth_dynamic_params->patterns_allowed_to_use_all_schemes_for_proxies =
++      std::vector<std::string>{};
++  network_context->OnHttpAuthDynamicParamsChanged(auth_dynamic_params.get());
++  EXPECT_FALSE(is_proxy_allowed_to_use_auth_schemes(kProxy));
++  EXPECT_FALSE(is_proxy_allowed_to_use_auth_schemes(kProxySubdomain));
++  EXPECT_FALSE(is_proxy_allowed_to_use_auth_schemes(kOtherProxy));
++}
++
+ TEST_F(NetworkContextExpectBadMessageTest, DataUrl) {
+   std::unique_ptr<NetworkContext> network_context =
+       CreateContextWithParams(CreateNetworkContextParamsForTesting());
+diff --git a/services/network/public/mojom/network_service.mojom b/services/network/public/mojom/network_service.mojom
+index 93248cac19..15c41a17b6 100644
+--- a/services/network/public/mojom/network_service.mojom
++++ b/services/network/public/mojom/network_service.mojom
+@@ -74,6 +74,11 @@ struct HttpAuthDynamicParams {
+   // http://www.chromium.org/administrators/url-blocklist-filter-format.
+   array<string> patterns_allowed_to_use_all_schemes;
+ 
++  // List of proxy server patterns that are allowed the use of all the HTTP
++  // auth schemes recognized and supported by the browser regardless of
++  // `allowed_schemes`.
++  array<string> patterns_allowed_to_use_all_schemes_for_proxies;
++
+   // Comma / semi-colon delimited allowlist of server origins which the network
+   // service may send the default credentials for NTLM or Negotiate
+   // authentication.
+-- 
+2.43.0
+

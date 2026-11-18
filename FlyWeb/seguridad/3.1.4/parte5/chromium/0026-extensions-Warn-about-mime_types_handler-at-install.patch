@@ -1,0 +1,842 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Maksim Sisov <msisov@igalia.com>
+Date: Tue, 6 Oct 2026 00:11:45 -0700
+Subject: [PATCH 26/48] extensions: Warn about mime_types_handler at install
+
+An extension can declare the mime_types_handler manifest key and become
+the handler for every PDF the user opens. Today this shows no permission
+warning, neither at install nor when an update adds the key.
+
+Make the key a permission. The install prompt and the update check now
+show "Read and display PDF files" for it. Allowlisted handlers are not
+affected. Extensions that already have the key are disabled on the next
+start until the user approves.
+
+      unit_tests --gtest_filter='PermissionsTest.IsPrivilegeIncrease:
+      PermissionMessageCombinationsUnittest.MimeTypesHandler*:
+      ExtensionServiceTest.MimeTypesHandler*'
+Manual Test: install an extension with the key and see the prompt,
+             update an extension to a version that adds the key and
+             see it disabled.
+
+Test: extensions_unittests --gtest_filter='MimeTypesHandler*'
+Bug: 553138801
+Change-Id: I0ed91ea2ee5b8e24f050793dd3a493de9b699dd6
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8399133
+Commit-Queue: Maksim Sisov <msisov@igalia.com>
+Reviewed-by: Devlin Cronin <rdevlin.cronin@chromium.org>
+Reviewed-by: Takashi Toyoshima <toyoshim@chromium.org>
+Reviewed-by: Tim <tjudkins@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1712045}
+(cherry picked from commit 02864d5fbbc81063b2991d993571b88d70c123b4)
+---
+ chrome/app/generated_resources.grd            |   3 +
+ ...PT_WARNING_MIME_TYPES_HANDLER_PDF.png.sha1 |   1 +
+ .../extensions/extension_service_unittest.cc  |  32 +++++
+ ...ermission_message_combinations_unittest.cc |  14 ++
+ .../chrome_permission_message_rules.cc        |   5 +
+ .../permissions/permission_set_unittest.cc    |  11 +-
+ .../mimehandler1_new.json                     |   8 ++
+ .../mimehandler1_old.json                     |   5 +
+ .../mime_types_handler/manifest.json          |  10 ++
+ .../mime_handler_registry_unittest.cc         |  23 ++--
+ extensions/common/BUILD.gn                    |   3 +
+ .../manifest_handlers/mime_types_handler.cc   |  30 ++--
+ .../manifest_handlers/mime_types_handler.h    |   7 +-
+ .../mime_types_handler_permission.cc          | 110 +++++++++++++++
+ .../mime_types_handler_permission.h           |  59 ++++++++
+ .../mime_types_handler_permission_unittest.cc | 129 ++++++++++++++++++
+ .../mime_types_handler_unittest.cc            |  59 ++++++--
+ .../common/mojom/api_permission_id.mojom      |   1 +
+ .../histograms/metadata/extensions/enums.xml  |   1 +
+ 19 files changed, 472 insertions(+), 39 deletions(-)
+ create mode 100644 chrome/app/generated_resources_grd/IDS_EXTENSION_PROMPT_WARNING_MIME_TYPES_HANDLER_PDF.png.sha1
+ create mode 100644 chrome/test/data/extensions/allow_silent_upgrade/mimehandler1_new.json
+ create mode 100644 chrome/test/data/extensions/allow_silent_upgrade/mimehandler1_old.json
+ create mode 100644 chrome/test/data/extensions/permissions/mime_types_handler/manifest.json
+ create mode 100644 extensions/common/manifest_handlers/mime_types_handler_permission.cc
+ create mode 100644 extensions/common/manifest_handlers/mime_types_handler_permission.h
+ create mode 100644 extensions/common/manifest_handlers/mime_types_handler_permission_unittest.cc
+
+diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
+index 21e5fd0d92..6cf3936a3f 100644
+--- a/chrome/app/generated_resources.grd
++++ b/chrome/app/generated_resources.grd
+@@ -5634,6 +5634,9 @@ are declared in tools/grit/grit_args.gni.
+         <message name="IDS_EXTENSION_PROMPT_WARNING_NEW_TAB_PAGE_OVERRIDE" desc="Permission string for extensions that override the new tab page.">
+           Replace the page you see when opening a new tab
+         </message>
++        <message name="IDS_EXTENSION_PROMPT_WARNING_MIME_TYPES_HANDLER_PDF" desc="Permission string for extensions that register themselves as the handler that opens PDF files.">
++          Read and display PDF files
++        </message>
+         <message name="IDS_EXTENSION_PROMPT_WARNING_TRANSIENT_BACKGROUND" desc="Permission string for transient background permission.">
+           Run in the background when requested by a cooperating native application
+         </message>
+diff --git a/chrome/app/generated_resources_grd/IDS_EXTENSION_PROMPT_WARNING_MIME_TYPES_HANDLER_PDF.png.sha1 b/chrome/app/generated_resources_grd/IDS_EXTENSION_PROMPT_WARNING_MIME_TYPES_HANDLER_PDF.png.sha1
+new file mode 100644
+index 0000000000..fd2ba7ee7a
+--- /dev/null
++++ b/chrome/app/generated_resources_grd/IDS_EXTENSION_PROMPT_WARNING_MIME_TYPES_HANDLER_PDF.png.sha1
+@@ -0,0 +1 @@
++aa5045eac2392a9e8191c924b90a007772ebadc6
+diff --git a/chrome/browser/extensions/extension_service_unittest.cc b/chrome/browser/extensions/extension_service_unittest.cc
+index 66284edb96..8137ad0f0f 100644
+--- a/chrome/browser/extensions/extension_service_unittest.cc
++++ b/chrome/browser/extensions/extension_service_unittest.cc
+@@ -1890,6 +1890,38 @@ TEST_F(ExtensionServiceTest, ReenableWithAllPermissionsGrantedOnStartup) {
+       id, disable_reason::DISABLE_PERMISSIONS_INCREASE));
+ }
+ 
++// An extension installed with the mime_types_handler warning should stay
++// enabled after a restart. An extension installed before the warning existed
++// should be disabled at startup until the user approves the permission.
++TEST_F(ExtensionServiceTest,
++       MimeTypesHandlerInstalledBeforeWarningRepromptsOnStartup) {
++  InitializeEmptyExtensionService();
++  const base::FilePath path =
++      data_dir().AppendASCII("permissions").AppendASCII("mime_types_handler");
++
++  const Extension* extension = PackAndInstallCRX(path, INSTALL_NEW);
++  const std::string id = extension->id();
++
++  EXPECT_EQ(0u, GetErrors().size());
++  ASSERT_TRUE(registry()->enabled_extensions().Contains(id));
++
++  // The permission granted at install should still be granted after a restart.
++  service()->ReloadExtensionsForTest();
++  ASSERT_TRUE(registry()->enabled_extensions().Contains(id));
++
++  // Make the extension look as if it was installed before the permission
++  // existed. The manifest requests only the MIME handler permission, so
++  // clearing all granted permissions clears just that one.
++  std::unique_ptr<PermissionSet> granted = prefs()->GetGrantedPermissions(id);
++  ASSERT_FALSE(granted->manifest_permissions().empty());
++  prefs()->RemoveGrantedPermissions(id, *granted);
++
++  service()->ReloadExtensionsForTest();
++  EXPECT_TRUE(registry()->disabled_extensions().Contains(id));
++  EXPECT_TRUE(prefs()->HasDisableReason(
++      id, disable_reason::DISABLE_PERMISSIONS_INCREASE));
++}
++
+ TEST_F(ExtensionServiceTest,
+        DontReenableWithAllPermissionsGrantedButOtherReason) {
+   InitializeEmptyExtensionService();
+diff --git a/chrome/browser/extensions/permission_message_combinations_unittest.cc b/chrome/browser/extensions/permission_message_combinations_unittest.cc
+index b5479cf065..af807a2afd 100644
+--- a/chrome/browser/extensions/permission_message_combinations_unittest.cc
++++ b/chrome/browser/extensions/permission_message_combinations_unittest.cc
+@@ -1294,6 +1294,20 @@ TEST_F(PermissionMessageCombinationsUnittest, NewTabPagePermissionMessages) {
+       "Replace the page you see when opening a new tab"));
+ }
+ 
++TEST_F(PermissionMessageCombinationsUnittest,
++       MimeTypesHandlerPermissionMessages) {
++  static constexpr char kManifest[] = R"({
++    "mime_types_handler": {
++      "application/pdf": {
++        "handler_url": "viewer.html"
++      }
++    }
++  })";
++
++  CreateAndInstall(kManifest);
++  ASSERT_TRUE(CheckManifestProducesPermissions("Read and display PDF files"));
++}
++
+ TEST_F(PermissionMessageCombinationsUnittest,
+        DeclarativeNetRequestFeedbackPermissionMessages) {
+   // Set the current channel to trunk.
+diff --git a/chrome/common/extensions/permissions/chrome_permission_message_rules.cc b/chrome/common/extensions/permissions/chrome_permission_message_rules.cc
+index f4f294b08a..d7e68dd2c0 100644
+--- a/chrome/common/extensions/permissions/chrome_permission_message_rules.cc
++++ b/chrome/common/extensions/permissions/chrome_permission_message_rules.cc
+@@ -491,6 +491,11 @@ ChromePermissionMessageRule::GetAllRules() {
+        {APIPermissionID::kPrintingMetrics},
+        {}},
+ 
++      // Third-party MIME handlers, one warning per claimed MIME type.
++      {IDS_EXTENSION_PROMPT_WARNING_MIME_TYPES_HANDLER_PDF,
++       {APIPermissionID::kMimeTypesHandlerPdf},
++       {}},
++
+       {IDS_EXTENSION_PROMPT_WARNING_DECLARATIVE_WEB_REQUEST,
+        {APIPermissionID::kDeclarativeWebRequest},
+        {}},
+diff --git a/chrome/common/extensions/permissions/permission_set_unittest.cc b/chrome/common/extensions/permissions/permission_set_unittest.cc
+index a24fb0dfac..4b97dd0b60 100644
+--- a/chrome/common/extensions/permissions/permission_set_unittest.cc
++++ b/chrome/common/extensions/permissions/permission_set_unittest.cc
+@@ -690,10 +690,11 @@ TEST(PermissionsTest, IsPrivilegeIncrease) {
+ 
+       {"storage", false},       // none -> storage
+       {"notifications", true},  // none -> notifications
++      {"mimehandler1", true},   // none -> mime_types_handler
+ #if BUILDFLAG(ENABLE_PLATFORM_APPS)
+       // All of the below are platform app permissions.
+-      {"platformapp1", false},      // host permissions for platform apps
+-      {"platformapp2", true},       // API permissions for platform apps
++      {"platformapp1", false},  // host permissions for platform apps
++      {"platformapp2", true},   // API permissions for platform apps
+ #if BUILDFLAG(IS_CHROMEOS)
+       // TODO(crbug.com/445350577): Remove the IS_CHROMEOS check when
+       // IS_CHROMEOS and ENABLE_PLATFORM_APPS are equivalent.
+@@ -705,9 +706,9 @@ TEST(PermissionsTest, IsPrivilegeIncrease) {
+       {"media_galleries6", false},  // read|all -> read|all
+       {"media_galleries7", true},   // read|delete|all -> read|copyTo|delete|all
+ #endif
+-      {"sockets1", true},           // none -> tcp:*:*
+-      {"sockets2", false},          // tcp:*:* -> tcp:*:*
+-      {"sockets3", true},           // tcp:a.com:80 -> tcp:*:*
++      {"sockets1", true},   // none -> tcp:*:*
++      {"sockets2", false},  // tcp:*:* -> tcp:*:*
++      {"sockets3", true},   // tcp:a.com:80 -> tcp:*:*
+ #endif
+   });
+ 
+diff --git a/chrome/test/data/extensions/allow_silent_upgrade/mimehandler1_new.json b/chrome/test/data/extensions/allow_silent_upgrade/mimehandler1_new.json
+new file mode 100644
+index 0000000000..14967bdf4d
+--- /dev/null
++++ b/chrome/test/data/extensions/allow_silent_upgrade/mimehandler1_new.json
+@@ -0,0 +1,8 @@
++{
++  "name": "mimehandler1",
++  "version": "1.1",
++  "manifest_version": 3,
++  "mime_types_handler": {
++    "application/pdf": { "handler_url": "viewer.html" }
++  }
++}
+diff --git a/chrome/test/data/extensions/allow_silent_upgrade/mimehandler1_old.json b/chrome/test/data/extensions/allow_silent_upgrade/mimehandler1_old.json
+new file mode 100644
+index 0000000000..96dbd322c8
+--- /dev/null
++++ b/chrome/test/data/extensions/allow_silent_upgrade/mimehandler1_old.json
+@@ -0,0 +1,5 @@
++{
++  "name": "mimehandler1",
++  "version": "1.0",
++  "manifest_version": 3
++}
+diff --git a/chrome/test/data/extensions/permissions/mime_types_handler/manifest.json b/chrome/test/data/extensions/permissions/mime_types_handler/manifest.json
+new file mode 100644
+index 0000000000..efc8c46265
+--- /dev/null
++++ b/chrome/test/data/extensions/permissions/mime_types_handler/manifest.json
+@@ -0,0 +1,10 @@
++{
++  "name": "MIME types handler",
++  "version": "1",
++  "manifest_version": 3,
++  "mime_types_handler": {
++    "application/pdf": {
++      "handler_url": "viewer.html"
++    }
++  }
++}
+diff --git a/extensions/browser/mime_handler/mime_handler_registry_unittest.cc b/extensions/browser/mime_handler/mime_handler_registry_unittest.cc
+index d45e262f45..652a0ea4ba 100644
+--- a/extensions/browser/mime_handler/mime_handler_registry_unittest.cc
++++ b/extensions/browser/mime_handler/mime_handler_registry_unittest.cc
+@@ -4,6 +4,8 @@
+ 
+ #include "extensions/browser/mime_handler/mime_handler_registry.h"
+ 
++#include <optional>
++
+ #include "base/containers/span.h"
+ #include "base/feature_list.h"
+ #include "base/json/values_util.h"
+@@ -21,7 +23,7 @@
+ #include "extensions/common/extension_builder.h"
+ #include "extensions/common/extension_features.h"
+ #include "extensions/common/features/feature_channel.h"
+-#include "extensions/common/manifest_handlers/mime_types_handler.h"
++#include "extensions/common/manifest_handlers/mime_types_handler_permission.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+ 
+ namespace extensions {
+@@ -267,8 +269,7 @@ TEST_F(MimeHandlerRegistryTest, MultipleMimeTypesWithOverlap) {
+ 
+   // Allowlisted QuickOffice extension registers for BOTH application/pdf
+   // and application/msword via a dict-format manifest. Allowlisted
+-  // extensions bypass `GetPublicAllowedMIMETypeList()`, so msword is
+-  // accepted.
++  // extensions may claim unsupported MIME types, so msword is accepted.
+   auto allowlisted =
+       ExtensionBuilder("AllowlistedMulti")
+           .SetID(extension_misc::kQuickOfficeExtensionId)
+@@ -422,15 +423,13 @@ TEST_F(MimeHandlerRegistryTest, DisableRollsBackToPreviouslyInstalledHandler) {
+ 
+ TEST_F(MimeHandlerRegistryTest, SetEnabledForUnclaimedMimeTypeDoesNotRegister) {
+   constexpr char kPngMimeType[] = "image/png";
+-  // Anchor on the actual invariant: `kPngMimeType` is not in the public
+-  // allowed MIME types, so no non-allowlisted extension's manifest can
+-  // claim it (the parser drops unsupported entries with an install
+-  // warning). If this list ever grows to include `image/png`, pick a
+-  // different MIME type for this test.
+-  ASSERT_TRUE(
+-      std::ranges::find(MimeTypesHandler::GetPublicAllowedMIMETypeList(),
+-                        kPngMimeType) ==
+-      MimeTypesHandler::GetPublicAllowedMIMETypeList().end());
++  // Anchor on the actual invariant: `kPngMimeType` is not a supported MIME
++  // type, so no non-allowlisted extension's manifest can claim it (the
++  // parser drops unsupported entries with an install warning). If support
++  // ever grows to include `image/png`, pick a different MIME type for this
++  // test.
++  EXPECT_EQ(MimeTypesHandlerPermission::PermissionIDForMimeType(kPngMimeType),
++            std::nullopt);
+ 
+   auto ext =
+       CreateMimeHandlerExtension("PDF Handler", kPdfMimeType, kViewerUrl);
+diff --git a/extensions/common/BUILD.gn b/extensions/common/BUILD.gn
+index d36d73caa3..d56066f572 100644
+--- a/extensions/common/BUILD.gn
++++ b/extensions/common/BUILD.gn
+@@ -472,6 +472,8 @@ static_library("common") {
+     "manifest_handlers/message_serialization_info.h",
+     "manifest_handlers/mime_types_handler.cc",
+     "manifest_handlers/mime_types_handler.h",
++    "manifest_handlers/mime_types_handler_permission.cc",
++    "manifest_handlers/mime_types_handler_permission.h",
+     "manifest_handlers/oauth2_manifest_handler.cc",
+     "manifest_handlers/oauth2_manifest_handler.h",
+     "manifest_handlers/offline_enabled_info.cc",
+@@ -744,6 +746,7 @@ source_set("unit_tests") {
+     "manifest_handlers/manifest_url_about_unittest.cc",
+     "manifest_handlers/manifest_v3_permissions_unittest.cc",
+     "manifest_handlers/message_serialization_manifest_unittest.cc",
++    "manifest_handlers/mime_types_handler_permission_unittest.cc",
+     "manifest_handlers/mime_types_handler_unittest.cc",
+     "manifest_handlers/oauth2_manifest_unittest.cc",
+     "manifest_handlers/protocol_handler_manifest_unittest.cc",
+diff --git a/extensions/common/manifest_handlers/mime_types_handler.cc b/extensions/common/manifest_handlers/mime_types_handler.cc
+index 4f50ac1b0b..1ad47e5f0e 100644
+--- a/extensions/common/manifest_handlers/mime_types_handler.cc
++++ b/extensions/common/manifest_handlers/mime_types_handler.cc
+@@ -27,7 +27,7 @@
+ #include "extensions/common/install_warning.h"
+ #include "extensions/common/manifest.h"
+ #include "extensions/common/manifest_constants.h"
+-#include "mime_types_handler.h"
++#include "extensions/common/manifest_handlers/mime_types_handler_permission.h"
+ 
+ namespace keys = extensions::manifest_keys;
+ namespace errors = extensions::manifest_errors;
+@@ -90,8 +90,8 @@ bool ParseDictFormat(extensions::Extension* extension,
+       continue;
+     }
+     if (!is_legacy_extension &&
+-        !std::ranges::contains(MimeTypesHandler::GetPublicAllowedMIMETypeList(),
+-                               mime_type)) {
++        !extensions::MimeTypesHandlerPermission::PermissionIDForMimeType(
++            mime_type)) {
+       extension->AddInstallWarning(extensions::InstallWarning(
+           base::StrCat({"mime_types_handler: ignoring unsupported "
+                         "MIME type '",
+@@ -144,13 +144,6 @@ MimeTypesHandler::GetMIMETypeAllowlist() {
+   return *allowlist_vector;
+ }
+ 
+-// static
+-base::span<const std::string_view>
+-MimeTypesHandler::GetPublicAllowedMIMETypeList() {
+-  static constexpr std::string_view kAllowed[] = {"application/pdf"};
+-  return kAllowed;
+-}
+-
+ MimeTypesHandler::MimeTypeConfig::MimeTypeConfig() = default;
+ MimeTypesHandler::MimeTypeConfig::MimeTypeConfig(const MimeTypeConfig&) =
+     default;
+@@ -300,6 +293,23 @@ bool MimeTypesHandlerParser::Parse(extensions::Extension* extension,
+   return true;
+ }
+ 
++extensions::ManifestPermission* MimeTypesHandlerParser::CreatePermission() {
++  return new extensions::MimeTypesHandlerPermission();
++}
++
++extensions::ManifestPermission*
++MimeTypesHandlerParser::CreateInitialRequiredPermission(
++    const extensions::Extension* extension) {
++  const MimeTypesHandler* handler = MimeTypesHandler::Get(*extension);
++  // Plugin handlers are trusted by the allowlist and never prompt.
++  if (!handler || handler->IsPluginExtension()) {
++    return nullptr;
++  }
++  return new extensions::MimeTypesHandlerPermission(
++      extensions::MimeTypesHandlerPermission::MimeTypeSet(
++          handler->GetSupportedMimeTypes()));
++}
++
+ base::span<const char* const> MimeTypesHandlerParser::Keys() const {
+   static constexpr const char* kKeys[] = {keys::kMIMETypes,
+                                           keys::kMimeTypesHandler};
+diff --git a/extensions/common/manifest_handlers/mime_types_handler.h b/extensions/common/manifest_handlers/mime_types_handler.h
+index 41120cfa11..3743742d6f 100644
+--- a/extensions/common/manifest_handlers/mime_types_handler.h
++++ b/extensions/common/manifest_handlers/mime_types_handler.h
+@@ -6,7 +6,6 @@
+ #define EXTENSIONS_COMMON_MANIFEST_HANDLERS_MIME_TYPES_HANDLER_H_
+ 
+ #include <string>
+-#include <string_view>
+ #include <vector>
+ 
+ #include "base/containers/flat_map.h"
+@@ -33,9 +32,6 @@ class MimeTypesHandler {
+   // Returns list of extensions' ids that are allowed to use MIME type filters.
+   static const std::vector<extensions::ExtensionId>& GetMIMETypeAllowlist();
+ 
+-  // Returns list of MIME types allowed for public (non-allowlisted) extensions.
+-  static base::span<const std::string_view> GetPublicAllowedMIMETypeList();
+-
+   static const MimeTypesHandler* Get(const extensions::Extension& extension);
+ 
+   MimeTypesHandler();
+@@ -93,6 +89,9 @@ class MimeTypesHandlerParser : public extensions::ManifestHandler {
+   ~MimeTypesHandlerParser() override;
+ 
+   bool Parse(extensions::Extension* extension, std::u16string* error) override;
++  extensions::ManifestPermission* CreatePermission() override;
++  extensions::ManifestPermission* CreateInitialRequiredPermission(
++      const extensions::Extension* extension) override;
+ 
+  private:
+   base::span<const char* const> Keys() const override;
+diff --git a/extensions/common/manifest_handlers/mime_types_handler_permission.cc b/extensions/common/manifest_handlers/mime_types_handler_permission.cc
+new file mode 100644
+index 0000000000..821434867d
+--- /dev/null
++++ b/extensions/common/manifest_handlers/mime_types_handler_permission.cc
+@@ -0,0 +1,110 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "extensions/common/manifest_handlers/mime_types_handler_permission.h"
++
++#include <utility>
++#include <vector>
++
++#include "base/containers/fixed_flat_map.h"
++#include "base/containers/map_util.h"
++#include "base/containers/to_value_list.h"
++#include "base/stl_util.h"
++#include "base/types/optional_util.h"
++#include "extensions/common/manifest_constants.h"
++#include "tools/json_schema_compiler/util.h"
++
++namespace extensions {
++
++namespace {
++
++// MIME types extensions are currently allowed to handle, each bound to the
++// permission that carries its install warning. Adding a type here requires
++// adding its permission and warning string.
++constexpr auto kSupportedMimeTypes =
++    base::MakeFixedFlatMap<std::string_view, mojom::APIPermissionID>({
++        {"application/pdf", mojom::APIPermissionID::kMimeTypesHandlerPdf},
++    });
++
++const MimeTypesHandlerPermission::MimeTypeSet& MimeTypesOf(
++    const ManifestPermission* permission) {
++  return static_cast<const MimeTypesHandlerPermission*>(permission)
++      ->mime_types();
++}
++
++}  // namespace
++
++// static
++std::optional<mojom::APIPermissionID>
++MimeTypesHandlerPermission::PermissionIDForMimeType(
++    const std::string_view& mime_type) {
++  return base::OptionalFromPtr(
++      base::FindOrNull(kSupportedMimeTypes, mime_type));
++}
++
++MimeTypesHandlerPermission::MimeTypesHandlerPermission() = default;
++
++MimeTypesHandlerPermission::MimeTypesHandlerPermission(MimeTypeSet mime_types)
++    : mime_types_(std::move(mime_types)) {}
++
++MimeTypesHandlerPermission::~MimeTypesHandlerPermission() = default;
++
++std::string MimeTypesHandlerPermission::name() const {
++  return manifest_keys::kMimeTypesHandler;
++}
++
++std::string MimeTypesHandlerPermission::id() const {
++  return name();
++}
++
++PermissionIDSet MimeTypesHandlerPermission::GetPermissions() const {
++  PermissionIDSet ids;
++  for (const std::string& mime_type : mime_types_) {
++    std::optional<mojom::APIPermissionID> id =
++        PermissionIDForMimeType(mime_type);
++    if (id.has_value()) {
++      ids.insert(*id);
++    }
++  }
++  return ids;
++}
++
++bool MimeTypesHandlerPermission::FromValue(const base::Value* value) {
++  const base::ListValue* list = value ? value->GetIfList() : nullptr;
++  std::vector<std::string> mime_types;
++  if (!list ||
++      !json_schema_compiler::util::PopulateArrayFromList(*list, mime_types)) {
++    return false;
++  }
++  mime_types_ = MimeTypeSet(std::move(mime_types));
++  return true;
++}
++
++std::unique_ptr<base::Value> MimeTypesHandlerPermission::ToValue() const {
++  return std::make_unique<base::Value>(base::ToValueList(mime_types_));
++}
++
++std::unique_ptr<ManifestPermission> MimeTypesHandlerPermission::Diff(
++    const ManifestPermission* rhs) const {
++  return std::make_unique<MimeTypesHandlerPermission>(
++      base::STLSetDifference<MimeTypeSet>(mime_types_, MimeTypesOf(rhs)));
++}
++
++std::unique_ptr<ManifestPermission> MimeTypesHandlerPermission::Union(
++    const ManifestPermission* rhs) const {
++  return std::make_unique<MimeTypesHandlerPermission>(
++      base::STLSetUnion<MimeTypeSet>(mime_types_, MimeTypesOf(rhs)));
++}
++
++std::unique_ptr<ManifestPermission> MimeTypesHandlerPermission::Intersect(
++    const ManifestPermission* rhs) const {
++  return std::make_unique<MimeTypesHandlerPermission>(
++      base::STLSetIntersection<MimeTypeSet>(mime_types_, MimeTypesOf(rhs)));
++}
++
++bool MimeTypesHandlerPermission::RequiresManagementUIWarning() const {
++  return !mime_types_.empty();
++}
++
++}  // namespace extensions
+diff --git a/extensions/common/manifest_handlers/mime_types_handler_permission.h b/extensions/common/manifest_handlers/mime_types_handler_permission.h
+new file mode 100644
+index 0000000000..9c32ee91a7
+--- /dev/null
++++ b/extensions/common/manifest_handlers/mime_types_handler_permission.h
+@@ -0,0 +1,59 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef EXTENSIONS_COMMON_MANIFEST_HANDLERS_MIME_TYPES_HANDLER_PERMISSION_H_
++#define EXTENSIONS_COMMON_MANIFEST_HANDLERS_MIME_TYPES_HANDLER_PERMISSION_H_
++
++#include <memory>
++#include <optional>
++#include <string>
++#include <string_view>
++
++#include "base/containers/flat_set.h"
++#include "base/values.h"
++#include "extensions/common/mojom/api_permission_id.mojom-shared.h"
++#include "extensions/common/permissions/manifest_permission.h"
++
++namespace extensions {
++
++// Manages permissions for each MIME type a third-party mime handler is
++// allowed to claim via the "mime_types_handler" manifest key. Each MIME
++// type maps to its own warning, so set operations and re-consent work per
++// type.
++class MimeTypesHandlerPermission : public ManifestPermission {
++ public:
++  using MimeTypeSet = base::flat_set<std::string>;
++
++  // Returns the permission whose warning covers claiming `mime_type`, or
++  // nullopt when extensions are not allowed to handle it.
++  static std::optional<mojom::APIPermissionID> PermissionIDForMimeType(
++      const std::string_view& mime_type);
++
++  MimeTypesHandlerPermission();
++  explicit MimeTypesHandlerPermission(MimeTypeSet mime_types);
++  ~MimeTypesHandlerPermission() override;
++
++  // ManifestPermission:
++  std::string name() const override;
++  std::string id() const override;
++  PermissionIDSet GetPermissions() const override;
++  bool FromValue(const base::Value* value) override;
++  std::unique_ptr<base::Value> ToValue() const override;
++  std::unique_ptr<ManifestPermission> Diff(
++      const ManifestPermission* rhs) const override;
++  std::unique_ptr<ManifestPermission> Union(
++      const ManifestPermission* rhs) const override;
++  std::unique_ptr<ManifestPermission> Intersect(
++      const ManifestPermission* rhs) const override;
++  bool RequiresManagementUIWarning() const override;
++
++  const MimeTypeSet& mime_types() const { return mime_types_; }
++
++ private:
++  MimeTypeSet mime_types_;
++};
++
++}  // namespace extensions
++
++#endif  // EXTENSIONS_COMMON_MANIFEST_HANDLERS_MIME_TYPES_HANDLER_PERMISSION_H_
+diff --git a/extensions/common/manifest_handlers/mime_types_handler_permission_unittest.cc b/extensions/common/manifest_handlers/mime_types_handler_permission_unittest.cc
+new file mode 100644
+index 0000000000..2548e01dfb
+--- /dev/null
++++ b/extensions/common/manifest_handlers/mime_types_handler_permission_unittest.cc
+@@ -0,0 +1,129 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "extensions/common/manifest_handlers/mime_types_handler_permission.h"
++
++#include <initializer_list>
++#include <memory>
++#include <string>
++
++#include "base/memory/raw_ptr.h"
++#include "base/values.h"
++#include "extensions/common/manifest_constants.h"
++#include "extensions/common/mojom/api_permission_id.mojom-shared.h"
++#include "extensions/common/permissions/api_permission_set.h"
++#include "testing/gmock/include/gmock/gmock.h"
++#include "testing/gtest/include/gtest/gtest.h"
++
++namespace extensions {
++
++namespace {
++
++using ::testing::ElementsAre;
++
++constexpr char kPdf[] = "application/pdf";
++constexpr char kText[] = "text/plain";
++
++std::unique_ptr<MimeTypesHandlerPermission> MakePermission(
++    std::initializer_list<std::string> mime_types) {
++  return std::make_unique<MimeTypesHandlerPermission>(
++      MimeTypesHandlerPermission::MimeTypeSet(mime_types));
++}
++
++const MimeTypesHandlerPermission* AsMimePermission(
++    const ManifestPermission* permission) {
++  return static_cast<const MimeTypesHandlerPermission*>(permission);
++}
++
++void AssertEmptyPermission(const MimeTypesHandlerPermission* permission) {
++  ASSERT_TRUE(permission);
++  EXPECT_EQ(manifest_keys::kMimeTypesHandler, permission->id());
++  EXPECT_EQ(permission->id(), permission->name());
++  EXPECT_TRUE(permission->GetPermissions().empty());
++  EXPECT_TRUE(permission->mime_types().empty());
++  EXPECT_FALSE(permission->RequiresManagementUIWarning());
++}
++
++}  // namespace
++
++TEST(MimeTypesHandlerPermissionTest, Empty) {
++  auto permission = std::make_unique<MimeTypesHandlerPermission>();
++  AssertEmptyPermission(permission.get());
++
++  std::unique_ptr<base::Value> value = permission->ToValue();
++  ASSERT_TRUE(value);
++  auto restored = std::make_unique<MimeTypesHandlerPermission>();
++  EXPECT_TRUE(restored->FromValue(value.get()));
++  AssertEmptyPermission(restored.get());
++}
++
++TEST(MimeTypesHandlerPermissionTest, FromToValue) {
++  auto permission = MakePermission({kText, kPdf});
++
++  std::unique_ptr<base::Value> value = permission->ToValue();
++  ASSERT_TRUE(value);
++  ASSERT_TRUE(value->is_list());
++  EXPECT_THAT(value->GetList(), ElementsAre(kPdf, kText));
++
++  auto restored = std::make_unique<MimeTypesHandlerPermission>();
++  EXPECT_TRUE(restored->FromValue(value.get()));
++  EXPECT_TRUE(permission->Equal(restored.get()));
++  EXPECT_THAT(restored->mime_types(), ElementsAre(kPdf, kText));
++}
++
++TEST(MimeTypesHandlerPermissionTest, FromValueRejectsMalformedInput) {
++  const base::Value kNotAList("application/pdf");
++  base::ListValue mixed;
++  mixed.Append(kPdf);
++  mixed.Append(7);
++  const base::Value kMixedList(std::move(mixed));
++
++  const struct {
++    const char* name;
++    raw_ptr<const base::Value> value;
++  } kTestCases[] = {
++      {"null", nullptr},
++      {"not a list", &kNotAList},
++      {"non-string entry", &kMixedList},
++  };
++  for (const auto& test_case : kTestCases) {
++    SCOPED_TRACE(test_case.name);
++    MimeTypesHandlerPermission permission;
++    EXPECT_FALSE(permission.FromValue(test_case.value));
++  }
++}
++
++TEST(MimeTypesHandlerPermissionTest, SetOperations) {
++  auto pdf = MakePermission({kPdf});
++  auto text = MakePermission({kText});
++  auto both = MakePermission({kPdf, kText});
++
++  std::unique_ptr<ManifestPermission> union_perm = pdf->Union(text.get());
++  EXPECT_THAT(AsMimePermission(union_perm.get())->mime_types(),
++              ElementsAre(kPdf, kText));
++  EXPECT_TRUE(union_perm->Contains(pdf.get()));
++  EXPECT_TRUE(union_perm->Contains(text.get()));
++  EXPECT_TRUE(union_perm->Equal(both.get()));
++
++  // Claiming an extra type is a delta; dropping one is not.
++  EXPECT_TRUE(both->Diff(pdf.get())->Equal(text.get()));
++  AssertEmptyPermission(AsMimePermission(pdf->Diff(both.get()).get()));
++
++  EXPECT_TRUE(both->Intersect(pdf.get())->Equal(pdf.get()));
++  AssertEmptyPermission(AsMimePermission(pdf->Intersect(text.get()).get()));
++}
++
++TEST(MimeTypesHandlerPermissionTest, GetPermissionsMapsOnlySupportedTypes) {
++  PermissionIDSet ids = MakePermission({kPdf, kText})->GetPermissions();
++  EXPECT_EQ(1u, ids.size());
++  EXPECT_TRUE(ids.ContainsID(mojom::APIPermissionID::kMimeTypesHandlerPdf));
++
++  EXPECT_TRUE(MakePermission({kText})->GetPermissions().empty());
++}
++
++TEST(MimeTypesHandlerPermissionTest, RequiresManagementUIWarningWhenClaimed) {
++  EXPECT_TRUE(MakePermission({kPdf})->RequiresManagementUIWarning());
++}
++
++}  // namespace extensions
+diff --git a/extensions/common/manifest_handlers/mime_types_handler_unittest.cc b/extensions/common/manifest_handlers/mime_types_handler_unittest.cc
+index ce2335d9d3..d673a7e25f 100644
+--- a/extensions/common/manifest_handlers/mime_types_handler_unittest.cc
++++ b/extensions/common/manifest_handlers/mime_types_handler_unittest.cc
+@@ -16,7 +16,11 @@
+ #include "extensions/common/extension_features.h"
+ #include "extensions/common/features/feature_channel.h"
+ #include "extensions/common/manifest_constants.h"
++#include "extensions/common/manifest_handlers/mime_types_handler_permission.h"
+ #include "extensions/common/manifest_test.h"
++#include "extensions/common/permissions/manifest_permission_set.h"
++#include "extensions/common/permissions/permission_set.h"
++#include "extensions/common/permissions/permissions_data.h"
+ #include "testing/gmock/include/gmock/gmock.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+ #include "url/gurl.h"
+@@ -52,6 +56,16 @@ bool ExpectDictFormatParsed(version_info::Channel channel) {
+          channel <= version_info::Channel::DEV;
+ }
+ 
++const MimeTypesHandlerPermission* GetMimeTypesHandlerPermission(
++    const Extension& extension) {
++  const ManifestPermissionSet& permissions =
++      extension.permissions_data()->active_permissions().manifest_permissions();
++  auto it = permissions.find(manifest_keys::kMimeTypesHandler);
++  return it == permissions.end()
++             ? nullptr
++             : static_cast<const MimeTypesHandlerPermission*>(*it);
++}
++
+ using MimeTypesHandlerNotAllowedTest = ManifestTest;
+ 
+ class MimeTypesHandlerTest : public ManifestTest {
+@@ -113,6 +127,43 @@ TEST_F(MimeTypesHandlerNotAllowedTest, DictFormatWarnsOnDisallowedMimeType) {
+               HasSubstr("text/plain"));
+ }
+ 
++TEST_F(MimeTypesHandlerNotAllowedTest, DictFormatMintsManifestPermission) {
++  base::test::ScopedFeatureList features;
++  features.InitAndEnableFeature(extensions_features::kApiMimeHandler);
++
++  scoped_refptr<Extension> extension =
++      LoadAndExpectSuccess(ManifestData::FromJSON(kDictManifest));
++  ASSERT_TRUE(extension);
++
++  const MimeTypesHandlerPermission* permission =
++      GetMimeTypesHandlerPermission(*extension);
++  ASSERT_TRUE(permission);
++  EXPECT_THAT(permission->mime_types(), ElementsAre(kPdfMimeType));
++}
++
++// The allowlist vouches for plugin handlers, so neither manifest format
++// produces a permission for them.
++TEST_F(MimeTypesHandlerTest, AllowlistedHandlerMintsNoPermission) {
++  base::test::ScopedFeatureList features;
++  features.InitAndEnableFeature(extensions_features::kApiMimeHandler);
++
++  static constexpr char kLegacyManifest[] = R"({
++    "name": "Test Extension",
++    "manifest_version": 3,
++    "version": "0.1",
++    "mime_types": ["application/pdf"],
++    "mime_types_handler": "index.html"
++  })";
++  for (const char* manifest : {kDictManifest, kLegacyManifest}) {
++    SCOPED_TRACE(manifest);
++    scoped_refptr<Extension> extension =
++        LoadAndExpectSuccess(ManifestData::FromJSON(manifest));
++    ASSERT_TRUE(extension);
++    ASSERT_TRUE(MimeTypesHandler::Get(*extension));
++    EXPECT_FALSE(GetMimeTypesHandlerPermission(*extension));
++  }
++}
++
+ TEST_F(MimeTypesHandlerTest, LoadLegacy) {
+   static constexpr char kManifest[] = R"({
+     "name": "Test Extension",
+@@ -141,14 +192,6 @@ TEST_F(MimeTypesHandlerTest, LoadLegacy) {
+   EXPECT_TRUE(handler->HasPlugin());
+ }
+ 
+-TEST(MimeTypesHandlerUnitTest, PublicAllowedMIMETypeList) {
+-  const auto& list = MimeTypesHandler::GetPublicAllowedMIMETypeList();
+-  EXPECT_FALSE(list.empty());
+-  EXPECT_TRUE(std::ranges::contains(list, kPdfMimeType));
+-  // Inline subresource types must NOT be in the list.
+-  EXPECT_FALSE(std::ranges::contains(list, "image/png"));
+-}
+-
+ TEST_F(MimeTypesHandlerTest, DictFormatParsing) {
+   base::test::ScopedFeatureList features;
+   features.InitAndEnableFeature(extensions_features::kApiMimeHandler);
+diff --git a/extensions/common/mojom/api_permission_id.mojom b/extensions/common/mojom/api_permission_id.mojom
+index 8bc0e9b328..6552fb8834 100644
+--- a/extensions/common/mojom/api_permission_id.mojom
++++ b/extensions/common/mojom/api_permission_id.mojom
+@@ -299,6 +299,7 @@ enum APIPermissionID {
+   kBluetoothPeripheral = 272,
+   kPublicSuffix = 273,
+   kEnterpriseWebrtc = 274,
++  kMimeTypesHandlerPdf = 275,
+ 
+   // Add new entries at the end of the enum and be sure to update the
+   // "ExtensionPermission3" enum in
+diff --git a/tools/metrics/histograms/metadata/extensions/enums.xml b/tools/metrics/histograms/metadata/extensions/enums.xml
+index b243b6efa1..e8155ee5b9 100644
+--- a/tools/metrics/histograms/metadata/extensions/enums.xml
++++ b/tools/metrics/histograms/metadata/extensions/enums.xml
+@@ -3334,6 +3334,7 @@ Called by update_extension_permission.py.-->
+   <int value="272" label="kBluetoothPeripheral"/>
+   <int value="273" label="kPublicSuffix"/>
+   <int value="274" label="kEnterpriseWebrtc"/>
++  <int value="275" label="kMimeTypesHandlerPdf"/>
+ </enum>
+ 
+ <enum name="ExtensionPinReason">
+-- 
+2.43.0
+

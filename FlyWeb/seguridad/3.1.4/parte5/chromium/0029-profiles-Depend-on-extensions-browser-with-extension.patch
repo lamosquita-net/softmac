@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Maksim Sisov <msisov@igalia.com>
+Date: Tue, 6 Oct 2026 12:48:17 -0700
+Subject: [PATCH 29/48] profiles: Depend on //extensions/browser with
+ extensions core
+
+On desktop Android, where enable_extensions_core is true but
+enable_extensions is false, a clean build can fail to compile
+profile.cc with "'extensions/common/mojom/manifest.mojom-shared.h'
+file not found". This closed the tree on
+android-desktop-arm64-archive-rel.
+
+profile.cc includes //extensions/browser headers under
+ENABLE_EXTENSIONS_CORE since https://crrev.com/c/6489846, but the
+"profile" target only depends on //extensions/browser when
+enable_extensions is set. The generated mojom headers are thus not
+ordered before the compile, and the build passes only when another
+target happens to generate them first.
+
+Fix by adding the dependency under enable_extensions_core.
+
+Bug: 553138801
+Test: Build profile.o alone in a fresh desktop Android out dir
+Change-Id: Ia860b5b442e7fc0d4cd25b3d22b745c2a11930fc
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8525567
+Owners-Override: Ritika Gupta <ritikagup@google.com>
+Commit-Queue: Ritika Gupta <ritikagup@google.com>
+Reviewed-by: Sky Malice <skym@chromium.org>
+Reviewed-by: Ritika Gupta <ritikagup@google.com>
+Cr-Commit-Position: refs/heads/main@{#1712591}
+(cherry picked from commit 06464c2236ae7c849d9a32df41da63673960ce5c)
+---
+ chrome/browser/profiles/BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/chrome/browser/profiles/BUILD.gn b/chrome/browser/profiles/BUILD.gn
+index 1c4ee4ac17..09af93b511 100644
+--- a/chrome/browser/profiles/BUILD.gn
++++ b/chrome/browser/profiles/BUILD.gn
+@@ -423,7 +423,7 @@ source_set("profile") {
+     "//content/public/browser",
+     "//extensions/buildflags",
+   ]
+-  if (enable_extensions) {
++  if (enable_extensions_core) {
+     deps += [ "//extensions/browser" ]
+   }
+   if (is_chromeos) {
+-- 
+2.43.0
+

@@ -1,0 +1,179 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eriko Kurimoto <elkurin@google.com>
+Date: Tue, 6 Oct 2026 17:34:08 -0700
+Subject: [PATCH 30/48] FileChooser: Record false for CancelledByWindowResize
+
+Record false to Content.FileChooser.CancelledByWindowResize when an
+opened file chooser dialog or directory enumeration finishes without
+being cancelled by a dynamic window resize. This provides a comparison
+baseline directly within the histogram, addressing follow-up review
+feedback from https://crrev.com/c/8425979.
+
+Bug: 479258455
+Change-Id: Ica850b791bbfd9c84184f11f4c62248ad81a7ded
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8505802
+Reviewed-by: Justin DeWitt <dewittj@chromium.org>
+Auto-Submit: Eriko Kurimoto <elkurin@chromium.org>
+Reviewed-by: Jan Keitel <jkeitel@google.com>
+Commit-Queue: Justin DeWitt <dewittj@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1712890}
+(cherry picked from commit 0738a7018ae11c5f29eb060d7a3e9c2e2fa3acc7)
+---
+ chrome/browser/file_select_helper.cc          | 16 ++++++++++++----
+ chrome/browser/file_select_helper_unittest.cc |  5 +++++
+ .../file_system_access/file_system_chooser.cc | 19 +++++++++++++++----
+ .../file_system_chooser_browsertest.cc        |  4 ++++
+ .../metadata/content/histograms.xml           |  5 +++--
+ 5 files changed, 39 insertions(+), 10 deletions(-)
+
+diff --git a/chrome/browser/file_select_helper.cc b/chrome/browser/file_select_helper.cc
+index f2bda9fe32..bd91a94ac8 100644
+--- a/chrome/browser/file_select_helper.cc
++++ b/chrome/browser/file_select_helper.cc
+@@ -118,10 +118,13 @@ void LogFileChooserSuppressedByWindowSize(content::WebContents* web_contents,
+   }
+ }
+ 
+-void LogFileChooserCancelledByWindowResize(content::WebContents* web_contents) {
++void LogFileChooserCancelledByWindowResize(content::WebContents* web_contents,
++                                           bool cancelled) {
+   base::UmaHistogramBoolean("Content.FileChooser.CancelledByWindowResize",
+-                            true);
+-  LogFileChooserWindowTooSmallDetails(web_contents);
++                            cancelled);
++  if (cancelled) {
++    LogFileChooserWindowTooSmallDetails(web_contents);
++  }
+ }
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ 
+@@ -841,6 +844,10 @@ void FileSelectHelper::RunFileChooserEnd() {
+   // keep this instance alive for temporary files.
+   scoped_disallow_picture_in_picture_.reset();
+   scoped_tuck_picture_in_picture_.reset();
++
++  if (web_contents_based_canceller_) {
++    LogFileChooserCancelledByWindowResize(web_contents_, /*cancelled=*/false);
++  }
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ 
+   web_contents_based_canceller_.reset();
+@@ -981,7 +988,8 @@ void FileSelectHelper::OnTabDeactivated(tabs::TabInterface* tab) {
+ 
+ void FileSelectHelper::OnCancelledByWindowSize() {
+ #if !BUILDFLAG(IS_ANDROID)
+-  LogFileChooserCancelledByWindowResize(web_contents_);
++  LogFileChooserCancelledByWindowResize(web_contents_, /*cancelled=*/true);
++  web_contents_based_canceller_.reset();
+ #endif
+   RunFileChooserEnd();
+ }
+diff --git a/chrome/browser/file_select_helper_unittest.cc b/chrome/browser/file_select_helper_unittest.cc
+index ad4116a0a9..4a51c0482a 100644
+--- a/chrome/browser/file_select_helper_unittest.cc
++++ b/chrome/browser/file_select_helper_unittest.cc
+@@ -835,12 +835,17 @@ TEST_F(FileSelectHelperTest,
+   web_contents->SetDelegate(&delegate);
+   web_contents->Resize(gfx::Rect(0, 0, 200, 600));
+ 
++  base::HistogramTester histograms;
+   std::vector<blink::mojom::FileChooserFileInfoPtr> files;
+   auto listener = base::MakeRefCounted<TestFileSelectListener>(&files);
+ 
+   FileSelectHelper::EnumerateDirectory(web_contents, listener, data_dir_);
+   EXPECT_FALSE(listener->canceled());
+   ASSERT_TRUE(base::test::RunUntil([&]() { return !files.empty(); }));
++  histograms.ExpectUniqueSample("Content.FileChooser.SuppressedByWindowSize",
++                                false, 1);
++  histograms.ExpectUniqueSample("Content.FileChooser.CancelledByWindowResize",
++                                false, 1);
+   web_contents->SetDelegate(nullptr);
+ }
+ 
+diff --git a/content/browser/file_system_access/file_system_chooser.cc b/content/browser/file_system_access/file_system_chooser.cc
+index cbc14aaa61..564e401835 100644
+--- a/content/browser/file_system_access/file_system_chooser.cc
++++ b/content/browser/file_system_access/file_system_chooser.cc
+@@ -94,10 +94,13 @@ void LogFileChooserSuppressedByWindowSize(WebContents* web_contents,
+   }
+ }
+ 
+-void LogFileChooserCancelledByWindowResize(WebContents* web_contents) {
++void LogFileChooserCancelledByWindowResize(WebContents* web_contents,
++                                           bool cancelled) {
+   base::UmaHistogramBoolean("Content.FileChooser.CancelledByWindowResize",
+-                            true);
+-  LogFileChooserWindowTooSmallDetails(web_contents);
++                            cancelled);
++  if (cancelled) {
++    LogFileChooserWindowTooSmallDetails(web_contents);
++  }
+ }
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ 
+@@ -489,6 +492,12 @@ FileSystemChooser::FileSystemChooser(
+ 
+ FileSystemChooser::~FileSystemChooser() {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
++#if !BUILDFLAG(IS_ANDROID)
++  if (canceller_) {
++    LogFileChooserCancelledByWindowResize(canceller_->web_contents(),
++                                          /*cancelled=*/false);
++  }
++#endif
+   if (dialog_) {
+     dialog_->ListenerDestroyed();
+   }
+@@ -527,7 +536,9 @@ void FileSystemChooser::OnCancelledByWebContents() {
+   if (canceller_ &&
+       WebContentsBasedCanceller::IsWindowTooSmall(
+           canceller_->web_contents(), GetMinFileChooserWindowSize())) {
+-    LogFileChooserCancelledByWindowResize(canceller_->web_contents());
++    LogFileChooserCancelledByWindowResize(canceller_->web_contents(),
++                                          /*cancelled=*/true);
++    canceller_.reset();
+   }
+ #endif
+   FileSelectionCanceled();
+diff --git a/content/browser/file_system_access/file_system_chooser_browsertest.cc b/content/browser/file_system_access/file_system_chooser_browsertest.cc
+index 55a8936611..1dc8122aaa 100644
+--- a/content/browser/file_system_access/file_system_chooser_browsertest.cc
++++ b/content/browser/file_system_access/file_system_chooser_browsertest.cc
+@@ -2484,6 +2484,8 @@ IN_PROC_BROWSER_TEST_F(FileSystemChooserBrowserTest, MAYBE_ShowThenHide) {
+       std::make_unique<ObservableSelectFileDialogFactory>(
+           recorder.GetWeakPtr()));
+ 
++  base::HistogramTester histograms;
++
+   // Open the dialog and wait until it's created.
+   ASSERT_EQ(
+       42,
+@@ -2502,6 +2504,8 @@ IN_PROC_BROWSER_TEST_F(FileSystemChooserBrowserTest, MAYBE_ShowThenHide) {
+ 
+   // JS should see the dialog as aborted.
+   EXPECT_EQ("AbortError", content::EvalJs(wc, "p"));
++  histograms.ExpectUniqueSample("Content.FileChooser.CancelledByWindowResize",
++                                false, 1);
+ }
+ 
+ #if BUILDFLAG(IS_ANDROID)
+diff --git a/tools/metrics/histograms/metadata/content/histograms.xml b/tools/metrics/histograms/metadata/content/histograms.xml
+index be8fe25232..ce50c8463b 100644
+--- a/tools/metrics/histograms/metadata/content/histograms.xml
++++ b/tools/metrics/histograms/metadata/content/histograms.xml
+@@ -65,9 +65,10 @@ chromium-metrics-reviews@google.com.
+   <owner>elkurin@chromium.org</owner>
+   <owner>content-owners@chromium.org</owner>
+   <summary>
+-    Records true when an active file chooser dialog or directory enumeration is
++    Records whether an active file chooser dialog or directory enumeration was
+     cancelled because the top-level window was dynamically resized smaller than
+-    the minimum required size (400x300).
++    the minimum required size (400x300). Recorded when an opened file chooser
++    dialog or directory enumeration ends.
+   </summary>
+ </histogram>
+ 
+-- 
+2.43.0
+
