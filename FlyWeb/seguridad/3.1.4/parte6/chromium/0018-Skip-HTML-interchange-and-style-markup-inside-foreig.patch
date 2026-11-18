@@ -1,0 +1,571 @@
+From 09ed652ccc53ab23c73434491ecd4dd1420d9e22 Mon Sep 17 00:00:00 2001
+From: Kent Tamura <tkent@chromium.org>
+Date: Sun, 18 Oct 2026 23:37:31 -0700
+Subject: [PATCH 18/32] Skip HTML interchange and style markup inside foreign
+ content on copy
+
+Prevent StyledMarkupSerializer and StyledMarkupAccumulator from emitting
+HTML interchange markup (<span>&nbsp;</span> and
+<br class="Apple-interchange-newline">) or inline style wrappers
+(<span style="...">) inside foreign content such as <math> and <svg>.
+
+When the HTML parser parses a serialized <math> or <svg> fragment,
+encountering <span> or <br> inside a non-integration-point foreign
+element triggers a foreign-content breakout that pops <math> or <svg>
+off the open element stack and parses subsequent siblings in the HTML
+namespace.
+
+Specifically:
+- Add IsInForeignContentForSerialization() to detect when a node or any
+  of its DOM or flat-tree ancestors is a non-HTML element or has a
+  "math" or "svg" tag name.
+- Skip inline style <span> wrapping and
+  ConvertHtmlTextToInterchangeFormat() in
+  StyledMarkupAccumulator::AppendTextWithInlineStyle() and
+  StyledMarkupTraverser::ShouldApplyWrappingStyle() when inside foreign
+  content.
+- Avoid emitting leading or trailing interchange newlines inside foreign
+  content in StyledMarkupSerializer::CreateMarkup(), and advance
+  first_node to the highest <math> ancestor when a leading interchange
+  newline precedes a <math> subtree.
+- Do not abort the ancestor wrapping loop in CreateMarkup() when
+  traversing block or table ancestors (such as <mtd> or <mtr>) inside a
+  <math> ancestor that must be serialized.
+
+Guard the behavior behind the SkipHtmlInterchangeInForeignContent
+runtime enabled feature.
+
+Bug: 573244957
+Change-Id: Icd9a20e2b79839c29f5930a107838c57322e8214
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8609866
+Reviewed-by: Koji Ishii <kojii@chromium.org>
+Auto-Submit: Kent Tamura <tkent@chromium.org>
+Commit-Queue: Koji Ishii <kojii@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1721647}
+
+(cherry picked from commit 62e6a3a726af1c19be59ce73c38fefc15dd7b3ee)
+
+FlyWeb: ported to 156 by hand; only the placement of the new SkipHtmlInterchangeInForeignContent entry in runtime_enabled_features.json5 differed (kept in alphabetical order). Tests included.
+---
+ .../core/editing/serializers/serialization.cc |  41 +++++
+ .../core/editing/serializers/serialization.h  |   4 +
+ .../serializers/styled_markup_accumulator.cc  |  19 ++-
+ .../serializers/styled_markup_serializer.cc   |  49 +++++-
+ .../styled_markup_serializer_test.cc          | 146 ++++++++++++++++++
+ .../platform/runtime_enabled_features.json5   |   4 +
+ .../mathml-html-serializtion-on-copy.html     |  82 ++++++++++
+ 7 files changed, 335 insertions(+), 10 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/editing/serializers/serialization.cc b/third_party/blink/renderer/core/editing/serializers/serialization.cc
+index d4e6b0040a..5ed6dc665e 100644
+--- a/third_party/blink/renderer/core/editing/serializers/serialization.cc
++++ b/third_party/blink/renderer/core/editing/serializers/serialization.cc
+@@ -89,6 +89,7 @@
+ #include "third_party/blink/renderer/core/sanitizer/sanitizer_api.h"
+ #include "third_party/blink/renderer/core/svg/svg_style_element.h"
+ #include "third_party/blink/renderer/core/svg/svg_use_element.h"
++#include "third_party/blink/renderer/core/svg_names.h"
+ #include "third_party/blink/renderer/core/trustedtypes/trusted_types_names.h"
+ #include "third_party/blink/renderer/platform/bindings/exception_context.h"
+ #include "third_party/blink/renderer/platform/bindings/exception_state.h"
+@@ -323,8 +324,48 @@ Element* HighestAncestorToWrapMarkup(
+   return special_common_ancestor;
+ }
+ 
++bool IsForeignElementForSerialization(const Element& element) {
++  if (!IsA<HTMLElement>(element)) {
++    return true;
++  }
++  const AtomicString& local_name = element.localName();
++  return EqualIgnoringAsciiCase(local_name,
++                                mathml_names::kMathTag.LocalName()) ||
++         EqualIgnoringAsciiCase(local_name, svg_names::kSVGTag.LocalName());
++}
++
+ }  // namespace
+ 
++bool IsInForeignContentForSerialization(const Node& node) {
++  // Check both DOM tree (`NodeTraversal`) and flat tree (`FlatTreeTraversal`)
++  // ancestors because serialization can run with either `EditingStrategy` or
++  // `EditingInFlatTreeStrategy` (and `StyledMarkupAccumulator` is not templated
++  // on `Strategy`):
++  // - A light-DOM node slotted into a `<slot>` inside a shadow-DOM `<math>` has
++  //   `<math>` as an ancestor only in `FlatTreeTraversal`, not `NodeTraversal`.
++  // - Conversely, `<slot>` elements or unslotted children inside `<math>`
++  //   serialized via `EditingStrategy` have `<math>` as an ancestor only in
++  //   `NodeTraversal`, not `FlatTreeTraversal`.
++  for (const Node& runner : NodeTraversal::InclusiveAncestorsOf(node)) {
++    if (const auto* element = DynamicTo<Element>(runner)) {
++      if (IsForeignElementForSerialization(*element)) {
++        return true;
++      }
++    }
++  }
++  if (!node.GetDocument().IsFlatTreeTraversalForbidden() &&
++      !node.IsShadowRoot()) {
++    for (const Node& runner : FlatTreeTraversal::InclusiveAncestorsOf(node)) {
++      if (const auto* element = DynamicTo<Element>(runner)) {
++        if (IsForeignElementForSerialization(*element)) {
++          return true;
++        }
++      }
++    }
++  }
++  return false;
++}
++
+ bool PropertyMissingOrEqualToNone(CSSPropertyValueSet* style,
+                                   CSSPropertyID property_id) {
+   if (!style) {
+diff --git a/third_party/blink/renderer/core/editing/serializers/serialization.h b/third_party/blink/renderer/core/editing/serializers/serialization.h
+index ca065873cb..1a62437447 100644
+--- a/third_party/blink/renderer/core/editing/serializers/serialization.h
++++ b/third_party/blink/renderer/core/editing/serializers/serialization.h
+@@ -147,6 +147,10 @@ CORE_EXPORT String CreateStrictlyProcessedMarkupWithContext(
+ 
+ void MergeWithNextTextNode(Text*, ExceptionState&);
+ 
++// Returns true if |node| or any of its ancestors is in a non-HTML namespace
++// (such as MathML or SVG) or has a "math" or "svg" tag name.
++CORE_EXPORT bool IsInForeignContentForSerialization(const Node& node);
++
+ bool PropertyMissingOrEqualToNone(CSSPropertyValueSet*, CSSPropertyID);
+ 
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/editing/serializers/styled_markup_accumulator.cc b/third_party/blink/renderer/core/editing/serializers/styled_markup_accumulator.cc
+index 196e135df0..960d88cd5d 100644
+--- a/third_party/blink/renderer/core/editing/serializers/styled_markup_accumulator.cc
++++ b/third_party/blink/renderer/core/editing/serializers/styled_markup_accumulator.cc
+@@ -35,7 +35,9 @@
+ #include "third_party/blink/renderer/core/editing/ephemeral_range.h"
+ #include "third_party/blink/renderer/core/editing/iterators/text_iterator.h"
+ #include "third_party/blink/renderer/core/editing/serializers/html_interchange.h"
++#include "third_party/blink/renderer/core/editing/serializers/serialization.h"
+ #include "third_party/blink/renderer/core/html/html_document.h"
++#include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+ #include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
+ 
+ namespace blink {
+@@ -99,7 +101,10 @@ void StyledMarkupAccumulator::AppendText(Text& text) {
+ void StyledMarkupAccumulator::AppendTextWithInlineStyle(
+     Text& text,
+     EditingStyle* inline_style) {
+-  if (inline_style) {
++  const bool skip_interchange_and_style =
++      RuntimeEnabledFeatures::SkipHtmlInterchangeInForeignContentEnabled() &&
++      IsInForeignContentForSerialization(text);
++  if (inline_style && !skip_interchange_and_style) {
+     // wrappingStyleForAnnotatedSerialization should have removed
+     // -webkit-text-decorations-in-effect.
+     DCHECK(!ShouldAnnotate() ||
+@@ -114,7 +119,9 @@ void StyledMarkupAccumulator::AppendTextWithInlineStyle(
+                                           result_);
+     result_.Append("\">");
+   }
+-  if (!ShouldAnnotate()) {
++  if (!ShouldAnnotate() ||
++      (skip_interchange_and_style &&
++       options_.IgnoresCssTextTransformsForRenderedText())) {
+     AppendText(text);
+   } else {
+     const bool use_rendered_text = !EnclosingElementWithTag(
+@@ -131,17 +138,19 @@ void StyledMarkupAccumulator::AppendTextWithInlineStyle(
+                                                    start_.GetText() == &text);
+     const IsAtSelectionEnd is_at_selection_end(end_.IsNotNull() &&
+                                                end_.GetText() == &text);
+-    // Keep collapsible white spaces as is during markup sanitization.
++    // Keep collapsible white spaces as is during markup sanitization or inside
++    // foreign content.
+     const String text_to_append =
+-        IsForMarkupSanitization()
++        (IsForMarkupSanitization() || skip_interchange_and_style)
+             ? buffer.ToString()
+             : ConvertHtmlTextToInterchangeFormat(buffer.ToString(), text,
+                                                  is_at_selection_start,
+                                                  is_at_selection_end);
+     result_.Append(text_to_append);
+   }
+-  if (inline_style)
++  if (inline_style && !skip_interchange_and_style) {
+     result_.Append("</span>");
++  }
+ }
+ 
+ void StyledMarkupAccumulator::AppendElementWithInlineStyle(
+diff --git a/third_party/blink/renderer/core/editing/serializers/styled_markup_serializer.cc b/third_party/blink/renderer/core/editing/serializers/styled_markup_serializer.cc
+index 10da49546a..8835636606 100644
+--- a/third_party/blink/renderer/core/editing/serializers/styled_markup_serializer.cc
++++ b/third_party/blink/renderer/core/editing/serializers/styled_markup_serializer.cc
+@@ -56,6 +56,7 @@
+ #include "third_party/blink/renderer/core/layout/layout_object.h"
+ #include "third_party/blink/renderer/core/mathml/mathml_element.h"
+ #include "third_party/blink/renderer/core/mathml_names.h"
++#include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+ #include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
+ 
+ namespace blink {
+@@ -214,7 +215,13 @@ String StyledMarkupSerializer<Strategy>::CreateMarkup() {
+       CreateVisiblePosition(start_);
+   const VisiblePositionTemplate<Strategy> visible_end =
+       CreateVisiblePosition(end_);
+-  if (ShouldAnnotate() && NeedInterchangeNewlineAfter(visible_start)) {
++  const bool start_in_foreign_content =
++      RuntimeEnabledFeatures::SkipHtmlInterchangeInForeignContentEnabled() &&
++      visible_start.DeepEquivalent().AnchorNode() &&
++      IsInForeignContentForSerialization(
++          *visible_start.DeepEquivalent().AnchorNode());
++  if (ShouldAnnotate() && !start_in_foreign_content &&
++      NeedInterchangeNewlineAfter(visible_start)) {
+     markup_accumulator.AppendInterchangeNewline();
+     if (visible_start.DeepEquivalent() ==
+         PreviousPositionOf(visible_end).DeepEquivalent())
+@@ -228,6 +235,21 @@ String StyledMarkupSerializer<Strategy>::CreateMarkup() {
+       // This condition hits in editing/pasteboard/copy-display-none.html.
+       return markup_accumulator.TakeResults();
+     }
++
++    if (RuntimeEnabledFeatures::SkipHtmlInterchangeInForeignContentEnabled() &&
++        first_node && IsInForeignContentForSerialization(*first_node)) {
++      Node* highest_math_node = nullptr;
++      for (Node& runner : Strategy::InclusiveAncestorsOf(*first_node)) {
++        if (auto* mathml_element = DynamicTo<MathMLElement>(runner)) {
++          if (mathml_element->HasTagName(mathml_names::kMathTag)) {
++            highest_math_node = mathml_element;
++          }
++        }
++      }
++      if (highest_math_node) {
++        first_node = highest_math_node;
++      }
++    }
+   }
+ 
+   // If there is no the highest node in the selected nodes, |last_closed_| can
+@@ -261,7 +283,11 @@ String StyledMarkupSerializer<Strategy>::CreateMarkup() {
+     // Also include all of the ancestors of lastClosed up to this special
+     // ancestor.
+     // FIXME: What is ancestor?
+-    for (ContainerNode* ancestor = Strategy::Parent(*last_closed); ancestor;
++    for (ContainerNode* ancestor = Strategy::Parent(*last_closed);
++         ancestor && (!RuntimeEnabledFeatures::
++                          SkipHtmlInterchangeInForeignContentEnabled() ||
++                      Strategy::IsDescendantOf(
++                          *last_closed, *highest_node_to_be_serialized_));
+          ancestor = Strategy::Parent(*ancestor)) {
+       // Skip wrapping with <mtr> (MathML table row) during ancestor wrapping
+       // when it was already serialized during the traversal phase,
+@@ -273,8 +299,10 @@ String StyledMarkupSerializer<Strategy>::CreateMarkup() {
+       // This may also be needed for <mlabeledtr> and <matrixrow> but these
+       // elements are currently not supported - absent in mathml_names.h
+       auto* mathml_element = DynamicTo<MathMLElement>(ancestor);
+-      if (mathml_element &&
+-          mathml_element->HasTagName(mathml_names::kMtrTag)) {
++      if (mathml_element && mathml_element->HasTagName(mathml_names::kMtrTag) &&
++          (!RuntimeEnabledFeatures::
++               SkipHtmlInterchangeInForeignContentEnabled() ||
++           !first_node || !Strategy::IsDescendantOf(*first_node, *ancestor))) {
+         if (ancestor == highest_node_to_be_serialized_) {
+           break;
+         }
+@@ -345,11 +373,18 @@ String StyledMarkupSerializer<Strategy>::CreateMarkup() {
+     traverser.WrapWithNode(To<ContainerNode>(*last_closed_), style);
+   }
+ 
++  const bool end_in_foreign_content =
++      RuntimeEnabledFeatures::SkipHtmlInterchangeInForeignContentEnabled() &&
++      ((visible_end.DeepEquivalent().AnchorNode() &&
++        IsInForeignContentForSerialization(
++            *visible_end.DeepEquivalent().AnchorNode())) ||
++       (last_closed && IsInForeignContentForSerialization(*last_closed)));
+   // FIXME: The interchange newline should be placed in the block that it's in,
+   // not after all of the content, unconditionally.
+   if (!(last_closed && IsA<HTMLBRElement>(*last_closed)) && ShouldAnnotate() &&
+-      NeedInterchangeNewlineAt(visible_end))
++      !end_in_foreign_content && NeedInterchangeNewlineAt(visible_end)) {
+     markup_accumulator.AppendInterchangeNewline();
++  }
+ 
+   return markup_accumulator.TakeResults();
+ }
+@@ -643,6 +678,10 @@ void StyledMarkupTraverser<Strategy>::AppendEndMarkup(Node& node) {
+ template <typename Strategy>
+ bool StyledMarkupTraverser<Strategy>::ShouldApplyWrappingStyle(
+     const Node& node) const {
++  if (RuntimeEnabledFeatures::SkipHtmlInterchangeInForeignContentEnabled() &&
++      node.IsTextNode() && IsInForeignContentForSerialization(node)) {
++    return false;
++  }
+   return last_closed_ &&
+          Strategy::Parent(*last_closed_) == Strategy::Parent(node) &&
+          wrapping_style_ && wrapping_style_->Style();
+diff --git a/third_party/blink/renderer/core/editing/serializers/styled_markup_serializer_test.cc b/third_party/blink/renderer/core/editing/serializers/styled_markup_serializer_test.cc
+index e61ba9a5c1..ae4e81ceec 100644
+--- a/third_party/blink/renderer/core/editing/serializers/styled_markup_serializer_test.cc
++++ b/third_party/blink/renderer/core/editing/serializers/styled_markup_serializer_test.cc
+@@ -6,6 +6,8 @@
+ 
+ #include "third_party/blink/renderer/core/dom/text.h"
+ #include "third_party/blink/renderer/core/editing/testing/editing_test_base.h"
++#include "third_party/blink/renderer/core/mathml_names.h"
++#include "third_party/blink/renderer/core/svg_names.h"
+ 
+ namespace blink {
+ 
+@@ -557,4 +559,148 @@ TEST_F(StyledMarkupSerializerTest,
+       << ", Closes: " << close_mrow << "\nFull output: " << serialized;
+ }
+ 
++TEST_F(StyledMarkupSerializerTest,
++       MathMLNoInterchangeSpaceSpanInForeignContent) {
++  SetBodyContent(
++      "<math><mrow><mark id='mark' style='display: inline'>a  b"
++      "<iframe srcdoc='hello'></iframe></mark><mi id='end'>c</mi></mrow>"
++      "</math>");
++
++  Element* mark = GetElementById("mark");
++  Element* end_mi = GetElementById("end");
++  ASSERT_TRUE(mark);
++  ASSERT_TRUE(end_mi);
++
++  Position start_pos(mark->firstChild(), 1);
++  Position end_pos(end_mi->firstChild(), 1);
++
++  std::string serialized = SerializePart<EditingStrategy>(
++      start_pos, end_pos,
++      CreateMarkupOptions::Builder()
++          .SetShouldAnnotateForInterchange(true)
++          .SetIgnoresCssTextTransformsForRenderedText(true)
++          .Build());
++
++  EXPECT_FALSE(serialized.contains("<span>\u00A0</span>")) << serialized;
++  EXPECT_FALSE(serialized.contains("<span")) << serialized;
++
++  SetBodyContent(serialized);
++  Element* iframe = QuerySelector("iframe");
++  ASSERT_TRUE(iframe);
++  EXPECT_EQ(mathml_names::kNamespaceURI, iframe->namespaceURI());
++}
++
++TEST_F(StyledMarkupSerializerTest,
++       MathMLInterchangeNewlinePlacedBeforeMathRoot) {
++  SetBodyContent(
++      "<div id='p1'>Paragraph 1</div>"
++      "<math><mrow><mi id='x'>x</mi><iframe srcdoc='hello'></iframe>"
++      "<mi id='y'>y</mi></mrow></math>");
++
++  Element* p1 = GetElementById("p1");
++  Element* y = GetElementById("y");
++  ASSERT_TRUE(p1);
++  ASSERT_TRUE(y);
++
++  Node* p1_text = p1->firstChild();
++  Node* y_text = y->firstChild();
++  ASSERT_TRUE(p1_text);
++  ASSERT_TRUE(y_text);
++
++  Position start_pos(p1_text, 11);
++  Position end_pos(y_text, 1);
++
++  std::string serialized = SerializePart<EditingStrategy>(
++      start_pos, end_pos, ShouldAnnotateOptions());
++
++  SetBodyContent(serialized);
++  Element* math = QuerySelector("math");
++  ASSERT_TRUE(math);
++  EXPECT_EQ(nullptr, QuerySelector("math br"));
++  Element* iframe = QuerySelector("iframe");
++  ASSERT_TRUE(iframe);
++  EXPECT_EQ(mathml_names::kNamespaceURI, iframe->namespaceURI());
++}
++
++TEST_F(StyledMarkupSerializerTest,
++       ForeignContentSkipsInlineWrappingStyleInMathAndSvg) {
++  SetBodyContent(
++      "<div style='color: red'>"
++      "<math><mrow style='display: inline'><mi id='m_start'>a</mi>"
++      "<iframe srcdoc='hello'></iframe><mi id='m_end'>b</mi></mrow></math>"
++      "</div>");
++
++  Element* m_start = GetElementById("m_start");
++  Element* m_end = GetElementById("m_end");
++  ASSERT_TRUE(m_start);
++  ASSERT_TRUE(m_end);
++
++  std::string math_serialized = SerializePart<EditingStrategy>(
++      Position(m_start->firstChild(), 0), Position(m_end->firstChild(), 1),
++      ShouldAnnotateOptions());
++  EXPECT_FALSE(math_serialized.contains("<span")) << math_serialized;
++
++  SetBodyContent(math_serialized);
++  Element* iframe = QuerySelector("iframe");
++  ASSERT_TRUE(iframe);
++  EXPECT_EQ(mathml_names::kNamespaceURI, iframe->namespaceURI());
++
++  SetBodyContent(
++      "<div style='color: red'>"
++      "<svg><text id='s_start'>a</text><style>body { color: blue; }</style>"
++      "<text id='s_end'>b</text></svg>"
++      "</div>");
++
++  Element* s_start = GetElementById("s_start");
++  Element* s_end = GetElementById("s_end");
++  ASSERT_TRUE(s_start);
++  ASSERT_TRUE(s_end);
++
++  std::string svg_serialized = SerializePart<EditingStrategy>(
++      Position(s_start->firstChild(), 0), Position(s_end->firstChild(), 1),
++      ShouldAnnotateOptions());
++  EXPECT_FALSE(svg_serialized.contains("<span")) << svg_serialized;
++}
++
++TEST_F(StyledMarkupSerializerTest, MathMLBlockAndTableAncestorsWrapToMathRoot) {
++  SetBodyContent(
++      "<math display='block'><mtable><mtr><mtd>"
++      "<mi id='start'>a</mi><iframe srcdoc='hello'></iframe>"
++      "<mi id='end'>b</mi></mtd></mtr></mtable></math>");
++
++  Element* start_mi = GetElementById("start");
++  Element* end_mi = GetElementById("end");
++  ASSERT_TRUE(start_mi);
++  ASSERT_TRUE(end_mi);
++
++  std::string table_serialized = SerializePart<EditingStrategy>(
++      Position(start_mi->firstChild(), 0), Position(end_mi->firstChild(), 1),
++      ShouldAnnotateOptions());
++
++  SetBodyContent(table_serialized);
++  Element* table_iframe = QuerySelector("iframe");
++  ASSERT_TRUE(table_iframe);
++  EXPECT_EQ(mathml_names::kNamespaceURI, table_iframe->namespaceURI());
++  EXPECT_NE(nullptr, QuerySelector("mtr"));
++
++  SetBodyContent(
++      "<math><mrow style='display: block'>"
++      "<mi id='b_start'>a</mi><iframe srcdoc='hello'></iframe>"
++      "<mi id='b_end'>b</mi></mrow></math>");
++
++  Element* b_start = GetElementById("b_start");
++  Element* b_end = GetElementById("b_end");
++  ASSERT_TRUE(b_start);
++  ASSERT_TRUE(b_end);
++
++  std::string block_serialized = SerializePart<EditingStrategy>(
++      Position(b_start->firstChild(), 0), Position(b_end->firstChild(), 1),
++      ShouldAnnotateOptions());
++
++  SetBodyContent(block_serialized);
++  Element* block_iframe = QuerySelector("iframe");
++  ASSERT_TRUE(block_iframe);
++  EXPECT_EQ(mathml_names::kNamespaceURI, block_iframe->namespaceURI());
++}
++
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+index e095ec94c0..2f65e83da7 100644
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -5986,6 +5986,10 @@
+       name: "SkipEventCapture",
+       status: "stable",
+     },
++    {
++      name: "SkipHtmlInterchangeInForeignContent",
++      status: "stable",
++    },
+     {
+       // crbug.com/517761566
+       name: "SkipStaleUndoStepsInIdleSpellCheck",
+diff --git a/third_party/blink/web_tests/external/wpt/editing/other/mathml-html-serializtion-on-copy.html b/third_party/blink/web_tests/external/wpt/editing/other/mathml-html-serializtion-on-copy.html
+index 4440bf87d7..811f469441 100644
+--- a/third_party/blink/web_tests/external/wpt/editing/other/mathml-html-serializtion-on-copy.html
++++ b/third_party/blink/web_tests/external/wpt/editing/other/mathml-html-serializtion-on-copy.html
+@@ -73,4 +73,86 @@
+     assert_equals(pastedMath.innerHTML, expectedInnerHTML,
+       "Pasted MathML should preserve all structure and content");
+   }, "MathML elements should preserve structure and content during copy-paste");
++
++  promise_test(async t => {
++    const sourceDiv = document.getElementById("source");
++    const targetDiv = document.getElementById("target");
++    sourceDiv.innerHTML =
++        "<math><mrow><mark id='m' style='display: inline'>a  b" +
++        "<iframe srcdoc='hello'></iframe></mark><mi id='c'>c</mi></mrow></math>";
++    targetDiv.innerHTML = "";
++
++    const mark = document.getElementById("m");
++    const c = document.getElementById("c");
++    getSelection().setBaseAndExtent(mark.firstChild, 1, c.firstChild, 1);
++
++    const utils = new EditorTestUtils(sourceDiv);
++    await utils.sendCopyShortcutKey();
++
++    await test_driver.click(targetDiv);
++    const targetUtils = new EditorTestUtils(targetDiv);
++    await targetUtils.sendPasteShortcutKey();
++
++    const pastedIframe = targetDiv.querySelector("iframe");
++    assert_not_equals(pastedIframe, null, "iframe element should be pasted");
++    assert_equals(pastedIframe.namespaceURI, "http://www.w3.org/1998/Math/MathML",
++      "Pasted iframe inside MathML should remain in MathML namespace");
++  }, "Copy-pasting collapsible spaces in MathML should not break out of MathML namespace");
++
++  promise_test(async t => {
++    const sourceDiv = document.getElementById("source");
++    const targetDiv = document.getElementById("target");
++    sourceDiv.innerHTML =
++        "<div id='p1'>Paragraph 1</div>" +
++        "<math><mrow><mi id='x'>x</mi><iframe srcdoc='hello'></iframe>" +
++        "<mi id='y'>y</mi></mrow></math>";
++    targetDiv.innerHTML = "";
++
++    const p1 = document.getElementById("p1");
++    const y = document.getElementById("y");
++    getSelection().setBaseAndExtent(p1.firstChild, 11, y.firstChild, 1);
++
++    const utils = new EditorTestUtils(sourceDiv);
++    await utils.sendCopyShortcutKey();
++
++    await test_driver.click(targetDiv);
++    const targetUtils = new EditorTestUtils(targetDiv);
++    await targetUtils.sendPasteShortcutKey();
++
++    const pastedIframe = targetDiv.querySelector("iframe");
++    assert_not_equals(pastedIframe, null, "iframe element should be pasted");
++    assert_equals(pastedIframe.namespaceURI, "http://www.w3.org/1998/Math/MathML",
++      "Pasted iframe inside MathML should remain in MathML namespace");
++  }, "Copy-pasting from end of block into MathML should not inject br inside MathML");
++
++  promise_test(async t => {
++    const sourceDiv = document.getElementById("source");
++    const targetDiv = document.getElementById("target");
++    sourceDiv.innerHTML =
++        "<div style='color: rgb(255, 0, 0)'>" +
++        "<math display='block'><mtable><mtr><mtd>" +
++        "<mi id='a'>a</mi><iframe srcdoc='hello'></iframe><mi id='b'>b</mi>" +
++        "</mtd></mtr></mtable></math></div>";
++    targetDiv.innerHTML = "";
++
++    const a = document.getElementById("a");
++    const b = document.getElementById("b");
++    getSelection().setBaseAndExtent(a.firstChild, 0, b.firstChild, 1);
++
++    const utils = new EditorTestUtils(sourceDiv);
++    await utils.sendCopyShortcutKey();
++
++    await test_driver.click(targetDiv);
++    const targetUtils = new EditorTestUtils(targetDiv);
++    await targetUtils.sendPasteShortcutKey();
++
++    const pastedMath = targetDiv.querySelector("math");
++    assert_not_equals(pastedMath, null, "MathML element should be pasted");
++    assert_not_equals(pastedMath.querySelector("mtr"), null,
++      "mtr element should be preserved");
++    const pastedIframe = targetDiv.querySelector("iframe");
++    assert_not_equals(pastedIframe, null, "iframe element should be pasted");
++    assert_equals(pastedIframe.namespaceURI, "http://www.w3.org/1998/Math/MathML",
++      "Pasted iframe inside mtd should remain in MathML namespace");
++  }, "Copy-pasting inside mtd with ancestor inline styles should preserve MathML namespace");
+ </script>
+-- 
+2.43.0
+

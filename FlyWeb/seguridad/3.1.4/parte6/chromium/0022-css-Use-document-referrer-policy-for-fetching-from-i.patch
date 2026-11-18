@@ -1,0 +1,222 @@
+From 79f07332e9c12d6c1803ecd219a4ac3fd8629e33 Mon Sep 17 00:00:00 2001
+From: Mike Taylor <miketaylr@chromium.org>
+Date: Tue, 20 Oct 2026 06:25:55 -0700
+Subject: [PATCH 22/32] [css] Use document referrer policy for fetching from
+ inline CSS
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+When parsing an inline stylesheet, `CSSStyleSheet::InlineParserContext`
+previously constructed the `CSSParserContext` with
+`network::mojom::ReferrerPolicy::kDefault`, causing subresource fetches
+(such as fonts, images, or SVG resource references) initiated from
+`<style>` elements to ignore the owner document's referrer policy.
+
+Instead, snapshot `owner_node_document.GetReferrerPolicy()` when
+creating the inline `CSSParserContext` so that inline stylesheets use
+the owner document's referrer policy active at parse time. Also guard
+`ExecutionContext::GetReferrerPolicy()` when `policy_container_` is
+null (e.g. after `TakePolicyContainer()` on a cloned document).
+
+Original patch by estark@chromium.org.
+
+TAG=agy
+CONV=0f543df6-f84d-421a-bec5-5db380444d4d
+
+Bug: 40898994, 40229610
+Fixed: 392139161
+Test: external/wpt/referrer-policy/css-integration/
+Change-Id: Ieb123531d3fac6cbc8d32d6378b6d15168518f1a
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8602043
+Reviewed-by: Rune Lillesveen <futhark@chromium.org>
+Commit-Queue: Mike Taylor <miketaylr@chromium.org>
+Reviewed-by: Fredrik Söderquist <fs@opera.com>
+Cr-Commit-Position: refs/heads/main@{#1722857}
+---
+ .../renderer/core/css/css_style_sheet.cc      |  5 ++-
+ .../execution_context/execution_context.cc    |  3 +-
+ .../internal-stylesheet-no-referrer.html      | 40 ++++++++++++++++++
+ .../internal-stylesheet-no-referrer.html      | 42 +++++++++++++++++++
+ .../internal-stylesheet-no-referrer.html      | 42 +++++++++++++++++++
+ 5 files changed, 129 insertions(+), 3 deletions(-)
+ create mode 100644 third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/child-css/internal-stylesheet-no-referrer.html
+ create mode 100644 third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/font-face/internal-stylesheet-no-referrer.html
+ create mode 100644 third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/image/internal-stylesheet-no-referrer.html
+
+diff --git a/third_party/blink/renderer/core/css/css_style_sheet.cc b/third_party/blink/renderer/core/css/css_style_sheet.cc
+index 817fdfa904..781cdc65c0 100644
+--- a/third_party/blink/renderer/core/css/css_style_sheet.cc
++++ b/third_party/blink/renderer/core/css/css_style_sheet.cc
+@@ -155,9 +155,10 @@ CSSParserContext* CSSStyleSheet::InlineParserContext(
+           // document. `Referrer::ClientReferrerString()` for a fetch request
+           // just means "use the default referrer", which will be computed from
+           // the client (in this case, the owner document's ExecutionContext)
+-          // when fetching.
++          // when fetching. The referrer policy is the owner document's policy
++          // at the time the inline CSS is parsed.
+           Referrer::ClientReferrerString(),
+-          network::mojom::ReferrerPolicy::kDefault),
++          owner_node_document.GetReferrerPolicy()),
+       encoding);
+   if (AdTracker::IsAdScriptExecutingInDocument(&owner_node_document)) {
+     parser_context->SetIsAdRelated();
+diff --git a/third_party/blink/renderer/core/execution_context/execution_context.cc b/third_party/blink/renderer/core/execution_context/execution_context.cc
+index 59ed41c4e6..6242f2e336 100644
+--- a/third_party/blink/renderer/core/execution_context/execution_context.cc
++++ b/third_party/blink/renderer/core/execution_context/execution_context.cc
+@@ -517,7 +517,8 @@ void ExecutionContext::ParseAndSetReferrerPolicy(
+ }
+ 
+ network::mojom::ReferrerPolicy ExecutionContext::GetReferrerPolicy() const {
+-  return policy_container_->GetReferrerPolicy();
++  return policy_container_ ? policy_container_->GetReferrerPolicy()
++                           : network::mojom::ReferrerPolicy::kDefault;
+ }
+ 
+ void ExecutionContext::SetReferrerPolicy(
+diff --git a/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/child-css/internal-stylesheet-no-referrer.html b/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/child-css/internal-stylesheet-no-referrer.html
+new file mode 100644
+index 0000000000..78258840bb
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/child-css/internal-stylesheet-no-referrer.html
+@@ -0,0 +1,40 @@
++<!DOCTYPE html>
++<html>
++  <head>
++    <title>CSS integration - Child css from internal stylesheet - no referrer</title>
++    <script src="/resources/testharness.js"></script>
++    <script src="/resources/testharnessreport.js"></script>
++    <script src="/common/utils.js"></script>
++    <!-- Common global functions for referrer-policy tests. -->
++    <script src="/common/security-features/resources/common.sub.js"></script>
++    <meta name="referrer" content="no-referrer">
++  </head>
++  <body>
++    <p>Check that resources from internal stylesheets are loaded with
++    the referrer and referrer policy from the document.</p>
++
++    <script>
++      promise_test(function(css_test) {
++        let id = token();
++        let css_url = location.protocol + "//www1." + location.hostname + ":" +
++                      location.port +
++                      "/common/security-features/subresource/stylesheet.py" + "?id=" +
++                      id + "&type=stylesheet-only";
++        let import_url = css_url + "&report-headers";
++
++        let style = document.createElement("style");
++        style.textContent = "@import url('" + css_url + "');";
++        document.head.appendChild(style);
++        return timeoutPromise(css_test, 1000)
++          .then(() => requestViaXhr(import_url))
++          .then(function(message) {
++              assert_own_property(message, "headers");
++              assert_own_property(message, "referrer");
++              assert_equals(message.referrer, undefined);
++            });
++      }, "Child css from internal stylesheet.");
++    </script>
++
++    <div id="log"></div>
++  </body>
++</html>
+diff --git a/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/font-face/internal-stylesheet-no-referrer.html b/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/font-face/internal-stylesheet-no-referrer.html
+new file mode 100644
+index 0000000000..6afd0384c2
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/font-face/internal-stylesheet-no-referrer.html
+@@ -0,0 +1,42 @@
++<!DOCTYPE html>
++<html>
++  <head>
++    <title>CSS integration - Font from internal stylesheet - no referrer</title>
++    <script src="/resources/testharness.js"></script>
++    <script src="/resources/testharnessreport.js"></script>
++    <script src="/common/utils.js"></script>
++    <!-- Common global functions for referrer-policy tests. -->
++    <script src="/common/security-features/resources/common.sub.js"></script>
++    <meta name="referrer" content="no-referrer">
++  </head>
++  <body>
++    <p>Check that resources from internal stylesheets are loaded with
++    the referrer and referrer policy from the document.</p>
++
++    <div class="styled"></div>
++
++    <script>
++      promise_test(function(css_test) {
++        let id = token();
++        let css_url = location.protocol + "//www1." + location.hostname + ":" +
++                      location.port +
++                      "/common/security-features/subresource/font.py" + "?id=" +
++                      id + "&type=font";
++        let font_url = css_url + "&report-headers";
++
++        let style = document.createElement("style");
++        style.textContent = "@font-face { font-family: 'wpt'; font-style: normal; font-weight: normal; src: url(" + css_url + "); format('truetype'); } body { font-family: 'wpt';}";
++        document.head.appendChild(style);
++        return timeoutPromise(css_test, 1000)
++          .then(() => requestViaXhr(font_url))
++          .then(function(message) {
++              assert_own_property(message, "headers");
++              assert_own_property(message, "referrer");
++              assert_equals(message.referrer, undefined);
++            });
++      }, "Font from internal stylesheet.");
++    </script>
++
++    <div id="log"></div>
++  </body>
++</html>
+diff --git a/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/image/internal-stylesheet-no-referrer.html b/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/image/internal-stylesheet-no-referrer.html
+new file mode 100644
+index 0000000000..ad22bbcadf
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/referrer-policy/css-integration/image/internal-stylesheet-no-referrer.html
+@@ -0,0 +1,42 @@
++<!DOCTYPE html>
++<html>
++  <head>
++    <title>CSS integration - Image from internal stylesheet - no referrer</title>
++    <script src="/resources/testharness.js"></script>
++    <script src="/resources/testharnessreport.js"></script>
++    <script src="/common/utils.js"></script>
++    <!-- Common global functions for referrer-policy tests. -->
++    <script src="/common/security-features/resources/common.sub.js"></script>
++    <meta name="referrer" content="no-referrer">
++  </head>
++  <body>
++    <p>Check that resources from internal stylesheets are loaded with
++    the referrer and referrer policy from the document.</p>
++
++    <div class="styled"></div>
++
++    <script>
++      promise_test(function(css_test) {
++        let id = token();
++        let css_url = location.protocol + "//www1." + location.hostname + ":" +
++                      location.port +
++                      "/common/security-features/subresource/image.py" + "?id=" +
++                      id;
++        let image_url = css_url + "&report-headers";
++
++        let style = document.createElement("style");
++        style.textContent = ".styled { background-image: url(" + css_url + "); }";
++        document.head.appendChild(style);
++        return timeoutPromise(css_test, 1000)
++          .then(() => requestViaXhr(image_url))
++          .then(function(message) {
++              assert_own_property(message, "headers");
++              assert_own_property(message, "referrer");
++              assert_equals(message.referrer, undefined);
++            });
++      }, "Image from internal stylesheet.");
++    </script>
++
++    <div id="log"></div>
++  </body>
++</html>
+-- 
+2.43.0
+

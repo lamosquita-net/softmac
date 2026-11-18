@@ -1,0 +1,443 @@
+From 4824de7723cf3445d0445d167a983b603c96e4b5 Mon Sep 17 00:00:00 2001
+From: Yulun Zeng <yulunz@chromium.org>
+Date: Tue, 13 Oct 2026 02:27:59 -0700
+Subject: [PATCH 02/32] [DevTools] Gate browser-side network overrides on
+ MayAttachToURL
+
+Network.setExtraHTTPHeaders overrides (extra headers, Referer override,
+cache / service worker bypass) were applied to browser-initiated
+requests without checking whether the session's client may access the
+request URL. For navigations, the overrides were applied before
+OnNavigationRequestWillBeSent() force-detached sessions whose client
+fails MayAttachToURL(), so a chrome.debugger extension could inject
+headers and a spoofed Referer into credentialed requests to restricted
+origins such as the Chrome Web Store.
+
+Skip sessions whose client may not attach to the request URL when
+applying network overrides to navigations, WebSocket handshakes and
+worker main script requests. Redirects and renderer-initiated
+subresource requests are handled separately.
+
+Bug: 553259600
+Change-Id: I299041ec8f5281a70c7bb1b1597b5446266bd5e8
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8525747
+Reviewed-by: Danil Somsikov <dsv@chromium.org>
+Reviewed-by: Rakina Zata Amni <rakina@chromium.org>
+Reviewed-by: Bo Liu <boliu@chromium.org>
+Commit-Queue: Yulun Zeng <yulunz@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1717450}
+---
+ .../devtools/devtools_instrumentation.cc      |  43 +++--
+ .../devtools/devtools_instrumentation.h       |   6 +-
+ .../protocol/devtools_protocol_browsertest.cc | 173 ++++++++++++++++++
+ .../devtools/protocol/network_handler.cc      |   4 +
+ .../devtools/protocol/network_handler.h       |   4 +
+ .../renderer_host/navigation_request.cc       |   6 +-
+ .../websockets/websocket_connector_impl.cc    |   4 +-
+ 7 files changed, 215 insertions(+), 25 deletions(-)
+
+diff --git a/content/browser/devtools/devtools_instrumentation.cc b/content/browser/devtools/devtools_instrumentation.cc
+index 12a8c38548..91d90dbdf4 100644
+--- a/content/browser/devtools/devtools_instrumentation.cc
++++ b/content/browser/devtools/devtools_instrumentation.cc
+@@ -1694,19 +1694,22 @@ DevToolsAgentHostImpl* GetDevToolsAgentHostForNetworkOverrides(
+   return RenderFrameDevToolsAgentHost::GetFor(frame_tree_node);
+ }
+ 
+-void ApplyNetworkRequestOverrides(
+-    DevToolsAgentHostImpl* agent_host,
+-    net::HttpRequestHeaders* headers,
+-    bool* disable_cache,
+-    bool* network_instrumentation_enabled,
+-    bool* skip_service_worker,
+-    bool* devtools_user_agent_overridden,
+-    bool* devtools_accept_language_overridden,
+-    GURL* referrer_override) {
++void ApplyNetworkRequestOverrides(DevToolsAgentHostImpl* agent_host,
++                                  const GURL& request_url,
++                                  net::HttpRequestHeaders* headers,
++                                  bool* disable_cache,
++                                  bool* network_instrumentation_enabled,
++                                  bool* skip_service_worker,
++                                  bool* devtools_user_agent_overridden,
++                                  bool* devtools_accept_language_overridden,
++                                  GURL* referrer_override) {
+   for (auto* network : protocol::NetworkHandler::ForAgentHost(agent_host)) {
+     if (!network->enabled()) {
+       continue;
+     }
++    if (!network->MayApplyOverridesTo(request_url)) {
++      continue;
++    }
+     if (network_instrumentation_enabled) {
+       *network_instrumentation_enabled = true;
+     }
+@@ -1730,16 +1733,17 @@ void ApplyNetworkRequestOverrides(
+ void ApplyExtraHeadersForWebSocket(
+     const GlobalRenderFrameHostId& frame_id,
+     const std::optional<base::UnguessableToken>& devtools_worker_token,
++    const GURL& url,
+     net::HttpRequestHeaders* headers) {
+-  auto apply_overrides = [headers](DevToolsAgentHostImpl* agent_host) {
++  auto apply_overrides = [&url, headers](DevToolsAgentHostImpl* agent_host) {
+     if (!agent_host) {
+       return;
+     }
+     bool disable_cache = false;
+     bool skip_service_worker = false;
+-    ApplyNetworkRequestOverrides(agent_host, headers, &disable_cache, nullptr,
+-                                 &skip_service_worker, nullptr, nullptr,
+-                                 nullptr);
++    ApplyNetworkRequestOverrides(agent_host, url, headers, &disable_cache,
++                                 nullptr, &skip_service_worker, nullptr,
++                                 nullptr, nullptr);
+   };
+   if (RenderFrameHostImpl* frame = RenderFrameHostImpl::FromID(frame_id)) {
+     if (FrameTreeNode* ftn = frame->frame_tree_node()) {
+@@ -1763,8 +1767,8 @@ void ApplyAuctionNetworkRequestOverrides(
+   if (!agent_host) {
+     return;
+   }
+-  ApplyNetworkRequestOverrides(agent_host, &request->headers, &disable_cache,
+-                               network_instrumentation_enabled,
++  ApplyNetworkRequestOverrides(agent_host, request->url, &request->headers,
++                               &disable_cache, network_instrumentation_enabled,
+                                &request->skip_service_worker, nullptr, nullptr,
+                                nullptr);
+   if (disable_cache) {
+@@ -1774,6 +1778,7 @@ void ApplyAuctionNetworkRequestOverrides(
+ 
+ void ApplyNetworkRequestOverrides(
+     FrameTreeNode* frame_tree_node,
++    const GURL& url,
+     blink::mojom::BeginNavigationParams* begin_params,
+     bool* report_raw_headers,
+     bool* devtools_user_agent_overridden,
+@@ -1790,7 +1795,7 @@ void ApplyNetworkRequestOverrides(
+   net::HttpRequestHeaders headers;
+   headers.AddHeadersFromString(begin_params->headers);
+   ApplyNetworkRequestOverrides(
+-      agent_host, &headers, &disable_cache, report_raw_headers,
++      agent_host, url, &headers, &disable_cache, report_raw_headers,
+       &begin_params->skip_service_worker, devtools_user_agent_overridden,
+       devtools_accept_language_overridden, referrer_override);
+   if (disable_cache) {
+@@ -2748,9 +2753,9 @@ void OnWorkerMainScriptRequestWillBeSent(
+   // Note: we apply overrides from the owner frame to match the behavior in the
+   // renderer.
+   bool disable_cache = false;
+-  ApplyNetworkRequestOverrides(effective_host, &request.headers, &disable_cache,
+-                               nullptr, &request.skip_service_worker, nullptr,
+-                               nullptr, nullptr);
++  ApplyNetworkRequestOverrides(
++      effective_host, request.url, &request.headers, &disable_cache, nullptr,
++      &request.skip_service_worker, nullptr, nullptr, nullptr);
+   if (disable_cache) {
+     request.load_flags &=
+         ~(net::LOAD_VALIDATE_CACHE | net::LOAD_SKIP_CACHE_VALIDATION |
+diff --git a/content/browser/devtools/devtools_instrumentation.h b/content/browser/devtools/devtools_instrumentation.h
+index d215484acb..5663571d8a 100644
+--- a/content/browser/devtools/devtools_instrumentation.h
++++ b/content/browser/devtools/devtools_instrumentation.h
+@@ -118,9 +118,11 @@ void ApplyAuctionNetworkRequestOverrides(FrameTreeNode* frame_tree_node,
+ // this function overrides the `Accept-Language` header, it sets
+ // `devtools_accept_language_overridden` to true; otherwise, false. If
+ // this function overrides the `Referrer` header, it sets `referrer_override` to
+-// the new Referrer header value.
++// the new Referrer header value. Network overrides are only applied by sessions
++// whose client may attach to `url`.
+ void ApplyNetworkRequestOverrides(
+     FrameTreeNode* frame_tree_node,
++    const GURL& url,
+     blink::mojom::BeginNavigationParams* begin_params,
+     bool* report_raw_headers,
+     bool* devtools_user_agent_overridden,
+@@ -138,9 +140,11 @@ DevtoolsOverriddenOutputParams ApplyEmulationOverrides(
+ // Applies extra headers set via Network.setExtraHTTPHeaders to a WebSocket
+ // handshake request. This is needed because WebSocket connections bypass the
+ // normal URLLoader path where ApplyNetworkRequestOverrides is called.
++// Headers are only applied by sessions whose client may attach to `url`.
+ void ApplyExtraHeadersForWebSocket(
+     const GlobalRenderFrameHostId& frame_id,
+     const std::optional<base::UnguessableToken>& devtools_worker_token,
++    const GURL& url,
+     net::HttpRequestHeaders* headers);
+ 
+ // Returns true if devtools want |*override_out| to be used.
+diff --git a/content/browser/devtools/protocol/devtools_protocol_browsertest.cc b/content/browser/devtools/protocol/devtools_protocol_browsertest.cc
+index 7a957bbfc8..c9895a054a 100644
+--- a/content/browser/devtools/protocol/devtools_protocol_browsertest.cc
++++ b/content/browser/devtools/protocol/devtools_protocol_browsertest.cc
+@@ -5,6 +5,7 @@
+ #include <stddef.h>
+ 
+ #include <cstddef>
++#include <map>
+ #include <memory>
+ #include <optional>
+ #include <string>
+@@ -29,6 +30,7 @@
+ #include "base/strings/safe_sprintf.h"
+ #include "base/strings/string_number_conversions.h"
+ #include "base/strings/stringprintf.h"
++#include "base/synchronization/lock.h"
+ #include "base/system/sys_info.h"
+ #include "base/task/sequenced_task_runner.h"
+ #include "base/test/bind.h"
+@@ -97,6 +99,8 @@
+ #include "net/dns/mock_host_resolver.h"
+ #include "net/dns/public/secure_dns_mode.h"
+ #include "net/dns/public/util.h"
++#include "net/test/embedded_test_server/http_request.h"
++#include "net/test/embedded_test_server/install_default_websocket_handlers.h"
+ #include "net/test/ssl_test_util.h"
+ #include "net/test/test_doh_server.h"
+ #include "services/network/public/cpp/features.h"
+@@ -2228,6 +2232,175 @@ IN_PROC_BROWSER_TEST_F(DevToolsProtocolTest,
+   EXPECT_EQ("", *notification.FindString("url"));
+ }
+ 
++// Records the request headers received by the embedded test server, keyed by
++// relative URL, to verify which DevTools network overrides reach the network.
++class DevToolsNetworkOverridesPolicyTest : public DevToolsProtocolTest {
++ protected:
++  void SetUpOnMainThread() override {
++    DevToolsProtocolTest::SetUpOnMainThread();
++    net::test_server::InstallDefaultWebSocketHandlers(embedded_test_server());
++    embedded_test_server()->RegisterRequestMonitor(
++        base::BindRepeating(&DevToolsNetworkOverridesPolicyTest::OnRequest,
++                            base::Unretained(this)));
++    ASSERT_TRUE(embedded_test_server()->Start());
++  }
++
++  // Returns the headers of the last request received for `relative_url`, or
++  // std::nullopt if no such request was received.
++  std::optional<net::test_server::HttpRequest::HeaderMap> GetRequestHeaders(
++      const std::string& relative_url) {
++    base::AutoLock lock(lock_);
++    auto it = request_headers_.find(relative_url);
++    if (it == request_headers_.end()) {
++      return std::nullopt;
++    }
++    return it->second;
++  }
++
++  // Attaches a session that may not attach to disallowed.test and makes it
++  // inject `X-Test: 1` and a `Referer` of `referrer` into requests.
++  void AttachRestrictedSessionWithExtraHeaders(const GURL& referrer) {
++    set_agent_host_can_close();
++    SetNotAttachableHosts({"disallowed.test"});
++    Attach();
++    SendCommandSync("Network.enable");
++    ASSERT_FALSE(error());
++    base::DictValue headers;
++    headers.Set("X-Test", "1");
++    headers.Set("Referer", referrer.spec());
++    base::DictValue params;
++    params.Set("headers", std::move(headers));
++    SendCommandSync("Network.setExtraHTTPHeaders", std::move(params));
++    ASSERT_FALSE(error());
++  }
++
++ private:
++  void OnRequest(const net::test_server::HttpRequest& request) {
++    base::AutoLock lock(lock_);
++    request_headers_[request.relative_url] = request.headers;
++  }
++
++  base::Lock lock_;
++  std::map<std::string, net::test_server::HttpRequest::HeaderMap>
++      request_headers_ GUARDED_BY(lock_);
++};
++
++IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
++                       ExtraHeadersAppliedToNavigationToAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL injected_referrer =
++      embedded_test_server()->GetURL("a.test", "/injected-referrer");
++  const GURL allowed_url =
++      embedded_test_server()->GetURL("a.test", "/echoall?navigation");
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  AttachRestrictedSessionWithExtraHeaders(injected_referrer);
++
++  EXPECT_TRUE(NavigateToURL(shell(), allowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders("/echoall?navigation");
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("X-Test"));
++  EXPECT_EQ("1", headers->at("X-Test"));
++  ASSERT_TRUE(headers->contains("Referer"));
++  EXPECT_EQ(injected_referrer.spec(), headers->at("Referer"));
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
++                       ExtraHeadersNotAppliedToNavigationToNotAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL injected_referrer =
++      embedded_test_server()->GetURL("a.test", "/injected-referrer");
++  const GURL disallowed_url =
++      embedded_test_server()->GetURL("disallowed.test", "/echoall?navigation");
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  AttachRestrictedSessionWithExtraHeaders(injected_referrer);
++
++  EXPECT_TRUE(NavigateToURL(shell(), disallowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders("/echoall?navigation");
++  ASSERT_TRUE(headers);
++  EXPECT_FALSE(headers->contains("X-Test"));
++  if (headers->contains("Referer")) {
++    EXPECT_NE(injected_referrer.spec(), headers->at("Referer"));
++  }
++}
++
++IN_PROC_BROWSER_TEST_F(
++    DevToolsNetworkOverridesPolicyTest,
++    ExtraHeadersNotAppliedToFormPostNavigationToNotAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL injected_referrer =
++      embedded_test_server()->GetURL("a.test", "/injected-referrer");
++  const GURL disallowed_url =
++      embedded_test_server()->GetURL("disallowed.test", "/echoall?form-post");
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  AttachRestrictedSessionWithExtraHeaders(injected_referrer);
++
++  TestNavigationObserver observer(shell()->web_contents(), 1);
++  EXPECT_TRUE(ExecJs(shell()->web_contents(), JsReplace(R"(
++    const form = document.createElement('form');
++    form.method = 'POST';
++    form.action = $1;
++    const input = document.createElement('input');
++    input.name = 'field';
++    input.value = 'value';
++    form.appendChild(input);
++    document.body.appendChild(form);
++    form.submit();
++  )",
++                                                        disallowed_url)));
++  observer.Wait();
++  EXPECT_EQ(disallowed_url, observer.last_navigation_url());
++
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders("/echoall?form-post");
++  ASSERT_TRUE(headers);
++  EXPECT_FALSE(headers->contains("X-Test"));
++  if (headers->contains("Referer")) {
++    EXPECT_NE(injected_referrer.spec(), headers->at("Referer"));
++  }
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
++                       ExtraHeadersNotAppliedToWebSocketToNotAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL injected_referrer =
++      embedded_test_server()->GetURL("a.test", "/injected-referrer");
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  AttachRestrictedSessionWithExtraHeaders(injected_referrer);
++
++  constexpr char kOpenWebSocket[] = R"(
++    new Promise(resolve => {
++      const ws = new WebSocket($1);
++      ws.onopen = () => { ws.close(); resolve('open'); };
++      ws.onerror = () => resolve('error');
++    });
++  )";
++
++  const GURL allowed_ws_url = net::test_server::GetWebSocketURL(
++      *embedded_test_server(), "a.test", "/echo-request-headers?allowed");
++  EXPECT_EQ("open", EvalJs(shell()->web_contents(),
++                           JsReplace(kOpenWebSocket, allowed_ws_url)));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders("/echo-request-headers?allowed");
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("X-Test"));
++  EXPECT_EQ("1", headers->at("X-Test"));
++
++  const GURL disallowed_ws_url = net::test_server::GetWebSocketURL(
++      *embedded_test_server(), "disallowed.test",
++      "/echo-request-headers?disallowed");
++  EXPECT_EQ("open", EvalJs(shell()->web_contents(),
++                           JsReplace(kOpenWebSocket, disallowed_ws_url)));
++  headers = GetRequestHeaders("/echo-request-headers?disallowed");
++  ASSERT_TRUE(headers);
++  EXPECT_FALSE(headers->contains("X-Test"));
++}
++
+ IN_PROC_BROWSER_TEST_F(DevToolsProtocolTest,
+                        NavigateToHistoryEntryWithFileUrlRequiresFileAccess) {
+   ASSERT_TRUE(embedded_test_server()->Start());
+diff --git a/content/browser/devtools/protocol/network_handler.cc b/content/browser/devtools/protocol/network_handler.cc
+index 7a9d60a1e3..cafc2feef0 100644
+--- a/content/browser/devtools/protocol/network_handler.cc
++++ b/content/browser/devtools/protocol/network_handler.cc
+@@ -3838,6 +3838,10 @@ NetworkHandler::CreateRequestFromResourceRequest(
+   return request_object;
+ }
+ 
++bool NetworkHandler::MayApplyOverridesTo(const GURL& url) const {
++  return client_ && client_->MayAttachToURL(url, host_ && host_->web_ui());
++}
++
+ void NetworkHandler::ApplyOverrides(net::HttpRequestHeaders* headers,
+                                     bool* skip_service_worker,
+                                     bool* disable_cache,
+diff --git a/content/browser/devtools/protocol/network_handler.h b/content/browser/devtools/protocol/network_handler.h
+index 7606ba57cc..4a2f3d810b 100644
+--- a/content/browser/devtools/protocol/network_handler.h
++++ b/content/browser/devtools/protocol/network_handler.h
+@@ -333,6 +333,10 @@ class NetworkHandler : public DevToolsDomainHandler,
+ 
+   void OnPolicyContainerHostUpdated();
+   bool enabled() const { return enabled_; }
++  // Returns whether this session's client may influence a request to `url`
++  // (extra headers, Referer override, cache / service worker bypass). Mirrors
++  // the attach policy enforced by ForceDetachRestrictedSessions().
++  bool MayApplyOverridesTo(const GURL& url) const;
+ 
+   Network::Frontend* frontend() const { return frontend_.get(); }
+ 
+diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
+index b5c1aae409..8481e32ccf 100644
+--- a/content/browser/renderer_host/navigation_request.cc
++++ b/content/browser/renderer_host/navigation_request.cc
+@@ -6093,9 +6093,9 @@ void NavigationRequest::OnStartChecksComplete(
+   bool report_raw_headers = false;
+   GURL devtools_referrer_override;
+   devtools_instrumentation::ApplyNetworkRequestOverrides(
+-      frame_tree_node_, begin_params_.get(), &report_raw_headers,
+-      &devtools_user_agent_override_, &devtools_accept_language_override_,
+-      &devtools_referrer_override);
++      frame_tree_node_, common_params_->url, begin_params_.get(),
++      &report_raw_headers, &devtools_user_agent_override_,
++      &devtools_accept_language_override_, &devtools_referrer_override);
+ 
+   if (!devtools_referrer_override.is_empty()) {
+     // When the `Referer` header is overridden by DevTools (e.g. by CDP command
+diff --git a/content/browser/websockets/websocket_connector_impl.cc b/content/browser/websockets/websocket_connector_impl.cc
+index e756aaf3ee..eaf7d1eb13 100644
+--- a/content/browser/websockets/websocket_connector_impl.cc
++++ b/content/browser/websockets/websocket_connector_impl.cc
+@@ -155,7 +155,7 @@ void WebSocketConnectorImpl::Connect(
+     headers.SetHeader(net::HttpRequestHeaders::kUserAgent, *user_agent);
+   }
+   devtools_instrumentation::ApplyExtraHeadersForWebSocket(
+-      frame_id_, devtools_worker_token_, &headers);
++      frame_id_, devtools_worker_token_, url, &headers);
+ 
+   std::vector<network::mojom::HttpHeaderPtr> additional_headers;
+   for (net::HttpRequestHeaders::Iterator it(headers); it.GetNext();) {
+@@ -198,7 +198,7 @@ void WebSocketConnectorImpl::ConnectCalledByContentBrowserClient(
+ 
+   net::HttpRequestHeaders extra_headers;
+   devtools_instrumentation::ApplyExtraHeadersForWebSocket(
+-      frame_id, devtools_worker_token, &extra_headers);
++      frame_id, devtools_worker_token, url, &extra_headers);
+   std::erase_if(additional_headers, [&](const auto& header) {
+     return extra_headers.HasHeader(header->name);
+   });
+-- 
+2.43.0
+

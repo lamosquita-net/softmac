@@ -1,0 +1,222 @@
+From 1d5cd5b7459e14af9a319c594da4066476cbc677 Mon Sep 17 00:00:00 2001
+From: Solomon Kinard <solomonkinard@chromium.org>
+Date: Wed, 14 Oct 2026 11:39:01 -0700
+Subject: [PATCH 06/32] Extensions: WAR: Require explicit declaration for
+ generated paths
+
+ExtensionURLLoader serves synthetic endpoints not backed by files on
+disk, such as _favicon and _generated_background_page.html. Because
+web_accessible_resources is matched by URLPattern, a blanket wildcard
+like "*" unintentionally exposed these paths to external web origins,
+which could allow arbitrary web origins to probe profile favicon data.
+
+Exclude generated paths from blanket wildcards in
+WebAccessibleResourcesInfo::IsResourceWebAccessible, requiring
+extensions to explicitly declare them (e.g. "_favicon/*") to make
+them accessible to matching web origins. This supports the
+documented pattern for fetching favicons in content scripts while
+preventing accidental exposure via wildcards.
+
+Ensure _generated_background_page.html is never considered web
+accessible, and restrict it to the extension's own origin in
+ExtensionURLLoader.
+
+The new behavior is gated behind the
+kRestrictGeneratedPathsInWebAccessibleResources feature flag, which
+is disabled by default. A follow-up CL enables it.
+
+Add unit tests in WebAccessibleResourcesManifestTest and
+ExtensionProtocolsTest, and browser tests in FaviconApiTest for web
+origins, explicit allowlisting, and content script execution, with
+the feature flag both enabled and disabled.
+
+Fixed: 506142100
+Change-Id: Ieaf0d972b4c9f88e05da7991d6ed216538f6c1cb
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8421918
+Reviewed-by: Tim <tjudkins@chromium.org>
+Commit-Queue: Solomon Kinard <solomonkinard@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1718821}
+---
+ extensions/browser/extension_protocols.cc     | 13 +++
+ extensions/common/extension_features.cc       |  3 +
+ extensions/common/extension_features.h        |  6 ++
+ .../web_accessible_resources_info.cc          | 83 +++++++++++++++++--
+ 4 files changed, 100 insertions(+), 5 deletions(-)
+
+diff --git a/extensions/browser/extension_protocols.cc b/extensions/browser/extension_protocols.cc
+index 58a340d48a..f4857ecd63 100644
+--- a/extensions/browser/extension_protocols.cc
++++ b/extensions/browser/extension_protocols.cc
+@@ -894,6 +894,19 @@ class ExtensionURLLoader : public network::mojom::URLLoader {
+ 
+     const bool is_background_page_url = IsBackgroundPageURL(request_.url);
+     const bool is_favicon_url = IsFaviconURL(request_.url);
++    if (is_background_page_url &&
++        base::FeatureList::IsEnabled(
++            extensions_features::
++                kRestrictGeneratedPathsInWebAccessibleResources) &&
++        request_.request_initiator &&
++        request_.request_initiator->GetTupleOrPrecursorTupleIfOpaque() !=
++            extension->origin().GetTupleOrPrecursorTupleIfOpaque()) {
++      // Generated background pages are only served to the extension's own
++      // origin.
++      CompleteRequestAndDeleteThis(net::ERR_BLOCKED_BY_CLIENT);
++      return;
++    }
++
+     auto* dynamic_resource_provider = GetDynamicResourceProvider(
+         extension.get(), request_.url, browser_context_);
+     if (is_background_page_url || is_favicon_url || dynamic_resource_provider) {
+diff --git a/extensions/common/extension_features.cc b/extensions/common/extension_features.cc
+index 1ff44851a9..96beed4973 100644
+--- a/extensions/common/extension_features.cc
++++ b/extensions/common/extension_features.cc
+@@ -280,4 +280,7 @@ BASE_FEATURE(kOptimizeWebRequestProxy, base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kUseSha256ForExtensionHashes, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
++BASE_FEATURE(kRestrictGeneratedPathsInWebAccessibleResources,
++             base::FEATURE_DISABLED_BY_DEFAULT);
++
+ }  // namespace extensions_features
+diff --git a/extensions/common/extension_features.h b/extensions/common/extension_features.h
+index 9196ec7706..35fd5fd27b 100644
+--- a/extensions/common/extension_features.h
++++ b/extensions/common/extension_features.h
+@@ -374,6 +374,12 @@ BASE_DECLARE_FEATURE(kWebRequestPerContextEventDispatch);
+ // If enabled, `HashedExtensionId` uses SHA-256 hashes instead of SHA-1.
+ BASE_DECLARE_FEATURE(kUseSha256ForExtensionHashes);
+ 
++// When enabled, generated paths (e.g. _favicon and the generated background
++// page) are excluded from wildcard web_accessible_resources entries. _favicon
++// must be explicitly listed to be web accessible, and the generated background
++// page is never web accessible.
++BASE_DECLARE_FEATURE(kRestrictGeneratedPathsInWebAccessibleResources);
++
+ }  // namespace extensions_features
+ 
+ #endif  // EXTENSIONS_COMMON_EXTENSION_FEATURES_H_
+diff --git a/extensions/common/manifest_handlers/web_accessible_resources_info.cc b/extensions/common/manifest_handlers/web_accessible_resources_info.cc
+index 140fb23858..8cbde157f7 100644
+--- a/extensions/common/manifest_handlers/web_accessible_resources_info.cc
++++ b/extensions/common/manifest_handlers/web_accessible_resources_info.cc
+@@ -10,6 +10,7 @@
+ #include <utility>
+ 
+ #include "base/feature_list.h"
++#include "base/strings/strcat.h"
+ #include "base/strings/string_number_conversions.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/types/optional_util.h"
+@@ -175,6 +176,54 @@ GURL GetInitiatorUrl(const std::optional<url::Origin>& initiator_origin) {
+   return initiator_url;
+ }
+ 
++bool IsPathEqualTo(const GURL& url, std::string_view test) {
++  std::string_view path_piece = url.path();
++  return path_piece.size() > 1 && path_piece.substr(1) == test;
++}
++
++bool IsFaviconURL(const GURL& url) {
++  return IsPathEqualTo(url, kFaviconSourcePath) ||
++         IsPathEqualTo(url, base::StrCat({kFaviconSourcePath, "/"}));
++}
++
++bool IsGeneratedBackgroundPageURL(const GURL& url) {
++  return IsPathEqualTo(url, kGeneratedBackgroundPageFilename);
++}
++
++// Returns true if `pattern` explicitly references the favicon path.
++// Generated paths like _favicon are not exposed by blanket wildcards (e.g.
++// "*").
++bool PatternExplicitlyReferencesFavicon(const URLPattern& pattern) {
++  // `GetPattern()` prepends '/' to every resource path, so "_favicon/*" is
++  // stored as "/_favicon/*".
++  std::string_view pattern_path = pattern.path();
++  if (!pattern_path.starts_with('/') ||
++      !pattern_path.substr(1).starts_with(kFaviconSourcePath)) {
++    return false;
++  }
++  std::string_view remainder =
++      pattern_path.substr(1 + std::string_view(kFaviconSourcePath).length());
++  return remainder.empty() || remainder.starts_with('/');
++}
++
++// Returns true if any pattern in `resources` explicitly matches the favicon
++// path.
++bool EntryExplicitlyMatchesFavicon(const Extension& extension,
++                                   const URLPatternSet& resources,
++                                   std::string_view relative_path) {
++  for (const URLPattern& pattern : resources) {
++    if (PatternExplicitlyReferencesFavicon(pattern)) {
++      URLPatternSet single_pattern_set;
++      single_pattern_set.AddPattern(pattern);
++      if (extension.ResourceMatches(single_pattern_set, relative_path,
++                                    /*case_sensitive=*/true)) {
++        return true;
++      }
++    }
++  }
++  return false;
++}
++
+ // Shared implementation for `IsResourceWebAccessible` and
+ // `IsResourceWebAccessibleRedirect`.
+ bool IsResourceWebAccessibleImpl(
+@@ -187,13 +236,27 @@ bool IsResourceWebAccessibleImpl(
+     return false;
+   }
+ 
++  const bool restrict_generated_paths = base::FeatureList::IsEnabled(
++      extensions_features::kRestrictGeneratedPathsInWebAccessibleResources);
++
++  // Generated background pages should never be web accessible.
++  if (restrict_generated_paths && IsGeneratedBackgroundPageURL(target_url)) {
++    return false;
++  }
++
++  const bool is_favicon = restrict_generated_paths && IsFaviconURL(target_url);
++
+   GURL initiator_url = GetInitiatorUrl(initiator_origin);
+   std::string relative_path = target_url.GetPath();
+ 
+   // Look for the first match in the array of web accessible resources.
+   for (const auto& entry : info->web_accessible_resources) {
+-    if (extension.ResourceMatches(entry.resources, relative_path,
+-                                  /*case_sensitive=*/true)) {
++    bool matches =
++        is_favicon ? EntryExplicitlyMatchesFavicon(extension, entry.resources,
++                                                   relative_path)
++                   : extension.ResourceMatches(entry.resources, relative_path,
++                                               /*case_sensitive=*/true);
++    if (matches) {
+       bool result = true;
+ 
+       // Prior to MV3, web-accessible resources were accessible by any site.
+@@ -298,10 +361,20 @@ bool WebAccessibleResourcesInfo::ShouldUseDynamicUrl(const Extension* extension,
+   if (!info) {
+     return false;
+   }
++  const bool restrict_generated_paths = base::FeatureList::IsEnabled(
++      extensions_features::kRestrictGeneratedPathsInWebAccessibleResources);
++  GURL target_url = extension->ResolveExtensionURL(path);
++  if (restrict_generated_paths && IsGeneratedBackgroundPageURL(target_url)) {
++    return false;
++  }
++  const bool is_favicon = restrict_generated_paths && IsFaviconURL(target_url);
+   for (const auto& entry : info->web_accessible_resources) {
+-    if (extension->ResourceMatches(entry.resources, path,
+-                                   /*case_sensitive=*/true) &&
+-        entry.use_dynamic_url) {
++    bool matches =
++        is_favicon
++            ? EntryExplicitlyMatchesFavicon(*extension, entry.resources, path)
++            : extension->ResourceMatches(entry.resources, path,
++                                         /*case_sensitive=*/true);
++    if (matches && entry.use_dynamic_url) {
+       return true;
+     }
+   }
+-- 
+2.43.0
+

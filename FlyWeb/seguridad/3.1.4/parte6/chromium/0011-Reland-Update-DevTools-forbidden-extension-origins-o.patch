@@ -1,0 +1,218 @@
+From dcb9ab2391e7e9aedd1ee79df22a4bb996c5f7ef Mon Sep 17 00:00:00 2001
+From: Danil Somsikov <dsv@chromium.org>
+Date: Thu, 15 Oct 2026 02:42:23 -0700
+Subject: [PATCH 11/32] Reland "Update DevTools forbidden extension origins on
+ search engine change"
+
+This is a reland of commit b621b563bb6e0b1c0d76bcd5af1d57d7551a463f
+
+On Desktop Android (`is_desktop() == true`), non-Google default search
+providers fall back to the native Java NTP (`chrome-native://newtab/`)
+unless `chrome::android::kUseWebUiNtp3PDSE` is enabled. Enable
+`kUseWebUiNtp3PDSE` in
+`DevToolsUIBindingsExtensionsTest.UpdatesForbiddenOriginsOnSearchEngineChange`
+on Android so `search::GetNewTabPageURL()` returns the 3P DSE's remote
+NTP URL on Desktop Android as well.
+
+Original change's description:
+> Update DevTools forbidden extension origins on search engine change
+>
+> DevToolsUIBindings previously computed the forbidden origins list
+> (including the default search engine's New Tab Page origin) only once
+> when the frontend loaded. If the user changed the default search engine
+> while DevTools was already open, DevToolsAPI.setOriginsForbiddenForExtensions
+> was not updated, allowing a DevTools extension to inspect the new
+> remote NTP.
+>
+> Observe TemplateURLService in DevToolsUIBindings and re-send the
+> updated forbidden origins list to the local DevTools frontend when the
+> default search engine changes.
+>
+> Bug: 568979550
+> Change-Id: I21310c5e3514dfa4cea2295e2b82c5c7d14b239d
+
+Bug: 568979550
+Include-Ci-Only-Tests: chrome.android.desktop:android-desktop-17-x64-rel-emu-tests,chromium.android.desktop:android-desktop-x64-rel-15-tests|unit_tests
+Change-Id: I66467c5668ceab1184de60c61da39a7fa86c600a
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8579865
+Auto-Submit: Danil Somsikov <dsv@chromium.org>
+Commit-Queue: Danil Somsikov <dsv@chromium.org>
+Reviewed-by: Alex Rudenko <alexrudenko@chromium.org>
+Commit-Queue: Alex Rudenko <alexrudenko@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1719483}
+---
+ chrome/browser/devtools/BUILD.gn              |  1 +
+ .../browser/devtools/devtools_ui_bindings.cc  | 61 +++++++++++++++----
+ .../browser/devtools/devtools_ui_bindings.h   | 12 +++-
+ 3 files changed, 60 insertions(+), 14 deletions(-)
+
+diff --git a/chrome/browser/devtools/BUILD.gn b/chrome/browser/devtools/BUILD.gn
+index b754a843cd..aa9e5753b9 100644
+--- a/chrome/browser/devtools/BUILD.gn
++++ b/chrome/browser/devtools/BUILD.gn
+@@ -635,6 +635,7 @@ source_set("unit_tests") {
+ 
+     deps += [
+       "//chrome/browser/android:tabs_public",
++      "//chrome/browser/flags:flags_android",
+       "//chrome/browser/ui/android/tab_model:test_support",
+       "//chrome/browser/ui/browser_window",
+       "//chrome/browser/ui/browser_window/test:native_unit_test_support_jni",
+diff --git a/chrome/browser/devtools/devtools_ui_bindings.cc b/chrome/browser/devtools/devtools_ui_bindings.cc
+index 15dd8f3328..feadfd6a98 100644
+--- a/chrome/browser/devtools/devtools_ui_bindings.cc
++++ b/chrome/browser/devtools/devtools_ui_bindings.cc
+@@ -873,6 +873,11 @@ DevToolsUIBindings::DevToolsUIBindings(content::WebContents* web_contents)
+   ThemeServiceFactory::GetForProfile(profile_->GetOriginalProfile())
+       ->AddObserver(this);
+ #endif
++  if (auto* template_url_service =
++          TemplateURLServiceFactory::GetForProfile(
++              profile_->GetOriginalProfile())) {
++    template_url_service_observation_.Observe(template_url_service);
++  }
+ #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+   if (auto* registry = extensions::ExtensionRegistry::Get(profile_)) {
+     extension_registry_observation_.Observe(registry);
+@@ -2940,23 +2945,12 @@ void DevToolsUIBindings::AddDevToolsExtensionsToClient() {
+   }
+ 
+   base::ListValue results;
+-  base::ListValue forbidden_origins;
+   extensions::ExtensionManagement* management =
+       extensions::ExtensionManagementFactory::GetForBrowserContext(
+           web_contents_->GetBrowserContext());
+ 
+-  // NOTE: on Android, GetNewTabPageURL may return invalid URL. This is short
+-  // work around.
+-  // TODO(crbug.com/505013947): Fix the root cause.
+-  auto origin = url::Origin::Create(search::GetNewTabPageURL(profile_));
+-  if (!origin.opaque()) {
+-    forbidden_origins.Append(origin.Serialize());
+-  }
+   for (const scoped_refptr<const extensions::Extension>& extension :
+        registry->enabled_extensions()) {
+-    if (extensions::Manifest::IsComponentLocation(extension->location())) {
+-      forbidden_origins.Append(extension->origin().Serialize());
+-    }
+     if (extensions::chrome_manifest_urls::GetDevToolsPage(extension.get())
+             .is_empty()) {
+       continue;
+@@ -3004,13 +2998,54 @@ void DevToolsUIBindings::AddDevToolsExtensionsToClient() {
+     devtools_extension_ids_.insert(extension->id());
+   }
+ 
+-  CallClientMethod("DevToolsAPI", "setOriginsForbiddenForExtensions",
+-                   base::Value(std::move(forbidden_origins)));
++  UpdateOriginsForbiddenForExtensions();
+   CallClientMethod("DevToolsAPI", "addExtensions",
+                    base::Value(std::move(results)));
+ #endif  // BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+ }
+ 
++void DevToolsUIBindings::UpdateOriginsForbiddenForExtensions() {
++  if (!is_local_frontend_) {
++    return;
++  }
++#if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
++  const extensions::ExtensionRegistry* registry =
++      extensions::ExtensionRegistry::Get(profile_->GetOriginalProfile());
++  if (!registry) {
++    return;
++  }
++
++  base::ListValue forbidden_origins;
++  // NOTE: on Android, GetNewTabPageURL may return invalid URL. This is short
++  // work around.
++  // TODO(crbug.com/505013947): Fix the root cause.
++  auto origin = url::Origin::Create(search::GetNewTabPageURL(profile_));
++  if (!origin.opaque()) {
++    forbidden_origins.Append(origin.Serialize());
++  }
++  for (const scoped_refptr<const extensions::Extension>& extension :
++       registry->enabled_extensions()) {
++    if (extensions::Manifest::IsComponentLocation(extension->location())) {
++      forbidden_origins.Append(extension->origin().Serialize());
++    }
++  }
++
++  CallClientMethod("DevToolsAPI", "setOriginsForbiddenForExtensions",
++                   base::Value(std::move(forbidden_origins)));
++#endif  // BUILDFLAG(ENABLE_EXTENSIONS_CORE)
++}
++
++void DevToolsUIBindings::OnTemplateURLServiceChanged() {
++  if (!frontend_loaded_ || !is_local_frontend_) {
++    return;
++  }
++  UpdateOriginsForbiddenForExtensions();
++}
++
++void DevToolsUIBindings::OnTemplateURLServiceShuttingDown() {
++  template_url_service_observation_.Reset();
++}
++
+ #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+ void DevToolsUIBindings::OnExtensionUnloaded(
+     content::BrowserContext* browser_context,
+diff --git a/chrome/browser/devtools/devtools_ui_bindings.h b/chrome/browser/devtools/devtools_ui_bindings.h
+index 0b6b6d3642..8a01253b0f 100644
+--- a/chrome/browser/devtools/devtools_ui_bindings.h
++++ b/chrome/browser/devtools/devtools_ui_bindings.h
+@@ -14,6 +14,7 @@
+ #include "base/containers/unique_ptr_adapters.h"
+ #include "base/memory/raw_ptr.h"
+ #include "base/memory/weak_ptr.h"
++#include "base/scoped_observation.h"
+ #include "base/values.h"
+ #include "chrome/browser/devtools/aida_client.h"
+ #include "chrome/browser/devtools/devtools_dispatch_http_request_params.h"
+@@ -27,6 +28,8 @@
+ #include "chrome/browser/devtools/devtools_targets_ui.h"
+ #include "chrome/browser/devtools/visual_logging.h"
+ #include "components/prefs/pref_change_registrar.h"
++#include "components/search_engines/template_url_service.h"
++#include "components/search_engines/template_url_service_observer.h"
+ #include "content/public/browser/devtools_agent_host.h"
+ #include "content/public/browser/devtools_frontend_host.h"
+ #include "extensions/buildflags/buildflags.h"
+@@ -37,7 +40,6 @@
+ #endif
+ 
+ #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+-#include "base/scoped_observation.h"
+ #include "extensions/browser/extension_registry.h"
+ #include "extensions/browser/extension_registry_observer.h"
+ #include "extensions/common/extension_id.h"
+@@ -71,6 +73,7 @@ class Profile;
+ class DevToolsUIBindings : public DevToolsEmbedderMessageDispatcher::Delegate,
+                            public DevToolsAndroidBridge::DeviceCountListener,
+                            public content::DevToolsAgentHostClient,
++                           public TemplateURLServiceObserver,
+ #if !BUILDFLAG(IS_ANDROID)
+                            public ThemeServiceObserver,
+ #endif
+@@ -453,6 +456,11 @@ class DevToolsUIBindings : public DevToolsEmbedderMessageDispatcher::Delegate,
+ 
+   // Extensions support.
+   void AddDevToolsExtensionsToClient();
++  void UpdateOriginsForbiddenForExtensions();
++
++  // TemplateURLServiceObserver:
++  void OnTemplateURLServiceChanged() override;
++  void OnTemplateURLServiceShuttingDown() override;
+ 
+ #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+   // extensions::ExtensionRegistryObserver:
+@@ -501,6 +509,8 @@ class DevToolsUIBindings : public DevToolsEmbedderMessageDispatcher::Delegate,
+   using ExtensionsAPIs = std::map<std::string, std::string>;
+   ExtensionsAPIs extensions_api_;
+   std::string initial_target_id_;
++  base::ScopedObservation<TemplateURLService, TemplateURLServiceObserver>
++      template_url_service_observation_{this};
+ #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+   base::ScopedObservation<extensions::ExtensionRegistry,
+                           extensions::ExtensionRegistryObserver>
+-- 
+2.43.0
+

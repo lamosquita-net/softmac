@@ -1,0 +1,89 @@
+From 9ab6e498fa2128dc8dd2572a6dcb672183c353a7 Mon Sep 17 00:00:00 2001
+From: Marco Paniconi <marpan@google.com>
+Date: Fri, 16 Oct 2026 18:40:17 +0000
+Subject: [PATCH] vp9: Fix temporal denoiser buffer reallocation on resize
+
+In vp9_change_config(), resetting and reallocating the
+temporal denoiser buffers on a resolution change was only
+performed when cpi->svc.number_spatial_layers > 1 and
+cpi->oxcf.noise_sensitivity > 0.
+
+For single-layer encoding (or when noise_sensitivity is
+toggled off before resizing and re-enabled afterward),
+increasing the frame dimensions via vpx_codec_enc_config_set()
+kept the old smaller denoiser buffers allocated, leading to
+a heap-buffer-overflow write in vp9_denoiser_denoise().
+
+Move the denoiser reset in vp9_change_config() outside the
+cpi->svc.number_spatial_layers > 1 check and trigger it when
+noise_sensitivity > 0 or frame_buffer_initialized is set.
+Also reset num_ref_frames and num_layers in vp9_denoiser_free(),
+and set initial cfg_.g_w and cfg_.g_h in the test
+OnePassCbrSvc1SL2TL_DenoiseResize.
+
+Added unittest EncodeAPI.VP9DenoiserResolutionChange.
+
+Bug: 573760540
+Change-Id: Ie91d12051429459a410cc95e4c22dd64dc1ef2f4
+---
+ test/svc_datarate_test.cc  |  2 ++
+ vp9/encoder/vp9_denoiser.c |  2 ++
+ vp9/encoder/vp9_encoder.c  | 14 ++++++++------
+ 3 files changed, 12 insertions(+), 6 deletions(-)
+
+diff --git a/test/svc_datarate_test.cc b/test/svc_datarate_test.cc
+index 7e0f952..ba081e1 100644
+--- a/test/svc_datarate_test.cc
++++ b/test/svc_datarate_test.cc
+@@ -1268,6 +1268,8 @@ TEST_P(DatarateOnePassCbrSvcSingleBR, OnePassCbrSvc1SL2TL_DenoiseResize) {
+   cfg_.rc_resize_allowed = 1;
+   ::libvpx_test::I420VideoSource video("desktop_office1.1280_720-020.yuv", 1280,
+                                        720, 12, 1, 0, 300);
++  cfg_.g_w = 1280;
++  cfg_.g_h = 720;
+   top_sl_width_ = 1280;
+   top_sl_height_ = 720;
+   cfg_.rc_target_bitrate = 800;
+diff --git a/vp9/encoder/vp9_denoiser.c b/vp9/encoder/vp9_denoiser.c
+index e5dffa9..bc9a778 100644
+--- a/vp9/encoder/vp9_denoiser.c
++++ b/vp9/encoder/vp9_denoiser.c
+@@ -714,6 +714,8 @@ void vp9_denoiser_free(VP9_DENOISER *denoiser) {
+   vpx_free(denoiser->mc_running_avg_y);
+   denoiser->mc_running_avg_y = NULL;
+   vpx_free_frame_buffer(&denoiser->last_source);
++  denoiser->num_ref_frames = 0;
++  denoiser->num_layers = 0;
+ }
+ 
+ static void force_refresh_longterm_ref(VP9_COMP *const cpi) {
+diff --git a/vp9/encoder/vp9_encoder.c b/vp9/encoder/vp9_encoder.c
+index 7e02bc2..bebf710 100644
+--- a/vp9/encoder/vp9_encoder.c
++++ b/vp9/encoder/vp9_encoder.c
+@@ -2204,14 +2204,16 @@ void vp9_change_config(struct VP9_COMP *cpi, const VP9EncoderConfig *oxcf) {
+     CHECK_MEM_ERROR(&cm->error, cpi->skin_map,
+                     vpx_calloc(svc_alloc_mi_area, sizeof(*cpi->skin_map)));
+ 
+-    if (cpi->svc.number_spatial_layers > 1) {
+ #if CONFIG_VP9_TEMPORAL_DENOISING
+-      // Reset the denoiser for svc on the resize change.
+-      if (cpi->oxcf.noise_sensitivity > 0) {
+-        vp9_denoiser_free(&cpi->denoiser);
+-        setup_denoiser_buffer(cpi);
+-      }
++    // Reset the denoiser on the resize change.
++    if (cpi->oxcf.noise_sensitivity > 0 ||
++        cpi->denoiser.frame_buffer_initialized) {
++      vp9_denoiser_free(&cpi->denoiser);
++      setup_denoiser_buffer(cpi);
++    }
+ #endif
++
++    if (cpi->svc.number_spatial_layers > 1) {
+       for (int sl = 0; sl < cpi->svc.number_spatial_layers; ++sl) {
+         const int layer =
+             LAYER_IDS_TO_IDX(sl, 0, cpi->svc.number_temporal_layers);
+-- 
+2.43.0
+

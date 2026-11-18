@@ -1,0 +1,386 @@
+From 5803676a16f0f98e219d45c7582c8d85f4c7ac6e Mon Sep 17 00:00:00 2001
+From: Yulun Zeng <yulunz@chromium.org>
+Date: Mon, 19 Oct 2026 02:13:11 -0700
+Subject: [PATCH 19/32] [DevTools] Revert network overrides on redirects to
+ restricted URLs
+
+Network overrides applied at navigation start persisted across redirects
+to URLs the session's client may not attach to. Before force-detaching
+restricted sessions on redirect, revert the extra headers they set on
+the in-flight navigation request to the value set by a session that may
+still apply overrides, or else to the browser's original value, and
+block the navigation if such a session overrode the Referer header.
+
+Bug: 553259600
+Change-Id: I5521b31ba7d5e8b9414046cb1d686761db38b595
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8527598
+Reviewed-by: Danil Somsikov <dsv@chromium.org>
+Reviewed-by: Charlie Reis <creis@chromium.org>
+Commit-Queue: Yulun Zeng <yulunz@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1721712}
+
+(cherry picked from commit 75c0c8289323679dfac23d702df52591de85125e)
+
+FlyWeb: ported to 156; only an #include context line in devtools_instrumentation.cc differed. Tests included.
+---
+ .../devtools/devtools_instrumentation.cc      |  61 +++++++
+ .../devtools/devtools_instrumentation.h       |  16 ++
+ .../protocol/devtools_protocol_browsertest.cc | 149 ++++++++++++++++++
+ .../devtools/protocol/network_handler.h       |   4 +
+ .../renderer_host/navigation_request.cc       |  29 ++++
+ .../renderer_host/navigation_request.h        |   4 +
+ 6 files changed, 263 insertions(+)
+
+diff --git a/content/browser/devtools/devtools_instrumentation.cc b/content/browser/devtools/devtools_instrumentation.cc
+index 91d90dbdf4..f8944fac56 100644
+--- a/content/browser/devtools/devtools_instrumentation.cc
++++ b/content/browser/devtools/devtools_instrumentation.cc
+@@ -8,6 +8,7 @@
+ #include "base/containers/adapters.h"
+ #include "base/feature_list.h"
+ #include "base/notreached.h"
++#include "base/strings/string_util.h"
+ #include "base/strings/stringprintf.h"
+ #include "base/strings/to_string.h"
+ #include "base/strings/utf_string_conversions.h"
+@@ -1808,6 +1809,66 @@ void ApplyNetworkRequestOverrides(
+   begin_params->headers = headers.ToString();
+ }
+ 
++bool RevertDisallowedNetworkOverridesOnRedirect(
++    FrameTreeNode* frame_tree_node,
++    const GURL& redirect_url,
++    const net::HttpRequestHeaders& original_headers,
++    net::HttpRequestHeaders* headers,
++    network::HttpRequestHeadersUpdateParams* headers_update_params,
++    bool* headers_reverted) {
++  *headers_reverted = false;
++  DevToolsAgentHostImpl* agent_host =
++      GetDevToolsAgentHostForNetworkOverrides(frame_tree_node);
++  if (!agent_host) {
++    return true;
++  }
++  std::vector<protocol::NetworkHandler*> networks =
++      protocol::NetworkHandler::ForAgentHost(agent_host);
++  for (auto* network : networks) {
++    if (!network->enabled() || network->MayApplyOverridesTo(redirect_url)) {
++      continue;
++    }
++    for (const auto& [name, value] : network->extra_headers()) {
++      if (base::EqualsCaseInsensitiveASCII(name,
++                                           net::HttpRequestHeaders::kReferer) &&
++          GURL(value).is_valid()) {
++        return false;
++      }
++      // A value set by a navigation throttle on this redirect replaces it, and
++      // NavigationURLLoaderImpl sets the Accept header itself.
++      if (headers_update_params->modified_headers.HasHeader(name) ||
++          base::EqualsCaseInsensitiveASCII(name,
++                                           net::HttpRequestHeaders::kAccept)) {
++        continue;
++      }
++      // Sessions apply overrides in order, so the last one that may still
++      // apply them wins.
++      std::optional<std::string> reverted_value =
++          original_headers.GetHeader(name);
++      for (auto* other : networks) {
++        if (!other->enabled() || !other->MayApplyOverridesTo(redirect_url)) {
++          continue;
++        }
++        for (const auto& [other_name, other_value] : other->extra_headers()) {
++          if (base::EqualsCaseInsensitiveASCII(other_name, name)) {
++            reverted_value = other_value;
++          }
++        }
++      }
++      if (reverted_value) {
++        headers->SetHeader(name, *reverted_value);
++        headers_update_params->modified_headers.SetHeader(name,
++                                                          *reverted_value);
++      } else {
++        headers->RemoveHeader(name);
++        headers_update_params->removed_headers.push_back(name);
++      }
++      *headers_reverted = true;
++    }
++  }
++  return true;
++}
++
+ bool ApplyUserAgentMetadataOverrides(
+     FrameTreeNode* frame_tree_node,
+     std::optional<blink::UserAgentMetadata>* override_out) {
+diff --git a/content/browser/devtools/devtools_instrumentation.h b/content/browser/devtools/devtools_instrumentation.h
+index 5663571d8a..7456fcdc97 100644
+--- a/content/browser/devtools/devtools_instrumentation.h
++++ b/content/browser/devtools/devtools_instrumentation.h
+@@ -29,6 +29,7 @@
+ #include "net/filter/source_stream_type.h"
+ #include "net/http/http_request_headers.h"
+ #include "services/network/public/cpp/headers_matcher.h"
++#include "services/network/public/cpp/http_request_headers_update_params.h"
+ #include "services/network/public/cpp/url_loader_completion_status.h"
+ #include "services/network/public/mojom/cookie_manager.mojom-forward.h"
+ #include "services/network/public/mojom/network_context.mojom-forward.h"
+@@ -129,6 +130,21 @@ void ApplyNetworkRequestOverrides(
+     bool* devtools_accept_language_overridden,
+     GURL* referrer_override);
+ 
++// Called on a navigation redirect to `redirect_url`. In `headers`, reverts the
++// extra headers set by sessions whose client may not attach to `redirect_url`
++// to the value set by a session that may, or else to `original_headers`, and
++// records the changes in `headers_update_params`. Sets `headers_reverted` to
++// whether `headers` changed. Returns false if the navigation must be blocked
++// because such a session overrode the `Referer`, which can't be reverted on
++// redirect.
++bool RevertDisallowedNetworkOverridesOnRedirect(
++    FrameTreeNode* frame_tree_node,
++    const GURL& redirect_url,
++    const net::HttpRequestHeaders& original_headers,
++    net::HttpRequestHeaders* headers,
++    network::HttpRequestHeadersUpdateParams* headers_update_params,
++    bool* headers_reverted);
++
+ // If this function overrides the `User-Agent` header, it sets the returned
+ // `user_agent_overridden` to true; otherwise, false. If this function overrides
+ // the `Accept-Language` header, it sets the returned
+diff --git a/content/browser/devtools/protocol/devtools_protocol_browsertest.cc b/content/browser/devtools/protocol/devtools_protocol_browsertest.cc
+index 2c16878afa..5f74dde3fb 100644
+--- a/content/browser/devtools/protocol/devtools_protocol_browsertest.cc
++++ b/content/browser/devtools/protocol/devtools_protocol_browsertest.cc
+@@ -2592,6 +2592,155 @@ IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
+   EXPECT_EQ("page", headers->at("Content-Language"));
+ }
+ 
++IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
++                       ExtraHeadersRemovedOnRedirectToNotAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL disallowed_url =
++      embedded_test_server()->GetURL("disallowed.test", "/echoall?redirected");
++  const std::string redirect_path =
++      "/server-redirect-307?" + disallowed_url.spec();
++  const GURL redirect_url =
++      embedded_test_server()->GetURL("a.test", redirect_path);
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  base::DictValue extra_headers;
++  extra_headers.Set("X-Test", "1");
++  AttachRestrictedSessionWithExtraHeaders(std::move(extra_headers));
++
++  EXPECT_TRUE(NavigateToURL(shell(), redirect_url, disallowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders(redirect_path);
++  ASSERT_TRUE(headers);
++  EXPECT_TRUE(headers->contains("X-Test"));
++  headers = GetRequestHeaders("/echoall?redirected");
++  ASSERT_TRUE(headers);
++  EXPECT_FALSE(headers->contains("X-Test"));
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
++                       ReferrerOverrideBlocksRedirectToNotAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL injected_referrer =
++      embedded_test_server()->GetURL("a.test", "/injected-referrer");
++  const GURL disallowed_url =
++      embedded_test_server()->GetURL("disallowed.test", "/echoall?blocked");
++  const std::string redirect_path =
++      "/server-redirect-307?" + disallowed_url.spec();
++  const GURL redirect_url =
++      embedded_test_server()->GetURL("a.test", redirect_path);
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  AttachRestrictedSessionWithExtraHeaders(injected_referrer);
++
++  TestNavigationObserver observer(shell()->web_contents());
++  EXPECT_FALSE(NavigateToURL(shell(), redirect_url));
++  EXPECT_EQ(net::ERR_BLOCKED_BY_CLIENT, observer.last_net_error_code());
++  EXPECT_TRUE(GetRequestHeaders(redirect_path));
++  EXPECT_FALSE(GetRequestHeaders("/echoall?blocked"));
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
++                       ExtraHeadersKeptOnRedirectToAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL injected_referrer =
++      embedded_test_server()->GetURL("a.test", "/injected-referrer");
++  const GURL allowed_url =
++      embedded_test_server()->GetURL("b.test", "/echoall?redirected");
++  const GURL redirect_url = embedded_test_server()->GetURL(
++      "a.test", "/server-redirect-307?" + allowed_url.spec());
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  AttachRestrictedSessionWithExtraHeaders(injected_referrer);
++
++  EXPECT_TRUE(NavigateToURL(shell(), redirect_url, allowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders("/echoall?redirected");
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("X-Test"));
++  EXPECT_EQ("1", headers->at("X-Test"));
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
++                       OverriddenHeaderRevertedOnRedirectToNotAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL disallowed_url =
++      embedded_test_server()->GetURL("disallowed.test", "/echoall?reverted");
++  const std::string redirect_path =
++      "/server-redirect-307?" + disallowed_url.spec();
++  const GURL redirect_url =
++      embedded_test_server()->GetURL("a.test", redirect_path);
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  base::DictValue extra_headers;
++  extra_headers.Set("Accept", "devtools/accept");
++  extra_headers.Set("Upgrade-Insecure-Requests", "devtools");
++  AttachRestrictedSessionWithExtraHeaders(std::move(extra_headers));
++
++  EXPECT_TRUE(NavigateToURL(shell(), redirect_url, disallowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders(redirect_path);
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("Upgrade-Insecure-Requests"));
++  EXPECT_EQ("devtools", headers->at("Upgrade-Insecure-Requests"));
++  headers = GetRequestHeaders("/echoall?reverted");
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("Upgrade-Insecure-Requests"));
++  EXPECT_EQ("1", headers->at("Upgrade-Insecure-Requests"));
++  ASSERT_TRUE(headers->contains("Accept"));
++  EXPECT_NE("devtools/accept", headers->at("Accept"));
++}
++
++IN_PROC_BROWSER_TEST_F(DevToolsNetworkOverridesPolicyTest,
++                       OtherSessionHeaderKeptOnRedirectToNotAttachableHost) {
++  const GURL start_url =
++      embedded_test_server()->GetURL("a.test", "/title1.html");
++  const GURL disallowed_url =
++      embedded_test_server()->GetURL("disallowed.test", "/echoall?sessions");
++  const std::string redirect_path =
++      "/server-redirect-307?" + disallowed_url.spec();
++  const GURL redirect_url =
++      embedded_test_server()->GetURL("a.test", redirect_path);
++  ASSERT_TRUE(NavigateToURL(shell(), start_url));
++  TestDevToolsProtocolClient allowed_client;
++  allowed_client.AttachToWebContents(shell()->web_contents());
++  base::ScopedClosureRunner detach_allowed_client(base::BindLambdaForTesting(
++      [&allowed_client] { allowed_client.DetachProtocolClient(); }));
++  allowed_client.SendCommandSync("Network.enable");
++  base::DictValue allowed_params;
++  allowed_params.SetByDottedPath("headers.X-Test", "allowed");
++  allowed_client.SendCommandSync("Network.setExtraHTTPHeaders",
++                                 std::move(allowed_params));
++  base::DictValue extra_headers;
++  extra_headers.Set("X-Test", "restricted");
++  AttachRestrictedSessionWithExtraHeaders(std::move(extra_headers));
++
++  EXPECT_TRUE(NavigateToURL(shell(), redirect_url, disallowed_url));
++  std::optional<net::test_server::HttpRequest::HeaderMap> headers =
++      GetRequestHeaders(redirect_path);
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("X-Test"));
++  EXPECT_EQ("restricted", headers->at("X-Test"));
++  headers = GetRequestHeaders("/echoall?sessions");
++  ASSERT_TRUE(headers);
++  ASSERT_TRUE(headers->contains("X-Test"));
++  EXPECT_EQ("allowed", headers->at("X-Test"));
++
++  base::DictValue request_will_be_sent =
++      allowed_client.WaitForMatchingNotification(
++          "Network.requestWillBeSent",
++          base::BindRepeating(
++              [](const GURL& url, const base::DictValue& params) {
++                const std::string* request_url =
++                    params.FindStringByDottedPath("request.url");
++                return request_url && *request_url == url.spec();
++              },
++              disallowed_url));
++  const std::string* reported_header =
++      request_will_be_sent.FindStringByDottedPath("request.headers.X-Test");
++  ASSERT_TRUE(reported_header);
++  EXPECT_EQ("allowed", *reported_header);
++}
++
+ IN_PROC_BROWSER_TEST_F(DevToolsProtocolTest,
+                        NavigateToHistoryEntryWithFileUrlRequiresFileAccess) {
+   ASSERT_TRUE(embedded_test_server()->Start());
+diff --git a/content/browser/devtools/protocol/network_handler.h b/content/browser/devtools/protocol/network_handler.h
+index 4a2f3d810b..6c27eea655 100644
+--- a/content/browser/devtools/protocol/network_handler.h
++++ b/content/browser/devtools/protocol/network_handler.h
+@@ -337,6 +337,10 @@ class NetworkHandler : public DevToolsDomainHandler,
+   // (extra headers, Referer override, cache / service worker bypass). Mirrors
+   // the attach policy enforced by ForceDetachRestrictedSessions().
+   bool MayApplyOverridesTo(const GURL& url) const;
++  const std::vector<std::pair<std::string, std::string>>& extra_headers()
++      const {
++    return extra_headers_;
++  }
+ 
+   Network::Frontend* frontend() const { return frontend_.get(); }
+ 
+diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
+index 65109c8938..b3d6719bfd 100644
+--- a/content/browser/renderer_host/navigation_request.cc
++++ b/content/browser/renderer_host/navigation_request.cc
+@@ -6092,6 +6092,7 @@ void NavigationRequest::OnStartChecksComplete(
+   // before actually loading resource.
+   bool report_raw_headers = false;
+   GURL devtools_referrer_override;
++  headers_before_devtools_overrides_ = begin_params_->headers;
+   devtools_instrumentation::ApplyNetworkRequestOverrides(
+       frame_tree_node_, common_params_->url, begin_params_.get(),
+       &report_raw_headers, &devtools_user_agent_override_,
+@@ -6425,6 +6426,34 @@ void NavigationRequest::OnRedirectChecksComplete(
+     return;
+   }
+ 
++  // DevTools overrides were applied in OnStartChecksComplete() for the
++  // original URL. Revert those that must not apply to the redirect URL because
++  // the session that set them may not attach to it, before
++  // OnNavigationRequestWillBeSent() detaches such sessions.
++  net::HttpRequestHeaders headers_before_devtools_overrides;
++  headers_before_devtools_overrides.AddHeadersFromString(
++      headers_before_devtools_overrides_);
++  net::HttpRequestHeaders current_headers;
++  current_headers.AddHeadersFromString(begin_params_->headers);
++  bool headers_reverted = false;
++  if (!devtools_instrumentation::RevertDisallowedNetworkOverridesOnRedirect(
++          frame_tree_node_, common_params_->url,
++          headers_before_devtools_overrides, &current_headers,
++          &headers_update_params_, &headers_reverted)) {
++    // Requests with an overridden Referer are canceled on redirect.
++    OnRequestFailedInternal(
++        network::URLLoaderCompletionStatus(net::ERR_BLOCKED_BY_CLIENT),
++        true /* skip_throttles */, std::nullopt /* error_page_content */,
++        false /* collapse_frame */);
++    // DO NOT ADD CODE after this. The previous call to OnRequestFailedInternal
++    // has destroyed the NavigationRequest.
++    return;
++  }
++  if (headers_reverted) {
++    begin_params_->headers = current_headers.ToString();
++    request_headers_.reset();
++  }
++
+   devtools_instrumentation::OnNavigationRequestWillBeSent(*this);
+ 
+   network::HttpRequestHeadersUpdateParams headers_update_params =
+diff --git a/content/browser/renderer_host/navigation_request.h b/content/browser/renderer_host/navigation_request.h
+index 4ab7cb4e7e..4fb244f367 100644
+--- a/content/browser/renderer_host/navigation_request.h
++++ b/content/browser/renderer_host/navigation_request.h
+@@ -2927,6 +2927,10 @@ class CONTENT_EXPORT NavigationRequest
+   // header.
+   bool devtools_accept_language_override_ = false;
+ 
++  // The request headers before devtools overrides were applied, used to revert
++  // them on redirects to URLs the overriding session may not attach to.
++  std::string headers_before_devtools_overrides_;
++
+   // The type of RenderFrameHost associated with this navigation.
+   AssociatedRenderFrameHostType associated_rfh_type_ =
+       AssociatedRenderFrameHostType::NONE;
+-- 
+2.43.0
+

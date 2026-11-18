@@ -1,0 +1,331 @@
+From c95af7b78a1931455e6f93ce302d7f62245d92bd Mon Sep 17 00:00:00 2001
+From: Rob Pitkin <robpitkin@google.com>
+Date: Thu, 15 Oct 2026 16:11:58 -0700
+Subject: [PATCH 16/32] sensors: Isolate virtual sensor immunity to Device
+ Service
+
+Under features::kSensorPrivacyMitigations, hardware sensor streams are
+suspended when a document is hidden or loses focus. Previously,
+FrameSensorProviderProxy checked
+WebContentsSensorProviderProxy::HasVirtualSensors() to exempt virtual
+sensors created via DevTools and WPT test_driver. Because
+HasVirtualSensors() checked whether any virtual sensor was active tab-
+wide, creating a virtual sensor of one type (e.g. ambient light) allowed
+all physical hardware sensors in that tab (e.g. accelerometer,
+gyroscope) to bypass suspension in background or unfocused frames.
+
+This change separates frame lifecycle supervision from synthetic sensor
+immunity:
+
+1. In content/browser, FrameSensorProviderProxy reverts to a pure frame
+lifecycle and focus supervisor. It unconditionally suspends all
+SensorClientController connections when a frame loses focus or
+visibility, with no awareness of virtual sensors or sensor types.
+
+2. In services/device/generic_sensor, SensorImpl::IsSuspended() ignores
+controller_suspended_ if sensor_->IsVirtual() returns true. Virtual
+sensors remain immune to supervisory background suspension so test
+harnesses and DevTools emulation do not freeze in background tabs, while
+physical PlatformSensor instances stop hardware polling and clear their
+shared memory buffers. Client-side suspension
+(SensorImpl::client_suspended_) remains enforced for both virtual and
+physical sensors per spec.
+
+3. PlatformSensorFusion::IsVirtual() dynamically verifies that all
+underlying source sensors are virtual, allowing DevTools orientation
+emulation to inherit virtual immunity without manual type aliasing in
+the browser.
+
+Bug: 562957022
+TAG=agy
+CONV=0a1c9cd3-063b-48cf-9fa4-8f626be43be3
+
+Change-Id: I6be8ce394ddfc0c51c101f01e93d3f7ce2f10cc9
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8421770
+Commit-Queue: Rob Pitkin <robpitkin@chromium.org>
+Reviewed-by: Matt Reynolds <mattreynolds@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1720122}
+---
+ .../frame_sensor_provider_proxy.cc            | 13 ---
+ .../frame_sensor_provider_proxy_unittest.cc   | 15 ++--
+ .../web_contents_sensor_provider_proxy.h      |  4 -
+ .../generic_sensor_service_unittest.cc        | 85 +++++++++++++++++++
+ .../device/generic_sensor/platform_sensor.cc  |  4 +
+ .../device/generic_sensor/platform_sensor.h   |  3 +
+ .../generic_sensor/platform_sensor_fusion.cc  |  7 ++
+ .../generic_sensor/platform_sensor_fusion.h   |  1 +
+ services/device/generic_sensor/sensor_impl.cc |  3 +
+ .../generic_sensor/virtual_platform_sensor.cc |  4 +
+ .../generic_sensor/virtual_platform_sensor.h  |  1 +
+ 11 files changed, 116 insertions(+), 24 deletions(-)
+
+diff --git a/content/browser/generic_sensor/frame_sensor_provider_proxy.cc b/content/browser/generic_sensor/frame_sensor_provider_proxy.cc
+index 33ae8cf8ef..612316c98f 100644
+--- a/content/browser/generic_sensor/frame_sensor_provider_proxy.cc
++++ b/content/browser/generic_sensor/frame_sensor_provider_proxy.cc
+@@ -347,19 +347,6 @@ bool FrameSensorProviderProxy::ShouldSuspendSensors() const {
+     return true;
+   }
+ 
+-  // Virtual / emulated sensors created via DevTools or WPT test_driver bypass
+-  // visibility and focus requirements so that DevTools inspection or running
+-  // tests in headless test runners (e.g. mac-rel headless_shell) does not
+-  // freeze emulated sensor streams.
+-  auto* web_contents_proxy =
+-      WebContentsSensorProviderProxy::FromWebContents(web_contents());
+-  bool is_virtual_sensor =
+-      web_contents_proxy && web_contents_proxy->HasVirtualSensors();
+-
+-  if (is_virtual_sensor) {
+-    return false;
+-  }
+-
+   // Suspend hardware sensors if not strictly visible (covers HIDDEN and
+   // OCCLUDED).
+   if (web_contents()->GetVisibility() != content::Visibility::VISIBLE) {
+diff --git a/content/browser/generic_sensor/frame_sensor_provider_proxy_unittest.cc b/content/browser/generic_sensor/frame_sensor_provider_proxy_unittest.cc
+index 1854e78d0e..d0e1948e90 100644
+--- a/content/browser/generic_sensor/frame_sensor_provider_proxy_unittest.cc
++++ b/content/browser/generic_sensor/frame_sensor_provider_proxy_unittest.cc
+@@ -639,7 +639,7 @@ TEST_F(FrameSensorProviderProxyTest,
+ }
+ 
+ TEST_F(FrameSensorProviderProxyTest,
+-       GetSensor_VirtualSensor_BypassesSuspension) {
++       GetSensor_VirtualSensorDoesNotBypassFrameSuspension) {
+   NavigateAndCommit(GURL("https://google.com"));
+ 
+   // Ensure main frame is focused initially.
+@@ -674,13 +674,14 @@ TEST_F(FrameSensorProviderProxyTest,
+   ASSERT_TRUE(fake_sensor);
+   EXPECT_FALSE(fake_sensor->is_browser_suspended());
+ 
+-  // Hiding the WebContents does NOT suspend the virtual sensor.
++  // FrameSensorProviderProxy enforces a strict frame lifecycle boundary and
++  // suspends all controllers on visibility loss. Virtual sensor immunity is
++  // handled in services/device.
+   web_contents()->WasHidden();
+-  base::test::TestFuture<void> flush_future_virtual;
+-  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+-      FROM_HERE, flush_future_virtual.GetCallback());
+-  EXPECT_TRUE(flush_future_virtual.Wait());
+-  EXPECT_FALSE(fake_sensor->is_browser_suspended());
++  EXPECT_TRUE(fake_sensor->WaitForBrowserSuspend(true));
++
++  web_contents()->WasShown();
++  EXPECT_TRUE(fake_sensor->WaitForBrowserSuspend(false));
+ }
+ }  // namespace
+ }  // namespace content
+diff --git a/content/browser/generic_sensor/web_contents_sensor_provider_proxy.h b/content/browser/generic_sensor/web_contents_sensor_provider_proxy.h
+index f064ee6fa3..a4aa6db51e 100644
+--- a/content/browser/generic_sensor/web_contents_sensor_provider_proxy.h
++++ b/content/browser/generic_sensor/web_contents_sensor_provider_proxy.h
+@@ -68,10 +68,6 @@ class CONTENT_EXPORT WebContentsSensorProviderProxy final
+   void AddObserver(Observer*);
+   void RemoveObserver(Observer*);
+ 
+-  bool HasVirtualSensors() const {
+-    return !virtual_sensor_types_for_devtools_.empty();
+-  }
+-
+  private:
+   friend class ScopedVirtualSensorForDevTools;
+ 
+diff --git a/services/device/generic_sensor/generic_sensor_service_unittest.cc b/services/device/generic_sensor/generic_sensor_service_unittest.cc
+index 83759ec152..c35f0b97a4 100644
+--- a/services/device/generic_sensor/generic_sensor_service_unittest.cc
++++ b/services/device/generic_sensor/generic_sensor_service_unittest.cc
+@@ -856,4 +856,89 @@ TEST_F(GenericSensorServiceTest, UpdateNonOverriddenSensorTest) {
+             mojom::UpdateVirtualSensorResult::kSensorTypeNotOverridden);
+ }
+ 
++TEST_F(GenericSensorServiceTest,
++       VirtualSensorImmuneToControllerSuspensionTest) {
++  EXPECT_EQ(CreateVirtualSensorSync(SensorType::ACCELEROMETER),
++            mojom::CreateVirtualSensorResult::kSuccess);
++
++  mojo::Remote<mojom::SensorClientController> controller;
++  auto client = std::make_unique<TestSensorClient>(SensorType::ACCELEROMETER);
++  base::test::TestFuture<mojom::SensorCreationResult,
++                         mojom::SensorInitParamsPtr>
++      future;
++  sensor_provider_->GetSensor(
++      SensorType::ACCELEROMETER, controller.BindNewPipeAndPassReceiver(),
++      /*initially_suspended=*/false, future.GetCallback());
++  auto [result, params] = future.Take();
++  EXPECT_EQ(mojom::SensorCreationResult::SUCCESS, result);
++  client->OnSensorCreated(base::DoNothing(), result, std::move(params));
++
++  EXPECT_TRUE(client->AddConfigurationSync(PlatformSensorConfiguration(20.0)));
++
++  // Suspend via controller (simulating FrameSensorProviderProxy suspending on
++  // tab visibility loss).
++  controller->Suspend();
++
++  // Virtual sensors are immune to controller suspension, so updates are still
++  // processed and received by the client.
++  EXPECT_EQ(UpdateVirtualSensorSync(SensorType::ACCELEROMETER, 15.0),
++            mojom::UpdateVirtualSensorResult::kSuccess);
++  EXPECT_DOUBLE_EQ(client->WaitForReading(), 15.0);
++
++  // But client-side suspension (simulating Blink page visibility suspension)
++  // must still take effect and reset the shared buffer.
++  client->sensor()->Suspend();
++
++  base::test::TestFuture<void> flush_future;
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++      FROM_HERE, flush_future.GetCallback());
++  EXPECT_TRUE(flush_future.Wait());
++  SensorReading reading;
++  client->FetchSensorReading(&reading);
++  EXPECT_DOUBLE_EQ(reading.accel.x, 0.0);
++
++  // Resuming client-side allows updates again.
++  client->sensor()->Resume();
++  EXPECT_EQ(UpdateVirtualSensorSync(SensorType::ACCELEROMETER, 30.0),
++            mojom::UpdateVirtualSensorResult::kSuccess);
++  EXPECT_DOUBLE_EQ(client->WaitForReading(), 30.0);
++}
++
++TEST_F(GenericSensorServiceTest,
++       NonVirtualSensorSuspendsOnControllerSuspendTest) {
++  EXPECT_CALL(*fake_platform_sensor_provider_, CreateSensorInternal).Times(1);
++  mojo::Remote<mojom::SensorClientController> controller;
++  auto client = std::make_unique<TestSensorClient>(SensorType::ACCELEROMETER);
++  base::test::TestFuture<mojom::SensorCreationResult,
++                         mojom::SensorInitParamsPtr>
++      future;
++  sensor_provider_->GetSensor(
++      SensorType::ACCELEROMETER, controller.BindNewPipeAndPassReceiver(),
++      /*initially_suspended=*/false, future.GetCallback());
++  auto [result, params] = future.Take();
++  EXPECT_EQ(mojom::SensorCreationResult::SUCCESS, result);
++  client->OnSensorCreated(base::DoNothing(), result, std::move(params));
++
++  EXPECT_TRUE(client->AddConfigurationSync(PlatformSensorConfiguration(46.0)));
++  EXPECT_DOUBLE_EQ(client->WaitForReading(), 46.0);
++
++  // Suspend via controller.
++  controller->Suspend();
++
++  // For a non-virtual sensor, controller suspension stops the sensor and
++  // resets the shared buffer.
++  base::test::TestFuture<void> flush_future;
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++      FROM_HERE, flush_future.GetCallback());
++  EXPECT_TRUE(flush_future.Wait());
++
++  SensorReading reading;
++  client->FetchSensorReading(&reading);
++  EXPECT_DOUBLE_EQ(reading.accel.x, 0.0);
++
++  // Resume via controller and verify that a new reading is received.
++  controller->Resume();
++  EXPECT_DOUBLE_EQ(client->WaitForReading(), 46.0);
++}
++
+ }  //  namespace device
+diff --git a/services/device/generic_sensor/platform_sensor.cc b/services/device/generic_sensor/platform_sensor.cc
+index 2133951f6f..bf0e879839 100644
+--- a/services/device/generic_sensor/platform_sensor.cc
++++ b/services/device/generic_sensor/platform_sensor.cc
+@@ -94,6 +94,10 @@ bool PlatformSensor::StopListening(Client* client) {
+   return UpdateSensorInternal(config_map_);
+ }
+ 
++bool PlatformSensor::IsVirtual() const {
++  return false;
++}
++
+ void PlatformSensor::UpdateSensor() {
+   UpdateSensorInternal(config_map_);
+ }
+diff --git a/services/device/generic_sensor/platform_sensor.h b/services/device/generic_sensor/platform_sensor.h
+index b7e2a2000f..3c012f53b7 100644
+--- a/services/device/generic_sensor/platform_sensor.h
++++ b/services/device/generic_sensor/platform_sensor.h
+@@ -74,6 +74,9 @@ class PlatformSensor : public base::RefCountedThreadSafe<PlatformSensor> {
+                                         const SensorReading& rhs,
+                                         mojom::SensorType sensor_type);
+ 
++  // Returns true if this is a virtual (emulated) sensor with synthetic data.
++  virtual bool IsVirtual() const;
++
+   mojom::SensorType GetType() const;
+ 
+   bool StartListening(Client* client,
+diff --git a/services/device/generic_sensor/platform_sensor_fusion.cc b/services/device/generic_sensor/platform_sensor_fusion.cc
+index 566daf89ca..0ba2652819 100644
+--- a/services/device/generic_sensor/platform_sensor_fusion.cc
++++ b/services/device/generic_sensor/platform_sensor_fusion.cc
+@@ -133,6 +133,13 @@ PlatformSensorFusion::~PlatformSensorFusion() {
+     pair.second->RemoveClient(this);
+ }
+ 
++bool PlatformSensorFusion::IsVirtual() const {
++  return !source_sensors_.empty() &&
++         std::ranges::all_of(source_sensors_, [](const auto& pair) {
++           return pair.second && pair.second->IsVirtual();
++         });
++}
++
+ mojom::ReportingMode PlatformSensorFusion::GetReportingMode() {
+   return reporting_mode_;
+ }
+diff --git a/services/device/generic_sensor/platform_sensor_fusion.h b/services/device/generic_sensor/platform_sensor_fusion.h
+index 2e6b298050..4e1c2183fd 100644
+--- a/services/device/generic_sensor/platform_sensor_fusion.h
++++ b/services/device/generic_sensor/platform_sensor_fusion.h
+@@ -47,6 +47,7 @@ class PlatformSensorFusion : public PlatformSensor,
+   PlatformSensorFusion& operator=(const PlatformSensorFusion&) = delete;
+ 
+   // PlatformSensor:
++  bool IsVirtual() const override;
+   mojom::ReportingMode GetReportingMode() override;
+   PlatformSensorConfiguration GetDefaultConfiguration() override;
+   bool CheckSensorConfiguration(
+diff --git a/services/device/generic_sensor/sensor_impl.cc b/services/device/generic_sensor/sensor_impl.cc
+index b259618d59..95cf2f0128 100644
+--- a/services/device/generic_sensor/sensor_impl.cc
++++ b/services/device/generic_sensor/sensor_impl.cc
+@@ -136,6 +136,9 @@ void SensorImpl::OnSensorError() {
+ }
+ 
+ bool SensorImpl::IsSuspended() {
++  if (sensor_->IsVirtual()) {
++    return client_suspended_;
++  }
+   return client_suspended_ || controller_suspended_;
+ }
+ 
+diff --git a/services/device/generic_sensor/virtual_platform_sensor.cc b/services/device/generic_sensor/virtual_platform_sensor.cc
+index 05347421df..53ccb23494 100644
+--- a/services/device/generic_sensor/virtual_platform_sensor.cc
++++ b/services/device/generic_sensor/virtual_platform_sensor.cc
+@@ -53,6 +53,10 @@ void VirtualPlatformSensor::SimulateSensorRemoval() {
+   NotifySensorError();
+ }
+ 
++bool VirtualPlatformSensor::IsVirtual() const {
++  return true;
++}
++
+ bool VirtualPlatformSensor::StartSensor(
+     const PlatformSensorConfiguration& optimal_configuration) {
+   const bool is_already_running = optimal_configuration_.has_value();
+diff --git a/services/device/generic_sensor/virtual_platform_sensor.h b/services/device/generic_sensor/virtual_platform_sensor.h
+index 4754e547c9..ce2a4358fb 100644
+--- a/services/device/generic_sensor/virtual_platform_sensor.h
++++ b/services/device/generic_sensor/virtual_platform_sensor.h
+@@ -61,6 +61,7 @@ class VirtualPlatformSensor : public PlatformSensor {
+ 
+  private:
+   // PlatformSensor overrides.
++  bool IsVirtual() const override;
+   bool StartSensor(const PlatformSensorConfiguration& configuration) override;
+   void StopSensor() override;
+   mojom::ReportingMode GetReportingMode() override;
+-- 
+2.43.0
+

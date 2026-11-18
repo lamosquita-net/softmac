@@ -1,0 +1,165 @@
+From 7368f70905a982497f867588510c3910732d4c84 Mon Sep 17 00:00:00 2001
+From: Thomas Nguyen <tungnh@chromium.org>
+Date: Thu, 15 Oct 2026 02:52:02 -0700
+Subject: [PATCH 12/32] [CE] Prune expired disable reasons before returning on
+ indefinite ones
+
+Previously, RefreshDisableReasonsAndUpdateTimer() returned early upon
+encountering an indefinite disable reason (TimeTicks::Max()) before
+swapping the pruned map into clicking_disabled_reasons_. As a result,
+expired temporary entries such as kRecentlyAttachedToLayoutTree remained
+in clicking_disabled_reasons_ while the element was occluded. When the
+element later became fully visible, GetRecentlyAttachedTimeoutRemaining()
+returned a negative TimeDelta for the stale entry, allowing
+OnIntersectionChanged() to pass a negative delay to
+EnableClickingAfterDelay() and bypass the 500ms cooldown.
+
+Erase expired entries from clicking_disabled_reasons_ at the start of
+RefreshDisableReasonsAndUpdateTimer() before checking for indefinite
+reasons, and return std::nullopt from
+GetRecentlyAttachedTimeoutRemaining() when the entry has already
+expired.
+
+Fixed: 562909022
+Change-Id: I5299e57139dc300f9ae6fbe2c0c64de31b97227a
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8486487
+Commit-Queue: Thomas Nguyen <tungnh@chromium.org>
+Reviewed-by: Joey Arhar <jarhar@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1719486}
+---
+ .../core/html/html_capability_element_base.cc | 25 +++++------
+ .../core/html/html_capability_element_base.h  |  3 ++
+ .../html/html_capability_element_base_test.cc | 45 +++++++++++++++++++
+ 3 files changed, 58 insertions(+), 15 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/html/html_capability_element_base.cc b/third_party/blink/renderer/core/html/html_capability_element_base.cc
+index e255e68bf4..51a6c8c51e 100644
+--- a/third_party/blink/renderer/core/html/html_capability_element_base.cc
++++ b/third_party/blink/renderer/core/html/html_capability_element_base.cc
+@@ -1405,27 +1405,23 @@ HTMLCapabilityElementBase::GetClickingEnabledState() const {
+ 
+ void HTMLCapabilityElementBase::RefreshDisableReasonsAndUpdateTimer() {
+   base::TimeTicks now = base::TimeTicks::Now();
++  clicking_disabled_reasons_.erase_if(
++      [&now](const auto& it) { return it.value <= now; });
++
+   base::TimeTicks max_time_ticks = base::TimeTicks::Min();
+   DisableReason reason = DisableReason::kUnknown;
+-  HashMap<DisableReason, base::TimeTicks> swap_clicking_disabled_reasons;
+-  for (auto it = clicking_disabled_reasons_.begin();
+-       it != clicking_disabled_reasons_.end(); ++it) {
+-    if (it->value == base::TimeTicks::Max()) {
+-      StopTimerDueToIndefiniteReason(it->key);
++  for (const auto& it : clicking_disabled_reasons_) {
++    if (it.value == base::TimeTicks::Max()) {
++      StopTimerDueToIndefiniteReason(it.key);
+       return;
+     }
+ 
+-    if (it->value < now) {
+-      continue;
+-    }
+-
+-    swap_clicking_disabled_reasons.Set(it->key, it->value);
+-    if (it->value <= max_time_ticks) {
++    if (it.value <= max_time_ticks) {
+       continue;
+     }
+ 
+-    max_time_ticks = it->value;
+-    reason = it->key;
++    max_time_ticks = it.value;
++    reason = it.key;
+   }
+   // Restart the timer to match with  "longest alive, not indefinitely disabling
+   // reason". That's the one has the max timeticks on
+@@ -1435,7 +1431,6 @@ void HTMLCapabilityElementBase::RefreshDisableReasonsAndUpdateTimer() {
+                                                           max_time_ticks - now);
+   }
+ 
+-  clicking_disabled_reasons_.swap(swap_clicking_disabled_reasons);
+   MaybeDispatchValidationChangeEvent();
+ }
+ 
+@@ -1715,7 +1710,7 @@ HTMLCapabilityElementBase::GetRecentlyAttachedTimeoutRemaining() const {
+   base::TimeTicks now = base::TimeTicks::Now();
+   auto it = clicking_disabled_reasons_.find(
+       DisableReason::kRecentlyAttachedToLayoutTree);
+-  if (it == clicking_disabled_reasons_.end()) {
++  if (it == clicking_disabled_reasons_.end() || it->value <= now) {
+     return std::nullopt;
+   }
+ 
+diff --git a/third_party/blink/renderer/core/html/html_capability_element_base.h b/third_party/blink/renderer/core/html/html_capability_element_base.h
+index eea9583030..75d1604cec 100644
+--- a/third_party/blink/renderer/core/html/html_capability_element_base.h
++++ b/third_party/blink/renderer/core/html/html_capability_element_base.h
+@@ -231,6 +231,9 @@ class CORE_EXPORT HTMLCapabilityElementBase
+                            IntersectionOccluderLogging);
+   FRIEND_TEST_ALL_PREFIXES(HTMLCapabilityElementBaseIntersectionTest,
+                            IntersectionVisibleOverlapsRecentAttachedInterval);
++  FRIEND_TEST_ALL_PREFIXES(
++      HTMLCapabilityElementBaseIntersectionTest,
++      IntersectionVisibleAfterRecentAttachedIntervalExpired);
+   FRIEND_TEST_ALL_PREFIXES(HTMLCapabilityElementBaseFencedFrameTest,
+                            NotAllowedInFencedFrame);
+   FRIEND_TEST_ALL_PREFIXES(HTMLCapabilityElementBaseSimTest,
+diff --git a/third_party/blink/renderer/core/html/html_capability_element_base_test.cc b/third_party/blink/renderer/core/html/html_capability_element_base_test.cc
+index 5cf51d10b6..fc94e91f6a 100644
+--- a/third_party/blink/renderer/core/html/html_capability_element_base_test.cc
++++ b/third_party/blink/renderer/core/html/html_capability_element_base_test.cc
+@@ -2096,6 +2096,51 @@ TEST_F(HTMLCapabilityElementBaseIntersectionTest,
+   EXPECT_TRUE(permission_element->isValid());
+ }
+ 
++TEST_F(HTMLCapabilityElementBaseIntersectionTest,
++       IntersectionVisibleAfterRecentAttachedIntervalExpired) {
++  GetDocument().GetSettings()->SetDefaultFontSize(12);
++  SimRequest main_resource("https://example.test/", "text/html");
++  LoadURL("https://example.test/");
++  main_resource.Complete(R"HTML(
++    <div id='cover' style='position: fixed; left: 0px; top: 0px; width: 100px; height: 100px;'></div>
++    <usermedia id='camera' type='camera'></usermedia>
++  )HTML");
++
++  Compositor().BeginFrame();
++  auto* permission_element = To<HTMLCapabilityElementBase>(
++      GetDocument().QuerySelector(AtomicString("usermedia")));
++  auto* div =
++      To<HTMLDivElement>(GetDocument().QuerySelector(AtomicString("div")));
++  WaitForPermissionElementRegistration(permission_element);
++  WaitForIntersectionVisibilityChanged(
++      permission_element,
++      HTMLCapabilityElementBase::IntersectionVisibility::kOccludedOrDistorted);
++
++  // Repurpose the expire timer for another temporary reason while occluded so
++  // `kRecentlyAttachedToLayoutTree` expires while the element remains occluded,
++  // without calling `IsClickingEnabled()`.
++  permission_element->DisableClickingTemporarily(
++      HTMLCapabilityElementBase::DisableReason::
++          kIntersectionWithViewportChanged,
++      kDefaultTimeout);
++  DeferredChecker checker(permission_element, &MainFrame());
++  checker.CheckNoNewMessagesAfterDelay(kLongerThanDefaultTimeout);
++  EXPECT_FALSE(permission_element->isValid());
++
++  // Un-occluding the element after `kRecentlyAttachedToLayoutTree` has expired
++  // must still enforce `kDefaultDisableTimeout` before clicking is enabled.
++  div->SetInlineStyleProperty(CSSPropertyID::kTop, "100px");
++  GetDocument().UpdateStyleAndLayout(DocumentUpdateReason::kTest);
++  WaitForIntersectionVisibilityChanged(
++      permission_element,
++      HTMLCapabilityElementBase::IntersectionVisibility::kFullyVisible);
++  EXPECT_FALSE(permission_element->isValid());
++  EXPECT_FALSE(permission_element->IsClickingEnabled());
++  checker.CheckClickingEnabledAfterDelay(kDefaultTimeout,
++                                         /*expected_enabled=*/true);
++  EXPECT_TRUE(permission_element->isValid());
++}
++
+ TEST_F(HTMLCapabilityElementBaseIntersectionTest,
+        IntersectionChangedDisableEnableDisable) {
+   GetDocument().GetSettings()->SetDefaultFontSize(12);
+-- 
+2.43.0
+

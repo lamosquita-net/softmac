@@ -1,0 +1,530 @@
+From c302675f2636354681f08b57ca03d383d0d6f3d5 Mon Sep 17 00:00:00 2001
+From: Danil Somsikov <dsv@chromium.org>
+Date: Thu, 15 Oct 2026 03:48:04 -0700
+Subject: [PATCH 13/32] [DevTools] Check origin access permissions in
+ StorageHandler
+
+Verify client_->MayAttachToURL via StorageHandler::CanAccessOrigin before
+clearing storage, querying/overriding quota, or managing storage buckets
+for a given origin or storage key. This prevents a debugger-permission
+extension attached to a regular web tab from clearing or manipulating
+another extension's storage.
+
+Bug: 568576341
+Change-Id: Ic5258ffe0072da002d878c82a38d6b578fccd1d4
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8579258
+Commit-Queue: Danil Somsikov <dsv@chromium.org>
+Auto-Submit: Danil Somsikov <dsv@chromium.org>
+Reviewed-by: Devlin Cronin <rdevlin.cronin@chromium.org>
+Reviewed-by: Alex Rudenko <alexrudenko@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1719512}
+---
+ .../api/debugger/debugger_apitest.cc          |  50 ++++
+ .../devtools/protocol/storage_handler.cc      | 215 ++++++++++--------
+ .../devtools/protocol/storage_handler.h       |  13 ++
+ 3 files changed, 188 insertions(+), 90 deletions(-)
+
+diff --git a/chrome/browser/extensions/api/debugger/debugger_apitest.cc b/chrome/browser/extensions/api/debugger/debugger_apitest.cc
+index b3bf219110..028f922485 100644
+--- a/chrome/browser/extensions/api/debugger/debugger_apitest.cc
++++ b/chrome/browser/extensions/api/debugger/debugger_apitest.cc
+@@ -391,6 +391,56 @@ IN_PROC_BROWSER_TEST_F(DebuggerApiTest,
+   EXPECT_TRUE(RunAttachFunction(other_ext_url, std::string()));
+ }
+ 
++IN_PROC_BROWSER_TEST_F(DebuggerApiTest,
++                       DebuggerCannotClearOtherExtensionStorage) {
++  base::FilePath path;
++  ASSERT_TRUE(base::PathService::Get(chrome::DIR_TEST_DATA, &path));
++  path = path.AppendASCII("extensions").AppendASCII("simple_with_popup");
++  const Extension* another_extension = LoadExtension(path);
++  ASSERT_TRUE(another_extension);
++
++  GURL regular_url = embedded_test_server()->GetURL("/simple.html");
++  content::WebContents* web_contents = GetActiveWebContents();
++  ASSERT_TRUE(NavigateToURL(web_contents, regular_url));
++
++  int tab_id = sessions::SessionTabHelper::IdForTab(web_contents).id();
++  auto attach_function = base::MakeRefCounted<DebuggerAttachFunction>();
++  attach_function->set_extension(extension());
++  ASSERT_TRUE(api_test_utils::RunFunction(
++      attach_function.get(),
++      base::StringPrintf(R"([{"tabId": %d}, "1.3"])", tab_id), profile()))
++      << attach_function->GetError();
++
++  std::string other_ext_origin = another_extension->origin().Serialize();
++  std::string other_ext_storage_key = other_ext_origin + "/";
++
++  auto clear_origin_cmd = base::MakeRefCounted<DebuggerSendCommandFunction>();
++  clear_origin_cmd->set_extension(extension());
++  std::string clear_origin_args =
++      base::StringPrintf(R"([{"tabId": %d}, "Storage.clearDataForOrigin", )"
++                         R"({"origin": "%s", "storageTypes": "all"}])",
++                         tab_id, other_ext_origin.c_str());
++  std::string origin_error = api_test_utils::RunFunctionAndReturnError(
++      clear_origin_cmd.get(), clear_origin_args, profile());
++  EXPECT_THAT(origin_error, testing::HasSubstr("Permission denied"));
++
++  auto clear_key_cmd = base::MakeRefCounted<DebuggerSendCommandFunction>();
++  clear_key_cmd->set_extension(extension());
++  std::string clear_key_args =
++      base::StringPrintf(R"([{"tabId": %d}, "Storage.clearDataForStorageKey", )"
++                         R"({"storageKey": "%s", "storageTypes": "all"}])",
++                         tab_id, other_ext_storage_key.c_str());
++  std::string key_error = api_test_utils::RunFunctionAndReturnError(
++      clear_key_cmd.get(), clear_key_args, profile());
++  EXPECT_THAT(key_error, testing::HasSubstr("Permission denied"));
++
++  auto detach_function = base::MakeRefCounted<DebuggerDetachFunction>();
++  detach_function->set_extension(extension());
++  EXPECT_TRUE(api_test_utils::RunFunction(
++      detach_function.get(), base::StringPrintf(R"([{"tabId": %d}])", tab_id),
++      profile()));
++}
++
+ IN_PROC_BROWSER_TEST_F(DebuggerFileAccessApiTest,
+                        DebuggerAllowedOnFileUrlsWithFileAccess) {
+   base::FilePath worker_path =
+diff --git a/content/browser/devtools/protocol/storage_handler.cc b/content/browser/devtools/protocol/storage_handler.cc
+index b34ad81394..d8cb31f951 100644
+--- a/content/browser/devtools/protocol/storage_handler.cc
++++ b/content/browser/devtools/protocol/storage_handler.cc
+@@ -615,6 +615,43 @@ uint32_t GetRemoveDataMask(const std::string& storage_types) {
+ }
+ }  // namespace
+ 
++bool StorageHandler::CanAccessOrigin(const url::Origin& origin) const {
++  if (origin.opaque()) {
++    return false;
++  }
++  bool is_webui = frame_host_ && frame_host_->web_ui();
++  return client_->MayAttachToURL(origin.GetURL(), is_webui);
++}
++
++base::expected<url::Origin, Response> StorageHandler::GetOriginIfAccessible(
++    const std::string& origin_string) const {
++  GURL origin_url(origin_string);
++  url::Origin origin = url::Origin::Create(origin_url);
++  if (!origin_url.is_valid() || origin.opaque()) {
++    return base::unexpected(
++        Response::InvalidParams(origin_string + " is not a valid URL"));
++  }
++  if (!CanAccessOrigin(origin)) {
++    return base::unexpected(Response::ServerError("Permission denied"));
++  }
++  return origin;
++}
++
++base::expected<blink::StorageKey, Response>
++StorageHandler::GetStorageKeyIfAccessible(
++    const std::string& storage_key_string) const {
++  std::optional<blink::StorageKey> key =
++      blink::StorageKey::Deserialize(storage_key_string);
++  if (!key) {
++    return base::unexpected(
++        Response::InvalidParams("Unable to deserialize storage key"));
++  }
++  if (!CanAccessOrigin(key->origin())) {
++    return base::unexpected(Response::ServerError("Permission denied"));
++  }
++  return *key;
++}
++
+ void StorageHandler::ClearDataForOrigin(
+     const std::string& origin,
+     const std::string& storage_types,
+@@ -623,16 +660,19 @@ void StorageHandler::ClearDataForOrigin(
+     return callback->sendFailure(Response::InternalError());
+   }
+ 
+-  uint32_t remove_mask = GetRemoveDataMask(storage_types);
++  auto parsed_origin = GetOriginIfAccessible(origin);
++  if (!parsed_origin.has_value()) {
++    return callback->sendFailure(std::move(parsed_origin.error()));
++  }
+ 
++  uint32_t remove_mask = GetRemoveDataMask(storage_types);
+   if (!remove_mask) {
+     return callback->sendFailure(
+         Response::InvalidParams("No valid storage type specified"));
+   }
+ 
+   storage_partition_->ClearData(
+-      remove_mask,
+-      blink::StorageKey::CreateFirstParty(url::Origin::Create(GURL(origin))),
++      remove_mask, blink::StorageKey::CreateFirstParty(*parsed_origin),
+       base::Time(), base::Time::Max(),
+       base::BindOnce(&ClearDataForOriginCallback::sendSuccess,
+                      std::move(callback)));
+@@ -646,19 +686,17 @@ void StorageHandler::ClearDataForStorageKey(
+     return callback->sendFailure(Response::InternalError());
+   }
+ 
+-  uint32_t remove_mask = GetRemoveDataMask(storage_types);
++  auto key = GetStorageKeyIfAccessible(storage_key);
++  if (!key.has_value()) {
++    return callback->sendFailure(std::move(key.error()));
++  }
+ 
++  uint32_t remove_mask = GetRemoveDataMask(storage_types);
+   if (!remove_mask) {
+     return callback->sendFailure(
+         Response::InvalidParams("No valid storage type specified"));
+   }
+ 
+-  std::optional<blink::StorageKey> key =
+-      blink::StorageKey::Deserialize(storage_key);
+-  if (!key) {
+-    return callback->sendFailure(
+-        Response::InvalidParams("Unable to deserialize storage key"));
+-  }
+   storage_partition_->ClearData(
+       remove_mask, *key, base::Time(), base::Time::Max(),
+       base::BindOnce(&ClearDataForStorageKeyCallback::sendSuccess,
+@@ -672,18 +710,16 @@ void StorageHandler::GetUsageAndQuota(
+     return callback->sendFailure(Response::InternalError());
+   }
+ 
+-  GURL origin_url(origin_string);
+-  url::Origin origin = url::Origin::Create(origin_url);
+-  if (!origin_url.is_valid() || origin.opaque()) {
+-    return callback->sendFailure(
+-        Response::ServerError(origin_string + " is not a valid URL"));
++  auto origin = GetOriginIfAccessible(origin_string);
++  if (!origin.has_value()) {
++    return callback->sendFailure(std::move(origin.error()));
+   }
+ 
+   storage::QuotaManager* manager = storage_partition_->GetQuotaManager();
+   GetIOThreadTaskRunner({})->PostTask(
+       FROM_HERE,
+       base::BindOnce(&GetUsageAndQuotaOnIOThread, base::RetainedRef(manager),
+-                     blink::StorageKey::CreateFirstParty(origin),
++                     blink::StorageKey::CreateFirstParty(*origin),
+                      std::move(callback)));
+ }
+ 
+@@ -696,11 +732,9 @@ void StorageHandler::OverrideQuotaForOrigin(
+     return;
+   }
+ 
+-  GURL url(origin_string);
+-  url::Origin origin = url::Origin::Create(url);
+-  if (!url.is_valid() || origin.opaque()) {
+-    callback->sendFailure(
+-        Response::InvalidParams(origin_string + " is not a valid URL"));
++  auto origin = GetOriginIfAccessible(origin_string);
++  if (!origin.has_value()) {
++    callback->sendFailure(std::move(origin.error()));
+     return;
+   }
+ 
+@@ -711,7 +745,7 @@ void StorageHandler::OverrideQuotaForOrigin(
+   }
+ 
+   quota_override_handle_->OverrideQuotaForStorageKey(
+-      blink::StorageKey::CreateFirstParty(origin),
++      blink::StorageKey::CreateFirstParty(*origin),
+       quota_size.has_value() ? std::make_optional(quota_size.value())
+                              : std::nullopt,
+       base::BindOnce(&OverrideQuotaForOriginCallback::sendSuccess,
+@@ -724,14 +758,13 @@ Response StorageHandler::TrackCacheStorageForOrigin(
+     return Response::InternalError();
+   }
+ 
+-  GURL origin_url(origin_string);
+-  url::Origin origin = url::Origin::Create(origin_url);
+-  if (!origin_url.is_valid() || origin.opaque()) {
+-    return Response::InvalidParams(origin_string + " is not a valid URL");
++  auto origin = GetOriginIfAccessible(origin_string);
++  if (!origin.has_value()) {
++    return std::move(origin.error());
+   }
+ 
+   GetCacheStorageObserver()->TrackStorageKey(
+-      blink::StorageKey::CreateFirstParty(origin));
++      blink::StorageKey::CreateFirstParty(*origin));
+   return Response::Success();
+ }
+ 
+@@ -741,10 +774,9 @@ Response StorageHandler::TrackCacheStorageForStorageKey(
+     return Response::InternalError();
+   }
+ 
+-  std::optional<blink::StorageKey> key =
+-      blink::StorageKey::Deserialize(storage_key);
+-  if (!key) {
+-    return Response::InvalidParams("Unable to deserialize storage key");
++  auto key = GetStorageKeyIfAccessible(storage_key);
++  if (!key.has_value()) {
++    return std::move(key.error());
+   }
+ 
+   GetCacheStorageObserver()->TrackStorageKey(*key);
+@@ -757,14 +789,13 @@ Response StorageHandler::UntrackCacheStorageForOrigin(
+     return Response::InternalError();
+   }
+ 
+-  GURL origin_url(origin_string);
+-  url::Origin origin = url::Origin::Create(origin_url);
+-  if (!origin_url.is_valid() || origin.opaque()) {
+-    return Response::InvalidParams(origin_string + " is not a valid URL");
++  auto origin = GetOriginIfAccessible(origin_string);
++  if (!origin.has_value()) {
++    return std::move(origin.error());
+   }
+ 
+   GetCacheStorageObserver()->UntrackStorageKey(
+-      blink::StorageKey::CreateFirstParty(origin));
++      blink::StorageKey::CreateFirstParty(*origin));
+   return Response::Success();
+ }
+ 
+@@ -774,10 +805,9 @@ Response StorageHandler::UntrackCacheStorageForStorageKey(
+     return Response::InternalError();
+   }
+ 
+-  std::optional<blink::StorageKey> key =
+-      blink::StorageKey::Deserialize(storage_key);
+-  if (!key) {
+-    return Response::InvalidParams("Unable to deserialize storage key");
++  auto key = GetStorageKeyIfAccessible(storage_key);
++  if (!key.has_value()) {
++    return std::move(key.error());
+   }
+ 
+   GetCacheStorageObserver()->UntrackStorageKey(*key);
+@@ -790,14 +820,13 @@ Response StorageHandler::TrackIndexedDBForOrigin(
+     return Response::InternalError();
+   }
+ 
+-  GURL origin_url(origin_string);
+-  url::Origin origin = url::Origin::Create(origin_url);
+-  if (!origin_url.is_valid() || origin.opaque()) {
+-    return Response::InvalidParams(origin_string + " is not a valid URL");
++  auto origin = GetOriginIfAccessible(origin_string);
++  if (!origin.has_value()) {
++    return std::move(origin.error());
+   }
+ 
+   GetIndexedDBObserver()->TrackStorageKey(
+-      blink::StorageKey::CreateFirstParty(origin));
++      blink::StorageKey::CreateFirstParty(*origin));
+   return Response::Success();
+ }
+ 
+@@ -807,10 +836,9 @@ Response StorageHandler::TrackIndexedDBForStorageKey(
+     return Response::InternalError();
+   }
+ 
+-  std::optional<blink::StorageKey> key =
+-      blink::StorageKey::Deserialize(storage_key);
+-  if (!key) {
+-    return Response::InvalidParams("Unable to deserialize storage key");
++  auto key = GetStorageKeyIfAccessible(storage_key);
++  if (!key.has_value()) {
++    return std::move(key.error());
+   }
+ 
+   GetIndexedDBObserver()->TrackStorageKey(*key);
+@@ -823,14 +851,13 @@ Response StorageHandler::UntrackIndexedDBForOrigin(
+     return Response::InternalError();
+   }
+ 
+-  GURL origin_url(origin_string);
+-  url::Origin origin = url::Origin::Create(origin_url);
+-  if (!origin_url.is_valid() || origin.opaque()) {
+-    return Response::InvalidParams(origin_string + " is not a valid URL");
++  auto origin = GetOriginIfAccessible(origin_string);
++  if (!origin.has_value()) {
++    return std::move(origin.error());
+   }
+ 
+   GetIndexedDBObserver()->UntrackStorageKey(
+-      blink::StorageKey::CreateFirstParty(origin));
++      blink::StorageKey::CreateFirstParty(*origin));
+   return Response::Success();
+ }
+ 
+@@ -840,10 +867,9 @@ Response StorageHandler::UntrackIndexedDBForStorageKey(
+     return Response::InternalError();
+   }
+ 
+-  std::optional<blink::StorageKey> key =
+-      blink::StorageKey::Deserialize(storage_key);
+-  if (!key) {
+-    return Response::InvalidParams("Unable to deserialize storage key");
++  auto key = GetStorageKeyIfAccessible(storage_key);
++  if (!key.has_value()) {
++    return std::move(key.error());
+   }
+ 
+   GetIndexedDBObserver()->UntrackStorageKey(*key);
+@@ -942,26 +968,6 @@ Response StorageHandler::FindStoragePartition(
+   return Response::Success();
+ }
+ 
+-namespace {
+-
+-void SendTrustTokens(
+-    std::unique_ptr<StorageHandler::GetTrustTokensCallback> callback,
+-    std::vector<::network::mojom::StoredTrustTokensForIssuerPtr> tokens) {
+-  auto result =
+-      std::make_unique<protocol::Array<protocol::Storage::TrustTokens>>();
+-  for (auto const& token : tokens) {
+-    auto protocol_token = protocol::Storage::TrustTokens::Create()
+-                              .SetIssuerOrigin(token->issuer.Serialize())
+-                              .SetCount(token->count)
+-                              .Build();
+-    result->push_back(std::move(protocol_token));
+-  }
+-
+-  callback->sendSuccess(std::move(result));
+-}
+-
+-}  // namespace
+-
+ void StorageHandler::GetTrustTokens(
+     std::unique_ptr<GetTrustTokensCallback> callback) {
+   if (!storage_partition_) {
+@@ -970,7 +976,30 @@ void StorageHandler::GetTrustTokens(
+   }
+ 
+   storage_partition_->GetNetworkContext()->GetStoredTrustTokenCounts(
+-      base::BindOnce(&SendTrustTokens, std::move(callback)));
++      base::BindOnce(
++          [](base::WeakPtr<StorageHandler> self,
++             std::unique_ptr<GetTrustTokensCallback> callback,
++             std::vector<::network::mojom::StoredTrustTokensForIssuerPtr>
++                 tokens) {
++            if (!self) {
++              return;
++            }
++            auto result = std::make_unique<
++                protocol::Array<protocol::Storage::TrustTokens>>();
++            for (auto const& token : tokens) {
++              if (!self->CanAccessOrigin(token->issuer)) {
++                continue;
++              }
++              auto protocol_token =
++                  protocol::Storage::TrustTokens::Create()
++                      .SetIssuerOrigin(token->issuer.Serialize())
++                      .SetCount(token->count)
++                      .Build();
++              result->push_back(std::move(protocol_token));
++            }
++            callback->sendSuccess(std::move(result));
++          },
++          weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+ }
+ 
+ namespace {
+@@ -1007,8 +1036,14 @@ void StorageHandler::ClearTrustTokens(
+     return;
+   }
+ 
++  auto parsed_origin = GetOriginIfAccessible(issuerOrigin);
++  if (!parsed_origin.has_value()) {
++    callback->sendFailure(std::move(parsed_origin.error()));
++    return;
++  }
++
+   storage_partition_->GetNetworkContext()->DeleteStoredTrustTokens(
+-      url::Origin::Create(GURL(issuerOrigin)),
++      *parsed_origin,
+       base::BindOnce(&SendClearTrustTokensStatus, std::move(callback)));
+ }
+ 
+@@ -1022,9 +1057,9 @@ DispatchResponse StorageHandler::SetStorageBucketTracking(
+     return Response::InternalError();
+   }
+ 
+-  auto storage_key = blink::StorageKey::Deserialize(serialized_storage_key);
++  auto storage_key = GetStorageKeyIfAccessible(serialized_storage_key);
+   if (!storage_key.has_value()) {
+-    return Response::InvalidParams("Invalid Storage Key given.");
++    return std::move(storage_key.error());
+   }
+ 
+   if (enable) {
+@@ -1034,9 +1069,9 @@ DispatchResponse StorageHandler::SetStorageBucketTracking(
+           std::make_unique<StorageHandler::QuotaManagerObserver>(
+               weak_ptr_factory_.GetWeakPtr(), manager);
+     }
+-    quota_manager_observer_->TrackStorageKey(storage_key.value(), manager);
++    quota_manager_observer_->TrackStorageKey(*storage_key, manager);
+   } else if (quota_manager_observer_) {
+-    quota_manager_observer_->UntrackStorageKey(storage_key.value());
++    quota_manager_observer_->UntrackStorageKey(*storage_key);
+   }
+   return Response::Success();
+ }
+@@ -1046,16 +1081,16 @@ DispatchResponse StorageHandler::DeleteStorageBucket(
+   storage::QuotaManagerProxy* manager = GetQuotaManagerProxy();
+   DCHECK(manager);
+ 
+-  if (!bucket->HasName()) {
+-    return Response::InvalidParams("Can't delete the default bucket.");
++  auto storage_key = GetStorageKeyIfAccessible(bucket->GetStorageKey());
++  if (!storage_key.has_value()) {
++    return std::move(storage_key.error());
+   }
+ 
+-  auto storage_key = blink::StorageKey::Deserialize(bucket->GetStorageKey());
+-  if (!storage_key.has_value()) {
+-    return Response::InvalidParams("Invalid Storage Key given.");
++  if (!bucket->HasName()) {
++    return Response::InvalidParams("Can't delete the default bucket.");
+   }
+ 
+-  manager->DeleteBucket(storage_key.value(), bucket->GetName(""),
++  manager->DeleteBucket(*storage_key, bucket->GetName(""),
+                         base::SingleThreadTaskRunner::GetCurrentDefault(),
+                         base::DoNothing());
+   return Response::Success();
+diff --git a/content/browser/devtools/protocol/storage_handler.h b/content/browser/devtools/protocol/storage_handler.h
+index 6ad2bbcd17..8c80d5e5dc 100644
+--- a/content/browser/devtools/protocol/storage_handler.h
++++ b/content/browser/devtools/protocol/storage_handler.h
+@@ -12,11 +12,14 @@
+ #include "base/memory/raw_ptr.h"
+ #include "base/memory/weak_ptr.h"
+ #include "base/scoped_observation.h"
++#include "base/types/expected.h"
+ #include "base/types/optional_ref.h"
+ #include "content/browser/devtools/protocol/devtools_domain_handler.h"
+ #include "content/browser/devtools/protocol/storage.h"
+ #include "content/public/browser/global_routing_id.h"
+ #include "storage/browser/quota/quota_manager.h"
++#include "third_party/blink/public/common/storage_key/storage_key.h"
++#include "url/origin.h"
+ 
+ namespace net {
+ class CanonicalCookie;
+@@ -26,6 +29,10 @@ namespace storage {
+ class QuotaOverrideHandle;
+ }
+ 
++namespace url {
++class Origin;
++}
++
+ namespace content {
+ class DevToolsAgentHostClient;
+ class DevToolsAgentHostImpl;
+@@ -152,6 +159,12 @@ class StorageHandler : public DevToolsDomainHandler, public Storage::Backend {
+       std::unique_ptr<Storage::Backend::GetCookiesCallback> callback,
+       const std::vector<net::CanonicalCookie>& cookies);
+ 
++  bool CanAccessOrigin(const url::Origin& origin) const;
++  base::expected<url::Origin, Response> GetOriginIfAccessible(
++      const std::string& origin_string) const;
++  base::expected<blink::StorageKey, Response> GetStorageKeyIfAccessible(
++      const std::string& storage_key_string) const;
++
+   const raw_ptr<DevToolsAgentHostImpl> host_;
+ 
+   std::unique_ptr<Storage::Frontend> frontend_;
+-- 
+2.43.0
+

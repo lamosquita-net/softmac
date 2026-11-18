@@ -1,0 +1,126 @@
+From 647a41d3a77183ed506a5bce90e7da14242bef6a Mon Sep 17 00:00:00 2001
+From: Alex Rudenko <alexrudenko@chromium.org>
+Date: Tue, 13 Oct 2026 10:30:44 +0000
+Subject: [PATCH 1/2] Drop deferred reloads after a cross-document navigation
+
+ResourceTreeModel.reloadPage() stashes its arguments in
+#pendingReloadOptions while reloading is suspended (e.g. while the
+Performance panel records a film strip) and replays them from
+resumeReload(). The stashed scriptToEvaluateOnLoad is executed in the
+main world of whatever document is loaded at that point.
+
+If the main frame navigates while the reload is suspended, the
+deferred script therefore ends up running against an unrelated
+document, possibly on a different origin, that never requested it.
+
+Record the loaderId the reload was requested for alongside the other
+options and, on resume, drop the pending request if the main frame
+has since moved on to another document. Page.reload already rejects a
+mismatching loaderId; this check also stops the stale options from
+lingering for later suspend/resume cycles.
+
+Bug: 553152636
+Change-Id: I08fc9a00decda4eac0f0b8630807102438f1926b
+Fixed: 553152636
+Reviewed-on: https://chromium-review.googlesource.com/c/devtools/devtools-frontend/+/8564099
+Commit-Queue: Philip Pfaffe <pfaffe@chromium.org>
+Reviewed-by: Philip Pfaffe <pfaffe@chromium.org>
+Auto-Submit: Alex Rudenko <alexrudenko@chromium.org>
+---
+ front_end/core/sdk/ResourceTreeModel.test.ts | 41 ++++++++++++++++++++
+ front_end/core/sdk/ResourceTreeModel.ts      | 13 ++++++-
+ 2 files changed, 52 insertions(+), 2 deletions(-)
+
+diff --git a/front_end/core/sdk/ResourceTreeModel.test.ts b/front_end/core/sdk/ResourceTreeModel.test.ts
+index 7083435..1ef2d07 100644
+--- a/front_end/core/sdk/ResourceTreeModel.test.ts
++++ b/front_end/core/sdk/ResourceTreeModel.test.ts
+@@ -141,6 +141,47 @@ describe('ResourceTreeModel', () => {
+         reload.args[0], [{ignoreCache: undefined, loaderId: LOADER_ID, scriptToEvaluateOnLoad: undefined}]);
+   });
+ 
++  it('issues a deferred reload once reloading is resumed if the document did not change', async () => {
++    const target = universe.createTarget({connection});
++    const resourceTreeModel = await getInitializedResourceTreeModel(target);
++    const reload = sinon.spy(target.pageAgent(), 'invoke_reload');
++
++    resourceTreeModel.suspendReload();
++    resourceTreeModel.reloadPage(true, 'console.log("injected")');
++    sinon.assert.notCalled(reload);
++
++    resourceTreeModel.resumeReload();
++    sinon.assert.calledOnce(reload);
++    assert.deepEqual(reload.args[0],
++                     [{ignoreCache: true, loaderId: LOADER_ID, scriptToEvaluateOnLoad: 'console.log("injected")'}]);
++  });
++
++  it('drops a deferred reload if the main frame navigated while reloading was suspended', async () => {
++    const target = universe.createTarget({connection});
++    const resourceTreeModel = await getInitializedResourceTreeModel(target);
++    const reload = sinon.spy(target.pageAgent(), 'invoke_reload');
++
++    resourceTreeModel.suspendReload();
++    resourceTreeModel.reloadPage(true, 'console.log("injected")');
++    sinon.assert.notCalled(reload);
++
++    // Cross-document navigation to a different origin while the reload is pending.
++    navigate(getMainFrame(target), {
++      url: 'https://other.example.com/',
++      securityOrigin: 'https://other.example.com',
++      loaderId: 'OTHER_LOADER_ID' as Protocol.Network.LoaderId,
++    });
++    assert.strictEqual(resourceTreeModel.mainFrame?.loaderId, 'OTHER_LOADER_ID');
++
++    resourceTreeModel.resumeReload();
++    sinon.assert.notCalled(reload);
++
++    // The stale request must not linger: a later suspend/resume cycle must not replay it either.
++    resourceTreeModel.suspendReload();
++    resourceTreeModel.resumeReload();
++    sinon.assert.notCalled(reload);
++  });
++
+   it('resourceForURL can find resource', async () => {
+     const target = universe.createTarget({connection});
+     await getInitializedResourceTreeModel(target);
+diff --git a/front_end/core/sdk/ResourceTreeModel.ts b/front_end/core/sdk/ResourceTreeModel.ts
+index 86f79ab..e894801 100644
+--- a/front_end/core/sdk/ResourceTreeModel.ts
++++ b/front_end/core/sdk/ResourceTreeModel.ts
+@@ -32,6 +32,7 @@ export class ResourceTreeModel extends SDKModel<EventTypes> {
+   #pendingReloadOptions: {
+     ignoreCache: (boolean|undefined),
+     scriptToEvaluateOnLoad: (string|undefined),
++    loaderId: Protocol.Network.LoaderId,
+   }|null = null;
+   #reloadSuspensionCount = 0;
+   isInterstitialShowing = false;
+@@ -419,7 +420,15 @@ export class ResourceTreeModel extends SDKModel<EventTypes> {
+     this.#reloadSuspensionCount--;
+     console.assert(this.#reloadSuspensionCount >= 0, 'Unbalanced call to ResourceTreeModel.resumeReload()');
+     if (!this.#reloadSuspensionCount && this.#pendingReloadOptions) {
+-      const {ignoreCache, scriptToEvaluateOnLoad} = this.#pendingReloadOptions;
++      const {ignoreCache, scriptToEvaluateOnLoad, loaderId} = this.#pendingReloadOptions;
++      // A deferred reload (and its scriptToEvaluateOnLoad) only applies to the
++      // document it was requested against. If the main frame has since
++      // navigated to another document, drop the stale request instead of
++      // replaying it against the new document.
++      if (loaderId !== this.mainFrame?.loaderId) {
++        this.#pendingReloadOptions = null;
++        return;
++      }
+       this.reloadPage(ignoreCache, scriptToEvaluateOnLoad);
+     }
+   }
+@@ -434,7 +443,7 @@ export class ResourceTreeModel extends SDKModel<EventTypes> {
+       this.dispatchEventToListeners(Events.PageReloadRequested, this);
+     }
+     if (this.#reloadSuspensionCount) {
+-      this.#pendingReloadOptions = {ignoreCache, scriptToEvaluateOnLoad};
++      this.#pendingReloadOptions = {ignoreCache, scriptToEvaluateOnLoad, loaderId};
+       return;
+     }
+     this.#pendingReloadOptions = null;
+-- 
+2.43.0
+

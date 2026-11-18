@@ -1,0 +1,476 @@
+From 7bdd8674998bdf2ea355a2306a9c9e8b32d33d0a Mon Sep 17 00:00:00 2001
+From: Michal Mocny <mmocny@chromium.org>
+Date: Tue, 13 Oct 2026 11:56:24 -0700
+Subject: [PATCH 05/32] Align chrome.csi() and chrome.loadTimes() with
+ web-exposed Performance values
+
+Add WebPerformanceTimings and WebLocalFrame::PerformanceTimings() to
+provide web-exposed, TimeClamper-coarsened DOMHighResTimeStamp values
+from Performance::timeOrigin(), PerformanceNavigationTiming (NTv2),
+Performance::FirstPaintTiming(), and Performance::now() for the legacy
+chrome.csi() and chrome.loadTimes() bindings:
+
+- All WebPerformanceTimings fields are double milliseconds
+  (navigation_start relative to the Unix epoch, and all other milestones
+  relative to navigation_start); LoadTimesBindings converts epoch
+  timestamps back to integer-millisecond accuracy.
+- chrome.csi().pageT now uses Performance::now() instead of computing
+  base::Time::Now() - navigationStart.
+- chrome.loadTimes().firstPaintTime now uses the web-exposed
+  Performance::FirstPaintTiming() entry instead of the internal
+  FirstPaintForMetrics() timestamp.
+- Remove unused top-level DomContentLoadedEventEnd() and LoadEventEnd()
+  methods from WebPerformanceMetricsForReporting.
+
+Bug: 562971921
+Change-Id: I2d4bea51b9ba12a9e5420b840de87e436a6a6964
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8507175
+Reviewed-by: Scott Haseley <shaseley@chromium.org>
+Commit-Queue: Michal Mocny <mmocny@chromium.org>
+Reviewed-by: Colin Blundell <blundell@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1717680}
+---
+ chrome/renderer/OWNERS                        |  2 +-
+ chrome/renderer/loadtimes_bindings.cc         | 43 ++++++++--------
+ third_party/blink/public/BUILD.gn             |  1 +
+ .../blink/public/web/web_local_frame.h        |  2 +
+ .../web_performance_metrics_for_reporting.h   |  7 ++-
+ .../public/web/web_performance_timings.h      | 49 +++++++++++++++++++
+ .../blink/renderer/core/exported/build.gni    |  1 +
+ .../web_performance_metrics_for_reporting.cc  |  9 ----
+ .../core/exported/web_performance_timings.cc  | 28 +++++++++++
+ .../core/frame/web_local_frame_impl.cc        |  9 ++++
+ .../core/frame/web_local_frame_impl.h         |  2 +
+ .../blink/renderer/core/timing/performance.h  | 18 +++++++
+ .../core/timing/performance_entry_names.json5 |  2 +
+ .../core/timing/performance_paint_timing.cc   | 17 +++----
+ 14 files changed, 142 insertions(+), 48 deletions(-)
+ create mode 100644 third_party/blink/public/web/web_performance_timings.h
+ create mode 100644 third_party/blink/renderer/core/exported/web_performance_timings.cc
+
+diff --git a/chrome/renderer/OWNERS b/chrome/renderer/OWNERS
+index 5a76272c7d..323fba3248 100644
+--- a/chrome/renderer/OWNERS
++++ b/chrome/renderer/OWNERS
+@@ -3,7 +3,7 @@
+ per-file BUILD.gn=*
+ 
+ # Page Load Histogram files.
+-per-file loadtimes_extension_bindings*=file://components/page_load_metrics/OWNERS
++per-file loadtimes_bindings*=file://components/page_load_metrics/OWNERS
+ 
+ # Instant/Search files.
+ per-file instant_restricted_id_cache*=file://chrome/browser/search/OWNERS
+diff --git a/chrome/renderer/loadtimes_bindings.cc b/chrome/renderer/loadtimes_bindings.cc
+index dae3cca5d0..94d737d1d8 100644
+--- a/chrome/renderer/loadtimes_bindings.cc
++++ b/chrome/renderer/loadtimes_bindings.cc
+@@ -16,7 +16,7 @@
+ #include "third_party/blink/public/web/web_document_loader.h"
+ #include "third_party/blink/public/web/web_local_frame.h"
+ #include "third_party/blink/public/web/web_navigation_type.h"
+-#include "third_party/blink/public/web/web_performance_metrics_for_reporting.h"
++#include "third_party/blink/public/web/web_performance_timings.h"
+ #include "v8/include/cppgc/allocation.h"
+ #include "v8/include/v8-context.h"
+ #include "v8/include/v8-function.h"
+@@ -180,8 +180,7 @@ v8::Local<v8::Value> LoadTimesBindings::GetLoadTimes(v8::Isolate* isolate) {
+     return v8::Null(isolate);
+   }
+   const blink::WebURLResponse& response = document_loader->GetWebResponse();
+-  blink::WebPerformanceMetricsForReporting web_performance =
+-      frame->PerformanceMetricsForReporting();
++  blink::WebPerformanceTimings timings = frame->PerformanceTimings();
+ 
+   // Though request time now tends to be used to describe the time that the
+   // request for the main resource was issued, when chrome.loadTimes() was
+@@ -189,7 +188,7 @@ v8::Local<v8::Value> LoadTimesBindings::GetLoadTimes(v8::Isolate* isolate) {
+   // received', which is the time now known as navigation start. For backward
+   // compatibility, we continue to provide request_time, setting its value to
+   // navigation start.
+-  double request_time = web_performance.NavigationStart();
++  double request_time = timings.ToEpochTime().InSecondsF();
+   // Developers often use start_load_time as the time the navigation was
+   // started, so we return navigationStart for this value as well. See
+   // https://gist.github.com/search?utf8=%E2%9C%93&q=startLoadTime.
+@@ -204,13 +203,17 @@ v8::Local<v8::Value> LoadTimesBindings::GetLoadTimes(v8::Isolate* isolate) {
+   // the render process will no longer make sense. Thus, we now report the
+   // time for navigationStart, which is a value more consistent with what
+   // developers currently use start_load_time for.
+-  double start_load_time = web_performance.NavigationStart();
++  double start_load_time = request_time;
+   // TODO(bmcquade): Remove this. 'commit' time is a concept internal to
+   // chrome that shouldn't be exposed to the web platform.
+-  double commit_load_time = web_performance.ResponseStart();
+-  double finish_document_load_time = web_performance.DomContentLoadedEventEnd();
+-  double finish_load_time = web_performance.LoadEventEnd();
+-  double first_paint_time = web_performance.FirstPaint();
++  double commit_load_time =
++      timings.ToEpochTime(timings.response_start).InSecondsF();
++  double finish_document_load_time =
++      timings.ToEpochTime(timings.dom_content_loaded_event_end).InSecondsF();
++  double finish_load_time =
++      timings.ToEpochTime(timings.load_event_end).InSecondsF();
++  double first_paint_time =
++      timings.ToEpochTime(timings.first_paint).InSecondsF();
+   // TODO(bmcquade): remove this. It's misleading to track the first paint
+   // after the load event, since many pages perform their meaningful paints
+   // long before the load event fires. We report a time of zero for the
+@@ -283,15 +286,11 @@ v8::Local<v8::Value> LoadTimesBindings::GetCSI(v8::Isolate* isolate) {
+   if (!document_loader) {
+     return v8::Null(isolate);
+   }
+-  blink::WebPerformanceMetricsForReporting web_performance =
+-      frame->PerformanceMetricsForReporting();
+-  base::Time now = base::Time::Now();
+-  base::Time start =
+-      base::Time::FromSecondsSinceUnixEpoch(web_performance.NavigationStart());
+-
+-  base::Time dom_content_loaded_end = base::Time::FromSecondsSinceUnixEpoch(
+-      web_performance.DomContentLoadedEventEnd());
+-  base::TimeDelta page = now - start;
++  blink::WebPerformanceTimings timings = frame->PerformanceTimings();
++  int64_t start = timings.ToEpochTime().InMilliseconds();
++  int64_t dom_content_loaded_end =
++      timings.ToEpochTime(timings.dom_content_loaded_event_end)
++          .InMilliseconds();
+   int navigation_type =
+       GetCSITransitionType(document_loader->GetNavigationType());
+ 
+@@ -313,14 +312,12 @@ v8::Local<v8::Value> LoadTimesBindings::GetCSI(v8::Isolate* isolate) {
+         .FromMaybe(false);
+   };
+ 
+-  if (!define_prop("startE", v8_num(start.InMillisecondsSinceUnixEpoch())) ||
++  if (!define_prop("startE", v8_num(start)) ||
+       // NOTE: historically, the CSI onload field has reported the time the
+       // document finishes parsing, which is DOMContentLoaded. Thus, we continue
+       // to report that here, despite the fact that the field is named onloadT.
+-      !define_prop(
+-          "onloadT",
+-          v8_num(dom_content_loaded_end.InMillisecondsSinceUnixEpoch())) ||
+-      !define_prop("pageT", v8_num(page.InMillisecondsF())) ||
++      !define_prop("onloadT", v8_num(dom_content_loaded_end)) ||
++      !define_prop("pageT", v8_num(timings.now)) ||
+       !define_prop("tran", v8_num(navigation_type))) {
+     return v8::Null(isolate);
+   }
+diff --git a/third_party/blink/public/BUILD.gn b/third_party/blink/public/BUILD.gn
+index 6dc75e2d3f..ad70a7b0be 100644
+--- a/third_party/blink/public/BUILD.gn
++++ b/third_party/blink/public/BUILD.gn
+@@ -347,6 +347,7 @@ source_set("blink_headers") {
+     "web/web_page_popup.h",
+     "web/web_performance_metrics_for_nested_contexts.h",
+     "web/web_performance_metrics_for_reporting.h",
++    "web/web_performance_timings.h",
+     "web/web_picture_in_picture_window_options.h",
+     "web/web_plugin.h",
+     "web/web_plugin_container.h",
+diff --git a/third_party/blink/public/web/web_local_frame.h b/third_party/blink/public/web/web_local_frame.h
+index 3c61feac0d..4f640320a1 100644
+--- a/third_party/blink/public/web/web_local_frame.h
++++ b/third_party/blink/public/web/web_local_frame.h
+@@ -117,6 +117,7 @@ struct FramePolicy;
+ struct WebAssociatedURLLoaderOptions;
+ struct WebConsoleMessage;
+ struct WebIsolatedWorldInfo;
++struct WebPerformanceTimings;
+ struct WebPolicyContainer;
+ struct WebPrintPageDescription;
+ struct WebPrintParams;
+@@ -908,6 +909,7 @@ class BLINK_EXPORT WebLocalFrame : public WebFrame {
+       const = 0;
+   virtual WebPerformanceMetricsForNestedContexts
+   PerformanceMetricsForNestedContexts() const = 0;
++  virtual WebPerformanceTimings PerformanceTimings() const = 0;
+ 
+   // Ad Tagging ---------------------------------------------------------
+ 
+diff --git a/third_party/blink/public/web/web_performance_metrics_for_reporting.h b/third_party/blink/public/web/web_performance_metrics_for_reporting.h
+index 9e35d42a46..64bc433ba5 100644
+--- a/third_party/blink/public/web/web_performance_metrics_for_reporting.h
++++ b/third_party/blink/public/web/web_performance_metrics_for_reporting.h
+@@ -82,8 +82,9 @@ struct SoftNavigationMetricsForReporting {
+   base::UnguessableToken same_document_metrics_token;
+ };
+ 
+-// This class is used for reporting purposes (e.g. ukm) of non-web-exposed
+-// metrics.
++// This class is used for reporting purposes (e.g. ukm) of performance metrics,
++// including non-web-exposed metrics. Do not use this class to expose values to
++// the web; use `WebPerformanceTimings` instead.
+ class BLINK_EXPORT WebPerformanceMetricsForReporting {
+  public:
+   // The count to record the times on requestAnimationFrame after the page is
+@@ -139,9 +140,7 @@ class BLINK_EXPORT WebPerformanceMetricsForReporting {
+   double ConnectEnd() const;
+   double ResponseStart() const;
+   double DomContentLoadedEventStart() const;
+-  double DomContentLoadedEventEnd() const;
+   double LoadEventStart() const;
+-  double LoadEventEnd() const;
+   double FirstPaint() const;
+   base::TimeTicks FirstPaintAsMonotonicTime() const;
+   double FirstImagePaint() const;
+diff --git a/third_party/blink/public/web/web_performance_timings.h b/third_party/blink/public/web/web_performance_timings.h
+new file mode 100644
+index 0000000000..835eb20ef9
+--- /dev/null
++++ b/third_party/blink/public/web/web_performance_timings.h
+@@ -0,0 +1,49 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef THIRD_PARTY_BLINK_PUBLIC_WEB_WEB_PERFORMANCE_TIMINGS_H_
++#define THIRD_PARTY_BLINK_PUBLIC_WEB_WEB_PERFORMANCE_TIMINGS_H_
++
++#include <stdint.h>
++
++#include "base/time/time.h"
++#include "third_party/blink/public/platform/web_common.h"
++
++namespace blink {
++
++class WindowPerformance;
++
++// Web-exposed performance timings in milliseconds, coarsened for security and
++// privacy per the High Resolution Time specification.
++// `navigation_start` is relative to the Unix epoch (equivalent to
++// `performance.timeOrigin`); all other fields are durations relative to
++// `navigation_start` (corresponding to `PerformanceNavigationTiming`
++// attributes, the `'first-paint'` `PerformancePaintTiming` entry, and
++// `performance.now()`).
++struct BLINK_EXPORT WebPerformanceTimings {
++  double navigation_start = 0.0;
++  double response_start = 0.0;
++  double dom_content_loaded_event_end = 0.0;
++  double load_event_end = 0.0;
++  double first_paint = 0.0;
++  double now = 0.0;
++
++  base::TimeDelta ToEpochTime() const {
++    return base::Milliseconds(static_cast<int64_t>(navigation_start));
++  }
++  base::TimeDelta ToEpochTime(double delta_ms) const {
++    return delta_ms > 0.0 ? base::Milliseconds(static_cast<int64_t>(
++                                navigation_start + delta_ms))
++                          : base::TimeDelta();
++  }
++
++  WebPerformanceTimings() = default;
++#if INSIDE_BLINK
++  explicit WebPerformanceTimings(WindowPerformance*);
++#endif
++};
++
++}  // namespace blink
++
++#endif  // THIRD_PARTY_BLINK_PUBLIC_WEB_WEB_PERFORMANCE_TIMINGS_H_
+diff --git a/third_party/blink/renderer/core/exported/build.gni b/third_party/blink/renderer/core/exported/build.gni
+index 187d56dd12..cd2de8767f 100644
+--- a/third_party/blink/renderer/core/exported/build.gni
++++ b/third_party/blink/renderer/core/exported/build.gni
+@@ -49,6 +49,7 @@ blink_core_sources_exported = [
+   "web_page_popup_impl.h",
+   "web_performance_metrics_for_reporting.cc",
+   "web_performance_metrics_for_nested_contexts.cc",
++  "web_performance_timings.cc",
+   "web_plugin_container_impl.cc",
+   "web_plugin_container_impl.h",
+   "web_plugin_document.cc",
+diff --git a/third_party/blink/renderer/core/exported/web_performance_metrics_for_reporting.cc b/third_party/blink/renderer/core/exported/web_performance_metrics_for_reporting.cc
+index 4e08e20a68..870df07bdb 100644
+--- a/third_party/blink/renderer/core/exported/web_performance_metrics_for_reporting.cc
++++ b/third_party/blink/renderer/core/exported/web_performance_metrics_for_reporting.cc
+@@ -122,19 +122,10 @@ double WebPerformanceMetricsForReporting::DomContentLoadedEventStart() const {
+       .InSecondsF();
+ }
+ 
+-double WebPerformanceMetricsForReporting::DomContentLoadedEventEnd() const {
+-  return base::Milliseconds(private_->timing()->domContentLoadedEventEnd())
+-      .InSecondsF();
+-}
+-
+ double WebPerformanceMetricsForReporting::LoadEventStart() const {
+   return base::Milliseconds(private_->timing()->loadEventStart()).InSecondsF();
+ }
+ 
+-double WebPerformanceMetricsForReporting::LoadEventEnd() const {
+-  return base::Milliseconds(private_->timing()->loadEventEnd()).InSecondsF();
+-}
+-
+ double WebPerformanceMetricsForReporting::FirstPaint() const {
+   return base::Milliseconds(
+              private_->timingForReporting()->FirstPaintForMetrics())
+diff --git a/third_party/blink/renderer/core/exported/web_performance_timings.cc b/third_party/blink/renderer/core/exported/web_performance_timings.cc
+new file mode 100644
+index 0000000000..6c943d61f6
+--- /dev/null
++++ b/third_party/blink/renderer/core/exported/web_performance_timings.cc
+@@ -0,0 +1,28 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "third_party/blink/public/web/web_performance_timings.h"
++
++#include "third_party/blink/renderer/core/timing/performance_entry.h"
++#include "third_party/blink/renderer/core/timing/performance_navigation_timing.h"
++#include "third_party/blink/renderer/core/timing/window_performance.h"
++
++namespace blink {
++
++WebPerformanceTimings::WebPerformanceTimings(WindowPerformance* performance) {
++  if (!performance) {
++    return;
++  }
++  PerformanceNavigationTiming* nav_timing = performance->NavigationTiming();
++  PerformanceEntry* first_paint_entry = performance->FirstPaintTiming();
++  navigation_start = performance->timeOrigin();
++  response_start = nav_timing ? nav_timing->responseStart() : 0.0;
++  dom_content_loaded_event_end =
++      nav_timing ? nav_timing->domContentLoadedEventEnd() : 0.0;
++  load_event_end = nav_timing ? nav_timing->loadEventEnd() : 0.0;
++  first_paint = first_paint_entry ? first_paint_entry->startTime() : 0.0;
++  now = performance->now();
++}
++
++}  // namespace blink
+diff --git a/third_party/blink/renderer/core/frame/web_local_frame_impl.cc b/third_party/blink/renderer/core/frame/web_local_frame_impl.cc
+index 97bee2c322..368414277b 100644
+--- a/third_party/blink/renderer/core/frame/web_local_frame_impl.cc
++++ b/third_party/blink/renderer/core/frame/web_local_frame_impl.cc
+@@ -144,6 +144,7 @@
+ #include "third_party/blink/public/web/web_node.h"
+ #include "third_party/blink/public/web/web_performance_metrics_for_nested_contexts.h"
+ #include "third_party/blink/public/web/web_performance_metrics_for_reporting.h"
++#include "third_party/blink/public/web/web_performance_timings.h"
+ #include "third_party/blink/public/web/web_plugin.h"
+ #include "third_party/blink/public/web/web_print_client.h"
+ #include "third_party/blink/public/web/web_print_page_description.h"
+@@ -1037,6 +1038,14 @@ WebLocalFrameImpl::PerformanceMetricsForNestedContexts() const {
+       DOMWindowPerformance::performance(*(GetFrame()->DomWindow())));
+ }
+ 
++WebPerformanceTimings WebLocalFrameImpl::PerformanceTimings() const {
++  if (!GetFrame()) {
++    return WebPerformanceTimings();
++  }
++  return WebPerformanceTimings(
++      DOMWindowPerformance::performance(*(GetFrame()->DomWindow())));
++}
++
+ bool WebLocalFrameImpl::IsAdFrame() const {
+   DCHECK(GetFrame());
+   return GetFrame()->IsAdFrame();
+diff --git a/third_party/blink/renderer/core/frame/web_local_frame_impl.h b/third_party/blink/renderer/core/frame/web_local_frame_impl.h
+index c8806c6e84..34da211a1b 100644
+--- a/third_party/blink/renderer/core/frame/web_local_frame_impl.h
++++ b/third_party/blink/renderer/core/frame/web_local_frame_impl.h
+@@ -70,6 +70,7 @@
+ #include "third_party/blink/public/web/web_navigation_control.h"
+ #include "third_party/blink/public/web/web_performance_metrics_for_nested_contexts.h"
+ #include "third_party/blink/public/web/web_performance_metrics_for_reporting.h"
++#include "third_party/blink/public/web/web_performance_timings.h"
+ #include "third_party/blink/renderer/core/core_export.h"
+ #include "third_party/blink/renderer/core/editing/forward.h"
+ #include "third_party/blink/renderer/core/exported/web_input_method_controller_impl.h"
+@@ -351,6 +352,7 @@ class CORE_EXPORT WebLocalFrameImpl final
+       const override;
+   WebPerformanceMetricsForNestedContexts PerformanceMetricsForNestedContexts()
+       const override;
++  WebPerformanceTimings PerformanceTimings() const override;
+   bool IsAdFrame() const override;
+   bool IsAdScriptInStack() const override;
+   void SetAdEvidence(const FrameAdEvidence& ad_evidence) override;
+diff --git a/third_party/blink/renderer/core/timing/performance.h b/third_party/blink/renderer/core/timing/performance.h
+index c45f277863..7aab56f065 100644
+--- a/third_party/blink/renderer/core/timing/performance.h
++++ b/third_party/blink/renderer/core/timing/performance.h
+@@ -35,6 +35,7 @@
+ #include <optional>
+ 
+ #include "base/functional/callback_forward.h"
++#include "base/not_fatal_until.h"
+ #include "base/task/single_thread_task_runner.h"
+ #include "base/time/time.h"
+ #include "third_party/blink/public/mojom/timing/declarative_performance_observer.mojom-blink.h"
+@@ -46,6 +47,7 @@
+ #include "third_party/blink/renderer/core/dom/dom_high_res_time_stamp.h"
+ #include "third_party/blink/renderer/core/dom/events/event_target.h"
+ #include "third_party/blink/renderer/core/loader/frame_loader_types.h"
++#include "third_party/blink/renderer/core/performance_entry_names.h"
+ #include "third_party/blink/renderer/core/timing/performance_entry.h"
+ #include "third_party/blink/renderer/core/timing/performance_paint_timing.h"
+ #include "third_party/blink/renderer/core/timing/performance_timeline_entry_id_generator.h"
+@@ -159,6 +161,22 @@ class CORE_EXPORT Performance : public EventTarget {
+   // Internal getter method for the time origin value.
+   base::TimeTicks GetTimeOriginInternal() const { return time_origin_; }
+ 
++  PerformanceNavigationTiming* NavigationTiming() const {
++    return navigation_timing_.Get();
++  }
++
++  PerformanceEntry* FirstPaintTiming() const {
++    if (paint_entries_timing_.empty()) {
++      return nullptr;
++    }
++    // `paint_entries_timing_` only ever stores "first-paint" followed by
++    // "first-contentful-paint" (could be replaced with two dedicated named
++    // members instead of a vector).
++    CHECK_EQ(paint_entries_timing_[0]->name(),
++             performance_entry_names::kFirstPaint, base::NotFatalUntil::M162);
++    return paint_entries_timing_[0].Get();
++  }
++
+   // Get all performance entries of the main frame. This is kept until the one
+   // with optional filtering options is enabled by default.
+   PerformanceEntryVector getEntries();
+diff --git a/third_party/blink/renderer/core/timing/performance_entry_names.json5 b/third_party/blink/renderer/core/timing/performance_entry_names.json5
+index 318cf8148d..6202b03f55 100644
+--- a/third_party/blink/renderer/core/timing/performance_entry_names.json5
++++ b/third_party/blink/renderer/core/timing/performance_entry_names.json5
+@@ -9,7 +9,9 @@
+     "container",
+     "element",
+     "event",
++    "first-contentful-paint",
+     "first-input",
++    "first-paint",
+     "interaction-contentful-paint",
+     "largest-contentful-paint",
+     "layout-shift",
+diff --git a/third_party/blink/renderer/core/timing/performance_paint_timing.cc b/third_party/blink/renderer/core/timing/performance_paint_timing.cc
+index a8145dd0ef..9e6a4d19a2 100644
+--- a/third_party/blink/renderer/core/timing/performance_paint_timing.cc
++++ b/third_party/blink/renderer/core/timing/performance_paint_timing.cc
+@@ -14,18 +14,13 @@ namespace blink {
+ 
+ namespace {
+ 
+-AtomicString FromPaintTypeToString(PerformancePaintTiming::PaintType type) {
+-  DCHECK(IsMainThread());
++const AtomicString& FromPaintTypeToString(
++    PerformancePaintTiming::PaintType type) {
+   switch (type) {
+-    case PerformancePaintTiming::PaintType::kFirstPaint: {
+-      DEFINE_STATIC_LOCAL(const AtomicString, kFirstPaint, ("first-paint"));
+-      return kFirstPaint;
+-    }
+-    case PerformancePaintTiming::PaintType::kFirstContentfulPaint: {
+-      DEFINE_STATIC_LOCAL(const AtomicString, kFirstContentfulPaint,
+-                          ("first-contentful-paint"));
+-      return kFirstContentfulPaint;
+-    }
++    case PerformancePaintTiming::PaintType::kFirstPaint:
++      return performance_entry_names::kFirstPaint;
++    case PerformancePaintTiming::PaintType::kFirstContentfulPaint:
++      return performance_entry_names::kFirstContentfulPaint;
+   }
+   NOTREACHED();
+ }
+-- 
+2.43.0
+

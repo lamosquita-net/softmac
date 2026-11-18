@@ -1,0 +1,240 @@
+From 2ce59c1337751f2ee901d7b3f42738cef8741825 Mon Sep 17 00:00:00 2001
+From: Tommy Steimel <steimel@chromium.org>
+Date: Wed, 21 Oct 2026 10:22:18 -0700
+Subject: [PATCH 27/32] [AutoPiP] Only allow auto picture-in-picture from
+ primary main frame
+
+Ensure that MediaSessionImpl only exposes kEnterAutoPictureInPicture
+and routes EnterAutoPictureInPicture() when the routed
+MediaSessionService is in the primary main frame.
+
+Also ensure AutoPictureInPictureTabHelper checks
+GetPrimaryMainRoutedFrame() in IsEligibleForAutoPictureInPicture()
+(covering the camera/microphone path), at the start of
+MeetsMediaEngagementConditions(), and unconditionally in
+ScheduleUrlSafetyCheck().
+
+Bug: 575048405
+Change-Id: I8437e9f5b8237ebeff2369967ed9089a997bdd54
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8615561
+Reviewed-by: Benjamin Keen <bkeen@google.com>
+Commit-Queue: Tommy Steimel <steimel@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1723940}
+---
+ .../auto_picture_in_picture_tab_helper.cc     | 24 ++++----
+ ...cture_in_picture_tab_helper_browsertest.cc | 56 +++++++++++++++++--
+ .../media/session/media_session_impl.cc       | 14 ++++-
+ ...a_session_impl_service_routing_unittest.cc | 27 +++++++++
+ 4 files changed, 102 insertions(+), 19 deletions(-)
+
+diff --git a/chrome/browser/picture_in_picture/auto_picture_in_picture_tab_helper.cc b/chrome/browser/picture_in_picture/auto_picture_in_picture_tab_helper.cc
+index 359dba00ed..c12bf695d0 100644
+--- a/chrome/browser/picture_in_picture/auto_picture_in_picture_tab_helper.cc
++++ b/chrome/browser/picture_in_picture/auto_picture_in_picture_tab_helper.cc
+@@ -668,6 +668,10 @@ bool AutoPictureInPictureTabHelper::IsEligibleForAutoPictureInPicture(
+     return false;
+   }
+ 
++  if (!GetPrimaryMainRoutedFrame()) {
++    return false;
++  }
++
+   if (PrimaryMainFrameHasOpaqueOrigin()) {
+     return false;
+   }
+@@ -758,16 +762,16 @@ bool AutoPictureInPictureTabHelper::WasRecentlyAudible() const {
+ }
+ 
+ bool AutoPictureInPictureTabHelper::MeetsMediaEngagementConditions() const {
+-  // Skip checking media engagement when content setting is set to allow.
+-  if (GetCurrentContentSetting() == CONTENT_SETTING_ALLOW) {
+-    return true;
+-  }
+-
+   std::optional<content::RenderFrameHost*> rfh = GetPrimaryMainRoutedFrame();
+   if (!rfh) {
+     return false;
+   }
+ 
++  // Skip checking media engagement when content setting is set to allow.
++  if (GetCurrentContentSetting() == CONTENT_SETTING_ALLOW) {
++    return true;
++  }
++
+   const url::Origin origin = rfh.value()->GetLastCommittedOrigin();
+   if (origin.GetURL().SchemeIsFile()) {
+     return true;
+@@ -814,16 +818,16 @@ void AutoPictureInPictureTabHelper::OnUrlSafetyResult(bool has_safe_url) {
+ }
+ 
+ void AutoPictureInPictureTabHelper::ScheduleUrlSafetyCheck() {
+-#if BUILDFLAG(SAFE_BROWSING_AVAILABLE)
+-  CHECK(!is_in_picture_in_picture_);
+-  CHECK(g_browser_process);
+-  CHECK(g_browser_process->safe_browsing_service());
+-
+   std::optional<content::RenderFrameHost*> rfh = GetPrimaryMainRoutedFrame();
+   if (!rfh) {
+     return;
+   }
+ 
++#if BUILDFLAG(SAFE_BROWSING_AVAILABLE)
++  CHECK(!is_in_picture_in_picture_);
++  CHECK(g_browser_process);
++  CHECK(g_browser_process->safe_browsing_service());
++
+   if (!safe_browsing_checker_client_) {
+     // Create the AutoPiP safe browsing checker client, which will be used for
+     // determining URL safety.
+diff --git a/chrome/browser/picture_in_picture/auto_picture_in_picture_tab_helper_browsertest.cc b/chrome/browser/picture_in_picture/auto_picture_in_picture_tab_helper_browsertest.cc
+index 69c4225fd6..f840b3b462 100644
+--- a/chrome/browser/picture_in_picture/auto_picture_in_picture_tab_helper_browsertest.cc
++++ b/chrome/browser/picture_in_picture/auto_picture_in_picture_tab_helper_browsertest.cc
+@@ -1311,15 +1311,11 @@ IN_PROC_BROWSER_TEST_F(AutoPictureInPictureWithVideoPlaybackBrowserTest,
+   // inside a remote iframe.
+   SwitchToNewTabAndDontExpectAutopip();
+ 
+-  // A remote iframe is not considered safe when Safe Browsing can verify it.
+-  // Without Safe Browsing, the flag retains its fail-open default.
+   auto* tab_helper =
+       AutoPictureInPictureTabHelper::FromWebContents(web_contents);
+-#if BUILDFLAG(SAFE_BROWSING_AVAILABLE)
+   EXPECT_FALSE(tab_helper->has_safe_url_);
+-#else
+-  EXPECT_TRUE(tab_helper->has_safe_url_);
+-#endif  // BUILDFLAG(SAFE_BROWSING_AVAILABLE)
++  EXPECT_FALSE(tab_helper->IsEligibleForAutoPictureInPicture(
++      /*should_record_blocking_metrics=*/false));
+ 
+   // Verify that `MeetsMediaEngagementConditions` returns false (even though the
+   // mock high engagement is set to return true), since the video element is
+@@ -1495,6 +1491,54 @@ IN_PROC_BROWSER_TEST_F(AutoPictureInPictureTabHelperBrowserTest,
+                                         /*should_document_pip=*/false);
+ }
+ 
++// Regression test for crbug.com/575048405.
++IN_PROC_BROWSER_TEST_F(AutoPictureInPictureTabHelperBrowserTest,
++                       DoesNotAutopip_CameraMicrophoneWithCrossOriginSubframe) {
++  LoadCameraMicrophonePage(browser(), "a.com");
++  content::WebContents* web_contents =
++      browser()->GetTabStripModel()->GetActiveWebContents();
++  content::RenderFrameHost* main_frame = web_contents->GetPrimaryMainFrame();
++  GetUserMediaAndAccept(web_contents);
++
++  // Detach the stream from the main frame's video element while keeping the
++  // MediaStream active, so the tab is still capturing camera/microphone but the
++  // main frame has no active MediaSession player.
++  ASSERT_TRUE(ExecJs(
++      main_frame, "document.getElementById('local-view').srcObject = null;"));
++
++  const GURL subframe_url = embedded_https_test_server().GetURL(
++      "b.com", base::FilePath(FILE_PATH_LITERAL("/"))
++                   .Append(kAutoVideoPipPage)
++                   .MaybeAsASCII());
++  content::TestNavigationObserver load_observer(web_contents);
++  ASSERT_TRUE(ExecJs(
++      main_frame,
++      content::JsReplace("const iframe = document.createElement('iframe');"
++                         "iframe.src = $1;"
++                         "document.body.appendChild(iframe);",
++                         subframe_url)));
++  load_observer.Wait();
++
++  content::RenderFrameHost* sub_frame = ChildFrameAt(main_frame, 0);
++  ASSERT_TRUE(sub_frame);
++
++  ASSERT_TRUE(ExecJs(sub_frame, R"(
++      window.autopipCallbackInvoked = false;
++      navigator.mediaSession.setActionHandler('enterpictureinpicture', () => {
++        window.autopipCallbackInvoked = true;
++        video.requestPictureInPicture();
++      });
++      playVideo();
++  )"));
++  WaitForMediaSessionPlaying(web_contents);
++
++  ASSERT_EQ(sub_frame,
++            content::MediaSession::Get(web_contents)->GetRoutedFrame());
++
++  SwitchToNewTabAndDontExpectAutopip();
++  EXPECT_EQ(false, EvalJs(sub_frame, "window.autopipCallbackInvoked"));
++}
++
+ IN_PROC_BROWSER_TEST_F(AutoPictureInPictureTabHelperBrowserTest,
+                        CannotAutopipViaHttp) {
+   // Load a page that registers for autopip and starts using camera/microphone.
+diff --git a/content/browser/media/session/media_session_impl.cc b/content/browser/media/session/media_session_impl.cc
+index 2ceba89ab9..d85a959fbb 100644
+--- a/content/browser/media/session/media_session_impl.cc
++++ b/content/browser/media/session/media_session_impl.cc
+@@ -1358,6 +1358,10 @@ void MediaSessionImpl::EnterAutoPictureInPicture() {
+     MaybeEnterBrowserInitiatedAutomaticPictureInPicture();
+     return;
+   }
++  if (!routed_service_->GetRenderFrameHost() ||
++      !routed_service_->GetRenderFrameHost()->IsInPrimaryMainFrame()) {
++    return;
++  }
+ 
+   DidReceiveAction(
+       media_session::mojom::MediaSessionAction::kEnterPictureInPicture,
+@@ -1933,11 +1937,15 @@ void MediaSessionImpl::RebuildAndNotifyActionsChanged() {
+   }
+ 
+   // If the website has specified an action handler for 'enterpictureinpicture',
+-  // then we should expose EnterAutoPictureInPicture as an available action.
++  // then we should expose EnterAutoPictureInPicture as an available action if
++  // the routed service is in the primary main frame.
+   if (actions.contains(
+           media_session::mojom::MediaSessionAction::kEnterPictureInPicture)) {
+-    actions.insert(
+-        media_session::mojom::MediaSessionAction::kEnterAutoPictureInPicture);
++    if (routed_service_ && routed_service_->GetRenderFrameHost() &&
++        routed_service_->GetRenderFrameHost()->IsInPrimaryMainFrame()) {
++      actions.insert(
++          media_session::mojom::MediaSessionAction::kEnterAutoPictureInPicture);
++    }
+     actions.insert(
+         media_session::mojom::MediaSessionAction::kExitPictureInPicture);
+   }
+diff --git a/content/browser/media/session/media_session_impl_service_routing_unittest.cc b/content/browser/media/session/media_session_impl_service_routing_unittest.cc
+index 5edc5de3a6..9fc5a15b39 100644
+--- a/content/browser/media/session/media_session_impl_service_routing_unittest.cc
++++ b/content/browser/media/session/media_session_impl_service_routing_unittest.cc
+@@ -1539,6 +1539,33 @@ TEST_F(MediaSessionImplServiceRoutingTest, CannotAddPlayerForInactiveFrame) {
+   EXPECT_FALSE(GetMediaSession()->AddPlayer(observer.get(), 0));
+ }
+ 
++// Regression test for crbug.com/575048405.
++TEST_F(MediaSessionImplServiceRoutingTest,
++       SubFrameDoesNotExposeOrRouteEnterAutoPictureInPicture) {
++  StartPlayerForFrame(sub_frame_);
++  CreateServiceForFrame(sub_frame_);
++  ASSERT_EQ(services_[sub_frame_].get(), ComputeServiceForRouting());
++
++  media_session::test::MockMediaSessionMojoObserver observer(
++      *GetMediaSession());
++  services_[sub_frame_]->EnableAction(
++      MediaSessionAction::kEnterPictureInPicture);
++  services_[sub_frame_]->FlushForTesting();
++
++  std::set<MediaSessionAction> expected_actions = default_actions();
++  expected_actions.insert(MediaSessionAction::kEnterPictureInPicture);
++  expected_actions.insert(MediaSessionAction::kExitPictureInPicture);
++  EXPECT_EQ(expected_actions, observer.actions());
++  EXPECT_FALSE(observer.actions().contains(
++      MediaSessionAction::kEnterAutoPictureInPicture));
++
++  EXPECT_CALL(*GetClientForFrame(sub_frame_),
++              DidReceiveAction(MediaSessionAction::kEnterPictureInPicture, _))
++      .Times(0);
++  GetMediaSession()->EnterAutoPictureInPicture();
++  services_[sub_frame_]->FlushForTesting();
++}
++
+ class MediaSessionImplServiceRoutingFencedFrameTest
+     : public MediaSessionImplServiceRoutingTest {
+  public:
+-- 
+2.43.0
+

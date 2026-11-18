@@ -1,0 +1,271 @@
+From 49e42aa9b525d10a9fef0725b0e773be9d418314 Mon Sep 17 00:00:00 2001
+From: Solomon Kinard <solomonkinard@chromium.org>
+Date: Thu, 15 Oct 2026 10:42:22 -0700
+Subject: [PATCH 15/32] Extensions: WAR: Share generated path URL helpers
+
+The favicon and generated background page URL checks were duplicated
+in extension_protocols.cc and web_accessible_resources_info.cc. Both
+copies must agree for the generated path restrictions to be
+consistent, so move them to extensions/common/extension_urls.h as
+IsGeneratedFaviconURL() and IsGeneratedBackgroundPageURL().
+
+IsGeneratedFaviconURL() no longer allocates a string per call.
+
+No behavior change. Add unit tests for both helpers in
+extension_urls_unittest.cc.
+
+Bug: 506142100
+Change-Id: Ib39ca2e28be1929eb795028f8be0436e6f693524
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8575662
+Commit-Queue: Solomon Kinard <solomonkinard@chromium.org>
+Reviewed-by: Tim <tjudkins@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1719841}
+---
+ extensions/browser/extension_protocols.cc     | 21 ++------
+ extensions/common/extension_urls.cc           | 22 +++++++++
+ extensions/common/extension_urls.h            |  9 ++++
+ extensions/common/extension_urls_unittest.cc  | 49 +++++++++++++++++++
+ .../web_accessible_resources_info.cc          | 22 ++-------
+ 5 files changed, 89 insertions(+), 34 deletions(-)
+
+diff --git a/extensions/browser/extension_protocols.cc b/extensions/browser/extension_protocols.cc
+index f4857ecd63..dd9868f30e 100644
+--- a/extensions/browser/extension_protocols.cc
++++ b/extensions/browser/extension_protocols.cc
+@@ -33,7 +33,6 @@
+ #include "base/metrics/user_metrics.h"
+ #include "base/no_destructor.h"
+ #include "base/numerics/safe_conversions.h"
+-#include "base/strings/strcat.h"
+ #include "base/strings/string_number_conversions.h"
+ #include "base/strings/string_util.h"
+ #include "base/strings/stringprintf.h"
+@@ -75,6 +74,7 @@
+ #include "extensions/common/extension_features.h"
+ #include "extensions/common/extension_id.h"
+ #include "extensions/common/extension_resource.h"
++#include "extensions/common/extension_urls.h"
+ #include "extensions/common/file_util.h"
+ #include "extensions/common/manifest_handlers/background_info.h"
+ #include "extensions/common/manifest_handlers/cross_origin_isolation_info.h"
+@@ -378,20 +378,6 @@ void GetSecurityPolicyForURL(const network::ResourceRequest& request,
+       (extension.creation_flags() & Extension::FOLLOW_SYMLINKS_ANYWHERE) != 0;
+ }
+ 
+-bool IsPathEqualTo(const GURL& url, std::string_view test) {
+-  std::string_view path_piece = url.path();
+-  return path_piece.size() > 1 && path_piece.substr(1) == test;
+-}
+-
+-bool IsFaviconURL(const GURL& url) {
+-  return IsPathEqualTo(url, kFaviconSourcePath) ||
+-         IsPathEqualTo(url, base::StrCat({kFaviconSourcePath, "/"}));
+-}
+-
+-bool IsBackgroundPageURL(const GURL& url) {
+-  return IsPathEqualTo(url, kGeneratedBackgroundPageFilename);
+-}
+-
+ ExtensionConfigProvider* GetDynamicResourceProvider(
+     const Extension* extension,
+     const GURL& url,
+@@ -892,8 +878,9 @@ class ExtensionURLLoader : public network::mojom::URLLoader {
+       }
+     }
+ 
+-    const bool is_background_page_url = IsBackgroundPageURL(request_.url);
+-    const bool is_favicon_url = IsFaviconURL(request_.url);
++    const bool is_background_page_url =
++        IsGeneratedBackgroundPageURL(request_.url);
++    const bool is_favicon_url = IsGeneratedFaviconURL(request_.url);
+     if (is_background_page_url &&
+         base::FeatureList::IsEnabled(
+             extensions_features::
+diff --git a/extensions/common/extension_urls.cc b/extensions/common/extension_urls.cc
+index dcf0a1e8b7..5f32ba55ec 100644
+--- a/extensions/common/extension_urls.cc
++++ b/extensions/common/extension_urls.cc
+@@ -22,12 +22,34 @@
+ 
+ namespace extensions {
+ 
++namespace {
++
++// Returns true if `path` is "/" followed by exactly `test`.
++bool IsPathEqualTo(std::string_view path, std::string_view test) {
++  return path.starts_with('/') && path.substr(1) == test;
++}
++
++}  // namespace
++
+ bool IsSourceFromAnExtension(const std::u16string& source) {
+   return GURL(source).SchemeIs(kExtensionScheme) ||
+          base::StartsWith(source, u"extensions::",
+                           base::CompareCase::SENSITIVE);
+ }
+ 
++bool IsGeneratedFaviconURL(const GURL& url) {
++  // Accept both "/_favicon" and "/_favicon/" without allocating.
++  std::string_view path = url.path();
++  if (path.ends_with('/')) {
++    path.remove_suffix(1);
++  }
++  return IsPathEqualTo(path, kFaviconSourcePath);
++}
++
++bool IsGeneratedBackgroundPageURL(const GURL& url) {
++  return IsPathEqualTo(url.path(), kGeneratedBackgroundPageFilename);
++}
++
+ }  // namespace extensions
+ 
+ namespace extension_urls {
+diff --git a/extensions/common/extension_urls.h b/extensions/common/extension_urls.h
+index 9af59aeb98..afcb496f60 100644
+--- a/extensions/common/extension_urls.h
++++ b/extensions/common/extension_urls.h
+@@ -25,6 +25,15 @@ namespace extensions {
+ // or internal (e.g., "event_bindings" or "schemaUtils").
+ bool IsSourceFromAnExtension(const std::u16string& source);
+ 
++// Returns true if `url` targets the generated favicon endpoint, i.e. its path
++// is "/_favicon" or "/_favicon/". Only the path is checked; callers are
++// expected to pass an extension URL.
++bool IsGeneratedFaviconURL(const GURL& url);
++
++// Returns true if `url` targets the generated background page. Only the path
++// is checked; callers are expected to pass an extension URL.
++bool IsGeneratedBackgroundPageURL(const GURL& url);
++
+ }  // namespace extensions
+ 
+ namespace extension_urls {
+diff --git a/extensions/common/extension_urls_unittest.cc b/extensions/common/extension_urls_unittest.cc
+index 75032e4bd2..db31b58a96 100644
+--- a/extensions/common/extension_urls_unittest.cc
++++ b/extensions/common/extension_urls_unittest.cc
+@@ -4,7 +4,11 @@
+ 
+ #include "extensions/common/extension_urls.h"
+ 
++#include <string_view>
++
++#include "base/strings/strcat.h"
+ #include "testing/gtest/include/gtest/gtest.h"
++#include "url/gurl.h"
+ 
+ namespace extension_urls {
+ 
+@@ -33,3 +37,48 @@ TEST(ExtensionWebstoreURLsTest, GetWebstoreBlockStatusURL) {
+ }
+ 
+ }  // namespace extension_urls
++
++namespace extensions {
++namespace {
++
++GURL ExtensionURLWithPath(std::string_view path) {
++  return GURL(base::StrCat(
++      {"chrome-extension://abcdefghijklmnopabcdefghijklmnop", path}));
++}
++
++}  // namespace
++
++// Tests that IsGeneratedFaviconURL() matches only the generated favicon
++// endpoint.
++TEST(ExtensionURLsTest, IsGeneratedFaviconURL) {
++  EXPECT_TRUE(IsGeneratedFaviconURL(ExtensionURLWithPath("/_favicon")));
++  EXPECT_TRUE(IsGeneratedFaviconURL(ExtensionURLWithPath("/_favicon/")));
++  EXPECT_TRUE(IsGeneratedFaviconURL(
++      ExtensionURLWithPath("/_favicon?pageUrl=https://example.com")));
++  EXPECT_TRUE(IsGeneratedFaviconURL(
++      ExtensionURLWithPath("/_favicon/?pageUrl=https://example.com")));
++  EXPECT_FALSE(IsGeneratedFaviconURL(ExtensionURLWithPath("/")));
++  EXPECT_FALSE(IsGeneratedFaviconURL(ExtensionURLWithPath("/_favicon//")));
++  EXPECT_FALSE(IsGeneratedFaviconURL(ExtensionURLWithPath("/_favicon/foo")));
++  EXPECT_FALSE(IsGeneratedFaviconURL(ExtensionURLWithPath("/_faviconfoo")));
++  EXPECT_FALSE(IsGeneratedFaviconURL(ExtensionURLWithPath("/_Favicon")));
++  EXPECT_FALSE(IsGeneratedFaviconURL(ExtensionURLWithPath("/dir/_favicon")));
++}
++
++// Tests that IsGeneratedBackgroundPageURL() matches only the generated
++// background page.
++TEST(ExtensionURLsTest, IsGeneratedBackgroundPageURL) {
++  EXPECT_TRUE(IsGeneratedBackgroundPageURL(
++      ExtensionURLWithPath("/_generated_background_page.html")));
++  EXPECT_TRUE(IsGeneratedBackgroundPageURL(
++      ExtensionURLWithPath("/_generated_background_page.html?query")));
++  EXPECT_FALSE(IsGeneratedBackgroundPageURL(ExtensionURLWithPath("/")));
++  EXPECT_FALSE(
++      IsGeneratedBackgroundPageURL(ExtensionURLWithPath("/background.html")));
++  EXPECT_FALSE(IsGeneratedBackgroundPageURL(
++      ExtensionURLWithPath("/_generated_background_page.html/")));
++  EXPECT_FALSE(IsGeneratedBackgroundPageURL(
++      ExtensionURLWithPath("/dir/_generated_background_page.html")));
++}
++
++}  // namespace extensions
+diff --git a/extensions/common/manifest_handlers/web_accessible_resources_info.cc b/extensions/common/manifest_handlers/web_accessible_resources_info.cc
+index 8cbde157f7..8df9a1a854 100644
+--- a/extensions/common/manifest_handlers/web_accessible_resources_info.cc
++++ b/extensions/common/manifest_handlers/web_accessible_resources_info.cc
+@@ -10,7 +10,6 @@
+ #include <utility>
+ 
+ #include "base/feature_list.h"
+-#include "base/strings/strcat.h"
+ #include "base/strings/string_number_conversions.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/types/optional_util.h"
+@@ -21,6 +20,7 @@
+ #include "extensions/common/error_utils.h"
+ #include "extensions/common/extension_features.h"
+ #include "extensions/common/extension_id.h"
++#include "extensions/common/extension_urls.h"
+ #include "extensions/common/manifest.h"
+ #include "extensions/common/manifest_constants.h"
+ #include "url/url_constants.h"
+@@ -176,20 +176,6 @@ GURL GetInitiatorUrl(const std::optional<url::Origin>& initiator_origin) {
+   return initiator_url;
+ }
+ 
+-bool IsPathEqualTo(const GURL& url, std::string_view test) {
+-  std::string_view path_piece = url.path();
+-  return path_piece.size() > 1 && path_piece.substr(1) == test;
+-}
+-
+-bool IsFaviconURL(const GURL& url) {
+-  return IsPathEqualTo(url, kFaviconSourcePath) ||
+-         IsPathEqualTo(url, base::StrCat({kFaviconSourcePath, "/"}));
+-}
+-
+-bool IsGeneratedBackgroundPageURL(const GURL& url) {
+-  return IsPathEqualTo(url, kGeneratedBackgroundPageFilename);
+-}
+-
+ // Returns true if `pattern` explicitly references the favicon path.
+ // Generated paths like _favicon are not exposed by blanket wildcards (e.g.
+ // "*").
+@@ -244,7 +230,8 @@ bool IsResourceWebAccessibleImpl(
+     return false;
+   }
+ 
+-  const bool is_favicon = restrict_generated_paths && IsFaviconURL(target_url);
++  const bool is_favicon =
++      restrict_generated_paths && IsGeneratedFaviconURL(target_url);
+ 
+   GURL initiator_url = GetInitiatorUrl(initiator_origin);
+   std::string relative_path = target_url.GetPath();
+@@ -367,7 +354,8 @@ bool WebAccessibleResourcesInfo::ShouldUseDynamicUrl(const Extension* extension,
+   if (restrict_generated_paths && IsGeneratedBackgroundPageURL(target_url)) {
+     return false;
+   }
+-  const bool is_favicon = restrict_generated_paths && IsFaviconURL(target_url);
++  const bool is_favicon =
++      restrict_generated_paths && IsGeneratedFaviconURL(target_url);
+   for (const auto& entry : info->web_accessible_resources) {
+     bool matches =
+         is_favicon
+-- 
+2.43.0
+

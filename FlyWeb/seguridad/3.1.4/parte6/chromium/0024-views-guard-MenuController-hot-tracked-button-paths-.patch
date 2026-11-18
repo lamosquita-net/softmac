@@ -1,0 +1,217 @@
+From 4b1abd96b3c9935804f44fa380a37ca305081fb5 Mon Sep 17 00:00:00 2001
+From: Elly <ellyjones@chromium.org>
+Date: Tue, 20 Oct 2026 16:29:04 -0700
+Subject: [PATCH 24/32] views: guard MenuController hot-tracked button paths
+ against AX re-entrancy
+
+When accessibility events such as SetActiveDescendant or kSelection are
+fired synchronously during menu selection and button hot-tracking,
+handlers can re-entrantly close the menu and destroy the MenuController
+or the hot-tracked Button.
+
+Add ScopedDeletionGuard and ViewTracker checks in SetHotTrackedButton,
+IncrementSelection, SendAcceleratorToHotTrackedView, CloseSubmenu,
+AcceptOrSelect, and SelectByChar to prevent use-after-free when the
+controller or button is destroyed during accessibility notifications.
+
+Bug: 575506658
+Change-Id: I03f3af2003e6bcf03fb3acfa834d5ca2b64be578
+Fixed: 575506658
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8620877
+Reviewed-by: Thomas Lukaszewicz <tluk@chromium.org>
+Commit-Queue: Elly <ellyjones@chromium.org>
+Auto-Submit: Elly <ellyjones@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1723363}
+
+(cherry picked from commit 850273ef5b78853ec1b816d6995c15d1f56a3805)
+
+FlyWeb: ported to 156 by hand. 156 has no button mnemonics in menus (SelectByCharDetails matches are plain indices, no match.button), so the two hunks of AcceptOrSelect() that guard the hot-tracked button have nothing to protect; the ScopedDeletionGuard at the top of SelectByChar() is kept. Tests included.
+---
+ ui/views/controls/menu/menu_controller.cc     | 19 ++++-
+ .../controls/menu/menu_controller_unittest.cc | 73 +++++++++++++++++++
+ 2 files changed, 89 insertions(+), 3 deletions(-)
+
+diff --git a/ui/views/controls/menu/menu_controller.cc b/ui/views/controls/menu/menu_controller.cc
+index 4f2d6c0dce..18237667f1 100644
+--- a/ui/views/controls/menu/menu_controller.cc
++++ b/ui/views/controls/menu/menu_controller.cc
+@@ -2320,6 +2320,7 @@ MenuController::~MenuController() {
+ }
+ 
+ bool MenuController::SendAcceleratorToHotTrackedView(int event_flags) {
++  ScopedDeletionGuard guard(AsWeakPtr());
+   Button* hot_view = GetFirstHotTrackedView(pending_state_.item);
+   if (!hot_view) {
+     return false;
+@@ -2330,11 +2331,12 @@ bool MenuController::SendAcceleratorToHotTrackedView(int event_flags) {
+     return true;
+   }
+ 
++  ViewTracker hot_view_tracker(hot_view);
+   ui::Accelerator accelerator(ui::VKEY_RETURN, event_flags);
+   hot_view->AcceleratorPressed(accelerator);
+   // An accelerator may have canceled the menu after activation.
+-  if (!destroy_pending_) {
+-    Button* button = static_cast<Button*>(hot_view);
++  if (!destroy_pending_ && hot_view_tracker) {
++    Button* button = static_cast<Button*>(hot_view_tracker.view());
+     SetHotTrackedButton(button);
+   }
+   return true;
+@@ -3396,6 +3398,7 @@ size_t MenuController::MenuDepth(MenuItemView* item) {
+ 
+ void MenuController::IncrementSelection(
+     SelectionIncrementDirectionType direction) {
++  ScopedDeletionGuard guard(AsWeakPtr());
+   MenuItemView* item = pending_state_.item;
+   DCHECK(item);
+   if (pending_state_.submenu_open && item->SubmenuIsShowing()) {
+@@ -3560,6 +3563,7 @@ void MenuController::OpenSubmenuChangeSelectionIfCan() {
+ }
+ 
+ void MenuController::CloseSubmenu() {
++  ScopedDeletionGuard guard(AsWeakPtr());
+   MenuItemView* item = state_.item;
+   DCHECK(item);
+   if (!item->GetParentMenuItem()) {
+@@ -3577,8 +3581,9 @@ void MenuController::CloseSubmenu() {
+   if (MenuItemView* container_item =
+           GetAnchorViewContainerMenuItem(item_to_select)) {
+     Button* anchor_button = Button::AsButton(item_to_select->GetAnchorView());
++    ViewTracker anchor_button_tracker(anchor_button);
+     SetSelection(container_item, SELECTION_UPDATE_IMMEDIATELY);
+-    if (!destroy_pending_ && anchor_button) {
++    if (!destroy_pending_ && anchor_button_tracker) {
+       SetHotTrackedButton(anchor_button);
+     }
+     return;
+@@ -3619,6 +3624,7 @@ MenuController::SelectByCharDetails MenuController::FindChildForMnemonic(
+ 
+ void MenuController::AcceptOrSelect(MenuItemView* parent,
+                                     const SelectByCharDetails& details) {
++  ScopedDeletionGuard guard(AsWeakPtr());
+   // This should only be invoked if there is a match.
+   DCHECK(details.first_match.has_value());
+   DCHECK(parent->HasSubmenu());
+@@ -3643,6 +3649,7 @@ void MenuController::AcceptOrSelect(MenuItemView* parent,
+ }
+ 
+ void MenuController::SelectByChar(char16_t character) {
++  ScopedDeletionGuard guard(AsWeakPtr());
+   // Do not process while performing drag-and-drop.
+   if (for_drop_) {
+     return;
+@@ -4084,6 +4091,7 @@ void MenuController::SetNextHotTrackedView(
+ }
+ 
+ void MenuController::SetHotTrackedButton(Button* new_hot_button) {
++  ScopedDeletionGuard guard(AsWeakPtr());
+   // Set hot tracked state and fire a11y events for the hot tracked button.
+   // This must be done whether or not it was the previous hot tracked button.
+   // For example, when a zoom button is pressed, the menu remains open and the
+@@ -4098,6 +4106,7 @@ void MenuController::SetHotTrackedButton(Button* new_hot_button) {
+   // Then set the new one.
+   hot_button_ = new_hot_button;
+   if (hot_button_) {
++    ViewTracker hot_button_tracker(hot_button_);
+     hot_button_->GetViewAccessibility().SetPopupFocusOverride();
+     hot_button_->SetHotTracked(true);
+ 
+@@ -4111,6 +4120,10 @@ void MenuController::SetHotTrackedButton(Button* new_hot_button) {
+       }
+     }
+ 
++    if (destroy_pending_ || !hot_button_ || !hot_button_tracker) {
++      return;
++    }
++
+     // TODO(crbug.com/40672441): Handle this manually fired event for ViewsAX.
+     hot_button_->NotifyAccessibilityEventDeprecated(
+         ax::mojom::Event::kSelection, true);
+diff --git a/ui/views/controls/menu/menu_controller_unittest.cc b/ui/views/controls/menu/menu_controller_unittest.cc
+index ff61c19ba9..d34b4127ab 100644
+--- a/ui/views/controls/menu/menu_controller_unittest.cc
++++ b/ui/views/controls/menu/menu_controller_unittest.cc
+@@ -3383,6 +3383,79 @@ TEST_F(MenuControllerTest,
+   EXPECT_EQ(nullptr, menu_controller());
+ }
+ 
++TEST_F(MenuControllerTest, IncrementSelectionUseAfterFreeViaActiveDescendant) {
++  CreateMenu();
++  MenuItemView* const item_with_buttons = AddButtonMenuItems(false);
++  SetPendingStateItem(item_with_buttons);
++
++  CallbackOnAXEventObserver observer(
++      ax::mojom::Event::kActiveDescendantChanged,
++      base::BindLambdaForTesting([this]() { DestroyMenuController(); }));
++
++  IncrementSelection();
++
++  EXPECT_TRUE(observer.fired());
++  EXPECT_EQ(nullptr, menu_controller());
++}
++
++TEST_F(MenuControllerTest,
++       SetHotTrackedButtonWithControllerDeletedDuringActiveDescendant) {
++  CreateMenu();
++  MenuItemView* const item_with_buttons = AddButtonMenuItems(true);
++  GET_CHILD_BUTTON(button, item_with_buttons, 0);
++  SetPendingStateItem(item_with_buttons);
++
++  CallbackOnAXEventObserver observer(
++      ax::mojom::Event::kActiveDescendantChanged,
++      base::BindLambdaForTesting([this]() { DestroyMenuController(); }));
++
++  SetHotTrackedButton(button);
++
++  EXPECT_TRUE(observer.fired());
++  EXPECT_EQ(nullptr, menu_controller());
++}
++
++TEST_F(MenuControllerTest, CloseSubmenuWithControllerDeletedDuringSelection) {
++  CreateMenu();
++  MenuItemView* const submenu_item = menu_item()->AppendSubMenu(10, u"Submenu");
++  MenuItemView* const child_item = submenu_item->AppendMenuItem(11, u"Child");
++  MenuItemView* const item_with_buttons = AddButtonMenuItems(true);
++  GET_CHILD_BUTTON(button, item_with_buttons, 0);
++  ShowSubmenu(submenu_item->GetSubmenu());
++
++  SetState(submenu_item);
++  SetPendingStateItem(child_item);
++  SetHotTrackedButton(button);
++
++  CallbackOnAXEventObserver observer(
++      ax::mojom::Event::kActiveDescendantChanged,
++      base::BindLambdaForTesting([this]() { DestroyMenuController(); }));
++
++  ui::AXActionData action_data;
++  action_data.action = ax::mojom::Action::kCollapse;
++  submenu_item->HandleAccessibleAction(action_data);
++
++  EXPECT_TRUE(observer.fired());
++  EXPECT_EQ(nullptr, menu_controller());
++}
++
++TEST_F(MenuControllerTest, SelectByCharWithControllerDeletedDuringSelection) {
++  CreateMenu();
++  MenuItemView* const item_with_buttons = AddButtonMenuItems(true);
++  GET_CHILD_BUTTON(button, item_with_buttons, 0);
++  SetPendingStateItem(item_with_buttons);
++  SetHotTrackedButton(button);
++
++  CallbackOnAXEventObserver observer(
++      ax::mojom::Event::kActiveDescendantChanged,
++      base::BindLambdaForTesting([this]() { DestroyMenuController(); }));
++
++  SelectByChar('t');
++
++  EXPECT_TRUE(observer.fired());
++  EXPECT_EQ(nullptr, menu_controller());
++}
++
+ TEST_F(MenuControllerTest, SetSelectionIndices_MenuItemsOnly) {
+   CreateMenu();
+   SubmenuView* const submenu = menu_item()->GetSubmenu();
+-- 
+2.43.0
+

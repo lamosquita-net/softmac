@@ -943,3 +943,24 @@ D8-LINUX, también para la -26 y su relevo. La build 47 de LOCAL-19 está parada
   autorrelleno): comparar el fichero de la 156 con el padre del commit (`diff <(git show HEAD:f) <(git show C^:f)`); si
   solo difieren en `DCHECK`/`CHECK`, se puede tomar el fichero entero de upstream.
 - `BASE_FEATURE` de la 156 acepta los dos formatos (con y sin nombre en texto).
+
+## 18. SEGURIDAD-PORTES-28 (`session_01MwmK2iFqX7G9w939C4tEtH`, 18-11-2026): la 3.1.4, parte 6 (bajos de la 158)
+
+**Hecho** (`3.1.4/parte6/`, APTO): de los 54 bajos, 35 entran (chromium 0001–0032, `patches/v8` de 4 commits con
+`kFlyWebCacheEpoch` 36, devtools-frontend 0001–0002, WebRTC, libaom y libvpx 0001), 2 ya estaban en la parte 4 y 17
+quedan fuera con su comprobación (`parte6/INVENTARIO.md`). Montada **encima de la parte 4** (chromium `ef5cec7033` →
+`e926f928cf`; brave-core `d328e2f909` → `6df05c3756`). Pendiente: las dos preguntas de `parte6/CONTENIDO.md`
+(0777cdb316 y 2643f6e87f, posteriores a la 158) y el verde de D8-LINUX de los 4 de V8.
+
+**Trampas nuevas:**
+- En un clon `--filter=tree:0`, **`git show -s` de un commit baja su árbol entero** (un `fetch` por commit, minutos);
+  `git log -1 --format=…` no. Para montar mbox desde gitiles, cabecera con `git log -1` y diff con
+  `+/<sha>%5E%21/?format=TEXT`.
+- Los diffs de gitiles llevan `index` abreviado: `git am -3` no encuentra la base y falla aunque solo cambie el
+  contexto. `git apply --reject` y mirar los `.rej`; casi siempre es contexto.
+- **Mirar la última parte publicada antes de cerrar:** la parte 4 ya llevaba dos de los bajos (un mismo commit arregla
+  un medio y un bajo) y había subido la época de V8. Rehacer encima de lo que ya está en `main`.
+- Un bajo puede caer en código que brave-core deja vacío (`detect_javascript_frameworks.cc`): buscar el fichero en
+  `chromium_src/` antes de dar un arreglo por bueno.
+- Para los repos de terceros: libaom no se lee por aomedia.googlesource (403); el espejo `m-ab-s/aom` tiene los commits
+  de Chromium. libvpx y devtools-frontend, en sus espejos de GitHub (`webmproject/libvpx`, `ChromeDevTools/devtools-frontend`).
