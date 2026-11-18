@@ -1,0 +1,83 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Frank Liberato <liberato@google.com>
+Date: Thu, 15 Oct 2026 17:57:48 -0700
+Subject: [PATCH 09/14] [Fullscreen] Assert WebContents alive across tab
+ fullscreen exit
+
+Ensure that FullscreenController::NotifyTabExclusiveAccessLost() and
+FullscreenController::ExitFullscreenModeForTab() do not destroy the
+exclusive-access WebContents reentrantly by capturing a
+base::WeakPtr<WebContents> and asserting that it remains valid after tab
+fullscreen exit notifications and UI updates complete.
+
+Verification:
+- Repro (Before): out/Linux/unit_tests --ozone-platform=headless --gtest_death_test_style=fast --gtest_filter="FullscreenControllerDeathTest.TabDestructionDuringExitFullscreenModeForTabChecks" -> Result: failed to die
+- Fix (After): out/Linux/unit_tests --ozone-platform=headless --gtest_death_test_style=fast --gtest_filter="FullscreenControllerDeathTest.*" -> 2/2 passed
+- Regression: out/Linux/unit_tests --ozone-platform=headless --gtest_filter="FullscreenControllerStateUnitTest.*" -> 49/49 passed
+
+TAG=agy
+CONV=6c69139e-9a35-49c2-9e84-13bbeb490123
+
+Bug: 569129183
+Change-Id: I1aa802744f7f1424f6354b13dcaae800d8985ee4
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8560859
+Reviewed-by: Vikram Pasupathy <vpasupathy@chromium.org>
+Reviewed-by: Frank Liberato <liberato@chromium.org>
+Commit-Queue: Frank Liberato <liberato@chromium.org>
+Commit-Queue: Frank Liberato <liberato@google.com>
+Cr-Commit-Position: refs/heads/main@{#1720213}
+(cherry picked from commit a70846b4517e3f5a3830382915802ebdfecea265)
+---
+ .../ui/exclusive_access/fullscreen_controller.cc       | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/chrome/browser/ui/exclusive_access/fullscreen_controller.cc b/chrome/browser/ui/exclusive_access/fullscreen_controller.cc
+index e044628c3..92626f870 100644
+--- a/chrome/browser/ui/exclusive_access/fullscreen_controller.cc
++++ b/chrome/browser/ui/exclusive_access/fullscreen_controller.cc
+@@ -9,6 +9,7 @@
+ #include "base/functional/bind.h"
+ #include "base/location.h"
+ #include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
+ #include "base/metrics/histogram_functions.h"
+ #include "base/metrics/user_metrics.h"
+ #include "base/notimplemented.h"
+@@ -304,11 +305,18 @@ void FullscreenController::ExitFullscreenModeForTab(WebContents* web_contents) {
+   // fullscreen to browser fullscreen should be handled here.
+   const bool was_browser_fullscreen =
+       state_prior_to_tab_fullscreen_ == STATE_BROWSER_FULLSCREEN;
++  base::WeakPtr<WebContents> weak_web_contents =
++      web_contents ? web_contents->GetWeakPtr() : nullptr;
+ 
+   NotifyTabExclusiveAccessLost();
+   if (was_browser_fullscreen) {
+     exclusive_access_context->UpdateUIForTabFullscreen();
+   }
++  // Neither `NotifyTabExclusiveAccessLost()` nor `UpdateUIForTabFullscreen()`
++  // transitions the OS window out of fullscreen or spins a nested message loop,
++  // so `web_contents` cannot be destroyed synchronously (e.g. via a pending
++  // `window.close()` IPC) before `GetDisplayId(*web_contents)` below.
++  CHECK(!web_contents || weak_web_contents);
+ 
+   // For Tab Fullscreen -> Browser Fullscreen, enter browser fullscreen on the
+   // display that originated the browser fullscreen prior to the tab fullscreen.
+@@ -531,6 +539,7 @@ void FullscreenController::NotifyFullscreenChange() {
+ void FullscreenController::NotifyTabExclusiveAccessLost() {
+   if (exclusive_access_tab()) {
+     WebContents* web_contents = exclusive_access_tab();
++    base::WeakPtr<WebContents> weak_web_contents = web_contents->GetWeakPtr();
+     SetTabWithExclusiveAccess(nullptr);
+     requesting_origin_ = url::Origin();
+     bool will_cause_resize = IsFullscreenCausedByTab();
+@@ -538,6 +547,7 @@ void FullscreenController::NotifyTabExclusiveAccessLost() {
+     tab_fullscreen_ = false;
+     web_contents->ExitFullscreen(will_cause_resize);
+     exclusive_access_manager()->UpdateBubble(base::NullCallback());
++    CHECK(weak_web_contents);
+   }
+ }
+ 
+-- 
+2.43.0
+

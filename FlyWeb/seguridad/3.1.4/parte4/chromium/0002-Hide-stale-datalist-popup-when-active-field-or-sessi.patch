@@ -1,0 +1,221 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jihad Hanna <jihadghanna@google.com>
+Date: Tue, 20 Oct 2026 01:07:05 -0700
+Subject: [PATCH 02/14] Hide stale datalist popup when active field or session
+ changes
+
+Ensure the datalist popup in AndroidAutofillProvider is dismissed when
+the active field changes or loses its datalist options in
+UpdateCurrentField(), as well as when starting or canceling an autofill
+session in AutofillProvider.java.
+
+More details in the bug report.
+
+Fixed: 574635898
+Change-Id: I5b42b7d8e95e9ea0f028aca17a3117348d7e70ba
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8606209
+Commit-Queue: Jihad Hanna <jihadghanna@google.com>
+Reviewed-by: Jan Keitel <jkeitel@google.com>
+Cr-Commit-Position: refs/heads/main@{#1722680}
+(cherry picked from commit 677776cf3aa5cfdbf57fcc086c27773f4575825f)
+---
+ .../browser/android_autofill_provider.cc      |  5 ++
+ .../android_autofill_provider_unittest.cc     | 72 +++++++++++++++++++
+ .../components/autofill/AutofillProvider.java |  2 +
+ .../autofill/AutofillProviderTest.java        | 47 ++++++++++--
+ 4 files changed, 121 insertions(+), 5 deletions(-)
+
+diff --git a/components/android_autofill/browser/android_autofill_provider.cc b/components/android_autofill/browser/android_autofill_provider.cc
+index 7700f5b34..afdcaa771 100644
+--- a/components/android_autofill/browser/android_autofill_provider.cc
++++ b/components/android_autofill/browser/android_autofill_provider.cc
+@@ -395,6 +395,11 @@ void AndroidAutofillProvider::UpdateCurrentField(
+   if (!session_state_) {
+     session_state_.emplace();
+   }
++  if (session_state_->current_field.id &&
++      (session_state_->current_field.id != field.global_id() ||
++       field.datalist_options().empty())) {
++    bridge_->HideDatalistPopup();
++  }
+   session_state_->current_field = {
+       field.global_id(),
+       manager ? manager->ComputeFieldTypeGroupForField(form.global_id(),
+diff --git a/components/android_autofill/browser/android_autofill_provider_unittest.cc b/components/android_autofill/browser/android_autofill_provider_unittest.cc
+index a9746ed53..fac0b203d 100644
+--- a/components/android_autofill/browser/android_autofill_provider_unittest.cc
++++ b/components/android_autofill/browser/android_autofill_provider_unittest.cc
+@@ -390,6 +390,78 @@ TEST_F(AndroidAutofillProviderTest, OnAskForValuesToFillFindsCorrectFieldId) {
+             form.fields()[1].global_id());
+ }
+ 
++// Tests that the datalist popup is hidden when `UpdateCurrentField()` changes
++// the active field (e.g. via `OnAskForValuesToFill()` or
++// `OnSelectControlSelectionChanged()`), preventing a stale popup from staying
++// open across field/frame changes (crbug.com/574635898).
++TEST_F(AndroidAutofillProviderTest, HidesDatalistPopupWhenCurrentFieldChanges) {
++  FormData form1 =
++      CreateFormDataForFrame(CreateTestLoginForm(), main_frame_token());
++  test_api(form1).field(0).set_datalist_options(
++      {SelectOption{.value = u"val1", .text = u"label1"}});
++  FormData form2 = CreateFormDataForFrame(
++      CreateTestPersonalInformationFormData(), main_frame_token());
++  android_autofill_manager().OnFormsSeen({form1, form2}, /*removed_forms=*/{},
++                                         AutofillManagerTestApi::pass_key());
++
++  EXPECT_CALL(provider_bridge(), HideDatalistPopup).Times(0);
++  EXPECT_CALL(provider_bridge(), ShowDatalistPopup);
++  android_autofill_manager().OnAskForValuesToFillTest(
++      form1, form1.fields()[0].global_id());
++  Mock::VerifyAndClearExpectations(&provider_bridge());
++
++  // Querying the same field while it still has datalist options updates the
++  // popup in place without hiding it first.
++  EXPECT_CALL(provider_bridge(), HideDatalistPopup).Times(0);
++  EXPECT_CALL(provider_bridge(), ShowDatalistPopup);
++  android_autofill_manager().OnAskForValuesToFillTest(
++      form1, form1.fields()[0].global_id());
++  Mock::VerifyAndClearExpectations(&provider_bridge());
++
++  // Switching to a different field via `OnAskForValuesToFill()` hides the
++  // datalist popup.
++  EXPECT_CALL(provider_bridge(), HideDatalistPopup);
++  android_autofill_manager().OnAskForValuesToFillTest(
++      form1, form1.fields()[1].global_id());
++  Mock::VerifyAndClearExpectations(&provider_bridge());
++
++  // Re-open the datalist popup on field 0, then switch fields via
++  // `OnSelectControlSelectionChanged()` on an unlinked form.
++  EXPECT_CALL(provider_bridge(), ShowDatalistPopup);
++  android_autofill_manager().OnAskForValuesToFillTest(
++      form1, form1.fields()[0].global_id());
++  Mock::VerifyAndClearExpectations(&provider_bridge());
++
++  EXPECT_CALL(provider_bridge(), HideDatalistPopup);
++  autofill_provider().OnSelectControlSelectionChanged(
++      &android_autofill_manager(), form2, form2.fields()[0]);
++  Mock::VerifyAndClearExpectations(&provider_bridge());
++}
++
++// Tests that the datalist popup is hidden if the currently focused field is
++// re-queried after its datalist options become empty.
++TEST_F(AndroidAutofillProviderTest,
++       HidesDatalistPopupWhenSameFieldLosesDatalistOptions) {
++  FormData form =
++      CreateFormDataForFrame(CreateTestLoginForm(), main_frame_token());
++  test_api(form).field(0).set_datalist_options(
++      {SelectOption{.value = u"val1", .text = u"label1"}});
++  android_autofill_manager().OnFormsSeen({form}, /*removed_forms=*/{},
++                                         AutofillManagerTestApi::pass_key());
++
++  EXPECT_CALL(provider_bridge(), ShowDatalistPopup);
++  android_autofill_manager().OnAskForValuesToFillTest(
++      form, form.fields()[0].global_id());
++  Mock::VerifyAndClearExpectations(&provider_bridge());
++
++  test_api(form).field(0).set_datalist_options({});
++  EXPECT_CALL(provider_bridge(), HideDatalistPopup);
++  EXPECT_CALL(provider_bridge(), ShowDatalistPopup).Times(0);
++  android_autofill_manager().OnAskForValuesToFillTest(
++      form, form.fields()[0].global_id());
++  Mock::VerifyAndClearExpectations(&provider_bridge());
++}
++
+ // Tests that Java is informed about visibility changes of form fields connected
+ // to the current Autofill session if they are detected in focus change events.
+ TEST_F(AndroidAutofillProviderTest, NotifyAboutVisibilityChangeOnFocus) {
+diff --git a/components/android_autofill/browser/java/src/org/chromium/components/autofill/AutofillProvider.java b/components/android_autofill/browser/java/src/org/chromium/components/autofill/AutofillProvider.java
+index afa1f8e20..a8fa5f472 100644
+--- a/components/android_autofill/browser/java/src/org/chromium/components/autofill/AutofillProvider.java
++++ b/components/android_autofill/browser/java/src/org/chromium/components/autofill/AutofillProvider.java
+@@ -335,6 +335,7 @@ public class AutofillProvider {
+             float height,
+             boolean hasServerPrediction) {
+         Rect absBound = transformToWindowBounds(new RectF(x, y, x + width, y + height));
++        hideDatalistPopup();
+         if (mRequest != null) notifyViewExitBeforeDestroyRequest();
+ 
+         transformFormFieldToContainViewCoordinates(formData);
+@@ -960,6 +961,7 @@ public class AutofillProvider {
+ 
+     @CalledByNative
+     public void cancelSession() {
++        hideDatalistPopup();
+         getAutofillManagerWrapper().cancel();
+         mPrefillRequest = null;
+         mRequest = null;
+diff --git a/components/android_autofill/browser/junit/src/org/chromium/components/autofill/AutofillProviderTest.java b/components/android_autofill/browser/junit/src/org/chromium/components/autofill/AutofillProviderTest.java
+index 9249e465b..b3f56340e 100644
+--- a/components/android_autofill/browser/junit/src/org/chromium/components/autofill/AutofillProviderTest.java
++++ b/components/android_autofill/browser/junit/src/org/chromium/components/autofill/AutofillProviderTest.java
+@@ -761,11 +761,6 @@ public class AutofillProviderTest {
+         Activity activity = Mockito.mock(Activity.class);
+         mAutofillProvider.switchToContext(new WeakReference<>(activity));
+ 
+-        // A popup is currently showing, but the field moves outside visible bounds.
+-        // The stale popup must be dismissed.
+-        AutofillPopup mockPopup = Mockito.mock(AutofillPopup.class);
+-        mAutofillProvider.setDatalistPopupForTesting(mockPopup);
+-
+         RectF offscreenBounds = new RectF(0, -2000, 100, -1900);
+         FormFieldDataBuilder fieldBuilder = new FormFieldDataBuilder();
+         fieldBuilder.mBounds = offscreenBounds;
+@@ -786,6 +781,11 @@ public class AutofillProviderTest {
+                 offscreenBounds.height(),
+                 /* hasServerPrediction= */ false);
+ 
++        // A popup is currently showing, but the field moves outside visible bounds.
++        // The stale popup must be dismissed.
++        AutofillPopup mockPopup = Mockito.mock(AutofillPopup.class);
++        mAutofillProvider.setDatalistPopupForTesting(mockPopup);
++
+         mAutofillProvider.showDatalistPopup(
+                 new String[] {"Value 1"}, new String[] {"Label 1"}, /* isRtl= */ false);
+ 
+@@ -793,6 +793,43 @@ public class AutofillProviderTest {
+         assertNull(mAutofillProvider.getDatalistPopupForTesting());
+     }
+ 
++    @Test
++    public void testStartAutofillSession_dismissesDatalistPopup() {
++        AutofillPopup mockPopup = Mockito.mock(AutofillPopup.class);
++        mAutofillProvider.setDatalistPopupForTesting(mockPopup);
++
++        FormFieldDataBuilder fieldBuilder = new FormFieldDataBuilder();
++        FormData form =
++                new FormData(
++                        /* sessionId= */ 123,
++                        /* name= */ null,
++                        /* host= */ null,
++                        Collections.singletonList(fieldBuilder.build()));
++
++        mAutofillProvider.startAutofillSession(
++                form,
++                /* focus= */ 0,
++                /* x= */ 0,
++                /* y= */ 0,
++                /* width= */ 50,
++                /* height= */ 20,
++                /* hasServerPrediction= */ false);
++
++        verify(mockPopup).dismiss();
++        assertNull(mAutofillProvider.getDatalistPopupForTesting());
++    }
++
++    @Test
++    public void testCancelSession_dismissesDatalistPopup() {
++        AutofillPopup mockPopup = Mockito.mock(AutofillPopup.class);
++        mAutofillProvider.setDatalistPopupForTesting(mockPopup);
++
++        mAutofillProvider.cancelSession();
++
++        verify(mockPopup).dismiss();
++        assertNull(mAutofillProvider.getDatalistPopupForTesting());
++    }
++
+     @Test
+     public void testCallsNativeToProvidePasskeyAvailability_nativeNull() {
+         mAutofillProvider.setNativeAutofillProvider(0);
+-- 
+2.43.0
+

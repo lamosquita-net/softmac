@@ -1,0 +1,100 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Christoph Schwering <schwering@google.com>
+Date: Tue, 20 Oct 2026 01:44:35 -0700
+Subject: [PATCH 01/14] [Autofill] Clamp coordinates to all ancestor
+ RenderWidgetHostViews
+
+Previously, Lift() only intersected field bounds with the sending
+frame's own RenderWidgetHostView bounds. For a nested cross-process
+iframe, the parent frame's renderer controls the inner frame's declared
+local_frame_size, so an outer cross-site iframe could inflate the inner
+cross-site iframe's view bounds via CSS and position the Autofill popup
+outside the outer iframe's bounds.
+
+This CL transforms the rectangle to root coordinates first and then
+clamps it against the root-space bounds of the sending frame's view and
+all ancestor RenderWidgetHostViews.
+
+TAG=agy
+CONV=f3ec8eff-4abc-4c8b-88f9-0fd6d4f49938
+
+Bug: 574502257
+Change-Id: I6683715f9b8bd3b3cb8caa7fe29506866a6a6964
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8603592
+Reviewed-by: Jan Keitel <jkeitel@google.com>
+Commit-Queue: Christoph Schwering <schwering@google.com>
+Cr-Commit-Position: refs/heads/main@{#1722707}
+(cherry picked from commit 8434c55c70f0, Lift(RectF) only)
+
+[FlyWeb] Hand port: in 156 Lift() still clipped with InclusiveIntersect()
+alone; the function is replaced by upstream's. The new browser test and its
+BUILD.gn entries are left out.
+---
+ .../browser/content_autofill_driver.cc        | 48 +++++++++++++------
+ 1 file changed, 33 insertions(+), 15 deletions(-)
+
+diff --git a/components/autofill/content/browser/content_autofill_driver.cc b/components/autofill/content/browser/content_autofill_driver.cc
+index 3fafa49b3..0c1835e9f 100644
+--- a/components/autofill/content/browser/content_autofill_driver.cc
++++ b/components/autofill/content/browser/content_autofill_driver.cc
+@@ -81,24 +81,42 @@ T&& Lift(ContentAutofillDriver& source, T&& x) {
+ }
+ 
+ gfx::RectF Lift(ContentAutofillDriver& source, gfx::RectF r) {
+-  content::RenderWidgetHostView* view = source.render_frame_host()->GetView();
++  // Transforms all corners to handle CSS `transform: scale(...)` correctly
++  // (crbug.com/562177779).
++  auto transform_to_root = [](content::RenderWidgetHostView& view,
++                              const gfx::RectF& r) {
++    return gfx::QuadF(view.TransformPointToRootCoordSpaceF(r.origin()),
++                      view.TransformPointToRootCoordSpaceF(r.top_right()),
++                      view.TransformPointToRootCoordSpaceF(r.bottom_right()),
++                      view.TransformPointToRootCoordSpaceF(r.bottom_left()))
++        .BoundingBox();
++  };
++
++  content::RenderFrameHost* rfh = source.render_frame_host();
++  content::RenderWidgetHostView* view = rfh->GetView();
+   if (!view) {
+     return r;
+   }
+-
+-  // Intersect the coordinates with the view's bounds. This is to make it hard
+-  // for a malicious frame to position an Autofill popup over a field from
+-  // different frame (provided the attacker's and the victim's frames do not
+-  // share the same local root).
+-  r.InclusiveIntersect(gfx::RectF(view->GetViewBounds().size()));
+-
+-  // We transform all corners to handle CSS `transform: scale(...)` correctly
+-  // (crbug.com/562177779).
+-  return gfx::QuadF(view->TransformPointToRootCoordSpaceF(r.origin()),
+-                    view->TransformPointToRootCoordSpaceF(r.top_right()),
+-                    view->TransformPointToRootCoordSpaceF(r.bottom_right()),
+-                    view->TransformPointToRootCoordSpaceF(r.bottom_left()))
+-      .BoundingBox();
++  r = transform_to_root(*view, r);
++
++  // Intersect the coordinates with the view's bounds and all ancestor views'
++  // bounds. This is to make it hard for a malicious frame to position an
++  // Autofill popup over a field from a different frame (provided the
++  // attacker's and the victim's frames do not share the same local root).
++  content::RenderWidgetHostView* last_view = nullptr;
++  for (; rfh; rfh = rfh->GetParentOrOuterDocument()) {
++    view = rfh->GetView();
++    if (!view || view == std::exchange(last_view, view)) {
++      continue;
++    }
++    gfx::RectF bounds =
++        transform_to_root(*view, gfx::RectF(view->GetViewBounds().size()));
++    gfx::PointF origin = r.origin();
++    if (!r.InclusiveIntersect(bounds)) {
++      r = gfx::RectF(bounds.ClosestPoint(origin), gfx::SizeF());
++    }
++  }
++  return r;
+ }
+ 
+ gfx::Rect Lift(ContentAutofillDriver& source, gfx::Rect r) {
+-- 
+2.43.0
+

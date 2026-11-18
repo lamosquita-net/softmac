@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jihad Hanna <jihadghanna@google.com>
+Date: Mon, 19 Oct 2026 15:37:39 -0700
+Subject: [PATCH 03/14] Refresh suggestions directly in
+ BatchDataListOptionChange()
+
+Previously, AutofillAgent::BatchDataListOptionChange() called
+OnTextFieldValueChanged() when a <datalist> associated with a focused
+<input> changed. Because OnTextFieldValueChanged() handles genuine user
+text edits, any script mutation of a <datalist> bypassed the transient
+user activation check in TextFieldValueChanged() and ran all user-typing
+side effects on the input's current value, including affecting
+interaction and correctness metrics.
+
+This CL updates BatchDataListOptionChange() to refresh suggestions
+directly instead of calling OnTextFieldValueChanged():
+
+Kept from OnTextFieldValueChanged():
+- ClearPreviewedForm(): Clears any preview before updating the datalist.
+- PasswordAutofillAgent::CreateRequestForChangeInTextField(): Computes
+  the request passed to ShowSuggestions(), conforming with
+  AutofillAgent::OpenTextDataListChooser().
+- ShowSuggestions(): Re-extracts the field's updated datalist options
+  and queries the browser via AutofillDriver::AskForValuesToFill().
+
+Removed from the <datalist> mutation path:
+- AutofillDriver::TextFieldValueChanged(): Fires only on genuine user
+  edits; a <datalist> option mutation does not change the field's value.
+- PasswordAutofillAgent::UpdatePasswordStateForTextChange(): Genuine
+  user typing already goes through TextFieldValueChanged(), and
+  legitimate JS value writes go through JavaScriptSetValue().
+- PasswordGenerationAgent::TextDidChangeInTextField(): Handles user
+  edits to password generation or same-form username fields, which
+  should not trigger on <datalist> DOM mutations.
+- inactivity_timer_.Start(): Tracks 5 seconds of inactivity after user
+  typing for kAtMemoryInactivityNudge, which should not start or reset
+  on script-driven <datalist> changes.
+
+Fixed: 574801551
+Change-Id: I536c89410cae4be684ac2353c9cebbe6a98fae98
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8604636
+Commit-Queue: Jihad Hanna <jihadghanna@google.com>
+Reviewed-by: Christoph Schwering <schwering@google.com>
+Cr-Commit-Position: refs/heads/main@{#1722378}
+(cherry picked from commit 565e091ce62bfcac0f2813c32ee1d75f3da12f86)
+---
+ .../content/renderer/autofill_agent.cc        | 19 +++++++++++++++----
+ 1 file changed, 15 insertions(+), 4 deletions(-)
+
+diff --git a/components/autofill/content/renderer/autofill_agent.cc b/components/autofill/content/renderer/autofill_agent.cc
+index bbfc02795..92a3d5f2e 100644
+--- a/components/autofill/content/renderer/autofill_agent.cc
++++ b/components/autofill/content/renderer/autofill_agent.cc
+@@ -1056,12 +1056,23 @@ void AutofillAgent::DataListOptionsChanged(const WebInputElement& element) {
+ }
+ 
+ void AutofillAgent::BatchDataListOptionChange(FieldRendererId element_id) {
+-  WebFormControlElement element =
+-      form_util::GetFormControlByRendererId(element_id);
+-  if (!element || !element.GetDocument()) {
++  auto input_element = form_util::GetFormControlByRendererId(element_id)
++                           .DynamicTo<WebInputElement>();
++  if (!input_element || !input_element.GetDocument() ||
++      !is_popup_possibly_visible_ || !input_element.Focused()) {
+     return;
+   }
+-  OnTextFieldValueChanged(element, /*form_cache=*/{});
++  ClearPreviewedForm();
++  std::optional<PasswordSuggestionRequest> password_request =
++      password_autofill_agent_
++          ? password_autofill_agent_->CreateRequestForChangeInTextField(
++                input_element, /*form_cache=*/{})
++          : std::nullopt;
++  ShowSuggestions(
++      input_element,
++      // TODO(crbug.com.477541273): Replace with more accurate source.
++      AutofillSuggestionTriggerSource::kTextFieldValueChanged,
++      /*form_cache=*/{}, password_request);
+ }
+ 
+ void AutofillAgent::UserGestureObserved() {
+-- 
+2.43.0
+

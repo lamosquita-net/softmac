@@ -1,0 +1,203 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Giovanni Pezzino <giovax@google.com>
+Date: Wed, 14 Oct 2026 07:17:51 -0700
+Subject: [PATCH 06/14] Fix UAF when AppWindow is destroyed during Show()
+
+When `chrome.app.window.create()` is called with a window `id` matching
+an existing singleton window, `AppWindowCreateFunction::Run()` calls
+`existing_window->Show()`. Showing or hiding the native window via
+`GetBaseWindow()->Show()`, `ShowInactive()`, or `Hide()` can
+synchronously close the native widget and destroy the `AppWindow`
+(`AppWindow::OnNativeClose()` -> `delete this`), leading to a
+use-after-free both inside `AppWindow::Show()`/`Hide()` and in
+`AppWindowCreateFunction::Run()`.
+
+Guard `AppWindow::Show()` and `AppWindow::Hide()` with a `WeakPtr`
+check before accessing member state or notifying `AppWindowRegistry`
+after the native `GetBaseWindow()` call, and check `existing_window`
+liveness via `GetWeakPtr()` in `AppWindowCreateFunction::Run()`,
+returning `kPrematureWindowClose` if the window was destroyed.
+
+Bug: 553159779
+Test: browser_tests --gtest_filter=AppWindowAPITest.*:AppWindowBrowserTest.*
+Change-Id: Id6c0d1d9d21d8c0789bd7bbc019b40885d1c66fb
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8560819
+Reviewed-by: Devlin Cronin <rdevlin.cronin@chromium.org>
+Reviewed-by: Alex Ilin <alexilin@chromium.org>
+Commit-Queue: Giovanni Pezzino <giovax@google.com>
+Cr-Commit-Position: refs/heads/main@{#1718593}
+(cherry picked from commit 9f3a5953b44213866f1dd96e76e0492b0acaf9f6)
+---
+ .../platform_apps/app_window_browsertest.cc   | 69 +++++++++++++++++++
+ .../browser/api/app_window/app_window_api.cc  |  8 +++
+ extensions/browser/app_window/app_window.cc   |  8 +++
+ extensions/browser/app_window/app_window.h    |  6 ++
+ 4 files changed, 91 insertions(+)
+
+diff --git a/chrome/browser/apps/platform_apps/app_window_browsertest.cc b/chrome/browser/apps/platform_apps/app_window_browsertest.cc
+index 0af52dd5f..de121d352 100644
+--- a/chrome/browser/apps/platform_apps/app_window_browsertest.cc
++++ b/chrome/browser/apps/platform_apps/app_window_browsertest.cc
+@@ -318,6 +318,33 @@ class TestAppWindowClient : public ChromeAppWindowClient {
+   }
+ };
+ 
++class ClosingOnShowWindow : public native_app_window::NativeAppWindowViews {
++ public:
++  ClosingOnShowWindow() = default;
++  ~ClosingOnShowWindow() override = default;
++
++  void Show() override {
++    // Simulate synchronous window closure during Show() (e.g. as can happen
++    // when spinning a nested run loop or during synchronous activation
++    // observer notifications).
++    widget()->CloseNow();
++  }
++};
++
++class ClosingOnShowAppWindowClient : public ChromeAppWindowClient {
++ public:
++  ClosingOnShowAppWindowClient() = default;
++  ~ClosingOnShowAppWindowClient() override = default;
++
++  std::unique_ptr<extensions::NativeAppWindow> CreateNativeAppWindow(
++      extensions::AppWindow* window,
++      extensions::AppWindow::CreateParams* params) override {
++    auto native_window = std::make_unique<ClosingOnShowWindow>();
++    native_window->Init(window, *params);
++    return native_window;
++  }
++};
++
+ }  // namespace
+ 
+ // Regression test for crbug.com/516948486.
+@@ -425,6 +452,48 @@ IN_PROC_BROWSER_TEST_F(AppWindowAPITest, UafInAppWindowCreateForcedFullscreen) {
+   extensions::AppWindowClient::Set(ChromeAppWindowClient::GetInstance());
+ }
+ 
++// Regression test for crbug.com/553159779: when `chrome.app.window.create()`
++// is called with a window `id` matching an existing singleton window,
++// `AppWindowCreateFunction::Run()` calls `existing_window->Show()`. If `Show()`
++// synchronously closes the native window and deletes `AppWindow`, `Show()` and
++// `AppWindowCreateFunction::Run()` must not continue accessing the destroyed
++// `AppWindow`.
++IN_PROC_BROWSER_TEST_F(AppWindowAPITest,
++                       UafInAppWindowCreateExistingWindowShow) {
++  const extensions::Extension* extension = LoadExtension(
++      test_data_dir_.AppendASCII("platform_apps").AppendASCII("window_api"));
++  ASSERT_TRUE(extension);
++
++  ClosingOnShowAppWindowClient test_client;
++  extensions::AppWindowClient::Set(nullptr);
++  extensions::AppWindowClient::Set(&test_client);
++
++  extensions::ProcessManager* process_manager =
++      extensions::ProcessManager::Get(browser()->GetProfile());
++  extensions::ExtensionHost* background_host =
++      process_manager->GetBackgroundHostForExtension(extension->id());
++  ASSERT_TRUE(background_host);
++
++  EXPECT_EQ("App window is closed before ready to commit first navigation.",
++            content::EvalJs(background_host->host_contents(), R"(
++              new Promise(resolve => {
++                chrome.app.window.create(
++                    'test.html', {id: 'singleton', hidden: true}, () => {
++                      chrome.app.window.create(
++                          'test.html', {id: 'singleton'}, () => {
++                            resolve(chrome.runtime.lastError
++                                        ? chrome.runtime.lastError.message
++                                        : 'ok');
++                          });
++                    });
++              })
++            )"));
++  EXPECT_EQ(0u, GetAppWindowCount());
++
++  extensions::AppWindowClient::Set(nullptr);
++  extensions::AppWindowClient::Set(ChromeAppWindowClient::GetInstance());
++}
++
+ IN_PROC_BROWSER_TEST_F(AppWindowAPITest,
+                        RendererInitiatedCrossProcessNavigationBlocked) {
+   ASSERT_TRUE(StartEmbeddedTestServer());
+diff --git a/extensions/browser/api/app_window/app_window_api.cc b/extensions/browser/api/app_window/app_window_api.cc
+index a80c6dd51..b69ddf26e 100644
+--- a/extensions/browser/api/app_window/app_window_api.cc
++++ b/extensions/browser/api/app_window/app_window_api.cc
+@@ -200,10 +200,18 @@ ExtensionFunction::ResponseAction AppWindowCreateFunction::Run() {
+           }
+ 
+           if (!options->hidden || !*options->hidden) {
++            // Showing the existing window may synchronously close the native
++            // window and destroy `existing_window`.
++            base::WeakPtr<AppWindow> weak_existing_window =
++                existing_window->GetWeakPtr();
+             if (options->focused && !*options->focused)
+               existing_window->Show(AppWindow::SHOW_INACTIVE);
+             else
+               existing_window->Show(AppWindow::SHOW_ACTIVE);
++            if (!weak_existing_window) {
++              return RespondNow(
++                  Error(app_window_constants::kPrematureWindowClose));
++            }
+           }
+ 
+           // We should not return the window until that window is properly
+diff --git a/extensions/browser/app_window/app_window.cc b/extensions/browser/app_window/app_window.cc
+index 91cfa657b..2a85dbf0c 100644
+--- a/extensions/browser/app_window/app_window.cc
++++ b/extensions/browser/app_window/app_window.cc
+@@ -740,6 +740,7 @@ void AppWindow::Show(ShowType show_type) {
+   bool was_hidden = is_hidden_ || !has_been_shown_;
+   is_hidden_ = false;
+ 
++  base::WeakPtr<AppWindow> weak_this = weak_ptr_factory_.GetWeakPtr();
+   switch (show_type) {
+     case SHOW_ACTIVE:
+       GetBaseWindow()->Show();
+@@ -748,13 +749,20 @@ void AppWindow::Show(ShowType show_type) {
+       GetBaseWindow()->ShowInactive();
+       break;
+   }
++  if (!weak_this) {
++    return;
++  }
+   AppWindowRegistry::Get(browser_context_)->AppWindowShown(this, was_hidden);
+   has_been_shown_ = true;
+ }
+ 
+ void AppWindow::Hide() {
+   is_hidden_ = true;
++  base::WeakPtr<AppWindow> weak_this = weak_ptr_factory_.GetWeakPtr();
+   GetBaseWindow()->Hide();
++  if (!weak_this) {
++    return;
++  }
+   AppWindowRegistry::Get(browser_context_)->AppWindowHidden(this);
+   app_delegate_->OnHide();
+ }
+diff --git a/extensions/browser/app_window/app_window.h b/extensions/browser/app_window/app_window.h
+index 23d4ce1c8..810cc5809 100644
+--- a/extensions/browser/app_window/app_window.h
++++ b/extensions/browser/app_window/app_window.h
+@@ -361,10 +361,16 @@ class AppWindow : public content::WebContentsDelegate,
+ 
+   // Shows the window if its contents have been painted; otherwise flags the
+   // window to be shown as soon as its contents are painted for the first time.
++  // Note: May synchronously close the native window and destroy `this`.
++  // Callers that access the AppWindow after this call must check liveness via
++  // GetWeakPtr().
+   void Show(ShowType show_type);
+ 
+   // Hides the window. If the window was previously flagged to be shown on
+   // first paint, it will be unflagged.
++  // Note: May synchronously close the native window and destroy `this`.
++  // Callers that access the AppWindow after this call must check liveness via
++  // GetWeakPtr().
+   void Hide();
+ 
+   AppWindowContents* app_window_contents_for_test() {
+-- 
+2.43.0
+

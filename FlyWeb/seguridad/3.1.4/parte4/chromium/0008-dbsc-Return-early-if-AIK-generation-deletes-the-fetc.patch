@@ -1,0 +1,128 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jan=20Wilken=20D=C3=B6rrie?= <jdoerrie@chromium.org>
+Date: Fri, 23 Oct 2026 04:41:49 -0700
+Subject: [PATCH 08/14] [dbsc] Return early if AIK generation deletes the
+ fetcher
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+RegistrationFetcherImpl::StartCreateTokenAndFetch() requests the
+attestation key and then the signing key. The key service can fail a
+request synchronously, e.g. UnexportableKeyServiceProxied once its
+Mojo pipe is disconnected. On an attestation key error the fetcher
+runs its completion callback, which lets SessionServiceImpl delete the
+fetcher, and the GenerateSigningKeySlowlyAsync() call that follows
+then runs on freed memory.
+
+Check a WeakPtr after requesting the attestation key and return if
+the fetcher is gone. Also return if the request failed synchronously
+but the fetcher survived, since the fetch has already failed and no
+signing key is needed. The attestation key is only requested when
+DeviceBoundSessionsForSingleSignOn is enabled, which it is not by
+default.
+
+Test: net_unittests --gtest_filter='RegistrationTest.AttestationKey*'
+Bug: 576306917
+Change-Id: If10628379480217197de18a29a8a06fd6a6a6964
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8640391
+Commit-Queue: Jan Wilken Dörrie <jdoerrie@chromium.org>
+Reviewed-by: Alex Ilin <alexilin@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1725676}
+(cherry picked from commit 5a632f86a4d2afa574eec22325fed75db5436617)
+---
+ .../registration_fetcher.cc                   |  9 +++-
+ .../registration_fetcher_unittest.cc          | 47 ++++++++++++++++---
+ 2 files changed, 48 insertions(+), 8 deletions(-)
+
+diff --git a/net/device_bound_sessions/registration_fetcher.cc b/net/device_bound_sessions/registration_fetcher.cc
+index 11455d22e..232cbcc9e 100644
+--- a/net/device_bound_sessions/registration_fetcher.cc
++++ b/net/device_bound_sessions/registration_fetcher.cc
+@@ -535,10 +535,17 @@ class RegistrationFetcherImpl : public RegistrationFetcher {
+                        registration_params.TakeAuthorization()));
+ 
+     if (aik_required) {
++      base::WeakPtr<RegistrationFetcherImpl> weak_this = GetWeakPtr();
+       key_service_->GenerateAttestationKeySlowlyAsync(
+           supported_algos, priority_,
+           base::BindOnce(&RegistrationFetcherImpl::OnAttestationKeyGenerated,
+-                         GetWeakPtr(), barrier_closure));
++                         weak_this, barrier_closure));
++      // The key service can fail synchronously, e.g. when its Mojo pipe is
++      // disconnected. That runs `callback_`, which may delete `this`. If it
++      // doesn't, the fetch has already failed, so skip the signing key.
++      if (!weak_this || !callback_) {
++        return;
++      }
+     }
+ 
+     key_service_->GenerateSigningKeySlowlyAsync(
+diff --git a/net/device_bound_sessions/registration_fetcher_unittest.cc b/net/device_bound_sessions/registration_fetcher_unittest.cc
+index cccffdac7..772138c96 100644
+--- a/net/device_bound_sessions/registration_fetcher_unittest.cc
++++ b/net/device_bound_sessions/registration_fetcher_unittest.cc
+@@ -758,13 +758,9 @@ TEST_F(RegistrationTest, SigningKeyGenerationFailure) {
+ TEST_F(RegistrationTest, AttestationKeyGenerationFailure) {
+   unexportable_keys::MockUnexportableKeyService mock_service;
+ 
+-  // Required because StartCreateTokenAndFetch concurrently calls both
+-  // GenerateSigningKeySlowlyAsync and GenerateAttestationKeySlowlyAsync.
+-  // Expecting it without invoking its callback is enough because the
+-  // attestation failure immediately aborts the fetch flow, and omitting
+-  // real service delegation prevents dispatching background tasks to the
+-  // thread pool that could outlive the test.
+-  EXPECT_CALL(mock_service, GenerateSigningKeySlowlyAsync);
++  // The attestation key fails synchronously, so the fetch has already failed
++  // and the fetcher must not start generating a signing key.
++  EXPECT_CALL(mock_service, GenerateSigningKeySlowlyAsync).Times(0);
+ 
+   // Mock attestation key generation to fail
+   EXPECT_CALL(mock_service, GenerateAttestationKeySlowlyAsync)
+@@ -792,6 +788,43 @@ TEST_F(RegistrationTest, AttestationKeyGenerationFailure) {
+             SessionError::kAttestationKeyGenerationError);
+ }
+ 
++// `UnexportableKeyServiceProxied` fails requests synchronously once its Mojo
++// pipe is disconnected, and `SessionServiceImpl` deletes the fetcher from the
++// completion callback. The fetcher must not be used after that.
++TEST_F(RegistrationTest, AttestationKeyGenerationFailureDeletesFetcher) {
++  unexportable_keys::MockUnexportableKeyService mock_service;
++  EXPECT_CALL(mock_service, GenerateAttestationKeySlowlyAsync)
++      .WillOnce(RunOnceCallback<2>(base::unexpected(
++          unexportable_keys::ServiceError::kOperationCancelled)));
++  EXPECT_CALL(mock_service, GenerateSigningKeySlowlyAsync).Times(0);
++
++  auto isolation_info = IsolationInfo::CreateTransient(/*nonce=*/std::nullopt);
++  auto request_param = RegistrationRequestParam::CreateForTesting(
++      GURL("https://a.test"), /*session_identifier=*/std::nullopt, kChallenge,
++      /*authorization=*/std::nullopt, AttestationMode::kRequired);
++
++  std::unique_ptr<RegistrationFetcher> fetcher =
++      RegistrationFetcher::CreateFetcher(
++          request_param, session_service(), mock_service, context_.get(),
++          isolation_info, isolation_info.site_for_cookies(),
++          /*net_log_source=*/std::nullopt,
++          /*original_request_initiator=*/std::nullopt,
++          unexportable_keys::BackgroundTaskPriority::kBestEffort);
++
++  std::optional<RegistrationResult> result;
++  fetcher->StartCreateTokenAndFetch(
++      request_param, CreateAlgArray(),
++      base::BindLambdaForTesting(
++          [&](RegistrationFetcher*, RegistrationResult registration_result) {
++            fetcher.reset();
++            result = std::move(registration_result);
++          }));
++
++  ASSERT_TRUE(result.has_value());
++  EXPECT_EQ(result->SessionErrorForTesting()->type,
++            SessionError::kAttestationKeyGenerationError);
++}
++
+ TEST_F(RegistrationTest, AttestationSigningKeyGenerationFailure) {
+   unexportable_keys::MockUnexportableKeyService mock_service;
+ 
+-- 
+2.43.0
+

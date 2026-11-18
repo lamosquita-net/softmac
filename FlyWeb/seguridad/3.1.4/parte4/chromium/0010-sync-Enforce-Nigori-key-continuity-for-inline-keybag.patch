@@ -1,0 +1,520 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mikel Astiz <mastiz@chromium.org>
+Date: Thu, 22 Oct 2026 04:37:33 -0700
+Subject: [PATCH 10/14] [sync] Enforce Nigori key continuity for inline keybag
+ updates
+
+Previously, key continuity across Trusted Vault key rotations or
+transitions (e.g., to CUSTOM_PASSPHRASE) was only enforced when
+decrypting pending_keys via external keys, using a dedicated
+last_default_trusted_vault_key_name field in NigoriState. When a new
+encryption_keybag could be decrypted inline in UpdateLocalState()
+because the local cryptographer already held the decrypting key,
+TryDecryptPendingKeysWith() cleared last_default_trusted_vault_key_name
+without enforcing key continuity or restoring it, allowing a subsequent
+passphrase transition to bypass key continuity.
+
+To fix this, NigoriSyncBridgeImpl::TryDecryptPendingKeysWith() now
+queries the prior default key directly from CryptographerImpl via a
+temporary GetDefaultKeyNamePossiblyInvalidated() getter (which returns
+default_encryption_key_name_ even while pending_keys are present) and
+enforces key continuity for all pending-key decryptions (both inline
+and external) whenever the prior passphrase type is
+TRUSTED_VAULT_PASSPHRASE. Correspondingly,
+last_default_trusted_vault_key_name is removed from NigoriState and
+NigoriModel, and kNigoriMissingLastTrustedVaultKeyInKeybag is renamed
+to kNigoriMissingLastDefaultKeyInKeybag.
+
+CryptographerImpl::IsLocalProtoValid() is also tightened so that a
+non-empty key_bag always requires a non-empty default_key_name. No data
+migration is included for legacy persisted states with pending_keys and
+an empty default_key_name (possible only prior to crrev.com/c/7899678),
+as discarding local Nigori state in that rare edge case simply triggers
+a harmless re-download from the server.
+
+Bug: 521061749
+Change-Id: I8ee78c29d8504e3ae9756b1ffa8751cae6fcddd3
+Fixed: 556213137
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8617178
+Commit-Queue: Mikel Astiz <mastiz@chromium.org>
+Reviewed-by: Maksim Moskvitin <mmoskvitin@google.com>
+Cr-Commit-Position: refs/heads/main@{#1724639}
+(cherry picked from commit 90109b3ca4f75e56f16884c1bbdd7acbbca76d7f)
+---
+ ...ngle_client_custom_passphrase_sync_test.cc |  6 ++-
+ .../single_client_nigori_sync_test.cc         | 40 ++++++++------
+ components/sync/model/model_error.h           |  2 +-
+ components/sync/nigori/cryptographer_impl.cc  |  7 ++-
+ components/sync/nigori/cryptographer_impl.h   |  6 +++
+ .../nigori/cryptographer_impl_unittest.cc     | 21 ++++++++
+ components/sync/nigori/nigori_state.cc        | 11 ----
+ components/sync/nigori/nigori_state.h         |  4 --
+ .../sync/nigori/nigori_sync_bridge_impl.cc    | 50 ++++++++++++-----
+ .../nigori_sync_bridge_impl_unittest.cc       | 54 +++++++++++++++++++
+ .../sync/protocol/nigori_local_data.proto     |  6 +--
+ components/sync/protocol/proto_visitors.h     |  1 -
+ .../histograms/metadata/sync/enums.xml        |  2 +-
+ 13 files changed, 159 insertions(+), 51 deletions(-)
+
+diff --git a/chrome/browser/sync/test/integration/single_client_custom_passphrase_sync_test.cc b/chrome/browser/sync/test/integration/single_client_custom_passphrase_sync_test.cc
+index 15d6e58da..f65e1dc9f 100644
+--- a/chrome/browser/sync/test/integration/single_client_custom_passphrase_sync_test.cc
++++ b/chrome/browser/sync/test/integration/single_client_custom_passphrase_sync_test.cc
+@@ -42,6 +42,7 @@ using syncer::DataTypeSet;
+ using syncer::GetEncryptedBookmarkEntitySpecifics;
+ using syncer::InitCustomPassphraseCryptographerFromNigori;
+ using syncer::KeyParamsForTesting;
++using syncer::KeystoreKeyParamsForTesting;
+ using syncer::LoopbackServerEntity;
+ using syncer::PassphraseType;
+ using syncer::Pbkdf2PassphraseKeyParamsForTesting;
+@@ -383,7 +384,10 @@ IN_PROC_BROWSER_TEST_P(
+   ASSERT_TRUE(SetupSync());
+   const KeyParamsForTesting kKeyParams =
+       ScryptPassphraseKeyParamsForTesting("hunter2");
+-  SetNigoriInFakeServer(BuildCustomPassphraseNigoriSpecifics(kKeyParams),
++  SetNigoriInFakeServer(BuildCustomPassphraseNigoriSpecifics(
++                            kKeyParams,
++                            /*old_key_params=*/KeystoreKeyParamsForTesting(
++                                GetFakeServer()->GetKeystoreKeys().back())),
+                         GetFakeServer());
+   ASSERT_TRUE(WaitForPassphraseRequired());
+   ASSERT_TRUE(GetSyncService()->GetUserSettings()->SetDecryptionPassphrase(
+diff --git a/chrome/browser/sync/test/integration/single_client_nigori_sync_test.cc b/chrome/browser/sync/test/integration/single_client_nigori_sync_test.cc
+index c300a31c3..6c1b4be89 100644
+--- a/chrome/browser/sync/test/integration/single_client_nigori_sync_test.cc
++++ b/chrome/browser/sync/test/integration/single_client_nigori_sync_test.cc
+@@ -1086,9 +1086,11 @@ IN_PROC_BROWSER_TEST_P(
+   // cross_user_sharing_public_key.
+   const KeyParamsForTesting kCustomPassphraseKeyParams =
+       Pbkdf2PassphraseKeyParamsForTesting("passphrase");
+-  SetNigoriInFakeServer(
+-      BuildCustomPassphraseNigoriSpecifics(kCustomPassphraseKeyParams),
+-      GetFakeServer());
++  SetNigoriInFakeServer(BuildCustomPassphraseNigoriSpecifics(
++                            kCustomPassphraseKeyParams,
++                            /*old_key_params=*/KeystoreKeyParamsForTesting(
++                                GetFakeServer()->GetKeystoreKeys().back())),
++                        GetFakeServer());
+ 
+   EXPECT_TRUE(PassphraseRequiredChecker(GetSyncService(0)).Wait());
+   EXPECT_TRUE(GetSyncService(0)->GetUserSettings()->SetDecryptionPassphrase(
+@@ -2141,9 +2143,11 @@ IN_PROC_BROWSER_TEST_P(SingleClientNigoriWithWebApiTest,
+       GetSecurityDomainsServer()->RotateTrustedVaultKey(
+           /*last_trusted_vault_key=*/trusted_vault::
+               GetConstantTrustedVaultKey());
+-  SetNigoriInFakeServer(BuildTrustedVaultNigoriSpecifics(
+-                            /*trusted_vault_keys=*/{new_trusted_vault_key}),
+-                        GetFakeServer());
++  SetNigoriInFakeServer(
++      BuildTrustedVaultNigoriSpecifics(
++          /*trusted_vault_keys=*/{GetFakeServer()->GetKeystoreKeys().back(),
++                                  new_trusted_vault_key}),
++      GetFakeServer());
+ 
+   // Inject password encrypted with trusted vault key and verify client is able
+   // to decrypt it.
+@@ -2194,9 +2198,11 @@ IN_PROC_BROWSER_TEST_P(SingleClientNigoriWithWebApiTest,
+           /*last_trusted_vault_key=*/trusted_vault::
+               GetConstantTrustedVaultKey());
+   // Trigger following key rotation client-side.
+-  SetNigoriInFakeServer(BuildTrustedVaultNigoriSpecifics(
+-                            /*trusted_vault_keys=*/{new_trusted_vault_key}),
+-                        GetFakeServer());
++  SetNigoriInFakeServer(
++      BuildTrustedVaultNigoriSpecifics(
++          /*trusted_vault_keys=*/{GetFakeServer()->GetKeystoreKeys().back(),
++                                  new_trusted_vault_key}),
++      GetFakeServer());
+ 
+   const int kTestMethodTypeHint = 8;
+ 
+@@ -2241,9 +2247,11 @@ IN_PROC_BROWSER_TEST_P(SingleClientNigoriWithWebApiTest,
+       GetSecurityDomainsServer()->RotateTrustedVaultKey(
+           /*last_trusted_vault_key=*/trusted_vault::
+               GetConstantTrustedVaultKey());
+-  SetNigoriInFakeServer(BuildTrustedVaultNigoriSpecifics(
+-                            /*trusted_vault_keys=*/{trusted_vault_key1}),
+-                        GetFakeServer());
++  SetNigoriInFakeServer(
++      BuildTrustedVaultNigoriSpecifics(
++          /*trusted_vault_keys=*/{GetFakeServer()->GetKeystoreKeys().back(),
++                                  trusted_vault_key1}),
++      GetFakeServer());
+ 
+   // Ensure that client has finished following key rotation by verifying
+   // passwords are decryptable.
+@@ -2290,9 +2298,11 @@ IN_PROC_BROWSER_TEST_P(SingleClientNigoriWithWebApiTest,
+       GetSecurityDomainsServer()->RotateTrustedVaultKey(
+           /*last_trusted_vault_key=*/trusted_vault::
+               GetConstantTrustedVaultKey());
+-  SetNigoriInFakeServer(BuildTrustedVaultNigoriSpecifics(
+-                            /*trusted_vault_keys=*/{trusted_vault_key2}),
+-                        GetFakeServer());
++  SetNigoriInFakeServer(
++      BuildTrustedVaultNigoriSpecifics(
++          /*trusted_vault_keys=*/{GetFakeServer()->GetKeystoreKeys().back(),
++                                  trusted_vault_key2}),
++      GetFakeServer());
+ 
+   const KeyParamsForTesting trusted_vault_key_params2 =
+       TrustedVaultKeyParamsForTesting(trusted_vault_key2);
+diff --git a/components/sync/model/model_error.h b/components/sync/model/model_error.h
+index 349c42633..55341a735 100644
+--- a/components/sync/model/model_error.h
++++ b/components/sync/model/model_error.h
+@@ -127,7 +127,7 @@ class ModelError {
+     kNigoriInvalidPassphraseTransition = 104,
+     kNigoriInvalidSpecifics = 105,
+     kNigoriMissingKeystoreKeysDuringInitialSync = 106,
+-    kNigoriMissingLastTrustedVaultKeyInKeybag = 107,
++    kNigoriMissingLastDefaultKeyInKeybag = 107,
+     kNigoriMissingNewDefaultKeyInKeybag = 108,
+     // kPlusAddressAddOrUpdateProfileFailed = 121, // Deprecated.
+     // kPlusAddressClearProfilesFailed = 122, // Deprecated.
+diff --git a/components/sync/nigori/cryptographer_impl.cc b/components/sync/nigori/cryptographer_impl.cc
+index ba38522cb..67506b63f 100644
+--- a/components/sync/nigori/cryptographer_impl.cc
++++ b/components/sync/nigori/cryptographer_impl.cc
+@@ -60,7 +60,7 @@ std::unique_ptr<CryptographerImpl> CryptographerImpl::FromLocalProto(
+ bool CryptographerImpl::IsLocalProtoValid(
+     const sync_pb::CryptographerData& proto) {
+   if (proto.default_key_name().empty()) {
+-    return true;
++    return proto.key_bag().key_size() == 0;
+   }
+   return NigoriKeyBag::CreateFromProto(proto.key_bag())
+       .HasKey(proto.default_key_name());
+@@ -144,6 +144,11 @@ void CryptographerImpl::InvalidateDefaultEncryptionKey() {
+   default_encryption_key_invalidated_ = true;
+ }
+ 
++const std::string& CryptographerImpl::GetDefaultKeyNamePossiblyInvalidated()
++    const {
++  return default_encryption_key_name_;
++}
++
+ void CryptographerImpl::ClearAllKeys() {
+   default_encryption_key_name_.clear();
+   default_encryption_key_invalidated_ = false;
+diff --git a/components/sync/nigori/cryptographer_impl.h b/components/sync/nigori/cryptographer_impl.h
+index 868a4fd44..1e2a788e2 100644
+--- a/components/sync/nigori/cryptographer_impl.h
++++ b/components/sync/nigori/cryptographer_impl.h
+@@ -95,6 +95,12 @@ class CryptographerImpl : public Cryptographer {
+   // false. The default key name is still kept in memory.
+   void InvalidateDefaultEncryptionKey();
+ 
++  // Returns the default encryption key name even if it was invalidated via
++  // InvalidateDefaultEncryptionKey().
++  // TODO(crbug.com/521061749): Remove once remote key rotation and key
++  // continuity enforcement are handled directly by CryptographerImpl.
++  const std::string& GetDefaultKeyNamePossiblyInvalidated() const;
++
+   // Reverts the cryptographer to an empty one, i.e. what would be returned by
+   // CreateEmpty(). The default key is also cleared.
+   // The set of known encryption keys shouldn't decrease in general, since this
+diff --git a/components/sync/nigori/cryptographer_impl_unittest.cc b/components/sync/nigori/cryptographer_impl_unittest.cc
+index f37cb9bea..7f0cf525e 100644
+--- a/components/sync/nigori/cryptographer_impl_unittest.cc
++++ b/components/sync/nigori/cryptographer_impl_unittest.cc
+@@ -496,6 +496,24 @@ TEST(CryptographerImplTest, ShouldReturnNullOnInvalidLocalProto) {
+   EXPECT_THAT(restored, IsNull());
+ }
+ 
++TEST(CryptographerImplTest,
++     ShouldReturnNullOnLocalProtoWithKeysButNoDefaultKey) {
++  std::unique_ptr<CryptographerImpl> original =
++      CryptographerImpl::CreateEmpty();
++  original->EmplaceKey("password", KeyDerivationParams::CreateForPbkdf2());
++
++  sync_pb::CryptographerData proto = original->ToLocalProto();
++  ASSERT_TRUE(proto.default_key_name().empty());
++  ASSERT_GT(proto.key_bag().key_size(), 0);
++
++  EXPECT_THAT(CryptographerImpl::FromLocalProto(
++                  proto, /*default_encryption_key_invalidated=*/false),
++              IsNull());
++  EXPECT_THAT(CryptographerImpl::FromLocalProto(
++                  proto, /*default_encryption_key_invalidated=*/true),
++              IsNull());
++}
++
+ TEST(CryptographerImplTest, ShouldExportEncryptedKeyBagWithOneKey) {
+   std::unique_ptr<CryptographerImpl> cryptographer =
+       CryptographerImpl::CreateEmpty();
+@@ -562,6 +580,8 @@ TEST(CryptographerImplTest, ShouldDisableAndEnableDefaultKey) {
+   cryptographer->InvalidateDefaultEncryptionKey();
+   EXPECT_FALSE(cryptographer->CanEncrypt());
+   EXPECT_THAT(cryptographer->GetDefaultEncryptionKeyName(), Eq(""));
++  EXPECT_THAT(cryptographer->GetDefaultKeyNamePossiblyInvalidated(),
++              Eq(key_name));
+   // Keys should still exist (we can still decrypt).
+   EXPECT_TRUE(cryptographer->HasKey(key_name));
+ 
+@@ -619,6 +639,7 @@ TEST(CryptographerImplTest, ShouldRestoreDisabledDefaultKey) {
+   ASSERT_THAT(restored, NotNull());
+   EXPECT_FALSE(restored->CanEncrypt());
+   EXPECT_THAT(restored->GetDefaultEncryptionKeyName(), Eq(""));
++  EXPECT_THAT(restored->GetDefaultKeyNamePossiblyInvalidated(), Eq(key_name));
+   EXPECT_TRUE(restored->HasKey(key_name));
+ }
+ 
+diff --git a/components/sync/nigori/nigori_state.cc b/components/sync/nigori/nigori_state.cc
+index 89abf9a72..66f5b4dd7 100644
+--- a/components/sync/nigori/nigori_state.cc
++++ b/components/sync/nigori/nigori_state.cc
+@@ -168,11 +168,6 @@ NigoriState NigoriState::CreateFromLocalProto(
+         proto.pending_keystore_decryptor_token();
+   }
+ 
+-  if (proto.has_last_default_trusted_vault_key_name()) {
+-    state.last_default_trusted_vault_key_name =
+-        proto.last_default_trusted_vault_key_name();
+-  }
+-
+   state.trusted_vault_debug_info = proto.trusted_vault_debug_info();
+ 
+   if (proto.has_cross_user_sharing_public_key()) {
+@@ -240,10 +235,6 @@ sync_pb::NigoriModel NigoriState::ToLocalProto() const {
+     *proto.mutable_pending_keystore_decryptor_token() =
+         *pending_keystore_decryptor_token;
+   }
+-  if (last_default_trusted_vault_key_name.has_value()) {
+-    proto.set_last_default_trusted_vault_key_name(
+-        *last_default_trusted_vault_key_name);
+-  }
+   *proto.mutable_trusted_vault_debug_info() = trusted_vault_debug_info;
+   if (cross_user_sharing_public_key.has_value() &&
+       cross_user_sharing_key_pair_version.has_value()) {
+@@ -326,8 +317,6 @@ NigoriState NigoriState::Clone() const {
+   result.encrypt_everything = encrypt_everything;
+   result.keystore_keys_cryptographer = keystore_keys_cryptographer->Clone();
+   result.pending_keystore_decryptor_token = pending_keystore_decryptor_token;
+-  result.last_default_trusted_vault_key_name =
+-      last_default_trusted_vault_key_name;
+   result.trusted_vault_debug_info = trusted_vault_debug_info;
+   if (cross_user_sharing_public_key.has_value()) {
+     result.cross_user_sharing_public_key =
+diff --git a/components/sync/nigori/nigori_state.h b/components/sync/nigori/nigori_state.h
+index 6698a06b6..9df60ff8c 100644
+--- a/components/sync/nigori/nigori_state.h
++++ b/components/sync/nigori/nigori_state.h
+@@ -88,10 +88,6 @@ struct NigoriState {
+   // keystore keys. May be set only for keystore Nigori.
+   std::optional<sync_pb::EncryptedData> pending_keystore_decryptor_token;
+ 
+-  // The name of the latest available trusted vault key that was used as the
+-  // default encryption key.
+-  std::optional<std::string> last_default_trusted_vault_key_name;
+-
+   // Some debug-only fields for passphrase type TRUSTED_VAULT_PASSPHRASE.
+   sync_pb::NigoriSpecifics::TrustedVaultDebugInfo trusted_vault_debug_info;
+ 
+diff --git a/components/sync/nigori/nigori_sync_bridge_impl.cc b/components/sync/nigori/nigori_sync_bridge_impl.cc
+index 25a4f85d7..99bbb8b28 100644
+--- a/components/sync/nigori/nigori_sync_bridge_impl.cc
++++ b/components/sync/nigori/nigori_sync_bridge_impl.cc
+@@ -221,6 +221,35 @@ bool UpdatePassphraseType(NigoriSpecifics::PassphraseType new_type,
+   return true;
+ }
+ 
++// Determines whether a newly decrypted remote keybag must contain the
++// previously known default encryption key (if any).
++//
++// Note that `new_passphrase_type` is the *latest* passphrase type (already
++// updated in `UpdateLocalState()` when `pending_keys` arrived, prior to
++// decryption, which may happen asynchronously or after a browser restart).
++// Because `IsValidPassphraseTransition()` only allows
++// `TRUSTED_VAULT_PASSPHRASE` and `CUSTOM_PASSPHRASE` (as well as
++// `FROZEN_IMPLICIT_PASSPHRASE`) to transition to `TRUSTED_VAULT_PASSPHRASE` or
++// `CUSTOM_PASSPHRASE`, returning true for these target passphrase types ensures
++// key continuity is enforced for all transitions originating from
++// `TRUSTED_VAULT_PASSPHRASE` or explicit passphrases (including
++// `TRUSTED_VAULT_PASSPHRASE -> CUSTOM_PASSPHRASE`).
++bool ShouldEnforceKeyContinuity(
++    NigoriSpecifics::PassphraseType new_passphrase_type) {
++  switch (new_passphrase_type) {
++    case NigoriSpecifics::UNKNOWN:
++      NOTREACHED();
++    case NigoriSpecifics::IMPLICIT_PASSPHRASE:
++    case NigoriSpecifics::KEYSTORE_PASSPHRASE:
++      return false;
++    case NigoriSpecifics::FROZEN_IMPLICIT_PASSPHRASE:
++    case NigoriSpecifics::CUSTOM_PASSPHRASE:
++    case NigoriSpecifics::TRUSTED_VAULT_PASSPHRASE:
++      return true;
++  }
++  NOTREACHED();
++}
++
+ bool IsValidEncryptedTypesTransition(bool old_encrypt_everything,
+                                      const NigoriSpecifics& specifics) {
+   // We don't support relaxing the encryption requirements.
+@@ -499,9 +528,6 @@ void NigoriSyncBridgeImpl::AddTrustedVaultDecryptionKeys(
+     return;
+   }
+ 
+-  state_.last_default_trusted_vault_key_name =
+-      state_.cryptographer->GetDefaultEncryptionKeyName();
+-
+   storage_->StoreData(SerializeAsNigoriLocalData());
+   observer_list_.NotifyCryptographerStateChanged(
+       state_.cryptographer.get(), state_.pending_keys.has_value());
+@@ -820,11 +846,16 @@ std::optional<ModelError> NigoriSyncBridgeImpl::TryDecryptPendingKeysWith(
+                       ModelError::Type::kNigoriMissingNewDefaultKeyInKeybag);
+   }
+ 
+-  if (state_.last_default_trusted_vault_key_name.has_value() &&
+-      !new_key_bag.HasKey(*state_.last_default_trusted_vault_key_name)) {
++  // TODO(crbug.com/521061749): Move remote key rotation and key continuity
++  // enforcement into CryptographerImpl.
++  const std::string& last_default_key_name =
++      state_.cryptographer->GetDefaultKeyNamePossiblyInvalidated();
++  if (ShouldEnforceKeyContinuity(state_.passphrase_type) &&
++      !last_default_key_name.empty() &&
++      !new_key_bag.HasKey(last_default_key_name)) {
+     // Protocol violation.
+-    return ModelError(
+-        FROM_HERE, ModelError::Type::kNigoriMissingLastTrustedVaultKeyInKeybag);
++    return ModelError(FROM_HERE,
++                      ModelError::Type::kNigoriMissingLastDefaultKeyInKeybag);
+   }
+ 
+   CrossUserSharingKeys new_cross_user_sharing_keys =
+@@ -855,10 +886,6 @@ std::optional<ModelError> NigoriSyncBridgeImpl::TryDecryptPendingKeysWith(
+         state_.cross_user_sharing_key_pair_version.value());
+   }
+ 
+-  // Reset `last_default_trusted_vault_key_name` as `state_` might go out of
+-  // TRUSTED_VAULT passphrase type. The callers are responsible to set it again
+-  // if needed.
+-  state_.last_default_trusted_vault_key_name = std::nullopt;
+   state_.cryptographer->EmplaceKeysFrom(new_key_bag);
+   state_.cryptographer->SelectDefaultEncryptionKey(new_default_key_name);
+   state_.pending_keys.reset();
+@@ -893,7 +920,6 @@ void NigoriSyncBridgeImpl::ApplyDisableSyncChanges() {
+   state_.custom_passphrase_time = base::Time();
+   state_.keystore_migration_time = base::Time();
+   state_.custom_passphrase_key_derivation_params = std::nullopt;
+-  state_.last_default_trusted_vault_key_name = std::nullopt;
+   state_.trusted_vault_debug_info =
+       sync_pb::NigoriSpecifics::TrustedVaultDebugInfo();
+   state_.cross_user_sharing_public_key = std::nullopt;
+diff --git a/components/sync/nigori/nigori_sync_bridge_impl_unittest.cc b/components/sync/nigori/nigori_sync_bridge_impl_unittest.cc
+index de570daa7..06bff9369 100644
+--- a/components/sync/nigori/nigori_sync_bridge_impl_unittest.cc
++++ b/components/sync/nigori/nigori_sync_bridge_impl_unittest.cc
+@@ -1502,6 +1502,49 @@ TEST_F(NigoriSyncBridgeImplTest,
+   EXPECT_FALSE(bridge()->HasPendingKeysForTesting());
+ }
+ 
++TEST_F(NigoriSyncBridgeImplTest,
++       ShouldFailOnInvalidRemoteKeyRotationForTrustedVault) {
++  const std::vector<uint8_t> kRotatedTrustedVaultKey = {7, 8, 9, 10};
++
++  EntityData entity_data;
++  *entity_data.specifics.mutable_nigori() =
++      BuildTrustedVaultNigoriSpecifics({kTrustedVaultKey});
++
++  ASSERT_TRUE(bridge()->SetKeystoreKeys({kRawKeystoreKey}));
++  ASSERT_THAT(bridge()->MergeFullSyncData(std::move(entity_data)),
++              Eq(std::nullopt));
++  bridge()->NotifyInitialStateToObservers();
++  ASSERT_TRUE(bridge()->HasPendingKeysForTesting());
++  bridge()->AddTrustedVaultDecryptionKeys({kTrustedVaultKey});
++  ASSERT_FALSE(bridge()->HasPendingKeysForTesting());
++
++  // Mimic an intermediate remote Trusted Vault update that can be decrypted
++  // inline using the existing cryptographer keys (regression test for
++  // crbug.com/556213137).
++  EntityData inline_decryptable_entity_data;
++  *inline_decryptable_entity_data.specifics.mutable_nigori() =
++      BuildTrustedVaultNigoriSpecifics({kTrustedVaultKey});
++  ASSERT_THAT(bridge()->ApplyIncrementalSyncChanges(
++                  std::move(inline_decryptable_entity_data)),
++              Eq(std::nullopt));
++  ASSERT_FALSE(bridge()->HasPendingKeysForTesting());
++
++  // Mimic an invalid remote key rotation whose keybag omits `kTrustedVaultKey`.
++  EntityData invalid_rotated_entity_data;
++  *invalid_rotated_entity_data.specifics.mutable_nigori() =
++      BuildTrustedVaultNigoriSpecifics({kRotatedTrustedVaultKey});
++  EXPECT_CALL(*observer(), OnTrustedVaultKeyRequired());
++  ASSERT_THAT(bridge()->ApplyIncrementalSyncChanges(
++                  std::move(invalid_rotated_entity_data)),
++              Eq(std::nullopt));
++  ASSERT_TRUE(bridge()->HasPendingKeysForTesting());
++
++  // Once the new decryption key is provided, the bridge should report a model
++  // error because `kTrustedVaultKey` is missing from the rotated keybag.
++  EXPECT_CALL(*processor(), ReportError);
++  bridge()->AddTrustedVaultDecryptionKeys({kRotatedTrustedVaultKey});
++}
++
+ // Tests transitioning locally from trusted vault passphrase to custom
+ // passphrase.
+ TEST_F(NigoriSyncBridgeImplTest,
+@@ -1710,6 +1753,17 @@ TEST_F(NigoriSyncBridgeImplTest,
+   ASSERT_THAT(bridge()->GetDataForDebugging(),
+               Not(HasCustomPassphraseNigori()));
+ 
++  // Mimic an intermediate remote Trusted Vault update that is decrypted inline
++  // before the transition to custom passphrase (regression test for
++  // crbug.com/556213137).
++  EntityData inline_decryptable_entity_data;
++  *inline_decryptable_entity_data.specifics.mutable_nigori() =
++      BuildTrustedVaultNigoriSpecifics({kTrustedVaultKey});
++  ASSERT_THAT(bridge()->ApplyIncrementalSyncChanges(
++                  std::move(inline_decryptable_entity_data)),
++              Eq(std::nullopt));
++  ASSERT_FALSE(bridge()->HasPendingKeysForTesting());
++
+   const KeyParamsForTesting kCustomPassphraseKeyParams =
+       Pbkdf2PassphraseKeyParamsForTesting("custom_passphrase");
+   // Don't populate kTrustedVaultKey into `new_entity_data`.
+diff --git a/components/sync/protocol/nigori_local_data.proto b/components/sync/protocol/nigori_local_data.proto
+index 0aa94a658..9ad146dd0 100644
+--- a/components/sync/protocol/nigori_local_data.proto
++++ b/components/sync/protocol/nigori_local_data.proto
+@@ -100,10 +100,8 @@ message NigoriModel {
+   // in case keystore keys arrived after NigoriSpecifics.
+   optional EncryptedData pending_keystore_decryptor_token = 11;
+ 
+-  // Contains the name of the latest available trusted vault key that was used
+-  // as the default encryption key. Resets when the client go out of pending
+-  // decryption state and transits to other passphrase types.
+-  optional string last_default_trusted_vault_key_name = 12;
++  reserved 12;
++  reserved "last_default_trusted_vault_key_name";
+ 
+   // Some debug-only fields for passphrase type TRUSTED_VAULT_PASSPHRASE.
+   optional NigoriSpecifics.TrustedVaultDebugInfo trusted_vault_debug_info = 13;
+diff --git a/components/sync/protocol/proto_visitors.h b/components/sync/protocol/proto_visitors.h
+index 4cf920a7e..26bada102 100644
+--- a/components/sync/protocol/proto_visitors.h
++++ b/components/sync/protocol/proto_visitors.h
+@@ -959,7 +959,6 @@ VISIT_PROTO_FIELDS(const sync_pb::NigoriModel& proto) {
+   VISIT_REP(encrypted_types_specifics_field_number);
+   VISIT_REP(keystore_key);
+   VISIT(pending_keystore_decryptor_token);
+-  VISIT(last_default_trusted_vault_key_name);
+   VISIT(trusted_vault_debug_info);
+   VISIT(cross_user_sharing_public_key);
+ }
+diff --git a/tools/metrics/histograms/metadata/sync/enums.xml b/tools/metrics/histograms/metadata/sync/enums.xml
+index 1039e75fb..1f5e2ff0c 100644
+--- a/tools/metrics/histograms/metadata/sync/enums.xml
++++ b/tools/metrics/histograms/metadata/sync/enums.xml
+@@ -1638,7 +1638,7 @@ chromium-metrics-reviews@google.com.
+   <int value="104" label="kNigoriInvalidPassphraseTransition"/>
+   <int value="105" label="kNigoriInvalidSpecifics"/>
+   <int value="106" label="kNigoriMissingKeystoreKeysDuringInitialSync"/>
+-  <int value="107" label="kNigoriMissingLastTrustedVaultKeyInKeybag"/>
++  <int value="107" label="kNigoriMissingLastDefaultKeyInKeybag"/>
+   <int value="108" label="kNigoriMissingNewDefaultKeyInKeybag"/>
+   <int value="121" label="(Obsolete) kPlusAddressAddOrUpdateProfileFailed"/>
+   <int value="122" label="(Obsolete) kPlusAddressClearProfilesFailed"/>
+-- 
+2.43.0
+

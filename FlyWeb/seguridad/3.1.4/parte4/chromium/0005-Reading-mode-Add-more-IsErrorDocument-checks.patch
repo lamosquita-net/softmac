@@ -1,0 +1,136 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lauren Winston <lwinston@google.com>
+Date: Tue, 20 Oct 2026 12:43:35 -0700
+Subject: [PATCH 05/14] [Reading mode] Add more IsErrorDocument checks.
+
+See crbug.com/574922639 for more details.
+
+Fixed: 574922639
+Change-Id: Ie6ccff6451b51d1b41280720da3c6f6a823d3d11
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8613007
+Reviewed-by: Eitan Goldberger <eitang@google.com>
+Commit-Queue: Lauren Winston <lwinston@google.com>
+Cr-Commit-Position: refs/heads/main@{#1723168}
+(cherry picked from commit 936e490a1359fab560586899d3c0e35d724b99f6)
+---
+ .../read_anything_untrusted_page_handler.cc   | 17 ++++--
+ ...hing_untrusted_page_handler_browsertest.cc | 54 +++++++++++++++++++
+ 2 files changed, 68 insertions(+), 3 deletions(-)
+
+diff --git a/chrome/browser/ui/webui/side_panel/read_anything/read_anything_untrusted_page_handler.cc b/chrome/browser/ui/webui/side_panel/read_anything/read_anything_untrusted_page_handler.cc
+index f37174428..cce00984a 100644
+--- a/chrome/browser/ui/webui/side_panel/read_anything/read_anything_untrusted_page_handler.cc
++++ b/chrome/browser/ui/webui/side_panel/read_anything/read_anything_untrusted_page_handler.cc
+@@ -947,7 +947,7 @@ bool ReadAnythingUntrustedPageHandler::AreActionsAllowedInTree(
+     const ui::AXTreeID& tree_id) const {
+   content::RenderFrameHost* rfh =
+       content::RenderFrameHost::FromAXTreeID(tree_id);
+-  if (!rfh) {
++  if (!rfh || rfh->IsErrorDocument()) {
+     return false;
+   }
+ 
+@@ -1252,6 +1252,14 @@ void ReadAnythingUntrustedPageHandler::ScrollToTargetNode(
+     return;
+   }
+ 
++  // If the render frame is in an errored state, return early instead of
++  // scrolling to avoid performing actions on invalid nodes.
++  content::RenderFrameHost* rfh =
++      content::RenderFrameHost::FromAXTreeID(target_tree_id);
++  if (!rfh || rfh->IsErrorDocument()) {
++    return;
++  }
++
+   base::UmaHistogramEnumeration(kRendererScrollRequestHistogram,
+                                 ReadAnythingRendererRequestResult::kAllowed);
+   if (!ui::IsValidAXNodeIDFromRenderer(target_node_id)) {
+@@ -1797,6 +1805,7 @@ void ReadAnythingUntrustedPageHandler::OnActiveAXTreeIDChanged() {
+     RequestDomDistillerDistillation(contents);
+   }
+ }
++
+ bool ReadAnythingUntrustedPageHandler::RequestDomDistillerDistillation(
+     content::WebContents* content) {
+   if (!content || !features::IsReadAnythingWithReadabilityEnabled() ||
+@@ -1822,8 +1831,10 @@ bool ReadAnythingUntrustedPageHandler::RequestDomDistillerDistillation(
+   const GURL& url = content->GetLastCommittedURL();
+   RecordDistillationSchemeHistogram(url);
+ 
+-  if (!url.SchemeIsHTTPOrHTTPS()) {
+-    VLOG(1) << kReadAnythingPrefix << ": URL is not HTTP/HTTPS, skipping for "
++  content::RenderFrameHost* rfh = content->GetPrimaryMainFrame();
++  if (!url.SchemeIsHTTPOrHTTPS() || !rfh || rfh->IsErrorDocument()) {
++    VLOG(1) << kReadAnythingPrefix
++            << ": URL is not HTTP/HTTPS or is error document, skipping for "
+             << url.spec();
+     // Call UpdateContent with empty values so status can be updated from show
+     // loading to no content.
+diff --git a/chrome/browser/ui/webui/side_panel/read_anything/read_anything_untrusted_page_handler_browsertest.cc b/chrome/browser/ui/webui/side_panel/read_anything/read_anything_untrusted_page_handler_browsertest.cc
+index 43d11503f..bfeb7a426 100644
+--- a/chrome/browser/ui/webui/side_panel/read_anything/read_anything_untrusted_page_handler_browsertest.cc
++++ b/chrome/browser/ui/webui/side_panel/read_anything/read_anything_untrusted_page_handler_browsertest.cc
+@@ -3643,6 +3643,60 @@ IN_PROC_BROWSER_TEST_F(ReadAnythingUntrustedPageHandlerTest,
+       /*expected_bucket_count=*/1);
+ }
+ 
++IN_PROC_BROWSER_TEST_F(ReadAnythingUntrustedPageHandlerTest,
++                       ErrorDocument_DisallowsActions) {
++  base::HistogramTester histogram_tester;
++
++  ASSERT_TRUE(embedded_test_server()->Start());
++  ASSERT_TRUE(ui_test_utils::NavigateToURL(
++      browser(), embedded_test_server()->GetURL("/close-socket")));
++  SetUpHandler();
++
++  content::RenderFrameHost* rfh = web_contents_->GetPrimaryMainFrame();
++  content::RenderFrameHost* main_rfh =
++      browser()->GetActiveTabInterface()->GetContents()->GetPrimaryMainFrame();
++  ASSERT_TRUE(main_rfh->GetLastCommittedURL().SchemeIsHTTPOrHTTPS());
++  ASSERT_TRUE(main_rfh->IsErrorDocument());
++  ui::AXTreeID tree_id = main_rfh->GetAXTreeID();
++
++  GrantUserActivation(rfh);
++
++  // Link clicks are dropped on error documents even with an HTTP/HTTPS URL.
++  handler_remote_->OnLinkClicked(tree_id, /*target_node_id=*/1);
++  handler_remote_.FlushForTesting();
++  histogram_tester.ExpectUniqueSample(
++      "Accessibility.ReadAnything.RendererRequestForLinkClick.Result",
++      ReadAnythingRendererRequestResult::kDisallowedActionOnPageType,
++      /*expected_bucket_count=*/1);
++
++  // Image data requests are dropped on error documents.
++  handler_remote_->OnImageDataRequested(tree_id, /*target_node_id=*/1);
++  handler_remote_.FlushForTesting();
++  histogram_tester.ExpectUniqueSample(
++      "Accessibility.ReadAnything.RendererRequestForImageDataDownload.Result",
++      ReadAnythingRendererRequestResult::kDisallowedActionOnPageType,
++      /*expected_bucket_count=*/1);
++
++  // Scroll requests are dropped on error documents without logging a scroll
++  // request result histogram.
++  handler_remote_->ScrollToTargetNode(tree_id, /*target_node_id=*/1);
++  handler_remote_.FlushForTesting();
++  histogram_tester.ExpectTotalCount(
++      "Accessibility.ReadAnything.RendererRequestForScrollToTargetNode.Result",
++      /*expected_count=*/0);
++
++  // Selection change requests are dropped on error documents.
++  base::test::TestFuture<bool> selection_applied;
++  handler_remote_->OnSelectionChange(tree_id, /*anchor_node_id=*/1, 0,
++                                     /*focus_node_id=*/2, 5,
++                                     selection_applied.GetCallback());
++  EXPECT_FALSE(selection_applied.Get());
++  histogram_tester.ExpectUniqueSample(
++      "Accessibility.ReadAnything.RendererRequestForSelection.Result",
++      ReadAnythingRendererRequestResult::kDisallowedActionOnPageType,
++      /*expected_bucket_count=*/1);
++}
++
+ IN_PROC_BROWSER_TEST_F(ReadAnythingUntrustedPageHandlerTest,
+                        Pdf_AllowsActions) {
+   base::HistogramTester histogram_tester;
+-- 
+2.43.0
+
