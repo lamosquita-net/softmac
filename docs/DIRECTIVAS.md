@@ -415,6 +415,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   y una 3.1.5 (medios) sin preguntarle. Decisión de Titín: **una 3.1.4 con todo, Altos y medios juntos** (`FlyWeb/seguridad/3.1.4/`
   y `3.1.5/` en main, sin el parche de versión 3.1.5); **no hay 3.1.5**. El resto va a la 3.2.0, para la que Titín pasará sus
   diseños y decisiones.
+  **Ampliación (Titín, 18-11 tarde; COORDINACIÓN-48):** «todo en la 3.1.4, y luego la 3.2.0»: también entra en la 3.1.4 la
+  seguridad que Chrome lleva de serie desde la 157 aunque Google no la anunciara (0031 = 625dedb4a0, OPFS y StorageKey).
+  **Regla general: no se inventan versiones intermedias ni se reparte contenido entre versiones sin consultarle.**
 - **FlyWeb también innova (Titín, 13-11 noche; COORDINACIÓN-41; amplía «Flink a nuestro ritmo»):** además de seguir a
   Chrome, FlyWeb puede implementar funciones nuevas de los estándares (HTML, CSS, JS, APIs) aunque ningún otro navegador
   las tenga aún. **Las elige Titín como diseñador web.** INVESTIGACIÓN-MOTOR le presenta las tendencias nuevas, con
