@@ -890,3 +890,23 @@ La -25 se releva tras entregar la parte 1 de la 3.1.5 (`3.1.5/CONTENIDO.md`). Re
 - Las notas de Extended Stable de la 156 solo citan lo que Google fusiona (casi siempre altos): un medio que no sale ahí
   no está en la 8078.
 
+
+## 16. SEGURIDAD-PORTES-26 (`session_01MwmK2kcWn812GmYVA1oi3u`, 18-11-2026): la 3.1.5, parte 2
+
+**Acceso:** `add_repo` de brave-core **con push concedido** (no hizo falta: la parte 2 no toca brave-core).
+
+**Hecho** (`3.1.5/CONTENIDO.md` «Parte 2», APTO): G3b → chromium 0014–0027 (árbol `2aa2917c76`) y WebRTC 0001–0005
+(carpeta nueva `3.1.5/webrtc/`, árbol `8ee111cf22` sobre el gitlink `19576e3787`); G4, nada (solo DBSC sin interacción, y
+con la clave de atestación apagada). Visto bueno a COORDINACIÓN-47: 7b99dd29ba fuera de la 3.1.5.
+
+**Trampas nuevas:**
+- **Un arreglo puede estar ya en `patches/` de brave-core:** f8cc87d0f3 (PDF y Service Worker) venía entero en
+  `patches/content-browser-renderer_host-navigation_request.cc.patch`. Se detecta al cruzar: el `.patch` de brave deja de
+  aplicar justo en las líneas del porte. Entonces se quita esa parte del porte, no del `.patch`.
+- **WebRTC sin googlesource:** `gh api search/commits -f q="<bug>"` sin `repo:` encuentra el espejo `chenjim/webrtc-mirror`
+  (solo `main`); la base de la 156 (commits `[M156]` de la rama) está en `GetStream/webrtc`
+  (`search/commits -f q="hash:<sha>"` para dar con un espejo que tenga un commit). Los dos se leen con `git fetch` anónimo.
+- **`git format-patch` con un árbol en vez de un commit** recorre la historia desde la raíz y empieza a bajar blobs:
+  pasar siempre `A..B` de commits.
+- Para leer o buscar en Blink sin `git grep`: añadir `/third_party/blink/renderer/` al *sparse checkout* (189 MB, 12 s) y
+  usar `grep -r` normal.

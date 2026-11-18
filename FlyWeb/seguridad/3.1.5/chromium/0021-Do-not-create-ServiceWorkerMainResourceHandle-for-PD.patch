@@ -1,0 +1,116 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eriko Kurimoto <elkurin@chromium.org>
+Date: Sat, 24 Oct 2026 06:47:24 -0700
+Subject: [PATCH 21/27] Do not create ServiceWorkerMainResourceHandle for PDF
+ navigations
+
+PDF renderer processes have restricted access to the hosting origin's
+storage and should not receive Service Worker-served subresource
+responses (along with a CacheStorageSideDataWriter) or a remote
+CacheStorage handle for the hosting origin via a
+ControllerServiceWorkerInfo.
+
+Today's <embed>-based PDF content frame already skips the main-resource
+interceptor because ShouldCreateForNavigation() returns false for
+kEmbed, and NavigationRequest::CommitNavigation() clones URLResponseHead
+without cache_storage_side_data_writer. However,
+NavigationRequest::OnStartChecksComplete() and
+NavigationRequest::InheritServiceWorkerControllerFromParentIfNeeded()
+previously only checked WebSandboxFlags::kOrigin and did not check
+IsPdf(). As defense in depth for non-<embed> PDF navigations, disallow
+creating service_worker_handle_ when NavigationRequest::IsPdf() is true,
+and CHECK(!request_info.is_pdf) in
+ServiceWorkerMainResourceLoaderInterceptor::CreateForNavigation().
+
+Bug: 561099685
+Change-Id: Idb5142ac2c4777f598b3cdbb9aeb948a371739df
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8622782
+Commit-Queue: Eriko Kurimoto <elkurin@chromium.org>
+Reviewed-by: Yoshisato Yanagisawa <yyanagisawa@chromium.org>
+Reviewed-by: Rakina Zata Amni <rakina@chromium.org>
+Auto-Submit: Eriko Kurimoto <elkurin@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1726510}
+(cherry picked from commit f8cc87d0f37ae7c69d530ff5ad4b7b66263dc257)
+
+[FlyWeb] navigation_request.cc is left out: brave-core already carries the same
+IsPdf() checks in patches/content-browser-renderer_host-navigation_request.cc.patch.
+Only the CHECK in the interceptor and the browser test are added here.
+---
+ .../service_worker_browsertest.cc             | 48 +++++++++++++++++++
+ ...worker_main_resource_loader_interceptor.cc |  1 +
+ 2 files changed, 49 insertions(+)
+
+diff --git a/content/browser/service_worker/service_worker_browsertest.cc b/content/browser/service_worker/service_worker_browsertest.cc
+index d7617e510..7c4492e97 100644
+--- a/content/browser/service_worker/service_worker_browsertest.cc
++++ b/content/browser/service_worker/service_worker_browsertest.cc
+@@ -1507,6 +1507,54 @@ IN_PROC_BROWSER_TEST_F(ServiceWorkerBrowserTest,
+   EXPECT_FALSE(main_frame->GetLastCommittedServiceWorkerClient());
+ }
+ 
++// A document committed as PDF content (`NavigationRequest::IsPdf()`, which
++// runs in a restricted PDF renderer process with `SiteInfo::is_pdf()`) must
++// not be given a service worker container host or controller in the browser
++// process, even when its URL is in the scope of an active service worker
++// registration.
++IN_PROC_BROWSER_TEST_F(ServiceWorkerBrowserTest,
++                       NoContainerHostForPdfDocument) {
++  StartServerAndNavigateToSetup();
++
++  // Register a service worker that controls /service_worker/.
++  EXPECT_TRUE(NavigateToURL(shell(),
++                            embedded_test_server()->GetURL(
++                                "/service_worker/create_service_worker.html")));
++  EXPECT_EQ("DONE",
++            EvalJs(shell(), "register('fetch_event_pass_through.js');"));
++
++  const GURL in_scope =
++      embedded_test_server()->GetURL("/service_worker/empty.html");
++
++  // Positive control: an ordinary navigation to `in_scope` receives a service
++  // worker client and controller.
++  EXPECT_TRUE(NavigateToURL(shell(), in_scope));
++  RenderFrameHostImpl* ordinary_frame = static_cast<RenderFrameHostImpl*>(
++      shell()->web_contents()->GetPrimaryMainFrame());
++  EXPECT_FALSE(ordinary_frame->GetSiteInstance()->GetSiteInfo().is_pdf());
++  ASSERT_TRUE(ordinary_frame->GetLastCommittedServiceWorkerClient());
++  EXPECT_TRUE(
++      ordinary_frame->GetLastCommittedServiceWorkerClient()->controller());
++
++  // Navigate to the same in-scope URL as PDF content (`params.is_pdf = true`).
++  // The frame commits in a PDF process without creating a `ServiceWorkerClient`
++  // or sending a `ServiceWorkerContainerHost` / `ControllerServiceWorkerInfo`
++  // to the PDF renderer.
++  Shell* pdf_shell = CreateBrowser();
++  ASSERT_TRUE(NavigateToURLWithPdf(pdf_shell->web_contents(), in_scope));
++  RenderFrameHostImpl* pdf_frame = static_cast<RenderFrameHostImpl*>(
++      pdf_shell->web_contents()->GetPrimaryMainFrame());
++  EXPECT_TRUE(pdf_frame->GetSiteInstance()->GetSiteInfo().is_pdf());
++  EXPECT_TRUE(pdf_frame->GetProcess()->IsPdf());
++  EXPECT_FALSE(pdf_frame->GetLastCommittedServiceWorkerClient());
++  EXPECT_EQ(true,
++            EvalJs(pdf_frame, "navigator.serviceWorker.controller === null"));
++  EXPECT_EQ("InvalidStateError", EvalJs(pdf_frame, R"(
++    navigator.serviceWorker.register('fetch_event_pass_through.js')
++        .then(() => 'resolved', e => e.name)
++  )"));
++}
++
+ IN_PROC_BROWSER_TEST_F(ServiceWorkerBrowserTest, SubresourceTimingAllowPassed) {
+   StartServerAndNavigateToSetup();
+ 
+diff --git a/content/browser/service_worker/service_worker_main_resource_loader_interceptor.cc b/content/browser/service_worker/service_worker_main_resource_loader_interceptor.cc
+index 03f029ae2..f83e647f0 100644
+--- a/content/browser/service_worker/service_worker_main_resource_loader_interceptor.cc
++++ b/content/browser/service_worker/service_worker_main_resource_loader_interceptor.cc
+@@ -73,6 +73,7 @@ ServiceWorkerMainResourceLoaderInterceptor::CreateForNavigation(
+     base::WeakPtr<ServiceWorkerMainResourceHandle> navigation_handle,
+     const NavigationRequestInfo& request_info) {
+   CHECK_CURRENTLY_ON(BrowserThread::UI, base::NotFatalUntil::M159);
++  CHECK(!request_info.is_pdf);
+ 
+   if (!ShouldCreateForNavigation(
+           url, request_info.common_params->request_destination,
+-- 
+2.43.0
+

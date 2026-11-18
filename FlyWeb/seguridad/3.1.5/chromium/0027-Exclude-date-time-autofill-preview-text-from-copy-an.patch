@@ -1,0 +1,155 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: "Mike Jackson (EDGE)" <mjackson@microsoft.com>
+Date: Tue, 27 Oct 2026 17:31:36 -0700
+Subject: [PATCH 27/27] Exclude date/time autofill preview text from copy and
+ drag
+
+While an Autofill suggestion is previewed, date, month, week, time and
+datetime-local inputs render the would-be value as text in their UA
+shadow tree. That text was selectable so copy, cut and selection drags
+serialized it into text/plain, letting a page read previewed data, such
+as a stored card's expiration date, from dragstart before the user
+accepted the suggestion. Make the previewed date/time pseudo-elements
+unselectable and read-only in the UA stylesheet, matching the <select>
+and text control previews. Accepted autofilled values are still copied.
+
+Bug: 578051925
+Change-Id: Id5459fc6452c43f80f3ef6609a544511170983ed
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8669079
+Reviewed-by: Mason Freed <masonf@chromium.org>
+Commit-Queue: Mike Jackson <mjackson@microsoft.com>
+Cr-Commit-Position: refs/heads/main@{#1728692}
+(cherry picked from commit 0441415b72b922e1c14ad3320fd230d1608ea651)
+---
+ .../core/editing/frame_selection_test.cc      | 71 +++++++++++++++++++
+ .../renderer/core/html/resources/html.css     | 25 +++++++
+ 2 files changed, 96 insertions(+)
+
+diff --git a/third_party/blink/renderer/core/editing/frame_selection_test.cc b/third_party/blink/renderer/core/editing/frame_selection_test.cc
+index 520369397..4510a93f9 100644
+--- a/third_party/blink/renderer/core/editing/frame_selection_test.cc
++++ b/third_party/blink/renderer/core/editing/frame_selection_test.cc
+@@ -15,6 +15,7 @@
+ #include "third_party/blink/renderer/core/clipboard/data_transfer_access_policy.h"
+ #include "third_party/blink/renderer/core/dom/document.h"
+ #include "third_party/blink/renderer/core/dom/element.h"
++#include "third_party/blink/renderer/core/dom/shadow_root.h"
+ #include "third_party/blink/renderer/core/dom/text.h"
+ #include "third_party/blink/renderer/core/editing/ephemeral_range.h"
+ #include "third_party/blink/renderer/core/editing/frame_caret.h"
+@@ -1516,6 +1517,76 @@ TEST_P(FrameSelectionAutofillPreviewTest,
+   EXPECT_EQ(drag_text, data_transfer->getData("text/plain"));
+ }
+ 
++// Parameterized on whether date/time inputs use the multiple fields UI or the
++// chooser-only UI. Both render a previewed value as text in the UA shadow tree.
++class FrameSelectionTemporalAutofillPreviewTest
++    : public FrameSelectionTest,
++      public testing::WithParamInterface<bool> {
++ public:
++  FrameSelectionTemporalAutofillPreviewTest()
++      : multiple_fields_ui_(GetParam()) {}
++
++ private:
++  ScopedInputMultipleFieldsUIForTest multiple_fields_ui_;
++};
++
++INSTANTIATE_TEST_SUITE_P(All,
++                         FrameSelectionTemporalAutofillPreviewTest,
++                         testing::Bool());
++
++TEST_P(FrameSelectionTemporalAutofillPreviewTest,
++       ClipboardAndDragExcludeTemporalInputAutofillPreview) {
++  // Author styles must not be able to make the preview selectable again.
++  InsertStyleElement(
++      "input::-webkit-datetime-edit,"
++      "input::-webkit-datetime-edit-fields-wrapper,"
++      "input::-webkit-datetime-edit-day-field,"
++      "input::-webkit-datetime-edit-month-field,"
++      "input::-webkit-datetime-edit-year-field,"
++      "input::-webkit-datetime-edit-text,"
++      "input::-webkit-date-and-time-value {"
++      "  user-select: text !important;"
++      "  -webkit-user-modify: read-write !important;"
++      "}");
++  Selection().SetSelection(
++      SetSelectionTextToBody(
++          "<div contenteditable style='user-select: text !important; "
++          "-webkit-user-modify: read-write !important'>"
++          "<div>^before</div><input id='accepted' type='month' value='2030-01'>"
++          "<input id='month' type='month'><input id='date' type='date'>"
++          "<div>after|</div></div>"),
++      SetSelectionOptions());
++  To<HTMLInputElement>(GetElementById("accepted"))
++      ->SetAutofillState(WebAutofillState::kAutofilled);
++  auto* month = To<HTMLInputElement>(GetElementById("month"));
++  auto* date = To<HTMLInputElement>(GetElementById("date"));
++  month->SetSuggestedValue("2038-09");
++  date->SetSuggestedValue("2039-10-17");
++  ASSERT_TRUE(month->IsPreviewed());
++  ASSERT_TRUE(date->IsPreviewed());
++  ASSERT_TRUE(month->Value().empty());
++  ASSERT_TRUE(date->Value().empty());
++  UpdateAllLifecyclePhasesForTest();
++  ASSERT_TRUE(month->UserAgentShadowRoot()->textContent().contains("2038"));
++  ASSERT_TRUE(date->UserAgentShadowRoot()->textContent().contains("2039"));
++
++  const String clipboard_text = Selection().SelectedTextForClipboard();
++  EXPECT_TRUE(clipboard_text.contains("before"));
++  EXPECT_TRUE(clipboard_text.contains("2030"));
++  EXPECT_TRUE(clipboard_text.contains("after"));
++  EXPECT_FALSE(clipboard_text.contains("2038"));
++  EXPECT_FALSE(clipboard_text.contains("2039"));
++
++  DataTransfer* data_transfer = DataTransfer::Create(
++      DataTransfer::kDragAndDrop, DataTransferAccessPolicy::kWritable,
++      DataObject::Create());
++  data_transfer->WriteSelection(Selection());
++  const String drag_text = data_transfer->getData("text/plain");
++  EXPECT_TRUE(drag_text.contains("2030"));
++  EXPECT_FALSE(drag_text.contains("2038"));
++  EXPECT_FALSE(drag_text.contains("2039"));
++}
++
+ TEST_F(FrameSelectionTest, HasVisibleText) {
+   Selection().SetSelection(
+       SetSelectionTextToBody("<div contenteditable>^foo|</div>"),
+diff --git a/third_party/blink/renderer/core/html/resources/html.css b/third_party/blink/renderer/core/html/resources/html.css
+index c362f95fb..497acd9ac 100644
+--- a/third_party/blink/renderer/core/html/resources/html.css
++++ b/third_party/blink/renderer/core/html/resources/html.css
+@@ -627,6 +627,31 @@ textarea::-internal-input-suggested {
+     pointer-events: none !important;
+ }
+ 
++/* Date and time inputs render a previewed value as text in their UA shadow
++   tree. Keep it out of copy and drag text, like the text control and <select>
++   previews. */
++input:-internal-autofill-previewed::-webkit-datetime-edit,
++input:-internal-autofill-previewed::-webkit-datetime-edit-ampm-field,
++input:-internal-autofill-previewed::-webkit-datetime-edit-day-field,
++input:-internal-autofill-previewed::-webkit-datetime-edit-hour-field,
++input:-internal-autofill-previewed::-webkit-datetime-edit-millisecond-field,
++input:-internal-autofill-previewed::-webkit-datetime-edit-minute-field,
++input:-internal-autofill-previewed::-webkit-datetime-edit-month-field,
++input:-internal-autofill-previewed::-webkit-datetime-edit-second-field,
++input:-internal-autofill-previewed::-webkit-datetime-edit-week-field,
++input:-internal-autofill-previewed::-webkit-datetime-edit-year-field,
++input:-internal-autofill-previewed::-webkit-datetime-edit-text,
++input:-internal-autofill-previewed::-webkit-datetime-edit-fields-wrapper {
++    user-select: none !important;
++    -webkit-user-modify: read-only !important;
++}
++/* Separate from the rule above because ::-webkit-date-and-time-value is
++   invalid in configurations which don't expose the pseudo-element. */
++input:-internal-autofill-previewed::-webkit-date-and-time-value {
++    user-select: none !important;
++    -webkit-user-modify: read-only !important;
++}
++
+ @supports blink-feature(AutofillPreviewIgnoreAuthorFont) {
+     input::-internal-input-suggested,
+     textarea::-internal-input-suggested {
+-- 
+2.43.0
+

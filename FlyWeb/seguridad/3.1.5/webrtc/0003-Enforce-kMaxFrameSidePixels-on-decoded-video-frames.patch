@@ -1,0 +1,140 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Erik=20Spr=C3=A5ng?= <sprang@webrtc.org>
+Date: Fri, 16 Oct 2026 13:49:41 +0200
+Subject: [PATCH 3/5] Enforce kMaxFrameSidePixels on decoded video frames
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Check that decoded frame width and height do not exceed
+kMaxFrameSidePixels in Dav1dDecoder, LibvpxVp9Decoder, and
+H264DecoderImpl.
+
+Bug: webrtc:574312303
+Change-Id: I4bf8ecbca92aa44be0ba479bd8f1bd27c95fc41a
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/509262
+Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+Commit-Queue: Erik Språng <sprang@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#48943}
+(cherry picked from commit 3cdeaaaff3ad6dd1a23f6eacc8daacbc1fe14226)
+---
+ .../video_coding/codecs/av1/dav1d_decoder.cc  |  6 ++++
+ .../codecs/av1/dav1d_decoder_unittest.cc      | 32 +++++++++++++++++++
+ .../codecs/h264/h264_decoder_impl.cc          |  5 +--
+ .../codecs/vp9/libvpx_vp9_decoder.cc          |  8 +++++
+ 4 files changed, 49 insertions(+), 2 deletions(-)
+
+diff --git a/modules/video_coding/codecs/av1/dav1d_decoder.cc b/modules/video_coding/codecs/av1/dav1d_decoder.cc
+index e4317c0..ad09dc9 100644
+--- a/modules/video_coding/codecs/av1/dav1d_decoder.cc
++++ b/modules/video_coding/codecs/av1/dav1d_decoder.cc
+@@ -233,6 +233,12 @@ int32_t Dav1dDecoder::OutputPicture(
+ 
+   int width = dav1d_picture.p.w;
+   int height = dav1d_picture.p.h;
++  if (width > kMaxFrameSidePixels || height > kMaxFrameSidePixels) {
++    RTC_LOG(LS_ERROR) << "Dav1dDecoder::Decode frame dimensions " << width
++                      << "x" << height << " exceed maximum side length "
++                      << kMaxFrameSidePixels;
++    return WEBRTC_VIDEO_CODEC_ERROR;
++  }
+ 
+   if (crop_to_render_resolution_) {
+     // Interpret render_width/height as resolution decoded frame should be
+diff --git a/modules/video_coding/codecs/av1/dav1d_decoder_unittest.cc b/modules/video_coding/codecs/av1/dav1d_decoder_unittest.cc
+index e92334e..e2cd851 100644
+--- a/modules/video_coding/codecs/av1/dav1d_decoder_unittest.cc
++++ b/modules/video_coding/codecs/av1/dav1d_decoder_unittest.cc
+@@ -236,6 +236,38 @@ TEST(Dav1dDecoderTest, FailDecoderOnTiles) {
+   decoder.Decode(CreateEncodedImage(kTile1));
+ }
+ 
++TEST(Dav1dDecoderTest, RejectsFrameExceedingMaxSidePixels) {
++  // 33000x2 4:4:4 (High profile) keyframe: area (66000) is well below
++  // kMaxFrameSizePixels (16384^2), but width exceeds kMaxFrameSidePixels
++  // (16384) and libyuv's ScalePlane limit (32768).
++  static constexpr uint8_t kAv1Frame33000x2I444[] = {
++      0x12, 0x00, 0x0a, 0x0a, 0x20, 0x00, 0x00, 0xfb, 0xc2, 0x03, 0x9e, 0xed,
++      0x7c, 0x81, 0x32, 0xd5, 0x01, 0x10, 0x00, 0x73, 0x9c, 0xde, 0xf7, 0xce,
++      0x7c, 0x08, 0x00, 0x00, 0x00, 0x50, 0x00, 0x10, 0x00, 0x14, 0x0d, 0x18,
++      0x9c, 0xb0, 0xa1, 0xa7, 0xc8, 0x16, 0xdc, 0xb9, 0xea, 0x98, 0xe3, 0xfd,
++      0x3a, 0x77, 0x61, 0xb1, 0xda, 0xa9, 0x5e, 0x14, 0x0d, 0x18, 0x9c, 0xb0,
++      0xa1, 0xa7, 0xc8, 0x16, 0xdc, 0xb9, 0xea, 0x98, 0xe3, 0xfd, 0x3a, 0x77,
++      0x61, 0xb1, 0xda, 0xa9, 0x5e, 0x14, 0x0d, 0x18, 0x9c, 0xb0, 0xa1, 0xa7,
++      0xc8, 0x16, 0xdc, 0xb9, 0xea, 0x98, 0xe3, 0xfd, 0x3a, 0x77, 0x61, 0xb1,
++      0xda, 0xa9, 0x5e, 0x14, 0x0d, 0x18, 0x9c, 0xb0, 0xa1, 0xa7, 0xc8, 0x16,
++      0xdc, 0xb9, 0xea, 0x98, 0xe3, 0xfd, 0x3a, 0x77, 0x61, 0xb1, 0xda, 0xa9,
++      0x60, 0x14, 0x0d, 0x18, 0x9c, 0xb0, 0xa1, 0xa7, 0xc8, 0x16, 0xdc, 0xb9,
++      0xea, 0x98, 0xe3, 0xfd, 0x3a, 0x77, 0x61, 0xb1, 0xda, 0xa9, 0x60, 0x14,
++      0x0d, 0x18, 0x9c, 0xb0, 0xa1, 0xa7, 0xc8, 0x16, 0xdc, 0xb9, 0xea, 0x98,
++      0xe3, 0xfd, 0x3a, 0x77, 0x61, 0xb1, 0xda, 0xa9, 0x60, 0x14, 0x0d, 0x18,
++      0x9c, 0xb0, 0xa1, 0xa7, 0xc8, 0x16, 0xdc, 0xb9, 0xea, 0x98, 0xe3, 0xfd,
++      0x3a, 0x77, 0x61, 0xb1, 0xda, 0xa9, 0x5e, 0x14, 0x0d, 0x18, 0x9c, 0xb0,
++      0xa1, 0xa7, 0xc8, 0x16, 0xdc, 0xb9, 0xea, 0x98, 0xe3, 0xfd, 0x3a, 0x77,
++      0x61, 0xb1, 0xda, 0xa9, 0x5e, 0x0d, 0x18, 0x9c, 0xb0, 0xa1, 0xa7, 0xc8,
++      0x16, 0xdc, 0xb9, 0xea, 0x98, 0xe3, 0xfd, 0x3a, 0x77, 0x61, 0xb1, 0xda,
++      0xa9, 0x5e};
++
++  TestAv1Decoder decoder(CreateTestEnvironment());
++  EXPECT_EQ(decoder.Decode(CreateEncodedImage(kAv1Frame33000x2I444)),
++            WEBRTC_VIDEO_CODEC_ERROR);
++  EXPECT_EQ(decoder.num_decoded_frames(), 0);
++}
++
+ }  // namespace
+ }  // namespace test
+ }  // namespace webrtc
+diff --git a/modules/video_coding/codecs/h264/h264_decoder_impl.cc b/modules/video_coding/codecs/h264/h264_decoder_impl.cc
+index e40ce0a..8d7c02a 100644
+--- a/modules/video_coding/codecs/h264/h264_decoder_impl.cc
++++ b/modules/video_coding/codecs/h264/h264_decoder_impl.cc
+@@ -40,6 +40,7 @@ extern "C" {
+ #include "api/video/i422_buffer.h"
+ #include "api/video/i444_buffer.h"
+ #include "api/video/render_resolution.h"
++#include "api/video/video_codec_constants.h"
+ #include "api/video/video_codec_type.h"
+ #include "api/video/video_frame.h"
+ #include "api/video/video_frame_buffer.h"
+@@ -122,10 +123,10 @@ int H264DecoderImpl::AVGetBuffer2(AVCodecContext* context,
+   RTC_CHECK_GE(height, 0);
+   int ret = av_image_check_size(static_cast<unsigned int>(width),
+                                 static_cast<unsigned int>(height), 0, nullptr);
+-  if (ret < 0) {
++  if (ret < 0 || width > kMaxFrameSidePixels || height > kMaxFrameSidePixels) {
+     RTC_LOG(LS_ERROR) << "Invalid picture size " << width << "x" << height;
+     decoder->ReportError();
+-    return ret;
++    return ret < 0 ? ret : WEBRTC_VIDEO_CODEC_ERROR;
+   }
+ 
+   // The video frame is stored in `frame_buffer`. `av_frame` is FFmpeg's version
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_decoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_decoder.cc
+index 92b66d7..078f7bd 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_decoder.cc
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_decoder.cc
+@@ -23,6 +23,7 @@
+ #include "api/video/color_space.h"
+ #include "api/video/encoded_image.h"
+ #include "api/video/render_resolution.h"
++#include "api/video/video_codec_constants.h"
+ #include "api/video/video_frame.h"
+ #include "api/video/video_frame_buffer.h"
+ #include "api/video_codecs/video_decoder.h"
+@@ -274,6 +275,13 @@ int LibvpxVp9Decoder::ReturnFrame(const vpx_image_t* img,
+     return WEBRTC_VIDEO_CODEC_NO_OUTPUT;
+   }
+ 
++  if (img->d_w > kMaxFrameSidePixels || img->d_h > kMaxFrameSidePixels) {
++    RTC_LOG(LS_ERROR)
++        << "Unsupported frame dimensions produced by the decoder: " << img->d_w
++        << "x" << img->d_h;
++    return WEBRTC_VIDEO_CODEC_NO_OUTPUT;
++  }
++
+   // The buffer types below only represent 8-bit and 10-bit content. Without
+   // this check, e.g. 12-bit samples (VP9 profile 2 and 3) would be wrapped as
+   // 10-bit buffers, and ExtractVP9ColorSpace() would get an unexpected depth.
+-- 
+2.43.0
+

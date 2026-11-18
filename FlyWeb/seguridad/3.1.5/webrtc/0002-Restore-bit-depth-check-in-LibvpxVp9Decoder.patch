@@ -1,0 +1,125 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tommi <tommi@webrtc.org>
+Date: Tue, 6 Oct 2026 08:57:37 +0200
+Subject: [PATCH 2/5] Restore bit depth check in LibvpxVp9Decoder
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+ReturnFrame() used to reject decoded images with bit depths other than 8
+and 10. The check was lost when it started to switch on img->fmt instead
+of img->bit_depth in
+https://webrtc-review.googlesource.com/c/src/+/266180. Since then,
+12-bit frames (VP9 profile 2 and 3) are wrapped in 10-bit buffers and,
+for BT.2020 content, hit RTC_DCHECK_NOTREACHED() in
+ExtractVP9ColorSpace().
+
+Return WEBRTC_VIDEO_CODEC_NO_OUTPUT for such frames again, since no
+frame buffer type can represent 12-bit content.
+
+Fixed: chromium:569701823
+Change-Id: I7ba5437dfeffc581c2dbc516ab492252928cdc67
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/507600
+Commit-Queue: Tomas Gunnarsson <tommi@webrtc.org>
+Reviewed-by: Erik Språng <sprang@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#48799}
+(cherry picked from commit bd5625b05cacc2b49fb26bf3974914b4956ef9c3)
+---
+ modules/video_coding/BUILD.gn                 |  1 +
+ .../codecs/vp9/libvpx_vp9_decoder.cc          |  9 +++++
+ .../codecs/vp9/test/vp9_impl_unittest.cc      | 40 +++++++++++++++++++
+ 3 files changed, 50 insertions(+)
+
+diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
+index 6c15cd1..d8790cf 100644
+--- a/modules/video_coding/BUILD.gn
++++ b/modules/video_coding/BUILD.gn
+@@ -1834,6 +1834,7 @@ if (rtc_include_tests) {
+         "../../api:field_trials",
+         "../../api:frame_generator_api",
+         "../../api:make_ref_counted",
++        "../../api:mock_video_decoder",
+         "../../api:mock_video_encoder",
+         "../../api:scoped_refptr",
+         "../../api/environment:environment_factory",
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_decoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_decoder.cc
+index 0dafd3e..92b66d7 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_decoder.cc
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_decoder.cc
+@@ -274,6 +274,15 @@ int LibvpxVp9Decoder::ReturnFrame(const vpx_image_t* img,
+     return WEBRTC_VIDEO_CODEC_NO_OUTPUT;
+   }
+ 
++  // The buffer types below only represent 8-bit and 10-bit content. Without
++  // this check, e.g. 12-bit samples (VP9 profile 2 and 3) would be wrapped as
++  // 10-bit buffers, and ExtractVP9ColorSpace() would get an unexpected depth.
++  if (img->bit_depth != 8 && img->bit_depth != 10) {
++    RTC_LOG(LS_ERROR) << "Unsupported bit depth produced by the decoder: "
++                      << img->bit_depth;
++    return WEBRTC_VIDEO_CODEC_NO_OUTPUT;
++  }
++
+   // This buffer contains all of `img`'s image data, a reference counted
+   // Vp9FrameBuffer. (libvpx is done with the buffers after a few
+   // vpx_codec_decode calls or vpx_codec_destroy).
+diff --git a/modules/video_coding/codecs/vp9/test/vp9_impl_unittest.cc b/modules/video_coding/codecs/vp9/test/vp9_impl_unittest.cc
+index 6f688df..9742d27 100644
+--- a/modules/video_coding/codecs/vp9/test/vp9_impl_unittest.cc
++++ b/modules/video_coding/codecs/vp9/test/vp9_impl_unittest.cc
+@@ -27,6 +27,7 @@
+ #include "api/scoped_refptr.h"
+ #include "api/test/create_frame_generator.h"
+ #include "api/test/frame_generator_interface.h"
++#include "api/test/mock_video_decoder.h"
+ #include "api/test/mock_video_encoder.h"
+ #include "api/units/data_rate.h"
+ #include "api/units/timestamp.h"
+@@ -2352,6 +2353,45 @@ TEST_F(TestVp9ImplProfile2, EncodeDecode) {
+             31);
+ }
+ 
++// A 16x16 mid-gray VP9 key frame with 12-bit samples (profile 2) and the
++// BT.2020 color space, encoded by libvpx.
++constexpr uint8_t kVp9KeyFrameWith12BitDepth[] = {
++    0x92, 0x49, 0x83, 0x42, 0xd0, 0x00, 0x78, 0x00, 0x7b, 0x03, 0x1c,
++    0x12, 0x0e, 0x0c, 0x29, 0x00, 0x00, 0x10, 0x40, 0x00, 0x37, 0x80};
++
++TEST(Vp9ImplTest, DecodeReturnsNoOutputForUnsupportedBitDepth) {
++  // Decoding 12-bit samples requires libvpx to be built with high bit depth
++  // support, which VP9 profile 2 support also depends on.
++  bool profile_2_is_supported = false;
++  for (const auto& format : SupportedVP9DecoderCodecs()) {
++    if (ParseSdpForVP9Profile(format.parameters) == VP9Profile::kProfile2) {
++      profile_2_is_supported = true;
++    }
++  }
++  if (!profile_2_is_supported) {
++    GTEST_SKIP() << "libvpx is built without high bit depth support.";
++  }
++  std::optional<Vp9UncompressedHeader> header =
++      ParseUncompressedVp9Header(kVp9KeyFrameWith12BitDepth);
++  ASSERT_TRUE(header);
++  ASSERT_EQ(header->bit_detph, Vp9BitDept::k12Bit);
++  ASSERT_EQ(header->color_space, Vp9ColorSpace::CS_BT_2020);
++
++  MockDecodedImageCallback callback;
++  EXPECT_CALL(callback, Decoded(_, _, _)).Times(0);
++  std::unique_ptr<VideoDecoder> decoder = VP9Decoder::Create();
++  decoder->RegisterDecodeCompleteCallback(&callback);
++  ASSERT_TRUE(decoder->Configure(VideoDecoder::Settings()));
++
++  EncodedImage encoded_image;
++  encoded_image.SetEncodedData(EncodedImageBuffer::Create(
++      kVp9KeyFrameWith12BitDepth, sizeof(kVp9KeyFrameWith12BitDepth)));
++  encoded_image.set_frame_type(VideoFrameType::kVideoFrameKey);
++  // There are no frame buffer types that can represent 12-bit content.
++  EXPECT_EQ(decoder->Decode(encoded_image, /*render_time_ms=*/0),
++            WEBRTC_VIDEO_CODEC_NO_OUTPUT);
++}
++
+ TEST_F(TestVp9Impl, EncodeWithDynamicRate) {
+   // Configured dynamic rate field trial and re-create the encoder.
+   field_trials_.Set("WebRTC-VideoRateControl", "vp9_dynamic_rate:true");
+-- 
+2.43.0
+
