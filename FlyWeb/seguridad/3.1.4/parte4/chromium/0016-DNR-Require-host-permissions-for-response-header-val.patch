@@ -1,0 +1,987 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Kelvin Jiang <kelvinjiang@chromium.org>
+Date: Wed, 21 Oct 2026 15:15:37 -0700
+Subject: [PATCH 16/16] [DNR] Require host permissions for response header
+ value matching rules
+
+Matching on response header values (via `values` or `excludedValues` in
+`responseHeaders` or `excludedResponseHeaders`) can allow extensions to
+infer sensitive information from responses for requests they do not have
+host permissions for.
+
+To prevent this:
+- Restrict response header value matching without host permissions to an
+  allowlist of safe headers (CORS-safelisted response headers and
+  `Content-Encoding`). Matching only on header presence/absence still
+  does not require host permissions. TODO(crbug.com/576028087) Consider
+  requiring host permissions for matching custom headers.
+- Mark a rule as requiring host permissions (`requires_host_permissions = true`
+  in `flat::EmbedderConditions`, bumping `kIndexedRulesetFormatVersion`)
+  if any condition in its `responseHeaders` or `excludedResponseHeaders`
+  matches on the values of a non-allowlisted header.
+- When an extension lacks host access to a request or navigation, skip
+  rules that require host permissions entirely during matching (rather
+  than partially evaluating their conditions or dropping their action
+  after matching), allowing lower-priority rules that do not require
+  host permissions to match instead.
+
+This behavior is guarded by the enabled-by-default feature flag
+`kDeclarativeNetRequestRestrictResponseHeaderValueMatching`.
+
+Design doc (internal):
+https://docs.google.com/document/d/1EciUIpGgLkpEqJ-MMUPTF1184IUitUy8MlwXYGskwfA/edit?usp=sharing&resourcekey=0-NXKn-lqRk_Y7GQGXEQWn1g
+
+Fixed: 497744349, 549603220
+Change-Id: I091cec3d3cec4aac8da7d0ee84e5559cd74234b4
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8547765
+Commit-Queue: Kelvin Jiang <kelvinjiang@chromium.org>
+Reviewed-by: Andrea Orru <andreaorru@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1724187}
+(cherry picked from commit 22a2af917b63)
+
+[FlyWeb] Hand port: in 156 DoEmbedderConditionsMatch() does not take the
+request URL yet (that arrived with b878de30c0, hidden response headers), so
+only `has_host_access` is added and the matchers are bound without the URL.
+In RulesetMatcherBase::OnDidFinishNavigation() 156 has no error-document
+branch (c06e1d94a2), so `has_host_access` is set on both RequestParams of
+the 156 code. The two new tests that collided in ruleset_matcher_unittest.cc
+(next to tests for b878de30c0 and c06e1d94a2) are left out.
+---
+ .../declarative_net_request_browsertest.cc    | 100 ++++++++++++++++--
+ extensions/browser/BUILD.gn                   |   1 +
+ .../composite_matcher.cc                      |  23 +++-
+ .../composite_matcher.h                       |   7 +-
+ .../composite_matcher_unittest.cc             |  74 +++++++++++++
+ .../extension_url_pattern_index_matcher.cc    |   6 +-
+ .../flat/extension_ruleset.fbs                |  11 ++
+ .../flat_ruleset_indexer.cc                   |  25 ++++-
+ ...indexed_ruleset_format_version_unittest.cc |   3 +-
+ .../regex_rules_matcher.cc                    |  13 ++-
+ .../declarative_net_request/request_params.cc |  54 +++++++---
+ .../declarative_net_request/request_params.h  |  27 ++++-
+ .../ruleset_manager.cc                        |  28 ++++-
+ .../ruleset_matcher.cc                        |   9 +-
+ .../declarative_net_request/ruleset_matcher.h |   3 +-
+ .../ruleset_matcher_base.cc                   |  10 +-
+ .../ruleset_matcher_base.h                    |   3 +-
+ .../ruleset_matcher_unittest.cc               |  13 ++-
+ .../api/declarative_net_request/utils.cc      |  12 ++-
+ .../api/declarative_net_request/utils.h       |   9 ++
+ extensions/common/extension_features.cc       |   3 +
+ extensions/common/extension_features.h        |   7 ++
+ 22 files changed, 396 insertions(+), 45 deletions(-)
+
+diff --git a/chrome/browser/extensions/api/declarative_net_request/declarative_net_request_browsertest.cc b/chrome/browser/extensions/api/declarative_net_request/declarative_net_request_browsertest.cc
+index 0a156ecec..babb76953 100644
+--- a/chrome/browser/extensions/api/declarative_net_request/declarative_net_request_browsertest.cc
++++ b/chrome/browser/extensions/api/declarative_net_request/declarative_net_request_browsertest.cc
+@@ -7525,7 +7525,8 @@ IN_PROC_BROWSER_TEST_P(DNRMatchResponseHeadersBrowserTest, BlockRequests) {
+            {TestHeaderCondition("set-cookie", {}, {})})},
+   };
+ 
+-  // Load the extension.
++  // Load the extension. Host permissions are required since the allow rule
++  // matches on the value of the set-cookie header.
+   std::vector<TestRule> rules;
+   for (const auto& rule_data : rules_data) {
+     TestRule rule = CreateGenericRule(rule_data.id);
+@@ -7537,7 +7538,8 @@ IN_PROC_BROWSER_TEST_P(DNRMatchResponseHeadersBrowserTest, BlockRequests) {
+     rule.condition->response_headers = rule_data.response_header_condition;
+     rules.push_back(std::move(rule));
+   }
+-  ASSERT_NO_FATAL_FAILURE(LoadExtensionWithRules(std::move(rules)));
++  ASSERT_NO_FATAL_FAILURE(LoadExtensionWithRules(
++      std::move(rules), "test_extension", {URLPattern::kAllUrlsPattern}));
+ 
+   struct {
+     std::string hostname;
+@@ -7575,6 +7577,80 @@ IN_PROC_BROWSER_TEST_P(DNRMatchResponseHeadersBrowserTest, BlockRequests) {
+   }
+ }
+ 
++// Test that rules which match on the values of response headers (other than
++// CORS-safelisted response headers and Content-Encoding) are not matched if the
++// extension doesn't have host permissions for the request. Otherwise, whether
++// the request was blocked could reveal the header's value to the extension.
++IN_PROC_BROWSER_TEST_P(DNRMatchResponseHeadersBrowserTest,
++                       HeaderValueMatchingRequiresHostPermissions) {
++  // A rule that allows all requests to setcookie.com if the set-cookie header
++  // is present with value "cookie=oreo". This requires host permissions.
++  TestRule allow_rule = CreateGenericRule(kMinValidID);
++  allow_rule.action->type = std::string("allow");
++  allow_rule.condition->url_filter = std::string("setcookie.com");
++  allow_rule.condition->resource_types =
++      std::vector<std::string>({"main_frame"});
++  allow_rule.condition->response_headers = std::vector<TestHeaderCondition>(
++      {TestHeaderCondition("set-cookie", {"cookie=oreo"}, {})});
++
++  // A rule that blocks all requests to setcookie.com if the set-cookie header
++  // is present. This doesn't require host permissions since it doesn't check
++  // the value of the response header.
++  TestRule block_rule = CreateGenericRule(kMinValidID + 1);
++  block_rule.condition->url_filter = std::string("setcookie.com");
++  block_rule.condition->resource_types =
++      std::vector<std::string>({"main_frame"});
++  block_rule.condition->response_headers = std::vector<TestHeaderCondition>(
++      {TestHeaderCondition("set-cookie", {}, {})});
++
++  // A rule that blocks requests to contenttype.com with an HTML content type.
++  // This doesn't require host permissions since content-type is a
++  // CORS-safelisted response header.
++  TestRule content_type_rule = CreateGenericRule(kMinValidID + 2);
++  content_type_rule.condition->url_filter = std::string("contenttype.com");
++  content_type_rule.condition->resource_types =
++      std::vector<std::string>({"main_frame"});
++  content_type_rule.condition->response_headers =
++      std::vector<TestHeaderCondition>(
++          {TestHeaderCondition("Content-Type", {"text/html*"}, {})});
++
++  // Load the extension without any host permissions.
++  ASSERT_NO_FATAL_FAILURE(
++      LoadExtensionWithRules({allow_rule, block_rule, content_type_rule}));
++
++  struct {
++    std::string hostname;
++    std::string path;
++    bool expect_main_frame_loaded;
++  } test_cases[] = {
++      // Not blocked since there is no set-cookie header.
++      {"setcookie.com", "/pages_with_script/index.html", true},
++      // Blocked by `block_rule`.
++      {"setcookie.com", "/set-cookie?cookie=sugar", false},
++      // Also blocked by `block_rule`, since `allow_rule` can't be matched
++      // without host permissions. The outcome is the same regardless of the
++      // set-cookie header's value.
++      {"setcookie.com", "/set-cookie?cookie=oreo", false},
++      // Blocked by `content_type_rule`.
++      {"contenttype.com", "/pages_with_script/index.html", false},
++  };
++
++  for (const auto& test_case : test_cases) {
++    GURL url =
++        embedded_test_server()->GetURL(test_case.hostname, test_case.path);
++    SCOPED_TRACE(base::StringPrintf("Testing %s", url.spec().c_str()));
++
++    content::TestNavigationObserver nav_observer(GetActiveWebContents());
++    NavigateToURL(url);
++    EXPECT_EQ(test_case.expect_main_frame_loaded ? content::PAGE_TYPE_NORMAL
++                                                 : content::PAGE_TYPE_ERROR,
++              GetPageType());
++    EXPECT_EQ(test_case.expect_main_frame_loaded ? net::OK
++                                                 : net::ERR_BLOCKED_BY_CLIENT,
++              nav_observer.last_net_error_code());
++  }
++}
++
+ // Ensures that any <img> elements blocked by the API are collapsed based on
+ // response header matching.
+ IN_PROC_BROWSER_TEST_P(DNRMatchResponseHeadersBrowserTest, ImageCollapsed) {
+@@ -7872,6 +7948,9 @@ IN_PROC_BROWSER_TEST_P(DNRMatchResponseHeadersBrowserTest, AllowAllRequests) {
+   std::vector<TestHeaderCondition> blank_header_condition =
+       std::vector<TestHeaderCondition>(
+           {TestHeaderCondition("nonsense-header", {}, {})});
++  std::vector<TestHeaderCondition> header_value_condition =
++      std::vector<TestHeaderCondition>(
++          {TestHeaderCondition("nonsense-header", {"value"}, {})});
+ 
+   struct RuleData {
+     int id;
+@@ -7883,7 +7962,7 @@ IN_PROC_BROWSER_TEST_P(DNRMatchResponseHeadersBrowserTest, AllowAllRequests) {
+     std::optional<std::vector<TestHeaderCondition>>
+         excluded_response_header_condition = std::nullopt;
+   } rule_data[] = {
+-      // Create 3 allowAllRequests rules:
++      // Create 4 allowAllRequests rules:
+       // One with priority 3 that matches the main frame, in the onBeforeRequest
+       // stage.
+       {1, 3, "allowAllRequests", "page_with_two_frames.html", false,
+@@ -7895,12 +7974,18 @@ IN_PROC_BROWSER_TEST_P(DNRMatchResponseHeadersBrowserTest, AllowAllRequests) {
+       // One with priority 7 that matches frame 2, in the onBeforeRequest stage.
+       {3, 7, "allowAllRequests", "frame=2", true,
+        std::vector<std::string>({"sub_frame"})},
++      // One with priority 8 that matches frame 1 in the onHeadersReceived
++      // stage, but requires host permissions because it matches on a
++      // non-allowlisted header value (so it won't match since the extension is
++      // loaded without host permissions).
++      {4, 8, "allowAllRequests", "frame=1", true,
++       std::vector<std::string>({"sub_frame"}), header_value_condition},
+ 
+       // Create 3 block rules, each blocking only a particular image file, with
+       // different priorities.
+-      {4, 2, "block", "image.png", true, std::vector<std::string>({"image"})},
+-      {5, 4, "block", "image_2.png", true, std::vector<std::string>({"image"})},
+-      {6, 6, "block", "image_3.png", true, std::vector<std::string>({"image"})},
++      {5, 2, "block", "image.png", true, std::vector<std::string>({"image"})},
++      {6, 4, "block", "image_2.png", true, std::vector<std::string>({"image"})},
++      {7, 6, "block", "image_3.png", true, std::vector<std::string>({"image"})},
+   };
+ 
+   std::vector<TestRule> rules;
+@@ -7969,7 +8054,8 @@ IN_PROC_BROWSER_TEST_P(DNRMatchResponseHeadersBrowserTest, AllowAllRequests) {
+   // Attempt to add images onto `frame_1`. `image.png` and `image_2.png` should
+   // be added since the max priority matching allowAllRequests rule for
+   // `frame_1` has id 2 (it "wins" over the rule with id 1 that has a lower
+-  // priority), and its priority exceeds that of the block rules for `image.png`
++  // priority, while the rule with id 4 requires host permissions so it does not
++  // match), and its priority exceeds that of the block rules for `image.png`
+   // and `image_2.png`.
+   content::RenderFrameHost* frame_1 = GetFrameByName("frame1");
+   EXPECT_TRUE(test_image_added(frame_1, "subresources/image.png"));
+diff --git a/extensions/browser/BUILD.gn b/extensions/browser/BUILD.gn
+index 4bc6dc027..a5a433988 100644
+--- a/extensions/browser/BUILD.gn
++++ b/extensions/browser/BUILD.gn
+@@ -680,6 +680,7 @@ source_set("browser_sources") {
+     "//services/device/public/mojom",
+     "//services/metrics/public/cpp:metrics_cpp",
+     "//services/metrics/public/cpp:ukm_builders",
++    "//services/network/public/cpp",
+     "//services/network/public/mojom",
+     "//services/preferences/public/cpp",
+     "//services/service_manager/public/cpp",
+diff --git a/extensions/browser/api/declarative_net_request/composite_matcher.cc b/extensions/browser/api/declarative_net_request/composite_matcher.cc
+index c45cdfd4b..1fc3310f6 100644
+--- a/extensions/browser/api/declarative_net_request/composite_matcher.cc
++++ b/extensions/browser/api/declarative_net_request/composite_matcher.cc
+@@ -159,6 +159,16 @@ ActionInfo CompositeMatcher::GetAction(
+            page_access == PermissionsData::PageAccess::kWithheld);
+   }
+ 
++  // Rules with response header conditions that require host permissions are
++  // skipped during matching (rather than having their action dropped after
++  // matching) if the extension doesn't have host access to the request. This
++  // ensures that such rules can't affect which action is chosen at all, e.g. by
++  // masking lower priority rules.
++  // TODO(crbug.com/576028199): Set `notify_request_withheld` if a rule with
++  // response header value conditions is skipped because `page_access` is
++  // `PageAccess::kWithheld`.
++  params.has_host_access[extension_id_] = page_access == PageAccess::kAllowed;
++
+   // Get the max priority allow action for this extension, or implicitly assign
+   // it as nullopt in `params.max_priority_allow_action` if there isn't one.
+   auto& max_priority_allow_action_for_extension =
+@@ -215,6 +225,11 @@ std::vector<RequestAction> CompositeMatcher::GetModifyHeadersActions(
+     RulesetMatchingStage stage) const {
+   std::vector<RequestAction> modify_headers_actions;
+ 
++  // `GetAction()` must be called before `GetModifyHeadersActions()`, which
++  // populates `params.has_host_access` and `params.max_priority_allow_action`
++  // for this extension.
++  CHECK(params.has_host_access.contains(extension_id_));
++
+   // The priority of the highest priority matching allow or allowAllRequests
+   // rule within this matcher, or 0 if no such rule exists (the minimum priority
+   // for a rule, specified in `kMinValidPriority`, is 1.)
+@@ -265,9 +280,13 @@ void CompositeMatcher::OnRenderFrameDeleted(content::RenderFrameHost* host) {
+ }
+ 
+ void CompositeMatcher::OnDidFinishNavigation(
+-    content::NavigationHandle* navigation_handle) {
++    content::NavigationHandle* navigation_handle,
++    PermissionsData::PageAccess page_access_for_navigation) {
+   for (auto& matcher : matchers_) {
+-    matcher->OnDidFinishNavigation(navigation_handle);
++    matcher->OnDidFinishNavigation(
++        navigation_handle,
++        /*has_host_access_for_navigation=*/page_access_for_navigation ==
++            PageAccess::kAllowed);
+   }
+ }
+ 
+diff --git a/extensions/browser/api/declarative_net_request/composite_matcher.h b/extensions/browser/api/declarative_net_request/composite_matcher.h
+index 2bee66189..60db1922a 100644
+--- a/extensions/browser/api/declarative_net_request/composite_matcher.h
++++ b/extensions/browser/api/declarative_net_request/composite_matcher.h
+@@ -94,7 +94,8 @@ class CompositeMatcher {
+ 
+   // Returns all matching RequestActions for the request corresponding to
+   // modifyHeaders rules matched from this extension, sorted in descending order
+-  // by rule priority.
++  // by rule priority. `GetAction()` must be called on `params` before calling
++  // this method.
+   std::vector<RequestAction> GetModifyHeadersActions(
+       const RequestParams& params,
+       RulesetMatchingStage stage) const;
+@@ -104,7 +105,9 @@ class CompositeMatcher {
+ 
+   void OnRenderFrameCreated(content::RenderFrameHost* host);
+   void OnRenderFrameDeleted(content::RenderFrameHost* host);
+-  void OnDidFinishNavigation(content::NavigationHandle* navigation_handle);
++  void OnDidFinishNavigation(
++      content::NavigationHandle* navigation_handle,
++      PermissionsData::PageAccess page_access_for_navigation);
+ 
+   // Returns if this extension has any rulesets with rules that are matched in
+   // the corresponding matching `stage`.
+diff --git a/extensions/browser/api/declarative_net_request/composite_matcher_unittest.cc b/extensions/browser/api/declarative_net_request/composite_matcher_unittest.cc
+index 6aee30c28..84d806eff 100644
+--- a/extensions/browser/api/declarative_net_request/composite_matcher_unittest.cc
++++ b/extensions/browser/api/declarative_net_request/composite_matcher_unittest.cc
+@@ -846,5 +846,79 @@ TEST_F(CompositeMatcherResponseHeadersTest, AllowRuleMatchedAcrossStages) {
+   }
+ }
+ 
++// Tests that rules matching on response header values that require host
++// permissions are skipped during matching (instead of having their actions
++// dropped) if the extension doesn't have host access to the request. In
++// particular, such a redirect rule must not mask lower priority rules, since
++// that would reveal whether the header value matched.
++TEST_F(CompositeMatcherResponseHeadersTest,
++       HeaderValueMatchingRequiresHostAccess) {
++  TestRule redirect_rule = CreateGenericRule(kMinValidID);
++  redirect_rule.priority = 2;
++  redirect_rule.condition->url_filter = std::string("secret.test");
++  redirect_rule.condition->response_headers = std::vector<TestHeaderCondition>(
++      {TestHeaderCondition("set-cookie", {"sid=a*"}, {})});
++  redirect_rule.action->type = std::string("redirect");
++  redirect_rule.action->redirect.emplace();
++  redirect_rule.action->redirect->url = std::string("http://redirected.test");
++
++  TestRule block_rule = CreateGenericRule(kMinValidID + 1);
++  block_rule.priority = 1;
++  block_rule.condition->url_filter = std::string("secret.test");
++  block_rule.condition->response_headers = std::vector<TestHeaderCondition>(
++      {TestHeaderCondition("set-cookie", {}, {})});
++
++  std::unique_ptr<RulesetMatcher> matcher;
++  ASSERT_TRUE(CreateVerifiedMatcher({redirect_rule, block_rule},
++                                    CreateTemporarySource(), &matcher));
++  CompositeMatcher::MatcherList matchers;
++  matchers.push_back(std::move(matcher));
++  auto composite_matcher = std::make_unique<CompositeMatcher>(
++      std::move(matchers), /*extension_id=*/"extensionid",
++      HostPermissionsAlwaysRequired::kFalse);
++
++  struct {
++    std::string set_cookie_value;
++    PageAccess page_access;
++    int expected_rule_id;
++  } test_cases[] = {
++      // With host access, the redirect rule is matched iff the cookie matches.
++      {"sid=abc", PageAccess::kAllowed, *redirect_rule.id},
++      {"sid=xyz", PageAccess::kAllowed, *block_rule.id},
++
++      // Without host access, the block rule is always matched.
++      {"sid=abc", PageAccess::kWithheld, *block_rule.id},
++      {"sid=xyz", PageAccess::kWithheld, *block_rule.id},
++      {"sid=abc", PageAccess::kDenied, *block_rule.id},
++      {"sid=xyz", PageAccess::kDenied, *block_rule.id},
++  };
++
++  GURL url("http://secret.test");
++  for (const auto& test_case : test_cases) {
++    SCOPED_TRACE(base::StringPrintf("Testing %s with page access %d",
++                                    test_case.set_cookie_value.c_str(),
++                                    static_cast<int>(test_case.page_access)));
++
++    auto headers = base::MakeRefCounted<net::HttpResponseHeaders>(
++        net::HttpUtil::AssembleRawHeaders("HTTP/1.0 200 OK\r\nSet-Cookie: " +
++                                          test_case.set_cookie_value + "\r\n"));
++    RequestParams params = CreateRequestWithResponseHeaders(url, headers.get());
++
++    // Match in OnBeforeRequest first to mirror the request matching flow.
++    EXPECT_FALSE(composite_matcher
++                     ->GetAction(params, RulesetMatchingStage::kOnBeforeRequest,
++                                 test_case.page_access)
++                     .action);
++
++    ActionInfo action_info = composite_matcher->GetAction(
++        params, RulesetMatchingStage::kOnHeadersReceived,
++        test_case.page_access);
++    ASSERT_TRUE(action_info.action);
++    EXPECT_EQ(test_case.expected_rule_id,
++              static_cast<int>(action_info.action->rule_id));
++    EXPECT_FALSE(action_info.notify_request_withheld);
++  }
++}
++
+ }  // namespace
+ }  // namespace extensions::declarative_net_request
+diff --git a/extensions/browser/api/declarative_net_request/extension_url_pattern_index_matcher.cc b/extensions/browser/api/declarative_net_request/extension_url_pattern_index_matcher.cc
+index e3d5c05fe..22ec8d942 100644
+--- a/extensions/browser/api/declarative_net_request/extension_url_pattern_index_matcher.cc
++++ b/extensions/browser/api/declarative_net_request/extension_url_pattern_index_matcher.cc
+@@ -196,8 +196,8 @@ const flat_rule::UrlRule* ExtensionUrlPatternIndexMatcher::GetMatchingRule(
+   return matchers[index].FindMatch(
+       *params.url, params.first_party_origin, params.element_type,
+       flat_rule::ActivationType_NONE, params.method, params.is_third_party,
+-      kDisableGenericRules, params.embedder_conditions_matcher, strategy,
+-      disabled_rule_ids_);
++      kDisableGenericRules, params.GetEmbedderConditionsMatcher(extension_id()),
++      strategy, disabled_rule_ids_);
+ }
+ 
+ std::vector<const url_pattern_index::flat::UrlRule*>
+@@ -216,7 +216,7 @@ ExtensionUrlPatternIndexMatcher::GetAllMatchingRules(
+   return matchers[index].FindAllMatches(
+       *params.url, params.first_party_origin, params.element_type,
+       flat_rule::ActivationType_NONE, params.method, params.is_third_party,
+-      kDisableGenericRules, params.embedder_conditions_matcher,
++      kDisableGenericRules, params.GetEmbedderConditionsMatcher(extension_id()),
+       disabled_rule_ids_);
+ }
+ 
+diff --git a/extensions/browser/api/declarative_net_request/flat/extension_ruleset.fbs b/extensions/browser/api/declarative_net_request/flat/extension_ruleset.fbs
+index 5d24d26e3..76d184e5d 100644
+--- a/extensions/browser/api/declarative_net_request/flat/extension_ruleset.fbs
++++ b/extensions/browser/api/declarative_net_request/flat/extension_ruleset.fbs
+@@ -108,6 +108,17 @@ table EmbedderConditions {
+   /// especially if future components may reuse these conditions.
+   response_headers: [HeaderCondition];
+   excluded_response_headers: [HeaderCondition];
++
++  /// Whether matching this rule requires host permissions for the request. This
++  /// is true if any condition in `response_headers` or
++  /// `excluded_response_headers` matches on the values of a header for which
++  /// this requires host permissions (since the match result could leak the
++  /// header's value to the extension), and false otherwise (including for rules
++  /// without response header conditions). Note: this defaults to true so that
++  /// if the field is ever missing from a rule, e.g. due to an indexing bug, the
++  /// rule fails closed instead of exposing header values to extensions without
++  /// host permissions.
++  requires_host_permissions: bool = true;
+ }
+ 
+ /// This provides a mapping from an index type to its index within
+diff --git a/extensions/browser/api/declarative_net_request/flat_ruleset_indexer.cc b/extensions/browser/api/declarative_net_request/flat_ruleset_indexer.cc
+index 6fe3073cf..09c1ebb36 100644
+--- a/extensions/browser/api/declarative_net_request/flat_ruleset_indexer.cc
++++ b/extensions/browser/api/declarative_net_request/flat_ruleset_indexer.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "extensions/browser/api/declarative_net_request/flat_ruleset_indexer.h"
+ 
++#include <algorithm>
+ #include <string>
+ 
+ #include "base/check_op.h"
+@@ -271,6 +272,26 @@ FlatVectorOffset<flat::HeaderCondition> BuildHeaderConditionsOffset(
+   return builder->CreateVector(flat_header_infos);
+ }
+ 
++// Returns whether `indexed_rule` has any matching condition that requires host
++// permissions (see `CanMatchResponseHeaderValuesWithoutHostPermissions`).
++// Note: empty value lists are not stored in the flatbuffer (see
++// `BuildVectorOfSharedStringsImpl`), so conditions with empty value lists only
++// match on the header's presence.
++bool HasConditionRequiringHostPermissions(const IndexedRule& indexed_rule) {
++  auto requires_host_permissions = [](const dnr_api::HeaderInfo& info) {
++    bool matches_on_values =
++        (info.values && !info.values->empty()) ||
++        (info.excluded_values && !info.excluded_values->empty());
++    return matches_on_values &&
++           !CanMatchResponseHeaderValuesWithoutHostPermissions(info.header);
++  };
++
++  return std::ranges::any_of(indexed_rule.response_headers,
++                             requires_host_permissions) ||
++         std::ranges::any_of(indexed_rule.excluded_response_headers,
++                             requires_host_permissions);
++}
++
+ FlatOffset<flatbuffers::Vector<uint8_t>> BuildEmbedderConditionsOffset(
+     flatbuffers::FlatBufferBuilder* builder,
+     const IndexedRule& indexed_rule) {
+@@ -305,7 +326,9 @@ FlatOffset<flatbuffers::Vector<uint8_t>> BuildEmbedderConditionsOffset(
+     auto nested_flatbuffer_root_offset = flat::CreateEmbedderConditions(
+         nested_builder, tab_ids_included_offset, tab_ids_excluded_offset,
+         top_domains_included_offset, top_domains_excluded_offset,
+-        response_headers_offset, excluded_response_headers_offset);
++        response_headers_offset, excluded_response_headers_offset,
++        /*requires_host_permissions=*/
++        HasConditionRequiringHostPermissions(indexed_rule));
+     nested_builder.Finish(nested_flatbuffer_root_offset,
+                           kEmbedderConditionsBufferIdentifier);
+   }
+diff --git a/extensions/browser/api/declarative_net_request/indexed_ruleset_format_version_unittest.cc b/extensions/browser/api/declarative_net_request/indexed_ruleset_format_version_unittest.cc
+index 9efd21eb6..5b6696334 100644
+--- a/extensions/browser/api/declarative_net_request/indexed_ruleset_format_version_unittest.cc
++++ b/extensions/browser/api/declarative_net_request/indexed_ruleset_format_version_unittest.cc
+@@ -67,6 +67,7 @@ table EmbedderConditions {
+   top_domains_excluded : [string];
+   response_headers: [HeaderCondition];
+   excluded_response_headers: [HeaderCondition];
++  requires_host_permissions: bool = true;
+ }
+ enum IndexType : ubyte {
+   before_request_except_allow_all_requests = 0,
+@@ -177,7 +178,7 @@ TEST_F(IndexedRulesetFormatVersionTest, CheckVersionUpdated) {
+   EXPECT_EQ(StripCommentsAndWhitespace(kFlatbufferSchemaExpected),
+             StripCommentsAndWhitespace(flatbuffer_schema))
+       << "Schema change detected; update this test and the schema version.";
+-  EXPECT_EQ(36, GetIndexedRulesetFormatVersionForTesting())
++  EXPECT_EQ(37, GetIndexedRulesetFormatVersionForTesting())
+       << "Update this test if you update the schema version.";
+ }
+ 
+diff --git a/extensions/browser/api/declarative_net_request/regex_rules_matcher.cc b/extensions/browser/api/declarative_net_request/regex_rules_matcher.cc
+index 26d363450..891068bfa 100644
+--- a/extensions/browser/api/declarative_net_request/regex_rules_matcher.cc
++++ b/extensions/browser/api/declarative_net_request/regex_rules_matcher.cc
+@@ -37,13 +37,14 @@ bool IsExtraHeadersMatcherInternal(
+ 
+ // Helper to check if the `rule` metadata matches the given request `params`.
+ bool DoesRuleMetadataMatchRequest(const flat_rule::UrlRule& rule,
+-                                  const RequestParams& params) {
+-  // Evaluates `element_type`, `method`, `is_third_party` and
+-  // `embedder_conditions_matcher`.
++                                  const RequestParams& params,
++                                  const ExtensionId& extension_id) {
++  // Evaluates `element_type`, `method`, `is_third_party` and embedder
++  // conditions.
+   if (!url_pattern_index::DoesRuleFlagsMatch(
+           rule, params.element_type, flat_rule::ActivationType_NONE,
+           params.method, params.is_third_party,
+-          params.embedder_conditions_matcher)) {
++          params.GetEmbedderConditionsMatcher(extension_id))) {
+     return false;
+   }
+ 
+@@ -236,12 +237,14 @@ RegexRulesMatcher::MatchHelper::GetPotentialMatches(
+   // We prune the set of potential matches even further by matching request
+   // metadata.
+   std::vector<RegexRuleInfo> potential_matches;
++  const ExtensionId& extension_id = regex_match_key_.first->extension_id();
+   for (int re2_id : potential_re2_ids) {
+     auto it = re2_id_to_rules_map_.find(re2_id);
+     CHECK(it != re2_id_to_rules_map_.end());
+ 
+     const flat::RegexRule* rule = it->second;
+-    if (!DoesRuleMetadataMatchRequest(*rule->url_rule(), params)) {
++    if (!DoesRuleMetadataMatchRequest(*rule->url_rule(), params,
++                                      extension_id)) {
+       continue;
+     }
+ 
+diff --git a/extensions/browser/api/declarative_net_request/request_params.cc b/extensions/browser/api/declarative_net_request/request_params.cc
+index d42cfecde..24edd4184 100644
+--- a/extensions/browser/api/declarative_net_request/request_params.cc
++++ b/extensions/browser/api/declarative_net_request/request_params.cc
+@@ -11,6 +11,7 @@
+ #include "base/check.h"
+ #include "base/containers/flat_map.h"
+ #include "base/dcheck_is_on.h"
++#include "base/feature_list.h"
+ #include "base/functional/bind.h"
+ #include "base/no_destructor.h"
+ #include "base/strings/pattern.h"
+@@ -25,6 +26,7 @@
+ #include "extensions/browser/extensions_browser_client.h"
+ #include "extensions/common/api/web_request/web_request_resource_type.h"
+ #include "extensions/common/constants.h"
++#include "extensions/common/extension_features.h"
+ #include "net/base/registry_controlled_domains/registry_controlled_domain.h"
+ #include "net/http/http_response_headers.h"
+ #include "third_party/blink/public/mojom/loader/resource_load_info.mojom-shared.h"
+@@ -133,6 +135,7 @@ bool MatchesHeaderConditions(
+ }
+ 
+ bool DoEmbedderConditionsMatch(
++    bool has_host_access,
+     int tab_id,
+     const std::string& top_level_frame_or_initiator_host,
+     scoped_refptr<const net::HttpResponseHeaders> response_headers,
+@@ -157,6 +160,13 @@ bool DoEmbedderConditionsMatch(
+       flatbuffers::GetRoot<flat::EmbedderConditions>(conditions_buffer.Data());
+   DCHECK(embedder_conditions);
+ 
++  // If the extension doesn't have host access to the request, then rules with
++  // embedder conditions that require host permissions cannot possibly match.
++  // Note: this must be checked before evaluating any header conditions.
++  if (!has_host_access && embedder_conditions->requires_host_permissions()) {
++    return false;
++  }
++
+   auto matches_tab_ids =
+       [tab_id](const flatbuffers::Vector<int32_t>& sorted_tab_ids) {
+         DCHECK(std::is_sorted(sorted_tab_ids.begin(), sorted_tab_ids.end()));
+@@ -224,6 +234,27 @@ bool DoEmbedderConditionsMatch(
+   return true;
+ }
+ 
++// Initializes the embedder conditions matchers for `params`.
++void InitEmbedderConditionsMatchers(
++    RequestParams& params,
++    int tab_id,
++    const std::string& top_level_frame_or_initiator_host,
++    scoped_refptr<const net::HttpResponseHeaders> response_headers) {
++  params.embedder_conditions_matcher_with_host_access = base::BindRepeating(
++      DoEmbedderConditionsMatch, /*has_host_access=*/true, tab_id,
++      top_level_frame_or_initiator_host, response_headers);
++
++  // If restricting response header value matching is disabled, rules which
++  // would otherwise require host permissions are matched regardless.
++  const bool restrict_header_value_matching = base::FeatureList::IsEnabled(
++      extensions_features::
++          kDeclarativeNetRequestRestrictResponseHeaderValueMatching);
++  params.embedder_conditions_matcher_without_host_access = base::BindRepeating(
++      DoEmbedderConditionsMatch,
++      /*has_host_access=*/!restrict_header_value_matching, tab_id,
++      top_level_frame_or_initiator_host, std::move(response_headers));
++}
++
+ }  // namespace
+ 
+ RequestParams::RequestParams(
+@@ -270,9 +301,9 @@ RequestParams::RequestParams(
+         top_level_frame_or_initiator_origin.host();
+   }
+ 
+-  embedder_conditions_matcher = base::BindRepeating(
+-      DoEmbedderConditionsMatch, info.frame_data.tab_id,
+-      std::move(top_level_frame_or_initiator_host), response_headers);
++  InitEmbedderConditionsMatchers(*this, info.frame_data.tab_id,
++                                 top_level_frame_or_initiator_host,
++                                 std::move(response_headers));
+ }
+ 
+ RequestParams::RequestParams(
+@@ -311,9 +342,9 @@ RequestParams::RequestParams(
+   ExtensionsBrowserClient::Get()->GetTabAndWindowIdForWebContents(
+       content::WebContents::FromRenderFrameHost(host), &tab_id,
+       &window_id_unused);
+-  embedder_conditions_matcher = base::BindRepeating(
+-      DoEmbedderConditionsMatch, tab_id,
+-      std::move(top_level_frame_or_initiator_host), response_headers);
++  InitEmbedderConditionsMatchers(*this, tab_id,
++                                 top_level_frame_or_initiator_host,
++                                 std::move(response_headers));
+ }
+ 
+ RequestParams::RequestParams(
+@@ -328,12 +359,11 @@ RequestParams::RequestParams(
+       first_party_origin(initiator),
+       element_type(GetElementType(request_type)),
+       is_third_party(IsThirdPartyRequest(url, first_party_origin)),
+-      method(GetRequestMethod(url.SchemeIsHTTPOrHTTPS(), request_method)),
+-      embedder_conditions_matcher(base::BindRepeating(
+-          DoEmbedderConditionsMatch,
+-          tab_id,
+-          top_origin.opaque() ? initiator.host() : top_origin.host(),
+-          response_headers)) {}
++      method(GetRequestMethod(url.SchemeIsHTTPOrHTTPS(), request_method)) {
++  InitEmbedderConditionsMatchers(
++      *this, tab_id, top_origin.opaque() ? initiator.host() : top_origin.host(),
++      std::move(response_headers));
++}
+ 
+ RequestParams::RequestParams() = default;
+ RequestParams::~RequestParams() = default;
+diff --git a/extensions/browser/api/declarative_net_request/request_params.h b/extensions/browser/api/declarative_net_request/request_params.h
+index d069b3e83..e570bedf5 100644
+--- a/extensions/browser/api/declarative_net_request/request_params.h
++++ b/extensions/browser/api/declarative_net_request/request_params.h
+@@ -63,9 +63,32 @@ struct RequestParams {
+   // ID of the parent RenderFrameHost.
+   content::GlobalRenderFrameHostId parent_routing_id;
+ 
+-  // Matcher for `flat::UrlRule::embedder_conditions`.
++  // Returns whether `extension_id` has host access to this request.
++  bool HasHostAccess(const ExtensionId& extension_id) const {
++    auto it = has_host_access.find(extension_id);
++    return it != has_host_access.end() && it->second;
++  }
++
++  // Returns the matcher for `flat::UrlRule::embedder_conditions` to use for
++  // `extension_id`.
++  const url_pattern_index::UrlPatternIndexMatcher::EmbedderConditionsMatcher&
++  GetEmbedderConditionsMatcher(const ExtensionId& extension_id) const {
++    return HasHostAccess(extension_id)
++               ? embedder_conditions_matcher_with_host_access
++               : embedder_conditions_matcher_without_host_access;
++  }
++
++  // Matchers for `flat::UrlRule::embedder_conditions`. Use
++  // `GetEmbedderConditionsMatcher()` instead of accessing these directly.
+   url_pattern_index::UrlPatternIndexMatcher::EmbedderConditionsMatcher
+-      embedder_conditions_matcher;
++      embedder_conditions_matcher_with_host_access;
++  url_pattern_index::UrlPatternIndexMatcher::EmbedderConditionsMatcher
++      embedder_conditions_matcher_without_host_access;
++
++  // A map from an extension ID to whether the extension has host access to this
++  // request (i.e. PageAccess::kAllowed). If there is no entry for an extension
++  // ID, it defaults to false (via `HasHostAccess`).
++  mutable base::flat_map<ExtensionId, bool> has_host_access;
+ 
+   // A map from an extension ID to its CompositeMatcher's highest priority
+   // matching allow or allowAllRequests rule (for the request associated with
+diff --git a/extensions/browser/api/declarative_net_request/ruleset_manager.cc b/extensions/browser/api/declarative_net_request/ruleset_manager.cc
+index c8ecdcbe3..e4f72b274 100644
+--- a/extensions/browser/api/declarative_net_request/ruleset_manager.cc
++++ b/extensions/browser/api/declarative_net_request/ruleset_manager.cc
+@@ -18,6 +18,9 @@
+ #include "base/time/time.h"
+ #include "base/timer/elapsed_timer.h"
+ #include "components/web_cache/browser/web_cache_manager.h"
++#include "content/public/browser/navigation_handle.h"
++#include "content/public/browser/render_frame_host.h"
++#include "content/public/browser/web_contents.h"
+ #include "extensions/browser/api/constants.h"
+ #include "extensions/browser/api/declarative_net_request/composite_matcher.h"
+ #include "extensions/browser/api/declarative_net_request/constants.h"
+@@ -274,8 +277,31 @@ void RulesetManager::OnRenderFrameDeleted(content::RenderFrameHost* host) {
+ 
+ void RulesetManager::OnDidFinishNavigation(
+     content::NavigationHandle* navigation_handle) {
++  content::RenderFrameHost* host = navigation_handle->GetRenderFrameHost();
++  DCHECK(host);
++
++  int tab_id = extension_misc::kUnknownTabId;
++  int window_id_unused = extension_misc::kUnknownWindowId;
++  ExtensionsBrowserClient::Get()->GetTabAndWindowIdForWebContents(
++      content::WebContents::FromRenderFrameHost(host), &tab_id,
++      &window_id_unused);
++  const WebRequestResourceType resource_type =
++      host->GetParentOrOuterDocument() ? WebRequestResourceType::SUB_FRAME
++                                       : WebRequestResourceType::MAIN_FRAME;
++
+   for (ExtensionRulesetData& ruleset : rulesets_) {
+-    ruleset.matcher->OnDidFinishNavigation(navigation_handle);
++    // For navigation requests, `CanExtensionAccessURL` only checks host
++    // permissions for the URL, not the initiator. However, the initiator is
++    // still passed in so that navigations initiated by policy-blocked or
++    // user-restricted hosts are denied access.
++    PageAccess page_access_for_navigation =
++        WebRequestPermissions::CanExtensionAccessURL(
++            permission_helper_, ruleset.extension_id,
++            host->GetLastCommittedURL(), tab_id, /*crosses_incognito=*/false,
++            WebRequestPermissions::REQUIRE_HOST_PERMISSION_FOR_URL,
++            navigation_handle->GetInitiatorOrigin(), resource_type);
++    ruleset.matcher->OnDidFinishNavigation(navigation_handle,
++                                           page_access_for_navigation);
+   }
+ }
+ 
+diff --git a/extensions/browser/api/declarative_net_request/ruleset_matcher.cc b/extensions/browser/api/declarative_net_request/ruleset_matcher.cc
+index c6c29bc02..ede50650e 100644
+--- a/extensions/browser/api/declarative_net_request/ruleset_matcher.cc
++++ b/extensions/browser/api/declarative_net_request/ruleset_matcher.cc
+@@ -336,9 +336,12 @@ void RulesetMatcher::OnRenderFrameDeleted(content::RenderFrameHost* host) {
+ }
+ 
+ void RulesetMatcher::OnDidFinishNavigation(
+-    content::NavigationHandle* navigation_handle) {
+-  url_matcher_.OnDidFinishNavigation(navigation_handle);
+-  regex_matcher_.OnDidFinishNavigation(navigation_handle);
++    content::NavigationHandle* navigation_handle,
++    bool has_host_access_for_navigation) {
++  url_matcher_.OnDidFinishNavigation(navigation_handle,
++                                     has_host_access_for_navigation);
++  regex_matcher_.OnDidFinishNavigation(navigation_handle,
++                                       has_host_access_for_navigation);
+ }
+ 
+ std::optional<RequestAction>
+diff --git a/extensions/browser/api/declarative_net_request/ruleset_matcher.h b/extensions/browser/api/declarative_net_request/ruleset_matcher.h
+index d3cde90d3..eed6343ca 100644
+--- a/extensions/browser/api/declarative_net_request/ruleset_matcher.h
++++ b/extensions/browser/api/declarative_net_request/ruleset_matcher.h
+@@ -78,7 +78,8 @@ class RulesetMatcher {
+ 
+   void OnRenderFrameCreated(content::RenderFrameHost* host);
+   void OnRenderFrameDeleted(content::RenderFrameHost* host);
+-  void OnDidFinishNavigation(content::NavigationHandle* navigation_handle);
++  void OnDidFinishNavigation(content::NavigationHandle* navigation_handle,
++                             bool has_host_access_for_navigation);
+ 
+   // ID of the ruleset. Each extension can have multiple rulesets with
+   // their own unique ids.
+diff --git a/extensions/browser/api/declarative_net_request/ruleset_matcher_base.cc b/extensions/browser/api/declarative_net_request/ruleset_matcher_base.cc
+index 579feb4f7..ce7c251a1 100644
+--- a/extensions/browser/api/declarative_net_request/ruleset_matcher_base.cc
++++ b/extensions/browser/api/declarative_net_request/ruleset_matcher_base.cc
+@@ -259,7 +259,8 @@ void RulesetMatcherBase::OnRenderFrameDeleted(content::RenderFrameHost* host) {
+ }
+ 
+ void RulesetMatcherBase::OnDidFinishNavigation(
+-    content::NavigationHandle* navigation_handle) {
++    content::NavigationHandle* navigation_handle,
++    bool has_host_access_for_navigation) {
+   content::RenderFrameHost* host = navigation_handle->GetRenderFrameHost();
+ 
+   // Note: we only start tracking frames on navigation, since a document only
+@@ -269,6 +270,7 @@ void RulesetMatcherBase::OnDidFinishNavigation(
+ 
+   RequestParams params(host, navigation_handle->IsPost(),
+                        /*response_headers=*/nullptr);
++  params.has_host_access[extension_id_] = has_host_access_for_navigation;
+ 
+   // Find the highest priority allowAllRequests action corresponding to this
+   // frame for rules that match in the onBeforeRequest request stage.
+@@ -291,6 +293,12 @@ void RulesetMatcherBase::OnDidFinishNavigation(
+     // `frame_action`.
+     RequestParams params_with_headers(host, navigation_handle->IsPost(),
+                                       navigation_handle->GetResponseHeaders());
++    // Rules with response header conditions that require host permissions
++    // must not allowlist the frame if the extension doesn't have host access
++    // to the navigation, since allowlisting the frame would bypass
++    // subresource rules and leak whether the header value matched.
++    params_with_headers.has_host_access[extension_id_] =
++        has_host_access_for_navigation;
+     // Take the matching allowAllRequests action with the highest priority
+     // between all ruleset matching stages that this navigation request can be
+     // matched against.
+diff --git a/extensions/browser/api/declarative_net_request/ruleset_matcher_base.h b/extensions/browser/api/declarative_net_request/ruleset_matcher_base.h
+index b06afeef0..5b775e423 100644
+--- a/extensions/browser/api/declarative_net_request/ruleset_matcher_base.h
++++ b/extensions/browser/api/declarative_net_request/ruleset_matcher_base.h
+@@ -73,7 +73,8 @@ class RulesetMatcherBase {
+ 
+   void OnRenderFrameCreated(content::RenderFrameHost* host);
+   void OnRenderFrameDeleted(content::RenderFrameHost* host);
+-  void OnDidFinishNavigation(content::NavigationHandle* navigation_handle);
++  void OnDidFinishNavigation(content::NavigationHandle* navigation_handle,
++                             bool has_host_access_for_navigation);
+ 
+   // Returns the tracked highest priority matching allowsAllRequests action, if
+   // any, for `host`.
+diff --git a/extensions/browser/api/declarative_net_request/ruleset_matcher_unittest.cc b/extensions/browser/api/declarative_net_request/ruleset_matcher_unittest.cc
+index 0e833214d..96e5e9d5b 100644
+--- a/extensions/browser/api/declarative_net_request/ruleset_matcher_unittest.cc
++++ b/extensions/browser/api/declarative_net_request/ruleset_matcher_unittest.cc
+@@ -1346,7 +1346,8 @@ TEST_F(AllowAllRequestsTest, AllowlistedFrameTracking) {
+     testing::NiceMock<content::MockNavigationHandle> navigation_handle(
+         url, new_host);
+     navigation_handle.set_has_committed(true);
+-    matcher->OnDidFinishNavigation(&navigation_handle);
++    matcher->OnDidFinishNavigation(&navigation_handle,
++                                   /*has_host_access_for_navigation=*/true);
+ 
+     return new_host;
+   };
+@@ -1456,7 +1457,8 @@ TEST_F(AllowAllRequestsTest, GetBeforeRequestAction) {
+   testing::NiceMock<content::MockNavigationHandle> navigation_handle(
+       google_url, web_contents->GetPrimaryMainFrame());
+   navigation_handle.set_has_committed(true);
+-  matcher->OnDidFinishNavigation(&navigation_handle);
++  matcher->OnDidFinishNavigation(&navigation_handle,
++                                 /*has_host_access_for_navigation=*/true);
+ 
+   struct {
+     std::string url;
+@@ -1549,6 +1551,8 @@ TEST_F(RulesetMatcherTest, SetDisabledRuleIds) {
+ 
+ class RulesetMatcherResponseHeadersTest : public RulesetMatcherTest {
+  public:
++  static constexpr char kExtensionId[] = "extensionid";
++
+   RulesetMatcherResponseHeadersTest() {
+     scoped_feature_list_.InitAndEnableFeature(
+         extensions_features::kDeclarativeNetRequestResponseHeaderMatching);
+@@ -1589,6 +1593,9 @@ TEST_F(RulesetMatcherResponseHeadersTest, OnHeadersReceivedAction) {
+   GURL google_url("http://google.com");
+   RequestParams params =
+       CreateRequestWithResponseHeaders(google_url, base_headers.get());
++  // `response_headers_rule` matches on a header value, which requires host
++  // access.
++  params.has_host_access[kExtensionId] = true;
+ 
+   std::unique_ptr<RulesetMatcher> matcher;
+   ASSERT_TRUE(
+@@ -1862,6 +1869,8 @@ TEST_F(RulesetMatcherResponseHeadersTest, MatchOnResponseHeaders) {
+         net::HttpUtil::AssembleRawHeaders(cases[i].response_headers.c_str()));
+     RequestParams params =
+         CreateRequestWithResponseHeaders(url, base_headers.get());
++    // Some of the rules match on header values, which requires host access.
++    params.has_host_access[kExtensionId] = true;
+     EXPECT_EQ(
+         cases[i].expected_action,
+         matcher->GetAction(params, RulesetMatchingStage::kOnHeadersReceived));
+diff --git a/extensions/browser/api/declarative_net_request/utils.cc b/extensions/browser/api/declarative_net_request/utils.cc
+index 6829b53ef..b04c17d66 100644
+--- a/extensions/browser/api/declarative_net_request/utils.cc
++++ b/extensions/browser/api/declarative_net_request/utils.cc
+@@ -38,6 +38,7 @@
+ #include "extensions/common/features/feature_channel.h"
+ #include "extensions/common/permissions/api_permission.h"
+ #include "extensions/common/permissions/permissions_data.h"
++#include "services/network/public/cpp/cors/cors.h"
+ #include "third_party/flatbuffers/src/include/flatbuffers/flatbuffers.h"
+ 
+ namespace extensions::declarative_net_request {
+@@ -51,7 +52,7 @@ namespace flat_rule = url_pattern_index::flat;
+ // url_pattern_index.fbs. Whenever an extension with an indexed ruleset format
+ // version different from the one currently used by Chrome is loaded, the
+ // extension ruleset will be reindexed.
+-constexpr int kIndexedRulesetFormatVersion = 36;
++constexpr int kIndexedRulesetFormatVersion = 37;
+ 
+ // This static assert is meant to catch cases where
+ // url_pattern_index::kUrlPatternIndexFormatVersion is incremented without
+@@ -932,4 +933,13 @@ bool IsHeaderSubstitutionEnabled() {
+       extensions_features::kDeclarativeNetRequestHeaderSubstitution);
+ }
+ 
++bool CanMatchResponseHeaderValuesWithoutHostPermissions(
++    std::string_view header_name) {
++  // Content-Encoding is not CORS-safelisted, but its values are determined by
++  // the server's configuration and the browser's Accept-Encoding header rather
++  // than the user.
++  return network::cors::IsCorsSafelistedResponseHeaderName(header_name) ||
++         base::EqualsCaseInsensitiveASCII(header_name, "content-encoding");
++}
++
+ }  // namespace extensions::declarative_net_request
+diff --git a/extensions/browser/api/declarative_net_request/utils.h b/extensions/browser/api/declarative_net_request/utils.h
+index 6efef4c42..175367bcc 100644
+--- a/extensions/browser/api/declarative_net_request/utils.h
++++ b/extensions/browser/api/declarative_net_request/utils.h
+@@ -10,6 +10,7 @@
+ 
+ #include <optional>
+ #include <string>
++#include <string_view>
+ #include <vector>
+ 
+ #include "base/auto_reset.h"
+@@ -221,6 +222,14 @@ bool IsResponseHeaderMatchingEnabled();
+ // modifyHeaders rules.
+ bool IsHeaderSubstitutionEnabled();
+ 
++// Returns whether the values of the response header `header_name` can be
++// matched by a rule's `responseHeaders` or `excludedResponseHeaders` conditions
++// even if the extension doesn't have host permissions for the request. Since
++// this is called at indexing time, any changes for this function requires
++// updating the `kIndexedRulesetFormatVersion`.
++bool CanMatchResponseHeaderValuesWithoutHostPermissions(
++    std::string_view header_name);
++
+ }  // namespace declarative_net_request
+ }  // namespace extensions
+ 
+diff --git a/extensions/common/extension_features.cc b/extensions/common/extension_features.cc
+index 3ba5ba285..1ff44851a 100644
+--- a/extensions/common/extension_features.cc
++++ b/extensions/common/extension_features.cc
+@@ -122,6 +122,9 @@ BASE_FEATURE(kCWSReviewPromptingNativeUI,
+              "CWSReviewPromptingNativeUI",
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
++BASE_FEATURE(kDeclarativeNetRequestRestrictResponseHeaderValueMatching,
++             base::FEATURE_ENABLED_BY_DEFAULT);
++
+ BASE_FEATURE(kEnableWebHidInWebView, base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kExtensionAutoRejectIncognitoConnectability,
+diff --git a/extensions/common/extension_features.h b/extensions/common/extension_features.h
+index f096dc474..9196ec770 100644
+--- a/extensions/common/extension_features.h
++++ b/extensions/common/extension_features.h
+@@ -159,6 +159,13 @@ BASE_DECLARE_FEATURE(kCrxInstallerVerifyReloadedManifest);
+ // extensions.
+ BASE_DECLARE_FEATURE(kCWSReviewPromptingNativeUI);
+ 
++// If enabled, declarative net request rules that match on the values of
++// response headers (other than CORS-safelisted response headers and
++// Content-Encoding) only match requests that the extension has host permissions
++// for. If disabled (kill switch), rule matching conditions can match against
++// requests the extension does not have host permissions for.
++BASE_DECLARE_FEATURE(kDeclarativeNetRequestRestrictResponseHeaderValueMatching);
++
+ // If enabled, <webview>s will be allowed to request permission from an
+ // embedding Chrome App to request access to Human Interface Devices.
+ BASE_DECLARE_FEATURE(kEnableWebHidInWebView);
+-- 
+2.43.0
+

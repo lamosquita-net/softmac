@@ -12,3 +12,6 @@ d3b3c70f9352dd44b3bfd566901e1f3b9d5f100e8229603a76674e23ba545213  chromium/0003-
 9511dd615dc8c177b1eb0b7d5cbabc69efb1d6ad6a126eafcd32bb62d735d9a6  chromium/0012-Revoke-Directory-capability-after-unzip-and-harden-e.patch
 378fd1e0eefeecf8627dcfe70aa4b3998e76f9fc1e4cea6fbbc6bde5d29f8866  chromium/0013-PWA-Harden-browser-reuse-in-navigation-capturing-red.patch
 5a486d8c17c142a8fa996bbadae1a008853f09a58356b526d258809d0e823c02  chromium/0014-PWA-Prevent-cross-app-LaunchParams-leak-and-app_id-d.patch
+e64d0d7c18de3076d9849dc18b14bafbe14ece0d76eed58d5c2af013c41f3d67  chromium/0015-Key-media-UrlIndex-by-requesting-SecurityOrigin.patch
+025c860c3828a3881c4524274e0853b0e08e4975b74679053b6e5a91a9165464  chromium/0016-DNR-Require-host-permissions-for-response-header-val.patch
+f226b59a5159b80e167f2ed1eded1f3babd422df0a3a9581cdac77649be44d8c  devtools-frontend/0001-ui-Only-open-privileged-URLs-in-new-tabs-when-explic.patch

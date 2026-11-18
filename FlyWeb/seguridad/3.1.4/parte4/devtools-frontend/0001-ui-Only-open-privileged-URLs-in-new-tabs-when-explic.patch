@@ -1,0 +1,266 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mathias Bynens <mathias@chromium.org>
+Date: Thu, 22 Oct 2026 08:25:11 +0200
+Subject: [PATCH] [ui] Only open privileged URLs in new tabs when explicitly
+ allowed
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+`UIHelpers.openInNewTab` blocked only `javascript:` URLs. Now it also
+drops URLs without a web-safe scheme (such as `chrome:`, `devtools:`, or
+`file:`) unless the caller passes `allowPrivileged`.
+
+Opt in the internal uses that need this: the preloading infobar links
+and the `<devtools-link>` context menu, which now respects the link’s
+`allow-privileged` attribute.
+
+Also, the DOM tree now renders `href` values of `<a>` elements as a
+clickable `<devtools-link>` only for web-safe schemes. Other `href`s go
+through the Linkifier, which renders privileged URLs as inert text.
+
+Bug: 543907563
+Change-Id: I1dd9a1256a9ed43698c550ad08773c8c84270456
+Reviewed-on: https://chromium-review.googlesource.com/c/devtools/devtools-frontend/+/8620439
+Reviewed-by: Danil Somsikov <dsv@chromium.org>
+Commit-Queue: Mathias Bynens <mathias@chromium.org>
+(cherry picked from commit fb515cf1b180)
+
+[FlyWeb] Clean pick onto the 156 gitlink 904b77f9fc; the DOMTreeElementWidget
+change lands in ElementsTreeElement.ts (pre-rename name in 156). Upstream
+reaches Chromium in roll 404327b549.
+---
+ .../components/PreloadingDisabledInfobar.ts   |  2 +-
+ .../elements/ElementsTreeElement.test.ts      | 35 +++++++++++++
+ .../panels/elements/ElementsTreeElement.ts    |  4 +-
+ front_end/ui/helpers/OpenInNewTab.test.ts     | 49 +++++++++++++++----
+ front_end/ui/helpers/OpenInNewTab.ts          |  8 +++
+ front_end/ui/kit/link/Link.test.ts            | 23 +++++++++
+ .../ui/legacy/LinkContextMenuProvider.ts      |  2 +-
+ 7 files changed, 110 insertions(+), 13 deletions(-)
+
+diff --git a/front_end/panels/application/preloading/components/PreloadingDisabledInfobar.ts b/front_end/panels/application/preloading/components/PreloadingDisabledInfobar.ts
+index f4b7dd0..f99702d 100644
+--- a/front_end/panels/application/preloading/components/PreloadingDisabledInfobar.ts
++++ b/front_end/panels/application/preloading/components/PreloadingDisabledInfobar.ts
+@@ -138,7 +138,7 @@ export const DEFAULT_VIEW: View = (input, _output, target) => {
+                       str_, valueId,
+                       Object.fromEntries(Object.entries(placeholders).map(
+                           ([key, {title, href}]) =>
+-                              [key, html`<devtools-link href=${href}>${title}</devtools-link>`])));
++                              [key, html`<devtools-link href=${href} allow-privileged>${title}</devtools-link>`])));
+                   return html`
+                       <div class="key">${key}</div>
+                       <div class="value">${value}</div>
+diff --git a/front_end/panels/elements/ElementsTreeElement.test.ts b/front_end/panels/elements/ElementsTreeElement.test.ts
+index ec807c6..5c1ffb0 100644
+--- a/front_end/panels/elements/ElementsTreeElement.test.ts
++++ b/front_end/panels/elements/ElementsTreeElement.test.ts
+@@ -6,6 +6,7 @@ import {assert} from 'chai';
+ import sinon from 'sinon';
+ 
+ import * as Common from '../../core/common/common.js';
++import * as Host from '../../core/host/host.js';
+ import * as Platform from '../../core/platform/platform.js';
+ import * as Root from '../../core/root/root.js';
+ import * as SDK from '../../core/sdk/sdk.js';
+@@ -949,6 +950,40 @@ describeWithEnvironment('ElementsTreeElement', () => {
+       assert.strictEqual(linkElement?.tagName.toLowerCase(), 'devtools-link');
+     });
+ 
++    for (const href of ['devtools://devtools/bundled/devtools_app.html?ws=evil.example:9222',
++                        'chrome://settings/reset',
++                        'chrome-untrusted://terminal/',
++                        'file:///etc/passwd',
++                        'blob:devtools://devtools/0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0',
++    ]) {
++      it(`does not render a clickable devtools-link for a privileged <a href="${href}">`, () => {
++        const nodePayload = {
++          nodeId: 1 as Protocol.DOM.NodeId,
++          backendNodeId: 2 as Protocol.DOM.BackendNodeId,
++          nodeType: Node.ELEMENT_NODE,
++          nodeName: 'A',
++          localName: 'a',
++          nodeValue: '',
++          attributes: ['href', href],
++          childNodeCount: 0,
++        };
++        const node = SDK.DOMModel.DOMNode.create(domModel, null, false, nodePayload);
++        sinon.stub(node, 'resolveURL').callsFake(url => Platform.DevToolsPath.urlString`${url}`);
++        const openInNewTabStub = sinon.stub(Host.InspectorFrontendHost.InspectorFrontendHostInstance, 'openInNewTab');
++
++        const treeElement = renderTreeNode(node);
++        const attributeValueElement = treeElement.contentElement.querySelector('.webkit-html-attribute-value');
++        assert.exists(attributeValueElement);
++        assert.isNull(attributeValueElement.querySelector('devtools-link'));
++        assert.isNull(attributeValueElement.querySelector('button'));
++
++        for (const element of attributeValueElement.querySelectorAll<HTMLElement>('*')) {
++          element.click();
++        }
++        sinon.assert.notCalled(openInNewTabStub);
++      });
++    }
++
+     it('renders href attribute on SVG image as a link', () => {
+       const nodePayload = {
+         nodeId: 1 as Protocol.DOM.NodeId,
+diff --git a/front_end/panels/elements/ElementsTreeElement.ts b/front_end/panels/elements/ElementsTreeElement.ts
+index df4672d..c4b6036 100644
+--- a/front_end/panels/elements/ElementsTreeElement.ts
++++ b/front_end/panels/elements/ElementsTreeElement.ts
+@@ -634,7 +634,9 @@ function renderLinkifiedValue(value: string, node: SDK.DOMModel.DOMNode): Lit.Te
+   if (value.startsWith('data:')) {
+     value = Platform.StringUtilities.trimMiddle(value, 60);
+   }
+-  const isAnchor = node && node.nodeName().toLowerCase() === 'a';
++  // Page-authored hrefs must not open privileged URLs (e.g. `devtools://` or `chrome://`) on click. Anchors with
++  // other schemes fall through to the Linkifier, which renders privileged URLs as inert text.
++  const isAnchor = node && node.nodeName().toLowerCase() === 'a' && Common.ParsedURL.hasWebSafeScheme(rewrittenHref);
+   if (isAnchor) {
+     return html`<devtools-link class="devtools-link image-url" href=${rewrittenHref} ${ref(el => {
+       if (el) {
+diff --git a/front_end/ui/helpers/OpenInNewTab.test.ts b/front_end/ui/helpers/OpenInNewTab.test.ts
+index a3558c6..6f9cffd 100644
+--- a/front_end/ui/helpers/OpenInNewTab.test.ts
++++ b/front_end/ui/helpers/OpenInNewTab.test.ts
+@@ -181,6 +181,37 @@ describe('openInNewTab', () => {
+     sinon.assert.callCount(stub, 0);
+   });
+ 
++  for (const url of ['devtools://devtools/bundled/devtools_app.html?ws=evil.example:9222',
++                     'chrome-untrusted://terminal/',
++                     'chrome-extension://abcdefghijklmnopabcdefghijklmnop/options.html',
++                     'file:///etc/passwd',
++                     'blob:devtools://devtools/0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0',
++  ]) {
++    it(`does nothing for ${url} when privileged navigation is not allowed`, () => {
++      const stub = sinon.stub(InspectorFrontendHostInstance, 'openInNewTab');
++
++      openInNewTab(url);
++
++      sinon.assert.notCalled(stub);
++    });
++
++    it(`opens ${url} via host bindings when privileged navigation is allowed`, () => {
++      const stub = sinon.stub(InspectorFrontendHostInstance, 'openInNewTab');
++
++      openInNewTab(url, /* allowPrivileged=*/ true);
++
++      sinon.assert.calledOnceWithExactly(stub, urlString`${new URL(url)}`);
++    });
++  }
++
++  it('does nothing for javascript: urls even when privileged navigation is allowed', () => {
++    const stub = sinon.stub(InspectorFrontendHostInstance, 'openInNewTab');
++
++    openInNewTab('javascript:alert("Hey")', /* allowPrivileged=*/ true);
++
++    sinon.assert.notCalled(stub);
++  });
++
+   describeWithEnvironment('chrome:// link', () => {
+     it('calls invoke_createTarget for chrome:// links when privileged navigation is allowed', async () => {
+       const target = createTarget();
+@@ -192,17 +223,15 @@ describe('openInNewTab', () => {
+       assert.deepEqual(spy.firstCall.firstArg, {url: 'chrome://settings/'});
+     });
+ 
+-    it('falls back to InspectorFrontendHost for chrome:// links when privileged navigation is not allowed',
+-       async () => {
+-         const target = createTarget();
+-         const spy = sinon.spy(target.targetAgent(), 'invoke_createTarget');
+-         const stub = sinon.stub(InspectorFrontendHostInstance, 'openInNewTab');
++    it('does nothing for chrome:// links when privileged navigation is not allowed', async () => {
++      const target = createTarget();
++      const spy = sinon.spy(target.targetAgent(), 'invoke_createTarget');
++      const stub = sinon.stub(InspectorFrontendHostInstance, 'openInNewTab');
+ 
+-         openInNewTab('chrome://settings');
++      openInNewTab('chrome://settings');
+ 
+-         sinon.assert.notCalled(spy);
+-         sinon.assert.calledOnce(stub);
+-         assert.strictEqual(stub.args[0][0], 'chrome://settings/');
+-       });
++      sinon.assert.notCalled(spy);
++      sinon.assert.notCalled(stub);
++    });
+   });
+ });
+diff --git a/front_end/ui/helpers/OpenInNewTab.ts b/front_end/ui/helpers/OpenInNewTab.ts
+index af24b49..cb0722e 100644
+--- a/front_end/ui/helpers/OpenInNewTab.ts
++++ b/front_end/ui/helpers/OpenInNewTab.ts
+@@ -57,6 +57,8 @@ import * as SDK from '../../core/sdk/sdk.js';
+  *   Chrome ("stable", "beta", "dev", or "canary").
+  *
+  * @param url the URL to open in a new tab.
++ * @param allowPrivileged whether to also open URLs with privileged or other non-web-safe schemes. By default,
++ *     only URLs with web-safe schemes (see `Common.ParsedURL.hasWebSafeScheme`) are opened.
+  * @throws TypeError if `url` is not a valid URL.
+  * @see https://en.wikipedia.org/wiki/UTM_parameters
+  */
+@@ -66,6 +68,12 @@ export function openInNewTab(url: URL|string, allowPrivileged?: boolean): void {
+     return;
+   }
+ 
++  // Only open URLs with privileged or other non-web-safe schemes (such as `chrome:`, `devtools:`, or `file:`)
++  // when the caller explicitly allows it.
++  if (!allowPrivileged && !Common.ParsedURL.hasWebSafeScheme(url)) {
++    return;
++  }
++
+   // Navigating to a chrome:// link via a normal anchor doesn't work, so we "navigate"
+   // there using CDP if explicitly requested.
+   if (allowPrivileged && Common.ParsedURL.schemeIs(url, 'chrome:')) {
+diff --git a/front_end/ui/kit/link/Link.test.ts b/front_end/ui/kit/link/Link.test.ts
+index b731861..7558af7 100644
+--- a/front_end/ui/kit/link/Link.test.ts
++++ b/front_end/ui/kit/link/Link.test.ts
+@@ -66,6 +66,29 @@ describe('devtools-link', () => {
+       link.setAttribute('allow-privileged', '');
+       assert.isTrue(link.allowPrivileged);
+     });
++
++    it('does not open a privileged href on click without allow-privileged', () => {
++      const stub = sinon.stub(Host.InspectorFrontendHost.InspectorFrontendHostInstance, 'openInNewTab');
++      const link = new Link();
++      link.setAttribute('href', 'devtools://devtools/bundled/devtools_app.html');
++      renderElementIntoDOM(link);
++
++      link.click();
++
++      sinon.assert.notCalled(stub);
++    });
++
++    it('opens a privileged href on click with allow-privileged', () => {
++      const stub = sinon.stub(Host.InspectorFrontendHost.InspectorFrontendHostInstance, 'openInNewTab');
++      const link = new Link();
++      link.setAttribute('href', 'devtools://devtools/bundled/devtools_app.html');
++      link.setAttribute('allow-privileged', '');
++      renderElementIntoDOM(link);
++
++      link.click();
++
++      sinon.assert.calledOnceWithExactly(stub, urlString`devtools://devtools/bundled/devtools_app.html`);
++    });
+   });
+ 
+   describe('keyboard activation', () => {
+diff --git a/front_end/ui/legacy/LinkContextMenuProvider.ts b/front_end/ui/legacy/LinkContextMenuProvider.ts
+index b2d0070..4c7f120 100644
+--- a/front_end/ui/legacy/LinkContextMenuProvider.ts
++++ b/front_end/ui/legacy/LinkContextMenuProvider.ts
+@@ -28,7 +28,7 @@ export class LinkContextMenuProvider implements Provider<Node> {
+     const node: Link = targetNode;
+     contextMenu.revealSection().appendItem(openLinkExternallyLabel(), () => {
+       if (node.href) {
+-        UIHelpers.openInNewTab(node.href);
++        UIHelpers.openInNewTab(node.href, node.allowPrivileged);
+       }
+     }, {jslogContext: 'open-in-new-tab'});
+     contextMenu.revealSection().appendItem(copyLinkAddressLabel(), () => {
+-- 
+2.43.0
+
