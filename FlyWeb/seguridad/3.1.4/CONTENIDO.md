@@ -36,6 +36,36 @@ si su árbol no es `8ee111cf22` y `db885a866b`, avisa antes de seguir.
 `chrome/VERSION` sigue en .110 (sin tag .111). V8 sigue en 15.6.75.66 (gitlink sin cambiar; todo va en `patches/v8`).
 Dawn, FFmpeg, PDFium e ICU: sin cambios.
 
+### Adaptaciones de LOCAL-19 al compilar (`adapt/`)
+
+Dos parches de la serie no compilaban en la 156 (como pasó con el 0030). LOCAL-19 los adaptó y SEGURIDAD-PORTES-30
+los revisó (APTO más abajo). Van **al final**: chromium, después del commit de fijación de los repositorios aparte;
+brave-core, después de `integracion/brave-core/0002`.
+
+| Repositorio | Base | Parche | Rama de revisión (`ls-remote`, 18-11) |
+|---|---|---|---|
+| chromium | `local/314` + la serie de arriba (`ddf5f555b2`) + fijación (`555b8ba0ac`) | `adapt/chromium/0001` | `local/314-adapt` **`aaa7d7508d`** (árbol `07474464c`) |
+| brave-core | `seg/3.1.4-integracion` `6441095f59` | `adapt/brave-core/0002` | `local/3.1.4-adapt` **`e660929ac9`** (árbol `a99fb9144`) |
+
+- **0001, `parte4/chromium/0012` (Revoke Directory capability after unzip):** `UnzipFilesystemImpl` sobrescribía
+  `GetDiskSpaceInfo` y `ComputeDirectorySize`, que el `storage::mojom::Directory` de la 156 no tiene. Se quitan esos
+  dos métodos y nada más. Los diez métodos del mojom de la 156 (`Clone`, `PathExists`, `GetEntries`, `OpenFile`,
+  `CreateDirectory`, `DeleteFile`, `GetFileInfo`, `GetPathAccess`, `RenameFile`, `LockFile`) siguen igual que en el
+  arreglo: los permitidos, con el filtro de rutas, la apertura solo para crear y el borrado único; el resto, con
+  `ReportBadMessage`. La revocación del receptor antes del *callback*, el `unlink` previo en `RewriteManifestFile` y
+  `ComputedHashes::WriteToFile` y la comprobación del manifiesto recargado no cambian. El proceso utility no puede
+  llamar a dos métodos que la interfaz no tiene: **no se pierde ninguna comprobación**.
+- **0002, `parte5/chromium/0026` (aviso de `mime_types_handler`):** Brave compila con su propia copia de
+  `generated_resources.grd`, así que la cadena nueva no existía y `chrome_permission_message_rules.cc` no compilaba. Se
+  añade el mismo mensaje, con el mismo texto y la misma descripción que upstream y en el mismo sitio. **El aviso llega al diálogo:**
+  brave-core no cambia las reglas de mensajes de Chromium (su `chromium_src/…/chrome_permission_message_rules.h` solo
+  declara un `GetAllRules_ChromiumImpl` que nadie usa; el `GetAllRules()` de Chromium, con la regla nueva, es el que
+  usa `ChromePermissionMessageProvider` para el diálogo de instalación y la comprobación de actualizaciones).
+  **Sale en inglés** («Read and display PDF files») en todos los idiomas: los `.xtb` de la 156 no la tienen. Es
+  aceptable: lo que importa es que el aviso salga, y reutilizar otra cadena ya traducida describiría mal el permiso.
+  Como el texto es idéntico al de upstream, el identificador de traducción también lo es: las traducciones llegan solas con la
+  pasada de `script/chromium-rebase-l10n.py` (no se editan `.xtb` a mano).
+
 ### Comprobación desde la serie limpia (`local/313`)
 
 | Repositorio | Serie sobre la anterior | Árbol (comprobado) |
@@ -79,6 +109,15 @@ Todos con `git apply --cached` sobre la base indicada, sin `-3`.
 `buzon/D8-LINUX/20261118-1740-SEGURIDAD-PORTES-30-v8-3.1.4.md` (rama `buzon`): un solo encargo con los 9 commits de V8
 nuevos (46c1404, c9afe36, 42d78d0f3d, b1457bd47a, 0b3bd2b, 336a6b3, fb3bcc3, 0ac2b27, fdbb7b1) y la época 37, sobre
 `seg/3.1.4-integracion`. **Si sale rojo, se quita el parche de V8 que falle y se recompila** (FS.47).
+
+## Veredicto (regla 17): **APTO**, adaptaciones `adapt/` 0001–0002 (LOCAL-19)
+
+Revisadas contra la 156 (mojom `Directory` de `local/313`; reglas de mensajes y `.grd` de brave-core). Ninguna quita
+una comprobación de seguridad: 0001 solo quita dos métodos que no existen en la interfaz de la 156; 0002 solo añade la
+cadena que faltaba. Pruebas para LOCAL: `extensions_unittests --gtest_filter='SandboxedUnpackerTest.*'`,
+`components_unittests --gtest_filter='UnzipTest.*'`, `browser_tests --gtest_filter='ExtensionCrxInstallerTest.*'` y `unit_tests --gtest_filter='PermissionMessageCombinationsUnittest.MimeTypesHandler*:PermissionsTest.IsPrivilegeIncrease'`;
+a mano, instalar una extensión normal (el `.crx` se descomprime y carga) y, si hay una a mano con `mime_types_handler`,
+ver el aviso en el diálogo.
 
 ## Veredicto (regla 17): **APTO**, 3.1.4 final (partes 1–6 + integración)
 

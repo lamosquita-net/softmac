@@ -1,0 +1,33 @@
+From e660929ac9114906b3c3cc32dff3e759ce23b489 Mon Sep 17 00:00:00 2001
+From: LOCAL-19 <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 20:30:16 +0100
+Subject: [PATCH] 3.1.4: add the mime_types_handler PDF warning string to
+ Brave's grd
+
+parte5/chromium/0026 adds IDS_EXTENSION_PROMPT_WARNING_MIME_TYPES_HANDLER_PDF
+to chrome/app/generated_resources.grd, but the build uses Brave's copy in
+brave/app/generated_resources.grd, so the string is missing there and
+chrome_permission_message_rules.cc does not compile. Add the same message.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ app/generated_resources.grd | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/app/generated_resources.grd b/app/generated_resources.grd
+index e17a4bccc..17eeaadcd 100644
+--- a/app/generated_resources.grd
++++ b/app/generated_resources.grd
+@@ -5294,6 +5294,9 @@ are declared in tools/grit/grit_args.gni.
+         <message name="IDS_EXTENSION_PROMPT_WARNING_NEW_TAB_PAGE_OVERRIDE" desc="Permission string for extensions that override the new tab page.">
+           Replace the page you see when opening a new tab
+         </message>
++        <message name="IDS_EXTENSION_PROMPT_WARNING_MIME_TYPES_HANDLER_PDF" desc="Permission string for extensions that register themselves as the handler that opens PDF files.">
++          Read and display PDF files
++        </message>
+         <message name="IDS_EXTENSION_PROMPT_WARNING_TRANSIENT_BACKGROUND" desc="Permission string for transient background permission.">
+           Run in the background when requested by a cooperating native application
+         </message>
+-- 
+2.43.0
+
