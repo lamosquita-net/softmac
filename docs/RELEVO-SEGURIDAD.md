@@ -1172,3 +1172,20 @@ sobre `47b14cb49e`, `angle/0002` sobre `fb21437e81`. Gravedad de todos: no const
   `tree:0` se cuelga bajando árboles uno a uno.
 - El `main` local del contenedor puede venir con historia vieja (anterior a una reescritura del remoto): `git reset
   --hard origin/main` en `main` (sin cambios propios), nunca reescribir el remoto.
+
+**Noche del 19-11 (COORDINACIÓN-53 = `session_01MwmK2hDFxpvnFEeC9c3ji7` desde las 22:14 UTC):**
+- 8078 hasta `7cd7567b30`: WebXR b7fd761 (`XRCameraUpdateHelper`) **no aplica** (sin runtime XR inmersivo en Mac; #1124);
+  Skia **9d96dfeb45** (Ganesh, scissor por *dst-read*, 584764517) → `pendiente/skia/0003`, árbol Skia `1ef25455d7` (#1129).
+- **Revisiones dadas (fuera de la 8078):**
+  - #1123 cosméticas sin clic (Web Store en blanco): APTO con alcance estrecho, solo la lista de cookies AC023D22, y
+    Titín eligió la variante (b), que solo cuenta `+js(trusted-click-element…)`. Aplicarlo a todas las listas sería
+    NO APTO (~943 ocultaciones de anuncios en Default).
+  - #1122 settings/system (CommandsService en el *broker* de SettingsUI): APTO con
+    `static_assert(sizeof(BraveSettingsUI) == sizeof(settings::SettingsUI))`; sin CHECK en tiempo de ejecución, porque
+    `BraveSettingsUI` no tiene miembros propios.
+  - #1128 Apariencia (`pref-key` en 6 desplegables): APTO. `settings-dropdown-menu` de la 156 solo escribe la pref al
+    cambiarla (`onChange_`); LOCAL-19 comprobó que `webrtc.ip_handling_policy` no cambia al abrir la página.
+- **Estado al relevar:** 8078 en `7cd7567b30`, sin tag .112; V8 15.6 `c4641b4cbe` (.73); Skia de la 8078 `9d96dfeb451c`;
+  159 en beta (.28). Siguientes: `chromium/0002` sobre `2c8ef28a99`, `brave-core/0002` sobre `90134a4e08`,
+  `skia/0004` sobre `1ef25455d7`, `angle/0002` sobre `fb21437e81`.
+- **Trampa:** `git fetch` de otra rama pisa `FETCH_HEAD`; para comparar puntas de PR usa el SHA explícito.
