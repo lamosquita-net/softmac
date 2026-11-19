@@ -191,6 +191,22 @@ run --profile "$MAC3"
 [ -L "$MAC3/enlace-e" ] && ok "con sin-enlaces, el enlace sigue en el Mac" || fail "con sin-enlaces, el enlace desaparece del Mac"
 rm -f "$BACKUPDRIVE_DIR/sin-enlaces"
 
+# --- 14. Basura de macOS y de SMB excluida por defecto, también en un perfil que ya la había subido ---
+MAC4="$T/mac4"; DRIVE4="$T/drive4"; mkdir -p "$MAC4"
+i=1; while [ $i -le 20 ]; do echo "g$i" > "$MAC4/g$i.txt"; i=$((i + 1)); done
+echo ds > "$MAC4/.DS_Store"; echo rf > "$MAC4/._g1.txt"
+printf '%s\n' "$MAC4|fake:$DRIVE4|90|20|5" >> "$BACKUPDRIVE_DIR/profiles"
+# En un subshell: con /bin/sh de macOS (bash POSIX), «VAR=x función» deja VAR puesta después de la llamada.
+(BACKUPDRIVE_DEFAULT_EXCLUDES=0; export BACKUPDRIVE_DEFAULT_EXCLUDES; run --profile "$MAC4" --resync)
+has "$DRIVE4/._g1.txt" "sin exclusiones por defecto, ._g1.txt sube (preparación)"
+echo sd > "$MAC4/.smbdeleteAAA1"
+run --profile "$MAC4"
+[ "$(result)" = ok ] && ok "al activar las exclusiones, pasada ok" || fail "al activar las exclusiones ($(result))"
+has "$MAC4/._g1.txt" "al activar las exclusiones, ._g1.txt sigue en el Mac"
+has "$DRIVE4/._g1.txt" "al activar las exclusiones, ._g1.txt sigue en Drive (no se borra)"
+hasnt "$DRIVE4/.smbdeleteAAA1" ".smbdelete no sube"
+has "$MAC4/.smbdeleteAAA1" ".smbdelete sigue en el Mac"
+
 [ -n "${KEEP_LOG:-}" ] && cp "$BACKUPDRIVE_LOG_DIR/backupdrive.log" "$KEEP_LOG"
 echo "$((n - fails))/$n correctas"
 [ "$fails" -eq 0 ]
