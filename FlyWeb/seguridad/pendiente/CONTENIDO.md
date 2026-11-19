@@ -20,7 +20,7 @@ Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1
 | chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001` | **`2c8ef28a99`** |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
 | brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001` | **`90134a4e08`** |
-| Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001` | **`32f1340fb3`** |
+| Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001`–`0002` | **`47b14cb49e`** (tras `0001`: `32f1340fb3`) |
 
 Si la siguiente versión cambia de base (p. ej. la 3.2.0 o la 159), **hay que volver a comprobar que aplican**; puede que
 la base nueva ya los traiga.
@@ -41,6 +41,9 @@ la base nueva ya los traiga.
 | V8 15.6 `c4641b4` (.73) | 020b95f «[test] Speed up regress-584005343 under --gc-stress»: solo una prueba | — | — |
 | `5655356`, `b5f8579`, `62cd52a`, `b225b45` (19-11 17:46–18:28 UTC) | Pruebas desactivadas y `TestExpectations` (Glic TSan, WebAppIntegration, webdriver WPT) | — | — |
 | `65b1ce5` (19-11 18:04 UTC) | *Roll* de V8 `9f5c567b62..c4641b4cbe` (= la .73 de arriba) y de Skia `13d0b32615a3..16a9d4d9a345`: **16a9d4d9a3** [M156] «[graphite] Ensure depth is reset for draws which overwritesAllPixels» (b/586169898, merge 587681113) | **No** (abajo) | — |
+| `9275276` (19-11 19:02 UTC) | *Roll* de Dawn `062164c3c784..218eeee7469d` | **Por revisar** (LOCAL; Dawn no se lee desde la nube) | — |
+| `848c24c` (19-11 19:31 UTC) | *Roll* de Skia `16a9d4d9a345..7dc6c0c3424a`: **7dc6c0c342** [M156] «[SkScalerContext] Harden LCD16 and getImage bounds» (b/576955738, merge 585801577) | Sí (abajo) | `skia/0002` |
+| `8d177bf` (19-11 19:43 UTC) | [M156] «Drop pending main-frame navigations when tab is added to task» (568905533, merge 584997715), `chrome/browser/actor` | **No** (abajo) | — |
 
 Sin tag .112 (la rama ya llevaba `chrome/VERSION` en .112 desde `aac2cdd377`).
 
@@ -190,6 +193,43 @@ Es el *cherry-pick* de upstream sin cambios. Efecto: un dibujo que pediría un b
 desbordamiento) se salta en vez de corromper memoria; los tamaños normales no cambian, salvo la reserva inicial de
 vértices, que empieza más pequeña y crece. Prueba para LOCAL: páginas con canvas 2D y SVG grandes y una con muchos
 trazos (p. ej. los demos de `FlyWeb/tools/`), en la 6,1 y en la 5,1.
+
+## `skia/0002`: Skia 7dc6c0c342 (b/576955738, merge 585801577)
+
+`src/ports/SkFontHost_FreeType_common.cpp` y `src/core/SkScalerContext.cpp`: en `generateGlyphImage`, la ruta LCD16
+cruzaba los límites de la máscara (en píxeles) con las medidas del mapa de bits LCD de FreeType (en subpíxeles, ×3) y
+restaba desplazamientos sin escalar a anchos y punteros: escritura desalineada en `copyFT2LCD16` cuando dos cargas del
+mismo glifo divergen. El arreglo pasa los límites LCD a píxeles antes de cruzarlos, valida el modo LCD y la divisibilidad
+por 3, recorta mapa y máscara a la parte común, protege la traslación de contornos no LCD contra el desbordamiento de
+`SkFDot6` y añade comprobaciones a la entrada de `SkScalerContext::getImage`.
+
+**Aplica a Mac, por prudencia.** En Mac `enable_freetype` es `true` (`build/config/freetype/freetype.gni`) y el
+`skia/BUILD.gn` de Chromium compila `skia_ports_freetype_sources` y define `SK_TYPEFACE_FACTORY_FREETYPE`; el propio
+fichero dice que PDFium usa este backend al dibujar su caché de glifos con Skia. Las fuentes web **no** pasan por aquí en
+Mac (`web_font_typeface_factory.cc`: CoreText o Fontations). No pude leer PDFium desde la nube (host bloqueado) para
+confirmar la ruta exacta; si LOCAL ve que FlyWeb no la alcanza, el parche es inocuo igual.
+
+- Aplica limpio con `git am` sobre `32f1340fb3` (tras `skia/0001`): árbol **`47b14cb49e`**. Mismo `patch-id` que el
+  original (`38a6e5929e`).
+- `SkFontHost_FreeType_common.cpp` y `SkScalerContext.cpp` pasan `clang++ -fsyntax-only` con el parche (cabeceras de
+  FreeType del sistema). `BUILD.gn`, `modules/canvaskit/compile_gm.sh` y `tests/FontHostFreeTypeTest.cpp` son de la
+  build y las pruebas propias de Skia, que Chromium no usa.
+- **Gravedad: no consta** (bug restringido).
+- **Para LOCAL:** `git am` después de `skia/0001` y volver a fijar el gitlink de `third_party/skia` y `skia_revision`.
+
+### Veredicto (regla 17): **APTO**, `skia/0002`
+
+Es el *cherry-pick* de upstream sin cambios. Efecto: glifos con mapas LCD incoherentes se recortan o se descartan en vez
+de escribirse fuera de sitio; el texto normal no cambia. Prueba para LOCAL: abrir e imprimir a PDF unos PDF con mucho
+texto (fuentes incrustadas TrueType y Type 1) en el visor de FlyWeb, en la 6,1 y en la 5,1.
+
+## Actor (8d177bf): no aplica
+
+Toca solo `chrome/browser/actor/actor_task.cc` (más su prueba): al pasar una pestaña al control de una tarea de Actor se
+descartan las navegaciones pendientes del marco principal, que si no se saltaban el control de orígenes. Actor se
+compila en Mac, pero una `ActorTask` solo la crea Glic (Gemini en Chrome), que exige una cuenta de Google con sesión
+iniciada; FlyWeb no tiene inicio de sesión de Google (Brave lo quita). Sin tarea de Actor no hay pestaña que gatear. No
+comprobado en ejecución; si LOCAL ve Glic activo en la build, se revisa.
 
 ## Skia 16a9d4d9a3 (roll `65b1ce5`): no aplica
 

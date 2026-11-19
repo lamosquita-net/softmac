@@ -1,0 +1,507 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alexis Cruz-Ayala <alexisdavidc@google.com>
+Date: Thu, 12 Nov 2026 13:27:46 -0500
+Subject: [pending][8078 after build 47] [M156] [SkScalerContext] Harden LCD16
+ and getImage bounds
+
+FlyWeb: Skia 7dc6c0c342 from the branch-heads/8078 roll 848c24c (16a9d4d9a345..7dc6c0c3424a),
+applied on the pending Skia tree 32f1340fb3 (after skia/0001). Same patch-id as upstream (38a6e5929e).
+
+Original change's description:
+> [SkScalerContext] Harden LCD16 and getImage bounds
+>
+> When a font scaler retains state across glyph loads, consecutive loads can diverge in outline position and dimensions. In SkScalerContextFTUtils::generateGlyphImage, the kLCD16_Format path previously intersected pixel-space mask.fBounds against FreeType's 3x subpixel-scaled bitmap dimensions and subtracted unscaled pixel offsets from subpixel width, rows, and buffer pointers, triggering subpixel misalignment and assertion failures in copyFT2LCD16.
+>
+> Convert FreeType's LCD bitmap bounds to pixel coordinates before intersecting with mask.fBounds, validate LCD pixel mode and 3x divisibility, and crop both the subpixel FT_Bitmap and destination SkMask to the pixel overlap. Also guard non-LCD subpixel outline translation against SkFDot6 overflow, assert non-empty in-bounds pre-allocated buffers at SkScalerContext::getImage entry, and add FreeType_GenerateGlyphImageDivergentOutline in tests/FontHostFreeTypeTest.cpp.
+>
+> Bug: b/576955738
+> Fixed: b/576955738
+> Change-Id: I831b9b2eeb26d3ebc6cc1db1121de72ef2964845
+> Reviewed-on: https://skia-review.googlesource.com/c/skia/+/1425156
+> Reviewed-by: Julia Lavrova <jlavrova@google.com>
+> Commit-Queue: Alexis Cruz-Ayala <alexisdavidc@google.com>
+
+(cherry picked from commit 8c460dc362b90ff1ea56f3b876ec65ee5c2faab5)
+
+Bug: 585801577,b/576955738,b/576955738
+Change-Id: I831b9b2eeb26d3ebc6cc1db1121de72ef2964845
+Reviewed-on: https://skia-review.googlesource.com/c/skia/+/1434278
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: Chrome Cherry Picker <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+---
+ BUILD.gn                                 |   4 +
+ modules/canvaskit/compile_gm.sh          |   1 +
+ src/core/SkScalerContext.cpp             |   1 +
+ src/ports/SkFontHost_FreeType_common.cpp | 117 +++++-----
+ tests/FontHostFreeTypeTest.cpp           | 265 +++++++++++++++++++++++
+ 5 files changed, 333 insertions(+), 55 deletions(-)
+ create mode 100644 tests/FontHostFreeTypeTest.cpp
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 07a3e9696d..2c371506cc 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -3021,6 +3021,10 @@ if (skia_enable_tools) {
+         "//third_party/libwebp",
+         "//third_party/zlib",
+       ]
++      if (skia_use_freetype) {
++        sources += [ "tests/FontHostFreeTypeTest.cpp" ]
++        deps += [ "//third_party/freetype2" ]
++      }
+       if (skia_use_rust_jpeg_decode) {
+         deps += [ ":jpeg_decode_rust" ]
+       }
+diff --git a/modules/canvaskit/compile_gm.sh b/modules/canvaskit/compile_gm.sh
+index 80c890cd0e..b69941834f 100755
+--- a/modules/canvaskit/compile_gm.sh
++++ b/modules/canvaskit/compile_gm.sh
+@@ -175,6 +175,7 @@ GLOBIGNORE+="tests/CodecTest.cpp:"\
+ "tests/FontationsTest.cpp:"\
+ "tests/FontationsFtCompTest.cpp:"\
+ "tests/FontScanner_FontationsTest.cpp:"\
++"tests/FontHostFreeTypeTest.cpp:"\
+ "tests/FontScanner_FreeTypeTest.cpp:"\
+ "tests/FCITest.cpp:"\
+ "tests/JpegGainmapTest.cpp:"\
+diff --git a/src/core/SkScalerContext.cpp b/src/core/SkScalerContext.cpp
+index 7900142119..da23dfe0af 100644
+--- a/src/core/SkScalerContext.cpp
++++ b/src/core/SkScalerContext.cpp
+@@ -701,6 +701,7 @@ void SkScalerContext::GenerateImageFromPath(
+ // origGlyph.fImage when consecutive loads diverge
+ void SkScalerContext::getImage(const SkGlyph& origGlyph) {
+     SkASSERT(origGlyph.fAdvancesBoundsFormatAndInitialPathDone);
++    SkASSERT(!origGlyph.isEmpty() && !origGlyph.imageTooLarge() && origGlyph.fImage != nullptr);
+ 
+     const SkGlyph* unfilteredGlyph = &origGlyph;
+     // in case we need to call generateImage on a mask-format that is different
+diff --git a/src/ports/SkFontHost_FreeType_common.cpp b/src/ports/SkFontHost_FreeType_common.cpp
+index 865d761c83..790b091149 100644
+--- a/src/ports/SkFontHost_FreeType_common.cpp
++++ b/src/ports/SkFontHost_FreeType_common.cpp
+@@ -26,6 +26,8 @@
+ #include "src/core/SkTHash.h"
+ 
+ #include <algorithm>
++#include <cstddef>
++#include <cstdint>
+ #include <optional>
+ #include <utility>
+ #include <vector>
+@@ -1666,70 +1668,69 @@ void SkScalerContextFTUtils::generateGlyphImage(FT_Face face, const SkGlyph& gly
+                     memset(mask.image(), 0x80, mask.fBounds.height() * mask.fRowBytes);
+                 }
+                 FT_GlyphSlotRec& ftGlyph = *face->glyph;
+-
+-                if (!SkIRect::Intersects(mask.fBounds,
+-                                         SkIRect::MakeXYWH( ftGlyph.bitmap_left,
+-                                                           -ftGlyph.bitmap_top,
+-                                                            ftGlyph.bitmap.width,
+-                                                            ftGlyph.bitmap.rows)))
+-                {
++                const int64_t ftVertScale = doVert ? 3 : 1;
++                const int64_t ftHoriScale = doVert ? 1 : 3;
++                const FT_Pixel_Mode expectedMode = doVert ? FT_PIXEL_MODE_LCD_V : FT_PIXEL_MODE_LCD;
++                if (!ftGlyph.bitmap.buffer || ftGlyph.bitmap.pixel_mode != expectedMode ||
++                    ftGlyph.bitmap.width % ftHoriScale != 0 ||
++                    ftGlyph.bitmap.rows % ftVertScale != 0) {
+                     return;
+                 }
+ 
+-                // If the FT_Bitmap extent is larger, discard bits of the bitmap outside the mask.
+-                // If the SkMask extent is larger, shrink mask to fit bitmap (clearing discarded).
+-                unsigned char* origBuffer = ftGlyph.bitmap.buffer;
+-                // First align the top left (origin).
+-                if (-ftGlyph.bitmap_top < mask.fBounds.fTop) {
+-                    int32_t topDiff = mask.fBounds.fTop - (-ftGlyph.bitmap_top);
+-                    ftGlyph.bitmap.buffer += ftGlyph.bitmap.pitch * topDiff;
+-                    ftGlyph.bitmap.rows -= topDiff;
+-                    ftGlyph.bitmap_top = -mask.fBounds.fTop;
+-                }
+-                if (ftGlyph.bitmap_left < mask.fBounds.fLeft) {
+-                    int32_t leftDiff = mask.fBounds.fLeft - ftGlyph.bitmap_left;
+-                    ftGlyph.bitmap.buffer += leftDiff;
+-                    ftGlyph.bitmap.width -= leftDiff;
+-                    ftGlyph.bitmap_left = mask.fBounds.fLeft;
+-                }
+-                if (mask.fBounds.fTop < -ftGlyph.bitmap_top) {
+-                    mask.image() += mask.fRowBytes * (-ftGlyph.bitmap_top - mask.fBounds.fTop);
+-                    mask.bounds().fTop = -ftGlyph.bitmap_top;
+-                }
+-                if (mask.fBounds.fLeft < ftGlyph.bitmap_left) {
+-                    mask.image() += sizeof(uint16_t) * (ftGlyph.bitmap_left - mask.fBounds.fLeft);
+-                    mask.bounds().fLeft = ftGlyph.bitmap_left;
+-                }
+-                // Origins aligned, clean up the width and height.
+-                int ftVertScale = (doVert ? 3 : 1);
+-                int ftHoriScale = (doVert ? 1 : 3);
+-                if (mask.fBounds.height() * ftVertScale < SkToInt(ftGlyph.bitmap.rows)) {
+-                    ftGlyph.bitmap.rows = mask.fBounds.height() * ftVertScale;
+-                }
+-                if (mask.fBounds.width() * ftHoriScale < SkToInt(ftGlyph.bitmap.width)) {
+-                    ftGlyph.bitmap.width = mask.fBounds.width() * ftHoriScale;
+-                }
+-                if (SkToInt(ftGlyph.bitmap.rows) < mask.fBounds.height() * ftVertScale) {
+-                    mask.bounds().fBottom = mask.fBounds.fTop + ftGlyph.bitmap.rows / ftVertScale;
++                // Convert FreeType's subpixel-scaled LCD dimensions into pixel coordinates and
++                // intersect with mask.fBounds.
++                const int64_t ftLeft = ftGlyph.bitmap_left;
++                const int64_t ftTop = -int64_t{ftGlyph.bitmap_top};
++                const int64_t ftWidth = ftGlyph.bitmap.width / ftHoriScale;
++                const int64_t ftHeight = ftGlyph.bitmap.rows / ftVertScale;
++                if (!SkTFitsIn<int32_t>(ftLeft) || !SkTFitsIn<int32_t>(ftTop) ||
++                    !SkTFitsIn<int32_t>(ftWidth) || !SkTFitsIn<int32_t>(ftHeight) ||
++                    !SkTFitsIn<int32_t>(ftLeft + ftWidth) ||
++                    !SkTFitsIn<int32_t>(ftTop + ftHeight)) {
++                    return;
+                 }
+-                if (SkToInt(ftGlyph.bitmap.width) < mask.fBounds.width() * ftHoriScale) {
+-                    mask.bounds().fRight = mask.fBounds.fLeft + ftGlyph.bitmap.width / ftHoriScale;
++
++                const SkIRect ftBounds = SkIRect::MakeXYWH(
++                        SkToS32(ftLeft), SkToS32(ftTop), SkToS32(ftWidth), SkToS32(ftHeight));
++                SkIRect overlap = mask.fBounds;
++                if (!overlap.intersect(ftBounds)) {
++                    return;
+                 }
++
++                // Crop both the FreeType subpixel bitmap and destination SkMask to `overlap`.
++                const int64_t ftSkipRows = (overlap.fTop - ftBounds.fTop) * ftVertScale;
++                const int64_t ftSkipCols = (overlap.fLeft - ftBounds.fLeft) * ftHoriScale;
++                FT_Bitmap clippedBitmap = ftGlyph.bitmap;
++                clippedBitmap.buffer +=
++                        SkTo<ptrdiff_t>(clippedBitmap.pitch * ftSkipRows + ftSkipCols);
++                clippedBitmap.rows = SkToUInt(overlap.height() * ftVertScale);
++                clippedBitmap.width = SkToUInt(overlap.width() * ftHoriScale);
++
++                const size_t maskSkipRows = SkToSizeT(overlap.fTop - mask.fBounds.fTop);
++                const size_t maskSkipCols = SkToSizeT(overlap.fLeft - mask.fBounds.fLeft);
++                mask.image() += maskSkipRows * mask.fRowBytes + maskSkipCols * sizeof(uint16_t);
++                mask.bounds() = overlap;
++
+                 if (preBlend.isApplicable()) {
+-                    copyFT2LCD16<true>(ftGlyph.bitmap, &mask, doBGR,
+-                                       preBlend.fR, preBlend.fG, preBlend.fB);
++                    copyFT2LCD16<true>(
++                            clippedBitmap, &mask, doBGR, preBlend.fR, preBlend.fG, preBlend.fB);
+                 } else {
+-                    copyFT2LCD16<false>(ftGlyph.bitmap, &mask, doBGR,
+-                                        preBlend.fR, preBlend.fG, preBlend.fB);
++                    copyFT2LCD16<false>(
++                            clippedBitmap, &mask, doBGR, preBlend.fR, preBlend.fG, preBlend.fB);
+                 }
+-                // Restore the buffer pointer so FreeType can properly free it.
+-                ftGlyph.bitmap.buffer = origBuffer;
+             } else {
+                 FT_BBox     bbox;
+                 FT_Bitmap   target;
+                 FT_Outline_Get_CBox(outline, &bbox);
+-                if (!SkTFitsIn<SkFDot6>(bbox.xMin) || !SkTFitsIn<SkFDot6>(bbox.xMax) ||
+-                    !SkTFitsIn<SkFDot6>(bbox.yMin) || !SkTFitsIn<SkFDot6>(bbox.yMax)) {
++                const int64_t xMin = bbox.xMin;
++                const int64_t xMax = bbox.xMax;
++                const int64_t yMin = bbox.yMin;
++                const int64_t yMax = bbox.yMax;
++                const int64_t shiftedXMin = xMin + dx;
++                const int64_t shiftedYMin = yMin + dy;
++                if (!SkTFitsIn<SkFDot6>(xMin) || !SkTFitsIn<SkFDot6>(xMax) ||
++                    !SkTFitsIn<SkFDot6>(yMin) || !SkTFitsIn<SkFDot6>(yMax) ||
++                    !SkTFitsIn<SkFDot6>(shiftedXMin) || !SkTFitsIn<SkFDot6>(shiftedYMin)) {
+                     return;
+                 }
+ 
+@@ -1738,9 +1739,15 @@ void SkScalerContextFTUtils::generateGlyphImage(FT_Face face, const SkGlyph& gly
+                 // We do this by calculating the translation required to move the glyph's
+                 // pixel-rounded left edge (in the destination space) to the origin which allows
+                 // us to only make one call to Translate.
+-                auto xShift = dx - SkIntToFDot6(SkFDot6Floor(bbox.xMin + dx));
+-                auto yShift = dy - SkIntToFDot6(SkFDot6Floor(bbox.yMin + dy));
+-                FT_Outline_Translate(outline, xShift, yShift);
++                const int64_t xShift =
++                        int64_t{dx} - SkIntToFDot6(SkFDot6Floor(SkToS32(shiftedXMin)));
++                const int64_t yShift =
++                        int64_t{dy} - SkIntToFDot6(SkFDot6Floor(SkToS32(shiftedYMin)));
++                if (!SkTFitsIn<SkFDot6>(xShift) || !SkTFitsIn<SkFDot6>(yShift) ||
++                    !SkTFitsIn<SkFDot6>(xMax + xShift) || !SkTFitsIn<SkFDot6>(yMax + yShift)) {
++                    return;
++                }
++                FT_Outline_Translate(outline, SkToS32(xShift), SkToS32(yShift));
+ 
+                 target.width = glyph.width();
+                 target.rows = glyph.height();
+diff --git a/tests/FontHostFreeTypeTest.cpp b/tests/FontHostFreeTypeTest.cpp
+new file mode 100644
+index 0000000000..bf72e295f8
+--- /dev/null
++++ b/tests/FontHostFreeTypeTest.cpp
+@@ -0,0 +1,265 @@
++/*
++ * Copyright 2026 Google LLC
++ *
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++#include "include/core/SkColor.h"
++#include "include/core/SkData.h"
++#include "include/core/SkFont.h"
++#include "include/core/SkFontMetrics.h"
++#include "include/core/SkMatrix.h"
++#include "include/core/SkPaint.h"
++#include "include/core/SkRect.h"
++#include "include/core/SkRefCnt.h"
++#include "include/core/SkSurfaceProps.h"
++#include "include/core/SkTypeface.h"
++#include "include/core/SkTypes.h"
++#include "include/private/SkFixed.h"
++#include "include/private/SkTo.h"
++#include "src/core/SkArenaAlloc.h"
++#include "src/core/SkGlyph.h"
++#include "src/core/SkMask.h"
++#include "src/core/SkMaskGamma.h"
++#include "src/core/SkScalerContext.h"
++#include "src/core/SkStrikeSpec.h"
++#include "src/ports/SkFontHost_FreeType_common.h"
++#include "tests/Test.h"
++#include "tools/Resources.h"
++#include "tools/fonts/TestEmptyTypeface.h"
++
++#include <algorithm>
++#include <cstddef>
++#include <cstdint>
++#include <memory>
++#include <optional>
++#include <vector>
++
++#include <ft2build.h>
++
++#include <freetype/freetype.h>
++#include <freetype/ftoutln.h>
++
++namespace {
++
++// Creates an SkGlyph locked to caller-specified bounds and mask format, simulating the cached
++// metrics from an initial glyph load before a subsequent FreeType load diverges.
++SkGlyph make_test_glyph(SkRect bounds,
++                        SkMask::Format format,
++                        SkPixelGeometry pixelGeometry,
++                        SkPackedGlyphID packedID,
++                        SkArenaAlloc* alloc) {
++    class FixedBoundsTypeface final : public TestEmptyTypeface {
++    public:
++        FixedBoundsTypeface(SkRect bounds, SkMask::Format format)
++                : fBounds(bounds), fFormat(format) {}
++
++    protected:
++        std::unique_ptr<SkScalerContext> onCreateScalerContext(
++                const SkScalerContextEffects& effects, const SkDescriptor* desc) const override {
++            class ScalerContext final : public SkScalerContext {
++            public:
++                ScalerContext(FixedBoundsTypeface& tf,
++                              const SkScalerContextEffects& effects,
++                              const SkDescriptor* desc)
++                        : SkScalerContext(tf, effects, desc)
++                        , fBounds(tf.fBounds)
++                        , fFormat(tf.fFormat) {}
++
++            protected:
++                GlyphMetrics generateMetrics(const SkGlyph&, SkArenaAlloc*) override {
++                    GlyphMetrics mx(fFormat);
++                    mx.neverRequestPath = true;
++                    mx.bounds = fBounds;
++                    return mx;
++                }
++                void generateImage(const SkGlyph&, void*) override {}
++                std::optional<GeneratedPath> generatePath(const SkGlyph&) override {
++                    return std::nullopt;
++                }
++                void generateFontMetrics(SkFontMetrics*) override {}
++
++            private:
++                const SkRect fBounds;
++                const SkMask::Format fFormat;
++            };
++            return std::make_unique<ScalerContext>(
++                    *const_cast<FixedBoundsTypeface*>(this), effects, desc);
++        }
++
++    private:
++        const SkRect fBounds;
++        const SkMask::Format fFormat;
++    };
++
++    SkFont font(sk_make_sp<FixedBoundsTypeface>(bounds, format), 10.0f);
++    font.setEdging(format == SkMask::kLCD16_Format ? SkFont::Edging::kSubpixelAntiAlias
++                                                   : SkFont::Edging::kAntiAlias);
++    font.setSubpixel(true);
++    SkStrikeSpec spec = SkStrikeSpec::MakeMask(font,
++                                               SkPaint(),
++                                               SkSurfaceProps(0, pixelGeometry),
++                                               SkScalerContextFlags::kNone,
++                                               SkMatrix::I());
++    return spec.createScalerContext()->makeGlyph(packedID, alloc);
++}
++
++// Surrounds an image buffer with 64-byte canary regions and pre-fills the payload with 0x5A so
++// tests also verify that generateGlyphImage zeroes the destination on rejected/disjoint outlines.
++struct GuardedBuffer {
++    static constexpr size_t kCanaryBytes = 64;
++    static constexpr uint8_t kCanary = 0x5A;
++
++    std::vector<uint8_t> storage;
++
++    explicit GuardedBuffer(size_t size) : storage(size + 2 * kCanaryBytes, kCanary) {}
++
++    uint8_t* data() { return storage.data() + kCanaryBytes; }
++
++    bool canariesIntact() const {
++        auto isCanary = [](uint8_t b) { return b == kCanary; };
++        return std::all_of(storage.begin(), storage.begin() + kCanaryBytes, isCanary) &&
++               std::all_of(storage.end() - kCanaryBytes, storage.end(), isCanary);
++    }
++
++    bool hasNonZeroPayload() const {
++        return std::any_of(storage.begin() + kCanaryBytes,
++                           storage.end() - kCanaryBytes,
++                           [](uint8_t b) { return b != 0; });
++    }
++};
++
++}  // namespace
++
++// Verifies SkScalerContextFTUtils::generateGlyphImage when a FreeType outline diverges from
++// SkGlyph's pre-computed bounds:
++//   1. kLCD16_Format subpixel-to-pixel intersection and 3x subpixel cropping.
++//   2. Non-LCD kA8_Format SkFDot6 subpixel translation overflow guards.
++DEF_TEST(FreeType_GenerateGlyphImageDivergentOutline, reporter) {
++    // Load the 'X' outline from ahem.ttf at 10px to establish a known 10x10 pixel glyph box.
++    sk_sp<SkData> fontData = GetResourceAsData("fonts/ahem.ttf");
++    if (!fontData) {
++        return;
++    }
++
++    FT_Library rawLib = nullptr;
++    if (FT_Init_FreeType(&rawLib) != 0) {
++        ERRORF(reporter, "FT_Init_FreeType failed");
++        return;
++    }
++    std::unique_ptr<FT_LibraryRec_, decltype(&FT_Done_FreeType)> library(rawLib, FT_Done_FreeType);
++
++    FT_Face rawFace = nullptr;
++    if (FT_New_Memory_Face(
++                library.get(), fontData->bytes(), SkTo<FT_Long>(fontData->size()), 0, &rawFace) !=
++        0) {
++        ERRORF(reporter, "FT_New_Memory_Face failed");
++        return;
++    }
++    std::unique_ptr<FT_FaceRec_, decltype(&FT_Done_Face)> face(rawFace, FT_Done_Face);
++
++    REPORTER_ASSERT(reporter, FT_Set_Pixel_Sizes(face.get(), 0, 10) == 0);
++    REPORTER_ASSERT(reporter, FT_Load_Char(face.get(), 'X', FT_LOAD_NO_BITMAP) == 0);
++    REPORTER_ASSERT(reporter, face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
++
++    // Negate yMax/yMin to convert FreeType's Y-up 26.6 coordinates into Skia's Y-down pixel space.
++    FT_BBox initBox;
++    FT_Outline_Get_CBox(&face->glyph->outline, &initBox);
++    const SkRect baseBounds = SkRect::MakeLTRB(SkIntToScalar(initBox.xMin >> 6),
++                                               SkIntToScalar(-(initBox.yMax >> 6)),
++                                               SkIntToScalar(initBox.xMax >> 6),
++                                               SkIntToScalar(-(initBox.yMin >> 6)));
++    REPORTER_ASSERT(reporter, baseBounds.width() == 10 && baseBounds.height() == 10);
++
++    // --- Part 1: kLCD16_Format subpixel clipping (horizontal 3x1 and vertical 1x3) ---
++    // FreeType's LCD renderer scales bitmap width (horizontal) or rows (vertical) by 3x while
++    // keeping bitmap_left / bitmap_top in whole pixels. Shifting the outline before rendering
++    // forces generateGlyphImage to clip the 3x subpixel bitmap against pixel-space mask.fBounds.
++    struct ShiftCase {
++        int dxPx;
++        int dyPx;
++        bool expectNonZero;
++    };
++    constexpr ShiftCase kShifts[] = {
++            {0, 0, true},   // Unshifted baseline: full 10x10 overlap.
++            {-4, 0, true},  // Partial left/right/top/bottom shifts: +-4 px is not a multiple of 3,
++            {4, 0, true},   // verifying 3x subpixel stride scaling and copyFT2LCD16 alignment.
++            {0, -4, true},
++            {0, 4, true},
++            {-15, 0, false},  // Disjoint shifts: moves the 10x10 glyph outside baseBounds while
++            {0, 15, false},  // landing inside the [0..30] false-overlap window of unscaled 3x size.
++    };
++
++    for (bool doVert : {false, true}) {
++        const SkPixelGeometry geom = doVert ? kRGB_V_SkPixelGeometry : kRGB_H_SkPixelGeometry;
++        SkArenaAlloc alloc{256};
++        SkGlyph glyph = make_test_glyph(
++                baseBounds, SkMask::kLCD16_Format, geom, SkPackedGlyphID((SkGlyphID)1), &alloc);
++        REPORTER_ASSERT(reporter, glyph.maskFormat() == SkMask::kLCD16_Format);
++
++        SkScalerContextFTUtils utils{};
++        const uint32_t flags = doVert ? SkScalerContext::kLCD_Vertical_Flag : 0;
++        utils.init(SK_ColorBLACK, static_cast<SkScalerContext::Flags>(flags));
++        SkMaskGamma::PreBlend noPreBlend;
++
++        for (const ShiftCase& tc : kShifts) {
++            REPORTER_ASSERT(reporter, FT_Load_Char(face.get(), 'X', FT_LOAD_NO_BITMAP) == 0);
++            FT_Outline_Translate(&face->glyph->outline, tc.dxPx * 64, tc.dyPx * 64);
++
++            GuardedBuffer buf(glyph.imageSize());
++            utils.generateGlyphImage(face.get(), glyph, buf.data(), SkMatrix::I(), noPreBlend);
++
++            REPORTER_ASSERT(reporter, buf.canariesIntact());
++            REPORTER_ASSERT(reporter, buf.hasNonZeroPayload() == tc.expectNonZero);
++        }
++    }
++
++    // --- Part 2: Non-LCD SkFDot6 subpixel translation overflow guards ---
++    // With (0.5, 0.5) subpixel positioning, generateGlyphImage applies dx = +32 and dy = -32 (in
++    // 26.6 fixed-point) and snaps the shifted bounding box to the pixel grid via xShift / yShift.
++    // Each row places outline coordinates near INT32 limits to test a distinct overflow guard.
++    struct OverflowCase {
++        int32_t point0X;
++        int32_t restX;
++        int32_t allY;
++    };
++    constexpr OverflowCase kOverflows[] = {
++            // xMin fits in SkFDot6, but xMin + dx (+32) > SK_MaxS32.
++            {SK_MaxS32 - 16, SK_MaxS32 - 16, 0},
++            // yMin fits in SkFDot6, but yMin + dy (-32) < SK_MinS32.
++            {0, 0, SK_MinS32 + 16},
++            // xMin + dx fits in SkFDot6, but xShift (dx - SK_MinS32) > SK_MaxS32.
++            {SK_MinS32, SK_MinS32, 0},
++            // xMin, xMax, and xShift each fit in SkFDot6, but xMax + xShift > SK_MaxS32.
++            {-1500000000, 1500000000, 0},
++    };
++
++    SkArenaAlloc alloc{256};
++    SkGlyph subpixelGlyph =
++            make_test_glyph(baseBounds,
++                            SkMask::kA8_Format,
++                            kUnknown_SkPixelGeometry,
++                            SkPackedGlyphID((SkGlyphID)1, SK_FixedHalf, SK_FixedHalf),
++                            &alloc);
++    REPORTER_ASSERT(reporter, subpixelGlyph.maskFormat() == SkMask::kA8_Format);
++
++    SkScalerContextFTUtils utils{};
++    utils.init(SK_ColorBLACK, SkScalerContext::kSubpixelPositioning_Flag);
++    SkMaskGamma::PreBlend noPreBlend;
++
++    for (const OverflowCase& oc : kOverflows) {
++        REPORTER_ASSERT(reporter, FT_Load_Char(face.get(), 'X', FT_LOAD_NO_BITMAP) == 0);
++        REPORTER_ASSERT(reporter, face->glyph->outline.n_points >= 2);
++        for (int i = 0; i < face->glyph->outline.n_points; ++i) {
++            face->glyph->outline.points[i].x = (i == 0) ? oc.point0X : oc.restX;
++            face->glyph->outline.points[i].y = oc.allY;
++        }
++
++        GuardedBuffer buf(subpixelGlyph.imageSize());
++        utils.generateGlyphImage(face.get(), subpixelGlyph, buf.data(), SkMatrix::I(), noPreBlend);
++
++        REPORTER_ASSERT(reporter, buf.canariesIntact());
++        REPORTER_ASSERT(reporter, !buf.hasNonZeroPayload());
++    }
++}
+-- 
+2.43.0
+
