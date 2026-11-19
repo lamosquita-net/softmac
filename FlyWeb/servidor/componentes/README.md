@@ -35,6 +35,13 @@ El mismo servidor atiende a las dos versiones (`FlyWeb/docs/brave-sync-shields.m
 - **Aviso sobre la 1.x:** el `recursos` de la 1.x (congelado, `recursos-157.mjs`) conserva los scriptlets `trusted-…` que uBlock
   Origin no marca con `requiresTrust` (p. ej. `trusted-prevent-xhr.js`), y la 0.7.9 no tiene permisos. Las listas que
   empaquetamos son las de siempre, pero queda pendiente decidir si se corrige en la 1.x (cambia el hash a aprobar).
+- **Ocultaciones que esperan un clic «trusted»** (`cosmeticas-sin-clic.mjs`, 19-11-2026): como no hay scriptlets «trusted»,
+  en la lista de avisos de cookies (AC023D22…) se quitan las reglas cosméticas (`##`, `#?#`) de los hosts que en esa misma
+  lista tienen un `+js(trusted-…)`; si la regla tiene más hosts, solo se recorta ese. Sin esto, el diálogo se oculta y nadie
+  lo pulsa: `consent.google.com/m?…&pc=cws` dejaba la Chrome Web Store en blanco con un perfil nuevo, y
+  `consent.youtube.com` ocultaba el `<body>`. Las demás listas no se tocan (ocultar un anuncio no depende de ningún clic).
+  El `list.txt` es el mismo para la 1.x, la 2.x y la 3.x (mismo ID), así que llega a todas. Prueba:
+  `pruebas/cosmeticas-sin-clic.mjs` (sin red; con un `list.txt` como argumento cuenta lo que quita).
 - **`permission_mask`:** los recursos no llevan `permission` (sin permisos propios), así que cualquier lista puede usar los
   scriptlets que hay (no queda ninguno «trusted»); las listas por defecto y dos regionales llevan el bit 0 (uBlock Origin) en el
   catálogo, como en Brave.

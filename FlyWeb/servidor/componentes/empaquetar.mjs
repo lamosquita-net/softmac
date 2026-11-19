@@ -31,6 +31,7 @@ import path from 'path'
 import { generarRecursos } from './recursos-157.mjs'
 import { generarRecursos20 } from './recursos-20.mjs'
 import { construirCatalogoV2 } from './catalogo-20.mjs'
+import { LISTAS_CON_CLIC, quitarCosmeticasSinClic } from './cosmeticas-sin-clic.mjs'
 import { crearZip } from './bak/zip.mjs'
 
 const require = createRequire(import.meta.url)
@@ -116,8 +117,15 @@ async function construirLista (entradas) {
         if (!ok) quitadas++
         return ok
       })
-      partes.push(lineas.join('\n'))
+      partes.push(...lineas)
     }
+  }
+  // Ocultaciones que esperan un clic «trusted» que FlyWeb no tiene (cosmeticas-sin-clic.mjs).
+  if (entradas.some((e) => LISTAS_CON_CLIC.has(e.uuid))) {
+    const r = quitarCosmeticasSinClic(partes)
+    console.log(`${entradas.map((e) => e.title).join(' + ')}: ${r.quitadas} reglas cosméticas quitadas y ${r.recortadas} recortadas (${r.hosts} hosts con clic «trusted»)`)
+    quitadas += r.quitadas
+    return { texto: r.lineas.join('\n'), quitadas }
   }
   return { texto: partes.join('\n'), quitadas }
 }
