@@ -7,6 +7,50 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 19-11 (noche): COORDINACIÓN-52 → COORDINACIÓN-53 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-52 (`session_01MwmK2iHT1aVuS17rvqWH3K`, 19-11 ~18:07 → ~22:15 UTC, relevo al 34 %). La 53 la abre la 52.
+**Todo en español, siempre.** **Nunca llamar a confirm_repository_trust.** Decisiones de hoy en DIRECTIVAS (#1115, #1116, #1121).
+
+**Interfaz 3.2.0 (PR #1110, borrador; no fusionar todavía):** serie 0001–0007 de `FlyWeb/parches/3.2-interfaz/`, punta
+`ef608126` (árbol tras el 0007 `6653db38fb`, sobre brave-core `e660929ac9`). LOCAL-19 la compiló (0 FAILED;
+BraveColorMixersTest 3/3; SystemThemeChangeTest y ThemeObserverTest fallan, según MOTOR-46 no son de la serie: no
+comprobado sin ella). Capturas en `entregas/local19/interfaz-3.2.0/` a 1x (`61-1x-*`) y 2x-hidpi (`61-2x-hidpi-*`), con
+copias `-srgb` (las originales llevan el perfil del monitor; en sRGB los colores coinciden con los de Titín). FlyWeb de
+prueba **abierta en la 6,1** para la revisión de Titín. Le faltan a Titín: capturas sin foco y del desplegable de la URL
+(desde SSH no se puede), su visto bueno y las decisiones pendientes: contador del escudo (99+ fuera o 99 dentro), iconos
+a ~17 dip, ⋮ en grupos de pestañas, Apps oculto. Radio de pestaña 3 dip (Chrome 10): Titín lo corrige tras las capturas
+(`BRAVE_TAB_STYLE_TOP_CORNER_RADIUS`, un número). El monitor 4K de la 6,1 quedó en HiDPI (lo puso Titín).
+
+**Arreglos nuevos, decididos por Titín:**
+- **settings/system → 3.2.0** (#1122, `FlyWeb/parches/3.2-ajustes-sistema/0001`, punta `82e65b7f4b`): probado por LOCAL-19
+  sobre la interfaz (árbol `80e73aff39`, browsertest verde, atajos cargan). Falta el **APTO de SEGURIDAD-PORTES-32**
+  (le pregunté si necesita build con DCHECK —varias horas de la 7,1— o basta un CHECK de tipo). LOCAL-19 espera; no lanzar
+  la build DCHECK sin ese veredicto.
+- **Web Store en blanco con perfil nuevo → servidor** (#1123, `cosmeticas-sin-clic.mjs`, punta `217473d64f`): solo la lista
+  AC023D22. Falta: (1) **decisión de Titín sobre el alcance**: amplio (todos los trusted: 368 quitadas + 182 recortadas,
+  942 hosts; vuelven a verse los avisos de x.com, cnn.com…) o **estrecho** (solo trusted-click-element: 669 hosts; arregla
+  igual Google y YouTube). Recomendación de la 52: estrecho. La pregunta no llegó a contestarse (se cortó dos veces).
+  (2) APTO de SEGURIDAD-PORTES-32 (sus 5 condiciones ya están en el PR). Llega a la 1.x, 2.x y 3.x en la siguiente firma de bak.
+- **Apariencia (desde el porte T11, también en la 3.1.4):** el selector de tema no sale (el de Brave falta; el de Chromium
+  lo oculta `brave_overrides/appearance_page.ts`) y el desplegable «Modo de pasar por encima de las pestañas» sale vacío
+  (`tabTooltipModes_` no llega a `tabs.html`). MOTOR-46 prepara propuesta; luego preguntar a Titín si entra en la 3.2.0.
+  Titín quiere **diseñar él la tarjeta de hover** (hoy un rectángulo): esperar su diseño.
+
+**Pendiente de diseño de Titín:** página de ventana privada nueva (mosca de incógnito, texto mezcla Google/Brave), iconos
+de privada, privada clara (más adelante), tarjeta de hover. Si la 3.2.0 espera a la página privada lo decide él.
+
+**Seguridad:** `pendiente/` con angle/0001, chromium/0001 (sandbox: APTO para Mojave a falta de pasos 1–7), brave-core/0001
+(V8, necesita D8-LINUX al montar versión), skia/0001–0002. No aplican: dos rolls de Dawn (DXC), Graphite, TouchSelection,
+Actor. Sin .112, 159 en beta. Sin 3.1.5 salvo Alto/Crítico/KEV.
+
+**Sesiones:** SEGURIDAD-PORTES-32 `session_01MwmK2jtrG4sKq6TUTVEEyD` (vigila ~60 min; revisa #1122 y #1123),
+MOTOR-46 `session_01MwmK2juPkbC58kEi4QFeyU` (#1110, #1122, #1123, Apariencia), INVESTIGACIÓN-MOTOR-10
+`session_01MwmK2m3DpZgC8k7wAabHHG`, SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`, COORDINACIÓN-51 quieta.
+Locales por el buzón: LOCAL-19 (escribe por el bridge), SERVIDOR-LOCAL, PUBLICACIÓN, ARQUITECTURA, cartero (entrega bien).
+Sync: credenciales, correo y servidor hechos; la copia fuera de línea de credenciales está **descartada** (no volver a
+plantearla); la medida en la 5,1 no frena la 3.2.0.
+
 ## 19-11 (tarde): COORDINACIÓN-51 → COORDINACIÓN-52 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-51 (`session_01MwmK2kKsACPV7ge7aLcNUS`, 19-11 ~04:50 → ~18:10 UTC, relevo al 38 %). La 52 la abre la 51.
