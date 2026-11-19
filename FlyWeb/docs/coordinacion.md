@@ -7,6 +7,41 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 19-11 (madrugada): COORDINACIÓN-50 → COORDINACIÓN-51 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-50 (`session_01MwmK2kAUMpE68orstgtvwT`, abierta por la 49, 18-11 22:55 → 19-11 ~04:50 UTC, relevo al 48 %). La 51 la
+abre la 50. **Todo en español, siempre.** **Nunca llamar a confirm_repository_trust.**
+
+**Estado de la 3.1.4 (build 47, FS.47): APTO definitivo de seguridad (SEGURIDAD-PORTES-31), solo espera a Titín.**
+- Build: chromium `local/314` `e9b670773e` (integracion 0002–0004, árbol `e7162cd585`), pruebas en `local/314-tests` `cd188ca51e`,
+  brave-core `local/3.1.4` `e660929ac9` (ls-remote). 0 FAILED. Versión 3.1.4 · 198.63.47 · Chrome/156.0.8078.110.
+  Framework sha256 `51d7937c…`. Entrega en entregas/FlyWeb-3.1.4-release, con flyweb-build-info.txt y PRUEBAS.txt (LOCAL-19).
+- Pruebas: filtros en la 7,1; views, unit y browser_tests en la 6,1; pruebas a mano en la 6,1 (PDF, WebRTC, MP4, blob, audio,
+  DevTools, LNA con Shields subido y bajado). Dictámenes de la -31, todos en el buzón:
+  - FSA: lo causa a propósito el 0031 (upstream la tiene DISABLED); se excluye con filtro.
+  - Fallos de browser_tests: de Brave, la base o el entorno; se corrió sin los filtros de brave-core.
+  - LNA: bloquea 0.0.0.0 sola, aparte de la regla de Brave.
+- **Falta de Titín:**
+  1. pruebas de interfaz con la 6,1 desbloqueada: aviso de LNA, miniaturas al pasar el ratón, fijada a otra ventana, repro de fijadas,
+     diálogo de la extensión con PDF, enlace de la consola de DevTools;
+  2. decidir `chrome/VERSION`. El tag 156.0.8078.111 (`c22b215559`) salió el 19-11 sin código nuevo (la -31 lo revisó). branch-heads/8078
+     está en `aac2cdd377` (VERSION .112, nada que portar). Mi recomendación: quedarse en .110, porque .111 obliga a recompilar y no cambia
+     el código. Ya se le ha dicho a Titín en el chat de la 50.
+- Con las dos cosas en verde: LOCAL-19 escribe FS.47 (antes te pregunta) → PUBLICACIÓN → **PushNotification a Titín** para firmar en bak.
+  Si Titín decide .111: orden de recompilar a LOCAL-19 por el buzón.
+- Después de la 3.1.4 (no son de seguridad): los colgados NullIP*/FetchNullIpAddress*/SplitPermissionWebRtc de browser_tests; poner el
+  filtro de FlyWeb al día con el de Brave (ExtensionCrxInstallerTest.InstallFailsDuringProfileShutdown); correr browser_tests con
+  test/filters de brave-core.
+
+**Abierto, por orden:** 1) lo de Titín de arriba; 2) FS.47 → PUBLICACIÓN → aviso al móvil; 3) al publicar, decir a la -31 que pare la
+vigilancia y actualizar FS.47; 4) 3.2.0: lo de la nota de la 49 (diseños de Titín → MOTOR-46; #1037; #1033; bajos de la 157 y lo apartado).
+
+**Sesiones:** SEGURIDAD-PORTES-31 `session_01MwmK2kyJvodFpg4Aaddcur` (vigila la 8078 hasta publicar). MOTOR-46
+`session_01MwmK2juPkbC58kEi4QFeyU` (espera). INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG`. SEGURIDAD-VIGÍA
+`session_019wTc3m4aVuvkKTEGMXdEHS`. LOCAL-19 (bridge `session_01MwmK2kXNDydrr8wXS32tXx`) y ARQUITECTURA (bridge) escriben directo; a las
+locales, por el buzón. Al arrancar, la 51 avisa del relevo como hizo la 50 (buzón con «Para LOCAL-19» y send_message a las cuatro de la nube).
+Nota menor: el cartero anotó un «LOCAL/20261118-2300-COORDINACION-50-relevo.md» que no existe (entregado a «Local (21)»). No bloquea.
+
 ## 18-11 (noche): COORDINACIÓN-49 → COORDINACIÓN-50 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-49 (`session_01MwmK2ja2S2x47BLQTR6Qc5`, abierta por Titín, 18-11 14:37 → ~23:00 UTC, relevo al 38 %). La 50 la
