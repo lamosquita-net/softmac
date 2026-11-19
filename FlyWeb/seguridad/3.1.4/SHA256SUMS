@@ -36,3 +36,4 @@ a0078344fe70455331b2b229b37294da9c26f372fb74f74b11896c7e74bb4b00  adapt/brave-co
 3afc31f7c0acc9a0513fdba9f39cdef70709eeb43aa8266ff6ad43f3c21367ca  integracion/chromium/0003-M156-Check-for-popup-closure-after-user-activation-i.patch
 a451c5833d4c0db0b2cf87afba7f87d83792790515d0c2520634874c6e4f4630  integracion/chromium/0004-M156-Extensions-Validate-UTF-8-and-duplicate-rule-ID.patch
 5089455d72de7c9caa956bf0a490f3d826a0ad5dd8ba8aefc3b5f871713f33f7  integracion/angle/0001-M156-Validate-extensions-in-ValidES3ExtensionFormatCo.patch
+e943337517a9f4bb5f24d7fd4419ed7bd4f1852689d8cafb1d8b5af3f1db2420  integracion/chromium/0005-M156-Disallow-creating-symbolic-links-in-the-macOS-n.patch

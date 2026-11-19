@@ -112,6 +112,8 @@ Todos con `git apply --cached` sobre la base indicada, sin `-3`.
   **Actualización (SEGURIDAD-PORTES-32, 19-11, 09:16 UTC):** la 8078 pasa a **`0ca9887568`** (08:32 UTC, «Roll commits
   from side projects in M156»): solo `DEPS` y ANGLE `f4f835734108..0b547a1161fb`, dos *cherry-picks* [M156]. Uno aplica a
   Mac: **`integracion/angle/0001`** (abajo). Sin tag .112; V8 15.6 sigue en .71.
+  **10:20 UTC:** la 8078 pasa a **`b243cdcc16`** (09:19 UTC): «[M156] Disallow creating symbolic links in the macOS
+  network service sandbox», solo Mac → **`integracion/chromium/0005`** (abajo). Sin tag .112; V8 15.6 sigue en .71.
 
 ### Lo que llega a la rama 8078 después de la integración
 
@@ -123,7 +125,8 @@ aplica **al final**, después de `adapt/chromium/0001`. La vigilancia sigue hast
 |---|---|---|---|
 | `integracion/chromium/0002` | **5028a2f6a3** (de 7c903bac42) | 584069904 (merge 587226645) | **`25a6269c6b`** (sin el commit de fijación, sobre `ddf5f555b2` + `adapt/0001`: `3a5c1663cf`) |
 | `integracion/chromium/0003` | **5328af27d7** | b:585726394 (merge 586791921) | **`32203fc124`** |
-| `integracion/chromium/0004` | **aa4c9495f7** | 574640360, 575087049 (merge 580174924) | **`e7162cd585`** (árbol final; sin la fijación: `32391b8a33`) |
+| `integracion/chromium/0004` | **aa4c9495f7** | 574640360, 575087049 (merge 580174924) | **`e7162cd585`** (sin la fijación: `32391b8a33`) |
+| `integracion/chromium/0005` | **b243cdcc16** | 577326267, 578671128 | **`2c8ef28a99`** (árbol final; `git am` sobre `e7162cd585`, SEGURIDAD-PORTES-32) |
 
 - **0002, miniaturas de pestañas** (`chrome/browser/ui/thumbnails/thumbnail_scheduler_impl.{cc,h}`; escritorio, se
   compila en Mac): `ThumbnailSchedulerImpl` podía volver a entrar en la función que reparte las capturas antes de
@@ -147,6 +150,16 @@ aplica **al final**, después de `adapt/chromium/0001`. La vigilancia sigue hast
   podían colapsar en el mismo `U+FFFD` y llegar duplicados a `AddRulesImpl`). Ficheros nuevos `constants.h` y
   `declarative_utils.{h,cc}` y su entrada en `extensions/browser/BUILD.gn`. Aplica limpio; brave-core no tiene
   `chromium_src` para estos ficheros; `base::IsStringUTF8AllowingNoncharacters` existe en la 156.
+- **0005, sandbox del servicio de red en Mac** (`sandbox/policy/mac/network.sb`, `content/browser/sandbox_parameters_mac.{h,mm}`;
+  solo Mac): el perfil del servicio de red prohíbe crear enlaces simbólicos (`(deny file-write-create (vnode-type
+  SYMLINK))`) en sus directorios de almacenamiento y caché, con el interruptor `kMacSandboxAllowNetworkSymlinkCreation`
+  (**apagado** por defecto; parámetro `ALLOW_NETWORK_SYMLINK_CREATION`, cuya constante `kParam…` genera
+  `generate_params.py` a partir del `define` del `.sb`). Las líneas añadidas son idénticas a las de upstream; solo hubo
+  que recolocar la del `.h` junto a `kMacSandboxAllowRendererPidinfo`, que añadió `3.1.5/chromium/0024` (choque solo
+  de contexto). brave-core no tiene parches ni `chromium_src` para estos ficheros (`local/3.1.4-adapt` `e660929`).
+  **Mojave:** `vnode-type` y `file-write-create` ya se usan en `common.sb` y `gpu.sb`, que funcionan en 10.14;
+  `unless` es nuevo en nuestros `.sb` (`common.sb` usa `when`, su pareja). Como nuestras *variations* son inertes,
+  el interruptor no se puede encender a distancia: si algo fallara, solo se arregla con otra build.
 
 ### ANGLE de la 8078 después de la integración (SEGURIDAD-PORTES-32, 19-11)
 
@@ -168,6 +181,17 @@ commits [M156]:
 - **Para LOCAL:** igual que `angle/`: `git am` de `integracion/angle/0001` sobre su ANGLE (el de `db885a866b`) y volver
   a fijar el gitlink de `third_party/angle` y `angle_revision` en `DEPS` (el commit de fijación de `local/314`). Va
   **después** de `integracion/chromium/0004`; no toca chromium ni brave-core.
+
+## Veredicto (regla 17): **APTO**, `integracion/chromium/0005`
+
+Es el *cherry-pick* de upstream; las líneas `+`/`-` coinciden con las de `b243cdcc16` y solo cambia el contexto de
+una del `.h`. Comprobado con `git am` sobre `local/314-adapt` `aaa7d7508d` + `integracion/chromium/0002–0004` (se
+reproducen sus árboles `25a6269c6b`, `32203fc124` y `e7162cd585`): árbol **`2c8ef28a99`**. Riesgo para LOCAL: si el
+perfil no compilara en 10.14, el servicio de red no arrancaría y no habría red. **Prueba obligatoria en la 6,1 o la
+5,1 (Mojave):** arrancar FlyWeb, cargar dos o tres webs y claude.ai, iniciar sesión en la sync y descargar un fichero;
+en Console.app, filtrar por `Sandbox` y `network` y comprobar que no hay errores de compilación del perfil (las
+denegaciones `file-write-create` de enlaces son lo esperado). Pruebas: `content_unittests
+--gtest_filter='*SandboxMac*'` y `sandbox_mac_unittests`.
 
 ## Veredicto (regla 17): **APTO**, `integracion/angle/0001`
 
