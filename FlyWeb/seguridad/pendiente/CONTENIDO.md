@@ -44,6 +44,8 @@ la base nueva ya los traiga.
 | `9275276` (19-11 19:02 UTC) | *Roll* de Dawn `062164c3c784..218eeee7469d`: solo DXC otra vez | **No** (abajo; comprobado por LOCAL-19) | — |
 | `848c24c` (19-11 19:31 UTC) | *Roll* de Skia `16a9d4d9a345..7dc6c0c3424a`: **7dc6c0c342** [M156] «[SkScalerContext] Harden LCD16 and getImage bounds» (b/576955738, merge 585801577) | Sí (abajo) | `skia/0002` |
 | `8d177bf` (19-11 19:43 UTC) | [M156] «Drop pending main-frame navigations when tab is added to task» (568905533, merge 584997715), `chrome/browser/actor` | **No** (abajo) | — |
+| `64aaf98`, `c20a953` (19-11 21:38–21:40 UTC) | Pruebas desactivadas (omnibox WebUI, WebGPU en Windows) | — | — |
+| `b7fd761` (19-11 21:41 UTC) | [M156] «Fix UAF in XRCameraUpdateHelper» (571871625, merge 587680304) | **No** (abajo) | — |
 
 Sin tag .112 (la rama ya llevaba `chrome/VERSION` en .112 desde `aac2cdd377`).
 
@@ -230,6 +232,14 @@ descartan las navegaciones pendientes del marco principal, que si no se saltaban
 compila en Mac, pero una `ActorTask` solo la crea Glic (Gemini en Chrome), que exige una cuenta de Google con sesión
 iniciada; FlyWeb no tiene inicio de sesión de Google (Brave lo quita). Sin tarea de Actor no hay pestaña que gatear. No
 comprobado en ejecución; si LOCAL ve Glic activo en la build, se revisa.
+
+## WebXR b7fd761 (`XRCameraUpdateHelper`): no aplica
+
+Toca solo `third_party/blink/renderer/modules/xr/xr_camera_update_helper.{h,cc}` (UAF de la textura de cámara con el
+contexto WebGL perdido). Ese objeto solo lo crea `XRWebGLBinding`, que exige una sesión **inmersiva**
+(`xr_webgl_binding.cc`: «Cannot create an XRWebGLBinding for an inline XRSession»), y la cámara solo la da ARCore. En Mac
+no hay ningún runtime XR inmersivo: `enable_arcore` y `enable_cardboard` son solo de Android y `enable_openxr` de
+Windows/Linux (`device/vr/buildflags/buildflags.gni`). Sin sesión inmersiva no hay binding ni helper.
 
 ## Skia 16a9d4d9a3 (roll `65b1ce5`): no aplica
 
