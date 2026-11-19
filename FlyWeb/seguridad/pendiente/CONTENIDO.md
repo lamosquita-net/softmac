@@ -20,7 +20,7 @@ Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1
 | chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001` | **`2c8ef28a99`** |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
 | brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001` | **`90134a4e08`** |
-| Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001`–`0002` | **`47b14cb49e`** (tras `0001`: `32f1340fb3`) |
+| Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001`–`0003` | **`1ef25455d7`** (tras `0001`: `32f1340fb3`; tras `0002`: `47b14cb49e`) |
 
 Si la siguiente versión cambia de base (p. ej. la 3.2.0 o la 159), **hay que volver a comprobar que aplican**; puede que
 la base nueva ya los traiga.
@@ -46,6 +46,8 @@ la base nueva ya los traiga.
 | `8d177bf` (19-11 19:43 UTC) | [M156] «Drop pending main-frame navigations when tab is added to task» (568905533, merge 584997715), `chrome/browser/actor` | **No** (abajo) | — |
 | `64aaf98`, `c20a953` (19-11 21:38–21:40 UTC) | Pruebas desactivadas (omnibox WebUI, WebGPU en Windows) | — | — |
 | `b7fd761` (19-11 21:41 UTC) | [M156] «Fix UAF in XRCameraUpdateHelper» (571871625, merge 587680304) | **No** (abajo) | — |
+| `e414deb` (19-11 22:09 UTC) | Pruebas desactivadas (sxg-reporting en Linux Debug) | — | — |
+| `7cd7567` (19-11 22:32 UTC) | *Roll* de Skia `7dc6c0c3424a..9d96dfeb451c`: **9d96dfeb45** [M156] «[Ganesh] Restrict scissor by dst-read bounds» (584764517, merge 587951190) | Sí (abajo) | `skia/0003` |
 
 Sin tag .112 (la rama ya llevaba `chrome/VERSION` en .112 desde `aac2cdd377`).
 
@@ -224,6 +226,27 @@ confirmar la ruta exacta; si LOCAL ve que FlyWeb no la alcanza, el parche es ino
 Es el *cherry-pick* de upstream sin cambios. Efecto: glifos con mapas LCD incoherentes se recortan o se descartan en vez
 de escribirse fuera de sitio; el texto normal no cambia. Prueba para LOCAL: abrir e imprimir a PDF unos PDF con mucho
 texto (fuentes incrustadas TrueType y Type 1) en el visor de FlyWeb, en la 6,1 y en la 5,1.
+
+## `skia/0003`: Skia 9d96dfeb45 (bug 584764517, merge 587951190)
+
+Ganesh (`GrPipeline.h`, `GrDstProxyView.h`, `GrOpsRenderPass.h`, `SurfaceDrawContext.cpp` y los *render passes* de GL,
+Metal, Vulkan y D3D): cuando un dibujo lee el destino (*dst-read*), el *scissor* que se manda a la GPU se cruza siempre con
+los límites de esa lectura, y se activa siempre. Así, una geometría con límites mal calculados que se salga del área ya
+no escribe píxeles fuera de la copia del destino. **Aplica a Mac:** en 10.14 el ráster por GPU va por Ganesh sobre GL
+(ANGLE), y en Monterey también; el cambio de Metal (`GrMtlOpsRenderPass`) no se usa (Ganesh/Metal está apagado en Chromium).
+
+- Aplica limpio con `git am` sobre `47b14cb49e` (tras `skia/0002`): árbol **`1ef25455d7`**. Mismo `patch-id` que el
+  original (`a80446c2f5`).
+- `GrGLOpsRenderPass.cpp`, `GrGLGpu.cpp` y `SurfaceDrawContext.cpp` pasan `clang++ -fsyntax-only` con el parche.
+- **Gravedad: no consta** (bug restringido).
+- **Para LOCAL:** `git am` después de `skia/0002` y volver a fijar el gitlink de `third_party/skia` y `skia_revision`.
+
+### Veredicto (regla 17): **APTO**, `skia/0003`
+
+Es el *cherry-pick* de upstream sin cambios. Efecto: con *dst-read* (modos de fusión avanzados, `mix-blend-mode`,
+filtros que leen el fondo) el dibujo queda recortado a la zona leída; sin *dst-read* nada cambia. Prueba para LOCAL:
+páginas con `mix-blend-mode` (multiply, difference, color-dodge) sobre fondos con degradado y canvas 2D con
+`globalCompositeOperation` avanzados, en la 6,1 y en la 5,1; comparar con la 3.1.4 que no haya bordes cortados.
 
 ## Actor (8d177bf): no aplica
 

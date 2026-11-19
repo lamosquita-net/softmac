@@ -1,0 +1,409 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nathan Sanchez <nathanasanchez@google.com>
+Date: Tue, 17 Nov 2026 16:51:27 -0500
+Subject: [pending][8078 after build 47] [M156] [Ganesh] Restrict scissor by
+ dst-read bounds
+
+FlyWeb: Skia 9d96dfeb45 from the branch-heads/8078 roll 7cd7567 (7dc6c0c3424a..9d96dfeb451c),
+applied on the pending Skia tree 47b14cb49e (after skia/0002). Same patch-id as upstream (a80446c2f5).
+
+Original change's description:
+> [Ganesh] Restrict scissor by dst-read bounds
+>
+> This ensures that we always intersect the scissor send to the pipeline
+> with any dst-read bounds, and always perform a scissor if we have a
+> dst-read. While geometry that may overshoot the draw bounds due to an
+> incorrect bounds calculation may still be rasterized when rendering
+> without a dst-read, anytime there is one those pixels would be clipped
+> out scissor.
+>
+> Bug: 584764517
+> Change-Id: I4cc7083d30384719fd1cb5ff0a1dd79e72a512b4
+> Reviewed-on: https://skia-review.googlesource.com/c/skia/+/1430760
+> Reviewed-by: Michael Ludwig <michaelludwig@google.com>
+> Commit-Queue: Nathan Sanchez <nathanasanchez@google.com>
+
+(cherry picked from commit b11d69796f710a7f2d5f1733edabd81247035c8d)
+
+Bug: 587951190,584764517
+Change-Id: I4cc7083d30384719fd1cb5ff0a1dd79e72a512b4
+Reviewed-on: https://skia-review.googlesource.com/c/skia/+/1434377
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: Chrome Cherry Picker <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+---
+ src/gpu/ganesh/GrDstProxyView.h               | 13 +++++++++
+ src/gpu/ganesh/GrOpsRenderPass.h              |  4 +++
+ src/gpu/ganesh/GrPipeline.h                   | 14 ++++++++++
+ src/gpu/ganesh/SurfaceDrawContext.cpp         |  1 +
+ src/gpu/ganesh/d3d/GrD3DOpsRenderPass.cpp     |  5 +++-
+ src/gpu/ganesh/gl/GrGLGpu.cpp                 |  3 +-
+ src/gpu/ganesh/gl/GrGLGpu.h                   | 17 +++++------
+ src/gpu/ganesh/gl/GrGLOpsRenderPass.cpp       | 28 +++++++++++++++++--
+ src/gpu/ganesh/gl/GrGLOpsRenderPass.h         |  2 ++
+ src/gpu/ganesh/mtl/GrMtlOpsRenderPass.h       |  1 +
+ src/gpu/ganesh/mtl/GrMtlOpsRenderPass.mm      | 25 +++++++++++------
+ .../ganesh/mtl/GrMtlRenderCommandEncoder.h    |  4 ++-
+ src/gpu/ganesh/vk/GrVkOpsRenderPass.cpp       |  5 +++-
+ 13 files changed, 100 insertions(+), 22 deletions(-)
+
+diff --git a/src/gpu/ganesh/GrDstProxyView.h b/src/gpu/ganesh/GrDstProxyView.h
+index 031084e67c..442c29cd07 100644
+--- a/src/gpu/ganesh/GrDstProxyView.h
++++ b/src/gpu/ganesh/GrDstProxyView.h
+@@ -9,8 +9,10 @@
+ #define GrDstProxyView_DEFINED
+ 
+ #include "include/core/SkPoint.h"
++#include "include/core/SkRect.h"
+ #include "include/private/SkTypeTraits.h"
+ #include "include/private/gpu/ganesh/GrTypesPriv.h"
++#include "src/core/SkRectPriv.h"
+ #include "src/gpu/ganesh/GrSurfaceProxyView.h"
+ 
+ #include <type_traits>
+@@ -34,6 +36,7 @@ public:
+     GrDstProxyView& operator=(const GrDstProxyView& other) {
+         fProxyView = other.fProxyView;
+         fOffset = other.fOffset;
++        fValidBounds = other.fValidBounds;
+         fDstSampleFlags = other.fDstSampleFlags;
+         return *this;
+     }
+@@ -41,6 +44,7 @@ public:
+     bool operator==(const GrDstProxyView& that) const {
+         return fProxyView == that.fProxyView &&
+                fOffset == that.fOffset &&
++               fValidBounds == that.fValidBounds &&
+                fDstSampleFlags == that.fDstSampleFlags;
+     }
+     bool operator!=(const GrDstProxyView& that) const { return !(*this == that); }
+@@ -57,9 +61,16 @@ public:
+         fProxyView = std::move(view);
+         if (!fProxyView.proxy()) {
+             fOffset = {0, 0};
++            fValidBounds = SkRectPriv::MakeILarge();
+         }
+     }
+ 
++    // The device-space bounds within which the texture holds valid destination values. This is
++    // only restricted when the texture is a partial copy of the render target; otherwise it is
++    // unbounded.
++    const SkIRect& validBounds() const { return fValidBounds; }
++    void setValidBounds(const SkIRect& validBounds) { fValidBounds = validBounds; }
++
+     GrDstSampleFlags dstSampleFlags() const { return fDstSampleFlags; }
+ 
+     void setDstSampleFlags(GrDstSampleFlags dstSampleFlags) { fDstSampleFlags = dstSampleFlags; }
+@@ -69,10 +80,12 @@ public:
+ private:
+     GrSurfaceProxyView       fProxyView;
+     SkIPoint                 fOffset = {0, 0};
++    SkIRect                  fValidBounds = SkRectPriv::MakeILarge();
+     GrDstSampleFlags         fDstSampleFlags = GrDstSampleFlags::kNone;
+ 
+     static_assert(::sk_is_trivially_relocatable<decltype(fProxyView)>::value);
+     static_assert(::sk_is_trivially_relocatable<decltype(fOffset)>::value);
++    static_assert(::sk_is_trivially_relocatable<decltype(fValidBounds)>::value);
+     static_assert(::sk_is_trivially_relocatable<decltype(fDstSampleFlags)>::value);
+ };
+ 
+diff --git a/src/gpu/ganesh/GrOpsRenderPass.h b/src/gpu/ganesh/GrOpsRenderPass.h
+index bdf6ed43b7..7e8b1117b8 100644
+--- a/src/gpu/ganesh/GrOpsRenderPass.h
++++ b/src/gpu/ganesh/GrOpsRenderPass.h
+@@ -62,6 +62,10 @@ public:
+ 
+     // Updates the internal pipeline state for drawing with the provided GrProgramInfo. Enters an
+     // internal "bad" state if the pipeline could not be set.
++    //
++    // If the pipeline reads the dst from a partial copy of the render target (see
++    // GrPipeline::hasDstReadBounds()), every backend restricts rasterization to the pipeline's dst
++    // read bounds so that dst reads only see valid values, even if drawBounds is wrong.
+     void bindPipeline(const GrProgramInfo&, const SkRect& drawBounds);
+ 
+     // The scissor rect is always dynamic state and therefore not stored on GrPipeline. If scissor
+diff --git a/src/gpu/ganesh/GrPipeline.h b/src/gpu/ganesh/GrPipeline.h
+index f0ec600fd9..83350a21a9 100644
+--- a/src/gpu/ganesh/GrPipeline.h
++++ b/src/gpu/ganesh/GrPipeline.h
+@@ -9,12 +9,14 @@
+ #define GrPipeline_DEFINED
+ 
+ #include "include/core/SkPoint.h"
++#include "include/core/SkRect.h"
+ #include "include/core/SkRefCnt.h"
+ #include "include/private/SkDebug.h"
+ #include "include/private/SkMacros.h"
+ #include "include/private/SkTemplates.h"
+ #include "include/private/SkTo.h"
+ #include "include/private/gpu/ganesh/GrTypesPriv.h"
++#include "src/core/SkRectPriv.h"
+ #include "src/gpu/Swizzle.h"
+ #include "src/gpu/ganesh/GrCaps.h"
+ #include "src/gpu/ganesh/GrDstProxyView.h"
+@@ -156,6 +158,18 @@ public:
+ 
+     GrDstSampleFlags dstSampleFlags() const { return fDstProxy.dstSampleFlags(); }
+ 
++    /**
++     * Device-space bounds that rasterization must be restricted to so that this pipeline's reads of
++     * the dst only see valid values. This is only restricted when the dst is read from a partial
++     * copy of the render target (see GrDstProxyView::validBounds()), otherwise it is unbounded.
++     */
++    SkIRect dstReadBounds() const {
++        return this->usesDstTexture() ? fDstProxy.validBounds() : SkRectPriv::MakeILarge();
++    }
++
++    /** Whether dstReadBounds() is from a partial copy. */
++    bool hasDstReadBounds() const { return this->dstReadBounds() != SkRectPriv::MakeILarge(); }
++
+     /** If this GrXferProcessor uses a texture to access the dst color, returns that texture. */
+     GrTexture* peekDstTexture() const {
+         if (!this->usesDstTexture()) {
+diff --git a/src/gpu/ganesh/SurfaceDrawContext.cpp b/src/gpu/ganesh/SurfaceDrawContext.cpp
+index 22a1644c9f..d3c8da3b14 100644
+--- a/src/gpu/ganesh/SurfaceDrawContext.cpp
++++ b/src/gpu/ganesh/SurfaceDrawContext.cpp
+@@ -2113,6 +2113,7 @@ bool SurfaceDrawContext::setupDstProxyView(const SkRect& opBounds,
+         SkIRect conservativeDrawBounds = opBounds.roundOut();
+         conservativeDrawBounds.outset(1, 1);
+         SkAssertResult(copyRect.intersect(conservativeDrawBounds));
++        dstProxyView->setValidBounds(copyRect);
+     }
+ 
+     SkIPoint dstOffset;
+diff --git a/src/gpu/ganesh/d3d/GrD3DOpsRenderPass.cpp b/src/gpu/ganesh/d3d/GrD3DOpsRenderPass.cpp
+index 65b248e555..39fda498ed 100644
+--- a/src/gpu/ganesh/d3d/GrD3DOpsRenderPass.cpp
++++ b/src/gpu/ganesh/d3d/GrD3DOpsRenderPass.cpp
+@@ -176,6 +176,9 @@ bool GrD3DOpsRenderPass::onBindPipeline(const GrProgramInfo& info, const SkRect&
+     } else {
+         fCurrentPipelineBounds.setEmpty();
+     }
++    if (!fCurrentPipelineBounds.intersect(info.pipeline().dstReadBounds())) {
++        fCurrentPipelineBounds.setEmpty();
++    }
+ 
+     GrD3DRenderTarget* d3dRT = static_cast<GrD3DRenderTarget*>(fRenderTarget);
+     fCurrentPipelineState =
+@@ -192,7 +195,7 @@ bool GrD3DOpsRenderPass::onBindPipeline(const GrProgramInfo& info, const SkRect&
+     set_blend_factor(fGpu, info);
+     set_primitive_topology(fGpu, info);
+     if (!info.pipeline().isScissorTestEnabled()) {
+-        // "Disable" scissor by setting it to the full pipeline bounds.
++        // "Disable" scissor by setting it to the pipeline bounds.
+         set_scissor_rects(fGpu, fRenderTarget, fOrigin, fCurrentPipelineBounds);
+     }
+     set_viewport(fGpu, fRenderTarget);
+diff --git a/src/gpu/ganesh/gl/GrGLGpu.cpp b/src/gpu/ganesh/gl/GrGLGpu.cpp
+index 2c1430125c..7b6d4720ea 100644
+--- a/src/gpu/ganesh/gl/GrGLGpu.cpp
++++ b/src/gpu/ganesh/gl/GrGLGpu.cpp
+@@ -2131,7 +2131,8 @@ bool GrGLGpu::flushGLState(GrRenderTarget* renderTarget, bool useMultisampleFBO,
+                       glRT->numStencilBits(useMultisampleFBO));
+     }
+     this->flushStencil(stencil, programInfo.origin());
+-    this->flushScissorTest(GrScissorTest(programInfo.pipeline().isScissorTestEnabled()));
++    // Scissor state is configured dynamically in GrGLOpsRenderPass::onBindPipeline and
++    // GrGLOpsRenderPass::onSetScissorRect.
+     this->flushWindowRectangles(programInfo.pipeline().getWindowRectsState(),
+                                 glRT, programInfo.origin());
+     this->flushConservativeRasterState(programInfo.pipeline().usesConservativeRaster());
+diff --git a/src/gpu/ganesh/gl/GrGLGpu.h b/src/gpu/ganesh/gl/GrGLGpu.h
+index a2d3213f29..7262a31189 100644
+--- a/src/gpu/ganesh/gl/GrGLGpu.h
++++ b/src/gpu/ganesh/gl/GrGLGpu.h
+@@ -138,6 +138,15 @@ public:
+ 
+     // Flushes state from GrProgramInfo to GL. Returns false if the state couldn't be set.
+     bool flushGLState(GrRenderTarget*, bool useMultisampleFBO, const GrProgramInfo&);
++
++    // Flushes the scissor. See the note on flushBoundTextureAndParams about
++    // flushing the scissor after that function is called.
++    void flushScissor(const GrScissorState& scissorState, int rtHeight, GrSurfaceOrigin rtOrigin) {
++        this->flushScissorTest(GrScissorTest(scissorState.enabled()));
++        if (scissorState.enabled()) {
++            this->flushScissorRect(scissorState.rect(), rtHeight, rtOrigin);
++        }
++    }
+     void flushScissorRect(const SkIRect& scissor, int rtHeight, GrSurfaceOrigin);
+ 
+     // The flushRenderTarget methods will all set the initial viewport to the full extent of the
+@@ -516,14 +525,6 @@ private:
+     void flushColorWrite(bool writeColor);
+     void flushClearColor(std::array<float, 4>);
+ 
+-    // flushes the scissor. see the note on flushBoundTextureAndParams about
+-    // flushing the scissor after that function is called.
+-    void flushScissor(const GrScissorState& scissorState, int rtHeight, GrSurfaceOrigin rtOrigin) {
+-        this->flushScissorTest(GrScissorTest(scissorState.enabled()));
+-        if (scissorState.enabled()) {
+-            this->flushScissorRect(scissorState.rect(), rtHeight, rtOrigin);
+-        }
+-    }
+     void flushScissorTest(GrScissorTest);
+ 
+     void flushWindowRectangles(const GrWindowRectsState&, const GrGLRenderTarget*, GrSurfaceOrigin);
+diff --git a/src/gpu/ganesh/gl/GrGLOpsRenderPass.cpp b/src/gpu/ganesh/gl/GrGLOpsRenderPass.cpp
+index 0f8593ac51..8311d32e43 100644
+--- a/src/gpu/ganesh/gl/GrGLOpsRenderPass.cpp
++++ b/src/gpu/ganesh/gl/GrGLOpsRenderPass.cpp
+@@ -18,8 +18,10 @@
+ #include "src/gpu/ganesh/GrDirectContextPriv.h"
+ #include "src/gpu/ganesh/GrDrawIndirectCommand.h"
+ #include "src/gpu/ganesh/GrGpuBuffer.h"
++#include "src/gpu/ganesh/GrPipeline.h"
+ #include "src/gpu/ganesh/GrProgramInfo.h"
+ #include "src/gpu/ganesh/GrRenderTarget.h"
++#include "src/gpu/ganesh/GrScissorState.h"
+ #include "src/gpu/ganesh/gl/GrGLCaps.h"
+ #include "src/gpu/ganesh/gl/GrGLDefines.h"
+ #include "src/gpu/ganesh/gl/GrGLProgram.h"
+@@ -95,11 +97,33 @@ void GrGLOpsRenderPass::onEnd() {
+ bool GrGLOpsRenderPass::onBindPipeline(const GrProgramInfo& programInfo,
+                                        const SkRect& drawBounds) {
+     fPrimitiveType = programInfo.primitiveType();
+-    return fGpu->flushGLState(fRenderTarget, fUseMultisampleFBO, programInfo);
++    if (!fGpu->flushGLState(fRenderTarget, fUseMultisampleFBO, programInfo)) {
++        return false;
++    }
++
++    const GrPipeline& pipeline = programInfo.pipeline();
++    fCurrentPipelineBounds = SkIRect::MakeSize(fRenderTarget->dimensions());
++    if (pipeline.hasDstReadBounds() &&
++        !fCurrentPipelineBounds.intersect(pipeline.dstReadBounds())) {
++        fCurrentPipelineBounds.setEmpty();
++    }
++    if (!pipeline.isScissorTestEnabled()) {
++        // "Disable" scissor by restricting it to the pipeline bounds (which disables
++        // GL_SCISSOR_TEST entirely when fCurrentPipelineBounds covers the full render target).
++        GrScissorState scissorState(fRenderTarget->dimensions());
++        scissorState.set(fCurrentPipelineBounds);
++        fGpu->flushScissor(scissorState, fRenderTarget->height(), fOrigin);
++    } // else we will end up scissoring in GrGLOpsRenderPass::onSetScissorRect.
++    return true;
+ }
+ 
+ void GrGLOpsRenderPass::onSetScissorRect(const SkIRect& scissor) {
+-    fGpu->flushScissorRect(scissor, fRenderTarget->height(), fOrigin);
++    GrScissorState scissorState(fRenderTarget->dimensions());
++    if (scissorState.set(fCurrentPipelineBounds)) {
++        // If this ends up empty we still flush it, so that nothing is drawn.
++        (void)scissorState.intersect(scissor);
++    }
++    fGpu->flushScissor(scissorState, fRenderTarget->height(), fOrigin);
+ }
+ 
+ bool GrGLOpsRenderPass::onBindTextures(const GrGeometryProcessor& geomProc,
+diff --git a/src/gpu/ganesh/gl/GrGLOpsRenderPass.h b/src/gpu/ganesh/gl/GrGLOpsRenderPass.h
+index 764b85f1ea..abaaa13574 100644
+--- a/src/gpu/ganesh/gl/GrGLOpsRenderPass.h
++++ b/src/gpu/ganesh/gl/GrGLOpsRenderPass.h
+@@ -114,6 +114,8 @@ private:
+     // the indices, or nullptr if they reside physically in GPU memory.
+     const uint16_t* fIndexPointer;
+ 
++    SkIRect fCurrentPipelineBounds;
++
+     // This tracks whether or not we bound the respective buffers during the bindBuffers call.
+     SkDEBUGCODE(bool fDidBindVertexBuffer = false;)
+     SkDEBUGCODE(bool fDidBindInstanceBuffer = false;)
+diff --git a/src/gpu/ganesh/mtl/GrMtlOpsRenderPass.h b/src/gpu/ganesh/mtl/GrMtlOpsRenderPass.h
+index 73f5ef4864..8133d2647b 100644
+--- a/src/gpu/ganesh/mtl/GrMtlOpsRenderPass.h
++++ b/src/gpu/ganesh/mtl/GrMtlOpsRenderPass.h
+@@ -77,6 +77,7 @@ private:
+     MTLPrimitiveType            fActivePrimitiveType;
+     MTLRenderPassDescriptor*    fRenderPassDesc;
+     SkRect                      fBounds;
++    SkIRect                     fCurrentPipelineBounds;
+     size_t                      fCurrentVertexStride;
+ #ifdef SK_ENABLE_MTL_DEBUG_INFO
+     bool                        fDebugGroupActive = false;
+diff --git a/src/gpu/ganesh/mtl/GrMtlOpsRenderPass.mm b/src/gpu/ganesh/mtl/GrMtlOpsRenderPass.mm
+index 550104eb39..6475ec9ada 100644
+--- a/src/gpu/ganesh/mtl/GrMtlOpsRenderPass.mm
++++ b/src/gpu/ganesh/mtl/GrMtlOpsRenderPass.mm
+@@ -109,13 +109,17 @@ bool GrMtlOpsRenderPass::onBindPipeline(const GrProgramInfo& programInfo,
+         fActiveRenderCmdEncoder->setTriangleFillMode(MTLTriangleFillModeFill);
+     }
+ 
+-    if (!programInfo.pipeline().isScissorTestEnabled()) {
+-        // "Disable" scissor by setting it to the full pipeline bounds.
+-        SkISize dimensions = fFramebuffer->colorAttachment()->dimensions();
+-        GrMtlPipelineState::SetDynamicScissorRectState(fActiveRenderCmdEncoder,
+-                                                       dimensions, fOrigin,
+-                                                       SkIRect::MakeWH(dimensions.width(),
+-                                                                       dimensions.height()));
++    SkISize dimensions = fFramebuffer->colorAttachment()->dimensions();
++    const GrPipeline& pipeline = programInfo.pipeline();
++    fCurrentPipelineBounds = SkIRect::MakeSize(dimensions);
++    if (pipeline.hasDstReadBounds() &&
++        !fCurrentPipelineBounds.intersect(pipeline.dstReadBounds())) {
++        fCurrentPipelineBounds.setEmpty();
++    }
++    if (!pipeline.isScissorTestEnabled()) {
++        // "Disable" scissor by setting it to the pipeline bounds.
++        GrMtlPipelineState::SetDynamicScissorRectState(
++                fActiveRenderCmdEncoder, dimensions, fOrigin, fCurrentPipelineBounds);
+     }
+ 
+     fActivePrimitiveType = gr_to_mtl_primitive(programInfo.primitiveType());
+@@ -126,9 +130,14 @@ bool GrMtlOpsRenderPass::onBindPipeline(const GrProgramInfo& programInfo,
+ void GrMtlOpsRenderPass::onSetScissorRect(const SkIRect& scissor) {
+     SkASSERT(fActivePipelineState);
+     SkASSERT(fActiveRenderCmdEncoder);
++    SkIRect combinedScissorRect;
++    if (!combinedScissorRect.intersect(fCurrentPipelineBounds, scissor)) {
++        combinedScissorRect = SkIRect::MakeEmpty();
++    }
+     GrMtlPipelineState::SetDynamicScissorRectState(fActiveRenderCmdEncoder,
+                                                    fFramebuffer->colorAttachment()->dimensions(),
+-                                                   fOrigin, scissor);
++                                                   fOrigin,
++                                                   combinedScissorRect);
+ }
+ 
+ bool GrMtlOpsRenderPass::onBindTextures(const GrGeometryProcessor& geomProc,
+diff --git a/src/gpu/ganesh/mtl/GrMtlRenderCommandEncoder.h b/src/gpu/ganesh/mtl/GrMtlRenderCommandEncoder.h
+index c99f0407fa..aca3f06c82 100644
+--- a/src/gpu/ganesh/mtl/GrMtlRenderCommandEncoder.h
++++ b/src/gpu/ganesh/mtl/GrMtlRenderCommandEncoder.h
+@@ -267,7 +267,9 @@ private:
+     NSUInteger fCurrentFragmentOffset[2 + GrMtlUniformHandler::kUniformBindingCount];
+     __weak id<MTLTexture> fCurrentTexture[kMaxTextures];
+     GrMtlSampler* fCurrentSampler[kMaxSamplers] = {};
+-    MTLScissorRect fCurrentScissorRect = { 0, 0, 0, 0 };
++    // Start with an invalid rect so that the first setScissorRect call is never skipped.
++    MTLScissorRect fCurrentScissorRect = {
++            ~static_cast<NSUInteger>(0), ~static_cast<NSUInteger>(0), 0, 0};
+     MTLTriangleFillMode fCurrentTriangleFillMode = (MTLTriangleFillMode)-1;
+ };
+ 
+diff --git a/src/gpu/ganesh/vk/GrVkOpsRenderPass.cpp b/src/gpu/ganesh/vk/GrVkOpsRenderPass.cpp
+index f909454b94..b86a25edae 100644
+--- a/src/gpu/ganesh/vk/GrVkOpsRenderPass.cpp
++++ b/src/gpu/ganesh/vk/GrVkOpsRenderPass.cpp
+@@ -661,6 +661,9 @@ bool GrVkOpsRenderPass::onBindPipeline(const GrProgramInfo& programInfo, const S
+     } else {
+         fCurrentPipelineBounds.setEmpty();
+     }
++    if (!fCurrentPipelineBounds.intersect(programInfo.pipeline().dstReadBounds())) {
++        fCurrentPipelineBounds.setEmpty();
++    }
+ 
+     GrVkCommandBuffer* currentCB = this->currentCommandBuffer();
+     SkASSERT(fCurrentRenderPass);
+@@ -685,7 +688,7 @@ bool GrVkOpsRenderPass::onBindPipeline(const GrProgramInfo& programInfo, const S
+     }
+ 
+     if (!programInfo.pipeline().isScissorTestEnabled()) {
+-        // "Disable" scissor by setting it to the full pipeline bounds.
++        // "Disable" scissor by setting it to the pipeline bounds.
+         GrVkPipeline::SetDynamicScissorRectState(
+                 fGpu, currentCB, colorAttachment->dimensions(), fOrigin,
+                                                  fCurrentPipelineBounds);
+-- 
+2.43.0
+
