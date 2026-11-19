@@ -123,7 +123,7 @@ async function construirLista (entradas) {
   // Ocultaciones que esperan un clic «trusted» que FlyWeb no tiene (cosmeticas-sin-clic.mjs).
   if (entradas.some((e) => LISTAS_CON_CLIC.has(e.uuid))) {
     const r = quitarCosmeticasSinClic(partes)
-    console.log(`${entradas.map((e) => e.title).join(' + ')}: ${r.quitadas} reglas cosméticas quitadas y ${r.recortadas} recortadas (${r.hosts} hosts con clic «trusted»)`)
+    console.log(`${entradas.map((e) => e.title).join(' + ')}: ${r.quitadas} reglas cosméticas quitadas y ${r.recortadas} recortadas en ${r.hostsQuitados.size} hosts (${r.hosts} hosts con clic «trusted»)`)
     quitadas += r.quitadas
     return { texto: r.lineas.join('\n'), quitadas }
   }
