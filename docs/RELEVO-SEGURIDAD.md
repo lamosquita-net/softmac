@@ -1079,3 +1079,38 @@ entra hasta que llegue su cambio de Blink) y un *reland* de 605619b342.
 - La serie lleva más endurecimiento que la 8078 en algunos ficheros (p. ej. `web_page_popup_impl.cc`): un arreglo
   nuevo de la rama puede chocar solo en el contexto o en los `#include` de las pruebas. `git apply --reject` y fundir.
 - `gitiles +log …?format=JSON` empieza con `)]}'` en su propia línea: quitarla con `sed 1d`, no con `tail -c`.
+
+## 21. SEGURIDAD-PORTES-31 (`session_01MwmK2kyJvodFpg4Aaddcur`, 18/19-11-2026): vigilancia de la 8078 hasta publicar la 3.1.4
+
+**Encargo (COORDINACIÓN-49, luego 50 y 51 = `session_01MwmK2kKsACPV7ge7aLcNUS`):** vigilar `branch-heads/8078`, V8 15.6 y
+los *rolls* hasta que PUBLICACIÓN publique la 3.1.4. Cada arreglo de seguridad que aplique a Mac va como
+`integracion/chromium/0005…` sobre `e7162cd585`, con APTO y PR [seguridad]. **El tag .111 se avisa enseguida.** Se para
+cuando COORDINACIÓN diga que la 3.1.4 está publicada: entonces se borra el recordatorio y la sesión queda quieta.
+
+**Hecho:**
+- **Tag 156.0.8078.111 = `c22b215559`** (visto a las 03:02 UTC del 19-11; avisado a la 50, que lo pasó a Titín para
+  `chrome/VERSION`). Todo `.110..c22b215559` ya está en la 3.1.4 (CONTENIDO, «Rama 8078 hasta hoy»).
+- **Última vista: `aac2cdd377`** (06:08 UTC, «Incrementing VERSION to 156.0.8078.112», solo `chrome/VERSION`), sin tag
+  .112. V8 15.6 en .71 (`a97fec97ff`). 605619b342 sin *reland*; el cambio de Blink de 574749469 no ha llegado.
+- **No hay ningún `integracion/chromium/0005`.**
+- **Dictámenes de pruebas de la build 47** (CONTENIDO, «Dictámenes…»): FSA de terceros (efecto de 0031), browser_tests
+  A–D y NullIP. **APTO definitivo de FS.47 en seguridad** (19-11, ~03:35 UTC).
+
+**Cómo vigilar** (igual que §20):
+- `git ls-remote https://chromium.googlesource.com/chromium/src refs/branch-heads/8078 refs/tags/156.0.8078.112` y
+  `…/v8/v8 refs/branch-heads/15.6`.
+- El log con `+log/<viejo>..<nuevo>?format=JSON&n=100 | sed 1d`.
+- Cada commit con `+/<sha>?format=JSON` (mirar `tree_diff`: los «Roll commits from side projects» pueden ser V8, Skia o
+  `src-internal`, que no se usa).
+- Un `send_later` vivo cada ~60 min. Las alarmas de un solo disparo se apagan solas tras saltar.
+
+**Trampas nuevas:**
+- Los `+log/<rama>/<fichero>` de gitiles dan **403** (piden sesión). Para el historial de un fichero, compara su contenido
+  en dos *refs* (`+/<ref>/<fichero>?format=TEXT`).
+- `git ls-remote --tags` con patrón glob no siempre filtra. Mejor pedir el tag exacto o bajar la lista entera a un fichero
+  y hacer `grep` (son unas 40 000 líneas).
+- `lamosquita-net/brave-core` se lee por el proxy (`git clone --filter=blob:none --no-checkout --depth 1 --branch
+  local/3.1.4`; `git show HEAD:<ruta>`). El `add_repo` con push lo denegó el clasificador de permisos de esta sesión.
+- Para dictámenes de pruebas de la 7,1/6,1: mirar primero `test/filters/*.filter` de brave-core; muchos fallos ya están
+  excluidos por Brave.
+

@@ -103,6 +103,12 @@ Todos con `git apply --cached` sobre la base indicada, sin `-3`.
   `v8::Object::TryGetWithNoSideEffects()`, una API nueva para un cambio de Blink (rastreador de anuncios) que no está
   en la 8078. Por sí sola no cambia nada: **no entra**; si el cambio de Blink llega a la 8078, entran los dos juntos.
   `branch-heads/8078` sigue en `0ae400b547`, sin tag .111. 605619b342 (mixed content) sigue revertido, sin *reland*.
+  **Actualización (SEGURIDAD-PORTES-31, 19-11, 06:08 UTC):** sale el tag **156.0.8078.111 = `c22b215559`** (03:02 UTC,
+  avisado a COORDINACIÓN-50; el cambio de `chrome/VERSION` lo decide Titín). Todo lo no-prueba de `.110..c22b215559` ya
+  está en la 3.1.4 (`3.1.5/chromium` 0008–0013, 0028 = 6cc402428b y 0029 = 3bd3db9df2; `integracion/chromium` 0002–0004;
+  V8 .66→.71 vía `patches/v8`; Skia 115e3c17b5 en la parte 4; `src-internal` no se usa): pasar a .111 no cambia el
+  código. Encima del tag, `aac2cdd377` solo sube `chrome/VERSION` a .112. V8 15.6 sigue en .71; sin *reland* de
+  605619b342 ni el cambio de Blink de 574749469. **Ningún `integracion/chromium/0005` por ahora.**
 
 ### Lo que llega a la rama 8078 después de la integración
 
@@ -363,7 +369,7 @@ histogramas nuevos (`…MaxEventDuration.MainFrame` y dos más) son UMA local, q
 | Dawn: `d2c1eac2db` → `86d91e7812` → **`6d772bc9e5`** | 86d91e78 = LiteRT, sin efecto (LOCAL, 3.1.3). 86d91e78..6d772bc9 (leído por LOCAL-19, 18-11, vía COORDINACIÓN-47) = **un solo commit, 6d772bc9e5 «[M156] DEPS: Update DXC to patched branch»**. DXC solo se compila en Windows (`dawn_use_built_dxc = is_win`): **no entra**; Dawn se queda como en la 3.1.3 (`5ee7543174`) |
 | `src_internal` | no se usa |
 
-**Después de la .110 (fuera de la 3.1.4; a la 3.1.5):** 859c5bc938 FSA en incógnito, d83ec3c16e FSA UNC (Windows),
+**Después de la .110 (entonces «a la 3.1.5»; desde que no hay 3.1.5 van en la 3.1.4 como `3.1.5/chromium` 0008–0013):** 859c5bc938 FSA en incógnito, d83ec3c16e FSA UNC (Windows),
 c404a3a5ff caché *sparse*, 7f43e52174 Streams, 39e958e23e `SyncLoadContext`, ba15fb1f7a WebCodecs y `VERSION` .111.
 
 ### brave-core 0003
@@ -401,3 +407,29 @@ Revisado el código de cada parche contra la 156. Riesgos para LOCAL:
 1. **D8-LINUX:** sin el verde de 659b8bf, brave-core 0002 no entra (parte 1).
 2. ~~**Dawn** 86d91e78..6d772bc9~~: cerrado (solo DXC, Windows; arriba).
 3. Propuesta de triaje corto de los medios para la 3.1.5, sin portar (aparte, a COORDINACIÓN).
+
+## Dictámenes sobre las pruebas de la build 47 (SEGURIDAD-PORTES-31, 19-11; a COORDINACIÓN-50)
+
+Todos **APTO**: ningún fallo apunta a la serie y no se toca ningún parche.
+
+- **content_unittests `FileSystemAccessManagerImplTest.GetHandleFromToken_ThirdPartyContextBlocksNonSandboxedReadAndWrite`**
+  (tiempo agotado): es el efecto buscado de `3.1.5/chromium/0031` (625dedb4a0). Su caso 3 canjea un token OPFS de primera
+  parte en un contexto de terceros y espera GRANTED; con 0031 el token no vale, el receptor no se enlaza y la `TestFuture`
+  espera para siempre. La prueba de 0031 `TransferToken_SandboxedDifferentTopLevelSite` afirma lo contrario y pasa.
+  Upstream (main) la tiene `DISABLED_` (crbug 567958637). Brave no toca ese camino. Decisión de COORDINACIÓN-50: anotarla y
+  excluirla con `--gtest_filter`, sin parche.
+- **browser_tests:** varios fallos ya están excluidos en `brave-core/test/filters/*.filter` (se corrió sin filtros).
+  - LNA: `parte5/integracion/chromium/0001` (cherry-pick de 44be2964ef) solo actúa con `IsNoStatePrefetch()`.
+    `LocalNetworkAccessUtilTest.*` 5/5. Los tiempos agotados de NullIP y WebRtc SetRemoteDescription quedan sin causa
+    (tarea posterior, no de seguridad).
+    **Prueba a mano en la 6,1:** desde http://neverssl.com, 0.0.0.0, 127.0.0.1 y localhost se bloquean al instante, sin
+    GET en el servidor; con Shields bajado, 0.0.0.0 lo bloquea LNA («not a secure context… more-private address space»).
+  - ReadAnything PDF (9): el visor PDF no carga en los browser_tests de Brave (también falla el PDF de control). La prueba
+    de `parte4/0005` la adaptó LOCAL-19 a la 156 (`OnSelectionChange` sin callback).
+  - NoStatePrefetch (~70): `<link rel=prerender>` ignora `NetworkPredictionOptions`. Lo corta el bloqueo de cookies de
+    terceros por defecto de Brave (`FINAL_STATUS_BLOCK_THIRD_PARTY_COOKIES`). El arreglo de LNA sigue vivo para quien
+    permita todas las cookies de terceros.
+  - PasswordGeneration (bucle de `CosmeticFiltersJSHandler`), `CrossProfileDebugger.GetTargets` (página de fondo de la
+    extensión), `CrxInstaller.InstallFailsDuringProfileShutdown` (`kDestroyProfileOnBrowserClose` apagado; falta en el
+    filtro de FlyWeb), `SanitizeFrontendURL` (`flyweb.invalid`) y `TestOpenSearchResultsInNewTab` (DuckDuckGo): son de
+    Brave, de FlyWeb o de la base. `3.1.4/chromium/0013` sí toca `PasswordAutofillAgent`, sin efecto con el frame vivo.
