@@ -37,13 +37,18 @@ cuenta.
 
 | Fichero | Uso |
 |---|---|
-| `ico-atras.svg` | Atrás (adelante = el mismo, en espejo, salvo que Titín mande otro) |
+| `ico-atras.svg` / `ico-adelante.svg` | Atrás / adelante |
+| `ico-recargar.svg` / `ico-detener.svg` | Recargar / detener la carga |
+| `ico-estrella-vacia.svg` / `ico-estrella-llena.svg` | Marcador (no guardado / guardado) |
+| `ico-escudo.svg` | Escudo (Shields); ver la duda abajo |
+| `ico-extensiones.svg` | Extensiones |
+| `ico-descargas.svg` | Descargas |
+| `ico-menu-tres-puntos.svg` | Menú (⋮) |
+| `ico-pestana-nueva.svg` | Nueva pestaña (+) |
+| `ico-cerrar-pestana.svg` | Cerrar pestaña (×) |
+| `ico-buscar-pestanas.svg` | Buscar pestañas (⌄) |
 | `ico-apps.svg` | Aplicaciones (barra de marcadores) |
 | `ico-carpeta-marcadores.svg` | Carpeta de marcadores |
-| `ico-buscar-pestanas.svg` | Buscar pestañas (⌄ de la barra de pestañas) |
-| `ico-cerrar-pestana.svg` | Cerrar pestaña (×) |
+| `ico-mas-adelante.svg` / `ico-mas-atras.svg` | «»» / «««»: marcadores que no caben, y el equivalente hacia atrás |
 
-**Faltan** (Titín los está exportando; ver el estado en la fila de MOTOR de `docs/TAREAS.md`): recargar, detener,
-estrella vacía y llena, extensiones, descargas, menú (⋮), nueva pestaña (+), «»» de marcadores, «Personalizar» de la
-nueva pestaña y la mosca del logo de la nueva pestaña. **El escudo de Shields se queda como está**, si ni Brave ni
-Google lo han cambiado.
+**Faltan:** «Personalizar» de la nueva pestaña. La mosca del logo de la nueva pestaña se queda con la actual de FlyWeb, si ni Brave ni Google la han cambiado. **Duda del escudo:** Titín dibujó `ico-escudo.svg`. Hay que confirmar con él si se usa en lugar del de Shields actual.
