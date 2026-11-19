@@ -1,0 +1,84 @@
+From 9d82bf362c30a97f882cb058042413ad8813d876 Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Thu, 19 Nov 2026 22:21:23 +0000
+Subject: [PATCH 2/3] Settings: show Brave's theme row on the appearance page
+ again
+
+Since the Chromium 156 port the appearance page is a Lit element and
+FlyWeb hides Chromium's colour scheme row (#colorSchemeModeRow), but
+Brave's <settings-brave-appearance-theme> was never inserted (Brave 1.98
+does it with lit_mangler, which FlyWeb does not ship). There was no way
+to pick light, dark or "same as macOS" in settings.
+
+Insert the row right after the hidden colour scheme row from
+firstUpdated, the same pattern about_page.ts uses. That row is a static
+node of the template, so Lit keeps the inserted sibling.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ .../brave_overrides/appearance_page.ts        | 39 ++++++++++++++++++-
+ 1 file changed, 37 insertions(+), 2 deletions(-)
+
+diff --git a/browser/resources/settings/brave_overrides/appearance_page.ts b/browser/resources/settings/brave_overrides/appearance_page.ts
+index e009b3a6004ef327e4eab9f2b4c1e84aba029821..20f29a09c08266d041ca06ef76a3b1d75dbd59fb 100644
+--- a/browser/resources/settings/brave_overrides/appearance_page.ts
++++ b/browser/resources/settings/brave_overrides/appearance_page.ts
+@@ -9,13 +9,15 @@
+ // are hidden with CSS injected into the element's styles; hiding instead of
+ // removing also keeps the nodes the element itself references ($ cache,
+ // focus config). Brave 1.98 inserts <settings-brave-appearance-theme> into
+-// the template with a lit_mangler script; FlyWeb has no such mechanism, so
+-// that row is not shown here (see the T11 report).
++// the template with a lit_mangler script; FlyWeb has no such mechanism, so it
++// is inserted into the rendered DOM once, after the first render (as
++// about_page.ts does), right after the colour scheme row it replaces.
+ 
+ import '../brave_appearance_page/brave_theme.js'
+ 
+ import {injectStyle} from '//resources/brave/lit_overriding.js'
+ import {css} from '//resources/lit/v3_0/lit.rollup.js'
++import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js'
+ 
+ import {SettingsAppearancePageElement} from '../appearance_page/appearance_page.js'
+ 
+@@ -48,3 +50,36 @@ injectStyle(SettingsAppearancePageElement, css`
+     display: none !important;
+   }
+ `)
++
++// FlyWeb: Brave's theme row (light / dark / same as macOS). It writes Brave's
++// own dark mode setting through BraveAppearanceHandler (setBraveThemeType).
++// #colorSchemeModeRow is a static node of the 156 template (not inside a
++// conditional part), so Lit never re-creates it and the inserted sibling
++// stays. The row is a Polymer element with its own data, so it needs no
++// properties from the page.
++function insertBraveThemeRow(root: ShadowRoot) {
++  if (root.querySelector('settings-brave-appearance-theme')) {
++    return
++  }
++  const colorSchemeModeRow = root.querySelector('#colorSchemeModeRow')
++  if (!colorSchemeModeRow) {
++    console.error('[FlyWeb] appearance page: #colorSchemeModeRow not found')
++    return
++  }
++  colorSchemeModeRow.after(
++      document.createElement('settings-brave-appearance-theme'))
++}
++
++// `firstUpdated` is `protected` on ReactiveElement, so reach it through an
++// untyped view of the prototype to patch it from outside the class hierarchy.
++const proto = SettingsAppearancePageElement.prototype as unknown as {
++  firstUpdated?: (changedProperties: PropertyValues) => void
++}
++const originalFirstUpdated = proto.firstUpdated
++proto.firstUpdated = function(
++    this: SettingsAppearancePageElement, changedProperties: PropertyValues) {
++  originalFirstUpdated?.call(this, changedProperties)
++  if (this.shadowRoot) {
++    insertBraveThemeRow(this.shadowRoot)
++  }
++}
+-- 
+2.43.0
+

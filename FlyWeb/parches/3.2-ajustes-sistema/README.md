@@ -1,7 +1,12 @@
-# 3.2.0: brave://settings/system ya no muere
+# 3.2.0: ajustes de la 156 (Sistema y Apariencia)
 
-MOTOR-46, 19-11-2026, por encargo de COORDINACIÓN-52 (decisión de Titín: entra en la 3.2.0).
-**Sin compilar** (la nube no tiene el checkout de Chromium).
+MOTOR-46, 19-11-2026, por encargo de COORDINACIÓN-52 y 53 (decisión de Titín: todo entra en la 3.2.0).
+**Sin compilar** (la nube no tiene el checkout de Chromium). Tres parches, en orden:
+- 0001: brave://settings/system ya no muere (#1122, fusionado);
+- 0002: vuelve el selector de tema en Apariencia;
+- 0003: los seis desplegables de Brave vuelven a guardar.
+
+Los tres son fallos del porte de los ajustes a la 156 (T11), no de la serie de la interfaz.
 
 ## El fallo
 
@@ -45,18 +50,63 @@ Riesgos:
   ya no avisa en debug. El `CHECK(!binder_map->Contains<Interface>())` de cada interfaz sigue activo, así que registrar
   dos veces la misma interfaz sigue rompiendo.
 
-## Parche y árboles
+## 0002: selector de tema (claro / oscuro / igual que macOS)
+
+**Fallo** (Titín, LOCAL-19, en la build de prueba y en la 3.1.4 con perfil limpio): en Ajustes › Apariencia no hay
+selector de tema; solo se puede cambiar con el modo del sistema.
+- `brave_overrides/appearance_page.ts` oculta con CSS la fila de Chromium (`#colorSchemeModeRow`).
+- La de Brave (`<settings-brave-appearance-theme>`) no se inserta nunca: Brave 1.98 la mete con lit_mangler, que FlyWeb
+  no tiene.
+- `setBraveThemeType` funcionaba (LOCAL lo cambió por CDP); faltaba el control.
+
+**Arreglo:** el mismo fichero engancha `firstUpdated` del elemento Lit (el patrón de `about_page.ts`) e inserta la fila de
+Brave justo detrás de `#colorSchemeModeRow`.
+- Es un nodo estático de la plantilla de 156 (`appearance_page.html.ts:66`), fuera de cualquier condicional, así que Lit
+  no lo vuelve a crear y el hermano insertado se queda.
+- La fila es un elemento Polymer con sus propios datos: la lista sale de `chrome.braveTheme.getBraveThemeList`, permitida
+  en `chrome://settings/*` (`_api_features.json`), y el valor se escribe con `setBraveThemeType`.
+- No se usa el selector de Chromium porque escribe la preferencia de color de Chromium (`ThemeService`), no la de Brave.
+
+## 0003: los desplegables de Brave no guardaban
+
+**Fallo:** en 156, `settings-dropdown-menu` es Lit y solo escribe la preferencia si tiene `pref-key`
+(`controls/settings_dropdown_menu.ts:145` y `:125`); ya no la saca de un `pref="{{…}}"` enlazado con Polymer. Los seis
+desplegables de Brave solo pasaban `pref`: enseñaban el valor, pero cada cambio se perdía. Ninguno tiene manejador propio.
+
+| Desplegable | Página | Preferencia |
+|---|---|---|
+| Modo de pasar por encima de las pestañas | Apariencia › Pestañas | `brave.tabs.hover_mode` |
+| Tamaño de letra | Apariencia › Contenido | `webkit.webprefs.default_font_size` |
+| Qué muestra la nueva pestaña | Página de nueva pestaña | `brave.new_tab_page.shows_options` |
+| **Política de IP de WebRTC** | Privacidad | `webrtc.ip_handling_policy` |
+| Request OTR | Privacidad | `brave.request_otr.request_otr_action_option` |
+| **Buscador de las ventanas privadas** | Buscador | `brave.default_private_search_provider_guid` |
+
+**Arreglo:** `pref-key` con la misma preferencia en cada uno. Las seis están en la lista permitida de `settingsPrivate`
+(`brave_prefs_util.cc`). El de pestañas además salía **vacío**: `tabTooltipModes_` era un campo de clase. Con el target
+ESNext de 156 (`tools/typescript/tsconfig_base.json`), ese campo tapa el accesor que Polymer crea para el enlace. Ahora es
+una propiedad Polymer con `value()`.
+
+«Tarjeta con vista previa» funciona en Mac aunque `kTabHoverCardImages` venga apagada:
+`brave_tab_hover_card_controller.cc:23-26` y el browsertest `brave_tab_hover_browsertest.cc:163-170`. La tarjeta en sí
+no se toca: la diseña Titín.
+
+**Revisión:** SEGURIDAD-PORTES-32 revisa el 0003 antes de fusionar (WebRTC y el buscador de privadas son de privacidad).
+
+## Parches y árboles
 
 | Parche | Qué hace |
 |---|---|
-| `0001-Bind-CommandsService-on-the-settings-WebUI-broker.patch` | Lo de arriba, más el browsertest `BraveContentBrowserClientTest.SettingsPagesBindTheirInterfaces` |
+| `0001-Bind-CommandsService-on-the-settings-WebUI-broker.patch` | Sistema, más el browsertest `BraveContentBrowserClientTest.SettingsPagesBindTheirInterfaces` |
+| `0002-Settings-show-Brave-s-theme-row-on-the-appearance-pa.patch` | Fila de tema (`brave_overrides/appearance_page.ts`) |
+| `0003-Settings-make-Brave-s-dropdowns-save-their-prefs-aga.patch` | `pref-key` en 6 desplegables y `tabTooltipModes_` como propiedad |
 
-Se aplica con `git am` y aplica limpio sobre las dos bases (comprobado):
+Se aplican en orden con `git am`, limpios sobre las dos bases (comprobado):
 
-| Base | Árbol esperado |
-|---|---|
-| brave-core `local/3.1.4` (`e660929ac9`) | `c9c578188e` |
-| Serie de la interfaz 0001–0007 (`FlyWeb/parches/3.2-interfaz/`, punta `ddac171538`) | `d58ba8b96d` |
+| Base | Tras 0001 | Tras 0002 | Tras 0003 |
+|---|---|---|---|
+| brave-core `local/3.1.4` (`e660929ac9`) | `c9c578188e` | `1720966e37` | `b82f38e3cd` |
+| Serie de la interfaz 0001–0007 (`FlyWeb/parches/3.2-interfaz/`, punta `ddac171538`) | `d58ba8b96d` | `d3cded8ef3` | `7a24c45189` |
 
 La serie de la interfaz no toca ninguno de estos ficheros.
 
@@ -77,3 +127,15 @@ La serie de la interfaz no toca ninguno de estos ficheros.
    - `flyweb://settings/appearance`: el selector de color y el de modo claro/oscuro funcionan (son interfaces de
      upstream en el mismo intermediario);
    - `flyweb://settings/braveSync`.
+4. Apariencia (0002), con perfil limpio: en `flyweb://settings/appearance` aparece la fila de colores de FlyWeb
+   (`IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_THEMES`, «FlyWeb colors») con tres opciones. Elegir claro, oscuro e «igual
+   que macOS» (cambiando el modo de macOS) y comprobar que la ventana
+   cambia al momento y que, al recargar la página, la opción elegida sigue marcada. El selector de Chromium no debe verse.
+   En la consola de la página no debe salir `[FlyWeb] appearance page: #colorSchemeModeRow not found`.
+5. Desplegables (0003): en cada uno de los seis de la tabla, elegir otro valor, **recargar la página** y comprobar que se
+   conserva (y en `flyweb://prefs-internals`, si hace falta, el valor de la preferencia). En especial:
+   - **Política de IP de WebRTC:** elegir «Disable non-proxied UDP», recargar; y comprobar en https://browserleaks.com/webrtc
+     (o equivalente) que deja de salir la IP local.
+   - **Buscador de las ventanas privadas:** elegir otro, recargar, abrir una ventana privada y buscar desde la barra.
+   - **Modo de pasar por encima de las pestañas:** ahora salen las tres opciones (tarjeta, tarjeta con vista previa y
+     tooltip). Con «Tarjeta con vista previa», la tarjeta lleva miniatura; con el tooltip, solo el título.
