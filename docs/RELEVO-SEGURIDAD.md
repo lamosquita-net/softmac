@@ -1146,3 +1146,29 @@ algún bug de `pendiente/` resulta Alto o Crítico, entra en KEV o se explota: p
 - `curl` al API JSON de `issues.chromium.org` también lo deniega el clasificador; los bugs de seguridad recientes están
   restringidos. Las entradas de Chrome Releases que se descargan llegan a veces sin cuerpo: «no aparece» no prueba nada.
 - `rm -f $VAR/*` lo bloquea la comprobación de seguridad: usa rutas literales o `"${VAR:?}"`.
+
+**Tarde del 19-11 (COORDINACIÓN-52 = `session_01MwmK2iHT1aVuS17rvqWH3K` desde las 18:07 UTC):**
+- `pendiente/brave-core/0001` = V8 **d68cecd900** (15.6.75.72; 583479274), sin subir `kFlyWebCacheEpoch`; necesita
+  D8-LINUX, que se pide junto con el resto cuando haya versión destino.
+- `pendiente/skia/0001` = Skia **13d0b32615** (Ganesh, 584003006) y `pendiente/skia/0002` = Skia **7dc6c0c342**
+  (FreeType LCD16, b/576955738, merge 585801577; aplicable **por prudencia**: el backend FreeType de Skia se compila en
+  Mac y lo usa PDFium según `skia/BUILD.gn`; las fuentes web no pasan por él). Árbol Skia final `47b14cb49e` (#1118).
+- **No aplican** (anotado en `pendiente/CONTENIDO.md`): TouchSelection a70a3e9f68 y b526fdd (solo Aura/Android); dos
+  *rolls* de Dawn (`ff774db0a2` y `9275276`: solo DXC, D3D12 de Windows; comprobado por LOCAL-19 con `gn args`/`gn path`);
+  Skia 16a9d4d9a3 (Graphite, apagado); Actor 8d177bf (solo lo arranca Glic, que exige cuenta de Google; razonado, no
+  probado en ejecución). V8 .73 y las pruebas desactivadas no llevan código.
+- PR fusionados: #1102, #1113, #1114, #1117, #1118, #1119.
+
+**Estado al relevar (actualizar):** 8078 en `8d177bfb6d`, sin tag .112; V8 15.6 en `c4641b4cbe` (.73); Skia de la 8078
+`7dc6c0c3424a`; rama 159 = `branch-heads/8154`, último tag 159.0.8154.28 (beta): avisar a COORDINACIÓN cuando salga
+estable. Siguientes números: `chromium/0002` sobre `2c8ef28a99`, `brave-core/0002` sobre `90134a4e08`, `skia/0003`
+sobre `47b14cb49e`, `angle/0002` sobre `fb21437e81`. Gravedad de todos: no consta (bugs restringidos).
+
+**Más trampas:**
+- `dawn.googlesource.com`, `skia.googlesource.com` y `pdfium.googlesource.com` dan 403. Skia se lee por el espejo
+  `chromium.googlesource.com/skia` (rama `chrome/m156`); Dawn y PDFium, se le piden a LOCAL vía COORDINACIÓN.
+- `+log` de gitiles a veces devuelve basura: `git fetch --depth 10 --filter=tree:0 <url> refs/branch-heads/8078` y
+  `git log`. Los ficheros de un commit, con `+/<sha>?format=JSON` (`tree_diff`); `git diff-tree` sobre un fetch
+  `tree:0` se cuelga bajando árboles uno a uno.
+- El `main` local del contenedor puede venir con historia vieja (anterior a una reescritura del remoto): `git reset
+  --hard origin/main` en `main` (sin cambios propios), nunca reescribir el remoto.
