@@ -1,0 +1,171 @@
+From 103812fc33fac43dd85fd1f9dbd80049652fd912 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 19 Nov 2026 21:36:04 +0000
+Subject: [PATCH] Bind CommandsService on the settings WebUI broker
+
+Since Chromium 156, chrome://settings binds its interfaces through the
+per-WebUI broker registered for settings::SettingsUI, which
+BraveSettingsUI shares (GetType() is final in SettingsUI). Brave only
+registered CommandsService in the old frame binder map, so the
+shortcuts subpage of brave://settings/system asked for an interface the
+broker did not have and the renderer was killed with a bad message.
+
+Register CommandsService with ForWebUI<BraveSettingsUI>(), as Brave
+does, and take Brave's chromium_src hook that lets a second ForWebUI()
+for an already registered controller type pass the DCHECK. Add a
+browsertest that opens the settings pages, system and shortcuts
+included, and checks the renderer stays alive. A static_assert keeps
+BraveSettingsUI member-free, since the shared broker may run its binders
+on a plain SettingsUI.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ browser/brave_content_browser_client.cc       | 13 ++++++++
+ ...rave_content_browser_client_browsertest.cc | 32 +++++++++++++++++++
+ browser/ui/webui/brave_settings_ui.cc         |  8 +++++
+ ...web_ui_browser_interface_broker_registry.h | 26 +++++++++++++++
+ ..._browser_interface_broker_registry.h.patch | 12 +++++++
+ 5 files changed, 91 insertions(+)
+ create mode 100644 chromium_src/content/public/browser/web_ui_browser_interface_broker_registry.h
+ create mode 100644 patches/content-public-browser-web_ui_browser_interface_broker_registry.h.patch
+
+diff --git a/browser/brave_content_browser_client.cc b/browser/brave_content_browser_client.cc
+index 188bfe42dbb12c1ebe147f1d74b3b50386b00edc..18a2cffa11c72bb5d82198e58212c4a4a1dbc8b5 100644
+--- a/browser/brave_content_browser_client.cc
++++ b/browser/brave_content_browser_client.cc
+@@ -307,6 +307,19 @@ void BraveContentBrowserClient::RegisterTrustedWebUIInterfaceBrokers(
+   if (base::FeatureList::IsEnabled(features::kBraveNtpSearchWidget)) {
+     ntp_registration.Add<searchbox::mojom::PageHandlerFactory>();
+   }
++
++  // FlyWeb: since Chromium 156 chrome://settings binds through a per-WebUI
++  // broker (settings::SettingsUI's, which BraveSettingsUI shares because
++  // GetType() is final in SettingsUI) and no longer looks at the frame
++  // binder map below. Without this the shortcuts subpage of
++  // brave://settings/system asked for CommandsService and the page was killed
++  // with a bad message. Same registration as Brave; ForWebUI() for an
++  // already registered type is allowed by
++  // chromium_src/content/public/browser/web_ui_browser_interface_broker_registry.h.
++  if (base::FeatureList::IsEnabled(commands::features::kBraveCommands)) {
++    registry.ForWebUI<BraveSettingsUI>()
++        .Add<commands::mojom::CommandsService>();
++  }
+ #endif
+ }
+ 
+diff --git a/browser/brave_content_browser_client_browsertest.cc b/browser/brave_content_browser_client_browsertest.cc
+index 66ae8d73b8e8e8e3fdc5252bbf3b67b52a95284b..04e5e2d29122a00acdf11606a8fc608ac523430b 100644
+--- a/browser/brave_content_browser_client_browsertest.cc
++++ b/browser/brave_content_browser_client_browsertest.cc
+@@ -185,6 +185,38 @@ IN_PROC_BROWSER_TEST_F(BraveContentBrowserClientTest, RewriteChromeSync) {
+   }
+ }
+ 
++// FlyWeb: Chromium 156 binds chrome://settings through a per-WebUI broker.
++// The shortcuts subpage of brave://settings/system asks for CommandsService;
++// when the broker lacked it the renderer was killed with a bad message
++// ("Per WebUI interface binder missing for: commands.mojom.CommandsService").
++// The other pages use SettingsUI's own interfaces (color scheme, sign-in,
++// help bubble), which must keep working on the shared broker.
++IN_PROC_BROWSER_TEST_F(BraveContentBrowserClientTest,
++                       SettingsPagesBindTheirInterfaces) {
++  const std::vector<std::string> pages{
++      "chrome://settings/",
++      "chrome://settings/system",
++      "chrome://settings/system/shortcuts",
++      "chrome://settings/appearance",
++      "chrome://settings/braveSync",
++  };
++  content::WebContents* contents =
++      browser()->tab_strip_model()->GetActiveWebContents();
++  for (const std::string& page : pages) {
++    SCOPED_TRACE(page);
++    ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), GURL(page)));
++    ASSERT_TRUE(WaitForLoadStop(contents));
++    // Give the lazily loaded subpages (commands.bundle.js) time to request
++    // their interfaces. A killed renderer makes EvalJs fail.
++    EXPECT_EQ(true, content::EvalJs(contents,
++                                    "new Promise(r => setTimeout(() => "
++                                    "r(!!document.querySelector('settings-ui')),"
++                                    " 2000))"));
++    EXPECT_FALSE(contents->IsCrashed());
++    EXPECT_TRUE(contents->GetPrimaryMainFrame()->IsRenderFrameLive());
++  }
++}
++
+ IN_PROC_BROWSER_TEST_F(BraveContentBrowserClientTest, RewriteAdblock) {
+   std::vector<std::string> schemes{
+       "brave://",
+diff --git a/browser/ui/webui/brave_settings_ui.cc b/browser/ui/webui/brave_settings_ui.cc
+index 4b74cecb9669caa76dfe2684dda88ac3530b8b25..cc3027eaa184ea432f9b9dc1a054e83e7ea84159 100644
+--- a/browser/ui/webui/brave_settings_ui.cc
++++ b/browser/ui/webui/brave_settings_ui.cc
+@@ -98,6 +98,14 @@ bool& BraveSettingsUI::ShouldExposeElementsForTesting() {
+   return expose_elements;
+ }
+ 
++// FlyWeb: BraveSettingsUI shares SettingsUI's WebUI type (GetType() is final),
++// so its per-WebUI binders may be called on a plain SettingsUI. Keep it
++// member-free. (The broker's GetAs<BraveSettingsUI>() only compares that
++// shared type; with no extra members the cast never reaches past the base
++// object. If BraveSettingsUI ever needs data members, replace this with a real
++// runtime check, e.g. a virtual marker in SettingsUI.)
++static_assert(sizeof(BraveSettingsUI) == sizeof(settings::SettingsUI));
++
+ void BraveSettingsUI::BindInterface(
+     mojo::PendingReceiver<commands::mojom::CommandsService> pending_receiver) {
+   commands::AcceleratorServiceFactory::GetForContext(
+diff --git a/chromium_src/content/public/browser/web_ui_browser_interface_broker_registry.h b/chromium_src/content/public/browser/web_ui_browser_interface_broker_registry.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..19c1824093bc9e96d1d78fa374dbb6f048369db3
+--- /dev/null
++++ b/chromium_src/content/public/browser/web_ui_browser_interface_broker_registry.h
+@@ -0,0 +1,26 @@
++// Copyright (c) 2025 The Brave Authors. All rights reserved.
++// This Source Code Form is subject to the terms of the Mozilla Public
++// License, v. 2.0. If a copy of the MPL was not distributed with this file,
++// You can obtain one at https://mozilla.org/MPL/2.0/.
++
++#ifndef BRAVE_CHROMIUM_SRC_CONTENT_PUBLIC_BROWSER_WEB_UI_BROWSER_INTERFACE_BROKER_REGISTRY_H_
++#define BRAVE_CHROMIUM_SRC_CONTENT_PUBLIC_BROWSER_WEB_UI_BROWSER_INTERFACE_BROKER_REGISTRY_H_
++
++// WebUIBrowserInterfaceBrokerRegistry::ForWebUI uses a DCHECK to enforce that
++// all interfaces are registered with a particular WebUI at the same time. This
++// is inconvenient for us because if we want to add our own interface
++// registrations to an upstream UI we have to patch our registrations into the
++// code where upstream registers theirs. To avoid this type of patching we are
++// disabling this DCHECK restriction.
++//
++// FlyWeb: taken from Brave (master, 2025). BraveSettingsUI shares
++// settings::SettingsUI's controller type (GetType() is final there), so
++// ForWebUI<BraveSettingsUI>() appends to SettingsUI's broker; without this
++// hook that second call hits the DCHECK in DCHECK-enabled builds.
++#define BRAVE_WEBUI_BROWSER_INTERFACE_BROKER_REGISTRY_FOR_WEBUI if (false)
++
++#include "src/content/public/browser/web_ui_browser_interface_broker_registry.h"  // IWYU pragma: export
++
++#undef BRAVE_WEBUI_BROWSER_INTERFACE_BROKER_REGISTRY_FOR_WEBUI
++
++#endif  // BRAVE_CHROMIUM_SRC_CONTENT_PUBLIC_BROWSER_WEB_UI_BROWSER_INTERFACE_BROKER_REGISTRY_H_
+diff --git a/patches/content-public-browser-web_ui_browser_interface_broker_registry.h.patch b/patches/content-public-browser-web_ui_browser_interface_broker_registry.h.patch
+new file mode 100644
+index 0000000000000000000000000000000000000000..ec7a718f69ec0ba9750759af20102e09fbc651a3
+--- /dev/null
++++ b/patches/content-public-browser-web_ui_browser_interface_broker_registry.h.patch
+@@ -0,0 +1,12 @@
++diff --git a/content/public/browser/web_ui_browser_interface_broker_registry.h b/content/public/browser/web_ui_browser_interface_broker_registry.h
++index 7be0b6fe1ef41668009647536d32ec09932437a2..122b80e2219385eaa25c07d1c4b15fe4af87a3ff 100644
++--- a/content/public/browser/web_ui_browser_interface_broker_registry.h
+++++ b/content/public/browser/web_ui_browser_interface_broker_registry.h
++@@ -114,6 +114,7 @@ class CONTENT_EXPORT WebUIBrowserInterfaceBrokerRegistry {
++     // class declaration.
++     WebUIController::Type type = &ControllerType::kWebUIControllerType;
++ 
+++    BRAVE_WEBUI_BROWSER_INTERFACE_BROKER_REGISTRY_FOR_WEBUI
++     DCHECK(binder_initializers_.count(type) == 0)
++         << "Interfaces for a WebUI should be registered together.";
++ 
+-- 
+2.43.0
+
