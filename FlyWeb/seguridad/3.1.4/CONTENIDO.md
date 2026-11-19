@@ -109,6 +109,8 @@ Todos con `git apply --cached` sobre la base indicada, sin `-3`.
   V8 .66→.71 vía `patches/v8`; Skia 115e3c17b5 en la parte 4; `src-internal` no se usa): pasar a .111 no cambia el
   código. Encima del tag, `aac2cdd377` solo sube `chrome/VERSION` a .112. V8 15.6 sigue en .71; sin *reland* de
   605619b342 ni el cambio de Blink de 574749469. **Ningún `integracion/chromium/0005` por ahora.**
+  **Después de publicar la build 47 (19-11):** lo que llegó luego a la 8078 (ANGLE 41c5deee45 y b243cdcc16) **no está
+  en la 3.1.4**; espera en [`../pendiente/`](../pendiente/CONTENIDO.md) a la siguiente versión (Titín, 19-11).
 
 ### Lo que llega a la rama 8078 después de la integración
 

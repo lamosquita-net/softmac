@@ -1,0 +1,128 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Greg Thompson <grt@chromium.org>
+Date: Thu, 19 Nov 2026 09:19:30 +0000
+Subject: [PATCH] [M156] Disallow creating symbolic links in the macOS network
+ service sandbox
+
+FlyWeb 3.1.4: from branch-heads/8078 b243cdcc16. Applied after integracion/chromium/0004;
+the content/browser/sandbox_parameters_mac.h hunk was re-placed by hand next to the
+kMacSandboxAllowRendererPidinfo declaration added by 3.1.5/chromium/0024 (context-only).
+
+Combines the macOS network service symlink denial rule with its
+MacSandboxAllowNetworkSymlinkCreation killswitch, omitting the
+conflicting test additions in content/browser/sandbox_mac_unittest.mm
+whose prerequisite data migration tests do not exist on this branch.
+
+Original change's description:
+> Disallow creating symbolic links in the macOS network service sandbox
+>
+> Prevent the sandboxed network service on macOS from creating symbolic
+> links in its writable storage and cache directories.
+>
+> Bug: 577326267, 578671128
+> Change-Id: Idc377b64c221e21f03d76767dd5bd15d14f78cbf
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8703277
+> Reviewed-by: Bryan Oltman <bryanoltman@google.com>
+> Commit-Queue: Greg Thompson <grt@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1732868}
+
+(cherry picked from commit 724aef5abb0b7c1e178f4e09d02654fddaa043f7)
+
+Killswitch change's description:
+> [macOS] Add killswitch for network sandbox symlink denial rule
+>
+> Adds the disabled-by-default MacSandboxAllowNetworkSymlinkCreation
+> feature as a killswitch for the symlink creation denial rule introduced
+> in https://crrev.com/c/8703277.
+>
+> Bug: 577326267,578671128
+> Change-Id: Ib3c26889dcfc783ad10e86c5424327cfbdf4dac4
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8700741
+> Auto-Submit: Bryan Oltman <bryanoltman@google.com>
+> Reviewed-by: Greg Thompson <grt@chromium.org>
+> Commit-Queue: Greg Thompson <grt@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1735016}
+
+(cherry picked from commit f597bcf69a89ad14e9bed27ced7c889da787617e)
+
+Bug: 582138392,577326267,578671128
+Change-Id: Idc377b64c221e21f03d76767dd5bd15d14f78cbf
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8743399
+Reviewed-by: Dibyajyoti Pal <dibyapal@chromium.org>
+Owners-Override: Greg Thompson <grt@chromium.org>
+Commit-Queue: Greg Thompson <grt@chromium.org>
+Reviewed-by: Bryan Oltman <bryanoltman@google.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2331}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ content/browser/sandbox_parameters_mac.h  | 1 +
+ content/browser/sandbox_parameters_mac.mm | 8 ++++++++
+ sandbox/policy/mac/network.sb             | 7 +++++++
+ 3 files changed, 16 insertions(+)
+
+diff --git a/content/browser/sandbox_parameters_mac.h b/content/browser/sandbox_parameters_mac.h
+index bc9f12e..d0c9a44 100644
+--- a/content/browser/sandbox_parameters_mac.h
++++ b/content/browser/sandbox_parameters_mac.h
+@@ -22,6 +22,7 @@ enum class Sandbox;
+ 
+ namespace content {
+ 
++CONTENT_EXPORT BASE_DECLARE_FEATURE(kMacSandboxAllowNetworkSymlinkCreation);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kMacSandboxRestrictGpuDarwinUserDirs);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kMacSandboxAllowRendererPidinfo);
+ 
+diff --git a/content/browser/sandbox_parameters_mac.mm b/content/browser/sandbox_parameters_mac.mm
+index 574ac0a..3249094 100644
+--- a/content/browser/sandbox_parameters_mac.mm
++++ b/content/browser/sandbox_parameters_mac.mm
+@@ -35,6 +35,10 @@
+ 
+ namespace content {
+ 
++// If enabled, allows the network process to create symlinks.
++BASE_FEATURE(kMacSandboxAllowNetworkSymlinkCreation,
++             base::FEATURE_DISABLED_BY_DEFAULT);
++
+ // If enabled, restricts the GPU process's access to the Darwin user cache
+ // directory (/var/folders/.../C/) to a set of known file names used by Metal
+ // ([functions|libraries].[data|list]) as well as providing limited permissions
+@@ -185,6 +189,10 @@ void SetupNetworkSandboxParameters(sandbox::SandboxSerializer* serializer,
+         sandbox::policy::GetCanonicalPath(*GetNetworkTestCertsDirectory())
+             .value()));
+   }
++
++  CHECK(serializer->SetBooleanParameter(
++      sandbox::policy::kParamAllowNetworkSymlinkCreation,
++      base::FeatureList::IsEnabled(kMacSandboxAllowNetworkSymlinkCreation)));
+ }
+ 
+ bool SetupGpuSandboxParameters(sandbox::SandboxSerializer* serializer,
+diff --git a/sandbox/policy/mac/network.sb b/sandbox/policy/mac/network.sb
+index 08904e5..fdb62ef 100644
+--- a/sandbox/policy/mac/network.sb
++++ b/sandbox/policy/mac/network.sb
+@@ -9,6 +9,9 @@
+ (define network-service-storage-path-n "NETWORK_SERVICE_STORAGE_PATH_")
+ (define network-service-test-certs-dir "NETWORK_SERVICE_TEST_CERTS_DIR")
+ 
++; Allows the network process to create symlinks.
++(define allow-network-symlink-creation "ALLOW_NETWORK_SYMLINK_CREATION")
++
+ ; Allow access to the [0,N) storage location paths.
+ (let ((count (string->number (param network-service-storage-paths-count))))
+   (let loop ((i 0))
+@@ -18,6 +21,10 @@
+           (param (string-append network-service-storage-path-n (number->string i)))))
+         (loop (+ i 1))))))
+ 
++; Disallow creating symbolic links.
++(unless (param-true? allow-network-symlink-creation)
++  (deny file-write-create (vnode-type SYMLINK)))
++
+ ; DNS configuration watcher entries. This is a nesty mess of symlinks.
+ (allow file-read*
+   (path "/")
+-- 
+2.43.0
+

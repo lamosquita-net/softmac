@@ -1114,3 +1114,35 @@ cuando COORDINACIÓN diga que la 3.1.4 está publicada: entonces se borra el rec
 - Para dictámenes de pruebas de la 7,1/6,1: mirar primero `test/filters/*.filter` de brave-core; muchos fallos ya están
   excluidos por Brave.
 
+
+## 22. SEGURIDAD-PORTES-32 (`session_01MwmK2jtrG4sKq6TUTVEEyD`, 19-11-2026): vigilancia de la 8078 y `pendiente/`
+
+**Encargo (COORDINACIÓN-51 = `session_01MwmK2kKsACPV7ge7aLcNUS`):** el de la -31 (§21). **Cambió el 19-11 ~10:27 UTC:**
+Titín firmó y publicó la 3.1.4 build 47 antes de ver la parada, y decidió que **no hay 3.1.5 por ahora**. Lo que llegue
+a la 8078 (y a la rama de la 159 cuando salga) y aplique a Mac va a **`FlyWeb/seguridad/pendiente/`** con APTO, para la
+siguiente versión que salga (tanda de la 159 o 3.2.0, la que llegue antes). **Escalada inmediata a COORDINACIÓN** si
+algún bug de `pendiente/` resulta Alto o Crítico, entra en KEV o se explota: propondrá una 3.1.5 a Titín.
+
+**Hecho:**
+- 8078 `aac2cdd377` → `0ca9887568` (*roll* de ANGLE, 08:32 UTC) → `b243cdcc16` (09:19 UTC). Sin tag .112; V8 15.6 en .71.
+- `pendiente/angle/0001` = ANGLE **41c5deee45** (574209990; gravedad desconocida, bug restringido) y
+  `pendiente/chromium/0001` = **b243cdcc16** (sandbox de red de Mac, 577326267/578671128), con APTO (#1102). ANGLE
+  0b547a1161 (550489336) no aplica: solo Mali/Adreno. Detalle, bases, árboles y pruebas para LOCAL en
+  `pendiente/CONTENIDO.md`.
+- Lista de pruebas en Mojave del sandbox de red, con una comprobación previa de `sandbox-exec` de 1 minuto: pasada a COORDINACIÓN-51.
+
+**Cómo, además de §21:**
+- **Árbol exacto de chromium sin clonar Chromium:** `git init`; `git fetch --depth 1 --filter=blob:none` del fork
+  (`refs/heads/local/314-adapt`; tarda unos segundos por el proxy); *sparse-checkout* solo de los ficheros que tocan los
+  parches; `git am` en orden. Reproduce los árboles anotados (`e7162cd585`). Está en `scratchpad/cr` mientras dure el
+  contenedor.
+- **ANGLE:** `git clone --filter=blob:none` de `chromium.googlesource.com/angle/angle.git`; `f10470c77e` + `3.0.1/angle` +
+  `parches/3.1-angle` + `3.1.4/angle` = `db885a866b`.
+- Un *roll* «from side projects» se mira con `+/<sha>?format=JSON` (`tree_diff`), y luego el `+log` del subproyecto.
+
+**Trampas:**
+- `add_repo` (brave-core y chromium) lo deniega el clasificador también a la -32; no hace falta: ls-remote y fetch
+  públicos por googlesource y por el proxy.
+- `curl` al API JSON de `issues.chromium.org` también lo deniega el clasificador; los bugs de seguridad recientes están
+  restringidos. Las entradas de Chrome Releases que se descargan llegan a veces sin cuerpo: «no aparece» no prueba nada.
+- `rm -f $VAR/*` lo bloquea la comprobación de seguridad: usa rutas literales o `"${VAR:?}"`.
