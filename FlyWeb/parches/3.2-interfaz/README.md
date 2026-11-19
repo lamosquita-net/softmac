@@ -228,15 +228,14 @@ las PNG `IDR_FLYWEB_SHIELDS_ICON_*`. **Valores provisionales**, en constantes `k
 ## Ventana privada (0007, aparte)
 
 Decisiones de Titín (19-11):
-- Pestaña activa y barra de la ventana privada en una sola pieza: **`#571E73`** (y `#AFA6D2` en claro, ver abajo).
+- Pestaña activa y barra de la ventana privada en una sola pieza: **`#571E73`**.
+- **La privada va siempre en oscuro.** `#AFA6D2` (claro) queda para más adelante. Ver «Trabajo futuro».
 - **Marco `#272726`** en lugar de `#13052A`, para que la privada no se confunda con una ventana normal en oscuro. Va en una
   constante propia, `kFlyWebPrivateFrame`. La URL y el fondo de la página nueva siguen con `kPrivateFrame`.
 - **Invitado**: igual que la privada. Comparten tema y no se separan.
 
-- **Solo se aplica el oscuro**: en Chromium 156, `ThemeService::GetColorProviderKey()` fuerza el modo oscuro para los
-  perfiles de incógnito, así que la ventana privada siempre está en oscuro. Para usar `#AFA6D2` habría que hacer que la
-  privada siga el modo del sistema. Eso implica una paleta clara completa (texto, URL, iconos), y queda pendiente de
-  decidir.
+- **Siempre en oscuro**: en Chromium 156, `ThemeService::GetColorProviderKey()` fuerza el modo oscuro para los perfiles
+  de incógnito, y Titín ha decidido dejarlo así por ahora.
 - **Sin cambios**: los iconos (pendientes de Titín), la URL y la página de la ventana privada nueva. Tor no existe en
   FlyWeb.
 - **Contraste** (medido por COORDINACIÓN): blanco sobre `#571E73`, 11,4:1; `#EDEEF1` sobre `#571E73`, 9,8:1.
@@ -246,3 +245,37 @@ Decisiones de Titín (19-11):
   barra y la pestaña activa de la privada.
 - A ojo: ventana privada nueva, con la barra y la pestaña activa en `#571E73`, el marco en `#272726` y el resto como
   antes. La ventana de invitado, igual.
+
+### Trabajo futuro: privada clara (decisión de Titín, 19-11: más adelante)
+
+Para que la ventana privada (y la de invitado, que comparte su tema) siga el modo claro u oscuro del sistema:
+
+1. **Modo**: en `browser/ui/views/frame/brave_browser_widget.cc` (`BraveBrowserWidget::GetColorProviderKey()`), dejar de
+   forzar el oscuro. Lo fuerza `ThemeService::GetColorProviderKey()` de Chromium para incógnito, y el propio widget de
+   Brave para el invitado.
+2. **Paleta clara de la privada**, en `browser/ui/color/brave_color_mixer.cc` (`AddPrivateThemeColorMixer()`). Hoy llama
+   siempre a las mezclas oscuras de Brave y de Chrome. Haría falta una rama clara:
+   - barra y pestaña activa `#AFA6D2`;
+   - marco claro (por definir);
+   - texto de pestañas negro, con las inactivas al 50 %;
+   - iconos (por definir; `#656666` sobre `#AFA6D2` da 2,5:1, por debajo de 3:1);
+   - separadores, línea bajo la barra y anillo de foco.
+3. **URL y desplegable de la privada**: `AddBraveOmniboxPrivateThemeColorMixer()`, `GetLocationBarBackground()` y
+   `GetOmniboxResultBackground()` con privada. Hay que decidir el color de la URL en claro y aplicar las recetas de
+   contraste del desplegable, como en H1.
+4. **Página de la ventana privada nueva**: `components/brave_private_new_tab_ui` (React), con un diseño oscuro fijo que
+   Titín está rediseñando.
+5. **Revisión a ojo** de lo que toma colores de la clave: menús, burbujas, panel de Shields y perfil.
+
+**Riesgos**:
+- Hay que rehacer las expectativas de `BraveThemeServiceTest.ColorProviderTest` y `.OmniboxColorTest`, y buscar otros
+  tests que miren colores de ventanas privadas.
+- El invitado deja de ser siempre oscuro.
+- Mientras no exista la página privada clara, saldría una página oscura dentro de una ventana clara.
+
+**Parches**: dos o tres.
+1. Modo, paleta clara, URL y desplegable, y tests.
+2. La página privada nueva.
+3. Los iconos, si no entran en el primero.
+
+Depende de que Titín decida el marco claro, la URL clara y los iconos.
