@@ -920,3 +920,4 @@ buzon/LOCAL/20261119-0410-COORDINACION-50-browser-tests-LOCAL-19.md → Compilac
 buzon/LOCAL/20261119-0300-COORDINACION-50-corrige-0410-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 02:57 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-0315-COORDINACION-50-dictamen-bt-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 03:12 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-0320-COORDINACION-50-nullip-manual-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 03:19 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261119-0330-COORDINACION-50-nullip-shields-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 03:30 UTC · entregado (CARTERO-LOCAL)
