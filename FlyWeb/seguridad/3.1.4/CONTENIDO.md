@@ -109,11 +109,8 @@ Todos con `git apply --cached` sobre la base indicada, sin `-3`.
   V8 .66→.71 vía `patches/v8`; Skia 115e3c17b5 en la parte 4; `src-internal` no se usa): pasar a .111 no cambia el
   código. Encima del tag, `aac2cdd377` solo sube `chrome/VERSION` a .112. V8 15.6 sigue en .71; sin *reland* de
   605619b342 ni el cambio de Blink de 574749469. **Ningún `integracion/chromium/0005` por ahora.**
-  **Actualización (SEGURIDAD-PORTES-32, 19-11, 09:16 UTC):** la 8078 pasa a **`0ca9887568`** (08:32 UTC, «Roll commits
-  from side projects in M156»): solo `DEPS` y ANGLE `f4f835734108..0b547a1161fb`, dos *cherry-picks* [M156]. Uno aplica a
-  Mac: **`integracion/angle/0001`** (abajo). Sin tag .112; V8 15.6 sigue en .71.
-  **10:20 UTC:** la 8078 pasa a **`b243cdcc16`** (09:19 UTC): «[M156] Disallow creating symbolic links in the macOS
-  network service sandbox», solo Mac → **`integracion/chromium/0005`** (abajo). Sin tag .112; V8 15.6 sigue en .71.
+  **Después de publicar la build 47 (19-11):** lo que llegó luego a la 8078 (ANGLE 41c5deee45 y b243cdcc16) **no está
+  en la 3.1.4**; espera en [`../pendiente/`](../pendiente/CONTENIDO.md) a la siguiente versión (Titín, 19-11).
 
 ### Lo que llega a la rama 8078 después de la integración
 
@@ -125,8 +122,7 @@ aplica **al final**, después de `adapt/chromium/0001`. La vigilancia sigue hast
 |---|---|---|---|
 | `integracion/chromium/0002` | **5028a2f6a3** (de 7c903bac42) | 584069904 (merge 587226645) | **`25a6269c6b`** (sin el commit de fijación, sobre `ddf5f555b2` + `adapt/0001`: `3a5c1663cf`) |
 | `integracion/chromium/0003` | **5328af27d7** | b:585726394 (merge 586791921) | **`32203fc124`** |
-| `integracion/chromium/0004` | **aa4c9495f7** | 574640360, 575087049 (merge 580174924) | **`e7162cd585`** (sin la fijación: `32391b8a33`) |
-| `integracion/chromium/0005` | **b243cdcc16** | 577326267, 578671128 | **`2c8ef28a99`** (árbol final; `git am` sobre `e7162cd585`, SEGURIDAD-PORTES-32) |
+| `integracion/chromium/0004` | **aa4c9495f7** | 574640360, 575087049 (merge 580174924) | **`e7162cd585`** (árbol final; sin la fijación: `32391b8a33`) |
 
 - **0002, miniaturas de pestañas** (`chrome/browser/ui/thumbnails/thumbnail_scheduler_impl.{cc,h}`; escritorio, se
   compila en Mac): `ThumbnailSchedulerImpl` podía volver a entrar en la función que reparte las capturas antes de
@@ -150,56 +146,6 @@ aplica **al final**, después de `adapt/chromium/0001`. La vigilancia sigue hast
   podían colapsar en el mismo `U+FFFD` y llegar duplicados a `AddRulesImpl`). Ficheros nuevos `constants.h` y
   `declarative_utils.{h,cc}` y su entrada en `extensions/browser/BUILD.gn`. Aplica limpio; brave-core no tiene
   `chromium_src` para estos ficheros; `base::IsStringUTF8AllowingNoncharacters` existe en la 156.
-- **0005, sandbox del servicio de red en Mac** (`sandbox/policy/mac/network.sb`, `content/browser/sandbox_parameters_mac.{h,mm}`;
-  solo Mac): el perfil del servicio de red prohíbe crear enlaces simbólicos (`(deny file-write-create (vnode-type
-  SYMLINK))`) en sus directorios de almacenamiento y caché, con el interruptor `kMacSandboxAllowNetworkSymlinkCreation`
-  (**apagado** por defecto; parámetro `ALLOW_NETWORK_SYMLINK_CREATION`, cuya constante `kParam…` genera
-  `generate_params.py` a partir del `define` del `.sb`). Las líneas añadidas son idénticas a las de upstream; solo hubo
-  que recolocar la del `.h` junto a `kMacSandboxAllowRendererPidinfo`, que añadió `3.1.5/chromium/0024` (choque solo
-  de contexto). brave-core no tiene parches ni `chromium_src` para estos ficheros (`local/3.1.4-adapt` `e660929`).
-  **Mojave:** `vnode-type` y `file-write-create` ya se usan en `common.sb` y `gpu.sb`, que funcionan en 10.14;
-  `unless` es nuevo en nuestros `.sb` (`common.sb` usa `when`, su pareja). Como nuestras *variations* son inertes,
-  el interruptor no se puede encender a distancia: si algo fallara, solo se arregla con otra build.
-
-### ANGLE de la 8078 después de la integración (SEGURIDAD-PORTES-32, 19-11)
-
-El *roll* `0ca9887568` de la 8078 lleva ANGLE de `f4f835734108` (= nuestro `angle/0003`) a `0b547a1161fb`, con dos
-commits [M156]:
-
-| Commit de ANGLE | Bug (merge) | Qué | ¿Mac? |
-|---|---|---|---|
-| **41c5deee45** | 574209990 (579732514) | Validación del *frontend* (`validationES3.cpp`): `glTexSubImage*D` aceptaba `GL_RGB8`/`GL_RGB565` con `GL_UNSIGNED_INT_2_10_10_10_REV_EXT` sin `GL_OES_required_internalformat` ni `GL_EXT_texture_type_2_10_10_10_REV`, porque la comprobación de extensiones solo estaba en la rama de creación; ahora `ValidES3ExtensionFormatCombination` mira las extensiones en los dos caminos | **Sí**: el *frontend* de libANGLE se compila y se usa con Metal y con el respaldo GL. **`integracion/angle/0001`** |
-| 0b547a1161 | 550489336 (579732851) | Backend GL: `doubleClearForRobustInit`, doble borrado en la inicialización robusta para que el *driver* no se salte el segundo | **No**: la función se enciende solo con GPU Mali o Adreno ≤ 6xx (`renderergl_utils.cpp`: `isMali \|\| IsAdreno6xxOrOlder`); ningún Mac las lleva. Mismo criterio que 569191970 (PowerVR, §D) |
-
-- **`integracion/angle/0001`**: aplica limpio con `git am` sobre el ANGLE de la 3.1.4 (reproducido aquí: `f10470c77e` +
-  `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003 = árbol **`db885a866b`**). Árbol
-  resultante **`fb21437e81`**. Mismo `patch-id` que el original (`53571bf905`). Los campos de extensión que usa
-  (`requiredInternalformatOES`, `depthTextureOES`, `depth32OES`, `textureType2101010REVEXT`) existen en
-  `gles_extensions_autogen.h`, y los dos únicos llamantes de `ValidES3ExtensionFormatCombination` quedan
-  actualizados. `validationES3.cpp` pasa `clang++ -fsyntax-only` con el parche. La prueba nueva va en
-  `TextureTest.cpp` (`angle_end2end_tests`, no se compila en la build del navegador).
-- **Para LOCAL:** igual que `angle/`: `git am` de `integracion/angle/0001` sobre su ANGLE (el de `db885a866b`) y volver
-  a fijar el gitlink de `third_party/angle` y `angle_revision` en `DEPS` (el commit de fijación de `local/314`). Va
-  **después** de `integracion/chromium/0004`; no toca chromium ni brave-core.
-
-## Veredicto (regla 17): **APTO**, `integracion/chromium/0005`
-
-Es el *cherry-pick* de upstream; las líneas `+`/`-` coinciden con las de `b243cdcc16` y solo cambia el contexto de
-una del `.h`. Comprobado con `git am` sobre `local/314-adapt` `aaa7d7508d` + `integracion/chromium/0002–0004` (se
-reproducen sus árboles `25a6269c6b`, `32203fc124` y `e7162cd585`): árbol **`2c8ef28a99`**. Riesgo para LOCAL: si el
-perfil no compilara en 10.14, el servicio de red no arrancaría y no habría red. **Prueba obligatoria en la 6,1 o la
-5,1 (Mojave):** arrancar FlyWeb, cargar dos o tres webs y claude.ai, iniciar sesión en la sync y descargar un fichero;
-en Console.app, filtrar por `Sandbox` y `network` y comprobar que no hay errores de compilación del perfil (las
-denegaciones `file-write-create` de enlaces son lo esperado). Pruebas: `content_unittests
---gtest_filter='*SandboxMac*'` y `sandbox_mac_unittests`.
-
-## Veredicto (regla 17): **APTO**, `integracion/angle/0001`
-
-Es el *cherry-pick* de upstream sin cambios (mismo `patch-id`). Solo endurece la validación: una página que suba
-texturas `RGB8`/`RGB565` con el tipo `2_10_10_10_REV` sin las dos extensiones recibe `GL_INVALID_OPERATION`, como ya
-pasaba al crearlas; las combinaciones de ES 3.0 (`GL_UNSIGNED_BYTE`, `GL_UNSIGNED_SHORT_5_6_5`) no cambian. Prueba para
-LOCAL: `angle_end2end_tests --gtest_filter='*TextureTest*'` si se compilan; a mano, una página WebGL 2 que dibuje
-texturas.
 
 ## Veredicto (regla 17): **APTO**, `integracion/chromium/0003` y `0004`
 
