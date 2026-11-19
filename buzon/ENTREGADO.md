@@ -929,3 +929,4 @@ buzon/ARQUITECTURA/20261119-0455-COORDINACION-51-relevo.md → Arquitectura FlyW
 buzon/LOCAL/20261119-0455-COORDINACION-51-relevo.md → Local (21) [4b2922] · 2026-11-19 08:34 UTC · fallo: sesión no activa; pendiente
 buzon/CARTERO-LOCAL/20261119-0455-COORDINACION-51-relevo.md → CARTERO-LOCAL (self) · 2026-11-19 08:34 UTC · entregado (CARTERO-LOCAL)
 buzon/CARTERO-LOCAL/20261119-0835-COORDINACION-51-relevo-pendiente.md → CARTERO-LOCAL (self) · 2026-11-19 08:36 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261119-0840-COORDINACION-51-entrega-fs47-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 08:41 UTC · entregado (CARTERO-LOCAL)
