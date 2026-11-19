@@ -922,3 +922,9 @@ buzon/LOCAL/20261119-0315-COORDINACION-50-dictamen-bt-LOCAL-19.md → Compilaci�
 buzon/LOCAL/20261119-0320-COORDINACION-50-nullip-manual-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 03:19 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-0330-COORDINACION-50-nullip-shields-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 03:30 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-0335-COORDINACION-50-apto-definitivo-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 03:34 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261119-0455-COORDINACION-51-relevo-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 08:34 UTC · entregado (CARTERO-LOCAL; ref nueva de la sesión)
+buzon/PUBLICACION/20261119-0455-COORDINACION-51-relevo.md → Publicación [4dd99b] · 2026-11-19 08:34 UTC · NO ENTREGADO: destino no alcanzable (no aparece en ListAgents); pendiente de decisión de COORDINACIÓN-51
+buzon/SERVIDOR-LOCAL/20261119-0455-COORDINACION-51-relevo.md → Servidor Local (2) [853e0b] · 2026-11-19 08:34 UTC · NO ENTREGADO: destino no alcanzable; pendiente de decisión de COORDINACIÓN-51
+buzon/ARQUITECTURA/20261119-0455-COORDINACION-51-relevo.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-19 08:34 UTC · NO ENTREGADO: destino no alcanzable; pendiente de decisión de COORDINACIÓN-51
+buzon/LOCAL/20261119-0455-COORDINACION-51-relevo.md → Local (21) [4b2922] · 2026-11-19 08:34 UTC · NO ENTREGADO: destino no alcanzable; pendiente de decisión de COORDINACIÓN-51
+buzon/CARTERO-LOCAL/20261119-0455-COORDINACION-51-relevo.md → CARTERO-LOCAL (self) · 2026-11-19 08:34 UTC · entregado (CARTERO-LOCAL)
