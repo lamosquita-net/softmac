@@ -41,7 +41,7 @@ la base nueva ya los traiga.
 | V8 15.6 `c4641b4` (.73) | 020b95f «[test] Speed up regress-584005343 under --gc-stress»: solo una prueba | — | — |
 | `5655356`, `b5f8579`, `62cd52a`, `b225b45` (19-11 17:46–18:28 UTC) | Pruebas desactivadas y `TestExpectations` (Glic TSan, WebAppIntegration, webdriver WPT) | — | — |
 | `65b1ce5` (19-11 18:04 UTC) | *Roll* de V8 `9f5c567b62..c4641b4cbe` (= la .73 de arriba) y de Skia `13d0b32615a3..16a9d4d9a345`: **16a9d4d9a3** [M156] «[graphite] Ensure depth is reset for draws which overwritesAllPixels» (b/586169898, merge 587681113) | **No** (abajo) | — |
-| `9275276` (19-11 19:02 UTC) | *Roll* de Dawn `062164c3c784..218eeee7469d` | **Por revisar** (LOCAL; Dawn no se lee desde la nube) | — |
+| `9275276` (19-11 19:02 UTC) | *Roll* de Dawn `062164c3c784..218eeee7469d`: solo DXC otra vez | **No** (abajo; comprobado por LOCAL-19) | — |
 | `848c24c` (19-11 19:31 UTC) | *Roll* de Skia `16a9d4d9a345..7dc6c0c3424a`: **7dc6c0c342** [M156] «[SkScalerContext] Harden LCD16 and getImage bounds» (b/576955738, merge 585801577) | Sí (abajo) | `skia/0002` |
 | `8d177bf` (19-11 19:43 UTC) | [M156] «Drop pending main-frame navigations when tab is added to task» (568905533, merge 584997715), `chrome/browser/actor` | **No** (abajo) | — |
 
@@ -238,6 +238,14 @@ se reiniciaba `fCurrentDepth`, y la profundidad podía dar la vuelta y pintar fu
 que FlyWeb tiene apagado en Mojave y en Monterey (DIRECTIVAS, 27-10; `FlyWeb/docs/b1d-regla17.md` §4): el ráster por GPU
 va por Ganesh. Solo lo encendería el parámetro explícito `--enable-skia-graphite`. Mismo criterio que los arreglos de
 Graphite de `3.1.4/INVENTARIO.md` (CVE-2026-131103 y compañía). La base Skia de aquí (`32f1340fb3`) no cambia.
+
+## Dawn `062164c3c784..218eeee7469d` (roll `9275276`): no aplica
+
+Leído por LOCAL-19 (19-11): **un solo commit**, `218eeee746` «[M156] DEPS: Update DXC to patched branch» (bugs 585800876,
+587226013, 587681396, 587680878, 587681118 y 587681373). Solo cambia `DEPS` y el gitlink
+`third_party/directx-shader-compiler/src` (DXC `4c890fcb0366` → `454ac22efea5`). Mismo caso que el roll `ff774db0a2` de
+arriba: DXC es solo del backend D3D12 (Windows) y en Mac no se compila (`dawn_use_built_dxc` y `dawn_enable_d3d12` en
+`false`, `gn path` sin caminos; comprobado en la build de la 3.1.4). **No aplica.**
 
 ## TouchSelection (a70a3e9f68 y b526fdd): no aplican
 
