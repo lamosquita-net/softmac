@@ -32,13 +32,15 @@ la base nueva ya los traiga.
 | `0ca9887568` (19-11 08:32 UTC) | *Roll* de ANGLE `f4f835734108..0b547a1161fb`: **41c5deee45** y 0b547a1161 | 41c5deee45 sí; 0b547a1161 no (abajo) | `angle/0001` |
 | `b243cdcc16` (19-11 09:19 UTC) | «[M156] Disallow creating symbolic links in the macOS network service sandbox» | Sí (solo Mac) | `chromium/0001` |
 
-| `ff774db0a2` (19-11 16:03 UTC) | *Roll* de Dawn `6d772bc9e5c5..062164c3c784` | **Por revisar** (abajo) | — |
+| `ff774db0a2` (19-11 16:03 UTC) | *Roll* de Dawn `6d772bc9e5c5..062164c3c784` | **No** (abajo; comprobado por LOCAL-19) | — |
 | V8 15.6 `9f5c567b62` (.72, 16:01 UTC) | **d68cecd900** [M156] «[debug] Invalidate kNotAssigned assumptions on debugger context stores» | Sí | `brave-core/0001` |
 | `a70a3e9f68` (19-11 16:54 UTC) | [M156] [TouchSelection] Notify client after state changes complete (539012373, 564450482) | **No** (abajo) | — |
 | `f1f8c18` (17:02 UTC) | *Roll* de V8 `a97fec97ff..9f5c567b62` (= la .72 de arriba) | — | `brave-core/0001` |
 | `02642ab` (17:32 UTC) | *Roll* de Skia `b236589b3e12..13d0b32615a3`: **13d0b32615** [M156] «Guard GrBufferAllocPool against overflow» (584003006, merge 587681020) | Sí | `skia/0001` |
 | `b526fdd` (17:36 UTC) | [M156] [TouchSelection] Keep drag events in order when a move hides selection (539012373) | **No** (abajo) | — |
 | V8 15.6 `c4641b4` (.73) | 020b95f «[test] Speed up regress-584005343 under --gc-stress»: solo una prueba | — | — |
+| `5655356`, `b5f8579`, `62cd52a`, `b225b45` (19-11 17:46–18:28 UTC) | Pruebas desactivadas y `TestExpectations` (Glic TSan, WebAppIntegration, webdriver WPT) | — | — |
+| `65b1ce5` (19-11 18:04 UTC) | *Roll* de V8 `9f5c567b62..c4641b4cbe` (= la .73 de arriba) y de Skia `13d0b32615a3..16a9d4d9a345`: **16a9d4d9a3** [M156] «[graphite] Ensure depth is reset for draws which overwritesAllPixels» (b/586169898, merge 587681113) | **No** (abajo) | — |
 
 Sin tag .112 (la rama ya llevaba `chrome/VERSION` en .112 desde `aac2cdd377`).
 
@@ -188,6 +190,14 @@ Es el *cherry-pick* de upstream sin cambios. Efecto: un dibujo que pediría un b
 desbordamiento) se salta en vez de corromper memoria; los tamaños normales no cambian, salvo la reserva inicial de
 vértices, que empieza más pequeña y crece. Prueba para LOCAL: páginas con canvas 2D y SVG grandes y una con muchos
 trazos (p. ej. los demos de `FlyWeb/tools/`), en la 6,1 y en la 5,1.
+
+## Skia 16a9d4d9a3 (roll `65b1ce5`): no aplica
+
+Solo toca `src/gpu/graphite/Device.cpp` (más su prueba): al descartar los dibujos tapados por uno que cubre todo, no
+se reiniciaba `fCurrentDepth`, y la profundidad podía dar la vuelta y pintar fuera de orden. Es código de **Graphite**,
+que FlyWeb tiene apagado en Mojave y en Monterey (DIRECTIVAS, 27-10; `FlyWeb/docs/b1d-regla17.md` §4): el ráster por GPU
+va por Ganesh. Solo lo encendería el parámetro explícito `--enable-skia-graphite`. Mismo criterio que los arreglos de
+Graphite de `3.1.4/INVENTARIO.md` (CVE-2026-131103 y compañía). La base Skia de aquí (`32f1340fb3`) no cambia.
 
 ## TouchSelection (a70a3e9f68 y b526fdd): no aplican
 
