@@ -1,0 +1,142 @@
+From 3511434056aea4bb663ad9879ffe3ffeb20093a4 Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Thu, 19 Nov 2026 22:22:02 +0000
+Subject: [PATCH 3/3] Settings: make Brave's dropdowns save their prefs again
+
+In Chromium 156 settings-dropdown-menu is a Lit element that only writes
+the pref when it has pref-key (settings_dropdown_menu.ts, onChange_ and
+sendPrefChange); it no longer reads the key from a Polymer-bound pref.
+Brave's six dropdowns passed only pref="{{...}}", so they showed the
+value but every change was dropped: tab hover mode, default font size,
+what the new tab page shows, WebRTC IP handling policy, Request OTR and
+the private windows' search engine. Add pref-key to each.
+
+The tab hover mode dropdown was also empty: tabTooltipModes_ was a class
+field, which with the ESNext target hides the accessor Polymer creates
+for the binding. Declare it as a Polymer property instead.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ .../settings/brave_appearance_page/tabs.html  |  1 +
+ .../settings/brave_appearance_page/tabs.ts    | 32 ++++++++++++++-----
+ .../settings/brave_content_page/content.html  |  1 +
+ .../brave_new_tab_page.html                   |  1 +
+ .../brave_personalization_options.html        |  2 ++
+ .../brave_search_engines_page.html            |  1 +
+ 6 files changed, 30 insertions(+), 8 deletions(-)
+
+diff --git a/browser/resources/settings/brave_appearance_page/tabs.html b/browser/resources/settings/brave_appearance_page/tabs.html
+index d6802a65d0ed04391b59dc142d5bd0ca6add009f..bd850c6ee0c384d1dcb672b0ca958e85f0cda004 100644
+--- a/browser/resources/settings/brave_appearance_page/tabs.html
++++ b/browser/resources/settings/brave_appearance_page/tabs.html
+@@ -14,6 +14,7 @@
+     <div class="label">$i18n{appearanceSettingsTabHoverMode}</div>
+   </div>
+   <settings-dropdown-menu
++    pref-key="brave.tabs.hover_mode"
+     pref="{{prefs.brave.tabs.hover_mode}}"
+     menu-options="[[tabTooltipModes_]]">
+   </settings-dropdown-menu>
+diff --git a/browser/resources/settings/brave_appearance_page/tabs.ts b/browser/resources/settings/brave_appearance_page/tabs.ts
+index 92088b56f93515d2ef38049760f17fdbe84b9505..619f844456cdfc2c697f60b8b727fe06a8e2b834 100644
+--- a/browser/resources/settings/brave_appearance_page/tabs.ts
++++ b/browser/resources/settings/brave_appearance_page/tabs.ts
+@@ -29,14 +29,30 @@ export class SettingsBraveAppearanceTabsElement extends SettingsBraveAppearanceT
+     return getTemplate()
+   }
+ 
+-  private tabTooltipModes_ = [
+-    { value: 1, name: this.i18n('appearanceSettingsTabHoverModeCard') },
+-    {
+-      value: 2,
+-      name: this.i18n('appearanceSettingsTabHoverModeCardWithPreview')
+-    },
+-    { value: 0, name: this.i18n('appearanceSettingsTabHoverModeTooltip') }
+-  ]
++  // FlyWeb: declared as a Polymer property. Since the 156 port TypeScript
++  // targets ESNext, so a class field initializer is defined on the instance
++  // and hides the accessor Polymer creates for [[tabTooltipModes_]]: the
++  // dropdown got no options. The value function runs per instance, after
++  // I18nMixin is ready.
++  static get properties() {
++    return {
++      tabTooltipModes_: {
++        type: Array,
++        value(this: SettingsBraveAppearanceTabsElement) {
++          return [
++            {value: 1, name: this.i18n('appearanceSettingsTabHoverModeCard')},
++            {
++              value: 2,
++              name: this.i18n('appearanceSettingsTabHoverModeCardWithPreview'),
++            },
++            {value: 0, name: this.i18n('appearanceSettingsTabHoverModeTooltip')},
++          ]
++        },
++      },
++    }
++  }
++
++  private declare tabTooltipModes_: Array<{value: number, name: string}>
+ 
+ }
+ 
+diff --git a/browser/resources/settings/brave_content_page/content.html b/browser/resources/settings/brave_content_page/content.html
+index 25c9659fefd5cca914d27dd1a7174777ddf4d059..4fe19430c70f523e169683f641b49c704468b1ab 100644
+--- a/browser/resources/settings/brave_content_page/content.html
++++ b/browser/resources/settings/brave_content_page/content.html
+@@ -6,6 +6,7 @@
+           $i18n{fontSize}
+       </div>
+       <settings-dropdown-menu id="defaultFontSize" label="$i18n{fontSize}"
++          pref-key="webkit.webprefs.default_font_size"
+           pref="{{prefs.webkit.webprefs.default_font_size}}"
+           menu-options="[[fontSizeOptions_]]">
+       </settings-dropdown-menu>
+diff --git a/browser/resources/settings/brave_new_tab_page/brave_new_tab_page.html b/browser/resources/settings/brave_new_tab_page/brave_new_tab_page.html
+index fe33f017876eb7851a506b51c01ff6fa447af57a..1e4174f9926eb21519c87dfbaf317686067484cd 100644
+--- a/browser/resources/settings/brave_new_tab_page/brave_new_tab_page.html
++++ b/browser/resources/settings/brave_new_tab_page/brave_new_tab_page.html
+@@ -6,6 +6,7 @@
+     $i18n{braveNewTabNewTabPageShows}
+   </div>
+   <settings-dropdown-menu label="$i18n{braveNewTabNewTabPageShows}"
++      pref-key="brave.new_tab_page.shows_options"
+       pref="{{prefs.brave.new_tab_page.shows_options}}"
+       menu-options="[[newTabShowOptions_]]">
+   </settings-dropdown-menu>
+diff --git a/browser/resources/settings/brave_privacy_page/brave_personalization_options.html b/browser/resources/settings/brave_privacy_page/brave_personalization_options.html
+index 844f45b951c4e9da2bddffe7fbaeda83f10a5be5..101e7b19a27b90f1424858c2ab2ad903e3862fe4 100644
+--- a/browser/resources/settings/brave_privacy_page/brave_personalization_options.html
++++ b/browser/resources/settings/brave_privacy_page/brave_personalization_options.html
+@@ -13,6 +13,7 @@
+     </a>
+   </div>
+   <settings-dropdown-menu label="$i18n{webRTCLearnMoreURL}"
++      pref-key="webrtc.ip_handling_policy"
+       pref="{{prefs.webrtc.ip_handling_policy}}"
+       menu-options="[[webRTCPolicies_]]">
+   </settings-dropdown-menu>
+@@ -55,6 +56,7 @@
+         <div class="label">$i18n{requestOTRLabel}</div>
+     </div>
+     <settings-dropdown-menu id="defaultRequestOTR"
++                            pref-key="brave.request_otr.request_otr_action_option"
+                             pref="{{prefs.brave.request_otr.request_otr_action_option}}"
+                             menu-options="[[requestOTRActions_]]">
+     </settings-dropdown-menu>
+diff --git a/browser/resources/settings/brave_search_engines_page/brave_search_engines_page.html b/browser/resources/settings/brave_search_engines_page/brave_search_engines_page.html
+index bf13feb53a488e717e46768c69722cd0e39a790b..c1abd4027c3f28785cdd63a256ba48eea0a170a9 100644
+--- a/browser/resources/settings/brave_search_engines_page/brave_search_engines_page.html
++++ b/browser/resources/settings/brave_search_engines_page/brave_search_engines_page.html
+@@ -4,6 +4,7 @@
+   <div class="settings-box">
+     <div class="label flex">$i18n{privateSearchExplanation}</div>
+     <settings-dropdown-menu
++      pref-key="brave.default_private_search_provider_guid"
+       pref="{{prefs.brave.default_private_search_provider_guid}}"
+       menu-options="[[privateSearchEngines_]]">
+     </settings-dropdown-menu>
+-- 
+2.43.0
+
