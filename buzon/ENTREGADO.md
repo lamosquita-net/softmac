@@ -934,3 +934,4 @@ buzon/PUBLICACION/20261119-0844-COORDINACION-51-publicar-314.md → Publicación
 buzon/PUBLICACION/20261119-0917-COORDINACION-51-PARAR-314.md → Publicación [554075] · 2026-11-19 09:20 UTC · entregado (CARTERO-LOCAL)
 buzon/PUBLICACION/20261119-1027-COORDINACION-51-cerrar-314.md → Publicación [554075] · 2026-11-19 10:29 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-1027-COORDINACION-51-prueba-sandbox-mojave-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 10:29 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261119-1638-COORDINACION-51-dawn-y-recordatorio-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 16:40 UTC · entregado (CARTERO-LOCAL)
