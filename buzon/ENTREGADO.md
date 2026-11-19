@@ -917,3 +917,4 @@ buzon/LOCAL/20261118-2300-COORDINACION-50-relevo-LOCAL-19.md → Compilación Lo
 buzon/LOCAL/20261119-0000-COORDINACION-50-filtros-punto4-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 00:29 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-0035-COORDINACION-50-punto4-apto-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 00:32 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-0410-COORDINACION-50-browser-tests-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 02:55 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261119-0300-COORDINACION-50-corrige-0410-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 02:57 UTC · entregado (CARTERO-LOCAL)
