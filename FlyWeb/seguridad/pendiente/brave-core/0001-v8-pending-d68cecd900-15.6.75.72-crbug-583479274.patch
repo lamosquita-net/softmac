@@ -1,0 +1,477 @@
+From 60827fdef59df6b71b8659fc04061d480296c854 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-32 <noreply@anthropic.com>
+Date: Thu, 19 Nov 2026 16:39:55 +0000
+Subject: [PATCH] v8: pending: d68cecd900 (15.6.75.72, crbug 583479274)
+
+V8 15.6.75.72 fix from the 8078 branch, published after FlyWeb 3.1.4
+build 47: invalidate kNotAssigned assumptions when the debugger stores
+into a context slot. Waits for the next release; the cache epoch is
+not bumped here (to be set when integrated). V8 gitlink unchanged.
+---
+ patches/v8/FLYWEB-SECURITY.md                 |  20 +++
+ ...c-compiler-bytecode-graph-builder.cc.patch |  33 ++++
+ .../v8/src-compiler-js-heap-broker.cc.patch   |  19 +++
+ patches/v8/src-debug-debug-scopes.cc.patch    |  54 +++++++
+ patches/v8/src-execution-isolate.cc.patch     |  20 +++
+ patches/v8/src-execution-isolate.h.patch      |  29 ++++
+ .../v8/src-maglev-maglev-reducer-inl.h.patch  |  15 ++
+ .../v8/src-runtime-runtime-scopes.cc.patch    |  34 +++++
+ ...et-unassigned-optimized-expected.txt.patch |  15 ++
+ ...-context-set-unassigned-optimized.js.patch | 142 ++++++++++++++++++
+ 10 files changed, 381 insertions(+)
+ create mode 100644 patches/v8/src-compiler-bytecode-graph-builder.cc.patch
+ create mode 100644 patches/v8/src-compiler-js-heap-broker.cc.patch
+ create mode 100644 patches/v8/src-debug-debug-scopes.cc.patch
+ create mode 100644 patches/v8/src-execution-isolate.cc.patch
+ create mode 100644 patches/v8/src-execution-isolate.h.patch
+ create mode 100644 patches/v8/src-maglev-maglev-reducer-inl.h.patch
+ create mode 100644 patches/v8/src-runtime-runtime-scopes.cc.patch
+ create mode 100644 patches/v8/test-inspector-debugger-context-set-unassigned-optimized-expected.txt.patch
+ create mode 100644 patches/v8/test-inspector-debugger-context-set-unassigned-optimized.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index b68651f..d798396 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,23 @@
++# FlyWeb: pending for the next release, V8 15.6.75.72 fix d68cecd900 (crbug 583479274)
++
++SEGURIDAD-PORTES-32, 19-11-2026 (softmac `FlyWeb/seguridad/pendiente/brave-core/0001`). Not in 3.1.4 (build 47
++was already published): it waits for the next FlyWeb release. On top of `local/3.1.4-adapt` (V8 15.6.75.66 with all
++the patches below; gitlink unchanged):
++
++- **d68cecd900** (583479274, 587681789; V8 15.6.75.72 on the 8078 branch, cherry-pick of b30c1cdb7f): when the
++  debugger stores into a context slot that the parser marked `kNotAssigned`, the isolate now records that
++  `kNotAssigned` is no longer reliable, deoptimizes existing code, and TurboFan (`bytecode-graph-builder.cc`,
++  `js-heap-broker.cc`) and Maglev (`maglev-reducer-inl.h`) stop constant-folding those slots. Only reachable with
++  the debugger attached (DevTools or `chrome.debugger`). The seven source files are byte-identical in 15.6.75.66
++  and in the fix's parent (a97fec97ff, .71), and no other `patches/v8` file touches them: clean cherry-pick.
++  Test: `test/inspector/debugger/context-set-unassigned-optimized.js`.
++
++**Cache epoch:** every V8 patch bumps `kFlyWebCacheEpoch` (`docs/SEGURIDAD.md`). It is NOT bumped here because the
++target release is not decided yet; whoever integrates this into the next release sets the epoch for that release.
++
++To check (D8-LINUX): `d8`, mjsunit with and without Maglev, and the `inspector` suite, especially
++`debugger/context-set-unassigned-optimized`.
++
+ # FlyWeb: 3.1.4 integration (parts 4 -> 5 -> 6), V8 15.6.75.70 fix and final cache epoch
+ 
+ SEGURIDAD-PORTES-30, 18-11-2026 (softmac `FlyWeb/seguridad/3.1.4/integracion/brave-core/0001`). On top of parts 4,
+diff --git a/patches/v8/src-compiler-bytecode-graph-builder.cc.patch b/patches/v8/src-compiler-bytecode-graph-builder.cc.patch
+new file mode 100644
+index 0000000..927c45e
+--- /dev/null
++++ b/patches/v8/src-compiler-bytecode-graph-builder.cc.patch
+@@ -0,0 +1,33 @@
++diff --git a/src/compiler/bytecode-graph-builder.cc b/src/compiler/bytecode-graph-builder.cc
++index bdc98b4d3e8b5094d1f84814ef1fadb596cbb497..cb1856e306dd3ac588aa8b24a6ff295fbcf84b24 100644
++--- a/src/compiler/bytecode-graph-builder.cc
+++++ b/src/compiler/bytecode-graph-builder.cc
++@@ -1733,9 +1733,13 @@ void BytecodeGraphBuilder::VisitLdaContextSlot() {
++ }
++ 
++ void BytecodeGraphBuilder::VisitLdaImmutableContextSlot() {
+++  // LdaImmutableContextSlot is emitted for kNotAssigned context slots, which
+++  // the debugger may still mutate at runtime.
+++  bool immutable =
+++      !broker()->isolate()->is_context_slot_not_assigned_unreliable();
++   const Operator* op = javascript()->LoadContextNoCell(
++       bytecode_iterator().GetUnsignedImmediateOperand(2),
++-      bytecode_iterator().GetContextSlotOperand(1), true);
+++      bytecode_iterator().GetContextSlotOperand(1), immutable);
++   Node* node = NewNode(op);
++   Node* context =
++       environment()->LookupRegister(bytecode_iterator().GetRegisterOperand(0));
++@@ -1758,8 +1762,12 @@ void BytecodeGraphBuilder::VisitLdaCurrentContextSlot() {
++ }
++ 
++ void BytecodeGraphBuilder::VisitLdaImmutableCurrentContextSlot() {
+++  // LdaImmutableCurrentContextSlot is emitted for kNotAssigned context slots,
+++  // which the debugger may still mutate at runtime.
+++  bool immutable =
+++      !broker()->isolate()->is_context_slot_not_assigned_unreliable();
++   const Operator* op = javascript()->LoadContextNoCell(
++-      0, bytecode_iterator().GetContextSlotOperand(0), true);
+++      0, bytecode_iterator().GetContextSlotOperand(0), immutable);
++   Node* node = NewNode(op);
++   environment()->BindAccumulator(node);
++ }
+diff --git a/patches/v8/src-compiler-js-heap-broker.cc.patch b/patches/v8/src-compiler-js-heap-broker.cc.patch
+new file mode 100644
+index 0000000..0f98420
+--- /dev/null
++++ b/patches/v8/src-compiler-js-heap-broker.cc.patch
+@@ -0,0 +1,19 @@
++diff --git a/src/compiler/js-heap-broker.cc b/src/compiler/js-heap-broker.cc
++index 9c629176c82ba82eda4f1ebf72de00066980c330..f3aecae78a699cba93b6ceff3ffd0eaebed07d2f 100644
++--- a/src/compiler/js-heap-broker.cc
+++++ b/src/compiler/js-heap-broker.cc
++@@ -672,9 +672,11 @@ ProcessedFeedback const& JSHeapBroker::ReadFeedbackForGlobalAccess(
++     OptionalObjectRef contents = context.get(broker, context_slot_index);
++     if (contents.has_value()) CHECK(!contents->IsTdzHole());
++ 
++-    return *zone()->New<GlobalAccessFeedback>(
++-        context, context_slot_index,
++-        FeedbackNexus::ImmutabilityBit::decode(number), nexus.kind());
+++    // Lexical script-context const slots can be mutated via the debugger.
+++    bool immutable = FeedbackNexus::ImmutabilityBit::decode(number) &&
+++                     !isolate()->is_context_slot_not_assigned_unreliable();
+++    return *zone()->New<GlobalAccessFeedback>(context, context_slot_index,
+++                                              immutable, nexus.kind());
++   }
++ 
++   CHECK(IsPropertyCell(*feedback_value));
+diff --git a/patches/v8/src-debug-debug-scopes.cc.patch b/patches/v8/src-debug-debug-scopes.cc.patch
+new file mode 100644
+index 0000000..1cb8c59
+--- /dev/null
++++ b/patches/v8/src-debug-debug-scopes.cc.patch
+@@ -0,0 +1,54 @@
++diff --git a/src/debug/debug-scopes.cc b/src/debug/debug-scopes.cc
++index efb7922004781b6aa877de1b713fc38b35c78f93..60cab3b1646df8b2c63ff1a923eefeb157cd1171 100644
++--- a/src/debug/debug-scopes.cc
+++++ b/src/debug/debug-scopes.cc
++@@ -1002,11 +1002,17 @@ bool ScopeIterator::SetLocalVariableValue(DirectHandle<String> variable_name,
++           // don't match (https://crbug.com/753338).
++           // Skip the write if the context's ScopeInfo doesn't know anything
++           // about this variable.
++-          if (context_->scope_info()->ContextSlotIndex(*variable_name) !=
++-              index) {
+++          VariableLookupResult lookup_result;
+++          if (context_->scope_info()->ContextSlotIndex(
+++                  *variable_name, &lookup_result) != index) {
++             return false;
++           }
++           Context::Set(context_, index, new_value, isolate_);
+++          if (lookup_result.maybe_assigned_flag == kNotAssigned) {
+++            // Mutating a kNotAssigned context slot via the debugger invalidates
+++            // compiler assumptions that kNotAssigned slots are immutable.
+++            isolate_->MarkContextSlotNotAssignedIsUnreliable();
+++          }
++           return true;
++ 
++         case VariableLocation::MODULE:
++@@ -1039,9 +1045,16 @@ bool ScopeIterator::SetContextExtensionValue(DirectHandle<String> variable_name,
++ 
++ bool ScopeIterator::SetContextVariableValue(DirectHandle<String> variable_name,
++                                             DirectHandle<Object> new_value) {
++-  int slot_index = context_->scope_info()->ContextSlotIndex(*variable_name);
+++  VariableLookupResult lookup_result;
+++  int slot_index =
+++      context_->scope_info()->ContextSlotIndex(*variable_name, &lookup_result);
++   if (slot_index < 0) return false;
++   Context::Set(context_, slot_index, new_value, isolate_);
+++  if (lookup_result.maybe_assigned_flag == kNotAssigned) {
+++    // Mutating a kNotAssigned context slot via the debugger invalidates
+++    // compiler assumptions that kNotAssigned slots are immutable.
+++    isolate_->MarkContextSlotNotAssignedIsUnreliable();
+++  }
++   return true;
++ }
++ 
++@@ -1075,6 +1088,11 @@ bool ScopeIterator::SetScriptVariableValue(DirectHandle<String> variable_name,
++     DirectHandle<Context> script_context(
++         script_contexts->get(lookup_result.context_index), isolate_);
++     Context::Set(script_context, lookup_result.slot_index, new_value, isolate_);
+++    if (lookup_result.maybe_assigned_flag == kNotAssigned) {
+++      // Mutating a kNotAssigned context slot via the debugger invalidates
+++      // compiler assumptions that kNotAssigned slots are immutable.
+++      isolate_->MarkContextSlotNotAssignedIsUnreliable();
+++    }
++     return true;
++   }
++ 
+diff --git a/patches/v8/src-execution-isolate.cc.patch b/patches/v8/src-execution-isolate.cc.patch
+new file mode 100644
+index 0000000..668d23c
+--- /dev/null
++++ b/patches/v8/src-execution-isolate.cc.patch
+@@ -0,0 +1,20 @@
++diff --git a/src/execution/isolate.cc b/src/execution/isolate.cc
++index aa4f4fe23e58b14f8e5198afca7b6b091108a445..d3e3fd6f61a8c184e05c4f7cdf575f9e9f5fe9de 100644
++--- a/src/execution/isolate.cc
+++++ b/src/execution/isolate.cc
++@@ -8739,5 +8739,15 @@ void Isolate::PrintNumberStringCacheStats(const char* comment,
++   PrintF("\n");
++ }
++ 
+++void Isolate::MarkContextSlotNotAssignedIsUnreliable() {
+++  if (is_context_slot_not_assigned_unreliable()) return;
+++  context_slot_not_assigned_is_unreliable_.store(true,
+++                                                 std::memory_order_relaxed);
+++  // Abort any in-flight concurrent compilations that may have relied on
+++  // kNotAssigned and deoptimize existing optimized code.
+++  AbortConcurrentOptimization(BlockingBehavior::kBlock);
+++  Deoptimizer::DeoptimizeAll(this);
+++}
+++
++ }  // namespace internal
++ }  // namespace v8
+diff --git a/patches/v8/src-execution-isolate.h.patch b/patches/v8/src-execution-isolate.h.patch
+new file mode 100644
+index 0000000..cbdd16f
+--- /dev/null
++++ b/patches/v8/src-execution-isolate.h.patch
+@@ -0,0 +1,29 @@
++diff --git a/src/execution/isolate.h b/src/execution/isolate.h
++index a847348731ccb0381f229e49371ca0ef4e6422f8..6d313d1bc11b4fcd60e9245ba4d222950d74cc82 100644
++--- a/src/execution/isolate.h
+++++ b/src/execution/isolate.h
++@@ -2515,6 +2515,16 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
++     memory_saver_mode_enabled_ = memory_saver_mode_enabled;
++   }
++ 
+++  // Returns true if the debugger has mutated a context slot marked as
+++  // kNotAssigned in ScopeInfo, making the kNotAssigned flag unreliable for
+++  // constant-folding optimizations in this isolate.
+++  bool is_context_slot_not_assigned_unreliable() const {
+++    return context_slot_not_assigned_is_unreliable_.load(
+++        std::memory_order_relaxed);
+++  }
+++
+++  void MarkContextSlotNotAssignedIsUnreliable();
+++
++   void ReportExceptionFunctionCallback(
++       DirectHandle<JSReceiver> receiver,
++       DirectHandle<FunctionTemplateInfo> function,
++@@ -2733,6 +2743,7 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
++ 
++   std::atomic<bool> battery_saver_mode_enabled_ = false;
++   std::atomic<bool> memory_saver_mode_enabled_ = false;
+++  std::atomic<bool> context_slot_not_assigned_is_unreliable_ = false;
++ 
++   // Helper function for RunHostImportModuleDynamicallyCallback.
++   // Unpacks import attributes, if present, from the second argument to dynamic
+diff --git a/patches/v8/src-maglev-maglev-reducer-inl.h.patch b/patches/v8/src-maglev-maglev-reducer-inl.h.patch
+new file mode 100644
+index 0000000..71a9584
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-reducer-inl.h.patch
+@@ -0,0 +1,15 @@
++diff --git a/src/maglev/maglev-reducer-inl.h b/src/maglev/maglev-reducer-inl.h
++index 50d7d2263784112525a27cc77f5fff0f54699725..59f7c9c87323b20bd83f34aaf8288185575c14c5 100644
++--- a/src/maglev/maglev-reducer-inl.h
+++++ b/src/maglev/maglev-reducer-inl.h
++@@ -739,6 +739,10 @@ MaybeAssignedFlag MaglevReducer<BaseT>::GetContextMaybeAssigned(
++   }
++   int var_index = index - header_length;
++   *mode = scope_info.ContextLocalMode(var_index);
+++  // The debugger may have mutated a kNotAssigned context slot at runtime.
+++  if (broker()->isolate()->is_context_slot_not_assigned_unreliable()) {
+++    return kMaybeAssigned;
+++  }
++   return scope_info.ContextLocalMaybeAssignedFlag(var_index);
++ }
++ 
+diff --git a/patches/v8/src-runtime-runtime-scopes.cc.patch b/patches/v8/src-runtime-runtime-scopes.cc.patch
+new file mode 100644
+index 0000000..97ae49a
+--- /dev/null
++++ b/patches/v8/src-runtime-runtime-scopes.cc.patch
+@@ -0,0 +1,34 @@
++diff --git a/src/runtime/runtime-scopes.cc b/src/runtime/runtime-scopes.cc
++index e3da91b80779270e86705756da411bee3778305a..a65096e9b2cbd173343f8370a3b48e6e1eff5486 100644
++--- a/src/runtime/runtime-scopes.cc
+++++ b/src/runtime/runtime-scopes.cc
++@@ -429,6 +429,14 @@ Tagged<Object> DeclareEvalHelper(Isolate* isolate, Handle<String> name,
++     if (index != Context::kNotFound) {
++       DCHECK(holder.is_identical_to(context));
++       Context::Set(context, index, value, isolate);
+++      Tagged<ScopeInfo> scope_info = context->scope_info();
+++      int var_index = index - scope_info->ContextHeaderLength();
+++      if (scope_info->ContextLocalMaybeAssignedFlag(var_index) ==
+++          kNotAssigned) {
+++        // Debug-evaluate can overwrite a context slot that was statically
+++        // marked kNotAssigned when the enclosing scope was parsed.
+++        isolate->MarkContextSlotNotAssignedIsUnreliable();
+++      }
++       return ReadOnlyRoots(isolate).undefined_value();
++     }
++ 
++@@ -965,6 +973,14 @@ MaybeDirectHandle<Object> StoreLookupSlot(
++     }
++     if ((attributes & READ_ONLY) == 0) {
++       Context::Set(holder_context, index, value, isolate);
+++      Tagged<ScopeInfo> scope_info = holder_context->scope_info();
+++      int var_index = index - scope_info->ContextHeaderLength();
+++      if (scope_info->ContextLocalMaybeAssignedFlag(var_index) ==
+++          kNotAssigned) {
+++        // Debug-evaluate can overwrite a context slot that was statically
+++        // marked kNotAssigned when the enclosing scope was parsed.
+++        isolate->MarkContextSlotNotAssignedIsUnreliable();
+++      }
++     } else if (!is_sloppy_function_name || is_strict(language_mode)) {
++       THROW_NEW_ERROR(isolate,
++                       NewTypeError(MessageTemplate::kConstAssign, name));
+diff --git a/patches/v8/test-inspector-debugger-context-set-unassigned-optimized-expected.txt.patch b/patches/v8/test-inspector-debugger-context-set-unassigned-optimized-expected.txt.patch
+new file mode 100644
+index 0000000..e3f7c92
+--- /dev/null
++++ b/patches/v8/test-inspector-debugger-context-set-unassigned-optimized-expected.txt.patch
+@@ -0,0 +1,15 @@
++diff --git a/test/inspector/debugger/context-set-unassigned-optimized-expected.txt b/test/inspector/debugger/context-set-unassigned-optimized-expected.txt
++new file mode 100644
++index 0000000000000000000000000000000000000000..06963e147100fc613dd7cd405b10f9c840b030b1
++--- /dev/null
+++++ b/test/inspector/debugger/context-set-unassigned-optimized-expected.txt
++@@ -0,0 +1,9 @@
+++Tests that Debugger.evaluateOnCallFrame and Debugger.setVariableValue on kNotAssigned context slots deoptimize optimized closures.
+++evalScope.read before: 1
+++evalScope.read after evaluateOnCallFrame: 100
+++evalScope.read re-optimized: 100
+++evalScope.read after second evaluateOnCallFrame: 200
+++setVarScope.read before: 2
+++readScriptConst before: 10
+++setVarScope.read after setVariableValue: 300
+++readScriptConst after setVariableValue: 400
+diff --git a/patches/v8/test-inspector-debugger-context-set-unassigned-optimized.js.patch b/patches/v8/test-inspector-debugger-context-set-unassigned-optimized.js.patch
+new file mode 100644
+index 0000000..9072f71
+--- /dev/null
++++ b/patches/v8/test-inspector-debugger-context-set-unassigned-optimized.js.patch
+@@ -0,0 +1,142 @@
++diff --git a/test/inspector/debugger/context-set-unassigned-optimized.js b/test/inspector/debugger/context-set-unassigned-optimized.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..4d848a988f427242442d052164f9f111c049a05c
++--- /dev/null
+++++ b/test/inspector/debugger/context-set-unassigned-optimized.js
++@@ -0,0 +1,136 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax
+++
+++const {contextGroup, Protocol} = InspectorTest.start(
+++    'Tests that Debugger.evaluateOnCallFrame and Debugger.setVariableValue ' +
+++    'on kNotAssigned context slots deoptimize optimized closures.');
+++
+++contextGroup.addScript(
+++    `
+++const scriptConst = 10;
+++function readScriptConst() {
+++  return scriptConst;
+++}
+++
+++function makeScope(initial) {
+++  let x = initial;
+++  function read() {
+++    return x;
+++  }
+++  function pauseInScope() {
+++    debugger;
+++  }
+++  return {read, pauseInScope};
+++}
+++
+++const evalScope = makeScope(1);
+++const setVarScope = makeScope(2);
+++
+++function optimize(fn) {
+++  %PrepareFunctionForOptimization(fn);
+++  fn();
+++  fn();
+++  %OptimizeFunctionOnNextCall(fn);
+++  return fn();
+++}
+++`,
+++    0, 0, 'test.js');
+++
+++(async function test() {
+++  await Protocol.Debugger.enable();
+++
+++  // 1. Debugger.evaluateOnCallFrame mutating a kNotAssigned closure variable.
+++  let res = await Protocol.Runtime.evaluate(
+++      {expression: 'optimize(evalScope.read)', returnByValue: true});
+++  InspectorTest.log('evalScope.read before: ' + res.result.result.value);
+++
+++  let pausedPromise = Protocol.Debugger.oncePaused();
+++  let runPromise =
+++      Protocol.Runtime.evaluate({expression: 'evalScope.pauseInScope()'});
+++  let {params: {callFrames: [topFrame]}} = await pausedPromise;
+++
+++  await Protocol.Debugger.evaluateOnCallFrame({
+++    callFrameId: topFrame.callFrameId,
+++    expression: 'x = 100',
+++  });
+++  await Protocol.Debugger.resume();
+++  await runPromise;
+++
+++  res = await Protocol.Runtime.evaluate(
+++      {expression: 'evalScope.read()', returnByValue: true});
+++  InspectorTest.log(
+++      'evalScope.read after evaluateOnCallFrame: ' + res.result.result.value);
+++
+++  // Re-optimize after kNotAssigned was invalidated and mutate again.
+++  res = await Protocol.Runtime.evaluate(
+++      {expression: 'optimize(evalScope.read)', returnByValue: true});
+++  InspectorTest.log('evalScope.read re-optimized: ' + res.result.result.value);
+++
+++  pausedPromise = Protocol.Debugger.oncePaused();
+++  runPromise =
+++      Protocol.Runtime.evaluate({expression: 'evalScope.pauseInScope()'});
+++  ({params: {callFrames: [topFrame]}} = await pausedPromise);
+++
+++  await Protocol.Debugger.evaluateOnCallFrame({
+++    callFrameId: topFrame.callFrameId,
+++    expression: 'x = 200',
+++  });
+++  await Protocol.Debugger.resume();
+++  await runPromise;
+++
+++  res = await Protocol.Runtime.evaluate(
+++      {expression: 'evalScope.read()', returnByValue: true});
+++  InspectorTest.log(
+++      'evalScope.read after second evaluateOnCallFrame: ' +
+++      res.result.result.value);
+++
+++  // 2. Debugger.setVariableValue mutating kNotAssigned closure and script
+++  // variables.
+++  res = await Protocol.Runtime.evaluate(
+++      {expression: 'optimize(setVarScope.read)', returnByValue: true});
+++  InspectorTest.log('setVarScope.read before: ' + res.result.result.value);
+++  res = await Protocol.Runtime.evaluate(
+++      {expression: 'optimize(readScriptConst)', returnByValue: true});
+++  InspectorTest.log('readScriptConst before: ' + res.result.result.value);
+++
+++  pausedPromise = Protocol.Debugger.oncePaused();
+++  runPromise =
+++      Protocol.Runtime.evaluate({expression: 'setVarScope.pauseInScope()'});
+++  ({params: {callFrames: [topFrame]}} = await pausedPromise);
+++
+++  const closureScopeIndex =
+++      topFrame.scopeChain.findIndex(s => s.type === 'closure');
+++  await Protocol.Debugger.setVariableValue({
+++    scopeNumber: closureScopeIndex,
+++    variableName: 'x',
+++    newValue: {value: 300},
+++    callFrameId: topFrame.callFrameId,
+++  });
+++
+++  const scriptScopeIndex =
+++      topFrame.scopeChain.findIndex(s => s.type === 'script');
+++  await Protocol.Debugger.setVariableValue({
+++    scopeNumber: scriptScopeIndex,
+++    variableName: 'scriptConst',
+++    newValue: {value: 400},
+++    callFrameId: topFrame.callFrameId,
+++  });
+++
+++  await Protocol.Debugger.resume();
+++  await runPromise;
+++
+++  res = await Protocol.Runtime.evaluate(
+++      {expression: 'setVarScope.read()', returnByValue: true});
+++  InspectorTest.log(
+++      'setVarScope.read after setVariableValue: ' + res.result.result.value);
+++  res = await Protocol.Runtime.evaluate(
+++      {expression: 'readScriptConst()', returnByValue: true});
+++  InspectorTest.log(
+++      'readScriptConst after setVariableValue: ' + res.result.result.value);
+++
+++  await Protocol.Debugger.disable();
+++  InspectorTest.completeTest();
+++})();
+-- 
+2.43.0
+
