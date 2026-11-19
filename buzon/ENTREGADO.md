@@ -972,3 +972,4 @@ buzon/LOCAL/20261119-2218-COORDINACION-53-relevo.md → Local (21) [36698c] · 2
 buzon/LOCAL/20261119-2218-COORDINACION-53-relevo-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 22:17 UTC · entregado (CARTERO-LOCAL)
 buzon/CARTERO-LOCAL/20261119-2218-COORDINACION-53-relevo.md → CARTERO-LOCAL (self) · 2026-11-19 22:17 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-2225-COORDINACION-53-ajustes-apariencia-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 22:25 UTC · entregado (CARTERO-LOCAL)
+- buzon/LOCAL/20261119-2253-COORDINACION-53-tests-tema-LOCAL-19.md — entregado a Compilación Local (19) [dd3cf8] el 2026-11-19 22:55 UTC (CARTERO-LOCAL)
