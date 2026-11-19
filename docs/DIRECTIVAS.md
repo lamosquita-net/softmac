@@ -432,6 +432,12 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   **Rama 8078 hasta publicar (Titín, 18-11 ~21:25 UTC; COORDINACIÓN-49):** todo lo que entre en la rama 8078 antes de
   publicar la 3.1.4 va en ella, aunque haya que recompilar varias veces (primero: 5028a2f6a3, miniaturas). SEGURIDAD-PORTES
   lo prepara en `3.1.4/integracion/` con APTO; el cambio de `chrome/VERSION` (tag .111) lo decide Titín.
+  **Publicada la 3.1.4 (Titín, 19-11; COORDINACIÓN-51):** sale la build 47 con `chrome/VERSION` en .110. Titín la firmó en bak
+  antes de ver la parada por dos arreglos que entraron en la 8078 a las 08:32 y 09:19 UTC (ANGLE 574209990, estimado Medio;
+  sandbox de red de Mac). Decisión: **la 3.1.4 se queda publicada y no hay 3.1.5 por ahora.** Esos arreglos, y lo que
+  siga entrando en la 8078, van a `FlyWeb/seguridad/pendiente/` con APTO y entran en **la siguiente versión que salga**
+  (la tanda de seguridad de la 159 o la 3.2.0, la que llegue antes). Si uno resulta Alto o Crítico, sale como KEV o se
+  explota, COORDINACIÓN propone a Titín una 3.1.5 en ese momento. La regla «8078 hasta publicar» queda cumplida.
 - **FlyWeb también innova (Titín, 13-11 noche; COORDINACIÓN-41; amplía «Flink a nuestro ritmo»):** además de seguir a
   Chrome, FlyWeb puede implementar funciones nuevas de los estándares (HTML, CSS, JS, APIs) aunque ningún otro navegador
   las tenga aún. **Las elige Titín como diseñador web.** INVESTIGACIÓN-MOTOR le presenta las tendencias nuevas, con
