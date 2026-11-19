@@ -393,6 +393,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     `flyweb-copia-purgar.sh` (no hay borrado automático); el estado de bak lo comprueba su check-server.sh. Descartado:
     latido, sacar credstore/DKIM del backup general, rotar credenciales y cifrar /etc. El backup general de Titín no se
     toca (sus claves root, riesgo aceptado). En servidores y backups manda el criterio de conjunto de la Auditoría.
+    **Recordatorio (Titín, 19-11; COORDINACIÓN-52): cerrado, no se vuelve a plantear.** Tampoco hay «copia fuera de línea»
+    de las credenciales de la sync ni de la DKIM: se quedan como están, en el backup general, con su riesgo aceptado. No se
+    saca nada de los backups que ya se hacen ni se toca lo que existe. Ningún agente lo vuelve a poner como pendiente de Titín.
 - **Respaldo GL en la 3.1.2 (Titín, 14-11; COORDINACIÓN-42):** el respaldo OpenGL de ANGLE para los Mac de 2012–2015
   (`FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005, #982) **entra en la 3.1.2**. Preliminar de LOCAL-19
   (`local/311-gl-reserva`): en la 6,1 Metal sigue por defecto y va mejor; con GL también funciona; en el MacBookPro9,1
