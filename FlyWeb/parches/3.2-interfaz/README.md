@@ -4,7 +4,7 @@ MOTOR-46, desde el 19-11, por encargo de COORDINACIÓN-51. Diseño: `FlyWeb/bran
 **Sin compilar** (la nube no tiene el checkout de Chromium). Destino: 3.2.0.
 
 Base: brave-core `local/3.1.4` (`e660929ac9`); Chromium de referencia `local/314` (`e9b670773e`). Un parche por hito,
-para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 0001: `0ab5d2c1f8`; tras el 0003: `4e7ece5536`; tras el 0004: `47543553c4`; tras el 0006: `a970509442`; tras el 0007: `60de7b3cff`.
+para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 0001: `0ab5d2c1f8`; tras el 0003: `4e7ece5536`; tras el 0004: `47543553c4`; tras el 0006: `a970509442`; tras el 0007: `ba86a5b9b7`.
 
 | Parche | Hito | Qué hace |
 |---|---|---|
@@ -14,7 +14,7 @@ para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 00
 | `0004-FlyWeb-3.2.0-interface-Titin-s-answers-on-icon-text-.patch` | H1, respuestas de Titín | Iconos, texto de las pestañas, ventana sin foco y carpetas (`brave_color_mixer.cc` y su test) |
 | `0005-FlyWeb-3.2.0-interface-Titin-s-toolbar-tab-and-bookm.patch` | H4 iconos | 11 `.icon` en `vector_icons/`, 4 propios en `app/vector_icons/`, ganchos del «+» y del «⌄», carpeta vectorial |
 | `0006-FlyWeb-3.2.0-interface-Shields-as-a-colored-shield-o.patch` | H4 escudo de Shields | `browser/ui/views/brave_actions/brave_shields_action_view.{h,cc}` |
-| `0007-FlyWeb-3.2.0-interface-private-window-toolbar-and-ac.patch` | Ventana privada | Barra y pestaña activa de la privada (`brave_color_mixer.cc`, `color_palette.h` y test de navegador). **Aparte**: LOCAL-19 compila 0001–0006 sin él |
+| `0007-FlyWeb-3.2.0-interface-private-window-toolbar-active.patch` | Ventana privada | Barra, pestaña activa y marco de la privada (`brave_color_mixer.cc`, `color_palette.h` y test de navegador). **Aparte**: LOCAL-19 compila 0001–0006 sin él |
 
 ## H1: colores
 
@@ -227,21 +227,22 @@ las PNG `IDR_FLYWEB_SHIELDS_ICON_*`. **Valores provisionales**, en constantes `k
 
 ## Ventana privada (0007, aparte)
 
-Decisión de Titín (19-11): pestaña activa y barra de la ventana privada en una sola pieza, **`#571E73`** en oscuro y
-`#AFA6D2` en claro. El marco (la tira de pestañas) se queda como estaba.
+Decisiones de Titín (19-11):
+- Pestaña activa y barra de la ventana privada en una sola pieza: **`#571E73`** (y `#AFA6D2` en claro, ver abajo).
+- **Marco `#272726`** en lugar de `#13052A`, para que la privada no se confunda con una ventana normal en oscuro. Va en una
+  constante propia, `kFlyWebPrivateFrame`. La URL y el fondo de la página nueva siguen con `kPrivateFrame`.
+- **Invitado**: igual que la privada. Comparten tema y no se separan.
 
 - **Solo se aplica el oscuro**: en Chromium 156, `ThemeService::GetColorProviderKey()` fuerza el modo oscuro para los
   perfiles de incógnito, así que la ventana privada siempre está en oscuro. Para usar `#AFA6D2` habría que hacer que la
   privada siga el modo del sistema. Eso implica una paleta clara completa (texto, URL, iconos), y queda pendiente de
   decidir.
-- **Sin cambios**: el marco (`kPrivateFrame`), los iconos (pendientes de Titín), la URL y la página de la ventana privada
-  nueva. Tor no existe en FlyWeb.
-- **Ventana de invitado**: Brave le pone el mismo tema que a la privada (`BraveBrowserWidget`), así que también recibe
-  el `#571E73`.
+- **Sin cambios**: los iconos (pendientes de Titín), la URL y la página de la ventana privada nueva. Tor no existe en
+  FlyWeb.
 - **Contraste** (medido por COORDINACIÓN): blanco sobre `#571E73`, 11,4:1; `#EDEEF1` sobre `#571E73`, 9,8:1.
 
 ### Prueba
-- `brave_browser_tests --gtest_filter='BraveThemeServiceTest.ColorProviderTest'`: comprueba la barra y la pestaña activa
-  de la privada.
-- A ojo: ventana privada nueva, con la barra y la pestaña activa en `#571E73` y el resto como antes. La ventana de
-  invitado, igual.
+- `brave_browser_tests --gtest_filter='BraveThemeServiceTest.ColorProviderTest'`: comprueba el marco (`#272726`), la
+  barra y la pestaña activa de la privada.
+- A ojo: ventana privada nueva, con la barra y la pestaña activa en `#571E73`, el marco en `#272726` y el resto como
+  antes. La ventana de invitado, igual.
