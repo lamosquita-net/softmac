@@ -956,3 +956,4 @@ buzon/LOCAL/20261119-2003-COORDINACION-52-interfaz-320-espera-LOCAL-19.md → Co
 buzon/LOCAL/20261119-2005-COORDINACION-52-interfaz-320-abrir-para-titin-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 20:06 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-2006-COORDINACION-52-interfaz-320-serie-ef608126-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 20:06 UTC · entregado (CARTERO-LOCAL)
 - buzon/LOCAL/20261119-2016-COORDINACION-52-interfaz-320-modo-ajustes-LOCAL-19.md — entregado a Compilación Local (19) [dd3cf8] el 2026-11-19 20:18 UTC (CARTERO-LOCAL)
+- buzon/LOCAL/20261119-2044-COORDINACION-52-settings-system-y-webstore-LOCAL-19.md — entregado a Compilación Local (19) [dd3cf8] el 2026-11-19 20:45 UTC (CARTERO-LOCAL)
