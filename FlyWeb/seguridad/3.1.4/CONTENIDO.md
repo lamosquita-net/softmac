@@ -109,6 +109,9 @@ Todos con `git apply --cached` sobre la base indicada, sin `-3`.
   V8 .66→.71 vía `patches/v8`; Skia 115e3c17b5 en la parte 4; `src-internal` no se usa): pasar a .111 no cambia el
   código. Encima del tag, `aac2cdd377` solo sube `chrome/VERSION` a .112. V8 15.6 sigue en .71; sin *reland* de
   605619b342 ni el cambio de Blink de 574749469. **Ningún `integracion/chromium/0005` por ahora.**
+  **Actualización (SEGURIDAD-PORTES-32, 19-11, 09:16 UTC):** la 8078 pasa a **`0ca9887568`** (08:32 UTC, «Roll commits
+  from side projects in M156»): solo `DEPS` y ANGLE `f4f835734108..0b547a1161fb`, dos *cherry-picks* [M156]. Uno aplica a
+  Mac: **`integracion/angle/0001`** (abajo). Sin tag .112; V8 15.6 sigue en .71.
 
 ### Lo que llega a la rama 8078 después de la integración
 
@@ -144,6 +147,35 @@ aplica **al final**, después de `adapt/chromium/0001`. La vigilancia sigue hast
   podían colapsar en el mismo `U+FFFD` y llegar duplicados a `AddRulesImpl`). Ficheros nuevos `constants.h` y
   `declarative_utils.{h,cc}` y su entrada en `extensions/browser/BUILD.gn`. Aplica limpio; brave-core no tiene
   `chromium_src` para estos ficheros; `base::IsStringUTF8AllowingNoncharacters` existe en la 156.
+
+### ANGLE de la 8078 después de la integración (SEGURIDAD-PORTES-32, 19-11)
+
+El *roll* `0ca9887568` de la 8078 lleva ANGLE de `f4f835734108` (= nuestro `angle/0003`) a `0b547a1161fb`, con dos
+commits [M156]:
+
+| Commit de ANGLE | Bug (merge) | Qué | ¿Mac? |
+|---|---|---|---|
+| **41c5deee45** | 574209990 (579732514) | Validación del *frontend* (`validationES3.cpp`): `glTexSubImage*D` aceptaba `GL_RGB8`/`GL_RGB565` con `GL_UNSIGNED_INT_2_10_10_10_REV_EXT` sin `GL_OES_required_internalformat` ni `GL_EXT_texture_type_2_10_10_10_REV`, porque la comprobación de extensiones solo estaba en la rama de creación; ahora `ValidES3ExtensionFormatCombination` mira las extensiones en los dos caminos | **Sí**: el *frontend* de libANGLE se compila y se usa con Metal y con el respaldo GL. **`integracion/angle/0001`** |
+| 0b547a1161 | 550489336 (579732851) | Backend GL: `doubleClearForRobustInit`, doble borrado en la inicialización robusta para que el *driver* no se salte el segundo | **No**: la función se enciende solo con GPU Mali o Adreno ≤ 6xx (`renderergl_utils.cpp`: `isMali \|\| IsAdreno6xxOrOlder`); ningún Mac las lleva. Mismo criterio que 569191970 (PowerVR, §D) |
+
+- **`integracion/angle/0001`**: aplica limpio con `git am` sobre el ANGLE de la 3.1.4 (reproducido aquí: `f10470c77e` +
+  `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003 = árbol **`db885a866b`**). Árbol
+  resultante **`fb21437e81`**. Mismo `patch-id` que el original (`53571bf905`). Los campos de extensión que usa
+  (`requiredInternalformatOES`, `depthTextureOES`, `depth32OES`, `textureType2101010REVEXT`) existen en
+  `gles_extensions_autogen.h`, y los dos únicos llamantes de `ValidES3ExtensionFormatCombination` quedan
+  actualizados. `validationES3.cpp` pasa `clang++ -fsyntax-only` con el parche. La prueba nueva va en
+  `TextureTest.cpp` (`angle_end2end_tests`, no se compila en la build del navegador).
+- **Para LOCAL:** igual que `angle/`: `git am` de `integracion/angle/0001` sobre su ANGLE (el de `db885a866b`) y volver
+  a fijar el gitlink de `third_party/angle` y `angle_revision` en `DEPS` (el commit de fijación de `local/314`). Va
+  **después** de `integracion/chromium/0004`; no toca chromium ni brave-core.
+
+## Veredicto (regla 17): **APTO**, `integracion/angle/0001`
+
+Es el *cherry-pick* de upstream sin cambios (mismo `patch-id`). Solo endurece la validación: una página que suba
+texturas `RGB8`/`RGB565` con el tipo `2_10_10_10_REV` sin las dos extensiones recibe `GL_INVALID_OPERATION`, como ya
+pasaba al crearlas; las combinaciones de ES 3.0 (`GL_UNSIGNED_BYTE`, `GL_UNSIGNED_SHORT_5_6_5`) no cambian. Prueba para
+LOCAL: `angle_end2end_tests --gtest_filter='*TextureTest*'` si se compilan; a mano, una página WebGL 2 que dibuje
+texturas.
 
 ## Veredicto (regla 17): **APTO**, `integracion/chromium/0003` y `0004`
 
