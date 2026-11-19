@@ -923,10 +923,10 @@ buzon/LOCAL/20261119-0320-COORDINACION-50-nullip-manual-LOCAL-19.md → Compilac
 buzon/LOCAL/20261119-0330-COORDINACION-50-nullip-shields-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 03:30 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-0335-COORDINACION-50-apto-definitivo-LOCAL-19.md → Compilación Local (19) [924c24] · 2026-11-19 03:34 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-0455-COORDINACION-51-relevo-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 08:34 UTC · entregado (CARTERO-LOCAL; ref nueva de la sesión)
-buzon/PUBLICACION/20261119-0455-COORDINACION-51-relevo.md → Publicación [4dd99b] · 2026-11-19 08:34 UTC · fallo: sesión no activa; pendiente
-buzon/SERVIDOR-LOCAL/20261119-0455-COORDINACION-51-relevo.md → Servidor Local (2) [853e0b] · 2026-11-19 08:34 UTC · fallo: sesión no activa; pendiente
-buzon/ARQUITECTURA/20261119-0455-COORDINACION-51-relevo.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-19 08:34 UTC · fallo: sesión no activa; pendiente
-buzon/LOCAL/20261119-0455-COORDINACION-51-relevo.md → Local (21) [4b2922] · 2026-11-19 08:34 UTC · fallo: sesión no activa; pendiente
+buzon/PUBLICACION/20261119-0455-COORDINACION-51-relevo.md → Publicación [4dd99b] · 2026-11-19 08:34 UTC · entregado (CARTERO-LOCAL, sesión reabierta)
+buzon/SERVIDOR-LOCAL/20261119-0455-COORDINACION-51-relevo.md → Servidor Local (2) [853e0b] · 2026-11-19 08:34 UTC · entregado (CARTERO-LOCAL, sesión reabierta)
+buzon/ARQUITECTURA/20261119-0455-COORDINACION-51-relevo.md → Arquitectura FlyWeb monorepo [db19a7] · 2026-11-19 08:34 UTC · entregado (CARTERO-LOCAL, sesión reabierta)
+buzon/LOCAL/20261119-0455-COORDINACION-51-relevo.md → Local (21) [4b2922] · 2026-11-19 08:34 UTC · entregado (CARTERO-LOCAL, sesión reabierta)
 buzon/CARTERO-LOCAL/20261119-0455-COORDINACION-51-relevo.md → CARTERO-LOCAL (self) · 2026-11-19 08:34 UTC · entregado (CARTERO-LOCAL)
 buzon/CARTERO-LOCAL/20261119-0835-COORDINACION-51-relevo-pendiente.md → CARTERO-LOCAL (self) · 2026-11-19 08:36 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-0840-COORDINACION-51-entrega-fs47-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 08:41 UTC · entregado (CARTERO-LOCAL)
