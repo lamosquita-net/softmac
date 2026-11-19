@@ -7,8 +7,10 @@
 // se queda en blanco con un perfil nuevo (uAssets annoyances-cookies.txt, l.128 y l.130).
 //
 // Regla: en las listas de LISTAS_CON_CLIC, a cada regla cosmética (## o #?#, sin +js ni ##^) se le
-// quitan los hosts que en la MISMA lista tienen algún +js(trusted-…); si no le queda ninguno, se quita
-// la línea. Las reglas genéricas (sin host), las excepciones (#@#), las de red y los hosts negados (~)
+// quitan los hosts que en la MISMA lista tienen un +js(trusted-click-element, …); si no le queda
+// ninguno, se quita la línea. Solo el clic (decisión de Titín, 19-11-2026): es el caso en que la página
+// espera a que se pulse algo. Con los demás «trusted» (trusted-set-cookie, …) la ocultación no deja la
+// página vacía, así que se conserva. Las reglas genéricas (sin host), las excepciones (#@#), las de red y los hosts negados (~)
 // no se tocan. Un host está «afectado» si el clic se ejecutaría en él: es el mismo host, un subdominio
 // (www.ejemplo.com con el clic en ejemplo.com) o lo cubre un comodín de TLD (consent.google.com con el
 // clic en consent.google.*). Al revés no: un comodín en la ocultación (google.*) no se quita por un
@@ -21,7 +23,7 @@
 export const LISTAS_CON_CLIC = new Set(['AC023D22-AE88-4060-A978-4FEEEC4221693'])
 
 const COSMETICA = /^([^#\s]*)(##|#\?#)(.+)$/
-const TRUSTED = /^([^#\s]+)##\+js\(\s*trusted-/
+const TRUSTED = /^([^#\s]+)##\+js\(\s*trusted-click-element\s*[,)]/
 
 const hostsDe = (campo) => campo.split(',').map((h) => h.trim()).filter(Boolean)
 

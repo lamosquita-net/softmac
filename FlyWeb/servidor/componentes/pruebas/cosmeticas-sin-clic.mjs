@@ -49,6 +49,11 @@ const lista = [
   'ai.example.com##+js(trusted-click-element, button)',
   'example.*##.comodin-se-queda',
   'CONSENT.GOOGLE.COM##.mayusculas',
+  // Otros «trusted» que no son el clic: no cuentan (alcance estrecho).
+  'cookie.example##+js(trusted-set-cookie, consent, true)',
+  'cookie.example##.banner-se-queda',
+  'otro-clic.example##+js(trusted-click-elementx, button)',
+  'otro-clic.example##.tampoco-cuenta',
   ''
 ]
 const r = quitarCosmeticasSinClic(lista)
@@ -64,6 +69,7 @@ ok('comodín de TLD: consent.google.* cubre consent.google.com y .co.uk', !sale.
 ok('subdominio del host del clic: se quita', !sale.has('www.consent.youtube.com##.sub'))
 ok('dominio padre del host del clic: se queda', sale.has('youtube.com##.padre-se-queda'))
 ok('comodín en la ocultación y clic en un host concreto: se queda', sale.has('example.*##.comodin-se-queda'))
+ok('solo cuenta trusted-click-element: trusted-set-cookie no quita la ocultación', sale.has('cookie.example##.banner-se-queda') && sale.has('otro-clic.example##.tampoco-cuenta'))
 ok('cubre()', cubre('consent.google.*', 'consent.google.com') && cubre('consent.google.*', 'a.consent.google.co.uk') && cubre('google.*', 'consent.google.*') &&
   cubre('example.com', 'www.example.com') && !cubre('example.com', 'example.*') && !cubre('www.example.com', 'example.com') &&
   !cubre('google.*', 'google.com.evil.example') && !cubre('example.com', 'notexample.com'))

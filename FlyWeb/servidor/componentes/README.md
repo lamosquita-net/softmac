@@ -37,7 +37,8 @@ El mismo servidor atiende a las dos versiones (`FlyWeb/docs/brave-sync-shields.m
   empaquetamos son las de siempre, pero queda pendiente decidir si se corrige en la 1.x (cambia el hash a aprobar).
 - **Ocultaciones que esperan un clic «trusted»** (`cosmeticas-sin-clic.mjs`, 19-11-2026): como no hay scriptlets «trusted»,
   en la lista de avisos de cookies (AC023D22…) se quitan las reglas cosméticas (`##`, `#?#`) de los hosts que en esa misma
-  lista tienen un `+js(trusted-…)`; si la regla tiene más hosts, solo se recorta ese. Sin esto, el diálogo se oculta y nadie
+  lista tienen un `+js(trusted-click-element, …)` (solo el clic: decisión de Titín, 19-11); si la regla tiene más hosts,
+  solo se recorta ese. También cuenta un subdominio o un host que cubre un comodín de TLD. Sin esto, el diálogo se oculta y nadie
   lo pulsa: `consent.google.com/m?…&pc=cws` dejaba la Chrome Web Store en blanco con un perfil nuevo, y
   `consent.youtube.com` ocultaba el `<body>`. Las demás listas no se tocan (ocultar un anuncio no depende de ningún clic).
   El `list.txt` es el mismo para la 1.x, la 2.x y la 3.x (mismo ID), así que llega a todas. Prueba:
