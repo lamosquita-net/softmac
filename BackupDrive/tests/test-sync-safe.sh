@@ -196,7 +196,8 @@ MAC4="$T/mac4"; DRIVE4="$T/drive4"; mkdir -p "$MAC4"
 i=1; while [ $i -le 20 ]; do echo "g$i" > "$MAC4/g$i.txt"; i=$((i + 1)); done
 echo ds > "$MAC4/.DS_Store"; echo rf > "$MAC4/._g1.txt"
 printf '%s\n' "$MAC4|fake:$DRIVE4|90|20|5" >> "$BACKUPDRIVE_DIR/profiles"
-BACKUPDRIVE_DEFAULT_EXCLUDES=0 run --profile "$MAC4" --resync
+# En un subshell: con /bin/sh de macOS (bash POSIX), «VAR=x función» deja VAR puesta después de la llamada.
+(BACKUPDRIVE_DEFAULT_EXCLUDES=0; export BACKUPDRIVE_DEFAULT_EXCLUDES; run --profile "$MAC4" --resync)
 has "$DRIVE4/._g1.txt" "sin exclusiones por defecto, ._g1.txt sube (preparación)"
 echo sd > "$MAC4/.smbdeleteAAA1"
 run --profile "$MAC4"
