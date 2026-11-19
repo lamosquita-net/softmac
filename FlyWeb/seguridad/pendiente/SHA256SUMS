@@ -1,2 +1,3 @@
 5089455d72de7c9caa956bf0a490f3d826a0ad5dd8ba8aefc3b5f871713f33f7  angle/0001-M156-Validate-extensions-in-ValidES3ExtensionFormatCo.patch
 e943337517a9f4bb5f24d7fd4419ed7bd4f1852689d8cafb1d8b5af3f1db2420  chromium/0001-M156-Disallow-creating-symbolic-links-in-the-macOS-n.patch
+32148aba783ff8e1f953537a59e1ab65814178224e71f414ec3dc048e8a2ffce  brave-core/0001-v8-pending-d68cecd900-15.6.75.72-crbug-583479274.patch
