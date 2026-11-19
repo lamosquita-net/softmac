@@ -1,7 +1,7 @@
-From e6c3cb8321c1440b85e6d10fd859ec614f1f8705 Mon Sep 17 00:00:00 2001
+From be02291ea4dff4dbe2e87e5de58e0fb3ba0348cf Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 19 Nov 2026 18:08:33 +0000
-Subject: [PATCH] FlyWeb 3.2.0 interface: Titin's answers on icon, text and
+Subject: [PATCH 4/7] FlyWeb 3.2.0 interface: Titin's answers on icon, text and
  inactive colors
 
 - Toolbar icons: #656666 light, #EDEEF1 dark.

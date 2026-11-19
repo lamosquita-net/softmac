@@ -4,7 +4,7 @@ MOTOR-46, desde el 19-11, por encargo de COORDINACIÓN-51. Diseño: `FlyWeb/bran
 **Sin compilar** (la nube no tiene el checkout de Chromium). Destino: 3.2.0.
 
 Base: brave-core `local/3.1.4` (`e660929ac9`); Chromium de referencia `local/314` (`e9b670773e`). Un parche por hito,
-para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 0001: `0ab5d2c1f8`; tras el 0003: `4e7ece5536`; tras el 0004: `47543553c4`; tras el 0006: `a970509442`; tras el 0007: `ba86a5b9b7`.
+para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 0001: `0ab5d2c1f8`; tras el 0003: `6ebef09e6d`; tras el 0004: `8e89ac279d`; tras el 0006: `d7f8cdca79`; tras el 0007: `55a50cf365`. (El 0003 se corrigió el 19-11 tras la compilación de LOCAL-19: a la vista del brillo le faltaba `METADATA_HEADER`/`BEGIN_METADATA`, obligatorio en la 156. Los árboles posteriores cambian por eso.)
 
 | Parche | Hito | Qué hace |
 |---|---|---|

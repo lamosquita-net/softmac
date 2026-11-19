@@ -1,8 +1,8 @@
-From a15c11d33d3e3f2653fe1aa8c4d21c69dca87411 Mon Sep 17 00:00:00 2001
+From 784e67dd3a03ec8951e5257c9a4f1e580f666fc7 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 19 Nov 2026 18:21:17 +0000
-Subject: [PATCH] FlyWeb 3.2.0 interface: private window toolbar, active tab
- and frame
+Subject: [PATCH 7/7] FlyWeb 3.2.0 interface: private window toolbar, active
+ tab and frame
 
 Titin's colors for the private window (and the guest window, which
 shares its theme): active tab and toolbar in one piece, #571E73, and the

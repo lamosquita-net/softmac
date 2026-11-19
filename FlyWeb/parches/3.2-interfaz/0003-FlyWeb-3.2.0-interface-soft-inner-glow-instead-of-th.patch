@@ -1,7 +1,7 @@
-From 8138642699c41094c427cad99420b858f87df2e9 Mon Sep 17 00:00:00 2001
+From a2f0ba69336b8feff2b7543d95534fa076b43b04 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 19 Nov 2026 18:00:40 +0000
-Subject: [PATCH 3/3] FlyWeb 3.2.0 interface: soft inner glow instead of the
+Subject: [PATCH 3/7] FlyWeb 3.2.0 interface: soft inner glow instead of the
  URL focus ring
 
 From Titin's design (softmac FlyWeb/branding/interfaz-3.2.0): when the
@@ -19,13 +19,13 @@ constants (kFlyWebOmniboxFocusGlow*) to adjust in tests with Titin.
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
 ---
- .../location_bar/brave_location_bar_view.cc   | 101 ++++++++++++++++++
+ .../location_bar/brave_location_bar_view.cc   | 107 ++++++++++++++++++
  .../location_bar/brave_location_bar_view.h    |   3 +
- .../location_bar_view_browsertest.cc          |  24 +++++
- 3 files changed, 128 insertions(+)
+ .../location_bar_view_browsertest.cc          |  24 ++++
+ 3 files changed, 134 insertions(+)
 
 diff --git a/browser/ui/views/location_bar/brave_location_bar_view.cc b/browser/ui/views/location_bar/brave_location_bar_view.cc
-index e44b8434aa..ffe8e7e174 100644
+index e44b8434aa..de91beaaa4 100644
 --- a/browser/ui/views/location_bar/brave_location_bar_view.cc
 +++ b/browser/ui/views/location_bar/brave_location_bar_view.cc
 @@ -11,6 +11,7 @@
@@ -44,7 +44,11 @@ index e44b8434aa..ffe8e7e174 100644
  #include "chrome/browser/profiles/profile.h"
  #include "chrome/browser/themes/theme_service_factory.h"
  #include "chrome/browser/ui/layout_constants.h"
-@@ -37,14 +39,84 @@
+@@ -34,17 +36,93 @@
+ #include "components/grit/brave_components_strings.h"
+ #include "components/version_info/channel.h"
+ #include "content/public/browser/navigation_entry.h"
++#include "ui/base/metadata/metadata_header_macros.h"
  #include "ui/base/metadata/metadata_impl_macros.h"
  #include "ui/base/resource/resource_bundle.h"
  #include "ui/compositor/layer.h"
@@ -77,6 +81,8 @@ index e44b8434aa..ffe8e7e174 100644
 +// glow. It must be above the omnibox textfield, which has an opaque
 +// background. It ignores events and accessibility.
 +class FlyWebOmniboxFocusGlowView : public views::View {
++  METADATA_HEADER(FlyWebOmniboxFocusGlowView, views::View)
++
 + public:
 +  FlyWebOmniboxFocusGlowView() {
 +    SetCanProcessEventsWithinSubtree(false);
@@ -120,6 +126,9 @@ index e44b8434aa..ffe8e7e174 100644
 +  float corner_radius_ = 0;
 +};
 +
++BEGIN_METADATA(FlyWebOmniboxFocusGlowView)
++END_METADATA
++
 +// Regular and guest windows use the FlyWeb glow. Private and Tor windows keep
 +// Brave's focus ring and its color.
 +bool UsesFlyWebFocusGlow(Profile* profile) {
@@ -129,7 +138,7 @@ index e44b8434aa..ffe8e7e174 100644
  class BraveLocationBarViewFocusRingHighlightPathGenerator
      : public views::HighlightPathGenerator {
   public:
-@@ -88,6 +160,14 @@ BraveLocationBarView::~BraveLocationBarView() = default;
+@@ -88,6 +166,14 @@ BraveLocationBarView::~BraveLocationBarView() = default;
  void BraveLocationBarView::Init() {
    // base method calls Update and Layout
    LocationBarView::Init();
@@ -144,7 +153,7 @@ index e44b8434aa..ffe8e7e174 100644
    // Change focus ring highlight path
    views::FocusRing* focus_ring = views::FocusRing::Get(this);
    if (focus_ring) {
-@@ -103,6 +183,12 @@ void BraveLocationBarView::Init() {
+@@ -103,6 +189,12 @@ void BraveLocationBarView::Init() {
    brave_actions_ = AddChildView(
        std::make_unique<BraveActionsContainer>(browser_, GetProfile()));
    brave_actions_->Init();
@@ -157,7 +166,7 @@ index e44b8434aa..ffe8e7e174 100644
    // Call Update again to cause a Layout
    Update(nullptr);
  
-@@ -128,6 +214,12 @@ void BraveLocationBarView::Layout(PassKey) {
+@@ -128,6 +220,12 @@ void BraveLocationBarView::Layout(PassKey) {
    }
  
    LayoutSuperclass<LocationBarView>(this);
@@ -170,7 +179,7 @@ index e44b8434aa..ffe8e7e174 100644
  }
  
  void BraveLocationBarView::OnVisibleBoundsChanged() {
-@@ -165,6 +257,15 @@ std::vector<views::View*> BraveLocationBarView::GetLeftMostTrailingViews() {
+@@ -165,6 +263,15 @@ std::vector<views::View*> BraveLocationBarView::GetLeftMostTrailingViews() {
  void BraveLocationBarView::RefreshBackground() {
    LocationBarView::RefreshBackground();
  

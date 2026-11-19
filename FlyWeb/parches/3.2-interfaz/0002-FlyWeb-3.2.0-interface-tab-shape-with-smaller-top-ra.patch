@@ -1,7 +1,7 @@
 From 93cfd7b42dabefd919b3e349744f37ff65e0bf75 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 19 Nov 2026 17:58:14 +0000
-Subject: [PATCH 2/3] FlyWeb 3.2.0 interface: tab shape with smaller top
+Subject: [PATCH 2/7] FlyWeb 3.2.0 interface: tab shape with smaller top
  radius, straight base
 
 From Titin's design (softmac FlyWeb/branding/interfaz-3.2.0):

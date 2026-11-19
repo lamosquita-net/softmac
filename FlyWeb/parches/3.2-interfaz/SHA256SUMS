@@ -1,7 +1,7 @@
-51df3b5016838ed6cc517807e26df43b0a6b7d9799005d6dd37ac9b6633625d7  0001-FlyWeb-3.2.0-interface-frame-toolbar-active-tab-and-.patch
-aafde4e6d42ddffeb82d58744b9e0e6c61d06c76ec85401ca078dcc70d6de7a7  0002-FlyWeb-3.2.0-interface-tab-shape-with-smaller-top-ra.patch
-43ae54fb9968b2ff19b672c3622fd9746b56b22466fdb1bc9f413bf1b191059e  0003-FlyWeb-3.2.0-interface-soft-inner-glow-instead-of-th.patch
-8f660edb821988955121120eb9f84fc5727d707c7291af3ce5a7f61ea4ccfef2  0004-FlyWeb-3.2.0-interface-Titin-s-answers-on-icon-text-.patch
-1edabd8ce6e3c05b28da1d14f97505304f92e680ed5fcc5490da5c0d9eabdeac  0005-FlyWeb-3.2.0-interface-Titin-s-toolbar-tab-and-bookm.patch
-cdc5c8a8ba140b2b822d585dfa828d1c0297af71f7d44d6772988bc73484b5fc  0006-FlyWeb-3.2.0-interface-Shields-as-a-colored-shield-o.patch
-6230c15399cc4fe39ea2a3e293afcb59d718ee2fb902e10a4b62ba1a0893be33  0007-FlyWeb-3.2.0-interface-private-window-toolbar-active.patch
+3d4bdcd815fcc38c214baa632f0a4e7fb072f139c4639ddd9e1b13e72e990498  0001-FlyWeb-3.2.0-interface-frame-toolbar-active-tab-and-.patch
+cd5caa92c69aca696c904517136e0324732ef802e5208f22d24efe3b59fba6a5  0002-FlyWeb-3.2.0-interface-tab-shape-with-smaller-top-ra.patch
+8b7f5d60692c1d1aa278d0ccd85e3d2d38259c034f359ef4ff066cc201c22c0b  0003-FlyWeb-3.2.0-interface-soft-inner-glow-instead-of-th.patch
+71976ca640c44d7040170a3e3e5a21dc0b27db00bf7f6188e58a38f71533ac60  0004-FlyWeb-3.2.0-interface-Titin-s-answers-on-icon-text-.patch
+a562ab7006daf6c9ef34a88f960f2d3f27c76699173ca27a9492a5f5d32750eb  0005-FlyWeb-3.2.0-interface-Titin-s-toolbar-tab-and-bookm.patch
+66ce95885f7b54e596c5877c6e6ad9ab0328b87a916ec65e35bef893fa6fd1b6  0006-FlyWeb-3.2.0-interface-Shields-as-a-colored-shield-o.patch
+fab83c1c411e17a8e822f7ed0aad45796d5884596087eb5081675d96079c4447  0007-FlyWeb-3.2.0-interface-private-window-toolbar-active.patch

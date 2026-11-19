@@ -1,7 +1,7 @@
-From 5db6fea55c2dc4d1842b3ba7950d93351fd8996d Mon Sep 17 00:00:00 2001
+From 7a2fa93266d541c3dc6dda5cd176a989dcac8b50 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 19 Nov 2026 18:14:49 +0000
-Subject: [PATCH 5/6] FlyWeb 3.2.0 interface: Titin's toolbar, tab and bookmark
+Subject: [PATCH 5/7] FlyWeb 3.2.0 interface: Titin's toolbar, tab and bookmark
  icons
 
 Icons converted from Titin's SVGs with softmac FlyWeb/tools/svg2icon.py
