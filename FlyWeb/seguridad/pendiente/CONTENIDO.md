@@ -116,6 +116,11 @@ Mojave es **obligatoria**:
 
 Pruebas automáticas: `content_unittests --gtest_filter='*SandboxMac*'` y `sandbox_mac_unittests`.
 
+**Paso 0 hecho (LOCAL-19, 19-11, en la 6,1, macOS 10.14.6 18G9323):** `(unless #f (deny file-write-create (vnode-type
+SYMLINK)))` → `ln: Operation not permitted` (salida 1, no se crea el enlace); `(unless #t …)` → salida 0, enlace creado.
+Mojave entiende `unless` y `vnode-type SYMLINK` sin error de sintaxis: queda descartado el riesgo principal (que el
+perfil no compile en 10.14). **APTO para Mojave**, a falta de los pasos 1–7 con la versión compilada.
+
 ## `brave-core/0001`: V8 d68cecd900 (bugs 583479274 y 587681789; V8 15.6.75.72)
 
 Cuando el depurador escribe en una variable de contexto que el *parser* marcó `kNotAssigned`, el código optimizado
@@ -142,11 +147,16 @@ Es el *cherry-pick* de upstream sin cambios. Efecto visible: con el depurador ab
 *closure* desde DevTools desoptimiza el código que la usaba (más lento solo mientras se depura; sin efecto fuera del
 depurador).
 
-## Dawn `6d772bc9e5c5..062164c3c784` (roll `ff774db0a2`): por revisar
+## Dawn `6d772bc9e5c5..062164c3c784` (roll `ff774db0a2`): no aplica
 
-`dawn.googlesource.com` está bloqueado desde la nube (como en la 3.1.2 y la 3.1.3): no se pueden leer los commits.
-**Que LOCAL lo mire en su checkout** (`git log 6d772bc9e5c5..062164c3c784` en `third_party/dawn`) y diga si hay
-arreglos de seguridad que toquen el backend Metal o el código común de Dawn; si los hay, van a `pendiente/dawn/`.
+Leído por LOCAL-19 en su checkout (19-11): **un solo commit**, `062164c3c7` «[M156] DEPS: Update DXC to patched branch»
+(bug 585800876), que solo cambia `DEPS` y el gitlink `third_party/directx-shader-compiler/src` (DXC `28ae92ffb6f1` →
+`4c890fcb0366`). DXC es el compilador de HLSL a DXIL que usa solo el backend **D3D12** de Dawn (Windows). En Mac Dawn
+usa el backend Metal con el generador MSL de Tint, sin DXC; y en 10.14 WebGPU y Dawn están además apagados en código
+(`docs/b1d/README.md`). Chromium apunta `dawn_dxc_dir` a esa ruta (`build_overrides/dawn.gni`), pero la puerta que
+decide si se compila (`dawn_use_built_dxc`, `dawn_enable_d3d12` en `scripts/dawn_features.gni` de Dawn) no se pudo
+leer desde la nube (host bloqueado). **Comprobación de un minuto para LOCAL** en el checkout de compilación:
+`gn args out/<dir> --list=dawn_use_built_dxc --short` y `--list=dawn_enable_d3d12 --short` deben dar `false` en Mac.
 
 ## `skia/0001`: Skia 13d0b32615 (bug 584003006, merge 587681020)
 
