@@ -943,3 +943,4 @@ buzon/LOCAL/20261119-1807-COORDINACION-52-relevo-LOCAL-19.md → Compilación Lo
 buzon/CARTERO-LOCAL/20261119-1807-COORDINACION-52-relevo.md → CARTERO-LOCAL (self) · 2026-11-19 18:08 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-1809-COORDINACION-52-recibido-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 18:11 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-1811-COORDINACION-52-dawn-gn-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 18:14 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261119-1817-COORDINACION-52-interfaz-320-capturas-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 18:18 UTC · entregado (CARTERO-LOCAL)
