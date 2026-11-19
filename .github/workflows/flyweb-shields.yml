@@ -122,6 +122,14 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Offline tests (resources and catalog)
         run: node pruebas/recursos-catalogo-20.mjs
+      - name: Cookie list without trusted-click hides
+        run: |
+          set -eu
+          node pruebas/cosmeticas-sin-clic.mjs
+          zip="$RUNNER_TEMP/salida/lista-AC023D22-AE88-4060-A978-4FEEEC4221693.zip"
+          test -f "$zip" || { echo "::error::cookie list zip was not built"; exit 1; }
+          unzip -p "$zip" list.txt > "$RUNNER_TEMP/cookies.txt"
+          node pruebas/cosmeticas-sin-clic.mjs "$RUNNER_TEMP/cookies.txt"
       - name: 2.0 components (resources with adblock-rs 0.8.x, catalog)
         env:
           ADBLOCK_RS_20: ${{ github.workspace }}/FlyWeb/servidor/componentes/motor-08/node_modules/adblock-rs
