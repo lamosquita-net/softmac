@@ -1,4 +1,4 @@
-From 1af0187f5a91e3fc127ee7d51d8d1312ebc34e2f Mon Sep 17 00:00:00 2001
+From b234c287cd7e8cc22572fe0f79b4dc0d276ab97e Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 19 Nov 2026 18:16:27 +0000
 Subject: [PATCH 6/7] FlyWeb 3.2.0 interface: Shields as a colored shield

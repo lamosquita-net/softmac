@@ -1,4 +1,4 @@
-From 784e67dd3a03ec8951e5257c9a4f1e580f666fc7 Mon Sep 17 00:00:00 2001
+From ddac171538ae6d130c62722db03a3ec16e6b93c4 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 19 Nov 2026 18:21:17 +0000
 Subject: [PATCH 7/7] FlyWeb 3.2.0 interface: private window toolbar, active
@@ -38,7 +38,7 @@ index 1180852cc2..83b9965db3 100644
  
  #if BUILDFLAG(IS_WIN)
 diff --git a/browser/ui/color/brave_color_mixer.cc b/browser/ui/color/brave_color_mixer.cc
-index 8262d49291..ed483d781f 100644
+index 1ec29f5518..dc80a91113 100644
 --- a/browser/ui/color/brave_color_mixer.cc
 +++ b/browser/ui/color/brave_color_mixer.cc
 @@ -575,8 +575,8 @@ void AddPrivateThemeColorMixer(ui::ColorProvider* provider,

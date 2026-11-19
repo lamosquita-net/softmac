@@ -1,4 +1,4 @@
-From 7a2fa93266d541c3dc6dda5cd176a989dcac8b50 Mon Sep 17 00:00:00 2001
+From cdc4239923506f05b12bff15f19e2229623a1b77 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 19 Nov 2026 18:14:49 +0000
 Subject: [PATCH 5/7] FlyWeb 3.2.0 interface: Titin's toolbar, tab and bookmark

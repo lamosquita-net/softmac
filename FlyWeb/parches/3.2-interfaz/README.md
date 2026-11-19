@@ -4,7 +4,7 @@ MOTOR-46, desde el 19-11, por encargo de COORDINACIÓN-51. Diseño: `FlyWeb/bran
 **Sin compilar** (la nube no tiene el checkout de Chromium). Destino: 3.2.0.
 
 Base: brave-core `local/3.1.4` (`e660929ac9`); Chromium de referencia `local/314` (`e9b670773e`). Un parche por hito,
-para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 0001: `0ab5d2c1f8`; tras el 0003: `6ebef09e6d`; tras el 0004: `8e89ac279d`; tras el 0006: `d7f8cdca79`; tras el 0007: `55a50cf365`. (El 0003 se corrigió el 19-11 tras la compilación de LOCAL-19: a la vista del brillo le faltaba `METADATA_HEADER`/`BEGIN_METADATA`, obligatorio en la 156. Los árboles posteriores cambian por eso.)
+para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 0001: `0ab5d2c1f8`; tras el 0003: `6ebef09e6d`; tras el 0004: `a345fdd36e`; tras el 0006: `78b591fe4e`; tras el 0007: `6653db38fb`. (El 0003 se corrigió el 19-11 tras la compilación de LOCAL-19: a la vista del brillo le faltaba `METADATA_HEADER`/`BEGIN_METADATA`, obligatorio en la 156. Los árboles posteriores cambian por eso. El 0004 se corrigió después, por los tests de LOCAL-19: el texto de las pestañas se aplicaba antes que el mezclador de pestañas de Chromium, que lo pisaba. Ahora va al final de `AddBravifiedTabStripColorMixer()`.)
 
 | Parche | Hito | Qué hace |
 |---|---|---|
@@ -70,7 +70,11 @@ temas personalizados): texto atenuado, iconos, chips, selección y aviso de segu
 ## Prueba de H1 (LOCAL, 6,1 en pantalla 1x y una Retina)
 
 1. `brave_unit_tests --gtest_filter='BraveColorMixersTest.*'`: deben pasar los tres tests.
-2. `brave_browser_tests --gtest_filter='BraveThemeServiceTest.*'`: deben pasar sin cambios.
+2. `brave_browser_tests --gtest_filter='BraveThemeServiceTest.*'`: deben pasar `ColorProviderTest` y
+   `OmniboxColorTest`. `SystemThemeChangeTest` y `ThemeObserverTest` fallaron en la 6,1 (19-11) por algo ajeno a la
+   serie. En Mac, `SetSystemDarkMode()` (`brave_dark_mode_utils_mac.mm`) solo cambia la apariencia de `NSApp`, y el
+   tema nativo se entera después; los tests lo comprueban en el acto. Ningún parche de la serie toca ese código ni esos
+   tests. Ver el aviso a COORDINACIÓN.
 3. A ojo, en claro y en oscuro:
    - La pestaña activa y la barra son del mismo color, sin línea entre ellas.
    - La barra de las pestañas inactivas lleva el color del marco.

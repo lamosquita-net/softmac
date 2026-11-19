@@ -1,4 +1,4 @@
-From be02291ea4dff4dbe2e87e5de58e0fb3ba0348cf Mon Sep 17 00:00:00 2001
+From 78df613b8dc2a54dc05b5c9ec819f91a3c9f2027 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 19 Nov 2026 18:08:33 +0000
 Subject: [PATCH 4/7] FlyWeb 3.2.0 interface: Titin's answers on icon, text and
@@ -19,10 +19,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
 ---
  browser/ui/color/BUILD.gn                     |  1 +
- browser/ui/color/brave_color_mixer.cc         | 40 ++++++++++++++++---
- .../ui/color/brave_color_mixers_unittest.cc   | 22 +++++++++-
- browser/ui/color/color_palette.h              |  9 +++++
- 4 files changed, 65 insertions(+), 7 deletions(-)
+ browser/ui/color/brave_color_mixer.cc         | 46 +++++++++++++++++--
+ .../ui/color/brave_color_mixers_unittest.cc   | 22 ++++++++-
+ browser/ui/color/color_palette.h              |  9 ++++
+ 4 files changed, 71 insertions(+), 7 deletions(-)
 
 diff --git a/browser/ui/color/BUILD.gn b/browser/ui/color/BUILD.gn
 index 2e1cba47f1..ed8973f1e6 100644
@@ -36,15 +36,16 @@ index 2e1cba47f1..ed8973f1e6 100644
    ]
  }
 diff --git a/browser/ui/color/brave_color_mixer.cc b/browser/ui/color/brave_color_mixer.cc
-index a2338ec8af..8262d49291 100644
+index a2338ec8af..1ec29f5518 100644
 --- a/browser/ui/color/brave_color_mixer.cc
 +++ b/browser/ui/color/brave_color_mixer.cc
-@@ -65,6 +65,28 @@ bool HasCustomToolbarColor(const ui::ColorProviderKey& key) {
+@@ -65,6 +65,29 @@ bool HasCustomToolbarColor(const ui::ColorProviderKey& key) {
                                      &custom_toolbar_color);
  }
  
-+// FlyWeb tab text, regular windows only (private and Tor windows reuse
-+// AddChromeDarkThemeColorMixer() and keep Brave's colors): black or white on
++// FlyWeb tab text, regular windows only (called from
++// AddBravifiedTabStripColorMixer(), which private windows skip because their
++// theme supplier is a custom theme): black or white on
 +// the active tab in both window states; inactive tabs use it at
 +// kFlyWebInactiveTabTextAlpha over the tab strip, made opaque, as Chromium's
 +// tab code expects.
@@ -68,7 +69,7 @@ index a2338ec8af..8262d49291 100644
  void AddChromeLightThemeColorMixer(ui::ColorProvider* provider,
                                     const ui::ColorProviderKey& key) {
    ui::ColorMixer& mixer = provider->AddMixer();
-@@ -88,15 +110,17 @@ void AddChromeLightThemeColorMixer(ui::ColorProvider* provider,
+@@ -88,15 +111,17 @@ void AddChromeLightThemeColorMixer(ui::ColorProvider* provider,
    mixer[kColorTabStrokeFrameActive] = {SkColorSetA(SK_ColorBLACK, 0.07 * 255)};
    mixer[kColorTabStrokeFrameInactive] = {kColorTabStrokeFrameActive};
    mixer[kColorToolbar] = {kFlyWebLightToolbar};
@@ -89,7 +90,7 @@ index a2338ec8af..8262d49291 100644
    mixer[ui::kColorToggleButtonThumbOff] = {SK_ColorWHITE};
    mixer[ui::kColorToggleButtonThumbOn] = {SkColorSetRGB(0x4C, 0x54, 0xD2)};
    mixer[ui::kColorToggleButtonTrackOff] = {SkColorSetRGB(0xDA, 0xDC, 0xE8)};
-@@ -144,14 +168,16 @@ void AddChromeDarkThemeColorMixer(ui::ColorProvider* provider,
+@@ -144,14 +169,16 @@ void AddChromeDarkThemeColorMixer(ui::ColorProvider* provider,
    mixer[kColorTabStrokeFrameActive] = {kColorToolbar};
    mixer[kColorTabStrokeFrameInactive] = {kColorToolbar};
    mixer[kColorToolbar] = {kFlyWebDarkToolbar};
@@ -108,7 +109,7 @@ index a2338ec8af..8262d49291 100644
    mixer[ui::kColorToggleButtonThumbOff] = {SK_ColorWHITE};
    mixer[ui::kColorToggleButtonThumbOn] = {SkColorSetRGB(0x44, 0x36, 0xE1)};
    mixer[ui::kColorToggleButtonTrackOff] = {SkColorSetRGB(0x5E, 0x61, 0x75)};
-@@ -192,6 +218,9 @@ void AddChromeColorMixerForAllThemes(ui::ColorProvider* provider,
+@@ -192,6 +219,9 @@ void AddChromeColorMixerForAllThemes(ui::ColorProvider* provider,
      return;
    }
  
@@ -118,14 +119,17 @@ index a2338ec8af..8262d49291 100644
    mixer[kColorLocationBarBackground] = {kColorToolbarBackgroundSubtleEmphasis};
    mixer[kColorLocationBarBackgroundHovered] = {kColorLocationBarBackground};
  
-@@ -440,6 +469,7 @@ void AddBravifiedChromeThemeColorMixer(ui::ColorProvider* provider,
-   key.color_mode == ui::ColorProviderKey::ColorMode::kDark
-       ? AddChromeDarkThemeColorMixer(provider, key)
-       : AddChromeLightThemeColorMixer(provider, key);
+@@ -641,4 +671,10 @@ void AddBravifiedTabStripColorMixer(ui::ColorProvider* provider,
+       {kColorTabBackgroundInactiveFrameActive}, 0.75 * 0xff);
+   mixer[kColorTabDividerFrameInactive] = {divider_color};
+   mixer[kColorTabDividerFrameActive] = {divider_color};
++
++  // FlyWeb tab text. It goes here, not with the other FlyWeb colors in
++  // AddBravifiedChromeThemeColorMixer(), because Chromium's
++  // AddTabStripColorMixer() runs after the chrome mixers and recomputes the
++  // tab foregrounds from kColorToolbarText.
 +  AddFlyWebTabTextColorMixer(provider, key);
  }
- 
- void AddBraveLightThemeColorMixer(ui::ColorProvider* provider,
 diff --git a/browser/ui/color/brave_color_mixers_unittest.cc b/browser/ui/color/brave_color_mixers_unittest.cc
 index 9023f44093..cd9cefb8bb 100644
 --- a/browser/ui/color/brave_color_mixers_unittest.cc
