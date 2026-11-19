@@ -233,7 +233,7 @@ Ganesh (`GrPipeline.h`, `GrDstProxyView.h`, `GrOpsRenderPass.h`, `SurfaceDrawCon
 Metal, Vulkan y D3D): cuando un dibujo lee el destino (*dst-read*), el *scissor* que se manda a la GPU se cruza siempre con
 los límites de esa lectura, y se activa siempre. Así, una geometría con límites mal calculados que se salga del área ya
 no escribe píxeles fuera de la copia del destino. **Aplica a Mac:** en 10.14 el ráster por GPU va por Ganesh sobre GL
-(ANGLE), y en Monterey también; el cambio de Metal (`GrMtlOpsRenderPass`) no se usa (Ganesh/Metal está apagado en Chromium).
+(ANGLE), y en Monterey también. El cambio en `GrMtlOpsRenderPass` es el mismo arreglo para el backend Metal de Ganesh; no hace falta saber si FlyWeb lo usa, porque el parche es el de upstream entero.
 
 - Aplica limpio con `git am` sobre `47b14cb49e` (tras `skia/0002`): árbol **`1ef25455d7`**. Mismo `patch-id` que el
   original (`a80446c2f5`).
