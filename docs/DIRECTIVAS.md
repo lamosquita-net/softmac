@@ -396,6 +396,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     **Recordatorio (Titín, 19-11; COORDINACIÓN-52): cerrado, no se vuelve a plantear.** Tampoco hay «copia fuera de línea»
     de las credenciales de la sync ni de la DKIM: se quedan como están, en el backup general, con su riesgo aceptado. No se
     saca nada de los backups que ya se hacen ni se toca lo que existe. Ningún agente lo vuelve a poner como pendiente de Titín.
+- **La medida de la sync en la 5,1 no frena la 3.2.0 (Titín, 19-11; COORDINACIÓN-52):** como siempre, se mide después de
+  publicar, en el estudio, con la versión instalada. Si hay retroceso (derivación de clave de más de ~2 s), se arregla
+  como hasta ahora: pasa por SEGURIDAD-PORTES antes de tocar kScryptN y sale en una versión posterior.
 - **Respaldo GL en la 3.1.2 (Titín, 14-11; COORDINACIÓN-42):** el respaldo OpenGL de ANGLE para los Mac de 2012–2015
   (`FlyWeb/parches/3.1.2-gl-reserva/` 0001–0005, #982) **entra en la 3.1.2**. Preliminar de LOCAL-19
   (`local/311-gl-reserva`): en la 6,1 Metal sigue por defecto y va mejor; con GL también funciona; en el MacBookPro9,1
