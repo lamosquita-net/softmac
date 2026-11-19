@@ -409,6 +409,16 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     en la lista de avisos de cookies se quitan las reglas cosméticas de los hosts que dependen de un `+js(trusted-…)`,
     que FlyWeb no ejecuta (`FlyWeb/servidor/componentes/empaquetar.mjs`). Llega también a la 3.1.4 instalada. Antes,
     APTO de SEGURIDAD-PORTES.
+- **Web Store: alcance estrecho; Apariencia entra en la 3.2.0 (Titín, 19-11; COORDINACIÓN-53):**
+  - **#1123, alcance estrecho:** solo se quitan las ocultaciones de los hosts con `+js(trusted-click-element…)`, y solo en la
+    lista de avisos de cookies. Los avisos de los sitios con `trusted-set-cookie` (x.com, cnn.com…) siguen ocultos, como hoy.
+    APTO de SEGURIDAD-PORTES-32.
+  - **Apariencia entra en la 3.2.0** (`FlyWeb/parches/3.2-ajustes-sistema/` 0002–0003, MOTOR-46): vuelve el selector de tema
+    (claro, oscuro, «Igual que macOS») y guardan los desplegables de ajustes que en la 156 no guardaban (hover de pestañas,
+    tamaño de letra, nueva pestaña, política de IP de WebRTC, Request OTR, buscador de las ventanas privadas). Antes,
+    APTO de SEGURIDAD-PORTES (WebRTC y buscador de privadas son de privacidad). La tarjeta de hover la diseña Titín.
+  - **Titín quiere que se le avise cuando todo esté arreglado** (interfaz, settings/system y Apariencia compilados y
+    probados) para ajustar con él lo que quede.
 - **La medida de la sync en la 5,1 no frena la 3.2.0 (Titín, 19-11; COORDINACIÓN-52):** como siempre, se mide después de
   publicar, en el estudio, con la versión instalada. Si hay retroceso (derivación de clave de más de ~2 s), se arregla
   como hasta ahora: pasa por SEGURIDAD-PORTES antes de tocar kScryptN y sale en una versión posterior.
