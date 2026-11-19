@@ -961,3 +961,4 @@ buzon/LOCAL/20261119-2006-COORDINACION-52-interfaz-320-serie-ef608126-LOCAL-19.m
 - buzon/LOCAL/20261119-2049-COORDINACION-52-colores-srgb-LOCAL-19.md — entregado a Compilación Local (19) [dd3cf8] el 2026-11-19 20:50 UTC (CARTERO-LOCAL)
 - buzon/LOCAL/20261119-2050-COORDINACION-52-settings-system-linea-LOCAL-19.md — entregado a Compilación Local (19) [dd3cf8] el 2026-11-19 20:50 UTC (CARTERO-LOCAL)
 buzon/LOCAL/20261119-2050-COORDINACION-52-webstore-cruce-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 20:51 UTC · entregado (CARTERO-LOCAL)
+- buzon/LOCAL/20261119-2050-COORDINACION-52-escala-pantalla-LOCAL-19.md — entregado a Compilación Local (19) [dd3cf8] el 2026-11-19 20:52 UTC (CARTERO-LOCAL)
