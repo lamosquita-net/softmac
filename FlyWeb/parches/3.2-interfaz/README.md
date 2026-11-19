@@ -4,13 +4,14 @@ MOTOR-46, desde el 19-11, por encargo de COORDINACIÓN-51. Diseño: `FlyWeb/bran
 **Sin compilar** (la nube no tiene el checkout de Chromium). Destino: 3.2.0.
 
 Base: brave-core `local/3.1.4` (`e660929ac9`); Chromium de referencia `local/314` (`e9b670773e`). Un parche por hito,
-para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 0001: `0ab5d2c1f8`; tras el 0003: `4e7ece5536`.
+para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 0001: `0ab5d2c1f8`; tras el 0003: `4e7ece5536`; tras el 0004: `47543553c4`.
 
 | Parche | Hito | Qué hace |
 |---|---|---|
 | `0001-FlyWeb-3.2.0-interface-frame-toolbar-active-tab-and-.patch` | H1 colores | `browser/ui/color/color_palette.h`, `brave_color_mixer.cc` y su test |
 | `0002-FlyWeb-3.2.0-interface-tab-shape-with-smaller-top-ra.patch` | H2 pestañas | Dos ganchos en `patches/` y sus `chromium_src` (`tab_style.cc`, `horizontal_tab_style_views.cc`) |
 | `0003-FlyWeb-3.2.0-interface-soft-inner-glow-instead-of-th.patch` | H3 foco de la URL | `browser/ui/views/location_bar/brave_location_bar_view.{h,cc}` y un test de navegador |
+| `0004-FlyWeb-3.2.0-interface-Titin-s-answers-on-icon-text-an.patch` | H1, respuestas de Titín | Iconos, texto de las pestañas, ventana sin foco y carpetas (`brave_color_mixer.cc` y su test) |
 
 Pendiente: H4 iconos.
 
@@ -42,21 +43,28 @@ En modo oscuro, los colores CR2023 de la omnibox salen de los tokens `ui::kColor
 campo oscuro. Aquí se sustituyen por las recetas de contraste del propio Chromium (las de `omnibox_color_mixer.cc` para
 temas personalizados): texto atenuado, iconos, chips, selección y aviso de seguridad. Así siguen al fondo blanco.
 
+### Respuestas de Titín (19-11), parche 0004
+
+| Qué | Claro | Oscuro | Cómo |
+|---|---|---|---|
+| Iconos de la barra | `#656666` | `#EDEEF1` | `kColorToolbarButtonIcon` |
+| Texto de la pestaña activa | `#000000` | `#FFFFFF` | `kColorTabForegroundActive*` |
+| Texto de las pestañas inactivas | negro al 50 % | blanco al 50 % | Mezclado sobre el color de la barra de pestañas: da un color opaco, que es lo que espera el código de pestañas de Chromium. El resultado se ve igual. |
+| Ventana sin foco | marco atenuado | marco atenuado | La receta de Chromium para la cabecera inactiva (`ui/color/sys_color_mixer.cc`), aplicada a los colores de Titín: `AlphaBlend(marco, kColorRefNeutral98, 0x48)` en claro y `AlphaBlend(marco, kColorRefNeutral25, 0x99)` en oscuro |
+| Carpetas de marcadores | plano, color de los iconos | ídem | `kColorBookmarkFolderIcon` = `kColorToolbarButtonIcon` |
+
+- **URL y desplegable en modo oscuro**: blancos con texto oscuro (confirmado).
+- **Ventanas privadas y de Tor**: sin tocar. Titín las diseña aparte. El texto de las pestañas va en un mezclador que solo
+  corre en las ventanas normales. Las privadas tienen su propio proveedor de tema, que sigue mandando.
+- **Borde de la URL**: no lleva. **Línea bajo los marcadores**: se mantiene.
+- **Texto de la barra de marcadores**: sigue al texto de la pestaña activa, como en Brave (negro en claro, blanco en
+  oscuro).
+
 ### Lo que no cambia
 
-- **Ventanas privadas y de Tor**: conservan los colores de Brave, porque su proveedor de tema se aplica después. Las recetas
-  de contraste también corren ahí, pero se calculan sobre el fondo de la ventana privada. Se comprueba en el paso 5 de
-  la prueba.
-- **Ventana sin foco**: los mismos colores. Es la propuesta pendiente de Titín; está en una línea.
-- **Colores de texto e iconos de la barra**: los de Brave. En la maqueta oscura los iconos son casi blancos (≈`#EDEEF1`) y
-  el texto de la pestaña activa ≈`#ECECEC`. En la clara, los iconos ≈`#656666` y el texto de la pestaña activa
-  ≈`#4C4D4D`. Ni el README del diseño ni el encargo los nombran, así que van como pregunta a Titín. En modo oscuro, el
-  gris de los iconos de Brave sobre `#656666` puede quedar con poco contraste: conviene mirarlo en la prueba.
-- **Otras cosas de la maqueta que no están en el encargo**:
-  - No hay línea entre la barra de marcadores y la página. En FlyWeb sigue la de Brave (`kColorToolbarContentAreaSeparator`).
-  - La URL tiene un borde fino: ≈`#ECEDEE` en claro y ≈`#8C8C8C` en oscuro.
-
-  También son preguntas para Titín.
+- **Ventanas privadas y de Tor**: conservan los colores de Brave. Usan un proveedor de tema propio
+  (`BravePrivateWindowThemeSupplier`, un tema personalizado), así que los mezcladores de FlyWeb, que salen antes con
+  `key.custom_theme`, no les afectan. Se comprueba en el paso 5 de la prueba.
 
 ## Prueba de H1 (LOCAL, 6,1 en pantalla 1x y una Retina)
 
@@ -72,6 +80,12 @@ temas personalizados): texto atenuado, iconos, chips, selección y aviso de segu
      texto seleccionado se leen bien.
    - Abrir `http://` y una página con certificado inválido: se ven el icono del candado y el aviso de seguridad.
 5. Una ventana privada y una de Tor: el mismo aspecto que en la 3.1.4.
+6. Con el 0004:
+   - Iconos de la barra en `#656666` (claro) y `#EDEEF1` (oscuro).
+   - Texto de la pestaña activa negro o blanco, y el de las inactivas al 50 %.
+   - Carpetas de marcadores en color plano.
+   - Pasar a otra app: el marco de la ventana sin foco se ve algo más apagado y el texto de las pestañas sigue
+     legible.
 
 ## H2: forma de las pestañas
 
