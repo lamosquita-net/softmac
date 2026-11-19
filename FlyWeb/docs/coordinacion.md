@@ -7,6 +7,59 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 19-11 (tarde): COORDINACIÓN-51 → COORDINACIÓN-52 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-51 (`session_01MwmK2kKsACPV7ge7aLcNUS`, 19-11 ~04:50 → ~18:10 UTC, relevo al 38 %). La 52 la abre la 51.
+**Todo en español, siempre.** **Nunca llamar a confirm_repository_trust.**
+
+**3.1.4 publicada (19-11):** build 47, 198.63.47, Chrome/156.0.8078.110, web incluida (#1101, #1104). Titín firmó antes de
+ver la parada por los arreglos nuevos de la 8078. Decisión suya (DIRECTIVAS, «Publicada la 3.1.4»): **no hay 3.1.5 por
+ahora**. Lo que entre en la 8078 va a `FlyWeb/seguridad/pendiente/` con APTO y entra en **la siguiente versión que salga**
+(la tanda de la 159 o la 3.2.0, la que llegue antes). Si algo resulta Alto o Crítico, sale como KEV o se explota, se
+propone a Titín una 3.1.5. Pendiente hoy:
+- ANGLE 41c5deee45;
+- el sandbox de red de Mac (b243cdcc16): Mojave usa `unless` por primera vez, prueba obligatoria en la 6,1;
+- V8 d68cecd900: necesita D8-LINUX al montar la versión, en un único encargo;
+- Skia 13d0b32615;
+- el roll de Dawn ff774db0a2, que mira LOCAL-19 porque desde la nube está bloqueado.
+
+LOCAL-19 aún no ha devuelto la salida de los dos `sandbox-exec` de la 6,1 (buzón 1027 y recordatorio 1638).
+
+**3.2.0, interfaz de Titín (en curso con MOTOR-46):** diseño en `FlyWeb/branding/interfaz-3.2.0/` (#1107, #1109; README
+con colores e iconos). Parches de MOTOR-46 en la rama `claude/motor46-interfaz-3.2.0`, PR **#1110** (borrador; no fusionar
+hasta los cuatro hitos y la prueba de LOCAL). Base brave-core `local/3.1.4` `e660929ac9` / chromium `local/314` `e9b670773e`.
+Hitos: H1 colores (hecho) → H2 forma de pestañas → H3 brillo de la URL → H4 iconos.
+Decisiones de Titín ya pasadas a MOTOR-46:
+- **Modo oscuro:** URL y desplegable blancos con texto oscuro.
+- **Ventana sin foco:** colores atenuados, como Chromium.
+- **Ventanas privadas y de Tor:** sin tocar; Titín las diseña aparte.
+- **Iconos:**
+  - una sola escala, calibrada con los actuales de FlyWeb;
+  - color #656666 en claro y #EDEEF1 en oscuro;
+  - carpeta de marcadores en color plano;
+  - adelante con icono propio.
+- **Escudo de Shields:** `ico-escudo.svg`, solo contorno y sin mosca; verde activo y rojo bajado; el contador va dentro
+  del escudo si cabe (si no, MOTOR propone y Titín decide con captura).
+- **URL:** sin borde.
+- **Línea bajo los marcadores:** se mantiene.
+- **Texto de la pestaña activa:** negro en claro y blanco en oscuro; las inactivas, el mismo color al 50 %.
+- **Radio de pestaña:** ~3 dip y brillo de la URL ~2 dip, en constantes; se ajustan con Titín viendo capturas.
+
+Falta de Titín: el icono de «Personalizar» (se queda el actual) y el tamaño de su mesa de trabajo de Illustrator, para
+afinar el radio. **Titín pidió que se le avise cuando haya capturas:** cuando MOTOR-46 entregue H1–H4, orden a LOCAL-19
+por el buzón de compilar y sacar capturas en la 6,1 (1x) y Retina, en claro, oscuro, con la URL pulsada y con la ventana
+sin foco → enviárselas a Titín.
+
+**Sesiones:**
+- SEGURIDAD-PORTES-32 `session_01MwmK2jtrG4sKq6TUTVEEyD`: vigila la 8078 y la 159 cada ~60 min.
+- SEGURIDAD-PORTES-31: quieta, sin recordatorios; archivarla espera el visto bueno de Titín.
+- MOTOR-46 `session_01MwmK2juPkbC58kEi4QFeyU`: interfaz 3.2.0.
+- INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG`.
+- SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`.
+- Locales, por el buzón: LOCAL-19, PUBLICACIÓN, ARQUITECTURA, SERVIDOR-LOCAL y el cartero (6). Los bridges de LOCAL-19,
+  PUBLICACIÓN y ARQUITECTURA escriben directo a COORDINACIÓN, pero desde la nube no se les contesta por SendMessage
+  (401): siempre por el buzón.
+
 ## 19-11 (madrugada): COORDINACIÓN-50 → COORDINACIÓN-51 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-50 (`session_01MwmK2kAUMpE68orstgtvwT`, abierta por la 49, 18-11 22:55 → 19-11 ~04:50 UTC, relevo al 48 %). La 51 la
