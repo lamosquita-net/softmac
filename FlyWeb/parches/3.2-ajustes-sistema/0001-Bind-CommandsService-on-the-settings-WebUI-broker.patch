@@ -1,4 +1,4 @@
-From fa2d064bd1ba1dc752f7b3c6efe9e30cb9cc96ae Mon Sep 17 00:00:00 2001
+From 103812fc33fac43dd85fd1f9dbd80049652fd912 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 19 Nov 2026 21:36:04 +0000
 Subject: [PATCH] Bind CommandsService on the settings WebUI broker
@@ -14,16 +14,19 @@ Register CommandsService with ForWebUI<BraveSettingsUI>(), as Brave
 does, and take Brave's chromium_src hook that lets a second ForWebUI()
 for an already registered controller type pass the DCHECK. Add a
 browsertest that opens the settings pages, system and shortcuts
-included, and checks the renderer stays alive.
+included, and checks the renderer stays alive. A static_assert keeps
+BraveSettingsUI member-free, since the shared broker may run its binders
+on a plain SettingsUI.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
 ---
  browser/brave_content_browser_client.cc       | 13 ++++++++
  ...rave_content_browser_client_browsertest.cc | 32 +++++++++++++++++++
+ browser/ui/webui/brave_settings_ui.cc         |  8 +++++
  ...web_ui_browser_interface_broker_registry.h | 26 +++++++++++++++
  ..._browser_interface_broker_registry.h.patch | 12 +++++++
- 4 files changed, 83 insertions(+)
+ 5 files changed, 91 insertions(+)
  create mode 100644 chromium_src/content/public/browser/web_ui_browser_interface_broker_registry.h
  create mode 100644 patches/content-public-browser-web_ui_browser_interface_broker_registry.h.patch
 
@@ -94,6 +97,25 @@ index 66ae8d73b8e8e8e3fdc5252bbf3b67b52a95284b..04e5e2d29122a00acdf11606a8fc608a
  IN_PROC_BROWSER_TEST_F(BraveContentBrowserClientTest, RewriteAdblock) {
    std::vector<std::string> schemes{
        "brave://",
+diff --git a/browser/ui/webui/brave_settings_ui.cc b/browser/ui/webui/brave_settings_ui.cc
+index 4b74cecb9669caa76dfe2684dda88ac3530b8b25..cc3027eaa184ea432f9b9dc1a054e83e7ea84159 100644
+--- a/browser/ui/webui/brave_settings_ui.cc
++++ b/browser/ui/webui/brave_settings_ui.cc
+@@ -98,6 +98,14 @@ bool& BraveSettingsUI::ShouldExposeElementsForTesting() {
+   return expose_elements;
+ }
+ 
++// FlyWeb: BraveSettingsUI shares SettingsUI's WebUI type (GetType() is final),
++// so its per-WebUI binders may be called on a plain SettingsUI. Keep it
++// member-free. (The broker's GetAs<BraveSettingsUI>() only compares that
++// shared type; with no extra members the cast never reaches past the base
++// object. If BraveSettingsUI ever needs data members, replace this with a real
++// runtime check, e.g. a virtual marker in SettingsUI.)
++static_assert(sizeof(BraveSettingsUI) == sizeof(settings::SettingsUI));
++
+ void BraveSettingsUI::BindInterface(
+     mojo::PendingReceiver<commands::mojom::CommandsService> pending_receiver) {
+   commands::AcceleratorServiceFactory::GetForContext(
 diff --git a/chromium_src/content/public/browser/web_ui_browser_interface_broker_registry.h b/chromium_src/content/public/browser/web_ui_browser_interface_broker_registry.h
 new file mode 100644
 index 0000000000000000000000000000000000000000..19c1824093bc9e96d1d78fa374dbb6f048369db3

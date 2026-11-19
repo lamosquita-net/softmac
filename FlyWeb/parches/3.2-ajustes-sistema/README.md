@@ -36,7 +36,11 @@ interfaces de upstream no se tocan y siguen enlazándose con `GetAs<settings::Se
 
 Riesgos:
 - Si algún día se crea un `settings::SettingsUI` que no sea de Brave, un `CommandsService` pedido desde él haría un
-  `static_cast` incorrecto. Hoy no puede pasar (ver arriba). El primer paso de abajo lo comprueba.
+  `static_cast` a `BraveSettingsUI`. Hoy no puede pasar (ver arriba), y el primer paso de abajo lo comprueba. Aunque
+  pasara, `BraveSettingsUI` no tiene miembros propios (su binder solo usa `web_ui()`), así que no se leería ni escribiría
+  fuera del objeto. Lo fija un `static_assert(sizeof(BraveSettingsUI) == sizeof(settings::SettingsUI))` en
+  `brave_settings_ui.cc`, la condición de SEGURIDAD-PORTES-32 (APTO, #1122). Si algún día hacen falta miembros, el
+  assert fallará y habrá que poner una comprobación de verdad.
 - El gancho quita el DCHECK para **todos** los `ForWebUI()`, no solo para el de ajustes. Un registro duplicado por error
   ya no avisa en debug. El `CHECK(!binder_map->Contains<Interface>())` de cada interfaz sigue activo, así que registrar
   dos veces la misma interfaz sigue rompiendo.
@@ -51,8 +55,8 @@ Se aplica con `git am` y aplica limpio sobre las dos bases (comprobado):
 
 | Base | Árbol esperado |
 |---|---|
-| brave-core `local/3.1.4` (`e660929ac9`) | `d98a3c2ebe` |
-| Serie de la interfaz 0001–0007 (`FlyWeb/parches/3.2-interfaz/`, punta `ddac171538`) | `80e73aff39` |
+| brave-core `local/3.1.4` (`e660929ac9`) | `c9c578188e` |
+| Serie de la interfaz 0001–0007 (`FlyWeb/parches/3.2-interfaz/`, punta `ddac171538`) | `d58ba8b96d` |
 
 La serie de la interfaz no toca ninguno de estos ficheros.
 
