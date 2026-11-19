@@ -158,6 +158,12 @@ decide si se compila (`dawn_use_built_dxc`, `dawn_enable_d3d12` en `scripts/dawn
 leer desde la nube (host bloqueado). **Comprobación de un minuto para LOCAL** en el checkout de compilación:
 `gn args out/<dir> --list=dawn_use_built_dxc --short` y `--list=dawn_enable_d3d12 --short` deben dar `false` en Mac.
 
+**Comprobado (LOCAL-19, 19-11, build de la 3.1.4: src `local/314` `e9b670773e`, Dawn `5ee7543174`; solo lectura):**
+`dawn_use_built_dxc = false` y `dawn_enable_d3d12 = false`; ningún objeto de `third_party/directx-shader-compiler` en
+`out/Release` (ni `validate.o`); `gn path` desde `//chrome:chrome_framework_shared_library` hasta
+`tint/lang/hlsl/validate` y `tint:dxcompiler-for-fuzzer`: «No non-data paths found» (control: hasta `dawn/native:native`,
+1534 caminos). El roll de Dawn **no aplica**, comprobado.
+
 ## `skia/0001`: Skia 13d0b32615 (bug 584003006, merge 587681020)
 
 Ganesh (`src/gpu/ganesh/GrBufferAllocPool.{h,cpp}`, `GrCpuBuffer.h`, `GrVertexChunkArray.{h,cpp}`):
