@@ -256,7 +256,11 @@ def _n(v):
 
 
 def to_icon(figs, rejilla, flips_in_rtl, origen):
-    lines = ['// Generado con FlyWeb/tools/svg2icon.py desde %s.' % origen,
+    lines = ['// This Source Code Form is subject to the terms of the Mozilla Public',
+             '// License, v. 2.0. If a copy of the MPL was not distributed with this file,',
+             '// You can obtain one at http://mozilla.org/MPL/2.0/.',
+             '',
+             '// Generado con softmac FlyWeb/tools/svg2icon.py desde %s.' % origen,
              '// No editar a mano: regenerar desde el SVG de Titín.',
              '',
              'CANVAS_DIMENSIONS, %d,' % rejilla]

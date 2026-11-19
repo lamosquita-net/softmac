@@ -4,16 +4,16 @@ MOTOR-46, desde el 19-11, por encargo de COORDINACIÓN-51. Diseño: `FlyWeb/bran
 **Sin compilar** (la nube no tiene el checkout de Chromium). Destino: 3.2.0.
 
 Base: brave-core `local/3.1.4` (`e660929ac9`); Chromium de referencia `local/314` (`e9b670773e`). Un parche por hito,
-para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 0001: `0ab5d2c1f8`; tras el 0003: `4e7ece5536`; tras el 0004: `47543553c4`.
+para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 0001: `0ab5d2c1f8`; tras el 0003: `4e7ece5536`; tras el 0004: `47543553c4`; tras el 0006: `a970509442`.
 
 | Parche | Hito | Qué hace |
 |---|---|---|
 | `0001-FlyWeb-3.2.0-interface-frame-toolbar-active-tab-and-.patch` | H1 colores | `browser/ui/color/color_palette.h`, `brave_color_mixer.cc` y su test |
 | `0002-FlyWeb-3.2.0-interface-tab-shape-with-smaller-top-ra.patch` | H2 pestañas | Dos ganchos en `patches/` y sus `chromium_src` (`tab_style.cc`, `horizontal_tab_style_views.cc`) |
 | `0003-FlyWeb-3.2.0-interface-soft-inner-glow-instead-of-th.patch` | H3 foco de la URL | `browser/ui/views/location_bar/brave_location_bar_view.{h,cc}` y un test de navegador |
-| `0004-FlyWeb-3.2.0-interface-Titin-s-answers-on-icon-text-an.patch` | H1, respuestas de Titín | Iconos, texto de las pestañas, ventana sin foco y carpetas (`brave_color_mixer.cc` y su test) |
-
-Pendiente: H4 iconos.
+| `0004-FlyWeb-3.2.0-interface-Titin-s-answers-on-icon-text-.patch` | H1, respuestas de Titín | Iconos, texto de las pestañas, ventana sin foco y carpetas (`brave_color_mixer.cc` y su test) |
+| `0005-FlyWeb-3.2.0-interface-Titin-s-toolbar-tab-and-bookm.patch` | H4 iconos | 11 `.icon` en `vector_icons/`, 4 propios en `app/vector_icons/`, ganchos del «+» y del «⌄», carpeta vectorial |
+| `0006-FlyWeb-3.2.0-interface-Shields-as-a-colored-shield-o.patch` | H4 escudo de Shields | `browser/ui/views/brave_actions/brave_shields_action_view.{h,cc}` |
 
 ## H1: colores
 
@@ -148,3 +148,78 @@ los valores de arriba son un punto de partida para afinar con Titín.
    - Esc o clic en la página: desaparece.
 3. Ventana privada y de Tor: el anillo de siempre.
 4. Accesibilidad: con VoiceOver, la vista del brillo no aparece. El foco sigue anunciándose en la URL.
+
+## H4: iconos
+
+Se generan con `FlyWeb/tools/iconos-3.2.0.sh <brave-core> [escala]`, que llama a `FlyWeb/tools/svg2icon.py` (solo la
+biblioteca estándar, con vista previa en PNG). La escala es común a todos, para conservar las proporciones del Illustrator
+de Titín: **2,2642 dip por unidad del SVG**, calibrada para que la flecha de atrás mida lo que mide hoy (12 dip en la
+rejilla de 20). Para cambiarla basta con volver a ejecutar el script con otra escala.
+
+**Qué se ve hoy en FlyWeb 156**: los iconos «old» de Chromium. Los redondeados (`features::IsRoundedIconsEnabled()`)
+están apagados. Las sustituciones Leo de Brave (`vector_icons/leo_overrides.json`) apuntan a nombres de la 1.57 y en la
+156 casi ninguna tiene efecto. No se tocan aquí.
+
+| Icono de Titín | Rejilla | Sustituye a | Cómo |
+|---|---|---|---|
+| `ico-atras` / `ico-adelante` | 20 | `components/vector_icons/{back,forward}_arrow_chrome_refresh_old.icon` | `vector_icons/<misma ruta>` |
+| `ico-recargar` / `ico-detener` | 20 | `components/vector_icons/reload_chrome_refresh_old.icon`, `chrome/app/vector_icons/navigate_stop_chrome_refresh_old.icon` | ídem |
+| `ico-estrella-vacia` / `-llena` | 20 | `components/omnibox/browser/vector_icons/star{,_active}_chrome_refresh_old.icon` (el botón de marcadores de Brave, a la izquierda de la URL) | ídem |
+| `ico-extensiones` | 20 | `components/vector_icons/extension_chrome_refresh_old.icon` | ídem |
+| `ico-descargas` | 20 | `chrome/app/vector_icons/download_toolbar_button_chrome_refresh_old.icon` | ídem |
+| `ico-menu-tres-puntos` | 20 | `chrome/app/vector_icons/browser_tools_chrome_refresh_old.icon` | ídem. También cambia el ⋮ de la cabecera de grupos de pestañas y del menú de extensiones; tiene sentido que sean iguales |
+| `ico-cerrar-pestana` | 16 | `chrome/app/vector_icons/close_tab_chrome_refresh_old.icon` | ídem |
+| `ico-mas-adelante` («»») | 16 | `chrome/app/vector_icons/bookmarkbar_overflow_refresh_old.icon` | ídem |
+| `ico-pestana-nueva` («+») | 16 | `kAddOldIcon` del botón de nueva pestaña | Icono propio `kFlywebNewTabIcon` y gancho en `horizontal_tab_strip_region_view.cc`. `add_old.icon` es un «+» genérico de Chromium |
+| `ico-buscar-pestanas` («⌄») | 16 | `kExpandMoreOldIcon` del botón de buscar pestañas | Icono propio `kFlywebTabSearchIcon` y gancho en `tab_strip_combo_button.cc`. El chevrón de Chromium es genérico |
+| `ico-carpeta-marcadores` | 16 | Las PNG con degradado de Brave (`IDR_BRAVE_BOOKMARK_FOLDER_CLOSED_*`) | `GetBookmarkFolderIcon()` en el `chromium_src` de Brave devuelve el vector `kFlywebBookmarkFolderIcon` en `kColorBookmarkFolderIcon` (color plano). Las carpetas gestionadas siguen con el icono de Chromium |
+| `ico-escudo` | 20 | Las PNG de Shields | Ver H4 escudo |
+
+**Sin uso**:
+- `ico-apps`: el atajo «Aplicaciones» está oculto en FlyWeb. El `chromium_src` de Brave hace que
+  `IsAppsShortcutEnabled()` y `ShouldShowAppsShortcutInBookmarkBar()` devuelvan `false`. Si Titín lo quiere visible, es
+  otro cambio.
+- `ico-mas-atras` («««»): Chromium no tiene «« en la barra de marcadores. En escritura de derecha a izquierda, el «»»
+  se refleja solo.
+- «Personalizar» de la nueva pestaña: sigue el actual.
+
+**Tamaño**: con la escala común, extensiones (~17 dip), descargas (~15) y escudo (~15 de alto) quedan algo más grandes
+que los de Chromium (~16 en la rejilla de 20). Es el resultado de conservar las proporciones; se decide con las capturas.
+
+### Prueba de H4
+- A ojo, en claro y en oscuro, a 1x y en Retina:
+  - Barra: atrás, adelante, recargar, detener (mientras carga), estrella (sin guardar y guardada), extensiones,
+    descargas y ⋮.
+  - Pestañas: «×», «+» y «⌄».
+  - Barra de marcadores: carpetas (planas, sin degradado) y «»» con muchos marcadores.
+- El resto de la interfaz no cambia: los «+» de otros diálogos y los chevrones de menús y desplegables siguen con el
+  icono de Chromium.
+- Con la interfaz en árabe o hebreo (de derecha a izquierda): la carpeta y el «»» se reflejan.
+
+## H4: escudo de Shields
+
+`brave_shields_action_view.cc` dibuja el contorno de `ico-escudo.svg` (`kFlywebShieldsIcon`), sin mosca, en lugar de
+las PNG `IDR_FLYWEB_SHIELDS_ICON_*`. **Valores provisionales**, en constantes `kFlyWebShields*`, hasta que Titín los vea:
+
+| Estado | Color del contorno |
+|---|---|
+| Shields activo en el sitio | verde `#1E7B34` |
+| Shields bajado en el sitio | rojo `#C62828` |
+| Páginas donde Shields no actúa (internas y locales: nueva pestaña, ajustes, `file:`, `data:`…) | el color neutro de los iconos de la URL (`kColorOmniboxSecurityChipSecure`, como el candado). Antes usaban la misma imagen que «bajado» |
+
+- **Contraste**: el botón está **dentro de la URL**, que es blanca también en modo oscuro. Por eso el contraste se mide
+  contra el blanco: verde 5,3:1 y rojo 5,7:1, un mismo par en los dos modos. Si la URL fuera oscura (con
+  `kFlyWebLightOmniboxInDarkMode` = false), se usa otro par: verde `#86EFAC` y rojo `#FFB3B3`. Lo que dije antes sobre
+  `#F4F5F6`/`#656666` no aplica: el escudo no está sobre la barra.
+- **Contador**: de 1 a 99, dentro del escudo, en negrita (altura máxima de la letra de 9 dip) y en el color del texto de
+  la URL. A partir de 100, «99+» en la burbuja de fuera, como antes. Solo con Shields activo y con la preferencia de
+  mostrar el contador activada, como en Brave.
+- Se repinta al cambiar el tema, porque los colores salen del proveedor de colores.
+
+### Prueba del escudo
+- Una página con rastreadores: escudo verde con el número dentro, hasta 99. Una página muy cargada: «99+» fuera.
+- Bajar Shields en el sitio: escudo rojo, sin número.
+- Nueva pestaña y ajustes: escudo gris neutro.
+- Cambiar entre claro y oscuro con la ventana abierta: el escudo cambia sin recargar.
+- Comprobar a 1x que dos cifras se leen dentro del escudo y sacar captura para Titín, también de la alternativa
+  «99» dentro (`kFlyWebShieldsMaxCountInside`).
