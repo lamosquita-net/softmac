@@ -396,6 +396,19 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     **Recordatorio (Titín, 19-11; COORDINACIÓN-52): cerrado, no se vuelve a plantear.** Tampoco hay «copia fuera de línea»
     de las credenciales de la sync ni de la DKIM: se quedan como están, en el backup general, con su riesgo aceptado. No se
     saca nada de los backups que ya se hacen ni se toca lo que existe. Ningún agente lo vuelve a poner como pendiente de Titín.
+- **Interfaz 3.2.0, ventana privada y dos arreglos (Titín, 19-11; COORDINACIÓN-52):**
+  - **Ventana privada siempre en oscuro:** pestaña activa y barra #571E73, marco #272726. La ventana de invitado va igual
+    que la privada. FlyWeb no tiene ventanas de Tor. La privada clara (#AFA6D2, que siga al sistema) queda para más
+    adelante, junto con los iconos, la página de ventana privada nueva (mosca de incógnito, texto mezcla de Google y
+    Brave), el marco claro y la URL en claro: todo eso lo diseña Titín. Si la 3.2.0 espera a esa página o no, lo decide
+    él más adelante.
+  - **Radio de las pestañas:** 3 dip para las capturas (Chrome 156 usa 10). Titín lo corrige después de verlas.
+  - **`flyweb://settings/system` («¡Vaya!», desde la 3.1.3) entra en la 3.2.0:** a la página de ajustes de la 156 le
+    faltaba registrar `commands.mojom.CommandsService` (`FlyWeb/parches/3.2-ajustes-sistema/`, MOTOR-46).
+  - **Web Store en blanco con un perfil nuevo → se arregla en el servidor de componentes, sin versión de navegador:**
+    en la lista de avisos de cookies se quitan las reglas cosméticas de los hosts que dependen de un `+js(trusted-…)`,
+    que FlyWeb no ejecuta (`FlyWeb/servidor/componentes/empaquetar.mjs`). Llega también a la 3.1.4 instalada. Antes,
+    APTO de SEGURIDAD-PORTES.
 - **La medida de la sync en la 5,1 no frena la 3.2.0 (Titín, 19-11; COORDINACIÓN-52):** como siempre, se mide después de
   publicar, en el estudio, con la versión instalada. Si hay retroceso (derivación de clave de más de ~2 s), se arregla
   como hasta ahora: pasa por SEGURIDAD-PORTES antes de tocar kScryptN y sale en una versión posterior.
