@@ -20,6 +20,7 @@ Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1
 | chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001` | **`2c8ef28a99`** |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
 | brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001` | **`90134a4e08`** |
+| Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001` | **`32f1340fb3`** |
 
 Si la siguiente versión cambia de base (p. ej. la 3.2.0 o la 159), **hay que volver a comprobar que aplican**; puede que
 la base nueva ya los traiga.
@@ -33,6 +34,11 @@ la base nueva ya los traiga.
 
 | `ff774db0a2` (19-11 16:03 UTC) | *Roll* de Dawn `6d772bc9e5c5..062164c3c784` | **Por revisar** (abajo) | — |
 | V8 15.6 `9f5c567b62` (.72, 16:01 UTC) | **d68cecd900** [M156] «[debug] Invalidate kNotAssigned assumptions on debugger context stores» | Sí | `brave-core/0001` |
+| `a70a3e9f68` (19-11 16:54 UTC) | [M156] [TouchSelection] Notify client after state changes complete (539012373, 564450482) | **No** (abajo) | — |
+| `f1f8c18` (17:02 UTC) | *Roll* de V8 `a97fec97ff..9f5c567b62` (= la .72 de arriba) | — | `brave-core/0001` |
+| `02642ab` (17:32 UTC) | *Roll* de Skia `b236589b3e12..13d0b32615a3`: **13d0b32615** [M156] «Guard GrBufferAllocPool against overflow» (584003006, merge 587681020) | Sí | `skia/0001` |
+| `b526fdd` (17:36 UTC) | [M156] [TouchSelection] Keep drag events in order when a move hides selection (539012373) | **No** (abajo) | — |
+| V8 15.6 `c4641b4` (.73) | 020b95f «[test] Speed up regress-584005343 under --gc-stress»: solo una prueba | — | — |
 
 Sin tag .112 (la rama ya llevaba `chrome/VERSION` en .112 desde `aac2cdd377`).
 
@@ -141,3 +147,37 @@ depurador).
 `dawn.googlesource.com` está bloqueado desde la nube (como en la 3.1.2 y la 3.1.3): no se pueden leer los commits.
 **Que LOCAL lo mire en su checkout** (`git log 6d772bc9e5c5..062164c3c784` en `third_party/dawn`) y diga si hay
 arreglos de seguridad que toquen el backend Metal o el código común de Dawn; si los hay, van a `pendiente/dawn/`.
+
+## `skia/0001`: Skia 13d0b32615 (bug 584003006, merge 587681020)
+
+Ganesh (`src/gpu/ganesh/GrBufferAllocPool.{h,cpp}`, `GrCpuBuffer.h`, `GrVertexChunkArray.{h,cpp}`):
+`GrBufferAllocPool::makeSpaceAtLeast` sumaba `minSize + pad` sin comprobar desbordamiento, y con `minSize` cerca de
+`SIZE_MAX` escribía relleno fuera de límites. El arreglo hace con `SkSafeMath` el redondeo, el relleno y las
+multiplicaciones de bytes de vértices, índices e indirectos; rechaza tamaños cero o negativos; limita un bloque a 1,5 GiB;
+hace que `GrCpuBuffer::Make` pueda fallar (`sk_malloc_canfail`) y que, si falla, se salte el dibujo; y limita la reserva
+inicial de `GrVertexChunkBuilder` a 512 KiB (crece hasta 16 MiB por trozo). **Aplica a Mac:** en 10.14 Graphite está
+apagado en código (`docs/b1d/README.md`), así que todo el raster por GPU va por Ganesh.
+
+- Aplica limpio con `git am` sobre el Skia de la 3.1.4 (reproducido: `27c31ca415` + `parte4/skia/0001` +
+  `parte5/skia/0001` = **`a934afed14`**): árbol **`32f1340fb3`**. Mismo `patch-id` que el original (`eb434cd430`).
+- `GrBufferAllocPool.cpp` y `GrVertexChunkArray.cpp` pasan `clang++ -fsyntax-only` con el parche. `gn/tests.gni`,
+  `tests/BUILD.bazel` y `tests/GrBufferAllocPoolTest.cpp` son de las pruebas de Skia, que Chromium no compila.
+- **Gravedad: no consta** (bug restringido).
+- **Para LOCAL:** `git am` sobre su Skia (el de `a934afed14`) y volver a fijar el gitlink de `third_party/skia` y
+  `skia_revision` en `DEPS`, como en la 3.1.4.
+
+### Veredicto (regla 17): **APTO**, `skia/0001`
+
+Es el *cherry-pick* de upstream sin cambios. Efecto: un dibujo que pediría un búfer absurdo (más de 1,5 GiB o con
+desbordamiento) se salta en vez de corromper memoria; los tamaños normales no cambian, salvo la reserva inicial de
+vértices, que empieza más pequeña y crece. Prueba para LOCAL: páginas con canvas 2D y SVG grandes y una con muchos
+trazos (p. ej. los demos de `FlyWeb/tools/`), en la 6,1 y en la 5,1.
+
+## TouchSelection (a70a3e9f68 y b526fdd): no aplican
+
+Los dos arreglan `ui/touch_selection` (`TouchSelectionController`, y `TouchSelectionControllerClientChildFrame` para
+iframes de otro proceso). Se compilan en Mac, pero no se alcanzan: el controlador solo lo crean las vistas de Aura y
+Android, y el cliente de marco hijo pide el gestor a la vista raíz (`GetTouchSelectionControllerClientManager()`).
+En Mac la raíz es `RenderWidgetHostViewMac`, que no lo redefine, y la base devuelve `nullptr`
+(`render_widget_host_view_base.cc`); `render_widget_host_view_mac.{h,mm}` no mencionan la selección táctil. Mismo
+criterio que 553151406 (Aura) en `3.1.4/parte4`.
