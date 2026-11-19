@@ -953,3 +953,5 @@ buzon/SERVIDOR-LOCAL/20261119-1834-COORDINACION-52-copia-credenciales-descartada
 buzon/LOCAL/20261119-2001-COORDINACION-52-estado-interfaz-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 20:02 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-2000-COORDINACION-52-dawn-9275276-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 20:02 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261119-2003-COORDINACION-52-interfaz-320-espera-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 20:04 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261119-2005-COORDINACION-52-interfaz-320-abrir-para-titin-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 20:06 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261119-2006-COORDINACION-52-interfaz-320-serie-ef608126-LOCAL-19.md → Compilación Local (19) [dd3cf8] · 2026-11-19 20:06 UTC · entregado (CARTERO-LOCAL)
