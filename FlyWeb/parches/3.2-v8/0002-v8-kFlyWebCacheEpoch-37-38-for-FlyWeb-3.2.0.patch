@@ -1,62 +1,66 @@
-From d35f64b64c49361a041880d62361183e1bb360b6 Mon Sep 17 00:00:00 2001
+From 8e3f13469ed20b09652fe16833d3af4099c730fa Mon Sep 17 00:00:00 2001
 From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
-Date: Fri, 20 Nov 2026 10:46:25 +0000
+Date: Fri, 20 Nov 2026 13:43:36 +0000
 Subject: [PATCH 2/2] v8: kFlyWebCacheEpoch 37 -> 38 for FlyWeb 3.2.0
 
-The 3.2.0 changes V8 twice on top of 3.1.4: the 8078 branch fix
-d68cecd900 (softmac seguridad/pendiente/brave-core/0001, which changes
-optimized code and leaves the epoch to whoever integrates it) and
-LIBC_MATH in base/ieee754.cc (renderer-webgl 0003, which changes the
-Math builtins). One epoch for the whole release, so code cached by
-3.1.4 is not reused.
+The 3.2.0 changes V8 on top of 3.1.4 with the 8078 branch and M159
+fixes in softmac seguridad/pendiente/brave-core/0001-0004 (d68cecd900,
+a0f2c9f8c3 and 51512210b3 change bytecode and optimized code;
+ceb90d38eb changes the code cache format) and with LIBC_MATH in
+base/ieee754.cc (renderer-webgl 0003), which changes the Math builtins.
+One epoch for the whole release, so code cached by 3.1.4 is not reused.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
 ---
- patches/v8/FLYWEB-SECURITY.md         |  7 +++++++
- patches/v8/src-utils-version.cc.patch | 11 +++++++----
- 2 files changed, 14 insertions(+), 4 deletions(-)
+ patches/v8/FLYWEB-SECURITY.md         |  9 +++++++++
+ patches/v8/src-utils-version.cc.patch | 13 +++++++++----
+ 2 files changed, 18 insertions(+), 4 deletions(-)
 
 diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
-index d79839638cf3726d3c8a90fe668533b3219f88c5..ecf9f036273e986ca01bdee30236ab4deac29880 100644
+index 869eca2a58d48780b39a42d9d748172a01dca354..0d50941e4f2575945502b9f65a130003c9252a1d 100644
 --- a/patches/v8/FLYWEB-SECURITY.md
 +++ b/patches/v8/FLYWEB-SECURITY.md
-@@ -1,3 +1,10 @@
+@@ -1,3 +1,12 @@
 +# FlyWeb 3.2.0: final cache epoch
 +
 +MOTOR-47, 20-11-2026 (softmac `FlyWeb/parches/3.2-v8/0002`, order agreed with SEGURIDAD-PORTES-33). The 3.2.0 changes
-+V8 twice on top of 3.1.4: the pending fix d68cecd900 below (`pendiente/brave-core/0001`) and `src-base-ieee754.cc.patch`
-+(LIBC_MATH, softmac `3.2-renderer-webgl/0003`). Both change generated code, so **`kFlyWebCacheEpoch` 37 -> 38**, once,
-+for the whole release.
++V8 on top of 3.1.4 with the pending fixes below (`pendiente/brave-core/0001`-`0004`: d68cecd900, the M159 merges
++a0f2c9f8c3 and 51512210b3, which change bytecode and optimized code, and ceb90d38eb, the SHA-256 source hash of the
++code cache, which changes its format) and with `src-base-ieee754.cc.patch` (LIBC_MATH, softmac
++`3.2-renderer-webgl/0003`). All of them change generated code or the cache format, so **`kFlyWebCacheEpoch` 37 -> 38**,
++once, for the whole release.
 +
- # FlyWeb: pending for the next release, V8 15.6.75.72 fix d68cecd900 (crbug 583479274)
+ # FlyWeb: pending for the next release, V8 fix 51512210b3 (crbug 585614984), ported from the M159 merge
  
- SEGURIDAD-PORTES-32, 19-11-2026 (softmac `FlyWeb/seguridad/pendiente/brave-core/0001`). Not in 3.1.4 (build 47
+ SEGURIDAD-PORTES-33, 20-11-2026 (softmac `FlyWeb/seguridad/pendiente/brave-core/0004`). Not in 3.1.4: it waits for
 diff --git a/patches/v8/src-utils-version.cc.patch b/patches/v8/src-utils-version.cc.patch
-index c4f76ad9f1be9fcf47425654e7d435a38cecf80e..2399a92b8e8a3e9881689be2bce54898d350281e 100644
+index c4f76ad9f1be9fcf47425654e7d435a38cecf80e..0f58fa49b903b4b8c7ec1bfd6dbf4a1eec8eac7a 100644
 --- a/patches/v8/src-utils-version.cc.patch
 +++ b/patches/v8/src-utils-version.cc.patch
 @@ -1,8 +1,8 @@
  diff --git a/src/utils/version.cc b/src/utils/version.cc
 -index 550db661144947dbc31b5eb62c0da7ea2e6e1139..d8e88e5ace213928873fe24b96638d91d51a3405 100644
-+index 550db661144947dbc31b5eb62c0da7ea2e6e1139..5a0709091f3fb5fd20076fe0084adaca3f81b51f 100644
++index 550db661144947dbc31b5eb62c0da7ea2e6e1139..9bf7d57d3a9dcaf2dc04d2bd9ee80b824a076e29 100644
  --- a/src/utils/version.cc
  +++ b/src/utils/version.cc
 -@@ -27,9 +27,54 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
-+@@ -27,9 +27,57 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
++@@ -27,9 +27,59 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
   const char* Version::soname_ = SONAME;
   const char* Version::version_string_ = V8_VERSION_STRING;
   
-@@ -48,8 +48,11 @@ index 550db661144947dbc31b5eb62c0da7ea2e6e1139..d8e88e5ace213928873fe24b96638d91
+@@ -48,8 +48,13 @@ index 550db661144947dbc31b5eb62c0da7ea2e6e1139..d8e88e5ace213928873fe24b96638d91
  +// (inspector) and 0ac2b27 (Maglev StringLengthStaticLowerBound, which changes
  +// optimized code). 37 = the final FlyWeb 3.1.4 (parts 4-6 integrated: also the
  +// Chrome 157 Mediums 42d78d0f3d and b1457bd47a, and the 8078 branch V8
 -+// 15.6.75.70 fix fdbb7b1, NameDictionary literal walk order).
 -+constexpr int kFlyWebCacheEpoch = 37;
 ++// 15.6.75.70 fix fdbb7b1, NameDictionary literal walk order). 38 = FlyWeb
-++// 3.2.0 (the 8078 branch V8 15.6.75.72 fix d68cecd900, debugger stores into
-++// kNotAssigned context slots, which changes optimized code; and LIBC_MATH in
-++// base/ieee754.cc, which changes the code of the Math builtins).
+++// 3.2.0 (the 8078 branch V8 fixes d68cecd900, debugger stores into
+++// kNotAssigned context slots, and ceb90d38eb, SHA-256 source hash of the code
+++// cache, which changes its format; the M159 merges a0f2c9f8c3 and 51512210b3,
+++// which change bytecode and optimized code; and LIBC_MATH in base/ieee754.cc,
+++// which changes the code of the Math builtins).
 ++constexpr int kFlyWebCacheEpoch = 38;
  +
   uint32_t Version::Hash() {
