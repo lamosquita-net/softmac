@@ -7,6 +7,41 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 20-11 (noche): COORDINACIÓN-56 → COORDINACIÓN-57 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-56 (`session_01MwmK2gwa9MBDUrWPA6iBsV`, 20-11 ~15:05 → ~17:25 UTC, relevo al 33 %). **La 57 la abre la 56 y es la
+última del linaje (8 de 8): no puede abrir otra. La siguiente COORDINACIÓN la abre Titín; avisarle con tiempo.**
+
+**Cartero caído desde las 14:37 UTC:** no anota nada en ENTREGADO.md. Sin entregar: los relevos de la 56 (1510),
+`D8-LINUX/20261120-1400-SEGURIDAD-PORTES-33-v8-3.2.0.md` (58d3cf8a5c) y las órdenes a LOCAL-21 de las 16:23 y las 16:50.
+Titín está avisado varias veces y no ha contestado. LOCAL-21 escribe directamente a COORDINACIÓN (bridge
+`session_01MwmK2iiAoCDHgEcgxnaNZF`, «Local (22)»); la nube **no** puede contestarle por esa vía (auth), solo por el buzón.
+
+**bt-320f (instalada en la 6,1, pid 20811, CDP 9491; versión 3.1.4 sin tocar):** brave-core 25330a7e1f / árbol b9f628b8a6;
+chromium efde5db485 / árbol f7838c8adf. Verde: BraveColorMixersTest, AccountCryptoTest, d8 math + code-cache-sha256 +
+regress-585614984, FocusGlow, SharedPinnedTab 8/8. Visto en pantalla por LOCAL: colores de la URL (#4D4D4D / #FFFFFF / privada
+#0F0629), Accesos directos, Aspecto, Cuenta, fijadas en 2 ventanas, PWA sin red, caché rechazada y rehecha. Capturas en
+`entregas/local21/completa-320f`.
+- OmniboxColorTest en oscuro fallaba por la prueba: MOTOR-47 lo arregló en el **0018 de #1151 (punta 53510dc800, árbol
+  db8f0061e3)**. Falta pasarla (orden en el buzón, 16:50, con añadido).
+- content_browsertests y content_unittests no compilan por fallos previos (kFileSystemAccessLocal; image_capture_impl_unittest).
+  Orden: excluirlos solo en `local/320f-pruebas` y pasar ServiceWorker de 0006 + `*NoContainerHostForPdfDocument*` +
+  `WorkerScriptLoaderFactoryTest.*` (SEGURIDAD-PORTES-33 de acuerdo; si el de PDF sale rojo, avisa antes de quitar nada).
+- **Pendiente de Titín:** mirar a mano el hover de la inactiva, el desplegable con una fila elegida y el borde de la caja;
+  contraste del desplegable oscuro (recomendado #767676 con texto blanco, 4,5:1); trazo de 1 px; colores de MOTOR sin medir;
+  **¿cerró él bt-320a/b/c/e?** (se cerraron 14:54–14:57; LOCAL dice que no fue él); pasar a LOCAL las órdenes del buzón.
+
+**Seguridad:** 585625642 ya tiene merge en la V8 15.6 (.75), idéntico byte a byte a nuestro 0002; sin gravedad publicada.
+#1147 sigue condicionado a D8-LINUX, que no ha recibido el encargo.
+
+**Fusiones (sin cambios):** cuando Titín dé por buena bt-320f y D8 esté verde: #1110 → #1138 → #1142 → #1147 → #1144 →
+#1150 → #1151 (ahora con el 0018), revisando cada diff y comprobando las puntas con ls-remote. Luego la orden de la compilación
+final (la versión la pone Titín).
+
+**Hecho por la 56:** #1156 (fila); buzón a66de67 (relevo), e6b8f14/19ff33d (content_browsertests), af3963f/68f013c (acuse de
+bt-320f y OmniboxColorTest). Sesiones: MOTOR-47, SEGURIDAD-PORTES-33 (vigila cada hora), INVESTIGACIÓN-MOTOR-10, SEGURIDAD-VIGÍA,
+sin cambios.
+
 ## 20-11 (tarde): COORDINACIÓN-55 → COORDINACIÓN-56 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-55 (`session_01MwmK2hTA8k49N3yrcWbPsJ`, 20-11 ~13:10 → ~15:10 UTC, relevo al 35 %). La 56 la abre la 55
