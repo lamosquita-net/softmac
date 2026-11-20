@@ -412,3 +412,39 @@ MOTOR-47, 20-11. Respuestas de Titín a P1–P4 y `maqueta-oscuro-desplegable-hd
    caja.
 3. Ampliada, la unión entre la caja y la primera sugerencia, para la P2 de Titín.
 Si en Mac `BubbleBorder` sin sombra pinta algún borde de 1 px, avisar a MOTOR.
+
+## 0017: URL y desplegable oscuros en modo oscuro
+
+MOTOR-47, 20-11. Decisión de Titín: «para que el desplegable esté en la gama del entorno». Sustituye lo del 19-11
+(URL blanca en oscuro). Solo en la ventana normal y en modo oscuro; en claro y en la privada no cambia nada. **Sin
+compilar.** Árbol: sobre `49012e5a50` → **`b9f628b8a6`**.
+
+| Elemento | Valor | Origen |
+|---|---|---|
+| Caja de la URL | `#4D4D4D`, texto blanco (8,5:1) | maqueta |
+| Desplegable | `#909294`, texto blanco | maqueta |
+| Fila seleccionada | `#542671`, texto blanco (11:1), marca a la izquierda `#AFA6D2` (en la maqueta ≈`#AFA8D3`) | maqueta |
+| Flou interior | negro, opacidad 0,22 en el borde con el cursor (≈`#41` junto al borde, como en la maqueta) y 0,12 en hover | maqueta |
+| Texto secundario, URL de las sugerencias, respuestas, iconos | blanco | **propuesta** (abajo) |
+| Hover de fila | `#909294` un 10 % hacia el negro (≈`#828486`) | **propuesta**: la receta de Brave |
+| Selección de texto en la caja, iconos y chips de la caja | recetas de contraste de Chromium sobre `#4D4D4D` | **propuesta** |
+
+**Contraste (para Titín):** el blanco sobre `#909294` da **3,1:1**. No llega a AA para texto normal (4,5:1); sí para
+texto grande y para iconos (3:1). Las recetas de Chromium, que buscan 4,5:1, habrían puesto oscuros el texto secundario y
+las URL. Por eso se quedan blancos, como en la maqueta. Si se quiere AA con texto blanco, el fondo tendría que ser
+`#767676` o más oscuro. Si se quiere mantener `#909294`, el texto tendría que ser oscuro (negro: 6,7:1).
+
+Chromium pinta la caja con foco del color del desplegable. Aquí la caja conserva su `#4D4D4D` mientras tiene el cursor.
+
+**Ojo, línea (P2):** con colores distintos, el trazo de 1 px que Chromium pinta alrededor del hueco de la URL
+(`TopBackgroundView`, del color del desplegable) se verá como un **borde gris claro alrededor de la caja oscura** con el
+desplegable abierto. En la maqueta no está. Propuesta: quitarlo si Titín lo confirma en la captura.
+
+### Pasos para LOCAL
+
+`BraveColorMixersTest.*` (comprueba los colores oscuros) y `BraveThemeServiceTest.OmniboxColorTest`. Capturas en claro y en
+oscuro, ventana normal y privada:
+1. URL sin foco.
+2. URL con foco, sin desplegable.
+3. URL con el desplegable abierto y una fila seleccionada con las flechas.
+4. Ampliada, el borde de la caja con el desplegable abierto (para la línea de 1 px).
