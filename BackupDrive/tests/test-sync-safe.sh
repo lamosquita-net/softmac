@@ -207,6 +207,25 @@ has "$DRIVE4/._g1.txt" "al activar las exclusiones, ._g1.txt sigue en Drive (no 
 hasnt "$DRIVE4/.smbdeleteAAA1" ".smbdelete no sube"
 has "$MAC4/.smbdeleteAAA1" ".smbdelete sigue en el Mac"
 
+# --- 15. Primera sincronización «path1»: gana el Mac y sus fechas pasan a Drive; lo de Drive queda en versiones ---
+MAC5="$T/mac5"; DRIVE5="$T/drive5"; mkdir -p "$MAC5/sub" "$DRIVE5/sub"
+i=1; while [ $i -le 20 ]; do echo "h$i" > "$MAC5/sub/h$i.txt"; echo "h$i" > "$DRIVE5/sub/h$i.txt"; i=$((i + 1)); done
+echo solo-drive > "$DRIVE5/sub/d.txt"
+touch -t 202001011200 "$MAC5"/sub/*.txt; touch -t 202501011200 "$DRIVE5"/sub/*.txt
+echo nuevo > "$MAC5/sub/h1.txt"; touch -t 202003011200 "$MAC5/sub/h1.txt"
+printf '%s\n' "$MAC5|fake:$DRIVE5|90|20|5" >> "$BACKUPDRIVE_DIR/profiles"
+yr() { date -r "$1" +%Y 2>/dev/null || stat -f %Sm -t %Y "$1"; }
+(BACKUPDRIVE_RESYNC_MODE=path1; export BACKUPDRIVE_RESYNC_MODE; run --profile "$MAC5" --resync)
+[ "$(result)" = ok ] && ok "resync path1: ok" || fail "resync path1 ($(result))"
+[ "$(yr "$MAC5/sub/h2.txt")" = 2020 ] && ok "resync path1: la fecha del Mac se conserva" || fail "resync path1: la fecha del Mac cambia"
+[ "$(yr "$DRIVE5/sub/h2.txt")" = 2020 ] && ok "resync path1: Drive toma la fecha del Mac" || fail "resync path1: Drive no toma la fecha del Mac"
+content "$DRIVE5/sub/h1.txt" nuevo "resync path1: contenido distinto, gana el Mac aunque Drive sea más reciente"
+[ "$(version_of "$T/drive5 (versiones)/sub" h1 .txt)" = h1 ] && ok "resync path1: lo de Drive queda en versiones" \
+  || fail "resync path1: lo de Drive no está en versiones"
+content "$MAC5/sub/d.txt" solo-drive "resync path1: lo que solo está en Drive baja"
+run --profile "$MAC5"
+[ "$(result)" = ok ] && ok "tras el resync path1, pasada normal ok" || fail "tras el resync path1, pasada normal ($(result))"
+
 [ -n "${KEEP_LOG:-}" ] && cp "$BACKUPDRIVE_LOG_DIR/backupdrive.log" "$KEEP_LOG"
 echo "$((n - fails))/$n correctas"
 [ "$fails" -eq 0 ]
