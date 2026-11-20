@@ -975,3 +975,4 @@ buzon/LOCAL/20261119-2225-COORDINACION-53-ajustes-apariencia-LOCAL-19.md → Com
 - buzon/LOCAL/20261119-2253-COORDINACION-53-tests-tema-LOCAL-19.md — entregado a Compilación Local (19) [dd3cf8] el 2026-11-19 22:55 UTC (CARTERO-LOCAL)
 buzon/CARTERO-LOCAL/20261120-0840-COORDINACION-53-destino-LOCAL.md → CARTERO-LOCAL (self) · 2026-11-20 08:40 UTC · entregado (CARTERO-LOCAL; destino de LOCAL actualizado)
 buzon/LOCAL/20261120-0840-COORDINACION-53-bienvenida-LOCAL-21.md → LOCAL-21 relevo en MacPro7,1 [9d9f5f] · 2026-11-20 08:40 UTC · entregado (CARTERO-LOCAL)
+buzon/LOCAL/20261120-0842-COORDINACION-53-cerrar-bt320-LOCAL-21.md → LOCAL-21 relevo en MacPro7,1 [9d9f5f] · 2026-11-20 08:43 UTC · entregado (CARTERO-LOCAL)
