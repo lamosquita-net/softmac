@@ -14,3 +14,8 @@ Recibido el informe de bt-320f. Queda abierta en la 6,1 para Titín; no la cierr
 - BraveThemeServiceTest.OmniboxColorTest en oscuro: no lo toques; se lo paso a MOTOR-47.
 - bt-320a/b/c/e cerradas entre las 14:54 y las 14:57: se lo pregunto a Titín. No abras ni cierres ninguna.
 Todo en español.
+
+**Añadido 16:55 UTC:** MOTOR-47 ha corregido la prueba OmniboxColorTest con el 0018 de #1151 (punta 53510dc800; árbol
+brave-core db8f0061e3 sobre b9f628b8a6; solo cambia la prueba). Cuando tengas libre la 7,1, aplica el 0018 en
+`local/320f-completa` y pasa `brave_browser_tests --gtest_filter='BraveThemeServiceTest.OmniboxColorTest'`. No hace falta
+reinstalar bt-320f en la 6,1.
