@@ -383,3 +383,32 @@ ratón encima, la sombra está oculta). Capturas para Titín, en claro y en oscu
 
 **Pendiente, a la espera de respuestas de Titín:** el ancho del desplegable, su sombra exterior y «la línea bajo el
 campo».
+
+## 0016: URL y desplegable en una sola pieza
+
+MOTOR-47, 20-11. Respuestas de Titín a P1–P4 y `maqueta-oscuro-desplegable-hd.webp` / `maqueta-claro-url-sutil.png`
+(#1153). **Sin compilar.** En todas las ventanas, también la privada (P1).
+
+**Medidas en la maqueta oscura** (1 px ≈ 1 dip; la caja de la URL mide 29 px, como en el navegador desde el 0009):
+- La URL va de x=434 a x=1567, y el desplegable igual: **el mismo ancho**.
+- El desplegable empieza en y=120, justo debajo de la última fila de la URL (y=119): **hueco 0**.
+- **Sin sombra** alrededor.
+- Esquinas de la URL y del desplegable: **≈1–2 px** (en `maqueta-claro-url-sutil.png`, «muy sutil»).
+
+**Qué hace:**
+- `RoundedOmniboxResultsFrame` (parche nuevo con 2 ganchos y chromium_src):
+  - sin márgenes de alineación (Chromium: 6 dip por lado, 5 arriba y abajo);
+  - el hueco de la URL, tan alto como la caja (`kLocationBarHeight − kFlyWebLocationBarTopTrim`);
+  - elevación 0;
+  - el radio de la caja.
+- `LocationBarView::ComputeBorderRadius()` (un gancho más) devuelve `kFlyWebLocationBarCornerRadius` = **2 dip**: el
+  fondo de la caja, el hueco del desplegable, la sombra interior y el anillo de foco de la privada.
+
+**Árbol:** sobre `68da2bca21` → **`49012e5a50`**.
+
+**Para LOCAL:** compilar `49012e5a50`. Capturas en claro y en oscuro, normal y privada:
+1. URL sin foco: esquinas casi rectas (2 dip).
+2. URL escribiendo, con el desplegable: el mismo ancho que la caja, pegado debajo, sin sombra, con la sombra interior en la
+   caja.
+3. Ampliada, la unión entre la caja y la primera sugerencia, para la P2 de Titín.
+Si en Mac `BubbleBorder` sin sombra pinta algún borde de 1 px, avisar a MOTOR.
