@@ -43,8 +43,8 @@ soltar. Aplica a Mac: la barra de marcadores de FlyWeb usa los menús de `views`
   cosas que estas pruebas no usan.
 - brave-core no tiene parches ni `chromium_src` para `ui/views/controls/menu/menu_controller.cc` ni para su prueba.
 - Comprobado: `git apply --cached` sobre `1b06f59f4d` da el árbol **`6ee8d9b1c1`**.
-- **Gravedad: no consta** (bug restringido). Hay un precedente de la misma familia en la 156: el `ScopedDeletionGuard`
-  ya está en otras diez funciones de `MenuController`.
+- **Gravedad: no consta** (bug restringido). Es de la misma familia que otros arreglos ya presentes en la
+  156: `menu_controller.cc` usa `ScopedDeletionGuard` en 29 sitios.
 
 ### Veredicto (regla 17): **APTO**, `chromium/0001`
 
