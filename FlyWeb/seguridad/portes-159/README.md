@@ -13,8 +13,8 @@ bueno. Si es distinto, manda el de Chrome.
 |---|---|---|---|
 | chromium | árbol **`1b06f59f4d`** (= `seguridad/pendiente/chromium/0001`–`0007`, #1147) | `chromium/0001` | **`6ee8d9b1c1`** |
 
-No toca ningún fichero de `pendiente/chromium/0001`–`0007`, así que también aplica sobre cualquier árbol anterior de esa
-cadena.
+No toca ningún fichero de `pendiente/chromium/0001`–`0008`, así que aplica sobre cualquier árbol de esa cadena. Sobre
+`90418ba4fd` (con `pendiente/chromium/0008`, añadido a las 20:00 UTC) da **`403ec1c98c`**.
 
 ## `chromium/0001`: 8154 afa45b8e16 (bug 565066840, merge M159 588202414)
 
