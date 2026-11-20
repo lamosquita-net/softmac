@@ -362,6 +362,8 @@ aplicando, salvo que llegue antes a la 8078 como merge M156 (entonces va arriba,
 |---|---|---|---|
 | `690f348e8d` (20-11 00:37 UTC) | [M159] «[optimization_guide] Defer SetInput() callbacks to avoid UAF» (587680474; arregla 570347667 y 562796602) | Se compila; **inalcanzable** sin modelo on-device (razonado, no probado) | Candidato; sin parche |
 | `b33d4b153d` (20-11 03:52 UTC) | [M159] «Scope InputDeviceCapabilities to target window for focus events» (577377858) | Sí | Llegó a la 8078 como `7e5aab9f6a` → `chromium/0004` |
+| `97e1b5bdc3` (20-11 09:03 UTC) | [M159] «[SimpleCache] Prevent doomed entries from mutating SimpleIndex» (583238770, merge 588197278), `net/disk_cache/simple` | Sí (la caché simple se usa en Mac) | Candidato; sin parche: si llega a la 8078, a `pendiente/` |
+| `cc42b75af2` (20-11 09:20 UTC) | [M159] «[CacheStorage] Truncate pre-existing entry streams on empty puts» (583238770, merge 588197278), `content/browser/cache_storage` | Sí | Candidato; sin parche: si llega a la 8078, a `pendiente/` |
 
 **`690f348e8d`** (SEGURIDAD-PORTES-33, 20-11): `SessionImpl::AddContextImpl()` y `OnDeviceContext::SetInput()`
 ejecutan `callback_` de forma síncrona, y `AIManager` guarda en ese *callback* la propiedad de la `OnDeviceSession`
