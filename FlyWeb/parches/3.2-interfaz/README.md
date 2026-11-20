@@ -19,6 +19,8 @@ para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 00
 | `0009-FlyWeb-3.2.0-interface-URL-field-a-little-shorter-fr.patch` | Ajuste 20-11 (2) | URL 3 dip más baja por arriba (`brave_toolbar_view.cc`, `brave_layout_constants.h`, `brave_actions_container.cc`) |
 | `0010-FlyWeb-3.2.0-interface-inactive-tab-hover-colors.patch` | Ajuste 20-11 (3) | Hover de la pestaña inactiva (`brave_color_mixer.cc`, `color_palette.h` y su test) |
 | `0011-FlyWeb-3.2.0-interface-lower-favicon-and-title-on-in.patch` | Ajuste 20-11 (4) | Título y favicon de las inactivas 4 dip más bajos (chromium_src `tab.cc` y el parche de `tab.cc`) |
+| `0012-FlyWeb-3.2.0-interface-inactive-tab-hover-as-a-tab-s.patch` | Ajuste 20-11 (5) | Hover de la inactiva con silueta de pestaña hasta la base (chromium_src y parche de `horizontal_tab_style_views.cc`) |
+| `0013-FlyWeb-3.2.0-interface-URL-shadow-always-inside-soft.patch` | Ajuste 20-11 (6) | Sombra de la URL siempre por dentro: más suave en hover y más marcada con el cursor (`brave_location_bar_view.cc`) |
 
 ## H1: colores
 
@@ -326,3 +328,30 @@ en oscuro) y `LocationBarViewBrowserTest.FlyWebFocusGlowReplacesFocusRing`. Capt
    golpe. Comprobar que no hay salto raro al abrir una pestaña nueva (aparece el favicon) ni con el indicador de audio.
 
 Las constantes se ajustan con Titín viendo las capturas, como el radio.
+
+## Ajustes de Titín tras bt-320c (0012–0013)
+
+MOTOR-47, 20-11, por encargo de COORDINACIÓN-53. **Sin compilar.** Van detrás de 0011 (árbol `f6222babef`). No tocan la
+ventana privada.
+
+| Tras | Árbol |
+|---|---|
+| 0012 | `553734129c` |
+| 0013 | `78658d3433` |
+| 0013 + `3.2-fijadas` 0001 (#1142) | `5f100e4476` |
+
+| Ajuste | Qué se hizo | Constante (provisional) |
+|---|---|---|
+| 5. Hover de la inactiva | Titín: el fondo «se queda unos píxeles por arriba, como un botón». Causa: en Chromium, el camino `kHighlight` (hover y pestañas seleccionadas) es una píldora de `kTabHeight` menos el relleno y el solape, dentro de una vista de `kTabStripHeight`. Acaba 6 dip por encima de la base y redondea las esquinas de abajo. Un gancho nuevo en `GetPath()` lo baja hasta la misma base que la activa, con las esquinas de abajo rectas: la misma silueta que la activa, detrás de ella. No cambian el área de clic ni las fijadas con el estilo nuevo de Chromium | `kFlyWebHighlightBottomCornerRadius` = 0 (chromium_src `horizontal_tab_style_views.cc`) |
+| 6. Sombra de la URL | Titín: en hover salía por fuera (la `ViewShadow` de Brave) y, al pulsar, por dentro. Ahora las ventanas normales y de invitado no crean la sombra exterior, y la sombra interior del 0008 sale también con el ratón encima sin cursor, más suave. Elección de MOTOR, con la que coincide COORDINACIÓN: más marcada con el cursor (escribiendo) y más suave en hover. Si Titín la quiere al revés, basta con cambiar las dos constantes | `kFlyWebOmniboxFocusGlowOpacity` = 0,37 (≈#DD en el borde a 1x), `kFlyWebOmniboxHoverGlowOpacity` = 0,20 (≈#ED) |
+
+### Pasos para LOCAL
+
+Compilar sobre `f6222babef` + 0012–0013 (árbol `78658d3433`; con las fijadas, `5f100e4476`). Pasar
+`LocationBarViewBrowserTest.FlyWebFocusGlowReplacesFocusRing` y `BraveColorMixersTest.*`. Capturas para Titín, en claro
+y en oscuro:
+1. **Hover de una inactiva:** el fondo #EBEBEB o #585959 baja hasta la base, con las esquinas de arriba como la activa y
+   las de abajo rectas. Igual con varias pestañas seleccionadas (Mayúsculas + clic). Al arrastrar o cerrar pestañas, no
+   aparecen restos.
+2. **URL:** ratón encima sin pulsar: sombra suave por dentro, nada por fuera. Al pulsar: más marcada. Con el desplegable
+   abierto: ninguna. Ventana privada: como antes, con el anillo y la sombra de Brave.
