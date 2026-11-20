@@ -213,7 +213,7 @@ veces (cierre controlado en vez de estado incoherente).
 
 ### Veredicto (regla 17): **APTO**, `chromium/0005`
 
-Cambio pequeño y local. El `CHECK` nuevo convierte un estado imposible en un cierre del proceso de red en vez de
+Cambio pequeño y local. El `CHECK` nuevo convierte un estado imposible en un cierre del proceso que usa la caché en vez de
 corrupción; es lo mismo que lleva Chrome 156. Prueba: `net_unittests --gtest_filter='*SimpleCache*:*DiskCache*Entry*'`
 (trae pruebas nuevas en `entry_unittest.cc`) y, en la build, navegar con la caché llena (recargas y web pesada dos
 veces) y una web con *service worker* y Cache Storage (p. ej. una PWA), cerrar y reabrir.
