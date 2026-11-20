@@ -39,3 +39,11 @@ Medidas sobre la maqueta (claro, misma escala que las anteriores):
   F7, FD).
 - **En oscuro** tiene que verse **el mismo flou** dentro de la caja blanca (petición 1). No es un borde ni un brillo
   más fuerte.
+
+## Desplegable de la URL (Titín, 20-11, tras revisar bt-320e)
+
+- `maqueta-oscuro-desplegable-hd.webp`: URL con foco y el desplegable abierto, en oscuro. El desplegable tiene **el mismo
+  ancho que la caja de la URL**, va pegado debajo, **sin sombra exterior**, y la fila seleccionada va en morado.
+- `maqueta-claro-url-sutil.png`: la caja de la URL en claro, con una curvatura **muy sutil** en las esquinas (no píldora).
+- Respuestas de Titín: también en la ventana privada (sí); el hueco actual entre la URL y la primera sugerencia le parece
+  bien, pero manda la maqueta; lo de «la línea bajo el campo», que MOTOR haga una propuesta y él decide.

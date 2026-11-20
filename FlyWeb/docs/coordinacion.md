@@ -7,6 +7,78 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 20-11 (noche): COORDINACIÓN-56 → COORDINACIÓN-57 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-56 (`session_01MwmK2gwa9MBDUrWPA6iBsV`, 20-11 ~15:05 → ~17:25 UTC, relevo al 33 %). **La 57 la abre la 56 y es la
+última del linaje (8 de 8): no puede abrir otra. La siguiente COORDINACIÓN la abre Titín; avisarle con tiempo.**
+
+**Cartero caído desde las 14:37 UTC:** no anota nada en ENTREGADO.md. Sin entregar: los relevos de la 56 (1510),
+`D8-LINUX/20261120-1400-SEGURIDAD-PORTES-33-v8-3.2.0.md` (58d3cf8a5c) y las órdenes a LOCAL-21 de las 16:23 y las 16:50.
+Titín está avisado varias veces y no ha contestado. LOCAL-21 escribe directamente a COORDINACIÓN (bridge
+`session_01MwmK2iiAoCDHgEcgxnaNZF`, «Local (22)»); la nube **no** puede contestarle por esa vía (auth), solo por el buzón.
+
+**bt-320f (instalada en la 6,1, pid 20811, CDP 9491; versión 3.1.4 sin tocar):** brave-core 25330a7e1f / árbol b9f628b8a6;
+chromium efde5db485 / árbol f7838c8adf. Verde: BraveColorMixersTest, AccountCryptoTest, d8 math + code-cache-sha256 +
+regress-585614984, FocusGlow, SharedPinnedTab 8/8. Visto en pantalla por LOCAL: colores de la URL (#4D4D4D / #FFFFFF / privada
+#0F0629), Accesos directos, Aspecto, Cuenta, fijadas en 2 ventanas, PWA sin red, caché rechazada y rehecha. Capturas en
+`entregas/local21/completa-320f`.
+- OmniboxColorTest en oscuro fallaba por la prueba: MOTOR-47 lo arregló en el **0018 de #1151 (punta 53510dc800, árbol
+  db8f0061e3)**. Falta pasarla (orden en el buzón, 16:50, con añadido).
+- content_browsertests y content_unittests no compilan por fallos previos (kFileSystemAccessLocal; image_capture_impl_unittest).
+  Orden: excluirlos solo en `local/320f-pruebas` y pasar ServiceWorker de 0006 + `*NoContainerHostForPdfDocument*` +
+  `WorkerScriptLoaderFactoryTest.*` (SEGURIDAD-PORTES-33 de acuerdo; si el de PDF sale rojo, avisa antes de quitar nada).
+- **Pendiente de Titín:** mirar a mano el hover de la inactiva, el desplegable con una fila elegida y el borde de la caja;
+  contraste del desplegable oscuro (recomendado #767676 con texto blanco, 4,5:1); trazo de 1 px; colores de MOTOR sin medir;
+  **¿cerró él bt-320a/b/c/e?** (se cerraron 14:54–14:57; LOCAL dice que no fue él); pasar a LOCAL las órdenes del buzón.
+
+**Seguridad:** 585625642 ya tiene merge en la V8 15.6 (.75), idéntico byte a byte a nuestro 0002; sin gravedad publicada.
+#1147 sigue condicionado a D8-LINUX, que no ha recibido el encargo.
+
+**Fusiones (sin cambios):** cuando Titín dé por buena bt-320f y D8 esté verde: #1110 → #1138 → #1142 → #1147 → #1144 →
+#1150 → #1151 (ahora con el 0018), revisando cada diff y comprobando las puntas con ls-remote. Luego la orden de la compilación
+final (la versión la pone Titín).
+
+**Hecho por la 56:** #1156 (fila); buzón a66de67 (relevo), e6b8f14/19ff33d (content_browsertests), af3963f/68f013c (acuse de
+bt-320f y OmniboxColorTest). Sesiones: MOTOR-47, SEGURIDAD-PORTES-33 (vigila cada hora), INVESTIGACIÓN-MOTOR-10, SEGURIDAD-VIGÍA,
+sin cambios.
+
+## 20-11 (tarde): COORDINACIÓN-55 → COORDINACIÓN-56 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-55 (`session_01MwmK2hTA8k49N3yrcWbPsJ`, 20-11 ~13:10 → ~15:10 UTC, relevo al 35 %). La 56 la abre la 55
+(**linaje 7 de 8**: la 56 solo puede abrir una más; avisar a Titín de que la cadena acaba y hará falta empezar otra desde él).
+
+**Decisiones de Titín de hoy (DIRECTIVAS #1152 y #1154):**
+- La seguridad del 20-11 entra en la **3.2.0** (no hay 3.1.5): #1147 = brave-core 0002 (V8 585625642), 0003 (V8 .74,
+  caché por SHA-256), 0004 (V8 585614984) y chromium/0006 (ServiceWorker 581369093). **Condición: D8-LINUX en verde**;
+  lo rojo se quita. Época de caché, una sola subida 37 → 38 (#1144, regenerado sobre 0004).
+- «Accesos directos» (#1150) entra en la 3.2.0.
+- Revisión de bt-320e → #1151 (MOTOR-47, 3.2-interfaz 0014–0017): hover de la inactiva 4 dip más bajo; flou con el
+  desplegable abierto; desplegable del mismo ancho que la URL, pegado, sin sombra, radio 2 dip, también en privada;
+  **en oscuro, URL #4D4D4D, desplegable #909294, fila seleccionada #542671, texto blanco** (sustituye lo del 19-11).
+  Maquetas en `FlyWeb/branding/interfaz-3.2.0/ajustes-20-11/` (#1153).
+- **Árbol de brave-core de la 3.2.0 hoy: b9f628b8a6** (cadena completa en el README de 3.2-v8 y en #1151).
+
+**En curso:**
+- **bt-320f** (buzón 0f2ef978): LOCAL-21 compila desde ~14:42 UTC en `out/Completa320f`, incremental. brave-core
+  25330a7e1f (árbol b9f628b8a6), chromium punta efde5db485 (árbol f7838c8adf; 0006 = 064a5696b2). Versión sin tocar.
+  LOCAL no puede capturar vistas nativas (sin Accesibilidad en la 6,1). Se le propuso a Titín que **él mire a mano** el
+  hover, el desplegable con fila elegida y el borde de la caja; dar Accesibilidad al SSH no se recomienda (si la pide,
+  pasa antes por SEGURIDAD-PORTES). **Sin respuesta aún.**
+- **D8-LINUX** (buzón 58d3cf8a5c, de SEGURIDAD-PORTES-33; árbol de V8 final 4fe0219716): **el cartero no lo ha entregado**
+  (sin línea en ENTREGADO a las 15:05; los de LOCAL sí). Se pidió a Titín que abra «motor ubuntu (5)» y le diga que lo lea.
+- **Pendiente de Titín al ver bt-320f:** (1) contraste del desplegable oscuro: blanco sobre #909294 = 3,1:1 (no AA para
+  texto normal); salidas: desplegable ≤#767676 o texto negro; (2) quitar el trazo de 1 px de `TopBackgroundView`
+  alrededor de la caja si se ve; (3) colores propuestos por MOTOR no medidos en maqueta (texto secundario/iconos blancos,
+  hover de fila #828486, marca lila #AFA6D2).
+
+**Fusiones, cuando Titín dé por buena bt-320f y D8 esté verde:** #1110 → #1138 → #1142 → #1147 → #1144 → #1150 → #1151,
+revisando cada diff (puntas a las 15:05: ef60812681, faf01581a1, 138f4ea8e7, 1755fc2491, 1e978ba37c, e259052d06,
+9812b92243). Luego la orden a LOCAL de la compilación final (versión 3.2.0: la pone Titín/regla, no la 56).
+
+**Hecho por la 55:** #1149 (fila), #1152/#1154 (DIRECTIVAS), #1153 (maquetas); buzón 0f91b8d8 (relevo), 6b1bb746 (acuse),
+0f2ef978 (bt-320f). Sesiones sin cambios: MOTOR-47, SEGURIDAD-PORTES-33 (vigila cada hora), INVESTIGACIÓN-MOTOR-10,
+SEGURIDAD-VIGÍA, LOCAL-21 (bridge 01MwmK2iiAoCDHgEcgxnaNZF; desde la nube, buzón), ARQUITECTURA (sin nada abierto).
+
 ## 20-11 (mediodía): COORDINACIÓN-54 → COORDINACIÓN-55 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-54 (`session_01MwmK2hLcE3BDeCvDDHMAqJ`, 20-11 ~10:50 → ~13:10 UTC, relevo al 35 %). La 55
