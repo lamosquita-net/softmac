@@ -7,6 +7,8 @@ la próxima tanda de seguridad (Chrome 159) o la 3.2.0, la que llegue antes.
 **Si alguno de estos bugs resulta Alto o Crítico, entra en el catálogo KEV de CISA o se explota, se avisa enseguida a
 COORDINACIÓN**, que propondrá una 3.1.5 a Titín.
 
+**Decisión de Titín (20-11-2026, vía COORDINACIÓN-55; `docs/DIRECTIVAS.md`, #1152):** lo de aquí entra en la **3.2.0**, también `brave-core/0002`–`0004` y `chromium/0006`, y **no habrá 3.1.5**. Condición: D8-LINUX en verde (encargo en `buzon` `58d3cf8a5c`); lo que salga rojo se quita.
+
 Lo prepara y lo vigila SEGURIDAD-PORTES (desde la -32). Cada arreglo nuevo de la 8078, o de la rama de la 159 cuando
 salga, que aplique a Mac se añade aquí con APTO: `chromium/` con número correlativo, `angle/` aparte, y su línea en
 `SHA256SUMS`.
