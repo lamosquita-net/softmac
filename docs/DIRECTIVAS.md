@@ -429,6 +429,15 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     «Contenido».
   - **Webs de prueba de siempre** en los perfiles de revisión y en las capturas: elpais.com, eldiario.es, youtube.com,
     wikipedia y otras de ese tipo (prensa y vídeo). No usar webs de apuestas ni marca.com.
+- **Seguridad de la tarde del 20-11 en la 3.2.0 (Titín, 20-11 ~20:15 UTC; COORDINACIÓN-57; «sí, adelante con todo»):**
+  - **Entran en la 3.2.0**, con APTO de SEGURIDAD-PORTES-33: brave-core/0005 (V8 15.6.75.76, sandbox; 579314138,
+    585869521), chromium/0007 (ImageDataBuffer, 585617234) y chromium/0008 (estilo/slots del canvas, 584385833), en #1147;
+    y `portes-159/chromium` 0001 (UAF de menús FOR_DROP, 565066840) y 0002 (SchemeHostPort, 586171393), en #1159 (se
+    fusiona tras #1147). Condición, como el resto: D8-LINUX en verde para lo de V8 y las pruebas de LOCAL en verde para lo
+    de chromium; lo rojo se quita.
+  - **Corte de la tanda:** #1147 queda cerrado. Lo que llegue desde ahora sin ser Alto/Crítico/KEV va a una tanda posterior
+    (`seguridad/siguiente/`, PR propio). V8 580857997 (wasm streaming) espera al merge en la 15.6 salvo Alto/Crítico/KEV.
+  - **Contraste del desplegable oscuro:** #767676 con texto blanco (4,5:1, AA) en lugar de #909294 (3,1:1).
 - **Seguridad y ajustes en la 3.2.0 (Titín, 20-11; COORDINACIÓN-55):**
   - **Entran en la 3.2.0, no en una 3.1.5 aparte,** los arreglos de `FlyWeb/seguridad/pendiente/` del 20-11 (#1147):
     V8 585625642 (brave-core/0002, merge M159 aún sin pasar a la 15.6), V8 15.6.75.74 con la caché de código validada
