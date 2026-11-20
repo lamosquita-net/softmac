@@ -4,7 +4,8 @@ MOTOR-46, 19-11-2026, por encargo de COORDINACIÓN-52 y 53 (decisión de Titín:
 **Sin compilar** (la nube no tiene el checkout de Chromium). Tres parches, en orden:
 - 0001: brave://settings/system ya no muere (#1122, fusionado);
 - 0002: vuelve el selector de tema en Apariencia;
-- 0003: los seis desplegables de Brave vuelven a guardar.
+- 0003: los seis desplegables de Brave vuelven a guardar;
+- 0004: la tarjeta «Aspecto» deja de quedar tapada, y la fila de tema pasa a ser su primera fila.
 
 Los tres son fallos del porte de los ajustes a la 156 (T11), no de la serie de la interfaz.
 
@@ -93,6 +94,27 @@ no se toca: la diseña Titín.
 
 **Revisión:** SEGURIDAD-PORTES-32 revisa el 0003 antes de fusionar (WebRTC y el buscador de privadas son de privacidad).
 
+## 0004: la fila de tema no se veía
+
+**Fallo:** Titín no veía el selector en la build de prueba (bt-320a). LOCAL-21 lo midió por CDP a 1400×897:
+- `settings-appearance-page-index` medía 0×0 en y=56, y `settings-appearance-page` iba en `position: absolute` con h=0;
+- `settings-brave-appearance-extras` empezaba también en y=56;
+- encima del `#braveThemeType` estaba `settings-brave-appearance-toolbar`.
+
+En 156, la tarjeta «Aspecto» es una vista del `cr-view-manager` del index, que coloca las vistas con posición absoluta. El
+index no ocupa alto, y las tarjetas «Barra de herramientas» y «Pestañas» de Brave (que `settings_main.ts` pone justo
+después, en la misma vista) se pintaban encima de la parte de arriba de «Aspecto». Quedaban tapados la fila del 0002,
+«Temas» y «Personalizar barra de herramientas», y los títulos salían montados. Venía del porte (T11); el 0002 solo lo hizo
+evidente.
+
+**Arreglo**, solo en `brave_overrides/appearance_page.ts`:
+- `injectStyle(SettingsAppearancePageIndexElement, …)` con `cr-view-manager [slot=view]:not(.closing) { position:
+  initial; }`, la misma regla que ya usan las tarjetas de Brave (`brave_appearance_extras.html`). Así «Aspecto» ocupa su
+  alto y las de Brave van debajo.
+- La fila de tema pasa a insertarse delante de `#themeRow`, como primera fila de «Aspecto», que es donde la quiere Titín.
+  `#themeRow` es el primer nodo estático de `div[route-path="default"]`. Se le devuelve el separador superior y el
+  elemento insertado va con `display: block`.
+
 ## Parches y árboles
 
 | Parche | Qué hace |
@@ -100,13 +122,14 @@ no se toca: la diseña Titín.
 | `0001-Bind-CommandsService-on-the-settings-WebUI-broker.patch` | Sistema, más el browsertest `BraveContentBrowserClientTest.SettingsPagesBindTheirInterfaces` |
 | `0002-Settings-show-Brave-s-theme-row-on-the-appearance-pa.patch` | Fila de tema (`brave_overrides/appearance_page.ts`) |
 | `0003-Settings-make-Brave-s-dropdowns-save-their-prefs-aga.patch` | `pref-key` en 6 desplegables y `tabTooltipModes_` como propiedad |
+| `0004-Settings-un-hide-the-top-of-the-Appearance-card-them.patch` | «Aspecto» ocupa su alto; la fila de tema, la primera de la tarjeta |
 
 Se aplican en orden con `git am`, limpios sobre las dos bases (comprobado):
 
-| Base | Tras 0001 | Tras 0002 | Tras 0003 |
-|---|---|---|---|
-| brave-core `local/3.1.4` (`e660929ac9`) | `c9c578188e` | `1720966e37` | `b82f38e3cd` |
-| Serie de la interfaz 0001–0007 (`FlyWeb/parches/3.2-interfaz/`, punta `ddac171538`) | `d58ba8b96d` | `d3cded8ef3` | `7a24c45189` |
+| Base | Tras 0001 | Tras 0002 | Tras 0003 | Tras 0004 |
+|---|---|---|---|---|
+| brave-core `local/3.1.4` (`e660929ac9`) | `c9c578188e` | `1720966e37` | `b82f38e3cd` | `f0530f3177` |
+| Serie de la interfaz 0001–0007 (`FlyWeb/parches/3.2-interfaz/`, punta `ddac171538`) | `d58ba8b96d` | `d3cded8ef3` | `7a24c45189` | `a0c808d485` |
 
 La serie de la interfaz no toca ninguno de estos ficheros.
 
@@ -139,3 +162,10 @@ La serie de la interfaz no toca ninguno de estos ficheros.
    - **Buscador de las ventanas privadas:** elegir otro, recargar, abrir una ventana privada y buscar desde la barra.
    - **Modo de pasar por encima de las pestañas:** ahora salen las tres opciones (tarjeta, tarjeta con vista previa y
      tooltip). Con «Tarjeta con vista previa», la tarjeta lleva miniatura; con el tooltip, solo el título.
+6. «Aspecto» (0004), en `flyweb://settings/appearance`:
+   - la fila de colores de FlyWeb es la **primera** de la tarjeta «Aspecto», arriba del todo, y se ve;
+   - los títulos «Aspecto», «Barra de herramientas» y «Pestañas» no salen montados: cada tarjeta, debajo de la anterior;
+   - se ven «Temas» y «Personalizar barra de herramientas»;
+   - entrar en «Personalizar fuentes» y volver: sin saltos ni tarjetas encima de otras;
+   - claro, oscuro e «igual que macOS» se conservan al recargar.
+   Por CDP, `settings-appearance-page-index` ya no debe medir 0 de alto.
