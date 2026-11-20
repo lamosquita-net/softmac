@@ -1,0 +1,108 @@
+From 1101bdc5e1d97fd6c0ee965f1718b44b5a1e3539 Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 08:51:56 +0000
+Subject: [PATCH] Settings: un-hide the top of the Appearance card, theme row
+ first
+
+LOCAL-21 measured it on the 3.2.0 test build: in 156 the Appearance card
+is a view of settings-appearance-page-index's cr-view-manager, which
+positions views absolutely, so the index took no height (0x0) and
+Brave's Toolbar and Tabs cards, placed right after it by settings_main,
+were painted over the top of the Appearance card. The theme row from the
+previous patch, "Themes" and "Customize toolbar" were hidden under them
+and the card titles overlapped.
+
+Keep the visible view in the flow with the same rule Brave's own cards
+already use, and insert the theme row as the first row of the card, in
+front of #themeRow (with its separator back), where Brave shows it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ .../brave_overrides/appearance_page.ts        | 48 ++++++++++++++-----
+ 1 file changed, 36 insertions(+), 12 deletions(-)
+
+diff --git a/browser/resources/settings/brave_overrides/appearance_page.ts b/browser/resources/settings/brave_overrides/appearance_page.ts
+index 20f29a09c08266d041ca06ef76a3b1d75dbd59fb..281f81b8bca67c7160ded29674934aeb13bf309d 100644
+--- a/browser/resources/settings/brave_overrides/appearance_page.ts
++++ b/browser/resources/settings/brave_overrides/appearance_page.ts
+@@ -11,7 +11,8 @@
+ // focus config). Brave 1.98 inserts <settings-brave-appearance-theme> into
+ // the template with a lit_mangler script; FlyWeb has no such mechanism, so it
+ // is inserted into the rendered DOM once, after the first render (as
+-// about_page.ts does), right after the colour scheme row it replaces.
++// about_page.ts does), as the first row of the Appearance card, where Brave
++// shows it.
+ 
+ import '../brave_appearance_page/brave_theme.js'
+ 
+@@ -20,6 +21,7 @@ import {css} from '//resources/lit/v3_0/lit.rollup.js'
+ import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js'
+ 
+ import {SettingsAppearancePageElement} from '../appearance_page/appearance_page.js'
++import {SettingsAppearancePageIndexElement} from '../appearance_page/appearance_page_index.js'
+ 
+ injectStyle(SettingsAppearancePageElement, css`
+   /* Colour scheme: Brave's own theme setting replaces it. */
+@@ -49,25 +51,47 @@ injectStyle(SettingsAppearancePageElement, css`
+   .list-frame:has(#sidePanelPosition) {
+     display: none !important;
+   }
++
++  /* Brave's theme row, first in the card (inserted below). */
++  settings-brave-appearance-theme {
++    display: block;
++  }
++
++  /* #themeRow is no longer the first row: give it its separator back. */
++  settings-brave-appearance-theme + #themeRow {
++    border-top: var(--cr-separator-line);
++  }
++`)
++
++// FlyWeb: in 156 the Appearance card is a view of the index's cr-view-manager,
++// which positions views absolutely, so settings-appearance-page-index took no
++// height and Brave's Toolbar and Tabs cards (settings_main.ts puts them right
++// after it, in the same view) were painted over the top of the Appearance
++// card: the theme row, "Themes" and "Customize toolbar" were hidden and the
++// titles overlapped. Keep the visible view in the flow, as
++// brave_appearance_extras.html already does for Brave's own cards.
++injectStyle(SettingsAppearancePageIndexElement, css`
++  cr-view-manager [slot=view]:not(.closing) {
++    position: initial;
++  }
+ `)
+ 
+-// FlyWeb: Brave's theme row (light / dark / same as macOS). It writes Brave's
+-// own dark mode setting through BraveAppearanceHandler (setBraveThemeType).
+-// #colorSchemeModeRow is a static node of the 156 template (not inside a
+-// conditional part), so Lit never re-creates it and the inserted sibling
+-// stays. The row is a Polymer element with its own data, so it needs no
+-// properties from the page.
++// FlyWeb: Brave's theme row (light / dark / same as macOS), first row of the
++// Appearance card. It writes Brave's own dark mode setting through
++// BraveAppearanceHandler (setBraveThemeType). #themeRow is the first static
++// node of the 156 template's default route (not inside a conditional part),
++// so Lit never re-creates it and the inserted sibling stays. The row is a
++// Polymer element with its own data, so it needs no properties from the page.
+ function insertBraveThemeRow(root: ShadowRoot) {
+   if (root.querySelector('settings-brave-appearance-theme')) {
+     return
+   }
+-  const colorSchemeModeRow = root.querySelector('#colorSchemeModeRow')
+-  if (!colorSchemeModeRow) {
+-    console.error('[FlyWeb] appearance page: #colorSchemeModeRow not found')
++  const themeRow = root.querySelector('#themeRow')
++  if (!themeRow) {
++    console.error('[FlyWeb] appearance page: #themeRow not found')
+     return
+   }
+-  colorSchemeModeRow.after(
+-      document.createElement('settings-brave-appearance-theme'))
++  themeRow.before(document.createElement('settings-brave-appearance-theme'))
+ }
+ 
+ // `firstUpdated` is `protected` on ReactiveElement, so reach it through an
+-- 
+2.43.0
+
