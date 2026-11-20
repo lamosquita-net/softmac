@@ -17,7 +17,7 @@ Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0002` | **`39054ebf03`** (tras `0001`: `2c8ef28a99`) |
+| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0004` | **`a621f0a668`** (tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`) |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
 | brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001` | **`90134a4e08`** |
 | Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001`–`0003` | **`1ef25455d7`** (tras `0001`: `32f1340fb3`; tras `0002`: `47b14cb49e`) |
@@ -49,8 +49,14 @@ la base nueva ya los traiga.
 | `e414deb` (19-11 22:09 UTC) | Pruebas desactivadas (sxg-reporting en Linux Debug) | — | — |
 | `7cd7567` (19-11 22:32 UTC) | *Roll* de Skia `7dc6c0c3424a..9d96dfeb451c`: **9d96dfeb45** [M156] «[Ganesh] Restrict scissor by dst-read bounds» (584764517, merge 587951190) | Sí (abajo) | `skia/0003` |
 | `880ca0428f` (20-11 02:03 UTC) | [M156] «Fix synchronous completion in LocalFileStreamReader» (586656231, merge 587681925) | Sí (abajo) | `chromium/0002` |
+| `e2352b4cf6` (20-11 02:19 UTC) | «Incrementing VERSION to 156.0.8078.113» | — | — |
+| `6b1211357d` (20-11 03:25 UTC) | [M156] «Guard ImageProcessor against destruction during get_pixels_» (586219154, merge 587225635) | Sí, por prudencia (abajo) | `chromium/0003` |
+| `7e5aab9f6a` (20-11 04:26 UTC) | [M156] «Scope InputDeviceCapabilities to target window for focus events» (577377858, merge 587680830) | Sí (abajo) | `chromium/0004` |
 
-Sin tag .112 (la rama ya llevaba `chrome/VERSION` en .112 desde `aac2cdd377`).
+**Tag 156.0.8078.112 = `880ca0428f`** (visto el 20-11 a las 03:24 UTC; la rama sigue en .113 desde `e2352b4cf6`, solo
+`chrome/VERSION`). Todo lo de `.111` (`c22b215559`, base de la build 47) a `.112` está en esta tabla: con `pendiente/`
+entero, la siguiente versión puede declarar .112 (lo decide Titín). DEPS de la .112: V8 `c4641b4cbe`, Skia `9d96dfeb45`,
+ANGLE `0b547a1161`, Dawn `218eeee7` (no aplica) y PDFium `8b21800d` (igual que en la .111).
 
 ## `angle/0001`: ANGLE 41c5deee45 (bug 574209990, merge 579732514)
 
@@ -152,6 +158,41 @@ y publica la denegación en una tarea.
 Cambio pequeño y local (10 líneas en un `.cc`), sin API nueva ni dependencia de 10.15. Prueba:
 `storage_unittests --gtest_filter='LocalFileStreamReaderTest.*'` (trae dos pruebas nuevas) y, en la build, una subida de
 fichero grande (un adjunto en claude.ai y un `<input type=file>` cualquiera) y leer un fichero local con `FileReader`.
+
+## `chromium/0003`: 6b1211357d (bug 586219154, merge 587225635)
+
+`image_annotation::ImageProcessor` (`services/image_annotation/public/cpp`) llama a `get_pixels_`, que en algunas
+imágenes fuerza un *relayout* que destruye el propio `ImageProcessor` de forma síncrona: **UAF**. El arreglo pone una
+`WeakPtr` de guarda y sale si el objeto ya no existe.
+
+- **Mac: sí, por prudencia.** Se compila en Mac y lo usa el renderer para las descripciones de imágenes de accesibilidad
+  (`AXImageAnnotator`), que solo se ejecutan si se activan a mano con un lector de pantalla. No he comprobado si
+  Brave 1.57/FlyWeb ocultan esa opción. Mismo criterio que `3.0.1/chromium/0019`: código que se compila y no está quitado.
+- Diff idéntico al de upstream (`patch-id` `6c1cd59dd2`). Se aplica limpio sobre `39054ebf03` y deja **`5f0d2b4d3e`**.
+  brave-core no tiene parches ni `chromium_src` para estos ficheros.
+
+### Veredicto (regla 17): **APTO**, `chromium/0003`
+
+Cambio pequeño (10 líneas), sin API nueva. Prueba: `image_annotation_unittests` (o el binario que incluya
+`image_processor_unittest.cc` según `services/image_annotation/public/cpp/BUILD.gn`), con su prueba nueva.
+
+## `chromium/0004`: 7e5aab9f6a (bug 577377858, merge 587680830)
+
+En la navegación secuencial del foco (Tab) entre marcos, `FocusController::AdvanceFocusInDocumentOrder` pasaba el
+`InputDeviceCapabilities` de la ventana de origen al `Element::Focus()` de otro documento, que lo exponía como
+`FocusEvent.sourceCapabilities`: **un objeto de otra ventana (posiblemente de otro origen) al alcance de la página**.
+El arreglo resuelve el objeto con la `DOMWindow` del elemento destino, y `FocusEvent` siempre usa el de su propia vista.
+
+- **Mac: sí.** Blink, todas las plataformas; lo alcanza cualquier web con `<iframe>` y Tab.
+- Diff idéntico al de upstream (`patch-id` `dcf2b0abc0`), con sus dos WPT nuevas. Se aplica limpio sobre `5f0d2b4d3e`
+  y deja **`a621f0a668`**. brave-core no tiene parches ni `chromium_src` para estos ficheros.
+- Es el mismo arreglo que `b33d4b153d` de la 8154 (159), que llegó a la 8078 a los 34 minutos.
+
+### Veredicto (regla 17): **APTO**, `chromium/0004`
+
+Prueba: `run_web_tests.py external/wpt/input-device-capabilities/` (incluye
+`sourcecapabilities-sequential-focus-navigation.tentative.html`) y, en la build, recorrer con Tab una página con
+iframes (formulario de claude.ai y uno con `<iframe>` de otro origen) sin que se pierda el foco.
 
 ## `brave-core/0001`: V8 d68cecd900 (bugs 583479274 y 587681789; V8 15.6.75.72)
 
@@ -320,6 +361,7 @@ aplicando, salvo que llegue antes a la 8078 como merge M156 (entonces va arriba,
 | Commit de la 8154 | Qué | ¿Mac? | Estado |
 |---|---|---|---|
 | `690f348e8d` (20-11 00:37 UTC) | [M159] «[optimization_guide] Defer SetInput() callbacks to avoid UAF» (587680474; arregla 570347667 y 562796602) | Se compila; **inalcanzable** sin modelo on-device (razonado, no probado) | Candidato; sin parche |
+| `b33d4b153d` (20-11 03:52 UTC) | [M159] «Scope InputDeviceCapabilities to target window for focus events» (577377858) | Sí | Llegó a la 8078 como `7e5aab9f6a` → `chromium/0004` |
 
 **`690f348e8d`** (SEGURIDAD-PORTES-33, 20-11): `SessionImpl::AddContextImpl()` y `OnDeviceContext::SetInput()`
 ejecutan `callback_` de forma síncrona, y `AIManager` guarda en ese *callback* la propiedad de la `OnDeviceSession`
