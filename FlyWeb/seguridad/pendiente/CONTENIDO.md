@@ -58,6 +58,8 @@ la base nueva ya los traiga.
 | `dad9e4d83c` (20-11 10:04 UTC) | [M156] «[SimpleCache] Prevent doomed entries from mutating SimpleIndex» (583238770, merge 588197443) | Sí (abajo) | `chromium/0005` |
 | V8 15.6 `18cf2b9282` (.74, 12:54 UTC) | **ceb90d38eb** [M156] «[snapshot] Ship --code-cache-source-hash-sha256 by default» (568907349, 582651043, 582260175; merge 587680873) | Sí | `brave-core/0003` |
 | `baba8daae1` (20-11 12:28 UTC) | [M156] Reland «Update last committed service worker client on navigation commit» (581369093, merge 587226523) | Sí (abajo) | `chromium/0006` |
+| `581e177a60` (20-11 15:14 UTC) | *Roll* de V8 `c4641b4cbe..18cf2b9282` (= la .74 de arriba) | — | `brave-core/0003` |
+| V8 15.6 `751cfac05f` (.75, 15:34 UTC) | **01a299bf4c** [M156] «[compiler] Preserve control inputs on non-cell context operations» (585625642, merge 587680540) | Sí | `brave-core/0002` (**idéntico**, abajo) |
 
 **Tag 156.0.8078.112 = `880ca0428f`** (visto el 20-11 a las 03:24 UTC; la rama sigue en .113 desde `e2352b4cf6`, solo
 `chrome/VERSION`). Todo lo de `.111` (`c22b215559`, base de la build 47) a `.112` está en esta tabla: con `pendiente/`
@@ -281,6 +283,8 @@ Es el *cherry-pick* de upstream sin cambios. Efecto visible: con el depurador ab
 depurador).
 
 ## `brave-core/0002`: V8 a0f2c9f8c3 (bug 585625642), portado del merge M159 27e138a575
+
+**Actualización (20-11, 15:46 UTC): ya está en la 15.6** como **01a299bf4c** (V8 15.6.75.75, merge 587680540). Comparado: los seis ficheros que da `0002` sobre la .66 son **idénticos byte a byte** a los de upstream en ese commit, incluida la prueba llevada al cctest, que upstream ha portado igual. `0002` queda como el merge oficial de la .75.
 
 **Por qué se prepara antes de tiempo.** Lo de la 8154 normalmente espera (arriba). Este es un fallo del JIT de V8 con
 merge rápido a la 159 (llegó a `main` el 17-11 y a la 15.9 el 20-11), que es lo que suele tener gravedad Alta, y
