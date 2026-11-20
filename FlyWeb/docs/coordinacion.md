@@ -7,6 +7,52 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 20-11 (noche, 2): COORDINACIÓN-57 → COORDINACIÓN-58 EN LA 7,1 (prueba; leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-57 (`session_01MwmK2hcdtWpZGceKLieLdd`, nube, 20-11 ~17:20 → ~20:45 UTC; última del linaje). **Titín decide
+probar la COORDINACIÓN en local (MacPro7,1)**: la nube no puede escribir a las sesiones locales (401 /
+`elevated_session_untrusted_device`) y el cartero (Haiku, esfuerzo bajo) falla una y otra vez; hoy, mudo desde las 14:37 UTC
+y dando por entregado lo que no lo estaba. La 58 la abre Titín en la 7,1.
+
+**Canales en la prueba:**
+- 58 → locales (LOCAL «Local (22)» [9d9f5f], PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA): `SendMessage` directo. Sin cartero.
+- 58 → nube (MOTOR-47, SEGURIDAD-PORTES-33, INVESTIGACIÓN-MOTOR-10, SEGURIDAD-VIGÍA): `SendMessage` (de local a nube
+  funciona: hoy lo han hecho LOCAL-21 y el cartero). Comprobarlo con la prueba de arranque.
+- Nube → 58: **no hay `send_message` de la nube a local.** Los agentes de la nube escriben en `buzon/COORDINACION/`
+  (rama `buzon`, mismo formato; sin datos personales) y la 58 lo vigila ella misma (Monitor sobre `origin/buzon`, sin cartero).
+- Abrir agentes de la nube desde local: **sin comprobar.** Si la 58 no puede, prepara el texto de arranque y lo abre Titín.
+- D8-LINUX: igual que los locales si la 58 lo ve en `ListAgents`; si no, por el buzón.
+
+**Decidido hoy por Titín (DIRECTIVAS #1160):** entran en la 3.2.0 brave-core/0005 (V8 .76, sandbox), chromium/0007
+(ImageDataBuffer) y 0008 (canvas/slots) en #1147 (punta c0808f171a, tanda cerrada), y `portes-159/chromium` 0001 (UAF de
+menús FOR_DROP) y 0002 (SchemeHostPort) en #1159 (punta bf5c3689c7; se fusiona tras #1147). Lo nuevo que no sea
+Alto/Crítico/KEV, a `seguridad/siguiente/` con PR propio. V8 580857997 (wasm) espera al merge en la 15.6. Desplegable oscuro
+**#767676**, texto blanco (4,54:1); hover de fila #6A6A6A (5,4:1), en el 0019 de #1151 (punta c74105bec2, sin compilar).
+
+**Árboles (comprobados por MOTOR-47 con `git am`):** brave-core final de la 3.2.0 = **8c31284eda** (con 0005 y 0019);
+bt-320f = b9f628b8a6 (la 3.2.0 sin 0005, 0018 ni 0019; el 0018 solo toca una prueba). d1fe696d26 era un intermedio antiguo.
+chromium: pendiente 0001–0008 = 90418ba4fd; + portes-159 0001–0002 = 2bb85047ec. V8 esperado en D8-LINUX: 9914512d91.
+
+**Sin entregar a las ~20:45 UTC (el cartero no ha anotado nada desde las 14:37):** `D8-LINUX/20261120-1400-…` (actualizado,
+51b9177548), relevos 1510 y 1725, `LOCAL/…1623…`, `…1650…` y `…2025…` (pruebas unitarias de chromium 0007–0008 y
+portes-159). La 58 se lo pasa directamente a «Local (22)» y a D8-LINUX y anota en ENTREGADO.md a mano.
+
+**Abierto, por orden:**
+1. Resultados de bt-320f (ServiceWorker de 0006, `*NoContainerHostForPdfDocument*`, `WorkerScriptLoaderFactoryTest.*`,
+   OmniboxColorTest con el 0018) y de las pruebas de la orden de las 20:25.
+2. D8-LINUX con el encargo actualizado (incluye 0005).
+3. Titín en bt-320f: hover de la inactiva, desplegable con fila elegida, borde de la caja; trazo de 1 px; fijada en blanco
+   al recargar; ¿cerró él bt-320a/b/c/e?
+4. Con todo verde y el visto de Titín: fusiones #1110 → #1138 → #1142 → #1147 → #1159 → #1144 → #1150 → #1151, revisando
+   cada diff y las puntas con `git ls-remote`; luego la orden de la compilación final (versión, la pone Titín), con
+   `BraveColorMixersTest.*`, OmniboxColorTest, capturas en oscuro del desplegable y las pruebas a mano de #1159 (arrastrar
+   a una carpeta de marcadores, Esc durante el arrastre; file:///, settings, una extensión).
+5. Medir la prueba: si la 58 local funciona, ARQUITECTURA decide si se queda así y si el cartero se retira o sube a Sonnet.
+
+**Sesiones:** MOTOR-47 `session_01MwmK2hjxRPyuefYzGRoZRk`, SEGURIDAD-PORTES-33 `session_01MwmK2kdhDkMC93UBtLuPkF` (vigila
+cada hora), INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG`, SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`,
+Cartero (8) bridge `session_01MwmK2iGXw2cPVJFxs7SWnc`. La 57 queda quieta para preguntas.
+
 ## 20-11 (noche): COORDINACIÓN-56 → COORDINACIÓN-57 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-56 (`session_01MwmK2gwa9MBDUrWPA6iBsV`, 20-11 ~15:05 → ~17:25 UTC, relevo al 33 %). **La 57 la abre la 56 y es la
