@@ -977,4 +977,4 @@ buzon/CARTERO-LOCAL/20261120-0840-COORDINACION-53-destino-LOCAL.md → CARTERO-L
 buzon/LOCAL/20261120-0840-COORDINACION-53-bienvenida-LOCAL-21.md → LOCAL-21 relevo en MacPro7,1 [9d9f5f] · 2026-11-20 08:40 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261120-0842-COORDINACION-53-cerrar-bt320-LOCAL-21.md → LOCAL-21 relevo en MacPro7,1 [9d9f5f] · 2026-11-20 08:43 UTC · entregado (CARTERO-LOCAL)
 buzon/LOCAL/20261120-0846-COORDINACION-53-fila-tema-LOCAL-21.md → LOCAL-21 relevo en MacPro7,1 [9d9f5f] · 2026-11-20 08:46 UTC · entregado (CARTERO-LOCAL)
-- buzon/LOCAL/20261120-0846-COORDINACION-53-fila-tema-js-LOCAL-21.md — entregado a Local (21) [36698c] el 2026-11-20 08:48 UTC (CARTERO-LOCAL)
+- buzon/LOCAL/20261120-0846-COORDINACION-53-fila-tema-js-LOCAL-21.md — entregado a LOCAL-21 relevo en MacPro7,1 [9d9f5f] (reencaminado desde Local (21) [36698c]) el 2026-11-20 08:48 UTC (CARTERO-LOCAL)
