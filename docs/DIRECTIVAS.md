@@ -429,6 +429,16 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     «Contenido».
   - **Webs de prueba de siempre** en los perfiles de revisión y en las capturas: elpais.com, eldiario.es, youtube.com,
     wikipedia y otras de ese tipo (prensa y vídeo). No usar webs de apuestas ni marca.com.
+- **Seguridad y ajustes en la 3.2.0 (Titín, 20-11; COORDINACIÓN-55):**
+  - **Entran en la 3.2.0, no en una 3.1.5 aparte,** los arreglos de `FlyWeb/seguridad/pendiente/` del 20-11 (#1147):
+    V8 585625642 (brave-core/0002, merge M159 aún sin pasar a la 15.6), V8 15.6.75.74 con la caché de código validada
+    por SHA-256 (0003), V8 585614984 (0004, merge M159) y ServiceWorker 581369093 (chromium/0006). Condición: D8-LINUX en
+    verde (encargo en el buzón, 58d3cf8a5c); lo que salga rojo se quita. Una sola subida de época de caché (37 → 38).
+  - **También entra «Accesos directos»** de settings/system (`3.2-ajustes-sistema/0005`, #1150): la subpágina salía debajo
+    de las tarjetas de Sistema.
+  - **Revisión de bt-320e:** el hover de la inactiva, más bajo, como en la maqueta; con foco, el desplegable de la URL del
+    mismo ancho que la caja, sin sombra exterior y con el flou interior. En claro y en oscuro (hover #EBEBEB/#585959).
+    Encargado a MOTOR-47, medido en las maquetas de `ajustes-20-11/`.
 - **La medida de la sync en la 5,1 no frena la 3.2.0 (Titín, 19-11; COORDINACIÓN-52):** como siempre, se mide después de
   publicar, en el estudio, con la versión instalada. Si hay retroceso (derivación de clave de más de ~2 s), se arregla
   como hasta ahora: pasa por SEGURIDAD-PORTES antes de tocar kScryptN y sale en una versión posterior.
