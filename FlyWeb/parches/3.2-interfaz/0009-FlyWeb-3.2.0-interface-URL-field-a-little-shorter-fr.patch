@@ -1,0 +1,95 @@
+From 6911c097480dd4e5d2c4ad522ffcdfe6170a01e7 Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 09:14:59 +0000
+Subject: [PATCH 09/11] FlyWeb 3.2.0 interface: URL field a little shorter,
+ from the top
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Titín (20-11): the URL field shorter, taken from the top, so it sits a
+bit further from the tabs. On maqueta-claro-foco-hd.webp the field loses
+3 px, all from the top (y 87 to 90, bottom unchanged), at about 1 px =
+1 dip. BraveToolbarView::Layout trims kFlyWebLocationBarTopTrim (3 dip)
+off the top of the location bar after both layout rects, so the toolbar
+keeps its height and the field keeps its bottom edge. The Brave actions
+(Shields) shrink by the same amount to keep their padding.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ browser/ui/brave_layout_constants.h                   |  6 ++++++
+ .../ui/views/brave_actions/brave_actions_container.cc |  4 ++++
+ browser/ui/views/toolbar/brave_toolbar_view.cc        | 11 +++++++++++
+ 3 files changed, 21 insertions(+)
+
+diff --git a/browser/ui/brave_layout_constants.h b/browser/ui/brave_layout_constants.h
+index 4f1a72e3e4167fcf5acad553dac4cb4accc313e4..931782d8b9f10ea22319ed5f0e4dff6012fb35fb 100644
+--- a/browser/ui/brave_layout_constants.h
++++ b/browser/ui/brave_layout_constants.h
+@@ -13,4 +13,10 @@
+ std::optional<gfx::Insets> GetBraveLayoutInsets(LayoutInset inset);
+ std::optional<int> GetBraveLayoutConstant(LayoutConstant constant);
+ 
++// FlyWeb 3.2.0 interface (Titín, 20-11): the URL field is this many dip
++// shorter, taken from the top, so it sits a bit further from the tabs. The
++// toolbar keeps its height and the field keeps its bottom edge. Provisional,
++// adjusted with Titín on screenshots.
++inline constexpr int kFlyWebLocationBarTopTrim = 3;
++
+ #endif  // BRAVE_BROWSER_UI_BRAVE_LAYOUT_CONSTANTS_H_
+diff --git a/browser/ui/views/brave_actions/brave_actions_container.cc b/browser/ui/views/brave_actions/brave_actions_container.cc
+index 1c74900d8faef9bba5cc2d402c9fdde83f69d94e..7692fda8df7fdb9b09079c7b171e8459ef8fef64 100644
+--- a/browser/ui/views/brave_actions/brave_actions_container.cc
++++ b/browser/ui/views/brave_actions/brave_actions_container.cc
+@@ -9,6 +9,7 @@
+ #include <utility>
+ 
+ #include "base/feature_list.h"
++#include "brave/browser/ui/brave_layout_constants.h"
+ #include "brave/browser/ui/views/brave_actions/brave_shields_action_view.h"
+ #include "brave/browser/ui/views/rounded_separator.h"
+ #include "brave/components/constants/pref_names.h"
+@@ -84,7 +85,10 @@ void BraveActionsContainer::UpdateVisibility() {
+ }
+ 
+ gfx::Size BraveActionsContainer::GetActionSize() const {
++  // FlyWeb: the URL field is kFlyWebLocationBarTopTrim shorter than
++  // kLocationBarHeight (BraveToolbarView::Layout); keep the same padding.
+   return {34, GetLayoutConstant(LayoutConstant::kLocationBarHeight) -
++                  kFlyWebLocationBarTopTrim -
+                   2 * GetLayoutConstant(
+                           LayoutConstant::kLocationBarElementPadding)};
+ }
+diff --git a/browser/ui/views/toolbar/brave_toolbar_view.cc b/browser/ui/views/toolbar/brave_toolbar_view.cc
+index 27a730d27b449b2a294309c682cd970f3d9fbff4..e398054e55089497c329c6b7023de2f5132331e1 100644
+--- a/browser/ui/views/toolbar/brave_toolbar_view.cc
++++ b/browser/ui/views/toolbar/brave_toolbar_view.cc
+@@ -15,6 +15,7 @@
+ #include "brave/app/brave_command_ids.h"
+ #include "brave/browser/ui/views/location_bar/brave_location_bar_view.h"
+ #include "brave/browser/ui/views/toolbar/bookmark_button.h"
++#include "brave/browser/ui/brave_layout_constants.h"
+ #include "brave/components/constants/pref_names.h"
+ #include "chrome/app/chrome_command_ids.h"
+ #include "chrome/browser/browser_process.h"
+@@ -342,6 +343,16 @@ void BraveToolbarView::Layout(PassKey) {
+     ResetLocationBarBounds();
+     ResetBookmarkButtonBounds();
+   }
++
++  // FlyWeb: take kFlyWebLocationBarTopTrim off the top of the URL field. Done
++  // after both rects above, so it applies once per layout pass whether the
++  // wide address bar is on or off.
++  gfx::Rect location_bar_bounds = location_bar_view_->bounds();
++  if (location_bar_bounds.height() > kFlyWebLocationBarTopTrim) {
++    location_bar_bounds.Inset(
++        gfx::Insets::TLBR(kFlyWebLocationBarTopTrim, 0, 0, 0));
++    location_bar_view_->SetBoundsRect(location_bar_bounds);
++  }
+ }
+ 
+ void BraveToolbarView::ResetLocationBarBounds() {
+-- 
+2.43.0
+

@@ -1,0 +1,87 @@
+From f8e71f284a0ba3616d4844e31ca5098b2d197ccc Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 09:07:00 +0000
+Subject: [PATCH 10/11] FlyWeb 3.2.0 interface: inactive tab hover colors
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Titín (20-11): an inactive tab under the pointer is #EBEBEB in light
+mode and #585959 in dark mode, in both window states. Set in the FlyWeb
+tab text mixer, which runs last in the bravified tab strip mixer and is
+skipped for private and Tor windows (custom theme). Unit test extended.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ browser/ui/color/brave_color_mixer.cc           |  8 ++++++++
+ browser/ui/color/brave_color_mixers_unittest.cc | 12 ++++++++++++
+ browser/ui/color/color_palette.h                |  3 +++
+ 3 files changed, 23 insertions(+)
+
+diff --git a/browser/ui/color/brave_color_mixer.cc b/browser/ui/color/brave_color_mixer.cc
+index dc80a91113befbc87c68884c9d15af52be0ea341..1c9bd7a0b174d6d4ba6d431e283cba47dde94566 100644
+--- a/browser/ui/color/brave_color_mixer.cc
++++ b/browser/ui/color/brave_color_mixer.cc
+@@ -86,6 +86,14 @@ void AddFlyWebTabTextColorMixer(ui::ColorProvider* provider,
+   mixer[kColorTabForegroundInactiveFrameInactive] = ui::AlphaBlend(
+       {kColorTabForegroundActiveFrameInactive},
+       {kColorTabBackgroundInactiveFrameInactive}, kFlyWebInactiveTabTextAlpha);
++
++  // Inactive tab under the pointer (Titín, 20-11), in both window states.
++  mixer[kColorTabBackgroundInactiveHoverFrameActive] = {
++      key.color_mode == ui::ColorProviderKey::ColorMode::kDark
++          ? kFlyWebDarkInactiveTabHover
++          : kFlyWebLightInactiveTabHover};
++  mixer[kColorTabBackgroundInactiveHoverFrameInactive] = {
++      kColorTabBackgroundInactiveHoverFrameActive};
+ }
+ 
+ void AddChromeLightThemeColorMixer(ui::ColorProvider* provider,
+diff --git a/browser/ui/color/brave_color_mixers_unittest.cc b/browser/ui/color/brave_color_mixers_unittest.cc
+index cd9cefb8bb4955f983854a28d56b73e7a2944076..5f894f2cd2e779fb2d56ea30a56e71b95d831545 100644
+--- a/browser/ui/color/brave_color_mixers_unittest.cc
++++ b/browser/ui/color/brave_color_mixers_unittest.cc
+@@ -62,6 +62,12 @@ TEST_F(BraveColorMixersTest, FlyWebLightColors) {
+   EXPECT_EQ(color_provider().GetColor(kColorTabForegroundInactiveFrameActive),
+             color_utils::AlphaBlend(kFlyWebLightTabText, kLightFrame,
+                                     kFlyWebInactiveTabTextAlpha));
++  EXPECT_EQ(
++      color_provider().GetColor(kColorTabBackgroundInactiveHoverFrameActive),
++      kFlyWebLightInactiveTabHover);
++  EXPECT_EQ(
++      color_provider().GetColor(kColorTabBackgroundInactiveHoverFrameInactive),
++      kFlyWebLightInactiveTabHover);
+   EXPECT_EQ(color_provider().GetColor(kColorLocationBarBackground),
+             kFlyWebLocationBarBackground);
+ }
+@@ -82,6 +88,12 @@ TEST_F(BraveColorMixersTest, FlyWebDarkColors) {
+   EXPECT_EQ(color_provider().GetColor(kColorTabForegroundInactiveFrameActive),
+             color_utils::AlphaBlend(kFlyWebDarkTabText, kDarkFrame,
+                                     kFlyWebInactiveTabTextAlpha));
++  EXPECT_EQ(
++      color_provider().GetColor(kColorTabBackgroundInactiveHoverFrameActive),
++      kFlyWebDarkInactiveTabHover);
++  EXPECT_EQ(
++      color_provider().GetColor(kColorTabBackgroundInactiveHoverFrameInactive),
++      kFlyWebDarkInactiveTabHover);
+ 
+   if (kFlyWebLightOmniboxInDarkMode) {
+     // White URL field and popup, with dark text.
+diff --git a/browser/ui/color/color_palette.h b/browser/ui/color/color_palette.h
+index a00c48a4eb1ef991cd6ab9222793cda5e380d7a0..fb3c991530af0eccccca845c325f1c9a422837df 100644
+--- a/browser/ui/color/color_palette.h
++++ b/browser/ui/color/color_palette.h
+@@ -36,6 +36,9 @@ constexpr SkColor kFlyWebDarkTabText = SK_ColorWHITE;
+ // Inactive tabs: the active tab text at this opacity, composited over the tab
+ // strip so the result is opaque (Chromium's tab code expects opaque colors).
+ constexpr SkAlpha kFlyWebInactiveTabTextAlpha = 0x80;  // 50%
++// Inactive tab under the pointer (Titín, 20-11).
++constexpr SkColor kFlyWebLightInactiveTabHover = SkColorSetRGB(0xEB, 0xEB, 0xEB);
++constexpr SkColor kFlyWebDarkInactiveTabHover = SkColorSetRGB(0x58, 0x59, 0x59);
+ 
+ // URL field background, in light and dark mode.
+ constexpr SkColor kFlyWebLocationBarBackground = SK_ColorWHITE;
+-- 
+2.43.0
+
