@@ -75,6 +75,11 @@ LOG="$LOG_DIR/backupdrive.log"
 LOG_MAX=${BACKUPDRIVE_LOG_MAX:-5242880}
 DEFAULT_DAYS=90
 MAX_DELETE=${BACKUPDRIVE_MAX_DELETE:-10}
+# Primera sincronización: «newer» (por defecto) se queda con el más reciente; «path1» con el del Mac, y además las fechas
+# del Mac pasan a Drive en los ficheros iguales (si no, los del USB tomarían la fecha de su subida a Drive). El perdedor,
+# en los dos casos, queda en versiones.
+RESYNC_MODE=${BACKUPDRIVE_RESYNC_MODE:-newer}
+case "$RESYNC_MODE" in newer|path1) ;; *) echo "BACKUPDRIVE_RESYNC_MODE: newer o path1" >&2; exit 2 ;; esac
 DEFAULT_MOD_PCT=20
 DEFAULT_MOD_N=50
 BISYNC_DIR="$APP_DIR/bisync"
@@ -283,7 +288,7 @@ sync_profile() { # local remote días % nº
         || { log "No se pudo crear la carpeta $rem"; return 1; }
     fi
     # Solo copia. Sin historia no se puede decidir de otra forma; el perdedor queda en versiones.
-    set -- "$@" --resync --resync-mode newer
+    set -- "$@" --resync --resync-mode "$RESYNC_MODE"
   fi
   : > "$RUN_LOG"
   # </dev/null: que rclone no consuma las líneas restantes del fichero de perfiles.
