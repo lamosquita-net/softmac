@@ -462,3 +462,21 @@ MOTOR-47, 20-11. Solo la prueba; el navegador no cambia.
   (`ColorProviderManager::GetColorProviderFor`).
 - **Árbol:** sobre `b9f628b8a6` → **`db8f0061e3`**.
 - **Para LOCAL:** `brave_browser_tests --gtest_filter='BraveThemeServiceTest.OmniboxColorTest'`.
+
+## 0019: desplegable oscuro `#767676` (AA)
+
+MOTOR-47, 20-11. Decisión de Titín (DIRECTIVAS #1160): `#767676` con texto blanco en lugar de `#909294`. **Sin compilar.**
+
+| Elemento | Valor | Contraste del blanco |
+|---|---|---|
+| Fondo del desplegable | `#767676` | 4,54:1 (AA) |
+| Fila con el ratón encima | `#6A6A6A` (el fondo un 10 % hacia el negro; la receta de Chromium iría hacia el blanco, `#848484`, 3,7:1) | 5,4:1 |
+| Fila seleccionada | `#542671`, sin cambios | 11:1 |
+| Texto secundario, URL de las sugerencias, iconos | blanco | 4,54:1 sobre el fondo, 5,4:1 en hover |
+
+**Árboles:**
+- con `pendiente/brave-core/0005`: sobre `7b859e5d3f` → **`8c31284eda`** (árbol final de la 3.2.0);
+- sin él: sobre `db8f0061e3` → `1cfac37398`.
+
+**Para LOCAL:** `BraveColorMixersTest.*` (comprueba el hover nuevo) y `BraveThemeServiceTest.OmniboxColorTest`. Capturas en
+oscuro: desplegable abierto, una fila con el ratón encima y otra seleccionada con las flechas.
