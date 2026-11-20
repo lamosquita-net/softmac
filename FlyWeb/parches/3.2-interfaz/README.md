@@ -15,8 +15,8 @@ para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 00
 | `0005-FlyWeb-3.2.0-interface-Titin-s-toolbar-tab-and-bookm.patch` | H4 iconos | 11 `.icon` en `vector_icons/`, 4 propios en `app/vector_icons/`, ganchos del «+» y del «⌄», carpeta vectorial |
 | `0006-FlyWeb-3.2.0-interface-Shields-as-a-colored-shield-o.patch` | H4 escudo de Shields | `browser/ui/views/brave_actions/brave_shields_action_view.{h,cc}` |
 | `0007-FlyWeb-3.2.0-interface-private-window-toolbar-active.patch` | Ventana privada | Barra, pestaña activa y marco de la privada (`brave_color_mixer.cc`, `color_palette.h` y test de navegador). **Aparte**: LOCAL-19 compila 0001–0006 sin él |
-| `0008-FlyWeb-3.2.0-interface-stronger-URL-focus-glow-in-da.patch` | Ajuste 20-11 (1) | Brillo de la URL en oscuro: constantes propias (`brave_location_bar_view.cc`) |
-| `0009-FlyWeb-3.2.0-interface-URL-field-a-little-shorter-fr.patch` | Ajuste 20-11 (2) | URL 2 dip más baja por arriba (`brave_toolbar_view.cc`, `brave_layout_constants.h`, `brave_actions_container.cc`) |
+| `0008-FlyWeb-3.2.0-interface-URL-focus-glow-as-a-soft-inne.patch` | Ajuste 20-11 (1) | Brillo de la URL como sombra interior difuminada de 4 dip, igual en claro y oscuro (`brave_location_bar_view.cc`) |
+| `0009-FlyWeb-3.2.0-interface-URL-field-a-little-shorter-fr.patch` | Ajuste 20-11 (2) | URL 3 dip más baja por arriba (`brave_toolbar_view.cc`, `brave_layout_constants.h`, `brave_actions_container.cc`) |
 | `0010-FlyWeb-3.2.0-interface-inactive-tab-hover-colors.patch` | Ajuste 20-11 (3) | Hover de la pestaña inactiva (`brave_color_mixer.cc`, `color_palette.h` y su test) |
 | `0011-FlyWeb-3.2.0-interface-lower-favicon-and-title-on-in.patch` | Ajuste 20-11 (4) | Título y favicon de las inactivas 4 dip más bajos (chromium_src `tab.cc` y el parche de `tab.cc`) |
 
@@ -290,7 +290,7 @@ Depende de que Titín decida el marco claro, la URL clara y los iconos.
 
 ## Ajustes de Titín del 20-11 (0008–0011)
 
-MOTOR-46, por encargo de COORDINACIÓN-53. Diseño: `FlyWeb/branding/interfaz-3.2.0/ajustes-20-11/`. **Sin compilar.** Ninguno
+MOTOR-46, por encargo de COORDINACIÓN-53; 0008 y 0009 rehechos por MOTOR-47 el 20-11 con la maqueta del foco (#1140). Diseño: `FlyWeb/branding/interfaz-3.2.0/ajustes-20-11/`. **Sin compilar.** Ninguno
 toca la ventana privada ni la de Tor.
 
 **Orden:** van **después** de 0001–0007 de esta carpeta **y** de 0001–0004 de `FlyWeb/parches/3.2-ajustes-sistema/` (ya en
@@ -299,25 +299,25 @@ main), es decir, sobre el árbol `a0c808d485`. Con `git am`, en ese orden, aplic
 | Tras | Árbol |
 |---|---|
 | interfaz 0001–0007 + ajustes-sistema 0001–0004 | `a0c808d485` |
-| 0008 | `b127946356` |
-| 0009 | `7d533d1ef9` |
-| 0010 | `e0ff1d94a6` |
-| 0011 | `46c2d18b98` |
+| 0008 | `140d67f20f` |
+| 0009 | `45dd7aebd3` |
+| 0010 | `14f9b42b27` |
+| 0011 | `f6222babef` |
 
 | Ajuste | Qué se hizo | Constante (provisional) |
 |---|---|---|
-| 1. Brillo de la URL en oscuro | La URL es blanca en los dos modos, pero junto a la barra oscura el borde gris del brillo se confunde con lo de fuera. En oscuro (se mira el color de la barra al pintar) el brillo usa sus propias constantes | `kFlyWebOmniboxFocusGlowThicknessDark` = 3 dip, `kFlyWebOmniboxFocusGlowOpacityDark` = 0,55 (`brave_location_bar_view.cc`; las de claro no cambian) |
-| 2. URL más baja por arriba | `BraveToolbarView::Layout` quita esos dip del borde superior de la URL al final de cada pasada. La barra conserva su alto y la URL, su borde inferior. Los botones de Brave de la URL (Shields) se acortan lo mismo, para conservar su margen | `kFlyWebLocationBarTopTrim` = 2 dip (`brave_layout_constants.h`) |
+| 1. Brillo de la URL (los dos modos) | Sombra interior gris difuminada en los cuatro lados, como en `maqueta-claro-foco-hd.webp`: opacidad 0,37 junto al borde que se reduce a la mitad cada dip, 8 trazos de 0,5 dip, sin filtro de difuminado. A 1x, sobre blanco: ≈#DD, #EE, #F6, #FB (maqueta: DD, EE, F7, FD). El mismo dibujo en claro y en oscuro: la caja es blanca en los dos. Sustituye al 0008 de MOTOR-46 (3 dip y 0,55 solo en oscuro), que daba un borde más fuerte | `kFlyWebOmniboxFocusGlowThickness` = 4 dip, `kFlyWebOmniboxFocusGlowOpacity` = 0,37, `kFlyWebOmniboxFocusGlowHalvingDistance` = 1 dip, `kFlyWebOmniboxFocusGlowSteps` = 8 (`brave_location_bar_view.cc`) |
+| 2. URL más baja por arriba | `BraveToolbarView::Layout` quita esos dip del borde superior de la URL al final de cada pasada. La barra conserva su alto y la URL, su borde inferior. Los botones de Brave de la URL (Shields) se acortan lo mismo, para conservar su margen | `kFlyWebLocationBarTopTrim` = 3 dip (maqueta en alta del foco: la caja pasa de y=87 a y=90, abajo igual) (`brave_layout_constants.h`) |
 | 3. Hover de la pestaña inactiva | `kColorTabBackgroundInactiveHoverFrameActive/FrameInactive` en el mezclador de texto de pestañas de FlyWeb, que no se aplica a privada ni a Tor | `kFlyWebLightInactiveTabHover` #EBEBEB, `kFlyWebDarkInactiveTabHover` #585959 (`color_palette.h`) |
 | 4. Título y favicon de las inactivas más bajos | Favicon: el gancho de diseño que ya había en chromium_src `tab.cc`. Título: un gancho nuevo en `title_bounds` (`Tab::Layout`), una línea más en `patches/chrome-browser-ui-views-tabs-tab.cc.patch`. Al activarse, `Tab::ActiveStateChanged()` maqueta la pestaña al momento: suben sin animación. Solo la tira horizontal (las verticales de la 156 usan otras vistas) | `kFlyWebInactiveTabContentOffset` = 4 dip (chromium_src `tab.cc`; de la maqueta en alta de Titín, #1137: ~5–6 px de imagen con la URL a ~33) |
 
 ### Pasos para LOCAL
 
-Compilar sobre `a0c808d485` + 0008–0011 (árbol `46c2d18b98`). Pasar `BraveColorMixersTest.*` (0010 añade el hover en claro y
+Compilar sobre `a0c808d485` + 0008–0011 (árbol `f6222babef`). Pasar `BraveColorMixersTest.*` (0010 añade el hover en claro y
 en oscuro) y `LocationBarViewBrowserTest.FlyWebFocusGlowReplacesFocusRing`. Capturas a Titín, en claro y en oscuro, en la
 6,1 a 1x y en una Retina:
-1. **URL con foco en oscuro:** se ve el brillo interior. Comparar con claro, que no cambia.
-2. **URL:** la caja empieza 2 dip más abajo; el borde inferior y la altura de la barra no cambian; el desplegable de
+1. **URL con foco, en claro y en oscuro:** se ve la misma sombra interior difuminada en los cuatro lados (no un borde). LOCAL no puede dar el foco por SSH: lo comprueba Titín en la build. Si en oscuro no se ve nada (caja blanca pura junto al borde), avisar a MOTOR: entonces no se pinta y hay otra causa.
+2. **URL:** la caja empieza 3 dip más abajo; el borde inferior y la altura de la barra no cambian; el desplegable de
    sugerencias sigue pegado a la URL; el escudo de Shields y la estrella, centrados en la caja. Con y sin «barra de
    direcciones ancha».
 3. **Hover:** pasar el ratón por una pestaña inactiva da #EBEBEB (claro) y #585959 (oscuro), con la ventana con foco y sin

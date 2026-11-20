@@ -1,4 +1,4 @@
-From d040b105f64bf1e80c72b764d21cb0a9bf70d805 Mon Sep 17 00:00:00 2001
+From f8e71f284a0ba3616d4844e31ca5098b2d197ccc Mon Sep 17 00:00:00 2001
 From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
 Date: Fri, 20 Nov 2026 09:07:00 +0000
 Subject: [PATCH 10/11] FlyWeb 3.2.0 interface: inactive tab hover colors

@@ -1,8 +1,8 @@
-From 969f6e60cd179771ee4bffb5d6592885fccdf10b Mon Sep 17 00:00:00 2001
+From 7900c51c885f54014e75e9bc25abcaf65844e9d2 Mon Sep 17 00:00:00 2001
 From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
 Date: Fri, 20 Nov 2026 09:07:59 +0000
-Subject: [PATCH] FlyWeb 3.2.0 interface: lower favicon and title on inactive
- tabs
+Subject: [PATCH 11/11] FlyWeb 3.2.0 interface: lower favicon and title on
+ inactive tabs
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
