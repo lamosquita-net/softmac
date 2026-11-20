@@ -28,3 +28,14 @@ mide ~33 px de alto, que da la escala):
 
 **Aclaración de Titín:** el selector que pedía es el de **interfaz en claro / oscuro / como el sistema**, en «Aspecto»
 (arreglado con el 0004). «Personalizar fuentes» se queda en «Contenido», como está.
+
+## URL con foco (maqueta `maqueta-claro-foco-hd.webp`, 20-11)
+
+Titín: «la caja de URL con foco sale con un flou interior oscuro»; y la caja, algo más baja, con más espacio por arriba.
+Medidas sobre la maqueta (claro, misma escala que las anteriores):
+- **Alto:** la caja empieza en y=90 (antes 87) y acaba igual en 119: **3 px menos, todos por arriba** (≈ 3 dip).
+- **Flou interior con foco:** sombra interior gris difuminada de ~3–4 px en los cuatro lados; lo más oscuro, junto al borde,
+  ≈ #DD sobre el blanco, y se desvanece hacia dentro (arriba: EF, EB, F1, FB, FF; abajo: E0, EC, F9, FD; lados: DD, EE,
+  F7, FD).
+- **En oscuro** tiene que verse **el mismo flou** dentro de la caja blanca (petición 1). No es un borde ni un brillo
+  más fuerte.
