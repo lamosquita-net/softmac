@@ -251,10 +251,10 @@ sync_profile() { # local remote días % nº
   # decenas de miles (drive.md: 10600 carpetas, 22 min -> 58 s). BACKUPDRIVE_FAST_LIST=0 vuelve al listado carpeta a carpeta.
   [ "${BACKUPDRIVE_FAST_LIST:-1}" = 1 ] && set -- "$@" --fast-list
   [ -f "$FILTERS" ] && set -- "$@" --filters-file "$FILTERS"
-  # Basura de macOS y de la red que nunca se sincroniza (como hacía FreeFileSync en MacTrash). «.smbdelete*» lo deja
+  # Basura de macOS, de la red y de Office («~$…», bloqueos de Word/Excel) que nunca se sincroniza (como hacía FreeFileSync en MacTrash). «.smbdelete*» lo deja
   # el servidor SMB al borrar un fichero abierto desde otro equipo. BACKUPDRIVE_DEFAULT_EXCLUDES=0 lo desactiva.
   if [ "${BACKUPDRIVE_DEFAULT_EXCLUDES:-1}" = 1 ]; then
-    for x in .DS_Store '._*' '.smbdelete*' '.TemporaryItems/**' '.Trashes/**' '.fseventsd/**' '.Spotlight-V100/**' \
+    for x in .DS_Store '._*' '.smbdelete*' '~$*' '.TemporaryItems/**' '.Trashes/**' '.fseventsd/**' '.Spotlight-V100/**' \
              '.DocumentRevisions-V100/**'; do
       set -- "$@" --exclude "$x"
     done

@@ -199,13 +199,14 @@ printf '%s\n' "$MAC4|fake:$DRIVE4|90|20|5" >> "$BACKUPDRIVE_DIR/profiles"
 # En un subshell: con /bin/sh de macOS (bash POSIX), «VAR=x función» deja VAR puesta después de la llamada.
 (BACKUPDRIVE_DEFAULT_EXCLUDES=0; export BACKUPDRIVE_DEFAULT_EXCLUDES; run --profile "$MAC4" --resync)
 has "$DRIVE4/._g1.txt" "sin exclusiones por defecto, ._g1.txt sube (preparación)"
-echo sd > "$MAC4/.smbdeleteAAA1"
+echo sd > "$MAC4/.smbdeleteAAA1"; echo lk > "$MAC4/~\$g2.docx"
 run --profile "$MAC4"
 [ "$(result)" = ok ] && ok "al activar las exclusiones, pasada ok" || fail "al activar las exclusiones ($(result))"
 has "$MAC4/._g1.txt" "al activar las exclusiones, ._g1.txt sigue en el Mac"
 has "$DRIVE4/._g1.txt" "al activar las exclusiones, ._g1.txt sigue en Drive (no se borra)"
 hasnt "$DRIVE4/.smbdeleteAAA1" ".smbdelete no sube"
 has "$MAC4/.smbdeleteAAA1" ".smbdelete sigue en el Mac"
+hasnt "$DRIVE4/~\$g2.docx" "el bloqueo de Word (~\$…) no sube"
 
 # --- 15. Primera sincronización «path1»: gana el Mac y sus fechas pasan a Drive; lo de Drive queda en versiones ---
 MAC5="$T/mac5"; DRIVE5="$T/drive5"; mkdir -p "$MAC5/sub" "$DRIVE5/sub"
