@@ -6,6 +6,7 @@ fc9ad429bafa1fd2d08b1d2dfa240048131616f6138c00295428f34f19a109c9  chromium/0003-
 22d17e8705309017a45cecf64baf243548274d6f581de51ec50e6fae4d275718  chromium/0005-M156-SimpleCache-Prevent-doomed-entries-from-mutatin.patch
 0f8705089e2812ac3ad5a9e562c7fca021f10159c6b8aa965f0ab1e10e6f1e60  chromium/0006-M156-Reland-Update-last-committed-service-worker-cli.patch
 9a839604f6c332c6da815f5f54440d2c22434f539416bc13d9943d1d574855f7  chromium/0007-M156-Blink-Zero-initialize-ImageDataBuffer-readback-.patch
+8a651a78269d1a71f4e725f7608c75761bd633d5cddf9c902ca8855ffd6a56c4  chromium/0008-M156-Ensure-clean-style-and-slot-assignments-before-.patch
 32148aba783ff8e1f953537a59e1ab65814178224e71f414ec3dc048e8a2ffce  brave-core/0001-v8-pending-d68cecd900-15.6.75.72-crbug-583479274.patch
 b873300c20741b1b3f063aaeca6edccadbbbaa7942021dbeabec51724a02d6aa  brave-core/0002-v8-pending-a0f2c9f8c3-M159-merge-27e138a575-crbug-58.patch
 3fe518ca005838c4fb977b45e5b4d0e5c4ce67291433e8dc595c188d21369188  brave-core/0003-v8-pending-ceb90d38eb-15.6.75.74-SHA-256-code-cache-.patch

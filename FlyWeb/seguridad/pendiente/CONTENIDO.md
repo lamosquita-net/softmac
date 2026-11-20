@@ -19,7 +19,7 @@ Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0007` | **`1b06f59f4d`** (tras `0006`: `064a5696b2`; tras `0005`: `a9b357bc47`; tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`; tras `0004`: `a621f0a668`) |
+| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0008` | **`90418ba4fd`** (tras `0007`: `1b06f59f4d`; tras `0006`: `064a5696b2`; tras `0005`: `a9b357bc47`; tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`; tras `0004`: `a621f0a668`) |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
 | brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001`–`0004` | **`29d6bcf5e3`** (tras `0001`: `90134a4e08`; tras `0002`: `639401fb8e`; tras `0003`: `0caa04c2dd`) |
 | brave-core (3.2.0) | lo anterior + `FlyWeb/parches/3.2-v8/0001`–`0002` (#1144, `1e978ba37c`): **`78514b92af`** | `brave-core/0005` (va **detrás** de `3.2-v8/0002`) | **`78df46b5d6`** (V8 con todos los `patches/v8`: `9914512d91`) |
@@ -65,6 +65,7 @@ la base nueva ya los traiga.
 | V8 15.6 `f08ef923d3` (.76, 16:59 UTC) | **c37ab55c4a** [M156] «[sandbox] Bound length in String::ToStdString and ToCString» (579314138, 585869521; merge 587681388) | Sí | `brave-core/0005` |
 | `04c385f13f` (20-11 18:31 UTC) | *Roll* de V8 `751cfac05f..f08ef923d3` (= la .76 de arriba) | — | `brave-core/0005` |
 | `7ec583a50d` (20-11 18:41 UTC) | [M156] «[Blink] Zero-initialize ImageDataBuffer readback buffer» (585617234, merge 587682327) | Sí (abajo) | `chromium/0007` |
+| `8dceb29b09` (20-11 19:07 UTC) | [M156] «Ensure clean style and slot assignments before canvas transform update» (584385833, merge 586066876), `core/dom/element.cc` | Sí (abajo) | `chromium/0008` |
 
 **Tag 156.0.8078.112 = `880ca0428f`** (visto el 20-11 a las 03:24 UTC; la rama sigue en .113 desde `e2352b4cf6`, solo
 `chrome/VERSION`). Todo lo de `.111` (`c22b215559`, base de la build 47) a `.112` está en esta tabla: con `pendiente/`
@@ -282,6 +283,27 @@ Es el arreglo de Chrome 156 sin cambios. Efecto visible: ninguno; si la lectura 
 transparente o negra en vez de con basura. Prueba: `blink_platform_unittests
 --gtest_filter='AcceleratedStaticBitmapImageTest.*'` (trae una prueba nueva) y, en la build, `canvas.toDataURL()` de un
 canvas WebGL o 2D acelerado.
+
+## `chromium/0008`: 8dceb29b09 (bug 584385833, merge 586066876)
+
+`InvalidateForCanvasTransformChange` llamaba a `PaintLayer::UpdateTransform()` con el estilo y las asignaciones de
+*slots* sucios. Desde `ComputedStyle::ApplyTransform()` eso podía disparar una asignación de *slots* y una
+actualización de estilo anidada, que reiniciaba `PaintLayer::transform_` mientras la llamada exterior aún tenía una
+referencia: un **UAF en el *renderer***. El arreglo actualiza antes el árbol de estilo y *layout*
+(`Document::UpdateStyleAndLayoutTree()`) y toma el `LayoutObject` después. Se alcanza desde cualquier web, con
+`<canvas>` y *shadow DOM*/*slots*. Aplica a Mac.
+
+- Mismo diff que upstream (`patch-id` igual). Aplica limpio sobre `1b06f59f4d`. brave-core no toca `element.cc`.
+- Comprobado: `git apply --cached` sobre `1b06f59f4d` da el árbol **`90418ba4fd`**. El porte de `portes-159/0001`
+  (#1159, menús) sigue aplicando encima: son ficheros distintos.
+- **Gravedad: no consta** (bug restringido).
+
+### Veredicto (regla 17): **APTO**, `chromium/0008`
+
+Es el arreglo de Chrome 156 sin cambios. Efecto visible: ninguno. Puede añadir una actualización de estilo cuando
+cambia la transformación de un canvas, lo mismo que hace Chrome 156. Prueba: `blink_unittests
+--gtest_filter='*Canvas*Transform*:*ElementTest*'` y, en la build, una página con canvas dentro de un *shadow root*
+con `<slot>` que cambia `transform` (p. ej. la galería de pruebas de *Web Platform Tests* `css/css-transforms`).
 
 ## `brave-core/0001`: V8 d68cecd900 (bugs 583479274 y 587681789; V8 15.6.75.72)
 
@@ -587,6 +609,11 @@ aplicando, salvo que llegue antes a la 8078 como merge M156 (entonces va arriba,
 | `41c9a648fb` (20-11 11:20 UTC) | [M159] «Enforce worker script origin match for ServiceWorker clients» (585383394, merge 587681032), `content/browser/service_worker` y `worker_host` | Sí (proceso del navegador; exige un *renderer* comprometido) | Candidato; sin parche: el código vulnerable está en la 156 (`service_worker_client.cc`, `WithOrigin()` en las líneas 665 y 679), pero el diff **no aplica** sobre `a9b357bc47` (5 de 7 ficheros con *hunks* rechazados): si llega a la 8078, a `pendiente/` |
 | V8 15.9 `fcaf218c74` (15.9.128.22, 13:15 UTC) | **202e0e7f26** [M159] «[interpreter] Initialize receiver on optional-chain call short-circuit» (585614984, merge 587681919) | Sí (intérprete, Maglev y TurboFan) | **Excepción: preparado ya** como `brave-core/0004` (abajo), sin esperar al merge en la 15.6 |
 | `afa45b8e16` (20-11 18:06 UTC) | [M159] «views: Fix FOR_DROP menu drag and drop teardown UAF» (565066840, merge 588202414), `ui/views/controls/menu` | Sí (proceso del navegador; hace falta arrastrar algo a un menú abierto para soltar) | Candidato; sin parche. El código vulnerable **está en la 156**: en `GetDropCallback`, tras `OnMenuClosed` (que borra `this`) se sigue usando, y `OnDragUpdated` devuelve la operación con `destroy_pending_`. El diff no aplica tal cual solo por contexto (`DCHECK` frente a `CHECK(…, NotFatalUntil::M163)`); el arreglo son dos líneas. Si llega a la 8078, a `pendiente/` |
+| `d54c6b5d5d`, `969701a32a` (20-11 19:00–19:23 UTC) | [M159] ImageDataBuffer (585617234) y transformación del canvas (584385833) | Sí | Llegaron a la 8078 como `7ec583a50d` y `8dceb29b09` → `chromium/0007` y `0008` |
+| `b079c8f6c8` (20-11 19:34 UTC) | [M159] «SchemeHostPort: Reject empty host for non-file SCHEME_WITH_HOST schemes» (586171393, merge 588196490), `url/` | Sí (validación de IPC: un `SchemeHostPort`/`Origin` con host vacío recibido por IPC podía confundir la navegación) | Candidato; sin parche. **Aplica limpio** sobre `90418ba4fd`. Si llega a la 8078, a `pendiente/` |
+| `6738e48e6c` (20-11 18:55 UTC) | [M159] «[BreakoutBox] Add a closed attribute to FrameQueue» (585500473, 560113909) | Sí, pero es una fuga de contabilidad de `VideoFrameMonitor`, no de memoria | Candidato; sin parche. No aplica tal cual (3 ficheros) |
+| `384f43c711` (20-11 19:43 UTC) | [M159] Revert de un `CHECK_GE` a `DCHECK_GE` en `CreateWebTouchPoint` | — (quita un cierre, no arregla un fallo) | — |
+| V8 15.9 `ee7bdd086c` (15.9.128.24, 19:50 UTC) | **0cb2a47092** [M159] «[wasm][streaming] Defer streaming completion to foreground task» (580857997, merge 586791986) | Sí (`WebAssembly.compileStreaming`) | Candidato; sin parche. Está en la 15.6 (`PostNonNestableTask`, requisito previo, presente), pero 2 de 4 ficheros no aplican y la prueba vive en otro sitio en la 15.6. Porte ofrecido a COORDINACIÓN |
 
 **`690f348e8d`** (SEGURIDAD-PORTES-33, 20-11): `SessionImpl::AddContextImpl()` y `OnDeviceContext::SetInput()`
 ejecutan `callback_` de forma síncrona, y `AIManager` guarda en ese *callback* la propiedad de la `OnDeviceSession`
