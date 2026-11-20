@@ -448,3 +448,17 @@ oscuro, ventana normal y privada:
 2. URL con foco, sin desplegable.
 3. URL con el desplegable abierto y una fila seleccionada con las flechas.
 4. Ampliada, el borde de la caja con el desplegable abierto (para la línea de 1 px).
+
+## 0018: `OmniboxColorTest` en oscuro (bt-320f)
+
+MOTOR-47, 20-11. Solo la prueba; el navegador no cambia.
+
+- **Fallo:** en bt-320f, `BraveThemeServiceTest.OmniboxColorTest` falla en oscuro. Espera `#4D4D4D` y `#909294` y lee
+  `#FFFFFF`. En pantalla el oscuro está bien (LOCAL-21: caja `#4D4D4D`).
+- **Causa:** en Mac, `SetBraveDarkModeType()` solo cambia la apariencia de `NSApp`, y el tema nativo la sigue más tarde.
+  El proveedor de la ventana seguía siendo el claro: es la misma causa que en `ThemeObserverTest` y
+  `SystemThemeChangeTest`. Hasta la 3.2.0 la caja oscura era blanca como la clara, así que la prueba pasaba por casualidad.
+- **Arreglo:** los colores oscuros se leen del proveedor de la clave de la propia ventana con el modo oscuro
+  (`ColorProviderManager::GetColorProviderFor`).
+- **Árbol:** sobre `b9f628b8a6` → **`db8f0061e3`**.
+- **Para LOCAL:** `brave_browser_tests --gtest_filter='BraveThemeServiceTest.OmniboxColorTest'`.
