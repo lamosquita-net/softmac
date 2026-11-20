@@ -7,6 +7,51 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 20-11 (mañana): COORDINACIÓN-53 → COORDINACIÓN-54 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-53 (`session_01MwmK2hDFxpvnFEeC9c3ji7`, 19-11 ~22:15 → 20-11 ~10:50 UTC, relevo al 41 %). La 54 la abre la 53.
+**Todo en español, siempre.** **Nunca llamar a confirm_repository_trust.** Decisiones de Titín en DIRECTIVAS (#1127, #1143).
+
+**En marcha: 3.2.0 COMPLETA de prueba (bt-320e).** Orden a LOCAL-21 en el buzón (`20261120-1047…-320-completa-LOCAL-21.md`).
+brave-core: e660929ac9 + interfaz 0001–0007 → ajustes-sistema 0001–0004 → interfaz 0008–0013 (#1138, faf01581a1) →
+fijadas 0001 (#1142, 138f4ea8e7) → sync-cuenta 0001–0011 → pendiente/brave-core/0001 → 3.2-v8 0001–0002 (#1144,
+b76f3410d9; ieee754 y kFlyWebCacheEpoch 37→38) = **árbol final 612c201d14** (MOTOR-47). chromium e7162cd585 + pendiente
+0001–0005 → a9b357bc47 + renderer-webgl 0001–0002; ANGLE → fb21437e81; Skia → 1ef25455d7 (SEGURIDAD-PORTES-33). Sin cambiar
+versión (lo decide Titín). Cuando LOCAL-21 avise: decir a Titín que apruebe bt-320e en LuLu (si no, no carga).
+- APTO de SEGURIDAD: renderer-webgl/0002 (desde #949) y sync-cuenta/0011 (desde #1032). Para PUBLICAR siguen dos
+  condiciones: pendiente/brave-core/0001 solo con D8-LINUX en verde, y la subida de época (ya en #1144).
+- PR sin fusionar a propósito hasta la prueba de bt-320e: **#1110** (interfaz), **#1138** (base = rama de #1110; cambiar a
+  main al fusionar #1110), **#1142** (fijadas), **#1144** (v8/época). Fusionar en ese orden tras revisar diffs.
+
+**Revisión de Titín de la interfaz (20-11):**
+- Selector de tema en «Aspecto» arreglado (0004, #1135). «Personalizar fuentes» se queda en «Contenido» (decisión).
+- Ajustes en `FlyWeb/branding/interfaz-3.2.0/ajustes-20-11/` (#1136, #1137, #1140, con maquetas en alta). Hechos en
+  0008–0013: sombra interior de la URL siempre por dentro (hover 0,20, foco 0,37; se invierte con dos constantes), URL 3 dip
+  más baja por arriba, hover de la inactiva #EBEBEB/#585959 con silueta de pestaña hasta la base, título y favicon de las
+  inactivas 4 dip más abajo. Titín los ve en bt-320e. Pendiente de él: radio 3 dip, escudo, iconos, ⋮ grupos, Apps,
+  tarjeta de hover (la diseña él), borde fino de la URL sin foco en oscuro (no montado; preguntarle).
+- Webs de prueba: **elpais, eldiario.es, youtube, wikipedia**; nunca apuestas ni marca.com (DIRECTIVAS #1143).
+
+**Abierto con Titín:**
+- Fijadas: el arreglo del refresco entra en la 3.2.0 (#1142). Sigue sin explicar la fijada en blanco aunque se recargue:
+  pedirle captura, en qué ventana recarga y `flyweb://discards`. Alternativa sin compilar: apagar «Compartir pestañas
+  fijadas entre ventanas» (decisión suya).
+- Contraseñas: dialnet no ofrece guardar (3.1.4, 7,1, dos FlyWeb sincronizadas). Se le pidió mirar «Ofrecer guardar
+  contraseñas» y la lista «Nunca guardar» en `flyweb://password-manager/settings`, y si la mete en el login o en cambio de
+  contraseña. Sin respuesta. Si los dos ajustes están bien → MOTOR-47 + SEGURIDAD.
+- Versión de Chrome a declarar en la siguiente: recomendado .112 (tag 880ca0428f); decide Titín. Gravedades de la .112
+  sin publicar en Chrome Releases.
+
+**Seguridad:** pendiente/ = chromium 0001–0005, angle 0001, brave-core 0001, skia 0001–0003 (#1129, #1133, #1134, #1141).
+Nada Alto/Crítico/KEV: no hay 3.1.5. Puede llegar chromium/0006 (CacheStorage cc42b75af2).
+
+**Sesiones:** MOTOR-47 `session_01MwmK2hjxRPyuefYzGRoZRk` (abierta por la 53; nota de MOTOR-46 en #1138), SEGURIDAD-PORTES-33
+`session_01MwmK2kdhDkMC93UBtLuPkF` (vigila cada hora), INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG`,
+SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`. Quietas: MOTOR-46, SEGURIDAD-PORTES-32, COORDINACIÓN-52.
+Locales por el buzón: **LOCAL-21** (bridge «LOCAL-21 relevo en MacPro7,1», ref 9d9f5f; el cartero entregó una vez a la
+antigua «Local (21)» 36698c: vigilarlo), PUBLICACIÓN, SERVIDOR-LOCAL, ARQUITECTURA, cartero. En la 6,1 abiertas para
+Titín: bt-320a, bt-320b, bt-320c (no cerrar sin él).
+
 ## 19-11 (noche): COORDINACIÓN-52 → COORDINACIÓN-53 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-52 (`session_01MwmK2iHT1aVuS17rvqWH3K`, 19-11 ~18:07 → ~22:15 UTC, relevo al 34 %). La 53 la abre la 52.
