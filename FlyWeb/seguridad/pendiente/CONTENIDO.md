@@ -22,6 +22,7 @@ Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1
 | chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0006` | **`064a5696b2`** (tras `0005`: `a9b357bc47`; tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`; tras `0004`: `a621f0a668`) |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
 | brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001`–`0004` | **`29d6bcf5e3`** (tras `0001`: `90134a4e08`; tras `0002`: `639401fb8e`; tras `0003`: `0caa04c2dd`) |
+| brave-core (3.2.0) | lo anterior + `FlyWeb/parches/3.2-v8/0001`–`0002` (#1144, `1e978ba37c`): **`78514b92af`** | `brave-core/0005` (va **detrás** de `3.2-v8/0002`) | **`78df46b5d6`** (V8 con todos los `patches/v8`: `9914512d91`) |
 | Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001`–`0003` | **`1ef25455d7`** (tras `0001`: `32f1340fb3`; tras `0002`: `47b14cb49e`) |
 
 Si la siguiente versión cambia de base (p. ej. la 3.2.0 o la 159), **hay que volver a comprobar que aplican**; puede que
@@ -60,6 +61,8 @@ la base nueva ya los traiga.
 | `baba8daae1` (20-11 12:28 UTC) | [M156] Reland «Update last committed service worker client on navigation commit» (581369093, merge 587226523) | Sí (abajo) | `chromium/0006` |
 | `581e177a60` (20-11 15:14 UTC) | *Roll* de V8 `c4641b4cbe..18cf2b9282` (= la .74 de arriba) | — | `brave-core/0003` |
 | V8 15.6 `751cfac05f` (.75, 15:34 UTC) | **01a299bf4c** [M156] «[compiler] Preserve control inputs on non-cell context operations» (585625642, merge 587680540) | Sí | `brave-core/0002` (**idéntico**, abajo) |
+| `9ebc6bd712` (20-11 16:32 UTC) | *Roll* de V8 `18cf2b9282..751cfac05f` (= la .75 de arriba) | — | `brave-core/0002` |
+| V8 15.6 `f08ef923d3` (.76, 16:59 UTC) | **c37ab55c4a** [M156] «[sandbox] Bound length in String::ToStdString and ToCString» (579314138, 585869521; merge 587681388) | Sí | `brave-core/0005` |
 
 **Tag 156.0.8078.112 = `880ca0428f`** (visto el 20-11 a las 03:24 UTC; la rama sigue en .113 desde `e2352b4cf6`, solo
 `chrome/VERSION`). Todo lo de `.111` (`c22b215559`, base de la build 47) a `.112` está en esta tabla: con `pendiente/`
@@ -383,6 +386,34 @@ Se alcanza con JavaScript normal de cualquier web. Aplica a Mac.
 ### Veredicto (regla 17): **APTO** (condicionado a D8-LINUX en verde, también en *debug*), `brave-core/0004`
 
 Es el arreglo de upstream, con un único *hunk* reanclado por contexto. Efecto visible: ninguno.
+
+## `brave-core/0005`: V8 c37ab55c4a (V8 15.6.75.76; bugs 579314138 y 585869521)
+
+Endurece el sandbox de V8. Una cadena corrompida dentro del sandbox (un `ConsString` con longitud falsa de 0x55555555
+y caracteres de 3 bytes en UTF-8) hacía que `String::ToStdString()` y `ToCString()` calcularan 0xFFFFFFFF bytes. ICU
+truncaba ese tamaño a -1 y acababa escribiendo fuera de límites (`ultag_parse`, vía `Intl`). El arreglo son dos
+`SBXCHECK_LE(length, String::kMaxLength)`, que acotan el tamaño por debajo de `INT32_MAX`. Para explotarlo hace falta
+haber corrompido ya la memoria del sandbox, es decir, otro fallo previo: es una defensa en profundidad. Aplica a Mac:
+FlyWeb compila con el sandbox de V8.
+
+- Aplicado sobre la 15.6.75.66 (con todos los `patches/v8` de la 3.2.0), da `string.cc` y las dos pruebas **idénticos
+  byte a byte** a upstream en la .76. Ningún `patches/v8` toca `string.cc`. `SBXCHECK_LE` y `String::kMaxLength` ya
+  están en la .66.
+- **Orden:** va **detrás de `3.2-v8/0002`** (la época de la 3.2.0, #1144), no detrás de `0004`. Así no hay que volver a
+  regenerar la nota de MOTOR-47 en `FLYWEB-SECURITY.md`. Las series de la 3.2.0 que vienen después no tocan
+  `patches/v8`.
+- Comprobado: `git apply --cached` sobre `78514b92af` (`pendiente/0001`–`0004` + `3.2-v8/0001`–`0002`) da
+  **`78df46b5d6`**. Con todos los `patches/v8`, el árbol de V8 es **`9914512d91`**.
+- **Época de caché:** no hace falta. Solo cambia C++ del *runtime*, no el *bytecode* ni el código generado, y la subida
+  a 38 de la 3.2.0 cubre la versión igualmente.
+- **Gravedad: no consta** (bug restringido).
+- **Falta, antes de entrar (D8-LINUX):** d8 y las pruebas `sandbox/regress/regress-579314138-1` y `-2`. Necesitan
+  `--sandbox-testing`; si la build no lo tiene, se dice y se dan por no probadas.
+
+### Veredicto (regla 17): **APTO** (condicionado a D8-LINUX en verde), `brave-core/0005`
+
+Es el cambio de la 15.6.75.76 sin tocar nada. Efecto visible: ninguno, salvo que una cadena ya corrompida cierra el
+proceso en vez de escribir fuera de límites.
 
 ## Dawn `6d772bc9e5c5..062164c3c784` (roll `ff774db0a2`): no aplica
 
