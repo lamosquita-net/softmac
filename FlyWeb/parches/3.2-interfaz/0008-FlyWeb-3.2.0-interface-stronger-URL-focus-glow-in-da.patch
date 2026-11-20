@@ -1,0 +1,86 @@
+From c7f8bfe54cf32d87200038e1ec88ffa5306dbf2e Mon Sep 17 00:00:00 2001
+From: "MOTOR-46 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 09:05:38 +0000
+Subject: [PATCH 08/11] FlyWeb 3.2.0 interface: stronger URL focus glow in dark
+ mode
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Titín (20-11): the inner glow of the focused URL field did not show in
+dark mode. The field is white in both modes, but next to the dark
+toolbar the soft gray edge reads as part of the outside. Dark mode,
+read from the toolbar color the field sits on, now uses its own
+provisional constants (3 dip, 0.55 opacity) next to the light ones.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ .../location_bar/brave_location_bar_view.cc   | 22 ++++++++++++++++---
+ 1 file changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/browser/ui/views/location_bar/brave_location_bar_view.cc b/browser/ui/views/location_bar/brave_location_bar_view.cc
+index de91beaaa43719812114fbce0b89b466a0e2a501..5d84485255c70cf5bd5148dd2b9cbc80c47b29d0 100644
+--- a/browser/ui/views/location_bar/brave_location_bar_view.cc
++++ b/browser/ui/views/location_bar/brave_location_bar_view.cc
+@@ -26,6 +26,7 @@
+ #include "chrome/browser/themes/theme_service_factory.h"
+ #include "chrome/browser/ui/layout_constants.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
++#include "chrome/browser/ui/color/chrome_color_id.h"
+ #include "chrome/browser/ui/omnibox/omnibox_controller.h"
+ #include "chrome/browser/ui/omnibox/omnibox_edit_model.h"
+ #include "chrome/browser/ui/omnibox/omnibox_theme.h"
+@@ -40,7 +41,9 @@
+ #include "ui/base/metadata/metadata_impl_macros.h"
+ #include "ui/base/resource/resource_bundle.h"
+ #include "ui/compositor/layer.h"
++#include "ui/color/color_provider.h"
+ #include "ui/gfx/canvas.h"
++#include "ui/gfx/color_utils.h"
+ #include "ui/gfx/geometry/rect_f.h"
+ #include "ui/gfx/geometry/size.h"
+ #include "ui/gfx/geometry/skia_conversions.h"
+@@ -64,6 +67,12 @@ constexpr float kFlyWebOmniboxFocusGlowOpacity = 0.30f;
+ // Number of rings that draw the fade. Plain strokes, no blur filter, so the
+ // cost is the same on old GPUs (MacPro5,1).
+ constexpr int kFlyWebOmniboxFocusGlowSteps = 4;
++// Dark mode (Titín, 20-11: the glow did not show). The field is white in both
++// modes, but next to the dark toolbar the soft gray edge reads as part of the
++// outside, so dark mode uses a wider and stronger glow. Provisional values,
++// to be adjusted with Titín on the build.
++constexpr float kFlyWebOmniboxFocusGlowThicknessDark = 3.0f;
++constexpr float kFlyWebOmniboxFocusGlowOpacityDark = 0.55f;
+ 
+ // Transparent view on top of the location bar children that paints the inner
+ // glow. It must be above the omnibox textfield, which has an opaque
+@@ -86,8 +95,15 @@ class FlyWebOmniboxFocusGlowView : public views::View {
+ 
+   // views::View:
+   void OnPaint(gfx::Canvas* canvas) override {
+-    const float step =
+-        kFlyWebOmniboxFocusGlowThickness / kFlyWebOmniboxFocusGlowSteps;
++    // Dark mode is read from the toolbar the field sits on.
++    const bool dark =
++        GetColorProvider() &&
++        color_utils::IsDark(GetColorProvider()->GetColor(kColorToolbar));
++    const float thickness = dark ? kFlyWebOmniboxFocusGlowThicknessDark
++                                 : kFlyWebOmniboxFocusGlowThickness;
++    const float max_opacity = dark ? kFlyWebOmniboxFocusGlowOpacityDark
++                                   : kFlyWebOmniboxFocusGlowOpacity;
++    const float step = thickness / kFlyWebOmniboxFocusGlowSteps;
+     cc::PaintFlags flags;
+     flags.setAntiAlias(true);
+     flags.setStyle(cc::PaintFlags::kStroke_Style);
+@@ -102,7 +118,7 @@ class FlyWebOmniboxFocusGlowView : public views::View {
+       // Quadratic fade from the edge inwards.
+       const float fade =
+           1.0f - static_cast<float>(i) / kFlyWebOmniboxFocusGlowSteps;
+-      const float opacity = kFlyWebOmniboxFocusGlowOpacity * fade * fade;
++      const float opacity = max_opacity * fade * fade;
+       flags.setColor(SkColorSetA(kFlyWebOmniboxFocusGlowColor,
+                                  base::ClampRound<SkAlpha>(opacity * 255)));
+       canvas->DrawRoundRect(ring, std::max(corner_radius_ - inset, 0.0f),
+-- 
+2.43.0
+

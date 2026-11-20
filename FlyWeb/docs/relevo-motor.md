@@ -4,9 +4,12 @@ MOTOR-46 (`session_01MwmK2juPkbC58kEi4QFeyU`) responde a **COORDINACIÓN-53** (`
 brave-core es **solo lectura**: se entrega con `git format-patch --full-index` en softmac. El clon local de trabajo es
 `/home/user/lamosquita-net/brave-core`; las ramas locales no se suben.
 
-**Fusionado (todo en main):**
-- `FlyWeb/parches/3.2-interfaz/` 0001–0007 (#1110) sobre `local/3.1.4` e660929ac9, punta de la serie `ddac171538`
-  (rama local `nube/interfaz-3.2.0-privada`). Árboles en su README.
+**Interfaz, sin fusionar:** `FlyWeb/parches/3.2-interfaz/` 0001–0007, en #1110 (rama `claude/motor46-interfaz-3.2.0`,
+abierto, a la espera de Titín), sobre `local/3.1.4` e660929ac9. Punta de la serie `ddac171538` (rama local
+`nube/interfaz-3.2.0-privada`); árboles en su README. Los ajustes del 20-11 (0008–0011) van en un PR aparte, basado en esa
+rama.
+
+**Fusionado (en main):**
 - `FlyWeb/parches/3.2-ajustes-sistema/` 0001–0004 (#1122, #1128, #1135), sobre la interfaz o sobre e660929ac9:
   - 0001: CommandsService en el broker de SettingsUI, más el `static_assert` de SEGURIDAD;
   - 0002: fila de tema;
@@ -18,8 +21,10 @@ brave-core es **solo lectura**: se entrega con `git format-patch --full-index` e
 - Descartados ya: ThemeObserverTest y SystemThemeChangeTest fallan igual sin la serie (3.1.3 y 3.0.1). Que «Personalizar
   fuentes» marque «Contenido» es una decisión de Brave (`brave_routes.ts:59-64`).
 
-**En curso: ajustes de Titín del 20-11** (`FlyWeb/branding/interfaz-3.2.0/ajustes-20-11/README.md`). Van como 0008+ de
-`3.2-interfaz`, sobre a0c808d485, en un PR en borrador; sin tocar privada ni Tor. Diagnóstico hecho, aún sin montar:
+**Ajustes de Titín del 20-11** (`FlyWeb/branding/interfaz-3.2.0/ajustes-20-11/README.md`): **montados** como 0008–0011 de
+`3.2-interfaz`, sobre a0c808d485 (rama local `nube/interfaz-ajustes-20-11`). Árboles: 0008 b127946356, 0009 7d533d1ef9,
+0010 e0ff1d94a6, 0011 6076b47f55. Sin compilar; constantes provisionales a ajustar con capturas. No tocan privada ni Tor.
+Lo que se hizo y por qué:
 1. **Brillo de la URL en oscuro.**
    - El brillo (`FlyWebOmniboxFocusGlowView`, `brave_location_bar_view.cc`, #808080 al 30 %, 2 dip) sí se pinta en oscuro:
      la URL es blanca en los dos modos.
