@@ -1,0 +1,90 @@
+From ecf041a52b2d856bb8fc955eb2e38c09c6a71d8c Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 20:19:56 +0000
+Subject: [PATCH] FlyWeb 3.2.0 interface: dark suggestions popup #767676 for AA
+ contrast
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Titín (20-11, DIRECTIVAS #1160): the dark mode popup is #767676 instead
+of the mockup's #909294, so white text reaches 4.5:1 (it was 3.1:1).
+The hovered row is the popup 10% toward black, #6A6A6A (white text
+5.4:1); Chromium's BlendTowardMaxContrast() would have gone toward white
+(#848484, 3.7:1). Secondary text, URLs and icons stay white (4.5:1);
+the selected row stays #542671. BraveColorMixersTest checks the hovered
+row too.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ browser/ui/color/brave_color_mixer.cc           | 12 +++++-------
+ browser/ui/color/brave_color_mixers_unittest.cc |  3 +++
+ browser/ui/color/color_palette.h                |  9 ++++++++-
+ 3 files changed, 16 insertions(+), 8 deletions(-)
+
+diff --git a/browser/ui/color/brave_color_mixer.cc b/browser/ui/color/brave_color_mixer.cc
+index d2f0c1cf1f8dafbfb6d1b927ae3ae17c87448c5d..2c955486bf318b24a06c7f56d3dfcc85ae3fcbac 100644
+--- a/browser/ui/color/brave_color_mixer.cc
++++ b/browser/ui/color/brave_color_mixer.cc
+@@ -319,17 +319,15 @@ void AddFlyWebDarkOmniboxColorMixer(ui::ColorProvider* provider,
+   mixer[kColorOmniboxResultsBackground] = {GetOmniboxResultBackground(
+       kColorOmniboxResultsBackground, /*dark*/ true, /*incognito*/ false)};
+   mixer[kColorOmniboxResultsBackgroundHovered] = {
+-      GetOmniboxResultBackground(kColorOmniboxResultsBackgroundHovered,
+-                                 /*dark*/ true, /*incognito*/ false)};
++      kFlyWebDarkOmniboxResultsHovered};
+   mixer[kColorOmniboxResultsBackgroundSelected] = {
+       kFlyWebDarkOmniboxResultsSelected};
+ }
+ 
+-// The popup on #909294 with white text, as on the mockup. White on it is
+-// about 3.1:1, so Chromium's contrast recipes (which aim at 4.5:1) would turn
+-// the secondary text and the URLs dark; they stay white instead. Icons are
+-// white (non-text, 3:1). The selected row (#542671) is white on purple,
+-// 11:1.
++// The popup on #767676 with white text (Titín, 20-11: 4.5:1, AA; the
++// mockup's #909294 gave 3.1:1). The secondary text, the URLs and the icons
++// are white too, 4.5:1 on the popup and 5.4:1 on a hovered row. The
++// selected row (#542671) is white on purple, 11:1.
+ void AddFlyWebDarkOmniboxPopupColorMixer(ui::ColorProvider* provider,
+                                          const ui::ColorProviderKey& key) {
+   ui::ColorMixer& mixer = provider->AddMixer();
+diff --git a/browser/ui/color/brave_color_mixers_unittest.cc b/browser/ui/color/brave_color_mixers_unittest.cc
+index 0814914deb283739e469bbeeb304dd771a3eb953..6af087134bfd53e28b7df6f7cdfb3bdd6bd83705 100644
+--- a/browser/ui/color/brave_color_mixers_unittest.cc
++++ b/browser/ui/color/brave_color_mixers_unittest.cc
+@@ -113,6 +113,9 @@ TEST_F(BraveColorMixersTest, FlyWebDarkColors) {
+     EXPECT_EQ(
+         color_provider().GetColor(kColorOmniboxResultsBackgroundSelected),
+         kFlyWebDarkOmniboxResultsSelected);
++    EXPECT_EQ(
++        color_provider().GetColor(kColorOmniboxResultsBackgroundHovered),
++        kFlyWebDarkOmniboxResultsHovered);
+     EXPECT_EQ(color_provider().GetColor(kColorOmniboxText),
+               kFlyWebDarkOmniboxText);
+     EXPECT_EQ(color_provider().GetColor(kColorOmniboxResultsTextDimmed),
+diff --git a/browser/ui/color/color_palette.h b/browser/ui/color/color_palette.h
+index 81a1486ba53038d7d448edf24925ca6ac4d73d1b..4e57e1f35f4fa59f7b7e45ebe069757ff5050d01 100644
+--- a/browser/ui/color/color_palette.h
++++ b/browser/ui/color/color_palette.h
+@@ -60,8 +60,15 @@ constexpr SkColor kBraveDarkLocationBarBackground =
+ // use their own theme. White text on the field and the popup.
+ constexpr SkColor kFlyWebDarkLocationBarBackground =
+     SkColorSetRGB(0x4D, 0x4D, 0x4D);
++// Titín, 20-11 (DIRECTIVAS #1160): #767676 instead of the mockup's #909294,
++// so white text reaches 4.5:1 (AA).
+ constexpr SkColor kFlyWebDarkOmniboxResultsBackground =
+-    SkColorSetRGB(0x90, 0x92, 0x94);
++    SkColorSetRGB(0x76, 0x76, 0x76);
++// Row under the pointer: the popup 10% toward black (white text 5.4:1).
++// Chromium's BlendTowardMaxContrast() would go toward white here (#848484,
++// 3.7:1).
++constexpr SkColor kFlyWebDarkOmniboxResultsHovered =
++    SkColorSetRGB(0x6A, 0x6A, 0x6A);
+ constexpr SkColor kFlyWebDarkOmniboxResultsSelected =
+     SkColorSetRGB(0x54, 0x26, 0x71);
+ // The light mark at the left of the selected row (about #AFA8D3 on the
+-- 
+2.43.0
+

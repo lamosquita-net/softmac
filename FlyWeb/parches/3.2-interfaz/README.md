@@ -355,3 +355,128 @@ y en oscuro:
    aparecen restos.
 2. **URL:** ratón encima sin pulsar: sombra suave por dentro, nada por fuera. Al pulsar: más marcada. Con el desplegable
    abierto: ninguna. Ventana privada: como antes, con el anillo y la sombra de Brave.
+
+## Ajustes de Titín tras bt-320e (0014–0015)
+
+MOTOR-47, 20-11, por encargo de COORDINACIÓN-55. **Sin compilar.** No tocan la ventana privada.
+
+**Orden:** al final de la cadena completa de la 3.2.0, tras `3.2-ajustes-sistema/0005` (árbol `d1fe696d26`). Tocan
+ficheros que ya tocan 0012 y 0013, así que tienen que ir detrás de ellos.
+
+| Tras | Árbol |
+|---|---|
+| … + `3.2-ajustes-sistema/0005` | `d1fe696d26` |
+| 0014 | `b80ddd1f86` |
+| 0015 | **`68da2bca21`** |
+
+| Ajuste | Qué se hizo | Constante |
+|---|---|---|
+| 7. Hover más bajo | Titín: «la pestaña en roll over debía ser más baja, como en mi maqueta». En `maqueta-claro-hd.webp`, el hover de la primera inactiva empieza ≈5 px por debajo de la parte de arriba de la activa (y 50,5 frente a 45,5) y llega a la misma base. La activa mide allí 38,5 px y 34 dip en el navegador: ≈4,4 dip. Un segundo gancho en `GetPath()` baja la parte de arriba del camino `kHighlight` de las inactivas y deja la base donde estaba. La activa conserva toda su altura | `kFlyWebHoverTabTopInset` = 4 dip (chromium_src `horizontal_tab_style_views.cc`) |
+| 8. Flou con el desplegable | Titín: al pulsar en la URL «el flou no se ve». El 0003 ocultaba la sombra interior con el desplegable abierto, como el anillo de Chromium. Ahora la caja la conserva mientras se escribe: el desplegable deja ver la URL por su hueco | — |
+
+### Pasos para LOCAL
+
+Compilar `68da2bca21` y pasar `LocationBarViewBrowserTest.FlyWebFocusGlowReplacesFocusRing` (sigue valiendo: sin cursor ni
+ratón encima, la sombra está oculta). Capturas para Titín, en claro y en oscuro:
+1. **Hover de una inactiva:** el fondo empieza ≈4 dip por debajo de la parte de arriba de la activa y llega a la base.
+2. **URL con foco, con el desplegable abierto (escribiendo) y cerrado:** la sombra interior se ve en los dos casos.
+
+**Pendiente, a la espera de respuestas de Titín:** el ancho del desplegable, su sombra exterior y «la línea bajo el
+campo».
+
+## 0016: URL y desplegable en una sola pieza
+
+MOTOR-47, 20-11. Respuestas de Titín a P1–P4 y `maqueta-oscuro-desplegable-hd.webp` / `maqueta-claro-url-sutil.png`
+(#1153). **Sin compilar.** En todas las ventanas, también la privada (P1).
+
+**Medidas en la maqueta oscura** (1 px ≈ 1 dip; la caja de la URL mide 29 px, como en el navegador desde el 0009):
+- La URL va de x=434 a x=1567, y el desplegable igual: **el mismo ancho**.
+- El desplegable empieza en y=120, justo debajo de la última fila de la URL (y=119): **hueco 0**.
+- **Sin sombra** alrededor.
+- Esquinas de la URL y del desplegable: **≈1–2 px** (en `maqueta-claro-url-sutil.png`, «muy sutil»).
+
+**Qué hace:**
+- `RoundedOmniboxResultsFrame` (parche nuevo con 2 ganchos y chromium_src):
+  - sin márgenes de alineación (Chromium: 6 dip por lado, 5 arriba y abajo);
+  - el hueco de la URL, tan alto como la caja (`kLocationBarHeight − kFlyWebLocationBarTopTrim`);
+  - elevación 0;
+  - el radio de la caja.
+- `LocationBarView::ComputeBorderRadius()` (un gancho más) devuelve `kFlyWebLocationBarCornerRadius` = **2 dip**: el
+  fondo de la caja, el hueco del desplegable, la sombra interior y el anillo de foco de la privada.
+
+**Árbol:** sobre `68da2bca21` → **`49012e5a50`**.
+
+**Para LOCAL:** compilar `49012e5a50`. Capturas en claro y en oscuro, normal y privada:
+1. URL sin foco: esquinas casi rectas (2 dip).
+2. URL escribiendo, con el desplegable: el mismo ancho que la caja, pegado debajo, sin sombra, con la sombra interior en la
+   caja.
+3. Ampliada, la unión entre la caja y la primera sugerencia, para la P2 de Titín.
+Si en Mac `BubbleBorder` sin sombra pinta algún borde de 1 px, avisar a MOTOR.
+
+## 0017: URL y desplegable oscuros en modo oscuro
+
+MOTOR-47, 20-11. Decisión de Titín: «para que el desplegable esté en la gama del entorno». Sustituye lo del 19-11
+(URL blanca en oscuro). Solo en la ventana normal y en modo oscuro; en claro y en la privada no cambia nada. **Sin
+compilar.** Árbol: sobre `49012e5a50` → **`b9f628b8a6`**.
+
+| Elemento | Valor | Origen |
+|---|---|---|
+| Caja de la URL | `#4D4D4D`, texto blanco (8,5:1) | maqueta |
+| Desplegable | `#909294`, texto blanco | maqueta |
+| Fila seleccionada | `#542671`, texto blanco (11:1), marca a la izquierda `#AFA6D2` (en la maqueta ≈`#AFA8D3`) | maqueta |
+| Flou interior | negro, opacidad 0,22 en el borde con el cursor (≈`#41` junto al borde, como en la maqueta) y 0,12 en hover | maqueta |
+| Texto secundario, URL de las sugerencias, respuestas, iconos | blanco | **propuesta** (abajo) |
+| Hover de fila | `#909294` un 10 % hacia el negro (≈`#828486`) | **propuesta**: la receta de Brave |
+| Selección de texto en la caja, iconos y chips de la caja | recetas de contraste de Chromium sobre `#4D4D4D` | **propuesta** |
+
+**Contraste (para Titín):** el blanco sobre `#909294` da **3,1:1**. No llega a AA para texto normal (4,5:1); sí para
+texto grande y para iconos (3:1). Las recetas de Chromium, que buscan 4,5:1, habrían puesto oscuros el texto secundario y
+las URL. Por eso se quedan blancos, como en la maqueta. Si se quiere AA con texto blanco, el fondo tendría que ser
+`#767676` o más oscuro. Si se quiere mantener `#909294`, el texto tendría que ser oscuro (negro: 6,7:1).
+
+Chromium pinta la caja con foco del color del desplegable. Aquí la caja conserva su `#4D4D4D` mientras tiene el cursor.
+
+**Ojo, línea (P2):** con colores distintos, el trazo de 1 px que Chromium pinta alrededor del hueco de la URL
+(`TopBackgroundView`, del color del desplegable) se verá como un **borde gris claro alrededor de la caja oscura** con el
+desplegable abierto. En la maqueta no está. Propuesta: quitarlo si Titín lo confirma en la captura.
+
+### Pasos para LOCAL
+
+`BraveColorMixersTest.*` (comprueba los colores oscuros) y `BraveThemeServiceTest.OmniboxColorTest`. Capturas en claro y en
+oscuro, ventana normal y privada:
+1. URL sin foco.
+2. URL con foco, sin desplegable.
+3. URL con el desplegable abierto y una fila seleccionada con las flechas.
+4. Ampliada, el borde de la caja con el desplegable abierto (para la línea de 1 px).
+
+## 0018: `OmniboxColorTest` en oscuro (bt-320f)
+
+MOTOR-47, 20-11. Solo la prueba; el navegador no cambia.
+
+- **Fallo:** en bt-320f, `BraveThemeServiceTest.OmniboxColorTest` falla en oscuro. Espera `#4D4D4D` y `#909294` y lee
+  `#FFFFFF`. En pantalla el oscuro está bien (LOCAL-21: caja `#4D4D4D`).
+- **Causa:** en Mac, `SetBraveDarkModeType()` solo cambia la apariencia de `NSApp`, y el tema nativo la sigue más tarde.
+  El proveedor de la ventana seguía siendo el claro: es la misma causa que en `ThemeObserverTest` y
+  `SystemThemeChangeTest`. Hasta la 3.2.0 la caja oscura era blanca como la clara, así que la prueba pasaba por casualidad.
+- **Arreglo:** los colores oscuros se leen del proveedor de la clave de la propia ventana con el modo oscuro
+  (`ColorProviderManager::GetColorProviderFor`).
+- **Árbol:** sobre `b9f628b8a6` → **`db8f0061e3`**.
+- **Para LOCAL:** `brave_browser_tests --gtest_filter='BraveThemeServiceTest.OmniboxColorTest'`.
+
+## 0019: desplegable oscuro `#767676` (AA)
+
+MOTOR-47, 20-11. Decisión de Titín (DIRECTIVAS #1160): `#767676` con texto blanco en lugar de `#909294`. **Sin compilar.**
+
+| Elemento | Valor | Contraste del blanco |
+|---|---|---|
+| Fondo del desplegable | `#767676` | 4,54:1 (AA) |
+| Fila con el ratón encima | `#6A6A6A` (el fondo un 10 % hacia el negro; la receta de Chromium iría hacia el blanco, `#848484`, 3,7:1) | 5,4:1 |
+| Fila seleccionada | `#542671`, sin cambios | 11:1 |
+| Texto secundario, URL de las sugerencias, iconos | blanco | 4,54:1 sobre el fondo, 5,4:1 en hover |
+
+**Árboles:**
+- con `pendiente/brave-core/0005`: sobre `7b859e5d3f` → **`8c31284eda`** (árbol final de la 3.2.0);
+- sin él: sobre `db8f0061e3` → `1cfac37398`.
+
+**Para LOCAL:** `BraveColorMixersTest.*` (comprueba el hover nuevo) y `BraveThemeServiceTest.OmniboxColorTest`. Capturas en
+oscuro: desplegable abierto, una fila con el ratón encima y otra seleccionada con las flechas.
