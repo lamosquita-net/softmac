@@ -50,7 +50,10 @@ la base nueva ya los traiga.
 | `7cd7567` (19-11 22:32 UTC) | *Roll* de Skia `7dc6c0c3424a..9d96dfeb451c`: **9d96dfeb45** [M156] «[Ganesh] Restrict scissor by dst-read bounds» (584764517, merge 587951190) | Sí (abajo) | `skia/0003` |
 | `880ca0428f` (20-11 02:03 UTC) | [M156] «Fix synchronous completion in LocalFileStreamReader» (586656231, merge 587681925) | Sí (abajo) | `chromium/0002` |
 
-Sin tag .112 (la rama ya llevaba `chrome/VERSION` en .112 desde `aac2cdd377`).
+**Tag 156.0.8078.112 = `880ca0428f`** (visto el 20-11 a las 03:24 UTC; la rama sigue en .113 desde `e2352b4cf6`, solo
+`chrome/VERSION`). Todo lo de `.111` (`c22b215559`, base de la build 47) a `.112` está en esta tabla: con `pendiente/`
+entero, la siguiente versión puede declarar .112 (lo decide Titín). DEPS de la .112: V8 `c4641b4cbe`, Skia `9d96dfeb45`,
+ANGLE `0b547a1161`, Dawn `218eeee7` (no aplica) y PDFium `8b21800d` (igual que en la .111).
 
 ## `angle/0001`: ANGLE 41c5deee45 (bug 574209990, merge 579732514)
 
