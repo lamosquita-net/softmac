@@ -419,6 +419,16 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     APTO de SEGURIDAD-PORTES (WebRTC y buscador de privadas son de privacidad). La tarjeta de hover la diseña Titín.
   - **Titín quiere que se le avise cuando todo esté arreglado** (interfaz, settings/system y Apariencia compilados y
     probados) para ajustar con él lo que quede.
+- **Fijadas compartidas y webs de prueba (Titín, 20-11; COORDINACIÓN-53):**
+  - **El arreglo de las fijadas compartidas entra en la 3.2.0** (`FlyWeb/parches/3.2-fijadas/0001`, MOTOR-47, #1142): en la
+    156 las copias de una fijada en las otras ventanas no se refrescan (favicon y título congelados o en blanco). Es de Brave,
+    sin arreglar tampoco en su master. Lo de la fijada en blanco aunque se recargue sigue en estudio.
+  - **Ajustes de la interfaz del 20-11** (`FlyWeb/branding/interfaz-3.2.0/ajustes-20-11/`): flou interior de la URL con
+    foco igual en claro y oscuro, URL 3 dip más baja por arriba, hover de la inactiva #EBEBEB/#585959 (a mitad de camino
+    entre el marco y la activa), título y favicon de las inactivas más bajos (~4 dip). «Personalizar fuentes» se queda en
+    «Contenido».
+  - **Webs de prueba de siempre** en los perfiles de revisión y en las capturas: elpais.com, eldiario.es, youtube.com,
+    wikipedia y otras de ese tipo (prensa y vídeo). No usar webs de apuestas ni marca.com.
 - **La medida de la sync en la 5,1 no frena la 3.2.0 (Titín, 19-11; COORDINACIÓN-52):** como siempre, se mide después de
   publicar, en el estudio, con la versión instalada. Si hay retroceso (derivación de clave de más de ~2 s), se arregla
   como hasta ahora: pasa por SEGURIDAD-PORTES antes de tocar kScryptN y sale en una versión posterior.
