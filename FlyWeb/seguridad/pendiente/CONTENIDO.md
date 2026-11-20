@@ -288,3 +288,23 @@ Android, y el cliente de marco hijo pide el gestor a la vista raíz (`GetTouchSe
 En Mac la raíz es `RenderWidgetHostViewMac`, que no lo redefine, y la base devuelve `nullptr`
 (`render_widget_host_view_base.cc`); `render_widget_host_view_mac.{h,mm}` no mencionan la selección táctil. Mismo
 criterio que 553151406 (Aura) en `3.1.4/parte4`.
+
+## Rama de la 159 (`branch-heads/8154`, en beta): vistos para la tanda de la 159
+
+Lo de la 8154 no se prepara mientras la 159 siga en beta: se anota aquí y entra con la tanda de la 159 si sigue
+aplicando, salvo que llegue antes a la 8078 como merge M156 (entonces va arriba, en la tabla de la 8078).
+
+| Commit de la 8154 | Qué | ¿Mac? | Estado |
+|---|---|---|---|
+| `690f348e8d` (20-11 00:37 UTC) | [M159] «[optimization_guide] Defer SetInput() callbacks to avoid UAF» (587680474; arregla 570347667 y 562796602) | Se compila; **inalcanzable** sin modelo on-device (razonado, no probado) | Candidato; sin parche |
+
+**`690f348e8d`** (SEGURIDAD-PORTES-33, 20-11): `SessionImpl::AddContextImpl()` y `OnDeviceContext::SetInput()`
+ejecutan `callback_` de forma síncrona, y `AIManager` guarda en ese *callback* la propiedad de la `OnDeviceSession`
+pendiente: UAF si se ejecuta o se suelta con `this` en la pila. El código vulnerable **está en la 156** (8078
+`7cd7567b30`: `on_device_context.cc` líneas 120–141 y 227–232). El diff aplica sobre la 8078 salvo dos *hunks*
+de contexto: el de `#include` de `on_device_context.cc` (la 156 no tiene `string_number_conversions.h` ni
+`substitution.h`) y el de `session_impl_unittest.cc` (solo prueba). En FlyWeb no se alcanza: las APIs de IA siguen
+experimentales y sin componente de modelo (`motor-niveles.md`, fila «APIs de IA en el navegador»; el servidor de
+componentes no sirve `optimization_guide`), así que no se crea ninguna `OnDeviceSession`. Precedente: `3.0.1/chromium/0019`
+(`ModelSubscriber`, mismo subsistema), que entró por prudencia. Gravedad: no consta (bugs restringidos).
+
