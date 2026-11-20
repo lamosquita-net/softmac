@@ -19,7 +19,7 @@ Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1
 |---|---|---|---|
 | chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0005` | **`a9b357bc47`** (tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`; tras `0004`: `a621f0a668`) |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
-| brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001` | **`90134a4e08`** |
+| brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001`–`0002` | **`639401fb8e`** (tras `0001`: `90134a4e08`) |
 | Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001`–`0003` | **`1ef25455d7`** (tras `0001`: `32f1340fb3`; tras `0002`: `47b14cb49e`) |
 
 Si la siguiente versión cambia de base (p. ej. la 3.2.0 o la 159), **hay que volver a comprobar que aplican**; puede que
@@ -244,6 +244,47 @@ Es el *cherry-pick* de upstream sin cambios. Efecto visible: con el depurador ab
 *closure* desde DevTools desoptimiza el código que la usaba (más lento solo mientras se depura; sin efecto fuera del
 depurador).
 
+## `brave-core/0002`: V8 a0f2c9f8c3 (bug 585625642), portado del merge M159 27e138a575
+
+**Por qué se prepara antes de tiempo.** Lo de la 8154 normalmente espera (arriba). Este es un fallo del JIT de V8 con
+merge rápido a la 159 (llegó a `main` el 17-11 y a la 15.9 el 20-11), que es lo que suele tener gravedad Alta, y
+**aún no hay merge a la 15.6**. Si llega a la 15.6, se compara con este y se anota; si no llega, este es el arreglo.
+Aviso dado a COORDINACIÓN-54 el 20-11 (regla de Alto: la gravedad no consta, así que el aviso es por prudencia).
+
+El fallo: TurboFan bajaba `JSLoadContextNoCell`, `JSStoreContextNoCell` y `JSHasContextExtension` con
+`graph()->start()` como control. En un generador o una función `async`, esas cargas de contexto podían quedar
+programadas antes del `SwitchOnGeneratorState` del bucle reanudable y leer el contexto que no es. Con el arreglo, los
+dos operadores llevan entrada de control, `JSTypedLowering` usa la del propio nodo y `JSNativeContextSpecialization`
+la pasa. Se alcanza con JavaScript normal de cualquier web (generadores o `async` optimizados por TurboFan). Aplica a
+Mac (V8).
+
+- `js-typed-lowering.cc`, `js-operator.cc` y `js-native-context-specialization.cc` son idénticos byte a byte en la
+  15.6.75.66 y en la cabeza de la 15.6 (.73), y ningún `patches/v8` de brave-core los toca. Difieren de la 15.9 en
+  otras partes, pero todos los *hunks* entran en la .66 solo con desplazamiento de líneas y el mismo contenido
+  (`patch-id` igual al de upstream, fichero a fichero), más la prueba `test/mjsunit/compiler/regress-585625642.js` y
+  los cambios de `js-typed-lowering-unittest.cc`.
+- En la 15.6 no hay más sitios que creen estos nodos con entradas explícitas: `bytecode-graph-builder.cc` usa
+  `NewNode(op)`, que añade el control según el operador, y `js-context-specialization.cc` usa `ChangeOp`, que
+  conserva las entradas.
+- **Única adaptación (solo pruebas):** en la 15.6 las pruebas de especialización de contexto siguen en
+  `test/cctest/compiler/test-js-context-specialization.cc` (upstream las pasó luego a
+  `test/unittests/compiler/js-context-specialization-unittest.cc`). Los *hunks* de upstream para ese fichero aplican
+  limpios al cctest y van ahí, así que todos los nodos `LoadContextNoCell` de esa prueba llevan ya control.
+- Comprobado: los seis parches por fichero aplican sobre la .66, y `git apply --cached` del `.patch` de aquí sobre
+  `90134a4e08` (tras `0001`) da el árbol **`639401fb8e`**.
+- **Época de caché:** no se sube aquí; la fija quien lo integre (una sola subida para `0001` y `0002`).
+- **Gravedad: no consta** (bugs restringidos). Sin indicios de explotación conocidos.
+- **Falta, antes de entrar (D8-LINUX):** d8/mjsunit con y sin Maglev, en especial `compiler/regress-585625642`;
+  `cctest/test-js-context-specialization/*` y `unittests --gtest_filter='JSTypedLoweringTest.*'`, en *release* y en
+  *debug* (en *debug*, el verificador del grafo comprueba los recuentos de entradas nuevos). **Sin eso en verde, no
+  entra.**
+
+### Veredicto (regla 17): **APTO** (condicionado a D8-LINUX en verde), `brave-core/0002`
+
+Es el arreglo de upstream sin cambios en el código; solo la prueba va a otro fichero. Efecto visible: ninguno.
+Añadir una entrada de control a una carga de contexto solo limita dónde puede programarla TurboFan; el coste de
+rendimiento es despreciable.
+
 ## Dawn `6d772bc9e5c5..062164c3c784` (roll `ff774db0a2`): no aplica
 
 Leído por LOCAL-19 en su checkout (19-11): **un solo commit**, `062164c3c7` «[M156] DEPS: Update DXC to patched branch»
@@ -388,6 +429,7 @@ aplicando, salvo que llegue antes a la 8078 como merge M156 (entonces va arriba,
 | `b33d4b153d` (20-11 03:52 UTC) | [M159] «Scope InputDeviceCapabilities to target window for focus events» (577377858) | Sí | Llegó a la 8078 como `7e5aab9f6a` → `chromium/0004` |
 | `97e1b5bdc3` (20-11 09:03 UTC) | [M159] «[SimpleCache] Prevent doomed entries from mutating SimpleIndex» (583238770, merge 588197278), `net/disk_cache/simple` | Sí | Llegó a la 8078 como `dad9e4d83c` → `chromium/0005` |
 | `cc42b75af2` (20-11 09:20 UTC) | [M159] «[CacheStorage] Truncate pre-existing entry streams on empty puts» (583238770, merge 588197278), `content/browser/cache_storage` | Sí | Candidato; sin parche: si llega a la 8078, a `pendiente/` |
+| `eb140e9ee3` (20-11 11:04 UTC) | *Roll* de V8 15.9 `dd683a21bf..a1896f1005` (15.9.128.21): **27e138a575** [M159] «[compiler] Preserve control inputs on non-cell context operations» (585625642, merge 587680496) | Sí (TurboFan) | **Excepción: preparado ya** como `brave-core/0002` (abajo), sin esperar al merge en la 15.6 |
 
 **`690f348e8d`** (SEGURIDAD-PORTES-33, 20-11): `SessionImpl::AddContextImpl()` y `OnDeviceContext::SetInput()`
 ejecutan `callback_` de forma síncrona, y `AIManager` guarda en ese *callback* la propiedad de la `OnDeviceSession`
