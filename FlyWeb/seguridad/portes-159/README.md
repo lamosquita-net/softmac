@@ -11,10 +11,10 @@ bueno. Si es distinto, manda el de Chrome.
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`1b06f59f4d`** (= `seguridad/pendiente/chromium/0001`–`0007`, #1147) | `chromium/0001` | **`6ee8d9b1c1`** |
+| chromium | árbol **`90418ba4fd`** (= `seguridad/pendiente/chromium/0001`–`0008`, #1147) | `chromium/0001`–`0002` | **`2bb85047ec`** (tras `0001`: `403ec1c98c`) |
 
-No toca ningún fichero de `pendiente/chromium/0001`–`0008`, así que aplica sobre cualquier árbol de esa cadena. Sobre
-`90418ba4fd` (con `pendiente/chromium/0008`, añadido a las 20:00 UTC) da **`403ec1c98c`**.
+Ninguno de los dos toca ficheros de `pendiente/chromium/0001`–`0008`. Sobre `1b06f59f4d` (hasta `0007`), `0001` da
+`6ee8d9b1c1`.
 
 ## `chromium/0001`: 8154 afa45b8e16 (bug 565066840, merge M159 588202414)
 
@@ -42,7 +42,7 @@ soltar. Aplica a Mac: la barra de marcadores de FlyWeb usa los menús de `views`
   `MenuController::Cancel` y la firma de `View::DropCallback`. `menu_test_utils` de la 156 y la 159 solo difieren en
   cosas que estas pruebas no usan.
 - brave-core no tiene parches ni `chromium_src` para `ui/views/controls/menu/menu_controller.cc` ni para su prueba.
-- Comprobado: `git apply --cached` sobre `1b06f59f4d` da el árbol **`6ee8d9b1c1`**.
+- Comprobado: `git apply --cached` sobre `90418ba4fd` da el árbol **`403ec1c98c`** (sobre `1b06f59f4d`, `6ee8d9b1c1`).
 - **Gravedad: no consta** (bug restringido). Es de la misma familia que otros arreglos ya presentes en la
   156: `menu_controller.cc` usa `ScopedDeletionGuard` en 29 sitios.
 
@@ -54,3 +54,28 @@ cierra mientras se arrastra encima, ya no se puede soltar en él (antes era un U
 **Pruebas para LOCAL:** `views_unittests --gtest_filter='MenuRunnerTest.ForDrop*:MenuRunnerTest.*:MenuRunnerImplTest.*'`.
 En la build: arrastrar un enlace a una carpeta de la barra de marcadores, soltarlo dentro y comprobar que se crea el
 marcador. Repetir saliendo del menú con Esc durante el arrastre.
+
+## `chromium/0002`: 8154 b079c8f6c8 (bug 586171393, merge M159 588196490)
+
+`url::SchemeHostPort`, y con él `url::Origin`, aceptaba un host vacío en cualquier esquema `SCHEME_WITH_HOST`, por
+ejemplo `("chrome", "", 0)`. Un `GURL` así no es válido: `GURL` rechaza `chrome://`. Una tupla de ese tipo no podía
+salir de una URL real, pero **sí podía llegar por IPC** (deserialización de `url.mojom.Origin`) y confundir a la pila
+de navegación. Con el arreglo, un host vacío solo vale para `file:` (y para esquemas no estándar). La deserialización
+por mojo de un `Origin` así falla, y `GetURL()` añade un `CHECK` de coherencia. Hace falta un *renderer* comprometido
+que mande el `Origin` falso: es endurecimiento del proceso del navegador frente a IPC. Aplica a Mac.
+
+- Mismo diff que upstream (`patch-id` igual). **Aplica limpio**, sin desplazamientos, sobre `403ec1c98c`.
+- brave-core no tiene parches ni `chromium_src` en `url/`. Los esquemas propios (`brave://`, `chrome-extension://`)
+  siempre llevan host, así que el cambio no les afecta.
+- Comprobado: `git apply --cached` sobre `403ec1c98c` da el árbol **`2bb85047ec`**.
+- **Gravedad: no consta** (bug restringido).
+
+### Veredicto (regla 17): **APTO**, `chromium/0002`
+
+Es el cambio de upstream sin tocar nada. Efecto visible: ninguno. Una URL o un origen con host vacío en un esquema
+estándar distinto de `file:` ya no se consideran válidos, igual que ya pasaba con `GURL`.
+
+**Pruebas para LOCAL:** `url_unittests --gtest_filter='SchemeHostPortTest.*:OriginTest.*:MojoGURLStructTraitsTest.*'`
+(trae `OriginDeserializationWithEmptyHost`). En la build: abrir `file:///`, una página de ajustes (`brave://settings`)
+y una extensión, y comprobar que cargan.
+
