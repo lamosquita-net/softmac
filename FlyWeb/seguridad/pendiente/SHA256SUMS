@@ -3,6 +3,7 @@ e943337517a9f4bb5f24d7fd4419ed7bd4f1852689d8cafb1d8b5af3f1db2420  chromium/0001-
 556d80ba64364df4dfb37d087b4b3fb5df3293da1815412688c616d4b867d87f  chromium/0002-M156-Fix-synchronous-completion-in-LocalFileStreamRe.patch
 fc9ad429bafa1fd2d08b1d2dfa240048131616f6138c00295428f34f19a109c9  chromium/0003-M156-Guard-ImageProcessor-against-destruction-during.patch
 3f7158dc15949bfc1144f6348afd7012b3803d99b27d25fdaaabeeeef2f48896  chromium/0004-M156-Scope-InputDeviceCapabilities-to-target-window-.patch
+22d17e8705309017a45cecf64baf243548274d6f581de51ec50e6fae4d275718  chromium/0005-M156-SimpleCache-Prevent-doomed-entries-from-mutatin.patch
 32148aba783ff8e1f953537a59e1ab65814178224e71f414ec3dc048e8a2ffce  brave-core/0001-v8-pending-d68cecd900-15.6.75.72-crbug-583479274.patch
 c62b7081bf285a6968e34a9a75219b0bd58c9167d96357d7758e1a174984e4c4  skia/0001-M156-ganesh-Guard-GrBufferAllocPool-against-overflow.patch
 5c3a0dd308b733a060dc6df04f063cf0107c0e3e8ce0cb223dbe211e05c8a5e5  skia/0002-M156-SkScalerContext-Harden-LCD16-and-getImage-bounds.patch

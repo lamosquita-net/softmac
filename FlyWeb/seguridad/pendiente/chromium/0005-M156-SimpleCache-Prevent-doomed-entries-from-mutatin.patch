@@ -1,0 +1,239 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eriko Kurimoto <elkurin@chromium.org>
+Date: Fri, 20 Nov 2026 10:04:22 +0000
+Subject: [PATCH] [M156] [SimpleCache] Prevent doomed entries from mutating
+ SimpleIndex
+
+FlyWeb pending: from branch-heads/8078 dad9e4d83c. Applied after pendiente/chromium/0004;
+applies cleanly (identical diff). No brave-core patches or chromium_src for these files.
+
+Original change's description:
+> [SimpleCache] Prevent doomed entries from mutating SimpleIndex
+>
+> This CL guards SimpleEntryImpl index mutations so an already-doomed
+> entry cannot remove or overwrite a replacement entry sharing the same
+> hash in SimpleIndex.
+>
+> Previously, if a doomed SimpleEntryImpl remained open after another
+> entry was created for the same key, an I/O or checksum failure on the
+> doomed entry removed the replacement entry's hash from SimpleIndex.
+> That caused subsequent OpenEntry calls to miss the live entry even
+> though its files remained on disk (so CacheStorage delete missed it and
+> OpenOrCreateEntry later reopened it). In-memory metadata and trailer
+> prefetch updates on a doomed entry could also clobber the active
+> entry's performance hints.
+>
+> This fixes the SimpleCache trigger used in b/583238770; the main
+> CacheStorage stream-truncation fix is in crrev.com/c/8835441.
+>
+> Bug: 583238770
+> Change-Id: I1954642c00fffe739157b09ef185c6c0fd7239b6
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8835600
+> Auto-Submit: Eriko Kurimoto <elkurin@chromium.org>
+> Commit-Queue: Eriko Kurimoto <elkurin@chromium.org>
+> Reviewed-by: Maks Orlovich <morlovich@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1748153}
+
+(cherry picked from commit 6de3636737a876b8ba53f462e5ca134b0e359717)
+
+Bug: 588197443,583238770
+Change-Id: I1954642c00fffe739157b09ef185c6c0fd7239b6
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8845887
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2355}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ net/disk_cache/entry_unittest.cc           | 96 ++++++++++++++++++++++
+ net/disk_cache/simple/simple_entry_impl.cc | 24 ++++--
+ 2 files changed, 112 insertions(+), 8 deletions(-)
+
+diff --git a/net/disk_cache/entry_unittest.cc b/net/disk_cache/entry_unittest.cc
+index 08d6aba3ba..7aa2197faf 100644
+--- a/net/disk_cache/entry_unittest.cc
++++ b/net/disk_cache/entry_unittest.cc
+@@ -37,6 +37,7 @@
+ #include "net/disk_cache/simple/simple_entry_format.h"
+ #include "net/disk_cache/simple/simple_entry_impl.h"
+ #include "net/disk_cache/simple/simple_histogram_enums.h"
++#include "net/disk_cache/simple/simple_index.h"
+ #include "net/disk_cache/simple/simple_synchronous_entry.h"
+ #include "net/disk_cache/simple/simple_test_util.h"
+ #include "net/disk_cache/simple/simple_util.h"
+@@ -3145,6 +3146,101 @@ TEST_F(DiskCacheEntryTest, SimpleCacheDoomErrorRace) {
+   EXPECT_EQ(0, cb.WaitForResult());
+ }
+ 
++TEST_F(DiskCacheEntryTest,
++       SimpleCacheDoomedEntryErrorPreservesReplacementInIndex) {
++  SetBackendToTest(BackendToTest::kSimple);
++  SetCacheType(net::APP_CACHE);
++  InitCache();
++
++  const char kKey[] = "shared_replacement_key";
++  const uint64_t entry_hash = disk_cache::simple_util::GetEntryHashKey(kKey);
++  const int kCorruptSize = 50000;
++  ASSERT_TRUE(SimpleCacheMakeBadChecksumEntry(kKey, kCorruptSize));
++
++  // Keep the initial corrupt entry open across dooming it.
++  disk_cache::Entry* entry1 = nullptr;
++  ASSERT_THAT(OpenEntry(kKey, &entry1), IsOk());
++  ScopedEntryPtr entry1_closer(entry1);
++
++  ASSERT_THAT(DoomEntry(kKey), IsOk());
++  EXPECT_FALSE(simple_cache_impl_->index()->Has(entry_hash));
++
++  // Create and close a replacement entry for the same key so its metadata,
++  // in-memory hint, and trailer prefetch size are committed to `SimpleIndex`.
++  const std::string updated_body = "updated_replacement_payload";
++  constexpr uint8_t kReplacementHint = 1u;
++  auto updated_buf = base::MakeRefCounted<net::StringIOBuffer>(updated_body);
++
++  disk_cache::Entry* entry2 = nullptr;
++  ASSERT_THAT(CreateEntry(kKey, &entry2), IsOk());
++  ScopedEntryPtr entry2_closer(entry2);
++  ASSERT_EQ(static_cast<int>(updated_body.size()),
++            WriteData(entry2, 0, 0, updated_buf.get(), updated_body.size(),
++                      /*truncate=*/true));
++  ASSERT_EQ(static_cast<int>(updated_body.size()),
++            WriteData(entry2, 1, 0, updated_buf.get(), updated_body.size(),
++                      /*truncate=*/true));
++  entry2->SetEntryInMemoryData(kReplacementHint);
++  entry2_closer.reset();
++  EXPECT_TRUE(base::test::RunUntil([&]() {
++    return simple_cache_impl_->GetNumActiveEntriesForTesting() == 0;
++  }));
++
++  ASSERT_TRUE(simple_cache_impl_->index()->Has(entry_hash));
++  EXPECT_EQ(kReplacementHint,
++            simple_cache_impl_->index()->GetEntryInMemoryData(entry_hash));
++  const int32_t entry2_trailer_size =
++      simple_cache_impl_->index()->GetTrailerPrefetchSize(entry_hash);
++  EXPECT_GT(entry2_trailer_size, 0);
++
++  // In-memory metadata updates, read failures, and closing the already-doomed
++  // entry must not evict or overwrite the replacement entry in `SimpleIndex`.
++  entry1->SetEntryInMemoryData(2u);
++  auto corrupt_read_buf =
++      base::MakeRefCounted<net::IOBufferWithSize>(kCorruptSize);
++  EXPECT_EQ(net::ERR_CACHE_CHECKSUM_MISMATCH,
++            ReadData(entry1, 1, 0, corrupt_read_buf.get(), kCorruptSize));
++  entry1->SetEntryInMemoryData(3u);
++  scoped_refptr<disk_cache::SimpleEntryImpl> entry1_ref(
++      static_cast<disk_cache::SimpleEntryImpl*>(entry1));
++  entry1_closer.reset();
++  EXPECT_TRUE(base::test::RunUntil([&]() { return entry1_ref->HasOneRef(); }));
++  entry1_ref.reset();
++
++  EXPECT_TRUE(simple_cache_impl_->index()->Has(entry_hash));
++  EXPECT_EQ(kReplacementHint,
++            simple_cache_impl_->index()->GetEntryInMemoryData(entry_hash));
++  EXPECT_EQ(entry2_trailer_size,
++            simple_cache_impl_->index()->GetTrailerPrefetchSize(entry_hash));
++
++  disk_cache::Entry* reopened = nullptr;
++  ASSERT_THAT(OpenEntry(kKey, &reopened), IsOk());
++  ScopedEntryPtr reopened_closer(reopened);
++  ASSERT_EQ(static_cast<int64_t>(updated_body.size()),
++            reopened->GetDataSize(1));
++  auto read_buf =
++      base::MakeRefCounted<net::IOBufferWithSize>(updated_body.size());
++  ASSERT_EQ(static_cast<int>(updated_body.size()),
++            ReadData(reopened, 1, 0, read_buf.get(), updated_body.size()));
++  EXPECT_EQ(base::as_byte_span(updated_body), read_buf->span());
++  reopened_closer.reset();
++
++  // An error on an active (non-doomed) entry must still remove its hash from
++  // `SimpleIndex`.
++  const char kActiveKey[] = "active_corrupt_key";
++  const uint64_t active_hash =
++      disk_cache::simple_util::GetEntryHashKey(kActiveKey);
++  ASSERT_TRUE(SimpleCacheMakeBadChecksumEntry(kActiveKey, kCorruptSize));
++  ASSERT_TRUE(simple_cache_impl_->index()->Has(active_hash));
++
++  disk_cache::Entry* active_entry = nullptr;
++  ASSERT_THAT(OpenEntry(kActiveKey, &active_entry), IsOk());
++  ScopedEntryPtr active_entry_closer(active_entry);
++  EXPECT_EQ(net::ERR_CACHE_CHECKSUM_MISMATCH,
++            ReadData(active_entry, 1, 0, corrupt_read_buf.get(), kCorruptSize));
++  EXPECT_FALSE(simple_cache_impl_->index()->Has(active_hash));
++}
++
+ bool TruncatePath(const base::FilePath& file_path, int64_t length) {
+   base::File file(file_path, base::File::FLAG_WRITE | base::File::FLAG_OPEN);
+   if (!file.IsValid())
+diff --git a/net/disk_cache/simple/simple_entry_impl.cc b/net/disk_cache/simple/simple_entry_impl.cc
+index 21b3305abc..2c69a861ae 100644
+--- a/net/disk_cache/simple/simple_entry_impl.cc
++++ b/net/disk_cache/simple/simple_entry_impl.cc
+@@ -641,14 +641,17 @@ net::Error SimpleEntryImpl::ReadyForSparseIO(CompletionOnceCallback callback) {
+ }
+ 
+ void SimpleEntryImpl::SetEntryInMemoryData(uint8_t data) {
+-  if (backend_) {
++  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
++  if (doom_state_ == DOOM_NONE && backend_) {
+     backend_->index()->SetEntryInMemoryData(entry_hash_, data);
+   }
+ }
+ 
+ void SimpleEntryImpl::SetLastUsedTimeForTest(base::Time time) {
+   last_used_ = time;
+-  backend_->index()->SetLastUsedTimeForTest(entry_hash_, time);
++  if (doom_state_ == DOOM_NONE && backend_) {
++    backend_->index()->SetLastUsedTimeForTest(entry_hash_, time);
++  }
+ }
+ 
+ void SimpleEntryImpl::SetPriority(uint32_t entry_priority) {
+@@ -743,10 +746,13 @@ void SimpleEntryImpl::FinishReturnEntryToCallerAsync(
+ 
+ void SimpleEntryImpl::MarkAsDoomed(DoomState new_state) {
+   DCHECK_NE(DOOM_NONE, new_state);
+-  doom_state_ = new_state;
+-  if (!backend_.get())
++  if (std::exchange(doom_state_, new_state) != DOOM_NONE) {
++    CHECK(!active_entry_proxy_);
+     return;
+-  backend_->index()->Remove(entry_hash_);
++  }
++  if (backend_.get()) {
++    backend_->index()->Remove(entry_hash_);
++  }
+   active_entry_proxy_.reset();
+ }
+ 
+@@ -1452,8 +1458,9 @@ void SimpleEntryImpl::CreationOperationComplete(
+       // the active entry.  We can only do this because OpenEntryInternal
+       // and CreateEntryInternal have to start from STATE_UNINITIALIZED, so
+       // nothing else is going on which may be confused.
+-      if (backend_)
++      if (doom_state_ == DOOM_NONE && backend_) {
+         backend_->index()->Remove(entry_hash_);
++      }
+     }
+ 
+     net_log_.AddEventWithNetErrorCode(end_event_type, net::ERR_FAILED);
+@@ -1510,7 +1517,8 @@ void SimpleEntryImpl::CreationOperationComplete(
+     in_results->entry_stat.set_last_used(index_last_used_time);
+ 
+   UpdateDataFromEntryStat(in_results->entry_stat);
+-  if (cache_type_ == net::APP_CACHE && backend_.get() && backend_->index()) {
++  if (doom_state_ == DOOM_NONE && cache_type_ == net::APP_CACHE &&
++      backend_.get() && backend_->index()) {
+     backend_->index()->SetTrailerPrefetchSize(
+         entry_hash_, in_results->computed_trailer_prefetch_size);
+   }
+@@ -1691,7 +1699,7 @@ void SimpleEntryImpl::CloseOperationComplete(
+   DCHECK(STATE_IO_PENDING == state_ || STATE_FAILURE == state_ ||
+          STATE_UNINITIALIZED == state_);
+   net_log_.AddEvent(net::NetLogEventType::SIMPLE_CACHE_ENTRY_CLOSE_END);
+-  if (cache_type_ == net::APP_CACHE &&
++  if (doom_state_ == DOOM_NONE && cache_type_ == net::APP_CACHE &&
+       in_results->estimated_trailer_prefetch_size > 0 && backend_.get() &&
+       backend_->index()) {
+     backend_->index()->SetTrailerPrefetchSize(
+-- 
+2.43.0
+
