@@ -439,6 +439,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   - **Revisión de bt-320e:** el hover de la inactiva, más bajo, como en la maqueta; con foco, el desplegable de la URL del
     mismo ancho que la caja, sin sombra exterior y con el flou interior. En claro y en oscuro (hover #EBEBEB/#585959).
     Encargado a MOTOR-47, medido en las maquetas de `ajustes-20-11/`.
+  - **Desplegable de la URL (maquetas `maqueta-oscuro-desplegable-hd.webp` y `maqueta-claro-url-sutil.png`):** mismo ancho
+    que la caja, pegado debajo, sin sombra exterior, esquinas sutiles (~2 dip), en todas las ventanas (también la privada).
+  - **En oscuro, la URL y el desplegable pasan a oscuros** (sustituye lo del 19-11 de la URL blanca en oscuro): el
+    desplegable va en la gama del entorno elegido. Maqueta: URL #4D4D4D, desplegable #909294, fila seleccionada #542671,
+    texto blanco. En claro siguen blancos.
 - **La medida de la sync en la 5,1 no frena la 3.2.0 (Titín, 19-11; COORDINACIÓN-52):** como siempre, se mide después de
   publicar, en el estudio, con la versión instalada. Si hay retroceso (derivación de clave de más de ~2 s), se arregla
   como hasta ahora: pasa por SEGURIDAD-PORTES antes de tocar kScryptN y sale en una versión posterior.
