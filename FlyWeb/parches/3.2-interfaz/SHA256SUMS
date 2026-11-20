@@ -11,3 +11,5 @@ cedd0894e9f6eadc34b8615a6a7ae9550431224a4e43fa971c16cecb7c61f93f  0010-FlyWeb-3.
 80913fd75dfcd9baefc97396bb091fb78006030e55dee17848a1ec33d0cd1254  0011-FlyWeb-3.2.0-interface-lower-favicon-and-title-on-in.patch
 0a8967f7f3d33a6d3c69cb32508b3c2a2b2624c02439de9e6a502e8d52f033c6  0012-FlyWeb-3.2.0-interface-inactive-tab-hover-as-a-tab-s.patch
 fab498844de55f21d3ab8841503b79735a520f9a856431e8f6dc57b4a0d67886  0013-FlyWeb-3.2.0-interface-URL-shadow-always-inside-soft.patch
+52fc7bac2daf1ef2b9713e73a18c436dddadf705c022b7c5e26846164a331888  0014-FlyWeb-3.2.0-interface-inactive-tab-hover-lower-than.patch
+0e97eb51b032be60154bf9315601430509d1d903affd21b037b0c84bf88f8dc0  0015-FlyWeb-3.2.0-interface-keep-the-URL-inner-shadow-whi.patch

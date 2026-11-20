@@ -355,3 +355,31 @@ y en oscuro:
    aparecen restos.
 2. **URL:** ratón encima sin pulsar: sombra suave por dentro, nada por fuera. Al pulsar: más marcada. Con el desplegable
    abierto: ninguna. Ventana privada: como antes, con el anillo y la sombra de Brave.
+
+## Ajustes de Titín tras bt-320e (0014–0015)
+
+MOTOR-47, 20-11, por encargo de COORDINACIÓN-55. **Sin compilar.** No tocan la ventana privada.
+
+**Orden:** al final de la cadena completa de la 3.2.0, tras `3.2-ajustes-sistema/0005` (árbol `d1fe696d26`). Tocan
+ficheros que ya tocan 0012 y 0013, así que tienen que ir detrás de ellos.
+
+| Tras | Árbol |
+|---|---|
+| … + `3.2-ajustes-sistema/0005` | `d1fe696d26` |
+| 0014 | `b80ddd1f86` |
+| 0015 | **`68da2bca21`** |
+
+| Ajuste | Qué se hizo | Constante |
+|---|---|---|
+| 7. Hover más bajo | Titín: «la pestaña en roll over debía ser más baja, como en mi maqueta». En `maqueta-claro-hd.webp`, el hover de la primera inactiva empieza ≈5 px por debajo de la parte de arriba de la activa (y 50,5 frente a 45,5) y llega a la misma base. La activa mide allí 38,5 px y 34 dip en el navegador: ≈4,4 dip. Un segundo gancho en `GetPath()` baja la parte de arriba del camino `kHighlight` de las inactivas y deja la base donde estaba. La activa conserva toda su altura | `kFlyWebHoverTabTopInset` = 4 dip (chromium_src `horizontal_tab_style_views.cc`) |
+| 8. Flou con el desplegable | Titín: al pulsar en la URL «el flou no se ve». El 0003 ocultaba la sombra interior con el desplegable abierto, como el anillo de Chromium. Ahora la caja la conserva mientras se escribe: el desplegable deja ver la URL por su hueco | — |
+
+### Pasos para LOCAL
+
+Compilar `68da2bca21` y pasar `LocationBarViewBrowserTest.FlyWebFocusGlowReplacesFocusRing` (sigue valiendo: sin cursor ni
+ratón encima, la sombra está oculta). Capturas para Titín, en claro y en oscuro:
+1. **Hover de una inactiva:** el fondo empieza ≈4 dip por debajo de la parte de arriba de la activa y llega a la base.
+2. **URL con foco, con el desplegable abierto (escribiendo) y cerrado:** la sombra interior se ve en los dos casos.
+
+**Pendiente, a la espera de respuestas de Titín:** el ancho del desplegable, su sombra exterior y «la línea bajo el
+campo».

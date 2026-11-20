@@ -1,0 +1,54 @@
+From f1d4b97cb48c5cfec2b25ee571b91f6ceeb80019 Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 13:53:26 +0000
+Subject: [PATCH 15/15] FlyWeb 3.2.0 interface: keep the URL inner shadow while
+ the popup is open
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Titín (20-11, bt-320e): with the caret in the URL field the inner
+shadow did not show. 0003 hid the glow while the suggestions popup was
+open, as Chromium's focus ring; the popup shows the location bar through
+its cutout, so the field now keeps the inner shadow (focus strength)
+while typing with the popup open.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ .../views/location_bar/brave_location_bar_view.cc   | 13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/browser/ui/views/location_bar/brave_location_bar_view.cc b/browser/ui/views/location_bar/brave_location_bar_view.cc
+index 839684ecc922f3df7162f3438d18bebacff9f8d7..40e6dbd535b023a9864a389208e749b019db8a72 100644
+--- a/browser/ui/views/location_bar/brave_location_bar_view.cc
++++ b/browser/ui/views/location_bar/brave_location_bar_view.cc
+@@ -288,19 +288,18 @@ void BraveLocationBarView::RefreshBackground() {
+   LocationBarView::RefreshBackground();
+ 
+   // Chromium calls RefreshBackground() on focus, blur, popup and hover
+-  // changes. With the caret: same condition as Chromium's focus ring, visibly
+-  // focused and popup closed (an open popup and the field are drawn as one
+-  // piece). Without it: the softer shadow while the mouse is over the field,
+-  // where Brave showed its outer shadow.
++  // changes. With the caret: the inner shadow, also while the suggestions
++  // popup is open (Titín, 20-11, bt-320e: the field keeps its inner shadow
++  // when typing; the popup shows the field through its cutout). Without it:
++  // the softer shadow while the mouse is over the field, where Brave showed
++  // its outer shadow.
+   if (focus_glow_) {
+     const bool caret_visible =
+         GetOmniboxController()->edit_model()->is_caret_visible();
+-    const bool popup_open = GetOmniboxController()->IsPopupOpen();
+     static_cast<FlyWebOmniboxFocusGlowView*>(focus_glow_.get())
+         ->set_edge_opacity(caret_visible ? kFlyWebOmniboxFocusGlowOpacity
+                                          : kFlyWebOmniboxHoverGlowOpacity);
+-    focus_glow_->SetVisible(!popup_open &&
+-                            (caret_visible || IsMouseHovered()));
++    focus_glow_->SetVisible(caret_visible || IsMouseHovered());
+   }
+ 
+   if (shadow_) {
+-- 
+2.43.0
+
