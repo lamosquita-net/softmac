@@ -1,0 +1,166 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Colin Blundell <blundell@chromium.org>
+Date: Fri, 20 Nov 2026 18:41:47 +0000
+Subject: [PATCH] [M156] [Blink] Zero-initialize ImageDataBuffer readback
+ buffer
+
+FlyWeb pending: from branch-heads/8078 7ec583a50d. Applied after pendiente/chromium/0006; applies cleanly (identical diff). brave-core has chromium_src/third_party/blink/renderer/platform/graphics/image_data_buffer.h, which only adds a pixmap accessor for canvas farbling and does not touch the buffer allocation; no brave-core patches for these files.
+
+Original change's description:
+> [Blink] Zero-initialize ImageDataBuffer readback buffer
+>
+> ImageDataBuffer::ImageDataBuffer(scoped_refptr<StaticBitmapImage>)
+> allocates its destination buffer via SkData::MakeUninitialized() before
+> calling PaintImage::readPixels(). For a texture-backed PaintImage,
+> readPixels() delegates to MailboxTextureBacking::readPixels() ->
+> RasterImplementation::ReadbackImagePixels(). Because
+> kDisableErrorHandlingForReadback is enabled by default [1], a failed GPU
+> readback returns true without writing to the destination buffer, causing
+> ImageDataBuffer to retain uninitialized heap memory.
+>
+> Switch ImageDataBuffer to SkData::MakeZeroInitialized(), matching other
+> readback callers such as MailboxTextureBacking::GetSkImageViaReadback()
+> [2] and StaticBitmapImage::CopyImageData() [3].
+>
+> [1] https://source.chromium.org/chromium/chromium/src/+/main:gpu/command_buffer/client/raster_implementation.cc;l=1687-1690;drc=fa6817d43c5acec58ae2a0ed17dcf0e793290d36
+> [2] https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/platform/graphics/mailbox_texture_backing.cc;l=69-70;drc=fa6817d43c5acec58ae2a0ed17dcf0e793290d36
+> [3] https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/platform/graphics/static_bitmap_image.cc;l=62;drc=fa6817d43c5acec58ae2a0ed17dcf0e793290d36
+>
+> Bug: 585617234
+> Change-Id: I6b8272db83af54292ff5cd1734abc1ef4b6a5873
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8822409
+> Reviewed-by: Vasiliy Telezhnikov <vasilyt@chromium.org>
+> Commit-Queue: Colin Blundell <blundell@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1747830}
+
+(cherry picked from commit fb96f7a75a72b1587ca437bcb5bc72aacecbec83)
+
+Bug: 587682327,585617234
+Change-Id: I6b8272db83af54292ff5cd1734abc1ef4b6a5873
+
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8841501
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Reviewed-by: Vasiliy Telezhnikov <vasilyt@chromium.org>
+Commit-Queue: Vasiliy Telezhnikov <vasilyt@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2360}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../accelerated_static_bitmap_image_test.cc   | 52 +++++++++++++++++++
+ .../platform/graphics/image_data_buffer.cc    |  6 ++-
+ 2 files changed, 57 insertions(+), 1 deletion(-)
+
+diff --git a/third_party/blink/renderer/platform/graphics/accelerated_static_bitmap_image_test.cc b/third_party/blink/renderer/platform/graphics/accelerated_static_bitmap_image_test.cc
+index fff00d7611..74305f5cb2 100644
+--- a/third_party/blink/renderer/platform/graphics/accelerated_static_bitmap_image_test.cc
++++ b/third_party/blink/renderer/platform/graphics/accelerated_static_bitmap_image_test.cc
+@@ -4,6 +4,11 @@
+ 
+ #include "third_party/blink/renderer/platform/graphics/accelerated_static_bitmap_image.h"
+ 
++#include <cstdint>
++#include <memory>
++#include <utility>
++#include <vector>
++
+ #include "base/compiler_specific.h"
+ #include "base/functional/callback_helpers.h"
+ #include "base/test/null_task_runner.h"
+@@ -15,11 +20,13 @@
+ #include "testing/gmock/include/gmock/gmock.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+ #include "third_party/blink/renderer/platform/graphics/gpu/shared_gpu_context.h"
++#include "third_party/blink/renderer/platform/graphics/image_data_buffer.h"
+ #include "third_party/blink/renderer/platform/graphics/skia/skia_utils.h"
+ #include "third_party/blink/renderer/platform/graphics/test/fake_gles2_interface.h"
+ #include "third_party/blink/renderer/platform/graphics/test/fake_web_graphics_context_3d_provider.h"
+ #include "third_party/blink/renderer/platform/graphics/test/gpu_test_utils.h"
+ #include "third_party/blink/renderer/platform/wtf/functional.h"
++#include "third_party/skia/include/core/SkData.h"
+ #include "third_party/skia/include/core/SkSurface.h"
+ 
+ namespace blink {
+@@ -40,6 +47,23 @@ class MockGLES2InterfaceWithSyncTokenSupport : public viz::TestGLES2Interface {
+   MOCK_METHOD1(WaitSyncTokenCHROMIUM, void(const GLbyte*));
+ };
+ 
++class SilentReadbackFailureRasterInterface : public viz::TestRasterInterface {
++ public:
++  bool ReadbackImagePixels(const gpu::Mailbox& source_mailbox,
++                           const gfx::Size& source_size,
++                           const SkImageInfo& dst_info,
++                           GLuint dst_row_bytes,
++                           int src_x,
++                           int src_y,
++                           int plane_index,
++                           void* dst_pixels) override {
++    // Simulates `RasterImplementation::ReadbackImagePixels()` returning true
++    // when `kDisableErrorHandlingForReadback` is enabled and GPU readback fails
++    // without writing to `dst_pixels`.
++    return true;
++  }
++};
++
+ GLbyte SyncTokenMatcher(const gpu::SyncToken& token) {
+   return reinterpret_cast<const GLbyte*>(&token)[0];
+ }
+@@ -132,5 +156,33 @@ TEST_F(AcceleratedStaticBitmapImageTest, CopyToTextureSynchronization) {
+   }
+ }
+ 
++TEST_F(AcceleratedStaticBitmapImageTest,
++       ImageDataBufferZeroesPixelsOnSilentReadbackFailure) {
++  SharedGpuContext::Reset();
++  context_provider_ = viz::TestContextProvider::CreateRaster(
++      std::make_unique<SilentReadbackFailureRasterInterface>());
++  InitializeSharedGpuContext(context_provider_.get());
++
++  auto bitmap = CreateBitmap(gpu::SHARED_IMAGE_USAGE_RASTER_READ);
++  ASSERT_NE(bitmap, nullptr);
++  const SkImageInfo image_info =
++      bitmap->PaintImageForCurrentFrame().GetSkImageInfo();
++  const size_t bitmap_size = image_info.computeMinByteSize();
++  ASSERT_GT(bitmap_size, 0u);
++
++  // Allocate, fill with non-zero bytes, and free a same-sized SkData right
++  // before readback so the head of the allocator's freelist for this size
++  // class contains non-zero bytes.
++  const std::vector<uint8_t> non_zero_pattern(bitmap_size, 0xAB);
++  sk_sp<SkData> dirty_data =
++      SkData::MakeWithCopy(non_zero_pattern.data(), non_zero_pattern.size());
++  ASSERT_NE(dirty_data, nullptr);
++  dirty_data.reset();
++
++  std::unique_ptr<ImageDataBuffer> buffer = ImageDataBuffer::Create(bitmap);
++  ASSERT_NE(buffer, nullptr);
++  EXPECT_THAT(buffer->PixelData(), testing::Each(0u));
++}
++
+ }  // namespace
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/platform/graphics/image_data_buffer.cc b/third_party/blink/renderer/platform/graphics/image_data_buffer.cc
+index d05ea261a9..6d22a45973 100644
+--- a/third_party/blink/renderer/platform/graphics/image_data_buffer.cc
++++ b/third_party/blink/renderer/platform/graphics/image_data_buffer.cc
+@@ -38,6 +38,7 @@
+ #include "third_party/blink/renderer/platform/image-encoders/image_encoder_utils.h"
+ #include "third_party/blink/renderer/platform/wtf/text/base64.h"
+ #include "third_party/blink/renderer/platform/wtf/text/strcat.h"
++#include "third_party/skia/include/core/SkData.h"
+ #include "third_party/skia/include/core/SkImage.h"
+ #include "third_party/skia/include/core/SkSurface.h"
+ #include "ui/gfx/hdr_metadata.h"
+@@ -81,7 +82,10 @@ ImageDataBuffer::ImageDataBuffer(scoped_refptr<StaticBitmapImage> image) {
+     if (SkImageInfo::ByteSizeOverflowed(size))
+       return;
+ 
+-    sk_sp<SkData> data = SkData::MakeUninitialized(size);
++    // Zero-initialize the destination buffer as GPU readback may fail silently
++    // without writing to `pixmap_` when `kDisableErrorHandlingForReadback` is
++    // enabled.
++    sk_sp<SkData> data = SkData::MakeZeroInitialized(size);
+     pixmap_ = {info, data->writable_data(), info.minRowBytes()};
+     if (!paint_image.readPixels(info, pixmap_.writable_addr(), rowBytes, 0,
+                                 0)) {
+-- 
+2.43.0
+

@@ -19,7 +19,7 @@ Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0006` | **`064a5696b2`** (tras `0005`: `a9b357bc47`; tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`; tras `0004`: `a621f0a668`) |
+| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0007` | **`1b06f59f4d`** (tras `0006`: `064a5696b2`; tras `0005`: `a9b357bc47`; tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`; tras `0004`: `a621f0a668`) |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
 | brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001`–`0004` | **`29d6bcf5e3`** (tras `0001`: `90134a4e08`; tras `0002`: `639401fb8e`; tras `0003`: `0caa04c2dd`) |
 | brave-core (3.2.0) | lo anterior + `FlyWeb/parches/3.2-v8/0001`–`0002` (#1144, `1e978ba37c`): **`78514b92af`** | `brave-core/0005` (va **detrás** de `3.2-v8/0002`) | **`78df46b5d6`** (V8 con todos los `patches/v8`: `9914512d91`) |
@@ -63,6 +63,8 @@ la base nueva ya los traiga.
 | V8 15.6 `751cfac05f` (.75, 15:34 UTC) | **01a299bf4c** [M156] «[compiler] Preserve control inputs on non-cell context operations» (585625642, merge 587680540) | Sí | `brave-core/0002` (**idéntico**, abajo) |
 | `9ebc6bd712` (20-11 16:32 UTC) | *Roll* de V8 `18cf2b9282..751cfac05f` (= la .75 de arriba) | — | `brave-core/0002` |
 | V8 15.6 `f08ef923d3` (.76, 16:59 UTC) | **c37ab55c4a** [M156] «[sandbox] Bound length in String::ToStdString and ToCString» (579314138, 585869521; merge 587681388) | Sí | `brave-core/0005` |
+| `04c385f13f` (20-11 18:31 UTC) | *Roll* de V8 `751cfac05f..f08ef923d3` (= la .76 de arriba) | — | `brave-core/0005` |
+| `7ec583a50d` (20-11 18:41 UTC) | [M156] «[Blink] Zero-initialize ImageDataBuffer readback buffer» (585617234, merge 587682327) | Sí (abajo) | `chromium/0007` |
 
 **Tag 156.0.8078.112 = `880ca0428f`** (visto el 20-11 a las 03:24 UTC; la rama sigue en .113 desde `e2352b4cf6`, solo
 `chrome/VERSION`). Todo lo de `.111` (`c22b215559`, base de la build 47) a `.112` está en esta tabla: con `pendiente/`
@@ -258,6 +260,28 @@ durante una navegación entre orígenes ya no hereda el *service worker* del des
 `content_browsertests --gtest_filter='*ServiceWorker*NoOriginKeyed*:*LastCommittedServiceWorkerClient*'`,
 `content_unittests --gtest_filter='WorkerScriptLoaderFactory*'` y, en la build, una PWA con *service worker* (abrir,
 recargar, desconectar la red).
+
+## `chromium/0007`: 7ec583a50d (bug 585617234, merge 587682327)
+
+`ImageDataBuffer`, que se usa para `toDataURL`/`toBlob` de un canvas acelerado, reservaba el buffer de destino sin
+inicializar (`SkData::MakeUninitialized`) antes de leer los píxeles de la GPU. Con `kDisableErrorHandlingForReadback`
+(activado por defecto), si la lectura falla devuelve `true` sin escribir nada. Así la web recibía **memoria del heap del
+*renderer* sin inicializar** dentro de la imagen: una fuga de información. El arreglo reserva el buffer a cero
+(`MakeZeroInitialized`), como ya hacen las otras lecturas de GPU. Se alcanza con un canvas acelerado y
+`toDataURL`/`toBlob`, y en la práctica cuando la lectura de la GPU falla. Aplica a Mac.
+
+- Mismo diff que upstream (`patch-id` igual, fichero a fichero). Aplica limpio sobre `064a5696b2`.
+- brave-core tiene `chromium_src/.../image_data_buffer.h`, que solo añade un acceso a `pixmap_` para el *farbling* del
+  canvas y no toca la reserva. Poner el buffer a cero antes de la lectura no cambia lo que hace el *farbling* después.
+- Comprobado: `git apply --cached` sobre `064a5696b2` da el árbol **`1b06f59f4d`**.
+- **Gravedad: no consta** (bug restringido).
+
+### Veredicto (regla 17): **APTO**, `chromium/0007`
+
+Es el arreglo de Chrome 156 sin cambios. Efecto visible: ninguno; si la lectura de la GPU falla, la imagen sale
+transparente o negra en vez de con basura. Prueba: `blink_platform_unittests
+--gtest_filter='AcceleratedStaticBitmapImageTest.*'` (trae una prueba nueva) y, en la build, `canvas.toDataURL()` de un
+canvas WebGL o 2D acelerado.
 
 ## `brave-core/0001`: V8 d68cecd900 (bugs 583479274 y 587681789; V8 15.6.75.72)
 
@@ -562,6 +586,7 @@ aplicando, salvo que llegue antes a la 8078 como merge M156 (entonces va arriba,
 | `eb140e9ee3` (20-11 11:04 UTC) | *Roll* de V8 15.9 `dd683a21bf..a1896f1005` (15.9.128.21): **27e138a575** [M159] «[compiler] Preserve control inputs on non-cell context operations» (585625642, merge 587680496) | Sí (TurboFan) | **Excepción: preparado ya** como `brave-core/0002` (abajo), sin esperar al merge en la 15.6 |
 | `41c9a648fb` (20-11 11:20 UTC) | [M159] «Enforce worker script origin match for ServiceWorker clients» (585383394, merge 587681032), `content/browser/service_worker` y `worker_host` | Sí (proceso del navegador; exige un *renderer* comprometido) | Candidato; sin parche: el código vulnerable está en la 156 (`service_worker_client.cc`, `WithOrigin()` en las líneas 665 y 679), pero el diff **no aplica** sobre `a9b357bc47` (5 de 7 ficheros con *hunks* rechazados): si llega a la 8078, a `pendiente/` |
 | V8 15.9 `fcaf218c74` (15.9.128.22, 13:15 UTC) | **202e0e7f26** [M159] «[interpreter] Initialize receiver on optional-chain call short-circuit» (585614984, merge 587681919) | Sí (intérprete, Maglev y TurboFan) | **Excepción: preparado ya** como `brave-core/0004` (abajo), sin esperar al merge en la 15.6 |
+| `afa45b8e16` (20-11 18:06 UTC) | [M159] «views: Fix FOR_DROP menu drag and drop teardown UAF» (565066840, merge 588202414), `ui/views/controls/menu` | Sí (proceso del navegador; hace falta arrastrar algo a un menú abierto para soltar) | Candidato; sin parche. El código vulnerable **está en la 156**: en `GetDropCallback`, tras `OnMenuClosed` (que borra `this`) se sigue usando, y `OnDragUpdated` devuelve la operación con `destroy_pending_`. El diff no aplica tal cual solo por contexto (`DCHECK` frente a `CHECK(…, NotFatalUntil::M163)`); el arreglo son dos líneas. Si llega a la 8078, a `pendiente/` |
 
 **`690f348e8d`** (SEGURIDAD-PORTES-33, 20-11): `SessionImpl::AddContextImpl()` y `OnDeviceContext::SetInput()`
 ejecutan `callback_` de forma síncrona, y `AIManager` guarda en ese *callback* la propiedad de la `OnDeviceSession`
