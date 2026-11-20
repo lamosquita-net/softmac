@@ -17,7 +17,7 @@ Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001` | **`2c8ef28a99`** |
+| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0002` | **`39054ebf03`** (tras `0001`: `2c8ef28a99`) |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
 | brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001` | **`90134a4e08`** |
 | Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001`–`0003` | **`1ef25455d7`** (tras `0001`: `32f1340fb3`; tras `0002`: `47b14cb49e`) |
@@ -48,6 +48,7 @@ la base nueva ya los traiga.
 | `b7fd761` (19-11 21:41 UTC) | [M156] «Fix UAF in XRCameraUpdateHelper» (571871625, merge 587680304) | **No** (abajo) | — |
 | `e414deb` (19-11 22:09 UTC) | Pruebas desactivadas (sxg-reporting en Linux Debug) | — | — |
 | `7cd7567` (19-11 22:32 UTC) | *Roll* de Skia `7dc6c0c3424a..9d96dfeb451c`: **9d96dfeb45** [M156] «[Ganesh] Restrict scissor by dst-read bounds» (584764517, merge 587951190) | Sí (abajo) | `skia/0003` |
+| `880ca0428f` (20-11 02:03 UTC) | [M156] «Fix synchronous completion in LocalFileStreamReader» (586656231, merge 587681925) | Sí (abajo) | `chromium/0002` |
 
 Sin tag .112 (la rama ya llevaba `chrome/VERSION` en .112 desde `aac2cdd377`).
 
@@ -129,6 +130,28 @@ Pruebas automáticas: `content_unittests --gtest_filter='*SandboxMac*'` y `sandb
 SYMLINK)))` → `ln: Operation not permitted` (salida 1, no se crea el enlace); `(unless #t …)` → salida 0, enlace creado.
 Mojave entiende `unless` y `vnode-type SYMLINK` sin error de sintaxis: queda descartado el riesgo principal (que el
 perfil no compile en 10.14). **APTO para Mojave**, a falta de los pasos 1–7 con la versión compilada.
+
+## `chromium/0002`: 880ca0428f (bug 586656231, merge 587681925)
+
+`LocalFileStreamReader` (`storage/browser/file_system`) rompía el contrato de `FileStreamReader`: en `Read()` podía
+ejecutar el *callback* de forma síncrona y además devolver el resultado, y si `file_access` denegaba el acceso en línea
+llamaba al *callback* antes de devolver `ERR_IO_PENDING`. Un llamador reentrante como `MojoBlobReader` podía destruir
+el lector mientras `Read()` aún se deshacía: **UAF**. El arreglo solo guarda el *callback* cuando hay `ERR_IO_PENDING`
+y publica la denegación en una tarea.
+
+- **Mac: sí.** El código es multiplataforma y lo usan los blobs respaldados por fichero (subidas con `<input type=file>`,
+  `FileReader` sobre `File`). La denegación en línea viene de `file_access` (DLP, sobre todo
+  ChromeOS); el primer cambio, el del resultado síncrono, es general. Razonado, no probado en ejecución.
+- Las líneas `+`/`-` son idénticas a las de upstream (`patch-id` `a79a19e66d` igual). Se aplica limpio sobre
+  `2c8ef28a99` y deja **`39054ebf03`** (árbol reproducido como dice §22 de `docs/RELEVO-SEGURIDAD.md`).
+- brave-core no tiene parches ni `chromium_src` para estos ficheros (`local/3.1.4-adapt` `e660929`).
+- Gravedad: no consta (bug restringido).
+
+### Veredicto (regla 17): **APTO**, `chromium/0002`
+
+Cambio pequeño y local (10 líneas en un `.cc`), sin API nueva ni dependencia de 10.15. Prueba:
+`storage_unittests --gtest_filter='LocalFileStreamReaderTest.*'` (trae dos pruebas nuevas) y, en la build, una subida de
+fichero grande (un adjunto en claude.ai y un `<input type=file>` cualquiera) y leer un fichero local con `FileReader`.
 
 ## `brave-core/0001`: V8 d68cecd900 (bugs 583479274 y 587681789; V8 15.6.75.72)
 

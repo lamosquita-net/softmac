@@ -1,0 +1,153 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eriko Kurimoto <elkurin@chromium.org>
+Date: Fri, 20 Nov 2026 02:03:04 +0000
+Subject: [PATCH] [M156] Fix synchronous completion in LocalFileStreamReader
+
+FlyWeb pending: from branch-heads/8078 880ca0428f. Applied after pendiente/chromium/0001;
+applies cleanly (identical diff). No brave-core patches or chromium_src for these files.
+
+Original change's description:
+> Fix synchronous completion in LocalFileStreamReader
+>
+> This CL updates LocalFileStreamReader to enforce the FileStreamReader
+> asynchronous completion contract by posting inline file-access denial
+> callbacks to the current sequence and avoiding callback invocation on
+> synchronous stream reads.
+>
+> Previously, when a file-access callback denied access inline during an
+> initial read, LocalFileStreamReader invoked the completion callback
+> synchronously before returning ERR_IO_PENDING, allowing re-entrant
+> callers such as MojoBlobReader to destroy their reader while the read
+> call was still unwinding.
+>
+> Bug: 586656231
+> Change-Id: I7d35f101fd480f506b500847548ae6240b769660
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8829208
+> Auto-Submit: Eriko Kurimoto <elkurin@chromium.org>
+> Commit-Queue: Eriko Kurimoto <elkurin@chromium.org>
+> Reviewed-by: Rakina Zata Amni <rakina@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1747737}
+
+(cherry picked from commit 0d355288ea9b912fee64f0651895036d1a0fe3b8)
+
+Bug: 587681925,586656231
+Change-Id: I7d35f101fd480f506b500847548ae6240b769660
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8838343
+Reviewed-by: Rakina Zata Amni <rakina@chromium.org>
+Commit-Queue: Rakina Zata Amni <rakina@chromium.org>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2350}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../file_system/local_file_stream_reader.cc   | 10 +++--
+ .../local_file_stream_reader_unittest.cc      | 39 +++++++++++++++++++
+ 2 files changed, 45 insertions(+), 4 deletions(-)
+
+diff --git a/storage/browser/file_system/local_file_stream_reader.cc b/storage/browser/file_system/local_file_stream_reader.cc
+index 96b1fbf986..9970aa9ebc 100644
+--- a/storage/browser/file_system/local_file_stream_reader.cc
++++ b/storage/browser/file_system/local_file_stream_reader.cc
+@@ -70,7 +70,6 @@ int LocalFileStreamReader::Read(net::IOBuffer* buf,
+   DCHECK(!has_pending_open_);
+ 
+   if (stream_impl_) {
+-    callback_ = std::move(callback);
+     const auto result =
+         stream_impl_->Read(buf, buf_len,
+                            base::BindOnce(&LocalFileStreamReader::OnRead,
+@@ -78,8 +77,8 @@ int LocalFileStreamReader::Read(net::IOBuffer* buf,
+     const int read_result = result.has_value()
+                                 ? base::checked_cast<int>(result->InBytes())
+                                 : result.error();
+-    if (read_result != net::ERR_IO_PENDING) {
+-      std::move(callback_).Run(read_result);
++    if (read_result == net::ERR_IO_PENDING) {
++      callback_ = std::move(callback);
+     }
+     return read_result;
+   }
+@@ -135,7 +134,10 @@ void LocalFileStreamReader::OnScopedFileAccessRequested(
+     net::CompletionOnceCallback callback,
+     file_access::ScopedFileAccess scoped_file_access) {
+   if (!scoped_file_access.is_allowed()) {
+-    std::move(callback).Run(net::ERR_ACCESS_DENIED);
++    // Post asynchronously so `Read()` never invokes its completion callback
++    // synchronously before returning `net::ERR_IO_PENDING`.
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++        FROM_HERE, base::BindOnce(std::move(callback), net::ERR_ACCESS_DENIED));
+     return;
+   }
+ 
+diff --git a/storage/browser/file_system/local_file_stream_reader_unittest.cc b/storage/browser/file_system/local_file_stream_reader_unittest.cc
+index 99ab31eb85..d5b16800a2 100644
+--- a/storage/browser/file_system/local_file_stream_reader_unittest.cc
++++ b/storage/browser/file_system/local_file_stream_reader_unittest.cc
+@@ -10,14 +10,18 @@
+ #include <memory>
+ #include <string>
+ #include <string_view>
++#include <utility>
++#include <vector>
+ 
+ #include "base/files/file.h"
+ #include "base/files/file_path.h"
+ #include "base/files/file_util.h"
+ #include "base/files/scoped_temp_dir.h"
+ #include "base/functional/bind.h"
++#include "base/functional/callback.h"
+ #include "base/functional/callback_helpers.h"
+ #include "base/location.h"
++#include "base/memory/scoped_refptr.h"
+ #include "base/run_loop.h"
+ #include "base/task/single_thread_task_runner.h"
+ #include "base/test/gmock_callback_support.h"
+@@ -54,6 +58,12 @@ file_access::ScopedFileAccess CreateScopedFileAccess(bool allowed) {
+ #endif
+ }
+ 
++void DenyFileAccessInline(
++    const std::vector<base::FilePath>&,
++    base::OnceCallback<void(file_access::ScopedFileAccess)> callback) {
++  std::move(callback).Run(file_access::ScopedFileAccess::Denied());
++}
++
+ }  // namespace
+ 
+ class LocalFileStreamReaderTest : public FileStreamReaderTest {
+@@ -229,4 +239,33 @@ TEST_F(LocalFileStreamReaderTest, ReadBlockedByDataLeakPreventionCallback) {
+   EXPECT_EQ(data_or_error.error(), net::ERR_ACCESS_DENIED);
+ }
+ 
++TEST_F(LocalFileStreamReaderTest, ReadDeniedInlineRunsCallbackAsynchronously) {
++  WriteTestFile();
++  std::unique_ptr<FileStreamReader> reader = CreateFileReader(
++      std::string(kTestFileName), 0, test_file_modification_time(),
++      base::BindRepeating(&DenyFileAccessInline));
++
++  auto buf = base::MakeRefCounted<net::IOBufferWithSize>(kTestData.size());
++  net::TestCompletionCallback callback;
++  int rv = reader->Read(buf.get(), buf->size(), callback.callback());
++  ASSERT_EQ(rv, net::ERR_IO_PENDING);
++  EXPECT_FALSE(callback.have_result());
++  EXPECT_EQ(callback.WaitForResult(), net::ERR_ACCESS_DENIED);
++}
++
++TEST_F(LocalFileStreamReaderTest, DeleteWithPendingInlineDeniedRead) {
++  WriteTestFile();
++  std::unique_ptr<FileStreamReader> reader = CreateFileReader(
++      std::string(kTestFileName), 0, test_file_modification_time(),
++      base::BindRepeating(&DenyFileAccessInline));
++
++  auto buf = base::MakeRefCounted<net::IOBufferWithSize>(kTestData.size());
++  int rv = reader->Read(buf.get(), buf->size(),
++                        base::BindOnce(&FileStreamReaderTest::NeverCalled));
++  ASSERT_EQ(rv, net::ERR_IO_PENDING);
++
++  reader.reset();
++  base::RunLoop().RunUntilIdle();
++}
++
+ }  // namespace storage
+-- 
+2.43.0
+

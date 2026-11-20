@@ -1,5 +1,6 @@
 5089455d72de7c9caa956bf0a490f3d826a0ad5dd8ba8aefc3b5f871713f33f7  angle/0001-M156-Validate-extensions-in-ValidES3ExtensionFormatCo.patch
 e943337517a9f4bb5f24d7fd4419ed7bd4f1852689d8cafb1d8b5af3f1db2420  chromium/0001-M156-Disallow-creating-symbolic-links-in-the-macOS-n.patch
+556d80ba64364df4dfb37d087b4b3fb5df3293da1815412688c616d4b867d87f  chromium/0002-M156-Fix-synchronous-completion-in-LocalFileStreamRe.patch
 32148aba783ff8e1f953537a59e1ab65814178224e71f414ec3dc048e8a2ffce  brave-core/0001-v8-pending-d68cecd900-15.6.75.72-crbug-583479274.patch
 c62b7081bf285a6968e34a9a75219b0bd58c9167d96357d7758e1a174984e4c4  skia/0001-M156-ganesh-Guard-GrBufferAllocPool-against-overflow.patch
 5c3a0dd308b733a060dc6df04f063cf0107c0e3e8ce0cb223dbe211e05c8a5e5  skia/0002-M156-SkScalerContext-Harden-LCD16-and-getImage-bounds.patch
