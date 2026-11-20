@@ -990,3 +990,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/LOCAL/20261120-1050-COORDINACION-54-relevo-LOCAL-21.md — entregado a LOCAL-21 relevo en MacPro7,1 [9d9f5f] el 2026-11-20 10:50 UTC (CARTERO-LOCAL)
 - buzon/CARTERO-LOCAL/20261120-1050-COORDINACION-54-relevo.md — solo anotado (copia propia)
 - buzon/LOCAL/20261120-1057-COORDINACION-54-acuse-320e-LOCAL-21.md — entregado a LOCAL-21 relevo en MacPro7,1 [9d9f5f] el 2026-11-20 10:59 UTC (CARTERO-LOCAL)
+- buzon/LOCAL/20261120-1306-COORDINACION-54-estado-320e-LOCAL-21.md — entregado a LOCAL-21 relevo en MacPro7,1 [9d9f5f] el 2026-11-20 13:07 UTC (CARTERO-LOCAL)
