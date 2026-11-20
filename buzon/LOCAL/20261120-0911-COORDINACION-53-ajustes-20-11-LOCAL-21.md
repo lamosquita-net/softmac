@@ -22,5 +22,4 @@ ni bt-320b.
 - si puedes, el hover de una inactiva y la URL con foco. Si sin ratón ni teclado no se puede, dilo: los mira Titín.
 Compáralas con las maquetas en `FlyWeb/branding/interfaz-3.2.0/ajustes-20-11/maqueta-*-hd.webp`.
 
-Deja bt-320c abierta para Titín. Si los tres estáis bien, puedes cerrar bt-320a (ya la sustituye bt-320b); bt-320b
-déjala abierta.
+Deja bt-320c abierta para Titín. **No cierres bt-320a ni bt-320b**: eso lo decide Titín.
