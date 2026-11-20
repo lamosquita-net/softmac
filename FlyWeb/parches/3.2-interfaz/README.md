@@ -18,7 +18,7 @@ para que LOCAL pruebe cada uno en la 6,1. Se aplican en orden. Árbol tras el 00
 | `0008-FlyWeb-3.2.0-interface-stronger-URL-focus-glow-in-da.patch` | Ajuste 20-11 (1) | Brillo de la URL en oscuro: constantes propias (`brave_location_bar_view.cc`) |
 | `0009-FlyWeb-3.2.0-interface-URL-field-a-little-shorter-fr.patch` | Ajuste 20-11 (2) | URL 2 dip más baja por arriba (`brave_toolbar_view.cc`, `brave_layout_constants.h`, `brave_actions_container.cc`) |
 | `0010-FlyWeb-3.2.0-interface-inactive-tab-hover-colors.patch` | Ajuste 20-11 (3) | Hover de la pestaña inactiva (`brave_color_mixer.cc`, `color_palette.h` y su test) |
-| `0011-FlyWeb-3.2.0-interface-lower-favicon-and-title-on-in.patch` | Ajuste 20-11 (4) | Título y favicon de las inactivas más bajos (chromium_src `tab.cc` y el parche de `tab.cc`) |
+| `0011-FlyWeb-3.2.0-interface-lower-favicon-and-title-on-in.patch` | Ajuste 20-11 (4) | Título y favicon de las inactivas 4 dip más bajos (chromium_src `tab.cc` y el parche de `tab.cc`) |
 
 ## H1: colores
 
@@ -302,18 +302,18 @@ main), es decir, sobre el árbol `a0c808d485`. Con `git am`, en ese orden, aplic
 | 0008 | `b127946356` |
 | 0009 | `7d533d1ef9` |
 | 0010 | `e0ff1d94a6` |
-| 0011 | `6076b47f55` |
+| 0011 | `46c2d18b98` |
 
 | Ajuste | Qué se hizo | Constante (provisional) |
 |---|---|---|
 | 1. Brillo de la URL en oscuro | La URL es blanca en los dos modos, pero junto a la barra oscura el borde gris del brillo se confunde con lo de fuera. En oscuro (se mira el color de la barra al pintar) el brillo usa sus propias constantes | `kFlyWebOmniboxFocusGlowThicknessDark` = 3 dip, `kFlyWebOmniboxFocusGlowOpacityDark` = 0,55 (`brave_location_bar_view.cc`; las de claro no cambian) |
 | 2. URL más baja por arriba | `BraveToolbarView::Layout` quita esos dip del borde superior de la URL al final de cada pasada. La barra conserva su alto y la URL, su borde inferior. Los botones de Brave de la URL (Shields) se acortan lo mismo, para conservar su margen | `kFlyWebLocationBarTopTrim` = 2 dip (`brave_layout_constants.h`) |
 | 3. Hover de la pestaña inactiva | `kColorTabBackgroundInactiveHoverFrameActive/FrameInactive` en el mezclador de texto de pestañas de FlyWeb, que no se aplica a privada ni a Tor | `kFlyWebLightInactiveTabHover` #EBEBEB, `kFlyWebDarkInactiveTabHover` #585959 (`color_palette.h`) |
-| 4. Título y favicon de las inactivas más bajos | Favicon: el gancho de diseño que ya había en chromium_src `tab.cc`. Título: un gancho nuevo en `title_bounds` (`Tab::Layout`), una línea más en `patches/chrome-browser-ui-views-tabs-tab.cc.patch`. Al activarse, `Tab::ActiveStateChanged()` maqueta la pestaña al momento: suben sin animación. Solo la tira horizontal (las verticales de la 156 usan otras vistas) | `kFlyWebInactiveTabContentOffset` = 2 dip (chromium_src `tab.cc`) |
+| 4. Título y favicon de las inactivas más bajos | Favicon: el gancho de diseño que ya había en chromium_src `tab.cc`. Título: un gancho nuevo en `title_bounds` (`Tab::Layout`), una línea más en `patches/chrome-browser-ui-views-tabs-tab.cc.patch`. Al activarse, `Tab::ActiveStateChanged()` maqueta la pestaña al momento: suben sin animación. Solo la tira horizontal (las verticales de la 156 usan otras vistas) | `kFlyWebInactiveTabContentOffset` = 4 dip (chromium_src `tab.cc`; de la maqueta en alta de Titín, #1137: ~5–6 px de imagen con la URL a ~33) |
 
 ### Pasos para LOCAL
 
-Compilar sobre `a0c808d485` + 0008–0011 (árbol `6076b47f55`). Pasar `BraveColorMixersTest.*` (0010 añade el hover en claro y
+Compilar sobre `a0c808d485` + 0008–0011 (árbol `46c2d18b98`). Pasar `BraveColorMixersTest.*` (0010 añade el hover en claro y
 en oscuro) y `LocationBarViewBrowserTest.FlyWebFocusGlowReplacesFocusRing`. Capturas a Titín, en claro y en oscuro, en la
 6,1 a 1x y en una Retina:
 1. **URL con foco en oscuro:** se ve el brillo interior. Comparar con claro, que no cambia.
@@ -322,7 +322,7 @@ en oscuro) y `LocationBarViewBrowserTest.FlyWebFocusGlowReplacesFocusRing`. Capt
    direcciones ancha».
 3. **Hover:** pasar el ratón por una pestaña inactiva da #EBEBEB (claro) y #585959 (oscuro), con la ventana con foco y sin
    él. Privada y Tor no cambian.
-4. **Pestañas inactivas:** título y favicon 2 dip más bajos que en la activa, también en las fijadas. Al hacer clic, suben de
+4. **Pestañas inactivas:** título y favicon 4 dip más bajos que en la activa, también en las fijadas. Al hacer clic, suben de
    golpe. Comprobar que no hay salto raro al abrir una pestaña nueva (aparece el favicon) ni con el indicador de audio.
 
 Las constantes se ajustan con Titín viendo las capturas, como el radio.

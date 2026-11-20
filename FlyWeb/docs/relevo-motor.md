@@ -23,7 +23,7 @@ rama.
 
 **Ajustes de Titín del 20-11** (`FlyWeb/branding/interfaz-3.2.0/ajustes-20-11/README.md`): **montados** como 0008–0011 de
 `3.2-interfaz`, sobre a0c808d485 (rama local `nube/interfaz-ajustes-20-11`). Árboles: 0008 b127946356, 0009 7d533d1ef9,
-0010 e0ff1d94a6, 0011 6076b47f55. Sin compilar; constantes provisionales a ajustar con capturas. No tocan privada ni Tor.
+0010 e0ff1d94a6, 0011 46c2d18b98 (desplazamiento de 4 dip, de la maqueta en alta). Sin compilar; constantes provisionales a ajustar con capturas. No tocan privada ni Tor.
 Lo que se hizo y por qué:
 1. **Brillo de la URL en oscuro.**
    - El brillo (`FlyWebOmniboxFocusGlowView`, `brave_location_bar_view.cc`, #808080 al 30 %, 2 dip) sí se pinta en oscuro:
@@ -46,7 +46,7 @@ Lo que se hizo y por qué:
      `patches/chrome-browser-ui-views-tabs-tab.cc.patch` (blob base 7a77fc7f0b).
    - Al activarse, `Tab::ActiveStateChanged` → `DeprecatedLayoutImmediately()`. Con el icono igual, la animación del título
      se para y se coloca al momento: no choca con ninguna animación.
-   - Constante propuesta `kFlyWebInactiveTabContentOffset` = 2 dip.
+   - Constante `kFlyWebInactiveTabContentOffset` = 4 dip (maqueta en alta de Titín, #1137).
 
 **Constantes provisionales pendientes de Titín** (en la serie): radio de pestaña 3 dip, colores y contador del escudo, brillo,
 iconos. La tarjeta de hover la diseña Titín; los sitios donde se cambia están en el mensaje a COORDINACIÓN del 19-11.
