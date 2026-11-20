@@ -7,6 +7,39 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 20-11 (mediodía): COORDINACIÓN-54 → COORDINACIÓN-55 (leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-54 (`session_01MwmK2hLcE3BDeCvDDHMAqJ`, 20-11 ~10:50 → ~13:10 UTC, relevo al 35 %). La 55
+(`session_01MwmK2hTA8k49N3yrcWbPsJ`) la abre la 54. Todo lo de la nota «20-11 (mañana)» sigue vigente salvo lo que cambia aquí.
+
+**bt-320e (3.2.0 completa de prueba):** LOCAL-21 la montó y empezó a compilar ~10:55 (árboles comprobados: brave-core
+612c201d14, punta local 43805cee87 en `local/320e-completa`, sin subir; chromium + pendiente a9b357bc47, + renderer-webgl
+3d64407e53; ANGLE fb21437e81; Skia 1ef25455d7; 9150 pasos; sin tocar versión). Pruebas previstas: BraveColorMixersTest,
+AccountCryptoTest y d8 mjsunit math en la 7,1; FlyWebFocusGlowReplacesFocusRing y SharedPinnedTabServiceBrowserTest en la
+6,1; CDP de settings/system, atajos, Apariencia y «Cuenta y sincronización». A las 13:06 sin aviso: se le pidió estado por
+el buzón (`…-estado-320e-LOCAL-21.md`). **Cuando avise de que está instalada: decir a Titín que la apruebe en LuLu y qué
+mirar** (ajustes del 20-11: URL más baja y flou con foco en claro y oscuro, hover #EBEBEB/#585959, título y favicon de
+inactivas más bajos; fijadas que se refrescan entre ventanas; Apariencia y settings/system). Titín lo revisa todo en
+bt-320e (no mira bt-320c). bt-320a/b/c siguen abiertas para él.
+
+**Pendiente de Titín, con recomendación dada:**
+- **V8 585625642** (TurboFan, contexto en generadores/async; probable Alto, gravedad sin publicar, sin KEV ni exploit;
+  sin merge a la 15.6). SEGURIDAD-PORTES-33 lo portó: `pendiente/brave-core/0002`, **#1147** (borrador, punta 59f070305b),
+  APTO condicionado a D8-LINUX; árbol brave-core tras 0001+0002 = 639401fb8e; la época de caché se sube una sola vez al
+  integrar. Pregunta a Titín: **¿entra en la 3.2.0 (recomendado) o 3.1.5 aparte?** Sin respuesta aún. Si confirman Alto/
+  Crítico o aparece KEV/exploit, volver a planteárselo enseguida. Si dice 3.2.0: orden a LOCAL para la compilación final.
+- Sigue lo de antes: fijada en blanco (captura, ventana, `flyweb://discards`), contraseñas de dialnet, versión .112.
+
+**Candidato sin parche:** 41c9a648fb [M159] ServiceWorker/StorageKey (585383394); exige renderer comprometido; el diff no
+aplica sobre la 156. SEGURIDAD-PORTES lo prepara si llega a la 8078.
+
+**Fusiones tras la prueba de bt-320e:** #1110 → #1138 (cambiar base a main) → #1142 → #1144, revisando cada diff (puntas
+sin cambios a las 10:50: ef60812681, faf01581a1, 138f4ea8e7, b76f3410d9). #1147 solo si Titín lo mete en la 3.2.0.
+
+**Hecho por la 54:** #1146 (fila); buzón 0a099dd (relevo), ec3f1d1 (acuse a LOCAL-21), 2333c70 (petición de estado); todo
+entregado por el cartero a la sesión 9d9f5f. Desde la nube el SendMessage a «bridge:…» de LOCAL-21 falla: usar el buzón.
+Sesiones sin cambios respecto a la nota anterior; SEGURIDAD-PORTES-33 vigila cada hora (siguiente ~13:30).
+
 ## 20-11 (mañana): COORDINACIÓN-53 → COORDINACIÓN-54 (leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-53 (`session_01MwmK2hDFxpvnFEeC9c3ji7`, 19-11 ~22:15 → 20-11 ~10:50 UTC, relevo al 41 %). La 54 la abre la 53.
