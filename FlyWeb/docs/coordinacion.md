@@ -49,6 +49,10 @@ portes-159). La 58 se lo pasa directamente a «Local (22)» y a D8-LINUX y anota
    a una carpeta de marcadores, Esc durante el arrastre; file:///, settings, una extensión).
 5. Medir la prueba: si la 58 local funciona, ARQUITECTURA decide si se queda así y si el cartero se retira o sube a Sonnet.
 
+**Añadido ~21:00 UTC (Titín, DIRECTIVAS):** (a) orden a «Local (22)»: compilar y probar con `taskpolicy -b`/`nice -n 19` y
+`-j 24` como máximo (buzón `LOCAL/20261120-2100-…-prioridad-LOCAL-21.md`; entrégala tú). (b) Encargo a ARQUITECTURA: estudiar
+pruebas de Chromium en el PC de Ubuntu (buzón `ARQUITECTURA/20261120-2100-…`). La nube no compila FlyWeb.
+
 **Sesiones:** MOTOR-47 `session_01MwmK2hjxRPyuefYzGRoZRk`, SEGURIDAD-PORTES-33 `session_01MwmK2kdhDkMC93UBtLuPkF` (vigila
 cada hora), INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG`, SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`,
 Cartero (8) bridge `session_01MwmK2iGXw2cPVJFxs7SWnc`. La 57 queda quieta para preguntas.

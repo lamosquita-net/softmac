@@ -429,6 +429,12 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     «Contenido».
   - **Webs de prueba de siempre** en los perfiles de revisión y en las capturas: elpais.com, eldiario.es, youtube.com,
     wikipedia y otras de ese tipo (prensa y vídeo). No usar webs de apuestas ni marca.com.
+- **Carga de la MacPro7,1 (Titín, 20-11 ~21:00 UTC; COORDINACIÓN-57):** las compilaciones saturaban la 7,1 y Titín no podía
+  trabajar. (1) **LOCAL compila y prueba con prioridad de fondo y menos paralelismo:** `taskpolicy -b` (y `nice -n 19`) delante
+  de `autoninja`/`ninja`/pruebas, con `-j 24` como máximo; se acepta que tarde más. (2) **ARQUITECTURA estudia** pasar al PC de
+  Ubuntu las pruebas de Chromium que no dependen del Mac (blink, url, views…), con su checkout propio, para dejar en la 7,1 solo
+  la build de Mac y las pruebas de interfaz. La nube no compila FlyWeb (Linux, 4 núcleos, ~30 GB): investiga, porta y revisa.
+  La COORDINACIÓN pasa a la 7,1 como prueba (COORDINACIÓN-58).
 - **Seguridad de la tarde del 20-11 en la 3.2.0 (Titín, 20-11 ~20:15 UTC; COORDINACIÓN-57; «sí, adelante con todo»):**
   - **Entran en la 3.2.0**, con APTO de SEGURIDAD-PORTES-33: brave-core/0005 (V8 15.6.75.76, sandbox; 579314138,
     585869521), chromium/0007 (ImageDataBuffer, 585617234) y chromium/0008 (estilo/slots del canvas, 584385833), en #1147;
