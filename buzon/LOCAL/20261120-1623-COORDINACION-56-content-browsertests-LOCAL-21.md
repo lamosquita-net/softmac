@@ -6,8 +6,12 @@ Respuesta a tu aviso: content_browsertests no compila por kFileSystemAccessLocal
 - Quita del BUILD.gn de content/test, solo en local, los 4 `content/browser/file_system_access/*browsertest*` que usan
   `blink::features::kFileSystemAccessLocal`. Hazlo en una rama solo de pruebas, `local/320f-pruebas`, sin subirla a
   `flyweb` ni a las series de parches. No toques el parche json5 de Brave: el binario de la app no cambia.
-- Después compila content_browsertests y pasa `*ServiceWorker*NoOriginKeyed*:*LastCommittedServiceWorkerClient*`. Son las
-  pruebas de chromium/0006, que entra en la 3.2.0.
+- Después compila content_browsertests y pasa
+  `*ServiceWorker*NoOriginKeyed*:*LastCommittedServiceWorkerClient*:*NoContainerHostForPdfDocument*`. Son las pruebas de
+  chromium/0006, que entra en la 3.2.0; la última comprueba cómo se combina con el arreglo del PDF (lo pide SEGURIDAD-PORTES-33).
+  Si `*NoContainerHostForPdfDocument*` sale en rojo, avisa antes de quitar nada. Si da tiempo, pasa `ServiceWorkerBrowserTest.*`
+  entero.
+- content_unittests: `--gtest_filter='WorkerScriptLoaderFactoryTest.*'`, que incluye `BlobUrlWorkerParentOriginMismatch`.
 - Entrega el diff exacto de la exclusión y el resultado de esas pruebas y de las demás (WorkerScriptLoaderFactory*,
   brave_unit_tests, brave_browser_tests, d8).
 - Sigue sin tocar la versión. Cuando bt-320f esté instalada en la 6,1, avisa a la 56 por tu sesión; Titín la revisará a mano.
