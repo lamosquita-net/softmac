@@ -17,7 +17,7 @@ Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0004` | **`a621f0a668`** (tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`) |
+| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0005` | **`a9b357bc47`** (tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`; tras `0004`: `a621f0a668`) |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
 | brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001` | **`90134a4e08`** |
 | Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001`–`0003` | **`1ef25455d7`** (tras `0001`: `32f1340fb3`; tras `0002`: `47b14cb49e`) |
@@ -52,6 +52,8 @@ la base nueva ya los traiga.
 | `e2352b4cf6` (20-11 02:19 UTC) | «Incrementing VERSION to 156.0.8078.113» | — | — |
 | `6b1211357d` (20-11 03:25 UTC) | [M156] «Guard ImageProcessor against destruction during get_pixels_» (586219154, merge 587225635) | Sí, por prudencia (abajo) | `chromium/0003` |
 | `7e5aab9f6a` (20-11 04:26 UTC) | [M156] «Scope InputDeviceCapabilities to target window for focus events» (577377858, merge 587680830) | Sí (abajo) | `chromium/0004` |
+| `29851e2f7f` (20-11 06:59 UTC) | Prueba desactivada (webdriver en Linux) | — | — |
+| `dad9e4d83c` (20-11 10:04 UTC) | [M156] «[SimpleCache] Prevent doomed entries from mutating SimpleIndex» (583238770, merge 588197443) | Sí (abajo) | `chromium/0005` |
 
 **Tag 156.0.8078.112 = `880ca0428f`** (visto el 20-11 a las 03:24 UTC; la rama sigue en .113 desde `e2352b4cf6`, solo
 `chrome/VERSION`). Todo lo de `.111` (`c22b215559`, base de la build 47) a `.112` está en esta tabla: con `pendiente/`
@@ -193,6 +195,28 @@ El arreglo resuelve el objeto con la `DOMWindow` del elemento destino, y `FocusE
 Prueba: `run_web_tests.py external/wpt/input-device-capabilities/` (incluye
 `sourcecapabilities-sequential-focus-navigation.tentative.html`) y, en la build, recorrer con Tab una página con
 iframes (formulario de claude.ai y uno con `<iframe>` de otro origen) sin que se pierda el foco.
+
+## `chromium/0005`: dad9e4d83c (bug 583238770, merge 588197443)
+
+En la caché simple (`net/disk_cache/simple/simple_entry_impl.cc`), una entrada ya condenada (*doomed*) que seguía
+abierta podía quitar del `SimpleIndex` el hash de la entrada nueva con la misma clave tras un fallo de E/S o de
+*checksum*, o pisar sus metadatos. La entrada viva quedaba invisible para `OpenEntry` aunque sus ficheros seguían en
+disco: Cache Storage no la borraba y luego la reabría. Es el disparador por la caché simple del bug 583238770; la otra
+mitad (`CacheStorage`, truncar flujos al sobrescribir) está en la 8154 como `cc42b75af2` y aún no ha llegado a la 8078.
+El arreglo solo toca el índice si `doom_state_ == DOOM_NONE` y añade un `CHECK(!active_entry_proxy_)` si se condena dos
+veces (cierre controlado en vez de estado incoherente).
+
+- **Mac: sí.** La caché simple es el *backend* de disco de la caché HTTP y de Cache Storage en Mac.
+- Diff idéntico al de upstream (`patch-id` `9f0aa3d333`). Se aplica limpio sobre `a621f0a668` y deja **`a9b357bc47`**.
+  brave-core no tiene parches ni `chromium_src` en `net/disk_cache` ni `content/browser/cache_storage`.
+- Gravedad: no consta (bug restringido).
+
+### Veredicto (regla 17): **APTO**, `chromium/0005`
+
+Cambio pequeño y local. El `CHECK` nuevo convierte un estado imposible en un cierre del proceso de red en vez de
+corrupción; es lo mismo que lleva Chrome 156. Prueba: `net_unittests --gtest_filter='*SimpleCache*:*DiskCache*Entry*'`
+(trae pruebas nuevas en `entry_unittest.cc`) y, en la build, navegar con la caché llena (recargas y web pesada dos
+veces) y una web con *service worker* y Cache Storage (p. ej. una PWA), cerrar y reabrir.
 
 ## `brave-core/0001`: V8 d68cecd900 (bugs 583479274 y 587681789; V8 15.6.75.72)
 
@@ -362,7 +386,7 @@ aplicando, salvo que llegue antes a la 8078 como merge M156 (entonces va arriba,
 |---|---|---|---|
 | `690f348e8d` (20-11 00:37 UTC) | [M159] «[optimization_guide] Defer SetInput() callbacks to avoid UAF» (587680474; arregla 570347667 y 562796602) | Se compila; **inalcanzable** sin modelo on-device (razonado, no probado) | Candidato; sin parche |
 | `b33d4b153d` (20-11 03:52 UTC) | [M159] «Scope InputDeviceCapabilities to target window for focus events» (577377858) | Sí | Llegó a la 8078 como `7e5aab9f6a` → `chromium/0004` |
-| `97e1b5bdc3` (20-11 09:03 UTC) | [M159] «[SimpleCache] Prevent doomed entries from mutating SimpleIndex» (583238770, merge 588197278), `net/disk_cache/simple` | Sí (la caché simple se usa en Mac) | Candidato; sin parche: si llega a la 8078, a `pendiente/` |
+| `97e1b5bdc3` (20-11 09:03 UTC) | [M159] «[SimpleCache] Prevent doomed entries from mutating SimpleIndex» (583238770, merge 588197278), `net/disk_cache/simple` | Sí | Llegó a la 8078 como `dad9e4d83c` → `chromium/0005` |
 | `cc42b75af2` (20-11 09:20 UTC) | [M159] «[CacheStorage] Truncate pre-existing entry streams on empty puts» (583238770, merge 588197278), `content/browser/cache_storage` | Sí | Candidato; sin parche: si llega a la 8078, a `pendiente/` |
 
 **`690f348e8d`** (SEGURIDAD-PORTES-33, 20-11): `SessionImpl::AddContextImpl()` y `OnDeviceContext::SetInput()`
