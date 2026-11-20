@@ -1,0 +1,161 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Andrew Moylan <amoylan@google.com>
+Date: Fri, 20 Nov 2026 03:25:04 +0000
+Subject: [PATCH] [M156] Guard ImageProcessor against destruction during
+ get_pixels_
+
+FlyWeb pending: from branch-heads/8078 6b1211357d. Applied after pendiente/chromium/0002;
+applies cleanly (identical diff). No brave-core patches or chromium_src for these files.
+
+Original change's description:
+> Guard ImageProcessor against destruction during get_pixels_
+>
+> Running get_pixels_ can cause a relayout for some images, synchronously
+> destroying the ImageProcessor.
+>
+> Fixed: 586219154
+> Change-Id: Ic6d3ef33ff193f15331a49752c428d5f299474b2
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8821208
+> Reviewed-by: CJ Huang <chenjih@google.com>
+> Commit-Queue: Andrew Moylan <amoylan@google.com>
+> Cr-Commit-Position: refs/heads/main@{#1746380}
+
+(cherry picked from commit 114d5182704abd5a80e490d7c5d70a66bbad12b7)
+
+Bug: 587225635,586219154
+Change-Id: Ic6d3ef33ff193f15331a49752c428d5f299474b2
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8846007
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2352}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ services/image_annotation/public/cpp/BUILD.gn |  1 +
+ .../public/cpp/image_processor.cc             | 10 +++++-
+ .../public/cpp/image_processor.h              |  3 ++
+ .../public/cpp/image_processor_unittest.cc    | 34 +++++++++++++++++++
+ 4 files changed, 47 insertions(+), 1 deletion(-)
+
+diff --git a/services/image_annotation/public/cpp/BUILD.gn b/services/image_annotation/public/cpp/BUILD.gn
+index 9e9b462bbe..b504100bbe 100644
+--- a/services/image_annotation/public/cpp/BUILD.gn
++++ b/services/image_annotation/public/cpp/BUILD.gn
+@@ -26,6 +26,7 @@ source_set("tests") {
+     ":cpp",
+     "//base",
+     "//base/test:test_support",
++    "//mojo/public/cpp/bindings",
+     "//services/image_annotation:lib",
+     "//testing/gmock",
+     "//testing/gtest",
+diff --git a/services/image_annotation/public/cpp/image_processor.cc b/services/image_annotation/public/cpp/image_processor.cc
+index 1d70ea161b..0f2df4632f 100644
+--- a/services/image_annotation/public/cpp/image_processor.cc
++++ b/services/image_annotation/public/cpp/image_processor.cc
+@@ -4,6 +4,8 @@
+ 
+ #include "services/image_annotation/public/cpp/image_processor.h"
+ 
++#include <utility>
++
+ #include "base/functional/bind.h"
+ #include "base/task/sequenced_task_runner.h"
+ #include "base/task/thread_pool.h"
+@@ -94,10 +96,16 @@ mojo::PendingRemote<mojom::ImageProcessor> ImageProcessor::GetPendingRemote() {
+ void ImageProcessor::GetJpgImageData(GetJpgImageDataCallback callback) {
+   DCHECK(base::SequencedTaskRunner::HasCurrentDefault());
+ 
++  base::WeakPtr<ImageProcessor> weak_this = weak_factory_.GetWeakPtr();
++  SkBitmap pixels = get_pixels_.Run();
++  if (!weak_this) {
++    return;
++  }
++
+   background_task_runner_->PostTask(
+       FROM_HERE, base::BindOnce(&ScaleAndEncodeImage,
+                                 base::SequencedTaskRunner::GetCurrentDefault(),
+-                                std::move(callback), get_pixels_.Run(),
++                                std::move(callback), std::move(pixels),
+                                 kMaxPixels, kJpgQuality));
+ }
+ 
+diff --git a/services/image_annotation/public/cpp/image_processor.h b/services/image_annotation/public/cpp/image_processor.h
+index 0f24b0fec9..92f445ce7f 100644
+--- a/services/image_annotation/public/cpp/image_processor.h
++++ b/services/image_annotation/public/cpp/image_processor.h
+@@ -8,6 +8,7 @@
+ #include "base/functional/callback.h"
+ #include "base/gtest_prod_util.h"
+ #include "base/memory/scoped_refptr.h"
++#include "base/memory/weak_ptr.h"
+ #include "base/task/sequenced_task_runner.h"
+ #include "mojo/public/cpp/bindings/pending_remote.h"
+ #include "mojo/public/cpp/bindings/receiver_set.h"
+@@ -52,6 +53,8 @@ class ImageProcessor : public mojom::ImageProcessor {
+ 
+   mojo::ReceiverSet<mojom::ImageProcessor> receivers_;
+ 
++  base::WeakPtrFactory<ImageProcessor> weak_factory_{this};
++
+   FRIEND_TEST_ALL_PREFIXES(ImageProcessorTest, ImageContent);
+ };
+ 
+diff --git a/services/image_annotation/public/cpp/image_processor_unittest.cc b/services/image_annotation/public/cpp/image_processor_unittest.cc
+index 10067793c6..065ef1e402 100644
+--- a/services/image_annotation/public/cpp/image_processor_unittest.cc
++++ b/services/image_annotation/public/cpp/image_processor_unittest.cc
+@@ -6,11 +6,15 @@
+ 
+ #include <cmath>
+ #include <limits>
++#include <memory>
+ 
+ #include "base/compiler_specific.h"
+ #include "base/functional/bind.h"
++#include "base/run_loop.h"
++#include "base/task/thread_pool/thread_pool_instance.h"
+ #include "base/test/metrics/histogram_tester.h"
+ #include "base/test/task_environment.h"
++#include "mojo/public/cpp/bindings/remote.h"
+ #include "services/image_annotation/image_annotation_metrics.h"
+ #include "testing/gmock/include/gmock/gmock.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+@@ -149,4 +153,34 @@ TEST(ImageProcessorTest, ImageContent) {
+   histogram_tester.ExpectTotalCount(metrics_internal::kSourcePixelCount, 2);
+ }
+ 
++TEST(ImageProcessorTest, DestroyedDuringGetPixels) {
++  base::test::TaskEnvironment test_task_env;
++  base::HistogramTester histogram_tester;
++
++  std::unique_ptr<ImageProcessor> processor;
++  processor = std::make_unique<ImageProcessor>(base::BindRepeating(
++      [](std::unique_ptr<ImageProcessor>* processor) {
++        processor->reset();
++        return GenCheckerboardBitmap(16);
++      },
++      &processor));
++
++  mojo::Remote<mojom::ImageProcessor> remote(processor->GetPendingRemote());
++  base::RunLoop run_loop;
++  remote.set_disconnect_handler(run_loop.QuitClosure());
++
++  bool callback_called = false;
++  remote->GetJpgImageData(base::BindOnce(
++      [](bool* callback_called, const std::vector<uint8_t>&, const int32_t,
++         const int32_t) { *callback_called = true; },
++      &callback_called));
++  run_loop.Run();
++  base::ThreadPoolInstance::Get()->FlushForTesting();
++
++  EXPECT_EQ(processor, nullptr);
++  EXPECT_FALSE(remote.is_connected());
++  EXPECT_FALSE(callback_called);
++  histogram_tester.ExpectTotalCount(metrics_internal::kSourcePixelCount, 0);
++}
++
+ }  // namespace image_annotation
+-- 
+2.43.0
+
