@@ -5,3 +5,9 @@ cd5caa92c69aca696c904517136e0324732ef802e5208f22d24efe3b59fba6a5  0002-FlyWeb-3.
 067ccc9c1e111bc74bf8a4dbc0bcff95f968233bd6ea44184f8ea37499e60f22  0005-FlyWeb-3.2.0-interface-Titin-s-toolbar-tab-and-bookm.patch
 ba3634f6ce0135bf8ef018853ad6d1287a7d8798abfc3734ea27a952c876005c  0006-FlyWeb-3.2.0-interface-Shields-as-a-colored-shield-o.patch
 95f14bd2eb66becf471732ca8f72e3e6e39a3c6fb4e5adf736c76ef7cfb73b14  0007-FlyWeb-3.2.0-interface-private-window-toolbar-active.patch
+e7def930788bb3a1df4631576e8958e77dc4131bea20df7f4de1b61251eb9a4b  0008-FlyWeb-3.2.0-interface-URL-focus-glow-as-a-soft-inne.patch
+80ef53720c665663bde9623e114d5b82a993a93a6f83b86730cb18abe7665312  0009-FlyWeb-3.2.0-interface-URL-field-a-little-shorter-fr.patch
+cedd0894e9f6eadc34b8615a6a7ae9550431224a4e43fa971c16cecb7c61f93f  0010-FlyWeb-3.2.0-interface-inactive-tab-hover-colors.patch
+80913fd75dfcd9baefc97396bb091fb78006030e55dee17848a1ec33d0cd1254  0011-FlyWeb-3.2.0-interface-lower-favicon-and-title-on-in.patch
+0a8967f7f3d33a6d3c69cb32508b3c2a2b2624c02439de9e6a502e8d52f033c6  0012-FlyWeb-3.2.0-interface-inactive-tab-hover-as-a-tab-s.patch
+fab498844de55f21d3ab8841503b79735a520f9a856431e8f6dc57b4a0d67886  0013-FlyWeb-3.2.0-interface-URL-shadow-always-inside-soft.patch

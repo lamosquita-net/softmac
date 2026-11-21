@@ -1,3 +1,64 @@
+# MOTOR-46 (20-11-2026, ~09:10 UTC): relevo — interfaz 3.2.0 y ajustes de la 156
+
+MOTOR-46 (`session_01MwmK2juPkbC58kEi4QFeyU`) responde a **COORDINACIÓN-53** (`session_01MwmK2hDFxpvnFEeC9c3ji7`).
+brave-core es **solo lectura**: se entrega con `git format-patch --full-index` en softmac. El clon local de trabajo es
+`/home/user/lamosquita-net/brave-core`; las ramas locales no se suben.
+
+**Interfaz, sin fusionar:** `FlyWeb/parches/3.2-interfaz/` 0001–0007, en #1110 (rama `claude/motor46-interfaz-3.2.0`,
+abierto, a la espera de Titín), sobre `local/3.1.4` e660929ac9. Punta de la serie `ddac171538` (rama local
+`nube/interfaz-3.2.0-privada`); árboles en su README. Los ajustes del 20-11 (0008–0011) van en un PR aparte, basado en esa
+rama.
+
+**Fusionado (en main):**
+- `FlyWeb/parches/3.2-ajustes-sistema/` 0001–0004 (#1122, #1128, #1135), sobre la interfaz o sobre e660929ac9:
+  - 0001: CommandsService en el broker de SettingsUI, más el `static_assert` de SEGURIDAD;
+  - 0002: fila de tema;
+  - 0003: `pref-key` en 6 desplegables;
+  - 0004: el index de Apariencia ocupa su alto; la fila de tema, primera de «Aspecto».
+  - Rama local `nube/ajustes-sistema`. Árbol sobre la interfaz + 0001–0004: **a0c808d485** (probado por LOCAL-21 en
+    bt-320b).
+- Servidor: `cosmeticas-sin-clic.mjs` (#1123, solo `trusted-click-element`, lista AC023D22).
+- Descartados ya: ThemeObserverTest y SystemThemeChangeTest fallan igual sin la serie (3.1.3 y 3.0.1). Que «Personalizar
+  fuentes» marque «Contenido» es una decisión de Brave (`brave_routes.ts:59-64`).
+
+**Ajustes de Titín del 20-11** (`FlyWeb/branding/interfaz-3.2.0/ajustes-20-11/README.md`): **montados** como 0008–0011 de
+`3.2-interfaz`, sobre a0c808d485 (rama local `nube/interfaz-ajustes-20-11`). Árboles: 0008 b127946356, 0009 7d533d1ef9,
+0010 e0ff1d94a6, 0011 46c2d18b98 (desplazamiento de 4 dip, de la maqueta en alta). Sin compilar; constantes provisionales a ajustar con capturas. No tocan privada ni Tor.
+Lo que se hizo y por qué:
+1. **Brillo de la URL en oscuro.**
+   - El brillo (`FlyWebOmniboxFocusGlowView`, `brave_location_bar_view.cc`, #808080 al 30 %, 2 dip) sí se pinta en oscuro:
+     la URL es blanca en los dos modos.
+   - Hipótesis: no se percibe porque, con la barra #656666 alrededor, el borde gris interior se confunde con el exterior.
+   - Propuesta: constantes de oscuro (más opacidad o grosor), elegidas en `OnPaint` según `color_utils::IsDark(kColorToolbar)`.
+   - Pedir a LOCAL una captura ampliada antes y después.
+2. **URL 2–3 px más baja, quitados por arriba.**
+   - `kLocationBarHeight` = 32 en `browser/ui/brave_layout_constants.cc:42`.
+   - Propuesta: restarle k y dar al `location_bar_` un margen superior k (`views::kMarginsKey`) en `BraveToolbarView`, para
+     que el borde de abajo no se mueva.
+   - Ojo: `brave_actions_container.cc:87` también usa esa altura.
+3. **Hover de la pestaña inactiva** #585959 / #EBEBEB.
+   - `kColorTabBackgroundInactiveHoverFrameActive/FrameInactive`, en `AddFlyWebTabTextColorMixer` (`brave_color_mixer.cc`).
+     Esa función se llama al final de `AddBravifiedTabStripColorMixer`, que vuelve antes con `custom_theme`: la privada no
+     se toca.
+4. **Título y favicon de las inactivas más bajos.**
+   - Favicon: ampliar la macro `BRAVE_UI_VIEWS_TABS_TAB_LAYOUT_ADJUST_ICON_POSITION` (chromium_src `tab.cc`).
+   - Título: un gancho nuevo en `title_bounds` (`Tab::Layout`), lo que obliga a regenerar
+     `patches/chrome-browser-ui-views-tabs-tab.cc.patch` (blob base 7a77fc7f0b).
+   - Al activarse, `Tab::ActiveStateChanged` → `DeprecatedLayoutImmediately()`. Con el icono igual, la animación del título
+     se para y se coloca al momento: no choca con ninguna animación.
+   - Constante `kFlyWebInactiveTabContentOffset` = 4 dip (maqueta en alta de Titín, #1137).
+
+**Constantes provisionales pendientes de Titín** (en la serie): radio de pestaña 3 dip, colores y contador del escudo, brillo,
+iconos. La tarjeta de hover la diseña Titín; los sitios donde se cambia están en el mensaje a COORDINACIÓN del 19-11.
+
+**Trampas:**
+- `git grep` en el clon parcial de Chromium (`--filter=blob:none`) baja blob a blob y no termina: usar `git show HEAD:fichero`.
+- En 156, `GetType()` es `final` en SettingsUI: una WebUI derivada no puede tener tipo propio.
+- Polymer y TS ESNext: un campo de clase con inicializador tapa el accesor de un enlace `[[x]]`; hay que declararlo en `properties`.
+- El `settings-dropdown-menu` Lit solo guarda si tiene `pref-key`.
+
+---
+
 # MOTOR-46 (17-11-2026, ~16:00 UTC): estado
 
 MOTOR-46 (`session_01MwmK2juPkbC58kEi4QFeyU`, Opus 5.5, alto, modo auto; abierta por COORDINACIÓN-41; hoy responde a

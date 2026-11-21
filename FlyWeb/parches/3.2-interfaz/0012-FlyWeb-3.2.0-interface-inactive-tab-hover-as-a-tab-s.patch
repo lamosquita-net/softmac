@@ -1,0 +1,94 @@
+From f73ba096226bc6ba4cd723240928db5d8c8f6191 Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 10:44:03 +0000
+Subject: [PATCH 12/13] FlyWeb 3.2.0 interface: inactive tab hover as a tab
+ silhouette
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Titín (20-11, bt-320c): the hover background of an inactive tab stopped
+a few pixels above the base and looked like a button. He wants it as a
+tab behind the active one, with the tab silhouette down to the base.
+
+Chromium's kHighlight path (hover and selected fills) is a detached pill
+that is kTabHeight minus the padding and the toolbar overlap high, in a
+tab view that is kTabStripHeight high, so it ends kTabStripPadding
+(6 dip) above the base, with rounded bottom corners. A new hook in
+GetPath() makes it reach the same base as the active tab (the view
+bottom minus the toolbar overlap) with square bottom corners
+(kFlyWebHighlightBottomCornerRadius = 0). The hit test path and the new
+pinned tab styling are not changed.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ .../tabs/common/horizontal_tab_style_views.cc | 22 +++++++++++++++++++
+ ...common-horizontal_tab_style_views.cc.patch | 12 ++++++++--
+ 2 files changed, 32 insertions(+), 2 deletions(-)
+
+diff --git a/chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc b/chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+index 331bcbd219aa7ccdaeb25775f021f92a01cc899a..55cbb9ffc94c33e1be38b7fb70325d47d9c58a9f 100644
+--- a/chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
++++ b/chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+@@ -14,8 +14,29 @@ namespace {
+ // the same. In dip; 0 = straight join.
+ constexpr float kFlyWebTabBottomCornerRadius = 0.0f;
+ 
++// FlyWeb 3.2.0 interface (Titín, 20-11): the hover background of an inactive
++// tab (and the fill of a selected one) is a tab silhouette, like the active
++// tab but behind it, instead of Chromium's detached pill. Chromium's
++// kHighlight path ends kTabStripPadding above the base, since the tab view is
++// kTabStripHeight high and the pill is kTabHeight minus the padding and the
++// toolbar overlap, and rounds its bottom corners. Here it reaches the same
++// base as the active tab (the view bottom minus the toolbar overlap) and its
++// bottom corners are square. The hit test path is not changed. In dip.
++constexpr float kFlyWebHighlightBottomCornerRadius = 0.0f;
++
+ }  // namespace
+ 
++#define BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_HIGHLIGHT                 \
++  if (path_type == TabStyle::PathType::kHighlight) {                        \
++    tab_height =                                                            \
++        aligned_bounds.height() -                                           \
++        (GetLayoutConstant(LayoutConstant::kTabStripPadding) +              \
++         GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap)) *      \
++            scale;                                                          \
++    bottom_left_corner_radius = kFlyWebHighlightBottomCornerRadius * scale; \
++    bottom_right_corner_radius = kFlyWebHighlightBottomCornerRadius * scale; \
++  }
++
+ #define BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_BOTTOM_CORNER_RADIUS \
+   extension_corner_radius = std::clamp(extension_corner_radius, 0.0f,  \
+                                        kFlyWebTabBottomCornerRadius * scale);
+@@ -23,3 +44,4 @@ constexpr float kFlyWebTabBottomCornerRadius = 0.0f;
+ #include "src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc"
+ 
+ #undef BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_BOTTOM_CORNER_RADIUS
++#undef BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_HIGHLIGHT
+diff --git a/patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch b/patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch
+index 64119cce027de3fd411cca7b0de77c200494b81f..c01ab3aeeadda7df299d5dc3399998058326b5ee 100644
+--- a/patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch
++++ b/patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch
+@@ -1,8 +1,16 @@
+ diff --git a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+-index 5e8bf7705c1b20c0833936eb9f62d501cf9e3b16..1ded4487c00da795380bf5c7a80882dc48c65687 100644
++index 5e8bf7705c1b20c0833936eb9f62d501cf9e3b16..19f7ab88f98d122b489282a52b0762d8d28b89d3 100644
+ --- a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+ +++ b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+-@@ -225,6 +225,7 @@ SkPath HorizontalTabStyleViews::GetPath(TabStyle::PathType path_type,
++@@ -103,6 +103,7 @@ SkPath HorizontalTabStyleViews::GetPath(TabStyle::PathType path_type,
++       tab_height -=
++           GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap) * scale;
++     }
+++    BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_HIGHLIGHT
++ 
++     // Don't round the bottom corners to avoid creating dead space between tabs.
++     if (path_type == TabStyle::PathType::kHitTest) {
++@@ -225,6 +226,7 @@ SkPath HorizontalTabStyleViews::GetPath(TabStyle::PathType path_type,
+      extension_corner_radius -= 0.5f * stroke_adjustment;
+    }
+  
+-- 
+2.43.0
+
