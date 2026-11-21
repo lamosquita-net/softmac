@@ -1,0 +1,3 @@
+fc4bd76bddb43fcab36040ec2ad78115d5b7d71ff33b7ceb71ef0411e7eed404  chromium/0001-M156-Never-expose-pseudo-elements-via-Event.target-f.patch
+ebea711046187a849c9c8de7b7ec5293de45bb8db26a31027a90c2cd0f92880e  chromium/0002-M156-HLS-Intercept-data-URLs-in-HlsDataSourceProvide.patch
+61ee90ae6ea427a2df4ea849741e6ff9190d9f680c5c05bd0b1b4d9ab6654f83  chromium/0003-M156-Disable-VariationsService-HTTP-fallback-by-defa.patch

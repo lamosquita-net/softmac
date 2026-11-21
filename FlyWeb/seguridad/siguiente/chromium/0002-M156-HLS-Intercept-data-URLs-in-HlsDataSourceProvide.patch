@@ -1,0 +1,193 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ted Meyer <tmathmeyer@chromium.org>
+Date: Fri, 20 Nov 2026 23:10:15 +0000
+Subject: [PATCH] [M156] [HLS] Intercept data: URLs in
+ HlsDataSourceProviderImpl
+
+FlyWeb next batch: from branch-heads/8078 af12c47ccb. Applied after seguridad/siguiente/chromium/0001; applies cleanly (identical diff). No brave-core patches or chromium_src for these files.
+
+Original change's description:
+> [HLS] Intercept data: URLs in HlsDataSourceProviderImpl
+>
+> When HLS gets a data: url, it must be loaded directly, rather than pass
+> through chrome's network stack and become interceptable by workers.
+>
+> There doesn't seem to be a way around including the net/base/data_url in
+> the media deps, but it's a pretty small include (ie, not all of +net)
+>
+> Bug: 580846503
+> Change-Id: I9a72b02c729142a78c432fd72ee4e3de64163a3a
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8710954
+> Reviewed-by: Dale Curtis <dalecurtis@chromium.org>
+> Commit-Queue: Ted (Chromium) Meyer <tmathmeyer@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1734484}
+
+(cherry picked from commit 8f97ea9f5f66d42bba6d3e6c0ddd7cf891dd4d3d)
+
+Bug: 586790744,580846503
+Change-Id: I9a72b02c729142a78c432fd72ee4e3de64163a3a
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8845783
+Reviewed-by: Ted (Chromium) Meyer <tmathmeyer@chromium.org>
+Reviewed-by: Frank Liberato <liberato@chromium.org>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: Frank Liberato <liberato@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2365}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ media/DEPS                                    |  3 +
+ .../filters/hls_data_source_provider_impl.cc  | 30 ++++++++
+ .../hls_data_source_provider_impl_unittest.cc | 77 +++++++++++++++++++
+ 3 files changed, 110 insertions(+)
+
+diff --git a/media/DEPS b/media/DEPS
+index 3832d5955f..69ddd9baea 100644
+--- a/media/DEPS
++++ b/media/DEPS
+@@ -45,6 +45,9 @@ include_rules = [
+ ]
+ 
+ specific_include_rules = {
++  "hls_data_source_provider_impl.cc": [
++    "+net/base/data_url.h",
++  ],
+   "audio_manager_unittest.cc": [
+     "+chromeos/ash/components/dbus"
+   ],
+diff --git a/media/filters/hls_data_source_provider_impl.cc b/media/filters/hls_data_source_provider_impl.cc
+index a317928144..d35a045bc1 100644
+--- a/media/filters/hls_data_source_provider_impl.cc
++++ b/media/filters/hls_data_source_provider_impl.cc
+@@ -12,7 +12,9 @@
+ #include "base/types/pass_key.h"
+ #include "media/base/cross_origin_data_source.h"
+ #include "media/formats/hls/types.h"
++#include "net/base/data_url.h"
+ #include "third_party/perfetto/include/perfetto/tracing/track.h"
++#include "url/url_constants.h"
+ 
+ namespace media {
+ 
+@@ -95,6 +97,34 @@ void HlsDataSourceProviderImpl::ReadFromExistingStream(
+   if (stream->RequiresInit()) {
+     auto [new_uri, cache_mode, range_mode, encoding_mode] =
+         stream->GetSegmentInfo();
++    if (new_uri.SchemeIs(url::kDataScheme)) {
++      // If the stream points to a data-schemed URL load it directly.
++      std::string mime_type, charset, data;
++      if (!net::DataURL::Parse(new_uri, &mime_type, &charset, &data) ||
++          data.empty()) {
++        std::move(callback).Run(
++            base::unexpected(HlsDemuxerStatus::Codes::kNetworkReadError));
++        return;
++      }
++      base::span<const uint8_t> bytes = base::as_byte_span(data);
++      if (range_mode == DataSource::RangeMode::kRangeRequest) {
++        stream->set_requires_range_request();
++        const size_t start = stream->read_position();
++        const size_t end = stream->max_read_position().value();
++        if (start >= end || end > bytes.size()) {
++          std::move(callback).Run(
++              base::unexpected(HlsDemuxerStatus::Codes::kNetworkReadError));
++          return;
++        }
++        bytes = bytes.subspan(start, end - start);
++      }
++      stream->LockStreamForWriting(bytes.size()).copy_from(bytes);
++      stream->UnlockStreamPostWrite(bytes.size(), true);
++      stream->SetPostRedirectUri(std::move(new_uri));
++      std::move(callback).Run(std::move(stream));
++      return;
++    }
++
+     TRACE_EVENT_BEGIN("media", "HLS::CreateDataSource", GetTracingTrack(this),
+                       "uri", new_uri);
+     data_source_factory_->Create(
+diff --git a/media/filters/hls_data_source_provider_impl_unittest.cc b/media/filters/hls_data_source_provider_impl_unittest.cc
+index c5e7677533..199fb21fbd 100644
+--- a/media/filters/hls_data_source_provider_impl_unittest.cc
++++ b/media/filters/hls_data_source_provider_impl_unittest.cc
+@@ -345,4 +345,81 @@ TEST_F(HlsDataSourceProviderImplUnittest, ReadSegmentWithDifferentDataOrigin) {
+             url::Origin::Create(GURL("http://innocent.com")));
+ }
+ 
++TEST_F(HlsDataSourceProviderImplUnittest, ReadFromDataUrl) {
++  EXPECT_CALL(*factory_, Setup).Times(0);
++
++  const GURL data_url("data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==");
++  bool read_complete = false;
++  impl_->ReadFromUrl(
++      {data_url, std::nullopt},
++      base::BindOnce(
++          [](const GURL& expected_url, bool* complete_canary,
++             HlsDataSourceProvider::ReadResult result) {
++            ASSERT_TRUE(result.has_value());
++            auto stream = std::move(result).value();
++            EXPECT_EQ(stream->AsString(), "Hello, World!");
++            EXPECT_EQ(stream->buffer_size(), 13u);
++            EXPECT_EQ(stream->read_position(), 13u);
++            EXPECT_FALSE(stream->CanReadMore());
++            EXPECT_FALSE(stream->RequiresInit());
++            EXPECT_EQ(stream->uri(), expected_url);
++            EXPECT_TRUE(stream->SecurityInfo().response_origins.empty());
++            *complete_canary = true;
++          },
++          data_url, &read_complete));
++  task_environment_.RunUntilIdle();
++  EXPECT_TRUE(read_complete);
++
++  // Ranged read on a data: URL.
++  bool ranged_complete = false;
++  impl_->ReadFromUrl(
++      {data_url, hls::types::ByteRange::Validate(5, 7)},
++      base::BindOnce(
++          [](bool* complete_canary, HlsDataSourceProvider::ReadResult result) {
++            ASSERT_TRUE(result.has_value());
++            auto stream = std::move(result).value();
++            EXPECT_EQ(stream->AsString(), "World");
++            EXPECT_EQ(stream->buffer_size(), 5u);
++            EXPECT_EQ(stream->read_position(), 12u);
++            EXPECT_FALSE(stream->CanReadMore());
++            EXPECT_FALSE(stream->RequiresInit());
++            EXPECT_TRUE(stream->SecurityInfo().has_range_request);
++            *complete_canary = true;
++          },
++          &ranged_complete));
++  task_environment_.RunUntilIdle();
++  EXPECT_TRUE(ranged_complete);
++
++  // Out-of-bounds ranged read on a data: URL should fail with
++  // kNetworkReadError.
++  bool oob_ranged_error = false;
++  impl_->ReadFromUrl(
++      {data_url, hls::types::ByteRange::Validate(10, 7)},
++      base::BindOnce(
++          [](bool* error_canary, HlsDataSourceProvider::ReadResult result) {
++            ASSERT_FALSE(result.has_value());
++            EXPECT_EQ(result.error(),
++                      HlsDemuxerStatus::Codes::kNetworkReadError);
++            *error_canary = true;
++          },
++          &oob_ranged_error));
++  task_environment_.RunUntilIdle();
++  EXPECT_TRUE(oob_ranged_error);
++
++  // Empty or invalid data: URL should fail with kNetworkReadError.
++  bool error_complete = false;
++  impl_->ReadFromUrl(
++      {GURL("data:text/plain;base64,"), std::nullopt},
++      base::BindOnce(
++          [](bool* error_canary, HlsDataSourceProvider::ReadResult result) {
++            ASSERT_FALSE(result.has_value());
++            EXPECT_EQ(result.error(),
++                      HlsDemuxerStatus::Codes::kNetworkReadError);
++            *error_canary = true;
++          },
++          &error_complete));
++  task_environment_.RunUntilIdle();
++  EXPECT_TRUE(error_complete);
++}
++
+ }  // namespace media
+-- 
+2.43.0
+

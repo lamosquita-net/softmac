@@ -1,0 +1,166 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alexei Svitkine <asvitkine@chromium.org>
+Date: Fri, 20 Nov 2026 23:56:46 +0000
+Subject: [PATCH] [M156] Disable VariationsService HTTP fallback by default
+
+FlyWeb next batch: from branch-heads/8078 2762e65042. Applied after seguridad/siguiente/chromium/0002; applies cleanly (identical diff). No brave-core patches or chromium_src for these files.
+
+Original change's description:
+> Disable VariationsService HTTP fallback by default
+>
+> VariationsService currently retries failed HTTPS seed fetches over HTTP.
+> Gate this fallback behind a new kVariationsHttpFallback feature
+> (disabled by default) so failed HTTPS variations fetches no longer fall
+> back to HTTP unless explicitly enabled.
+>
+> Note: Since the default state is off, it means only an HTTPS seed could
+> re-enable it.
+>
+> Bug: 588460249, b:554051967
+> Change-Id: I0b6c9e7335e0cf2f018e4ca261abf00976f70c85
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8845201
+> Reviewed-by: Luc Nguyen <lucnguyen@google.com>
+> Commit-Queue: Alexei Svitkine <asvitkine@chromium.org>
+> Reviewed-by: Arkadiusz Tomczak <artomczak@google.com>
+> Cr-Commit-Position: refs/heads/main@{#1750792}
+
+(cherry picked from commit 27d74d49c0e69b037eebcc542e48c835c832910b)
+
+Conflict in variations_service_unittest.cc: on this branch
+SeedDateIgnoredOverHttpRetry has no ScopedCommandLine block, so the
+ScopedFeatureList line is added as the first statement of the test.
+
+Replaces https://crrev.com/c/8839589, the automatic cherry-pick to this
+branch, which carries the same change.
+
+Bug: 588518337,588460249,b:554051967
+Change-Id: I36d7f3d681df09f1685804cd58a858050430a57d
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8832325
+Reviewed-by: Arkadiusz Tomczak <artomczak@google.com>
+Commit-Queue: Luc Nguyen <lucnguyen@google.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2367}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../variations/service/variations_service.cc  |  9 ++++++---
+ .../variations/service/variations_service.h   |  4 ++++
+ .../service/variations_service_unittest.cc    | 19 +++++++++++++++++++
+ 3 files changed, 29 insertions(+), 3 deletions(-)
+
+diff --git a/components/variations/service/variations_service.cc b/components/variations/service/variations_service.cc
+index cb4ef4fb86..465166b1de 100644
+--- a/components/variations/service/variations_service.cc
++++ b/components/variations/service/variations_service.cc
+@@ -347,6 +347,8 @@ std::optional<std::string> EncryptAndEncodeSerialNumber(
+ 
+ }  // namespace
+ 
++BASE_FEATURE(kVariationsHttpFallback, base::FEATURE_DISABLED_BY_DEFAULT);
++
+ BASE_FEATURE(kVariationsRuntimeMutability, base::FEATURE_DISABLED_BY_DEFAULT);
+ BASE_FEATURE_PARAM(bool,
+                    kVariationsRuntimeMutabilityRotateUmaLog,
+@@ -1247,9 +1249,10 @@ void VariationsService::OnSimpleLoaderComplete(
+ 
+ bool VariationsService::MaybeRetryOverHTTP() {
+   // If the current fetch attempt was over an HTTPS connection, retry the
+-  // fetch immediately over an HTTP connection. We only do this if an insecure
+-  // variations URL is set and its scheme is HTTP.
+-  if (!last_request_was_http_retry_ &&
++  // fetch immediately over an HTTP connection. We only do this if HTTP fallback
++  // is enabled and an insecure variations URL is set with an HTTP scheme.
++  if (base::FeatureList::IsEnabled(kVariationsHttpFallback) &&
++      !last_request_was_http_retry_ &&
+       !insecure_variations_server_url_.is_empty() &&
+       insecure_variations_server_url_.SchemeIs(url::kHttpScheme)) {
+     last_request_was_http_retry_ = true;
+diff --git a/components/variations/service/variations_service.h b/components/variations/service/variations_service.h
+index de1ca5d421..46c8f7d7ef 100644
+--- a/components/variations/service/variations_service.h
++++ b/components/variations/service/variations_service.h
+@@ -72,6 +72,10 @@ namespace variations {
+ class DeviceVariationsRestrictionByPolicyApplicator;
+ #endif
+ 
++// When enabled, VariationsService will retry failed HTTPS seed fetches over
++// HTTP.
++BASE_DECLARE_FEATURE(kVariationsHttpFallback);
++
+ // When enabled, runtime mutable field trials from the periodically fetched
+ // seeds will be applied to the current session.
+ BASE_DECLARE_FEATURE(kVariationsRuntimeMutability);
+diff --git a/components/variations/service/variations_service_unittest.cc b/components/variations/service/variations_service_unittest.cc
+index 71e01315e6..698360f763 100644
+--- a/components/variations/service/variations_service_unittest.cc
++++ b/components/variations/service/variations_service_unittest.cc
+@@ -782,6 +782,7 @@ TEST_F(VariationsServiceTest, CountryHeader) {
+ }
+ 
+ TEST_F(VariationsServiceTest, CountryHeaderNotTrustedOverHTTP) {
++  base::test::ScopedFeatureList scoped_feature_list(kVariationsHttpFallback);
+   std::string serialized_seed = SerializeSeed(CreateTestSeed());
+   VariationsService::EnableFetchForTesting();
+ 
+@@ -1124,6 +1125,7 @@ TEST_F(VariationsServiceTest, SafeMode_NotModifiedFetchClearsFailureStreaks) {
+ }
+ 
+ TEST_F(VariationsServiceTest, NotModifiedOverHttpRetryDoesNotUpdateState) {
++  base::test::ScopedFeatureList scoped_feature_list(kVariationsHttpFallback);
+   // Set a fixed past reference date (2024-01-01 00:00:00 UTC).
+   base::Time initial_time;
+   ASSERT_TRUE(
+@@ -1168,6 +1170,7 @@ TEST_F(VariationsServiceTest, NotModifiedOverHttpRetryDoesNotUpdateState) {
+ }
+ 
+ TEST_F(VariationsServiceTest, SeedDateIgnoredOverHttpRetry) {
++  base::test::ScopedFeatureList scoped_feature_list(kVariationsHttpFallback);
+   // Set a fixed past reference date (2024-01-01 00:00:00 UTC).
+   base::Time initial_time;
+   ASSERT_TRUE(
+@@ -1216,7 +1219,20 @@ TEST_F(VariationsServiceTest, FieldTrialCreatorInitializedCorrectly) {
+   service.GetClientFilterableStateForVersion();
+ }
+ 
++TEST_F(VariationsServiceTest, DoNotRetryOverHTTPByDefault) {
++  TestVariationsService service(
++      std::make_unique<web_resource::TestRequestAllowedNotifier>(
++          &prefs_, network_tracker_),
++      &prefs_, GetMetricsStateManager(), true);
++  service.set_intercepts_fetch(true);
++  service.set_last_request_was_retry(false);
++  service.set_insecure_url(GURL("http://example.test"));
++  EXPECT_FALSE(service.CallMaybeRetryOverHTTP());
++  EXPECT_FALSE(service.fetch_attempted());
++}
++
+ TEST_F(VariationsServiceTest, RetryOverHTTPIfURLisSet) {
++  base::test::ScopedFeatureList scoped_feature_list(kVariationsHttpFallback);
+   TestVariationsService service(
+       std::make_unique<web_resource::TestRequestAllowedNotifier>(
+           &prefs_, network_tracker_),
+@@ -1229,6 +1245,7 @@ TEST_F(VariationsServiceTest, RetryOverHTTPIfURLisSet) {
+ }
+ 
+ TEST_F(VariationsServiceTest, RetryOverHTTPWithBackgroundEncryption) {
++  base::test::ScopedFeatureList scoped_feature_list(kVariationsHttpFallback);
+   TestVariationsService service(
+       std::make_unique<web_resource::TestRequestAllowedNotifier>(
+           &prefs_, network_tracker_),
+@@ -1257,6 +1274,7 @@ TEST_F(VariationsServiceTest, RetryOverHTTPWithBackgroundEncryption) {
+ }
+ 
+ TEST_F(VariationsServiceTest, DoNotRetryAfterARetry) {
++  base::test::ScopedFeatureList scoped_feature_list(kVariationsHttpFallback);
+   TestVariationsService service(
+       std::make_unique<web_resource::TestRequestAllowedNotifier>(
+           &prefs_, network_tracker_),
+@@ -1269,6 +1287,7 @@ TEST_F(VariationsServiceTest, DoNotRetryAfterARetry) {
+ }
+ 
+ TEST_F(VariationsServiceTest, DoNotRetryIfInsecureURLIsHTTPS) {
++  base::test::ScopedFeatureList scoped_feature_list(kVariationsHttpFallback);
+   TestVariationsService service(
+       std::make_unique<web_resource::TestRequestAllowedNotifier>(
+           &prefs_, network_tracker_),
+-- 
+2.43.0
+
