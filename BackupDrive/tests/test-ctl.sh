@@ -203,7 +203,7 @@ out_has '"path":"f4.conflicto-mac1.txt","original":"f4.txt","side":"mac"' "confl
 out_has '"path":"f4.conflicto-drive1.txt","original":"f4.txt","side":"drive"' "conflicto: copia de Drive"
 ctl profile list
 out_has '"conflicts":2' "profile list cuenta las copias en conflicto"
-cache=$(ls "$APP"/state/*.conflicts 2>/dev/null | head -1)
+cache="$APP/state/$(printf '%s|%s' "$MAC" "fake:$DRIVE/Clientes" | cksum | cut -d' ' -f1).conflicts"
 [ -n "$cache" ] && [ "$(cat "$cache")" = 2 ] && ok "la pasada guarda el recuento de conflictos" || fail "caché de conflictos: $(cat "$cache" 2>/dev/null)"
 echo x > "$MAC/h.conflicto-mac1.txt"
 ctl profile list
