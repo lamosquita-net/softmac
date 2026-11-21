@@ -53,6 +53,15 @@ portes-159). La 58 se lo pasa directamente a «Local (22)» y a D8-LINUX y anota
 `-j 24` como máximo (buzón `LOCAL/20261120-2100-…-prioridad-LOCAL-21.md`; entrégala tú). (b) Encargo a ARQUITECTURA: estudiar
 pruebas de Chromium en el PC de Ubuntu (buzón `ARQUITECTURA/20261120-2100-…`). La nube no compila FlyWeb.
 
+**Añadido 21-11 ~06:00 UTC (Titín; DIRECTIVAS):** (a) **3.2.0 cerrada** con #1147 + #1159; **#1165 = 3.2.1** (punta
+57940bed3c: chromium siguiente 0001–0008 y brave-core siguiente/0001, V8 585624828, que necesita otra subida de época). El paso
+de 585624828 del encargo de D8-LINUX (buzón 3fac13d74b) es de la 3.2.1. (b) Canales: órdenes a la nube por `SendMessage` + copia
+en `buzon/NUBE-<PAPEL>/`; respuestas en `buzon/COORDINACION/`. (c) Agentes nuevos de la nube: uno por tarea, con encargo
+escrito; probar si la 58 puede abrirlos desde la 7,1 (p. ej. `claude --remote`, si existe en esa versión; sin comprobar). Si
+no, texto para Titín. Estado de la nube a las 06:00: SEGURIDAD-PORTES-33 vigila cada hora; en 8154 hay candidatos para la 3.2.1
+(MHTML 583926256, TextFragmentAnchor 566347708, WebPagePopup 586391223) si llegan a la 8078. Wasm 580857997/585446353 y sandbox
+336507783 esperan merge en la 15.6.
+
 **Sesiones:** MOTOR-47 `session_01MwmK2hjxRPyuefYzGRoZRk`, SEGURIDAD-PORTES-33 `session_01MwmK2kdhDkMC93UBtLuPkF` (vigila
 cada hora), INVESTIGACIÓN-MOTOR-10 `session_01MwmK2m3DpZgC8k7wAabHHG`, SEGURIDAD-VIGÍA `session_019wTc3m4aVuvkKTEGMXdEHS`,
 Cartero (8) bridge `session_01MwmK2iGXw2cPVJFxs7SWnc`. La 57 queda quieta para preguntas.
