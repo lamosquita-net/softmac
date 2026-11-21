@@ -68,6 +68,7 @@ que mande el `Origin` falso: es endurecimiento del proceso del navegador frente 
 - brave-core no tiene parches ni `chromium_src` en `url/`. Los esquemas propios (`brave://`, `chrome-extension://`)
   siempre llevan host, así que el cambio no les afecta.
 - Comprobado: `git apply --cached` sobre `403ec1c98c` da el árbol **`2bb85047ec`**.
+- **Ya está en la 156 (21-11, 00:10 UTC):** merge oficial `04db7fff13` en la 8078 (merge 588196153), **idéntico** (`patch-id` igual) a este `0002`.
 - **Gravedad: no consta** (bug restringido).
 
 ### Veredicto (regla 17): **APTO**, `chromium/0002`
