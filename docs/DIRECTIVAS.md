@@ -429,6 +429,15 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
     «Contenido».
   - **Webs de prueba de siempre** en los perfiles de revisión y en las capturas: elpais.com, eldiario.es, youtube.com,
     wikipedia y otras de ese tipo (prensa y vídeo). No usar webs de apuestas ni marca.com.
+- **La 3.2.0 se cierra ya; #1165 va a la 3.2.1 (Titín, 21-11 ~06:00 UTC; COORDINACIÓN-57; «si no, no publicamos nunca»):**
+  la 3.2.0 lleva solo lo aprobado el 20-11 (#1147 y #1159). Todo `seguridad/siguiente/` (#1165: chromium 0001–0008 y
+  brave-core/0001, V8 585624828) es la **3.2.1**, que tendrá que volver a subir `kFlyWebCacheEpoch` por el de V8. Nada más
+  entra en la 3.2.0 sin que lo diga Titín. Su paso de D8-LINUX se puede quitar del encargo de la 3.2.0 o pasarse aparte.
+- **Canales con la COORDINACIÓN en local (Titín, 21-11; COORDINACIÓN-57):** la COORDINACIÓN corre en la 7,1. Órdenes a la
+  nube: `SendMessage` y copia escrita en `buzon/NUBE-<PAPEL>/` (p. ej. `NUBE-MOTOR`, `NUBE-SEGURIDAD-PORTES`); cada agente de
+  la nube la lee al empezar cada turno. Respuestas e informes de la nube: **siempre por escrito** en `buzon/COORDINACION/`.
+  Para agentes nuevos de la nube, el método preferido es **un agente por tarea** con encargo escrito, que se releva solo si
+  la tarea es larga; si la COORDINACIÓN local no puede abrirlos, deja el texto y los abre Titín. Pasar todo a Ubuntu: no.
 - **Carga de la MacPro7,1 (Titín, 20-11 ~21:00 UTC; COORDINACIÓN-57):** las compilaciones saturaban la 7,1 y Titín no podía
   trabajar. (1) **LOCAL compila y prueba con prioridad de fondo y menos paralelismo:** `taskpolicy -b` (y `nice -n 19`) delante
   de `autoninja`/`ninja`/pruebas, con `-j 24` como máximo; se acepta que tarde más. (2) **ARQUITECTURA estudia** pasar al PC de
