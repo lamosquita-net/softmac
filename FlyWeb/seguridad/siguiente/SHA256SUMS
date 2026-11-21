@@ -1,0 +1,13 @@
+fc4bd76bddb43fcab36040ec2ad78115d5b7d71ff33b7ceb71ef0411e7eed404  chromium/0001-M156-Never-expose-pseudo-elements-via-Event.target-f.patch
+ebea711046187a849c9c8de7b7ec5293de45bb8db26a31027a90c2cd0f92880e  chromium/0002-M156-HLS-Intercept-data-URLs-in-HlsDataSourceProvide.patch
+61ee90ae6ea427a2df4ea849741e6ff9190d9f680c5c05bd0b1b4d9ab6654f83  chromium/0003-M156-Disable-VariationsService-HTTP-fallback-by-defa.patch
+fac457f7b9a880d2a7ecb32ee1da146db13801dd2823a54f0dc2929f09884a05  chromium/0004-M156-Retarget-NavigateEvent.sourceElement.patch
+fc0787e7099b1146e11acfcd7c78ae80b86847040185472fc074b845c0ea1129  chromium/0005-M156-Recheck-cross-document-new-children-in-ReplaceC.patch
+5976ea962a917400de2a687a960934f45a29a3dbd19aa66b771edd9964b31c7d  chromium/0006-M156-Don-t-pause-on-DOM-breakpoints-during-document-.patch
+f78d7d53e098c3ff5baec2f09dff76c01b8ef48db28922e210890a9b321ec983  chromium/0007-M156-Don-t-scroll-when-a-focused-input-s-list-target.patch
+f412a6a6938172d1a204ac017ebc5bcc52b7289dd6cfdddf2d23491b0eca135a  chromium/0008-M156-Swap-event_queue_-before-filtering-in-DispatchE.patch
+24b95b3d738a6d44d6dba8f836e66fe5085a025e97e9f43c27314f920cdae684  chromium/0009-M159-views-Defer-MenuRunnerImpl-destruction-when-rel.patch
+c0a4720e844da1815a8894aa2131228ef5d47b2e68b1ee3c809f923eebcdd60d  chromium/0010-M159-views-Fix-FOR_DROP-menu-drag-and-drop-teardown-.patch
+910d3885ba88531637fadd7ad249b5763ad7ee7cb22e1b8cbe999665b5c4bc70  brave-core/0001-v8-pending-352e9c46c2-M159-merge-5b7c1a1f0f-crbug-58.patch
+4e059c19dda0004266aa261befcdb56d838c991fc4c23ee6741d5e65d7d7d2e0  brave-core/0002-v8-kFlyWebCacheEpoch-38-39-for-FlyWeb-3.2.1.patch
+d604f974367f6be60b501eff41a318b0e7f364fc6d7507c226d10e0517aa4d12  brave-core/0003-v8-cctest-test-jump-threading-adaptation-for-46c1404.patch

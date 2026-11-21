@@ -1,0 +1,193 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mason Freed <masonf@chromium.org>
+Date: Sat, 21 Nov 2026 00:23:46 +0000
+Subject: [PATCH] [M156] Don't pause on DOM breakpoints during document
+ lifecycle updates
+
+FlyWeb next batch: from branch-heads/8078 dabab2fd13. Applied after seguridad/siguiente/chromium/0005; applies cleanly (identical diff). No brave-core patches or chromium_src for these files.
+
+Original change's description:
+> Don't pause on DOM breakpoints during document lifecycle updates
+>
+> DOM breakpoints could fire for DOM mutations that happen inside a
+> lifecycle update, such as the disposal of pseudo-elements during style
+> recalc. Pausing there runs a nested message loop in which the debugger
+> client can run arbitrary script (e.g. via Runtime.evaluate), which the
+> style recalc code is not prepared for. For example, calling
+> ViewTransition.skipTransition() while paused in the removal of a
+> ::view-transition-image-pair frees the list of view transition names
+> that Element::UpdateTransitionPseudoElements() is iterating, causing a
+> use-after-free on resume.
+>
+> Such mutations are not caused by script, so skip the pause when the
+> document lifecycle doesn't allow tree mutations. Script-initiated
+> mutations still pause as before.
+>
+> Fixed: 584330765
+> Change-Id: I2faae2b13bcf3d79d3064bab3fe8dcf652b7bd76
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8811095
+> Reviewed-by: Andrey Kosyakov <caseq@chromium.org>
+> Auto-Submit: Mason Freed <masonf@chromium.org>
+> Commit-Queue: Mason Freed <masonf@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1746260}
+
+(cherry picked from commit 53b8f4d4f33c3d275a4c4f78f3ec5244431dd9e0)
+
+Bug: 587226163,584330765
+Change-Id: I2faae2b13bcf3d79d3064bab3fe8dcf652b7bd76
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8850551
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2372}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../inspector/inspector_dom_debugger_agent.cc | 10 +++
+ third_party/blink/web_tests/VirtualTestSuites |  2 +
+ ...oint-skip-view-transition-during-recalc.js | 72 +++++++++++++++++++
+ ...view-transition-during-recalc-expected.txt |  6 ++
+ 4 files changed, 90 insertions(+)
+ create mode 100644 third_party/blink/web_tests/inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc.js
+ create mode 100644 third_party/blink/web_tests/virtual/threaded/inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc-expected.txt
+
+diff --git a/third_party/blink/renderer/core/inspector/inspector_dom_debugger_agent.cc b/third_party/blink/renderer/core/inspector/inspector_dom_debugger_agent.cc
+index b23a7ffe69..0d64a50dab 100644
+--- a/third_party/blink/renderer/core/inspector/inspector_dom_debugger_agent.cc
++++ b/third_party/blink/renderer/core/inspector/inspector_dom_debugger_agent.cc
+@@ -35,6 +35,8 @@
+ #include "third_party/blink/renderer/bindings/core/v8/v8_event_target.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_node.h"
+ #include "third_party/blink/renderer/core/dom/css_pseudo_element.h"
++#include "third_party/blink/renderer/core/dom/document.h"
++#include "third_party/blink/renderer/core/dom/document_lifecycle.h"
+ #include "third_party/blink/renderer/core/dom/dom_node_ids.h"
+ #include "third_party/blink/renderer/core/dom/element.h"
+ #include "third_party/blink/renderer/core/dom/events/event.h"
+@@ -548,6 +550,14 @@ void InspectorDOMDebuggerAgent::BreakProgramOnDOMEvent(Node* target,
+                                                        int breakpoint_type,
+                                                        bool insertion) {
+   DCHECK(HasBreakpoint(target, breakpoint_type));
++  // DOM mutations that happen inside a document lifecycle update (e.g. the
++  // removal of pseudo-elements during style recalc) are not caused by script,
++  // and the lifecycle code is not prepared for script to run in the middle of
++  // it. Pausing here would let the debugger client run arbitrary script (e.g.
++  // via Runtime.evaluate) while style/layout state is inconsistent.
++  if (!target->GetDocument().Lifecycle().StateAllowsTreeMutations()) {
++    return;
++  }
+   std::unique_ptr<protocol::DictionaryValue> description =
+       protocol::DictionaryValue::create();
+ 
+diff --git a/third_party/blink/web_tests/VirtualTestSuites b/third_party/blink/web_tests/VirtualTestSuites
+index b0fea6d8d0..17655c0fe6 100644
+--- a/third_party/blink/web_tests/VirtualTestSuites
++++ b/third_party/blink/web_tests/VirtualTestSuites
+@@ -3524,6 +3524,7 @@
+       "inspector-protocol/css/css-get-styles-for-scoped-view-transition.js",
+       "inspector-protocol/css/css-get-styles-for-view-transition.js",
+       "inspector-protocol/css/css-view-transition-set-style-text.js",
++      "inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc.js",
+       "inspector-protocol/dom/dom-get-dom-for-view-transition.js",
+       "printing",
+       "synthetic_gestures",
+@@ -3568,6 +3569,7 @@
+       "inspector-protocol/css/css-get-styles-for-view-transition.js",
+       "inspector-protocol/css/css-view-transition-set-style-text.js",
+       "inspector-protocol/css/css-get-keyframes-for-view-transitions.js",
++      "inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc.js",
+       "inspector-protocol/dom/dom-get-dom-for-view-transition.js",
+       "external/wpt/soft-navigation-heuristics/navigation-api-view-transition.tentative.html",
+       "external/wpt/trusted-types/navigate-to-javascript-url-001.html",
+diff --git a/third_party/blink/web_tests/inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc.js b/third_party/blink/web_tests/inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc.js
+new file mode 100644
+index 0000000000..1d0cc3ebb6
+--- /dev/null
++++ b/third_party/blink/web_tests/inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc.js
+@@ -0,0 +1,72 @@
++(async function(/** @type {import('test_runner').TestRunner} */ testRunner) {
++  const {session, dp} = await testRunner.startHTML(
++      `
++      <style>
++        ::view-transition-group(*),
++        ::view-transition-old(*),
++        ::view-transition-new(*) {
++          animation-duration: 600s;
++        }
++      </style>
++      <div style='width:100px; height:100px; view-transition-name: target;'></div>
++      <div style='width:100px; height:100px; view-transition-name: other;'></div>
++      <div id=removeme></div>`,
++      'Tests that DOM breakpoints do not pause for DOM mutations during style recalc, where running script (e.g. skipping a view transition) is unsafe.');
++
++  await session.evaluateAsync(`
++     new Promise(async (resolve) => {
++       window.vt = document.startViewTransition();
++       await vt.ready;
++       getComputedStyle(document.documentElement,
++                        '::view-transition-new(root)').background;
++       resolve();
++     });
++  `);
++
++  await dp.DOM.enable();
++  await dp.Debugger.enable();
++  const {result} = await dp.DOM.getDocument({depth: -1});
++  const viewTransition = result.root.children[0].pseudoElements[0];
++  const group =
++      viewTransition.pseudoElements.find(p => p.pseudoIdentifier === 'target');
++  const imagePair = group.pseudoElements[0];
++  testRunner.log('Breakpoint node: ' + imagePair.nodeName + '(' +
++                 imagePair.pseudoIdentifier + ')');
++  await dp.DOMDebugger.setDOMBreakpoint(
++      {nodeId: imagePair.nodeId, type: 'node-removed'});
++
++  let phase = 'style-recalc';
++  dp.Debugger.onPaused(async message => {
++    testRunner.log('Paused on ' + message.params.data.type + ' during ' +
++                   phase);
++    if (phase === 'style-recalc') {
++      // Ending the transition while paused inside style recalc would clear
++      // the list of view transition names that style recalc is iterating.
++      await session.evaluate('vt.skipTransition()');
++    }
++    dp.Debugger.resume();
++  });
++
++  // Hiding the group removes ::view-transition-image-pair(target) during
++  // style recalc.
++  await session.evaluate(`
++    const style = document.createElement('style');
++    style.textContent = '::view-transition-group(target) { display: none; }';
++    document.head.appendChild(style);
++    getComputedStyle(document.documentElement).color;
++  `);
++  testRunner.log('Style recalc completed');
++
++  // Script-initiated removals should still pause.
++  phase = 'script-removal';
++  const removeMe = (await dp.DOM.querySelector({
++                     nodeId: result.root.nodeId,
++                     selector: '#removeme'
++                   })).result;
++  await dp.DOMDebugger.setDOMBreakpoint(
++      {nodeId: removeMe.nodeId, type: 'node-removed'});
++  await session.evaluate(`document.getElementById('removeme').remove()`);
++  testRunner.log('Script removal completed');
++
++  testRunner.completeTest();
++})
+diff --git a/third_party/blink/web_tests/virtual/threaded/inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc-expected.txt b/third_party/blink/web_tests/virtual/threaded/inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc-expected.txt
+new file mode 100644
+index 0000000000..8b8c8479d4
+--- /dev/null
++++ b/third_party/blink/web_tests/virtual/threaded/inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc-expected.txt
+@@ -0,0 +1,6 @@
++Tests that DOM breakpoints do not pause for DOM mutations during style recalc, where running script (e.g. skipping a view transition) is unsafe.
++Breakpoint node: ::view-transition-image-pair(target)
++Style recalc completed
++Paused on node-removed during script-removal
++Script removal completed
++
+-- 
+2.43.0
+

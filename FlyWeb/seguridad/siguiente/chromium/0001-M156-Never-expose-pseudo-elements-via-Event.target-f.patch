@@ -1,0 +1,372 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mason Freed <masonf@chromium.org>
+Date: Sat, 21 Nov 2026 00:09:28 +0000
+Subject: [PATCH] [M156] Never expose pseudo-elements via Event.target; fix
+ ::column disposal
+
+FlyWeb next batch: from branch-heads/8078 f95dd51f6f. Applied after seguridad/portes-159/chromium/0002 (#1159); applies cleanly (identical diff). No brave-core patches or chromium_src for these files.
+
+Original change's description:
+> Never expose pseudo-elements via Event.target; fix ::column disposal
+>
+> While default event handlers run, an event's target is set back to the
+> raw pseudo-element if it has activation behavior (e.g.
+> ::scroll-marker), so that its DefaultEventHandler() can recognize
+> itself. Script that runs during that time, such as a DOMActivate
+> listener, could read the target of a click event it kept and get a live
+> PseudoElement. Similarly, coalesced and predicted pointer events have
+> their target set to the raw dispatch node. Event::target() only
+> DCHECKed against this, so in release builds the pseudo-element was
+> handed to script, which could then re-parent it and corrupt the
+> pseudo-element tree. Event::target() now returns the ultimate
+> originating element when the stored target is a connected
+> pseudo-element, and null otherwise.
+>
+> Disposing a ::column did not dispose its ::scroll-marker, because
+> ColumnPseudoElement::DetachLayoutTree() bypasses
+> Element::DetachLayoutTree(), which is where other pseudo-elements
+> dispose their child pseudo-elements.
+> Element::ClearColumnPseudoElements() worked around that by walking the
+> live ::column vector first, which is the walk that re-entrancy turned
+> into a use-after-free. Other paths, such as
+> PseudoElementData::ClearPseudoElements() from
+> Element::RecalcOwnStyle(), left the ::scroll-marker connected under a
+> disposed ::column (hitting a DCHECK in Element::RemovedFrom()).
+> ColumnPseudoElement::Dispose() now disposes its own pseudo-elements,
+> Element::ClearColumnPseudoElements() no longer walks the vector, and
+> PseudoElementData::ClearColumnPseudoElements() snapshots the elements
+> before disposing them, matching
+> PseudoElementData::ClearPseudoElements().
+>
+> column-scroll-marker-reentrant-remove-crash.html covers the
+> Event::target() leak (it hit the DCHECK in Event::target() before this
+> change). column-scroll-marker-hidden-event-target-crash.html covers the
+> ::column disposal (it hit the DCHECK in Element::RemovedFrom() without
+> the ColumnPseudoElement::Dispose() change).
+>
+> Bug: 583179913
+> Fixed: 584370079
+> Change-Id: Id6bb82039efa95e487052a689a056b7b1db9c24c
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8813183
+> Auto-Submit: Mason Freed <masonf@chromium.org>
+> Reviewed-by: Rune Lillesveen <futhark@chromium.org>
+> Commit-Queue: Rune Lillesveen <futhark@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1749046}
+
+(cherry picked from commit 726518010982096aee5f33f3c25ebe3b5ffc64cc)
+
+Bug: 588203329,583179913,584370079
+Change-Id: Id6bb82039efa95e487052a689a056b7b1db9c24c
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8850251
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2368}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../core/dom/column_pseudo_element.cc         | 12 +++
+ .../renderer/core/dom/column_pseudo_element.h |  1 +
+ .../blink/renderer/core/dom/element.cc        | 19 +----
+ .../blink/renderer/core/dom/events/event.cc   | 23 +++++-
+ .../renderer/core/dom/pseudo_element_data.h   | 11 ++-
+ ...roll-marker-hidden-event-target-crash.html | 69 ++++++++++++++++++
+ ...-scroll-marker-reentrant-remove-crash.html | 73 +++++++++++++++++++
+ 7 files changed, 187 insertions(+), 21 deletions(-)
+ create mode 100644 third_party/blink/web_tests/external/wpt/css/css-overflow/scroll-markers/column-scroll-marker-hidden-event-target-crash.html
+ create mode 100644 third_party/blink/web_tests/external/wpt/css/css-overflow/scroll-markers/column-scroll-marker-reentrant-remove-crash.html
+
+diff --git a/third_party/blink/renderer/core/dom/column_pseudo_element.cc b/third_party/blink/renderer/core/dom/column_pseudo_element.cc
+index fa951990c3..8e469834b0 100644
+--- a/third_party/blink/renderer/core/dom/column_pseudo_element.cc
++++ b/third_party/blink/renderer/core/dom/column_pseudo_element.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "third_party/blink/renderer/core/dom/column_pseudo_element.h"
+ 
++#include "third_party/blink/renderer/core/dom/node_rare_data.h"
+ #include "third_party/blink/renderer/core/frame/web_feature.h"
+ #include "third_party/blink/renderer/core/layout/layout_box.h"
+ #include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
+@@ -129,6 +130,17 @@ void ColumnPseudoElement::DetachLayoutTree(bool performing_reattach) {
+   ContainerNode::DetachLayoutTree(performing_reattach);
+ }
+ 
++void ColumnPseudoElement::Dispose() {
++  // Other pseudo-elements dispose their child pseudo-elements via
++  // Element::DetachLayoutTree(), which DetachLayoutTree() above bypasses. Do
++  // it here, so that the ::scroll-marker is never left connected under a
++  // disposed ::column.
++  if (NodeRareData* data = RareData()) {
++    data->ClearPseudoElements();
++  }
++  PseudoElement::Dispose();
++}
++
+ bool ColumnPseudoElement::LayoutObjectIsNeeded(const DisplayStyle&) const {
+   return false;
+ }
+diff --git a/third_party/blink/renderer/core/dom/column_pseudo_element.h b/third_party/blink/renderer/core/dom/column_pseudo_element.h
+index 5e3d9e12a6..e723264065 100644
+--- a/third_party/blink/renderer/core/dom/column_pseudo_element.h
++++ b/third_party/blink/renderer/core/dom/column_pseudo_element.h
+@@ -34,6 +34,7 @@ class CORE_EXPORT ColumnPseudoElement : public IndexedPseudoElement {
+   void AttachLayoutTree(AttachContext&) final;
+   void DetachLayoutTree(bool performing_reattach) final;
+   bool LayoutObjectIsNeeded(const DisplayStyle&) const final;
++  void Dispose() final;
+ 
+  private:
+   PhysicalRect column_rect_;
+diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/renderer/core/dom/element.cc
+index 62fb3efdab..b75695ee61 100644
+--- a/third_party/blink/renderer/core/dom/element.cc
++++ b/third_party/blink/renderer/core/dom/element.cc
+@@ -9528,22 +9528,11 @@ const ColumnPseudoElementsVector* Element::GetColumnPseudoElements() const {
+ }
+ 
+ void Element::ClearColumnPseudoElements(wtf_size_t to_keep) {
+-  NodeRareData* data = RareData();
+-  if (!data) {
+-    return;
+-  }
+-  wtf_size_t idx = 0u;
+-  if (const ColumnPseudoElementsVector* column_pseudo_elements =
+-          data->GetColumnPseudoElements()) {
+-    for (PseudoElement* column_pseudo_element : *column_pseudo_elements) {
+-      if (++idx > to_keep) {
+-        if (NodeRareData* column_data = column_pseudo_element->RareData()) {
+-          column_data->ClearPseudoElements();
+-        }
+-      }
+-    }
++  if (NodeRareData* data = RareData()) {
++    // Disposing each ::column also disposes its ::scroll-marker (see
++    // ColumnPseudoElement::Dispose()).
++    data->ClearColumnPseudoElements(to_keep);
+   }
+-  data->ClearColumnPseudoElements(to_keep);
+ }
+ 
+ void Element::SetScrollbarPseudoElementStylesDependOnFontMetrics(bool value) {
+diff --git a/third_party/blink/renderer/core/dom/events/event.cc b/third_party/blink/renderer/core/dom/events/event.cc
+index 344a224b9a..6c25301f12 100644
+--- a/third_party/blink/renderer/core/dom/events/event.cc
++++ b/third_party/blink/renderer/core/dom/events/event.cc
+@@ -260,10 +260,25 @@ void Event::preventDefault() {
+ }
+ 
+ EventTarget* Event::target() const {
+-  DCHECK(!target_ || !target_->ToNode() ||
+-         !target_->ToNode()->IsPseudoElement())
+-      << "Event target should not be a pseudo-element, but got "
+-      << target_->ToNode()->DebugName();
++  // Pseudo-elements must never be exposed to script, but `target_` can be one
++  // while script can observe this event. For example, while default event
++  // handlers run, `target_` is a pseudo-element with activation behavior (see
++  // EventDispatcher::DispatchEventPostProcess()), and script run from there
++  // (e.g. a DOMActivate listener) can read the target of an event it kept.
++  // Also, the targets of coalesced and predicted pointer events are set to the
++  // raw dispatch node. Expose the originating element instead, or null if the
++  // pseudo-element is no longer connected (e.g. it has been disposed).
++  Node* node = target_ ? target_->ToNode() : nullptr;
++  if (auto* pseudo_element = DynamicTo<PseudoElement>(node)) {
++    if (!pseudo_element->isConnected()) {
++      return nullptr;
++    }
++    Element* originating_element =
++        &pseudo_element->UltimateOriginatingElement();
++    DCHECK(!originating_element->IsPseudoElement());
++    return originating_element;
++  }
++  DCHECK(!node || !node->IsPseudoElement());
+   return target_.Get();
+ }
+ 
+diff --git a/third_party/blink/renderer/core/dom/pseudo_element_data.h b/third_party/blink/renderer/core/dom/pseudo_element_data.h
+index 953affc5a5..f80ac87aa8 100644
+--- a/third_party/blink/renderer/core/dom/pseudo_element_data.h
++++ b/third_party/blink/renderer/core/dom/pseudo_element_data.h
+@@ -53,17 +53,24 @@ class PseudoElementData final : public GarbageCollected<PseudoElementData>,
+     column_pseudo_elements_->push_back(column_pseudo_element);
+   }
+   void ClearColumnPseudoElements(wtf_size_t to_keep) {
+-    if (!column_pseudo_elements_) {
++    if (!column_pseudo_elements_ ||
++        to_keep >= column_pseudo_elements_->size()) {
+       return;
+     }
++    // Remove the elements from the vector before disposing them, since
++    // disposing can re-enter and modify the vector.
++    HeapVector<Member<ColumnPseudoElement>> to_dispose;
+     for (wtf_size_t i = to_keep; i < column_pseudo_elements_->size(); ++i) {
+-      column_pseudo_elements_->at(i)->Dispose();
++      to_dispose.push_back(column_pseudo_elements_->at(i));
+     }
+     if (to_keep) {
+       column_pseudo_elements_->Shrink(to_keep);
+     } else {
+       column_pseudo_elements_->clear();
+     }
++    for (ColumnPseudoElement* column_pseudo_element : to_dispose) {
++      column_pseudo_element->Dispose();
++    }
+   }
+ 
+   bool HasPseudoElements() const;
+diff --git a/third_party/blink/web_tests/external/wpt/css/css-overflow/scroll-markers/column-scroll-marker-hidden-event-target-crash.html b/third_party/blink/web_tests/external/wpt/css/css-overflow/scroll-markers/column-scroll-marker-hidden-event-target-crash.html
+new file mode 100644
+index 0000000000..d9dd0ba052
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/css/css-overflow/scroll-markers/column-scroll-marker-hidden-event-target-crash.html
+@@ -0,0 +1,69 @@
++<!DOCTYPE html>
++<html class="test-wait">
++<meta charset="utf-8">
++<link rel="author" href="mailto:masonf@chromium.org">
++<link rel="help" href="https://crbug.com/584370079">
++<script src="/resources/testdriver.js"></script>
++<script src="/resources/testdriver-actions.js"></script>
++<script src="/resources/testdriver-vendor.js"></script>
++<script src="/dom/events/scrolling/scroll_support.js"></script>
++
++<style>
++  body {
++    margin: 0;
++  }
++  #scroller {
++    overflow: hidden;
++    columns: 1;
++    column-fill: auto;
++    gap: 0;
++    width: 300px;
++    height: 100px;
++    scroll-marker-group: before;
++  }
++  #scroller::scroll-marker-group {
++    display: flex;
++    width: 300px;
++    height: 50px;
++  }
++  #scroller::column::scroll-marker {
++    display: block;
++    width: 100px;
++    height: 50px;
++    background: green;
++    content: "";
++  }
++  .content {
++    height: 300px;
++  }
++</style>
++<div id="scroller"><div class="content"></div></div>
++<script>
++  // While the ::column::scroll-marker's default handlers run (here, from a
++  // DOMActivate listener), hide the originating element so that its ::column
++  // pseudo-elements are torn down by style recalc, then read the target of
++  // the kept click event. This should not crash.
++  const scroller = document.getElementById('scroller');
++  let kept = null;
++  document.addEventListener('click', (e) => { kept = e; }, true);
++  document.addEventListener('DOMActivate', () => {
++    if (!kept) {
++      return;
++    }
++    scroller.style.display = 'none';
++    scroller.offsetTop;
++    kept.target;
++  });
++
++  (async () => {
++    await waitForCompositorReady();
++    // Click the second (middle) ::column::scroll-marker.
++    await new test_driver.Actions()
++      .pointerMove(150, 25)
++      .pointerDown()
++      .pointerUp()
++      .send();
++    await new Promise(resolve => requestAnimationFrame(resolve));
++    document.documentElement.classList.remove('test-wait');
++  })();
++</script>
+diff --git a/third_party/blink/web_tests/external/wpt/css/css-overflow/scroll-markers/column-scroll-marker-reentrant-remove-crash.html b/third_party/blink/web_tests/external/wpt/css/css-overflow/scroll-markers/column-scroll-marker-reentrant-remove-crash.html
+new file mode 100644
+index 0000000000..e6f3bd99c1
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/css/css-overflow/scroll-markers/column-scroll-marker-reentrant-remove-crash.html
+@@ -0,0 +1,73 @@
++<!DOCTYPE html>
++<html class="test-wait">
++<meta charset="utf-8">
++<link rel="author" href="mailto:masonf@chromium.org">
++<link rel="help" href="https://crbug.com/584370079">
++<script src="/resources/testdriver.js"></script>
++<script src="/resources/testdriver-actions.js"></script>
++<script src="/resources/testdriver-vendor.js"></script>
++<script src="/dom/events/scrolling/scroll_support.js"></script>
++
++<style>
++  body {
++    margin: 0;
++  }
++  #scroller {
++    overflow: hidden;
++    columns: 1;
++    column-fill: auto;
++    gap: 0;
++    width: 300px;
++    height: 100px;
++    scroll-marker-group: before;
++  }
++  #scroller::scroll-marker-group {
++    display: flex;
++    width: 300px;
++    height: 50px;
++  }
++  #scroller::column::scroll-marker {
++    display: block;
++    width: 100px;
++    height: 50px;
++    background: green;
++    content: "";
++  }
++  .content {
++    height: 300px;
++  }
++</style>
++<div id="scroller"><div class="content"></div></div>
++<div id="holder"></div>
++<script>
++  // Reading the target of a kept click event from a DOMActivate listener
++  // (while the ::column::scroll-marker's default handlers run) must not
++  // expose the pseudo-element. If it did, moving things around so that
++  // removing the originating element re-enters the clearing of the ::column
++  // pseudo-elements should still not crash.
++  const scroller = document.getElementById('scroller');
++  const holder = document.getElementById('holder');
++  let kept = null;
++  document.addEventListener('click', (e) => { kept = e; }, true);
++  document.addEventListener('DOMActivate', () => {
++    const marker = kept && kept.target;
++    if (!marker || marker === scroller) {
++      return;
++    }
++    try { holder.appendChild(marker); } catch (e) {}
++    try { marker.moveBefore(scroller, null); } catch (e) {}
++    try { scroller.remove(); } catch (e) {}
++  });
++
++  (async () => {
++    await waitForCompositorReady();
++    // Click the second (middle) ::column::scroll-marker.
++    await new test_driver.Actions()
++      .pointerMove(150, 25)
++      .pointerDown()
++      .pointerUp()
++      .send();
++    await new Promise(resolve => requestAnimationFrame(resolve));
++    document.documentElement.classList.remove('test-wait');
++  })();
++</script>
+-- 
+2.43.0
+
