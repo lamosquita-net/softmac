@@ -11,7 +11,7 @@ Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTE
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
 | chromium | árbol **`2bb85047ec`** (`pendiente/chromium/0001`–`0008` + `portes-159/chromium/0001`–`0002`) | `chromium/0001`–`0008` | **`861699b126`** (tras `0007`: `3564a4b08e`; tras `0006`: `c9905873db`; tras `0001`: `faec7dc5b9`; `0002`: `ee335593f3`; `0003`: `6d4ab28029`; `0004`: `1ec5df9eea`; `0005`: `f4eb399ad1`) |
-| brave-core | árbol **`ea6b817c88`** (corregido el 21-11: `pendiente/brave-core/0003` regenerado, ya no borra el `0002`) (`pendiente/brave-core/0001`–`0004`, `3.2-v8/0001`–`0002` y `pendiente/brave-core/0005`; `patches/v8` = `2b1c8d3308`, V8 = `8566fd42e4`) | `brave-core/0001`–`0002` | **`c659e30d69`** (`patches/v8` = **`f2b4dc00d6`**; con todos los `patches/v8` sobre la V8 15.6.75.66, árbol de V8 **`3c01845192`**; tras `0001`: brave-core `91d5860141`, `patches/v8` `c76badf8fd`, V8 `609059ae75`) |
+| brave-core | árbol **`ea6b817c88`** (corregido el 21-11: `pendiente/brave-core/0003` regenerado, ya no borra el `0002`) (`pendiente/brave-core/0001`–`0004`, `3.2-v8/0001`–`0002` y `pendiente/brave-core/0005`; `patches/v8` = `2b1c8d3308`, V8 = `8566fd42e4`) | `brave-core/0001`–`0003` | **`de0b6a69c9`** (`patches/v8` = **`a4c9a44d28`**; con todos los `patches/v8` sobre la V8 15.6.75.66, árbol de V8 **`c8e7b3da27`**; tras `0002`: brave-core `c659e30d69`, `patches/v8` `f2b4dc00d6`, V8 `3c01845192`; tras `0001`: brave-core `91d5860141`, `patches/v8` `c76badf8fd`, V8 `609059ae75`) |
 
 ## Rama 8078 después del cierre de la tanda
 
@@ -215,3 +215,21 @@ añade otro cambio de V8 a la 3.2.1, le vale esta misma subida.
 ### Veredicto (regla 17): **APTO**, `brave-core/0002`
 
 Prueba: la de la pasada «3.2.1» del encargo de D8-LINUX (`code-cache*` además de lo de `brave-core/0001`).
+
+## `brave-core/0003`: adaptación del cctest `test-jump-threading.cc` (solo prueba)
+
+La pidió COORDINACIÓN-58 (21-11) a raíz de lo que vio D8-LINUX-5. El parche de la 3.1.4 para **46c1404** (581561827,
+merge M156 de 14a5145e4f) quitó el parámetro `frame_at_start` de `JumpThreading::ComputeForwarding`, pero dejó fuera
+el cambio del cctest. Por eso `test/cctest/compiler/test-jump-threading.cc` no compilaba (D8-LINUX lo arreglaba en
+local para poder pasar cctest).
+
+- **Fichero que toca:** solo `patches/v8/test-cctest-compiler-test-jump-threading.cc.patch` (nuevo) y la nota de
+  `FLYWEB-SECURITY.md`. En V8 cambia únicamente `test/cctest/compiler/test-jump-threading.cc`: la llamada de
+  `VerifyForwarding` pierde el último argumento. Aplicado a la 15.6.75.66, el fichero queda **idéntico byte a byte** al
+  de la 15.6.75.76.
+- No cambia d8 ni el navegador: es código de prueba. No hace falta época de caché. No borra nada (`--diff-filter=D`
+  vacío).
+
+### Veredicto (regla 17): **APTO**, `brave-core/0003`
+
+Prueba (D8-LINUX): cctest compila sin arreglos locales; `cctest/test-jump-threading/*`.
