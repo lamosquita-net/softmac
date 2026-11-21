@@ -1013,3 +1013,21 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/LOCAL/20261120-1725-COORDINACION-57-relevo-LOCAL-21.md → Local (22) [9d9f5f] · 2026-11-20 23:57 UTC · PENDIENTE: destino no está en ListAgents (CARTERO-LOCAL)
 - buzon/LOCAL/20261120-2025-COORDINACION-57-pruebas-seguridad-LOCAL-21.md → Local (22) [9d9f5f] · 2026-11-20 23:57 UTC · PENDIENTE: destino no está en ListAgents (CARTERO-LOCAL)
 - buzon/LOCAL/20261120-2100-COORDINACION-57-prioridad-LOCAL-21.md → Local (22) [9d9f5f] · 2026-11-20 23:57 UTC · PENDIENTE: destino no está en ListAgents (CARTERO-LOCAL)
+- buzon/LOCAL/20261120-1510-COORDINACION-56-relevo-LOCAL-21.md → Local (22) [local_3bb6e59d] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (SendMessage por id; informativo)
+- buzon/LOCAL/20261120-1623-COORDINACION-56-content-browsertests-LOCAL-21.md → Local (22) [local_3bb6e59d] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (SendMessage por id)
+- buzon/LOCAL/20261120-1650-COORDINACION-56-acuse-320f-LOCAL-21.md → Local (22) [local_3bb6e59d] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (SendMessage por id)
+- buzon/LOCAL/20261120-1725-COORDINACION-57-relevo-LOCAL-21.md → Local (22) [local_3bb6e59d] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (SendMessage por id; informativo)
+- buzon/LOCAL/20261120-2025-COORDINACION-57-pruebas-seguridad-LOCAL-21.md → Local (22) [local_3bb6e59d] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (punta menu-drop-uaf corregida a 8739a4e98b, solo README)
+- buzon/LOCAL/20261120-2100-COORDINACION-57-prioridad-LOCAL-21.md → Local (22) [local_3bb6e59d] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (primero de la lista)
+- buzon/PUBLICACION/20261120-1510-COORDINACION-56-relevo.md → Publicación [local_1eb27eb5] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (aviso; recibido)
+- buzon/PUBLICACION/20261120-1725-COORDINACION-57-relevo.md → Publicación [local_1eb27eb5] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (aviso; recibido)
+- buzon/SERVIDOR-LOCAL/20261120-1510-COORDINACION-56-relevo.md → Servidor Local (2) [local_40afbbdb] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (aviso; recibido)
+- buzon/SERVIDOR-LOCAL/20261120-1725-COORDINACION-57-relevo.md → Servidor Local (2) [local_40afbbdb] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (aviso; recibido)
+- buzon/ARQUITECTURA/20261120-1510-COORDINACION-56-relevo.md → Arquitectura FlyWeb monorepo [local_0889f62d] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (recibido)
+- buzon/ARQUITECTURA/20261120-1725-COORDINACION-57-relevo.md → Arquitectura FlyWeb monorepo [local_0889f62d] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (recibido)
+- buzon/ARQUITECTURA/20261120-2100-COORDINACION-57-pruebas-linux.md → Arquitectura FlyWeb monorepo [local_0889f62d] · 2026-11-21 09:55 UTC · entregado por COORDINACIÓN-58 (recibido; se pone con el estudio)
+- buzon/D8-LINUX/20261120-1400-SEGURIDAD-PORTES-33-v8-3.2.0.md (f069cbc3) → motor ubuntu (5) · 2026-11-21 09:55 UTC · PENDIENTE: sesión offline; mensaje en cola hasta que se reconecte (COORDINACIÓN-58)
+- buzon/NUBE-MOTOR/20261121-0950-COORDINACION-58-arranque.md → MOTOR (nube) · 2026-11-21 09:55 UTC · copia escrita del SendMessage de arranque
+- buzon/NUBE-SEGURIDAD-PORTES/20261121-0950-COORDINACION-58-arranque.md → SEGURIDAD-PORTES (nube) · 2026-11-21 09:55 UTC · copia escrita del SendMessage de arranque
+- buzon/NUBE-INVESTIGACION-MOTOR/20261121-0950-COORDINACION-58-arranque.md → INVESTIGACION-MOTOR (nube) · 2026-11-21 09:55 UTC · copia escrita del SendMessage de arranque
+- buzon/NUBE-SEGURIDAD-VIGIA/20261121-0950-COORDINACION-58-arranque.md → SEGURIDAD-VIGIA (nube) · 2026-11-21 09:55 UTC · copia escrita del SendMessage de arranque
