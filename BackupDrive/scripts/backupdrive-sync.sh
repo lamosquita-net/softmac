@@ -23,7 +23,9 @@
 #                      (# = comentario; días 0 = las versiones no caducan; el remoto debe llevar una carpeta, no la raíz;
 #                      % y nº: umbral del freno de modificaciones masivas, 20 y 50 por defecto)
 #   filters.txt        opcional: filtros de rclone comunes a todos los perfiles
-# Versiones: en el Mac, <config>/versions/<carpeta>-<id>/; en Drive, la carpeta «<remoto:ruta> (versiones)» al lado de la
+#   versions-dir       opcional: una línea con la ruta completa de la carpeta de versiones del Mac (otro disco: en
+#                      MacTrash, el USB, fuera de la carpeta sincronizada); se cambia con «backupdrive-ctl.sh versions dir»
+# Versiones: en el Mac, <config>/versions/<carpeta>-<id>/ (o <versions-dir>/<carpeta>-<id>/); en Drive, la carpeta «<remoto:ruta> (versiones)» al lado de la
 #   sincronizada (bisync exige que no estén dentro). Estado de bisync en <config>/bisync/; resultado por perfil en state/.
 #
 # Estado para la app de barra de menús: status.json en la misma carpeta (se escribe de forma atómica):
@@ -83,6 +85,11 @@ case "$RESYNC_MODE" in newer|path1) ;; *) echo "BACKUPDRIVE_RESYNC_MODE: newer o
 DEFAULT_MOD_PCT=20
 DEFAULT_MOD_N=50
 BISYNC_DIR="$APP_DIR/bisync"
+# Carpeta de versiones del Mac (misma regla en backupdrive-ctl.sh; las pruebas comprueban que coinciden).
+VERSIONS_ROOT="$APP_DIR/versions"
+if [ -f "$APP_DIR/versions-dir" ]; then
+  VERSIONS_ROOT=$(sed -n '1{s:/*$::;p;}' "$APP_DIR/versions-dir")
+fi
 
 mkdir -p "$APP_DIR" "$LOG_DIR" "$STATE_DIR" "$BISYNC_DIR"
 [ -x "$BIN" ] || { echo "No encuentro $BIN" >&2; exit 1; }
@@ -228,7 +235,20 @@ sync_profile() { # local remote días % nº
   ldir=$1; rem=$2; days=$3; mpct=$4; mn=$5
   id=$(profile_id "$ldir" "$rem")
   init="$STATE_DIR/$id.init"
-  vm="$APP_DIR/versions/$(basename "$ldir")-$id"
+  vm="$VERSIONS_ROOT/$(basename "$ldir")-$id"
+  # En otro disco, la carpeta de versiones debe existir ya: si el disco no está, mejor no sincronizar que dejar las
+  # versiones en el disco del sistema sin que nadie lo sepa (o en un punto de montaje vacío de /Volumes).
+  case "$VERSIONS_ROOT" in
+    /?*) ;;
+    *) log "La carpeta de versiones del Mac de versions-dir no es una ruta completa: «$VERSIONS_ROOT»"; return 1 ;;
+  esac
+  if [ "$VERSIONS_ROOT" != "$APP_DIR/versions" ] && [ ! -d "$VERSIONS_ROOT" ]; then
+    log "No está la carpeta de versiones del Mac ($VERSIONS_ROOT; ¿disco desconectado?): no sincronizo $ldir"
+    return 1
+  fi
+  case "$vm/" in "${ldir%/}/"*)
+    log "La carpeta de versiones del Mac ($VERSIONS_ROOT) está dentro de $ldir: bisync no lo permite"; return 1 ;;
+  esac
   vr=$(versions_remote "$rem") || { log "El remoto $rem debe llevar una carpeta (no la raíz): la carpeta de versiones va al lado"; return 1; }
   stamp=$(date +%Y%m%d-%H%M%S)
 

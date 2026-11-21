@@ -241,5 +241,37 @@ for pair in $(tr '{' '\n' < "$T/out" | sed -n 's/.*"path":"\(f5[^"]*\)".*"side":
 done
 [ "$bad" = 0 ] && grep -q '"side":"mac"' "$T/out" && ok "con una copia anterior, cada copia lleva su lado" || fail "lados de f5: $(cat "$T/out")"
 
+# --- Versiones del Mac en otro disco (versions dir): se mueven las que había y las nuevas van allí ---
+expect 0 "versions dir sin ruta" versions dir
+out_has '"default":true' "versions dir: por defecto en la configuración"
+expect 6 "versions dir con ruta relativa" versions dir usb/ver
+expect 6 "versions dir con una carpeta que no existe" versions dir "$T/usb/ver"
+mkdir -p "$T/usb/ver"
+expect 6 "versions dir dentro de una carpeta sincronizada" versions dir "$MAC/sub"
+nver=$(find "$APP/versions" -type f | wc -l | tr -d ' ')
+expect 0 "versions dir a otro disco" versions dir "$T/usb/ver/"
+[ ! -d "$APP/versions" ] && [ "$(find "$T/usb/ver" -type f | wc -l | tr -d ' ')" = "$nver" ] \
+  && ok "las $nver versiones del Mac se han movido" || fail "versiones movidas: $(find "$T/usb/ver" -type f | wc -l)"
+[ "$(cat "$APP/versions-dir")" = "$T/usb/ver" ] && ok "versions-dir guardado sin la barra final" || fail "versions-dir: $(cat "$APP/versions-dir")"
+ctl profile list
+out_has "\"versions_mac\":\"$T/usb/ver/" "profile list da la carpeta nueva"
+ctl versions list "$MAC"
+out_has '"side":"mac","path":"f3-' "versions list sigue viendo las versiones del Mac"
+expect 6 "alta de un perfil dentro de la carpeta de versiones" profile add "$T/usb/ver" "fake:$DRIVE/Fotos"
+echo nueva-v1 > "$MAC/nueva.txt"; sync_ --force; cp "$T/sync.out" "$T/sync1.out"; echo nueva-drive > "$D/nueva.txt"; sync_ --force
+ls "$T"/usb/ver/*/nueva-* >/dev/null 2>&1 && ok "la pasada guarda las versiones del Mac en la carpeta nueva" \
+  || fail "sin versiones nuevas: $(cat "$T/sync1.out" "$T/sync.out" | tail -30)"
+[ -d "$APP/versions" ] && fail "la pasada ha creado otra vez versions en la configuración" || ok "nada en la carpeta de versiones antigua"
+mv "$T/usb" "$T/usb.fuera"
+echo sin-disco > "$MAC/nueva.txt"
+sync_
+grep -q 'No está la carpeta de versiones del Mac' "$T/sync.out" && ok "sin el disco de versiones, no sincroniza y lo dice" \
+  || fail "sin el disco de versiones: $(tail -5 "$T/sync.out")"
+[ "$(cat "$D/nueva.txt")" != sin-disco ] && [ ! -d "$T/usb" ] && ok "sin el disco, no toca Drive ni crea la carpeta" || fail "sin el disco, ha sincronizado"
+mv "$T/usb.fuera" "$T/usb"
+expect 0 "versions dir vuelve a la de siempre" versions dir "$APP/versions"
+[ ! -f "$APP/versions-dir" ] && [ "$(find "$APP/versions" -type f | wc -l | tr -d ' ')" -gt "$nver" ] \
+  && ok "vuelven todas a la configuración y se quita versions-dir" || fail "vuelta: $(ls "$APP")"
+
 echo "$((n - fails))/$n correctas"
 [ "$fails" -eq 0 ]

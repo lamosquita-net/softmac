@@ -18,6 +18,9 @@
 #   profile set <carpeta> [--days N] [--pct P] [--count N]
 #   profile remove <carpeta>        quita el perfil; no borra nada en el Mac, en Drive ni en versiones
 #   versions list <carpeta>         versiones de los dos lados, en JSON (más reciente primero)
+#   versions dir [<ruta>]           sin ruta: dónde guarda el Mac las versiones, en JSON. Con ruta (completa, ya creada, fuera
+#                  de las carpetas sincronizadas): las versiones del Mac pasan a esa carpeta (p. ej. a otro disco) y las que
+#                  ya había se mueven allí. La ruta por defecto (<config>/versions) vuelve a la de siempre.
 #   versions restore <carpeta> <mac|drive> <ruta de la versión>
 #                  copia la versión a su sitio en el Mac; si allí hay un fichero, va antes a versiones. La versión se
 #                  queda donde estaba. La siguiente pasada sube lo restaurado a Drive (y lo de Drive va a versiones).
@@ -33,7 +36,7 @@
 #
 # Códigos de salida: 0 bien; 1 error de rclone; 2 uso; 5 hay una sincronización en curso (reintentar luego);
 # 6 datos no válidos (el mensaje, en castellano llano, va a stderr para que la app lo enseñe tal cual).
-# Las órdenes que escriben (connect, profile add/set/remove, versions restore) toman el mismo bloqueo que
+# Las órdenes que escriben (connect, profile add/set/remove, versions dir/restore) toman el mismo bloqueo que
 # backupdrive-sync.sh, así que nunca coinciden con una sincronización.
 set -eu
 
@@ -56,7 +59,12 @@ need_conf() { [ -f "$CONF" ] || die 6 "Aún no hay ninguna cuenta de Google Driv
 
 # Mismo cálculo que backupdrive-sync.sh (las pruebas comprueban que coinciden).
 profile_id() { printf '%s|%s' "$1" "$2" | cksum | cut -d' ' -f1; }
-versions_mac() { echo "$APP_DIR/versions/$(basename "$1")-$(profile_id "$1" "$2")"; }
+# Carpeta de versiones del Mac: la misma regla que backupdrive-sync.sh (fichero versions-dir opcional).
+DEFAULT_VERSIONS="$APP_DIR/versions"
+versions_root() {
+  if [ -f "$APP_DIR/versions-dir" ]; then sed -n '1{s:/*$::;p;}' "$APP_DIR/versions-dir"; else echo "$DEFAULT_VERSIONS"; fi
+}
+versions_mac() { echo "$(versions_root)/$(basename "$1")-$(profile_id "$1" "$2")"; }
 versions_drive() { echo "${2%/} (versiones)"; }
 
 # Bloqueo compartido con backupdrive-sync.sh (mkdir es atómico; uno de un proceso muerto se recupera).
@@ -293,6 +301,8 @@ cmd_profile_add() {
   remote_path "$r"
   case "${r#*:}" in ''|/) die 6 "Elige una carpeta de Drive, no la raíz: la carpeta de versiones va a su lado." ;; esac
   inside "$l" "${APP_DIR%/}" && die 6 "Esa carpeta es de BackupDrive (configuración o versiones)."
+  vroot=$(versions_root)
+  { inside "$l" "$vroot" || inside "$vroot" "$l"; } && die 6 "Esa carpeta se solapa con la de versiones del Mac ($vroot)."
   case "$r" in *' (versiones)'|*' (versiones)/'*) die 6 "Esa carpeta de Drive es de versiones de BackupDrive." ;; esac
   lock
   if [ -f "$PROFILES" ]; then
@@ -349,6 +359,54 @@ cmd_versions_list() {
       d = substr(stamp,1,4) "-" substr(stamp,5,2) "-" substr(stamp,7,2) "T" substr(stamp,10,2) ":" substr(stamp,12,2) ":" substr(stamp,14,2)
       printf "%s\t{\"side\":\"%s\",\"path\":\"%s\",\"original\":\"%s\",\"date\":\"%s\",\"size\":%s}\n", stamp, $1, esc($2), esc(orig), d, ($3 == "" ? 0 : $3)
     }' "$tmp" | sort -r | cut -f2- | awk 'BEGIN { printf "[" } { printf "%s%s", (NR > 1 ? "," : ""), $0 } END { print "]" }'
+}
+
+cmd_versions_dir() {
+  old=$(versions_root)
+  if [ $# -eq 0 ]; then
+    printf '{"dir":%s,"default":%s,"exists":%s}\n' "$(json_str "$old")" \
+      "$([ "$old" = "$DEFAULT_VERSIONS" ] && echo true || echo false)" "$([ -d "$old" ] && echo true || echo false)"
+    return 0
+  fi
+  [ $# -eq 1 ] || usage
+  new=$(printf '%s' "$1" | sed 's:/*$::')
+  case "$new" in /?*) ;; *) die 6 "La carpeta de versiones debe ser una ruta completa (empieza por /)." ;; esac
+  case "$new" in *'
+'*) die 6 "Ruta no válida." ;; esac
+  [ "$new" = "$old" ] && { echo "Las versiones del Mac ya están en $new."; return 0; }
+  if [ "$new" != "$DEFAULT_VERSIONS" ]; then
+    [ -d "$new" ] || die 6 "No existe la carpeta $new. Créala antes (en el disco donde quieras las versiones)."
+    inside "$new" "${APP_DIR%/}" && die 6 "Elige una carpeta fuera de la configuración de BackupDrive."
+  fi
+  if [ -f "$PROFILES" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in ''|'#'*) continue ;; esac
+      ol=$(field "$line" 1); ol=${ol%/}
+      { inside "$new" "$ol" || inside "$ol" "$new"; } && die 6 "Esa carpeta se solapa con $ol, que se sincroniza."
+    done < "$PROFILES"
+  fi
+  lock
+  # Primero se comprueba que nada choque; después se mueve carpeta a carpeta (entre discos, mv copia y luego borra el
+  # original: si se corta, lo que no llegó sigue en la carpeta antigua). La configuración cambia al final.
+  if [ -d "$old" ]; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] || continue
+      [ ! -e "$new/${e##*/}" ] || die 6 "Ya hay un «${e##*/}» en $new: no muevo nada."
+    done
+    mkdir -p "$new"
+    n=0
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] || continue
+      mv "$e" "$new/" || die 1 "No se pudo mover ${e##*/} a $new ($n movidas). La configuración sigue en $old; lo que no llegó sigue allí."
+      n=$((n + 1))
+    done
+    rmdir "$old" 2>/dev/null || true
+  fi
+  if [ "$new" = "$DEFAULT_VERSIONS" ]; then rm -f "$APP_DIR/versions-dir"
+  else
+    tmp=$(mktemp "$APP_DIR/.versions-dir.XXXXXX"); printf '%s\n' "$new" > "$tmp"; mv "$tmp" "$APP_DIR/versions-dir"
+  fi
+  echo "Las versiones del Mac van ahora a $new (movidas ${n:-0} carpetas de $old)."
 }
 
 cmd_versions_restore() {
@@ -500,6 +558,7 @@ case "$cmd" in
     [ $# -ge 1 ] || usage; sub=$1; shift
     case "$sub" in
       list) cmd_versions_list "$@" ;;
+      dir) cmd_versions_dir "$@" ;;
       restore) cmd_versions_restore "$@" ;;
       *) usage ;;
     esac ;;
