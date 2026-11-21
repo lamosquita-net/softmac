@@ -1,0 +1,110 @@
+From 9c1a1e1c976e9c45a6e052777793ea72204cde8f Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 10:06:40 +0000
+Subject: [PATCH] NTP: enable top sites in most visited mode (Chromium 156 tile
+ types)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Titín (21-11): with his usual profile on the installed 3.1.4, the new
+tab page no longer shows the most visited sites, although Top Sites has
+data and no pref turns them off. Since Chromium 156,
+MostVisitedSites::EnableTileTypesOptions has enable_top_sites false by
+default, and MostVisitedSites only queries Top Sites with it on
+(ShouldQueryTopSites()). TopSitesMessageHandler only set
+with_custom_links(IsCustomLinksEnabled()), so in most visited mode,
+Brave's default (ntp.custom_links_visible false), no tile type was
+enabled and the NTP got no tiles. Same code in Brave 1.98 and master.
+
+Enable one type or the other, as Chromium's desktop NTP: top sites when
+custom links are off, custom links when they are on.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ .../new_tab_page/top_sites_message_handler.cc | 26 +++++++++++++------
+ .../new_tab_page/top_sites_message_handler.h  |  2 ++
+ 2 files changed, 20 insertions(+), 8 deletions(-)
+
+diff --git a/browser/ui/webui/new_tab_page/top_sites_message_handler.cc b/browser/ui/webui/new_tab_page/top_sites_message_handler.cc
+index bdb151a50c33690af7bccd4c2ee7eaeada9d0c7e..36d12af2be8633cf4a63f31806f591ec45727078 100644
+--- a/browser/ui/webui/new_tab_page/top_sites_message_handler.cc
++++ b/browser/ui/webui/new_tab_page/top_sites_message_handler.cc
+@@ -33,8 +33,7 @@ TopSitesMessageHandler::TopSitesMessageHandler(Profile* profile)
+   // most_visited_sites_ can be nullptr if profile is OTR.
+   if (most_visited_sites_) {
+     most_visited_sites_->EnableTileTypes(
+-        ntp_tiles::MostVisitedSites::EnableTileTypesOptions().with_custom_links(
+-            IsCustomLinksEnabled()));
++        GetEnabledTileTypes());
+     most_visited_sites_->SetShortcutsVisible(IsShortcutsVisible());
+     most_visited_sites_->AddMostVisitedURLsObserver(
+         this, ntp_tiles::kMaxNumMostVisited);
+@@ -136,6 +135,20 @@ int TopSitesMessageHandler::GetCustomLinksNum() const {
+   return custom_links_num;
+ }
+ 
++// FlyWeb: since Chromium 156, MostVisitedSites::EnableTileTypesOptions has
++// enable_top_sites false by default, and the most visited tiles are only built
++// with it on (MostVisitedSites::ShouldQueryTopSites()). Brave only set
++// with_custom_links(), so in most visited mode (Brave's default, custom links
++// off) the NTP got no tiles at all. As Chromium's own NTP, one type or the
++// other: Chromium's desktop NTP does not mix them.
++ntp_tiles::MostVisitedSites::EnableTileTypesOptions
++TopSitesMessageHandler::GetEnabledTileTypes() const {
++  const bool custom_links = IsCustomLinksEnabled();
++  return ntp_tiles::MostVisitedSites::EnableTileTypesOptions()
++      .with_top_sites(!custom_links)
++      .with_custom_links(custom_links);
++}
++
+ bool TopSitesMessageHandler::IsCustomLinksEnabled() const {
+   return profile_->GetPrefs()->GetBoolean(ntp_prefs::kNtpCustomLinksVisible);
+ }
+@@ -252,8 +265,7 @@ void TopSitesMessageHandler::HandleSetMostVisitedSettings(
+     profile_->GetPrefs()->SetBoolean(ntp_prefs::kNtpCustomLinksVisible,
+                                      custom_links_enabled);
+     most_visited_sites_->EnableTileTypes(
+-        ntp_tiles::MostVisitedSites::EnableTileTypesOptions().with_custom_links(
+-            IsCustomLinksEnabled()));
++        GetEnabledTileTypes());
+   }
+ }
+ 
+@@ -284,8 +296,7 @@ void TopSitesMessageHandler::HandleEditTopSite(const base::ListValue& args) {
+   if (!most_visited_sites_->IsCustomLinksEnabled()) {
+     profile_->GetPrefs()->SetBoolean(ntp_prefs::kNtpCustomLinksVisible, true);
+     most_visited_sites_->EnableTileTypes(
+-        ntp_tiles::MostVisitedSites::EnableTileTypesOptions().with_custom_links(
+-            IsCustomLinksEnabled()));
++        GetEnabledTileTypes());
+   }
+ 
+   GURL gurl(url);
+@@ -323,8 +334,7 @@ void TopSitesMessageHandler::HandleAddNewTopSite(const base::ListValue& args) {
+   if (!most_visited_sites_->IsCustomLinksEnabled()) {
+     profile_->GetPrefs()->SetBoolean(ntp_prefs::kNtpCustomLinksVisible, true);
+     most_visited_sites_->EnableTileTypes(
+-        ntp_tiles::MostVisitedSites::EnableTileTypesOptions().with_custom_links(
+-            IsCustomLinksEnabled()));
++        GetEnabledTileTypes());
+   }
+ 
+   most_visited_sites_->AddCustomLink(GURL(url), base::UTF8ToUTF16(title));
+diff --git a/browser/ui/webui/new_tab_page/top_sites_message_handler.h b/browser/ui/webui/new_tab_page/top_sites_message_handler.h
+index d3095194e1cd75c2ea3ca336a41cd2ab706e95f0..0a9bd556f8f800d261027c732ff7976f2e2dd0d3 100644
+--- a/browser/ui/webui/new_tab_page/top_sites_message_handler.h
++++ b/browser/ui/webui/new_tab_page/top_sites_message_handler.h
+@@ -48,6 +48,8 @@ class TopSitesMessageHandler : public content::WebUIMessageHandler,
+   void OnIconMadeAvailable(const GURL& site_url) override;
+ 
+   int GetCustomLinksNum() const;
++  ntp_tiles::MostVisitedSites::EnableTileTypesOptions GetEnabledTileTypes()
++      const;
+   bool IsCustomLinksEnabled() const;
+   bool IsShortcutsVisible() const;
+ 
+-- 
+2.43.0
+
