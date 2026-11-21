@@ -9,7 +9,7 @@ Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTE
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`2bb85047ec`** (`pendiente/chromium/0001`–`0008` + `portes-159/chromium/0001`–`0002`) | `chromium/0001`–`0007` | **`3564a4b08e`** (tras `0006`: `c9905873db`; tras `0001`: `faec7dc5b9`; `0002`: `ee335593f3`; `0003`: `6d4ab28029`; `0004`: `1ec5df9eea`; `0005`: `f4eb399ad1`) |
+| chromium | árbol **`2bb85047ec`** (`pendiente/chromium/0001`–`0008` + `portes-159/chromium/0001`–`0002`) | `chromium/0001`–`0008` | **`861699b126`** (tras `0007`: `3564a4b08e`; tras `0006`: `c9905873db`; tras `0001`: `faec7dc5b9`; `0002`: `ee335593f3`; `0003`: `6d4ab28029`; `0004`: `1ec5df9eea`; `0005`: `f4eb399ad1`) |
 | brave-core | árbol **`78df46b5d6`** (`pendiente/brave-core/0001`–`0004`, `3.2-v8/0001`–`0002` y `pendiente/brave-core/0005`; `patches/v8` = `6f8c5d4c51`, V8 = `9914512d91`) | `brave-core/0001` | **`1b0908a323`** (`patches/v8` = **`bc401fbf50`**; con todos los `patches/v8` sobre la V8 15.6.75.66, árbol de V8 **`41e5bb46c4`**) |
 
 ## Rama 8078 después del cierre de la tanda
@@ -27,6 +27,7 @@ Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTE
 | `b83b7983ff` (02:12 UTC) | VERSION a 156.0.8078.120 | — | — |
 | `28fb53154e` (02:35 UTC) | [M156] «Don't scroll when a focused input's list target changes» (583179912, merge 588196773) | Sí (abajo) | `chromium/0007` |
 | `3df8aa144a` (03:32 UTC) | *Roll* de pruebas internas de Glic (`chrome/browser/glic/e2e_test/internal`) | — | — |
+| `5d427d384f` (04:50 UTC) | [M156] «Swap event_queue_ before filtering in DispatchEvents» (577088251, merge 579732836) | Sí (abajo) | `chromium/0008` |
 | `04db7fff13` (00:10 UTC) | [M156] «SchemeHostPort: Reject empty host for non-file SCHEME_WITH_HOST schemes» (586171393, merge 588196153) | Sí | Ya está: es **idéntico** (`patch-id` igual) a `portes-159/chromium/0002` (#1159) |
 
 El tag **156.0.8078.113** (`970863f8c7`, 20-11) **no sirve de referencia**. Es un *hotfix* en la sub-rama
@@ -45,7 +46,7 @@ la .112. Todo lo que hay entre `.112` y `.119` en la rama está ya preparado:
 El resto son cambios de VERSION y de pruebas. Así que **con este PR dentro, la versión cubre la .119 entera**. Sin él,
 se queda en la .112 más lo de #1147 y #1159. Lo que se declare lo decide Titín. Además, FlyWeb lleva arreglos que la
 .119 no tiene: `brave-core/0004` (585614984, aún sin merge en la 15.6) y `portes-159/chromium/0001` (menús FOR_DROP).
-La rama 8078 sigue en la .120.
+La rama 8078 sigue en la .120 (punta `5d427d384f`).
 
 ## `chromium/0001`: f95dd51f6f (bugs 583179913 y 584370079)
 
@@ -154,6 +155,22 @@ del DOM. Si el `<input>` tenía el foco, llamaba a `UpdateSelectionOnFocus(kRest
 
 Pruebas para LOCAL: las dos WPT nuevas `dom/nodes/moveBefore/moveBefore-input-list-target-{inserted,removed}-crash.html`.
 
+
+## `chromium/0008`: 5d427d384f (bug 577088251)
+
+`ScriptedAnimationController::DispatchEvents` con filtro recorría `event_queue_` directamente mientras llamaba al
+filtro. Si el filtro ejecuta *script* de forma síncrona (p. ej. el filtro de `pagereveal`, que resuelve una
+*view transition* entre documentos y hace avanzar otra de ámbito de elemento hasta su *callback* de actualización del
+DOM) y ese *script* encola eventos, el vector puede reasignar su memoria a mitad del recorrido: **UAF en el
+*renderer***. Ahora la cola se mueve antes a un vector local y lo encolado durante el filtro se añade después. Se
+alcanza desde cualquier web con *view transitions*. Aplica a Mac.
+
+- Mismo diff que upstream (`patch-id` igual), con su *unittest*. brave-core no toca
+  `scripted_animation_controller.cc`.
+
+### Veredicto (regla 17): **APTO**, `chromium/0008`
+
+Prueba para LOCAL: `blink_unittests --gtest_filter='ScriptedAnimationControllerTest.*'`.
 
 ## V8 después del cierre de la tanda
 
