@@ -10,6 +10,7 @@ Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTE
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
 | chromium | árbol **`2bb85047ec`** (`pendiente/chromium/0001`–`0008` + `portes-159/chromium/0001`–`0002`) | `chromium/0001`–`0007` | **`3564a4b08e`** (tras `0006`: `c9905873db`; tras `0001`: `faec7dc5b9`; `0002`: `ee335593f3`; `0003`: `6d4ab28029`; `0004`: `1ec5df9eea`; `0005`: `f4eb399ad1`) |
+| brave-core | árbol **`78df46b5d6`** (`pendiente/brave-core/0001`–`0004`, `3.2-v8/0001`–`0002` y `pendiente/brave-core/0005`; `patches/v8` = `6f8c5d4c51`, V8 = `9914512d91`) | `brave-core/0001` | **`1b0908a323`** (`patches/v8` = **`bc401fbf50`**; con todos los `patches/v8` sobre la V8 15.6.75.66, árbol de V8 **`41e5bb46c4`**) |
 
 ## Rama 8078 después del cierre de la tanda
 
@@ -153,3 +154,35 @@ del DOM. Si el `<input>` tenía el foco, llamaba a `UpdateSelectionOnFocus(kRest
 
 Pruebas para LOCAL: las dos WPT nuevas `dom/nodes/moveBefore/moveBefore-input-list-target-{inserted,removed}-crash.html`.
 
+
+## V8 después del cierre de la tanda
+
+| Commit | Qué | ¿Mac? | Parche |
+|---|---|---|---|
+| `5b7c1a1f0f` (merge en la 15.9, M159; de `352e9c46c2` en *main*) | «[compiler] Use TruncateFloat64ToInt64 when input may be minus zero» (585624828, 588203225) | Sí (abajo). **Sin merge en la 15.6** | `brave-core/0001` |
+
+## `brave-core/0001`: 352e9c46c2 (bug 585624828)
+
+En `RepresentationChanger::GetWord64RepresentationFor`, un número (float o *tagged*) de tipo
+`kDoubleRepresentableInt64OrMinusZero`, con un uso que identifica +0 y −0, se convertía a Int64 con
+`ChangeFloat64ToInt64`/`ChangeTaggedToInt64`. Los dos bajan a `ReversibleFloat64ToInt64`, que da por hecho que el Int64
+vuelve al mismo Float64, y con −0.0 no es así: **TurboFan genera código con una suposición falsa** (la clase de fallo
+que acaba en confusión de tipos). Ahora se usa `TruncateFloat64ToInt64` (desempaquetando antes con
+`ChangeTaggedToFloat64` si la entrada es *tagged*), y `SimplifiedLoweringVerifier` propaga las truncaciones a través
+de él. Se alcanza desde cualquier web con JavaScript optimizado. Aplica a Mac. COORDINACIÓN-57 pidió portarlo ya,
+sin esperar al merge de la 15.6, por el precedente de `pendiente/brave-core/0002` y `0004`.
+
+- `representation-change.cc` y `simplified-lowering-verifier.cc` son idénticos byte a byte en la 15.6.75.66 y con
+  todos los `patches/v8` aplicados: ningún parche de FlyWeb ni de Brave los toca. El diff es el de upstream
+  (`patch-id` igual), más la prueba `test/mjsunit/compiler/regress-585624828.js`.
+- **No se llevan** los cambios de *unittests* de upstream: `representation-change-unittest.cc` en la 15.6 es el
+  cctest `test-representation-change.cc`, con otras utilidades, y el caso nuevo de
+  `turboshaft/machine-optimization-reducer-unittest.cc` comprueba comportamiento ya existente del reductor, no el
+  arreglo.
+- Cambia código optimizado. Si entra en la 3.2.0, le vale la subida de época a 38; si sale después, esa versión
+  tiene que volver a subir `kFlyWebCacheEpoch`. Nota en inglés al principio de `patches/v8/FLYWEB-SECURITY.md`.
+
+### Veredicto (regla 17): **APTO**, `brave-core/0001`, si D8-LINUX lo da en verde
+
+Pruebas (en el mismo encargo de D8-LINUX que la tanda de la 3.2.0, paso nuevo al final): mjsunit con y sin Maglev,
+en especial `compiler/regress-585624828`, y `cctest/test-representation-change/*`, en *release* y en *debug*.
