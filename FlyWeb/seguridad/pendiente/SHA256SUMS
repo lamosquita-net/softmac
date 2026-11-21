@@ -9,7 +9,7 @@ fc9ad429bafa1fd2d08b1d2dfa240048131616f6138c00295428f34f19a109c9  chromium/0003-
 8a651a78269d1a71f4e725f7608c75761bd633d5cddf9c902ca8855ffd6a56c4  chromium/0008-M156-Ensure-clean-style-and-slot-assignments-before-.patch
 32148aba783ff8e1f953537a59e1ab65814178224e71f414ec3dc048e8a2ffce  brave-core/0001-v8-pending-d68cecd900-15.6.75.72-crbug-583479274.patch
 b873300c20741b1b3f063aaeca6edccadbbbaa7942021dbeabec51724a02d6aa  brave-core/0002-v8-pending-a0f2c9f8c3-M159-merge-27e138a575-crbug-58.patch
-3fe518ca005838c4fb977b45e5b4d0e5c4ce67291433e8dc595c188d21369188  brave-core/0003-v8-pending-ceb90d38eb-15.6.75.74-SHA-256-code-cache-.patch
+a215c8fcff758417f3277eca9902072db32b6814eaabbaaed10c599ae1723ff8  brave-core/0003-v8-pending-ceb90d38eb-15.6.75.74-SHA-256-code-cache-.patch
 a12e45054723331bfbb63551a47eeb5740996bfa205e9cd58c885b69d3466a5e  brave-core/0004-v8-pending-51512210b3-M159-merge-202e0e7f26-crbug-58.patch
 d4becb8e63939941854d4e714e2b5fa43a0c3a9f992238779e11d145f2273bb3  brave-core/0005-v8-pending-c37ab55c4a-15.6.75.76-crbug-579314138.patch
 c62b7081bf285a6968e34a9a75219b0bd58c9167d96357d7758e1a174984e4c4  skia/0001-M156-ganesh-Guard-GrBufferAllocPool-against-overflow.patch

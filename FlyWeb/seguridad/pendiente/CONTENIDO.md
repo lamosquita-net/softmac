@@ -17,14 +17,34 @@ salga, que aplique a Mac se añade aquí con APTO: `chromium/` con número corre
 
 ## Base
 
+## Corrección del 21-11: `brave-core/0003` borraba el `0002`
+
+D8-LINUX-5 lo vio al probar (21-11, ~10:00 UTC) y COORDINACIÓN-58 lo confirmó. El `0003` publicado el 20-11 se
+generó sobre un árbol sin el `0002`: su *diff* **borraba los seis ficheros de `patches/v8` del `0002`** (585625642:
+`js-native-context-specialization.cc`, `js-operator.cc`, `js-typed-lowering.cc`, su cctest, su unittest y
+`regress-585625642.js`) y reescribía su nota de `FLYWEB-SECURITY.md`. Con la serie antigua, la brave-core final **no
+llevaba a0f2c9f8c3**, aunque todo aplicaba sin error.
+
+- **Arreglo:** el `0003` se regenera sobre el `0002`: mismos cinco ficheros nuevos, nota antepuesta a la del `0002` y
+  ningún borrado. Es el único fichero que cambia. `0004`, `3.2-v8/0001`–`0002` (#1144), `0005` y
+  `siguiente/brave-core/0001`–`0002` (#1165) aplican **sin cambios** con `git am` encima (sus *hunks* de
+  `FLYWEB-SECURITY.md` solo anteponen).
+- **Revisión de toda la serie:** ningún otro parche borra ficheros, y cada paso solo cambia en V8 los ficheros de su
+  arreglo (comprobado paso a paso sobre una 15.6.75.66 limpia).
+- **Árboles nuevos** (brave-core / V8 con todos los `patches/v8`), desde `e660929` (V8 `17b5af44cd`):
+  `0001` `90134a4e08` / `bdd9e6eee2`; `0002` `639401fb8e` / `21d04143d2`; **`0003` `ee46658397` / `1a98c3970d`**;
+  `0004` `ddfe01f2d8` / `6c841a3488`; `3.2-v8/0001` `b4a82c46d2` / `87550911ad`; `3.2-v8/0002` `09d6f844f2` /
+  `ee3eda85d8`; **`0005` `ea6b817c88` / `8566fd42e4`** (final de la 3.2.0; `patches/v8` `2b1c8d3308`).
+- La **3.1.4 publicada** (`e660929`, V8 `17b5af44cd`) no lleva 585625642: nunca se aprobó para ella. No le afecta.
+
 Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1.4** (build 47):
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
 | chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0008` | **`90418ba4fd`** (tras `0007`: `1b06f59f4d`; tras `0006`: `064a5696b2`; tras `0005`: `a9b357bc47`; tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`; tras `0004`: `a621f0a668`) |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
-| brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001`–`0004` | **`29d6bcf5e3`** (tras `0001`: `90134a4e08`; tras `0002`: `639401fb8e`; tras `0003`: `0caa04c2dd`) |
-| brave-core (3.2.0) | lo anterior + `FlyWeb/parches/3.2-v8/0001`–`0002` (#1144, `1e978ba37c`): **`78514b92af`** | `brave-core/0005` (va **detrás** de `3.2-v8/0002`) | **`78df46b5d6`** (V8 con todos los `patches/v8`: `9914512d91`) |
+| brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001`–`0004` | **`ddfe01f2d8`** (tras `0001`: `90134a4e08`; tras `0002`: `639401fb8e`; tras `0003`: `ee46658397`; corregido el 21-11, ver abajo) |
+| brave-core (3.2.0) | lo anterior + `FlyWeb/parches/3.2-v8/0001`–`0002` (#1144, `1e978ba37c`): **`09d6f844f2`** | `brave-core/0005` (va **detrás** de `3.2-v8/0002`) | **`ea6b817c88`** (`patches/v8` `2b1c8d3308`; V8 con todos los `patches/v8`: **`8566fd42e4`**) |
 | Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001`–`0003` | **`1ef25455d7`** (tras `0001`: `32f1340fb3`; tras `0002`: `47b14cb49e`) |
 
 Si la siguiente versión cambia de base (p. ej. la 3.2.0 o la 159), **hay que volver a comprobar que aplican**; puede que
@@ -389,7 +409,8 @@ web.
 - Efecto secundario: cambia el formato de la caché de código, así que todas las cachés existentes se rechazan una vez
   y se regeneran (la primera carga de cada web es un poco más lenta). Va en la misma dirección que la subida de la
   época de caché.
-- Comprobado: `git apply --cached` sobre `639401fb8e` (tras `0002`) da el árbol **`0caa04c2dd`**.
+- Comprobado (corregido el 21-11): `git am` sobre `639401fb8e` (tras `0002`) da el árbol **`ee46658397`**, que conserva
+  los seis ficheros del `0002`.
 - **Época de caché:** no se sube aquí (una sola subida al integrar `0001`–`0004`).
 - **Falta, antes de entrar (D8-LINUX):** d8, mjsunit (en especial `code-cache-sha256`) y `cctest/test-serialize/*`.
 
@@ -422,7 +443,7 @@ Se alcanza con JavaScript normal de cualquier web. Aplica a Mac.
   contra la .66 con lo que ya llevaban más este arreglo; el del intérprete tenía una preimagen anterior y aplicaba con
   una línea de desplazamiento. Los otros seis ficheros son nuevos.
 - Comprobado: los ocho parches por fichero, aplicados sobre una .66 limpia, dan exactamente los mismos ficheros que el
-  montaje; `git apply --cached` sobre `0caa04c2dd` (tras `0003`) da el árbol **`29d6bcf5e3`**.
+  montaje; `git am` sobre `ee46658397` (tras `0003`, corregido el 21-11) da el árbol **`ddfe01f2d8`**.
 - **Riesgo propio de la 15.6:** los `DCHECK_NOT_NULL` nuevos en las lecturas del *frame* de Maglev detectarían en
   *debug* cualquier camino exclusivo de la 15.6 que lea un registro ya limpiado. En *release*, ese caso sería una
   lectura de puntero nulo (cierre, no corrupción). Por eso la prueba en *debug* es obligatoria.
@@ -450,8 +471,8 @@ FlyWeb compila con el sandbox de V8.
 - **Orden:** va **detrás de `3.2-v8/0002`** (la época de la 3.2.0, #1144), no detrás de `0004`. Así no hay que volver a
   regenerar la nota de MOTOR-47 en `FLYWEB-SECURITY.md`. Las series de la 3.2.0 que vienen después no tocan
   `patches/v8`.
-- Comprobado: `git apply --cached` sobre `78514b92af` (`pendiente/0001`–`0004` + `3.2-v8/0001`–`0002`) da
-  **`78df46b5d6`**. Con todos los `patches/v8`, el árbol de V8 es **`9914512d91`**.
+- Comprobado (corregido el 21-11): `git am` sobre `09d6f844f2` (`pendiente/0001`–`0004` + `3.2-v8/0001`–`0002`) da
+  **`ea6b817c88`**. Con todos los `patches/v8`, el árbol de V8 es **`8566fd42e4`**.
 - **Época de caché:** no hace falta. Solo cambia C++ del *runtime*, no el *bytecode* ni el código generado, y la subida
   a 38 de la 3.2.0 cubre la versión igualmente.
 - **Gravedad: no consta** (bug restringido).
