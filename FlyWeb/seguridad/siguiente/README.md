@@ -1,8 +1,9 @@
-# Seguridad: tanda siguiente (después de la 3.2.0)
+# Seguridad: tanda siguiente = 3.2.1
 
 Desde el 20-11 a las 20:01 UTC (COORDINACIÓN-57, confirmado por Titín en `docs/DIRECTIVAS.md`, #1160), la tanda de la
 3.2.0 está cerrada: `seguridad/pendiente/` (#1147) y `seguridad/portes-159/` (#1159). Lo que llegue después y **no**
-sea Alto, Crítico o KEV se prepara aquí, para la versión que venga detrás de la 3.2.0, salvo que Titín diga otra cosa.
+sea Alto, Crítico o KEV se prepara aquí. **Titín (21-11 ~06:00 UTC, `docs/DIRECTIVAS.md`, #1166): todo esto es la 3.2.1**;
+la 3.2.0 se cierra con #1147 y #1159.
 Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTES (desde la -33, 21-11-2026).
 
 ## Base
@@ -196,10 +197,9 @@ sin esperar al merge de la 15.6, por el precedente de `pendiente/brave-core/0002
   cctest `test-representation-change.cc`, con otras utilidades, y el caso nuevo de
   `turboshaft/machine-optimization-reducer-unittest.cc` comprueba comportamiento ya existente del reductor, no el
   arreglo.
-- Cambia código optimizado. Si entra en la 3.2.0, le vale la subida de época a 38; si sale después, esa versión
-  tiene que volver a subir `kFlyWebCacheEpoch`. Nota en inglés al principio de `patches/v8/FLYWEB-SECURITY.md`.
+- Cambia código optimizado: la 3.2.1 tiene que volver a subir `kFlyWebCacheEpoch` (38 → 39; aún sin hacer). Nota en inglés al principio de `patches/v8/FLYWEB-SECURITY.md`.
 
 ### Veredicto (regla 17): **APTO**, `brave-core/0001`, si D8-LINUX lo da en verde
 
-Pruebas (en el mismo encargo de D8-LINUX que la tanda de la 3.2.0, paso nuevo al final): mjsunit con y sin Maglev,
+Pruebas (encargo de D8-LINUX de la 3.2.0, en una pasada aparte «3.2.1» que no bloquea la 3.2.0): mjsunit con y sin Maglev,
 en especial `compiler/regress-585624828`, y `cctest/test-representation-change/*`, en *release* y en *debug*.
