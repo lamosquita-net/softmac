@@ -1,9 +1,56 @@
 # Relevo de BACKUPDRIVE
 
-Para el siguiente relevo de BACKUPDRIVE. Historia: **BACKUPDRIVE-1 (`session_01MMur1TxacRpN7gNor98eYm`, 26-10) → 2 (`session_01MwmK2iDUP7F9s2StJNRgCj`, 03-11) → 3 (`session_01MwmK2kYatKMK9H5fWRxtSY`, 03-11) → 4**.
+Para el siguiente relevo de BACKUPDRIVE. Historia: **BACKUPDRIVE-1 (`session_01MMur1TxacRpN7gNor98eYm`, 26-10) → 2 (`session_01MwmK2iDUP7F9s2StJNRgCj`, 03-11) → 3 (`session_01MwmK2kYatKMK9H5fWRxtSY`, 03-11) → 4 (`session_01MwmK2kiQVFpD5JvUAQU48z`, 14-11) → 5**.
 Leer antes: `CLAUDE.md` (sección BackupDrive), `docs/DIRECTIVAS.md`, en `docs/TAREAS.md` las reglas y las filas B.2–B.7, `docs/plan-b6-b7.md`,
 `BackupDrive/README.md` (sección «Cómo funciona») y las cabeceras de `scripts/backupdrive-sync.sh` y `scripts/backupdrive-ctl.sh`.
 No tocar `BackupDrive/rclone/` (subtree). A Titín, siempre en castellano; commits en inglés.
+
+## BACKUPDRIVE-4 → 5 (21-11-2026)
+
+**Con quién:** directamente con Titín. Pruebas y operación en MacTrash (6,1): **BACKUPDRIVE-LOCAL-1**
+(`session_01MwmK2hfZzbBtp48Y2qfSX1`, en la 7,1, Remote Control y ssh a la 6,1), por `send_message`. Esta sesión ya hizo
+`confirm_repository_trust` (aprobado por Titín). La sesión de LOCAL-1 **se queda inactiva a menudo** («session_inactive»):
+entonces pide a Titín que la reabra. Su control de permisos exige que Titín autorice en su chat lo que escribe en Drive.
+LOCAL-1 nunca manda nombres de cliente: los nombres se quedan en la 6,1 o en el chat de Titín, **nunca en el repo**.
+
+**Estado H9 (sustituir FreeFileSync en MacTrash):** **FreeFileSync está apagado para siempre** desde el 19-11 (Titín;
+RealTimeSync fuera del inicio). Carpeta local `/Volumes/USB3 6Tb/googledrive` ↔ raíz de `gdrive:`, un perfil por carpeta
+de primer nivel (la raíz no se puede sincronizar: la carpeta de versiones va al lado).
+- **Activas (cada hora):** fotos y otras 11 carpetas (la lista, en `profiles` de la 6,1; los nombres de carpetas de
+  Titín no van al repo). Todas con resync `path1` y 0 cambios de contenido.
+- **clientes** (926 GB, 73 773 carpetas; versiones `0` = sin caducidad): el resync path1 copió todo (12 h 24 min:
+  721↑ 28↓, 2,1 GiB, 467 a versiones), pero la validación final falló por 3 ficheros con fracción de segundo en Drive.
+  Arreglado en #1172. **LOCAL-1 tiene la orden** de instalar main 8835b8e, repetir el resync path1 de clientes, hacer
+  una pasada normal y luego **las dos carpetas que quedaron paradas** (path1; Titín ya las aprobó: 1 «move» en cada una, la copia de Drive
+  va a versiones). Comprueba sus cifras y que la línea de clientes queda activa.
+- No entran: `_cuarentena` (versioning de FFS en Drive, 31 620 objetos, 6,6 GiB; la revisa Titín), Google Meet
+  (nombres con «／»), `.TemporaryItems`.
+- `sin-enlaces` está activo (677 enlaces simbólicos no se suben). Con FFS apagado se podría quitar, pero **antes
+  piénsalo**: activar o quitar cambia lo que bisync ve (ver #1023).
+- `filters.txt` de la 6,1: las 4 de CaptureOne (Proxies, Cache, .cop y .cos). Si lo cambias, el script resincroniza solo.
+
+**Hecho (todo en main):** #1012 `--fast-list` (bisync 1.67 solo lista por lotes con él: pasada de 1407 carpetas, 273 s →
+30 s); #1023 `sin-enlaces`; #1105 exclusiones por defecto (.DS_Store, ._*, .smbdelete*, .TemporaryItems, .Trashes,
+.fseventsd, .Spotlight-V100, .DocumentRevisions-V100); #1164 `~$*`; #1161 `BACKUPDRIVE_RESYNC_MODE=path1` (gana el Mac y
+sus fechas pasan a Drive; sin él, ~47 000 ficheros del USB tomaban la fecha de subida); #1172 `--modify-window 1s`.
+Tests: `test-sync-safe.sh` 76. Las carpetas de prueba en Drive, borradas (cuarentena en el USB, papelera en Drive).
+
+**Pendiente:**
+- Cerrar clientes y las dos carpetas paradas (arriba). Después, vigilar unos días las pasadas horarias (frenos, tiempos).
+- **Duplicados en Drive** (clientes 117 ficheros y 8 carpetas; 1 en fotos y 1 en otra carpeta): bisync se queda con uno y el otro no
+  se sincroniza. Titín dijo «no» a `dedupe` (temía que subiera 1,1 TB; ya sabe que no transfiere nada). No tocar sin él.
+- **Versiones del Mac al USB:** hoy van a `~/Library/Application Support/BackupDrive/versions` (disco del sistema, 725 GB
+  libres); con clientes sin caducidad conviene llevarlas a `/Volumes/USB3 6Tb/` fuera de `googledrive`. Prometido a Titín.
+- **H8 Actividad:** prioridad para Titín (ver qué se borró, cuándo y dónde está la copia).
+- **Borrado del 18-11:** la carpeta `clientes/…/imagen` desapareció del USB a través de SMB entre ~10:20 y 11:38 (FFS
+  lo propagó a Drive; el fichero se recuperó de `_cuarentena`). La única máquina con el montaje SMB era la 7,1
+  (`/Volumes/googledrive`, el disco entero); los transcripts de Claude de esa mañana no muestran ningún borrado ahí.
+  Sin culpable. Propuesto a Titín (sin respuesta): compartir hacia la 7,1 solo `clientes/software`.
+
+**Trampas nuevas:** en el `/bin/sh` de macOS (bash POSIX), `VAR=x funcion` deja VAR puesta después: en los tests, en un
+subshell. bisync 1.67 **no** usa `--fast-list` por defecto aunque su documentación lo diga (`fs/march`). `--no-update-modtime`
+en un resync hace fallar la validación (fechas distintas). Cambiar `filters.txt` obliga a un resync (el script lo hace).
+El `log show` de smbd no registra borrados. Una simulación (`--resync --dry-run`) de clientes tarda ~10 h (lee el USB).
 
 ## BACKUPDRIVE-3 → 4 (14-11-2026)
 
