@@ -1,3 +1,6 @@
 fc4bd76bddb43fcab36040ec2ad78115d5b7d71ff33b7ceb71ef0411e7eed404  chromium/0001-M156-Never-expose-pseudo-elements-via-Event.target-f.patch
 ebea711046187a849c9c8de7b7ec5293de45bb8db26a31027a90c2cd0f92880e  chromium/0002-M156-HLS-Intercept-data-URLs-in-HlsDataSourceProvide.patch
 61ee90ae6ea427a2df4ea849741e6ff9190d9f680c5c05bd0b1b4d9ab6654f83  chromium/0003-M156-Disable-VariationsService-HTTP-fallback-by-defa.patch
+fac457f7b9a880d2a7ecb32ee1da146db13801dd2823a54f0dc2929f09884a05  chromium/0004-M156-Retarget-NavigateEvent.sourceElement.patch
+fc0787e7099b1146e11acfcd7c78ae80b86847040185472fc074b845c0ea1129  chromium/0005-M156-Recheck-cross-document-new-children-in-ReplaceC.patch
+5976ea962a917400de2a687a960934f45a29a3dbd19aa66b771edd9964b31c7d  chromium/0006-M156-Don-t-pause-on-DOM-breakpoints-during-document-.patch

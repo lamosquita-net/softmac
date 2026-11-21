@@ -9,7 +9,7 @@ Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTE
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`2bb85047ec`** (`pendiente/chromium/0001`–`0008` + `portes-159/chromium/0001`–`0002`) | `chromium/0001`–`0003` | **`6d4ab28029`** (tras `0001`: `faec7dc5b9`; tras `0002`: `ee335593f3`) |
+| chromium | árbol **`2bb85047ec`** (`pendiente/chromium/0001`–`0008` + `portes-159/chromium/0001`–`0002`) | `chromium/0001`–`0006` | **`c9905873db`** (tras `0001`: `faec7dc5b9`; `0002`: `ee335593f3`; `0003`: `6d4ab28029`; `0004`: `1ec5df9eea`; `0005`: `f4eb399ad1`) |
 
 ## Rama 8078 después del cierre de la tanda
 
@@ -19,6 +19,10 @@ Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTE
 | `1a63009b31` (23:19 UTC) | Prueba desactivada en Mac | — | — |
 | `2762e65042` (23:56 UTC) | [M156] «Disable VariationsService HTTP fallback by default» (588460249, merge 588518337) | Sí, pero en FlyWeb Variations apunta a una URL inerte (abajo) | `chromium/0003` |
 | `f95dd51f6f` (21-11 00:09 UTC) | [M156] «Never expose pseudo-elements via Event.target; fix ::column disposal» (583179913, 584370079; merge 588203329) | Sí (abajo) | `chromium/0001` |
+| `d1b613c0d8` (00:20 UTC) | [M156] «Retarget NavigateEvent.sourceElement» (584367025, merge 585802046) | Sí (abajo) | `chromium/0004` |
+| `40bf5125f6` (00:21 UTC) | [M156] «Recheck cross-document new children in ReplaceChild(VectorOf<Node>)» (583907042, merge 587226434) | Sí (abajo) | `chromium/0005` |
+| `dabab2fd13` (00:23 UTC) | [M156] «Don't pause on DOM breakpoints during document lifecycle updates» (584330765, merge 587226163) | Sí, con DevTools abierto (abajo) | `chromium/0006` |
+| `1f56333f76` (00:57 UTC) | Pruebas WPT marcadas como inestables en Mac | — | — |
 | `04db7fff13` (00:10 UTC) | [M156] «SchemeHostPort: Reject empty host for non-file SCHEME_WITH_HOST schemes» (586171393, merge 588196153) | Sí | Ya está: es **idéntico** (`patch-id` igual) a `portes-159/chromium/0002` (#1159) |
 
 El tag **156.0.8078.113** (`970863f8c7`, 20-11) **no sirve de referencia**. Es un *hotfix* en la sub-rama
@@ -71,3 +75,49 @@ petición que reintentar. Va como endurecimiento, por si un día la URL deja de 
 ### Veredicto (regla 17): **APTO**, `chromium/0003`
 
 Prueba para LOCAL: `components_unittests --gtest_filter='VariationsServiceTest.*'`.
+
+## `chromium/0004`: d1b613c0d8 (bug 584367025)
+
+`NavigateEvent.sourceElement` devolvía el elemento de origen en bruto, que puede estar dentro de un *shadow tree*. Al
+pulsar un `<a>` de SVG clonado dentro del *shadow tree* de agente de usuario de un `<use>`, el *script* recibía la copia
+interna y podía **modificar el *shadow tree* de agente de usuario** en el *renderer*. Ahora `sourceElement` se
+reorienta igual que `ToggleEvent.source`, `CommandEvent.source` e `InterestEvent.source`, y nunca expone nodos internos
+del *shadow*. Se alcanza desde cualquier web que use la Navigation API. Aplica a Mac.
+
+- Mismo diff que upstream (`patch-id` igual). brave-core no toca estos ficheros.
+
+### Veredicto (regla 17): **APTO**, `chromium/0004`
+
+Prueba para LOCAL: la WPT nueva `navigation-api/navigate-event/sourceElement-shadow-tree.html`.
+
+## `chromium/0005`: 40bf5125f6 (bug 583907042)
+
+En `ContainerNode::ReplaceChild(const VectorOf<Node>&, ...)`, quitar el hijo viejo puede ejecutar manejadores de
+eventos síncronos (p. ej. el `blur` de un control deshabilitado dentro de un `<fieldset>`). Si un manejador metía uno
+de los hijos nuevos en **otro documento**, el detector de mutaciones no lo veía, se saltaba la comprobación y el nodo
+acababa enlazado en dos listas de hijos: **corrupción del árbol DOM** en el *renderer*. Ahora la comprobación se fuerza
+cuando algún hijo nuevo no está en el documento del nodo. Se alcanza desde cualquier web (`replaceWith`,
+`replaceChildren` con varios nodos). Aplica a Mac.
+
+- Mismo diff que upstream (`patch-id` igual). brave-core no toca `container_node.cc`.
+
+### Veredicto (regla 17): **APTO**, `chromium/0005`
+
+Prueba para LOCAL: la WPT nueva `dom/nodes/crashtests/replaceWith-blur-cross-document-crash.html`.
+
+## `chromium/0006`: dabab2fd13 (bug 584330765)
+
+Los puntos de interrupción de DOM de DevTools podían detenerse en mutaciones hechas **durante una actualización del
+ciclo de vida** (p. ej. al desechar pseudo-elementos en el *recalc* de estilo). Al pausar, el depurador puede ejecutar
+*script*: por ejemplo, `ViewTransition.skipTransition()` liberaba la lista que se estaba recorriendo y había un **UAF**
+al reanudar. Ahora no se pausa en mutaciones que no causa el *script*. Solo se alcanza con DevTools, o una extensión con
+`chrome.debugger`, y puntos de interrupción de DOM. Aplica a Mac.
+
+- Mismo diff que upstream (`patch-id` igual). `VirtualTestSuites` entra con desplazamiento de 1–2 líneas. brave-core
+  no toca `inspector_dom_debugger_agent.cc`.
+
+### Veredicto (regla 17): **APTO**, `chromium/0006`
+
+Prueba para LOCAL: `inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc.js` (y su variante
+`virtual/threaded`).
+

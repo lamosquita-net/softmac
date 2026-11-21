@@ -1,0 +1,117 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mason Freed <masonf@chromium.org>
+Date: Sat, 21 Nov 2026 00:21:47 +0000
+Subject: [PATCH] [M156] Recheck cross-document new children in
+ ReplaceChild(VectorOf<Node>)
+
+FlyWeb next batch: from branch-heads/8078 40bf5125f6. Applied after seguridad/siguiente/chromium/0004; applies cleanly (identical diff). No brave-core patches or chromium_src for these files.
+
+Original change's description:
+> Recheck cross-document new children in ReplaceChild(VectorOf<Node>)
+>
+> In ContainerNode::ReplaceChild(const VectorOf<Node>&, ...), removing
+> the old child can run synchronous event handlers (e.g. a fieldset
+> blurring its focused, disabled control). The DOMTreeMutationDetector
+> used around that removal only watches the old child's and parent's
+> document, so if a handler inserted one of the new children into a
+> different document, the structural recheck was skipped and the node was
+> linked into two child lists, corrupting the DOM tree.
+>
+> This CL forces the recheck when any of the new children is not in this
+> node's document.
+>
+> Fixed: 583907042
+> Change-Id: Ibcba249fbe4ad32f8f35324df8115279362ea287
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8812134
+> Reviewed-by: Dominic Farolino <dom@chromium.org>
+> Auto-Submit: Mason Freed <masonf@chromium.org>
+> Commit-Queue: Mason Freed <masonf@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1746257}
+
+(cherry picked from commit d2f8c8b0e7b5096e0d515736c53fc98e90b25e24)
+
+Bug: 587226434,583907042
+Change-Id: Ibcba249fbe4ad32f8f35324df8115279362ea287
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8843957
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2371}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../blink/renderer/core/dom/container_node.cc | 12 +++++++
+ ...replaceWith-blur-cross-document-crash.html | 32 +++++++++++++++++++
+ 2 files changed, 44 insertions(+)
+ create mode 100644 third_party/blink/web_tests/external/wpt/dom/nodes/crashtests/replaceWith-blur-cross-document-crash.html
+
+diff --git a/third_party/blink/renderer/core/dom/container_node.cc b/third_party/blink/renderer/core/dom/container_node.cc
+index 5695cb9215..ec3787ced6 100644
+--- a/third_party/blink/renderer/core/dom/container_node.cc
++++ b/third_party/blink/renderer/core/dom/container_node.cc
+@@ -23,6 +23,8 @@
+ 
+ #include "third_party/blink/renderer/core/dom/container_node.h"
+ 
++#include <algorithm>
++
+ #include "third_party/blink/renderer/bindings/core/v8/v8_get_html_options.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_union_sethtmlunsafeoptions_trustedhtmlparseroptions.h"
+ #include "third_party/blink/renderer/core/accessibility/ax_object_cache.h"
+@@ -747,6 +749,16 @@ void ContainerNode::ReplaceChild(const VectorOf<Node>& new_children,
+       if (!detector.NeedsRecheck()) {
+         needs_recheck = true;
+       }
++      // The detector above only watches this node's document. Synchronous
++      // event handlers run during the removal (e.g. `blur`) could have
++      // inserted one of `new_children` into a different document, so a
++      // recheck is needed if any of them is not in this document.
++      if (!needs_recheck &&
++          std::ranges::any_of(new_children, [this](const Node* child) {
++            return child->GetDocument() != GetDocument();
++          })) {
++        needs_recheck = true;
++      }
+     }
+ 
+     if (needs_recheck && !RecheckNodeInsertionStructuralPrereq(
+diff --git a/third_party/blink/web_tests/external/wpt/dom/nodes/crashtests/replaceWith-blur-cross-document-crash.html b/third_party/blink/web_tests/external/wpt/dom/nodes/crashtests/replaceWith-blur-cross-document-crash.html
+new file mode 100644
+index 0000000000..85a3686e3c
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/dom/nodes/crashtests/replaceWith-blur-cross-document-crash.html
+@@ -0,0 +1,32 @@
++<!DOCTYPE html>
++<html class="test-wait">
++<meta charset="utf-8">
++<link rel="author" href="mailto:masonf@chromium.org">
++<link rel="help" href="https://crbug.com/583907042">
++
++<iframe id=iframe srcdoc="<fieldset><legend><input id=input></legend><span id=old></span></fieldset>"></iframe>
++
++<script>
++window.onload = () => {
++  const doc = iframe.contentDocument;
++  const input = doc.getElementById('input');
++  const old = doc.getElementById('old');
++  const n1 = document.createElement('div');
++  input.focus();
++  input.disabled = true;
++  input.addEventListener('blur', () => {
++    document.body.appendChild(n1);
++  });
++  // Removing `old` from the fieldset blurs the focused (disabled) input,
++  // and the blur handler inserts `n1` into the top-level document. `n1`
++  // must not then also be inserted into the fieldset.
++  old.replaceWith(n1);
++  n1.remove();
++  document.body.offsetTop;
++  requestAnimationFrame(() => {
++    requestAnimationFrame(() => {
++      document.documentElement.classList.remove('test-wait');
++    });
++  });
++};
++</script>
+-- 
+2.43.0
+
