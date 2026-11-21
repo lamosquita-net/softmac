@@ -8,6 +8,10 @@ Rama `buzon` de softmac (pública: **nada de datos personales, hosts ni IP**). M
   `SERVIDOR-LOCAL`, `PUBLICACION`, `ARQUITECTURA`; sin tildes en el nombre de carpeta).
 - Push directo a `buzon` (sin PR). Antes, `git pull --rebase origin buzon`.
 
+> **21-11-2026 (Titín, DIRECTIVAS): el CARTERO está RETIRADO.** Reparte la COORDINACIÓN local (MacPro7,1): fetch del buzón
+> al empezar cada turno, vigila la rama entera y anota cada entrega en `ENTREGADO.md`. Las órdenes a los locales van también
+> por escrito aquí. La nube escribe en `buzon/COORDINACION/` y lee `buzon/NUBE-<PAPEL>/`. Lo de abajo queda como historia.
+
 ## Para el CARTERO (CARTERO-LOCAL, en la MacPro7,1; decisión de Titín, 21-10)
 Haiku, esfuerzo bajo; lo abre Titín. **Desde el 28-10 (COORDINACIÓN-19, con Titín): vigilante en segundo plano** (Monitor) sobre
 un clon de `buzon` que mira cada 120 s y solo despierta al cartero cuando hay ficheros sin anotar; sin cron. Probado:
