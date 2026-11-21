@@ -1,0 +1,94 @@
+From 90bab11c6bdbbcbbfc957e5cae45ec8c91b9b34a Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 13:53:26 +0000
+Subject: [PATCH 14/15] FlyWeb 3.2.0 interface: inactive tab hover lower than
+ the active tab
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Titín (20-11, bt-320e): the hover of an inactive tab should be lower, as
+in maqueta-claro-hd.webp. There it starts about 5 px below the top of
+the active tab (38.5 px high there, 34 dip in the browser) and reaches
+the same base. A second hook in GetPath() moves the top of the
+kHighlight path of inactive tabs down by kFlyWebHoverTabTopInset (4 dip)
+and keeps its bottom at the base. The active tab, whose child clip path
+is also kHighlight, keeps its full height.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ .../tabs/common/horizontal_tab_style_views.cc   | 17 +++++++++++++++++
+ ...s-common-horizontal_tab_style_views.cc.patch | 12 ++++++++++--
+ 2 files changed, 27 insertions(+), 2 deletions(-)
+
+diff --git a/chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc b/chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+index 55cbb9ffc94c33e1be38b7fb70325d47d9c58a9f..3033c6e67ff4944082b4c4b71324a40e2f25b3aa 100644
+--- a/chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
++++ b/chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+@@ -24,6 +24,15 @@ constexpr float kFlyWebTabBottomCornerRadius = 0.0f;
+ // bottom corners are square. The hit test path is not changed. In dip.
+ constexpr float kFlyWebHighlightBottomCornerRadius = 0.0f;
+ 
++// FlyWeb 3.2.0 interface (Titín, 20-11, bt-320e: «la pestaña en roll over
++// debía ser más baja, como en mi maqueta»): on maqueta-claro-hd.webp the hover
++// of the first inactive tab starts about 5 px below the top of the active tab
++// (y 50.5 against 45.5) and reaches the same base. The active tab is 38.5 px
++// high there and 34 dip in the browser, so that is about 4.4 dip. Only for
++// inactive tabs (hover and selected fills); the active tab keeps its full
++// height (kHighlight is also its child clip path). In dip.
++constexpr float kFlyWebHoverTabTopInset = 4.0f;
++
+ }  // namespace
+ 
+ #define BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_HIGHLIGHT                 \
+@@ -37,6 +46,13 @@ constexpr float kFlyWebHighlightBottomCornerRadius = 0.0f;
+     bottom_right_corner_radius = kFlyWebHighlightBottomCornerRadius * scale; \
+   }
+ 
++#define BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_HIGHLIGHT_TOP       \
++  if (path_type == TabStyle::PathType::kHighlight &&                  \
++      !delegate_->IsActive()) {                                       \
++    top += kFlyWebHoverTabTopInset * scale;                           \
++    tab_height -= kFlyWebHoverTabTopInset * scale;                    \
++  }
++
+ #define BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_BOTTOM_CORNER_RADIUS \
+   extension_corner_radius = std::clamp(extension_corner_radius, 0.0f,  \
+                                        kFlyWebTabBottomCornerRadius * scale);
+@@ -45,3 +61,4 @@ constexpr float kFlyWebHighlightBottomCornerRadius = 0.0f;
+ 
+ #undef BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_BOTTOM_CORNER_RADIUS
+ #undef BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_HIGHLIGHT
++#undef BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_HIGHLIGHT_TOP
+diff --git a/patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch b/patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch
+index c01ab3aeeadda7df299d5dc3399998058326b5ee..b025878c6ce5b5a524e45835381171ae8195b27b 100644
+--- a/patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch
++++ b/patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch
+@@ -1,5 +1,5 @@
+ diff --git a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+-index 5e8bf7705c1b20c0833936eb9f62d501cf9e3b16..19f7ab88f98d122b489282a52b0762d8d28b89d3 100644
++index 5e8bf7705c1b20c0833936eb9f62d501cf9e3b16..92fee7a2aa29ffca8493a8d075a463c6a88d09c6 100644
+ --- a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+ +++ b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+ @@ -103,6 +103,7 @@ SkPath HorizontalTabStyleViews::GetPath(TabStyle::PathType path_type,
+@@ -10,7 +10,15 @@ index 5e8bf7705c1b20c0833936eb9f62d501cf9e3b16..19f7ab88f98d122b489282a52b0762d8
+  
+      // Don't round the bottom corners to avoid creating dead space between tabs.
+      if (path_type == TabStyle::PathType::kHitTest) {
+-@@ -225,6 +226,7 @@ SkPath HorizontalTabStyleViews::GetPath(TabStyle::PathType path_type,
++@@ -113,6 +114,7 @@ SkPath HorizontalTabStyleViews::GetPath(TabStyle::PathType path_type,
++     float left = aligned_bounds.x() + extension_corner_radius;
++     float top = aligned_bounds.y() +
++                 GetLayoutConstant(LayoutConstant::kTabStripPadding) * scale;
+++    BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_HIGHLIGHT_TOP
++ 
++     float right = aligned_bounds.right() - extension_corner_radius;
++     const int bottom = top + tab_height;
++@@ -225,6 +227,7 @@ SkPath HorizontalTabStyleViews::GetPath(TabStyle::PathType path_type,
+      extension_corner_radius -= 0.5f * stroke_adjustment;
+    }
+  
+-- 
+2.43.0
+

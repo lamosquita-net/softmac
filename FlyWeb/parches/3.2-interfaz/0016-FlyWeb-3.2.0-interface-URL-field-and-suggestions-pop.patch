@@ -1,0 +1,219 @@
+From d77617f514cf4ec8cfb0233bb649d20aa260d0b3 Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 14:28:30 +0000
+Subject: [PATCH] FlyWeb 3.2.0 interface: URL field and suggestions popup as
+ one piece
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Titín (20-11, bt-320e and maqueta-oscuro-desplegable-hd.webp): with the
+URL focused, the suggestions popup is as wide as the URL field, sits
+right below it, has no outer shadow, and both share a very subtle corner
+radius instead of a pill. In every window, private ones included
+(Titín).
+
+- RoundedOmniboxResultsFrame: no location bar alignment insets
+  (Chromium: 6 dip on each side and 5 dip above and below), a cutout as
+  high as the field (kLocationBarHeight minus kFlyWebLocationBarTopTrim:
+  since 0009 the 3 dip difference left a transparent band under the
+  field), elevation 0 and the field's radius. Two hooks in a new patch.
+- LocationBarView::ComputeBorderRadius() returns
+  kFlyWebLocationBarCornerRadius (2 dip, about 1-2 px on the mockups);
+  one hook more in its patch. BraveLocationBarView::GetBorderRadius()
+  follows it, so the inner glow and the focus ring do too.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ browser/ui/brave_layout_constants.h           |  6 ++++
+ .../location_bar/brave_location_bar_view.cc   |  5 +--
+ .../views/location_bar/location_bar_view.cc   |  8 +++++
+ .../omnibox/rounded_omnibox_results_frame.cc  | 31 ++++++++++++++++++-
+ ...ws-location_bar-location_bar_view.cc.patch | 16 +++++++---
+ ...box-rounded_omnibox_results_frame.cc.patch | 20 ++++++++++++
+ 6 files changed, 79 insertions(+), 7 deletions(-)
+ create mode 100644 patches/chrome-browser-ui-views-omnibox-rounded_omnibox_results_frame.cc.patch
+
+diff --git a/browser/ui/brave_layout_constants.h b/browser/ui/brave_layout_constants.h
+index 931782d8b9f10ea22319ed5f0e4dff6012fb35fb..ade89b42997a731430cec3613e731d095998b589 100644
+--- a/browser/ui/brave_layout_constants.h
++++ b/browser/ui/brave_layout_constants.h
+@@ -19,4 +19,10 @@ std::optional<int> GetBraveLayoutConstant(LayoutConstant constant);
+ // adjusted with Titín on screenshots.
+ inline constexpr int kFlyWebLocationBarTopTrim = 3;
+ 
++// FlyWeb 3.2.0 interface (Titín, 20-11, maqueta-oscuro-desplegable-hd.webp and
++// maqueta-claro-url-sutil.png): the URL field and the suggestions popup have a
++// very subtle corner radius, not a pill (about 1-2 px on the mockups, where
++// 1 px is about 1 dip), and form one piece of the same width. In dip.
++inline constexpr int kFlyWebLocationBarCornerRadius = 2;
++
+ #endif  // BRAVE_BROWSER_UI_BRAVE_LAYOUT_CONSTANTS_H_
+diff --git a/browser/ui/views/location_bar/brave_location_bar_view.cc b/browser/ui/views/location_bar/brave_location_bar_view.cc
+index 40e6dbd535b023a9864a389208e749b019db8a72..1375f4dc8d71ee98c15fc9985be5f1074aea87bc 100644
+--- a/browser/ui/views/location_bar/brave_location_bar_view.cc
++++ b/browser/ui/views/location_bar/brave_location_bar_view.cc
+@@ -401,8 +401,9 @@ void BraveLocationBarView::SetupShadow() {
+ }
+ 
+ int BraveLocationBarView::GetBorderRadius() const {
+-  return ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
+-      views::Emphasis::kMaximum, size());
++  // FlyWeb: the subtle radius of the mockups (ComputeBorderRadius() in
++  // chromium_src location_bar_view.cc), the same for the inner glow.
++  return ComputeBorderRadius(size());
+ }
+ 
+ void BraveLocationBarView::FocusLocation(bool is_user_initiated,
+diff --git a/chromium_src/chrome/browser/ui/views/location_bar/location_bar_view.cc b/chromium_src/chrome/browser/ui/views/location_bar/location_bar_view.cc
+index 41343825cc29f8de559e70bb14ffe6a676775b26..509d5c2f1b4cb2dbff73481ced8506684d0e39e9 100644
+--- a/chromium_src/chrome/browser/ui/views/location_bar/location_bar_view.cc
++++ b/chromium_src/chrome/browser/ui/views/location_bar/location_bar_view.cc
+@@ -7,6 +7,7 @@
+ 
+ #include <ranges>
+ 
++#include "brave/browser/ui/brave_layout_constants.h"
+ #include "brave/browser/ui/omnibox/brave_omnibox_client_impl.h"
+ #include "brave/browser/ui/views/omnibox/brave_omnibox_view_views.h"
+ #include "chrome/browser/ui/color/chrome_color_id.h"
+@@ -43,6 +44,12 @@
+         /*edge_padding=*/trailing_decorations_edge_padding);         \
+   }
+ 
++// FlyWeb: the field (its background, the popup cutout and the focus ring
++// all use ComputeBorderRadius()) has the subtle radius of the mockups instead
++// of a pill.
++#define BRAVE_LOCATION_BAR_VIEW_COMPUTE_BORDER_RADIUS \
++  return kFlyWebLocationBarCornerRadius;
++
+ #define OmniboxViewViews BraveOmniboxViewViews
+ #define ChromeOmniboxClient BraveOmniboxClientImpl
+ #define STYLE_BODY_4_EMPHASIS STYLE_PRIMARY
+@@ -54,6 +61,7 @@
+ 
+ #include "src/chrome/browser/ui/views/location_bar/location_bar_view.cc"
+ #undef STYLE_BODY_4_EMPHASIS
++#undef BRAVE_LOCATION_BAR_VIEW_COMPUTE_BORDER_RADIUS
+ #undef kColorOmniboxResultsBackgroundHovered
+ #undef ChromeOmniboxClient
+ #undef OmniboxViewViews
+diff --git a/chromium_src/chrome/browser/ui/views/omnibox/rounded_omnibox_results_frame.cc b/chromium_src/chrome/browser/ui/views/omnibox/rounded_omnibox_results_frame.cc
+index 0517ea8c517e09845df64bb324a2ab917764e514..73d29f6d2999d2e480f056f559a976ee3ac93b2f 100644
+--- a/chromium_src/chrome/browser/ui/views/omnibox/rounded_omnibox_results_frame.cc
++++ b/chromium_src/chrome/browser/ui/views/omnibox/rounded_omnibox_results_frame.cc
+@@ -3,13 +3,42 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
++#include "chrome/browser/ui/views/omnibox/rounded_omnibox_results_frame.h"
++
++#include "brave/browser/ui/brave_layout_constants.h"
++#include "chrome/browser/ui/layout_constants.h"
+ #include "ui/views/layout/layout_provider.h"
+ 
++// FlyWeb 3.2.0 interface (Titín, 20-11, maqueta-oscuro-desplegable-hd.webp):
++// the suggestions popup and the URL field form one piece. In every window
++// (also private ones, Titín):
++// - Same width as the field and no frame above it: no alignment insets
++//   (Chromium: 6 dip on each side and 5 dip above and below).
++// - Results right below the field, with no gap: the cutout is as high as the
++//   field, which is kFlyWebLocationBarTopTrim shorter than kLocationBarHeight
++//   since 0009. Before, the 3 dip difference left a transparent band under the
++//   field through which the toolbar showed.
++// - No outer shadow: elevation 0 (the header was included above, so the
++//   constant's declaration is not renamed).
++// - The field's subtle corner radius (kOmniboxExpandedRadius was 4 in Brave).
++#define BRAVE_ROUNDED_OMNIBOX_RESULTS_FRAME_GET_LOCATION_BAR_ALIGNMENT_INSETS \
++  return gfx::Insets();
++#define BRAVE_ROUNDED_OMNIBOX_RESULTS_FRAME_GET_NON_RESULT_SECTION_HEIGHT \
++  return include_cutout                                                    \
++             ? GetLayoutConstant(LayoutConstant::kLocationBarHeight) -     \
++                   kFlyWebLocationBarTopTrim                               \
++             : 0;
++#define kDefaultElevation 0
++
+ // Set our radius value directly as kOmniboxExpandedRadius is mapped to
+ // more general token ShapeSysTokens::kMedium. In 156 `corner_radius` is a
+ // const local, so fold our value into its initializer.
+-#define kOmniboxExpandedRadius kOmniboxExpandedRadius) * 0 + (4
++#define kOmniboxExpandedRadius \
++  kOmniboxExpandedRadius) * 0 + (kFlyWebLocationBarCornerRadius
+ 
+ #include "src/chrome/browser/ui/views/omnibox/rounded_omnibox_results_frame.cc"
+ 
+ #undef kOmniboxExpandedRadius
++#undef kDefaultElevation
++#undef BRAVE_ROUNDED_OMNIBOX_RESULTS_FRAME_GET_NON_RESULT_SECTION_HEIGHT
++#undef BRAVE_ROUNDED_OMNIBOX_RESULTS_FRAME_GET_LOCATION_BAR_ALIGNMENT_INSETS
+diff --git a/patches/chrome-browser-ui-views-location_bar-location_bar_view.cc.patch b/patches/chrome-browser-ui-views-location_bar-location_bar_view.cc.patch
+index 3fb61025d8c81e2fabc67c2de4bcc71eadf6a193..32f05494fcc060fa868cb4f05cfed61a588e564c 100644
+--- a/patches/chrome-browser-ui-views-location_bar-location_bar_view.cc.patch
++++ b/patches/chrome-browser-ui-views-location_bar-location_bar_view.cc.patch
+@@ -1,8 +1,16 @@
+ diff --git a/chrome/browser/ui/views/location_bar/location_bar_view.cc b/chrome/browser/ui/views/location_bar/location_bar_view.cc
+-index bac174d0b227aa593d369b6e2e7f7b58179f2c16..61db98a474efbab36c023e9204c2afac6b2dfee8 100644
++index bac174d0b227aa593d369b6e2e7f7b58179f2c16..0f11887796e470c87ba8b2689460961275c72fc0 100644
+ --- a/chrome/browser/ui/views/location_bar/location_bar_view.cc
+ +++ b/chrome/browser/ui/views/location_bar/location_bar_view.cc
+-@@ -802,6 +802,7 @@ void LocationBarView::Layout(PassKey) {
++@@ -530,6 +530,7 @@ int LocationBarView::GetBorderRadius() const {
++ 
++ // static
++ int LocationBarView::ComputeBorderRadius(gfx::Size size) {
+++  BRAVE_LOCATION_BAR_VIEW_COMPUTE_BORDER_RADIUS
++   return ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
++       views::Emphasis::kMaximum, size);
++ }
++@@ -802,6 +803,7 @@ void LocationBarView::Layout(PassKey) {
+                                    .indent_input_when_popup_closed) &&
+                               !location_icon_view_->ShouldShowLabel() &&
+                               !ShouldShowKeywordBubble();
+@@ -10,7 +18,7 @@ index bac174d0b227aa593d369b6e2e7f7b58179f2c16..61db98a474efbab36c023e9204c2afac
+    if (should_indent) {
+      icon_left += 7 /*icon_indent*/;
+      icon_left += omnibox_feature_configs::AdjustOmniboxIndent()
+-@@ -894,6 +895,7 @@ void LocationBarView::Layout(PassKey) {
++@@ -894,6 +896,7 @@ void LocationBarView::Layout(PassKey) {
+      }
+    };
+  
+@@ -18,7 +26,7 @@ index bac174d0b227aa593d369b6e2e7f7b58179f2c16..61db98a474efbab36c023e9204c2afac
+    if (features::IsPageActionsElevatedToolbarEnabled()) {
+      if (page_action_container_ && page_action_container_->GetVisible()) {
+        const bool is_capsule_active = page_action_container_->IsCapsuleActive();
+-@@ -934,6 +936,7 @@ void LocationBarView::Layout(PassKey) {
++@@ -934,6 +937,7 @@ void LocationBarView::Layout(PassKey) {
+  
+    add_trailing_decoration(clear_all_button_, /*intra_item_padding=*/0,
+                            /*edge_padding=*/trailing_decorations_edge_padding);
+diff --git a/patches/chrome-browser-ui-views-omnibox-rounded_omnibox_results_frame.cc.patch b/patches/chrome-browser-ui-views-omnibox-rounded_omnibox_results_frame.cc.patch
+new file mode 100644
+index 0000000000000000000000000000000000000000..c3ffb3fa8c0851936f867502d7d3bf024f2a24be
+--- /dev/null
++++ b/patches/chrome-browser-ui-views-omnibox-rounded_omnibox_results_frame.cc.patch
+@@ -0,0 +1,20 @@
++diff --git a/chrome/browser/ui/views/omnibox/rounded_omnibox_results_frame.cc b/chrome/browser/ui/views/omnibox/rounded_omnibox_results_frame.cc
++index c54974b20093d0569aac53c90cddedbebe2efc1b..1cd82106c35675b5136e85ba28cdc8e81757e086 100644
++--- a/chrome/browser/ui/views/omnibox/rounded_omnibox_results_frame.cc
+++++ b/chrome/browser/ui/views/omnibox/rounded_omnibox_results_frame.cc
++@@ -311,6 +311,7 @@ void RoundedOmniboxResultsFrame::OnBeforeWidgetInit(
++ 
++ // static
++ int RoundedOmniboxResultsFrame::GetNonResultSectionHeight(bool include_cutout) {
+++  BRAVE_ROUNDED_OMNIBOX_RESULTS_FRAME_GET_NON_RESULT_SECTION_HEIGHT
++   return include_cutout
++              ? GetLayoutConstant(LayoutConstant::kLocationBarHeight) +
++                    GetLocationBarAlignmentInsets().height()
++@@ -319,6 +320,7 @@ int RoundedOmniboxResultsFrame::GetNonResultSectionHeight(bool include_cutout) {
++ 
++ // static
++ gfx::Insets RoundedOmniboxResultsFrame::GetLocationBarAlignmentInsets() {
+++  BRAVE_ROUNDED_OMNIBOX_RESULTS_FRAME_GET_LOCATION_BAR_ALIGNMENT_INSETS
++   if (ui::TouchUiController::Get()->touch_ui()) {
++     return gfx::Insets::TLBR(6, 1, 5, 1);
++   }
+-- 
+2.43.0
+
