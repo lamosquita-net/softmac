@@ -1036,3 +1036,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/NUBE-SEGURIDAD-PORTES/20261121-1100-COORDINACION-58-0003-borra-0002.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-21 11:00 UTC · copia escrita del SendMessage
 - buzon/NUBE-MOTOR/20261121-1115-COORDINACION-58-ntp-mas-visitados.md → MOTOR-47 (nube) · 2026-11-21 11:15 UTC · copia escrita del SendMessage
 - buzon/NUBE-SEGURIDAD-PORTES/20261121-1135-COORDINACION-58-d8-verde-cctest.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-21 11:35 UTC · copia escrita del SendMessage
+- buzon/NUBE-SEGURIDAD-PORTES/20261121-1150-COORDINACION-58-sw-rojo.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-21 11:50 UTC · copia escrita del SendMessage
