@@ -7,6 +7,45 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 21-11 (tarde): COORDINACIÓN-58 → COORDINACIÓN-59 (local, 7,1; leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-58 = «Coordinación (58) Local» [3d5895], MacPro7,1, 21-11 ~09:40 → ~20:30 UTC. **La prueba de la COORDINACIÓN en local
+funciona** (punto 5 de abajo: ARQUITECTURA decide si se queda y qué pasa con el cartero; datos: canales directos, sin pérdidas).
+
+**Canales (probados y usados todo el día):**
+- Locales: `SendMessage` con el **id `local_…`** (por nombre no salen si están paradas; el id las despierta): «Local (22)»
+  `local_3bb6e59d-68f5-45e3-a870-2b987a7672ea`, Publicación `local_1eb27eb5-…`, Servidor Local (2) `local_40afbbdb-…`,
+  Arquitectura `local_0889f62d-…`, Cartero (8) `local_468a6280-…` (no reparte: lo hace la COORDINACIÓN).
+- D8-LINUX-5: `bridge:session_01MwmK2iT4hLWA1h2vv3cG9K` («motor ubuntu (5)»); **no hace push**: manda los informes por
+  mensaje y la COORDINACIÓN los sube a `buzon/COORDINACION/`.
+- Nube: `SendMessage` por nombre + copia en `buzon/NUBE-<PAPEL>/`; contestan en `buzon/COORDINACION/` en minutos.
+- Monitor propio sobre `origin/buzon` cada 120 s (caduca a los 30 min: re-armar).
+- Abrir agentes de la nube desde aquí: la herramienta de la app no puede; `claude --cloud` existe (sin estrenar).
+
+**Hecho hoy:** 3.2.0 cerrada, probada y **fusionada** (main 09a2b6d81c: #1110, #1138, #1151, #1142, #1147, #1159, #1144,
+#1150). Hallazgo de D8-LINUX: el `pendiente/0003` borraba el 0002 (585625642); SEGURIDAD-PORTES-33 lo regeneró y D8 dio verde
+(3.2.0 V8 8566fd42e4; 3.2.1 V8 c8e7b3da27). LOCAL en verde: 0007/0008 (blink, 995), portes-159/0002, ServiceWorker (3 rojos
+de Brave, confirmados sin 0006 y con PrefetchServiceWorker; excluidos), OmniboxColorTest. El 0001 de menús salió rojo: a la
+3.2.1 con su prerrequisito (#1165 = siguiente/chromium 0009–0010, punta bd9b91a1d9, sin probar en views_unittests). Titín
+dio el visto de bt-320f. DIRECTIVAS: #1169, #1170 (prioridad solo cuando Titín trabaja; desde el lunes 23, preguntar),
+#1176 (**nada que robe el foco en la 7,1**), #1177 (3.2.0 build 48).
+
+**En curso:** LOCAL compila la **3.2.0 build 48** (`out/Release-320`, desde 20:12 UTC; árboles comprobados: brave-core
+02c6111221 + versión ce9941d182, V8 8566fd42e4, chromium 68861cb878 con renderer-webgl). Pruebas y entrega por regla 11
+(buzón `LOCAL/20261121-1600-…`); sube las dos ramas `local/320g-final` a los forks; imports 10.15 y AVX. Con su entrega,
+PUBLICACIÓN publica.
+
+**Abierto, por orden:**
+1. Entrega de la 3.2.0 de LOCAL → avisar a Titín (solo la orden de firma en bak le toca).
+2. 3.2.1 (#1165): probar en la **6,1** `views_unittests` de menús 0009–0010 (no en la 7,1); cerrar su contenido con Titín
+   antes de compilar. **Recordar a Titín #1171** (más visitados de la nueva pestaña; MOTOR-47, causa confirmada en pantalla;
+   apaño: «Favoritos» en Personalizar) — él decide si entra.
+3. Piloto de pruebas en Ubuntu (#1168) en la 3.2.1: pendiente del disco (Titín).
+4. ARQUITECTURA: medir esta prueba de COORDINACIÓN local.
+
+**Lección:** no reabrir con Titín lo que ya decidió («otra vez habéis alterado el plan»). Plan vigente: 3.2.0 cerrada, lo
+rojo se quita, lo nuevo a la 3.2.1. No preguntarle repartos que ya resuelve la regla.
+
 ## 20-11 (noche, 2): COORDINACIÓN-57 → COORDINACIÓN-58 EN LA 7,1 (prueba; leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-57 (`session_01MwmK2hcdtWpZGceKLieLdd`, nube, 20-11 ~17:20 → ~20:45 UTC; última del linaje). **Titín decide
