@@ -1042,3 +1042,5 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/NUBE-SEGURIDAD-PORTES/20261121-1300-COORDINACION-58-menus-rojo.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-21 13:00 UTC · copia escrita del SendMessage
 - buzon/NUBE-SEGURIDAD-PORTES/20261121-1345-COORDINACION-58-0001-fuera.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-21 13:45 UTC · copia escrita del SendMessage
 - buzon/LOCAL/20261121-1600-COORDINACION-58-final-3.2.0-LOCAL-21.md → Local (22) [local_3bb6e59d] · 2026-11-21 19:03 UTC · entregado por COORDINACIÓN-58 (SendMessage por id)
+- buzon/NUBE-SEGURIDAD-PORTES/20261121-2300-COORDINACION-58-3.2.1.md → (nube) · 2026-11-21 22:41 UTC · copia escrita del SendMessage
+- buzon/NUBE-MOTOR/20261121-2300-COORDINACION-58-3.2.1-ntp.md → (nube) · 2026-11-21 22:41 UTC · copia escrita del SendMessage
