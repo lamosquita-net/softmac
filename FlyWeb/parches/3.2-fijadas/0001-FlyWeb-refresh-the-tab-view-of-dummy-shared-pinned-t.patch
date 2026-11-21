@@ -1,0 +1,122 @@
+From dcfe3e64dd56fca98a681d904b764031c3efa456 Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 10:23:53 +0000
+Subject: [PATCH] FlyWeb: refresh the tab view of dummy shared pinned tabs
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Titín (20-11): with shared pinned tabs, the favicons and titles of the
+pinned tabs in the other windows stay blank or stale. In Chromium 156 a
+tab view takes its TabData from its TabDataObserver, which recomputes it
+only when the tab's TabUIHelper notifies, and BrowserTabStripController
+no longer handles OnTabChangedAt. SharedPinnedTabService propagated the
+shared contents' changes with TabStripModel::UpdateWebContentsState(),
+which reaches TabStripModelObservers only, so a dummy tab kept the data
+it had when its view was created. Same code in Brave 1.98 (Chromium 156)
+and in Brave master.
+
+Use BrowserUiController::NotifyTabUIChanged() instead: it notifies the
+observers as before and the TabUIHelper, so TabData::FromTabInterface()
+runs again and returns the stored renderer data for the dummy. Reentry
+is already blocked by LOCK_REENTRANCE. Browser test
+DummyTabViewFollowsSharedContents checks the title of the dummy tab view.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ browser/ui/tabs/shared_pinned_tab_service.cc  | 17 +++++++--
+ .../shared_pinned_tab_service_browsertest.cc  | 35 +++++++++++++++++++
+ 2 files changed, 50 insertions(+), 2 deletions(-)
+
+diff --git a/browser/ui/tabs/shared_pinned_tab_service.cc b/browser/ui/tabs/shared_pinned_tab_service.cc
+index e3e0a178839553043371ad8fcd26244a89522585..544aa5c8f22193e3226e9836d0d7f0885cbd2ce3 100644
+--- a/browser/ui/tabs/shared_pinned_tab_service.cc
++++ b/browser/ui/tabs/shared_pinned_tab_service.cc
+@@ -23,6 +23,7 @@
+ #include "chrome/browser/sessions/session_restore.h"
+ #include "chrome/browser/sessions/tab_restore_service_factory.h"
+ #include "chrome/browser/ui/browser_tabstrip.h"
++#include "chrome/browser/ui/browser_ui_controller/browser_ui_controller.h"
+ #include "chrome/browser/ui/browser_window.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+ #include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
+@@ -505,8 +506,20 @@ void SharedPinnedTabService::OnTabChangedAt(tabs::TabInterface* tab,
+       continue;
+     }
+ 
+-    tab_strip_model->UpdateWebContentsState(
+-        tab_strip_model->GetWebContentsAt(index), change_type);
++    // FlyWeb: in 156 a tab view takes its TabData from its TabDataObserver,
++    // which recomputes it only when the tab's TabUIHelper notifies.
++    // UpdateWebContentsState() reaches TabStripModelObservers only, so the
++    // dummy tabs kept the title and favicon they had when their view was
++    // created. NotifyTabUIChanged() does both: it notifies the observers, as
++    // before, and the TabUIHelper, so TabData::FromTabInterface() runs again
++    // and returns |renderer_data| for the dummy (chromium_src tab_data.cc).
++    if (auto* browser_ui_controller = BrowserUiController::From(browser)) {
++      browser_ui_controller->NotifyTabUIChanged(
++          tab_strip_model->GetTabAtIndex(index), change_type);
++    } else {
++      tab_strip_model->UpdateWebContentsState(
++          tab_strip_model->GetWebContentsAt(index), change_type);
++    }
+   }
+ }
+ 
+diff --git a/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc b/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc
+index f4dea744fa96f46ef1da17ab3a63b8d9a786218f..130647c2759f480ae9a5469c81d4853db9b8c766 100644
+--- a/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc
++++ b/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc
+@@ -26,6 +26,8 @@
+ #include "chrome/browser/ui/navigator/browser_navigator_params.h"
+ #include "chrome/browser/ui/tabs/tab_strip_model.h"
+ #include "chrome/browser/ui/views/frame/browser_view.h"
++#include "chrome/browser/ui/views/tabs/tab.h"
++#include "chrome/browser/ui/views/tabs/tab_strip.h"
+ #include "chrome/test/base/platform_browser_test.h"
+ #include "components/prefs/pref_service.h"
+ #include "content/public/browser/navigation_controller.h"
+@@ -295,6 +297,39 @@ IN_PROC_BROWSER_TEST_F(SharedPinnedTabServiceBrowserTest, SynchronizeURL) {
+                 ->GetVirtualURL());
+ }
+ 
++// FlyWeb: the tab view of a dummy pinned tab follows the shared contents
++// (title here; favicon and loading state go the same way).
++IN_PROC_BROWSER_TEST_F(SharedPinnedTabServiceBrowserTest,
++                       DummyTabViewFollowsSharedContents) {
++  // Given that there're multiple windows with shared pinned tabs
++  auto* browser_1 = browser();
++  auto* tab_strip_model_1 = browser_1->tab_strip_model();
++  tab_strip_model_1->SetTabPinned(0, /* pinned= */ true);
++
++  auto* browser_2 = CreateNewBrowser();
++  auto* tab_strip_model_2 = browser_2->GetTabStripModel();
++  WaitUntil(base::BindLambdaForTesting(
++      [&]() { return tab_strip_model_2->count() > 1; }));
++  ASSERT_TRUE(tab_strip_model_2->IsTabPinned(0));
++  ASSERT_TRUE(GetForBrowser(browser_2)->IsDummyContents(
++      tab_strip_model_2->GetWebContentsAt(0)));
++
++  // When the shared pinned tab gets a new title,
++  ASSERT_TRUE(content::NavigateToURL(
++      tab_strip_model_1->GetWebContentsAt(0),
++      GURL("data:text/html,<title>FlyWeb shared title</title>")));
++
++  // Then the dummy tab's view in the other window shows it.
++  Tab* dummy_tab = BrowserView::GetBrowserViewForBrowser(browser_2)
++                       ->horizontal_tab_strip_for_testing()
++                       ->tab_at(0);
++  ASSERT_TRUE(dummy_tab);
++  WaitUntil(base::BindLambdaForTesting([&]() {
++    return dummy_tab->data().title == u"FlyWeb shared title";
++  }));
++  EXPECT_EQ(u"FlyWeb shared title", dummy_tab->data().title);
++}
++
+ IN_PROC_BROWSER_TEST_F(SharedPinnedTabServiceBrowserTest,
+                        CloseWindowWhenAllTabsAreSharedPinnedTabs) {
+   // Given that there're multiple windows with shared pinned tabs
+-- 
+2.43.0
+
