@@ -1,0 +1,382 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 14:20:00 +0000
+Subject: [PATCH 2/2] v8: pending: 51512210b3 (M159 merge 202e0e7f26, crbug
+ 585614984)
+
+Interpreter/Maglev fix from V8 main, merged to 15.9 (M159) and not yet
+to 15.6: initialize the receiver register on the optional-chain call
+short-circuit, verify exception-edge liveness and clear dead registers
+in Maglev. Same content as upstream; the CopyFrom hunk is re-anchored
+for 15.6 and the two existing patches for bytecode-generator.cc and
+maglev-graph-builder.cc are regenerated with it. Waits for the next
+release; the cache epoch is not bumped here. V8 gitlink unchanged.
+---
+ patches/v8/FLYWEB-SECURITY.md                 | 29 +++++++++++
+ .../src-compiler-bytecode-analysis.cc.patch   | 51 +++++++++++++++++++
+ ...rc-interpreter-bytecode-generator.cc.patch | 50 ++++++++++++++++--
+ ...src-interpreter-bytecode-generator.h.patch | 13 +++++
+ ...src-maglev-maglev-compilation-unit.h.patch | 12 +++++
+ .../src-maglev-maglev-graph-builder.cc.patch  | 22 +++++++-
+ ...ev-maglev-interpreter-frame-state.cc.patch | 21 ++++++++
+ ...lev-maglev-interpreter-frame-state.h.patch | 20 ++++++++
+ ...-mjsunit-maglev-regress-585614984.js.patch | 32 ++++++++++++
+ 9 files changed, 244 insertions(+), 6 deletions(-)
+ create mode 100644 patches/v8/src-compiler-bytecode-analysis.cc.patch
+ create mode 100644 patches/v8/src-interpreter-bytecode-generator.h.patch
+ create mode 100644 patches/v8/src-maglev-maglev-compilation-unit.h.patch
+ create mode 100644 patches/v8/src-maglev-maglev-interpreter-frame-state.cc.patch
+ create mode 100644 patches/v8/src-maglev-maglev-interpreter-frame-state.h.patch
+ create mode 100644 patches/v8/test-mjsunit-maglev-regress-585614984.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index e8bda8b..869eca2 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,32 @@
++# FlyWeb: pending for the next release, V8 fix 51512210b3 (crbug 585614984), ported from the M159 merge
++
++SEGURIDAD-PORTES-33, 20-11-2026 (softmac `FlyWeb/seguridad/pendiente/brave-core/0004`). Not in 3.1.4: it waits for
++the next FlyWeb release. On top of `pendiente/brave-core/0003`. **Not merged to V8 15.6 upstream yet**: ported from
++the M159 merge 202e0e7f26 (V8 15.9.128.22, bugs 587681919 and 585614984; cherry-pick of 51512210b3 from main).
++
++- In `BytecodeGenerator::VisitCall`, optional-chain property calls such as `(a?.foo().bar)()` left the receiver
++  register unwritten on the null/undefined short-circuit path while `CallAnyReceiver` still read it, and
++  `BytecodeAnalysis` then treated that register as live across preceding `try/catch` blocks. The fix stores
++  `undefined` into the receiver register on that path (new `BuildOptionalChain` overload), checks exception-edge
++  liveness in `LivenessIsValid` (DEBUG only), and makes Maglev clear dead registers and the accumulator in
++  `InterpreterFrameState::CopyFrom` (except for dummy units) and fill the resume targets in
++  `VisitSwitchOnGeneratorState` with the optimized-out constant.
++- Same content as upstream for every hunk; one hunk is re-anchored: in 15.6 `InterpreterFrameState::CopyFrom`
++  also calls `known_node_aspects_->virtual_objects().Snapshot()` inside the `if (known_node_aspects_)` block, and
++  the new block goes right after that `if`, as upstream. Every API it uses exists in 15.6.75.66
++  (`HandlerTable::LookupHandlerIndexForRange`, the `BytecodeLivenessState` iterator, `GetRootConstant`,
++  `MaglevCompilationUnit::NewDummy`, `SubgraphBase`).
++- `src-interpreter-bytecode-generator.cc.patch` and `src-maglev-maglev-graph-builder.cc.patch` already existed:
++  they are regenerated against 15.6.75.66 with the previous changes plus this fix (the old interpreter patch had
++  an older preimage and applied with a one-line offset). The rest are new files.
++
++**Cache epoch:** every V8 patch bumps `kFlyWebCacheEpoch` (`docs/SEGURIDAD.md`); bytecode changes in particular
++must not reuse old code caches. It is NOT bumped here; whoever integrates this sets the epoch for that release.
++
++To check (D8-LINUX): `d8`, mjsunit with and without Maglev, especially `maglev/regress-585614984`, in release and
++debug (debug runs the new exception-edge liveness check and the new `DCHECK_NOT_NULL` on Maglev frame reads, which
++would catch any 15.6-only path that reads a cleared register).
++
+ # FlyWeb: pending for the next release, V8 15.6.75.74 fix ceb90d38eb (SHA-256 code-cache source hash)
+ 
+ SEGURIDAD-PORTES-33, 20-11-2026 (softmac `FlyWeb/seguridad/pendiente/brave-core/0003`). Not in 3.1.4: it waits for
+diff --git a/patches/v8/src-compiler-bytecode-analysis.cc.patch b/patches/v8/src-compiler-bytecode-analysis.cc.patch
+new file mode 100644
+index 0000000..115cd8c
+--- /dev/null
++++ b/patches/v8/src-compiler-bytecode-analysis.cc.patch
+@@ -0,0 +1,51 @@
++diff --git a/src/compiler/bytecode-analysis.cc b/src/compiler/bytecode-analysis.cc
++index 2906dcbe39ae91d12b153f790faa7c11a4f8ba4b..6315d902a13c27942a26e79a141cf50d890ccb5e 100644
++--- a/src/compiler/bytecode-analysis.cc
+++++ b/src/compiler/bytecode-analysis.cc
++@@ -1072,11 +1072,45 @@ bool BytecodeAnalysis::BytecodeAnalysisImpl::LivenessIsValid() {
++   }
++ 
++   // Ensure that the accumulator is not live when jumping out of a loop, or on
++-  // the back-edge of a loop.
+++  // the back-edge of a loop, and that registers never transition from dead to
+++  // live across an exception edge.
+++  HandlerTable table(*bytecode_array_);
++   for (iterator.GoToStart(); iterator.IsValid() && invalid_offset == -1;
++        ++iterator) {
++     Bytecode bytecode = iterator.current_bytecode();
++     int current_offset = iterator.current_offset();
+++
+++    if (!interpreter::Bytecodes::IsWithoutExternalSideEffects(bytecode) &&
+++        bytecode != Bytecode::kSuspendGenerator &&
+++        bytecode != Bytecode::kResumeGenerator) {
+++      int handler_index = table.LookupHandlerIndexForRange(current_offset);
+++      if (handler_index != HandlerTable::kNoHandlerFound) {
+++        uint32_t index = static_cast<uint32_t>(handler_index);
+++        const BytecodeLivenessState* in_liveness =
+++            liveness_map().GetInLiveness(current_offset);
+++        const BytecodeLivenessState* handler_liveness =
+++            liveness_map().GetInLiveness(table.GetRangeHandler(index));
+++        int context_reg = table.GetRangeData(index);
+++        bool valid_handler_liveness = in_liveness->RegisterIsLive(context_reg);
+++        for (int reg : *handler_liveness) {
+++          if (!in_liveness->RegisterIsLive(reg)) {
+++            valid_handler_liveness = false;
+++            break;
+++          }
+++        }
+++        if (!valid_handler_liveness) {
+++          invalid_liveness.CopyFrom(*in_liveness);
+++          bool acc_live = invalid_liveness.AccumulatorIsLive();
+++          invalid_liveness.Union(*handler_liveness);
+++          invalid_liveness.MarkRegisterLive(context_reg);
+++          if (!acc_live) invalid_liveness.MarkAccumulatorDead();
+++          invalid_offset = current_offset;
+++          which_invalid = 0;
+++          break;
+++        }
+++      }
+++    }
+++
++     int loop_header = res_.GetLoopOffsetFor(current_offset);
++ 
++     // We only care if we're inside a loop.
+diff --git a/patches/v8/src-interpreter-bytecode-generator.cc.patch b/patches/v8/src-interpreter-bytecode-generator.cc.patch
+index 2842c42..dc60385 100644
+--- a/patches/v8/src-interpreter-bytecode-generator.cc.patch
++++ b/patches/v8/src-interpreter-bytecode-generator.cc.patch
+@@ -1,5 +1,5 @@
+ diff --git a/src/interpreter/bytecode-generator.cc b/src/interpreter/bytecode-generator.cc
+-index f6651020361a0eefdc275ca997234f2c4ff9042c..792aedfade0742642e2198b350126f4cae2bf697 100644
++index 1d5a0334e74525dd8b2c406b01caf0d05ef4e8ad..08d8578f3daee2a1afecdf4dbd8d454b2db5e5c0 100644
+ --- a/src/interpreter/bytecode-generator.cc
+ +++ b/src/interpreter/bytecode-generator.cc
+ @@ -289,7 +289,7 @@ class V8_NODISCARD BytecodeGenerator::ControlScope::DeferredCommands final {
+@@ -11,7 +11,7 @@ index f6651020361a0eefdc275ca997234f2c4ff9042c..792aedfade0742642e2198b350126f4c
+  
+      BytecodeLabel fall_through_from_try_block;
+  
+-@@ -2763,10 +2763,16 @@ bool IsSwitchOptimizable(SwitchStatement* stmt, SwitchInfo* info) {
++@@ -2764,10 +2764,16 @@ bool IsSwitchOptimizable(SwitchStatement* stmt, SwitchInfo* info) {
+  //   <out = 19, break>
+  
+  void BytecodeGenerator::VisitSwitchStatement(SwitchStatement* stmt) {
+@@ -28,7 +28,7 @@ index f6651020361a0eefdc275ca997234f2c4ff9042c..792aedfade0742642e2198b350126f4c
+    SwitchInfo info;
+    BytecodeJumpTable* jump_table = nullptr;
+    bool use_jump_table = IsSwitchOptimizable(stmt, &info);
+-@@ -2790,9 +2796,6 @@ void BytecodeGenerator::VisitSwitchStatement(SwitchStatement* stmt) {
++@@ -2791,9 +2797,6 @@ void BytecodeGenerator::VisitSwitchStatement(SwitchStatement* stmt) {
+    SwitchBuilder switch_builder(builder(), block_coverage_builder_, stmt,
+                                 n_comp_cases, jump_table);
+    ControlScopeForBreakable scope(this, stmt, &switch_builder);
+@@ -38,7 +38,7 @@ index f6651020361a0eefdc275ca997234f2c4ff9042c..792aedfade0742642e2198b350126f4c
+  
+    if (use_jump_table) {
+      // Release temps so that they can be reused in clauses.
+-@@ -6127,6 +6130,7 @@ void BytecodeGenerator::BuildSuspendPoint(int position) {
++@@ -6128,6 +6131,7 @@ void BytecodeGenerator::BuildSuspendPoint(int position) {
+  void BytecodeGenerator::VisitYield(Yield* expr) {
+    builder()->SetExpressionPosition(expr);
+    VisitForAccumulatorValue(expr->expression());
+@@ -46,7 +46,7 @@ index f6651020361a0eefdc275ca997234f2c4ff9042c..792aedfade0742642e2198b350126f4c
+  
+    bool is_async = IsAsyncGeneratorFunction(function_kind());
+    // If this is not the first yield
+-@@ -6294,6 +6298,7 @@ void BytecodeGenerator::VisitYieldStar(YieldStar* expr) {
++@@ -6301,6 +6305,7 @@ void BytecodeGenerator::VisitYieldStar(YieldStar* expr) {
+      RegisterAllocationScope register_scope(this);
+      RegisterList iterator_and_input = register_allocator()->NewRegisterList(2);
+      VisitForAccumulatorValue(expr->expression());
+@@ -54,3 +54,43 @@ index f6651020361a0eefdc275ca997234f2c4ff9042c..792aedfade0742642e2198b350126f4c
+      IteratorRecord iterator = BuildGetIteratorRecord(
+          register_allocator()->NewRegister() /* next method */,
+          iterator_and_input[0], iterator_type);
++@@ -6858,12 +6863,18 @@ void BytecodeGenerator::VisitKeyedSuperPropertyLoad(Property* property,
++ 
++ template <typename ExpressionFunc>
++ void BytecodeGenerator::BuildOptionalChain(ExpressionFunc expression_func) {
+++  BuildOptionalChain(expression_func, [this]() { builder()->LoadUndefined(); });
+++}
+++
+++template <typename ExpressionFunc, typename ElseFunc>
+++void BytecodeGenerator::BuildOptionalChain(ExpressionFunc expression_func,
+++                                           ElseFunc else_func) {
++   BytecodeLabel done;
++   OptionalChainNullLabelScope label_scope(this);
++   expression_func();
++   builder()->Jump(&done);
++   label_scope.labels()->Bind(builder());
++-  builder()->LoadUndefined();
+++  else_func();
++   builder()->Bind(&done);
++ }
++ 
++@@ -7014,10 +7025,15 @@ void BytecodeGenerator::VisitCall(Call* expr) {
++     case Call::PRIVATE_OPTIONAL_CHAIN_CALL: {
++       OptionalChain* chain = callee_expr->AsOptionalChain();
++       Property* property = chain->expression()->AsProperty();
++-      BuildOptionalChain([&]() {
++-        VisitAndPushIntoRegisterList(property->obj(), &args);
++-        VisitPropertyLoad(args.last_register(), property);
++-      });
+++      BuildOptionalChain(
+++          [&]() {
+++            VisitAndPushIntoRegisterList(property->obj(), &args);
+++            VisitPropertyLoad(args.last_register(), property);
+++          },
+++          [&]() {
+++            builder()->LoadUndefined().StoreAccumulatorInRegister(
+++                args.last_register());
+++          });
++       builder()->StoreAccumulatorInRegister(callee);
++       break;
++     }
+diff --git a/patches/v8/src-interpreter-bytecode-generator.h.patch b/patches/v8/src-interpreter-bytecode-generator.h.patch
+new file mode 100644
+index 0000000..cb4e9d9
+--- /dev/null
++++ b/patches/v8/src-interpreter-bytecode-generator.h.patch
+@@ -0,0 +1,13 @@
++diff --git a/src/interpreter/bytecode-generator.h b/src/interpreter/bytecode-generator.h
++index bdea0ba4fc68c103adf49b4a2ff81b769d12b20d..1b387d65c2e1a0c9eb785697640e7ce33813193c 100644
++--- a/src/interpreter/bytecode-generator.h
+++++ b/src/interpreter/bytecode-generator.h
++@@ -499,6 +499,8 @@ class BytecodeGenerator final : public AstVisitor<BytecodeGenerator> {
++ 
++   template <typename ExpressionFunc>
++   void BuildOptionalChain(ExpressionFunc expression_func);
+++  template <typename ExpressionFunc, typename ElseFunc>
+++  void BuildOptionalChain(ExpressionFunc expression_func, ElseFunc else_func);
++ 
++   void BuildGetAndCheckSuperConstructor(Register this_function,
++                                         Register new_target,
+diff --git a/patches/v8/src-maglev-maglev-compilation-unit.h.patch b/patches/v8/src-maglev-maglev-compilation-unit.h.patch
+new file mode 100644
+index 0000000..e016133
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-compilation-unit.h.patch
+@@ -0,0 +1,12 @@
++diff --git a/src/maglev/maglev-compilation-unit.h b/src/maglev/maglev-compilation-unit.h
++index 5e7469af5ab8e39590495a42f3642f49ba333b02..749239473133a481f12ec9b5e2f4abf688342c57 100644
++--- a/src/maglev/maglev-compilation-unit.h
+++++ b/src/maglev/maglev-compilation-unit.h
++@@ -72,6 +72,7 @@ class MaglevCompilationUnit : public ZoneObject {
++   compiler::SharedFunctionInfoRef shared_function_info() const {
++     return shared_function_info_.value();
++   }
+++  bool is_dummy() const { return !bytecode_.has_value(); }
++   compiler::BytecodeArrayRef bytecode() const { return bytecode_.value(); }
++   compiler::FeedbackCellRef feedback_cell() const {
++     return feedback_cell_.value();
+diff --git a/patches/v8/src-maglev-maglev-graph-builder.cc.patch b/patches/v8/src-maglev-maglev-graph-builder.cc.patch
+index c4356e5..0ceab79 100644
+--- a/patches/v8/src-maglev-maglev-graph-builder.cc.patch
++++ b/patches/v8/src-maglev-maglev-graph-builder.cc.patch
+@@ -1,5 +1,5 @@
+ diff --git a/src/maglev/maglev-graph-builder.cc b/src/maglev/maglev-graph-builder.cc
+-index 69fe4b26b5ef19e168e9dbde6525739d5623d34d..d1f32c917ea339c7657a7ef2fe1992c8e296fb0d 100644
++index 69fe4b26b5ef19e168e9dbde6525739d5623d34d..ad34e3586ce2f158572b6eb8f259c185a5c342f9 100644
+ --- a/src/maglev/maglev-graph-builder.cc
+ +++ b/src/maglev/maglev-graph-builder.cc
+ @@ -1807,9 +1807,13 @@ bool IsConsString(ValueNode* string) {
+@@ -65,3 +65,23 @@ index 69fe4b26b5ef19e168e9dbde6525739d5623d34d..d1f32c917ea339c7657a7ef2fe1992c8
+  
+    // If the right hand side is a ConsString, then we can create a ConsString.
+    // This doesn't work with the left hand side, since the right hand side of a
++@@ -15800,9 +15807,16 @@ ReduceResult MaglevGraphBuilder::VisitSwitchOnGeneratorState() {
++       generator, new_state, offsetof(JSGeneratorObject, continuation_),
++       StoreTaggedMode::kDefault));
++ 
++-  // Guarantee that we have something in the accumulator.
++-  MoveNodeBetweenRegisters(iterator_.GetRegisterOperand(0),
++-                           interpreter::Register::virtual_accumulator());
+++  // Guarantee that we have something in the accumulator and registers for the
+++  // resume targets (which will overwrite live registers and the accumulator in
+++  // VisitResumeGenerator).
+++  ValueNode* optimized_out = GetRootConstant(RootIndex::kOptimizedOut);
+++  current_interpreter_frame_.set_accumulator(optimized_out);
+++  for (int i = 0; i < register_count(); i++) {
+++    if (i != iterator_.GetRegisterOperand(0).index()) {
+++      current_interpreter_frame_.set(interpreter::Register(i), optimized_out);
+++    }
+++  }
++ 
++   // Switch on generator state.
++   int case_value_base = (*offsets.begin()).case_value;
+diff --git a/patches/v8/src-maglev-maglev-interpreter-frame-state.cc.patch b/patches/v8/src-maglev-maglev-interpreter-frame-state.cc.patch
+new file mode 100644
+index 0000000..7624c34
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-interpreter-frame-state.cc.patch
+@@ -0,0 +1,21 @@
++diff --git a/src/maglev/maglev-interpreter-frame-state.cc b/src/maglev/maglev-interpreter-frame-state.cc
++index fc4fa2ec83e19646ab86b5b39c76db2b656fa373..7797801782faafeb6b4d9c1c6eade6152a9d053a 100644
++--- a/src/maglev/maglev-interpreter-frame-state.cc
+++++ b/src/maglev/maglev-interpreter-frame-state.cc
++@@ -44,6 +44,16 @@ void InterpreterFrameState::CopyFrom(const MaglevCompilationUnit& unit,
++     state.PrintVirtualObjects(info, virtual_objects());
++     known_node_aspects_->virtual_objects().Snapshot();
++   }
+++  // Eagerly clear dead registers and the accumulator before populating live
+++  // values from the merge state. Skip dummy compilation units used by
+++  // SubgraphBase, where labels only merge modified variables and dominating
+++  // variables must remain intact in variable_frame_.
+++  if (!unit.is_dummy()) {
+++    for (int reg = 0; reg < unit.register_count(); ++reg) {
+++      frame_[interpreter::Register(reg)] = nullptr;
+++    }
+++    frame_[interpreter::Register::virtual_accumulator()] = nullptr;
+++  }
++   state.frame_state().ForEachValue(
++       unit, [&](ValueNode* value, interpreter::Register reg) {
++         frame_[reg] = value;
+diff --git a/patches/v8/src-maglev-maglev-interpreter-frame-state.h.patch b/patches/v8/src-maglev-maglev-interpreter-frame-state.h.patch
+new file mode 100644
+index 0000000..b29de1c
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-interpreter-frame-state.h.patch
+@@ -0,0 +1,20 @@
++diff --git a/src/maglev/maglev-interpreter-frame-state.h b/src/maglev/maglev-interpreter-frame-state.h
++index 195569e6d7015d2659701851c3a0548de10b7af2..73df26d8637257b716a86559df108c7502927b7c 100644
++--- a/src/maglev/maglev-interpreter-frame-state.h
+++++ b/src/maglev/maglev-interpreter-frame-state.h
++@@ -134,6 +134,7 @@ class InterpreterFrameState {
++     frame_[interpreter::Register::virtual_accumulator()] = value->Unwrap();
++   }
++   ValueNode* accumulator() const {
+++    DCHECK_NOT_NULL(frame_[interpreter::Register::virtual_accumulator()]);
++     DCHECK(
++         !frame_[interpreter::Register::virtual_accumulator()]->is_conversion());
++     return frame_[interpreter::Register::virtual_accumulator()];
++@@ -154,6 +155,7 @@ class InterpreterFrameState {
++                        reg == interpreter::Register::function_closure() ||
++                        reg == interpreter::Register::virtual_accumulator() ||
++                        reg.ToParameterIndex() >= 0);
+++    DCHECK_NOT_NULL(frame_[reg]);
++     DCHECK(!frame_[reg]->is_conversion());
++     return frame_[reg];
++   }
+diff --git a/patches/v8/test-mjsunit-maglev-regress-585614984.js.patch b/patches/v8/test-mjsunit-maglev-regress-585614984.js.patch
+new file mode 100644
+index 0000000..1cec0ce
+--- /dev/null
++++ b/patches/v8/test-mjsunit-maglev-regress-585614984.js.patch
+@@ -0,0 +1,32 @@
++diff --git a/test/mjsunit/maglev/regress-585614984.js b/test/mjsunit/maglev/regress-585614984.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..e79dab48f2fbb04487cd6bc7d0a82c3ae9d08fef
++--- /dev/null
+++++ b/test/mjsunit/maglev/regress-585614984.js
++@@ -0,0 +1,26 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax
+++
+++function foo(flag, a, val, skip) {
+++  let r = "abcdefghijklmn" + (0 | flag);
+++  if (flag) {
+++    (0 | flag) + (a + r).length;
+++  }
+++  try {
+++    with (val) {
+++      return 2;
+++    }
+++  } catch {}
+++  if (skip) return 3;
+++  intentionallyMissing;
+++  return (null?.foo().bar)();
+++}
+++
+++%PrepareFunctionForOptimization(foo);
+++foo(true, "x", null, true);
+++foo(false, {}, 1, true);
+++%OptimizeFunctionOnNextCall(foo);
+++assertThrows(() => foo(false, 0x18800000, null, false), ReferenceError);
+-- 
+2.43.0
+

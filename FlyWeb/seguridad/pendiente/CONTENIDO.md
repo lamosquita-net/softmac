@@ -7,19 +7,44 @@ la próxima tanda de seguridad (Chrome 159) o la 3.2.0, la que llegue antes.
 **Si alguno de estos bugs resulta Alto o Crítico, entra en el catálogo KEV de CISA o se explota, se avisa enseguida a
 COORDINACIÓN**, que propondrá una 3.1.5 a Titín.
 
+**Decisión de Titín (20-11-2026, vía COORDINACIÓN-55; `docs/DIRECTIVAS.md`, #1152):** lo de aquí entra en la **3.2.0**, también `brave-core/0002`–`0004` y `chromium/0006`, y **no habrá 3.1.5**. Condición: D8-LINUX en verde (encargo en `buzon` `58d3cf8a5c`); lo que salga rojo se quita.
+
+**Cierre de la tanda (COORDINACIÓN-57, 20-11, 20:01 UTC):** desde ahora, lo que llegue que no sea Alto, Crítico o KEV va a una **tanda posterior** y no a esta, salvo que Titín diga otra cosa. Esta tanda queda en `chromium/0001`–`0008`, `angle/0001`, `skia/0001`–`0003` y `brave-core/0001`–`0005`. Los portes de la 159 van aparte, en `FlyWeb/seguridad/portes-159/` (#1159).
+
 Lo prepara y lo vigila SEGURIDAD-PORTES (desde la -32). Cada arreglo nuevo de la 8078, o de la rama de la 159 cuando
 salga, que aplique a Mac se añade aquí con APTO: `chromium/` con número correlativo, `angle/` aparte, y su línea en
 `SHA256SUMS`.
 
 ## Base
 
+## Corrección del 21-11: `brave-core/0003` borraba el `0002`
+
+D8-LINUX-5 lo vio al probar (21-11, ~10:00 UTC) y COORDINACIÓN-58 lo confirmó. El `0003` publicado el 20-11 se
+generó sobre un árbol sin el `0002`: su *diff* **borraba los seis ficheros de `patches/v8` del `0002`** (585625642:
+`js-native-context-specialization.cc`, `js-operator.cc`, `js-typed-lowering.cc`, su cctest, su unittest y
+`regress-585625642.js`) y reescribía su nota de `FLYWEB-SECURITY.md`. Con la serie antigua, la brave-core final **no
+llevaba a0f2c9f8c3**, aunque todo aplicaba sin error.
+
+- **Arreglo:** el `0003` se regenera sobre el `0002`: mismos cinco ficheros nuevos, nota antepuesta a la del `0002` y
+  ningún borrado. Es el único fichero que cambia. `0004`, `3.2-v8/0001`–`0002` (#1144), `0005` y
+  `siguiente/brave-core/0001`–`0002` (#1165) aplican **sin cambios** con `git am` encima (sus *hunks* de
+  `FLYWEB-SECURITY.md` solo anteponen).
+- **Revisión de toda la serie:** ningún otro parche borra ficheros, y cada paso solo cambia en V8 los ficheros de su
+  arreglo (comprobado paso a paso sobre una 15.6.75.66 limpia).
+- **Árboles nuevos** (brave-core / V8 con todos los `patches/v8`), desde `e660929` (V8 `17b5af44cd`):
+  `0001` `90134a4e08` / `bdd9e6eee2`; `0002` `639401fb8e` / `21d04143d2`; **`0003` `ee46658397` / `1a98c3970d`**;
+  `0004` `ddfe01f2d8` / `6c841a3488`; `3.2-v8/0001` `b4a82c46d2` / `87550911ad`; `3.2-v8/0002` `09d6f844f2` /
+  `ee3eda85d8`; **`0005` `ea6b817c88` / `8566fd42e4`** (final de la 3.2.0; `patches/v8` `2b1c8d3308`).
+- La **3.1.4 publicada** (`e660929`, V8 `17b5af44cd`) no lleva 585625642: nunca se aprobó para ella. No le afecta.
+
 Los dos parches se hicieron y comprobaron sobre los árboles **finales de la 3.1.4** (build 47):
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0005` | **`a9b357bc47`** (tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`; tras `0004`: `a621f0a668`) |
+| chromium | árbol **`e7162cd585`** (`local/314-adapt` `aaa7d7508d` + `3.1.4/integracion/chromium` 0002–0004; sin el commit de fijación) | `chromium/0001`–`0008` | **`90418ba4fd`** (tras `0007`: `1b06f59f4d`; tras `0006`: `064a5696b2`; tras `0005`: `a9b357bc47`; tras `0001`: `2c8ef28a99`; tras `0002`: `39054ebf03`; tras `0003`: `5f0d2b4d3e`; tras `0004`: `a621f0a668`) |
 | ANGLE | árbol **`db885a866b`** (`f10470c77e` + `3.0.1/angle` 0001–0012 + `parches/3.1-angle` 0001–0004 + `3.1.4/angle` 0001–0003) | `angle/0001` | **`fb21437e81`** |
-| brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001` | **`90134a4e08`** |
+| brave-core | `local/3.1.4-adapt` **`e660929`** (V8 15.6.75.66 con todos los `patches/v8`) | `brave-core/0001`–`0004` | **`ddfe01f2d8`** (tras `0001`: `90134a4e08`; tras `0002`: `639401fb8e`; tras `0003`: `ee46658397`; corregido el 21-11, ver abajo) |
+| brave-core (3.2.0) | lo anterior + `FlyWeb/parches/3.2-v8/0001`–`0002` (#1144, `1e978ba37c`): **`09d6f844f2`** | `brave-core/0005` (va **detrás** de `3.2-v8/0002`) | **`ea6b817c88`** (`patches/v8` `2b1c8d3308`; V8 con todos los `patches/v8`: **`8566fd42e4`**) |
 | Skia | árbol **`a934afed14`** (gitlink `27c31ca415` + `3.1.4/parte4/skia/0001` + `parte5/skia/0001`) | `skia/0001`–`0003` | **`1ef25455d7`** (tras `0001`: `32f1340fb3`; tras `0002`: `47b14cb49e`) |
 
 Si la siguiente versión cambia de base (p. ej. la 3.2.0 o la 159), **hay que volver a comprobar que aplican**; puede que
@@ -54,6 +79,15 @@ la base nueva ya los traiga.
 | `7e5aab9f6a` (20-11 04:26 UTC) | [M156] «Scope InputDeviceCapabilities to target window for focus events» (577377858, merge 587680830) | Sí (abajo) | `chromium/0004` |
 | `29851e2f7f` (20-11 06:59 UTC) | Prueba desactivada (webdriver en Linux) | — | — |
 | `dad9e4d83c` (20-11 10:04 UTC) | [M156] «[SimpleCache] Prevent doomed entries from mutating SimpleIndex» (583238770, merge 588197443) | Sí (abajo) | `chromium/0005` |
+| V8 15.6 `18cf2b9282` (.74, 12:54 UTC) | **ceb90d38eb** [M156] «[snapshot] Ship --code-cache-source-hash-sha256 by default» (568907349, 582651043, 582260175; merge 587680873) | Sí | `brave-core/0003` |
+| `baba8daae1` (20-11 12:28 UTC) | [M156] Reland «Update last committed service worker client on navigation commit» (581369093, merge 587226523) | Sí (abajo) | `chromium/0006` |
+| `581e177a60` (20-11 15:14 UTC) | *Roll* de V8 `c4641b4cbe..18cf2b9282` (= la .74 de arriba) | — | `brave-core/0003` |
+| V8 15.6 `751cfac05f` (.75, 15:34 UTC) | **01a299bf4c** [M156] «[compiler] Preserve control inputs on non-cell context operations» (585625642, merge 587680540) | Sí | `brave-core/0002` (**idéntico**, abajo) |
+| `9ebc6bd712` (20-11 16:32 UTC) | *Roll* de V8 `18cf2b9282..751cfac05f` (= la .75 de arriba) | — | `brave-core/0002` |
+| V8 15.6 `f08ef923d3` (.76, 16:59 UTC) | **c37ab55c4a** [M156] «[sandbox] Bound length in String::ToStdString and ToCString» (579314138, 585869521; merge 587681388) | Sí | `brave-core/0005` |
+| `04c385f13f` (20-11 18:31 UTC) | *Roll* de V8 `751cfac05f..f08ef923d3` (= la .76 de arriba) | — | `brave-core/0005` |
+| `7ec583a50d` (20-11 18:41 UTC) | [M156] «[Blink] Zero-initialize ImageDataBuffer readback buffer» (585617234, merge 587682327) | Sí (abajo) | `chromium/0007` |
+| `8dceb29b09` (20-11 19:07 UTC) | [M156] «Ensure clean style and slot assignments before canvas transform update» (584385833, merge 586066876), `core/dom/element.cc` | Sí (abajo) | `chromium/0008` |
 
 **Tag 156.0.8078.112 = `880ca0428f`** (visto el 20-11 a las 03:24 UTC; la rama sigue en .113 desde `e2352b4cf6`, solo
 `chrome/VERSION`). Todo lo de `.111` (`c22b215559`, base de la build 47) a `.112` está en esta tabla: con `pendiente/`
@@ -218,6 +252,81 @@ corrupción; es lo mismo que lleva Chrome 156. Prueba: `net_unittests --gtest_fi
 (trae pruebas nuevas en `entry_unittest.cc`) y, en la build, navegar con la caché llena (recargas y web pesada dos
 veces) y una web con *service worker* y Cache Storage (p. ej. una PWA), cerrar y reabrir.
 
+## `chromium/0006`: baba8daae1 (bug 581369093, merge 587226523)
+
+Reland del arreglo de ServiceWorker en el proceso del navegador. Cuando se reutilizaba un `RenderFrameHost` en una
+navegación entre documentos, `RenderFrameHostImpl::AddServiceWorkerClient()` actualizaba
+`last_committed_service_worker_client_` al preparar el *commit*. Así `GetLastCommittedServiceWorkerClient()` podía
+devolver el cliente de la navegación pendiente mientras el documento anterior seguía activo, y un *worker* de `blob:`
+creado en ese hueco heredaba el controlador del origen de destino, saltándose CORS. Ahora el cliente se fija al
+terminar el *commit*, y antes de heredar el controlador se comprueba que el origen del padre o del creador coincide
+con el de la clave del cliente (`AreOriginsCompatibleForServiceWorkerClient`, en el interceptor, en
+`DedicatedWorkerHost`, en `SharedWorkerServiceImpl` y en `InheritServiceWorkerControllerFromParentIfNeeded`). Se
+alcanza desde cualquier web con *service workers* e iframes. Aplica a Mac.
+
+- Mismo diff que upstream en los 11 ficheros de código y en el *unittest* (`patch-id` igual, fichero a fichero). En
+  `service_worker_browsertest.cc` entra con offsets y las 232 líneas añadidas son idénticas, pero se ancla a mano: en
+  ese punto un porte anterior de FlyWeb añadió la prueba `NoContainerHostForPdfDocument` y el contexto de cola no
+  casaba. El bloque va justo después de la prueba anterior, igual que en upstream.
+- **brave-core toca dos de estos ficheros:** `patches/content-browser-renderer_host-navigation_request.cc.patch`
+  (donde va nuestro arreglo del PDF) y `…render_frame_host_impl.cc.patch`. Los dos siguen aplicando encima de este
+  (solo desplazamientos). En `InheritServiceWorkerControllerFromParentIfNeeded` quedan dos salidas tempranas
+  independientes: la comprobación de origen nueva y la nuestra de PDF o *sandbox*. Los `chromium_src` de esos ficheros
+  no tocan los clientes de ServiceWorker.
+- Comprobado: `git apply --cached` sobre `a9b357bc47` da el árbol **`064a5696b2`**.
+- **Gravedad: no consta** (bug restringido).
+
+### Veredicto (regla 17): **APTO**, `chromium/0006`
+
+Es el arreglo de Chrome 156 sin cambios en el código. Efecto visible: ninguno. Un iframe con `blob:` *workers* creado
+durante una navegación entre orígenes ya no hereda el *service worker* del destino. Prueba:
+`content_browsertests --gtest_filter='*ServiceWorker*NoOriginKeyed*:*LastCommittedServiceWorkerClient*'`,
+`content_unittests --gtest_filter='WorkerScriptLoaderFactory*'` y, en la build, una PWA con *service worker* (abrir,
+recargar, desconectar la red).
+
+## `chromium/0007`: 7ec583a50d (bug 585617234, merge 587682327)
+
+`ImageDataBuffer`, que se usa para `toDataURL`/`toBlob` de un canvas acelerado, reservaba el buffer de destino sin
+inicializar (`SkData::MakeUninitialized`) antes de leer los píxeles de la GPU. Con `kDisableErrorHandlingForReadback`
+(activado por defecto), si la lectura falla devuelve `true` sin escribir nada. Así la web recibía **memoria del heap del
+*renderer* sin inicializar** dentro de la imagen: una fuga de información. El arreglo reserva el buffer a cero
+(`MakeZeroInitialized`), como ya hacen las otras lecturas de GPU. Se alcanza con un canvas acelerado y
+`toDataURL`/`toBlob`, y en la práctica cuando la lectura de la GPU falla. Aplica a Mac.
+
+- Mismo diff que upstream (`patch-id` igual, fichero a fichero). Aplica limpio sobre `064a5696b2`.
+- brave-core tiene `chromium_src/.../image_data_buffer.h`, que solo añade un acceso a `pixmap_` para el *farbling* del
+  canvas y no toca la reserva. Poner el buffer a cero antes de la lectura no cambia lo que hace el *farbling* después.
+- Comprobado: `git apply --cached` sobre `064a5696b2` da el árbol **`1b06f59f4d`**.
+- **Gravedad: no consta** (bug restringido).
+
+### Veredicto (regla 17): **APTO**, `chromium/0007`
+
+Es el arreglo de Chrome 156 sin cambios. Efecto visible: ninguno; si la lectura de la GPU falla, la imagen sale
+transparente o negra en vez de con basura. Prueba: `blink_platform_unittests
+--gtest_filter='AcceleratedStaticBitmapImageTest.*'` (trae una prueba nueva) y, en la build, `canvas.toDataURL()` de un
+canvas WebGL o 2D acelerado.
+
+## `chromium/0008`: 8dceb29b09 (bug 584385833, merge 586066876)
+
+`InvalidateForCanvasTransformChange` llamaba a `PaintLayer::UpdateTransform()` con el estilo y las asignaciones de
+*slots* sucios. Desde `ComputedStyle::ApplyTransform()` eso podía disparar una asignación de *slots* y una
+actualización de estilo anidada, que reiniciaba `PaintLayer::transform_` mientras la llamada exterior aún tenía una
+referencia: un **UAF en el *renderer***. El arreglo actualiza antes el árbol de estilo y *layout*
+(`Document::UpdateStyleAndLayoutTree()`) y toma el `LayoutObject` después. Se alcanza desde cualquier web, con
+`<canvas>` y *shadow DOM*/*slots*. Aplica a Mac.
+
+- Mismo diff que upstream (`patch-id` igual). Aplica limpio sobre `1b06f59f4d`. brave-core no toca `element.cc`.
+- Comprobado: `git apply --cached` sobre `1b06f59f4d` da el árbol **`90418ba4fd`**. El porte de `portes-159/0001`
+  (#1159, menús) sigue aplicando encima: son ficheros distintos.
+- **Gravedad: no consta** (bug restringido).
+
+### Veredicto (regla 17): **APTO**, `chromium/0008`
+
+Es el arreglo de Chrome 156 sin cambios. Efecto visible: ninguno. Puede añadir una actualización de estilo cuando
+cambia la transformación de un canvas, lo mismo que hace Chrome 156. Prueba: `blink_unittests
+--gtest_filter='*Canvas*Transform*:*ElementTest*'` y, en la build, una página con canvas dentro de un *shadow root*
+con `<slot>` que cambia `transform` (p. ej. la galería de pruebas de *Web Platform Tests* `css/css-transforms`).
+
 ## `brave-core/0001`: V8 d68cecd900 (bugs 583479274 y 587681789; V8 15.6.75.72)
 
 Cuando el depurador escribe en una variable de contexto que el *parser* marcó `kNotAssigned`, el código optimizado
@@ -243,6 +352,137 @@ alcanza con el depurador conectado (DevTools o una extensión con `chrome.debugg
 Es el *cherry-pick* de upstream sin cambios. Efecto visible: con el depurador abierto, cambiar una variable de un
 *closure* desde DevTools desoptimiza el código que la usaba (más lento solo mientras se depura; sin efecto fuera del
 depurador).
+
+## `brave-core/0002`: V8 a0f2c9f8c3 (bug 585625642), portado del merge M159 27e138a575
+
+**Actualización (20-11, 15:46 UTC): ya está en la 15.6** como **01a299bf4c** (V8 15.6.75.75, merge 587680540). Comparado: los seis ficheros que da `0002` sobre la .66 son **idénticos byte a byte** a los de upstream en ese commit, incluida la prueba llevada al cctest, que upstream ha portado igual. `0002` queda como el merge oficial de la .75.
+
+**Por qué se prepara antes de tiempo.** Lo de la 8154 normalmente espera (arriba). Este es un fallo del JIT de V8 con
+merge rápido a la 159 (llegó a `main` el 17-11 y a la 15.9 el 20-11), que es lo que suele tener gravedad Alta, y
+**aún no hay merge a la 15.6**. Si llega a la 15.6, se compara con este y se anota; si no llega, este es el arreglo.
+Aviso dado a COORDINACIÓN-54 el 20-11 (regla de Alto: la gravedad no consta, así que el aviso es por prudencia).
+
+El fallo: TurboFan bajaba `JSLoadContextNoCell`, `JSStoreContextNoCell` y `JSHasContextExtension` con
+`graph()->start()` como control. En un generador o una función `async`, esas cargas de contexto podían quedar
+programadas antes del `SwitchOnGeneratorState` del bucle reanudable y leer el contexto que no es. Con el arreglo, los
+dos operadores llevan entrada de control, `JSTypedLowering` usa la del propio nodo y `JSNativeContextSpecialization`
+la pasa. Se alcanza con JavaScript normal de cualquier web (generadores o `async` optimizados por TurboFan). Aplica a
+Mac (V8).
+
+- `js-typed-lowering.cc`, `js-operator.cc` y `js-native-context-specialization.cc` son idénticos byte a byte en la
+  15.6.75.66 y en la cabeza de la 15.6 (.73), y ningún `patches/v8` de brave-core los toca. Difieren de la 15.9 en
+  otras partes, pero todos los *hunks* entran en la .66 solo con desplazamiento de líneas y el mismo contenido
+  (`patch-id` igual al de upstream, fichero a fichero), más la prueba `test/mjsunit/compiler/regress-585625642.js` y
+  los cambios de `js-typed-lowering-unittest.cc`.
+- En la 15.6 no hay más sitios que creen estos nodos con entradas explícitas: `bytecode-graph-builder.cc` usa
+  `NewNode(op)`, que añade el control según el operador, y `js-context-specialization.cc` usa `ChangeOp`, que
+  conserva las entradas.
+- **Única adaptación (solo pruebas):** en la 15.6 las pruebas de especialización de contexto siguen en
+  `test/cctest/compiler/test-js-context-specialization.cc` (upstream las pasó luego a
+  `test/unittests/compiler/js-context-specialization-unittest.cc`). Los *hunks* de upstream para ese fichero aplican
+  limpios al cctest y van ahí, así que todos los nodos `LoadContextNoCell` de esa prueba llevan ya control.
+- Comprobado: los seis parches por fichero aplican sobre la .66, y `git apply --cached` del `.patch` de aquí sobre
+  `90134a4e08` (tras `0001`) da el árbol **`639401fb8e`**.
+- **Época de caché:** no se sube aquí; la fija quien lo integre (una sola subida para `0001` y `0002`).
+- **Gravedad: no consta** (bugs restringidos). Sin indicios de explotación conocidos.
+- **Falta, antes de entrar (D8-LINUX):** d8/mjsunit con y sin Maglev, en especial `compiler/regress-585625642`;
+  `cctest/test-js-context-specialization/*` y `unittests --gtest_filter='JSTypedLoweringTest.*'`, en *release* y en
+  *debug* (en *debug*, el verificador del grafo comprueba los recuentos de entradas nuevos). **Sin eso en verde, no
+  entra.**
+
+### Veredicto (regla 17): **APTO** (condicionado a D8-LINUX en verde), `brave-core/0002`
+
+Es el arreglo de upstream sin cambios en el código; solo la prueba va a otro fichero. Efecto visible: ninguno.
+Añadir una entrada de control a una carga de contexto solo limita dónde puede programarla TurboFan; el coste de
+rendimiento es despreciable.
+
+## `brave-core/0003`: V8 ceb90d38eb (V8 15.6.75.74; bugs 568907349, 582651043 y 582260175)
+
+La validación de la caché de código de V8 solo comparaba la **longitud** del código fuente: una caché hecha para un
+*script* podía aceptarse para otro distinto de la misma longitud. El cambio junta tres de *trunk*: el `SourceHash`
+pasa a ser un SHA-256 de todo el código y de los argumentos envueltos (separando cadenas de uno y dos bytes), y la
+opción `--code-cache-source-hash-sha256` sale activada. Aplica a Mac: Chromium usa la caché de código de V8 en cada
+web.
+
+- Aplicados sobre la 15.6.75.66, los cinco ficheros quedan **idénticos byte a byte** a los de upstream en la .74.
+  Ningún `patches/v8` los toca, y `src/utils/sha-256.h` ya está en la .66.
+- Efecto secundario: cambia el formato de la caché de código, así que todas las cachés existentes se rechazan una vez
+  y se regeneran (la primera carga de cada web es un poco más lenta). Va en la misma dirección que la subida de la
+  época de caché.
+- Comprobado (corregido el 21-11): `git am` sobre `639401fb8e` (tras `0002`) da el árbol **`ee46658397`**, que conserva
+  los seis ficheros del `0002`.
+- **Época de caché:** no se sube aquí (una sola subida al integrar `0001`–`0004`).
+- **Falta, antes de entrar (D8-LINUX):** d8, mjsunit (en especial `code-cache-sha256`) y `cctest/test-serialize/*`.
+
+### Veredicto (regla 17): **APTO** (condicionado a D8-LINUX en verde), `brave-core/0003`
+
+Es el cambio de la 15.6.75.74 sin tocar nada.
+
+## `brave-core/0004`: V8 51512210b3 (bug 585614984), portado del merge M159 202e0e7f26
+
+**Por qué se prepara antes de tiempo:** por el mismo motivo que `0002`. Es un fallo del motor de JS, con merge rápido a
+la 159 (llegó a `main` el 18-11 y a la 15.9 el 20-11), y **aún no hay merge a la 15.6**. Aviso dado a COORDINACIÓN-55
+el 20-11.
+
+El fallo: en llamadas con encadenamiento opcional como `(a?.foo().bar)()`, el generador de *bytecode* no escribía el
+registro del receptor en el atajo `null`/`undefined`, pero `CallAnyReceiver` lo leía igualmente. El análisis de vida
+(`BytecodeAnalysis`) daba entonces ese registro por vivo a través de los `try/catch` anteriores, y Maglev o TurboFan
+podían usar un valor viejo de ese registro. Arreglo:
+- se escribe `undefined` en el registro en ese camino (nueva sobrecarga de `BuildOptionalChain`);
+- `LivenessIsValid` comprueba también las aristas de excepción (solo en *debug*);
+- Maglev limpia los registros muertos en `InterpreterFrameState::CopyFrom` (salvo en las unidades *dummy*) y rellena
+  los destinos de reanudación en `VisitSwitchOnGeneratorState`.
+
+Se alcanza con JavaScript normal de cualquier web. Aplica a Mac.
+
+- Mismo contenido que upstream en todos los *hunks*. Uno se reancla: en la 15.6, `CopyFrom` también llama a
+  `known_node_aspects_->virtual_objects().Snapshot()` dentro del `if (known_node_aspects_)`, y el bloque nuevo va justo
+  después de ese `if`, como en upstream. Todo lo que usa existe en la .66: `HandlerTable::LookupHandlerIndexForRange`,
+  el iterador de `BytecodeLivenessState`, `GetRootConstant`, `NewDummy` y `SubgraphBase`.
+- `bytecode-generator.cc` y `maglev-graph-builder.cc` ya tenían `patches/v8` de brave-core. Los dos se regeneran
+  contra la .66 con lo que ya llevaban más este arreglo; el del intérprete tenía una preimagen anterior y aplicaba con
+  una línea de desplazamiento. Los otros seis ficheros son nuevos.
+- Comprobado: los ocho parches por fichero, aplicados sobre una .66 limpia, dan exactamente los mismos ficheros que el
+  montaje; `git am` sobre `ee46658397` (tras `0003`, corregido el 21-11) da el árbol **`ddfe01f2d8`**.
+- **Riesgo propio de la 15.6:** los `DCHECK_NOT_NULL` nuevos en las lecturas del *frame* de Maglev detectarían en
+  *debug* cualquier camino exclusivo de la 15.6 que lea un registro ya limpiado. En *release*, ese caso sería una
+  lectura de puntero nulo (cierre, no corrupción). Por eso la prueba en *debug* es obligatoria.
+- **Gravedad: no consta** (bugs restringidos). **Época de caché:** no se sube aquí. El *bytecode* cambia, así que la
+  subida al integrar es imprescindible.
+- **Falta, antes de entrar (D8-LINUX):** d8 y mjsunit con y sin Maglev, en especial `maglev/regress-585614984`, en
+  *release* y en *debug*. **Sin eso en verde, no entra.**
+
+### Veredicto (regla 17): **APTO** (condicionado a D8-LINUX en verde, también en *debug*), `brave-core/0004`
+
+Es el arreglo de upstream, con un único *hunk* reanclado por contexto. Efecto visible: ninguno.
+
+## `brave-core/0005`: V8 c37ab55c4a (V8 15.6.75.76; bugs 579314138 y 585869521)
+
+Endurece el sandbox de V8. Una cadena corrompida dentro del sandbox (un `ConsString` con longitud falsa de 0x55555555
+y caracteres de 3 bytes en UTF-8) hacía que `String::ToStdString()` y `ToCString()` calcularan 0xFFFFFFFF bytes. ICU
+truncaba ese tamaño a -1 y acababa escribiendo fuera de límites (`ultag_parse`, vía `Intl`). El arreglo son dos
+`SBXCHECK_LE(length, String::kMaxLength)`, que acotan el tamaño por debajo de `INT32_MAX`. Para explotarlo hace falta
+haber corrompido ya la memoria del sandbox, es decir, otro fallo previo: es una defensa en profundidad. Aplica a Mac:
+FlyWeb compila con el sandbox de V8.
+
+- Aplicado sobre la 15.6.75.66 (con todos los `patches/v8` de la 3.2.0), da `string.cc` y las dos pruebas **idénticos
+  byte a byte** a upstream en la .76. Ningún `patches/v8` toca `string.cc`. `SBXCHECK_LE` y `String::kMaxLength` ya
+  están en la .66.
+- **Orden:** va **detrás de `3.2-v8/0002`** (la época de la 3.2.0, #1144), no detrás de `0004`. Así no hay que volver a
+  regenerar la nota de MOTOR-47 en `FLYWEB-SECURITY.md`. Las series de la 3.2.0 que vienen después no tocan
+  `patches/v8`.
+- Comprobado (corregido el 21-11): `git am` sobre `09d6f844f2` (`pendiente/0001`–`0004` + `3.2-v8/0001`–`0002`) da
+  **`ea6b817c88`**. Con todos los `patches/v8`, el árbol de V8 es **`8566fd42e4`**.
+- **Época de caché:** no hace falta. Solo cambia C++ del *runtime*, no el *bytecode* ni el código generado, y la subida
+  a 38 de la 3.2.0 cubre la versión igualmente.
+- **Gravedad: no consta** (bug restringido).
+- **Falta, antes de entrar (D8-LINUX):** d8 y las pruebas `sandbox/regress/regress-579314138-1` y `-2`. Necesitan
+  `--sandbox-testing`; si la build no lo tiene, se dice y se dan por no probadas.
+
+### Veredicto (regla 17): **APTO** (condicionado a D8-LINUX en verde), `brave-core/0005`
+
+Es el cambio de la 15.6.75.76 sin tocar nada. Efecto visible: ninguno, salvo que una cadena ya corrompida cierra el
+proceso en vez de escribir fuera de límites.
 
 ## Dawn `6d772bc9e5c5..062164c3c784` (roll `ff774db0a2`): no aplica
 
@@ -388,6 +628,15 @@ aplicando, salvo que llegue antes a la 8078 como merge M156 (entonces va arriba,
 | `b33d4b153d` (20-11 03:52 UTC) | [M159] «Scope InputDeviceCapabilities to target window for focus events» (577377858) | Sí | Llegó a la 8078 como `7e5aab9f6a` → `chromium/0004` |
 | `97e1b5bdc3` (20-11 09:03 UTC) | [M159] «[SimpleCache] Prevent doomed entries from mutating SimpleIndex» (583238770, merge 588197278), `net/disk_cache/simple` | Sí | Llegó a la 8078 como `dad9e4d83c` → `chromium/0005` |
 | `cc42b75af2` (20-11 09:20 UTC) | [M159] «[CacheStorage] Truncate pre-existing entry streams on empty puts» (583238770, merge 588197278), `content/browser/cache_storage` | Sí | Candidato; sin parche: si llega a la 8078, a `pendiente/` |
+| `eb140e9ee3` (20-11 11:04 UTC) | *Roll* de V8 15.9 `dd683a21bf..a1896f1005` (15.9.128.21): **27e138a575** [M159] «[compiler] Preserve control inputs on non-cell context operations» (585625642, merge 587680496) | Sí (TurboFan) | **Excepción: preparado ya** como `brave-core/0002` (abajo), sin esperar al merge en la 15.6 |
+| `41c9a648fb` (20-11 11:20 UTC) | [M159] «Enforce worker script origin match for ServiceWorker clients» (585383394, merge 587681032), `content/browser/service_worker` y `worker_host` | Sí (proceso del navegador; exige un *renderer* comprometido) | Candidato; sin parche: el código vulnerable está en la 156 (`service_worker_client.cc`, `WithOrigin()` en las líneas 665 y 679), pero el diff **no aplica** sobre `a9b357bc47` (5 de 7 ficheros con *hunks* rechazados): si llega a la 8078, a `pendiente/` |
+| V8 15.9 `fcaf218c74` (15.9.128.22, 13:15 UTC) | **202e0e7f26** [M159] «[interpreter] Initialize receiver on optional-chain call short-circuit» (585614984, merge 587681919) | Sí (intérprete, Maglev y TurboFan) | **Excepción: preparado ya** como `brave-core/0004` (abajo), sin esperar al merge en la 15.6 |
+| `afa45b8e16` (20-11 18:06 UTC) | [M159] «views: Fix FOR_DROP menu drag and drop teardown UAF» (565066840, merge 588202414), `ui/views/controls/menu` | Sí (proceso del navegador; hace falta arrastrar algo a un menú abierto para soltar) | **Portado** en `portes-159/chromium/0001` (#1159). Antes: candidato sin parche. El código vulnerable **está en la 156**: en `GetDropCallback`, tras `OnMenuClosed` (que borra `this`) se sigue usando, y `OnDragUpdated` devuelve la operación con `destroy_pending_`. El diff no aplica tal cual solo por contexto (`DCHECK` frente a `CHECK(…, NotFatalUntil::M163)`); el arreglo son dos líneas. Si llega a la 8078, a `pendiente/` |
+| `d54c6b5d5d`, `969701a32a` (20-11 19:00–19:23 UTC) | [M159] ImageDataBuffer (585617234) y transformación del canvas (584385833) | Sí | Llegaron a la 8078 como `7ec583a50d` y `8dceb29b09` → `chromium/0007` y `0008` |
+| `b079c8f6c8` (20-11 19:34 UTC) | [M159] «SchemeHostPort: Reject empty host for non-file SCHEME_WITH_HOST schemes» (586171393, merge 588196490), `url/` | Sí (validación de IPC: un `SchemeHostPort`/`Origin` con host vacío recibido por IPC podía confundir la navegación) | **Portado** en `portes-159/chromium/0002` (#1159), por orden de COORDINACIÓN-57 |
+| `6738e48e6c` (20-11 18:55 UTC) | [M159] «[BreakoutBox] Add a closed attribute to FrameQueue» (585500473, 560113909) | Sí, pero es una fuga de contabilidad de `VideoFrameMonitor`, no de memoria | No se porta (COORDINACIÓN-57). No aplica tal cual (3 ficheros) |
+| `384f43c711` (20-11 19:43 UTC) | [M159] Revert de un `CHECK_GE` a `DCHECK_GE` en `CreateWebTouchPoint` | — (quita un cierre, no arregla un fallo) | — |
+| V8 15.9 `ee7bdd086c` (15.9.128.24, 19:50 UTC) | **0cb2a47092** [M159] «[wasm][streaming] Defer streaming completion to foreground task» (580857997, merge 586791986) | Sí (`WebAssembly.compileStreaming`) | Candidato; sin parche. Está en la 15.6 (`PostNonNestableTask`, requisito previo, presente), pero 2 de 4 ficheros no aplican y la prueba vive en otro sitio en la 15.6. COORDINACIÓN-57: **se espera al merge oficial en la 15.6** salvo Alto/Crítico/KEV |
 
 **`690f348e8d`** (SEGURIDAD-PORTES-33, 20-11): `SessionImpl::AddContextImpl()` y `OnDeviceContext::SetInput()`
 ejecutan `callback_` de forma síncrona, y `AIManager` guarda en ese *callback* la propiedad de la `OnDeviceSession`

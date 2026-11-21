@@ -1,0 +1,164 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 17:55:00 +0000
+Subject: [PATCH] v8: pending: c37ab55c4a (15.6.75.76, crbug 579314138)
+
+V8 15.6.75.76 change from the 8078 branch: bound the string length in
+String::ToStdString and ToCString with SBXCHECK_LE against
+String::kMaxLength, so a string corrupted inside the sandbox cannot
+produce a UTF-8 length that ICU truncates to -1. Byte-identical to
+upstream .76 on 15.6.75.66. Goes after the 3.2.0 cache epoch patch
+(3.2-v8/0002); no epoch change needed. V8 gitlink unchanged.
+---
+ patches/v8/FLYWEB-SECURITY.md                 | 16 +++++++
+ patches/v8/src-objects-string.cc.patch        | 28 ++++++++++++
+ ...ndbox-regress-regress-579314138-1.js.patch | 45 +++++++++++++++++++
+ ...ndbox-regress-regress-579314138-2.js.patch | 25 +++++++++++
+ 4 files changed, 114 insertions(+)
+ create mode 100644 patches/v8/src-objects-string.cc.patch
+ create mode 100644 patches/v8/test-mjsunit-sandbox-regress-regress-579314138-1.js.patch
+ create mode 100644 patches/v8/test-mjsunit-sandbox-regress-regress-579314138-2.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 0d50941..958db8f 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,19 @@
++# FlyWeb: pending for the next release, V8 15.6.75.76 fix c37ab55c4a (crbug 579314138)
++
++SEGURIDAD-PORTES-33, 20-11-2026 (softmac `FlyWeb/seguridad/pendiente/brave-core/0005`). For FlyWeb 3.2.0, on top of
++`FlyWeb/parches/3.2-v8/0002` (the 3.2.0 cache epoch; V8 15.6.75.66 with all the patches below; gitlink unchanged).
++
++- **c37ab55c4a** [M156] "[sandbox] Bound length in String::ToStdString and ToCString" (bugs 587681388, 585869521,
++  579314138; V8 15.6.75.76 on the 8078 branch, cherry-pick of 133ba8e4a9). A string corrupted inside the V8 sandbox
++  could make `ToStdString`/`ToCString` compute 0xFFFFFFFF UTF-8 bytes, which ICU then truncated to -1 (out-of-bounds
++  write in `ultag_parse`). Two `SBXCHECK_LE(length, String::kMaxLength)` close it. Applied to 15.6.75.66 the three
++  files are byte-identical to upstream 15.6.75.76; no other `patches/v8` file touches them.
++- **Cache epoch:** not needed for this one (runtime C++ only, no bytecode or generated code change); the 3.2.0
++  bump to 38 above covers the release anyway.
++
++To check (D8-LINUX): `d8`, mjsunit `sandbox/regress/regress-579314138-1` and `-2` (they need `--sandbox-testing`,
++i.e. a build with `v8_enable_sandbox` and the sandbox testing mode; skip and say so if unavailable).
++
+ # FlyWeb 3.2.0: final cache epoch
+ 
+ MOTOR-47, 20-11-2026 (softmac `FlyWeb/parches/3.2-v8/0002`, order agreed with SEGURIDAD-PORTES-33). The 3.2.0 changes
+diff --git a/patches/v8/src-objects-string.cc.patch b/patches/v8/src-objects-string.cc.patch
+new file mode 100644
+index 0000000..7ce49c4
+--- /dev/null
++++ b/patches/v8/src-objects-string.cc.patch
+@@ -0,0 +1,28 @@
++diff --git a/src/objects/string.cc b/src/objects/string.cc
++index 429cf2d21345c729909cdfbfebcde8e115d1b45e..dbfea808398783e5b58b42ef8e796260e5883c3a 100644
++--- a/src/objects/string.cc
+++++ b/src/objects/string.cc
++@@ -28,6 +28,7 @@
++ #include "src/objects/string-comparator.h"
++ #include "src/objects/string-inl.h"
++ #include "src/objects/tagged.h"
+++#include "src/sandbox/check.h"
++ #include "src/strings/char-predicates.h"
++ #include "src/strings/string-builder-inl.h"
++ #include "src/strings/string-hasher.h"
++@@ -734,6 +735,7 @@ std::unique_ptr<char[]> String::ToCString(uint32_t offset, uint32_t length,
++                                           size_t* length_return) {
++   DCHECK_LE(length, this->length());
++   DCHECK_LE(offset, this->length() - length);
+++  SBXCHECK_LE(length, String::kMaxLength);
++ 
++   StringCharacterStream stream(this, offset);
++ 
++@@ -765,6 +767,7 @@ std::unique_ptr<char[]> String::ToCString(size_t* length_return) {
++ 
++ std::string String::ToStdString() {
++   uint32_t length = this->length();
+++  SBXCHECK_LE(length, String::kMaxLength);
++ 
++   StringCharacterStream stream(this, 0);
++   size_t utf8_bytes = stream.CountUtf8Bytes(length);
+diff --git a/patches/v8/test-mjsunit-sandbox-regress-regress-579314138-1.js.patch b/patches/v8/test-mjsunit-sandbox-regress-regress-579314138-1.js.patch
+new file mode 100644
+index 0000000..e7a7ab0
+--- /dev/null
++++ b/patches/v8/test-mjsunit-sandbox-regress-regress-579314138-1.js.patch
+@@ -0,0 +1,45 @@
++diff --git a/test/mjsunit/sandbox/regress/regress-579314138-1.js b/test/mjsunit/sandbox/regress/regress-579314138-1.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..362f2b4bec9dc5e0ef5a55b7c8493f1421f4430b
++--- /dev/null
+++++ b/test/mjsunit/sandbox/regress/regress-579314138-1.js
++@@ -0,0 +1,39 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --sandbox-testing
+++
+++if (typeof Intl !== 'undefined') {
+++  // Build a ConsString DAG of 3-byte UTF-8 code units (U+0800) with >= 2^31
+++  // virtual characters, keeping intermediate lengths small so JS string
+++  // concatenation does not reject them.
+++  let s = '\u0800'.repeat(16);
+++  for (let i = 0; i < 27; i++) {
+++    s = s + s;
+++    Sandbox.corruptObjectField(s, 'length', 32);
+++  }
+++  // 0x55555555 * 3 == 0xFFFFFFFF UTF-8 bytes, which truncates to -1 in ICU's
+++  // 32-bit signed StringPiece length.
+++  Sandbox.corruptObjectField(s, 'length', 0x55555555);
+++
+++  const kHeapObjectTag = 1;
+++  const taggedOf = obj => Sandbox.getAddressOf(obj) + kHeapObjectTag;
+++
+++  const fmt = new Intl.NumberFormat('en-US');
+++  const expectedLocaleTagged = taggedOf(fmt.resolvedOptions().locale);
+++  const fmtSize = Sandbox.getSizeOf(fmt);
+++  let localeOffset = -1;
+++  for (let offset = 0; offset < fmtSize; offset += 4) {
+++    if (Sandbox.readObjectField(fmt, offset, 32) === expectedLocaleTagged) {
+++      localeOffset = offset;
+++      break;
+++    }
+++  }
+++  assertTrue(localeOffset >= 0);
+++
+++  Sandbox.corruptObjectField(fmt, localeOffset, taggedOf(s));
+++
+++  fmt.formatRange(1, 2);
+++  assertUnreachable('Corrupted String length should be caught by SBXCHECK');
+++}
+diff --git a/patches/v8/test-mjsunit-sandbox-regress-regress-579314138-2.js.patch b/patches/v8/test-mjsunit-sandbox-regress-regress-579314138-2.js.patch
+new file mode 100644
+index 0000000..8997662
+--- /dev/null
++++ b/patches/v8/test-mjsunit-sandbox-regress-regress-579314138-2.js.patch
+@@ -0,0 +1,25 @@
++diff --git a/test/mjsunit/sandbox/regress/regress-579314138-2.js b/test/mjsunit/sandbox/regress/regress-579314138-2.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..6a8b6fcbd0de17ec29aae83579e32f28b0aaa8ff
++--- /dev/null
+++++ b/test/mjsunit/sandbox/regress/regress-579314138-2.js
++@@ -0,0 +1,19 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --sandbox-testing --allow-natives-syntax
+++
+++let s = '\u0800'.repeat(16);
+++for (let i = 0; i < 27; i++) {
+++  s = s + s;
+++  Sandbox.corruptObjectField(s, 'length', 32);
+++}
+++Sandbox.corruptObjectField(s, 'length', 0x55555555);
+++
+++if (typeof Intl !== 'undefined') {
+++  new Intl.DisplayNames('en', {type: 'language'}).of(s);
+++} else {
+++  %StringToCString(s);
+++}
+++assertUnreachable('Corrupted String length should be caught by SBXCHECK');
+-- 
+2.43.0
+

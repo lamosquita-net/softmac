@@ -4,7 +4,14 @@ e943337517a9f4bb5f24d7fd4419ed7bd4f1852689d8cafb1d8b5af3f1db2420  chromium/0001-
 fc9ad429bafa1fd2d08b1d2dfa240048131616f6138c00295428f34f19a109c9  chromium/0003-M156-Guard-ImageProcessor-against-destruction-during.patch
 3f7158dc15949bfc1144f6348afd7012b3803d99b27d25fdaaabeeeef2f48896  chromium/0004-M156-Scope-InputDeviceCapabilities-to-target-window-.patch
 22d17e8705309017a45cecf64baf243548274d6f581de51ec50e6fae4d275718  chromium/0005-M156-SimpleCache-Prevent-doomed-entries-from-mutatin.patch
+0f8705089e2812ac3ad5a9e562c7fca021f10159c6b8aa965f0ab1e10e6f1e60  chromium/0006-M156-Reland-Update-last-committed-service-worker-cli.patch
+9a839604f6c332c6da815f5f54440d2c22434f539416bc13d9943d1d574855f7  chromium/0007-M156-Blink-Zero-initialize-ImageDataBuffer-readback-.patch
+8a651a78269d1a71f4e725f7608c75761bd633d5cddf9c902ca8855ffd6a56c4  chromium/0008-M156-Ensure-clean-style-and-slot-assignments-before-.patch
 32148aba783ff8e1f953537a59e1ab65814178224e71f414ec3dc048e8a2ffce  brave-core/0001-v8-pending-d68cecd900-15.6.75.72-crbug-583479274.patch
+b873300c20741b1b3f063aaeca6edccadbbbaa7942021dbeabec51724a02d6aa  brave-core/0002-v8-pending-a0f2c9f8c3-M159-merge-27e138a575-crbug-58.patch
+a215c8fcff758417f3277eca9902072db32b6814eaabbaaed10c599ae1723ff8  brave-core/0003-v8-pending-ceb90d38eb-15.6.75.74-SHA-256-code-cache-.patch
+a12e45054723331bfbb63551a47eeb5740996bfa205e9cd58c885b69d3466a5e  brave-core/0004-v8-pending-51512210b3-M159-merge-202e0e7f26-crbug-58.patch
+d4becb8e63939941854d4e714e2b5fa43a0c3a9f992238779e11d145f2273bb3  brave-core/0005-v8-pending-c37ab55c4a-15.6.75.76-crbug-579314138.patch
 c62b7081bf285a6968e34a9a75219b0bd58c9167d96357d7758e1a174984e4c4  skia/0001-M156-ganesh-Guard-GrBufferAllocPool-against-overflow.patch
 5c3a0dd308b733a060dc6df04f063cf0107c0e3e8ce0cb223dbe211e05c8a5e5  skia/0002-M156-SkScalerContext-Harden-LCD16-and-getImage-bounds.patch
 75106fc59b56685184f3b1e8b2c082790224fda96648e2e897e4552e523662fb  skia/0003-M156-Ganesh-Restrict-scissor-by-dst-read-bounds.patch
