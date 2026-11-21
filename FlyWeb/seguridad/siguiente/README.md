@@ -31,6 +31,7 @@ Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTE
 | `28fb53154e` (02:35 UTC) | [M156] «Don't scroll when a focused input's list target changes» (583179912, merge 588196773) | Sí (abajo) | `chromium/0007` |
 | `3df8aa144a` (03:32 UTC) | *Roll* de pruebas internas de Glic (`chrome/browser/glic/e2e_test/internal`) | — | — |
 | `5d427d384f` (04:50 UTC) | [M156] «Swap event_queue_ before filtering in DispatchEvents» (577088251, merge 579732836) | Sí (abajo) | `chromium/0008` |
+| `0729e735c3` (17:39 UTC) | [M156] «[variations] Support hybrid PQ seed signatures and key rotation» (588691630; también en 8078_108 `ea19f97373`) | No aplica: verifica semillas de Variations de Google y en FlyWeb Variations apunta a una URL inerte (no se descargan semillas) | — |
 | `04db7fff13` (00:10 UTC) | [M156] «SchemeHostPort: Reject empty host for non-file SCHEME_WITH_HOST schemes» (586171393, merge 588196153) | Sí | Ya está: es **idéntico** (`patch-id` igual) a `portes-159/chromium/0002` (#1159) |
 
 El tag **156.0.8078.113** (`970863f8c7`, 20-11) **no sirve de referencia**. Es un *hotfix* en la sub-rama
@@ -50,7 +51,7 @@ El resto son cambios de VERSION y de pruebas. Así que **con este PR dentro, la 
 se queda en la .112 más lo de #1147 y #1159. Lo que se declare lo decide Titín. Además, FlyWeb lleva arreglos que la
 .119 no tiene: `brave-core/0004` (585614984, aún sin merge en la 15.6) y, aquí, `chromium/0009`–`0010` (menús
 FOR_DROP; hasta el 21-11 eran `portes-159/chromium/0001`).
-La rama 8078 sigue en la .120 (punta `5d427d384f`).
+La rama 8078 sigue en la .120 (punta `0729e735c3`, 21-11 17:39 UTC).
 
 ## `chromium/0001`: f95dd51f6f (bugs 583179913 y 584370079)
 
