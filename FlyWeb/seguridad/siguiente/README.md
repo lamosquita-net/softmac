@@ -11,7 +11,7 @@ Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTE
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
 | chromium | árbol **`2bb85047ec`** (`pendiente/chromium/0001`–`0008` + `portes-159/chromium/0001`–`0002`) | `chromium/0001`–`0008` | **`861699b126`** (tras `0007`: `3564a4b08e`; tras `0006`: `c9905873db`; tras `0001`: `faec7dc5b9`; `0002`: `ee335593f3`; `0003`: `6d4ab28029`; `0004`: `1ec5df9eea`; `0005`: `f4eb399ad1`) |
-| brave-core | árbol **`78df46b5d6`** (`pendiente/brave-core/0001`–`0004`, `3.2-v8/0001`–`0002` y `pendiente/brave-core/0005`; `patches/v8` = `6f8c5d4c51`, V8 = `9914512d91`) | `brave-core/0001`–`0002` | **`171fa48918`** (`patches/v8` = **`16241cdd76`**; con todos los `patches/v8` sobre la V8 15.6.75.66, árbol de V8 **`ac3996452a`**; tras `0001`: brave-core `1b0908a323`, `patches/v8` `bc401fbf50`, V8 `41e5bb46c4`) |
+| brave-core | árbol **`ea6b817c88`** (corregido el 21-11: `pendiente/brave-core/0003` regenerado, ya no borra el `0002`) (`pendiente/brave-core/0001`–`0004`, `3.2-v8/0001`–`0002` y `pendiente/brave-core/0005`; `patches/v8` = `2b1c8d3308`, V8 = `8566fd42e4`) | `brave-core/0001`–`0002` | **`c659e30d69`** (`patches/v8` = **`f2b4dc00d6`**; con todos los `patches/v8` sobre la V8 15.6.75.66, árbol de V8 **`3c01845192`**; tras `0001`: brave-core `91d5860141`, `patches/v8` `c76badf8fd`, V8 `609059ae75`) |
 
 ## Rama 8078 después del cierre de la tanda
 
