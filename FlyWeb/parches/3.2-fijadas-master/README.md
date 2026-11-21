@@ -2,7 +2,7 @@
 
 MOTOR-47, 21-11, por encargo de COORDINACIÓN-58. **Sin compilar.** No entran en ninguna versión hasta que lo decida Titín.
 SEGURIDAD-PORTES-33: **APTO** para 0001 y 0002 (21-11, `buzon/COORDINACION/20261121-2301-SEGURIDAD-PORTES-33.md`). El 0003
-son sus mejoras opcionales; pendiente de su visto.
+son sus mejoras opcionales: **APTO** también (`buzon/COORDINACION/20261121-2303-SEGURIDAD-PORTES-33.md`).
 
 Son dos arreglos que Brave hizo en `browser/ui/tabs/shared_pinned_tab_service.cc` después de la 1.98 (en master). Están
 portados a nuestro fichero, que lleva además los cambios de FlyWeb (restauración de sesión, salida de la app y
