@@ -199,7 +199,7 @@ sin esperar al merge de la 15.6, por el precedente de `pendiente/brave-core/0002
   arreglo.
 - Cambia código optimizado: la 3.2.1 vuelve a subir `kFlyWebCacheEpoch` (38 → 39), en `brave-core/0002`. Nota en inglés al principio de `patches/v8/FLYWEB-SECURITY.md`.
 
-### Veredicto (regla 17): **APTO**, `brave-core/0001`, si D8-LINUX lo da en verde
+### Veredicto (regla 17): **APTO**, `brave-core/0001` (D8-LINUX en verde el 21-11)
 
 Pruebas (encargo de D8-LINUX de la 3.2.0, en una pasada aparte «3.2.1» que no bloquea la 3.2.0): mjsunit con y sin Maglev,
 en especial `compiler/regress-585624828`, y `cctest/test-representation-change/*`, en *release* y en *debug*.
@@ -233,3 +233,17 @@ local para poder pasar cctest).
 ### Veredicto (regla 17): **APTO**, `brave-core/0003`
 
 Prueba (D8-LINUX): cctest compila sin arreglos locales; `cctest/test-jump-threading/*`.
+
+## D8-LINUX, 21-11: 3.2.1 en verde
+
+D8-LINUX-5, con `siguiente/brave-core/0001`–`0003` (`0ee2c441e8`) sobre la 3.2.0 corregida:
+
+- Árboles iguales a los esperados: brave-core `de0b6a69c9`, `patches/v8` `a4c9a44d28`, V8 `c8e7b3da27`.
+- mjsunit 9202/9204 con y sin Maglev. La que sube es `compiler/regress-585624828`, que pasa. Las 2 rojas son las de
+  siempre: el texto del `SyntaxError` de los parches del parser.
+- Pasan, en *release* y *debug*, con y sin Maglev:
+  - `regress-585624828`;
+  - `compiler/*`, `regress/*` y `code-cache*`: 4891/4891;
+  - cctest `test-representation-change/*` y `test-serialize/*`: 119/119;
+  - cctest `test-jump-threading/*`: 41/41, sin arreglo local.
+- Ningún DCHECK ni fallo nuevo.
