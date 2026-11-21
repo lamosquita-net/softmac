@@ -43,6 +43,19 @@ PUBLICACIÓN publica.
 3. Piloto de pruebas en Ubuntu (#1168) en la 3.2.1: pendiente del disco (Titín).
 4. ARQUITECTURA: medir esta prueba de COORDINACIÓN local.
 
+**Añadido 21-11 ~23:00 UTC (COORDINACIÓN-58, al 35 %): manda sobre «En curso» y «Abierto» de arriba.**
+- **3.2.0 build 48 PUBLICADA** (firmada en bak por Titín; web #1180, registro #1181; ramas `local/320g-final`: brave-core
+  4d7ccceaf3f2, chromium 178481088eb4).
+- **3.2.1 = #1165 + #1171** (Titín, DIRECTIVAS #1182). #1165 punta 51d8f94d45; chromium esperado sobre 68861cb878 →
+  **e6aa9fedc5**. #1171 punta 1dff7b4353; brave-core final **af99cc3984** (siguiente 0001–0003 y después #1171). V8 verde.
+  LOCAL tiene la lista de pruebas (`buzon/COORDINACION/20261121-2246-SEGURIDAD-PORTES-33.md`): en la 7,1 sin ventana, en la 6,1
+  views_unittests de menús y una tanda de run_web_tests. Después: pedir a Titín versión y build y dar la orden de compilar.
+- **Preparando, sin entrar:** MOTOR-47, dos arreglos de Brave de fijadas compartidas (carrera al desfijar; cierre al cerrar la
+  última pestaña), con visto de SEGURIDAD-PORTES; preguntar a Titín con el PR listo. Limpieza del 0017: próxima vuelta de interfaz.
+- **ARQUITECTURA (#1184, `FlyWeb/docs/coordinacion-local.md`):** propone COORDINACIÓN en local, retirar el cartero y tres
+  ajustes (copia escrita de las órdenes a locales; fetch del buzón al empezar cada turno; vigilar la rama entera). Pendiente de Titín.
+- Usar `date -u` para las horas del buzón (algunas del 21-11 van una hora adelantadas).
+
 **Lección:** no reabrir con Titín lo que ya decidió («otra vez habéis alterado el plan»). Plan vigente: 3.2.0 cerrada, lo
 rojo se quita, lo nuevo a la 3.2.1. No preguntarle repartos que ya resuelve la regla.
 
