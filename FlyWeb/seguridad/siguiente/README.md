@@ -29,6 +29,20 @@ El tag **156.0.8078.113** (`970863f8c7`, 20-11) **no sirve de referencia**. Es u
 `branch-heads/8078_108`, hecha desde 8078@#2244 (16-11, anterior a la .111), que solo añade el cambio de Variations.
 Tiene menos arreglos que la .112.
 
+## Tag 156.0.8078.119 (`1f56333f76`, rama principal 8078; visto el 21-11 a las 02:30 UTC)
+
+Su DEPS tiene V8 `f08ef923d3` (15.6.75.76) y **las mismas** Skia (`9d96dfeb45`), ANGLE (`0b547a1161`), PDFium y Dawn que
+la .112. Todo lo que hay entre `.112` y `.119` en la rama está ya preparado:
+
+- `pendiente/chromium/0003`–`0008` y `brave-core/0002`, `0003` y `0005` (V8 .75, .74 y .76), en #1147;
+- `portes-159/chromium/0002` (SchemeHostPort), en #1159;
+- `siguiente/chromium/0001`–`0006`, aquí.
+
+El resto son cambios de VERSION y de pruebas. Así que **con este PR dentro, la versión cubre la .119 entera**. Sin él,
+se queda en la .112 más lo de #1147 y #1159. Lo que se declare lo decide Titín. Además, FlyWeb lleva arreglos que la
+.119 no tiene: `brave-core/0004` (585614984, aún sin merge en la 15.6) y `portes-159/chromium/0001` (menús FOR_DROP).
+La rama 8078 sigue en la .120.
+
 ## `chromium/0001`: f95dd51f6f (bugs 583179913 y 584370079)
 
 Mientras se ejecutan los manejadores por defecto de un evento, su `target` vuelve a ser el pseudo-elemento en bruto si
