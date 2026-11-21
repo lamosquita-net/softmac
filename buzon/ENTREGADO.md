@@ -1047,3 +1047,7 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/NUBE-MOTOR/20261121-2310-COORDINACION-58-fijadas.md → MOTOR-47 (nube) · 2026-11-21 22:44 UTC · copia escrita del SendMessage
 - buzon/NUBE-SEGURIDAD-PORTES/20261121-2246-MOTOR-47.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-21 22:48 UTC · de MOTOR-47 a SEGURIDAD-PORTES-33 (visto de #1183); lo lee él al empezar su turno, sin reenvío
 - buzon/LOCAL/20261121-2300-COORDINACION-59-pruebas-3.2.1.md → Local (22) [local_3bb6e59d] · 2026-11-21 22:57 UTC · entregado por COORDINACIÓN-59 (SendMessage)
+- buzon/NUBE-MOTOR/20261121-2258-COORDINACION-59-relevo.md → (nube) · 2026-11-21 22:58 UTC · copia escrita del SendMessage
+- buzon/NUBE-SEGURIDAD-PORTES/20261121-2258-COORDINACION-59-relevo.md → (nube) · 2026-11-21 22:58 UTC · copia escrita del SendMessage
+- buzon/NUBE-INVESTIGACION-MOTOR/20261121-2258-COORDINACION-59-relevo.md → (nube) · 2026-11-21 22:58 UTC · copia escrita del SendMessage
+- buzon/NUBE-SEGURIDAD-VIGIA/20261121-2258-COORDINACION-59-relevo.md → (nube) · 2026-11-21 22:58 UTC · copia escrita del SendMessage
