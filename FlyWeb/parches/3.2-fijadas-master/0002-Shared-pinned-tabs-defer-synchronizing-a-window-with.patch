@@ -1,0 +1,198 @@
+From 06b3d4f4a1beaa2da43e9303bdc318008065f6e2 Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 22:45:57 +0000
+Subject: [PATCH 2/2] Shared pinned tabs: defer synchronizing a window with a
+ pending unpin
+
+From Brave master (after 1.98). Unpinning a shared pinned tab posts
+OnTabUnpinned(), which updates |pinned_tab_data_| later. If the window
+is synchronized in between (SynchronizeNewBrowser(), e.g. when it is
+activated), it has one pinned tab fewer than |pinned_tab_data_|, is
+taken as out of sync and gets a stray dummy pinned tab. Track the models
+with a pending unpin (cleared in OnTabUnpinned() and when a model is
+destroyed) and defer their synchronization to a task posted after it.
+Browser test SynchronizeRightAfterUnpinAddsNoStrayPinnedTab.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ browser/ui/tabs/shared_pinned_tab_service.cc  | 38 +++++++++++++++++++
+ browser/ui/tabs/shared_pinned_tab_service.h   | 13 +++++++
+ .../shared_pinned_tab_service_browsertest.cc  | 32 ++++++++++++++++
+ 3 files changed, 83 insertions(+)
+
+diff --git a/browser/ui/tabs/shared_pinned_tab_service.cc b/browser/ui/tabs/shared_pinned_tab_service.cc
+index bd44cf1710084402ee6c1befd7518cc6dc332c6d..81bd712564fcbad67280c96bde6aef8ac4dd1e39 100644
+--- a/browser/ui/tabs/shared_pinned_tab_service.cc
++++ b/browser/ui/tabs/shared_pinned_tab_service.cc
+@@ -258,6 +258,7 @@ void SharedPinnedTabService::Shutdown() {
+   last_active_browser_ = nullptr;
+   closing_browsers_.clear();
+   restored_browsers_.clear();
++  pending_unpin_models_.clear();
+   session_restored_subscription_ = {};
+   pinned_tab_data_.clear();
+   change_source_model_ = nullptr;
+@@ -470,6 +471,7 @@ void SharedPinnedTabService::OnTabPinnedStateChanged(tabs::TabInterface* tab,
+                              .contents_owner_model = tab_strip_model});
+     SynchronizeNewPinnedTab(index);
+   } else {
++    pending_unpin_models_.push_back(tab_strip_model);
+     base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+         FROM_HERE,
+         base::BindOnce(&SharedPinnedTabService::OnTabUnpinned,
+@@ -523,6 +525,13 @@ void SharedPinnedTabService::OnTabChangedAt(tabs::TabInterface* tab,
+   }
+ }
+ 
++void SharedPinnedTabService::OnTabStripModelDestroyed(
++    TabStripModel* tab_strip_model) {
++  // The posted OnTabUnpinned() may never see this model, so don't keep a
++  // dangling pointer to it.
++  std::erase(pending_unpin_models_, tab_strip_model);
++}
++
+ void SharedPinnedTabService::OnProfileWillBeDestroyed(Profile* profile) {
+   profile_will_be_destroyed_ = true;
+ }
+@@ -689,6 +698,11 @@ void SharedPinnedTabService::OnTabUnpinned(
+     TabStripModel* tab_strip_model,
+     base::WeakPtr<content::WebContents> contents,
+     int index) {
++  if (auto pending = std::ranges::find(pending_unpin_models_, tab_strip_model);
++      pending != pending_unpin_models_.end()) {
++    pending_unpin_models_.erase(pending);
++  }
++
+   DCHECK(contents);
+ 
+   LOCK_REENTRANCE(tab_strip_model);
+@@ -805,6 +819,19 @@ void SharedPinnedTabService::SynchronizeNewBrowser(
+   }
+ 
+   auto* model = browser->GetTabStripModel();
++  if (std::ranges::contains(pending_unpin_models_, model)) {
++    // |model| has just unpinned a tab, but OnTabUnpinned() hasn't updated
++    // |pinned_tab_data_| yet. Comparing them now would treat the browser as out
++    // of sync and add a stray dummy pinned tab. Synchronize once the pending
++    // OnTabUnpinned() has run: tasks run in the order they were posted.
++    DVLOG(2) << __FUNCTION__ << " Deferred: unpin is pending";
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++        FROM_HERE,
++        base::BindOnce(&SharedPinnedTabService::SynchronizeDeferredBrowser,
++                       weak_ptr_factory_.GetWeakPtr(), browser->GetWeakPtr()));
++    return;
++  }
++
+   std::vector<PinnedTabData> new_pinned_tabs;
+   for (auto i = 0; i < model->IndexOfFirstNonPinnedTab(); i++) {
+     new_pinned_tabs.push_back({.renderer_data = tabs::TabData::FromTabInterface(
+@@ -861,6 +888,17 @@ void SharedPinnedTabService::SynchronizeNewBrowser(
+   }
+ }
+ 
++void SharedPinnedTabService::SynchronizeDeferredBrowser(
++    base::WeakPtr<BrowserWindowInterface> browser) {
++  if (!browser || !browsers_.contains(browser.get()) ||
++      closing_browsers_.contains(browser.get()) ||
++      browser->IsDeleteScheduled()) {
++    return;
++  }
++
++  SynchronizeNewBrowser(browser.get());
++}
++
+ void SharedPinnedTabService::MoveSharedWebContentsToActiveBrowser(int index) {
+   if (!last_active_browser_) {
+     DVLOG(2)
+diff --git a/browser/ui/tabs/shared_pinned_tab_service.h b/browser/ui/tabs/shared_pinned_tab_service.h
+index 169e07fe8d81c251ae03dc0c19c78b0ef1547065..35872a538ab350dd0b357ec2de7c3959528db2ec 100644
+--- a/browser/ui/tabs/shared_pinned_tab_service.h
++++ b/browser/ui/tabs/shared_pinned_tab_service.h
+@@ -10,6 +10,8 @@
+ #include <vector>
+ 
+ #include "base/callback_list.h"
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
+ #include "base/scoped_observation.h"
+ #include "chrome/browser/profiles/profile_observer.h"
+ #include "chrome/browser/ui/browser_window/public/browser_collection_observer.h"
+@@ -82,6 +84,7 @@ class SharedPinnedTabService : public KeyedService,
+   void OnTabPinnedStateChanged(tabs::TabInterface* tab, int index) override;
+   void OnTabChangedAt(tabs::TabInterface* tab,
+                       TabChangeType change_type) override;
++  void OnTabStripModelDestroyed(TabStripModel* tab_strip_model) override;
+ 
+   // ProfileWillBeDestroyed;
+   void OnProfileWillBeDestroyed(Profile* profile) override;
+@@ -103,6 +106,10 @@ class SharedPinnedTabService : public KeyedService,
+   void SynchronizeDeletedPinnedTab(int index);
+   void SynchronizeMovedPinnedTab(int from, int to);
+   void SynchronizeNewBrowser(BrowserWindowInterface* browser);
++  // FlyWeb (from Brave master): retries SynchronizeNewBrowser() for a browser
++  // whose synchronization was deferred behind a pending unpin.
++  void SynchronizeDeferredBrowser(
++      base::WeakPtr<BrowserWindowInterface> browser);
+ 
+   void MoveSharedWebContentsToActiveBrowser(int index);
+   void MoveSharedWebContentsToBrowser(BrowserWindowInterface* browser,
+@@ -141,6 +148,12 @@ class SharedPinnedTabService : public KeyedService,
+ 
+   raw_ptr<TabStripModel> change_source_model_ = nullptr;
+ 
++  // FlyWeb (from Brave master): models that unpinned a tab whose posted
++  // OnTabUnpinned() has not run yet. Until it runs, such a model has one
++  // pinned tab fewer than |pinned_tab_data_|, which must not be mistaken for
++  // an out-of-sync browser. One entry per pending unpin.
++  std::vector<raw_ptr<TabStripModel>> pending_unpin_models_;
++
+   bool profile_will_be_destroyed_ = false;
+ 
+   base::ScopedObservation<Profile, ProfileObserver> profile_observation_{this};
+diff --git a/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc b/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc
+index e0c84182acfe3b7402e0af464e070b0cf3e92c80..ca37a7b001df8ee0d1c2de206c2699e0cbe98edf 100644
+--- a/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc
++++ b/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc
+@@ -362,6 +362,38 @@ IN_PROC_BROWSER_TEST_F(SharedPinnedTabServiceBrowserTest,
+   EXPECT_FALSE(tab_strip_model_1->IsTabPinned(0));
+ }
+ 
++// FlyWeb (from Brave master): a window synchronized right after it unpinned a
++// tab, before the posted OnTabUnpinned() runs, must not be taken as out of
++// sync and get a stray dummy pinned tab.
++IN_PROC_BROWSER_TEST_F(SharedPinnedTabServiceBrowserTest,
++                       SynchronizeRightAfterUnpinAddsNoStrayPinnedTab) {
++  auto* browser_1 = browser();
++  auto* tab_strip_model_1 = browser_1->tab_strip_model();
++  chrome::AddTabAt(browser_1, GURL(), /*index=*/-1, /*foreground=*/true);
++  tab_strip_model_1->SetTabPinned(0, /* pinned= */ true);
++
++  auto* browser_2 = CreateNewBrowser();
++  auto* tab_strip_model_2 = browser_2->GetTabStripModel();
++  WaitUntil(base::BindLambdaForTesting(
++      [&]() { return tab_strip_model_2->count() > 1; }));
++  ASSERT_TRUE(tab_strip_model_2->IsTabPinned(0));
++
++  // Unpin in the first window and synchronize it at once, as activating it
++  // would, before the posted OnTabUnpinned() runs.
++  auto* shared_pinned_tab_service = GetForBrowser(browser_1);
++  tab_strip_model_1->SetTabPinned(0, /* pinned= */ false);
++  shared_pinned_tab_service->OnBrowserActivated(browser_1);
++
++  // Once the posted tasks have run, no window has a pinned tab.
++  WaitUntil(base::BindLambdaForTesting([&]() {
++    return tab_strip_model_1->IndexOfFirstNonPinnedTab() == 0 &&
++           tab_strip_model_2->IndexOfFirstNonPinnedTab() == 0;
++  }));
++  base::RunLoop().RunUntilIdle();
++  EXPECT_EQ(0, tab_strip_model_1->IndexOfFirstNonPinnedTab());
++  EXPECT_EQ(0, tab_strip_model_2->IndexOfFirstNonPinnedTab());
++}
++
+ IN_PROC_BROWSER_TEST_F(SharedPinnedTabServiceBrowserTest,
+                        CloseWindowWhenAllTabsAreSharedPinnedTabs) {
+   // Given that there're multiple windows with shared pinned tabs
+-- 
+2.43.0
+
