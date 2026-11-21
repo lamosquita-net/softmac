@@ -41,5 +41,5 @@ estaban, no por el `0006`.** Predicción: sin el `0006` saldrán igual de rojas.
   pruebas de *upstream* que chocan con valores por defecto de Brave:
   `-ServiceWorkerBrowserTest.FetchPageWithSaveData:ServiceWorkerBrowserTest.CrossOriginFetchWithSaveData:ServiceWorkerBrowserTest.StoppedServiceWorkerWakesUpOnSubresource`.
   `FetchPageWithSaveDataPassThroughOnFetch` debería fallar por lo mismo si entra en el filtro.
-- Si se quiere una prueba positiva del Save-Data, se puede pasar la misma con `--enable-features=` no basta: está en
-  código. No merece la pena.
+- Las dos de Save-Data no se pueden «arreglar» con una bandera: el filtro de Brave está en código. La de *prefetch*
+  sí pasaría con `--enable-features=PrefetchServiceWorker`, si LOCAL quiere confirmar la causa.
