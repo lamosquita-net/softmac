@@ -4,13 +4,15 @@ Desde el 20-11 a las 20:01 UTC (COORDINACIÓN-57, confirmado por Titín en `docs
 3.2.0 está cerrada: `seguridad/pendiente/` (#1147) y `seguridad/portes-159/` (#1159). Lo que llegue después y **no**
 sea Alto, Crítico o KEV se prepara aquí. **Titín (21-11 ~06:00 UTC, `docs/DIRECTIVAS.md`, #1166): todo esto es la 3.2.1**;
 la 3.2.0 se cierra con #1147 y #1159.
+**21-11 (~13:55 UTC, decisión de Titín vía COORDINACIÓN-58):** el `portes-159/chromium/0001` (menús FOR_DROP) dio rojo en
+LOCAL y sale de la 3.2.0. Viene aquí, con su prerrequisito, como `chromium/0009`–`0010`.
 Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTES (desde la -33, 21-11-2026).
 
 ## Base
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`2bb85047ec`** (`pendiente/chromium/0001`–`0008` + `portes-159/chromium/0001`–`0002`) | `chromium/0001`–`0008` | **`861699b126`** (tras `0007`: `3564a4b08e`; tras `0006`: `c9905873db`; tras `0001`: `faec7dc5b9`; `0002`: `ee335593f3`; `0003`: `6d4ab28029`; `0004`: `1ec5df9eea`; `0005`: `f4eb399ad1`) |
+| chromium | árbol **`1c458472cc`** (`pendiente/chromium/0001`–`0008` + `portes-159/chromium/0002`; corregido el 21-11: el `portes-159/chromium/0001` salió de la 3.2.0 y vino aquí como `0009`–`0010`) | `chromium/0001`–`0010` | **`a2ffc0a48f`** (tras `0001`: `9a6eae50fc`; `0002`: `2ed9e2bbb4`; `0003`: `e9ef98023b`; `0004`: `2228247133`; `0005`: `d150646219`; `0006`: `526b6302e6`; `0007`: `dcf79cda2e`; `0008`: `ca4469ab41`; `0009`: `a864076037`). Los árboles de antes (base `2bb85047ec`, final `861699b126`) ya no valen |
 | brave-core | árbol **`ea6b817c88`** (corregido el 21-11: `pendiente/brave-core/0003` regenerado, ya no borra el `0002`) (`pendiente/brave-core/0001`–`0004`, `3.2-v8/0001`–`0002` y `pendiente/brave-core/0005`; `patches/v8` = `2b1c8d3308`, V8 = `8566fd42e4`) | `brave-core/0001`–`0003` | **`de0b6a69c9`** (`patches/v8` = **`a4c9a44d28`**; con todos los `patches/v8` sobre la V8 15.6.75.66, árbol de V8 **`c8e7b3da27`**; tras `0002`: brave-core `c659e30d69`, `patches/v8` `f2b4dc00d6`, V8 `3c01845192`; tras `0001`: brave-core `91d5860141`, `patches/v8` `c76badf8fd`, V8 `609059ae75`) |
 
 ## Rama 8078 después del cierre de la tanda
@@ -46,7 +48,8 @@ la .112. Todo lo que hay entre `.112` y `.119` en la rama está ya preparado:
 
 El resto son cambios de VERSION y de pruebas. Así que **con este PR dentro, la versión cubre la .119 entera**. Sin él,
 se queda en la .112 más lo de #1147 y #1159. Lo que se declare lo decide Titín. Además, FlyWeb lleva arreglos que la
-.119 no tiene: `brave-core/0004` (585614984, aún sin merge en la 15.6) y `portes-159/chromium/0001` (menús FOR_DROP).
+.119 no tiene: `brave-core/0004` (585614984, aún sin merge en la 15.6) y, aquí, `chromium/0009`–`0010` (menús
+FOR_DROP; hasta el 21-11 eran `portes-159/chromium/0001`).
 La rama 8078 sigue en la .120 (punta `5d427d384f`).
 
 ## `chromium/0001`: f95dd51f6f (bugs 583179913 y 584370079)
@@ -172,6 +175,50 @@ alcanza desde cualquier web con *view transitions*. Aplica a Mac.
 ### Veredicto (regla 17): **APTO**, `chromium/0008`
 
 Prueba para LOCAL: `blink_unittests --gtest_filter='ScriptedAnimationControllerTest.*'`.
+
+## `chromium/0009`–`0010`: menús FOR_DROP (main 041491e936 + 8154 afa45b8e16), venidos de la 3.2.0
+
+Hasta el 21-11 eran `portes-159/chromium/0001` (#1159). LOCAL dio **ROJO**: `views_unittests` `MenuRunner*` pasó 23 de
+25 y fallaron las dos pruebas del propio parche. Faltaba el prerrequisito. Titín decidió sacarlo de la 3.2.0 y traerlo
+aquí junto con el prerrequisito. #1175, donde se preparó la corrección, queda cerrado: estos dos ficheros tienen su mismo
+`patch-id`.
+
+- **`chromium/0009`** = main **`041491e936`**: «Defer MenuRunnerImpl destruction when released in OnMenuClosed»
+  (bug 574516887, otro UAF; main@{#1722585}, 20-10).
+  - Antes, `MenuRunnerImpl::OnMenuClosed` ponía `controller_ = nullptr`. Si el delegado soltaba después el `MenuRunner`
+    dentro de un marco activo de `MenuController`, `Release()` lo borraba en el acto en vez de aplazarlo, y se usaba
+    `MenuItemView` ya liberado.
+  - Es posterior a la rama 8078: la 159 lo tiene y la 156 no. **No está en la 8078 ni en la 8078_108** (21-11).
+  - Mismo `patch-id` que upstream; aplica solo con desplazamientos de línea. Trae
+    `ReleaseInOnMenuClosedDuringSetSelectedDefersDestruction` y el `include` de `view_tracker.h`.
+  - No se porta main `72bc9fdbbe` (mismo bug, solo refactoriza).
+- **`chromium/0010`** = 8154 **`afa45b8e16`**: «Fix FOR_DROP menu drag and drop teardown UAF» (bug 565066840, merge M159
+  588202414). Añade `ScopedDeletionGuard` a `GetDropCallback` y hace que `OnDragUpdated` devuelva `DRAG_NONE` si hay
+  destrucción pendiente.
+  - Dos *hunks* reanclados a mano: la 156 tiene `DCHECK(drop_target)` donde la 159 tiene `CHECK(…, NotFatalUntil::M163)`.
+  - Las pruebas son idénticas a las de upstream.
+  - **Necesita el `0009`**: sin él, sus dos pruebas fallan.
+- No es cosa de Mac: los menús de `MenuItemView` usan `MenuRunnerImpl` en todas las plataformas. Aplica a Mac, porque
+  la barra de marcadores usa estos menús.
+- brave-core solo sobrescribe `menu_config` y `menu_separator` en `ui/views/controls/menu`. Ningún otro parche toca
+  estos ficheros.
+- Comprobado con `git am` de toda la cadena sobre `90418ba4fd`, sin ficheros borrados: tras `0008`, `ca4469ab41`; tras
+  `0009`, `a864076037`; tras `0010`, `a2ffc0a48f`.
+
+### Veredicto (regla 17): **APTO**, `chromium/0009` + `chromium/0010` (van juntos o ninguno)
+
+Efecto visible: ninguno. Si un menú se cierra mientras se arrastra algo encima, ya no se puede soltar en él (antes era
+un UAF).
+
+**Pruebas para LOCAL:**
+- `views_unittests --gtest_filter='MenuRunnerTest.*:MenuRunnerImplTest.*:MenuControllerTest.*:MenuItemViewTest.*:SubmenuViewTest.*'`.
+  - Deben pasar las tres nuevas: `ReleaseInOnMenuClosedDuringSetSelectedDefersDestruction` y las dos `ForDrop*`.
+  - El resto debe quedar igual que sin `0009`–`0010`: el `0009` cambia cuándo se borra `MenuRunnerImpl` en todos los
+    menús.
+- En la build:
+  - arrastrar un enlace a una carpeta de la barra de marcadores y soltarlo: se crea el marcador;
+  - repetir pulsando Esc durante el arrastre;
+  - abrir y cerrar menús normales (contextual, el de la app) para comprobar que no hay regresiones.
 
 ## V8 después del cierre de la tanda
 
