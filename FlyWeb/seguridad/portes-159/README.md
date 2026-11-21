@@ -11,49 +11,23 @@ bueno. Si es distinto, manda el de Chrome.
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`90418ba4fd`** (= `seguridad/pendiente/chromium/0001`–`0008`, #1147) | `chromium/0001`–`0002` | **`2bb85047ec`** (tras `0001`: `403ec1c98c`) |
+| chromium | árbol **`90418ba4fd`** (= `seguridad/pendiente/chromium/0001`–`0008`, #1147) | `chromium/0002` | **`1c458472cc`** |
 
-Ninguno de los dos toca ficheros de `pendiente/chromium/0001`–`0008`. Sobre `1b06f59f4d` (hasta `0007`), `0001` da
-`6ee8d9b1c1`.
+`0002` no toca ficheros de `pendiente/chromium/0001`–`0008`. Comprobado con `git am` sobre `90418ba4fd`: árbol
+**`1c458472cc`**, sin ficheros borrados. Hasta el 21-11, con `0001`, la cadena daba `2bb85047ec`; ese árbol ya no vale.
 
-## `chromium/0001`: 8154 afa45b8e16 (bug 565066840, merge M159 588202414)
+## `chromium/0001` (menús FOR_DROP, 8154 afa45b8e16): **fuera de la 3.2.0** (21-11)
 
-UAF en el proceso del navegador, en los menús de `views` abiertos «para soltar» (`MenuRunner::FOR_DROP`), por ejemplo
-una carpeta de la barra de marcadores mientras se arrastra algo encima. En `MenuController::GetDropCallback`, con
-`for_drop_`, se cierra el menú y se llama a `OnMenuClosed`, que puede destruir el `MenuRunner` y con él `this` y el
-`SubmenuView`. Luego se sigue usando `drop_target`. Y `OnDragUpdated`, si un evento de accesibilidad cerraba el menú
-(`destroy_pending_`), devolvía igualmente una operación de soltar válida.
+LOCAL dio **ROJO**: `views_unittests` `MenuRunner*` pasó 23 de 25 y fallaron las dos pruebas del propio `0001`. Faltaba un
+prerrequisito: main `041491e936` (bug 574516887). Sin él, `MenuRunnerImpl::OnMenuClosed` pone `controller_ = nullptr` y
+el `MenuRunner` que se suelta después se borra en el acto en vez de aplazarse (análisis completo en #1175).
 
-El arreglo:
-- añade `ScopedDeletionGuard` al principio de `GetDropCallback`, de modo que la destrucción espera a que la llamada
-  termine;
-- hace que `OnDragUpdated` devuelva `DRAG_NONE` cuando hay destrucción pendiente.
+**Decisión de Titín (21-11, ~13:55 UTC, vía COORDINACIÓN-58):** lo rojo sale de la 3.2.0 y lo nuevo va a la 3.2.1.
 
-Se alcanza con interacción del usuario: arrastrar algo (un enlace, una pestaña) a un menú de carpeta de marcadores y
-soltar. Aplica a Mac: la barra de marcadores de FlyWeb usa los menús de `views`.
-
-- **El código vulnerable está en la 156.** El diff de upstream no aplica tal cual solo por contexto: la 156 tiene
-  `DCHECK(drop_target)` donde la 159 tiene `CHECK(drop_target, base::NotFatalUntil::M163)`. Los dos cambios de
-  `menu_controller.cc` se han reanclado a mano y son idénticos a los de upstream.
-- **Pruebas:** las dos de upstream van tal cual (`ForDropCancelDuringDragUpdatedActiveDescendantDefersDestruction` y
-  `ForDropReleaseInGetDropCallbackDefersDestructionUntilUnwind`). En la 156 el fichero de prueba necesita además
-  `#include "ui/views/view_tracker.h"`, que es lo único añadido respecto a upstream. Todo lo que usan existe en la 156:
-  `TestMenuDelegate::GetDropCallback`, `is_drop_performed()`, `ViewTracker`, `set_accessibility_events_callback`,
-  `MenuController::Cancel` y la firma de `View::DropCallback`. `menu_test_utils` de la 156 y la 159 solo difieren en
-  cosas que estas pruebas no usan.
-- brave-core no tiene parches ni `chromium_src` para `ui/views/controls/menu/menu_controller.cc` ni para su prueba.
-- Comprobado: `git apply --cached` sobre `90418ba4fd` da el árbol **`403ec1c98c`** (sobre `1b06f59f4d`, `6ee8d9b1c1`).
-- **Gravedad: no consta** (bug restringido). Es de la misma familia que otros arreglos ya presentes en la
-  156: `menu_controller.cc` usa `ScopedDeletionGuard` en 29 sitios.
-
-### Veredicto (regla 17): **APTO**, `chromium/0001`
-
-Es el cambio de upstream con dos *hunks* reanclados y un `include` de prueba. Efecto visible: ninguno. Si el menú se
-cierra mientras se arrastra encima, ya no se puede soltar en él (antes era un UAF).
-
-**Pruebas para LOCAL:** `views_unittests --gtest_filter='MenuRunnerTest.ForDrop*:MenuRunnerTest.*:MenuRunnerImplTest.*'`.
-En la build: arrastrar un enlace a una carpeta de la barra de marcadores, soltarlo dentro y comprobar que se crea el
-marcador. Repetir saliendo del menú con Esc durante el arrastre.
+- El `0001` se quita de aquí.
+- El prerrequisito y el `0001` corregido pasan juntos a `seguridad/siguiente/chromium/` (#1165) como `0009` (main
+  `041491e936`) y `0010` (afa45b8e16). Tienen el mismo `patch-id` que los de #1175, que queda cerrado.
+- El número `0001` no se reutiliza.
 
 ## `chromium/0002`: 8154 b079c8f6c8 (bug 586171393, merge M159 588196490)
 
@@ -64,10 +38,12 @@ de navegación. Con el arreglo, un host vacío solo vale para `file:` (y para es
 por mojo de un `Origin` así falla, y `GetURL()` añade un `CHECK` de coherencia. Hace falta un *renderer* comprometido
 que mande el `Origin` falso: es endurecimiento del proceso del navegador frente a IPC. Aplica a Mac.
 
-- Mismo diff que upstream (`patch-id` igual). **Aplica limpio**, sin desplazamientos, sobre `403ec1c98c`.
+- Mismo diff que upstream (`patch-id` igual). **Aplica limpio** sobre `90418ba4fd`. La nota del fichero dice «Applied after
+  portes-159/chromium/0001», pero no depende de él: toca solo `url/`. El fichero no se cambia porque LOCAL lo probó así (verde).
 - brave-core no tiene parches ni `chromium_src` en `url/`. Los esquemas propios (`brave://`, `chrome-extension://`)
   siempre llevan host, así que el cambio no les afecta.
-- Comprobado: `git apply --cached` sobre `403ec1c98c` da el árbol **`2bb85047ec`**.
+- Comprobado: `git am` sobre `90418ba4fd` da el árbol **`1c458472cc`** (antes, sobre `403ec1c98c`, daba `2bb85047ec`).
+- **LOCAL: VERDE** (21-11, `url_unittests` 34/34).
 - **Ya está en la 156 (21-11, 00:10 UTC):** merge oficial `04db7fff13` en la 8078 (merge 588196153), **idéntico** (`patch-id` igual) a este `0002`.
 - **Gravedad: no consta** (bug restringido).
 
