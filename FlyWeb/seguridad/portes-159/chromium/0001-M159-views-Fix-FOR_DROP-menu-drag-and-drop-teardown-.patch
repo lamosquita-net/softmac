@@ -1,9 +1,10 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: David Pennington <dpenning@chromium.org>
 Date: Fri, 20 Nov 2026 18:06:11 +0000
-Subject: [PATCH] [M159] views: Fix FOR_DROP menu drag and drop teardown UAF
+Subject: [PATCH 2/2] [M159] views: Fix FOR_DROP menu drag and drop teardown
+ UAF
 
-FlyWeb port (not yet merged to M156): from branch-heads/8154 afa45b8e16 (M159 merge of 34e522970b). Applied after pendiente/chromium/0007. Same code change as upstream; both menu_controller.cc hunks re-anchored by hand because 156 has DCHECK(drop_target) where 159 has CHECK(drop_target, base::NotFatalUntil::M163). The two tests are upstream verbatim; the 156 test file also needs #include "ui/views/view_tracker.h". No brave-core patches or chromium_src for these files.
+FlyWeb port (not yet merged to M156): from branch-heads/8154 afa45b8e16 (M159 merge of 34e522970b). Applied after portes-159/chromium/0000 (main 041491e936), which it needs: without 0000 the MenuRunner released in GetDropCallback/OnMenuClosed is deleted synchronously and both upstream tests fail. Same code change as upstream; both menu_controller.cc hunks re-anchored by hand because 156 has DCHECK(drop_target) where 159 has CHECK(drop_target, base::NotFatalUntil::M163). The two tests are upstream verbatim (the view_tracker.h include they need comes from 0000, as in upstream). No brave-core patches or chromium_src for these files.
 
 Original change's description:
 > views: Fix FOR_DROP menu drag and drop teardown UAF
@@ -32,8 +33,8 @@ Cr-Commit-Position: refs/branch-heads/8154@{#1181}
 Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
 ---
  ui/views/controls/menu/menu_controller.cc     |   3 +-
- .../controls/menu/menu_runner_unittest.cc     | 119 ++++++++++++++++++
- 2 files changed, 121 insertions(+), 1 deletion(-)
+ .../controls/menu/menu_runner_unittest.cc     | 118 ++++++++++++++++++
+ 2 files changed, 120 insertions(+), 1 deletion(-)
 
 diff --git a/ui/views/controls/menu/menu_controller.cc b/ui/views/controls/menu/menu_controller.cc
 index 18237667f1..cad41391d1 100644
@@ -57,7 +58,7 @@ index 18237667f1..cad41391d1 100644
        static_cast<MenuItemView*>(drop_target_tracker_.view());
    DCHECK(drop_target);
 diff --git a/ui/views/controls/menu/menu_runner_unittest.cc b/ui/views/controls/menu/menu_runner_unittest.cc
-index b6dbb5c7b9..a9fcb4a14f 100644
+index 237b517043..5c5dff36e8 100644
 --- a/ui/views/controls/menu/menu_runner_unittest.cc
 +++ b/ui/views/controls/menu/menu_runner_unittest.cc
 @@ -18,6 +18,10 @@
@@ -71,16 +72,8 @@ index b6dbb5c7b9..a9fcb4a14f 100644
  #include "ui/base/mojom/menu_source_type.mojom-shared.h"
  #include "ui/compositor/compositor.h"
  #include "ui/display/display.h"
-@@ -39,6 +43,7 @@
- #include "ui/views/test/test_views.h"
- #include "ui/views/test/views_test_base.h"
- #include "ui/views/test/widget_test.h"
-+#include "ui/views/view_tracker.h"
- #include "ui/views/widget/any_widget_observer.h"
- #include "ui/views/widget/native_widget_private.h"
- #include "ui/views/widget/widget.h"
-@@ -1499,4 +1504,118 @@ TEST_F(MenuRunnerImplTest, SubmenuHideUseAfterFreeViaWidgetHide) {
-   EXPECT_TRUE(observer.fired());
+@@ -1567,4 +1571,118 @@ TEST_F(MenuRunnerTest,
+   EXPECT_EQ(nullptr, MenuController::GetActiveInstance());
  }
  
 +namespace {

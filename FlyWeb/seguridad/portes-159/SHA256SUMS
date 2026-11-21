@@ -1,2 +1,3 @@
-7e2f8ab3ff8e0f8cfda6acb4a5c5a8b4215079092831f36d77244b37ac0e0532  chromium/0001-M159-views-Fix-FOR_DROP-menu-drag-and-drop-teardown-.patch
+7bd37602f07cc9627ed6fc8e77f50abbcd6561b6ed219a26ce7563a09228ff89  chromium/0000-M159-views-Defer-MenuRunnerImpl-destruction-when-rel.patch
+7db93a32b331e92ab9908d3b87caccd2bd5914ebb40e66683707fc5e1590e4f1  chromium/0001-M159-views-Fix-FOR_DROP-menu-drag-and-drop-teardown-.patch
 8b950959e15b8e1b2e46601ae23c8212aab21f361cbb15c7bb656af37494512c  chromium/0002-M159-SchemeHostPort-Reject-empty-host-for-non-file-S.patch
