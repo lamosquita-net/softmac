@@ -242,7 +242,10 @@ sync_profile() { # local remote días % nº
     --compare size,modtime,checksum --slow-hash-sync-only --create-empty-src-dirs \
     --resilient --recover --max-lock 2h --max-delete "$MAX_DELETE" --conflict-resolve none --conflict-suffix conflicto-mac,conflicto-drive \
     --backup-dir1 "$vm" --backup-dir2 "$vr" --suffix "-$stamp" --suffix-keep-extension \
-    --drive-skip-gdocs --log-level INFO
+    --drive-skip-gdocs --log-level INFO --modify-window 1s
+  # --modify-window 1s: discos locales con precisión de segundo frente a los milisegundos de Drive. Sin él, la copia del
+  # --resync da por iguales fechas que difieren en una fracción y la validación final de bisync las rechaza («Modtime not
+  # equal in listing», out of sync): pasó en MacTrash con 3 de 697 000 ficheros.
   # Enlaces simbólicos: por defecto viajan como «.rclonelink». Con el fichero «$APP_DIR/sin-enlaces» se saltan sin aviso,
   # como FreeFileSync: mientras los dos convivan, FFS bajaría los .rclonelink como ficheros normales (H9).
   if [ -f "$APP_DIR/sin-enlaces" ]; then set -- "$@" --skip-links; else set -- "$@" --links; fi
