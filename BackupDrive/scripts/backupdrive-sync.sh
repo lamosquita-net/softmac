@@ -148,6 +148,18 @@ profile_id() { # local remote -> identificador numérico del perfil
 state_file() { # local remote -> fichero de estado del perfil
   echo "$STATE_DIR/$(profile_id "$1" "$2").json"
 }
+# Copias en conflicto de una carpeta del Mac (misma regla en backupdrive-sync.sh y backupdrive-ctl.sh). Recorre todo el
+# árbol (en MacTrash, ~700 000 ficheros: más de un minuto), así que el número se guarda en state/<id>.conflicts y
+# «profile list», que la app pide a menudo, solo lo lee.
+count_conflicts() {
+  find "$1" -type f \( -name '*.conflict[0-9]*' -o -name '*.conflicto-mac[0-9]*' -o -name '*.conflicto-drive[0-9]*' \) \
+    2>/dev/null | wc -l | tr -d ' '
+}
+save_conflicts() { # carpeta, fichero de caché
+  [ -d "$1" ] || return 0
+  mkdir -p "$(dirname "$2")"
+  count_conflicts "$1" > "$2.tmp" && mv "$2.tmp" "$2"
+}
 save_profile() { # local remote result exit
   printf '{"local":%s,"remote":%s,"result":%s,"exit":%s,"finished":%s}\n' \
     "$(json_str "$1")" "$(json_str "$2")" "$(json_str "$3")" "$4" "$(json_str "$(now)")" \
@@ -373,6 +385,14 @@ while IFS='|' read -r local_dir remote days mod_pct mod_n; do
     perr=""; case "$rc" in 0|4) ;; *) perr=" error=$rc" ;; esac
     { [ "$RESYNC" = 1 ] && echo "BACKUPDRIVE-PLAN resync$perr" || echo "BACKUPDRIVE-PLAN$perr"; cat "$RUN_LOG"; } \
       > "$STATE_DIR/$(profile_id "$local_dir" "$remote").plan.log"
+  fi
+  # Recuento de conflictos para la app: si no lo hay, si esta pasada creó alguno o una vez al día (por si se resolvieron
+  # a mano en el Finder). Antes de save_profile, que avisa a la app.
+  if [ "$DRY" = 0 ]; then
+    cf="$STATE_DIR/$(profile_id "$local_dir" "$remote").conflicts"
+    if [ ! -f "$cf" ] || grep -q 'New or changed in both paths' "$RUN_LOG" || [ -n "$(find "$cf" -mmin +1440 2>/dev/null)" ]; then
+      save_conflicts "$local_dir" "$cf"
+    fi
   fi
   case "$rc" in
     0) save_profile "$local_dir" "$remote" ok 0 ;;

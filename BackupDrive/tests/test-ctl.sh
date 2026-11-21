@@ -203,6 +203,15 @@ out_has '"path":"f4.conflicto-mac1.txt","original":"f4.txt","side":"mac"' "confl
 out_has '"path":"f4.conflicto-drive1.txt","original":"f4.txt","side":"drive"' "conflicto: copia de Drive"
 ctl profile list
 out_has '"conflicts":2' "profile list cuenta las copias en conflicto"
+cache="$APP/state/$(printf '%s|%s' "$MAC" "fake:$DRIVE/Clientes" | cksum | cut -d' ' -f1).conflicts"
+[ -n "$cache" ] && [ "$(cat "$cache")" = 2 ] && ok "la pasada guarda el recuento de conflictos" || fail "caché de conflictos: $(cat "$cache" 2>/dev/null)"
+echo x > "$MAC/h.conflicto-mac1.txt"
+ctl profile list
+out_has '"conflicts":2' "profile list lee el recuento guardado (no recorre la carpeta)"
+rm -f "$MAC/h.conflicto-mac1.txt" "$APP"/state/*.conflicts
+ctl profile list
+out_has '"conflicts":2' "sin recuento guardado, profile list cuenta y lo guarda"
+ls "$APP"/state/*.conflicts >/dev/null 2>&1 && ok "recuento guardado de nuevo" || fail "sin recuento guardado"
 # Copias antiguas («nombre.conflictN»): se reconocen, sin adivinar el lado por el número (bisync lo desplaza).
 echo viejo > "$MAC/g.conflict2.txt"
 ctl conflicts list "$MAC"
@@ -213,6 +222,8 @@ expect 6 "keep de una copia que no existe" conflicts keep "$MAC" nada.conflict1.
 expect 0 "quedarse con la copia de Drive" conflicts keep "$MAC" f4.conflicto-drive1.txt
 [ "$(cat "$MAC/f4.txt")" = f4-drive ] && ok "f4.txt es la copia de Drive" || fail "f4.txt: $(cat "$MAC/f4.txt" 2>/dev/null)"
 ls "$MAC"/f4.conflict* >/dev/null 2>&1 && fail "quedan copias en conflicto en el Mac" || ok "sin copias en conflicto en el Mac"
+ctl profile list
+out_has '"conflicts":0' "tras keep, el recuento baja a 0"
 found=""; for f in "$vmac"f4-*.txt; do [ "$(cat "$f" 2>/dev/null)" = f4-mac ] && found=1; done
 [ -n "$found" ] && ok "la copia del Mac está en versiones como f4-FECHA.txt" || fail "copia del Mac perdida: $(ls "$vmac")"
 # En una carpeta tan pequeña, quitar dos copias pasa del 10 % y salta el freno de borrados (como debe): se continúa a
