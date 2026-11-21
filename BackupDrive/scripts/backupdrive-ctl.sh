@@ -134,6 +134,18 @@ rewrite_profiles() {
 }
 
 # ¿$1 es $2 o está dentro de $2? (rutas sin barra final)
+# Copias en conflicto de una carpeta del Mac (misma regla en backupdrive-sync.sh y backupdrive-ctl.sh). Recorre todo el
+# árbol (en MacTrash, ~700 000 ficheros: más de un minuto), así que el número se guarda en state/<id>.conflicts y
+# «profile list», que la app pide a menudo, solo lo lee.
+count_conflicts() {
+  find "$1" -type f \( -name '*.conflict[0-9]*' -o -name '*.conflicto-mac[0-9]*' -o -name '*.conflicto-drive[0-9]*' \) \
+    2>/dev/null | wc -l | tr -d ' '
+}
+save_conflicts() { # carpeta, fichero de caché
+  [ -d "$1" ] || return 0
+  mkdir -p "$(dirname "$2")"
+  count_conflicts "$1" > "$2.tmp" && mv "$2.tmp" "$2"
+}
 inside() { case "$1/" in "$2"/*) return 0 ;; esac; return 1; }
 
 number_opts() { # --days/--pct/--count -> OD OP ON
@@ -278,8 +290,9 @@ cmd_profile_list() {
         res=$(sed -n 's/.*"result":"\([a-z-]*\)".*/\1/p' "$st"); fin=$(sed -n 's/.*"finished":"\([^"]*\)".*/\1/p' "$st")
       fi
       init=false; [ -f "$STATE_DIR/$(profile_id "$l" "$r").init" ] && init=true
-      nconf=0; [ -d "$l" ] && nconf=$(find "$l" -type f \( -name '*.conflict[0-9]*' -o -name '*.conflicto-mac[0-9]*' \
-        -o -name '*.conflicto-drive[0-9]*' \) 2>/dev/null | wc -l | tr -d ' ')
+      cf="$STATE_DIR/$(profile_id "$l" "$r").conflicts"
+      [ -s "$cf" ] || save_conflicts "$l" "$cf" || true
+      nconf=$(cat "$cf" 2>/dev/null || echo 0); case "$nconf" in ''|*[!0-9]*) nconf=0 ;; esac
       printf '%s{"local":%s,"remote":%s,"days":%s,"pct":%s,"count":%s,"result":%s,"finished":%s,"initialized":%s,"conflicts":%s,"versions_mac":%s,"versions_drive":%s}' \
         "$sep" "$(json_str "$l")" "$(json_str "$r")" "$d" "$p" "$n" "$(json_str "${res:-never}")" "$(json_str "$fin")" "$init" "${nconf:-0}" \
         "$(json_str "$(versions_mac "$l" "$r")")" "$(json_str "$(versions_drive "$l" "$r")")"
@@ -496,6 +509,7 @@ cmd_conflicts_keep() {
   rm -f "$tmp"
   [ ! -e "${PL%/}/$orig" ] || to_versions "$orig"
   rc_ moveto "${PL%/}/$keep" "${PL%/}/$orig" || die 1 "No se pudo devolver $keep a su nombre."
+  save_conflicts "$PL" "$STATE_DIR/$(profile_id "$PL" "$PR").conflicts" || true
   echo "Te quedas con $keep como $orig. Las otras copias están en versiones; Drive se pondrá igual en la próxima sincronización."
 }
 
