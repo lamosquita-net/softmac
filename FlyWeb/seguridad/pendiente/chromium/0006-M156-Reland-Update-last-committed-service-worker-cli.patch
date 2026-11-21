@@ -1,0 +1,763 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ted Janeczko <tjaneczko@google.com>
+Date: Fri, 20 Nov 2026 12:28:49 +0000
+Subject: [PATCH] [M156] Reland "Update last committed service worker client on
+ navigation commit"
+
+FlyWeb pending: from branch-heads/8078 baba8daae1. Applied after pendiente/chromium/0005. Same diff as upstream except the context of one test hunk in service_worker_browsertest.cc (an earlier FlyWeb port added NoContainerHostForPdfDocument there; the 232 added lines are identical). brave-core touches two of these files: patches/content-browser-renderer_host-{navigation_request,render_frame_host_impl}.cc.patch still apply on top of this one (line offsets only; in InheritServiceWorkerControllerFromParentIfNeeded the new origin check and the FlyWeb PDF/sandbox early return are independent), and chromium_src/content/browser/renderer_host/{navigation_request.cc,render_frame_host_impl.{h,cc}} do not touch the service worker client code.
+
+Original change's description:
+> Reland "Update last committed service worker client on navigation commit"
+>
+> This is a reland of commit a6cafef0c22248a7f359b9941f52a44d98a43442.
+>
+> Difference from original CL:
+> Disable `features::kOriginKeyedProcessesByDefault` in the test fixture
+> (`ServiceWorkerNoOriginKeyedProcessesByDefaultBrowserTest`) for
+> `BlobWorkerCreatedDuringUncommittedNavigationDoesNotInheritController`
+> and `LastCommittedServiceWorkerClientUpdatedOnlyAfterCommit`, since both
+> tests specifically test reusing an initial empty iframe RenderFrameHost
+> across a same-site, cross-origin navigation (which otherwise swaps to a
+> speculative RenderFrameHost on `linux-oi-rel`).
+>
+> Original change's description:
+> > Update last committed service worker client on navigation commit
+> >
+> > Previously, RenderFrameHostImpl::AddServiceWorkerClient() updated
+> > last_committed_service_worker_client_ when preparing to commit the
+> > navigation response. When a RenderFrameHost was reused across
+> > cross-document navigations, this allowed GetLastCommittedServiceWorkerClient()
+> > to return the pending navigation's client while the previous document
+> > remained active.
+> >
+> > Defer updating last_committed_service_worker_client_ until the document
+> > commit completes and new document properties are applied, while checking
+> > the committing NavigationRequest's GetCommittedServiceWorkerClient()
+> > when computing ResourceBroker routing decisions during CommitNavigation.
+> > In addition, verify that the parent/creator origin matches the client's
+> > storage key origin before inheriting the service worker controller.
+> >
+> > Bug: 581369093
+> > Change-Id: I3851713c9a095adbfad5ab8285505b6071281fa0
+> > Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8773467
+> > Reviewed-by: Rakina Zata Amni <rakina@chromium.org>
+> > Reviewed-by: Yoshisato Yanagisawa <yyanagisawa@chromium.org>
+> > Reviewed-by: Alex Attar <aattar@google.com>
+> > Commit-Queue: Ted Janeczko <tjaneczko@google.com>
+> > Cr-Commit-Position: refs/heads/main@{#1746249}
+>
+> Bug: 581369093
+> Change-Id: Ic27ef7a5288f51b78a1bf26609926a06f61d23c0
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8827727
+> Reviewed-by: Rakina Zata Amni <rakina@chromium.org>
+> Commit-Queue: Ted Janeczko <tjaneczko@google.com>
+> Cr-Commit-Position: refs/heads/main@{#1746489}
+
+(cherry picked from commit e84933c34572774255048ecbbaeab9204e63fa15)
+
+Bug: 587226523,581369093
+Change-Id: Ic27ef7a5288f51b78a1bf26609926a06f61d23c0
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8840778
+Commit-Queue: Ted Janeczko <tjaneczko@google.com>
+Reviewed-by: Rakina Zata Amni <rakina@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2356}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../renderer_host/document_associated_data.h  |  11 +
+ .../renderer_host/navigation_request.cc       |  28 ++-
+ .../renderer_host/navigation_request.h        |   6 +
+ .../renderer_host/render_frame_host_impl.cc   |   5 +-
+ .../renderer_host/render_frame_host_impl.h    |   2 -
+ .../service_worker_browsertest.cc             | 234 ++++++++++++++++++
+ ...worker_main_resource_loader_interceptor.cc |  23 +-
+ .../service_worker_security_utils.cc          |  20 +-
+ .../service_worker_security_utils.h           |   8 +
+ .../worker_host/dedicated_worker_host.cc      |   7 +
+ .../worker_host/shared_worker_service_impl.cc |  17 +-
+ .../worker_script_loader_factory_unittest.cc  |  55 ++++
+ 12 files changed, 393 insertions(+), 23 deletions(-)
+
+diff --git a/content/browser/renderer_host/document_associated_data.h b/content/browser/renderer_host/document_associated_data.h
+index 815c578ece..ed295081ed 100644
+--- a/content/browser/renderer_host/document_associated_data.h
++++ b/content/browser/renderer_host/document_associated_data.h
+@@ -35,6 +35,7 @@ class DocumentServiceBase;
+ class NavigationOrDocumentHandle;
+ class PageImpl;
+ class RenderFrameHostImpl;
++class ServiceWorkerClient;
+ 
+ // Container for arbitrary document-associated feature-specific data. Should
+ // be reset when committing a cross-document navigation in this
+@@ -242,6 +243,13 @@ class CONTENT_EXPORT DocumentAssociatedData : public base::SupportsUserData {
+     renderer_accessible_http_cache_write_enabled_ = enabled;
+   }
+ 
++  base::WeakPtr<ServiceWorkerClient> service_worker_client() const {
++    return service_worker_client_;
++  }
++  void set_service_worker_client(
++      base::WeakPtr<ServiceWorkerClient> service_worker_client) {
++    service_worker_client_ = std::move(service_worker_client);
++  }
+  private:
+   const blink::DocumentToken token_;
+   std::unique_ptr<PageImpl> owned_page_;
+@@ -281,6 +289,9 @@ class CONTENT_EXPORT DocumentAssociatedData : public base::SupportsUserData {
+   // recreated (e.g. following a Network Service crash).
+   bool renderer_accessible_http_cache_write_enabled_ = false;
+ 
++  // The ServiceWorkerClient associated with this committed document. Set upon
++  // navigation commit in TakeNewDocumentPropertiesFromNavigation().
++  base::WeakPtr<ServiceWorkerClient> service_worker_client_;
+   base::WeakPtrFactory<RenderFrameHostImpl> weak_factory_;
+ };
+ 
+diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
+index 2914a58364..b53e505239 100644
+--- a/content/browser/renderer_host/navigation_request.cc
++++ b/content/browser/renderer_host/navigation_request.cc
+@@ -112,6 +112,7 @@
+ #include "content/browser/service_worker/service_worker_context_core.h"
+ #include "content/browser/service_worker/service_worker_context_wrapper.h"
+ #include "content/browser/service_worker/service_worker_main_resource_handle.h"
++#include "content/browser/service_worker/service_worker_security_utils.h"
+ #include "content/browser/site_info.h"
+ #include "content/browser/site_instance_impl.h"
+ #include "content/browser/storage_partition_impl.h"
+@@ -3698,6 +3699,21 @@ NavigationRequest::CreatePolicyContainerForBlink() {
+ 
+   return policy_container_builder_->CreatePolicyContainerForBlink();
+ }
++
++base::WeakPtr<ServiceWorkerClient>
++NavigationRequest::GetCommittedServiceWorkerClient() const {
++  if (DidEncounterError() || !service_worker_handle_) {
++    return nullptr;
++  }
++  base::WeakPtr<ServiceWorkerClient> service_worker_client =
++      service_worker_handle_->service_worker_client();
++  if (!service_worker_client ||
++      !service_worker_client->is_response_committed()) {
++    return nullptr;
++  }
++  return service_worker_client;
++}
++
+ scoped_refptr<PolicyContainerHost> NavigationRequest::GetPolicyContainerHost() {
+   CHECK_GE(state_, READY_TO_COMMIT);
+   // It is invalid calling this method after `TakePolicyContainerHost()`.
+@@ -6888,6 +6904,12 @@ void NavigationRequest::InheritServiceWorkerControllerFromParentIfNeeded() {
+   if (!parent_service_worker_client) {
+     return;
+   }
++  if (!service_worker_security_utils::
++          AreOriginsCompatibleForServiceWorkerClient(
++              parent->GetLastCommittedOrigin(),
++              parent_service_worker_client->key().origin())) {
++    return;
++  }
+ 
+   if ((commit_params_->frame_policy.sandbox_flags &
+        network::mojom::WebSandboxFlags::kOrigin) ==
+@@ -9537,11 +9559,11 @@ void NavigationRequest::DidCommitNavigation(
+     frame_tree_node()->SetCollapsed(false);
+   }
+ 
+-  if (service_worker_handle_ &&
+-      service_worker_handle_->service_worker_client()) {
++  if (base::WeakPtr<ServiceWorkerClient> service_worker_client =
++          GetCommittedServiceWorkerClient()) {
+     // Notify the service worker navigation handle that the navigation finished
+     // committing.
+-    service_worker_handle_->service_worker_client()->OnEndNavigationCommit();
++    service_worker_client->OnEndNavigationCommit();
+   }
+ 
+   // TODO(crbug.com/40249865): consider using NavigationOrDocumentHandle
+diff --git a/content/browser/renderer_host/navigation_request.h b/content/browser/renderer_host/navigation_request.h
+index 4fb244f367..d1e05cdc13 100644
+--- a/content/browser/renderer_host/navigation_request.h
++++ b/content/browser/renderer_host/navigation_request.h
+@@ -128,6 +128,7 @@ class NavigatorDelegate;
+ class PrefetchedSignedExchangeCache;
+ class PrerenderHostRegistry;
+ class RenderFrameHostCSPContext;
++class ServiceWorkerClient;
+ class ServiceWorkerMainResourceHandle;
+ class SubframeHistoryNavigationThrottle;
+ 
+@@ -1019,6 +1020,11 @@ class CONTENT_EXPORT NavigationRequest
+   // Must only be called after ReadyToCommitNavigation().
+   blink::mojom::PolicyContainerPtr CreatePolicyContainerForBlink();
+ 
++  // Returns the ServiceWorkerClient committed for this navigation, or nullptr
++  // if no ServiceWorkerClient was committed (e.g. for error pages, sandboxed
++  // documents, or non-eligible schemes).
++  base::WeakPtr<ServiceWorkerClient> GetCommittedServiceWorkerClient() const;
++
+   // Returns a new refptr to this navigation's PolicyContainerHost.
+   //
+   // Must only be called after ReadyToCommitNavigation().
+diff --git a/content/browser/renderer_host/render_frame_host_impl.cc b/content/browser/renderer_host/render_frame_host_impl.cc
+index 88de5eec5b..e36aa19e84 100644
+--- a/content/browser/renderer_host/render_frame_host_impl.cc
++++ b/content/browser/renderer_host/render_frame_host_impl.cc
+@@ -16973,6 +16973,8 @@ void RenderFrameHostImpl::TakeNewDocumentPropertiesFromNavigation(
+   blink::StorageKey storage_key_to_commit = CalculateStorageKey(
+       origin, base::OptionalToPtr(provisional_storage_key.nonce()));
+   SetStorageKey(storage_key_to_commit);
++  document_associated_data_->set_service_worker_client(
++      navigation_request->GetCommittedServiceWorkerClient());
+ 
+   coep_reporter_ = navigation_request->TakeCoepReporter();
+ 
+@@ -17948,7 +17950,6 @@ void RenderFrameHostImpl::AddServiceWorkerClient(
+             kEnteredBackForwardCacheBeforeServiceWorkerHostAdded);
+   }
+   CHECK(!service_worker_clients_.contains(uuid));
+-  last_committed_service_worker_client_ = service_worker_client;
+   service_worker_clients_[uuid] = std::move(service_worker_client);
+ }
+ 
+@@ -17963,7 +17964,7 @@ void RenderFrameHostImpl::RemoveServiceWorkerClient(const std::string& uuid) {
+ base::WeakPtr<ServiceWorkerClient>
+ RenderFrameHostImpl::GetLastCommittedServiceWorkerClient() {
+   CHECK_CURRENTLY_ON(BrowserThread::UI);
+-  return last_committed_service_worker_client_;
++  return document_associated_data_->service_worker_client();
+ }
+ 
+ bool RenderFrameHostImpl::MaybeInterceptCommitCallback(
+diff --git a/content/browser/renderer_host/render_frame_host_impl.h b/content/browser/renderer_host/render_frame_host_impl.h
+index 8b6e9e4414..95adb9ad69 100644
+--- a/content/browser/renderer_host/render_frame_host_impl.h
++++ b/content/browser/renderer_host/render_frame_host_impl.h
+@@ -5103,8 +5103,6 @@ class CONTENT_EXPORT RenderFrameHostImpl
+   // shortly after navigation.
+   std::map<std::string, base::WeakPtr<ServiceWorkerClient>>
+       service_worker_clients_;
+-  // Keeps the track of the latest ServiceWorkerClient.
+-  base::WeakPtr<ServiceWorkerClient> last_committed_service_worker_client_;
+ 
+   // The guest frame trees owned by this document.
+   std::vector<std::unique_ptr<GuestPageHolderImpl>> guest_pages_;
+diff --git a/content/browser/service_worker/service_worker_browsertest.cc b/content/browser/service_worker/service_worker_browsertest.cc
+index 7c4492e978..15ff02fbbe 100644
+--- a/content/browser/service_worker/service_worker_browsertest.cc
++++ b/content/browser/service_worker/service_worker_browsertest.cc
+@@ -90,6 +90,7 @@
+ #include "content/public/test/back_forward_cache_util.h"
+ #include "content/public/test/browser_test.h"
+ #include "content/public/test/browser_test_utils.h"
++#include "content/public/test/commit_message_delayer.h"
+ #include "content/public/test/content_browser_test.h"
+ #include "content/public/test/content_browser_test_content_browser_client.h"
+ #include "content/public/test/content_browser_test_utils.h"
+@@ -114,6 +115,7 @@
+ #include "net/filter/filter_source_stream_test_util.h"
+ #include "net/http/http_no_vary_search_data.h"
+ #include "net/http/http_status_code.h"
++#include "net/test/embedded_test_server/controllable_http_response.h"
+ #include "net/test/embedded_test_server/default_handlers.h"
+ #include "net/test/embedded_test_server/embedded_test_server.h"
+ #include "net/test/embedded_test_server/http_request.h"
+@@ -1507,6 +1509,238 @@ IN_PROC_BROWSER_TEST_F(ServiceWorkerBrowserTest,
+   EXPECT_FALSE(main_frame->GetLastCommittedServiceWorkerClient());
+ }
+ 
++// Forces `kOriginKeyedProcessesByDefault` off for tests that require a
++// same-site, cross-origin navigation in an initial empty iframe to reuse the
++// existing RenderFrameHost rather than swapping to an origin-keyed
++// SiteInstance.
++class ServiceWorkerNoOriginKeyedProcessesByDefaultBrowserTest
++    : public ServiceWorkerBrowserTest {
++ public:
++  ServiceWorkerNoOriginKeyedProcessesByDefaultBrowserTest() {
++    feature_list_.InitAndDisableFeature(
++        features::kOriginKeyedProcessesByDefault);
++  }
++
++ private:
++  base::test::ScopedFeatureList feature_list_;
++};
++
++// Verifies that a blob dedicated worker created in an iframe while a
++// cross-origin (same-site) navigation is in `CommitNavigation` (and then
++// aborted before the renderer commits) does not inherit the pending target
++// document's ServiceWorkerClient controller and cannot bypass CORS to fetch
++// resources from the target origin.
++IN_PROC_BROWSER_TEST_F(
++    ServiceWorkerNoOriginKeyedProcessesByDefaultBrowserTest,
++    BlobWorkerCreatedDuringUncommittedNavigationDoesNotInheritController) {
++  StartServerAndNavigateToSetup();
++
++  // Register a service worker on `embedded_test_server()` that synthesizes a
++  // response for every fetch event. If a cross-origin worker inherited this
++  // controller, `fetch(cross_origin_fetch_url)` would be intercepted by the
++  // service worker and succeed with `<title>Title</title>` despite lacking
++  // CORS headers on the server.
++  EXPECT_TRUE(NavigateToURL(shell(),
++                            embedded_test_server()->GetURL(
++                                "/service_worker/create_service_worker.html")));
++  EXPECT_EQ("DONE", EvalJs(shell(), "register('fetch_event_blob.js');"));
++
++  const GURL in_scope_url =
++      embedded_test_server()->GetURL("/service_worker/empty.html");
++  const GURL cross_origin_fetch_url =
++      embedded_test_server()->GetURL("/service_worker/empty.html?from_worker");
++
++  // Start a second server on a different port (same-site, cross-origin on
++  // 127.0.0.1) so that a fresh iframe's first navigation reuses its initial
++  // RenderFrameHostImpl.
++  net::EmbeddedTestServer other_origin_server;
++  net::test_server::ControllableHttpResponse sync_pause_response(
++      &other_origin_server, "/sync_pause");
++  other_origin_server.ServeFilesFromSourceDirectory(GetTestDataFilePath());
++  ASSERT_TRUE(other_origin_server.Start());
++  const GURL other_url = other_origin_server.GetURL("/title1.html");
++  const url::Origin other_origin = url::Origin::Create(other_url);
++
++  ASSERT_TRUE(NavigateToURL(shell(), other_url));
++  RenderFrameHostImpl* main_frame = static_cast<RenderFrameHostImpl*>(
++      shell()->web_contents()->GetPrimaryMainFrame());
++  ASSERT_TRUE(ExecJs(main_frame,
++                     "const f = document.createElement('iframe');"
++                     "document.body.appendChild(f);"));
++  ASSERT_EQ(1u, main_frame->child_count());
++  RenderFrameHostImpl* child_frame =
++      main_frame->child_at(0)->current_frame_host();
++  ASSERT_FALSE(child_frame->has_committed_any_navigation());
++  EXPECT_EQ(other_origin, child_frame->GetLastCommittedOrigin());
++
++  // Observe when `NavigationRequest::CommitNavigation()` runs for
++  // `in_scope_url` and wait until `CommitNavigation()` finishes on the UI
++  // thread (so `AddServiceWorkerClient()` and `SendCommitNavigation()` have
++  // both completed).
++  base::RunLoop commit_navigation_sent_loop;
++  class CommitNavigationSentObserver : public WebContentsObserver {
++   public:
++    CommitNavigationSentObserver(WebContents* web_contents,
++                                 const GURL& target_url,
++                                 base::OnceClosure quit_closure)
++        : WebContentsObserver(web_contents),
++          target_url_(target_url),
++          quit_closure_(std::move(quit_closure)) {}
++
++    void ReadyToCommitNavigation(NavigationHandle* handle) override {
++      if (handle->GetURL() == target_url_ && quit_closure_) {
++        // Post a task so `NavigationRequest::CommitNavigation()` finishes
++        // calling `AddServiceWorkerClient()` and `SendCommitNavigation()`
++        // before `quit_closure_` runs.
++        base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++            FROM_HERE, std::move(quit_closure_));
++      }
++    }
++
++   private:
++    const GURL target_url_;
++    base::OnceClosure quit_closure_;
++  } observer(shell()->web_contents(), in_scope_url,
++             commit_navigation_sent_loop.QuitClosure());
++
++  DOMMessageQueue message_queue(shell()->web_contents());
++  ExecuteScriptAsync(main_frame,
++                     JsReplace(R"(
++        const f = document.querySelector('iframe');
++        f.src = $1;
++        // Block the renderer main thread synchronously so the queued
++        // CommitNavigation IPC cannot be processed until the worker is created
++        // and the navigation is aborted.
++        const xhr = new XMLHttpRequest();
++        xhr.open('GET', '/sync_pause', false);
++        xhr.send();
++
++        const code = `
++          fetch($2).then(r => r.text()).then(
++              t => postMessage('ok: ' + t),
++              e => postMessage('error: ' + e));
++        `;
++        const blob = new Blob([code], {type: 'text/javascript'});
++        const w = new f.contentWindow.Worker(URL.createObjectURL(blob));
++        f.contentWindow.stop();
++        w.onmessage = e => window.domAutomationController.send(e.data);
++      )",
++                               in_scope_url, cross_origin_fetch_url));
++
++  sync_pause_response.WaitForRequest();
++  commit_navigation_sent_loop.Run();
++
++  // At this point `NavigationRequest::CommitNavigation()` has already added the
++  // pending `ServiceWorkerClient` to `child_frame`, while the renderer is still
++  // blocked before processing `CommitNavigation`.
++  EXPECT_EQ(other_origin, child_frame->GetLastCommittedOrigin());
++  EXPECT_EQ(1u, child_frame->service_worker_clients_for_testing().size());
++  EXPECT_FALSE(child_frame->GetLastCommittedServiceWorkerClient());
++
++  // Unblock the synchronous XHR so the renderer creates the blob worker, aborts
++  // the navigation, and attempts the cross-origin fetch from the worker.
++  sync_pause_response.Send(net::HTTP_OK, "text/plain", "ok");
++  sync_pause_response.Done();
++
++  std::string fetch_result;
++  ASSERT_TRUE(message_queue.WaitForMessage(&fetch_result));
++  EXPECT_EQ("\"error: TypeError: Failed to fetch\"", fetch_result);
++  EXPECT_EQ(other_origin, child_frame->GetLastCommittedOrigin());
++}
++
++// Verifies that `RenderFrameHostImpl::GetLastCommittedServiceWorkerClient()`
++// is only updated when a navigation finishes committing in the frame, rather
++// than when `CommitNavigation()` sends the commit IPC.
++IN_PROC_BROWSER_TEST_F(ServiceWorkerNoOriginKeyedProcessesByDefaultBrowserTest,
++                       LastCommittedServiceWorkerClientUpdatedOnlyAfterCommit) {
++  StartServerAndNavigateToSetup();
++
++  // Register a service worker that controls /service_worker/.
++  EXPECT_TRUE(NavigateToURL(shell(),
++                            embedded_test_server()->GetURL(
++                                "/service_worker/create_service_worker.html")));
++  EXPECT_EQ("DONE",
++            EvalJs(shell(), "register('fetch_event_pass_through.js');"));
++
++  const GURL in_scope_url =
++      embedded_test_server()->GetURL("/service_worker/empty.html");
++  const url::Origin in_scope_origin = url::Origin::Create(in_scope_url);
++
++  // Start a second server on a different port (same-site, cross-origin on
++  // 127.0.0.1) so that a fresh iframe's first navigation reuses its initial
++  // RenderFrameHostImpl.
++  net::EmbeddedTestServer other_origin_server;
++  other_origin_server.ServeFilesFromSourceDirectory(GetTestDataFilePath());
++  ASSERT_TRUE(other_origin_server.Start());
++  const GURL other_url = other_origin_server.GetURL("/title1.html");
++  const url::Origin other_origin = url::Origin::Create(other_url);
++
++  ASSERT_TRUE(NavigateToURL(shell(), other_url));
++  RenderFrameHostImpl* main_frame = static_cast<RenderFrameHostImpl*>(
++      shell()->web_contents()->GetPrimaryMainFrame());
++  ASSERT_TRUE(ExecJs(main_frame,
++                     "const f = document.createElement('iframe');"
++                     "document.body.appendChild(f);"));
++  ASSERT_EQ(1u, main_frame->child_count());
++  RenderFrameHostImpl* child_frame =
++      main_frame->child_at(0)->current_frame_host();
++  ASSERT_FALSE(child_frame->has_committed_any_navigation());
++  EXPECT_EQ(other_origin, child_frame->GetLastCommittedOrigin());
++  EXPECT_FALSE(child_frame->GetLastCommittedServiceWorkerClient());
++
++  bool delayer_ran = false;
++  CommitMessageDelayer commit_delayer(
++      shell()->web_contents(), in_scope_url,
++      base::BindLambdaForTesting([&](RenderFrameHost* rfh) {
++        delayer_ran = true;
++        EXPECT_EQ(child_frame, rfh);
++        // `AddServiceWorkerClient()` has already been called during
++        // `NavigationRequest::CommitNavigation()`, but the new document has not
++        // yet committed in `child_frame`.
++        EXPECT_EQ(other_origin, child_frame->GetLastCommittedOrigin());
++        EXPECT_EQ(1u, child_frame->service_worker_clients_for_testing().size());
++        EXPECT_FALSE(child_frame->GetLastCommittedServiceWorkerClient());
++      }));
++
++  ASSERT_TRUE(ExecJs(
++      main_frame,
++      JsReplace("document.querySelector('iframe').src = $1;", in_scope_url)));
++  commit_delayer.Wait();
++  EXPECT_TRUE(delayer_ran);
++  EXPECT_TRUE(WaitForLoadStop(shell()->web_contents()));
++
++  // Once the navigation has committed, `GetLastCommittedServiceWorkerClient()`
++  // returns the new document's client and a blob dedicated worker inherits the
++  // controller.
++  ASSERT_EQ(child_frame, main_frame->child_at(0)->current_frame_host());
++  EXPECT_EQ(in_scope_origin, child_frame->GetLastCommittedOrigin());
++  ASSERT_TRUE(child_frame->GetLastCommittedServiceWorkerClient());
++  EXPECT_TRUE(child_frame->GetLastCommittedServiceWorkerClient()->controller());
++
++  const GURL worker_fetch_url =
++      embedded_test_server()->GetURL("/service_worker/empty.html?from_worker");
++  EXPECT_EQ("ok", EvalJs(child_frame, JsReplace(R"(
++    new Promise((resolve, reject) => {
++      const code = `
++        fetch($1).then(() => postMessage('ok'), e => postMessage(String(e)));
++      `;
++      const blob = new Blob([code], {type: 'text/javascript'});
++      const w = new Worker(URL.createObjectURL(blob));
++      w.onmessage = e => resolve(e.data);
++      w.onerror = e => reject(e.message);
++    })
++  )",
++                                                worker_fetch_url)));
++  EXPECT_EQ(true, EvalJs(child_frame, JsReplace(R"(
++    new Promise(resolve => {
++      navigator.serviceWorker.addEventListener('message', e => {
++        resolve(e.data.includes($1));
++      }, {once: true});
++      navigator.serviceWorker.controller.postMessage('get_saw_requests');
++    })
++  )",
++                                                worker_fetch_url.spec())));
++}
+ // A document committed as PDF content (`NavigationRequest::IsPdf()`, which
+ // runs in a restricted PDF renderer process with `SiteInfo::is_pdf()`) must
+ // not be given a service worker container host or controller in the browser
+diff --git a/content/browser/service_worker/service_worker_main_resource_loader_interceptor.cc b/content/browser/service_worker/service_worker_main_resource_loader_interceptor.cc
+index f83e647f03..0dadfb24fe 100644
+--- a/content/browser/service_worker/service_worker_main_resource_loader_interceptor.cc
++++ b/content/browser/service_worker/service_worker_main_resource_loader_interceptor.cc
+@@ -20,6 +20,7 @@
+ #include "content/browser/service_worker/service_worker_loader_helpers.h"
+ #include "content/browser/service_worker/service_worker_main_resource_handle.h"
+ #include "content/browser/service_worker/service_worker_object_host.h"
++#include "content/browser/service_worker/service_worker_security_utils.h"
+ #include "content/public/common/content_client.h"
+ #include "content/public/common/content_features.h"
+ #include "content/public/common/origin_util.h"
+@@ -51,13 +52,27 @@ bool SchemeMaySupportRedirectingToHTTPS(BrowserContext* browser_context,
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+ }
+ 
++bool CanInheritControllerFromParent(
++    const GURL& blob_url,
++    base::WeakPtr<ServiceWorkerClient> parent_service_worker_client) {
++  if (!blob_url.SchemeIsBlob() || !parent_service_worker_client) {
++    return false;
++  }
++  return service_worker_security_utils::
++      AreOriginsCompatibleForServiceWorkerClient(
++          url::Origin::Create(blob_url),
++          parent_service_worker_client->key().origin());
++}
++
+ // Returns true if a ServiceWorkerMainResourceLoaderInterceptor should be
+ // created for a worker with this |url|.
+ bool ShouldCreateForWorker(
+     const GURL& url,
+     base::WeakPtr<ServiceWorkerClient> parent_service_worker_client) {
+-  // Blob URL can be controlled by a parent's controller.
+-  if (url.SchemeIsBlob() && parent_service_worker_client) {
++  // Blob URL can be controlled by a parent's controller if they have the same
++  // origin.
++  if (CanInheritControllerFromParent(url,
++                                     std::move(parent_service_worker_client))) {
+     return true;
+   }
+   // Create the handler even for insecure HTTP since it's used in the
+@@ -259,8 +274,8 @@ void ServiceWorkerMainResourceLoaderInterceptor::MaybeCreateLoader(
+     // https://w3c.github.io/ServiceWorker/#control-and-use-worker-client
+     base::WeakPtr<ServiceWorkerClient> parent_service_worker_client =
+         handle_->parent_service_worker_client();
+-    if (parent_service_worker_client &&
+-        tentative_resource_request.url.SchemeIsBlob()) {
++    if (CanInheritControllerFromParent(tentative_resource_request.url,
++                                       parent_service_worker_client)) {
+       handle_->service_worker_client()->InheritControllerFrom(
+           *parent_service_worker_client,
+           net::SimplifyUrlForRequest(tentative_resource_request.url));
+diff --git a/content/browser/service_worker/service_worker_security_utils.cc b/content/browser/service_worker/service_worker_security_utils.cc
+index 5f3fc22aa3..a6f6b73b3c 100644
+--- a/content/browser/service_worker/service_worker_security_utils.cc
++++ b/content/browser/service_worker/service_worker_security_utils.cc
+@@ -51,12 +51,17 @@ bool IsWebSecurityDisabled() {
+       switches::kDisableWebSecurity);
+ }
+ 
++bool AreOriginsCompatibleForServiceWorkerClient(const url::Origin& origin1,
++                                                const url::Origin& origin2) {
++  return (origin1.opaque() && origin2.opaque()) ||
++         origin1.IsSameOriginWith(origin2);
++}
++
+ void CheckOnUpdateUrls(const GURL& url, const blink::StorageKey& key) {
+-#if DCHECK_IS_ON()
+-  const url::Origin origin_to_dcheck = url::Origin::Create(url);
+-  DCHECK((origin_to_dcheck.opaque() && key.origin().opaque()) ||
+-         origin_to_dcheck.IsSameOriginWith(key.origin()))
+-      << origin_to_dcheck << " and " << key.origin() << " should be equal.";
++  const url::Origin origin_to_check = url::Origin::Create(url);
++  CHECK(
++      AreOriginsCompatibleForServiceWorkerClient(origin_to_check, key.origin()))
++      << origin_to_check << " and " << key.origin() << " should be equal.";
+   // TODO(crbug.com/40251360): verify that `top_frame_origin` matches the
+   // `top_level_site` of `storage_key`, in most cases.
+   //
+@@ -65,15 +70,14 @@ void CheckOnUpdateUrls(const GURL& url, const blink::StorageKey& key) {
+   //    top-level site is actually an extension.
+   //  - The storage key has a nonce, in which case its `top_level_site` will be
+   //    for the frame that introduced the nonce (such as a fenced frame) and not
+-  //    the same as `top_level_site`.
++  //    the same as `top_frame_origin`.
+   //  - The storage key was generated without third-party storage partitioning.
+   //    This may be the case even when 3PSP is enabled, due to enterprise policy
+   //    or deprecation trials.
+   //
+-  // Consider adding a DHCECK here once the last of those conditions is
++  // Consider adding a DCHECK here once the last of those conditions is
+   // resolved. See
+   // https://chromium-review.googlesource.com/c/chromium/src/+/4378900/4.
+-#endif
+ }
+ 
+ blink::StorageKey GetCorrectStorageKeyForWebSecurityState(
+diff --git a/content/browser/service_worker/service_worker_security_utils.h b/content/browser/service_worker/service_worker_security_utils.h
+index eedc008bfa..2cc1fe35af 100644
+--- a/content/browser/service_worker/service_worker_security_utils.h
++++ b/content/browser/service_worker/service_worker_security_utils.h
+@@ -10,6 +10,7 @@
+ #include "content/common/content_export.h"
+ #include "third_party/blink/public/common/storage_key/storage_key.h"
+ #include "url/gurl.h"
++#include "url/origin.h"
+ 
+ namespace blink {
+ class StorageKey;
+@@ -32,6 +33,13 @@ CONTENT_EXPORT bool AllOriginsMatchAndCanAccessServiceWorkers(
+ 
+ CONTENT_EXPORT bool IsWebSecurityDisabled();
+ 
++// Returns true if `origin1` and `origin2` are compatible for sharing or
++// inheriting a ServiceWorkerClient (either both origins are opaque, or they
++// are same-origin).
++CONTENT_EXPORT bool AreOriginsCompatibleForServiceWorkerClient(
++    const url::Origin& origin1,
++    const url::Origin& origin2);
++
+ // Check origins etc. on setting URLs.
+ CONTENT_EXPORT void CheckOnUpdateUrls(const GURL& url,
+                                       const blink::StorageKey& key);
+diff --git a/content/browser/worker_host/dedicated_worker_host.cc b/content/browser/worker_host/dedicated_worker_host.cc
+index cf8c8f6372..d87c6b6c0f 100644
+--- a/content/browser/worker_host/dedicated_worker_host.cc
++++ b/content/browser/worker_host/dedicated_worker_host.cc
+@@ -33,6 +33,7 @@
+ #include "content/browser/service_worker/service_worker_client.h"
+ #include "content/browser/service_worker/service_worker_context_core.h"
+ #include "content/browser/service_worker/service_worker_main_resource_handle.h"
++#include "content/browser/service_worker/service_worker_security_utils.h"
+ #include "content/browser/storage_partition_impl.h"
+ #include "content/browser/url_loader_factory_params_helper.h"
+ #include "content/browser/websockets/websocket_connector_impl.h"
+@@ -388,6 +389,12 @@ void DedicatedWorkerHost::StartScriptLoad(
+   } else {
+     parent_service_worker_client = creator_worker->GetServiceWorkerClient();
+   }
++  if (parent_service_worker_client &&
++      !service_worker_security_utils::
++          AreOriginsCompatibleForServiceWorkerClient(
++              creator_origin_, parent_service_worker_client->key().origin())) {
++    parent_service_worker_client = nullptr;
++  }
+   std::string fetch_event_client_id;
+   if (parent_service_worker_client) {
+     fetch_event_client_id = parent_service_worker_client->client_uuid();
+diff --git a/content/browser/worker_host/shared_worker_service_impl.cc b/content/browser/worker_host/shared_worker_service_impl.cc
+index 905f1ea042..99b0c1e89b 100644
+--- a/content/browser/worker_host/shared_worker_service_impl.cc
++++ b/content/browser/worker_host/shared_worker_service_impl.cc
+@@ -24,6 +24,7 @@
+ #include "content/browser/security/cpsp/child_process_security_policy_impl.h"
+ #include "content/browser/service_worker/service_worker_client.h"
+ #include "content/browser/service_worker/service_worker_main_resource_handle.h"
++#include "content/browser/service_worker/service_worker_security_utils.h"
+ #include "content/browser/storage_partition_impl.h"
+ #include "content/browser/web_contents/web_contents_impl.h"
+ #include "content/browser/worker_host/shared_worker_host.h"
+@@ -483,17 +484,25 @@ SharedWorkerHost* SharedWorkerServiceImpl::CreateWorker(
+   SharedWorkerHost* host = insertion_result.first->get();
+   shared_worker_hosts_[host->token()] = host;
+ 
++  base::WeakPtr<ServiceWorkerClient> parent_service_worker_client =
++      creator.GetLastCommittedServiceWorkerClient();
++  if (parent_service_worker_client &&
++      !service_worker_security_utils::
++          AreOriginsCompatibleForServiceWorkerClient(
++              instance.creator_storage_key().origin(),
++              parent_service_worker_client->key().origin())) {
++    parent_service_worker_client = nullptr;
++  }
+   std::string fetch_event_client_id;
+-  if (creator.GetLastCommittedServiceWorkerClient()) {
+-    fetch_event_client_id =
+-        creator.GetLastCommittedServiceWorkerClient()->client_uuid();
++  if (parent_service_worker_client) {
++    fetch_event_client_id = parent_service_worker_client->client_uuid();
+   }
+ 
+   auto service_worker_handle =
+       std::make_unique<ServiceWorkerMainResourceHandle>(
+           storage_partition_->GetServiceWorkerContext(), base::DoNothing(),
+           std::move(fetch_event_client_id),
+-          creator.GetLastCommittedServiceWorkerClient());
++          std::move(parent_service_worker_client));
+   auto* service_worker_handle_raw = service_worker_handle.get();
+   host->SetServiceWorkerHandle(std::move(service_worker_handle));
+ 
+diff --git a/content/browser/worker_host/worker_script_loader_factory_unittest.cc b/content/browser/worker_host/worker_script_loader_factory_unittest.cc
+index 450fdf6ae7..85ac876bca 100644
+--- a/content/browser/worker_host/worker_script_loader_factory_unittest.cc
++++ b/content/browser/worker_host/worker_script_loader_factory_unittest.cc
+@@ -361,6 +361,61 @@ TEST_F(WorkerScriptLoaderFactoryTest, RejectUnsafeRedirectTarget) {
+   EXPECT_EQ(net::ERR_UNSAFE_REDIRECT, client.completion_status().error_code);
+ }
+ 
++TEST_F(WorkerScriptLoaderFactoryTest, BlobUrlWorkerParentOriginMismatch) {
++  const GURL parent_url("https://other.example.com/index.html");
++  const url::Origin parent_origin = url::Origin::Create(parent_url);
++  ScopedServiceWorkerClient parent_client =
++      helper_->context()
++          ->service_worker_client_owner()
++          .CreateServiceWorkerClientForWindow(/*are_ancestors_secure=*/true,
++                                              FrameTreeNodeId());
++  parent_client->UpdateUrls(parent_url, parent_origin,
++                            blink::StorageKey::CreateFirstParty(parent_origin));
++
++  // A blob URL from a different origin than `parent_client` must not create a
++  // service worker client or inherit `parent_client`'s storage key/controller.
++  const GURL different_origin_blob_url(
++      "blob:https://www.example.com/49146318-7a89-4041-9bcc-36e6b6eeef86");
++  const url::Origin different_blob_origin =
++      url::Origin::Create(different_origin_blob_url);
++  auto mismatched_handle = std::make_unique<ServiceWorkerMainResourceHandle>(
++      helper_->context_wrapper(), base::DoNothing(),
++      parent_client->client_uuid(), parent_client.AsWeakPtr());
++  auto mismatched_factory = std::make_unique<WorkerScriptLoaderFactory>(
++      kProcessId, DedicatedOrSharedWorkerToken(),
++      net::IsolationInfo::CreateForInternalRequest(different_blob_origin),
++      mismatched_handle.get(), browser_context_getter_,
++      network_loader_factory_);
++
++  network::TestURLLoaderClient mismatched_client;
++  mojo::PendingRemote<network::mojom::URLLoader> mismatched_loader =
++      CreateTestLoaderAndStart(different_origin_blob_url,
++                               mismatched_factory.get(), &mismatched_client);
++  mismatched_client.RunUntilResponseReceived();
++  EXPECT_FALSE(mismatched_handle->service_worker_client());
++
++  // Positive control: a blob URL with the same origin as `parent_client`
++  // creates a service worker client and inherits `parent_client`'s key.
++  const GURL same_origin_blob_url(
++      "blob:https://other.example.com/49146318-7a89-4041-9bcc-36e6b6eeef86");
++  auto matching_handle = std::make_unique<ServiceWorkerMainResourceHandle>(
++      helper_->context_wrapper(), base::DoNothing(),
++      parent_client->client_uuid(), parent_client.AsWeakPtr());
++  auto matching_factory = std::make_unique<WorkerScriptLoaderFactory>(
++      kProcessId, DedicatedOrSharedWorkerToken(),
++      net::IsolationInfo::CreateForInternalRequest(parent_origin),
++      matching_handle.get(), browser_context_getter_, network_loader_factory_);
++
++  network::TestURLLoaderClient matching_client;
++  mojo::PendingRemote<network::mojom::URLLoader> matching_loader =
++      CreateTestLoaderAndStart(same_origin_blob_url, matching_factory.get(),
++                               &matching_client);
++  matching_client.RunUntilResponseReceived();
++  ASSERT_TRUE(matching_handle->service_worker_client());
++  EXPECT_EQ(parent_client->key(),
++            matching_handle->service_worker_client()->key());
++}
++
+ // TODO(falken): Add a test for a shared worker that's controlled by a service
+ // worker.
+ 
+-- 
+2.43.0
+

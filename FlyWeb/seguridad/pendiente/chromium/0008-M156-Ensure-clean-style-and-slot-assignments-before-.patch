@@ -1,0 +1,78 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Philip Rogers <pdr@chromium.org>
+Date: Fri, 20 Nov 2026 19:07:22 +0000
+Subject: [PATCH] [M156] Ensure clean style and slot assignments before canvas
+ transform update
+
+FlyWeb pending: from branch-heads/8078 8dceb29b09. Applied after pendiente/chromium/0007; applies cleanly (identical diff). No brave-core patches or chromium_src for this file.
+
+Original change's description:
+> Ensure clean style and slot assignments before canvas transform update
+>
+> This patch updates InvalidateForCanvasTransformChange to call
+> Document::UpdateStyleAndLayoutTree() before updating the PaintLayer
+> transform. Previously, calling PaintLayer::UpdateTransform() with dirty
+> style and slot assignments could trigger slot assignment
+> from ComputedStyle::ApplyTransform() and run a nested style update that
+> reset PaintLayer::transform_ while the outer call still held a
+> reference to it.
+>
+> Fixed: 584385833
+> Change-Id: If6b0449b426f89a9506b43475408f40eccc62e47
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8811172
+> Auto-Submit: Philip Rogers <pdr@chromium.org>
+> Reviewed-by: Stefan Zager <szager@chromium.org>
+> Commit-Queue: Stefan Zager <szager@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1744728}
+
+(cherry picked from commit 2038408960602a71d045cf14ad3a7fe16ff18153)
+
+Bug: 586066876,584385833
+Change-Id: If6b0449b426f89a9506b43475408f40eccc62e47
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8849155
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2361}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ third_party/blink/renderer/core/dom/element.cc | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/renderer/core/dom/element.cc
+index f7c927c4d8..62fb3efdab 100644
+--- a/third_party/blink/renderer/core/dom/element.cc
++++ b/third_party/blink/renderer/core/dom/element.cc
+@@ -661,8 +661,11 @@ const AtomicString& V8ShadowRootModeToString(V8ShadowRootMode::Enum mode) {
+   return keywords::kClosed;
+ }
+ 
+-void InvalidateForCanvasTransformChange(LayoutObject* layout_object) {
+-  if (layout_object) {
++void InvalidateForCanvasTransformChange(Element& element) {
++  // Ensure style and slot assignments are clean before calling
++  // PaintLayer::UpdateTransform.
++  element.GetDocument().UpdateStyleAndLayoutTree();
++  if (LayoutObject* layout_object = element.GetLayoutObject()) {
+     layout_object->SetNeedsPaintPropertyUpdate();
+     const auto* box = DynamicTo<LayoutBox>(layout_object);
+     if (box && box->TransformsChangeMayRequireLayout()) {
+@@ -4571,13 +4574,13 @@ void Element::SetCanvasTransform(const gfx::Transform& transform) {
+     }
+   }
+   EnsureRareData().SetCanvasTransform(transform).RefreshNode(*this);
+-  InvalidateForCanvasTransformChange(GetLayoutObject());
++  InvalidateForCanvasTransformChange(*this);
+ }
+ 
+ void Element::ClearCanvasTransform() {
+   if (NodeRareData* data = RareData()) {
+     data->ClearCanvasTransform();
+-    InvalidateForCanvasTransformChange(GetLayoutObject());
++    InvalidateForCanvasTransformChange(*this);
+   }
+ }
+ 
+-- 
+2.43.0
+
