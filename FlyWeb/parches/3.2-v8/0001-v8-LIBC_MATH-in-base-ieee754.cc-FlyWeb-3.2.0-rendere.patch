@@ -1,0 +1,45 @@
+From 17ed4b4bb56ff32b97b58c6e7ce698bf22da3706 Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 10:46:24 +0000
+Subject: [PATCH 1/2] v8: LIBC_MATH in base/ieee754.cc (FlyWeb 3.2.0,
+ renderer-webgl 0003)
+
+V8 upstream change by Nico Weber (2 Nov 2026), from softmac
+FlyWeb/parches/3.2-renderer-webgl/0003, as a brave-core V8 patch: tell
+LLVM's libm that V8 never reads errno or the floating-point exception
+flags and always runs in round-to-nearest mode. Special inputs of the
+Math functions get much faster and log, log1p, log2 and log10 about
+4-7 % faster; accuracy is unaffected. Base: V8 15.6.75.66 (ieee754.cc is
+not touched by any other patches/v8 file).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ patches/v8/src-base-ieee754.cc.patch | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+ create mode 100644 patches/v8/src-base-ieee754.cc.patch
+
+diff --git a/patches/v8/src-base-ieee754.cc.patch b/patches/v8/src-base-ieee754.cc.patch
+new file mode 100644
+index 0000000000000000000000000000000000000000..19c954ddee4473c3d6d08d3a8469ab33aed89df1
+--- /dev/null
++++ b/patches/v8/src-base-ieee754.cc.patch
+@@ -0,0 +1,15 @@
++diff --git a/src/base/ieee754.cc b/src/base/ieee754.cc
++index bedffe01475c476b0dec39d19e3d781aea69fd58..f51591716b260111d0b3cd70f96e524100f7fcb9 100644
++--- a/src/base/ieee754.cc
+++++ b/src/base/ieee754.cc
++@@ -13,6 +13,10 @@
++ // modified significantly by Google Inc.
++ // Copyright 2016 the V8 project authors. All rights reserved.
++ 
+++#define LIBC_MATH                             \
+++  (LIBC_MATH_NO_ERRNO | LIBC_MATH_NO_EXCEPT | \
+++   LIBC_MATH_ASSUME_ROUND_NEAREST_ONLY)
+++
++ #include "src/base/ieee754.h"
++ 
++ #include <cmath>
+-- 
+2.43.0
+
