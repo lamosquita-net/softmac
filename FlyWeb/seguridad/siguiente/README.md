@@ -9,7 +9,7 @@ Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTE
 
 | Repo | Base | Parches de aquí | Árbol resultante |
 |---|---|---|---|
-| chromium | árbol **`2bb85047ec`** (`pendiente/chromium/0001`–`0008` + `portes-159/chromium/0001`–`0002`) | `chromium/0001`–`0006` | **`c9905873db`** (tras `0001`: `faec7dc5b9`; `0002`: `ee335593f3`; `0003`: `6d4ab28029`; `0004`: `1ec5df9eea`; `0005`: `f4eb399ad1`) |
+| chromium | árbol **`2bb85047ec`** (`pendiente/chromium/0001`–`0008` + `portes-159/chromium/0001`–`0002`) | `chromium/0001`–`0007` | **`3564a4b08e`** (tras `0006`: `c9905873db`; tras `0001`: `faec7dc5b9`; `0002`: `ee335593f3`; `0003`: `6d4ab28029`; `0004`: `1ec5df9eea`; `0005`: `f4eb399ad1`) |
 
 ## Rama 8078 después del cierre de la tanda
 
@@ -23,6 +23,9 @@ Lo que sí lo sea se avisa enseguida a COORDINACIÓN. Lo prepara SEGURIDAD-PORTE
 | `40bf5125f6` (00:21 UTC) | [M156] «Recheck cross-document new children in ReplaceChild(VectorOf<Node>)» (583907042, merge 587226434) | Sí (abajo) | `chromium/0005` |
 | `dabab2fd13` (00:23 UTC) | [M156] «Don't pause on DOM breakpoints during document lifecycle updates» (584330765, merge 587226163) | Sí, con DevTools abierto (abajo) | `chromium/0006` |
 | `1f56333f76` (00:57 UTC) | Pruebas WPT marcadas como inestables en Mac | — | — |
+| `b83b7983ff` (02:12 UTC) | VERSION a 156.0.8078.120 | — | — |
+| `28fb53154e` (02:35 UTC) | [M156] «Don't scroll when a focused input's list target changes» (583179912, merge 588196773) | Sí (abajo) | `chromium/0007` |
+| `3df8aa144a` (03:32 UTC) | *Roll* de pruebas internas de Glic (`chrome/browser/glic/e2e_test/internal`) | — | — |
 | `04db7fff13` (00:10 UTC) | [M156] «SchemeHostPort: Reject empty host for non-file SCHEME_WITH_HOST schemes» (586171393, merge 588196153) | Sí | Ya está: es **idéntico** (`patch-id` igual) a `portes-159/chromium/0002` (#1159) |
 
 El tag **156.0.8078.113** (`970863f8c7`, 20-11) **no sirve de referencia**. Es un *hotfix* en la sub-rama
@@ -134,4 +137,19 @@ al reanudar. Ahora no se pausa en mutaciones que no causa el *script*. Solo se a
 
 Prueba para LOCAL: `inspector-protocol/dom/dom-breakpoint-skip-view-transition-during-recalc.js` (y su variante
 `virtual/threaded`).
+
+## `chromium/0007`: 28fb53154e (bug 583179912)
+
+`TextFieldInputType::ListAttributeTargetChanged()` puede ejecutarse de forma síncrona desde notificaciones de mutación
+del DOM. Si el `<input>` tenía el foco, llamaba a `UpdateSelectionOnFocus(kRestore)`, que hace *scroll* y fuerza un
+*layout* síncrono a mitad de la mutación. Durante `moveBefore()`, ese *layout* anidado podía recalcular asignaciones de
+*slots* mientras `LocalFrameView` recorría `scroll_anchoring_scrollable_areas_`: **corrupción o UAF en el
+*renderer***. Ahora no se hace *scroll* en ese caso. Se alcanza desde cualquier web (`<input list>`, `<datalist>`,
+`moveBefore`). Aplica a Mac.
+
+- Mismo diff que upstream (`patch-id` igual). brave-core no toca `text_field_input_type.cc`.
+
+### Veredicto (regla 17): **APTO**, `chromium/0007`
+
+Pruebas para LOCAL: las dos WPT nuevas `dom/nodes/moveBefore/moveBefore-input-list-target-{inserted,removed}-crash.html`.
 

@@ -4,3 +4,4 @@ ebea711046187a849c9c8de7b7ec5293de45bb8db26a31027a90c2cd0f92880e  chromium/0002-
 fac457f7b9a880d2a7ecb32ee1da146db13801dd2823a54f0dc2929f09884a05  chromium/0004-M156-Retarget-NavigateEvent.sourceElement.patch
 fc0787e7099b1146e11acfcd7c78ae80b86847040185472fc074b845c0ea1129  chromium/0005-M156-Recheck-cross-document-new-children-in-ReplaceC.patch
 5976ea962a917400de2a687a960934f45a29a3dbd19aa66b771edd9964b31c7d  chromium/0006-M156-Don-t-pause-on-DOM-breakpoints-during-document-.patch
+f78d7d53e098c3ff5baec2f09dff76c01b8ef48db28922e210890a9b321ec983  chromium/0007-M156-Don-t-scroll-when-a-focused-input-s-list-target.patch
