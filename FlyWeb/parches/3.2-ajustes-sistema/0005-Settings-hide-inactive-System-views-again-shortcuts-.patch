@@ -1,0 +1,47 @@
+From 392390d5e4ff15a698d23685179466357819f2a3 Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 13:16:32 +0000
+Subject: [PATCH] Settings: hide inactive System views again (shortcuts
+ subpage)
+
+LOCAL-21 (bt-320e): flyweb://settings/system/shortcuts showed the
+shortcuts subpage below the Brave system and memory cards instead of
+replacing them. In settings-brave-system-page-index the views carry
+.cr-centered-card-container, whose display: block comes from the
+element's own tree (cr-shared-style) and so wins over cr-view-manager's
+`::slotted([slot=view]) { display: none }`: those views were never
+hidden. Upstream Brave puts the class on cr-view-manager instead; here
+it stays on the views (settings-system-page already centers its own
+section), and a rule in the same tree hides a classed view while it is
+neither active nor closing, outside show-all (search) mode. No layout
+change for the views that are shown.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ .../brave_system_page/brave_system_page_index.html       | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/browser/resources/settings/brave_system_page/brave_system_page_index.html b/browser/resources/settings/brave_system_page/brave_system_page_index.html
+index 30f251a893f0bc2da36f7e207d500ec132477c6d..578340799dcd27360d40071f94d1ac0c34622c97 100644
+--- a/browser/resources/settings/brave_system_page/brave_system_page_index.html
++++ b/browser/resources/settings/brave_system_page/brave_system_page_index.html
+@@ -7,6 +7,15 @@
+   cr-view-manager [slot=view]:not(.closing) {
+     position: initial;
+   }
++
++  /* FlyWeb: .cr-centered-card-container sets display: block from this tree,
++     which wins over cr-view-manager's ::slotted(display: none), so the views
++     that carry it never hid: the shortcuts subpage showed below the system
++     and memory cards. Hide them again when they are not the active view. */
++  cr-view-manager:not([show-all])
++      [slot=view].cr-centered-card-container:not(.active):not(.closing) {
++    display: none;
++  }
+ </style>
+ 
+ <!-- No cr-centered-card-container here: settings-system-page already carries
+-- 
+2.43.0
+
