@@ -1,0 +1,124 @@
+From 93cfd7b42dabefd919b3e349744f37ff65e0bf75 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 19 Nov 2026 17:58:14 +0000
+Subject: [PATCH 2/7] FlyWeb 3.2.0 interface: tab shape with smaller top
+ radius, straight base
+
+From Titin's design (softmac FlyWeb/branding/interfaz-3.2.0):
+- Top corner radius 3 dip instead of Chromium's 10, estimated from the
+  mockup in proportion to the tab height (BRAVE_TAB_STYLE_TOP_CORNER_RADIUS
+  in chromium_src/chrome/browser/ui/tabs/tab_style.cc).
+- Straight join with the toolbar: the outward curves at the base are not
+  drawn (kFlyWebTabBottomCornerRadius = 0 in the chromium_src override of
+  horizontal_tab_style_views.cc).
+
+TabStyle::GetBottomCornerRadius() is unchanged because it also sets the
+tab width and the overlap between tabs, so the tab size stays as it is.
+Inactive tabs keep no background and the separators between them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ .../chrome/browser/ui/tabs/tab_style.cc       | 16 ++++++++++++
+ .../tabs/common/horizontal_tab_style_views.cc | 25 +++++++++++++++++++
+ .../chrome-browser-ui-tabs-tab_style.cc.patch | 13 ++++++++++
+ ...common-horizontal_tab_style_views.cc.patch | 12 +++++++++
+ 4 files changed, 66 insertions(+)
+ create mode 100644 chromium_src/chrome/browser/ui/tabs/tab_style.cc
+ create mode 100644 chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+ create mode 100644 patches/chrome-browser-ui-tabs-tab_style.cc.patch
+ create mode 100644 patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch
+
+diff --git a/chromium_src/chrome/browser/ui/tabs/tab_style.cc b/chromium_src/chrome/browser/ui/tabs/tab_style.cc
+new file mode 100644
+index 0000000000..66aeb20bf2
+--- /dev/null
++++ b/chromium_src/chrome/browser/ui/tabs/tab_style.cc
+@@ -0,0 +1,16 @@
++/* Copyright (c) 2026 The Brave Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++// FlyWeb 3.2.0 interface (softmac FlyWeb/branding/interfaz-3.2.0): a smaller
++// top corner radius than Chromium's 10 dip, taken from Titín's mockup in
++// proportion to the tab height (about 1-1.5 px of corner on a ~16 px tab that
++// is 34 dip high). Adjusted in tests with Titín. Every user of
++// TabStyle::GetTopCornerRadius() follows: the tab shape, the hover highlight
++// and the focus ring. The tab size does not depend on it.
++#define BRAVE_TAB_STYLE_TOP_CORNER_RADIUS 3
++
++#include "src/chrome/browser/ui/tabs/tab_style.cc"
++
++#undef BRAVE_TAB_STYLE_TOP_CORNER_RADIUS
+diff --git a/chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc b/chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+new file mode 100644
+index 0000000000..331bcbd219
+--- /dev/null
++++ b/chromium_src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+@@ -0,0 +1,25 @@
++/* Copyright (c) 2026 The Brave Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#include <algorithm>
++
++namespace {
++
++// FlyWeb 3.2.0 interface (softmac FlyWeb/branding/interfaz-3.2.0): the tab
++// joins the toolbar with a straight edge, without Chromium's outward curves at
++// the base. Only the drawn radius changes; TabStyle::GetBottomCornerRadius()
++// still sets the tab width and the overlap between tabs, so the tab size stays
++// the same. In dip; 0 = straight join.
++constexpr float kFlyWebTabBottomCornerRadius = 0.0f;
++
++}  // namespace
++
++#define BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_BOTTOM_CORNER_RADIUS \
++  extension_corner_radius = std::clamp(extension_corner_radius, 0.0f,  \
++                                       kFlyWebTabBottomCornerRadius * scale);
++
++#include "src/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc"
++
++#undef BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_BOTTOM_CORNER_RADIUS
+diff --git a/patches/chrome-browser-ui-tabs-tab_style.cc.patch b/patches/chrome-browser-ui-tabs-tab_style.cc.patch
+new file mode 100644
+index 0000000000..dd03df6339
+--- /dev/null
++++ b/patches/chrome-browser-ui-tabs-tab_style.cc.patch
+@@ -0,0 +1,13 @@
++diff --git a/chrome/browser/ui/tabs/tab_style.cc b/chrome/browser/ui/tabs/tab_style.cc
++index ae95d2dfc228bab8c47e76f520c53a6fc1ba95ca..c75736b33f73cc097d89ca7e68eeeac8935689ee 100644
++--- a/chrome/browser/ui/tabs/tab_style.cc
+++++ b/chrome/browser/ui/tabs/tab_style.cc
++@@ -95,7 +95,7 @@ int TabStyle::GetMinimumInactiveWidth() const {
++ }
++ 
++ int TabStyle::GetTopCornerRadius() const {
++-  return 10;
+++  return BRAVE_TAB_STYLE_TOP_CORNER_RADIUS;
++ }
++ 
++ int TabStyle::GetBottomCornerRadius() const {
+diff --git a/patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch b/patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch
+new file mode 100644
+index 0000000000..64119cce02
+--- /dev/null
++++ b/patches/chrome-browser-ui-views-tabs-common-horizontal_tab_style_views.cc.patch
+@@ -0,0 +1,12 @@
++diff --git a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
++index 5e8bf7705c1b20c0833936eb9f62d501cf9e3b16..1ded4487c00da795380bf5c7a80882dc48c65687 100644
++--- a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+++++ b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
++@@ -225,6 +225,7 @@ SkPath HorizontalTabStyleViews::GetPath(TabStyle::PathType path_type,
++     extension_corner_radius -= 0.5f * stroke_adjustment;
++   }
++ 
+++  BRAVE_HORIZONTAL_TAB_STYLE_VIEWS_GET_PATH_BOTTOM_CORNER_RADIUS
++   float left_extension_corner_radius = extension_corner_radius;
++   if (delegate_->IsLeftSplitTab()) {
++     top_right_corner_radius = 0;
+-- 
+2.43.0
+
