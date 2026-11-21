@@ -1031,3 +1031,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/NUBE-SEGURIDAD-PORTES/20261121-0950-COORDINACION-58-arranque.md → SEGURIDAD-PORTES (nube) · 2026-11-21 09:55 UTC · copia escrita del SendMessage de arranque
 - buzon/NUBE-INVESTIGACION-MOTOR/20261121-0950-COORDINACION-58-arranque.md → INVESTIGACION-MOTOR (nube) · 2026-11-21 09:55 UTC · copia escrita del SendMessage de arranque
 - buzon/NUBE-SEGURIDAD-VIGIA/20261121-0950-COORDINACION-58-arranque.md → SEGURIDAD-VIGIA (nube) · 2026-11-21 09:55 UTC · copia escrita del SendMessage de arranque
+- buzon/D8-LINUX/20261120-1400-SEGURIDAD-PORTES-33-v8-3.2.0.md (f069cbc3) → motor ubuntu (5) [session_01MwmK2iT4hLWA1h2vv3cG9K] · 2026-11-21 10:10 UTC · entregado (recibido por D8-LINUX-5; informes por SendMessage a COORDINACIÓN-58, que los sube: no hace push en su máquina)
