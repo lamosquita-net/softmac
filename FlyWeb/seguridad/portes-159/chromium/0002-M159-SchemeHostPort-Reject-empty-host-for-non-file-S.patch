@@ -1,0 +1,222 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lukasz Anforowicz <lukasza@chromium.org>
+Date: Fri, 20 Nov 2026 19:34:27 +0000
+Subject: [PATCH] [M159] SchemeHostPort: Reject empty host for non-file
+ SCHEME_WITH_HOST schemes
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+FlyWeb port (not yet merged to M156): from branch-heads/8154 b079c8f6c8 (M159 merge of 73392c2e5d). Applied after portes-159/chromium/0001; applies cleanly (identical diff). No brave-core patches or chromium_src for url/.
+
+Original change's description:
+> SchemeHostPort: Reject empty host for non-file SCHEME_WITH_HOST schemes
+>
+> Before this CL, a `url::SchemeHostPort` could have an empty host for
+> *any* `SCHEME_WITH_HOST` scheme, e.g. `("chrome", "", 0)`.  But among
+> such schemes, only `file:` `GURL`s may actually have an empty host -
+> `GURL` rejects "chrome://" [1] and other similar URLs with "standard"
+> schemes [2].  Therefore such a `SchemeHostPort` couldn't originate from
+> a `GURL`.  Nevertheless, when such an empty-host `SchemeHostPort` was
+> received via IPC, it could confuse the navigation stack.
+>
+> After this CL, `SchemeHostPort` (and therefore also `url::Origin`,
+> including its mojo traits) treats an empty host as invalid for
+> `SCHEME_WITH_HOST` schemes other than `file:` (just like `GURL` does).
+> This also matches Blink, which derives origins from `KURL`s, and where
+> "chrome://" and other similar URLs are invalid and result in opaque
+> origins [3].
+>
+> [1] `SchemeHostPortTest.EmptyHostGurlConversion` registers "chrome" as
+>     a `SCHEME_WITH_HOST` scheme, and checks that `GURL("chrome:")` and
+>     `GURL("chrome://")` (the serialization of `("chrome", "", 0)`) are
+>     invalid (note that this CL tweaks this test slightly - the link
+>     points to the state before this CL):
+>     https://source.chromium.org/chromium/chromium/src/+/989bfb21678bad41c86612a54df922726246ecd7:url/scheme_host_port_unittest.cc;l=290-299
+> [2] https://source.chromium.org/chromium/chromium/src/+/989bfb21678bad41c86612a54df922726246ecd7:url/url_canon_stdurl.cc;l=76-84
+> [3] `AbstractOriginTest.OpaqueOriginsFromInvalidUrls` checks that URLs
+>     of `SCHEME_WITH_HOST` schemes without a host are invalid and result
+>     in opaque origins:
+>     https://source.chromium.org/chromium/chromium/src/+/989bfb21678bad41c86612a54df922726246ecd7:url/origin_abstract_tests.h;l=385-400
+>     Blink runs this test with `KURL` and `blink::SecurityOrigin`:
+>     https://source.chromium.org/chromium/chromium/src/+/989bfb21678bad41c86612a54df922726246ecd7:third_party/blink/renderer/platform/weborigin/security_origin_test.cc;l=1364-1366
+>
+> Bug: 586171393
+> Change-Id: I9bfaa05406e90f7155331a7ba3516945579fec8c
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8820486
+> Reviewed-by: Daniel Cheng <dcheng@chromium.org>
+> Commit-Queue: Łukasz Anforowicz <lukasza@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1748590}
+
+(cherry picked from commit 73392c2e5d5fa9462bf634dab77a7e5f0e4a6b5c)
+
+Bug: 588196490,586171393
+Change-Id: I9bfaa05406e90f7155331a7ba3516945579fec8c
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8844400
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1189}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ url/mojom/url_gurl_mojom_traits_unittest.cc | 33 +++++++++++++++++++++
+ url/origin_unittest.cc                      |  3 +-
+ url/scheme_host_port.cc                     | 15 ++++++++--
+ url/scheme_host_port_unittest.cc            | 27 +++++++++++------
+ 4 files changed, 65 insertions(+), 13 deletions(-)
+
+diff --git a/url/mojom/url_gurl_mojom_traits_unittest.cc b/url/mojom/url_gurl_mojom_traits_unittest.cc
+index 3b0a7bdac4..5c00023aa4 100644
+--- a/url/mojom/url_gurl_mojom_traits_unittest.cc
++++ b/url/mojom/url_gurl_mojom_traits_unittest.cc
+@@ -2,14 +2,20 @@
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
+ 
++#include <optional>
++#include <string>
+ #include <utility>
+ 
+ #include "base/test/task_environment.h"
++#include "base/unguessable_token.h"
+ #include "mojo/public/cpp/bindings/pending_receiver.h"
+ #include "mojo/public/cpp/bindings/receiver.h"
+ #include "mojo/public/cpp/bindings/remote.h"
++#include "mojo/public/cpp/test_support/test_utils.h"
+ #include "testing/gtest/include/gtest/gtest.h"
++#include "url/mojom/origin.mojom.h"
+ #include "url/mojom/url_test.mojom.h"
++#include "url/url_util.h"
+ 
+ namespace url {
+ 
+@@ -200,6 +206,33 @@ TEST_F(MojoGURLStructTraitsTest, OriginSerialization) {
+   EXPECT_FALSE(output.opaque());
+ }
+ 
++// Test that deserialization fails for an origin whose tuple (or precursor tuple
++// if opaque) can't come from a valid GURL. For example, "chrome://" is not a
++// valid GURL, so ("chrome", "", 0) is not a valid tuple. This is a regression
++// test for https://crbug.com/586171393.
++TEST_F(MojoGURLStructTraitsTest, OriginDeserializationWithEmptyHost) {
++  ScopedSchemeRegistryForTests scoped_registry;
++  AddStandardScheme("chrome", SCHEME_WITH_HOST);
++
++  auto can_deserialize = [](std::string scheme, std::string host,
++                            std::optional<base::UnguessableToken> nonce) {
++    mojom::OriginPtr input =
++        mojom::Origin::New(std::move(scheme), std::move(host), 0, nonce);
++    Origin output;
++    return mojo::test::SerializeAndDeserialize<mojom::Origin>(input, output);
++  };
++  const base::UnguessableToken nonce = base::UnguessableToken::Create();
++
++  EXPECT_FALSE(can_deserialize("chrome", "", std::nullopt));
++  EXPECT_FALSE(can_deserialize("chrome", "", nonce));
++  EXPECT_TRUE(can_deserialize("chrome", "host", std::nullopt));
++  EXPECT_TRUE(can_deserialize("chrome", "host", nonce));
++
++  // Among `SCHEME_WITH_HOST` schemes, only file: may have an empty host.
++  EXPECT_TRUE(can_deserialize("file", "", std::nullopt));
++  EXPECT_TRUE(can_deserialize("file", "", nonce));
++}
++
+ // Test that the "kMaxURLChars" values are the same in url.mojom and
+ // url_constants.cc.
+ TEST_F(MojoGURLStructTraitsTest, TestMaxURLChars) {
+diff --git a/url/origin_unittest.cc b/url/origin_unittest.cc
+index 066a7f2364..b1a53838c3 100644
+--- a/url/origin_unittest.cc
++++ b/url/origin_unittest.cc
+@@ -385,7 +385,8 @@ TEST_F(OriginTest, UnsafelyCreateUniqueOnInvalidInput) {
+                {"unknown-scheme", "example.com"},
+                {"host-only", "\r", 0},
+                {"host-only", "example.com", 22},
+-               {"file", "", 123}};  // file: shouldn't have a port.
++               {"host-only", "", 0},  // Only file: may have an empty host.
++               {"file", "", 123}};    // file: shouldn't have a port.
+ 
+   for (const auto& test : cases) {
+     SCOPED_TRACE(testing::Message()
+diff --git a/url/scheme_host_port.cc b/url/scheme_host_port.cc
+index db04c73436..f63531f7a0 100644
+--- a/url/scheme_host_port.cc
++++ b/url/scheme_host_port.cc
+@@ -123,6 +123,12 @@ bool IsValidInput(std::string_view scheme,
+         return false;
+       }
+ 
++      // Only file: URLs may have an empty host (e.g. "file:///etc/hosts"). As
++      // in GURL, an empty host is invalid for other schemes (e.g. "chrome://").
++      if (host.empty() && scheme != url::kFileScheme) {
++        return false;
++      }
++
+       // Don't do an expensive canonicalization if the host is already
+       // canonicalized.
+       DCHECK(policy == SchemeHostPort::CHECK_CANONICALIZATION ||
+@@ -228,11 +234,14 @@ GURL SchemeHostPort::GetURL() const {
+   if (!IsValid())
+     return GURL(std::move(serialized), parsed, false);
+ 
+-  // SchemeHostPort does not have enough information to determine if an empty
+-  // host is valid or not for the given scheme. Force re-parsing.
++  // An empty host is only valid for file: and non-standard schemes, for which
++  // GURL has its own parsing rules (e.g. "file://" becomes "file:///"). Force
++  // re-parsing.
+   DCHECK(!scheme_.empty());
+-  if (host_.empty())
++  if (host_.empty()) {
++    CHECK(scheme_ == kFileScheme || !IsStandardScheme(scheme_)) << scheme_;
+     return GURL(serialized);
++  }
+ 
+   // If the serialized string is passed to GURL for parsing, it will append an
+   // empty path "/" for standard URLs but only if they are special. Add that
+diff --git a/url/scheme_host_port_unittest.cc b/url/scheme_host_port_unittest.cc
+index 7b30921f71..d4ba685fa0 100644
+--- a/url/scheme_host_port_unittest.cc
++++ b/url/scheme_host_port_unittest.cc
+@@ -282,21 +282,30 @@ TEST_F(SchemeHostPortTest, Comparison) {
+   }
+ }
+ 
+-// Some schemes have optional authority. Make sure that GURL conversion from
+-// SchemeHostPort is not opinionated in that regard. For more info, See
+-// crbug.com/820194, where we considered all SchemeHostPorts with
+-// SCHEME_WITH_HOST (i.e., without ports) as valid with empty hosts, even though
+-// most are not (e.g. chrome URLs).
++// Among schemes with a host but no port (SCHEME_WITH_HOST), only file: allows
++// an empty host. Make sure that SchemeHostPort agrees with GURL: an empty host
++// is invalid for other such schemes (e.g. chrome:). For the tuples that may
++// have an empty host, GetURL() must match the GURL that the tuple serializes
++// to. See crbug.com/820194 and https://crbug.com/586171393.
+ TEST_F(SchemeHostPortTest, EmptyHostGurlConversion) {
+   url::AddStandardScheme("chrome", url::SCHEME_WITH_HOST);
++  url::AddLocalScheme("local-nonstandard");
+ 
+-  GURL chrome_url("chrome:");
+-  EXPECT_FALSE(chrome_url.is_valid());
+-
++  EXPECT_FALSE(GURL("chrome:").is_valid());
++  EXPECT_FALSE(GURL("chrome://").is_valid());
+   url::SchemeHostPort chrome_tuple("chrome", "", 0);
++  EXPECT_FALSE(chrome_tuple.IsValid());
+   EXPECT_FALSE(chrome_tuple.GetURL().is_valid());
+   ExpectParsedUrlsEqual(GURL(chrome_tuple.Serialize()), chrome_tuple.GetURL());
+-  ExpectParsedUrlsEqual(chrome_url, chrome_tuple.GetURL());
++
++  url::SchemeHostPort file_tuple("file", "", 0);
++  EXPECT_TRUE(file_tuple.IsValid());
++  ExpectParsedUrlsEqual(GURL("file:///"), file_tuple.GetURL());
++  ExpectParsedUrlsEqual(GURL(file_tuple.Serialize()), file_tuple.GetURL());
++
++  url::SchemeHostPort local_tuple("local-nonstandard", "", 0);
++  EXPECT_TRUE(local_tuple.IsValid());
++  ExpectParsedUrlsEqual(GURL(local_tuple.Serialize()), local_tuple.GetURL());
+ }
+ 
+ }  // namespace url
+-- 
+2.43.0
+
