@@ -1,0 +1,269 @@
+From b234c287cd7e8cc22572fe0f79b4dc0d276ab97e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 19 Nov 2026 18:16:27 +0000
+Subject: [PATCH 6/7] FlyWeb 3.2.0 interface: Shields as a colored shield
+ outline with the count
+
+From Titin's design (softmac FlyWeb/branding/interfaz-3.2.0): the Shields
+button draws the outline of ico-escudo.svg (no fly) as a vector instead
+of the IDR_FLYWEB_SHIELDS_ICON_* PNGs:
+- green with Shields up on the site, red with Shields down,
+- the neutral icon color on pages where Shields does not act (internal
+  and local schemes), which used to share the "down" image,
+- the blocked count inside the shield up to 99; above it, "99+" in the
+  usual badge outside.
+The button sits inside the URL field, so the colors are chosen for the
+field background (one pair for a light field, one for a dark field).
+Values are provisional constants (kFlyWebShields*) until Titin sees
+them. The icon is also refreshed on theme changes, since the colors come
+from the color provider.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ .../brave_shields_action_view.cc              | 157 ++++++++++++++----
+ .../brave_actions/brave_shields_action_view.h |   4 +-
+ 2 files changed, 125 insertions(+), 36 deletions(-)
+
+diff --git a/browser/ui/views/brave_actions/brave_shields_action_view.cc b/browser/ui/views/brave_actions/brave_shields_action_view.cc
+index 7784188292..3a3de7e4e5 100644
+--- a/browser/ui/views/brave_actions/brave_shields_action_view.cc
++++ b/browser/ui/views/brave_actions/brave_shields_action_view.cc
+@@ -5,12 +5,15 @@
+ 
+ #include "brave/browser/ui/views/brave_actions/brave_shields_action_view.h"
+ 
++#include <cmath>
+ #include <memory>
+ #include <string>
+ #include <utility>
+ 
+ #include "base/check_deref.h"
+ #include "base/memory/weak_ptr.h"
++#include "base/strings/string_number_conversions.h"
++#include "brave/app/vector_icons/vector_icons.h"
+ #include "brave/browser/ui/brave_icon_with_badge_image_source.h"
+ #include "brave/browser/ui/webui/brave_shields/shields_panel_ui.h"
+ #include "brave/components/constants/pref_names.h"
+@@ -19,6 +22,7 @@
+ #include "brave/components/l10n/common/localization_util.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
++#include "chrome/browser/ui/color/chrome_color_id.h"
+ #include "chrome/browser/ui/layout_constants.h"
+ #include "chrome/browser/ui/omnibox/omnibox_theme.h"
+ #include "chrome/browser/ui/tabs/tab_strip_model.h"
+@@ -36,9 +40,15 @@
+ #include "ui/base/models/image_model.h"
+ #include "ui/base/resource/resource_bundle.h"
+ #include "ui/color/color_provider_manager.h"
++#include "ui/gfx/canvas.h"
++#include "ui/gfx/color_palette.h"
++#include "ui/gfx/color_utils.h"
++#include "ui/gfx/font_list.h"
+ #include "ui/gfx/geometry/rect.h"
+ #include "ui/gfx/geometry/skia_conversions.h"
++#include "ui/gfx/image/canvas_image_source.h"
+ #include "ui/gfx/image/image_skia_rep.h"
++#include "ui/gfx/paint_vector_icon.h"
+ #include "ui/views/animation/ink_drop_impl.h"
+ #include "ui/views/controls/button/label_button_border.h"
+ #include "ui/views/controls/highlight_path_generator.h"
+@@ -48,6 +58,66 @@
+ 
+ namespace {
+ constexpr SkColor kBadgeBg = SkColorSetRGB(0x63, 0x64, 0x72);
++
++// FlyWeb 3.2.0 interface (softmac FlyWeb/branding/interfaz-3.2.0): Titín's
++// shield outline (ico-escudo.svg), green with Shields up and red with Shields
++// down on the site; pages where Shields does not act (internal and local
++// schemes) use the neutral icon color. Provisional values until Titín sees
++// them. The button sits inside the URL field, so the contrast is against the
++// field background: one pair for a light field (white, also in dark mode with
++// kFlyWebLightOmniboxInDarkMode) and one for a dark field.
++constexpr SkColor kFlyWebShieldsOnLightField = SkColorSetRGB(0x1E, 0x7B, 0x34);
++constexpr SkColor kFlyWebShieldsOffLightField = SkColorSetRGB(0xC6, 0x28, 0x28);
++constexpr SkColor kFlyWebShieldsOnDarkField = SkColorSetRGB(0x86, 0xEF, 0xAC);
++constexpr SkColor kFlyWebShieldsOffDarkField = SkColorSetRGB(0xFF, 0xB3, 0xB3);
++// Blocked count drawn inside the shield, up to this value; above it, "99+"
++// goes in the usual badge outside.
++constexpr int kFlyWebShieldsMaxCountInside = 99;
++// Height bound of the count font, in dip, and vertical position of its center
++// as a fraction of the icon height (the shield narrows at the bottom).
++constexpr int kFlyWebShieldsCountFontHeight = 9;
++constexpr float kFlyWebShieldsCountCenterY = 0.46f;
++
++// Paints the shield outline and, when given, the count inside it.
++class FlyWebShieldsIconSource : public gfx::CanvasImageSource {
++ public:
++  FlyWebShieldsIconSource(int size,
++                          SkColor shield_color,
++                          SkColor count_color,
++                          int count)
++      : gfx::CanvasImageSource(gfx::Size(size, size)),
++        shield_color_(shield_color),
++        count_color_(count_color),
++        count_(count) {}
++  FlyWebShieldsIconSource(const FlyWebShieldsIconSource&) = delete;
++  FlyWebShieldsIconSource& operator=(const FlyWebShieldsIconSource&) = delete;
++  ~FlyWebShieldsIconSource() override = default;
++
++  // gfx::CanvasImageSource:
++  void Draw(gfx::Canvas* canvas) override {
++    gfx::PaintVectorIcon(canvas, kFlywebShieldsIcon, size().width(),
++                         shield_color_);
++    if (count_ <= 0) {
++      return;
++    }
++    const gfx::FontList font_list =
++        gfx::FontList()
++            .DeriveWithWeight(gfx::Font::Weight::BOLD)
++            .DeriveWithHeightUpperBound(kFlyWebShieldsCountFontHeight);
++    const int text_height = font_list.GetHeight();
++    const int center_y =
++        std::round(size().height() * kFlyWebShieldsCountCenterY);
++    canvas->DrawStringRectWithFlags(
++        base::NumberToString16(count_), font_list, count_color_,
++        gfx::Rect(0, center_y - text_height / 2, size().width(), text_height),
++        gfx::Canvas::TEXT_ALIGN_CENTER);
++  }
++
++ private:
++  const SkColor shield_color_;
++  const SkColor count_color_;
++  const int count_;
++};
+ class BraveShieldsActionViewHighlightPathGenerator
+     : public views::HighlightPathGenerator {
+  public:
+@@ -150,53 +220,66 @@ BraveShieldsActionView::GetImageSource() {
+           GetLayoutConstant(LayoutConstant::kLocationBarTrailingIconSize),
+           kBraveActionLeftMarginExtra));
+   std::unique_ptr<IconWithBadgeImageSource::Badge> badge;
+-  bool is_enabled = false;
+-  std::string badge_text;
++  ShieldsIconState state = ShieldsIconState::kNotApplicable;
++  int count = 0;
+ 
+   if (web_contents) {
+     auto* shields_data_controller =
+         brave_shields::BraveShieldsTabHelper::FromWebContents(web_contents);
+-
+-    int count = shields_data_controller->GetTotalBlockedCount();
+-    if (count > 0) {
+-      badge_text = count > 99 ? "99+" : std::to_string(count);
+-    }
+-
+-    is_enabled = shields_data_controller->GetBraveShieldsEnabled();
+-
+-    if (!badge_text.empty()) {
+-      badge = std::make_unique<IconWithBadgeImageSource::Badge>(
+-          badge_text, SK_ColorWHITE, kBadgeBg);
++    count = shields_data_controller->GetTotalBlockedCount();
++    if (!SchemeIsLocal(web_contents->GetLastCommittedURL())) {
++      state = shields_data_controller->GetBraveShieldsEnabled()
++                  ? ShieldsIconState::kEnabled
++                  : ShieldsIconState::kDisabled;
+     }
+   }
+ 
+-  image_source->SetIcon(gfx::Image(GetIconImage(is_enabled)));
+-
+-  if (is_enabled &&
+-      profile_->GetPrefs()->GetBoolean(kShieldsStatsBadgeVisible)) {
+-    image_source->SetBadge(std::move(badge));
++  // FlyWeb: the count goes inside the shield up to
++  // kFlyWebShieldsMaxCountInside; above it, "99+" in the badge outside.
++  const bool show_count =
++      state == ShieldsIconState::kEnabled && count > 0 &&
++      profile_->GetPrefs()->GetBoolean(kShieldsStatsBadgeVisible);
++  const bool count_inside = show_count && count <= kFlyWebShieldsMaxCountInside;
++  image_source->SetIcon(
++      gfx::Image(GetIconImage(state, count_inside ? count : 0)));
++
++  if (show_count && !count_inside) {
++    image_source->SetBadge(std::make_unique<IconWithBadgeImageSource::Badge>(
++        "99+", SK_ColorWHITE, kBadgeBg));
+   }
+ 
+   return image_source;
+ }
+ 
+-gfx::ImageSkia BraveShieldsActionView::GetIconImage(bool is_enabled) {
+-  // FlyWeb: one bitmap per scale factor, drawn at its real size
+-  // (kBraveActionGraphicSize = 18 pt), instead of a single 64 px PNG that is
+-  // always resampled and looks blurry.
+-  ui::ResourceBundle& rb = ui::ResourceBundle::GetSharedInstance();
+-  gfx::ImageSkia image;
+-  image.AddRepresentation(gfx::ImageSkiaRep(
+-      rb.GetImageNamed(is_enabled ? IDR_FLYWEB_SHIELDS_ICON_18
+-                                  : IDR_FLYWEB_SHIELDS_ICON_18_DISABLED)
+-          .AsBitmap(),
+-      1.0f));
+-  image.AddRepresentation(gfx::ImageSkiaRep(
+-      rb.GetImageNamed(is_enabled ? IDR_FLYWEB_SHIELDS_ICON_36
+-                                  : IDR_FLYWEB_SHIELDS_ICON_36_DISABLED)
+-          .AsBitmap(),
+-      2.0f));
+-  return image;
++gfx::ImageSkia BraveShieldsActionView::GetIconImage(ShieldsIconState state,
++                                                    int count_inside) {
++  // FlyWeb 3.2.0: vector shield in the state color instead of the PNGs.
++  const ui::ColorProvider* color_provider = GetColorProvider();
++  const SkColor field_color =
++      color_provider ? color_provider->GetColor(kColorLocationBarBackground)
++                     : SK_ColorWHITE;
++  const bool dark_field = color_utils::IsDark(field_color);
++  const SkColor neutral_color =
++      color_provider ? color_provider->GetColor(kColorOmniboxSecurityChipSecure)
++                     : gfx::kGoogleGrey700;
++  const SkColor count_color = color_provider
++                                  ? color_provider->GetColor(kColorOmniboxText)
++                                  : gfx::kGoogleGrey900;
++
++  SkColor shield_color = neutral_color;
++  if (state == ShieldsIconState::kEnabled) {
++    shield_color =
++        dark_field ? kFlyWebShieldsOnDarkField : kFlyWebShieldsOnLightField;
++  } else if (state == ShieldsIconState::kDisabled) {
++    shield_color =
++        dark_field ? kFlyWebShieldsOffDarkField : kFlyWebShieldsOffLightField;
++  }
++
++  const int size =
++      GetLayoutConstant(LayoutConstant::kLocationBarTrailingIconSize);
++  return gfx::ImageSkia(std::make_unique<FlyWebShieldsIconSource>(
++                            size, shield_color, count_color, count_inside),
++                        gfx::Size(size, size));
+ }
+ 
+ void BraveShieldsActionView::UpdateIconState() {
+@@ -274,6 +357,10 @@ void BraveShieldsActionView::OnThemeChanged() {
+   views::InkDrop::Get(this)->SetVisibleOpacity(kOmniboxOpacitySelected);
+   views::InkDrop::Get(this)->SetHighlightOpacity(kOmniboxOpacityHovered);
+   ink_drop->SetBaseColor(color_provider->GetColor(kColorOmniboxText));
++
++  // FlyWeb: the shield colors come from the color provider, which is null
++  // during Init(); repaint with the real colors.
++  UpdateIconState();
+ }
+ 
+ void BraveShieldsActionView::Update() {
+diff --git a/browser/ui/views/brave_actions/brave_shields_action_view.h b/browser/ui/views/brave_actions/brave_shields_action_view.h
+index 5bbb330478..cbe6db2299 100644
+--- a/browser/ui/views/brave_actions/brave_shields_action_view.h
++++ b/browser/ui/views/brave_actions/brave_shields_action_view.h
+@@ -55,7 +55,9 @@ class BraveShieldsActionView
+   void ButtonPressed();
+   bool SchemeIsLocal(GURL url);
+   void UpdateIconState();
+-  gfx::ImageSkia GetIconImage(bool is_enabled);
++  // FlyWeb 3.2.0: Shields state shown by the color of the shield outline.
++  enum class ShieldsIconState { kNotApplicable, kEnabled, kDisabled };
++  gfx::ImageSkia GetIconImage(ShieldsIconState state, int count_inside);
+   std::unique_ptr<IconWithBadgeImageSource> GetImageSource();
+ 
+   // brave_shields::BraveShieldsTabHelper
+-- 
+2.43.0
+

@@ -1,0 +1,95 @@
+From ddac171538ae6d130c62722db03a3ec16e6b93c4 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 19 Nov 2026 18:21:17 +0000
+Subject: [PATCH 7/7] FlyWeb 3.2.0 interface: private window toolbar, active
+ tab and frame
+
+Titin's colors for the private window (and the guest window, which
+shares its theme): active tab and toolbar in one piece, #571E73, and the
+frame #272726 so it differs from a regular window in dark mode. Private
+windows are always in dark mode (ThemeService forces it for incognito
+profiles), so his light value (#AFA6D2) is not applied. The URL field,
+the new tab page background and the icons keep their current colors.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2juPkbC58kEi4QFeyU
+---
+ browser/themes/brave_theme_service_browsertest.cc |  7 ++++++-
+ browser/ui/color/brave_color_mixer.cc             | 10 +++++-----
+ browser/ui/color/color_palette.h                  | 10 ++++++++++
+ 3 files changed, 21 insertions(+), 6 deletions(-)
+
+diff --git a/browser/themes/brave_theme_service_browsertest.cc b/browser/themes/brave_theme_service_browsertest.cc
+index 1180852cc2..83b9965db3 100644
+--- a/browser/themes/brave_theme_service_browsertest.cc
++++ b/browser/themes/brave_theme_service_browsertest.cc
+@@ -266,7 +266,12 @@ IN_PROC_BROWSER_TEST_F(BraveThemeServiceTest, ColorProviderTest) {
+   browser_view = BrowserView::GetBrowserViewForBrowser(private_browser);
+   cp = browser_view->GetColorProvider();
+   frame_active_color = cp->GetColor(ui::kColorFrameActive);
+-  EXPECT_EQ(kPrivateFrame, frame_active_color);
++  EXPECT_EQ(kFlyWebPrivateFrame, frame_active_color);
++
++  // FlyWeb 3.2.0: private window toolbar and active tab, one color.
++  EXPECT_EQ(kFlyWebPrivateDarkToolbar, cp->GetColor(kColorToolbar));
++  EXPECT_EQ(kFlyWebPrivateDarkToolbar,
++            cp->GetColor(kColorTabBackgroundActiveFrameActive));
+ }
+ 
+ #if BUILDFLAG(IS_WIN)
+diff --git a/browser/ui/color/brave_color_mixer.cc b/browser/ui/color/brave_color_mixer.cc
+index 1ec29f5518..dc80a91113 100644
+--- a/browser/ui/color/brave_color_mixer.cc
++++ b/browser/ui/color/brave_color_mixer.cc
+@@ -575,8 +575,8 @@ void AddPrivateThemeColorMixer(ui::ColorProvider* provider,
+   mixer[kColorNewTabButtonBackgroundFrameActive] = {ui::kColorFrameActive};
+   mixer[kColorNewTabButtonBackgroundFrameInactive] = {ui::kColorFrameInactive};
+   mixer[kColorNewTabPageBackground] = {kPrivateFrame};
+-  mixer[kColorTabBackgroundActiveFrameActive] = {
+-      leo::kColorPrimitivePrivateWindow80};
++  // FlyWeb: the active tab and the toolbar are one piece of the same color.
++  mixer[kColorTabBackgroundActiveFrameActive] = {kColorToolbar};
+   mixer[kColorTabBackgroundActiveFrameInactive] = {
+       kColorTabBackgroundActiveFrameActive};
+   mixer[kColorTabBackgroundInactiveFrameActive] = {ui::kColorFrameActive};
+@@ -589,13 +589,13 @@ void AddPrivateThemeColorMixer(ui::ColorProvider* provider,
+       SkColorSetRGB(0xCC, 0xBE, 0xFE)};
+   mixer[kColorTabForegroundInactiveFrameActive] = {
+       SkColorSetRGB(0xCC, 0xBE, 0xFE)};
+-  mixer[kColorToolbar] = {leo::kColorPrimitivePrivateWindow90};
++  mixer[kColorToolbar] = {kFlyWebPrivateDarkToolbar};
+   mixer[kColorToolbarButtonIcon] = {leo::kColorPrimitivePrivateWindow40};
+   mixer[kColorToolbarButtonIconInactive] = {
+       ui::SetAlpha(kColorToolbarButtonIcon, kBraveDisabledControlAlpha)};
+   mixer[kColorToolbarContentAreaSeparator] = {kColorToolbar};
+-  mixer[ui::kColorFrameActive] = {kPrivateFrame};
+-  mixer[ui::kColorFrameInactive] = {kPrivateFrame};
++  mixer[ui::kColorFrameActive] = {kFlyWebPrivateFrame};
++  mixer[ui::kColorFrameInactive] = {kFlyWebPrivateFrame};
+ }
+ 
+ void AddBraveOmniboxPrivateThemeColorMixer(ui::ColorProvider* provider,
+diff --git a/browser/ui/color/color_palette.h b/browser/ui/color/color_palette.h
+index 0029eeeabd..a00c48a4eb 100644
+--- a/browser/ui/color/color_palette.h
++++ b/browser/ui/color/color_palette.h
+@@ -56,6 +56,16 @@ constexpr SkColor kFlyWebOmniboxSelectionOnLight =
+ 
+ constexpr SkColor kPrivateFrame = SkColorSetRGB(0x13, 0x05, 0x2A);
+ 
++// FlyWeb 3.2.0: private window active tab and toolbar (Titín, 19-11), one
++// piece of the same color as in regular windows. Private windows are always in
++// dark mode (ThemeService forces it for incognito profiles); Titín's light
++// value, #AFA6D2, waits for the decision on whether they follow the system.
++constexpr SkColor kFlyWebPrivateDarkToolbar = SkColorSetRGB(0x57, 0x1E, 0x73);
++// Private window frame (Titín, 19-11), so the private window is not the same
++// as a regular window in dark mode. Only the frame: the URL field and the new
++// tab page keep kPrivateFrame.
++constexpr SkColor kFlyWebPrivateFrame = SkColorSetRGB(0x27, 0x27, 0x26);
++
+ constexpr SkColor kBraveNewTabBackgroundDark = SkColorSetRGB(0x33, 0x36, 0x39);
+ constexpr SkColor kBraveNewTabBackgroundLight = SkColorSetRGB(0x6B, 0x70, 0x84);
+ 
+-- 
+2.43.0
+
