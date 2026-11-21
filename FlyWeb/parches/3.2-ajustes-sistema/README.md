@@ -169,3 +169,23 @@ La serie de la interfaz no toca ninguno de estos ficheros.
    - entrar en «Personalizar fuentes» y volver: sin saltos ni tarjetas encima de otras;
    - claro, oscuro e «igual que macOS» se conservan al recargar.
    Por CDP, `settings-appearance-page-index` ya no debe medir 0 de alto.
+
+## 0005: «Accesos directos» tapado por las tarjetas de Sistema (MOTOR-47, 20-11)
+
+LOCAL-21 lo vio en bt-320e: en `flyweb://settings/system/shortcuts`, la subpágina de atajos se pintaba **debajo** de las
+tarjetas de Sistema de Brave y de Memoria, en vez de sustituirlas.
+
+- **Causa:** no viene de 0001–0004. Está en `brave_system_page_index.html` de nuestro porte de la 156, que ya estaba en
+  la 3.1.4 y no tocan ni esta serie ni la interfaz. Hasta 0001 la página de sistema daba «¡Vaya!», así que no se veía.
+  En nuestro porte, las vistas llevan la clase `.cr-centered-card-container`. Su `display: block` viene del árbol del
+  propio elemento (`cr-shared-style`) y gana a la regla `::slotted([slot=view]) { display: none }` de `cr-view-manager`,
+  así que esas vistas no se ocultaban nunca. Brave 1.98 pone la clase en el `cr-view-manager`.
+- **Arreglo:** una regla en el mismo árbol oculta una vista con esa clase si no está activa ni cerrándose, salvo que se
+  esté en modo búsqueda (`show-all`). No cambia el aspecto de las vistas que se ven.
+- **Orden:** al final de la cadena de la 3.2.0, tras `3.2-v8` 0002 (árbol `612c201d14`) → **`e09a2118a4`**. Toca un
+  fichero que nada más modifica, así que también entra limpio sobre e660929 o sobre a0c808d485.
+
+**Prueba (LOCAL):**
+1. `flyweb://settings/system`: se ven las tarjetas de siempre (Sistema, Sistema de Brave, Memoria).
+2. «Accesos directos»: solo la subpágina, con su flecha atrás. Volver: las tarjetas de antes.
+3. Buscar «memoria» en ajustes: se ven las tarjetas que coinciden y no aparece la subpágina de atajos.
