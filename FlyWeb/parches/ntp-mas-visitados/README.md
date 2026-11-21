@@ -1,6 +1,6 @@
 # Nueva pestaña sin «más visitados» (21-11)
 
-MOTOR-47, por encargo de COORDINACIÓN-58. **Sin compilar.** La versión la decide Titín.
+MOTOR-47, por encargo de COORDINACIÓN-58. **Sin compilar.** Versión: **3.2.1** (Titín, DIRECTIVAS #1182).
 
 ## Fallo
 
@@ -31,9 +31,11 @@ Un método `GetEnabledTileTypes()` enciende un tipo u otro, como la NTP de escri
 | Base | Árbol tras el 0001 |
 |---|---|
 | `local/3.1.4` `e660929ac9` | `d020385022` |
-| 3.2.0 final `8c31284eda` | `3c014f9688` |
+| 3.2.0 publicada: `local/320g-final` 4d7ccceaf3 (árbol `ce9941d182`, con la versión) | **`9a15f4911e`** |
+| 3.2.1: 3.2.0 + `seguridad/siguiente/brave-core` 0001–0003 (#1165, árbol `ca13e3d45e`) | **`af99cc3984`** |
 
-Aplica limpio en las dos: ningún parche de la 3.2 toca este fichero.
+Aplica limpio en todas: ni la 3.2 ni `siguiente/` tocan este fichero. En la 3.2.1 (Titín, DIRECTIVAS #1182) el orden con
+`siguiente/brave-core` 0001–0003 da igual: antes o después, el árbol final es el mismo, `af99cc3984`.
 
 ## Prueba (LOCAL, 6,1, perfil de prueba)
 
