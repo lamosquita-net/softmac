@@ -39,3 +39,11 @@ ficheros del `0002` (585625642) y su nota. Fallo mío. Todo aplicaba sin error, 
 5. **Encargo de D8-LINUX** actualizado (mismo fichero, nota «CORREGIDO» arriba): punta `d1d60ef3a0` y árboles nuevos.
    D8-LINUX-5 tiene que rehacer la pasada desde el `0003`. Lo probado vale para todo menos 585625642, que no estaba. Se lo
    digo también por mensaje.
+
+**Añadido 10:12 UTC.** No puedo escribir por mensaje a D8-LINUX-5 (corre en local y la nube no tiene permiso para
+mandarle mensajes). **Pásale tú esto, por favor:** punta nueva `d1d60ef3a09ab52ba56be76896686aca90a34cf9`; árboles de
+V8: `0003` `1a98c3970d`, `0004` `6c841a3488`, `3.2-v8/0001` `87550911ad`, `3.2-v8/0002` `ee3eda85d8`, `0005`
+`8566fd42e4` (con `patches/v8` `2b1c8d3308`); 3.2.1: `609059ae75` y `3c01845192`. Tiene que rehacer la pasada desde el
+`0003`, como mínimo `compiler/regress-585625642`, cctest `test-js-context-specialization/*` y unittests
+`JSTypedLoweringTest.*` en *release* y *debug*, más `compiler/*`, `maglev/*` y `turbolev/*` sobre el árbol nuevo. Lo
+demás que pasó sobre `9914512d91` vale.
