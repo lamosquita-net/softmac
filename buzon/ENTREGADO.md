@@ -1086,3 +1086,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/NUBE-SEGURIDAD-PORTES/20261122-1251-COORDINACION-59-visto-b4fb24.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-22 12:51 UTC · copia escrita del SendMessage
 - buzon/NUBE-CONTENIDOS-WEB/20261122-1252-COORDINACION-59-retirada.md → CONTENIDOS-WEB-3 [local_f83e6b0e] · 2026-11-22 12:52 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/AUDITORIA/20261122-1300-COORDINACION-59-crowdsec.md → Auditoría ns1/ns2/bak · 2026-11-22 13:00 UTC · entregado por COORDINACIÓN-59 (SendMessage)
+- buzon/SERVIDOR-LOCAL/20261122-1339-COORDINACION-59-comprobar-1202.md → Servidor Local (2) [local_40afbbdb] · 2026-11-22 13:39 UTC · entregado por COORDINACIÓN-59 (SendMessage)
