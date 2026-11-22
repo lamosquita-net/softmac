@@ -58,7 +58,9 @@ function probar([caso, src, co]) {
     for (const e of ['loadstart', 'loadedmetadata', 'canplay', 'playing', 'waiting', 'stalled', 'error', 'emptied'])
       v.addEventListener(e, () => ev.push(e + '@' + Math.round(performance.now() - t0)));
     v.addEventListener('error', () => acabar('error'));
-    v.addEventListener('timeupdate', () => { if (v.currentTime > Math.min(1.5, (v.duration || 99) * 0.6)) acabar('reproduce'); });
+    // Con más de 6 s hay que pasar el primer segmento (4 s); con clips cortos, el 60 %.
+    const umbral = () => (v.duration > 6 && isFinite(v.duration)) ? 5 : Math.min(1.5, (v.duration || 99) * 0.6);
+    v.addEventListener('timeupdate', () => { if (v.currentTime > umbral()) acabar('reproduce'); });
     document.body.append(v);
     v.src = src;
     v.play().catch(e => ev.push('play() ' + e.name));
