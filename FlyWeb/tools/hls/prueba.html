@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HLS: pruebas</title>
+<style>body{font:14px system-ui;margin:16px}td,th{border:1px solid #999;padding:3px 6px}table{border-collapse:collapse}.ok{background:#cfc}.mal{background:#fcc}</style>
+<h1>HLS en &lt;video&gt;</h1>
+<p>Servida por <code>servir.py</code> en http://127.0.0.1:8471. Sin parámetros, corre todos los casos; <code>?caso=id</code>, uno.
+Cada resultado se manda a <code>/resultado</code>. <code>error.message</code> lleva el código del reproductor (lo que importa).</p>
+<table><thead><tr><th>caso</th><th>resultado</th><th>error</th><th>readyState</th><th>t</th><th>tamaño</th></tr></thead><tbody id="t"></tbody></table>
+<script>
+const M = 'http://127.0.0.1:8471/medios/', X = 'http://127.0.0.1:8472/medios/', XC = 'http://127.0.0.1:8472/cors/medios/';
+const CASOS = [
+  // id, src, crossorigin
+  ['control-mp4-mismo', M + 'control.mp4', null],
+  ['control-mp4-cruzado', X + 'control.mp4', null],
+  ['ts-variante-mismo', M + 'ts/variante.m3u8', null],
+  ['ts-maestra-mismo', M + 'ts/maestra.m3u8', null],
+  ['ts-maestra-sin-codecs-mismo', M + 'ts/maestra-sin-codecs.m3u8', null],
+  ['ts-maestra-sin-extension-mismo', M + 'ts/maestra-sin-extension', null],
+  ['fmp4-variante-mismo', M + 'fmp4/variante.m3u8', null],
+  ['fmp4-maestra-mismo', M + 'fmp4/maestra.m3u8', null],
+  ['ts-variante-cruzado-nocors', X + 'ts/variante.m3u8', null],
+  ['ts-variante-cruzado-cors', XC + 'ts/variante.m3u8', 'anonymous'],
+  ['fmp4-variante-cruzado-nocors', X + 'fmp4/variante.m3u8', null],
+  ['fmp4-variante-cruzado-cors', XC + 'fmp4/variante.m3u8', 'anonymous'],
+  // Esperado: falla también en Chrome (crossorigin sin cabecera CORS). Sirve para ver el mensaje de un fallo de red.
+  ['ts-variante-cruzado-cors-sin-cabecera', X + 'ts/variante.m3u8', 'anonymous'],
+  // Remotos de Apple (necesitan Internet): el caso que vio LOCAL-21 y uno fMP4.
+  ['apple-bipbop-ts', 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8', null],
+  ['apple-bipbop-fmp4', 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8', null],
+];
+const fila = r => {
+  const tr = document.createElement('tr'); tr.className = r.resultado === 'reproduce' ? 'ok' : 'mal';
+  for (const v of [r.caso, r.resultado, r.error ? r.error.code + ' ' + r.error.message : '', r.readyState, r.t, r.tam]) {
+    const td = document.createElement('td'); td.textContent = v ?? ''; tr.append(td);
+  }
+  document.getElementById('t').append(tr);
+};
+function probar([caso, src, co]) {
+  return new Promise(fin => {
+    const v = document.createElement('video'), ev = [], t0 = performance.now();
+    v.muted = true; v.playsInline = true; v.width = 160;
+    if (co) v.crossOrigin = co;
+    const acabar = resultado => {
+      clearTimeout(reloj);
+      const r = {caso, src, crossorigin: co, resultado, ua: navigator.userAgent,
+        canPlayType: v.canPlayType('application/vnd.apple.mpegurl'),
+        error: v.error && {code: v.error.code, message: v.error.message},
+        readyState: v.readyState, networkState: v.networkState, t: +v.currentTime.toFixed(2),
+        tam: v.videoWidth + 'x' + v.videoHeight, duracion: v.duration, eventos: ev.slice(0, 40),
+        ms: Math.round(performance.now() - t0)};
+      v.removeAttribute('src'); v.load(); v.remove();
+      fetch('/resultado', {method: 'POST', body: JSON.stringify(r)}).catch(() => {}).finally(() => { fila(r); fin(r); });
+    };
+    const reloj = setTimeout(() => acabar('tiempo-agotado'), 25000);
+    for (const e of ['loadstart', 'loadedmetadata', 'canplay', 'playing', 'waiting', 'stalled', 'error', 'emptied'])
+      v.addEventListener(e, () => ev.push(e + '@' + Math.round(performance.now() - t0)));
+    v.addEventListener('error', () => acabar('error'));
+    v.addEventListener('timeupdate', () => { if (v.currentTime > 1.5) acabar('reproduce'); });
+    document.body.append(v);
+    v.src = src;
+    v.play().catch(e => ev.push('play() ' + e.name));
+  });
+}
+(async () => {
+  const q = new URLSearchParams(location.search).get('caso');
+  for (const c of CASOS.filter(c => !q || c[0] === q)) await probar(c);
+  document.title = 'HLS: hecho';
+  fetch('/resultado', {method: 'POST', body: JSON.stringify({caso: '__fin__', filtro: q})}).catch(() => {});
+})();
+</script>
