@@ -1059,3 +1059,5 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/LOCAL/20261122-0951-COORDINACION-59-huella.md → Local (22) [local_3bb6e59d] · 2026-11-22 09:51 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/LOCAL/20261122-0957-COORDINACION-59-huella-82.md → Local (22) [local_3bb6e59d] · 2026-11-22 09:57 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/D8-LINUX/20261122-1018-COORDINACION-59-archivo-usb.md → D8-LINUX-5 [bridge:session_01MwmK2iT4hLWA1h2vv3cG9K] · 2026-11-22 10:18 UTC · entregado por COORDINACIÓN-59 (SendMessage)
+- buzon/PUBLICACION/20261122-1147-COORDINACION-59-publicar-3.2.1.md → Publicación [local_1eb27eb5] · 2026-11-22 11:47 UTC · entregado por COORDINACIÓN-59 (SendMessage)
+- buzon/LOCAL/20261122-1147-COORDINACION-59-E1-M1-M3.md → Local (22) [local_3bb6e59d] · 2026-11-22 11:47 UTC · entregado por COORDINACIÓN-59 (SendMessage)
