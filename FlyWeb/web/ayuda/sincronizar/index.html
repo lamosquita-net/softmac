@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sincronizar FlyWeb entre tus Mac</title>
-<meta name="description" content="Cómo sincronizar contraseñas, marcadores, historial y pestañas de FlyWeb entre varios Mac, cifrado en tu equipo.">
+<meta name="description" content="Cómo sincronizar contraseñas, marcadores, historial y pestañas de FlyWeb entre varios Mac, con cuenta o con 24 palabras, cifrado en tu equipo.">
 <link rel="stylesheet" href="../../estilo.css?v=9bc84f82c8">
 <link rel="icon" href="../../img/flyweb.svg" type="image/svg+xml">
 </head>
@@ -17,44 +17,144 @@
 <section class="banda naranja"><div class="columna">
 <p>FlyWeb mantiene iguales tus contraseñas, marcadores, historial, ajustes y pestañas abiertas en todos tus Mac.
 Los datos se guardan en un servidor de lamosquita <strong>cifrados en tu equipo</strong>: nosotros no podemos leerlos.
-Todo se hace en <code>flyweb://settings/braveSync</code>.</p>
+Todo se hace en <code>flyweb://settings/braveSync</code>, en la sección «Cuenta y sincronización».</p>
+<p>Desde la 3.2.0 hay dos maneras de usarlo. Con una <strong>cuenta</strong>, un Mac nuevo entra con tu email, tu
+contraseña y un código que te mandamos por correo. Sin cuenta, como hasta ahora, entra con las <strong>24 palabras</strong>.
+Las dos funcionan, y las 24 palabras siguen existiendo en las dos: con cuenta son tu <strong>clave de
+recuperación</strong>.</p>
 </div></section>
-<section class="banda blanca"><div class="columna">
+<section class="banda blanca" id="empezar"><div class="columna">
 <h2>Empezar</h2>
-<p>En el primer Mac, empieza una cadena nueva. FlyWeb te mostrará un <strong>código de 24 palabras</strong>. Guárdalo en
-un sitio seguro: es la única llave de tus datos y nosotros no podemos recuperarlo.</p>
+<p>En el primer Mac, abre «Cuenta y sincronización» y elige <strong>Crear cuenta</strong>. FlyWeb te pide:</p>
+<ol>
+  <li>Tu <strong>email</strong>. Te mandamos un código para comprobar que es tuyo.</li>
+  <li>El <strong>código del email</strong>. Caduca a los 10 minutos.</li>
+  <li>Una <strong>contraseña</strong> de la cuenta, de 10 caracteres como mínimo, y un <strong>nombre para este Mac</strong>. El
+  nombre solo lo ves tú.</li>
+  <li>La <strong>clave de recuperación</strong>: 24 palabras. Guárdalas impresas o en un gestor de contraseñas y marca
+  «He guardado la clave de recuperación». Sin ese paso no puedes seguir.</li>
+</ol>
+<p>Si este Mac ya sincronizaba con las 24 palabras, crear la cuenta <strong>liga esa misma sincronización</strong> a tu
+email: no se vuelve a sincronizar nada y los demás Mac que ya sincronizan lo notan solos.</p>
+<p><strong>Elige una contraseña larga y que no uses en ningún otro sitio.</strong> Protege la clave de tus datos y la
+barra de fuerza te ayuda a elegirla. Nosotros nunca recibimos la contraseña, pero si alguien consiguiera copiar la base
+de datos del servidor podría probar contraseñas por su cuenta, y las cortas se acaban acertando.</p>
 </div></section>
-<section class="banda naranja"><div class="columna">
+<section class="banda naranja" id="anadir"><div class="columna">
 <h2>Añadir otro Mac</h2>
-<p>En el otro Mac, elige que ya tienes un código y escribe las 24 palabras. Desde un Mac que ya sincroniza puedes volver a
-ver el código en los ajustes de Sincronizar.</p>
-<p>Puedes elegir qué se sincroniza en cada Mac, en esos mismos ajustes.</p>
+<p>En el otro Mac, abre «Cuenta y sincronización» y elige <strong>Entrar</strong>:</p>
+<ol>
+  <li>Escribe tu email y tu contraseña. Si son correctos, te mandamos un código por email.</li>
+  <li>Escribe el código y un nombre para ese Mac, y pulsa «Unir este Mac».</li>
+</ol>
+<p>No hace falta teclear las 24 palabras. Los demás Mac te avisan de que se ha añadido uno nuevo.</p>
+<p>Si prefieres las palabras (o no tienes cuenta), elige <strong>Tengo mi clave de recuperación</strong> y escríbelas.
+Las versiones de FlyWeb anteriores a la 3.2 solo entran así: en una 3.2 con cuenta, «Código para FlyWeb 2.7 o 3.0» te da
+las 25 palabras que ellas aceptan, que caducan.</p>
+<p>Puedes elegir qué se sincroniza en cada Mac, en los mismos ajustes. En esa página también ves la lista de los Mac de la
+cuenta, y puedes cambiar el nombre de cada uno o quitarlo de la lista.</p>
+</div></section>
+<section class="banda blanca" id="olvidada"><div class="columna">
+<h2>He olvidado la contraseña</h2>
+<ul>
+  <li><strong>Tienes algún Mac que ya sincroniza:</strong> en él, pulsa «He olvidado la contraseña». Te mandamos un código al
+  email, escribes el código y la contraseña nueva, y listo. No hace falta la contraseña vieja y tus datos no se tocan.</li>
+  <li><strong>No tienes ningún Mac, pero sí las 24 palabras:</strong> en el Mac nuevo, «Tengo mi clave de recuperación».
+  Se une con ellas y después pones aquí una contraseña nueva.</li>
+  <li><strong>No tienes ni Mac ni palabras:</strong> tus datos sincronizados no se pueden recuperar. Nadie, tampoco
+  nosotros, tiene la clave que los abre. Con tu email puedes «Empezar de cero» (este Mac empieza una sincronización nueva)
+  o «Borrar la cuenta por email».</li>
+</ul>
+<p>Empezar de cero y borrar por email <strong>no pasan al momento: tardan 14 días</strong>. Hasta entonces, cualquier Mac
+que aún sincronice puede cancelarlo con «Cancelar el borrado». Si se cancela, no se puede volver a pedir en 30 días. Es
+así para que alguien que solo tenga tu correo no pueda borrarte los datos de un día para otro.</p>
+</div></section>
+<section class="banda naranja" id="avisos"><div class="columna">
+<h2>Los avisos: «¿Has sido tú?»</h2>
+<p>Cada cosa importante que pasa en la cuenta te la avisamos por email y en tus Mac, con una barra en el navegador y la
+lista en la página. Por ejemplo:</p>
+<ul>
+  <li>se ha añadido o quitado un Mac;</li>
+  <li>alguien ha escrito bien tu contraseña desde un Mac nuevo, o ha habido intentos fallidos;</li>
+  <li>se ha cambiado la contraseña o el email;</li>
+  <li>se ha ligado tu sincronización a una cuenta;</li>
+  <li>alguien ha pedido borrar la cuenta o empezar de cero.</li>
+</ul>
+<p>Si fuiste tú, pulsa <strong>He sido yo</strong>. Si no, pulsa <strong>No he sido yo</strong>. Eso cierra las sesiones de los Mac
+(los tuyos las renuevan solos) y cancela cualquier borrado pedido por email. Después, en este orden:</p>
+<ol>
+  <li>Cambia la contraseña de la cuenta.</li>
+  <li>Si crees que alguien pudo llegar a entrar, pulsa «Cambiar la clave de sincronización» (abajo).</li>
+  <li>Si tu correo tampoco es seguro, cambia el email de la cuenta.</li>
+</ol>
+<p>Si el aviso dice <strong>«La clave de sincronización se ha cambiado desde otro Mac»</strong>, tu Mac ha dejado de sincronizar. Pulsa
+«Volver a entrar» con tu email, tu contraseña y un código.</p>
+<p>Si ves <strong>«Esta sincronización se ha ligado a la cuenta …»</strong> y no la has ligado tú, pulsa «No la he ligado yo» y
+borra la cuenta y los datos en todos.</p>
+</div></section>
+<section class="banda blanca" id="perdido"><div class="columna">
+<h2>He perdido un Mac, o me lo han robado</h2>
+<p>Quitarlo de la lista de la cuenta no basta: el Mac conserva la clave de sincronización. Desde otro Mac, pulsa
+<strong>Cambiar la clave de sincronización</strong> y escribe tu contraseña. Ese Mac crea una clave nueva, sube los datos de nuevo
+cifrados con ella y te enseña la clave de recuperación nueva (la anterior deja de valer: guarda la nueva). Los demás Mac
+tendrán que volver a entrar con email, contraseña y código. El perdido no puede, porque no sabe la contraseña.</p>
+<p>Si el Mac robado estaba desbloqueado y el ladrón tiene también tu correo, puede llegar a la cuenta. Por eso conviene
+cambiar la clave de sincronización y las contraseñas importantes que guardabas en FlyWeb.</p>
+</div></section>
+<section class="banda naranja" id="cambiar"><div class="columna">
+<h2>Cambiar la contraseña o el email</h2>
+<p>«Cambiar la contraseña» pide un código por email y la contraseña nueva. «Cambiar el email» pide tu contraseña y el email
+nuevo, y manda un código a esa dirección. Si no recuerdas la contraseña, cámbiala primero con «He olvidado la contraseña».</p>
+<p>Para irte de la cuenta en un solo Mac, usa «Salir de la sincronización en este Mac»: ese Mac deja de sincronizar y sale
+de la lista, conserva sus datos y en el servidor no se borra nada.</p>
 </div></section>
 <section class="banda blanca"><div class="columna">
 <h2>Pasar tus contraseñas de Safari</h2>
 <p>Importa las contraseñas en un solo Mac, como se explica en la <a href="../#importar">ayuda</a>; la sincronización las
 llevará a los demás. Después, borra el fichero exportado: las contraseñas van sin cifrar.</p>
 </div></section>
-<section class="banda naranja"><div class="columna">
+<section class="banda naranja" id="fallos"><div class="columna">
 <h2>Si algo falla</h2>
 <ul>
+  <li><strong>«La contraseña o el código no son correctos»:</strong> el mensaje es el mismo para las dos cosas, a propósito:
+  así nadie puede saber si acertó la contraseña. Tras varios fallos, «Demasiados intentos. Podrás volver a probar a las
+  HH:MM»: espera a esa hora.</li>
+  <li><strong>El código no llega:</strong> mira en la carpeta de spam o pulsa «Enviar otro código». Cada código caduca a los
+  10 minutos.</li>
+  <li><strong>«Este Mac no puede leer sus claves de sincronización»:</strong> ha cambiado el llavero. Tus datos siguen en
+  el perfil. Pulsa «Volver a unir este Mac» y entra con email y contraseña, o con la clave de recuperación.</li>
   <li><strong>«FlyWeb no puede acceder al almacenamiento seguro»:</strong> macOS no deja a FlyWeb abrir su llave
   («FlyWeb Safe Storage»). Abre Acceso a Llaveros, busca «FlyWeb Safe Storage» y, en Control de acceso, permite a FlyWeb;
   o reinicia el Mac y acepta el aviso al abrir FlyWeb.</li>
-  <li><strong>«No se pueden descifrar los datos»:</strong> ese Mac se unió con un código que no es el de la cadena. Sal de
-  la cadena en ese Mac y vuelve a unirte con el código correcto.</li>
+  <li><strong>«No se pueden descifrar los datos»:</strong> ese Mac se unió con una clave que no es la de la sincronización.
+  Sal de la sincronización en ese Mac y vuelve a unirte, con la cuenta o con las 24 palabras correctas.</li>
 </ul>
 </div></section>
-<section class="banda blanca"><div class="columna">
+<section class="banda blanca" id="borrar"><div class="columna">
 <h2>Borrar los datos y cuánto tiempo se guardan</h2>
-<p>Desde los ajustes de Sincronizar puedes borrar los datos de sincronización: se borra todo lo que hay en el servidor y
-la cadena deja de funcionar en todos tus Mac. No se puede deshacer.</p>
-<p><strong>Si no haces nada,</strong> tus datos se quedan en el servidor mientras uses la sincronización. Si pasa un año sin
-que ninguno de tus Mac sincronice, se borran solos y la cadena deja de existir: el Mac que vuelva después recibirá el
-aviso y tendrás que empezar una cadena nueva. Mientras la sincronización esté activa, tus Mac se registran a diario, así
-que una cadena en uso nunca llega a ese año. El historial sincronizado caduca a los 14 días.</p>
-
-<p class="dato">FlyWeb solo existe para Mac: las apps de Brave para móvil no pueden unirse a una cadena de FlyWeb.</p>
+<p>Pulsa <strong>Borrar la cuenta y los datos en todos</strong>: se borran del servidor la cuenta y todos los datos
+sincronizados, y todos tus Mac dejan de sincronizar. Antes te dice cuántos navegadores se desconectarán. No se puede
+deshacer, y los datos que cada Mac tiene en su perfil no se borran. Si ya no tienes ningún Mac, puedes pedir el borrado con tu email («Borrar
+la cuenta por email», con la espera de 14 días de más arriba).</p>
+<p><strong>Si no haces nada,</strong> tus datos se quedan en el servidor mientras uses la sincronización. Estos son los
+plazos:</p>
+<div class="tabla-ancha">
+<table>
+  <tr><th>Qué</th><th>Cuánto se guarda</th></tr>
+  <tr><td>La cuenta y los datos sincronizados</td><td>Hasta que los borres, o hasta 365 días sin que ningún Mac sincronice.
+  A los 335 días te avisamos por email; a los 365 se borran la cuenta, la sincronización y el email. Mientras sincronizas,
+  tus Mac se registran a diario y no se llega nunca a ese plazo.</td></tr>
+  <tr><td>El historial sincronizado</td><td>14 días.</td></tr>
+  <tr><td>Los códigos del email</td><td>10 minutos.</td></tr>
+  <tr><td>La sesión de un Mac con la cuenta</td><td>Se cierra tras 180 días sin usarse, y se renueva sola.</td></tr>
+  <tr><td>Borrar o empezar de cero solo con el email</td><td>Se ejecuta a los 14 días, y cualquier Mac lo cancela.</td></tr>
+  <tr><td>El registro de los correos enviados</td><td>7 días.</td></tr>
+  <tr><td>Las copias de seguridad, cifradas</td><td>30 días. Después se borran de verdad.</td></tr>
+  <tr><td>Una sincronización sin cuenta (solo 24 palabras)</td><td>Hasta que la borres, o un año sin que ninguno de tus Mac sincronice. No hay aviso porque no hay email.</td></tr>
+</table>
+</div>
+<p>Qué guardamos y para qué está en la <a href="../../privacidad.html#cuenta">política de privacidad</a>.</p>
+<p class="dato">FlyWeb solo existe para Mac: las apps de Brave para móvil no pueden unirse a una sincronización de FlyWeb.</p>
 </div></section>
 </main>
 <footer class="pie"><div class="columna">

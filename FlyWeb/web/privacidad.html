@@ -14,8 +14,8 @@
 </div></header>
 <main>
 <section class="banda naranja"><div class="columna">
-<p>FlyWeb no envía estadísticas de uso, informes de fallos ni datos de navegación a nadie. No tiene cuenta ni
-publicidad.</p>
+<p>FlyWeb no envía estadísticas de uso, informes de fallos ni datos de navegación a nadie. No tiene publicidad. Solo tiene cuenta si tú decides crear una para
+sincronizar tus Mac, y entonces se aplica <a href="#cuenta">lo que explicamos más abajo</a>.</p>
 
 <p>Para funcionar, el navegador contacta con servicios de lamosquita en un servidor propio situado en la UE:</p>
 
@@ -37,11 +37,12 @@ publicidad.</p>
       <td>La versión del navegador.</td></tr>
   <tr><td><code>sync.flyweb.lamosquita.net</code> (solo si activas Sincronizar)</td>
       <td>Mantener iguales tus contraseñas, marcadores, historial y ajustes en tus Mac</td>
-      <td>Tus datos, <strong>cifrados en tu Mac</strong> con una clave que sale de tu código de 24 palabras y que nunca
-      nos llega: no podemos leerlos. Se guardan hasta que los borres desde el navegador (Ajustes › Sincronizar › Borrar
-      datos de sincronización) o hasta que pase un año sin que ninguno de tus Mac los use: entonces se borran solos. El
-      historial caduca a los 14 días. No hay cuenta ni correo: la cadena se identifica con
-      una clave pública que sale de tu código.</td></tr>
+      <td>Tus datos, <strong>cifrados en tu Mac</strong> con una clave que sale de tu clave de recuperación (24 palabras) y que
+      nunca nos llega: no podemos leerlos. Se guardan hasta que los borres desde el navegador (Ajustes › Cuenta y
+      sincronización › Borrar la cuenta y los datos en todos) o hasta que pase un año sin que ninguno de tus Mac los use:
+      entonces se borran solos. El historial caduca a los 14 días. Sin cuenta, la sincronización se identifica con una clave
+      pública que sale de tus palabras: no hay correo ni nombre. Si <strong>creas una cuenta</strong>, además recibimos tu
+      email y los nombres de tus Mac; <a href="#cuenta">detalle abajo</a>.</td></tr>
 </table>
 </div>
 </div></section>
@@ -62,17 +63,83 @@ durante 14 días. No usa cookies, ni analítica, ni carga nada de otros sitios.<
 actualización automática, <strong>sin guardar quién</strong>: solo la fecha, la versión y el número. Son públicas en
 <a href="cifras.html">cifras</a>. El navegador no envía nada para esto.</p>
 </div></section>
-<section class="banda naranja"><div class="columna">
+<section class="banda naranja" id="cuenta"><div class="columna">
+<h2>Si creas una cuenta de sincronización</h2>
+<p>La cuenta es opcional: se puede sincronizar solo con las 24 palabras, sin dar ningún correo. Con cuenta, un Mac nuevo
+entra con tu email, tu contraseña y un código que te mandamos por correo. Esto es lo que guarda nuestro servidor por ella:</p>
+<div class="tabla-ancha">
+<table>
+  <tr><th>Qué</th><th>Para qué</th><th>Cómo se guarda</th><th>Cuánto tiempo</th></tr>
+  <tr><td>Tu <strong>email</strong></td>
+      <td>Entrar con él y mandarte los códigos y los avisos</td>
+      <td>Cifrado, con una clave que no está en la base de datos; para reconocerlo se guarda también una huella
+      que no se puede deshacer</td>
+      <td>Mientras exista la cuenta</td></tr>
+  <tr><td>Una <strong>comprobación de tu contraseña</strong> y tu <strong>clave de sincronización cifrada con ella</strong></td>
+      <td>Comprobar que la contraseña es la tuya y entregar la clave a un Mac nuevo</td>
+      <td>La contraseña nunca llega al servidor. Lo que guardamos no nos permite leer tus datos, pero ver más abajo el riesgo
+      de las contraseñas cortas</td>
+      <td>Mientras exista la cuenta</td></tr>
+  <tr><td>Los <strong>Mac de la cuenta</strong>: modelo, nombre que les pones, fecha de alta y de último uso</td>
+      <td>Mostrarte la lista y decirte en los avisos qué Mac ha hecho cada cosa</td>
+      <td>El nombre va cifrado como el email. Solo lo ves tú</td>
+      <td>Hasta que quitas ese Mac, o se borra la cuenta</td></tr>
+  <tr><td>Un identificador de tu sincronización (una clave pública, sin datos tuyos)</td>
+      <td>Ligar la cuenta con tus datos cifrados</td>
+      <td>Es un seudónimo</td>
+      <td>Mientras exista la cuenta</td></tr>
+  <tr><td>La <strong>fecha de último uso</strong></td>
+      <td>Borrar las cuentas que nadie usa</td>
+      <td>Solo la fecha</td>
+      <td>Si pasan 365 días sin uso, la cuenta se borra. 30 días antes te avisamos por email</td></tr>
+  <tr><td>Los <strong>códigos</strong> de verificación</td>
+      <td>Comprobar que controlas el email</td>
+      <td>En memoria, no en disco</td>
+      <td>10 minutos</td></tr>
+  <tr><td>Los <strong>datos sincronizados</strong> (contraseñas, marcadores, historial, ajustes)</td>
+      <td>Mantenerlos iguales en tus Mac</td>
+      <td>Cifrados en tu Mac: no podemos leerlos</td>
+      <td>Hasta que los borres o la cuenta se borre; el historial, 14 días</td></tr>
+</table>
+</div>
+<p><strong>Dónde más aparece tu email.</strong> El servidor de correo anota a quién ha enviado cada mensaje, y ese registro se
+conserva <strong>7 días</strong>. Las <strong>copias de seguridad</strong> del servidor de sincronización van cifradas, con una clave
+que no está en el servidor donde se guardan, y se conservan <strong>30 días</strong>; pasado ese plazo se borran de verdad. Los correos
+llevan solo el código o el aviso, y salen de una dirección «no responder» de FlyWeb.</p>
+<p><strong>Lo que no guardamos:</strong> tu dirección IP, tu nombre ni un registro de tus peticiones. No cedemos estos datos a
+nadie ni los usamos para otra cosa.</p>
+<p><strong>Quién interviene.</strong> El servidor está alojado en Francia (UE) por OVH, que actúa como encargado del tratamiento
+de estos datos.</p>
+<p><strong>Un riesgo que debes conocer.</strong> Tus datos están cifrados con una clave que sale de tus 24 palabras, no de la
+contraseña. Pero a un Mac nuevo le entregamos esa clave cifrada con una clave que sale de tu contraseña. Si alguien robara la
+base de datos del servidor, podría probar contraseñas en su casa, sin límite, hasta acertar la tuya. Por eso: <strong>usa una
+contraseña larga y que no repitas en otro sitio</strong>. Si hubiera una brecha, te avisaríamos por email para que cambies la
+contraseña y la clave de sincronización.</p>
+<p><strong>Cómo ejercer tus derechos.</strong></p>
+<ul>
+  <li><strong>Acceso:</strong> en «Cuenta y sincronización» ves tu email y la lista de tus Mac con su nombre y fechas. Si quieres algo
+  más, escríbenos.</li>
+  <li><strong>Rectificación:</strong> cambia el email, el nombre de cada Mac y la contraseña desde esa misma página.</li>
+  <li><strong>Supresión:</strong> «Borrar la cuenta y los datos en todos» lo borra del servidor al momento. Si ya no tienes ningún Mac,
+  puedes pedirlo con tu email: se ejecuta a los 14 días y cualquier Mac que aún sincronice puede cancelarlo. Las copias de
+  seguridad se borran solas a los 30 días.</li>
+  <li><strong>Oposición, limitación y portabilidad:</strong> escribe a admin@lamosquita.net. Tus datos sincronizados están en tu Mac;
+  nosotros solo guardamos una copia cifrada.</li>
+</ul>
+<p>Más detalle de cómo se usa la cuenta, en <a href="ayuda/sincronizar/">la ayuda de Sincronizar</a>.</p>
+</div></section>
+<section class="banda blanca"><div class="columna">
 <h2>Responsable y derechos</h2>
 <p>Responsable: lamosquita — admin@lamosquita.net. Base legal: interés legítimo (art. 6.1.f del RGPD) en mantener el
 navegador seguro y actualizado. Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición y
 limitación escribiendo a esa dirección, y reclamar ante la Agencia Española de Protección de Datos
-(<a href="https://www.aepd.es/">www.aepd.es</a>). Como no guardamos tu IP, normalmente no tendremos datos tuyos
-que mostrarte. Para Sincronizar, la base legal es la ejecución del servicio que tú pides al activarlo (art. 6.1.b).</p>
+(<a href="https://www.aepd.es/">www.aepd.es</a>). Si no creas cuenta, como no guardamos tu IP, normalmente no tendremos datos tuyos
+que mostrarte. Para Sincronizar, y para la cuenta si la creas, la base legal es la ejecución del servicio que tú pides al activarlo
+(art. 6.1.b). Para las dudas sobre tus datos, la misma dirección.</p>
 
-<p class="dato">Última actualización: 9 de octubre de 2026.</p>
+<p class="dato">Última actualización: 22 de noviembre de 2026.</p>
 </div></section>
-<section class="banda blanca"><div class="columna">
+<section class="banda naranja"><div class="columna">
 <h2 id="aviso-legal">Aviso legal</h2>
 <p><strong>Quién está detrás.</strong> FlyWeb es un proyecto de <a href="https://www.lamosquita.net/">lamosquita</a>.
 Contacto para cualquier asunto, también legal: admin@lamosquita.net.</p>
