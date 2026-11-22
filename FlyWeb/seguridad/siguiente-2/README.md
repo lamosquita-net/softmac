@@ -8,11 +8,25 @@ prepara SEGURIDAD-PORTES (-33). **En qué versión entra lo decide Titín**; has
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001` | **`c881f8b1b3`** |
-| chromium | sin cambios (árbol de la 3.2.1 sin VERSION, `a2ffc0a48f`) | — | — |
+| chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001` | **`ff91be10d6`** |
 
 Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`; `git diff --diff-filter=D` vacío; los
 cuatro `patches/*.patch` que toca se aplican limpios sobre los ficheros de Chromium de la 3.2.1 sin VERSION y dan el mismo
 resultado que se editó. **No compilado ni probado aquí** (no hay árbol de compilación en la nube).
+
+## `chromium/0001`: [M159] [security] Disable SendEarlyFinalBeginMainFrame
+
+- **Origen:** `branch-heads/8154` `ce5896ca0a` (22-11 23:08 UTC; main `48f78635b5`). Bugs 576628035 y 588864961, **restringidos**:
+  la gravedad no es pública y no hay CVE ni boletín todavía. **Aún no ha llegado a la 8078.**
+- **Qué cambia:** el *killswitch* `features::kSendEarlyFinalBeginMainFrame` de `cc/base/features.cc` pasa a desactivado
+  por defecto. Así `LayerTreeHost::RequestImmediateBeginMainFrame` deja de mandar el *BeginMainFrame* final adelantado
+  (`cc/trees/layer_tree_host.cc`). La prueba `LayerTreeHostProxyTestRequestImmediateBeginMainFrame` activa la función
+  explícitamente para seguir probando ese camino.
+- **¿Mac?** Sí: `cc` es común a todas las plataformas. En la 156 la función existe y está **activada** por defecto.
+- **Aplicación:** mismo diff que upstream, solo con desplazamientos de líneas (-20 y -18). No hay parches de brave-core
+  ni `chromium_src` para estos ficheros. `git am` sobre `a2ffc0a48f` da `ff91be10d6`.
+- **Riesgo funcional:** bajo. Es el valor que llevará Chrome 159 estable, y el camino de la función queda como estaba
+  antes de que existiera.
 
 ## `brave-core/0001`: cookies con clave temporalmente ausente
 
