@@ -1053,3 +1053,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/NUBE-SEGURIDAD-VIGIA/20261121-2258-COORDINACION-59-relevo.md → (nube) · 2026-11-21 22:58 UTC · copia escrita del SendMessage
 - buzon/D8-LINUX/20261121-2305-COORDINACION-59-espacio.md → D8-LINUX-5 [bridge:session_01MwmK2iT4hLWA1h2vv3cG9K] · 2026-11-21 23:05 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/NUBE-MOTOR/20261121-2332-COORDINACION-59-1183.md → MOTOR-47 (nube) · 2026-11-21 23:32 UTC · copia escrita del SendMessage
+- buzon/LOCAL/20261122-0947-COORDINACION-59-final-3.2.1.md → Local (22) [local_3bb6e59d] · 2026-11-22 09:47 UTC · entregado por COORDINACIÓN-59 (SendMessage)
