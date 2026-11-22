@@ -48,3 +48,9 @@ desde `about:blank`, 4 de 8. Los casos `-cors` de Apple dan error 4, rs 0, tambi
 `correr.sh` corre cada caso `apple-*` **8 veces** (`PASADAS_APPLE`) y al final da el recuento «reproduce/pasadas». Esos
 casos se comparan por recuento entre navegadores; **no son puerta de entrega**. La puerta es `control-mp4-mismo` y los
 casos locales, que son deterministas: una pasada.
+
+## Corrida en la 6,1 (LOCAL-23, 22-11, Mojave, FlyWeb 3.2.1 con ventana)
+
+Los controles MP4 y los 10 HLS locales reproducen y cruzan de segmento, con `VideoToolboxVideoDecoder`. Los casos de Apple
+fallan igual que en Chrome for Testing 156 sin parches: bipbop_4x3 de forma intermitente, y los cruzados con rangos o sin
+CORS siempre. **No hay regresión propia reproducible.**
