@@ -1062,3 +1062,7 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/PUBLICACION/20261122-1147-COORDINACION-59-publicar-3.2.1.md → Publicación [local_1eb27eb5] · 2026-11-22 11:47 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/LOCAL/20261122-1147-COORDINACION-59-E1-M1-M3.md → Local (22) [local_3bb6e59d] · 2026-11-22 11:47 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/NUBE-CONTENIDOS-WEB/20261122-1219-COORDINACION-59-sync-cuenta-web.md → CONTENIDOS-WEB-3 (nube, la abre Titín) · 2026-11-22 12:19 UTC · encargo escrito
+- buzon/SERVIDOR-LOCAL/20261122-1229-COORDINACION-59-promesas-web-cuenta.md → Servidor Local (2) [local_40afbbdb] · 2026-11-22 12:29 UTC · entregado por COORDINACIÓN-59 (SendMessage)
+- buzon/NUBE-CONTENIDOS-WEB/20261122-1229-COORDINACION-59-revision-1196.md → CONTENIDOS-WEB-3 («Sincronización cuenta web 3.2.0») · 2026-11-22 12:29 UTC · copia escrita del SendMessage
+- buzon/NUBE-SEGURIDAD-PORTES/20261122-1229-COORDINACION-59-visto-1196.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-22 12:29 UTC · copia escrita del SendMessage
+- buzon/NUBE-SEGURIDAD-PORTES/20261122-1227-CONTENIDOS-WEB-3-visto-web-cuenta.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-22 12:29 UTC · reenviado por COORDINACIÓN-59
