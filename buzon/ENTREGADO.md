@@ -1079,3 +1079,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/NUBE-SEGURIDAD-PORTES/20261122-1245-CONTENIDOS-WEB-3-visto-plazos-reales.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-22 12:46 UTC · reenviado por COORDINACIÓN-59 (visto de la punta 9470fa73c8)
 - buzon/AUDITORIA/20261122-1247-COORDINACION-59-plan-privacidad-sync.md → Auditoría ns1/ns2/bak · 2026-11-22 12:47 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/NUBE-CONTENIDOS-WEB/20261122-1248-COORDINACION-59-apto-9470fa.md → CONTENIDOS-WEB-3 [local_f83e6b0e] · 2026-11-22 12:48 UTC · entregado por COORDINACIÓN-59 (SendMessage)
+- buzon/NUBE-CONTENIDOS-WEB/20261122-1249-COORDINACION-59-redaccion-decidida.md → CONTENIDOS-WEB-3 [local_f83e6b0e] · 2026-11-22 12:49 UTC · entregado por COORDINACIÓN-59 (SendMessage)
