@@ -42,3 +42,9 @@ Los dos dan lo mismo en los 15 casos de entonces. Los de Apple fallan **también
 - `bipbop_4x3` (TS): `CHUNK_DEMUXER_ERROR_APPEND_FAILED` al analizar un segmento.
 - `adv_example_fmp4`: `Range requests are not allowed for cross-origin content`. Usa `EXT-X-BYTERANGE` y la página es de
   otro origen: Chromium lo rechaza a propósito si no hay CORS. De ahí los dos casos `-cors`.
+
+**Corrección (LOCAL-23, 22-11):** `bipbop_4x3` es **intermitente** en Chrome 156 sin parches. En http pasó 1 de 8 veces, y
+desde `about:blank`, 4 de 8. Los casos `-cors` de Apple dan error 4, rs 0, también en Chrome (`Network read stopped`). Por eso
+`correr.sh` corre cada caso `apple-*` **8 veces** (`PASADAS_APPLE`) y al final da el recuento «reproduce/pasadas». Esos
+casos se comparan por recuento entre navegadores; **no son puerta de entrega**. La puerta es `control-mp4-mismo` y los
+casos locales, que son deterministas: una pasada.
