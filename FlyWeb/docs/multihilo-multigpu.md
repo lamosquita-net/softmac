@@ -273,6 +273,9 @@ Qué significa:
   pantalla de Titín está a 3008×1692 [V]: un lienzo a pantalla completa son 20 MB por fotograma, 1,2 GB/s a 60 fps.
   LOCAL-21 midió en esa pantalla `devicePixelRatio` = 1 (`entregas/local21/paso2/resultados-sp-js.json` [V]): no es
   un modo escalado y valen esos 20 MB. Cuánto cuesta de verdad el cruce solo lo dice la medida de E1.
+  **Corregido el 22-11:** eso valía el 09-11. El 22-11 la misma pantalla está a 6016×3384 con `devicePixelRatio` 2
+  [R, LOCAL-23]: a pantalla completa son 81 MB por fotograma y 4,9 GB/s a 60 fps, un tercio del enlace teórico. El
+  cruce pesa cuatro veces más a esa escala, y por eso E1 se juzga también ahí (§11).
 - **Regla para decidir qué repartir:** compensa mandar a la segunda tarjeta el trabajo cuyo resultado es pequeño
   frente a lo que cuesta calcularlo. Una WebGL con sombreadores caros en un lienzo mediano compensa. Las teselas de
   una página o un lienzo 2D a pantalla completa, que se pintan rápido y pesan mucho, compensan mal: es el riesgo de F.
@@ -310,7 +313,8 @@ ser un encargo, E1, y la medida M1 se hace con él.
    MotionMark entero (no debe cambiar); vídeo; una página que use vídeo o lienzo 2D como textura WebGL; pérdida de
    contexto; Basemark Web y la batería de `pruebas-gpu.md`. Cambiar el monitor de tarjeta no aplica: en la 6,1 todas
    las salidas son de la misma (§4.3).
-4. **Se entrega si no pierde más del 2 % en ningún caso.** Ganar fotogramas no es condición.
+4. **Se entrega si no pierde más del 2 % en ningún caso.** Ganar fotogramas no es condición. Cómo se mide y cómo se
+   juzga ese 2 %: §11 (añadido el 22-11).
 5. Apagado de emergencia: `FLYWEB_METAL_DISPLAY_GPU=1`, que ya existe.
 
 **M1 (LOCAL, 6,1; primero con la 3.1.0 publicada, sin compilar, y repetida con E1).** Para cada caso, a la vez:
@@ -747,3 +751,117 @@ parches del renderer.
   lógicos, que prefiera núcleos libres, cuánto frena a un proceso en segundo plano, que `dtrace` funcione así en
   Mojave con la protección activa y que la traza de V8 salga con la caja de arena. Los umbrales del paso 3 son
   míos. No he leído el código de V8 para la explicación C.
+
+## 11. E1: cómo se mide y cómo se juzga el A/B (añadido el 22-11)
+
+Encargo de COORDINACIÓN-60 del 22-11, a propuesta de LOCAL-23
+(`buzon/COORDINACION/20261122-1627-LOCAL-23-control-motionmark.md` y `…-1539-LOCAL-23-M1.md`). No he medido nada: fijo
+el método con sus datos [R] y con dos lecturas del árbol 156 [V].
+
+### 11.1 Conclusión
+
+1. **Apruebo la propuesta de LOCAL-23:** A/B a las dos escalas, pasadas alternadas, Suits solo a escala 1 y
+   `devicePixelRatio` anotado siempre. También la pasada previa de confirmación a escala 1 (unos 7 minutos).
+2. **Añado lo que le falta: la escala 2 no es solo un estorbo para medir, es donde E1 puede perder.** E1 hace que cada
+   fotograma de WebGL cruce de una tarjeta a la otra, y a escala 2 cruza cuatro veces más píxeles (§4.3, corregido).
+   Los casos de WebGL se **juzgan** a las dos escalas; a escala 1 sola no se entrega.
+3. **El «2 % en ningún caso» de §6 no se podía cumplir tal como lo escribí**, ni siquiera a escala 1: con la misma
+   versión, Multiply varía un 6 % entre pasadas, Design un 3 % y Paths un 2,5 % [R]. Lo dejo como condición y fijo
+   cómo se juzga (§11.3). Donde el ruido no deja ver un 2 %, se dice y decide Titín; no se da por pasado.
+4. **Las cifras de antes del cambio de escala no se usan para el veredicto.** El A/B es del mismo día, misma pantalla
+   y mismo guion. Las del 09-11 solo sirven de contexto.
+5. **La caída de Suits a escala 2 (de unos 420 a unos 13) es un problema aparte, anterior a E1 y a la 3.2.1.** Es
+   treinta veces menos con cuatro veces más píxeles: no es proporcional, hay un escalón. No lo estudio aquí; lo dejo
+   apuntado para Titín (§11.5).
+
+### 11.2 Protocolo
+
+**Antes de empezar (una vez):**
+
+- La pasada de confirmación de LOCAL-23: la 3.2.1 con `--force-device-scale-factor=1`. Debe volver a unos 420 en
+  Suits y unos 205 en Design. Si no vuelve, la escala no es la causa (o no la única): se anota, el A/B sigue igual
+  (es del mismo día) y Suits queda sin juzgar a ninguna escala hasta saber por qué.
+- Ojo con lo que hace ese interruptor: en Mac sustituye la escala de la pantalla dentro de FlyWeb
+  (`ui/display/mac/screen_mac.mm:205-206` [V]); FlyWeb pinta a 1× y el sistema lo estira sobre una pantalla que sigue
+  a 6016×3384 [I]. No es idéntico al 09-11, cuando la pantalla entera iba a 3008×1692. Sirve para el A/B; no sirve
+  para comparar con el 09-11 al 2 %.
+
+**En cada sesión de medida:**
+
+- Al empezar y al terminar, `system_profiler SPDisplaysDataType`: si la resolución cambia a mitad, la sesión no vale.
+  El cambio del 09-11 al 22-11 pasó sin que nadie lo viera.
+- En cada pasada se anotan: `devicePixelRatio`, tamaño interior de la ventana y, en los casos de WebGL,
+  `drawingBufferWidth` × `drawingBufferHeight`. Sin esos tres datos la pasada no cuenta.
+- Lo demás, como en el control de LOCAL-23: perfil nuevo, mismo guion, 60 s de reposo, 20 s entre arranques, sin
+  muestreador en las pasadas que puntúan, FlyWeb de Titín cerrada por él.
+- Orden alternado en espejo (base, E1, E1, base…), para que el calor y la deriva caigan por igual en las dos.
+
+**Casos y pasadas** (base = 3.2.1 publicada; E1 = la compilación):
+
+| Caso | Escala 1 (forzada) | Escala 2 (la de la pantalla) | Pasadas por versión y escala |
+|---|---|---|---|
+| WebGL: Aquarium 5 000, 10 000 y 15 000; three.js; Shadertoy; vídeo o lienzo 2D como textura | se juzga | **se juzga** | 5 |
+| **Cruce:** lienzo WebGL con búfer de 3840×2160 fijado en sus atributos, a 60 fps de carga ligera | se juzga | **se juzga** | 5 |
+| MotionMark, las siete pruebas medibles | se juzga | se juzga | 3 |
+| MotionMark Suits | se juzga | **no se juzga** (se anota) | 3 |
+| MotionMark, total | se juzga | no se juzga; en su lugar, la media geométrica de las siete | 3 |
+| Vídeo solo, Basemark Web, resto de la batería | se juzga | se juzga | 1–3, a criterio de LOCAL |
+
+- MotionMark no usa WebGL: con E1 no debería moverse. Es el control de que E1 no toca nada más; por eso bastan tres.
+- **Aquarium 15 000 va en dos estados (§10).** Cada pasada anota en cuál cayó (unos 43 fps o 55–57) y solo se
+  comparan pasadas del mismo estado. Si E1 cambia la proporción de pasadas en cada estado, eso se informa aparte: es
+  un resultado, no ruido.
+- Basemark publica cada resultado en su tablero [R]: una pasada por versión y con aviso previo a Titín.
+- Con E1, antes de puntuar nada: el registro «FlyWeb: Metal device by id» y las dos tarjetas con trabajo (§6, paso 2),
+  **a las dos escalas**.
+
+### 11.3 Cómo se juzga el 2 %
+
+Para cada caso y escala, con las pasadas de la base y las de E1:
+
+- **Ruido** = (máximo − mínimo) / mediana de las pasadas de la base.
+- **Pérdida** = 1 − mediana de E1 / mediana de la base.
+
+| Resultado | Condición |
+|---|---|
+| **Pasa** | pérdida ≤ 2 % |
+| **Falla** | pérdida > 2 % y la mediana de E1 queda por debajo de la peor pasada de la base |
+| **Dudoso** | pérdida > 2 % pero dentro del rango de la base: se repite con el doble de pasadas; si sigue igual, va a Titín con las cifras |
+| **No medible al 2 %** | ruido de la base > 10 %: no se juzga; se anota y se dice |
+
+- Casos que llegan a 60 fps con las dos versiones: pasa si E1 sigue llegando (≥ 58,8 fps) y no pierde más fotogramas
+  que la base. Ahí el dato útil es la utilización de cada tarjeta, no los fps.
+- **Se entrega** con ningún «falla», ningún «dudoso» sin resolver y, como mucho, los «no medible» que Titín acepte.
+- El 2 %, el 10 % de ruido y el número de pasadas son míos [S]: si las primeras pasadas dan un ruido muy distinto del
+  que se ve hoy, se ajustan antes de seguir, no después de ver el resultado.
+
+### 11.4 Qué resultado es previsible, y qué no decide este documento
+
+- Lo más probable [S] es que E1 pase a escala 1 y que el caso de cruce, a escala 2, sea el que pierda: son 33 MB por
+  fotograma con el búfer de 3840×2160, y hasta 81 MB a pantalla completa (§4.3).
+- Si pasa eso, con la regla vigente **no se entrega tal cual**. La salida natural sería un tope de tamaño: mandar a
+  la segunda tarjeta solo los lienzos por debajo de cierto número de píxeles. Es un cambio de diseño de E1 y lo
+  decide Titín con las cifras delante; no lo adelanto.
+- Titín decidió el 11-11 que el reparto de calor se entrega aunque no dé fotogramas. No ha dicho que se entregue
+  aunque los quite. Si el resultado es ese, se le pregunta; no se interpreta.
+
+### 11.5 Apuntado, fuera de E1: Suits y Design a escala 2
+
+- Con la 3.0.0 y con la 3.2.1, a escala 2: Suits de unos 420 a 6–22 y Design de unos 205 a unos 127; hilos casi
+  parados y la tarjeta ocupada [R]. Lo demás de MotionMark apenas cambia.
+- Lo único que he comprobado: el raster no se configura igual a las dos escalas. Las muestras de MSAA son 8 por
+  debajo de escala 2 y 4 desde escala 2 (`cc/trees/layer_tree_host_impl.cc:3407` [V]). Eso por sí solo no explica
+  treinta veces [I]; no he buscado la causa.
+- Afecta a quien use una pantalla de alta densidad con estas tarjetas, que entre los usuarios de Mac Pro no es raro
+  [S]. **Propuesta para Titín:** si quiere que se estudie, es un encargo aparte (primero, un perfil del proceso de
+  GPU en Suits a escala 2, sin compilar). No bloquea E1.
+
+### 11.6 Fuentes y límites de este apartado
+
+- **Datos** [R]: los dos informes de LOCAL-23 citados arriba (6,1, 22-11). El ruido por prueba sale de sus rangos de
+  referencia y de sus cuatro pasadas de control.
+- **Código** [V] (árbol 156, solo lectura): `ui/display/mac/screen_mac.mm:205-206`,
+  `cc/trees/layer_tree_host_impl.cc:3407`.
+- **Límites:** no he medido ni lanzado nada. Que FlyWeb pinte a 1× y el sistema estire con la escala forzada lo
+  deduzco del código; no lo he visto en pantalla. No sé por qué cambió la escala de la pantalla entre el 09-11 y el
+  22-11 ni si se va a quedar así. Los umbrales de §11.3 son míos.
