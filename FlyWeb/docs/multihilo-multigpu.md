@@ -12,6 +12,9 @@ puente entre las dos tarjetas (§4.3; ahí sí he leído el registro de hardware
 **Apartado añadido el 11-11 por encargo de COORDINACIÓN-39 (buzón 20261111-2118): §9, JavaScript y CPU de muchos
 hilos.** Es independiente de §1–§8 y tiene su propia conclusión, sus puertas y sus fuentes.
 
+**Apartado añadido el 13-11 por encargo de COORDINACIÓN-40 (buzón 20261113-1341): §10, los dos estados de Aquarium
+con 15 000 peces.** Propone una comprobación sin compilar (M3) para antes de E1 y M1.
+
 Marcas: **[V]** visto en el código, en las cabeceras del SDK o en medidas ya publicadas; **[R]** reanálisis mío de
 datos existentes; **[I]** inferido; **[S]** suposición sin comprobar.
 
@@ -332,6 +335,10 @@ Entregable: una tabla con la clasificación de §2.3 por caso, con una tarjeta y
 
 Hoy, con lo medido: P2 no se abre (`CrGpuMain` al 57–65 % en Aquarium) y P3 y P4 esperan a E1 y M1.
 
+**Añadido el 13-11:** con la 3.1.1, Aquarium con 15 000 peces va en dos estados, y en el rápido `CrGpuMain` está al
+89–91 % a 55–57 fps (§10). Roza la condición de P2, pero es Aquarium: sigue faltando una página real. Antes de E1 y
+M1 conviene M3 (§10.4), que no compila nada.
+
 **Lo que no depende de nada de esto**, y sigue siendo lo que más da en Aquarium: perfilar el hilo principal del
 renderer con la 3.1 (pendiente en `rendimiento-3x.md` §5) y abaratarlo. Cuando baje, `CrGpuMain` vuelve a ir justo y
 P2 y P3 se abren solas.
@@ -582,3 +589,161 @@ tipos en los enlaces WebGL y `sin`/`cos`. Es la lista para abaratar el renderer 
   patrones sobre los nombres de las funciones: una función mal clasificada mueve algún punto, no la conclusión. No he
   medido nada nuevo. Son suposiciones [S] la ganancia de Maglev y TurboFan con más hilos, la de raster y el motivo de
   los tres interruptores apagados; e inferencias [I] el coste por hilo y que Speedometer sea de un solo hilo.
+
+## 10. Aquarium con 15 000 peces va en dos estados (añadido el 13-11)
+
+Encargo de COORDINACIÓN-40 (buzón 20261113-1341). LOCAL-19 midió la 3.1.1 en la 6,1 (`TAREAS.md`, FS.44): cada
+pasada se queda en **~41 fps** o en **55–57 fps**, sin intermedios. COORDINACIÓN propone que lo decide dónde coloca
+macOS los dos hilos (hermanos SMT o no) y pide una comprobación sin compilar. Solo papel: he recontado medidas ya
+publicadas y he leído, sin lanzar nada, qué herramientas hay en la 6,1. Mismas marcas que arriba.
+
+### 10.1 Conclusión
+
+1. **Lo que cambia entre los dos estados es el renderer, no el hilo de GPU** [R]. El hilo de la página gasta unos
+   24 ms de CPU por fotograma en el estado lento y unos 15,5 ms en el rápido. `CrGpuMain` gasta 16 ms en los dos.
+2. **El estado lento no es nuevo ni viene de la 3.1** [R]. La 3.0.1 ya tenía el renderer al 100 % con 25 ms por
+   fotograma. No se veía en los fotogramas porque el hilo de GPU de entonces topaba casi en el mismo sitio (unos 42
+   fps). Los parches de ANGLE subieron ese tope a unos 62 y dejaron el otro a la vista. Maglev no parece la causa: en
+   la 3.0.1 estaba apagado (es una sola lectura, §10.6).
+3. **La hipótesis de los hermanos SMT, tal como está formulada, no encaja con los datos** [R]. Si el renderer y
+   `CrGpuMain` compartieran núcleo en el estado lento, se frenarían los dos, y `CrGpuMain` cuesta lo mismo en ambos
+   estados. Queda viva una variante: que el otro hilo lógico del núcleo del renderer lo ocupe otra cosa.
+4. **Hay otras dos explicaciones que encajan igual o mejor** y se comprueban más barato: la prioridad que macOS da
+   al proceso del renderer, y el estado del código JavaScript compilado (§10.3).
+5. **Comprobación propuesta, M3** (§10.4): cuatro pasos sin compilar. Los dos primeros no necesitan nada que LOCAL
+   no tenga ya. Mirar en qué CPU corre cada hilo exige contraseña de administrador en la 6,1, y apagar el SMT exige
+   que Titín reinicie: por eso van al final y solo si lo anterior apunta ahí.
+6. **Merece hacerse antes de E1 y M1.** El estado lento cuesta un 27 % de fotogramas (41 frente a 56). Quitarlo da
+   más que cualquier parche suelto del renderer, y mientras exista, las medianas de Aquarium mezclan los dos estados
+   y no sirven para comparar versiones (§10.5).
+
+### 10.2 Recuento: CPU por fotograma en cada hilo [R]
+
+Coste por fotograma = % de CPU del hilo × 10 / fps, en milisegundos. Lecturas de `ps -M` ya publicadas.
+
+| Compilación y lectura | fps | Renderer: % → ms | `CrGpuMain`: % → ms | Fuente |
+|---|---|---|---|---|
+| 3.0.0, hito 0 | 39,0 | 61,5 → **15,8** | 92,7 → 23,8 | `rendimiento-3x.md` §1, §2.1 |
+| 3.0.0, control | 39,7 | 61,5 → **15,5** | 93,5 → 23,6 | ídem §3.1, §3.6 |
+| 3.0.1, serie | 39,5 | 100 → **25,3** | 87,7 → 22,2 | ídem |
+| t1 (un parche de ANGLE) | 42,9 | 75,3 → 17,6 | 90,2 → 21,0 | ídem |
+| t2 | 49,1 | 82,8 → 16,9 | 89,4 → 18,2 | ídem |
+| t3 | 44,8 | 87,7 → 19,6 | 86,3 → 19,3 | ídem |
+| t4 (candidata 3.1), pasada 1 | 39,8 | 100 → **25,1** | 56,7 → 14,2 | ídem |
+| t4, serie | 41,2 | 100 → **24,3** | 64,8 → 15,7 | ídem |
+| 3.1.1, pasadas lentas | ~41 | 99–100 → **24,3** | 66 → **16,1** | `TAREAS.md` FS.44 |
+| 3.1.1, pasadas rápidas | 55–57 | 80–93 → **14–17** | 89–91 → **15,6–16,5** | ídem |
+
+Emparejar cada lectura con los fotogramas de su pasada es cosa mía [I]: las lecturas sin «serie» son de la pasada 1
+y las de la serie, del final (uso la última pasada).
+
+Lectura:
+
+- **Dos costes del renderer:** 15,5–17 ms y 24–25 ms por el mismo fotograma. Los valores de en medio (t3) aparecen
+  cuando además limitaba el hilo de GPU.
+- **El hilo de GPU no cambia con el estado:** 16,1 ms en las pasadas lentas y 15,6–16,5 en las rápidas de la 3.1.1.
+- **En el estado rápido van los dos hilos casi llenos** (renderer 80–93 %, `CrGpuMain` 89–91 %): por eso se queda en
+  55–57 y no llega a 60.
+- **Pasadas intermedias sí las hubo en la t4:** 49,2 y 46,3 (`rendimiento-3x.md` §3.1). Están a mitad de camino entre
+  41 y 56, y encajan con un cambio de estado a media pasada [I]. Si es así, el estado no queda fijado al empezar.
+- **Qué partes del renderer se encarecen.** Pasando a milisegundos el reparto de §9.2: de la toma de la 3.0.0
+  (estado rápido) a las dos de la t4 (estado lento), el código JavaScript compilado pasa de 4,2 a 8,5–8,8 ms (×2,1);
+  `sin`/`cos`, que es C++, de 3,5 a 5,3–5,6 (×1,5); y el coste de llamar a WebGL, de 6,4 a 7,7–9,0 (×1,2–1,4). Se
+  encarece todo, y el JavaScript más. Vale como indicio y no como prueba: son compilaciones distintas y `sample`
+  congela el renderer.
+
+### 10.3 Qué puede ser
+
+| Explicación | A favor | En contra | Cómo se comprueba |
+|---|---|---|---|
+| **A. El renderer y `CrGpuMain` en el mismo núcleo físico** (la del encargo) | un hilo que comparte núcleo con otro ocupado rinde bastante menos, y la diferencia es de ×1,5 | **`CrGpuMain` cuesta lo mismo en los dos estados** [R]: si compartieran núcleo se frenaría también, y en el rápido, ya solo, costaría 10–12,5 ms, que a 56 fps es un 58–69 % y no el 89–91 % medido | M3, paso 3 |
+| **A′. El otro hilo lógico del núcleo del renderer, ocupado por otra cosa** | explicaría que se encarezca también el C++ | no se ve qué lo ocuparía: en el renderer ningún otro hilo pasa del 3 % (§9.2). macOS no fija hilos a una CPU y suele llenar antes los núcleos libres [S, de memoria], así que cuesta que dure una pasada entera en una máquina de 12 núcleos | M3, paso 3 |
+| **B. Prioridad del proceso del renderer** | Chromium baja el renderer a segundo plano cuando cree que su pestaña no se ve (`base/process/process_mac.cc:152-195` [V]); se decide al cargar o al cambiar de ventana y dura; frenaría todo el hilo, C++ incluido | no sé cuánto frena macOS a un proceso en segundo plano con la máquina libre [S] | M3, paso 1: la columna `PRI` de `ps -M` |
+| **C. Estado del código compilado de V8** (una función caliente que no llega al nivel más alto, o que se desoptimiza según cómo arranque la página) | el JavaScript compilado es lo que más se encarece (×2,1); depende del arranque y puede cambiar a media pasada | no explica que `sin`/`cos` y las llamadas a WebGL también suban | M3, pasos 2 y 4 |
+
+No sé cuál es. Con lo que hay, A queda descartada, y B y C me parecen más probables que A′.
+
+### 10.4 M3: comprobación sin compilar
+
+LOCAL, 6,1, con la 3.1.1 publicada. Va después de la 3.2, como E1 y M1, y antes que ellas. De lo más barato a lo
+más caro; **se para en el primer paso que dé una respuesta clara.**
+
+**Paso 1. Lo que ya se sabe medir, anotando más** (sin permisos nuevos). Doce pasadas con 15 000 peces, para tener al
+menos tres de cada estado. En cada una:
+
+- fotogramas **cada segundo**, no solo la media: se ve si el estado cambia a media pasada y en qué momento;
+- `ps -M` del renderer y del proceso de GPU cada 5 s, **guardando la línea entera**: `%CPU`, `PRI`, `STIME` y `UTIME`.
+  En la 6,1 `ps -M` da esas columnas [V] y no dice en qué CPU corre el hilo;
+- el PID del renderer (si cada pasada estrena proceso o lo reutiliza) y si la ventana estaba delante y a la vista.
+
+Con eso, por pasada: estado, milisegundos por fotograma de cada hilo, prioridad del hilo principal del renderer y
+reparto de su tiempo entre usuario y sistema.
+
+- Si `PRI` es distinta en las pasadas lentas → es **B**. Se mira entonces por qué el navegador da la pestaña por
+  oculta (ventana tapada, sin foco, lanzada por SSH), y si a un usuario le pasa lo mismo.
+- Si el tiempo de sistema sube en las lentas → el coste está en el núcleo del sistema, no en la página; se sigue
+  con el paso 2.
+- Si el estado va con el PID (el mismo proceso lo conserva de una pasada a otra) → apunta a B o C, no a A′.
+
+**Paso 2. Qué se encarece, con una sola compilación** (sin permisos nuevos; necesita el dSYM de la versión que se
+mida). Un `sample` del renderer al final de una pasada lenta y otro al final de una rápida, pasados por
+`reparto-renderer.py` y convertidos a milisegundos por fotograma con la lectura de `ps -M` anterior a la toma.
+
+- Si todas las categorías suben por igual (±15 %) → la causa está fuera del código: A′ o B.
+- Si solo sube el JavaScript compilado → **C**, y se va al paso 4.
+
+**Paso 3. En qué CPU corre cada hilo** (pide contraseña de administrador en la 6,1 [V]: lo lanza Titín o está
+delante). Diez segundos a media pasada, en una lenta y en una rápida:
+
+```bash
+sudo dtrace -q -n 'profile-997 /pid == $1 || pid == $2/ { @hilos[pid, tid, cpu] = count(); } profile-997 /pid != 0/ { @ocupacion[cpu] = count(); } tick-10s { exit(0); }' PID_RENDERER PID_GPU
+```
+
+Da, por hilo, cuántas muestras cayeron en cada CPU lógica, y cuánto estuvo ocupada cada una. El hilo principal de
+cada proceso es el que más muestras tiene. La 6,1 tiene 12 núcleos y 24 hilos lógicos [V]; supongo que las CPU 2k y
+2k+1 son el mismo núcleo [S]. No lo he ejecutado: que funcione con la protección del sistema activa, como está en
+la 6,1, es suposición [S].
+
+- A′ confirmada si, en la pasada lenta, el hilo del renderer pasa al menos el 70 % de sus muestras en CPU cuya
+  pareja está ocupada un 30 % o más, y en la rápida menos del 20 %.
+- Descartada si el reparto es igual en los dos estados.
+
+Solo si se confirma: **repetir con el SMT apagado.** Es un cambio de ajuste del sistema en la máquina de Titín y lo
+decide y lo hace él. Apple lo documenta para Mojave: arrancar en Recuperación, `nvram boot-args="cwae=2"` y
+`nvram SMTDisable=%01`, reiniciar; se deshace restableciendo la NVRAM [V, artículo 101870 de Apple]. Hoy la 6,1 no
+tiene ninguna de las dos variables [V]. Doce pasadas: si todas salen rápidas, queda probado.
+
+**Paso 4. Estado de V8** (sin permisos nuevos; solo si el paso 2 apunta a C). Lanzar con
+`--js-flags="--trace-opt --trace-deopt"` y la salida a un fichero, y comparar una pasada lenta con una rápida:
+cuántas desoptimizaciones hay en los últimos 20 s y si las mismas funciones acaban optimizadas. Que la salida del
+renderer llegue al fichero con la caja de arena activa es suposición [S].
+
+### 10.5 Qué abre cada resultado, y qué hacer mientras tanto
+
+| Resultado | Entonces |
+|---|---|
+| **B**, prioridad | puede ser un artefacto de cómo se lanza la prueba, y entonces basta corregir el guion; si le pasa también a un usuario con la ventana a la vista, es un fallo nuestro y va a MOTOR |
+| **C**, estado de V8 | a MOTOR, con el nombre de la función: es de la misma familia que los parches del renderer (#949) |
+| **A′**, colocación | estudio aparte de ARQUITECTURA. macOS no deja fijar un hilo a una CPU; lo que hay son etiquetas de afinidad, y no sé si en esta máquina separan hilos por núcleo [S] |
+| Ninguna | queda el dato del paso 1: el instante en que cambia el estado y qué cambió con él |
+
+**Mientras tanto:** toda medida de Aquarium con 15 000 peces se da **por pasada, con su estado y los milisegundos
+por fotograma de cada hilo**, no con la mediana de fotogramas. La mediana depende de cuántas pasadas caen en cada
+estado: 41,0 en la 3.1.1 frente a 41,9 en la 3.1.0 no dice nada de ninguna de las dos. Vale también para medir los
+parches del renderer.
+
+### 10.6 Fuentes y límites de este apartado
+
+- **Medidas:** `TAREAS.md` FS.44 (LOCAL-19, 13-11; #972); `rendimiento-3x.md` §1, §2.1, §3.1 y §3.6 (LOCAL-21); la
+  tabla de §9.2 de este documento.
+- **La 6,1, leída el 13-11 sin lanzar nada:** macOS 10.14.6, Xeon E5-2696 v2, 12 núcleos y 24 hilos lógicos; están
+  `dtrace`, `ktrace`, `powermetrics` y Xcode; protección del sistema activa; `sudo` pide contraseña;
+  `SMTDisable` y `boot-args` sin definir.
+- **Código** (árbol 156): `base/process/process_mac.cc:152-195`.
+- **Apple:** «How to enable full mitigation for Microarchitectural Data Sampling (MDS) vulnerabilities»,
+  support.apple.com/en-us/101870, leído el 13-11-2026.
+- **Límites:** no he medido nada. Cada fila de §10.2 sale de una o pocas lecturas, y la 3.0.1 en estado lento es
+  una sola. El emparejamiento de lecturas y pasadas es mío. Son suposiciones [S]: cómo numera macOS los hilos
+  lógicos, que prefiera núcleos libres, cuánto frena a un proceso en segundo plano, que `dtrace` funcione así en
+  Mojave con la protección activa y que la traza de V8 salga con la caja de arena. Los umbrales del paso 3 son
+  míos. No he leído el código de V8 para la explicación C.
