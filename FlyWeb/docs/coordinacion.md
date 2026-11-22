@@ -46,6 +46,20 @@ Monitor sobre `origin/buzon` cada 120 s, caduca a los 30 min. SSH a los servidor
 8. **Fechas de Titín:** purga de la primera copia de la sync hacia el 15-12 (aviso puesto); papeles del RGPD (contrato de OVH,
    revisión legal) de `sync-cuenta-rgpd.md` §4.
 
+**Añadido ~13:50 UTC (manda sobre «Abierto»):** Titín contestó al informe.
+- **Decidido:** Linux (punto 4: F1 y U3 ya; U1 con la partición del NVMe) y HLS (punto 6: investigar y arreglar; encargado a
+  MOTOR-47, `buzon/NUBE-MOTOR/`, «hls»). Los dos en DIRECTIVAS.
+- **Sin contestar:** el corte de la versión siguiente (solo #1183 y seguridad, o más).
+- **En debate, sigue contigo («vamos a razonar»): funciones web.** Titín plantea: si lo usan dos de los tres motores, aunque sean
+  minoritarios, es tendencia y se porta; y pregunta por HTML en canvas. Datos del informe del 17-11 (refrescarlos con
+  INVESTIGACIÓN-MOTOR antes de decidir): HTML en canvas lo lleva **un** motor (Chrome 157; Safari a favor sin implementarlo; Firefox
+  sin señal). Con su criterio cambia `chunks/windows` (Firefox 154 + Safari 27.3 beta); `import defer` casi (Safari beta + Firefox
+  Nightly); `allKeyed` no (solo Firefox); grid lanes no (solo Safari). Propuesto por la 59, sin decidir: su criterio como norma (dos
+  motores en estable = se porta sin esperar a Chrome; uno + beta = se prepara) y una prueba de un día de HTML en canvas tras su
+  bandera en la 6,1 para medir el coste real. Ojo con la huella: se declara 156 (decisión 8).
+- **Ubuntu:** Titín espera el fin de una comprobación de su copia de 572 GB para liberar el NVMe y reducir la partición desde
+  Windows. Orden buena: `rsync -an --checksum --out-format='%i %n' … | grep '^>'`, con código de rsync 0.
+
 **Lecciones de la 59:**
 - Los textos públicos los decide Titín: no se le discuten. Si una frase no casa con el sistema, se le dice una vez, en una línea,
   con la alternativa; las dudas de otros agentes van a COORDINACIÓN. **fail2ban y CrowdSec no se tocan por privacidad.**
