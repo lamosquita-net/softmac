@@ -16,16 +16,17 @@ fi
 CASOS=$(grep -o "^  \['[a-z0-9-]*'" "$AQUI/prueba.html" | tr -d " ['")
 : > resultados.jsonl
 for c in $CASOS; do
-  P=$(mktemp -d)
+  mkdir -p "$SAL/perfiles"; P=$(mktemp -d "$SAL/perfiles/$c.XXXXXX")
   "$BIN" --headless=new --user-data-dir="$P" --no-first-run --no-default-browser-check \
     --use-mock-keychain --password-store=basic --autoplay-policy=no-user-gesture-required \
     --enable-logging=stderr --v=0 ${EXTRA:-} \
+    --disable-brave-update --disable-component-update --disable-background-networking \
+    --host-resolver-rules="MAP lamosquita.net ~NOTFOUND,MAP *.lamosquita.net ~NOTFOUND" \
     --vmodule='hls*=3,manifest_demuxer*=3,multi_buffer*=2,resource_multi_buffer*=2,url_index*=2,web_media_player_impl*=1,demuxer_manager*=2' \
     "http://127.0.0.1:8471/prueba.html?caso=$c" > "$SAL/$c.log" 2>&1 &
   N=$!
   for _ in $(seq 60); do grep -q "\"caso\": \"__fin__\", \"filtro\": \"$c\"" resultados.jsonl && break; sleep 0.5; done
   kill $N 2>/dev/null; sleep 0.5; kill -9 $N 2>/dev/null; wait $N 2>/dev/null
-  rm -rf "$P"
   grep "\"caso\": \"$c\"" resultados.jsonl | python3 -c 'import json,sys
 for l in sys.stdin:
   r=json.loads(l); e=r.get("error") or {}

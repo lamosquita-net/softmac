@@ -27,6 +27,9 @@ const CASOS = [
   // Remotos de Apple (necesitan Internet): el caso que vio LOCAL-21 y uno fMP4.
   ['apple-bipbop-ts', 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8', null],
   ['apple-bipbop-fmp4', 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8', null],
+  // Los mismos con crossorigin: la variante fMP4 usa EXT-X-BYTERANGE, y los rangos sin CORS se rechazan por diseño.
+  ['apple-bipbop-ts-cors', 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8', 'anonymous'],
+  ['apple-bipbop-fmp4-cors', 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8', 'anonymous'],
 ];
 const fila = r => {
   const tr = document.createElement('tr'); tr.className = r.resultado === 'reproduce' ? 'ok' : 'mal';
@@ -55,7 +58,7 @@ function probar([caso, src, co]) {
     for (const e of ['loadstart', 'loadedmetadata', 'canplay', 'playing', 'waiting', 'stalled', 'error', 'emptied'])
       v.addEventListener(e, () => ev.push(e + '@' + Math.round(performance.now() - t0)));
     v.addEventListener('error', () => acabar('error'));
-    v.addEventListener('timeupdate', () => { if (v.currentTime > 1.5) acabar('reproduce'); });
+    v.addEventListener('timeupdate', () => { if (v.currentTime > Math.min(1.5, (v.duration || 99) * 0.6)) acabar('reproduce'); });
     document.body.append(v);
     v.src = src;
     v.play().catch(e => ev.push('play() ' + e.name));
