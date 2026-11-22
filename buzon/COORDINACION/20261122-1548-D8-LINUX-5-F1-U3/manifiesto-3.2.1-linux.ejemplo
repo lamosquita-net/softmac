@@ -1,0 +1,17 @@
+# FlyWeb 3.2.1 en Linux (ejemplo; árboles de la entrega de LOCAL-21 del 22-11, buzon/COORDINACION/20261122-1245).
+version=3.2.1
+build=49
+src=/RUTA/AL/CHECKOUT/src
+out=Release-321-linux
+softmac=/RUTA/AL/CLON/softmac
+chromium_commit=72f8a7f72991bf9f20917e01f2513061bf769a2c
+chromium_arbol=1bc26ba935
+core_commit=f204a99733667c61c077d205a5a10871e3c21305
+core_arbol=c47419e137
+v8_arbol=c8e7b3da27
+trabajos=12
+memoria_tope=26G
+intercambio_min_gb=32
+disco_min_gb=60
+# Solo Mac: mac_sdk=, metal_bin=
+# Opcionales: args_referencia=, clave_servicios_fichero=
