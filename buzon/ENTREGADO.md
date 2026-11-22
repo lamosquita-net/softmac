@@ -1081,3 +1081,5 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/NUBE-CONTENIDOS-WEB/20261122-1248-COORDINACION-59-apto-9470fa.md → CONTENIDOS-WEB-3 [local_f83e6b0e] · 2026-11-22 12:48 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/NUBE-CONTENIDOS-WEB/20261122-1249-COORDINACION-59-redaccion-decidida.md → CONTENIDOS-WEB-3 [local_f83e6b0e] · 2026-11-22 12:49 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/NUBE-SEGURIDAD-PORTES/20261122-1250-COORDINACION-59-visto-56eedb.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-22 12:50 UTC · copia escrita del SendMessage
+- buzon/NUBE-CONTENIDOS-WEB/20261122-1250-COORDINACION-59-redaccion-final.md → CONTENIDOS-WEB-3 [local_f83e6b0e] · 2026-11-22 12:50 UTC · entregado por COORDINACIÓN-59 (SendMessage)
+- buzon/AUDITORIA/20261122-1250-COORDINACION-59-aplicar-A.md → Auditoría ns1/ns2/bak · 2026-11-22 12:50 UTC · entregado por COORDINACIÓN-59 (SendMessage)
