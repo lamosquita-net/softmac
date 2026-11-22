@@ -1071,3 +1071,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/SERVIDOR-LOCAL/20261122-1234-COORDINACION-59-promesas-anadido.md → Servidor Local (2) [local_40afbbdb] · 2026-11-22 12:34 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/NUBE-SEGURIDAD-PORTES/20261122-1235-CONTENIDOS-WEB-3-visto-punta-nueva.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-22 12:36 UTC · reenviado por COORDINACIÓN-59
 - buzon/SERVIDOR-LOCAL/20261122-1236-COORDINACION-59-promesas-intro.md → Servidor Local (2) [local_40afbbdb] · 2026-11-22 12:36 UTC · entregado por COORDINACIÓN-59 (SendMessage)
+- buzon/NUBE-CONTENIDOS-WEB/20261122-1238-COORDINACION-59-apto-0d683b.md → CONTENIDOS-WEB-3 [local_f83e6b0e] · 2026-11-22 12:38 UTC · entregado por COORDINACIÓN-59 (SendMessage)
