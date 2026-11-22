@@ -7,7 +7,52 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
-## 21-11 (tarde): COORDINACIÓN-58 → COORDINACIÓN-59 (local, 7,1; leer primero; manda sobre lo de abajo)
+## 22-11 (tarde): COORDINACIÓN-59 → COORDINACIÓN-60 (local, 7,1; leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-59 = «Coordinación (59)» [387a5d], 21-11 22:55 → 22-11 ~13:45 UTC; al 52 % de contexto (tocaba al 35 %). La 60 la abre Titín.
+
+**Canales:** los de la nota 58 → 59, con cuatro cambios: (1) LOCAL-21 = «Local (22)» `local_3bb6e59d-…`, quieta: la releva **LOCAL-22,
+que abre Titín** (nota `~/proyectos/softmac/temp/local21/LOCAL-21-relevo.md`; a las 13:40 no estaba abierta); (2) CONTENIDOS-WEB-3,
+retirada y archivada por Titín; (3) Auditoría «Auditoría ns1/ns2/bak.lamosquita.net» `local_f950fa9d-ba3d-4b2a-92e7-8955679041bc`:
+los cambios en producción exigen el sí de Titín **en su sesión**; (4) D8-LINUX exige también el sí de Titín en la suya para borrar.
+Monitor sobre `origin/buzon` cada 120 s, caduca a los 30 min. SSH a los servidores: uno cada vez, también entre agentes.
+
+**Hecho:**
+- **3.2.1 build 49 publicada** (#1165, #1171; registro #1197). Versión interna .120; **a las webs .82** (última Stable real de Mac).
+- **Sync con cuenta en la web:** #1196 y #1202; inactivas a 365 días activo en ns2 (#1201); plan de registros cerrado sin aplicar.
+- **Ubuntu:** SSD liberado (109 GB libres); disco de archivo en `/media/archivo` con las copias de los árboles viejos y `motor-b2`.
+
+**Comprobación en vuelo:** SERVIDOR-LOCAL mira #1202 en línea a partir de las 13:54 UTC (`buzon/SERVIDOR-LOCAL/`, «comprobar-1202»).
+
+**Abierto, por orden:**
+1. **Multihilo y multiGPU (decidido):** M1, M3, M2 y E1 sobre la 3.2.1; orden en `buzon/LOCAL/` («E1-M1-M3»). Espera a que Titín abra
+   LOCAL-22. M1 y el A/B de E1, con la FlyWeb de Titín cerrada por él. Desde el lunes 23, preguntarle antes de compilar.
+2. **Versión siguiente:** #1183 entero (decidido; punta f7fc665482; 10 browsertests en la 6,1) y lo que traiga SEGURIDAD-PORTES
+   (esperan merge oficial: lista en `buzon/COORDINACION/20261122-0952-SEGURIDAD-PORTES-33.md`). Candidata: limpieza del 0017.
+   **Número, build y corte los da Titín.**
+3. **Piloto de pruebas en Ubuntu (decidido el 21-11):** el disco ya da (109 GB; pide 60–75). Falta: ajustar la directiva del 07-11, la
+   fila de D8-LINUX, su CLAUDE.md (lo edita Titín) y que LOCAL suba las ramas base a los forks. Estudio: `pruebas-linux.md`.
+4. **Porte a Linux (propuesto, sin sí explícito):** F1 (guion de la Release) y U3 (papel) sin disco; U1 (~100 GB y levantar la directiva
+   del 07-11) cuando Titín dé una partición ext4 en el NVMe. No cabe a la vez que el piloto en el SSD.
+5. **Funciones web (sin decidir):** `novedades-motor.md`, informe 2 parte B §7 (recomendado: 1, 2, 4 y 6).
+6. **HLS:** no reproduce en la 3.2.0 ni en la 3.2.1; tema aparte, dicho a Titín, sin encargar. Primero, diagnóstico de MOTOR.
+7. **Flecos:**
+   - `FlyWeb/servidor/systemd/flyweb-sync.service` al día con la unidad de ns2 (**no reinstalar la del repo: rompería las cuentas**);
+     SERVIDOR-LOCAL, solo repo.
+   - `git fsck` de las copias del disco de archivo, cuando Titín diga que el disco está libre (avisar a D8-LINUX).
+   - Medida de la sync en la 5,1 (tras publicar; no bloquea).
+   - Revisión de «COORDINACIÓN en local» al cerrar la 3.2.1 (#1184): ya toca.
+   - #865 (BackupDrive) sigue abierto.
+8. **Fechas de Titín:** purga de la primera copia de la sync hacia el 15-12 (aviso puesto); papeles del RGPD (contrato de OVH,
+   revisión legal) de `sync-cuenta-rgpd.md` §4.
+
+**Lecciones de la 59:**
+- Los textos públicos los decide Titín: no se le discuten. Si una frase no casa con el sistema, se le dice una vez, en una línea,
+  con la alternativa; las dudas de otros agentes van a COORDINACIÓN. **fail2ban y CrowdSec no se tocan por privacidad.**
+- Probar cada orden de comprobación antes de darla: `rsync -an --checksum` sin `-i` ni `--out-format` sale vacío siempre.
+- «Versión declarada» son las client hints (`flyweb_engine_full_version`), no `chrome/VERSION`: siempre revisar la huella.
+
+## 21-11 (tarde): COORDINACIÓN-58 → COORDINACIÓN-59 (local, 7,1)
 
 COORDINACIÓN-58 = «Coordinación (58) Local» [3d5895], MacPro7,1, 21-11 ~09:40 → ~20:30 UTC. **La prueba de la COORDINACIÓN en local
 funciona** (punto 5 de abajo: ARQUITECTURA decide si se queda y qué pasa con el cartero; datos: canales directos, sin pérdidas).
