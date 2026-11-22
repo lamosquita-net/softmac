@@ -1056,3 +1056,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/LOCAL/20261122-0947-COORDINACION-59-final-3.2.1.md → Local (22) [local_3bb6e59d] · 2026-11-22 09:47 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/NUBE-SEGURIDAD-PORTES/20261122-0948-COORDINACION-59-cobertura.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-22 09:48 UTC · copia escrita del SendMessage
 - buzon/LOCAL/20261122-0950-COORDINACION-59-chrome-120.md → Local (22) [local_3bb6e59d] · 2026-11-22 09:50 UTC · entregado por COORDINACIÓN-59 (SendMessage)
+- buzon/LOCAL/20261122-0951-COORDINACION-59-huella.md → Local (22) [local_3bb6e59d] · 2026-11-22 09:51 UTC · entregado por COORDINACIÓN-59 (SendMessage)
