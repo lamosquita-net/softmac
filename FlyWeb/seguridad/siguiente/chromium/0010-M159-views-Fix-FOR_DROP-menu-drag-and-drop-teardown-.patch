@@ -1,0 +1,196 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: David Pennington <dpenning@chromium.org>
+Date: Fri, 20 Nov 2026 18:06:11 +0000
+Subject: [PATCH 10/10] [M159] views: Fix FOR_DROP menu drag and drop teardown
+ UAF
+
+FlyWeb port (not yet merged to M156): from branch-heads/8154 afa45b8e16 (M159 merge of 34e522970b). Applied after siguiente/chromium/0009 (main 041491e936), which it needs: without 0009 the MenuRunner released in GetDropCallback/OnMenuClosed is deleted synchronously and both upstream tests fail. Same code change as upstream; both menu_controller.cc hunks re-anchored by hand because 156 has DCHECK(drop_target) where 159 has CHECK(drop_target, base::NotFatalUntil::M163). The two tests are upstream verbatim (the view_tracker.h include they need comes from 0009, as in upstream). Moved here from portes-159/chromium/0001 on 21-11. No brave-core patches or chromium_src for these files.
+
+Original change's description:
+> views: Fix FOR_DROP menu drag and drop teardown UAF
+>
+> Add ScopedDeletionGuard to MenuController::GetDropCallback so
+> MenuRunner and SubmenuView destruction is deferred until GetDropCallback
+> unwinds, and return DRAG_NONE from MenuController::OnDragUpdated when
+> destruction is pending.
+>
+> Bug: 565066840
+> Change-Id: I930a424f26dc58e1ce7d058978072d2b556774ef
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8834364
+> Reviewed-by: Thomas Lukaszewicz <tluk@chromium.org>
+> Commit-Queue: David Pennington <dpenning@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1749593}
+
+(cherry picked from commit 34e522970b88c438fbfda29aad15a82f164978bd)
+
+Bug: 588202414,565066840
+Change-Id: I930a424f26dc58e1ce7d058978072d2b556774ef
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8849227
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1181}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ ui/views/controls/menu/menu_controller.cc     |   3 +-
+ .../controls/menu/menu_runner_unittest.cc     | 118 ++++++++++++++++++
+ 2 files changed, 120 insertions(+), 1 deletion(-)
+
+diff --git a/ui/views/controls/menu/menu_controller.cc b/ui/views/controls/menu/menu_controller.cc
+index 18237667f1..cad41391d1 100644
+--- a/ui/views/controls/menu/menu_controller.cc
++++ b/ui/views/controls/menu/menu_controller.cc
+@@ -1477,7 +1477,7 @@ int MenuController::OnDragUpdated(SubmenuView* source,
+   // Accessibility events fired as a result of the selection changing may have
+   // closed the menu and deleted `this`. Guard against that.
+   if (destroy_pending_) {
+-    return drop_operation;
++    return ui::DragDropTypes::DRAG_NONE;
+   }
+   SetDropMenuItem(menu_item, drop_position);
+   last_drop_operation_ = drop_operation;
+@@ -1496,6 +1496,7 @@ void MenuController::OnDragExited(SubmenuView* source) {
+ views::View::DropCallback MenuController::GetDropCallback(
+     SubmenuView* source,
+     const ui::DropTargetEvent& event) {
++  ScopedDeletionGuard guard(AsWeakPtr());
+   MenuItemView* drop_target =
+       static_cast<MenuItemView*>(drop_target_tracker_.view());
+   DCHECK(drop_target);
+diff --git a/ui/views/controls/menu/menu_runner_unittest.cc b/ui/views/controls/menu/menu_runner_unittest.cc
+index 237b517043..5c5dff36e8 100644
+--- a/ui/views/controls/menu/menu_runner_unittest.cc
++++ b/ui/views/controls/menu/menu_runner_unittest.cc
+@@ -18,6 +18,10 @@
+ #include "base/test/run_until.h"
+ #include "base/test/simple_test_tick_clock.h"
+ #include "build/build_config.h"
++#include "ui/base/dragdrop/drag_drop_types.h"
++#include "ui/base/dragdrop/drop_target_event.h"
++#include "ui/base/dragdrop/mojom/drag_drop_types.mojom.h"
++#include "ui/base/dragdrop/os_exchange_data.h"
+ #include "ui/base/mojom/menu_source_type.mojom-shared.h"
+ #include "ui/compositor/compositor.h"
+ #include "ui/display/display.h"
+@@ -1567,4 +1571,118 @@ TEST_F(MenuRunnerTest,
+   EXPECT_EQ(nullptr, MenuController::GetActiveInstance());
+ }
+ 
++namespace {
++
++// Mirrors BookmarkMenuController's ownership model for FOR_DROP menus: owns the
++// MenuRunner (and thus the MenuItemView tree) and destroys it synchronously in
++// both GetDropCallback (for_drop path) and OnMenuClosed.
++class SelfDeletingForDropDelegate : public TestMenuDelegate {
++ public:
++  void set_menu_runner(std::unique_ptr<MenuRunner> runner) {
++    runner_ = std::move(runner);
++  }
++  MenuRunner* menu_runner() { return runner_.get(); }
++  void set_submenu_tracker(ViewTracker* tracker) { submenu_tracker_ = tracker; }
++
++  ui::mojom::DragOperation GetDropOperation(MenuItemView* item,
++                                            const ui::DropTargetEvent& event,
++                                            DropPosition* position) override {
++    *position = DropPosition::kAfter;
++    return ui::mojom::DragOperation::kCopy;
++  }
++
++  views::View::DropCallback GetDropCallback(
++      MenuItemView* menu,
++      DropPosition position,
++      const ui::DropTargetEvent& event) override {
++    auto cb = TestMenuDelegate::GetDropCallback(menu, position, event);
++    runner_.reset();
++    if (submenu_tracker_) {
++      EXPECT_NE(nullptr, submenu_tracker_->view());
++    }
++    return cb;
++  }
++
++  void OnMenuClosed(MenuItemView* menu) override {
++    TestMenuDelegate::OnMenuClosed(menu);
++    runner_.reset();
++  }
++
++ private:
++  std::unique_ptr<MenuRunner> runner_;
++  raw_ptr<ViewTracker> submenu_tracker_ = nullptr;
++};
++
++}  // namespace
++
++TEST_F(MenuRunnerTest,
++       ForDropCancelDuringDragUpdatedActiveDescendantDefersDestruction) {
++  SelfDeletingForDropDelegate delegate;
++  auto root = std::make_unique<TestMenuItemView>(&delegate);
++  MenuItemView* item1 = root->AppendMenuItem(TestCommandIds::kItem1, u"One");
++
++  delegate.set_menu_runner(
++      std::make_unique<MenuRunner>(std::move(root), MenuRunner::FOR_DROP));
++  delegate.menu_runner()->RunMenuAt(owner(), /*button_controller=*/nullptr,
++                                    gfx::Rect(), MenuAnchorPosition::kTopLeft,
++                                    ui::mojom::MenuSourceType::kNone);
++
++  SubmenuView* submenu = item1->GetParentMenuItem()->GetSubmenu();
++  ViewTracker submenu_tracker(submenu);
++
++  bool active_descendant_fired = false;
++  submenu->GetViewAccessibility().set_accessibility_events_callback(
++      base::BindLambdaForTesting([&](const ui::AXPlatformNodeDelegate*,
++                                     const ax::mojom::Event event_type) {
++        if (event_type != ax::mojom::Event::kActiveDescendantChanged ||
++            active_descendant_fired) {
++          return;
++        }
++        active_descendant_fired = true;
++        MenuController::GetActiveInstance()->Cancel(
++            MenuController::ExitType::kAll);
++        EXPECT_NE(nullptr, submenu_tracker.view());
++      }));
++
++  ui::OSExchangeData drop_data;
++  const gfx::PointF location(item1->bounds().CenterPoint());
++  const ui::DropTargetEvent target_event(drop_data, location, location,
++                                         ui::DragDropTypes::DRAG_COPY);
++  EXPECT_EQ(ui::DragDropTypes::DRAG_NONE, submenu->OnDragUpdated(target_event));
++  EXPECT_TRUE(active_descendant_fired);
++  EXPECT_EQ(nullptr, submenu_tracker.view());
++}
++
++TEST_F(MenuRunnerTest,
++       ForDropReleaseInGetDropCallbackDefersDestructionUntilUnwind) {
++  SelfDeletingForDropDelegate delegate;
++  auto root = std::make_unique<TestMenuItemView>(&delegate);
++  MenuItemView* item1 = root->AppendMenuItem(TestCommandIds::kItem1, u"One");
++
++  delegate.set_menu_runner(
++      std::make_unique<MenuRunner>(std::move(root), MenuRunner::FOR_DROP));
++  delegate.menu_runner()->RunMenuAt(owner(), /*button_controller=*/nullptr,
++                                    gfx::Rect(), MenuAnchorPosition::kTopLeft,
++                                    ui::mojom::MenuSourceType::kNone);
++
++  SubmenuView* submenu = item1->GetParentMenuItem()->GetSubmenu();
++  ViewTracker submenu_tracker(submenu);
++  delegate.set_submenu_tracker(&submenu_tracker);
++
++  ui::OSExchangeData drop_data;
++  const gfx::PointF location(item1->bounds().CenterPoint());
++  const ui::DropTargetEvent target_event(drop_data, location, location,
++                                         ui::DragDropTypes::DRAG_COPY);
++  ASSERT_NE(ui::DragDropTypes::DRAG_NONE, submenu->OnDragUpdated(target_event));
++
++  auto drop_cb = submenu->GetDropCallback(target_event);
++  ASSERT_TRUE(drop_cb);
++  EXPECT_EQ(nullptr, submenu_tracker.view());
++
++  ui::mojom::DragOperation output_op = ui::mojom::DragOperation::kNone;
++  std::move(drop_cb).Run(target_event, output_op,
++                         /*drag_image_layer_owner=*/nullptr);
++  EXPECT_TRUE(delegate.is_drop_performed());
++}
++
+ }  // namespace views::test
+-- 
+2.43.0
+

@@ -1,0 +1,294 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 03:50:00 +0000
+Subject: [PATCH] v8: pending: 352e9c46c2 (M159 merge 5b7c1a1f0f, crbug
+ 585624828)
+
+TurboFan fix from V8 main, merged to 15.9 (M159) and not yet to 15.6:
+use TruncateFloat64ToInt64 instead of a reversible conversion when the
+input may be -0 and the use identifies zeros. Same code diff as
+upstream plus the mjsunit regression test; the upstream unittest
+changes are not carried (different helpers in 15.6). Not in the 3.2.0
+batch; the cache epoch is not bumped here. V8 gitlink unchanged.
+---
+ patches/v8/FLYWEB-SECURITY.md                 |  24 +++++
+ ...rc-compiler-representation-change.cc.patch | 102 ++++++++++++++++++
+ ...iler-simplified-lowering-verifier.cc.patch |  22 ++++
+ ...jsunit-compiler-regress-585624828.js.patch |  95 ++++++++++++++++
+ 4 files changed, 243 insertions(+)
+ create mode 100644 patches/v8/src-compiler-representation-change.cc.patch
+ create mode 100644 patches/v8/src-compiler-simplified-lowering-verifier.cc.patch
+ create mode 100644 patches/v8/test-mjsunit-compiler-regress-585624828.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 958db8f..a47be6e 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,27 @@
++# FlyWeb: pending (after the 3.2.0 batch unless Titín decides otherwise), V8 fix 352e9c46c2 (crbug 585624828), ported from the M159 merge
++
++SEGURIDAD-PORTES-33, 21-11-2026 (softmac `FlyWeb/seguridad/siguiente/brave-core/0001`). On top of
++`pendiente/brave-core/0005`. **Not merged to V8 15.6 upstream yet**: ported from the M159 merge 5b7c1a1f0f (V8
++15.9.128.27, bugs 588203225 and 585624828; cherry-pick of 352e9c46c2 from main).
++
++- In `RepresentationChanger::GetWord64RepresentationFor`, a float or tagged number of type
++  `kDoubleRepresentableInt64OrMinusZero` with a use that identifies +0 and -0 was converted with
++  `ChangeFloat64ToInt64`/`ChangeTaggedToInt64`. Both lower to `ReversibleFloat64ToInt64`, which assumes the Int64 can
++  be converted back to the same Float64; that is false for -0.0. Now `TruncateFloat64ToInt64` is used in that case
++  (unboxing tagged inputs with `ChangeTaggedToFloat64` first), and `SimplifiedLoweringVerifier` propagates truncations
++  through it.
++- `representation-change.cc` and `simplified-lowering-verifier.cc` are byte-identical in 15.6.75.66 and in the patched
++  tree; no other `patches/v8` file touches them; same diff as upstream (patch-id checked), plus the mjsunit test
++  `compiler/regress-585624828.js`. **Not carried:** the upstream unittest changes (`representation-change-unittest.cc`,
++  which in 15.6 is the cctest `test-representation-change.cc` with different helpers, and a new Turboshaft
++  `machine-optimization-reducer-unittest.cc` case that checks existing reducer behaviour, not the fix).
++
++**Cache epoch:** this changes optimized code. If it ships in 3.2.0, the 3.2.0 bump to 38 covers it; if it ships later,
++that release must bump `kFlyWebCacheEpoch` again.
++
++To check (D8-LINUX): `d8`, mjsunit with and without Maglev, especially `compiler/regress-585624828`, and
++`cctest/test-representation-change/*`, in release and debug.
++
+ # FlyWeb: pending for the next release, V8 15.6.75.76 fix c37ab55c4a (crbug 579314138)
+ 
+ SEGURIDAD-PORTES-33, 20-11-2026 (softmac `FlyWeb/seguridad/pendiente/brave-core/0005`). For FlyWeb 3.2.0, on top of
+diff --git a/patches/v8/src-compiler-representation-change.cc.patch b/patches/v8/src-compiler-representation-change.cc.patch
+new file mode 100644
+index 0000000..186ec46
+--- /dev/null
++++ b/patches/v8/src-compiler-representation-change.cc.patch
+@@ -0,0 +1,102 @@
++diff --git a/src/compiler/representation-change.cc b/src/compiler/representation-change.cc
++index b61c77d92a5807107e1672477a32239ebc635679..cdbf117694b67f3b458d0511f9137526a52e9bc8 100644
++--- a/src/compiler/representation-change.cc
+++++ b/src/compiler/representation-change.cc
++@@ -1404,10 +1404,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++       }
++     } else if (use_info.type_check() == TypeCheckKind::kSigned64 ||
++                use_info.type_check() == TypeCheckKind::kArrayIndex) {
++-      if (output_type.Is(cache_->kDoubleRepresentableInt64) ||
++-          (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
++-           use_info.truncation().IdentifiesZeroAndMinusZero())) {
+++      if (output_type.Is(cache_->kDoubleRepresentableInt64)) {
++         op = machine()->ChangeFloat64ToInt64();
+++      } else if (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
+++                 use_info.truncation().IdentifiesZeroAndMinusZero()) {
+++        op = machine()->TruncateFloat64ToInt64(
+++            TruncateKind::kArchitectureDefault);
++       } else {
++         op = simplified()->CheckedFloat64ToInt64(
++             output_type.Maybe(Type::MinusZero())
++@@ -1425,10 +1427,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++                 : CheckForMinusZeroMode::kDontCheckForMinusZero,
++             use_info.feedback());
++       }
++-    } else if (output_type.Is(cache_->kDoubleRepresentableInt64) ||
++-               (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
++-                use_info.truncation().IdentifiesZeroAndMinusZero())) {
+++    } else if (output_type.Is(cache_->kDoubleRepresentableInt64)) {
++       op = machine()->ChangeFloat64ToInt64();
+++    } else if (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
+++               use_info.truncation().IdentifiesZeroAndMinusZero()) {
+++      op =
+++          machine()->TruncateFloat64ToInt64(TruncateKind::kArchitectureDefault);
++     } else if (output_type.Is(cache_->kDoubleRepresentableUint64)) {
++       op = machine()->ChangeFloat64ToUint64();
++     } else {
++@@ -1448,10 +1452,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++       }
++     } else if (use_info.type_check() == TypeCheckKind::kSigned64 ||
++                use_info.type_check() == TypeCheckKind::kArrayIndex) {
++-      if (output_type.Is(cache_->kDoubleRepresentableInt64) ||
++-          (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
++-           use_info.truncation().IdentifiesZeroAndMinusZero())) {
+++      if (output_type.Is(cache_->kDoubleRepresentableInt64)) {
++         op = machine()->ChangeFloat64ToInt64();
+++      } else if (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
+++                 use_info.truncation().IdentifiesZeroAndMinusZero()) {
+++        op = machine()->TruncateFloat64ToInt64(
+++            TruncateKind::kArchitectureDefault);
++       } else {
++         op = simplified()->CheckedFloat64ToInt64(
++             output_type.Maybe(Type::MinusZero())
++@@ -1469,10 +1475,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++                 : CheckForMinusZeroMode::kDontCheckForMinusZero,
++             use_info.feedback());
++       }
++-    } else if (output_type.Is(cache_->kDoubleRepresentableInt64) ||
++-               (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
++-                use_info.truncation().IdentifiesZeroAndMinusZero())) {
+++    } else if (output_type.Is(cache_->kDoubleRepresentableInt64)) {
++       op = machine()->ChangeFloat64ToInt64();
+++    } else if (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
+++               use_info.truncation().IdentifiesZeroAndMinusZero()) {
+++      op =
+++          machine()->TruncateFloat64ToInt64(TruncateKind::kArchitectureDefault);
++     } else if (output_type.Is(cache_->kDoubleRepresentableUint64)) {
++       op = machine()->ChangeFloat64ToUint64();
++     } else {
++@@ -1514,10 +1522,13 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++             use_info.feedback());
++       }
++     } else if (use_info.type_check() == TypeCheckKind::kSigned64) {
++-      if (output_type.Is(cache_->kDoubleRepresentableInt64) ||
++-          (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
++-           use_info.truncation().IdentifiesZeroAndMinusZero())) {
+++      if (output_type.Is(cache_->kDoubleRepresentableInt64)) {
++         op = simplified()->ChangeTaggedToInt64();
+++      } else if (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
+++                 use_info.truncation().IdentifiesZeroAndMinusZero()) {
+++        node = InsertChangeTaggedToFloat64(node);
+++        op = machine()->TruncateFloat64ToInt64(
+++            TruncateKind::kArchitectureDefault);
++       } else {
++         op = simplified()->CheckedTaggedToInt64(
++             output_type.Maybe(Type::MinusZero())
++@@ -1533,10 +1544,13 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++           use_info.feedback());
++     } else if (use_info.type_check() == TypeCheckKind::kArrayIndex) {
++       op = simplified()->CheckedTaggedToArrayIndex(use_info.feedback());
++-    } else if (output_type.Is(cache_->kDoubleRepresentableInt64) ||
++-               (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
++-                use_info.truncation().IdentifiesZeroAndMinusZero())) {
+++    } else if (output_type.Is(cache_->kDoubleRepresentableInt64)) {
++       op = simplified()->ChangeTaggedToInt64();
+++    } else if (output_type.Is(cache_->kDoubleRepresentableInt64OrMinusZero) &&
+++               use_info.truncation().IdentifiesZeroAndMinusZero()) {
+++      node = InsertChangeTaggedToFloat64(node);
+++      op =
+++          machine()->TruncateFloat64ToInt64(TruncateKind::kArchitectureDefault);
++     } else {
++       return TypeError(node, output_rep, output_type,
++                        MachineRepresentation::kWord64);
+diff --git a/patches/v8/src-compiler-simplified-lowering-verifier.cc.patch b/patches/v8/src-compiler-simplified-lowering-verifier.cc.patch
+new file mode 100644
+index 0000000..9eaa07e
+--- /dev/null
++++ b/patches/v8/src-compiler-simplified-lowering-verifier.cc.patch
+@@ -0,0 +1,22 @@
++diff --git a/src/compiler/simplified-lowering-verifier.cc b/src/compiler/simplified-lowering-verifier.cc
++index 6d41bbb8a324a69f3e08185c2394e5440cc9b32d..5e89b51737d35e19aa5db53e85b1c11e456dde19 100644
++--- a/src/compiler/simplified-lowering-verifier.cc
+++++ b/src/compiler/simplified-lowering-verifier.cc
++@@ -280,7 +280,8 @@ void SimplifiedLoweringVerifier::VisitNode(Node* node,
++       CheckAndSet(node, InputType(node, 0), InputTruncation(node, 0));
++       break;
++     }
++-    case IrOpcode::kChangeFloat64ToInt64: {
+++    case IrOpcode::kChangeFloat64ToInt64:
+++    case IrOpcode::kTruncateFloat64ToInt64: {
++       Truncation output_trunc =
++           JoinTruncation(InputTruncation(node, 0), Truncation::Word64());
++       CheckAndSet(node, InputType(node, 0), output_trunc);
++@@ -656,7 +657,6 @@ void SimplifiedLoweringVerifier::VisitNode(Node* node,
++       CASE(ChangeFloat64ToUint32)
++       CASE(ChangeFloat64ToUint64)
++       CASE(Float64SilenceNaN)
++-      CASE(TruncateFloat64ToInt64)
++       CASE(TruncateFloat64ToUint32)
++       CASE(TruncateFloat32ToInt32)
++       CASE(TruncateFloat32ToUint32)
+diff --git a/patches/v8/test-mjsunit-compiler-regress-585624828.js.patch b/patches/v8/test-mjsunit-compiler-regress-585624828.js.patch
+new file mode 100644
+index 0000000..2cf301a
+--- /dev/null
++++ b/patches/v8/test-mjsunit-compiler-regress-585624828.js.patch
+@@ -0,0 +1,95 @@
++diff --git a/test/mjsunit/compiler/regress-585624828.js b/test/mjsunit/compiler/regress-585624828.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..a4769275c52ed936975b78b31c4fffec9bd1d4ac
++--- /dev/null
+++++ b/test/mjsunit/compiler/regress-585624828.js
++@@ -0,0 +1,89 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax --verify-simplified-lowering
+++
+++const indexed = 'a'.repeat(16381);
+++const minusZeroHolder = [-0];
+++
+++function checkArrayLengthWithMinusZero(takeWidePath, useWideNumber) {
+++  const index = takeWidePath ? (useWideNumber ? 2 ** 40 : -0) : 3;
+++  const ch = indexed[index];
+++  const arr = new Array(index);
+++  const len = arr.length;
+++  return [ch, len, 1 / len, Object.is(len, minusZeroHolder[0])];
+++}
+++
+++%PrepareFunctionForOptimization(checkArrayLengthWithMinusZero);
+++for (let i = 0; i < 5; i++) {
+++  assertEquals(
+++      ['a', 3, 1 / 3, false], checkArrayLengthWithMinusZero(false, false));
+++  assertEquals(
+++      ['a', 0, Infinity, false], checkArrayLengthWithMinusZero(true, false));
+++}
+++%OptimizeFunctionOnNextCall(checkArrayLengthWithMinusZero);
+++assertEquals(
+++    ['a', 3, 1 / 3, false], checkArrayLengthWithMinusZero(false, false));
+++assertEquals(
+++    ['a', 0, Infinity, false], checkArrayLengthWithMinusZero(true, false));
+++
+++Object.defineProperty(Number.prototype, 'ident', {
+++  configurable: true,
+++  get() {
+++    'use strict';
+++    return this;
+++  },
+++});
+++
+++const typedArray = new Uint8Array(16);
+++typedArray[0] = 7;
+++typedArray[3] = 9;
+++
+++function checkTaggedTypedArrayWithMinusZero(
+++    ta, asString, useWideNumber, useMinusZero) {
+++  const raw =
+++      asString ? 'text' : (useWideNumber ? 2 ** 40 : (useMinusZero ? -0 : 3));
+++  const index = raw.ident;
+++  return ta[index];
+++}
+++
+++%PrepareFunctionForOptimization(checkTaggedTypedArrayWithMinusZero);
+++for (let i = 0; i < 5; i++) {
+++  assertEquals(
+++      9, checkTaggedTypedArrayWithMinusZero(typedArray, false, false, false));
+++  assertEquals(
+++      7, checkTaggedTypedArrayWithMinusZero(typedArray, false, false, true));
+++}
+++%OptimizeFunctionOnNextCall(checkTaggedTypedArrayWithMinusZero);
+++assertEquals(
+++    9, checkTaggedTypedArrayWithMinusZero(typedArray, false, false, false));
+++assertEquals(
+++    7, checkTaggedTypedArrayWithMinusZero(typedArray, false, false, true));
+++
+++function checkBigIntWithMinusZero(useMinusZero) {
+++  const value = useMinusZero ? -0 : 3;
+++  return BigInt(value);
+++}
+++
+++%PrepareFunctionForOptimization(checkBigIntWithMinusZero);
+++assertEquals(3n, checkBigIntWithMinusZero(false));
+++assertEquals(0n, checkBigIntWithMinusZero(true));
+++%OptimizeFunctionOnNextCall(checkBigIntWithMinusZero);
+++assertEquals(3n, checkBigIntWithMinusZero(false));
+++assertEquals(0n, checkBigIntWithMinusZero(true));
+++
+++function checkTaggedBigIntWithMinusZero(asString, useMinusZero) {
+++  const raw = asString ? 'text' : (useMinusZero ? -0 : 3);
+++  const value = raw.ident;
+++  return BigInt(value);
+++}
+++
+++%PrepareFunctionForOptimization(checkTaggedBigIntWithMinusZero);
+++for (let i = 0; i < 5; i++) {
+++  assertEquals(3n, checkTaggedBigIntWithMinusZero(false, false));
+++  assertEquals(0n, checkTaggedBigIntWithMinusZero(false, true));
+++}
+++%OptimizeFunctionOnNextCall(checkTaggedBigIntWithMinusZero);
+++assertEquals(3n, checkTaggedBigIntWithMinusZero(false, false));
+++assertEquals(0n, checkTaggedBigIntWithMinusZero(false, true));
+-- 
+2.43.0
+

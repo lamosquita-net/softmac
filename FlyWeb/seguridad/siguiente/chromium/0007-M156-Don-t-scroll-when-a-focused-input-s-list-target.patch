@@ -1,0 +1,162 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mason Freed <masonf@chromium.org>
+Date: Sat, 21 Nov 2026 02:35:57 +0000
+Subject: [PATCH] [M156] Don't scroll when a focused input's list target
+ changes
+
+FlyWeb next batch: from branch-heads/8078 28fb53154e. Applied after seguridad/siguiente/chromium/0006; applies cleanly (identical diff). No brave-core patches or chromium_src for this file.
+
+Original change's description:
+> Don't scroll when a focused input's list target changes
+>
+> TextFieldInputType::ListAttributeTargetChanged() can be called
+> synchronously from DOM mutation notifications (Element::UpdateId()
+> during InsertedInto()/RemovedFrom(), or
+> HTMLDataListElement::ChildrenChanged()). When it restructured the inner
+> editor of a focused input, it called UpdateSelectionOnFocus(kRestore),
+> which scrolled the selection into view and therefore forced a
+> synchronous style and layout update in the middle of the mutation.
+> During moveBefore(), the moved subtree is still attached but out of the
+> tree, and its dirty slot assignment has been removed from the recalc
+> queue, so this nested layout could recalc slot assignments in place
+> while LocalFrameView was iterating scroll_anchoring_scrollable_areas_,
+> leading to a use-after-free.
+>
+> Restore the cached selection without scrolling (preventScroll), which
+> avoids the forced update. The selection itself is still restored.
+>
+> Note, this CL is still needed, even if/when the CL stack at
+> https://crrev.com/c/8733581 lands. Once that stack lands, this bug
+> would be seen as a crash with `kNoRecalcWhileForbidden`.
+>
+> Fixed: 583179912
+> Change-Id: I9d1b813d71160d35c895eb795985042aaadf614a
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8812014
+> Auto-Submit: Mason Freed <masonf@chromium.org>
+> Reviewed-by: Joey Arhar <jarhar@chromium.org>
+> Commit-Queue: Joey Arhar <jarhar@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1748899}
+
+(cherry picked from commit 8ba74f12d641e46173c7bbb126ff6128f0883f1c)
+
+Bug: 588196773,583179912
+Change-Id: I9d1b813d71160d35c895eb795985042aaadf614a
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8850789
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2375}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../core/html/forms/text_field_input_type.cc  | 13 +++++--
+ ...fore-input-list-target-inserted-crash.html | 24 +++++++++++++
+ ...efore-input-list-target-removed-crash.html | 35 +++++++++++++++++++
+ 3 files changed, 70 insertions(+), 2 deletions(-)
+ create mode 100644 third_party/blink/web_tests/external/wpt/dom/nodes/moveBefore/moveBefore-input-list-target-inserted-crash.html
+ create mode 100644 third_party/blink/web_tests/external/wpt/dom/nodes/moveBefore/moveBefore-input-list-target-removed-crash.html
+
+diff --git a/third_party/blink/renderer/core/html/forms/text_field_input_type.cc b/third_party/blink/renderer/core/html/forms/text_field_input_type.cc
+index 9237c44b9e..c07d1677c8 100644
+--- a/third_party/blink/renderer/core/html/forms/text_field_input_type.cc
++++ b/third_party/blink/renderer/core/html/forms/text_field_input_type.cc
+@@ -33,6 +33,7 @@
+ 
+ #include "base/feature_list.h"
+ #include "third_party/blink/public/common/features.h"
++#include "third_party/blink/renderer/bindings/core/v8/v8_focus_options.h"
+ #include "third_party/blink/renderer/core/accessibility/scoped_blink_ax_event_intent.h"
+ #include "third_party/blink/renderer/core/css_value_keywords.h"
+ #include "third_party/blink/renderer/core/dom/events/event_dispatch_forbidden_scope.h"
+@@ -570,8 +571,16 @@ void TextFieldInputType::ListAttributeTargetChanged() {
+       rp_container->AppendChild(data_list);
+       data_list->InitializeInShadowTree();
+       Element& input = GetElement();
+-      if (input.GetDocument().FocusedElement() == input)
+-        input.UpdateSelectionOnFocus(SelectionBehaviorOnFocus::kRestore);
++      if (input.GetDocument().FocusedElement() == input) {
++        // This can be called synchronously from DOM mutation notifications
++        // (e.g. id changes during insertion/removal of the list target), so
++        // it must not scroll, which would force a synchronous style and
++        // layout update while the DOM is in an intermediate state.
++        FocusOptions* focus_options = FocusOptions::Create();
++        focus_options->setPreventScroll(true);
++        input.UpdateSelectionOnFocus(SelectionBehaviorOnFocus::kRestore,
++                                     focus_options);
++      }
+     }
+   } else {
+     picker->remove(ASSERT_NO_EXCEPTION);
+diff --git a/third_party/blink/web_tests/external/wpt/dom/nodes/moveBefore/moveBefore-input-list-target-inserted-crash.html b/third_party/blink/web_tests/external/wpt/dom/nodes/moveBefore/moveBefore-input-list-target-inserted-crash.html
+new file mode 100644
+index 0000000000..b570c22f95
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/dom/nodes/moveBefore/moveBefore-input-list-target-inserted-crash.html
+@@ -0,0 +1,24 @@
++<!DOCTYPE html>
++<meta charset="utf-8">
++<link rel="author" href="mailto:masonf@chromium.org">
++<link rel="help" href="https://crbug.com/583179912">
++
++<input list="list">
++<div id="destination"></div>
++<div id="list"></div>
++<div id="moved">
++  <datalist id="list"><option value="x"></option></datalist>
++  <div id="host">
++    <template shadowrootmode="open"><slot></slot></template>
++    <span></span>
++  </div>
++</div>
++<script>
++  // Moving #moved inserts the <datalist> before the <div id="list">, so the
++  // focused <input> now refers to the <datalist>. That must not force a
++  // layout in the middle of the move.
++  document.querySelector('input').focus();
++  document.body.offsetTop;
++  host.shadowRoot.querySelector('slot').name = 'other';
++  destination.moveBefore(moved, null);
++</script>
+diff --git a/third_party/blink/web_tests/external/wpt/dom/nodes/moveBefore/moveBefore-input-list-target-removed-crash.html b/third_party/blink/web_tests/external/wpt/dom/nodes/moveBefore/moveBefore-input-list-target-removed-crash.html
+new file mode 100644
+index 0000000000..28e65c1870
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/dom/nodes/moveBefore/moveBefore-input-list-target-removed-crash.html
+@@ -0,0 +1,35 @@
++<!DOCTYPE html>
++<meta charset="utf-8">
++<link rel="author" href="mailto:masonf@chromium.org">
++<link rel="help" href="https://crbug.com/583179912">
++
++<div id="outer">
++  <template shadowrootmode="open">
++    <div id="scroller" style="overflow: auto; height: 20px">
++      <div style="height: 100px"></div>
++    </div>
++    <div style="contain: strict; width: 100px; height: 40px">
++      <div id="inner"></div>
++    </div>
++    <div id="host">
++      <template shadowrootmode="open"><slot></slot></template>
++      <div id="list"></div>
++      <input list="list">
++    </div>
++    <div id="destination"></div>
++  </template>
++</div>
++<datalist id="list"><option value="x"></option></datalist>
++<script>
++  // Moving #host removes the <div id="list"> from the shadow tree, which
++  // changes the list target of the focused <input>. That must not force a
++  // layout in the middle of the move.
++  const root = outer.shadowRoot;
++  const host = root.getElementById('host');
++  root.getElementById('scroller').scrollTop = 5;
++  host.querySelector('input').focus();
++  document.body.offsetTop;
++  host.shadowRoot.querySelector('slot').name = 'other';
++  root.getElementById('inner').style.height = '1px';
++  root.getElementById('destination').moveBefore(host, null);
++</script>
+-- 
+2.43.0
+

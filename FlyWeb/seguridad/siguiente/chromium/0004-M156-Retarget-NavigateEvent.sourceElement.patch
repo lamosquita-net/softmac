@@ -1,0 +1,143 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mason Freed <masonf@chromium.org>
+Date: Sat, 21 Nov 2026 00:20:46 +0000
+Subject: [PATCH] [M156] Retarget NavigateEvent.sourceElement
+
+FlyWeb next batch: from branch-heads/8078 d1b613c0d8. Applied after seguridad/siguiente/chromium/0003; applies cleanly (identical diff). No brave-core patches or chromium_src for these files.
+
+Original change's description:
+> Retarget NavigateEvent.sourceElement
+>
+> NavigateEvent.sourceElement returned the raw source element, which can
+> live inside a shadow tree. In particular, clicking an SVG <a> that is
+> cloned into the user-agent shadow tree of a <use> element exposed the
+> instance-tree copy of the <a> to script, which could then mutate the
+> user-agent shadow tree.
+>
+> This CL retargets sourceElement, the same way ToggleEvent.source,
+> CommandEvent.source and InterestEvent.source already do, so that
+> shadow-internal nodes (user-agent, closed, or open) are never exposed.
+>
+> Fixed: 584367025
+> Change-Id: If6cb1eab3be415218300107ac1def29e9d417f54
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8812054
+> Auto-Submit: Mason Freed <masonf@chromium.org>
+> Reviewed-by: Nate Chapin <japhet@chromium.org>
+> Commit-Queue: Nate Chapin <japhet@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1744495}
+
+(cherry picked from commit 53fefb1c2df2c53a30f2b444a780c4b8db813125)
+
+Bug: 585802046,584367025
+Change-Id: If6cb1eab3be415218300107ac1def29e9d417f54
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8840944
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2370}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../core/navigation_api/navigate_event.cc     |  7 +++
+ .../core/navigation_api/navigate_event.h      |  2 +-
+ .../sourceElement-shadow-tree.html            | 58 +++++++++++++++++++
+ 3 files changed, 66 insertions(+), 1 deletion(-)
+ create mode 100644 third_party/blink/web_tests/external/wpt/navigation-api/navigate-event/sourceElement-shadow-tree.html
+
+diff --git a/third_party/blink/renderer/core/navigation_api/navigate_event.cc b/third_party/blink/renderer/core/navigation_api/navigate_event.cc
+index 2f22dba79a..9011a92fcf 100644
+--- a/third_party/blink/renderer/core/navigation_api/navigate_event.cc
++++ b/third_party/blink/renderer/core/navigation_api/navigate_event.cc
+@@ -98,6 +98,13 @@ NavigateEvent::NavigateEvent(ExecutionContext* context,
+   CHECK(!controller_ || controller_->signal() == signal_);
+ }
+ 
++Element* NavigateEvent::sourceElement() const {
++  // The source element might be inside a shadow tree (including a user-agent
++  // shadow tree, e.g. the instance tree of an SVG <use> element). Retarget it
++  // so that shadow-internal nodes are never exposed to script.
++  return DynamicTo<Element>(Retarget(source_element_.Get()));
++}
++
+ bool NavigateEvent::PerformSharedChecks(const String& function_name,
+                                         ExceptionState& exception_state) {
+   if (!DomWindow()) {
+diff --git a/third_party/blink/renderer/core/navigation_api/navigate_event.h b/third_party/blink/renderer/core/navigation_api/navigate_event.h
+index 4d612bbade..d91f3f263b 100644
+--- a/third_party/blink/renderer/core/navigation_api/navigate_event.h
++++ b/third_party/blink/renderer/core/navigation_api/navigate_event.h
+@@ -77,7 +77,7 @@ class NavigateEvent final : public Event,
+   String downloadRequest() const { return download_request_; }
+   ScriptValue info() const { return info_; }
+   bool hasUAVisualTransition() const { return has_ua_visual_transition_; }
+-  Element* sourceElement() const { return source_element_.Get(); }
++  Element* sourceElement() const;
+   void intercept(NavigationInterceptOptions*, ExceptionState&);
+   void deferPageSwap(NavigationDeferPageSwapOptions*, ExceptionState&);
+ 
+diff --git a/third_party/blink/web_tests/external/wpt/navigation-api/navigate-event/sourceElement-shadow-tree.html b/third_party/blink/web_tests/external/wpt/navigation-api/navigate-event/sourceElement-shadow-tree.html
+new file mode 100644
+index 0000000000..ff6a30a770
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/navigation-api/navigate-event/sourceElement-shadow-tree.html
+@@ -0,0 +1,58 @@
++<!DOCTYPE html>
++<meta charset="utf-8">
++<link rel="author" href="mailto:masonf@chromium.org">
++<link rel="help" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#dom-navigateevent-sourceelement">
++<script src="/resources/testharness.js"></script>
++<script src="/resources/testharnessreport.js"></script>
++<script src="/resources/testdriver.js"></script>
++<script src="/resources/testdriver-vendor.js"></script>
++
++<svg width="200" height="200">
++  <defs>
++    <a id="svg-anchor" href="#use-target">
++      <rect width="100" height="100" fill="green"></rect>
++    </a>
++  </defs>
++  <use id="use" href="#svg-anchor"></use>
++</svg>
++
++<div id="closed-host"></div>
++<div id="open-host"></div>
++
++<script>
++function waitForNavigate(t) {
++  return new Promise(resolve => {
++    navigation.addEventListener("navigate", t.step_func(e => {
++      e.preventDefault();
++      resolve(e);
++    }), {once: true});
++  });
++}
++
++promise_test(async t => {
++  const use = document.getElementById("use");
++  const navigatePromise = waitForNavigate(t);
++  await test_driver.click(use);
++  const e = await navigatePromise;
++  assert_equals(new URL(e.destination.url).hash, "#use-target");
++  assert_equals(e.sourceElement, use,
++      "sourceElement should be retargeted to the <use> element");
++  assert_equals(e.sourceElement.getRootNode(), document);
++}, "sourceElement for an <svg:a> in a <use> shadow tree is the <use> element");
++
++for (const mode of ["closed", "open"]) {
++  promise_test(async t => {
++    const host = document.getElementById(`${mode}-host`);
++    const shadow = host.attachShadow({mode});
++    const a = document.createElement("a");
++    a.href = `#${mode}-target`;
++    shadow.appendChild(a);
++    const navigatePromise = waitForNavigate(t);
++    a.click();
++    const e = await navigatePromise;
++    assert_equals(new URL(e.destination.url).hash, `#${mode}-target`);
++    assert_equals(e.sourceElement, host,
++        "sourceElement should be retargeted to the shadow host");
++  }, `sourceElement for an <a> in a ${mode} shadow root is the shadow host`);
++}
++</script>
+-- 
+2.43.0
+
