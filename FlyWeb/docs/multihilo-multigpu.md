@@ -781,6 +781,9 @@ el método con sus datos [R] y con dos lecturas del árbol 156 [V].
 - La pasada de confirmación de LOCAL-23: la 3.2.1 con `--force-device-scale-factor=1`. Debe volver a unos 420 en
   Suits y unos 205 en Design. Si no vuelve, la escala no es la causa (o no la única): se anota, el A/B sigue igual
   (es del mismo día) y Suits queda sin juzgar a ninguna escala hasta saber por qué.
+  **Hecha el 23-11** [R, `buzon/COORDINACION/20261123-1912-LOCAL-23-escala-1.md`]: Suits 432, Design 232 y total
+  1631 con `devicePixelRatio` 1 comprobado en la página y la pantalla sin cambiar. **La causa era la escala**; Suits
+  se juzga a escala 1 como estaba previsto.
 - Ojo con lo que hace ese interruptor: en Mac sustituye la escala de la pantalla dentro de FlyWeb
   (`ui/display/mac/screen_mac.mm:205-206` [V]); FlyWeb pinta a 1× y el sistema lo estira sobre una pantalla que sigue
   a 6016×3384 [I]. No es idéntico al 09-11, cuando la pantalla entera iba a 3008×1692. Sirve para el A/B; no sirve
@@ -795,6 +798,26 @@ el método con sus datos [R] y con dos lecturas del árbol 156 [V].
 - Lo demás, como en el control de LOCAL-23: perfil nuevo, mismo guion, 60 s de reposo, 20 s entre arranques, sin
   muestreador en las pasadas que puntúan, FlyWeb de Titín cerrada por él.
 - Orden alternado en espejo (base, E1, E1, base…), para que el calor y la deriva caigan por igual en las dos.
+
+**Tope de tiempo y pasadas cortadas** (añadido el 23-11, a propuesta de LOCAL-23, a quien una pasada de MotionMark se
+le alargó más de 10 minutos sin causa conocida; lo normal son unos 6):
+
+- **Tope de 25 minutos por pasada. La que lo alcanza se corta y se repite; no cuenta como «no medible».** Aprobado,
+  con dos condiciones. Con E1, un cuelgue puede ser justo el fallo que se busca (dos tarjetas esperándose una a otra),
+  y repetir sin más lo taparía:
+  1. **Cada corte se anota:** versión, caso, escala y en qué fase estaba (página sin cargar, cargada sin empezar la
+     prueba, o a mitad de la prueba). Antes de matar el proceso, un `sample` de 10 s del proceso de GPU y otro del
+     renderer: dicen si esperaba a la red o a la tarjeta.
+  2. **Los cortes se cuentan por versión y entran en el veredicto** (§11.3).
+- Un corte **antes de empezar la prueba** (carga, red, o LuLu reteniendo un binario nuevo) es del método: se repite y
+  no se apunta a ninguna versión.
+- Una pasada que **termina** vale siempre, tarde lo que tarde y dé lo que dé: no se repite ni se descarta por lenta
+  o por baja. Se anota la duración de todas; la que pase del doble de lo normal en su caso se señala en la tabla.
+- La repetición va en el mismo sitio del orden, con la misma versión y tras el reposo de 60 s.
+- Si la misma versión se corta **dos veces seguidas** en el mismo caso y escala, no se insiste: el caso queda como
+  «no termina».
+- En los casos cortos (los de fps, de uno o dos minutos) el tope de 25 minutos sobra: LOCAL puede bajarlo, nunca por
+  debajo de tres veces la duración normal del caso.
 
 **Casos y pasadas** (base = 3.2.1 publicada; E1 = la compilación):
 
@@ -829,6 +852,16 @@ Para cada caso y escala, con las pasadas de la base y las de E1:
 | **Dudoso** | pérdida > 2 % pero dentro del rango de la base: se repite con el doble de pasadas; si sigue igual, va a Titín con las cifras |
 | **No medible al 2 %** | ruido de la base > 10 %: no se juzga; se anota y se dice |
 
+**Pasadas cortadas (añadido el 23-11).** Solo cuentan los cortes a mitad de la prueba; los de antes de empezar son
+del método (§11.2):
+
+| Qué pasa | Resultado del caso |
+|---|---|
+| E1 queda en «no termina» y la base termina | **falla**, dé lo que dé en las pasadas que sí acaben |
+| La base queda en «no termina» | **no medible**; se dice |
+| En toda la sesión E1 tiene cortes y la base ninguno | **dudoso**, aunque las cifras pasen: va a Titín con los `sample` |
+| Las dos tienen cortes, en proporción parecida | no cambia el veredicto; se anota |
+
 - Casos que llegan a 60 fps con las dos versiones: pasa si E1 sigue llegando (≥ 58,8 fps) y no pierde más fotogramas
   que la base. Ahí el dato útil es la utilización de cada tarjeta, no los fps.
 - **Se entrega** con ningún «falla», ningún «dudoso» sin resolver y, como mucho, los «no medible» que Titín acepte.
@@ -848,7 +881,8 @@ Para cada caso y escala, con las pasadas de la base y las de E1:
 ### 11.5 Apuntado, fuera de E1: Suits y Design a escala 2
 
 - Con la 3.0.0 y con la 3.2.1, a escala 2: Suits de unos 420 a 6–22 y Design de unos 205 a unos 127; hilos casi
-  parados y la tarjeta ocupada [R]. Lo demás de MotionMark apenas cambia.
+  parados y la tarjeta ocupada [R]. Lo demás de MotionMark apenas cambia. Confirmado el 23-11 que es la escala: la
+  3.2.1 con la escala forzada a 1 da Suits 432 y Design 232 [R].
 - Lo único que he comprobado: el raster no se configura igual a las dos escalas. Las muestras de MSAA son 8 por
   debajo de escala 2 y 4 desde escala 2 (`cc/trees/layer_tree_host_impl.cc:3407` [V]). Eso por sí solo no explica
   treinta veces [I]; no he buscado la causa.
@@ -859,7 +893,9 @@ Para cada caso y escala, con las pasadas de la base y las de E1:
 ### 11.6 Fuentes y límites de este apartado
 
 - **Datos** [R]: los dos informes de LOCAL-23 citados arriba (6,1, 22-11). El ruido por prueba sale de sus rangos de
-  referencia y de sus cuatro pasadas de control.
+  referencia y de sus cuatro pasadas de control. Añadido el 23-11: su pasada a escala 1 y la pasada cortada
+  (`buzon/COORDINACION/20261123-1912-LOCAL-23-escala-1.md`); el tope y las reglas de los cortes son de esa propuesta
+  y míos, sin probar todavía en una tanda.
 - **Código** [V] (árbol 156, solo lectura): `ui/display/mac/screen_mac.mm:205-206`,
   `cc/trees/layer_tree_host_impl.cc:3407`.
 - **Límites:** no he medido ni lanzado nada. Que FlyWeb pinte a 1× y el sistema estire con la escala forzada lo
