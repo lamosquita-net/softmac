@@ -7,10 +7,10 @@ prepara SEGURIDAD-PORTES (-33). **En qué versión entra lo decide Titín**; has
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001` | **`c881f8b1b3`** |
+| brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001`–`0002` | **`85d15c77a6`** (solo `0001`: `c881f8b1b3`) |
 | chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001` | **`ff91be10d6`** |
 
-Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`; `git diff --diff-filter=D` vacío; los
+Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, y con `0002` detrás, `85d15c77a6`; `git diff --diff-filter=D` vacío; los
 cuatro `patches/*.patch` que toca se aplican limpios sobre los ficheros de Chromium de la 3.2.1 sin VERSION y dan el mismo
 resultado que se editó. **No compilado ni probado aquí** (no hay árbol de compilación en la nube).
 
@@ -70,6 +70,28 @@ Casi siempre un cierre de sesión escribe otra cookie del mismo host, y eso ya l
 
 **Para LOCAL:** `net_unittests --gtest_filter='SQLitePersistentCookieStoreTest.*'` en la 7,1.
 En U5, la prueba con el llavero cerrado y denegado: ninguna cookie borrada.
+
+## `brave-core/0002`: [M159] V8, Turboshaft solo pliega cargas de mapa etiquetadas (crbug 585625644)
+
+Puerto del merge **`a92c222bca`** de V8 15.9.128.29 (bugs 588195794 y 585625644; cherry-pick de `a7644692f0` de main).
+**Gravedad no publicada; aún no está en la 15.6** (punta `f08ef923d3` sin el arreglo).
+- **El fallo:** `MachineOptimizationReducer::ReduceLoad` convertía en el mapa del objeto (constante etiquetada) cualquier
+  carga con desplazamiento 0 sobre una constante HeapObject. En código inalcanzable, la eliminación de cargas puede
+  dejar ahí una carga cruda o no etiquetada (p. ej. un `Float64` cuyo desplazamiento se pliega a 0). Resultado: un
+  valor etiquetado donde se esperaba un `Float64`.
+- **Aplica en Mac:** Turboshaft es el backend de TurboFan y de Wasm en la 15.6, encendido por defecto. El código de la
+  15.6.75.66 es idéntico al de la punta de la 15.6 y al de la 15.9 antes del arreglo. Ningún otro `patches/v8` toca el fichero.
+- **El parche** (en `patches/v8/` de brave-core):
+  - `src-compiler-turboshaft-machine-optimization-reducer.h.patch`: el mismo cambio que upstream para el mapa (solo
+    con `kind.tagged_base`, no atómica y `loaded_rep` `TaggedPointer` o `AnyTagged`). **No se lleva** la guarda del
+    plegado de la longitud de `String`, porque la 15.6 no tiene ese plegado (los hunks 3 y 4 de upstream no aplican por eso).
+  - Prueba mjsunit `wasm/turboshaft/regress-585625644.js`, tal cual.
+  - **`kFlyWebCacheEpoch` 39 → 40** (cambia el código optimizado), una vez para la versión que lleve `siguiente-2`.
+  - `FLYWEB-SECURITY.md` al día.
+- Comprobado: los identificadores que usa existen en la 15.6.75.66 (`LoadOp::Kind::is_atomic`, `tagged_base`,
+  `MemoryRepresentation::TaggedPointer/AnyTagged`, `matcher_.TryCast`). **No compilado ni probado aquí.**
+
+**Para D8-LINUX / LOCAL:** `d8` y mjsunit `wasm/turboshaft/regress-585625644`, más `compiler/*` y `wasm/*` con y sin Maglev.
 
 ## Revisados y no aplicables
 
