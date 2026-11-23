@@ -1,0 +1,16 @@
+--- a/base/allocator/partition_allocator/src/partition_alloc/spinning_mutex.cc
++++ b/base/allocator/partition_allocator/src/partition_alloc/spinning_mutex.cc
+@@ -4,8 +4,13 @@
+ 
+ #include "partition_alloc/spinning_mutex.h"
+ 
++#include "partition_alloc/build_config.h"
++
++#if PA_BUILDFLAG(IS_APPLE)
++// FlyWeb B1b (kern.osrelease en LockSlow) es solo de Mac: en Linux <sys/sysctl.h> está obsoleta y rompe con -Werror.
+ #include <sys/sysctl.h>
+ #include <stdlib.h>
++#endif
+ #include <atomic>
+ 
+ #include <atomic>
