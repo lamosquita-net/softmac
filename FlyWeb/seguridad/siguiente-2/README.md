@@ -7,10 +7,10 @@ prepara SEGURIDAD-PORTES (-33). **En qué versión entra lo decide Titín**; has
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001`–`0004` | **`abe4582db6`** (hasta `0001`: `c881f8b1b3`; `0002`: `85d15c77a6`; `0003`: `5551162dbe`) |
-| chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001`–`0004` | **`b9a698a294`** (hasta `0001`: `ff91be10d6`; `0002`: `37bf78cffd`; `0003`: `1b197b1e48`) |
+| brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001`–`0005` | **`6117d34709`** (hasta `0001`: `c881f8b1b3`; `0002`: `85d15c77a6`; `0003`: `5551162dbe`; `0004`: `abe4582db6`) |
+| chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001`–`0005` | **`7e6c74e256`** (hasta `0001`: `ff91be10d6`; `0002`: `37bf78cffd`; `0003`: `1b197b1e48`; `0004`: `b9a698a294`) |
 
-Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, con `0002` detrás, `85d15c77a6`, con `0003`, `5551162dbe`, y con `0004`, `abe4582db6`; `git am` de `chromium/0001`–`0002` sobre `a2ffc0a48f` da `37bf78cffd`, con `0003`, `1b197b1e48`, y con `0004`, `b9a698a294`; `git diff --diff-filter=D` vacío; los
+Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, con `0002` detrás, `85d15c77a6`, con `0003`, `5551162dbe`, con `0004`, `abe4582db6`, y con `0005`, `6117d34709`; `git am` de `chromium/0001`–`0002` sobre `a2ffc0a48f` da `37bf78cffd`, con `0003`, `1b197b1e48`, con `0004`, `b9a698a294`, y con `0005`, `7e6c74e256`; `git diff --diff-filter=D` vacío; los
 cuatro `patches/*.patch` que toca se aplican limpios sobre los ficheros de Chromium de la 3.2.1 sin VERSION y dan el mismo
 resultado que se editó. **No compilado ni probado aquí** (no hay árbol de compilación en la nube).
 
@@ -164,6 +164,25 @@ cherry-pick de `e1b2c1bc74`). **Gravedad no publicada.**
 
 **Para D8-LINUX / LOCAL:** mjsunit `wasm/regress-585624832`, cctest `test-code-generator/*`, más `compiler/*` y `wasm/*`.
 
+## `chromium/0005` + `brave-core/0005`: [M156] AdTracker sin getters ni trampas de la página (crbug 574749469)
+
+**Van juntos:** `chromium/0005` no compila sin `brave-core/0005`.
+- **El fallo (uso tras liberar, en el renderer):** la comprobación de «API parcheada por la página» de `AdTracker` lee
+  objetos de la página (p. ej. `Node.prototype.appendChild`) bajo `DisallowJavascriptExecutionScope`. Ese ámbito solo
+  frena JavaScript: los getters o trampas `Proxy` que la página haya puesto con funciones nativas (APIs del DOM) sí se
+  ejecutan, y pueden tocar el DOM a mitad de una inserción. **Gravedad no publicada.**
+- **Aplica:** la comprobación se llama en el camino normal de `AdTracker` (`GetMarkedScriptInStack`), sin bandera.
+- **`chromium/0005`:** el merge **`56957c2512`** de la propia **8078** (cherry-pick de `4587ed9e4c`), tal cual: lee con
+  `v8::Object::TryGetWithNoSideEffects()`, que nunca llama a getters, trampas ni interceptores, y busca las APIs de
+  historial directamente en el objeto `History`. Aplica limpio al árbol 156, con sus pruebas.
+- **`brave-core/0005`:** la API de V8 que necesita, merge M156 **`229a53b537`** («[api] Add
+  v8::Object::TryGetWithNoSideEffects», 18-11, posterior a nuestra 15.6.75.66). El diff de upstream entra tal cual en
+  `patches/v8/` (`v8-object.h`, `api.cc`, `js-objects.{h,cc}`, `runtime-call-stats.h` y su unittest). Solo añade API:
+  no cambia código generado.
+
+**Para LOCAL:** `blink_unittests --gtest_filter='*AdTracker*:*MonkeyPatchableApi*'`; D8-LINUX:
+`v8_unittests --gtest_filter='*TryGetWithNoSideEffects*'`.
+
 ## Revisados y no aplicables
 
 - **V8 15.9 `a38f990ac8`** ([M159] [turbolev] Remap replaced header phis in peeled loop backedge KNA; crbug
@@ -178,3 +197,7 @@ cherry-pick de `e1b2c1bc74`). **Gravedad no publicada.**
   Maglev normal no pasa el optimizador antes de destipar los phi. Su prueba pide `--turbolev`, y Google no lo ha
   llevado a la M156. **No se porta** mientras turbolev siga apagado (ver `a38f990ac8`).
 - **8154 `e663ddf8f9`** ([M159] [iOS][Gemini], crbug 571506045): solo iOS.
+- **8078 `47306f862b` / 8154 `c4dd84c063`** ([M156]/[M159] Extensions, crbug 581702596) y **8154 `353cb8e767`** ([M159]
+  macOS app shim, crbug 588000328): arreglos de cierres por `CHECK`/`LOG(FATAL)`, no de seguridad. Fuera de esta tanda.
+- **8154 `8d12a9cd96`** (roll de Dawn en M159): sin revisar; `dawn.googlesource.com` no está permitido en la red de
+  esta sesión. Dawn no está en la lista de vigilancia.
