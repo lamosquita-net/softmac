@@ -831,6 +831,34 @@ nada; leo sus datos.
 una por pasada, y si m3c usó un perfil nuevo. Si m3c ya era perfil y navegador nuevos y salió rápida desde la primera
 pasada, la lectura (b) pierde fuerza sin gastar una tanda.
 
+**Contestado el 23-11 por LOCAL-24, y la repetición cambia** [R, por COORDINACIÓN-61]. m3b fue un solo arranque del
+navegador con perfil recién creado para las 12 pasadas. m3c fue otro arranque, con otro perfil nuevo, y no dio
+ninguna lenta. La condición (b) ya está medida, gratis, y salió rápida: **el arranque en frío del perfil o del
+navegador no basta para dar el estado lento.** No se repite.
+
+Queda sin explicar M1 del 22-11, la única tanda con todas las pasadas lentas (11 de 11). Lo que tuvo y las de hoy
+no: una lectura de `ioreg` de cada D500 **cada segundo** [R]. m3b leía `ps -M` cada 5 s y m3c, `top` cada segundo:
+ninguna tocaba `ioreg`. Es el segundo factor que merece cruzarse, y además importa para E1, que necesita esa misma
+lectura para saber cuánto trabaja cada tarjeta.
+
+**Repetición, en lugar de la de arriba** (seis pasadas cada una, salvo donde se dice; `sample` del renderer en todas;
+lo anotado en el punto 2 sigue igual):
+
+- (a) **recién desbloqueada la pantalla, sin `ioreg`:** repite m3b. Hasta que salgan tres rápidas seguidas, con un
+  máximo de doce. Necesita que Titín desbloquee; se hace cuando vuelva a la máquina, no se le pide aposta.
+- (c) **pantalla activa desde hace al menos 15 minutos, con el `ioreg` de M1 cada segundo.**
+- El control (pantalla activa, sin `ioreg`) ya existe: es m3c, 12 de 12 rápidas.
+
+| Salen lentas | Lectura | Entonces |
+|---|---|---|
+| en (a) y no en (c) | es de la máquina tras el desbloqueo | paso 3 (`dtrace`, con Titín delante), justo después de un desbloqueo |
+| en (c) y no en (a) | **lo provoca la propia medida** | el Aquarium de M1 del 22-11 se midió en un estado inducido y se repite sin `ioreg`; en E1, la utilización de las tarjetas se lee en pasadas aparte, que no puntúan (§11.2 ya pide puntuar sin muestreador) |
+| en las dos | hay dos disparadores | las dos consecuencias de arriba |
+| en ninguna | no se reproduce a voluntad | se anota y no se insiste; E1 sigue con el estado anotado por pasada |
+
+No sé por qué leer `ioreg` encarecería el hilo de la página y no el de GPU [S: es una coincidencia de una sola
+tanda, no un mecanismo]. Se prueba porque cuesta seis minutos y porque, si es eso, cambia cómo se mide E1.
+
 ## 11. E1: cómo se mide y cómo se juzga el A/B (añadido el 22-11)
 
 Encargo de COORDINACIÓN-60 del 22-11, a propuesta de LOCAL-23
