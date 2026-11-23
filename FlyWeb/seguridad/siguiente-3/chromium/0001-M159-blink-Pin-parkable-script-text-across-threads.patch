@@ -1,0 +1,421 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jeremy Roman <jbroman@chromium.org>
+Date: Mon, 23 Nov 2026 19:24:56 +0000
+Subject: [PATCH] [M159] [blink] Pin parkable script text across threads
+
+Original change's description:
+> [blink] Pin parkable script text across threads
+>
+> Parkable strings and uncached external V8 strings rely on main-thread
+> task serialization so that main-thread aging never discards an
+> uncompressed character buffer mid-access. Passing a parkable module
+> script directly to an off-main-thread worklet allowed main-thread aging
+> to free the backing buffer while the worklet isolate was still reading
+> it.
+>
+> Convert parkable script sources to non-parkable copies on the main
+> thread before sending module creation parameters across threads, and
+> reuse that stored non-parkable copy when notifying waiting worklet
+> clients rather than creating a fresh wrapper per client. Because a
+> parkable string only discards its buffer when it holds the sole
+> reference to its underlying string buffer, wrapping that shared buffer
+> in a non-parkable copy pins it while off-thread references exist and
+> allows main-thread parking to resume once they are destroyed.
+>
+> Non-parkable wrappers hold an immutable string buffer, so they are also
+> safe to inspect in memory snapshots from any thread and to wrap as
+> normal cacheable external V8 strings, restricting uncached external
+> string resources strictly to parkable strings on the main thread.
+>
+> Fixed: 584952095
+> Change-Id: If4901ede35b557cec52f933770a4285fa2faff1e
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8827525
+> Reviewed-by: Hiroshige Hayashizaki <hiroshige@chromium.org>
+> Auto-Submit: Jeremy Roman <jbroman@chromium.org>
+> Commit-Queue: Hiroshige Hayashizaki <hiroshige@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1751143}
+
+(cherry picked from commit 18bd7bf537661271309c38e7b8724d46dc2b5b9a)
+
+Bug: 589156867,584952095
+Change-Id: If4901ede35b557cec52f933770a4285fa2faff1e
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8856230
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Reviewed-by: Jeremy Roman <jbroman@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8154@{#1490}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+
+FlyWeb: port of the 8154 merge 11d7cebfdf to the 156 tree (FlyWeb 3.2.2).
+Only module_script_creation_params.h differs: in 156,
+IsSafeToSendToAnotherThread() does not check cache_consumer_ yet, so the
+new may_be_parked() condition is added to the 156 expression.
+---
+ .../module_script_creation_params.cc          |  8 +++-
+ .../module_script_creation_params.h           |  4 +-
+ .../core/script/module_script_test.cc         | 27 +++++++++++
+ .../workers/worklet_module_responses_map.cc   |  2 +-
+ .../platform/bindings/parkable_string.cc      | 16 ++++++-
+ .../platform/bindings/parkable_string.h       | 19 ++++++--
+ .../platform/bindings/parkable_string_test.cc | 46 +++++++++++++++++++
+ .../platform/bindings/string_resource.h       | 19 ++++++--
+ .../platform/bindings/v8_value_cache.cc       |  8 ++++
+ 9 files changed, 139 insertions(+), 10 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/loader/modulescript/module_script_creation_params.cc b/third_party/blink/renderer/core/loader/modulescript/module_script_creation_params.cc
+index e0c098400f..74ab079334 100644
+--- a/third_party/blink/renderer/core/loader/modulescript/module_script_creation_params.cc
++++ b/third_party/blink/renderer/core/loader/modulescript/module_script_creation_params.cc
+@@ -27,7 +27,13 @@ ModuleScriptCreationParams::CopySource() const {
+   if (module_type_ == ResolvedModuleType::kWasm) {
+     return base::HeapArray<uint8_t>::CopiedFrom(GetWasmSource());
+   }
+-  return GetSourceText();
++  // Parkable ParkableStrings and V8 uncached external strings rely on
++  // main-thread task serialization to keep character buffers alive during
++  // access. Wrap the shared StringImpl in a non-parkable ParkableStringImpl
++  // when copying across threads so its reference count pins the buffer while
++  // off-thread references exist and allows main-thread parking again once they
++  // are released.
++  return GetSourceText().CreateNonParkableCopy();
+ }
+ 
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/loader/modulescript/module_script_creation_params.h b/third_party/blink/renderer/core/loader/modulescript/module_script_creation_params.h
+index 727b708617..27a7c19d92 100644
+--- a/third_party/blink/renderer/core/loader/modulescript/module_script_creation_params.h
++++ b/third_party/blink/renderer/core/loader/modulescript/module_script_creation_params.h
+@@ -128,7 +128,9 @@ class CORE_EXPORT ModuleScriptCreationParams {
+   CachedMetadataHandler* CacheHandler() const { return cache_handler_; }
+ 
+   bool IsSafeToSendToAnotherThread() const {
+-    return !script_streamer_ && !cache_handler_;
++    return !script_streamer_ && !cache_handler_ &&
++           (module_type_ == ResolvedModuleType::kWasm ||
++            !GetSourceText().may_be_parked());
+   }
+ 
+   ScriptStreamer* GetScriptStreamer() const { return script_streamer_; }
+diff --git a/third_party/blink/renderer/core/script/module_script_test.cc b/third_party/blink/renderer/core/script/module_script_test.cc
+index 8ffe487e07..66e640deed 100644
+--- a/third_party/blink/renderer/core/script/module_script_test.cc
++++ b/third_party/blink/renderer/core/script/module_script_test.cc
+@@ -570,4 +570,31 @@ TEST_F(ModuleScriptTest, MAYBE_LoadingSupportsWebUIBundledCodeCaching) {
+   EXPECT_TRUE(cache_handler->did_use_code_cache_for_testing());
+ }
+ 
++TEST_F(ModuleScriptTest, IsolatedCopyCreatesNonParkableSource) {
++  feature_list_.InitAndEnableFeature(features::kCompressParkableStrings);
++
++  String large_source(Vector<char>(20000, 'a'));
++  ParkableString source_text(std::move(large_source).ReleaseImpl());
++  ASSERT_TRUE(source_text.may_be_parked());
++
++  const KURL url("https://fox.url/script.js");
++  ModuleScriptCreationParams params(
++      url, url, ScriptSourceLocationType::kExternalFile,
++      ResolvedModuleType::kJavaScript, ParkableString(source_text),
++      /*cache_handler=*/nullptr, network::mojom::ReferrerPolicy::kDefault,
++      /*source_map_url=*/String());
++  EXPECT_FALSE(params.IsSafeToSendToAnotherThread());
++
++  {
++    ModuleScriptCreationParams isolated = params.IsolatedCopy();
++    EXPECT_TRUE(isolated.IsSafeToSendToAnotherThread());
++    EXPECT_FALSE(isolated.GetSourceText().may_be_parked());
++    EXPECT_EQ(source_text.ToString().Impl(),
++              isolated.GetSourceText().ToString().Impl());
++    EXPECT_FALSE(source_text.ToString().Impl()->HasOneRef());
++  }
++
++  EXPECT_TRUE(source_text.ToString().Impl()->HasOneRef());
++}
++
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/workers/worklet_module_responses_map.cc b/third_party/blink/renderer/core/workers/worklet_module_responses_map.cc
+index 4fb9dce952..b5f520cc5f 100644
+--- a/third_party/blink/renderer/core/workers/worklet_module_responses_map.cc
++++ b/third_party/blink/renderer/core/workers/worklet_module_responses_map.cc
+@@ -48,7 +48,7 @@ void WorkletModuleResponsesMap::Entry::SetParams(
+     PostCrossThreadTask(
+         *it.value, FROM_HERE,
+         CrossThreadBindOnce(&ModuleScriptFetcher::Client::OnFetched, it.key,
+-                            params.IsolatedCopy()));
++                            GetParams()));
+   }
+ 
+   clients_.clear();
+diff --git a/third_party/blink/renderer/platform/bindings/parkable_string.cc b/third_party/blink/renderer/platform/bindings/parkable_string.cc
+index 6eb0192f35..964d4f59f0 100644
+--- a/third_party/blink/renderer/platform/bindings/parkable_string.cc
++++ b/third_party/blink/renderer/platform/bindings/parkable_string.cc
+@@ -46,6 +46,7 @@
+ #include "third_party/blink/renderer/platform/wtf/functional.h"
+ #include "third_party/blink/renderer/platform/wtf/thread_specific.h"
+ #include "third_party/blink/renderer/platform/wtf/vector.h"
++#include "third_party/blink/renderer/platform/wtf/wtf.h"
+ #include "third_party/zlib/google/compression_utils.h"
+ 
+ #if BUILDFLAG(HAS_ZSTD_COMPRESSION)
+@@ -429,7 +430,6 @@ void RecordStringImplMemoryUsage(ParkableStringImpl::MemoryUsage* result,
+ 
+ ParkableStringImpl::MemoryUsage ParkableStringImpl::MemoryUsageForSnapshot()
+     const {
+-  AssertOnValidThread();
+   MemoryUsage result = {0, nullptr, 0};
+   result.this_size = sizeof(ParkableStringImpl);
+ 
+@@ -438,6 +438,7 @@ ParkableStringImpl::MemoryUsage ParkableStringImpl::MemoryUsageForSnapshot()
+     return result;
+   }
+ 
++  AssertOnValidThread();
+   result.this_size += sizeof(ParkableMetadata);
+ 
+   base::AutoLock locker(metadata_->lock_);
+@@ -1029,8 +1030,21 @@ ParkableString::ParkableString(scoped_refptr<StringImpl>&& impl,
+   }
+ }
+ 
++ParkableString::ParkableString(scoped_refptr<ParkableStringImpl>&& impl)
++    : impl_(std::move(impl)) {}
++
+ ParkableString::~ParkableString() = default;
+ 
++ParkableString ParkableString::CreateNonParkableCopy() const {
++  if (!may_be_parked()) {
++    return *this;
++  }
++  CHECK(IsMainThread());
++  const String& unparked = ToString();
++  return ParkableString(ParkableStringImpl::MakeNonParkable(
++      scoped_refptr<StringImpl>(unparked.Impl())));
++}
++
+ void ParkableString::Lock() const {
+   if (impl_)
+     impl_->Lock();
+diff --git a/third_party/blink/renderer/platform/bindings/parkable_string.h b/third_party/blink/renderer/platform/bindings/parkable_string.h
+index 22367bd067..8c284d68ac 100644
+--- a/third_party/blink/renderer/platform/bindings/parkable_string.h
++++ b/third_party/blink/renderer/platform/bindings/parkable_string.h
+@@ -10,6 +10,7 @@
+ #include <utility>
+ #include <variant>
+ 
++#include "base/check.h"
+ #include "base/check_op.h"
+ #include "base/compiler_specific.h"
+ #include "base/dcheck_is_on.h"
+@@ -33,9 +34,13 @@
+ // |ToString()| method.
+ // As a consequence, the inner pointer should never be cached, and only touched
+ // through a string returned by the |ToString()| method.
+-// It is safe to call `ToString()` and destroy ParkableStrings from any thread,
+-// although the interactions with the ParkableStringManager must always be
+-// performed on the main thread.
++// Non-parkable ParkableStrings (`!may_be_parked()`) never discard or replace
++// their underlying StringImpl and may be read and destroyed from any thread.
++// Parkable ones (`may_be_parked()`) are bound to the main thread for
++// `ToString()`, uncached access, destruction, and ParkableStringManager
++// interactions; only `Lock()`/`Unlock()` and copying handles
++// (`CreateNonParkableCopy()` when pinning for another thread) are safe across
++// threads.
+ namespace blink {
+ 
+ class Digestor;
+@@ -376,6 +381,12 @@ class PLATFORM_EXPORT ParkableString final {
+   ParkableString(const ParkableString&) = default;
+   ~ParkableString();
+ 
++  // Returns a non-parkable copy sharing the underlying StringImpl. If `this`
++  // string is parkable, must be called on the main thread (unparking first if
++  // needed); the shared StringImpl reference keeps the buffer pinned until all
++  // copies are released.
++  ParkableString CreateNonParkableCopy() const;
++
+   // Locks a string. A string is unlocked when the number of Lock()/Unlock()
+   // calls match. A locked string cannot be parked.
+   // Can be called from any thread.
+@@ -440,6 +451,8 @@ class PLATFORM_EXPORT ParkableString final {
+   }
+ 
+  private:
++  explicit ParkableString(scoped_refptr<ParkableStringImpl>&& impl);
++
+   scoped_refptr<ParkableStringImpl> impl_;
+ };
+ 
+diff --git a/third_party/blink/renderer/platform/bindings/parkable_string_test.cc b/third_party/blink/renderer/platform/bindings/parkable_string_test.cc
+index 4220b1540f..c8c9a9084e 100644
+--- a/third_party/blink/renderer/platform/bindings/parkable_string_test.cc
++++ b/third_party/blink/renderer/platform/bindings/parkable_string_test.cc
+@@ -17,6 +17,7 @@
+ #include "base/numerics/safe_conversions.h"
+ #include "base/rand_util.h"
+ #include "base/run_loop.h"
++#include "base/synchronization/waitable_event.h"
+ #include "base/task/thread_pool.h"
+ #include "base/test/bind.h"
+ #include "base/test/metrics/histogram_tester.h"
+@@ -1434,6 +1435,51 @@ TEST_P(ParkableStringTest, EncodingAndDeduplication) {
+   EXPECT_NE(*parkable_16.Impl()->digest(), *parkable_8.Impl()->digest());
+ }
+ 
++TEST_P(ParkableStringTest, CreateNonParkableCopy) {
++  ParkableString null_copy = ParkableString().CreateNonParkableCopy();
++  EXPECT_TRUE(null_copy.IsNull());
++  EXPECT_FALSE(null_copy.may_be_parked());
++
++  ParkableString small(String("abc").ReleaseImpl());
++  ASSERT_FALSE(small.may_be_parked());
++  ParkableString small_copy = small.CreateNonParkableCopy();
++  EXPECT_FALSE(small_copy.may_be_parked());
++  EXPECT_EQ(small.Impl(), small_copy.Impl());
++
++  ParkableString parkable = CreateAndParkAll();
++  ASSERT_TRUE(parkable.Impl()->is_parked());
++
++  {
++    ParkableString non_parkable = parkable.CreateNonParkableCopy();
++    EXPECT_FALSE(non_parkable.may_be_parked());
++    EXPECT_FALSE(parkable.Impl()->is_parked());
++    EXPECT_EQ(parkable.ToString().Impl(), non_parkable.ToString().Impl());
++    EXPECT_FALSE(parkable.Impl()->Park(
++        ParkableStringImpl::ParkingMode::kSynchronousOnly));
++    EXPECT_FALSE(parkable.Impl()->is_parked());
++
++    base::WaitableEvent done;
++    LambdaThreadDelegate snapshot_delegate(base::BindLambdaForTesting([&]() {
++      ParkableString off_thread_copy = non_parkable.CreateNonParkableCopy();
++      EXPECT_FALSE(off_thread_copy.may_be_parked());
++      EXPECT_EQ(non_parkable.Impl(), off_thread_copy.Impl());
++
++      ParkableStringImpl::MemoryUsage usage =
++          off_thread_copy.Impl()->MemoryUsageForSnapshot();
++      EXPECT_EQ(usage.string_impl, off_thread_copy.ToString().Impl());
++      done.Signal();
++    }));
++    base::PlatformThreadHandle thread;
++    ASSERT_TRUE(base::PlatformThread::Create(0, &snapshot_delegate, &thread));
++    done.Wait();
++    base::PlatformThread::Join(thread);
++  }
++
++  EXPECT_TRUE(
++      parkable.Impl()->Park(ParkableStringImpl::ParkingMode::kSynchronousOnly));
++  EXPECT_TRUE(parkable.Impl()->is_parked());
++}
++
+ class ParkableStringTestWithQueuedThreadPool : public ParkableStringTest {
+  public:
+   ParkableStringTestWithQueuedThreadPool()
+diff --git a/third_party/blink/renderer/platform/bindings/string_resource.h b/third_party/blink/renderer/platform/bindings/string_resource.h
+index 04ba7c00e7..04188763e8 100644
+--- a/third_party/blink/renderer/platform/bindings/string_resource.h
++++ b/third_party/blink/renderer/platform/bindings/string_resource.h
+@@ -8,6 +8,7 @@
+ #include <atomic>
+ #include <type_traits>
+ 
++#include "base/check.h"
+ #include "base/compiler_specific.h"
+ #include "base/dcheck_is_on.h"
+ #include "third_party/blink/renderer/platform/bindings/parkable_string.h"
+@@ -15,6 +16,7 @@
+ #include "third_party/blink/renderer/platform/platform_export.h"
+ #include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
+ #include "third_party/blink/renderer/platform/wtf/text/atomic_string.h"
++#include "third_party/blink/renderer/platform/wtf/wtf.h"
+ #include "v8/include/v8.h"
+ 
+ namespace blink {
+@@ -41,10 +43,13 @@ class StringResourceBase {
+     memory_accounter_.Increase(isolate, atomic_string_.CharactersSizeInBytes());
+   }
+ 
++  // Only valid for `may_be_parked()` ParkableStrings on the main thread;
++  // non-parkable strings should use StringResource8/StringResource16.
+   explicit StringResourceBase(v8::Isolate* isolate, ParkableString string)
+-      : parkable_string_(string) {
++      : parkable_string_(std::move(string)) {
+     // TODO(lizeb): This is only true without compression.
+     DCHECK(!parkable_string_.IsNull());
++    CHECK(IsMainThread() && parkable_string_.may_be_parked());
+     memory_accounter_.Increase(isolate,
+                                parkable_string_.CharactersSizeInBytes());
+   }
+@@ -234,6 +239,8 @@ class StringResource16 final : public StringResource16Base {
+   }
+ };
+ 
++// Only used for `may_be_parked()` ParkableStrings on the main thread (enforced
++// in StringResourceBase). Non-parkable strings use StringResource16.
+ class ParkableStringResource16 final : public StringResource16Base {
+  public:
+   explicit ParkableStringResource16(v8::Isolate* isolate, ParkableString string)
+@@ -243,7 +250,9 @@ class ParkableStringResource16 final : public StringResource16Base {
+   ParkableStringResource16& operator=(const ParkableStringResource16&) = delete;
+ 
+   bool IsCacheable() const override {
+-    return !GetParkableString().may_be_parked();
++    // `may_be_parked()` is enforced at construction time in StringResourceBase.
++    DCHECK(GetParkableString().may_be_parked());
++    return false;
+   }
+ 
+   void Lock() const override {
+@@ -313,6 +322,8 @@ class StringResource8 final : public StringResource8Base {
+   }
+ };
+ 
++// Only used for `may_be_parked()` ParkableStrings on the main thread (enforced
++// in StringResourceBase). Non-parkable strings use StringResource8.
+ class ParkableStringResource8 final : public StringResource8Base {
+  public:
+   explicit ParkableStringResource8(v8::Isolate* isolate, ParkableString string)
+@@ -322,7 +333,9 @@ class ParkableStringResource8 final : public StringResource8Base {
+   ParkableStringResource8& operator=(const ParkableStringResource8&) = delete;
+ 
+   bool IsCacheable() const override {
+-    return !GetParkableString().may_be_parked();
++    // `may_be_parked()` is enforced at construction time in StringResourceBase.
++    DCHECK(GetParkableString().may_be_parked());
++    return false;
+   }
+ 
+   void Lock() const override {
+diff --git a/third_party/blink/renderer/platform/bindings/v8_value_cache.cc b/third_party/blink/renderer/platform/bindings/v8_value_cache.cc
+index 6049967b55..6d5b1466f3 100644
+--- a/third_party/blink/renderer/platform/bindings/v8_value_cache.cc
++++ b/third_party/blink/renderer/platform/bindings/v8_value_cache.cc
+@@ -26,10 +26,13 @@
+ #include "third_party/blink/renderer/platform/bindings/v8_value_cache.h"
+ 
+ #include <utility>
++
++#include "base/check.h"
+ #include "third_party/blink/renderer/platform/bindings/runtime_call_stats.h"
+ #include "third_party/blink/renderer/platform/bindings/string_resource.h"
+ #include "third_party/blink/renderer/platform/bindings/v8_binding.h"
+ #include "third_party/blink/renderer/platform/wtf/text/string_hash.h"
++#include "third_party/blink/renderer/platform/wtf/wtf.h"
+ 
+ namespace blink {
+ 
+@@ -157,6 +160,11 @@ v8::Local<v8::String> StringCache::V8ExternalString(
+   if (!string.length())
+     return v8::String::Empty(isolate);
+ 
++  if (!string.may_be_parked()) {
++    return V8ExternalString(isolate, string.ToString().Impl());
++  }
++  CHECK(IsMainThread());
++
+   ParkableStringCacheMapTraits::MapType::PersistentValueReference
+       cached_v8_string = parkable_string_cache_.GetReference(string.Impl());
+   if (!cached_v8_string.IsEmpty()) {
+-- 
+2.43.0
+
