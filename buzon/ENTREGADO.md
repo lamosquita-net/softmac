@@ -1088,3 +1088,6 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/AUDITORIA/20261122-1300-COORDINACION-59-crowdsec.md → Auditoría ns1/ns2/bak · 2026-11-22 13:00 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/SERVIDOR-LOCAL/20261122-1339-COORDINACION-59-comprobar-1202.md → Servidor Local (2) [local_40afbbdb] · 2026-11-22 13:39 UTC · entregado por COORDINACIÓN-59 (SendMessage)
 - buzon/NUBE-MOTOR/20261122-1348-COORDINACION-59-hls.md → MOTOR-47 (nube) · 2026-11-22 13:48 UTC · copia escrita del SendMessage
+- buzon/LOCAL/20261123-1857-COORDINACION-61-3.2.2.md → LOCAL (Local (23)/LOCAL-24) · 2026-11-23 18:57 UTC · entregado por COORDINACIÓN-61 (SendMessage)
+- buzon/NUBE-SEGURIDAD-PORTES/20261123-1857-COORDINACION-61-3.2.2.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-23 18:57 UTC · copia escrita del SendMessage
+- buzon/NUBE-MOTOR/20261123-1857-COORDINACION-61-hls.md → MOTOR-47 (nube) · 2026-11-23 18:57 UTC · copia escrita del SendMessage
