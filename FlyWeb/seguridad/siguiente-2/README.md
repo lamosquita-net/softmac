@@ -8,9 +8,9 @@ prepara SEGURIDAD-PORTES (-33). **En qué versión entra lo decide Titín**; has
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001`–`0003` | **`5551162dbe`** (hasta `0001`: `c881f8b1b3`; hasta `0002`: `85d15c77a6`) |
-| chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001`–`0002` | **`37bf78cffd`** (solo `0001`: `ff91be10d6`) |
+| chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001`–`0003` | **`1b197b1e48`** (hasta `0001`: `ff91be10d6`; hasta `0002`: `37bf78cffd`) |
 
-Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, con `0002` detrás, `85d15c77a6`, y con `0003`, `5551162dbe`; `git am` de `chromium/0001`–`0002` sobre `a2ffc0a48f` da `37bf78cffd`; `git diff --diff-filter=D` vacío; los
+Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, con `0002` detrás, `85d15c77a6`, y con `0003`, `5551162dbe`; `git am` de `chromium/0001`–`0002` sobre `a2ffc0a48f` da `37bf78cffd`, y con `0003`, `1b197b1e48`; `git diff --diff-filter=D` vacío; los
 cuatro `patches/*.patch` que toca se aplican limpios sobre los ficheros de Chromium de la 3.2.1 sin VERSION y dan el mismo
 resultado que se editó. **No compilado ni probado aquí** (no hay árbol de compilación en la nube).
 
@@ -111,6 +111,23 @@ Puerto del merge **`0750c01c21`** de 8154 (cherry-pick de `b3e0c16998`). **Grave
 
 **Para LOCAL:** `components_unittests --gtest_filter='UrlListManager*'`; `browser_tests` de
 `ContentSettingBubbleModel*` y `*FramebustBlock*`.
+
+## `chromium/0003`: [M159] PermissionRequestManager, uso tras liberar en los selectores (crbug 577322954)
+
+Puerto del merge **`06450631d5`** de 8154 (cherry-pick de `c99313dbf8`). **Gravedad no publicada.**
+- **El fallo (uso tras liberar, en el navegador):** `DequeueRequestIfNeeded()` resuelve los selectores de interfaz
+  de permisos de forma síncrona. Si uno llama a `ShowPrompt()`, que sale de pantalla completa
+  (`ForSecurityDropFullscreen()`), y eso destruye el `WebContents`, el bucle de selectores sigue leyendo
+  `permission_ui_selectors_` del gestor ya liberado.
+- **Aplica en Mac:** el código de `permission_request_manager.cc` es el mismo en la 156 (el cambio entra sin tocar), y
+  Brave no lo sobrescribe.
+- **El parche:** un `WeakPtr` que corta el bucle si el gestor se ha destruido tras una llamada síncrona, más una prueba
+  unitaria que solo corre con ASan. **Única adaptación:** en la prueba de la 156 no está el include de
+  `base/test/mock_callback.h`, así que `base/test/run_until.h` va detrás de `histogram_tester.h`. Comprobado que
+  existen en la 156 `add_permission_ui_selector_for_testing`, `MockNotificationGeolocationPermissionUiSelector::CreateForManager`
+  con `async_delay` y `MockPermissionRequestState`.
+
+**Para LOCAL:** `components_unittests --gtest_filter='PermissionRequestManagerTest.*'` (la prueba nueva solo con ASan).
 
 ## `brave-core/0003`: [M156] V8, TryReuseDispatch con FrameState muerto (crbug 585614985)
 

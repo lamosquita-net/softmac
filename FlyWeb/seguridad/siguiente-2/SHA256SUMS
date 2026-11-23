@@ -3,3 +3,4 @@ e5c1e207a986b570f6912b2547a3e8c2e159e8036e8b724c3d7ad2d98a98b883  brave-core/000
 339713148a41f93302c6bba6997f4f5cffffc5e08a97315d97aaafa25e3f6c58  brave-core/0003-v8-TryReuseDispatch-bails-out-on-DeadValue-frame-sta.patch
 eab6cbb69cd99a8f49f136f10b30a79cc2ff21a38b6dca7dd0652076e4684d85  chromium/0001-M159-security-Disable-SendEarlyFinalBeginMainFrame.patch
 bf0e9151a2fad8f877caeaf91132dfa2271b3622f7f4ba25dd7167b6a363dce8  chromium/0002-M159-Notify-UrlListManager-observers-on-destruction.patch
+a4be7c27c1d767fbb63cede885d087ff0c29b757dbe818cb7c99706e4c4bcffe  chromium/0003-M159-Fix-for-potential-UAF-in-PermissionRequestManag.patch
