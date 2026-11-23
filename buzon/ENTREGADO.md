@@ -1099,3 +1099,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/D8-LINUX/20261123-2051-COORDINACION-61-U3-2.1.md → D8-LINUX-6 (ubuntu (6)) · 2026-11-23 20:51 UTC · entregado por COORDINACIÓN-61 (SendMessage)
 - buzon/NUBE-SEGURIDAD-PORTES/20261123-2130-COORDINACION-61-revisar-U3.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-23 21:30 UTC · copia escrita del SendMessage
 - buzon/D8-LINUX/20261123-2135-COORDINACION-61-U3-cambios.md → D8-LINUX-6 (ubuntu (6)) · 2026-11-23 21:35 UTC · entregado por COORDINACIÓN-61 (SendMessage)
+- buzon/LOCAL/20261123-2205-COORDINACION-61-M3-M2-siguiente.md → LOCAL-24 [local_9144cd8b] · 2026-11-23 22:05 UTC · entregado por COORDINACIÓN-61 (SendMessage)
