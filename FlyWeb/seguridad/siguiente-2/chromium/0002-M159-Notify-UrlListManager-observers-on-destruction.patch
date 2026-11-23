@@ -1,0 +1,540 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Thomas Nguyen <tungnh@chromium.org>
+Date: Mon, 23 Nov 2026 10:24:28 +0000
+Subject: [PATCH] [M159] Notify UrlListManager observers on destruction
+
+PopupBlockerTabHelper and FramebustBlockTabHelper are owned by
+tabs::TabFeatures, which is torn down during tab close before the
+WebContents teardown that closes an open content setting bubble. The
+"Pop-ups blocked" and "Redirect blocked" bubble models observe the
+helpers' UrlListManager, so they can outlive the manager they observe.
+
+Add UrlListManager::Observer::OnUrlListManagerDestroying(), called from
+the manager's destructor, and have both bubble models stop observing in
+response. Also make the bubble models' OnListItemClicked() handle the
+tab helper no longer being available.
+
+(cherry picked from commit b3e0c169981773e1e839561cf2ca2198ba244829)
+
+Bug: 583313828
+Fixed: 588203901
+Change-Id: Ib1bc535e8acb48d0f58037b2ec22a04da74b8ec3
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8776927
+Reviewed-by: Andy Paicu <andypaicu@chromium.org>
+Reviewed-by: Charles Harrison <csharrison@chromium.org>
+Commit-Queue: Thomas Nguyen <tungnh@chromium.org>
+Cr-Original-Commit-Position: refs/heads/main@{#1747927}
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8847053
+Owners-Override: Daniel Yip <danielyip@google.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1441}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+
+FlyWeb: port of the 8154 merge 0750c01c21 to the 156 tree. Only
+components/blocked_content/BUILD.gn differs: the 156 unit_tests target
+has no //testing/gmock dep, so //url goes after //testing/gtest.
+---
+ chrome/browser/ui/content_settings/BUILD.gn   |   1 +
+ .../content_setting_bubble_model.cc           |  26 ++-
+ .../content_setting_bubble_model.h            |   2 +
+ ...ontent_setting_bubble_model_browsertest.cc | 106 +++++++++++++
+ .../framebust_block_browsertest.cc            |  45 ++++++
+ components/blocked_content/BUILD.gn           |   2 +
+ .../blocked_content/url_list_manager.cc       |   6 +-
+ components/blocked_content/url_list_manager.h |   7 +
+ .../url_list_manager_unittest.cc              | 148 ++++++++++++++++++
+ 9 files changed, 338 insertions(+), 5 deletions(-)
+ create mode 100644 components/blocked_content/url_list_manager_unittest.cc
+
+diff --git a/chrome/browser/ui/content_settings/BUILD.gn b/chrome/browser/ui/content_settings/BUILD.gn
+index 938a6a3f6c..900ef2dd8a 100644
+--- a/chrome/browser/ui/content_settings/BUILD.gn
++++ b/chrome/browser/ui/content_settings/BUILD.gn
+@@ -114,6 +114,7 @@ source_set("browser_tests") {
+     "//components/subresource_filter/core/browser",
+     "//components/tabs:public",
+     "//ui/events:test_support",
++    "//ui/views:test_support",
+   ]
+ }
+ 
+diff --git a/chrome/browser/ui/content_settings/content_setting_bubble_model.cc b/chrome/browser/ui/content_settings/content_setting_bubble_model.cc
+index 1ddac21084..7d03fff070 100644
+--- a/chrome/browser/ui/content_settings/content_setting_bubble_model.cc
++++ b/chrome/browser/ui/content_settings/content_setting_bubble_model.cc
+@@ -952,8 +952,10 @@ class ContentSettingPopupBubbleModel
+   // ContentSettingBubbleModel:
+   void CommitChanges() override;
+ 
+-  // PopupBlockerTabHelper::Observer:
++  // UrlListManager::Observer:
+   void BlockedUrlAdded(int32_t id, const GURL& url) override;
++  void OnUrlListManagerDestroying(
++      blocked_content::UrlListManager* manager) override;
+ 
+  private:
+   void OnListItemClicked(int index, const ui::Event& event) override;
+@@ -993,10 +995,18 @@ void ContentSettingPopupBubbleModel::BlockedUrlAdded(int32_t id,
+   AddListItem(CreateUrlListItem(id, url));
+ }
+ 
++void ContentSettingPopupBubbleModel::OnUrlListManagerDestroying(
++    blocked_content::UrlListManager* manager) {
++  url_list_observation_.Reset();
++}
++
+ void ContentSettingPopupBubbleModel::OnListItemClicked(int index,
+                                                        const ui::Event& event) {
+   auto* helper =
+       blocked_content::PopupBlockerTabHelper::FromWebContents(web_contents());
++  if (!helper) {
++    return;
++  }
+   helper->ShowBlockedPopup(item_id_from_item_index(index),
+                            ui::DispositionFromEventFlags(event.flags()));
+   RemoveListItem(index);
+@@ -1727,9 +1737,17 @@ ContentSettingFramebustBlockBubbleModel::
+ void ContentSettingFramebustBlockBubbleModel::OnListItemClicked(
+     int index,
+     const ui::Event& event) {
+-  FramebustBlockTabHelper::From(
+-      tabs::TabInterface::GetFromContents(web_contents()))
+-      ->OnBlockedUrlClicked(index);
++  auto* tab = tabs::TabInterface::MaybeGetFromContents(web_contents());
++  auto* helper = tab ? FramebustBlockTabHelper::From(tab) : nullptr;
++  if (!helper) {
++    return;
++  }
++  helper->OnBlockedUrlClicked(index);
++}
++
++void ContentSettingFramebustBlockBubbleModel::OnUrlListManagerDestroying(
++    blocked_content::UrlListManager* manager) {
++  url_list_observation_.Reset();
+ }
+ 
+ ContentSettingFramebustBlockBubbleModel*
+diff --git a/chrome/browser/ui/content_settings/content_setting_bubble_model.h b/chrome/browser/ui/content_settings/content_setting_bubble_model.h
+index 8fa96b9edc..d656f92b5f 100644
+--- a/chrome/browser/ui/content_settings/content_setting_bubble_model.h
++++ b/chrome/browser/ui/content_settings/content_setting_bubble_model.h
+@@ -689,6 +689,8 @@ class ContentSettingFramebustBlockBubbleModel
+ 
+   // UrlListManager::Observer:
+   void BlockedUrlAdded(int32_t id, const GURL& blocked_url) override;
++  void OnUrlListManagerDestroying(
++      blocked_content::UrlListManager* manager) override;
+ 
+  private:
+   ListItem CreateListItem(const GURL& url);
+diff --git a/chrome/browser/ui/content_settings/content_setting_bubble_model_browsertest.cc b/chrome/browser/ui/content_settings/content_setting_bubble_model_browsertest.cc
+index 9ea96083c5..60e3da227a 100644
+--- a/chrome/browser/ui/content_settings/content_setting_bubble_model_browsertest.cc
++++ b/chrome/browser/ui/content_settings/content_setting_bubble_model_browsertest.cc
+@@ -16,10 +16,13 @@
+ #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/ui/browser_content_setting_bubble_model_delegate.h"
++#include "chrome/browser/ui/browser_window.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+ #include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
++#include "chrome/browser/ui/content_settings/content_setting_image_model.h"
+ #include "chrome/browser/ui/content_settings/fake_owner.h"
++#include "chrome/browser/ui/location_bar/location_bar.h"
+ #include "chrome/browser/ui/tabs/tab_strip_model.h"
+ #include "chrome/common/webui_url_constants.h"
+ #include "chrome/grit/generated_resources.h"
+@@ -50,6 +53,8 @@
+ #include "third_party/blink/public/common/features.h"
+ #include "ui/events/base_event_utils.h"
+ #include "ui/events/event.h"
++#include "ui/views/test/widget_test.h"
++#include "ui/views/widget/widget.h"
+ 
+ using content_settings::PageSpecificContentSettings;
+ 
+@@ -383,6 +388,107 @@ IN_PROC_BROWSER_TEST_F(ContentSettingBubbleModelPopupTest, PopupsActionsCount) {
+   histograms.ExpectTotalCount("ContentSettings.Popups", 5);
+ }
+ 
++// Tests that the popup bubble model keeps observing the tab's blocked URL list
++// while it is open, so newly blocked popups show up in the bubble.
++IN_PROC_BROWSER_TEST_F(ContentSettingBubbleModelPopupTest,
++                       BubbleListUpdatesWhenMorePopupsAreBlocked) {
++  ASSERT_TRUE(ui_test_utils::NavigateToURL(
++      browser(), https_server_->GetURL("/popup_blocker/popup-many.html")));
++  content::WebContents* web_contents =
++      browser()->GetTabStripModel()->GetActiveWebContents();
++
++  std::unique_ptr<ContentSettingBubbleModel> model(
++      ContentSettingBubbleModel::CreateContentSettingBubbleModel(
++          BrowserContentSettingBubbleModelDelegate::From(browser()),
++          web_contents->GetPrimaryPage(), ContentSettingsType::POPUPS));
++  std::unique_ptr<FakeOwner> owner =
++      FakeOwner::Create(*model, kDisallowButtonIndex);
++  const size_t initial_count = model->bubble_content().list_items.size();
++  EXPECT_EQ(2u, initial_count);
++
++  ASSERT_TRUE(content::ExecJs(web_contents, "window.open('about:blank');",
++                              content::EXECUTE_SCRIPT_NO_USER_GESTURE));
++  EXPECT_EQ(initial_count + 1, model->bubble_content().list_items.size());
++}
++
++class ContentSettingBubbleViewPopupTest
++    : public ContentSettingBubbleModelPopupTest {
++ protected:
++  // Opens a page that has its popups blocked in a new foreground tab (so that
++  // closing it does not close the browser), then opens the omnibox "Pop-ups
++  // blocked" bubble for it, exactly as a user click on the icon would.
++  // Returns the bubble widget.
++  views::Widget* OpenPopupPageAndShowBubble() {
++    EXPECT_TRUE(ui_test_utils::NavigateToURLWithDisposition(
++        browser(), https_server_->GetURL("/popup_blocker/popup-many.html"),
++        WindowOpenDisposition::kNewForegroundTab,
++        ui_test_utils::BROWSER_TEST_WAIT_FOR_LOAD_STOP));
++    EXPECT_EQ(2, browser()->GetTabStripModel()->count());
++
++    LocationBarTesting* location_bar_testing =
++        BrowserWindow::FromBrowser(browser())
++            ->GetLocationBar()
++            ->GetLocationBarForTesting();
++    EXPECT_TRUE(location_bar_testing);
++    const size_t popups_index =
++        ContentSettingImageModel::GetContentSettingImageModelIndexForTesting(
++            ContentSettingImageModel::ImageType::kPopups);
++    EXPECT_TRUE(
++        location_bar_testing->IsContentSettingImageVisible(popups_index));
++    EXPECT_TRUE(
++        location_bar_testing->TestContentSettingImagePressed(popups_index));
++    EXPECT_TRUE(
++        location_bar_testing->IsContentSettingBubbleShowing(popups_index));
++    return location_bar_testing->GetContentSettingBubbleWidget(popups_index);
++  }
++};
++
++// Tests closing a tab while its "Pop-ups blocked" bubble is open. The tab's
++// PopupBlockerTabHelper (owned by TabFeatures) is destroyed before the bubble
++// model, so the model must stop observing the helper's UrlListManager when the
++// manager goes away.
++IN_PROC_BROWSER_TEST_F(ContentSettingBubbleViewPopupTest,
++                       CloseTabWithBubbleOpen) {
++  views::Widget* bubble_widget = OpenPopupPageAndShowBubble();
++  ASSERT_TRUE(bubble_widget);
++  views::test::WidgetDestroyedWaiter bubble_destroyed(bubble_widget);
++
++  TabStripModel* tab_strip = browser()->GetTabStripModel();
++  tab_strip->CloseWebContentsAt(tab_strip->active_index(),
++                                TabCloseTypes::CLOSE_NONE);
++  bubble_destroyed.Wait();
++
++  EXPECT_EQ(1, tab_strip->count());
++}
++
++// Same as above, but the tab is closed as part of closing the whole window.
++IN_PROC_BROWSER_TEST_F(ContentSettingBubbleViewPopupTest,
++                       CloseBrowserWithBubbleOpen) {
++  views::Widget* bubble_widget = OpenPopupPageAndShowBubble();
++  ASSERT_TRUE(bubble_widget);
++  CloseBrowserSynchronously(browser());
++}
++
++// Same as above, but the tab is closed by the page itself (renderer-initiated
++// close) while the bubble is open.
++IN_PROC_BROWSER_TEST_F(ContentSettingBubbleViewPopupTest,
++                       PageClosesItselfWithBubbleOpen) {
++  views::Widget* bubble_widget = OpenPopupPageAndShowBubble();
++  ASSERT_TRUE(bubble_widget);
++  views::test::WidgetDestroyedWaiter bubble_destroyed(bubble_widget);
++
++  content::WebContents* web_contents =
++      browser()->GetTabStripModel()->GetActiveWebContents();
++  content::WebContentsDestroyedWatcher tab_destroyed(web_contents);
++  // Tabs opened by the browser can't be closed by script, so close through
++  // the WebContents delegate path used for renderer-initiated closes.
++  web_contents->ClosePage();
++  tab_destroyed.Wait();
++  bubble_destroyed.Wait();
++
++  EXPECT_EQ(1, browser()->GetTabStripModel()->count());
++}
++
+ class ContentSettingBubbleModelQuietRequestTest : public InProcessBrowserTest {
+  protected:
+   using QuietUiReason = permissions::PermissionUiSelector::QuietUiReason;
+diff --git a/chrome/browser/ui/content_settings/framebust_block_browsertest.cc b/chrome/browser/ui/content_settings/framebust_block_browsertest.cc
+index 0bade82be7..f61c31395f 100644
+--- a/chrome/browser/ui/content_settings/framebust_block_browsertest.cc
++++ b/chrome/browser/ui/content_settings/framebust_block_browsertest.cc
+@@ -49,7 +49,9 @@
+ #include "ui/events/event.h"
+ #include "ui/events/test/test_event.h"
+ #include "ui/views/interaction/element_tracker_views.h"
++#include "ui/views/test/widget_test.h"
+ #include "ui/views/view_utils.h"
++#include "ui/views/widget/widget.h"
+ #include "url/gurl.h"
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+@@ -388,6 +390,49 @@ IN_PROC_BROWSER_TEST_F(FramebustBlockBrowserTest, SimpleFramebust_Blocked) {
+   EXPECT_TRUE(ExecuteAndCheckBlockedRedirection());
+ }
+ 
++// Tests closing a tab while its "Redirect blocked" bubble is open. The tab's
++// FramebustBlockTabHelper (owned by TabFeatures) is destroyed before the bubble
++// model, so the model must stop observing the helper's UrlListManager when the
++// manager goes away.
++IN_PROC_BROWSER_TEST_F(FramebustBlockBrowserTest, CloseTabWithBubbleOpen) {
++  // Use a second tab so that closing it does not close the browser.
++  const GURL url = embedded_test_server()->GetURL("/iframe.html");
++  ASSERT_TRUE(ui_test_utils::NavigateToURLWithDisposition(
++      browser(), url, WindowOpenDisposition::kNewForegroundTab,
++      ui_test_utils::BROWSER_TEST_WAIT_FOR_LOAD_STOP));
++  TabStripModel* tab_strip = browser()->GetTabStripModel();
++  ASSERT_EQ(2, tab_strip->count());
++
++  auto* helper = GetFramebustTabHelper();
++  helper->AddBlockedUrl(url, url::Origin::Create(url),
++                        /*initiator_navigation_state=*/nullptr,
++                        base::NullCallback());
++  ASSERT_TRUE(helper->HasBlockedUrls());
++
++  LocationBarTesting* location_bar_testing =
++      BrowserWindow::FromBrowser(browser())
++          ->GetLocationBar()
++          ->GetLocationBarForTesting();
++  ASSERT_TRUE(location_bar_testing);
++  const size_t framebust_index =
++      ContentSettingImageModel::GetContentSettingImageModelIndexForTesting(
++          ContentSettingImageModel::ImageType::kFramebust);
++  ASSERT_TRUE(
++      location_bar_testing->TestContentSettingImagePressed(framebust_index));
++  ASSERT_TRUE(
++      location_bar_testing->IsContentSettingBubbleShowing(framebust_index));
++  views::Widget* bubble_widget =
++      location_bar_testing->GetContentSettingBubbleWidget(framebust_index);
++  ASSERT_TRUE(bubble_widget);
++  views::test::WidgetDestroyedWaiter bubble_destroyed(bubble_widget);
++
++  tab_strip->CloseWebContentsAt(tab_strip->active_index(),
++                                TabCloseTypes::CLOSE_NONE);
++  bubble_destroyed.Wait();
++
++  EXPECT_EQ(1, tab_strip->count());
++}
++
+ // Attempts to navigate to chrome:// URLs should be blocked without allowing the
+ // user to proceed. Instead, the blocked URLs list includes content:kBlockedURL,
+ // which is about:blank#blocked, similar to other cases where a renderer
+diff --git a/components/blocked_content/BUILD.gn b/components/blocked_content/BUILD.gn
+index e2b74a2aab..c0acbd6eb4 100644
+--- a/components/blocked_content/BUILD.gn
++++ b/components/blocked_content/BUILD.gn
+@@ -75,6 +75,7 @@ source_set("unit_tests") {
+     "popup_blocker_tab_helper_unittest.cc",
+     "safe_browsing_triggered_popup_blocker_unittest.cc",
+     "subresource_filter_abusive_unittest.cc",
++    "url_list_manager_unittest.cc",
+   ]
+   deps = [
+     ":blocked_content",
+@@ -94,6 +95,7 @@ source_set("unit_tests") {
+     "//content/test:test_support",
+     "//net:test_support",
+     "//testing/gtest",
++    "//url",
+   ]
+   if (is_android) {
+     sources += [ "android/popup_blocked_message_delegate_unittest.cc" ]
+diff --git a/components/blocked_content/url_list_manager.cc b/components/blocked_content/url_list_manager.cc
+index f2d998d9dd..5e5dce4b5e 100644
+--- a/components/blocked_content/url_list_manager.cc
++++ b/components/blocked_content/url_list_manager.cc
+@@ -9,7 +9,11 @@ namespace blocked_content {
+ 
+ UrlListManager::UrlListManager() = default;
+ 
+-UrlListManager::~UrlListManager() = default;
++UrlListManager::~UrlListManager() {
++  for (auto& observer : observers_) {
++    observer.OnUrlListManagerDestroying(this);
++  }
++}
+ 
+ void UrlListManager::AddObserver(Observer* observer) {
+   observers_.AddObserver(observer);
+diff --git a/components/blocked_content/url_list_manager.h b/components/blocked_content/url_list_manager.h
+index 0abc30e4d1..161d0cc213 100644
+--- a/components/blocked_content/url_list_manager.h
++++ b/components/blocked_content/url_list_manager.h
+@@ -25,6 +25,13 @@ class UrlListManager {
+    public:
+     virtual ~Observer() = default;
+     virtual void BlockedUrlAdded(int32_t id, const GURL& url) = 0;
++
++    // Called when the UrlListManager is being destroyed. Observers must stop
++    // observing (e.g. reset their ScopedObservation) and must not touch the
++    // manager afterwards. The owning tab helper may be destroyed before UI
++    // surfaces that observe it (e.g. content setting bubbles), so observers
++    // that can outlive the manager must handle this.
++    virtual void OnUrlListManagerDestroying(UrlListManager* manager) {}
+   };
+ 
+   UrlListManager();
+diff --git a/components/blocked_content/url_list_manager_unittest.cc b/components/blocked_content/url_list_manager_unittest.cc
+new file mode 100644
+index 0000000000..b1b0f47fac
+--- /dev/null
++++ b/components/blocked_content/url_list_manager_unittest.cc
+@@ -0,0 +1,148 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "components/blocked_content/url_list_manager.h"
++
++#include <cstdint>
++#include <memory>
++#include <vector>
++
++#include "base/scoped_observation.h"
++#include "testing/gtest/include/gtest/gtest.h"
++#include "url/gurl.h"
++
++namespace blocked_content {
++namespace {
++
++// Observer that resets its ScopedObservation when the manager is destroyed,
++// mirroring what UI surfaces (e.g. content setting bubbles) that can outlive
++// the manager must do.
++class ResettingObserver : public UrlListManager::Observer {
++ public:
++  explicit ResettingObserver(UrlListManager* manager) {
++    observation_.Observe(manager);
++  }
++
++  // UrlListManager::Observer:
++  void BlockedUrlAdded(int32_t id, const GURL& url) override {
++    added_ids_.push_back(id);
++  }
++  void OnUrlListManagerDestroying(UrlListManager* manager) override {
++    ++destroying_count_;
++    destroying_manager_address_ = reinterpret_cast<uintptr_t>(manager);
++    EXPECT_TRUE(observation_.IsObservingSource(manager));
++    observation_.Reset();
++  }
++
++  bool IsObserving() const { return observation_.IsObserving(); }
++  int destroying_count() const { return destroying_count_; }
++  // The address is recorded as an integer instead of a raw_ptr because the
++  // manager is destroyed right after the notification.
++  uintptr_t destroying_manager_address() const {
++    return destroying_manager_address_;
++  }
++  const std::vector<int32_t>& added_ids() const { return added_ids_; }
++
++ private:
++  std::vector<int32_t> added_ids_;
++  int destroying_count_ = 0;
++  uintptr_t destroying_manager_address_ = 0;
++  base::ScopedObservation<UrlListManager, UrlListManager::Observer>
++      observation_{this};
++};
++
++// Observer that relies on the default (no-op) OnUrlListManagerDestroying and
++// unregisters manually before the manager goes away.
++class PassiveObserver : public UrlListManager::Observer {
++ public:
++  void BlockedUrlAdded(int32_t id, const GURL& url) override { ++added_; }
++  int added() const { return added_; }
++
++ private:
++  int added_ = 0;
++};
++
++TEST(UrlListManagerTest, NotifiesBlockedUrlAdded) {
++  auto manager = std::make_unique<UrlListManager>();
++  ResettingObserver observer(manager.get());
++
++  manager->NotifyObservers(1, GURL("https://a.test"));
++  manager->NotifyObservers(2, GURL("https://b.test"));
++
++  EXPECT_EQ((std::vector<int32_t>{1, 2}), observer.added_ids());
++  EXPECT_EQ(0, observer.destroying_count());
++}
++
++// Tests that an observer that outlives the manager is told about the
++// manager's destruction and can stop observing.
++TEST(UrlListManagerTest, ObserverOutlivingManagerIsNotifiedAndCanReset) {
++  auto manager = std::make_unique<UrlListManager>();
++  const uintptr_t manager_address = reinterpret_cast<uintptr_t>(manager.get());
++  auto observer = std::make_unique<ResettingObserver>(manager.get());
++  ASSERT_TRUE(observer->IsObserving());
++
++  manager.reset();
++
++  EXPECT_EQ(1, observer->destroying_count());
++  EXPECT_EQ(manager_address, observer->destroying_manager_address());
++  EXPECT_FALSE(observer->IsObserving());
++
++  // Destroying the observer after the manager must not touch the manager.
++  observer.reset();
++}
++
++TEST(UrlListManagerTest, AllObserversNotifiedWhileResettingDuringIteration) {
++  auto manager = std::make_unique<UrlListManager>();
++  ResettingObserver observer1(manager.get());
++  ResettingObserver observer2(manager.get());
++  ResettingObserver observer3(manager.get());
++
++  // Every observer removes itself from within the destruction notification;
++  // the iteration must still reach all of them exactly once.
++  manager.reset();
++
++  for (const ResettingObserver* observer :
++       {&observer1, &observer2, &observer3}) {
++    EXPECT_EQ(1, observer->destroying_count());
++    EXPECT_FALSE(observer->IsObserving());
++  }
++}
++
++TEST(UrlListManagerTest, RemovedObserverIsNotNotifiedOfDestruction) {
++  auto manager = std::make_unique<UrlListManager>();
++  auto observer = std::make_unique<ResettingObserver>(manager.get());
++  ResettingObserver remaining(manager.get());
++
++  // An observer destroyed before the manager unregisters itself normally.
++  observer.reset();
++  manager->NotifyObservers(7, GURL("https://c.test"));
++  manager.reset();
++
++  EXPECT_EQ((std::vector<int32_t>{7}), remaining.added_ids());
++  EXPECT_EQ(1, remaining.destroying_count());
++}
++
++TEST(UrlListManagerTest, DefaultDestroyingNotificationIsNoOp) {
++  auto manager = std::make_unique<UrlListManager>();
++  PassiveObserver passive;
++  ResettingObserver resetting(manager.get());
++  manager->AddObserver(&passive);
++
++  manager->NotifyObservers(3, GURL("https://d.test"));
++  EXPECT_EQ(1, passive.added());
++
++  // The passive observer does not override OnUrlListManagerDestroying(); the
++  // manager must still notify everyone else.
++  manager.reset();
++  EXPECT_EQ(1, resetting.destroying_count());
++}
++
++TEST(UrlListManagerTest, ManagerWithoutObserversDestroysCleanly) {
++  auto manager = std::make_unique<UrlListManager>();
++  manager->NotifyObservers(1, GURL("https://e.test"));
++  manager.reset();
++}
++
++}  // namespace
++}  // namespace blocked_content
+-- 
+2.43.0
+

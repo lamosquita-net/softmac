@@ -7,10 +7,10 @@ prepara SEGURIDAD-PORTES (-33). **En qué versión entra lo decide Titín**; has
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001`–`0002` | **`85d15c77a6`** (solo `0001`: `c881f8b1b3`) |
-| chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001` | **`ff91be10d6`** |
+| brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001`–`0003` | **`5551162dbe`** (hasta `0001`: `c881f8b1b3`; hasta `0002`: `85d15c77a6`) |
+| chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001`–`0002` | **`37bf78cffd`** (solo `0001`: `ff91be10d6`) |
 
-Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, y con `0002` detrás, `85d15c77a6`; `git diff --diff-filter=D` vacío; los
+Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, con `0002` detrás, `85d15c77a6`, y con `0003`, `5551162dbe`; `git am` de `chromium/0001`–`0002` sobre `a2ffc0a48f` da `37bf78cffd`; `git diff --diff-filter=D` vacío; los
 cuatro `patches/*.patch` que toca se aplican limpios sobre los ficheros de Chromium de la 3.2.1 sin VERSION y dan el mismo
 resultado que se editó. **No compilado ni probado aquí** (no hay árbol de compilación en la nube).
 
@@ -93,6 +93,39 @@ Puerto del merge **`a92c222bca`** de V8 15.9.128.29 (bugs 588195794 y 585625644;
 
 **Para D8-LINUX / LOCAL:** `d8` y mjsunit `wasm/turboshaft/regress-585625644`, más `compiler/*` y `wasm/*` con y sin Maglev.
 
+## `chromium/0002`: [M159] UrlListManager avisa a sus observadores al destruirse (crbug 583313828)
+
+Puerto del merge **`0750c01c21`** de 8154 (cherry-pick de `b3e0c16998`). **Gravedad no publicada.**
+- **El fallo (uso tras liberar, en el navegador):** `PopupBlockerTabHelper` y `FramebustBlockTabHelper` cuelgan de
+  `tabs::TabFeatures`, que se destruye al cerrar la pestaña **antes** que el `WebContents` que cierra la burbuja
+  abierta. Las burbujas «Ventanas emergentes bloqueadas» y «Redirección bloqueada» observan el `UrlListManager` del
+  helper y pueden sobrevivirle.
+- **Aplica en Mac:** en el árbol 156, `FramebustBlockTabHelper` ya lo crea `TabFeatures` (`tab_features.cc`), y el
+  código de las burbujas es el mismo. Brave no toca esos ficheros.
+- **El parche:** `UrlListManager::Observer::OnUrlListManagerDestroying()`, que llama el destructor; las dos burbujas
+  dejan de observar, y `OnListItemClicked()` comprueba que el helper siga ahí. Más la prueba unitaria
+  `url_list_manager_unittest.cc` y dos pruebas de navegador. **Única adaptación:** en
+  `components/blocked_content/BUILD.gn` de la 156 el objetivo `unit_tests` no tiene `//testing/gmock`, así que
+  `//url` va detrás de `//testing/gtest`. Comprobado que existen en la 156 `TabInterface::MaybeGetFromContents` y
+  `url_list_observation_` en las dos burbujas.
+
+**Para LOCAL:** `components_unittests --gtest_filter='UrlListManager*'`; `browser_tests` de
+`ContentSettingBubbleModel*` y `*FramebustBlock*`.
+
+## `brave-core/0003`: [M156] V8, TryReuseDispatch con FrameState muerto (crbug 585614985)
+
+Puerto del merge **`df4a1dd5f5`**, que V8 publicó en la **15.6** como 15.6.75.77 (bugs 588740103 y 585614985;
+cherry-pick de `cb621e4b70`). **Gravedad no publicada**, pero es una lectura y escritura **fuera de límites** en el
+compilador (builds de release), y Google lo lleva a la 156.
+- **El fallo:** durante el inlining, DeadCodeElimination puede cambiar por `DeadValue` el FrameState de un
+  Checkpoint (o sus locals) mientras ese nodo sigue en la pila del GraphReducer.
+  `JSInliningHeuristic::TryReuseDispatch` lo envolvía y leía y escribía fuera de límites.
+- **El parche** (`patches/v8/`): el diff de upstream tal cual (aplica limpio a la 15.6.75.66), en
+  `common-operator.h` y `js-inlining-heuristic.cc`, más las pruebas mjsunit `compiler/regress-585614985-1.js` y `-2.js`.
+  Lo cubre la subida de `kFlyWebCacheEpoch` a 40 de `0002`.
+
+**Para D8-LINUX / LOCAL:** `d8` y mjsunit `compiler/regress-585614985-*` y `compiler/*`, con y sin Maglev.
+
 ## Revisados y no aplicables
 
 - **V8 15.9 `a38f990ac8`** ([M159] [turbolev] Remap replaced header phis in peeled loop backedge KNA; crbug
@@ -102,3 +135,7 @@ Puerto del merge **`a92c222bca`** de V8 15.9.128.29 (bugs 588195794 y 585625644;
   `turbolev` está apagado en la 15.6 (`false`), Chrome 156 no lo enciende desde gin, y el estudio `V8Turbolev` de
   `fieldtrial_testing_config` no se aplica porque compilamos con `disable_fieldtrial_testing_config = true`. Se
   revisa de nuevo si algún día se enciende turbolev.
+- **V8 15.9 `e0b94eeddc`** ([M159] [maglev] Keep single-input Phis tagged in phi untagging; crbug 587040688). El fallo
+  sale de `PrePhiUntaggingPhase`, que en la 15.6 solo existe en la tubería de turbolev (`turbolev-frontend-pipeline.cc`);
+  Maglev normal no pasa el optimizador antes de destipar los phi. Su prueba pide `--turbolev`, y Google no lo ha
+  llevado a la M156. **No se porta** mientras turbolev siga apagado (ver `a38f990ac8`).
