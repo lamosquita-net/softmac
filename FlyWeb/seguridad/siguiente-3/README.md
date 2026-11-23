@@ -38,9 +38,16 @@ Puerto del merge **`11d7cebfdf`** de 8154 (cherry-pick de main; bugs 589156867 y
 
 **Para LOCAL:** `blink_unittests --gtest_filter='ModuleScriptTest.IsolatedCopyCreatesNonParkableSource:ParkableStringTest.*'`.
 
+## Solo Linux
+
+Arreglos que no afectan a Mac pero sí al porte a Linux (aprobado, DIRECTIVAS 22-11). **No se portan todavía**: se hará
+cuando haya una versión de Linux que publicar (orden de COORDINACIÓN-61). Para cada uno: commit, crbug y si nuestra
+configuración de Linux compila el código.
+
+| Commit | crbug | Qué | ¿Lo compila nuestra Linux? |
+|---|---|---|---|
+| 8078 `97c8484b2c` [M156] | 577371305 | `ExternalVkImageBacking`: `ProduceGL()` falla si el backing guarda un `NativePixmap`, y la conversión a `NativePixmap` pasa antes, de modo que la creación falla si no se puede | **Sí se compila:** `external_vk_image_backing.cc` está en `gpu/command_buffer/service/BUILD.gn` bajo `enable_vulkan` y `is_linux \|\| is_fuchsia`. `enable_vulkan` es `true` por defecto en Linux y FlyWeb no lo cambia. **En la práctica casi no se usa:** Vulkan va apagado por defecto en Linux (`features::kVulkan`, `FEATURE_DISABLED_BY_DEFAULT` fuera de Android). Además, según el propio commit, el backing con `NativePixmap` solo se da en Fuchsia. |
+
 ## Revisados y no aplicables
 
-- **8078 `97c8484b2c`** ([M156] Fail GL access in ExternalVkImageBacking, crbug 577371305): `external_vk_image_backing.cc`
-  solo se compila en Linux y Fuchsia (`gpu/command_buffer/service/BUILD.gn`, `if (is_linux || is_fuchsia)`). No afecta a
-  Mac. En Linux solo cuenta con Vulkan encendido, que no es lo normal. Si FlyWeb para Linux llega a usarlo, se revisa.
 - **8078 `b978da9de9`**: roll de V8 a 15.6.75.80, que solo trae `4db782064e` (ya en la 3.2.2, `siguiente-2/brave-core/0006`).
