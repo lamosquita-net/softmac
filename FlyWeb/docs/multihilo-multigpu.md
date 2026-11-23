@@ -569,6 +569,33 @@ arreglo propuesto (`rendimiento-motionmark.md`, MOTOR-44).
 Hoy, con lo medido: ninguna abierta. **No hacer:** estilo en paralelo, ni nada que prometa repartir el JavaScript de
 una página.
 
+**Añadido el 23-11: M2, pasos 1 y 2** (LOCAL-24, 3.2.1, 6,1) [R,
+`buzon/COORDINACION/20261123-2200-LOCAL-24-M3-M2.md`]:
+
+- **J1, cerrada.** Con los topes subidos, Speedometer −0,9 % y JetStream +0,75 %; pedía ≥ 3 %. No hace falta saber
+  si Maglev estaba encendido para cerrarla: no gana de ninguna de las dos maneras. Para el registro, Maglev está
+  encendido desde la 3.1 por decisión de Titín (`DIRECTIVAS.md`, 10-11) [R].
+- **J2, cerrada.** El recolector es el 5,5 % y el 1,3 % del hilo principal (< 10 %).
+- **J3, sin decidir; no la doy por abierta.** El 34,6 % medido no es todavía el dato que pide la puerta:
+  1. Junta estilo, layout y pintado; la puerta pide el estilo solo.
+  2. Es una toma de 5 s de una prueba de más de un minuto con veinte cargas distintas: dice lo que hacía la carga
+     de ese momento, no Speedometer.
+- **Qué falta para decidir J3** (sin compilar):
+  1. Una toma que cubra la pasada entera: un `sample` de toda su duración, o uno de 5 s cada 10 s.
+  2. Partir la categoría en tres en `reparto-renderer.py`: estilo (`StyleEngine`, `StyleResolver`,
+     `Document::UpdateStyle`), layout (`LayoutView::`, `BlockNode::Layout`) y pintado (`PrePaintTreeWalk`,
+     `PaintArtifactCompositor`, `FramePainter`, `PaintLayerPainter`). Se clasifica por el marco más profundo que
+     case, porque `LocalFrameView::UpdateLifecycle` envuelve a los tres; lo que solo case con ese envoltorio va a
+     «ciclo de vida, sin repartir».
+  3. Con eso: estilo ≥ 30 % → abierta, a MOTOR; menos → cerrada.
+- Lo que espero [S]: que se cierre. Speedometer 3 está hecho para pesar el dibujo, y un tercio entre los tres es lo
+  normal en Chromium.
+- **Propuesta aparte, que sí diría algo nuestro aunque J3 se cierre:** Speedometer con los Escudos bajados para el
+  origen de la prueba frente a subidos, 3 + 3 pasadas alternadas. El coste de estilo que apareció en Multiply venía
+  de una regla de los Escudos (§9.4). Si con los Escudos bajados gana ≥ 3 %, hay coste nuestro y va a MOTOR.
+- **JetStream, 46 % del hilo compilando:** misma salvedad, es una toma de 5 s de una subprueba, probablemente su
+  arranque [S]. No abre nada: con J1 cerrada, más hilos no lo arreglan.
+
 **Lo que no depende de M2**, y está en la tabla de §9.2: la consulta de `FeatureList` por dibujo, la comprobación de
 tipos en los enlaces WebGL y `sin`/`cos`. Es la lista para abaratar el renderer de WebGL.
 
@@ -752,6 +779,58 @@ parches del renderer.
   Mojave con la protección activa y que la traza de V8 salga con la caja de arena. Los umbrales del paso 3 son
   míos. No he leído el código de V8 para la explicación C.
 
+### 10.7 Resultado de M3, pasos 1 y 2 (añadido el 23-11)
+
+LOCAL-24, 3.2.1, 6,1, `devicePixelRatio` 2 [R, `buzon/COORDINACION/20261123-2200-LOCAL-24-M3-M2.md`]. No he medido
+nada; leo sus datos.
+
+| Tanda | Pasadas | Estado | Renderer, ms por fotograma | `CrGpuMain`, ms por fotograma | PRI |
+|---|---|---|---|---|---|
+| m3b (paso 1) | 1–3 | lento, 43 fps | 22,9–23,2 | 14,7–14,8 | 47 |
+| m3b (paso 1) | 4–12 | rápido, 60 fps (tope de la pantalla) | 13,0–15,4 | 13,8–14,2 | 47 |
+| m3c (paso 2) | 1–12 | rápido | sin dato (el `sample` para el renderer) | sin dato | sin dato |
+
+**Qué queda establecido:**
+
+1. **B, descartada:** la prioridad es la misma en los dos estados.
+2. **El coste no está en el núcleo del sistema:** un 1 % de tiempo de sistema en los dos.
+3. **El estado no va con el proceso del renderer:** las 12 pasadas estrenan proceso.
+4. **Sigue encareciéndose solo el renderer.** `CrGpuMain` cuesta casi lo mismo (un 5 % más). Eso descarta también
+   un freno general de la máquina, por calor o por frecuencia: frenaría a los dos hilos [I].
+5. **Con la 3.2.1 el estado rápido llega al tope de 60 fps.** Cambia cómo se mide E1 (§11.2).
+
+**Qué no queda establecido:**
+
+- **«Unos tres minutos después del desbloqueo» es una lectura posible, no la única.** Hay una sola transición, y
+  las tres pasadas lentas son también las tres primeras de la tanda. Con estos datos no se distingue «la máquina
+  recién desbloqueada» de «las primeras cargas de un perfil o de un navegador recién arrancados» (caché de código
+  de V8, descargas del primer arranque, listas de los Escudos).
+- **No casa con M1 del 22-11,** donde las 11 pasadas salieron lentas a lo largo de casi una hora y en dos arranques
+  [R]. Sea lo que sea, puede durar mucho más de tres minutos.
+- El paso 2 sigue sin respuesta: falta una toma en estado lento.
+
+**Siguiente, sin compilar y sin contraseña:**
+
+1. **Repetir el paso 2 cruzando los dos factores,** seis pasadas cada una, con el `sample` del renderer:
+   - (a) recién desbloqueada la pantalla, con un perfil ya usado;
+   - (b) con la pantalla activa desde hace al menos 15 minutos, con perfil nuevo y navegador recién arrancado.
+
+   | Salen lentas | Lectura | Entonces |
+   |---|---|---|
+   | en (a) y no en (b) | es de la máquina tras el desbloqueo | paso 3 (`dtrace`, con Titín delante), justo después de un desbloqueo |
+   | en (b) y no en (a) | es del arranque en frío del perfil o del navegador | es nuestro, y un usuario lo sufre en cada arranque: se busca qué cambia tras las primeras cargas |
+   | en ninguna | no se reproduce a voluntad | se anota y no se insiste; E1 sigue con el estado anotado por pasada |
+
+2. **En cada pasada, además de lo de §10.4:** número de pasada dentro del perfil y dentro del arranque del
+   navegador, minutos desde el desbloqueo, `uptime` y las cinco primeras líneas de `top -o cpu` de toda la máquina
+   justo antes.
+3. **Basta una toma lenta** para aplicar la regla del paso 2 contra las 12 rápidas de m3c: si todas las categorías
+   suben por igual, la causa está fuera del código; si solo sube el JavaScript compilado, es C.
+
+**A confirmar por LOCAL-24 con sus registros, antes de repetir nada:** si en m3b el navegador se arrancó una vez o
+una por pasada, y si m3c usó un perfil nuevo. Si m3c ya era perfil y navegador nuevos y salió rápida desde la primera
+pasada, la lectura (b) pierde fuerza sin gastar una tanda.
+
 ## 11. E1: cómo se mide y cómo se juzga el A/B (añadido el 22-11)
 
 Encargo de COORDINACIÓN-60 del 22-11, a propuesta de LOCAL-23
@@ -833,7 +912,13 @@ le alargó más de 10 minutos sin causa conocida; lo normal son unos 6):
 - MotionMark no usa WebGL: con E1 no debería moverse. Es el control de que E1 no toca nada más; por eso bastan tres.
 - **Aquarium 15 000 va en dos estados (§10).** Cada pasada anota en cuál cayó (unos 43 fps o 55–57) y solo se
   comparan pasadas del mismo estado. Si E1 cambia la proporción de pasadas en cada estado, eso se informa aparte: es
-  un resultado, no ruido.
+  un resultado, no ruido. Un estado solo se juzga si tiene al menos tres pasadas de cada versión.
+- **Añadido el 23-11, tras M3 (§10.7):** con la 3.2.1, Aquarium 15 000 en el estado rápido llega a 60 fps [R], y ahí
+  los fps ya no distinguen nada. Se añade un caso sin tope: Aquarium con 20 000 o 30 000 peces, el primero que quede
+  por debajo de 55 fps con la base en el estado rápido.
+- En todos los casos de Aquarium se dan además los milisegundos de CPU por fotograma del renderer y de `CrGpuMain`
+  (§10.2). No tienen umbral, pero es donde se vería un coste de E1 que los fps tapan: `CrGpuMain` ya gasta unos
+  14 ms de los 16,7 que dura un fotograma [R].
 - Basemark publica cada resultado en su tablero [R]: una pasada por versión y con aviso previo a Titín.
 - Con E1, antes de puntuar nada: el registro «FlyWeb: Metal device by id» y las dos tarjetas con trabajo (§6, paso 2),
   **a las dos escalas**.
