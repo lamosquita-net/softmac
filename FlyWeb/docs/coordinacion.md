@@ -7,6 +7,25 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 23-11 (noche): COORDINACIÓN-61 → COORDINACIÓN-62 (local, 7,1; leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-61 = «Coordinación (61)» [d37a00], 23-11 ~18:55 → ~22:30 UTC, relevo al ~35 %. La 62 la abre Titín. Vigilante: Monitor cada 120 s sobre `origin/buzon` (filtrando los commits propios), caduca a los 30 min, re-armar. Worktrees desde `origin/main` y `origin/buzon`; nada de checkout en la carpeta compartida.
+
+**Canales:** LOCAL-24 «Local (24)» `local_9144cd8b-…` (Opus; LOCAL-23 quieta); D8-LINUX-6 «ubuntu (6)» (sin push: sus informes y parches los subo yo, comprobando el sha256; **atiende mis órdenes sin esperar a Titín**, DIRECTIVAS #1214); ARQUITECTURA «Arquitectura FlyWeb monorepo» `local_0889f62d-…`; SEGURIDAD-PORTES-33 y MOTOR-47 en la nube por nombre (contestan por el buzón). Dawn: `dawn.googlesource.com` se abre desde la 7,1; SEGURIDAD-PORTES no puede: los rolls los miro yo (`+log/A..B?format=JSON`).
+
+**Decidido hoy por Titín (DIRECTIVAS #1213, #1214):** 3.2.2 build 50 de seguridad = 3.2.1 + #1210 (siguiente-2 cerrada en 0901b22b39) + #1183, antes que E1; las 8 dependencias de Flynk, oficiales del .120 para U2 y publicadas por LOCAL para el piloto y F1; HLS cerrado «no reproducible»; 6,1 para LOCAL (escala 1, M3, M2).
+
+**Hecho:** MotionMark a escala 1 confirma que la caída era la escala (Suits 432, Design 232). #1209, #1217 y #1218 (método de E1 y lectura de M3/M2 de ARQUITECTURA) fusionados. U2: la 3.2.1 compila entera en Linux (0 fallos; informe en el buzón); el arreglo de `spinning_mutex.cc` va a la base de la tanda siguiente de Flynk (orden a LOCAL `20261123-2050`). U3 §2.1: v1 APTO CON CAMBIOS (quitar cookies, rehacer sobre la 3.2.2); **v2 subido (ca169490) y en revisión final de SEGURIDAD-PORTES**. Rolls de Dawn DXC y PowerVR: no aplican.
+
+**Abierto, por orden:**
+1. **3.2.2:** LOCAL-24 compiló la app (198.63.50, 22:48) y pasa las pruebas. Con su informe en verde: fusionar #1210 (`--match-head-commit`) y #1183, y la entrega en su fila es la orden de publicar (regla 11). Huella: que diga si cambia lo declarado.
+2. **siguiente-3 (#1215):** lo nuevo se queda ahí salvo Alto/Crítico/KEV **publicado**; dos candidatos (V8 `1faf157db2` Intl.Locale, 8078 `2b43666310` mundos aislados): si el boletín los da Alto, llevar a Titín una 3.2.3 rápida. Lo de solo Linux, apuntado en el README, sin portar.
+3. **U3 §2.1 v2:** con el APTO, orden a LOCAL para meterlo (comprobar que aplica sobre su `local/322-final`) en la tanda que toque; **pendiente de Titín: instalar con sudo el perfil AppArmor** (`apparmor-u3-prueba.sh`, se lo enseña D8-LINUX-6) para la prueba de arranque con perfil y llavero desechables. Antes de publicar Linux: KWallet y GNOME reales y el aviso en la interfaz sin llavero.
+4. **LOCAL-24 tras la 3.2.2:** publicar los 8 commits (`20261123-1908`); M3 nueva repetición (`20261123-2208`: (a) tras un desbloqueo de Titín por su cuenta, sin ioreg; (c) seis con ioreg); M2: J3 con toma entera y partida, Escudos 3+3 (`20261123-2205`); E1 **solo con mi orden**, con los añadidos de §11.2.
+5. Lo de la nota 60 → 61 que no está aquí sigue igual (U4 correo del mantenedor sin decidir; purga de la sync hacia el 15-12; papeles del RGPD).
+
+**Lecciones de la 61:** los parches grandes por mensaje (Base64 en dos trozos) llenan el contexto: pedir a D8-LINUX que trocee menos o que los deje como texto más corto, y relevarse justo después. Comprobar siempre la suma de cada trozo y del resultado, y buscar datos personales antes de subir al buzón (es público). Los avisos del vigilante con mis propios commits ya se filtran.
+
 ## 23-11 (mañana): COORDINACIÓN-60 → COORDINACIÓN-61 (local, 7,1; leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-60 = «Coordinación (60)» [8ae7ec], 22-11 tarde → 23-11 mañana. La 61 la abre Titín. Vigilante del buzón: Monitor cada 120 s sobre `origin/buzon`, caduca a los 30 min (re-armar); trabajar en `git worktree` desde `origin/main` y `origin/buzon`, nada de checkout en la carpeta compartida.
