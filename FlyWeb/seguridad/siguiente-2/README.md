@@ -7,10 +7,10 @@ prepara SEGURIDAD-PORTES (-33). **En qué versión entra lo decide Titín**; has
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001`–`0003` | **`5551162dbe`** (hasta `0001`: `c881f8b1b3`; hasta `0002`: `85d15c77a6`) |
-| chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001`–`0003` | **`1b197b1e48`** (hasta `0001`: `ff91be10d6`; hasta `0002`: `37bf78cffd`) |
+| brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001`–`0004` | **`abe4582db6`** (hasta `0001`: `c881f8b1b3`; `0002`: `85d15c77a6`; `0003`: `5551162dbe`) |
+| chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001`–`0004` | **`b9a698a294`** (hasta `0001`: `ff91be10d6`; `0002`: `37bf78cffd`; `0003`: `1b197b1e48`) |
 
-Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, con `0002` detrás, `85d15c77a6`, y con `0003`, `5551162dbe`; `git am` de `chromium/0001`–`0002` sobre `a2ffc0a48f` da `37bf78cffd`, y con `0003`, `1b197b1e48`; `git diff --diff-filter=D` vacío; los
+Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, con `0002` detrás, `85d15c77a6`, con `0003`, `5551162dbe`, y con `0004`, `abe4582db6`; `git am` de `chromium/0001`–`0002` sobre `a2ffc0a48f` da `37bf78cffd`, con `0003`, `1b197b1e48`, y con `0004`, `b9a698a294`; `git diff --diff-filter=D` vacío; los
 cuatro `patches/*.patch` que toca se aplican limpios sobre los ficheros de Chromium de la 3.2.1 sin VERSION y dan el mismo
 resultado que se editó. **No compilado ni probado aquí** (no hay árbol de compilación en la nube).
 
@@ -143,6 +143,27 @@ compilador (builds de release), y Google lo lleva a la 156.
 
 **Para D8-LINUX / LOCAL:** `d8` y mjsunit `compiler/regress-585614985-*` y `compiler/*`, con y sin Maglev.
 
+## `chromium/0004`: [M156] tope a los ids de transfer buffer (crbug 586980309)
+
+El merge **`b843017f70`** de la propia **8078** (cherry-pick de `491d595950`), tal cual: aplica limpio al árbol 156.
+**Gravedad no publicada.** `gpu::GetNextBufferId()` hacía crecer un `int32` sin tope. Agotar el espacio a propósito
+lo daba la vuelta, y un id repetido podía dar a un sitio acceso a recursos de otro sitio en el mismo renderer. Ahora
+hay un `CHECK` antes de llegar al máximo (el proceso termina). Brave no toca `gpu/command_buffer/common/buffer.*`.
+
+## `brave-core/0004`: [M156] V8, ciclos de movimientos de anchura mixta (crbug 585624832)
+
+Puerto del merge **`5dde7daf0a`**, que V8 publicó en la **15.6** como 15.6.75.79 (bugs 587681266 y 585624832;
+cherry-pick de `e1b2c1bc74`). **Gravedad no publicada.**
+- **El fallo (x64):** `GapResolver::PerformCycle` elegía para el temporal la representación del destino. Un
+  movimiento de 64 a 32 bits resuelto con `kScratchRegister` salía como `movl` en los dos tramos y ponía a cero los
+  32 bits altos que luego leía una instrucción de 64 bits. Es código generado incorrecto en Wasm y JS.
+- **El parche** (`patches/v8/`): el diff de upstream tal cual (aplica limpio a la 15.6.75.66), en `gap-resolver.cc`,
+  `instruction.h` y los generadores de código (x64, y también loong64, mips64 y riscv, que no compilamos), más el cambio
+  de cctest y la prueba `wasm/regress-585624832.js`. Ningún otro `patches/v8` toca esos ficheros. Lo cubre la
+  subida de epoch a 40 de `0002`.
+
+**Para D8-LINUX / LOCAL:** mjsunit `wasm/regress-585624832`, cctest `test-code-generator/*`, más `compiler/*` y `wasm/*`.
+
 ## Revisados y no aplicables
 
 - **V8 15.9 `a38f990ac8`** ([M159] [turbolev] Remap replaced header phis in peeled loop backedge KNA; crbug
@@ -156,3 +177,5 @@ compilador (builds de release), y Google lo lleva a la 156.
   sale de `PrePhiUntaggingPhase`, que en la 15.6 solo existe en la tubería de turbolev (`turbolev-frontend-pipeline.cc`);
   Maglev normal no pasa el optimizador antes de destipar los phi. Su prueba pide `--turbolev`, y Google no lo ha
   llevado a la M156. **No se porta** mientras turbolev siga apagado (ver `a38f990ac8`).
+
+- **8154 `e663ddf8f9`** ([M159] [iOS][Gemini], crbug 571506045): solo iOS.

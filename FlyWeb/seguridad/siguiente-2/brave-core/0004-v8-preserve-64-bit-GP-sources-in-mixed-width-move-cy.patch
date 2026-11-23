@@ -1,0 +1,544 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Mon, 23 Nov 2026 16:40:19 +0000
+Subject: [PATCH] v8: preserve 64-bit GP sources in mixed-width move cycles
+ (5dde7daf0a, crbug 585624832)
+
+[M156] backend fix that V8 15.6 shipped as 15.6.75.79. The V8 gitlink
+stays at 15.6.75.66; the upstream diff applies unchanged as patches/v8,
+with the cctest change and the mjsunit test wasm/regress-585624832.js.
+The cache epoch bump to 40 in an earlier commit covers it. Notes in
+patches/v8/FLYWEB-SECURITY.md.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kdhDkMC93UBtLuPkF
+---
+ patches/v8/FLYWEB-SECURITY.md                 |  17 ++
+ ...src-compiler-backend-gap-resolver.cc.patch |  60 ++++++
+ .../src-compiler-backend-instruction.h.patch  |  29 +++
+ ...nd-loong64-code-generator-loong64.cc.patch |  19 ++
+ ...kend-mips64-code-generator-mips64.cc.patch |  19 ++
+ ...ackend-riscv-code-generator-riscv.cc.patch |  18 ++
+ ...er-backend-x64-code-generator-x64.cc.patch |  19 ++
+ ...test-compiler-test-code-generator.cc.patch | 203 ++++++++++++++++++
+ ...st-mjsunit-wasm-regress-585624832.js.patch |  67 ++++++
+ 9 files changed, 451 insertions(+)
+ create mode 100644 patches/v8/src-compiler-backend-gap-resolver.cc.patch
+ create mode 100644 patches/v8/src-compiler-backend-instruction.h.patch
+ create mode 100644 patches/v8/src-compiler-backend-loong64-code-generator-loong64.cc.patch
+ create mode 100644 patches/v8/src-compiler-backend-mips64-code-generator-mips64.cc.patch
+ create mode 100644 patches/v8/src-compiler-backend-riscv-code-generator-riscv.cc.patch
+ create mode 100644 patches/v8/src-compiler-backend-x64-code-generator-x64.cc.patch
+ create mode 100644 patches/v8/test-cctest-compiler-test-code-generator.cc.patch
+ create mode 100644 patches/v8/test-mjsunit-wasm-regress-585624832.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index d144248..6fa4bba 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,20 @@
++# FlyWeb: release after 3.2.1 (softmac `seguridad/siguiente-2`), V8 fix 5dde7daf0a (crbug 585624832), the M156 merge of V8 15.6.75.79
++
++SEGURIDAD-PORTES-33, 23-11-2026 (softmac `FlyWeb/seguridad/siguiente-2/brave-core/0004`). **Merged to V8 15.6
++upstream** as 15.6.75.79 (bugs 587681266 and 585624832; cherry-pick of e1b2c1bc74 from main). Severity not published.
++The upstream diff applies unchanged to 15.6.75.66 (`git apply --check` clean).
++
++- `GapResolver::PerformCycle` picked the destination representation for general-purpose temporaries. On x64, a
++  64-bit-to-32-bit move resolved through `kScratchRegister` was emitted as `movl` on both legs, zeroing the upper
++  32 bits that a later 64-bit instruction still read. Now the temporary uses `WiderGpRepresentation(src_rep,
++  dst_rep)`, and the code generators (x64; also loong64, mips64, riscv, not built for FlyWeb) honour it.
++- No other `patches/v8` file touches `gap-resolver.cc`, `instruction.h`, the code generators or
++  `test-code-generator.cc`. Plus the cctest change and the mjsunit test `wasm/regress-585624832.js`.
++
++**Cache epoch:** this changes generated code; covered by the bump to 40 in `siguiente-2/brave-core/0002`.
++
++To check (D8-LINUX): `d8`, mjsunit `wasm/regress-585624832`, cctest `test-code-generator/*`, and `compiler/*`, `wasm/*`.
++
+ # FlyWeb: release after 3.2.1 (softmac `seguridad/siguiente-2`), V8 fix df4a1dd5f5 (crbug 585614985), the M156 merge of V8 15.6.75.77
+ 
+ SEGURIDAD-PORTES-33, 23-11-2026 (softmac `FlyWeb/seguridad/siguiente-2/brave-core/0003`). **Merged to V8 15.6
+diff --git a/patches/v8/src-compiler-backend-gap-resolver.cc.patch b/patches/v8/src-compiler-backend-gap-resolver.cc.patch
+new file mode 100644
+index 0000000..ed449a5
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-gap-resolver.cc.patch
+@@ -0,0 +1,60 @@
++diff --git a/src/compiler/backend/gap-resolver.cc b/src/compiler/backend/gap-resolver.cc
++index dd7ab756027bbf58f4a4cf00193bc5deb397d94c..af940a705ba6be09d8ce45c32a6aa43eacfef16e 100644
++--- a/src/compiler/backend/gap-resolver.cc
+++++ b/src/compiler/backend/gap-resolver.cc
++@@ -25,6 +25,19 @@ MoveOperandKind GetKind(const InstructionOperand& move) {
++   return IsFloatingPoint(loc_op.representation()) ? kFpReg : kGpReg;
++ }
++ 
+++// Returns the wider in-register GP representation (matching Is32BitOperand in
+++// 64-bit backends' Use32BitMove helpers).
+++MachineRepresentation WiderGpRepresentation(const InstructionOperand& src,
+++                                            const InstructionOperand& dst) {
+++  MachineRepresentation src_rep = LocationOperand::cast(src).representation();
+++  if constexpr (kSystemPointerSize == 8) {
+++    if (Is32BitOperand(src)) {
+++      return LocationOperand::cast(dst).representation();
+++    }
+++  }
+++  return src_rep;
+++}
+++
++ }  // namespace
++ 
++ void GapResolver::Resolve(ParallelMove* moves) {
++@@ -116,15 +129,26 @@ void GapResolver::PerformCycle(const std::vector<MoveOperands*>& cycle) {
++   // {MoveToTempLocation} will then choose the location accordingly.
++   MachineRepresentation src_rep =
++       LocationOperand::cast(move1->source()).representation();
++-  MachineRepresentation dst_rep =
++-      LocationOperand::cast(move1->destination()).representation();
++-  // Floating-point moves may have mixed representations (e.g. from same-as-
++-  // input SIMD splat/extract instructions or identity moves). Size the
++-  // temporary by the source representation so that Push and Pop agree on the
++-  // number of stack slots and wider sources preserve upper lanes in registers.
++-  // General-purpose moves keep the destination representation because 32-bit
++-  // sources may hold 64-bit values due to virtual register renaming.
++-  MachineRepresentation rep = IsFloatingPoint(src_rep) ? src_rep : dst_rep;
+++  // Splitting {source -> destination} into {source -> temp[rep]} followed by
+++  // {temp[rep] -> destination} must preserve all live bits of {source} in
+++  // {temp} and match the width behavior of a direct {source -> destination}
+++  // move:
+++  // - For FP/SIMD, {source} never holds valid bits wider than {src_rep} (and
+++  //   {Push} sizes stack temporaries from {src_rep}), so {rep = src_rep}
+++  //   preserves all bits in {temp}, makes {temp[src_rep] -> destination} match
+++  //   a direct move, and keeps {Push} and {Pop} balanced.
+++  // - For GP on 64-bit targets, virtual register renaming allows a 32-bit
+++  //   source to hold a zero-extended 64-bit value when {dst_rep} is 64-bit (so
+++  //   {source -> temp[rep]} needs a 64-bit {rep}), while same-as-input
+++  //   instructions such as x64 64-bit shifts with a 32-bit output require a
+++  //   64-bit source to keep its upper bits into a 32-bit destination (so
+++  //   {temp[rep] -> destination} also needs a 64-bit {rep}). Choosing the wider
+++  //   GP representation satisfies both legs and matches {Use32BitMove(source,
+++  //   destination)}.
+++  MachineRepresentation rep =
+++      IsFloatingPoint(src_rep)
+++          ? src_rep
+++          : WiderGpRepresentation(move1->source(), move1->destination());
++   DCHECK_EQ(ElementSizeInPointers(src_rep), ElementSizeInPointers(rep));
++   for (size_t i = 0; i < cycle.size() - 1; ++i) {
++     assembler_->SetPendingMove(cycle[i]);
+diff --git a/patches/v8/src-compiler-backend-instruction.h.patch b/patches/v8/src-compiler-backend-instruction.h.patch
+new file mode 100644
+index 0000000..7afd366
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-instruction.h.patch
+@@ -0,0 +1,29 @@
++diff --git a/src/compiler/backend/instruction.h b/src/compiler/backend/instruction.h
++index 2f07ae1d85860442b31fb12bf6af55506503409f..aa7e7b9b1855a1e421c06198cba385ce374bea18 100644
++--- a/src/compiler/backend/instruction.h
+++++ b/src/compiler/backend/instruction.h
++@@ -796,6 +796,24 @@ uint64_t InstructionOperand::GetCanonicalizedValue() const {
++   return this->value_;
++ }
++ 
+++// Returns whether a general-purpose {LocationOperand} (register or stack slot)
+++// has a 32-bit representation. Note that {ElementSizeInBytes} cannot be used
+++// here because under pointer compression {kTagged*} and {kProtectedPointer}
+++// have 4-byte on-heap size but occupy full 64-bit registers and stack slots on
+++// 64-bit targets.
+++inline bool Is32BitOperand(const InstructionOperand& operand) {
+++  DCHECK(operand.IsLocationOperand());
+++  MachineRepresentation rep = LocationOperand::cast(operand).representation();
+++  if constexpr (kSystemPointerSize == 4) {
+++    return rep != MachineRepresentation::kWord64;
+++  }
+++  return rep == MachineRepresentation::kWord32 || IsAnyCompressed(rep);
+++}
+++
+++inline bool Is32BitOperand(const InstructionOperand* operand) {
+++  return Is32BitOperand(*operand);
+++}
+++
++ // Required for maps that don't care about machine type.
++ struct CompareOperandModuloType {
++   bool operator()(const InstructionOperand& a,
+diff --git a/patches/v8/src-compiler-backend-loong64-code-generator-loong64.cc.patch b/patches/v8/src-compiler-backend-loong64-code-generator-loong64.cc.patch
+new file mode 100644
+index 0000000..91bf38b
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-loong64-code-generator-loong64.cc.patch
+@@ -0,0 +1,19 @@
++diff --git a/src/compiler/backend/loong64/code-generator-loong64.cc b/src/compiler/backend/loong64/code-generator-loong64.cc
++index 680494ed7388a8ef60acb84dca796678a419f232..66c911d1b29d47df57f713b87eff14e9c7fe1847 100644
++--- a/src/compiler/backend/loong64/code-generator-loong64.cc
+++++ b/src/compiler/backend/loong64/code-generator-loong64.cc
++@@ -5566,14 +5566,6 @@ void CodeGenerator::SetPendingMove(MoveOperands* move) {
++ 
++ namespace {
++ 
++-bool Is32BitOperand(InstructionOperand* operand) {
++-  DCHECK(operand->IsStackSlot() || operand->IsRegister());
++-  MachineRepresentation mr = LocationOperand::cast(operand)->representation();
++-  return mr == MachineRepresentation::kWord32 ||
++-         mr == MachineRepresentation::kCompressed ||
++-         mr == MachineRepresentation::kCompressedPointer;
++-}
++-
++ // When we need only 32 bits, move only 32 bits, otherwise the destination
++ // register' upper 32 bits may contain dirty data.
++ bool Use32BitMove(InstructionOperand* source, InstructionOperand* destination) {
+diff --git a/patches/v8/src-compiler-backend-mips64-code-generator-mips64.cc.patch b/patches/v8/src-compiler-backend-mips64-code-generator-mips64.cc.patch
+new file mode 100644
+index 0000000..728417d
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-mips64-code-generator-mips64.cc.patch
+@@ -0,0 +1,19 @@
++diff --git a/src/compiler/backend/mips64/code-generator-mips64.cc b/src/compiler/backend/mips64/code-generator-mips64.cc
++index ef5c80650e0957f619a92363938518c5c9d64ba3..eaed38987e4764fd22fda1a5194631a1c722ed4f 100644
++--- a/src/compiler/backend/mips64/code-generator-mips64.cc
+++++ b/src/compiler/backend/mips64/code-generator-mips64.cc
++@@ -4636,14 +4636,6 @@ void CodeGenerator::SetPendingMove(MoveOperands* move) {
++ 
++ namespace {
++ 
++-bool Is32BitOperand(InstructionOperand* operand) {
++-  DCHECK(operand->IsStackSlot() || operand->IsRegister());
++-  MachineRepresentation mr = LocationOperand::cast(operand)->representation();
++-  return mr == MachineRepresentation::kWord32 ||
++-         mr == MachineRepresentation::kCompressed ||
++-         mr == MachineRepresentation::kCompressedPointer;
++-}
++-
++ // When we need only 32 bits, move only 32 bits, otherwise the destination
++ // register' upper 32 bits may contain dirty data.
++ bool Use32BitMove(InstructionOperand* source, InstructionOperand* destination) {
+diff --git a/patches/v8/src-compiler-backend-riscv-code-generator-riscv.cc.patch b/patches/v8/src-compiler-backend-riscv-code-generator-riscv.cc.patch
+new file mode 100644
+index 0000000..d45c37d
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-riscv-code-generator-riscv.cc.patch
+@@ -0,0 +1,18 @@
++diff --git a/src/compiler/backend/riscv/code-generator-riscv.cc b/src/compiler/backend/riscv/code-generator-riscv.cc
++index cf91893bc0efdacd5df0e5aab8b12553caa1980c..ba3fe1643925773ed62db43011e1881dcd820377 100644
++--- a/src/compiler/backend/riscv/code-generator-riscv.cc
+++++ b/src/compiler/backend/riscv/code-generator-riscv.cc
++@@ -5825,13 +5825,6 @@ void CodeGenerator::SetPendingMove(MoveOperands* move) {
++ }
++ 
++ namespace {
++-bool Is32BitOperand(InstructionOperand* operand) {
++-  DCHECK(operand->IsStackSlot() || operand->IsRegister());
++-  MachineRepresentation mr = LocationOperand::cast(operand)->representation();
++-  return mr == MachineRepresentation::kWord32 ||
++-         mr == MachineRepresentation::kCompressed ||
++-         mr == MachineRepresentation::kCompressedPointer;
++-}
++ 
++ // When we need only 32 bits, move only 32 bits, otherwise the destination
++ // register' upper 32 bits may contain dirty data.
+diff --git a/patches/v8/src-compiler-backend-x64-code-generator-x64.cc.patch b/patches/v8/src-compiler-backend-x64-code-generator-x64.cc.patch
+new file mode 100644
+index 0000000..cde68c2
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-x64-code-generator-x64.cc.patch
+@@ -0,0 +1,19 @@
++diff --git a/src/compiler/backend/x64/code-generator-x64.cc b/src/compiler/backend/x64/code-generator-x64.cc
++index 5d387a41f68203e6aed6a34f1838b3f1df0c531f..1f11632794561baceb5ee99baf244d7cc3586dde 100644
++--- a/src/compiler/backend/x64/code-generator-x64.cc
+++++ b/src/compiler/backend/x64/code-generator-x64.cc
++@@ -8832,14 +8832,6 @@ void CodeGenerator::SetPendingMove(MoveOperands* move) {
++ 
++ namespace {
++ 
++-bool Is32BitOperand(InstructionOperand* operand) {
++-  DCHECK(operand->IsStackSlot() || operand->IsRegister());
++-  MachineRepresentation mr = LocationOperand::cast(operand)->representation();
++-  return mr == MachineRepresentation::kWord32 ||
++-         mr == MachineRepresentation::kCompressed ||
++-         mr == MachineRepresentation::kCompressedPointer;
++-}
++-
++ // When we need only 32 bits, move only 32 bits. Benefits:
++ // - Save a byte here and there (depending on the destination
++ //   register; "movl eax, ..." is smaller than "movq rax, ...").
+diff --git a/patches/v8/test-cctest-compiler-test-code-generator.cc.patch b/patches/v8/test-cctest-compiler-test-code-generator.cc.patch
+new file mode 100644
+index 0000000..2a1fc4e
+--- /dev/null
++++ b/patches/v8/test-cctest-compiler-test-code-generator.cc.patch
+@@ -0,0 +1,203 @@
++diff --git a/test/cctest/compiler/test-code-generator.cc b/test/cctest/compiler/test-code-generator.cc
++index 26f332b2ecf8331fc9ca20bfc3cbd640bfd8e144..11236137b4df099271098438a849d6a6a5414536 100644
++--- a/test/cctest/compiler/test-code-generator.cc
+++++ b/test/cctest/compiler/test-code-generator.cc
++@@ -2011,6 +2011,198 @@ TEST(GapMoveCycleMixedRep) {
++ }
++ #endif
++ 
+++#if V8_TARGET_ARCH_64_BIT
+++TEST(GapMoveCycleMixedGpRep) {
+++  enum class CycleKind {
+++    kRegToRegWithScratchReg,
+++    kRegToRegWithStackTemp,
+++    kStackToRegWithScratchReg,
+++  };
+++
+++  HandleAndZoneScope scope;
+++  Isolate* isolate = scope.main_isolate();
+++
+++  auto RunCycleCheck = [isolate](MachineRepresentation src_rep,
+++                                 MachineRepresentation dst_rep, CycleKind kind,
+++                                 uint64_t payload) {
+++    HandleScope handles(isolate);
+++    Zone local_zone(isolate->allocator(), ZONE_NAME);
+++    Zone* zone = &local_zone;
+++
+++    MachineSignature::Builder sig_builder(zone, 1, 0);
+++    sig_builder.AddReturn(MachineType::Uint64());
+++    CallDescriptor* desc = Linkage::GetSimplifiedCDescriptor(
+++        zone, sig_builder.Get(), CallDescriptor::kInitializeRootRegister);
+++    Linkage linkage(desc);
+++
+++    ZoneVector<InstructionBlock*> blocks(zone);
+++    InstructionBlock* block = zone->New<InstructionBlock>(
+++        zone, RpoNumber::FromInt(0), RpoNumber::Invalid(), RpoNumber::Invalid(),
+++        RpoNumber::Invalid(), false, false);
+++    block->mark_needs_frame();
+++    block->mark_must_construct_frame();
+++    blocks.push_back(block);
+++
+++    InstructionSequence sequence(isolate, zone, &blocks);
+++    Frame frame(desc->CalculateFixedFrameSize(CodeKind::FOR_TESTING), zone);
+++
+++    int s0_index = frame.AllocateSpillSlot(kSystemPointerSize);
+++    int s1_index = frame.AllocateSpillSlot(kSystemPointerSize);
+++
+++    const RegisterConfiguration* config = RegisterConfiguration::Default();
+++    int r0_code = -1;
+++    int r1_code = -1;
+++    for (int i = 0; i < config->num_allocatable_general_registers(); ++i) {
+++      int code = config->GetAllocatableGeneralCode(i);
+++      if (code == kReturnRegister0.code()) continue;
+++      if (r0_code == -1) {
+++        r0_code = code;
+++      } else {
+++        r1_code = code;
+++        break;
+++      }
+++    }
+++    CHECK_NE(r0_code, -1);
+++    CHECK_NE(r1_code, -1);
+++
+++    BitVector* allocated_regs =
+++        zone->New<BitVector>(config->num_general_registers(), zone);
+++    allocated_regs->Add(r0_code);
+++    allocated_regs->Add(r1_code);
+++    for (Register reg : desc->CalleeSavedRegisters()) {
+++      if (config->IsAllocatableGeneralCode(reg.code())) {
+++        allocated_regs->Add(reg.code());
+++        break;
+++      }
+++    }
+++    frame.SetAllocatedRegisters(allocated_regs);
+++    frame.SetAllocatedDoubleRegisters(
+++        zone->New<BitVector>(config->num_double_registers(), zone));
+++
+++    sequence.StartBlock(RpoNumber::FromInt(0));
+++
+++    auto AddU64Constant = [&](uint64_t val) {
+++      int vreg = sequence.NextVirtualRegister();
+++      sequence.AddConstant(vreg, Constant(static_cast<int64_t>(val)));
+++      return ConstantOperand(vreg);
+++    };
+++
+++    ConstantOperand payload_op = AddU64Constant(payload);
+++    ConstantOperand other0_op = AddU64Constant(0x1122334455667788ULL);
+++    ConstantOperand other1_op = AddU64Constant(0x99AABBCCDDEEFF00ULL);
+++    ConstantOperand other2_op = AddU64Constant(0x2468ACE013579BDFULL);
+++
+++    AllocatedOperand r0_w64(LocationOperand::REGISTER,
+++                            MachineRepresentation::kWord64, r0_code);
+++    AllocatedOperand r0_src(LocationOperand::REGISTER, src_rep, r0_code);
+++    AllocatedOperand r1_w64(LocationOperand::REGISTER,
+++                            MachineRepresentation::kWord64, r1_code);
+++    AllocatedOperand r1_dst(LocationOperand::REGISTER, dst_rep, r1_code);
+++    AllocatedOperand s0_w64(LocationOperand::STACK_SLOT,
+++                            MachineRepresentation::kWord64, s0_index);
+++    AllocatedOperand s0_src(LocationOperand::STACK_SLOT, src_rep, s0_index);
+++    AllocatedOperand s1_w64(LocationOperand::STACK_SLOT,
+++                            MachineRepresentation::kWord64, s1_index);
+++
+++    Instruction* init_nop = Instruction::New(zone, kArchNop);
+++    ParallelMove* init_moves =
+++        init_nop->GetOrCreateParallelMove(Instruction::START, zone);
+++    if (kind == CycleKind::kStackToRegWithScratchReg) {
+++      init_moves->AddMove(payload_op, s0_w64);
+++      init_moves->AddMove(other0_op, r0_w64);
+++    } else {
+++      init_moves->AddMove(payload_op, r0_w64);
+++      init_moves->AddMove(other0_op, s0_w64);
+++    }
+++    init_moves->AddMove(other1_op, r1_w64);
+++    init_moves->AddMove(other2_op, s1_w64);
+++    sequence.AddInstruction(init_nop);
+++
+++    Instruction* cycle_nop = Instruction::New(zone, kArchNop);
+++    ParallelMove* cycle_moves =
+++        cycle_nop->GetOrCreateParallelMove(Instruction::START, zone);
+++    // Order each cycle so that the mixed-width move into r1_dst is the direct
+++    // blocker of cycle_moves[0] and therefore becomes cycle.back() in
+++    // GapResolver::PerformCycle.
+++    switch (kind) {
+++      case CycleKind::kRegToRegWithScratchReg:
+++        cycle_moves->AddMove(r1_w64, r0_w64);
+++        cycle_moves->AddMove(r0_src, r1_dst);
+++        break;
+++      case CycleKind::kRegToRegWithStackTemp:
+++        cycle_moves->AddMove(s1_w64, r0_w64);
+++        cycle_moves->AddMove(s0_w64, s1_w64);
+++        cycle_moves->AddMove(r1_w64, s0_w64);
+++        cycle_moves->AddMove(r0_src, r1_dst);
+++        break;
+++      case CycleKind::kStackToRegWithScratchReg:
+++        cycle_moves->AddMove(r1_w64, s0_w64);
+++        cycle_moves->AddMove(s0_src, r1_dst);
+++        break;
+++    }
+++    sequence.AddInstruction(cycle_nop);
+++
+++    InstructionOperand ret_inputs[] = {
+++        ImmediateOperand(ImmediateOperand::INLINE_INT32, 0),
+++        AllocatedOperand(LocationOperand::REGISTER,
+++                         MachineRepresentation::kWord64,
+++                         kReturnRegister0.code())};
+++    Instruction* ret_instr =
+++        Instruction::New(zone, kArchRet, 0, nullptr, arraysize(ret_inputs),
+++                         ret_inputs, 0, nullptr);
+++    ParallelMove* pre_ret =
+++        ret_instr->GetOrCreateParallelMove(Instruction::START, zone);
+++    pre_ret->AddMove(r1_w64, AllocatedOperand(LocationOperand::REGISTER,
+++                                              MachineRepresentation::kWord64,
+++                                              kReturnRegister0.code()));
+++
+++    sequence.AddInstruction(ret_instr);
+++    sequence.EndBlock(RpoNumber::FromInt(0));
+++
+++    OptimizedCompilationInfo info(base::ArrayVector("gap_cycle_mixed_gp_rep"),
+++                                  zone, CodeKind::FOR_TESTING);
+++    CodeGenerator codegen(zone, &frame, &linkage, &sequence, &info, isolate,
+++                          std::optional<OsrHelper>(), kNoSourcePosition,
+++                          nullptr, AssemblerOptions::Default(isolate),
+++                          Builtin::kNoBuiltinId, 0, 0);
+++    codegen.AssembleCode();
+++    DirectHandle<Code> code = codegen.FinalizeCode().ToHandleChecked();
+++    auto fn = GeneratedCode<uint64_t>::FromCode(isolate, *code);
+++    CHECK_EQ(payload, fn.Call());
+++  };
+++
+++  static constexpr uint64_t kFull64Payload = 0x7123456789ABCDEFULL;
+++  // Bit 31 set with zero upper 32 bits, to catch accidental sign-extension of
+++  // zero-extended 32-bit values moved into 64-bit destinations.
+++  static constexpr uint64_t kZeroExtended32Payload = 0x0000000089ABCDEFULL;
+++
+++  for (CycleKind kind :
+++       {CycleKind::kRegToRegWithScratchReg, CycleKind::kRegToRegWithStackTemp,
+++        CycleKind::kStackToRegWithScratchReg}) {
+++    // 64-bit source to 32-bit destination must preserve upper 32 bits.
+++    RunCycleCheck(MachineRepresentation::kWord64,
+++                  MachineRepresentation::kWord32, kind, kFull64Payload);
+++    RunCycleCheck(MachineRepresentation::kSandboxedPointer,
+++                  MachineRepresentation::kWord32, kind, kFull64Payload);
+++    RunCycleCheck(MachineRepresentation::kTagged,
+++                  MachineRepresentation::kWord32, kind, kFull64Payload);
+++    RunCycleCheck(MachineRepresentation::kTaggedSigned,
+++                  MachineRepresentation::kWord32, kind, kFull64Payload);
+++#ifdef V8_COMPRESS_POINTERS
+++    RunCycleCheck(MachineRepresentation::kWord64,
+++                  MachineRepresentation::kCompressed, kind, kFull64Payload);
+++    RunCycleCheck(MachineRepresentation::kTagged,
+++                  MachineRepresentation::kCompressed, kind, kFull64Payload);
+++#endif
+++    // 32-bit source holding a zero-extended 64-bit value to 64-bit destination.
+++    RunCycleCheck(MachineRepresentation::kWord32,
+++                  MachineRepresentation::kWord64, kind, kZeroExtended32Payload);
+++    RunCycleCheck(MachineRepresentation::kWord32,
+++                  MachineRepresentation::kTagged, kind, kZeroExtended32Payload);
+++  }
+++}
+++#endif  // V8_TARGET_ARCH_64_BIT
+++
++ #if V8_ENABLE_WEBASSEMBLY
++ namespace {
++ 
+diff --git a/patches/v8/test-mjsunit-wasm-regress-585624832.js.patch b/patches/v8/test-mjsunit-wasm-regress-585624832.js.patch
+new file mode 100644
+index 0000000..f677f69
+--- /dev/null
++++ b/patches/v8/test-mjsunit-wasm-regress-585624832.js.patch
+@@ -0,0 +1,67 @@
++diff --git a/test/mjsunit/wasm/regress-585624832.js b/test/mjsunit/wasm/regress-585624832.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..35d6c6cebb31140dd039fd821f2e4ec042e89ed0
++--- /dev/null
+++++ b/test/mjsunit/wasm/regress-585624832.js
++@@ -0,0 +1,61 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --no-liftoff
+++
+++d8.file.execute('test/mjsunit/wasm/wasm-module-builder.js');
+++
+++const builder = new WasmModuleBuilder();
+++const array = builder.addArray(kWasmI64);
+++const arrayRef = wasmRefNullType(array);
+++builder.addMemory(1, 1, false);
+++const get = i => [kExprLocalGet, i];
+++const set = i => [kExprLocalSet, i];
+++const numbers = [0, 1, 2, 3, 4];
+++const old = 8, shifted = 9, firstNumber = 10, remainder = 16, len = 17;
+++
+++// The cmpxchgs and division constrain rax and rdx. The i64 source of the
+++// shift must keep its upper 32 bits through the move cycle into its
+++// same-as-input Word32 result.
+++const make = builder.addFunction('make',
+++    makeSig([kWasmI64, kWasmI64, kWasmI64, ...numbers.map(() => kWasmF64)],
+++            [arrayRef])).addLocals(kWasmI64, 9).addLocals(kWasmI32, 1);
+++const cmpxchg = [
+++  kExprI32Const, 0, ...get(firstNumber + 2), ...get(firstNumber),
+++  kAtomicPrefix, kExprI64AtomicCompareExchange, 3, 0
+++];
+++make.addBody([
+++  ...get(2), ...get(0), kExprI64RemU, ...set(remainder),
+++  ...get(remainder), kExprI64Const, 32, kExprI64ShrU, ...set(shifted),
+++  ...numbers.flatMap(
+++      i => [...get(3 + i), kExprI64ReinterpretF64, ...set(firstNumber + i)]),
+++  ...cmpxchg, ...set(old),
+++  ...get(shifted), kExprI32ConvertI64, ...set(len),
+++  ...cmpxchg, kExprDrop,
+++  ...get(old), ...get(firstNumber), kExprI64DivU,
+++  ...numbers.slice(1).flatMap(i => [...get(firstNumber + i), kExprI64Add]),
+++  ...get(remainder), kExprI64Xor, ...get(len), kGCPrefix, kExprArrayNew, array
+++]).exportFunc();
+++
+++builder.addFunction('array_len', makeSig([arrayRef], [kWasmI32]))
+++    .addBody([kExprLocalGet, 0, kGCPrefix, kExprArrayLen])
+++    .exportFunc();
+++
+++builder.addFunction('array_get', makeSig([arrayRef, kWasmI32], [kWasmI64]))
+++    .addBody([kExprLocalGet, 0, kExprLocalGet, 1, kGCPrefix, kExprArrayGet, array])
+++    .exportFunc();
+++
+++const bits = new BigInt64Array(1);
+++const number = new Float64Array(bits.buffer);
+++const inputs = numbers.map(i => {
+++  bits[0] = BigInt(i + 1);
+++  return number[0];
+++});
+++const wasm = builder.instantiate().exports;
+++
+++const x = (128n << 32n) | 0x12345678n;
+++const arr = wasm.make(-1n, 0n, x, ...inputs);
+++assertEquals(128, wasm.array_len(arr));
+++assertEquals(x ^ 14n, wasm.array_get(arr, 0));
+++assertEquals(x ^ 14n, wasm.array_get(arr, 127));
+-- 
+2.43.0
+

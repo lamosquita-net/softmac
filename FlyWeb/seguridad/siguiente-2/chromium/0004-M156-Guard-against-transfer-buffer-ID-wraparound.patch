@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: kylechar <kylechar@chromium.org>
+Date: Mon, 23 Nov 2026 15:58:49 +0000
+Subject: [PATCH] [M156] Guard against transfer buffer ID wraparound
+
+Original change's description:
+> Guard against transfer buffer ID wraparound
+>
+> If the positive int32 space is exhausted just crash. There should never
+> be enough transfer buffer allocations to exhaust the ID space so this is
+> a defensive guard against intentionally exhausting the ID space to cause
+> wrap around. Wraparound could cause ID confusion and potential give a
+> site access to resources for a different site hosted in the same
+> renderer process.
+>
+> Bug: 586980309
+> Change-Id: I5dafb8d99fb517b7fef82fbe37453fd534c1c1f0
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8845478
+> Reviewed-by: Maggie Chen <magchen@chromium.org>
+> Commit-Queue: Kyle Charbonneau <kylechar@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1750010}
+
+(cherry picked from commit 491d595950423f4efa1723b17eedc3f2a7ac32f2)
+
+Bug: 588738943,586980309
+Change-Id: I5dafb8d99fb517b7fef82fbe37453fd534c1c1f0
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8853983
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2384}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+FlyWeb: the 8078 (M156) merge b843017f70, applied unchanged to the 156
+tree.
+---
+ gpu/command_buffer/common/buffer.cc | 5 ++++-
+ gpu/command_buffer/common/buffer.h  | 3 ++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/gpu/command_buffer/common/buffer.cc b/gpu/command_buffer/common/buffer.cc
+index eea27da328..4101af5d92 100644
+--- a/gpu/command_buffer/common/buffer.cc
++++ b/gpu/command_buffer/common/buffer.cc
+@@ -7,6 +7,7 @@
+ #include <stddef.h>
+ #include <stdint.h>
+ 
++#include <limits>
+ #include <ostream>
+ 
+ #include "base/atomic_sequence_num.h"
+@@ -126,7 +127,9 @@ uint32_t Buffer::GetRemainingSize(uint32_t data_offset) const {
+ 
+ int32_t GetNextBufferId() {
+   // 0 is a reserved value.
+-  return g_next_buffer_id.GetNext() + 1;
++  int32_t id = g_next_buffer_id.GetNext() + 1;
++  CHECK_NE(id, std::numeric_limits<int32_t>::max());
++  return id;
+ }
+ 
+ base::trace_event::MemoryAllocatorDumpGuid GetBufferGUIDForTracing(
+diff --git a/gpu/command_buffer/common/buffer.h b/gpu/command_buffer/common/buffer.h
+index 4dba192b0d..0f9b326fd8 100644
+--- a/gpu/command_buffer/common/buffer.h
++++ b/gpu/command_buffer/common/buffer.h
+@@ -136,7 +136,8 @@ inline scoped_refptr<Buffer> MakeMemoryBuffer(uint32_t size,
+ }
+ 
+ // Generates a process unique buffer ID which can be safely used with
+-// GetBufferGUIDForTracing.
++// GetBufferGUIDForTracing. The return ID will be a positive non-zero integer.
++// The process will terminate if the positive ID space is exhausted.
+ GPU_COMMAND_BUFFER_COMMON_EXPORT int32_t GetNextBufferId();
+ 
+ // Generates GUID which can be used to trace buffer using an Id.
+-- 
+2.43.0
+
