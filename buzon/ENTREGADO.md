@@ -1093,3 +1093,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/NUBE-MOTOR/20261123-1857-COORDINACION-61-hls.md → MOTOR-47 (nube) · 2026-11-23 18:57 UTC · copia escrita del SendMessage
 - buzon/NUBE-MOTOR/20261123-1900-COORDINACION-61-1183.md → MOTOR-47 (nube) · 2026-11-23 19:00 UTC · copia escrita del SendMessage
 - buzon/LOCAL/20261123-1908-COORDINACION-61-ocho-dependencias.md → LOCAL (LOCAL-24, cuando abra) · 2026-11-23 19:08 UTC · en la nota de relevo de LOCAL-23
+- buzon/ARQUITECTURA/20261123-1912-COORDINACION-61-escala-1.md → Arquitectura FlyWeb monorepo · 2026-11-23 19:12 UTC · entregado por COORDINACIÓN-61 (SendMessage)
