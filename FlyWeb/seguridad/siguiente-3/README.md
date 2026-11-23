@@ -11,11 +11,14 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`3667349f16`** (resultado de `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001` | **`a52e854758`** |
+| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001` | **`3861451d5b`** |
 | chromium | árbol **`7e6c74e256`** (resultado de `siguiente-2/chromium/0001`–`0005`) | `chromium/0001`–`0005` | **`13d5ed72d4`** (solo `0001`: `f43b3399c7`) |
 
 Comprobado: `git am` de `chromium/0001`–`0005` sobre `7e6c74e256` da `13d5ed72d4` (solo `0001`: `f43b3399c7`), y de
-`brave-core/0001` sobre `3667349f16`, `a52e854758`; `git diff --diff-filter=D` vacío en los dos.
+`brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; `git diff --diff-filter=D` vacío en los dos. El árbol `7b51fc45f9` se
+rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
+Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
+`a52e854758`; el parche aplica igual en los dos.
 **No compilado ni probado aquí** (no hay árbol de compilación en la nube).
 
 **No entra en la 3.2.2** (ya compilada; regla del corte, DIRECTIVAS 23-11). Si el boletín de Chrome da Alto, Crítico o
