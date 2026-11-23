@@ -70,3 +70,13 @@ Casi siempre un cierre de sesión escribe otra cookie del mismo host, y eso ya l
 
 **Para LOCAL:** `net_unittests --gtest_filter='SQLitePersistentCookieStoreTest.*'` en la 7,1.
 En U5, la prueba con el llavero cerrado y denegado: ninguna cookie borrada.
+
+## Revisados y no aplicables
+
+- **V8 15.9 `a38f990ac8`** ([M159] [turbolev] Remap replaced header phis in peeled loop backedge KNA; crbug
+  587040689, gravedad no publicada; 15.9.128.28). El código afectado (`MaglevLoopPeeler::RewireDownstreamPhiRefs`)
+  está en la 15.6 casi igual: el parche entra en `maglev-loop-peeler.cc` y en el `.h`, pero no en el `.cc` de KNA,
+  que en la 15.6 es más antiguo. **No se porta:** el peeler solo corre en `turbolev-frontend-pipeline.cc`, y
+  `turbolev` está apagado en la 15.6 (`false`), Chrome 156 no lo enciende desde gin, y el estudio `V8Turbolev` de
+  `fieldtrial_testing_config` no se aplica porque compilamos con `disable_fieldtrial_testing_config = true`. Se
+  revisa de nuevo si algún día se enciende turbolev.
