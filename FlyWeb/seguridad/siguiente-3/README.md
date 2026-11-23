@@ -18,6 +18,9 @@ Comprobado: `git am` de `chromium/0001`–`0005` sobre `7e6c74e256` da `13d5ed72
 `brave-core/0001` sobre `3667349f16`, `a52e854758`; `git diff --diff-filter=D` vacío en los dos.
 **No compilado ni probado aquí** (no hay árbol de compilación en la nube).
 
+**No entra en la 3.2.2** (ya compilada; regla del corte, DIRECTIVAS 23-11). Si el boletín de Chrome da Alto, Crítico o
+KEV a alguno de estos arreglos, se avisa enseguida a COORDINACIÓN para una 3.2.3 rápida.
+
 **Época de caché de V8:** la 3.2.2 la deja en 40; `brave-core/0001` la sube a **41**, una vez para toda la tanda.
 
 ## `chromium/0001`: [M159] Blink, texto de scripts «parkable» fijado entre hilos (crbug 584952095)
@@ -116,5 +119,6 @@ configuración de Linux compila el código.
 ## Revisados y no aplicables
 
 - **8078 `b978da9de9`**: roll de V8 a 15.6.75.80, que solo trae `4db782064e` (ya en la 3.2.2, `siguiente-2/brave-core/0006`).
-- **8154 `10650dd166`**: roll de Dawn en M159 (`e2072d1916..18789416e6`). Sin revisar desde aquí (`dawn.googlesource.com`
-  bloqueado); pasado a COORDINACIÓN.
+- **8154 `10650dd166`**: roll de Dawn en M159 con un solo commit, `18789416e6` «[M159] [opengl] Limit texture image units
+  to 13 on PowerVR» (585802696, 580872855). Es el backend OpenGL de Dawn con GPU PowerVR: **no aplica** a Mac (Metal) ni a
+  nuestro Linux de escritorio. Lo revisó COORDINACIÓN-61 desde la 7,1 (buzón, nota `…2208-COORDINACION-61-siguiente-3`).
