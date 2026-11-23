@@ -1,0 +1,1125 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Mon, 23 Nov 2026 18:49:30 +0000
+Subject: [PATCH] v8: handle multi-slot stack aliasing in move optimization
+ (4db782064e, crbug 581962456)
+
+[M156] register allocator fix that V8 15.6 shipped as 15.6.75.80. It
+applies to 15.6.75.66 on top of the previous commit (5dde7daf0a), whose
+instruction.h change is in its context; that patch now holds both. With
+the unittests and the mjsunit test regress/wasm/regress-simd-581962456.js.
+The cache epoch bump to 40 covers it. Notes in
+patches/v8/FLYWEB-SECURITY.md.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kdhDkMC93UBtLuPkF
+---
+ patches/v8/FLYWEB-SECURITY.md                 |  18 ++
+ .../src-compiler-backend-instruction.cc.patch | 114 ++++++++
+ .../src-compiler-backend-instruction.h.patch  |  63 ++++-
+ ...c-compiler-backend-move-optimizer.cc.patch | 102 +++++++
+ ...ckend-register-allocator-verifier.cc.patch | 112 ++++++++
+ ...ackend-register-allocator-verifier.h.patch |  67 +++++
+ ...gress-wasm-regress-simd-581962456.js.patch | 267 ++++++++++++++++++
+ ...iler-backend-instruction-unittest.cc.patch |  89 ++++++
+ ...-regalloc-move-optimizer-unittest.cc.patch | 188 ++++++++++++
+ 9 files changed, 1018 insertions(+), 2 deletions(-)
+ create mode 100644 patches/v8/src-compiler-backend-instruction.cc.patch
+ create mode 100644 patches/v8/src-compiler-backend-move-optimizer.cc.patch
+ create mode 100644 patches/v8/src-compiler-backend-register-allocator-verifier.cc.patch
+ create mode 100644 patches/v8/src-compiler-backend-register-allocator-verifier.h.patch
+ create mode 100644 patches/v8/test-mjsunit-regress-wasm-regress-simd-581962456.js.patch
+ create mode 100644 patches/v8/test-unittests-compiler-backend-instruction-unittest.cc.patch
+ create mode 100644 patches/v8/test-unittests-compiler-regalloc-move-optimizer-unittest.cc.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index c21e0d7..5b2e904 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,21 @@
++# FlyWeb: release after 3.2.1 (softmac `seguridad/siguiente-2`), V8 fix 4db782064e (crbug 581962456), the M156 merge of V8 15.6.75.80
++
++SEGURIDAD-PORTES-33, 23-11-2026 (softmac `FlyWeb/seguridad/siguiente-2/brave-core/0006`). **Merged to V8 15.6
++upstream** as 15.6.75.80 (bugs 587682266 and 581962456; cherry-pick of d560c735c7 from main). Severity not published.
++
++- `ParallelMove::PrepareInsertAfter` and `MoveOptimizer`'s `OperandSet` assumed stack operands only alias when their
++  slot indices match. In tail calls with `stack_param_delta > 0`, a multi-slot outgoing argument (Simd128/Simd256)
++  can overlap several narrower caller spill slots; a second overwritten spill move could survive, and the move
++  optimizer could miss the overlap, giving wrong moves (wrong values or stack corruption). Now multi-slot stack
++  aliasing is checked by slot ranges, and the register allocator verifier knows about it.
++- Applies to 15.6.75.66 on top of `0004` (5dde7daf0a): upstream's `instruction.h` context already has that change.
++  `src-compiler-backend-instruction.h.patch` now holds both changes, from the pristine 15.6.75.66 file. No other
++  `patches/v8` file touches the rest. Plus the unittests and the mjsunit test `regress/wasm/regress-simd-581962456.js`.
++
++**Cache epoch:** this changes generated code; covered by the bump to 40 in `0002`.
++
++To check (D8-LINUX): mjsunit `regress/wasm/regress-simd-581962456`; `v8_unittests --gtest_filter='*MoveOptimizer*:*InstructionTest*'`.
++
+ # FlyWeb: release after 3.2.1 (softmac `seguridad/siguiente-2`), V8 API 229a53b537 (v8::Object::TryGetWithNoSideEffects), the M156 merge needed by the Blink fix for crbug 574749469
+ 
+ SEGURIDAD-PORTES-33, 23-11-2026 (softmac `FlyWeb/seguridad/siguiente-2/brave-core/0005`). **Merged to V8 15.6
+diff --git a/patches/v8/src-compiler-backend-instruction.cc.patch b/patches/v8/src-compiler-backend-instruction.cc.patch
+new file mode 100644
+index 0000000..f566e79
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-instruction.cc.patch
+@@ -0,0 +1,114 @@
++diff --git a/src/compiler/backend/instruction.cc b/src/compiler/backend/instruction.cc
++index c9207826f070b494f7e49880a846c8ae1388e2c6..3d8a4a6ea077df46329a2abd26e71018947ef02b 100644
++--- a/src/compiler/backend/instruction.cc
+++++ b/src/compiler/backend/instruction.cc
++@@ -9,7 +9,6 @@
++ 
++ #include "src/base/iterator.h"
++ #include "src/base/logging.h"
++-#include "src/codegen/aligned-slot-allocator.h"
++ #include "src/codegen/interface-descriptors.h"
++ #include "src/codegen/machine-type.h"
++ #include "src/codegen/register-configuration.h"
++@@ -90,55 +89,34 @@ FlagsCondition CommuteFlagsCondition(FlagsCondition condition) {
++   UNREACHABLE();
++ }
++ 
++-bool InstructionOperand::InterferesWith(const InstructionOperand& other) const {
++-  const bool combine_fp_aliasing = kFPAliasing == AliasingKind::kCombine &&
++-                                   this->IsFPLocationOperand() &&
++-                                   other.IsFPLocationOperand();
++-  const bool stack_slots = this->IsAnyStackSlot() && other.IsAnyStackSlot();
++-  if (!combine_fp_aliasing && !stack_slots) {
++-    return EqualsCanonicalized(other);
++-  }
++-  const LocationOperand& loc = *LocationOperand::cast(this);
++-  const LocationOperand& other_loc = LocationOperand::cast(other);
++-  MachineRepresentation rep = loc.representation();
++-  MachineRepresentation other_rep = other_loc.representation();
++-  LocationOperand::LocationKind kind = loc.location_kind();
++-  LocationOperand::LocationKind other_kind = other_loc.location_kind();
++-  if (kind != other_kind) return false;
++-
++-  if (combine_fp_aliasing && !stack_slots) {
+++bool InstructionOperand::InterferesWithSlow(
+++    const InstructionOperand& other) const {
+++  DCHECK(HasComplexAliasing() || other.HasComplexAliasing());
+++  if (kFPAliasing == AliasingKind::kCombine && IsFPRegister() &&
+++      other.IsFPRegister()) {
+++    const LocationOperand& loc = *LocationOperand::cast(this);
+++    const LocationOperand& other_loc = LocationOperand::cast(other);
+++    MachineRepresentation rep = loc.representation();
+++    MachineRepresentation other_rep = other_loc.representation();
++     if (rep == other_rep) return EqualsCanonicalized(other);
++-    DCHECK_EQ(kind, LocationOperand::REGISTER);
++     // FP register-register interference.
++     return GetRegConfig()->AreAliases(rep, loc.register_code(), other_rep,
++                                       other_loc.register_code());
++   }
++-
++-  DCHECK(stack_slots);
++-  int num_slots =
++-      AlignedSlotAllocator::NumSlotsForWidth(ElementSizeInBytes(rep));
++-  int num_slots_other =
++-      AlignedSlotAllocator::NumSlotsForWidth(ElementSizeInBytes(other_rep));
++-  const bool complex_stack_slot_interference =
++-      (num_slots > 1 || num_slots_other > 1);
++-  if (!complex_stack_slot_interference) {
++-    return EqualsCanonicalized(other);
+++  if (IsAnyStackSlot() && other.IsAnyStackSlot()) {
+++    // Complex multi-slot operand interference:
+++    // - slots of different FP reps can alias because the gap resolver may break
+++    //   a move into 2 or 4 equivalent smaller moves,
+++    // - stack layout can be rearranged for tail calls.
+++    const LocationOperand& loc = *LocationOperand::cast(this);
+++    const LocationOperand& other_loc = LocationOperand::cast(other);
+++    int index_hi = loc.index();
+++    int index_lo = index_hi - loc.NumStackSlots() + 1;
+++    int other_index_hi = other_loc.index();
+++    int other_index_lo = other_index_hi - other_loc.NumStackSlots() + 1;
+++    return other_index_hi >= index_lo && index_hi >= other_index_lo;
++   }
++-
++-  // Complex multi-slot operand interference:
++-  // - slots of different FP reps can alias because the gap resolver may break a
++-  // move into 2 or 4 equivalent smaller moves,
++-  // - stack layout can be rearranged for tail calls
++-  DCHECK_EQ(LocationOperand::STACK_SLOT, kind);
++-  int index_hi = loc.index();
++-  int index_lo =
++-      index_hi -
++-      AlignedSlotAllocator::NumSlotsForWidth(ElementSizeInBytes(rep)) + 1;
++-  int other_index_hi = other_loc.index();
++-  int other_index_lo =
++-      other_index_hi -
++-      AlignedSlotAllocator::NumSlotsForWidth(ElementSizeInBytes(other_rep)) + 1;
++-  return other_index_hi >= index_lo && index_hi >= other_index_lo;
+++  return false;
++ }
++ 
++ bool LocationOperand::IsCompatible(LocationOperand* op) {
++@@ -337,8 +315,8 @@ bool ParallelMove::IsRedundant() const {
++ 
++ void ParallelMove::PrepareInsertAfter(
++     MoveOperands* move, ZoneVector<MoveOperands*>* to_eliminate) const {
++-  bool no_aliasing = kFPAliasing != AliasingKind::kCombine ||
++-                     !move->destination().IsFPLocationOperand();
+++  if (move->IsRedundant()) return;
+++  bool no_aliasing = !move->destination().HasComplexAliasing();
++   MoveOperands* replacement = nullptr;
++   MoveOperands* eliminated = nullptr;
++   for (MoveOperands* curr : *this) {
++@@ -349,7 +327,11 @@ void ParallelMove::PrepareInsertAfter(
++       DCHECK(!replacement);
++       replacement = curr;
++       if (no_aliasing && eliminated != nullptr) break;
++-    } else if (curr->destination().InterferesWith(move->destination())) {
+++    }
+++    // Not `else if`: a multi-slot stack operand can both match `move`'s source
+++    // and interfere with `move`'s destination if `move` shifts it by a partial
+++    // width (e.g., `[fp_stack:2|s128] = [fp_stack:1|s128]` overlaps on slot 1).
+++    if (curr->destination().InterferesWith(move->destination())) {
++       // We can eliminate curr, since move overwrites at least a part of its
++       // destination, implying its value is no longer live.
++       eliminated = curr;
+diff --git a/patches/v8/src-compiler-backend-instruction.h.patch b/patches/v8/src-compiler-backend-instruction.h.patch
+index 7afd366..69483c4 100644
+--- a/patches/v8/src-compiler-backend-instruction.h.patch
++++ b/patches/v8/src-compiler-backend-instruction.h.patch
+@@ -1,11 +1,55 @@
+ diff --git a/src/compiler/backend/instruction.h b/src/compiler/backend/instruction.h
+-index 2f07ae1d85860442b31fb12bf6af55506503409f..aa7e7b9b1855a1e421c06198cba385ce374bea18 100644
++index 2f07ae1d85860442b31fb12bf6af55506503409f..1846e5781d65a13f521032ffc6d9e2a48acf58d8 100644
+ --- a/src/compiler/backend/instruction.h
+ +++ b/src/compiler/backend/instruction.h
+-@@ -796,6 +796,24 @@ uint64_t InstructionOperand::GetCanonicalizedValue() const {
++@@ -148,7 +148,8 @@ class V8_EXPORT_PRIVATE INSTRUCTION_OPERAND_ALIGN InstructionOperand {
++     return this->GetCanonicalizedValue() < that.GetCanonicalizedValue();
++   }
++ 
++-  bool InterferesWith(const InstructionOperand& other) const;
+++  inline bool HasComplexAliasing() const;
+++  inline bool InterferesWith(const InstructionOperand& other) const;
++ 
++   // APIs to aid debugging. For general-stream APIs, use operator<<.
++   void Print() const;
++@@ -168,6 +169,9 @@ class V8_EXPORT_PRIVATE INSTRUCTION_OPERAND_ALIGN InstructionOperand {
++   using KindField = base::BitField64<Kind, 0, 3>;
++ 
++   uint64_t value_;
+++
+++ private:
+++  bool InterferesWithSlow(const InstructionOperand& other) const;
++ };
++ 
++ using InstructionOperandVector = ZoneVector<InstructionOperand>;
++@@ -574,6 +578,11 @@ class LocationOperand : public InstructionOperand {
++     return RepresentationField::decode(value_);
++   }
++ 
+++  int NumStackSlots() const {
+++    DCHECK(IsAnyStackSlot());
+++    return ElementSizeInPointers(representation());
+++  }
+++
++   static bool IsSupportedRepresentation(MachineRepresentation rep) {
++     switch (rep) {
++       case MachineRepresentation::kWord32:
++@@ -796,6 +805,36 @@ uint64_t InstructionOperand::GetCanonicalizedValue() const {
+    return this->value_;
+  }
+  
+++bool InstructionOperand::HasComplexAliasing() const {
+++  return (kFPAliasing == AliasingKind::kCombine && IsFPRegister()) ||
+++         (IsAnyStackSlot() && LocationOperand::cast(*this).NumStackSlots() > 1);
+++}
+++
+++bool InstructionOperand::InterferesWith(const InstructionOperand& other) const {
+++  if (V8_LIKELY(!HasComplexAliasing() && !other.HasComplexAliasing())) {
+++    return EqualsCanonicalized(other);
+++  }
+++  return InterferesWithSlow(other);
+++}
+++
+ +// Returns whether a general-purpose {LocationOperand} (register or stack slot)
+ +// has a 32-bit representation. Note that {ElementSizeInBytes} cannot be used
+ +// here because under pointer compression {kTagged*} and {kProtectedPointer}
+@@ -27,3 +71,18 @@ index 2f07ae1d85860442b31fb12bf6af55506503409f..aa7e7b9b1855a1e421c06198cba385ce
+  // Required for maps that don't care about machine type.
+  struct CompareOperandModuloType {
+    bool operator()(const InstructionOperand& a,
++@@ -1849,10 +1888,10 @@ class V8_EXPORT_PRIVATE InstructionBlock final
++   uint64_t pgo_execution_count_ = 0;
++ #endif
++   RpoNumber dominator_;
++-  int32_t code_start_;       // start index of arch-specific code.
++-  int32_t code_end_ = -1;    // end index of arch-specific code.
++-  const bool deferred_ : 1;  // Block contains deferred code.
++-  bool handler_ : 1;         // Block is a handler entry point.
+++  int32_t code_start_;            // start index of arch-specific code.
+++  int32_t code_end_ = -1;         // end index of arch-specific code.
+++  const bool deferred_ : 1;       // Block contains deferred code.
+++  bool handler_ : 1;              // Block is a handler entry point.
++   bool table_switch_target_ : 1;  // Block is a table switch target, implying an
++                                   //  indirect jump.
++   bool align_switch_targets_ : 1;  // insert switch target alignment before
+diff --git a/patches/v8/src-compiler-backend-move-optimizer.cc.patch b/patches/v8/src-compiler-backend-move-optimizer.cc.patch
+new file mode 100644
+index 0000000..f9ba7c3
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-move-optimizer.cc.patch
+@@ -0,0 +1,102 @@
++diff --git a/src/compiler/backend/move-optimizer.cc b/src/compiler/backend/move-optimizer.cc
++index dd4348850ca0252ade7b58d933dfedb9a72ec344..a437dbef5bfa4ba1b3dfd15f6eeb685aaf974869 100644
++--- a/src/compiler/backend/move-optimizer.cc
+++++ b/src/compiler/backend/move-optimizer.cc
++@@ -4,8 +4,6 @@
++ 
++ #include "src/compiler/backend/move-optimizer.h"
++ 
++-#include "src/codegen/register-configuration.h"
++-
++ #if V8_TARGET_ARCH_ARM64
++ #include "src/codegen/macro-assembler.h"
++ #endif
++@@ -33,84 +31,21 @@ struct MoveKey {
++ 
++ class OperandSet {
++  public:
++-  explicit OperandSet(ZoneVector<InstructionOperand>* buffer)
++-      : set_(buffer), fp_reps_(0) {
+++  explicit OperandSet(ZoneVector<InstructionOperand>* buffer) : set_(buffer) {
++     buffer->clear();
++   }
++ 
++-  void InsertOp(const InstructionOperand& op) {
++-    set_->push_back(op);
++-
++-    if (kFPAliasing == AliasingKind::kCombine && op.IsFPRegister()) {
++-      fp_reps_ |= RepresentationBit(LocationOperand::cast(op).representation());
++-    }
++-  }
++-
++-  bool Contains(const InstructionOperand& op) const {
++-    for (const InstructionOperand& elem : *set_) {
++-      if (elem.EqualsCanonicalized(op)) return true;
++-    }
++-    return false;
++-  }
+++  void InsertOp(const InstructionOperand& op) { set_->push_back(op); }
++ 
++   bool ContainsOpOrAlias(const InstructionOperand& op) const {
++-    if (Contains(op)) return true;
++-
++-    if (kFPAliasing == AliasingKind::kCombine && op.IsFPRegister()) {
++-      // Platforms where FP registers have complex aliasing need extra checks.
++-      const LocationOperand& loc = LocationOperand::cast(op);
++-      MachineRepresentation rep = loc.representation();
++-      // If haven't encountered mixed rep FP registers, skip the extra checks.
++-      if (!HasMixedFPReps(fp_reps_ | RepresentationBit(rep))) return false;
++-
++-      // Check register against aliasing registers of other FP representations.
++-      MachineRepresentation other_rep1, other_rep2;
++-      switch (rep) {
++-        case MachineRepresentation::kFloat32:
++-          other_rep1 = MachineRepresentation::kFloat64;
++-          other_rep2 = MachineRepresentation::kSimd128;
++-          break;
++-        case MachineRepresentation::kFloat64:
++-          other_rep1 = MachineRepresentation::kFloat32;
++-          other_rep2 = MachineRepresentation::kSimd128;
++-          break;
++-        case MachineRepresentation::kSimd128:
++-          other_rep1 = MachineRepresentation::kFloat32;
++-          other_rep2 = MachineRepresentation::kFloat64;
++-          break;
++-        default:
++-          UNREACHABLE();
++-      }
++-      const RegisterConfiguration* config = RegisterConfiguration::Default();
++-      int base = -1;
++-      int aliases =
++-          config->GetAliases(rep, loc.register_code(), other_rep1, &base);
++-      DCHECK(aliases > 0 || (aliases == 0 && base == -1));
++-      while (aliases--) {
++-        if (Contains(AllocatedOperand(LocationOperand::REGISTER, other_rep1,
++-                                      base + aliases))) {
++-          return true;
++-        }
++-      }
++-      aliases = config->GetAliases(rep, loc.register_code(), other_rep2, &base);
++-      DCHECK(aliases > 0 || (aliases == 0 && base == -1));
++-      while (aliases--) {
++-        if (Contains(AllocatedOperand(LocationOperand::REGISTER, other_rep2,
++-                                      base + aliases))) {
++-          return true;
++-        }
++-      }
+++    for (const InstructionOperand& elem : *set_) {
+++      if (elem.InterferesWith(op)) return true;
++     }
++     return false;
++   }
++ 
++  private:
++-  static bool HasMixedFPReps(int reps) {
++-    return reps && !base::bits::IsPowerOfTwo(reps);
++-  }
++-
++   ZoneVector<InstructionOperand>* set_;
++-  int fp_reps_;
++ };
++ 
++ int FindFirstNonEmptySlot(const Instruction* instr) {
+diff --git a/patches/v8/src-compiler-backend-register-allocator-verifier.cc.patch b/patches/v8/src-compiler-backend-register-allocator-verifier.cc.patch
+new file mode 100644
+index 0000000..36696ec
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-register-allocator-verifier.cc.patch
+@@ -0,0 +1,112 @@
++diff --git a/src/compiler/backend/register-allocator-verifier.cc b/src/compiler/backend/register-allocator-verifier.cc
++index f0e00bd49b8fad6899f70faaadc900ac83eb89c2..8b4e2c50af68996b666d8aba988a283b2c478d12 100644
++--- a/src/compiler/backend/register-allocator-verifier.cc
+++++ b/src/compiler/backend/register-allocator-verifier.cc
++@@ -4,6 +4,7 @@
++ 
++ #include "src/compiler/backend/register-allocator-verifier.h"
++ 
+++#include <algorithm>
++ #include <optional>
++ 
++ #include "src/compiler/backend/instruction.h"
++@@ -279,6 +280,33 @@ void RegisterAllocatorVerifier::CheckConstraint(
++   UNREACHABLE();
++ }
++ 
+++void BlockAssessments::DropInterferingStackSlots(InstructionOperand op) {
+++  DCHECK(op.IsAnyStackSlot());
+++  const LocationOperand& loc = LocationOperand::cast(op);
+++  int num_slots = loc.NumStackSlots();
+++  max_stack_slot_width_ = std::max(max_stack_slot_width_, num_slots);
+++  int index = loc.index();
+++  map_.erase(op);
+++  stale_ref_stack_slots_.erase(op);
+++  // Erase any stack slots at lower indices covered by `op`.
+++  for (int i = index - num_slots + 1; i < index; ++i) {
+++    AllocatedOperand probe(LocationOperand::STACK_SLOT,
+++                           MachineRepresentation::kWord32, i);
+++    map_.erase(probe);
+++    stale_ref_stack_slots_.erase(probe);
+++  }
+++  // Erase any wider stack slots anchored at higher indices that overlap `op`.
+++  for (int i = index + 1; i < index + max_stack_slot_width_; ++i) {
+++    AllocatedOperand probe(LocationOperand::STACK_SLOT,
+++                           MachineRepresentation::kWord32, i);
+++    auto it = map_.find(probe);
+++    if (it != map_.end() && it->first.InterferesWith(op)) {
+++      stale_ref_stack_slots_.erase(it->first);
+++      map_.erase(it);
+++    }
+++  }
+++}
+++
++ void BlockAssessments::PerformMoves(const Instruction* instruction) {
++   const ParallelMove* first =
++       instruction->GetParallelMove(Instruction::GapPosition::START);
++@@ -292,28 +320,36 @@ void BlockAssessments::PerformParallelMoves(const ParallelMove* moves) {
++   if (moves == nullptr) return;
++ 
++   CHECK(map_for_moves_.empty());
+++  bool has_complex_dest = false;
++   for (MoveOperands* move : *moves) {
++     if (move->IsEliminated() || move->IsRedundant()) continue;
++     auto it = map_.find(move->source());
++     // The RHS of a parallel move should have been already assessed.
++     CHECK(it != map_.end());
++     // The LHS of a parallel move should not have been assigned in this
++-    // parallel move.
++-    CHECK(map_for_moves_.find(move->destination()) == map_for_moves_.end());
+++    // parallel move, nor interfere with any other destination in this parallel
+++    // move.
+++    const InstructionOperand& dest = move->destination();
+++    CHECK(map_for_moves_.find(dest) == map_for_moves_.end());
+++    has_complex_dest = has_complex_dest || dest.HasComplexAliasing();
+++    if (has_complex_dest) {
+++      for (const auto& prev : map_for_moves_) {
+++        CHECK(!prev.first.InterferesWith(dest));
+++      }
+++    }
++     // The RHS of a parallel move should not be a stale reference.
++     CHECK(!IsStaleReferenceStackSlot(move->source()));
++     // Copy the assessment to the destination.
++-    map_for_moves_[move->destination()] = it->second;
+++    map_for_moves_[dest] = it->second;
++   }
++-  for (auto pair : map_for_moves_) {
+++  for (const auto& pair : map_for_moves_) {
+++    Drop(pair.first);
+++  }
+++  for (const auto& pair : map_for_moves_) {
++     // Re-insert the existing key for the new assignment so that it has the
++     // correct representation (which is ignored by the canonicalizing map
++     // comparator).
++-    InstructionOperand op = pair.first;
++-    map_.erase(op);
++     map_.insert(pair);
++-    // Destination is no longer a stale reference.
++-    stale_ref_stack_slots().erase(op);
++   }
++   map_for_moves_.clear();
++ }
++@@ -417,11 +453,19 @@ BlockAssessments* RegisterAllocatorVerifier::CreateForBlock(
++       }
++       const BlockAssessments* pred_assessments = iterator->second;
++       CHECK_NOT_NULL(pred_assessments);
+++      ret->UpdateMaxStackSlotWidth(pred_assessments->max_stack_slot_width());
++       for (auto pair : pred_assessments->map()) {
++         InstructionOperand operand = pair.first;
++-        if (ret->map().find(operand) == ret->map().end()) {
+++        auto existing = ret->map().find(operand);
+++        if (existing == ret->map().end()) {
++           ret->map().insert(std::make_pair(
++               operand, zone()->New<PendingAssessment>(zone(), block, operand)));
+++        } else if (operand.IsAnyStackSlot() &&
+++                   LocationOperand::cast(operand).NumStackSlots() >
+++                       LocationOperand::cast(existing->first).NumStackSlots()) {
+++          Assessment* assessment = existing->second;
+++          ret->map().erase(existing);
+++          ret->map().insert(std::make_pair(operand, assessment));
++         }
++       }
++ 
+diff --git a/patches/v8/src-compiler-backend-register-allocator-verifier.h.patch b/patches/v8/src-compiler-backend-register-allocator-verifier.h.patch
+new file mode 100644
+index 0000000..06a4dd3
+--- /dev/null
++++ b/patches/v8/src-compiler-backend-register-allocator-verifier.h.patch
+@@ -0,0 +1,67 @@
++diff --git a/src/compiler/backend/register-allocator-verifier.h b/src/compiler/backend/register-allocator-verifier.h
++index 230beff806aaf6a4615cebfc81f3a85f5812a5c4..cb4ccce7626beec58aa164b484133d1d462a8f48 100644
++--- a/src/compiler/backend/register-allocator-verifier.h
+++++ b/src/compiler/backend/register-allocator-verifier.h
++@@ -133,7 +133,8 @@ struct OperandAsKeyLess {
++ };
++ 
++ // Assessments associated with a basic block.
++-class BlockAssessments : public ZoneObject {
+++class V8_EXPORT_PRIVATE BlockAssessments
+++    : public NON_EXPORTED_BASE(ZoneObject) {
++  public:
++   using OperandMap = ZoneMap<InstructionOperand, Assessment*, OperandAsKeyLess>;
++   using OperandSet = ZoneSet<InstructionOperand, OperandAsKeyLess>;
++@@ -149,17 +150,26 @@ class BlockAssessments : public ZoneObject {
++   BlockAssessments& operator=(const BlockAssessments&) = delete;
++ 
++   void Drop(InstructionOperand operand) {
+++    if (operand.IsAnyStackSlot()) {
+++      DropInterferingStackSlots(operand);
+++      return;
+++    }
++     map_.erase(operand);
++     stale_ref_stack_slots_.erase(operand);
++   }
+++  void DropInterferingStackSlots(InstructionOperand operand);
++   void DropRegisters();
++   void AddDefinition(InstructionOperand operand, int virtual_register) {
++-    auto existent = map_.find(operand);
++-    if (existent != map_.end()) {
++-      // Drop the assignment
++-      map_.erase(existent);
++-      // Destination operand is no longer a stale reference.
++-      stale_ref_stack_slots_.erase(operand);
+++    if (operand.IsAnyStackSlot()) {
+++      DropInterferingStackSlots(operand);
+++    } else {
+++      auto existent = map_.find(operand);
+++      if (existent != map_.end()) {
+++        // Drop the assignment
+++        map_.erase(existent);
+++        // Destination operand is no longer a stale reference.
+++        stale_ref_stack_slots_.erase(operand);
+++      }
++     }
++     map_.insert(
++         std::make_pair(operand, zone_->New<FinalAssessment>(virtual_register)));
++@@ -174,6 +184,11 @@ class BlockAssessments : public ZoneObject {
++     map_.insert(other->map_.begin(), other->map_.end());
++     stale_ref_stack_slots_.insert(other->stale_ref_stack_slots_.begin(),
++                                   other->stale_ref_stack_slots_.end());
+++    max_stack_slot_width_ = other->max_stack_slot_width_;
+++  }
+++  int max_stack_slot_width() const { return max_stack_slot_width_; }
+++  void UpdateMaxStackSlotWidth(int width) {
+++    max_stack_slot_width_ = std::max(max_stack_slot_width_, width);
++   }
++   void CheckReferenceMap(const ReferenceMap* reference_map);
++   bool IsStaleReferenceStackSlot(InstructionOperand op,
++@@ -198,6 +213,7 @@ class BlockAssessments : public ZoneObject {
++   // implications of a stack slot being stale?
++   OperandSet stale_ref_stack_slots_;
++   int spill_slot_delta_;
+++  int max_stack_slot_width_ = 1;
++   Zone* zone_;
++   const InstructionSequence* sequence_;
++ };
+diff --git a/patches/v8/test-mjsunit-regress-wasm-regress-simd-581962456.js.patch b/patches/v8/test-mjsunit-regress-wasm-regress-simd-581962456.js.patch
+new file mode 100644
+index 0000000..af092fc
+--- /dev/null
++++ b/patches/v8/test-mjsunit-regress-wasm-regress-simd-581962456.js.patch
+@@ -0,0 +1,267 @@
++diff --git a/test/mjsunit/regress/wasm/regress-simd-581962456.js b/test/mjsunit/regress/wasm/regress-simd-581962456.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..fd912919ebbb983e2f52146b2120ffd44e201490
++--- /dev/null
+++++ b/test/mjsunit/regress/wasm/regress-simd-581962456.js
++@@ -0,0 +1,261 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax
+++
+++d8.file.execute('test/mjsunit/wasm/wasm-module-builder.js');
+++
+++// Exercise WebAssembly return_call with positive stack_param_delta where
+++// unaligned 16-byte s128 outgoing stack arguments overlap adjacent 8-byte i64
+++// caller spill slots across diamond and loop merges.
+++(function TestTailCallMultiSlotStackOverlap() {
+++  const kNumDomI64 = 12;
+++  const kNumDomS128 = 16;
+++  const kNumTailS128 = 16;
+++  // Use an odd count of i64 stack arguments so s128 stack arguments land at odd
+++  // 8-byte frame slot indices (spanning pairs [2k, 2k+1]) after
+++  // ConvertToTailCallerLocation.
+++  const kNumI64Params = kNumDomI64 + 3;
+++  const kTotalS128Params = kNumDomS128 + kNumTailS128;
+++
+++  const calleeParams = [
+++    ...new Array(kNumI64Params).fill(kWasmI64),
+++    ...new Array(kTotalS128Params).fill(kWasmS128),
+++  ];
+++
+++  const builder = new WasmModuleBuilder();
+++  builder.addMemory(1, 1);
+++  builder.exportMemoryAs('memory');
+++
+++  const noop = builder.addFunction('noop', kSig_v_v).addBody([
+++    ...new Array(2000).fill(kExprNop),
+++  ]);
+++
+++  const calleeBody = [
+++    // Keep callee above the inlining budget so return_call emits a real tail
+++    // call instruction.
+++    ...new Array(2000).fill(kExprNop),
+++  ];
+++  for (let i = 0; i < kTotalS128Params; ++i) {
+++    calleeBody.push(
+++        ...wasmI32Const(1024 + i * 16),
+++        kExprLocalGet, ...wasmUnsignedLeb(kNumI64Params + i),
+++        kSimdPrefix, kExprS128StoreMem, 0, ...wasmUnsignedLeb(0));
+++  }
+++  calleeBody.push(kExprLocalGet, 0);
+++  for (let i = 1; i < kNumI64Params; ++i) {
+++    calleeBody.push(
+++        kExprLocalGet, ...wasmUnsignedLeb(i),
+++        ...wasmI64Const(i + 1), kExprI64Mul, kExprI64Add);
+++  }
+++  const callee =
+++      builder.addFunction('callee', makeSig(calleeParams, [kWasmI64]))
+++          .addBody(calleeBody);
+++
+++  // Locals in caller(mode: i32, iters: i32):
+++  //   2 .. 2 + kNumDomI64 - 1: dominating i64 locals
+++  //   2 + kNumDomI64 .. + kNumDomS128 - 1: dominating s128 locals
+++  //   phiI64A, phiS128, phiI64B: mixed-width Phis whose spill slots pack an
+++  //   aligned s128 slot alongside adjacent 8-byte i64 slots.
+++  const firstDomI64 = 2;
+++  const firstDomS128 = firstDomI64 + kNumDomI64;
+++  const phiI64A = firstDomS128 + kNumDomS128;
+++  const phiS128 = phiI64A + 1;
+++  const phiI64B = phiS128 + 1;
+++
+++  const v1 = [
+++    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+++    0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x01,
+++  ];
+++  const v2 = [
+++    0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10,
+++    0x0f, 0x1e, 0x2d, 0x3c, 0x4b, 0x5a, 0x69, 0x78,
+++  ];
+++
+++  const body = [];
+++  for (let i = 0; i < kNumDomS128; ++i) {
+++    body.push(
+++        ...wasmI32Const(i * 16),
+++        kSimdPrefix, kExprS128LoadMem, 0, ...wasmUnsignedLeb(0),
+++        kExprLocalSet, ...wasmUnsignedLeb(firstDomS128 + i));
+++  }
+++  for (let i = 0; i < kNumDomI64; ++i) {
+++    body.push(
+++        ...wasmI32Const(i * 8),
+++        kExprI64LoadMem, 0, ...wasmUnsignedLeb(0),
+++        kExprLocalSet, ...wasmUnsignedLeb(firstDomI64 + i));
+++  }
+++
+++  body.push(
+++      ...wasmI64Const(0x0102030405060708n),
+++      kExprLocalSet, ...wasmUnsignedLeb(phiI64A),
+++      ...wasmS128Const(v1),
+++      kExprLocalSet, ...wasmUnsignedLeb(phiS128),
+++      ...wasmI64Const(0x1112131415161718n),
+++      kExprLocalSet, ...wasmUnsignedLeb(phiI64B),
+++      kExprLoop, kWasmVoid,
+++        kExprLocalGet, 1,
+++        kExprIf, kWasmVoid,
+++          kExprCallFunction, noop.index,
+++          kExprLocalGet, ...wasmUnsignedLeb(phiI64A),
+++          ...wasmI64Const(3), kExprI64Add,
+++          kExprLocalSet, ...wasmUnsignedLeb(phiI64A),
+++          kExprLocalGet, ...wasmUnsignedLeb(phiI64B),
+++          ...wasmI64Const(5), kExprI64Add,
+++          kExprLocalSet, ...wasmUnsignedLeb(phiI64B),
+++          kExprLocalGet, 1,
+++          kExprI32Const, 1,
+++          kExprI32Sub,
+++          kExprLocalTee, 1,
+++          kExprBrIf, 1,
+++        kExprEnd,
+++      kExprEnd,
+++      kExprLocalGet, 0,
+++      kExprIf, kWasmVoid,
+++        ...wasmS128Const(v1),
+++        kExprLocalSet, ...wasmUnsignedLeb(phiS128),
+++        ...wasmI64Const(0x1111222233334444n),
+++        kExprLocalGet, ...wasmUnsignedLeb(phiI64A),
+++        kExprI64Add,
+++        kExprLocalSet, ...wasmUnsignedLeb(phiI64A),
+++        ...wasmI64Const(0x5555666677778888n),
+++        kExprLocalGet, ...wasmUnsignedLeb(phiI64B),
+++        kExprI64Add,
+++        kExprLocalSet, ...wasmUnsignedLeb(phiI64B),
+++      kExprElse,
+++        ...wasmS128Const(v2),
+++        kExprLocalSet, ...wasmUnsignedLeb(phiS128),
+++        ...wasmI64Const(0x2222333344445555n),
+++        kExprLocalGet, ...wasmUnsignedLeb(phiI64A),
+++        kExprI64Add,
+++        kExprLocalSet, ...wasmUnsignedLeb(phiI64A),
+++        ...wasmI64Const(0x6666777788889999n),
+++        kExprLocalGet, ...wasmUnsignedLeb(phiI64B),
+++        kExprI64Add,
+++        kExprLocalSet, ...wasmUnsignedLeb(phiI64B),
+++      kExprEnd);
+++
+++  for (let i = 0; i < kNumDomI64; ++i) {
+++    body.push(kExprLocalGet, ...wasmUnsignedLeb(firstDomI64 + i));
+++  }
+++  body.push(
+++      ...wasmI64Const(0x777788889999aaaan),
+++      kExprLocalGet, ...wasmUnsignedLeb(phiI64A),
+++      kExprLocalGet, ...wasmUnsignedLeb(phiI64B));
+++  for (let i = 0; i < kNumDomS128; ++i) {
+++    body.push(kExprLocalGet, ...wasmUnsignedLeb(firstDomS128 + i));
+++  }
+++  for (let i = 0; i < kNumTailS128; ++i) {
+++    body.push(kExprLocalGet, ...wasmUnsignedLeb(phiS128));
+++  }
+++  body.push(kExprReturnCall, callee.index);
+++
+++  builder.addFunction('caller', makeSig([kWasmI32, kWasmI32], [kWasmI64]))
+++      .addLocals(kWasmI64, kNumDomI64)
+++      .addLocals(kWasmS128, kNumDomS128)
+++      .addLocals(kWasmI64, 1)
+++      .addLocals(kWasmS128, 1)
+++      .addLocals(kWasmI64, 1)
+++      .addBody(body)
+++      .exportFunc();
+++
+++  const instance = builder.instantiate();
+++  const u8 = new Uint8Array(instance.exports.memory.buffer);
+++  for (let i = 0; i < 512; ++i) {
+++    u8[i] = (i * 37 + 13) & 0xff;
+++  }
+++
+++  const outLen = kTotalS128Params * 16;
+++  const ref0 = instance.exports.caller(0, 2);
+++  const mem0 = u8.slice(1024, 1024 + outLen);
+++  const ref1 = instance.exports.caller(1, 2);
+++  const mem1 = u8.slice(1024, 1024 + outLen);
+++
+++  %WasmTierUpFunction(instance.exports.caller);
+++
+++  assertEquals(ref0, instance.exports.caller(0, 2));
+++  assertEquals(mem0, u8.slice(1024, 1024 + outLen));
+++  assertEquals(ref1, instance.exports.caller(1, 2));
+++  assertEquals(mem1, u8.slice(1024, 1024 + outLen));
+++})();
+++
+++(function TestReturnCallMixedSimd128AndI64StackParams() {
+++  // Tail-call from a function with spilled i64/s128 values to a callee with an
+++  // odd number of i64 stack parameters followed by many s128 stack parameters,
+++  // so 16-byte outgoing stack parameters span odd/even pairs of 8-byte slots.
+++  const kNumI64 = 11;
+++  const kNumS128 = 20;
+++  const calleeParams = [
+++    ...new Array(kNumI64).fill(kWasmI64),
+++    ...new Array(kNumS128).fill(kWasmS128),
+++  ];
+++
+++  const builder = new WasmModuleBuilder();
+++  builder.addMemory(1, 1);
+++  builder.exportMemoryAs('memory');
+++
+++  const calleeBody = [...new Array(2000).fill(kExprNop)];
+++  for (let i = 0; i < kNumS128; ++i) {
+++    calleeBody.push(
+++        ...wasmI32Const(512 + i * 16),
+++        kExprLocalGet, ...wasmUnsignedLeb(kNumI64 + i),
+++        kSimdPrefix, kExprS128StoreMem, 0, ...wasmUnsignedLeb(0));
+++  }
+++  calleeBody.push(kExprLocalGet, 0);
+++  for (let i = 1; i < kNumI64; ++i) {
+++    calleeBody.push(kExprLocalGet, ...wasmUnsignedLeb(i), kExprI64Add);
+++  }
+++  const callee =
+++      builder.addFunction('callee', makeSig(calleeParams, [kWasmI64]))
+++          .addBody(calleeBody);
+++
+++  const vA = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+++  const vB = [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+++  const callerBody = [
+++    kExprLocalGet, 0,
+++    kExprIf, kWasmVoid,
+++      ...wasmI64Const(0x100000001n), kExprLocalSet, 1,
+++      ...wasmS128Const(vA), kExprLocalSet, 2,
+++      ...wasmI64Const(0x200000002n), kExprLocalSet, 3,
+++    kExprElse,
+++      ...wasmI64Const(0x300000003n), kExprLocalSet, 1,
+++      ...wasmS128Const(vB), kExprLocalSet, 2,
+++      ...wasmI64Const(0x400000004n), kExprLocalSet, 3,
+++    kExprEnd,
+++  ];
+++  for (let i = 0; i < kNumI64 - 2; ++i) {
+++    callerBody.push(...wasmI64Const(10 + i));
+++  }
+++  callerBody.push(kExprLocalGet, 1, kExprLocalGet, 3);
+++  for (let i = 0; i < kNumS128; ++i) {
+++    callerBody.push(kExprLocalGet, 2);
+++  }
+++  callerBody.push(kExprReturnCall, callee.index);
+++
+++  builder.addFunction('main', makeSig([kWasmI32], [kWasmI64]))
+++      .addLocals(kWasmI64, 1)
+++      .addLocals(kWasmS128, 1)
+++      .addLocals(kWasmI64, 1)
+++      .addBody(callerBody)
+++      .exportFunc();
+++
+++  const instance = builder.instantiate();
+++  const u8 = new Uint8Array(instance.exports.memory.buffer);
+++  let sumA = 0x100000001n + 0x200000002n;
+++  let sumB = 0x300000003n + 0x400000004n;
+++  for (let i = 0; i < kNumI64 - 2; ++i) {
+++    sumA += BigInt(10 + i);
+++    sumB += BigInt(10 + i);
+++  }
+++
+++  assertEquals(sumA, instance.exports.main(1));
+++  for (let i = 0; i < kNumS128; ++i) {
+++    assertEquals(vA, Array.from(u8.slice(512 + i * 16, 512 + (i + 1) * 16)));
+++  }
+++  %WasmTierUpFunction(instance.exports.main);
+++  assertEquals(sumB, instance.exports.main(0));
+++  for (let i = 0; i < kNumS128; ++i) {
+++    assertEquals(vB, Array.from(u8.slice(512 + i * 16, 512 + (i + 1) * 16)));
+++  }
+++})();
+diff --git a/patches/v8/test-unittests-compiler-backend-instruction-unittest.cc.patch b/patches/v8/test-unittests-compiler-backend-instruction-unittest.cc.patch
+new file mode 100644
+index 0000000..39957eb
+--- /dev/null
++++ b/patches/v8/test-unittests-compiler-backend-instruction-unittest.cc.patch
+@@ -0,0 +1,89 @@
++diff --git a/test/unittests/compiler/backend/instruction-unittest.cc b/test/unittests/compiler/backend/instruction-unittest.cc
++index 2482979ce8502a819de7d31d473da09f519e4da5..748a9442c95ce5c50ef8d74fd466db63badd24a6 100644
++--- a/test/unittests/compiler/backend/instruction-unittest.cc
+++++ b/test/unittests/compiler/backend/instruction-unittest.cc
++@@ -62,7 +62,16 @@ TEST_F(InstructionTest, OperandInterference) {
++     }
++   }
++ 
++-  // 128 bit slots can interfere with other slots at a different index.
+++  // 128 bit slots can interfere with other slots at a different index, but
+++  // never with registers or non-location operands.
+++  AllocatedOperand wide_slot(LocationOperand::STACK_SLOT,
+++                             MachineRepresentation::kSimd128, 1);
+++  EXPECT_FALSE(wide_slot.InterferesWith(ConstantOperand(0)));
+++  EXPECT_FALSE(ConstantOperand(0).InterferesWith(wide_slot));
+++  EXPECT_FALSE(wide_slot.InterferesWith(
+++      ImmediateOperand(ImmediateOperand::INLINE_INT32, 0)));
+++  EXPECT_FALSE(wide_slot.InterferesWith(
+++      AllocatedOperand(LocationOperand::REGISTER, kWord, 1)));
++   for (int i = 0; i < 10; ++i) {
++     for (int j = 0; j < 128 / kBitsPerByte / kSystemPointerSize; ++j) {
++       EXPECT_TRUE(Interfere(LocationOperand::STACK_SLOT,
++@@ -186,6 +195,66 @@ TEST_F(InstructionTest, PrepareInsertAfter) {
++       CHECK(Contains(&to_eliminate, s1, s2));
++     }
++   }
+++
+++  {
+++    // Multi-slot stack destinations (such as kSimd128) must eliminate all
+++    // narrower interfering stack moves, even when source replacement is also
+++    // found in the same ParallelMove.
+++    const int kSimd128Slots =
+++        ElementSizeInPointers(MachineRepresentation::kSimd128);
+++    CHECK_GE(kSimd128Slots, 1);
+++
+++    InstructionOperand q0 = AllocatedOperand(
+++        LocationOperand::REGISTER, MachineRepresentation::kSimd128, 0);
+++    InstructionOperand q1 = AllocatedOperand(
+++        LocationOperand::REGISTER, MachineRepresentation::kSimd128, 1);
+++    InstructionOperand s128_top =
+++        AllocatedOperand(LocationOperand::STACK_SLOT,
+++                         MachineRepresentation::kSimd128, kSimd128Slots - 1);
+++
+++    ZoneVector<MoveOperands*> to_eliminate(zone());
+++    std::vector<InstructionOperand> moves = {q1, q0};  // q1 <- q0
+++    for (int i = 0; i < kSimd128Slots; ++i) {
+++      InstructionOperand narrow_slot = AllocatedOperand(
+++          LocationOperand::STACK_SLOT, MachineRepresentation::kWord32, i);
+++      moves.push_back(narrow_slot);
+++      moves.push_back(r0);
+++    }
+++
+++    ParallelMove* pm = CreateParallelMove(moves);
+++    MoveOperands m_wide(q1, s128_top);  // [stack:top|s128] <- q1
+++    pm->PrepareInsertAfter(&m_wide, &to_eliminate);
+++    CHECK(m_wide.source().Equals(q0));
+++    for (int i = 0; i < kSimd128Slots; ++i) {
+++      InstructionOperand narrow_slot = AllocatedOperand(
+++          LocationOperand::STACK_SLOT, MachineRepresentation::kWord32, i);
+++      CHECK(Contains(&to_eliminate, narrow_slot, r0));
+++    }
+++
+++    // A redundant multi-slot stack move must not eliminate earlier narrower
+++    // moves.
+++    ZoneVector<MoveOperands*> redundant_eliminated(zone());
+++    MoveOperands m_redundant(s128_top, s128_top);
+++    pm->PrepareInsertAfter(&m_redundant, &redundant_eliminated);
+++    CHECK(redundant_eliminated.empty());
+++
+++    if (kSimd128Slots > 1) {
+++      // A shifted multi-slot stack move whose source matches an earlier move's
+++      // destination AND whose destination partially overlaps that same earlier
+++      // move's destination must both forward the source and eliminate the
+++      // overwritten move.
+++      InstructionOperand s128_shifted =
+++          AllocatedOperand(LocationOperand::STACK_SLOT,
+++                           MachineRepresentation::kSimd128, kSimd128Slots);
+++      ZoneVector<MoveOperands*> shifted_eliminated(zone());
+++      std::vector<InstructionOperand> prev_moves = {s128_top, q0};
+++      ParallelMove* pm_shifted = CreateParallelMove(prev_moves);
+++      MoveOperands m_shifted(s128_top, s128_shifted);
+++      pm_shifted->PrepareInsertAfter(&m_shifted, &shifted_eliminated);
+++      CHECK(m_shifted.source().Equals(q0));
+++      CHECK(Contains(&shifted_eliminated, s128_top, q0));
+++    }
+++  }
++ }
++ 
++ }  // namespace instruction_unittest
+diff --git a/patches/v8/test-unittests-compiler-regalloc-move-optimizer-unittest.cc.patch b/patches/v8/test-unittests-compiler-regalloc-move-optimizer-unittest.cc.patch
+new file mode 100644
+index 0000000..97659d2
+--- /dev/null
++++ b/patches/v8/test-unittests-compiler-regalloc-move-optimizer-unittest.cc.patch
+@@ -0,0 +1,188 @@
++diff --git a/test/unittests/compiler/regalloc/move-optimizer-unittest.cc b/test/unittests/compiler/regalloc/move-optimizer-unittest.cc
++index 17077204b0ebdc34d9de6580aff60fa74a47b34f..ea00d37f74772b7da92c55ff8c0a9a3c7b7b86c2 100644
++--- a/test/unittests/compiler/regalloc/move-optimizer-unittest.cc
+++++ b/test/unittests/compiler/regalloc/move-optimizer-unittest.cc
++@@ -3,6 +3,8 @@
++ // found in the LICENSE file.
++ 
++ #include "src/compiler/backend/move-optimizer.h"
+++
+++#include "src/compiler/backend/register-allocator-verifier.h"
++ #include "src/utils/ostreams.h"
++ #include "test/unittests/compiler/backend/instruction-sequence-unittest.h"
++ 
++@@ -85,9 +87,11 @@ class MoveOptimizerTest : public InstructionSequenceTest {
++     switch (op.type_) {
++       case kConstant:
++         return ConstantOperand(op.value_);
++-      case kFixedSlot:
++-        return AllocatedOperand(LocationOperand::STACK_SLOT,
++-                                MachineRepresentation::kWord32, op.value_);
+++      case kFixedSlot: {
+++        MachineRepresentation rep =
+++            op.rep_ == kNoRep ? MachineRepresentation::kWord32 : op.rep_;
+++        return AllocatedOperand(LocationOperand::STACK_SLOT, rep, op.value_);
+++      }
++       case kFixedRegister: {
++         MachineRepresentation rep = GetCanonicalRep(op);
++         CHECK(0 <= op.value_ && op.value_ < GetNumRegs(rep));
++@@ -439,6 +443,159 @@ TEST_F(MoveOptimizerTest, ClobberedFPDestinationsAreEliminated) {
++   CHECK_EQ(0, NonRedundantSize(last_move));
++ }
++ 
+++TEST_F(MoveOptimizerTest,
+++       CompressesMultiSlotStackDestinationOverMultipleNarrowSlots) {
+++  const int kSimd128Slots =
+++      ElementSizeInPointers(MachineRepresentation::kSimd128);
+++  if (kSimd128Slots <= 1) return;
+++
+++  StartBlock();
+++  Instruction* first_instr = EmitNop();
+++  Instruction* last_instr = EmitNop();
+++
+++  AddMove(first_instr, FPReg(kS128_1, kSimd128), FPReg(kS128_2, kSimd128));
+++  for (int i = 0; i < kSimd128Slots; ++i) {
+++    AddMove(first_instr, Reg(i % 2), Slot(i));
+++  }
+++  AddMove(last_instr, FPReg(kS128_2, kSimd128),
+++          Slot(kSimd128Slots - 1, kSimd128));
+++
+++  EndBlock(Last());
+++  Optimize();
+++
+++  ParallelMove* first_move = first_instr->parallel_moves()[0];
+++  CHECK(first_move == nullptr || NonRedundantSize(first_move) == 0);
+++
+++  ParallelMove* last_move = last_instr->parallel_moves()[0];
+++  CHECK_EQ(2, NonRedundantSize(last_move));
+++  CHECK(
+++      Contains(last_move, FPReg(kS128_1, kSimd128), FPReg(kS128_2, kSimd128)));
+++  CHECK(Contains(last_move, FPReg(kS128_1, kSimd128),
+++                 Slot(kSimd128Slots - 1, kSimd128)));
+++}
+++
+++TEST_F(MoveOptimizerTest, ClobberedMultiSlotStackDestinationsAreEliminated) {
+++  const int kSimd128Slots =
+++      ElementSizeInPointers(MachineRepresentation::kSimd128);
+++  StartBlock();
+++  Instruction* first_instr = EmitNop();
+++  for (int i = 0; i < kSimd128Slots; ++i) {
+++    AddMove(first_instr, Reg(0), Slot(i));
+++  }
+++  EmitOI(Slot(kSimd128Slots - 1, kSimd128), 0, nullptr);
+++  Instruction* last_instr = LastInstruction();
+++  EndBlock();
+++  Optimize();
+++
+++  ParallelMove* first_move = first_instr->parallel_moves()[0];
+++  CHECK_EQ(0, NonRedundantSize(first_move));
+++
+++  ParallelMove* last_move = last_instr->parallel_moves()[0];
+++  CHECK_EQ(0, NonRedundantSize(last_move));
+++}
+++
+++TEST_F(MoveOptimizerTest, MultiSlotStackWriteBlocksOverlappingReadMigration) {
+++  const int kSimd128Slots =
+++      ElementSizeInPointers(MachineRepresentation::kSimd128);
+++  if (kSimd128Slots <= 1) return;
+++
+++  StartBlock();
+++  EmitOI(Slot(kSimd128Slots - 1, kSimd128), 0, nullptr);
+++  Instruction* write_instr = LastInstruction();
+++  AddMove(write_instr, Slot(0), Reg(0));
+++  Instruction* after_instr = EmitNop();
+++  EndBlock(Last());
+++
+++  Optimize();
+++
+++  // Reading Slot(0) must happen before write_instr overwrites
+++  // Slot(0..kSimd128Slots-1), so the move cannot migrate down to after_instr.
+++  ParallelMove* write_move = write_instr->parallel_moves()[0];
+++  CHECK_EQ(1, NonRedundantSize(write_move));
+++  CHECK(Contains(write_move, Slot(0), Reg(0)));
+++
+++  ParallelMove* after_move = after_instr->parallel_moves()[0];
+++  CHECK(after_move == nullptr || NonRedundantSize(after_move) == 0);
+++}
+++
+++TEST_F(MoveOptimizerTest, MergeConflictWithOverlappingMultiSlotStackMove) {
+++  const int kSimd128Slots =
+++      ElementSizeInPointers(MachineRepresentation::kSimd128);
+++  if (kSimd128Slots <= 1) return;
+++
+++  StartBlock();
+++  EndBlock(Branch(Imm(), 1, 2));
+++
+++  StartBlock();
+++  EndBlock(Jump(2));
+++  Instruction* b1_last = LastInstruction();
+++  AddMove(b1_last, Slot(0), Reg(0));
+++  AddMove(b1_last, FPReg(kS128_1, kSimd128), Slot(kSimd128Slots - 1, kSimd128));
+++
+++  StartBlock();
+++  EndBlock(Jump(1));
+++  Instruction* b2_last = LastInstruction();
+++  AddMove(b2_last, Slot(0), Reg(0));
+++
+++  StartBlock();
+++  EndBlock(Last());
+++  Instruction* merge_last = LastInstruction();
+++
+++  Optimize();
+++
+++  // Slot(0) -> Reg(0) cannot be hoisted into the merge block because b1_last
+++  // overwrites Slot(0..kSimd128Slots-1) in parallel with reading Slot(0).
+++  ParallelMove* merge_move = merge_last->parallel_moves()[0];
+++  CHECK(merge_move == nullptr || NonRedundantSize(merge_move) == 0);
+++  CHECK(Contains(b1_last->parallel_moves()[0], Slot(0), Reg(0)));
+++  CHECK(Contains(b2_last->parallel_moves()[0], Slot(0), Reg(0)));
+++}
+++
+++TEST_F(MoveOptimizerTest, VerifierDropsOverlappingMultiSlotStackAssessments) {
+++  const int kSimd128Slots =
+++      ElementSizeInPointers(MachineRepresentation::kSimd128);
+++  if (kSimd128Slots <= 1) return;
+++
+++  WireBlocks();
+++  BlockAssessments assessments(zone(), 0, sequence());
+++
+++  InstructionOperand q0 =
+++      AllocatedOperand(LocationOperand::REGISTER, kSimd128, kS128_1);
+++  InstructionOperand r0 = AllocatedOperand(LocationOperand::REGISTER,
+++                                           MachineRepresentation::kWord32, 0);
+++  InstructionOperand slot0 = AllocatedOperand(
+++      LocationOperand::STACK_SLOT, MachineRepresentation::kWord32, 0);
+++  InstructionOperand wide_slot = AllocatedOperand(LocationOperand::STACK_SLOT,
+++                                                  kSimd128, kSimd128Slots - 1);
+++
+++  assessments.AddDefinition(q0, 10);
+++  assessments.AddDefinition(r0, 11);
+++  for (int i = 0; i < kSimd128Slots; ++i) {
+++    InstructionOperand narrow = AllocatedOperand(
+++        LocationOperand::STACK_SLOT, MachineRepresentation::kWord32, i);
+++    assessments.AddDefinition(narrow, 20 + i);
+++  }
+++
+++  // Overwriting with a multi-slot move must drop all covered narrower slots.
+++  ParallelMove* wide_pm = zone()->New<ParallelMove>(zone());
+++  wide_pm->AddMove(q0, wide_slot);
+++  assessments.PerformParallelMoves(wide_pm);
+++  CHECK_EQ(assessments.map().end(), assessments.map().find(slot0));
+++  auto wide_it = assessments.map().find(wide_slot);
+++  CHECK_NE(assessments.map().end(), wide_it);
+++  CHECK_EQ(10, FinalAssessment::cast(wide_it->second)->virtual_register());
+++
+++  // Subsequently writing a narrower overlapping slot (index 0) must drop the
+++  // wider assessment anchored at index kSimd128Slots - 1.
+++  ParallelMove* narrow_pm = zone()->New<ParallelMove>(zone());
+++  narrow_pm->AddMove(r0, slot0);
+++  assessments.PerformParallelMoves(narrow_pm);
+++  CHECK_EQ(assessments.map().end(), assessments.map().find(wide_slot));
+++  auto slot0_it = assessments.map().find(slot0);
+++  CHECK_NE(assessments.map().end(), slot0_it);
+++  CHECK_EQ(11, FinalAssessment::cast(slot0_it->second)->virtual_register());
+++}
+++
++ }  // namespace compiler
++ }  // namespace internal
++ }  // namespace v8
+-- 
+2.43.0
+

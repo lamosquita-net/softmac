@@ -7,10 +7,10 @@ prepara SEGURIDAD-PORTES (-33). **En qué versión entra lo decide Titín**; has
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001`–`0005` | **`6117d34709`** (hasta `0001`: `c881f8b1b3`; `0002`: `85d15c77a6`; `0003`: `5551162dbe`; `0004`: `abe4582db6`) |
+| brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001`–`0006` | **`3667349f16`** (hasta `0001`: `c881f8b1b3`; `0002`: `85d15c77a6`; `0003`: `5551162dbe`; `0004`: `abe4582db6`; `0005`: `6117d34709`) |
 | chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001`–`0005` | **`7e6c74e256`** (hasta `0001`: `ff91be10d6`; `0002`: `37bf78cffd`; `0003`: `1b197b1e48`; `0004`: `b9a698a294`) |
 
-Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, con `0002` detrás, `85d15c77a6`, con `0003`, `5551162dbe`, con `0004`, `abe4582db6`, y con `0005`, `6117d34709`; `git am` de `chromium/0001`–`0002` sobre `a2ffc0a48f` da `37bf78cffd`, con `0003`, `1b197b1e48`, con `0004`, `b9a698a294`, y con `0005`, `7e6c74e256`; `git diff --diff-filter=D` vacío; los
+Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, con `0002` detrás, `85d15c77a6`, con `0003`, `5551162dbe`, con `0004`, `abe4582db6`, con `0005`, `6117d34709`, y con `0006`, `3667349f16`; `git am` de `chromium/0001`–`0002` sobre `a2ffc0a48f` da `37bf78cffd`, con `0003`, `1b197b1e48`, con `0004`, `b9a698a294`, y con `0005`, `7e6c74e256`; `git diff --diff-filter=D` vacío; los
 cuatro `patches/*.patch` que toca se aplican limpios sobre los ficheros de Chromium de la 3.2.1 sin VERSION y dan el mismo
 resultado que se editó. **No compilado ni probado aquí** (no hay árbol de compilación en la nube).
 
@@ -183,6 +183,21 @@ cherry-pick de `e1b2c1bc74`). **Gravedad no publicada.**
 **Para LOCAL:** `blink_unittests --gtest_filter='*AdTracker*:*MonkeyPatchableApi*'`; D8-LINUX:
 `v8_unittests --gtest_filter='*TryGetWithNoSideEffects*'`.
 
+## `brave-core/0006`: [M156] V8, solapes de ranuras de pila múltiples en el optimizador de movimientos (crbug 581962456)
+
+Puerto del merge **`4db782064e`**, que V8 publicó en la **15.6** como 15.6.75.80 (bugs 587682266 y 581962456;
+cherry-pick de `d560c735c7`). **Gravedad no publicada.**
+- **El fallo:** en llamadas de cola con `stack_param_delta > 0`, un argumento de varias ranuras (Simd128/Simd256)
+  puede pisar varias ranuras de spill más estrechas. `ParallelMove::PrepareInsertAfter` y el `OperandSet` del
+  `MoveOptimizer` suponían que dos operandos de pila solo se solapan si su índice coincide, y dejaban movimientos
+  erróneos (valores equivocados o pila corrupta). Afecta a Wasm con SIMD.
+- **El parche** (`patches/v8/`): el diff de upstream, que **depende de `0004`** (su contexto de `instruction.h` ya
+  lleva `5dde7daf0a`). `src-compiler-backend-instruction.h.patch` lleva ahora los dos cambios desde el fichero
+  limpio de la 15.6.75.66 (comprobado). Más `instruction.cc`, `move-optimizer.cc`, `register-allocator-verifier.{h,cc}`,
+  dos unittests y la prueba `regress/wasm/regress-simd-581962456.js`. Lo cubre la subida de epoch a 40 de `0002`.
+
+**Para D8-LINUX / LOCAL:** mjsunit `regress/wasm/regress-simd-581962456`; `v8_unittests --gtest_filter='*MoveOptimizer*:*InstructionTest*'`.
+
 ## Revisados y no aplicables
 
 - **V8 15.9 `a38f990ac8`** ([M159] [turbolev] Remap replaced header phis in peeled loop backedge KNA; crbug
@@ -201,3 +216,4 @@ cherry-pick de `e1b2c1bc74`). **Gravedad no publicada.**
   macOS app shim, crbug 588000328): arreglos de cierres por `CHECK`/`LOG(FATAL)`, no de seguridad. Fuera de esta tanda.
 - **8154 `8d12a9cd96`** (roll de Dawn en M159): sin revisar; `dawn.googlesource.com` no está permitido en la red de
   esta sesión. Dawn no está en la lista de vigilancia.
+- **8078 `95e6109ec9`** (roll de Dawn en M156, `218eeee746`..`c7cec856c9`): tampoco revisado, por el mismo motivo.
