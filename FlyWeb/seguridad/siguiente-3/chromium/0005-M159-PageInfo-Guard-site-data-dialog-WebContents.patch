@@ -1,0 +1,243 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Duncan Mercer <mercerd@google.com>
+Date: Mon, 23 Nov 2026 21:46:13 +0000
+Subject: [PATCH 5/5] [M159] [PageInfo] Guard site data dialog WebContents
+
+Original change's description:
+> [PageInfo] Guard site data dialog WebContents
+>
+> When fixing the Contextual Tasks side panel Page Info site data dialog
+> crash (crrev.com/c/8757191), `OnManageOnDeviceSiteDataClicked()` and
+> `OnDialogExplicitlyClosed()` guarded `web_contents_` in case the
+> underlying `WebContents` is destroyed while the modal dialog widget is
+> still closing asynchronously. The remaining methods on
+> `PageSpecificSiteDataDialogModelDelegate` still assumed `web_contents_`
+> was non-null.
+>
+> Align `web_contents_` and `BrowsingDataModel` null checks across the
+> remaining `PageSpecificSiteDataDialogModelDelegate` methods so all
+> dialog callbacks and browsing data lookups return safely if the
+> `WebContents` has been destroyed.
+>
+> Bug: 579921184
+> Change-Id: Ia35e29ba33ad79f82e35c7a3ac4de46a65cd161c
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8758951
+> Reviewed-by: Mike Wasserman <msw@chromium.org>
+> Commit-Queue: Duncan Mercer <mercerd@google.com>
+> Cr-Commit-Position: refs/heads/main@{#1740903}
+
+(cherry picked from commit ed47011fe76c67d046552344abd5fb64acb8b6c1)
+
+Bug: 589795751,579921184
+Change-Id: Ia35e29ba33ad79f82e35c7a3ac4de46a65cd161c
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8840322
+Commit-Queue: Justin Donnelly <jdonnelly@chromium.org>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1505}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+
+FlyWeb: the merge e9dfc63967, applied unchanged to the 156 tree (FlyWeb 3.2.2).
+---
+ .../page_specific_site_data_dialog.cc         | 68 +++++++++++++++----
+ .../page_specific_site_data_dialog.h          |  2 +
+ ...page_specific_site_data_dialog_unittest.cc | 12 ++++
+ 3 files changed, 70 insertions(+), 12 deletions(-)
+
+diff --git a/chrome/browser/ui/views/site_data/page_specific_site_data_dialog.cc b/chrome/browser/ui/views/site_data/page_specific_site_data_dialog.cc
+index 63e6a1fb03..961aae639f 100644
+--- a/chrome/browser/ui/views/site_data/page_specific_site_data_dialog.cc
++++ b/chrome/browser/ui/views/site_data/page_specific_site_data_dialog.cc
+@@ -199,10 +199,18 @@ class PageSpecificSiteDataDialogModelDelegate : public ui::DialogModelDelegate {
+   }
+ 
+   std::vector<PageSpecificSiteDataDialogSite> GetAllSites() {
++    if (!web_contents_) {
++      return {};
++    }
++    BrowsingDataModel* allowed = allowed_browsing_data_model();
++    BrowsingDataModel* blocked = blocked_browsing_data_model();
++    if (!allowed || !blocked) {
++      return {};
++    }
++
+     std::map<BrowsingDataModel::DataOwner, PageSpecificSiteDataDialogSite>
+         sites_map;
+-    for (const BrowsingDataModel::BrowsingDataEntryView& entry :
+-         *allowed_browsing_data_model()) {
++    for (const BrowsingDataModel::BrowsingDataEntryView& entry : *allowed) {
+       const BrowsingDataModel::DataOwner& owner = *entry.data_owner;
+       auto existing_site = sites_map.find(owner);
+       if (existing_site == sites_map.end()) {
+@@ -215,8 +223,7 @@ class PageSpecificSiteDataDialogModelDelegate : public ui::DialogModelDelegate {
+             IsBrowsingDataEntryViewFullyPartitioned(entry);
+       }
+     }
+-    for (const BrowsingDataModel::BrowsingDataEntryView& entry :
+-         *blocked_browsing_data_model()) {
++    for (const BrowsingDataModel::BrowsingDataEntryView& entry : *blocked) {
+       const BrowsingDataModel::DataOwner& owner = *entry.data_owner;
+       auto existing_site = sites_map.find(owner);
+       if (existing_site == sites_map.end()) {
+@@ -251,6 +258,10 @@ class PageSpecificSiteDataDialogModelDelegate : public ui::DialogModelDelegate {
+   }
+ 
+   std::vector<webapps::AppId> GetInstalledRelatedApps() {
++    if (!web_contents_) {
++      return {};
++    }
++
+     // There will be no installed related apps in off the record mode, because
+     // apps are not installable there.
+     if (web_contents_->GetBrowserContext()->IsOffTheRecord()) {
+@@ -282,6 +293,15 @@ class PageSpecificSiteDataDialogModelDelegate : public ui::DialogModelDelegate {
+   FaviconCache* favicon_cache() { return favicon_cache_.get(); }
+ 
+   void DeleteStoredObjects(const url::Origin& origin) {
++    if (!web_contents_) {
++      return;
++    }
++    BrowsingDataModel* allowed = allowed_browsing_data_model();
++    BrowsingDataModel* blocked = blocked_browsing_data_model();
++    if (!allowed || !blocked) {
++      return;
++    }
++
+     status_changed_ = true;
+ 
+     // The both models have to be checked, as the site might be in the blocked
+@@ -292,13 +312,11 @@ class PageSpecificSiteDataDialogModelDelegate : public ui::DialogModelDelegate {
+     // `base::DoNothing` callback.
+     // TODO(crbug.com/40248546): Future tests will need to know when the
+     // deletion is completed, this will require a callback to be passed here.
+-    allowed_browsing_data_model()->RemoveBrowsingData(origin.host(),
+-                                                      base::DoNothing());
+-    allowed_browsing_data_model()->RemovePartitionedBrowsingData(
++    allowed->RemoveBrowsingData(origin.host(), base::DoNothing());
++    allowed->RemovePartitionedBrowsingData(
+         origin.host(), net::SchemefulSite(origin), base::DoNothing());
+-    blocked_browsing_data_model()->RemoveBrowsingData(origin.host(),
+-                                                      base::DoNothing());
+-    blocked_browsing_data_model()->RemovePartitionedBrowsingData(
++    blocked->RemoveBrowsingData(origin.host(), base::DoNothing());
++    blocked->RemovePartitionedBrowsingData(
+         origin.host(), net::SchemefulSite(origin), base::DoNothing());
+ 
+     RecordPageSpecificSiteDataDialogRemoveButtonClickedAction();
+@@ -327,6 +345,9 @@ class PageSpecificSiteDataDialogModelDelegate : public ui::DialogModelDelegate {
+   }
+ 
+   void OnRelatedApplicationLinkToAppSettings(const webapps::AppId& app_id) {
++    if (!web_contents_) {
++      return;
++    }
+     web_app::OpenAppSettingsForInstalledRelatedApp(
+         app_id,
+         Profile::FromBrowserContext(web_contents_->GetBrowserContext()));
+@@ -345,6 +366,9 @@ class PageSpecificSiteDataDialogModelDelegate : public ui::DialogModelDelegate {
+     // host names or BDM should return origins.
+     url::Origin entry_origin = std::visit(
+         absl::Overload{[&](const std::string& host) {
++                         if (!web_contents_) {
++                           return url::Origin();
++                         }
+                          GURL current_url = web_contents_->GetVisibleURL();
+                          GURL site_url = net::cookie_util::CookieOriginToURL(
+                              host, current_url.SchemeIsCryptographic());
+@@ -384,6 +408,9 @@ class PageSpecificSiteDataDialogModelDelegate : public ui::DialogModelDelegate {
+   }
+ 
+   bool IsOnlyPartitionedStorageAccessAllowed(url::Origin site_origin) {
++    if (!web_contents_) {
++      return false;
++    }
+     GURL current_url = web_contents_->GetVisibleURL();
+ 
+     const bool block_third_party_cookies =
+@@ -421,22 +448,30 @@ class PageSpecificSiteDataDialogModelDelegate : public ui::DialogModelDelegate {
+     if (allowed_browsing_data_model_for_testing_) {
+       return allowed_browsing_data_model_for_testing_;
+     }
++    if (!web_contents_) {
++      return nullptr;
++    }
+ 
+     auto* content_settings =
+         content_settings::PageSpecificContentSettings::GetForFrame(
+             web_contents_->GetPrimaryMainFrame());
+-    return content_settings->allowed_browsing_data_model();
++    return content_settings ? content_settings->allowed_browsing_data_model()
++                            : nullptr;
+   }
+ 
+   BrowsingDataModel* blocked_browsing_data_model() {
+     if (blocked_browsing_data_model_for_testing_) {
+       return blocked_browsing_data_model_for_testing_;
+     }
++    if (!web_contents_) {
++      return nullptr;
++    }
+ 
+     auto* content_settings =
+         content_settings::PageSpecificContentSettings::GetForFrame(
+             web_contents_->GetPrimaryMainFrame());
+-    return content_settings->blocked_browsing_data_model();
++    return content_settings ? content_settings->blocked_browsing_data_model()
++                            : nullptr;
+   }
+ 
+   base::WeakPtr<content::WebContents> web_contents_;
+@@ -575,6 +610,15 @@ void PageSpecificSiteDataDialogTestApi::DeleteStoredObjects(
+   delegate_->DeleteStoredObjects(origin);
+ }
+ 
++void PageSpecificSiteDataDialogTestApi::OnManageOnDeviceSiteDataClicked() {
++  delegate_->OnManageOnDeviceSiteDataClicked();
++}
++
++void PageSpecificSiteDataDialogTestApi::OnRelatedApplicationLinkToAppSettings(
++    const webapps::AppId& app_id) {
++  delegate_->OnRelatedApplicationLinkToAppSettings(app_id);
++}
++
+ }  // namespace test
+ 
+ DEFINE_ELEMENT_IDENTIFIER_VALUE(kPageSpecificSiteDataDialogRow);
+diff --git a/chrome/browser/ui/views/site_data/page_specific_site_data_dialog.h b/chrome/browser/ui/views/site_data/page_specific_site_data_dialog.h
+index 503b8b3347..39f5c248b1 100644
+--- a/chrome/browser/ui/views/site_data/page_specific_site_data_dialog.h
++++ b/chrome/browser/ui/views/site_data/page_specific_site_data_dialog.h
+@@ -52,6 +52,8 @@ class PageSpecificSiteDataDialogTestApi {
+   std::vector<PageSpecificSiteDataDialogSite> GetAllSites();
+   std::vector<webapps::AppId> GetInstalledRelatedApps();
+   void DeleteStoredObjects(const url::Origin& origin);
++  void OnManageOnDeviceSiteDataClicked();
++  void OnRelatedApplicationLinkToAppSettings(const webapps::AppId& app_id);
+ 
+  private:
+   std::unique_ptr<PageSpecificSiteDataDialogModelDelegate> delegate_;
+diff --git a/chrome/browser/ui/views/site_data/page_specific_site_data_dialog_unittest.cc b/chrome/browser/ui/views/site_data/page_specific_site_data_dialog_unittest.cc
+index 414058fcc1..d98679b95b 100644
+--- a/chrome/browser/ui/views/site_data/page_specific_site_data_dialog_unittest.cc
++++ b/chrome/browser/ui/views/site_data/page_specific_site_data_dialog_unittest.cc
+@@ -539,6 +539,18 @@ TEST_F(PageSpecificSiteDataDialogUnitTest, RemoveBrowsingData) {
+   }
+ }
+ 
++TEST_F(PageSpecificSiteDataDialogUnitTest, HandlesDestroyedWebContents) {
++  auto delegate =
++      std::make_unique<test::PageSpecificSiteDataDialogTestApi>(web_contents());
++  DeleteContents();
++
++  EXPECT_TRUE(delegate->GetAllSites().empty());
++  EXPECT_TRUE(delegate->GetInstalledRelatedApps().empty());
++  delegate->DeleteStoredObjects(url::Origin::Create(GURL(kCurrentUrl)));
++  delegate->OnManageOnDeviceSiteDataClicked();
++  delegate->OnRelatedApplicationLinkToAppSettings("dummy_app_id");
++}
++
+ class PageSpecificSiteDataDialogWithWebAppsUnitTest
+     : public PageSpecificSiteDataDialogUnitTest {
+  public:
+-- 
+2.43.0
+
