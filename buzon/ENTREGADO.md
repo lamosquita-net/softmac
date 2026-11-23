@@ -1096,3 +1096,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/ARQUITECTURA/20261123-1912-COORDINACION-61-escala-1.md → Arquitectura FlyWeb monorepo · 2026-11-23 19:12 UTC · entregado por COORDINACIÓN-61 (SendMessage)
 - buzon/NUBE-SEGURIDAD-PORTES/20261123-1956-COORDINACION-61-solo-linux.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-23 19:56 UTC · copia escrita del SendMessage
 - buzon/LOCAL/20261123-2050-COORDINACION-61-spinning-mutex.md → LOCAL-24 [local_9144cd8b] · 2026-11-23 20:50 UTC · entregado por COORDINACIÓN-61 (SendMessage)
+- buzon/D8-LINUX/20261123-2051-COORDINACION-61-U3-2.1.md → D8-LINUX-6 (ubuntu (6)) · 2026-11-23 20:51 UTC · entregado por COORDINACIÓN-61 (SendMessage)
