@@ -1,0 +1,1074 @@
+diff --git a/chromium_src/chrome/common/chrome_paths_linux.cc b/chromium_src/chrome/common/chrome_paths_linux.cc
+index c8c1e098269272eb0992109d662b9247277fde17..6e00b265361d68e7ee396f8832251019af4b26df 100644
+--- a/chromium_src/chrome/common/chrome_paths_linux.cc
++++ b/chromium_src/chrome/common/chrome_paths_linux.cc
+@@ -23,7 +23,10 @@ bool GetDefaultUserDataDirectory(base::FilePath* result) {
+   std::string data_dir_suffix;
+   brave::GetChannelImpl(nullptr, &data_dir_suffix);
+ 
+-  *result = config_dir.Append("BraveSoftware/Brave-Browser" + data_dir_suffix);
++  // FlyWeb (U3): its own folder, like the Mac identity, never Brave's
++  // (BraveSoftware/Brave-Browser): a profile cannot move later without a
++  // migration.
++  *result = config_dir.Append("LaMosquita/FlyWeb" + data_dir_suffix);
+   return true;
+ }
+ 
+diff --git a/chromium_src/components/os_crypt/async/common/encryptor.cc b/chromium_src/components/os_crypt/async/common/encryptor.cc
+index 072e66a7424ee939d6a7cbb12a75190ef9f70325..2715c65d488a1770fddeea8fc5d985d2719d3667 100644
+--- a/chromium_src/components/os_crypt/async/common/encryptor.cc
++++ b/chromium_src/components/os_crypt/async/common/encryptor.cc
+@@ -15,6 +15,7 @@
+ namespace os_crypt_async {
+ namespace {
+ 
++#if BUILDFLAG(IS_MAC)
+ // "v" + two digits (`v10`, `v11`, `v20`...) or "fw" + one digit (`fw1`): the
+ // tags real providers use. Data starting like this is encrypted, even when
+ // its provider is not loaded at all, and must never come back as cleartext.
+@@ -26,17 +27,19 @@ bool FlyWebHasProviderTag(base::span<const uint8_t> data) {
+   return data.size() >= 3u && data[0] == 'f' && data[1] == 'w' &&
+          base::IsAsciiDigit(data[2]);
+ }
++#endif  // BUILDFLAG(IS_MAC)
+ 
+-// FlyWeb (2.x on Chromium 128 decrypted through OSCrypt sync): on Mac and
+-// Linux OSCrypt returned data without the `v10`/`v11` prefix as is, legacy
+-// cleartext from before encryption. 156 has no OSCrypt and returns nullopt,
+-// which would drop those values. Keep the 2.x answer for them, marked for
+-// re-encryption. Only with a real provider in the keyring (`v10`, `v11`,
+-// `fw1`, even if temporarily unavailable), so test keyrings and Windows
+-// (DPAPI blobs carry no prefix) keep upstream's behaviour.
++// FlyWeb (2.x on Chromium 128 decrypted through OSCrypt sync): on Mac
++// OSCrypt returned data without the `v10` prefix as is, legacy cleartext from
++// before encryption. 156 has no OSCrypt and returns nullopt, which would drop
++// those values. Keep the 2.x answer for them, marked for re-encryption. Only
++// with a real provider in the keyring (`v10`, `fw1`, even if temporarily
++// unavailable), so test keyrings keep upstream's behaviour. Mac only (U3):
++// there is no FlyWeb 2.x on Linux to migrate, so there unprefixed data never
++// comes back as cleartext; Windows DPAPI blobs carry no prefix.
+ bool FlyWebIsLegacyCleartext(const Encryptor::KeyRing& keys,
+                              base::span<const uint8_t> data) {
+-#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
++#if BUILDFLAG(IS_MAC)
+   if (FlyWebHasProviderTag(data)) {
+     return false;
+   }
+diff --git a/components/flyweb_os_crypt/README.md b/components/flyweb_os_crypt/README.md
+index be612c9d6b750a9fa1125205a503d9e048fd94e6..bf2e65c4b6b0dabceb8bdd6fa625715bb6508765 100644
+--- a/components/flyweb_os_crypt/README.md
++++ b/components/flyweb_os_crypt/README.md
+@@ -12,7 +12,7 @@ porte a Chromium 156, `FlyWeb/docs/brave-propio.md` §11.8.2 y §12.
+   `KeychainKeyProvider`, 10): con su clave, `fw1` cifra; los `v10` se leen y salen con `should_reencrypt`.
+ - Clave `v10`: `KeychainKeyProvider` de Chromium con el nombre «FlyWeb Safe Storage» / «FlyWeb» de
+   `chromium_src/components/os_crypt/common/keychain_password_mac.mm`.
+-- `chromium_src/components/os_crypt/async/common/encryptor.cc` (+ parche de una línea), Mac y Linux: un dato sin
++- `chromium_src/components/os_crypt/async/common/encryptor.cc` (+ parche de una línea), solo Mac (Linux, abajo): un dato sin
+   prefijo (lo que OSCrypt de la 2.x devolvía tal cual) se devuelve en claro con `should_reencrypt`; uno con prefijo de
+   proveedor (`vNN`, `fwN`) nunca sale en claro. Pruebas en `encryptor_legacy_unittest.cc`.
+ - Contraseñas: `patches/...login_database.cc.patch`: una fila `fw1` o `v10` que no se descifra nunca se borra
+@@ -21,5 +21,28 @@ porte a Chromium 156, `FlyWeb/docs/brave-propio.md` §11.8.2 y §12.
+   (se borra su fila con el mecanismo de las no canónicas de la 156), no todo su eTLD+1. Como en la 2.x, también con el
+   llavero denegado.
+ 
++## Linux (U3 §2.1, opción B)
++
++No hay clase propia: `fw1` es el proveedor de Chromium (`FreedesktopSecretKeyProvider`, Secret Service o KWallet)
++con `patches/components-os_crypt-async-browser-freedesktop_secret_key_provider.*`:
++
++- Nombres de FlyWeb: `application=flyweb`, «FlyWeb Safe Storage», carpeta de KWallet «FlyWeb Keys»; nunca el ítem de
++  Brave. Producto «FlyWeb» para KWallet.
++- Mismo formato que en Mac: el secreto es la Base64 de 32 bytes aleatorios y es la clave AES-256-GCM, sin KDF, sal ni
++  `info`; etiqueta `fw1`. Un secreto que no sea eso no se usa ni se sustituye.
++- Todo fallo es `kTemporarilyUnavailable`. Solo se escribe un secreto si el llavero contesta y no tiene ninguno: una
++  búsqueda fallida, una entrada vacía de KWallet o la falta de colección por defecto no crean nada (upstream crea una
++  colección nueva y la hace la de por defecto).
++- Registro (`patches/chrome-browser-browser_process_impl.cc.patch`): sin portal de secretos; `PosixKeyProvider` (`v10`,
++  clave fija y pública) solo con `--password-store=basic`. Sin llavero no se cifra nada, y por tanto no se guardan
++  contraseñas ni cookies nuevas.
++- Cookies con la clave ausente en este arranque: `CookieCryptoDelegate::FlyWebDecryptString` lleva
++  `temporarily_unavailable` del `Encryptor` al almacén, que deja la fila sin cargar, sin borrar y sin `ok = false` (que
++  borraría todo su eTLD+1). Hasta que vuelva la clave la web no la ve ni la puede borrar. Solo en Linux: en Mac la fila
++  `fw1` ilegible se sigue borrando como en la 2.x.
++- La regla del texto claro heredado de `encryptor.cc` es solo de Mac: en Linux no hay 2.x que migrar.
++- Perfil: `~/.config/LaMosquita/FlyWeb` (`chromium_src/chrome/common/chrome_paths_linux.cc`).
++- Límite: Secret Service no separa aplicaciones; otro proceso del mismo usuario puede leer el secreto.
++
+ Para cambiar de algoritmo (agilidad): proveedor nuevo con etiqueta nueva (`fw2`) y precedencia mayor; `fw1` se queda
+ registrado para leer lo antiguo, igual que `v10`.
+diff --git a/components/flyweb_os_crypt/encryptor_legacy_unittest.cc b/components/flyweb_os_crypt/encryptor_legacy_unittest.cc
+index 68e6153156442b4a5fd8c1d64eafc1f4ddcfa3c4..9792d94d83dbd2915e11d6bead764dcf766a279e 100644
+--- a/components/flyweb_os_crypt/encryptor_legacy_unittest.cc
++++ b/components/flyweb_os_crypt/encryptor_legacy_unittest.cc
+@@ -3,9 +3,10 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+  * You can obtain one at https://mozilla.org/MPL/2.0/. */
+ 
+-// FlyWeb part of chromium_src/components/os_crypt/async/common/encryptor.cc
+-// (Mac and Linux): what Encryptor::DecryptData returns for data written by
+-// FlyWeb 2.x, whose OSCrypt handed unprefixed data back as is.
++// FlyWeb part of chromium_src/components/os_crypt/async/common/encryptor.cc:
++// what Encryptor::DecryptData returns for data written by FlyWeb 2.x on Mac,
++// whose OSCrypt handed unprefixed data back as is, and that Linux, with no
++// 2.x to migrate, never does so (U3).
+ 
+ #include <memory>
+ #include <optional>
+@@ -86,7 +87,7 @@ class FlyWebEncryptorTest : public ::testing::Test {
+   base::test::TaskEnvironment task_environment_;
+ };
+ 
+-#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
++#if BUILDFLAG(IS_MAC)
+ 
+ // (c) Unprefixed data: cleartext from before encryption. Returned as is and
+ // marked for re-encryption, as OSCrypt did in 2.x.
+@@ -115,6 +116,33 @@ TEST_F(FlyWebEncryptorTest, UnprefixedWithKeyUnavailable) {
+   EXPECT_TRUE(flags.should_reencrypt);
+ }
+ 
++#endif  // BUILDFLAG(IS_MAC)
++
++#if BUILDFLAG(IS_LINUX)
++
++// U3: no 2.x on Linux, so unprefixed data is not cleartext there, with the
++// `fw1` key loaded or not.
++TEST_F(FlyWebEncryptorTest, UnprefixedIsNotCleartextOnLinux) {
++  for (auto error : {std::optional<KeyProvider::KeyError>(),
++                     std::optional<KeyProvider::KeyError>(
++                         KeyProvider::KeyError::kTemporarilyUnavailable)}) {
++    auto encryptor = GetEncryptor({{"fw1", 2, error}});
++    for (const std::string& legacy :
++         {std::string("a"), std::string("session=abc"), std::string("v1")}) {
++      Encryptor::DecryptFlags flags;
++      std::string plaintext;
++      EXPECT_FALSE(encryptor->DecryptString(legacy, &plaintext, &flags))
++          << legacy;
++      EXPECT_TRUE(plaintext.empty());
++      EXPECT_FALSE(flags.should_reencrypt);
++    }
++  }
++}
++
++#endif  // BUILDFLAG(IS_LINUX)
++
++#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
++
+ // A provider tag whose provider is not loaded at all (e.g. Linux `v11` with
+ // no secret service, a future `fw2` after a downgrade) is not cleartext.
+ TEST_F(FlyWebEncryptorTest, UnknownProviderTagFails) {
+diff --git a/patches/chrome-browser-browser_process_impl.cc.patch b/patches/chrome-browser-browser_process_impl.cc.patch
+index a18e0216ce49dd6455fb6ee22841c19aaafe7dab..7a7465b0de6eb8575361a2bdbb0524c7ecd1006c 100644
+--- a/patches/chrome-browser-browser_process_impl.cc.patch
++++ b/patches/chrome-browser-browser_process_impl.cc.patch
+@@ -1,8 +1,42 @@
+ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
+-index bed9453f156ba5b94a8daa5261085045e288098e..390dad92d5b11e7919ade4191c42878914093a80 100644
++index bed9453f156ba5b94a8daa5261085045e288098e..d4ef5b0a1123eae34f43f4ade7020139dbef75bc 100644
+ --- a/chrome/browser/browser_process_impl.cc
+ +++ b/chrome/browser/browser_process_impl.cc
+-@@ -1654,6 +1654,7 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
++@@ -1623,6 +1623,9 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
++   base::CommandLine* cmd_line = base::CommandLine::ForCurrentProcess();
++   const auto password_store =
++       cmd_line->GetSwitchValueASCII(password_manager::kPasswordStore);
+++  // FlyWeb (U3): no secret portal in the first Linux version, whatever the
+++  // feature says: upstream does not encrypt with it by default yet.
+++#if 0
++   if (password_store != "basic") {
++     if (base::FeatureList::IsEnabled(features::kDbusSecretPortal)) {
++       // Use a higher priority than the FreedesktopSecretKeyProvider.
++@@ -1634,15 +1637,22 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
++                   features::kSecretPortalKeyProviderUseForEncryption)));
++     }
++   }
+++#endif
++   providers.emplace_back(
++       /*precedence=*/10u,
++       std::make_unique<os_crypt_async::FreedesktopSecretKeyProvider>(
++-          password_store, l10n_util::GetStringUTF8(IDS_PRODUCT_NAME), nullptr));
+++          password_store, "FlyWeb", nullptr));
++ #endif  // BUILDFLAG(IS_LINUX)
++ 
++ #if BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_MAC)
++   // On other POSIX systems, this is the only key provider. On Linux, it is used
++   // as a fallback.
+++#if BUILDFLAG(IS_LINUX) && BUILDFLAG(USE_DBUS)
+++  // FlyWeb (U3): `v10` is a fixed, public key. It encrypts nothing unless the
+++  // user asks for --password-store=basic: without a keyring, passwords and
+++  // cookies are not saved instead of being saved under a key anyone has.
+++  if (password_store == "basic")
+++#endif
++   providers.emplace_back(
++       /*precedence=*/5u, std::make_unique<os_crypt_async::PosixKeyProvider>());
++ #endif  // BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_LINUX)
++@@ -1654,6 +1664,7 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
+          std::make_unique<os_crypt_async::KeychainKeyProvider>()));
+    }
+  #endif  // BUILDFLAG(IS_MAC)
+diff --git a/patches/components-os_crypt-async-browser-freedesktop_secret_key_provider.cc.patch b/patches/components-os_crypt-async-browser-freedesktop_secret_key_provider.cc.patch
+new file mode 100644
+index 0000000000000000000000000000000000000000..afdde110d7ee4b823a7c54741d13d8ed6d820a4c
+--- /dev/null
++++ b/patches/components-os_crypt-async-browser-freedesktop_secret_key_provider.cc.patch
+@@ -0,0 +1,128 @@
++diff --git a/components/os_crypt/async/browser/freedesktop_secret_key_provider.cc b/components/os_crypt/async/browser/freedesktop_secret_key_provider.cc
++index bc569bb3d128e13c185bd3b4106b56cf575934cb..3f7e14e3ce941d93071a07090347415780914a91 100644
++--- a/components/os_crypt/async/browser/freedesktop_secret_key_provider.cc
+++++ b/components/os_crypt/async/browser/freedesktop_secret_key_provider.cc
++@@ -22,14 +22,15 @@
++ #include "base/no_destructor.h"
++ #include "base/notreached.h"
++ #include "base/rand_util.h"
+++#include "base/strings/string_view_util.h"
++ #include "components/dbus/thread_linux/dbus_thread_linux.h"
++ #include "components/dbus/utils/call_method.h"
++ #include "components/dbus/utils/connect_to_signal.h"
++ #include "components/dbus/utils/variant.h"
++ #include "components/os_crypt/async/common/algorithm.mojom.h"
++-#include "crypto/kdf.h"
++ #include "dbus/message.h"
++ #include "dbus/object_path.h"
+++#include "third_party/boringssl/src/include/openssl/mem.h"
++ 
++ namespace os_crypt_async {
++ 
++@@ -38,12 +39,11 @@ namespace {
++ constexpr char kUmaInitStatus[] =
++     "OSCrypt.FreedesktopSecretKeyProvider.InitStatus";
++ 
++-// These constants are duplicated from the sync backend.
++-constexpr char kEncryptionTag[] = "v11";
++-constexpr char kSalt[] = "saltysalt";
++-constexpr size_t kDerivedKeySizeInBits = 128;
++-constexpr size_t kEncryptionIterations = 1;
++-constexpr size_t kSecretLengthBytes = 16;
+++// FlyWeb (U3, option B): `fw1` as on Mac. The secret is the Base64 of a
+++// random AES-256-GCM key, used as is: no KDF, salt or info, so the same fixed
+++// vectors hold on both systems.
+++constexpr char kEncryptionTag[] = "fw1";
+++constexpr size_t kSecretLengthBytes = Encryptor::Key::kAES256GCMKeySize;
++ 
++ }  // namespace
++ 
++@@ -293,18 +293,13 @@ void FreedesktopSecretKeyProvider::OnReadAliasDefault(
++             weak_ptr_factory_.GetWeakPtr()),
++         kSecretCollectionInterface, kLabelProperty);
++   } else {
++-    // No default collection, create it
++-    auto* service_proxy = bus_->GetObjectProxy(
++-        kSecretServiceName, dbus::ObjectPath(kSecretServicePath));
++-    std::map<std::string, dbus_utils::Variant> props;
++-    props.emplace(kSecretCollectionLabelProperty,
++-                  dbus_utils::Variant::Wrap<"s">(kDefaultCollectionLabel));
++-
++-    Prompter<dbus::ObjectPath>::Prompt<"a{sv}s", "oo">(
++-        bus_, service_proxy, kSecretServiceInterface, kMethodCreateCollection,
++-        base::BindOnce(&FreedesktopSecretKeyProvider::OnCreateCollection,
++-                       weak_ptr_factory_.GetWeakPtr()),
++-        props, kDefaultAlias);
+++    // FlyWeb (U3): upstream creates a collection here and makes it the
+++    // default, and with it a new secret. A keyring that is not ready yet
+++    // answers like this too: the new default would hide the collection that
+++    // holds the real secret and everything it encrypted. Try again on the
+++    // next start instead.
+++    LOG(WARNING) << "No default Secret Service collection; fw1 unavailable.";
+++    FinalizeFailure(InitStatus::kReadAliasFailed);
++   }
++ }
++ 
++@@ -662,14 +657,15 @@ void FreedesktopSecretKeyProvider::OnKWalletReadPassword(
++ 
++   std::string secret = std::move(std::get<0>(secret_reply.value()));
++   if (secret.empty()) {
++-    // The synchronous KWallet backend generates a new password if the
++-    // existing one is empty, so that logic is duplicated here.
++-    LOG(ERROR) << "Existing KWallet password is empty. Generating a new one.";
++-    GenerateAndWriteKWalletPassword();
+++    // FlyWeb (U3): upstream writes a new password over an empty entry, which
+++    // loses whatever the old one encrypted. Leave the entry alone.
+++    LOG(ERROR) << "Existing KWallet password is empty; fw1 unavailable.";
+++    FinalizeFailure(InitStatus::kKWalletReadFailed);
++     return;
++   }
++ 
++   DeriveKeyFromSecret(base::as_byte_span(secret));
+++  OPENSSL_cleanse(secret.data(), secret.size());
++ }
++ 
++ void FreedesktopSecretKeyProvider::GenerateAndWriteKWalletPassword() {
++@@ -742,13 +738,21 @@ void FreedesktopSecretKeyProvider::OnCreateItem(
++ 
++ void FreedesktopSecretKeyProvider::DeriveKeyFromSecret(
++     base::span<const uint8_t> secret) {
++-  static_assert(kDerivedKeySizeInBits % 8 == 0);
++-  std::array<uint8_t, kDerivedKeySizeInBits / 8> key_bytes;
++-  crypto::kdf::Pbkdf2HmacSha1(
++-      {kEncryptionIterations}, secret,
++-      base::as_byte_span(base::span_from_cstring(kSalt)), key_bytes,
++-      crypto::SubtlePassKey{});
++-  Encryptor::Key key(key_bytes, mojom::Algorithm::kAES128CBC);
+++  // FlyWeb (U3): the secret is the key itself, in Base64, as on Mac. Never
+++  // build a Key of another length (Encryptor::Key CHECKs it) and never replace
+++  // the item: whatever it encrypted would be lost.
+++  std::optional<std::vector<uint8_t>> raw =
+++      base::Base64Decode(base::as_string_view(secret));
+++  if (!raw || raw->size() != kSecretLengthBytes) {
+++    LOG(ERROR) << "The fw1 secret is not a 256-bit Base64 key.";
+++    if (raw) {
+++      OPENSSL_cleanse(raw->data(), raw->size());
+++    }
+++    FinalizeFailure(InitStatus::kEmptySecret);
+++    return;
+++  }
+++  Encryptor::Key key(*raw, mojom::Algorithm::kAES256GCM);
+++  OPENSSL_cleanse(raw->data(), raw->size());
++   FinalizeSuccess(std::move(key));
++ }
++ 
++@@ -765,9 +769,12 @@ void FreedesktopSecretKeyProvider::FinalizeFailure(InitStatus status) {
++     return;
++   }
++   base::UmaHistogramEnumeration(kUmaInitStatus, status);
+++  // FlyWeb (U3): never kPermanentlyUnavailable. The keyring may answer on the
+++  // next start (unlocked, allowed, service up) and callers delete data they
+++  // think is lost for good.
++   std::move(key_callback_)
++       .Run(kEncryptionTag,
++-           base::unexpected(KeyProvider::KeyError::kPermanentlyUnavailable));
+++           base::unexpected(KeyProvider::KeyError::kTemporarilyUnavailable));
++   CloseSession();
++ }
++ 
+diff --git a/patches/components-os_crypt-async-browser-freedesktop_secret_key_provider.h.patch b/patches/components-os_crypt-async-browser-freedesktop_secret_key_provider.h.patch
+index ff04aa0b80d179d4097d92e90212dd8aa3ed12b1..6e9a94b4621292247970d419839f1397c873d96b 100644
+--- a/patches/components-os_crypt-async-browser-freedesktop_secret_key_provider.h.patch
++++ b/patches/components-os_crypt-async-browser-freedesktop_secret_key_provider.h.patch
+@@ -1,17 +1,54 @@
+ diff --git a/components/os_crypt/async/browser/freedesktop_secret_key_provider.h b/components/os_crypt/async/browser/freedesktop_secret_key_provider.h
+-index e2eb3958ef6fad22079e3238de0c9ba2761e56fe..5c18322aca2b616c2f8e718b9ca6f9742fe08fa8 100644
++index e2eb3958ef6fad22079e3238de0c9ba2761e56fe..c2caf2ab6ae871d63a59d9212dfbd1325eb64f6f 100644
+ --- a/components/os_crypt/async/browser/freedesktop_secret_key_provider.h
+ +++ b/components/os_crypt/async/browser/freedesktop_secret_key_provider.h
+-@@ -158,9 +158,9 @@ class FreedesktopSecretKeyProvider : public KeyProvider {
++@@ -33,6 +33,15 @@ namespace os_crypt_async {
++ // to retrieve a secret from backend (GNOME Keyring, KWallet, KeePassXC),
++ // which can then be used to encrypt confidential data. If registration with
++ // D-Bus services fails, this class will fallback to using PosixKeyProvider.
+++//
+++// FlyWeb (U3, option B): `fw1`, the format of the Mac provider. The secret is
+++// 32 random bytes in Base64 used as the AES-256-GCM key without any KDF, under
+++// FlyWeb's names. Every failure is kTemporarilyUnavailable, and the provider
+++// only writes a new secret when the keyring answered and has none: a failed
+++// search, an empty KWallet entry or a missing default collection never create
+++// one, and a secret that is not a 256-bit Base64 key is neither used nor
+++// replaced. FlyWeb does not register PosixKeyProvider unless the user asks for
+++// --password-store=basic (browser_process_impl.cc).
++ class FreedesktopSecretKeyProvider : public KeyProvider {
++  public:
++   enum class InitStatus {
++@@ -80,6 +89,19 @@ class FreedesktopSecretKeyProvider : public KeyProvider {
++                            KWalletCreateFolderAndPassword);
++   FRIEND_TEST_ALL_PREFIXES(FreedesktopSecretKeyProviderTest,
++                            SearchItemsWithItemUnlockPrompt);
+++  FRIEND_TEST_ALL_PREFIXES(FreedesktopSecretKeyProviderTest, FlyWebNames);
+++  FRIEND_TEST_ALL_PREFIXES(FreedesktopSecretKeyProviderTest,
+++                           FlyWebGoldenKeyAsOnMac);
+++  FRIEND_TEST_ALL_PREFIXES(FreedesktopSecretKeyProviderTest,
+++                           FlyWebBadSecretIsNotUsed);
+++  FRIEND_TEST_ALL_PREFIXES(FreedesktopSecretKeyProviderTest,
+++                           FlyWebFailureIsTemporary);
+++  FRIEND_TEST_ALL_PREFIXES(FreedesktopSecretKeyProviderTest,
+++                           FlyWebNoDefaultCollectionCreatesNothing);
+++  FRIEND_TEST_ALL_PREFIXES(FreedesktopSecretKeyProviderTest,
+++                           FlyWebSearchFailureCreatesNothing);
+++  FRIEND_TEST_ALL_PREFIXES(FreedesktopSecretKeyProviderTest,
+++                           FlyWebKWalletEmptyEntryIsNotReplaced);
++   friend class FreedesktopSecretKeyProviderCompatTest;
++ 
++   template <typename T>
++@@ -158,9 +180,10 @@ class FreedesktopSecretKeyProvider : public KeyProvider {
+    static constexpr char kKeyName[] = "Chrome Safe Storage";
+    static constexpr char kAppName[] = "chrome";
+  #else
+ -  static constexpr char kKWalletFolder[] = "Chromium Keys";
+ -  static constexpr char kKeyName[] = "Chromium Safe Storage";
+ -  static constexpr char kAppName[] = "chromium";
+-+  static constexpr char kKWalletFolder[] = "Brave Keys";
+-+  static constexpr char kKeyName[] = "Brave Safe Storage";
+-+  static constexpr char kAppName[] = "brave";
+++  // FlyWeb (U3): its own item, never Brave's ("Brave Safe Storage").
+++  static constexpr char kKWalletFolder[] = "FlyWeb Keys";
+++  static constexpr char kKeyName[] = "FlyWeb Safe Storage";
+++  static constexpr char kAppName[] = "flyweb";
+  #endif
+  
+    void InitializeFreedesktopSecretService();
+diff --git a/patches/components-os_crypt-async-browser-freedesktop_secret_key_provider_unittest.cc.patch b/patches/components-os_crypt-async-browser-freedesktop_secret_key_provider_unittest.cc.patch
+new file mode 100644
+index 0000000000000000000000000000000000000000..0b1ce753e79dfaac0ce75978fee3d257858943fa
+--- /dev/null
++++ b/patches/components-os_crypt-async-browser-freedesktop_secret_key_provider_unittest.cc.patch
+@@ -0,0 +1,456 @@
++diff --git a/components/os_crypt/async/browser/freedesktop_secret_key_provider_unittest.cc b/components/os_crypt/async/browser/freedesktop_secret_key_provider_unittest.cc
++index ac86877501cc899d4be96c0487c6b57a9d7dd045..4bca9be9bb5bf6d4bd1f316879ba34293d8d383f 100644
++--- a/components/os_crypt/async/browser/freedesktop_secret_key_provider_unittest.cc
+++++ b/components/os_crypt/async/browser/freedesktop_secret_key_provider_unittest.cc
++@@ -17,12 +17,18 @@
++ #include "base/memory/ref_counted_memory.h"
++ #include "base/memory/scoped_refptr.h"
++ #include "base/test/bind.h"
+++#include "base/test/task_environment.h"
+++#include "base/test/test_future.h"
+++#include "base/types/expected.h"
++ #include "build/branding_buildflags.h"
++ #include "components/dbus/utils/name_has_owner.h"
++ #include "components/dbus/utils/read_value.h"
++ #include "components/dbus/utils/signature.h"
++ #include "components/dbus/utils/variant.h"
++ #include "components/dbus/utils/write_value.h"
+++#include "components/os_crypt/async/browser/os_crypt_async.h"
+++#include "components/os_crypt/async/common/algorithm.mojom.h"
+++#include "components/os_crypt/async/common/encryptor.h"
++ #include "dbus/message.h"
++ #include "dbus/mock_bus.h"
++ #include "dbus/mock_object_proxy.h"
++@@ -54,7 +60,9 @@ constexpr char kNetworkWallet[] = "kdewallet";
++ constexpr int32_t kKWalletHandle = 42;
++ constexpr int32_t kTransactionId = 123;
++ 
++-constexpr char kFakeSecret[] = "c3VwZXJfc2VjcmV0X2tleQ==";
+++// FlyWeb (U3): a `fw1` secret is the Base64 of a 256-bit key (the Mac golden
+++// key, see FlyWebGoldenKey() below).
+++constexpr char kFakeSecret[] = "AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=";
++ 
++ using ArgVariant = std::variant<dbus::ObjectPath,
++                                 std::string,
++@@ -328,7 +336,9 @@ TEST(FreedesktopSecretKeyProviderTest, BasicHappyPath) {
++           dbus::ObjectPath("/")));
++ 
++   // GetSecrets
++-  auto fake_secret_span = base::as_byte_span(kFakeSecret);
+++  // FlyWeb (U3): without the trailing NUL, which as_byte_span() keeps: a
+++  // `fw1` secret is exact Base64 (v11 ran any bytes through PBKDF2).
+++  auto fake_secret_span = base::byte_span_from_cstring(kFakeSecret);
++   std::map<dbus::ObjectPath, std::tuple<dbus::ObjectPath, std::vector<uint8_t>,
++                                         std::vector<uint8_t>, std::string>>
++       secrets;
++@@ -361,10 +371,13 @@ TEST(FreedesktopSecretKeyProviderTest, BasicHappyPath) {
++         tag = returned_tag;
++         key = std::move(returned_key.value());
++       }));
++-  EXPECT_EQ(tag, "v11");
+++  EXPECT_EQ(tag, "fw1");
++   EXPECT_TRUE(key.has_value());
++ }
++ 
+++// FlyWeb (U3): no collection is created any more, see
+++// FlyWebNoDefaultCollectionCreatesNothing.
+++#if 0
++ TEST(FreedesktopSecretKeyProviderTest,
++      CreateCollectionAndItemWithUnlockPrompt) {
++   auto mock_bus = base::MakeRefCounted<dbus::MockBus>(dbus::Bus::Options());
++@@ -562,10 +575,12 @@ TEST(FreedesktopSecretKeyProviderTest,
++         key = std::move(returned_key.value());
++       }));
++ 
++-  EXPECT_EQ(tag, "v11");
+++  EXPECT_EQ(tag, "fw1");
++   EXPECT_TRUE(key.has_value());
++ }
++ 
+++#endif  // 0
+++
++ TEST(FreedesktopSecretKeyProviderTest, SearchItemsWithItemUnlockPrompt) {
++   auto mock_bus = base::MakeRefCounted<dbus::MockBus>(dbus::Bus::Options());
++ 
++@@ -706,7 +721,9 @@ TEST(FreedesktopSecretKeyProviderTest, SearchItemsWithItemUnlockPrompt) {
++       });
++ 
++   // GetSecrets
++-  auto fake_secret_span = base::as_byte_span(kFakeSecret);
+++  // FlyWeb (U3): without the trailing NUL, which as_byte_span() keeps: a
+++  // `fw1` secret is exact Base64 (v11 ran any bytes through PBKDF2).
+++  auto fake_secret_span = base::byte_span_from_cstring(kFakeSecret);
++   std::map<dbus::ObjectPath, std::tuple<dbus::ObjectPath, std::vector<uint8_t>,
++                                         std::vector<uint8_t>, std::string>>
++       secrets;
++@@ -739,7 +756,7 @@ TEST(FreedesktopSecretKeyProviderTest, SearchItemsWithItemUnlockPrompt) {
++         tag = returned_tag;
++         key = std::move(returned_key.value());
++       }));
++-  EXPECT_EQ(tag, "v11");
+++  EXPECT_EQ(tag, "fw1");
++   EXPECT_TRUE(key.has_value());
++ }
++ 
++@@ -866,7 +883,7 @@ TEST(FreedesktopSecretKeyProviderTest, KWallet) {
++   dbus_utils::WriteValue(writer, kKWalletHandle);
++   signal_callback.Run(&signal);
++ 
++-  EXPECT_EQ(tag, "v11");
+++  EXPECT_EQ(tag, "fw1");
++   EXPECT_TRUE(key.has_value());
++ }
++ 
++@@ -988,8 +1005,351 @@ TEST(FreedesktopSecretKeyProviderTest, KWalletCreateFolderAndPassword) {
++   dbus_utils::WriteValue(writer, kKWalletHandle);
++   signal_callback.Run(&signal);
++ 
++-  EXPECT_EQ(tag, "v11");
+++  EXPECT_EQ(tag, "fw1");
++   EXPECT_TRUE(key.has_value());
++ }
++ 
+++
+++// FlyWeb (U3) ---------------------------------------------------------------
+++
+++namespace {
+++
+++using FlyWebKeyResult = base::expected<Encryptor::Key, KeyProvider::KeyError>;
+++
+++// The fixed 256-bit key of the Mac tests (fw1_key_provider_mac_unittest.mm);
+++// kFakeSecret is its Base64.
+++std::vector<uint8_t> FlyWebGoldenKey() {
+++  std::vector<uint8_t> key(32);
+++  for (size_t i = 0; i < key.size(); ++i) {
+++    key[i] = static_cast<uint8_t>(i * 7 + 1);
+++  }
+++  return key;
+++}
+++
+++// Hands out `key` under `fw1`, as the Mac provider does with its item.
+++class FlyWebFixedKeyProvider : public KeyProvider {
+++ public:
+++  explicit FlyWebFixedKeyProvider(std::vector<uint8_t> key)
+++      : key_(std::move(key)) {}
+++  void GetKey(KeyCallback callback) override {
+++    std::move(callback).Run("fw1",
+++                            Encryptor::Key(key_, mojom::Algorithm::kAES256GCM));
+++  }
+++  bool UseForEncryption() override { return true; }
+++
+++ private:
+++  const std::vector<uint8_t> key_;
+++};
+++
+++scoped_refptr<Encryptor> FlyWebEncryptorWith(
+++    std::unique_ptr<KeyProvider> provider) {
+++  std::vector<std::pair<size_t, std::unique_ptr<KeyProvider>>> providers;
+++  providers.emplace_back(10u, std::move(provider));
+++  OSCryptAsync os_crypt_async(std::move(providers));
+++  base::test::TestFuture<scoped_refptr<Encryptor>> future;
+++  os_crypt_async.GetInstance(future.GetCallback());
+++  return future.Take();
+++}
+++
+++// GetKey() for the synchronous paths (everything but KWallet's signal).
+++FlyWebKeyResult FlyWebGetKey(FreedesktopSecretKeyProvider& provider,
+++                             std::string* tag) {
+++  std::optional<FlyWebKeyResult> result;
+++  provider.GetKey(base::BindLambdaForTesting(
+++      [&](const std::string& returned_tag, FlyWebKeyResult returned_key) {
+++        *tag = returned_tag;
+++        result.emplace(std::move(returned_key));
+++      }));
+++  CHECK(result.has_value());
+++  return std::move(*result);
+++}
+++
+++auto RespondWithError() {
+++  return [](const std::string&, const std::string&, const ArgsVector&,
+++            dbus::ObjectProxy::ResponseOrErrorCallback* callback) {
+++    std::move(*callback).Run(nullptr, nullptr);
+++  };
+++}
+++
+++}  // namespace
+++
+++TEST(FreedesktopSecretKeyProviderTest, FlyWebNames) {
+++#if !BUILDFLAG(GOOGLE_CHROME_BRANDING)
+++  EXPECT_STREQ(FreedesktopSecretKeyProvider::kAppName, "flyweb");
+++  EXPECT_STREQ(FreedesktopSecretKeyProvider::kKeyName, "FlyWeb Safe Storage");
+++  EXPECT_STREQ(FreedesktopSecretKeyProvider::kKWalletFolder, "FlyWeb Keys");
+++#endif
+++}
+++
+++// Same format as Mac: the secret is the key, no KDF. What the Linux provider
+++// encrypts, the Mac golden key decrypts, and the other way round.
+++TEST(FreedesktopSecretKeyProviderTest, FlyWebGoldenKeyAsOnMac) {
+++  base::test::TaskEnvironment task_environment;
+++  auto provider = std::make_unique<FreedesktopSecretKeyProvider>(
+++      "gnome-libsecret", kProductName,
+++      base::MakeRefCounted<dbus::MockBus>(dbus::Bus::Options()));
+++  provider->secret_for_testing_ = kFakeSecret;
+++  auto linux_encryptor = FlyWebEncryptorWith(std::move(provider));
+++  auto mac_encryptor = FlyWebEncryptorWith(
+++      std::make_unique<FlyWebFixedKeyProvider>(FlyWebGoldenKey()));
+++
+++  std::string ciphertext;
+++  ASSERT_TRUE(linux_encryptor->EncryptString("FlyWeb fw1", &ciphertext));
+++  EXPECT_TRUE(ciphertext.starts_with("fw1"));
+++  // fw1 + 12-byte nonce + data + 16-byte tag.
+++  EXPECT_EQ(ciphertext.size(), 3u + 12u + 10u + 16u);
+++  std::string plaintext;
+++  ASSERT_TRUE(mac_encryptor->DecryptString(ciphertext, &plaintext));
+++  EXPECT_EQ(plaintext, "FlyWeb fw1");
+++
+++  ASSERT_TRUE(mac_encryptor->EncryptString("from Mac", &ciphertext));
+++  ASSERT_TRUE(linux_encryptor->DecryptString(ciphertext, &plaintext));
+++  EXPECT_EQ(plaintext, "from Mac");
+++}
+++
+++// A secret that is not a 256-bit Base64 key (upstream's 16-byte one, garbage,
+++// a truncated key) is not used, and the failure is temporary.
+++TEST(FreedesktopSecretKeyProviderTest, FlyWebBadSecretIsNotUsed) {
+++  for (const char* secret :
+++       {"c3VwZXJfc2VjcmV0X2tleQ==", "not base64!",
+++        "AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM0w=="}) {
+++    FreedesktopSecretKeyProvider provider(
+++        "gnome-libsecret", kProductName,
+++        base::MakeRefCounted<dbus::MockBus>(dbus::Bus::Options()));
+++    provider.secret_for_testing_ = secret;
+++    std::string tag;
+++    auto key = FlyWebGetKey(provider, &tag);
+++    EXPECT_EQ(tag, "fw1");
+++    ASSERT_FALSE(key.has_value()) << secret;
+++    EXPECT_EQ(key.error(), KeyProvider::KeyError::kTemporarilyUnavailable);
+++  }
+++}
+++
+++// --password-store=basic: no keyring, and still not a permanent failure.
+++TEST(FreedesktopSecretKeyProviderTest, FlyWebFailureIsTemporary) {
+++  FreedesktopSecretKeyProvider provider(
+++      "basic", kProductName,
+++      base::MakeRefCounted<dbus::MockBus>(dbus::Bus::Options()));
+++  std::string tag;
+++  auto key = FlyWebGetKey(provider, &tag);
+++  EXPECT_EQ(tag, "fw1");
+++  ASSERT_FALSE(key.has_value());
+++  EXPECT_EQ(key.error(), KeyProvider::KeyError::kTemporarilyUnavailable);
+++}
+++
+++// No default collection: nothing is created (upstream creates a collection,
+++// makes it the default and writes a new secret in it).
+++TEST(FreedesktopSecretKeyProviderTest, FlyWebNoDefaultCollectionCreatesNothing) {
+++  auto mock_bus = base::MakeRefCounted<dbus::MockBus>(dbus::Bus::Options());
+++  auto mock_dbus_proxy = base::MakeRefCounted<MockObjectProxyWithTypedCalls>(
+++      mock_bus.get(), DBUS_SERVICE_DBUS, dbus::ObjectPath(DBUS_PATH_DBUS));
+++  EXPECT_CALL(*mock_bus, GetObjectProxy(DBUS_SERVICE_DBUS,
+++                                        dbus::ObjectPath(DBUS_PATH_DBUS)))
+++      .WillRepeatedly(Return(mock_dbus_proxy.get()));
+++  auto mock_service_proxy = base::MakeRefCounted<MockObjectProxyWithTypedCalls>(
+++      mock_bus.get(), FreedesktopSecretKeyProvider::kSecretServiceName,
+++      dbus::ObjectPath(FreedesktopSecretKeyProvider::kSecretServicePath));
+++  EXPECT_CALL(
+++      *mock_bus,
+++      GetObjectProxy(
+++          FreedesktopSecretKeyProvider::kSecretServiceName,
+++          dbus::ObjectPath(FreedesktopSecretKeyProvider::kSecretServicePath)))
+++      .WillRepeatedly(Return(mock_service_proxy.get()));
+++  EXPECT_CALL(
+++      *mock_dbus_proxy,
+++      CallWithoutError(
+++          DBUS_INTERFACE_DBUS, "NameHasOwner",
+++          MatchArgs(FreedesktopSecretKeyProvider::kSecretServiceName), _))
+++      .WillOnce(RespondWithTrue);
+++  EXPECT_CALL(*mock_service_proxy,
+++              Call(FreedesktopSecretKeyProvider::kSecretServiceInterface,
+++                   FreedesktopSecretKeyProvider::kMethodReadAlias,
+++                   MatchArgs(FreedesktopSecretKeyProvider::kDefaultAlias), _))
+++      .WillOnce(RespondWith(dbus::ObjectPath("/")));
+++  EXPECT_CALL(*mock_service_proxy,
+++              Call(_, FreedesktopSecretKeyProvider::kMethodCreateCollection, _,
+++                   _))
+++      .Times(0);
+++
+++  FreedesktopSecretKeyProvider provider("gnome-libsecret", kProductName,
+++                                        mock_bus);
+++  std::string tag;
+++  auto key = FlyWebGetKey(provider, &tag);
+++  EXPECT_EQ(tag, "fw1");
+++  ASSERT_FALSE(key.has_value());
+++  EXPECT_EQ(key.error(), KeyProvider::KeyError::kTemporarilyUnavailable);
+++}
+++
+++// SearchItems fails: no new secret (upstream only creates one when the search
+++// works and finds nothing, which stays so).
+++TEST(FreedesktopSecretKeyProviderTest, FlyWebSearchFailureCreatesNothing) {
+++  auto mock_bus = base::MakeRefCounted<dbus::MockBus>(dbus::Bus::Options());
+++  auto mock_dbus_proxy = base::MakeRefCounted<MockObjectProxyWithTypedCalls>(
+++      mock_bus.get(), DBUS_SERVICE_DBUS, dbus::ObjectPath(DBUS_PATH_DBUS));
+++  EXPECT_CALL(*mock_bus, GetObjectProxy(DBUS_SERVICE_DBUS,
+++                                        dbus::ObjectPath(DBUS_PATH_DBUS)))
+++      .WillRepeatedly(Return(mock_dbus_proxy.get()));
+++  auto mock_service_proxy = base::MakeRefCounted<MockObjectProxyWithTypedCalls>(
+++      mock_bus.get(), FreedesktopSecretKeyProvider::kSecretServiceName,
+++      dbus::ObjectPath(FreedesktopSecretKeyProvider::kSecretServicePath));
+++  EXPECT_CALL(
+++      *mock_bus,
+++      GetObjectProxy(
+++          FreedesktopSecretKeyProvider::kSecretServiceName,
+++          dbus::ObjectPath(FreedesktopSecretKeyProvider::kSecretServicePath)))
+++      .WillRepeatedly(Return(mock_service_proxy.get()));
+++  auto mock_collection_proxy =
+++      base::MakeRefCounted<MockObjectProxyWithTypedCalls>(
+++          mock_bus.get(), FreedesktopSecretKeyProvider::kSecretServiceName,
+++          dbus::ObjectPath(kCollectionPath));
+++  EXPECT_CALL(*mock_bus,
+++              GetObjectProxy(FreedesktopSecretKeyProvider::kSecretServiceName,
+++                             dbus::ObjectPath(kCollectionPath)))
+++      .WillRepeatedly(Return(mock_collection_proxy.get()));
+++  auto mock_session_proxy = base::MakeRefCounted<MockObjectProxyWithTypedCalls>(
+++      mock_bus.get(), FreedesktopSecretKeyProvider::kSecretServiceName,
+++      dbus::ObjectPath(kSessionPath));
+++  EXPECT_CALL(*mock_bus,
+++              GetObjectProxy(FreedesktopSecretKeyProvider::kSecretServiceName,
+++                             dbus::ObjectPath(kSessionPath)))
+++      .WillRepeatedly(Return(mock_session_proxy.get()));
+++
+++  EXPECT_CALL(
+++      *mock_dbus_proxy,
+++      CallWithoutError(
+++          DBUS_INTERFACE_DBUS, "NameHasOwner",
+++          MatchArgs(FreedesktopSecretKeyProvider::kSecretServiceName), _))
+++      .WillOnce(RespondWithTrue);
+++  EXPECT_CALL(*mock_service_proxy,
+++              Call(FreedesktopSecretKeyProvider::kSecretServiceInterface,
+++                   FreedesktopSecretKeyProvider::kMethodReadAlias, _, _))
+++      .WillOnce(RespondWith(dbus::ObjectPath(kCollectionPath)));
+++  EXPECT_CALL(*mock_collection_proxy,
+++              Call(FreedesktopSecretKeyProvider::kPropertiesInterface,
+++                   FreedesktopSecretKeyProvider::kMethodGet, _, _))
+++      .WillOnce(RespondWith(dbus_utils::Variant::Wrap<"s">(
+++          FreedesktopSecretKeyProvider::kDefaultCollectionLabel)));
+++  EXPECT_CALL(*mock_service_proxy,
+++              Call(FreedesktopSecretKeyProvider::kSecretServiceInterface,
+++                   FreedesktopSecretKeyProvider::kMethodUnlock, _, _))
+++      .WillOnce(RespondWith(
+++          std::vector<dbus::ObjectPath>{dbus::ObjectPath(kCollectionPath)},
+++          dbus::ObjectPath("/")));
+++  EXPECT_CALL(*mock_service_proxy,
+++              Call(FreedesktopSecretKeyProvider::kSecretServiceInterface,
+++                   FreedesktopSecretKeyProvider::kMethodOpenSession, _, _))
+++      .WillOnce(RespondWith(dbus_utils::Variant::Wrap<"s">(""),
+++                            dbus::ObjectPath(kSessionPath)));
+++  EXPECT_CALL(*mock_collection_proxy,
+++              Call(FreedesktopSecretKeyProvider::kSecretCollectionInterface,
+++                   FreedesktopSecretKeyProvider::kMethodSearchItems, _, _))
+++      .WillOnce(RespondWithError());
+++  EXPECT_CALL(*mock_collection_proxy,
+++              Call(_, FreedesktopSecretKeyProvider::kMethodCreateItem, _, _))
+++      .Times(0);
+++  EXPECT_CALL(*mock_session_proxy,
+++              Call(FreedesktopSecretKeyProvider::kSecretSessionInterface,
+++                   FreedesktopSecretKeyProvider::kMethodClose, MatchArgs(), _))
+++      .WillOnce(RespondWith());
+++
+++  FreedesktopSecretKeyProvider provider("gnome-libsecret", kProductName,
+++                                        mock_bus);
+++  std::string tag;
+++  auto key = FlyWebGetKey(provider, &tag);
+++  EXPECT_EQ(tag, "fw1");
+++  ASSERT_FALSE(key.has_value());
+++  EXPECT_EQ(key.error(), KeyProvider::KeyError::kTemporarilyUnavailable);
+++}
+++
+++// An empty KWallet entry is left alone (upstream writes a new password over
+++// it, losing whatever the old one encrypted).
+++TEST(FreedesktopSecretKeyProviderTest, FlyWebKWalletEmptyEntryIsNotReplaced) {
+++  auto mock_bus = base::MakeRefCounted<dbus::MockBus>(dbus::Bus::Options());
+++  auto mock_dbus_proxy = base::MakeRefCounted<MockObjectProxyWithTypedCalls>(
+++      mock_bus.get(), DBUS_SERVICE_DBUS, dbus::ObjectPath(DBUS_PATH_DBUS));
+++  EXPECT_CALL(*mock_bus, GetObjectProxy(DBUS_SERVICE_DBUS,
+++                                        dbus::ObjectPath(DBUS_PATH_DBUS)))
+++      .WillRepeatedly(Return(mock_dbus_proxy.get()));
+++  auto mock_kwallet5_proxy =
+++      base::MakeRefCounted<MockObjectProxyWithTypedCalls>(
+++          mock_bus.get(), FreedesktopSecretKeyProvider::kKWalletD5Service,
+++          dbus::ObjectPath(FreedesktopSecretKeyProvider::kKWalletD5Path));
+++  EXPECT_CALL(*mock_bus,
+++              GetObjectProxy(FreedesktopSecretKeyProvider::kKWalletD5Service,
+++                             dbus::ObjectPath(
+++                                 FreedesktopSecretKeyProvider::kKWalletD5Path)))
+++      .WillRepeatedly(Return(mock_kwallet5_proxy.get()));
+++  EXPECT_CALL(
+++      *mock_dbus_proxy,
+++      CallWithoutError(
+++          DBUS_INTERFACE_DBUS, "NameHasOwner",
+++          MatchArgs(FreedesktopSecretKeyProvider::kKWalletD5Service), _))
+++      .WillOnce(RespondWithTrue);
+++  EXPECT_CALL(*mock_kwallet5_proxy,
+++              Call(FreedesktopSecretKeyProvider::kKWalletInterface,
+++                   FreedesktopSecretKeyProvider::kKWalletMethodIsEnabled, _, _))
+++      .WillOnce(RespondWith(true));
+++  EXPECT_CALL(
+++      *mock_kwallet5_proxy,
+++      Call(FreedesktopSecretKeyProvider::kKWalletInterface,
+++           FreedesktopSecretKeyProvider::kKWalletMethodNetworkWallet, _, _))
+++      .WillOnce(RespondWith(std::string(kNetworkWallet)));
+++  dbus::ObjectProxy::SignalCallback signal_callback;
+++  EXPECT_CALL(*mock_kwallet5_proxy, ConnectToSignal(_, _, _, _))
+++      .WillOnce([&](const std::string& interface_name,
+++                    const std::string& signal_name,
+++                    dbus::ObjectProxy::SignalCallback callback,
+++                    dbus::ObjectProxy::OnConnectedCallback on_connected) {
+++        std::move(on_connected).Run(interface_name, signal_name, true);
+++        signal_callback = std::move(callback);
+++      });
+++  EXPECT_CALL(*mock_kwallet5_proxy,
+++              Call(FreedesktopSecretKeyProvider::kKWalletInterface,
+++                   FreedesktopSecretKeyProvider::kKWalletMethodOpenAsync, _, _))
+++      .WillOnce(RespondWith(kTransactionId));
+++  EXPECT_CALL(*mock_kwallet5_proxy,
+++              Call(FreedesktopSecretKeyProvider::kKWalletInterface,
+++                   FreedesktopSecretKeyProvider::kKWalletMethodHasFolder, _, _))
+++      .WillOnce(RespondWith(true));
+++  EXPECT_CALL(*mock_kwallet5_proxy,
+++              Call(FreedesktopSecretKeyProvider::kKWalletInterface,
+++                   FreedesktopSecretKeyProvider::kKWalletMethodHasEntry, _, _))
+++      .WillOnce(RespondWith(true));
+++  EXPECT_CALL(
+++      *mock_kwallet5_proxy,
+++      Call(FreedesktopSecretKeyProvider::kKWalletInterface,
+++           FreedesktopSecretKeyProvider::kKWalletMethodReadPassword, _, _))
+++      .WillOnce(RespondWith(std::string()));
+++  EXPECT_CALL(
+++      *mock_kwallet5_proxy,
+++      Call(_, FreedesktopSecretKeyProvider::kKWalletMethodWritePassword, _, _))
+++      .Times(0);
+++  EXPECT_CALL(*mock_kwallet5_proxy,
+++              Call(FreedesktopSecretKeyProvider::kKWalletInterface,
+++                   FreedesktopSecretKeyProvider::kKWalletMethodClose, _, _))
+++      .WillOnce(RespondWith(kKWalletHandle));
+++
+++  FreedesktopSecretKeyProvider provider("kwallet5", kProductName, mock_bus);
+++  std::string tag;
+++  std::optional<FlyWebKeyResult> key;
+++  provider.GetKey(base::BindLambdaForTesting(
+++      [&](const std::string& returned_tag, FlyWebKeyResult returned_key) {
+++        tag = returned_tag;
+++        key.emplace(std::move(returned_key));
+++      }));
+++  ASSERT_TRUE(signal_callback);
+++  auto signal = dbus::Signal(
+++      FreedesktopSecretKeyProvider::kKWalletInterface,
+++      FreedesktopSecretKeyProvider::kKWalletSignalWalletAsyncOpened);
+++  dbus::MessageWriter writer(&signal);
+++  dbus_utils::WriteValue(writer, kTransactionId);
+++  dbus_utils::WriteValue(writer, kKWalletHandle);
+++  signal_callback.Run(&signal);
+++
+++  EXPECT_EQ(tag, "fw1");
+++  ASSERT_TRUE(key.has_value());
+++  ASSERT_FALSE(key->has_value());
+++  EXPECT_EQ(key->error(), KeyProvider::KeyError::kTemporarilyUnavailable);
+++}
+++
++ }  // namespace os_crypt_async
+diff --git a/patches/net-extras-sqlite-cookie_crypto_delegate.h.patch b/patches/net-extras-sqlite-cookie_crypto_delegate.h.patch
+new file mode 100644
+index 0000000000000000000000000000000000000000..89e9469b5126b0d5580a74e8da8685bb54a5298a
+--- /dev/null
++++ b/patches/net-extras-sqlite-cookie_crypto_delegate.h.patch
+@@ -0,0 +1,22 @@
++diff --git a/net/extras/sqlite/cookie_crypto_delegate.h b/net/extras/sqlite/cookie_crypto_delegate.h
++index 61648f2cea51fae1a41c1a86cc09f4eb44872ed8..b90c6366381514fd7fb6f159d4a5338c3acfd2b4 100644
++--- a/net/extras/sqlite/cookie_crypto_delegate.h
+++++ b/net/extras/sqlite/cookie_crypto_delegate.h
++@@ -41,6 +41,17 @@ class COMPONENT_EXPORT(NET_EXTRAS) CookieCryptoDelegate {
++   // callback from `Init` has run. This method can be called on any sequence.
++   virtual bool DecryptString(const std::string& ciphertext,
++                              std::string* plaintext) = 0;
+++
+++  // FlyWeb (U3): like DecryptString(), and on failure also says whether the
+++  // key was only temporarily unavailable (keyring locked or denied, service
+++  // down): the stored value is then fine and must not be deleted. The default
+++  // keeps upstream's answer.
+++  virtual bool FlyWebDecryptString(const std::string& ciphertext,
+++                                   std::string* plaintext,
+++                                   bool* temporarily_unavailable) {
+++    *temporarily_unavailable = false;
+++    return DecryptString(ciphertext, plaintext);
+++  }
++ };
++ 
++ }  // namespace net
+diff --git a/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch b/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch
+index c2c57e63c613afb7fc40cc4d7d027dfd1ca8498e..8a20b7cece4309b11464a9f5e26de26f37200325 100644
+--- a/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch
++++ b/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch
+@@ -1,11 +1,27 @@
+ diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store.cc b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
+-index 8bdfeca14640ef6820df6f22451ff0f77fcc8393..29b71fe8460b53b12967ac9fe19144b41cf90fa1 100644
++index 8bdfeca14640ef6820df6f22451ff0f77fcc8393..521d03fd0737394527647e7bce58ab7dea5248a0 100644
+ --- a/net/extras/sqlite/sqlite_persistent_cookie_store.cc
+ +++ b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
+-@@ -1046,6 +1046,23 @@ bool SQLitePersistentCookieStore::Backend::MakeCookiesFromSQLStatement(
+-       bool decrypt_ok = crypto_->DecryptString(encrypted_value, &value);
++@@ -1043,9 +1043,38 @@ bool SQLitePersistentCookieStore::Backend::MakeCookiesFromSQLStatement(
++         ok = false;
++         continue;
++       }
++-      bool decrypt_ok = crypto_->DecryptString(encrypted_value, &value);
+++      bool temporarily_unavailable = false;
+++      bool decrypt_ok = crypto_->FlyWebDecryptString(encrypted_value, &value,
+++                                                     &temporarily_unavailable);
+        if (!decrypt_ok) {
+          RecordCookieLoadProblem(CookieLoadProblem::kDecryptFailed);
+++#if BUILDFLAG(IS_LINUX)
+++        // FlyWeb (U3): the key did not load in this run (keyring locked or
+++        // denied, no Secret Service): the value is fine. Leave the row alone:
+++        // not loaded, not deleted, and `ok` stays true, since false deletes
+++        // the whole eTLD+1. Until the key loads again the site cannot see or
+++        // delete it, and nothing new is saved for want of a key to encrypt.
+++        if (temporarily_unavailable) {
+++          continue;
+++        }
+++#endif
+ +        // FlyWeb: an unreadable `fw1` value (key item deleted, keychain
+ +        // denied) loses only that cookie: its row is deleted like a
+ +        // non-canonical one, so CookieMonster and the database stay in sync.
+diff --git a/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch b/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch
+index b30a9b6ed2d19237da3c39997445c24f0b100eac..ac7119b1f7daa608869e13cb1082591f717e7321 100644
+--- a/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch
++++ b/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch
+@@ -1,8 +1,31 @@
+ diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc b/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc
+-index 9c6aa55ee76c5479bdb8b24521ac466a9dbc1ea0..a52307ba7548ffc8712b663b63002eb2aeb0ba9b 100644
++index 9c6aa55ee76c5479bdb8b24521ac466a9dbc1ea0..8d68bb7379cf32d4cecf285290d44b8d05c2f679 100644
+ --- a/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc
+ +++ b/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc
+-@@ -1294,6 +1294,50 @@ TEST_F(SQLitePersistentCookieStoreTest, UpdateToEncryption) {
++@@ -35,6 +35,7 @@
++ #include "base/test/scoped_feature_list.h"
++ #include "base/threading/thread_restrictions.h"
++ #include "base/time/time.h"
+++#include "build/build_config.h"
++ #include "base/timer/timer.h"
++ #include "crypto/aes_cbc.h"
++ #include "net/base/features.h"
++@@ -75,6 +76,14 @@ class CookieCryptor : public CookieCryptoDelegate {
++                      std::string* ciphertext) override;
++   bool DecryptString(const std::string& ciphertext,
++                      std::string* plaintext) override;
+++  // FlyWeb (U3): a value starting with "fw1-key-unavailable" stands for a
+++  // `fw1` value whose key did not load in this run.
+++  bool FlyWebDecryptString(const std::string& ciphertext,
+++                           std::string* plaintext,
+++                           bool* temporarily_unavailable) override {
+++    *temporarily_unavailable = ciphertext.starts_with("fw1-key-unavailable");
+++    return !*temporarily_unavailable && DecryptString(ciphertext, plaintext);
+++  }
++ 
++   // Obtain a closure that can be called to trigger an initialize. If this
++   // instance has already been destructed then the returned base::OnceClosure
++@@ -1294,6 +1303,109 @@ TEST_F(SQLitePersistentCookieStoreTest, UpdateToEncryption) {
+    EXPECT_EQ(contents.find("something456ABC"), std::string::npos);
+  }
+  
+@@ -49,6 +72,65 @@ index 9c6aa55ee76c5479bdb8b24521ac466a9dbc1ea0..a52307ba7548ffc8712b663b63002eb2
+ +  DestroyStore();
+ +  EXPECT_EQ(0, count_rows());
+ +}
+++
+++#if BUILDFLAG(IS_LINUX)
+++// FlyWeb (U3): a value whose key did not load in this run (keyring locked or
+++// denied, no Secret Service) is neither loaded nor deleted and does not drop
+++// its eTLD+1; it loads again once the key is back.
+++TEST_F(SQLitePersistentCookieStoreTest, FlyWebKeyUnavailableKeepsRow) {
+++  InitializeStore(/*crypt=*/true, /*restore_old_session_cookies=*/false);
+++  AddCookie("fw1cookie", "value1", "foo.bar", "/", base::Time::Now());
+++  AddCookie("other", "value2", "foo.bar", "/",
+++            base::Time::Now() + base::Microseconds(10));
+++  DestroyStore();
+++
+++  auto encrypted_value = [&](const char* name) {
+++    sql::Database db(sql::test::kTestTag);
+++    EXPECT_TRUE(db.Open(temp_dir_.GetPath().Append(kCookieFilename)));
+++    sql::Statement smt(db.GetUniqueStatement(
+++        "SELECT encrypted_value FROM cookies WHERE name = ?"));
+++    smt.BindString(0, name);
+++    EXPECT_TRUE(smt.Step());
+++    return smt.ColumnString(0);
+++  };
+++  auto set_encrypted_value = [&](const char* name, std::string_view value) {
+++    sql::Database db(sql::test::kTestTag);
+++    ASSERT_TRUE(db.Open(temp_dir_.GetPath().Append(kCookieFilename)));
+++    sql::Statement smt(db.GetUniqueStatement(
+++        "UPDATE cookies SET encrypted_value = ? WHERE name = ?"));
+++    smt.BindBlob(0, base::as_byte_span(value));
+++    smt.BindString(1, name);
+++    ASSERT_TRUE(smt.Run());
+++  };
+++  auto count_rows = [&]() {
+++    sql::Database db(sql::test::kTestTag);
+++    EXPECT_TRUE(db.Open(temp_dir_.GetPath().Append(kCookieFilename)));
+++    sql::Statement smt(db.GetUniqueStatement("SELECT COUNT(*) FROM cookies"));
+++    EXPECT_TRUE(smt.Step());
+++    return smt.ColumnInt(0);
+++  };
+++
+++  const std::string original = encrypted_value("fw1cookie");
+++  set_encrypted_value("fw1cookie", "fw1-key-unavailable");
+++  CanonicalCookieVector cookies = CreateAndLoad(
+++      /*crypt_cookies=*/true, /*restore_old_session_cookies=*/false);
+++  ASSERT_EQ(1U, cookies.size());
+++  EXPECT_EQ("other", cookies[0]->Name());
+++  cookies.clear();
+++  DestroyStore();
+++  EXPECT_EQ(2, count_rows());
+++  EXPECT_EQ("fw1-key-unavailable", encrypted_value("fw1cookie"));
+++
+++  // The key is back.
+++  set_encrypted_value("fw1cookie", original);
+++  cookies = CreateAndLoad(/*crypt_cookies=*/true,
+++                          /*restore_old_session_cookies=*/false);
+++  EXPECT_EQ(2U, cookies.size());
+++  cookies.clear();
+++  DestroyStore();
+++  EXPECT_EQ(2, count_rows());
+++}
+++#endif  // BUILDFLAG(IS_LINUX)
+ +
+  bool CompareCookies(const std::unique_ptr<CanonicalCookie>& a,
+                      const std::unique_ptr<CanonicalCookie>& b) {
+diff --git a/patches/services-network-network_context.cc.patch b/patches/services-network-network_context.cc.patch
+new file mode 100644
+index 0000000000000000000000000000000000000000..0c6b867c20b0ee514db3d5afa5300d09a76167aa
+--- /dev/null
++++ b/patches/services-network-network_context.cc.patch
+@@ -0,0 +1,33 @@
++diff --git a/services/network/network_context.cc b/services/network/network_context.cc
++index 7711c34957e7c2a32f7f3f7ce85e5afad2fd880b..d75944e4c2f58fc0686c3961782b2484a5c92cd2 100644
++--- a/services/network/network_context.cc
+++++ b/services/network/network_context.cc
++@@ -309,6 +309,9 @@ class CookieOSCryptAsyncDelegate : public net::CookieCryptoDelegate {
++                      std::string* ciphertext) override;
++   bool DecryptString(const std::string& ciphertext,
++                      std::string* plaintext) override;
+++  bool FlyWebDecryptString(const std::string& ciphertext,
+++                           std::string* plaintext,
+++                           bool* temporarily_unavailable) override;
++ 
++  private:
++   void InitCallback(
++@@ -343,6 +346,18 @@ bool CookieOSCryptAsyncDelegate::DecryptString(const std::string& ciphertext,
++   return instance_->DecryptString(ciphertext, plaintext);
++ }
++ 
+++// FlyWeb (U3): the Encryptor already tells a key that did not load in this
+++// run from data that is lost; pass it on to the cookie store.
+++bool CookieOSCryptAsyncDelegate::FlyWebDecryptString(
+++    const std::string& ciphertext,
+++    std::string* plaintext,
+++    bool* temporarily_unavailable) {
+++  os_crypt_async::Encryptor::DecryptFlags flags;
+++  const bool ok = instance_->DecryptString(ciphertext, plaintext, &flags);
+++  *temporarily_unavailable = !ok && flags.temporarily_unavailable;
+++  return ok;
+++}
+++
++ void CookieOSCryptAsyncDelegate::InitCallback(
++     mojo::Remote<network::mojom::CookieEncryptionProvider> lifetime,
++     scoped_refptr<os_crypt_async::Encryptor> encryptor) {
