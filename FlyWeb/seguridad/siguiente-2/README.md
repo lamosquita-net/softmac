@@ -1,7 +1,12 @@
 # Seguridad: tanda siguiente-2 (base 3.2.1)
 
-Lo que llegue después de la 3.2.1 y **no** sea Alto, Crítico o KEV se prepara aquí (orden de COORDINACIÓN-59/60). Lo
-prepara SEGURIDAD-PORTES (-33). **En qué versión entra lo decide Titín**; hasta entonces, sin fusionar y sin versión.
+**Cerrada (23-11, ~18:57 UTC): sale entera en FlyWeb 3.2.2, build 50**, junto con #1183 (decisión de Titín, orden de
+COORDINACIÓN-61, buzón `5bab5221`). Los parches quedan como en `0901b22b39`; después solo cambia este README. Lo que
+llegue a partir de ahora va a `seguridad/siguiente-3`.
+
+Orden de aplicación: chromium `0001`–`0005` y brave-core `0001`–`0006`, en orden. **`brave-core/0005` y `chromium/0005` van
+juntos** (el segundo no compila sin el primero) y **`brave-core/0006` depende de `0004`**. `kFlyWebCacheEpoch` 39 → **40**
+(una vez, en `brave-core/0002`).
 
 ## Base
 
@@ -198,6 +203,23 @@ cherry-pick de `d560c735c7`). **Gravedad no publicada.**
 
 **Para D8-LINUX / LOCAL:** mjsunit `regress/wasm/regress-simd-581962456`; `v8_unittests --gtest_filter='*MoveOptimizer*:*InstructionTest*'`.
 
+## Pruebas para LOCAL y D8-LINUX (todo lo de la tanda)
+
+Nada se ha compilado ni probado en la nube. En la 7,1:
+- `net_unittests --gtest_filter='SQLitePersistentCookieStoreTest.*'` (brave-core/0001).
+- `cc_unittests --gtest_filter='*LayerTreeHostProxyTestRequestImmediateBeginMainFrame*'` (chromium/0001).
+- `components_unittests --gtest_filter='UrlListManager*:PermissionRequestManagerTest.*'` (chromium/0002 y 0003; la
+  prueba nueva de 0003 solo corre con ASan).
+- `browser_tests --gtest_filter='ContentSettingBubbleModel*:*FramebustBlock*'` (chromium/0002).
+- `blink_unittests --gtest_filter='*AdTracker*:*MonkeyPatchableApi*'` (chromium/0005).
+- chromium/0004 no trae prueba: basta con que compile.
+
+V8 (D8-LINUX, o LOCAL con `d8`):
+- `v8_unittests --gtest_filter='*TryGetWithNoSideEffects*:*MoveOptimizer*:*InstructionTest*'` (brave-core/0005 y 0006).
+- cctest `test-code-generator/*` (brave-core/0004).
+- mjsunit, con y sin Maglev: `wasm/turboshaft/regress-585625644`, `compiler/regress-585614985-*`,
+  `wasm/regress-585624832`, `regress/wasm/regress-simd-581962456`, y además `compiler/*` y `wasm/*`.
+
 ## Revisados y no aplicables
 
 - **V8 15.9 `a38f990ac8`** ([M159] [turbolev] Remap replaced header phis in peeled loop backedge KNA; crbug
@@ -214,6 +236,7 @@ cherry-pick de `d560c735c7`). **Gravedad no publicada.**
 - **8154 `e663ddf8f9`** ([M159] [iOS][Gemini], crbug 571506045): solo iOS.
 - **8078 `47306f862b` / 8154 `c4dd84c063`** ([M156]/[M159] Extensions, crbug 581702596) y **8154 `353cb8e767`** ([M159]
   macOS app shim, crbug 588000328): arreglos de cierres por `CHECK`/`LOG(FATAL)`, no de seguridad. Fuera de esta tanda.
-- **8154 `8d12a9cd96`** (roll de Dawn en M159): sin revisar; `dawn.googlesource.com` no está permitido en la red de
-  esta sesión. Dawn no está en la lista de vigilancia.
-- **8078 `95e6109ec9`** (roll de Dawn en M156, `218eeee746`..`c7cec856c9`): tampoco revisado, por el mismo motivo.
+- **8154 `8d12a9cd96`** (roll de Dawn en M159) y **8078 `95e6109ec9`** (roll de Dawn en M156): cada uno trae un solo
+  commit, «DEPS: Update DXC to patched branch» (`e2072d1916` y `c7cec856c9`). DXC solo lo usa el backend D3D12 de Dawn
+  (Windows): **no aplican**. Lo revisó COORDINACIÓN-61 desde la 7,1 (nota del buzón `c328226c`), porque
+  `dawn.googlesource.com` no está permitido en la red de esta sesión.
