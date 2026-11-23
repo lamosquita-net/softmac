@@ -1102,3 +1102,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/LOCAL/20261123-2205-COORDINACION-61-M3-M2-siguiente.md → LOCAL-24 [local_9144cd8b] · 2026-11-23 22:05 UTC · entregado por COORDINACIÓN-61 (SendMessage)
 - buzon/NUBE-SEGURIDAD-PORTES/20261123-2208-COORDINACION-61-siguiente-3.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-23 22:08 UTC · copia escrita del SendMessage
 - buzon/LOCAL/20261123-2208-COORDINACION-61-M3-repeticion.md → LOCAL-24 [local_9144cd8b] · 2026-11-23 22:08 UTC · entregado por COORDINACIÓN-61 (SendMessage)
+- buzon/NUBE-SEGURIDAD-PORTES/20261123-2223-COORDINACION-61-revisar-U3-v2.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-23 22:23 UTC · copia escrita del SendMessage
