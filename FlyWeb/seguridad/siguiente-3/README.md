@@ -12,10 +12,10 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001` | **`3861451d5b`** |
-| chromium | árbol **`7e6c74e256`** (resultado de `siguiente-2/chromium/0001`–`0005`) | `chromium/0001`–`0006` | **`5c5893384f`** (hasta `0005`: `13d5ed72d4`; solo `0001`: `f43b3399c7`) |
+| chromium | árbol **`7e6c74e256`** (resultado de `siguiente-2/chromium/0001`–`0005`) | `chromium/0001`–`0007` | **`e70ea1f2a9`** (hasta `0006`: `5c5893384f`; hasta `0005`: `13d5ed72d4`; solo `0001`: `f43b3399c7`) |
 
 Comprobado: `git am` de `chromium/0001`–`0005` sobre `7e6c74e256` da `13d5ed72d4` (solo `0001`: `f43b3399c7`), `0006` encima
-da `5c5893384f`, y de
+da `5c5893384f` y `0007`, `e70ea1f2a9`; y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; `git diff --diff-filter=D` vacío en los dos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
@@ -109,6 +109,20 @@ que llevan la 3.2.1 y la 3.2.2.
 **Para LOCAL:** `views_unittests --gtest_filter='MenuRunner*:MenuController*'`. A mano, en la 7,1 y en la 5,1: menú de la
 app, menús contextuales, menús de marcadores, y arrastrar un marcador a la barra y a una carpeta abierta (FOR_DROP).
 
+## `chromium/0007`: [M156] Blink, el CSP recuerda que un script lo creó el parser (crbug 585891788)
+
+Cherry-pick **`2cbfd2f722`** de la **8078** (24-11 00:12 UTC; bug del merge 589156559), tal cual. **Gravedad no
+publicada.**
+- **El fallo (salto de CSP):** un script creado por el parser que se prepara desconectado (por ejemplo, si el parser lo
+  saca del documento a través de `<selectedcontent>`) perdía su marca de «insertado por el parser». Al volver a
+  conectarlo, CSP le daba el trato de `strict-dynamic` reservado a los scripts creados dinámicamente, y podía ejecutarse
+  en una página con `script-src 'nonce-…' 'strict-dynamic'` sin nonce.
+- **El arreglo:** `ScriptLoader` guarda esa procedencia solo para CSP (comprobación de inline, y fetch externo o de
+  módulo) sin cambiar la planificación. Trae pruebas en `html_script_element_test.cc` y
+  `html_document_parser_loading_test.cc`, y una WPT nueva.
+- **Brave:** su `chromium_src` de `script_loader.cc` solo redefine `kWebbundle`, que el parche no toca. Los de
+  `html_script_element` solo envuelven `supports()`.
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Aún no está en la 15.6. Gravedad no publicada; es una salida del
@@ -133,6 +147,9 @@ Nada se ha compilado ni probado en la nube.
   `browser_tests --gtest_filter='ScriptInjectionTracker*'` (chromium/0002 y 0005).
 - `components_unittests --gtest_filter='SessionImpl*'` (chromium/0004).
 - `views_unittests --gtest_filter='MenuRunner*:MenuController*'` y las pruebas a mano de menús (chromium/0006).
+- `blink_unittests --gtest_filter='HTMLScriptElement*:HTMLDocumentParserLoading*'` y la WPT
+  `html/semantics/forms/the-select-element/customizable-select/selectedcontent-parser-removal-csp-strict-dynamic.html`
+  (chromium/0007).
 - D8-LINUX: `d8` con las banderas de prueba del sandbox; mjsunit `sandbox/regress/regress-585869521` e `intl*/*`
   (brave-core/0001).
 
