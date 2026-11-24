@@ -242,6 +242,10 @@ Main **`d799fefdb4`** (#1708032, 30-09; Noam Rosenthal), tal cual. Está en la 1
   cubre a todos los llamadores de `ActiveSanitizer()` y trae el arreglo de `AllowIsAttribute` que va con él.
 - Entra tal cual: el fichero base es el blob `b97249b`, el mismo de upstream. `IsEmpty()` existe en la 156
   (`html_construction_site.h`). Brave no toca estos ficheros.
+- **Probado (D8-LINUX-6, 24-11, buzón `…1444-D8-LINUX-6-0011-y-0006`):** `blink_unittests` entero con DCHECK, sin el
+  arreglo local: 32399 pasan, ningún DCHECK de `html_element_stack.h`, vuelven las 2765, sin verdes perdidas. La única
+  diferencia, `HTMLDomScenarioRunner.MathMLInHTML`, es intermitente y ajena (DCHECK de `style_resolver.cc`, falla 3 de 6
+  veces sola).
 
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
@@ -361,6 +365,9 @@ de rama. **Gravedad no publicada.** Lo pidió COORDINACIÓN-62 (buzón `…1426-
 - **Aplica tal cual** sobre 15.6.75.66. `expression-scope.h` ya tenía parche: se rehízo acumulado (el hunk nuevo entra
   27 líneas antes que en main). `preparse-data.cc` y `scanner.cc` no los toca ningún otro `patches/v8`. Época de caché:
   la cubre `0001` (no cambia el bytecode).
+- **Probado (D8-LINUX-6, 24-11, buzón `…1444-D8-LINUX-6-0011-y-0006`):** `es6/*` 483/483, con las dos rojas en verde
+  (no falta otro commit de la serie); `sandbox/regress-571126471` 1/1; `regress/regress-567222737*` 6/6; `*parser*` 4/4;
+  `message/*` 371/371; `v8_unittests` `*Pars*:*Scanner*:*Preparse*` 397/397.
 
 ## Pruebas para LOCAL y D8-LINUX
 
