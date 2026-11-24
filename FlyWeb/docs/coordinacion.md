@@ -7,6 +7,50 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 24-11 (noche): COORDINACIÓN-63 → COORDINACIÓN-64 (local, 7,1; leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-63 = «Coordinación (63)» [b993e7], 24-11 ~16:45 → ~22:30 UTC, relevo al ~35 %. La 64 la abre Titín. Vigilante:
+Monitor cada 120 s sobre `origin/buzon`, última punta en `buzon-last` del scratchpad; filtro
+`grep -v -E 'COORDINACION-6[0-9] to|uploaded by COORDINACION-6[0-9]'` (así no salen tus propios commits). Canales, igual que la 62:
+LOCAL-25 «Local (25)»; D8-LINUX-6 «ubuntu (6)» (sin push: sus informes los subo yo al buzón, «uploaded by»); ARQUITECTURA
+«Arquitectura FlyWeb monorepo»; SEGURIDAD-PORTES-33 y MOTOR-47 por nombre (contestan al buzón; si «not reachable», reintentar).
+
+**Hecho:** fila (#1229). **F1 Linux hecha:** primera Release de Linux de la 3.2.2 en la Ubuntu, arranca con sandbox
+(`buzon/COORDINACION/20261124-2230-D8-LINUX-6-F1-B1-B2.md`). Guion unido Mac+Linux (sha256 `96db4fd1…`) y manifiesto
+`3.2.2-linux` en `buzon/COORDINACION/20261124-2230-D8-LINUX-6-F1-guion-unido/`; orden a LOCAL-25 de adoptarlo como único y
+abrir PR tras E1 (`buzon/LOCAL/20261124-2140-…-F1-guion-unico.md`). **U3:** B.1 (aviso sin llavero) APTO y compilado; **B.2
+cerrado en verde** con GNOME y KWallet (`…2340-D8-LINUX-6-B2-cierre.md`): fw1 sobrevive, ningún v10, las contraseñas se
+descifran en la vuelta; SIGTERM con clave tardía pierde cookies de ≤30 s (upstream: SIGTERM = fin de sesión; SIGINT sí escribe).
+Titín ejecutó los `sudo` de kwallet6/xvfb y AppArmor. **M3 (a) y M2 cerrados** (`…1915-LOCAL-25-M3-M2.md`): lenta solo la 1.ª
+pasada tras el desbloqueo (renderer saturado, GPU esperando); VRAM ~1,6 de 3 GB; J3 **cerrada** (estilo 13,1 %; LOCAL sumaba
+estilo+layout+pintado: corregido); Escudos 0 %. Observaciones de Titín (bajada de GPU = tomas de sample; el rojo de la CPU 1
+no es FlyWeb) pasadas a ARQUITECTURA, que escribe §9.6 y §10 en un PR cuando tenga el informe.
+
+**Abierto, por orden:**
+1. **Tres decisiones de Titín (U3, Linux), preguntadas y sin respuesta:** (a) texto de la barra: A «Sin acceso al llavero,
+   FlyWeb no puede usar ni guardar contraseñas ni sesiones. No se pierde nada. Desbloquéalo y reinicia.» (recomendada; id EN
+   6960035439647298739) o B (`…2140-SEGURIDAD-PORTES-33-U3-B2.md`); (b) ocultar la burbuja «Guardar contraseña» sin llavero
+   (recomendado; `…2215-…-burbuja-contrasenas.md`); (c) volcar cookies en `EndSession` (SIGTERM), opcional, Linux y Mac
+   (`…2200-…-cookies-SIGTERM.md`). Con su respuesta: SEGURIDAD-PORTES prepara los parches y D8-LINUX los prueba. «Reiniciar» y
+   el cierre a mano, pendientes en un escritorio. Nada borrado en la Ubuntu (worktree `bc-f1-aviso`, `$W/b2-*`, `$W/f1-prueba`,
+   `out/Release-321-linux` 12 GB): lista nominal a Titín cuando toque.
+2. **E1 (LOCAL-25, 6,1; orden `buzon/LOCAL/20261124-1805-COORDINACION-63-E1.md`):** compilado (`out/Release-322-e1`; chromium
+   `local/322-e1` f2bc70fe16, ANGLE 47207c3), en `/Users/titin/flyweb-pruebas/e1-322/`; **actúa** (segunda D500 al 94–100 % en
+   WebGL). A/B en espejo desde las 20:46 UTC (~6 h), base 3.2.2. Después, suplemento con multimuestreo (necesario: las páginas
+   locales y Aquarium apagan antialias): three.js r170 (descargado con el sí de Titín, servido en 127.0.0.1) y página propia.
+   threejs-buffergeometry del A/B = «no medido» (página vacía). Regla de validez: contexto WebGL con tamaño y captura no negra.
+   Veredicto §11.3; **la entrega de E1 como versión la decide Titín**. Basemark publica: una pasada por versión (Titín avisado).
+   Avance sin puntuar: Aquarium 20 000, 48,5 frente a 46,2 fps; el cruce 4K cuesta ~0,5 ms/f.
+3. **siguiente-3:** + chromium/0014 (diálogo de autenticación; su M156 ya está en la 8078, idéntico); chromium/0001 también
+   tiene ya su M156 idéntico. Chrome 159 en early stable, sin lista de seguridad: SEGURIDAD-PORTES avisa si sale Alto/Crítico/KEV
+   → 3.2.3 rápida a Titín. Para P2, D8 tiene 0011 y P1 0004 aplicando limpio; espera a que Titín abra la tanda. Ojo: src/brave
+   de la Ubuntu lleva B.1 sin commit (el manifiesto 3.2.2-linux para en identidad, como debe).
+4. Lo de la nota 62 → 63 que no está aquí sigue igual.
+
+**Lecciones de la 63:** no dar por equivalente un caso de prueba sin ver su captura (three.js salía en negro; ARQUITECTURA lo
+pilló). Las puertas se leen al pie de la letra (J3 pide el estilo solo). «LuLu no lo retuvo» puede ser que Titín lo aprobó al
+instante: preguntar. Al cambiar una orden con la compilación en marcha, contar con que el agente ya la haya parado.
+
 ## 24-11 (tarde): COORDINACIÓN-62 → COORDINACIÓN-63 (local, 7,1; leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-62 = «Coordinación (62)» [1cea16], 24-11 ~08:30 → ~16:45 UTC, relevo al ~33 %. La 63 la abre Titín. Vigilante: Monitor cada 120 s sobre `origin/buzon`; guarda la última punta en un fichero del scratchpad (`buzon-last`) para no dejar huecos al re-armar y filtra solo `buzon: COORDINACION-6x to` y `uploaded by COORDINACION-6x` (filtrar «COORDINACION-62» a secas ocultaba lo que me mandaban). Worktrees desde `origin/main` y `origin/buzon`.
