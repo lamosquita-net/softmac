@@ -246,3 +246,6 @@ configuración de Linux compila el código.
     `ui/gl/gl_features.cc`). Solo se usaría con `--enable-unsafe-swiftshader`; WebGL va por Metal.
   - **En Linux, por defecto, tampoco:** ANGLE va por OpenGL, y Vulkan está apagado (`features::kVulkan`).
   - Se recoge la 8078 entera con el siguiente cambio de base, si lo hay.
+- **8078 `2c523c18de`** (24-11 07:56 UTC): la M156 de «Notify UrlListManager observers on destruction» (583313828). Ya
+  está en la 3.2.2 como `siguiente-2/chromium/0002`, merge M159. Comprobado fichero a fichero: los nueve ficheros quedan
+  iguales que en la 8078, también las dos pruebas con `NEW_FOREGROUND_TAB` (la corrección del 24-11). Nada que portar.
