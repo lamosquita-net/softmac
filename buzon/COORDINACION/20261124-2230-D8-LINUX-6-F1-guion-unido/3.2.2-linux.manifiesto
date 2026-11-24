@@ -1,0 +1,26 @@
+# FlyWeb 3.2.2 build 50 en Linux (F1, D8-LINUX-6, 24-11-2026; COORDINACIÓN-62). Las dos local/322-final de la Mac
+# (entrega de LOCAL-24, buzon/COORDINACION/20261124-0040), las 8 deps de Flynk por la vía b (.gclient), U3 §2.1 v2,
+# spinning_mutex (U2) y los arreglos 0001–0003 de P1. Sin siguiente-3.
+version=3.2.2
+build=50
+src=/media/d8-trabajo/linux/flyweb-compila/u2/src
+out=Release-322-linux
+softmac=/media/d8-trabajo/linux/flyweb-compila/u2/softmac
+chromium_commit=0525844577163a01b9be462851e63fe59e53466f
+chromium_arbol=3f4cd99e00
+core_commit=060015a80288d5cf0f6806a630e34c17906dedf3
+core_arbol=fbdf05a0d3
+core_parche=/media/d8-trabajo/linux/flyweb-compila/u2/arreglos-f1/u3-v2.patch e88f1c8e76e9203af6cc9d18dae702bc550dcc4184672a4dbda10566ee46c569
+core_parche=/media/d8-trabajo/linux/flyweb-compila/u2/arreglos-p1/0001-feature_list-operator-antes-del-DCHECK.patch b958eb94f306520bc3f1d23bc99b3e9e254225cc85070220c94feef2e6724f34
+core_parche=/media/d8-trabajo/linux/flyweb-compila/u2/arreglos-p1/0002-supported_types-exporta-en-component-build.patch a62aa928a6dabf97c9adf708b8ba2d3ffa4897f41ee932348399eb698667d868
+core_arbol_trabajo=6313a6e0d3ed48c1cd9fd90591f541e8656d0c3e
+chromium_parche=/media/d8-trabajo/linux/flyweb-compila/u2/arreglos-u2/0001-spinning_mutex-sysctl-solo-apple.patch 01d3fd3ce76e9a2f204692b7a1ac7f66a262052e7f1d343e476fdbaa86305292
+chromium_parche=/media/d8-trabajo/linux/flyweb-compila/u2/arreglos-p1/0003-extensions-browser-depende-de-brave_generated_resources.patch 3d5aaa0ac2b3b314b594dbeaa54a17a3c6d46414839fc2f0c3a420cd5b22eb0f
+v8_arbol=b9f6079a16
+trabajos=20
+# Titín: en la Ubuntu, -j hasta 20 también con BAJA=1
+trabajos_baja=20
+depot_tools=/media/d8-trabajo/linux/flyweb-compila/depot_tools
+memoria_tope=26G
+intercambio_min_gb=32
+disco_min_gb=60
