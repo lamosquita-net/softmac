@@ -836,28 +836,40 @@ navegador con perfil recién creado para las 12 pasadas. m3c fue otro arranque, 
 ninguna lenta. La condición (b) ya está medida, gratis, y salió rápida: **el arranque en frío del perfil o del
 navegador no basta para dar el estado lento.** No se repite.
 
-Queda sin explicar M1 del 22-11, la única tanda con todas las pasadas lentas (11 de 11). Lo que tuvo y las de hoy
-no: una lectura de `ioreg` de cada D500 **cada segundo** [R]. m3b leía `ps -M` cada 5 s y m3c, `top` cada segundo:
-ninguna tocaba `ioreg`. Es el segundo factor que merece cruzarse, y además importa para E1, que necesita esa misma
-lectura para saber cuánto trabaja cada tarjeta.
+**Corregido el 24-11: lo que escribí aquí el 23-11 sobre `ioreg` partía de una premisa falsa, y es error mío.**
+Dije que M1 del 22-11 leía `ioreg` de cada D500 cada segundo y que m3b y m3c no lo tocaban. Lo deduje de la prosa de
+los informes, sin abrir los datos ni el guion. LOCAL-25 lo comprobó, y lo he vuelto a contar yo en
+`entregas/local23/m1b` y `entregas/local24/{m3b-321,m3c-321}` [V]: las tres tandas corrieron el mismo
+`muestreo61.py`, con la lectura de las dos tarjetas en todas las líneas y una línea por segundo (2846 de 2846, 609
+de 609 y 607 de 607; intervalo mediano, 1,0 s).
 
-**Repetición, en lugar de la de arriba** (seis pasadas cada una, salvo donde se dice; `sample` del renderer en todas;
-lo anotado en el punto 2 sigue igual):
+Consecuencias:
 
-- (a) **recién desbloqueada la pantalla, sin `ioreg`:** repite m3b. Hasta que salgan tres rápidas seguidas, con un
-  máximo de doce. Necesita que Titín desbloquee; se hace cuando vuelva a la máquina, no se le pide aposta.
-- (c) **pantalla activa desde hace al menos 15 minutos, con el `ioreg` de M1 cada segundo.**
-- El control (pantalla activa, sin `ioreg`) ya existe: es m3c, 12 de 12 rápidas.
+- **`ioreg` no separa M1 de las tandas del 23-11.** m3b lo tuvo y dio 3 lentas y 9 rápidas; m3c lo tuvo y dio 12
+  rápidas. La condición (c) que propuse (pantalla activa, con `ioreg`) ya está medida: es m3c. **No se repite**
+  (decidido por COORDINACIÓN-62).
+- **Retiro lo que derivé de ahí:** que el Aquarium de M1 pudiera estar «inducido por la medida» y que en E1 hubiera
+  que leer la utilización de las tarjetas en pasadas aparte por ese motivo. §11.2 sigue pidiendo puntuar sin
+  muestreador, pero por la razón general de siempre, no por esta.
+- **M1 del 22-11 (11 de 11 lentas) queda sin explicar.** No conozco ninguna condición que lo separe de m3c.
 
-| Salen lentas | Lectura | Entonces |
+**Repetición que queda: solo (a), recién desbloqueada la pantalla.** Hasta que salgan tres rápidas seguidas, con un
+máximo de doce; `sample` del renderer en todas; lo anotado en el punto 2 sigue igual. Necesita que Titín
+desbloquee: se hace cuando vuelva a la máquina, no se le pide aposta.
+
+- **Recomiendo hacerla con el mismo `muestreo61.py` que m3b, no «sin `ioreg`»** como puse el 23-11. Aquel «sin
+  `ioreg`» venía de la premisa falsa. Si se quita, cambian dos cosas a la vez respecto a m3b (otro desbloqueo y otro
+  muestreo), y un resultado sin pasadas lentas no diría cuál de las dos lo explica. Lo decide COORDINACIÓN.
+
+| Salen lentas en (a) | Lectura | Entonces |
 |---|---|---|
-| en (a) y no en (c) | es de la máquina tras el desbloqueo | paso 3 (`dtrace`, con Titín delante), justo después de un desbloqueo |
-| en (c) y no en (a) | **lo provoca la propia medida** | el Aquarium de M1 del 22-11 se midió en un estado inducido y se repite sin `ioreg`; en E1, la utilización de las tarjetas se lee en pasadas aparte, que no puntúan (§11.2 ya pide puntuar sin muestreador) |
-| en las dos | hay dos disparadores | las dos consecuencias de arriba |
-| en ninguna | no se reproduce a voluntad | se anota y no se insiste; E1 sigue con el estado anotado por pasada |
+| sí, como en m3b | el desbloqueo lo reproduce | ya hay toma lenta para el paso 2; y paso 3 (`dtrace`, con Titín delante), justo después de un desbloqueo |
+| no | lo de m3b no se reproduce a voluntad | se anota y no se insiste; E1 sigue con el estado anotado por pasada (§11.2) |
 
-No sé por qué leer `ioreg` encarecería el hilo de la página y no el de GPU [S: es una coincidencia de una sola
-tanda, no un mecanismo]. Se prueba porque cuesta seis minutos y porque, si es eso, cambia cómo se mide E1.
+Un dato de los mismos ficheros, **sin contrastar con los límites de cada pasada** [V el recuento; la lectura, no]:
+en M1, la aplicación de delante fue FlyWeb en 1996 líneas, Macs Fan Control en 818 y Word en 32; en m3b y m3c,
+FlyWeb en todas menos 32, con Word. Quien tenga el registro de pasadas de M1 puede ver en un momento
+si las 11 lentas coinciden con otra aplicación delante. No lo afirmo.
 
 ## 11. E1: cómo se mide y cómo se juzga el A/B (añadido el 22-11)
 
