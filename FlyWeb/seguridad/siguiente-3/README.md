@@ -12,10 +12,12 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001` | **`3861451d5b`** |
-| chromium | árbol **`7e6c74e256`** (resultado de `siguiente-2/chromium/0001`–`0005`) | `chromium/0001`–`0008` | **`c5a2b373aa`** (hasta `0007`: `e70ea1f2a9`; hasta `0006`: `5c5893384f`; hasta `0005`: `13d5ed72d4`; solo `0001`: `f43b3399c7`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0008` | **`d774af4e36`** (hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
-Comprobado: `git am` de `chromium/0001`–`0005` sobre `7e6c74e256` da `13d5ed72d4` (solo `0001`: `f43b3399c7`), `0006` encima
-da `5c5893384f`, `0007` da `e70ea1f2a9` y `0008`, `c5a2b373aa`; y de
+Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
+`a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224` y `d774af4e36`. Sobre la base anterior, `7e6c74e256`,
+daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
+Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; `git diff --diff-filter=D` vacío en los dos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
@@ -106,8 +108,8 @@ que llevan la 3.2.1 y la 3.2.2.
   - A cambio, los menús que no son FOR_DROP vuelven a estar como en la M156 frente al UAF de 574516887. Es lo que Chrome
     ha elegido para su rama de la 156.
 
-**Para LOCAL:** `views_unittests --gtest_filter='MenuRunner*:MenuController*'`. A mano, en la 7,1 y en la 5,1: menú de la
-app, menús contextuales, menús de marcadores, y arrastrar un marcador a la barra y a una carpeta abierta (FOR_DROP).
+**Para LOCAL:** `views_unittests --gtest_filter='MenuRunner*:MenuController*'`. A mano, **en la 6,1** (no en la 7,1: nada que
+robe el foco allí, DIRECTIVAS 21-11) y en la 5,1 cuando Titín pueda: menú de la app, menús contextuales, menús de marcadores, y arrastrar un marcador a la barra y a una carpeta abierta (FOR_DROP).
 
 ## `chromium/0007`: [M156] Blink, el CSP recuerda que un script lo creó el parser (crbug 585891788)
 
@@ -165,7 +167,7 @@ Nada se ha compilado ni probado en la nube.
 - `unit_tests --gtest_filter='ExtensionActionRunner*:PageSpecificSiteDataDialog*'` y
   `browser_tests --gtest_filter='ScriptInjectionTracker*'` (chromium/0002 y 0005).
 - `components_unittests --gtest_filter='SessionImpl*'` (chromium/0004).
-- `views_unittests --gtest_filter='MenuRunner*:MenuController*'` y las pruebas a mano de menús (chromium/0006).
+- `views_unittests --gtest_filter='MenuRunner*:MenuController*'` y las pruebas a mano de menús, en la 6,1 (chromium/0006).
 - `blink_unittests --gtest_filter='HTMLScriptElement*:HTMLDocumentParserLoading*'` y la WPT
   `html/semantics/forms/the-select-element/customizable-select/selectedcontent-parser-removal-csp-strict-dynamic.html`
   (chromium/0007).
