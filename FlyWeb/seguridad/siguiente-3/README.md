@@ -11,7 +11,7 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0004` | **`98638a5a81`** (hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
+| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0004` | **`90d7c52725`** (hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
 | chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0009` | **`8db178bac4`** (hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
@@ -19,7 +19,7 @@ Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a un
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; y con `0004`,
-`98638a5a81`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
+`90d7c52725`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
 `a52e854758`; el parche aplica igual en los dos.
@@ -205,8 +205,10 @@ Merge **`367e66bc19`** de la **8078** (24-11 10:21 UTC; bug del merge 589981486)
 
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
-Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Aún no está en la 15.6. Gravedad no publicada; es una salida del
-sandbox de V8.**
+Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Gravedad no publicada; es una salida del sandbox de V8.**
+**Ya tiene merge M156:** V8 15.6 `2401f5f28b` (15.6.75.83, 24-11 12:43 UTC; bugs 587681388 y 585869521). Comparado sobre
+15.6.75.66: `js-locale.cc` y la prueba, byte a byte iguales que nuestro parche; en `mjsunit.status`, la misma línea en el
+mismo sitio (nuestro `.patch` solo difiere porque lleva más hunks). Nada que cambiar.
 - **El fallo:** `ApplyOptionsToTag` acortaba a `int32_t` la longitud UTF-8. Con una cadena corrupta dentro del sandbox,
   ICU escribía un NUL fuera de él.
 - **El arreglo:** la etiqueta pasa por `String::ToStdString()`. Su tope `SBXCHECK_LE(length, String::kMaxLength)` es el
@@ -271,7 +273,7 @@ Merge **`7b49ecf357`** de la 15.6 (V8 15.6.75.81, 24-11; bugs 587681267 y 585625
 
 ## `brave-core/0004`: [M156] V8, `GraphReducer` actualiza `max_id` antes de cada reductor (crbug 585624821)
 
-Merge **`7be38d96f9`** de la 15.6 (V8 15.6.75.81, 24-11; bugs 589981130 y 585624821; main `9bbff6a346`). **Gravedad no
+Merge **`7be38d96f9`** de la 15.6 (V8 15.6.75.82, 24-11; bugs 589981130 y 585624821; main `9bbff6a346`). **Gravedad no
 publicada.**
 - **El fallo:** `GraphReducer::Reduce` guardaba el `max_id` de antes del primer reductor. Si uno creaba nodos nuevos (por
   ejemplo el `ToBoolean` de `ReduceJSInstanceOf`) y otro posterior, en el mismo paso, devolvía `Replace(nodo)`, esos
@@ -315,6 +317,8 @@ configuración de Linux compila el código.
 
 ## Revisados y no aplicables
 
+- **8078 `edb08e1df1`** (24-11 12:02 UTC): roll de V8 a 15.6.75.81, que trae `7b49ecf357` (`brave-core/0003`) y
+  `34e1c83643` (ya en la 3.2.2). `7be38d96f9` (`brave-core/0004`) y el de Intl llegan en rolls posteriores.
 - **8078 `b978da9de9`**: roll de V8 a 15.6.75.80, que solo trae `4db782064e` (ya en la 3.2.2, `siguiente-2/brave-core/0006`).
 - **8154 `10650dd166`**: roll de Dawn en M159 con un solo commit, `18789416e6` «[M159] [opengl] Limit texture image units
   to 13 on PowerVR» (585802696, 580872855). Es el backend OpenGL de Dawn con GPU PowerVR: **no aplica** a Mac (Metal) ni a
