@@ -868,7 +868,7 @@ desbloquee: se hace cuando vuelva a la máquina, no se le pide aposta.
 
 Un dato de los mismos ficheros, **sin contrastar con los límites de cada pasada** [V el recuento; la lectura, no]:
 en M1, la aplicación de delante fue FlyWeb en 1996 líneas, Macs Fan Control en 818 y Word en 32; en m3b y m3c,
-FlyWeb en todas menos las 32 primeras, con Word. Quien tenga el registro de pasadas de M1 puede ver en un momento
+FlyWeb en todas menos 32, con Word. Quien tenga el registro de pasadas de M1 puede ver en un momento
 si las 11 lentas coinciden con otra aplicación delante. No lo afirmo.
 
 ## 11. E1: cómo se mide y cómo se juzga el A/B (añadido el 22-11)
