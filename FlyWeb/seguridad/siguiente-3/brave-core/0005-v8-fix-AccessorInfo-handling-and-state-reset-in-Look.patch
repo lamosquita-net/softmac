@@ -1,0 +1,179 @@
+From b618e765d34c6066156d631f7d18180673960a9e Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Tue, 24 Nov 2026 14:03:01 +0000
+Subject: [PATCH] v8: fix AccessorInfo handling and state reset in
+ LookupIterator::Next (78d94a8570, crbug 586878505)
+
+Port of the M159 merge 78d94a8570 (V8 15.9.128.38; bugs 590052667,
+586878505; cherry-pick of main 602aeed99c), not yet on branch-heads/15.6.
+Applies as is to 15.6.75.66 as patches/v8. The code cache epoch is
+already 41 for this batch.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kdhDkMC93UBtLuPkF
+---
+ patches/v8/FLYWEB-SECURITY.md                 | 20 ++++++++
+ .../v8/src-builtins-builtins-object.cc.patch  | 30 ++++++++++++
+ patches/v8/src-objects-lookup.cc.patch        | 29 +++++++++++
+ ...mjsunit-regress-regress-586878505.js.patch | 48 +++++++++++++++++++
+ 4 files changed, 127 insertions(+)
+ create mode 100644 patches/v8/src-builtins-builtins-object.cc.patch
+ create mode 100644 patches/v8/src-objects-lookup.cc.patch
+ create mode 100644 patches/v8/test-mjsunit-regress-regress-586878505.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 58416524..5c4ab1c9 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,23 @@
++# FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 78d94a8570 (crbug 586878505), ported from the M159 merge
++
++SEGURIDAD-PORTES-33, 24-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0005`). **Not merged to 15.6
++upstream yet**: ported from the M159 merge 78d94a8570 (V8 15.9.128.38, bugs 590052667 and 586878505; cherry-pick of
++main 602aeed99c). Applied as is to 15.6.75.66 (one-line offset in `lookup.cc`). Severity not published.
++
++- `ObjectLookupAccessor` (`__lookupGetter__`/`__lookupSetter__`) skipped an `AccessorInfo` and kept walking the prototype
++  chain, and `LookupIterator::Next()` could carry a stale `state_` into `LookupInSpecialHolder()` on the next holder.
++  Together they let a page read accessors from another realm's global without the access check. Now an `AccessorInfo`
++  returns undefined (it shadows accessors further up, per spec), `Next()` resets `state_` to `NOT_FOUND` when leaving an
++  ordinary holder, `NextInternal()` has a release `CHECK_EQ(NOT_FOUND, state_)`, and `STRING_LOOKUP_START_OBJECT` is
++  unreachable there.
++- Checked: `Start()`, `Next()` and `NextInternal()` in 15.6.75.66 are the same as in 15.9.128.37; `builtins-object.cc` is
++  identical. The only callers of `NextInternal()` are `Start()` (after `LookupInHolder` and `IsFound()`) and `Next()`.
++  `lookup.cc` and `builtins-object.cc` are not touched by any other `patches/v8` file. Test `regress/regress-586878505.js`.
++
++**Cache epoch:** covered by the single 40 -> 41 bump of `siguiente-3` (`brave-core/0001`).
++
++To check (D8-LINUX): mjsunit `regress/regress-586878505`, `es6/*`, `harmony/*` and `regress/*` (the new release CHECK).
++
+ # FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 7be38d96f9 (crbug 585624821), the M156 merge of V8 15.6.75.82
+ 
+ SEGURIDAD-PORTES-33, 24-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0004`). M156 merge 7be38d96f9 (bugs
+diff --git a/patches/v8/src-builtins-builtins-object.cc.patch b/patches/v8/src-builtins-builtins-object.cc.patch
+new file mode 100644
+index 00000000..99bbe4f2
+--- /dev/null
++++ b/patches/v8/src-builtins-builtins-object.cc.patch
+@@ -0,0 +1,30 @@
++diff --git a/src/builtins/builtins-object.cc b/src/builtins/builtins-object.cc
++index 7677d9c3f9936806375ef68d7f25294c77151bda..38b4f3522edb873f355e3587ec22345f93f1a878 100644
++--- a/src/builtins/builtins-object.cc
+++++ b/src/builtins/builtins-object.cc
++@@ -122,6 +122,7 @@ Tagged<Object> ObjectLookupAccessor(Isolate* isolate,
++     switch (it.state()) {
++       case LookupIterator::INTERCEPTOR:
++       case LookupIterator::TRANSITION:
+++      case LookupIterator::STRING_LOOKUP_START_OBJECT:
++         UNREACHABLE();
++ 
++       case LookupIterator::ACCESS_CHECK:
++@@ -152,7 +153,6 @@ Tagged<Object> ObjectLookupAccessor(Isolate* isolate,
++         }
++         return ObjectLookupAccessor(isolate, prototype, key, component);
++       }
++-      case LookupIterator::STRING_LOOKUP_START_OBJECT:
++       case LookupIterator::WASM_OBJECT:
++         continue;  // Continue to the prototype, if present.
++       case LookupIterator::TYPED_ARRAY_INDEX_NOT_FOUND:
++@@ -181,7 +181,8 @@ Tagged<Object> ObjectLookupAccessor(Isolate* isolate,
++           return *AccessorPair::GetComponent(
++               isolate, holder_realm, Cast<AccessorPair>(maybe_pair), component);
++         }
++-        continue;
+++        DCHECK(IsAccessorInfo(*maybe_pair));
+++        return ReadOnlyRoots(isolate).undefined_value();
++       }
++     }
++     UNREACHABLE();
+diff --git a/patches/v8/src-objects-lookup.cc.patch b/patches/v8/src-objects-lookup.cc.patch
+new file mode 100644
+index 00000000..724c7bcf
+--- /dev/null
++++ b/patches/v8/src-objects-lookup.cc.patch
+@@ -0,0 +1,29 @@
++diff --git a/src/objects/lookup.cc b/src/objects/lookup.cc
++index 27af06bca45bea516ce3aa8a9789df011227c17a..3e15dd8e2cce92b89fb2207c12c256bd79ea51fc 100644
++--- a/src/objects/lookup.cc
+++++ b/src/objects/lookup.cc
++@@ -80,6 +80,7 @@ void LookupIterator::Next() {
++   DCHECK_NE(JSPROXY, state_);
++   DCHECK_NE(TRANSITION, state_);
++   DCHECK_NE(NOT_FOUND, state_);
+++  DCHECK_NE(STRING_LOOKUP_START_OBJECT, state_);
++   DisallowGarbageCollection no_gc;
++   has_property_ = false;
++ 
++@@ -90,6 +91,8 @@ void LookupIterator::Next() {
++     state_ = IsElement() ? LookupInSpecialHolder<true>(map, holder)
++                          : LookupInSpecialHolder<false>(map, holder);
++     if (IsFound()) return;
+++  } else {
+++    state_ = NOT_FOUND;
++   }
++ 
++   IsElement() ? NextInternal<true>(map, holder)
++@@ -99,6 +102,7 @@ void LookupIterator::Next() {
++ template <bool is_element>
++ void LookupIterator::NextInternal(Tagged<Map> orig_map,
++                                   Tagged<JSReceiver> holder) {
+++  CHECK_EQ(NOT_FOUND, state_);
++   Tagged<Map> map = orig_map;
++   do {
++     Tagged<JSReceiver> maybe_holder = NextHolder(map);
+diff --git a/patches/v8/test-mjsunit-regress-regress-586878505.js.patch b/patches/v8/test-mjsunit-regress-regress-586878505.js.patch
+new file mode 100644
+index 00000000..04adfb3c
+--- /dev/null
++++ b/patches/v8/test-mjsunit-regress-regress-586878505.js.patch
+@@ -0,0 +1,48 @@
++diff --git a/test/mjsunit/regress/regress-586878505.js b/test/mjsunit/regress/regress-586878505.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..28556c8a336379c0ccd30365cfdfce79004f80bd
++--- /dev/null
+++++ b/test/mjsunit/regress/regress-586878505.js
++@@ -0,0 +1,42 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++const realm = Realm.create();
+++const other = Realm.global(realm);
+++Realm.eval(realm, `
+++  for (const key of ['name', 'length']) {
+++    Object.defineProperty(this, key, {
+++      get() { return 'secret'; },
+++      set() {},
+++      configurable: true,
+++    });
+++  }
+++`);
+++
+++assertThrows(
+++    () => Object.prototype.__lookupGetter__.call(other, 'name'), TypeError);
+++assertThrows(
+++    () => Object.prototype.__lookupSetter__.call(other, 'name'), TypeError);
+++
+++const plain = Object.setPrototypeOf({}, other);
+++assertThrows(
+++    () => Object.prototype.__lookupGetter__.call(plain, 'name'), TypeError);
+++assertThrows(
+++    () => Object.prototype.__lookupSetter__.call(plain, 'name'), TypeError);
+++
+++for (const [carrier, key] of [
+++  [function() {}, 'name'],
+++  [function() {}, 'length'],
+++  [[], 'length'],
+++  [new String('a'), 'length'],
+++]) {
+++  Object.setPrototypeOf(carrier, other);
+++  assertEquals(undefined, Object.prototype.__lookupGetter__.call(carrier, key));
+++  assertEquals(undefined, Object.prototype.__lookupSetter__.call(carrier, key));
+++}
+++
+++const proto = {get name() { return 1; }, set name(v) {}};
+++const fn = Object.setPrototypeOf(function() {}, proto);
+++assertEquals(undefined, fn.__lookupGetter__('name'));
+++assertEquals(undefined, fn.__lookupSetter__('name'));
+-- 
+2.43.0
+

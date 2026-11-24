@@ -12,3 +12,5 @@ fa15be0986b7e450a3b9dff2a2d8b97350b479e6c363b2b011c2413e8fa5aee0  chromium/0007-
 20f456db7a69cba868e365b6146503386d1337cc5aab639e45ee711c512dffe6  chromium/0009-M156-Don-t-leak-cross-origin-URLs-in-COEP-and-COOP-r.patch
 a22f0b8a8f56d7d09db81f42979a21703f07db90247a6c74b1ada97896aab7a0  brave-core/0003-v8-avoid-hoisting-TypeGuard-in-CommonOperatorReducer.patch
 0fe75f7700d966374fab9a8a78db094ea07af60a5dc8665529c74ddeeaec22aa  brave-core/0004-v8-update-max_id-before-each-reducer-step-in-GraphRe.patch
+0b4f690bc76baeffaab26901a946679d330fd316722a999a6ddc9a84d86b7452  chromium/0010-M156-gc-Fix-gc-vulnerability-in-StyleTimeline.patch
+ada32ebd32b29d2d03f8e1e864fcfd8d9d6b6509b62c39d7366d010ba38ef78b  brave-core/0005-v8-fix-AccessorInfo-handling-and-state-reset-in-Look.patch
