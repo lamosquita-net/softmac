@@ -12,10 +12,10 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0002` | **`07a6c5e899`** (solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0008` | **`d774af4e36`** (hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0009` | **`8db178bac4`** (hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
-`a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224` y `d774af4e36`. Sobre la base anterior, `7e6c74e256`,
+`a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36` y, con `0009`, `8db178bac4`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`, y con `0002`, `07a6c5e899`; `git diff --diff-filter=D` vacío en los dos. El árbol `7b51fc45f9` se
@@ -182,6 +182,26 @@ Roll de Dawn de la 8154 `c47f9d8c32` = un commit, **`e6ee1e5319`** «[M159] [met
 - **Recomendación:** baja prioridad, aceptada por COORDINACIÓN-62 (aparcado, arriba). Es barato e inofensivo, pero en el
   hardware objetivo no cambia nada.
 
+## `chromium/0009`: [M156] COEP y COOP, los informes no filtran URL de otro origen (crbug 572310924)
+
+Merge **`367e66bc19`** de la **8078** (24-11 10:21 UTC; bug del merge 589981486), tal cual. También está en la 8154
+(`c34fd508c1`). **Gravedad no publicada.**
+- **El fallo (fuga de información):**
+  - Los informes COEP enviados al padre llevaban la URL inicial completa de la navegación del hijo, dando por hecho que
+    la había elegido el padre. No es así en las navegaciones de historial, donde puede ser la URL de otro origen tras una
+    redirección, ni en las que empieza un hijo de otro origen.
+  - Los informes COOP exponían `nextResponseURL` en los recorridos del historial.
+- **El arreglo:**
+  - La URL completa solo se informa si la eligió un documento del mismo origen que el padre.
+  - Las navegaciones de historial, restauración y recarga dejan de contar como origen de navegación para COOP.
+  - Trae una prueba de navegador nueva (`cross_origin_embedder_policy_reporting_browsertest.cc`) y casos nuevos en la de
+    COOP.
+- **Brave:**
+  - Su `patches/content-browser-renderer_host-navigation_request.cc.patch` sigue aplicando encima; comprobado, con
+    desplazamientos.
+  - Su `chromium_src` de `navigation_request.cc` solo añade `GetTopDocumentGURL()` antes del `#include`, sin macros.
+  - Las cabeceras de la prueba nueva existen en la 156.
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Aún no está en la 15.6. Gravedad no publicada; es una salida del
@@ -237,6 +257,8 @@ Nada se ha compilado ni probado en la nube.
   `html/semantics/forms/the-select-element/customizable-select/selectedcontent-parser-removal-csp-strict-dynamic.html`
   (chromium/0007).
 - `content_unittests --gtest_filter='*ServiceWorkerVersionTest.*VersionDestroyedDuring*'` (chromium/0008).
+- `content_browsertests --gtest_filter='*CrossOriginEmbedderPolicyReporting*:*CrossOriginOpenerPolicyReporting*'`
+  (chromium/0009).
 - D8-LINUX: `d8` con las banderas de prueba del sandbox; mjsunit `sandbox/regress/regress-585869521` e `intl*/*`
   (brave-core/0001).
 - D8-LINUX: compilar `v8` (cambian Torque y los builtins) y pasar mjsunit `sandbox/regress/regress-581560002`, `wasm/*` y
