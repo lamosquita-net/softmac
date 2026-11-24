@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stacy Gaikovaia <gaiko@google.com>
+Date: Sun, 22 Nov 2026 23:08:45 +0000
+Subject: [PATCH] [M159] [security] Disable SendEarlyFinalBeginMainFrame
+
+FlyWeb port (not yet merged to M156): branch-heads/8154 ce5896ca0a (main 48f78635b5). Flips the cc killswitch kSendEarlyFinalBeginMainFrame to disabled by default; the feature exists in 156 enabled by default (cc/base/features.cc) and is used in cc/trees/layer_tree_host.cc. Applies to Mac (cc is cross-platform). Same diff as upstream; applies with line offsets only. No brave-core patches or chromium_src for these files. Severity of 576628035 not public (bug restricted).
+
+Original change's description:
+> [security] Disable SendEarlyFinalBeginMainFrame
+>
+> Bug: 576628035
+> Change-Id: Ibcbe4f08f737a3902fa833af559aa7576d4de0b5
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8844186
+> Reviewed-by: Kramer Ge <fangzhoug@chromium.org>
+> Commit-Queue: Kramer Ge <fangzhoug@chromium.org>
+> Auto-Submit: Stacy Gaikovaia <gaiko@google.com>
+> Commit-Queue: Stacy Gaikovaia <gaiko@google.com>
+> Cr-Commit-Position: refs/heads/main@{#1751180}
+
+(cherry picked from commit 48f78635b5a78bf5851cab179fa5c0ca97a7e245)
+
+Bug: 588864961,576628035
+Change-Id: Ibcbe4f08f737a3902fa833af559aa7576d4de0b5
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8850059
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1400}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ cc/base/features.cc                        | 2 +-
+ cc/trees/layer_tree_host_unittest_proxy.cc | 5 ++++-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/cc/base/features.cc b/cc/base/features.cc
+index ab8882d928..5cd9951c09 100644
+--- a/cc/base/features.cc
++++ b/cc/base/features.cc
+@@ -321,7 +321,7 @@ BASE_FEATURE(kResourcePoolPreferExactSizeReuse,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ // Killswitch for disabling SendEarlyBeginMainFrame function in cc/scheduler.
+-BASE_FEATURE(kSendEarlyFinalBeginMainFrame, base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kSendEarlyFinalBeginMainFrame, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ bool SendEarlyFinalBeginMainFrameIsEnabled() {
+   return base::FeatureList::IsEnabled(kSendEarlyFinalBeginMainFrame);
+diff --git a/cc/trees/layer_tree_host_unittest_proxy.cc b/cc/trees/layer_tree_host_unittest_proxy.cc
+index d28de8947b..4e472860c0 100644
+--- a/cc/trees/layer_tree_host_unittest_proxy.cc
++++ b/cc/trees/layer_tree_host_unittest_proxy.cc
+@@ -690,7 +690,9 @@ SINGLE_AND_MULTI_THREAD_TEST_F(
+ class LayerTreeHostProxyTestRequestImmediateBeginMainFrame
+     : public LayerTreeHostProxyTest {
+  protected:
+-  LayerTreeHostProxyTestRequestImmediateBeginMainFrame() = default;
++  LayerTreeHostProxyTestRequestImmediateBeginMainFrame() {
++    feature_list_.InitAndEnableFeature(features::kSendEarlyFinalBeginMainFrame);
++  }
+   ~LayerTreeHostProxyTestRequestImmediateBeginMainFrame() override = default;
+ 
+   void BeginTest() override { PostSetNeedsCommitToMainThread(); }
+@@ -719,6 +721,7 @@ class LayerTreeHostProxyTestRequestImmediateBeginMainFrame
+   void AfterTest() override { EXPECT_TRUE(received_); }
+ 
+  private:
++  base::test::ScopedFeatureList feature_list_;
+   bool requested_ = false;
+   bool received_ = false;
+ };
+-- 
+2.43.0
+

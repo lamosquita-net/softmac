@@ -1,0 +1,401 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Sun, 22 Nov 2026 16:31:28 +0000
+Subject: [PATCH] cookies: keep rows whose key is only temporarily unavailable
+
+An encrypted cookie value whose key provider is only temporarily
+unavailable at load (keychain or Secret Service locked or denied) was
+deleted when it was `fw1` (FlyWeb patch) and dropped its whole eTLD+1
+otherwise (upstream). Either way the cookies were lost for good although
+the key would come back on a later start.
+
+Add CookieCryptoDelegate::DecryptStringWithTemporaryFailure, backed by
+Encryptor::DecryptFlags::temporarily_unavailable in the network
+service's OSCrypt Async delegate. In that case the cookie store neither
+loads nor deletes the row and does not fail the load. The first write
+for that host_key in the session deletes those rows first, so the write
+does not hit the unique index and stale values do not come back.
+
+A `fw1` value that cannot be decrypted with its key present is still
+deleted on its own, as before.
+
+Unit test: SQLitePersistentCookieStoreTest.TemporarilyUndecryptableRowIsKept.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kdhDkMC93UBtLuPkF
+---
+ components/flyweb_os_crypt/README.md          |  13 +-
+ ...tras-sqlite-cookie_crypto_delegate.h.patch |  24 +++
+ ...te-sqlite_persistent_cookie_store.cc.patch |  83 ++++++++--
+ ..._persistent_cookie_store_unittest.cc.patch | 154 +++++++++++++++++-
+ .../services-network-network_context.cc.patch |  32 ++++
+ 5 files changed, 284 insertions(+), 22 deletions(-)
+ create mode 100644 patches/net-extras-sqlite-cookie_crypto_delegate.h.patch
+ create mode 100644 patches/services-network-network_context.cc.patch
+
+diff --git a/components/flyweb_os_crypt/README.md b/components/flyweb_os_crypt/README.md
+index be612c9..b414c1d8 100644
+--- a/components/flyweb_os_crypt/README.md
++++ b/components/flyweb_os_crypt/README.md
+@@ -17,9 +17,16 @@ porte a Chromium 156, `FlyWeb/docs/brave-propio.md` §11.8.2 y §12.
+   proveedor (`vNN`, `fwN`) nunca sale en claro. Pruebas en `encryptor_legacy_unittest.cc`.
+ - Contraseñas: `patches/...login_database.cc.patch`: una fila `fw1` o `v10` que no se descifra nunca se borra
+   (`IsEncryptionAvailable()` solo mira el proveedor de cifrado; el otro puede faltar).
+-- Cookies: `patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch`: una cookie `fw1` ilegible se pierde sola
+-  (se borra su fila con el mecanismo de las no canónicas de la 156), no todo su eTLD+1. Como en la 2.x, también con el
+-  llavero denegado.
++- Cookies: `patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch`:
++  - **Clave solo ausente en ese arranque** (llavero o Secret Service bloqueado o denegado, cualquier formato): la fila no se
++    carga ni se borra, y no tira su eTLD+1. Se vuelve a leer en un arranque con clave. Si en la sesión hay una escritura
++    para su `host_key`, antes se borran las filas guardadas de ese `host_key`: así no choca con el índice único y no reaparece
++    un valor viejo. Sin escritura para ese `host_key`, un cierre de sesión que solo caduque esa cookie puede no verse
++    hasta el siguiente arranque con clave. El delegado lo sabe por
++    `CookieCryptoDelegate::DecryptStringWithTemporaryFailure` (`patches/net-extras-sqlite-cookie_crypto_delegate.h.patch`,
++    `patches/services-network-network_context.cc.patch`, con `Encryptor::DecryptFlags::temporarily_unavailable`).
++  - **Valor `fw1` ilegible con la clave presente** (valor corrupto, o proveedor no registrado): se pierde esa cookie sola
++    (se borra su fila con el mecanismo de las no canónicas de la 156), no todo su eTLD+1.
+ 
+ Para cambiar de algoritmo (agilidad): proveedor nuevo con etiqueta nueva (`fw2`) y precedencia mayor; `fw1` se queda
+ registrado para leer lo antiguo, igual que `v10`.
+diff --git a/patches/net-extras-sqlite-cookie_crypto_delegate.h.patch b/patches/net-extras-sqlite-cookie_crypto_delegate.h.patch
+new file mode 100644
+index 0000000..3e2b3af
+--- /dev/null
++++ b/patches/net-extras-sqlite-cookie_crypto_delegate.h.patch
+@@ -0,0 +1,24 @@
++diff --git a/net/extras/sqlite/cookie_crypto_delegate.h b/net/extras/sqlite/cookie_crypto_delegate.h
++index 61648f2cea51fae1a41c1a86cc09f4eb44872ed8..0b37839251eb4879070999eb2137a13f23303c8a 100644
++--- a/net/extras/sqlite/cookie_crypto_delegate.h
+++++ b/net/extras/sqlite/cookie_crypto_delegate.h
++@@ -41,6 +41,19 @@ class COMPONENT_EXPORT(NET_EXTRAS) CookieCryptoDelegate {
++   // callback from `Init` has run. This method can be called on any sequence.
++   virtual bool DecryptString(const std::string& ciphertext,
++                              std::string* plaintext) = 0;
+++
+++  // FlyWeb: like `DecryptString`, and on failure also reports in
+++  // `temporarily_unavailable` whether the key needed for `ciphertext` is only
+++  // missing for now (e.g. keychain or Secret Service locked or denied at
+++  // startup) and might be available again later. Such a value must be kept,
+++  // not deleted. The default never reports a temporary failure.
+++  virtual bool DecryptStringWithTemporaryFailure(
+++      const std::string& ciphertext,
+++      std::string* plaintext,
+++      bool* temporarily_unavailable) {
+++    *temporarily_unavailable = false;
+++    return DecryptString(ciphertext, plaintext);
+++  }
++ };
++ 
++ }  // namespace net
+diff --git a/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch b/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch
+index c2c57e6..9e1cdeb 100644
+--- a/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch
++++ b/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch
+@@ -1,28 +1,77 @@
+ diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store.cc b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
+-index 8bdfeca14640ef6820df6f22451ff0f77fcc8393..29b71fe8460b53b12967ac9fe19144b41cf90fa1 100644
++index 8bdfeca14640ef6820df6f22451ff0f77fcc8393..61c09e07707874bc4a34b4b9b55819a9c142970d 100644
+ --- a/net/extras/sqlite/sqlite_persistent_cookie_store.cc
+ +++ b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
+-@@ -1046,6 +1046,23 @@ bool SQLitePersistentCookieStore::Backend::MakeCookiesFromSQLStatement(
+-       bool decrypt_ok = crypto_->DecryptString(encrypted_value, &value);
++@@ -525,6 +525,15 @@ class SQLitePersistentCookieStore::Backend
++   // Crypto instance, or nullptr if encryption is disabled.
++   std::unique_ptr<CookieCryptoDelegate> crypto_;
++ 
+++  // FlyWeb: rows left on disk without loading because the key for their
+++  // encrypted value was only temporarily unavailable, by host_key. On the
+++  // first write for one of those host_keys this session, they are deleted
+++  // before it (the in-memory jar is then the truth for that host), so the
+++  // write does not hit the unique index and stale values do not come back.
+++  // Only used on the background sequence.
+++  std::map<std::string, std::vector<NonCanonicalCookieDeleteInfo>>
+++      flyweb_unloaded_rows_;
+++
++   // If true, LoadAndNotifyInBackground has not yet been called.
++   bool first_load_and_notify_in_background_ = true;
++ };
++@@ -1043,9 +1052,38 @@ bool SQLitePersistentCookieStore::Backend::MakeCookiesFromSQLStatement(
++         ok = false;
++         continue;
++       }
++-      bool decrypt_ok = crypto_->DecryptString(encrypted_value, &value);
+++      bool temporarily_unavailable = false;
+++      bool decrypt_ok = crypto_->DecryptStringWithTemporaryFailure(
+++          encrypted_value, &value, &temporarily_unavailable);
+        if (!decrypt_ok) {
+          RecordCookieLoadProblem(CookieLoadProblem::kDecryptFailed);
+-+        // FlyWeb: an unreadable `fw1` value (key item deleted, keychain
+-+        // denied) loses only that cookie: its row is deleted like a
+-+        // non-canonical one, so CookieMonster and the database stay in sync.
+-+        // An unreadable value of any other format still drops the whole
+-+        // eTLD+1, as upstream.
+++        NonCanonicalCookieDeleteInfo row_key{
+++            .name = statement.ColumnString(3),
+++            .host_key = domain,
+++            .top_frame_site_key = statement.ColumnString(2),
+++            .path = statement.ColumnString(5),
+++            .source_scheme = statement.ColumnInt(15),
+++            .source_port = statement.ColumnInt(16),
+++            .has_cross_site_ancestor = statement.ColumnBool(19),
+++        };
+++        // FlyWeb: the key is only missing for now (keychain or Secret
+++        // Service locked or denied at startup). Keep the row on disk and do
+++        // not fail the load, or upstream would drop the whole eTLD+1; it is
+++        // read again on a later start with the key, unless a write for its
+++        // host_key this session deletes it first (see DoCommit).
+++        if (temporarily_unavailable) {
+++          flyweb_unloaded_rows_[domain].push_back(std::move(row_key));
+++          continue;
+++        }
+++        // FlyWeb: an unreadable `fw1` value with its key present (corrupt
+++        // value, or provider not registered) loses only that cookie: its
+++        // row is deleted like a non-canonical one, so CookieMonster and the
+++        // database stay in sync. An unreadable value of any other format
+++        // still drops the whole eTLD+1, as upstream.
+ +        if (base::StartsWith(encrypted_value, "fw1")) {
+-+          non_canonical_cookies_to_delete.push_back({
+-+              .name = statement.ColumnString(3),
+-+              .host_key = domain,
+-+              .top_frame_site_key = statement.ColumnString(2),
+-+              .path = statement.ColumnString(5),
+-+              .source_scheme = statement.ColumnInt(15),
+-+              .source_port = statement.ColumnInt(16),
+-+              .has_cross_site_ancestor = statement.ColumnBool(19),
+-+          });
+++          non_canonical_cookies_to_delete.push_back(std::move(row_key));
+ +          continue;
+ +        }
+          ok = false;
+          continue;
+        }
++@@ -1348,6 +1386,16 @@ void SQLitePersistentCookieStore::Backend::DoCommit() {
++         continue;
++       }
++ 
+++      // FlyWeb: first write for a host_key with rows kept unloaded (key
+++      // temporarily unavailable at load): delete those rows before it.
+++      if (!flyweb_unloaded_rows_.empty()) {
+++        auto unloaded = flyweb_unloaded_rows_.find(po->cc().Domain());
+++        if (unloaded != flyweb_unloaded_rows_.end()) {
+++          DeleteNonCanonicalCookies(unloaded->second);
+++          flyweb_unloaded_rows_.erase(unloaded);
+++        }
+++      }
+++
++       switch (po->op()) {
++         case PendingOperation::OperationType::kAdd:
++           add_statement.Reset(true);
+diff --git a/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch b/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch
+index b30a9b6..9f587f1 100644
+--- a/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch
++++ b/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch
+@@ -1,8 +1,58 @@
+ diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc b/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc
+-index 9c6aa55ee76c5479bdb8b24521ac466a9dbc1ea0..a52307ba7548ffc8712b663b63002eb2aeb0ba9b 100644
++index 9c6aa55ee76c5479bdb8b24521ac466a9dbc1ea0..f9fb7b2c579e7efcf0d9733d9da0727c474a09a4 100644
+ --- a/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc
+ +++ b/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc
+-@@ -1294,6 +1294,50 @@ TEST_F(SQLitePersistentCookieStoreTest, UpdateToEncryption) {
++@@ -6,6 +6,7 @@
++ 
++ #include <stdint.h>
++ 
+++#include <algorithm>
++ #include <map>
++ #include <memory>
++ #include <optional>
++@@ -25,6 +26,7 @@
++ #include "base/memory/weak_ptr.h"
++ #include "base/run_loop.h"
++ #include "base/sequence_checker.h"
+++#include "base/strings/strcat.h"
++ #include "base/strings/stringprintf.h"
++ #include "base/synchronization/waitable_event.h"
++ #include "base/task/sequenced_task_runner.h"
++@@ -75,6 +77,12 @@ class CookieCryptor : public CookieCryptoDelegate {
++                      std::string* ciphertext) override;
++   bool DecryptString(const std::string& ciphertext,
++                      std::string* plaintext) override;
+++  // FlyWeb: values starting with `kTemporarilyUnavailablePrefix` fail as if
+++  // their key were only temporarily unavailable.
+++  bool DecryptStringWithTemporaryFailure(
+++      const std::string& ciphertext,
+++      std::string* plaintext,
+++      bool* temporarily_unavailable) override;
++ 
++   // Obtain a closure that can be called to trigger an initialize. If this
++   // instance has already been destructed then the returned base::OnceClosure
++@@ -170,6 +178,20 @@ bool CookieCryptor::DecryptString(const std::string& ciphertext,
++   return false;
++ }
++ 
+++constexpr std::string_view kTemporarilyUnavailablePrefix = "tmp-no-key";
+++
+++bool CookieCryptor::DecryptStringWithTemporaryFailure(
+++    const std::string& ciphertext,
+++    std::string* plaintext,
+++    bool* temporarily_unavailable) {
+++  *temporarily_unavailable = false;
+++  if (ciphertext.starts_with(kTemporarilyUnavailablePrefix)) {
+++    *temporarily_unavailable = true;
+++    return false;
+++  }
+++  return DecryptString(ciphertext, plaintext);
+++}
+++
++ void CookieCryptor::InitComplete() {
++   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
++   init_ = true;
++@@ -1294,6 +1316,150 @@ TEST_F(SQLitePersistentCookieStoreTest, UpdateToEncryption) {
+    EXPECT_EQ(contents.find("something456ABC"), std::string::npos);
+  }
+  
+@@ -49,6 +99,106 @@ index 9c6aa55ee76c5479bdb8b24521ac466a9dbc1ea0..a52307ba7548ffc8712b663b63002eb2
+ +  DestroyStore();
+ +  EXPECT_EQ(0, count_rows());
+ +}
+++
+++// FlyWeb: a value whose key is only temporarily unavailable is neither
+++// loaded nor deleted, and does not drop its eTLD+1. Without a write for its
+++// host_key it is read again on a later start with the key; the first write
+++// for its host_key deletes it before the write, so the write is stored and
+++// the stale value does not come back.
+++TEST_F(SQLitePersistentCookieStoreTest, TemporarilyUndecryptableRowIsKept) {
+++  InitializeStore(/*crypt=*/true, /*restore_old_session_cookies=*/false);
+++  const base::Time t0 = base::Time::Now();
+++  AddCookie("locked", "old", "foo.bar", "/", t0);
+++  AddCookie("readable", "value2", "foo.bar", "/", t0 + base::Microseconds(10));
+++  AddCookie("other", "value3", "www.foo.bar", "/", t0 + base::Microseconds(20));
+++  DestroyStore();
+++
+++  auto read_encrypted_value = [&](const char* name) {
+++    sql::Database db(sql::test::kTestTag);
+++    EXPECT_TRUE(db.Open(temp_dir_.GetPath().Append(kCookieFilename)));
+++    sql::Statement smt(db.GetUniqueStatement(
+++        "SELECT encrypted_value FROM cookies WHERE name = ?"));
+++    smt.BindString(0, name);
+++    EXPECT_TRUE(smt.Step());
+++    return smt.ColumnString(0);
+++  };
+++  auto set_encrypted_value = [&](const char* name, std::string_view value) {
+++    sql::Database db(sql::test::kTestTag);
+++    ASSERT_TRUE(db.Open(temp_dir_.GetPath().Append(kCookieFilename)));
+++    sql::Statement smt(db.GetUniqueStatement(
+++        "UPDATE cookies SET encrypted_value = ? WHERE name = ?"));
+++    smt.BindBlob(0, base::as_byte_span(value));
+++    smt.BindString(1, name);
+++    ASSERT_TRUE(smt.Run());
+++  };
+++  auto count_rows = [&](const char* name) {
+++    sql::Database db(sql::test::kTestTag);
+++    EXPECT_TRUE(db.Open(temp_dir_.GetPath().Append(kCookieFilename)));
+++    sql::Statement smt(
+++        db.GetUniqueStatement("SELECT COUNT(*) FROM cookies WHERE name = ?"));
+++    smt.BindString(0, name);
+++    EXPECT_TRUE(smt.Step());
+++    return smt.ColumnInt(0);
+++  };
+++  auto names = [](const CanonicalCookieVector& cookies) {
+++    std::vector<std::string> result;
+++    for (const auto& cookie : cookies) {
+++      result.push_back(cookie->Name());
+++    }
+++    std::sort(result.begin(), result.end());
+++    return result;
+++  };
+++
+++  const std::string good_value = read_encrypted_value("locked");
+++  const std::string locked_value =
+++      base::StrCat({kTemporarilyUnavailablePrefix, good_value});
+++
+++  // 1. Key missing at load, no write: the row stays and nothing else of the
+++  // eTLD+1 is lost.
+++  set_encrypted_value("locked", locked_value);
+++  CanonicalCookieVector cookies = CreateAndLoad(
+++      /*crypt_cookies=*/true, /*restore_old_session_cookies=*/false);
+++  EXPECT_THAT(names(cookies), testing::ElementsAre("other", "readable"));
+++  cookies.clear();
+++  DestroyStore();
+++  EXPECT_EQ(1, count_rows("locked"));
+++  EXPECT_EQ(1, count_rows("readable"));
+++  EXPECT_EQ(1, count_rows("other"));
+++
+++  // 2. Key back on a later start: the cookie loads with its old value.
+++  set_encrypted_value("locked", good_value);
+++  cookies = CreateAndLoad(/*crypt_cookies=*/true,
+++                          /*restore_old_session_cookies=*/false);
+++  EXPECT_THAT(names(cookies),
+++              testing::ElementsAre("locked", "other", "readable"));
+++  for (const auto& cookie : cookies) {
+++    if (cookie->Name() == "locked") {
+++      EXPECT_EQ("old", cookie->Value());
+++    }
+++  }
+++  cookies.clear();
+++  DestroyStore();
+++
+++  // 3. Key missing again, and the site writes the same cookie: the stale row
+++  // is deleted first, so the new value is stored (no unique-index clash).
+++  set_encrypted_value("locked", locked_value);
+++  cookies = CreateAndLoad(/*crypt_cookies=*/true,
+++                          /*restore_old_session_cookies=*/false);
+++  EXPECT_THAT(names(cookies), testing::ElementsAre("other", "readable"));
+++  cookies.clear();
+++  AddCookie("locked", "new", "foo.bar", "/", t0 + base::Microseconds(30));
+++  DestroyStore();
+++  EXPECT_EQ(1, count_rows("locked"));
+++  cookies = CreateAndLoad(/*crypt_cookies=*/true,
+++                          /*restore_old_session_cookies=*/false);
+++  EXPECT_THAT(names(cookies),
+++              testing::ElementsAre("locked", "other", "readable"));
+++  for (const auto& cookie : cookies) {
+++    if (cookie->Name() == "locked") {
+++      EXPECT_EQ("new", cookie->Value());
+++    }
+++  }
+++}
+ +
+  bool CompareCookies(const std::unique_ptr<CanonicalCookie>& a,
+                      const std::unique_ptr<CanonicalCookie>& b) {
+diff --git a/patches/services-network-network_context.cc.patch b/patches/services-network-network_context.cc.patch
+new file mode 100644
+index 0000000..25413a3
+--- /dev/null
++++ b/patches/services-network-network_context.cc.patch
+@@ -0,0 +1,32 @@
++diff --git a/services/network/network_context.cc b/services/network/network_context.cc
++index 7711c34957e7c2a32f7f3f7ce85e5afad2fd880b..d5eec1d5952678d1a9fd486765146b957d688705 100644
++--- a/services/network/network_context.cc
+++++ b/services/network/network_context.cc
++@@ -309,6 +309,10 @@ class CookieOSCryptAsyncDelegate : public net::CookieCryptoDelegate {
++                      std::string* ciphertext) override;
++   bool DecryptString(const std::string& ciphertext,
++                      std::string* plaintext) override;
+++  bool DecryptStringWithTemporaryFailure(
+++      const std::string& ciphertext,
+++      std::string* plaintext,
+++      bool* temporarily_unavailable) override;
++ 
++  private:
++   void InitCallback(
++@@ -343,6 +347,16 @@ bool CookieOSCryptAsyncDelegate::DecryptString(const std::string& ciphertext,
++   return instance_->DecryptString(ciphertext, plaintext);
++ }
++ 
+++bool CookieOSCryptAsyncDelegate::DecryptStringWithTemporaryFailure(
+++    const std::string& ciphertext,
+++    std::string* plaintext,
+++    bool* temporarily_unavailable) {
+++  os_crypt_async::Encryptor::DecryptFlags flags;
+++  const bool ok = instance_->DecryptString(ciphertext, plaintext, &flags);
+++  *temporarily_unavailable = !ok && flags.temporarily_unavailable;
+++  return ok;
+++}
+++
++ void CookieOSCryptAsyncDelegate::InitCallback(
++     mojo::Remote<network::mojom::CookieEncryptionProvider> lifetime,
++     scoped_refptr<os_crypt_async::Encryptor> encryptor) {
+-- 
+2.43.0
+

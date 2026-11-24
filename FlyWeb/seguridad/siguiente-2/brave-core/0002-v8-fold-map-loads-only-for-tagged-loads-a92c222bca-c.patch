@@ -1,0 +1,333 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Mon, 23 Nov 2026 10:19:13 +0000
+Subject: [PATCH] v8: fold map loads only for tagged loads (a92c222bca, crbug
+ 585625644); cache epoch 40
+
+[M159] Turboshaft fix from V8 15.9.128.29, not merged to 15.6 yet.
+MachineOptimizationReducer::ReduceLoad constant-folded any offset-0 load
+on a HeapObject constant into its map, even raw or untagged loads left in
+unreachable code. The String length guard is not carried: 15.6 has no
+such fold. Adds the mjsunit test wasm/turboshaft/regress-585625644.js and
+raises kFlyWebCacheEpoch 39 -> 40 for the release after 3.2.1. Notes in
+patches/v8/FLYWEB-SECURITY.md.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kdhDkMC93UBtLuPkF
+---
+ patches/v8/FLYWEB-SECURITY.md                 |  21 ++
+ ...shaft-machine-optimization-reducer.h.patch |  43 ++++
+ patches/v8/src-utils-version.cc.patch         |  11 +-
+ ...wasm-turboshaft-regress-585625644.js.patch | 192 ++++++++++++++++++
+ 4 files changed, 263 insertions(+), 4 deletions(-)
+ create mode 100644 patches/v8/src-compiler-turboshaft-machine-optimization-reducer.h.patch
+ create mode 100644 patches/v8/test-mjsunit-wasm-turboshaft-regress-585625644.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 74f5988..0656fd7 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,24 @@
++# FlyWeb: release after 3.2.1 (softmac `seguridad/siguiente-2`), V8 fix a92c222bca (crbug 585625644), ported from the M159 merge
++
++SEGURIDAD-PORTES-33, 23-11-2026 (softmac `FlyWeb/seguridad/siguiente-2/brave-core/0002`). **Not merged to V8 15.6
++upstream yet**: ported from the M159 merge a92c222bca (V8 15.9.128.29, bugs 588195794 and 585625644; cherry-pick of
++a7644692f0 from main). Severity not published.
++
++- `MachineOptimizationReducer::ReduceLoad` constant-folded any offset-0 load from a HeapObject constant into the
++  object's map, as a Tagged HeapConstant. In unreachable code, load elimination and index adjustments can leave a
++  raw or non-tagged load (e.g. a Float64 element load whose byte offset folds to 0) on such a constant; folding it
++  gave a Tagged value where a Float64 (or other untagged) one was expected. Now the map is folded only for
++  `kind.tagged_base`, non-atomic loads whose `loaded_rep` is `TaggedPointer` or `AnyTagged`.
++- `machine-optimization-reducer.h` is byte-identical in 15.6.75.66 and at the tip of 15.6; no other `patches/v8`
++  file touches it. Same change as upstream for the map fold. **Not carried:** the upstream guard on the `String`
++  length fold, because 15.6 does not have that fold. Plus the mjsunit test `wasm/turboshaft/regress-585625644.js`.
++
++**Cache epoch:** this changes optimized code, so **`kFlyWebCacheEpoch` 39 -> 40**, once, for the release that
++carries `siguiente-2`. Any other V8 change added to that release is covered by this same bump.
++
++To check (D8-LINUX): `d8`, mjsunit `wasm/turboshaft/regress-585625644` and `compiler/*`, `wasm/*` with and without
++Maglev.
++
+ # FlyWeb 3.2.1: cctest adaptation for 46c1404 (test only)
+ 
+ SEGURIDAD-PORTES-33, 21-11-2026 (softmac `FlyWeb/seguridad/siguiente/brave-core/0003`; asked by COORDINACIÓN-58 after
+diff --git a/patches/v8/src-compiler-turboshaft-machine-optimization-reducer.h.patch b/patches/v8/src-compiler-turboshaft-machine-optimization-reducer.h.patch
+new file mode 100644
+index 0000000..2908e78
+--- /dev/null
++++ b/patches/v8/src-compiler-turboshaft-machine-optimization-reducer.h.patch
+@@ -0,0 +1,43 @@
++diff --git a/src/compiler/turboshaft/machine-optimization-reducer.h b/src/compiler/turboshaft/machine-optimization-reducer.h
++index f31fc86cefaca40eaceb753211e5717bf39b45ad..b6e5434bd317c068e5ebf86d0533b3070aea7915 100644
++--- a/src/compiler/turboshaft/machine-optimization-reducer.h
+++++ b/src/compiler/turboshaft/machine-optimization-reducer.h
++@@ -2333,11 +2333,15 @@ class MachineOptimizationReducer : public Next {
++       break;
++     }
++ 
++-    if (!index.valid() && matcher_.Is<ConstantOp>(base_idx)) {
++-      const ConstantOp& base = matcher_.Cast<ConstantOp>(base_idx);
++-      if (base.kind == any_of(ConstantOp::Kind::kHeapObject,
++-                              ConstantOp::Kind::kCompressedHeapObject)) {
++-        if (offset == offsetof(HeapObject, map_)) {
+++    if (kind.tagged_base && !kind.is_atomic && !index.valid()) {
+++      if (const ConstantOp* base = matcher_.TryCast<ConstantOp>(base_idx);
+++          base != nullptr &&
+++          base->kind == any_of(ConstantOp::Kind::kHeapObject,
+++                               ConstantOp::Kind::kCompressedHeapObject)) {
+++        if (offset == offsetof(HeapObject, map_) &&
+++            loaded_rep == any_of(MemoryRepresentation::TaggedPointer(),
+++                                 MemoryRepresentation::AnyTagged())) {
+++          DCHECK_EQ(result_rep, RegisterRepresentation::Tagged());
++           // Only few loads should be loading the map from a ConstantOp
++           // HeapObject, so unparking the JSHeapBroker here rather than before
++           // the optimization pass itself it probably more efficient.
++@@ -2350,7 +2354,7 @@ class MachineOptimizationReducer : public Next {
++           if (broker != nullptr) {
++             UnparkedScopeIfNeeded scope(broker);
++             AllowHandleDereference allow_handle_dereference;
++-            OptionalMapRef map = TryMakeRef(broker, base.handle()->map());
+++            OptionalMapRef map = TryMakeRef(broker, base->handle()->map());
++             if (MapLoadCanBeConstantFolded(map)) {
++               return __ HeapConstant(map->object());
++             }
++@@ -2358,7 +2362,7 @@ class MachineOptimizationReducer : public Next {
++         }
++         // TODO(dmercadier): consider constant-folding other accesses, in
++         // particular for constant objects (ie, if
++-        // base.handle()->InReadOnlySpace() is true). We have to be a bit
+++        // base->handle()->InReadOnlySpace() is true). We have to be a bit
++         // careful though, because loading could be invalid (since we could
++         // be in unreachable code). (all objects have a map, so loading the map
++         // should always be safe, regardless of whether we are generating
+diff --git a/patches/v8/src-utils-version.cc.patch b/patches/v8/src-utils-version.cc.patch
+index 58903c5..2141c1b 100644
+--- a/patches/v8/src-utils-version.cc.patch
++++ b/patches/v8/src-utils-version.cc.patch
+@@ -1,8 +1,8 @@
+ diff --git a/src/utils/version.cc b/src/utils/version.cc
+-index 550db661144947dbc31b5eb62c0da7ea2e6e1139..21af9650bd871721c1ae127818dd9016d67abc53 100644
++index 550db661144947dbc31b5eb62c0da7ea2e6e1139..473a39216e7d37cfc5c730b28f8bf5e49094975d 100644
+ --- a/src/utils/version.cc
+ +++ b/src/utils/version.cc
+-@@ -27,9 +27,61 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
++@@ -27,9 +27,64 @@ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
+  const char* Version::soname_ = SONAME;
+  const char* Version::version_string_ = V8_VERSION_STRING;
+  
+@@ -55,8 +55,11 @@ index 550db661144947dbc31b5eb62c0da7ea2e6e1139..21af9650bd871721c1ae127818dd9016
+ +// which change bytecode and optimized code; and LIBC_MATH in base/ieee754.cc,
+ +// which changes the code of the Math builtins). 39 = FlyWeb 3.2.1 (the M159
+ +// TurboFan merge 352e9c46c2, TruncateFloat64ToInt64 for inputs that may be
+-+// minus zero, which changes optimized code).
+-+constexpr int kFlyWebCacheEpoch = 39;
+++// minus zero, which changes optimized code). 40 = the FlyWeb release after
+++// 3.2.1 (softmac seguridad/siguiente-2: the M159 Turboshaft merge a92c222bca,
+++// map loads are only constant-folded for tagged, non-atomic loads of a tagged
+++// representation, which changes optimized code).
+++constexpr int kFlyWebCacheEpoch = 40;
+ +
+  uint32_t Version::Hash() {
+    base::Hasher hasher;
+diff --git a/patches/v8/test-mjsunit-wasm-turboshaft-regress-585625644.js.patch b/patches/v8/test-mjsunit-wasm-turboshaft-regress-585625644.js.patch
+new file mode 100644
+index 0000000..6627777
+--- /dev/null
++++ b/patches/v8/test-mjsunit-wasm-turboshaft-regress-585625644.js.patch
+@@ -0,0 +1,192 @@
++diff --git a/test/mjsunit/wasm/turboshaft/regress-585625644.js b/test/mjsunit/wasm/turboshaft/regress-585625644.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..ce7e513f77bffdc0d70b785b8cfd78220d6b6a34
++--- /dev/null
+++++ b/test/mjsunit/wasm/turboshaft/regress-585625644.js
++@@ -0,0 +1,186 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax --no-debug-code
+++
+++d8.file.execute('test/mjsunit/wasm/wasm-module-builder.js');
+++
+++const builder = new WasmModuleBuilder();
+++const pairType = builder.addStruct([
+++  makeField(kWasmExternRef, true),
+++  makeField(kWasmExternRef, true),
+++]);
+++const externArrType = builder.addArray(kWasmExternRef);
+++const pairArrType = builder.addArray(wasmRefNullType(pairType));
+++const f64ArrType = builder.addArray(kWasmF64);
+++
+++builder.addFunction('id', makeSig([kWasmI32], [kWasmI32]))
+++    .addBody([kExprLocalGet, 0])
+++    .exportFunc();
+++
+++builder.addFunction('arrLen', makeSig([kWasmExternRef], [kWasmI32]))
+++    .addBody([
+++      kExprLocalGet, 0,
+++      kGCPrefix, kExprAnyConvertExtern,
+++      kGCPrefix, kExprRefCast, kArrayRefCode,
+++      kGCPrefix, kExprArrayLen,
+++    ])
+++    .exportFunc();
+++
+++builder.addFunction('setExternArr', makeSig(
+++    [kWasmExternRef, kWasmExternRef, kWasmExternRef, kWasmI32, kWasmI32], []))
+++    .addBody([
+++      kExprLocalGet, 0, kGCPrefix, kExprAnyConvertExtern,
+++      kGCPrefix, kExprRefCast, externArrType,
+++      kExprLocalGet, 3, kExprLocalGet, 1,
+++      kGCPrefix, kExprArraySet, externArrType,
+++      kExprLocalGet, 0, kGCPrefix, kExprAnyConvertExtern,
+++      kGCPrefix, kExprRefCast, externArrType,
+++      kExprLocalGet, 4, kExprLocalGet, 2,
+++      kGCPrefix, kExprArraySet, externArrType,
+++    ])
+++    .exportFunc();
+++
+++builder.addFunction('writeField0', makeSig(
+++    [kWasmExternRef, kWasmExternRef, kWasmI32], []))
+++    .addBody([
+++      kExprLocalGet, 0, kGCPrefix, kExprAnyConvertExtern,
+++      kGCPrefix, kExprRefCast, pairArrType,
+++      kExprLocalGet, 2,
+++      kGCPrefix, kExprArrayGet, pairArrType,
+++      kExprLocalGet, 1,
+++      kGCPrefix, kExprStructSet, pairType, 0,
+++    ])
+++    .exportFunc();
+++
+++builder.addFunction('writeField1', makeSig(
+++    [kWasmExternRef, kWasmExternRef, kWasmI32], []))
+++    .addBody([
+++      kExprLocalGet, 0, kGCPrefix, kExprAnyConvertExtern,
+++      kGCPrefix, kExprRefCast, pairArrType,
+++      kExprLocalGet, 2,
+++      kGCPrefix, kExprArrayGet, pairArrType,
+++      kExprLocalGet, 1,
+++      kGCPrefix, kExprStructSet, pairType, 1,
+++    ])
+++    .exportFunc();
+++
+++builder.addFunction('roundtripF64', makeSig(
+++    [kWasmExternRef, kWasmI32, kWasmF64], [kWasmF64]))
+++    .addBody([
+++      kExprLocalGet, 0, kGCPrefix, kExprAnyConvertExtern,
+++      kGCPrefix, kExprRefCast, f64ArrType,
+++      kExprLocalGet, 1, kExprLocalGet, 2,
+++      kGCPrefix, kExprArraySet, f64ArrType,
+++      kExprLocalGet, 0, kGCPrefix, kExprAnyConvertExtern,
+++      kGCPrefix, kExprRefCast, f64ArrType,
+++      kExprLocalGet, 1,
+++      kGCPrefix, kExprArrayGet, f64ArrType,
+++    ])
+++    .exportFunc();
+++
+++builder.addFunction('truncF64', makeSig([kWasmF64], [kWasmI32]))
+++    .addBody([
+++      kExprLocalGet, 0,
+++      kExprI64SConvertF64,
+++      kExprI32ConvertI64,
+++      kExprI32Const, 0,
+++      kExprI32And,
+++    ])
+++    .exportFunc();
+++
+++builder.addFunction('mkExternArr', makeSig([], [wasmRefType(externArrType)]))
+++    .addBody([kExprI32Const, 2, kGCPrefix, kExprArrayNewDefault, externArrType])
+++    .exportFunc();
+++
+++builder.addFunction('mkPairArr', makeSig([], [wasmRefType(pairArrType)]))
+++    .addBody([
+++      kGCPrefix, kExprStructNewDefault, pairType,
+++      kGCPrefix, kExprStructNewDefault, pairType,
+++      kGCPrefix, kExprArrayNewFixed, pairArrType, 2,
+++    ])
+++    .exportFunc();
+++
+++builder.addFunction('mkF64Arr', makeSig([], [wasmRefType(f64ArrType)]))
+++    .addBody([kExprI32Const, 2, kGCPrefix, kExprArrayNewDefault, f64ArrType])
+++    .exportFunc();
+++
+++const {
+++  id,
+++  arrLen,
+++  setExternArr,
+++  writeField0,
+++  writeField1,
+++  roundtripF64,
+++  truncF64,
+++  mkExternArr,
+++  mkPairArr,
+++  mkF64Arr,
+++} = builder.instantiate().exports;
+++
+++const extArr = mkExternArr();
+++const pairArr = mkPairArr();
+++const f64Arr = mkF64Arr();
+++const constObj = {x: 1};
+++
+++const u32View = new Uint32Array(8);
+++const f64View = new Float64Array(u32View.buffer);
+++
+++function keepRegsLive(val) {
+++  let m0 = u32View[0];
+++  let m1 = u32View[1];
+++  let m2 = u32View[4];
+++  f64View[2] = val;
+++  u32View[3] = m0 ^ m1 ^ m2;
+++  return val;
+++}
+++
+++const K = 2 ** 34;
+++const step = x => x + x - K;
+++const step4 = x => step(step(step(step(x))));
+++const step16 = x => step4(step4(step4(step4(x))));
+++
+++function unreachableLoad(a, d, doubleArr, smiArr, z, off) {
+++  let neg = (roundtripF64(f64Arr, 0, -2147483648) | 0) >> 1;
+++  if (arrLen(a) === z) {
+++    setExternArr(a, doubleArr, smiArr, 0, 1);
+++  } else {
+++    setExternArr(a, doubleArr, smiArr, 0, 1);
+++  }
+++  writeField0(d, constObj, 0);
+++  writeField1(d, neg, 1);
+++  let q = Math.max(-1024, (0 - smiArr.length) | 0);
+++  let t = step16(step4(step4(step4(step(step(step(K + q)))))));
+++  let idx = t - K - 1 + (off | 0);
+++  return keepRegsLive(doubleArr[id(0) ? -0 : idx]);
+++}
+++
+++function main(a, doubleArr, smiArr, z, takeDead) {
+++  let r;
+++  if (takeDead) {
+++    r = unreachableLoad(a, a, doubleArr, smiArr, z, 0);
+++  } else {
+++    let v = doubleArr[0];
+++    u32View[0] = truncF64(v + 128);
+++    r = v;
+++  }
+++  return r + 0.2;
+++}
+++
+++%PrepareFunctionForOptimization(step);
+++%PrepareFunctionForOptimization(step4);
+++%PrepareFunctionForOptimization(step16);
+++%PrepareFunctionForOptimization(keepRegsLive);
+++%PrepareFunctionForOptimization(unreachableLoad);
+++%PrepareFunctionForOptimization(main);
+++
+++for (let i = 0; i < 20; i++) {
+++  unreachableLoad(extArr, pairArr, [1.5], [], (i % 2) * 2, 1);
+++  main(extArr, [3.4], [], i % 2, false);
+++  assertThrows(
+++      () => main(extArr, [3.4], [], i % 2, true), WebAssembly.RuntimeError);
+++}
+++
+++%OptimizeFunctionOnNextCall(main);
+++assertEquals(3.6, main(extArr, [3.4], [], 0, false));
+-- 
+2.43.0
+
