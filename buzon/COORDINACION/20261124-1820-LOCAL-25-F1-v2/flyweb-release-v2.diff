@@ -1,0 +1,87 @@
+--- flyweb-release-v1.sh	2026-11-24 17:49:06
++++ flyweb-release.sh	2026-11-24 17:49:06
+@@ -12,6 +12,11 @@
+ #   todo       los cinco primeros, en ese orden, parando al primer fallo (entregar va aparte)
+ #
+ # No baja fuentes, no hace checkout, no firma, no empaqueta, no sube y no publica. Vale en el bash 3.2 de macOS.
++#
++# Entorno (también como claves del manifiesto; la variable manda):
++#   FLYWEB_DEPOT_TOOLS / depot_tools=   carpeta de depot_tools que se pone delante en el PATH (autoninja, ninja, gn)
++#   BAJA=1 / baja=1                     prioridad baja al compilar: taskpolicy -b + nice 19 (Mac) o nice 19 (Linux), y
++#                                       trabajos_baja (24 por defecto). Sin BAJA, al máximo: trabajos (32 Mac, 12 Linux).
+ set -u -o pipefail
+ 
+ paro() { echo "PARO: $*" >&2; exit 1; }
+@@ -31,7 +36,14 @@
+   Linux)  SO=linux; GN=$SRC/buildtools/linux64/gn;;
+   *) paro "sistema sin receta: $(uname -s)";;
+ esac
+-J=$(de trabajos); [ -n "$J" ] || { if [ $SO = linux ]; then J=12; else J=24; fi; }
++J=$(de trabajos); [ -n "$J" ] || { if [ $SO = linux ]; then J=12; else J=32; fi; }
++BAJA=${BAJA:-$(de baja)}
++if [ "$BAJA" = 1 ]; then J=$(de trabajos_baja); J=${J:-24}; fi
++DT=${FLYWEB_DEPOT_TOOLS:-$(de depot_tools)}
++if [ -n "$DT" ]; then
++  [ -x "$DT/autoninja" ] || paro "depot_tools sin autoninja: $DT"
++  PATH=$DT:$PATH; export PATH
++fi
+ export DEPOT_TOOLS_METRICS=0 DEPOT_TOOLS_UPDATE=0
+ unset NODE_ENV
+ CLAVE=flyweb; F=$(de clave_servicios_fichero)
+@@ -64,12 +76,33 @@
+   echo "$t"
+ }
+ 
++fecha_cambio() {  # la fecha que dará LASTCHANGE.committime: la del commit de Flynk del manifiesto
++  local t d a
++  t=$(git -C "$SRC" log -1 --format=%ct HEAD); d=$(( ( $(date +%s) - t ) / 86400 ))
++  echo "  fecha del commit de Flynk: $(git -C "$SRC" log -1 --format=%ci HEAD) ($d días)"
++  [ "$d" -le 30 ] || echo "  AVISO: más de 30 días; a los 70 Chromium deja de aplicar los pines estáticos (base::GetBuildTime)"
++  a=$(cat "$SRC/build/util/LASTCHANGE.committime" 2> /dev/null)
++  [ "$a" = "$t" ] || echo "  (LASTCHANGE.committime actual: ${a:-no existe}; compilar lo regenera)"
++}
++
++ultimo_cambio() {  # build/util/LASTCHANGE y .committime desde el commit de Flynk (el hook brave_lastchange no se ejecuta
++  local t h          # y, en un clon nuevo, daba un commit de versión de brave-core de 2023)
++  python3 "$SRC/build/util/lastchange.py" --source-dir "$SRC" --filter "" --output "$SRC/build/util/LASTCHANGE" \
++    || paro "lastchange.py"
++  t=$(git -C "$SRC" log -1 --format=%ct HEAD)
++  [ "$(cat "$SRC/build/util/LASTCHANGE.committime")" = "$t" ] || printf '%s' "$t" > "$SRC/build/util/LASTCHANGE.committime"
++  h=$(sed -n 's/^LASTCHANGE=\([0-9a-f]*\).*/\1/p' "$SRC/build/util/LASTCHANGE")
++  igual "LASTCHANGE" "$h" "$(de chromium_commit)"
++  echo "  LASTCHANGE.committime $t ($(date -r "$t" '+%F' 2> /dev/null || date -d "@$t" '+%F'))"
++}
++
+ comprobar() {
+   paso comprobar
+   local c p mem swap min libre
+   for c in git node npm python3 ninja autoninja; do command -v $c > /dev/null || paro "falta $c en el PATH"; done
+   [ -x "$GN" ] || paro "falta $GN"
+   identidad
++  fecha_cambio
+   p=$SRC/chrome/build/$SO.pgo.txt
+   [ -s "$p" ] || paro "falta $p"
+   [ -s "$SRC/chrome/build/pgo_profiles/$(cat "$p")" ] || paro "falta el perfil PGO (checkout_pgo_profiles y runhooks)"
+@@ -127,6 +160,9 @@
+   local orden=(npm run build -- Release -C "$NOMBRE" --target_arch=x64)
+   for a in "${A[@]}"; do orden+=(--gn "$a"); done
+   orden+=("$@")
++  if [ "$BAJA" = 1 ]; then
++    if [ $SO = mac ]; then orden=(taskpolicy -b nice -n 19 "${orden[@]}"); else orden=(nice -n 19 "${orden[@]}"); fi
++  fi
+   if [ $SO = linux ] && [ -n "$(de memoria_tope)" ]; then
+     orden=(systemd-run --user --scope -q -p "MemoryHigh=$(de memoria_tope)" "${orden[@]}")
+   fi
+@@ -171,10 +207,11 @@
+   igual "V8 con parches" "$(arbol_v8)" "$(de v8_arbol)"
+   [ -f "$L/args.gni" ] || paro "antes va el paso gn"
+   rm -f "$L/compilado"
++  ultimo_cambio
+   local s; s=$(date +%s)
+   brave_build "$L/build.log" --ninja "j:$J" || { grep -E ' error: |^FAILED|undefined symbol|Killed|out of memory' "$L/build.log" | sort -u | head -30 >&2; paro "la compilación (registro: $L/build.log)"; }
+   echo "$(git -C "$SRC" rev-parse HEAD) $(git -C "$CORE" rev-parse HEAD) $(arbol_v8) $BUILD" > "$L/compilado"
+-  echo "  segundos: $(( $(date +%s) - s ))"
++  echo "  segundos: $(( $(date +%s) - s )) (-j $J$([ "$BAJA" = 1 ] && echo ', prioridad baja'))"
+ }
+ 
+ revisar() {

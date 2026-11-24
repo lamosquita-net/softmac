@@ -1,0 +1,14 @@
+== gn 17:49:18
+  chromium commit 0525844577163a01b9be462851e63fe59e53466f OK
+  chromium árbol 3f4cd99e00aa754385caeeffcf3080bb62d8f414 OK
+  brave-core commit 060015a80288d5cf0f6806a630e34c17906dedf3 OK
+  brave-core árbol fbdf05a0d34efed89e8f5cf17155687dd3ad5215 OK
+  is_official_build = true OK
+  is_component_build = false OK
+  dcheck_always_on = false OK
+  chrome_pgo_phase = 2 OK
+  use_thin_lto = true OK
+  enable_updater = false OK
+  flyweb_build_number = 50 OK
+  flyweb_version (brave/build/config.gni) = 3.2.2 OK
+  args iguales a los de referencia
