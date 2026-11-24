@@ -8,3 +8,4 @@ b171f064b80d2c7dd5b52167e6b166bb4f5632f38ec44c2c77bf5f9a310bd4c4  chromium/0005-
 fa15be0986b7e450a3b9dff2a2d8b97350b479e6c363b2b011c2413e8fa5aee0  chromium/0007-Cherry-pick-Blink-Preserve-parser-provenance-for-scr.patch
 0ea1fd881536d70de6c12b0f534bfb5f9f7e940b0d57848a23db3dce5f84621f  chromium/0008-M159-ServiceWorker-Protect-ServiceWorkerVersion-acro.patch
 69122c790692847f34d6fadfbef7c04861d416c8b818d5b44805c6223d955efd  dawn/0001-metal-Enable-full-polyfill-for-extractBits.patch
+73a00b704e1ed41c0876ba3e55a042ee97cb7fd7a4504fcc9e15bc3f8a40398b  brave-core/0002-v8-load-dynamic-JS-parameter-count-in-builtin-prolog.patch

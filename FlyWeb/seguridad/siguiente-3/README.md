@@ -11,14 +11,14 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001` | **`3861451d5b`** |
+| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0002` | **`07a6c5e899`** (solo `0001`: `3861451d5b`) |
 | chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0008` | **`d774af4e36`** (hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224` y `d774af4e36`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
-`brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; `git diff --diff-filter=D` vacío en los dos. El árbol `7b51fc45f9` se
+`brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`, y con `0002`, `07a6c5e899`; `git diff --diff-filter=D` vacío en los dos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
 `a52e854758`; el parche aplica igual en los dos.
@@ -197,6 +197,28 @@ sandbox de V8.**
   - la prueba `sandbox/regress/regress-585869521.js`;
   - **`kFlyWebCacheEpoch` 40 → 41**.
 
+## `brave-core/0002`: [M159] V8, el número dinámico de parámetros se lee al principio del builtin (crbug 581560002)
+
+Puerto del merge **`c20e1a6e22`** de V8 15.9.128.35 (24-11; cherry-pick de main `30ec9a07`; bugs 465487205 y 581560002).
+**Aún no está en la 15.6. Gravedad no publicada; es un fallo del sandbox de V8.**
+- **El fallo:** los builtins trampolín TFJ leían el número dinámico de parámetros de la entrada de la `JSDispatchTable` del
+  handle entrante tarde, después de la comprobación de pila o de una llamada que puede reservar memoria. Un GC en ese
+  momento podía liberar la entrada, que no está enraizada. El número se leía entonces de una entrada liberada o
+  reutilizada.
+- **El arreglo:** `EmitBuiltinProlog` lee y guarda el número al principio del todo. `SetSupportsDynamicParameterCount` y
+  `JSTrampolineAssembler::CompileLazy` usan ese valor; Torque lo pasa en lugar del tipo `DispatchHandle`; los sitios de
+  lectura llevan `DCHECK(IsAtStart())`. Trae la prueba `sandbox/regress/regress-581560002.js` (Wasm con 1000 parámetros
+  y un worker que cambia el handle).
+- **Aplica en Mac:** el código de la 156 es el mismo.
+  - Los 18 ficheros de código entran **sin cambios** sobre 15.6.75.66 y ningún otro `patches/v8` los toca.
+  - Comprobado en el árbol completo de 15.6.75.66 que todas las llamadas a las firmas que cambian están en ficheros que
+    el parche ya toca: `SetSupportsDynamicParameterCount` (`base.tq`, `js-to-wasm.tq` ×3, `wasm-interpreter-wrappers.tq`),
+    `CompileLazy` (`js-trampoline-assembler.*`) y `GetDispatchHandleType`/`DISPATCH_HANDLE_TYPE_STRING` (Torque).
+  - `mjsunit.status`: el `[SKIP]` nuevo va al bloque `not has_webassembly` de la 15.6, encima del hunk que ya llevamos.
+- **Época de caché:** la cubre la subida a 41 de `brave-core/0001`. Nota en `patches/v8/FLYWEB-SECURITY.md`.
+- **Riesgo de compilación:** es el cambio más grande de la tanda (Torque y builtins). Hay que compilarlo antes de darlo por
+  bueno.
+
 ## Pruebas para LOCAL y D8-LINUX
 
 Nada se ha compilado ni probado en la nube.
@@ -212,6 +234,8 @@ Nada se ha compilado ni probado en la nube.
 - `content_unittests --gtest_filter='*ServiceWorkerVersionTest.*VersionDestroyedDuring*'` (chromium/0008).
 - D8-LINUX: `d8` con las banderas de prueba del sandbox; mjsunit `sandbox/regress/regress-585869521` e `intl*/*`
   (brave-core/0001).
+- D8-LINUX: compilar `v8` (cambian Torque y los builtins) y pasar mjsunit `sandbox/regress/regress-581560002`, `wasm/*` y
+  `sandbox/*` con las banderas de prueba del sandbox (brave-core/0002).
 
 ## Solo Linux
 
