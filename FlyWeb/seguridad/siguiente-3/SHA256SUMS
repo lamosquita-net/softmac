@@ -15,3 +15,4 @@ a22f0b8a8f56d7d09db81f42979a21703f07db90247a6c74b1ada97896aab7a0  brave-core/000
 0b4f690bc76baeffaab26901a946679d330fd316722a999a6ddc9a84d86b7452  chromium/0010-M156-gc-Fix-gc-vulnerability-in-StyleTimeline.patch
 ada32ebd32b29d2d03f8e1e864fcfd8d9d6b6509b62c39d7366d010ba38ef78b  brave-core/0005-v8-fix-AccessorInfo-handling-and-state-reset-in-Look.patch
 2b6472ca90907095a93de2de5e8b82cabfce1e7ca8511c685323d09bc7ed6cb1  chromium/0011-Account-for-script-script-is-.-in-streaming-sanitize.patch
+43b142934faa0b56a876ec1cc68a712b7b1532e307a9e4c934314b47ce3c39b4  brave-core/0006-v8-keep-first-arrow-head-declaration-error-and-check.patch

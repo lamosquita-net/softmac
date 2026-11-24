@@ -11,7 +11,7 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0005` | **`84c41ddbec`** (hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
+| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0006` | **`4576659642`** (hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
 | chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0011` | **`8ccd92e18d`** (hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
@@ -20,7 +20,7 @@ Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a un
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
-`90d7c52725`; y con `0005`, `84c41ddbec`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
+`90d7c52725`; con `0005`, `84c41ddbec`; y con `0006`, `4576659642`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
 `a52e854758`; el parche aplica igual en los dos.
@@ -339,6 +339,29 @@ Puerto del merge **`78d94a8570`** de V8 15.9.128.38 (24-11 13:55 UTC; bugs 59005
   `NextInternal()` son `Start()` y `Next()`, y los dos llegan con `NOT_FOUND`, así que el `CHECK` nuevo no salta por
   diferencias de la 15.6. Ningún otro `patches/v8` toca esos ficheros. Época de caché: la cubre `0001`.
 
+## `brave-core/0006`: V8, la pieza que le faltaba a la serie del parser de la 3.0.1 (crbug 571126471)
+
+Main **`2ea1b126e2`** de V8 (#110518, 09-10; Toon Verwaest), tal cual. No está en la 15.6; la 15.9 lo lleva desde su punto
+de rama. **Gravedad no publicada.** Lo pidió COORDINACIÓN-62 (buzón `…1426-COORDINACION-62-es6-rojos`).
+- **El problema:** desde la 3.0.2, D8-LINUX ve en rojo dos pruebas que trajo nuestra propia serie del parser
+  (CVE-2026-121082, 21 commits de main portados en la 3.0.1): `es6/regress-arrow-cover-grammar-scope` y
+  `es6/regress-strict-param-error-order`. Se lanza el `SyntaxError`, pero con el mensaje de un error posterior.
+- **La causa:** a la serie le faltaba `2ea1b126e2`. En main entró siete minutos antes que `618b7515c6` (la de la primera
+  prueba), y su guarda en `ArrowHeadParsingScope::RecordDeclarationError` (conservar el **primer** error) es la que dan
+  por hecha `618b7515c6` y `7f9cb9e341` (la de la segunda). Sin ella, en `"use strict"; (1, ...eval) => {}` el error de
+  `eval` pisa al de `1`, y en `([a.b], 1) => {}` el de `1` pisa al de `a.b`. Las dos pruebas son idénticas a las de main
+  y a las de la 15.9: **no hay que tocarlas.**
+- **Cómo se encontró:** comparando nuestro `src/parsing` (15.6.75.66 + `patches/v8`) con el de la 15.9; luego, aplicando a la
+  inversa `618b7515c6`, `7f9cb9e341` y `87fabc80d7` (los tres están completos en nuestro árbol) y buscando por bisección en
+  main el commit que trae la guarda.
+- **Lo que trae, además de la guarda:** `CHECK_GT(end_position, start_position)` en
+  `GetDataForSkippableFunction` y `CHECK_GE(pos, current_pos)` en `Scanner::SeekForward`, los dos de release. Una
+  `PreparseData` corrupta dentro del sandbox ya no puede hacer retroceder el escáner: es un endurecimiento del sandbox.
+  Trae la prueba `sandbox/regress-571126471.js` (con `--sandbox-testing`).
+- **Aplica tal cual** sobre 15.6.75.66. `expression-scope.h` ya tenía parche: se rehízo acumulado (el hunk nuevo entra
+  27 líneas antes que en main). `preparse-data.cc` y `scanner.cc` no los toca ningún otro `patches/v8`. Época de caché:
+  la cubre `0001` (no cambia el bytecode).
+
 ## Pruebas para LOCAL y D8-LINUX
 
 Nada se ha compilado ni probado en la nube.
@@ -364,6 +387,9 @@ Nada se ha compilado ni probado en la nube.
   de `NextInternal()` es de release).
 - `blink_unittests --gtest_filter='*StyleTimeline*:*ScrollTimeline*:*ViewTimeline*'` y las WPT de
   `scroll-animations/` (chromium/0010).
+- D8-LINUX: mjsunit `es6/regress-arrow-cover-grammar-scope` y `es6/regress-strict-param-error-order` (deben pasar a
+  verde), `sandbox/regress-571126471` con las banderas del sandbox, `es6/*`, `regress/regress-567222737*` y `parser*`
+  (brave-core/0006).
 - `blink_unittests` entero en una compilación con DCHECK (D8-LINUX: deben volver las 2765 que tumbaba el DCHECK), y
   las WPT `domparsing/tentative/stream-html-*` y `sanitizer-api/sanitizer-custom-elements-is.tentative.html`
   (chromium/0011).
