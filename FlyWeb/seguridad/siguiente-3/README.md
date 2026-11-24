@@ -243,6 +243,17 @@ Puerto del merge **`c20e1a6e22`** de V8 15.9.128.35 (24-11; cherry-pick de main 
   - Una entrada liberada se lee como 0 parámetros, y la función Wasm de la prueba los ignora.
 - **Para demostrar el arreglo:** `--print-builtin-code` en una d8 con desensamblador. La lectura del número de parámetros
   debe quedar al principio del prólogo, antes de la comprobación de pila. Detalle en el buzón (`783621b1`).
+- **Comprobado en el código generado (D8-LINUX-6, 24-11, `mksnapshot --print-builtin-code`, informe
+  `…1125-D8-LINUX-6-0002-estructural`):**
+  - En `JSToWasmWrapper`, con el parche, la lectura del número de parámetros pasa de después de la comprobación de pila al
+    principio del prólogo.
+  - En `CompileLazy` y en los builtins de tiering (`FunctionLogNextExecution`) el código generado es **idéntico** con y
+    sin el parche, y es lo esperado: en la 15.6, igual que en la base de upstream antes del arreglo, ya leían el número
+    como primera instrucción, sin llamadas antes. Ahí upstream solo reorganiza (`LoadIncomingParameterCount()` con
+    `DCHECK(IsAtStart())`) para que no se pueda romper más adelante. No falta nada del porte.
+  - El arreglo de verdad está en los builtins con número de parámetros dinámico: `EmitBuiltinProlog`,
+    `SetSupportsDynamicParameterCount` (`JSToWasmWrapper` y demás de `js-to-wasm.tq`, y el envoltorio del intérprete de
+    Wasm) y `builtins-internal-gen.cc`.
 
 ## Pruebas para LOCAL y D8-LINUX
 
