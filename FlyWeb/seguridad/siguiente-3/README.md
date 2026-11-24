@@ -217,6 +217,9 @@ sandbox de V8.**
   - en `mjsunit.status`, la misma línea `[PASS, SLOW]` que upstream, puesta en la lista de la 15.6;
   - la prueba `sandbox/regress/regress-585869521.js`;
   - **`kFlyWebCacheEpoch` 40 → 41**.
+- **Probado (D8-LINUX-6, 24-11, d8 con ICU `5aa5262071` de la 15.6.75.66, árbol 3.2.2 + `0001`–`0002`;
+  buzón `…1109-D8-LINUX-6-d8-icu`):** `intl` 311/311; `sandbox/regress/regress-585869521` pasa; los 8 de `sandbox` que
+  fallaban solo por faltar Intl, 8/8. Ningún rojo.
 
 ## `brave-core/0002`: [M159] V8, el número dinámico de parámetros se lee al principio del builtin (crbug 581560002)
 
