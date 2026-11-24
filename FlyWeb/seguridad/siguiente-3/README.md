@@ -146,6 +146,9 @@ Puerto del merge **`942376f95b`** de 8154 (24-11 03:32 UTC; bug del merge 588740
 
 ## `dawn/0001`: [M159] Dawn Metal, polyfill completo de `extractBits` (crbug 587021111)
 
+**APARCADO** (COORDINACIÓN-62, 24-11, buzón `…0900-COORDINACION-62-dawn-aparcado`): solo afecta a GPU Apple. **No entra en
+la tanda** salvo que el boletín le dé Alto o haya otro motivo para tocar Dawn. LOCAL no lo compila.
+
 Roll de Dawn de la 8154 `c47f9d8c32` = un commit, **`e6ee1e5319`** «[M159] [metal] Enable full polyfill for extractBits»
 (merge 588740235). Lo localizó COORDINACIÓN-62 desde la 7,1. Es cherry-pick de main **`ce281c466b`** (19-11).
 **Gravedad no publicada.**
@@ -176,8 +179,8 @@ Roll de Dawn de la 8154 `c47f9d8c32` = un commit, **`e6ee1e5319`** «[M159] [met
   - Fijar `dawn_revision` como en la 3.1.3.
   - Prueba: `dawn_end2end_tests --gtest_filter='*ShaderTests.ExtractBitsInDeadBranchRobustness*'`. En las Mac Intel la
     prueba solo comprueba que no se rompe nada, porque allí el toggle no se enciende.
-- **Recomendación:** baja prioridad. Es barato e inofensivo, pero en el hardware objetivo no cambia nada. Si meterlo
-  cuesta un roll de Dawn en LOCAL, puede esperar a que haya otro motivo para tocar Dawn.
+- **Recomendación:** baja prioridad, aceptada por COORDINACIÓN-62 (aparcado, arriba). Es barato e inofensivo, pero en el
+  hardware objetivo no cambia nada.
 
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
