@@ -1107,3 +1107,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/NUBE-SEGURIDAD-PORTES/20261124-0808-COORDINACION-61-menus-y-1210.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-24 08:08 UTC · copia escrita del SendMessage
 - buzon/NUBE-SEGURIDAD-PORTES/20261124-0845-COORDINACION-62-dawn-extractbits.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-24 08:37 UTC · copia escrita del SendMessage
 - buzon/LOCAL/20261124-0848-COORDINACION-62-arranque-LOCAL-25.md → LOCAL-25 [b9dba3] · 2026-11-24 08:38 UTC · entregado por COORDINACIÓN-62 (SendMessage)
+- buzon/NUBE-SEGURIDAD-PORTES/20261124-0900-COORDINACION-62-dawn-aparcado.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-24 08:43 UTC · copia escrita del SendMessage
