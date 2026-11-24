@@ -1,0 +1,12 @@
+diff --git a/extensions/browser/BUILD.gn b/extensions/browser/BUILD.gn
+index 18b1d2c2bb..6327c87541 100644
+--- a/extensions/browser/BUILD.gn
++++ b/extensions/browser/BUILD.gn
+@@ -617,6 +617,7 @@ source_set("browser_sources") {
+ 
+   deps = [
+     ":cws_item_service_proto",
++    "//brave/app:brave_generated_resources_grit",
+     "//base",
+     "//base:i18n",
+     "//build:android_buildflags",

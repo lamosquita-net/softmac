@@ -1,0 +1,17 @@
+diff --git a/chromium_src/media/base/supported_types.cc b/chromium_src/media/base/supported_types.cc
+index 652af3291e..06c82c9a2c 100644
+--- a/chromium_src/media/base/supported_types.cc
++++ b/chromium_src/media/base/supported_types.cc
+@@ -12,6 +12,12 @@
+ 
+ namespace media {
+ 
++// The header above was read with the macros defined, so FlyWeb's exported
++// declarations named the *_ChromiumImpl() functions; without these the
++// definitions below are hidden in component builds (FlyWeb, piloto P1).
++MEDIA_EXPORT bool IsDecoderSupportedVideoType(const VideoType& type);
++MEDIA_EXPORT bool IsDefaultDecoderSupportedVideoType(const VideoType& type);
++
+ // Off: pages get H.264. --enable-features=FlyWebSoftwareVp9Av1 brings VP9 and
+ // AV1 back (software decoding).
+ BASE_FEATURE(kFlyWebSoftwareVp9Av1,

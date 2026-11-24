@@ -1,0 +1,3 @@
+b958eb94f306520bc3f1d23bc99b3e9e254225cc85070220c94feef2e6724f34  0001-feature_list-operator-antes-del-DCHECK.patch
+a62aa928a6dabf97c9adf708b8ba2d3ffa4897f41ee932348399eb698667d868  0002-supported_types-exporta-en-component-build.patch
+3d5aaa0ac2b3b314b594dbeaa54a17a3c6d46414839fc2f0c3a420cd5b22eb0f  0003-extensions-browser-depende-de-brave_generated_resources.patch

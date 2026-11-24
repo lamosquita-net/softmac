@@ -1,0 +1,36 @@
+diff --git a/chromium_src/base/feature_list.cc b/chromium_src/base/feature_list.cc
+index e3d0c30939..41ee2ffb92 100644
+--- a/chromium_src/base/feature_list.cc
++++ b/chromium_src/base/feature_list.cc
+@@ -17,6 +17,16 @@
+ #include "base/no_destructor.h"
+ 
+ namespace base {
++
++// Custom comparator to use std::reference_wrapper as a key in a map/set. Declared before
++// namespace internal: the DCHECK_IS_ON() flat_set below needs it (FlyWeb, piloto P1).
++static inline bool operator<(const std::reference_wrapper<const Feature>& lhs,
++                             const std::reference_wrapper<const Feature>& rhs) {
++  // Compare internal pointers directly, because there must only ever be one
++  // struct instance for a given feature name.
++  return &lhs.get() < &rhs.get();
++}
++
+ namespace internal {
+ namespace {
+ 
+@@ -81,14 +91,6 @@ FeatureDefaultStateOverrider::FeatureDefaultStateOverrider(
+ 
+ }  // namespace internal
+ 
+-// Custom comparator to use std::reference_wrapper as a key in a map/set.
+-static inline bool operator<(const std::reference_wrapper<const Feature>& lhs,
+-                             const std::reference_wrapper<const Feature>& rhs) {
+-  // Compare internal pointers directly, because there must only ever be one
+-  // struct instance for a given feature name.
+-  return &lhs.get() < &rhs.get();
+-}
+-
+ bool FeatureList::IsFeatureOverridden(std::string_view feature_name) const {
+   if (FeatureList::IsFeatureOverridden_ChromiumImpl(feature_name)) {
+     return true;
