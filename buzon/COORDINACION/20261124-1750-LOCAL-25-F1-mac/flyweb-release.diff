@@ -1,0 +1,132 @@
+--- flyweb-release-borrador.sh	2026-11-24 17:40:51
++++ flyweb-release.sh	2026-11-24 17:45:25
+@@ -8,7 +8,8 @@
+ #   gn         gn gen sin compilar, valores efectivos y diferencia con los args de referencia
+ #   compilar   Release con registro sin claves
+ #   revisar    salida, AVX, build-info y sumas
+-#   todo       los cinco, en ese orden, parando al primer fallo
++#   entregar   (Mac) copia la .app a entregas/FlyWeb-<versión>-release y los dSYM a entregas_dsym; no publica
++#   todo       los cinco primeros, en ese orden, parando al primer fallo (entregar va aparte)
+ #
+ # No baja fuentes, no hace checkout, no firma, no empaqueta, no sube y no publica. Vale en el bash 3.2 de macOS.
+ set -u -o pipefail
+@@ -81,12 +82,15 @@
+   fi
+   libre=$(df -Pk "$SRC" | awk 'NR==2{print int($4/1048576)}'); min=$(de disco_min_gb); min=${min:-60}
+   [ "$libre" -ge "$min" ] || paro "quedan ${libre} GiB de disco y hacen falta $min"
++  echo "  comprobar OK (disco libre ${libre} GiB)"
+ }
+ 
+ parches() {
+   paso parches; mkdir -p "$L"; identidad
+   (cd "$CORE" && npm run apply_patches) > "$L/parches.log" 2>&1 || { tail -20 "$L/parches.log" >&2; paro "apply_patches"; }
+   igual "V8 con parches" "$(arbol_v8)" "$(de v8_arbol)"
++  # Enums numerados de Blink (MOTOR-41; build.sh lo hace tras apply_patches): corta antes de horas de compilación.
++  python3 "$SM/FlyWeb/scripts/comprobar-enums.py" "$SRC" > "$L/enums.log" 2>&1 || { tail -20 "$L/enums.log" >&2; paro "comprobar-enums"; }
+ }
+ 
+ args_de_gn() {
+@@ -101,20 +105,17 @@
+     enable_updater:false brave_p3a_enabled:false enable_ai_chat:false enable_brave_vpn:false
+     enable_brave_vpn_panel:false enable_gemini_wallet:false
+   )
+-  for a in brave_stats_updater_url brave_variations_server_url webcompat_report_api_endpoint zebpay_production_api_url \
+-    zebpay_production_oauth_url rewards_grant_dev_endpoint rewards_grant_staging_endpoint rewards_grant_prod_endpoint \
+-    bitflyer_production_url gemini_production_api_url gemini_production_oauth_url uphold_production_api_url \
+-    uphold_production_oauth_url; do A+=("$a:$inerte"); done
+-  for a in zebpay_production_client_id zebpay_production_client_secret brave_zero_ex_api_key sardine_client_id \
+-    sardine_client_secret bitflyer_production_client_id bitflyer_production_client_secret bitflyer_production_fee_address \
+-    gemini_production_client_id gemini_production_client_secret gemini_production_fee_address \
+-    uphold_production_client_id uphold_production_client_secret; do A+=("$a:flyweb"); done
++  for a in brave_stats_updater_url brave_variations_server_url webcompat_report_api_endpoint rewards_grant_dev_endpoint \
++    rewards_grant_staging_endpoint rewards_grant_prod_endpoint; do A+=("$a:$inerte"); done
++  for a in brave_zero_ex_api_key sardine_client_id sardine_client_secret; do A+=("$a:flyweb"); done
++  # bitflyer, gemini, uphold y zebpay: en la 156 no tienen efecto y la 3.x no los pasa (args_generated los deja en "").
+   if [ $SO = mac ]; then
+-    pide mac_sdk; pide metal_bin
+     ed=$(tr -d ' \t\r\n' < "$SM/FlyWeb/servidor/actualizaciones/clave-publica.txt")
+     printf '%s' "$ed" | grep -Eq '^[A-Za-z0-9+/]{43}=$' || paro "clave pública de Sparkle no válida"
+-    A+=("mac_sdk_path:$(de mac_sdk)" 'mac_deployment_target:"10.14"' 'mac_min_system_version:"10.14"'
+-      "flyweb_metal_bin_path:$(de metal_bin)" enable_sparkle:true "sparkle_eddsa_public_key:$ed")
++    A+=('mac_deployment_target:"10.14"' 'mac_min_system_version:"10.14"' enable_sparkle:true "sparkle_eddsa_public_key:$ed")
++    # 3.x (156): SDK por defecto (mac_sdk_official_version 26.5) y sin flyweb_metal_bin_path. Solo si el manifiesto los pide.
++    [ -z "$(de mac_sdk)" ] || A+=("mac_sdk_path:$(de mac_sdk)")
++    [ -z "$(de metal_bin)" ] || A+=("flyweb_metal_bin_path:$(de metal_bin)")
+   else
+     A+=(enable_sparkle:false)
+   fi
+@@ -149,13 +150,15 @@
+   efectivo use_thin_lto true
+   efectivo enable_updater false
+   efectivo flyweb_build_number "$BUILD"
+-  efectivo flyweb_version "\"$VERSION\""
++  local fv; fv=$(sed -n 's/^flyweb_version = "\(.*\)"$/\1/p' "$CORE/build/config.gni")
++  [ "$fv" = "$VERSION" ] || paro "flyweb_version de brave-core es '$fv', se esperaba '$VERSION'"
++  echo "  flyweb_version (brave/build/config.gni) = $fv OK"
+   [ $SO = mac ] || efectivo is_cfi true
+-  grep -vE '_key |_secret |password|private' "$OUT/args_generated.gni" > "$L/args.gni"
++  grep -vE '_key *=|_secret *=|password|private' "$OUT/args_generated.gni" > "$L/args.gni"
+   local r d; r=$(de args_referencia)
+   if [ -n "$r" ]; then
+     [ -r "$r" ] || paro "no puedo leer args_referencia"
+-    d=$(diff <(grep -vE '_key |_secret |password|private|flyweb_source_commit|flyweb_build_number|chrome_version_string' "$r" | sort) \
++    d=$(diff <(grep -vE '_key *=|_secret *=|password|private|flyweb_source_commit|flyweb_build_number|chrome_version_string' "$r" | sort) \
+       <(grep -vE 'flyweb_source_commit|flyweb_build_number|chrome_version_string' "$L/args.gni" | sort)) \
+       || { echo "$d" >&2; paro "los args cambian frente a args_referencia"; }
+     echo "  args iguales a los de referencia"
+@@ -187,6 +190,19 @@
+     [ "$(plist LSMinimumSystemVersion)" = 10.14 ] || paro "LSMinimumSystemVersion"
+     bin=$OUT/FlyWeb.app/Contents/MacOS/FlyWeb
+     [ "$(lipo -archs "$bin")" = x86_64 ] || paro "arquitectura"
++    local fw="$OUT/FlyWeb.app/Contents/Frameworks/FlyWeb Framework.framework/Versions/Current/FlyWeb Framework" u1 u2 s
++    u1=$(dwarfdump --uuid "$fw" | awk 'NR==1{print $2}'); u2=$(dwarfdump --uuid "$OUT/FlyWeb Framework.dSYM" | awk 'NR==1{print $2}')
++    [ -n "$u1" ] && [ "$u1" = "$u2" ] || paro "el dSYM del framework no casa ($u1 / $u2)"
++    echo "  UUID del framework y del dSYM: $u1 OK"
++    s=$(de sdk_1015)  # .tbd del SDK 10.15: importes que no existen en Catalina (FlyWeb/parches/3.1.1-catalina)
++    if [ -n "$s" ]; then
++      python3 "$SM/FlyWeb/parches/3.1.1-catalina/comprobar-importes-1015.py" "$fw" "$s" > "$L/importes-1015.txt" || paro "comprobar-importes-1015"
++      ! grep -q FUERTE "$L/importes-1015.txt" || { grep FUERTE "$L/importes-1015.txt" >&2; paro "importes FUERTES que no existen en 10.15"; }
++      head -1 "$L/importes-1015.txt"
++    else
++      echo "  AVISO: sin sdk_1015 en el manifiesto, no se miran los importes de 10.15"
++    fi
++    strings "$fw" | grep -E '^156\.0\.[0-9]+\.[0-9]+$' | sort | uniq -c > "$L/strings-version.txt"
+   else
+     bin=$OUT/brave
+     for f in brave brave_sandbox chrome_crashpad_handler resources.pak brave_resources.pak icudtl.dat; do
+@@ -206,12 +222,27 @@
+   paso "FIN: sin firmar, sin empaquetar y sin publicar"
+ }
+ 
++entregar() {  # solo Mac: deja la .app y los dSYM donde los dejaba la 3.x; ni firma ni publica
++  paso entregar
++  [ $SO = mac ] || paro "entregar es solo de Mac"
++  [ -f "$L/SHA256SUMS" ] || paro "antes va el paso revisar"
++  local e d; e=$(de entregas)/FlyWeb-$VERSION-release; d=$(de entregas_dsym)/FlyWeb-$VERSION-dSYM
++  [ -n "$(de entregas)" ] && [ -n "$(de entregas_dsym)" ] || paro "faltan entregas o entregas_dsym en $M"
++  [ ! -e "$e" ] && [ ! -e "$d" ] || paro "ya existe $e o $d: no piso una entrega"
++  mkdir -p "$e" "$d"
++  ditto "$OUT/FlyWeb.app" "$e/FlyWeb.app" || paro "copia de la .app"
++  for f in "$OUT"/FlyWeb*.dSYM; do ditto "$f" "$d/$(basename "$f")" || paro "copia de $f"; done
++  cp "$OUT/flyweb-build-info.txt" "$L/SHA256SUMS" "$e/"
++  for f in importes-1015.txt strings-version.txt; do [ ! -f "$L/$f" ] || cp "$L/$f" "$e/"; done
++  echo "  .app en $e; dSYM en $d"
++}
++
+ if [ "$PASO" != comprobar ]; then
+   mkdir -p "$SRC/out"
+   CERROJO=$SRC/out/.flyweb-release.lock
+   mkdir "$CERROJO" 2> /dev/null || paro "cerrojo puesto: $CERROJO"
+   trap 'rmdir "$CERROJO"' EXIT
+-  ! pgrep -x ninja > /dev/null || paro "hay otro ninja en marcha"
++  ! pgrep -f 'ninja -C|autoninja|npm run build|build\.sh' > /dev/null || paro "hay otra compilación en marcha"
+ fi
+ case "$PASO" in
+   comprobar) comprobar;;
+@@ -220,5 +251,6 @@
+   compilar) compilar;;
+   revisar) revisar;;
+   todo) comprobar; parches; generar; compilar; revisar;;
++  entregar) entregar;;
+   *) paro "paso desconocido: $PASO";;
+ esac

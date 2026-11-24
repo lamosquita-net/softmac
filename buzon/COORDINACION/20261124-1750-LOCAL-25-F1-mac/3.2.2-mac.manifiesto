@@ -1,0 +1,15 @@
+# FlyWeb 3.2.2 en Mac (LOCAL-25, 24-11; árboles de la entrega de LOCAL-24, buzon/COORDINACION/20261124-0040).
+version=3.2.2
+build=50
+src=/Users/titin/proyectos/b2-porte-mac/src
+out=Release-322-f1
+softmac=/Users/titin/proyectos/softmac/temp/local25/wt
+chromium_commit=0525844577163a01b9be462851e63fe59e53466f
+chromium_arbol=3f4cd99e00aa754385caeeffcf3080bb62d8f414
+core_commit=060015a80288d5cf0f6806a630e34c17906dedf3
+core_arbol=fbdf05a0d34efed89e8f5cf17155687dd3ad5215
+v8_arbol=b9f6079a16b06c4c953e68eb00a63431af60ea7e
+trabajos=24
+disco_min_gb=60
+args_referencia=/Users/titin/proyectos/b2-porte-mac/src/out/Release-322/args_generated.gni
+clave_servicios_fichero=/Users/titin/proyectos/softmac/claves/flyweb-services-key

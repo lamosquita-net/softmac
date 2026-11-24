@@ -1,0 +1,20 @@
+...update branding done
+generate ninja files...
+Widevine cdm host verification is disabled
+/Users/titin/proyectos/b2-porte-mac/src/out/Release-322-f1/args_generated.gni has been updated
+/Users/titin/proyectos/b2-porte-mac/src/out/Release-322-f1/args.gn has been updated
+-------------------------------
+/Users/titin/proyectos/b2-porte-mac/src
+> gn gen /Users/titin/proyectos/b2-porte-mac/src/out/Release-322-f1
+ERROR at //build/config/mac/BUILD.gn:114:7: File is not inside output directory.
+      "$mac_sdk_path/usr/include/mach/exc.defs",
+      ^----------------------------------------
+The given file should be in the output directory. Normally you would specify
+"$target_out_dir/foo" or "$target_gen_dir/foo". I interpreted this as
+"/Users/titin/proyectos/sdk/MacOSX14.5.sdk/usr/include/mach/exc.defs".
+See //build/config/compiler/BUILD.gn:355:18: which caused the file to be included.
+    configs += [ "//build/config/mac:compiler" ]
+                 ^----------------------------
+null
+null
+PARO: gn gen
