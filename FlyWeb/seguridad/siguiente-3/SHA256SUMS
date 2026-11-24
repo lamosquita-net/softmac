@@ -14,3 +14,4 @@ a22f0b8a8f56d7d09db81f42979a21703f07db90247a6c74b1ada97896aab7a0  brave-core/000
 0fe75f7700d966374fab9a8a78db094ea07af60a5dc8665529c74ddeeaec22aa  brave-core/0004-v8-update-max_id-before-each-reducer-step-in-GraphRe.patch
 0b4f690bc76baeffaab26901a946679d330fd316722a999a6ddc9a84d86b7452  chromium/0010-M156-gc-Fix-gc-vulnerability-in-StyleTimeline.patch
 ada32ebd32b29d2d03f8e1e864fcfd8d9d6b6509b62c39d7366d010ba38ef78b  brave-core/0005-v8-fix-AccessorInfo-handling-and-state-reset-in-Look.patch
+2b6472ca90907095a93de2de5e8b82cabfce1e7ca8511c685323d09bc7ed6cb1  chromium/0011-Account-for-script-script-is-.-in-streaming-sanitize.patch

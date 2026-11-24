@@ -12,11 +12,11 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0005` | **`84c41ddbec`** (hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0010` | **`a0d5962f4b`** (hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0011` | **`8ccd92e18d`** (hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
-`a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4` y, con
-`0010`, `a0d5962f4b`. Sobre la base anterior, `7e6c74e256`,
+`a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
+`0010`, `a0d5962f4b` y, con `0011`, `8ccd92e18d`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -219,6 +219,30 @@ Merge **`367e66bc19`** de la **8078** (24-11 10:21 UTC; bug del merge 589981486)
 - La réplica de gitiles aún no tenía el commit; se sacó con `git fetch --filter=blob:none --depth=2` del propio
   chromium/src, tras `ls-remote`.
 
+## `chromium/0011`: Blink, el sanitizer en streaming con la pila vacía y `<script is>` (crbug 562404384); arregla un DCHECK de `3.1.4/parte6/chromium/0001`
+
+Main **`d799fefdb4`** (#1708032, 30-09; Noam Rosenthal), tal cual. Está en la 159 (la 8154 sale de main #1739869); a la
+8078 no se llevó. **Gravedad no publicada.** Lo pidió COORDINACIÓN-62 (buzón `…1415-COORDINACION-62-sanitizer-dcheck`).
+- **El problema que encontró D8-LINUX-6** (piloto de la Ubuntu con DCHECK): nuestro `3.1.4/parte6/chromium/0001`
+  (crrev 8559025, `is=` en el elemento raíz) llama a `ActiveSanitizer()` desde `InsertHTMLHtmlStartTagBeforeHTML` con la
+  pila de elementos vacía, y `TopStackItem()` hace `DCHECK(top_)`. Con `DeclarativeFragment` (experimental, encendido en
+  las pruebas) tumbaba 2765 `blink_unittests`.
+- **Por qué:** ese CL entró en main (#1717444) cuando main ya llevaba `d799fefdb4` (#1708032), que añade a
+  `ActiveSanitizer()` la guarda `|| IsEmpty()`. Lo portamos sin ese requisito previo. Comprobado por bisección en main
+  (`5abc82b75a~N`): la guarda aparece justo en `d799fefdb4`. En main ya no existe `ActiveSanitizer()` (lo cambió la
+  reforma de `DeclarativeFragment`); la 159 tiene la misma guarda que trae este parche.
+- **Lo que trae:**
+  - `html_construction_site.cc`: la guarda `IsEmpty()`. **En release no cambia nada:** con la pila vacía
+    `TopStackItem()` devuelve `nullptr` y el código ya devolvía el sanitizer por defecto.
+  - `sanitizer.cc`: `AllowIsAttribute()` devuelve `false` si el elemento no está permitido. Es un arreglo de seguridad
+    propio (562404384): `<script is="x">` ejecutaba el constructor del elemento personalizado aunque el sanitizer
+    prohibiera los scripts. **Este sí cambia el comportamiento en release:** `StreamingSanitizer` es `stable` en la 156.
+  - La WPT `domparsing/tentative/stream-html-custom-element-sanitizer.html`.
+- **Mejor que el arreglo local de D8-LINUX** (preguntar si la pila está vacía antes de llamar): es el código de upstream,
+  cubre a todos los llamadores de `ActiveSanitizer()` y trae el arreglo de `AllowIsAttribute` que va con él.
+- Entra tal cual: el fichero base es el blob `b97249b`, el mismo de upstream. `IsEmpty()` existe en la 156
+  (`html_construction_site.h`). Brave no toca estos ficheros.
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Gravedad no publicada; es una salida del sandbox de V8.**
@@ -340,6 +364,9 @@ Nada se ha compilado ni probado en la nube.
   de `NextInternal()` es de release).
 - `blink_unittests --gtest_filter='*StyleTimeline*:*ScrollTimeline*:*ViewTimeline*'` y las WPT de
   `scroll-animations/` (chromium/0010).
+- `blink_unittests` entero en una compilación con DCHECK (D8-LINUX: deben volver las 2765 que tumbaba el DCHECK), y
+  las WPT `domparsing/tentative/stream-html-*` y `sanitizer-api/sanitizer-custom-elements-is.tentative.html`
+  (chromium/0011).
 
 ## Solo Linux
 
