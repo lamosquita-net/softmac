@@ -216,8 +216,13 @@ Puerto del merge **`c20e1a6e22`** de V8 15.9.128.35 (24-11; cherry-pick de main 
     `CompileLazy` (`js-trampoline-assembler.*`) y `GetDispatchHandleType`/`DISPATCH_HANDLE_TYPE_STRING` (Torque).
   - `mjsunit.status`: el `[SKIP]` nuevo va al bloque `not has_webassembly` de la 15.6, encima del hunk que ya llevamos.
 - **Época de caché:** la cubre la subida a 41 de `brave-core/0001`. Nota en `patches/v8/FLYWEB-SECURITY.md`.
-- **Riesgo de compilación:** es el cambio más grande de la tanda (Torque y builtins). Hay que compilarlo antes de darlo por
-  bueno.
+- **Riesgo de compilación:** es el cambio más grande de la tanda (Torque y builtins).
+- **Compilado (D8-LINUX-6, 24-11):** entra limpio, `wasm/*` 518/518, ningún rojo de la serie. Pero `regress-581560002`
+  **pasa también sin el parche**, por dos motivos:
+  - Es una carrera.
+  - Una entrada liberada se lee como 0 parámetros, y la función Wasm de la prueba los ignora.
+- **Para demostrar el arreglo:** `--print-builtin-code` en una d8 con desensamblador. La lectura del número de parámetros
+  debe quedar al principio del prólogo, antes de la comprobación de pila. Detalle en el buzón (`783621b1`).
 
 ## Pruebas para LOCAL y D8-LINUX
 
