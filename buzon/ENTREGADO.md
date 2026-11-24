@@ -1130,3 +1130,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/LOCAL/20261124-1636-COORDINACION-62-F1-cerrar.md → LOCAL-25 · 2026-11-24 16:36 UTC · entregado por COORDINACIÓN-62 (SendMessage)
 - buzon/LOCAL/20261124-1647-COORDINACION-62-F1-tres-mas.md → LOCAL-25 · 2026-11-24 16:47 UTC · entregado por COORDINACIÓN-62 (SendMessage)
 - buzon/NUBE-SEGURIDAD-PORTES/20261124-1649-COORDINACION-62-revisar-aviso-sin-llavero.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-24 16:49 UTC · copia escrita del SendMessage
+- buzon/D8-LINUX/20261124-1651-COORDINACION-63-F1-guion-v2.md → D8-LINUX-6 · 2026-11-24 16:51 UTC · entregado por COORDINACIÓN-63 (SendMessage)
