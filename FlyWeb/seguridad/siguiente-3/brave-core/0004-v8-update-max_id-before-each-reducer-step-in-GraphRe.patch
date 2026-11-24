@@ -1,0 +1,246 @@
+From defbe21e4bc501cfdf47c80e42260453cabdb8fe Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Tue, 24 Nov 2026 12:00:35 +0000
+Subject: [PATCH 4/4] v8: update max_id before each reducer step in
+ GraphReducer (7be38d96f9, crbug 585624821)
+
+M156 merge 7be38d96f9 from branch-heads/15.6 (V8 15.6.75.81; bugs
+589981130, 585624821), applied as is to 15.6.75.66 as patches/v8.
+The code cache epoch is already 41 for this batch.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kdhDkMC93UBtLuPkF
+---
+ patches/v8/FLYWEB-SECURITY.md                 | 17 +++++
+ .../v8/src-compiler-graph-reducer.cc.patch    | 53 +++++++++++++
+ patches/v8/src-compiler-graph-reducer.h.patch | 16 ++++
+ ...mpiler-regress-585624821-fast-api.js.patch | 27 +++++++
+ ...jsunit-compiler-regress-585624821.js.patch | 74 +++++++++++++++++++
+ 5 files changed, 187 insertions(+)
+ create mode 100644 patches/v8/src-compiler-graph-reducer.cc.patch
+ create mode 100644 patches/v8/src-compiler-graph-reducer.h.patch
+ create mode 100644 patches/v8/test-mjsunit-compiler-regress-585624821-fast-api.js.patch
+ create mode 100644 patches/v8/test-mjsunit-compiler-regress-585624821.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index f710d0e8..56d8afec 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,20 @@
++# FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 7be38d96f9 (crbug 585624821), the M156 merge of V8 15.6.75.81
++
++SEGURIDAD-PORTES-33, 24-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0004`). M156 merge 7be38d96f9 (bugs
++589981130 and 585624821, main 9bbff6a346) on branch-heads/15.6, applied as is to 15.6.75.66. Severity not published.
++
++- `GraphReducer::Reduce` kept the `max_id` taken before the first reducer ran. If one reducer allocated new nodes (for
++  example the `ToBoolean` wrapper of an in-place `ReduceJSInstanceOf`) and a later reducer in the same step returned
++  `Replace(new_node)`, those new users stayed on the old node while its effect and control edges moved to the
++  replacement, leaving a broken graph in optimized code. `max_id` is now recorded before each reducer step, and
++  replacements made by an earlier reducer in the same step are reduced recursively.
++- `graph-reducer.cc` and `graph-reducer.h` are not touched by any other `patches/v8` file. Tests
++  `compiler/regress-585624821.js` and `compiler/regress-585624821-fast-api.js`.
++
++**Cache epoch:** covered by the single 40 -> 41 bump of `siguiente-3` (`brave-core/0001`).
++
++To check (D8-LINUX): mjsunit `compiler/regress-585624821*` and `compiler/*`.
++
+ # FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 7b49ecf357 (crbug 585625640), the M156 merge of V8 15.6.75.81
+ 
+ SEGURIDAD-PORTES-33, 24-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0003`). M156 merge 7b49ecf357 (bugs
+diff --git a/patches/v8/src-compiler-graph-reducer.cc.patch b/patches/v8/src-compiler-graph-reducer.cc.patch
+new file mode 100644
+index 00000000..182d6c5d
+--- /dev/null
++++ b/patches/v8/src-compiler-graph-reducer.cc.patch
+@@ -0,0 +1,53 @@
++diff --git a/src/compiler/graph-reducer.cc b/src/compiler/graph-reducer.cc
++index 0abbd11e5cb8b30bc46d36b92565a34c7842b1f6..7d834aa78a5902ff2fcc917d0e23a9231516bae5 100644
++--- a/src/compiler/graph-reducer.cc
+++++ b/src/compiler/graph-reducer.cc
++@@ -96,12 +96,12 @@ void GraphReducer::ReduceNode(Node* node) {
++ 
++ void GraphReducer::ReduceGraph() { ReduceNode(graph()->end()); }
++ 
++-
++-Reduction GraphReducer::Reduce(Node* const node) {
+++Reduction GraphReducer::Reduce(Node* const node, NodeId* max_id) {
++   auto skip = reducers_.end();
++   for (auto i = reducers_.begin(); i != reducers_.end();) {
++     if (i != skip) {
++       tick_counter_->TickAndMaybeEnterSafepoint();
+++      *max_id = static_cast<NodeId>(graph()->NodeCount() - 1);
++       Reduction reduction = (*i)->Reduce(node, observe_node_manager_);
++       if (!reduction.Changed()) {
++         // No change from this reducer.
++@@ -144,7 +144,6 @@ Reduction GraphReducer::Reduce(Node* const node) {
++   return Reducer::Changed(node);
++ }
++ 
++-
++ void GraphReducer::ReduceTop() {
++   NodeState& entry = stack_.top();
++   Node* node = entry.node;
++@@ -172,10 +171,11 @@ void GraphReducer::ReduceTop() {
++   }
++ 
++   // Remember the max node id before reduction.
++-  NodeId const max_id = static_cast<NodeId>(graph()->NodeCount() - 1);
+++  NodeId const initial_max_id = static_cast<NodeId>(graph()->NodeCount() - 1);
+++  NodeId max_id = initial_max_id;
++ 
++   // All inputs should be visited or on stack. Apply reductions to node.
++-  Reduction reduction = Reduce(node);
+++  Reduction reduction = Reduce(node, &max_id);
++ 
++   // If there was no reduction, pop {node} and continue.
++   if (!reduction.Changed()) return Pop();
++@@ -205,6 +205,11 @@ void GraphReducer::ReduceTop() {
++   // Check if we have a new replacement.
++   if (replacement != node) {
++     Replace(node, replacement, max_id);
+++    if (replacement->id() > initial_max_id && replacement->id() <= max_id) {
+++      // {replacement} was created by an earlier reducer in this Reduce() step,
+++      // so it has not been reduced yet.
+++      Recurse(replacement);
+++    }
++   }
++ }
++ 
+diff --git a/patches/v8/src-compiler-graph-reducer.h.patch b/patches/v8/src-compiler-graph-reducer.h.patch
+new file mode 100644
+index 00000000..32f8761a
+--- /dev/null
++++ b/patches/v8/src-compiler-graph-reducer.h.patch
+@@ -0,0 +1,16 @@
++diff --git a/src/compiler/graph-reducer.h b/src/compiler/graph-reducer.h
++index 8afbafe54670f5ed8c0008aff919b64f97af6469..17eb995632f454ff2e267b82d6b732aee0f561e6 100644
++--- a/src/compiler/graph-reducer.h
+++++ b/src/compiler/graph-reducer.h
++@@ -174,8 +174,9 @@ class V8_EXPORT_PRIVATE GraphReducer
++     int input_index;
++   };
++ 
++-  // Reduce a single node.
++-  Reduction Reduce(Node* const);
+++  // Reduce a single node. Sets {*max_id} to the max node id before the last
+++  // reducer step so that only nodes created by a replacing reducer exceed it.
+++  Reduction Reduce(Node* const, NodeId* max_id);
++   // Reduce the node on top of the stack.
++   void ReduceTop();
++ 
+diff --git a/patches/v8/test-mjsunit-compiler-regress-585624821-fast-api.js.patch b/patches/v8/test-mjsunit-compiler-regress-585624821-fast-api.js.patch
+new file mode 100644
+index 00000000..43fbbffc
+--- /dev/null
++++ b/patches/v8/test-mjsunit-compiler-regress-585624821-fast-api.js.patch
+@@ -0,0 +1,27 @@
++diff --git a/test/mjsunit/compiler/regress-585624821-fast-api.js b/test/mjsunit/compiler/regress-585624821-fast-api.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..7e89c77b2047b48a57bff536ea23af647064aa15
++--- /dev/null
+++++ b/test/mjsunit/compiler/regress-585624821-fast-api.js
++@@ -0,0 +1,21 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax --expose-fast-api --turbo-fast-api-calls
+++
+++const fast_c_api = new d8.test.FastCAPI();
+++fast_c_api[Symbol.hasInstance] = fast_c_api.is_fast_c_api_object;
+++
+++function check_instanceof(x) {
+++  return x instanceof fast_c_api;
+++}
+++
+++%PrepareFunctionForOptimization(check_instanceof);
+++assertTrue(check_instanceof(fast_c_api));
+++assertFalse(check_instanceof({}));
+++
+++fast_c_api.reset_counts();
+++%OptimizeFunctionOnNextCall(check_instanceof);
+++assertTrue(check_instanceof(fast_c_api));
+++assertEquals(1, fast_c_api.fast_call_count() + fast_c_api.slow_call_count());
+diff --git a/patches/v8/test-mjsunit-compiler-regress-585624821.js.patch b/patches/v8/test-mjsunit-compiler-regress-585624821.js.patch
+new file mode 100644
+index 00000000..97c96887
+--- /dev/null
++++ b/patches/v8/test-mjsunit-compiler-regress-585624821.js.patch
+@@ -0,0 +1,74 @@
++diff --git a/test/mjsunit/compiler/regress-585624821.js b/test/mjsunit/compiler/regress-585624821.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..07a45ef3b65ab1240d9000b25ebc83b68d0a2a25
++--- /dev/null
+++++ b/test/mjsunit/compiler/regress-585624821.js
++@@ -0,0 +1,68 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax
+++
+++const matcher = {
+++  [Symbol.hasInstance]: Reflect.construct.bind(null, Uint8Array),
+++};
+++
+++function matches(input) {
+++  return arguments instanceof matcher;
+++}
+++
+++(function TestInstanceOfBoundReflectConstructTypedArray() {
+++  let calls = 0;
+++  function test() {
+++    const input = {
+++      get length() {
+++        calls++;
+++        return 1;
+++      },
+++    };
+++    return matches(input);
+++  }
+++
+++  %PrepareFunctionForOptimization(matches);
+++  %PrepareFunctionForOptimization(test);
+++  assertTrue(test());
+++  assertEquals(1, calls);
+++
+++  %OptimizeFunctionOnNextCall(test);
+++  calls = 0;
+++  assertTrue(test());
+++  assertEquals(1, calls);
+++})();
+++
+++(function TestInstanceOfBoundReflectConstructTypedArrayThrows() {
+++  let calls = 0;
+++  function test(should_throw) {
+++    const input = {
+++      get length() {
+++        calls++;
+++        if (should_throw) throw new Error('boom');
+++        return 1;
+++      },
+++    };
+++    try {
+++      return matches(input);
+++    } catch (e) {
+++      return false;
+++    }
+++  }
+++
+++  %PrepareFunctionForOptimization(matches);
+++  %PrepareFunctionForOptimization(test);
+++  assertTrue(test(false));
+++  assertEquals(1, calls);
+++  assertFalse(test(true));
+++  assertEquals(2, calls);
+++
+++  %OptimizeFunctionOnNextCall(test);
+++  calls = 0;
+++  assertTrue(test(false));
+++  assertEquals(1, calls);
+++  assertFalse(test(true));
+++  assertEquals(2, calls);
+++})();
+-- 
+2.43.0
+

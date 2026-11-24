@@ -11,14 +11,15 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0002` | **`07a6c5e899`** (solo `0001`: `3861451d5b`) |
+| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0004` | **`98638a5a81`** (hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
 | chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0009` | **`8db178bac4`** (hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36` y, con `0009`, `8db178bac4`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
-`brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`, y con `0002`, `07a6c5e899`; `git diff --diff-filter=D` vacío en los dos. El árbol `7b51fc45f9` se
+`brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; y con `0004`,
+`98638a5a81`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
 `a52e854758`; el parche aplica igual en los dos.
@@ -255,6 +256,28 @@ Puerto del merge **`c20e1a6e22`** de V8 15.9.128.35 (24-11; cherry-pick de main 
     `SetSupportsDynamicParameterCount` (`JSToWasmWrapper` y demás de `js-to-wasm.tq`, y el envoltorio del intérprete de
     Wasm) y `builtins-internal-gen.cc`.
 
+## `brave-core/0003`: [M156] V8, `ReducePhi` no convierte en `Select` un Phi de `TypeGuard` (crbug 585625640)
+
+Merge **`7b49ecf357`** de la 15.6 (V8 15.6.75.81, 24-11; bugs 587681267 y 585625640). **Gravedad no publicada.**
+- **El fallo:** `CommonOperatorReducer::ReducePhi` convertía un Phi del tipo `0 < v ? v : 0 - v` en un `Word32Select`.
+  Si una entrada era un `TypeGuard`, que no tiene salida de control, el planificador lo subía por encima del Merge: un tipo
+  válido en una sola rama se aplicaba a las dos. Es una confusión de tipos en código optimizado.
+- **El arreglo:** no se reduce si las entradas son `TypeGuard` (función nueva en `node-properties.h`). Trae la prueba
+  `regress/wasm/regress-585625640.js`.
+- **Aplica tal cual** sobre 15.6.75.66; ningún otro `patches/v8` toca esos ficheros. Época de caché: la cubre `0001`.
+
+## `brave-core/0004`: [M156] V8, `GraphReducer` actualiza `max_id` antes de cada reductor (crbug 585624821)
+
+Merge **`7be38d96f9`** de la 15.6 (V8 15.6.75.81, 24-11; bugs 589981130 y 585624821; main `9bbff6a346`). **Gravedad no
+publicada.**
+- **El fallo:** `GraphReducer::Reduce` guardaba el `max_id` de antes del primer reductor. Si uno creaba nodos nuevos (por
+  ejemplo el `ToBoolean` de `ReduceJSInstanceOf`) y otro posterior, en el mismo paso, devolvía `Replace(nodo)`, esos
+  usuarios nuevos se quedaban en el nodo viejo mientras sus aristas de efecto y control pasaban al nuevo: grafo roto en
+  código optimizado.
+- **El arreglo:** `max_id` se toma antes de cada reductor y los reemplazos hechos por uno anterior se reducen de forma
+  recursiva. Trae `compiler/regress-585624821.js` y `compiler/regress-585624821-fast-api.js`.
+- **Aplica tal cual** sobre 15.6.75.66; ningún otro `patches/v8` toca `graph-reducer.*`. Época de caché: la cubre `0001`.
+
 ## Pruebas para LOCAL y D8-LINUX
 
 Nada se ha compilado ni probado en la nube.
@@ -274,6 +297,8 @@ Nada se ha compilado ni probado en la nube.
   (brave-core/0001).
 - D8-LINUX: compilar `v8` (cambian Torque y los builtins) y pasar mjsunit `sandbox/regress/regress-581560002`, `wasm/*` y
   `sandbox/*` con las banderas de prueba del sandbox (brave-core/0002).
+- D8-LINUX: mjsunit `regress/wasm/regress-585625640`, `compiler/regress-585624821*` y `compiler/*` (brave-core/0003
+  y 0004).
 
 ## Solo Linux
 
@@ -311,3 +336,6 @@ configuración de Linux compila el código.
 - **8078 `2c523c18de`** (24-11 07:56 UTC): la M156 de «Notify UrlListManager observers on destruction» (583313828). Ya
   está en la 3.2.2 como `siguiente-2/chromium/0002`, merge M159. Comprobado fichero a fichero: los nueve ficheros quedan
   iguales que en la 8078, también las dos pruebas con `NEW_FOREGROUND_TAB` (la corrección del 24-11). Nada que portar.
+- **V8 15.6 `34e1c83643`** (M156, 15.6.75.81; 585625644): **ya está en la 3.2.2.** Es byte a byte el porte de su gemelo M159
+  `a92c222bca` que lleva `siguiente-2` (`machine-optimization-reducer.h` y la prueba `wasm/turboshaft/regress-585625644.js`;
+  comparado con `cmp` sobre 15.6.75.66). Nada que portar.
