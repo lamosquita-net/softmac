@@ -4,3 +4,4 @@
 4346b2c761c62cb262d8c44b886afdbe2d4eabff4ab74d1de6635642ecced22d  chromium/0004-M156-optimization_guide-Defer-SetInput-callbacks-to-.patch
 b171f064b80d2c7dd5b52167e6b166bb4f5632f38ec44c2c77bf5f9a310bd4c4  chromium/0005-M159-PageInfo-Guard-site-data-dialog-WebContents.patch
 55378474fb6689885491cf09b581a0018fc09bebb1f6c43abb89e6fdf4ad49f7  brave-core/0001-v8-Intl.Locale-tag-through-ToStdString-1faf157db2-cr.patch
+3e5248d0d7bf5770241d79fe221a1c00e2042bf23cf51b5344f22709b917b127  chromium/0006-M156-views-FOR_DROP-menu-teardown-UAF-as-merged-to-8.patch

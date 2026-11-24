@@ -12,9 +12,10 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001` | **`3861451d5b`** |
-| chromium | árbol **`7e6c74e256`** (resultado de `siguiente-2/chromium/0001`–`0005`) | `chromium/0001`–`0005` | **`13d5ed72d4`** (solo `0001`: `f43b3399c7`) |
+| chromium | árbol **`7e6c74e256`** (resultado de `siguiente-2/chromium/0001`–`0005`) | `chromium/0001`–`0006` | **`5c5893384f`** (hasta `0005`: `13d5ed72d4`; solo `0001`: `f43b3399c7`) |
 
-Comprobado: `git am` de `chromium/0001`–`0005` sobre `7e6c74e256` da `13d5ed72d4` (solo `0001`: `f43b3399c7`), y de
+Comprobado: `git am` de `chromium/0001`–`0005` sobre `7e6c74e256` da `13d5ed72d4` (solo `0001`: `f43b3399c7`), `0006` encima
+da `5c5893384f`, y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; `git diff --diff-filter=D` vacío en los dos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
@@ -83,6 +84,31 @@ Puerto del merge **`e9dfc63967`** de 8154, tal cual. **Gravedad no publicada.**
 - El `chromium_src` de Brave sobre `page_specific_site_data_dialog.cc` es solo un `#define` de un nombre; el parche entra
   igual.
 
+## `chromium/0006`: [M156] menús FOR_DROP como en la 8078 (crbug 565066840), y fuera lo que la M156 revirtió
+
+Merge **`66ed8d17e9`** de la **8078** (23-11 23:47 UTC; bugs 588203706 y 565066840). **Gravedad no publicada.** Cambia lo
+que llevan la 3.2.1 y la 3.2.2.
+- **Lo que llevamos desde la 3.2.1** (`siguiente/chromium/0009` y `0010`): los merges de la M159 `041491e936` (crrev
+  8613791, «Defer MenuRunnerImpl destruction when released in OnMenuClosed», 574516887 y 576121898) y `afa45b8e16` (el
+  arreglo de FOR_DROP, 565066840).
+- **Lo que hizo la M156:** metió 8613791 (`55cbf1ac7c`, 8078@{#1399}) y lo **revirtió** el 22-10 (`b0cd918806`,
+  8078@{#1449}) por **b/576555601**, un bug interno sin detalle público. Ahora mete el arreglo de FOR_DROP con un «M156
+  delta»: `controller_` se conserva en `MenuRunnerImpl::OnMenuClosed` **solo en los menús FOR_DROP**, para no afectar al
+  resto (el commit cita AppMenu).
+- **El parche** deja `ui/views/controls/menu` como la 8078 en `66ed8d17e9`. Comprobado contra los ficheros de la 8078:
+  - `menu_runner_impl.cc` y `.h`, `menu_controller.h` y `menu_runner_unittest.cc` quedan iguales.
+  - `menu_controller.cc` no cambia: el nuestro ya tiene ese arreglo. Además lleva guardas `ScopedDeletionGuard` y
+    `ViewTracker` que la 8078 no tiene.
+  - Cambio neto: `OnMenuClosed` vuelve a poner `controller_ = nullptr` en los menús que no son FOR_DROP; la prueba pasa a
+    ser la de la M156; se corrige un comentario.
+- **Lo que se gana y lo que se pierde:**
+  - Se evita la regresión por la que la M156 revirtió el cambio. No sabemos qué es ni si se da en Mac.
+  - A cambio, los menús que no son FOR_DROP vuelven a estar como en la M156 frente al UAF de 574516887. Es lo que Chrome
+    ha elegido para su rama de la 156.
+
+**Para LOCAL:** `views_unittests --gtest_filter='MenuRunner*:MenuController*'`. A mano, en la 7,1 y en la 5,1: menú de la
+app, menús contextuales, menús de marcadores, y arrastrar un marcador a la barra y a una carpeta abierta (FOR_DROP).
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Aún no está en la 15.6. Gravedad no publicada; es una salida del
@@ -106,6 +132,7 @@ Nada se ha compilado ni probado en la nube.
 - `unit_tests --gtest_filter='ExtensionActionRunner*:PageSpecificSiteDataDialog*'` y
   `browser_tests --gtest_filter='ScriptInjectionTracker*'` (chromium/0002 y 0005).
 - `components_unittests --gtest_filter='SessionImpl*'` (chromium/0004).
+- `views_unittests --gtest_filter='MenuRunner*:MenuController*'` y las pruebas a mano de menús (chromium/0006).
 - D8-LINUX: `d8` con las banderas de prueba del sandbox; mjsunit `sandbox/regress/regress-585869521` e `intl*/*`
   (brave-core/0001).
 

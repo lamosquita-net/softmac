@@ -1,0 +1,186 @@
+From f91adc7e11536570b650b2ec04c91f6eda88a787 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Tue, 24 Nov 2026 00:17:06 +0000
+Subject: [PATCH] [M156] views: FOR_DROP menu teardown UAF as merged to 8078
+ (66ed8d17e9)
+
+Bring ui/views/controls/menu to the M156 branch state of 66ed8d17e9
+(crbug 565066840, merge 588203706). FlyWeb carried the M159 merges
+041491e936 (crrev 8613791) and afa45b8e16 since 3.2.1; M156 reverted
+8613791 (b0cd918806, b/576555601) and its own merge of the FOR_DROP fix
+keeps `controller_` across MenuRunnerImpl::OnMenuClosed only for
+FOR_DROP menus. Net change against our tree: OnMenuClosed clears
+`controller_` again for non-FOR_DROP menus (e.g. AppMenu), and
+menu_runner_unittest.cc takes the M156 tests. menu_controller.cc is
+unchanged: our version already holds the same fix.
+---
+ ui/views/controls/menu/menu_runner_impl.cc    |   5 +-
+ .../controls/menu/menu_runner_unittest.cc     | 117 ++++++++----------
+ 2 files changed, 54 insertions(+), 68 deletions(-)
+
+diff --git a/ui/views/controls/menu/menu_runner_impl.cc b/ui/views/controls/menu/menu_runner_impl.cc
+index 60e9c432c16022410f2a86a127b16c25df37e8aa..57691e3ab71ec34ae97a17864d43abf480c9f244 100644
+--- a/ui/views/controls/menu/menu_runner_impl.cc
++++ b/ui/views/controls/menu/menu_runner_impl.cc
+@@ -112,7 +112,7 @@ void MenuRunnerImpl::Release() {
+ 
+   bool is_stack_active = controller_ && controller_->IsStackActive();
+   if (is_stack_active) {
+-    // Invlidate the menu runner's weakptrs now because the menu runner is
++    // Invalidate the menu runner's weakptrs now because the menu runner is
+     // considered deleted at this point.
+     weak_factory_.InvalidateWeakPtrs();
+     // Transfer ownership to controller.
+@@ -266,6 +266,9 @@ void MenuRunnerImpl::OnMenuClosed(NotifyType type,
+     return;
+   }
+   running_ = false;
++  if (!for_drop_) {
++    controller_ = nullptr;
++  }
+   if (menu_->GetDelegate()) {
+     // Executing the command may also delete this.
+     base::WeakPtr<MenuRunnerImpl> ref(weak_factory_.GetWeakPtr());
+diff --git a/ui/views/controls/menu/menu_runner_unittest.cc b/ui/views/controls/menu/menu_runner_unittest.cc
+index 5c5dff36e8a6e2cc09d5c6d5da5b215805b3f616..529fea6bfd18702d8bdc2fec6c585a8a24930d2f 100644
+--- a/ui/views/controls/menu/menu_runner_unittest.cc
++++ b/ui/views/controls/menu/menu_runner_unittest.cc
+@@ -1464,29 +1464,6 @@ class ReleaseOnHostHidden : public WidgetObserver {
+   bool fired_ = false;
+ };
+ 
+-class ReleaseOnMenuClosedDelegate : public TestMenuDelegate {
+- public:
+-  ReleaseOnMenuClosedDelegate() = default;
+-  ReleaseOnMenuClosedDelegate(const ReleaseOnMenuClosedDelegate&) = delete;
+-  ReleaseOnMenuClosedDelegate& operator=(const ReleaseOnMenuClosedDelegate&) =
+-      delete;
+-  ~ReleaseOnMenuClosedDelegate() override = default;
+-
+-  void set_menu_runner(std::unique_ptr<MenuRunner> runner) {
+-    runner_ = std::move(runner);
+-  }
+-
+-  MenuRunner* menu_runner() { return runner_.get(); }
+-
+-  void OnMenuClosed(MenuItemView* menu) override {
+-    TestMenuDelegate::OnMenuClosed(menu);
+-    runner_.reset();
+-  }
+-
+- private:
+-  std::unique_ptr<MenuRunner> runner_;
+-};
+-
+ }  // namespace
+ 
+ // SubmenuView::Hide() calls host_->HideMenuHost() which invokes Widget::Hide(),
+@@ -1527,50 +1504,6 @@ TEST_F(MenuRunnerImplTest, SubmenuHideUseAfterFreeViaWidgetHide) {
+   EXPECT_TRUE(observer.fired());
+ }
+ 
+-// Verifies that when a MenuDelegate resets its MenuRunner inside OnMenuClosed
+-// while MenuController::SetSelection / MenuItemView::SetSelected is active on
+-// the stack, MenuRunnerImpl destruction (and thus MenuItemView destruction) is
+-// deferred until the active MenuController stack unwinds.
+-TEST_F(MenuRunnerTest,
+-       ReleaseInOnMenuClosedDuringSetSelectedDefersDestruction) {
+-  ReleaseOnMenuClosedDelegate delegate;
+-  auto root = std::make_unique<TestMenuItemView>(&delegate);
+-  MenuItemView* item1 = root->AppendMenuItem(TestCommandIds::kItem1, u"One");
+-  root->AppendMenuItem(TestCommandIds::kItem2, u"Two");
+-  ViewTracker item_tracker(item1);
+-
+-  delegate.set_menu_runner(std::make_unique<MenuRunner>(std::move(root), 0));
+-  delegate.menu_runner()->RunMenuAt(
+-      /*parent=*/owner(), /*button_controller=*/nullptr, /*bounds=*/{},
+-      /*anchor=*/MenuAnchorPosition::kTopLeft,
+-      /*source_type=*/ui::mojom::MenuSourceType::kNone);
+-
+-  bool selection_event_fired = false;
+-  item1->GetViewAccessibility().set_accessibility_events_callback(
+-      base::BindLambdaForTesting([&](const ui::AXPlatformNodeDelegate*,
+-                                     const ax::mojom::Event event_type) {
+-        if (event_type != ax::mojom::Event::kSelection ||
+-            selection_event_fired) {
+-          return;
+-        }
+-        selection_event_fired = true;
+-        MenuController::GetActiveInstance()->Cancel(
+-            MenuController::ExitType::kAll);
+-        // MenuItemView::SetSelected is still on the call stack, so `item1`
+-        // must remain alive until MenuController::SetSelection unwinds.
+-        EXPECT_NE(nullptr, item_tracker.view());
+-      }));
+-
+-  ui::test::EventGenerator generator(GetContext(), owner()->GetNativeWindow());
+-  generator.PressKey(ui::VKEY_DOWN, 0);
+-
+-  EXPECT_TRUE(selection_event_fired);
+-  EXPECT_EQ(1, delegate.on_menu_closed_called());
+-  EXPECT_EQ(nullptr, delegate.menu_runner());
+-  EXPECT_EQ(nullptr, item_tracker.view());
+-  EXPECT_EQ(nullptr, MenuController::GetActiveInstance());
+-}
+-
+ namespace {
+ 
+ // Mirrors BookmarkMenuController's ownership model for FOR_DROP menus: owns the
+@@ -1685,4 +1618,54 @@ TEST_F(MenuRunnerTest,
+   EXPECT_TRUE(delegate.is_drop_performed());
+ }
+ 
++namespace {
++
++class SelfDeletingNonForDropDelegate : public TestMenuDelegate {
++ public:
++  void set_menu_runner(std::unique_ptr<MenuRunner> runner) {
++    runner_ = std::move(runner);
++  }
++  MenuRunner* menu_runner() { return runner_.get(); }
++  void set_item_tracker(ViewTracker* tracker) { item_tracker_ = tracker; }
++
++  void OnMenuClosed(MenuItemView* menu) override {
++    TestMenuDelegate::OnMenuClosed(menu);
++    EXPECT_NE(nullptr, item_tracker_->view());
++    runner_.reset();
++    EXPECT_EQ(nullptr, item_tracker_->view());
++  }
++
++ private:
++  std::unique_ptr<MenuRunner> runner_;
++  raw_ptr<ViewTracker> item_tracker_ = nullptr;
++};
++
++}  // namespace
++
++// Regression guard for crbug.com/576555601 on M156: non-FOR_DROP menus (such as
++// AppMenu) must still destroy their MenuRunnerImpl and view tree synchronously
++// when released during OnMenuClosed, rather than deferring destruction until
++// MenuController unwinds.
++TEST_F(MenuRunnerTest, NonForDropReleaseInOnMenuClosedDestroysSynchronously) {
++  ViewTracker item_tracker;
++  SelfDeletingNonForDropDelegate delegate;
++  delegate.set_item_tracker(&item_tracker);
++  auto root = std::make_unique<TestMenuItemView>(&delegate);
++  MenuItemView* item1 = root->AppendMenuItem(TestCommandIds::kItem1, u"One");
++  item_tracker.SetView(item1);
++
++  delegate.set_menu_runner(
++      std::make_unique<MenuRunner>(std::move(root), /*run_types=*/0));
++  delegate.menu_runner()->RunMenuAt(owner(), /*button_controller=*/nullptr,
++                                    gfx::Rect(), MenuAnchorPosition::kTopLeft,
++                                    ui::mojom::MenuSourceType::kNone);
++
++  MenuController::GetActiveInstance()->Cancel(MenuController::ExitType::kAll);
++
++  EXPECT_EQ(1, delegate.on_menu_closed_called());
++  EXPECT_EQ(nullptr, delegate.menu_runner());
++  EXPECT_EQ(nullptr, item_tracker.view());
++  EXPECT_EQ(nullptr, MenuController::GetActiveInstance());
++}
++
+ }  // namespace views::test
+-- 
+2.43.0
+
