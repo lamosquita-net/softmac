@@ -1,0 +1,64 @@
+From 5fa63f10dde62ec1c8dc216675adda1bf3e97c57 Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 23:02:36 +0000
+Subject: [PATCH] Shared pinned tabs: harden the posted OnTabUnpinned()
+
+SEGURIDAD-PORTES-33's optional fixes after reviewing 0001-0002 (bugs
+that predate them and that Brave has too):
+- OnSharedPinnedTabDisabled() clears pending_unpin_models_, like
+  Shutdown(): the models are no longer observed, so a destroyed one
+  would leave a dangling entry.
+- OnTabUnpinned() returns when its model is no longer pending (it was
+  destroyed, or the feature was turned off and pinned_tab_data_
+  cleared), instead of using a freed model or dereferencing an end()
+  iterator, and when the contents are gone.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ browser/ui/tabs/shared_pinned_tab_service.cc | 20 ++++++++++++++++----
+ 1 file changed, 16 insertions(+), 4 deletions(-)
+
+diff --git a/browser/ui/tabs/shared_pinned_tab_service.cc b/browser/ui/tabs/shared_pinned_tab_service.cc
+index 81bd712564fcbad67280c96bde6aef8ac4dd1e39..559a3419d24679ac0a865584e5b76a3d08bc2362 100644
+--- a/browser/ui/tabs/shared_pinned_tab_service.cc
++++ b/browser/ui/tabs/shared_pinned_tab_service.cc
+@@ -698,12 +698,21 @@ void SharedPinnedTabService::OnTabUnpinned(
+     TabStripModel* tab_strip_model,
+     base::WeakPtr<content::WebContents> contents,
+     int index) {
+-  if (auto pending = std::ranges::find(pending_unpin_models_, tab_strip_model);
+-      pending != pending_unpin_models_.end()) {
+-    pending_unpin_models_.erase(pending);
++  // FlyWeb (SEGURIDAD-PORTES-33): the model is only known to be alive while it
++  // is pending; it leaves the list when it is destroyed
++  // (OnTabStripModelDestroyed()) or when the feature is turned off
++  // (OnSharedPinnedTabDisabled(), which also clears |pinned_tab_data_|). In
++  // both cases there is nothing left to do, and going on would use a freed
++  // model or dereference an end() iterator.
++  auto pending = std::ranges::find(pending_unpin_models_, tab_strip_model);
++  if (pending == pending_unpin_models_.end()) {
++    return;
+   }
++  pending_unpin_models_.erase(pending);
+ 
+-  DCHECK(contents);
++  if (!contents) {
++    return;
++  }
+ 
+   LOCK_REENTRANCE(tab_strip_model);
+ 
+@@ -1048,6 +1057,9 @@ void SharedPinnedTabService::OnSharedPinnedTabDisabled() {
+   last_active_browser_ = nullptr;
+   closing_browsers_.clear();
+   restored_browsers_.clear();
++  // FlyWeb: the models are no longer observed, so a pending OnTabUnpinned()
++  // must find nothing to do (and no dangling entry stays here).
++  pending_unpin_models_.clear();
+   pinned_tab_data_.clear();
+ }
+ 
+-- 
+2.43.0
+

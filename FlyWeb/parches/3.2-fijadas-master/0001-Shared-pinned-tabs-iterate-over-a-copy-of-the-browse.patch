@@ -1,0 +1,89 @@
+From 449c1fa7934490e405bac3ebad0d66ce0066fcaa Mon Sep 17 00:00:00 2001
+From: "MOTOR-47 (Claude)" <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 22:45:25 +0000
+Subject: [PATCH 1/2] Shared pinned tabs: iterate over a copy of the browsers
+ when closing dummies
+
+From Brave master (after 1.98). SynchronizeDeletedPinnedTab() closes
+the dummy of a removed shared pinned tab in every other window. When
+that dummy is a window's last tab, closing it closes the window, and
+BrowserClosing() erases it from |browsers_| while the loop iterates over
+that flat_set: undefined behavior, a possible crash. Iterate over a
+copy and skip browsers already gone. Browser test
+ClosingSharedTabClosesWindowWithOnlyItsDummy.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ browser/ui/tabs/shared_pinned_tab_service.cc  | 11 ++++++-
+ .../shared_pinned_tab_service_browsertest.cc  | 32 +++++++++++++++++++
+ 2 files changed, 42 insertions(+), 1 deletion(-)
+
+diff --git a/browser/ui/tabs/shared_pinned_tab_service.cc b/browser/ui/tabs/shared_pinned_tab_service.cc
+index 544aa5c8f22193e3226e9836d0d7f0885cbd2ce3..bd44cf1710084402ee6c1befd7518cc6dc332c6d 100644
+--- a/browser/ui/tabs/shared_pinned_tab_service.cc
++++ b/browser/ui/tabs/shared_pinned_tab_service.cc
+@@ -752,7 +752,16 @@ void SharedPinnedTabService::SynchronizeDeletedPinnedTab(int index) {
+   DVLOG(2) << __FUNCTION__;
+   DCHECK(change_source_model_);
+ 
+-  for (auto* browser : browsers_) {
++  // FlyWeb (from Brave master): closing a browser's last tab closes the
++  // browser, which erases it from |browsers_| via BrowserClosing() while this
++  // loop runs, so iterate over a copy and skip browsers already gone.
++  const std::vector<BrowserWindowInterface*> browsers(browsers_.begin(),
++                                                      browsers_.end());
++  for (auto* browser : browsers) {
++    if (!browsers_.contains(browser)) {
++      continue;
++    }
++
+     auto* model = browser->GetTabStripModel();
+     if (model == change_source_model_) {
+       continue;
+diff --git a/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc b/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc
+index 130647c2759f480ae9a5469c81d4853db9b8c766..e0c84182acfe3b7402e0af464e070b0cf3e92c80 100644
+--- a/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc
++++ b/browser/ui/tabs/test/shared_pinned_tab_service_browsertest.cc
+@@ -330,6 +330,38 @@ IN_PROC_BROWSER_TEST_F(SharedPinnedTabServiceBrowserTest,
+   EXPECT_EQ(u"FlyWeb shared title", dummy_tab->data().title);
+ }
+ 
++// FlyWeb (from Brave master): closing a shared pinned tab closes its dummy in
++// every other window; when the dummy is that window's last tab, the window
++// closes and leaves the set of browsers while it is being iterated.
++IN_PROC_BROWSER_TEST_F(SharedPinnedTabServiceBrowserTest,
++                       ClosingSharedTabClosesWindowWithOnlyItsDummy) {
++  auto* browser_1 = browser();
++  auto* tab_strip_model_1 = browser_1->tab_strip_model();
++  chrome::AddTabAt(browser_1, GURL(), /*index=*/-1, /*foreground=*/true);
++  tab_strip_model_1->SetTabPinned(0, /* pinned= */ true);
++
++  auto* browser_2 = CreateNewBrowser();
++  auto* tab_strip_model_2 = browser_2->GetTabStripModel();
++  WaitUntil(base::BindLambdaForTesting(
++      [&]() { return tab_strip_model_2->count() > 1; }));
++  ASSERT_TRUE(tab_strip_model_2->IsTabPinned(0));
++
++  // Leave only the dummy pinned tab in the second window.
++  while (tab_strip_model_2->count() > 1) {
++    tab_strip_model_2->CloseWebContentsAt(tab_strip_model_2->count() - 1,
++                                          /* close_type= */ 0);
++  }
++  ASSERT_EQ(1, tab_strip_model_2->count());
++  base::WeakPtr<BrowserWindowInterface> weak_browser_2 =
++      browser_2->GetWeakPtr();
++
++  // Closing the shared pinned tab closes the second window, without a crash.
++  tab_strip_model_1->CloseWebContentsAt(0, /* close_type= */ 0);
++  WaitUntil(base::BindLambdaForTesting([&]() { return !weak_browser_2; }));
++  EXPECT_FALSE(weak_browser_2);
++  EXPECT_FALSE(tab_strip_model_1->IsTabPinned(0));
++}
++
+ IN_PROC_BROWSER_TEST_F(SharedPinnedTabServiceBrowserTest,
+                        CloseWindowWhenAllTabsAreSharedPinnedTabs) {
+   // Given that there're multiple windows with shared pinned tabs
+-- 
+2.43.0
+
