@@ -1115,3 +1115,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/D8-LINUX/20261124-0952-COORDINACION-62-d8-sandbox-siguiente-3.md → D8-LINUX-6 «ubuntu (6)» · 2026-11-24 09:52 UTC · entregado por COORDINACIÓN-62 (SendMessage)
 - buzon/D8-LINUX/20261124-1051-COORDINACION-62-d8-con-icu.md → D8-LINUX-6 «ubuntu (6)» · 2026-11-24 10:51 UTC · entregado por COORDINACIÓN-62 (SendMessage)
 - buzon/NUBE-SEGURIDAD-PORTES/20261124-1051-COORDINACION-62-d8-siguiente-3.md → SEGURIDAD-PORTES-33 (nube) · 2026-11-24 10:51 UTC · copia escrita del SendMessage
+- buzon/D8-LINUX/20261124-1053-COORDINACION-62-piloto-P1.md → D8-LINUX-6 «ubuntu (6)» · 2026-11-24 10:53 UTC · entregado por COORDINACIÓN-62 (SendMessage)
