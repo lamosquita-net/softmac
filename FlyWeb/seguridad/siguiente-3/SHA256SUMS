@@ -17,3 +17,4 @@ ada32ebd32b29d2d03f8e1e864fcfd8d9d6b6509b62c39d7366d010ba38ef78b  brave-core/000
 2b6472ca90907095a93de2de5e8b82cabfce1e7ca8511c685323d09bc7ed6cb1  chromium/0011-Account-for-script-script-is-.-in-streaming-sanitize.patch
 43b142934faa0b56a876ec1cc68a712b7b1532e307a9e4c934314b47ce3c39b4  brave-core/0006-v8-keep-first-arrow-head-declaration-error-and-check.patch
 735cbf4287a684d83b0226f0f29f53b422be3a115142163c8f6e0914b52b3670  chromium/0012-M156-Add-safe-path-downcast-for-BrowserAccessibility.patch
+9c1284be6d31a0f8e99a5698eda2c02a0c4f85b83b6415fb19a96061183aaf99  chromium/0013-M159-Flush-after-failed-write-pixels.patch

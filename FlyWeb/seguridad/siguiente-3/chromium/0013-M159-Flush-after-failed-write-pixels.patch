@@ -1,0 +1,150 @@
+From f7e71305b505c8b49329dc4669fc5236ed367cc5 Mon Sep 17 00:00:00 2001
+From: kylechar <kylechar@chromium.org>
+Date: Tue, 24 Nov 2026 15:45:36 +0000
+Subject: [PATCH] [M159] Flush after failed write pixels
+
+Original change's description:
+> Flush after failed write pixels
+>
+> If RasterImplementation WritePixels() encounters a failure in
+> SkCanvas::writePixels() ensure it still flushes and submits all pending
+> work. The discard clear operation, if write pixels is overwriting the
+> whole texture, is already recorded on the SkSurface which can cause a
+> future write access to the same shared image to fail to clear it.
+>
+> There is similar logic CopyPixelsToTexture() which already
+> unconditionally flushed+submitted but didn't check if writePixels()
+> failed. Fix this as well.
+>
+> Lastly change surface->wait() calls in both places to just ignore the
+> return value. The wait() call can fail if GrContext is abandoned but in
+> that case it just doesn't matter. The writePixel() operation that
+> happens afterwards will fail for the same reason.
+>
+> Bug: 574220546
+> Change-Id: I3a71a38ffc8d173f11f9660f6398c00e49ece8ff
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8824713
+> Reviewed-by: Saifuddin Hitawala <hitawala@chromium.org>
+> Commit-Queue: Kyle Charbonneau <kylechar@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1748463}
+
+(cherry picked from commit 0fb2fd26f2e384a35a322b5925e26652d970cc31)
+
+Bug: 589981450,574220546
+Change-Id: I3a71a38ffc8d173f11f9660f6398c00e49ece8ff
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8844188
+Commit-Queue: Kyle Charbonneau <kylechar@chromium.org>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1598}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ .../service/copy_shared_image_helper.cc       | 27 +++++++++-------
+ gpu/command_buffer/service/raster_decoder.cc  | 31 ++++++++-----------
+ 2 files changed, 29 insertions(+), 29 deletions(-)
+
+diff --git a/gpu/command_buffer/service/copy_shared_image_helper.cc b/gpu/command_buffer/service/copy_shared_image_helper.cc
+index d515564a20..0321637181 100644
+--- a/gpu/command_buffer/service/copy_shared_image_helper.cc
++++ b/gpu/command_buffer/service/copy_shared_image_helper.cc
+@@ -185,20 +185,26 @@ bool CopyPixelsToTexture(
+   }
+ 
+   if (!begin_semaphores.empty()) {
+-    bool result = dest_scoped_access->surface()->wait(
+-        begin_semaphores.size(), begin_semaphores.data(),
+-        /*deleteSemaphoresAfterWait=*/false);
+-    DCHECK(result);
++    // Wait will only fail if the context is abandoned, in which case it
++    // doesn't matter that it failed.
++    dest_scoped_access->surface()->wait(begin_semaphores.size(),
++                                        begin_semaphores.data(),
++                                        /*deleteSemaphoresAfterWait=*/false);
+   }
+ 
+-  dest_scoped_access->surface()->writePixels(subset, xoffset, yoffset);
++  bool success = dest_scoped_access->surface()->getCanvas()->writePixels(
++      subset.info(), subset.addr(), subset.rowBytes(), xoffset, yoffset);
+ 
+-  bool success = shared_context_state->FlushWriteAccess(dest_scoped_access);
++  // Always flush and submit, even on write failure, to avoid leaving open work
++  // on the SkSurface.
++  success &= shared_context_state->FlushWriteAccess(dest_scoped_access);
+   success &= shared_context_state->SubmitIfNecessary(
+       std::move(end_semaphores),
+       dest_scoped_access->NeedGraphiteContextSubmit());
+ 
+-  if (success && !dest_shared_image->IsCleared()) {
++  if (!success) {
++    upload_error = GL_INVALID_OPERATION;
++  } else if (!dest_shared_image->IsCleared()) {
+     upload_error = DrainGLErrors(gl_api);
+     if (upload_error == GL_NO_ERROR) {
+       dest_shared_image->SetClearedRect(dest_cleared_rect);
+@@ -755,10 +761,9 @@ base::expected<void, GLError> CopySharedImageHelper::ReadPixels(
+   } else {
+     auto* graphite_shared_context =
+         shared_context_state_->graphite_shared_context();
+-    success =
+-        GraphiteImageReadPixels(graphite_shared_context, std::move(sk_image),
+-                                src_x, src_y, dst_info, pixel_address,
+-                                row_bytes);
++    success = GraphiteImageReadPixels(graphite_shared_context,
++                                      std::move(sk_image), src_x, src_y,
++                                      dst_info, pixel_address, row_bytes);
+   }
+   if (!success) {
+     return base::unexpected(GLError(GL_INVALID_OPERATION, "ReadPixels",
+diff --git a/gpu/command_buffer/service/raster_decoder.cc b/gpu/command_buffer/service/raster_decoder.cc
+index b3c2a6d5a9..e301637679 100644
+--- a/gpu/command_buffer/service/raster_decoder.cc
++++ b/gpu/command_buffer/service/raster_decoder.cc
+@@ -2042,32 +2042,27 @@ void RasterDecoderImpl::DoWritePixelsINTERNAL(GLint x_offset,
+   DCHECK(surface);
+ 
+   if (!begin_semaphores.empty()) {
+-    bool result =
+-        surface->wait(begin_semaphores.size(), begin_semaphores.data(),
+-                      /*deleteSemaphoresAfterWait=*/false);
+-    if (!result) {
+-      LOCAL_SET_GL_ERROR(GL_INVALID_OPERATION, "glWritePixels",
+-                         "Unable to obtain write access to dest shared image.");
+-      return;
+-    }
++    // Wait will only fail if the context is abandoned, in which case it
++    // doesn't matter that it failed.
++    surface->wait(begin_semaphores.size(), begin_semaphores.data(),
++                  /*deleteSemaphoresAfterWait=*/false);
+   }
+ 
+   auto* canvas = surface->getCanvas();
+-  bool written =
++  bool success =
+       canvas->writePixels(src_info, pixel_data, row_bytes, x_offset, y_offset);
+-  if (!written) {
+-    LOCAL_SET_GL_ERROR(GL_INVALID_OPERATION, "glWritePixels",
+-                       "Failed to write pixels to SkCanvas");
+-    return;
+-  }
+ 
+-  bool success =
+-      shared_context_state_->FlushWriteAccess(dest_scoped_access.get());
++  // Always flush and submit, even on write failure, to avoid leaving open work
++  // on the SkSurface.
++  success &= shared_context_state_->FlushWriteAccess(dest_scoped_access.get());
+   success &= shared_context_state_->SubmitIfNecessary(
+       std::move(end_semaphores),
+       dest_scoped_access->NeedGraphiteContextSubmit());
+-
+-  if (success && !dest_shared_image->IsCleared()) {
++  if (!success) {
++    LOCAL_SET_GL_ERROR(GL_INVALID_OPERATION, "glWritePixels",
++                       "Failed to write pixels to SkCanvas");
++    return;
++  } else if (!dest_shared_image->IsCleared()) {
+     if (gl_api) {
+       GLenum error = DrainGLErrors(gl_api);
+       if (error != GL_NO_ERROR) {
+-- 
+2.43.0
+

@@ -12,11 +12,11 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0006` | **`4576659642`** (hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0012` | **`cd61904b3b`** (hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0013` | **`92487cbf3b`** (hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d` y, con `0012`, `cd61904b3b`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b` y, con `0013`, `92487cbf3b`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -267,6 +267,22 @@ Su gemelo M159 es 8154 `06ad4714eb`. **Gravedad no publicada.**
   la 156 la única subclase de `AXPlatformTreeManager` en `ui/` y `content/` es `BrowserAccessibilityManager` (y sus
   derivadas por plataforma, que heredan el `this`).
 
+## `chromium/0013`: [M159] GPU, `WritePixels` vacía y envía el trabajo aunque falle la escritura (crbug 574220546)
+
+**`7b00562b3c`** de la **8154** (24-11 15:45 UTC; bug del merge 589981450; cherry-pick de main `0fb2fd26f2`, #1748463).
+Aún no tiene merge a la 8078. **Gravedad no publicada.**
+- **El fallo:** si `SkCanvas::writePixels()` fallaba en `RasterDecoderImpl::DoWritePixelsINTERNAL` (y en
+  `CopySharedImageHelper`), se salía sin vaciar ni enviar el trabajo pendiente del `SkSurface`. El «descartar y limpiar»
+  ya grabado podía impedir luego limpiar esa imagen compartida, y otro uso de la textura podía leer memoria de GPU sin
+  inicializar. Es el proceso de la GPU, que en Mac también existe.
+- **El arreglo:** siempre se vacía y se envía; el error se da después. Se ignora el resultado de `surface->wait()` (solo
+  falla con el contexto abandonado).
+- **Adaptación a la 156, solo de contexto:** el hunk de `raster_decoder.cc` de upstream quita dos llamadas
+  `dest_scoped_access->ApplyBackendSurfaceEndState()` que la 156 no tiene. Las añadió main `d4d9150d1d` (#1722243,
+  «grvk: Transition mutable texture state», Graphite con Vulkan en Android; no es un arreglo de seguridad). Comprobado:
+  `DoWritePixelsINTERNAL` queda, desde `getCanvas()` hasta el final, **idéntica** a la de la 8154. `copy_shared_image_helper.cc`
+  entra tal cual. Brave no toca estos ficheros.
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Gravedad no publicada; es una salida del sandbox de V8.**
@@ -419,6 +435,8 @@ Nada se ha compilado ni probado en la nube.
   (brave-core/0006).
 - `content_unittests --gtest_filter='BrowserAccessibilityManager*'` y `accessibility_unittests`, y en la 6,1 una pasada
   con VoiceOver por una página y la interfaz (chromium/0012).
+- `gpu_unittests --gtest_filter='*RasterDecoder*:*WritePixels*:*CopySharedImage*'` y una pasada de WebGL y canvas
+  (`webgl_conformance` si se puede) en la 6,1 (chromium/0013).
 - `blink_unittests` entero en una compilación con DCHECK (D8-LINUX: deben volver las 2765 que tumbaba el DCHECK), y
   las WPT `domparsing/tentative/stream-html-*` y `sanitizer-api/sanitizer-custom-elements-is.tentative.html`
   (chromium/0011).
@@ -469,3 +487,5 @@ configuración de Linux compila el código.
 - **8078 `0d1dc152be`** (24-11): roll de Dawn en M156, `c7cec856c9` → `64d303d0bd`. Un solo commit, `64d303d0bd`, el
   gemelo M156 de `extractBits` (`dawn/0001`, aparcado). Lo miró COORDINACIÓN-62 desde la 7,1 (aquí dawn.googlesource.com
   está bloqueado y el espejo de GitHub no tiene los commits de la rama). Sigue aparcado.
+- **8154 `c0e8ff34d8`** (24-11): roll de ANGLE en M159 con dos arreglos de **D3D11** (`fcd0b72056`, b/578681060;
+  `8165b581a6`, b/557480846). Solo Windows: no aplica a Mac ni a nuestro Linux.
