@@ -12,11 +12,11 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0006` | **`4576659642`** (hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0013` | **`92487cbf3b`** (hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0014` | **`5d44536b7f`** (hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b` y, con `0013`, `92487cbf3b`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b` y, con `0014`, `5d44536b7f`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -283,6 +283,17 @@ Aún no tiene merge a la 8078. **Gravedad no publicada.**
   `DoWritePixelsINTERNAL` queda, desde `getCanvas()` hasta el final, **idéntica** a la de la 8154. `copy_shared_image_helper.cc`
   entra tal cual. Brave no toca estos ficheros.
 
+## `chromium/0014`: [M159] el diálogo de autenticación HTTP solo sale si la navegación se confirmó (crbug 589215592)
+
+**`ebd8eff681`** de la **8154** (24-11 18:02 UTC; bug del merge 589981986; cherry-pick de main `35216953ff`, #1752360),
+tal cual. Aún sin merge a la 8078. **Gravedad no publicada.**
+- **El fallo:** `LoginTabHelper::DidFinishNavigation()` mostraba el diálogo de usuario y contraseña (HTTP auth) también
+  cuando la navegación terminaba **sin confirmarse**. Entonces sigue en pantalla el documento anterior, que puede ser de
+  otro origen: el diálogo de un sitio aparecía sobre la página de otro (engaño de interfaz).
+- **El arreglo:** si `!navigation_handle->HasCommitted()`, no se muestra. Trae una prueba en
+  `login_handler_unittest.cc`.
+- **Aplica en Mac.** Entra tal cual; Brave no toca `chrome/browser/ui/login`.
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Gravedad no publicada; es una salida del sandbox de V8.**
@@ -437,6 +448,8 @@ Nada se ha compilado ni probado en la nube.
   con VoiceOver por una página y la interfaz (chromium/0012).
 - `gpu_unittests --gtest_filter='*RasterDecoder*:*WritePixels*:*CopySharedImage*'` y una pasada de WebGL y canvas
   (`webgl_conformance` si se puede) en la 6,1 (chromium/0013).
+- `unit_tests --gtest_filter='LoginHandler*:LoginTabHelper*'` y `browser_tests --gtest_filter='*LoginPrompt*'`
+  (chromium/0014).
 - `blink_unittests` entero en una compilación con DCHECK (D8-LINUX: deben volver las 2765 que tumbaba el DCHECK), y
   las WPT `domparsing/tentative/stream-html-*` y `sanitizer-api/sanitizer-custom-elements-is.tentative.html`
   (chromium/0011).
@@ -489,3 +502,4 @@ configuración de Linux compila el código.
   está bloqueado y el espejo de GitHub no tiene los commits de la rama). Sigue aparcado.
 - **8154 `c0e8ff34d8`** (24-11): roll de ANGLE en M159 con dos arreglos de **D3D11** (`fcd0b72056`, b/578681060;
   `8165b581a6`, b/557480846). Solo Windows: no aplica a Mac ni a nuestro Linux.
+- **8154 `a5358bd964`** (24-11): «Defer HWNDMessageHandler deletion in WindowEventTarget methods». Solo Windows.
