@@ -139,7 +139,8 @@ Puerto del merge **`942376f95b`** de 8154 (24-11 03:32 UTC; bug del merge 588740
   - Las ayudas de la prueba (`ActivateWithControllee`, `DelayedFakeEmbeddedWorkerInstanceClient`, `ResetWorkerHost`,
     `OnRequestTermination(uint64_t)`) existen en la 156.
   - El `chromium_src` de Brave en `content/browser/service_worker` solo toca `service_worker_content_settings_proxy_impl`.
-- Aún no está en la 8078. Si llega, se compara con este puerto.
+- **Confirmado con la M156:** la 8078 recibió el mismo arreglo, **`eb6557f019`** (24-11 04:23 UTC; bug del merge
+  588740238). Con este parche, `service_worker_version.cc` y su prueba quedan iguales byte a byte que en la 8078.
 
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
