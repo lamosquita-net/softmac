@@ -1,0 +1,220 @@
+From 201961bbeb4e8ffe0d962a00ac751b9293c4c027 Mon Sep 17 00:00:00 2001
+From: James Price <jrprice@google.com>
+Date: Thu, 19 Nov 2026 12:23:54 -0800
+Subject: [PATCH] [metal] Enable full polyfill for extractBits
+
+This avoids a driver bug that incorrectly treats offset=32, count=0 as
+undefined behavior.
+
+Fixed: 587021111
+Change-Id: Ie5d07afc00278eb91235bea0c86223cbf357521f
+Reviewed-on: https://dawn-review.googlesource.com/c/dawn/+/360955
+Commit-Queue: James Price <jrprice@google.com>
+Commit-Queue: David Neto <dneto@google.com>
+Reviewed-by: David Neto <dneto@google.com>
+
+(cherry picked from commit ce281c466b2257a504122cbb7e202d5e1a8b780f)
+
+FlyWeb (siguiente-3): ported to the Dawn of M156 (branch point
+0a2c7df818 of chromium/8078) from main, as M159 did in e6ee1e5319
+(bugs 588740235, 587021111). Context-only adaptation: the new toggle
+goes at the end of the M156 lists in Toggles.cpp and Toggles.h; the
+other hunks apply with offsets.
+---
+ src/dawn/native/Toggles.cpp                |  5 +++
+ src/dawn/native/Toggles.h                  |  1 +
+ src/dawn/native/metal/PhysicalDeviceMTL.mm |  4 ++
+ src/dawn/native/metal/ShaderModuleMTL.mm   |  2 +
+ src/dawn/tests/end2end/ShaderTests.cpp     | 48 ++++++++++++++++++++++
+ src/tint/lang/msl/writer/common/options.h  |  6 ++-
+ src/tint/lang/msl/writer/raise/raise.cc    |  4 +-
+ src/tint/lang/msl/writer/writer_fuzz.cc    |  5 ++-
+ 8 files changed, 72 insertions(+), 3 deletions(-)
+
+diff --git a/src/dawn/native/Toggles.cpp b/src/dawn/native/Toggles.cpp
+index d85ec50f4..9ca0b7f55 100644
+--- a/src/dawn/native/Toggles.cpp
++++ b/src/dawn/native/Toggles.cpp
+@@ -967,6 +967,11 @@ static constexpr ToggleEnumAndInfoList kToggleNameAndInfoList = {{
+       "Some ImgTec drivers only report 64, which is below the WebGPU requirement. Enabling this "
+       "toggle accepts the limit of 64 instead of rejecting the adapter entirely.",
+       "https://g-issues.chromium.org/issues/559589664", ToggleStage::Instance}},
++    {Toggle::MetalPolyfillExtractBits,
++     {"metal_polyfill_extract_bits",
++      "Use the full polyfill for extractBits() instead of clamping to work around an Apple Metal "
++      "compiler bug.",
++      "https://crbug.com/587021111", ToggleStage::Device}},
+ 
+     // Comment to separate the }} so it is clearer what to copy-paste to add a toggle.
+ }};
+diff --git a/src/dawn/native/Toggles.h b/src/dawn/native/Toggles.h
+index 09ee3315b..90371e25d 100644
+--- a/src/dawn/native/Toggles.h
++++ b/src/dawn/native/Toggles.h
+@@ -233,6 +233,7 @@ enum class Toggle {
+     AutoMapBackendBuffer,
+     PolyfillBoolVecDynamicStore,
+     VulkanRelaxMaxInterStageShaderVariables,
++    MetalPolyfillExtractBits,
+ 
+     EnumCount,
+     InvalidEnum = EnumCount,
+diff --git a/src/dawn/native/metal/PhysicalDeviceMTL.mm b/src/dawn/native/metal/PhysicalDeviceMTL.mm
+index 1db4c5d09..6be50ef87 100644
+--- a/src/dawn/native/metal/PhysicalDeviceMTL.mm
++++ b/src/dawn/native/metal/PhysicalDeviceMTL.mm
+@@ -579,6 +579,10 @@ void PhysicalDevice::SetupBackendDeviceToggles(dawn::platform::Platform* platfor
+         if (!IsMacOSVersionAtLeast(26, 6, 1)) {
+             deviceToggles->Default(Toggle::MetalFixU32DivMod, true);
+         }
++
++        // Workaround for Apple Metal compiler bug with extract_bits(x, 32, 0) causing UB
++        // (crbug.com/587021111).
++        deviceToggles->Default(Toggle::MetalPolyfillExtractBits, true);
+     }
+ 
+     // Local testing shows the workaround is needed on AMD Radeon HD 8870M (gcn-1) MacOS 12.1;
+diff --git a/src/dawn/native/metal/ShaderModuleMTL.mm b/src/dawn/native/metal/ShaderModuleMTL.mm
+index 5afa241c0..fbda6d000 100644
+--- a/src/dawn/native/metal/ShaderModuleMTL.mm
++++ b/src/dawn/native/metal/ShaderModuleMTL.mm
+@@ -369,6 +369,8 @@ ResultOrError<CacheResult<MslCompilation>> TranslateToMSL(
+         device->IsToggleEnabled(Toggle::MetalFixU32DivMod);
+     req.tintOptions.workarounds.polyfill_bool_vec_dynamic_store =
+         device->IsToggleEnabled(Toggle::PolyfillBoolVecDynamicStore);
++    req.tintOptions.workarounds.polyfill_extract_bits =
++        device->IsToggleEnabled(Toggle::MetalPolyfillExtractBits);
+ 
+     req.tintOptions.extensions.disable_demote_to_helper =
+         device->IsToggleEnabled(Toggle::DisableDemoteToHelper);
+diff --git a/src/dawn/tests/end2end/ShaderTests.cpp b/src/dawn/tests/end2end/ShaderTests.cpp
+index 1ac360ee8..537c75754 100644
+--- a/src/dawn/tests/end2end/ShaderTests.cpp
++++ b/src/dawn/tests/end2end/ShaderTests.cpp
+@@ -3791,6 +3791,54 @@ fn main(@builtin(global_invocation_id) global_invocation_id: vec3u) {
+     EXPECT_BUFFER_U32_EQ(2u, outputBuffer, 8);
+ }
+ 
++// Regression test for Metal robustness bypass where extractBits(x, 32u, 0u) inside an
++// out-of-bounds branch caused Apple's Metal compiler to treat the branch as unreachable and
++// eliminate the robustness clamp on another buffer access (crbug.com/587021111).
++TEST_P(ShaderTests, ExtractBitsInDeadBranchRobustness) {
++    constexpr uint32_t kWriteIndex = 16;
++    constexpr uint32_t kWriteVal = 0xE7E7E7E7u;
++
++    const char* shader = R"(
++@group(0) @binding(0) var<uniform> U : vec4<u32>;
++@group(0) @binding(1) var<storage, read_write> output : array<u32, 16>;
++@compute @workgroup_size(1) fn main() {
++  let i = U.y;
++  if (i > 15u) {
++    output[extractBits(U.x, 32u, 0u)] = 42u;
++  }
++  output[i] = U.z;
++}
++)";
++
++    // Output buffer: 128 bytes (32 u32s), filled with zeros. Only the first 64 bytes (16 u32s) are
++    // bound to the shader.
++    wgpu::Buffer output = CreateBuffer(
++        32, wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::CopySrc);
++
++    wgpu::Buffer bufU = CreateBuffer({5, kWriteIndex, kWriteVal, 0},
++                                     wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst);
++
++    wgpu::ComputePipeline pipeline = CreateComputePipeline(shader, "main");
++    wgpu::BindGroup bindGroup = utils::MakeBindGroup(
++        device, pipeline.GetBindGroupLayout(0), {{0, bufU}, {1, output, 0, 16 * sizeof(uint32_t)}});
++
++    wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
++    wgpu::ComputePassEncoder pass = encoder.BeginComputePass();
++    pass.SetPipeline(pipeline);
++    pass.SetBindGroup(0, bindGroup);
++    pass.DispatchWorkgroups(1);
++    pass.End();
++    wgpu::CommandBuffer commands = encoder.Finish();
++    queue.Submit(1, &commands);
++
++    // Make sure the write inside the branch is executed.
++    uint32_t expectedFirst = 42;
++    EXPECT_BUFFER_U32_RANGE_EQ(&expectedFirst, output, 0, 1);
++    // With robustness enabled, the unbound portion of `output` must remain untouched.
++    std::vector<uint32_t> expectedUnbound(16, 0);
++    EXPECT_BUFFER_U32_RANGE_EQ(expectedUnbound.data(), output, 16 * sizeof(uint32_t), 16);
++}
++
+ DAWN_INSTANTIATE_TEST(ShaderTests,
+                       D3D11Backend(),
+                       D3D12Backend(),
+diff --git a/src/tint/lang/msl/writer/common/options.h b/src/tint/lang/msl/writer/common/options.h
+index 93d51e5f1..b304706e6 100644
+--- a/src/tint/lang/msl/writer/common/options.h
++++ b/src/tint/lang/msl/writer/common/options.h
+@@ -130,6 +130,9 @@ struct Options {
+         /// select-based whole vector write operation.
+         bool polyfill_bool_vec_dynamic_store = false;
+ 
++        /// Set to `true` to use the full polyfill for `extractBits()` instead of clamping.
++        bool polyfill_extract_bits = false;
++
+         TINT_REFLECT(Workarounds,
+                      scalarize_max_min_clamp,
+                      disable_module_constant_f16,
+@@ -141,7 +144,8 @@ struct Options {
+                      replace_workgroup_bool_with_u32,
+                      collapse_subgroup_min_max,
+                      fix_u32_div_mod,
+-                     polyfill_bool_vec_dynamic_store);
++                     polyfill_bool_vec_dynamic_store,
++                     polyfill_extract_bits);
+         TINT_REFLECT_HASH_CODE(Workarounds);
+ 
+         bool operator==(const Workarounds&) const = default;
+diff --git a/src/tint/lang/msl/writer/raise/raise.cc b/src/tint/lang/msl/writer/raise/raise.cc
+index c973b9e3b..027b161df 100644
+--- a/src/tint/lang/msl/writer/raise/raise.cc
++++ b/src/tint/lang/msl/writer/raise/raise.cc
+@@ -172,7 +172,9 @@ Result<SuccessType> Raise(core::ir::Module& module, const Options& options) {
+             .clamp_float = options.workarounds.polyfill_clamp_float,
+             .abs_signed_int = true,
+             .degrees = true,
+-            .extract_bits = core::ir::transform::BuiltinPolyfillLevel::kClampOrRangeCheck,
++            .extract_bits = options.workarounds.polyfill_extract_bits
++                                ? core::ir::transform::BuiltinPolyfillLevel::kFull
++                                : core::ir::transform::BuiltinPolyfillLevel::kClampOrRangeCheck,
+             .fwidth_fine = true,
+             .insert_bits = core::ir::transform::BuiltinPolyfillLevel::kClampOrRangeCheck,
+             .radians = true,
+diff --git a/src/tint/lang/msl/writer/writer_fuzz.cc b/src/tint/lang/msl/writer/writer_fuzz.cc
+index 6ca019968..1b001251f 100644
+--- a/src/tint/lang/msl/writer/writer_fuzz.cc
++++ b/src/tint/lang/msl/writer/writer_fuzz.cc
+@@ -66,6 +66,7 @@ struct FuzzedOptions {
+     bool fix_u32_div_mod;
+     bool polyfill_bool_vec_dynamic_store;
+     uint32_t non_constant_zero_offset;
++    bool polyfill_extract_bits;
+ 
+     /// Reflect the fields of this class so that it can be used by tint::ForeachField()
+     TINT_REFLECT(FuzzedOptions,
+@@ -91,7 +92,8 @@ struct FuzzedOptions {
+                  collapse_subgroup_min_max,
+                  fix_u32_div_mod,
+                  polyfill_bool_vec_dynamic_store,
+-                 non_constant_zero_offset);
++                 non_constant_zero_offset,
++                 polyfill_extract_bits);
+     TINT_REFLECT_HASH_CODE(FuzzedOptions);
+ };
+ 
+@@ -154,6 +156,7 @@ Result<SuccessType> IRFuzzer(core::ir::Module& module,
+     options.workarounds.polyfill_bool_vec_dynamic_store =
+         fuzzed_options.polyfill_bool_vec_dynamic_store;
+     options.non_constant_zero_offset = fuzzed_options.non_constant_zero_offset;
++    options.workarounds.polyfill_extract_bits = fuzzed_options.polyfill_extract_bits;
+ 
+     options.bindings = GenerateBindings(module, ep_name, false, false);
+     options.immediate_binding_point = BindingPoint(0, 30);
+-- 
+2.43.0
+

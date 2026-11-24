@@ -144,6 +144,39 @@ Puerto del merge **`942376f95b`** de 8154 (24-11 03:32 UTC; bug del merge 588740
 - **Confirmado con la M156:** la 8078 recibió el mismo arreglo, **`eb6557f019`** (24-11 04:23 UTC; bug del merge
   588740238). Con este parche, `service_worker_version.cc` y su prueba quedan iguales byte a byte que en la 8078.
 
+## `dawn/0001`: [M159] Dawn Metal, polyfill completo de `extractBits` (crbug 587021111)
+
+Roll de Dawn de la 8154 `c47f9d8c32` = un commit, **`e6ee1e5319`** «[M159] [metal] Enable full polyfill for extractBits»
+(merge 588740235). Lo localizó COORDINACIÓN-62 desde la 7,1. Es cherry-pick de main **`ce281c466b`** (19-11).
+**Gravedad no publicada.**
+- **El fallo:** con `extractBits(x, 32u, 0u)` en una rama fuera de límites, el compilador Metal de Apple daba la rama por
+  inalcanzable y quitaba la comprobación de límites (robustness) de **otro** acceso a búfer. Un shader WebGPU podía así
+  leer o escribir fuera del búfer en la GPU.
+- **El arreglo:** un toggle nuevo, `metal_polyfill_extract_bits`. Hace que Tint use el polyfill completo de `extractBits`
+  en lugar del recorte. Dawn lo activa por defecto **solo con GPU Apple** (`gpu_info::IsApple(vendorId)` en
+  `PhysicalDeviceMTL.mm`). Trae una prueba end2end y la opción del fuzzer.
+- **¿Afecta a FlyWeb?** Casi nada:
+  - En **10.14** Dawn no arranca: WebGPU y Graphite están apagados en código (B1d, `docs/b1d/README.md`).
+  - En **10.15 o superior**, WebGPU va por Dawn Metal, pero el toggle solo se enciende con GPU Apple. Los Mac Intel
+    (Intel, AMD o NVIDIA) **no cambian**.
+  - Solo cambiaría algo en un Mac con Apple Silicon que ejecute FlyWeb x86_64 por Rosetta, que no es un objetivo.
+- **La base del parche no es la real:**
+  - `dawn.googlesource.com` está bloqueado aquí, y el espejo de GitHub (`google/dawn`) solo tiene `main`. Por eso el
+    parche está hecho sobre el **punto de rama de la 8078**: Dawn `0a2c7df818`, el `dawn_revision` del DEPS de Chromium
+    `c50edc4214`.
+  - **No** está hecho sobre el Dawn de la rama 8078 (`c7cec856c9`, que no se ve desde aquí) ni sobre el Dawn de FlyWeb
+    (`dawn/0001`–`0004` de la 3.1.3 más el de la 10.14).
+  - Adaptación, solo de contexto: el toggle nuevo va al final de las listas de la 156 en `Toggles.cpp` y `Toggles.h`; lo
+    demás entra con desplazamiento.
+  - Comprobado: `git am` sobre `0a2c7df818` da el árbol `28c3382958`.
+- **Para LOCAL**, si se mete:
+  - `git am` sobre el Dawn del checkout; si choca, `cherry-pick -x` de `e6ee1e5319`, que sí ve.
+  - Fijar `dawn_revision` como en la 3.1.3.
+  - Prueba: `dawn_end2end_tests --gtest_filter='*ShaderTests.ExtractBitsInDeadBranchRobustness*'`. En las Mac Intel la
+    prueba solo comprueba que no se rompe nada, porque allí el toggle no se enciende.
+- **Recomendación:** baja prioridad. Es barato e inofensivo, pero en el hardware objetivo no cambia nada. Si meterlo
+  cuesta un roll de Dawn en LOCAL, puede esperar a que haya otro motivo para tocar Dawn.
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Aún no está en la 15.6. Gravedad no publicada; es una salida del
