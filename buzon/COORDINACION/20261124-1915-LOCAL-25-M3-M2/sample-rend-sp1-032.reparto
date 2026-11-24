@@ -1,0 +1,32 @@
+== Hilos del proceso (muestras activas / total)
+  com.apple.main-thread                               1240 / 1358   91.3 %
+  ThreadPoolForegroundWorker                           216 / 1358   15.9 %
+  Chrome_ChildIOThread                                  11 / 1358    0.8 %
+  ThreadPoolForegroundWorker                           143 / 1358   10.5 %
+  Compositor                                            39 / 1358    2.9 %
+  ThreadPoolForegroundWorker                            55 / 1358    4.1 %
+  ThreadPoolForegroundWorker                            38 / 1358    2.8 %
+  ThreadPoolForegroundWorker                            30 / 1358    2.2 %
+  ThreadPoolForegroundWorker                            44 / 1358    3.2 %
+  ThreadPoolForegroundWorker                            22 / 1358    1.6 %
+  ThreadPoolForegroundWorker                             5 / 1358    0.4 %
+  ThreadPoolForegroundWorker                             4 / 1358    0.3 %
+  ThreadPoolForegroundWorker                            13 / 1358    1.0 %
+  ThreadPoolForegroundWorker                             3 / 1358    0.2 %
+  (hilos en total: 24; con alguna muestra activa: 14)
+== Hilo principal: 1358 muestras, 1240 activas
+   30.5 %  V8: builtins, runtime e IC
+   30.3 %  Estilo, layout y pintado
+   26.2 %  Blink: lo demás (rAF, DOM, planificador)
+    6.3 %  Código JS compilado (JIT)
+    2.5 %  GC (V8 y Oilpan)
+    2.0 %  Compilar JS (parser, bytecode, Sparkplug/Maglev/TurboFan en el hilo)
+    1.1 %  Otros (sistema, base, mojo)
+    0.5 %  Math.sin / Math.cos (ieee754)
+    0.4 %  Enlaces WebGL de Blink (con el paso de V8 a Blink)
+    0.2 %  base::FeatureList
+== «Estilo, layout y pintado», partido por el marco más profundo (% del hilo principal activo)
+   13.2 %  layout
+   11.6 %  estilo
+    4.8 %  pintado
+    0.7 %  sin fase (solo UpdateLifecycle y similares)

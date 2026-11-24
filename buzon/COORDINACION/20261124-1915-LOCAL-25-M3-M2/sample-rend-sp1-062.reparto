@@ -1,0 +1,23 @@
+== Hilos del proceso (muestras activas / total)
+  com.apple.main-thread                                327 / 4395    7.4 %
+  HangWatcher                                            1 / 4395    0.0 %
+  ThreadPoolForegroundWorker                           106 / 4395    2.4 %
+  Chrome_ChildIOThread                                   3 / 4395    0.1 %
+  ThreadPoolForegroundWorker                             9 / 4395    0.2 %
+  Compositor                                             2 / 4395    0.0 %
+  ThreadPoolForegroundWorker                            10 / 4395    0.2 %
+  ThreadPoolForegroundWorker                             9 / 4395    0.2 %
+  ThreadPoolForegroundWorker                             8 / 4395    0.2 %
+  ThreadPoolForegroundWorker                             2 / 4395    0.0 %
+  ThreadPoolForegroundWorker                             2 / 4395    0.0 %
+  ThreadPoolForegroundWorker                             2 / 4395    0.0 %
+  ThreadPoolForegroundWorker                             2 / 4395    0.0 %
+  ThreadPoolForegroundWorker                             2 / 4395    0.0 %
+  ThreadPoolForegroundWorker                             2 / 4395    0.0 %
+  (hilos en total: 24; con alguna muestra activa: 15)
+== Hilo principal: 4395 muestras, 327 activas
+   85.6 %  GC (V8 y Oilpan)
+    7.3 %  V8: builtins, runtime e IC
+    3.7 %  Blink: lo demás (rAF, DOM, planificador)
+    3.1 %  Otros (sistema, base, mojo)
+    0.3 %  Cliente del command buffer (GLES2Implementation)
