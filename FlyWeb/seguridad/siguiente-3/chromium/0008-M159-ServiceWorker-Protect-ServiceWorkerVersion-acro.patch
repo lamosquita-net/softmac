@@ -1,0 +1,248 @@
+From b5085a3b76cdeeb5fd482978f7006b87e019576a Mon Sep 17 00:00:00 2001
+From: Shunya Shishido <sisidovski@chromium.org>
+Date: Tue, 24 Nov 2026 03:32:21 +0000
+Subject: [PATCH] [M159] [ServiceWorker] Protect ServiceWorkerVersion across
+ re-entrant calls
+
+Original change's description:
+> [ServiceWorker] Protect ServiceWorkerVersion across re-entrant calls
+>
+> When an active ServiceWorkerVersion is in kStopping after
+> OnRequestTermination() called EmbeddedWorkerInstance::Stop() directly,
+> no ref-holding callback is in stop_callbacks_, so
+> ServiceWorkerRegistration::active_version_ can hold the last reference
+> to the version. ServiceWorkerRegistration::ActivateWaitingVersion()
+> then replaces active_version_ (its StopWorker() call adds no ref in
+> kStopping), so the version is destroyed when activation returns.
+>
+> NavigateClient() calls service_worker_client_utils::NavigateClient(),
+> which can reach ActivateWaitingVersion() synchronously via
+> ServiceWorkerControlleeRequestHandler, and then reads `script_url_` and
+> `context_` in NotifyClientNavigated(). OnNoWorkInBrowser() has the same
+> problem: ServiceWorkerRegistration::OnNoWork() can activate a waiting
+> version synchronously before `observers_` are iterated. OpenWindow()
+> follows the same pattern as NavigateClient() with
+> service_worker_client_utils::OpenWindow() and NotifyWindowOpened().
+>
+> Hold a scoped_refptr to `this` across these calls and add unit tests
+> that drop the last reference to the version during each call.
+>
+> Bug: 583907056
+> Change-Id: Idbe2e4a20f17d4cfdefd3be01172a2b673f1150e
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8773494
+> Reviewed-by: Yoshisato Yanagisawa <yyanagisawa@chromium.org>
+> Commit-Queue: Shunya Shishido <sisidovski@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1750230}
+
+(cherry picked from commit a94f0656708a3f5025d6e3c82ffc959aa743283c)
+
+Bug: 588740597,583907056
+Change-Id: Idbe2e4a20f17d4cfdefd3be01172a2b673f1150e
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8853625
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1549}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ .../service_worker/service_worker_version.cc  |  12 ++
+ .../service_worker_version_unittest.cc        | 140 ++++++++++++++++++
+ 2 files changed, 152 insertions(+)
+
+diff --git a/content/browser/service_worker/service_worker_version.cc b/content/browser/service_worker/service_worker_version.cc
+index 20819c7419d1c4808ebc087a5c1919d404a61ec7..069e5f8a43edc17342156e54f7a027c233c2319e 100644
+--- a/content/browser/service_worker/service_worker_version.cc
++++ b/content/browser/service_worker/service_worker_version.cc
+@@ -2272,6 +2272,10 @@ void ServiceWorkerVersion::NavigateClient(const std::string& client_uuid,
+     return;
+   }
+ 
++  // Protect `this` across NavigateClient(), which can synchronously activate a
++  // waiting version or run `callback` and drop the last reference to `this`
++  // before NotifyClientNavigated() reads `script_url_`.
++  scoped_refptr<ServiceWorkerVersion> protect(this);
+   service_worker_client_utils::NavigateClient(
+       url, script_url_, key_, service_worker_client->GetRenderFrameHostId(),
+       BuildClientSecurityState(), policy_container_host(), context_,
+@@ -2403,6 +2407,10 @@ void ServiceWorkerVersion::OpenWindow(
+     return;
+   }
+ 
++  // Protect `this` across OpenWindow(), which can synchronously run `callback`
++  // and drop the last reference to `this` before NotifyWindowOpened() reads
++  // `script_url_`.
++  scoped_refptr<ServiceWorkerVersion> protect(this);
+   // TODO(crbug.com/379869738) Remove GetUnsafeValue.
+   service_worker_client_utils::OpenWindow(
+       url, script_url_, key_, embedded_worker_->embedded_worker_id(),
+@@ -3418,6 +3426,10 @@ void ServiceWorkerVersion::CleanUpExternalRequest(
+ void ServiceWorkerVersion::OnNoWorkInBrowser() {
+   DCHECK(!HasWorkInBrowser());
+   if (context_ && worker_is_idle_on_renderer_) {
++    // Protect `this` because ServiceWorkerRegistration::OnNoWork() can
++    // synchronously activate a waiting version and drop the registration's
++    // reference to `this` before `observers_` are notified.
++    scoped_refptr<ServiceWorkerVersion> protect(this);
+     scoped_refptr<ServiceWorkerRegistration> registration =
+         context_->GetLiveRegistration(registration_id());
+     if (registration) {
+diff --git a/content/browser/service_worker/service_worker_version_unittest.cc b/content/browser/service_worker/service_worker_version_unittest.cc
+index fe4abadb84b8500ee00552dd678c3f748c20ceef..0ed9bf53d89841a293b079903ea9f871df2583ea 100644
+--- a/content/browser/service_worker/service_worker_version_unittest.cc
++++ b/content/browser/service_worker/service_worker_version_unittest.cc
+@@ -240,6 +240,11 @@ class ServiceWorkerVersionTest
+     version->OnScriptEvaluationStart();
+   }
+ 
++  bool RequestTermination(ServiceWorkerVersion* version) {
++    return version->OnRequestTermination(
++        /*observed_keepalive_sequence_number=*/0);
++  }
++
+   void SimulateDispatchEvent(ServiceWorkerMetrics::EventType event_type) {
+     std::optional<blink::ServiceWorkerStatusCode> status;
+     base::RunLoop run_loop;
+@@ -3211,5 +3216,140 @@ TEST_P(
+   EXPECT_EQ(blink::ServiceWorkerStatusCode::kOk, status.value());
+ }
+ 
++// Verifies that NavigateClient() keeps the version alive across
++// service_worker_client_utils::NavigateClient() when the last external
++// reference is dropped before NotifyClientNavigated() runs
++// (crbug.com/583907056).
++TEST_P(ServiceWorkerVersionTest,
++       NavigateClient_VersionDestroyedDuringNavigation) {
++  ASSERT_EQ(blink::ServiceWorkerStatusCode::kOk,
++            StartServiceWorker(version_.get()));
++  StopTimeoutTimer(version_.get());
++  ResetWorkerHost(version_.get());
++  std::optional<CommittedServiceWorkerClient> client = ActivateWithControllee();
++
++  ServiceWorkerVersion* raw_version = version_.get();
++  base::WeakPtr<ServiceWorkerVersion> weak_version = version_->GetWeakPtr();
++  bool callback_called = false;
++
++  static_cast<blink::mojom::ServiceWorkerHost*>(raw_version)
++      ->NavigateClient(
++          (*client)->client_uuid(), scope_.Resolve("page.html"),
++          base::BindLambdaForTesting(
++              [&](bool success,
++                  blink::mojom::ServiceWorkerClientInfoPtr client_info,
++                  const std::optional<std::string>& error_msg) {
++                callback_called = true;
++                (*client)->SetControllerRegistration(
++                    nullptr, /*notify_controllerchange=*/false);
++                registration_->SetActiveVersion(nullptr);
++                registration_.reset();
++                version_.reset();
++              }));
++
++  EXPECT_TRUE(callback_called);
++  EXPECT_FALSE(weak_version);
++}
++
++// Verifies that OpenWindow() keeps the version alive across
++// service_worker_client_utils::OpenWindow() when the last external reference is
++// dropped before NotifyWindowOpened() runs.
++TEST_P(ServiceWorkerVersionTest, OpenNewTab_VersionDestroyedDuringOpenWindow) {
++  ASSERT_EQ(blink::ServiceWorkerStatusCode::kOk,
++            StartServiceWorker(version_.get()));
++  version_->SetStatus(ServiceWorkerVersion::ACTIVATED);
++  version_->StartRequest(ServiceWorkerMetrics::EventType::NOTIFICATION_CLICK,
++                         base::DoNothing());
++
++  StopTimeoutTimer(version_.get());
++  ResetWorkerHost(version_.get());
++  ServiceWorkerVersion* raw_version = version_.get();
++  base::WeakPtr<ServiceWorkerVersion> weak_version = version_->GetWeakPtr();
++  bool callback_called = false;
++
++  static_cast<blink::mojom::ServiceWorkerHost*>(raw_version)
++      ->OpenNewTab(scope_.Resolve("page.html"),
++                   base::BindLambdaForTesting(
++                       [&](bool success,
++                           blink::mojom::ServiceWorkerClientInfoPtr client_info,
++                           const std::optional<std::string>& error_msg) {
++                         callback_called = true;
++                         registration_.reset();
++                         version_.reset();
++                       }));
++
++  EXPECT_TRUE(callback_called);
++  EXPECT_FALSE(weak_version);
++}
++
++// Verifies that OnNoWorkInBrowser() keeps the version alive across
++// ServiceWorkerRegistration::OnNoWork() when synchronous activation of a
++// waiting version drops `registration_->active_version_` before `observers_`
++// are notified.
++TEST_P(ServiceWorkerVersionTest,
++       OnNoWorkInBrowser_VersionDestroyedDuringActivation) {
++  auto* client = helper_->AddNewPendingInstanceClient<
++      DelayedFakeEmbeddedWorkerInstanceClient>(helper_.get());
++  client->UnblockStartWorker();
++
++  ASSERT_EQ(blink::ServiceWorkerStatusCode::kOk,
++            StartServiceWorker(version_.get()));
++  ResetWorkerHost(version_.get());
++  version_->SetStatus(ServiceWorkerVersion::ACTIVATED);
++  registration_->SetActiveVersion(version_);
++
++  int request_id = version_->StartRequest(
++      ServiceWorkerMetrics::EventType::FETCH_MAIN_FRAME, base::DoNothing());
++
++  scoped_refptr<ServiceWorkerVersion> waiting_version =
++      CreateNewServiceWorkerVersion(
++          helper_->context()->registry(), registration_.get(),
++          GURL("https://www.example.com/test/service_worker_v2.js"),
++          blink::mojom::ScriptType::kClassic);
++  waiting_version->set_fetch_handler_type(
++      ServiceWorkerVersion::FetchHandlerType::kNotSkippable);
++  waiting_version->SetStatus(ServiceWorkerVersion::INSTALLED);
++  registration_->SetWaitingVersion(waiting_version);
++
++  // Calling SkipWaiting() while `version_` has an in-flight request marks
++  // `registration_` ready to activate once work finishes and requests idle
++  // termination ASAP (`needs_to_be_terminated_asap_ = true`).
++  static_cast<blink::mojom::ServiceWorkerHost*>(waiting_version.get())
++      ->SkipWaiting(base::DoNothing());
++  waiting_version.reset();
++
++  // With DevTools attached and `needs_to_be_terminated_asap_` set,
++  // OnRequestTermination() transitions `version_` to `kStopping` with
++  // `worker_is_idle_on_renderer_ = true` while `request_id` is still in-flight.
++  version_->SetDevToolsAttached(true);
++  EXPECT_TRUE(RequestTermination(version_.get()));
++  EXPECT_EQ(blink::EmbeddedWorkerStatus::kStopping, version_->running_status());
++
++  struct NoWorkObserver : public ServiceWorkerVersion::Observer {
++    void OnNoWork(ServiceWorkerVersion* version) override {
++      ++no_work_count;
++      version->RemoveObserver(this);
++    }
++    int no_work_count = 0;
++  } observer;
++  version_->AddObserver(&observer);
++
++  StopTimeoutTimer(version_.get());
++  ServiceWorkerVersion* raw_version = version_.get();
++  base::WeakPtr<ServiceWorkerVersion> weak_version = version_->GetWeakPtr();
++  // Drop the test's reference so `registration_->active_version_` holds the
++  // sole reference to `raw_version`.
++  version_.reset();
++  ASSERT_TRUE(weak_version);
++  EXPECT_TRUE(raw_version->HasOneRef());
++
++  // Finishing the last request calls OnNoWorkInBrowser(), which invokes
++  // registration_->OnNoWork() -> ActivateWaitingVersion(), replacing
++  // `registration_->active_version_` before `observers_` are notified.
++  EXPECT_TRUE(raw_version->FinishRequest(request_id, /*was_handled=*/true));
++  EXPECT_EQ(1, observer.no_work_count);
++  EXPECT_FALSE(weak_version);
++}
++
+ }  // namespace service_worker_version_unittest
+ }  // namespace content
+-- 
+2.43.0
+
