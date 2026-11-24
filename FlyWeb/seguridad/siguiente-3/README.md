@@ -151,6 +151,11 @@ Puerto del merge **`942376f95b`** de 8154 (24-11 03:32 UTC; bug del merge 588740
 **APARCADO** (COORDINACIÓN-62, 24-11, buzón `…0900-COORDINACION-62-dawn-aparcado`): solo afecta a GPU Apple. **No entra en
 la tanda** salvo que el boletín le dé Alto o haya otro motivo para tocar Dawn. LOCAL no lo compila.
 
+**Ya hay gemelo M156:** el roll de Dawn de la 8078 `0d1dc152be` es un solo commit, **`64d303d0bd`** «[M156] [metal] Enable
+full polyfill for extractBits», sobre `c7cec856c9`, el Dawn real de la 8078 (lo miró COORDINACIÓN-62 desde la 7,1, buzón
+`…-COORDINACION-62-dawn-8078`). **Si algún día se mete, usar `64d303d0bd` y no este parche**, que es el cherry-pick de main
+sobre el punto de rama y no sobre la base real.
+
 Roll de Dawn de la 8154 `c47f9d8c32` = un commit, **`e6ee1e5319`** «[M159] [metal] Enable full polyfill for extractBits»
 (merge 588740235). Lo localizó COORDINACIÓN-62 desde la 7,1. Es cherry-pick de main **`ce281c466b`** (19-11).
 **Gravedad no publicada.**
@@ -461,6 +466,6 @@ configuración de Linux compila el código.
   comparado con `cmp` sobre 15.6.75.66). Nada que portar.
 - **8154 `a0ef70eb06`** (24-11): revert M159 de «[Extensions] Enforce screenshot restrictions in chrome.tabCapture API».
   El original no está en ninguna tanda nuestra (su motivo es la DLP de ChromeOS): nada que hacer.
-- **8078 `0d1dc152be`** (24-11): roll de Dawn en M156, `c7cec856c9` → `64d303d0bd`. **Sin revisar el contenido:**
-  dawn.googlesource.com está bloqueado y el espejo de GitHub no tiene los commits de la rama. Se lo pido a COORDINACIÓN
-  desde la 7,1, como con `e6ee1e5319`. Dawn va apagado en FlyWeb por debajo de 10.15.
+- **8078 `0d1dc152be`** (24-11): roll de Dawn en M156, `c7cec856c9` → `64d303d0bd`. Un solo commit, `64d303d0bd`, el
+  gemelo M156 de `extractBits` (`dawn/0001`, aparcado). Lo miró COORDINACIÓN-62 desde la 7,1 (aquí dawn.googlesource.com
+  está bloqueado y el espejo de GitHub no tiene los commits de la rama). Sigue aparcado.
