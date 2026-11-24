@@ -293,6 +293,8 @@ tal cual. Aún sin merge a la 8078. **Gravedad no publicada.**
 - **El arreglo:** si `!navigation_handle->HasCommitted()`, no se muestra. Trae una prueba en
   `login_handler_unittest.cc`.
 - **Aplica en Mac.** Entra tal cual; Brave no toca `chrome/browser/ui/login`.
+- **Ya tiene merge M156:** 8078 `42986b37d0` (24-11 18:22 UTC; bug del merge 589982118). Comparado con el de la 8154: el
+  mismo cambio, solo cambian los números de línea (`git apply -R` del M156 entra sobre nuestro árbol). Nada que cambiar.
 
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
