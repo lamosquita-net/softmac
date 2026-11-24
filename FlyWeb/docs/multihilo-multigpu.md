@@ -871,6 +871,13 @@ en M1, la aplicación de delante fue FlyWeb en 1996 líneas, Macs Fan Control en
 FlyWeb en todas menos 32, con Word. Quien tenga el registro de pasadas de M1 puede ver en un momento
 si las 11 lentas coinciden con otra aplicación delante. No lo afirmo.
 
+**Pista cerrada el 24-11: no es eso.** LOCAL-25 lo cruzó con las pasadas: las 11 lentas de Aquarium tuvieron FlyWeb
+delante en todas sus líneas, y 817 de las 818 con Macs Fan Control delante caen en Basemark Web, lo último de la
+tanda [R, por COORDINACIÓN-62]. En los datos es un solo tramo seguido, de la línea 2017 a la 2834 de 2846 [V]. M1
+sigue sin explicar. Queda una cautela para E1 [I]: el Basemark de M1 (873 puntos) se midió con otra aplicación
+delante; antes de usarlo como base conviene repetirlo con FlyWeb delante, con el aviso previo a Titín que pide
+§11.2.
+
 ## 11. E1: cómo se mide y cómo se juzga el A/B (añadido el 22-11)
 
 Encargo de COORDINACIÓN-60 del 22-11, a propuesta de LOCAL-23
