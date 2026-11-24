@@ -12,11 +12,11 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0006` | **`4576659642`** (hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0011` | **`8ccd92e18d`** (hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0012` | **`cd61904b3b`** (hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b` y, con `0011`, `8ccd92e18d`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d` y, con `0012`, `cd61904b3b`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -247,6 +247,21 @@ Main **`d799fefdb4`** (#1708032, 30-09; Noam Rosenthal), tal cual. Está en la 1
   diferencia, `HTMLDomScenarioRunner.MathMLInHTML`, es intermitente y ajena (DCHECK de `style_resolver.cc`, falla 3 de 6
   veces sola).
 
+## `chromium/0012`: [M156] accesibilidad, `BrowserAccessibilityManager` se obtiene con una conversión comprobada (crbug 560514888)
+
+**`a49f8c060a`** de la **8078** (24-11 14:48 UTC; bug del merge 588203722; cherry-pick de main `5ff13fcde1`), tal cual.
+Su gemelo M159 es 8154 `06ad4714eb`. **Gravedad no publicada.**
+- **El fallo:** `BrowserAccessibilityManager::FromID()` y otros dos sitios hacían `static_cast` a
+  `BrowserAccessibilityManager` de cualquier `AXTreeManager` marcado como `is_platform_tree_manager()`. Ese valor lo podía
+  preparar un atacante y no todos los gestores de plataforma son `BrowserAccessibilityManager` (por ejemplo
+  `views::AtomicViewAXTreeManager`): confusión de tipos en el proceso del navegador.
+- **El arreglo:** `AXPlatformTreeManager` gana el virtual `AsBrowserAccessibilityManager()` (por defecto `nullptr`; el de
+  `BrowserAccessibilityManager` devuelve `this`), y los tres sitios usan `FromAXTreeManager()`. Trae una prueba en
+  `browser_accessibility_manager_unittest.cc`.
+- **Aplica en Mac** (la accesibilidad es común a todas las plataformas). Entra tal cual; Brave no toca esos ficheros. En
+  la 156 la única subclase de `AXPlatformTreeManager` en `ui/` y `content/` es `BrowserAccessibilityManager` (y sus
+  derivadas por plataforma, que heredan el `this`).
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Gravedad no publicada; es una salida del sandbox de V8.**
@@ -397,6 +412,8 @@ Nada se ha compilado ni probado en la nube.
 - D8-LINUX: mjsunit `es6/regress-arrow-cover-grammar-scope` y `es6/regress-strict-param-error-order` (deben pasar a
   verde), `sandbox/regress-571126471` con las banderas del sandbox, `es6/*`, `regress/regress-567222737*` y `parser*`
   (brave-core/0006).
+- `content_unittests --gtest_filter='BrowserAccessibilityManager*'` y `accessibility_unittests`, y en la 6,1 una pasada
+  con VoiceOver por una página y la interfaz (chromium/0012).
 - `blink_unittests` entero en una compilación con DCHECK (D8-LINUX: deben volver las 2765 que tumbaba el DCHECK), y
   las WPT `domparsing/tentative/stream-html-*` y `sanitizer-api/sanitizer-custom-elements-is.tentative.html`
   (chromium/0011).
@@ -442,3 +459,8 @@ configuración de Linux compila el código.
 - **V8 15.6 `34e1c83643`** (M156, 15.6.75.81; 585625644): **ya está en la 3.2.2.** Es byte a byte el porte de su gemelo M159
   `a92c222bca` que lleva `siguiente-2` (`machine-optimization-reducer.h` y la prueba `wasm/turboshaft/regress-585625644.js`;
   comparado con `cmp` sobre 15.6.75.66). Nada que portar.
+- **8154 `a0ef70eb06`** (24-11): revert M159 de «[Extensions] Enforce screenshot restrictions in chrome.tabCapture API».
+  El original no está en ninguna tanda nuestra (su motivo es la DLP de ChromeOS): nada que hacer.
+- **8078 `0d1dc152be`** (24-11): roll de Dawn en M156, `c7cec856c9` → `64d303d0bd`. **Sin revisar el contenido:**
+  dawn.googlesource.com está bloqueado y el espejo de GitHub no tiene los commits de la rama. Se lo pido a COORDINACIÓN
+  desde la 7,1, como con `e6ee1e5319`. Dawn va apagado en FlyWeb por debajo de 10.15.
