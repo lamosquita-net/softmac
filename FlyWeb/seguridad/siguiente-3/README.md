@@ -34,6 +34,9 @@ KEV a alguno de estos arreglos, se avisa enseguida a COORDINACIÓN para una 3.2.
 ## `chromium/0001`: [M159] Blink, texto de scripts «parkable» fijado entre hilos (crbug 584952095)
 
 Puerto del merge **`11d7cebfdf`** de 8154 (cherry-pick de main; bugs 589156867 y 584952095). **Gravedad no publicada.**
+**Ya tiene merge M156:** 8078 `f539e19409` (24-11 21:33 UTC). Es **idéntico** a nuestro parche, adaptación de
+`IsSafeToSendToAnotherThread()` incluida (solo cambian las cabeceras de los hunks; su `git apply -R` entra sobre nuestro
+árbol). Nada que cambiar.
 - **El fallo (uso tras liberar, en el renderer):** un módulo de script con texto `ParkableString` se pasaba tal cual a un
   worklet que corre en otro hilo. El envejecimiento del hilo principal podía «aparcar» (comprimir y liberar) el búfer
   mientras el isolate del worklet aún lo leía.
