@@ -35,6 +35,29 @@ HOJA = [
     ('Blink: lo demás (rAF, DOM, planificador)', re.compile(r'blink::|WTF::|cc::')),
 ]
 
+# LOCAL-25 (J3, multihilo-multigpu.md §9.6): la categoría «Estilo, layout y pintado» se parte por el marco más
+# profundo (el más cercano a la hoja) que encaje en una de estas tres; LocalFrameView::UpdateLifecycle envuelve a las tres.
+SUBFASES = [
+    ('estilo', re.compile(
+        r'blink::(StyleEngine|StyleResolver|StyleCascade|ElementRuleCollector|SelectorChecker|RuleSet|MatchedPropertiesCache|'
+        r'StyleRecalc|StyleInvalidator|InvalidationSet|Document::UpdateStyle(AndLayoutTree)?\b|Element::(Recalc|Rebuild)'
+        r'|Container(Node)?::(Recalc|Rebuild)|CSS\w*(Parser|Resolver|Selector|Value::)|LayoutTreeBuilder|StyleAdjuster)')),
+    ('layout', re.compile(
+        r'blink::(LayoutView::|LayoutBlock|LayoutBox::|LayoutObject::(Layout|UpdateLayout)|LayoutNG|\w*LayoutAlgorithm|'
+        r'BlockNode::|InlineNode::|LayoutInputNode|LayoutResult|FragmentItems?Builder|LineBreaker|ShapeResult|HarfBuzz|'
+        r'Document::UpdateStyleAndLayout\b|LocalFrameView::(UpdateLayout|PerformLayout|RunStyleAndLayout))')),
+    ('pintado', re.compile(
+        r'blink::(PrePaintTreeWalk|PaintPropertyTreeBuilder|PaintArtifactCompositor|PaintController|\w*Painter::|'
+        r'LocalFrameView::(RunPaint|RunPrePaint|PaintTree|PaintFrame)|PaintLayer::|DisplayItem|PaintChunk|'
+        r'cc::(PaintOpBuffer|DisplayItemList|PaintRecord)|CompositingLayerAssigner|GraphicsLayer)')),
+]
+
+def subfase(p):
+    for x in p:  # de la hoja a la raíz
+        for nombre, rx in SUBFASES:
+            if rx.search(x['f']): return nombre
+    return 'sin fase (solo UpdateLifecycle y similares)'
+
 def marco(t):
     m = re.match(r'^(.*?)\s+\(in (.+?)\)(.*)$', t)
     if not m: return t.strip(), '', None
@@ -106,13 +129,20 @@ def main():
     print(f"  (hilos en total: {len(hilos)}; con alguna muestra activa: "
           f"{sum(1 for h in hilos if any(x['n'] > x['hijos'] and not ESPERA.match(x['f']) for x in h['nodos']))})")
     pr = next(h for h in hilos if 'main-thread' in h['nombre'])
-    cuenta = collections.Counter()
+    cuenta, partes = collections.Counter(), collections.Counter()
     for i, x in enumerate(pr['nodos']):
         propias = x['n'] - x['hijos']
-        if propias > 0: cuenta[clasificar(pila_de(pr, i))] += propias
+        if propias > 0:
+            p = pila_de(pr, i)
+            cat = clasificar(p)
+            cuenta[cat] += propias
+            if cat == 'Estilo, layout y pintado': partes[subfase(p)] += propias
     activo = sum(v for k, v in cuenta.items() if k != 'espera')
     print(f"== Hilo principal: {pr['total']} muestras, {activo} activas")
     for k, v in cuenta.most_common():
         if k != 'espera': print(f"  {100*v/activo:5.1f} %  {k}")
+    if partes:
+        print("== «Estilo, layout y pintado», partido por el marco más profundo (% del hilo principal activo)")
+        for k, v in partes.most_common(): print(f"  {100*v/activo:5.1f} %  {k}")
 
 main()
