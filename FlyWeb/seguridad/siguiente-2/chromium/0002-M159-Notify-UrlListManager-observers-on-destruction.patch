@@ -128,7 +128,7 @@ index 8fa96b9edc..d656f92b5f 100644
   private:
    ListItem CreateListItem(const GURL& url);
 diff --git a/chrome/browser/ui/content_settings/content_setting_bubble_model_browsertest.cc b/chrome/browser/ui/content_settings/content_setting_bubble_model_browsertest.cc
-index 9ea96083c5..60e3da227a 100644
+index 9ea96083c5..f86825248c 100644
 --- a/chrome/browser/ui/content_settings/content_setting_bubble_model_browsertest.cc
 +++ b/chrome/browser/ui/content_settings/content_setting_bubble_model_browsertest.cc
 @@ -16,10 +16,13 @@
@@ -191,7 +191,7 @@ index 9ea96083c5..60e3da227a 100644
 +  views::Widget* OpenPopupPageAndShowBubble() {
 +    EXPECT_TRUE(ui_test_utils::NavigateToURLWithDisposition(
 +        browser(), https_server_->GetURL("/popup_blocker/popup-many.html"),
-+        WindowOpenDisposition::kNewForegroundTab,
++        WindowOpenDisposition::NEW_FOREGROUND_TAB,
 +        ui_test_utils::BROWSER_TEST_WAIT_FOR_LOAD_STOP));
 +    EXPECT_EQ(2, browser()->GetTabStripModel()->count());
 +
@@ -263,7 +263,7 @@ index 9ea96083c5..60e3da227a 100644
   protected:
    using QuietUiReason = permissions::PermissionUiSelector::QuietUiReason;
 diff --git a/chrome/browser/ui/content_settings/framebust_block_browsertest.cc b/chrome/browser/ui/content_settings/framebust_block_browsertest.cc
-index 0bade82be7..f61c31395f 100644
+index 0bade82be7..0f1f3494c8 100644
 --- a/chrome/browser/ui/content_settings/framebust_block_browsertest.cc
 +++ b/chrome/browser/ui/content_settings/framebust_block_browsertest.cc
 @@ -49,7 +49,9 @@
@@ -288,7 +288,7 @@ index 0bade82be7..f61c31395f 100644
 +  // Use a second tab so that closing it does not close the browser.
 +  const GURL url = embedded_test_server()->GetURL("/iframe.html");
 +  ASSERT_TRUE(ui_test_utils::NavigateToURLWithDisposition(
-+      browser(), url, WindowOpenDisposition::kNewForegroundTab,
++      browser(), url, WindowOpenDisposition::NEW_FOREGROUND_TAB,
 +      ui_test_utils::BROWSER_TEST_WAIT_FOR_LOAD_STOP));
 +  TabStripModel* tab_strip = browser()->GetTabStripModel();
 +  ASSERT_EQ(2, tab_strip->count());

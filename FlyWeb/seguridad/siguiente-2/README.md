@@ -13,11 +13,18 @@ juntos** (el segundo no compila sin el primero) y **`brave-core/0006` depende de
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`de0b6a69c9`** (la 3.2.1 sin el commit de versión, = resultado de `siguiente/brave-core/0001`–`0003`) | `brave-core/0001`–`0006` | **`3667349f16`** (hasta `0001`: `c881f8b1b3`; `0002`: `85d15c77a6`; `0003`: `5551162dbe`; `0004`: `abe4582db6`; `0005`: `6117d34709`) |
-| chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001`–`0005` | **`7e6c74e256`** (hasta `0001`: `ff91be10d6`; `0002`: `37bf78cffd`; `0003`: `1b197b1e48`; `0004`: `b9a698a294`) |
+| chromium | árbol **`a2ffc0a48f`** (la 3.2.1 sin VERSION, = resultado de `siguiente/chromium/0001`–`0010`) | `chromium/0001`–`0005` | **`a8a41143c0`** (hasta `0001`: `ff91be10d6`; `0002`: `f7d243e3d4`; `0003`: `769d60e679`; `0004`: `0b76b3cdee`) |
 
-Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, con `0002` detrás, `85d15c77a6`, con `0003`, `5551162dbe`, con `0004`, `abe4582db6`, con `0005`, `6117d34709`, y con `0006`, `3667349f16`; `git am` de `chromium/0001`–`0002` sobre `a2ffc0a48f` da `37bf78cffd`, con `0003`, `1b197b1e48`, con `0004`, `b9a698a294`, y con `0005`, `7e6c74e256`; `git diff --diff-filter=D` vacío; los
+Comprobado: `git am` de `brave-core/0001` sobre `de0b6a69c9` da `c881f8b1b3`, con `0002` detrás, `85d15c77a6`, con `0003`, `5551162dbe`, con `0004`, `abe4582db6`, con `0005`, `6117d34709`, y con `0006`, `3667349f16`; `git am` de `chromium/0001`–`0002` sobre `a2ffc0a48f` da `f7d243e3d4`, con `0003`, `769d60e679`, con `0004`, `0b76b3cdee`, y con `0005`, `a8a41143c0`; `git diff --diff-filter=D` vacío; los
 cuatro `patches/*.patch` que toca se aplican limpios sobre los ficheros de Chromium de la 3.2.1 sin VERSION y dan el mismo
 resultado que se editó. **No compilado ni probado aquí** (no hay árbol de compilación en la nube).
+
+**Corrección del 24-11 (solo pruebas):** `chromium/0002` usaba `WindowOpenDisposition::kNewForegroundTab` en dos
+pruebas de navegador nuevas (`content_setting_bubble_model_browsertest.cc` y `framebust_block_browsertest.cc`). En la 156
+el valor se llama `NEW_FOREGROUND_TAB` (`ui/base/window_open_disposition.h`), así que esas pruebas no compilaban tal cual
+(aviso de LOCAL-24 por COORDINACIÓN-61). Cambian esas dos líneas y nada más; el código de la app es el mismo que compiló
+la 3.2.2. El árbol final pasa de `7e6c74e256` a `a8a41143c0`. Comprobado que el resto de lo que usan esas pruebas
+existe en la 156.
 
 ## `chromium/0001`: [M159] [security] Disable SendEarlyFinalBeginMainFrame
 

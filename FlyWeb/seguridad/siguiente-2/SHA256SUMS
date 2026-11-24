@@ -5,7 +5,7 @@ e5c1e207a986b570f6912b2547a3e8c2e159e8036e8b724c3d7ad2d98a98b883  brave-core/000
 1170feff37ae025ef3f4d487ef5e7279faf44194db99eea70565f9a41c343107  brave-core/0005-v8-add-v8-Object-TryGetWithNoSideEffects-229a53b537-.patch
 f46b8fea228c84fdcc50b3944dd4d341b54e7007ad847dea61f50f2ae9440943  brave-core/0006-v8-handle-multi-slot-stack-aliasing-in-move-optimiza.patch
 eab6cbb69cd99a8f49f136f10b30a79cc2ff21a38b6dca7dd0652076e4684d85  chromium/0001-M159-security-Disable-SendEarlyFinalBeginMainFrame.patch
-bf0e9151a2fad8f877caeaf91132dfa2271b3622f7f4ba25dd7167b6a363dce8  chromium/0002-M159-Notify-UrlListManager-observers-on-destruction.patch
+94c62594ab49bee29e729a05d7cc49424c50c75852fa7b8b2cdd84a96687a8f8  chromium/0002-M159-Notify-UrlListManager-observers-on-destruction.patch
 a4be7c27c1d767fbb63cede885d087ff0c29b757dbe818cb7c99706e4c4bcffe  chromium/0003-M159-Fix-for-potential-UAF-in-PermissionRequestManag.patch
 4c817a782b3c91b1d12e32984753e3a6ef1c9aa8700b3b70682934c9541190be  chromium/0004-M156-Guard-against-transfer-buffer-ID-wraparound.patch
 ea28688ae92c5d9227763eccaad2478af16d48a60d360bb02646ca428882d86b  chromium/0005-M156-Merge-AdTracker-Don-t-run-page-installed-getter.patch
