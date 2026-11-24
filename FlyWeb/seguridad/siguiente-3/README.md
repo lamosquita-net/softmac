@@ -156,9 +156,11 @@ Roll de Dawn de la 8154 `c47f9d8c32` = un commit, **`e6ee1e5319`** «[M159] [met
   en lugar del recorte. Dawn lo activa por defecto **solo con GPU Apple** (`gpu_info::IsApple(vendorId)` en
   `PhysicalDeviceMTL.mm`). Trae una prueba end2end y la opción del fuzzer.
 - **¿Afecta a FlyWeb?** Casi nada:
-  - En **10.14** Dawn no arranca: WebGPU y Graphite están apagados en código (B1d, `docs/b1d/README.md`).
-  - En **10.15 o superior**, WebGPU va por Dawn Metal, pero el toggle solo se enciende con GPU Apple. Los Mac Intel
-    (Intel, AMD o NVIDIA) **no cambian**.
+  - En **10.14** Dawn no arranca: WebGPU y Graphite están apagados en código (B1d, `docs/b1d/README.md`). Con
+    `parches/3.1.1-catalina/0004` el corte sube a macOS 11, así que en 10.15 tampoco arranca si ese parche está en la base.
+    No lo he comprobado para la 3.2.x.
+  - Donde WebGPU sí va por Dawn Metal (Monterey, el «debería funcionar»), el toggle solo se enciende con GPU Apple. Los
+    Mac Intel (Intel, AMD o NVIDIA) **no cambian**.
   - Solo cambiaría algo en un Mac con Apple Silicon que ejecute FlyWeb x86_64 por Rosetta, que no es un objetivo.
 - **La base del parche no es la real:**
   - `dawn.googlesource.com` está bloqueado aquí, y el espejo de GitHub (`google/dawn`) solo tiene `main`. Por eso el
