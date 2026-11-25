@@ -439,6 +439,16 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   Para agentes nuevos de la nube, el método preferido es **un agente por tarea** con encargo escrito, que se releva solo si
   la tarea es larga; si la COORDINACIÓN local no puede abrirlos, deja el texto y los abre Titín. Pasar todo a Ubuntu: no.
 - **COORDINACIÓN en local y sin cartero (Titín, 21-11 noche, «sí, las dos»; propuesta de ARQUITECTURA, #1184):** la COORDINACIÓN se queda en la MacPro7,1 y **el cartero se retira**. Ajustes: (1) toda orden con contenido a un local va también por escrito en `buzon/<PAPEL>/` con su línea en `ENTREGADO.md`; (2) la COORDINACIÓN hace `git fetch` de `buzon` al empezar cada turno (el vigilante de 30 min es solo ayuda); (3) se vigila la rama `buzon` entera, no solo `buzon/COORDINACION/`. Horas con `date -u`. Se revisa al cerrar la 3.2.1.
+- **E1 sale tal cual, salida (a) (Titín, 25-11; COORDINACIÓN-63; `multihilo-multigpu.md` §12):** «sale tal cual, pierde en
+  pantallas grandes, pero […] reparte calor». Excepción suya a la regla del 2 % de §11.3: a escala 2 con lienzo grande y la
+  tarjeta saturada pierde un 4–6 % (≈1 ms por fotograma); a escala 1 gana. Solo actúa con dos GPU iguales y macOS < 10.15; sin
+  segunda GPU no cambia nada. Sin probar en otros Mac con dos tarjetas. Entra en la próxima versión que abra Titín (número y
+  corte, suyos). Apagado de emergencia: `FLYWEB_METAL_DISPLAY_GPU=1`.
+  - **El vídeo que pierde fotogramas junto a WebGL se revisa** como tarea propia: es un estado lento de la base (también sin
+    E1); se mira además si E1 lo alarga.
+- **Linux, aviso sin llavero (Titín, 25-11; COORDINACIÓN-63):** el texto recomendado por SEGURIDAD-PORTES (A: «Sin acceso al
+  llavero, FlyWeb no puede usar ni guardar contraseñas ni sesiones. No se pierde nada. Desbloquéalo y reinicia.»). Titín lo
+  revisará cuando pruebe Linux.
 - **D8-LINUX atiende a la COORDINACIÓN sin esperar a Titín (Titín, 23-11 tarde, en la sesión de D8-LINUX-6; COORDINACIÓN-61):** «lo que dice la COORDINACIÓN es como si lo dijera yo»; si no, se para todo. Se aplica la regla 16 también a la Ubuntu y a sus relevos. Siguen siendo de Titín el `sudo` y lo que las reglas duras le reservan (accesos, bak, secretos, datos personales).
 - **FlyWeb 3.2.2, build 50, de seguridad, ya (Titín, 23-11 ~18:57 UTC; COORDINACIÓN-61):** 3.2.1 + #1210 (`seguridad/siguiente-2`, cerrado en la punta 0901b22b39: cinco arreglos M156 de V8, GPU y AdTracker más cookies con clave temporalmente ausente y M159 de Turboshaft; época 39 → 40) + #1183 (fijadas compartidas de Brave master). Corte el 23-11: lo nuevo va a `siguiente-3` salvo Alto/Crítico/KEV, que decide Titín. Va antes que E1 en la 7,1. Pruebas en verde; lo rojo se quita; huella revisada si cambia lo declarado.
 - **Ubuntu: las dos vías para las 8 dependencias fijadas en commits que solo existen en la 7,1 (Titín, 23-11; COORDINACIÓN-61):** Skia, ANGLE, Dawn, devtools-frontend, FFmpeg, libaom, libvpx y WebRTC. (a) U2 ya con esas 8 en su versión oficial del .120, anotadas en `.gclient`; (b) LOCAL sube los 8 commits a ramas en lamosquita-net para el piloto y F1. D8-LINUX-6 necesita además el sí de Titín en su propia sesión.
