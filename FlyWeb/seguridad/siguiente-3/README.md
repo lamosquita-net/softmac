@@ -638,6 +638,11 @@ configuración de Linux compila el código.
 
 ## Revisados y no aplicables
 
+- **8154 `245f6bc0c`** [Copy Trigger] (589785441, 587818005): con las políticas de auditoría de los conectores
+  empresariales (`OnDataCopiedEnterpriseConnector`), copiar dejaba un marcador de «análisis en curso» y al pegar podía
+  faltar el texto. Es un fallo funcional del análisis de contenido empresarial, no de seguridad, y FlyWeb no usa esos
+  conectores.
+- **8078 `2e6c9eed0`**: roll de V8 a 15.6.75.85, que trae `7ef85e6153` (`brave-core/0009`), ya en la tanda.
 - **8154 `669a0a6b0d`** [M159] [net] (577402226; main `f6de74a6c2`): `QuicSessionPool` recorre las sesiones con `WeakPtr`
   y se salta las cerradas al avisarles de cambios de red. **Solo Android:** esos avisos (`OnNetworkConnected`/
   `Disconnected`/`MadeDefault`) solo llegan si `NetworkChangeNotifier::AreNetworkHandlesSupported()`, y en la 156 solo
@@ -646,6 +651,7 @@ configuración de Linux compila el código.
 - **8154 `9bce4066b1`** [M159] (586611778): `DesktopCaptureDevice` pide el `SharedImageInterface` en el hilo de la UI y no
   en el de captura. **Solo Windows:** en la 156, ese código solo corre con capturas de textura (`frame->texture()`, un
   `HANDLE` de D3D11 del capturador WGC). En Mac, la captura de pantalla entrega fotogramas en memoria y nunca llega ahí.
+  Su gemelo M156, 8078 `5eaee3b93`, tampoco aplica.
 - **8154 `30643ce52`** [M159] [webapps] (579501075, 579501200): si llega por sync una aplicación web sin nombre, ya no
   salta un `CHECK` (cierre controlado) en la instalación. Es estabilidad, no seguridad: los datos vienen de la propia
   cuenta de sync, no de una web. Toca siete ficheros, `web_app_specifics.proto` incluido. Fuera de la tanda; se recoge
