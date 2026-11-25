@@ -13,6 +13,7 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0009` | **`8ad838f115`** (hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
 | chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0019` | **`2ffe7d5d87`** (hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| Skia | árbol **`1ef25455d7`** (fork `lamosquita-net/skia` `d361a1e371`, árbol `a934afed14`, + `pendiente/skia/0001`–`0003`, que entraron en la 3.2.0) | `skia/0001` | **`bc0519fc6a`** |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
@@ -430,6 +431,26 @@ que no está en la 159). Entra tal cual: es una 156 sobre una 156. **Gravedad no
 - **Aplica a Mac.** Brave no sobrescribe `PageInfoBubbleViewBase` ni `WebContentsDestroyed` de estas clases. Sus
   `chromium_src` de PageInfo son de cookies y de la fábrica de vistas.
 
+## `skia/0001`: [M156] Skia (Ganesh), `SoftwarePathRenderer` sin dominio de máscara (crbug 589186681)
+
+**`afb64bc731`** de Skia `chrome/m156` (22-11), traído por el roll de la 8078 `fee3d01f00` (25-11 17:31 UTC; bug del merge
+589982319). Entra tal cual. **Gravedad no publicada.**
+- **El fallo:** `SoftwarePathRenderer::DrawToTargetWithShapeMask` pasaba a `GrTextureEffect::MakeSubset` un `maskDomain`
+  calculado en CPU. Con traslaciones enormes y escalas no unitarias, el redondeo de `float32` podía meter el dominio hacia
+  dentro y quitar el recorte del *shader*. Entonces se muestreaban texels viejos de texturas de máscara A8 reutilizadas:
+  píxeles de otro dibujo, una fuga de contenido.
+- **El arreglo:** se quita el `maskDomain`, así que esas máscaras siempre recortan a `maskSubset`. Trae
+  `tests/SoftwarePathRendererTest.cpp` (en `gn/tests.gni`).
+- **Aplica a Mac:** FlyWeb en Mojave dibuja con Ganesh sobre OpenGL (`docs/macos11-niveles.md`, `kSkiaGraphite` apagada), y
+  el *software path renderer* es el respaldo de Ganesh para trazados que la GPU no hace.
+- **Cómo entra** (como `pendiente/skia/`): nuestro Skia **no** es el `9d96dfeb45` de la 8078, sino el fork
+  `lamosquita-net/skia` `d361a1e371` (una de las 8 dependencias fijadas en la 7,1, árbol `a934afed14`) más
+  `pendiente/skia/0001`–`0003`, que ya incluían el `9d96dfeb45`. LOCAL lo aplica con `git am` en `src/third_party/skia` detrás
+  de esos tres. **Comprobado aquí:** con el fork y los tres parches sale el árbol `1ef25455d7`, como en `pendiente/`, y este
+  aplica limpio y da `bc0519fc6a`. Lo traje del espejo `github.com/google/skia`, porque skia.googlesource.com está bloqueado
+  desde la nube. No se sube el `DEPS` a `afb64bc731` de upstream, porque perderíamos lo del fork.
+- Revisado desde la 7,1 por COORDINACIÓN-63: es el único commit del roll.
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Gravedad no publicada; es una salida del sandbox de V8.**
@@ -658,6 +679,8 @@ Nada se ha compilado ni probado en la nube.
 - `browser_tests --gtest_filter='PageInfoBubbleViewBrowserTest.*'` (sobre todo `OpenSiteSettingsWhenWebContentsDestroyed`) y
   `unit_tests --gtest_filter='PageInfoTest.*'`; a mano, en la 6,1: abrir la burbuja, pulsar «Configuración de sitios» y
   cerrar la pestaña con Cmd+W enseguida (chromium/0019).
+- Skia: `dm --src tests --config gl --match SoftwarePathRenderer` (o `skia_unittests` con ese filtro), y a mano en la 6,1 y la
+  5,1 una página con trazados grandes y transformados, comparada con la 3.2.2 (skia/0001).
 - `media_unittests --gtest_filter='*DecoderSelectorTest.*:*DecoderStreamTest.*'` y vídeo cifrado con Clear Key, cerrando
   la pestaña mientras carga (chromium/0018).
 - `content_unittests --gtest_filter='FileSystemAccess*HandleImplTest.*:FileSystemAccessHandleBaseTest.*'` y
@@ -682,8 +705,6 @@ configuración de Linux compila el código.
 - **8154 `65f6c4cb6`**: roll de ANGLE en M159 con un solo commit, `2ec7b6db14` «[M159] GL: Read the last row separately when
   a pack fills its buffer» (588202947, 551017142). Es una solución de ANGLE GL para drivers **Mali** (GLES), que solo se
   activa con ellos. **No aplica:** en Mac no hay Mali y WebGL va por Metal.
-- **8078 `fee3d01f00`**: roll de Skia en M156, de `9d96dfeb45` a `afb64bc731`. **Pendiente:** skia.googlesource.com está
-  bloqueado desde aquí; se ha pedido a COORDINACIÓN que lo mire desde la 7,1.
 - **8078 `107cb0a46c`**: roll de Dawn en M156, de `64d303d0bd` a `7b7e6ba308`. Trae un solo commit, `7b7e6ba308` «[M156] DEPS:
   Update DXC to patched branch» (588203839, 588203249, 588203897, 588203012, 589981981, 589982096, 589980992). Lo miró
   COORDINACIÓN-63 desde la 7,1; aquí dawn.googlesource.com sigue bloqueado. **No aplica:** DXC es el compilador de shaders

@@ -28,3 +28,4 @@ a407276aa22ed7b31886d06c90bd6ed9b0ba3c3d45a65f9397246d11d362aac7  libvpx/0001-vp
 2683f8d87a779247aaa5fc170c5f1515dcfcc18831b937462660c18eeca9de6c  chromium/0018-M159-media-Retain-decoder-ownership-in-DecoderSelect.patch
 5c18fc516e9739a1250d4c50491623048a6f62f6aa5d60c6a247a673f8e3203b  brave-core/0009-v8-keep-single-input-Phis-tagged-in-maglev-phi-untag.patch
 82e0de3647095ea51d776993becd09c444279b4a5575478d5c0ed3532be15610  chromium/0019-M159-PageInfo-Close-bubble-synchronously-on-WebConte.patch
+b784b0ecffeb250308f87f1e35a4bb16b57da65c936f0b4c79be5172e4928c98  skia/0001-M156-ganesh-Drop-mask-domain-in-SoftwarePathRenderer.patch
