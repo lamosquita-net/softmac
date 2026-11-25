@@ -446,6 +446,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   corte, suyos). Apagado de emergencia: `FLYWEB_METAL_DISPLAY_GPU=1`.
   - **El vídeo que pierde fotogramas junto a WebGL se revisa** como tarea propia: es un estado lento de la base (también sin
     E1); se mira además si E1 lo alarga.
+- **Linux sin llavero: la usabilidad manda (Titín, 25-11; COORDINACIÓN-63; «vale, me parece bien»):** nunca pedir la
+  contraseña del usuario de más («cuando complicas el uso de contraseñas seguras dejas de usar contraseñas seguras»); el
+  modelo de amenaza es el robo del ordenador. Sin llavero (o bloqueado), la clave `fw1` va en un fichero 0600 del perfil y
+  FlyWeb guarda con normalidad; FlyWeb no dispara el diálogo de desbloqueo del llavero. SEGURIDAD-PORTES propone diseño,
+  migración y qué queda de la barra y de la burbuja (encargo `buzon/NUBE-SEGURIDAD-PORTES/20261125-1431-…`); decide Titín.
 - **Linux, aviso sin llavero (Titín, 25-11; COORDINACIÓN-63):** el texto recomendado por SEGURIDAD-PORTES (A: «Sin acceso al
   llavero, FlyWeb no puede usar ni guardar contraseñas ni sesiones. No se pierde nada. Desbloquéalo y reinicia.»). Titín lo
   revisará cuando pruebe Linux.
