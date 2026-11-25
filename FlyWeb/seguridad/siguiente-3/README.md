@@ -12,11 +12,11 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0009` | **`8ad838f115`** (hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0018` | **`e0d888ebec`** (hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0019` | **`2ffe7d5d87`** (hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d` y, con `0018`, `e0d888ebec`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec` y, con `0019`, `2ffe7d5d87`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -407,6 +407,29 @@ que no está en la 159). Entra tal cual: es una 156 sobre una 156. **Gravedad no
 - **Ya hay gemelo M156:** 8078 **`0efe9d618`** (25-11 10:07 UTC; merge 590348671), con el mismo `patch-id` (`7915dcd3a1`).
   El parche no cambia.
 
+## `chromium/0019`: [M159] PageInfo, la burbuja se cierra en el acto cuando se destruye la pestaña (crbug 587263538)
+
+**`ac2c1b3ee9`** de la **8154** (25-11 13:45 UTC; bug del merge 589981304; main `6ababafece`, #1751797). **Adaptado a la
+156.** **Gravedad no publicada.**
+- **El fallo:** al pulsar «Configuración de sitios» en la burbuja de información del sitio se encola
+  `PageInfoMainView::HandleMoreInfoRequestAsync`. Si en ese momento se cierra la pestaña, el `WebContents` se destruye de
+  inmediato, pero la burbuja se cerraba de forma asíncrona (`Close()`). La burbuja y sus delegados seguían vivos apuntando a
+  un `WebContents` ya liberado: **uso tras liberar en el proceso del navegador**. En la 156 ese camino es el mismo (con
+  `weak_factory_.GetWeakPtr()` en `page_info_main_view.cc`).
+- **El arreglo:** `WebContentsDestroyed()` deja de observar y llama a `CloseNow()`, que destruye la burbuja antes de
+  que acabe el desmontaje. `RenderFrameDeleted()` y la de *safety tip* no llaman a `Close()` durante la destrucción.
+  `WebContentsDestroyed` pasa a `final` y `PageInfoBubbleView` pierde su versión, que solo invalidaba sus `WeakPtr`. Además,
+  los `raw_ptr<WebContents>` de los delegados ya no se marcan como colgantes.
+- **Adaptación (todo lo demás entra tal cual):**
+  - La 159 limpia además `PageInfoBubbleTracker`, que la 156 no tiene: llegó con una refactorización posterior. En la 156
+    la burbuja se registra en dos variables globales de `page_info_bubble_view_base.cc`, que vacía `OnWidgetDestroying()`.
+    `CloseNow()` lo llama en el acto, así que esa parte sobra.
+  - La prueba nueva del navegador usa la API de la 156: `GetShownBubbleType()` y `GetPageInfoBubbleForTesting()` sin
+    argumentos.
+  - La nota está en el mensaje del commit.
+- **Aplica a Mac.** Brave no sobrescribe `PageInfoBubbleViewBase` ni `WebContentsDestroyed` de estas clases. Sus
+  `chromium_src` de PageInfo son de cookies y de la fábrica de vistas.
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Gravedad no publicada; es una salida del sandbox de V8.**
@@ -617,6 +640,9 @@ Nada se ha compilado ni probado en la nube.
   p. ej. la muestra «scalable video coding» de webrtc.github.io), cambiando la resolución y desactivando capas a mitad de
   llamada (chromium/0015; con la reserva, lo mismo).
 - `content_unittests --gtest_filter='CacheStorageBlobToDiskCacheTest.*:*CacheStorageCacheTest.*'` (chromium/0017).
+- `browser_tests --gtest_filter='PageInfoBubbleViewBrowserTest.*'` (sobre todo `OpenSiteSettingsWhenWebContentsDestroyed`) y
+  `unit_tests --gtest_filter='PageInfoTest.*'`; a mano, en la 6,1: abrir la burbuja, pulsar «Configuración de sitios» y
+  cerrar la pestaña con Cmd+W enseguida (chromium/0019).
 - `media_unittests --gtest_filter='*DecoderSelectorTest.*:*DecoderStreamTest.*'` y vídeo cifrado con Clear Key, cerrando
   la pestaña mientras carga (chromium/0018).
 - `content_unittests --gtest_filter='FileSystemAccess*HandleImplTest.*:FileSystemAccessHandleBaseTest.*'` y

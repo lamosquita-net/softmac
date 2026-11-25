@@ -1,0 +1,284 @@
+From 825ba6244cc36f90e9db24a1bc30de9021046939 Mon Sep 17 00:00:00 2001
+From: Christian Dullweber <dullweber@chromium.org>
+Date: Wed, 25 Nov 2026 05:45:32 -0800
+Subject: [PATCH] [M159] [PageInfo] Close bubble synchronously on WebContents
+ destruction
+
+Original change's description:
+> [PageInfo] Close bubble synchronously on WebContents destruction
+>
+> Call CloseNow() in PageInfoBubbleViewBase::WebContentsDestroyed() so the
+> bubble widget, presenter, and delegates are destroyed before WebContents
+> teardown finishes, removing the need for WeakPtr<WebContents> and
+> per-method null checks.
+>
+> Fixed: 587263538
+> Change-Id: I05b6aea18db468561adfb8b33a7a472a22d67386
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8832948
+> Auto-Submit: Christian Dullweber <dullweber@chromium.org>
+> Reviewed-by: Olesia Marukhno <olesiamarukhno@google.com>
+> Commit-Queue: Olesia Marukhno <olesiamarukhno@google.com>
+> Cr-Commit-Position: refs/heads/main@{#1751797}
+
+(cherry picked from commit 6ababafecef52326c9edd6a5d153fe5673ad7059)
+
+Bug: 589981304,587263538
+Change-Id: I05b6aea18db468561adfb8b33a7a472a22d67386
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8857027
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1725}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+
+FlyWeb (156): adapted. 156 has no PageInfoBubbleTracker (it came with a
+later 159 refactor); the bubble is tracked by the process-wide globals in
+page_info_bubble_view_base.cc, which OnWidgetDestroying() clears and
+CloseNow() reaches synchronously, so WebContentsDestroyed() only stops
+observing and calls CloseNow(). The new browser test uses the 156 API
+(GetShownBubbleType(), GetPageInfoBubbleForTesting() without arguments).
+---
+ .../ui/page_info/chrome_page_info_delegate.h  |  6 +--
+ .../page_info/chrome_page_info_ui_delegate.h  |  2 +-
+ .../ui/page_info/page_info_unittest.cc        |  2 +-
+ .../views/page_info/page_info_bubble_view.cc  |  5 --
+ .../views/page_info/page_info_bubble_view.h   |  3 --
+ .../page_info/page_info_bubble_view_base.cc   |  8 ++-
+ .../page_info/page_info_bubble_view_base.h    |  2 +-
+ .../page_info_bubble_view_browsertest.cc      | 50 +++++++++++++++++++
+ .../safety_tip_page_info_bubble_view.cc       |  8 +--
+ 9 files changed, 66 insertions(+), 20 deletions(-)
+
+diff --git a/chrome/browser/ui/page_info/chrome_page_info_delegate.h b/chrome/browser/ui/page_info/chrome_page_info_delegate.h
+index 4c1526695b..4d6b01dddb 100644
+--- a/chrome/browser/ui/page_info/chrome_page_info_delegate.h
++++ b/chrome/browser/ui/page_info/chrome_page_info_delegate.h
+@@ -148,9 +148,7 @@ class ChromePageInfoDelegate : public PageInfoDelegate {
+   // Focus the window and tab for the web contents.
+   void FocusWebContents();
+ 
+-  // The sentiment service is owned by the profile and will outlive this. The
+-  // service cannot be retrieved via |web_contents_| as that may be destroyed
+-  // before this is.
++  // The sentiment service is owned by the profile and will outlive this.
+   raw_ptr<TrustSafetySentimentService> sentiment_service_;
+ #endif
+ 
+@@ -160,7 +158,7 @@ class ChromePageInfoDelegate : public PageInfoDelegate {
+   // but can be overridden by callers for WebContents not directly hosted as
+   // browser tabs (e.g. payment handler dialogs or modal web dialogs).
+   GetBrowserCallback get_browser_callback_;
+-  raw_ptr<content::WebContents, AcrossTasksDanglingUntriaged> web_contents_;
++  raw_ptr<content::WebContents> web_contents_;
+   security_state::SecurityLevel security_level_for_tests_;
+   security_state::VisibleSecurityState visible_security_state_for_tests_;
+   bool security_state_for_tests_set_ = false;
+diff --git a/chrome/browser/ui/page_info/chrome_page_info_ui_delegate.h b/chrome/browser/ui/page_info/chrome_page_info_ui_delegate.h
+index 085f6f5b87..b4dc49fdaf 100644
+--- a/chrome/browser/ui/page_info/chrome_page_info_ui_delegate.h
++++ b/chrome/browser/ui/page_info/chrome_page_info_ui_delegate.h
+@@ -97,7 +97,7 @@ class ChromePageInfoUiDelegate : public PageInfoUiDelegate {
+  private:
+   Profile* GetProfile() const;
+ 
+-  raw_ptr<content::WebContents, AcrossTasksDanglingUntriaged> web_contents_;
++  raw_ptr<content::WebContents> web_contents_;
+   GURL site_url_;
+ };
+ 
+diff --git a/chrome/browser/ui/page_info/page_info_unittest.cc b/chrome/browser/ui/page_info/page_info_unittest.cc
+index 9e3e5fb667..2dadd9b2e4 100644
+--- a/chrome/browser/ui/page_info/page_info_unittest.cc
++++ b/chrome/browser/ui/page_info/page_info_unittest.cc
+@@ -194,9 +194,9 @@ class PageInfoTest : public ChromeRenderViewHostTestHarness {
+   void TearDown() override {
+     ASSERT_TRUE(page_info_ || incognito_page_info_)
+         << "No PageInfo instance created.";
+-    incognito_web_contents_.reset();
+     page_info_.reset();
+     incognito_page_info_.reset();
++    incognito_web_contents_.reset();
+     ChromeRenderViewHostTestHarness::TearDown();
+   }
+ 
+diff --git a/chrome/browser/ui/views/page_info/page_info_bubble_view.cc b/chrome/browser/ui/views/page_info/page_info_bubble_view.cc
+index 3f36fc7c68..3804499b20 100644
+--- a/chrome/browser/ui/views/page_info/page_info_bubble_view.cc
++++ b/chrome/browser/ui/views/page_info/page_info_bubble_view.cc
+@@ -354,11 +354,6 @@ void PageInfoBubbleView::OnWidgetDestroying(views::Widget* widget) {
+   }
+ }
+ 
+-void PageInfoBubbleView::WebContentsDestroyed() {
+-  PageInfoBubbleViewBase::WebContentsDestroyed();
+-  weak_factory_.InvalidateWeakPtrs();
+-}
+-
+ gfx::Size PageInfoBubbleView::CalculatePreferredSize(
+     const views::SizeBounds& available_size) const {
+   if (page_container_ == nullptr) {
+diff --git a/chrome/browser/ui/views/page_info/page_info_bubble_view.h b/chrome/browser/ui/views/page_info/page_info_bubble_view.h
+index 6881e79d73..5d0e0b57c9 100644
+--- a/chrome/browser/ui/views/page_info/page_info_bubble_view.h
++++ b/chrome/browser/ui/views/page_info/page_info_bubble_view.h
+@@ -71,7 +71,6 @@ class PageInfoBubbleView : public PageInfoBubbleViewBase,
+   gfx::Size CalculatePreferredSize(
+       const views::SizeBounds& available_size) const override;
+   void OnWidgetDestroying(views::Widget* widget) override;
+-  void WebContentsDestroyed() override;
+   void ChildPreferredSizeChanged(views::View* child) override;
+ 
+   void AnnouncePageOpened(std::u16string announcement);
+@@ -88,8 +87,6 @@ class PageInfoBubbleView : public PageInfoBubbleViewBase,
+   raw_ptr<PageSwitcherView> page_container_ = nullptr;
+ 
+   PageInfoClosingCallback closing_callback_;
+-
+-  base::WeakPtrFactory<PageInfoBubbleView> weak_factory_{this};
+ };
+ 
+ #endif  // CHROME_BROWSER_UI_VIEWS_PAGE_INFO_PAGE_INFO_BUBBLE_VIEW_H_
+diff --git a/chrome/browser/ui/views/page_info/page_info_bubble_view_base.cc b/chrome/browser/ui/views/page_info/page_info_bubble_view_base.cc
+index 302104f872..2cd08d4b54 100644
+--- a/chrome/browser/ui/views/page_info/page_info_bubble_view_base.cc
++++ b/chrome/browser/ui/views/page_info/page_info_bubble_view_base.cc
+@@ -78,7 +78,8 @@ void PageInfoBubbleViewBase::OnWidgetDestroying(views::Widget* widget) {
+ 
+ void PageInfoBubbleViewBase::RenderFrameDeleted(
+     content::RenderFrameHost* render_frame_host) {
+-  if (render_frame_host->IsInPrimaryMainFrame()) {
++  if (render_frame_host->IsInPrimaryMainFrame() &&
++      !web_contents()->IsBeingDestroyed()) {
+     GetWidget()->Close();
+   }
+ }
+@@ -100,7 +101,10 @@ void PageInfoBubbleViewBase::DidChangeVisibleSecurityState() {
+ }
+ 
+ void PageInfoBubbleViewBase::WebContentsDestroyed() {
+-  GetWidget()->Close();
++  Observe(nullptr);
++  if (views::Widget* widget = GetWidget()) {
++    widget->CloseNow();
++  }
+ }
+ 
+ BEGIN_METADATA(PageInfoBubbleViewBase)
+diff --git a/chrome/browser/ui/views/page_info/page_info_bubble_view_base.h b/chrome/browser/ui/views/page_info/page_info_bubble_view_base.h
+index 9e28653f6f..4e3875e17b 100644
+--- a/chrome/browser/ui/views/page_info/page_info_bubble_view_base.h
++++ b/chrome/browser/ui/views/page_info/page_info_bubble_view_base.h
+@@ -65,7 +65,7 @@ class PageInfoBubbleViewBase : public views::BubbleDialogDelegateView,
+   void OnWidgetDestroying(views::Widget* widget) override;
+ 
+   // WebContentsObserver:
+-  void WebContentsDestroyed() override;
++  void WebContentsDestroyed() final;
+ 
+  private:
+   friend class SafetyTipPageInfoBubbleViewBrowserTest;
+diff --git a/chrome/browser/ui/views/page_info/page_info_bubble_view_browsertest.cc b/chrome/browser/ui/views/page_info/page_info_bubble_view_browsertest.cc
+index d181b022d7..922e02495d 100644
+--- a/chrome/browser/ui/views/page_info/page_info_bubble_view_browsertest.cc
++++ b/chrome/browser/ui/views/page_info/page_info_bubble_view_browsertest.cc
+@@ -5,7 +5,9 @@
+ #include "chrome/browser/ui/views/page_info/page_info_bubble_view.h"
+ 
+ #include "base/files/file_util.h"
++#include "base/location.h"
+ #include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
+ #include "base/run_loop.h"
+ #include "base/scoped_observation.h"
+ #include "base/strings/escape.h"
+@@ -36,6 +38,7 @@
+ #include "chrome/browser/ui/immersive/immersive_mode_controller.h"
+ #include "chrome/browser/ui/page_info/chrome_page_info_delegate.h"
+ #include "chrome/browser/ui/page_info/page_info_dialog.h"
++#include "chrome/browser/ui/tabs/tab_enums.h"
+ #include "chrome/browser/ui/tabs/tab_strip_model.h"
+ #include "chrome/browser/ui/ui_features.h"
+ #include "chrome/browser/ui/view_ids.h"
+@@ -76,6 +79,7 @@
+ #include "components/strings/grit/components_strings.h"
+ #include "components/strings/grit/privacy_sandbox_strings.h"
+ #include "components/ukm/test_ukm_recorder.h"
++#include "content/public/browser/browser_thread.h"
+ #include "content/public/browser/file_system_access_permission_context.h"
+ #include "content/public/browser/navigation_handle.h"
+ #include "content/public/browser/render_frame_host.h"
+@@ -394,6 +398,52 @@ IN_PROC_BROWSER_TEST_F(PageInfoBubbleViewBrowserTest,
+             PageInfoBubbleView::GetShownBubbleType());
+ }
+ 
++// Regression test for crbug.com/587263538: clicking "Site settings" posts an
++// asynchronous task while closing the tab destroys WebContents synchronously.
++// Verify that WebContents destruction synchronously closes and destroys the
++// Page Info bubble widget, cancelling pending UI tasks before WebContents
++// teardown completes.
++IN_PROC_BROWSER_TEST_F(PageInfoBubbleViewBrowserTest,
++                       OpenSiteSettingsWhenWebContentsDestroyed) {
++  // Open a background tab so closing the active tab does not close the
++  // browser window.
++  ASSERT_TRUE(AddTabAtIndex(0, GURL("data:text/html,<p>puppies!</p>"),
++                            ui::PAGE_TRANSITION_TYPED));
++  ASSERT_TRUE(ui_test_utils::NavigateToURL(
++      browser(), embedded_test_server()->GetURL("/title1.html")));
++  OpenPageInfoBubble(browser());
++  EXPECT_EQ(PageInfoBubbleView::BUBBLE_PAGE_INFO,
++            PageInfoBubbleView::GetShownBubbleType());
++
++  auto* bubble = static_cast<PageInfoBubbleView*>(
++      PageInfoBubbleView::GetPageInfoBubbleForTesting());
++  ASSERT_NE(nullptr, bubble);
++  ASSERT_NE(nullptr, bubble->GetWidget());
++  base::WeakPtr<views::Widget> bubble_widget =
++      bubble->GetWidget()->GetWeakPtr();
++  views::View* site_settings_button = GetView(
++      PageInfoViewFactory::VIEW_ID_PAGE_INFO_LINK_OR_BUTTON_SITE_SETTINGS);
++  ASSERT_NE(nullptr, site_settings_button);
++
++  // Post `PageInfoMainView::HandleMoreInfoRequestAsync` before destroying the
++  // WebContents, then synchronously destroy the WebContents.
++  PerformMouseClickOnView(site_settings_button);
++  browser()->GetTabStripModel()->CloseWebContentsAt(
++      browser()->GetTabStripModel()->active_index(), TabCloseTypes::CLOSE_NONE);
++
++  // The bubble widget (and its views/delegates) must already be destroyed
++  // synchronously before `CloseWebContentsAt` returns.
++  EXPECT_FALSE(bubble_widget);
++
++  // Drain the UI thread task queue past `HandleMoreInfoRequestAsync` to ensure
++  // the cancelled task is a safe no-op and does not open a Site Settings tab.
++  base::RunLoop run_loop;
++  content::GetUIThreadTaskRunner({})->PostTask(FROM_HERE,
++                                               run_loop.QuitClosure());
++  run_loop.Run();
++  EXPECT_EQ(1, browser()->GetTabStripModel()->count());
++}
++
+ IN_PROC_BROWSER_TEST_F(PageInfoBubbleViewBrowserTest, ChromeURL) {
+   ASSERT_TRUE(
+       ui_test_utils::NavigateToURL(browser(), GURL("chrome://settings")));
+diff --git a/chrome/browser/ui/views/page_info/safety_tip_page_info_bubble_view.cc b/chrome/browser/ui/views/page_info/safety_tip_page_info_bubble_view.cc
+index edd7dc3183..6c45ce7003 100644
+--- a/chrome/browser/ui/views/page_info/safety_tip_page_info_bubble_view.cc
++++ b/chrome/browser/ui/views/page_info/safety_tip_page_info_bubble_view.cc
+@@ -187,9 +187,11 @@ void SafetyTipPageInfoBubbleView::RenderFrameDeleted(
+     action_taken_ = SafetyTipInteraction::kCloseTab;
+   }
+ 
+-  // There's no great ClosedReason for this, so we use kUnspecified to signal
+-  // that a more specific action_taken_ may have already been set.
+-  GetWidget()->CloseWithReason(views::Widget::ClosedReason::kUnspecified);
++  if (!web_contents()->IsBeingDestroyed()) {
++    // There's no great ClosedReason for this, so we use kUnspecified to signal
++    // that a more specific action_taken_ may have already been set.
++    GetWidget()->CloseWithReason(views::Widget::ClosedReason::kUnspecified);
++  }
+ }
+ 
+ void SafetyTipPageInfoBubbleView::OnVisibilityChanged(
+-- 
+2.43.0
+
