@@ -1,0 +1,797 @@
+diff --git a/browser/sources.gni b/browser/sources.gni
+index 42afe79d..a6f720f4 100644
+--- a/browser/sources.gni
++++ b/browser/sources.gni
+@@ -211,6 +211,12 @@ if (is_mac) {
+   ]
+ }
+ 
++if (is_linux) {
++  # FlyWeb (U3): the `fw1` key lives in a file of the user data dir.
++  brave_chrome_browser_deps +=
++      [ "//brave/components/flyweb_os_crypt:fw1_file_key_provider" ]
++}
++
+ if (enable_sparkle) {
+   brave_chrome_browser_sources += [
+     "//brave/browser/mac/keystone_infobar_delegate.mm",
+diff --git a/chromium_src/chrome/browser/browser_process_impl.cc b/chromium_src/chrome/browser/browser_process_impl.cc
+index 292a3d6f..1b8922ba 100644
+--- a/chromium_src/chrome/browser/browser_process_impl.cc
++++ b/chromium_src/chrome/browser/browser_process_impl.cc
+@@ -19,6 +19,19 @@
+   providers.emplace_back(std::make_pair(                        \
+       os_crypt_async::Fw1KeyProvider::kPrecedence,              \
+       std::make_unique<os_crypt_async::Fw1KeyProvider>()));
++#elif BUILDFLAG(IS_LINUX)
++#include "base/path_service.h"
++#include "brave/components/flyweb_os_crypt/fw1_file_key_provider_linux.h"
++#include "chrome/common/chrome_paths.h"
++// FlyWeb `fw1` on Linux (U3, Titín 25-11): the same key in a 0600 file of the
++// user data dir; the keyring is never asked (no unlock dialog). Precedence
++// 20, above `v10` (5), which is only registered with --password-store=basic.
++#define BRAVE_BROWSER_PROCESS_IMPL_ADD_OS_CRYPT_ASYNC_PROVIDERS          \
++  providers.emplace_back(std::make_pair(                                 \
++      os_crypt_async::Fw1FileKeyProvider::kPrecedence,                   \
++      std::make_unique<os_crypt_async::Fw1FileKeyProvider>(              \
++          base::PathService::CheckedGet(chrome::DIR_USER_DATA)           \
++              .Append(os_crypt_async::Fw1FileKeyProvider::kKeyFileName))));
+ #else
+ #define BRAVE_BROWSER_PROCESS_IMPL_ADD_OS_CRYPT_ASYNC_PROVIDERS
+ #endif
+diff --git a/components/flyweb_os_crypt/BUILD.gn b/components/flyweb_os_crypt/BUILD.gn
+index 90485345..a0001a7a 100644
+--- a/components/flyweb_os_crypt/BUILD.gn
++++ b/components/flyweb_os_crypt/BUILD.gn
+@@ -3,8 +3,9 @@
+ # License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ # You can obtain one at https://mozilla.org/MPL/2.0/.
+ 
+-# FlyWeb `fw1` key provider for os_crypt_async (FS.25, FM.51), Mac only, and
+-# the tests of FlyWeb's Encryptor rules (Mac and Linux).
++# FlyWeb `fw1` key providers for os_crypt_async: the keychain one on Mac
++# (FS.25, FM.51), the file one on Linux (U3), and the tests of FlyWeb's
++# Encryptor rules (Mac and Linux).
+ assert(is_mac || is_linux)
+ 
+ if (is_mac) {
+@@ -29,6 +30,25 @@ if (is_mac) {
+   }
+ }
+ 
++if (is_linux) {
++  source_set("fw1_file_key_provider") {
++    sources = [
++      "fw1_file_key_provider_linux.cc",
++      "fw1_file_key_provider_linux.h",
++    ]
++
++    public_deps =
++        [ "//components/os_crypt/async/browser:key_provider_interface" ]
++
++    deps = [
++      "//base",
++      "//components/os_crypt/async/common",
++      "//crypto",
++      "//third_party/boringssl",
++    ]
++  }
++}
++
+ source_set("unit_tests") {
+   testonly = true
+   sources = [ "encryptor_legacy_unittest.cc" ]
+@@ -50,4 +70,13 @@ source_set("unit_tests") {
+       "//crypto:mock_apple_keychain",
+     ]
+   }
++
++  if (is_linux) {
++    sources += [ "fw1_file_key_provider_linux_unittest.cc" ]
++    deps += [
++      ":fw1_file_key_provider",
++      "//components/os_crypt/async/browser:posix_key_provider",
++      "//crypto",
++    ]
++  }
+ }
+diff --git a/components/flyweb_os_crypt/README.md b/components/flyweb_os_crypt/README.md
+index 7900b568..2cb97071 100644
+--- a/components/flyweb_os_crypt/README.md
++++ b/components/flyweb_os_crypt/README.md
+@@ -28,27 +28,36 @@ porte a Chromium 156, `FlyWeb/docs/brave-propio.md` §11.8.2 y §12.
+   - **Valor `fw1` ilegible con la clave presente** (valor corrupto, o proveedor no registrado): se pierde esa cookie sola
+     (se borra su fila con el mecanismo de las no canónicas de la 156), no todo su eTLD+1.
+ 
+-## Linux (U3 §2.1, opción B)
++## Linux (U3: clave en fichero, Titín 25-11)
+ 
+-No hay clase propia: `fw1` es el proveedor de Chromium (`FreedesktopSecretKeyProvider`, Secret Service o KWallet)
+-con `patches/components-os_crypt-async-browser-freedesktop_secret_key_provider.*`:
++`fw1` en Linux es `Fw1FileKeyProvider` (`fw1_file_key_provider_linux.*`): la misma clave y el mismo formato que en Mac,
++pero en un fichero y no en un llavero.
+ 
+-- Nombres de FlyWeb: `application=flyweb`, «FlyWeb Safe Storage», carpeta de KWallet «FlyWeb Keys»; nunca el ítem de
+-  Brave. Producto «FlyWeb» para KWallet.
+-- Mismo formato que en Mac: el secreto es la Base64 de 32 bytes aleatorios y es la clave AES-256-GCM, sin KDF, sal ni
+-  `info`; etiqueta `fw1`. Un secreto que no sea eso no se usa ni se sustituye.
+-- Todo fallo es `kTemporarilyUnavailable`. Solo se escribe un secreto si el llavero contesta y no tiene ninguno: una
+-  búsqueda fallida, una entrada vacía de KWallet o la falta de colección por defecto no crean nada (upstream crea una
+-  colección nueva y la hace la de por defecto).
+-- Registro (`patches/chrome-browser-browser_process_impl.cc.patch`): sin portal de secretos; `PosixKeyProvider` (`v10`,
+-  clave fija y pública) solo con `--password-store=basic`. Sin llavero no se cifra nada, y por tanto no se guardan
+-  contraseñas ni cookies nuevas.
+-- Cookies: lo de arriba vale igual en Linux. Un llavero cerrado, denegado o ausente es «clave solo ausente en ese
+-  arranque»: las filas `fw1` se quedan sin cargar y sin borrar. También con `--password-store=basic`, que cifra con `v10`
+-  pero no da la clave `fw1`: mientras se use, las filas `fw1` quedan sin cargar.
++- **Dónde:** `<carpeta de datos>/FlyWeb Safe Storage` (normalmente `~/.config/LaMosquita/FlyWeb/FlyWeb Safe Storage`),
++  permisos 0600. Contiene la Base64 de 32 bytes aleatorios, que es la clave AES-256-GCM, sin KDF, sal ni `info`; etiqueta
++  `fw1`. Se acepta un salto de línea final, por si se restaura a mano.
++- **El llavero no se usa nunca.** El `FreedesktopSecretKeyProvider` no se registra
++  (`patches/chrome-browser-browser_process_impl.cc.patch`), así que FlyWeb no abre el diálogo «Unlock Login Keyring» ni
++  espera a D-Bus al arrancar. Una sola clave en un solo sitio: una clave en el llavero y otra en el fichero llevarían las
++  dos la etiqueta `fw1`, y cada una dejaría ilegible lo de la otra.
++- **Creación:** solo si el fichero no existe. Se escribe en un temporal 0600 y se enlaza con `link()`, que falla si ya
++  existe: nunca se sustituye un fichero y un corte a medias no deja una clave a medias.
++- **Lectura:** sin seguir enlaces simbólicos (`O_NOFOLLOW`), solo un fichero normal del mismo usuario. Si alguien abrió
++  los permisos, se vuelven a 0600 y se sigue.
++- **Todo fallo es `kTemporarilyUnavailable`** (fichero dañado, ajeno, enlace simbólico, carpeta sin permiso de
++  escritura): no se cifra nada, no se borra nada, y el fichero se queda como estaba.
++- **Registro:** `fw1` con precedencia 20 (`chromium_src/chrome/browser/browser_process_impl.cc`). Sin portal de secretos.
++  `PosixKeyProvider` (`v10`, clave fija y pública) solo con `--password-store=basic`, y solo para leer lo que haya escrito
++  una compilación de prueba: `fw1` cifra todo lo nuevo, también con `basic`.
++- **Cookies:** lo de arriba vale igual. Con la clave en el fichero, «clave ausente» ya solo pasa con el fichero dañado.
+ - La regla del texto claro heredado de `encryptor.cc` es solo de Mac: en Linux no hay 2.x que migrar.
+-- Perfil: `~/.config/LaMosquita/FlyWeb` (`chromium_src/chrome/common/chrome_paths_linux.cc`).
+-- Límite: Secret Service no separa aplicaciones; otro proceso del mismo usuario puede leer el secreto.
++- **Perfil:** `~/.config/LaMosquita/FlyWeb` (`chromium_src/chrome/common/chrome_paths_linux.cc`).
++- **Límite (aceptado por Titín):** la clave protege los datos copiados sin el perfil (un `Cookies` o `Login Data` en una
++  copia de seguridad o una carpeta sincronizada). No protege frente a un ordenador robado sin cifrado de disco, ni frente a
++  otro proceso del mismo usuario, que tampoco para Secret Service. Para el robo, el cifrado de disco del sistema.
++- **Copias y restauraciones:** el fichero va con el perfil. Quien copie el perfil sin él pierde contraseñas y cookies.
++- Los parches `components-os_crypt-async-browser-freedesktop_secret_key_provider.*` siguen aplicados, pero sin uso. Se
++  pueden quitar al limpiar.
+ 
+ Para cambiar de algoritmo (agilidad): proveedor nuevo con etiqueta nueva (`fw2`) y precedencia mayor; `fw1` se queda
+ registrado para leer lo antiguo, igual que `v10`.
+diff --git a/components/flyweb_os_crypt/fw1_file_key_provider_linux.cc b/components/flyweb_os_crypt/fw1_file_key_provider_linux.cc
+new file mode 100644
+index 00000000..66fa6f8b
+--- /dev/null
++++ b/components/flyweb_os_crypt/fw1_file_key_provider_linux.cc
+@@ -0,0 +1,267 @@
++/* Copyright (c) 2026 lamosquita. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#include "brave/components/flyweb_os_crypt/fw1_file_key_provider_linux.h"
++
++#include <errno.h>
++#include <fcntl.h>
++#include <sys/stat.h>
++#include <unistd.h>
++
++#include <array>
++#include <optional>
++#include <string>
++#include <utility>
++#include <vector>
++
++#include "base/base64.h"
++#include "base/containers/span.h"
++#include "base/files/file.h"
++#include "base/files/scoped_file.h"
++#include "base/functional/bind.h"
++#include "base/logging.h"
++#include "base/posix/eintr_wrapper.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/task/thread_pool.h"
++#include "components/os_crypt/async/common/algorithm.mojom.h"
++#include "crypto/random.h"
++#include "third_party/boringssl/src/include/openssl/mem.h"
++
++namespace os_crypt_async {
++
++namespace {
++
++// Base64 of 32 bytes: 44 characters, the last one '='.
++constexpr size_t kEncodedKeySize = 44u;
++// A key file of ours is never longer; do not read further than this.
++constexpr size_t kMaxFileSize = 64u;
++
++enum class FileResult {
++  kOk,
++  kNotFound,  // ReadKeyFile: no file yet.
++  kExists,    // CreateKeyFile: another writer created it first.
++  kFailed,
++};
++
++void Cleanse(std::string& s) {
++  OPENSSL_cleanse(s.data(), s.size());
++}
++
++void Cleanse(std::vector<uint8_t>& v) {
++  OPENSSL_cleanse(v.data(), v.size());
++}
++
++base::unexpected<KeyProvider::KeyError> Unavailable() {
++  // Never kPermanentlyUnavailable: the file may be readable on the next start
++  // and callers may delete data they think is lost for good.
++  return base::unexpected(KeyProvider::KeyError::kTemporarilyUnavailable);
++}
++
++// Reads `path` into `encoded`. The file must be a regular file of this user,
++// reached without following a symlink. Wider permissions than 0600 are
++// narrowed back, not refused: the key is still ours and refusing it would
++// leave the user without passwords.
++FileResult ReadKeyFile(const base::FilePath& path, std::string& encoded) {
++  base::ScopedFD fd(HANDLE_EINTR(
++      open(path.value().c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NOCTTY)));
++  if (!fd.is_valid()) {
++    if (errno == ENOENT) {
++      return FileResult::kNotFound;
++    }
++    PLOG(ERROR) << "fw1: cannot open the key file";
++    return FileResult::kFailed;
++  }
++  struct stat st;
++  if (fstat(fd.get(), &st) != 0) {
++    PLOG(ERROR) << "fw1: cannot stat the key file";
++    return FileResult::kFailed;
++  }
++  if (!S_ISREG(st.st_mode) || st.st_uid != geteuid()) {
++    LOG(ERROR) << "fw1: the key file is not a regular file of this user";
++    return FileResult::kFailed;
++  }
++  if ((st.st_mode & (S_IRWXG | S_IRWXO)) != 0) {
++    if (fchmod(fd.get(), S_IRUSR | S_IWUSR) == 0) {
++      LOG(WARNING) << "fw1: key file permissions were wider than 0600; fixed";
++    } else {
++      PLOG(WARNING) << "fw1: cannot restrict the key file to 0600";
++    }
++  }
++
++  base::File file(std::move(fd));
++  std::array<uint8_t, kMaxFileSize + 1> buffer;
++  size_t total = 0;
++  while (total < buffer.size()) {
++    std::optional<size_t> read =
++        file.ReadAtCurrentPos(base::span(buffer).subspan(total));
++    if (!read) {
++      PLOG(ERROR) << "fw1: cannot read the key file";
++      OPENSSL_cleanse(buffer.data(), buffer.size());
++      return FileResult::kFailed;
++    }
++    if (*read == 0) {
++      break;
++    }
++    total += *read;
++  }
++  encoded.assign(buffer.begin(), buffer.begin() + total);
++  OPENSSL_cleanse(buffer.data(), buffer.size());
++  return FileResult::kOk;
++}
++
++// Fallback for file systems without hard links: creates `path` itself with
++// O_EXCL. A crash in the middle could leave a short file, which is then
++// refused (never replaced) rather than misread.
++FileResult CreateKeyFileInPlace(const base::FilePath& path,
++                                const std::string& encoded) {
++  base::ScopedFD fd(HANDLE_EINTR(
++      open(path.value().c_str(),
++           O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC | O_NOCTTY,
++           S_IRUSR | S_IWUSR)));
++  if (!fd.is_valid()) {
++    if (errno == EEXIST) {
++      return FileResult::kExists;
++    }
++    PLOG(ERROR) << "fw1: cannot create the key file";
++    return FileResult::kFailed;
++  }
++  base::File file(std::move(fd));
++  if (!file.WriteAtCurrentPosAndCheck(base::as_byte_span(encoded)) ||
++      !file.Flush()) {
++    PLOG(ERROR) << "fw1: cannot write the key file";
++    file.Close();
++    // Ours, just created and never used: safe to remove.
++    unlink(path.value().c_str());
++    return FileResult::kFailed;
++  }
++  return FileResult::kOk;
++}
++
++// Writes `encoded` to a 0600 temporary file next to `path` and links it to
++// `path`, which fails if `path` exists: an existing key file is never
++// replaced, and a crash never leaves a half-written key file behind.
++FileResult CreateKeyFile(const base::FilePath& path,
++                         const std::string& encoded) {
++  const base::FilePath temp = path.AddExtensionASCII(
++      "tmp-" + base::HexEncode(crypto::RandBytesAsVector(8)));
++  base::ScopedFD fd(HANDLE_EINTR(
++      open(temp.value().c_str(),
++           O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC | O_NOCTTY,
++           S_IRUSR | S_IWUSR)));
++  if (!fd.is_valid()) {
++    PLOG(ERROR) << "fw1: cannot create the key file";
++    return FileResult::kFailed;
++  }
++  base::File file(std::move(fd));
++  const bool written =
++      file.WriteAtCurrentPosAndCheck(base::as_byte_span(encoded)) &&
++      file.Flush();
++  file.Close();
++  if (!written) {
++    PLOG(ERROR) << "fw1: cannot write the key file";
++    unlink(temp.value().c_str());
++    return FileResult::kFailed;
++  }
++
++  const int linked = link(temp.value().c_str(), path.value().c_str());
++  const int link_errno = errno;
++  unlink(temp.value().c_str());
++  if (linked != 0) {
++    if (link_errno == EEXIST) {
++      return FileResult::kExists;
++    }
++    if (link_errno == EPERM || link_errno == EOPNOTSUPP ||
++        link_errno == ENOSYS) {
++      return CreateKeyFileInPlace(path, encoded);
++    }
++    errno = link_errno;
++    PLOG(ERROR) << "fw1: cannot put the key file in place";
++    return FileResult::kFailed;
++  }
++
++  // Make the new directory entry durable before anything is encrypted with
++  // the key. A failure here is logged only: the file is already in place.
++  base::ScopedFD dir(HANDLE_EINTR(open(path.DirName().value().c_str(),
++                                       O_RDONLY | O_DIRECTORY | O_CLOEXEC)));
++  if (!dir.is_valid() || HANDLE_EINTR(fsync(dir.get())) != 0) {
++    PLOG(WARNING) << "fw1: cannot sync the user data directory";
++  }
++  return FileResult::kOk;
++}
++
++}  // namespace
++
++Fw1FileKeyProvider::Fw1FileKeyProvider(const base::FilePath& key_file)
++    : key_file_(key_file) {}
++
++Fw1FileKeyProvider::~Fw1FileKeyProvider() = default;
++
++// static
++base::expected<Encryptor::Key, KeyProvider::KeyError>
++Fw1FileKeyProvider::GetOrCreateKey(const base::FilePath& key_file) {
++  std::string encoded;
++  switch (ReadKeyFile(key_file, encoded)) {
++    case FileResult::kOk:
++      break;
++    case FileResult::kNotFound: {
++      std::vector<uint8_t> raw =
++          crypto::RandBytesAsVector(Encryptor::Key::kAES256GCMKeySize);
++      encoded = base::Base64Encode(raw);
++      Cleanse(raw);
++      const FileResult created = CreateKeyFile(key_file, encoded);
++      if (created == FileResult::kExists) {
++        // Someone else wrote it first: theirs is the key.
++        Cleanse(encoded);
++        if (ReadKeyFile(key_file, encoded) != FileResult::kOk) {
++          Cleanse(encoded);
++          return Unavailable();
++        }
++      } else if (created != FileResult::kOk) {
++        Cleanse(encoded);
++        return Unavailable();
++      }
++      break;
++    }
++    case FileResult::kExists:
++    case FileResult::kFailed:
++      return Unavailable();
++  }
++
++  // Tolerate one trailing newline, in case the file was restored by hand.
++  if (encoded.size() == kEncodedKeySize + 1 && encoded.back() == '\n') {
++    encoded.pop_back();
++  }
++  std::optional<std::vector<uint8_t>> raw;
++  if (encoded.size() == kEncodedKeySize) {
++    raw = base::Base64Decode(encoded);
++  }
++  Cleanse(encoded);
++  if (!raw || raw->size() != Encryptor::Key::kAES256GCMKeySize) {
++    // Never build a Key with another length: Encryptor::Key CHECKs it. The
++    // file is left alone; replacing it would lose whatever it encrypted.
++    LOG(ERROR) << "fw1: the key file is not a 256-bit Base64 key";
++    if (raw) {
++      Cleanse(*raw);
++    }
++    return Unavailable();
++  }
++
++  Encryptor::Key key(*raw, mojom::Algorithm::kAES256GCM);
++  Cleanse(*raw);
++  return key;
++}
++
++void Fw1FileKeyProvider::GetKey(KeyCallback callback) {
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_BLOCKING},
++      base::BindOnce(&Fw1FileKeyProvider::GetOrCreateKey, key_file_),
++      base::BindOnce(std::move(callback), std::string(kKeyTag)));
++}
++
++bool Fw1FileKeyProvider::UseForEncryption() {
++  return true;
++}
++
++}  // namespace os_crypt_async
+diff --git a/components/flyweb_os_crypt/fw1_file_key_provider_linux.h b/components/flyweb_os_crypt/fw1_file_key_provider_linux.h
+new file mode 100644
+index 00000000..87429eb5
+--- /dev/null
++++ b/components/flyweb_os_crypt/fw1_file_key_provider_linux.h
+@@ -0,0 +1,66 @@
++/* Copyright (c) 2026 lamosquita. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#ifndef BRAVE_COMPONENTS_FLYWEB_OS_CRYPT_FW1_FILE_KEY_PROVIDER_LINUX_H_
++#define BRAVE_COMPONENTS_FLYWEB_OS_CRYPT_FW1_FILE_KEY_PROVIDER_LINUX_H_
++
++#include <cstddef>
++
++#include "base/files/file_path.h"
++#include "base/types/expected.h"
++#include "components/os_crypt/async/browser/key_provider.h"
++
++namespace os_crypt_async {
++
++// FlyWeb `fw1` key provider for Linux (U3, Titín 25-11): the same AES-256-GCM
++// key and format as on Mac (Base64 of 32 random bytes, used as is), kept in a
++// 0600 file of the user data dir instead of a keyring. The keyring is never
++// asked, so there is no "Unlock Login Keyring" dialog from FlyWeb, no wait on
++// D-Bus at startup, and one key in one place: a key in the keyring next to a
++// key in the file would both be tagged `fw1` and each would make the other's
++// data unreadable.
++//
++// Threat model accepted by Titín: the key protects data copied without the
++// profile (a synced or backed up Cookies or Login Data file), not a stolen
++// computer without disk encryption, nor another process of the same user
++// (Secret Service does not stop those either).
++//
++// Every failure is kTemporarilyUnavailable: callers may delete data on a
++// permanent failure. An existing file is never replaced.
++class Fw1FileKeyProvider : public KeyProvider {
++ public:
++  static constexpr char kKeyTag[] = "fw1";
++  // Above the 5 of upstream's PosixKeyProvider (`v10`), which FlyWeb only
++  // registers with --password-store=basic, to read what it wrote.
++  static constexpr size_t kPrecedence = 20u;
++  static constexpr base::FilePath::CharType kKeyFileName[] =
++      FILE_PATH_LITERAL("FlyWeb Safe Storage");
++
++  // `key_file` is normally <user data dir>/kKeyFileName.
++  explicit Fw1FileKeyProvider(const base::FilePath& key_file);
++
++  Fw1FileKeyProvider(const Fw1FileKeyProvider&) = delete;
++  Fw1FileKeyProvider& operator=(const Fw1FileKeyProvider&) = delete;
++
++  ~Fw1FileKeyProvider() override;
++
++  // Reads the key from `key_file`, creating the file on first use. Blocking.
++  // Never builds a Key from a file of the wrong length (Encryptor::Key CHECKs
++  // the size), never follows a symlink, never reads a file owned by another
++  // user, and never replaces an existing file.
++  static base::expected<Encryptor::Key, KeyError> GetOrCreateKey(
++      const base::FilePath& key_file);
++
++ private:
++  // KeyProvider:
++  void GetKey(KeyCallback callback) override;
++  bool UseForEncryption() override;
++
++  const base::FilePath key_file_;
++};
++
++}  // namespace os_crypt_async
++
++#endif  // BRAVE_COMPONENTS_FLYWEB_OS_CRYPT_FW1_FILE_KEY_PROVIDER_LINUX_H_
+diff --git a/components/flyweb_os_crypt/fw1_file_key_provider_linux_unittest.cc b/components/flyweb_os_crypt/fw1_file_key_provider_linux_unittest.cc
+new file mode 100644
+index 00000000..37b983ea
+--- /dev/null
++++ b/components/flyweb_os_crypt/fw1_file_key_provider_linux_unittest.cc
+@@ -0,0 +1,236 @@
++/* Copyright (c) 2026 lamosquita. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#include "brave/components/flyweb_os_crypt/fw1_file_key_provider_linux.h"
++
++#include <sys/stat.h>
++#include <unistd.h>
++
++#include <memory>
++#include <optional>
++#include <string>
++#include <utility>
++#include <vector>
++
++#include "base/base64.h"
++#include "base/containers/span.h"
++#include "base/files/file_enumerator.h"
++#include "base/files/file_path.h"
++#include "base/files/file_util.h"
++#include "base/files/scoped_temp_dir.h"
++#include "base/memory/scoped_refptr.h"
++#include "base/test/task_environment.h"
++#include "base/test/test_future.h"
++#include "base/types/expected.h"
++#include "components/os_crypt/async/browser/os_crypt_async.h"
++#include "components/os_crypt/async/browser/posix_key_provider.h"
++#include "components/os_crypt/async/common/encryptor.h"
++#include "crypto/aead.h"
++#include "testing/gtest/include/gtest/gtest.h"
++
++namespace os_crypt_async {
++
++namespace {
++
++using KeyResult = base::expected<Encryptor::Key, KeyProvider::KeyError>;
++
++std::vector<uint8_t> GoldenKey() {
++  std::vector<uint8_t> key(Encryptor::Key::kAES256GCMKeySize);
++  for (size_t i = 0; i < key.size(); ++i) {
++    key[i] = static_cast<uint8_t>(i * 7 + 1);
++  }
++  return key;
++}
++
++int Mode(const base::FilePath& path) {
++  struct stat st;
++  EXPECT_EQ(0, lstat(path.value().c_str(), &st));
++  return st.st_mode & 0777;
++}
++
++class Fw1FileKeyProviderTest : public ::testing::Test {
++ protected:
++  void SetUp() override {
++    ASSERT_TRUE(temp_dir_.CreateUniqueTempDir());
++    key_file_ = temp_dir_.GetPath().Append(Fw1FileKeyProvider::kKeyFileName);
++  }
++
++  KeyResult GetKey() {
++    Fw1FileKeyProvider provider(key_file_);
++    base::test::TestFuture<const std::string&, KeyResult> future;
++    static_cast<KeyProvider&>(provider).GetKey(future.GetCallback());
++    auto [tag, key] = future.Take();
++    EXPECT_EQ("fw1", tag);
++    return std::move(key);
++  }
++
++  // As browser_process_impl.cc registers them: `fw1` from the file, plus
++  // `v10` only with --password-store=basic.
++  scoped_refptr<Encryptor> GetEncryptor(bool with_v10) {
++    std::vector<std::pair<size_t, std::unique_ptr<KeyProvider>>> providers;
++    if (with_v10) {
++      providers.emplace_back(5u, std::make_unique<PosixKeyProvider>());
++    }
++    providers.emplace_back(Fw1FileKeyProvider::kPrecedence,
++                           std::make_unique<Fw1FileKeyProvider>(key_file_));
++    OSCryptAsync os_crypt_async(std::move(providers));
++    base::test::TestFuture<scoped_refptr<Encryptor>> future;
++    os_crypt_async.GetInstance(future.GetCallback());
++    return future.Take();
++  }
++
++  void WriteKeyFile(const std::string& contents) {
++    ASSERT_TRUE(base::WriteFile(key_file_, contents));
++    ASSERT_EQ(0, chmod(key_file_.value().c_str(), 0600));
++  }
++
++  std::string ReadKeyFile() {
++    std::string contents;
++    EXPECT_TRUE(base::ReadFileToString(key_file_, &contents));
++    return contents;
++  }
++
++  size_t CountFiles() {
++    size_t count = 0;
++    base::FileEnumerator files(temp_dir_.GetPath(), /*recursive=*/false,
++                               base::FileEnumerator::FILES);
++    for (base::FilePath path = files.Next(); !path.empty();
++         path = files.Next()) {
++      ++count;
++    }
++    return count;
++  }
++
++  base::test::TaskEnvironment task_environment_{
++      base::test::TaskEnvironment::MainThreadType::UI,
++      base::test::TaskEnvironment::ThreadPoolExecutionMode::ASYNC};
++  base::ScopedTempDir temp_dir_;
++  base::FilePath key_file_;
++};
++
++}  // namespace
++
++TEST_F(Fw1FileKeyProviderTest, CreatesKeyFileOnFirstUse) {
++  ASSERT_TRUE(GetKey().has_value());
++  EXPECT_EQ(0600, Mode(key_file_));
++  const std::string contents = ReadKeyFile();
++  EXPECT_EQ(44u, contents.size());
++  std::optional<std::vector<uint8_t>> raw = base::Base64Decode(contents);
++  ASSERT_TRUE(raw);
++  EXPECT_EQ(Encryptor::Key::kAES256GCMKeySize, raw->size());
++  // No temporary file left behind.
++  EXPECT_EQ(1u, CountFiles());
++}
++
++TEST_F(Fw1FileKeyProviderTest, ReusesKeyAndNeverReplacesIt) {
++  WriteKeyFile(base::Base64Encode(GoldenKey()));
++  const std::string stored = ReadKeyFile();
++  ASSERT_TRUE(GetKey().has_value());
++  ASSERT_TRUE(GetKey().has_value());
++  EXPECT_EQ(stored, ReadKeyFile());
++}
++
++// One key across restarts: what one start encrypts, the next one reads.
++TEST_F(Fw1FileKeyProviderTest, SameKeyAcrossStarts) {
++  std::string ciphertext;
++  ASSERT_TRUE(GetEncryptor(false)->EncryptString("secret", &ciphertext));
++  ASSERT_EQ(0u, ciphertext.find("fw1"));
++  std::string plaintext;
++  Encryptor::DecryptFlags flags;
++  ASSERT_TRUE(
++      GetEncryptor(false)->DecryptString(ciphertext, &plaintext, &flags));
++  EXPECT_EQ("secret", plaintext);
++  EXPECT_FALSE(flags.should_reencrypt);
++}
++
++// Same format as the Mac `fw1` provider: "fw1" + 12-byte nonce +
++// AES-256-GCM with the raw key from the file.
++TEST_F(Fw1FileKeyProviderTest, SameFormatAsMac) {
++  WriteKeyFile(base::Base64Encode(GoldenKey()));
++  std::string ciphertext;
++  ASSERT_TRUE(GetEncryptor(false)->EncryptString("secret", &ciphertext));
++  ASSERT_EQ(0u, ciphertext.find("fw1"));
++  auto data = base::as_byte_span(ciphertext).subspan(3u);
++  auto opened = crypto::aead::Open(crypto::aead::AES_256_GCM, GoldenKey(),
++                                   data.subspan(12u), data.first(12u),
++                                   /*associated_data=*/{});
++  ASSERT_TRUE(opened);
++  EXPECT_EQ("secret", std::string(opened->begin(), opened->end()));
++}
++
++// A corrupt file must not crash, must not be replaced, and must not let
++// anything be encrypted under another key.
++TEST_F(Fw1FileKeyProviderTest, BadFileIsTemporaryAndKept) {
++  for (const std::string& bad :
++       {base::Base64Encode(std::string(16, 'x')), std::string("my_password"),
++        base::Base64Encode(std::string(33, 'x')), std::string(),
++        base::Base64Encode(GoldenKey()) + "\n\n"}) {
++    WriteKeyFile(bad);
++    KeyResult key = GetKey();
++    ASSERT_FALSE(key.has_value());
++    EXPECT_EQ(KeyProvider::KeyError::kTemporarilyUnavailable, key.error());
++    EXPECT_EQ(bad, ReadKeyFile());
++  }
++}
++
++TEST_F(Fw1FileKeyProviderTest, OneTrailingNewlineIsAccepted) {
++  WriteKeyFile(base::Base64Encode(GoldenKey()) + "\n");
++  EXPECT_TRUE(GetKey().has_value());
++}
++
++TEST_F(Fw1FileKeyProviderTest, WidePermissionsAreNarrowed) {
++  WriteKeyFile(base::Base64Encode(GoldenKey()));
++  ASSERT_EQ(0, chmod(key_file_.value().c_str(), 0644));
++  EXPECT_TRUE(GetKey().has_value());
++  EXPECT_EQ(0600, Mode(key_file_));
++}
++
++TEST_F(Fw1FileKeyProviderTest, SymlinkIsRefused) {
++  const base::FilePath target = temp_dir_.GetPath().Append("elsewhere");
++  ASSERT_TRUE(base::WriteFile(target, base::Base64Encode(GoldenKey())));
++  ASSERT_TRUE(base::CreateSymbolicLink(target, key_file_));
++  KeyResult key = GetKey();
++  ASSERT_FALSE(key.has_value());
++  EXPECT_EQ(KeyProvider::KeyError::kTemporarilyUnavailable, key.error());
++  EXPECT_TRUE(base::IsLink(key_file_));
++}
++
++TEST_F(Fw1FileKeyProviderTest, UnwritableDirectoryIsTemporary) {
++  if (geteuid() == 0) {
++    GTEST_SKIP() << "root ignores directory permissions";
++  }
++  ASSERT_EQ(0, chmod(temp_dir_.GetPath().value().c_str(), 0500));
++  KeyResult key = GetKey();
++  ASSERT_EQ(0, chmod(temp_dir_.GetPath().value().c_str(), 0700));
++  ASSERT_FALSE(key.has_value());
++  EXPECT_EQ(KeyProvider::KeyError::kTemporarilyUnavailable, key.error());
++  EXPECT_FALSE(base::PathExists(key_file_));
++}
++
++// --password-store=basic: `v10` written by a test build stays readable and
++// is marked for re-encryption; new data is `fw1`, never `v10`.
++TEST_F(Fw1FileKeyProviderTest, ReadsV10AndEncryptsFw1) {
++  std::string v10;
++  {
++    std::vector<std::pair<size_t, std::unique_ptr<KeyProvider>>> providers;
++    providers.emplace_back(5u, std::make_unique<PosixKeyProvider>());
++    OSCryptAsync os_crypt_async(std::move(providers));
++    base::test::TestFuture<scoped_refptr<Encryptor>> future;
++    os_crypt_async.GetInstance(future.GetCallback());
++    ASSERT_TRUE(future.Take()->EncryptString("old", &v10));
++    ASSERT_EQ(0u, v10.find("v10"));
++  }
++  scoped_refptr<Encryptor> encryptor = GetEncryptor(true);
++  std::string plaintext;
++  Encryptor::DecryptFlags flags;
++  ASSERT_TRUE(encryptor->DecryptString(v10, &plaintext, &flags));
++  EXPECT_EQ("old", plaintext);
++  EXPECT_TRUE(flags.should_reencrypt);
++  std::string rewritten;
++  ASSERT_TRUE(encryptor->EncryptString(plaintext, &rewritten));
++  EXPECT_EQ(0u, rewritten.find("fw1"));
++}
++
++}  // namespace os_crypt_async
+diff --git a/patches/chrome-browser-browser_process_impl.cc.patch b/patches/chrome-browser-browser_process_impl.cc.patch
+index 7a7465b0..589a79e7 100644
+--- a/patches/chrome-browser-browser_process_impl.cc.patch
++++ b/patches/chrome-browser-browser_process_impl.cc.patch
+@@ -1,5 +1,5 @@
+ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
+-index bed9453f156ba5b94a8daa5261085045e288098e..d4ef5b0a1123eae34f43f4ade7020139dbef75bc 100644
++index bed9453f156ba5b94a8daa5261085045e288098e..9472b6809b36e6dd7d069da649294997171e7b07 100644
+ --- a/chrome/browser/browser_process_impl.cc
+ +++ b/chrome/browser/browser_process_impl.cc
+ @@ -1623,6 +1623,9 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
+@@ -12,31 +12,37 @@ index bed9453f156ba5b94a8daa5261085045e288098e..d4ef5b0a1123eae34f43f4ade7020139
+    if (password_store != "basic") {
+      if (base::FeatureList::IsEnabled(features::kDbusSecretPortal)) {
+        // Use a higher priority than the FreedesktopSecretKeyProvider.
+-@@ -1634,15 +1637,22 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
++@@ -1634,15 +1637,28 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
+                    features::kSecretPortalKeyProviderUseForEncryption)));
+      }
+    }
+ +#endif
+++  // FlyWeb (U3, Titín 25-11): no keyring either. The `fw1` key lives in a
+++  // file of the user data dir (BRAVE_..._ADD_OS_CRYPT_ASYNC_PROVIDERS below),
+++  // so FlyWeb never shows the keyring's unlock dialog and keeps one key in
+++  // one place.
+++#if 0
+    providers.emplace_back(
+        /*precedence=*/10u,
+        std::make_unique<os_crypt_async::FreedesktopSecretKeyProvider>(
+ -          password_store, l10n_util::GetStringUTF8(IDS_PRODUCT_NAME), nullptr));
+ +          password_store, "FlyWeb", nullptr));
+++#endif
+  #endif  // BUILDFLAG(IS_LINUX)
+  
+  #if BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_MAC)
+    // On other POSIX systems, this is the only key provider. On Linux, it is used
+    // as a fallback.
+ +#if BUILDFLAG(IS_LINUX) && BUILDFLAG(USE_DBUS)
+-+  // FlyWeb (U3): `v10` is a fixed, public key. It encrypts nothing unless the
+-+  // user asks for --password-store=basic: without a keyring, passwords and
+-+  // cookies are not saved instead of being saved under a key anyone has.
+++  // FlyWeb (U3): `v10` is a fixed, public key. Only with
+++  // --password-store=basic, and only to read what a test build wrote: `fw1`
+++  // (precedence 20) encrypts everything new.
+ +  if (password_store == "basic")
+ +#endif
+    providers.emplace_back(
+        /*precedence=*/5u, std::make_unique<os_crypt_async::PosixKeyProvider>());
+  #endif  // BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_LINUX)
+-@@ -1654,6 +1664,7 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
++@@ -1654,6 +1670,7 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
+          std::make_unique<os_crypt_async::KeychainKeyProvider>()));
+    }
+  #endif  // BUILDFLAG(IS_MAC)
