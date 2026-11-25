@@ -12,12 +12,12 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0010` | **`8dc666451e`** (hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0019` | **`2ffe7d5d87`** (hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0020` | **`388dff3e93`** (hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 | Skia | árbol **`1ef25455d7`** (fork `lamosquita-net/skia` `d361a1e371`, árbol `a934afed14`, + `pendiente/skia/0001`–`0003`, que entraron en la 3.2.0) | `skia/0001` | **`bc0519fc6a`** |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec` y, con `0019`, `2ffe7d5d87`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87` y, con `0020`, `388dff3e93`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -451,6 +451,18 @@ que no está en la 159). Entra tal cual: es una 156 sobre una 156. **Gravedad no
   desde la nube. No se sube el `DEPS` a `afb64bc731` de upstream, porque perderíamos lo del fork.
 - Revisado desde la 7,1 por COORDINACIÓN-63: es el único commit del roll.
 
+## `chromium/0020`: [M159] Edición, la navegación entre líneas no ancla el cursor en un pseudoelemento (crbug 589812279)
+
+**`6cf1220acf`** de la **8154** (25-11 18:32 UTC; bug del merge 590348660; main `a641294f5f`, #1753880). Entra tal cual, con
+desplazamiento de líneas. **Gravedad no publicada.**
+- **El fallo:** `AbstractLineBox::PositionForPoint()` no se saltaba las hojas en línea de pseudoelementos (`::before`/`::after`
+  en *inline-block*, `::view-transition`) cuando la línea tenía también nodos reales. Al mover el cursor arriba o abajo
+  (`NextLinePosition`/`PreviousLinePosition`), la selección podía quedar anclada en un pseudoelemento, lo que rompe los
+  invariantes de selección y DOM de Blink.
+- **El arreglo:** se salta esas hojas y toma el nodo con `NonPseudoNode()`. Va detrás de la función de Blink
+  `SelectionLineSkipPseudoElement`, `stable` (encendida). Trae pruebas en `selection_modifier_test.cc`.
+- **Aplica a Mac.** Brave no toca la edición. `NonPseudoNode()` e `InlineCursorPosition::GetLayoutObject()` existen en la 156.
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Gravedad no publicada; es una salida del sandbox de V8.**
@@ -694,6 +706,7 @@ Nada se ha compilado ni probado en la nube.
   cerrar la pestaña con Cmd+W enseguida (chromium/0019).
 - Skia: `dm --src tests --config gl --match SoftwarePathRenderer` (o `skia_unittests` con ese filtro), y a mano en la 6,1 y la
   5,1 una página con trazados grandes y transformados, comparada con la 3.2.2 (skia/0001).
+- `blink_unittests --gtest_filter='SelectionModifierTest.*'` (chromium/0020).
 - `media_unittests --gtest_filter='*DecoderSelectorTest.*:*DecoderStreamTest.*'` y vídeo cifrado con Clear Key, cerrando
   la pestaña mientras carga (chromium/0018).
 - `content_unittests --gtest_filter='FileSystemAccess*HandleImplTest.*:FileSystemAccessHandleBaseTest.*'` y
