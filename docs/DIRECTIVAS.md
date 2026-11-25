@@ -446,6 +446,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   corte, suyos). Apagado de emergencia: `FLYWEB_METAL_DISPLAY_GPU=1`.
   - **El vídeo que pierde fotogramas junto a WebGL se revisa** como tarea propia: es un estado lento de la base (también sin
     E1); se mira además si E1 lo alarga.
+- **La próxima versión, en Mac y Linux a la vez (Titín, 25-11; COORDINACIÓN-63):** «cuando tengamos el Ubuntu listo nos podemos
+  centrar en la actualización de seguridad implementándola en ambas versiones, así vemos trabajo real de actualizar dos versiones,
+  y con el E1». Contenido: `siguiente-3` + E1 (E1 solo actúa en Mac). Se compila y prueba en las dos plataformas con el guion
+  único (`FlyWeb/tools/release-3x/`). Empieza cuando Linux esté listo (U3 cerrado y U4 hecho); el número y el corte, de Titín.
 - **U4, paquetes de Linux (Titín, 25-11; COORDINACIÓN-63; «el mismo que tenemos para Mac»):** el mantenedor del `.deb` y
   del repositorio apt es el mismo contacto que ya usa Mac en el repo (`admin@lamosquita.net`), y la firma del repositorio va
   en bak como la de Sparkle (`plataformas.md`, U4). U4 empieza cuando D8-LINUX acabe U3.

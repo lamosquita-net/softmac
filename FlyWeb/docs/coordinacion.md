@@ -65,6 +65,13 @@ pasados a D8-LINUX-6 para B.2 con perfil nuevo. Queda sin decidir solo el volcad
 D8-LINUX-6 desconectada a ratos: en cola, d8 de brave-core 0007–0009 (`buzon/D8-LINUX/20261125-0950-…`) y U3 final.
 siguiente-3 llega a chromium/0019 y brave-core/0009; sin gravedad Alta publicada.
 
+**Añadido 25-11 tarde:** U4 decidido entero (#1238, #1239; diseño v2 de D8-LINUX-6 en la Ubuntu `~/d8-trabajo/entrega-linux/u4/`,
+D8 te lo pega: súbelo y pide a SEGURIDAD-PORTES la revisión de la firma antes de construir). U3: caso 5 arreglado con el parche 5
+(`…1603-D8-LINUX-6-U3-caso5.md`); falta la prueba 1 (brave_unit_tests en `out/PilotoB`). **Fallo de sync:** `[chromium-rawptr]` en
+`flyweb_sync_account_service.h:263-264` (commit 236a04edbe) rompe compilaciones con ese plugin; encargarlo a quien lleve sync.
+Vídeo lento: Titín autorizó vídeo local + ffmpeg en la 6,1 (LOCAL-25). siguiente-3: chromium/0019, brave-core/0010, skia/0001;
+Dawn 7b7e6ba308 = solo DXC (no aplica). **Directiva nueva:** la próxima versión, en Mac y Linux a la vez, con E1 (DIRECTIVAS).
+
 **Lecciones de la 63:** no dar por equivalente un caso de prueba sin ver su captura (three.js salía en negro; ARQUITECTURA lo
 pilló). Las puertas se leen al pie de la letra (J3 pide el estilo solo). «LuLu no lo retuvo» puede ser que Titín lo aprobó al
 instante: preguntar. Al cambiar una orden con la compilación en marcha, contar con que el agente ya la haya parado.
