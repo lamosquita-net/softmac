@@ -38,6 +38,17 @@ for c in beta dev nightly; do r $APP 128 128 $T/product_logo_128_$c.png; done
 r $DEV 128 128 $T/product_logo_128_development.png
 r $MONO 22 22 $T/product_logo_22_mono.png '#000000' 0.05
 
+echo "== Linux: icono de ventana y del lanzador (los mismos maestros y tamaños que los de arriba)"
+for s in 24 48 64 128 256; do r $APP $s $s $T/linux/product_logo_$s.png; done
+for c in beta dev nightly; do r $APP 128 128 $T/linux/product_logo_128_$c.png; done
+r $DEV 128 128 $T/linux/product_logo_128_development.png
+r $SYM 16 16 $B/app/theme/default_100_percent/brave/linux/product_logo_16.png
+for c in "" _beta _dev _development _nightly; do
+  r $SYM 32 32 $B/app/theme/default_100_percent/brave/linux/product_logo_32$c.png
+done
+python3 -I $D/png2xpm.py $B/app/theme/default_100_percent/brave/linux/product_logo_32.png \
+  $T/linux/product_logo_32.xpm && print -r -- "  $T/linux/product_logo_32.xpm"
+
 echo "== Pestañas de las páginas internas (M2, todos los canales)"
 for c in "" _beta _dev _development _nightly; do
   for s in 16 32; do
