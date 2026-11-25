@@ -17,7 +17,8 @@ con 15 000 peces.** Propone una comprobación sin compilar (M3) para antes de E1
 
 **Apartado añadido el 25-11 por encargo de COORDINACIÓN-63: §12, el resultado del A/B de E1 y la propuesta para
 Titín.** E1 no pasa tal cual: con lienzo grande pierde alrededor de 1 ms por fotograma. El mismo día, los cierres de
-M2 (§9.6) y de la repetición de M3 (§10.8).
+M2 (§9.6) y de la repetición de M3 (§10.8). Por la tarde, el vídeo junto a WebGL a escala 1 (§12.5), que era la
+medida que le faltaba a la salida (b): la propuesta no cambia.
 
 Marcas: **[V]** visto en el código, en las cabeceras del SDK o en medidas ya publicadas; **[R]** reanálisis mío de
 datos existentes; **[I]** inferido; **[S]** suposición sin comprobar.
@@ -1104,8 +1105,9 @@ Encargo de COORDINACIÓN-63. Lo midió LOCAL-25 en la 6,1 la noche del 24 al 25-
 3. **Con lienzo grande falla, siempre por lo mismo: alrededor de 1 ms más por fotograma.** A escala 2, −4,1 %,
    −4,3 % y −5,9 % en los tres casos saturados, confirmado con el mismo binario. Solo se ve por debajo de 60 fps: los
    casos con margen siguen a 60.
-4. **Vídeo junto a WebGL, a escala 2: dudoso.** Hay un estado lento que ya existe sin E1 y que es un defecto de la
-   base (§12.5). Con E1 no hubo ninguna pasada limpia de 8; sin él, 3 de 8. No es concluyente.
+4. **Vídeo junto a WebGL: dudoso a las dos escalas.** Hay un estado lento que ya existe sin E1 y que es un defecto
+   de la base (§12.5). A escala 2, con E1 no hubo ninguna pasada limpia de 8; sin él, 3 de 8. A escala 1, 3 de 8
+   con E1 y 2 de 8 sin él. Ninguna de las dos diferencias se distingue del ruido.
 5. **MotionMark: el total pasa. Paths pierde un 3 % en las tres series y queda dudoso.**
 6. **Con la regla de §11.3, E1 no se entrega tal cual.** Propongo activarlo solo cuando la pantalla principal es
    pequeña (§12.7). Con esa regla queda apagado en la pantalla que Titín usa hoy en la 6,1: si quiere el reparto de
@@ -1153,7 +1155,7 @@ Fps de la base → fps de E1. «Por el tope» = las dos llegan a 60, y el caso n
 | MotionMark Paths | **dudoso:** −3,0 % (A/B) y −3,0 % (control) | −3,9 % (A/B) |
 | Basemark Web (una pasada) | — | 820 → 827 |
 | Vídeo 1080p60 solo | sin dato válido | pasa |
-| Vídeo 1080p60 y Aquarium a ventana completa | **sin dato válido** | **dudoso** (§12.5) |
+| Vídeo 1080p60 y Aquarium a ventana completa | **dudoso**, sin diferencia medible (§12.5) | **dudoso** (§12.5) |
 
 - **Aquarium por estados.** Las pasadas lentas son tandas enteras: a escala 2, la 09 de la base y las 02 y 03 de E1
   bajan a la vez en 15 000, 20 000 y 30 000 [V]. Se juzga el estado rápido, como §11.2 pedía para 15 000. Lentas:
@@ -1207,7 +1209,7 @@ entera y sale solo, de golpe.
 - Lectura [I]: muchas peticiones pequeñas y un cliente que envía y espera. Que sea un atasco que se sostiene solo
   es suposición mía [S]. No se sabe qué cliente es: el renderer de Aquarium, el del vídeo o el navegador.
 
-**Con E1** (control e1x frente a e1d, 8 + 8 en espejo, 45 s desde la carga, sin muestreador) [V]:
+**Con E1, a escala 2** (control e1x frente a e1d, 8 + 8 en espejo, 45 s desde la carga, sin muestreador) [V]:
 
 | | E1 apagado | E1 encendido |
 |---|---|---|
@@ -1223,13 +1225,40 @@ entera y sale solo, de golpe.
 - El informe cuenta las pasadas que «no se asientan» (3 de 8 y 5 de 8). Se queda corto: el estado vuelve a entrar
   después de asentarse, en cuatro pasadas con E1 y dos sin él.
 
-**Veredicto: dudoso.** Ya se repitió con el doble de pasadas y sigue igual: por §11.3 va a Titín con las cifras.
+**Con E1, a escala 1** (añadido el 25-11 por la tarde). Mismo formato: e1x frente a e1d, 8 + 8 en espejo, 45 s
+desde la carga, sin muestreador [R, `buzon/COORDINACION/20261125-0940-LOCAL-25-E1-video-esc1/`]. Recontado en
+`e1vib1-esc1-*` [V]: el vídeo es 1080p60 en las 16; E1 está encendido en las 8 de e1x y en ninguna de e1d; la
+página va a escala 1 en una ventana de 1500×1169 (1,75 megapíxeles; a escala 2 eran 7,0).
 
-**Propuesta aparte de E1, para Titín:** el estado lento es un defecto de la base y pesa más que lo que E1 añade (la
-base pierde aquí el 12 % de los fotogramas de vídeo). Merece tarea propia. El primer paso no compila nada: un
-`sample` de los dos renderers y del navegador en el tramo lento, para saber quién envía y espera.
+| | E1 apagado | E1 encendido |
+|---|---|---|
+| Pasadas sin ningún fotograma de vídeo perdido tras el segundo 15 | 2 de 8 | 3 de 8 |
+| Pasadas con 3 s lentos o más tras el segundo 15 | 5 de 8 | 5 de 8 |
+| Segundos lentos del segundo 15 al final, mediana (de 30) | 4,5 | 11 |
+| Fotogramas perdidos del segundo 15 al final, mediana (de unos 1800) | 50,5 | 123,5 |
+| Fotogramas perdidos en toda la pasada, mediana (de unos 2700) | 181,5 (7 %) | 252 (9 %) |
 
-**No medido:** este caso a escala 1. Las dos pasadas del A/B a escala 1 no llegaron a reproducir 1080p60.
+- Permutación exacta bilateral: p = 0,51 en segundos lentos y p = 0,60 en fotogramas perdidos. Mi recuento coincide
+  con el de LOCAL-25.
+- **El estado lento no es cosa del lienzo grande:** sin E1 aparece en 5 pasadas de 8 también a 1,75 megapíxeles,
+  una de ellas entera.
+- **E1 no lo cambia de forma medible.** Las medianas apuntan al mismo lado que a escala 2 y las pasadas limpias, al
+  contrario. Con las dos escalas juntas (permutación dentro de cada escala, cálculo mío) tampoco: p ≈ 0,26 en
+  segundos lentos y p ≈ 0,16 en perdidos.
+- El nivel más bajo que se vio con E1 a escala 2 aquí no aparece: lo peor en un segundo es 43,8 fps con E1 y 38,8
+  sin él.
+- **Límite:** las pasadas van de 0 a unos 390 fotogramas perdidos con las dos versiones. Con 8 + 8 solo se vería
+  una diferencia grande; esto no descarta que E1 alargue algo el estado.
+
+**Veredicto: dudoso, a las dos escalas.** A escala 2 ya se repitió con el doble de pasadas y sigue igual. A escala 1
+lo es por la letra de §11.3: la mediana de Aquarium con E1 es 57,5 fps, por debajo de 58,8, pero muy por encima de
+la peor pasada sin E1 (46,2) [R]. Va a Titín con las cifras.
+
+**Propuesta aparte de E1, para Titín:** el estado lento es un defecto de la base y pesa más que lo que E1 añade.
+En la pasada mediana, la base pierde aquí el 12 % de los fotogramas de vídeo a escala 2 y el 7 % a escala 1. Merece
+tarea propia. El primer paso no compila nada: un `sample` de los dos renderers y del navegador en el tramo lento,
+para saber quién envía y espera. Mientras el estado ocupe 5 pasadas de 8, cualquier A/B de vídeo mide sobre todo en
+qué estado cayó cada pasada: arreglarlo antes sale más barato que añadir pasadas.
 
 ### 12.6 Puertas P3 y P4
 
@@ -1250,7 +1279,7 @@ base pierde aquí el 12 % de los fotogramas de vídeo). Merece tarea propia. El 
 | Salida | Qué da | Qué cuesta | ¿Cumple §11.3? |
 |---|---|---|---|
 | **(a) Entregar tal cual** | reparto de calor siempre | −4 a −6 % en WebGL saturado con lienzo grande; vídeo junto a WebGL, dudoso | no: tres «falla» y dos «dudoso». Solo como excepción de Titín |
-| **(b) Solo con pantalla pequeña** | reparto de calor y hasta +4 % donde se activa | apagado en pantallas grandes, la de Titín incluida | sí en WebGL. Quedan Paths (dudoso) y el vídeo a escala 1 (sin medir) |
+| **(b) Solo con pantalla pequeña** | reparto de calor y hasta +4 % donde se activa | apagado en pantallas grandes, la de Titín incluida | sí en WebGL. Quedan dos «dudoso»: Paths y el vídeo junto a WebGL (sin diferencia medible, §12.5) |
 | **(c) Tope por tamaño de lienzo** | lo mejor de las dos | diseño nuevo | sin medir |
 
 - **(b), con una precisión: la condición son los píxeles de la pantalla principal, no la escala.** Lo que cuesta es
@@ -1264,11 +1293,14 @@ base pierde aquí el 12 % de los fotogramas de vídeo). Merece tarea propia. El 
   (`gpu/ipc/service/gles2_command_buffer_stub.cc`, `Initialize` [V]) y ahí no se conoce el tamaño; las páginas
   redimensionan el lienzo después. Estudio aparte, si Titín lo quiere.
 
-**Propuesta: (b).** Antes de entregarla:
+**Propuesta: (b).** La mantengo tras medir el vídeo a escala 1 (§12.5), que era su único hueco. Ya no le falta
+ninguna medida; le quedan dos decisiones de Titín:
 
-1. Vídeo y Aquarium a **escala 1**, e1x frente a e1d, 8 + 8, con fps por segundo desde la carga. Es el único hueco
-   de (b).
-2. Titín decide si el 3 % de Paths bloquea. Yo no lo bloquearía: el total de MotionMark pasa.
+1. Si el vídeo «dudoso» bloquea. Yo no lo bloquearía: E1 no cambia el estado lento de forma medible a escala 1, y
+   el defecto es de la base. El vídeo ya no separa (a) de (b); las separa el −4 a −6 % con lienzo grande.
+2. Si el 3 % de Paths bloquea. Yo no lo bloquearía: el total de MotionMark pasa.
+
+No propongo más pasadas de vídeo para (b).
 
 **Si Titín quiere el reparto de calor en su pantalla,** es (a) para pantallas grandes, como excepción suya. Antes,
 el vídeo a escala 2 con 16 + 16 y el criterio fijado de antemano: fotogramas perdidos del segundo 15 al final,
@@ -1298,12 +1330,16 @@ el fallo y el vídeo no salió limpio.
   `veredicto-e1shd.md`, `veredicto-e1shs.md`, `m1-e1.md`, `video-b.md`, `video-a-*.md`).
 - **Recontado por mí** [V] en `entregas/local24/`: las pasadas de WebGL del A/B (`e1ab-wgl-*`), el control del
   shader (`e1shd-*`), el shader a escala 1 (`e1shs-*`), el suplemento (`e1msaa-*`: medianas, tamaño del búfer y
-  `SAMPLES`), el vídeo (`e1ab-video-*`, `e1vid-*`, `e1vib-*`, por segundo) y `local23/{m1b,m1c}`. Las pruebas
-  estadísticas son mías, exactas por permutación.
+  `SAMPLES`), el vídeo (`e1ab-video-*`, `e1vid-*`, `e1vib-*`, `e1vib1-esc1-*`, por segundo) y
+  `local23/{m1b,m1c}`. Las pruebas estadísticas son mías, exactas por permutación; la conjunta de las dos escalas
+  del vídeo, por sorteo de 200 000 permutaciones.
+- **Vídeo a escala 1** [R]: `buzon/COORDINACION/20261125-0940-LOCAL-25-E1-video-esc1/`.
 - **Código** [V]: los tres parches en `temp/local25/e1/` (solo lectura).
 - **Límites:**
   - No he medido ni lanzado nada, ni he entrado en la 6,1.
   - Todo es de una máquina, una pantalla y una noche.
   - El equilibrio de 5 megapíxeles y el umbral de 2560×1440 son estimaciones con dos tamaños medidos.
+  - La «pantalla pequeña» está medida con la escala forzada a 1 en la pantalla de 6016×3384, no con un monitor
+    pequeño de verdad.
   - No he abierto los `sample` del vídeo: leo las tablas de LOCAL-25.
   - No sé por qué pierde Paths ni qué cliente provoca el estado lento del vídeo.
