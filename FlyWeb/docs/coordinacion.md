@@ -47,6 +47,16 @@ no es FlyWeb) pasadas a ARQUITECTURA, que escribe §9.6 y §10 en un PR cuando t
    de la Ubuntu lleva B.1 sin commit (el manifiesto 3.2.2-linux para en identidad, como debe).
 4. Lo de la nota 62 → 63 que no está aquí sigue igual.
 
+**Añadido 25-11 ~10:00 UTC (la 63 siguió hasta abrir la 64):** E1 **terminado**: informe `buzon/COORDINACION/20261125-0830-LOCAL-25-E1-informe/`,
+vídeo a escala 1 `…0940-LOCAL-25-E1-video-esc1/`; estudio §12 fusionado (#1231, #1233). A escala 1 pasa (el shader cargado gana 4 %); a
+escala 2 pierde 4–6 % con lienzo grande (≈1 ms/f, confirmado con el mismo binario e1x/e1d); vídeo «dudoso» (estado lento de la base,
+también sin E1); MotionMark Paths −3 % «dudoso». **Decisiones de Titín pendientes:** (a) tal cual como excepción / (b) solo con pantalla
+principal ≤ 2560×1440 (recomendada; en su 6,1 queda apagado) / (c) tope por lienzo (estudio nuevo); si Paths o el vídeo bloquean; y si se
+abre tarea propia del estado lento del vídeo de la base (primer paso sin compilar: `sample` de renderers y navegador). P3 no; P4 no ahora.
+Guion único de la Release en main: `FlyWeb/tools/release-3x/` (#1232). siguiente-3: + chromium/0015 (libvpx a `6f89cfbcc9`), 0016
+(FSA) y 0017 (CacheStorage); la 156.0.8078.124 está cortada, sin boletín aún. LOCAL-25 y D8-LINUX-6, sin encargo pendiente (D8,
+desconectada a ratos).
+
 **Lecciones de la 63:** no dar por equivalente un caso de prueba sin ver su captura (three.js salía en negro; ARQUITECTURA lo
 pilló). Las puertas se leen al pie de la letra (J3 pide el estilo solo). «LuLu no lo retuvo» puede ser que Titín lo aprobó al
 instante: preguntar. Al cambiar una orden con la compilación en marcha, contar con que el agente ya la haya parado.
