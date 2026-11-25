@@ -597,6 +597,21 @@ sobre la 15.6.75.66. **Gravedad no publicada.**
 
 ## Pruebas para LOCAL y D8-LINUX
 
+**D8-LINUX-6, `brave-core/0007`–`0009` en verde** (25-11, `buzon/COORDINACION/20261125-1530-D8-LINUX-6-d8-bc0007-0009.md`,
+48235f2d). Árbol de V8 `822e10df96`; `out/x64icu` (Release + DCHECK, ICU). Comparado con la base `0001`–`0006`:
+
+| Prueba | Resultado |
+|---|---|
+| mjsunit completo | 9224/9224 (+1, `turbolev`) |
+| `value-serializer` y serialización | 16/16 |
+| `cctest/test-api/*` | 661/661 |
+| `unittests` `ValueSerializerTest.*` | 80/80 |
+| inspector `debugger/*` | 257/257 (+1, de 0008) |
+| `maglev/*` y `turbolev/*`, con y sin `--maglev` | 1322/1322 |
+| `turbolev/regress-587040688`, con `--turbolev` | 1/1 |
+
+Sin fallos nuevos. Falta lo de LOCAL: la sesión de navegación de `0007` (DevTools, extensiones y claude.ai).
+
 Nada se ha compilado ni probado en la nube.
 - `blink_unittests --gtest_filter='ModuleScriptTest.IsolatedCopyCreatesNonParkableSource:ParkableStringTest.*:WorldSafeV8Reference*:ScriptPromiseResolver*'`
   (chromium/0001 y 0003).
