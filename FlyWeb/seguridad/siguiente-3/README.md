@@ -679,6 +679,11 @@ configuración de Linux compila el código.
 
 ## Revisados y no aplicables
 
+- **8154 `65f6c4cb6`**: roll de ANGLE en M159 con un solo commit, `2ec7b6db14` «[M159] GL: Read the last row separately when
+  a pack fills its buffer» (588202947, 551017142). Es una solución de ANGLE GL para drivers **Mali** (GLES), que solo se
+  activa con ellos. **No aplica:** en Mac no hay Mali y WebGL va por Metal.
+- **8078 `fee3d01f00`**: roll de Skia en M156, de `9d96dfeb45` a `afb64bc731`. **Pendiente:** skia.googlesource.com está
+  bloqueado desde aquí; se ha pedido a COORDINACIÓN que lo mire desde la 7,1.
 - **8078 `107cb0a46c`**: roll de Dawn en M156, de `64d303d0bd` a `7b7e6ba308`. Trae un solo commit, `7b7e6ba308` «[M156] DEPS:
   Update DXC to patched branch» (588203839, 588203249, 588203897, 588203012, 589981981, 589982096, 589980992). Lo miró
   COORDINACIÓN-63 desde la 7,1; aquí dawn.googlesource.com sigue bloqueado. **No aplica:** DXC es el compilador de shaders
