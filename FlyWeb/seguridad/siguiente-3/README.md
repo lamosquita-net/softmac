@@ -625,6 +625,11 @@ configuración de Linux compila el código.
 
 ## Revisados y no aplicables
 
+- **8154 `669a0a6b0d`** [M159] [net] (577402226; main `f6de74a6c2`): `QuicSessionPool` recorre las sesiones con `WeakPtr`
+  y se salta las cerradas al avisarles de cambios de red. **Solo Android:** esos avisos (`OnNetworkConnected`/
+  `Disconnected`/`MadeDefault`) solo llegan si `NetworkChangeNotifier::AreNetworkHandlesSupported()`, y en la 156 solo
+  devuelve `true` `NetworkChangeNotifierAndroid`. En Mac y Linux el pool no se registra como observador
+  (`quic_session_pool.cc`, `if (!AreNetworkHandlesSupported()) return;`).
 - **8154 `9bce4066b1`** [M159] (586611778): `DesktopCaptureDevice` pide el `SharedImageInterface` en el hilo de la UI y no
   en el de captura. **Solo Windows:** en la 156, ese código solo corre con capturas de textura (`frame->texture()`, un
   `HANDLE` de D3D11 del capturador WGC). En Mac, la captura de pantalla entrega fotogramas en memoria y nunca llega ahí.
