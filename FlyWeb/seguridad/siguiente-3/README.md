@@ -11,7 +11,7 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0006` | **`4576659642`** (hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
+| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0008` | **`277835ca26`** (hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
 | chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0017` | **`aed1f81b7d`** (hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
@@ -20,7 +20,7 @@ Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a un
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
-`90d7c52725`; con `0005`, `84c41ddbec`; y con `0006`, `4576659642`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
+`90d7c52725`; con `0005`, `84c41ddbec`; con `0006`, `4576659642`; con `0007`, `51fa7840a8`; y con `0008`, `277835ca26`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
 `a52e854758`; el parche aplica igual en los dos.
@@ -515,6 +515,38 @@ de rama. **Gravedad no publicada.** Lo pidió COORDINACIÓN-62 (buzón `…1426-
   (no falta otro commit de la serie); `sandbox/regress-571126471` 1/1; `regress/regress-567222737*` 6/6; `*parser*` 4/4;
   `message/*` 371/371; `v8_unittests` `*Pars*:*Scanner*:*Preparse*` 397/397.
 
+## `brave-core/0007`: [M156] V8, `InvokeApiFunction` respeta los ámbitos sin JS (crbug 576333024)
+
+**`474a6307ce`** de V8 **15.6** (15.6.75.84, 25-11 08:57 UTC; bugs 584997097 y 576333024): el *reland* de `af144bc8d4`,
+que fue la 15.6.75.59. La .60 lo revirtió (`a62636bc52`) porque «depende» de crbug 566156384, por un fallo en el bot
+`fuchsia-x64-cast-receiver-rel` (`3.1.2/CONTENIDO.md`). **El *reland* es idéntico byte a byte** (mismo `patch-id`
+`2b46e1b065`). No da motivo, pero upstream lo lleva ya en Chrome 156, y en las ramas 8078 y 8154 no aparece ningún commit
+con el 566156384. Entra tal cual sobre la 15.6.75.66. **Gravedad no publicada.**
+- **El fallo:** `Builtins::InvokeApiFunction` llamaba a las *callbacks* C++ de `FunctionTemplate` sin las comprobaciones
+  `DisallowJavascriptExecution`/`ThrowOnJavascriptExecution`/`DumpOnJavascriptExecution` que `Execution::Invoke` aplica
+  al JS. Una *callback* podía ejecutarse dentro de un ámbito en el que el motor da por hecho que no corre código, y
+  romper sus invariantes (el patrón típico de uso tras liberar).
+- **El arreglo:** aplica las mismas comprobaciones, salvo en los constructores de API sin efectos secundarios
+  (`kHasNoSideEffect`; en `include/v8-function.h` solo cambia un comentario). Además, `ValueDeserializer::ReadJSMap` y
+  `ReadJSSet` llenan el `Map` y el `Set` en C++, sin llamar a `set`/`add`, y ya no necesitan permitir JS. Trae pruebas.
+- **Riesgo:** cambia el comportamiento. Si algún código de Blink o de Brave llama a una función de API dentro de un ámbito
+  sin JS, ahora lanza una excepción o, con `DumpOnJavascriptExecution`, tumba el proceso. Chrome 156 ya lo lleva, así que
+  la parte de Chromium está cubierta; **la de Brave hay que mirarla navegando**.
+- Ficheros: `src/api/api.cc` ya tenía parche de FlyWeb; los demás son nuevos en `patches/v8`.
+
+## `brave-core/0008`: [M159] V8, debug-evaluate no iza `var`/`function` a módulos ni a enlaces léxicos (crbug 589433702)
+
+**`d76136bcef`** de V8 **15.9** (15.9.128.39, 25-11 08:58 UTC; bug del merge 590348412; main `eb88dd314f`). **Aún no está
+en la 15.6.** Entra tal cual sobre la 15.6.75.66; `runtime-scopes.cc` ya tenía parche de FlyWeb, sin conflicto, y todo lo
+que usa existe en la 15.6. **Gravedad no publicada.**
+- **El fallo:** al evaluar en un marco del depurador (DevTools), un `var` o `function` del fragmento se izaba más allá del
+  `DebugEvaluateContext` sin la comprobación de conflictos del parser. `DeclareEvalHelper` podía escribir un índice de
+  celda de módulo en un `ModuleContext` (o tratar un `SourceTextModule` como `JSObject`), sobrescribir `const`/`let` o
+  envolver ranuras en TDZ: corrupción de memoria.
+- **El arreglo:** rechaza de entrada cualquier `ModuleContext` con `EvalError`, y los enlaces léxicos, de solo lectura o el
+  `arguments` implícito con parámetros no simples dan un `SyntaxError` de redeclaración. Trae prueba de inspector.
+- **Alcance:** solo con el depurador (DevTools abiertas o una extensión con permiso `debugger`). Aplica a Mac.
+
 ## Pruebas para LOCAL y D8-LINUX
 
 Nada se ha compilado ni probado en la nube.
@@ -536,6 +568,11 @@ Nada se ha compilado ni probado en la nube.
   `sandbox/*` con las banderas de prueba del sandbox (brave-core/0002).
 - D8-LINUX: mjsunit `regress/wasm/regress-585625640`, `compiler/regress-585624821*` y `compiler/*` (brave-core/0003
   y 0004).
+- D8-LINUX: mjsunit `value-serializer`, `cctest` `test-api/*` (sobre todo `*InvokeApi*`, `*NoJS*`, `*DisallowJavascript*`),
+  `unittests --gtest_filter='ValueSerializerTest.*'` y mjsunit completo sin fallos nuevos (brave-core/0007). En LOCAL,
+  además, una sesión de navegación normal con DevTools, extensiones y claude.ai, por si algo de Brave llama a la API en un
+  ámbito sin JS (brave-core/0007).
+- D8-LINUX: inspector `debugger/evaluate-on-call-frame-redeclaration` y `debugger/*` (brave-core/0008).
 - D8-LINUX: mjsunit `regress/regress-586878505`, `es6/*`, `harmony/*` y `regress/*` (brave-core/0005; el `CHECK` nuevo
   de `NextInternal()` es de release).
 - `blink_unittests --gtest_filter='*StyleTimeline*:*ScrollTimeline*:*ViewTimeline*'` y las WPT de

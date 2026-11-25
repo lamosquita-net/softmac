@@ -1,0 +1,732 @@
+From 637bfbf30e77cb64a56b5a62f682da73b0c0ded2 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 09:43:53 +0000
+Subject: [PATCH 7/8] v8: enforce no-JS execution scopes in InvokeApiFunction
+ (474a6307ce, crbug 576333024)
+
+M156 reland on V8 15.6 (15.6.75.84) of af144bc8d4, byte-identical to
+the reverted original. Also builds Map/Set directly in
+ValueDeserializer. Applied as is to 15.6.75.66.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kdhDkMC93UBtLuPkF
+---
+ patches/v8/FLYWEB-SECURITY.md                 |  25 ++++
+ patches/v8/include-v8-function.h.patch        |  15 +++
+ patches/v8/src-api-api.cc.patch               |  38 +++++-
+ patches/v8/src-builtins-builtins-api.cc.patch |  38 ++++++
+ patches/v8/src-builtins-builtins.h.patch      |  23 ++++
+ patches/v8/src-execution-execution.cc.patch   |  83 +++++++++++++
+ patches/v8/src-execution-execution.h.patch    |  23 ++++
+ .../v8/src-objects-value-serializer.cc.patch  | 113 ++++++++++++++++++
+ patches/v8/test-cctest-test-api.cc.patch      | 113 ++++++++++++++++++
+ .../v8/test-mjsunit-value-serializer.js.patch |  67 +++++++++++
+ ...objects-value-serializer-unittest.cc.patch |  81 +++++++++++++
+ 11 files changed, 618 insertions(+), 1 deletion(-)
+ create mode 100644 patches/v8/include-v8-function.h.patch
+ create mode 100644 patches/v8/src-builtins-builtins-api.cc.patch
+ create mode 100644 patches/v8/src-builtins-builtins.h.patch
+ create mode 100644 patches/v8/src-execution-execution.cc.patch
+ create mode 100644 patches/v8/src-execution-execution.h.patch
+ create mode 100644 patches/v8/src-objects-value-serializer.cc.patch
+ create mode 100644 patches/v8/test-cctest-test-api.cc.patch
+ create mode 100644 patches/v8/test-mjsunit-value-serializer.js.patch
+ create mode 100644 patches/v8/test-unittests-objects-value-serializer-unittest.cc.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 3e9c9384..7e4eb624 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,28 @@
++# FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 474a6307ce (crbug 576333024), M156 reland
++
++SEGURIDAD-PORTES-33, 25-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0007`). V8 15.6 474a6307ce
++(15.6.75.84, 25-11; bugs 584997097 and 576333024), the reland of af144bc8d4 (15.6.75.59), which a62636bc52 (15.6.75.60)
++reverted because it "depends on" crbug 566156384 (failure on the m156 `fuchsia-x64-cast-receiver-rel` bot). The reland is
++byte-identical to the original (same `patch-id`). Upstream now ships it in Chrome 156; no commit naming 566156384 shows
++up on branch-heads 8078 or 8154. Applied as is to 15.6.75.66. Severity not published.
++
++- `Builtins::InvokeApiFunction` called C++ `FunctionTemplate` callbacks (from `Execution::Invoke` and from accessor
++  get/set) without the `DisallowJavascriptExecution` / `ThrowOnJavascriptExecution` / `DumpOnJavascriptExecution`
++  checks that `Execution::Invoke` applies to JS. It now applies them, except for side-effect-free API constructor
++  calls (`Function::NewInstanceWithSideEffectType(..., kHasNoSideEffect)`; comment only in `include/v8-function.h`).
++- `ValueDeserializer::ReadJSMap`/`ReadJSSet` fill the `OrderedHashMap`/`OrderedHashSet` directly in C++ instead of
++  calling `Map.prototype.set`/`Set.prototype.add`, so they no longer need an `AllowJavascriptExecution` scope.
++- `src/api/api.cc` already had a FlyWeb patch; the rest are new files in `patches/v8`.
++
++**Risk:** behaviour change. Embedder code (Blink or Brave) that calls an API function inside a no-JS scope now throws
++or, under `DumpOnJavascriptExecution`, crashes the process. Chrome 156 ships it, so the Chromium side is covered; Brave
++code paths need the usual browsing run.
++
++**Cache epoch:** covered by the single 40 -> 41 bump of `siguiente-3` (`brave-core/0001`); no bytecode change.
++
++To check (D8-LINUX): mjsunit `value-serializer`, `cctest/test-api/*InvokeApi*`, `*NoJS*` and `*DisallowJavascript*`
++tests, `unittests --gtest_filter='ValueSerializerTest.*'`, plus full mjsunit (no new failures).
++
+ # FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 2ea1b126e2 (crbug 571126471), missing from the 3.0.1 parser series
+ 
+ SEGURIDAD-PORTES-33, 24-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0006`). Main 2ea1b126e2
+diff --git a/patches/v8/include-v8-function.h.patch b/patches/v8/include-v8-function.h.patch
+new file mode 100644
+index 00000000..d3829797
+--- /dev/null
++++ b/patches/v8/include-v8-function.h.patch
+@@ -0,0 +1,15 @@
++diff --git a/include/v8-function.h b/include/v8-function.h
++index 18532519f8b89c9932426b4d00ba26f430a3923e..a7ed18e5d39bb3a4acf38b2524171d954de961d2 100644
++--- a/include/v8-function.h
+++++ b/include/v8-function.h
++@@ -48,6 +48,10 @@ class V8_EXPORT Function : public Object {
++    * When side effect checks are enabled, passing kHasNoSideEffect allows the
++    * constructor to be invoked without throwing. Calls made within the
++    * constructor are still checked.
+++   *
+++   * Passing kHasNoSideEffect also allows an API constructor to be instantiated
+++   * inside a DisallowJavascriptExecutionScope, provided the constructor
+++   * callback itself does not execute JavaScript.
++    */
++   V8_WARN_UNUSED_RESULT MaybeLocal<Object> NewInstanceWithSideEffectType(
++       Local<Context> context, int argc, Local<Value> argv[],
+diff --git a/patches/v8/src-api-api.cc.patch b/patches/v8/src-api-api.cc.patch
+index 7145bc43..cc44d936 100644
+--- a/patches/v8/src-api-api.cc.patch
++++ b/patches/v8/src-api-api.cc.patch
+@@ -1,5 +1,5 @@
+ diff --git a/src/api/api.cc b/src/api/api.cc
+-index 568671193c5ad61c81889fa9959eed12ac85536c..b2601820c1137ac9014a6942eb9dc06729a94394 100644
++index 568671193c5ad61c81889fa9959eed12ac85536c..cc94381f48c97d7a8e2640e0ce1ed3bd4ff45321 100644
+ --- a/src/api/api.cc
+ +++ b/src/api/api.cc
+ @@ -4977,6 +4977,18 @@ MaybeLocal<Value> v8::Object::Get(Local<Context> context, uint32_t index) {
+@@ -21,3 +21,39 @@ index 568671193c5ad61c81889fa9959eed12ac85536c..b2601820c1137ac9014a6942eb9dc067
+  MaybeLocal<Value> v8::Object::GetPrivate(Local<Context> context,
+                                           Local<Private> key) {
+    return Get(context, key.UnsafeAs<Value>());
++@@ -5721,24 +5733,23 @@ MaybeLocal<Object> Function::NewInstanceWithSideEffectType(
++   i::NestedTimedHistogramScope execute_timer(i_isolate->counters()->execute(),
++                                              i_isolate);
++   auto self = Utils::OpenDirectHandle(this);
++-  bool should_set_has_no_side_effect =
++-      side_effect_type == SideEffectType::kHasNoSideEffect &&
++-      i_isolate->should_check_side_effects();
++-  if (should_set_has_no_side_effect) {
+++  if (side_effect_type == SideEffectType::kHasNoSideEffect) {
++     CHECK(IsJSFunction(*self) &&
++           i::Cast<i::JSFunction>(*self)->shared()->IsApiFunction());
++-    i::Tagged<i::FunctionTemplateInfo> func_data =
++-        i::Cast<i::JSFunction>(*self)->shared()->api_func_data();
++-    if (func_data->has_callback(i_isolate)) {
++-      if (func_data->has_side_effects()) {
++-        i_isolate->debug()->IgnoreSideEffectsOnNextCallTo(
++-            handle(func_data, i_isolate));
+++    if (i_isolate->should_check_side_effects()) {
+++      i::Tagged<i::FunctionTemplateInfo> func_data =
+++          i::Cast<i::JSFunction>(*self)->shared()->api_func_data();
+++      if (func_data->has_callback(i_isolate)) {
+++        if (func_data->has_side_effects()) {
+++          i_isolate->debug()->IgnoreSideEffectsOnNextCallTo(
+++              handle(func_data, i_isolate));
+++        }
++       }
++     }
++   }
++   auto args = PrepareArguments(argc, argv);
++-  return api_scope.EscapeMaybe(
++-      Utils::ToMaybeLocal(i::Execution::New(i_isolate, self, self, args)));
+++  return api_scope.EscapeMaybe(Utils::ToMaybeLocal(
+++      i::Execution::New(i_isolate, self, self, args, side_effect_type)));
++ }
++ 
++ MaybeLocal<v8::Value> Function::Call(v8::Isolate* isolate,
+diff --git a/patches/v8/src-builtins-builtins-api.cc.patch b/patches/v8/src-builtins-builtins-api.cc.patch
+new file mode 100644
+index 00000000..6158a04d
+--- /dev/null
++++ b/patches/v8/src-builtins-builtins-api.cc.patch
+@@ -0,0 +1,38 @@
++diff --git a/src/builtins/builtins-api.cc b/src/builtins/builtins-api.cc
++index 24c7180fc3bf789975ae17e55f74f6e17eef3d8e..83e67ce747f03ad8b5700bc68fbe2003147b8c2b 100644
++--- a/src/builtins/builtins-api.cc
+++++ b/src/builtins/builtins-api.cc
++@@ -154,9 +154,32 @@ MaybeHandle<Object> Builtins::InvokeApiFunction(
++     Isolate* isolate, bool is_construct,
++     DirectHandle<FunctionTemplateInfo> function, DirectHandle<Object> receiver,
++     base::Vector<const DirectHandle<Object>> args,
++-    DirectHandle<HeapObject> new_target) {
+++    DirectHandle<HeapObject> new_target,
+++    SideEffectType overrider_side_effect_type) {
++   RCS_SCOPE(isolate, RuntimeCallCounterId::kInvokeApiFunction);
++ 
+++  if (!is_construct ||
+++      (function->has_callback(isolate) && function->has_side_effects() &&
+++       overrider_side_effect_type != SideEffectType::kHasNoSideEffect)) {
+++    if (!AllowJavascriptExecution::IsAllowed(isolate)) {
+++      GRACEFUL_FATAL("Invoke in DisallowJavascriptExecutionScope");
+++    }
+++    if (!ThrowOnJavascriptExecution::IsAllowed(isolate)) {
+++      isolate->ThrowIllegalOperation();
+++      return MaybeHandle<Object>();
+++    }
+++    if (!DumpOnJavascriptExecution::IsAllowed(isolate)) {
+++      V8::GetCurrentPlatform()->DumpWithoutCrashing();
+++      if (is_construct) {
+++        // TODO(crbug.com/576333024): Fix callers to handle empty return values
+++        // without a pending exception when DumpOnJavascriptExecution disallows
+++        // execution.
+++        return isolate->factory()->NewJSObject(isolate->object_function());
+++      }
+++      return isolate->factory()->undefined_value();
+++    }
+++  }
+++
++   // Do proper receiver conversion for non-strict mode api functions.
++   if (!is_construct && !IsJSReceiver(*receiver)) {
++     ASSIGN_RETURN_ON_EXCEPTION(isolate, receiver,
+diff --git a/patches/v8/src-builtins-builtins.h.patch b/patches/v8/src-builtins-builtins.h.patch
+new file mode 100644
+index 00000000..eef8dde1
+--- /dev/null
++++ b/patches/v8/src-builtins-builtins.h.patch
+@@ -0,0 +1,23 @@
++diff --git a/src/builtins/builtins.h b/src/builtins/builtins.h
++index 938885ffdf746db7b5173fbe94a1a02374b3aa39..0898666d586f13f57ff4f5f66b217605b3dc2a4f 100644
++--- a/src/builtins/builtins.h
+++++ b/src/builtins/builtins.h
++@@ -5,6 +5,7 @@
++ #ifndef V8_BUILTINS_BUILTINS_H_
++ #define V8_BUILTINS_BUILTINS_H_
++ 
+++#include "include/v8-object.h"
++ #include "src/base/bounds.h"
++ #include "src/base/flags.h"
++ #include "src/base/vector.h"
++@@ -436,7 +437,9 @@ class Builtins {
++       DirectHandle<FunctionTemplateInfo> function,
++       DirectHandle<Object> receiver,
++       base::Vector<const DirectHandle<Object>> args,
++-      DirectHandle<HeapObject> new_target);
+++      DirectHandle<HeapObject> new_target,
+++      SideEffectType overrider_side_effect_type =
+++          SideEffectType::kHasSideEffect);
++ 
++   static void Generate_Adaptor(MacroAssembler* masm, int formal_parameter_count,
++                                Address builtin_address);
+diff --git a/patches/v8/src-execution-execution.cc.patch b/patches/v8/src-execution-execution.cc.patch
+new file mode 100644
+index 00000000..04a84534
+--- /dev/null
++++ b/patches/v8/src-execution-execution.cc.patch
+@@ -0,0 +1,83 @@
++diff --git a/src/execution/execution.cc b/src/execution/execution.cc
++index e031b5db13e01c439145094bc7f73ea6931b31cb..54f7258fc66b138cfdcc0d200f3e59120cdf3284 100644
++--- a/src/execution/execution.cc
+++++ b/src/execution/execution.cc
++@@ -40,10 +40,11 @@ struct InvokeParams {
++   CPPGC_STACK_ALLOCATED();
++ 
++  public:
++-  static InvokeParams SetUpForNew(
++-      Isolate* isolate, DirectHandle<Object> constructor,
++-      DirectHandle<Object> new_target,
++-      base::Vector<const DirectHandle<Object>> args);
+++  static InvokeParams SetUpForNew(Isolate* isolate,
+++                                  DirectHandle<Object> constructor,
+++                                  DirectHandle<Object> new_target,
+++                                  base::Vector<const DirectHandle<Object>> args,
+++                                  SideEffectType side_effect_type);
++ 
++   static InvokeParams SetUpForCall(
++       Isolate* isolate, DirectHandle<Object> callable,
++@@ -86,13 +87,15 @@ struct InvokeParams {
++ 
++   bool is_construct;
++   Execution::Target execution_target;
+++  SideEffectType overrider_side_effect_type = SideEffectType::kHasSideEffect;
++ };
++ 
++ // static
++ InvokeParams InvokeParams::SetUpForNew(
++     Isolate* isolate, DirectHandle<Object> constructor,
++     DirectHandle<Object> new_target,
++-    base::Vector<const DirectHandle<Object>> args) {
+++    base::Vector<const DirectHandle<Object>> args,
+++    SideEffectType overrider_side_effect_type) {
++   InvokeParams params;
++   params.target = constructor;
++   params.receiver = isolate->factory()->undefined_value();
++@@ -104,6 +107,7 @@ InvokeParams InvokeParams::SetUpForNew(
++   params.exception_out = nullptr;
++   params.is_construct = true;
++   params.execution_target = Execution::Target::kCallable;
+++  params.overrider_side_effect_type = overrider_side_effect_type;
++   return params;
++ }
++ 
++@@ -350,7 +354,8 @@ V8_WARN_UNUSED_RESULT MaybeHandle<Object> Invoke(Isolate* isolate,
++           function->shared()->api_func_data(), isolate);
++       auto value = Builtins::InvokeApiFunction(
++           isolate, params.is_construct, fun_data, receiver, params.args,
++-          Cast<HeapObject>(params.new_target));
+++          Cast<HeapObject>(params.new_target),
+++          params.overrider_side_effect_type);
++       bool has_exception = value.is_null();
++       DCHECK_EQ(has_exception, isolate->has_exception());
++       if (has_exception) {
++@@ -404,6 +409,12 @@ V8_WARN_UNUSED_RESULT MaybeHandle<Object> Invoke(Isolate* isolate,
++   }
++   if (!DumpOnJavascriptExecution::IsAllowed(isolate)) {
++     V8::GetCurrentPlatform()->DumpWithoutCrashing();
+++    if (params.is_construct) {
+++      // TODO(crbug.com/576333024): Fix callers to handle empty return values
+++      // without a pending exception when DumpOnJavascriptExecution disallows
+++      // execution.
+++      return isolate->factory()->NewJSObject(isolate->object_function());
+++    }
++     return isolate->factory()->undefined_value();
++   }
++   isolate->IncrementJavascriptExecutionCounter();
++@@ -616,10 +627,11 @@ MaybeDirectHandle<JSReceiver> Execution::New(
++ MaybeDirectHandle<JSReceiver> Execution::New(
++     Isolate* isolate, DirectHandle<Object> constructor,
++     DirectHandle<Object> new_target,
++-    base::Vector<const DirectHandle<Object>> args) {
+++    base::Vector<const DirectHandle<Object>> args,
+++    SideEffectType overrider_side_effect_type) {
++   return Cast<JSReceiver>(Invoke(
++-      isolate,
++-      InvokeParams::SetUpForNew(isolate, constructor, new_target, args)));
+++      isolate, InvokeParams::SetUpForNew(isolate, constructor, new_target, args,
+++                                         overrider_side_effect_type)));
++ }
++ 
++ // static
+diff --git a/patches/v8/src-execution-execution.h.patch b/patches/v8/src-execution-execution.h.patch
+new file mode 100644
+index 00000000..291fdf0f
+--- /dev/null
++++ b/patches/v8/src-execution-execution.h.patch
+@@ -0,0 +1,23 @@
++diff --git a/src/execution/execution.h b/src/execution/execution.h
++index f623a4a03cd1cb7f777d19caf06f560039e886af..93678925430a624b5610576df03d1cdb5dd77992 100644
++--- a/src/execution/execution.h
+++++ b/src/execution/execution.h
++@@ -5,6 +5,7 @@
++ #ifndef V8_EXECUTION_EXECUTION_H_
++ #define V8_EXECUTION_EXECUTION_H_
++ 
+++#include "include/v8-object.h"
++ #include "src/base/vector.h"
++ #include "src/common/globals.h"
++ 
++@@ -47,7 +48,9 @@ class Execution final : public AllStatic {
++   V8_WARN_UNUSED_RESULT static MaybeDirectHandle<JSReceiver> New(
++       Isolate* isolate, DirectHandle<Object> constructor,
++       DirectHandle<Object> new_target,
++-      base::Vector<const DirectHandle<Object>> args);
+++      base::Vector<const DirectHandle<Object>> args,
+++      SideEffectType overrider_side_effect_type =
+++          SideEffectType::kHasSideEffect);
++ 
++   // Call a function, just like Call(), but handle don't report exceptions
++   // externally.
+diff --git a/patches/v8/src-objects-value-serializer.cc.patch b/patches/v8/src-objects-value-serializer.cc.patch
+new file mode 100644
+index 00000000..43a40500
+--- /dev/null
++++ b/patches/v8/src-objects-value-serializer.cc.patch
+@@ -0,0 +1,113 @@
++diff --git a/src/objects/value-serializer.cc b/src/objects/value-serializer.cc
++index 36a784bcbf5a8cf0e95fdbd6b0d23f3713e7b637..4d76736a86651d290791221ca79734d9e595f4bb 100644
++--- a/src/objects/value-serializer.cc
+++++ b/src/objects/value-serializer.cc
++@@ -19,7 +19,7 @@
++ #include "src/handles/handles-inl.h"
++ #include "src/handles/maybe-handles-inl.h"
++ #include "src/handles/shared-object-conveyor-handles.h"
++-#include "src/heap/factory.h"
+++#include "src/heap/factory-inl.h"
++ #include "src/numbers/conversions.h"
++ #include "src/objects/dictionary-inl.h"
++ #include "src/objects/heap-number-inl.h"
++@@ -2086,6 +2086,22 @@ MaybeDirectHandle<JSRegExp> ValueDeserializer::ReadJSRegExp() {
++   return regexp;
++ }
++ 
+++namespace {
+++
+++DirectHandle<Object> CanonicalizeCollectionKey(Isolate* isolate,
+++                                               DirectHandle<Object> key) {
+++  if (IsString(*key)) {
+++    // Deserialized strings are allocated as fresh SeqStrings, whereas
+++    // OrderedHashTable CSA lookups require string keys to be internalized
+++    // (compared by pointer equality).
+++    return isolate->factory()->InternalizeString(Cast<String>(key));
+++  }
+++  CHECK(!IsHeapNumber(*key) || Cast<HeapNumber>(*key)->value() != 0.0);
+++  return key;
+++}
+++
+++}  // namespace
+++
++ MaybeDirectHandle<JSMap> ValueDeserializer::ReadJSMap() {
++   // If we are at the end of the stack, abort. This function may recurse.
++   STACK_CHECK(isolate_, MaybeDirectHandle<JSMap>());
++@@ -2095,7 +2111,12 @@ MaybeDirectHandle<JSMap> ValueDeserializer::ReadJSMap() {
++   DirectHandle<JSMap> map = isolate_->factory()->NewJSMap();
++   AddObjectWithID(id, map);
++ 
++-  DirectHandle<JSFunction> map_set = isolate_->map_set();
+++  // We can populate the table directly because:
+++  // 1) The resulting object is not observable until deserialization is over, so
+++  //    we do not need to deal with live iterators.
+++  // 2) We are populating the table from a serialized source JSMap table, so the
+++  //    keys are already valid/canonicalized (once strings are internalized) and
+++  //    do not contain duplicates.
++   uint32_t length = 0;
++   while (true) {
++     SerializationTag tag;
++@@ -2105,16 +2126,19 @@ MaybeDirectHandle<JSMap> ValueDeserializer::ReadJSMap() {
++       break;
++     }
++ 
++-    DirectHandle<Object> args[2];
++-    if (!ReadObject().ToHandle(&args[0]) || !ReadObject().ToHandle(&args[1])) {
+++    HandleScope loop_scope(isolate_);
+++    DirectHandle<Object> key;
+++    DirectHandle<Object> value;
+++    if (!ReadObject().ToHandle(&key) || !ReadObject().ToHandle(&value)) {
++       return MaybeDirectHandle<JSMap>();
++     }
++ 
++-    AllowJavascriptExecution allow_js(isolate_);
++-    if (Execution::Call(isolate_, map_set, map, base::VectorOf(args))
++-            .is_null()) {
+++    key = CanonicalizeCollectionKey(isolate_, key);
+++    Handle<OrderedHashMap> table(Cast<OrderedHashMap>(map->table()), isolate_);
+++    if (!OrderedHashMap::Add(isolate_, table, key, value).ToHandle(&table)) {
++       return MaybeDirectHandle<JSMap>();
++     }
+++    map->set_table(*table);
++     length += 2;
++   }
++ 
++@@ -2135,7 +2159,13 @@ MaybeDirectHandle<JSSet> ValueDeserializer::ReadJSSet() {
++   uint32_t id = next_id_++;
++   DirectHandle<JSSet> set = isolate_->factory()->NewJSSet();
++   AddObjectWithID(id, set);
++-  DirectHandle<JSFunction> set_add = isolate_->set_add();
+++
+++  // We can populate the table directly because:
+++  // 1) The resulting object is not observable until deserialization is over, so
+++  //    we do not need to deal with live iterators.
+++  // 2) We are populating the table from a serialized source JSSet table, so the
+++  //    keys are already valid/canonicalized (once strings are internalized) and
+++  //    do not contain duplicates.
++   uint32_t length = 0;
++   while (true) {
++     SerializationTag tag;
++@@ -2145,14 +2175,17 @@ MaybeDirectHandle<JSSet> ValueDeserializer::ReadJSSet() {
++       break;
++     }
++ 
++-    DirectHandle<Object> args[1];
++-    if (!ReadObject().ToHandle(&args[0])) return MaybeDirectHandle<JSSet>();
+++    HandleScope loop_scope(isolate_);
+++    DirectHandle<Object> key;
+++    if (!ReadObject().ToHandle(&key)) return MaybeDirectHandle<JSSet>();
++ 
++-    AllowJavascriptExecution allow_js(isolate_);
++-    if (Execution::Call(isolate_, set_add, set, base::VectorOf(args))
++-            .is_null()) {
+++    key = CanonicalizeCollectionKey(isolate_, key);
+++    DirectHandle<OrderedHashSet> table(Cast<OrderedHashSet>(set->table()),
+++                                       isolate_);
+++    if (!OrderedHashSet::Add(isolate_, table, key).ToHandle(&table)) {
++       return MaybeDirectHandle<JSSet>();
++     }
+++    set->set_table(*table);
++     length++;
++   }
++ 
+diff --git a/patches/v8/test-cctest-test-api.cc.patch b/patches/v8/test-cctest-test-api.cc.patch
+new file mode 100644
+index 00000000..1fc1e842
+--- /dev/null
++++ b/patches/v8/test-cctest-test-api.cc.patch
+@@ -0,0 +1,113 @@
++diff --git a/test/cctest/test-api.cc b/test/cctest/test-api.cc
++index c98c4e2ecb33fadae4ceb6b62ee089c0aaee1efe..56899b0e4f18130d9b49cddf22116ce865db16fb 100644
++--- a/test/cctest/test-api.cc
+++++ b/test/cctest/test-api.cc
++@@ -23834,40 +23834,96 @@ TEST(AllowJavascriptExecutionScope) {
++   }
++ }
++ 
+++namespace {
+++void TestMicrotaskCheckpointCallback(v8::Local<v8::Data> data) {
+++  int* count = GetData<int>(data);
+++  (*count)++;
+++}
+++void TestMicrotaskFunctionCallback(
+++    const v8::FunctionCallbackInfo<v8::Value>& info) {
+++  int* count = GetData<int>(info);
+++  (*count)++;
+++}
+++}  // namespace
+++
++ TEST(ThrowOnJavascriptExecution) {
++   LocalContext context;
++   v8::Isolate* isolate = context.isolate();
++   v8::HandleScope scope(isolate);
+++  int api_call_count = 0;
+++  v8::Local<v8::Function> api_fn =
+++      v8::Function::New(context.local(), TestMicrotaskFunctionCallback,
+++                        MakeData(isolate, &api_call_count))
+++          .ToLocalChecked();
+++  v8::Local<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(isolate);
+++  templ->SetAccessorProperty(
+++      v8_str("prop"),
+++      v8::FunctionTemplate::New(isolate, TestMicrotaskFunctionCallback,
+++                                MakeData(isolate, &api_call_count)));
+++  v8::Local<v8::Object> obj =
+++      templ->NewInstance(context.local()).ToLocalChecked();
++   v8::TryCatch try_catch(isolate);
++   v8::Isolate::DisallowJavascriptExecutionScope throw_js(
++       isolate, v8::Isolate::DisallowJavascriptExecutionScope::THROW_ON_FAILURE);
++   CompileRun("1+1");
++   CHECK(try_catch.HasCaught());
+++  try_catch.Reset();
+++  CHECK(api_fn->Call(context.local(), context->Global(), 0, nullptr).IsEmpty());
+++  CHECK(try_catch.HasCaught());
+++  try_catch.Reset();
+++  CHECK(api_fn->NewInstance(context.local()).IsEmpty());
+++  CHECK(try_catch.HasCaught());
+++  try_catch.Reset();
+++  CHECK(obj->Get(context.local(), v8_str("prop")).IsEmpty());
+++  CHECK(try_catch.HasCaught());
+++  CHECK_EQ(0, api_call_count);
+++  CHECK(!templ->NewInstance(context.local()).IsEmpty());
+++  CHECK(
+++      !api_fn
+++           ->NewInstanceWithSideEffectType(context.local(), 0, nullptr,
+++                                           v8::SideEffectType::kHasNoSideEffect)
+++           .IsEmpty());
+++  CHECK_EQ(1, api_call_count);
++ }
++ 
++ TEST_WITH_PLATFORM(DumpOnJavascriptExecution, MockPlatform) {
++   LocalContext context;
++   v8::Isolate* isolate = context.isolate();
++   v8::HandleScope scope(isolate);
+++  int api_call_count = 0;
+++  v8::Local<v8::Function> js_fn =
+++      v8::Local<v8::Function>::Cast(CompileRun("(function() {})"));
+++  v8::Local<v8::Function> api_fn =
+++      v8::Function::New(context.local(), TestMicrotaskFunctionCallback,
+++                        MakeData(isolate, &api_call_count))
+++          .ToLocalChecked();
+++  v8::Local<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(isolate);
+++  templ->SetAccessorProperty(
+++      v8_str("prop"),
+++      v8::FunctionTemplate::New(isolate, TestMicrotaskFunctionCallback,
+++                                MakeData(isolate, &api_call_count)));
+++  v8::Local<v8::Object> obj =
+++      templ->NewInstance(context.local()).ToLocalChecked();
++   v8::Isolate::DisallowJavascriptExecutionScope throw_js(
++       isolate, v8::Isolate::DisallowJavascriptExecutionScope::DUMP_ON_FAILURE);
++   CHECK(!platform.dump_without_crashing_called());
++   CompileRun("1+1");
++   CHECK(platform.dump_without_crashing_called());
+++  CHECK(!js_fn->NewInstance(context.local()).IsEmpty());
+++  CHECK(
+++      !api_fn->Call(context.local(), context->Global(), 0, nullptr).IsEmpty());
+++  CHECK(!api_fn->NewInstance(context.local()).IsEmpty());
+++  CHECK(!obj->Get(context.local(), v8_str("prop")).IsEmpty());
+++  CHECK_EQ(0, api_call_count);
+++  CHECK(!templ->NewInstance(context.local()).IsEmpty());
+++  CHECK(
+++      !api_fn
+++           ->NewInstanceWithSideEffectType(context.local(), 0, nullptr,
+++                                           v8::SideEffectType::kHasNoSideEffect)
+++           .IsEmpty());
+++  CHECK_EQ(1, api_call_count);
++ }
++ 
++-namespace {
++-void TestMicrotaskCheckpointCallback(v8::Local<v8::Data> data) {
++-  int* count = GetData<int>(data);
++-  (*count)++;
++-}
++-void TestMicrotaskFunctionCallback(
++-    const v8::FunctionCallbackInfo<v8::Value>& info) {
++-  int* count = GetData<int>(info);
++-  (*count)++;
++-}
++-}  // namespace
++-
++ TEST(MicrotaskCheckpointDisallowJavascriptExecutionScope) {
++   LocalContext env;
++   v8::Isolate* isolate = env.isolate();
+diff --git a/patches/v8/test-mjsunit-value-serializer.js.patch b/patches/v8/test-mjsunit-value-serializer.js.patch
+new file mode 100644
+index 00000000..9486c654
+--- /dev/null
++++ b/patches/v8/test-mjsunit-value-serializer.js.patch
+@@ -0,0 +1,67 @@
++diff --git a/test/mjsunit/value-serializer.js b/test/mjsunit/value-serializer.js
++index 52c8c865a457e3045ca9df19b6f140053c65386d..2c07919aa1369a1464418d12e8563e87d63f7a64 100644
++--- a/test/mjsunit/value-serializer.js
+++++ b/test/mjsunit/value-serializer.js
++@@ -49,3 +49,62 @@ for (var o of objects) {
++   const deserialised = d8.serializer.deserialize(serialised);
++   assertEquals(typeof deserialised, typeof o);
++ }
+++
+++{
+++  const map = new Map([
+++    ['foo', 42],
+++    ['bar' + 'baz', 99],
+++    ['uc16\u2028key', 123],
+++    [-0.0, 'zero'],
+++    [1.5, 'one_half'],
+++    [-2.5, 'minus_two_half'],
+++    [NaN, 'nan'],
+++  ]);
+++  const deserialized = d8.serializer.deserialize(d8.serializer.serialize(map));
+++  assertEquals(7, deserialized.size);
+++  assertTrue(deserialized.has('foo'));
+++  assertEquals(42, deserialized.get('foo'));
+++  assertTrue(deserialized.has('barbaz'));
+++  assertEquals(99, deserialized.get('barbaz'));
+++  assertTrue(deserialized.has('uc16\u2028key'));
+++  assertEquals(123, deserialized.get('uc16\u2028key'));
+++  assertTrue(deserialized.has(0.0));
+++  assertTrue(deserialized.has(-0.0));
+++  assertEquals('zero', deserialized.get(0.0));
+++  assertEquals('zero', deserialized.get(-0.0));
+++  assertTrue(deserialized.has(1.5));
+++  assertEquals('one_half', deserialized.get(1.5));
+++  assertTrue(deserialized.has(-2.5));
+++  assertEquals('minus_two_half', deserialized.get(-2.5));
+++  assertTrue(deserialized.has(NaN));
+++  assertEquals('nan', deserialized.get(NaN));
+++  assertTrue(deserialized.delete('foo'));
+++  assertFalse(deserialized.has('foo'));
+++  assertEquals(6, deserialized.size);
+++}
+++
+++{
+++  const set = new Set([
+++    'foo',
+++    'bar' + 'baz',
+++    'uc16\u2028key',
+++    -0.0,
+++    0.0,
+++    1.5,
+++    -2.5,
+++    NaN,
+++  ]);
+++  const deserialized = d8.serializer.deserialize(d8.serializer.serialize(set));
+++  assertEquals(7, deserialized.size);
+++  assertTrue(deserialized.has('foo'));
+++  assertTrue(deserialized.has('barbaz'));
+++  assertTrue(deserialized.has('uc16\u2028key'));
+++  assertTrue(deserialized.has(0.0));
+++  assertTrue(deserialized.has(-0.0));
+++  assertTrue(deserialized.has(1.5));
+++  assertTrue(deserialized.has(-2.5));
+++  assertTrue(deserialized.has(NaN));
+++  assertTrue(deserialized.delete('foo'));
+++  assertFalse(deserialized.has('foo'));
+++  assertEquals(6, deserialized.size);
+++}
+diff --git a/patches/v8/test-unittests-objects-value-serializer-unittest.cc.patch b/patches/v8/test-unittests-objects-value-serializer-unittest.cc.patch
+new file mode 100644
+index 00000000..99841fc0
+--- /dev/null
++++ b/patches/v8/test-unittests-objects-value-serializer-unittest.cc.patch
+@@ -0,0 +1,81 @@
++diff --git a/test/unittests/objects/value-serializer-unittest.cc b/test/unittests/objects/value-serializer-unittest.cc
++index befa5e60d487852ae75aedd7cd28cf27379be93d..4daf144bcd9a55dae9e6f28d0fe269bc7bc44079 100644
++--- a/test/unittests/objects/value-serializer-unittest.cc
+++++ b/test/unittests/objects/value-serializer-unittest.cc
++@@ -287,7 +287,8 @@ class ValueSerializerTest : public TestWithIsolate {
++     return host_object_constructor_template_.Get(isolate())
++         ->GetFunction(context)
++         .ToLocalChecked()
++-        ->NewInstance(context, argc, argv)
+++        ->NewInstanceWithSideEffectType(context, argc, argv,
+++                                        SideEffectType::kHasNoSideEffect)
++         .ToLocalChecked();
++   }
++ 
++@@ -1769,6 +1770,16 @@ TEST_F(ValueSerializerTest, RoundTripMap) {
++       "m;");
++   ASSERT_TRUE(value->IsMap());
++   ExpectScriptTrue("Array.from(result.keys()).toString() === '1,a,3,2'");
+++
+++  // NaN and HeapNumber keys must work with Map.prototype.get/has.
+++  value = RoundTripTest(
+++      "var m = new Map();"
+++      "m.set(NaN, 'nan'); m.set(1.5, 'half');"
+++      "m;");
+++  ASSERT_TRUE(value->IsMap());
+++  ExpectScriptTrue("result.size === 2");
+++  ExpectScriptTrue("result.get(NaN) === 'nan'");
+++  ExpectScriptTrue("result.get(1.5) === 'half'");
++ }
++ 
++ TEST_F(ValueSerializerTest, DecodeMap) {
++@@ -1851,6 +1862,16 @@ TEST_F(ValueSerializerTest, RoundTripSet) {
++       "s;");
++   ASSERT_TRUE(value->IsSet());
++   ExpectScriptTrue("Array.from(result.keys()).toString() === '1,a,3,2'");
+++
+++  // NaN and HeapNumber keys must work with Set.prototype.has.
+++  value = RoundTripTest(
+++      "var s = new Set();"
+++      "s.add(NaN); s.add(1.5);"
+++      "s;");
+++  ASSERT_TRUE(value->IsSet());
+++  ExpectScriptTrue("result.size === 2");
+++  ExpectScriptTrue("result.has(NaN)");
+++  ExpectScriptTrue("result.has(1.5)");
++ }
++ 
++ TEST_F(ValueSerializerTest, DecodeSet) {
++@@ -2883,6 +2904,32 @@ TEST_F(ValueSerializerTestWithSharedArrayBufferClone,
++   ExpectScriptTrue("new Uint8Array(result.a).toString() === '0,1,128,255'");
++ }
++ 
+++TEST_F(ValueSerializerTestWithSharedArrayBufferClone,
+++       SharedArrayBufferCloneErrorCanInvokeApiConstructor) {
+++  i::DisableHandleChecksForMockingScope mocking_scope;
+++
+++  InitializeData({0x00, 0x01, 0x80, 0xFF}, false);
+++
+++  EXPECT_CALL(serializer_delegate_,
+++              GetSharedArrayBufferId(isolate(), input_buffer()))
+++      .WillOnce(Return(Just(0U)));
+++  EXPECT_CALL(deserializer_delegate_, GetSharedArrayBufferFromId(isolate(), 0U))
+++      .WillOnce([this](Isolate* isolate, uint32_t) {
+++        EXPECT_FALSE(i::AllowJavascriptExecution::IsAllowed(
+++            reinterpret_cast<i::Isolate*>(isolate)));
+++        Local<Context> context = deserialization_context();
+++        Local<Function> ctor = FunctionTemplate::New(isolate)
+++                                   ->GetFunction(context)
+++                                   .ToLocalChecked();
+++        Local<Object> exception = ctor->NewInstance(context).ToLocalChecked();
+++        isolate->ThrowException(exception);
+++        return MaybeLocal<SharedArrayBuffer>();
+++      });
+++
+++  std::vector<uint8_t> encoded = EncodeTest(input_buffer());
+++  InvalidDecodeTest(encoded);
+++}
+++
++ #if V8_ENABLE_WEBASSEMBLY
++ TEST_F(ValueSerializerTestWithSharedArrayBufferClone,
++        RoundTripWebAssemblyMemory) {
+-- 
+2.43.0
+

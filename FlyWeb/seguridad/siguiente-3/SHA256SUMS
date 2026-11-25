@@ -23,3 +23,5 @@ b07cae1876e0a88d8011dfb218a90f0709fd41e420b905e202471b575aae161c  chromium/0015-
 a407276aa22ed7b31886d06c90bd6ed9b0ba3c3d45a65f9397246d11d362aac7  libvpx/0001-vp9-Fix-base_mv-usage-when-lower-SVC-layers-are-skip.patch
 2283a7ced9a405c178163ac3bf6f4089f7bf6365b3ad1d7567ff0f09b2853ff5  chromium/0016-M159-FSA-validate-source-entry-type-before-moving-or.patch
 3826d0f7c7c25716e7e46326f4f0402f52572ad75ed10005630a4ed5e8dc1018  chromium/0017-M156-CacheStorage-Truncate-pre-existing-entry-stream.patch
+5d561015d06b2120ff1e78cf4f9d432d8de767aa4cf88f724b3d9f8d1fb35e8f  brave-core/0007-v8-enforce-no-JS-execution-scopes-in-InvokeApiFuncti.patch
+71a2c67cf96217521d6f37a03a4bcfb34184f4928a62bb10412d10df3002cc8c  brave-core/0008-v8-reject-debug-evaluate-hoisting-into-modules-or-le.patch
