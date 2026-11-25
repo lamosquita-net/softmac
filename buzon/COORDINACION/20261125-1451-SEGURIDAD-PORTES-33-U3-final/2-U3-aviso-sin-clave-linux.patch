@@ -1,0 +1,104 @@
+diff --git a/app/brave_generated_resources.grd b/app/brave_generated_resources.grd
+index 8be7dd9908..ce3c262468 100644
+--- a/app/brave_generated_resources.grd
++++ b/app/brave_generated_resources.grd
+@@ -343,6 +343,12 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>flyweb://settings/ex
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED_EMAIL" desc="Account warning: the chain this Mac syncs was linked to the account of that email (K1)">
+         This sync was linked to the account <ph name="EMAIL">$1<ex>nombre@example.com</ex></ph>. If you did not link it, delete the account and its data everywhere.
+       </message>
++      <!-- FlyWeb (U3, Linux): without the fw1 key file nothing is encrypted, so nothing new is saved (no v10). -->
++      <if expr="is_linux">
++        <message name="IDS_FLYWEB_KEYRING_UNAVAILABLE_INFOBAR_MESSAGE" desc="Linux: infobar at startup when FlyWeb cannot read its fw1 key file (damaged, owned by another user, a symlink, or a folder it cannot write); saved passwords and sign-ins are neither used nor saved (they stay on disk). Shown with the upstream button. Kept short: the infobar is one line.">
++          FlyWeb can’t read its encryption key: passwords and sign-ins aren’t used or saved. Nothing is lost.
++        </message>
++      </if>
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_LINKED_BY_ME" desc="Button of the account warning bar when this Mac's chain was linked to an account">
+         I didn't link it
+       </message>
+diff --git a/app/resources/brave_generated_resources_es-419.xtb b/app/resources/brave_generated_resources_es-419.xtb
+index d175193c42..76deb8a19a 100644
+--- a/app/resources/brave_generated_resources_es-419.xtb
++++ b/app/resources/brave_generated_resources_es-419.xtb
+@@ -882,4 +882,5 @@ de forma irreversible.</translation>
+ <translation id="6438922473717127121">Cuenta y sincronización</translation>
+ <translation id="1700890504399928133">Esta sincronización se ha ligado a la cuenta «<ph name="EMAIL"/>». Si no la has ligado tú, borra la cuenta y los datos en todos.</translation>
+ <translation id="9216077204680478027">No la he ligado yo</translation>
++<translation id="4585697897267725430">FlyWeb no puede leer su clave de cifrado: no se usan ni guardan contraseñas ni sesiones. No se pierde nada.</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/app/resources/brave_generated_resources_es.xtb b/app/resources/brave_generated_resources_es.xtb
+index e8d4990cb1..7caac8e406 100644
+--- a/app/resources/brave_generated_resources_es.xtb
++++ b/app/resources/brave_generated_resources_es.xtb
+@@ -881,4 +881,5 @@ de forma irreversible.</translation>
+ <translation id="6438922473717127121">Cuenta y sincronización</translation>
+ <translation id="1700890504399928133">Esta sincronización se ha ligado a la cuenta «<ph name="EMAIL"/>». Si no la has ligado tú, borra la cuenta y los datos en todos.</translation>
+ <translation id="9216077204680478027">No la he ligado yo</translation>
++<translation id="4585697897267725430">FlyWeb no puede leer su clave de cifrado: no se usan ni guardan contraseñas ni sesiones. No se pierde nada.</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/chromium_src/chrome/browser/ui/startup/oscryptasync_availability_infobar_delegate.cc b/chromium_src/chrome/browser/ui/startup/oscryptasync_availability_infobar_delegate.cc
+new file mode 100644
+index 0000000000..edbf7d973d
+--- /dev/null
++++ b/chromium_src/chrome/browser/ui/startup/oscryptasync_availability_infobar_delegate.cc
+@@ -0,0 +1,25 @@
++/* Copyright (c) 2026 The FlyWeb Authors. All rights reserved.
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
++ * You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++#include "build/build_config.h"
++
++#if BUILDFLAG(IS_LINUX)
++// FlyWeb (U3): on Linux the bar means the fw1 key file cannot be read, not a
++// keychain that needs a relaunch: say that passwords and sign-ins are not used
++// or saved.
++// The generated header is included first so its own definition is not
++// redefined below.
++#include "brave/grit/brave_generated_resources.h"
++#include "chrome/grit/generated_resources.h"
++#undef IDS_OSCRYPTASYNC_AVAILABILITY_INFOBAR_MESSAGE
++#define IDS_OSCRYPTASYNC_AVAILABILITY_INFOBAR_MESSAGE \
++  IDS_FLYWEB_KEYRING_UNAVAILABLE_INFOBAR_MESSAGE
++#endif
++
++#include "src/chrome/browser/ui/startup/oscryptasync_availability_infobar_delegate.cc"
++
++#if BUILDFLAG(IS_LINUX)
++#undef IDS_OSCRYPTASYNC_AVAILABILITY_INFOBAR_MESSAGE
++#endif
+diff --git a/chromium_src/chrome/browser/ui/ui_features.cc b/chromium_src/chrome/browser/ui/ui_features.cc
+index 31c4a55ced..61e99e3f5b 100644
+--- a/chromium_src/chrome/browser/ui/ui_features.cc
++++ b/chromium_src/chrome/browser/ui/ui_features.cc
+@@ -13,6 +13,11 @@ namespace features {
+ OVERRIDE_FEATURE_DEFAULT_STATES({{
+ #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+     {kFewerUpdateConfirmations, base::FEATURE_DISABLED_BY_DEFAULT},
++#endif
++#if BUILDFLAG(IS_LINUX)
++    // FlyWeb (U3): no v10 without the fw1 key, so tell the user that nothing
++    // is being saved (on by default only on Mac upstream).
++    {kOSCryptAsyncAvailabilityInfoBar, base::FEATURE_ENABLED_BY_DEFAULT},
+ #endif
+     {kTabHoverCardImages, base::FEATURE_DISABLED_BY_DEFAULT},
+ }});
+diff --git a/patches/chrome-browser-ui-startup-BUILD.gn.patch b/patches/chrome-browser-ui-startup-BUILD.gn.patch
+new file mode 100644
+index 0000000000..700588b4c4
+--- /dev/null
++++ b/patches/chrome-browser-ui-startup-BUILD.gn.patch
+@@ -0,0 +1,12 @@
++diff --git a/chrome/browser/ui/startup/BUILD.gn b/chrome/browser/ui/startup/BUILD.gn
++index 716f94e0dcb3b5a6d5c86596c64d493ddbfad2c7..880378d0960bffa632998fe07849861485f713e0 100644
++--- a/chrome/browser/ui/startup/BUILD.gn
+++++ b/chrome/browser/ui/startup/BUILD.gn
++@@ -209,6 +209,7 @@ source_set("impl") {
++       "startup_tab_provider.cc",
++     ]
++     deps += [
+++      "//brave/app:brave_generated_resources_grit",
++       ":startup_tab",
++       "//apps",
++       "//base:i18n",
