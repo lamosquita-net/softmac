@@ -57,6 +57,14 @@ Guion único de la Release en main: `FlyWeb/tools/release-3x/` (#1232). siguient
 (FSA) y 0017 (CacheStorage); la 156.0.8078.124 está cortada, sin boletín aún. LOCAL-25 y D8-LINUX-6, sin encargo pendiente (D8,
 desconectada a ratos).
 
+**Añadido 25-11 ~15:00 UTC:** Titín decidió **E1 (a), sale tal cual** en la próxima versión que abra (#1235) y abrir la tarea del
+**vídeo lento** de la base (orden a LOCAL-25 `buzon/LOCAL/20261125-1407-…-video-lento.md`: sample de renderers y navegador +
+16+16 e1x/e1d; ARQUITECTURA lo lee). **U3:** clave `fw1` siempre en fichero, sin llavero (#1236 y la línea siguiente de
+DIRECTIVAS); parches finales 2–4 de SEGURIDAD-PORTES en `buzon/COORDINACION/20261125-1451-…-U3-final/` (sumas comprobadas),
+pasados a D8-LINUX-6 para B.2 con perfil nuevo. Queda sin decidir solo el volcado de cookies en `EndSession` (opcional).
+D8-LINUX-6 desconectada a ratos: en cola, d8 de brave-core 0007–0009 (`buzon/D8-LINUX/20261125-0950-…`) y U3 final.
+siguiente-3 llega a chromium/0019 y brave-core/0009; sin gravedad Alta publicada.
+
 **Lecciones de la 63:** no dar por equivalente un caso de prueba sin ver su captura (three.js salía en negro; ARQUITECTURA lo
 pilló). Las puertas se leen al pie de la letra (J3 pide el estilo solo). «LuLu no lo retuvo» puede ser que Titín lo aprobó al
 instante: preguntar. Al cambiar una orden con la compilación en marcha, contar con que el agente ya la haya parado.
