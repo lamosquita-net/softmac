@@ -1,0 +1,216 @@
+diff --git a/components/flyweb_os_crypt/README.md b/components/flyweb_os_crypt/README.md
+index 40fe6f91..63db7a20 100644
+--- a/components/flyweb_os_crypt/README.md
++++ b/components/flyweb_os_crypt/README.md
+@@ -22,7 +22,9 @@ porte a Chromium 156, `FlyWeb/docs/brave-propio.md` §11.8.2 y §12.
+     carga ni se borra, y no tira su eTLD+1. Se vuelve a leer en un arranque con clave. Si en la sesión hay una escritura
+     para su `host_key`, antes se borran las filas guardadas de ese `host_key`: así no choca con el índice único y no reaparece
+     un valor viejo. Sin escritura para ese `host_key`, un cierre de sesión que solo caduque esa cookie puede no verse
+-    hasta el siguiente arranque con clave. El delegado lo sabe por
++    hasta el siguiente arranque con clave. **Sin ninguna clave** (en Linux, con el fichero ilegible) no se escribe nada, y
++    esas filas tampoco se borran: borrarlas solo perdería la cookie. Vuelven con su valor anterior al arrancar con la
++    clave (`DoCommit` lo comprueba con un cifrado de prueba de un byte). El delegado lo sabe por
+     `CookieCryptoDelegate::DecryptStringWithTemporaryFailure` (`patches/net-extras-sqlite-cookie_crypto_delegate.h.patch`,
+     `patches/services-network-network_context.cc.patch`, con `Encryptor::DecryptFlags::temporarily_unavailable`).
+   - **Valor `fw1` ilegible con la clave presente** (valor corrupto, o proveedor no registrado): se pierde esa cookie sola
+@@ -49,7 +51,11 @@ pero en un fichero y no en un llavero.
+ - **Registro:** `fw1` con precedencia 20 (`chromium_src/chrome/browser/browser_process_impl.cc`). Sin portal de secretos.
+   `PosixKeyProvider` (`v10`, clave fija y pública) solo con `--password-store=basic`, y solo para leer lo que haya escrito
+   una compilación de prueba: `fw1` cifra todo lo nuevo, también con `basic`.
+-- **Cookies:** lo de arriba vale igual. Con la clave en el fichero, «clave ausente» ya solo pasa con el fichero dañado.
++- **Cookies:** lo de arriba vale igual. Con la clave en el fichero, «clave ausente» ya solo pasa con el fichero dañado, y
++  entonces no se escribe ni se borra ninguna cookie.
++- **Barra:** con el fichero ilegible sale la barra de upstream con el texto de FlyWeb (B.1). Como el fichero se lee antes de
++  la primera pestaña, la comprobación espera un segundo (`patches/chrome-browser-ui-startup-infobar_utils.cc.patch`); si
++  no, la barra no salía.
+ - La regla del texto claro heredado de `encryptor.cc` es solo de Mac: en Linux no hay 2.x que migrar.
+ - **Perfil:** `~/.config/LaMosquita/FlyWeb` (`chromium_src/chrome/common/chrome_paths_linux.cc`).
+ - **Límite (aceptado por Titín):** la clave protege los datos copiados sin el perfil (un `Cookies` o `Login Data` en una
+diff --git a/patches/chrome-browser-ui-startup-infobar_utils.cc.patch b/patches/chrome-browser-ui-startup-infobar_utils.cc.patch
+new file mode 100644
+index 00000000..382883bc
+--- /dev/null
++++ b/patches/chrome-browser-ui-startup-infobar_utils.cc.patch
+@@ -0,0 +1,48 @@
++diff --git a/chrome/browser/ui/startup/infobar_utils.cc b/chrome/browser/ui/startup/infobar_utils.cc
++index 598e361a2988674243dd6ace9cc63de2f74ed1e1..c5c2957fb6438936a8c2ebcd757eca8c194fe235 100644
++--- a/chrome/browser/ui/startup/infobar_utils.cc
+++++ b/chrome/browser/ui/startup/infobar_utils.cc
++@@ -14,6 +14,8 @@
++ #include "base/memory/weak_ptr.h"
++ #include "base/metrics/histogram_functions.h"
++ #include "base/rand_util.h"
+++#include "base/task/sequenced_task_runner.h"
+++#include "base/time/time.h"
++ #include "build/branding_buildflags.h"
++ #include "build/buildflag.h"
++ #include "chrome/browser/browser_process.h"
++@@ -120,7 +122,7 @@ void MaybeShowOSCryptAsyncAvailabilityInfoBar(BrowserWindowInterface* browser) {
++           features::kOSCryptAsyncAvailabilityInfoBar)) {
++     return;
++   }
++-  g_browser_process->os_crypt_async()->GetInstance(base::BindOnce(
+++  auto show = base::BindOnce(
++       [](base::WeakPtr<BrowserWindowInterface> browser,
++          scoped_refptr<os_crypt_async::Encryptor> encryptor) {
++         if (encryptor->IsEncryptionAvailable() || !browser ||
++@@ -152,7 +154,24 @@ void MaybeShowOSCryptAsyncAvailabilityInfoBar(BrowserWindowInterface* browser) {
++           OSCryptAsyncAvailabilityInfoBarDelegate::Create(infobar_manager);
++         }
++       },
++-      browser->GetWeakPtr()));
+++      browser->GetWeakPtr());
+++#if BUILDFLAG(IS_LINUX)
+++  // FlyWeb (U3): the `fw1` key file is read before the first tab exists, so
+++  // GetInstance() replies at once, from inside the first tab's insertion, and
+++  // the bar never showed (D8-LINUX-6, B.2 case 5). When the key came late
+++  // (keyring dialog) it did show. Check a bit later, against the tab that is
+++  // active then, as in that case.
+++  show = base::BindOnce(
+++      [](base::OnceCallback<void(scoped_refptr<os_crypt_async::Encryptor>)>
+++             show,
+++         scoped_refptr<os_crypt_async::Encryptor> encryptor) {
+++        base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
+++            FROM_HERE, base::BindOnce(std::move(show), std::move(encryptor)),
+++            base::Seconds(1));
+++      },
+++      std::move(show));
+++#endif
+++  g_browser_process->os_crypt_async()->GetInstance(std::move(show));
++ }
++ }  // namespace
++ 
+diff --git a/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch b/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch
+index 9e1cdebe..c7ad5381 100644
+--- a/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch
++++ b/patches/net-extras-sqlite-sqlite_persistent_cookie_store.cc.patch
+@@ -1,5 +1,5 @@
+ diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store.cc b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
+-index 8bdfeca14640ef6820df6f22451ff0f77fcc8393..61c09e07707874bc4a34b4b9b55819a9c142970d 100644
++index 8bdfeca14640ef6820df6f22451ff0f77fcc8393..a8814d24bb78ff8f9d297fc5f59a25bf1600b426 100644
+ --- a/net/extras/sqlite/sqlite_persistent_cookie_store.cc
+ +++ b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
+ @@ -525,6 +525,15 @@ class SQLitePersistentCookieStore::Backend
+@@ -58,13 +58,35 @@ index 8bdfeca14640ef6820df6f22451ff0f77fcc8393..61c09e07707874bc4a34b4b9b55819a9
+          ok = false;
+          continue;
+        }
+-@@ -1348,6 +1386,16 @@ void SQLitePersistentCookieStore::Backend::DoCommit() {
++@@ -1336,6 +1374,18 @@ void SQLitePersistentCookieStore::Backend::DoCommit() {
++   if (!transaction.Begin())
++     return;
++ 
+++  // FlyWeb: whether this session can write a cookie at all (an encryption
+++  // key is available), checked once per commit and only if needed. An empty
+++  // string "encrypts" without a key, so the probe has one byte.
+++  std::optional<bool> flyweb_can_write;
+++  auto flyweb_cookies_can_be_written = [&]() {
+++    if (!flyweb_can_write.has_value()) {
+++      std::string probe;
+++      flyweb_can_write = !crypto_ || crypto_->EncryptString("x", &probe);
+++    }
+++    return *flyweb_can_write;
+++  };
+++
++   for (auto& kv : ops) {
++     for (std::unique_ptr<PendingOperation>& po_entry : kv.second) {
++       // Free the cookies as we commit them to the database.
++@@ -1348,6 +1398,19 @@ void SQLitePersistentCookieStore::Backend::DoCommit() {
+          continue;
+        }
+  
+ +      // FlyWeb: first write for a host_key with rows kept unloaded (key
+-+      // temporarily unavailable at load): delete those rows before it.
+-+      if (!flyweb_unloaded_rows_.empty()) {
+++      // temporarily unavailable at load): delete those rows before it. Only
+++      // if cookies can be written this session: with no key at all nothing
+++      // new reaches the disk, so deleting the old rows would only lose them
+++      // (U3, D8-LINUX-6 B.2). They stay and load again on a start with the key.
+++      if (!flyweb_unloaded_rows_.empty() && flyweb_cookies_can_be_written()) {
+ +        auto unloaded = flyweb_unloaded_rows_.find(po->cc().Domain());
+ +        if (unloaded != flyweb_unloaded_rows_.end()) {
+ +          DeleteNonCanonicalCookies(unloaded->second);
+diff --git a/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch b/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch
+index 9f587f18..7226a59a 100644
+--- a/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch
++++ b/patches/net-extras-sqlite-sqlite_persistent_cookie_store_unittest.cc.patch
+@@ -1,5 +1,5 @@
+ diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc b/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc
+-index 9c6aa55ee76c5479bdb8b24521ac466a9dbc1ea0..f9fb7b2c579e7efcf0d9733d9da0727c474a09a4 100644
++index 9c6aa55ee76c5479bdb8b24521ac466a9dbc1ea0..5514a00bcbd53c294af7ba67c31dcb623a3bcc5c 100644
+ --- a/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc
+ +++ b/net/extras/sqlite/sqlite_persistent_cookie_store_unittest.cc
+ @@ -6,6 +6,7 @@
+@@ -31,7 +31,28 @@ index 9c6aa55ee76c5479bdb8b24521ac466a9dbc1ea0..f9fb7b2c579e7efcf0d9733d9da0727c
+  
+    // Obtain a closure that can be called to trigger an initialize. If this
+    // instance has already been destructed then the returned base::OnceClosure
+-@@ -170,6 +178,20 @@ bool CookieCryptor::DecryptString(const std::string& ciphertext,
++@@ -134,6 +142,10 @@ void CookieCryptor::Init(base::OnceClosure callback) {
++       base::Milliseconds(100));
++ }
++ 
+++// FlyWeb: while true, CookieCryptor cannot encrypt a non-empty string, as an
+++// Encryptor without any key (U3: unreadable `fw1` key file on Linux).
+++bool g_flyweb_no_encryption_key = false;
+++
++ bool CookieCryptor::EncryptString(const std::string& plaintext,
++                                   std::string* ciphertext) {
++   // SQLite crypto uses OSCrypt Async Encryptor and the behavior for empty
++@@ -144,6 +156,9 @@ bool CookieCryptor::EncryptString(const std::string& plaintext,
++     ciphertext->clear();
++     return true;
++   }
+++  if (g_flyweb_no_encryption_key) {
+++    return false;
+++  }
++   auto result = crypto::aes_cbc::Encrypt(kFixedKey, kFixedIv,
++                                          base::as_byte_span(plaintext));
++   ciphertext->assign(result.begin(), result.end());
++@@ -170,6 +185,20 @@ bool CookieCryptor::DecryptString(const std::string& ciphertext,
+    return false;
+  }
+  
+@@ -52,7 +73,7 @@ index 9c6aa55ee76c5479bdb8b24521ac466a9dbc1ea0..f9fb7b2c579e7efcf0d9733d9da0727c
+  void CookieCryptor::InitComplete() {
+    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+    init_ = true;
+-@@ -1294,6 +1316,150 @@ TEST_F(SQLitePersistentCookieStoreTest, UpdateToEncryption) {
++@@ -1294,6 +1323,177 @@ TEST_F(SQLitePersistentCookieStoreTest, UpdateToEncryption) {
+    EXPECT_EQ(contents.find("something456ABC"), std::string::npos);
+  }
+  
+@@ -179,6 +200,33 @@ index 9c6aa55ee76c5479bdb8b24521ac466a9dbc1ea0..f9fb7b2c579e7efcf0d9733d9da0727c
+ +  cookies.clear();
+ +  DestroyStore();
+ +
+++  // 4 (run first, it needs the old value on disk). No encryption key at all
+++  // this session (nothing can be written) and the site writes the same
+++  // cookie: the row must stay, or it would be lost (U3, D8-LINUX-6 B.2
+++  // case 5). It loads again, with its old value, on a start with the key.
+++  set_encrypted_value("locked", locked_value);
+++  g_flyweb_no_encryption_key = true;
+++  cookies = CreateAndLoad(/*crypt_cookies=*/true,
+++                          /*restore_old_session_cookies=*/false);
+++  EXPECT_THAT(names(cookies), testing::ElementsAre("other", "readable"));
+++  cookies.clear();
+++  AddCookie("locked", "unsaved", "foo.bar", "/", t0 + base::Microseconds(25));
+++  DestroyStore();
+++  g_flyweb_no_encryption_key = false;
+++  EXPECT_EQ(1, count_rows("locked"));
+++  set_encrypted_value("locked", good_value);
+++  cookies = CreateAndLoad(/*crypt_cookies=*/true,
+++                          /*restore_old_session_cookies=*/false);
+++  EXPECT_THAT(names(cookies),
+++              testing::ElementsAre("locked", "other", "readable"));
+++  for (const auto& cookie : cookies) {
+++    if (cookie->Name() == "locked") {
+++      EXPECT_EQ("old", cookie->Value());
+++    }
+++  }
+++  cookies.clear();
+++  DestroyStore();
+++
+ +  // 3. Key missing again, and the site writes the same cookie: the stale row
+ +  // is deleted first, so the new value is stored (no unique-index clash).
+ +  set_encrypted_value("locked", locked_value);
