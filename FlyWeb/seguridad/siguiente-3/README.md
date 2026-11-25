@@ -303,8 +303,15 @@ tal cual. Aún sin merge a la 8078. **Gravedad no publicada.**
 ## `chromium/0015`: [M159] libvpx a `6f89cfbcc9`, como la 159 (crbug 586941063)
 
 Orden de COORDINACIÓN-63 (buzón `…0433-COORDINACION-63-libvpx`, 6a86c113). Es la misma revisión de libvpx que la 8154
-**`5c240af776`** («Cherry-pick libvpx 6f89cfbcc9 to m159», 25-11 03:23 UTC). Aún sin merge a la 8078. **Gravedad no
-publicada.**
+**`5c240af776`** («Cherry-pick libvpx 6f89cfbcc9 to m159», 25-11 03:23 UTC). **Gravedad no publicada.**
+- **Gemelo M156 (25-11 19:58 UTC):** **`26330f521`** de la **8078** («Cherry-pick libvpx bb981e8c2d to m156»,
+  `refs/branch-heads/8078@{#2433}`). La 156 **no sube** libvpx a `6f89cfbcc9`: pasa de `de61454cf8` a **`bb981e8c2d`**, que es
+  `de61454cf8` más **un solo commit**, el mismo arreglo (cherry-pick de `1d448f4918`). Comparado línea a línea, su código
+  de `vp9_pickmode.c`, `vp9_svc_layercontext.c` y `encode_api_test.cc` es **idéntico** a nuestra reserva
+  `siguiente-3/libvpx/0001`. Así, la reserva es exactamente lo que lleva Chrome 156.
+  - **No cambia la recomendación.** `chromium/0015` sigue siendo la opción por defecto, porque trae además los arreglos de
+    libvpx que la 156 no recibe (las validaciones de VP8 y VP9 de la tabla de abajo). La reserva queda respaldada por la
+    elección de upstream, por si la subida da guerra.
 - **El arreglo principal:** libvpx `6f89cfbcc9` «vp9: Fix base_mv usage when lower SVC layers are skipped» (Marco Paniconi,
   cherry-pick de `1d448f4918`). El codificador VP9 en SVC leía el `base_mv` de una capa inferior que no se había
   codificado en ese fotograma. **Se alcanza desde una página:** WebRTC con `scalabilityMode` (p. ej. L3T3) y las capas
