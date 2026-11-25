@@ -1,0 +1,461 @@
+From bb913a2862f20f99fb95f5ea9ff4c6117602cc56 Mon Sep 17 00:00:00 2001
+From: Mingyu Lei <leimy@chromium.org>
+Date: Wed, 25 Nov 2026 06:54:57 +0000
+Subject: [PATCH] [M159] FSA: validate source entry type before moving or
+ renaming
+
+Original change's description:
+> FSA: validate source entry type before moving or renaming
+>
+> Previously, `FileSystemAccessHandleBase::Move()` and `Rename()` did not
+> verify that the source entry on disk still matched the handle's type
+> (such as replacing a regular file with a directory), allowing a stale
+> FileSystemFileHandle to rename a directory and only checking destination
+> permissions and blocklist rules as `HandleType::kFile`.
+>
+> Add `GetHandleType()` to FileSystemAccessHandleBase and its subclasses,
+> pass it to `GetRenamePermission()` and `RunWithSensitiveEntryAccess()`,
+> and verify under the exclusive move locks that `url()` still exists as a
+> matching file or directory before performing the move.
+>
+> Fixed: 574804676
+> Change-Id: I9c4e72b85f10a34d692c817e5b04fa93c62814de
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8775387
+> Commit-Queue: Mingyu Lei <leimy@chromium.org>
+> Reviewed-by: Fergal Daly <fergal@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1745262}
+
+(cherry picked from commit 36a0f18351bcaa89a84a3a3e9b208cc7e3724828)
+
+Bug: 587225612,574804676
+Change-Id: I9c4e72b85f10a34d692c817e5b04fa93c62814de
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8842726
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: Mingyu Lei <leimy@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8154@{#1693}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ ...m_access_permission_context_browsertest.cc | 47 +++++++++++++
+ ...ile_system_access_directory_handle_impl.cc |  5 ++
+ ...file_system_access_directory_handle_impl.h |  2 +
+ ...m_access_directory_handle_impl_unittest.cc | 68 +++++++++++++++++++
+ .../file_system_access_file_handle_impl.cc    |  5 ++
+ .../file_system_access_file_handle_impl.h     |  2 +
+ ...system_access_file_handle_impl_unittest.cc | 56 +++++++++++++++
+ .../file_system_access_file_writer_impl.cc    |  5 ++
+ .../file_system_access_file_writer_impl.h     |  2 +
+ .../file_system_access_handle_base.cc         | 39 +++++++++--
+ .../file_system_access_handle_base.h          | 12 ++++
+ ...file_system_access_handle_base_unittest.cc |  2 +
+ 12 files changed, 239 insertions(+), 6 deletions(-)
+
+diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permission_context_browsertest.cc b/chrome/browser/file_system_access/chrome_file_system_access_permission_context_browsertest.cc
+index 869c936551..93c0ef9ffa 100644
+--- a/chrome/browser/file_system_access/chrome_file_system_access_permission_context_browsertest.cc
++++ b/chrome/browser/file_system_access/chrome_file_system_access_permission_context_browsertest.cc
+@@ -419,6 +419,53 @@ IN_PROC_BROWSER_TEST_F(ChromeFileSystemAccessPermissionContextBrowserTest,
+   ui::SelectFileDialog::SetFactory(nullptr);
+ }
+ 
++// Verifies that if a `FileSystemFileHandle`'s underlying file is removed and
++// replaced with a directory at the same path, both in-place rename and
++// cross-directory `move()` reject with `TypeMismatchError` instead of moving
++// the directory.
++IN_PROC_BROWSER_TEST_F(ChromeFileSystemAccessPermissionContextBrowserTest,
++                       MoveSourceFileReplacedByDirectoryRejected) {
++  base::ScopedAllowBlockingForTesting allow_blocking;
++
++  const base::FilePath test_dir = temp_dir().GetPath().AppendASCII("test");
++  ASSERT_TRUE(base::CreateDirectory(test_dir));
++
++  const GURL url = embedded_test_server()->GetURL("/empty.html");
++  ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
++
++  base::ScopedClosureRunner reset_dialog_factory(
++      base::BindOnce([]() { ui::SelectFileDialog::SetFactory(nullptr); }));
++  ASSERT_NO_FATAL_FAILURE(PickDirectoryAsDirHandle(test_dir));
++
++  EXPECT_EQ(content::EvalJs(GetWebContents(), R"((async () => {
++        const fileHandle = await self.dirHandle.getFileHandle(
++            'staging.ext', {create: true});
++        await self.dirHandle.removeEntry('staging.ext');
++        const stagingDir = await self.dirHandle.getDirectoryHandle(
++            'staging.ext', {create: true});
++        await stagingDir.getFileHandle('nested.txt', {create: true});
++        const destDir = await self.dirHandle.getDirectoryHandle(
++            'dest', {create: true});
++
++        const renameResult = await fileHandle.move('renamed.ext')
++            .then(() => 'ALLOWED')
++            .catch(e => 'BLOCKED: ' + e.name);
++        const moveResult = await fileHandle.move(destDir, 'moved.ext')
++            .then(() => 'ALLOWED')
++            .catch(e => 'BLOCKED: ' + e.name);
++
++        return renameResult + ' / ' + moveResult;
++      })())")
++                .ExtractString(),
++            "BLOCKED: TypeMismatchError / BLOCKED: TypeMismatchError");
++
++  EXPECT_TRUE(base::PathExists(
++      test_dir.AppendASCII("staging.ext").AppendASCII("nested.txt")));
++  EXPECT_FALSE(base::PathExists(test_dir.AppendASCII("renamed.ext")));
++  EXPECT_FALSE(
++      base::PathExists(test_dir.AppendASCII("dest").AppendASCII("moved.ext")));
++}
++
+ // Verifies that creating `.git` or writing into non-allowlisted paths under
+ // `.git` (such as `hooks` and `commondir`, including case variations) is
+ // rejected, while reads and writes elsewhere are unaffected. See
+diff --git a/content/browser/file_system_access/file_system_access_directory_handle_impl.cc b/content/browser/file_system_access/file_system_access_directory_handle_impl.cc
+index 5308b48316..0a77fdf180 100644
+--- a/content/browser/file_system_access/file_system_access_directory_handle_impl.cc
++++ b/content/browser/file_system_access/file_system_access_directory_handle_impl.cc
+@@ -1059,4 +1059,9 @@ FileSystemAccessDirectoryHandleImpl::AsWeakPtr() {
+   return weak_factory_.GetWeakPtr();
+ }
+ 
++FileSystemAccessHandleBase::HandleType
++FileSystemAccessDirectoryHandleImpl::GetHandleType() const {
++  return HandleType::kDirectory;
++}
++
+ }  // namespace content
+diff --git a/content/browser/file_system_access/file_system_access_directory_handle_impl.h b/content/browser/file_system_access/file_system_access_directory_handle_impl.h
+index 9a3d205c8b..0a9a85b9f3 100644
+--- a/content/browser/file_system_access/file_system_access_directory_handle_impl.h
++++ b/content/browser/file_system_access/file_system_access_directory_handle_impl.h
+@@ -193,6 +193,8 @@ class CONTENT_EXPORT FileSystemAccessDirectoryHandleImpl
+       FileSystemAccessPermissionContext::HandleType handle_type);
+ 
+   base::WeakPtr<FileSystemAccessHandleBase> AsWeakPtr() override;
++  // Returns `HandleType::kDirectory` for directory handles.
++  HandleType GetHandleType() const override;
+ 
+   base::WeakPtrFactory<FileSystemAccessDirectoryHandleImpl> weak_factory_
+       GUARDED_BY_CONTEXT(sequence_checker_){this};
+diff --git a/content/browser/file_system_access/file_system_access_directory_handle_impl_unittest.cc b/content/browser/file_system_access/file_system_access_directory_handle_impl_unittest.cc
+index 40b93bebf0..a15a6dbd83 100644
+--- a/content/browser/file_system_access/file_system_access_directory_handle_impl_unittest.cc
++++ b/content/browser/file_system_access/file_system_access_directory_handle_impl_unittest.cc
+@@ -926,6 +926,74 @@ TEST_F(FileSystemAccessDirectoryHandleImplTest, MoveNoReadAccess) {
+   EXPECT_FALSE(base::DirectoryExists(moved_dir));
+ }
+ 
++TEST_F(FileSystemAccessDirectoryHandleImplTest,
++       RenameSourceReplacedByFileFails) {
++  base::FilePath source_dir = dir_.GetPath().AppendASCII("source");
++  ASSERT_TRUE(base::CreateDirectory(source_dir));
++  base::FilePath renamed_dir = dir_.GetPath().AppendASCII("renamed");
++
++  auto handle =
++      GetHandleWithPermissions(source_dir, /*read=*/true, /*write=*/true);
++
++  // Replace the source directory with a regular file at the same path.
++  ASSERT_TRUE(base::DeletePathRecursively(source_dir));
++  ASSERT_TRUE(base::WriteFile(source_dir, "sample_data"));
++
++  EXPECT_CALL(permission_context_, GetReadPermissionGrant)
++      .WillOnce(testing::Return(allow_grant_));
++  EXPECT_CALL(permission_context_, GetWritePermissionGrant)
++      .WillOnce(testing::Return(allow_grant_));
++  EXPECT_CALL(permission_context_,
++              ConfirmSensitiveEntryAccess_(_, _, HandleType::kDirectory,
++                                           AccessTrigger::kSave, _, _))
++      .WillOnce(base::test::RunOnceCallback<5>(SensitiveEntryResult::kAllowed));
++
++  base::test::TestFuture<blink::mojom::FileSystemAccessErrorPtr> future;
++  handle->Rename(renamed_dir.BaseName().AsUTF8Unsafe(), future.GetCallback());
++  EXPECT_EQ(future.Get()->status,
++            blink::mojom::FileSystemAccessStatus::kFileError);
++  EXPECT_EQ(future.Get()->file_error, base::File::FILE_ERROR_NOT_A_DIRECTORY);
++  EXPECT_TRUE(base::PathExists(source_dir));
++  EXPECT_FALSE(base::DirectoryExists(source_dir));
++  EXPECT_FALSE(base::PathExists(renamed_dir));
++}
++
++TEST_F(FileSystemAccessDirectoryHandleImplTest, MoveSourceReplacedByFileFails) {
++  base::FilePath source_dir = dir_.GetPath().AppendASCII("source");
++  ASSERT_TRUE(base::CreateDirectory(source_dir));
++  base::FilePath dest_dir = dir_.GetPath().AppendASCII("dest");
++  ASSERT_TRUE(base::CreateDirectory(dest_dir));
++  base::FilePath moved_dir = dest_dir.AppendASCII("moved");
++
++  auto dest_dir_handle =
++      GetHandleWithPermissions(dest_dir, /*read=*/true, /*write=*/true);
++  auto handle =
++      GetHandleWithPermissions(source_dir, /*read=*/true, /*write=*/true);
++
++  // Replace the source directory with a regular file at the same path.
++  ASSERT_TRUE(base::DeletePathRecursively(source_dir));
++  ASSERT_TRUE(base::WriteFile(source_dir, "sample_data"));
++
++  EXPECT_CALL(permission_context_,
++              ConfirmSensitiveEntryAccess_(_, _, HandleType::kDirectory,
++                                           AccessTrigger::kSave, _, _))
++      .WillOnce(base::test::RunOnceCallback<5>(SensitiveEntryResult::kAllowed));
++
++  mojo::PendingRemote<blink::mojom::FileSystemAccessTransferToken> dest_token;
++  manager_->CreateTransferToken(*dest_dir_handle,
++                                dest_token.InitWithNewPipeAndPassReceiver());
++
++  base::test::TestFuture<blink::mojom::FileSystemAccessErrorPtr> future;
++  handle->Move(std::move(dest_token), moved_dir.BaseName().AsUTF8Unsafe(),
++               future.GetCallback());
++  EXPECT_EQ(future.Get()->status,
++            blink::mojom::FileSystemAccessStatus::kFileError);
++  EXPECT_EQ(future.Get()->file_error, base::File::FILE_ERROR_NOT_A_DIRECTORY);
++  EXPECT_TRUE(base::PathExists(source_dir));
++  EXPECT_FALSE(base::DirectoryExists(source_dir));
++  EXPECT_FALSE(base::PathExists(moved_dir));
++}
++
+ // Tests for `FileSystemAccessDirectoryHandleImpl::Remove()`.
+ class FileSystemAccessDirectoryHandleImplRemoveTest
+     : public FileSystemAccessDirectoryHandleImplPermissionTestBase,
+diff --git a/content/browser/file_system_access/file_system_access_file_handle_impl.cc b/content/browser/file_system_access/file_system_access_file_handle_impl.cc
+index 07506b1044..9800eabf59 100644
+--- a/content/browser/file_system_access/file_system_access_file_handle_impl.cc
++++ b/content/browser/file_system_access/file_system_access_file_handle_impl.cc
+@@ -997,4 +997,9 @@ FileSystemAccessFileHandleImpl::AsWeakPtr() {
+   return weak_factory_.GetWeakPtr();
+ }
+ 
++FileSystemAccessHandleBase::HandleType
++FileSystemAccessFileHandleImpl::GetHandleType() const {
++  return HandleType::kFile;
++}
++
+ }  // namespace content
+diff --git a/content/browser/file_system_access/file_system_access_file_handle_impl.h b/content/browser/file_system_access/file_system_access_file_handle_impl.h
+index 5ec99c6bfb..f060275e46 100644
+--- a/content/browser/file_system_access/file_system_access_file_handle_impl.h
++++ b/content/browser/file_system_access/file_system_access_file_handle_impl.h
+@@ -221,6 +221,8 @@ class CONTENT_EXPORT FileSystemAccessFileHandleImpl
+ #endif  // BUILDFLAG(IS_MAC)
+ 
+   base::WeakPtr<FileSystemAccessHandleBase> AsWeakPtr() override;
++  // Returns `HandleType::kFile` for file handles.
++  HandleType GetHandleType() const override;
+ 
+   base::WeakPtrFactory<FileSystemAccessFileHandleImpl> weak_factory_
+       GUARDED_BY_CONTEXT(sequence_checker_){this};
+diff --git a/content/browser/file_system_access/file_system_access_file_handle_impl_unittest.cc b/content/browser/file_system_access/file_system_access_file_handle_impl_unittest.cc
+index 4310d0e510..b26c42c246 100644
+--- a/content/browser/file_system_access/file_system_access_file_handle_impl_unittest.cc
++++ b/content/browser/file_system_access/file_system_access_file_handle_impl_unittest.cc
+@@ -1204,6 +1204,29 @@ TEST_F(FileSystemAccessFileHandleImplRenameTest, HasWriteAccess) {
+   EXPECT_TRUE(base::PathExists(renamed_file));
+ }
+ 
++TEST_F(FileSystemAccessFileHandleImplRenameTest,
++       SourceReplacedByDirectoryFails) {
++  base::FilePath source_path = dir_.GetPath().AppendASCII("source.ext");
++  ASSERT_TRUE(base::WriteFile(source_path, "sample_data"));
++  base::FilePath renamed_path = dir_.GetPath().AppendASCII("renamed.ext");
++
++  auto handle = GetHandleWithPermissions(
++      source_path, /*read_grant=*/allow_grant_, /*write_grant=*/allow_grant_);
++
++  // Replace the source file with a directory at the same path.
++  ASSERT_TRUE(base::DeleteFile(source_path));
++  ASSERT_TRUE(base::CreateDirectory(source_path));
++  ASSERT_TRUE(
++      base::WriteFile(source_path.AppendASCII("nested.txt"), "sample_data"));
++
++  base::test::TestFuture<blink::mojom::FileSystemAccessErrorPtr> future;
++  handle->Rename(renamed_path.BaseName().AsUTF8Unsafe(), future.GetCallback());
++  EXPECT_EQ(future.Get()->status, FileSystemAccessStatus::kFileError);
++  EXPECT_EQ(future.Get()->file_error, base::File::FILE_ERROR_NOT_A_FILE);
++  EXPECT_TRUE(base::DirectoryExists(source_path));
++  EXPECT_FALSE(base::PathExists(renamed_path));
++}
++
+ class FileSystemAccessFileHandleImplMoveTest
+     : public FileSystemAccessFileHandleImplTestBase {};
+ 
+@@ -1285,6 +1308,39 @@ TEST_F(FileSystemAccessFileHandleImplMoveTest, HasDestWriteAccess) {
+   EXPECT_TRUE(base::PathExists(renamed_file));
+ }
+ 
++TEST_F(FileSystemAccessFileHandleImplMoveTest, SourceReplacedByDirectoryFails) {
++  base::FilePath dest_dir;
++  ASSERT_TRUE(base::CreateTemporaryDirInDir(
++      dir_.GetPath(), FILE_PATH_LITERAL("dest"), &dest_dir));
++  base::FilePath source_path = dir_.GetPath().AppendASCII("source.ext");
++  ASSERT_TRUE(base::WriteFile(source_path, "sample_data"));
++  base::FilePath moved_path = dest_dir.AppendASCII("moved.ext");
++
++  auto dest_dir_handle =
++      GetDirectoryHandleWithPermissions(dest_dir, /*read_grant=*/allow_grant_,
++                                        /*write_grant=*/allow_grant_);
++  auto handle = GetHandleWithPermissions(
++      source_path, /*read_grant=*/allow_grant_, /*write_grant=*/allow_grant_);
++
++  // Replace the source file with a directory at the same path.
++  ASSERT_TRUE(base::DeleteFile(source_path));
++  ASSERT_TRUE(base::CreateDirectory(source_path));
++  ASSERT_TRUE(
++      base::WriteFile(source_path.AppendASCII("nested.txt"), "sample_data"));
++
++  mojo::PendingRemote<blink::mojom::FileSystemAccessTransferToken> dir_remote;
++  manager_->CreateTransferToken(*dest_dir_handle,
++                                dir_remote.InitWithNewPipeAndPassReceiver());
++
++  base::test::TestFuture<blink::mojom::FileSystemAccessErrorPtr> future;
++  handle->Move(std::move(dir_remote), moved_path.BaseName().AsUTF8Unsafe(),
++               future.GetCallback());
++  EXPECT_EQ(future.Get()->status, FileSystemAccessStatus::kFileError);
++  EXPECT_EQ(future.Get()->file_error, base::File::FILE_ERROR_NOT_A_FILE);
++  EXPECT_TRUE(base::DirectoryExists(source_path));
++  EXPECT_FALSE(base::PathExists(moved_path));
++}
++
+ // A write-only source handle (e.g. one whose read grant was revoked by
+ // remove()) must not be moved into a directory the site can read.
+ // See crbug.com/523741272.
+diff --git a/content/browser/file_system_access/file_system_access_file_writer_impl.cc b/content/browser/file_system_access/file_system_access_file_writer_impl.cc
+index 61ca9176d4..876a07f7ce 100644
+--- a/content/browser/file_system_access/file_system_access_file_writer_impl.cc
++++ b/content/browser/file_system_access/file_system_access_file_writer_impl.cc
+@@ -334,4 +334,9 @@ FileSystemAccessFileWriterImpl::AsWeakPtr() {
+   return weak_factory_.GetWeakPtr();
+ }
+ 
++FileSystemAccessHandleBase::HandleType
++FileSystemAccessFileWriterImpl::GetHandleType() const {
++  return HandleType::kFile;
++}
++
+ }  // namespace content
+diff --git a/content/browser/file_system_access/file_system_access_file_writer_impl.h b/content/browser/file_system_access/file_system_access_file_writer_impl.h
+index fa4eb7774f..1dfff472c2 100644
+--- a/content/browser/file_system_access/file_system_access_file_writer_impl.h
++++ b/content/browser/file_system_access/file_system_access_file_writer_impl.h
+@@ -152,6 +152,8 @@ class CONTENT_EXPORT FileSystemAccessFileWriterImpl
+   bool did_start_close_ GUARDED_BY_CONTEXT(sequence_checker_) = false;
+ 
+   base::WeakPtr<FileSystemAccessHandleBase> AsWeakPtr() override;
++  // Returns `HandleType::kFile` for file writers.
++  HandleType GetHandleType() const override;
+ 
+   base::WeakPtrFactory<FileSystemAccessFileWriterImpl> weak_factory_
+       GUARDED_BY_CONTEXT(sequence_checker_){this};
+diff --git a/content/browser/file_system_access/file_system_access_handle_base.cc b/content/browser/file_system_access/file_system_access_handle_base.cc
+index 7ab2735af4..dfd943f033 100644
+--- a/content/browser/file_system_access/file_system_access_handle_base.cc
++++ b/content/browser/file_system_access/file_system_access_handle_base.cc
+@@ -377,9 +377,7 @@ FileSystemAccessHandleBase::GetRenamePermission(
+   SharedHandleState destination_shared_handle_state =
+       manager()->GetSharedHandleStateForNonSandboxedPath(
+           content::PathInfo(destination_url.virtual_path(), new_entry_name),
+-          context().storage_key,
+-          // TODO(crbug.com/40198034): Support directory moves.
+-          FileSystemAccessPermissionContext::HandleType::kFile,
++          context().storage_key, GetHandleType(),
+           // TODO(crbug.com/545006893): Rename queries write_grant and should
+           // use AccessTrigger::kProgrammaticWrite rather than
+           // kProgrammaticRead. This CL is a pure refactoring so we avoid making
+@@ -643,9 +641,7 @@ void FileSystemAccessHandleBase::DidTakeMoveLocks(
+   // Request a sensitive entry access check which will decide if the destination
+   // path should be allowed or blocked, and may spawn a confirmation UI.
+   RunWithSensitiveEntryAccess(
+-      destination_url, /*display_name=*/"",
+-      // TODO(crbug.com/40198034): Update once moving directory is supported.
+-      HandleType::kFile,
++      destination_url, /*display_name=*/"", GetHandleType(),
+       // TODO(crbug.com/545006893): Move currently passes kSave because the
+       // move operation will save the file, but it can spawn unexpected
+       // interactive UI dialogs when blocked. Revisit transitioning this to a
+@@ -673,6 +669,36 @@ void FileSystemAccessHandleBase::DidVerifySensitiveEntryAccessForMove(
+     base::OnceCallback<void(blink::mojom::FileSystemAccessErrorPtr)> callback) {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+ 
++  // Confirm that the source entry still exists and matches this handle's type
++  // while the exclusive lock on `url()` is held.
++  auto exists_operation =
++      GetHandleType() == HandleType::kDirectory
++          ? &storage::FileSystemOperationRunner::DirectoryExists
++          : &storage::FileSystemOperationRunner::FileExists;
++  manager()->DoFileSystemOperation(
++      FROM_HERE, exists_operation,
++      base::BindOnce(&FileSystemAccessHandleBase::DidConfirmSourceExistsForMove,
++                     AsWeakPtr(), std::move(destination_url),
++                     has_overwrite_permission, has_transient_user_activation,
++                     std::move(locks), std::move(callback)),
++      url());
++}
++
++void FileSystemAccessHandleBase::DidConfirmSourceExistsForMove(
++    storage::FileSystemURL destination_url,
++    bool has_overwrite_permission,
++    bool has_transient_user_activation,
++    std::vector<scoped_refptr<LockHandle>> locks,
++    base::OnceCallback<void(blink::mojom::FileSystemAccessErrorPtr)> callback,
++    base::File::Error result) {
++  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
++
++  if (result != base::File::FILE_OK) {
++    locks.clear();
++    std::move(callback).Run(file_system_access_error::FromFileError(result));
++    return;
++  }
++
+   // Only allow overwriting moves if we have write access to the destination or
+   // the parent directory write permission.
+   if (has_overwrite_permission) {
+@@ -704,6 +730,7 @@ void FileSystemAccessHandleBase::ConfirmMoveWillNotOverwriteDestination(
+       result == base::File::FILE_ERROR_NOT_EMPTY ||
+       result == base::File::FILE_ERROR_NOT_A_FILE ||
+       result == base::File::FILE_ERROR_INVALID_OPERATION) {
++    locks.clear();
+     std::move(callback).Run(file_system_access_error::FromStatus(
+         blink::mojom::FileSystemAccessStatus::kInvalidModificationError));
+     return;
+diff --git a/content/browser/file_system_access/file_system_access_handle_base.h b/content/browser/file_system_access/file_system_access_handle_base.h
+index f68d56cfd8..1bc195d87e 100644
+--- a/content/browser/file_system_access/file_system_access_handle_base.h
++++ b/content/browser/file_system_access/file_system_access_handle_base.h
+@@ -177,6 +177,9 @@ class CONTENT_EXPORT FileSystemAccessHandleBase {
+  protected:
+   virtual base::WeakPtr<FileSystemAccessHandleBase> AsWeakPtr() = 0;
+ 
++  // Returns the handle type (`kFile` or `kDirectory`) represented by `this`.
++  virtual HandleType GetHandleType() const = 0;
++
+   // Checks whether the handle represents a non-sandboxed file system path
+   // bound to a third-party execution context. Sandboxed file systems (OPFS)
+   // are partitioned by storage key and exempt from third-party restrictions.
+@@ -258,6 +261,15 @@ class CONTENT_EXPORT FileSystemAccessHandleBase {
+       std::vector<scoped_refptr<FileSystemAccessLockManager::LockHandle>> locks,
+       base::OnceCallback<void(blink::mojom::FileSystemAccessErrorPtr)>
+           callback);
++  // Invoked after confirming that the source entry at `url()` still exists and
++  // matches `GetHandleType()` while holding exclusive move `locks`.
++  void DidConfirmSourceExistsForMove(
++      storage::FileSystemURL destination_url,
++      bool has_overwrite_permission,
++      bool has_transient_user_activation,
++      std::vector<scoped_refptr<FileSystemAccessLockManager::LockHandle>> locks,
++      base::OnceCallback<void(blink::mojom::FileSystemAccessErrorPtr)> callback,
++      base::File::Error result);
+   // Only called if the move operation is not allowed to overwrite the target.
+   void ConfirmMoveWillNotOverwriteDestination(
+       const storage::FileSystemURL& destination_url,
+diff --git a/content/browser/file_system_access/file_system_access_handle_base_unittest.cc b/content/browser/file_system_access/file_system_access_handle_base_unittest.cc
+index 0fc4ceb8db..920be14f33 100644
+--- a/content/browser/file_system_access/file_system_access_handle_base_unittest.cc
++++ b/content/browser/file_system_access/file_system_access_handle_base_unittest.cc
+@@ -113,6 +113,8 @@ class TestFileSystemAccessHandle final : public FileSystemAccessHandleBase {
+   base::WeakPtr<FileSystemAccessHandleBase> AsWeakPtr() override {
+     return weak_factory_.GetWeakPtr();
+   }
++  // Returns `HandleType::kFile` for test handle instances.
++  HandleType GetHandleType() const override { return HandleType::kFile; }
+   base::WeakPtrFactory<TestFileSystemAccessHandle> weak_factory_{this};
+ };
+ 
+-- 
+2.43.0
+
