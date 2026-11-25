@@ -6,8 +6,8 @@ entero.
 **El espacio al final de la línea 135 del parche 6 no se toca.** No es un error:
 - es una línea de contexto en blanco del `.patch` anidado (`patches/chrome-browser-browser_process_impl.cc.patch`). En un
   diff, una línea de contexto vacía se escribe como un espacio solo;
-- `git diff` genera así todos los parches de brave-core: el 3 de U3 lleva varias iguales, y el propio fichero de la base
-  también;
+- `git diff` genera así todos los parches de brave-core. El fichero de la base (`060015a8`) ya lleva una igual, en el
+  primer trozo;
 - si se quitara, el parche interior tendría una línea de contexto distinta de la que genera `git diff`, y el siguiente
   `npm run update_patches` la volvería a poner.
 
