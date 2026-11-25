@@ -679,6 +679,10 @@ configuración de Linux compila el código.
 
 ## Revisados y no aplicables
 
+- **8078 `107cb0a46c`**: roll de Dawn en M156, de `64d303d0bd` a `7b7e6ba308`. Trae un solo commit, `7b7e6ba308` «[M156] DEPS:
+  Update DXC to patched branch» (588203839, 588203249, 588203897, 588203012, 589981981, 589982096, 589980992). Lo miró
+  COORDINACIÓN-63 desde la 7,1; aquí dawn.googlesource.com sigue bloqueado. **No aplica:** DXC es el compilador de shaders
+  HLSL de Direct3D 12, solo Windows; Mac usa Metal. `dawn/0001` sigue aparcado.
 - **8154 `245f6bc0c`** [Copy Trigger] (589785441, 587818005): con las políticas de auditoría de los conectores
   empresariales (`OnDataCopiedEnterpriseConnector`), copiar dejaba un marcador de «análisis en curso» y al pegar podía
   faltar el texto. Es un fallo funcional del análisis de contenido empresarial, no de seguridad, y FlyWeb no usa esos
