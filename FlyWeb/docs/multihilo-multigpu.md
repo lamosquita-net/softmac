@@ -15,6 +15,10 @@ hilos.** Es independiente de §1–§8 y tiene su propia conclusión, sus puerta
 **Apartado añadido el 13-11 por encargo de COORDINACIÓN-40 (buzón 20261113-1341): §10, los dos estados de Aquarium
 con 15 000 peces.** Propone una comprobación sin compilar (M3) para antes de E1 y M1.
 
+**Apartado añadido el 25-11 por encargo de COORDINACIÓN-63: §12, el resultado del A/B de E1 y la propuesta para
+Titín.** E1 no pasa tal cual: con lienzo grande pierde alrededor de 1 ms por fotograma. El mismo día, los cierres de
+M2 (§9.6) y de la repetición de M3 (§10.8).
+
 Marcas: **[V]** visto en el código, en las cabeceras del SDK o en medidas ya publicadas; **[R]** reanálisis mío de
 datos existentes; **[I]** inferido; **[S]** suposición sin comprobar.
 
@@ -42,6 +46,8 @@ para él una mejora por sí sola.
 4. **Reparto de calor: decidido por Titín, se entrega.** Para que reparta de verdad, la rama tiene que mandar **toda**
    la WebGL a la segunda D500, no solo la que lo pide; el interruptor ya existe en Chromium (§4.2). Queda así: WebGL en
    la segunda; composición, páginas, lienzo 2D y vídeo en la primera. Condición: que no pierda fotogramas (§6, E1).
+   **Medido el 25-11 (§12): la condición no se cumple con lienzo grande.** A escala 2 pierde un 4–6 % en tres casos
+   saturados; a escala 1 gana un 4 %. La propuesta nueva está en §12.7 y la decide Titín.
 5. **El diseño que sale de la tesis de Titín es un hilo de envío por tarjeta** (§3, C′), y es bastante más abordable
    que «un hilo por contexto»: los contextos de la segunda tarjeta ya viven en otro `EGLDisplay`, solo hablan con el
    resto por IOSurface, y Chromium ya trae piezas de un segundo hilo de GPU. Límite: reparte entre **tipos de
@@ -596,6 +602,23 @@ una página.
 - **JetStream, 46 % del hilo compilando:** misma salvedad, es una toma de 5 s de una subprueba, probablemente su
   arranque [S]. No abre nada: con J1 cerrada, más hilos no lo arreglan.
 
+**Añadido el 25-11: J3 cerrada y Escudos sin coste** (LOCAL-25, 3.2.2, 6,1) [R,
+`buzon/COORDINACION/20261124-1915-LOCAL-25-M3-M2.md`; los siete repartos, vistos en
+`temp/local25/j3/*.reparto` [V]]:
+
+- **J3, cerrada.** Siete tomas de 5 s cada 10 s de una pasada de Speedometer 3.1, con la categoría partida en tres:
+  el estilo es el **13,1 %** del hilo principal activo (17,3 % en la peor toma); la puerta pedía ≥ 30 %. Layout
+  14,2 % y pintado 5,4 %: los tres juntos, un 33 %, que es el tercio que daba la toma única del 23-11.
+- **J2 sigue cerrada:** recolector 6,7 % (< 10 %).
+- **Escudos subidos frente a bajados, 3 + 3 alternadas: 10,6 y 10,6 de mediana.** Diferencia 0 %, por debajo del
+  3 %: no hay aviso para MOTOR. Salvedad de LOCAL-25: comprobó el ajuste guardado, no por otra vía que los Escudos
+  quedaran apagados en la página.
+- **Con esto J1, J2 y J3 quedan cerradas.** J4 dependía de M1, y M1 no ha mirado los hilos de raster de una página
+  real: sigue sin dato y sin abrir.
+- Tiempo de sistema, a raíz de una pregunta de Titín (ve rojo en la CPU 1): el hilo principal del renderer gasta
+  en sistema un 1–3 % de su tiempo, y `CrGpuMain` un 2–4 % en Aquarium y un 16 % en Speedometer, pero ahí apenas
+  trabaja (1 s en una pasada). **Ese rojo no sale de estos dos hilos**; de dónde sale, no está medido.
+
 **Lo que no depende de M2**, y está en la tabla de §9.2: la consulta de `FeatureList` por dibujo, la comprobación de
 tipos en los enlaces WebGL y `sin`/`cos`. Es la lista para abaratar el renderer de WebGL.
 
@@ -878,6 +901,37 @@ sigue sin explicar. Queda una cautela para E1 [I]: el Basemark de M1 (873 puntos
 delante; antes de usarlo como base conviene repetirlo con FlyWeb delante, con el aviso previo a Titín que pide
 §11.2.
 
+### 10.8 Repetición (a) y lo que vio Titín en el historial de la GPU (añadido el 25-11)
+
+LOCAL-25, 3.2.2, 6,1, escala 2 [R, `buzon/COORDINACION/20261124-1915-LOCAL-25-M3-M2.md`; recontado por mí en
+`entregas/local24/{l25-m3a,m3b-321,m3c-321}` y `entregas/local23/m1b` [V]].
+
+| Tanda | Pasadas | Estado | Renderer, ms por fotograma | `CrGpuMain`, ms por fotograma |
+|---|---|---|---|---|
+| l25-m3a, 53 s tras el desbloqueo | 1 | lento, 43 fps | 23,2 | 14,4 |
+| l25-m3a | 2–12 | rápido, 60 fps | 13,0–13,8 | 13,4–13,6 |
+| l25-vram, 25 min tras el desbloqueo, navegador recién abierto | 1–3 | rápido, 57–58 fps | 13,5–14,1 | 15,2–15,4 |
+
+1. **La repetición (a) reproduce el estado lento: la primera pasada tras el desbloqueo, y solo esa.** Es lenta entera
+   (42–44 fps antes y después de la toma de `sample`), con el renderer saturado y `CrGpuMain` esperando: §10.1 sigue
+   en pie. Con m3b son dos desbloqueos de dos, y con navegador nuevo lejos del desbloqueo, ninguna lenta en dos
+   tandas (m3c y l25-vram).
+2. **Sigue sin explicar** por qué la primera tras el desbloqueo, y M1 del 22-11 (11 de 11). El paso 3 (`dtrace`, con
+   Titín delante) sería lo siguiente; no lo pido: Aquarium ya llega a 60 fps en el estado normal y el lento dura una
+   pasada. Propuesta para Titín: dejarlo anotado y no gastar más tandas.
+3. **La tabla de §10.7 daba m3c «sin dato»; lo tiene** [V]: las 12 pasadas rápidas, renderer 12,9–15,8 ms por
+   fotograma y `CrGpuMain` 13,6–13,9, fuera de los segundos de la toma.
+4. **Lo que vio Titín: la GPU baja en el historial cuando Aquarium cae de 60 fps.** No es el estado lento. El
+   contador de `ioreg` marca 100 % en los dos estados, así que no los distingue. Solo baja, al 0–50 %, en los unos
+   5 s por pasada en que el `sample` del guion detiene el renderer (3–8 fps, los dos hilos al 5–15 %); las horas de
+   cada toma casan con las de cada bajada [V]. Lo que se veía en el historial era la medida, no la página.
+5. **Cautela nueva sobre el `sample`.** En m3c, pasada 4, tras la toma hay 7 s a 39 fps con la firma del estado lento
+   (renderer 100 %, `CrGpuMain` 58 %) y vuelve solo a 60. El estado lento puede entrar y salir dentro de una pasada,
+   y la toma pudo provocarlo [I, un caso]. Regla: no se mezclan fotogramas de pasadas con y sin `sample`, y los
+   segundos de la toma se apartan (LOCAL-25 ya lo hace: de 6 s antes a 1 s después).
+6. **Memoria de vídeo: sin apuros.** Aquarium añade unos 0,3 GB a la tarjeta de la pantalla, 1,6 GB en uso y nunca
+   menos de 0,49 GB libres [R]. Solo hay lectura del estado rápido.
+
 ## 11. E1: cómo se mide y cómo se juzga el A/B (añadido el 22-11)
 
 Encargo de COORDINACIÓN-60 del 22-11, a propuesta de LOCAL-23
@@ -945,7 +999,8 @@ le alargó más de 10 minutos sin causa conocida; lo normal son unos 6):
 - En los casos cortos (los de fps, de uno o dos minutos) el tope de 25 minutos sobra: LOCAL puede bajarlo, nunca por
   debajo de tres veces la duración normal del caso.
 
-**Casos y pasadas** (base = 3.2.1 publicada; E1 = la compilación):
+**Casos y pasadas** (base = 3.2.1 publicada; E1 = la compilación). **Hecho el 24 y 25-11 contra la 3.2.2, con casos
+cambiados y dos medidas añadidas: lo que se midió de verdad está en §12.2, y lo que cambia del protocolo, en §12.8.**
 
 | Caso | Escala 1 (forzada) | Escala 2 (la de la pantalla) | Pasadas por versión y escala |
 |---|---|---|---|
@@ -1033,3 +1088,222 @@ del método (§11.2):
 - **Límites:** no he medido ni lanzado nada. Que FlyWeb pinte a 1× y el sistema estire con la escala forzada lo
   deduzco del código; no lo he visto en pantalla. No sé por qué cambió la escala de la pantalla entre el 09-11 y el
   22-11 ni si se va a quedar así. Los umbrales de §11.3 son míos.
+
+## 12. E1: resultado del A/B y propuesta para Titín (añadido el 25-11)
+
+Encargo de COORDINACIÓN-63. Lo midió LOCAL-25 en la 6,1 la noche del 24 al 25-11 [R,
+`buzon/COORDINACION/20261125-0830-LOCAL-25-E1-informe/`]. No he medido nada: he recontado sus datos crudos
+(`entregas/local24/e1*`) y lo que sale de ese recuento va [V]. E1 no es una versión y no tiene versión de destino.
+
+### 12.1 Conclusión
+
+1. **E1 hace lo que se pidió.** Toda la WebGL va a la segunda D500 (al 94–100 %) y la de la pantalla baja del 100 %
+   al 35–60 % en Aquarium [R]. Ningún corte ni cuelgue en ninguna pasada.
+2. **Con lienzo pequeño pasa y, cuando manda la tarjeta, gana.** A escala 1 pasa todo lo de WebGL, y el caso
+   saturado gana un 4,1 %.
+3. **Con lienzo grande falla, siempre por lo mismo: alrededor de 1 ms más por fotograma.** A escala 2, −4,1 %,
+   −4,3 % y −5,9 % en los tres casos saturados, confirmado con el mismo binario. Solo se ve por debajo de 60 fps: los
+   casos con margen siguen a 60.
+4. **Vídeo junto a WebGL, a escala 2: dudoso.** Hay un estado lento que ya existe sin E1 y que es un defecto de la
+   base (§12.5). Con E1 no hubo ninguna pasada limpia de 8; sin él, 3 de 8. No es concluyente.
+5. **MotionMark: el total pasa. Paths pierde un 3 % en las tres series y queda dudoso.**
+6. **Con la regla de §11.3, E1 no se entrega tal cual.** Propongo activarlo solo cuando la pantalla principal es
+   pequeña (§12.7). Con esa regla queda apagado en la pantalla que Titín usa hoy en la 6,1: si quiere el reparto de
+   calor ahí, es una excepción suya a la regla, no algo que yo pueda dar por bueno.
+7. **P3 no se abre. P4: no ahora** (§12.6).
+
+### 12.2 Qué se midió, y qué cambió respecto a §11.2
+
+- **Base = 3.2.2 publicada.** E1 = el mismo árbol con tres parches: B1d, el de ANGLE y E1 [V, `temp/local25/e1/`].
+- WebGL, 5 + 5 pasadas en espejo por escala; MotionMark, 3 + 3; sin muestreador. Aparte, pasadas con muestreador
+  para leer tarjetas e hilos, que no puntúan.
+- **Casos que no se pudieron medir como estaban escritos:**
+  - three.js desde threejs.org no arranca: captura negra y ningún contexto WebGL, con las dos versiones. Daba
+    60 fps, pero eran los de una página vacía. **No medido.**
+  - Shadertoy se queda en la comprobación de Cloudflare. Sustituido por una página local de trazado de rayos
+    (`shader-local`), que sí pinta.
+- **Casos añadidos:** `cruce4k`, `textura2d`, Aquarium 20 000 y 30 000.
+- **Suplemento de multimuestreo.** Las páginas locales y Aquarium crean el contexto con `antialias: false`: el A/B
+  no tenía ningún caso con multimuestreo en la segunda tarjeta. Se añadieron una página propia y three.js 0.170
+  servido en local, con `SAMPLES` = 4 comprobado en las dos versiones [V].
+- **Control con el mismo binario.** En el A/B, MotionMark daba diferencias a favor y en contra sin usar WebGL y con
+  la segunda tarjeta al 0 %: Canvas Arcs ganaba en 6 pasadas de 6 (+7,1 % y +5,9 %). Eso no podía ser E1. El parche
+  trae un interruptor (`FLYWEB_METAL_DISPLAY_GPU=1` lo apaga [V, parche 0002]): se repitió con el binario de E1
+  encendido (e1x) y apagado (e1d), lanzados igual. Canvas Arcs se queda en +1,3 %: aquello era de la compilación.
+- **Regla de validez** (mía, aceptada por LOCAL-25): una pasada de WebGL solo cuenta si hay un contexto WebGL con
+  tamaño y la captura no es negra, en las dos versiones. No invalidó ninguna pasada que puntúe.
+
+### 12.3 Resultado por caso
+
+Fps de la base → fps de E1. «Por el tope» = las dos llegan a 60, y el caso no dice nada del coste.
+
+| Caso | Escala 1 (búfer 1920×1119) | Escala 2 (búfer 3840×2238) |
+|---|---|---|
+| Aquarium 5 000, 10 000 y 15 000 (lienzo 1024) | pasa, por el tope | pasa, por el tope |
+| Aquarium 20 000 (lienzo 1024) | pasa: 47,6 → 49 | pasa: 47 → 49 |
+| Aquarium 30 000 (lienzo 1024) | pasa: 32,9 → 32,9 | pasa: 32,9 → 32,5 |
+| `cruce4k` (búfer 3840×2160 fijo, carga ligera) | pasa, por el tope | pasa, por el tope |
+| `textura2d` | pasa, por el tope | pasa, por el tope |
+| `shader-local` | pasa, por el tope | **falla: 39,0 → 37,4 (−4,1 %, +1,1 ms)** |
+| `shader-local` con carga ×4 | **gana: 41,3 → 43,0 (+4,1 %, −0,96 ms)** | — |
+| Multimuestreo, 1 000 000 de triángulos | pasa, por el tope | **falla: 47 → 45 (−4,3 %, +0,95 ms)** |
+| three.js en local, 500 000 triángulos | pasa, por el tope | **falla: 51 → 48 (−5,9 %, +1,23 ms)** |
+| Multimuestreo y three.js, 160 000 | pasa, por el tope | pasa, por el tope |
+| MotionMark, total | pasa (menos del 1 %; control, +0,3 %) | pasa (media geométrica de siete, menos del 1 %) |
+| MotionMark Paths | **dudoso:** −3,0 % (A/B) y −3,0 % (control) | −3,9 % (A/B) |
+| Basemark Web (una pasada) | — | 820 → 827 |
+| Vídeo 1080p60 solo | sin dato válido | pasa |
+| Vídeo 1080p60 y Aquarium a ventana completa | **sin dato válido** | **dudoso** (§12.5) |
+
+- **Aquarium por estados.** Las pasadas lentas son tandas enteras: a escala 2, la 09 de la base y las 02 y 03 de E1
+  bajan a la vez en 15 000, 20 000 y 30 000 [V]. Se juzga el estado rápido, como §11.2 pedía para 15 000. Lentas:
+  1 de 5 con la base y 2 de 5 con E1; con cinco no se distingue.
+- **shader-local a escala 2 sale igual en el control:** 39,0 → 37,4 en 3 + 3 con el mismo binario, sin ruido [V].
+  El fallo es de E1.
+- **Paths.** MotionMark no usa WebGL, así que E1 no debería moverlo. Pero pierde un 3 % en las tres series, y en el
+  control (6 + 6, mismo binario) la diferencia sola ya da p = 0,04 (Mann-Whitney, cálculo mío). Probablemente es
+  real [I], es pequeña y no sé de dónde sale. Las demás pruebas del control no se distinguen del ruido.
+
+### 12.4 El coste del cruce
+
+- **Es fijo por fotograma y no depende de qué se pinte:** +1,1, +0,95 y +1,23 ms en tres casos distintos (trazado
+  sin multimuestreo, triángulos con multimuestreo, three.js) con el mismo búfer de 8,6 megapíxeles.
+- **Por eso el porcentaje sube con los fps:** un 3 % a 30 fps, un 6 % a 55 [I]. Y por eso no se ve con margen:
+  `cruce4k`, con el mismo tamaño y carga ligera, sigue a 60.
+- **No lo paga la CPU:** `CrGpuMain` gasta 0,5–0,6 ms por fotograma en `cruce4k` con E1 y sin él [V]. Es tiempo de
+  tarjeta.
+- **A escala 1 el saldo es al revés.** Con la misma carga de trazado por fotograma y un búfer de 2,1 megapíxeles, E1
+  gana 0,96 ms: la tarjeta de la pantalla deja de repartirse entre el lienzo y la composición, y eso pesa más que
+  cruzar un búfer cuatro veces menor. Comprobado que ahí manda la tarjeta: renderer al 1 % y `CrGpuMain` al 5–6 %
+  [R].
+- **Dónde está el punto de equilibrio: entre 2,1 y 8,6 megapíxeles, y no sé más.** Si el cruce fuera proporcional a
+  los píxeles y la ganancia igual a las dos escalas, caería hacia 5 megapíxeles [S]. Son dos tamaños medidos: sirve
+  para orientarse, no para fijar un umbral.
+- **Mi previsión de §11.4 acertó a medias.** Pierde a escala 2, sí; pero no en el caso que señalé (el cruce con
+  carga ligera pasa), sino en los saturados.
+- **No medido:** tamaños intermedios; multimuestreo saturado a escala 1 (allí todo llega a 60).
+
+### 12.5 Vídeo junto a WebGL: un defecto de la base, y E1 dudoso
+
+El caso: un vídeo de YouTube a 1080p60 en una ventana y Aquarium 5 000 en otra, a ventana completa, a escala 2. No
+es 4K: YouTube no lo ofreció en esa ventana.
+
+**El estado lento** [V, `e1vib-*`, fps por segundo]. Aquarium va a 40–48 fps en vez de 60 y el vídeo pierde unos
+12 fotogramas por segundo. Empieza al cargar Aquarium o a mitad de pasada, dura desde unos segundos hasta la pasada
+entera y sale solo, de golpe.
+
+**Existe sin E1** [V]:
+
+- con la base 3.2.1, el 23-11 (`local23/m1c`): 35 s a 40–48 fps y salto a 60; `m1b` igual, sin llegar a salir;
+- con E1 apagado en el mismo binario: 5 pasadas de 8 con segundos lentos.
+
+**Qué se satura.** En `m1c`, `CrGpuMain` va al 91–95 % en el tramo lento y al 44 % en el segundo en que se recupera
+[V]. LOCAL-25 tomó dos `sample` del proceso de GPU con la base, uno en cada tramo [R, `anexos/video-a-*.md`]:
+
+- `CrGpuMain` **no hace más trabajo de pintado:** ejecutar los comandos baja (−242 ms de 3,7 s) y presentar también.
+- Sobran unos 700 ms de **coste por tarea:** cambio de contexto, caché de programas, planificador y bucle de tareas.
+- El hilo de entrada y salida del proceso de GPU está 7,5 veces más activo.
+- Aparece `WaitForGetOffsetInRange`, la espera síncrona de un cliente, que en el tramo recuperado no existe.
+- Lectura [I]: muchas peticiones pequeñas y un cliente que envía y espera. Que sea un atasco que se sostiene solo
+  es suposición mía [S]. No se sabe qué cliente es: el renderer de Aquarium, el del vídeo o el navegador.
+
+**Con E1** (control e1x frente a e1d, 8 + 8 en espejo, 45 s desde la carga, sin muestreador) [V]:
+
+| | E1 apagado | E1 encendido |
+|---|---|---|
+| Pasadas sin ningún fotograma de vídeo perdido tras el segundo 15 | 3 de 8 | 0 de 8 |
+| Pasadas con 3 s lentos o más tras el segundo 15 | 5 de 8 | 8 de 8 |
+| Fotogramas perdidos del segundo 15 al final, mediana (de unos 1800) | 200 | 477 |
+| Fotogramas perdidos en toda la pasada, mediana (de unos 2700) | 316 (12 %) | 634 (23 %) |
+
+- Mann-Whitney sobre los perdidos tras el segundo 15: p = 0,08. Fisher, 8 de 8 frente a 5 de 8: p = 0,20. En el A/B,
+  E1 perdió fotogramas en 2 pasadas de 4 y la base en 0 de 4.
+- **No es concluyente, y todo apunta al mismo lado.**
+- Con E1 aparece además un nivel más bajo, unos 33 fps durante 17 s (pasada 02), que sin E1 no se ve. Un solo caso.
+- El informe cuenta las pasadas que «no se asientan» (3 de 8 y 5 de 8). Se queda corto: el estado vuelve a entrar
+  después de asentarse, en cuatro pasadas con E1 y dos sin él.
+
+**Veredicto: dudoso.** Ya se repitió con el doble de pasadas y sigue igual: por §11.3 va a Titín con las cifras.
+
+**Propuesta aparte de E1, para Titín:** el estado lento es un defecto de la base y pesa más que lo que E1 añade (la
+base pierde aquí el 12 % de los fotogramas de vídeo). Merece tarea propia. El primer paso no compila nada: un
+`sample` de los dos renderers y del navegador en el tramo lento, para saber quién envía y espera.
+
+**No medido:** este caso a escala 1. Las dos pasadas del A/B a escala 1 no llegaron a reproducir 1080p60.
+
+### 12.6 Puertas P3 y P4
+
+- **P3 no se abre.** Con E1 y las dos tarjetas trabajando por debajo de 60 fps, `CrGpuMain` llega como mucho al
+  85 % (Aquarium 20 000) [R]; la puerta pedía 90 %. En el tramo lento del vídeo sí pasa del 90 %, pero está medido
+  con una sola tarjeta y lo que sobra es coste por tarea, no trabajo: un segundo hilo de envío no es el arreglo
+  evidente [I]. No lo tomo como apertura.
+- **P4: la letra se cumple, y propongo no abrirla ahora.** El cruce cuesta menos del 10 % (lo peor, −5,9 %) y la
+  tarjeta manda en Design y Suits a escala 2 [R]. Pero:
+  1. Esos dos casos son de escala 2 y ventana completa, justo el tamaño en que cruzar cuesta más de lo que ahorra
+     (§12.4). Pintar en una tarjeta y componer en la otra cruzaría la ventana entera en cada fotograma.
+  2. En Suits a escala 2 los dos hilos están casi parados (4 % y 14 %) con la tarjeta al 79 %: es el escalón sin
+     explicar de §11.5, no carga que se pueda repartir.
+  - Primero, el perfil de §11.5. Decide Titín.
+
+### 12.7 Salidas y propuesta para Titín
+
+| Salida | Qué da | Qué cuesta | ¿Cumple §11.3? |
+|---|---|---|---|
+| **(a) Entregar tal cual** | reparto de calor siempre | −4 a −6 % en WebGL saturado con lienzo grande; vídeo junto a WebGL, dudoso | no: tres «falla» y dos «dudoso». Solo como excepción de Titín |
+| **(b) Solo con pantalla pequeña** | reparto de calor y hasta +4 % donde se activa | apagado en pantallas grandes, la de Titín incluida | sí en WebGL. Quedan Paths (dudoso) y el vídeo a escala 1 (sin medir) |
+| **(c) Tope por tamaño de lienzo** | lo mejor de las dos | diseño nuevo | sin medir |
+
+- **(b), con una precisión: la condición son los píxeles de la pantalla principal, no la escala.** Lo que cuesta es
+  el tamaño del búfer. Un monitor 4K a escala 1 con la ventana maximizada da el mismo búfer que falla a escala 2
+  [I]. Propongo activarlo hasta 2560×1440 (3,7 megapíxeles) [S]: por encima de lo medido que gana y por debajo del
+  equilibrio estimado. Se lee una vez, al arrancar el proceso de GPU, donde B1d ya mira cuál es la pantalla
+  principal [I]; si cambia la pantalla, vale desde el siguiente arranque.
+- **Con (b), en la pantalla de Titín (6016×3384) E1 queda apagado.** Para esa pantalla no hay hoy ninguna salida
+  que cumpla la regla.
+- **(c) no cabe en el parche actual.** La tarjeta se elige al crear el contexto
+  (`gpu/ipc/service/gles2_command_buffer_stub.cc`, `Initialize` [V]) y ahí no se conoce el tamaño; las páginas
+  redimensionan el lienzo después. Estudio aparte, si Titín lo quiere.
+
+**Propuesta: (b).** Antes de entregarla:
+
+1. Vídeo y Aquarium a **escala 1**, e1x frente a e1d, 8 + 8, con fps por segundo desde la carga. Es el único hueco
+   de (b).
+2. Titín decide si el 3 % de Paths bloquea. Yo no lo bloquearía: el total de MotionMark pasa.
+
+**Si Titín quiere el reparto de calor en su pantalla,** es (a) para pantallas grandes, como excepción suya. Antes,
+el vídeo a escala 2 con 16 + 16 y el criterio fijado de antemano: fotogramas perdidos del segundo 15 al final,
+Mann-Whitney bilateral sobre esas 32 pasadas solas; con p < 0,05, «E1 lo empeora» y (a) se cae; si no, sigue dudoso
+y decide él con las cifras.
+
+**Lo que retiro:** el 25-11 de madrugada propuse (a) «si el control y el vídeo salen limpios». El control confirmó
+el fallo y el vídeo no salió limpio.
+
+### 12.8 Lo que cambia del protocolo de §11 para la próxima medida
+
+1. **Regla de validez** (§12.2). Los fps por `requestAnimationFrame` no prueban que una página pinte.
+2. **Control con el mismo binario** siempre que la compilación de prueba no sea la publicada: el interruptor
+   encendido y apagado, lanzados igual.
+3. **Los estados de Aquarium se miran en todos sus casos**, no solo en 15 000: son tandas enteras.
+4. **Un caso saturado de tarjeta por escala.** Un caso que llega a 60 con las dos versiones pasa «por el tope» y no
+   dice nada del coste. En cada escala, al menos uno entre 35 y 50 fps, con la diferencia también en milisegundos
+   por fotograma.
+5. **Un caso con multimuestreo**, con `SAMPLES` anotado en las dos versiones.
+6. **Vídeo:** fps por segundo desde la carga y fotogramas perdidos al cargar, en el segundo 15 y al acabar.
+7. **Los hilos no se identifican por su índice en `ps -M`:** el orden cambia de una pasada a otra [R]. Por nombre,
+   con `sample`.
+
+### 12.9 Fuentes y límites de este apartado
+
+- **Datos** [R]: el informe de LOCAL-25 y sus anexos (`veredicto-ab.md`, `veredicto-msaa.md`, `veredicto-e1mmr.md`,
+  `veredicto-e1shd.md`, `veredicto-e1shs.md`, `m1-e1.md`, `video-b.md`, `video-a-*.md`).
+- **Recontado por mí** [V] en `entregas/local24/`: las pasadas de WebGL del A/B (`e1ab-wgl-*`), el control del
+  shader (`e1shd-*`), el shader a escala 1 (`e1shs-*`), el suplemento (`e1msaa-*`: medianas, tamaño del búfer y
+  `SAMPLES`), el vídeo (`e1ab-video-*`, `e1vid-*`, `e1vib-*`, por segundo) y `local23/{m1b,m1c}`. Las pruebas
+  estadísticas son mías, exactas por permutación.
+- **Código** [V]: los tres parches en `temp/local25/e1/` (solo lectura).
+- **Límites:**
+  - No he medido ni lanzado nada, ni he entrado en la 6,1.
+  - Todo es de una máquina, una pantalla y una noche.
+  - El equilibrio de 5 megapíxeles y el umbral de 2560×1440 son estimaciones con dos tamaños medidos.
+  - No he abierto los `sample` del vídeo: leo las tablas de LOCAL-25.
+  - No sé por qué pierde Paths ni qué cliente provoca el estado lento del vídeo.
