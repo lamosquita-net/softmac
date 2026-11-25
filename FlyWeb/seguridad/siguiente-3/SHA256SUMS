@@ -19,3 +19,5 @@ ada32ebd32b29d2d03f8e1e864fcfd8d9d6b6509b62c39d7366d010ba38ef78b  brave-core/000
 735cbf4287a684d83b0226f0f29f53b422be3a115142163c8f6e0914b52b3670  chromium/0012-M156-Add-safe-path-downcast-for-BrowserAccessibility.patch
 9c1284be6d31a0f8e99a5698eda2c02a0c4f85b83b6415fb19a96061183aaf99  chromium/0013-M159-Flush-after-failed-write-pixels.patch
 413191b8d438bc6a31c6a57710a74b6ab6fbc1293aa59dacfe791bc2ddf377a7  chromium/0014-M159-Do-not-show-login-prompt-for-uncommitted-naviga.patch
+b07cae1876e0a88d8011dfb218a90f0709fd41e420b905e202471b575aae161c  chromium/0015-Roll-libvpx-to-6f89cfbcc9-as-M159-fixing-crbug-58694.patch
+a407276aa22ed7b31886d06c90bd6ed9b0ba3c3d45a65f9397246d11d362aac7  libvpx/0001-vp9-Fix-base_mv-usage-when-lower-SVC-layers-are-skip.patch

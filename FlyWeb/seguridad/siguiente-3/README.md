@@ -12,11 +12,11 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0006` | **`4576659642`** (hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0014` | **`5d44536b7f`** (hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0015` | **`86c8e4b537`** (hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b` y, con `0014`, `5d44536b7f`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f` y, con `0015`, `86c8e4b537`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -299,6 +299,70 @@ tal cual. Aún sin merge a la 8078. **Gravedad no publicada.**
 - **Ya tiene merge M156:** 8078 `42986b37d0` (24-11 18:22 UTC; bug del merge 589982118). Comparado con el de la 8154: el
   mismo cambio, solo cambian los números de línea (`git apply -R` del M156 entra sobre nuestro árbol). Nada que cambiar.
 
+## `chromium/0015`: [M159] libvpx a `6f89cfbcc9`, como la 159 (crbug 586941063)
+
+Orden de COORDINACIÓN-63 (buzón `…0433-COORDINACION-63-libvpx`, 6a86c113). Es la misma revisión de libvpx que la 8154
+**`5c240af776`** («Cherry-pick libvpx 6f89cfbcc9 to m159», 25-11 03:23 UTC). Aún sin merge a la 8078. **Gravedad no
+publicada.**
+- **El arreglo principal:** libvpx `6f89cfbcc9` «vp9: Fix base_mv usage when lower SVC layers are skipped» (Marco Paniconi,
+  cherry-pick de `1d448f4918`). El codificador VP9 en SVC leía el `base_mv` de una capa inferior que no se había
+  codificado en ese fotograma. **Se alcanza desde una página:** WebRTC con `scalabilityMode` (p. ej. L3T3) y las capas
+  inferiores desactivadas con `RTCRtpSender.setParameters`. Afecta a Mac: libvpx compila el codificador VP9 para WebRTC.
+- **Lo que cambia el parche** (como el de upstream): `DEPS` y el gitlink `third_party/libvpx/source/libvpx`, de
+  **`a00f6762db`** a **`6f89cfbcc9`**; `README.chromium` (`Revision`) y `source/config/vpx_version.h` (queda igual que el de
+  la 8154). `a00f6762db` es la libvpx de FlyWeb desde la 3.1.4: `de61454cf8` (la de la 8078) más
+  `3.1.4/parte6/libvpx/0001`, que es upstream `0a6d123f0c` y ya va dentro de `6f89cfbcc9`.
+- **Sin regenerar nada:** `libvpx_srcs.gni` y los directorios `source/config/mac/x64` y `source/config/linux/x64` son
+  **idénticos, blob a blob**, en la 8078 y la 8154. El `BUILD.gn` de la 159 solo añade la bandera de Chromium
+  `libvpx_high_bit_depth`, que la 156 no necesita.
+- **Para LOCAL:**
+  - Traer la revisión nueva del subrepositorio con un `gclient sync` normal (**nunca `-D`**), o a mano
+    (`git -C src/third_party/libvpx/source/libvpx fetch https://chromium.googlesource.com/webm/libvpx 6f89cfbcc9` y
+    `checkout`).
+  - **Ya no se aplica `3.1.4/parte6/libvpx/0001`**: va dentro (`0a6d123f0c`).
+  - `vpx_version.h` dirá `v1.17.0-89-g6f89cfbcc`.
+- **Reserva, por si la subida da guerra** al compilar o en `media_unittests`: `siguiente-3/libvpx/0001`, el arreglo
+  suelto sobre la libvpx actual de FlyWeb (`a00f6762db`), para aplicar con `git am -3` en `src/third_party/libvpx/source/libvpx`
+  como la parte 6. En ese caso no se aplica `chromium/0015`.
+  - Código de `vp9_pickmode.c` y `vp9_svc_layercontext.c` tal cual. Solo cambia dónde va la prueba nueva
+    (`EncodeAPI.SvcDeactivateLowerLayersBaseMv`): al final del bloque `CONFIG_VP9_ENCODER` del `encode_api_test.cc` de la
+    156, que termina distinto. Trae sus propias funciones de ayuda.
+  - El parche de la parte 6 no toca esos tres ficheros. `git am -3` limpio, comprobado sobre esos ficheros en `de61454cf8`.
+
+**Lo que entra con la subida:** los 28 commits `de61454cf8..6f89cfbcc9`, del más antiguo al más nuevo. Los de AArch64 y
+Neon no se compilan en x64.
+
+| Commit | Qué | Bug | Ficheros (sin pruebas) |
+|---|---|---|---|
+| `a6d2b2afa6` | Fix incorrect stride for buffer access | — | `vp9_mfqe.c`, `vp9_rdopt.c` |
+| `deaac25491` | vp8: Validate ss_number_layers and factor den in validate_config | 564326761 | `vp8_cx_iface.c` |
+| `021170248a` | vp8: document handling of corrupt frames | chromium:561396583 | `simple_decoder.c`, `vp8dx.h` |
+| `0a6f769e44` | vp8: Validate references in vp8e_set/get_reference | 564326909 | `vp8_cx_iface.c` |
+| `ed2a5b572f` | vp8: clear cached resolution on thread restart failure | 571147583 | `vp8_dx_iface.c` |
+| `2c6ece8c4a` | Use unfiltered source frame for PSNR with denoiser | 571976041 | `vp9_encoder.c`, `vp9_encoder.h` |
+| `6a8917393d` | [vp8] Use unfiltered source frame for PSNR with denoiser | 571976041 | `onyx_if.c`, `onyx_int.h` |
+| `63bcd588b5` | vp8, vp9: Validate references in set/copy/get_reference controls | 564326909 | `vp8_dx_iface.c`, `vp9_cx_iface.c`, `vp9_dx_iface.c` |
+| `940d99c866` | vp9: Disallow svc config for 2-pass, remove legacy code | 574106931 | `vp9_encoder.c`, `vp9_svc_layercontext.c`, `vp9_svc_layercontext.h` … |
+| `37f48364a7` | apply clang-format-21 | 569277013 | `bitstream.c`, `vp9_entropy.c`, `vp9_detokenize.c` … |
+| `6cf3e2bea2` | vp9_set_roi_map: reject segment ids >= MAX_SEGMENTS | — | `vp9_encoder.c` |
+| `0a6d123f0c` | vp9: Fix temporal denoiser buffer reallocation on resize | 573760540 | `vp9_denoiser.c`, `vp9_encoder.c` |
+| `634423f3e7` | vp9: validate temporal_layer_id in ctrl_set_svc_layer_id | — | `vp9_cx_iface.c` |
+| `fb1279dcc6` | vp9: validate fb_idx in ctrl_set_svc_ref_frame_config | — | `vp9_cx_iface.c` |
+| `8c9ef99ff0` | vp9-Force ZEROMV on unscaled SVC references in pick_inter | 575939911 | `vp9_pickmode.c` |
+| `aa334b8423` | AArch64: Use 8-bit in vpx_tm_predictor_*_neon | — | `intrapred_neon.c` |
+| `15466827aa` | test: Add sum-of-squares speed test | — | solo pruebas |
+| `c54f0f3422` | AArch64: Optimize Neon sum of squares | — | `sum_squares_neon.c` |
+| `9ae223c6a6` | AArch64: Optimize Neon subtract | — | `subtract_neon.c` |
+| `ec7a4f33db` | AArch64: Re-order register access for fdct32x32 | — | `fdct32x32_neon.c`, `fdct32x32_neon.h` |
+| `4ca3a7c68a` | test: Enable Neon dot-product SAD skip tests | — | solo pruebas |
+| `287b895827` | test: Improve SAD speed-test timing precision | — | solo pruebas |
+| `8771e70cb4` | vpx_img_flip: do nothing for an empty viewport | — | `vpx_image.c` |
+| `900b2a52b6` | vp8,update_golden_frame_stats: clamp gf_overspend_bits | 567288636, 454794528 | `onyx_if.c` |
+| `23fbf91f68` | AArch64: Unroll loop to reduce stack access | — | `sad4d_neon_dotprod.c` |
+| `50ede54a5c` | vp9: fix HBD input validation of flipped images | — | `vp9_cx_iface.c`, `vp9_iface_common.c` |
+| `fb0a26ad92` | vp9: Fix LAST_FRAME check in get_estimated_pred for SVC | 575903327 | `vp9_encodeframe.c`, `vp9_speed_features.c` |
+| `6f89cfbcc9` | vp9: Fix base_mv usage when lower SVC layers are skipped | 586941063 | `vp9_pickmode.c`, `vp9_svc_layercontext.c` |
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Gravedad no publicada; es una salida del sandbox de V8.**
@@ -455,6 +519,9 @@ Nada se ha compilado ni probado en la nube.
   (`webgl_conformance` si se puede) en la 6,1 (chromium/0013).
 - `unit_tests --gtest_filter='LoginHandler*:LoginTabHelper*'` y `browser_tests --gtest_filter='*LoginPrompt*'`
   (chromium/0014).
+- `media_unittests --gtest_filter='*Vpx*:*VP8*:*VP9*:*Vp8*:*Vp9*'` y, en la 6,1, una llamada WebRTC con VP9 SVC (L3T3,
+  p. ej. la muestra «scalable video coding» de webrtc.github.io), cambiando la resolución y desactivando capas a mitad de
+  llamada (chromium/0015; con la reserva, lo mismo).
 - `blink_unittests` entero en una compilación con DCHECK (D8-LINUX: deben volver las 2765 que tumbaba el DCHECK), y
   las WPT `domparsing/tentative/stream-html-*` y `sanitizer-api/sanitizer-custom-elements-is.tentative.html`
   (chromium/0011).
@@ -508,20 +575,3 @@ configuración de Linux compila el código.
 - **8154 `c0e8ff34d8`** (24-11): roll de ANGLE en M159 con dos arreglos de **D3D11** (`fcd0b72056`, b/578681060;
   `8165b581a6`, b/557480846). Solo Windows: no aplica a Mac ni a nuestro Linux.
 - **8154 `a5358bd964`** (24-11): «Defer HWNDMessageHandler deletion in WindowEventTarget methods». Solo Windows.
-
-## Propuesta pendiente: libvpx (sin preparar, a decidir)
-
-- **8154 `5c240af776`** (25-11 03:23 UTC): «Cherry-pick libvpx 6f89cfbcc9 to m159» (crbug 586941063). libvpx `6f89cfbcc9`
-  «vp9: Fix base_mv usage when lower SVC layers are skipped»: el codificador VP9 en SVC leía el `base_mv` de una capa
-  inferior que no se había codificado. **Se alcanza desde una página** (WebRTC con `scalabilityMode` y capas inferiores
-  desactivadas con `setParameters`). Gravedad no publicada. Aún sin merge a la 8078.
-- **Nuestra libvpx (la de la 8078) es `de61454cf8`.** La base de la 159 (`fb0a26ad92`) lleva 27 commits más, unos 20 de
-  ellos endurecimientos con bug propio: validaciones en los controles del codificador VP8/VP9 (564326909, 564326761,
-  `fb1279dcc6`, `634423f3e7`, `6cf3e2bea2`), el decodificador VP8 (571147583), el denoiser temporal (573760540),
-  `vpx_img_flip` con vista vacía, el *stride* de `mfqe`, el SVC de VP9 (575903327, 575939911), `gf_overspend_bits` (567288636).
-- El código del arreglo entra sobre `de61454cf8`; solo falla el hunk de la prueba, por contexto.
-- **Lo más limpio sería subir libvpx entera a `6f89cfbcc9`**, como hace upstream: DEPS, `README.chromium` y
-  `vpx_version.h`. `libvpx_srcs.gni` y `source/config/mac/x64/vpx_config.h` son **idénticos** en la 8078 y la 8154; el
-  `BUILD.gn` de la 159 solo añade una bandera de Chromium (`libvpx_high_bit_depth`) que no hace falta.
-- Obliga a LOCAL a traer otra revisión del subrepositorio `third_party/libvpx/source/libvpx`. Pedido a COORDINACIÓN.
-
