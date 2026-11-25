@@ -508,3 +508,20 @@ configuración de Linux compila el código.
 - **8154 `c0e8ff34d8`** (24-11): roll de ANGLE en M159 con dos arreglos de **D3D11** (`fcd0b72056`, b/578681060;
   `8165b581a6`, b/557480846). Solo Windows: no aplica a Mac ni a nuestro Linux.
 - **8154 `a5358bd964`** (24-11): «Defer HWNDMessageHandler deletion in WindowEventTarget methods». Solo Windows.
+
+## Propuesta pendiente: libvpx (sin preparar, a decidir)
+
+- **8154 `5c240af776`** (25-11 03:23 UTC): «Cherry-pick libvpx 6f89cfbcc9 to m159» (crbug 586941063). libvpx `6f89cfbcc9`
+  «vp9: Fix base_mv usage when lower SVC layers are skipped»: el codificador VP9 en SVC leía el `base_mv` de una capa
+  inferior que no se había codificado. **Se alcanza desde una página** (WebRTC con `scalabilityMode` y capas inferiores
+  desactivadas con `setParameters`). Gravedad no publicada. Aún sin merge a la 8078.
+- **Nuestra libvpx (la de la 8078) es `de61454cf8`.** La base de la 159 (`fb0a26ad92`) lleva 27 commits más, unos 20 de
+  ellos endurecimientos con bug propio: validaciones en los controles del codificador VP8/VP9 (564326909, 564326761,
+  `fb1279dcc6`, `634423f3e7`, `6cf3e2bea2`), el decodificador VP8 (571147583), el denoiser temporal (573760540),
+  `vpx_img_flip` con vista vacía, el *stride* de `mfqe`, el SVC de VP9 (575903327, 575939911), `gf_overspend_bits` (567288636).
+- El código del arreglo entra sobre `de61454cf8`; solo falla el hunk de la prueba, por contexto.
+- **Lo más limpio sería subir libvpx entera a `6f89cfbcc9`**, como hace upstream: DEPS, `README.chromium` y
+  `vpx_version.h`. `libvpx_srcs.gni` y `source/config/mac/x64/vpx_config.h` son **idénticos** en la 8078 y la 8154; el
+  `BUILD.gn` de la 159 solo añade una bandera de Chromium (`libvpx_high_bit_depth`) que no hace falta.
+- Obliga a LOCAL a traer otra revisión del subrepositorio `third_party/libvpx/source/libvpx`. Pedido a COORDINACIÓN.
+
