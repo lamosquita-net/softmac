@@ -1,0 +1,161 @@
+From 81df83e71c98f479b3aee0a6832478d5b5ee4ce5 Mon Sep 17 00:00:00 2001
+From: FlyWeb <noreply@lamosquita.net>
+Date: Wed, 25 Nov 2026 20:01:29 +0000
+Subject: [PATCH] Flush the cookie store in EndSession() on Mac and Linux
+
+SIGTERM (logout, shutdown, update, kill) ends in
+BrowserProcessImpl::EndSession(), which only commits the prefs and Local
+State before the process is terminated, so the cookies of the pending
+SQLite batch (written every 30 s) were lost.
+
+Ask each loaded profile's default storage partition to flush its cookie
+store under the same RundownTaskCounter and kEndSessionTimeout as the
+prefs. The UI thread is blocked in TimedWait(), so the flush goes through
+a CookieManager pipe of its own bound on a thread pool sequence; a
+disconnect counts as done.
+---
+ .../chrome/browser/browser_process_impl.cc    | 84 +++++++++++++++++++
+ ...rome-browser-browser_process_impl.cc.patch | 16 +++-
+ 2 files changed, 96 insertions(+), 4 deletions(-)
+
+diff --git a/chromium_src/chrome/browser/browser_process_impl.cc b/chromium_src/chrome/browser/browser_process_impl.cc
+index 1b8922ba..3625f6d5 100644
+--- a/chromium_src/chrome/browser/browser_process_impl.cc
++++ b/chromium_src/chrome/browser/browser_process_impl.cc
+@@ -36,8 +36,92 @@
+ #define BRAVE_BROWSER_PROCESS_IMPL_ADD_OS_CRYPT_ASYNC_PROVIDERS
+ #endif
+ 
++#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
++#include "base/functional/bind.h"
++#include "base/task/sequenced_task_runner.h"
++#include "base/task/thread_pool.h"
++#include "chrome/browser/profiles/profile.h"
++#include "content/public/browser/storage_partition.h"
++#include "mojo/public/cpp/bindings/pending_remote.h"
++#include "mojo/public/cpp/bindings/remote.h"
++#include "services/network/public/mojom/cookie_manager.mojom.h"
++#include "services/network/public/mojom/network_context.mojom.h"
++
++namespace flyweb {
++namespace {
++
++// FlyWeb (Titín 25-11, DIRECTIVAS #1243): SIGTERM (logout, shutdown, update,
++// `kill`) ends in EndSession(), which only writes the prefs and Local State
++// before the process is terminated. The cookies of the pending batch (written
++// every 30 s) were lost. Flush them too, under the same rundown counter and
++// the same timeout as the prefs.
++//
++// The UI thread is blocked in RundownTaskCounter::TimedWait(), so the reply
++// can't be delivered there: the flush goes through a CookieManager pipe of
++// its own, bound on a thread pool sequence.
++class EndSessionCookieFlusher {
++ public:
++  static void Start(mojo::PendingRemote<network::mojom::CookieManager> pending,
++                    base::OnceClosure done) {
++    // Owns itself until Finish().
++    auto* flusher =
++        new EndSessionCookieFlusher(std::move(pending), std::move(done));
++    flusher->cookie_manager_->FlushCookieStore(base::BindOnce(
++        &EndSessionCookieFlusher::Finish, base::Unretained(flusher)));
++  }
++
++  EndSessionCookieFlusher(const EndSessionCookieFlusher&) = delete;
++  EndSessionCookieFlusher& operator=(const EndSessionCookieFlusher&) = delete;
++  ~EndSessionCookieFlusher() = default;
++
++ private:
++  EndSessionCookieFlusher(
++      mojo::PendingRemote<network::mojom::CookieManager> pending,
++      base::OnceClosure done)
++      : cookie_manager_(std::move(pending)), done_(std::move(done)) {
++    // Without a network service there is nothing to wait for.
++    cookie_manager_.set_disconnect_handler(base::BindOnce(
++        &EndSessionCookieFlusher::Finish, base::Unretained(this)));
++  }
++
++  // The reply or the disconnection, whichever comes first.
++  void Finish() {
++    if (!done_) {
++      return;
++    }
++    std::move(done_).Run();
++    base::SequencedTaskRunner::GetCurrentDefault()->DeleteSoon(FROM_HERE,
++                                                               this);
++  }
++
++  mojo::Remote<network::mojom::CookieManager> cookie_manager_;
++  base::OnceClosure done_;
++};
++
++void FlushCookieStoreForEndSession(Profile* profile, base::OnceClosure done) {
++  mojo::PendingRemote<network::mojom::CookieManager> cookie_manager;
++  profile->GetDefaultStoragePartition()->GetNetworkContext()->GetCookieManager(
++      cookie_manager.InitWithNewPipeAndPassReceiver());
++  base::ThreadPool::CreateSequencedTaskRunner(
++      {base::TaskPriority::USER_BLOCKING})
++      ->PostTask(FROM_HERE, base::BindOnce(&EndSessionCookieFlusher::Start,
++                                           std::move(cookie_manager),
++                                           std::move(done)));
++}
++
++}  // namespace
++}  // namespace flyweb
++
++#define BRAVE_BROWSER_PROCESS_IMPL_END_SESSION_FLUSH_COOKIES \
++  flyweb::FlushCookieStoreForEndSession(                      \
++      profile, rundown_counter->GetRundownClosure());
++#else
++#define BRAVE_BROWSER_PROCESS_IMPL_END_SESSION_FLUSH_COOKIES
++#endif
++
+ #include "src/chrome/browser/browser_process_impl.cc"
+ #undef BRAVE_BROWSER_PROCESS_IMPL_ADD_OS_CRYPT_ASYNC_PROVIDERS
++#undef BRAVE_BROWSER_PROCESS_IMPL_END_SESSION_FLUSH_COOKIES
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+ #undef ChromeExtensionsBrowserClient
+ #endif
+diff --git a/patches/chrome-browser-browser_process_impl.cc.patch b/patches/chrome-browser-browser_process_impl.cc.patch
+index 589a79e7..2ebdb94c 100644
+--- a/patches/chrome-browser-browser_process_impl.cc.patch
++++ b/patches/chrome-browser-browser_process_impl.cc.patch
+@@ -1,8 +1,16 @@
+ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
+-index bed9453f156ba5b94a8daa5261085045e288098e..9472b6809b36e6dd7d069da649294997171e7b07 100644
++index bed9453f156ba5b94a8daa5261085045e288098e..55abdbc88006833ff8fa79cc76aa24f1bf441172 100644
+ --- a/chrome/browser/browser_process_impl.cc
+ +++ b/chrome/browser/browser_process_impl.cc
+-@@ -1623,6 +1623,9 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
++@@ -883,6 +883,7 @@ void BrowserProcessImpl::EndSession() {
++       profile->GetPrefs()->CommitPendingWrite(
++           base::OnceClosure(), rundown_counter->GetRundownClosure());
++     }
+++    BRAVE_BROWSER_PROCESS_IMPL_END_SESSION_FLUSH_COOKIES
++   }
++ 
++   // Tell the metrics service it was cleanly shutdown.
++@@ -1623,6 +1624,9 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
+    base::CommandLine* cmd_line = base::CommandLine::ForCurrentProcess();
+    const auto password_store =
+        cmd_line->GetSwitchValueASCII(password_manager::kPasswordStore);
+@@ -12,7 +20,7 @@ index bed9453f156ba5b94a8daa5261085045e288098e..9472b6809b36e6dd7d069da649294997
+    if (password_store != "basic") {
+      if (base::FeatureList::IsEnabled(features::kDbusSecretPortal)) {
+        // Use a higher priority than the FreedesktopSecretKeyProvider.
+-@@ -1634,15 +1637,28 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
++@@ -1634,15 +1638,28 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
+                    features::kSecretPortalKeyProviderUseForEncryption)));
+      }
+    }
+@@ -42,7 +50,7 @@ index bed9453f156ba5b94a8daa5261085045e288098e..9472b6809b36e6dd7d069da649294997
+    providers.emplace_back(
+        /*precedence=*/5u, std::make_unique<os_crypt_async::PosixKeyProvider>());
+  #endif  // BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_LINUX)
+-@@ -1654,6 +1670,7 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
++@@ -1654,6 +1671,7 @@ void BrowserProcessImpl::PreMainMessageLoopRun() {
+          std::make_unique<os_crypt_async::KeychainKeyProvider>()));
+    }
+  #endif  // BUILDFLAG(IS_MAC)
+-- 
+2.43.0
+
