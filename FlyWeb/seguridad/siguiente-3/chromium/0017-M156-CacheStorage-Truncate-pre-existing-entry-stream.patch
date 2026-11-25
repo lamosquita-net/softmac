@@ -1,0 +1,333 @@
+From 3412c71d175eaf34c3e4d2f17f3197f46fc761f9 Mon Sep 17 00:00:00 2001
+From: Eriko Kurimoto <elkurin@chromium.org>
+Date: Wed, 25 Nov 2026 08:04:21 +0000
+Subject: [PATCH] [M156] [CacheStorage] Truncate pre-existing entry streams on
+ empty puts
+
+Original change's description:
+> [CacheStorage] Truncate pre-existing entry streams on empty puts
+>
+> This CL fixes CacheStorageCache and CacheStorageBlobToDiskCache so that
+> overwriting a reopened disk cache entry with an absent or zero-byte body
+> or side data always truncates pre-existing stream bytes.
+>
+> When OpenOrCreateEntry reopens an unindexed disk cache entry (for
+> example, after an index mismatch), CacheStorageCache previously skipped
+> truncation when a stream had non-zero data because its size check was
+> inverted, and CacheStorageBlobToDiskCache completed zero-byte blobs
+> without issuing a truncating write. Together with rewriting headers to a
+> non-opaque response, this left a prior opaque response body readable.
+>
+> Bug: 583238770
+> Change-Id: I06beac699fa52016a3803f1fbd30f5c49192044f
+>
+>
+>
+>
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8835441
+> Commit-Queue: Eriko Kurimoto <elkurin@chromium.org>
+> Reviewed-by: Ming-Ying Chung <mych@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1748972}
+
+(cherry picked from commit 47f720b00994927435429513b6b34112c0a367c0)
+
+Bug: 588197443,583238770
+Change-Id: Iad90a03b42153eb7d756e79cc8a795e54f447c42
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8848163
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Reviewed-by: Ming-Ying Chung <mych@chromium.org>
+Commit-Queue: Eriko Kurimoto <elkurin@chromium.org>
+Commit-Queue: Ming-Ying Chung <mych@chromium.org>
+Reviewed-by: Eriko Kurimoto <elkurin@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2420}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../cache_storage_blob_to_disk_cache.cc       | 39 ++++++++-
+ .../cache_storage_blob_to_disk_cache.h        |  2 +
+ ...che_storage_blob_to_disk_cache_unittest.cc | 40 +++++++++
+ .../cache_storage/cache_storage_cache.cc      |  2 +-
+ .../cache_storage_cache_unittest.cc           | 85 +++++++++++++++++++
+ 5 files changed, 165 insertions(+), 3 deletions(-)
+
+diff --git a/content/browser/cache_storage/cache_storage_blob_to_disk_cache.cc b/content/browser/cache_storage/cache_storage_blob_to_disk_cache.cc
+index 2affda7096..cb4d6f4278 100644
+--- a/content/browser/cache_storage/cache_storage_blob_to_disk_cache.cc
++++ b/content/browser/cache_storage/cache_storage_blob_to_disk_cache.cc
+@@ -73,6 +73,10 @@ void CacheStorageBlobToDiskCache::StreamBlobToCache(
+ 
+ void CacheStorageBlobToDiskCache::OnComplete(int32_t status,
+                                              uint64_t data_length) {
++  // Disconnect after the terminal `OnComplete()` notification so duplicate
++  // calls cannot overwrite completion state or re-enter `MaybeFinishReading()`
++  // while an asynchronous truncation write is in flight.
++  client_receiver_.reset();
+   if (status != net::OK) {
+     RunCallback(false /* success */);
+     return;
+@@ -83,7 +87,7 @@ void CacheStorageBlobToDiskCache::OnComplete(int32_t status,
+   received_on_complete_ = true;
+   expected_total_size_ = data_length;
+   if (data_pipe_closed_) {
+-    RunCallback(cache_entry_offset_ == expected_total_size_);
++    MaybeFinishReading();
+   }
+ }
+ 
+@@ -103,6 +107,37 @@ void CacheStorageBlobToDiskCache::DidWriteDataToEntry(int expected_bytes,
+   ReadFromBlob();
+ }
+ 
++void CacheStorageBlobToDiskCache::MaybeFinishReading() {
++  if (cache_entry_offset_ != expected_total_size_) {
++    RunCallback(/*success=*/false);
++    return;
++  }
++
++  if (expected_total_size_ == 0 &&
++      entry_->GetDataSize(disk_cache_body_index_) != 0) {
++    // An empty blob never triggers a data pipe write, so explicitly truncate
++    // any pre-existing data in a reopened entry stream.
++    int rv = entry_->WriteData(
++        disk_cache_body_index_, /*offset=*/0, /*buf=*/nullptr, /*buf_len=*/0,
++        base::BindOnce(&CacheStorageBlobToDiskCache::DidTruncateEntry,
++                       weak_ptr_factory_.GetWeakPtr()),
++        /*truncate=*/true);
++    if (rv != net::ERR_IO_PENDING) {
++      DidTruncateEntry(rv);
++    }
++    return;
++  }
++
++  RunCallback(/*success=*/true);
++}
++
++void CacheStorageBlobToDiskCache::DidTruncateEntry(int rv) {
++  if (rv != net::OK) {
++    quota_manager_proxy_->OnClientWriteFailed(storage_key_);
++  }
++  RunCallback(/*success=*/rv == net::OK);
++}
++
+ void CacheStorageBlobToDiskCache::RunCallback(bool success) {
+   if (callback_)
+     std::move(callback_).Run(std::move(entry_), success);
+@@ -130,7 +165,7 @@ void CacheStorageBlobToDiskCache::OnDataPipeReadable(MojoResult unused) {
+     // Done reading, but only signal success if OnComplete has also been called.
+     data_pipe_closed_ = true;
+     if (received_on_complete_) {
+-      RunCallback(cache_entry_offset_ == expected_total_size_);
++      MaybeFinishReading();
+     }
+     return;
+   }
+diff --git a/content/browser/cache_storage/cache_storage_blob_to_disk_cache.h b/content/browser/cache_storage/cache_storage_blob_to_disk_cache.h
+index 943931c3c6..cc9f204b67 100644
+--- a/content/browser/cache_storage/cache_storage_blob_to_disk_cache.h
++++ b/content/browser/cache_storage/cache_storage_blob_to_disk_cache.h
+@@ -62,6 +62,8 @@ class CONTENT_EXPORT CacheStorageBlobToDiskCache
+   const blink::StorageKey& storage_key() const { return storage_key_; }
+ 
+  private:
++  void MaybeFinishReading();
++  void DidTruncateEntry(int rv);
+   void RunCallback(bool success);
+ 
+   void OnDataPipeReadable(MojoResult result);
+diff --git a/content/browser/cache_storage/cache_storage_blob_to_disk_cache_unittest.cc b/content/browser/cache_storage/cache_storage_blob_to_disk_cache_unittest.cc
+index 63afca78dd..f7e9a910e4 100644
+--- a/content/browser/cache_storage/cache_storage_blob_to_disk_cache_unittest.cc
++++ b/content/browser/cache_storage/cache_storage_blob_to_disk_cache_unittest.cc
+@@ -216,6 +216,46 @@ TEST_F(CacheStorageBlobToDiskCacheTest, Stream) {
+   EXPECT_STREQ(data_.c_str(), ReadCacheContent().c_str());
+ }
+ 
++TEST_F(CacheStorageBlobToDiskCacheTest, StreamEmptyBlobTruncatesExistingData) {
++  auto stream_content = [&](std::string content, bool delay_reads) {
++    blob_handle_.reset();
++    base::RunLoop().RunUntilIdle();
++    data_ = std::move(content);
++    InitBlob();
++    callback_called_ = false;
++    callback_success_ = false;
++    cache_storage_blob_to_disk_cache_ =
++        std::make_unique<TestCacheStorageBlobToDiskCache>(
++            quota_manager_proxy());
++    cache_storage_blob_to_disk_cache_->set_delay_blob_reads(delay_reads);
++    return Stream();
++  };
++
++  // Pre-populate the entry stream and truncate with an empty 0-byte blob.
++  ASSERT_TRUE(Stream());
++  ASSERT_EQ(static_cast<int64_t>(data_.size()),
++            disk_cache_entry_->GetDataSize(kCacheEntryIndex));
++  EXPECT_TRUE(stream_content("", /*delay_reads=*/false));
++  EXPECT_EQ(0, disk_cache_entry_->GetDataSize(kCacheEntryIndex));
++  EXPECT_EQ("", ReadCacheContent());
++
++  // Re-populate and exercise `OnComplete` arriving before pipe closure is read.
++  ASSERT_TRUE(stream_content(kTestData, /*delay_reads=*/false));
++  ASSERT_EQ(static_cast<int64_t>(data_.size()),
++            disk_cache_entry_->GetDataSize(kCacheEntryIndex));
++  EXPECT_FALSE(stream_content("", /*delay_reads=*/true));
++  EXPECT_FALSE(callback_called_);
++
++  cache_storage_blob_to_disk_cache_->set_delay_blob_reads(false);
++  cache_storage_blob_to_disk_cache_->ContinueReadFromBlob();
++  base::RunLoop().RunUntilIdle();
++
++  EXPECT_TRUE(callback_called_);
++  EXPECT_TRUE(callback_success_);
++  EXPECT_EQ(0, disk_cache_entry_->GetDataSize(kCacheEntryIndex));
++  EXPECT_EQ("", ReadCacheContent());
++}
++
+ TEST_F(CacheStorageBlobToDiskCacheTest, StreamLarge) {
+   blob_handle_.reset();
+   base::RunLoop().RunUntilIdle();
+diff --git a/content/browser/cache_storage/cache_storage_cache.cc b/content/browser/cache_storage/cache_storage_cache.cc
+index 0fe6847ee5..d990d96777 100644
+--- a/content/browser/cache_storage/cache_storage_cache.cc
++++ b/content/browser/cache_storage/cache_storage_cache.cc
+@@ -2157,7 +2157,7 @@ void CacheStorageCache::PutWriteBlobToCache(
+ 
+     // If there is no pre-existing data, then proceed to the next
+     // step immediately.
+-    if (temp_entry_ptr->GetDataSize(disk_cache_body_index) != 0) {
++    if (temp_entry_ptr->GetDataSize(disk_cache_body_index) == 0) {
+       std::move(clear_callback).Run(net::OK);
+       return;
+     }
+diff --git a/content/browser/cache_storage/cache_storage_cache_unittest.cc b/content/browser/cache_storage/cache_storage_cache_unittest.cc
+index f6680b0281..78c50a2a10 100644
+--- a/content/browser/cache_storage/cache_storage_cache_unittest.cc
++++ b/content/browser/cache_storage/cache_storage_cache_unittest.cc
+@@ -12,6 +12,7 @@
+ #include <memory>
+ #include <set>
+ #include <string>
++#include <string_view>
+ #include <utility>
+ 
+ #include "base/compiler_specific.h"
+@@ -128,6 +129,10 @@ class DelayableBackend : public disk_cache::Backend {
+   EntryResult OpenEntry(const std::string& key,
+                         net::RequestPriority request_priority,
+                         EntryResultCallback callback) override {
++    if (fail_next_open_entry_) {
++      fail_next_open_entry_ = false;
++      return EntryResult::MakeError(net::ERR_FAILED);
++    }
+     if (delay_open_entry_ && open_entry_callback_.is_null()) {
+       open_entry_callback_ =
+           base::BindOnce(&DelayableBackend::OpenEntryDelayedImpl,
+@@ -202,6 +207,8 @@ class DelayableBackend : public disk_cache::Backend {
+ 
+   void set_delay_open_entry(bool value) { delay_open_entry_ = value; }
+ 
++  void set_fail_next_open_entry(bool value) { fail_next_open_entry_ = value; }
++
+   void set_open_entry_started_callback(
+       base::OnceClosure open_entry_started_callback) {
+     open_entry_started_callback_ = std::move(open_entry_started_callback);
+@@ -219,6 +226,7 @@ class DelayableBackend : public disk_cache::Backend {
+ 
+   std::unique_ptr<disk_cache::Backend> backend_;
+   bool delay_open_entry_;
++  bool fail_next_open_entry_ = false;
+   base::OnceClosure open_entry_callback_;
+   base::OnceClosure open_entry_started_callback_;
+ };
+@@ -1265,6 +1273,43 @@ class CacheStorageCacheTestP : public CacheStorageCacheTest,
+                                public testing::WithParamInterface<bool> {
+  public:
+   bool MemoryOnly() override { return !GetParam(); }
++
++ protected:
++  // Populates `body_request_` with an opaque response containing both body and
++  // side data, then fails the next `OpenEntry()` so the following `Put()`
++  // reopens the existing entry via `OpenOrCreateEntry()`.
++  void PrepareReopenedOpaqueEntry() {
++    ASSERT_TRUE(Keys());
++    DelayableBackend* delayable_backend = cache_->UseDelayableBackend();
++    blink::mojom::FetchAPIResponsePtr populated = CreateOpaqueResponse();
++    CopySideDataToResponse("blob-id:initial-side-data", "initial_side_data",
++                           populated.get());
++    ASSERT_TRUE(Put(body_request_, std::move(populated)));
++    ASSERT_TRUE(Match(body_request_));
++    ASSERT_EQ(network::mojom::FetchResponseType::kOpaque,
++              callback_response_->response_type);
++    ASSERT_TRUE(callback_response_->blob);
++    mojo::Remote<blink::mojom::Blob> initial_blob(
++        std::move(callback_response_->blob->blob));
++    ASSERT_EQ("initial_side_data", CopySideData(initial_blob.get()));
++    delayable_backend->set_fail_next_open_entry(true);
++  }
++
++  blink::mojom::FetchAPIResponsePtr CreateBlobBodyResponseWithContents(
++      const std::string& uuid,
++      std::string_view contents) {
++    auto blob = blink::mojom::SerializedBlob::New();
++    blob->uuid = uuid;
++    blob->size = contents.size();
++    blob_storage_context_->context()->RegisterFromMemory(
++        blob->blob.InitWithNewPipeAndPassReceiver(), uuid,
++        base::as_byte_span(contents));
++
++    blink::mojom::FetchAPIResponsePtr response = CreateNoBodyResponse();
++    response->url_list = {BodyUrl()};
++    response->blob = std::move(blob);
++    return response;
++  }
+ };
+ 
+ TEST_P(CacheStorageCacheTestP, PutNoBody) {
+@@ -1489,6 +1534,46 @@ TEST_P(CacheStorageCacheTestP, PutReplace) {
+   EXPECT_FALSE(callback_response_->blob);
+ }
+ 
++TEST_P(CacheStorageCacheTestP, PutClearsPreExistingStreamData_NoBody) {
++  ASSERT_NO_FATAL_FAILURE(PrepareReopenedOpaqueEntry());
++
++  ASSERT_TRUE(Put(body_request_, CreateNoBodyResponse()));
++  ASSERT_TRUE(Match(body_request_));
++  EXPECT_EQ(network::mojom::FetchResponseType::kDefault,
++            callback_response_->response_type);
++  EXPECT_FALSE(callback_response_->blob);
++  EXPECT_FALSE(callback_response_->side_data_blob);
++}
++
++TEST_P(CacheStorageCacheTestP, PutClearsPreExistingStreamData_EmptyBlob) {
++  ASSERT_NO_FATAL_FAILURE(PrepareReopenedOpaqueEntry());
++
++  ASSERT_TRUE(Put(body_request_, CreateBlobBodyResponseWithContents(
++                                     "blob-id:empty-blob", "")));
++  ASSERT_TRUE(Match(body_request_));
++  EXPECT_EQ(network::mojom::FetchResponseType::kDefault,
++            callback_response_->response_type);
++  EXPECT_FALSE(callback_response_->blob);
++  EXPECT_FALSE(callback_response_->side_data_blob);
++}
++
++TEST_P(CacheStorageCacheTestP, PutClearsPreExistingStreamData_ShorterBody) {
++  ASSERT_NO_FATAL_FAILURE(PrepareReopenedOpaqueEntry());
++
++  const std::string replacement_data = "short_body";
++  ASSERT_TRUE(
++      Put(body_request_, CreateBlobBodyResponseWithContents(
++                             "blob-id:replacement-blob", replacement_data)));
++  ASSERT_TRUE(Match(body_request_));
++  EXPECT_EQ(network::mojom::FetchResponseType::kDefault,
++            callback_response_->response_type);
++  ASSERT_TRUE(callback_response_->blob);
++  mojo::Remote<blink::mojom::Blob> matched_blob(
++      std::move(callback_response_->blob->blob));
++  EXPECT_EQ(replacement_data, storage::BlobToString(matched_blob.get()));
++  EXPECT_EQ("", CopySideData(matched_blob.get()));
++}
++
+ TEST_P(CacheStorageCacheTestP, PutReplaceInBatchFails) {
+   blink::mojom::BatchOperationPtr operation1 =
+       blink::mojom::BatchOperation::New();
+-- 
+2.43.0
+
