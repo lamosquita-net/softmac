@@ -404,6 +404,8 @@ que no está en la 159). Entra tal cual: es una 156 sobre una 156. **Gravedad no
 - **El arreglo:** `DecoderSelector` es el dueño hasta que una tarea con `WeakPtr` (`DeliverSelectedDecoder()`) los entrega.
   Si se destruye antes, los destruye él mismo y aborta con `kFailed`. Trae pruebas.
 - **Aplica a Mac:** el `AesDecryptor` es Clear Key (EME), y lo puede usar cualquier página. Brave no toca `media/filters`.
+- **Ya hay gemelo M156:** 8078 **`0efe9d618`** (25-11 10:07 UTC; merge 590348671), con el mismo `patch-id` (`7915dcd3a1`).
+  El parche no cambia.
 
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
@@ -622,6 +624,16 @@ configuración de Linux compila el código.
 | 8078 `97c8484b2c` [M156] | 577371305 | `ExternalVkImageBacking`: `ProduceGL()` falla si el backing guarda un `NativePixmap`, y la conversión a `NativePixmap` pasa antes, de modo que la creación falla si no se puede | **Sí se compila:** `external_vk_image_backing.cc` está en `gpu/command_buffer/service/BUILD.gn` bajo `enable_vulkan` y `is_linux \|\| is_fuchsia`. `enable_vulkan` es `true` por defecto en Linux y FlyWeb no lo cambia. **En la práctica casi no se usa:** Vulkan va apagado por defecto en Linux (`features::kVulkan`, `FEATURE_DISABLED_BY_DEFAULT` fuera de Android). Además, según el propio commit, el backing con `NativePixmap` solo se da en Fuchsia. |
 
 ## Revisados y no aplicables
+
+- **8154 `9bce4066b1`** [M159] (586611778): `DesktopCaptureDevice` pide el `SharedImageInterface` en el hilo de la UI y no
+  en el de captura. **Solo Windows:** en la 156, ese código solo corre con capturas de textura (`frame->texture()`, un
+  `HANDLE` de D3D11 del capturador WGC). En Mac, la captura de pantalla entrega fotogramas en memoria y nunca llega ahí.
+- **8154 `30643ce52`** [M159] [webapps] (579501075, 579501200): si llega por sync una aplicación web sin nombre, ya no
+  salta un `CHECK` (cierre controlado) en la instalación. Es estabilidad, no seguridad: los datos vienen de la propia
+  cuenta de sync, no de una web. Toca siete ficheros, `web_app_specifics.proto` incluido. Fuera de la tanda; se recoge
+  con el siguiente cambio de base.
+- **8078 `50a21f264a`** y **8154 `1b29608a7`**: rolls de V8 a 15.6.75.84 y a 15.9.128.39. Traen `474a6307ce`
+  (`brave-core/0007`) y `d76136bcef` (`brave-core/0008`), ya en la tanda.
 
 - **8078 `edb08e1df1`** (24-11 12:02 UTC): roll de V8 a 15.6.75.81, que trae `7b49ecf357` (`brave-core/0003`) y
   `34e1c83643` (ya en la 3.2.2). `7be38d96f9` (`brave-core/0004`) y el de Intl llegan en rolls posteriores.
