@@ -446,6 +446,9 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   corte, suyos). Apagado de emergencia: `FLYWEB_METAL_DISPLAY_GPU=1`.
   - **El vídeo que pierde fotogramas junto a WebGL se revisa** como tarea propia: es un estado lento de la base (también sin
     E1); se mira además si E1 lo alarga.
+- **U4, paquetes de Linux (Titín, 25-11; COORDINACIÓN-63; «el mismo que tenemos para Mac»):** el mantenedor del `.deb` y
+  del repositorio apt es el mismo contacto que ya usa Mac en el repo (`admin@lamosquita.net`), y la firma del repositorio va
+  en bak como la de Sparkle (`plataformas.md`, U4). U4 empieza cuando D8-LINUX acabe U3.
 - **Linux: la clave `fw1` siempre en un fichero del perfil, sin llavero (Titín, 25-11, «sí a las tres»; COORDINACIÓN-63):**
   FlyWeb no habla con el llavero del escritorio (ni diálogos ni espera al arrancar). Barra solo si el fichero no se puede usar
   («FlyWeb no puede leer su clave de cifrado: no se usan ni guardan contraseñas ni sesiones. No se pierde nada.») y, en ese caso,
