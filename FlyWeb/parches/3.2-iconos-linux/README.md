@@ -13,7 +13,8 @@ No toca nada de Mac.
 | `app/theme/brave/linux/product_logo_128_{beta,dev,nightly}.png` | Igual, por canal (`brave_unscaled_resources.grd`, `BUILD.gn`) | M1-01 |
 | `app/theme/brave/linux/product_logo_128_development.png` | Builds no Release | O1-01 (la morada), como en Mac |
 | `app/theme/brave/linux/product_logo_32.xpm` | Menú del instalador | Hecho del PNG de 32 con `png2xpm.py`: transparencia binaria y bordes compuestos sobre blanco |
-| `app/theme/default_100_percent/brave/linux/product_logo_{16,32,32_beta,32_dev,32_development,32_nightly}.png` | `IDR_PRODUCT_LOGO_32_*` (`brave_theme_resources.grd`) y el icono pequeño de ventana | M2, como las pestañas de las páginas internas |
+| `app/theme/default_100_percent/brave/linux/product_logo_{16,32,32_beta,32_dev,32_nightly}.png` | `IDR_PRODUCT_LOGO_32_*` (`brave_theme_resources.grd`) y el icono pequeño de ventana | M2, como las pestañas de las páginas internas |
+| `…/linux/product_logo_32_development.png` | Igual, en compilaciones no Release | **0002:** O1-01, la morada, reducida desde la de 128. En Mac el icono de desarrollo es morado en todos los tamaños (`.icns`); en 0001 era la naranja (D8-LINUX-6) |
 
 **Fuente:** son los mismos ficheros que ya estaban en brave-core para Mac y para lo común (`app/theme/brave/product_logo_*`
 y `default_100_percent/brave/product_logo_*`), y tienen el mismo tamaño. Esos se generaron con
@@ -25,8 +26,8 @@ regenere la marca.
 
 ## Base y árboles
 
-brave-core `local/322-final` = **060015a802** (ls-remote del 25-11), árbol `fbdf05a0d3`. Con `git am`, el árbol queda en
-**`58a50c3c0e`** (comprobado). No hay ficheros en común con `3.2-sync-cuenta/0012` (#1242): el orden da igual.
+brave-core `local/322-final` = **060015a802** (ls-remote del 25-11), árbol `fbdf05a0d3`. Con `git am`: 0001 → `58a50c3c0e`, 0002 →
+**`8803565c90`** (comprobado). No hay ficheros en común con `3.2-sync-cuenta/0012` (#1242): el orden da igual.
 
 ## Qué debe ver D8-LINUX
 
@@ -39,5 +40,5 @@ brave-core `local/322-final` = **060015a802** (ls-remote del 25-11), árbol `fbd
 
 ## Ficheros
 
-- `0001-branding-FlyWeb-icons-for-Linux-window-launcher-inst.patch` (`git format-patch --full-index --binary`).
+- `0001-branding-FlyWeb-icons-for-Linux-window-launcher-inst.patch` y `0002-branding-purple-32-px-Linux-icon-for-the-development.patch` (`git format-patch --full-index --binary`).
 - `SHA256SUMS`.

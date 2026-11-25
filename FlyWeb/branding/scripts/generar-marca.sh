@@ -43,9 +43,10 @@ for s in 24 48 64 128 256; do r $APP $s $s $T/linux/product_logo_$s.png; done
 for c in beta dev nightly; do r $APP 128 128 $T/linux/product_logo_128_$c.png; done
 r $DEV 128 128 $T/linux/product_logo_128_development.png
 r $SYM 16 16 $B/app/theme/default_100_percent/brave/linux/product_logo_16.png
-for c in "" _beta _dev _development _nightly; do
+for c in "" _beta _dev _nightly; do
   r $SYM 32 32 $B/app/theme/default_100_percent/brave/linux/product_logo_32$c.png
 done
+r $DEV 32 32 $B/app/theme/default_100_percent/brave/linux/product_logo_32_development.png  # morado, como en Mac
 python3 -I $D/png2xpm.py $B/app/theme/default_100_percent/brave/linux/product_logo_32.png \
   $T/linux/product_logo_32.xpm && print -r -- "  $T/linux/product_logo_32.xpm"
 
