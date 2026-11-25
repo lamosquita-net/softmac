@@ -450,9 +450,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   del repositorio apt es el mismo contacto que ya usa Mac en el repo (`admin@lamosquita.net`), y la firma del repositorio va
   en bak como la de Sparkle (`plataformas.md`, U4). U4 empieza cuando D8-LINUX acabe U3.
   - **Clave del repositorio apt (Titín, 25-11):** la subclave de firma (Ed25519, caduca a 2 años) en bak; la clave principal,
-    solo en la copia cifrada fuera de bak. Las otras cuatro decisiones del diseño de U4 de D8-LINUX-6 (§6: Valid-Until,
-    unattended-upgrades, mínimo Ubuntu 22.04 / Debian 12, quitar wget y libcurl) siguen pendientes. No toca la decisión del
-    16-11 sobre la copia general.
+    solo en la copia cifrada fuera de bak. Resto del §6 del diseño de U4 (Titín, 25-11): **firma del repositorio sin
+    Valid-Until** (riesgo de congelación aceptado: la firma impide paquetes falsos, no que se sirva un índice viejo);
+    **unattended-upgrades activado por defecto**; **mínimo Ubuntu 22.04 y Debian 12**; **sin wget ni libcurl** en las
+    dependencias. No toca la decisión del 16-11 sobre la copia general.
 - **Linux: la clave `fw1` siempre en un fichero del perfil, sin llavero (Titín, 25-11, «sí a las tres»; COORDINACIÓN-63):**
   FlyWeb no habla con el llavero del escritorio (ni diálogos ni espera al arrancar). Barra solo si el fichero no se puede usar
   («FlyWeb no puede leer su clave de cifrado: no se usan ni guardan contraseñas ni sesiones. No se pierde nada.») y, en ese caso,
