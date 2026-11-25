@@ -468,6 +468,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   modelo de amenaza es el robo del ordenador. Sin llavero (o bloqueado), la clave `fw1` va en un fichero 0600 del perfil y
   FlyWeb guarda con normalidad; FlyWeb no dispara el diálogo de desbloqueo del llavero. SEGURIDAD-PORTES propone diseño,
   migración y qué queda de la barra y de la burbuja (encargo `buzon/NUBE-SEGURIDAD-PORTES/20261125-1431-…`); decide Titín.
+- **Cookies al cerrar sesión (Titín, 25-11, «sí a las cookies»; COORDINACIÓN-64):** en `BrowserProcessImpl::EndSession()`
+  (SIGTERM: cierre de sesión, apagado, actualización; Linux y Mac) se vuelca el almacén de cookies de cada perfil
+  (`FlushCookieStore` del `StoragePartition` por defecto) con el mismo `RundownTaskCounter` que ya espera a las preferencias.
+  Parche de SEGURIDAD-PORTES (propuesta `buzon/COORDINACION/…-cookies-SIGTERM.md`); D8-LINUX lo prueba con SIGTERM a 15 s.
+  Entra en la próxima versión (Mac y Linux).
 - **Linux, aviso sin llavero (Titín, 25-11; COORDINACIÓN-63):** el texto recomendado por SEGURIDAD-PORTES (A: «Sin acceso al
   llavero, FlyWeb no puede usar ni guardar contraseñas ni sesiones. No se pierde nada. Desbloquéalo y reinicia.»). Titín lo
   revisará cuando pruebe Linux.
