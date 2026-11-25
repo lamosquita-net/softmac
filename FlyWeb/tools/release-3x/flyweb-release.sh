@@ -2,20 +2,24 @@
 # F1 de FlyWeb/docs/plataformas.md: guion único de la Release de la 3.x (Mac y Linux). Borrador de D8-LINUX (22-11-2026),
 # estrenado en Linux con la 3.2.2 (F1, 24-11-2026). Parte de FlyWeb/tools/release-f1.sh (2.7.0) y de brave-core de la 3.2.1.
 #
-# Uso: flyweb-release.sh <manifiesto> comprobar|parches|gn|compilar|revisar|todo
+# Uso: flyweb-release.sh <manifiesto> comprobar|parches|gn|compilar|revisar|todo|entregar|empaquetar
 #   comprobar  solo lee: commits y árboles, estado de brave-core, perfil PGO, RAM, intercambio y disco
 #   parches    apply_patches y árbol de V8 resultante
 #   gn         gn gen sin compilar, valores efectivos y diferencia con los args de referencia
 #   compilar   Release con registro sin claves
 #   revisar    salida, AVX, build-info y sumas
 #   entregar   (Mac) copia la .app a entregas/FlyWeb-<versión>-release y los dSYM a entregas_dsym; no publica
-#   todo       los cinco primeros, en ese orden, parando al primer fallo (entregar va aparte)
+#   empaquetar (Linux, U4) el .deb flyweb_<versión>-<build>_amd64.deb en out/<out>/flyweb-release, con
+#              empaquetar-deb.py; con llavero_apt= (la clave pública del repositorio, en binario) o, para pruebas,
+#              deb_prueba=1 (sin clave: no sirve para publicar). Ni firma ni sube
+#   todo       los cinco primeros, en ese orden, parando al primer fallo (entregar y empaquetar van aparte)
 #
 # Parches locales del manifiesto (una línea por parche, en orden; «<ruta> <sha256>»):
 #   core_parche=      se aplican en src/brave antes de apply_patches; con ellos, core_arbol_trabajo= es obligatorio
 #   chromium_parche=  se aplican en src después de apply_patches (lo que brave-core no parchea)
 # Si un parche ya está aplicado, se deja; si no aplica ni está, para.
-# No baja fuentes, no hace checkout, no firma, no empaqueta, no sube y no publica. Vale en el bash 3.2 de macOS.
+# No baja fuentes, no hace checkout, no firma, no sube y no publica; solo empaqueta en el paso empaquetar. Vale en el
+# bash 3.2 de macOS.
 #
 # Entorno (también como claves del manifiesto; la variable manda):
 #   FLYWEB_DEPOT_TOOLS / depot_tools=   carpeta de depot_tools que se pone delante en el PATH (autoninja, ninja, gn)
@@ -315,6 +319,36 @@ entregar() {  # solo Mac: deja la .app y los dSYM donde los dejaba la 3.x; ni fi
   echo "  .app en $e; dSYM en $d"
 }
 
+empaquetar() {  # solo Linux (U4): dependencias de upstream sobre el sysroot y el .deb de empaquetar-deb.py
+  paso empaquetar
+  [ $SO = linux ] || paro "empaquetar es solo de Linux"
+  [ -f "$L/SHA256SUMS" ] || paro "antes va el paso revisar"
+  local hecho k deb
+  hecho="$(git -C "$SRC" rev-parse HEAD) $(git -C "$CORE" rev-parse HEAD) $(arbol_v8) $BUILD"
+  [ "$(cat "$L/compilado" 2> /dev/null)" = "$hecho" ] || paro "out/$NOMBRE no es una compilación terminada de este manifiesto"
+  if [ -n "$(de llavero_apt)" ]; then
+    [ -r "$(de llavero_apt)" ] || paro "no puedo leer llavero_apt"; k=(--llavero "$(de llavero_apt)")
+  elif [ "$(de deb_prueba)" = 1 ]; then
+    k=(--prueba)
+  else
+    paro "falta llavero_apt (o deb_prueba=1) en $M"
+  fi
+  # Los .stripped y deb_common.deps (dpkg-shlibdeps sobre el sysroot más additional_deps); el .deb de upstream no.
+  (cd "$SRC" && nice -n 19 autoninja -C "out/$NOMBRE" -j "$J" chrome/installer/linux:installer_deps \
+    chrome/installer/linux:merge_deb_dependencies) > "$L/empaquetar-ninja.log" 2>&1 \
+    || { grep -E '^FAILED|Error' "$L/empaquetar-ninja.log" | head -10 >&2; paro "dependencias del .deb (registro: $L/empaquetar-ninja.log)"; }
+  deb=$L/flyweb_$VERSION-${BUILD}_amd64.deb
+  [ ! -e "$deb" ] || paro "ya existe $deb: no piso un paquete"
+  python3 "$SM/FlyWeb/tools/release-3x/empaquetar-deb.py" --out "$OUT" --version "$VERSION" --build "$BUILD" \
+    --salida "$L" "${k[@]}" || paro "empaquetar-deb.py"
+  dpkg-deb -I "$deb" | sed -n '/Package:/,/Depends:/p' | cut -c1-120
+  ! dpkg-deb -f "$deb" Depends | grep -qE '\b(wget|libcurl)' || paro "wget o libcurl en Depends"
+  dpkg-deb -c "$deb" | grep -q '^-rwsr-xr-x root/root .*/opt/lamosquita/flyweb/chrome-sandbox$' || paro "chrome-sandbox sin 4755"
+  if command -v lintian > /dev/null; then lintian "$deb" > "$L/lintian.txt" 2>&1 || true; echo "  lintian (aviso): $(grep -c '^E:' "$L/lintian.txt") E, $(grep -c '^W:' "$L/lintian.txt") W"
+  else echo "  AVISO: sin lintian"; fi
+  paso "FIN: .deb sin firmar y sin publicar"
+}
+
 if [ "$PASO" != comprobar ]; then
   mkdir -p "$SRC/out"
   CERROJO=$SRC/out/.flyweb-release.lock
@@ -330,5 +364,6 @@ case "$PASO" in
   revisar) revisar;;
   todo) comprobar; parches; generar; compilar; revisar;;
   entregar) entregar;;
+  empaquetar) empaquetar;;
   *) paro "paso desconocido: $PASO";;
 esac
