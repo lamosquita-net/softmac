@@ -1114,9 +1114,9 @@ Encargo de COORDINACIÓN-63. Lo midió LOCAL-25 en la 6,1 la noche del 24 al 25-
 3. **Con lienzo grande falla, siempre por lo mismo: alrededor de 1 ms más por fotograma.** A escala 2, −4,1 %,
    −4,3 % y −5,9 % en los tres casos saturados, confirmado con el mismo binario. Solo se ve por debajo de 60 fps: los
    casos con margen siguen a 60.
-4. **Vídeo junto a WebGL: sin dato válido con E1** (corregido el 26-11, §13.8). Lo que aquí decía «dudoso» y
-   «defecto de la base» salía de medidas con YouTube, que Titín ha invalidado. Con vídeo servido en local y sin E1
-   no hay estado lento. Con E1 y vídeo local no está medido.
+4. **Vídeo junto a WebGL: pasa** (medido el 26-11 con vídeo servido en local, §13.9). A escala 2, Aquarium va a
+   60 fps con E1 y sin él y no se pierde ni un fotograma de vídeo tras la carga. Lo que aquí decía «dudoso» y
+   «defecto de la base» salía de medidas con YouTube, que Titín invalidó (§13.8). A escala 1, sin medir.
 5. **MotionMark: el total pasa. Paths pierde un 3 % en las tres series y queda dudoso.**
 6. **Con la regla de §11.3, E1 no se entrega tal cual.** Propongo activarlo solo cuando la pantalla principal es
    pequeña (§12.7). Con esa regla queda apagado en la pantalla que Titín usa hoy en la 6,1: si quiere el reparto de
@@ -1164,7 +1164,7 @@ Fps de la base → fps de E1. «Por el tope» = las dos llegan a 60, y el caso n
 | MotionMark Paths | **dudoso:** −3,0 % (A/B) y −3,0 % (control) | −3,9 % (A/B) |
 | Basemark Web (una pasada) | — | 820 → 827 |
 | Vídeo 1080p60 solo | sin dato válido | sin dato válido (era con YouTube, §13.8) |
-| Vídeo 1080p60 y Aquarium a ventana completa | sin dato válido (§13.8) | sin dato válido con E1 (§13.8) |
+| Vídeo 1080p60 y Aquarium a ventana completa | sin medir con vídeo local | **pasa:** 60 → 60, 0 fotogramas perdidos (§13.9) |
 
 - **Aquarium por estados.** Las pasadas lentas son tandas enteras: a escala 2, la 09 de la base y las 02 y 03 de E1
   bajan a la vez en 15 000, 20 000 y 30 000 [V]. Se juzga el estado rápido, como §11.2 pedía para 15 000. Lentas:
@@ -1292,8 +1292,9 @@ qué estado cayó cada pasada: arreglarlo antes sale más barato que añadir pas
 Paths no bloquea. El vídeo lento se revisa como tarea propia (§13). Lo que sigue es la propuesta tal como se le
 llevó; se conserva por las cifras.
 
-**Corregido el 26-11 (§13.8):** en la tabla, «vídeo junto a WebGL, dudoso» pasa a «sin dato válido». Lo demás de
-la decisión se apoya en páginas locales de WebGL y no cambia.
+**Corregido el 26-11 (§13.8 y §13.9):** en la tabla, «vídeo junto a WebGL, dudoso» ya no vale. Medido con vídeo
+local a escala 2, pasa: a la salida (a) no le queda ningún coste conocido en vídeo. Lo demás de la decisión se
+apoya en páginas locales de WebGL y no cambia.
 
 | Salida | Qué da | Qué cuesta | ¿Cumple §11.3? |
 |---|---|---|---|
@@ -1563,8 +1564,39 @@ captura de lo que había en pantalla.
 
 **Lo que falta:** E1 con vídeo local al lado. Pedido a LOCAL-25: 4 + 4 pasadas con el binario de E1, apagado y
 encendido, mismo streaming H.264, escala 2. Pasa con el criterio de §11.3: Aquarium a 58,8 fps o más con E1 y sin
-más fotogramas perdidos que sin él. Se lanza cuando Titín lo diga.
+más fotogramas perdidos que sin él. Se lanza cuando Titín lo diga. **Hecho el mismo 26-11: §13.9.**
 
 **Límites:** dos pasadas de streaming y tres de fichero, una máquina, un vídeo. No explica por qué con YouTube sí
 salía: puede ser el aviso, la página o la red, y no se va a medir.
+
+### 13.9 E1 con vídeo local al lado: pasa (26-11)
+
+Lo midió LOCAL-25 [R, `buzon/COORDINACION/20261126-2025-LOCAL-25-E1-streaming-local/`]; recontado en
+`entregas/local24/ml-e1-esc2-*` [V]: coincide.
+
+- **Qué:** el binario de E1, apagado y encendido, 4 + 4 en espejo. Streaming local H.264 a 1080p60 en una ventana
+  y Aquarium 5 000 en otra, a ventana completa, escala 2, 45 s desde la carga, sin muestreador.
+- **Las 8 son válidas:** 1080p60 de principio a fin, descodificación por hardware (VideoToolbox), y E1 encendido
+  en las 4 que toca y en ninguna de las otras.
+
+| | E1 apagado | E1 encendido |
+|---|---|---|
+| Aquarium, mediana del segundo 5 al final | 60,0 en las 4 | 59,9 / 60,0 / 60,0 / 60,0 |
+| Aquarium, peor segundo desde el 5 | 59,3–59,6 | 56,3 / 56,5 / 59,4 / 59,5 |
+| Fotogramas de vídeo perdidos del segundo 15 al final | 0 en las 4 | 0 en las 4 |
+| Fotogramas de vídeo perdidos al cargar Aquarium | 54–58 | 54–58 |
+| Tres o más segundos seguidos por debajo de 55 fps | ninguno | ninguno |
+
+- **Pasa con el criterio de §11.3:** con E1, Aquarium queda por encima de 58,8 fps y no se pierden más fotogramas.
+- Con E1 hay un segundo suelto a 56 fps en dos pasadas (segundos 23 y 11). No pierde vídeo y no cambia la mediana.
+  Sin E1 no aparece; con cuatro pasadas no sé si es de E1.
+- **Sin E1 y con vídeo local ya son 9 pasadas** (5 con la 3.2.2 publicada y estas 4), ninguna con estado lento.
+
+**Límites:**
+
+- Solo escala 2, que es donde E1 cuesta. A escala 1, sin medir.
+- Aquarium 5 000 llega a 60 con margen: el caso dice que E1 no estorba al vídeo, no cuánto cuesta el cruce. Eso
+  está en §12.4.
+- Sin muestreador: no hay lectura de cuánto trabaja cada tarjeta en estas pasadas.
+- 4 + 4 pasadas, una máquina, un vídeo.
 
