@@ -33,3 +33,4 @@ b784b0ecffeb250308f87f1e35a4bb16b57da65c936f0b4c79be5172e4928c98  skia/0001-M156
 5b8c12b33ee379cb35861145e352f38e47171d49af398720d467bbb5072958ec  chromium/0020-M159-editing-Skip-pseudo-elements-in-AbstractLineBox.patch
 ef8176b6a4363aba654401ea8858b7ee5b7bfeca046ff4979e10864ab2ea4c65  chromium/0021-M159-Use-WeakPtr-in-MirroringActivity-session-startu.patch
 abca565dde28d6c83502ce1798d94000dfb94483975049f215b23d342359738e  chromium/0022-M159-Extensions-Validate-context-and-target-event-in.patch
+145f37973f416ba82c7c8722bd2cdb4805a68074a3f966372877362f5b62273c  chromium/0023-M159-gin-Verify-context-match-in-PerContextData-From.patch
