@@ -7,6 +7,36 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 26-11 (mediodía): estado de COORDINACIÓN-64 (local, 7,1; leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-64 = «Coordinación (64)» [0fe970], desde el 25-11 ~19:46 UTC (fila #1241). Vigilante: Monitor cada 120 s sobre
+`origin/buzon`, punta en `buzon-last` del scratchpad, mismo filtro que la 63. Canales iguales.
+
+**Hecho desde el relevo:** cookies en `EndSession` (Titín «sí», #1243): parche 6 de SEGURIDAD-PORTES, verde en Linux con control
+(SIGTERM 15/25 s guarda; al grupo entero se pierde, como se esperaba); falta la prueba en Mac (su prueba 3) en la tanda.
+Parche 7 (tests de cookies de U3 a `brave_unit_tests`): 19/19 y control negativo. `raw_ptr` de la sync: MOTOR-47 #1242,
+compila con el plugin (PilotoA entera). Roll de Skia y de Dawn M159: un commit cada uno, sin nada más (Dawn = DXC, no aplica).
+**U4:** diseño v3 con la revisión de firma (APTO con 9 cambios) en el buzón; paso 1 en main (#1244, `empaquetar-deb.py`);
+iconos de Linux (MOTOR-47 #1245, 0001–0002) y nombre de escritorio «flyweb» (#1246), comprobados; **paso 2 hecho** (#1247:
+Ubuntu de Titín + podman 22.04/24.04/Debian 12, APTO; informe `buzon/COORDINACION/20261126-…-D8-LINUX-6-U4-paso2.md`).
+Restos: el perfil de AppArmor se quedaba cargado (postrm sin fichero; arreglo de D8 en prerm, pendiente de PR junto con el diff
+de iconos de `empaquetar-deb.py`, cuando #1245 entre en la tanda). La rueda dentada que vio Titín: ventanas de prueba abiertas
+mientras la fase B purgaba (sin confirmar si miró antes o después). La primera fase B de D8 habría purgado paquetes de Titín
+(`comm` con locale es_ES): parada a tiempo; desde entonces `LC_ALL=C` y lista cerrada.
+**Próxima instalación** (`buzon/D8-LINUX/20261126-1156-…`): Titín abre FlyWeb desde el menú con su perfil real (autorizado).
+siguiente-3 llega a chromium/0025 y brave-core/0011 (V8 época 41); sin gravedad publicada.
+
+**Abierto, por orden:** (1) vídeo lento: LOCAL-25 con vídeo local (Titín dio el sí) y el 16+16; ARQUITECTURA lo lee y anota (a)
+en §12.7. (2) La próxima versión (siguiente-3 + E1 + U3 + cookies + iconos/escritorio de Linux), Mac y Linux a la vez: número y
+corte, de Titín; antes, PR de `empaquetar-deb.py` (iconos + AppArmor) y la instalación con Titín. (3) Rastros en la Ubuntu de
+Titín (application_state, wireplumber, caché de appstream, `.deb` en `/var/cache/apt/archives`, perfil movido a
+`~/d8-trabajo/linux/u4-paso2/perfil-extraviado-LaMosquita`, `out/Release-321-linux`, worktrees viejos): lista nominal cuando toque.
+(4) Pasos 3–7 de U4: `firmar-apt.mjs`, clave (Titín), vhost (SERVIDOR), publicación de prueba, web.
+
+**Lecciones de la 64:** las descargas de un agente local exigen el «sí» de Titín en el chat de ese agente (regla del sistema,
+no del proyecto): avisarle de antemano en vez de reenviar órdenes. Un guion con `sudo` para Titín: leer cómo compara y qué
+borra antes de dárselo; comparar listas con `LC_ALL=C`. D8-LINUX se le escapaba al inglés en su chat con Titín: recordado.
+
 ## 24-11 (noche): COORDINACIÓN-63 → COORDINACIÓN-64 (local, 7,1; leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-63 = «Coordinación (63)» [b993e7], 24-11 ~16:45 → ~22:30 UTC, relevo al ~35 %. La 64 la abre Titín. Vigilante:
