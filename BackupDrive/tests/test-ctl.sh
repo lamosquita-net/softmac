@@ -284,5 +284,30 @@ expect 0 "versions dir vuelve a la de siempre" versions dir "$APP/versions"
 [ ! -f "$APP/versions-dir" ] && [ "$(find "$APP/versions" -type f | wc -l | tr -d ' ')" -gt "$nver" ] \
   && ok "vuelven todas a la configuración y se quita versions-dir" || fail "vuelta: $(ls "$APP")"
 
+# --- Actividad (H8): resumen por pasada y, de lo borrado o sobrescrito, dónde quedó la copia ---
+af="$APP/state/$(printf '%s|%s' "$MAC" "fake:$DRIVE/Clientes" | cksum | cut -d' ' -f1).activity"
+[ -s "$af" ] && ok "las pasadas reales guardan actividad" || fail "sin fichero de actividad"
+grep -q '"resync":true' "$af" && ok "la primera sincronización queda en la actividad" || fail "actividad sin el resync"
+echo act-1 > "$MAC/act.txt"; echo act-del > "$MAC/act-del.txt"; sync_ --force
+echo act-2 > "$D/act.txt"; rm -f "$D/act-del.txt"; sync_ --force
+expect 0 "activity" activity "$MAC"
+head -c 300 "$T/out" | grep -q '^\[{"date":"' && ok "activity: JSON, la más nueva primero" || fail "activity: $(head -c 300 "$T/out")"
+first=$(sed 's/},{"date"/}\n{"date"/g' "$T/out" | head -1)
+printf '%s' "$first" | grep -q '"what":"overwritten","side":"mac","path":"act.txt","version":"act-' && ok "sobrescrito en el Mac, con su copia" || fail "sobrescrito: $first"
+printf '%s' "$first" | grep -q '"what":"deleted","side":"mac","path":"act-del.txt"' && ok "borrado en el Mac, con su copia" || fail "borrado: $first"
+printf '%s' "$first" | grep -q '"down":1' && ok "resumen: 1 fichero bajado" || fail "resumen: $first"
+v=$(printf '%s' "$first" | sed -n 's/.*"path":"act-del.txt","version":"\([^"]*\)".*/\1/p')
+expect 0 "la copia de la actividad se puede restaurar" versions restore "$MAC" mac "$v"
+[ "$(cat "$MAC/act-del.txt" 2>/dev/null)" = act-del ] && ok "act-del.txt recuperado desde la actividad" || fail "act-del.txt: $(cat "$MAC/act-del.txt" 2>/dev/null)"
+expect 0 "activity --limit 1" activity "$MAC" --limit 1
+[ "$(grep -o '{"date"' "$T/out" | wc -l | tr -d ' ')" = 1 ] && ok "activity --limit 1 da una pasada" || fail "limit: $(cat "$T/out")"
+expect 6 "activity --limit sin número" activity "$MAC" --limit x
+sed -i.bak '1s/"date":"[0-9-]*T/"date":"2001-01-01T/' "$af" && rm -f "$af.bak"
+sync_ --force
+grep -q '"date":"2001-01-01T' "$af" && fail "la actividad vieja no caduca (perfil de 30 días)" || ok "la actividad caduca como las versiones"
+n0=$(wc -l < "$af" | tr -d ' ')
+sync_ --dry-run
+[ "$(wc -l < "$af" | tr -d ' ')" = "$n0" ] && ok "una simulación no deja actividad" || fail "la simulación escribió actividad"
+
 echo "$((n - fails))/$n correctas"
 [ "$fails" -eq 0 ]

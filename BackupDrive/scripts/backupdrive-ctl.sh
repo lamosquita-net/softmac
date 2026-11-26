@@ -30,6 +30,9 @@
 #   conflicts keep <carpeta> <ruta de la copia elegida>
 #                  la copia elegida vuelve a su nombre; las demás copias de ese fichero (y lo que hubiera con su nombre)
 #                  van a versiones del Mac. La siguiente pasada lo lleva a Drive (allí las copias van a versiones de Drive)
+#   activity <carpeta> [--limit N]  últimas pasadas reales del perfil (la más nueva primero; 50 por defecto), en JSON:
+#                  fecha, resultado, ficheros subidos y bajados y, de cada fichero borrado o sobrescrito, en qué lado
+#                  («mac»/«drive») y la ruta de su copia en versiones de ese lado («versions restore» la acepta)
 #   plan <carpeta>                  último plan simulado del perfil (de un --dry-run de backupdrive-sync.sh), en JSON:
 #                  lo nuevo, cambiado y borrado en cada lado (se copia al otro; lo que se borra o se sobrescribe allí
 #                  va a versiones) y los conflictos (se conservan los dos)
@@ -513,6 +516,21 @@ cmd_conflicts_keep() {
   echo "Te quedas con $keep como $orig. Las otras copias están en versiones; Drive se pondrá igual en la próxima sincronización."
 }
 
+cmd_activity() {
+  [ $# -ge 1 ] || usage
+  get_profile "$1"; shift
+  lim=50
+  if [ $# -gt 0 ]; then
+    [ "$1" = --limit ] && [ $# -eq 2 ] || usage
+    case "$2" in ''|*[!0-9]*) die 6 "--limit necesita un número." ;; esac
+    lim=$2
+  fi
+  f="$STATE_DIR/$(profile_id "$PL" "$PR").activity"
+  [ -f "$f" ] || { echo "[]"; return 0; }
+  # La más nueva primero (sin tac ni tail -r, que no están en los dos sistemas).
+  tail -n "$lim" "$f" | awk '{ l[NR] = $0 } END { printf "["; for (i = NR; i >= 1; i--) printf "%s%s", (i < NR ? "," : ""), l[i]; print "]" }'
+}
+
 # Plan de la última simulación (backupdrive-sync.sh --dry-run lo guarda en state/<id>.plan.log).
 cmd_plan() {
   [ $# -eq 1 ] || usage
@@ -583,6 +601,7 @@ case "$cmd" in
       keep) cmd_conflicts_keep "$@" ;;
       *) usage ;;
     esac ;;
+  activity) cmd_activity "$@" ;;
   plan) cmd_plan "$@" ;;
   -h|--help|help) usage ;;
   *) usage ;;
