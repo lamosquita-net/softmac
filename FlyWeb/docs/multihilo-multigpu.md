@@ -20,6 +20,11 @@ Titín.** E1 no pasa tal cual: con lienzo grande pierde alrededor de 1 ms por fo
 M2 (§9.6) y de la repetición de M3 (§10.8). Por la tarde, el vídeo junto a WebGL a escala 1 (§12.5), que era la
 medida que le faltaba a la salida (b): la propuesta no cambia.
 
+**Apartado añadido el 26-11 por encargo de COORDINACIÓN-63 y 64: §13, el vídeo lento junto a WebGL, como tarea
+propia.** Titín eligió la salida (a) para E1 (§12.7). Las 16 + 16 pasadas confirman que E1 no influye en el estado
+lento. Lo provoca el renderer de WebGL al llenar su anillo de comandos; hay un candidato de arreglo que se prueba
+sin compilar.
+
 Marcas: **[V]** visto en el código, en las cabeceras del SDK o en medidas ya publicadas; **[R]** reanálisis mío de
 datos existentes; **[I]** inferido; **[S]** suposición sin comprobar.
 
@@ -1276,6 +1281,10 @@ qué estado cayó cada pasada: arreglarlo antes sale más barato que añadir pas
 
 ### 12.7 Salidas y propuesta para Titín
 
+**Decisión de Titín (25-11, DIRECTIVAS, PR 1235): (a), E1 sale tal cual,** como excepción suya a la regla del 2 %.
+Paths no bloquea. El vídeo lento se revisa como tarea propia (§13). Lo que sigue es la propuesta tal como se le
+llevó; se conserva por las cifras.
+
 | Salida | Qué da | Qué cuesta | ¿Cumple §11.3? |
 |---|---|---|---|
 | **(a) Entregar tal cual** | reparto de calor siempre | −4 a −6 % en WebGL saturado con lienzo grande; vídeo junto a WebGL, dudoso | no: tres «falla» y dos «dudoso». Solo como excepción de Titín |
@@ -1342,4 +1351,145 @@ el fallo y el vídeo no salió limpio.
   - La «pantalla pequeña» está medida con la escala forzada a 1 en la pantalla de 6016×3384, no con un monitor
     pequeño de verdad.
   - No he abierto los `sample` del vídeo: leo las tablas de LOCAL-25.
-  - No sé por qué pierde Paths ni qué cliente provoca el estado lento del vídeo.
+  - No sé por qué pierde Paths. Sobre qué cliente provoca el estado lento del vídeo, §13.
+
+## 13. El vídeo lento junto a WebGL (tarea propia, añadido el 26-11)
+
+Encargo de COORDINACIÓN-63 y 64 tras la decisión de Titín. Lo midió LOCAL-25 en la 6,1 el 25 y el 26-11 [R,
+`buzon/COORDINACION/20261126-1420-LOCAL-25-video-lento/`]. No he medido nada: he recontado sus datos crudos
+(`entregas/local24/vb16-*`, `vl*`) y he leído el código de Chromium 156. No propongo versión de destino: la pone
+Titín.
+
+### 13.1 Conclusión
+
+1. **E1 no influye.** 16 + 16 pasadas a escala 2, todas a 1080p60: segundos lentos, mediana 8,5 sin E1 y 11,5 con
+   E1 (p = 0,80); fotogramas perdidos, p = 0,92. Confirma la decisión (a).
+2. **El estado lento es de la base y sale casi siempre al cargar.** Con la 3.2.2 publicada aparece en las 4 pasadas
+   válidas de YouTube, de 3 a 7 s. En las 16 + 16, 28 de 32 tienen segundos lentos entre el segundo 3 y el 15. Lo
+   que varía es cuánto dura.
+3. **Quien envía y espera es el renderer de Aquarium** [I]. En el tramo lento su hilo de entrada y salida pasa del
+   2 % al 26 % y el del proceso de GPU del 4 % al 36 %. El renderer de YouTube y el navegador están casi parados.
+4. **Encaja con el código** [V]: con el anillo de comandos lleno, el cliente pide hueco para un solo comando cada
+   vez y el servicio procesa en tandas de 20 comandos. Muchas vueltas pequeñas, cada una con su coste fijo.
+5. **Hay un candidato que se prueba sin compilar:** un interruptor de Chromium, apagado por defecto, que sube la
+   tanda de 20 a 100 comandos. Ya está pedido a LOCAL-25 (§13.6). Si funciona, el arreglo es una línea.
+6. **Sin explicar:** por qué entra con YouTube y no con un vídeo local, y por qué llega en rachas.
+
+### 13.2 Lo medido
+
+**16 + 16 con el criterio de §12.7** (binario de E1 encendido y apagado, sin muestreador, sin juntar con las 8 + 8
+anteriores). Recontado [V]: coincide con LOCAL-25.
+
+| Del segundo 15 al final | E1 apagado | E1 encendido | p |
+|---|---|---|---|
+| Segundos lentos, mediana (de 30) | 8,5 | 11,5 | 0,80 |
+| Pasadas sin segundos lentos | 4 de 16 | 6 de 16 | |
+| Fotogramas de vídeo perdidos, mediana | 113 | 161 | 0,92 |
+
+- El estado llega en rachas de minutos que alcanzan a las dos versiones [R].
+- **En la carga es casi fijo** [V]: 28 de las 32 tienen algún segundo lento entre el segundo 3 y el 15, y 15 de
+  ellas los 12.
+
+**Vídeo local.** Un H.264 a 1080p60 servido desde la propia 6,1, en vez de YouTube: 0 de 3 pasadas lentas, ni
+siquiera al cargar [V]. Cada página va en su renderer, como con YouTube [V].
+
+**La 3.2.2 publicada con muestreador sí entra en el estado lento, al cargar.** El informe dice que no entró; su
+detector empieza en el segundo 15. En las 4 pasadas válidas de YouTube [V]:
+
+| | Tramo lento (3–7 s tras cargar) | Después |
+|---|---|---|
+| Aquarium | 41–52 fps | 60 fps |
+| Hilo principal del proceso de GPU | 91–94 % | 44–48 % |
+| Otro hilo del proceso de GPU | 17–29 % | 5–6 % |
+| Renderer de Aquarium, hilo principal | 37–51 % | 30–51 % |
+| Renderer de Aquarium, otro hilo | 13–22 % | 3,6 % |
+| Renderer de YouTube, hilo principal | 3–7 % | 5–11 % |
+
+- Es la misma firma de `m1c` (§12.5). Con el vídeo local el proceso de GPU va al 40–43 % desde el segundo 4.
+- Por eso no hace falta la cadena que LOCAL-25 proponía para separar binario y muestreador: la base con
+  muestreador ya entra, aquí y en `m1b`, `m1c` y `e1via-base-esc2-1`.
+
+**No hay `sample` válido de los clientes en el tramo lento.** Hay uno de todos los procesos a la vez
+(`vl2-base-esc2-2`), pero la toma deshace el estado: durante ella el proceso de GPU baja al 12 % y la página a
+15 fps [V]. La toma del proceso de GPU solo (§12.5) sí lo conservó.
+
+### 13.3 Quién envía y espera
+
+En `vl2-base-esc2-2` Aquarium va 12 s seguidos a 41 fps antes de la toma [V]:
+
+| | Lento (41 fps) | Recuperado (60 fps) |
+|---|---|---|
+| Proceso de GPU, hilo principal | 95–98 % | 36 % |
+| Proceso de GPU, hilo de entrada y salida | 36 % | 4 % |
+| Renderer de Aquarium, hilo principal | 38 % (9,3 ms por fotograma) | 29–30 % (5,0 ms) |
+| Renderer de Aquarium, hilo de entrada y salida | 26 % | 2 % |
+
+- Los hilos de entrada y salida están identificados por su posición en el `sample` de la misma pasada (22 hilos en
+  los dos listados del renderer) [I]. En el proceso de GPU los listados no coinciden en número: menos seguro.
+- **Los dos extremos del mismo canal trabajan de más a la vez, y el renderer de Aquarium gasta casi el doble por
+  fotograma.** Es el cliente que envía y espera [I].
+- En esa pasada el vídeo de YouTube no avanzaba (480p, el contador de fotogramas quieto) [V]. Un caso: el estado no
+  necesita que se esté decodificando 1080p60. En las 13 pasadas del 16 + 16 que se quedaron a 480p, en cambio, no
+  hubo ni un segundo lento [V]. No sé qué las distingue.
+
+### 13.4 Qué dice el código
+
+Chromium 156, igual en el árbol de FlyWeb [V]:
+
+- WebGL usa el anillo de comandos por defecto, de 1 MB (`renderer_blink_platform_impl.cc:798`,
+  `shared_memory_limits.h`).
+- **Cliente** (`gpu/command_buffer/client/cmd_buffer_helper.cc`, `WaitForAvailableEntries`): si no cabe el comando
+  siguiente, vacía y espera de forma síncrona a que haya hueco **para ese comando**, no más.
+- **Servicio** (`command_buffer_service.h:76`, `command_buffer_stub.cc:381`): procesa en tandas de 20 comandos y,
+  tras cada una, cede si el planificador tiene otra secuencia por delante. Cada reanudación vuelve a activar el
+  contexto y la caché de programas.
+- Durante la espera la secuencia sube a prioridad alta y, al atenderla, vuelve a la suya
+  (`command_buffer_stub.cc`, `WaitForGetOffsetInRange` y `CheckCompleteWaits`).
+
+**Lectura** [I]:
+
+1. Algo retrasa un momento al proceso de GPU y el anillo de Aquarium se llena.
+2. A partir de ahí cada vuelta libera poco: el cliente escribe unos comandos, vacía y vuelve a esperar.
+3. El proceso de GPU gasta el tiempo en el coste fijo de cada vuelta, no en pintar. Es lo que mostraba su `sample`
+   (§12.5): menos trabajo de comandos y unos 700 ms de más en activar contexto, caché, planificador y esperas.
+4. Así no recupera el retraso, y el estado se sostiene hasta que un hueco lo vacía de golpe.
+
+- **Sin comprobar:** que el anillo esté lleno en el tramo lento (falta el `sample` del cliente, §13.6) y cuántos
+  comandos por fotograma envía Aquarium con 5 000 peces.
+- **Sin explicar:** qué pone YouTube y no el vídeo local. No es la CPU de su renderer, que está casi parado.
+
+### 13.5 Candidatos de arreglo
+
+| Candidato | Qué es | Coste | Riesgo |
+|---|---|---|---|
+| **1. Tanda de 100 comandos** | el interruptor `IncreasedCmdBufferParseSlice` de Chromium, apagado por defecto | se prueba hoy con la 3.2.2 publicada; activarlo es una línea | es un experimento de Chromium sin encender; alarga un poco lo que espera el compositor |
+| 2. Esperar un hueco mayor | en el cliente, con el anillo lleno, esperar a que se libere una fracción y no un comando | parche de pocas líneas; compilar y medir | toca a todos los clientes del búfer de comandos, no solo a WebGL |
+| 3. Anillo mayor para WebGL | 1 MB → 4 MB | parche de una línea; compilar y medir | más memoria compartida por contexto; aplaza el llenado, no lo evita |
+
+**Propuesta: probar el 1 antes de compilar nada.** Si quita el estado lento, se propone a Titín activarlo. Si no,
+el 2, con su A/B. El 3 solo como complemento.
+
+### 13.6 Siguiente medida (pedida a LOCAL-25 el 26-11)
+
+Con la 3.2.2 publicada, escala 2, YouTube y Aquarium 5 000:
+
+1. **`sample` solo del renderer de Aquarium, en la carga:** al segundo segundo seguido por debajo de 55 fps desde
+   el segundo 3, y otro ya recuperado. Hasta 3 pasadas. Lo esperado: el hilo principal bajo
+   `WaitForAvailableEntries` → `WaitForGetOffsetInRange` solo en lo lento. **Si no sale, la lectura de §13.4 se
+   cae.**
+2. **A/B del interruptor,** 8 + 8 en espejo, sin muestreador: sin nada frente a
+   `--enable-features=IncreasedCmdBufferParseSlice`. Criterio fijado de antemano: segundos lentos (< 55 fps) del
+   segundo 3 al final, la carga incluida; Mann-Whitney bilateral sobre esas 16.
+
+### 13.7 Fuentes y límites de este apartado
+
+- **Datos** [R]: el informe de LOCAL-25 del 26-11 y su tabla `video-b16-esc2.md`.
+- **Recontado por mí** [V]: las 32 pasadas del 16 + 16 y las de 480p (`vb16-esc2-*`), y las pasadas con
+  muestreador (`vl*`, `e1via-base-esc2-1`), por segundo y por hilo. Los `sample` de `vl2-base-esc2-2`, con el
+  analizador de LOCAL-25 (`esperas.py`) y el dSYM de la 3.2.2.
+- **Código** [V]: `~/proyectos/chromium-156/src` y `~/proyectos/b2-porte-mac/src`, solo lectura.
+- **Límites:**
+  - No he medido ni lanzado nada, ni he entrado en la 6,1.
+  - Una máquina, una página de WebGL (Aquarium 5 000) y un vídeo de YouTube.
+  - La lectura de §13.4 une datos y código, pero nadie ha visto todavía el anillo lleno.
+  - Los porcentajes por hilo vienen de `ps -M`, una muestra por segundo.
