@@ -439,6 +439,13 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   Para agentes nuevos de la nube, el método preferido es **un agente por tarea** con encargo escrito, que se releva solo si
   la tarea es larga; si la COORDINACIÓN local no puede abrirlos, deja el texto y los abre Titín. Pasar todo a Ubuntu: no.
 - **COORDINACIÓN en local y sin cartero (Titín, 21-11 noche, «sí, las dos»; propuesta de ARQUITECTURA, #1184):** la COORDINACIÓN se queda en la MacPro7,1 y **el cartero se retira**. Ajustes: (1) toda orden con contenido a un local va también por escrito en `buzon/<PAPEL>/` con su línea en `ENTREGADO.md`; (2) la COORDINACIÓN hace `git fetch` de `buzon` al empezar cada turno (el vigilante de 30 min es solo ayuda); (3) se vigila la rama `buzon` entera, no solo `buzon/COORDINACION/`. Horas con `date -u`. Se revisa al cerrar la 3.2.1.
+- **Código de la cuenta: era Spam de Gmail; arreglos preparados, no en la 3.2.2-51 (Titín, 26-11 noche; COORDINACIÓN-66):** el
+  servidor envió los códigos de las 21:16 y las 21:29 (250 OK; SPF, DKIM y DMARC pasan); Gmail los retrasó y los dejó en Spam.
+  «Déjalo preparado para cuando añadamos los parches»: la 3.2.2-51 sale solo con «equipo», `DeviceModel()` sin nombre de
+  máquina (DMI o «Linux») y el falso PARO. Quedan preparados, sin entrar: la página del código («mandado» tras la respuesta del
+  servidor; «Si no te llega, mira en la carpeta de Spam.») y en el servidor #1271 (registro de cada intento) y #1272 («equipo»
+  en los correos; correo del código suavizado), en borrador y sin instalar. Los correos, los avisos y las aprobaciones en otros
+  equipos se ven con Titín más adelante, como tema propio.
 - **FlyWeb 3.2.2 para Linux publicada; 3.2.2-51 con dos arreglos (Titín, 26-11 noche; COORDINACIÓN-65):** «publicad ya la de
   Linux; con la siguiente probamos el update». Publicada la 3.2.2-50 (.deb en `apt.flyweb.lamosquita.net`, firmado en bak por
   Titín, en la web y en la página de privacidad), con el aviso naranja y la bienvenida traducida que Mac lleva en la próxima.
