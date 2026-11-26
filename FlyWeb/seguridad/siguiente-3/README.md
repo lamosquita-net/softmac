@@ -462,6 +462,8 @@ que no está en la 159). Entra tal cual: es una 156 sobre una 156. **Gravedad no
 
 **`6cf1220acf`** de la **8154** (25-11 18:32 UTC; bug del merge 590348660; main `a641294f5f`, #1753880). Entra tal cual, con
 desplazamiento de líneas. **Gravedad no publicada.**
+- **Gemelo M156 (26-11 09:16 UTC):** la **8078** `90364e40d8` (bug del merge 590348479). Es el mismo cambio, y
+  `git apply -R` del M156 entra limpio sobre nuestro árbol. Nada que cambiar.
 - **El fallo:** `AbstractLineBox::PositionForPoint()` no se saltaba las hojas en línea de pseudoelementos (`::before`/`::after`
   en *inline-block*, `::view-transition`) cuando la línea tenía también nodos reales. Al mover el cursor arriba o abajo
   (`NextLinePosition`/`PreviousLinePosition`), la selección podía quedar anclada en un pseudoelemento, lo que rompe los
@@ -676,6 +678,7 @@ que usa existe en la 15.6. **Gravedad no publicada.**
   simples (`index != kNotFound && IsFunctionContext() && !HasSimpleParameters()`), ni su prueba (`function arguments(){}`,
   `runNonSimpleParams: [null,0]`). Lo demás del `.patch` de `runtime-scopes.cc` (`MarkContextSlotNotAssignedIsUnreliable`)
   es de otro port que ya estaba en ese fichero, no de este.
+  - La **8078** ya sube V8 a esta 15.6.75.87 (`3d68ce799d`, «Roll src/v8 in M156 from 8191c808fb9f to 3c7ca7fa2c4c»).
 - **El fallo:** al evaluar en un marco del depurador (DevTools), un `var` o `function` del fragmento se izaba más allá del
   `DebugEvaluateContext` sin la comprobación de conflictos del parser. `DeclareEvalHelper` podía escribir un índice de
   celda de módulo en un `ModuleContext` (o tratar un `SourceTextModule` como `JSObject`), sobrescribir `const`/`let` o
