@@ -160,6 +160,43 @@ save_conflicts() { # carpeta, fichero de caché
   mkdir -p "$(dirname "$2")"
   count_conflicts "$1" > "$2.tmp" && mv "$2.tmp" "$2"
 }
+# Actividad (H8): una línea JSON por pasada real en state/<id>.activity (la más nueva al final), sacada del registro
+# de bisync: cuántos ficheros subieron y bajaron y, de cada fichero borrado o sobrescrito, en qué lado y con qué nombre
+# quedó su copia en versiones (la ruta que «versions restore» acepta). Lo nuevo y lo copiado sin pérdida no se lista
+# (Titín, 26-11). Como mucho 200 ficheros por pasada («more» cuenta el resto). Caduca como las versiones del perfil.
+# Líneas de bisync 1.67 que se leen: «- PathN  Do queued copies to - PathM» y «Resync is copying files to - PathM»
+# (lado de destino), «x: Copied (…)», «x: Moved (server-side) to: y» seguida de «x: Moved into backup dir» (borrado)
+# o de «x: Copied» (sobrescrito).
+save_activity() { # fichero, resultado, días
+  af=$1; res=$2; adays=$3
+  awk -v date="$(now)" -v res="$res" -v resync="$([ "$RESYNC" = 1 ] && echo true || echo false)" '
+    function esc(s) { gsub(/\\/, "\\\\", s); gsub(/"/, "\\\"", s); gsub(/\t/, " ", s); return s }
+    function msg(s) { sub(/^[0-9\/]+ [0-9:]+ [A-Z]+ *: /, "", s); return s }
+    function flush(kind,   it) {
+      if (pend == "") return
+      if (n < 200) { it = sprintf("{\"what\":\"%s\",\"side\":\"%s\",\"path\":\"%s\",\"version\":\"%s\"}", kind, side, esc(pend), esc(pver)); items = items (n ? "," : "") it }
+      else more++
+      n++; pend = ""
+    }
+    / Do queued copies to +- Path2$/ || /Resync is copying files to +- Path2$/ { flush("overwritten"); side = "drive"; next }
+    / Do queued copies to +- Path1$/ || /Resync is copying files to +- Path1$/ { flush("overwritten"); side = "mac"; next }
+    side == "" { next }
+    /: Moved \(server-side\) to: / { flush("overwritten"); m = msg($0); i = index(m, ": Moved (server-side) to: "); pend = substr(m, 1, i - 1); pver = substr(m, i + 26); next }
+    /: Moved into backup dir$/ { if (pend != "") flush("deleted"); next }
+    /: Copied \(/ { m = msg($0); f = substr(m, 1, index(m, ": Copied (") - 1)
+      if (pend != "" && f == pend) flush("overwritten"); else flush("overwritten")
+      if (side == "drive") up++; else down++; next }
+    END {
+      flush("overwritten")
+      printf "{\"date\":\"%s\",\"result\":\"%s\",\"resync\":%s,\"up\":%d,\"down\":%d,\"items\":[%s],\"more\":%d}\n", date, res, resync, up, down, items, more
+    }' "$RUN_LOG" >> "$af" 2>/dev/null || return 0
+  # Caducidad por la fecha de cada línea (días 0 = nunca).
+  if [ "$adays" -gt 0 ]; then
+    cut=$(date -u -v-"$adays"d +%Y-%m-%d 2>/dev/null || date -u -d "-$adays days" +%Y-%m-%d)
+    tmp=$(mktemp "$STATE_DIR/.activity.XXXXXX") && awk -v cut="$cut" 'substr($0, 10, 10) >= cut' "$af" > "$tmp" && mv "$tmp" "$af"
+  fi
+  return 0
+}
 save_profile() { # local remote result exit
   printf '{"local":%s,"remote":%s,"result":%s,"exit":%s,"finished":%s}\n' \
     "$(json_str "$1")" "$(json_str "$2")" "$(json_str "$3")" "$4" "$(json_str "$(now)")" \
@@ -393,6 +430,10 @@ while IFS='|' read -r local_dir remote days mod_pct mod_n; do
     if [ ! -f "$cf" ] || grep -q 'New or changed in both paths' "$RUN_LOG" || [ -n "$(find "$cf" -mmin +1440 2>/dev/null)" ]; then
       save_conflicts "$local_dir" "$cf"
     fi
+  fi
+  if [ "$DRY" = 0 ] && [ "$rc" != 3 ]; then
+    case "$rc" in 0) ares=ok ;; 4) ares=blocked ;; *) ares=error ;; esac
+    save_activity "$STATE_DIR/$(profile_id "$local_dir" "$remote").activity" "$ares" "$days"
   fi
   case "$rc" in
     0) save_profile "$local_dir" "$remote" ok 0 ;;
