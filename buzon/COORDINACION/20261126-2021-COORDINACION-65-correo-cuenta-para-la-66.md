@@ -17,3 +17,13 @@ Titín sostiene que la primera era correcta y que sus Mac le preguntaron «¿era
 («intentos fallidos» frente a «ha escrito bien»). Si dice «ha escrito bien», el análisis de tamaños está mal y hay que volver al
 else de 292. Si es «intentos fallidos», D8 compara cómo se escribe la contraseña vieja en la Ubuntu (teclado, ñ, acentos,
 autorrelleno). Tratarlo con datos y sin discutirle: la primera vez se le dio por mala sin pruebas.
+
+## Añadido 21:25 (Madrid): cupo descartado por SERVIDOR-LOCAL
+
+Binario de ns2 = f47aafb3…0886 (#1024, incluye la ruta actual). FLYWEB_SYNC_CORREOS_HORA sin definir (60). 0 líneas de «tope de
+correos», «descartado» o «el MTA no acepta» en todo el día; servicio arrancado a las 03:32 y sin correos antes de las 21:15, así
+que a las 21:01:51 el cupo estaba vacío. Con el tamaño del evento (88 B = contrasena-fallos), **el servidor recibió a las 21:01
+una KL que no coincidía**. D8 comprobó que el cálculo de Linux es igual al de Mac, y la contraseña nueva funcionó desde Linux
+a las 21:16. Lo que queda es lo que se escribió en la Ubuntu con la vieja: teclado, ñ, acentos o autorrelleno. Titín contestó «sí,
+era yo» en su Mac; el servidor no espera esa confirmación (operaciones.go). Arreglos propuestos, para después y a Titín: registrar
+cada rechazo de cupo y el error de emailDe (línea 292), y que el aviso de los Mac distinga «contraseña fallida» con claridad.
