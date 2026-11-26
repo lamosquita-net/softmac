@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>streaming local 1080p60 (LOCAL-25)</title>
+<style>html,body{margin:0;background:#000;height:100%}video{width:100%;height:100%}</style>
+<!-- LOCAL-25 (vídeo local, orden de Titín del 26-11): streaming como el de YouTube, pero desde 127.0.0.1.
+     Reproductor MSE propio, sin bibliotecas: lee la lista HLS fMP4 de mse-<c>/ (segmentos de Big Buck Bunny 1080p60,
+     Blender, CC BY 3.0) y va pidiendo un segmento cada vez que el búfer por delante baja de BUF s; borra lo que queda
+     más de 30 s por detrás; al acabar la lista vuelve a empezar (modo «sequence»), así el vídeo no se corta.
+     ?c=h264 (avc1.64002A) o ?c=vp9 (vp09.00.40.08); ?buf=N cambia el búfer objetivo (30 s por omisión).
+     window.vlocalDatos() da los mismos campos que antes y además búfer, peticiones y esperas del reproductor. -->
+<video id="v" autoplay muted playsinline></video>
+<script>
+const q = new URLSearchParams(location.search);
+const c = q.get('c') || 'h264';
+const BUF = +(q.get('buf') || 30);
+const TIPO = c === 'vp9' ? 'video/mp4; codecs="vp09.00.40.08"' : 'video/mp4; codecs="avc1.64002A"';
+const v = document.getElementById('v');
+const est = {peticiones: 0, bytes: 0, ultima_ms: null, peticion_ms: [], vueltas: 0, error: null, atascos: 0};
+let segs = [], i = 0, sb = null, ocupado = false;
+const ms = new MediaSource();
+v.src = URL.createObjectURL(ms);
+async function trae(n) {
+  const t0 = performance.now();
+  const r = await fetch('mse-' + c + '/' + n);
+  if (!r.ok) throw new Error(n + ' ' + r.status);
+  const d = await r.arrayBuffer();
+  est.peticiones++; est.bytes += d.byteLength; est.ultima_ms = Math.round(performance.now());
+  est.peticion_ms.push(Math.round(performance.now() - t0)); if (est.peticion_ms.length > 50) est.peticion_ms.shift();
+  return d;
+}
+function añade(d) { return new Promise((ok, mal) => { sb.addEventListener('updateend', ok, {once: true}); sb.addEventListener('error', mal, {once: true}); sb.appendBuffer(d); }); }
+function quita(a, b) { return new Promise(ok => { sb.addEventListener('updateend', ok, {once: true}); sb.remove(a, b); }); }
+function delante() { const b = sb && sb.buffered; if (!b || !b.length) return 0; return b.end(b.length - 1) - v.currentTime; }
+async function bucle() {
+  if (ocupado || !sb || sb.updating) return;
+  ocupado = true;
+  try {
+    if (v.currentTime > 40 && sb.buffered.length && sb.buffered.start(0) < v.currentTime - 30) await quita(0, v.currentTime - 30);
+    if (delante() < BUF) {
+      if (i >= segs.length) { i = 0; est.vueltas++; await añade(await trae('init.mp4')); }
+      await añade(await trae(segs[i++]));
+    }
+  } catch (e) { est.error = String(e); }
+  ocupado = false;
+}
+ms.addEventListener('sourceopen', async () => {
+  try {
+    const l = await (await fetch('mse-' + c + '/lista.m3u8')).text();
+    segs = l.split('\n').filter(x => x.endsWith('.m4s'));
+    sb = ms.addSourceBuffer(TIPO); sb.mode = 'sequence';
+    await añade(await trae('init.mp4'));
+    setInterval(bucle, 250); bucle();
+    v.play().catch(() => {});
+  } catch (e) { est.error = String(e); }
+});
+v.addEventListener('waiting', () => est.atascos++);
+// fps reales de vídeo presentados, por requestVideoFrameCallback, ventana de 2 s
+let marcas = [];
+function cuenta(now) { marcas.push(now); const t = now - 2000; while (marcas.length && marcas[0] < t) marcas.shift(); v.requestVideoFrameCallback(cuenta); }
+v.requestVideoFrameCallback(cuenta);
+window.vlocalDatos = () => {
+  const p = v.getVideoPlaybackQuality(); const pm = est.peticion_ms.slice().sort((a, b) => a - b);
+  return {calidad: 'mse-' + c, wh: [v.videoWidth, v.videoHeight], total: p.totalVideoFrames, perdidos: p.droppedVideoFrames,
+          codec: c, resolucion: v.videoWidth + 'x' + v.videoHeight + '@60', fps_presentados_2s: marcas.length / 2,
+          reproduciendo: !v.paused && v.readyState >= 3, bufer_delante_s: +delante().toFixed(1), bufer_objetivo_s: BUF,
+          segmento: i, segmentos: segs.length, peticiones: est.peticiones, mb: +(est.bytes / 1e6).toFixed(1),
+          peticion_ms_mediana: pm.length ? pm[pm.length >> 1] : null, peticion_ms_max: pm.length ? pm[pm.length - 1] : null,
+          desde_ultima_peticion_ms: est.ultima_ms === null ? null : Math.round(performance.now() - est.ultima_ms),
+          atascos: est.atascos, vueltas: est.vueltas, error: est.error, visible: document.visibilityState};
+};
+</script>
