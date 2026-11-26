@@ -1,0 +1,174 @@
+# Repositorio apt de FlyWeb para Linux (U4)
+
+**Estado (26-11-2026):** firmador y pruebas en #1254 (revisión de SEGURIDAD-PORTES; el CI de ubuntu-22.04 verifica con
+su `gpgv` 2.2). **Falta:** la clave (Titín, paso 4), el vhost y las cuentas de subida en ns2 (SERVIDOR, paso 5) y la
+primera publicación (paso 6).
+
+| Dato | Valor |
+|---|---|
+| Huella de la clave principal | *(la apunta Titín al crearla)* |
+| Huella de la subclave de firma (la de bak) | *(ídem)* |
+| **Caducidad de la subclave** | *(ídem; rotar con meses de margen, §4.4 del diseño)* |
+
+Diseño: `U4-diseno.md` v3 (§3 repositorio, §4 firma). La firma va en bak, como Sparkle (`../actualizaciones`).
+
+## Cómo funciona
+
+```
+Ubuntu (D8-LINUX o LOCAL)                 bak (Titín aprueba)                          ns2 (apt.flyweb.lamosquita.net)
+ flyweb-release.sh … empaquetar
+ (con llavero_apt = la pública)
+ Titín sube el .deb          ──rsync──►  /var/www/FlyWeb/apt/pool/main/f/flyweb/flyweb_<v>_amd64.deb (aún fuera del índice)
+ SHA-256 y versión → Titín
+                              Titín: «<sha256>  <v>  # …» → /etc/flyweb-firma/apt-aprobados
+                              firmar-apt.mjs firmar: descarga de ns2, SHA-256 aprobado antes
+                              de leer nada, control estricto, versión y Date mayores, Packages
+                              (lista blanca), by-hash, Release sin Valid-Until, firma con la
+                              subclave y verifica con gpgv (y sqv) contra el llavero del .deb
+                                                            ──rsync──►  dists/<suite>/ en cuatro pasadas
+Equipos con FlyWeb: apt update / unattended-upgrades ◄──────────────── InRelease, Packages, .deb
+```
+
+- **Dos llaves para publicar:** el SHA-256 aprobado por Titín en un fichero de root y la subclave, que solo está en bak.
+  Quien suba un `.deb` a `pool/` no consigue que ningún equipo lo instale sin índice firmado.
+- **La subclave equivale a root en todos los equipos con FlyWeb** (`postinst` corre como root). Por eso solo se firma el
+  paquete `flyweb`, la subclave caduca a 2 años y la clave principal no está en ninguna máquina conectada.
+- **Sin `Valid-Until`.** El índice vale hasta la versión siguiente. `apt` no acepta un `InRelease` con `Date` menor que
+  el de su caché, así que el firmador se niega si el `Date` nuevo no es mayor que el publicado (mira el reloj de bak).
+- **En el índice, solo la versión más nueva no retirada.** En `pool/` se quedan las dos últimas.
+- **Suites:** `stable` (la que lleva el `.deb` en `flyweb.sources` y la que actualiza `unattended-upgrades`) y
+  `pruebas` (para probar una publicación antes; ningún equipo la mira salvo que se añada a mano).
+
+## Paso 4: la clave (Titín, una vez)
+
+En la Ubuntu de Titín, con la clave en RAM (`/dev/shm`, se va al reiniciar) y, si quieres, con la red quitada.
+GnuPG 2.4 crea claves v4; se comprueba igual. `<contacto>` es el contacto público que ya usa Mac.
+
+```sh
+export GNUPGHOME=$(mktemp -d /dev/shm/flyweb-apt-XXXXXX)
+gpg --batch --pinentry-mode loopback --passphrase '' \
+  --quick-gen-key 'FlyWeb apt <contacto>' ed25519 cert never        # principal: solo certificar, sin caducidad
+P=$(gpg --with-colons --list-keys | awk -F: '/^fpr/{print $10; exit}')
+gpg --batch --pinentry-mode loopback --passphrase '' --quick-add-key "$P" ed25519 sign 2y
+S=$(gpg --with-colons --list-keys | awk -F: '/^sub/{s=1; next} s && /^fpr/{print $10; exit}')
+echo "principal $P"; echo "subclave  $S"
+gpg --export "$P" | gpg --list-packets | grep -o '\bversion [0-9]*' | sort | uniq -c   # todo «version 4»
+gpg --with-colons --list-keys "$P" | awk -F: '/^sub/{print "caduca", strftime("%F", $7)}'
+
+mkdir -m 700 ~/flyweb-apt-clave && cd ~/flyweb-apt-clave
+gpg --armor --export "$P" > clave-publica.asc                      # pública: a softmac (servidor/apt/) y al .deb
+gpg --armor --export-secret-subkeys "$S!" > subclave-bak.asc       # solo la subclave: a bak
+gpg --armor --export-secret-keys "$P" | gpg --symmetric --armor --cipher-algo AES256 \
+  --output flyweb-apt-COPIA-CIFRADA.asc                            # pide una frase: la copia de la principal
+gpgconf --kill gpg-agent
+```
+
+- **`flyweb-apt-COPIA-CIFRADA.asc`** (principal y subclave): fuera de cualquier máquina conectada, por tu canal habitual
+  (p. ej. dos memorias USB). Sin ella no se puede rotar la subclave: si se pierde, los equipos dejan de recibir
+  actualizaciones cuando caduque la subclave.
+- **`subclave-bak.asc`**: va a bak (abajo) y después se quita de la Ubuntu.
+- **`clave-publica.asc`**: a NUBE o a la COORDINACIÓN, para `servidor/apt/clave-publica.asc` en softmac. Huellas y
+  caducidad, en la tabla de arriba.
+- `$GNUPGHOME` está en RAM: desaparece al reiniciar la Ubuntu. Reinicia antes de volver a conectar si quitaste la red.
+
+## Instalación en bak (Titín, una vez)
+
+Mismo usuario `flywebfirma` que Sparkle y componentes. Hacen falta `node`, `gpg`, `gpgv`, `dpkg-deb`, `dpkg`, `xz` y
+`rsync` (y `sqv` si lo hay: verifica también con él).
+
+```sh
+C=<commit>; U=https://raw.githubusercontent.com/lamosquita-net/softmac/$C/FlyWeb/servidor/apt
+curl -fsSLo firmar-apt.mjs "$U/bak/firmar-apt.mjs"
+sha256sum firmar-apt.mjs                     # comparar con la suma del PR (y la que imprime el CI)
+sudo install -m 0644 firmar-apt.mjs /opt/flyweb-firma/
+sudo install -d -m 0700 -o flywebfirma -g flywebfirma /var/lib/flyweb-firma/claves/apt /var/lib/flyweb-firma/apt
+sudo touch /etc/flyweb-firma/apt-aprobados && sudo chmod 0644 /etc/flyweb-firma/apt-aprobados
+
+# La subclave (copiada antes a bak por tu canal):
+sudo -u flywebfirma env GNUPGHOME=/var/lib/flyweb-firma/claves/apt gpg --batch --import subclave-bak.asc
+sudo -u flywebfirma node /opt/flyweb-firma/firmar-apt.mjs caducidad \
+  --gnupghome /var/lib/flyweb-firma/claves/apt --subclave <S>
+```
+
+`caducidad` comprueba que la principal está como «stub» (sin parte secreta), que la subclave es de firma y v4, y da la
+fecha. Si la principal tiene su parte secreta, se niega: se importó el fichero equivocado.
+
+**Subida a ns2:** clave SSH **propia** de `flywebfirma` (`flyweb-ns2-apt`, no la de Sparkle ni la de componentes) con
+`rrsync` en `/var/www/FlyWeb/apt`, solo desde la IP de bak, y alias en `~flywebfirma/.ssh/config` (`Host ns2-apt`). Esta
+necesita borrar (los `by-hash` viejos, en la última pasada). El `.deb` lo sube otra clave, limitada a `pool/` y sin
+borrar ni sobrescribir.
+
+## Publicar una versión
+
+1. **Compilar y empaquetar** en la Ubuntu: `flyweb-release.sh <manifiesto> empaquetar`, con `llavero_apt=` la pública en
+   binario (`gpg --dearmor < clave-publica.asc`). Sin llavero (`deb_prueba=1`) el `.deb` no sirve para publicar.
+2. **Subir el `.deb`** a `pool/main/f/flyweb/flyweb_<versión>-<build>_amd64.deb` en ns2. Todavía no lo ve `apt`.
+3. **SHA-256 y versión** (`sha256sum`, p. ej. `3.2.2-50`) a Titín.
+4. **Titín, en bak:**
+   ```sh
+   echo "<sha256>  3.2.2-50  # FlyWeb 3.2.2" | sudo tee -a /etc/flyweb-firma/apt-aprobados
+   sudo -u flywebfirma node /opt/flyweb-firma/firmar-apt.mjs firmar \
+     --deb https://apt.flyweb.lamosquita.net/pool/main/f/flyweb/flyweb_3.2.2-50_amd64.deb --version 3.2.2-50 \
+     --aprobados /etc/flyweb-firma/apt-aprobados --gnupghome /var/lib/flyweb-firma/claves/apt --subclave <S> \
+     --salida /var/lib/flyweb-firma/apt --suite stable --subir ns2-apt
+   ```
+   Para probar antes, lo mismo con `--suite pruebas`. Cada suite lleva su estado (`/var/lib/flyweb-firma/apt/<suite>/`),
+   así que el mismo `.deb` se puede firmar primero en `pruebas` y luego en `stable`.
+5. **Comprobar:** `curl -s https://apt.flyweb.lamosquita.net/dists/stable/InRelease | head` (Date de ahora) y, en un
+   equipo con FlyWeb, `apt update` y `apt policy flyweb`: el candidato es la versión nueva. Con `unattended-upgrades`
+   llega sola, normalmente en un día; para no esperar, `sudo unattended-upgrade -d`.
+
+Qué comprueba `firmar` antes de firmar: el SHA-256 y la versión aprobados (antes de pasar el `.deb` a `dpkg-deb`), que
+la URL es la de `pool/` por https, `Package: flyweb`, la versión del `control`, `Architecture: amd64`, un solo párrafo
+de `control`, que la versión es mayor que todas las publicadas (también las retiradas) y que el `Date` crece. Después de
+firmar verifica con el llavero del `.deb` nuevo y con el del publicado hasta ahora.
+
+## Retirar una versión (Titín, en bak)
+
+```sh
+sudo -u flywebfirma node /opt/flyweb-firma/firmar-apt.mjs retirar --version 3.2.2-NN \
+  --gnupghome /var/lib/flyweb-firma/claves/apt --subclave <S> --salida /var/lib/flyweb-firma/apt --subir ns2-apt
+```
+
+- Vuelve a poner en el índice la anterior no retirada (o lo deja vacío), anota la retirada en `estado.json` y guarda el
+  estado anterior en `estado.json.<fecha>`.
+- **apt nunca baja de versión:** quien ya la tiene se queda en ella hasta la siguiente. La corrección es siempre una
+  versión con `build` nuevo; `firmar` no acepta un número igual o menor que uno ya publicado, aunque esté retirado.
+- Con `unattended-upgrades`, una versión puede llegar a muchos equipos el primer día: retirar no la quita de ellos.
+
+## Refirmar y cambiar de subclave
+
+`refirmar` vuelve a firmar el índice actual con `Date` nuevo. Solo hace falta después de cambiar la subclave de bak:
+
+```sh
+sudo -u flywebfirma node /opt/flyweb-firma/firmar-apt.mjs refirmar \
+  --gnupghome /var/lib/flyweb-firma/claves/apt --subclave <S-nueva> --salida /var/lib/flyweb-firma/apt --subir ns2-apt
+```
+
+Rotación (§4.4 del diseño), con meses de margen:
+1. Con la copia cifrada, en RAM y sin red: subclave de firma nueva (`--quick-add-key <P> ed25519 sign 2y`). La pública
+   nueva (principal y las dos subclaves) va a softmac.
+2. Una versión del paquete lleva esa pública (`/usr/share/keyrings/flyweb.gpg` no es conffile) y se firma todavía con
+   la subclave vieja.
+3. Cuando esa versión lleva un tiempo publicada: en bak solo la subclave nueva y `refirmar`. Quien no haya actualizado
+   verá un error de firma y tendrá que bajar el `.deb` de la web.
+
+**Si se sospecha que han robado la subclave:** subclave nueva y revocación de la vieja con la copia cifrada; una sola
+versión cuyo llavero lleve las dos cosas, firmada aún con la vieja; las siguientes, con la nueva.
+
+## Caducidad
+
+`firmar`, `retirar` y `refirmar` avisan si a la subclave le quedan **menos de 9 meses** y **no firman con menos de 3**.
+Si caduca sin rotar, todos los equipos ven un error de firma en `apt update`. Para mirarla:
+
+```sh
+sudo -u flywebfirma node /opt/flyweb-firma/firmar-apt.mjs caducidad --gnupghome /var/lib/flyweb-firma/claves/apt --subclave <S>
+```
+
+## Pruebas
+
+`node pruebas/firma-apt.mjs` (sin red, con clave desechable v4; 56 comprobaciones): rechazos de aprobación, versión,
+`Package`, URL, `control` inyectado, `Date` y clave; el SHA-256 antes de `dpkg-deb`; `Release` sin `Valid-Until`;
+`gpgv` acepta el `InRelease` firmado por la subclave; retirar, refirmar y el orden de subida. Con
+`FLYWEB_APT_GUARDAR=<dir>` deja el repositorio para `pruebas/contenedores.sh` (`gpgv` de 22.04, `sqv` y `apt` en 22.04,
+24.04, Debian 12 y 26.04, con podman). El CI (`.github/workflows/flyweb-apt.yml`) corre las pruebas en ubuntu-22.04.
