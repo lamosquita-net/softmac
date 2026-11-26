@@ -490,6 +490,9 @@ desplazamiento de líneas. **Gravedad no publicada.**
 
 **`5bba75d662`** de la **8154** (26-11 00:33 UTC; bug del merge 587224619; main `50bbedecb3`, #1746194). **Gravedad no
 publicada.** Aún sin merge a la 8078. La réplica de gitiles no tenía el cherry-pick: diff de main, adaptado.
+- **Comprobado con el cherry-pick (26-11 02:15 UTC, ya en la réplica):** su diff es igual al de main. Con nuestro parche, en
+  `declarative_api.cc` la función `RulesFunction::Run()`, el espacio de nombres anónimo y los `#include` quedan **idénticos**
+  a los de la 8154.
 - **El fallo:** la función interna `events` (`_api_features.json`) estaba abierta a `"contexts": "all"` y a `<all_urls>`. Un
   content script, o un renderer comprometido, podía llamar a `events.addRules`, `getRules` y `removeRules`.
   - `RulesFunction::Run()` reconocía el evento por **prefijo** (`declarativeContent.`, `declarativeWebRequest.`…).
