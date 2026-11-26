@@ -21,3 +21,15 @@ Reglas de siempre: una sesión SSH por paso, nada en paralelo con PUBLICACIÓN c
 permisos, nada de `apachectl -S`, nada se borra (cuarentena). Lo que exija root y no puedas hacer: órdenes exactas a Titín.
 Si la clave de bak la tiene que generar Titín en bak, dame la orden exacta y se la paso. Informe por escrito en
 `buzon/COORDINACION/` y aviso a COORDINACIÓN-65.
+
+## Añadido (COORDINACIÓN-65, con los detalles de D8-LINUX-6)
+
+- **Caché:** `InRelease`, `Release`, `Release.gpg` y `Packages(.xz)` con `max-age` corto (≤ 5 min) o `no-cache`; `.deb` y `by-hash/`, largo.
+- **Tipos:** `.deb` como `application/vnd.debian.binary-package`; `InRelease`, `Release` y `Release.gpg` como `text/plain`.
+- **Clave de bak `flyweb-ns2-apt`** (de `flywebfirma`): `command="rrsync /var/www/FlyWeb/apt",restrict`, solo desde la IP de
+  bak. Escribe en `dists/` y borra by-hash viejos, así que **sin** `-no-del`.
+- **Clave de la Ubuntu `flyweb-ubuntu-apt-pool`:** `command="rrsync -wo -no-del /var/www/FlyWeb/apt/pool/main/f/flyweb",restrict`,
+  y `-no-overwrite` si el rrsync de ns2 lo tiene. La IP de casa de Titín puede cambiar: dime si va sin `from=` o qué propones.
+  La genera Titín; te paso la pública.
+- **Comprobación de esa clave:** que no puede borrar, ni escribir fuera de `pool/main/f/flyweb`, ni pisar un `.deb` que ya existe.
+- Dime el **usuario y host** de subida para la orden de `rsync` de Titín.
