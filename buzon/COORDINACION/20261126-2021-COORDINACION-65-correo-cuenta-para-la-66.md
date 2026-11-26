@@ -27,3 +27,12 @@ una KL que no coincidía**. D8 comprobó que el cálculo de Linux es igual al de
 a las 21:16. Lo que queda es lo que se escribió en la Ubuntu con la vieja: teclado, ñ, acentos o autorrelleno. Titín contestó «sí,
 era yo» en su Mac; el servidor no espera esa confirmación (operaciones.go). Arreglos propuestos, para después y a Titín: registrar
 cada rechazo de cupo y el error de emailDe (línea 292), y que el aviso de los Mac distinga «contraseña fallida» con claridad.
+
+## Añadido 21:35 (Madrid): Titín asegura que el aviso NO decía «intento fallido»
+
+Todos los avisos de cuenta llevan «¿Has sido tú?» con «He sido yo / No he sido yo»; Titín asegura que no vio «intentos
+fallidos» y que le habría llamado la atención. **Su palabra manda sobre la deducción por tamaño, que era indirecta.** Queda
+abierto como posible fallo del servidor: camino mudo de la línea 292 (emailDe falla sin registrar). Hipótesis pedida a
+SERVIDOR-LOCAL, sin tocar ns2: si el email se guarda atado a algo que el cambio de contraseña de las 21:15 rehízo, explicaría
+que fallara a las 21:01 y funcionara a las 21:16; y recalcular el tamaño de cada tipo de evento con el JSON real. Arreglo
+mínimo: registrar el error de emailDe. No volver a decirle a Titín que se equivocó de contraseña sin una prueba directa.
