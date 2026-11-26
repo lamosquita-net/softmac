@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Ejecuta BackupDrive cada hora. Instalar en ~/Library/LaunchAgents/ (ver BackupDrive/README.md). -->
+<!-- Ejecuta BackupDrive cada 30 min. Instalar en ~/Library/LaunchAgents/ (ver BackupDrive/README.md).
+     launchd no lanza otra pasada mientras dura una: con pasadas largas (MacTrash: 30-50 min) la siguiente empieza poco
+     después de acabar la anterior. Con 3600 s salían cada ~1 h 45 min (Titín, 26-11: «a los 30 min»). -->
 <plist version="1.0">
 <dict>
 	<key>Label</key>
@@ -10,7 +12,7 @@
 		<string>/usr/local/bin/backupdrive-sync.sh</string>
 	</array>
 	<key>StartInterval</key>
-	<integer>3600</integer>
+	<integer>1800</integer>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>LowPriorityIO</key>
