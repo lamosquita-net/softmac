@@ -529,7 +529,8 @@ publicada.** Aún sin merge a la 8078. La réplica de gitiles no tenía el cherr
 ## `chromium/0023`: [M159] gin, `PerContextData::From` comprueba que el contexto es el suyo (crbug 589478757)
 
 **`455d306592`** de la **8154** (26-11 10:37 UTC; bug del merge 589982167; main `0441109f8c`, #1751939). **Gravedad no
-publicada.** Aún sin merge a la 8078. La réplica de gitiles no tenía el cherry-pick: diff de main, igual en el código.
+publicada.** Aún sin merge a la 8078. La réplica de gitiles aún no tenía el cherry-pick: se parte del diff de main, y hay
+que compararlo con el cherry-pick cuando aparezca.
 - **El fallo, del sandbox de V8:**
   - `PerContextData::From` lee de una ranura de datos del `v8::Context` un `CppHeapPointerHandle`, que está **dentro del
     sandbox**, y todos los `PerContextData` comparten la misma etiqueta de puntero;
