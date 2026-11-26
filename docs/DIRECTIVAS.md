@@ -439,6 +439,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   Para agentes nuevos de la nube, el método preferido es **un agente por tarea** con encargo escrito, que se releva solo si
   la tarea es larga; si la COORDINACIÓN local no puede abrirlos, deja el texto y los abre Titín. Pasar todo a Ubuntu: no.
 - **COORDINACIÓN en local y sin cartero (Titín, 21-11 noche, «sí, las dos»; propuesta de ARQUITECTURA, #1184):** la COORDINACIÓN se queda en la MacPro7,1 y **el cartero se retira**. Ajustes: (1) toda orden con contenido a un local va también por escrito en `buzon/<PAPEL>/` con su línea en `ENTREGADO.md`; (2) la COORDINACIÓN hace `git fetch` de `buzon` al empezar cada turno (el vigilante de 30 min es solo ayuda); (3) se vigila la rama `buzon` entera, no solo `buzon/COORDINACION/`. Horas con `date -u`. Se revisa al cerrar la 3.2.1.
+- **FlyWeb 3.2.2 para Linux publicada; 3.2.2-51 con dos arreglos (Titín, 26-11 noche; COORDINACIÓN-65):** «publicad ya la de
+  Linux; con la siguiente probamos el update». Publicada la 3.2.2-50 (.deb en `apt.flyweb.lamosquita.net`, firmado en bak por
+  Titín, en la web y en la página de privacidad), con el aviso naranja y la bienvenida traducida que Mac lleva en la próxima.
+  Al probarla, el código de la cuenta de sync no llega y los textos dicen «Mac»: «sacad la 3.2.2-51 con los dos arreglos»
+  (solo Linux; Mac sigue en build 50). Es además la primera actualización automática en Linux, con FlyWeb abierto.
 - **E1 sale tal cual, salida (a) (Titín, 25-11; COORDINACIÓN-63; `multihilo-multigpu.md` §12):** «sale tal cual, pierde en
   pantallas grandes, pero […] reparte calor». Excepción suya a la regla del 2 % de §11.3: a escala 2 con lienzo grande y la
   tarjeta saturada pierde un 4–6 % (≈1 ms por fotograma); a escala 1 gana. Solo actúa con dos GPU iguales y macOS < 10.15; sin
