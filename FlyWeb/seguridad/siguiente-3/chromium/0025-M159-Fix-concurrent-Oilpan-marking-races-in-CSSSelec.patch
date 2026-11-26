@@ -1,0 +1,130 @@
+From c812fc88790c6c777e2256a3b445deb1160cc12d Mon Sep 17 00:00:00 2001
+From: Rune Lillesveen <futhark@chromium.org>
+Date: Thu, 26 Nov 2026 03:46:58 -0800
+Subject: [PATCH] [M159] Fix concurrent Oilpan marking races in CSSSelectorList
+
+Original change's description:
+> Fix concurrent Oilpan marking races in CSSSelectorList
+>
+> Oilpan marks an object as fully constructed when MakeGarbageCollected()
+> finishes, which orders constructor writes before a concurrent marker
+> calls Trace(). Populate first_selector_ inside CSSSelectorList
+> constructors instead of after MakeGarbageCollected() returns, and read
+> the list terminator via IsLastInSelectorListForOilpan() in Trace() so
+> concurrent marking does not race with either list initialization or
+> main-thread selector bucketing.
+>
+> Bug: 586990502
+>
+> Change-Id: Ie32c059cf0e3e271c3de0f8cc7f0933a05f3bfc3
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8847012
+> Reviewed-by: Michael Lippautz <mlippautz@chromium.org>
+> Commit-Queue: Rune Lillesveen <futhark@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1754328}
+
+(cherry picked from commit 00c5967059eaf6a9743bbbcff267e3bfcba17cb8)
+
+Bug: 590699862,586990502
+Change-Id: Ie32c059cf0e3e271c3de0f8cc7f0933a05f3bfc3
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8871446
+Commit-Queue: Rune Lillesveen <futhark@chromium.org>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1878}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ .../renderer/core/css/css_selector_list.cc    | 20 ++++------------
+ .../renderer/core/css/css_selector_list.h     | 23 +++++++++++++++++--
+ 2 files changed, 26 insertions(+), 17 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/css/css_selector_list.cc b/third_party/blink/renderer/core/css/css_selector_list.cc
+index 9af203af2a..cb31ac3fcb 100644
+--- a/third_party/blink/renderer/core/css/css_selector_list.cc
++++ b/third_party/blink/renderer/core/css/css_selector_list.cc
+@@ -46,8 +46,6 @@ CSSSelectorList* CSSSelectorList::Empty() {
+   if (!persistent) [[unlikely]] {
+     persistent =
+         MakeGarbageCollected<CSSSelectorList>(base::PassKey<CSSSelectorList>());
+-    new (persistent->first_selector_) CSSSelector();
+-    persistent->first_selector_[0].SetMatch(CSSSelector::kInvalidList);
+     DCHECK(persistent->IsInvalidWithoutUnparsed());
+     LEAK_SANITIZER_IGNORE_OBJECT(&persistent);
+   }
+@@ -61,15 +59,9 @@ CSSSelectorList* CSSSelectorList::Copy() const {
+ 
+   unsigned length = ComputeLength();
+   DCHECK(length);
+-  CSSSelectorList* list = MakeGarbageCollected<CSSSelectorList>(
++  return MakeGarbageCollected<CSSSelectorList>(
+       AdditionalBytes(sizeof(CSSSelector) * (length - 1)),
+-      base::PassKey<CSSSelectorList>());
+-  for (unsigned i = 0; i < length; ++i) {
+-    UNSAFE_BUFFERS(new (&list->first_selector_[i])
+-                       CSSSelector(first_selector_[i]));
+-  }
+-
+-  return list;
++      base::PassKey<CSSSelectorList>(), *this, length);
+ }
+ 
+ HeapVector<CSSSelector> CSSSelectorList::Copy(
+@@ -115,11 +107,9 @@ CSSSelectorList* CSSSelectorList::AdoptSelectorVector(
+     return CSSSelectorList::Empty();
+   }
+ 
+-  CSSSelectorList* list = MakeGarbageCollected<CSSSelectorList>(
++  return MakeGarbageCollected<CSSSelectorList>(
+       AdditionalBytes(sizeof(CSSSelector) * (selector_vector.size() - 1)),
+-      base::PassKey<CSSSelectorList>());
+-  AdoptSelectorVector(selector_vector, list->first_selector_);
+-  return list;
++      base::PassKey<CSSSelectorList>(), selector_vector);
+ }
+ 
+ unsigned CSSSelectorList::ComputeLength() const {
+@@ -193,7 +183,7 @@ void CSSSelectorList::Trace(Visitor* visitor) const {
+ 
+   for (int i = 0;; ++i) {
+     visitor->Trace(UNSAFE_BUFFERS(first_selector_[i]));
+-    if (UNSAFE_BUFFERS(first_selector_[i].IsLastInSelectorList())) {
++    if (UNSAFE_BUFFERS(first_selector_[i].IsLastInSelectorListForOilpan())) {
+       break;
+     }
+   }
+diff --git a/third_party/blink/renderer/core/css/css_selector_list.h b/third_party/blink/renderer/core/css/css_selector_list.h
+index aea3f73383..4eb55d43ea 100644
+--- a/third_party/blink/renderer/core/css/css_selector_list.h
++++ b/third_party/blink/renderer/core/css/css_selector_list.h
+@@ -75,8 +75,27 @@ class CORE_EXPORT CSSSelectorList : public GarbageCollected<CSSSelectorList> {
+   // the object it points to.
+   static CSSSelectorList* Empty();
+ 
+-  // Do not call; for Empty() and AdoptSelectorVector() only.
+-  explicit CSSSelectorList(base::PassKey<CSSSelectorList>) {}
++  // Do not call; for Empty() only.
++  explicit CSSSelectorList(base::PassKey<CSSSelectorList>) {
++    first_selector_[0].SetMatch(CSSSelector::kInvalidList);
++  }
++
++  // Do not call; for AdoptSelectorVector() and Copy() only. These populate
++  // the trailing selector array inside the constructor: concurrent marking
++  // may only trace an object once it is flagged as fully constructed, and
++  // that flag is what orders the writes below before a marker's Trace().
++  CSSSelectorList(base::PassKey<CSSSelectorList>,
++                  base::span<CSSSelector> selector_vector) {
++    AdoptSelectorVector(selector_vector, first_selector_);
++  }
++  CSSSelectorList(base::PassKey<CSSSelectorList>,
++                  const CSSSelectorList& other,
++                  unsigned length) {
++    for (unsigned i = 0; i < length; ++i) {
++      UNSAFE_BUFFERS(new (&first_selector_[i])
++                         CSSSelector(other.first_selector_[i]));
++    }
++  }
+ 
+   CSSSelectorList(CSSSelectorList&& o) {
+     UNSAFE_BUFFERS(
+-- 
+2.43.0
+

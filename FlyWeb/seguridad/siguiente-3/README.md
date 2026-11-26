@@ -11,17 +11,17 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0010` | **`8dc666451e`** (hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0023` | **`79a89d9a44`** (hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0011` | **`fdee71cc91`** (hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0025` | **`0d484117f6`** (hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 | Skia | árbol **`1ef25455d7`** (fork `lamosquita-net/skia` `d361a1e371`, árbol `a934afed14`, + `pendiente/skia/0001`–`0003`, que entraron en la 3.2.0) | `skia/0001` | **`bc0519fc6a`** |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f` y, con `0023`, `79a89d9a44`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54` y, con `0025`, `0d484117f6`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
-`90d7c52725`; con `0005`, `84c41ddbec`; con `0006`, `4576659642`; con `0007`, `51fa7840a8`; con `0008`, `277835ca26`; con `0009`, `8ad838f115`; y con `0010`, `8dc666451e`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
+`90d7c52725`; con `0005`, `84c41ddbec`; con `0006`, `4576659642`; con `0007`, `51fa7840a8`; con `0008`, `277835ca26`; con `0009`, `8ad838f115`; con `0010`, `8dc666451e`; y con `0011`, `fdee71cc91`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
 `a52e854758`; el parche aplica igual en los dos.
@@ -529,8 +529,8 @@ publicada.** Aún sin merge a la 8078. La réplica de gitiles no tenía el cherr
 ## `chromium/0023`: [M159] gin, `PerContextData::From` comprueba que el contexto es el suyo (crbug 589478757)
 
 **`455d306592`** de la **8154** (26-11 10:37 UTC; bug del merge 589982167; main `0441109f8c`, #1751939). **Gravedad no
-publicada.** Aún sin merge a la 8078. La réplica de gitiles aún no tenía el cherry-pick: se parte del diff de main, y hay
-que compararlo con el cherry-pick cuando aparezca.
+publicada.** Aún sin merge a la 8078. Portado desde el diff de main. **Comprobado con el cherry-pick** (26-11 11:47 UTC,
+ya en la réplica): su diff es igual al de main.
 - **El fallo, del sandbox de V8:**
   - `PerContextData::From` lee de una ranura de datos del `v8::Context` un `CppHeapPointerHandle`, que está **dentro del
     sandbox**, y todos los `PerContextData` comparten la misma etiqueta de puntero;
@@ -547,6 +547,52 @@ que compararlo con el cherry-pick cuando aparezca.
     preimagen de main.
 - **Aplica a Mac.** Brave no toca `gin`. **Para LOCAL:** `gin_unittests --gtest_filter='PerContextDataTest.*'`, con la
   prueba de muerte `ContextMismatchCrashes`.
+
+## `chromium/0024`: [M159] Blink, los descriptores de rango de `FontFace` se evalúan una vez y se validan (crbug 589815780)
+
+**`b9f25352e0`** de la **8154** (26-11 11:12 UTC; bug del merge 590699490; main `eb9f319b36`, #1754161). **Gravedad no
+publicada.** Aún sin merge a la 8078.
+- **El fallo, un uso tras liberar en el renderer, alcanzable desde una página:**
+  - `FontFace::GetFontSelectionCapabilities()` evaluaba varias veces cada extremo de los rangos `font-stretch`, `font-style`
+    (oblicuo) y `font-weight`;
+  - con una unidad como `1ch`, la evaluación puede lanzar la carga de una fuente web e invalidar las listas de reserva, y
+    la evaluación siguiente devuelve otra cosa (0). Además, el peso no se comprobaba contra NaN ni en sus dos extremos;
+  - si todo salía 0, la clave `FontSelectionCapabilities` coincidía con la clave vacía del `HeapHashMap` de
+    `FontFaceCache`, Oilpan no trazaba el `CSSSegmentedFontFace` y quedaba liberado mientras se usaba.
+- **El arreglo:**
+  - cada extremo se evalúa una sola vez;
+  - el peso tiene que estar en [1, 1000] en los dos extremos (y no ser NaN), y el ancho y el oblicuo no pueden ser NaN;
+  - en `FontFaceCache::CapabilitiesSet::AddFontFace`, un `CHECK` de que la clave no es la vacía;
+  - todo va tras la función de Blink `FontFaceCapabilitiesRangeValidation`, `stable` (encendida), como interruptor de
+    emergencia. Trae pruebas WPT (`font-face-weight-calc-ch-crash.html` y `font-face-weight-calc-fallback.html`).
+- **Adaptación a la 156:** solo el sitio de la entrada nueva en `runtime_enabled_features.json5`. La 156 no tiene la vecina
+  `FontFallbackMultiplePriorityFonts`, así que entra en su orden alfabético, entre `FontDataServiceForCSSLocalFonts` y
+  `FontFamilyPostscriptMatchingCTMigration`. `font_face.cc` y `font_face_cache.cc` entran tal cual.
+  - `FontSelectionCapabilities` tiene `operator==` en la 156, de donde sale el `!=` (C++20).
+  - El parche de Brave sobre ese `.json5` tiene sus trozos más cercanos en las líneas 3151 y 3913: no choca. Brave no
+    toca `font_face*`.
+- **Aplica a Mac.** **Para LOCAL:** las dos WPT nuevas (`css/css-fonts/crashtests/` y `css/css-fonts/`) y
+  `blink_unit_tests --gtest_filter='*FontFace*'`.
+
+## `chromium/0025`: [M159] Blink, `CSSSelectorList` sin carreras con el marcado concurrente de Oilpan (crbug 586990502)
+
+**`23b863fe22`** de la **8154** (26-11 11:46 UTC; bug del merge 590699862; main `00c5967059`, #1754328). **Gravedad no
+publicada.** Aún sin merge a la 8078. La réplica de gitiles aún no tenía el cherry-pick: diff de main, adaptado.
+- **El fallo:**
+  - Oilpan marca un objeto como «construido del todo» al terminar `MakeGarbageCollected()`, y eso ordena las escrituras
+    del constructor antes del `Trace()` de un marcador concurrente;
+  - `CSSSelectorList` rellenaba su vector de selectores **después** de `MakeGarbageCollected()` (en `Copy()`,
+    `AdoptSelectorVector()` y `Empty()`). Un marcador concurrente podía trazar el objeto a medias, y `Trace()` leía la
+    marca de fin de lista con el acceso normal, compitiendo con el hilo principal.
+  - Esa carrera puede dejar objetos sin marcar, que se liberan mientras se usan.
+- **El arreglo:**
+  - los constructores de `CSSSelectorList` rellenan el vector dentro del propio constructor (`Empty()`, `Copy()` y
+    `AdoptSelectorVector()`);
+  - `Trace()` lee la marca de fin con `IsLastInSelectorListForOilpan()`, que ya existe en la 156.
+- **Adaptación a la 156:** en `AdoptSelectorVector()` la 156 calcula `AdditionalBytes(sizeof(CSSSelector) * (n - 1))` sin el
+  `base::checked_cast<uint32_t>` de main; se conserva la forma de la 156, que no es parte del arreglo. Lo demás entra
+  tal cual. Brave no toca `css_selector_list`.
+- **Aplica a Mac.** **Para LOCAL:** `blink_unit_tests --gtest_filter='*CSSSelector*'`; la carrera solo se ve con TSan.
 
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
@@ -729,7 +775,30 @@ publicada.**
   llama se reconstruye con `sp()` nulo. Con un `BackupIncumbentScope` activo, `GetIncumbentContextSlow()` comparaba ese `sp()`
   con la dirección del ámbito. En release leía 0 y podía elegir mal el contexto *incumbent*, que es el que decide, por
   ejemplo, el origen de un `postMessage`: una confusión entre contextos.
-- **El arreglo:** compara con `fp()`, que en esos marcos es válido. El árbol de V8 queda en `979f191d9f`.
+- **El arreglo:** compara con `fp()`, que en esos marcos es válido. El árbol de V8 queda en `979f191d9f` (con `0011`, `92df3849a4`).
+
+## `brave-core/0011`: [M156] V8, SimplifiedLowering respeta `kTaggedPointer` (crbug 585624825)
+
+**`2a154b5db9`** de V8 **15.6** (15.6.75.88, 26-11 11:20 UTC; bug del merge 588740156; main `33cdb11f68`; gemelo M159
+`51437718f5`, 15.9.128.41). Entra tal cual sobre la 15.6.75.66. `representation-change.cc`,
+`simplified-lowering-verifier.cc` y `turboshaft/operations.h` ya tenían parche de FlyWeb, sin conflicto. **Gravedad no
+publicada.**
+- **El fallo, una confusión de tipos en el código optimizado:**
+  - `TruncatingUseInfoFromRepresentation` devolvía `UseInfo::AnyTagged()` para `MachineRepresentation::kTaggedPointer`;
+  - cuando el análisis de escape sustituía por escalares un `PropertyArray` al crecer su almacén, un Phi sobre números
+    comprobados como HeapObject podía desempaquetarse a Float64 y volver a etiquetarse como Smi. TurboFan guardaba así
+    un Smi en una ranura que debe tener un HeapObject.
+- **El arreglo:**
+  - `kTaggedPointer` usa `UseInfo::TaggedPointer()`, y mantiene la barrera de escritura de puntero al empaquetar entradas
+    `kTaggedSigned`;
+  - la operación nueva `ChangeTaggedToTaggedPointer` empaqueta los Smi en HeapNumber sin desoptimizar, en el lowering de
+    TurboFan y de Turboshaft, los verificadores y los reductores. Son 14 ficheros, sin prueba en upstream.
+- **Montaje:** el merge aplicado en `v8t` sobre el árbol `979f191d9f` (todos nuestros parches de V8) da `92df3849a4`. Los 14
+  `.patch` se regeneran con `git diff --full-index 917584bd HEAD -- <fichero>`, el mismo método que reproduce byte a byte
+  los que ya había. 11 son nuevos y 3 se amplían. Sección arriba en `patches/v8/FLYWEB-SECURITY.md`; sin cambio de
+  bytecode, así que sirve la subida de época 40 → 41 de `0001`.
+- **Aplica a Mac.** **Para D8-LINUX y LOCAL:** mjsunit (`compiler/*`, `regress/*`) y `unittests` `*SimplifiedLowering*` y
+  `*RepresentationChange*`.
 
 ## Pruebas para LOCAL y D8-LINUX
 

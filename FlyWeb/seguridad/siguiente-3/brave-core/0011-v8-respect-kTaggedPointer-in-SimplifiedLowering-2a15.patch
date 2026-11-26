@@ -1,0 +1,525 @@
+From 2623738557360cf87d9dd67212a47046a3de28d0 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Thu, 26 Nov 2026 11:49:41 +0000
+Subject: [PATCH] v8: respect kTaggedPointer in SimplifiedLowering (2a154b5db9,
+ crbug 585624825)
+
+V8 15.6 merge 2a154b5db9 (15.6.75.88; cherry-pick of main 33cdb11f68).
+TruncatingUseInfoFromRepresentation returned AnyTagged for kTaggedPointer,
+so a scalar-replaced PropertyArray could get a Smi stored into a
+HeapObject slot. Use TaggedPointer and add ChangeTaggedToTaggedPointer to
+box Smis into HeapNumbers without deoptimizing.
+---
+ patches/v8/FLYWEB-SECURITY.md                 | 20 +++++++
+ patches/v8/src-compiler-opcodes.h.patch       | 12 +++++
+ ...rc-compiler-representation-change.cc.patch | 52 ++++++++++++++++---
+ ...iler-simplified-lowering-verifier.cc.patch | 12 ++++-
+ .../src-compiler-simplified-lowering.cc.patch | 26 ++++++++++
+ ...piler-simplified-operator-reducer.cc.patch | 30 +++++++++++
+ .../src-compiler-simplified-operator.cc.patch | 12 +++++
+ .../src-compiler-simplified-operator.h.patch  | 12 +++++
+ .../src-compiler-turboshaft-assembler.h.patch | 15 ++++++
+ ...compiler-turboshaft-graph-builder.cc.patch | 13 +++++
+ ...shaft-machine-lowering-reducer-inl.h.patch | 20 +++++++
+ ...rc-compiler-turboshaft-operations.cc.patch | 36 +++++++++++++
+ ...src-compiler-turboshaft-operations.h.patch | 23 +++++++-
+ ...ft-simplified-optimization-reducer.h.patch | 34 ++++++++++++
+ patches/v8/src-compiler-verifier.cc.patch     | 14 +++++
+ 15 files changed, 320 insertions(+), 11 deletions(-)
+ create mode 100644 patches/v8/src-compiler-opcodes.h.patch
+ create mode 100644 patches/v8/src-compiler-simplified-lowering.cc.patch
+ create mode 100644 patches/v8/src-compiler-simplified-operator-reducer.cc.patch
+ create mode 100644 patches/v8/src-compiler-simplified-operator.cc.patch
+ create mode 100644 patches/v8/src-compiler-simplified-operator.h.patch
+ create mode 100644 patches/v8/src-compiler-turboshaft-assembler.h.patch
+ create mode 100644 patches/v8/src-compiler-turboshaft-graph-builder.cc.patch
+ create mode 100644 patches/v8/src-compiler-turboshaft-machine-lowering-reducer-inl.h.patch
+ create mode 100644 patches/v8/src-compiler-turboshaft-operations.cc.patch
+ create mode 100644 patches/v8/src-compiler-turboshaft-simplified-optimization-reducer.h.patch
+ create mode 100644 patches/v8/src-compiler-verifier.cc.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index b2a324b6..0995f49e 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,23 @@
++# FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 2a154b5db9 (crbug 585624825)
++
++SEGURIDAD-PORTES-33, 26-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0011`). V8 15.6 2a154b5db9
++(15.6.75.88, 26-11; bugs 588740156 and 585624825; cherry-pick of main 33cdb11f68; M159 twin 51437718f5, 15.9.128.41).
++Applied as is to 15.6.75.66 (`representation-change.cc`, `simplified-lowering-verifier.cc` and
++`turboshaft/operations.h` already had FlyWeb patches; no conflict). Severity not published.
++
++- `TruncatingUseInfoFromRepresentation` returned `UseInfo::AnyTagged()` for `MachineRepresentation::kTaggedPointer`.
++  When escape analysis scalar-replaced a `PropertyArray` while growing a backing store, a Phi over HeapObject-checked
++  numbers could be unboxed to Float64 and re-tagged as a Smi, so TurboFan stored a Smi into a slot that must hold a
++  HeapObject: a type confusion in optimized code.
++- Now `kTaggedPointer` uses `UseInfo::TaggedPointer()` (keeping the pointer write barrier when boxing
++  `kTaggedSigned` inputs), and the new `ChangeTaggedToTaggedPointer` boxes Smis into HeapNumbers without deoptimizing
++  (TurboFan and Turboshaft lowering, verifiers and reducers).
++
++**Cache epoch:** covered by the single 40 -> 41 bump of `siguiente-3` (`brave-core/0001`); no bytecode change.
++
++To check (D8-LINUX): build and run mjsunit (`compiler/*`, `regress/*`) and `unittests` `*SimplifiedLowering*`,
++`*RepresentationChange*`; the upstream change adds no test.
++
+ # FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 4faa529e55 (crbug 587455884)
+ 
+ SEGURIDAD-PORTES-33, 25-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0010`). V8 15.6 4faa529e55
+diff --git a/patches/v8/src-compiler-opcodes.h.patch b/patches/v8/src-compiler-opcodes.h.patch
+new file mode 100644
+index 00000000..09332ad3
+--- /dev/null
++++ b/patches/v8/src-compiler-opcodes.h.patch
+@@ -0,0 +1,12 @@
++diff --git a/src/compiler/opcodes.h b/src/compiler/opcodes.h
++index d74406bfe7b02fce15675f6bcb4d084130b48b93..2ccf8ff93332bf70a4e2e57ca300293e45f14ea3 100644
++--- a/src/compiler/opcodes.h
+++++ b/src/compiler/opcodes.h
++@@ -278,6 +278,7 @@
++   V(ChangeTaggedToUint32)                     \
++   V(ChangeTaggedToFloat64)                    \
++   V(ChangeTaggedToTaggedSigned)               \
+++  V(ChangeTaggedToTaggedPointer)              \
++   V(ChangeSmiOrHoleToFloat64)                 \
++   V(ChangeNumberOrHoleToFloat64)              \
++   V(ChangeInt31ToTaggedSigned)                \
+diff --git a/patches/v8/src-compiler-representation-change.cc.patch b/patches/v8/src-compiler-representation-change.cc.patch
+index 186ec467..829b57c5 100644
+--- a/patches/v8/src-compiler-representation-change.cc.patch
++++ b/patches/v8/src-compiler-representation-change.cc.patch
+@@ -1,8 +1,46 @@
+ diff --git a/src/compiler/representation-change.cc b/src/compiler/representation-change.cc
+-index b61c77d92a5807107e1672477a32239ebc635679..cdbf117694b67f3b458d0511f9137526a52e9bc8 100644
++index b61c77d92a5807107e1672477a32239ebc635679..d6cb457fd668618690d3608cf228d7f25bfeadfc 100644
+ --- a/src/compiler/representation-change.cc
+ +++ b/src/compiler/representation-change.cc
+-@@ -1404,10 +1404,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++@@ -510,6 +510,8 @@ Node* RepresentationChanger::GetTaggedPointerRepresentationFor(
++       op = simplified()->ChangeFloat64ToTaggedPointer();
++     } else if (output_type.Is(Type::SignedBigInt64()) &&
++                use_info.type_check() == TypeCheckKind::kBigInt) {
+++      // Non-kBigInt uses of kWord64 BigInts are already rematerialized in
+++      // GetRepresentationFor.
++       op = simplified()->ChangeInt64ToBigInt();
++     } else if (output_type.Is(Type::UnsignedBigInt64()) &&
++                use_info.type_check() == TypeCheckKind::kBigInt) {
++@@ -531,6 +533,13 @@ Node* RepresentationChanger::GetTaggedPointerRepresentationFor(
++     if (output_type.Is(Type::Number())) {
++       // float64 -> tagged
++       op = simplified()->ChangeFloat64ToTaggedPointer();
+++    } else if (output_type.Is(Type::NumberOrUndefined())) {
+++      // ChangeFloat64OrUndefinedToTagged always produces a HeapNumber or
+++      // Undefined, never a Smi.
+++      op = simplified()->ChangeFloat64OrUndefinedToTagged(
+++          output_type.Maybe(Type::MinusZero())
+++              ? CheckForMinusZeroMode::kCheckForMinusZero
+++              : CheckForMinusZeroMode::kDontCheckForMinusZero);
++     } else {
++       return TypeError(node, output_rep, output_type,
++                        MachineRepresentation::kTaggedPointer);
++@@ -556,8 +565,13 @@ Node* RepresentationChanger::GetTaggedPointerRepresentationFor(
++                !output_type.Maybe(Type::SignedSmall())) {
++       DCHECK_NE(output_rep, MachineRepresentation::kTaggedSigned);
++       return node;
++-    } else {
+++    } else if (use_info.type_check() != TypeCheckKind::kNone) {
+++      DCHECK_EQ(use_info.type_check(), TypeCheckKind::kHeapObject);
++       op = simplified()->CheckedTaggedToTaggedPointer(use_info.feedback());
+++    } else {
+++      // Known-Smi inputs are folded to HeapNumber allocation by
+++      // SimplifiedOptimizationReducer::ReduceConvert.
+++      op = simplified()->ChangeTaggedToTaggedPointer();
++     }
++   } else {
++     return TypeError(node, output_rep, output_type,
++@@ -1404,10 +1418,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
+        }
+      } else if (use_info.type_check() == TypeCheckKind::kSigned64 ||
+                 use_info.type_check() == TypeCheckKind::kArrayIndex) {
+@@ -18,7 +56,7 @@ index b61c77d92a5807107e1672477a32239ebc635679..cdbf117694b67f3b458d0511f9137526
+        } else {
+          op = simplified()->CheckedFloat64ToInt64(
+              output_type.Maybe(Type::MinusZero())
+-@@ -1425,10 +1427,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++@@ -1425,10 +1441,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
+                  : CheckForMinusZeroMode::kDontCheckForMinusZero,
+              use_info.feedback());
+        }
+@@ -34,7 +72,7 @@ index b61c77d92a5807107e1672477a32239ebc635679..cdbf117694b67f3b458d0511f9137526
+      } else if (output_type.Is(cache_->kDoubleRepresentableUint64)) {
+        op = machine()->ChangeFloat64ToUint64();
+      } else {
+-@@ -1448,10 +1452,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++@@ -1448,10 +1466,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
+        }
+      } else if (use_info.type_check() == TypeCheckKind::kSigned64 ||
+                 use_info.type_check() == TypeCheckKind::kArrayIndex) {
+@@ -50,7 +88,7 @@ index b61c77d92a5807107e1672477a32239ebc635679..cdbf117694b67f3b458d0511f9137526
+        } else {
+          op = simplified()->CheckedFloat64ToInt64(
+              output_type.Maybe(Type::MinusZero())
+-@@ -1469,10 +1475,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++@@ -1469,10 +1489,12 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
+                  : CheckForMinusZeroMode::kDontCheckForMinusZero,
+              use_info.feedback());
+        }
+@@ -66,7 +104,7 @@ index b61c77d92a5807107e1672477a32239ebc635679..cdbf117694b67f3b458d0511f9137526
+      } else if (output_type.Is(cache_->kDoubleRepresentableUint64)) {
+        op = machine()->ChangeFloat64ToUint64();
+      } else {
+-@@ -1514,10 +1522,13 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++@@ -1514,10 +1536,13 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
+              use_info.feedback());
+        }
+      } else if (use_info.type_check() == TypeCheckKind::kSigned64) {
+@@ -83,7 +121,7 @@ index b61c77d92a5807107e1672477a32239ebc635679..cdbf117694b67f3b458d0511f9137526
+        } else {
+          op = simplified()->CheckedTaggedToInt64(
+              output_type.Maybe(Type::MinusZero())
+-@@ -1533,10 +1544,13 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
++@@ -1533,10 +1558,13 @@ Node* RepresentationChanger::GetWord64RepresentationFor(
+            use_info.feedback());
+      } else if (use_info.type_check() == TypeCheckKind::kArrayIndex) {
+        op = simplified()->CheckedTaggedToArrayIndex(use_info.feedback());
+diff --git a/patches/v8/src-compiler-simplified-lowering-verifier.cc.patch b/patches/v8/src-compiler-simplified-lowering-verifier.cc.patch
+index 9eaa07e8..1beaf055 100644
+--- a/patches/v8/src-compiler-simplified-lowering-verifier.cc.patch
++++ b/patches/v8/src-compiler-simplified-lowering-verifier.cc.patch
+@@ -1,5 +1,5 @@
+ diff --git a/src/compiler/simplified-lowering-verifier.cc b/src/compiler/simplified-lowering-verifier.cc
+-index 6d41bbb8a324a69f3e08185c2394e5440cc9b32d..5e89b51737d35e19aa5db53e85b1c11e456dde19 100644
++index 6d41bbb8a324a69f3e08185c2394e5440cc9b32d..78d589f3b729a03a98301b4a9772b39885d39740 100644
+ --- a/src/compiler/simplified-lowering-verifier.cc
+ +++ b/src/compiler/simplified-lowering-verifier.cc
+ @@ -280,7 +280,8 @@ void SimplifiedLoweringVerifier::VisitNode(Node* node,
+@@ -12,7 +12,15 @@ index 6d41bbb8a324a69f3e08185c2394e5440cc9b32d..5e89b51737d35e19aa5db53e85b1c11e
+        Truncation output_trunc =
+            JoinTruncation(InputTruncation(node, 0), Truncation::Word64());
+        CheckAndSet(node, InputType(node, 0), output_trunc);
+-@@ -656,7 +657,6 @@ void SimplifiedLoweringVerifier::VisitNode(Node* node,
++@@ -513,6 +514,7 @@ void SimplifiedLoweringVerifier::VisitNode(Node* node,
++       CASE(ChangeTaggedToUint32)
++       CASE(ChangeTaggedToFloat64)
++       CASE(ChangeTaggedToTaggedSigned)
+++      CASE(ChangeTaggedToTaggedPointer)
++       CASE(ChangeSmiOrHoleToFloat64)
++       CASE(ChangeNumberOrHoleToFloat64)
++       CASE(ChangeInt64ToTagged)
++@@ -656,7 +658,6 @@ void SimplifiedLoweringVerifier::VisitNode(Node* node,
+        CASE(ChangeFloat64ToUint32)
+        CASE(ChangeFloat64ToUint64)
+        CASE(Float64SilenceNaN)
+diff --git a/patches/v8/src-compiler-simplified-lowering.cc.patch b/patches/v8/src-compiler-simplified-lowering.cc.patch
+new file mode 100644
+index 00000000..c7ebb4b5
+--- /dev/null
++++ b/patches/v8/src-compiler-simplified-lowering.cc.patch
+@@ -0,0 +1,26 @@
++diff --git a/src/compiler/simplified-lowering.cc b/src/compiler/simplified-lowering.cc
++index d87dbb59d6690413f3d6b2300f3e97b309f3f545..fff2d18372ea1de8c175025c5d22c55149bcf73b 100644
++--- a/src/compiler/simplified-lowering.cc
+++++ b/src/compiler/simplified-lowering.cc
++@@ -157,6 +157,7 @@ UseInfo TruncatingUseInfoFromRepresentation(
++     case MachineRepresentation::kTaggedSigned:
++       return UseInfo::TaggedSigned();
++     case MachineRepresentation::kTaggedPointer:
+++      return UseInfo::TaggedPointer();
++     case MachineRepresentation::kTagged:
++     case MachineRepresentation::kIndirectPointer:
++     case MachineRepresentation::kMapWord:
++@@ -1650,8 +1651,11 @@ class RepresentationSelector {
++     } else if (base_taggedness == kTaggedBase &&
++                CanBeTaggedPointer(field_representation)) {
++       Type value_type = NodeProperties::GetType(value);
++-      if (value_representation == MachineRepresentation::kTaggedSigned) {
++-        // Write barriers are only for stores of heap objects.
+++      if (field_representation != MachineRepresentation::kTaggedPointer &&
+++          value_representation == MachineRepresentation::kTaggedSigned) {
+++        // Write barriers are only for stores of heap objects. Stores to
+++        // kTaggedPointer fields convert kTaggedSigned inputs into HeapNumbers
+++        // during ProcessInput, so they still require a write barrier.
++         return kNoWriteBarrier;
++       }
++       if (field_type.Is(Type::BooleanOrNullOrUndefined()) ||
+diff --git a/patches/v8/src-compiler-simplified-operator-reducer.cc.patch b/patches/v8/src-compiler-simplified-operator-reducer.cc.patch
+new file mode 100644
+index 00000000..3fb5abba
+--- /dev/null
++++ b/patches/v8/src-compiler-simplified-operator-reducer.cc.patch
+@@ -0,0 +1,30 @@
++diff --git a/src/compiler/simplified-operator-reducer.cc b/src/compiler/simplified-operator-reducer.cc
++index 1714eb3de8cde69acabac294b17bc756ab4726fd..de1e01fba6945d0a5f107142765cd24be5906384 100644
++--- a/src/compiler/simplified-operator-reducer.cc
+++++ b/src/compiler/simplified-operator-reducer.cc
++@@ -31,7 +31,11 @@ Decision DecideObjectIsSmi(Node* const input) {
++   }
++   if (m.IsAllocate()) return Decision::kFalse;
++   if (m.IsChangeBitToTagged()) return Decision::kFalse;
+++  if (m.IsChangeFloat64OrUndefinedToTagged()) return Decision::kFalse;
+++  if (m.IsChangeFloat64ToTaggedPointer()) return Decision::kFalse;
+++  if (m.IsChangeTaggedToTaggedPointer()) return Decision::kFalse;
++   if (m.IsChangeInt31ToTaggedSigned()) return Decision::kTrue;
+++  if (m.IsChangeTaggedToTaggedSigned()) return Decision::kTrue;
++   if (m.IsHeapConstant()) return Decision::kFalse;
++   return Decision::kUnknown;
++ }
++@@ -237,6 +241,13 @@ Reduction SimplifiedOperatorReducer::Reduce(Node* node) {
++       }
++       break;
++     }
+++    case IrOpcode::kChangeTaggedToTaggedPointer: {
+++      Node* const input = node->InputAt(0);
+++      if (DecideObjectIsSmi(input) == Decision::kFalse) {
+++        return Replace(input);
+++      }
+++      break;
+++    }
++     case IrOpcode::kCheckedTaggedToTaggedPointer: {
++       Node* const input = node->InputAt(0);
++       switch (DecideObjectIsSmi(input)) {
+diff --git a/patches/v8/src-compiler-simplified-operator.cc.patch b/patches/v8/src-compiler-simplified-operator.cc.patch
+new file mode 100644
+index 00000000..14d25b6c
+--- /dev/null
++++ b/patches/v8/src-compiler-simplified-operator.cc.patch
+@@ -0,0 +1,12 @@
++diff --git a/src/compiler/simplified-operator.cc b/src/compiler/simplified-operator.cc
++index 47a492b0136328b4653e7196f74af3dd0b80ec6b..c8b9f8f723536050d90e4374579ceb958a51d3c0 100644
++--- a/src/compiler/simplified-operator.cc
+++++ b/src/compiler/simplified-operator.cc
++@@ -936,6 +936,7 @@ bool operator==(AssertNotNullParameters const& lhs,
++   V(ChangeTaggedToUint32, Operator::kNoProperties, 1, 0)                     \
++   V(ChangeTaggedToFloat64, Operator::kNoProperties, 1, 0)                    \
++   V(ChangeTaggedToTaggedSigned, Operator::kNoProperties, 1, 0)               \
+++  V(ChangeTaggedToTaggedPointer, Operator::kNoProperties, 1, 0)              \
++   V(ChangeSmiOrHoleToFloat64, Operator::kNoProperties, 1, 0)                 \
++   V(ChangeNumberOrHoleToFloat64, Operator::kNoProperties, 1, 0)              \
++   V(ChangeFloat64ToTaggedPointer, Operator::kNoProperties, 1, 0)             \
+diff --git a/patches/v8/src-compiler-simplified-operator.h.patch b/patches/v8/src-compiler-simplified-operator.h.patch
+new file mode 100644
+index 00000000..60af06a6
+--- /dev/null
++++ b/patches/v8/src-compiler-simplified-operator.h.patch
+@@ -0,0 +1,12 @@
++diff --git a/src/compiler/simplified-operator.h b/src/compiler/simplified-operator.h
++index f97271fad95402724d2793ca42bcb8d46c0e32b6..ddf347620bde4c6aabb981fabb80dc96f4c47ea7 100644
++--- a/src/compiler/simplified-operator.h
+++++ b/src/compiler/simplified-operator.h
++@@ -1070,6 +1070,7 @@ class V8_EXPORT_PRIVATE SimplifiedOperatorBuilder final
++   const Operator* ChangeTaggedToUint32();
++   const Operator* ChangeTaggedToFloat64();
++   const Operator* ChangeTaggedToTaggedSigned();
+++  const Operator* ChangeTaggedToTaggedPointer();
++   const Operator* ChangeSmiOrHoleToFloat64();
++   const Operator* ChangeNumberOrHoleToFloat64();
++   const Operator* ChangeInt31ToTaggedSigned();
+diff --git a/patches/v8/src-compiler-turboshaft-assembler.h.patch b/patches/v8/src-compiler-turboshaft-assembler.h.patch
+new file mode 100644
+index 00000000..53c0e3fa
+--- /dev/null
++++ b/patches/v8/src-compiler-turboshaft-assembler.h.patch
+@@ -0,0 +1,15 @@
++diff --git a/src/compiler/turboshaft/assembler.h b/src/compiler/turboshaft/assembler.h
++index 6ab086ea3768306acffd95c8bf582ea6cc1474f4..8d247fdddeae157e1ef180da918841359c364640 100644
++--- a/src/compiler/turboshaft/assembler.h
+++++ b/src/compiler/turboshaft/assembler.h
++@@ -2222,6 +2222,10 @@ class AssemblerOpInterface : public Next {
++     return V<Boolean>::Cast(
++         Convert(input, ConvertOp::Kind::kObject, ConvertOp::Kind::kBoolean));
++   }
+++  V<HeapObject> ConvertToHeapObject(V<Object> input) {
+++    return V<HeapObject>::Cast(
+++        Convert(input, ConvertOp::Kind::kObject, ConvertOp::Kind::kHeapObject));
+++  }
++   V<String> ConvertNumberToString(V<Number> input) {
++     return V<String>::Cast(
++         Convert(input, ConvertOp::Kind::kNumber, ConvertOp::Kind::kString));
+diff --git a/patches/v8/src-compiler-turboshaft-graph-builder.cc.patch b/patches/v8/src-compiler-turboshaft-graph-builder.cc.patch
+new file mode 100644
+index 00000000..988cb048
+--- /dev/null
++++ b/patches/v8/src-compiler-turboshaft-graph-builder.cc.patch
+@@ -0,0 +1,13 @@
++diff --git a/src/compiler/turboshaft/graph-builder.cc b/src/compiler/turboshaft/graph-builder.cc
++index 5866bba154e0ffedc919ed69ea46232f27c12b05..30f6308a82110ac555533e9389eb9a1bfaf25051 100644
++--- a/src/compiler/turboshaft/graph-builder.cc
+++++ b/src/compiler/turboshaft/graph-builder.cc
++@@ -1036,6 +1036,8 @@ OpIndex GraphBuilder::Process(
++       return __ Convert(Map(node->InputAt(0)),
++                         ConvertOp::Kind::kNumberOrOddball,
++                         ConvertOp::Kind::kSmi);
+++    case IrOpcode::kChangeTaggedToTaggedPointer:
+++      return __ ConvertToHeapObject(Map(node->InputAt(0)));
++ 
++     case IrOpcode::kCheckedTaggedToTaggedSigned: {
++       DCHECK(dominating_frame_state.valid());
+diff --git a/patches/v8/src-compiler-turboshaft-machine-lowering-reducer-inl.h.patch b/patches/v8/src-compiler-turboshaft-machine-lowering-reducer-inl.h.patch
+new file mode 100644
+index 00000000..9a81d5b4
+--- /dev/null
++++ b/patches/v8/src-compiler-turboshaft-machine-lowering-reducer-inl.h.patch
+@@ -0,0 +1,20 @@
++diff --git a/src/compiler/turboshaft/machine-lowering-reducer-inl.h b/src/compiler/turboshaft/machine-lowering-reducer-inl.h
++index 46c384b0160ea42a6a53fb77bc407c02986fc9a3..45b9acc288d13e7c30637c4b6db9c706934f558c 100644
++--- a/src/compiler/turboshaft/machine-lowering-reducer-inl.h
+++++ b/src/compiler/turboshaft/machine-lowering-reducer-inl.h
++@@ -900,6 +900,15 @@ class MachineLoweringReducer : public Next {
++         BIND(done, result);
++         return result;
++       }
+++      case ConvertOp::Kind::kHeapObject: {
+++        DCHECK_EQ(from, ConvertOp::Kind::kObject);
+++        ScopedVar<HeapObject> result(this, V<HeapObject>::Cast(input));
+++        IF (UNLIKELY(__ ObjectIsSmi(input))) {
+++          result =
+++              __ ConvertInt32ToHeapNumber(__ UntagSmi(V<Smi>::Cast(input)));
+++        }
+++        return result;
+++      }
++       default:
++         UNREACHABLE();
++     }
+diff --git a/patches/v8/src-compiler-turboshaft-operations.cc.patch b/patches/v8/src-compiler-turboshaft-operations.cc.patch
+new file mode 100644
+index 00000000..83081905
+--- /dev/null
++++ b/patches/v8/src-compiler-turboshaft-operations.cc.patch
+@@ -0,0 +1,36 @@
++diff --git a/src/compiler/turboshaft/operations.cc b/src/compiler/turboshaft/operations.cc
++index af0c5b0b3fcb35dd51fb4bbe0cadf4a24dedf9da..5ad4e2936ea88006ffeb122de99ff5ba8182da8d 100644
++--- a/src/compiler/turboshaft/operations.cc
+++++ b/src/compiler/turboshaft/operations.cc
++@@ -1380,6 +1380,8 @@ std::ostream& operator<<(std::ostream& os, ConvertOp::Kind kind) {
++   switch (kind) {
++     case ConvertOp::Kind::kObject:
++       return os << "Object";
+++    case ConvertOp::Kind::kHeapObject:
+++      return os << "HeapObject";
++     case ConvertOp::Kind::kBoolean:
++       return os << "Boolean";
++     case ConvertOp::Kind::kNumber:
++@@ -2494,6 +2496,22 @@ IsSmiDecision DecideObjectIsSmi(const Graph& graph, V<Object> idx, int depth) {
++     }
++     case Opcode::kAllocate:
++       return IsSmiDecision::kFalse;
+++    case Opcode::kConvert: {
+++      switch (op.Cast<ConvertOp>().to) {
+++        case ConvertOp::Kind::kHeapObject:
+++        case ConvertOp::Kind::kBoolean:
+++        case ConvertOp::Kind::kString:
+++          return IsSmiDecision::kFalse;
+++        case ConvertOp::Kind::kSmi:
+++          return IsSmiDecision::kTrue;
+++        case ConvertOp::Kind::kObject:
+++        case ConvertOp::Kind::kNumber:
+++        case ConvertOp::Kind::kNumberOrOddball:
+++        case ConvertOp::Kind::kPlainPrimitive:
+++          return IsSmiDecision::kUnknown;
+++      }
+++      UNREACHABLE();
+++    }
++     case Opcode::kConvertUntaggedToJSPrimitive: {
++       using Kind = ConvertUntaggedToJSPrimitiveOp::JSPrimitiveKind;
++       switch (op.Cast<ConvertUntaggedToJSPrimitiveOp>().kind) {
+diff --git a/patches/v8/src-compiler-turboshaft-operations.h.patch b/patches/v8/src-compiler-turboshaft-operations.h.patch
+index f374fff0..9aa1e796 100644
+--- a/patches/v8/src-compiler-turboshaft-operations.h.patch
++++ b/patches/v8/src-compiler-turboshaft-operations.h.patch
+@@ -1,8 +1,16 @@
+ diff --git a/src/compiler/turboshaft/operations.h b/src/compiler/turboshaft/operations.h
+-index 6e87f793f6a09003160c73a2c405a6199e39f277..c39f612643704726df238f0318d5a755a2b6f6ed 100644
++index 6e87f793f6a09003160c73a2c405a6199e39f277..1d03adbd3f5c429f52f70561dabd0ada38b9d7e8 100644
+ --- a/src/compiler/turboshaft/operations.h
+ +++ b/src/compiler/turboshaft/operations.h
+-@@ -7814,7 +7814,8 @@ struct RttCanonOp : FixedArityOperationT<1, RttCanonOp> {
++@@ -5341,6 +5341,7 @@ struct ObjectIsNumericValueOp
++ struct ConvertOp : FixedArityOperationT<1, ConvertOp> {
++   enum class Kind : uint8_t {
++     kObject,
+++    kHeapObject,
++     kBoolean,
++     kNumber,
++     kNumberOrOddball,
++@@ -7814,7 +7815,8 @@ struct RttCanonOp : FixedArityOperationT<1, RttCanonOp> {
+  struct WasmTypeCheckOp : OperationT<WasmTypeCheckOp> {
+    WasmTypeCheckConfig config;
+  
+@@ -12,3 +20,14 @@ index 6e87f793f6a09003160c73a2c405a6199e39f277..c39f612643704726df238f0318d5a755
+  
+    WasmTypeCheckOp(V<Object> object, OptionalV<Map> rtt,
+                    WasmTypeCheckConfig config)
++@@ -11376,8 +11378,8 @@ TURBOSHAFT_THROWING_OPERATIONS_LIST(THROWING_OP_LOOKS_VALID)
++ // instance, a SmiConstant is always a Smi, and a HeapObject constant is never a
++ // Smi.
++ enum class IsSmiDecision : uint8_t { kUnknown, kTrue, kFalse };
++-IsSmiDecision DecideObjectIsSmi(const Graph& graph, V<Object> idx,
++-                                int depth = 0);
+++V8_EXPORT_PRIVATE IsSmiDecision DecideObjectIsSmi(const Graph& graph,
+++                                                  V<Object> idx, int depth = 0);
++ 
++ }  // namespace v8::internal::compiler::turboshaft
++ 
+diff --git a/patches/v8/src-compiler-turboshaft-simplified-optimization-reducer.h.patch b/patches/v8/src-compiler-turboshaft-simplified-optimization-reducer.h.patch
+new file mode 100644
+index 00000000..5c403b0f
+--- /dev/null
++++ b/patches/v8/src-compiler-turboshaft-simplified-optimization-reducer.h.patch
+@@ -0,0 +1,34 @@
++diff --git a/src/compiler/turboshaft/simplified-optimization-reducer.h b/src/compiler/turboshaft/simplified-optimization-reducer.h
++index 75f1274d902c5d62d11caee66c7283137241e3fd..3236c166d9c64a2a7e16c7b9e16481c6bee163f1 100644
++--- a/src/compiler/turboshaft/simplified-optimization-reducer.h
+++++ b/src/compiler/turboshaft/simplified-optimization-reducer.h
++@@ -164,6 +164,29 @@ class SimplifiedOptimizationReducer : public Next {
++     goto no_change;
++   }
++ 
+++  V<Object> REDUCE(Convert)(V<Object> input, ConvertOp::Kind from,
+++                            ConvertOp::Kind to) {
+++    LABEL_BLOCK(no_change) { return Next::ReduceConvert(input, from, to); }
+++    if (ShouldSkipOptimizationStep()) goto no_change;
+++
+++    if (to == ConvertOp::Kind::kHeapObject) {
+++      switch (__ DecideObjectIsSmi(input)) {
+++        case IsSmiDecision::kFalse:
+++          return input;
+++        case IsSmiDecision::kTrue:
+++          return __ ConvertInt32ToHeapNumber(__ UntagSmi(V<Smi>::Cast(input)));
+++        case IsSmiDecision::kUnknown:
+++          break;
+++      }
+++    }
+++    if (to == ConvertOp::Kind::kSmi &&
+++        __ DecideObjectIsSmi(input) == IsSmiDecision::kTrue) {
+++      return input;
+++    }
+++
+++    goto no_change;
+++  }
+++
++   OpIndex REDUCE(ObjectIs)(V<Object> input, ObjectIsOp::Kind kind,
++                            ObjectIsOp::InputAssumptions input_assumptions) {
++     LABEL_BLOCK(no_change) {
+diff --git a/patches/v8/src-compiler-verifier.cc.patch b/patches/v8/src-compiler-verifier.cc.patch
+new file mode 100644
+index 00000000..32bdc424
+--- /dev/null
++++ b/patches/v8/src-compiler-verifier.cc.patch
+@@ -0,0 +1,14 @@
++diff --git a/src/compiler/verifier.cc b/src/compiler/verifier.cc
++index 2552221cd7e8e43ae0ff08ad6f2c22917915ffb2..398f1bddb1e2308d0a6f0aef411da939942bc0b0 100644
++--- a/src/compiler/verifier.cc
+++++ b/src/compiler/verifier.cc
++@@ -1487,7 +1487,8 @@ void Verifier::Visitor::Check(Node* node, const AllNodes& all) {
++       // CheckTypeIs(node, to));
++       break;
++     }
++-    case IrOpcode::kChangeTaggedToTaggedSigned:      // Fall through.
+++    case IrOpcode::kChangeTaggedToTaggedSigned:
+++    case IrOpcode::kChangeTaggedToTaggedPointer:
++       break;
++     case IrOpcode::kTruncateTaggedToFloat64PreserveUndefined:
++     case IrOpcode::kTruncateTaggedToFloat64: {
+-- 
+2.43.0
+
