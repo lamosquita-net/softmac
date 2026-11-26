@@ -7,6 +7,40 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 26-11 (noche, tarde): COORDINACIÓN-65 → COORDINACIÓN-66 (local, 7,1; leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-65 = «Coordinación (65)» [e279d4], relevo por contexto. La 66 la abre Titín. Vigilante como la 65 (guion en
+el scratchpad: Monitor cada 120 s sobre `origin/buzon`, punta en un fichero, filtro
+`grep -v -E 'buzon: COORDINACION-6[0-9] |uploaded by COORDINACION-6[0-9]'`); última punta vista: la de `origin/buzon` al
+relevar. Canales: LOCAL-25 «Local (25)»; D8-LINUX-6 «ubuntu (6)» (sin push; sus ficheros los sube la coordinación y se
+comprueba el SHA-256); ARQUITECTURA «Arquitectura FlyWeb monorepo»; SERVIDOR-LOCAL «Servidor Local (2)»; PUBLICACIÓN
+«Publicación»; SEGURIDAD-PORTES-33 y MOTOR-47 por nombre (contestan al buzón).
+
+**Hecho desde la nota de la noche:** apt en la página de privacidad (#1266). DIRECTIVAS: Linux publicada y 3.2.2-51 (#1267).
+Titín instaló la 3.2.2-50 desde la web (APTO).
+
+**Abierto, por orden:**
+1. **3.2.2-51 de Linux** (Titín: «sacad la 3.2.2-51 con los dos arreglos»; textos: «equipo» en todas las plataformas). D8-LINUX:
+   parche de las 41 cadenas «Mac» → «equipo» (en, es, es-419; id de grit) y reserva de `DeviceModel()` por plataforma, sobre
+   brave-core 57132d0746; MOTOR-47 lo revisa (cambia cadenas de Mac, que lo llevan en la próxima). Compilar, probar, quitar el falso
+   PARO (`grep -q` + pipefail) y empaquetar con la misma pública. Luego: Titín sube a pool/ (una vez, `--progress`, sin `-P`),
+   aprueba y firma en bak (pruebas → stable) **con FlyWeb 3.2.2-50 abierto**: primera actualización automática
+   (`sudo unattended-upgrade -d`, barra de reiniciar). Órdenes de bak: las de `FlyWeb/servidor/apt/README.md`, ya rellenas.
+2. **Correo del código de la cuenta en Linux:** no es de FlyWeb (cliente igual que Mac, 9/9 vectores; correo del servidor bien).
+   Causa casi segura: **cupo de 5 códigos de entrada por cuenta y hora** (`cupos.go`, en memoria) agotado por los reintentos; con
+   contraseña buena y sin cupo responde 200 falso. SERVIDOR-LOCAL lo confirma en el journal de flyweb-sync («tope de correos
+   alcanzado») y da la hora en que se libera; Titín, una sola vez después. Confirmación alternativa: el texto del aviso en sus Mac
+   («ha escrito bien» = cupo; «intentos fallidos» = contraseña). Para después (propuesta a Titín): que el aviso de los Mac
+   explique el caso del cupo sin dar pistas.
+3. **La próxima versión** (Mac y Linux a la vez: siguiente-3 hasta chromium/0029 + E1 + U3 + cookies + iconos + #1250 + «equipo»):
+   número y corte, de Titín.
+4. D8: tres cambios del firmador (SEGURIDAD-PORTES-33: cota superior del Date, llavero de la más alta aunque retirada, aprobación
+   por suite). Rastros en la Ubuntu de Titín: lista nominal cuando toque.
+
+**Lecciones:** ver la nota de la noche, más: lo que manda Titín en su chat de un agente (descargas, producción) hay que esperarlo
+allí; a él, órdenes completas y en qué máquina; no dar por buena una hipótesis de un agente («contraseña distinta», «clave de
+relleno») sin el dato del servidor.
+
 ## 26-11 (noche): estado de COORDINACIÓN-65 (local, 7,1; leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-65 = «Coordinación (65)» desde el 26-11 ~18:45 UTC (fila #1253). Vigilante: Monitor cada 120 s sobre `origin/buzon`,
