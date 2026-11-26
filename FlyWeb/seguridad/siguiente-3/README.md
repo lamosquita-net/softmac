@@ -12,12 +12,12 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0011` | **`fdee71cc91`** (hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0026` | **`f3c3d7fba8`** (hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0027` | **`b1aa075097`** (hasta `0026`: `f3c3d7fba8`; hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 | Skia | árbol **`1ef25455d7`** (fork `lamosquita-net/skia` `d361a1e371`, árbol `a934afed14`, + `pendiente/skia/0001`–`0003`, que entraron en la 3.2.0) | `skia/0001` | **`bc0519fc6a`** |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54`, con `0025`, `0d484117f6` y, con `0026`, `f3c3d7fba8`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54`, con `0025`, `0d484117f6`, con `0026`, `f3c3d7fba8` y, con `0027`, `b1aa075097`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -619,6 +619,35 @@ de seguridad nuevo: corrige la regresión que trajo el de `chromium/0003`.**
 - **Aplica a Mac.** **Para LOCAL:** `blink_unittests --gtest_filter='WorldSafeV8Reference*:V8ScriptValueSerializer*'`,
   y a mano: Tampermonkey con un script de usuario que use `CustomEvent` entre mundos.
 
+## `chromium/0027`: [M159] EME, `MediaKeySession` sin uso tras liberar en `OnSessionKeysChange` (crbug 589815781)
+
+**`d86157c50d`** de la **8154** (26-11 17:23 UTC; bug del merge 590699888; main `53c7631524`, #1754722). **Gravedad no
+publicada.** Aún sin merge a la 8078. La réplica de gitiles aún no tenía el cherry-pick: diff de main, adaptado.
+- **El fallo, dos usos tras liberar:**
+  - `MediaKeys::createSession()` comprobaba el `ExecutionContext` de `MediaKeys` pero construía la sesión con el del
+    reino del *wrapper* que recibía la llamada. Si el *wrapper* se recreaba en otro reino (un `iframe` ya quitado), la
+    sesión observaba un contexto ya destruido cuyo `ContextDestroyed()` nunca llegaba;
+  - `OnSessionKeysChange()` guardaba el `ukm::UkmRecorder*` (propiedad del `Document`) antes de `AddEntry()`, que reserva
+    en Oilpan. Si esa reserva disparaba un GC que finalizaba el `Document`, el `Record()` usaba memoria liberada.
+- **El arreglo:**
+  - la sesión se construye con el `ExecutionContext` de `MediaKeys` (`createSession` deja de recibir `ScriptState`; el
+    IDL pierde `CallWith=ScriptState`) y el constructor hace `CHECK` de que el contexto está vivo;
+  - `OnSessionKeysChange()` hace `CHECK` del contexto y pide el `UkmRecorder` después de cada `AddEntry()`;
+  - prueba nueva `MediaKeySessionTest.CreateSessionUsesMediaKeysExecutionContext`.
+- **Adaptación a la 156 (cuatro trozos rehechos a mano, mismo cambio):**
+  - el `action_timer_` de la 156 usa `TaskType::kMiscPlatformAPI` y no `kMediaElementEvent`: se conserva el de la 156;
+  - en `media_keys.h`, el `#include` de `modules_export.h` va tras `encrypted_media_utils.h` (la 156 tiene además
+    `dom_array_piece.h`);
+  - en `media_keys.idl`, `setServerCertificate` no lleva `[PassAsSpan]` en la 156: solo se cambia la línea de
+    `createSession`;
+  - en `modules/BUILD.gn`, la prueba entra antes de `eventsource/event_source_parser_test.cc` (la 156 no tiene
+    `encoding/text_*_test.cc`).
+  - Lo demás entra tal cual. No hay más llamadas a `createSession` ni al constructor de `MediaKeySession`, y Brave no
+    toca `encryptedmedia`. Comprobado a ojo que las interfaces que imita la prueba (`WebContentDecryptionModule*`,
+    `MediaKeysConfig`, `MediaKeys(...)`, `WebData(span)`) son iguales en la 156; la prueba no se ha compilado.
+- **Aplica a Mac** (EME con Widevine o Clear Key). **Para LOCAL:** `blink_unittests --gtest_filter='MediaKeySession*'`
+  y una reproducción con Clear Key (p. ej. las WPT `encrypted-media/clearkey-*`).
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Gravedad no publicada; es una salida del sandbox de V8.**
@@ -911,6 +940,7 @@ configuración de Linux compila el código.
 | Commit | crbug | Qué | ¿Lo compila nuestra Linux? |
 |---|---|---|---|
 | 8078 `97c8484b2c` [M156] | 577371305 | `ExternalVkImageBacking`: `ProduceGL()` falla si el backing guarda un `NativePixmap`, y la conversión a `NativePixmap` pasa antes, de modo que la creación falla si no se puede | **Sí se compila:** `external_vk_image_backing.cc` está en `gpu/command_buffer/service/BUILD.gn` bajo `enable_vulkan` y `is_linux \|\| is_fuchsia`. `enable_vulkan` es `true` por defecto en Linux y FlyWeb no lo cambia. **En la práctica casi no se usa:** Vulkan va apagado por defecto en Linux (`features::kVulkan`, `FEATURE_DISABLED_BY_DEFAULT` fuera de Android). Además, según el propio commit, el backing con `NativePixmap` solo se da en Fuchsia. |
+| 8154 `605bc384c4` [M159] (main #1755087) | 589323186 | `WaylandToplevelWindow` iteraba los *bubbles* hijos mientras los ocultaba, y el delegado podía modificar el vector durante la iteración. Ahora rechaza activar *bubbles* mientras oculta la ventana. Adaptado en la 159 (`Hide()`/`ActivateBubble()`) | **Sí se compila:** `build/config/ozone.gni` pone `ozone_platform_wayland = true` en Linux (con `ozone_auto_platforms`) y FlyWeb no lo cambia. Solo actúa en sesiones Wayland. |
 
 ## Revisados y no aplicables
 

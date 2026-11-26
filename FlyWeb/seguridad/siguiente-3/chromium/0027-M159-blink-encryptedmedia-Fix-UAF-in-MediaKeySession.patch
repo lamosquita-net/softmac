@@ -1,0 +1,546 @@
+From b5d072758d690630665493b26857ac4f5fed558b Mon Sep 17 00:00:00 2001
+From: Sangbaek Park <sangbaekpark@chromium.org>
+Date: Thu, 26 Nov 2026 09:23:59 -0800
+Subject: [PATCH] [M159] blink/encryptedmedia: Fix UAF in
+ MediaKeySession::OnSessionKeysChange
+
+Original change's description:
+> blink/encryptedmedia: Fix UAF in MediaKeySession::OnSessionKeysChange
+>
+> MediaKeys::createSession() checked MediaKeys::GetExecutionContext() but
+> constructed MediaKeySession using ExecutionContext::From(script_state)
+> (the receiver wrapper's realm). When a MediaKeys V8 wrapper was dropped
+> and recreated in another realm (such as a detached iframe's media
+> element), MediaKeySession observed an already-destroyed
+> ExecutionContext whose ContextDestroyed() never ran.
+>
+> In addition, MediaKeySession::OnSessionKeysChange() cached the raw
+> ukm::UkmRecorder* (owned by Document) before calling
+> MediaKeyStatusMap::AddEntry(), which allocates on the Oilpan heap. If
+> that allocation triggered GC and finalized an unreferenced Document,
+> the subsequent Record(ukm_recorder) call became a heap-use-after-free.
+>
+> Fix this by:
+> 1. Binding MediaKeySession to MediaKeys' own ExecutionContext instead
+>    of the receiver wrapper's ScriptState so MediaKeySession shares
+>    MediaKeys' lifecycle and cannot observe an already-destroyed
+>    context (enforced with CHECK).
+> 2. In MediaKeySession::OnSessionKeysChange(), asserting via CHECK that
+>    ExecutionContext is live and looking up UkmRecorder after AddEntry()
+>    instead of caching a raw pointer across an Oilpan allocation.
+> 3. Adding MediaKeySessionTest.CreateSessionUsesMediaKeysExecutionContext
+>    covering the detached-iframe wrapper case.
+>
+> Bug: 589815781
+> Change-Id: I3a4f86cad065b697a0cdb0df96993456df4b5307
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8858012
+> Reviewed-by: Daniel Cheng <dcheng@chromium.org>
+> Commit-Queue: Sangbaek Park <sangbaekpark@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1754722}
+
+(cherry picked from commit 53c7631524a622e3c07c4582945c54b623bfb619)
+
+Bug: 590699888,589815781
+Change-Id: I3a4f86cad065b697a0cdb0df96993456df4b5307
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8873764
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1911}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ third_party/blink/renderer/modules/BUILD.gn   |   1 +
+ .../renderer/modules/encryptedmedia/DEPS      |   7 +-
+ .../encryptedmedia/media_key_session.cc       |  29 +-
+ .../encryptedmedia/media_key_session.h        |   5 +-
+ .../encryptedmedia/media_key_session_test.cc  | 267 ++++++++++++++++++
+ .../modules/encryptedmedia/media_keys.cc      |  11 +-
+ .../modules/encryptedmedia/media_keys.h       |  10 +-
+ .../modules/encryptedmedia/media_keys.idl     |   2 +-
+ 8 files changed, 305 insertions(+), 27 deletions(-)
+ create mode 100644 third_party/blink/renderer/modules/encryptedmedia/media_key_session_test.cc
+
+diff --git a/third_party/blink/renderer/modules/BUILD.gn b/third_party/blink/renderer/modules/BUILD.gn
+index 57908c79e9..1a17cf8c0d 100644
+--- a/third_party/blink/renderer/modules/BUILD.gn
++++ b/third_party/blink/renderer/modules/BUILD.gn
+@@ -476,6 +476,7 @@ source_set("unit_tests") {
+     "document_metadata/document_metadata_extractor_test.cc",
+     "document_metadata/document_metadata_server_test.cc",
+     "document_picture_in_picture/picture_in_picture_controller_test.cc",
++    "encryptedmedia/media_key_session_test.cc",
+     "eventsource/event_source_parser_test.cc",
+     "filesystem/dom_file_system_base_test.cc",
+     "filesystem/file_writer_test.cc",
+diff --git a/third_party/blink/renderer/modules/encryptedmedia/DEPS b/third_party/blink/renderer/modules/encryptedmedia/DEPS
+index 23a882a288..ef15bba212 100644
+--- a/third_party/blink/renderer/modules/encryptedmedia/DEPS
++++ b/third_party/blink/renderer/modules/encryptedmedia/DEPS
+@@ -14,5 +14,8 @@ include_rules = [
+ specific_include_rules = {
+     "encrypted_media_utils.cc": [
+       "+third_party/blink/renderer/core/frame/web_local_frame_impl.h",
+-    ]
+-}
+\ No newline at end of file
++    ],
++    "media_key_session_test.cc": [
++      "+components/ukm/test_ukm_recorder.h",
++    ],
++}
+diff --git a/third_party/blink/renderer/modules/encryptedmedia/media_key_session.cc b/third_party/blink/renderer/modules/encryptedmedia/media_key_session.cc
+index 9e9b94ac9a..e32d23f6e7 100644
+--- a/third_party/blink/renderer/modules/encryptedmedia/media_key_session.cc
++++ b/third_party/blink/renderer/modules/encryptedmedia/media_key_session.cc
+@@ -403,27 +403,27 @@ class SimpleResultPromise : public ContentDecryptionModuleResultPromise {
+   Member<MediaKeySession> session_;
+ };
+ 
+-MediaKeySession::MediaKeySession(ScriptState* script_state,
++MediaKeySession::MediaKeySession(ExecutionContext* execution_context,
+                                  MediaKeys* media_keys,
+                                  WebEncryptedMediaSessionType session_type,
+                                  const MediaKeysConfig& config)
+     : ActiveScriptWrappable<MediaKeySession>({}),
+-      ExecutionContextLifecycleObserver(ExecutionContext::From(script_state)),
++      ExecutionContextLifecycleObserver(execution_context),
+       async_event_queue_(
+-          MakeGarbageCollected<EventQueue>(GetExecutionContext(),
++          MakeGarbageCollected<EventQueue>(execution_context,
+                                            TaskType::kMediaElementEvent)),
+       media_keys_(media_keys),
+       session_type_(session_type),
+       config_(config),
+       expiration_(std::numeric_limits<double>::quiet_NaN()),
+       key_statuses_map_(MakeGarbageCollected<MediaKeyStatusMap>()),
+-      closed_promise_(MakeGarbageCollected<ClosedPromise>(
+-          ExecutionContext::From(script_state))),
+-      action_timer_(ExecutionContext::From(script_state)
+-                        ->GetTaskRunner(TaskType::kMiscPlatformAPI),
+-                    this,
+-                    &MediaKeySession::ActionTimerFired) {
++      closed_promise_(MakeGarbageCollected<ClosedPromise>(execution_context)),
++      action_timer_(
++          execution_context->GetTaskRunner(TaskType::kMiscPlatformAPI),
++          this,
++          &MediaKeySession::ActionTimerFired) {
+   DVLOG(MEDIA_KEY_SESSION_LOG_LEVEL) << __func__ << "(" << this << ")";
++  CHECK(!execution_context->IsContextDestroyed());
+   InstanceCounters::IncrementCounter(InstanceCounters::kMediaKeySessionCounter);
+ 
+   // Create the matching Chromium object. It will not be usable until
+@@ -1099,8 +1099,11 @@ void MediaKeySession::OnSessionKeysChange(
+   // 4.1 Empty statuses.
+   key_statuses_map_->Clear();
+ 
+-  auto* ukm_recorder = GetExecutionContext()->UkmRecorder();
+-  const ukm::SourceId source_id = GetExecutionContext()->UkmSourceID();
++  // ContextDestroyed() resets |session_|, so callbacks cannot arrive after
++  // context destruction and the ExecutionContext remains strongly reachable.
++  ExecutionContext* execution_context = GetExecutionContext();
++  CHECK(execution_context);
++  CHECK(!execution_context->IsContextDestroyed());
+ 
+   // 4.2 For each pair in input statuses.
+   for (size_t i = 0; i < keys.size(); ++i) {
+@@ -1111,9 +1114,9 @@ void MediaKeySession::OnSessionKeysChange(
+     key_statuses_map_->AddEntry(
+         key.Id(), EncryptedMediaUtils::ConvertKeyStatusToEnum(key.Status()));
+ 
+-    ukm::builders::Media_EME_CdmSystemCode(source_id)
++    ukm::builders::Media_EME_CdmSystemCode(execution_context->UkmSourceID())
+         .SetCdmSystemCode(key.SystemCode())
+-        .Record(ukm_recorder);
++        .Record(execution_context->UkmRecorder());
+   }
+ 
+   // 5. Queue a task to fire a simple event named keystatuseschange
+diff --git a/third_party/blink/renderer/modules/encryptedmedia/media_key_session.h b/third_party/blink/renderer/modules/encryptedmedia/media_key_session.h
+index 29516167d1..5b5a6d444b 100644
+--- a/third_party/blink/renderer/modules/encryptedmedia/media_key_session.h
++++ b/third_party/blink/renderer/modules/encryptedmedia/media_key_session.h
+@@ -39,6 +39,7 @@
+ #include "third_party/blink/renderer/modules/encryptedmedia/encrypted_media_utils.h"
+ #include "third_party/blink/renderer/modules/encryptedmedia/media_key_status_map.h"
+ #include "third_party/blink/renderer/modules/event_target_modules.h"
++#include "third_party/blink/renderer/modules/modules_export.h"
+ #include "third_party/blink/renderer/platform/heap/collection_support/heap_deque.h"
+ #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
+ #include "third_party/blink/renderer/platform/heap/prefinalizer.h"
+@@ -73,7 +74,7 @@ class MediaKeys;
+ // WebContentDecryptionModuleSession, it may outlive any JavaScript references
+ // as long as the MediaKeys object is alive.
+ // The WebContentDecryptionModuleSession has the same lifetime as this object.
+-class MediaKeySession final
++class MODULES_EXPORT MediaKeySession final
+     : public EventTarget,
+       public ActiveScriptWrappable<MediaKeySession>,
+       public ExecutionContextLifecycleObserver,
+@@ -82,7 +83,7 @@ class MediaKeySession final
+   USING_PRE_FINALIZER(MediaKeySession, Dispose);
+ 
+  public:
+-  MediaKeySession(ScriptState*,
++  MediaKeySession(ExecutionContext*,
+                   MediaKeys*,
+                   WebEncryptedMediaSessionType,
+                   const MediaKeysConfig&);
+diff --git a/third_party/blink/renderer/modules/encryptedmedia/media_key_session_test.cc b/third_party/blink/renderer/modules/encryptedmedia/media_key_session_test.cc
+new file mode 100644
+index 0000000000..3beb99cce1
+--- /dev/null
++++ b/third_party/blink/renderer/modules/encryptedmedia/media_key_session_test.cc
+@@ -0,0 +1,267 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "third_party/blink/renderer/modules/encryptedmedia/media_key_session.h"
++
++#include <memory>
++#include <utility>
++#include <vector>
++
++#include "base/containers/span.h"
++#include "base/memory/raw_ptr.h"
++#include "base/memory/ref_counted.h"
++#include "base/memory/scoped_refptr.h"
++#include "components/ukm/test_ukm_recorder.h"
++#include "services/metrics/public/cpp/ukm_builders.h"
++#include "testing/gtest/include/gtest/gtest.h"
++#include "third_party/blink/public/platform/web_content_decryption_module.h"
++#include "third_party/blink/public/platform/web_content_decryption_module_session.h"
++#include "third_party/blink/public/platform/web_data.h"
++#include "third_party/blink/public/platform/web_encrypted_media_key_information.h"
++#include "third_party/blink/public/platform/web_encrypted_media_types.h"
++#include "third_party/blink/public/platform/web_string.h"
++#include "third_party/blink/renderer/bindings/core/v8/script_evaluation_result.h"
++#include "third_party/blink/renderer/bindings/core/v8/to_v8_traits.h"
++#include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
++#include "third_party/blink/renderer/bindings/modules/v8/v8_media_key_session.h"
++#include "third_party/blink/renderer/bindings/modules/v8/v8_media_keys.h"
++#include "third_party/blink/renderer/core/dom/document.h"
++#include "third_party/blink/renderer/core/frame/local_dom_window.h"
++#include "third_party/blink/renderer/core/frame/local_frame.h"
++#include "third_party/blink/renderer/core/html/html_iframe_element.h"
++#include "third_party/blink/renderer/core/script/classic_script.h"
++#include "third_party/blink/renderer/core/testing/sim/sim_request.h"
++#include "third_party/blink/renderer/core/testing/sim/sim_test.h"
++#include "third_party/blink/renderer/modules/encryptedmedia/encrypted_media_utils.h"
++#include "third_party/blink/renderer/modules/encryptedmedia/media_key_status_map.h"
++#include "third_party/blink/renderer/modules/encryptedmedia/media_keys.h"
++#include "third_party/blink/renderer/platform/bindings/script_state.h"
++#include "third_party/blink/renderer/platform/bindings/v8_binding.h"
++#include "third_party/blink/renderer/platform/heap/garbage_collected.h"
++#include "third_party/blink/renderer/platform/heap/persistent.h"
++#include "third_party/blink/renderer/platform/heap/thread_state.h"
++
++namespace blink {
++
++namespace {
++
++// Ref-counted state shared between the test and fake CDM objects so pointers
++// stay valid even if Oilpan finalizes MediaKeys during test teardown.
++struct TestSessionState : public base::RefCounted<TestSessionState> {
++  raw_ptr<WebContentDecryptionModuleSession::Client> client = nullptr;
++  bool session_destroyed = false;
++
++ private:
++  friend class base::RefCounted<TestSessionState>;
++  ~TestSessionState() = default;
++};
++
++// Minimal fake CDM session that captures the MediaKeySession client pointer
++// and tracks when MediaKeySession destroys the underlying session.
++class FakeWebContentDecryptionModuleSession
++    : public WebContentDecryptionModuleSession {
++ public:
++  explicit FakeWebContentDecryptionModuleSession(
++      scoped_refptr<TestSessionState> state)
++      : state_(std::move(state)) {}
++
++  ~FakeWebContentDecryptionModuleSession() override {
++    state_->session_destroyed = true;
++  }
++
++  void SetClientInterface(Client* client) override { state_->client = client; }
++
++  WebString SessionId() const override { return WebString::FromUtf8("test"); }
++
++  void InitializeNewSession(media::EmeInitDataType,
++                            base::span<const uint8_t>,
++                            WebContentDecryptionModuleResult) override {}
++  void Load(const WebString&, WebContentDecryptionModuleResult) override {}
++  void Update(base::span<const uint8_t>,
++              WebContentDecryptionModuleResult) override {}
++  void Close(WebContentDecryptionModuleResult) override {}
++  void Remove(WebContentDecryptionModuleResult) override {}
++
++ private:
++  scoped_refptr<TestSessionState> state_;
++};
++
++class FakeWebContentDecryptionModule : public WebContentDecryptionModule {
++ public:
++  explicit FakeWebContentDecryptionModule(scoped_refptr<TestSessionState> state)
++      : state_(std::move(state)) {}
++
++  std::unique_ptr<WebContentDecryptionModuleSession> CreateSession(
++      WebEncryptedMediaSessionType) override {
++    return std::make_unique<FakeWebContentDecryptionModuleSession>(state_);
++  }
++
++  void SetServerCertificate(base::span<const uint8_t>,
++                            WebContentDecryptionModuleResult) override {}
++  void GetStatusForPolicy(const WebString&,
++                          WebContentDecryptionModuleResult) override {}
++
++ private:
++  scoped_refptr<TestSessionState> state_;
++};
++
++std::vector<WebEncryptedMediaKeyInformation> MakeSampleKeys(
++    uint32_t system_code) {
++  std::vector<WebEncryptedMediaKeyInformation> keys(1);
++  keys[0].SetId(WebData(base::byte_span_from_cstring("key1")));
++  keys[0].SetStatus(WebEncryptedMediaKeyInformation::KeyStatus::kUsable);
++  keys[0].SetSystemCode(system_code);
++  return keys;
++}
++
++}  // namespace
++
++class MediaKeySessionTest : public SimTest {
++ protected:
++  MediaKeys* CreateMediaKeys(ExecutionContext* context,
++                             scoped_refptr<TestSessionState> state) {
++    MediaKeysConfig config = {"org.w3.clearkey", false};
++    return MakeGarbageCollected<MediaKeys>(
++        context,
++        std::vector<WebEncryptedMediaSessionType>{
++            WebEncryptedMediaSessionType::kTemporary},
++        std::make_unique<FakeWebContentDecryptionModule>(std::move(state)),
++        config);
++  }
++
++  // Invokes createSession() in |eval_script_state| on a pre-wrapped MediaKeys
++  // V8 object (which may belong to a different, possibly destroyed realm).
++  MediaKeySession* InvokeCreateSessionViaJs(
++      ScriptState* eval_script_state,
++      const v8::Global<v8::Value>& v8_media_keys_global) {
++    v8::Isolate* isolate = eval_script_state->GetIsolate();
++    ScriptState::Scope eval_scope(eval_script_state);
++    v8::Local<v8::Context> eval_context = eval_script_state->GetContext();
++    v8::MicrotasksScope microtasks_scope(
++        eval_context, v8::MicrotasksScope::kDoNotRunMicrotasks);
++
++    EXPECT_TRUE(eval_context->Global()
++                    ->Set(eval_context,
++                          V8AtomicString(isolate, "wrappedMediaKeys"),
++                          v8_media_keys_global.Get(isolate))
++                    .FromMaybe(false));
++
++    ScriptEvaluationResult eval_result =
++        ClassicScript::CreateUnspecifiedScript(
++            "wrappedMediaKeys.createSession()")
++            ->RunScriptOnScriptStateAndReturnValue(eval_script_state);
++    EXPECT_EQ(eval_result.GetResultType(),
++              ScriptEvaluationResult::ResultType::kSuccess);
++
++    MediaKeySession* session = nullptr;
++    if (eval_result.GetResultType() ==
++        ScriptEvaluationResult::ResultType::kSuccess) {
++      session = V8MediaKeySession::ToWrappable(isolate,
++                                               eval_result.GetSuccessValue());
++    }
++
++    // Clear the global property so nothing in JS retains the wrapper's realm.
++    EXPECT_TRUE(
++        eval_context->Global()
++            ->Delete(eval_context, V8AtomicString(isolate, "wrappedMediaKeys"))
++            .FromMaybe(false));
++    return session;
++  }
++
++  ukm::TestAutoSetUkmRecorder ukm_recorder_;
++};
++
++// Regression test for https://crbug.com/589815781: MediaKeys::createSession()
++// previously bound the new MediaKeySession to the receiver V8 wrapper's realm
++// rather than MediaKeys' own ExecutionContext. When a MediaKeys wrapper was
++// recreated in a detached iframe's realm, MediaKeySession observed an
++// already-destroyed ExecutionContext whose Document (and owned UkmRecorder)
++// could be collected during OnSessionKeysChange().
++TEST_F(MediaKeySessionTest, CreateSessionUsesMediaKeysExecutionContext) {
++  SimRequest main_resource("https://example.com/", "text/html");
++  LoadURL("https://example.com/");
++  main_resource.Complete(R"(
++    <iframe id="test-iframe" src="about:blank"></iframe>
++  )");
++
++  Persistent<LocalDOMWindow> main_window = Window().GetFrame()->DomWindow();
++  ASSERT_TRUE(main_window);
++
++  auto state = base::MakeRefCounted<TestSessionState>();
++  Persistent<MediaKeys> media_keys = CreateMediaKeys(main_window.Get(), state);
++
++  ScriptState* main_script_state =
++      ToScriptStateForMainWorld(Window().GetFrame());
++  v8::Isolate* isolate = main_script_state->GetIsolate();
++
++  // Wrap |media_keys| in the iframe's realm, then detach the iframe before
++  // invoking createSession() from the main window.
++  Persistent<MediaKeySession> session;
++  {
++    auto* iframe = To<HTMLIFrameElement>(
++        GetDocument().getElementById(AtomicString("test-iframe")));
++    ASSERT_TRUE(iframe);
++    auto* child_frame = To<LocalFrame>(iframe->ContentFrame());
++    ASSERT_TRUE(child_frame);
++    LocalDOMWindow* child_window = child_frame->DomWindow();
++    ASSERT_TRUE(child_window);
++
++    ScriptState* child_script_state = ToScriptStateForMainWorld(child_frame);
++    v8::Global<v8::Value> v8_media_keys_global;
++    {
++      ScriptState::Scope child_scope(child_script_state);
++      v8::Local<v8::Value> v8_media_keys =
++          ToV8Traits<MediaKeys>::ToV8(child_script_state, media_keys.Get());
++      ASSERT_FALSE(v8_media_keys.IsEmpty());
++      v8_media_keys_global.Reset(isolate, v8_media_keys);
++    }
++
++    iframe->remove();
++    ASSERT_TRUE(child_window->IsContextDestroyed());
++    ASSERT_FALSE(main_window->IsContextDestroyed());
++
++    session = InvokeCreateSessionViaJs(main_script_state, v8_media_keys_global);
++  }
++
++  ASSERT_TRUE(session);
++  ASSERT_TRUE(state->client);
++
++  // MediaKeySession must observe MediaKeys' alive ExecutionContext rather than
++  // the destroyed iframe's ExecutionContext.
++  EXPECT_EQ(session->GetExecutionContext(), main_window.Get());
++  ASSERT_TRUE(session->GetExecutionContext());
++  EXPECT_FALSE(session->GetExecutionContext()->IsContextDestroyed());
++
++  // Collect the detached iframe's Window and Document.
++  isolate->RequestGarbageCollectionForTesting(
++      v8::Isolate::kFullGarbageCollection);
++  ThreadState::Current()->CollectAllGarbageForTesting(
++      ThreadState::StackState::kNoHeapPointers);
++
++  // OnSessionKeysChange must safely update keyStatuses and record UKM on the
++  // main window without dereferencing a null or freed UkmRecorder.
++  state->client->OnSessionKeysChange(MakeSampleKeys(/*system_code=*/42),
++                                     /*has_additional_usable_key=*/true);
++
++  EXPECT_EQ(session->keyStatuses()->size(), 1u);
++  auto entries = ukm_recorder_.GetEntriesByName(
++      ukm::builders::Media_EME_CdmSystemCode::kEntryName);
++  ASSERT_EQ(entries.size(), 1u);
++  EXPECT_EQ(entries[0]->source_id, main_window->UkmSourceID());
++  ukm::TestUkmRecorder::ExpectEntryMetric(
++      entries[0], ukm::builders::Media_EME_CdmSystemCode::kCdmSystemCodeName,
++      42);
++
++  // Destroying MediaKeys' context must also notify MediaKeySession and tear
++  // down the underlying CDM session.
++  EXPECT_FALSE(state->session_destroyed);
++  LoadURL("about:blank");
++  EXPECT_TRUE(state->session_destroyed);
++  EXPECT_EQ(session->GetExecutionContext(), nullptr);
++
++  // Clear raw client pointer before releasing |session|.
++  state->client = nullptr;
++}
++
++}  // namespace blink
+diff --git a/third_party/blink/renderer/modules/encryptedmedia/media_keys.cc b/third_party/blink/renderer/modules/encryptedmedia/media_keys.cc
+index 88c81962a8..843f2c44a7 100644
+--- a/third_party/blink/renderer/modules/encryptedmedia/media_keys.cc
++++ b/third_party/blink/renderer/modules/encryptedmedia/media_keys.cc
+@@ -266,14 +266,14 @@ MediaKeys::~MediaKeys() {
+ }
+ 
+ MediaKeySession* MediaKeys::createSession(
+-    ScriptState* script_state,
+     const V8MediaKeySessionType& v8_session_type,
+     ExceptionState& exception_state) {
+   DVLOG(MEDIA_KEYS_LOG_LEVEL)
+       << __func__ << "(" << this << ") " << v8_session_type.AsCStr();
+ 
+   // If the context for MediaKeys has been destroyed, fail.
+-  if (!GetExecutionContext()) {
++  ExecutionContext* execution_context = GetExecutionContext();
++  if (!execution_context || execution_context->IsContextDestroyed()) {
+     exception_state.ThrowDOMException(DOMExceptionCode::kInvalidAccessError,
+                                       "The context provided is invalid.");
+     return nullptr;
+@@ -302,8 +302,11 @@ MediaKeySession* MediaKeys::createSession(
+   //    follows:
+   //    (Initialization is performed in the constructor.)
+   // 4. Return session.
+-  return MakeGarbageCollected<MediaKeySession>(script_state, this, session_type,
+-                                               config_);
++  // Bind the session to MediaKeys' ExecutionContext rather than the receiver
++  // wrapper's realm so it shares MediaKeys' lifecycle and cannot observe an
++  // already-destroyed context.
++  return MakeGarbageCollected<MediaKeySession>(execution_context, this,
++                                               session_type, config_);
+ }
+ 
+ ScriptPromise<IDLBoolean> MediaKeys::setServerCertificate(
+diff --git a/third_party/blink/renderer/modules/encryptedmedia/media_keys.h b/third_party/blink/renderer/modules/encryptedmedia/media_keys.h
+index c95479875e..80d1988c82 100644
+--- a/third_party/blink/renderer/modules/encryptedmedia/media_keys.h
++++ b/third_party/blink/renderer/modules/encryptedmedia/media_keys.h
+@@ -37,6 +37,7 @@
+ #include "third_party/blink/renderer/core/execution_context/execution_context_lifecycle_observer.h"
+ #include "third_party/blink/renderer/core/typed_arrays/dom_array_piece.h"
+ #include "third_party/blink/renderer/modules/encryptedmedia/encrypted_media_utils.h"
++#include "third_party/blink/renderer/modules/modules_export.h"
+ #include "third_party/blink/renderer/platform/allow_discouraged_type.h"
+ #include "third_party/blink/renderer/platform/bindings/script_wrappable.h"
+ #include "third_party/blink/renderer/platform/heap/collection_support/heap_deque.h"
+@@ -59,9 +60,9 @@ class WebContentDecryptionModule;
+ 
+ // References are held by JS and HTMLMediaElement.
+ // The WebContentDecryptionModule has the same lifetime as this object.
+-class MediaKeys : public ScriptWrappable,
+-                  public ActiveScriptWrappable<MediaKeys>,
+-                  public ExecutionContextLifecycleObserver {
++class MODULES_EXPORT MediaKeys : public ScriptWrappable,
++                                 public ActiveScriptWrappable<MediaKeys>,
++                                 public ExecutionContextLifecycleObserver {
+   DEFINE_WRAPPERTYPEINFO();
+ 
+  public:
+@@ -72,8 +73,7 @@ class MediaKeys : public ScriptWrappable,
+       const MediaKeysConfig&);
+   ~MediaKeys() override;
+ 
+-  MediaKeySession* createSession(ScriptState*,
+-                                 const V8MediaKeySessionType& session_type,
++  MediaKeySession* createSession(const V8MediaKeySessionType& session_type,
+                                  ExceptionState&);
+ 
+   ScriptPromise<IDLBoolean> setServerCertificate(
+diff --git a/third_party/blink/renderer/modules/encryptedmedia/media_keys.idl b/third_party/blink/renderer/modules/encryptedmedia/media_keys.idl
+index 14d7391dba..1b46c5e242 100644
+--- a/third_party/blink/renderer/modules/encryptedmedia/media_keys.idl
++++ b/third_party/blink/renderer/modules/encryptedmedia/media_keys.idl
+@@ -35,7 +35,7 @@ enum MediaKeySessionType {
+     ActiveScriptWrappable,
+     SecureContext
+ ] interface MediaKeys {
+-    [CallWith=ScriptState, RaisesException] MediaKeySession createSession(optional MediaKeySessionType sessionType = "temporary");
++    [RaisesException] MediaKeySession createSession(optional MediaKeySessionType sessionType = "temporary");
+ 
+     [CallWith=ScriptState, RaisesException] Promise<boolean> setServerCertificate(BufferSource serverCertificate);
+ };
+-- 
+2.43.0
+

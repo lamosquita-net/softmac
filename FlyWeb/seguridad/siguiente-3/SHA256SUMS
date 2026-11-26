@@ -38,3 +38,4 @@ abca565dde28d6c83502ce1798d94000dfb94483975049f215b23d342359738e  chromium/0022-
 701976354b7842269807840b095521e5cf4c3f24dedc155202540006b416bb68  chromium/0024-M159-Evaluate-FontFace-range-descriptors-once-and-va.patch
 480a2b0784230d6062c26e6173e375447a7ac6912ea9edcd8ae9713b28d4b1c6  chromium/0025-M159-Fix-concurrent-Oilpan-marking-races-in-CSSSelec.patch
 a6c3b964f138cdb58de1d057dcb06a971247b1d24ad9dc318fb506a9f58259b9  chromium/0026-159-Allow-cross-world-serialization-from-detached-re.patch
+a7cb85633792a4733b5f1878388157a21a74c049a28a0c6e32efc81dad08aebd  chromium/0027-M159-blink-encryptedmedia-Fix-UAF-in-MediaKeySession.patch
