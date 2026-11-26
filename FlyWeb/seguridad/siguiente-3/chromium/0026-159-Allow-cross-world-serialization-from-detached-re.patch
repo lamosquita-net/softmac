@@ -1,0 +1,398 @@
+From 0e8b12995807a23ecc0aa76308f55b51cce25c28 Mon Sep 17 00:00:00 2001
+From: Jeremy Roman <jbroman@chromium.org>
+Date: Thu, 26 Nov 2026 07:39:55 -0800
+Subject: [PATCH] [159] Allow cross-world serialization from detached realms
+
+Original change's description:
+> Allow cross-world serialization from detached realms
+>
+> Extensions such as Tampermonkey construct cross-world CustomEvents using
+> primordials captured from a sandboxed iframe that is removed immediately
+> after setup. Failing closed whenever the source realm's execution
+> context is detached caused object event details on those events to
+> become null in isolated worlds.
+>
+> Allow cross-world serialization to proceed in the source realm as long
+> as its V8 context is still alive, while avoiding null execution context
+> dereferences in the serializer and continuing to disallow
+> SharedArrayBuffer and shared JavaScript value sharing when the source
+> execution context is no longer valid.
+>
+> Bug: 584758944
+> Fixed: 589373187
+> Change-Id: Ia2b5a2133a10f2691c5ec7388360bb2feb91dfbb
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8857303
+> Reviewed-by: Nate Chapin <japhet@chromium.org>
+> Commit-Queue: Jeremy Roman <jbroman@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1753743}
+
+Bug: 590466856
+Change-Id: Ia2b5a2133a10f2691c5ec7388360bb2feb91dfbb
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8864545
+Commit-Queue: Jeremy Roman <jbroman@chromium.org>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1901}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ .../v8_script_value_serializer.cc             |  46 ++++--
+ .../core/v8/world_safe_v8_reference.cc        |  12 +-
+ .../core/v8/world_safe_v8_reference_test.cc   | 154 +++++++++++++++++-
+ 3 files changed, 188 insertions(+), 24 deletions(-)
+
+diff --git a/third_party/blink/renderer/bindings/core/v8/serialization/v8_script_value_serializer.cc b/third_party/blink/renderer/bindings/core/v8/serialization/v8_script_value_serializer.cc
+index 4343a22c28..f9f2c47c33 100644
+--- a/third_party/blink/renderer/bindings/core/v8/serialization/v8_script_value_serializer.cc
++++ b/third_party/blink/renderer/bindings/core/v8/serialization/v8_script_value_serializer.cc
+@@ -26,7 +26,6 @@
+ #include "third_party/blink/renderer/bindings/core/v8/v8_image_bitmap.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_image_data.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_message_port.h"
+-#include "third_party/blink/renderer/bindings/core/v8/v8_microtasks_scope.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_mojo_handle.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_offscreen_canvas.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_readable_stream.h"
+@@ -66,9 +65,22 @@
+ #include "third_party/blink/renderer/platform/wtf/allocator/partitions.h"
+ #include "third_party/blink/renderer/platform/wtf/text/strcat.h"
+ #include "third_party/blink/renderer/platform/wtf/text/string_utf8_adaptor.h"
++#include "v8/include/v8-microtask-queue.h"
+ 
+ namespace blink {
+ 
++namespace {
++
++bool HasValidExecutionContext(const ScriptState* script_state) {
++  if (!script_state || !script_state->ContextIsValid()) {
++    return false;
++  }
++  ExecutionContext* execution_context = ExecutionContext::From(script_state);
++  return execution_context && !execution_context->IsContextDestroyed();
++}
++
++}  // namespace
++
+ // The "Blink-side" serialization version, which defines how Blink will behave
+ // during the serialization process, is in
+ // SerializedScriptValue::wireFormatVersion. The serialization format has two
+@@ -214,6 +226,7 @@ V8ScriptValueSerializer::V8ScriptValueSerializer(ScriptState* script_state,
+           script_state_->GetIsolate(),
+           this,
+           (options.for_storage == SerializedScriptValue::kForStorage ||
++           !HasValidExecutionContext(script_state_) ||
+            !ExecutionContext::From(script_state_)
+                 ->SharedArrayBufferTransferAllowed())
+               ? v8::ValueSerializer::SharedImmutableArrayBufferMode::kDisabled
+@@ -257,11 +270,13 @@ scoped_refptr<SerializedScriptValue> V8ScriptValueSerializer::Serialize(
+ 
+   // Serialize the value and handle errors.
+   v8::Isolate* isolate = script_state_->GetIsolate();
++  v8::Local<v8::Context> context = script_state_->GetContext();
+   TryRethrowScope rethrow_scope(isolate, exception_state);
+-  V8DoNotRunMicrotasksScope microtasks_scope(script_state_);
++  v8::MicrotasksScope microtasks_scope(
++      isolate, context->GetMicrotaskQueue(),
++      v8::MicrotasksScope::kDoNotRunMicrotasks);
+   bool wrote_value;
+-  if (!serializer_.WriteValue(script_state_->GetContext(), value)
+-           .To(&wrote_value)) {
++  if (!serializer_.WriteValue(context, value).To(&wrote_value)) {
+     DCHECK(rethrow_scope.HasCaught());
+     return nullptr;
+   }
+@@ -274,7 +289,8 @@ scoped_refptr<SerializedScriptValue> V8ScriptValueSerializer::Serialize(
+ 
+   if (shared_array_buffers_.size()) {
+     auto* execution_context = ExecutionContext::From(script_state_);
+-    if (!execution_context->CheckSharedArrayBufferTransferAllowedAndReport()) {
++    if (!HasValidExecutionContext(script_state_) ||
++        !execution_context->CheckSharedArrayBufferTransferAllowedAndReport()) {
+       exception_state.ThrowDOMException(
+           DOMExceptionCode::kDataCloneError,
+           "SharedArrayBuffer transfer requires self.crossOriginIsolated.");
+@@ -476,8 +492,9 @@ bool V8ScriptValueSerializer::WriteDOMObject(ScriptWrappable* wrappable,
+       index = transferables_->image_bitmaps.Find(image_bitmap);
+     if (index != kNotFound) {
+       if (image_bitmap->OriginClean()) {
+-        execution_context->CountUse(
+-            mojom::WebFeature::kOriginCleanImageBitmapTransfer);
++        UseCounter::Count(
++            execution_context,
++            mojom::blink::WebFeature::kOriginCleanImageBitmapTransfer);
+       } else {
+         exception_state.ThrowDOMException(
+             DOMExceptionCode::kDataCloneError,
+@@ -493,8 +510,9 @@ bool V8ScriptValueSerializer::WriteDOMObject(ScriptWrappable* wrappable,
+ 
+     // Otherwise, it must be fully serialized.
+     if (image_bitmap->OriginClean()) {
+-      execution_context->CountUse(
+-          mojom::WebFeature::kOriginCleanImageBitmapSerialization);
++      UseCounter::Count(
++          execution_context,
++          mojom::blink::WebFeature::kOriginCleanImageBitmapSerialization);
+     } else {
+       exception_state.ThrowDOMException(
+           DOMExceptionCode::kDataCloneError,
+@@ -992,6 +1010,13 @@ v8::Maybe<uint32_t> V8ScriptValueSerializer::GetSharedArrayBufferId(
+ 
+   ExceptionState exception_state(isolate);
+ 
++  if (!HasValidExecutionContext(script_state_)) {
++    exception_state.ThrowDOMException(
++        DOMExceptionCode::kDataCloneError,
++        "A SharedArrayBuffer cannot be cloned in a detached context.");
++    return v8::Nothing<uint32_t>();
++  }
++
+   if (for_storage_) {
+     exception_state.ThrowDOMException(
+         DOMExceptionCode::kDataCloneError,
+@@ -1080,7 +1105,8 @@ bool V8ScriptValueSerializer::AdoptSharedValueConveyor(
+     v8::Isolate* isolate,
+     v8::SharedValueConveyor&& conveyor) {
+   auto* execution_context = ExecutionContext::From(script_state_);
+-  if (for_storage_ || !execution_context->SharedArrayBufferTransferAllowed()) {
++  if (for_storage_ || !HasValidExecutionContext(script_state_) ||
++      !execution_context->SharedArrayBufferTransferAllowed()) {
+     V8ThrowDOMException::Throw(
+         isolate, DOMExceptionCode::kDataCloneError,
+         for_storage_
+diff --git a/third_party/blink/renderer/bindings/core/v8/world_safe_v8_reference.cc b/third_party/blink/renderer/bindings/core/v8/world_safe_v8_reference.cc
+index a5d54fb2e9..d7399e7dec 100644
+--- a/third_party/blink/renderer/bindings/core/v8/world_safe_v8_reference.cc
++++ b/third_party/blink/renderer/bindings/core/v8/world_safe_v8_reference.cc
+@@ -49,19 +49,19 @@ v8::Local<v8::Value> WorldSafeV8ReferenceInternal::ToWorldSafeValue(
+   }
+ 
+   CHECK(source_script_state);
+-  if (!HasValidExecutionContext(source_script_state)) {
++  v8::Local<v8::Context> source_context = source_script_state->GetContext();
++  if (source_context.IsEmpty()) {
+     return v8::Null(isolate);
+   }
+ 
+-  // Serialize in `source_script_state` (including incumbent context) so that
++  // Serialize in `source_context` (including incumbent context) so that
+   // property getters, proxy traps, Error stack formatting, and bound native
+   // WebIDL callbacks execute strictly in the source realm rather than
+-  // `target_script_state`.
++  // `target_script_state`, even if `source_script_state` is already detached.
+   scoped_refptr<SerializedScriptValue> serialized;
+   {
+-    ScriptState::Scope source_context_scope(source_script_state);
+-    v8::Context::BackupIncumbentScope backup_incumbent_scope(
+-        source_script_state->GetContext());
++    v8::Context::Scope source_context_scope(source_context);
++    v8::Context::BackupIncumbentScope backup_incumbent_scope(source_context);
+     serialized =
+         SerializedScriptValue::SerializeAndSwallowExceptions(isolate, value);
+   }
+diff --git a/third_party/blink/renderer/bindings/core/v8/world_safe_v8_reference_test.cc b/third_party/blink/renderer/bindings/core/v8/world_safe_v8_reference_test.cc
+index 2ff6fb5592..58962fca0f 100644
+--- a/third_party/blink/renderer/bindings/core/v8/world_safe_v8_reference_test.cc
++++ b/third_party/blink/renderer/bindings/core/v8/world_safe_v8_reference_test.cc
+@@ -297,7 +297,9 @@ TEST(WorldSafeV8ReferenceTest, CrossWorldSharedArrayBufferUnpacksCleanly) {
+ 
+ class WorldSafeV8ReferenceSimTest : public SimTest {};
+ 
+-TEST_F(WorldSafeV8ReferenceSimTest, DetachedContextsFailClosedAndDoNotLeak) {
++TEST_F(WorldSafeV8ReferenceSimTest,
++       DetachedContextsCloneInSourceRealmAndDoNotLeak) {
++  ScopedSharedArrayBufferForTest enable_sab(true);
+   SimRequest main_resource("https://example.com/main.html", "text/html");
+   SimRequest detach_src("https://example.com/detach_src.html", "text/html");
+   SimRequest detach_dst("https://example.com/detach_dst.html", "text/html");
+@@ -318,6 +320,14 @@ TEST_F(WorldSafeV8ReferenceSimTest, DetachedContextsFailClosedAndDoNotLeak) {
+ 
+   Persistent<ReferenceHolder> detached_obj_holder =
+       MakeGarbageCollected<ReferenceHolder>();
++  Persistent<ReferenceHolder> detached_blob_holder =
++      MakeGarbageCollected<ReferenceHolder>();
++  Persistent<ReferenceHolder> detached_bitmap_holder =
++      MakeGarbageCollected<ReferenceHolder>();
++  Persistent<ReferenceHolder> detached_wasm_holder =
++      MakeGarbageCollected<ReferenceHolder>();
++  Persistent<ReferenceHolder> detached_sab_holder =
++      MakeGarbageCollected<ReferenceHolder>();
+   Persistent<ReferenceHolder> detached_prim_holder =
+       MakeGarbageCollected<ReferenceHolder>();
+   WeakPersistent<LocalDOMWindow> weak_detach_src_window;
+@@ -349,13 +359,47 @@ TEST_F(WorldSafeV8ReferenceSimTest, DetachedContextsFailClosedAndDoNotLeak) {
+     }
+ 
+     // Set up detached source frame references for post-GC verification below.
+-    EvalInScriptState(main_state, "globalThis.detachedGetterRan = false;");
++    EvalInScriptState(main_state,
++                      "globalThis.getterUsedDetachedRealm = false;");
+     {
+       ScriptState::Scope scope(detach_src_state);
+       detached_obj_holder->reference.Set(
+           isolate, EvalInScriptState(detach_src_state, R"JS(
+-            ({ get x() { parent.detachedGetterRan = true; return 1; } })
++            (() => {
++              const parentWin = parent;
++              const detachedArrayCtor = Array;
++              const obj = {};
++              Object.defineProperty(obj, 'a', {
++                enumerable: true,
++                get: new Proxy(() => {}, {
++                  apply(_t, _r, args) {
++                    parentWin.getterUsedDetachedRealm =
++                        (Object.getPrototypeOf(args) ===
++                         detachedArrayCtor.prototype);
++                    return 42;
++                  }
++                }),
++              });
++              return obj;
++            })()
+           )JS"));
++      detached_blob_holder->reference.Set(
++          isolate, EvalInScriptState(detach_src_state, "new Blob(['hello'])"));
++      detached_bitmap_holder->reference.Set(
++          isolate, EvalInScriptState(detach_src_state, R"JS(
++            (() => {
++              const c = new OffscreenCanvas(1, 1);
++              c.getContext('2d');
++              return c.transferToImageBitmap();
++            })()
++          )JS"));
++      detached_wasm_holder->reference.Set(
++          isolate, EvalInScriptState(detach_src_state,
++                                     "new WebAssembly.Module(new "
++                                     "Uint8Array([0,97,115,109,1,0,0,0]))"));
++      detached_sab_holder->reference.Set(
++          isolate,
++          EvalInScriptState(detach_src_state, "new SharedArrayBuffer(16)"));
+       detached_prim_holder->reference.Set(isolate,
+                                           v8::Integer::New(isolate, 7));
+     }
+@@ -373,26 +417,120 @@ TEST_F(WorldSafeV8ReferenceSimTest, DetachedContextsFailClosedAndDoNotLeak) {
+     ScriptState* main_isolated_state =
+         ToScriptState(&Window(), *isolated_world);
+     ScriptState::Scope target_scope(main_isolated_state);
++
++    // JS objects serialize in the detached source realm without leaking
++    // target-world intrinsics.
++    v8::Local<v8::Value> cloned_obj =
++        detached_obj_holder->reference.GetAcrossWorld(main_isolated_state);
++    ASSERT_TRUE(cloned_obj->IsObject());
++    EXPECT_EQ(cloned_obj.As<v8::Object>()->GetCreationContextChecked(isolate),
++              main_isolated_state->GetContext());
++    v8::Local<v8::Value> prop_a = cloned_obj.As<v8::Object>()
++                                      ->Get(main_isolated_state->GetContext(),
++                                            V8AtomicString(isolate, "a"))
++                                      .ToLocalChecked();
++    ASSERT_TRUE(prop_a->IsInt32());
++    EXPECT_EQ(42, prop_a.As<v8::Int32>()->Value());
+     EXPECT_TRUE(
+-        detached_obj_holder->reference.GetAcrossWorld(main_isolated_state)
++        EvalInScriptState(ToScriptStateForMainWorld(GetDocument().GetFrame()),
++                          "globalThis.getterUsedDetachedRealm")
++            ->BooleanValue(isolate));
++
++    // Host/DOM and Wasm module objects that do not depend on the source
++    // ExecutionContext still clone cleanly, while SharedArrayBuffer fails
++    // closed when the source ExecutionContext is detached/destroyed.
++    EXPECT_TRUE(
++        detached_blob_holder->reference.GetAcrossWorld(main_isolated_state)
++            ->IsObject());
++    EXPECT_TRUE(
++        detached_bitmap_holder->reference.GetAcrossWorld(main_isolated_state)
++            ->IsObject());
++    EXPECT_TRUE(
++        detached_wasm_holder->reference.GetAcrossWorld(main_isolated_state)
++            ->IsObject());
++    EXPECT_TRUE(
++        detached_sab_holder->reference.GetAcrossWorld(main_isolated_state)
+             ->IsNull());
++
+     v8::Local<v8::Value> prim_val =
+         detached_prim_holder->reference.GetAcrossWorld(main_isolated_state);
+     ASSERT_TRUE(prim_val->IsInt32());
+     EXPECT_EQ(7, prim_val.As<v8::Int32>()->Value());
+-    EXPECT_FALSE(
+-        EvalInScriptState(ToScriptStateForMainWorld(GetDocument().GetFrame()),
+-                          "globalThis.detachedGetterRan")
+-            ->BooleanValue(isolate));
+   }
+ 
+   detached_obj_holder->reference.Reset();
++  detached_blob_holder->reference.Reset();
++  detached_bitmap_holder->reference.Reset();
++  detached_wasm_holder->reference.Reset();
++  detached_sab_holder->reference.Reset();
+   isolate->LowMemoryNotification();
+   ThreadState::Current()->CollectAllGarbageForTesting(
+       ThreadState::StackState::kNoHeapPointers);
+   EXPECT_FALSE(weak_detach_src_window);
+ }
+ 
++TEST_F(WorldSafeV8ReferenceSimTest,
++       DetachedIframeCustomEventDetailClonesAcrossWorlds) {
++  SimRequest main_resource("https://example.com/main.html", "text/html");
++  LoadURL("https://example.com/main.html");
++  main_resource.Complete("<!DOCTYPE html><body></body>");
++  test::RunPendingTasks();
++
++  v8::Isolate* isolate = Window().GetIsolate();
++  v8::HandleScope handle_scope(isolate);
++  Persistent<DOMWrapperWorld> isolated_world =
++      DOMWrapperWorld::EnsureIsolatedWorld(isolate, kIsolatedWorldId1);
++  ASSERT_TRUE(isolated_world);
++
++  ScriptState* main_state = ToScriptStateForMainWorld(GetDocument().GetFrame());
++  ScriptState* isolated_state = ToScriptState(&Window(), *isolated_world);
++
++  EvalInScriptState(isolated_state, R"JS(
++    globalThis.received = [];
++    window.addEventListener('probe', e => {
++      const d = e.detail;
++      if (d instanceof Blob) {
++        globalThis.received.push({ blobSize: d.size });
++      } else {
++        globalThis.received.push({
++          isNull: d === null,
++          inIsolatedRealm: d !== null && typeof d === 'object' &&
++                           Object.getPrototypeOf(d) === Object.prototype,
++          json: JSON.stringify(d),
++        });
++      }
++    });
++  )JS");
++
++  EvalInScriptState(main_state, R"JS(
++    const f = document.createElement('iframe');
++    document.body.appendChild(f);
++    const W = f.contentWindow;
++    const DetachedCE = W.CustomEvent;
++    f.remove();
++
++    // Plain object created in the live main page.
++    dispatchEvent(new DetachedCE('probe', { detail: { a: 1 } }));
++    // Null-prototype object created via the detached iframe's primordials.
++    const nullProto = W.Object.assign(W.Object.create(null), { m: 'ack' });
++    dispatchEvent(new DetachedCE('probe', { detail: nullProto }));
++    // Primitive detail.
++    dispatchEvent(new DetachedCE('probe', { detail: 'str' }));
++    // Host/DOM object also clones across worlds.
++    dispatchEvent(new DetachedCE('probe', { detail: new Blob(['x']) }));
++  )JS");
++
++  v8::Local<v8::Value> summary =
++      EvalInScriptState(isolated_state, "JSON.stringify(globalThis.received)");
++  ASSERT_TRUE(summary->IsString());
++  EXPECT_EQ(
++      R"([{"isNull":false,"inIsolatedRealm":true,"json":"{\"a\":1}"},)"
++      R"({"isNull":false,"inIsolatedRealm":true,"json":"{\"m\":\"ack\"}"},)"
++      R"({"isNull":false,"inIsolatedRealm":false,"json":"\"str\""},)"
++      R"({"blobSize":1}])",
++      ToCoreString(isolate, summary.As<v8::String>()));
++}
++
+ #if !BUILDFLAG(IS_ANDROID)
+ TEST_F(WorldSafeV8ReferenceSimTest,
+        CrossFrameSharedArrayBufferRespectsTargetContextPolicy) {
+-- 
+2.43.0
+

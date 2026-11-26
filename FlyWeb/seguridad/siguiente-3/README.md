@@ -12,12 +12,12 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0011` | **`fdee71cc91`** (hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0025` | **`0d484117f6`** (hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0026` | **`f3c3d7fba8`** (hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 | Skia | árbol **`1ef25455d7`** (fork `lamosquita-net/skia` `d361a1e371`, árbol `a934afed14`, + `pendiente/skia/0001`–`0003`, que entraron en la 3.2.0) | `skia/0001` | **`bc0519fc6a`** |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54` y, con `0025`, `0d484117f6`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54`, con `0025`, `0d484117f6` y, con `0026`, `f3c3d7fba8`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -75,6 +75,8 @@ El merge **`2b43666310`** de la **8078**, tal cual. **Gravedad no publicada.**
 - **El arreglo:** serializar en el contexto de origen y deserializar en el de destino. Además falla en cerrado con
   contextos desconectados, exige que el `SharedArrayBuffer` se pueda transferir al destino y protege la resolución de
   promesas.
+- **Corregido por `chromium/0026`:** fallar en cerrado con el contexto de origen desconectado rompía extensiones como
+  Tampermonkey; la 159 lo relaja en `e924828acd`.
 
 ## `chromium/0004`: [M156] optimization_guide, `SetInput()` diferido (crbugs 570347667, 562796602)
 
@@ -593,6 +595,29 @@ publicada.** Aún sin merge a la 8078. Portado desde el diff de main y **compara
   `base::checked_cast<uint32_t>` de main; se conserva la forma de la 156, que no es parte del arreglo. Lo demás entra
   tal cual. Brave no toca `css_selector_list`.
 - **Aplica a Mac.** **Para LOCAL:** `blink_unit_tests --gtest_filter='*CSSSelector*'`; la carrera solo se ve con TSan.
+
+## `chromium/0026`: [M159] Blink, el clonado entre mundos vuelve a funcionar desde reinos desconectados (crbug 590466856)
+
+**`e924828acd`** de la **8154** (26-11 15:39 UTC; *pure cherry-pick* de main #1753743; bug original 584758944, cerrado
+589373187). Entra tal cual sobre `0025` (solo desplazamientos de líneas). Aún sin merge a la 8078. **No es un arreglo
+de seguridad nuevo: corrige la regresión que trajo el de `chromium/0003`.**
+- **La regresión:**
+  - `chromium/0003` (584758944) hacía fallar en cerrado el clonado entre mundos en cuanto el `ExecutionContext` del
+    reino de origen estaba desconectado;
+  - extensiones como Tampermonkey construyen `CustomEvent` entre mundos con primitivas capturadas de un `iframe`
+    aislado que borran enseguida, y el `detail` de esos eventos llegaba `null` a los mundos aislados.
+- **El arreglo:**
+  - `WorldSafeV8Reference` serializa en el contexto V8 de origen mientras siga vivo (`v8::Context::Scope`, ya no
+    `ScriptState::Scope`), aunque su `ExecutionContext` esté desconectado;
+  - `V8ScriptValueSerializer` añade `HasValidExecutionContext()` y, con el contexto de ejecución desconectado, sigue
+    negando `SharedArrayBuffer` y los valores JS compartidos, y ya no desreferencia un contexto de ejecución nulo
+    (`UseCounter::Count` en vez de `execution_context->CountUse`);
+  - el `MicrotasksScope` se crea con la cola del contexto V8 en lugar de `V8DoNotRunMicrotasksScope(script_state_)`.
+- **Por qué entra en esta tanda:** sin él, `chromium/0003` rompe extensiones de usuario muy usadas. Las API que usa
+  (`ScriptState::ContextIsValid`, `UseCounter::Count`, `mojom::blink::WebFeature`, `ScopedSharedArrayBufferForTest`)
+  existen en la 156. Brave no toca estos ficheros.
+- **Aplica a Mac.** **Para LOCAL:** `blink_unittests --gtest_filter='WorldSafeV8Reference*:V8ScriptValueSerializer*'`,
+  y a mano: Tampermonkey con un script de usuario que use `CustomEvent` entre mundos.
 
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
