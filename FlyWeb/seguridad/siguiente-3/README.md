@@ -780,7 +780,7 @@ publicada.**
 ## `brave-core/0011`: [M156] V8, SimplifiedLowering respeta `kTaggedPointer` (crbug 585624825)
 
 **`2a154b5db9`** de V8 **15.6** (15.6.75.88, 26-11 11:20 UTC; bug del merge 588740156; main `33cdb11f68`; gemelo M159
-`51437718f5`, 15.9.128.41). Entra tal cual sobre la 15.6.75.66. `representation-change.cc`,
+`51437718f5`, 15.9.128.41; la 8078 rueda V8 a 15.6.75.88 en `5310174b15`, 26-11 13:02 UTC). Entra tal cual sobre la 15.6.75.66. `representation-change.cc`,
 `simplified-lowering-verifier.cc` y `turboshaft/operations.h` ya tenían parche de FlyWeb, sin conflicto. **Gravedad no
 publicada.**
 - **El fallo, una confusión de tipos en el código optimizado:**
