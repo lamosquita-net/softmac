@@ -25,7 +25,7 @@ sincronizar tus Mac, y entonces se aplica <a href="#cuenta">lo que explicamos m�
   <tr><td><code>components.flyweb.lamosquita.net</code></td>
       <td>Actualizar las listas de bloqueo de anuncios y rastreadores y los componentes de seguridad (certificados
       revocados, etc.)</td>
-      <td>La versión de cada componente instalado, la versión del navegador, el sistema (macOS) y la arquitectura.
+      <td>La versión de cada componente instalado, la versión del navegador, el sistema (macOS o Linux) y la arquitectura.
       Nada que identifique tu equipo: ni memoria, ni procesador, ni versión exacta del sistema.</td></tr>
   <tr><td><code>proxy.flyweb.lamosquita.net</code></td>
       <td>Navegación segura (avisos de webs peligrosas y descargas maliciosas) y diccionarios del corrector,
@@ -35,6 +35,11 @@ sincronizar tus Mac, y entonces se aplica <a href="#cuenta">lo que explicamos m�
   <tr><td><code>updates.flyweb.lamosquita.net</code></td>
       <td>Avisar de versiones nuevas de FlyWeb</td>
       <td>La versión del navegador.</td></tr>
+  <tr><td><code>apt.flyweb.lamosquita.net</code> (solo en Linux)</td>
+      <td>Actualizaciones de FlyWeb para Linux. No lo consulta el navegador, sino el gestor de paquetes del sistema (apt),
+      junto con sus demás repositorios</td>
+      <td>Lo que pide cualquier repositorio apt: el índice de paquetes y, si hay versión nueva, el paquete de FlyWeb; y la
+      versión de apt de tu sistema.</td></tr>
   <tr><td><code>sync.flyweb.lamosquita.net</code> (solo si activas Sincronizar)</td>
       <td>Mantener iguales tus contraseñas, marcadores, historial y ajustes en tus Mac</td>
       <td>Tus datos, <strong>cifrados en tu Mac</strong> con una clave que sale de tu clave de recuperación (24 palabras) y que
