@@ -670,6 +670,12 @@ con el 566156384. Entra tal cual sobre la 15.6.75.66. **Gravedad no publicada.**
 **`d76136bcef`** de V8 **15.9** (15.9.128.39, 25-11 08:58 UTC; bug del merge 590348412; main `eb88dd314f`). **Aún no está
 en la 15.6.** Entra tal cual sobre la 15.6.75.66; `runtime-scopes.cc` ya tenía parche de FlyWeb, sin conflicto, y todo lo
 que usa existe en la 15.6. **Gravedad no publicada.**
+- **Merge M156 (26-11 08:15 UTC):** V8 15.6 **`6d5d7dc23a`** (15.6.75.87; bug del merge 590347087). **El nuestro es más
+  estricto, y se queda como está.** El M156 rechaza igual los `ModuleContext` y los *bindings* léxicos o de solo lectura,
+  con los mismos `DCHECK`. No incluye el tercer caso del M159: el `arguments` implícito de una función con parámetros no
+  simples (`index != kNotFound && IsFunctionContext() && !HasSimpleParameters()`), ni su prueba (`function arguments(){}`,
+  `runNonSimpleParams: [null,0]`). Lo demás del `.patch` de `runtime-scopes.cc` (`MarkContextSlotNotAssignedIsUnreliable`)
+  es de otro port que ya estaba en ese fichero, no de este.
 - **El fallo:** al evaluar en un marco del depurador (DevTools), un `var` o `function` del fragmento se izaba más allá del
   `DebugEvaluateContext` sin la comprobación de conflictos del parser. `DeclareEvalHelper` podía escribir un índice de
   celda de módulo en un `ModuleContext` (o tratar un `SourceTextModule` como `JSObject`), sobrescribir `const`/`let` o
