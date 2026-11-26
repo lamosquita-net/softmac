@@ -7,6 +7,38 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 26-11 (tarde): COORDINACIÓN-64 → COORDINACIÓN-65 (local, 7,1; leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-64 = «Coordinación (64)» [0fe970], relevo al 37 %. La 65 la abre Titín. Vigilante igual que la 64 (Monitor cada
+120 s sobre `origin/buzon`, punta guardada en un fichero del scratchpad, filtro `grep -v -E 'COORDINACION-6[0-9] to|uploaded by
+COORDINACION-6[0-9]'`); última punta vista por la 64: `bdeb19c7`. Canales: LOCAL-25 «Local (25)»; D8-LINUX-6 «ubuntu (6)» (sin
+push: sus informes los sube la coordinación, «uploaded by»; escribe en castellano a Titín, se le recordó); ARQUITECTURA
+«Arquitectura FlyWeb monorepo»; SEGURIDAD-PORTES-33 y MOTOR-47 por nombre (contestan al buzón).
+
+**Hecho desde la nota de mediodía:** #1242, #1245 y #1246 fusionados (Titín: no había que esperar a nada para los iconos de
+Linux; lección: no aparcar PR comprobados «hasta la tanda»). `empaquetar-deb.py` con iconos de Linux y AppArmor en prerm
+(#1249). **Segunda instalación en la Ubuntu de Titín APTO** (`buzon/COORDINACION/20261126-…-D8-LINUX-6-U4-instalacion2.md`):
+mosca en menú y dock, castellano, predeterminado bien, AppArmor limpio. Vídeo lento: informe de LOCAL-25 (E1 no influye) y
+estudio §13 de ARQUITECTURA fusionado (#1251; (a) anotada en §12.7): causa probable, anillo de comandos lleno al cargar.
+
+**Abierto, por orden:**
+1. **Vídeo lento:** LOCAL-25 hace `sample` del renderer de Aquarium en la carga y A/B 8+8 del interruptor
+   `IncreasedCmdBufferParseSlice` (pedido por ARQUITECTURA). Con el resultado, ARQUITECTURA propone a Titín interruptor o parche
+   y versión, en un PR.
+2. **Aviso de predeterminado naranja con texto negro y bienvenida traducida** (petición de Titín): MOTOR-47 #1250 (borrador;
+   cambia todos los *toasts*). D8-LINUX lo prueba en Linux (Xvfb); Mac, con la tanda. Fusionar cuando D8 dé verde.
+3. **U4, paso 3:** D8-LINUX escribe `servidor/apt/bak/firmar-apt.mjs` y sus pruebas sin red (`buzon/D8-LINUX/…-U4-paso3.md`);
+   pega el código, lo sube la coordinación por PR y lo revisa SEGURIDAD-PORTES. Después: paso 4 (clave, Titín: v4, principal
+   sin caducidad o 10 años, subclave 2 años, solo la subclave a bak), paso 5 (SERVIDOR: vhost `apt.flyweb.lamosquita.net`,
+   `rrsync`; producción con permiso de Titín), paso 6 (publicación de prueba). **Titín pidió que se le avise cuando el
+   repositorio esté en el servidor**: hará la instalación completa desde allí para probar las actualizaciones automáticas.
+4. **La próxima versión** (siguiente-3 hasta chromium/0025 y brave-core/0011 + E1 + U3 1–7 + 0012 + iconos/escritorio de Linux +
+   #1250), Mac y Linux a la vez con el guion único: número y corte, de Titín. Pruebas pendientes en Mac: cookies en `EndSession`
+   (prueba 3 del parche 6), aviso naranja.
+5. Rastros en la Ubuntu de Titín (perfil `~/.config/LaMosquita/FlyWeb`, `mimeapps.list` vacío, application_state, wireplumber,
+   caché de appstream, `.deb` en `/var/cache/apt/archives`, perfil movido a `~/d8-trabajo/linux/u4-paso2/perfil-extraviado-LaMosquita`,
+   `out/Release-321-linux`, worktrees viejos): lista nominal a Titín cuando toque; nada se borra sin su aprobación de la lista.
+
 ## 26-11 (mediodía): estado de COORDINACIÓN-64 (local, 7,1; leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-64 = «Coordinación (64)» [0fe970], desde el 25-11 ~19:46 UTC (fila #1241). Vigilante: Monitor cada 120 s sobre
