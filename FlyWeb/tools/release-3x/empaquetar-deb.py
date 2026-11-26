@@ -76,7 +76,7 @@ def main():
     a.add_argument("--build", required=True, type=int)
     a.add_argument("--salida", required=True, type=pathlib.Path)
     a.add_argument("--iconos", type=pathlib.Path,
-                   help="carpeta con appicon_<n>.png (por omisión, la de Mac en brave-core)")
+                   help="carpeta theme de brave-core (por omisión, la de src/brave/app/theme)")
     g = a.add_mutually_exclusive_group(required=True)
     g.add_argument("--llavero", type=pathlib.Path)
     g.add_argument("--prueba", action="store_true")
@@ -87,7 +87,10 @@ def main():
     version = f"{args.version}-{args.build}"
     out = args.out.resolve()
     src = out.parent.parent
-    iconos = args.iconos or src / "brave/app/theme/brave/mac/Assets.xcassets/AppIcon.appiconset"
+    # Los iconos de Linux de brave-core (FlyWeb/parches/3.2-iconos-linux): los mismos tamaños que instala upstream.
+    tema = args.iconos or src / "brave/app/theme"
+    iconos = {n: tema / "brave/linux" / f"product_logo_{n}.png" for n in (24, 48, 64, 128, 256)}
+    iconos |= {n: tema / "default_100_percent/brave/linux" / f"product_logo_{n}.png" for n in (16, 32)}
     comun = out / "installer/common"
 
     # Las dependencias de upstream (dpkg-shlibdeps sobre el sysroot más additional_deps), sin wget ni libcurl.
@@ -141,8 +144,8 @@ def main():
     os.symlink(f"{INSTALLDIR}/{PROGNAME}-wrapper", usr / "bin" / PAQUETE)
     (usr / "share/applications").mkdir(parents=True)
     plantilla(comun / "desktop.template", usr / f"share/applications/{PAQUETE}.desktop", vars_)
-    for n in (16, 32, 64, 128, 256, 512):
-        copia(iconos / f"appicon_{n}.png", usr / f"share/icons/hicolor/{n}x{n}/apps/{PAQUETE}.png", 0o644)
+    for n, f in sorted(iconos.items()):
+        copia(f, usr / f"share/icons/hicolor/{n}x{n}/apps/{PAQUETE}.png", 0o644)
     meta = usr / f"share/metainfo/{RDN}.metainfo.xml"
     meta.parent.mkdir(parents=True)
     meta.write_text(f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -214,11 +217,17 @@ if [ "$1" = remove ] || [ "$1" = deconfigure ]; then
   update-alternatives --remove x-www-browser /usr/bin/{PAQUETE}
   update-alternatives --remove gnome-www-browser /usr/bin/{PAQUETE}
 fi
+# El perfil de AppArmor se descarga aquí, con el fichero aún en su sitio: al llegar al postrm de purge, dpkg ya ha borrado
+# /etc/apparmor.d/{PAQUETE} y apparmor_parser -R no tiene qué leer (el perfil se quedaba en el núcleo hasta reiniciar).
+if [ "$1" = remove ] && [ -e /etc/apparmor.d/{PAQUETE} ] && command -v apparmor_parser > /dev/null; then
+  apparmor_parser -R /etc/apparmor.d/{PAQUETE} 2> /dev/null || true
+fi
 """,
         "postrm": f"""#!/bin/sh
 set -e
-if [ "$1" = purge ] && command -v apparmor_parser > /dev/null; then
-  apparmor_parser -R /etc/apparmor.d/{PAQUETE} 2> /dev/null || true
+# Por si quedó cargado (p. ej. quitado con un prerm anterior): se descarga por nombre, sin el fichero.
+if [ "$1" = purge ] && [ -w /sys/kernel/security/apparmor/.remove ]; then
+  {{ printf %s {PAQUETE} > /sys/kernel/security/apparmor/.remove; }} 2> /dev/null || true
 fi
 """,
     }
