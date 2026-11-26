@@ -473,7 +473,9 @@ desplazamiento de líneas. **Gravedad no publicada.**
 ## `chromium/0021`: [M159] Cast, el arranque de la sesión de duplicación usa `WeakPtr` (crbug 585215924)
 
 **`d73b2ba647`** de la **8154** (25-11 22:24 UTC; bug del merge 590347287; main `ab65949134`, #1746466). Entra tal cual.
-**Gravedad no publicada.** Aún sin merge a la 8078.
+**Gravedad no publicada.**
+- **Gemelo M156 (25-11 23:18 UTC):** la **8078** `4c677c2ca2` (bug del merge 590349150). Es el mismo cambio, línea a línea, y
+  `git apply -R` del M156 entra limpio sobre nuestro árbol. Nada que cambiar.
 - **El fallo:** `MirroringActivity::CreateMojoBindings` pide `ShouldFetchMirroringStats` y ata la respuesta con
   `base::Unretained(this)`. Si la actividad se destruye antes de la respuesta (se corta la duplicación o el receptor se
   va), `StartSession` corre sobre un objeto liberado: **uso tras liberar en el proceso del navegador**, según el propio
