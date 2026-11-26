@@ -468,6 +468,11 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   modelo de amenaza es el robo del ordenador. Sin llavero (o bloqueado), la clave `fw1` va en un fichero 0600 del perfil y
   FlyWeb guarda con normalidad; FlyWeb no dispara el diálogo de desbloqueo del llavero. SEGURIDAD-PORTES propone diseño,
   migración y qué queda de la barra y de la burbuja (encargo `buzon/NUBE-SEGURIDAD-PORTES/20261125-1431-…`); decide Titín.
+- **U4, paso 2: prueba en la Ubuntu de Titín y contenedores (Titín, 26-11, «sí, instala en mi Ubuntu y contenedores para el
+  resto»; COORDINACIÓN-64):** el `.deb` de prueba se instala en la Ubuntu real de Titín (26.04, escritorio: sandbox, AppArmor,
+  WM_CLASS, lanzador, navegador predeterminado, mezclador) y se purga al acabar; Ubuntu 22.04, 24.04 y Debian 12, en
+  contenedores `podman` (instalar, purgar, `unattended-upgrade --dry-run -d`, índice viejo). Sin máquinas virtuales. Los
+  `sudo` los teclea Titín con la orden exacta de D8-LINUX.
 - **Cookies al cerrar sesión (Titín, 25-11, «sí a las cookies»; COORDINACIÓN-64):** en `BrowserProcessImpl::EndSession()`
   (SIGTERM: cierre de sesión, apagado, actualización; Linux y Mac) se vuelca el almacén de cookies de cada perfil
   (`FlushCookieStore` del `StoragePartition` por defecto) con el mismo `RundownTaskCounter` que ya espera a las preferencias.
