@@ -12,12 +12,12 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0011` | **`fdee71cc91`** (hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0029` | **`73c4b20769`** (hasta `0028`: `9333257cbd`; hasta `0027`: `b1aa075097`; hasta `0026`: `f3c3d7fba8`; hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0029` | **`397104853a`** (hasta `0028`: `9333257cbd`; hasta `0027`: `b1aa075097`; hasta `0026`: `f3c3d7fba8`; hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 | Skia | árbol **`1ef25455d7`** (fork `lamosquita-net/skia` `d361a1e371`, árbol `a934afed14`, + `pendiente/skia/0001`–`0003`, que entraron en la 3.2.0) | `skia/0001` | **`bc0519fc6a`** |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54`, con `0025`, `0d484117f6`, con `0026`, `f3c3d7fba8`, con `0027`, `b1aa075097`, con `0028`, `9333257cbd` y, con `0029`, `73c4b20769`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54`, con `0025`, `0d484117f6`, con `0026`, `f3c3d7fba8`, con `0027`, `b1aa075097`, con `0028`, `9333257cbd` y, con `0029`, `397104853a` (con la versión M159 de `0029`, que ya no se usa, daba `73c4b20769`). Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -663,19 +663,24 @@ gemelo M159 `34a2c35b85`), tal cual. **Gravedad no publicada.**
   `LevelDbBackingStoreTestWithBlobs.ExternalObjectsWithEquivalentKeys`. Brave no toca estos ficheros.
 - **Aplica a Mac.** **Para LOCAL:** `content_unittests --gtest_filter='*LevelDbBackingStoreTestWithBlobs*'`.
 
-## `chromium/0029`: [M159] Highlights, las capas de resaltado salen de los marcadores que se pintan (crbug 589817014)
+## `chromium/0029`: [M156] Highlights, las capas de resaltado salen de los marcadores que se pintan (crbug 589817014)
 
-**`084b5eb0a1`** de la **8154** (26-11 17:53 UTC; bug del merge 590699208; main `5b902e8c32`, #1753828), tal cual
-sobre `0028`. **Gravedad no publicada.** Gemelo M156: **`4e52785287`** de la 8078 (26-11 ~21:30 UTC; bug del merge 590700156); pendiente de compararlo cuando la réplica de gitiles lo tenga.
+El merge **`4e52785287`** de la **8078** (26-11 ~21:30 UTC; bug del merge 590700156; main `5b902e8c32`, #1753828;
+gemelo M159 `084b5eb0a1`), tal cual sobre `0028`. **Gravedad no publicada.**
+- **Sustituye a la versión M159** (`084b5eb0a1`) que había entrado primero en la tanda. Las dos hacen el mismo cambio
+  en el código. Difieren en una línea de la prueba: la 156 llama a `GetLayoutObject()->StyleRef()` porque su
+  `LayoutObject::Style()` no devuelve la referencia que pide `HighlightOverlay::ComputeLayers()`, y con la versión
+  M159 la prueba no habría compilado.
 - **El fallo:**
   - al editar, los marcadores de la CSS Custom Highlight API pueden pasar a un nodo de texto nuevo antes de que se
     reconstruya el registro por nodo de `HighlightRegistry`;
   - si en ese hueco se pinta de forma síncrona (recursos SVG), `HighlightOverlay` llamaba a
-    `GetActiveHighlights(node)`, que solo tenía un `DCHECK` y en Release hacía `find(&node)->value` sobre `end()`:
+    `GetActiveHighlights(node)`, que solo tenía un `DCHECK`. En Release hacía `find(&node)->value` sobre `end()`:
     una lectura fuera de la tabla.
-- **El arreglo:** el conjunto de resaltados activos se construye con los marcadores que se están pintando. Se
-  elimina `GetActiveHighlights()`. La caché por nodo queda solo para el *hit testing*. Prueba nueva en
-  `highlight_overlay_test.cc`. Brave no toca estos ficheros.
+- **El arreglo:**
+  - el conjunto de resaltados activos se construye con los marcadores que se están pintando;
+  - se elimina `GetActiveHighlights()`, y la caché por nodo queda solo para el *hit testing*;
+  - prueba nueva en `highlight_overlay_test.cc`. Brave no toca estos ficheros.
 - **Aplica a Mac.** **Para LOCAL:** `blink_unittests --gtest_filter='HighlightOverlayTest.*:HighlightRegistry*'` y las WPT
   `css/css-highlight-api/`.
 

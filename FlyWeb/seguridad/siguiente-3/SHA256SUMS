@@ -40,4 +40,4 @@ abca565dde28d6c83502ce1798d94000dfb94483975049f215b23d342359738e  chromium/0022-
 a6c3b964f138cdb58de1d057dcb06a971247b1d24ad9dc318fb506a9f58259b9  chromium/0026-159-Allow-cross-world-serialization-from-detached-re.patch
 a7cb85633792a4733b5f1878388157a21a74c049a28a0c6e32efc81dad08aebd  chromium/0027-M159-blink-encryptedmedia-Fix-UAF-in-MediaKeySession.patch
 2d42e272bb5950e4fa04348f7340f3eccb1d4bffb15d08e2cf0ce3127c651372  chromium/0028-M156-IndexedDB-fix-within-transaction-Blob-key-compa.patch
-bf200af547980cc4223afda4b83aa6454310b029c8739cadc79540aefb2f4321  chromium/0029-M159-highlights-Build-highlight-layers-from-paint-ma.patch
+30c9acc94a2858dcf80725381c0772b6bad5121f3fe2cf824fe63f7e2f405998  chromium/0029-M156-highlights-Build-highlight-layers-from-paint-ma.patch

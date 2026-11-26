@@ -1,7 +1,7 @@
-From 91b28450b11c9af0f2c04abe803d509abc9a6271 Mon Sep 17 00:00:00 2001
+From 313bde822fe74c094653fd4126dc3b11bd50e263 Mon Sep 17 00:00:00 2001
 From: Fernando Fiori <ffiori@microsoft.com>
-Date: Thu, 26 Nov 2026 09:53:01 -0800
-Subject: [PATCH] [M159] [highlights] Build highlight layers from paint markers
+Date: Thu, 26 Nov 2026 13:46:14 -0800
+Subject: [PATCH] [M156] [highlights] Build highlight layers from paint markers
 
 Original change's description:
 > [highlights] Build highlight layers from paint markers
@@ -27,14 +27,15 @@ Original change's description:
 
 (cherry picked from commit 5b902e8c32ac54fa8ca70335622fba44f8cc6b28)
 
-Bug: 590699208,589817014
+Bug: 590700156,589817014
 Change-Id: Ic0c4f5244d8a89f7b9fdcdc9e70bf8a8d1747eb0
-Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8869507
-Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8871888
 Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
-Cr-Commit-Position: refs/branch-heads/8154@{#1914}
-Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+Reviewed-by: Fernando Fiori <ffiori@microsoft.com>
+Reviewed-by: Vladimir Levin <vmpstr@chromium.org>
+Commit-Queue: Vladimir Levin <vmpstr@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2445}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
 ---
  .../core/highlight/highlight_registry.cc      |  6 --
  .../core/highlight/highlight_registry.h       |  3 +-
@@ -102,7 +103,7 @@ index 121441d20f..dffeaa32d3 100644
      unsigned layer_count = 0;
      while (highlight_iter != active_highlights.end() &&
 diff --git a/third_party/blink/renderer/core/paint/highlight_overlay_test.cc b/third_party/blink/renderer/core/paint/highlight_overlay_test.cc
-index 96a9965c6c..856546484b 100644
+index 96a9965c6c..81b1fa7f34 100644
 --- a/third_party/blink/renderer/core/paint/highlight_overlay_test.cc
 +++ b/third_party/blink/renderer/core/paint/highlight_overlay_test.cc
 @@ -8,6 +8,8 @@
@@ -162,7 +163,7 @@ index 96a9965c6c..856546484b 100644
 +        *node, DocumentMarker::MarkerTypes::CustomHighlight());
 +    ASSERT_EQ(node == prefix ? 2u : 1u, custom.size());
 +    const auto layers = HighlightOverlay::ComputeLayers(
-+        GetDocument(), node, node->GetLayoutObject()->Style(), text_style,
++        GetDocument(), node, node->GetLayoutObject()->StyleRef(), text_style,
 +        paint_info, nullptr, custom, none, none, none, none);
 +    EXPECT_EQ(layers,
 +              (HeapVector<HighlightLayer>{
