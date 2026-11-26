@@ -1,0 +1,697 @@
+From 5bc5f12ad8317f7ec61863ce27d078a06050113c Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 26 Nov 2026 13:12:45 +0000
+Subject: [PATCH] ui: orange toasts with black text; translate the welcome page
+ header
+
+Toasts ("FlyWeb is now your default browser" and the other ToastView
+toasts) were red with dark red text: Brave replaces
+AddMaterialUiColorMixer() and never sets kColorToastBackgroundProminent,
+so it fell back to the placeholder red. Set it to FlyWeb orange
+(#FF9900) with black text and button, like the welcome page's buttons,
+in light and dark mode. Same component on macOS and Linux.
+
+IDS_WELCOME_HEADER ("Welcome to FlyWeb", the welcome tab title) had no
+translation in brave_components_resources_*.xtb. Add, for all 54
+languages, the existing translation of the same text (same message id)
+from brave_strings_*.xtb. The rest of the welcome strings were already
+translated.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ chromium_src/ui/color/material_ui_color_mixer.cc       | 10 ++++++++--
+ .../strings/brave_components_resources_am.xtb          |  1 +
+ .../strings/brave_components_resources_ar.xtb          |  1 +
+ .../strings/brave_components_resources_bg.xtb          |  1 +
+ .../strings/brave_components_resources_bn.xtb          |  1 +
+ .../strings/brave_components_resources_ca.xtb          |  1 +
+ .../strings/brave_components_resources_cs.xtb          |  1 +
+ .../strings/brave_components_resources_da.xtb          |  1 +
+ .../strings/brave_components_resources_de.xtb          |  1 +
+ .../strings/brave_components_resources_el.xtb          |  1 +
+ .../strings/brave_components_resources_en-GB.xtb       |  1 +
+ .../strings/brave_components_resources_es-419.xtb      |  1 +
+ .../strings/brave_components_resources_es.xtb          |  1 +
+ .../strings/brave_components_resources_et.xtb          |  1 +
+ .../strings/brave_components_resources_fa.xtb          |  1 +
+ .../strings/brave_components_resources_fi.xtb          |  1 +
+ .../strings/brave_components_resources_fil.xtb         |  1 +
+ .../strings/brave_components_resources_fr-CA.xtb       |  1 +
+ .../strings/brave_components_resources_fr.xtb          |  1 +
+ .../strings/brave_components_resources_gl.xtb          |  1 +
+ .../strings/brave_components_resources_gu.xtb          |  1 +
+ .../strings/brave_components_resources_hi.xtb          |  1 +
+ .../strings/brave_components_resources_hr.xtb          |  1 +
+ .../strings/brave_components_resources_hu.xtb          |  1 +
+ .../strings/brave_components_resources_id.xtb          |  1 +
+ .../strings/brave_components_resources_it.xtb          |  1 +
+ .../strings/brave_components_resources_iw.xtb          |  1 +
+ .../strings/brave_components_resources_ja.xtb          |  1 +
+ .../strings/brave_components_resources_kn.xtb          |  1 +
+ .../strings/brave_components_resources_ko.xtb          |  1 +
+ .../strings/brave_components_resources_lt.xtb          |  1 +
+ .../strings/brave_components_resources_lv.xtb          |  1 +
+ .../strings/brave_components_resources_ml.xtb          |  1 +
+ .../strings/brave_components_resources_mr.xtb          |  1 +
+ .../strings/brave_components_resources_ms.xtb          |  1 +
+ .../strings/brave_components_resources_nl.xtb          |  1 +
+ .../strings/brave_components_resources_no.xtb          |  1 +
+ .../strings/brave_components_resources_pl.xtb          |  1 +
+ .../strings/brave_components_resources_pt-BR.xtb       |  1 +
+ .../strings/brave_components_resources_pt-PT.xtb       |  1 +
+ .../strings/brave_components_resources_ro.xtb          |  1 +
+ .../strings/brave_components_resources_ru.xtb          |  1 +
+ .../strings/brave_components_resources_sk.xtb          |  1 +
+ .../strings/brave_components_resources_sl.xtb          |  1 +
+ .../strings/brave_components_resources_sr.xtb          |  1 +
+ .../strings/brave_components_resources_sv.xtb          |  1 +
+ .../strings/brave_components_resources_sw.xtb          |  1 +
+ .../strings/brave_components_resources_ta.xtb          |  1 +
+ .../strings/brave_components_resources_te.xtb          |  1 +
+ .../strings/brave_components_resources_th.xtb          |  1 +
+ .../strings/brave_components_resources_tr.xtb          |  1 +
+ .../strings/brave_components_resources_uk.xtb          |  1 +
+ .../strings/brave_components_resources_vi.xtb          |  1 +
+ .../strings/brave_components_resources_zh-CN.xtb       |  1 +
+ .../strings/brave_components_resources_zh-TW.xtb       |  1 +
+ 55 files changed, 62 insertions(+), 2 deletions(-)
+
+diff --git a/chromium_src/ui/color/material_ui_color_mixer.cc b/chromium_src/ui/color/material_ui_color_mixer.cc
+index a30642546905e946dba99c63b8c49bcda9b5fd89..6c2442045052bc70c2f6951e661d8bc2ca66d5be 100644
+--- a/chromium_src/ui/color/material_ui_color_mixer.cc
++++ b/chromium_src/ui/color/material_ui_color_mixer.cc
+@@ -57,8 +57,14 @@ void AddMaterialUiColorMixer(ColorProvider* provider,
+   mixer[ui::kColorToolbarSearchFieldIcon] = {ui::kColorSysOnSurfaceSubtle};
+   mixer[ui::kColorToastBackground] = {is_dark ? gfx::kGoogleGrey800
+                                               : gfx::kGoogleGrey100};
+-  mixer[ui::kColorToastButton] = {ui::kColorSysInversePrimary};
+-  mixer[ui::kColorToastForeground] = {ui::kColorSysOnSurfaceSubtle};
++  // FlyWeb: the browser toasts (ToastView: "FlyWeb is now your default
++  // browser", etc.) paint on kColorToastBackgroundProminent, which came out
++  // red with dark red text. Orange with black text, like the welcome page's
++  // buttons (components/brave_welcome_ui/components/flyweb/estilo.ts), in
++  // light and dark mode. kColorToastBackground is not used by any 156 toast.
++  mixer[ui::kColorToastBackgroundProminent] = {SkColorSetRGB(0xFF, 0x99, 0x00)};
++  mixer[ui::kColorToastButton] = {SK_ColorBLACK};
++  mixer[ui::kColorToastForeground] = {SK_ColorBLACK};
+   mixer[ui::kColorToggleButtonHover] = {ui::kColorSysStateHover};
+   mixer[ui::kColorToggleButtonPressed] = {ui::kColorSysStatePressed};
+   mixer[ui::kColorToggleButtonShadow] = {ui::kColorSysOutline};
+diff --git a/components/resources/strings/brave_components_resources_am.xtb b/components/resources/strings/brave_components_resources_am.xtb
+index a55d2987b7a563039ff2e0ebdb38adb5377b1018..e29d2c84344388e03c6cf41fbe5e2caf5a8b29a8 100644
+--- a/components/resources/strings/brave_components_resources_am.xtb
++++ b/components/resources/strings/brave_components_resources_am.xtb
+@@ -1978,4 +1978,5 @@ FlyWeb የDNS ጥያቄዎች በእርስዎ VPN ግንኙነት ላይ በሚ
+ ተጫን</translation>
+ <translation id="451189393813405346">Leoን ይጠይቁ</translation>
+ <translation id="8525248723479742219">በኋላ ያጫውቱ</translation>
++<translation id="8331941171144629807">ወደ FlyWeb እንኳን በደህና መጡ</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_ar.xtb b/components/resources/strings/brave_components_resources_ar.xtb
+index 7699bc00b7c8189c5811e77b7e5c803940d79fc3..cc88d9777817d7f9902ed215aeb44efc55d90189 100644
+--- a/components/resources/strings/brave_components_resources_ar.xtb
++++ b/components/resources/strings/brave_components_resources_ar.xtb
+@@ -2162,4 +2162,5 @@
+ <translation id="1538335063514960365">زر الفتح من هنا، اضغط على Enter لفتح عنوان url في علامة التبويب الحالية، بدلًا من الانتقال إلى علامة التبويب الموجودة مسبقًا</translation>
+ <translation id="451189393813405346">اسأل Leo</translation>
+ <translation id="8525248723479742219">تشغيل لاحقًا</translation>
++<translation id="8331941171144629807">‏مرحبًا بك في FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_bg.xtb b/components/resources/strings/brave_components_resources_bg.xtb
+index e3babff9a5dada54f2861bf2cc2cfe05c796d40a..226265201a020e3b49f30a9c2884f3266e6bf5aa 100644
+--- a/components/resources/strings/brave_components_resources_bg.xtb
++++ b/components/resources/strings/brave_components_resources_bg.xtb
+@@ -2163,4 +2163,5 @@ FlyWeb има помощна услуга, която Ви защитава от
+ съществуващия раздел</translation>
+ <translation id="451189393813405346">Попитайте Leo</translation>
+ <translation id="8525248723479742219">Възпроизвеждане по-късно</translation>
++<translation id="8331941171144629807">Добре дошли в FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_bn.xtb b/components/resources/strings/brave_components_resources_bn.xtb
+index d662c0639e8fd39b6e909609291e8101185c392e..f35ae45d646d50b888e67eef17864fed696c2f17 100644
+--- a/components/resources/strings/brave_components_resources_bn.xtb
++++ b/components/resources/strings/brave_components_resources_bn.xtb
+@@ -2163,4 +2163,5 @@ FlyWeb এর একটি সহায়ক পরিষেবা রয়েছে
+     জন্য এন্টার টিপুন</translation>
+ <translation id="451189393813405346">Leo-কে জিজ্ঞাসা করুন</translation>
+ <translation id="8525248723479742219">পরে প্লে করুন</translation>
++<translation id="8331941171144629807">FlyWeb-এ স্বাগতম</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_ca.xtb b/components/resources/strings/brave_components_resources_ca.xtb
+index 5989cbfcd7cf937d2c9af4c4cbb424dce11f651a..0c31634d2cfc0f1c99ed8872cf92b71637445dbb 100644
+--- a/components/resources/strings/brave_components_resources_ca.xtb
++++ b/components/resources/strings/brave_components_resources_ca.xtb
+@@ -2164,4 +2164,5 @@ Connecteu-vos-hi ara mateix!</translation>
+     pestanya existent</translation>
+ <translation id="451189393813405346">Pregunta-ho a Leo</translation>
+ <translation id="8525248723479742219">Reprodueix-ho més tard</translation>
++<translation id="8331941171144629807">Us donem la benvinguda a FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_cs.xtb b/components/resources/strings/brave_components_resources_cs.xtb
+index 51b81787f81943583835b89f530e5fc78b72f652..4893e2cb0599165a3e7aede0febd0640b2923237 100644
+--- a/components/resources/strings/brave_components_resources_cs.xtb
++++ b/components/resources/strings/brave_components_resources_cs.xtb
+@@ -2166,4 +2166,5 @@ Pojďme vás připojit!</translation>
+     stávající karty</translation>
+ <translation id="451189393813405346">Zeptat se Lea</translation>
+ <translation id="8525248723479742219">Přehrát později</translation>
++<translation id="8331941171144629807">Vítejte v prohlížeči FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_da.xtb b/components/resources/strings/brave_components_resources_da.xtb
+index 06e0a22febcfff40680d9899723ae59801f98dfe..ec7e70cd4517178c4f55f30def6839e46da22646 100644
+--- a/components/resources/strings/brave_components_resources_da.xtb
++++ b/components/resources/strings/brave_components_resources_da.xtb
+@@ -2166,4 +2166,5 @@ Lad os få dig tilknyttet!</translation>
+     nuværende fane</translation>
+ <translation id="451189393813405346">Spørg Leo</translation>
+ <translation id="8525248723479742219">Afspil senere</translation>
++<translation id="8331941171144629807">Velkommen til FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_de.xtb b/components/resources/strings/brave_components_resources_de.xtb
+index bb30448fa5ef0f08bd0237883653b9a8e6b8e460..3ef3544dbea8875179cad06fe0ccdaceef02cb8c 100644
+--- a/components/resources/strings/brave_components_resources_de.xtb
++++ b/components/resources/strings/brave_components_resources_de.xtb
+@@ -2163,4 +2163,5 @@ Lassen Sie uns gemeinsam eine Verbindung herstellen!</translation>
+     und nicht zum bestehenden Tab zu wechseln.</translation>
+ <translation id="451189393813405346">Leo fragen</translation>
+ <translation id="8525248723479742219">Später abspielen</translation>
++<translation id="8331941171144629807">Willkommen bei FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_el.xtb b/components/resources/strings/brave_components_resources_el.xtb
+index 9c13e0457e283ca992aa4bf734f1a1d727a842b9..55512f0c54456bc7e2d894326cb96d12ba499e2c 100644
+--- a/components/resources/strings/brave_components_resources_el.xtb
++++ b/components/resources/strings/brave_components_resources_el.xtb
+@@ -2162,4 +2162,5 @@
+     υπάρχουσα καρτέλα</translation>
+ <translation id="451189393813405346">Ρωτήστε το Leo</translation>
+ <translation id="8525248723479742219">Αναπαραγωγή αργότερα</translation>
++<translation id="8331941171144629807">Καλώς ήρθατε στο FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_en-GB.xtb b/components/resources/strings/brave_components_resources_en-GB.xtb
+index a2604552215f1605f0e36c37a819baa6dd5407c2..b28e586f8a5f5cd6ff703063b2441a84e6a9635d 100644
+--- a/components/resources/strings/brave_components_resources_en-GB.xtb
++++ b/components/resources/strings/brave_components_resources_en-GB.xtb
+@@ -2163,4 +2163,5 @@ Let's get you connected!</translation>
+     existing tab</translation>
+ <translation id="451189393813405346">Ask Leo</translation>
+ <translation id="8525248723479742219">Play later</translation>
++<translation id="8331941171144629807">Welcome to FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_es-419.xtb b/components/resources/strings/brave_components_resources_es-419.xtb
+index 147009ad1d4c303c5835f961124715d620782805..a80b90c37e01bf3e28b1bba57fd8cffad466a36f 100644
+--- a/components/resources/strings/brave_components_resources_es-419.xtb
++++ b/components/resources/strings/brave_components_resources_es-419.xtb
+@@ -2163,4 +2163,5 @@ Puede revertir los cambios y volver a usar WireGuard en cualquier momento en fly
+     pestaña ya existente.</translation>
+ <translation id="451189393813405346">Preguntar a Leo</translation>
+ <translation id="8525248723479742219">Reproducir más tarde</translation>
++<translation id="8331941171144629807">Bienvenido a FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_es.xtb b/components/resources/strings/brave_components_resources_es.xtb
+index 830d7195b44812b9996cae3297ece8c0198adc47..0a16ad8a3bf2b8825e5a6ba2b6e6f1dce58d5a49 100644
+--- a/components/resources/strings/brave_components_resources_es.xtb
++++ b/components/resources/strings/brave_components_resources_es.xtb
+@@ -2164,4 +2164,5 @@ Puede revertir los cambios y volver a usar WireGuard en cualquier momento en fly
+     pestaña ya existente.</translation>
+ <translation id="451189393813405346">Preguntar a Leo</translation>
+ <translation id="8525248723479742219">Reproducir más tarde</translation>
++<translation id="8331941171144629807">Te damos la bienvenida a FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_et.xtb b/components/resources/strings/brave_components_resources_et.xtb
+index 6cd4889e3a917bb4974aa728aec7149139211cce..5be0aa34d02087c494af08c47ec1060f4dd0788d 100644
+--- a/components/resources/strings/brave_components_resources_et.xtb
++++ b/components/resources/strings/brave_components_resources_et.xtb
+@@ -2162,4 +2162,5 @@ vajutage tabeldusklahvi ja sisestusklahvi, et teha avatud vaheleht aktiivseks</t
+ olemasoleval vahelehel</translation>
+ <translation id="451189393813405346">Küsi Leolt</translation>
+ <translation id="8525248723479742219">Esita hiljem</translation>
++<translation id="8331941171144629807">Tere tulemast Bravei</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_fa.xtb b/components/resources/strings/brave_components_resources_fa.xtb
+index 08d7fd5935a55b28b199cc7a1c1f8f5c36ff9251..1c2aa5118907b48a10f671ab693509c672d86854 100644
+--- a/components/resources/strings/brave_components_resources_fa.xtb
++++ b/components/resources/strings/brave_components_resources_fa.xtb
+@@ -2162,4 +2162,5 @@ FlyWeb یک سرویس کمکی دارد که با فیلتر کردن روشی
+ <translation id="1538335063514960365">دکمه اینجا را انتخاب کنید، Enter را فشار دهید تا این آدرس وب به جای خروج از زبانه، در زبانه فعلی باز شود</translation>
+ <translation id="451189393813405346">از Leo بپرسید</translation>
+ <translation id="8525248723479742219">بعداً پخش کنید</translation>
++<translation id="8331941171144629807">‏به FlyWeb خوش آمدید</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_fi.xtb b/components/resources/strings/brave_components_resources_fi.xtb
+index 5c178f78c5f1996d89a6c81e213c9fbfd966b422..78ad2ee1d522a11a6b1b760f3030ce39d5de830b 100644
+--- a/components/resources/strings/brave_components_resources_fi.xtb
++++ b/components/resources/strings/brave_components_resources_fi.xtb
+@@ -2163,4 +2163,5 @@ Muodostetaan sinulle yhteys!</translation>
+     olemassa olevaan välilehteen</translation>
+ <translation id="451189393813405346">Kysy Leolta</translation>
+ <translation id="8525248723479742219">Toista myöhemmin</translation>
++<translation id="8331941171144629807">Tervetuloa Braveiin</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_fil.xtb b/components/resources/strings/brave_components_resources_fil.xtb
+index 92c4cf3d8c3f3af8de27333454daa312f6c97c5f..6c718c0e53b62772611874b3cb37df4d78b30661 100644
+--- a/components/resources/strings/brave_components_resources_fil.xtb
++++ b/components/resources/strings/brave_components_resources_fil.xtb
+@@ -2163,4 +2163,5 @@ Ikonekta ka natin!</translation>
+    umiiral na tab</translation>
+ <translation id="451189393813405346">Tanungin si Leo</translation>
+ <translation id="8525248723479742219">I-play sa Ibang Pagkakataon</translation>
++<translation id="8331941171144629807">Maligayang Pagdating sa FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_fr-CA.xtb b/components/resources/strings/brave_components_resources_fr-CA.xtb
+index 5f2a278feb292a96d798445745057cef1053d328..02cb90fa267d3a7118ba2085d660cac4a0b695ac 100644
+--- a/components/resources/strings/brave_components_resources_fr-CA.xtb
++++ b/components/resources/strings/brave_components_resources_fr-CA.xtb
+@@ -2163,4 +2163,5 @@ Connectez-vous!</translation>
+     l'onglet existant</translation>
+ <translation id="451189393813405346">Demander à Leo</translation>
+ <translation id="8525248723479742219">Lire plus tard</translation>
++<translation id="8331941171144629807">Bienvenue dans FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_fr.xtb b/components/resources/strings/brave_components_resources_fr.xtb
+index 7d05047037820741fbc16166dd24623ea13f8d70..a81afee4701bd109ddbc1d5f7888e6c8ce523a73 100644
+--- a/components/resources/strings/brave_components_resources_fr.xtb
++++ b/components/resources/strings/brave_components_resources_fr.xtb
+@@ -2163,4 +2163,5 @@ Connectez-vous !</translation>
+     l'onglet existant</translation>
+ <translation id="451189393813405346">Demander à Leo</translation>
+ <translation id="8525248723479742219">Lire plus tard</translation>
++<translation id="8331941171144629807">Bienvenue dans FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_gl.xtb b/components/resources/strings/brave_components_resources_gl.xtb
+index f467caee53eb478693dd39785f00f8ac0a239d47..2fb90c8c343242f82b54167d0784c3d3418b032d 100644
+--- a/components/resources/strings/brave_components_resources_gl.xtb
++++ b/components/resources/strings/brave_components_resources_gl.xtb
+@@ -2163,4 +2163,5 @@ Non perdas a conexión!</translation>
+     separador existente</translation>
+ <translation id="451189393813405346">Preguntar a Leo</translation>
+ <translation id="8525248723479742219">Reproducir máis tarde</translation>
++<translation id="8331941171144629807">Dámosche a benvida a FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_gu.xtb b/components/resources/strings/brave_components_resources_gu.xtb
+index b00564e3c80b2c5f96e7376ea587e2bad27f10dd..40a007e4a4821dcce5d5a099aa6589ddf7907415 100644
+--- a/components/resources/strings/brave_components_resources_gu.xtb
++++ b/components/resources/strings/brave_components_resources_gu.xtb
+@@ -163,4 +163,5 @@
+ <translation id="5747552184818312860">સમાપ્ત થાય છે</translation>
+ <translation id="1116694919640316211">વિશે</translation>
+ <translation id="2740531572673183784">બરાબર, સમજાઇ ગયું</translation>
++<translation id="8331941171144629807">FlyWeb માં સ્વાગત છે</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_hi.xtb b/components/resources/strings/brave_components_resources_hi.xtb
+index c925f1a5eb4bec062d0cbab944050da9b963b2ca..59595ee6d8401773074623824f8232624be5e250 100644
+--- a/components/resources/strings/brave_components_resources_hi.xtb
++++ b/components/resources/strings/brave_components_resources_hi.xtb
+@@ -2164,4 +2164,5 @@ FlyWeb में एक सहयोगी सेवा है, जो आपक
+ <translation id="1538335063514960365">'यहाँ खोलें' बटन, इस url को किसी और टैब की जगह मौजूदा टैब में खोलने के लिए Enter दबाएँ</translation>
+ <translation id="451189393813405346">लियो से पूछें</translation>
+ <translation id="8525248723479742219">बाद में चलाएँ</translation>
++<translation id="8331941171144629807">FlyWeb में आपका स्वागत है</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_hr.xtb b/components/resources/strings/brave_components_resources_hr.xtb
+index 5e0572335dae159e2852e42fc5c530f0ce46aea2..786c525aba40b6629fc00c9a77dccd66ab08826c 100644
+--- a/components/resources/strings/brave_components_resources_hr.xtb
++++ b/components/resources/strings/brave_components_resources_hr.xtb
+@@ -2165,4 +2165,5 @@ Povežimo vas!</translation>
+     postojeću karticu</translation>
+ <translation id="451189393813405346">Pitaj pomoćnika Leo</translation>
+ <translation id="8525248723479742219">Reproducirajte kasnije</translation>
++<translation id="8331941171144629807">Dobro došli u FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_hu.xtb b/components/resources/strings/brave_components_resources_hu.xtb
+index 4613b2e845c20388f171a0ba41b3bd74dfcd8868..07a508be2890c4f37648e90b8897063cbd1b974d 100644
+--- a/components/resources/strings/brave_components_resources_hu.xtb
++++ b/components/resources/strings/brave_components_resources_hu.xtb
+@@ -2160,4 +2160,5 @@ a Tab, majd az Enter billentyű megnyomásával a megnyitott lapra válthat</tra
+ a meglévő lapra való váltás helyett</translation>
+ <translation id="451189393813405346">A Leo megkérdezése</translation>
+ <translation id="8525248723479742219">Lejátszás később</translation>
++<translation id="8331941171144629807">Üdvözli a FlyWeb!</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_id.xtb b/components/resources/strings/brave_components_resources_id.xtb
+index a98246b3d116fd2cac07723e695fa7eb65081c94..32134aea855b0298edc5a4eab49db3162392cc72 100644
+--- a/components/resources/strings/brave_components_resources_id.xtb
++++ b/components/resources/strings/brave_components_resources_id.xtb
+@@ -2163,4 +2163,5 @@ Mari kita buat Anda terhubung!</translation>
+     tab yang sudah ada</translation>
+ <translation id="451189393813405346">Tanyakan pada Leo</translation>
+ <translation id="8525248723479742219">Putar Nanti</translation>
++<translation id="8331941171144629807">Selamat Datang di FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_it.xtb b/components/resources/strings/brave_components_resources_it.xtb
+index 02a4095d8360a3e6e6cc807ab3c8e8a30bc094a1..ae0843d182516e2cb94b709337207aba5d0ad2ac 100644
+--- a/components/resources/strings/brave_components_resources_it.xtb
++++ b/components/resources/strings/brave_components_resources_it.xtb
+@@ -2163,4 +2163,5 @@ Ti aiutiamo a connetterti!</translation>
+ scheda esistente</translation>
+ <translation id="451189393813405346">Chiedi a Leo</translation>
+ <translation id="8525248723479742219">Riproduci più tardi</translation>
++<translation id="8331941171144629807">Benvenuto in FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_iw.xtb b/components/resources/strings/brave_components_resources_iw.xtb
+index 542c76aeeaaeb74944c66f0f2f5d16977d50725d..4aeb7d2e0fabd5e374b8af36e5f1f54c41ff1a4f 100644
+--- a/components/resources/strings/brave_components_resources_iw.xtb
++++ b/components/resources/strings/brave_components_resources_iw.xtb
+@@ -2175,4 +2175,5 @@ FlyWeb יש שירות עוזר שמגן עליך מפני חשיפה זו על
+ הכרטיסייה הקיימת</translation>
+ <translation id="451189393813405346">תשאל את ליאו</translation>
+ <translation id="8525248723479742219">נגן מאוחר יותר</translation>
++<translation id="8331941171144629807">‏ברוכים הבאים ל-FlyWeb‏</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_ja.xtb b/components/resources/strings/brave_components_resources_ja.xtb
+index 68cf177dff5ca552b52c6889ca31b80982762dd3..2b57e8f98bc3a282949793acf94d0ef21bf8f19a 100644
+--- a/components/resources/strings/brave_components_resources_ja.xtb
++++ b/components/resources/strings/brave_components_resources_ja.xtb
+@@ -2166,4 +2166,5 @@ Tab + Enterキーの順に操作して開いているタブを切り替えます
+ 現在のタブで開きます</translation>
+ <translation id="451189393813405346">Leoに聞く</translation>
+ <translation id="8525248723479742219">後で再生する</translation>
++<translation id="8331941171144629807">FlyWeb へようこそ</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_kn.xtb b/components/resources/strings/brave_components_resources_kn.xtb
+index 10b50e8b23c893f57ec307cdde46d182e006588e..10ba73c26dcdc4e91ae102d753e0300672588b5d 100644
+--- a/components/resources/strings/brave_components_resources_kn.xtb
++++ b/components/resources/strings/brave_components_resources_kn.xtb
+@@ -2163,4 +2163,5 @@
+     ಎಂಟರ್ ಒತ್ತಿರಿ</translation>
+ <translation id="451189393813405346">Leo ಗೆ ಕೇಳಿ</translation>
+ <translation id="8525248723479742219">ನಂತರ ಪ್ಲೇ ಮಾಡಿ</translation>
++<translation id="8331941171144629807">FlyWeb ಗೆ ಸುಸ್ವಾಗತ</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_ko.xtb b/components/resources/strings/brave_components_resources_ko.xtb
+index 66fa7f6f6a1796660fd1a028b55245bb813bb479..0fe1fb79e977eda107a1381069f8b584edab21ec 100644
+--- a/components/resources/strings/brave_components_resources_ko.xtb
++++ b/components/resources/strings/brave_components_resources_ko.xtb
+@@ -2163,4 +2163,5 @@ Brave에는 VPN 연결에서 DNS 쿼리가 생성되는 방식을 필터링하
+     탭에서 열기</translation>
+ <translation id="451189393813405346">레오에게 묻기</translation>
+ <translation id="8525248723479742219">나중에 재생</translation>
++<translation id="8331941171144629807">Brave에 오신 것을 환영합니다.</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_lt.xtb b/components/resources/strings/brave_components_resources_lt.xtb
+index b582896fa84678222f02236a98e9101de3470633..20447596a2b29850fdbdd210322a63248ce42588 100644
+--- a/components/resources/strings/brave_components_resources_lt.xtb
++++ b/components/resources/strings/brave_components_resources_lt.xtb
+@@ -2166,4 +2166,5 @@ Būkite prisijungę!</translation>
+     esamą skirtuką</translation>
+ <translation id="451189393813405346">Klausti „Leo“</translation>
+ <translation id="8525248723479742219">Leisti vėliau</translation>
++<translation id="8331941171144629807">Sveiki, tai „FlyWeb“</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_lv.xtb b/components/resources/strings/brave_components_resources_lv.xtb
+index b308f7cff2da7aebae92cd2b7d6df6fe1ea312e4..385e8b275427c66fcda1409afe14ea3e5c854c38 100644
+--- a/components/resources/strings/brave_components_resources_lv.xtb
++++ b/components/resources/strings/brave_components_resources_lv.xtb
+@@ -2163,4 +2163,5 @@ Savienosim jūs!</translation>
+ esošo cilni.</translation>
+ <translation id="451189393813405346">Jautāt Leo</translation>
+ <translation id="8525248723479742219">Atskaņot vēlāk</translation>
++<translation id="8331941171144629807">Laipni lūdzam pārlūkā FlyWeb!</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_ml.xtb b/components/resources/strings/brave_components_resources_ml.xtb
+index 1a314c32aa137d70ac32b851528e9e08d06d6679..d1a4e5035fe9243cd0a650159d08c1b3b91c9743 100644
+--- a/components/resources/strings/brave_components_resources_ml.xtb
++++ b/components/resources/strings/brave_components_resources_ml.xtb
+@@ -157,4 +157,5 @@
+ <translation id="1116694919640316211">വിവരം</translation>
+ <translation id="5154702632169343078">വിഷയം</translation>
+ <translation id="2740531572673183784">ശരി</translation>
++<translation id="8331941171144629807">FlyWeb-ത്തിലേക്ക് സ്വാഗതം</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_mr.xtb b/components/resources/strings/brave_components_resources_mr.xtb
+index f03652ca0784ed9da59b82b8b319c8e258758f97..902eaab198b1b2eec2df3a2be9f337b3476ded6d 100644
+--- a/components/resources/strings/brave_components_resources_mr.xtb
++++ b/components/resources/strings/brave_components_resources_mr.xtb
+@@ -149,4 +149,5 @@
+ <translation id="5747552184818312860">कालबाह्य होईल</translation>
+ <translation id="1116694919640316211">बद्दल</translation>
+ <translation id="2740531572673183784">ठीक आहे</translation>
++<translation id="8331941171144629807">FlyWeb वर तुमचे स्‍वागत आहे</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_ms.xtb b/components/resources/strings/brave_components_resources_ms.xtb
+index 8e91b3a3f688b1d5aa88618507a1d25003f2b668..eb9883031f88ebe4580a060d8ec521bf5f7158a6 100644
+--- a/components/resources/strings/brave_components_resources_ms.xtb
++++ b/components/resources/strings/brave_components_resources_ms.xtb
+@@ -2163,4 +2163,5 @@ Mari sambungkan anda!</translation>
+     tab sedia ada</translation>
+ <translation id="451189393813405346">Tanya Leo</translation>
+ <translation id="8525248723479742219">Main Kemudian</translation>
++<translation id="8331941171144629807">Selamat datang ke FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_nl.xtb b/components/resources/strings/brave_components_resources_nl.xtb
+index 51e4cadf2c872c74db04f2b70cf1cb1941a0b6bb..5bd6579aa663c17893b6602d6afa3382d9b9a98f 100644
+--- a/components/resources/strings/brave_components_resources_nl.xtb
++++ b/components/resources/strings/brave_components_resources_nl.xtb
+@@ -2076,4 +2076,5 @@ We hebben echter gemerkt dat deze hulpservice niet actief is en we willen u toch
+     bestaande tabblad te gaan</translation>
+ <translation id="451189393813405346">Vraag het Leo</translation>
+ <translation id="8525248723479742219">Later afspelen</translation>
++<translation id="8331941171144629807">Welkom bij FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_no.xtb b/components/resources/strings/brave_components_resources_no.xtb
+index a8bb6cb01556dc9913eb50b33d786f1c3701ef82..101df8d69d52c6a0adcf560d03ef5d91ec758d1a 100644
+--- a/components/resources/strings/brave_components_resources_no.xtb
++++ b/components/resources/strings/brave_components_resources_no.xtb
+@@ -2164,4 +2164,5 @@ Trykk på Tab, og deretter på Enter for å bytte til den åpne fanen.</translat
+ eksisterende fanen</translation>
+ <translation id="451189393813405346">Spør Leo</translation>
+ <translation id="8525248723479742219">Spill senere</translation>
++<translation id="8331941171144629807">Velkommen til FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_pl.xtb b/components/resources/strings/brave_components_resources_pl.xtb
+index fac00c9ee91ec892527413e37aaa71479cff25ae..bf164b028a1d5cd58264b4b4699d9a7cb3099f8f 100644
+--- a/components/resources/strings/brave_components_resources_pl.xtb
++++ b/components/resources/strings/brave_components_resources_pl.xtb
+@@ -2166,4 +2166,5 @@ Zaraz Cię połączymy!</translation>
+     istniejącej karty.</translation>
+ <translation id="451189393813405346">Zapytaj Leo</translation>
+ <translation id="8525248723479742219">Odtwórz później</translation>
++<translation id="8331941171144629807">FlyWeb – witamy!</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_pt-BR.xtb b/components/resources/strings/brave_components_resources_pt-BR.xtb
+index 608b93cd911015a78de35c3292900cd6a9bdbe38..fa5fdc2f617a44aa7fda2704486dccaed320efbe 100644
+--- a/components/resources/strings/brave_components_resources_pt-BR.xtb
++++ b/components/resources/strings/brave_components_resources_pt-BR.xtb
+@@ -2163,4 +2163,5 @@ Vamos conectar você!</translation>
+     guia existente</translation>
+ <translation id="451189393813405346">Perguntar ao Leo</translation>
+ <translation id="8525248723479742219">Reproduzir mais tarde</translation>
++<translation id="8331941171144629807">Bem-vindo ao FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_pt-PT.xtb b/components/resources/strings/brave_components_resources_pt-PT.xtb
+index d6568132fbbd4faed51bd5115ba1a406166c0a6e..86f44535f62c330058cc15e1b82d5f84531a2370 100644
+--- a/components/resources/strings/brave_components_resources_pt-PT.xtb
++++ b/components/resources/strings/brave_components_resources_pt-PT.xtb
+@@ -2163,4 +2163,5 @@ Vamos navegar!</translation>
+     separador existente</translation>
+ <translation id="451189393813405346">Perguntar ao Leo</translation>
+ <translation id="8525248723479742219">Reproduzir mais tarde</translation>
++<translation id="8331941171144629807">Damos-lhe as boas-vindas ao FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_ro.xtb b/components/resources/strings/brave_components_resources_ro.xtb
+index c07b093e516ccafaf2444d9ff9eef2e753ca24e3..e8fad886a717c27a40c57db6b1c56c72cd3f0429 100644
+--- a/components/resources/strings/brave_components_resources_ro.xtb
++++ b/components/resources/strings/brave_components_resources_ro.xtb
+@@ -2163,4 +2163,5 @@ Permiteți-ne să vă conectăm!</translation>
+  fila existentă</translation>
+ <translation id="451189393813405346">Întrebați-l pe Leo</translation>
+ <translation id="8525248723479742219">Redați mai târziu</translation>
++<translation id="8331941171144629807">Bun venit la FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_ru.xtb b/components/resources/strings/brave_components_resources_ru.xtb
+index 584d2ac2bf60ae92d04cfc08acd1690d11ff0f33..7335b065cdc26f96cf78234cccec92f8dd773ee8 100644
+--- a/components/resources/strings/brave_components_resources_ru.xtb
++++ b/components/resources/strings/brave_components_resources_ru.xtb
+@@ -2165,4 +2165,5 @@ FlyWeb имеет вспомогательную службу, которая з
+ <translation id="1538335063514960365">Кнопка для просмотра страницы на текущей вкладке. Чтобы не переключаться на другую открытую вкладку, нажмите Enter.</translation>
+ <translation id="451189393813405346">Задайте вопрос Leo</translation>
+ <translation id="8525248723479742219">Воспроизвести позже</translation>
++<translation id="8331941171144629807">Добро пожаловать в FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_sk.xtb b/components/resources/strings/brave_components_resources_sk.xtb
+index 68793a8efecfd3dbd848a9f98e64e34da109c509..1f9fd607cbc6c762b0a762e30def63c411ecd9a9 100644
+--- a/components/resources/strings/brave_components_resources_sk.xtb
++++ b/components/resources/strings/brave_components_resources_sk.xtb
+@@ -2164,4 +2164,5 @@ Pripojíme vás!</translation>
+     existujúcu kartu</translation>
+ <translation id="451189393813405346">Opýtajte sa Lea</translation>
+ <translation id="8525248723479742219">Prehrať neskôr</translation>
++<translation id="8331941171144629807">Vitajte v prehliadači FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_sl.xtb b/components/resources/strings/brave_components_resources_sl.xtb
+index 689469bf4ece5690e0c7b7a70d4ba8df77159021..d47a61d13c244ce4118b73354bb776e867a715bd 100644
+--- a/components/resources/strings/brave_components_resources_sl.xtb
++++ b/components/resources/strings/brave_components_resources_sl.xtb
+@@ -2169,4 +2169,5 @@ pritisnite Tab in nato Enter, da preklopite na odprti zavihek</translation>
+      obstoječi zavihek</translation>
+ <translation id="451189393813405346">Vprašaj Lea</translation>
+ <translation id="8525248723479742219">Predvajaj kasneje</translation>
++<translation id="8331941171144629807">Pozdravljeni v Braveu</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_sr.xtb b/components/resources/strings/brave_components_resources_sr.xtb
+index 850effd75a926e8179d8a96df0028fd496e78acf..55b314727ab4811fc60124f1c65e621556a09b13 100644
+--- a/components/resources/strings/brave_components_resources_sr.xtb
++++ b/components/resources/strings/brave_components_resources_sr.xtb
+@@ -2166,4 +2166,5 @@ Hajde da vas povežemo!</translation>
+     postojeću karticu</translation>
+ <translation id="451189393813405346">Pitajte Lea</translation>
+ <translation id="8525248723479742219">Reprodukuj kasnije</translation>
++<translation id="8331941171144629807">Добро дошли у FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_sv.xtb b/components/resources/strings/brave_components_resources_sv.xtb
+index 9c1513f154215be2df3d1dcc2f2d57eb6958051f..9c9d41da0924f91ca8c43f722324097ae6c67a61 100644
+--- a/components/resources/strings/brave_components_resources_sv.xtb
++++ b/components/resources/strings/brave_components_resources_sv.xtb
+@@ -2162,4 +2162,5 @@ tryck på Tab och sedan på Retur för att växla till den öppna fliken</transl
+ <translation id="1538335063514960365">Öppna här-knapp. tryck på Retur för att öppna den här webbadressen på den aktuella fliken, i stället för att växla till den befintliga fliken</translation>
+ <translation id="451189393813405346">Fråga Leo</translation>
+ <translation id="8525248723479742219">Spela upp senare</translation>
++<translation id="8331941171144629807">Välkommen till FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_sw.xtb b/components/resources/strings/brave_components_resources_sw.xtb
+index 142e69c922b5454ec1c6f36f0e39c38d665713da..3056a72993386b47db188dcaf2b66ae4ed065e36 100644
+--- a/components/resources/strings/brave_components_resources_sw.xtb
++++ b/components/resources/strings/brave_components_resources_sw.xtb
+@@ -2163,4 +2163,5 @@ Turuhusu tukuunganishe!</translation>
+     kichupo kilichopo</translation>
+ <translation id="451189393813405346">Uliza Leo</translation>
+ <translation id="8525248723479742219">Cheza Baadaye</translation>
++<translation id="8331941171144629807">Karibu kwenye FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_ta.xtb b/components/resources/strings/brave_components_resources_ta.xtb
+index 6ba6fbddb5c4489da43bd5db5fbdb632e43b2666..5991e6b91a953926fe559deecb354960eeb7a770 100644
+--- a/components/resources/strings/brave_components_resources_ta.xtb
++++ b/components/resources/strings/brave_components_resources_ta.xtb
+@@ -330,4 +330,5 @@
+ <translation id="5747552184818312860">காலாவதியாகும் தேதி</translation>
+ <translation id="1116694919640316211">அறிமுகம்</translation>
+ <translation id="2740531572673183784">சரி</translation>
++<translation id="8331941171144629807">FlyWeb க்கு வரவேற்கிறோம்</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_te.xtb b/components/resources/strings/brave_components_resources_te.xtb
+index 625826578c1275ca90669abfeb7a8a5747affbff..d593af95501d9eb7dde3c70673f6e6030f8a7731 100644
+--- a/components/resources/strings/brave_components_resources_te.xtb
++++ b/components/resources/strings/brave_components_resources_te.xtb
+@@ -146,4 +146,5 @@
+ <translation id="5747552184818312860">గడువు ముగింపు</translation>
+ <translation id="1116694919640316211">గురించి</translation>
+ <translation id="2740531572673183784">సరే</translation>
++<translation id="8331941171144629807">Braveకు స్వాగతం</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_th.xtb b/components/resources/strings/brave_components_resources_th.xtb
+index e560538b73cd2b3dc8ad4660e90796f1050f7e0e..4f3786610c7a5775f8707ac24c1ad41ae88f4816 100644
+--- a/components/resources/strings/brave_components_resources_th.xtb
++++ b/components/resources/strings/brave_components_resources_th.xtb
+@@ -2164,4 +2164,5 @@ FlyWeb มีบริการช่วยเหลือที่ปกป้
+     ที่แท็บที่มีอยู่</translation>
+ <translation id="451189393813405346">ถาม Leo</translation>
+ <translation id="8525248723479742219">เล่นภายหลัง</translation>
++<translation id="8331941171144629807">ยินดีต้อนรับสู่ FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_tr.xtb b/components/resources/strings/brave_components_resources_tr.xtb
+index a53fe9daa793e17fd8bab42d4eadae5ef37d9948..9ccc7ea9d0778f28d14a1fcf232c93778cfdd479 100644
+--- a/components/resources/strings/brave_components_resources_tr.xtb
++++ b/components/resources/strings/brave_components_resources_tr.xtb
+@@ -2163,4 +2163,5 @@ Hadi sizi bağlayalım!</translation>
+     Enter'a basın</translation>
+ <translation id="451189393813405346">Leo'ya Sorun</translation>
+ <translation id="8525248723479742219">Daha Sonra Oynat</translation>
++<translation id="8331941171144629807">FlyWeb'a Hoş Geldiniz</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_uk.xtb b/components/resources/strings/brave_components_resources_uk.xtb
+index c3c596d54dc85b6dce0b5a592f586dc45f0d0084..adc409a97373adf1d79b891df206c4911cc3e5a6 100644
+--- a/components/resources/strings/brave_components_resources_uk.xtb
++++ b/components/resources/strings/brave_components_resources_uk.xtb
+@@ -2164,4 +2164,5 @@ FlyWeb має допоміжну службу, яка захищає вас ві
+ <translation id="1538335063514960365">Кнопка «Відкрити тут». Натисніть Enter, щоб відкрити цю URL-адресу в поточній вкладці, замість того, щоб перемикатися до наявної вкладки</translation>
+ <translation id="451189393813405346">Запитати Leo</translation>
+ <translation id="8525248723479742219">Відтворити пізніше</translation>
++<translation id="8331941171144629807">Вітаємо в FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_vi.xtb b/components/resources/strings/brave_components_resources_vi.xtb
+index b1c6c5d7329f99db70f947748ba682e0647d27e2..90659d398166dc8232c61871c449182dc92808c9 100644
+--- a/components/resources/strings/brave_components_resources_vi.xtb
++++ b/components/resources/strings/brave_components_resources_vi.xtb
+@@ -2163,4 +2163,5 @@ Chúng tôi sẽ giúp bạn kết nối!</translation>
+     tab hiện có</translation>
+ <translation id="451189393813405346">Hỏi Leo</translation>
+ <translation id="8525248723479742219">Phát sau</translation>
++<translation id="8331941171144629807">Chào mừng bạn đến với FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_zh-CN.xtb b/components/resources/strings/brave_components_resources_zh-CN.xtb
+index 783e5d72591f5b34221f33d23b3e0c46a2d8b9a1..240f5317cdfab53cc4a6ccbf8d3650928529c707 100644
+--- a/components/resources/strings/brave_components_resources_zh-CN.xtb
++++ b/components/resources/strings/brave_components_resources_zh-CN.xtb
+@@ -2162,4 +2162,5 @@ FlyWeb 有一个帮助服务，通过过滤在 VPN 连接上进行 DNS 查询的
+ 现有标签页</translation>
+ <translation id="451189393813405346">询问 Leo</translation>
+ <translation id="8525248723479742219">稍后播放</translation>
++<translation id="8331941171144629807">欢迎使用 FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/components/resources/strings/brave_components_resources_zh-TW.xtb b/components/resources/strings/brave_components_resources_zh-TW.xtb
+index 9975ff60214b04a9baad1a0fcabf644242043637..102af2b52b93072cc0fdd683ad491a764605ff52 100644
+--- a/components/resources/strings/brave_components_resources_zh-TW.xtb
++++ b/components/resources/strings/brave_components_resources_zh-TW.xtb
+@@ -2163,4 +2163,5 @@ FlyWeb 的協助程式服務可過濾對您 VPN 連線執行 DNS 查詢的方式
+ 現有分頁</translation>
+ <translation id="451189393813405346">詢問 Leo</translation>
+ <translation id="8525248723479742219">稍後播放</translation>
++<translation id="8331941171144629807">歡迎使用 FlyWeb</translation>
+ </translationbundle>
+\ No newline at end of file
+-- 
+2.43.0
+
