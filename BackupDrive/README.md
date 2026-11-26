@@ -126,7 +126,7 @@ backupdrive-ctl.sh profile add "/ruta/de/mi/carpeta" gdrive:MiCarpeta
 backupdrive-sync.sh --resync --dry-run
 backupdrive-sync.sh --resync
 
-# 4. Ejecución automática cada hora
+# 4. Ejecución automática (cada 30 min; nunca dos pasadas a la vez)
 cp launchd/net.lamosquita.backupdrive.plist ~/Library/LaunchAgents/
 launchctl load -w ~/Library/LaunchAgents/net.lamosquita.backupdrive.plist
 ```
@@ -212,7 +212,7 @@ guiones, `BDSetup.m` los diálogos de conexión y carpetas) que **no sincroniza 
   ○ (nunca ejecutado) y un submenú para abrir la carpeta, ver el error o hacer la **primera sincronización**
   (primero simulada; después la real, con confirmación);
   **Sincronizar ahora** (lanza `/usr/local/bin/backupdrive-sync.sh`; su bloqueo evita solapes con launchd),
-  **Sincronizar cada hora** (carga o descarga el LaunchAgent con `launchctl -w`), ver el registro en Consola
+  **Sincronizar automáticamente** (cada 30 min; carga o descarga el LaunchAgent con `launchctl -w`), ver el registro en Consola
   y abrir la carpeta de configuración.
 - Sin icono en el Dock (`LSUIElement`). Para que arranque sola: «Abrir al iniciar sesión» en su menú.
 
@@ -237,5 +237,5 @@ No pasar de v1.67.x mientras el objetivo sea Mojave (v1.68 exige Go 1.21).
 
 1. Validar la sincronización segura con Google Drive en Mojave. ← estamos aquí
 2. ~~Renombrar el binario y la versión (`backupdrive`), con perfiles.~~ Hecho.
-3. ~~Programar ejecuciones con `launchd`.~~ Hecho (cada hora).
+3. ~~Programar ejecuciones con `launchd`.~~ Hecho (cada 30 min desde el 26-11; antes cada hora).
 4. App Cocoa de barra de menú que controle el motor: primera versión en `app/` (falta probarla en Mojave).

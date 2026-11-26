@@ -2,7 +2,7 @@
 //
 // No sincroniza por sí misma: muestra el estado que escribe scripts/backupdrive-sync.sh en
 // ~/Library/Application Support/BackupDrive/status.json, lanza ese script a petición y activa o
-// desactiva el LaunchAgent que lo ejecuta cada hora. Lo demás (conectar con Drive, carpetas) lo hace
+// desactiva el LaunchAgent que lo ejecuta cada 30 min. Lo demás (conectar con Drive, carpetas) lo hace
 // backupdrive-ctl.sh (BDSetup). Sin nib ni Xcode: ver build-app.sh.
 //
 // Licencia: MIT (ver ../LICENSE).
@@ -751,7 +751,7 @@ static const NSTimeInterval kPollSeconds = 2.0;
   [menu addItem:NSMenuItem.separatorItem];
   NSMenuItem *sync = [self addItem:@"Sincronizar ahora" action:@selector(syncNow:) to:menu];
   sync.enabled = !self.isRunning;
-  NSMenuItem *agent = [self addItem:@"Sincronizar cada hora"
+  NSMenuItem *agent = [self addItem:@"Sincronizar automáticamente"
                              action:@selector(toggleAgent:)
                                  to:menu];
   agent.state = self.agentLoaded ? NSControlStateValueOn : NSControlStateValueOff;

@@ -125,5 +125,5 @@ cat <<EOF
   $((n + 1)). Añadir una carpeta:                 backupdrive-ctl.sh profile add "/ruta/de/la/carpeta" gdrive:CarpetaDeDrive
   $((n + 2)). Primera sincronización, simulada:   backupdrive-sync.sh --resync --dry-run
   $((n + 3)). Primera sincronización, de verdad:  backupdrive-sync.sh --resync   (revisa antes el registro de la simulación)
-  $((n + 4)). Abrir BackupDrive.app y marcar "Sincronizar cada hora"
+  $((n + 4)). Abrir BackupDrive.app y marcar "Sincronizar automáticamente"
 EOF
