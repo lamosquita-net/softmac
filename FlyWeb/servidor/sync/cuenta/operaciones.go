@@ -291,6 +291,9 @@ func (s *Servicio) entrarEmpezar(p *peticion) (int, any) {
 	codigo := s.sol.crear(x)
 	if e, err := s.emailDe(c); err == nil {
 		s.mandarCodigo(e, solEntrar, codigo)
+	} else {
+		// Sin email ni identificador de la cuenta: la respuesta no cambia, solo queda constancia.
+		log.Error().Err(err).Msg("cuenta: el email no se abre; no se manda el código de entrada")
 	}
 	return http.StatusOK, respSolicitud{x.id}
 }
