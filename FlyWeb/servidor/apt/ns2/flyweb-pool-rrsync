@@ -1,0 +1,12 @@
+#!/bin/sh
+# Orden forzada de la clave de la Ubuntu (apt.flyweb): solo escribe en pool/, sin borrar y sin sobrescribir.
+# rrsync 3.2.7 no tiene -no-overwrite: se añade --ignore-existing a la orden del servidor (lo que ya existe se salta).
+# Destino: /usr/local/bin/flyweb-pool-rrsync (root:root 0755). En authorized_keys: command="…",restrict
+POOL=${FLYWEB_POOL:-/var/www/FlyWeb/apt/pool}   # FLYWEB_POOL solo para la prueba local: sshd no deja pasar variables
+case "$SSH_ORIGINAL_COMMAND" in
+    "rsync --server "*) SSH_ORIGINAL_COMMAND="rsync --server --ignore-existing ${SSH_ORIGINAL_COMMAND#rsync --server }" ;;
+    *) echo "solo rsync" >&2; exit 1 ;;
+esac
+export SSH_ORIGINAL_COMMAND
+umask 022
+exec /usr/bin/rrsync -wo -no-del -munge "$POOL"
