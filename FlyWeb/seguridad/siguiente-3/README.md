@@ -577,7 +577,7 @@ publicada.** Aún sin merge a la 8078.
 ## `chromium/0025`: [M159] Blink, `CSSSelectorList` sin carreras con el marcado concurrente de Oilpan (crbug 586990502)
 
 **`23b863fe22`** de la **8154** (26-11 11:46 UTC; bug del merge 590699862; main `00c5967059`, #1754328). **Gravedad no
-publicada.** Aún sin merge a la 8078. La réplica de gitiles aún no tenía el cherry-pick: diff de main, adaptado.
+publicada.** Aún sin merge a la 8078. Portado desde el diff de main y **comparado con el cherry-pick `23b863fe22`** (26-11 13:00 UTC): el cambio es idéntico; solo difiere una línea de **contexto** de `AdoptSelectorVector()`, que en la 159 ya lleva `base::checked_cast<uint32_t>` y en la 156 no.
 - **El fallo:**
   - Oilpan marca un objeto como «construido del todo» al terminar `MakeGarbageCollected()`, y eso ordena las escrituras
     del constructor antes del `Trace()` de un marcador concurrente;
