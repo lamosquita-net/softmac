@@ -40,6 +40,7 @@ compilado.
 | `0009-sync-send-whole-numbers-as-integers-in-the-account-c.patch` | `desde` y los demás números enteros salen sin `.0` (abajo) |
 | `0010-sync-device-model-from-hw.model-on-macOS-10.14-and-1.patch` | Modelo del Mac en 10.14 y 10.15 desde `hw.model` (abajo) |
 | `0011-sync-the-first-read-of-a-joined-account-lasts-until-.patch` | La primera lectura de la cuenta sobrevive a un reinicio y no tapa avisos posteriores (abajo; **pasa por SEGURIDAD-PORTES**) |
+| `0012-sync-raw_ptr-for-the-borrowed-keys-in-AccountService.patch` | `CallSpec`: `raw_ptr` en vez de punteros crudos, para el plugin `chromium-rawptr` (abajo) |
 
 ## Qué hace el cliente
 
@@ -253,6 +254,31 @@ manda JSON, sin cookies y con una prueba nueva en cada llamada.
   para la sincronización.
 - **«Claves ilegibles»:** «Volver a unir» (entrar o las palabras) sobrescribe las prefs que no se leen y limpia el
   estado.
+
+## 0012: punteros crudos en `CallSpec` (MOTOR-47, 25-11)
+
+Encargo de COORDINACIÓN-64. `0011` (`236a04edbe`) dejó dos campos `const ChainKeys*` en `CallSpec` (`proof_keys`,
+`new_chain_keys`). Con el plugin de clang `chromium-rawptr`, la compilación se para (Ubuntu); en las Release de la 7,1 no
+salta porque no lo llevan.
+
+- **Cambio:** pasan a `raw_ptr<const ChainKeys, DisableDanglingPtrDetection>`. Es un solo fichero (`.h`); el `.cc` no
+  cambia, porque solo usa `->`, la comprobación de nulo y asignaciones.
+- **Por qué `DisableDanglingPtrDetection`:** las claves no son de `CallSpec` y pueden morir un instante antes que los
+  punteros, sin que nadie los use:
+  - `CallWithNonce()` vuelve antes de anularlos si falla el nonce;
+  - el *callback* dueño de las claves se destruye antes que `spec`;
+  - `owned_keys` se destruye antes que los dos campos, por el orden de declaración.
+
+  Con un `raw_ptr` normal, las comprobaciones de punteros colgantes darían falsos avisos en esas compilaciones. Solo se
+  desreferencian en `CallWithNonce()`, con las claves vivas.
+- **Comportamiento:** el mismo. `RAW_PTR_EXCLUSION` también compilaría, pero quitaría la protección BRP.
+- **Base:** brave-core `local/322-final` = **060015a802** (ls-remote del 25-11, árbol `fbdf05a0d3`), con `git am` →
+  árbol **`05ba28dd7a`**.
+- **Sin compilar aquí.** Para probar:
+  - D8-LINUX: compilar con el plugin en la Ubuntu (`out/PilotoB`);
+  - LOCAL: `brave_unit_tests --gtest_filter='*SyncAccount*:*AccountService*'`, que debe seguir en verde.
+- **Seguridad:** no toca la lógica de las pruebas de identidad ni de las claves; se lo comunico a SEGURIDAD-PORTES de
+  todos modos, porque toca la sync.
 
 ## Riesgos al compilar
 

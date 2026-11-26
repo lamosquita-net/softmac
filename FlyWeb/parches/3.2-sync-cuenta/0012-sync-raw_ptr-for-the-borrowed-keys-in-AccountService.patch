@@ -1,0 +1,46 @@
+From 83c3f939fbc30b310dfccca9f83752f57357a1cb Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 19:53:35 +0000
+Subject: [PATCH] sync: raw_ptr for the borrowed keys in
+ AccountService::CallSpec
+
+236a04edbe left two raw pointer fields in CallSpec (proof_keys,
+new_chain_keys), which the chromium-rawptr clang plugin rejects. Make
+them raw_ptr<const ChainKeys, DisableDanglingPtrDetection>: they are
+not owned and can briefly outlive their pointee without being used
+(early returns in CallWithNonce(), the owning callback destroyed
+first, owned_keys destroyed before them). No behavior change.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ browser/sync/account/flyweb_sync_account_service.h | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/browser/sync/account/flyweb_sync_account_service.h b/browser/sync/account/flyweb_sync_account_service.h
+index a2a433768ac11018d8dc106db0caf1dbf5cd199f..f1f56ca81cd79835fc37bac81a7bcc3d38b2da92 100644
+--- a/browser/sync/account/flyweb_sync_account_service.h
++++ b/browser/sync/account/flyweb_sync_account_service.h
+@@ -260,8 +260,17 @@ class AccountService : public KeyedService,
+     // cadena/cambiar and empezar-de-cero/confirmar sign with other keys
+     // (owned by the caller's callback). Without them, a copy of this Mac's
+     // chain keys is taken when the call starts.
+-    const brave_sync::crypto::account::ChainKeys* proof_keys = nullptr;
+-    const brave_sync::crypto::account::ChainKeys* new_chain_keys = nullptr;
++    // Not owned. They may outlive their pointee for a moment without being
++    // used: CallWithNonce() returns early before clearing them, the callback
++    // that owns the keys can be destroyed first, and `owned_keys` is
++    // destroyed before these two. They are only dereferenced in
++    // CallWithNonce() while the keys are alive.
++    raw_ptr<const brave_sync::crypto::account::ChainKeys,
++            DisableDanglingPtrDetection>
++        proof_keys = nullptr;
++    raw_ptr<const brave_sync::crypto::account::ChainKeys,
++            DisableDanglingPtrDetection>
++        new_chain_keys = nullptr;
+     std::unique_ptr<brave_sync::crypto::account::ChainKeys> owned_keys;
+   };
+   void Call(CallSpec spec, AccountCallback callback);
+-- 
+2.43.0
+
