@@ -1,0 +1,851 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: D8-LINUX-6 <d8-linux@flyweb.invalid>
+Date: Thu, 26 Nov 2026 21:50:00 +0100
+Subject: [PATCH] sync account: "computer" instead of "Mac"; a real model on Linux
+
+The sync account joins Macs and Linux computers, so its 41 strings say
+"computer" (es and es-419: "equipo") on every platform. Message names do not
+change; the es and es-419 translations move to the new grit ids.
+
+DeviceModel(): Mac exactly as before. On Linux HardwareModelName() is empty
+(the 3.2.2-50 sent the fallback "Mac"), so LinuxModel() reads, once, a model
+like the Macs' "MacPro6,1": the DMI product name with a short vendor (MSI,
+ASUS, Lenovo...), or the board when the product name is only a code inside it
+("MSI B760 GAMING PLUS WIFI MS-7D98"), Lenovo's product_version, then the CPU
+model, then "Linux". Placeholders are skipped. Never serial numbers, UUIDs or
+the machine name (MOTOR-47).
+
+Base: brave-core 583b882d52b20d710afbaa4fa31934c7d02cb1fa with the working tree 57132d0746 (U3 final, 0012, 6, 7,
+Linux icons, desktop and #1250); result tree e8f182a1e3.
+---
+diff --git a/app/brave_generated_resources.grd b/app/brave_generated_resources.grd
+index 07c302ecc545ac29b55e6f47bc0ce994c3c4484e..ddb933e210dfc39a94837c0757921de7b617dfea 100644
+--- a/app/brave_generated_resources.grd
++++ b/app/brave_generated_resources.grd
+@@ -319,11 +319,11 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>flyweb://settings/ex
+         OK
+       </message>
+       <!-- FlyWeb 3.2: sync account warnings (FlyWeb/docs/sync-cuenta.md §6.2, §6.3) -->
+-      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_MAC_ADDED" desc="Account warning: a Mac was added">
+-        The Mac "<ph name="NAME">$1<ex>MacBook Air</ex></ph>" was added to your sync account.
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_MAC_ADDED" desc="Account warning: a computer was added">
++        The computer "<ph name="NAME">$1<ex>MacBook Air</ex></ph>" was added to your sync account.
+       </message>
+-      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_GUESSED" desc="Account warning: the password was typed right on a new Mac">
+-        Someone typed your account password correctly on a new Mac. If it wasn't you, change it now.
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_GUESSED" desc="Account warning: the password was typed right on a new computer">
++        Someone typed your account password correctly on a new computer. If it wasn't you, change it now.
+       </message>
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_FAILURES" desc="Account warning: failed password attempts">
+         <ph name="COUNT">$1<ex>3</ex></ph> failed password attempts on your sync account.
+@@ -335,7 +335,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>flyweb://settings/ex
+         The email of your sync account was changed.
+       </message>
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_CHANGED" desc="Account warning: sync key changed">
+-        The sync key was changed from another Mac.
++        The sync key was changed from another computer.
+       </message>
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_CHAIN_LINKED" desc="Account warning: the chain was linked to an account">
+         This sync was linked to an account.
+@@ -352,11 +352,11 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>flyweb://settings/ex
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_LINKED_BY_ME" desc="Button of the account warning bar when this Mac's chain was linked to an account">
+         I didn't link it
+       </message>
+-      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DEVICE_REMOVED" desc="Account warning: a Mac was removed from the list">
+-        The Mac "<ph name="NAME">$1<ex>MacBook Air</ex></ph>" was removed from your sync account.
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DEVICE_REMOVED" desc="Account warning: a computer was removed from the list">
++        The computer "<ph name="NAME">$1<ex>MacBook Air</ex></ph>" was removed from your sync account.
+       </message>
+-      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_ME" desc="Account warning: «It wasn't me» on another Mac">
+-        Someone pressed "It wasn't me" on another Mac.
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_NOT_ME" desc="Account warning: «It wasn't me» on another computer">
++        Someone pressed "It wasn't me" on another computer.
+       </message>
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_DELETION_REQUESTED" desc="Account warning: deletion asked by email">
+         Someone asked to delete your sync account; it will be deleted on <ph name="DATE">$1<ex>14 de diciembre</ex></ph>.
+@@ -376,8 +376,8 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>flyweb://settings/ex
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_OPEN" desc="Link that opens «Cuenta y sincronización»">
+         Review
+       </message>
+-      <message name="IDS_FLYWEB_SYNC_ACCOUNT_KEY_CHANGED_INFOBAR" desc="Notice when the sync key was changed from another Mac">
+-        The sync key was changed from another Mac. Log in again with your email, your password and a code.
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_KEY_CHANGED_INFOBAR" desc="Notice when the sync key was changed from another computer">
++        The sync key was changed from another computer. Log in again with your email, your password and a code.
+       </message>
+       <message name="IDS_BRAVE_SYNC_CANNOT_RUN_INFOBAR_MESSAGE" desc="Message text shown to users when Sync service cannot run and additional attention is required">
+         Sync service could not be started, FlyWeb Sync is not running
+diff --git a/app/brave_settings_strings.grdp b/app/brave_settings_strings.grdp
+index 7cceca252301e79622b73af9002e9a9dfa0ce183..0f42b3c677fb954132b0fd01b27d8df31e0c754d 100644
+--- a/app/brave_settings_strings.grdp
++++ b/app/brave_settings_strings.grdp
+@@ -816,13 +816,13 @@
+     The last check with the server failed: <ph name="ERROR">$1<ex>El servidor está ocupado.</ex></ph>
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_NO_ACCOUNT_TITLE" desc="Title of the page without an account">
+-    Sync your Macs with an account
++    Sync your computers with an account
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_NO_ACCOUNT_DESC" desc="Explanation of the sync account">
+-    With an account, you add a Mac with your email, your password and a code we send to your email. Your data travels encrypted with a key the server does not have.
++    With an account, you add a computer with your email, your password and a code we send to your email. Your data travels encrypted with a key the server does not have.
+   </message>
+-  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LINK_DESC" desc="Shown to a Mac that syncs with the 24 words and has no account">
+-    This Mac already syncs with a recovery key (24 words). Create an account to link this sync to it: nothing is synced again, and you can add other Macs with your email and your password.
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LINK_DESC" desc="Shown to a computer that syncs with the 24 words and has no account">
++    This computer already syncs with a recovery key (24 words). Create an account to link this sync to it: nothing is synced again, and you can add other computers with your email and your password.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CREATE" desc="Button to create a sync account">
+     Create account
+@@ -852,10 +852,10 @@
+     Code from the email
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_NAME_LABEL" desc="Label of the device name field">
+-    Name of this Mac
++    Name of this computer
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_NAME_HINT" desc="Hint under the device name field">
+-    This is how this Mac appears in the list and in the warnings. Only you see it.
++    This is how this computer appears in the list and in the warnings. Only you see it.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_EMAIL_CODE_DESC" desc="Step that asks for the email">
+     Write the email of the account. We will send you a code to check it.
+@@ -894,10 +894,10 @@
+     Send another code
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_CREATE_DESC" desc="Last step of creating an account">
+-    Write the code, choose the password of the account and a name for this Mac.
++    Write the code, choose the password of the account and a name for this computer.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_LOGIN_DESC" desc="Last step of logging in">
+-    Write the code and a name for this Mac.
++    Write the code and a name for this computer.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_PASSWORD_DESC" desc="Last step of changing the password">
+     Write the code and the new password. The old one is not needed, and your synced data is not touched.
+@@ -906,16 +906,16 @@
+     Write the code we sent to the new address.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_MAILBOX_DELETE_DESC" desc="Last step of deleting the account with the email only">
+-    Write the code. The account and its data will be deleted in 14 days; until then, any Mac that still syncs can cancel it.
++    Write the code. The account and its data will be deleted in 14 days; until then, any computer that still syncs can cancel it.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FLOW_START_OVER_DESC" desc="Last step of starting over with the email only">
+-    Write the code and choose the password of the account. This Mac starts a new sync now; the account moves to it in 14 days, and the old sync is deleted then. Any Mac that still syncs the old one can cancel it.
++    Write the code and choose the password of the account. This computer starts a new sync now; the account moves to it in 14 days, and the old sync is deleted then. Any computer that still syncs the old one can cancel it.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_RECOVERY_TITLE" desc="Title of the 24 words">
+     Recovery key
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_RECOVERY_DESC" desc="Explanation of the recovery key">
+-    Keep it printed or in a password manager. It is the only way to recover your data if you lose all your Macs and forget the password.
++    Keep it printed or in a password manager. It is the only way to recover your data if you lose all your computers and forget the password.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_RECOVERY_NEW" desc="Shown with a new recovery key">
+     This is a new recovery key: the old one no longer works.
+@@ -936,19 +936,19 @@
+     Write the 24 words of your recovery key. The 25 words shown by FlyWeb 2.7 or 3.0 also work while they have not expired.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_JOIN" desc="Button to join with the recovery key">
+-    Join this Mac
++    Join this computer
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_WITH_MAC" desc="First way out for a forgotten password">
+-    Change it on a Mac that already syncs (Account and sync → I forgot the password) and come back here.
++    Change it on a computer that already syncs (Account and sync → I forgot the password) and come back here.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_NO_MAC" desc="Second way out for a forgotten password">
+-    If you have none, use your recovery key: this Mac joins with it, and then you can set a new password here.
++    If you have none, use your recovery key: this computer joins with it, and then you can set a new password here.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_FORGOT_NOTHING" desc="Shown when nothing is left but the mailbox">
+-    Without any Mac, the password or the recovery key, your synced data cannot be recovered: nobody, not even us, has the key that opens it. With your email you can start over or delete the account.
++    Without any computer, the password or the recovery key, your synced data cannot be recovered: nobody, not even us, has the key that opens it. With your email you can start over or delete the account.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DELAY_WARNING" desc="Warning of the 14 days delay">
+-    It does not happen at once: it takes 14 days, and any Mac that still syncs can cancel it. If it is cancelled, it cannot be asked again for 30 days.
++    It does not happen at once: it takes 14 days, and any computer that still syncs can cancel it. If it is cancelled, it cannot be asked again for 30 days.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_START_OVER" desc="Button to start over with the email only">
+     Start over
+@@ -960,22 +960,22 @@
+     The account will be deleted on <ph name="DATE">$1<ex>14 de diciembre</ex></ph>.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_START_OVER_DONE" desc="Shown after starting over">
+-    This Mac now syncs a new chain. The account moves to it on <ph name="DATE">$1<ex>14 de diciembre</ex></ph>.
++    This computer now syncs a new chain. The account moves to it on <ph name="DATE">$1<ex>14 de diciembre</ex></ph>.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ACCOUNT_EMAIL" desc="Email of the account">
+     Account: <ph name="EMAIL">$1<ex>usuario@example.com</ex></ph>
+   </message>
+-  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_EMAIL_NOT_KNOWN" desc="Shown when this Mac does not know the email of the account">
+-    Linked account (this Mac does not know its email yet)
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_EMAIL_NOT_KNOWN" desc="Shown when this computer does not know the email of the account">
++    Linked account (this computer does not know its email yet)
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICES_TITLE" desc="Title of the device list">
+-    Macs in the account
++    Computers in the account
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICES_EMPTY" desc="Empty device list">
+     The list has not loaded yet.
+   </message>
+-  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_THIS" desc="Marks this Mac in the device list">
+-    This Mac
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_THIS" desc="Marks this computer in the device list">
++    This computer
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DEVICE_ADDED" desc="Date a device was added">
+     Added: <ph name="DATE">$1<ex>14 de diciembre</ex></ph>
+@@ -990,7 +990,7 @@
+     Remove from the list
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_REMOVE_CONFIRM" desc="Confirmation of removing a device from the list">
+-    This Mac stops appearing here, but it keeps the sync key. If you lost it or it was stolen, change the sync key.
++    This computer stops appearing here, but it keeps the sync key. If you lost it or it was stolen, change the sync key.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_PASSWORD" desc="Button to change the password">
+     Change the password
+@@ -1008,13 +1008,13 @@
+     Change the sync key
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_CHANGE_KEY_DESC" desc="Explanation of changing the sync key">
+-    If you lost a Mac or it was stolen: this Mac creates a new key, uploads the data again encrypted with it and shows you the new recovery key. The other Macs have to log in again with your email, your password and a code; the lost one cannot, because it does not know the password.
++    If you lost a computer or it was stolen: this computer creates a new key, uploads the data again encrypted with it and shows you the new recovery key. The other computers have to log in again with your email, your password and a code; the lost one cannot, because it does not know the password.
+   </message>
+-  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LEAVE" desc="Button to leave sync on this Mac">
+-    Stop syncing on this Mac
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LEAVE" desc="Button to leave sync on this computer">
++    Stop syncing on this computer
+   </message>
+-  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LEAVE_CONFIRM" desc="Confirmation of leaving sync on this Mac">
+-    This Mac stops syncing and leaves the list of the account. Its data stays in the profile, and nothing is deleted on the server or on the other Macs.
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LEAVE_CONFIRM" desc="Confirmation of leaving sync on this computer">
++    This computer stops syncing and leaves the list of the account. Its data stays in the profile, and nothing is deleted on the server or on the other computers.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DELETE_EVERYWHERE" desc="Button to delete the account and the synced data">
+     Delete the account and the data everywhere
+@@ -1035,19 +1035,19 @@
+     Cancel the deletion
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_KEYS_UNREADABLE" desc="Shown when the keychain cannot decrypt the sync keys">
+-    This Mac cannot read its sync keys (the keychain has changed).
++    This computer cannot read its sync keys (the keychain has changed).
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_KEYS_UNREADABLE_DESC" desc="What to do when the sync keys cannot be read">
+     Its data is still in the profile. To sync again, log in with your email and your password, or use your recovery key.
+   </message>
+-  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_REJOIN" desc="Button to join this Mac again">
+-    Join this Mac again
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_REJOIN" desc="Button to join this computer again">
++    Join this computer again
+   </message>
+-  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ACCOUNT_DELETED" desc="Shown when the account was deleted from another Mac">
+-    The account was deleted from another Mac.
++  <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ACCOUNT_DELETED" desc="Shown when the account was deleted from another computer">
++    The account was deleted from another computer.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_DATA_KEPT" desc="Shown after the account was deleted or the key changed">
+-    This Mac has stopped syncing; its data is still in the profile.
++    This computer has stopped syncing; its data is still in the profile.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_LOGIN_AGAIN" desc="Button to log in again">
+     Log in again
+@@ -1059,7 +1059,7 @@
+     Was it you?
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_NOT_ME_DONE" desc="Guide after «It wasn't me»">
+-    Done: no Mac session is valid now (yours renew it by themselves) and any deletion asked by email is cancelled. Now change the password. If someone may have logged in already, change the sync key too. And if your email is not safe, change the email.
++    Done: no computer session is valid now (yours renew it by themselves) and any deletion asked by email is cancelled. Now change the password. If someone may have logged in already, change the sync key too. And if your email is not safe, change the email.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_RED" desc="Error: no network">
+     No connection to the server. Retry.
+@@ -1089,7 +1089,7 @@
+     Check the email address: it is not valid.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_EMAIL_UNKNOWN" desc="Error: the email of the account is not known here">
+-    This Mac does not know the email of the account yet. Retry in a moment.
++    This computer does not know the email of the account yet. Retry in a moment.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_PALABRAS" desc="Error: invalid recovery words">
+     The recovery key is not valid. Check the words.
+@@ -1110,13 +1110,13 @@
+     A deletion is already pending for this account, or one was cancelled less than 30 days ago.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_APARATO" desc="Error: unknown device">
+-    That Mac is no longer in the list of the account.
++    That computer is no longer in the list of the account.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_PRUEBA" desc="Error: chain proof rejected">
+-    The server did not accept the signature of this Mac. Retry.
++    The server did not accept the signature of this computer. Retry.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_TOKEN" desc="Error: device token rejected">
+-    The session of this Mac is no longer valid. Retry: it renews by itself.
++    The session of this computer is no longer valid. Retry: it renews by itself.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_LLAVERO" desc="Error: keychain">
+     The macOS keychain could not be used for the sync keys.
+@@ -1125,16 +1125,16 @@
+     Something failed inside FlyWeb. Retry.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_OCUPADO_LOCAL" desc="Error: another operation running">
+-    Another operation is in progress on this Mac. Wait until it ends.
++    Another operation is in progress on this computer. Wait until it ends.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_SIN_FLUJO" desc="Error: no flow in progress">
+     The code has expired or the operation was cancelled. Start again.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_SIN_CADENA" desc="Error: no chain">
+-    This Mac is not syncing.
++    This computer is not syncing.
+   </message>
+   <message name="IDS_SETTINGS_FLYWEB_ACCOUNT_ERROR_PETICION" desc="Error: bad request">
+-    The server did not understand the request. Check the data (the name of the Mac, 64 characters at most).
++    The server did not understand the request. Check the data (the name of the computer, 64 characters at most).
+   </message>
+ 
+   <!-- Settings / Search engine -->
+diff --git a/app/resources/brave_generated_resources_es.xtb b/app/resources/brave_generated_resources_es.xtb
+index 73d1562cbeeee7289796605b23ee14aa37c321ff..a9634fcfcd689c8fb6f13f3a28a22f6b3c92c887 100644
+--- a/app/resources/brave_generated_resources_es.xtb
++++ b/app/resources/brave_generated_resources_es.xtb
+@@ -755,9 +755,9 @@ de forma irreversible.</translation>
+ <translation id="6158789680688491759">Comprobando la contraseña…</translation>
+ <translation id="8286347109540980254">No hay conexión con el servidor. Esto es lo último que se sabía (<ph name="DATE"/>).</translation>
+ <translation id="1259556708021850952">La última comprobación con el servidor ha fallado: <ph name="ERROR"/></translation>
+-<translation id="9204601462589487462">Sincroniza tus Macs con una cuenta</translation>
+-<translation id="947914014881985381">Con una cuenta, añades un Mac con tu email, tu contraseña y un código que te mandamos por email. Tus datos viajan cifrados con una clave que el servidor no tiene.</translation>
+-<translation id="3057943379076520498">Este Mac ya sincroniza con la clave de recuperación (24 palabras). Crea una cuenta para ligar esta sincronización: no se vuelve a sincronizar nada, y podrás añadir otros Macs con tu email y tu contraseña.</translation>
++<translation id="6725854610423522441">Sincroniza tus equipos con una cuenta</translation>
++<translation id="7020132528152689711">Con una cuenta, añades un equipo con tu email, tu contraseña y un código que te mandamos por email. Tus datos viajan cifrados con una clave que el servidor no tiene.</translation>
++<translation id="7819784676362286139">Este equipo ya sincroniza con la clave de recuperación (24 palabras). Crea una cuenta para ligar esta sincronización: no se vuelve a sincronizar nada, y podrás añadir otros equipos con tu email y tu contraseña.</translation>
+ <translation id="4771176409524282426">Crear cuenta</translation>
+ <translation id="4611292653554630842">Entrar</translation>
+ <translation id="2907990096795616260">Tengo mi clave de recuperación</translation>
+@@ -767,8 +767,8 @@ de forma irreversible.</translation>
+ <translation id="3838338534323494292">Contraseña nueva</translation>
+ <translation id="5706128975787418512">Email nuevo</translation>
+ <translation id="2152300309341997262">Código del email</translation>
+-<translation id="5311405160685974375">Nombre de este Mac</translation>
+-<translation id="4647109959892177045">Es como aparece este Mac en la lista y en los avisos. Solo lo ves tú.</translation>
++<translation id="8266092326146744695">Nombre de este equipo</translation>
++<translation id="5192610020550791012">Es como aparece este equipo en la lista y en los avisos. Solo lo ves tú.</translation>
+ <translation id="3083216309726842735">Escribe el email de la cuenta. Te mandaremos un código para comprobarlo.</translation>
+ <translation id="2910518395572324988">Escribe el email y la contraseña de tu cuenta. Si son correctos, te mandaremos un código por email.</translation>
+ <translation id="9056205625135800990">Mandar el código</translation>
+@@ -781,62 +781,62 @@ de forma irreversible.</translation>
+ <translation id="2013649896082402637">Te hemos mandado un código a <ph name="EMAIL"/>. Caduca en 10 minutos.</translation>
+ <translation id="4106988230903033600">Si no llega, mira en la carpeta de correo no deseado o pide otro.</translation>
+ <translation id="7280277229616724707">Reenviar el código</translation>
+-<translation id="2637097480266447339">Escribe el código, elige la contraseña de la cuenta y un nombre para este Mac.</translation>
+-<translation id="5423944663313833380">Escribe el código y un nombre para este Mac.</translation>
++<translation id="4538638252409980406">Escribe el código, elige la contraseña de la cuenta y un nombre para este equipo.</translation>
++<translation id="2733469504833692350">Escribe el código y un nombre para este equipo.</translation>
+ <translation id="3472559064635209201">Escribe el código y la contraseña nueva. No hace falta la anterior, y los datos sincronizados no se tocan.</translation>
+ <translation id="1615209795680961966">Escribe el código que te hemos mandado a la dirección nueva.</translation>
+-<translation id="1306550004604845913">Escribe el código. La cuenta y sus datos se borrarán dentro de 14 días; hasta entonces, cualquier Mac que aún sincronice puede cancelarlo.</translation>
+-<translation id="6846493817244639171">Escribe el código y elige la contraseña de la cuenta. Este Mac empieza ahora una sincronización nueva; la cuenta pasa a ella dentro de 14 días, y entonces se borra la anterior. Cualquier Mac que aún sincronice la anterior puede cancelarlo.</translation>
++<translation id="148804302637426479">Escribe el código. La cuenta y sus datos se borrarán dentro de 14 días; hasta entonces, cualquier equipo que aún sincronice puede cancelarlo.</translation>
++<translation id="246939058078345773">Escribe el código y elige la contraseña de la cuenta. Este equipo empieza ahora una sincronización nueva; la cuenta pasa a ella dentro de 14 días, y entonces se borra la anterior. Cualquier equipo que aún sincronice la anterior puede cancelarlo.</translation>
+ <translation id="7525299293162423735">Clave de recuperación</translation>
+-<translation id="5621574819398488345">Guárdala impresa o en un gestor de contraseñas. Es la única forma de recuperar tus datos si pierdes todos tus Macs y olvidas la contraseña.</translation>
++<translation id="4838325122882037836">Guárdala impresa o en un gestor de contraseñas. Es la única forma de recuperar tus datos si pierdes todos tus equipos y olvidas la contraseña.</translation>
+ <translation id="4864719835827800802">Es una clave de recuperación nueva: la anterior ya no sirve.</translation>
+ <translation id="6114699089920458440">He guardado la clave de recuperación</translation>
+ <translation id="8227304606758279867">Ver la clave de recuperación</translation>
+ <translation id="5356500308268974980">Código para FlyWeb 2.7 o 3.0</translation>
+ <translation id="6692365517211457168">Esas versiones se unen con 25 palabras que caducan.</translation>
+ <translation id="4743224872163733183">Escribe las 24 palabras de tu clave de recuperación. También valen las 25 que enseña FlyWeb 2.7 o 3.0, mientras no caduquen.</translation>
+-<translation id="4610899538506456775">Unir este Mac</translation>
+-<translation id="5159346822234679463">Cámbiala en un Mac que ya sincroniza (Cuenta y sincronización → He olvidado la contraseña) y vuelve aquí.</translation>
+-<translation id="5348000236942781449">Si no tienes ninguno, usa tu clave de recuperación: este Mac se une con ella y después puedes poner aquí una contraseña nueva.</translation>
+-<translation id="2280381798243065719">Sin ningún Mac, sin la contraseña y sin la clave de recuperación, tus datos sincronizados no se pueden recuperar: nadie, tampoco nosotros, tiene la clave que los abre. Con tu email puedes empezar de cero o borrar la cuenta.</translation>
+-<translation id="9124340454989175225">No se hace al momento: tarda 14 días, y cualquier Mac que aún sincronice puede cancelarlo. Si se cancela, no se puede volver a pedir hasta pasados 30 días.</translation>
++<translation id="7164132527133871519">Unir este equipo</translation>
++<translation id="6537540682566586598">Cámbiala en un equipo que ya sincroniza (Cuenta y sincronización → He olvidado la contraseña) y vuelve aquí.</translation>
++<translation id="5624639125811651810">Si no tienes ninguno, usa tu clave de recuperación: este equipo se une con ella y después puedes poner aquí una contraseña nueva.</translation>
++<translation id="8012277300255507977">Sin ningún equipo, sin la contraseña y sin la clave de recuperación, tus datos sincronizados no se pueden recuperar: nadie, tampoco nosotros, tiene la clave que los abre. Con tu email puedes empezar de cero o borrar la cuenta.</translation>
++<translation id="8917587965241295154">No se hace al momento: tarda 14 días, y cualquier equipo que aún sincronice puede cancelarlo. Si se cancela, no se puede volver a pedir hasta pasados 30 días.</translation>
+ <translation id="1340795582009113055">Empezar de cero</translation>
+ <translation id="8646438659330449482">Borrar la cuenta por email</translation>
+ <translation id="9150721074226528700">La cuenta se borrará el <ph name="DATE"/>.</translation>
+-<translation id="8037632438542596661">Este Mac ya sincroniza con una cadena nueva. La cuenta pasará a ella el <ph name="DATE"/>.</translation>
++<translation id="8766625735291914420">Este equipo ya sincroniza con una cadena nueva. La cuenta pasará a ella el <ph name="DATE"/>.</translation>
+ <translation id="6494625331495422251">Cuenta: <ph name="EMAIL"/></translation>
+-<translation id="909279971589746579">Cuenta ligada (este Mac aún no sabe su email)</translation>
+-<translation id="3653383526177624235">Macs de la cuenta</translation>
++<translation id="2863557786883778896">Cuenta ligada (este equipo aún no sabe su email)</translation>
++<translation id="6776639223538622579">Equipos de la cuenta</translation>
+ <translation id="3064823351336547844">La lista aún no se ha cargado.</translation>
+-<translation id="7554602297231944253">Este Mac</translation>
++<translation id="4656293982926141856">Este equipo</translation>
+ <translation id="7958915027729126629">Alta: <ph name="DATE"/></translation>
+ <translation id="2941076175389896864">Último uso: <ph name="DATE"/></translation>
+ <translation id="1728528027996012685">Cambiar el nombre</translation>
+ <translation id="4032130989822692459">Quitar de la lista</translation>
+-<translation id="1657520380446683702">Este Mac deja de aparecer aquí, pero conserva la clave de sincronización. Si lo has perdido o te lo han robado, cambia la clave de sincronización.</translation>
++<translation id="8632447340767846225">Este equipo deja de aparecer aquí, pero conserva la clave de sincronización. Si lo has perdido o te lo han robado, cambia la clave de sincronización.</translation>
+ <translation id="547790733882788713">Cambiar la contraseña</translation>
+ <translation id="5540994555954419987">Cambiar el email</translation>
+ <translation id="6259373429321115014">Escribe tu contraseña y el email nuevo. Te mandaremos un código a la dirección nueva.</translation>
+ <translation id="3152948229289210818">Si no recuerdas la contraseña, cámbiala primero con «He olvidado la contraseña».</translation>
+ <translation id="8926988140899630996">Cambiar la clave de sincronización</translation>
+-<translation id="4436977679292640120">Si has perdido un Mac o te lo han robado: este Mac crea una clave nueva, vuelve a subir los datos cifrados con ella y te enseña la clave de recuperación nueva. Los demás Macs tendrán que volver a entrar con tu email, tu contraseña y un código; el que has perdido no puede, porque no sabe la contraseña.</translation>
+-<translation id="1591805346806979201">Salir de la sincronización en este Mac</translation>
+-<translation id="269715764595743305">Este Mac deja de sincronizar y sale de la lista de la cuenta. Sus datos se quedan en el perfil, y en el servidor y en los demás Macs no se borra nada.</translation>
++<translation id="8933821108812431876">Si has perdido un equipo o te lo han robado: este equipo crea una clave nueva, vuelve a subir los datos cifrados con ella y te enseña la clave de recuperación nueva. Los demás equipos tendrán que volver a entrar con tu email, tu contraseña y un código; el que has perdido no puede, porque no sabe la contraseña.</translation>
++<translation id="2386898585173069829">Salir de la sincronización en este equipo</translation>
++<translation id="6024366804146755975">Este equipo deja de sincronizar y sale de la lista de la cuenta. Sus datos se quedan en el perfil, y en el servidor y en los demás equipos no se borra nada.</translation>
+ <translation id="7675067068518838480">Borrar la cuenta y los datos en todos</translation>
+ <translation id="119216655508960223">Se desconectarán <ph name="COUNT"/> navegadores. Los datos que cada uno tiene en su perfil no se borran.</translation>
+ <translation id="52721605723208513">Se borran del servidor la cuenta y todos los datos sincronizados. No se puede deshacer.</translation>
+ <translation id="8646746061005263397">Se ha pedido borrar esta cuenta desde su email. Se borrará el <ph name="DATE"/>, con todos los datos sincronizados, salvo que lo canceles.</translation>
+ <translation id="8859005822487383647">Si no has sido tú, alguien puede leer tu correo: cancélalo y cambia la contraseña de tu correo.</translation>
+ <translation id="8178938205013945907">Cancelar el borrado</translation>
+-<translation id="3149784601598434793">Este Mac no puede leer sus claves de sincronización (ha cambiado el llavero).</translation>
++<translation id="1538801714568042816">Este equipo no puede leer sus claves de sincronización (ha cambiado el llavero).</translation>
+ <translation id="6825855582963981408">Sus datos siguen en el perfil. Para volver a sincronizar, entra con tu email y tu contraseña o usa tu clave de recuperación.</translation>
+-<translation id="4627565296128889764">Volver a unir este Mac</translation>
+-<translation id="5577892827586215907">La cuenta se ha borrado desde otro Mac.</translation>
+-<translation id="324738368055125401">Este Mac ha dejado de sincronizar; sus datos siguen en el perfil.</translation>
++<translation id="6348364038922009739">Volver a unir este equipo</translation>
++<translation id="8658547939216888511">La cuenta se ha borrado desde otro equipo.</translation>
++<translation id="3226788237927574662">Este equipo ha dejado de sincronizar; sus datos siguen en el perfil.</translation>
+ <translation id="9029009481113741943">Volver a entrar</translation>
+ <translation id="1370154438562828128">Entendido</translation>
+ <translation id="7368712327025288113">¿Has sido tú?</translation>
+-<translation id="4185824096188893138">Hecho: ya no vale ninguna sesión de Mac (los tuyos la renuevan solos) y se ha cancelado cualquier borrado pedido por email. Ahora cambia la contraseña. Si alguien ha podido entrar ya, cambia también la clave de sincronización. Y si tu correo no es de fiar, cambia el email.</translation>
++<translation id="5659512869868709180">Hecho: ya no vale ninguna sesión de equipo (los tuyos la renuevan solos) y se ha cancelado cualquier borrado pedido por email. Ahora cambia la contraseña. Si alguien ha podido entrar ya, cambia también la clave de sincronización. Y si tu correo no es de fiar, cambia el email.</translation>
+ <translation id="5255560688868634216">No hay conexión con el servidor. Reintenta.</translation>
+ <translation id="4083040397226149368">El servidor ha dado una respuesta inesperada. Reintenta dentro de un rato.</translation>
+ <translation id="494335610571298639">La contraseña o el código no son correctos.</translation>
+@@ -846,38 +846,38 @@ de forma irreversible.</translation>
+ <translation id="8950521034619494642">La clave recibida no es válida. No se ha activado nada.</translation>
+ <translation id="2897456354195677124">La contraseña tiene que tener al menos <ph name="COUNT"/> caracteres.</translation>
+ <translation id="2432459461004812437">Revisa la dirección de email: no es válida.</translation>
+-<translation id="2831291422931051600">Este Mac aún no sabe el email de la cuenta. Reintenta dentro de un momento.</translation>
++<translation id="4577215574660198222">Este equipo aún no sabe el email de la cuenta. Reintenta dentro de un momento.</translation>
+ <translation id="5002310192669102178">La clave de recuperación no es válida. Revisa las palabras.</translation>
+ <translation id="1589859907068492005">Esta sincronización no tiene cuenta.</translation>
+ <translation id="3450749155750273509">Esta sincronización ya está ligada a otra cuenta. Para ligarla a una nueva, antes hay que borrar la otra.</translation>
+ <translation id="6055847412456217491">Esta sincronización se ha borrado.</translation>
+ <translation id="1830756791543734245">Ya hay una cuenta con ese email.</translation>
+ <translation id="2967773406799837301">Ya hay un borrado pedido para esta cuenta, o se canceló uno hace menos de 30 días.</translation>
+-<translation id="226184421103633857">Ese Mac ya no está en la lista de la cuenta.</translation>
+-<translation id="8054358701882692803">El servidor no ha aceptado la firma de este Mac. Reintenta.</translation>
+-<translation id="5350666654331436288">La sesión de este Mac ya no vale. Reintenta: se renueva sola.</translation>
++<translation id="7066409526987794781">Ese equipo ya no está en la lista de la cuenta.</translation>
++<translation id="4326204606944304199">El servidor no ha aceptado la firma de este equipo. Reintenta.</translation>
++<translation id="4351466639743018243">La sesión de este equipo ya no vale. Reintenta: se renueva sola.</translation>
+ <translation id="6585795369085257938">No se ha podido usar el llavero de macOS para las claves de sincronización.</translation>
+ <translation id="4781238951071624842">Ha fallado algo dentro de FlyWeb. Reintenta.</translation>
+-<translation id="5517822688508377287">Hay otra operación en curso en este Mac. Espera a que termine.</translation>
++<translation id="4421623317323916741">Hay otra operación en curso en este equipo. Espera a que termine.</translation>
+ <translation id="6114621909096897611">El código ha caducado o la operación se ha cancelado. Vuelve a empezar.</translation>
+-<translation id="4268554389381029185">Este Mac no está sincronizando.</translation>
+-<translation id="1408806848678725106">El servidor no ha entendido la petición. Revisa los datos (el nombre del Mac, como mucho 64 caracteres).</translation>
+-<translation id="8313988273970006626">Se ha añadido el Mac «<ph name="NAME"/>» a tu cuenta de sincronización.</translation>
+-<translation id="6568948226058905693">Alguien ha escrito bien tu contraseña desde un Mac nuevo. Si no has sido tú, cámbiala ya.</translation>
++<translation id="1142498178055312121">Este equipo no está sincronizando.</translation>
++<translation id="53404978488023032">El servidor no ha entendido la petición. Revisa los datos (el nombre del equipo, como mucho 64 caracteres).</translation>
++<translation id="7360943812201563549">Se ha añadido el equipo «<ph name="NAME"/>» a tu cuenta de sincronización.</translation>
++<translation id="234093856005377496">Alguien ha escrito bien tu contraseña desde un equipo nuevo. Si no has sido tú, cámbiala ya.</translation>
+ <translation id="5538594588774012143"><ph name="COUNT"/> intentos fallidos de contraseña en tu cuenta de sincronización.</translation>
+ <translation id="3818291896622357075">Se ha cambiado la contraseña de tu cuenta de sincronización.</translation>
+ <translation id="4173358789701010590">Se ha cambiado el email de tu cuenta de sincronización.</translation>
+-<translation id="6318214281161647734">La clave de sincronización se ha cambiado desde otro Mac.</translation>
++<translation id="1125636197578699430">La clave de sincronización se ha cambiado desde otro equipo.</translation>
+ <translation id="5799058820993400354">Esta sincronización se ha ligado a una cuenta.</translation>
+-<translation id="7008726867349951301">Se ha quitado el Mac «<ph name="NAME"/>» de tu cuenta de sincronización.</translation>
+-<translation id="1554792256814134143">Desde otro Mac se ha pulsado «No he sido yo».</translation>
++<translation id="5886060479521264420">Se ha quitado el equipo «<ph name="NAME"/>» de tu cuenta de sincronización.</translation>
++<translation id="4515021753870484642">Desde otro equipo se ha pulsado «No he sido yo».</translation>
+ <translation id="5764456135109043317">Se ha pedido borrar tu cuenta de sincronización; se borrará el <ph name="DATE"/>.</translation>
+ <translation id="4892015564872566991">Se ha cancelado el borrado de tu cuenta de sincronización.</translation>
+ <translation id="8526251264674164601">y <ph name="COUNT"/> avisos más</translation>
+ <translation id="1346966540667866732">He sido yo</translation>
+ <translation id="3294704000777487397">No he sido yo</translation>
+ <translation id="5007392906805964215">Revisar</translation>
+-<translation id="3967320264779726993">La clave de sincronización se ha cambiado desde otro Mac. Vuelve a entrar con tu email, tu contraseña y un código.</translation>
++<translation id="8362983030618071829">La clave de sincronización se ha cambiado desde otro equipo. Vuelve a entrar con tu email, tu contraseña y un código.</translation>
+ <translation id="6438922473717127121">Cuenta y sincronización</translation>
+ <translation id="1700890504399928133">Esta sincronización se ha ligado a la cuenta «<ph name="EMAIL"/>». Si no la has ligado tú, borra la cuenta y los datos en todos.</translation>
+ <translation id="9216077204680478027">No la he ligado yo</translation>
+diff --git a/app/resources/brave_generated_resources_es-419.xtb b/app/resources/brave_generated_resources_es-419.xtb
+index f831790e42d9aca62cedaaf89ebfb8f9899603a2..b75c90d097c142cbc7fd6daa834807a25f2b9728 100644
+--- a/app/resources/brave_generated_resources_es-419.xtb
++++ b/app/resources/brave_generated_resources_es-419.xtb
+@@ -756,9 +756,9 @@ de forma irreversible.</translation>
+ <translation id="6158789680688491759">Comprobando la contraseña…</translation>
+ <translation id="8286347109540980254">No hay conexión con el servidor. Esto es lo último que se sabía (<ph name="DATE"/>).</translation>
+ <translation id="1259556708021850952">La última comprobación con el servidor ha fallado: <ph name="ERROR"/></translation>
+-<translation id="9204601462589487462">Sincroniza tus Macs con una cuenta</translation>
+-<translation id="947914014881985381">Con una cuenta, añades un Mac con tu email, tu contraseña y un código que te mandamos por email. Tus datos viajan cifrados con una clave que el servidor no tiene.</translation>
+-<translation id="3057943379076520498">Este Mac ya sincroniza con la clave de recuperación (24 palabras). Crea una cuenta para ligar esta sincronización: no se vuelve a sincronizar nada, y podrás añadir otros Macs con tu email y tu contraseña.</translation>
++<translation id="6725854610423522441">Sincroniza tus equipos con una cuenta</translation>
++<translation id="7020132528152689711">Con una cuenta, añades un equipo con tu email, tu contraseña y un código que te mandamos por email. Tus datos viajan cifrados con una clave que el servidor no tiene.</translation>
++<translation id="7819784676362286139">Este equipo ya sincroniza con la clave de recuperación (24 palabras). Crea una cuenta para ligar esta sincronización: no se vuelve a sincronizar nada, y podrás añadir otros equipos con tu email y tu contraseña.</translation>
+ <translation id="4771176409524282426">Crear cuenta</translation>
+ <translation id="4611292653554630842">Entrar</translation>
+ <translation id="2907990096795616260">Tengo mi clave de recuperación</translation>
+@@ -768,8 +768,8 @@ de forma irreversible.</translation>
+ <translation id="3838338534323494292">Contraseña nueva</translation>
+ <translation id="5706128975787418512">Email nuevo</translation>
+ <translation id="2152300309341997262">Código del email</translation>
+-<translation id="5311405160685974375">Nombre de este Mac</translation>
+-<translation id="4647109959892177045">Es como aparece este Mac en la lista y en los avisos. Solo lo ves tú.</translation>
++<translation id="8266092326146744695">Nombre de este equipo</translation>
++<translation id="5192610020550791012">Es como aparece este equipo en la lista y en los avisos. Solo lo ves tú.</translation>
+ <translation id="3083216309726842735">Escribe el email de la cuenta. Te mandaremos un código para comprobarlo.</translation>
+ <translation id="2910518395572324988">Escribe el email y la contraseña de tu cuenta. Si son correctos, te mandaremos un código por email.</translation>
+ <translation id="9056205625135800990">Mandar el código</translation>
+@@ -782,62 +782,62 @@ de forma irreversible.</translation>
+ <translation id="2013649896082402637">Te hemos mandado un código a <ph name="EMAIL"/>. Caduca en 10 minutos.</translation>
+ <translation id="4106988230903033600">Si no llega, mira en la carpeta de correo no deseado o pide otro.</translation>
+ <translation id="7280277229616724707">Reenviar el código</translation>
+-<translation id="2637097480266447339">Escribe el código, elige la contraseña de la cuenta y un nombre para este Mac.</translation>
+-<translation id="5423944663313833380">Escribe el código y un nombre para este Mac.</translation>
++<translation id="4538638252409980406">Escribe el código, elige la contraseña de la cuenta y un nombre para este equipo.</translation>
++<translation id="2733469504833692350">Escribe el código y un nombre para este equipo.</translation>
+ <translation id="3472559064635209201">Escribe el código y la contraseña nueva. No hace falta la anterior, y los datos sincronizados no se tocan.</translation>
+ <translation id="1615209795680961966">Escribe el código que te hemos mandado a la dirección nueva.</translation>
+-<translation id="1306550004604845913">Escribe el código. La cuenta y sus datos se borrarán dentro de 14 días; hasta entonces, cualquier Mac que aún sincronice puede cancelarlo.</translation>
+-<translation id="6846493817244639171">Escribe el código y elige la contraseña de la cuenta. Este Mac empieza ahora una sincronización nueva; la cuenta pasa a ella dentro de 14 días, y entonces se borra la anterior. Cualquier Mac que aún sincronice la anterior puede cancelarlo.</translation>
++<translation id="148804302637426479">Escribe el código. La cuenta y sus datos se borrarán dentro de 14 días; hasta entonces, cualquier equipo que aún sincronice puede cancelarlo.</translation>
++<translation id="246939058078345773">Escribe el código y elige la contraseña de la cuenta. Este equipo empieza ahora una sincronización nueva; la cuenta pasa a ella dentro de 14 días, y entonces se borra la anterior. Cualquier equipo que aún sincronice la anterior puede cancelarlo.</translation>
+ <translation id="7525299293162423735">Clave de recuperación</translation>
+-<translation id="5621574819398488345">Guárdala impresa o en un gestor de contraseñas. Es la única forma de recuperar tus datos si pierdes todos tus Macs y olvidas la contraseña.</translation>
++<translation id="4838325122882037836">Guárdala impresa o en un gestor de contraseñas. Es la única forma de recuperar tus datos si pierdes todos tus equipos y olvidas la contraseña.</translation>
+ <translation id="4864719835827800802">Es una clave de recuperación nueva: la anterior ya no sirve.</translation>
+ <translation id="6114699089920458440">He guardado la clave de recuperación</translation>
+ <translation id="8227304606758279867">Ver la clave de recuperación</translation>
+ <translation id="5356500308268974980">Código para FlyWeb 2.7 o 3.0</translation>
+ <translation id="6692365517211457168">Esas versiones se unen con 25 palabras que caducan.</translation>
+ <translation id="4743224872163733183">Escribe las 24 palabras de tu clave de recuperación. También valen las 25 que enseña FlyWeb 2.7 o 3.0, mientras no caduquen.</translation>
+-<translation id="4610899538506456775">Unir este Mac</translation>
+-<translation id="5159346822234679463">Cámbiala en un Mac que ya sincroniza (Cuenta y sincronización → He olvidado la contraseña) y vuelve aquí.</translation>
+-<translation id="5348000236942781449">Si no tienes ninguno, usa tu clave de recuperación: este Mac se une con ella y después puedes poner aquí una contraseña nueva.</translation>
+-<translation id="2280381798243065719">Sin ningún Mac, sin la contraseña y sin la clave de recuperación, tus datos sincronizados no se pueden recuperar: nadie, tampoco nosotros, tiene la clave que los abre. Con tu email puedes empezar de cero o borrar la cuenta.</translation>
+-<translation id="9124340454989175225">No se hace al momento: tarda 14 días, y cualquier Mac que aún sincronice puede cancelarlo. Si se cancela, no se puede volver a pedir hasta pasados 30 días.</translation>
++<translation id="7164132527133871519">Unir este equipo</translation>
++<translation id="6537540682566586598">Cámbiala en un equipo que ya sincroniza (Cuenta y sincronización → He olvidado la contraseña) y vuelve aquí.</translation>
++<translation id="5624639125811651810">Si no tienes ninguno, usa tu clave de recuperación: este equipo se une con ella y después puedes poner aquí una contraseña nueva.</translation>
++<translation id="8012277300255507977">Sin ningún equipo, sin la contraseña y sin la clave de recuperación, tus datos sincronizados no se pueden recuperar: nadie, tampoco nosotros, tiene la clave que los abre. Con tu email puedes empezar de cero o borrar la cuenta.</translation>
++<translation id="8917587965241295154">No se hace al momento: tarda 14 días, y cualquier equipo que aún sincronice puede cancelarlo. Si se cancela, no se puede volver a pedir hasta pasados 30 días.</translation>
+ <translation id="1340795582009113055">Empezar de cero</translation>
+ <translation id="8646438659330449482">Borrar la cuenta por email</translation>
+ <translation id="9150721074226528700">La cuenta se borrará el <ph name="DATE"/>.</translation>
+-<translation id="8037632438542596661">Este Mac ya sincroniza con una cadena nueva. La cuenta pasará a ella el <ph name="DATE"/>.</translation>
++<translation id="8766625735291914420">Este equipo ya sincroniza con una cadena nueva. La cuenta pasará a ella el <ph name="DATE"/>.</translation>
+ <translation id="6494625331495422251">Cuenta: <ph name="EMAIL"/></translation>
+-<translation id="909279971589746579">Cuenta ligada (este Mac aún no sabe su email)</translation>
+-<translation id="3653383526177624235">Macs de la cuenta</translation>
++<translation id="2863557786883778896">Cuenta ligada (este equipo aún no sabe su email)</translation>
++<translation id="6776639223538622579">Equipos de la cuenta</translation>
+ <translation id="3064823351336547844">La lista aún no se ha cargado.</translation>
+-<translation id="7554602297231944253">Este Mac</translation>
++<translation id="4656293982926141856">Este equipo</translation>
+ <translation id="7958915027729126629">Alta: <ph name="DATE"/></translation>
+ <translation id="2941076175389896864">Último uso: <ph name="DATE"/></translation>
+ <translation id="1728528027996012685">Cambiar el nombre</translation>
+ <translation id="4032130989822692459">Quitar de la lista</translation>
+-<translation id="1657520380446683702">Este Mac deja de aparecer aquí, pero conserva la clave de sincronización. Si lo has perdido o te lo han robado, cambia la clave de sincronización.</translation>
++<translation id="8632447340767846225">Este equipo deja de aparecer aquí, pero conserva la clave de sincronización. Si lo has perdido o te lo han robado, cambia la clave de sincronización.</translation>
+ <translation id="547790733882788713">Cambiar la contraseña</translation>
+ <translation id="5540994555954419987">Cambiar el email</translation>
+ <translation id="6259373429321115014">Escribe tu contraseña y el email nuevo. Te mandaremos un código a la dirección nueva.</translation>
+ <translation id="3152948229289210818">Si no recuerdas la contraseña, cámbiala primero con «He olvidado la contraseña».</translation>
+ <translation id="8926988140899630996">Cambiar la clave de sincronización</translation>
+-<translation id="4436977679292640120">Si has perdido un Mac o te lo han robado: este Mac crea una clave nueva, vuelve a subir los datos cifrados con ella y te enseña la clave de recuperación nueva. Los demás Macs tendrán que volver a entrar con tu email, tu contraseña y un código; el que has perdido no puede, porque no sabe la contraseña.</translation>
+-<translation id="1591805346806979201">Salir de la sincronización en este Mac</translation>
+-<translation id="269715764595743305">Este Mac deja de sincronizar y sale de la lista de la cuenta. Sus datos se quedan en el perfil, y en el servidor y en los demás Macs no se borra nada.</translation>
++<translation id="8933821108812431876">Si has perdido un equipo o te lo han robado: este equipo crea una clave nueva, vuelve a subir los datos cifrados con ella y te enseña la clave de recuperación nueva. Los demás equipos tendrán que volver a entrar con tu email, tu contraseña y un código; el que has perdido no puede, porque no sabe la contraseña.</translation>
++<translation id="2386898585173069829">Salir de la sincronización en este equipo</translation>
++<translation id="6024366804146755975">Este equipo deja de sincronizar y sale de la lista de la cuenta. Sus datos se quedan en el perfil, y en el servidor y en los demás equipos no se borra nada.</translation>
+ <translation id="7675067068518838480">Borrar la cuenta y los datos en todos</translation>
+ <translation id="119216655508960223">Se desconectarán <ph name="COUNT"/> navegadores. Los datos que cada uno tiene en su perfil no se borran.</translation>
+ <translation id="52721605723208513">Se borran del servidor la cuenta y todos los datos sincronizados. No se puede deshacer.</translation>
+ <translation id="8646746061005263397">Se ha pedido borrar esta cuenta desde su email. Se borrará el <ph name="DATE"/>, con todos los datos sincronizados, salvo que lo canceles.</translation>
+ <translation id="8859005822487383647">Si no has sido tú, alguien puede leer tu correo: cancélalo y cambia la contraseña de tu correo.</translation>
+ <translation id="8178938205013945907">Cancelar el borrado</translation>
+-<translation id="3149784601598434793">Este Mac no puede leer sus claves de sincronización (ha cambiado el llavero).</translation>
++<translation id="1538801714568042816">Este equipo no puede leer sus claves de sincronización (ha cambiado el llavero).</translation>
+ <translation id="6825855582963981408">Sus datos siguen en el perfil. Para volver a sincronizar, entra con tu email y tu contraseña o usa tu clave de recuperación.</translation>
+-<translation id="4627565296128889764">Volver a unir este Mac</translation>
+-<translation id="5577892827586215907">La cuenta se ha borrado desde otro Mac.</translation>
+-<translation id="324738368055125401">Este Mac ha dejado de sincronizar; sus datos siguen en el perfil.</translation>
++<translation id="6348364038922009739">Volver a unir este equipo</translation>
++<translation id="8658547939216888511">La cuenta se ha borrado desde otro equipo.</translation>
++<translation id="3226788237927574662">Este equipo ha dejado de sincronizar; sus datos siguen en el perfil.</translation>
+ <translation id="9029009481113741943">Volver a entrar</translation>
+ <translation id="1370154438562828128">Entendido</translation>
+ <translation id="7368712327025288113">¿Has sido tú?</translation>
+-<translation id="4185824096188893138">Hecho: ya no vale ninguna sesión de Mac (los tuyos la renuevan solos) y se ha cancelado cualquier borrado pedido por email. Ahora cambia la contraseña. Si alguien ha podido entrar ya, cambia también la clave de sincronización. Y si tu correo no es de fiar, cambia el email.</translation>
++<translation id="5659512869868709180">Hecho: ya no vale ninguna sesión de equipo (los tuyos la renuevan solos) y se ha cancelado cualquier borrado pedido por email. Ahora cambia la contraseña. Si alguien ha podido entrar ya, cambia también la clave de sincronización. Y si tu correo no es de fiar, cambia el email.</translation>
+ <translation id="5255560688868634216">No hay conexión con el servidor. Reintenta.</translation>
+ <translation id="4083040397226149368">El servidor ha dado una respuesta inesperada. Reintenta dentro de un rato.</translation>
+ <translation id="494335610571298639">La contraseña o el código no son correctos.</translation>
+@@ -847,38 +847,38 @@ de forma irreversible.</translation>
+ <translation id="8950521034619494642">La clave recibida no es válida. No se ha activado nada.</translation>
+ <translation id="2897456354195677124">La contraseña tiene que tener al menos <ph name="COUNT"/> caracteres.</translation>
+ <translation id="2432459461004812437">Revisa la dirección de email: no es válida.</translation>
+-<translation id="2831291422931051600">Este Mac aún no sabe el email de la cuenta. Reintenta dentro de un momento.</translation>
++<translation id="4577215574660198222">Este equipo aún no sabe el email de la cuenta. Reintenta dentro de un momento.</translation>
+ <translation id="5002310192669102178">La clave de recuperación no es válida. Revisa las palabras.</translation>
+ <translation id="1589859907068492005">Esta sincronización no tiene cuenta.</translation>
+ <translation id="3450749155750273509">Esta sincronización ya está ligada a otra cuenta. Para ligarla a una nueva, antes hay que borrar la otra.</translation>
+ <translation id="6055847412456217491">Esta sincronización se ha borrado.</translation>
+ <translation id="1830756791543734245">Ya hay una cuenta con ese email.</translation>
+ <translation id="2967773406799837301">Ya hay un borrado pedido para esta cuenta, o se canceló uno hace menos de 30 días.</translation>
+-<translation id="226184421103633857">Ese Mac ya no está en la lista de la cuenta.</translation>
+-<translation id="8054358701882692803">El servidor no ha aceptado la firma de este Mac. Reintenta.</translation>
+-<translation id="5350666654331436288">La sesión de este Mac ya no vale. Reintenta: se renueva sola.</translation>
++<translation id="7066409526987794781">Ese equipo ya no está en la lista de la cuenta.</translation>
++<translation id="4326204606944304199">El servidor no ha aceptado la firma de este equipo. Reintenta.</translation>
++<translation id="4351466639743018243">La sesión de este equipo ya no vale. Reintenta: se renueva sola.</translation>
+ <translation id="6585795369085257938">No se ha podido usar el llavero de macOS para las claves de sincronización.</translation>
+ <translation id="4781238951071624842">Ha fallado algo dentro de FlyWeb. Reintenta.</translation>
+-<translation id="5517822688508377287">Hay otra operación en curso en este Mac. Espera a que termine.</translation>
++<translation id="4421623317323916741">Hay otra operación en curso en este equipo. Espera a que termine.</translation>
+ <translation id="6114621909096897611">El código ha caducado o la operación se ha cancelado. Vuelve a empezar.</translation>
+-<translation id="4268554389381029185">Este Mac no está sincronizando.</translation>
+-<translation id="1408806848678725106">El servidor no ha entendido la petición. Revisa los datos (el nombre del Mac, como mucho 64 caracteres).</translation>
+-<translation id="8313988273970006626">Se ha añadido el Mac «<ph name="NAME"/>» a tu cuenta de sincronización.</translation>
+-<translation id="6568948226058905693">Alguien ha escrito bien tu contraseña desde un Mac nuevo. Si no has sido tú, cámbiala ya.</translation>
++<translation id="1142498178055312121">Este equipo no está sincronizando.</translation>
++<translation id="53404978488023032">El servidor no ha entendido la petición. Revisa los datos (el nombre del equipo, como mucho 64 caracteres).</translation>
++<translation id="7360943812201563549">Se ha añadido el equipo «<ph name="NAME"/>» a tu cuenta de sincronización.</translation>
++<translation id="234093856005377496">Alguien ha escrito bien tu contraseña desde un equipo nuevo. Si no has sido tú, cámbiala ya.</translation>
+ <translation id="5538594588774012143"><ph name="COUNT"/> intentos fallidos de contraseña en tu cuenta de sincronización.</translation>
+ <translation id="3818291896622357075">Se ha cambiado la contraseña de tu cuenta de sincronización.</translation>
+ <translation id="4173358789701010590">Se ha cambiado el email de tu cuenta de sincronización.</translation>
+-<translation id="6318214281161647734">La clave de sincronización se ha cambiado desde otro Mac.</translation>
++<translation id="1125636197578699430">La clave de sincronización se ha cambiado desde otro equipo.</translation>
+ <translation id="5799058820993400354">Esta sincronización se ha ligado a una cuenta.</translation>
+-<translation id="7008726867349951301">Se ha quitado el Mac «<ph name="NAME"/>» de tu cuenta de sincronización.</translation>
+-<translation id="1554792256814134143">Desde otro Mac se ha pulsado «No he sido yo».</translation>
++<translation id="5886060479521264420">Se ha quitado el equipo «<ph name="NAME"/>» de tu cuenta de sincronización.</translation>
++<translation id="4515021753870484642">Desde otro equipo se ha pulsado «No he sido yo».</translation>
+ <translation id="5764456135109043317">Se ha pedido borrar tu cuenta de sincronización; se borrará el <ph name="DATE"/>.</translation>
+ <translation id="4892015564872566991">Se ha cancelado el borrado de tu cuenta de sincronización.</translation>
+ <translation id="8526251264674164601">y <ph name="COUNT"/> avisos más</translation>
+ <translation id="1346966540667866732">He sido yo</translation>
+ <translation id="3294704000777487397">No he sido yo</translation>
+ <translation id="5007392906805964215">Revisar</translation>
+-<translation id="3967320264779726993">La clave de sincronización se ha cambiado desde otro Mac. Vuelve a entrar con tu email, tu contraseña y un código.</translation>
++<translation id="8362983030618071829">La clave de sincronización se ha cambiado desde otro equipo. Vuelve a entrar con tu email, tu contraseña y un código.</translation>
+ <translation id="6438922473717127121">Cuenta y sincronización</translation>
+ <translation id="1700890504399928133">Esta sincronización se ha ligado a la cuenta «<ph name="EMAIL"/>». Si no la has ligado tú, borra la cuenta y los datos en todos.</translation>
+ <translation id="9216077204680478027">No la he ligado yo</translation>
+diff --git a/browser/sync/account/flyweb_sync_account_service.cc b/browser/sync/account/flyweb_sync_account_service.cc
+index 1ea0023fbd61b538673dfe958e7c5533275c5ff5..7c4fb8ec3cd9a4edaf078ddae8361d3a39eff27d 100644
+--- a/browser/sync/account/flyweb_sync_account_service.cc
++++ b/browser/sync/account/flyweb_sync_account_service.cc
+@@ -54,10 +54,170 @@
+ #include "base/posix/sysctl.h"
+ #endif
+ 
++#if BUILDFLAG(IS_LINUX)
++#include <fcntl.h>
++#include <unistd.h>
++
++#include <string_view>
++#include <utility>
++
++#include "base/no_destructor.h"
++#include "base/posix/eintr_wrapper.h"
++#include "base/strings/string_split.h"
++#include "base/strings/string_util.h"
++#endif
++
+ namespace flyweb_sync {
+ 
+ namespace account = brave_sync::crypto::account;
+ 
++#if BUILDFLAG(IS_LINUX)
++namespace {
++
++// A short file of /sys or /proc, trimmed; empty if it cannot be read.
++std::string ReadSmallFile(const char* path, size_t limit) {
++  std::string text;
++  const int fd = HANDLE_EINTR(open(path, O_RDONLY | O_CLOEXEC));
++  if (fd < 0) {
++    return text;
++  }
++  text.resize(limit);
++  size_t used = 0;
++  while (used < limit) {
++    const ssize_t n = HANDLE_EINTR(read(fd, text.data() + used, limit - used));
++    if (n <= 0) {
++      break;
++    }
++    used += static_cast<size_t>(n);
++  }
++  IGNORE_EINTR(close(fd));
++  text.resize(used);
++  return std::string(base::TrimWhitespaceASCII(text, base::TRIM_ALL));
++}
++
++std::string Dmi(const char* field) {
++  return ReadSmallFile(
++      (std::string("/sys/class/dmi/id/") + field).c_str(), 128);
++}
++
++// Board makers' fillers: «System Product Name», «Default string», «x.x»...
++bool IsPlaceholder(std::string_view value) {
++  static constexpr std::string_view kPlaceholders[] = {
++      "System Product Name", "System manufacturer", "System Name",
++      "To be filled by O.E.M.", "Default string", "Not Applicable",
++      "Not Specified", "None", "O.E.M.", "OEM", "Type1ProductConfigId",
++      "Type2 - Board Product Name1", "All Series", "Unknown"};
++  if (value.empty() ||
++      value.find_first_not_of("xX.0 -_") == std::string_view::npos) {
++    return true;
++  }
++  for (std::string_view placeholder : kPlaceholders) {
++    if (base::EqualsCaseInsensitiveASCII(value, placeholder)) {
++      return true;
++    }
++  }
++  return false;
++}
++
++// «Micro-Star International Co., Ltd.» → «MSI»; others lose «Co., Ltd.»,
++// «Inc.», «Corporation».
++std::string ShortVendor(std::string vendor) {
++  static constexpr std::pair<std::string_view, std::string_view> kVendors[] = {
++      {"Micro-Star", "MSI"},     {"ASUSTeK", "ASUS"},
++      {"Gigabyte", "Gigabyte"},  {"LENOVO", "Lenovo"},
++      {"Dell", "Dell"},          {"Hewlett-Packard", "HP"},
++      {"HP", "HP"},              {"ASRock", "ASRock"}};
++  if (IsPlaceholder(vendor)) {
++    return std::string();
++  }
++  for (const auto& [prefix, name] : kVendors) {
++    if (base::StartsWith(vendor, prefix,
++                         base::CompareCase::INSENSITIVE_ASCII)) {
++      return std::string(name);
++    }
++  }
++  static constexpr std::string_view kSuffixes[] = {
++      ",", ".", " Co", " Ltd", " Inc", " Corporation", " Corp", " LLC",
++      " GmbH"};
++  for (bool trimmed = true; trimmed;) {
++    trimmed = false;
++    for (std::string_view suffix : kSuffixes) {
++      if (base::EndsWith(vendor, suffix,
++                         base::CompareCase::INSENSITIVE_ASCII)) {
++        vendor.resize(vendor.size() - suffix.size());
++        vendor = std::string(base::TrimWhitespaceASCII(vendor, base::TRIM_ALL));
++        trimmed = true;
++      }
++    }
++  }
++  return vendor;
++}
++
++std::string Join(const std::string& vendor, const std::string& model) {
++  if (vendor.empty() ||
++      base::StartsWith(model, vendor, base::CompareCase::INSENSITIVE_ASCII)) {
++    return model;
++  }
++  return vendor + " " + model;
++}
++
++// Never serial numbers, UUIDs or the machine name: only what names the
++// model, as «MacPro6,1» does on a Mac.
++std::string LinuxModel() {
++  const std::string vendor = ShortVendor(Dmi("sys_vendor"));
++  std::string product = Dmi("product_name");
++  std::string board = Dmi("board_name");
++  if (IsPlaceholder(product)) {
++    product.clear();
++  }
++  if (IsPlaceholder(board)) {
++    board.clear();
++  }
++  if (!product.empty()) {
++    // A bare code that is part of the board's name (MSI «MS-7D98» in
++    // «B760 GAMING PLUS WIFI (MS-7D98)»): the board says more.
++    if (!board.empty() && board != product &&
++        board.find(product) != std::string::npos) {
++      const std::string board_vendor = ShortVendor(Dmi("board_vendor"));
++      return Join(board_vendor.empty() ? vendor : board_vendor, board);
++    }
++    // Lenovo keeps a code in product_name and the model in product_version.
++    const std::string version = Dmi("product_version");
++    if (vendor == "Lenovo" && !IsPlaceholder(version)) {
++      product = version;
++    }
++    return Join(vendor, product);
++  }
++  if (!board.empty()) {
++    return Join(ShortVendor(Dmi("board_vendor")), board);
++  }
++  // No DMI worth showing (some virtual machines): the CPU model.
++  const std::string cpuinfo = ReadSmallFile("/proc/cpuinfo", 4096);
++  for (std::string_view line : base::SplitStringPiece(
++           cpuinfo, "\n", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY)) {
++    if (!base::StartsWith(line, "model name")) {
++      continue;
++    }
++    const size_t colon = line.find(':');
++    if (colon == std::string_view::npos) {
++      break;
++    }
++    std::string cpu(base::TrimWhitespaceASCII(line.substr(colon + 1),
++                                              base::TRIM_ALL));
++    for (std::string_view noise : {"(R)", "(TM)", " CPU"}) {
++      base::ReplaceSubstringsAfterOffset(&cpu, 0, noise, "");
++    }
++    if (const size_t at = cpu.find(" @ "); at != std::string::npos) {
++      cpu.resize(at);
++    }
++    return std::string(base::CollapseWhitespaceASCII(cpu, true));
++  }
++  return std::string();
++}
++
++}  // namespace
++#endif  // BUILDFLAG(IS_LINUX)
++
+ namespace {
+ 
+ // Prefs. All but the notice are encrypted with OSCrypt, like the seed (§11).
+@@ -671,14 +831,24 @@ void AccountService::OnSyncShutdown(syncer::SyncService* sync) {
+ 
+ // static
+ std::string AccountService::DeviceModel() {
+-  std::string model = base::SysInfo::HardwareModelName();
+ #if BUILDFLAG(IS_MAC)
++  std::string model = base::SysInfo::HardwareModelName();
+   if (model.empty()) {
+     // HardwareModelName() reads hw.product, which macOS has only from 11 on;
+     // on 10.14 and 10.15 it is empty. hw.model has the same identifier
+     // (e.g. MacPro6,1) there.
+     model = base::StringSysctlByName("hw.model").value_or(std::string());
+   }
++  constexpr char kFallback[] = "Mac";
++#elif BUILDFLAG(IS_LINUX)
++  // FlyWeb 3.2.2-51: HardwareModelName() is empty on Linux. A model like the
++  // Macs' «MacPro6,1», from DMI or the CPU (LinuxModel()), read once.
++  static const base::NoDestructor<std::string> linux_model(LinuxModel());
++  std::string model = *linux_model;
++  constexpr char kFallback[] = "Linux";
++#else
++  std::string model;
++  constexpr char kFallback[] = "FlyWeb";
+ #endif
+   std::erase_if(model, [](char c) {
+     return !(base::IsAsciiAlphaNumeric(c) || c == ',' || c == '.' ||
+@@ -687,7 +857,7 @@ std::string AccountService::DeviceModel() {
+   if (model.size() > kMaxNameLength) {
+     model.resize(kMaxNameLength);
+   }
+-  return model.empty() ? std::string("Mac") : model;
++  return model.empty() ? std::string(kFallback) : model;
+ }
+ 
+ std::string AccountService::CurrentEmail() const {
+-- 
+2.0
