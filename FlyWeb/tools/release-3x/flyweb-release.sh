@@ -341,9 +341,12 @@ empaquetar() {  # solo Linux (U4): dependencias de upstream sobre el sysroot y e
   [ ! -e "$deb" ] || paro "ya existe $deb: no piso un paquete"
   python3 "$SM/FlyWeb/tools/release-3x/empaquetar-deb.py" --out "$OUT" --version "$VERSION" --build "$BUILD" \
     --salida "$L" "${k[@]}" || paro "empaquetar-deb.py"
-  dpkg-deb -I "$deb" | sed -n '/Package:/,/Depends:/p' | cut -c1-120
-  ! dpkg-deb -f "$deb" Depends | grep -qE '\b(wget|libcurl)' || paro "wget o libcurl en Depends"
-  dpkg-deb -c "$deb" | grep -q '^-rwsr-xr-x root/root .*/opt/lamosquita/flyweb/chrome-sandbox$' || paro "chrome-sandbox sin 4755"
+  # A fichero y luego grep: con pipefail, «dpkg-deb … | grep -q» da un falso fallo cuando grep cierra la tubería antes
+  # de que dpkg-deb termine (SIGPIPE), como pasó al empaquetar la 3.2.2-50.
+  dpkg-deb -I "$deb" > "$L/deb-info.txt" && dpkg-deb -c "$deb" > "$L/deb-contenido.txt" || paro "dpkg-deb no lee $deb"
+  sed -n '/^ Package:/,/^ Depends:/p' "$L/deb-info.txt" | cut -c1-120
+  ! grep -qE '^ Depends:.*\b(wget|libcurl)' "$L/deb-info.txt" || paro "wget o libcurl en Depends"
+  grep -q '^-rwsr-xr-x root/root .*/opt/lamosquita/flyweb/chrome-sandbox$' "$L/deb-contenido.txt" || paro "chrome-sandbox sin 4755"
   if command -v lintian > /dev/null; then lintian "$deb" > "$L/lintian.txt" 2>&1 || true; echo "  lintian (aviso): $(grep -c '^E:' "$L/lintian.txt") E, $(grep -c '^W:' "$L/lintian.txt") W"
   else echo "  AVISO: sin lintian"; fi
   paso "FIN: .deb sin firmar y sin publicar"
